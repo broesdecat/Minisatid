@@ -93,6 +93,16 @@ void TSolver::Backtrack ( int c){
 	}
 }
 
+bool TSolver::check( bool complete )
+{
+	return false;
+}
+
+bool TSolver::belongsToT( Lit * e )
+{
+	return true;
+}
+
 //@pre: conflicts are empty
 bool TSolver::simplify(){
 	// Note that ecnf_mode.init is still true, if this is the first time running simplify!

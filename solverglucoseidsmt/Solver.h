@@ -24,12 +24,15 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <set>
 #include <map>
 
-#include "Vec.h"
+#include "constants.h"
 #include "Queue.h"
+#include "Vec.h"
 #include "Heap.h"
 #include "Alg.h"
 
 #include "SolverTypes.h"
+#include "BoundedQueue.h"
+
 #include "TSolver.h"
 
 #ifdef _MSC_VER
@@ -87,7 +90,7 @@ public:
     Clause* propagate        ();								// Perform unit propagation. Returns possibly conflicting clause.
     bool 	existsUnknownVar(); 								//true if the current assignment is completely two-valued
     //TODO if true for 09z, it works
-    Var		newVar(bool polarity = true, bool dvar = false); 	// Add a new variable with parameters specifying variable mode.
+    Var		newVar(bool polarity = true, bool dvar = true); 	// Add a new variable with parameters specifying variable mode.
 	/////////////////////END TSOLVER NECESSARY
 
     /////////EXTRA CHANGES FOR OUR SOLVER
@@ -113,6 +116,9 @@ public:
     bool    solve        ();                        // Search without assumptions.
     bool    okay         () const;                  // FALSE means solver is in a conflicting state
 
+    // Variable mode:
+    // 
+    void    setPolarity    (Var v, bool b); // Declare which polarity the decision heuristic should use for a variable. Requires mode 'polarity_user'.
     void    setDecisionVar (Var v, bool b); // Declare if a variable should be eligible for selection in the decision heuristic.
 
     // Extra results: (read-only member variable)
@@ -126,27 +132,24 @@ public:
     double    var_decay;          // Inverse of the variable activity decay factor.                                            (default 1 / 0.95)
     double    clause_decay;       // Inverse of the clause activity decay factor.                                              (1 / 0.999)
     double    random_var_freq;    // The frequency with which the decision heuristic tries to choose a random variable.        (default 0.02)
+    int       restart_first;      // The initial restart limit.                                                                (default 100)
+    double    restart_inc;        // The factor with which the restart limit is multiplied in each restart.                    (default 1.5)
+    double    learntsize_factor;  // The intitial limit for learnt clauses is a factor of the original clauses.                (default 1 / 3)
     double    learntsize_inc;     // The limit for learnt clauses is multiplied with this factor each restart.                 (default 1.1)
     bool      expensive_ccmin;    // Controls conflict clause minimization.                                                    (default TRUE)
     int       polarity_mode;      // Controls which polarity the decision heuristic chooses. See enum below for allowed modes. (default polarity_false)
-    int       verbosity;          // Verbosity level. 0=silent, 1=some progress report
-    double    random_seed;        // Used by the random variable selection.
+    int       verbosity;          // Verbosity level. 0=silent, 1=some progress report                                         (default 0)
 
-	/* Modified 2009 */
-	int restartLess;
-	int restartMore;
-	float restartTolerance;
-	double nof_learnts;
-	int* backtrackLevels;
-	vec<bool> polarity;
-
-    enum { polarity_true = 0, polarity_false = 1, polarity_stored = 2, polarity_rnd = 3 };
+    enum { polarity_true = 0, polarity_false = 1, polarity_user = 2, polarity_rnd = 3 };
 
     // Statistics: (read-only member variable)
     //
-    uint64_t starts, decisions, rnd_decisions, propagations, conflicts;
+    uint64_t nbDL2,nbBin,nbUn,nbReduceDB,starts, decisions, rnd_decisions, propagations, conflicts;
     uint64_t clauses_literals, learnts_literals, max_literals, tot_literals;
-
+#ifdef LINEARREGRESSION
+	double lin_x, lin_y, sum_x, sum_y, prod_xy, sum_square_x;
+#endif
+	
 protected:
 
     // Helper structures:
@@ -156,7 +159,7 @@ protected:
         bool operator () (Var x, Var y) const { return activity[x] > activity[y]; }
         VarOrderLt(const vec<double>&  act) : activity(act) { }
     };
-
+	
     friend class VarFilter;
     struct VarFilter {
         const Solver& s;
@@ -171,33 +174,50 @@ protected:
     double              cla_inc;          // Amount to bump next clause with.
     vec<double>         activity;         // A heuristic measurement of the activity of a variable.
     double              var_inc;          // Amount to bump next variable with.
-    vec<vec<Clause*> >  watches;          // 'watches[lit]' is a list of constraints watching 'lit' (will go there if literal becomes true).
-    vec<char>           assigns;          // The current assignments (lbool:s stored as char:s)
+    vec<vec<Watched> > watches;
+    vec<vec<Binaire> > watchesBin;
+    vec<char>           assigns;          // The current assignments (lbool:s stored as char:s).
+    vec<char>           polarity;         // The preferred polarity of each variable.
     vec<char>           decision_var;     // Declares if a variable is eligible for selection in the decision heuristic.
     vec<Clause*>        reason;           // 'reason[var]' is the clause that implied the variables current value, or 'NULL' if none.
+	vec<unsigned long int> permDiff;      // LS: permDiff[var] contains the current conflict number... Used to count the number of 
+	
+#ifdef UPDATEVARACTIVITY
+	vec<Lit> lastDecisionLevel;
+#endif
+										  // different decision level variables in learnt clause;
+	
+	
     int                 simpDB_assigns;   // Number of top-level assignments since last execution of 'simplify()'.
     int64_t             simpDB_props;     // Remaining number of propagations that must be made before next execution of 'simplify()'.
     vec<Lit>            assumptions;      // Current set of assumptions provided to solve by the user.
     Heap<VarOrderLt>    order_heap;       // A priority queue of variables ordered with respect to the variable activity.
+    double              random_seed;      // Used by the random variable selection.
     double              progress_estimate;// Set by 'search()'.
 
+	//LS
+	bqueue<unsigned int> nbDecisionLevelHistory; // Set of last decision level in conflict clauses
+	float totalSumOfDecisionLevel;
+	
     // Temporaries (to reduce allocation overhead). Each variable is prefixed by the method in which it is
     // used, exept 'seen' wich is used in several places.
     //
     vec<Lit>            analyze_stack;
     vec<Lit>            analyze_toclear;
     vec<Lit>            add_tmp;
-
+    unsigned long int MYFLAG;
     // Main internal methods:
+    //
+    int nbPropagated(int level);
     //
     void     insertVarOrder   (Var x);                                                 // Insert a variable in the decision order priority queue.
     Lit      pickBranchLit    (int polarity_mode, double random_var_freq);             // Return the next decision variable.
     void     newDecisionLevel ();                                                      // Begins a new decision level.
     bool     enqueue          (Lit p, Clause* from = NULL);                            // Test if fact 'p' contradicts current state, enqueue otherwise.
-    void     analyze          (Clause* confl, vec<Lit>& out_learnt, int& out_btlevel); // (bt = backtrack)
+    void     analyze          (Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &nblevels,int &merged); // (bt = backtrack)
     void     analyzeFinal     (Lit p, vec<Lit>& out_conflict);                         // COULD THIS BE IMPLEMENTED BY THE ORDINARIY "analyze" BY SOME REASONABLE GENERALIZATION?
     bool     litRedundant     (Lit p, uint32_t abstract_levels);                       // (helper method for 'analyze()')
-    lbool    search           ();                    // Search for a given number of conflicts.
+    lbool    search           (int nof_conflicts, int nof_learnts);                    // Search for a given number of conflicts.
     void     reduceDB         ();                                                      // Reduce the set of learnt clauses.
     void     removeSatisfied  (vec<Clause*>& cs);                                      // Shrink 'cs' to contain only non-satisfied clauses.
 
@@ -264,16 +284,23 @@ inline void Solver::varBumpActivity(Var v) {
         order_heap.decrease(v); }
 
 inline void Solver::claDecayActivity() { cla_inc *= clause_decay; }
-inline void Solver::claBumpActivity (Clause& c) {
-        if ( (c.activity() += cla_inc) > 1e20 ) {
+inline void Solver::claBumpActivity (Clause& c) {  // LS
+#ifdef LS_STATS_NBBUMP
+	c.nbBump()++; 
+#endif
+        if ( (c.oldActivity() += cla_inc) > 1e20 ) {
             // Rescale:
             for (int i = 0; i < learnts.size(); i++)
-                learnts[i]->activity() *= 1e-20;
-            cla_inc *= 1e-20; } }
+                learnts[i]->oldActivity() *= 1e-20;
+		cla_inc *= 1e-20; } }
 
 inline bool     Solver::enqueue         (Lit p, Clause* from)   { return value(p) != l_Undef ? value(p) != l_False : (uncheckedEnqueue(p, from), true); }
 inline bool     Solver::locked          (const Clause& c) const { return reason[var(c[0])] == &c && value(c[0]) == l_True; }
 inline void     Solver::newDecisionLevel()                      { trail_lim.push(trail.size()); }
+inline int     Solver::nbPropagated(int level) {
+  if(level==decisionLevel()) return trail.size()-trail_lim[level-1]-1;
+  return trail_lim[level]-trail_lim[level-1]-1;
+}
 
 inline int      Solver::decisionLevel ()      const   { return trail_lim.size(); }
 inline uint32_t Solver::abstractLevel (Var x) const   { return 1 << (level[x] & 31); }
@@ -284,13 +311,12 @@ inline int      Solver::nAssigns      ()      const   { return trail.size(); }
 inline int      Solver::nClauses      ()      const   { return clauses.size(); }
 inline int      Solver::nLearnts      ()      const   { return learnts.size(); }
 inline int      Solver::nVars         ()      const   { return assigns.size(); }
+inline void     Solver::setPolarity   (Var v, bool b) { polarity    [v] = (char)b; }
 inline void     Solver::setDecisionVar(Var v, bool b) { decision_var[v] = (char)b; if (b) { insertVarOrder(v); } }
 //inline bool     Solver::solve         ()              { vec<Lit> tmp; return solve(tmp); }
 inline bool     Solver::okay          ()      const   { return ok; }
 
-/*inline void 	Solver::addLearnedClauseFromT(Clause* c){}	//don't check anything, just add it to the clauses and bump activity
-inline void 	Solver::addClauseFromT(Clause* c){}			//don't check anything, just add it to the clauses
-inline bool 	Solver::existsUnknownVar(){return false;}*/
+
 
 //=================================================================================================
 // Debug + etc:

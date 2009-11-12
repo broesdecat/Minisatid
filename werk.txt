@@ -1,9 +1,5 @@
-mainID juist vervangen door main, maar nu werkt het niet meer (ervoor eigenlijk ook al niet)
-dus main heeft er zeker iets mee te maken
-
-verder zoeken waarom het zoveel trager is als alle andere executables
-
 dan binnen een week een seminarie geven over de link tussen minisatid en smt-solver, welke kennis ze van
 elkaar gebruiken en hoe clause learning (en two watched) nog steeds gebruikt kan worden.
 
 cecilia voorbeelden mailen en windows execs
+

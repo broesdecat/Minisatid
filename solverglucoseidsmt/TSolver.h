@@ -36,6 +36,8 @@ public:
 	/////////////////////SOLVER NECESSARY
 	bool 		simplify	();
 	void 		Backtrack 	( int c);
+	bool 		check		( bool complete );
+	bool 		belongsToT	( Lit * e );
 	void 		propagate	(Lit p, Clause* confl);
 	Clause* 	implicitReasonClause	(Lit p);    // Create a clause that implicitly was the reason for p's propagation.
 	void 		notifyVarAdded			(); 		//correctly initialized TSolver datastructures when vars are added
