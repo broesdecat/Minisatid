@@ -34,13 +34,13 @@ public:
 	virtual ~TSolver();
 
 	/////////////////////SOLVER NECESSARY
-	bool 		simplify	();
-	void 		Backtrack 	( int c);
-	void 		propagate	(Lit p, Clause* confl);
-	Clause* 	implicitReasonClause	(Lit p);    // Create a clause that implicitly was the reason for p's propagation.
-	void 		notifyVarAdded			(); 		//correctly initialized TSolver datastructures when vars are added
-
-	void Subsetminimize(const vec<Lit>& lits);
+	bool 	simplify	();
+	void 	backtrack 	( Lit l);
+	void 	setTrue		(Lit p, Clause* confl);
+	Clause* getExplanation	(Lit p);    // Create a clause that implicitly was the reason for p's propagation.
+	void 	notifyVarAdded	(); 		//correctly initialized TSolver datastructures when vars are added
+	void 	propagateDefinitions(Clause* confl);
+	//void Subsetminimize(const vec<Lit>& lits);
 	/////////////////////ENDSOLVER NECESSARY
 
 	/////////////////////INITIALIZATION
@@ -67,6 +67,9 @@ public:
 	/////////////////////END INITIALIZATION
 
 protected:
+	bool ok;
+	vec<int>	seen;
+
 	// Statistics: (read-only member variable)
 	//
 	int64_t prev_conflicts/*not strictly a statistic!*/;

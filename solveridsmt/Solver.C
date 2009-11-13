@@ -26,10 +26,6 @@
 // Constructor/Destructor:
 
 Solver::Solver() :
-	ok(true),
-	remove_satisfied(true),
-	qhead(0),
-
 	// Parameters: (formerly in 'SearchParams')
 	var_decay(1 / 0.95),
 	clause_decay(1 / 0.999),
@@ -57,6 +53,10 @@ Solver::Solver() :
 	learnts_literals(0),
 	max_literals(0),
 	tot_literals(0),
+
+	ok(true),
+	remove_satisfied(true),
+	qhead(0),
 
 	cla_inc(1), var_inc(1), simpDB_assigns(-1),
 	simpDB_props(0), random_seed(91648253),
@@ -147,13 +147,13 @@ bool Solver::addClause(vec<Lit>& ps) {
 }
 
 /////////START TSOLVER
-void Solver::addLearnedClauseFromT(Clause* c){
+void Solver::addLearnedClause(Clause* c){
 	learnts.push(c);
 	attachClause(*c);
 	claBumpActivity(*c);
 }
 
-void Solver::addClauseFromT(Clause* c){
+void Solver::addClause(Clause* c){
 	clauses.push(c);
 	attachClause(*c);
 }
@@ -204,7 +204,7 @@ void Solver::cancelFurther(int init_qhead) {
 		//TODObroes: vermoedelijk alleen aanroepen als c defined of geaggregeerd is (mss moeilijk te checken)
 
 	    //////////////START TSOLVER
-		tsolver->Backtrack(c);
+		tsolver->backtrack(trail[c]);
 		//////////////END TSOLVER
 	}
 
@@ -335,7 +335,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel) {
 
 		//////////////START TSOLVER
 		if (confl == NULL && pathC > 1) {
-			confl = tsolver->implicitReasonClause(p);
+			confl = tsolver->getExplanation(p);
 			deleteImplicitClause = true;
 		}
 		//////////////END TSOLVER
@@ -484,7 +484,7 @@ Clause* Solver::propagate() {
 	Clause* confl = NULL;
 	int num_props = 0;
 
-	while (qhead < trail.size()) {
+	while (confl==NULL && qhead < trail.size()) {
 		Lit p = trail[qhead++]; // 'p' is enqueued fact to propagate.
 		vec<Clause*>& ws = watches[toInt(p)];
 		Clause **i, **j, **end;
@@ -544,10 +544,13 @@ Clause* Solver::propagate() {
 		if (verbosity >= 2)
 			reportf(" ).\n");
 
-	    //////////////START TSOLVER
-		tsolver->propagate(p, confl);
+		//////////////START TSOLVER
+		tsolver->setTrue(p, confl);
 		//////////////END TSOLVER
 	}
+	//////////////START TSOLVER
+	tsolver->propagateDefinitions(confl);
+	//////////////END TSOLVER
 	propagations += num_props;
 	simpDB_props -= num_props;
 
@@ -630,6 +633,12 @@ bool Solver::simplify() {
 
     //////////////START TSOLVER
 	if(conflicts==0 && !tsolver->simplify()){
+		ok = false;
+		return false;
+	}
+
+	// There might be stuff to propagate now.
+	if (propagate()!=NULL) { // NOTE: this includes the first round of indirectPropagate()!! Make sure first time ALL cycle sources are searched.
 		ok = false;
 		return false;
 	}
@@ -821,6 +830,8 @@ bool Solver::solve() {
 		reportf("===============================================================================\n");
 	}
 
+	try{
+
 	/////////////////////// START OF EXTENSIONS
 	//TODObroes nodig voor minimize opdrachten, werken nu dus nog niet
 /*TEMP COMMENT	if (ecnf_mode.mnmz && to_minimize.size() == 0)
@@ -945,6 +956,12 @@ bool Solver::solve() {
 	if (verbosity >= 1)
 		reportf("===============================================================================\n");
 
+	}catch(int x){
+		if(x==theoryUNSAT){
+			return false;
+			//TODO werkt dit altijd?
+		}
+	}
 	return solved;
 }
 ////////////END TSOLVER
@@ -1029,6 +1046,10 @@ void Solver::checkLiteralCount() {
 				(int) clauses_literals, cnt);
 		assert((int)clauses_literals == cnt);
 	}
+}
+
+void 	Solver::dontRemoveSatisfiedClauses(){
+	remove_satisfied = false;
 }
 
 //============================================================================================================

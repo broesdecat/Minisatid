@@ -187,10 +187,10 @@ static void parse_ECNF_main(B& in, Solver* S, TSolver* TS) { // NOTE: this parse
                         parse_Aggr(in, S, TS, MIN);
                     else if (*in == 'a' && match(in,"ax"))
                         parse_Aggr(in, S, TS, MAX);
-                    else if (*in == 'n' && match(in,"nmz")) {
+                    /*else if (*in == 'n' && match(in,"nmz")) {
                         readClause(in, S, lits);
                         TS->Subsetminimize(lits);
-                    } else
+                    }*/ else
                         ParseError("Unexpected char '%c' after 'M' (expecting \"Min\", \"Max\" or \"Mnmz\").\n",*in);
                     break;
                 case 'P':

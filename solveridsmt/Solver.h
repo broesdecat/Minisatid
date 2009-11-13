@@ -32,6 +32,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "SolverTypes.h"
 #include "TSolver.h"
 
+#define theoryUNSAT 20
+
 #ifdef _MSC_VER
 #include <ctime>
 
@@ -62,31 +64,24 @@ public:
     void setTSolver(TSolver* ts){tsolver = ts;}
 
 	/////////////////////TSOLVER NECESSARY
-    bool		ok;               // If FALSE, the constraints are already unsatisfiable. No part of the solver state may be used!
-	bool		remove_satisfied; // Indicates whether possibly inefficient linear scan for satisfied clauses should be performed in 'simplify'.
-	int			qhead;            // Head of queue (as index into the trail -- no more explicit propagation queue in MiniSat).
-	vec<int>	seen;
-	vec<int>	level;            // 'level[var]' contains the level at which the assignment was made.
-	vec<Lit>	trail;            // Assignment stack; stores all assigments made in the order they were made.
-	vec<int>	trail_lim;        // Separator indices for different decision levels in 'trail'.
-
+	int 	getLevel(int var) 			const;
+	Lit 	getRecentAssignments(int i) const;
+	int 	getNbOfRecentAssignments() 	const;
     lbool   value      (Var x) const;       // The current value of a variable.
     lbool   value      (Lit p) const;       // The current value of a literal.
     lbool   modelValue (Lit p) const;       // The value of a literal in the last model. The last call to solve must have been satisfiable.
     int     decisionLevel()    const; 		// Gives the current decisionlevel.
-    int     nAssigns   ()      const;       // The current number of assigned literals.
-    int     nClauses   ()      const;       // The current number of original clauses.
-    int     nLearnts   ()      const;       // The current number of learnt clauses.
     int     nVars      ()      const;       // The current number of variables.
 
-    void 	addLearnedClauseFromT(Clause* c);	//don't check anything, just add it to the clauses and bump activity
-    void 	addClauseFromT(Clause* c);			//don't check anything, just add it to the clauses
+    void 	addLearnedClause(Clause* c);	//don't check anything, just add it to the clauses and bump activity
+    void 	addClause(Clause* c);			//don't check anything, just add it to the clauses
 
     void    cancelUntil      (int level);						// Backtrack until a certain level.
     void    uncheckedEnqueue (Lit p, Clause* from = NULL);		// Enqueue a literal. Assumes value of literal is undefined.
     Clause* propagate        ();								// Perform unit propagation. Returns possibly conflicting clause.
     bool 	existsUnknownVar(); 								//true if the current assignment is completely two-valued
     Var		newVar(bool polarity = true, bool dvar = false); 	// Add a new variable with parameters specifying variable mode.
+    void 	dontRemoveSatisfiedClauses();
 	/////////////////////END TSOLVER NECESSARY
 
 
@@ -103,7 +98,6 @@ public:
     //
     bool    simplify     ();	                     // Removes already satisfied clauses.
     void    invalidateModel(const vec<Lit>& lits, int& init_qhead);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
-    bool    solve        (const vec<Lit>& assumps); // Search for a model that respects a given set of assumptions.
     bool    solve        ();                        // Search for nb_models models without assumptions.
     bool    okay         () const;                  // FALSE means solver is in a conflicting state
     int     nb_models;                              // Number of models wanted (all if N=0).
@@ -148,6 +142,15 @@ public:
     // vec< vec<Var> >     used_conj;        // Temporary to unfounded(Var, set<Var>&). Only when guards system used.
 
 protected:
+    bool	ok;               // If FALSE, the constraints are already unsatisfiable. No part of the solver state may be used!
+    bool	remove_satisfied; // Indicates whether possibly inefficient linear scan for satisfied clauses should be performed in 'simplify'.
+    int		qhead;            // Head of queue (as index into the trail -- no more explicit propagation queue in MiniSat).
+    vec<int>	seen;
+    vec<int>	level;            // 'level[var]' contains the level at which the assignment was made.
+    vec<Lit>	trail;            // Assignment stack; stores all assigments made in the order they were made.
+	vec<int>	trail_lim;        // Separator indices for different decision levels in 'trail'.
+
+    bool    solve        (const vec<Lit>& assumps); // Search for a model that respects a given set of assumptions.
 
     // Helper structures:
     //
@@ -194,6 +197,10 @@ protected:
     lbool    search           (int nof_conflicts, int nof_learnts);                    								   // Search for a given number of conflicts. //CHANGED FOR 09z had args int nof_conflicts, int nof_learnts
     void     reduceDB         ();                                                      // Reduce the set of learnt clauses.
     void     removeSatisfied  (vec<Clause*>& cs);                                      // Shrink 'cs' to contain only non-satisfied clauses.
+
+    int     nClauses   ()      const;       // The current number of original clauses.
+    int     nAssigns   ()      const;       // The current number of assigned literas.
+    int     nLearnts   ()      const;       // The current number of learnt clauses.
 
     // Maintaining Variable/Clause activity:
     //
@@ -280,6 +287,10 @@ inline int      Solver::nVars         ()      const   { return assigns.size(); }
 inline void     Solver::setPolarity   (Var v, bool b) { polarity    [v] = (char)b; }
 inline void     Solver::setDecisionVar(Var v, bool b) { decision_var[v] = (char)b; if (b) { insertVarOrder(v); } }
 inline bool     Solver::okay          ()      const   { return ok; }
+
+inline int		Solver::getLevel(int var)		const	{return level[var];}
+inline Lit	 	Solver::getRecentAssignments(int i) 	const 	{return trail[i+trail_lim.last()];}
+inline int 		Solver::getNbOfRecentAssignments() const {return trail.size()-trail_lim.last();}
 
 //=================================================================================================
 // Debug + etc:

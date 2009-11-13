@@ -5,6 +5,7 @@
 #include <cmath>
 
 TSolver::TSolver():
+	ok(true),
 	defn_strategy(always),
 	defn_search(include_cs),
 	prev_conflicts(-1) /*first time test (prev_conflicts==conflicts) should fail*/,
@@ -26,10 +27,9 @@ TSolver::TSolver():
 TSolver::~TSolver() {
 }
 
-void TSolver::Backtrack ( int c){
+void TSolver::backtrack ( Lit l){
 	if (!ecnf_mode.init && ecnf_mode.aggr) {
 		// Fix the Aggregate min and max values.
-		Lit l = solver->trail[c];
 		if (aggr_reason[var(l)] != NULL) {
 			delete aggr_reason[var(l)];
 			aggr_reason[var(l)] = NULL;
@@ -322,7 +322,6 @@ bool TSolver::simplify(){
 		}
 
 		// *** Finally, vars v that still have nb_body_lits_to_justify[v]>0 can never possibly become true: make them false.
-		int trs = solver->trail.size();
 		if (verbosity >= 2)
 			reportf("Initialization of justification makes these atoms false: [");
 		vec<Lit> empty;
@@ -340,13 +339,8 @@ bool TSolver::simplify(){
 		if (verbosity >= 2)
 			reportf(" ]\n");
 
-		if (solver->trail.size() > trs) { // There is stuff to propagate now.
-			if (atoms_in_pos_loops == 0)
-				ecnf_mode.def = false;
-			ecnf_mode.init = false;
-			if (solver->propagate() != NULL) // NOTE: this includes the first round of indirectPropagate()!! Make sure first time ALL cycle sources are searched.
-				return false;
-		}
+		if (atoms_in_pos_loops == 0)
+			ecnf_mode.def = false;
 
 		if (atoms_in_pos_loops == 0 && verbosity >= 1)
 			reportf("| All recursive atoms falsified in initializations.                           |\n");
@@ -355,31 +349,40 @@ bool TSolver::simplify(){
 
 	if (verbosity >= 2 && (ecnf_mode.amo || ecnf_mode.def || ecnf_mode.aggr))
 		reportf("ECNF data structures initialized and theory simplified.\n");
-	ecnf_mode.init = false;
 	return true;
 }
 
-void TSolver::propagate(Lit p, Clause* confl){
-	if (!ecnf_mode.init) { // finishECNF_DataStructures() needs to be executed first.
-		// AMO propagations.
-		if (confl == NULL && ecnf_mode.amo)
-			confl = AMO_propagate(p);
+void TSolver::setTrue(Lit p, Clause* confl){
+	if (ecnf_mode.init) {
+		return;
+	}
 
-		// Aggr propagations.
-		if (confl == NULL && ecnf_mode.aggr)
-			confl = Aggr_propagate(p);
+	// AMO propagations.
+	if (confl == NULL && ecnf_mode.amo)
+		confl = AMO_propagate(p);
 
-		// Def propagations.
-		if (solver->qhead == solver->trail.size()
-				&& confl //Only after all other propagations finished.
-						== NULL && ecnf_mode.def)
-			confl = indirectPropagate();
+	// Aggr propagations.
+	if (confl == NULL && ecnf_mode.aggr)
+		confl = Aggr_propagate(p);
 
-		// TODO: fast way of stopping the while loop if confl != NULL ?
+	// TODO: fast way of stopping the while loop if confl != NULL ?
+}
+
+//only call this when the whole queue has been propagated
+void TSolver::propagateDefinitions(Clause* confl){
+	if (ecnf_mode.init) {
+		return;
+	}
+
+	// Def propagations.
+	if (confl == NULL && ecnf_mode.def){
+		confl = indirectPropagate();
 	}
 }
 
 void TSolver::notifyVarAdded(){
+	seen .push(0);
+
 	if (ecnf_mode.def) {
 		defType.push(NONDEF);
 		definition.push(NULL);
@@ -404,30 +407,32 @@ bool TSolver::addRule(const bool conj, vec<Lit>& ps) {
 	assert(ps.size() > 0);
 	assert(!sign(ps[0]));
 
-	if (!solver->ok)
-		return false;
-	else {
-		if (conj || ps.size() == 2){
-			for (int i = 1; i < ps.size(); i++){
-				ps[i] = ~ps[i];
-			}
-		}else{
-			ps[0] = ~ps[0];
-		}
-		// Remark: simplifying clause might be incorrect!
+	if(!ok){
+		throw theoryUNSAT;
 	}
+
+	if (conj || ps.size() == 2){
+		for (int i = 1; i < ps.size(); i++){
+			ps[i] = ~ps[i];
+		}
+	}else{
+		ps[0] = ~ps[0];
+	}
+	// Remark: simplifying clause might be incorrect!
 
 	if (ps.size() == 1) {
 		// Remark: disjunctive rule with empty body: head is false!
 		if (solver->value(ps[0]) == l_False){
-			solver->ok = false;
-			return solver->ok;
+			throw theoryUNSAT;
 		}
 		solver->uncheckedEnqueue(ps[0]);
-		return solver->ok = solver->propagate() == NULL;
+		if(solver->propagate() != NULL){
+			throw theoryUNSAT;
+		}
+		return true;
 	} else {
 		Clause* c = Clause_new(ps, false);
-		solver->addClauseFromT(c);
+		solver->addClause(c);
 		Var v = var(ps[0]);
 		defdVars.push(v);
 		defType[v] = conj ? CONJ : DISJ;
@@ -438,7 +443,7 @@ bool TSolver::addRule(const bool conj, vec<Lit>& ps) {
 		for (int i = 1; i < ps.size(); i++) {
 			binclause[1] = ~ps[i];
 			c = Clause_new(binclause, false);
-			solver->addClauseFromT(c);
+			solver->addClause(c);
 		}
 	}
 
@@ -454,8 +459,9 @@ bool TSolver::addAMO(vec<Lit>& ps) {
 	assert(!sign(ps[0]));
 
 	// Main calls first "addClause(vec<Lit>& ps)", where sorting etc happens. Thus, if we get here, ps has size > 0, and is sorted. If ps.size()==1, the propagation has already happened.
-	if (!solver->ok)
-		return false;
+	if (!ok){
+		throw theoryUNSAT;
+	}
 	if (ps.size() == 1)
 		return true;
 	Clause* c;
@@ -463,13 +469,13 @@ bool TSolver::addAMO(vec<Lit>& ps) {
 		ps[0] = ~ps[0];
 		ps[1] = ~ps[1];
 		c = Clause_new(ps, false);
-		solver->addClauseFromT(c);
+		solver->addClause(c);
 		ps[0] = ~ps[0];
 		ps[1] = ~ps[1]; // return ps to its original state: may be used to add Clause (for EU)
 	} else {
 		// TODO: it should be possible, in case of an EU expression, to use the clause that's already there. Then when a literal becomes true, it can be set as watch in the clause also.
 		c = Clause_new(ps, false);
-		solver->addClauseFromT(c);
+		solver->addClause(c);
 		if (verbosity >= 2) {
 			reportf("AMO clause: ");
 			printClause(*c);
@@ -531,11 +537,13 @@ void TSolver::finishECNF_DataStructures() {
 			// Now do the initial propagations based on set literals that already have a truth value.
 			// Note: this is based on the fact that until now ecnf_mode.init=false.
 			Clause * confl = NULL;
+			/* TODObroes mss was dit wel nuttig
 			for (int i = 0; i < solver->qhead && confl == NULL; ++i) // from qhead onwards will still be propagated by simplify().
-				confl = Aggr_propagate(solver->trail[i]);
+				confl = Aggr_propagate(solver->trail[i]);*/
 			if (confl != NULL) {
-				solver->ok = false;
-				return;
+				if (!ok){
+					throw theoryUNSAT;
+				}
 			}
 		}
 	}
@@ -544,7 +552,7 @@ void TSolver::finishECNF_DataStructures() {
 		if (verbosity >= 1)
 			reportf("| Number of rules           : %6d                                          |\n",defdVars.size());
 
-		solver->remove_satisfied = false; // Satisified clauses that originate in rules might still be needed for correctness.
+		solver->dontRemoveSatisfiedClauses(); // Satisified clauses that originate in rules might still be needed for correctness.
 
 		// ****** Based on this, initialize "scc". ******
 		scc.growTo(solver->nVars(), 0);
@@ -684,8 +692,8 @@ void TSolver::findCycleSources() {
 	clearCycleSources();
 	clear_changes();
 	if (prev_conflicts == solver->conflicts && defn_strategy == always) {
-		for (int i = solver->trail_lim.last(); i < solver->trail.size(); i++) {
-			Lit l = solver->trail[i]; // l became true, ~l became false.
+		for(int i=0; i<solver->getNbOfRecentAssignments(); i++){
+			Lit l = solver->getRecentAssignments(i);
 			vec<Var>& ds = disj_occurs[toInt(~l)];
 			for (int j = 0; j < ds.size(); j++) {
 				Var v = ds[j];
@@ -911,7 +919,7 @@ bool TSolver::unfounded(Var cs, std::set<Var>& ufs) {
 	Queue<Var> q;
 	Var v;
 	markNonJustified(cs, tmpseen);
-	if (!solver->seen[cs]) {
+	if (!seen[cs]) {
 		isCS[cs] = false;
 		goto Finish;
 	} // 'seen[v]' means: v has path to cs in current sp_justification.
@@ -923,7 +931,7 @@ bool TSolver::unfounded(Var cs, std::set<Var>& ufs) {
 	while (q.size() > 0) {
 		v = q.peek();
 		q.pop();
-		if (!solver->seen[v])
+		if (!seen[v])
 			continue;
 		if (directlyJustifiable(v, ufs, q))
 			if (Justify(v, cs, ufs, q))
@@ -932,7 +940,7 @@ bool TSolver::unfounded(Var cs, std::set<Var>& ufs) {
 	assert(ufs.size() > 0); // The ufs atoms form an unfounded set. 'cs' is in it.
 	rslt = true;
 	Finish: for (int i = 0; i < tmpseen.size(); i++) {
-		solver->seen[tmpseen[i]] = 0; /*used_conj[tmpseen[i]].clear(); WITH guards system*/
+		seen[tmpseen[i]] = 0; /*used_conj[tmpseen[i]].clear(); WITH guards system*/
 	}
 	return rslt;
 }
@@ -946,7 +954,7 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 		// - If not found: bottom up propagation
 		// - If found: set conjunction's watch to it; make sure it's ufs and on queue.
 		int i = 0;
-		for (; i < c.size() && !(sign(c[i]) && solver->seen[var(c[i])]); ++i)
+		for (; i < c.size() && !(sign(c[i]) && seen[var(c[i])]); ++i)
 			;
 		if (i == c.size())
 			return true; // Each body literal has either !sign (is negative) or !seen (is justified wrt v).
@@ -962,11 +970,11 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 		 used_conj[var(c[i])].push(v); // non-justified AND already ufs.
 		 */
 		// WITHOUT guards system. Use 'seen[v]' as a counter: number of 'seen' body literals!
-		solver->seen[v]=0;
+		seen[v]=0;
 		for (; i < c.size(); ++i) {
 			Var x = var(c[i]);
-			if (solver->seen[x] && sign(c[i])) {
-				solver->seen[v]++;
+			if (seen[x] && sign(c[i])) {
+				seen[v]++;
 				std::pair<std::set<Var>::iterator, bool> pr = ufs.insert(x);
 				if (pr.second)
 					q.insert(x);
@@ -984,7 +992,7 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 			Lit bdl = c[i];
 			Var b = var(bdl);
 			if (bdl != Lit(v, true) && solver->value(bdl) != l_False) {
-				if (sign(bdl) || !solver->seen[b]) {
+				if (sign(bdl) || !seen[b]) {
 					change_jstfc_disj(v, bdl);
 					return true; // bad style, but anyway...
 				} else
@@ -1014,7 +1022,7 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 				Lit l = lits[i].lit;
 				// Note: l_Undef literals may be used twice, once pos and once neg!
 				if (solver->value(l) != l_False) {
-					if (!sign(l) && solver->seen[var(l)]) {
+					if (!sign(l) && seen[var(l)]) {
 						if (ufs.find(var(l)) == ufs.end())
 							add_to_q.push(var(l));
 					} else {
@@ -1025,7 +1033,7 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 					}
 				}
 				if (solver->value(l) != l_True) {
-					if (sign(l) && solver->seen[var(l)]) {
+					if (sign(l) && seen[var(l)]) {
 						if (ufs.find(var(l)) == ufs.end())
 							add_to_q.push(var(l));
 					} else {
@@ -1057,7 +1065,7 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 			for (int i = 0; !complete && i < lits.size(); ++i) {
 				Lit l = lits[i].lit;
 				if (solver->value(l) != l_False) {
-					if (!sign(l) && solver->seen[var(l)]) {
+					if (!sign(l) && seen[var(l)]) {
 						if (ufs.find(var(l)) == ufs.end())
 							add_to_q.push(var(l));
 					} else {
@@ -1068,7 +1076,7 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 					}
 				}
 				if (solver->value(l) != l_True) {
-					if (sign(l) && solver->seen[var(l)]) {
+					if (sign(l) && seen[var(l)]) {
 						if (ufs.find(var(l)) == ufs.end())
 							add_to_q.push(var(l));
 					} else {
@@ -1097,7 +1105,7 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 			for (; lits[i].weight < aw.expr->min; ++i) { // NOTE: these are exactly the same always. Find some way of doing this only the first time.
 				Lit l = lits[i].lit;
 				nj.push(~l);
-				if (sign(l) && solver->seen[var(l)] && scc[v] == scc[var(l)]
+				if (sign(l) && seen[var(l)] && scc[v] == scc[var(l)]
 						&& ufs.find(var(l)) == ufs.end())
 					add_to_q.push(var(l));
 			}
@@ -1105,7 +1113,7 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 			for (; lits[i].weight <= aw.expr->max; ++i) {
 				Lit l = lits[i].lit;
 				if (solver->value(l) != l_False) {
-					if (!sign(l) && solver->seen[var(l)] && scc[v] == scc[var(l)]
+					if (!sign(l) && seen[var(l)] && scc[v] == scc[var(l)]
 							&& ufs.find(var(l)) == ufs.end())
 						add_to_q.push(var(l));
 					else {
@@ -1134,7 +1142,7 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 			for (; lits[i].weight > aw.expr->max; --i) { // NOTE: these are exactly the same always. Find some way of doing this only the first time.
 				Lit l = lits[i].lit;
 				nj.push(~l);
-				if (sign(l) && solver->seen[var(l)] && scc[v] == scc[var(l)]
+				if (sign(l) && seen[var(l)] && scc[v] == scc[var(l)]
 						&& ufs.find(var(l)) == ufs.end())
 					add_to_q.push(var(l));
 			}
@@ -1142,7 +1150,7 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 			for (; lits[i].weight >= aw.expr->min; --i) {
 				Lit l = lits[i].lit;
 				if (solver->value(l) != l_False) {
-					if (!sign(l) && solver->seen[var(l)] && scc[v] == scc[var(l)]
+					if (!sign(l) && seen[var(l)] && scc[v] == scc[var(l)]
 							&& ufs.find(var(l)) == ufs.end())
 						add_to_q.push(var(l));
 					else {
@@ -1181,10 +1189,10 @@ bool TSolver::Justify(Var v, Var cs, std::set<Var>& ufs, Queue<Var>& q) {
 	while (tojustify.size() > 0) {
 		Var k = tojustify.peek();
 		tojustify.pop();
-		if (solver->seen[k]) { // Prevent infinite loop. NB: 'seen' here is the same as in 'unfounded': means: k has path in sp_justification to cs.
+		if (seen[k]) { // Prevent infinite loop. NB: 'seen' here is the same as in 'unfounded': means: k has path in sp_justification to cs.
 			// Make it justified.
 			ufs.erase(k);
-			solver->seen[k]=0;
+			seen[k]=0;
 			if (isCS[k]) {
 				isCS[k] = false;
 				cs_removed_in_justify++;
@@ -1196,7 +1204,7 @@ bool TSolver::Justify(Var v, Var cs, std::set<Var>& ufs, Queue<Var>& q) {
 			vec<Var>& disjs = disj_occurs[k + k]; // k+k is the index of the positive literal k.
 			for (int i = 0; i < disjs.size(); ++i) {
 				Var d = disjs[i];
-				if (solver->seen[d]) { // && ufs.find(d) != ufs.end()) //   WITH this extra test: only bottom-up propagate in already marked literals.
+				if (seen[d]) { // && ufs.find(d) != ufs.end()) //   WITH this extra test: only bottom-up propagate in already marked literals.
 					change_jstfc_disj(d, Lit(k, false));
 					tojustify.insert(d);
 				}
@@ -1213,11 +1221,11 @@ bool TSolver::Justify(Var v, Var cs, std::set<Var>& ufs, Queue<Var>& q) {
 			vec<Var>& conjs = conj_occurs[k + k];
 			for (int i = 0; i < conjs.size(); ++i) {
 				Var c = conjs[i];
-				if (solver->seen[c] && ufs.find(conjs[i]) != ufs.end()) { //  NOTE: we use 'seen' as a counter, but the counter is set *only* for literals in ufs. So the extra test is required here.
-					if (solver->seen[c] == 1)
+				if (seen[c] && ufs.find(conjs[i]) != ufs.end()) { //  NOTE: we use 'seen' as a counter, but the counter is set *only* for literals in ufs. So the extra test is required here.
+					if (seen[c] == 1)
 						tojustify.insert(c); // Recall that the if-test in the beginning checks whether the atom is 'seen'.
 					else
-						solver->seen[c]--;
+						seen[c]--;
 				}
 			}
 
@@ -1230,7 +1238,7 @@ bool TSolver::Justify(Var v, Var cs, std::set<Var>& ufs, Queue<Var>& q) {
 					vec<AggrExpr*>& exprs = aw[i].set->exprs;
 					for (int j = 0; j < exprs.size(); ++j) {
 						Var d = var(exprs[j]->c);
-						if (solver->seen[d]) //  && ufs.find(d) != ufs.end())  WITH this extra test: only bottom-up propagate in already marked literals.
+						if (seen[d]) //  && ufs.find(d) != ufs.end())  WITH this extra test: only bottom-up propagate in already marked literals.
 							q.insert(d);
 					}
 				}
@@ -1276,10 +1284,10 @@ Clause* TSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 			Clause& cl = *definition[*tch];
 			for (int i = 0; i < cl.size(); i++) {
 				Lit l = cl[i];
-				if (l != Lit(*tch, true) && solver->seen[var(l)] != (sign(l) ? 1 : 2)
+				if (l != Lit(*tch, true) && seen[var(l)] != (sign(l) ? 1 : 2)
 						&& ufs.find(var(cl[i])) == ufs.end()) {
 					loopf.push(l);
-					solver->seen[var(l)] = (sign(l) ? 1 : 2); // Just in case P and ~P both appear; otherwise we might get something between well-founded and ultimate semantics...
+					seen[var(l)] = (sign(l) ? 1 : 2); // Just in case P and ~P both appear; otherwise we might get something between well-founded and ultimate semantics...
 				}
 			}
 			break;
@@ -1293,12 +1301,12 @@ Clause* TSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 					if (solver->value(l) == l_True) {
 						if (sign(l) || ufs.find(var(l)) == ufs.end()) {
 							loopf.push(l);
-							solver->seen[var(l)] = (sign(l) ? 1 : 2);
+							seen[var(l)] = (sign(l) ? 1 : 2);
 						}
 					} else if (solver->value(l) == l_False) {
 						if (~sign(l) || ufs.find(var(l)) == ufs.end()) {
 							loopf.push(~l);
-							solver->seen[var(l)] = (sign(l) ? 2 : 1);
+							seen[var(l)] = (sign(l) ? 2 : 1);
 						}
 					}
 				}
@@ -1307,13 +1315,13 @@ Clause* TSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 				for (; lits[i].weight < aw.expr->min; ++i) {
 					if (ufs.find(var(lits[i].lit)) == ufs.end()) {
 						loopf.push(~lits[i].lit);
-						solver->seen[var(lits[i].lit)] = (sign(lits[i].lit) ? 2 : 1);
+						seen[var(lits[i].lit)] = (sign(lits[i].lit) ? 2 : 1);
 					}
 				}
 				for (; lits[i].weight <= aw.expr->max; ++i) {
 					if (ufs.find(var(lits[i].lit)) == ufs.end()) {
 						loopf.push(lits[i].lit);
-						solver->seen[var(lits[i].lit)] = (sign(lits[i].lit) ? 1 : 2);
+						seen[var(lits[i].lit)] = (sign(lits[i].lit) ? 1 : 2);
 					}
 				}
 			} else { // MAX
@@ -1321,13 +1329,13 @@ Clause* TSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 				for (; lits[i].weight > aw.expr->max; --i) {
 					if (ufs.find(var(lits[i].lit)) == ufs.end()) {
 						loopf.push(~lits[i].lit);
-						solver->seen[var(lits[i].lit)] = (sign(lits[i].lit) ? 2 : 1);
+						seen[var(lits[i].lit)] = (sign(lits[i].lit) ? 2 : 1);
 					}
 				}
 				for (; lits[i].weight >= aw.expr->min; --i) {
 					if (ufs.find(var(lits[i].lit)) == ufs.end()) {
 						loopf.push(lits[i].lit);
-						solver->seen[var(lits[i].lit)] = (sign(lits[i].lit) ? 1 : 2);
+						seen[var(lits[i].lit)] = (sign(lits[i].lit) ? 1 : 2);
 					}
 				}
 			}
@@ -1336,15 +1344,15 @@ Clause* TSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 		}
 	}
 	for (int i = 1; i < loopf.size(); i++)
-		solver->seen[var(loopf[i])]=0;
+		seen[var(loopf[i])]=0;
 	extdisj_sizes += loopf.size() - 1;
 
 	if (defn_strategy != always) {// Maybe the loop formula could have been derived at an earlier level: in that case we first have to backtrack to that level.
 		// Set the backtrack level.
 		int lvl = 0;
 		for (int i = 1; i < loopf.size(); i++)
-			if (solver->level[var(loopf[i])] > lvl)
-				lvl = solver->level[var(loopf[i])];
+			if (solver->getLevel(var(loopf[i])) > lvl)
+				lvl = solver->getLevel(var(loopf[i]));
 		solver->cancelUntil(lvl);
 	}
 
@@ -1354,7 +1362,7 @@ Clause* TSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 		if (solver->value(v) == l_True) {
 			loopf[0] = Lit(v, true);
 			Clause* c = Clause_new(loopf);
-			solver->addLearnedClauseFromT(c);
+			solver->addLearnedClause(c);
 			if (verbosity >= 2) {
 				reportf("Adding conflicting loop formula: [ ");
 				printClause(*c);
@@ -1375,7 +1383,7 @@ Clause* TSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 		// ~v \vee \bigvee\extdisj{L}.
 		loopf[0] = Lit(v, true);
 		Clause* c = Clause_new(loopf);
-		solver->addLearnedClauseFromT(c);
+		solver->addLearnedClause(c);
 		if (verbosity >= 2) {
 			reportf("Adding loop formula: [ ");
 			printClause(*c);
@@ -1388,7 +1396,7 @@ Clause* TSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 		for (int i = 1; i < loopf.size(); ++i) {
 			binaryclause[1] = ~loopf[i];
 			Clause* c = Clause_new(binaryclause, true);
-			solver->addLearnedClauseFromT(c);
+			solver->addLearnedClause(c);
 			if (verbosity >= 2) {
 				reportf("Adding loop formula: [ ");
 				printClause(*c);
@@ -1401,7 +1409,7 @@ Clause* TSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 		for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
 			binaryclause[0] = Lit(*tch, true);
 			Clause* c = Clause_new(loopf);
-			solver->addLearnedClauseFromT(c);
+			solver->addLearnedClause(c);
 			//uncheckedEnqueue(binaryclause[0], c);
 			if (verbosity >= 2) {
 				reportf("Adding loop formula: [ ");
@@ -1413,7 +1421,7 @@ Clause* TSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 		for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
 			loopf[0] = Lit(*tch, true);
 			Clause* c = Clause_new(loopf);
-			solver->addLearnedClauseFromT(c);
+			solver->addLearnedClause(c);
 			solver->uncheckedEnqueue(loopf[0], c);
 			if (verbosity >= 2) {
 				reportf("Adding loop formula: [ ");
@@ -1493,9 +1501,9 @@ void TSolver::markNonJustified(Var cs, vec<Var>& tmpseen) {
 
 void TSolver::markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q,
 		vec<Var>& tmpseen) {
-	if (!solver->seen[v] && (scc[v] == scc[cs]) && (defn_search == include_cs || v
+	if (!seen[v] && (scc[v] == scc[cs]) && (defn_search == include_cs || v
 			== cs || !isCS[v])) {
-		solver->seen[v] = 1;
+		seen[v] = 1;
 		tmpseen.push(v);
 		q.insert(v);
 		total_marked_size++;
@@ -1543,8 +1551,8 @@ Clause* TSolver::aggrEnqueue(Lit p, AggrReason* ar) {
 			reportf("Conflict.\n");
 		AggrReason* old_ar = aggr_reason[var(p)];
 		aggr_reason[var(p)] = ar;
-		Clause* confl = implicitReasonClause(p);
-		solver->addLearnedClauseFromT(confl);
+		Clause* confl = getExplanation(p);
+		solver->addLearnedClause(confl);
 		aggr_reason[var(p)] = old_ar;
 		return confl;
 	} else if (solver->value(p) == l_Undef) {
@@ -1571,11 +1579,10 @@ Clause* TSolver::AMO_propagate(Lit p) {// TODO: if part of an EU statement, chan
 				continue;
 			ps[0] = ~c[j];
 			Clause* rc = Clause_new(ps);
-			solver->addLearnedClauseFromT(rc);
+			solver->addLearnedClause(rc);
 			if (solver->value(c[j]) == l_True) {
 				if (verbosity >= 2)
 					reportf(" Conflict");
-				solver->qhead = solver->trail.size();
 				return rc;
 			} else {// (solver->value(c[j])==l_Undef) holds
 				solver->uncheckedEnqueue(~c[j], rc);
@@ -1635,7 +1642,7 @@ void TSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
 	as.cmax = as.max;
 }
 
-void TSolver::Subsetminimize(const vec<Lit>& lits) {
+/*void TSolver::Subsetminimize(const vec<Lit>& lits) {
 	if (!ecnf_mode.mnmz)
 		reportf("ERROR! Attempt at adding a subset minimize statement, though ECNF specifiers did not contain \"mnmz\".\n"), exit(
 				3);
@@ -1650,7 +1657,7 @@ void TSolver::Subsetminimize(const vec<Lit>& lits) {
 
 	for (int i = 0; i < lits.size(); i++)
 		to_minimize.push(lits[i]);
-}
+}*/
 
 /*
  Adds an aggregate expression.
@@ -2001,7 +2008,7 @@ Clause* TSolver::Aggr_propagate(AggrSet& as, AggrExpr& ae) {
  |    Note that this clause is not attached, bumped, or any of the likes. Delete it immediately
  |    after use, to avoid memory leaks.
  |________________________________________________________________________________________________@*/
-Clause* TSolver::implicitReasonClause(Lit p) {
+Clause* TSolver::getExplanation(Lit p) {
 	assert(ecnf_mode.aggr);
 	vec<Lit> lits;
 	lits.push(p);
@@ -2282,7 +2289,7 @@ bool TSolver::isCycleFree() { // currently only when no recursice aggregates!! T
 inline void TSolver::apply_changes() {
     for (int i=changed_vars.size()-1; i>=0; i--) {
         Var v = changed_vars[i];
-        if (!solver->seen[v]) {
+        if (!seen[v]) {
             if (defType[v]==DISJ) cf_justification_disj[v] = sp_justification_disj[v];
             else {
                 assert(defType[v]==AGGR);
@@ -2291,18 +2298,18 @@ inline void TSolver::apply_changes() {
                 cf.clear();
                 for (int j=0; j<sp.size(); ++j) cf.push(sp[j]);
             }
-            solver->seen[v]=1;
+            seen[v]=1;
         }
     }
     for (int i=0; i<changed_vars.size(); i++)
-    	solver->seen[changed_vars[i]]=0;
+    	seen[changed_vars[i]]=0;
     changed_vars.clear();
 }
 
 inline void TSolver::clear_changes() {
     for (int i=changed_vars.size()-1; i>=0; i--) {
         Var v = changed_vars[i];
-        if (!solver->seen[v]) {
+        if (!seen[v]) {
             if (defType[v]==DISJ) sp_justification_disj[v] = cf_justification_disj[v];
             else {
                 assert(defType[v]==AGGR);
@@ -2314,7 +2321,7 @@ inline void TSolver::clear_changes() {
         }
     }
     for (int i=0; i<changed_vars.size(); i++)
-    	solver->seen[changed_vars[i]]=0;
+    	seen[changed_vars[i]]=0;
     changed_vars.clear();
 }
 
