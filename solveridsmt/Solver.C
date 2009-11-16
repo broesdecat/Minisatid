@@ -40,6 +40,7 @@ Solver::Solver() :
 	expensive_ccmin(true),
 	polarity_mode(polarity_false),
 	verbosity(0),
+	random_seed(91648253),
 	maxruntime(0.0)
 
 	// Statistics: (formerly in 'SolverStats')
@@ -59,7 +60,7 @@ Solver::Solver() :
 	qhead(0),
 
 	cla_inc(1), var_inc(1), simpDB_assigns(-1),
-	simpDB_props(0), random_seed(91648253),
+	simpDB_props(0),
 	progress_estimate(0), order_heap(VarOrderLt(activity)) {
 }
 
@@ -549,7 +550,9 @@ Clause* Solver::propagate() {
 		//////////////END TSOLVER
 	}
 	//////////////START TSOLVER
-	tsolver->propagateDefinitions(confl);
+	if(qhead==trail.size()){
+		tsolver->propagateDefinitions(confl);
+	}
 	//////////////END TSOLVER
 	propagations += num_props;
 	simpDB_props -= num_props;

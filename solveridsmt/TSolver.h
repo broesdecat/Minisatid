@@ -67,8 +67,13 @@ public:
 	/////////////////////END INITIALIZATION
 
 protected:
-	bool ok;
+	bool 		ok;
 	vec<int>	seen;
+	//vec<char> 	assigns;
+
+	lbool	value(Var x) const;
+	lbool	value(Lit p) const;
+	int		nVars()      const;
 
 	// Statistics: (read-only member variable)
 	//
@@ -182,5 +187,9 @@ protected:
 
 inline void     TSolver::addCycleSource(Var v)        { if (!isCS[v]) {isCS[v]=true; css.push(v);} }
 inline void     TSolver::clearCycleSources()          { for (int i=0;i<css.size();i++) isCS[css[i]]=false; css.clear(); }
+
+/*inline lbool    TSolver::value(Var x) const   { return toLbool(assigns[x]); }
+inline lbool    TSolver::value(Lit p) const   { return toLbool(assigns[var(p)]) ^ sign(p); }
+inline int      TSolver::nVars()      const   { return assigns.size(); }*/
 
 #endif /* TSOLVER_H_ */

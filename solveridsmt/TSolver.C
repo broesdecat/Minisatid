@@ -5,9 +5,9 @@
 #include <cmath>
 
 TSolver::TSolver():
-	ok(true),
 	defn_strategy(always),
 	defn_search(include_cs),
+	ok(true),
 	prev_conflicts(-1) /*first time test (prev_conflicts==conflicts) should fail*/,
 	cycle_sources(0), justifiable_cycle_sources(0),
 	cycles(0),
@@ -28,6 +28,9 @@ TSolver::~TSolver() {
 }
 
 void TSolver::backtrack ( Lit l){
+	/*Var x = var(l);
+	assigns[x] = toInt(l_Undef);*/
+
 	if (!ecnf_mode.init && ecnf_mode.aggr) {
 		// Fix the Aggregate min and max values.
 		if (aggr_reason[var(l)] != NULL) {
@@ -353,6 +356,8 @@ bool TSolver::simplify(){
 }
 
 void TSolver::setTrue(Lit p, Clause* confl){
+	//assigns[var(p)] = toInt(lbool(!sign(p)));
+
 	if (ecnf_mode.init) {
 		return;
 	}
@@ -381,7 +386,8 @@ void TSolver::propagateDefinitions(Clause* confl){
 }
 
 void TSolver::notifyVarAdded(){
-	seen .push(0);
+	seen.push(0);
+	//assigns.push(toInt(l_Undef));
 
 	if (ecnf_mode.def) {
 		defType.push(NONDEF);
@@ -537,13 +543,10 @@ void TSolver::finishECNF_DataStructures() {
 			// Now do the initial propagations based on set literals that already have a truth value.
 			// Note: this is based on the fact that until now ecnf_mode.init=false.
 			Clause * confl = NULL;
-			/* TODObroes mss was dit wel nuttig
 			for (int i = 0; i < solver->qhead && confl == NULL; ++i) // from qhead onwards will still be propagated by simplify().
-				confl = Aggr_propagate(solver->trail[i]);*/
+				confl = Aggr_propagate(solver->trail[i]);
 			if (confl != NULL) {
-				if (!ok){
-					throw theoryUNSAT;
-				}
+				throw theoryUNSAT;
 			}
 		}
 	}
@@ -692,6 +695,8 @@ void TSolver::findCycleSources() {
 	clearCycleSources();
 	clear_changes();
 	if (prev_conflicts == solver->conflicts && defn_strategy == always) {
+		//for (int i=solver->trail_lim.last(); i<solver->trail.size(); i++) {
+		//	Lit l = solver->trail[i]; // l became true, ~l became false.
 		for(int i=0; i<solver->getNbOfRecentAssignments(); i++){
 			Lit l = solver->getRecentAssignments(i);
 			vec<Var>& ds = disj_occurs[toInt(~l)];

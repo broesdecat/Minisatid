@@ -64,14 +64,12 @@ public:
     void setTSolver(TSolver* ts){tsolver = ts;}
 
 	/////////////////////TSOLVER NECESSARY
+    int		qhead;            // Head of queue (as index into the trail -- no more explicit propagation queue in MiniSat).
+    vec<Lit>	trail;            // Assignment stack; stores all assigments made in the order they were made.
 	int 	getLevel(int var) 			const;
 	Lit 	getRecentAssignments(int i) const;
 	int 	getNbOfRecentAssignments() 	const;
-    lbool   value      (Var x) const;       // The current value of a variable.
-    lbool   value      (Lit p) const;       // The current value of a literal.
-    lbool   modelValue (Lit p) const;       // The value of a literal in the last model. The last call to solve must have been satisfiable.
     int     decisionLevel()    const; 		// Gives the current decisionlevel.
-    int     nVars      ()      const;       // The current number of variables.
 
     void 	addLearnedClause(Clause* c);	//don't check anything, just add it to the clauses and bump activity
     void 	addClause(Clause* c);			//don't check anything, just add it to the clauses
@@ -107,6 +105,10 @@ public:
     // 
     void    setPolarity    (Var v, bool b); // Declare which polarity the decision heuristic should use for a variable. Requires mode 'polarity_user'.
     void    setDecisionVar (Var v, bool b); // Declare if a variable should be eligible for selection in the decision heuristic.
+
+    lbool   value      (Var x) const;       // The current value of a variable.
+    lbool   value      (Lit p) const;       // The current value of a literal.
+    int     nVars      ()      const;       // The current number of variables.
 
     // Extra results: (read-only member variable)
     //
@@ -144,10 +146,10 @@ public:
 protected:
     bool	ok;               // If FALSE, the constraints are already unsatisfiable. No part of the solver state may be used!
     bool	remove_satisfied; // Indicates whether possibly inefficient linear scan for satisfied clauses should be performed in 'simplify'.
-    int		qhead;            // Head of queue (as index into the trail -- no more explicit propagation queue in MiniSat).
+    //int		qhead;            // Head of queue (as index into the trail -- no more explicit propagation queue in MiniSat).
     vec<int>	seen;
     vec<int>	level;            // 'level[var]' contains the level at which the assignment was made.
-    vec<Lit>	trail;            // Assignment stack; stores all assigments made in the order they were made.
+    //vec<Lit>	trail;            // Assignment stack; stores all assigments made in the order they were made.
 	vec<int>	trail_lim;        // Separator indices for different decision levels in 'trail'.
 
     bool    solve        (const vec<Lit>& assumps); // Search for a model that respects a given set of assumptions.
@@ -198,6 +200,7 @@ protected:
     void     reduceDB         ();                                                      // Reduce the set of learnt clauses.
     void     removeSatisfied  (vec<Clause*>& cs);                                      // Shrink 'cs' to contain only non-satisfied clauses.
 
+    lbool   modelValue (Lit p) const;       // The value of a literal in the last model. The last call to solve must have been satisfiable.
     int     nClauses   ()      const;       // The current number of original clauses.
     int     nAssigns   ()      const;       // The current number of assigned literas.
     int     nLearnts   ()      const;       // The current number of learnt clauses.
@@ -288,9 +291,9 @@ inline void     Solver::setPolarity   (Var v, bool b) { polarity    [v] = (char)
 inline void     Solver::setDecisionVar(Var v, bool b) { decision_var[v] = (char)b; if (b) { insertVarOrder(v); } }
 inline bool     Solver::okay          ()      const   { return ok; }
 
-inline int		Solver::getLevel(int var)		const	{return level[var];}
-inline Lit	 	Solver::getRecentAssignments(int i) 	const 	{return trail[i+trail_lim.last()];}
-inline int 		Solver::getNbOfRecentAssignments() const {return trail.size()-trail_lim.last();}
+inline int		Solver::getLevel(int var)			const	{return level[var];}
+inline Lit	 	Solver::getRecentAssignments(int i) const	{return trail[i+trail_lim.last()];}
+inline int 		Solver::getNbOfRecentAssignments() 	const	{return trail.size()-trail_lim.last();}
 
 //=================================================================================================
 // Debug + etc:
