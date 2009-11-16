@@ -33,6 +33,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "TSolver.h"
 
 #define theoryUNSAT 20
+#define NOTUNFOUNDED 666
+#define NOTVALIDSCC 777
 
 #ifdef _MSC_VER
 #include <ctime>
@@ -173,11 +175,11 @@ protected:
     //
     vec<Clause*>        clauses;          // List of problem clauses.
     vec<Clause*>        learnts;          // List of learnt clauses.
+    vec<char>			assigns;		  // The current assignments (lbool:s stored as char:s).
     double              cla_inc;          // Amount to bump next clause with.
     vec<double>         activity;         // A heuristic measurement of the activity of a variable.
     double              var_inc;          // Amount to bump next variable with.
     vec<vec<Clause*> >  watches;          // 'watches[lit]' is a list of constraints watching 'lit' (will go there if literal becomes true).
-    vec<char>           assigns;          // The current assignments (lbool:s stored as char:s).
     vec<char>           polarity;         // The preferred polarity of each variable.
     vec<Clause*>        reason;           // 'reason[var]' is the clause that implied the variables current value, or 'NULL' if none.
     int                 simpDB_assigns;   // Number of top-level assignments since last execution of 'simplify()'.

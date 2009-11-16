@@ -465,6 +465,9 @@ void Solver::analyzeFinal(Lit p, vec<Lit>& out_conflict) {
 void Solver::uncheckedEnqueue(Lit p, Clause* from) {
 	assert(value(p) == l_Undef);
 	assigns[var(p)] = toInt(lbool(!sign(p))); // <<== abstract but not uttermost effecient
+	/////START TSOLVER
+	tsolver->setTrue(p);
+	/////END TSOLVER
 	level[var(p)] = decisionLevel();
 	reason[var(p)] = from;
 	trail.push(p);
@@ -546,7 +549,7 @@ Clause* Solver::propagate() {
 			reportf(" ).\n");
 
 		//////////////START TSOLVER
-		tsolver->setTrue(p, confl);
+		tsolver->propagate(p, confl);
 		//////////////END TSOLVER
 	}
 	//////////////START TSOLVER

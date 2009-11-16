@@ -36,9 +36,10 @@ public:
 	/////////////////////SOLVER NECESSARY
 	bool 	simplify	();
 	void 	backtrack 	( Lit l);
-	void 	setTrue		(Lit p, Clause* confl);
+	void 	setTrue		(Lit p);
 	Clause* getExplanation	(Lit p);    // Create a clause that implicitly was the reason for p's propagation.
 	void 	notifyVarAdded	(); 		//correctly initialized TSolver datastructures when vars are added
+	void 	propagate		(Lit p, Clause* confl);
 	void 	propagateDefinitions(Clause* confl);
 	//void Subsetminimize(const vec<Lit>& lits);
 	/////////////////////ENDSOLVER NECESSARY
@@ -69,7 +70,7 @@ public:
 protected:
 	bool 		ok;
 	vec<int>	seen;
-	//vec<char> 	assigns;
+	vec<char> 	assigns;
 
 	lbool	value(Var x) const;
 	lbool	value(Lit p) const;
@@ -156,15 +157,16 @@ protected:
 	 */
 
 	// Auxiliary for indirectPropagate:
-	bool     indirectPropagateNow();                               // Decide (depending on chosen strategy) whether or not to do propagations now.
-	bool     unfounded          (Var cs, std::set<Var>& ufs);      // True iff 'cs' is currently in an unfounded set, 'ufs'.
-	Clause*  assertUnfoundedSet (const std::set<Var>& ufs);
+	bool	indirectPropagateNow();                               // Decide (depending on chosen strategy) whether or not to do propagations now.
+	bool	unfounded          (Var cs, std::set<Var>& ufs);      // True iff 'cs' is currently in an unfounded set, 'ufs'.
+	Clause*	assertUnfoundedSet (const std::set<Var>& ufs);
+	void	visitForUFS(Var v, std::set<Var>& ufs); //find unfounded sets by tarjan
 
-	void     markNonJustified   (Var cs, vec<Var>& tmpseen);                           // Auxiliary for 'unfounded(..)'. Marks all ancestors of 'cs' in sp_justification as 'seen'.
-	void     markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q, vec<Var>& tmpseen);
-	void     markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>& tmpseen);
-	bool     directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q);            // Auxiliary for 'unfounded(..)'. True if v can be immediately justified by one change_jstfc action.
-	bool     Justify            (Var v, Var cs, std::set<Var>& ufs, Queue<Var>& q);    // Auxiliary for 'unfounded(..)'. Propagate the fact that 'v' is now justified. True if 'cs' is now justified.
+	void	markNonJustified   (Var cs, vec<Var>& tmpseen);                           // Auxiliary for 'unfounded(..)'. Marks all ancestors of 'cs' in sp_justification as 'seen'.
+	void	markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q, vec<Var>& tmpseen);
+	void	markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>& tmpseen);
+	bool	directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q);            // Auxiliary for 'unfounded(..)'. True if v can be immediately justified by one change_jstfc action.
+	bool	Justify            (Var v, Var cs, std::set<Var>& ufs, Queue<Var>& q);    // Auxiliary for 'unfounded(..)'. Propagate the fact that 'v' is now justified. True if 'cs' is now justified.
 
 	// Another propagation method (too expensive in practice):
 	// void     fwIndirectPropagate();
@@ -188,8 +190,8 @@ protected:
 inline void     TSolver::addCycleSource(Var v)        { if (!isCS[v]) {isCS[v]=true; css.push(v);} }
 inline void     TSolver::clearCycleSources()          { for (int i=0;i<css.size();i++) isCS[css[i]]=false; css.clear(); }
 
-/*inline lbool    TSolver::value(Var x) const   { return toLbool(assigns[x]); }
+inline lbool    TSolver::value(Var x) const   { return toLbool(assigns[x]); }
 inline lbool    TSolver::value(Lit p) const   { return toLbool(assigns[var(p)]) ^ sign(p); }
-inline int      TSolver::nVars()      const   { return assigns.size(); }*/
+inline int      TSolver::nVars()      const   { return assigns.size(); }
 
 #endif /* TSOLVER_H_ */

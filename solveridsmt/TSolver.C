@@ -27,9 +27,13 @@ TSolver::TSolver():
 TSolver::~TSolver() {
 }
 
+void TSolver::setTrue(Lit p) {
+	assigns[var(p)] = toInt(lbool(!sign(p))); // <<== abstract but not uttermost effecient
+}
+
 void TSolver::backtrack ( Lit l){
-	/*Var x = var(l);
-	assigns[x] = toInt(l_Undef);*/
+	Var x = var(l);
+	assigns[x] = toInt(l_Undef);
 
 	if (!ecnf_mode.init && ecnf_mode.aggr) {
 		// Fix the Aggregate min and max values.
@@ -66,7 +70,7 @@ void TSolver::backtrack ( Lit l){
 			case MIN:
 				if (trues)
 					while (vcw[i].set->max < vcw[i].set->set.size()
-							&& solver->value(vcw[i].set->set[vcw[i].set->max].lit)
+							&& value(vcw[i].set->set[vcw[i].set->max].lit)
 									!= l_True)
 						vcw[i].set->max++;
 				else if (vcw[i].set->set[pi.weight].weight
@@ -79,7 +83,7 @@ void TSolver::backtrack ( Lit l){
 				break;
 			case MAX:
 				if (trues)
-					while (vcw[i].set->min >= 0 && solver->value(vcw[i].set->set[vcw[i].set->min].lit) != l_True)
+					while (vcw[i].set->min >= 0 && value(vcw[i].set->set[vcw[i].set->min].lit) != l_True)
 						vcw[i].set->min--;
 				else if (vcw[i].set->set[pi.weight].weight
 						>= vcw[i].set->set[vcw[i].set->max].weight)
@@ -109,21 +113,21 @@ bool TSolver::simplify(){
 	if (ecnf_mode.def) {
 		// NOTE: we're doing a stable model initialization here. No need for a loop.
 		cf_justification_disj.clear();
-		cf_justification_disj.growTo(solver->nVars());
+		cf_justification_disj.growTo(nVars());
 		sp_justification_disj.clear();
-		sp_justification_disj.growTo(solver->nVars());
+		sp_justification_disj.growTo(nVars());
 		cf_justification_aggr.clear();
-		cf_justification_aggr.growTo(2 * solver->nVars());
+		cf_justification_aggr.growTo(2 * nVars());
 		sp_justification_aggr.clear();
-		sp_justification_aggr.growTo(2 * solver->nVars());
+		sp_justification_aggr.growTo(2 * nVars());
 
 		vec<int> nb_body_lits_to_justify; // Note: use as boolean for DISJ and AGGR, as int for CONJ.
-		nb_body_lits_to_justify.growTo(solver->nVars(), 0); // Unless there are big conjunctions, we could use 'seen' instead of 'nb_body_lits_to_justify'.
+		nb_body_lits_to_justify.growTo(nVars(), 0); // Unless there are big conjunctions, we could use 'seen' instead of 'nb_body_lits_to_justify'.
 
 		// *** First : initialize nb_body_lits_to_justify, and the propagation queue propq.
 		for (int i = 0; i < defdVars.size(); i++) {
 			Var v = defdVars[i];
-			if (solver->value(v) == l_False)
+			if (value(v) == l_False)
 				continue;
 			switch (defType[v]) {
 			case DISJ:
@@ -142,11 +146,11 @@ bool TSolver::simplify(){
 
 		// *** Next: initialize a queue of literals that are safe with regard to cycle-freeness. (i.e.: either are not in justification, or are justified in a cycle-free way.)
 		Queue<Lit> propq;
-		for (int i = 0; i < solver->nVars(); ++i)
-			if (solver->value(i) != l_True)
+		for (int i = 0; i < nVars(); ++i)
+			if (value(i) != l_True)
 				propq.insert(Lit(i, true)); // First all non-false negative literals.
-		for (int i = 0; i < solver->nVars(); ++i)
-			if (defType[i] == NONDEF && solver->value(i) != l_False)
+		for (int i = 0; i < nVars(); ++i)
+			if (defType[i] == NONDEF && value(i) != l_False)
 				propq.insert(Lit(i, false)); // Then all non-false non-defined positive literals.
 
 		// *** Next: propagate safeness to defined literals until fixpoint.
@@ -157,7 +161,7 @@ bool TSolver::simplify(){
 
 			for (int i = 0; i < disj_occurs[toInt(l)].size(); ++i) { // Find disjunctions that may be made cycle-safe through l.
 				Var v = (disj_occurs[toInt(l)])[i];
-				if (defType[v] == NONDEF || solver->value(v) == l_False)
+				if (defType[v] == NONDEF || value(v) == l_False)
 					continue;
 				assert(defType[v]==DISJ);
 				if (nb_body_lits_to_justify[v] > 0) {
@@ -169,7 +173,7 @@ bool TSolver::simplify(){
 			}
 			for (int i = 0; i < conj_occurs[toInt(l)].size(); ++i) { // Find conjunctions that may be made cycle-safe through l.
 				Var v = (conj_occurs[toInt(l)])[i];
-				if (defType[v] == NONDEF || solver->value(v) == l_False)
+				if (defType[v] == NONDEF || value(v) == l_False)
 					continue;
 				assert(defType[v]==CONJ);
 				--nb_body_lits_to_justify[v];
@@ -184,7 +188,7 @@ bool TSolver::simplify(){
 					vec<AggrExpr*>& exprs = aw.set->exprs;
 					for (int j = 0; j < exprs.size(); ++j) {
 						Var v = var(exprs[j]->c);
-						if (defType[v] == NONDEF || solver->value(v) == l_False)
+						if (defType[v] == NONDEF || value(v) == l_False)
 							continue;
 						assert(defType[v]==AGGR);
 						if (nb_body_lits_to_justify[v] > 0) {
@@ -197,7 +201,7 @@ bool TSolver::simplify(){
 								bool complete = false;
 								for (int k = 0; !complete && k < lits.size(); ++k) {
 									Lit ll = lits[k].lit;
-									if (solver->value(ll) != l_False) {
+									if (value(ll) != l_False) {
 										if (sign(ll)
 												|| nb_body_lits_to_justify[var(
 														ll)] == 0) {
@@ -208,7 +212,7 @@ bool TSolver::simplify(){
 												complete = true;
 										}
 									}
-									if (solver->value(ll) != l_True) {
+									if (value(ll) != l_True) {
 										if (!sign(ll)
 												|| nb_body_lits_to_justify[var(
 														ll)] == 0) {
@@ -230,7 +234,7 @@ bool TSolver::simplify(){
 								bool complete = false;
 								for (int k = 0; !complete && k < lits.size(); ++k) {
 									Lit ll = lits[k].lit;
-									if (solver->value(ll) != l_False) {
+									if (value(ll) != l_False) {
 										if (sign(ll)
 												|| nb_body_lits_to_justify[var(
 														ll)] == 0) {
@@ -241,7 +245,7 @@ bool TSolver::simplify(){
 												complete = true;
 										}
 									}
-									if (solver->value(ll) != l_True) {
+									if (value(ll) != l_True) {
 										if (!sign(ll)
 												|| nb_body_lits_to_justify[var(
 														ll)] == 0) {
@@ -271,7 +275,7 @@ bool TSolver::simplify(){
 								}// NB: 'aux' switches meaning inbetween here...
 								for (; aux && lits[k].weight <= exprs[j]->max; ++k) {
 									Lit ll = lits[k].lit;
-									if (solver->value(ll) != l_False && (sign(ll)
+									if (value(ll) != l_False && (sign(ll)
 											|| nb_body_lits_to_justify[var(ll)]
 													== 0)) {
 										jstf.push(ll);
@@ -296,7 +300,7 @@ bool TSolver::simplify(){
 								}// NB: 'aux' switches meaning inbetween here...
 								for (; aux && lits[k].weight >= exprs[j]->min; --k) {
 									Lit ll = lits[k].lit;
-									if (solver->value(ll) != l_False
+									if (value(ll) != l_False
 											&& (!sign(ll)
 													|| !nb_body_lits_to_justify[var(
 															ll)])) {
@@ -355,9 +359,7 @@ bool TSolver::simplify(){
 	return true;
 }
 
-void TSolver::setTrue(Lit p, Clause* confl){
-	//assigns[var(p)] = toInt(lbool(!sign(p)));
-
+void TSolver::propagate(Lit p, Clause* confl){
 	if (ecnf_mode.init) {
 		return;
 	}
@@ -387,20 +389,20 @@ void TSolver::propagateDefinitions(Clause* confl){
 
 void TSolver::notifyVarAdded(){
 	seen.push(0);
-	//assigns.push(toInt(l_Undef));
+	assigns.push(toInt(l_Undef));
 
 	if (ecnf_mode.def) {
 		defType.push(NONDEF);
 		definition.push(NULL);
-		disj_occurs.growTo(2 * solver->nVars()); // May be tested on in findCycleSources().
-		conj_occurs.growTo(2 * solver->nVars()); // Probably not needed anyway...
+		disj_occurs.growTo(2 * nVars()); // May be tested on in findCycleSources().
+		conj_occurs.growTo(2 * nVars()); // Probably not needed anyway...
 	}
 	if (ecnf_mode.aggr) {
 		Aggr_watches.push();
 		aggr_reason.push();
 	}
 	if (ecnf_mode.amo) {
-		AMO_watches.growTo(2 * solver->nVars());
+		AMO_watches.growTo(2 * nVars());
 	}
 }
 
@@ -428,7 +430,7 @@ bool TSolver::addRule(const bool conj, vec<Lit>& ps) {
 
 	if (ps.size() == 1) {
 		// Remark: disjunctive rule with empty body: head is false!
-		if (solver->value(ps[0]) == l_False){
+		if (value(ps[0]) == l_False){
 			throw theoryUNSAT;
 		}
 		solver->uncheckedEnqueue(ps[0]);
@@ -488,7 +490,7 @@ bool TSolver::addAMO(vec<Lit>& ps) {
 			reportf("\n");
 		}
 
-		int n = 2 * solver->nVars();
+		int n = 2 * nVars();
 		while (n >= AMO_watches.size())
 			AMO_watches.push(); // Make sure the AMO_watches array is big enough.
 
@@ -513,7 +515,7 @@ void TSolver::finishECNF_DataStructures() {
 		if (amo_statements > 0) {
 			if (verbosity >= 1)
 				reportf(", avg. size: %7.2f literals.       |\n",(double)amo_literals/(double)amo_statements);
-			int n = 2 * solver->nVars();
+			int n = 2 * nVars();
 			while (n >= AMO_watches.size())
 				AMO_watches.push();
 		} else {
@@ -558,22 +560,22 @@ void TSolver::finishECNF_DataStructures() {
 		solver->dontRemoveSatisfiedClauses(); // Satisified clauses that originate in rules might still be needed for correctness.
 
 		// ****** Based on this, initialize "scc". ******
-		scc.growTo(solver->nVars(), 0);
+		scc.growTo(nVars(), 0);
 		vec<int> & root = scc;
-		vec<bool> incomp(solver->nVars(), false);
+		vec<bool> incomp(nVars(), false);
 		vec<int> stack;
-		vec<int> visited(solver->nVars(), 0); // =0 represents not visited; >0 corresponds to a unique value (the counter).
+		vec<int> visited(nVars(), 0); // =0 represents not visited; >0 corresponds to a unique value (the counter).
 		int counter = 1;
 
-		for (int i = 0; i < solver->nVars(); i++)
+		for (int i = 0; i < nVars(); i++)
 			if (defType[i] != NONDEF && visited[i] == 0)
 				visit(i, root, incomp, stack, visited, counter);
 
 		// Based on "scc", determine which atoms should actually be considered defined. Meanwhile initialize "disj_occurs" and "conj_occurs".
 		// NOTE: because we've searched scc's in the *positive* dependency graph, rules like  P <- ~Q, Q <- ~P will be marked NONDEF here. Hence final well-foundedness check needs to check in defdVars.
 		atoms_in_pos_loops = 0;
-		disj_occurs.growTo(2 * solver->nVars());
-		conj_occurs.growTo(2 * solver->nVars());
+		disj_occurs.growTo(2 * nVars());
+		conj_occurs.growTo(2 * nVars());
 		Lit l;
 		Lit jstf;
 		for (int i = 0; i < defdVars.size(); ++i) {
@@ -627,8 +629,8 @@ void TSolver::finishECNF_DataStructures() {
 		}
 
 		if (ecnf_mode.def) {
-			isCS.growTo(solver->nVars(), false);
-			// used_conj.growTo(solver->nVars()); WITH guards system.
+			isCS.growTo(nVars(), false);
+			// used_conj.growTo(nVars()); WITH guards system.
 		}
 		// TODO verify whether there could still be propagations pending due to the fact that rules are not simplified while parsing.
 	}
@@ -702,7 +704,7 @@ void TSolver::findCycleSources() {
 			vec<Var>& ds = disj_occurs[toInt(~l)];
 			for (int j = 0; j < ds.size(); j++) {
 				Var v = ds[j];
-				if (solver->value(v) != l_False && cf_justification_disj[v] == ~l) // No support anymore; it has to change.
+				if (value(v) != l_False && cf_justification_disj[v] == ~l) // No support anymore; it has to change.
 					findCycleSources(v);
 			}
 			if (ecnf_mode.aggr) {
@@ -715,7 +717,7 @@ void TSolver::findCycleSources() {
 						for (int e = 0; e < aw.set->exprs.size(); e++) {
 							Lit defn = aw.set->exprs[e]->c;
 							//Lit defn = aw.expr->c;
-							if (solver->value(defn) != l_False) {
+							if (value(defn) != l_False) {
 								vec<Lit>& cf = cf_justification_aggr[var(defn)];
 								int k = 0;
 								for (; k < cf.size() && cf[k] != ~l; k++)
@@ -734,15 +736,15 @@ void TSolver::findCycleSources() {
 		for (int i = 0; i < defdVars.size(); i++) {
 			Var v = defdVars[i];
 			if (defType[v] == DISJ) {
-				if (solver->value(v) != l_False && solver->value(cf_justification_disj[v])
+				if (value(v) != l_False && value(cf_justification_disj[v])
 						== l_False)
 					findCycleSources(v);
 			} else if (defType[v] == AGGR) {
-				if (solver->value(v) == l_False)
+				if (value(v) == l_False)
 					continue;
 				vec<Lit>& cf = cf_justification_aggr[v];
 				int k = 0;
-				for (; k < cf.size() && solver->value(cf[k]) != l_False; k++)
+				for (; k < cf.size() && value(cf[k]) != l_False; k++)
 					;
 				if (k < cf.size()) // There is a false literal in the cf_justification.
 					findCycleSources(v);
@@ -767,7 +769,7 @@ void TSolver::findCycleSources(Var v) {
 	if (defType[v] == DISJ) {
 		Clause& c = *definition[v];
 		Lit jstf = c[c[0] == Lit(v, true) ? 1 : 0]; // We will use this literal as the supporting literal.
-		assert(solver->value(jstf)!=l_False);
+		assert(value(jstf)!=l_False);
 		change_jstfc_disj(v, jstf);
 		if (!sign(jstf) && defType[var(jstf)] != NONDEF && scc[v] == scc[var(
 				jstf)])
@@ -782,14 +784,14 @@ void TSolver::findCycleSources(Var v) {
 		if (aw.set->type == SUM || aw.set->type == PROD) { // Note: no need to test weights, because v is not false.
 			for (int i = 0; i < lits.size(); ++i) { // Also note: here we make a huge simplification of possible justifications. It has the advantage of being uniquely defined, and the disadvantage of a higher chance of adding v as a cycle source.
 				Lit k = lits[i].lit;
-				if (solver->value(k) == l_Undef) {
+				if (value(k) == l_Undef) {
 					nj.push(k);
 					nj.push(~k);
 					if (!becomes_cycle_source && defType[var(k)] != NONDEF
 							&& scc[v] == scc[var(k)]) // first test: to avoid having to do other tests.
 						becomes_cycle_source = true;
 				} else {
-					if (solver->value(k) == l_False)
+					if (value(k) == l_False)
 						k = ~k;
 					nj.push(k);
 					if (!becomes_cycle_source && !sign(k) && defType[var(k)]
@@ -806,7 +808,7 @@ void TSolver::findCycleSources(Var v) {
 						!= NONDEF && scc[v] == scc[var(k)])
 					becomes_cycle_source = true;
 			}
-			for (; solver->value(lits[i].lit) != l_False; ++i)
+			for (; value(lits[i].lit) != l_False; ++i)
 				; // NOTE: because v is not false, the test will fail before i==set.size()
 			Lit k = lits[i].lit;
 			nj.push(k);
@@ -822,7 +824,7 @@ void TSolver::findCycleSources(Var v) {
 						!= NONDEF && scc[v] == scc[var(k)])
 					becomes_cycle_source = true;
 			}
-			for (; solver->value(lits[i].lit) != l_False; --i)
+			for (; value(lits[i].lit) != l_False; --i)
 				; // NOTE: because v is not false, the test will fail before i<0
 			Lit k = lits[i].lit;
 			nj.push(k);
@@ -855,6 +857,70 @@ bool TSolver::indirectPropagateNow() {
 	return true;
 }
 
+/////////////
+//Finding unfounded checks by
+int visittime = 0;
+vec<Var> stack;
+vec<Var> root;
+vec<Var> visited;
+
+void TSolver::visitForUFS(Var v, std::set<Var>& ufs){
+	if(value(v)==l_True){
+		throw NOTUNFOUNDED;
+	}
+	DefType type = defType[v];
+	if(type==AGGR){
+		throw NOTVALIDSCC;
+	}
+	assert(type!=NONDEF);
+	Clause* c = definition[v];
+	Var definedChild = -1;
+	for(int i=0; i<c->size(); i++){
+		DefType childtype = defType[var(c->operator [](i))];
+		Lit l = c->operator [](i);
+		if(childtype==NONDEF || (childtype!=AGGR && scc[var(l)]!=scc[v])){
+			if(type==CONJ && (value(l)==l_Undef || value(l)==l_False)){
+				throw NOTUNFOUNDED;
+			}if(type==DISJ && (value(l)==l_Undef || value(l)==l_True)){
+				throw NOTUNFOUNDED;
+			}
+		}else{
+			if(type==CONJ){
+				definedChild = var(l);
+				if(definedChild!=-1){
+					throw NOTVALIDSCC;
+				}
+			}
+		}
+	}
+
+	visited[v]=visittime;
+	root[v]=v;
+	visittime++;
+	stack.push(v);
+
+	if(type==CONJ){
+		visitForUFS(definedChild, ufs);
+		if(visited[definedChild]<visited[v]){
+			root[v]=root[definedChild];
+		}
+	}else{
+		for(int i=0; i<c->size(); i++){
+			Var child = var(c->operator [](i));
+			visitForUFS(child, ufs);
+			if(visited[child]<visited[v]){
+				root[v]=root[child];
+			}
+		}
+	}
+
+
+	if(root[v]==v){
+		//dynamic relevant SCC has been found, so return all for them to the calling method
+		//TODO remove all exceptions (ALWAYS overhead if they are thrown)
+	}
+}
+
 /*_________________________________________________________________________________________________
  |
  |  indirectPropagate : [void]  ->  [Clause*]
@@ -879,6 +945,22 @@ Clause* TSolver::indirectPropagate() {
 
 	bool ufs_found = false;
 	std::set<Var> ufs;
+
+//NEW CODE TO FIND UNFOUNDED SETS
+//	for(int i=0; i<nVars(); i++){
+//		root.push(i);
+//		visited.push(-1);
+//	}
+//
+//	for (int i=0; !ufs_found && i < css.size(); i++){
+//		if(visited[css[i]]==-1){
+//			if(visit(css[i], ufs)){
+//				ufs_found=true;
+//			}
+//		}
+//	}
+
+//OLD CODE TO FIND UNFOUNDED SETS
 	int i = 0;
 	uint64_t old_justify_calls = justify_calls;
 	for (; !ufs_found && i < css.size(); i++)
@@ -996,7 +1078,7 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 		for (int i = 0; i < c.size(); ++i) {
 			Lit bdl = c[i];
 			Var b = var(bdl);
-			if (bdl != Lit(v, true) && solver->value(bdl) != l_False) {
+			if (bdl != Lit(v, true) && value(bdl) != l_False) {
 				if (sign(bdl) || !seen[b]) {
 					change_jstfc_disj(v, bdl);
 					return true; // bad style, but anyway...
@@ -1026,7 +1108,7 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 			for (int i = 0; !complete && i < lits.size(); ++i) {
 				Lit l = lits[i].lit;
 				// Note: l_Undef literals may be used twice, once pos and once neg!
-				if (solver->value(l) != l_False) {
+				if (value(l) != l_False) {
 					if (!sign(l) && seen[var(l)]) {
 						if (ufs.find(var(l)) == ufs.end())
 							add_to_q.push(var(l));
@@ -1037,7 +1119,7 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 							complete = true;
 					}
 				}
-				if (solver->value(l) != l_True) {
+				if (value(l) != l_True) {
 					if (sign(l) && seen[var(l)]) {
 						if (ufs.find(var(l)) == ufs.end())
 							add_to_q.push(var(l));
@@ -1069,7 +1151,7 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 			// Use only negative or justified literals.
 			for (int i = 0; !complete && i < lits.size(); ++i) {
 				Lit l = lits[i].lit;
-				if (solver->value(l) != l_False) {
+				if (value(l) != l_False) {
 					if (!sign(l) && seen[var(l)]) {
 						if (ufs.find(var(l)) == ufs.end())
 							add_to_q.push(var(l));
@@ -1080,7 +1162,7 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 							complete = true;
 					}
 				}
-				if (solver->value(l) != l_True) {
+				if (value(l) != l_True) {
 					if (sign(l) && seen[var(l)]) {
 						if (ufs.find(var(l)) == ufs.end())
 							add_to_q.push(var(l));
@@ -1117,7 +1199,7 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 			int atqsize = add_to_q.size();
 			for (; lits[i].weight <= aw.expr->max; ++i) {
 				Lit l = lits[i].lit;
-				if (solver->value(l) != l_False) {
+				if (value(l) != l_False) {
 					if (!sign(l) && seen[var(l)] && scc[v] == scc[var(l)]
 							&& ufs.find(var(l)) == ufs.end())
 						add_to_q.push(var(l));
@@ -1154,7 +1236,7 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 			int atqsize = add_to_q.size();
 			for (; lits[i].weight >= aw.expr->min; --i) {
 				Lit l = lits[i].lit;
-				if (solver->value(l) != l_False) {
+				if (value(l) != l_False) {
 					if (!sign(l) && seen[var(l)] && scc[v] == scc[var(l)]
 							&& ufs.find(var(l)) == ufs.end())
 						add_to_q.push(var(l));
@@ -1303,12 +1385,12 @@ Clause* TSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 			if (aw.set->type == SUM || aw.set->type == PROD) {
 				for (int i = 0; i < lits.size(); ++i) {
 					Lit l = lits[i].lit;
-					if (solver->value(l) == l_True) {
+					if (value(l) == l_True) {
 						if (sign(l) || ufs.find(var(l)) == ufs.end()) {
 							loopf.push(l);
 							seen[var(l)] = (sign(l) ? 1 : 2);
 						}
-					} else if (solver->value(l) == l_False) {
+					} else if (value(l) == l_False) {
 						if (~sign(l) || ufs.find(var(l)) == ufs.end()) {
 							loopf.push(~l);
 							seen[var(l)] = (sign(l) ? 2 : 1);
@@ -1364,7 +1446,7 @@ Clause* TSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	// Verify whether a conflict ensues.
 	for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
 		Var v = *tch;
-		if (solver->value(v) == l_True) {
+		if (value(v) == l_True) {
 			loopf[0] = Lit(v, true);
 			Clause* c = Clause_new(loopf);
 			solver->addLearnedClause(c);
@@ -1545,13 +1627,13 @@ void TSolver::markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q,
 
 Clause* TSolver::aggrEnqueue(Lit p, AggrReason* ar) {
 	if (verbosity >= 2) {
-		reportf("%seriving ", solver->value(p)==l_True ? "Again d" : "D");
+		reportf("%seriving ", value(p)==l_True ? "Again d" : "D");
 		printLit(p);
 		reportf(" because of the aggregate expression ");
 		printAggrExpr(*ar->expr, *ar->set);
 	}
 
-	if (solver->value(p) == l_False) {
+	if (value(p) == l_False) {
 		if (verbosity >= 2)
 			reportf("Conflict.\n");
 		AggrReason* old_ar = aggr_reason[var(p)];
@@ -1560,7 +1642,7 @@ Clause* TSolver::aggrEnqueue(Lit p, AggrReason* ar) {
 		solver->addLearnedClause(confl);
 		aggr_reason[var(p)] = old_ar;
 		return confl;
-	} else if (solver->value(p) == l_Undef) {
+	} else if (value(p) == l_Undef) {
 		aggr_reason[var(p)] = ar;
 		solver->uncheckedEnqueue(p);
 	} else
@@ -1580,16 +1662,16 @@ Clause* TSolver::AMO_propagate(Lit p) {// TODO: if part of an EU statement, chan
 		vec<Lit> ps(2);
 		ps[1] = ~p;
 		for (int j = 0; j < c.size(); j++) {
-			if (c[j] == p || solver->value(c[j]) == l_False)
+			if (c[j] == p || value(c[j]) == l_False)
 				continue;
 			ps[0] = ~c[j];
 			Clause* rc = Clause_new(ps);
 			solver->addLearnedClause(rc);
-			if (solver->value(c[j]) == l_True) {
+			if (value(c[j]) == l_True) {
 				if (verbosity >= 2)
 					reportf(" Conflict");
 				return rc;
-			} else {// (solver->value(c[j])==l_Undef) holds
+			} else {// (value(c[j])==l_Undef) holds
 				solver->uncheckedEnqueue(~c[j], rc);
 				if (verbosity >= 2) {
 					reportf(" ");
@@ -1778,7 +1860,7 @@ Clause* TSolver::Aggr_propagate(Lit p) { // TODO: do something about double work
 					if (ws[i].index < as.max)
 						as.max = ws[i].index;
 				} else {/*if (ws[i].index==as.min)*/
-					while (as.min < as.set.size() && solver->value(as.set[as.min].lit)
+					while (as.min < as.set.size() && value(as.set[as.min].lit)
 							== l_False)
 						++as.min;
 				}
@@ -1788,7 +1870,7 @@ Clause* TSolver::Aggr_propagate(Lit p) { // TODO: do something about double work
 					if (ws[i].index > as.min)
 						as.min = ws[i].index;
 				} else {/*if (ws[i].index==as.max)*/
-					while (as.max >= 0 && solver->value(as.set[as.max].lit) == l_False)
+					while (as.max >= 0 && value(as.set[as.max].lit) == l_False)
 						--as.max;
 				}
 				break;
@@ -1841,9 +1923,9 @@ Clause* TSolver::Aggr_propagate(AggrSet& as, AggrExpr& ae) {
 	switch (as.type) {
 	// TODO SUM / PROD propagations can be made more efficient using ordering of literals!!
 	case SUM:
-		if (solver->value(ae.c) == l_True) {
+		if (value(ae.c) == l_True) {
 			for (int u = 0; u < as.set.size(); u++) {
-				if (solver->value(as.set[u].lit) == l_Undef) {// no conflict possible
+				if (value(as.set[u].lit) == l_Undef) {// no conflict possible
 					if (as.min + as.set[u].weight > ae.max)
 						aggrEnqueue(~as.set[u].lit, new AggrReason(&ae, &as,
 								NEG));
@@ -1852,11 +1934,11 @@ Clause* TSolver::Aggr_propagate(AggrSet& as, AggrExpr& ae) {
 								new AggrReason(&ae, &as, POS));
 				}
 			}
-		} else if (solver->value(ae.c) == l_False) {
+		} else if (value(ae.c) == l_False) {
 			if (as.min >= ae.min || as.max <= ae.max) {// no conflicts possible
 				int minw = 2147483647;
 				for (int u = 0; u < as.set.size(); u++)
-					if (solver->value(as.set[u].lit) == l_Undef && as.set[u].weight
+					if (value(as.set[u].lit) == l_Undef && as.set[u].weight
 							< minw)
 						minw = as.set[u].weight;
 				bool maketrue = minw != 2147483647 && as.min >= ae.min
@@ -1865,21 +1947,21 @@ Clause* TSolver::Aggr_propagate(AggrSet& as, AggrExpr& ae) {
 						&& as.min + minw >= ae.min;
 				if (maketrue)
 					for (int u = 0; u < as.set.size(); u++)
-						if (solver->value(as.set[u].lit) == l_Undef)
+						if (value(as.set[u].lit) == l_Undef)
 							aggrEnqueue(as.set[u].lit, new AggrReason(&ae, &as,
 									POS));
 				if (makefalse)
 					for (int u = 0; u < as.set.size(); u++)
-						if (solver->value(as.set[u].lit) == l_Undef)
+						if (value(as.set[u].lit) == l_Undef)
 							aggrEnqueue(~as.set[u].lit, new AggrReason(&ae,
 									&as, NEG));
 			}
 		}
 		break;
 	case PROD: // cfr. SUM, but * and / instead of + and -.
-		if (solver->value(ae.c) == l_True) {
+		if (value(ae.c) == l_True) {
 			for (int u = 0; u < as.set.size(); u++) {
-				if (solver->value(as.set[u].lit) == l_Undef) {
+				if (value(as.set[u].lit) == l_Undef) {
 					if (as.min * as.set[u].weight > ae.max)
 						aggrEnqueue(~as.set[u].lit, new AggrReason(&ae, &as,
 								NEG));
@@ -1888,11 +1970,11 @@ Clause* TSolver::Aggr_propagate(AggrSet& as, AggrExpr& ae) {
 								new AggrReason(&ae, &as, POS));
 				}
 			}
-		} else if (solver->value(ae.c) == l_False) {
+		} else if (value(ae.c) == l_False) {
 			if (as.min >= ae.min || as.max <= ae.max) {
 				int minw = 2147483647;
 				for (int u = 0; u < as.set.size(); u++)
-					if (solver->value(as.set[u].lit) == l_Undef && as.set[u].weight
+					if (value(as.set[u].lit) == l_Undef && as.set[u].weight
 							< minw)
 						minw = as.set[u].weight;
 				bool maketrue = minw != 2147483647 && as.min >= ae.min
@@ -1901,24 +1983,24 @@ Clause* TSolver::Aggr_propagate(AggrSet& as, AggrExpr& ae) {
 						&& as.min * minw >= ae.min;
 				if (maketrue)
 					for (int u = 0; u < as.set.size(); u++)
-						if (solver->value(as.set[u].lit) == l_Undef)
+						if (value(as.set[u].lit) == l_Undef)
 							aggrEnqueue(as.set[u].lit, new AggrReason(&ae, &as,
 									POS));
 				if (makefalse)
 					for (int u = 0; u < as.set.size(); u++)
-						if (solver->value(as.set[u].lit) == l_Undef)
+						if (value(as.set[u].lit) == l_Undef)
 							aggrEnqueue(~as.set[u].lit, new AggrReason(&ae,
 									&as, NEG));
 			}
 		}
 		break;
 	case MIN:
-		if (solver->value(ae.c) == l_True) {
+		if (value(ae.c) == l_True) {
 			for (int u = as.min; confl == NULL && u < as.set.size()
 					&& as.set[u].weight < ae.min; ++u)
 				confl = aggrEnqueue(~as.set[u].lit, new AggrReason(&ae, &as,
 						NEG));
-		} else if (solver->value(ae.c) == l_False) {
+		} else if (value(ae.c) == l_False) {
 			if (as.min < as.set.size() && as.set[as.min].weight >= ae.min)
 				for (int u = as.min; confl == NULL && u < as.set.size()
 						&& as.set[u].weight <= ae.max; ++u)
@@ -1927,12 +2009,12 @@ Clause* TSolver::Aggr_propagate(AggrSet& as, AggrExpr& ae) {
 		}
 		break;
 	case MAX:
-		if (solver->value(ae.c) == l_True) {
+		if (value(ae.c) == l_True) {
 			for (int u = as.max; confl == NULL && u >= 0 && as.set[u].weight
 					> ae.max; --u)
 				confl = aggrEnqueue(~as.set[u].lit, new AggrReason(&ae, &as,
 						NEG));
-		} else if (solver->value(ae.c) == l_False) {
+		} else if (value(ae.c) == l_False) {
 			if (as.max >= 0 && as.set[as.max].weight <= ae.max)
 				for (int u = as.max; confl == NULL && u >= 0
 						&& as.set[u].weight >= ae.min; --u)
@@ -1949,56 +2031,56 @@ Clause* TSolver::Aggr_propagate(AggrSet& as, AggrExpr& ae) {
 /* (@&) if there is but one remaining non-false literal with weight <= ae.max, that literal has to be made true.
  Lit candidate; bool use_candidate=true;
  for (int u=0;confl==NULL && u<as.set.size();u++) {
- if (use_candidate && solver->value(as.set[u].lit)!=l_False && as.set[u].weight<=ae.max) {
+ if (use_candidate && value(as.set[u].lit)!=l_False && as.set[u].weight<=ae.max) {
  if (candidate!=lit_Undef)
  use_candidate=false;
  else
  candidate=as.set[u].lit;
  }
  }
- if (use_candidate && candidate!=lit_Undef && solver->value(candidate)==l_Undef)
+ if (use_candidate && candidate!=lit_Undef && value(candidate)==l_Undef)
  aggrEnqueue(candidate,new AggrReason(&ae,&as,POS));
 
  as.set[as.max].weight <= ae.max and there is but one non-false literal with weight < ae.min, that literal has to become true.
  if (as.max<=ae.max) {
  Lit candidate; bool use_candidate=true;
  for (int u=0;u<as.set.size();u++) {
- if (use_candidate && solver->value(as.set[u].lit)!=l_False && as.set[u].weight<ae.min) {
+ if (use_candidate && value(as.set[u].lit)!=l_False && as.set[u].weight<ae.min) {
  if (candidate!=lit_Undef)
  use_candidate=false;
  else
  candidate=as.set[u].lit;
  }
  }
- if (use_candidate && candidate!=lit_Undef && solver->value(candidate)==l_Undef)
+ if (use_candidate && candidate!=lit_Undef && value(candidate)==l_Undef)
  aggrEnqueue(candidate,new AggrReason(&ae,&as,POS));
  }
 
  if there is but one remaining non-false literal with weight >= ae.min, that literal has to be made true.
  Lit candidate; bool use_candidate=true;
  for (int u=0;confl==NULL && u<as.set.size();u++) {
- if (use_candidate && solver->value(as.set[u].lit)!=l_False && as.set[u].weight>=ae.min) {
+ if (use_candidate && value(as.set[u].lit)!=l_False && as.set[u].weight>=ae.min) {
  if (candidate!=lit_Undef)
  use_candidate=false;
  else
  candidate=as.set[u].lit;
  }
  }
- if (use_candidate && candidate!=lit_Undef && solver->value(candidate)==l_Undef)
+ if (use_candidate && candidate!=lit_Undef && value(candidate)==l_Undef)
  aggrEnqueue(candidate,new AggrReason(&ae,&as,POS));
 
  as.set[as.max].weight <= ae.max and there is but one non-false literal with weight < ae.min, that literal has to become true.
  if (as.min>=ae.min) {
  Lit candidate; bool use_candidate=true;
  for (int u=0;u<as.set.size();u++) {
- if (use_candidate && solver->value(as.set[u].lit)!=l_False && as.set[u].weight>ae.max) {
+ if (use_candidate && value(as.set[u].lit)!=l_False && as.set[u].weight>ae.max) {
  if (candidate!=lit_Undef)
  use_candidate=false;
  else
  candidate=as.set[u].lit;
  }
  }
- if (use_candidate && candidate!=lit_Undef && solver->value(candidate)==l_Undef)
+ if (use_candidate && candidate!=lit_Undef && value(candidate)==l_Undef)
  aggrEnqueue(candidate,new AggrReason(&ae,&as,POS));
  }
  */
@@ -2044,11 +2126,11 @@ Clause* TSolver::getExplanation(Lit p) {
 			}
 		} else if (ar.type == POS) {
 			// c is true && mx = i  OR  c is false && mn >= i && mx = j+1
-			if (solver->value(ar.expr->c) == l_True) {
+			if (value(ar.expr->c) == l_True) {
 				lits.push(~ar.expr->c);
 				max_needed = ar.expr->min + ar.set->set[p_idx].weight - 1;
 			} else {
-				assert(solver->value(ar.expr->c)==l_False);
+				assert(value(ar.expr->c)==l_False);
 				lits.push(ar.expr->c);
 				min_needed = ar.expr->min;
 				max_needed = ar.expr->max + ar.set->set[p_idx].weight;
@@ -2056,11 +2138,11 @@ Clause* TSolver::getExplanation(Lit p) {
 		} else {
 			assert(ar.type==NEG);
 			// c is true && mn = j  OR  c is false && mx =< j && mn = i-1
-			if (solver->value(ar.expr->c) == l_True) {
+			if (value(ar.expr->c) == l_True) {
 				lits.push(~ar.expr->c);
 				min_needed = ar.expr->max - ar.set->set[p_idx].weight + 1;
 			} else {
-				assert(solver->value(ar.expr->c)==l_False);
+				assert(value(ar.expr->c)==l_False);
 				lits.push(ar.expr->c);
 				min_needed = ar.expr->min - ar.set->set[p_idx].weight;
 				max_needed = ar.expr->max;
@@ -2144,29 +2226,29 @@ Clause* TSolver::getExplanation(Lit p) {
 			}
 		} else if (ar.type == POS) {
 			assert(false); // This type of propagation should not occur as long as the (@&) TODO's haven't been implemented.
-			/*            if (solver->value(ar.expr->c)==l_True) {
+			/*            if (value(ar.expr->c)==l_True) {
 			 lits.push(~ar.expr->c);
-			 } else { assert(solver->value(ar.expr->c)==l_False);
+			 } else { assert(value(ar.expr->c)==l_False);
 			 lits.push(ar.expr->c);
 			 }
 			 */
 		} else {
 			assert(ar.type==NEG);
 			if (tp == MIN) {
-				if (solver->value(ar.expr->c) == l_True) // assert that p's weight is < ar.expr->min
+				if (value(ar.expr->c) == l_True) // assert that p's weight is < ar.expr->min
 					lits.push(~ar.expr->c);
 				else {
-					assert(solver->value(ar.expr->c)==l_False);
+					assert(value(ar.expr->c)==l_False);
 					lits.push(ar.expr->c);
 					for (int i = 0; i < ar.set->set.size()
 							&& ar.set->set[i].weight < ar.expr->min; ++i)
 						lits.push(ar.set->set[i].lit); // assert that these literals are on the stack, before p.
 				}
 			} else { // tp==MAX
-				if (solver->value(ar.expr->c) == l_True) // assert that p's weight is > ar.expr->max
+				if (value(ar.expr->c) == l_True) // assert that p's weight is > ar.expr->max
 					lits.push(~ar.expr->c);
 				else {
-					assert(solver->value(ar.expr->c)==l_False);
+					assert(value(ar.expr->c)==l_False);
 					lits.push(ar.expr->c);
 					for (int i = ar.set->set.size() - 1; i >= 0
 							&& ar.set->set[i].weight > ar.expr->max; ++i)
@@ -2195,7 +2277,7 @@ bool TSolver::isCycleFree() { // currently only when no recursice aggregates!! T
     assert(!ecnf_mode.aggr);
 
     reportf("Showing cf- and sp-justification for disjunctive atoms. <<<<<<<<<<\n");
-    for (int i = 0; i < solver->nVars(); i++) {
+    for (int i = 0; i < nVars(); i++) {
         if (defType[i]==DISJ) {
             printLit(Lit(i,false)); reportf(" <- ");
             printLit(cf_justification_disj[i]);
@@ -2210,7 +2292,7 @@ bool TSolver::isCycleFree() { // currently only when no recursice aggregates!! T
     vec<int> isfree; // per variable. 0 = free, >0 = number of literals in body still to be justified.
     vec<Lit> justified;
     int cnt_nonjustified = 0;
-    for (int i=0;i<solver->nVars();++i) {
+    for (int i=0;i<nVars();++i) {
         justified.push(Lit(i,true)); // negative literals are justified anyhow.
         if (defType[i]==NONDEF) {
             isfree.push(0);
@@ -2252,12 +2334,12 @@ bool TSolver::isCycleFree() { // currently only when no recursice aggregates!! T
     if (cnt_nonjustified>0) {
         reportf("WARNING: There remain %d literals non-justified.\n",cnt_nonjustified);
 
-        vec<bool> printed; printed.growTo(solver->nVars(),false);
+        vec<bool> printed; printed.growTo(nVars(),false);
         int i=0;
-        while (i<solver->nVars()) {
+        while (i<nVars()) {
             reportf("Cycle:\n");
-            for (;i<solver->nVars() && (defType[i]==NONDEF || isfree[i]==0);i++) ;
-            if (i<solver->nVars()) {
+            for (;i<nVars() && (defType[i]==NONDEF || isfree[i]==0);i++) ;
+            if (i<nVars()) {
                 vec<Var> cycle;
                 cycle.push(i);
                 int idx=0;
@@ -2330,14 +2412,14 @@ inline void TSolver::clear_changes() {
     changed_vars.clear();
 }
 
-inline bool     TSolver::enqueue         (Lit p, Clause* from)   { return solver->value(p) != l_Undef ? solver->value(p) != l_False : (solver->uncheckedEnqueue(p, from), true); }
+inline bool     TSolver::enqueue         (Lit p, Clause* from)   { return value(p) != l_Undef ? value(p) != l_False : (solver->uncheckedEnqueue(p, from), true); }
 
 //=================================================================================================
 // Debug + etc:
 
 inline void TSolver::printLit(Lit l)
 {
-    reportf("%s%d:%c", sign(l) ? "-" : "", var(l)+1, solver->value(l) == l_True ? '1' : (solver->value(l) == l_False ? '0' : 'X'));
+    reportf("%s%d:%c", sign(l) ? "-" : "", var(l)+1, value(l) == l_True ? '1' : (value(l) == l_False ? '0' : 'X'));
 }
 
 
