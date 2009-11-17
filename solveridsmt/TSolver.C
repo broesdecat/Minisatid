@@ -359,32 +359,34 @@ bool TSolver::simplify(){
 	return true;
 }
 
-void TSolver::propagate(Lit p, Clause* confl){
+Clause* TSolver::propagate(Lit p, Clause* confl){
 	if (ecnf_mode.init) {
-		return;
+		return confl;
 	}
 
 	// AMO propagations.
 	if (confl == NULL && ecnf_mode.amo)
-		confl = AMO_propagate(p);
+		return AMO_propagate(p);
 
 	// Aggr propagations.
 	if (confl == NULL && ecnf_mode.aggr)
-		confl = Aggr_propagate(p);
+		return Aggr_propagate(p);
 
 	// TODO: fast way of stopping the while loop if confl != NULL ?
+	return confl;
 }
 
 //only call this when the whole queue has been propagated
-void TSolver::propagateDefinitions(Clause* confl){
+Clause* TSolver::propagateDefinitions(Clause* confl){
 	if (ecnf_mode.init) {
-		return;
+		return confl;
 	}
 
 	// Def propagations.
 	if (confl == NULL && ecnf_mode.def){
-		confl = indirectPropagate();
+		return indirectPropagate();
 	}
+	return confl;
 }
 
 void TSolver::notifyVarAdded(){
@@ -696,7 +698,8 @@ void TSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack,
 void TSolver::findCycleSources() {
 	clearCycleSources();
 	clear_changes();
-	if (prev_conflicts == solver->conflicts && defn_strategy == always) {
+	//ADDED LAST PART FOR CONSISTENCY?
+	if (prev_conflicts == solver->conflicts && defn_strategy == always && solver->decisionLevel()!=0) {
 		//for (int i=solver->trail_lim.last(); i<solver->trail.size(); i++) {
 		//	Lit l = solver->trail[i]; // l became true, ~l became false.
 		for(int i=0; i<solver->getNbOfRecentAssignments(); i++){
@@ -859,18 +862,17 @@ bool TSolver::indirectPropagateNow() {
 
 /////////////
 //Finding unfounded checks by
-int visittime = 0;
-vec<Var> stack;
-vec<Var> root;
-vec<Var> visited;
+bool multipleconjuncts=false;
 
-void TSolver::visitForUFS(Var v, std::set<Var>& ufs){
+bool TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited){
+	visited[v]=visittime;
+	visittime++;
 	if(value(v)==l_True){
-		throw NOTUNFOUNDED;
+		return false;
 	}
 	DefType type = defType[v];
 	if(type==AGGR){
-		throw NOTVALIDSCC;
+		return false;
 	}
 	assert(type!=NONDEF);
 	Clause* c = definition[v];
@@ -880,45 +882,67 @@ void TSolver::visitForUFS(Var v, std::set<Var>& ufs){
 		Lit l = c->operator [](i);
 		if(childtype==NONDEF || (childtype!=AGGR && scc[var(l)]!=scc[v])){
 			if(type==CONJ && (value(l)==l_Undef || value(l)==l_False)){
-				throw NOTUNFOUNDED;
+				return false;
 			}if(type==DISJ && (value(l)==l_Undef || value(l)==l_True)){
-				throw NOTUNFOUNDED;
+				return false;
 			}
 		}else{
 			if(type==CONJ){
 				definedChild = var(l);
 				if(definedChild!=-1){
-					throw NOTVALIDSCC;
+					multipleconjuncts = true;
+					return false;
 				}
 			}
 		}
 	}
 
-	visited[v]=visittime;
 	root[v]=v;
-	visittime++;
 	stack.push(v);
 
 	if(type==CONJ){
-		visitForUFS(definedChild, ufs);
+		if(defType[definedChild]==NONDEF || defType[definedChild]==AGGR){
+			return false;
+		}
+		if(visited[definedChild]==-1 && !visitForUFS(definedChild, ufs, visittime, stack, root, visited)){
+			return false;
+		}
+		if(ufs.size()!=0){
+			return true;
+		}
 		if(visited[definedChild]<visited[v]){
 			root[v]=root[definedChild];
 		}
 	}else{
 		for(int i=0; i<c->size(); i++){
 			Var child = var(c->operator [](i));
-			visitForUFS(child, ufs);
+			if(defType[child]==NONDEF || defType[child]==AGGR){
+				continue;
+			}
+			if(visited[child]==-1 && !visitForUFS(child, ufs, visittime, stack, root, visited)){
+				return false;
+			}
+			if(ufs.size()!=0){
+				return true;
+			}
 			if(visited[child]<visited[v]){
 				root[v]=root[child];
 			}
 		}
 	}
 
-
 	if(root[v]==v){
-		//dynamic relevant SCC has been found, so return all for them to the calling method
-		//TODO remove all exceptions (ALWAYS overhead if they are thrown)
+		Var x = stack.last();
+		stack.pop();
+		ufs.insert(x);
+		while(x!=v){
+			ufs.insert(x);
+			x=stack.last();
+			stack.pop();
+		}
 	}
+
+	return true;
 }
 
 /*_________________________________________________________________________________________________
@@ -943,19 +967,32 @@ Clause* TSolver::indirectPropagate() {
 	}
 	findCycleSources();
 
-	bool ufs_found = false;
-	std::set<Var> ufs;
+	bool ufs_found = false, ufs2_found=false;
+	std::set<Var> ufs, ufs2;
 
 //NEW CODE TO FIND UNFOUNDED SETS
+//	int visittime = 0;
+//	vec<Var> stack;
+//	vec<Var> root;
+//	vec<Var> visited;
 //	for(int i=0; i<nVars(); i++){
 //		root.push(i);
 //		visited.push(-1);
 //	}
 //
-//	for (int i=0; !ufs_found && i < css.size(); i++){
+//	for (int i=0; !ufs2_found && i < css.size(); i++){
 //		if(visited[css[i]]==-1){
-//			if(visit(css[i], ufs)){
-//				ufs_found=true;
+//			if (isCS[css[i]]){
+//				if(visitForUFS(css[i], ufs2, visittime, stack, root, visited)){
+//					if(multipleconjuncts){
+//						multipleconjuncts=false;
+//						if (isCS[css[i]])
+//							ufs_found = unfounded(css[i], ufs);
+//					}
+//					if(ufs2.size()>1){
+//						ufs2_found=true;
+//					}
+//				}
 //			}
 //		}
 //	}
@@ -966,6 +1003,18 @@ Clause* TSolver::indirectPropagate() {
 	for (; !ufs_found && i < css.size(); i++)
 		if (isCS[css[i]])
 			ufs_found = unfounded(css[i], ufs);
+
+/////////ADDED CODE
+//if(ufs_found && ufs2_found){
+//	printf("\nSame results obtained:\n");
+//}else if(!ufs_found && !ufs2_found){
+//	printf("\nSame results obtained:\n");
+//}else{
+//	printf("\nDifferent results obtained:\n");
+//}
+/////////END ADDED CODE
+
+
 	justifiable_cycle_sources += ufs_found ? (i - 1) : i; // This includes those that are removed inside "unfounded".
 	succesful_justify_calls += (justify_calls - old_justify_calls);
 
@@ -1448,7 +1497,7 @@ Clause* TSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 		Var v = *tch;
 		if (value(v) == l_True) {
 			loopf[0] = Lit(v, true);
-			Clause* c = Clause_new(loopf);
+			Clause* c = Clause_new(loopf, true);
 			solver->addLearnedClause(c);
 			if (verbosity >= 2) {
 				reportf("Adding conflicting loop formula: [ ");
@@ -1462,62 +1511,40 @@ Clause* TSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 
 	// No conflict: then enqueue all facts and their loop formulas.
 	if (loopf.size() >= 5) { // Then we introduce a new variable for the antecedent part.
-		Var v = solver->newVar();
-		if (verbosity >= 2) {
-			reportf("Adding new variable for loop formulas: %d.\n",v+1);
-		}
-		// v \equiv \bigvee\extdisj{L}
-		// ~v \vee \bigvee\extdisj{L}.
-		loopf[0] = Lit(v, true);
-		Clause* c = Clause_new(loopf);
-		solver->addLearnedClause(c);
-		if (verbosity >= 2) {
-			reportf("Adding loop formula: [ ");
-			printClause(*c);
-			reportf("].\n");
-		}
-		solver->uncheckedEnqueue(loopf[0], c);
-		// \bigwedge_{d\in\extdisj{L}} v \vee ~d.
-		vec<Lit> binaryclause(2);
-		binaryclause[0] = Lit(v, false);
-		for (int i = 1; i < loopf.size(); ++i) {
-			binaryclause[1] = ~loopf[i];
-			Clause* c = Clause_new(binaryclause, true);
-			solver->addLearnedClause(c);
-			if (verbosity >= 2) {
-				reportf("Adding loop formula: [ ");
-				printClause(*c);
-				reportf("].\n");
-			}
-		}
+        Var v = solver->newVar();
+        if (verbosity>=2) {reportf("Adding new variable for loop formulas: %d.\n",v+1);}
+        // v \equiv \bigvee\extdisj{L}
+        // ~v \vee \bigvee\extdisj{L}.
+        loopf[0] = Lit(v,true); Clause* c = Clause_new(loopf, true);
+        solver->addLearnedClause(c);
+        if (verbosity>=2) {reportf("Adding loop formula: [ "); printClause(*c); reportf("].\n");}
+        solver->uncheckedEnqueue(loopf[0], c);
+        // \bigwedge_{d\in\extdisj{L}} v \vee ~d.
+        vec<Lit> binaryclause(2); binaryclause[0] = Lit(v,false);
+        for (int i=1; i<loopf.size(); ++i) {
+            binaryclause[1] = ~loopf[i];
+            Clause* c = Clause_new(binaryclause, true);
+            solver->addLearnedClause(c);
+            if (verbosity>=2) {reportf("Adding loop formula: [ "); printClause(*c); reportf("].\n");}
+        }
 
-		// \bigwedge_{l\in L} \neg l \vee v
-		binaryclause[1] = Lit(v, false);
-		for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
-			binaryclause[0] = Lit(*tch, true);
-			Clause* c = Clause_new(loopf);
-			solver->addLearnedClause(c);
-			//uncheckedEnqueue(binaryclause[0], c);
-			if (verbosity >= 2) {
-				reportf("Adding loop formula: [ ");
-				printClause(*c);
-				reportf("].\n");
-			}
-		}
-	} else { // We simply add the loop formula as is.
-		for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
-			loopf[0] = Lit(*tch, true);
-			Clause* c = Clause_new(loopf);
-			solver->addLearnedClause(c);
-			solver->uncheckedEnqueue(loopf[0], c);
-			if (verbosity >= 2) {
-				reportf("Adding loop formula: [ ");
-				printClause(*c);
-				reportf("].\n");
-			}
-		}
-	}
-	return NULL;
+        // \bigwedge_{l\in L} \neg l \vee v
+        binaryclause[1] = Lit(v,false);
+        for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
+            binaryclause[0] = Lit(*tch,true); Clause* c = Clause_new(binaryclause, true);
+            solver->addLearnedClause(c);
+            //solver->uncheckedEnqueue(binaryclause[0], c);
+            if (verbosity>=2) {reportf("Adding loop formula: [ "); printClause(*c); reportf("].\n");}
+        }
+    } else { // We simply add the loop formula as is.
+        for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
+            loopf[0] = Lit(*tch,true); Clause* c = Clause_new(loopf, true);
+            solver->addLearnedClause(c);
+            solver->uncheckedEnqueue(loopf[0], c);
+            if (verbosity>=2) {reportf("Adding loop formula: [ "); printClause(*c); reportf("].\n");}
+        }
+    }
+    return NULL;
 }
 
 /* Precondition:  !seen[i] for each i.
@@ -1651,39 +1678,39 @@ Clause* TSolver::aggrEnqueue(Lit p, AggrReason* ar) {
 }
 
 Clause* TSolver::AMO_propagate(Lit p) {// TODO: if part of an EU statement, change watches there.
-	vec<Clause*>& ws = AMO_watches[toInt(p)];
-	if (verbosity >= 2 && ws.size() > 0) {
-		reportf("AMO-propagating literal ");
-		printLit(p);
-		reportf(": (");
-	}
-	for (int i = 0; i < ws.size(); i++) {
-		Clause& c = *ws[i];
-		vec<Lit> ps(2);
-		ps[1] = ~p;
-		for (int j = 0; j < c.size(); j++) {
-			if (c[j] == p || value(c[j]) == l_False)
-				continue;
-			ps[0] = ~c[j];
-			Clause* rc = Clause_new(ps);
-			solver->addLearnedClause(rc);
-			if (value(c[j]) == l_True) {
-				if (verbosity >= 2)
-					reportf(" Conflict");
-				return rc;
-			} else {// (value(c[j])==l_Undef) holds
-				solver->uncheckedEnqueue(~c[j], rc);
-				if (verbosity >= 2) {
-					reportf(" ");
-					printLit(c[j]);
-				}
-			}
-		}
-	}
-	if (verbosity >= 2 && ws.size() > 0)
-		reportf(" ).\n");
+    vec<Clause*>& ws = AMO_watches[toInt(p)];
+    if (verbosity>=2 && ws.size()>0) {
+    	reportf("AMO-propagating literal ");
+    	printLit(p);
+    	reportf(": (");
+    }
+    for (int i=0; i<ws.size(); i++) {
+        Clause& c = *ws[i];
+        vec<Lit> ps(2); ps[1]=~p;
+        for (int j=0; j<c.size(); j++) {
+            if (c[j]==p || value(c[j])==l_False)
+                continue;
+            ps[0]=~c[j];
+            Clause* rc = Clause_new(ps, true);
+            solver->addLearnedClause(rc);
+            if (value(c[j])==l_True) {
+                if (verbosity>=2) reportf(" Conflict");
+                solver->qhead = solver->trail.size();
+                return rc;
+            } else {// (value(c[j])==l_Undef) holds
+                solver->uncheckedEnqueue(~c[j], rc);
+                if (verbosity>=2) {
+                	reportf(" ");
+                	printLit(c[j]);
+                }
+            }
+        }
+    }
+    if (verbosity>=2 && ws.size()>0){
+    	reportf(" ).\n");
+    }
 
-	return NULL;
+    return NULL;
 }
 
 void TSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {

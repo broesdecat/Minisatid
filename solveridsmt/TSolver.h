@@ -39,8 +39,8 @@ public:
 	void 	setTrue		(Lit p);
 	Clause* getExplanation	(Lit p);    // Create a clause that implicitly was the reason for p's propagation.
 	void 	notifyVarAdded	(); 		//correctly initialized TSolver datastructures when vars are added
-	void 	propagate		(Lit p, Clause* confl);
-	void 	propagateDefinitions(Clause* confl);
+	Clause* 	propagate		(Lit p, Clause* confl);
+	Clause* 	propagateDefinitions(Clause* confl);
 	//void Subsetminimize(const vec<Lit>& lits);
 	/////////////////////ENDSOLVER NECESSARY
 
@@ -160,7 +160,7 @@ protected:
 	bool	indirectPropagateNow();                               // Decide (depending on chosen strategy) whether or not to do propagations now.
 	bool	unfounded          (Var cs, std::set<Var>& ufs);      // True iff 'cs' is currently in an unfounded set, 'ufs'.
 	Clause*	assertUnfoundedSet (const std::set<Var>& ufs);
-	void	visitForUFS(Var v, std::set<Var>& ufs); //find unfounded sets by tarjan
+	bool 	visitForUFS			(Var v, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited);
 
 	void	markNonJustified   (Var cs, vec<Var>& tmpseen);                           // Auxiliary for 'unfounded(..)'. Marks all ancestors of 'cs' in sp_justification as 'seen'.
 	void	markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q, vec<Var>& tmpseen);

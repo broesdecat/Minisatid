@@ -33,8 +33,6 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "TSolver.h"
 
 #define theoryUNSAT 20
-#define NOTUNFOUNDED 666
-#define NOTVALIDSCC 777
 
 #ifdef _MSC_VER
 #include <ctime>
@@ -68,6 +66,7 @@ public:
 	/////////////////////TSOLVER NECESSARY
     int		qhead;            // Head of queue (as index into the trail -- no more explicit propagation queue in MiniSat).
     vec<Lit>	trail;            // Assignment stack; stores all assigments made in the order they were made.
+    vec<int>	trail_lim;        // Separator indices for different decision levels in 'trail'.
 	int 	getLevel(int var) 			const;
 	Lit 	getRecentAssignments(int i) const;
 	int 	getNbOfRecentAssignments() 	const;
@@ -152,7 +151,7 @@ protected:
     vec<int>	seen;
     vec<int>	level;            // 'level[var]' contains the level at which the assignment was made.
     //vec<Lit>	trail;            // Assignment stack; stores all assigments made in the order they were made.
-	vec<int>	trail_lim;        // Separator indices for different decision levels in 'trail'.
+	//vec<int>	trail_lim;        // Separator indices for different decision levels in 'trail'.
 
     bool    solve        (const vec<Lit>& assumps); // Search for a model that respects a given set of assumptions.
 

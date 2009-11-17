@@ -306,7 +306,7 @@ static void parse_main(B& in, Solver* S, TSolver* TS) {
                 ParseError("Unexpected char: %c\n", *in);
         } else if (*in == 'c' || *in == 'p') {
             if (match(in, "c grounder error"))
-                reportf("There was a grounding error; MiniSat can't continue solving.\n"), exit(1);
+                reportf("There was a grounding error; MiniSat can't continue solving.\n"), exit(20);
             else
                 skipLine(in);
         } else

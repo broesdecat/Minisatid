@@ -485,81 +485,67 @@ void Solver::uncheckedEnqueue(Lit p, Clause* from) {
  |      * the propagation queue is empty, even if there was a conflict.
  |________________________________________________________________________________________________@*/
 Clause* Solver::propagate() {
-	Clause* confl = NULL;
-	int num_props = 0;
+    Clause* confl     = NULL;
+    int     num_props = 0;
 
-	while (confl==NULL && qhead < trail.size()) {
-		Lit p = trail[qhead++]; // 'p' is enqueued fact to propagate.
-		vec<Clause*>& ws = watches[toInt(p)];
-		Clause **i, **j, **end;
-		num_props++;
+    while (qhead < trail.size()){
+        Lit            p   = trail[qhead++];     // 'p' is enqueued fact to propagate.
+        vec<Clause*>&  ws  = watches[toInt(p)];
+        Clause         **i, **j, **end;
+        num_props++;
 
-		if (verbosity >= 2) {
-			reportf("Propagating literal ");
-			printLit(p);
-			reportf(": (");
-		}
+        if (verbosity>=2) {reportf("Propagating literal "); printLit(p); reportf(": (");}
 
-		for (i = j = (Clause**) ws, end = i + ws.size(); i != end;) {
-			Clause& c = **i++;
+        for (i = j = (Clause**)ws, end = i + ws.size();  i != end;){
+            Clause& c = **i++;
 
-			// Make sure the false literal is data[1]:
-			Lit false_lit = ~p;
-			if (c[0] == false_lit)
-				c[0] = c[1], c[1] = false_lit;
+            // Make sure the false literal is data[1]:
+            Lit false_lit = ~p;
+            if (c[0] == false_lit)
+                c[0] = c[1], c[1] = false_lit;
 
-			assert(c[1] == false_lit);
+            assert(c[1] == false_lit);
 
-			// If 0th watch is true, then clause is already satisfied.
-			Lit first = c[0];
-			if (value(first) == l_True) {
-				*j++ = &c;
-			} else {
-				// Look for new watch:
-				for (int k = 2; k < c.size(); k++)
-					if (value(c[k]) != l_False) {
-						c[1] = c[k];
-						c[k] = false_lit;
-						watches[toInt(~c[1])].push(&c);
-						goto FoundWatch;
-					}
+            // If 0th watch is true, then clause is already satisfied.
+            Lit first = c[0];
+            if (value(first) == l_True){
+                *j++ = &c;
+            }else{
+                // Look for new watch:
+                for (int k = 2; k < c.size(); k++)
+                    if (value(c[k]) != l_False){
+                        c[1] = c[k]; c[k] = false_lit;
+                        watches[toInt(~c[1])].push(&c);
+                        goto FoundWatch; }
 
-				// Did not find watch -- clause is unit under assignment:
-				*j++ = &c;
-				if (value(first) == l_False) {
-					if (verbosity >= 2)
-						reportf(" Conflict");
-					confl = &c;
-					qhead = trail.size();
-					// Copy the remaining watches:
-					while (i < end)
-						*j++ = *i++;
-				} else {
-					uncheckedEnqueue(first, &c);
-					if (verbosity >= 2) {
-						reportf(" ");
-						printLit(first);
-					}
-				}
-			}
-			FoundWatch: ;
-		}
-		ws.shrink(i - j);
-		if (verbosity >= 2)
-			reportf(" ).\n");
+                        // Did not find watch -- clause is unit under assignment:
+                        *j++ = &c;
+                        if (value(first) == l_False){
+                            if (verbosity>=2) reportf(" Conflict");
+                            confl = &c;
+                            qhead = trail.size();
+                            // Copy the remaining watches:
+                            while (i < end)
+                                *j++ = *i++;
+                        }else {
+                            uncheckedEnqueue(first, &c);
+                            if (verbosity>=2) {reportf(" "); printLit(first);}
+                        }
+            }
+FoundWatch:;
+        }
+        ws.shrink(i - j);
+        if (verbosity>=2) reportf(" ).\n");
 
 		//////////////START TSOLVER
-		tsolver->propagate(p, confl);
+		confl = tsolver->propagate(p, confl);
+		if(qhead==trail.size()){
+			confl = tsolver->propagateDefinitions(confl);
+		}
 		//////////////END TSOLVER
 	}
-	//////////////START TSOLVER
-	if(qhead==trail.size()){
-		tsolver->propagateDefinitions(confl);
-	}
-	//////////////END TSOLVER
 	propagations += num_props;
 	simpDB_props -= num_props;
-
 	return confl;
 }
 
@@ -668,122 +654,100 @@ bool Solver::simplify() {
  |    if the clause set is unsatisfiable. 'l_Undef' if the bound on number of conflicts is reached.
  |________________________________________________________________________________________________@*/
 lbool Solver::search(int nof_conflicts, int nof_learnts) {
-	assert(ok);
-	int backtrack_level;
-	int conflictC = 0;
-	vec<Lit> learnt_clause;
+    assert(ok);
+    int         backtrack_level;
+    int         conflictC = 0;
+    vec<Lit>    learnt_clause;
 
-	starts++;
+    starts++;
 
-	bool first = true;
+    bool first = true;
 
-	for (;;) {
-		if (maxruntime > 0.0 && cpuTime() > maxruntime) {
-			reportf("| Exceeded maximum search time; now terminating search.                       |\n");
-			reportf("===============================================================================\n");
-			ok = false;
-			return l_False;
-		}
-		if (verbosity >= 2)
-			reportf("Starting decision level %d.\n",trail_lim.size());
-		Clause* confl = propagate();
-		if (confl != NULL) {
-			// CONFLICT
-			conflicts++;
-			conflictC++;
-			if (decisionLevel() == 0)
-				return l_False;
+    for (;;){
+        if (maxruntime>0.0 && cpuTime()>maxruntime) {
+            reportf("| Exceeded maximum search time; now terminating search.                       |\n");
+            reportf("===============================================================================\n");
+            ok = false;
+            return l_False;
+        }
+        if (verbosity>=2) reportf("Starting decision level %d.\n",trail_lim.size());
+        Clause* confl = propagate();
+        if (confl != NULL){
+            // CONFLICT
+            conflicts++; conflictC++;
+            if (decisionLevel() == 0) return l_False;
 
-			first = false;
+            first = false;
 
-			learnt_clause.clear();
-			analyze(confl, learnt_clause, backtrack_level);
-			cancelUntil(backtrack_level);
-			assert(value(learnt_clause[0]) == l_Undef);
+            learnt_clause.clear();
+            analyze(confl, learnt_clause, backtrack_level);
+            cancelUntil(backtrack_level);
+            assert(value(learnt_clause[0]) == l_Undef);
 
-			if (learnt_clause.size() == 1) {
-				uncheckedEnqueue(learnt_clause[0]);
-				if (verbosity >= 2) {
-					reportf("Adding learnt clause: [ ");
-					printLit(learnt_clause[0]);
-					reportf(" ], backtracking until level %d.\n",backtrack_level);
-				}
-			} else {
-				Clause* c = Clause_new(learnt_clause, true);
-				learnts.push(c);
-				attachClause(*c);
-				claBumpActivity(*c);
-				uncheckedEnqueue(learnt_clause[0], c);
-				if (verbosity >= 2) {
-					reportf("Adding learnt clause: [ ");
-					printClause(*c);
-					reportf("], backtracking until level %d.\n",backtrack_level);
-				}
-			}
+            if (learnt_clause.size() == 1){
+                uncheckedEnqueue(learnt_clause[0]);
+                if (verbosity>=2) {reportf("Adding learnt clause: [ "); printLit(learnt_clause[0]); reportf(" ], backtracking until level %d.\n",backtrack_level);}
+            }else{
+                Clause* c = Clause_new(learnt_clause, true);
+                addLearnedClause(c);
+                uncheckedEnqueue(learnt_clause[0], c);
+                if (verbosity>=2) {reportf("Adding learnt clause: [ "); printClause(*c); reportf("], backtracking until level %d.\n",backtrack_level);}
+            }
 
-			varDecayActivity();
-			claDecayActivity();
+            varDecayActivity();
+            claDecayActivity();
 
-		} else {
-			// NO CONFLICT
+        }else{
+            // NO CONFLICT
 
-			if (nof_conflicts >= 0 && conflictC >= nof_conflicts) {
-				// Reached bound on number of conflicts:
-				progress_estimate = progressEstimate();
-				cancelUntil(0);
-				return l_Undef;
-			}
+            if (nof_conflicts >= 0 && conflictC >= nof_conflicts){
+                // Reached bound on number of conflicts:
+                progress_estimate = progressEstimate();
+                cancelUntil(0);
+                return l_Undef; }
 
-			// Simplify the set of problem clauses:
-			if (decisionLevel() == 0 && !simplify())
-				return l_False;
+            // Simplify the set of problem clauses:
+            if (decisionLevel() == 0 && !simplify())
+                return l_False;
 
-			if (nof_learnts >= 0 && learnts.size() - nAssigns() >= nof_learnts)
-				// Reduce the set of learnt clauses:
-				reduceDB();
+            if (nof_learnts >= 0 && learnts.size()-nAssigns() >= nof_learnts)
+                // Reduce the set of learnt clauses:
+                reduceDB();
 
-			Lit next = lit_Undef;
-			while (decisionLevel() < assumptions.size()) {
-				// Perform user provided assumption:
-				Lit p = assumptions[decisionLevel()];
-				if (value(p) == l_True) {
-					// Dummy decision level:
-					newDecisionLevel();
-				} else if (value(p) == l_False) {
-					analyzeFinal(~p, conflict);
-					return l_False;
-				} else {
-					next = p;
-					if (verbosity >= 2) {
-						reportf("Add assumption literal ");
-						printLit(p);
-						reportf(" to the trail.\n");
-					}
-					break;
-				}
-			}
+            Lit next = lit_Undef;
+            while (decisionLevel() < assumptions.size()){
+                // Perform user provided assumption:
+                Lit p = assumptions[decisionLevel()];
+                if (value(p) == l_True){
+                    // Dummy decision level:
+                    newDecisionLevel();
+                }else if (value(p) == l_False){
+                    analyzeFinal(~p, conflict);
+                    return l_False;
+                }else{
+                    next = p;
+                    if (verbosity>=2) {reportf("Add assumption literal "); printLit(p); reportf(" to the trail.\n");}
+                    break;
+                }
+            }
 
-			if (next == lit_Undef) {
-				// New variable decision:
-				decisions++;
-				next = pickBranchLit(polarity_mode, random_var_freq);
+            if (next == lit_Undef){
+                // New variable decision:
+                decisions++;
+                next = pickBranchLit(polarity_mode, random_var_freq);
 
-				if (next == lit_Undef)
-					// Model found:
-					return l_True;
-				if (verbosity >= 2) {
-					reportf("Choice literal: ");
-					printLit(next);
-					reportf(".\n");
-				}
-			}
+                if (next == lit_Undef)
+                    // Model found:
+                    return l_True;
+                if (verbosity>=2) {reportf("Choice literal: "); printLit(next); reportf(".\n");}
+            }
 
-			// Increase decision level and enqueue 'next'
-			assert(value(next) == l_Undef);
-			newDecisionLevel();
-			uncheckedEnqueue(next);
-		}
-	}
+            // Increase decision level and enqueue 'next'
+            assert(value(next) == l_Undef);
+            newDecisionLevel();
+            uncheckedEnqueue(next);
+        }
+    }
 }
 
 double Solver::progressEstimate() const {
