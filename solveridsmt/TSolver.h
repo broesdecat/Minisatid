@@ -26,6 +26,8 @@ struct ECNF_mode {
 	ECNF_mode() : init(true), def(false), aggr(false), amo(false), mnmz(false) {}
 };
 
+enum UFS {NOTUNFOUNDED, OLDCHECK, UFSFOUND, STILLPOSSIBLE};
+
 class Solver;
 
 class TSolver{
@@ -160,7 +162,8 @@ protected:
 	bool	indirectPropagateNow();                               // Decide (depending on chosen strategy) whether or not to do propagations now.
 	bool	unfounded          (Var cs, std::set<Var>& ufs);      // True iff 'cs' is currently in an unfounded set, 'ufs'.
 	Clause*	assertUnfoundedSet (const std::set<Var>& ufs);
-	bool 	visitForUFS			(Var v, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited);
+
+	UFS 	visitForUFS			(Var v, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited);
 
 	void	markNonJustified   (Var cs, vec<Var>& tmpseen);                           // Auxiliary for 'unfounded(..)'. Marks all ancestors of 'cs' in sp_justification as 'seen'.
 	void	markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q, vec<Var>& tmpseen);

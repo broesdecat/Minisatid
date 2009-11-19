@@ -537,6 +537,17 @@ int main(int argc, char** argv)
     S->res=res;
     bool ret = S->solve();
     printStats(S);
+    /////////TEMPORARY TODO BROES
+	if (ret) {
+		printf("s SATISFIABLE\nv ");
+		for (int i = 0; i < S->nVars(); i++)
+			if (S->model[i] != l_Undef)
+				printf("%s%s%d", (i==0)?"":" ", (S->model[i]==l_True)?"":"-", i+1);
+		printf(" 0\n");
+	} else {
+		printf("s UNSATISFIABLE\n");
+    }
+	/////////TEMPORARY TODO BROES
 
     delete TS;
 

@@ -774,14 +774,9 @@ void Solver::invalidateModel(const vec<Lit>& lits, int& init_qhead) {
 		++init_qhead;
 	} else {
 		Clause* c = Clause_new(lits, false);
-		learnts.push(c);
-		if (verbosity >= 2) {
-			reportf("Adding model-invalidating clause: [ ");
-			printClause(*c);
-			reportf("]\n");
-		}
-		attachClause(*c);
-		claBumpActivity(*c);
+        clauses.push(c);
+        if (verbosity>=2) {reportf("Adding model-invalidating clause: [ "); printClause(*c); reportf("]\n");}
+        attachClause(*c);
 	}
 
 	varDecayActivity();
