@@ -863,8 +863,8 @@ bool TSolver::indirectPropagateNow() {
 /////////////
 //Finding unfounded checks by
 UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited){
-	visited[v]=visittime;
-	visittime++;
+	visited[v]=visittime;visittime++;
+	root[v]=v;
 
 	/*if(value(v)==l_True){
 		return NOTUNFOUNDED;
@@ -890,7 +890,7 @@ UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& sta
 		if(childtype==AGGR){
 			return OLDCHECK;
 		}
-		if(childtype==NONDEF || scc[var(l)]!=scc[v]/* || sign(l)*/){
+		if(childtype==NONDEF || scc[var(l)]!=scc[v]){
 			if(value(l)==l_True){
 				return NOTUNFOUNDED;
 			}
@@ -951,9 +951,8 @@ UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& sta
 		}
 		if(ufs.size()>1){
 			return UFSFOUND;
-		}else{ //TODO moet dit erbij of niet?
+		}else{ //TODO clearen is niet echt juist, eigenlijk moet een propagate gebeuren, daarna wel verder zoeken
 			ufs.clear();
-			//return NOTUNFOUNDED;
 		}
 	}
 
@@ -988,25 +987,21 @@ Clause* TSolver::indirectPropagate() {
 	uint64_t old_justify_calls = justify_calls;
 
 //OLD CODE TO FIND UNFOUNDED SETS
-/*	int i=0;
-	bool ufs_found2 = false;
-	std::set<Var> ufs2;
-	for (; !ufs_found2 && i < css.size(); i++){
-		if (isCS[css[i]]){
-			ufs_found2 = unfounded(css[i], ufs2);
+	int j=0;
+	for (; !ufs_found && j < css.size(); j++){
+		if (isCS[css[j]]){
+			ufs_found = unfounded(css[j], ufs);
 		}
 	}
-	//printf("old i=%i\n", i);*/
+	//printf("old i=%i\n", i);
 
 //NEW CODE TO FIND UNFOUNDED SETS
-	int visittime = 0;
+/*	int visittime = 0;
 	vec<Var> stack;
 	vec<Var> root;
 	vec<Var> visited;
-	for(int i=0; i<nVars(); i++){ //TODO veel teveel werk als niet nodig
-		root.push(i);
-		visited.push(-1);
-	}
+	visited.growTo(nVars(), -1);
+	root.growTo(nVars());
 
  	int j=0;
 	for (; !ufs_found && j < css.size(); j++){//hij komt nooit in het geval dat hij iets op de stack moet pushen, altijd disj unfounded???
@@ -1032,26 +1027,6 @@ Clause* TSolver::indirectPropagate() {
 					//kan gebeuren als in de root een ufs van grootte 1 wordt gevonden
 					break;
 				}
-			}
-		}
-	}
-
-/*	if(ufs_found && ufs_found2){
-		std::set<Var>::iterator one=ufs2.begin();
-		std::set<Var>::iterator two=ufs.begin();
-		for(int i=0; i<ufs.size(); i++, one++, two++){
-			if(*one != *two){
-				fprintf(stderr, "OLD METHOD \n");
-				for(std::set<Var>::iterator i=ufs2.begin(); i!=ufs2.end(); i++){
-					fprintf(stderr, "%i ", *i+1);
-				}
-				fprintf(stderr, "\n");
-				fprintf(stderr, "NEW METHOD \n");
-				for(std::set<Var>::iterator i=ufs.begin(); i!=ufs.end(); i++){
-					fprintf(stderr, "%i ", *i+1);
-				}
-				fprintf(stderr, "\n");
-				break;
 			}
 		}
 	}*/
@@ -1087,76 +1062,10 @@ Clause* TSolver::indirectPropagate() {
 		//if (verbosity>=2) assert(isCycleFree()); // Only debugging! Time consuming.
 		return NULL;
 	}
-
-	/*		fprintf(stderr, "OLD TECHNIQUE\n");
-			if(ufs_found2){
-				for(std::set<Var>::iterator i=ufs2.begin(); i!=ufs2.end(); i++){
-					defType[*i]==CONJ?fprintf(stderr, "CONJ"): true;
-					defType[*i]==DISJ?fprintf(stderr, "DISJ"): true;
-					printClause(*definition[*i]);
-					fprintf(stderr, "\n");
-				}
-				for(std::set<Var>::iterator i=ufs2.begin(); i!=ufs2.end(); i++){
-					fprintf(stderr, "%i ", *i+1);
-				}
-				fprintf(stderr, "\n");
-			}
-			fprintf(stderr, "NEW TECHNIQUE\n");
-			if(ufs_found){
-				for(std::set<Var>::iterator i=ufs.begin(); i!=ufs.end(); i++){
-					defType[*i]==CONJ?fprintf(stderr, "CONJ"): true;
-					defType[*i]==DISJ?fprintf(stderr, "DISJ"): true;
-					printClause(*definition[*i]);
-					fprintf(stderr, "\n");
-				}
-				for(std::set<Var>::iterator i=ufs.begin(); i!=ufs.end(); i++){
-					fprintf(stderr, "%i ", *i+1);
-				}
-				fprintf(stderr, "\n");
-			}
-		}*/
-
-	/////////ADDED CODE
-	/*if(ufs_found && ufs2_found){
-		printf("Same results obtained, both found a set\nOLDMETHOD");
-		for(std::set<Var>::iterator i=ufs.begin(); i!=ufs.end(); i++){
-			printf("%i ", *i+1);
-		}
-		printf("\nNEWMETHOD");
-		for(std::set<Var>::iterator i=ufs2.begin(); i!=ufs2.end(); i++){
-			printf("%i ", *i+1);
-		}
-		printf("\n");
-	}else if(!ufs_found && !ufs2_found){
-		printf("Same results obtained, both false\n");
-	}else{
-		printf("Different results obtained:\n");
-		if(ufs_found){
-			printf("OLDMETHOD");
-			for(std::set<Var>::iterator i=ufs.begin(); i!=ufs.end(); i++){
-				defType[*i]==CONJ?fprintf(stderr, "CONJ"): true;
-				defType[*i]==DISJ?fprintf(stderr, "DISJ"): true;
-				printClause(*definition[*i]);
-				fprintf(stderr, "\n");
-			}
-		}else{
-			printf("NEWMETHOD");
-		}
-		for(std::set<Var>::iterator i=ufs.begin(); i!=ufs.end(); i++){
-			printf("%i ", *i+1);
-		}
-		printf("\n");
-		for(std::set<Var>::iterator i=ufs2.begin(); i!=ufs2.end(); i++){
-			printf("%i ", *i+1);
-		}
-		printf("\n");
-	}
-	ufs = ufs2;
-	ufs_found = ufs2_found;*/
-	/////////END ADDED CODE
 }
 
 bool TSolver::unfounded(Var cs, std::set<Var>& ufs) {
+	justify_calls++;
 	bool rslt = false; // if we go straight to Finish, this will be the result.
 	vec<Var> tmpseen; // use to speed up the cleaning of data structures in "Finish"
 	Queue<Var> q;
