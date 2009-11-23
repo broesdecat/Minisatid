@@ -862,6 +862,7 @@ bool TSolver::indirectPropagateNow() {
 
 /////////////
 //Finding unfounded checks by
+//Generalized tarjanUFS
 UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited){
 	visited[v]=visittime;visittime++;
 	root[v]=v;
