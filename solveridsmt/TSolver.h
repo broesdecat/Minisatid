@@ -26,7 +26,7 @@ struct ECNF_mode {
 	ECNF_mode() : init(true), def(false), aggr(false), amo(false), mnmz(false) {}
 };
 
-enum UFS {NOTUNFOUNDED, OLDCHECK, UFSFOUND, STILLPOSSIBLE};
+enum UFS {NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE};
 
 class Solver;
 

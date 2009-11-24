@@ -867,19 +867,16 @@ UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& sta
 	visited[v]=visittime;visittime++;
 	root[v]=v;
 
-	/*if(value(v)==l_True){
-		return NOTUNFOUNDED;
-	}*/
 	DefType type = defType[v];
 
 	if(type==AGGR){
-		return OLDCHECK;
+		assert(false);
+		//return OLDCHECK;
 	}
 	assert(type==CONJ || type==DISJ);
 
 	Clause* c = definition[v];
 
-	Var definedChild = -1;
 	for(int i=0; i<c->size(); i++){
 		//dit is een COMPLETION CLAUSE, GEEN RULE, dus DISJUNCTIE (met head eerst)
 		//dus waarden behandelen zoals in een disjunctie, niet zoals de achterliggende rule
@@ -889,56 +886,59 @@ UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& sta
 			continue;
 		}
 		if(childtype==AGGR){
-			return OLDCHECK;
+			assert(false);
 		}
 		if(childtype==NONDEF || scc[var(l)]!=scc[v]){
-			if(value(l)==l_True){
+			if(value(l)!=l_False && type==DISJ){
 				return NOTUNFOUNDED;
-			}
-			if(value(l)==l_Undef && type==DISJ){ //!for a conjunction, if it is unknown, the loop will be unfounded, because it can never become true, but it can receive an external justification if false
-				return NOTUNFOUNDED;
-			}
-		}
-		if(type==CONJ){
-			if(definedChild==-1){
-				 definedChild = var(l);
-			}else{
-				return OLDCHECK;
 			}
 		}
 	}
 
 	stack.push(v);
 
-	if(type==CONJ){
-		if(visited[definedChild]==-1){
-			UFS ret = visitForUFS(definedChild, ufs, visittime, stack, root, visited);
-			if(ret != STILLPOSSIBLE){
-				return ret;
-			}
+	bool allconjnotunfounded = true;
+
+	for(int i=0; i<c->size(); i++){
+		Var child = var(c->operator [](i));
+		if(child==v){ //it is the head of the rule (!!or a body literal the same as the head)
+			continue;
 		}
-		if(visited[definedChild]<visited[v]){
-			root[v]=root[definedChild];
+		if(!(defType[child]==CONJ || defType[child]==DISJ)){
+			continue;
 		}
-	}else{ //DISJ, have returned from all others
-		for(int i=0; i<c->size(); i++){
-			Var child = var(c->operator [](i));
-			if(child==v){ //it is the head of the rule
-				continue;
-			}
-			if(!(defType[child]==CONJ || defType[child]==DISJ)){
-				continue;
-			}
-			if(visited[child]==-1){
-				UFS ret = visitForUFS(child, ufs, visittime, stack, root, visited);
-				if(ret!=STILLPOSSIBLE){
-					return ret;
+		if(visited[child]==-1){
+			switch(visitForUFS(child, ufs, visittime, stack, root, visited)){
+			case STILLPOSSIBLE:
+				if(visited[child]<visited[v]){
+					root[v]=root[child];
 				}
-			}
-			if(visited[child]<visited[v]){
-				root[v]=root[child];
+				if(type==CONJ){
+					allconjnotunfounded = false;
+					if(stack.last() != v){
+						return STILLPOSSIBLE;
+					}
+				}
+				break;
+			case NOTUNFOUNDED:
+				if(type == CONJ){
+					continue;
+				}else{
+					return NOTUNFOUNDED;
+				}
+				break;
+			case UFSFOUND:
+				return UFSFOUND;
+				break;
 			}
 		}
+		if(visited[child]<visited[v]){
+			root[v]=root[child];
+		}
+	}
+
+	if(type == CONJ && allconjnotunfounded){
+		return NOTUNFOUNDED;
 	}
 
 	if(root[v]==v){
@@ -952,12 +952,23 @@ UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& sta
 		}
 		if(ufs.size()>1){
 			return UFSFOUND;
-		}else{ //TODO clearen is niet echt juist, eigenlijk moet een propagate gebeuren, daarna wel verder zoeken
-			ufs.clear();
+		}else{
+			int containsx = 0;
+			for(int i=0; i<c->size(); i++){
+				if(x==var(c->operator [](i))){
+					containsx++;
+				}
+			}
+			if(containsx>1){ //there is a loop of length 1, so x itself is an UFS
+				return UFSFOUND;
+			}else{//no loops, x is only an SCC, not a UFS
+				ufs.clear();
+				return STILLPOSSIBLE;
+			}
 		}
+	}else{
+		return STILLPOSSIBLE;
 	}
-
-	return STILLPOSSIBLE;
 }
 
 /*_________________________________________________________________________________________________
@@ -980,24 +991,14 @@ Clause* TSolver::indirectPropagate() {
 	if (!indirectPropagateNow()) {
 		return NULL;
 	}
-	findCycleSources();
 
 	bool ufs_found = false;
 	std::set<Var> ufs;
 
 	uint64_t old_justify_calls = justify_calls;
 
-//OLD CODE TO FIND UNFOUNDED SETS
-	int j=0;
-	for (; !ufs_found && j < css.size(); j++){
-		if (isCS[css[j]]){
-			ufs_found = unfounded(css[j], ufs);
-		}
-	}
-	//printf("old i=%i\n", i);
-
 //NEW CODE TO FIND UNFOUNDED SETS
-/*	int visittime = 0;
+	int visittime = 0;
 	vec<Var> stack;
 	vec<Var> root;
 	vec<Var> visited;
@@ -1005,35 +1006,25 @@ Clause* TSolver::indirectPropagate() {
 	root.growTo(nVars());
 
  	int j=0;
-	for (; !ufs_found && j < css.size(); j++){//hij komt nooit in het geval dat hij iets op de stack moet pushen, altijd disj unfounded???
-		if(visited[css[j]]==-1){
-			if (isCS[css[j]]){
-				justify_calls++;
-				UFS ret = visitForUFS(css[j], ufs, visittime, stack, root, visited);
-				switch(ret){
-				case UFSFOUND:
-					ufs_found = true;
-					//assert(ufs2.size()>0);
-					break;
-				case OLDCHECK:
-					if (isCS[css[j]]){
-						//deze methode past de justification aan ofzo en daarom werkt het niet want mij methode doet dat niet
-						ufs_found = unfounded(css[j], ufs);
-					}
-					break;
-				case NOTUNFOUNDED:
-					//TODO mss verwijder uit css?
-					break;
-				case STILLPOSSIBLE:
-					//kan gebeuren als in de root een ufs van grootte 1 wordt gevonden
-					break;
-				}
+	for (; !ufs_found && j < nVars(); j++){//hij komt nooit in het geval dat hij iets op de stack moet pushen, altijd disj unfounded???
+		if(visited[j]==-1){
+			UFS ret = visitForUFS(j, ufs, visittime, stack, root, visited);
+			switch(ret){
+			case UFSFOUND:
+				ufs_found = true;
+				break;
+			case NOTUNFOUNDED:
+				//TODO mss verwijder uit css?
+				break;
+			case STILLPOSSIBLE:
+				//kan gebeuren als in de root een scc van lengte 1 wordt gevonden die geen ufs is
+				break;
 			}
 		}
-	}*/
+	}
 
-	justifiable_cycle_sources += ufs_found ? (j - 1) : j; // This includes those that are removed inside "unfounded".
-	succesful_justify_calls += (justify_calls - old_justify_calls);
+//	justifiable_cycle_sources += ufs_found ? (j - 1) : j; // This includes those that are removed inside "unfounded".
+//	succesful_justify_calls += (justify_calls - old_justify_calls);
 
 	if (ufs_found) {
 		if (verbosity >= 2) {
@@ -1042,13 +1033,13 @@ Clause* TSolver::indirectPropagate() {
 				reportf(" %d",*it+1);
 			reportf(" }.\n");
 		}
-		cycles++;
-		cycle_sizes += ufs.size();
+//		cycles++;
+//		cycle_sizes += ufs.size();
 		if (defn_strategy == adaptive)
 			adaption_current++; // This way we make sure that if adaption_current > adaption_total, this decision level had indirect propagations.
 		return assertUnfoundedSet(ufs);
 	} else { // Found a witness justification.
-		apply_changes();
+		//apply_changes();
 		if (defn_strategy == adaptive) {
 			if (adaption_current == adaption_total)
 				adaption_total++; // Next time, skip one decision level extra.
@@ -2489,64 +2480,3 @@ inline void TSolver::printAggrExpr(const AggrExpr& ae, const AggrSet& as)
     printAggrSet(as);
     reportf(" } <= %d. Known values: min=%d, max=%d\n",ae.max,as.min,as.max);
 }
-
-
-
-/*
-//TARJAN ALGORITHM BROES FOR FINDING UNFOUNDED LOOPS FOR DEFINED ATOMS WITH ONLY 1 DEFINED CONJUNCT
-void loopfound(const vector<int>& loop){
-	//act on it;
-}
-
-int visitcounter = 0;
-vector<bool> visited;
-vector<int> root;
-vector<int> stack;
-
-void visit(int v, bool loopfound){
-	if(v is open or defined in another SCC){
-		if(v is false in current interpret){
-			return;
-		}else{
-			whole path to root is true (or unknown), so do something
-		}
-	}
-	visited[v] = true;
-	int currentcounter = visitcounter++;
-	root[v] = currentcounter;
-	if(!loopfound){
-		stack.push_back(v);
-	}
-
-	for(int i=0; i<children[v].size(); i++){
-		int y = children[v][i];
-		if(!visited[y]){
-			visit(y, loopfound);
-		}
-		if(root[y]<root[v] && root[y]>timex[v]){
-			loopfound = true;
-			root[v] = root[y];
-		}
-	}
-
-	if(root[v]==currentcounter){
-		if(loopfound){
-			vector<int> loop;
-			int x;
-			while((x=stack.pop_back())!=v){
-				loop.push_back(x);
-			}
-			loop.push_back(x);
-			loopfound(loop);
-		}else{
-			stack.pop_back();
-		}
-	}
-}
-
-void findloops(){
-	vector<int> tops; //initialize
-	for(int i=0; i<tops.size(); i++){
-		visit(tops[i]);
-	}
-}*/
