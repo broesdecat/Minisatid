@@ -38,7 +38,6 @@ public:
 	/////////////////////SOLVER NECESSARY
 	bool 	simplify	();
 	void 	backtrack 	( Lit l);
-	void 	setTrue		(Lit p);
 	Clause* getExplanation	(Lit p);    // Create a clause that implicitly was the reason for p's propagation.
 	void 	notifyVarAdded	(); 		//correctly initialized TSolver datastructures when vars are added
 	Clause* 	propagate		(Lit p, Clause* confl);
@@ -72,7 +71,7 @@ public:
 protected:
 	bool 		ok;
 	vec<int>	seen;
-	vec<char> 	assigns;
+//	vec<char> 	assigns;
 
 	lbool	value(Var x) const;
 	lbool	value(Lit p) const;
@@ -112,7 +111,7 @@ protected:
 	//
 	vec<Var>        defdVars;            // May include variables that get marked NONDEF later.
 	vec<DefType>    defType;             // Per atom: what type is it (non-defined, disjunctive, conjunctive, aggregate).
-	vec<Clause*>    definition;          // If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
+	vec<Rule*>    definition;          // If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
 	// Note that v occurs negatively if DISJ, positively if CONJ; and the reverse for the body literals.
 	// If defType[v]==NONDEF, it may be that v *was* defined by a non-recursive rule: then definition[v] also is the 'long clause' of the completion of that rule.
 	vec<int>        scc;                 // To which strongly connected component does the atom belong. Zero iff defType[v]==NONDEF.
@@ -148,7 +147,6 @@ protected:
 	void     findCycleSources   ();                                // Starting from cf_justification, creates a supporting justification in sp_justification, and records the changed atoms in 'cycle sources'.
 	void     findCycleSources   (Var v);                           // Auxiliary for findCycleSources(): v is non-false and its cf_justification does not support it.
 
-	bool     enqueue          (Lit p, Clause* from = NULL);                            // Test if fact 'p' contradicts current state, enqueue otherwise.
 
 	// Propagation method:
 	Clause*  indirectPropagate  ();                                /* Main method.
@@ -192,9 +190,5 @@ protected:
 
 inline void     TSolver::addCycleSource(Var v)        { if (!isCS[v]) {isCS[v]=true; css.push(v);} }
 inline void     TSolver::clearCycleSources()          { for (int i=0;i<css.size();i++) isCS[css[i]]=false; css.clear(); }
-
-inline lbool    TSolver::value(Var x) const   { return toLbool(assigns[x]); }
-inline lbool    TSolver::value(Lit p) const   { return toLbool(assigns[var(p)]) ^ sign(p); }
-inline int      TSolver::nVars()      const   { return assigns.size(); }
 
 #endif /* TSOLVER_H_ */

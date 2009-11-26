@@ -12,29 +12,6 @@
 #include "TSolver.h"
 
 /*************************************************************************************/
-#if defined(__linux__)
-static inline int memReadStat(int field)
-{
-    char    name[256];
-    pid_t pid = getpid();
-    sprintf(name, "/proc/%d/statm", pid);
-    FILE*   in = fopen(name, "rb");
-    if (in == NULL) return 0;
-    int     value;
-    for (; field >= 0; field--)
-        fscanf(in, "%d", &value);
-    fclose(in);
-    return value;
-}
-static inline uint64_t memUsed() { return (uint64_t)memReadStat(0) * (uint64_t)getpagesize(); }
-#elif defined(__FreeBSD__)
-static inline uint64_t memUsed(void) {
-    struct rusage ru;
-    getrusage(RUSAGE_SELF, &ru);
-    return ru.ru_maxrss*1024; }
-#else
-static inline uint64_t memUsed() { return 0; }
-#endif
 
 #if defined(__linux__)
 #include <fpu_control.h>
@@ -514,42 +491,52 @@ int main(int argc, char** argv)
         reportf("|                                                                             |\n");
     }
 
-    parse(in, S, TS);
-    gzclose(in);
-    FILE* res = (argc >= 3) ? fopen(argv[2], "wb") : NULL;
+    bool ret = false;
 
-    if (S->verbosity>=1) {
-        double parse_time = cpuTime() - cpu_time;
-        reportf("| Parsing time              : %7.2f s                                       |\n", parse_time);
-    }
+    try{
+		parse(in, S, TS);
+		gzclose(in);
+		FILE* res = (argc >= 3) ? fopen(argv[2], "wb") : NULL;
 
-    if (!S->simplify()){
-        if (S->verbosity>=1) {
-            reportf("===============================================================================\n");
-            reportf("Solved by unit propagation\n");
-        }
-        if (res != NULL) fprintf(res, "UNSAT\n"), fclose(res);
-        printf("UNSATISFIABLE\n");
-        exit(20);
-    }
+		if (S->verbosity>=1) {
+			double parse_time = cpuTime() - cpu_time;
+			reportf("| Parsing time              : %7.2f s                                       |\n", parse_time);
+		}
 
-    S->nb_models=N;
-    S->res=res;
-    bool ret = S->solve();
-    printStats(S);
-    /////////TEMPORARY TODO BROES
-	if (ret) {
-		printf("s SATISFIABLE\nv ");
-		for (int i = 0; i < S->nVars(); i++)
-			if (S->model[i] != l_Undef)
-				printf("%s%s%d", (i==0)?"":" ", (S->model[i]==l_True)?"":"-", i+1);
-		printf(" 0\n");
-	} else {
-		printf("s UNSATISFIABLE\n");
-    }
-	/////////TEMPORARY TODO BROES
+		if (!S->simplify()){
+			if (S->verbosity>=1) {
+				reportf("===============================================================================\n");
+				reportf("Solved by unit propagation\n");
+			}
+			if (res != NULL) fprintf(res, "UNSAT\n"), fclose(res);
+			printf("UNSATISFIABLE\n");
+			exit(20);
+		}
 
-    delete TS;
+		S->nb_models=N;
+		S->res=res;
+		ret = S->solve();
+		printStats(S);
+		/////////TEMPORARY TODO BROES
+		if (ret) {
+			printf("s SATISFIABLE\nv ");
+			for (int i = 0; i < S->nVars(); i++)
+				if (S->model[i] != l_Undef)
+					printf("%s%s%d", (i==0)?"":" ", (S->model[i]==l_True)?"":"-", i+1);
+			printf(" 0\n");
+		} else {
+			printf("s UNSATISFIABLE\n");
+		}
+		/////////TEMPORARY TODO BROES
+
+		delete TS;
+	}catch(int e){
+		if(e==33){
+			printf("Memory overflow");
+			exit(33);
+		}
+	}
+
 
 #ifdef NDEBUG
     exit(ret ? 10 : 20);     // (faster than "return", which will invoke the destructor for 'Solver')

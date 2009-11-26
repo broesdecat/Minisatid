@@ -117,26 +117,26 @@ bool Solver::existsUnknownVar(){
 bool Solver::addClause(vec<Lit>& ps) {
 	assert(decisionLevel() == 0);
 
-	if (!ok)
+	if (!ok){
 		return false;
-	else {
-		// Check if clause is satisfied and remove false/duplicate literals:
-		sort(ps);
-		Lit p;
-		int i, j;
-		for (i = j = 0, p = lit_Undef; i < ps.size(); i++)
-			if (value(ps[i]) == l_True || ps[i] == ~p)
-				return true;
-			else if (value(ps[i]) != l_False && ps[i] != p)
-				ps[j++] = p = ps[i];
-		ps.shrink(i - j);
 	}
+
+	// Check if clause is satisfied and remove false/duplicate literals:
+	sort(ps);
+	Lit p;
+	int i, j;
+	for (i = j = 0, p = lit_Undef; i < ps.size(); i++)
+		if (value(ps[i]) == l_True || ps[i] == ~p)
+			return true;
+		else if (value(ps[i]) != l_False && ps[i] != p)
+			ps[j++] = p = ps[i];
+	ps.shrink(i - j);
 
 	if (ps.size() == 0)
 		return ok = false;
 	else if (ps.size() == 1) {
 		assert(value(ps[0]) == l_Undef);
-		uncheckedEnqueue(ps[0]);
+		setTrue(ps[0]);
 		return ok = (propagate() == NULL);
 	} else {
 		Clause* c = Clause_new(ps, false);
@@ -215,7 +215,7 @@ void Solver::cancelFurther(int init_qhead) {
 
 // Revert to the state at given level (keeping all assignment at 'level' but not beyond).
 //
-void Solver::cancelUntil(int level) {
+void Solver::backtrackTo(int level) {
 	if (decisionLevel() > level) {
 		cancelFurther(trail_lim[level]);
 		trail_lim.shrink(trail_lim.size() - level);
@@ -462,12 +462,9 @@ void Solver::analyzeFinal(Lit p, vec<Lit>& out_conflict) {
 	seen[var(p)] = 0;
 }
 
-void Solver::uncheckedEnqueue(Lit p, Clause* from) {
+void Solver::setTrue(Lit p, Clause* from) {
 	assert(value(p) == l_Undef);
 	assigns[var(p)] = toInt(lbool(!sign(p))); // <<== abstract but not uttermost effecient
-	/////START TSOLVER
-	tsolver->setTrue(p);
-	/////END TSOLVER
 	level[var(p)] = decisionLevel();
 	reason[var(p)] = from;
 	trail.push(p);
@@ -528,7 +525,7 @@ Clause* Solver::propagate() {
                             while (i < end)
                                 *j++ = *i++;
                         }else {
-                            uncheckedEnqueue(first, &c);
+                        	setTrue(first, &c);
                             if (verbosity>=2) {reportf(" "); printLit(first);}
                         }
             }
@@ -681,16 +678,16 @@ lbool Solver::search(int nof_conflicts, int nof_learnts) {
 
             learnt_clause.clear();
             analyze(confl, learnt_clause, backtrack_level);
-            cancelUntil(backtrack_level);
+            backtrackTo(backtrack_level);
             assert(value(learnt_clause[0]) == l_Undef);
 
             if (learnt_clause.size() == 1){
-                uncheckedEnqueue(learnt_clause[0]);
+            	setTrue(learnt_clause[0]);
                 if (verbosity>=2) {reportf("Adding learnt clause: [ "); printLit(learnt_clause[0]); reportf(" ], backtracking until level %d.\n",backtrack_level);}
             }else{
                 Clause* c = Clause_new(learnt_clause, true);
                 addLearnedClause(c);
-                uncheckedEnqueue(learnt_clause[0], c);
+                setTrue(learnt_clause[0], c);
                 if (verbosity>=2) {reportf("Adding learnt clause: [ "); printClause(*c); reportf("], backtracking until level %d.\n",backtrack_level);}
             }
 
@@ -703,7 +700,7 @@ lbool Solver::search(int nof_conflicts, int nof_learnts) {
             if (nof_conflicts >= 0 && conflictC >= nof_conflicts){
                 // Reached bound on number of conflicts:
                 progress_estimate = progressEstimate();
-                cancelUntil(0);
+                backtrackTo(0);
                 return l_Undef; }
 
             // Simplify the set of problem clauses:
@@ -745,7 +742,7 @@ lbool Solver::search(int nof_conflicts, int nof_learnts) {
             // Increase decision level and enqueue 'next'
             assert(value(next) == l_Undef);
             newDecisionLevel();
-            uncheckedEnqueue(next);
+            setTrue(next);
         }
     }
 }
@@ -765,12 +762,12 @@ double Solver::progressEstimate() const {
 
 ////////////START TSOLVER
 void Solver::invalidateModel(const vec<Lit>& lits, int& init_qhead) {
-	cancelUntil(0);
+	backtrackTo(0);
 	if (init_qhead < qhead)
 		cancelFurther(init_qhead);
 
 	if (lits.size() == 1) {
-		uncheckedEnqueue(lits[0]);
+		setTrue(lits[0]);
 		++init_qhead;
 	} else {
 		Clause* c = Clause_new(lits, false);
@@ -913,7 +910,7 @@ bool Solver::solve() {
 			break;
 		}
 	}
-	cancelUntil(0);
+	backtrackTo(0);
 
 	if (res != NULL)
 		fclose(res);
@@ -1011,10 +1008,6 @@ void Solver::checkLiteralCount() {
 				(int) clauses_literals, cnt);
 		assert((int)clauses_literals == cnt);
 	}
-}
-
-void 	Solver::dontRemoveSatisfiedClauses(){
-	remove_satisfied = false;
 }
 
 //============================================================================================================
