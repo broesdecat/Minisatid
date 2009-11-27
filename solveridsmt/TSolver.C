@@ -617,15 +617,15 @@ void TSolver::findCycleSources() {
 
 	//ADDED LAST PART FOR CONSISTENCY
 	if (prev_conflicts == solver->conflicts && defn_strategy == always && solver->decisionLevel()!=0) {
-		/*for(int i=0; i<nVars(); i++){
+		for(int i=0; i<nVars(); i++){
 			if(defType[i]==CONJ || defType[i]==DISJ || defType[i]==AGGR){
 				addCycleSource(i);
 			}
-		}*/
+		}
 
 		//for (int i=solver->trail_lim.last(); i<solver->trail.size(); i++) {
 		//	Lit l = solver->trail[i]; // l became true, ~l became false.
-		for(int i=0; i<solver->getNbOfRecentAssignments(); i++){
+		/*for(int i=0; i<solver->getNbOfRecentAssignments(); i++){
 			Lit l = solver->getRecentAssignments(i);
 			vec<Var>& ds = disj_occurs[toInt(~l)];
 			for (int j = 0; j < ds.size(); j++) {
@@ -655,9 +655,14 @@ void TSolver::findCycleSources() {
 					}
 				}
 			}
-		}
+		}*/
 	} else {
-		// NOTE: with a clever trail system, we could even after conflicts avoid having to look at all rules.
+		for(int i=0; i<nVars(); i++){
+			if(defType[i]==CONJ || defType[i]==DISJ || defType[i]==AGGR){
+				addCycleSource(i);
+			}
+		}
+		/*// NOTE: with a clever trail system, we could even after conflicts avoid having to look at all rules.
 		prev_conflicts = solver->conflicts;
 		for (int i = 0; i < defdVars.size(); i++) {
 			Var v = defdVars[i];
@@ -675,7 +680,7 @@ void TSolver::findCycleSources() {
 				if (k < cf.size()) // There is a false literal in the cf_justification.
 					findCycleSources(v);
 			}
-		}
+		}*/
 	}
 	nb_times_findCS++;
 	cycle_sources += css.size();
@@ -926,15 +931,15 @@ Clause* TSolver::indirectPropagate() {
 	uint64_t old_justify_calls = justify_calls;
  	int j=0;
 
-	for (; !ufs_found && j < css.size(); j++){
+/*	for (; !ufs_found && j < css.size(); j++){
 		if(isCS[css[j]]){
 			ufs_found = unfounded(css[j], ufs);
 		}
-	}
+	}*/
 
 
 //NEW CODE TO FIND UNFOUNDED SETS
-/*	int visittime = 0;
+	int visittime = 0;
 	vec<Var> stack;
 	vec<Var> root;
 	vec<Var> visited;
@@ -961,7 +966,7 @@ Clause* TSolver::indirectPropagate() {
 				break;
 			}
 		}
-	}*/
+	}
 
 	justifiable_cycle_sources += ufs_found ? (j - 1) : j; // This includes those that are removed inside "unfounded".
 	succesful_justify_calls += (justify_calls - old_justify_calls);
