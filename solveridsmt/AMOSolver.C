@@ -64,6 +64,7 @@ bool AMOSolver::addAMO(vec<Lit>& ps) {
 
 // Using the vector "defdVars", initialize all other SAT(ID) additional data structures.
 void AMOSolver::finishECNF_DataStructures() {
+	init = false;
 	if (verbosity >= 1)
 		reportf("| Number of at-most-one statements: %5d",(int)amo_statements);
 	if (amo_statements > 0) {
