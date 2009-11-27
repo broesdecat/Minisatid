@@ -31,6 +31,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include "SolverTypes.h"
 #include "TSolver.h"
+#include "AMOSolver.h"
 
 #define theoryUNSAT 20
 
@@ -81,12 +82,15 @@ static inline uint64_t memUsed() { return 0; }
 // Solver -- the main class:
 
 class TSolver;
+class AMOSolver;
 
 class Solver {
 public:
 	/////////////////////TSOLVER NECESSARY
 	TSolver* 	tsolver;
 	void setTSolver(TSolver* ts){tsolver = ts;}
+	AMOSolver* 	amosolver;
+	void setAMOSolver(AMOSolver* ts){amosolver = ts;}
 
     lbool   value      (Var x) const;       // The current value of a variable.
     lbool   value      (Lit p) const;       // The current value of a literal.

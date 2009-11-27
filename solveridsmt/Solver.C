@@ -26,6 +26,8 @@
 // Constructor/Destructor:
 
 Solver::Solver() :
+	qhead(0),
+
 	// Parameters: (formerly in 'SearchParams')
 	var_decay(1 / 0.95),
 	clause_decay(1 / 0.999),
@@ -57,7 +59,6 @@ Solver::Solver() :
 
 	ok(true),
 	remove_satisfied(true),
-	qhead(0),
 
 	cla_inc(1), var_inc(1), simpDB_assigns(-1),
 	simpDB_props(0),
@@ -92,6 +93,7 @@ Var Solver::newVar(bool sign, bool dvar) {
 
 	//////////////START TSOLVER
 	tsolver->notifyVarAdded();
+	amosolver->notifyVarAdded();
 	//////////////END TSOLVER
 
 	insertVarOrder(v);
@@ -206,6 +208,7 @@ void Solver::cancelFurther(int init_qhead) {
 
 	    //////////////START TSOLVER
 		tsolver->backtrack(trail[c]);
+		amosolver->backtrack(trail[c]);
 		//////////////END TSOLVER
 	}
 
@@ -536,6 +539,7 @@ FoundWatch:;
 
 		//////////////START TSOLVER
 		confl = tsolver->propagate(p, confl);
+		confl = amosolver->propagate(p, confl);
 		if(qhead==trail.size()){
 			confl = tsolver->propagateDefinitions(confl);
 		}
@@ -621,7 +625,7 @@ bool Solver::simplify() {
 	simpDB_props = clauses_literals + learnts_literals; // (shouldn't depend on stats really, but it will do for now)
 
     //////////////START TSOLVER
-	if(conflicts==0 && !tsolver->simplify()){
+	if(conflicts==0 && (!tsolver->simplify() || !amosolver->simplify())){
 		ok = false;
 		return false;
 	}

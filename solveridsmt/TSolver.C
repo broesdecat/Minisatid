@@ -7,14 +7,11 @@
 TSolver::TSolver():
 	defn_strategy(always),
 	defn_search(include_cs),
-	ok(true),
 	prev_conflicts(-1) /*first time test (prev_conflicts==conflicts) should fail*/,
 	cycle_sources(0), justifiable_cycle_sources(0),
 	cycles(0),
 	cycle_sizes(0),
 	justify_conflicts(0), // ecnf_mode.def
-	amo_statements(0),
-	amo_literals(0), // ecnf_mode.amo
 	nb_times_findCS(0), justify_calls(0), cs_removed_in_justify(0),
 	succesful_justify_calls(0), extdisj_sizes(0),
 	total_marked_size(0)
@@ -356,7 +353,7 @@ bool TSolver::simplify(){
 		//if (ecnf_mode.def && verbosity>=2) assert(isCycleFree()); // Only for debugging!!
 	}
 
-	if (verbosity >= 2 && (ecnf_mode.amo || ecnf_mode.def || ecnf_mode.aggr))
+	if (verbosity >= 2 && (ecnf_mode.def || ecnf_mode.aggr))
 		reportf("ECNF data structures initialized and theory simplified.\n");
 	return true;
 }
@@ -365,10 +362,6 @@ Clause* TSolver::propagate(Lit p, Clause* confl){
 	if (ecnf_mode.init) {
 		return confl;
 	}
-
-	// AMO propagations.
-	if (confl == NULL && ecnf_mode.amo)
-		return AMO_propagate(p);
 
 	// Aggr propagations.
 	if (confl == NULL && ecnf_mode.aggr)
@@ -405,9 +398,6 @@ void TSolver::notifyVarAdded(){
 		Aggr_watches.push();
 		aggr_reason.push();
 	}
-	if (ecnf_mode.amo) {
-		AMO_watches.growTo(2 * nVars());
-	}
 }
 
 // First literal in ps is head atom.
@@ -417,10 +407,6 @@ bool TSolver::addRule(const bool conj, vec<Lit>& ps) {
 	//assert(solver->decisionLevel() == 0);
 	assert(ps.size() > 0);
 	assert(!sign(ps[0]));
-
-	if(!ok){
-		throw theoryUNSAT;
-	}
 
 	if (conj || ps.size() == 2){
 		for (int i = 1; i < ps.size(); i++){
@@ -461,75 +447,11 @@ bool TSolver::addRule(const bool conj, vec<Lit>& ps) {
 	return true;
 }
 
-bool TSolver::addAMO(vec<Lit>& ps) {
-	if (!ecnf_mode.amo)
-		reportf("ERROR! Attempt at adding at-most-one statement, though ECNF specifiers did not contain \"eu\" or \"amo\".\n"), exit(
-				3);
-	//assert(solver->decisionLevel() == 0);
-	assert(ps.size() > 0);
-	assert(!sign(ps[0]));
-
-	// Main calls first "addClause(vec<Lit>& ps)", where sorting etc happens. Thus, if we get here, ps has size > 0, and is sorted. If ps.size()==1, the propagation has already happened.
-	if (!ok){
-		throw theoryUNSAT;
-	}
-	if (ps.size() == 1)
-		return true;
-	Clause* c;
-	if (ps.size() == 2) {
-		ps[0] = ~ps[0];
-		ps[1] = ~ps[1];
-		c = Clause_new(ps, false);
-		solver->addClause(c);
-		ps[0] = ~ps[0];
-		ps[1] = ~ps[1]; // return ps to its original state: may be used to add Clause (for EU)
-	} else {
-		// TODO: it should be possible, in case of an EU expression, to use the clause that's already there. Then when a literal becomes true, it can be set as watch in the clause also.
-		c = Clause_new(ps, false);
-		solver->addClause(c);
-		if (verbosity >= 2) {
-			reportf("AMO clause: ");
-			printClause(*c);
-			reportf("\n");
-		}
-
-		int n = 2 * nVars();
-		while (n >= AMO_watches.size())
-			AMO_watches.push(); // Make sure the AMO_watches array is big enough.
-
-		for (int i = 0; i < ps.size(); i++)
-			AMO_watches[toInt(ps[i])].push(c);
-		amo_statements++;
-		amo_literals += ps.size();
-	}
-
-	return true;
-}
-
 //=================================================================================================
 // SAT(ID) additional methods
 
 // Using the vector "defdVars", initialize all other SAT(ID) additional data structures.
 void TSolver::finishECNF_DataStructures() {
-
-	if (ecnf_mode.amo) { // TODO verify whether ecnf_mode.init and ecnf_mode.amo should depend on each other!
-		if (verbosity >= 1)
-			reportf("| Number of at-most-one statements: %5d",(int)amo_statements);
-		if (amo_statements > 0) {
-			if (verbosity >= 1)
-				reportf(", avg. size: %7.2f literals.       |\n",(double)amo_literals/(double)amo_statements);
-			int n = 2 * nVars();
-			while (n >= AMO_watches.size())
-				AMO_watches.push();
-		} else {
-			ecnf_mode.amo = false;
-			if (verbosity >= 1) {
-				reportf("                                     |\n");
-				reportf("|    (there will be no at-most-one propagations)                              |\n");
-			}
-		}
-	}
-
 	if (ecnf_mode.aggr) {
 		if (verbosity >= 1)
 			reportf("| Number of aggregate exprs.: %4d",aggr_exprs.size());
@@ -1692,42 +1614,6 @@ Clause* TSolver::aggrEnqueue(Lit p, AggrReason* ar) {
 	return NULL;
 }
 
-Clause* TSolver::AMO_propagate(Lit p) {// TODO: if part of an EU statement, change watches there.
-    vec<Clause*>& ws = AMO_watches[toInt(p)];
-    if (verbosity>=2 && ws.size()>0) {
-    	reportf("AMO-propagating literal ");
-    	printLit(p);
-    	reportf(": (");
-    }
-    for (int i=0; i<ws.size(); i++) {
-        Clause& c = *ws[i];
-        vec<Lit> ps(2); ps[1]=~p;
-        for (int j=0; j<c.size(); j++) {
-            if (c[j]==p || value(c[j])==l_False)
-                continue;
-            ps[0]=~c[j];
-            Clause* rc = Clause_new(ps, true);
-            solver->addLearnedClause(rc);
-            if (value(c[j])==l_True) {
-                if (verbosity>=2) reportf(" Conflict");
-                solver->qhead = solver->trail.size();
-                return rc;
-            } else {// (value(c[j])==l_Undef) holds
-                solver->setTrue(~c[j], rc);
-                if (verbosity>=2) {
-                	reportf(" ");
-                	printLit(c[j]);
-                }
-            }
-        }
-    }
-    if (verbosity>=2 && ws.size()>0){
-    	reportf(" ).\n");
-    }
-
-    return NULL;
-}
-
 void TSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
 	if (!ecnf_mode.aggr)
 		reportf("ERROR! Attempt at adding aggregate set, though ECNF specifiers did not contain \"aggr\".\n"), exit(
@@ -2485,64 +2371,3 @@ inline void TSolver::printAggrExpr(const AggrExpr& ae, const AggrSet& as)
     printAggrSet(as);
     reportf(" } <= %d. Known values: min=%d, max=%d\n",ae.max,as.min,as.max);
 }
-
-
-
-/*
-//TARJAN ALGORITHM BROES FOR FINDING UNFOUNDED LOOPS FOR DEFINED ATOMS WITH ONLY 1 DEFINED CONJUNCT
-void loopfound(const vector<int>& loop){
-	//act on it;
-}
-
-int visitcounter = 0;
-vector<bool> visited;
-vector<int> root;
-vector<int> stack;
-
-void visit(int v, bool loopfound){
-	if(v is open or defined in another SCC){
-		if(v is false in current interpret){
-			return;
-		}else{
-			whole path to root is true (or unknown), so do something
-		}
-	}
-	visited[v] = true;
-	int currentcounter = visitcounter++;
-	root[v] = currentcounter;
-	if(!loopfound){
-		stack.push_back(v);
-	}
-
-	for(int i=0; i<children[v].size(); i++){
-		int y = children[v][i];
-		if(!visited[y]){
-			visit(y, loopfound);
-		}
-		if(root[y]<root[v] && root[y]>timex[v]){
-			loopfound = true;
-			root[v] = root[y];
-		}
-	}
-
-	if(root[v]==currentcounter){
-		if(loopfound){
-			vector<int> loop;
-			int x;
-			while((x=stack.pop_back())!=v){
-				loop.push_back(x);
-			}
-			loop.push_back(x);
-			loopfound(loop);
-		}else{
-			stack.pop_back();
-		}
-	}
-}
-
-void findloops(){
-	vector<int> tops; //initialize
-	for(int i=0; i<tops.size(); i++){
-		visit(tops[i]);
-	}
-}*/

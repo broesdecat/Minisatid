@@ -10,6 +10,7 @@
 
 #include "Solver.h"
 #include "TSolver.h"
+#include "AMOSolver.h"
 
 /*************************************************************************************/
 
@@ -114,7 +115,7 @@ static void parse_Aggr(B& in, Solver* S, TSolver* TS, AggrType type) {
 
 
 template<class B>
-static void parse_ECNF_main(B& in, Solver* S, TSolver* TS) { // NOTE: this parser does not read translation information.
+static void parse_ECNF_main(B& in, Solver* S, TSolver* TS, AMOSolver* AS) { // NOTE: this parser does not read translation information.
     vec<Lit> lits;
     for (;;){
         skipWhitespace(in);
@@ -143,7 +144,8 @@ static void parse_ECNF_main(B& in, Solver* S, TSolver* TS) { // NOTE: this parse
                 case 'E':
                     if (match(in,"EU")) {
                         readClause(in, S, lits);
-                        TS->addAMO(lits); // First this, because S.addClause(lits) empties lits.
+                        //TS->addAMO(lits); // First this, because S.addClause(lits) empties lits.
+                        AS->addAMO(lits);
                         S->addClause(lits);
                         //Clause * cl;
                         //S.addClause(lits,cl); // TODO
@@ -154,7 +156,8 @@ static void parse_ECNF_main(B& in, Solver* S, TSolver* TS) { // NOTE: this parse
                 case 'A':
                     if (match(in,"AMO")) {
                         readClause(in, S, lits);
-                        TS->addAMO(lits); // TODO
+                        //TS->addAMO(lits); // TODO
+                        AS->addAMO(lits);
                     } else
                         ParseError("Unexpected char '%c' after 'A' (expecting \"AMO\").\n",*in);
                     break;
@@ -222,11 +225,12 @@ static void parse_ECNF_main(B& in, Solver* S, TSolver* TS) { // NOTE: this parse
     }
 //////////////////START OF EXTENSIONS
     TS->finishECNF_DataStructures();
+    AS->finishECNF_DataStructures();
 //////////////////END OF EXTENSIONS
 }
 
 template<class B>
-static void parse_main(B& in, Solver* S, TSolver* TS) {
+static void parse_main(B& in, Solver* S, TSolver* TS, AMOSolver* AS) {
     bool ecnf = false;
     for (;;){
         skipWhitespace(in);
@@ -257,13 +261,11 @@ static void parse_main(B& in, Solver* S, TSolver* TS) {
                     } else if (*in=='e' && match(in,"eu")) {
                         if (S->verbosity>=1)
                             reportf("|    May contain exists unique statements (registered as at-most-one).        |\n");
-                        TS->ecnf_mode.amo=true;
                     } else if (*in=='a') {
                         ++in;
                         if (*in=='m' && match(in,"mo")) {
                             if (S->verbosity>=1)
                                 reportf("|    May contain at most one statements                                  |\n");
-                            TS->ecnf_mode.amo=true;
                         } else if (*in=='g' && match(in,"ggr")) {
                             if (S->verbosity>=1)
                                 reportf("|    May contain aggregate expressions.                                       |\n");
@@ -290,7 +292,7 @@ static void parse_main(B& in, Solver* S, TSolver* TS) {
             ParseError("Unexpected char: %c\n", *in);
     }
     if (ecnf){
-    	parse_ECNF_main(in, S, TS);
+    	parse_ECNF_main(in, S, TS, AS);
     }else{
     	reportf("Format no longer supported.\n"), exit(1);
     }
@@ -298,9 +300,9 @@ static void parse_main(B& in, Solver* S, TSolver* TS) {
 
 // Inserts problem into solver.
 //
-static void parse(gzFile input_stream, Solver* S, TSolver* TS) {
+static void parse(gzFile input_stream, Solver* S, TSolver* TS, AMOSolver* AS) {
     StreamBuffer in(input_stream);
-    parse_main(in, S, TS); }
+    parse_main(in, S, TS, AS); }
 
 //=================================================================================================
 
@@ -377,8 +379,11 @@ int main(int argc, char** argv)
 {
     Solver*      S = new Solver();
     TSolver* 	TS = new TSolver();
+    AMOSolver* 	AS = new AMOSolver();
     S->setTSolver(TS);
+    S->setAMOSolver(AS);
     TS->setSolver(S);
+    AS->setSolver(S);
     //S->verbosity = 1;
 
     int         i, j;
@@ -435,8 +440,9 @@ int main(int argc, char** argv)
             if (verbosity == 0 && errno == EINVAL){
                 reportf("ERROR! illegal verbosity level %s\n", value);
                 exit(0); }
-           S->verbosity = verbosity;
+            S->verbosity = verbosity;
             TS->verbosity = verbosity;
+            AS->verbosity = verbosity;
 
         }else if ((value = hasPrefix(argv[i], "-maxruntime="))){
            S->maxruntime = (double)strtol(value, NULL, 10);
@@ -494,7 +500,7 @@ int main(int argc, char** argv)
     bool ret = false;
 
     try{
-		parse(in, S, TS);
+		parse(in, S, TS, AS);
 		gzclose(in);
 		FILE* res = (argc >= 3) ? fopen(argv[2], "wb") : NULL;
 
@@ -530,6 +536,7 @@ int main(int argc, char** argv)
 		/////////TEMPORARY TODO BROES
 
 		delete TS;
+		delete AS;
 	}catch(int e){
 		if(e==33){
 			printf("Memory overflow");
