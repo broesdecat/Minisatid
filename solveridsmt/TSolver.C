@@ -614,8 +614,15 @@ void TSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack,
 void TSolver::findCycleSources() {
 	clearCycleSources();
 	clear_changes();
-	//TODObroes CHECK: ADDED LAST PART FOR CONSISTENCY
+
+	//ADDED LAST PART FOR CONSISTENCY
 	if (prev_conflicts == solver->conflicts && defn_strategy == always && solver->decisionLevel()!=0) {
+		/*for(int i=0; i<nVars(); i++){
+			if(defType[i]==CONJ || defType[i]==DISJ || defType[i]==AGGR){
+				addCycleSource(i);
+			}
+		}*/
+
 		//for (int i=solver->trail_lim.last(); i<solver->trail.size(); i++) {
 		//	Lit l = solver->trail[i]; // l became true, ~l became false.
 		for(int i=0; i<solver->getNbOfRecentAssignments(); i++){
@@ -786,8 +793,8 @@ UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& sta
 	DefType type = defType[v];
 
 	if(type==AGGR){
-		assert(false);
-		//return OLDCHECK;
+		//assert(false);
+		return OLDCHECK;
 	}
 	assert(type==CONJ || type==DISJ);
 
@@ -796,13 +803,14 @@ UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& sta
 	for(int i=0; i<c->size(); i++){
 		//dit is een COMPLETION CLAUSE, GEEN RULE, dus DISJUNCTIE (met head eerst)
 		//dus waarden behandelen zoals in een disjunctie, niet zoals de achterliggende rule
+		//TODObroes van de Rule klass een echte rule maken een geen kopie van een completion clause
 		DefType childtype = defType[var(c->operator [](i))];
 		Lit l = c->operator [](i);
 		if(var(l)==v){ //it is the head of the rule
 			continue;
 		}
 		if(childtype==AGGR){
-			assert(false);
+			return OLDCHECK;
 		}
 		if(childtype==NONDEF || scc[var(l)]!=scc[v]){
 			if(value(l)!=l_False && type==DISJ){
@@ -845,6 +853,9 @@ UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& sta
 				break;
 			case UFSFOUND:
 				return UFSFOUND;
+				break;
+			case OLDCHECK:
+				return OLDCHECK;
 				break;
 			}
 		}
@@ -907,40 +918,53 @@ Clause* TSolver::indirectPropagate() {
 	if (!indirectPropagateNow()) {
 		return NULL;
 	}
+	findCycleSources();
 
 	bool ufs_found = false;
 	std::set<Var> ufs;
 
 	uint64_t old_justify_calls = justify_calls;
+ 	int j=0;
+
+	for (; !ufs_found && j < css.size(); j++){
+		if(isCS[css[j]]){
+			ufs_found = unfounded(css[j], ufs);
+		}
+	}
+
 
 //NEW CODE TO FIND UNFOUNDED SETS
-	int visittime = 0;
+/*	int visittime = 0;
 	vec<Var> stack;
 	vec<Var> root;
 	vec<Var> visited;
 	visited.growTo(nVars(), -1);
 	root.growTo(nVars());
 
- 	int j=0;
-	for (; !ufs_found && j < nVars(); j++){//hij komt nooit in het geval dat hij iets op de stack moet pushen, altijd disj unfounded???
-		if(visited[j]==-1){
-			UFS ret = visitForUFS(j, ufs, visittime, stack, root, visited);
+	for (; !ufs_found && j < css.size(); j++){//hij komt nooit in het geval dat hij iets op de stack moet pushen, altijd disj unfounded???
+		if(visited[css[j]]==-1){
+//			justify_calls++;
+			UFS ret = visitForUFS(css[j], ufs, visittime, stack, root, visited);
 			switch(ret){
 			case UFSFOUND:
+				printf("UFS found");
 				ufs_found = true;
 				break;
 			case NOTUNFOUNDED:
-				//TODO mss verwijder uit css?
+//				isCS[j] = false;
 				break;
 			case STILLPOSSIBLE:
-				//kan gebeuren als in de root een scc van lengte 1 wordt gevonden die geen ufs is
+//				isCS[j] = false;
+				break;
+			case OLDCHECK:
+				ufs_found = unfounded(css[j], ufs);
 				break;
 			}
 		}
-	}
+	}*/
 
-//	justifiable_cycle_sources += ufs_found ? (j - 1) : j; // This includes those that are removed inside "unfounded".
-//	succesful_justify_calls += (justify_calls - old_justify_calls);
+	justifiable_cycle_sources += ufs_found ? (j - 1) : j; // This includes those that are removed inside "unfounded".
+	succesful_justify_calls += (justify_calls - old_justify_calls);
 
 	if (ufs_found) {
 		if (verbosity >= 2) {
@@ -949,13 +973,13 @@ Clause* TSolver::indirectPropagate() {
 				reportf(" %d",*it+1);
 			reportf(" }.\n");
 		}
-//		cycles++;
-//		cycle_sizes += ufs.size();
+		cycles++;
+		cycle_sizes += ufs.size();
 		if (defn_strategy == adaptive)
 			adaption_current++; // This way we make sure that if adaption_current > adaption_total, this decision level had indirect propagations.
 		return assertUnfoundedSet(ufs);
 	} else { // Found a witness justification.
-		//apply_changes();
+		apply_changes();
 		if (defn_strategy == adaptive) {
 			if (adaption_current == adaption_total)
 				adaption_total++; // Next time, skip one decision level extra.
@@ -1537,10 +1561,8 @@ void TSolver::markNonJustified(Var cs, vec<Var>& tmpseen) {
 	//    }
 }
 
-void TSolver::markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q,
-		vec<Var>& tmpseen) {
-	if (!seen[v] && (scc[v] == scc[cs]) && (defn_search == include_cs || v
-			== cs || !isCS[v])) {
+void TSolver::markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q, vec<Var>& tmpseen) {
+	if (!seen[v] && (scc[v] == scc[cs]) && (defn_search == include_cs || v == cs || !isCS[v])) {
 		seen[v] = 1;
 		tmpseen.push(v);
 		q.insert(v);
@@ -1551,13 +1573,15 @@ void TSolver::markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q,
 void TSolver::markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q,
 		vec<Var>& tmpseen) {
 	vec<Var>& v = disj_occurs[x + x];
-	for (int i = 0; i < v.size(); ++i)
-		if (var(sp_justification_disj[v[i]]) == x)
+	for (int i = 0; i < v.size(); ++i){
+		if (var(sp_justification_disj[v[i]]) == x){
 			markNonJustifiedAddVar(v[i], cs, q, tmpseen);
+		}
+	}
 	vec<Var>& w = conj_occurs[x + x];
-	for (int i = 0; i < w.size(); i++)
+	for (int i = 0; i < w.size(); i++){
 		markNonJustifiedAddVar(w[i], cs, q, tmpseen);
-
+	}
 	if (ecnf_mode.aggr) {
 		vec<AggrWatch>& aw = Aggr_watches[x];
 		for (int i = 0; i < aw.size(); i++) {

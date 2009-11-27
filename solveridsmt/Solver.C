@@ -671,12 +671,6 @@ lbool Solver::search(int nof_conflicts, int nof_learnts) {
             ok = false;
             return l_False;
         }
-        if(memUsed()/memTotal()<0.03){
-        	reportf("| Exceeded maximum memory use; now terminating search.                        |\n");
-			reportf("===============================================================================\n");
-			ok = false;
-			return l_False;
-        }
         if (verbosity>=2) reportf("Starting decision level %d.\n",trail_lim.size());
         Clause* confl = propagate();
         if (confl != NULL){
