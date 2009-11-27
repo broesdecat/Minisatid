@@ -125,6 +125,7 @@ public:
         assert(sizeof(Lit)      == sizeof(uint32_t));
         assert(sizeof(float)    == sizeof(uint32_t));
         void* mem = malloc(sizeof(Clause) + sizeof(uint32_t)*(ps.size()));
+        if(mem==NULL) throw 33;
         return new (mem) Clause(ps, learnt); }
 
     int          size        ()      const   { return size_etc >> 3; }
@@ -274,5 +275,33 @@ inline int compare_WLits(const void* a, const void* b) {
     else if (arg1->weight == arg2->weight) return 0;
     else return 1;
 }    
+
+class Rule {
+    uint32_t size_etc;
+    Lit     data[0];
+
+public:
+    // NOTE: This constructor cannot be used directly (doesn't allocate enough memory).
+    template<class V>
+    Rule(const V& ps) {
+        size_etc = (ps.size() << 3);
+        for (int i = 0; i < ps.size(); i++) data[i] = ps[i]; }
+
+    // -- use this function instead:
+    template<class V>
+    friend Rule* Rule_new(const V& ps) {
+        assert(sizeof(Lit)      == sizeof(uint32_t));
+        void* mem = malloc(sizeof(Rule) + sizeof(uint32_t)*(ps.size()));
+        if(mem==NULL) throw 33;
+        return new (mem) Rule(ps); }
+
+    int          size        ()      const   { return size_etc >> 3; }
+
+    // NOTE: somewhat unsafe to change the clause in-place! Must manually call 'calcAbstraction' afterwards for
+    //       subsumption operations to behave correctly.
+    Lit&     operator [] (int i)         { return data[i]; }
+    Lit      operator [] (int i) const   { return data[i]; }
+    operator const Lit* (void) const         { return data; }
+};
 
 #endif

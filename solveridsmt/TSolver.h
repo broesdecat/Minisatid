@@ -22,9 +22,9 @@ const DefType AGGR   = 3;
 
 struct ECNF_mode {
 	bool init;              // True as long as we haven't finished the initialization.
-	bool def,aggr,amo,mnmz; // True for those extensions that are being used.  TODO : extra state for recursive aggregates!!
+	bool def,aggr,mnmz; // True for those extensions that are being used.  TODO : extra state for recursive aggregates!!
 
-	ECNF_mode() : init(true), def(false), aggr(false), amo(false), mnmz(false) {}
+	ECNF_mode() : init(true), def(false), aggr(false), mnmz(false) {}
 };
 
 enum UFS {NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE};
@@ -39,7 +39,6 @@ public:
 	/////////////////////SOLVER NECESSARY
 	bool 	simplify	();
 	void 	backtrack 	( Lit l);
-	void 	setTrue		(Lit p);
 	Clause* getExplanation	(Lit p);    // Create a clause that implicitly was the reason for p's propagation.
 	void 	notifyVarAdded	(); 		//correctly initialized TSolver datastructures when vars are added
 	Clause* 	propagate		(Lit p, Clause* confl);
@@ -71,9 +70,8 @@ public:
 	/////////////////////END INITIALIZATION
 
 protected:
-	bool 		ok;
 	vec<int>	seen;
-	vec<char> 	assigns;
+//	vec<char> 	assigns;
 
 	lbool	value(Var x) const;
 	lbool	value(Lit p) const;
@@ -82,7 +80,7 @@ protected:
 	// Statistics: (read-only member variable)
 	//
 	int64_t prev_conflicts/*not strictly a statistic!*/;
-	uint64_t cycle_sources, justifiable_cycle_sources, cycles, cycle_sizes, justify_conflicts, amo_statements, amo_literals, atoms_in_pos_loops;
+	uint64_t cycle_sources, justifiable_cycle_sources, cycles, cycle_sizes, justify_conflicts, atoms_in_pos_loops;
 	uint64_t nb_times_findCS, justify_calls, cs_removed_in_justify, succesful_justify_calls, extdisj_sizes, total_marked_size;
 	//    uint64_t fw_propagation_attempts, fw_propagations;
 
@@ -90,11 +88,6 @@ protected:
 
 	// ECNF_mode.mnmz additions to Solver state:
 	vec<Lit>            to_minimize;
-
-	// ECNF_mode.amo additions to Solver state:
-	//
-	vec<vec<Clause*> >    AMO_watches;           // 'AMO_watches[lit]' is a list of AMO-constraints watching 'lit' (will go there if literal becomes true). NOTE: the statement is stored as a normal clause!
-	Clause*               AMO_propagate(Lit p);  // Perform AMO-propagation. Returns possibly conflicting clause.
 
 	// ECNF_mode.aggr additions to Solver state:
 	//
@@ -113,7 +106,7 @@ protected:
 	//
 	vec<Var>        defdVars;            // May include variables that get marked NONDEF later.
 	vec<DefType>    defType;             // Per atom: what type is it (non-defined, disjunctive, conjunctive, aggregate).
-	vec<Clause*>    definition;          // If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
+	vec<Rule*>    	definition;          // If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
 	// Note that v occurs negatively if DISJ, positively if CONJ; and the reverse for the body literals.
 	// If defType[v]==NONDEF, it may be that v *was* defined by a non-recursive rule: then definition[v] also is the 'long clause' of the completion of that rule.
 	vec<int>        scc;                 // To which strongly connected component does the atom belong. Zero iff defType[v]==NONDEF.
@@ -149,7 +142,6 @@ protected:
 	void     findCycleSources   ();                                // Starting from cf_justification, creates a supporting justification in sp_justification, and records the changed atoms in 'cycle sources'.
 	void     findCycleSources   (Var v);                           // Auxiliary for findCycleSources(): v is non-false and its cf_justification does not support it.
 
-	bool     enqueue          (Lit p, Clause* from = NULL);                            // Test if fact 'p' contradicts current state, enqueue otherwise.
 
 	// Propagation method:
 	Clause*  indirectPropagate  ();                                /* Main method.
@@ -193,9 +185,5 @@ protected:
 
 inline void     TSolver::addCycleSource(Var v)        { if (!isCS[v]) {isCS[v]=true; css.push(v);} }
 inline void     TSolver::clearCycleSources()          { for (int i=0;i<css.size();i++) isCS[css[i]]=false; css.clear(); }
-
-inline lbool    TSolver::value(Var x) const   { return toLbool(assigns[x]); }
-inline lbool    TSolver::value(Lit p) const   { return toLbool(assigns[var(p)]) ^ sign(p); }
-inline int      TSolver::nVars()      const   { return assigns.size(); }
 
 #endif /* TSOLVER_H_ */
