@@ -538,8 +538,8 @@ FoundWatch:;
         if (verbosity>=2) reportf(" ).\n");
 
 		//////////////START TSOLVER
+        confl = amosolver->propagate(p, confl);
 		confl = tsolver->propagate(p, confl);
-		confl = amosolver->propagate(p, confl);
 		if(qhead==trail.size()){
 			confl = tsolver->propagateDefinitions(confl);
 		}

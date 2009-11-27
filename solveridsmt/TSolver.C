@@ -404,7 +404,6 @@ void TSolver::notifyVarAdded(){
 bool TSolver::addRule(const bool conj, vec<Lit>& ps) {
 	if (!ecnf_mode.def)
 		reportf("ERROR! Attempt at adding rule, though ECNF specifiers did not contain \"def\".\n"), exit(3);
-	//assert(solver->decisionLevel() == 0);
 	assert(ps.size() > 0);
 	assert(!sign(ps[0]));
 
@@ -415,16 +414,12 @@ bool TSolver::addRule(const bool conj, vec<Lit>& ps) {
 	}else{
 		ps[0] = ~ps[0];
 	}
-	// Remark: simplifying clause might be incorrect!
-
-	//TODObroes something is going wrong here
 
 	if (ps.size() == 1) {
 		// Remark: disjunctive rule with empty body: head is false!
 		if (value(ps[0]) == l_False){
 			throw theoryUNSAT;
 		}
-		solver->setTrue(ps[0]);
 	} else {
 		Rule* r = Rule_new(ps);
 		Var v = var(ps[0]);
