@@ -47,7 +47,7 @@ public:
 	/////////////////////ENDSOLVER NECESSARY
 
 	/////////////////////INITIALIZATION
-	bool    addRule      (const bool conj, vec<Lit>& ps);          // Add a rule to the solver.
+	bool    addRule      (bool conj, vec<Lit>& ps);          // Add a rule to the solver.
 	bool    addAMO       (vec<Lit>& ps);                           // Add an At most one statement to the solver.
 	void    addSet       (int id, vec<Lit>& l, vec<int>& w);
 	void    addAggrExpr  (int defn, int set_id, int min, int max, AggrType type);

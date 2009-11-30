@@ -145,11 +145,7 @@ bool Solver::addClause(vec<Lit>& ps) {
 		return ok = (propagate() == NULL);
 	} else {
 		Clause* c = Clause_new(ps, false);
-		clauses.push(c);
-		attachClause(*c);
-		if(verbosity>=2){
-			printClause(*c);
-		}
+		addClause(c);
 	}
 
 	return true;
@@ -160,11 +156,17 @@ void Solver::addLearnedClause(Clause* c){
 	learnts.push(c);
 	attachClause(*c);
 	claBumpActivity(*c);
+	if(verbosity>=2){
+		printClause(*c);
+	}
 }
 
 void Solver::addClause(Clause* c){
 	clauses.push(c);
 	attachClause(*c);
+	if(verbosity>=2){
+		printClause(*c);
+	}
 }
 /////////END TSOLVER
 

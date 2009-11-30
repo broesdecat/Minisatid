@@ -406,13 +406,18 @@ void TSolver::notifyVarAdded(){
 }
 
 // First literal in ps is head atom.
-bool TSolver::addRule(const bool conj, vec<Lit>& ps) {
+bool TSolver::addRule(bool conj, vec<Lit>& ps) {
 	if (!ecnf_mode.def)
 		reportf("ERROR! Attempt at adding rule, though ECNF specifiers did not contain \"def\".\n"), exit(3);
 	assert(ps.size() > 0);
 	assert(!sign(ps[0]));
 
-	if (conj || ps.size() == 2){
+/*	//rules with only one body atom have to be treated as conjunctive
+	if(ps.size()==2 && !conj){
+		conj=true;
+	}
+
+	if (conj){
 		for (int i = 1; i < ps.size(); i++){
 			ps[i] = ~ps[i];
 		}
@@ -425,7 +430,9 @@ bool TSolver::addRule(const bool conj, vec<Lit>& ps) {
 		if (value(ps[0]) == l_False){
 			throw theoryUNSAT;
 		}
-		solver->addClause(ps);
+		vec<Lit> v;
+		v.push(ps[0]);
+		solver->addClause(v);
 	} else {
 		//Rule* r = Rule_new(ps);
 		Clause* r = Clause_new(ps);
@@ -449,7 +456,32 @@ bool TSolver::addRule(const bool conj, vec<Lit>& ps) {
 		//solver->addClause(ps);
 	}
 
-	return true;
+	return true;*/
+
+    if (conj || ps.size()==2){
+		for (int i=1; i < ps.size(); i++){
+			ps[i]=~ps[i];
+		}
+	}else{
+		ps[0]=~ps[0];
+	}
+
+	Clause* c = Clause_new(ps, false);
+	solver->addClause(c);
+	Var v=var(ps[0]);
+	defdVars.push(v);
+	defType[v]=conj?CONJ:DISJ;
+	definition[v]=c;
+
+	vec<Lit> binclause(2);
+	binclause[0]=~ps[0];
+	for (int i=1; i < ps.size(); i++){
+		binclause[1]=~ps[i];
+		c = Clause_new(binclause, false);
+		solver->addClause(c);
+	}
+
+    return true;
 }
 
 //=================================================================================================
@@ -566,21 +598,25 @@ void TSolver::finishECNF_DataStructures() {
 	}
 }
 
-void TSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack,
-		vec<Var> &visited, int& counter) {
+void TSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter) {
 	assert(defType[i]!=NONDEF);
 	assert(!incomp[i]);
 	visited[i] = ++counter;
 	root[i] = i;
 	stack.push(i);
-#define recursiveCall(chd,prnt)     {if (visited[chd]==0) visit(chd,root,incomp,stack,visited,counter); if (!incomp[chd] && visited[root[prnt]]>visited[root[chd]]) root[prnt] = root[chd]; }
+
 	switch (defType[i]) {
 	case DISJ: {
 		for (int j = 0; j < definition[i]->size(); ++j) {
 			Lit l = (*definition[i])[j];
 			int w = var(l);
 			if (defType[w] != NONDEF && i != w && !sign(l)) {
-				recursiveCall(w,i);
+				if (visited[w]==0){
+					visit(w,root,incomp,stack,visited,counter);
+				}
+				if (!incomp[w] && visited[root[i]]>visited[root[w]]){
+					root[i] = root[w];
+				}
 			}
 		}
 		break;
@@ -590,7 +626,12 @@ void TSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack,
 			Lit l = (*definition[i])[j];
 			int w = var(l);
 			if (defType[w] != NONDEF && i != w && sign(l)) {
-				recursiveCall(w,i);
+				if (visited[w]==0){
+					visit(w,root,incomp,stack,visited,counter);
+				}
+				if (!incomp[w] && visited[root[i]]>visited[root[w]]){
+					root[i] = root[w];
+				}
 			}
 		}
 		break;
@@ -600,7 +641,12 @@ void TSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack,
 		for (int j = 0; j < aw.set->set.size(); ++j) {
 			Var w = var(aw.set->set[j].lit);
 			if (defType[w] != NONDEF) {
-				recursiveCall(w,i);
+				if (visited[w]==0){
+					visit(w,root,incomp,stack,visited,counter);
+				}
+				if (!incomp[w] && visited[root[i]]>visited[root[w]]){
+					root[i] = root[w];
+				}
 			}
 		}
 		break;
@@ -817,6 +863,7 @@ UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& sta
 	assert(type==CONJ || type==DISJ);
 
 	Clause* c = definition[v];
+	printClause(*c);
 	//Rule* c = definition[v];
 
 	for(int i=0; i<c->size(); i++){
@@ -825,12 +872,14 @@ UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& sta
 		//TODObroes van de Rule klass een echte rule maken een geen kopie van een completion clause
 		DefType childtype = defType[var(c->operator [](i))];
 		Lit l = c->operator [](i);
+		printf("head %i atom %i", v, var(l));
 		if(var(l)==v){ //it is the head of the rule
 			continue;
 		}
 		if(childtype==AGGR){
 			return OLDCHECK;
 		}
+		printf("scc %i en scc %i", scc[v], scc[var(l)]);
 		if(childtype==NONDEF || scc[var(l)]!=scc[v]){
 			if(value(l)!=l_False && type==DISJ){
 				return NOTUNFOUNDED;
@@ -853,9 +902,6 @@ UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& sta
 		if(visited[child]==-1){
 			switch(visitForUFS(child, ufs, visittime, stack, root, visited)){
 			case STILLPOSSIBLE:
-				if(visited[child]<visited[v]){
-					root[v]=root[child];
-				}
 				if(type==CONJ){
 					allconjnotunfounded = false;
 					if(stack.last() != v){
@@ -878,7 +924,7 @@ UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& sta
 				break;
 			}
 		}
-		if(visited[child]<visited[v]){
+		if(visited[root[child]]<visited[v]){
 			root[v]=root[child];
 		}
 	}
@@ -889,11 +935,11 @@ UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& sta
 
 	if(root[v]==v){
 		Var x = stack.last();
-		stack.pop();
 		ufs.insert(x);
+		stack.pop();
 		while(x!=v){
-			ufs.insert(x);
 			x=stack.last();
+			ufs.insert(x);
 			stack.pop();
 		}
 		if(ufs.size()>1){

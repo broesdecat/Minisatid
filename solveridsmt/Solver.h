@@ -367,6 +367,7 @@ inline void Solver::printClause(const C& c)
         printLit(c[i]);
         fprintf(stderr, " ");
     }
+    fprintf(stderr, "\n");
 }
 
 //=================================================================================================
