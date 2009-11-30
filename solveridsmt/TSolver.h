@@ -106,7 +106,7 @@ protected:
 	//
 	vec<Var>        defdVars;            // May include variables that get marked NONDEF later.
 	vec<DefType>    defType;             // Per atom: what type is it (non-defined, disjunctive, conjunctive, aggregate).
-	vec<Rule*>    	definition;          // If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
+	vec<Clause*>    definition;          // If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
 	// Note that v occurs negatively if DISJ, positively if CONJ; and the reverse for the body literals.
 	// If defType[v]==NONDEF, it may be that v *was* defined by a non-recursive rule: then definition[v] also is the 'long clause' of the completion of that rule.
 	vec<int>        scc;                 // To which strongly connected component does the atom belong. Zero iff defType[v]==NONDEF.
@@ -173,6 +173,7 @@ protected:
 	void     printLit         (Lit l);
 	template<class C>
 	void     printClause      (const C& c);
+	void     printRule        (const Rule& c);
 	void     printAggrSet     (const AggrSet& as);
 	void     printAggrExpr    (const AggrExpr& ae, const AggrSet& as);
 	void     checkLiteralCount();

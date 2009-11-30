@@ -332,12 +332,17 @@ bool TSolver::simplify(){
 				if (verbosity >= 2)
 					reportf(" %d",v+1);
 
-				Lit p = Lit(v, true);
+				/*Lit p = Lit(v, true);
 				if(value(v)==l_Undef){
 					solver->setTrue(p);
 				}else if(value(p)==l_False){
 						return false;
-				}
+				}*/
+
+				Lit p = Lit(v,true);
+				if (!(value(p) != l_Undef ? value(p) != l_False : (solver->setTrue(p, NULL), true)))
+				  throw theoryUNSAT;
+
 				defType[v] = NONDEF;
 				--atoms_in_pos_loops;
 			}
@@ -422,13 +427,16 @@ bool TSolver::addRule(const bool conj, vec<Lit>& ps) {
 		}
 		solver->addClause(ps);
 	} else {
-		Rule* r = Rule_new(ps);
+		//Rule* r = Rule_new(ps);
+		Clause* r = Clause_new(ps);
+		//add completion to SAT solver
+		solver->addClause(r);
 		Var v = var(ps[0]);
 		defdVars.push(v);
 		defType[v] = conj ? CONJ : DISJ;
 		definition[v] = r;
 
-		//add completion to SAT solver
+		//add completion to SAT solver 2
 		Clause* c = NULL;
 		vec<Lit> binclause(2);
 		binclause[0] = ~ps[0];
@@ -437,7 +445,8 @@ bool TSolver::addRule(const bool conj, vec<Lit>& ps) {
 			c = Clause_new(binclause, false);
 			solver->addClause(c);
 		}
-		solver->addClause(ps);
+		//add completion to SAT solver (rule)
+		//solver->addClause(ps);
 	}
 
 	return true;
@@ -502,7 +511,8 @@ void TSolver::finishECNF_DataStructures() {
 			bool isdefd = false;
 			switch (defType[v]) {
 			case DISJ: {
-				Rule& dfn = *definition[v];
+				Clause& dfn = *definition[v];
+				//Rule& dfn = *definition[v];
 				for (int j = 0; j < dfn.size(); ++j) {
 					l = dfn[j];
 					if (l != Lit(v, true))
@@ -513,7 +523,8 @@ void TSolver::finishECNF_DataStructures() {
 				break;
 			}
 			case CONJ: {
-				Rule& dfn = *definition[v];
+				Clause& dfn = *definition[v];
+				//Rule& dfn = *definition[v];
 				for (int j = 0; j < dfn.size(); ++j) {
 					l = ~dfn[j];
 					if (l != Lit(v, true))
@@ -668,8 +679,7 @@ void TSolver::findCycleSources() {
 		for (int i = 0; i < defdVars.size(); i++) {
 			Var v = defdVars[i];
 			if (defType[v] == DISJ) {
-				if (value(v) != l_False && value(cf_justification_disj[v])
-						== l_False)
+				if (value(v) != l_False && value(cf_justification_disj[v]) == l_False)
 					findCycleSources(v);
 			} else if (defType[v] == AGGR) {
 				if (value(v) == l_False)
@@ -699,7 +709,9 @@ void TSolver::findCycleSources(Var v) {
 	if (isCS[v])
 		return;
 	if (defType[v] == DISJ) {
-		Rule& c = *definition[v];
+		Clause& c = *definition[v];
+		//Rule& c = *definition[v];
+		//TODObroes IMPLICIETE INVARIANT HIER (en vermoedelijk andere plaatsen), is dat minisat zijn clauses herordend!!!
 		Lit jstf = c[c[0] == Lit(v, true) ? 1 : 0]; // We will use this literal as the supporting literal.
 		assert(value(jstf)!=l_False);
 		change_jstfc_disj(v, jstf);
@@ -804,7 +816,8 @@ UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& sta
 	}
 	assert(type==CONJ || type==DISJ);
 
-	Rule* c = definition[v];
+	Clause* c = definition[v];
+	//Rule* c = definition[v];
 
 	for(int i=0; i<c->size(); i++){
 		//dit is een COMPLETION CLAUSE, GEEN RULE, dus DISJUNCTIE (met head eerst)
@@ -934,12 +947,13 @@ Clause* TSolver::indirectPropagate() {
 	uint64_t old_justify_calls = justify_calls;
  	int j=0;
 
+//OLD CODE TO FIND UNFOUNDED SETS
 /*	for (; !ufs_found && j < css.size(); j++){
 		if(isCS[css[j]]){
 			ufs_found = unfounded(css[j], ufs);
 		}
-	}*/
-
+	}
+	printf("old i=%i\n", i);*/
 
 //NEW CODE TO FIND UNFOUNDED SETS
 	int visittime = 0;
@@ -969,7 +983,6 @@ Clause* TSolver::indirectPropagate() {
 			}
 		}
 	}
-
 	if(ufs_found){
 		printf("UFSfound\n");
 	}else{
@@ -1046,7 +1059,8 @@ bool TSolver::unfounded(Var cs, std::set<Var>& ufs) {
 bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 	switch (defType[v]) {
 	case CONJ: {
-		Rule& c = *definition[v]; // NOTE: sign(c[i]) fails for the head literal; for body literals sign is inverted.
+		Clause& c = *definition[v];
+		//Rule& c = *definition[v];// NOTE: sign(c[i]) fails for the head literal; for body literals sign is inverted.
 		// Find a non-justified body literal, pref. already ufs.
 		// - If not found: bottom up propagation
 		// - If found: set conjunction's watch to it; make sure it's ufs and on queue.
@@ -1080,7 +1094,8 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 		break;
 	}
 	case DISJ: {
-		Rule& c = *definition[v];
+		Clause& c = *definition[v];
+		//Rule& c = *definition[v];
 		// Find a justified non-false body literal.
 		// - If found: set watch to it; bottom up propagation
 		// - If not found: touch all non-false body literals; add them to queue.
@@ -1378,7 +1393,8 @@ Clause* TSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 			break;
 		}
 		case DISJ: {
-			Rule& cl = *definition[*tch];
+			Clause& cl = *definition[*tch];
+			//Rule& cl = *definition[*tch];
 			for (int i = 0; i < cl.size(); i++) {
 				Lit l = cl[i];
 				if (l != Lit(*tch, true) && seen[var(l)] != (sign(l) ? 1 : 2)
@@ -2303,7 +2319,8 @@ bool TSolver::isCycleFree() { // currently only when no recursice aggregates!! T
                             cycle.push(var(cf_justification_disj[v]));
                     } else {
                         reportf("C %d has",v+1);
-                        Rule& c = *definition[v];
+                        Clause& c = *definition[v];
+                        //Rule& c = *definition[v];
                         for (int j=0; j<c.size(); j++) {
                             Var vj = var(c[j]);
                             if (c[j]!=Lit(v,false) && sign(c[j]) && (isfree[vj]!=0 || printed[vj])) {
@@ -2375,6 +2392,14 @@ inline void TSolver::printLit(Lit l)
 
 template<class C>
 inline void TSolver::printClause(const C& c)
+{
+    for (int i = 0; i < c.size(); i++){
+        printLit(c[i]);
+        fprintf(stderr, " ");
+    }
+}
+
+inline void TSolver::printRule(const Rule& c)
 {
     for (int i = 0; i < c.size(); i++){
         printLit(c[i]);
