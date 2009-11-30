@@ -420,6 +420,7 @@ bool TSolver::addRule(const bool conj, vec<Lit>& ps) {
 		if (value(ps[0]) == l_False){
 			throw theoryUNSAT;
 		}
+		solver->addClause(ps);
 	} else {
 		Rule* r = Rule_new(ps);
 		Var v = var(ps[0]);
@@ -427,6 +428,7 @@ bool TSolver::addRule(const bool conj, vec<Lit>& ps) {
 		defType[v] = conj ? CONJ : DISJ;
 		definition[v] = r;
 
+		//add completion to SAT solver
 		Clause* c = NULL;
 		vec<Lit> binclause(2);
 		binclause[0] = ~ps[0];
@@ -435,9 +437,8 @@ bool TSolver::addRule(const bool conj, vec<Lit>& ps) {
 			c = Clause_new(binclause, false);
 			solver->addClause(c);
 		}
+		solver->addClause(ps);
 	}
-	//add completion to SAT solver
-	solver->addClause(ps);
 
 	return true;
 }
@@ -923,6 +924,8 @@ Clause* TSolver::indirectPropagate() {
 	if (!indirectPropagateNow()) {
 		return NULL;
 	}
+	printf("Finding unfounded sets\n");
+
 	findCycleSources();
 
 	bool ufs_found = false;
@@ -952,7 +955,6 @@ Clause* TSolver::indirectPropagate() {
 			UFS ret = visitForUFS(css[j], ufs, visittime, stack, root, visited);
 			switch(ret){
 			case UFSFOUND:
-				printf("UFS found");
 				ufs_found = true;
 				break;
 			case NOTUNFOUNDED:
@@ -966,6 +968,12 @@ Clause* TSolver::indirectPropagate() {
 				break;
 			}
 		}
+	}
+
+	if(ufs_found){
+		printf("UFSfound\n");
+	}else{
+		printf("no UFSfound\n");
 	}
 
 	justifiable_cycle_sources += ufs_found ? (j - 1) : j; // This includes those that are removed inside "unfounded".

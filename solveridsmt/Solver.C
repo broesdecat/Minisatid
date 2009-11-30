@@ -139,11 +139,17 @@ bool Solver::addClause(vec<Lit>& ps) {
 	else if (ps.size() == 1) {
 		assert(value(ps[0]) == l_Undef);
 		setTrue(ps[0]);
+		if(verbosity>=2){
+			printLit(ps[0]);
+		}
 		return ok = (propagate() == NULL);
 	} else {
 		Clause* c = Clause_new(ps, false);
 		clauses.push(c);
 		attachClause(*c);
+		if(verbosity>=2){
+			printClause(*c);
+		}
 	}
 
 	return true;
