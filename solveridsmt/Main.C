@@ -258,6 +258,8 @@ static void parse_main(B& in, Solver* S, TSolver* TS, AMOSolver* AS) {
                         if (S->verbosity>=1)
                             reportf("|    May contain inductive definitions.                                       |\n");
                         TS->ecnf_mode.def=true;
+                        //TODObroes as long as the definitions are defined as clauses in minisat, removing satisfied clauses is not allowed
+                        S->dontRemoveSatisfied();
                     } else if (*in=='e' && match(in,"eu")) {
                         if (S->verbosity>=1)
                             reportf("|    May contain exists unique statements (registered as at-most-one).        |\n");
@@ -523,27 +525,17 @@ int main(int argc, char** argv)
 		S->res=res;
 		ret = S->solve();
 		printStats(S);
-		/////////TEMPORARY TODO BROES
-		if (ret) {
-			printf("s SATISFIABLE\nv ");
-			for (int i = 0; i < S->nVars(); i++)
-				if (S->model[i] != l_Undef)
-					printf("%s%s%d", (i==0)?"":" ", (S->model[i]==l_True)?"":"-", i+1);
-			printf(" 0\n");
-		} else {
-			printf("s UNSATISFIABLE\n");
-		}
-		/////////TEMPORARY TODO BROES
 
 		delete TS;
 		delete AS;
 	}catch(int e){
-		if(e==33){
+		if(e==memOVERFLOW){
 			printf("Memory overflow");
 			exit(33);
+		}else if(e==theoryUNSAT){
+			ret=false;
 		}
 	}
-
 
 #ifdef NDEBUG
     exit(ret ? 10 : 20);     // (faster than "return", which will invoke the destructor for 'Solver')

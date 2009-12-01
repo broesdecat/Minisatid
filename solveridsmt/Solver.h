@@ -33,8 +33,6 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "TSolver.h"
 #include "AMOSolver.h"
 
-#define theoryUNSAT 20
-
 #ifdef _MSC_VER
 #include <ctime>
 
@@ -111,6 +109,7 @@ public:
     void    setTrue (Lit p, Clause* from = NULL);		// Enqueue a literal. Assumes value of literal is undefined.
     bool 	existsUnknownVar(); 								//true if the current assignment is completely two-valued
     Var		newVar(bool polarity = true, bool dvar = false); 	// Add a new variable with parameters specifying variable mode.
+    void 	dontRemoveSatisfied();
 	/////////////////////END TSOLVER NECESSARY
 
     // Constructor/Destructor:
@@ -154,6 +153,11 @@ public:
     //
     uint64_t starts, decisions, rnd_decisions, propagations, conflicts;
     uint64_t clauses_literals, learnts_literals, max_literals, tot_literals;
+
+    //Debug
+    void     printLit         (Lit l);
+    template<class C>
+    void     printClause      (const C& c);
 
 protected:
     void    invalidateModel(const vec<Lit>& lits, int& init_qhead);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
@@ -253,9 +257,6 @@ protected:
     double   progressEstimate ()      const; // DELETE THIS ?? IT'S NOT VERY USEFUL ...
 
     // Debug:
-    void     printLit         (Lit l);
-    template<class C>
-    void     printClause      (const C& c);
     void     verifyModel      ();
     void     checkLiteralCount();
 
@@ -323,6 +324,8 @@ inline int		Solver::getLevel(int var)			const	{return level[var];}
 inline Lit	 	Solver::getRecentAssignments(int i) const	{return trail[i+trail_lim.last()];}
 inline int 		Solver::getNbOfRecentAssignments() 	const	{return trail.size()-trail_lim.last();}
 
+inline void		Solver::dontRemoveSatisfied()				{ remove_satisfied = false;}
+
 //=================================================================================================
 // Debug + etc:
 
@@ -356,7 +359,7 @@ static inline void check(bool expr) { assert(expr); }
 
 inline void Solver::printLit(Lit l)
 {
-    reportf("%s%d:%c", sign(l) ? "-" : "", var(l)+1, value(l) == l_True ? '1' : (value(l) == l_False ? '0' : 'X'));
+    reportf("%s%d:%c", sign(l) ? "-" : "", var(l) << 1, value(l) == l_True ? '1' : (value(l) == l_False ? '0' : 'X'));
 }
 
 

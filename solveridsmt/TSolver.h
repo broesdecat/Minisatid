@@ -113,7 +113,7 @@ protected:
 
 	// Rules (body to head):
 	vec<vec<Var> >  disj_occurs;         // Per literal: in which DISJ rules (defining atom) it is body literal.
-	vec<vec<Var> >  conj_occurs;         // Per literal: in which CONJ rules (defining atom) it is body literal. // TODO : verify when needed.
+	vec<vec<Var> >  conj_occurs;         // Per literal: in which CONJ rules (defining atom) it is body literal.
 	// cfr. Aggr_watches for the same thing in AGGR rules.
 
 	// Justifications:
@@ -156,7 +156,7 @@ protected:
 	bool	unfounded          (Var cs, std::set<Var>& ufs);      // True iff 'cs' is currently in an unfounded set, 'ufs'.
 	Clause*	assertUnfoundedSet (const std::set<Var>& ufs);
 
-	UFS 	visitForUFS			(Var v, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited);
+	UFS 	visitForUFS			(Var v, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited, vec<bool>& incomp);
 
 	void	markNonJustified   (Var cs, vec<Var>& tmpseen);                           // Auxiliary for 'unfounded(..)'. Marks all ancestors of 'cs' in sp_justification as 'seen'.
 	void	markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q, vec<Var>& tmpseen);
@@ -178,6 +178,8 @@ protected:
 	void     printAggrExpr    (const AggrExpr& ae, const AggrSet& as);
 	void     checkLiteralCount();
 	bool     isCycleFree      ();                      // Verifies whether cf_justification is indeed cycle free.
+
+	void 	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf);
 };
 
 

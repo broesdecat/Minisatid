@@ -24,6 +24,9 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <cassert>
 #include <stdint.h>
 
+#define theoryUNSAT 20
+#define memOVERFLOW 33
+
 //=================================================================================================
 // Variables, literals, lifted booleans, clauses:
 
@@ -125,7 +128,7 @@ public:
         assert(sizeof(Lit)      == sizeof(uint32_t));
         assert(sizeof(float)    == sizeof(uint32_t));
         void* mem = malloc(sizeof(Clause) + sizeof(uint32_t)*(ps.size()));
-        if(mem==NULL) throw 33;
+        if(mem==NULL) throw memOVERFLOW;
         return new (mem) Clause(ps, learnt); }
 
     int          size        ()      const   { return size_etc >> 3; }
@@ -292,7 +295,7 @@ public:
     friend Rule* Rule_new(const V& ps) {
         assert(sizeof(Lit)      == sizeof(uint32_t));
         void* mem = malloc(sizeof(Rule) + sizeof(uint32_t)*(ps.size()));
-        if(mem==NULL) throw 33;
+        if(mem==NULL) throw memOVERFLOW;
         return new (mem) Rule(ps); }
 
     int          size        ()      const   { return size_etc >> 3; }

@@ -212,7 +212,7 @@ void Solver::cancelFurther(int init_qhead) {
 		Var x = var(trail[c]);
 		assigns[x] = toInt(l_Undef);
 		insertVarOrder(x);
-		//TODObroes: vermoedelijk alleen aanroepen als c defined of geaggregeerd is (mss moeilijk te checken)
+		//TODObroes: zorgen dat de Tsolvers enkel de noodzakelijke elementen bijhouden en dat het voor de anderen een lege, constante call is
 
 	    //////////////START TSOLVER
 		tsolver->backtrack(trail[c]);
@@ -883,11 +883,21 @@ bool Solver::solve() {
 			if (res != NULL) {
 				if (n == nb_models)
 					fprintf(res, "SAT\n");
-				for (int i = 0; i < nVars(); i++)
-					if (model[i] != l_Undef)
-						fprintf(res, "%s%s%d", (i == 0) ? "" : " ", (model[i]
-								== l_True) ? "" : "-", i + 1);
+				for (int i = 0; i < nVars(); i++){
+					if (model[i] != l_Undef){
+						fprintf(res, "%s%s%d", (i == 0) ? "" : " ", (model[i]== l_True) ? "" : "-", i + 1);
+					}
+				}
 				fprintf(res, " 0\n");
+			}else{
+				if (n == nb_models)
+					fprintf(stdout, "SAT\n");
+				for (int i = 0; i < nVars(); i++){
+					if (model[i] != l_Undef){
+						fprintf(stdout, "%s%s%d", (i == 0) ? "" : " ", (model[i]== l_True) ? "" : "-", i + 1);
+					}
+				}
+				fprintf(stdout, " 0\n");
 			}
 			if (n > 1 || nb_models == 0) {
 				if (trail_lim.size() + assmpt.size() == 0) {
@@ -915,8 +925,11 @@ bool Solver::solve() {
 		} else {
 			if (nb_models == 1 || n == nb_models) {
 				printf("UNSATISFIABLE\n");
-				if (res != NULL)
+				if (res != NULL){
 					fprintf(res, "UNSAT\n");
+				}else{
+					fprintf(stdout, "UNSAT\n");
+				}
 				solved = false;
 			}
 			break;
@@ -933,7 +946,6 @@ bool Solver::solve() {
 	}catch(int x){
 		if(x==theoryUNSAT){
 			return false;
-			//TODO werkt dit altijd?
 		}
 	}
 	return solved;
@@ -1025,7 +1037,7 @@ void Solver::checkLiteralCount() {
 //============================================================================================================
 
 /*
- void Solver::fwIndirectPropagate() { // TODO doesn't work yet with recursive aggregates. probably the building of the loop formula is only remaining thing.
+ void Solver::fwIndirectPropagate() { // doesn't work yet with recursive aggregates. probably the building of the loop formula is only remaining thing.
  for (int i=0; i<defdVars.size(); i++) {
  Var v = defdVars[i];
  if (defType[v]==DISJ && value(v)!=l_False) {
