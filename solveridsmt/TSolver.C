@@ -7,7 +7,7 @@
 TSolver::TSolver():
 	defn_strategy(always),
 	defn_search(include_cs),
-	prev_conflicts(-1) /*first time test (prev_conflicts==conflicts) should fail*/,
+	prev_conflicts(0) /*first time test (prev_conflicts==conflicts) should fail*/,
 	cycle_sources(0), justifiable_cycle_sources(0),
 	cycles(0),
 	cycle_sizes(0),
@@ -510,11 +510,6 @@ void TSolver::finishECNF_DataStructures() {
         	}
         }
 
-        for (int i=0; i<nVars(); i++){
-        	reportf("%i ", scc[i]);
-        }
-        reportf("\n");
-
 		// Based on "scc", determine which atoms should actually be considered defined. Meanwhile initialize "disj_occurs" and "conj_occurs".
 		// NOTE: because we've searched scc's in the *positive* dependency graph, rules like  P <- ~Q, Q <- ~P will be marked NONDEF here. Hence final well-foundedness check needs to check in defdVars.
 		atoms_in_pos_loops = 0;
@@ -845,36 +840,26 @@ bool TSolver::indirectPropagateNow() {
 /////////////
 //Finding unfounded checks by
 //Generalized tarjanUFS
+//TODObroes voorlopig wordt er nog overal met completion clauses gewerkt, die dus altijd een disjunctie zijn en geordend zoals minisat er zin in heeft, dus checken voor head en dergelijke
 UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited, vec<bool>& incomp){
-	visited[v]=visittime;visittime++;
-	root[v]=v;
+	visited[v]=visittime;visittime++;root[v]=v;
 
 	DefType type = defType[v];
 
-	if(type==AGGR){
-		//assert(false);
-		return OLDCHECK;
-	}
+	if(type==AGGR){return OLDCHECK;}
 	assert(type==CONJ || type==DISJ);
 
 	Clause* c = definition[v];
-	printClause(*c);
 	//Rule* c = definition[v];
 
 	for(int i=0; i<c->size(); i++){
-		//dit is een COMPLETION CLAUSE, GEEN RULE, dus DISJUNCTIE (met head eerst)
-		//dus waarden behandelen zoals in een disjunctie, niet zoals de achterliggende rule
-		//TODObroes van de Rule klass een echte rule maken een geen kopie van een completion clause
 		DefType childtype = defType[var(c->operator [](i))];
 		Lit l = c->operator [](i);
-		if(var(l)==v){ //it is the head of the rule
-			continue;
-		}
-		if(childtype==AGGR){
-			return OLDCHECK;
-		}
-		if(childtype==NONDEF || scc[var(l)]!=scc[v]){
+		if(var(l)==v){ continue; } //rule head or identical body atom
+		if(childtype==AGGR){return OLDCHECK;}
+		if(childtype==NONDEF || scc[var(l)]!=scc[v] || incomp[var(l)]){
 			if(value(l)!=l_False && type==DISJ){
+				incomp[v]=true;
 				return NOTUNFOUNDED;
 			}
 		}
@@ -883,97 +868,87 @@ UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& sta
 	stack.push(v);
 
 	int notunfoundedchildren = 0;
-	int count = 0;
+	int totaldefined = 0;
+	bool notunfounded = false;
 
 	for(int i=0; i<c->size(); i++){
 		Var child = var(c->operator [](i));
-		if(child==v){ //it is the head of the rule (!!or a body literal the same as the head)
-			continue;
-		}
-		if(!(defType[child]==CONJ || defType[child]==DISJ)){
-			continue;
-		}
-		count++;
+		if(child==v){continue;}
+		if(!(defType[child]==CONJ || defType[child]==DISJ)){continue;}
+		totaldefined++;
 		if(visited[child]==-1){
 			switch(visitForUFS(child, ufs, visittime, stack, root, visited, incomp)){
 			case STILLPOSSIBLE:
-				if(type==CONJ){
-/*TODObroes check wat dit deed
-					if(stack.last() != v){
-						return STILLPOSSIBLE;
-					}*/
-				}
 				break;
 			case NOTUNFOUNDED:
 				if(type == CONJ){
 					notunfoundedchildren++;
-					continue;
 				}else{
-					//TODO op een mooie manier afronden en de datastructuren regelen (incomp)
-					return NOTUNFOUNDED;
+					notunfounded = true;
 				}
 				break;
 			case UFSFOUND:
 				return UFSFOUND;
-				break;
 			case OLDCHECK:
 				return OLDCHECK;
-				break;
 			}
+			if(notunfounded){break;}
 		}
 		if(!incomp[child] && visited[root[child]]<visited[v]){
 			root[v]=root[child];
 		}
 	}
 
-	//if all defined body atoms lead to notunfounded, then the conjunctive rule is not a part of an unfounded set
-	if(type == CONJ && notunfoundedchildren==count){
-		//TODO op een mooie manier afronden en de datastructuren regelen (incomp)
-		return NOTUNFOUNDED;
+	if(type == CONJ && notunfoundedchildren==totaldefined){
+		notunfounded = true;
 	}
 
-	if(root[v]==v){
-		//if all atoms in the ufs are already false, then return with stillpossible
-		//TODO use the fact that it was found that this ufs was already false when returning stillpossible?
-		bool somenotfalse = false;
-
+	if(notunfounded){
 		Var x = stack.last();
-		if(solver->value(x)!=l_False){
-			somenotfalse = true;
-		}
-		ufs.insert(x);
+		incomp[x]=true;
 		stack.pop();
 		while(x!=v){
 			x=stack.last();
-			ufs.insert(x);
 			incomp[x]=true;
-			if(solver->value(x)!=l_False){
-				somenotfalse = true;
-			}
 			stack.pop();
 		}
-		if(!somenotfalse){
-			ufs.clear();
-			return STILLPOSSIBLE;
-		}
-		if(ufs.size()>1){
-			return UFSFOUND;
-		}else{
-			int containsx = 0;
-			for(int i=0; i<c->size(); i++){
-				if(x==var(c->operator [](i))){
-					containsx++;
-				}
-			}
-			if(containsx>1){ //there is a loop of length 1, so x itself is an UFS
-				return UFSFOUND;
-			}else{//no loops, x is only an SCC, not a UFS
+		return NOTUNFOUNDED;
+	}else {
+		if(root[v]==v){
+			bool allfalse = true;
+
+			Var x;
+			do{
+				x = stack.last();
+				if(value(x)!=l_False){allfalse = false;}
+				ufs.insert(x);
+				incomp[x]=true;
+				stack.pop();
+			}while(x!=v);
+
+			if(allfalse){
 				ufs.clear();
 				return STILLPOSSIBLE;
 			}
+			if(ufs.size()>1){
+				return UFSFOUND;
+			}else{
+				int containsx = 0;
+				for(int i=0; i<c->size(); i++){
+					if(x==var(c->operator [](i))){
+						containsx++;
+					}
+				}
+				if(containsx>1){ //there is a loop of length 1, so x itself is an UFS
+					return UFSFOUND;
+				}else{//no loops, x is only an SCC, not a UFS
+					ufs.clear();
+					return STILLPOSSIBLE;
+				}
+			}
+		}else{
+			return STILLPOSSIBLE;
 		}
-	}else{
-		return STILLPOSSIBLE;
 	}
 }
 
@@ -1033,10 +1008,8 @@ Clause* TSolver::indirectPropagate() {
 				ufs_found = true;
 				break;
 			case NOTUNFOUNDED:
-//				isCS[j] = false;
 				break;
 			case STILLPOSSIBLE:
-//				isCS[j] = false;
 				break;
 			case OLDCHECK:
 				ufs_found = unfounded(css[j], ufs);

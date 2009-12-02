@@ -79,7 +79,7 @@ protected:
 
 	// Statistics: (read-only member variable)
 	//
-	int64_t prev_conflicts/*not strictly a statistic!*/;
+	uint64_t prev_conflicts/*not strictly a statistic!*/;
 	uint64_t cycle_sources, justifiable_cycle_sources, cycles, cycle_sizes, justify_conflicts, atoms_in_pos_loops;
 	uint64_t nb_times_findCS, justify_calls, cs_removed_in_justify, succesful_justify_calls, extdisj_sizes, total_marked_size;
 	//    uint64_t fw_propagation_attempts, fw_propagations;
