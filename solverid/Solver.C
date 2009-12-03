@@ -331,7 +331,7 @@ void Solver::cancelUntil(int level) {
 // Using the vector "defdVars", initialize all other SAT(ID) additional data structures.
 void Solver::finishECNF_DataStructures() {
 
-    if (ecnf_mode.amo) { // TODO TODO verify whether ecnf_mode.init and ecnf_mode.amo should depend on each other!
+    if (ecnf_mode.amo) {
         if (verbosity>=1)
             reportf("| Number of at-most-one statements: %5d",(int)amo_statements);
         if (amo_statements>0) {
@@ -1559,11 +1559,11 @@ FoundWatch:;
         ws.shrink(i - j);
         if (verbosity>=2) reportf(" ).\n");
 
-        if (!ecnf_mode.init) { // finishECNF_DataStructures() needs to be executed first.
-            // AMO propagations.
-            if (confl==NULL && ecnf_mode.amo)
-                confl = AMO_propagate(p);
+        // AMO propagations.
+        if (confl==NULL && ecnf_mode.amo)
+            confl = AMO_propagate(p);
 
+        if (!ecnf_mode.init) { // finishECNF_DataStructures() needs to be executed first.
             // Aggr propagations.
             if (confl==NULL && ecnf_mode.aggr)
                 confl = Aggr_propagate(p);
