@@ -79,9 +79,9 @@ public:
 
     // Stack interface:
 #if 1
-    void     push  (void)              { if (sz == cap) { cap = imax(2, (cap*3+1)>>1); data = (T*)realloc(data, cap * sizeof(T)); } new (&data[sz]) T(); sz++; }
-    //void     push  (const T& elem)     { if (sz == cap) { cap = imax(2, (cap*3+1)>>1); data = (T*)realloc(data, cap * sizeof(T)); } new (&data[sz]) T(elem); sz++; }
-    void     push  (const T& elem)     { if (sz == cap) { cap = imax(2, (cap*3+1)>>1); data = (T*)realloc(data, cap * sizeof(T)); } data[sz++] = elem; }
+    void     push  (void)              { if (sz == cap) { cap = imax(2, (cap*3+1)>>1); data = (T*)realloc(data, cap * sizeof(T)); (data==NULL)?throw 33:true;} new (&data[sz]) T(); sz++; }
+    ////void     push  (const T& elem)     { if (sz == cap) { cap = imax(2, (cap*3+1)>>1); data = (T*)realloc(data, cap * sizeof(T)); } new (&data[sz]) T(elem); sz++; }
+    void     push  (const T& elem)     { if (sz == cap) { cap = imax(2, (cap*3+1)>>1); data = (T*)realloc(data, cap * sizeof(T)); (data==NULL)?throw 33:true;} data[sz++] = elem; }
     void     push_ (const T& elem)     { assert(sz < cap); data[sz++] = elem; }
 #else
     void     push  (void)              { if (sz == cap) grow(sz+1); new (&data[sz]) T()    ; sz++; }
@@ -106,7 +106,9 @@ void vec<T>::grow(int min_cap) {
     if (min_cap <= cap) return;
     if (cap == 0) cap = (min_cap >= 2) ? min_cap : 2;
     else          do cap = (cap*3+1) >> 1; while (cap < min_cap);
-    data = (T*)realloc(data, cap * sizeof(T)); }
+    data = (T*)realloc(data, cap * sizeof(T));
+    (data==NULL)?throw 33:true;
+}
 
 template<class T>
 void vec<T>::growTo(int size, const T& pad) {

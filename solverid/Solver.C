@@ -495,7 +495,7 @@ void Solver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, ve
 void Solver::findCycleSources() {
     clearCycleSources();
     clear_changes();
-    if (prev_conflicts==conflicts && defn_strategy==always) {
+    if (prev_conflicts==conflicts && defn_strategy==always && decisionLevel()!=0) {
         for (int i=trail_lim.last(); i<trail.size(); i++) {
             Lit l = trail[i]; // l became true, ~l became false.
             vec<Var>& ds = disj_occurs[toInt(~l)];
