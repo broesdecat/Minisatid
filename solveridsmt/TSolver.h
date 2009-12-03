@@ -79,7 +79,7 @@ protected:
 
 	// Statistics: (read-only member variable)
 	//
-	uint64_t prev_conflicts/*not strictly a statistic!*/;
+	int64_t prev_conflicts/*not strictly a statistic!*/;
 	uint64_t cycle_sources, justifiable_cycle_sources, cycles, cycle_sizes, justify_conflicts, atoms_in_pos_loops;
 	uint64_t nb_times_findCS, justify_calls, cs_removed_in_justify, succesful_justify_calls, extdisj_sizes, total_marked_size;
 	//    uint64_t fw_propagation_attempts, fw_propagations;
@@ -156,7 +156,7 @@ protected:
 	bool	unfounded          (Var cs, std::set<Var>& ufs);      // True iff 'cs' is currently in an unfounded set, 'ufs'.
 	Clause*	assertUnfoundedSet (const std::set<Var>& ufs);
 
-	UFS 	visitForUFS			(Var v, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited, vec<bool>& incomp);
+	UFS 	visitForUFS			(Var v, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited, vec<bool>& incomp, vec<Lit>& parent);
 
 	void	markNonJustified   (Var cs, vec<Var>& tmpseen);                           // Auxiliary for 'unfounded(..)'. Marks all ancestors of 'cs' in sp_justification as 'seen'.
 	void	markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q, vec<Var>& tmpseen);

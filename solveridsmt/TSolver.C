@@ -7,7 +7,7 @@
 TSolver::TSolver():
 	defn_strategy(always),
 	defn_search(include_cs),
-	prev_conflicts(0) /*first time test (prev_conflicts==conflicts) should fail*/,
+	prev_conflicts(-1), /*first time test (prev_conflicts==conflicts) should fail*/
 	cycle_sources(0), justifiable_cycle_sources(0),
 	cycles(0),
 	cycle_sizes(0),
@@ -841,7 +841,8 @@ bool TSolver::indirectPropagateNow() {
 //Finding unfounded checks by
 //Generalized tarjanUFS
 //TODObroes voorlopig wordt er nog overal met completion clauses gewerkt, die dus altijd een disjunctie zijn en geordend zoals minisat er zin in heeft, dus checken voor head en dergelijke
-UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited, vec<bool>& incomp){
+//justification is een subgrafe van de dependency grafe
+UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited, vec<bool>& incomp, vec<Lit>& parent){
 	visited[v]=visittime;visittime++;root[v]=v;
 
 	DefType type = defType[v];
@@ -857,9 +858,10 @@ UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& sta
 		Lit l = c->operator [](i);
 		if(var(l)==v){ continue; } //rule head or identical body atom
 		if(childtype==AGGR){return OLDCHECK;}
-		if(childtype==NONDEF || scc[var(l)]!=scc[v] || incomp[var(l)]){
+		if(childtype==NONDEF || scc[var(l)]!=scc[v] || incomp[var(l)] /*|| STILL JUSTIFIED*/){
 			if(value(l)!=l_False && type==DISJ){
 				incomp[v]=true;
+				change_jstfc_disj(v, l);
 				return NOTUNFOUNDED;
 			}
 		}
@@ -869,7 +871,7 @@ UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& sta
 
 	int notunfoundedchildren = 0;
 	int totaldefined = 0;
-	bool notunfounded = false;
+	bool notunfounded = false, stop = false;
 
 	for(int i=0; i<c->size(); i++){
 		Var child = var(c->operator [](i));
@@ -877,13 +879,25 @@ UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& sta
 		if(!(defType[child]==CONJ || defType[child]==DISJ)){continue;}
 		totaldefined++;
 		if(visited[child]==-1){
-			switch(visitForUFS(child, ufs, visittime, stack, root, visited, incomp)){
+			parent[child] = v;
+			switch(visitForUFS(child, ufs, visittime, stack, root, visited, incomp, parent)){
 			case STILLPOSSIBLE:
+				//if CONJ and the child's parent was visited earlier than this node,
+				//then return higher, because no other conjunct has to be visited to find a UFS if the loop goes higher
+				//if this is the highest visited node, there is a loop which starts here so UFS, so stop
+				if(type==CONJ){
+					if(visited[root[child]]<visited[v]){
+						return STILLPOSSIBLE;
+					}else if(visited[root[child]]==visited[v]){
+						stop = true;
+					}
+				}
 				break;
 			case NOTUNFOUNDED:
 				if(type == CONJ){
 					notunfoundedchildren++;
 				}else{
+					change_jstfc_disj(v, c->operator [](i));
 					notunfounded = true;
 				}
 				break;
@@ -892,7 +906,9 @@ UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& sta
 			case OLDCHECK:
 				return OLDCHECK;
 			}
-			if(notunfounded){break;}
+		}
+		if(notunfounded || stop){
+			break;
 		}
 		if(!incomp[child] && visited[root[child]]<visited[v]){
 			root[v]=root[child];
@@ -901,17 +917,22 @@ UFS TSolver::visitForUFS(Var v, std::set<Var>& ufs, int visittime, vec<Var>& sta
 
 	if(type == CONJ && notunfoundedchildren==totaldefined){
 		notunfounded = true;
+		//do something with justifications for CONJ, or not necessary?
 	}
 
 	if(notunfounded){
-		Var x = stack.last();
-		incomp[x]=true;
-		stack.pop();
+		//change justification of this node and of anything above x on the stack
+		//they can all be justified by the parent from which they were visited
+		Var x;
 		while(x!=v){
 			x=stack.last();
 			incomp[x]=true;
+			if(defType[x]==DISJ){
+				change_jstfc_disj(x, parent[x]);
+			}
 			stack.pop();
 		}
+
 		return NOTUNFOUNDED;
 	}else {
 		if(root[v]==v){
@@ -995,14 +1016,16 @@ Clause* TSolver::indirectPropagate() {
 	vec<bool> incomp;
 	vec<Var> root;
 	vec<Var> visited;
+	vec<Lit> parent;
 	visited.growTo(nVars(), -1);
+	parent.growTo(nVars());
 	root.growTo(nVars());
 	incomp.growTo(nVars(), false);
 
 	for (; !ufs_found && j < css.size(); j++){//hij komt nooit in het geval dat hij iets op de stack moet pushen, altijd disj unfounded???
 		if(visited[css[j]]==-1){
 //			justify_calls++;
-			UFS ret = visitForUFS(css[j], ufs, visittime, stack, root, visited, incomp);
+			UFS ret = visitForUFS(css[j], ufs, visittime, stack, root, visited, incomp, parent);
 			switch(ret){
 			case UFSFOUND:
 				ufs_found = true;
