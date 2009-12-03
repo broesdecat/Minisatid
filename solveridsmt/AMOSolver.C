@@ -92,7 +92,7 @@ bool AMOSolver::simplify(){
 }
 
 Clause* AMOSolver::propagate(Lit p, Clause* confl){
-	if(empty || init){
+	if(empty){
 		return confl;
 	}
 
