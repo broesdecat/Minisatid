@@ -664,6 +664,13 @@ Clause* Solver::indirectPropagate() {
     for (; !ufs_found && i<css.size(); i++)
         if (isCS[css[i]])
             ufs_found = unfounded(css[i], ufs);
+
+    if(verbosity>=2){
+    	if(ufs_found){
+    		reportf("ufs found, size %i", ufs.size());
+    	}
+    }
+
     justifiable_cycle_sources+=ufs_found?(i-1):i; // This includes those that are removed inside "unfounded".
     succesful_justify_calls+=(justify_calls - old_justify_calls);
 
