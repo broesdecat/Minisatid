@@ -61,12 +61,14 @@ public:
 	//
 	ECNF_mode ecnf_mode;
 
-	int       verbosity;          // Verbosity level. 0=silent, 1=some progress report
-	int       defn_strategy;      // Controls which propagation strategy will be used for definitions.                         (default always)
-	int       defn_search;        // Controls which search type will be used for definitions.                                  (default include_cs)
+	int	verbosity;          // Verbosity level. 0=silent, 1=some progress report
+	int	defn_strategy;      // Controls which propagation strategy will be used for definitions.                         (default always)
+	int	defn_search;        // Controls which search type will be used for definitions.                                  (default include_cs)
+	int	ufs_strategy;		//Which algorithm to use to find unfounded sets
 
 	enum { always = 0, adaptive = 1, lazy = 2 };
 	enum { include_cs = 0, stop_at_cs = 1 };
+	enum { breadth_first = 0, depth_first = 1 };
 	/////////////////////END INITIALIZATION
 
 protected:
@@ -157,7 +159,8 @@ protected:
 	Clause*	assertUnfoundedSet (const std::set<Var>& ufs);
 
 	UFS 	visitForUFSgeneral	(Var v, Var cs, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited, vec<bool>& incomp);
-	UFS		visitForUFSsimple	(Var v, Var cs, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited);
+	UFS 	visitForUFSsimple	(Var v, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited, vec<bool>& incomp, vec<vec<Lit> >& network, vec<bool>& changedjust);
+	void 	changeJustifications(Lit justification, vec<vec<Lit> >& network, vec<bool>& changedjust); //changes the justifications of the tarjan algorithm
 
 	void	markNonJustified   (Var cs, vec<Var>& tmpseen);                           // Auxiliary for 'unfounded(..)'. Marks all ancestors of 'cs' in sp_justification as 'seen'.
 	void	markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q, vec<Var>& tmpseen);

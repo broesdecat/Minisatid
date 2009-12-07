@@ -437,6 +437,16 @@ int main(int argc, char** argv)
                 exit(0); }
            S->var_decay = 1 / decay;
 
+        }else if ((value = hasPrefix(argv[i], "-ufsalgo="))){
+			if (strcmp(value, "depth") == 0){
+				TS->ufs_strategy = TSolver::depth_first;
+			}else if(strcmp(value, "breadth") == 0){
+				TS->ufs_strategy = TSolver::breadth_first;
+			}else{
+				reportf("ERROR! unknown choice of unfounded set algorithm: %s\n", value);
+				exit(0);
+			}
+
         }else if ((value = hasPrefix(argv[i], "-verbosity="))){
             int verbosity = (int)strtol(value, NULL, 10);
             if (verbosity == 0 && errno == EINVAL){
