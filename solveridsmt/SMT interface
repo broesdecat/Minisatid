@@ -1,0 +1,61 @@
+TSolver has to be able to ask:
+
+lbool getValue(variable)
+	can be asked at any given time to get the current 3 valued value of a variable
+lbool getValue(literal)
+	can be asked at any given time to get the current 3 valued value of a literal (variable and sign)
+nVars
+	get the current number of variables
+
+getQhead and trail
+	used in the initialization to propagate aggregates that have not yet been propagated, whereas their sat counterpart has
+	used to stop propagating when a conflict is found in an AMO statement
+
+int decisionlevel()
+	het huidige decisionlevel wordt gebruikt om te controleren dat er al effectief een decision gemaakt is (should just be a notification by the solver from newDecisionLevel())
+
+
+int getLevel(literal)
+	afhankelijk van de ID strategie moet er bij het vinden van een unfounded set eerst naar een bepaald level gebacktrackt worden voordat de unfounded set geassert kan worden.
+	
+void backtrackTo(int level)
+	backtracks tot een gegeven niveau
+	
+beide bovenstaande methodes zouden vervangen kunnen worden door een methode backtrack(loopformula) die clause learning toepast op een gegeven formule en tot het gewenste niveau terugspringt (en verder niet doet)
+
+recentAssignments, nbrecentassignments
+	zorgt dat het zoeken van cycle sources alleen gebeurd in de recent gepropageerde literals
+	
+void 	addLearnedClause(Clause* c)
+	voeg een geleerde clause toe aan de clause store en bumpt zijn activity
+	wordt aangeroepen bij unfounded sets, aggr enqueues en amo propagates
+	
+void addClause(Clause* c)
+	toevoegen van clauses in de initialisatie aan de clause store, bij addrule en addaggr
+	
+void addClause(lits)
+	toevoegen van clause in initialisatie en alle nodige checks uitvoeren
+	
+void settrue(literal, reason=NULL)
+	sets the value of literal to true
+	called in addrule, assertunfoundedset, aggrenqueue, amo propagate
+
+bool 2valuedstate
+	returns whether no variables are unknown
+	this is used by the ID heuristics to decide whether to do propagation on the definition
+	
+newvar
+	introduces a new variable in the solver
+	is used to reduce the size of loop formulas
+	
+TODO:
+/////////////////////SOLVER NECESSARY
+void 	backtrack 	( Lit l);
+
+//REMOVE, REPLACE BY GETVALUE: memory improvement
+void 	setTrue		(Lit p);
+
+Clause* getExplanation	(Lit p);    // Create a clause that implicitly was the reason for p's propagation.
+
+Clause* 	propagate(Lit p, Clause* confl); //calls setvalue, maybe heuristic of when to really propagate
+/////////////////////ENDSOLVER NECESSARY
