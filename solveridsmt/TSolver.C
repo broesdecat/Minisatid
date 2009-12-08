@@ -1006,19 +1006,23 @@ UFS TSolver::visitForUFSgeneral(Var v, Var cs, std::set<Var>& ufs, int visittime
  *
  */
 
-void TSolver::changeJustifications(Lit justification, vec<vec<Lit> >& network, vec<bool>& mapnodetojust){
+void TSolver::changeJustifications(Var definednode, Lit firstjustification, vec<vec<Lit> >& network, vec<bool>& mapnodetojust, vec<int>& visited){
 	vec<Lit> queue;
 
-	queue.push(justification);
+	if(!mapnodetojust[definednode]){
+		change_jstfc_disj(definednode, firstjustification);
+		mapnodetojust[definednode]=true;
+		queue.push(Lit(definednode));
+	}
 
 	while(queue.size()>0){
 		Lit just = queue.last();
 		queue.pop();
-		for(int i=0; i<network[var(just)].size(); i++){
-			Lit t = network[var(just)][i];
-			if(!mapnodetojust[var(just)]){
+		for(int i=0; i<network[visited[var(just)]].size(); i++){
+			Lit t = network[visited[var(just)]][i];
+			if(!mapnodetojust[var(t)]){
 				change_jstfc_disj(var(t), just);
-				mapnodetojust[var(just)]=true;
+				mapnodetojust[var(t)]=true;
 				queue.push(t);
 			}
 		}
@@ -1028,8 +1032,11 @@ void TSolver::changeJustifications(Lit justification, vec<vec<Lit> >& network, v
 
 /////////////
 //Finding unfounded checks by
-UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited, vec<bool>& incomp, vec<vec<Lit> >& network, vec<bool>& changedjust){
-	visited[v]=visittime;visittime++;root[v]=v;
+//validjust indicates both that the element is already in a justification or is in another found component (in which case it might also be false, not requiring a justification)
+UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<Var>& stack, vec<Var>& visited, vec<vec<Lit> >& network, vec<bool>& validjust){
+	visited[v]=visittime;
+	int timevisited = visittime;
+	visittime++;
 
 	DefType type = defType[v];
 
@@ -1050,10 +1057,9 @@ UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int visittime, vec<Var
 		Lit l = c->operator [](i);
 		if(var(l)==v){ continue; } //rule head or identical body atom
 		if(childtype==AGGR){return OLDCHECK;}
-		if(childtype==NONDEF || scc[var(l)]!=scc[v] || incomp[var(l)]){
+		if(childtype==NONDEF || scc[var(l)]!=scc[v] || validjust[var(l)]){
 			if(value(l)!=l_False && type==DISJ){
-				incomp[v]=true;
-				changeJustifications(l, network, changedjust);
+				changeJustifications(v, l, network, validjust, visited);
 				return NOTUNFOUNDED;
 			}
 		}
@@ -1071,15 +1077,20 @@ UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int visittime, vec<Var
 
 	if(type==CONJ){
 		if(childfound){
-			network[var(definedChild)].push(Lit(v));
-			if(visited[var(definedChild)]==-1){
-				UFS ret = visitForUFSsimple(var(definedChild), ufs, visittime, stack, root, visited, incomp, network, changedjust);
+
+			if(visited[var(definedChild)]==0 && network.size()<visittime+2){
+				network.growTo(visittime+2);
+			}
+			network[visited[var(definedChild)]].push(Lit(v));
+
+			if(visited[var(definedChild)]==0){
+				UFS ret = visitForUFSsimple(var(definedChild), ufs, visittime, stack, visited, network, validjust);
 				if(ret != STILLPOSSIBLE){
 					return ret;
 				}
 			}
-			if(!incomp[var(definedChild)] && visited[root[var(definedChild)]]<visited[v]){
-				root[v]=root[var(definedChild)];
+			if(!validjust[var(definedChild)] && visited[var(definedChild)]<visited[v]){
+				visited[v]=visited[var(definedChild)];
 			}
 		}
 	}else{ //DISJ, have returned from all others
@@ -1087,26 +1098,31 @@ UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int visittime, vec<Var
 			Var child = var(c->operator [](i));
 			if(child==v){ continue;	}
 			if(!(defType[child]==CONJ || defType[child]==DISJ)){continue;}
-			network[var(c->operator [](i))].push(Lit(v));
-			if(visited[child]==-1){
-				UFS ret = visitForUFSsimple(child, ufs, visittime, stack, root, visited, incomp, network, changedjust);
+
+			if(visited[child]==0 && network.size()<visittime+2){
+				network.growTo(visittime+2);
+			}
+			network[visited[child]].push(Lit(v));
+
+			if(visited[child]==0){
+				UFS ret = visitForUFSsimple(child, ufs, visittime, stack, visited, network, validjust);
 				if(ret!=STILLPOSSIBLE){
 					return ret;
 				}
 			}
-			if(!incomp[child] && visited[root[child]]<visited[v]){
-				root[v]=root[child];
+			if(!validjust[var(definedChild)] && visited[child]<visited[v]){
+				visited[v]=visited[child];
 			}
 		}
 	}
 
-	if(root[v]==v){
+	if(visited[v]==timevisited){
 		bool allfalse = true;
 		Var x;
 		do{
 			x=stack.last();
 			stack.pop();
-			incomp[x] = true;
+			validjust[x]=true;
 			ufs.insert(x);
 			if(value(x)!=l_False){allfalse = false;}
 		}while(x!=v);
@@ -1116,11 +1132,11 @@ UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int visittime, vec<Var
 		}
 		if(ufs.size()>1){
 			if(solver->verbosity >=1){
-				fprintf(stderr, "ufsfound: ");
+				/*fprintf(stderr, "ufsfound: ");
 				for(std::set<Var>::iterator i=ufs.begin(); i!=ufs.end(); i++){
 					Var x = *i;
 					fprintf(stderr, "%d:%c", x << 1, value(x) == l_True ? '1' : (value(x) == l_False ? '0' : 'X'));
-				}
+				}*/
 			}
 			return UFSFOUND;
 		}else{
@@ -1131,13 +1147,13 @@ UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int visittime, vec<Var
 				}
 			}
 			if(containsx>1){ //there is a loop of length 1, so x itself is an UFS
-				if(solver->verbosity >=1){
+				/*if(solver->verbosity >=1){
 					fprintf(stderr, "ufsfound: ");
 					for(std::set<Var>::iterator i=ufs.begin(); i!=ufs.end(); i++){
 						Var x = *i;
 						fprintf(stderr, "%d:%c", x << 1, value(x) == l_True ? '1' : (value(x) == l_False ? '0' : 'X'));
 					}
-				}
+				}*/
 				return UFSFOUND;
 			}else{//no loops, x is only an SCC, not a UFS
 				ufs.clear();
@@ -1147,6 +1163,8 @@ UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int visittime, vec<Var
 
 	return STILLPOSSIBLE;
 }
+
+int count = 0;
 
 /*_________________________________________________________________________________________________
  |
@@ -1178,23 +1196,22 @@ Clause* TSolver::indirectPropagate() {
  	int j=0;
 
  	if(ufs_strategy==depth_first){
- 		int visittime = 0;
+ 		int visittime = 1;	//time at which NO node has been visited yet
  		vec<Var> stack;
- 		vec<bool> incomp;
- 		vec<Var> root;
- 		vec<Var> visited;
- 		vec<vec<Lit> > network;		//maps a node (by mapnodetoindex) to a list of nodes that have visited the first one
  		vec<bool> mapnodetojust; 	//indicates that a nodes has already received a new justification
- 		visited.growTo(nVars(), -1);
- 		root.growTo(nVars());
- 		network.growTo(nVars());
- 		incomp.growTo(nVars(), false);
+ 		//seen represents the visited variable, 0 means not visited
  		mapnodetojust.growTo(nVars(), false);
+ 		//TODO TODO mapnodetojust vervangen door het feit of seen negatief of positief is (dan wel overal checken op abs waarde van seen?)
+ 		//network ofwel vervangen door een groeiende stack ofwel door een 1 keer gealloceerde array
 
  		for (; !ufs_found && j < css.size(); j++){//hij komt nooit in het geval dat hij iets op de stack moet pushen, altijd disj unfounded???
- 			if(visited[css[j]]==-1){
+ 			if(isCS[css[j]] && seen[css[j]]==0){
  				//UFS ret = visitForUFSgeneral(css[j], css[j], ufs, visittime, stack, root, visited, incomp);
- 				UFS ret = visitForUFSsimple(css[j], ufs, visittime, stack, root, visited, incomp, network, mapnodetojust);
+ 				vec<vec<Lit> > network;	//maps a node to a list of nodes that have visited the first one
+										//as index, the visited time is used
+ 				network.growTo(visittime+1);
+ 				network[visittime].push(Lit(css[j]));
+ 				UFS ret = visitForUFSsimple(css[j], ufs, visittime, stack, seen, network, mapnodetojust);
  				switch(ret){
  				case UFSFOUND:
  					ufs_found = true;
@@ -1209,6 +1226,9 @@ Clause* TSolver::indirectPropagate() {
  				}
  			}
  		}
+ 		for (int i = 0; i < seen.size(); i++) {
+			seen[i] = 0; //add a queue fullstack, keeping all visited atoms, so only their seen has to be updated
+		}
  	}else{
  		for (; !ufs_found && j < css.size(); j++){
 			if(isCS[css[j]]){
@@ -1217,14 +1237,12 @@ Clause* TSolver::indirectPropagate() {
 		}
  	}
 
- 	if(ufs_found){
+ 	if(verbosity>0 && ufs_found){
 		fprintf(stderr, "UFSfound, size %i\n", ufs.size());
-	}else{
-		//printf("empty\n");
 	}
 
 	justifiable_cycle_sources += ufs_found ? (j - 1) : j; // This includes those that are removed inside "unfounded".
-	succesful_justify_calls += (justify_calls - old_justify_calls);
+	succesful_justify_calls += (justify_calls - old_justify_calls); //TODO this is no longer be correct for the tarjan algo
 
 	if (ufs_found) {
 		if (verbosity >= 2) {

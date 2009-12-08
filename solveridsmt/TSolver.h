@@ -159,8 +159,8 @@ protected:
 	Clause*	assertUnfoundedSet (const std::set<Var>& ufs);
 
 	UFS 	visitForUFSgeneral	(Var v, Var cs, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited, vec<bool>& incomp);
-	UFS 	visitForUFSsimple	(Var v, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited, vec<bool>& incomp, vec<vec<Lit> >& network, vec<bool>& changedjust);
-	void 	changeJustifications(Lit justification, vec<vec<Lit> >& network, vec<bool>& changedjust); //changes the justifications of the tarjan algorithm
+	UFS 	visitForUFSsimple	(Var v, std::set<Var>& ufs, int& visittime, vec<Var>& stack, vec<Var>& visited, vec<vec<Lit> >& network, vec<bool>& validjust);
+	void 	changeJustifications(Var definednode, Lit firstjustification, vec<vec<Lit> >& network, vec<bool>& changedjust, vec<int>& visited); //changes the justifications of the tarjan algorithm
 
 	void	markNonJustified   (Var cs, vec<Var>& tmpseen);                           // Auxiliary for 'unfounded(..)'. Marks all ancestors of 'cs' in sp_justification as 'seen'.
 	void	markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q, vec<Var>& tmpseen);
