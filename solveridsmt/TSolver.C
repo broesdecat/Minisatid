@@ -1006,35 +1006,52 @@ UFS TSolver::visitForUFSgeneral(Var v, Var cs, std::set<Var>& ufs, int visittime
  *
  */
 
-void TSolver::changeJustifications(Var definednode, Lit firstjustification, vec<vec<Lit> >& network, vec<bool>& mapnodetojust, vec<int>& visited){
+void TSolver::changeJustifications(Var definednode, Lit firstjustification, vec<vec<Lit> >& network, vec<int>& vis){
 	vec<Lit> queue;
 
-	if(!mapnodetojust[definednode]){
+	if(!hasJustification(definednode, vis)){
 		change_jstfc_disj(definednode, firstjustification);
-		mapnodetojust[definednode]=true;
+		vis[definednode]=-vis[definednode]; //set it as justified
 		queue.push(Lit(definednode));
 	}
 
 	while(queue.size()>0){
 		Lit just = queue.last();
 		queue.pop();
-		for(int i=0; i<network[visited[var(just)]].size(); i++){
-			Lit t = network[visited[var(just)]][i];
-			if(!mapnodetojust[var(t)]){
+		for(int i=0; i<network[visitedAt(var(just), vis)].size(); i++){
+			Lit t = network[visitedAt(var(just), vis)][i];
+			if(!hasJustification(var(t), vis)){
 				change_jstfc_disj(var(t), just);
-				mapnodetojust[var(t)]=true;
+				vis[var(t)]=-vis[var(t)];
 				queue.push(t);
 			}
 		}
 	}
 }
 
+inline bool TSolver::visitedEarlier(Var x, Var y, vec<Var>& vis){
+	int x1 = vis[x]>0?vis[x]:-vis[x];
+	int y1 = vis[y]>0?vis[y]:-vis[y];
+	return x1<y1;
+}
+
+inline bool TSolver::visited(Var x, vec<Var>& vis){
+	return vis[x]!=0;
+}
+
+inline int TSolver::visitedAt(Var x, vec<Var>& vis){
+	return vis[x]>0?vis[x]:-vis[x];
+}
+
+inline bool TSolver::hasJustification(Var x, vec<Var>& vis){
+	return vis[x]<0;
+}
 
 /////////////
 //Finding unfounded checks by
 //validjust indicates both that the element is already in a justification or is in another found component (in which case it might also be false, not requiring a justification)
-UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<Var>& stack, vec<Var>& visited, vec<vec<Lit> >& network, vec<bool>& validjust){
-	visited[v]=visittime;
+UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<Var>& stack, vec<Var>& vis, vec<vec<Lit> >& network){
+	vis[v]=visittime;
 	int timevisited = visittime;
 	visittime++;
 
@@ -1057,9 +1074,9 @@ UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<Va
 		Lit l = c->operator [](i);
 		if(var(l)==v){ continue; } //rule head or identical body atom
 		if(childtype==AGGR){return OLDCHECK;}
-		if(childtype==NONDEF || scc[var(l)]!=scc[v] || validjust[var(l)]){
+		if(childtype==NONDEF || scc[var(l)]!=scc[v] || hasJustification(var(l), vis)){
 			if(value(l)!=l_False && type==DISJ){
-				changeJustifications(v, l, network, validjust, visited);
+				changeJustifications(v, l, network, vis);
 				return NOTUNFOUNDED;
 			}
 		}
@@ -1078,19 +1095,21 @@ UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<Va
 	if(type==CONJ){
 		if(childfound){
 
-			if(visited[var(definedChild)]==0 && network.size()<visittime+2){
-				network.growTo(visittime+2);
+			if(visited(var(definedChild), vis) && network.size()<visittime+1){
+				network.growTo(visittime+1);
+				network[visittime].push(Lit(v));
+			}else{
+				network[visitedAt(var(definedChild), vis)].push(Lit(v));
 			}
-			network[visited[var(definedChild)]].push(Lit(v));
 
-			if(visited[var(definedChild)]==0){
-				UFS ret = visitForUFSsimple(var(definedChild), ufs, visittime, stack, visited, network, validjust);
+			if(!visited(var(definedChild), vis)){
+				UFS ret = visitForUFSsimple(var(definedChild), ufs, visittime, stack, vis, network);
 				if(ret != STILLPOSSIBLE){
 					return ret;
 				}
 			}
-			if(!validjust[var(definedChild)] && visited[var(definedChild)]<visited[v]){
-				visited[v]=visited[var(definedChild)];
+			if(!hasJustification(var(definedChild), vis) && visitedEarlier(var(definedChild), v, vis)){
+				vis[v]=vis[var(definedChild)];
 			}
 		}
 	}else{ //DISJ, have returned from all others
@@ -1099,30 +1118,32 @@ UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<Va
 			if(child==v){ continue;	}
 			if(!(defType[child]==CONJ || defType[child]==DISJ)){continue;}
 
-			if(visited[child]==0 && network.size()<visittime+2){
-				network.growTo(visittime+2);
+			if(!visited(child, vis) && network.size()<visittime+1){
+				network.growTo(visittime+1);
+				network[visittime].push(Lit(v));
+			}else{
+				network[visitedAt(child, vis)].push(Lit(v));
 			}
-			network[visited[child]].push(Lit(v));
 
-			if(visited[child]==0){
-				UFS ret = visitForUFSsimple(child, ufs, visittime, stack, visited, network, validjust);
+			if(!visited(child, vis)){
+				UFS ret = visitForUFSsimple(child, ufs, visittime, stack, vis, network);
 				if(ret!=STILLPOSSIBLE){
 					return ret;
 				}
 			}
-			if(!validjust[var(definedChild)] && visited[child]<visited[v]){
-				visited[v]=visited[child];
+			if(!hasJustification(child, vis) && visitedEarlier(child, v, vis)){
+				vis[v]=vis[child];
 			}
 		}
 	}
 
-	if(visited[v]==timevisited){
+	if(visitedAt(v, vis)==timevisited){
 		bool allfalse = true;
 		Var x;
 		do{
 			x=stack.last();
 			stack.pop();
-			validjust[x]=true;
+			vis[x]=vis[x]>0?vis[x]:-vis[x];
 			ufs.insert(x);
 			if(value(x)!=l_False){allfalse = false;}
 		}while(x!=v);
@@ -1198,20 +1219,24 @@ Clause* TSolver::indirectPropagate() {
  	if(ufs_strategy==depth_first){
  		int visittime = 1;	//time at which NO node has been visited yet
  		vec<Var> stack;
- 		vec<bool> mapnodetojust; 	//indicates that a nodes has already received a new justification
- 		//seen represents the visited variable, 0 means not visited
- 		mapnodetojust.growTo(nVars(), false);
- 		//TODO TODO mapnodetojust vervangen door het feit of seen negatief of positief is (dan wel overal checken op abs waarde van seen?)
- 		//network ofwel vervangen door een groeiende stack ofwel door een 1 keer gealloceerde array
+ 		/* the seen variable is used to indicate:
+ 		 * 		that a value has been visited (and its number is the time at which it was visited
+ 		 * 		0 means not yet visited
+ 		 * 		a negative value means that it has been visited at the abs value and that it has
+ 		 * 		already received a valid justification
+ 		 */
+
+ 		vec<vec<Lit> > network;	//maps a node to a list of nodes that have visited the first one
+								//as index, the visited time is used
 
  		for (; !ufs_found && j < css.size(); j++){//hij komt nooit in het geval dat hij iets op de stack moet pushen, altijd disj unfounded???
  			if(isCS[css[j]] && seen[css[j]]==0){
  				//UFS ret = visitForUFSgeneral(css[j], css[j], ufs, visittime, stack, root, visited, incomp);
- 				vec<vec<Lit> > network;	//maps a node to a list of nodes that have visited the first one
-										//as index, the visited time is used
+
+ 				//Problem: het is nog niet echt in orde, want de visit tijd wordt op het einde groot dus gaat hij nog altijd een grote vector moeten maken
  				network.growTo(visittime+1);
  				network[visittime].push(Lit(css[j]));
- 				UFS ret = visitForUFSsimple(css[j], ufs, visittime, stack, seen, network, mapnodetojust);
+ 				UFS ret = visitForUFSsimple(css[j], ufs, visittime, stack, seen, network);
  				switch(ret){
  				case UFSFOUND:
  					ufs_found = true;
