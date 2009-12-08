@@ -1234,6 +1234,8 @@ Clause* TSolver::indirectPropagate() {
  				//UFS ret = visitForUFSgeneral(css[j], css[j], ufs, visittime, stack, root, visited, incomp);
 
  				//Problem: het is nog niet echt in orde, want de visit tijd wordt op het einde groot dus gaat hij nog altijd een grote vector moeten maken
+ 				//TODO: oplossing = offset voor visittime, zodat altijd van 0 kan geindexed worden (maar rekening houden met negatieve tijd enzo)
+ 				//TODO 2: programma goed documenteren en een pseudo code versie bijhouden naast een lijst met optimalisaties
  				network.growTo(visittime+1);
  				network[visittime].push(Lit(css[j]));
  				UFS ret = visitForUFSsimple(css[j], ufs, visittime, stack, seen, network);
