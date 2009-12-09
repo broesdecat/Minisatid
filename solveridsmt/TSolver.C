@@ -1006,7 +1006,7 @@ UFS TSolver::visitForUFSgeneral(Var v, Var cs, std::set<Var>& ufs, int visittime
  *
  */
 
-void TSolver::changeJustifications(Var definednode, Lit firstjustification, vec<vec<Lit> >& network, vec<int>& vis, int offset){
+void TSolver::changeJustifications(Var definednode, Lit firstjustification, vec<vec<Lit> >& network, vec<int>& vis){
 	vec<Lit> queue;
 
 	if(!hasJustification(definednode, vis)){
@@ -1050,7 +1050,7 @@ inline bool TSolver::hasJustification(Var x, vec<Var>& vis){
 /////////////
 //Finding unfounded checks by
 //validjust indicates both that the element is already in a justification or is in another found component (in which case it might also be false, not requiring a justification)
-UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<Var>& stack, vec<Var>& vis, vec<vec<Lit> >& network, int networkoffset, vec<Var>& tempseen){
+UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<Var>& stack, vec<Var>& vis, vec<vec<Lit> >& network, vec<Var>& tempseen){
 	vis[v]=visittime;
 	int timevisited = visittime;
 	visittime++;
@@ -1077,7 +1077,7 @@ UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<Va
 		if(childtype==AGGR){return OLDCHECK;}
 		if(childtype==NONDEF || scc[var(l)]!=scc[v] || hasJustification(var(l), vis)){
 			if(value(l)!=l_False && type==DISJ){
-				changeJustifications(v, l, network, vis, networkoffset);
+				changeJustifications(v, l, network, vis);
 				return NOTUNFOUNDED;
 			}
 		}
@@ -1096,7 +1096,7 @@ UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<Va
 	if(type==CONJ){
 		if(childfound){
 
-			if(visited(var(definedChild), vis) && network.size()<visittime+1){
+			if(visited(var(definedChild), vis)){
 				network.growTo(visittime+1);
 				network[visittime].push(Lit(v));
 			}else{
@@ -1104,7 +1104,7 @@ UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<Va
 			}
 
 			if(!visited(var(definedChild), vis)){
-				UFS ret = visitForUFSsimple(var(definedChild), ufs, visittime, stack, vis, network, networkoffset, tempseen);
+				UFS ret = visitForUFSsimple(var(definedChild), ufs, visittime, stack, vis, network, tempseen);
 				if(ret != STILLPOSSIBLE){
 					return ret;
 				}
@@ -1119,7 +1119,7 @@ UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<Va
 			if(child==v){ continue;	}
 			if(!(defType[child]==CONJ || defType[child]==DISJ)){continue;}
 
-			if(!visited(child, vis) && network.size()<visittime+1){
+			if(!visited(child, vis)){
 				network.growTo(visittime+1);
 				network[visittime].push(Lit(v));
 			}else{
@@ -1127,7 +1127,7 @@ UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<Va
 			}
 
 			if(!visited(child, vis)){
-				UFS ret = visitForUFSsimple(child, ufs, visittime, stack, vis, network, networkoffset, tempseen);
+				UFS ret = visitForUFSsimple(child, ufs, visittime, stack, vis, network, tempseen);
 				if(ret!=STILLPOSSIBLE){
 					return ret;
 				}
@@ -1226,7 +1226,7 @@ Clause* TSolver::indirectPropagate() {
  		 * 		a negative value means that it has been visited at the abs value and that it has
  		 * 		already received a valid justification
  		 */
- 		int offset;
+ 		//int offset;
  		vec<Var> tempseen; //used to keep the visited nodes, that have to be reset in seen2
 
  		for (; !ufs_found && j < css.size(); j++){//hij komt nooit in het geval dat hij iets op de stack moet pushen, altijd disj unfounded???
@@ -1237,13 +1237,11 @@ Clause* TSolver::indirectPropagate() {
  				vec<vec<Lit> > network;	//maps a node to a list of nodes that have visited the first one
 										//as index, the visited time is used
 
- 				//TODO nakijken waarom offset nog misging
+ 				//TODO offset gaat nog mis omdat niet alles een justification moet hebben, maar dat ze wel aan het netwerk worden toegevoegd als dat niet zo is
  				//offset = visittime-1;
- 				//network.growTo(visittime+1-offset);
- 				//network[visittime-offset].push(Lit(css[j]));
  				network.growTo(visittime+1);
-				network[visittime].push(Lit(css[j]));
- 				UFS ret = visitForUFSsimple(css[j], ufs, visittime, stack, seen2, network, offset, tempseen);
+ 				network[visittime].push(Lit(css[j]));
+ 				UFS ret = visitForUFSsimple(css[j], ufs, visittime, stack, seen2, network, tempseen);
  				switch(ret){
  				case UFSFOUND:
  					ufs_found = true;
