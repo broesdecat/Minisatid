@@ -392,7 +392,7 @@ Clause* TSolver::propagateDefinitions(Clause* confl){
 
 void TSolver::notifyVarAdded(){
 	seen.push(0);
-	//assigns.push(toInt(l_Undef));
+	seen2.push(0);
 
 	if (ecnf_mode.def) {
 		defType.push(NONDEF);
@@ -1006,7 +1006,7 @@ UFS TSolver::visitForUFSgeneral(Var v, Var cs, std::set<Var>& ufs, int visittime
  *
  */
 
-void TSolver::changeJustifications(Var definednode, Lit firstjustification, vec<vec<Lit> >& network, vec<int>& vis){
+void TSolver::changeJustifications(Var definednode, Lit firstjustification, vec<vec<Lit> >& network, vec<int>& vis, int offset){
 	vec<Lit> queue;
 
 	if(!hasJustification(definednode, vis)){
@@ -1050,10 +1050,11 @@ inline bool TSolver::hasJustification(Var x, vec<Var>& vis){
 /////////////
 //Finding unfounded checks by
 //validjust indicates both that the element is already in a justification or is in another found component (in which case it might also be false, not requiring a justification)
-UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<Var>& stack, vec<Var>& vis, vec<vec<Lit> >& network){
+UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<Var>& stack, vec<Var>& vis, vec<vec<Lit> >& network, int networkoffset, vec<Var>& tempseen){
 	vis[v]=visittime;
 	int timevisited = visittime;
 	visittime++;
+	tempseen.push(v);
 
 	DefType type = defType[v];
 
@@ -1076,7 +1077,7 @@ UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<Va
 		if(childtype==AGGR){return OLDCHECK;}
 		if(childtype==NONDEF || scc[var(l)]!=scc[v] || hasJustification(var(l), vis)){
 			if(value(l)!=l_False && type==DISJ){
-				changeJustifications(v, l, network, vis);
+				changeJustifications(v, l, network, vis, networkoffset);
 				return NOTUNFOUNDED;
 			}
 		}
@@ -1103,7 +1104,7 @@ UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<Va
 			}
 
 			if(!visited(var(definedChild), vis)){
-				UFS ret = visitForUFSsimple(var(definedChild), ufs, visittime, stack, vis, network);
+				UFS ret = visitForUFSsimple(var(definedChild), ufs, visittime, stack, vis, network, networkoffset, tempseen);
 				if(ret != STILLPOSSIBLE){
 					return ret;
 				}
@@ -1126,7 +1127,7 @@ UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<Va
 			}
 
 			if(!visited(child, vis)){
-				UFS ret = visitForUFSsimple(child, ufs, visittime, stack, vis, network);
+				UFS ret = visitForUFSsimple(child, ufs, visittime, stack, vis, network, networkoffset, tempseen);
 				if(ret!=STILLPOSSIBLE){
 					return ret;
 				}
@@ -1219,26 +1220,30 @@ Clause* TSolver::indirectPropagate() {
  	if(ufs_strategy==depth_first){
  		int visittime = 1;	//time at which NO node has been visited yet
  		vec<Var> stack;
- 		/* the seen variable is used to indicate:
+ 		/* the seen2 variable is used to indicate:
  		 * 		that a value has been visited (and its number is the time at which it was visited
  		 * 		0 means not yet visited
  		 * 		a negative value means that it has been visited at the abs value and that it has
  		 * 		already received a valid justification
  		 */
-
- 		vec<vec<Lit> > network;	//maps a node to a list of nodes that have visited the first one
-								//as index, the visited time is used
+ 		int offset;
+ 		vec<Var> tempseen; //used to keep the visited nodes, that have to be reset in seen2
 
  		for (; !ufs_found && j < css.size(); j++){//hij komt nooit in het geval dat hij iets op de stack moet pushen, altijd disj unfounded???
  			if(isCS[css[j]] && seen[css[j]]==0){
- 				//UFS ret = visitForUFSgeneral(css[j], css[j], ufs, visittime, stack, root, visited, incomp);
+ 				//TODO om seen te gebruiken, mag dat niet tegelijk gebruikt kunnen worden in unfounded()
 
- 				//Problem: het is nog niet echt in orde, want de visit tijd wordt op het einde groot dus gaat hij nog altijd een grote vector moeten maken
- 				//TODO: oplossing = offset voor visittime, zodat altijd van 0 kan geindexed worden (maar rekening houden met negatieve tijd enzo)
  				//TODO 2: programma goed documenteren en een pseudo code versie bijhouden naast een lijst met optimalisaties
+ 				vec<vec<Lit> > network;	//maps a node to a list of nodes that have visited the first one
+										//as index, the visited time is used
+
+ 				//TODO nakijken waarom offset nog misging
+ 				//offset = visittime-1;
+ 				//network.growTo(visittime+1-offset);
+ 				//network[visittime-offset].push(Lit(css[j]));
  				network.growTo(visittime+1);
- 				network[visittime].push(Lit(css[j]));
- 				UFS ret = visitForUFSsimple(css[j], ufs, visittime, stack, seen, network);
+				network[visittime].push(Lit(css[j]));
+ 				UFS ret = visitForUFSsimple(css[j], ufs, visittime, stack, seen2, network, offset, tempseen);
  				switch(ret){
  				case UFSFOUND:
  					ufs_found = true;
@@ -1253,8 +1258,9 @@ Clause* TSolver::indirectPropagate() {
  				}
  			}
  		}
- 		for (int i = 0; i < seen.size(); i++) {
-			seen[i] = 0; //add a queue fullstack, keeping all visited atoms, so only their seen has to be updated
+ 		for (int i = 0; i < nVars()/*tempseen.size()*/; i++) {
+			//seen2[tempseen[i]] = 0;
+ 			seen2[i] = 0;
 		}
  	}else{
  		for (; !ufs_found && j < css.size(); j++){

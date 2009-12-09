@@ -72,8 +72,7 @@ public:
 	/////////////////////END INITIALIZATION
 
 protected:
-	vec<int>	seen;
-//	vec<char> 	assigns;
+	vec<int>	seen, seen2;
 
 	lbool	value(Var x) const;
 	lbool	value(Lit p) const;
@@ -160,8 +159,8 @@ protected:
 
 	UFS 	visitForUFSgeneral	(Var v, Var cs, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited, vec<bool>& incomp);
 
-	UFS 	visitForUFSsimple	(Var v, std::set<Var>& ufs, int& visittime, vec<Var>& stack, vec<Var>& visited, vec<vec<Lit> >& network);
-	void 	changeJustifications(Var definednode, Lit firstjustification, vec<vec<Lit> >& network, vec<int>& visited); //changes the justifications of the tarjan algorithm
+	UFS 	visitForUFSsimple	(Var v, std::set<Var>& ufs, int& visittime, vec<Var>& stack, vec<Var>& visited, vec<vec<Lit> >& network, int offset, vec<Var>& tempseen);
+	void 	changeJustifications(Var definednode, Lit firstjustification, vec<vec<Lit> >& network, vec<int>& visited, int offset); //changes the justifications of the tarjan algorithm
 
 	bool	visitedEarlier(Var x, Var y, vec<Var>& visitedandjust);
 	bool	visited(Var x, vec<Var>& visitedandjust);
