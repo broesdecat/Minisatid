@@ -72,6 +72,10 @@ public:
 	/////////////////////END INITIALIZATION
 
 protected:
+	//maybe strange method, but allows to inline the normal backtrack method in the solver search and allows
+	//branch prediction much better i think
+	void 	doBacktrack 	( Lit l);
+
 	vec<int>	seen, seen2;
 
 	lbool	value(Var x) const;
@@ -200,6 +204,11 @@ protected:
 inline void     TSolver::addCycleSource(Var v)        { if (!isCS[v]) {isCS[v]=true; css.push(v);} }
 inline void     TSolver::clearCycleSources()          { for (int i=0;i<css.size();i++) isCS[css[i]]=false; css.clear(); }
 
+/**
+ * All these methods are used to allow branch prediction in SATsolver methods and to minimize the number of
+ * subsequent calls
+ */
+
 inline Clause* TSolver::propagate(Lit p, Clause* confl){
 	if (ecnf_mode.init || ! ecnf_mode.aggr || confl != NULL) {return confl;}
 	return Aggr_propagate(p);
@@ -209,6 +218,14 @@ inline Clause* TSolver::propagate(Lit p, Clause* confl){
 inline Clause* TSolver::propagateDefinitions(Clause* confl){
 	if (ecnf_mode.init || ! ecnf_mode.def || confl!=NULL) {return confl;}
 	return indirectPropagate();
+}
+
+inline void TSolver::backtrack ( Lit l){
+	if(ecnf_mode.init || !ecnf_mode.aggr){
+		return;
+	}else{
+		doBacktrack(l);
+	}
 }
 
 #endif /* TSOLVER_H_ */

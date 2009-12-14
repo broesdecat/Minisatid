@@ -98,6 +98,7 @@ Var Solver::newVar(bool sign, bool dvar)
 
 	//////////////START TSOLVER
 	tsolver->notifyVarAdded();
+	amosolver->notifyVarAdded();
 	//////////////END TSOLVER
 
     insertVarOrder(v);
@@ -127,7 +128,7 @@ bool Solver::addClause(vec<Lit>& ps)
         return ok = false;
     else if (ps.size() == 1){
         assert(value(ps[0]) == l_Undef);
-        uncheckedEnqueue(ps[0]);
+        setTrue(ps[0]);
         return ok = (propagate() == NULL);
     }else{
         Clause* c = Clause_new(ps, false);
@@ -139,15 +140,21 @@ bool Solver::addClause(vec<Lit>& ps)
 }
 
 /////////START TSOLVER
-void Solver::addLearnedClauseFromT(Clause* c){
+void Solver::addLearnedClause(Clause* c){
 	learnts.push(c);
 	attachClause(*c);
 	claBumpActivity(*c);
+	if(verbosity>=2){
+		printClause(*c);
+	}
 }
 
-void Solver::addClauseFromT(Clause* c){
+void Solver::addClause(Clause* c){
 	clauses.push(c);
 	attachClause(*c);
+	if(verbosity>=2){
+		printClause(*c);
+	}
 }
 /////////END TSOLVER
 
@@ -193,7 +200,8 @@ void Solver::cancelFurther(int init_qhead) {
 		//TODObroes: vermoedelijk alleen aanroepen als c defined of geaggregeerd is (mss moeilijk te checken)
 
 	    //////////////START TSOLVER
-		tsolver->Backtrack(c);
+		tsolver->backtrack(trail[c]);
+		amosolver->backtrack(trail[c]);
 		//////////////END TSOLVER
 	}
 
@@ -203,7 +211,7 @@ void Solver::cancelFurther(int init_qhead) {
 
 // Revert to the state at given level (keeping all assignment at 'level' but not beyond).
 //
-void Solver::cancelUntil(int level) {
+void Solver::backtrackTo(int level) {
 	if (decisionLevel() > level) {
 		cancelFurther(trail_lim[level]);
 		trail_lim.shrink(trail_lim.size() - level);
@@ -315,14 +323,14 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 
 		//////////////START TSOLVER
 		if (confl == NULL && pathC > 1) {
-			confl = tsolver->implicitReasonClause(p);
+			confl = tsolver->getExplanation(p);
 			deleteImplicitClause = true;
 		}
 		//////////////END TSOLVER
         seen[var(p)] = 0;
         pathC--;
 
-    }while (pathC > 0);
+    } while (pathC > 0);
     out_learnt[0] = ~p;
 
     // Simplify conflict clause:
@@ -441,7 +449,7 @@ void Solver::analyzeFinal(Lit p, vec<Lit>& out_conflict)
 }
 
 
-void Solver::uncheckedEnqueue(Lit p, Clause* from)
+void Solver::setTrue(Lit p, Clause* from)
 {
     assert(value(p) == l_Undef);
     assigns [var(p)] = toInt(lbool(!sign(p)));  // <<== abstract but not uttermost effecient
@@ -505,13 +513,17 @@ Clause* Solver::propagate()
                     while (i < end)
                         *j++ = *i++;
                 }else
-                    uncheckedEnqueue(first, &c);
+                	setTrue(first, &c);
             }
         FoundWatch:;
         }
         ws.shrink(i - j);
-	    //////////////START TSOLVER
-		tsolver->propagate(p, confl);
+		//////////////START TSOLVER
+        confl = amosolver->propagate(p, confl);
+        confl = tsolver->propagate(p, confl);
+		if(qhead==trail.size()){
+			confl = tsolver->propagateDefinitions(confl);
+		}
 		//////////////END TSOLVER
     }
     propagations += num_props;
@@ -595,7 +607,13 @@ bool Solver::simplify()
     simpDB_props   = clauses_literals + learnts_literals;   // (shouldn't depend on stats really, but it will do for now)
 
     //////////////START TSOLVER
-	if(conflicts==0 && !tsolver->simplify()){
+	if(conflicts==0 && (!tsolver->simplify() || !amosolver->simplify())){
+		ok = false;
+		return false;
+	}
+
+	// There might be stuff to propagate now.
+	if (propagate()!=NULL) { // NOTE: this includes the first round of indirectPropagate()!! Make sure first time ALL cycle sources are searched.
 		ok = false;
 		return false;
 	}
@@ -637,19 +655,19 @@ lbool Solver::search()
 
             learnt_clause.clear();
             analyze(confl, learnt_clause, backtrack_level);
-            cancelUntil(backtrack_level);
+            backtrackTo(backtrack_level);
             assert(value(learnt_clause[0]) == l_Undef);
 
 			backtrackLevels[conflicts % restartMore]= backtrack_level;
 
             if (learnt_clause.size() == 1){
-                uncheckedEnqueue(learnt_clause[0]);
+            	setTrue(learnt_clause[0]);
             }else{
                 Clause* c = Clause_new(learnt_clause, true);
                 learnts.push(c);
                 attachClause(*c);
                 claBumpActivity(*c);
-                uncheckedEnqueue(learnt_clause[0], c);
+                setTrue(learnt_clause[0], c);
             }
 
             varDecayActivity();
@@ -674,7 +692,7 @@ lbool Solver::search()
 				if(LM > restartTolerance && nofLM>= restartLess) { /* Modified 2009 */
 					// AVOIDANCE OF PLATEAUX
 	                progress_estimate= progressEstimate();
-    	            cancelUntil(0);
+	                backtrackTo(0);
         	        return l_Undef;
 				}
 			}
@@ -716,7 +734,7 @@ lbool Solver::search()
             // Increase decision level and enqueue 'next'
             assert(value(next) == l_Undef);
             newDecisionLevel();
-            uncheckedEnqueue(next);
+            setTrue(next);
         }
     }
 }
@@ -739,23 +757,18 @@ double Solver::progressEstimate() const
 
 ////////////START TSOLVER
 void Solver::invalidateModel(const vec<Lit>& lits, int& init_qhead) {
-	cancelUntil(0);
+	backtrackTo(0);
 	if (init_qhead < qhead)
 		cancelFurther(init_qhead);
 
 	if (lits.size() == 1) {
-		uncheckedEnqueue(lits[0]);
+		setTrue(lits[0]);
 		++init_qhead;
 	} else {
 		Clause* c = Clause_new(lits, false);
-		learnts.push(c);
-		if (verbosity >= 2) {
-			reportf("Adding model-invalidating clause: [ ");
-			printClause(*c);
-			reportf("]\n");
-		}
-		attachClause(*c);
-		claBumpActivity(*c);
+        clauses.push(c);
+        if (verbosity>=2) {reportf("Adding model-invalidating clause: [ "); printClause(*c); reportf("]\n");}
+        attachClause(*c);
 	}
 
 	varDecayActivity();
@@ -773,6 +786,8 @@ bool Solver::solve() {
 		reportf("|           |    Vars  Clauses Literals |    Limit  Clauses Lit/Cl |          |\n");
 		reportf("===============================================================================\n");
 	}
+
+	try{
 
 	/////////////////////// START OF EXTENSIONS
 	//TODObroes nodig voor minimize opdrachten, werken nu dus nog niet
@@ -890,13 +905,19 @@ bool Solver::solve() {
 			break;
 		}
 	}
-	cancelUntil(0);
+	backtrackTo(0);
 
 	if (res != NULL)
 		fclose(res);
 
 	if (verbosity >= 1)
 		reportf("===============================================================================\n");
+
+	}catch(int x){
+		if(x==theoryUNSAT){
+			return false;
+		}
+	}
 
 	return solved;
 }
@@ -937,7 +958,7 @@ bool Solver::solve(const vec<Lit>& assumps)
             ok = false;
     }
 
-    cancelUntil(0);
+    backtrackTo(0);
     return status == l_True;
 }
 

@@ -502,7 +502,7 @@ Clause* Solver::propagate() {
         Clause         **i, **j, **end;
         num_props++;
 
-        if (verbosity>=2) {reportf("Propagating literal "); printLit(p); reportf(": (");}
+        //if (verbosity>=2) {reportf("Propagating literal "); printLit(p); reportf(": (");}
 
         for (i = j = (Clause**)ws, end = i + ws.size();  i != end;){
             Clause& c = **i++;
@@ -520,40 +520,44 @@ Clause* Solver::propagate() {
                 *j++ = &c;
             }else{
                 // Look for new watch:
-                for (int k = 2; k < c.size(); k++)
+                for (int k = 2; k < c.size(); k++){
                     if (value(c[k]) != l_False){
                         c[1] = c[k]; c[k] = false_lit;
                         watches[toInt(~c[1])].push(&c);
-                        goto FoundWatch; }
+                        goto FoundWatch;
+                    }
+                }
 
-                        // Did not find watch -- clause is unit under assignment:
-                        *j++ = &c;
-                        if (value(first) == l_False){
-                            if (verbosity>=2) reportf(" Conflict");
-                            confl = &c;
-                            qhead = trail.size();
-                            // Copy the remaining watches:
-                            while (i < end)
-                                *j++ = *i++;
-                        }else {
-                        	setTrue(first, &c);
-                            if (verbosity>=2) {reportf(" "); printLit(first);}
-                        }
+				// Did not find watch -- clause is unit under assignment:
+				*j++ = &c;
+				if (value(first) == l_False){
+					//if (verbosity>=2) reportf(" Conflict");
+					confl = &c;
+					qhead = trail.size();
+					// Copy the remaining watches:
+					while (i < end){
+						*j++ = *i++;
+					}
+				}else {
+					setTrue(first, &c);
+					//if (verbosity>=2) {reportf(" "); printLit(first);}
+				}
             }
 FoundWatch:;
         }
         ws.shrink(i - j);
-        if (verbosity>=2) reportf(" ).\n");
+        //if (verbosity>=2) reportf(" ).\n");
 
 		//////////////START TSOLVER
-		confl = tsolver->propagate(p, confl);
-		confl = amosolver->propagate(p, confl);
+        confl = amosolver->propagate(p, confl);
+        confl = tsolver->propagate(p, confl);
 		if(qhead==trail.size()){
 			confl = tsolver->propagateDefinitions(confl);
 		}
 		//////////////END TSOLVER
 
-		// TODO: fast way of stopping the while loop if confl != NULL ?
+		// TODO: fast way of stopping the while loop if confl != NULL ? (check if next line in code would be correct)
+		//if(confl!=NULL){ qhead = trail.size();}
 	}
 	propagations += num_props;
 	simpDB_props -= num_props;

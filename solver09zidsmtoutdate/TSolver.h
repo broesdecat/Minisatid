@@ -1,3 +1,4 @@
+
 #ifndef TSOLVER_H_
 #define TSOLVER_H_
 
@@ -21,10 +22,12 @@ const DefType AGGR   = 3;
 
 struct ECNF_mode {
 	bool init;              // True as long as we haven't finished the initialization.
-	bool def,aggr,amo,mnmz; // True for those extensions that are being used.  TODO : extra state for recursive aggregates!!
+	bool def,aggr,mnmz; // True for those extensions that are being used.  TODO : extra state for recursive aggregates!!
 
-	ECNF_mode() : init(true), def(false), aggr(false), amo(false), mnmz(false) {}
+	ECNF_mode() : init(true), def(false), aggr(false), mnmz(false) {}
 };
+
+enum UFS {NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK};
 
 class Solver;
 
@@ -34,19 +37,17 @@ public:
 	virtual ~TSolver();
 
 	/////////////////////SOLVER NECESSARY
-	bool 		simplify	();
-	void 		Backtrack 	( int c);
-	bool 		check		( bool complete );
-	bool 		belongsToT	( Lit * e );
-	void 		propagate	(Lit p, Clause* confl);
-	Clause* 	implicitReasonClause	(Lit p);    // Create a clause that implicitly was the reason for p's propagation.
-	void 		notifyVarAdded			(); 		//correctly initialized TSolver datastructures when vars are added
-
-	void Subsetminimize(const vec<Lit>& lits);
+	bool 	simplify	();
+	void 	backtrack 	( Lit l);
+	Clause* getExplanation	(Lit p);    // Create a clause that implicitly was the reason for p's propagation.
+	void 	notifyVarAdded	(); 		//correctly initialized TSolver datastructures when vars are added
+	Clause* 	propagate		(Lit p, Clause* confl);
+	Clause* 	propagateDefinitions(Clause* confl);
+	//void Subsetminimize(const vec<Lit>& lits);
 	/////////////////////ENDSOLVER NECESSARY
 
 	/////////////////////INITIALIZATION
-	bool    addRule      (const bool conj, vec<Lit>& ps);          // Add a rule to the solver.
+	bool    addRule      (bool conj, vec<Lit>& ps);          // Add a rule to the solver.
 	bool    addAMO       (vec<Lit>& ps);                           // Add an At most one statement to the solver.
 	void    addSet       (int id, vec<Lit>& l, vec<int>& w);
 	void    addAggrExpr  (int defn, int set_id, int min, int max, AggrType type);
@@ -60,31 +61,40 @@ public:
 	//
 	ECNF_mode ecnf_mode;
 
-	int       verbosity;          // Verbosity level. 0=silent, 1=some progress report
-	int       defn_strategy;      // Controls which propagation strategy will be used for definitions.                         (default always)
-	int       defn_search;        // Controls which search type will be used for definitions.                                  (default include_cs)
+	int	verbosity;          // Verbosity level. 0=silent, 1=some progress report
+	int	defn_strategy;      // Controls which propagation strategy will be used for definitions.                         (default always)
+	int	defn_search;        // Controls which search type will be used for definitions.                                  (default include_cs)
+	int	ufs_strategy;		//Which algorithm to use to find unfounded sets
 
 	enum { always = 0, adaptive = 1, lazy = 2 };
 	enum { include_cs = 0, stop_at_cs = 1 };
+	enum { breadth_first = 0, depth_first = 1 };
 	/////////////////////END INITIALIZATION
 
 protected:
+	//maybe strange method, but allows to inline the normal backtrack method in the solver search and allows
+	//branch prediction much better i think
+	void 	doBacktrack 	( Lit l);
+
+	vec<int>	seen, seen2;
+
+	lbool	value(Var x) const;
+	lbool	value(Lit p) const;
+	int		nVars()      const;
+
+	int64_t prev_conflicts/*not strictly a statistic!*/;
+
 	// Statistics: (read-only member variable)
 	//
-	int64_t prev_conflicts/*not strictly a statistic!*/;
-	uint64_t cycle_sources, justifiable_cycle_sources, cycles, cycle_sizes, justify_conflicts, amo_statements, amo_literals, atoms_in_pos_loops;
-	uint64_t nb_times_findCS, justify_calls, cs_removed_in_justify, succesful_justify_calls, extdisj_sizes, total_marked_size;
+	uint64_t atoms_in_pos_loops;
+	//uint64_t cycle_sources, justifiable_cycle_sources, cycles, cycle_sizes, justify_conflicts;
+	//uint64_t nb_times_findCS, justify_calls, cs_removed_in_justify, succesful_justify_calls, extdisj_sizes, total_marked_size;
 	//    uint64_t fw_propagation_attempts, fw_propagations;
 
 	Solver* solver;
 
 	// ECNF_mode.mnmz additions to Solver state:
 	vec<Lit>            to_minimize;
-
-	// ECNF_mode.amo additions to Solver state:
-	//
-	vec<vec<Clause*> >    AMO_watches;           // 'AMO_watches[lit]' is a list of AMO-constraints watching 'lit' (will go there if literal becomes true). NOTE: the statement is stored as a normal clause!
-	Clause*               AMO_propagate(Lit p);  // Perform AMO-propagation. Returns possibly conflicting clause.
 
 	// ECNF_mode.aggr additions to Solver state:
 	//
@@ -110,7 +120,7 @@ protected:
 
 	// Rules (body to head):
 	vec<vec<Var> >  disj_occurs;         // Per literal: in which DISJ rules (defining atom) it is body literal.
-	vec<vec<Var> >  conj_occurs;         // Per literal: in which CONJ rules (defining atom) it is body literal. // TODO : verify when needed.
+	vec<vec<Var> >  conj_occurs;         // Per literal: in which CONJ rules (defining atom) it is body literal.
 	// cfr. Aggr_watches for the same thing in AGGR rules.
 
 	// Justifications:
@@ -139,7 +149,6 @@ protected:
 	void     findCycleSources   ();                                // Starting from cf_justification, creates a supporting justification in sp_justification, and records the changed atoms in 'cycle sources'.
 	void     findCycleSources   (Var v);                           // Auxiliary for findCycleSources(): v is non-false and its cf_justification does not support it.
 
-	bool     enqueue          (Lit p, Clause* from = NULL);                            // Test if fact 'p' contradicts current state, enqueue otherwise.
 
 	// Propagation method:
 	Clause*  indirectPropagate  ();                                /* Main method.
@@ -150,15 +159,25 @@ protected:
 	 */
 
 	// Auxiliary for indirectPropagate:
-	bool     indirectPropagateNow();                               // Decide (depending on chosen strategy) whether or not to do propagations now.
-	bool     unfounded          (Var cs, std::set<Var>& ufs);      // True iff 'cs' is currently in an unfounded set, 'ufs'.
-	Clause*  assertUnfoundedSet (const std::set<Var>& ufs);
+	bool	indirectPropagateNow();                               // Decide (depending on chosen strategy) whether or not to do propagations now.
+	bool	unfounded          (Var cs, std::set<Var>& ufs);      // True iff 'cs' is currently in an unfounded set, 'ufs'.
+	Clause*	assertUnfoundedSet (const std::set<Var>& ufs);
 
-	void     markNonJustified   (Var cs, vec<Var>& tmpseen);                           // Auxiliary for 'unfounded(..)'. Marks all ancestors of 'cs' in sp_justification as 'seen'.
-	void     markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q, vec<Var>& tmpseen);
-	void     markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>& tmpseen);
-	bool     directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q);            // Auxiliary for 'unfounded(..)'. True if v can be immediately justified by one change_jstfc action.
-	bool     Justify            (Var v, Var cs, std::set<Var>& ufs, Queue<Var>& q);    // Auxiliary for 'unfounded(..)'. Propagate the fact that 'v' is now justified. True if 'cs' is now justified.
+	UFS 	visitForUFSgeneral	(Var v, Var cs, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited, vec<bool>& incomp);
+
+	UFS 	visitForUFSsimple	(Var v, std::set<Var>& ufs, int& visittime, vec<Var>& stack, vec<Var>& visited, vec<vec<Lit> >& network, vec<Var>& tempseen);
+	void 	changeJustifications(Var definednode, Lit firstjustification, vec<vec<Lit> >& network, vec<int>& visited); //changes the justifications of the tarjan algorithm
+
+	bool	visitedEarlier(Var x, Var y, vec<Var>& visitedandjust);
+	bool	visited(Var x, vec<Var>& visitedandjust);
+	int		visitedAt(Var x, vec<Var>& visitedandjust);
+	bool	hasJustification(Var x, vec<Var>& visitedandjust);
+
+	void	markNonJustified   (Var cs, vec<Var>& tmpseen);                           // Auxiliary for 'unfounded(..)'. Marks all ancestors of 'cs' in sp_justification as 'seen'.
+	void	markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q, vec<Var>& tmpseen);
+	void	markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>& tmpseen);
+	bool	directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q);            // Auxiliary for 'unfounded(..)'. True if v can be immediately justified by one change_jstfc action.
+	bool	Justify            (Var v, Var cs, std::set<Var>& ufs, Queue<Var>& q);    // Auxiliary for 'unfounded(..)'. Propagate the fact that 'v' is now justified. True if 'cs' is now justified
 
 	// Another propagation method (too expensive in practice):
 	// void     fwIndirectPropagate();
@@ -169,10 +188,13 @@ protected:
 	void     printLit         (Lit l);
 	template<class C>
 	void     printClause      (const C& c);
+	//void     printRule        (const Rule& c);
 	void     printAggrSet     (const AggrSet& as);
 	void     printAggrExpr    (const AggrExpr& ae, const AggrSet& as);
 	void     checkLiteralCount();
 	bool     isCycleFree      ();                      // Verifies whether cf_justification is indeed cycle free.
+
+	void 	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf);
 };
 
 
@@ -181,5 +203,29 @@ protected:
 
 inline void     TSolver::addCycleSource(Var v)        { if (!isCS[v]) {isCS[v]=true; css.push(v);} }
 inline void     TSolver::clearCycleSources()          { for (int i=0;i<css.size();i++) isCS[css[i]]=false; css.clear(); }
+
+/**
+ * All these methods are used to allow branch prediction in SATsolver methods and to minimize the number of
+ * subsequent calls
+ */
+
+inline Clause* TSolver::propagate(Lit p, Clause* confl){
+	if (ecnf_mode.init || ! ecnf_mode.aggr || confl != NULL) {return confl;}
+	return Aggr_propagate(p);
+}
+
+//only call this when the whole queue has been propagated
+inline Clause* TSolver::propagateDefinitions(Clause* confl){
+	if (ecnf_mode.init || ! ecnf_mode.def || confl!=NULL) {return confl;}
+	return indirectPropagate();
+}
+
+inline void TSolver::backtrack ( Lit l){
+	if(ecnf_mode.init || !ecnf_mode.aggr){
+		return;
+	}else{
+		doBacktrack(l);
+	}
+}
 
 #endif /* TSOLVER_H_ */

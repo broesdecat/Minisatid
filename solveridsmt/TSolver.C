@@ -28,68 +28,66 @@ inline int      TSolver::nVars()      const   { return solver->nVars(); /*assign
 TSolver::~TSolver() {
 }
 
-void TSolver::backtrack ( Lit l){
-	if (!ecnf_mode.init && ecnf_mode.aggr) {
-		// Fix the Aggregate min and max values.
-		if (aggr_reason[var(l)] != NULL) {
-			delete aggr_reason[var(l)];
-			aggr_reason[var(l)] = NULL;
-		}
-		vec<AggrWatch>& vcw = Aggr_watches[var(l)];
-		for (int i = 0; i < vcw.size(); i++) {
-			if (vcw[i].set->stack.size() == 0 || var(l) != var(
-					vcw[i].set->stack.last().lit)) // l hadn't yet propagated.
-				continue;
-			AggrSet::PropagationInfo pi = vcw[i].set->stack.last();
-			vcw[i].set->stack.pop();
-			Occurrence tp = relativeOccurrence(vcw[i].type, l);
-			assert(tp == pi.type);
-			if (tp == DEFN) // These propagations don't affect 'min' and 'max'.
-				continue;
-			bool trues = tp == POS;
-			switch (vcw[i].set->type) {
-			case SUM:
-				if (trues)
-					vcw[i].set->min -= vcw[i].set->set[vcw[i].index].weight;
-				else
-					vcw[i].set->max += vcw[i].set->set[vcw[i].index].weight;
-				break;
-			case PROD:
-				if (trues)
-					vcw[i].set->min = vcw[i].set->min
-							/ vcw[i].set->set[vcw[i].index].weight;
-				else
-					vcw[i].set->max *= vcw[i].set->set[vcw[i].index].weight;
-				break;
-			case MIN:
-				if (trues)
-					while (vcw[i].set->max < vcw[i].set->set.size()
-							&& value(vcw[i].set->set[vcw[i].set->max].lit)
-									!= l_True)
-						vcw[i].set->max++;
-				else if (vcw[i].set->set[pi.weight].weight
-						<= vcw[i].set->set[vcw[i].set->min].weight) // TODO PropagationInfo should have "index" too!
-					while (vcw[i].set->min >= 0
-							&& vcw[i].set->set[vcw[i].set->min].lit
-									!= ~pi.lit)
-						vcw[i].set->min--;
+void TSolver::doBacktrack(Lit l){
+	// Fix the Aggregate min and max values.
+	if (aggr_reason[var(l)] != NULL) {
+		delete aggr_reason[var(l)];
+		aggr_reason[var(l)] = NULL;
+	}
+	vec<AggrWatch>& vcw = Aggr_watches[var(l)];
+	for (int i = 0; i < vcw.size(); i++) {
+		if (vcw[i].set->stack.size() == 0 || var(l) != var(
+				vcw[i].set->stack.last().lit)) // l hadn't yet propagated.
+			continue;
+		AggrSet::PropagationInfo pi = vcw[i].set->stack.last();
+		vcw[i].set->stack.pop();
+		Occurrence tp = relativeOccurrence(vcw[i].type, l);
+		assert(tp == pi.type);
+		if (tp == DEFN) // These propagations don't affect 'min' and 'max'.
+			continue;
+		bool trues = tp == POS;
+		switch (vcw[i].set->type) {
+		case SUM:
+			if (trues)
+				vcw[i].set->min -= vcw[i].set->set[vcw[i].index].weight;
+			else
+				vcw[i].set->max += vcw[i].set->set[vcw[i].index].weight;
+			break;
+		case PROD:
+			if (trues)
+				vcw[i].set->min = vcw[i].set->min
+						/ vcw[i].set->set[vcw[i].index].weight;
+			else
+				vcw[i].set->max *= vcw[i].set->set[vcw[i].index].weight;
+			break;
+		case MIN:
+			if (trues)
+				while (vcw[i].set->max < vcw[i].set->set.size()
+						&& value(vcw[i].set->set[vcw[i].set->max].lit)
+								!= l_True)
+					vcw[i].set->max++;
+			else if (vcw[i].set->set[pi.weight].weight
+					<= vcw[i].set->set[vcw[i].set->min].weight) // TODO PropagationInfo should have "index" too!
+				while (vcw[i].set->min >= 0
+						&& vcw[i].set->set[vcw[i].set->min].lit
+								!= ~pi.lit)
+					vcw[i].set->min--;
 
-				break;
-			case MAX:
-				if (trues)
-					while (vcw[i].set->min >= 0 && value(vcw[i].set->set[vcw[i].set->min].lit) != l_True)
-						vcw[i].set->min--;
-				else if (vcw[i].set->set[pi.weight].weight
-						>= vcw[i].set->set[vcw[i].set->max].weight)
-					while (vcw[i].set->max < vcw[i].set->set.size()
-							&& vcw[i].set->set[vcw[i].set->max].lit
-									!= ~pi.lit)
-						vcw[i].set->max++;
-				break;
-			default:
-				assert(false);
-				break;
-			}
+			break;
+		case MAX:
+			if (trues)
+				while (vcw[i].set->min >= 0 && value(vcw[i].set->set[vcw[i].set->min].lit) != l_True)
+					vcw[i].set->min--;
+			else if (vcw[i].set->set[pi.weight].weight
+					>= vcw[i].set->set[vcw[i].set->max].weight)
+				while (vcw[i].set->max < vcw[i].set->set.size()
+						&& vcw[i].set->set[vcw[i].set->max].lit
+								!= ~pi.lit)
+					vcw[i].set->max++;
+			break;
+		default:
+			assert(false);
+			break;
 		}
 	}
 }
@@ -650,29 +648,19 @@ void TSolver::findCycleSources() {
 
 	//ADDED LAST PART FOR CONSISTENCY
 	if (prev_conflicts == solver->conflicts && defn_strategy == always && solver->decisionLevel()!=0) {
-		/*for(int i=0; i<solver->getNbOfRecentAssignments(); i++){
-			Lit x = solver->getRecentAssignments(i);
-			if(value(x)==l_True){
-				x = ~x;
-			}
-			for(int j=0; j<disj_occurs[toInt(x)].size(); j++) {
-				Var v = disj_occurs[toInt(x)][j];
-				if(defType[v]==CONJ || defType[v]==DISJ || defType[v]==AGGR){
-					addCycleSource(v);
-				}
-			}
-		}*/
-
-		//for (int i=solver->trail_lim.last(); i<solver->trail.size(); i++) {
-		//	Lit l = solver->trail[i]; // l became true, ~l became false.
 		for(int i=0; i<solver->getNbOfRecentAssignments(); i++){
 			Lit l = solver->getRecentAssignments(i);
+
+			//make each head a cycle source if the cf just of the head pointed to literal ~l (which has become false)
+			//and the head is currently not false
 			vec<Var>& ds = disj_occurs[toInt(~l)];
 			for (int j = 0; j < ds.size(); j++) {
 				Var v = ds[j];
-				if (value(v) != l_False && cf_justification_disj[v] == ~l) // No support anymore; it has to change.
+				if (value(v) != l_False && cf_justification_disj[v] == ~l) { // No support anymore; just has to change.
 					findCycleSources(v);
+				}
 			}
+
 			if (ecnf_mode.aggr) {
 				// Aggr_watches[v] is a list of sets in which v occurs (each AggrWatch says: which set, what type of occurrence).
 				// If defType[v]==AGGR, (Aggr_watches[v])[0] has type==DEFN and expr->c==Lit(v,false).
@@ -697,34 +685,28 @@ void TSolver::findCycleSources() {
 			}
 		}
 	} else {
-		/*for(int i=0; i<solver->getNbOfRecentAssignments(); i++){
-			Lit x = solver->getRecentAssignments(i);
-			if(value(x)==l_True){
-				x = ~x;
-			}
-			for(int j=0; j<disj_occurs[toInt(x)].size(); j++) {
-				Var v = disj_occurs[toInt(x)][j];
-				if(defType[v]==CONJ || defType[v]==DISJ || defType[v]==AGGR){
-					addCycleSource(v);
-				}
-			}
-		}*/
 		// NOTE: with a clever trail system, we could even after conflicts avoid having to look at all rules.
 		prev_conflicts = solver->conflicts;
 		for (int i = 0; i < defdVars.size(); i++) {
 			Var v = defdVars[i];
+
+			//each head that has a false body literal which is its justification is a cycle source
 			if (defType[v] == DISJ) {
-				if (value(v) != l_False && value(cf_justification_disj[v]) == l_False)
+				if (value(v) != l_False && value(cf_justification_disj[v]) == l_False){
 					findCycleSources(v);
-			} else if (defType[v] == AGGR) {
-				if (value(v) == l_False)
-					continue;
+				}
+			}
+
+			else if (defType[v] == AGGR) {
+				if (value(v) == l_False){ continue; }
 				vec<Lit>& cf = cf_justification_aggr[v];
 				int k = 0;
-				for (; k < cf.size() && value(cf[k]) != l_False; k++)
-					;
-				if (k < cf.size()) // There is a false literal in the cf_justification.
+				while(k < cf.size() && value(cf[k]) != l_False){
+					k++;
+				}
+				if (k < cf.size()){ // There is a false literal in the cf_justification.
 					findCycleSources(v);
+				}
 			}
 		}
 	}
@@ -738,8 +720,12 @@ void TSolver::findCycleSources() {
 	}
 }
 
-// Precondition: V is of type DISJ or AGGR. It is non-false, and its cf_justification does not support it.
-// Postcondition: sp_justification..[v] supports v. v is added a cycle source if necessary (i.e., if there might be a cycle through its sp_justification).
+/*
+ * Precondition: V is of type DISJ or AGGR. It is non-false, and its cf_justification does not support it.
+ * Postcondition: sp_justification..[v] supports v. v is added a cycle source if necessary (i.e., if there might be a cycle through its sp_justification).
+ *
+ * Only called by findCycleSources()
+ */
 void TSolver::findCycleSources(Var v) {
 	if (isCS[v])
 		return;
@@ -2702,3 +2688,41 @@ inline void TSolver::printAggrExpr(const AggrExpr& ae, const AggrSet& as){
     printAggrSet(as);
     reportf(" } <= %d. Known values: min=%d, max=%d\n",ae.max,as.min,as.max);
 }
+
+/*
+OLD CODE
+//makes each literal (or its negation) that has recently been assigned into a cycle source if it occurs in a disjunctive rule
+void TSolver::findCycleSources() {
+	clearCycleSources();
+	clear_changes();
+
+	//ADDED LAST PART FOR CONSISTENCY
+	if (prev_conflicts == solver->conflicts && defn_strategy == always && solver->decisionLevel()!=0) {
+		for(int i=0; i<solver->getNbOfRecentAssignments(); i++){
+			Lit x = solver->getRecentAssignments(i);
+			if(value(x)==l_True){
+				x = ~x;
+			}
+			for(int j=0; j<disj_occurs[toInt(x)].size(); j++) {
+				Var v = disj_occurs[toInt(x)][j];
+				if(defType[v]==CONJ || defType[v]==DISJ || defType[v]==AGGR){
+					addCycleSource(v);
+				}
+			}
+		}
+	} else {
+		for(int i=0; i<solver->getNbOfRecentAssignments(); i++){
+			Lit x = solver->getRecentAssignments(i);
+			if(value(x)==l_True){
+				x = ~x;
+			}
+			for(int j=0; j<disj_occurs[toInt(x)].size(); j++) {
+				Var v = disj_occurs[toInt(x)][j];
+				if(defType[v]==CONJ || defType[v]==DISJ || defType[v]==AGGR){
+					addCycleSource(v);
+				}
+			}
+		}
+	}
+}
+*/

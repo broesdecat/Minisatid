@@ -83,7 +83,12 @@ void AMOSolver::finishECNF_DataStructures() {
 }
 
 Clause* AMOSolver::AMO_propagate(Lit p) {// TODO: if part of an EU statement, change watches there.
-    vec<Clause*>& ws = AMO_watches[toInt(p)];
+	vec<Clause*>& ws = AMO_watches[toInt(p)];
+
+	if(ws.size() == 0){
+		return NULL;
+	}
+
     if (verbosity>=2 && ws.size()>0) {
     	reportf("AMO-propagating literal ");
     	printLit(p);

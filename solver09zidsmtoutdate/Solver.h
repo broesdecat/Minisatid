@@ -31,6 +31,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include "SolverTypes.h"
 #include "TSolver.h"
+#include "AMOSolver.h"
 
 #ifdef _MSC_VER
 #include <ctime>
@@ -51,50 +52,70 @@ static inline double cpuTime(void) {
 }
 #endif
 
+#if defined(__linux__)
+static inline int memReadStat(int field)
+{
+    char    name[256];
+    pid_t pid = getpid();
+    sprintf(name, "/proc/%d/statm", pid);
+    FILE*   in = fopen(name, "rb");
+    if (in == NULL) return 0;
+    int     value;
+    for (; field >= 0; field--)
+        fscanf(in, "%d", &value);
+    fclose(in);
+    return value;
+}
+static inline uint64_t memUsed() { return (uint64_t)memReadStat(0) * (uint64_t)getpagesize(); }
+#elif defined(__FreeBSD__)
+static inline uint64_t memUsed(void) {
+    struct rusage ru;
+    getrusage(RUSAGE_SELF, &ru);
+    return ru.ru_maxrss*1024; }
+#else
+static inline uint64_t memUsed() { return 0; }
+#endif
+
 //=================================================================================================
 // Solver -- the main class:
 
 class TSolver;
+class AMOSolver;
 
 class Solver {
 public:
+
+    /////////////////////TSOLVER NECESSARY
 	TSolver* 	tsolver;
-    void setTSolver(TSolver* ts){tsolver = ts;}
+	void setTSolver(TSolver* ts){tsolver = ts;}
+	AMOSolver* 	amosolver;
+	void setAMOSolver(AMOSolver* ts){amosolver = ts;}
 
-	/////////////////////TSOLVER NECESSARY
-    bool		ok;               // If FALSE, the constraints are already unsatisfiable. No part of the solver state may be used!
-	bool		remove_satisfied; // Indicates whether possibly inefficient linear scan for satisfied clauses should be performed in 'simplify'.
-	int			qhead;            // Head of queue (as index into the trail -- no more explicit propagation queue in MiniSat).
-	vec<int>	seen;
-	vec<int>	level;            // 'level[var]' contains the level at which the assignment was made.
+	lbool   value      (Var x) const;       // The current value of a variable.
+	lbool   value      (Lit p) const;       // The current value of a literal.
+	int     nVars      ()      const;       // The current number of variables.
+
+	int		qhead;            // Head of queue (as index into the trail -- no more explicit propagation queue in MiniSat).
 	vec<Lit>	trail;            // Assignment stack; stores all assigments made in the order they were made.
-	vec<int>	trail_lim;        // Separator indices for different decision levels in 'trail'.
+	int 	getLevel(int var) 			const;
+	Lit 	getRecentAssignments(int i) const;
+	int 	getNbOfRecentAssignments() 	const;
+	int     decisionLevel()    const; 		// Gives the current decisionlevel.
 
-    lbool   value      (Var x) const;       // The current value of a variable.
-    lbool   value      (Lit p) const;       // The current value of a literal.
-    lbool   modelValue (Lit p) const;       // The value of a literal in the last model. The last call to solve must have been satisfiable.
-    int     decisionLevel()    const; 		// Gives the current decisionlevel.
-    int     nAssigns   ()      const;       // The current number of assigned literals.
-    int     nClauses   ()      const;       // The current number of original clauses.
-    int     nLearnts   ()      const;       // The current number of learnt clauses.
-    int     nVars      ()      const;       // The current number of variables.
+	void 	addLearnedClause(Clause* c);	//don't check anything, just add it to the clauses and bump activity
+	void 	addClause(Clause* c);			//don't check anything, just add it to the clauses
+	bool    addClause    (vec<Lit>& ps);                           // Add a clause to the solver. NOTE! 'ps' may be shrunk by this method!
 
-    void 	addLearnedClauseFromT(Clause* c);	//don't check anything, just add it to the clauses and bump activity
-    void 	addClauseFromT(Clause* c);			//don't check anything, just add it to the clauses
-
-    void    cancelUntil      (int level);						// Backtrack until a certain level.
-    void    uncheckedEnqueue (Lit p, Clause* from = NULL);		// Enqueue a literal. Assumes value of literal is undefined.
-    Clause* propagate        ();								// Perform unit propagation. Returns possibly conflicting clause.
-    bool 	existsUnknownVar(); 								//true if the current assignment is completely two-valued
-    //TODO if true for 09z, it works
-    Var		newVar(bool polarity = true, bool dvar = false); 	// Add a new variable with parameters specifying variable mode.
+	void    backtrackTo      (int level);						// Backtrack until a certain level.
+	void    setTrue (Lit p, Clause* from = NULL);		// Enqueue a literal. Assumes value of literal is undefined.
+	bool 	existsUnknownVar(); 								//true if the current assignment is completely two-valued
+	Var		newVar(bool polarity = true, bool dvar = false); 	// Add a new variable with parameters specifying variable mode.
+	void 	dontRemoveSatisfied();
 	/////////////////////END TSOLVER NECESSARY
 
     /////////EXTRA CHANGES FOR OUR SOLVER
     FILE*   res;                                    // Report results in this file.
     int nb_models;
-    void     cancelFurther    (int init_qhead);                                        // Backtrack within level 0 until the given 'qhead' value.
-    void    invalidateModel(const vec<Lit>& lits, int& init_qhead);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
     /////////END EXTRA CHANGES
 
     // Constructor/Destructor:
@@ -102,16 +123,11 @@ public:
     Solver();
     ~Solver();
 
-    // Problem specification:
-    //
-    bool    addClause (vec<Lit>& ps);                           // Add a clause to the solver. NOTE! 'ps' may be shrunk by this method!
-
     // Solving:
     //
     bool    simplify     ();                        // Removes already satisfied clauses.
     bool    solve        (const vec<Lit>& assumps); // Search for a model that respects a given set of assumptions.
     bool    solve        ();                        // Search without assumptions.
-    bool    okay         () const;                  // FALSE means solver is in a conflicting state
 
     void    setDecisionVar (Var v, bool b); // Declare if a variable should be eligible for selection in the decision heuristic.
 
@@ -147,7 +163,16 @@ public:
     uint64_t starts, decisions, rnd_decisions, propagations, conflicts;
     uint64_t clauses_literals, learnts_literals, max_literals, tot_literals;
 
+    //Debug
+    void     printLit         (Lit l);
+    template<class C>
+    void     printClause      (const C& c);
+
 protected:
+    void     cancelFurther    (int init_qhead);                                        // Backtrack within level 0 until the given 'qhead' value.
+
+    void    invalidateModel(const vec<Lit>& lits, int& init_qhead);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
+	bool    okay         () const;                  // FALSE means solver is in a conflicting state
 
     // Helper structures:
     //
@@ -163,6 +188,16 @@ protected:
         VarFilter(const Solver& _s) : s(_s) {}
         bool operator()(Var v) const { return toLbool(s.assigns[v]) == l_Undef && s.decision_var[v]; }
     };
+
+    Clause* propagate        ();								// Perform unit propagation. Returns possibly conflicting clause.
+
+    vec<int>	seen;
+
+    vec<int>	trail_lim;        // Separator indices for different decision levels in 'trail'.
+    bool		ok;               // If FALSE, the constraints are already unsatisfiable. No part of the solver state may be used!
+    bool		remove_satisfied; // Indicates whether possibly inefficient linear scan for satisfied clauses should be performed in 'simplify'.
+    vec<int>	level;            // 'level[var]' contains the level at which the assignment was made.
+
 
     // Solver state:
     //
@@ -180,6 +215,11 @@ protected:
     vec<Lit>            assumptions;      // Current set of assumptions provided to solve by the user.
     Heap<VarOrderLt>    order_heap;       // A priority queue of variables ordered with respect to the variable activity.
     double              progress_estimate;// Set by 'search()'.
+
+    lbool   modelValue (Lit p) const;       // The value of a literal in the last model. The last call to solve must have been satisfiable.
+    int     nClauses   ()      const;       // The current number of original clauses.
+    int     nAssigns   ()      const;       // The current number of assigned literas.
+    int     nLearnts   ()      const;       // The current number of learnt clauses.
 
     // Temporaries (to reduce allocation overhead). Each variable is prefixed by the method in which it is
     // used, exept 'seen' wich is used in several places.
@@ -222,9 +262,6 @@ protected:
     double   progressEstimate ()      const; // DELETE THIS ?? IT'S NOT VERY USEFUL ...
 
     // Debug:
-    void     printLit         (Lit l);
-    template<class C>
-    void     printClause      (const C& c);
     void     verifyModel      ();
     void     checkLiteralCount();
 
@@ -271,7 +308,7 @@ inline void Solver::claBumpActivity (Clause& c) {
                 learnts[i]->activity() *= 1e-20;
             cla_inc *= 1e-20; } }
 
-inline bool     Solver::enqueue         (Lit p, Clause* from)   { return value(p) != l_Undef ? value(p) != l_False : (uncheckedEnqueue(p, from), true); }
+inline bool     Solver::enqueue         (Lit p, Clause* from)   { return value(p) != l_Undef ? value(p) != l_False : (setTrue(p, from), true); }
 inline bool     Solver::locked          (const Clause& c) const { return reason[var(c[0])] == &c && value(c[0]) == l_True; }
 inline void     Solver::newDecisionLevel()                      { trail_lim.push(trail.size()); }
 
@@ -288,9 +325,9 @@ inline void     Solver::setDecisionVar(Var v, bool b) { decision_var[v] = (char)
 //inline bool     Solver::solve         ()              { vec<Lit> tmp; return solve(tmp); }
 inline bool     Solver::okay          ()      const   { return ok; }
 
-/*inline void 	Solver::addLearnedClauseFromT(Clause* c){}	//don't check anything, just add it to the clauses and bump activity
-inline void 	Solver::addClauseFromT(Clause* c){}			//don't check anything, just add it to the clauses
-inline bool 	Solver::existsUnknownVar(){return false;}*/
+inline int		Solver::getLevel(int var)			const	{return level[var];}
+inline Lit	 	Solver::getRecentAssignments(int i) const	{return trail[i+trail_lim.last()];}
+inline int 		Solver::getNbOfRecentAssignments() 	const	{return trail.size()-trail_lim.last();}
 
 //=================================================================================================
 // Debug + etc:

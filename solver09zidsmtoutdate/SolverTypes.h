@@ -24,6 +24,9 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <cassert>
 #include <stdint.h>
 
+#define theoryUNSAT 20
+#define memOVERFLOW 33
+
 //=================================================================================================
 // Variables, literals, lifted booleans, clauses:
 
