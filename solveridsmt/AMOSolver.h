@@ -54,4 +54,23 @@ protected:
 	void     printClause      (const C& c);
 };
 
+//=======================
+//INLINE METHODS
+//=======================
+
+inline void AMOSolver::backtrack ( Lit l){
+}
+
+//@pre: conflicts are empty
+inline bool AMOSolver::simplify(){
+	return true;
+}
+
+inline Clause* AMOSolver::propagate(Lit p, Clause* confl){
+	if(empty || confl != NULL){
+		return confl;
+	}
+	return AMO_propagate(p);
+}
+
 #endif /* AMOSolver_H_ */

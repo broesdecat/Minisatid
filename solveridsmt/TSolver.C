@@ -9,15 +9,14 @@ TSolver::TSolver():
 	defn_search(include_cs),
 	ufs_strategy(breadth_first),
 	prev_conflicts(-1), /*first time test (prev_conflicts==conflicts) should fail*/
-	cycle_sources(0), justifiable_cycle_sources(0),
-	cycles(0),
-	cycle_sizes(0),
-	justify_conflicts(0), // ecnf_mode.def
-	nb_times_findCS(0), justify_calls(0), cs_removed_in_justify(0),
-	succesful_justify_calls(0), extdisj_sizes(0),
-	total_marked_size(0)
+	/*cycle_sources(0), //justifiable_cycle_sources(0),
+	/*cycles(0),
+	/*cycle_sizes(0),
+	/*justify_conflicts(0), // ecnf_mode.def
+	/*nb_times_findCS(0), justify_calls(0), cs_removed_in_justify(0),*/
+	/*succesful_justify_calls(0), extdisj_sizes(0),
+	total_marked_size(0),*/
 	//  , fw_propagation_attempts(0), fw_propagations(0)
-	,
 	adaption_total(0),	adaption_current(0)
 {
 }
@@ -364,32 +363,6 @@ bool TSolver::simplify(){
 	return true;
 }
 
-Clause* TSolver::propagate(Lit p, Clause* confl){
-	if (ecnf_mode.init) {
-		return confl;
-	}
-
-	// Aggr propagations.
-	if (confl == NULL && ecnf_mode.aggr)
-		return Aggr_propagate(p);
-
-	// TODO: fast way of stopping the while loop if confl != NULL ?
-	return confl;
-}
-
-//only call this when the whole queue has been propagated
-Clause* TSolver::propagateDefinitions(Clause* confl){
-	if (ecnf_mode.init) {
-		return confl;
-	}
-
-	// Def propagations.
-	if (confl == NULL && ecnf_mode.def){
-		return indirectPropagate();
-	}
-	return confl;
-}
-
 void TSolver::notifyVarAdded(){
 	seen.push(0);
 	seen2.push(0);
@@ -412,6 +385,17 @@ bool TSolver::addRule(bool conj, vec<Lit>& ps) {
 		reportf("ERROR! Attempt at adding rule, though ECNF specifiers did not contain \"def\".\n"), exit(3);
 	assert(ps.size() > 0);
 	assert(!sign(ps[0]));
+
+	if(verbosity>0){
+		fprintf(stderr, "Head: ");
+		printLit(ps[0]);
+		fprintf(stderr, ", Rest: ");
+		for(int i=1; i<ps.size(); i++){
+			printLit(ps[i]);
+			fprintf(stderr, " ");
+		}
+		fprintf(stderr, "\n");
+	}
 
 	//rules with only one body atom have to be treated as conjunctive
 	if(ps.size()==2 && !conj){
@@ -744,8 +728,8 @@ void TSolver::findCycleSources() {
 			}
 		}
 	}
-	nb_times_findCS++;
-	cycle_sources += css.size();
+	//nb_times_findCS++;
+	//cycle_sources += css.size();
 	if (verbosity >= 2) {
 		reportf("Indirect propagations. Verifying %d cycle sources:",css.size());
 		for (int i = 0; i < css.size(); ++i)
@@ -1214,7 +1198,7 @@ Clause* TSolver::indirectPropagate() {
 	bool ufs_found = false;
 	std::set<Var> ufs;
 
-	uint64_t old_justify_calls = justify_calls;
+	//uint64_t old_justify_calls = justify_calls;
  	int j=0;
 
  	if(ufs_strategy==depth_first){
@@ -1263,17 +1247,23 @@ Clause* TSolver::indirectPropagate() {
  	}else{
  		for (; !ufs_found && j < css.size(); j++){
 			if(isCS[css[j]]){
+				//printClause(*definition[css[j]]);
 				ufs_found = unfounded(css[j], ufs);
 			}
 		}
  	}
 
- 	if(verbosity>0 && ufs_found){
-		fprintf(stderr, "UFSfound, size %i\n", ufs.size());
+ 	if(verbosity>0){
+ 		if(ufs_found){
+ 			fprintf(stderr, "UFSfound, size %i\n", ufs.size());
+ 		}else{
+ 			fprintf(stderr, "no ufs found\n");
+ 		}
+
 	}
 
-	justifiable_cycle_sources += ufs_found ? (j - 1) : j; // This includes those that are removed inside "unfounded".
-	succesful_justify_calls += (justify_calls - old_justify_calls); //TODO this is no longer be correct for the tarjan algo
+	//justifiable_cycle_sources += ufs_found ? (j - 1) : j; // This includes those that are removed inside "unfounded".
+	//succesful_justify_calls += (justify_calls - old_justify_calls); //TODO this is no longer be correct for the tarjan algo
 
 	if (ufs_found) {
 		if (verbosity >= 2) {
@@ -1282,8 +1272,8 @@ Clause* TSolver::indirectPropagate() {
 				reportf(" %d",*it+1);
 			reportf(" }.\n");
 		}
-		cycles++;
-		cycle_sizes += ufs.size();
+		//cycles++;
+		//cycle_sizes += ufs.size();
 		if (defn_strategy == adaptive)
 			adaption_current++; // This way we make sure that if adaption_current > adaption_total, this decision level had indirect propagations.
 		return assertUnfoundedSet(ufs);
@@ -1306,7 +1296,7 @@ Clause* TSolver::indirectPropagate() {
 }
 
 bool TSolver::unfounded(Var cs, std::set<Var>& ufs) {
-	justify_calls++;
+	//justify_calls++;
 	bool rslt = false; // if we go straight to Finish, this will be the result.
 	vec<Var> tmpseen; // use to speed up the cleaning of data structures in "Finish"
 	Queue<Var> q;
@@ -1343,7 +1333,8 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 	switch (defType[v]) {
 	case CONJ: {
 		Clause& c = *definition[v];
-		//Rule& c = *definition[v];// NOTE: sign(c[i]) fails for the head literal; for body literals sign is inverted.
+		//Rule& c = *definition[v];
+		// NOTE: sign(c[i]) fails for the head literal; FOR BODY LITERALS, SIGN IS INVERTED
 		// Find a non-justified body literal, pref. already ufs.
 		// - If not found: bottom up propagation
 		// - If found: set conjunction's watch to it; make sure it's ufs and on queue.
@@ -1351,7 +1342,7 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 		for (; i < c.size() && !(sign(c[i]) && seen[var(c[i])]); ++i)
 			;
 		if (i == c.size())
-			return true; // Each body literal has either !sign (is negative) or !seen (is justified wrt v).
+			return true; // Each body literal has either !sign (is NEGATIVE) or !seen (is justified wrt v).
 
 		/*            // WITH guards system
 		 Var candidate = var(c[i]);    // Else: this var is non-justified, but might not be ufs.
@@ -1386,7 +1377,7 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 		for (int i = 0; i < c.size(); ++i) {
 			Lit bdl = c[i];
 			Var b = var(bdl);
-			if (bdl != Lit(v, true) && value(bdl) != l_False) {
+			if (bdl != Lit(v, true) && value(bdl) != l_False) { //only look at positive literals that are not false
 				if (sign(bdl) || !seen[b]) {
 					change_jstfc_disj(v, bdl);
 					return true; // bad style, but anyway...
@@ -1590,7 +1581,7 @@ bool TSolver::Justify(Var v, Var cs, std::set<Var>& ufs, Queue<Var>& q) {
 			seen[k]=0;
 			if (isCS[k]) {
 				isCS[k] = false;
-				cs_removed_in_justify++;
+				//cs_removed_in_justify++;
 			}
 			if (k == cs)
 				return true;
@@ -1754,7 +1745,7 @@ Clause* TSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	for (int i = 1; i < loopf.size(); i++){
 		seen[var(loopf[i])]=0;
 	}
-	extdisj_sizes += loopf.size() - 1;
+	//extdisj_sizes += loopf.size() - 1;
 
 	if (defn_strategy != always) {// Maybe the loop formula could have been derived at an earlier level: in that case we first have to backtrack to that level.
 		// Set the backtrack level.
@@ -1777,7 +1768,7 @@ Clause* TSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 				printClause(*c);
 				reportf("].\n");
 			}
-			justify_conflicts++;
+			//justify_conflicts++;
 			return c;
 		}
 	}
@@ -1888,17 +1879,16 @@ void TSolver::markNonJustified(Var cs, vec<Var>& tmpseen) {
 	//    }
 }
 
-void TSolver::markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q, vec<Var>& tmpseen) {
+inline void TSolver::markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q, vec<Var>& tmpseen) {
 	if (!seen[v] && (scc[v] == scc[cs]) && (defn_search == include_cs || v == cs || !isCS[v])) {
 		seen[v] = 1;
 		tmpseen.push(v);
 		q.insert(v);
-		total_marked_size++;
+		//total_marked_size++;
 	}
 }
 
-void TSolver::markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q,
-		vec<Var>& tmpseen) {
+void TSolver::markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>& tmpseen) {
 	vec<Var>& v = disj_occurs[x + x];
 	for (int i = 0; i < v.size(); ++i){
 		if (var(sp_justification_disj[v[i]]) == x){
@@ -2684,35 +2674,30 @@ inline void TSolver::clear_changes() {
 // a literal is a variable shifted one to the left
 // a variable is a literal shifted one to the right
 
-inline void TSolver::printLit(Lit l)
-{
+inline void TSolver::printLit(Lit l){
     solver->printLit(l);
 }
 
 
 template<class C>
-inline void TSolver::printClause(const C& c)
-{
+inline void TSolver::printClause(const C& c){
     solver->printClause(c);
 }
 
-inline void TSolver::printRule(const Rule& c)
-{
+inline void TSolver::printRule(const Rule& c){
     for (int i = 0; i < c.size(); i++){
         printLit(c[i]);
         fprintf(stderr, " ");
     }
 }
 
-inline void TSolver::printAggrSet(const AggrSet& as)
-{
+inline void TSolver::printAggrSet(const AggrSet& as){
     for (int i=0; i<as.set.size(); ++i) {
         reportf(" "); printLit(as.set[i].lit); reportf("(%d)",as.set[i].weight);
     }
 }
 
-inline void TSolver::printAggrExpr(const AggrExpr& ae, const AggrSet& as)
-{
+inline void TSolver::printAggrExpr(const AggrExpr& ae, const AggrSet& as){
     printLit(ae.c); reportf(" <- %d <= %s{",ae.min, as.type==SUM ? "sum" : (as.type==PROD ? "prod" : (as.type==MIN ? "min" : "max")));
     printAggrSet(as);
     reportf(" } <= %d. Known values: min=%d, max=%d\n",ae.max,as.min,as.max);

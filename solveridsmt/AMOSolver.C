@@ -8,12 +8,12 @@ AMOSolver::AMOSolver():
 {
 }
 
+AMOSolver::~AMOSolver() {
+}
+
 inline lbool    AMOSolver::value(Var x) const   { return solver->value(x); 	}
 inline lbool    AMOSolver::value(Lit p) const   { return solver->value(p); 	}
 inline int      AMOSolver::nVars()      const   { return solver->nVars(); 	}
-
-AMOSolver::~AMOSolver() {
-}
 
 void AMOSolver::notifyVarAdded(){
 	if (!empty) {
@@ -82,27 +82,6 @@ void AMOSolver::finishECNF_DataStructures() {
 	}
 }
 
-void AMOSolver::backtrack ( Lit l){
-	return;
-}
-
-//@pre: conflicts are empty
-bool AMOSolver::simplify(){
-	return true;
-}
-
-Clause* AMOSolver::propagate(Lit p, Clause* confl){
-	if(empty){
-		return confl;
-	}
-
-	if(confl==NULL){
-		return AMO_propagate(p);
-	}else{
-		return confl;
-	}
-}
-
 Clause* AMOSolver::AMO_propagate(Lit p) {// TODO: if part of an EU statement, change watches there.
     vec<Clause*>& ws = AMO_watches[toInt(p)];
     if (verbosity>=2 && ws.size()>0) {
@@ -142,15 +121,13 @@ Clause* AMOSolver::AMO_propagate(Lit p) {// TODO: if part of an EU statement, ch
 //=================================================================================================
 // Debug + etc:
 
-inline void AMOSolver::printLit(Lit l)
-{
+inline void AMOSolver::printLit(Lit l){
     reportf("%s%d:%c", sign(l) ? "-" : "", var(l)+1, value(l) == l_True ? '1' : (value(l) == l_False ? '0' : 'X'));
 }
 
 
 template<class C>
-inline void AMOSolver::printClause(const C& c)
-{
+inline void AMOSolver::printClause(const C& c){
     for (int i = 0; i < c.size(); i++){
         printLit(c[i]);
         fprintf(stderr, " ");

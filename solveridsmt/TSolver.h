@@ -78,11 +78,13 @@ protected:
 	lbool	value(Lit p) const;
 	int		nVars()      const;
 
+	int64_t prev_conflicts/*not strictly a statistic!*/;
+
 	// Statistics: (read-only member variable)
 	//
-	int64_t prev_conflicts/*not strictly a statistic!*/;
-	uint64_t cycle_sources, justifiable_cycle_sources, cycles, cycle_sizes, justify_conflicts, atoms_in_pos_loops;
-	uint64_t nb_times_findCS, justify_calls, cs_removed_in_justify, succesful_justify_calls, extdisj_sizes, total_marked_size;
+	uint64_t atoms_in_pos_loops;
+	//uint64_t cycle_sources, justifiable_cycle_sources, cycles, cycle_sizes, justify_conflicts;
+	//uint64_t nb_times_findCS, justify_calls, cs_removed_in_justify, succesful_justify_calls, extdisj_sizes, total_marked_size;
 	//    uint64_t fw_propagation_attempts, fw_propagations;
 
 	Solver* solver;
@@ -197,5 +199,16 @@ protected:
 
 inline void     TSolver::addCycleSource(Var v)        { if (!isCS[v]) {isCS[v]=true; css.push(v);} }
 inline void     TSolver::clearCycleSources()          { for (int i=0;i<css.size();i++) isCS[css[i]]=false; css.clear(); }
+
+inline Clause* TSolver::propagate(Lit p, Clause* confl){
+	if (ecnf_mode.init || ! ecnf_mode.aggr || confl != NULL) {return confl;}
+	return Aggr_propagate(p);
+}
+
+//only call this when the whole queue has been propagated
+inline Clause* TSolver::propagateDefinitions(Clause* confl){
+	if (ecnf_mode.init || ! ecnf_mode.def || confl!=NULL) {return confl;}
+	return indirectPropagate();
+}
 
 #endif /* TSOLVER_H_ */

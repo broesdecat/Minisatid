@@ -552,6 +552,8 @@ FoundWatch:;
 			confl = tsolver->propagateDefinitions(confl);
 		}
 		//////////////END TSOLVER
+
+		// TODO: fast way of stopping the while loop if confl != NULL ?
 	}
 	propagations += num_props;
 	simpDB_props -= num_props;
