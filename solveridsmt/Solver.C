@@ -140,7 +140,9 @@ bool Solver::addClause(vec<Lit>& ps) {
 		assert(value(ps[0]) == l_Undef);
 		setTrue(ps[0]);
 		if(verbosity>=2){
+    		reportf("Clause added: ");
 			printLit(ps[0]);
+			reportf("\n");
 		}
 		return ok = (propagate() == NULL);
 	} else {
@@ -157,6 +159,7 @@ void Solver::addLearnedClause(Clause* c){
 	attachClause(*c);
 	claBumpActivity(*c);
 	if(verbosity>=2){
+		reportf("Clause added: ");
 		printClause(*c);
 	}
 }
@@ -165,8 +168,13 @@ void Solver::addClause(Clause* c){
 	clauses.push(c);
 	attachClause(*c);
 	if(verbosity>=2){
+		reportf("Clause added: ");
 		printClause(*c);
 	}
+}
+
+void Solver::addToTrail(Lit l){
+	trail.push(l);
 }
 /////////END TSOLVER
 
@@ -502,7 +510,7 @@ Clause* Solver::propagate() {
         Clause         **i, **j, **end;
         num_props++;
 
-        //if (verbosity>=2) {reportf("Propagating literal "); printLit(p); reportf(": (");}
+        if (verbosity>=2) {reportf("Propagating literal "); printLit(p); reportf(": (");}
 
         for (i = j = (Clause**)ws, end = i + ws.size();  i != end;){
             Clause& c = **i++;
@@ -531,7 +539,7 @@ Clause* Solver::propagate() {
 				// Did not find watch -- clause is unit under assignment:
 				*j++ = &c;
 				if (value(first) == l_False){
-					//if (verbosity>=2) reportf(" Conflict");
+					if (verbosity>=2) reportf(" Conflict");
 					confl = &c;
 					qhead = trail.size();
 					// Copy the remaining watches:
@@ -540,13 +548,13 @@ Clause* Solver::propagate() {
 					}
 				}else {
 					setTrue(first, &c);
-					//if (verbosity>=2) {reportf(" "); printLit(first);}
+					if (verbosity>=2) {reportf(" "); printLit(first);}
 				}
             }
 FoundWatch:;
         }
         ws.shrink(i - j);
-        //if (verbosity>=2) reportf(" ).\n");
+        if (verbosity>=2) reportf(" ).\n");
 
 		//////////////START TSOLVER
         confl = amosolver->propagate(p, confl);

@@ -384,7 +384,7 @@ bool TSolver::addRule(bool conj, vec<Lit>& ps) {
 	assert(ps.size() > 0);
 	assert(!sign(ps[0]));
 
-	if(verbosity>0){
+	/*if(verbosity>0){
 		fprintf(stderr, "Head: ");
 		printLit(ps[0]);
 		fprintf(stderr, ", Rest: ");
@@ -393,7 +393,7 @@ bool TSolver::addRule(bool conj, vec<Lit>& ps) {
 			fprintf(stderr, " ");
 		}
 		fprintf(stderr, "\n");
-	}
+	}*/
 
 	//rules with only one body atom have to be treated as conjunctive
 	if(ps.size()==2 && !conj){
@@ -557,6 +557,16 @@ void TSolver::finishECNF_DataStructures() {
 			// used_conj.growTo(nVars()); WITH guards system.
 		}
 		// TODO verify whether there could still be propagations pending due to the fact that rules are not simplified while parsing.
+
+		//Dit verhoogt heel erg de snelheid op sokobans en dergelijke, maar in combinatie met aggregaten gaat het verkeerd
+		//TODO do something smarter for aggregates
+		if(!ecnf_mode.aggr){
+			for (int i=0; i<nVars(); i++){
+				if (value(i) != l_Undef){
+					solver->addToTrail(Lit(i,(value(i)==l_False)));
+				}
+			}
+		}
 	}
 }
 
@@ -1243,9 +1253,8 @@ Clause* TSolver::indirectPropagate() {
  		if(ufs_found){
  			fprintf(stderr, "UFSfound, size %i\n", ufs.size());
  		}else{
- 			fprintf(stderr, "no ufs found\n");
+ 		//	fprintf(stderr, "no ufs found\n");
  		}
-
 	}
 
 	//justifiable_cycle_sources += ufs_found ? (j - 1) : j; // This includes those that are removed inside "unfounded".

@@ -110,6 +110,9 @@ public:
     bool 	existsUnknownVar(); 								//true if the current assignment is completely two-valued
     Var		newVar(bool polarity = true, bool dvar = false); 	// Add a new variable with parameters specifying variable mode.
     void 	dontRemoveSatisfied();
+
+    //TEMP:
+    void addToTrail(Lit l);
 	/////////////////////END TSOLVER NECESSARY
 
     // Constructor/Destructor:
@@ -359,7 +362,7 @@ static inline void check(bool expr) { assert(expr); }
 
 inline void Solver::printLit(Lit l)
 {
-    reportf("%s%d:%c", sign(l) ? "-" : "", var(l) << 1, value(l) == l_True ? '1' : (value(l) == l_False ? '0' : 'X'));
+    reportf("%s%d:%c", sign(l) ? "-" : "", var(l)+1, value(l) == l_True ? '1' : (value(l) == l_False ? '0' : 'X'));
 }
 
 
@@ -368,9 +371,9 @@ inline void Solver::printClause(const C& c)
 {
     for (int i = 0; i < c.size(); i++){
         printLit(c[i]);
-        fprintf(stderr, " ");
+        reportf(" ");
     }
-    fprintf(stderr, "\n");
+    reportf("\n");
 }
 
 //=================================================================================================

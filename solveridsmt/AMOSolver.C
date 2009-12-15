@@ -40,11 +40,6 @@ bool AMOSolver::addAMO(vec<Lit>& ps) {
 		// TODO: it should be possible, in case of an EU expression, to use the clause that's already there. Then when a literal becomes true, it can be set as watch in the clause also.
 		c = Clause_new(ps, false);
 		solver->addClause(c);
-		if (verbosity >= 2) {
-			reportf("AMO clause: ");
-			printClause(*c);
-			reportf("\n");
-		}
 
 		int n = 2 * nVars();
 		while (n >= AMO_watches.size())

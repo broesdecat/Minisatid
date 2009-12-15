@@ -144,19 +144,13 @@ static void parse_ECNF_main(B& in, Solver* S, TSolver* TS, AMOSolver* AS) { // N
                 case 'E':
                     if (match(in,"EU")) {
                         readClause(in, S, lits);
-                        //TS->addAMO(lits); // First this, because S.addClause(lits) empties lits.
                         AS->addAMO(lits);
-                        S->addClause(lits);
-                        //Clause * cl;
-                        //S.addClause(lits,cl); // TODO
-                        //S.addAMO(lits,cl);
                     } else
                         ParseError("Unexpected char '%c' after 'E' (expecting \"EU\").\n",*in);
                     break;
                 case 'A':
                     if (match(in,"AMO")) {
                         readClause(in, S, lits);
-                        //TS->addAMO(lits); // TODO
                         AS->addAMO(lits);
                     } else
                         ParseError("Unexpected char '%c' after 'A' (expecting \"AMO\").\n",*in);
