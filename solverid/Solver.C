@@ -446,6 +446,16 @@ void Solver::finishECNF_DataStructures() {
             // used_conj.growTo(nVars()); WITH guards system.
         }
         // TODO verify whether there could still be propagations pending due to the fact that rules are not simplified while parsing.
+
+		//Dit verhoogt heel erg de snelheid op sokobans en dergelijke, maar in combinatie met aggregaten gaat het verkeerd
+		//TODO do something smarter for aggregates
+		if(!ecnf_mode.aggr){
+			for (int i=0; i<nVars(); i++){
+				if (value(i) != l_Undef){
+					solver->addToTrail(Lit(i,(value(i)==l_False)));
+				}
+			}
+		}
     }
 }
 
