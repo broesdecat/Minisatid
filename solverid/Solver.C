@@ -452,7 +452,7 @@ void Solver::finishECNF_DataStructures() {
 		if(!ecnf_mode.aggr){
 			for (int i=0; i<nVars(); i++){
 				if (value(i) != l_Undef){
-					solver->addToTrail(Lit(i,(value(i)==l_False)));
+					trail.push(Lit(i,(value(i)==l_False)));
 				}
 			}
 		}
