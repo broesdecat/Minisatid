@@ -156,6 +156,10 @@ void Solver::addClause(Clause* c){
 		printClause(*c);
 	}
 }
+
+void Solver::addToTrail(Lit l){
+	trail.push(l);
+}
 /////////END TSOLVER
 
 
