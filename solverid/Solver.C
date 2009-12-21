@@ -137,11 +137,20 @@ bool Solver::addClause(vec<Lit>& ps)
     else if (ps.size() == 1){
         assert(value(ps[0]) == l_Undef);
         uncheckedEnqueue(ps[0]);
+		if(verbosity>=3){
+    		reportf("Clause added: ");
+			printLit(ps[0]);
+			reportf("\n");
+		}
         return ok = (propagate() == NULL);
     }else{
         Clause* c = Clause_new(ps, false);
         clauses.push(c);
         attachClause(*c);
+        if(verbosity>=3){
+        	reportf("Clause added: ");
+        	printClause(*c);
+		}
     }
 
     return true;

@@ -378,7 +378,7 @@ void TSolver::notifyVarAdded(){
 }
 
 // First literal in ps is head atom.
-bool TSolver::addRule(bool conj, vec<Lit>& ps) {
+void TSolver::addRule(bool conj, vec<Lit>& ps) {
 	if (!ecnf_mode.def)
 		reportf("ERROR! Attempt at adding rule, though ECNF specifiers did not contain \"def\".\n"), exit(3);
 	assert(ps.size() > 0);
@@ -437,8 +437,6 @@ bool TSolver::addRule(bool conj, vec<Lit>& ps) {
 		//add completion to SAT solver (rule)
 		//solver->addClause(ps);
 	}
-
-	return true;
 }
 
 //=================================================================================================

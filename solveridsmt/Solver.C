@@ -93,7 +93,7 @@ Var Solver::newVar(bool sign, bool dvar) {
 
 	//////////////START TSOLVER
 	tsolver->notifyVarAdded();
-	amosolver->notifyVarAdded();
+	amnsolver->notifyVarAdded();
 	//////////////END TSOLVER
 
 	insertVarOrder(v);
@@ -139,7 +139,7 @@ bool Solver::addClause(vec<Lit>& ps) {
 	else if (ps.size() == 1) {
 		assert(value(ps[0]) == l_Undef);
 		setTrue(ps[0]);
-		if(verbosity>=2){
+		if(verbosity>=3){
     		reportf("Clause added: ");
 			printLit(ps[0]);
 			reportf("\n");
@@ -158,8 +158,8 @@ void Solver::addLearnedClause(Clause* c){
 	learnts.push(c);
 	attachClause(*c);
 	claBumpActivity(*c);
-	if(verbosity>=2){
-		reportf("Clause added: ");
+	if(verbosity>=3){
+		reportf("Learned clause added: ");
 		printClause(*c);
 	}
 }
@@ -167,7 +167,7 @@ void Solver::addLearnedClause(Clause* c){
 void Solver::addClause(Clause* c){
 	clauses.push(c);
 	attachClause(*c);
-	if(verbosity>=2){
+	if(verbosity>=3){
 		reportf("Clause added: ");
 		printClause(*c);
 	}
@@ -224,7 +224,7 @@ void Solver::cancelFurther(int init_qhead) {
 
 	    //////////////START TSOLVER
 		tsolver->backtrack(trail[c]);
-		amosolver->backtrack(trail[c]);
+		amnsolver->backtrack(trail[c]);
 		//////////////END TSOLVER
 	}
 
@@ -557,7 +557,7 @@ FoundWatch:;
         if (verbosity>=2) reportf(" ).\n");
 
 		//////////////START TSOLVER
-        confl = amosolver->propagate(p, confl);
+        confl = amnsolver->propagate(p, confl);
         confl = tsolver->propagate(p, confl);
 		if(qhead==trail.size()){
 			confl = tsolver->propagateDefinitions(confl);
@@ -565,7 +565,7 @@ FoundWatch:;
 		//////////////END TSOLVER
 
 		// TODO: fast way of stopping the while loop if confl != NULL ? (check if next line in code would be correct)
-		//if(confl!=NULL){ qhead = trail.size();}
+		if(confl!=NULL){ qhead = trail.size();}
 	}
 	propagations += num_props;
 	simpDB_props -= num_props;
@@ -647,7 +647,7 @@ bool Solver::simplify() {
 	simpDB_props = clauses_literals + learnts_literals; // (shouldn't depend on stats really, but it will do for now)
 
     //////////////START TSOLVER
-	if(conflicts==0 && (!tsolver->simplify() || !amosolver->simplify())){
+	if(conflicts==0 && (!tsolver->simplify() || !amnsolver->simplify())){
 		ok = false;
 		return false;
 	}
