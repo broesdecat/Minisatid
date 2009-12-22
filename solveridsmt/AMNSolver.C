@@ -20,7 +20,6 @@ inline int AMNSolver::nVars() const {
 void AMNSolver::notifyVarAdded() {
 	if (!empty) {
 		amnwatches.growTo(2 * nVars());
-		alnwatches.growTo(2 * nVars());
 	}
 }
 
@@ -48,44 +47,25 @@ void AMNSolver::addALN(vec<Lit>& ps, int n) {
 		return;
 	}
 
-	if(ps.size()==n){ //can immediately propagate (all false)
+	if(ps.size()==n){ //can immediately propagate (all true)
 		for(int i=0; i<ps.size(); i++){
 			vec<Lit> ps2;
-			ps2.push(~ps[i]);
+			ps2.push(ps[i]);
 			solver->addClause(ps2);
 		}
 	}
 
-	Clause* c = Clause_new(ps, false);
-	if (verbosity >= 2) {
-		reportf("ALN clause: ");
-		printClause(*c);
-		reportf(" for %i\n", n);
+	vec<Lit> ps2;
+	for(int i=0; i<ps.size(); i++){
+		ps2.push(~ps[i]);
 	}
+	int n2 = ps.size()-n;
+	addAMN(ps2, n2);
+	return;
 
-	//add clause and bound
-	alnclauses.push(c);
-	int index = alnclauses.size() - 1;
-	alnbound.push(ps.size()-n);
-
-	//add watches
-	alnwatches.growTo(2 * nVars()); // Make sure the alnwatches array is big enough.
-	for (int i = 0; i < ps.size(); i++) {
-		alnwatches[toInt(~ps[i])].push(index);
-	}
-
-	//add current number of false literals
-	int counter = 0;
-	for (int i = 0; i < ps.size(); i++) {
-		if (solver->value(ps[i]) == l_False) {
-			counter++;
-		}
-	}
-	alncounter.push(counter);
-
-	if (counter > ps.size()-n) {
-		throw theoryUNSAT;
-	}
+	//REMEMBER: I tested the replicated code specifically for ALN, with separate vars and propagation
+	//but the performance was exactly the same as inverting all signs and adding it as a AMN
+	//even when n become large (and switching to the other form seemed usefull (but wasnt)
 }
 
 void AMNSolver::addAMN(vec<Lit>& ps, int n) {
@@ -98,10 +78,10 @@ void AMNSolver::addAMN(vec<Lit>& ps, int n) {
 		throw theoryUNSAT;
 	}
 
-	if(n==0){ //can immediately propagate (all true)
+	if(n==0){ //can immediately propagate (all false)
 		for(int i=0; i<ps.size(); i++){
 			vec<Lit> ps2;
-			ps2.push(ps[i]);
+			ps2.push(~ps[i]);
 			solver->addClause(ps2);
 		}
 	}
@@ -116,6 +96,15 @@ void AMNSolver::addAMN(vec<Lit>& ps, int n) {
 	}
 
 	//TODO second optimization: if n>size/2 maak er dan een ALN van en omgekeerd
+	if(ps.size()/2<n){
+		vec<Lit> ps2;
+		for(int i=0; i<ps.size(); i++){
+			ps2.push(~ps[i]);
+		}
+		int n2 = ps.size()-n;
+		addALN(ps2, n2);
+		return;
+	}
 
 	//normal case
 	Clause* c = Clause_new(ps, false);
@@ -159,9 +148,8 @@ void AMNSolver::addAMN(vec<Lit>& ps, int n) {
 void AMNSolver::finishECNF_DataStructures() {
 	init = false;
 
-	if (amnbound.size() > 0 || alnbound.size() > 0) {
+	if (amnbound.size() > 0) {
 		amnwatches.growTo(2 * nVars());
-		alnwatches.growTo(2 * nVars());
 	} else {
 		empty = true;
 	}
@@ -248,80 +236,10 @@ Clause* AMNSolver::amnpropagate(Lit p) {
 	return NULL;
 }
 
-Clause* AMNSolver::alnpropagate(Lit p) {
-	vec<int>& ws = alnwatches[toInt(p)];
-	if (ws.size() == 0) {
-		return NULL;
-	} //means that there are no aln expressions containing p
-
-	if (verbosity >= 2) {
-		reportf("ALN-propagating literal ");
-		printLit(p);
-		reportf(": (");
-	}
-
-	for (int i = 0; i < ws.size(); i++) {
-		//check if propagation is possible
-		alncounter[ws[i]]++;
-		int counter = alncounter[ws[i]], bound = alnbound[ws[i]];
-
-		Clause& c = *alnclauses[ws[i]];
-		if (counter < bound) {
-			continue;
-		} else {
-			//collect all that are already false (and stop early)
-			vec<Lit> ps;
-			for (int j = 0; j < c.size() && ps.size()<bound; j++) {
-				if (value(c[j]) == l_False) {
-					ps.push(c[j]);
-				}
-			}
-
-			if (counter == bound) { //add a learned clause for each unknown one, and make it FALSE
-				for (int j = 0; j < c.size(); j++) {
-					if (c[j] != p && value(c[j]) == l_Undef) {
-						vec<Lit> ps2;
-						ps.copyTo(ps2);
-						ps2.push(c[j]);
-
-						if (verbosity >= 2) {
-							reportf(" ");
-							printLit(c[j]);
-						}
-
-						Clause* rc = Clause_new(ps2, true);
-						solver->setTrue(c[j], rc);
-						solver->addLearnedClause(rc);
-					}
-				}
-			} else { //generate a conflict clause containing all true ones
-				if (verbosity >= 2){
-					reportf(" Conflict occurred).\n");
-				}
-
-				ps.push(p);
-				Clause* rc = Clause_new(ps, true);
-				solver->addLearnedClause(rc);
-				return rc;
-			}
-		}
-	}
-	if (verbosity >= 2 && ws.size() > 0) {
-		reportf(" ).\n");
-	}
-
-	return NULL;
-}
-
 void AMNSolver::cardbacktrack(Lit l) {
 	vec<int>& ws = amnwatches[toInt(l)];
 	for (int i = 0; i < ws.size(); i++) {
 		amncounter[ws[i]]--;
-	}
-
-	vec<int>& ws2 = alnwatches[toInt(l)];
-	for (int i = 0; i < ws2.size(); i++) {
-		alncounter[ws2[i]]--;
 	}
 }
 

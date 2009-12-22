@@ -788,6 +788,7 @@ double Solver::progressEstimate() const {
 
 ////////////START TSOLVER
 void Solver::invalidateModel(const vec<Lit>& lits, int& init_qhead) {
+	//FIXME nog een error in het vinden van dubbele modellen
 	backtrackTo(0);
 	if (init_qhead < qhead)
 		cancelFurther(init_qhead);
