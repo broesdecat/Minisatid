@@ -49,11 +49,10 @@ protected:
 	bool 	init;	//indicates whether still in initialization mode
 	bool 	empty; 	//indicates no amn statements are present, so always return from T call
 
-	vec<Clause*> amn_clauses;
-	vec<int> amn_counter; 	//maps the clause index of an amn statement to its current counter of true elements
-	vec<int> amn_bound; 	//maps the clause index of an amn statement to its upper bound of true literals
-
-	vec<vec<int> > AMN_watches; // 'AMN_watches[lit]' is a list of all AMN clauses indices in which lit occurs
+	vec<Clause*> amnclauses, alnclauses;
+	vec<int> amncounter, alncounter; 		//maps the clause index of an amn statement to its current counter of true elements
+	vec<int> amnbound, alnbound; 			//maps the clause index of an amn statement to its upper bound of true literals
+	vec<vec<int> > amnwatches, alnwatches; 	// 'AMN_watches[lit]' is a list of all AMN clauses indices in which lit occurs
 
 	/**
 	 * IMPORTANT, IS CALLED FROM propagate(), NOT EXTERNALLY
@@ -68,12 +67,13 @@ protected:
 	 * 				if q == UNKNOWN, add learned clause ~p | ~q
 	 * 								 call setTrue(q)
 	 */
-	Clause*               AMN_propagate(Lit p);
+	Clause* amnpropagate(Lit p);
+	Clause* alnpropagate(Lit p);
 
 	/**
 	 * Has to reduce the counter of amn statements in which l occurs
 	 */
-	void 	AMN_backtrack 	( Lit l);
+	void 	cardbacktrack 	( Lit l);
 
 	// Debug:
 	void     printLit         (Lit l);
@@ -87,7 +87,7 @@ protected:
 
 inline void AMNSolver::backtrack ( Lit l){
 	if(empty){ return; }
-	AMN_backtrack(l);
+	cardbacktrack(l);
 }
 
 //@pre: conflicts are empty
@@ -97,7 +97,12 @@ inline bool AMNSolver::simplify(){
 
 inline Clause* AMNSolver::propagate(Lit p, Clause* confl){
 	if(empty || confl != NULL){	return confl; }
-	return AMN_propagate(p);
+	confl = amnpropagate(p);
+	if(confl==NULL){
+		return alnpropagate(p);
+	}else{
+		return confl;
+	}
 }
 
 #endif /* AMNSolver_H_ */

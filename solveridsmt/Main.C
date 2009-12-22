@@ -151,7 +151,8 @@ static void parse_ECNF_main(B& in, Solver* S, TSolver* TS, AMNSolver* AS) { // N
                     break;
                 case 'A':
                 	++in;
-                    if (match(in,"M")) {
+                    if (*in=='M') {
+                    	++in;
                     	int n = 0;
                     	if(*in=='O'){
                     		n=1;
@@ -161,6 +162,10 @@ static void parse_ECNF_main(B& in, Solver* S, TSolver* TS, AMNSolver* AS) { // N
                     	}
                     	readClause(in, S, lits);
 						AS->addAMN(lits, n);
+                    }else if(match(in, "L")){
+                    	int n = parseInt(in);
+                    	readClause(in, S, lits);
+						AS->addALN(lits, n);
                     }else
                         ParseError("Unexpected char '%c' after 'A' (expecting \"AMN\").\n",*in);
                     break;
