@@ -101,6 +101,7 @@ public:
 	int 	getNbOfRecentAssignments() 	const;
     int     decisionLevel()    const; 		// Gives the current decisionlevel.
 
+    //VERY VERY IMPORTANT: THE FIRST LITERAL IN THE CLAUSE HAS TO BE THE ONE WHICH CAN BE PROPAGATED FROM THE REST!!!!!!!
     void 	addLearnedClause(Clause* c);	//don't check anything, just add it to the clauses and bump activity
     void 	addClause(Clause* c);			//don't check anything, just add it to the clauses
     bool    addClause    (vec<Lit>& ps);                           // Add a clause to the solver. NOTE! 'ps' may be shrunk by this method!
@@ -113,6 +114,7 @@ public:
 
     //TEMP:
     void addToTrail(Lit l);
+    void justAddClause(Clause* c);
 	/////////////////////END TSOLVER NECESSARY
 
     // Constructor/Destructor:

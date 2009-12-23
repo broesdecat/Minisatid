@@ -145,7 +145,6 @@ static void parse_ECNF_main(B& in, Solver* S, TSolver* TS, AMNSolver* AS) { // N
                     if (match(in,"EU")) {
                         readClause(in, S, lits);
                         AS->addEE(lits, 1);
-                        //S->addClause(lits); //empties lits, so do last
                     } else
                         ParseError("Unexpected char '%c' after 'E' (expecting \"EU\").\n",*in);
                     break;

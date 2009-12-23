@@ -4,7 +4,6 @@
 #include <cstdio>
 
 #include "Vec.h"
-#include "Sort.h"
 #include "Alg.h"
 
 #include "SolverTypes.h"
@@ -51,7 +50,6 @@ protected:
 	bool 	empty; 	//indicates no amn statements are present, so always return from T call
 
 	vec<Clause*> amnclauses;
-	vec<bool> amncountedlit;		//maps a literal to the fact whether it has been counted (true) or not => is used to check whether backtracking is necessary
 	vec<int> amncounter; 		//maps the clause index of an amn statement to its current counter of true elements
 	vec<int> amnbound; 			//maps the clause index of an amn statement to its upper bound of true literals
 	vec<vec<int> > amnwatches; 	// 'AMN_watches[lit]' is a list of all AMN clauses indices in which lit occurs
@@ -80,9 +78,6 @@ protected:
 	void     printLit         (Lit l);
 	template<class C>
 	void     printClause      (const C& c);
-
-    vec<vec<Clause*> >  EU_watches;       // 'EU_watches[lit]' is a list of EU-constraints watching 'lit' (will go there if literal becomes true).
-	Clause* EU_propagate(Lit p);
 };
 
 //=======================
@@ -101,11 +96,7 @@ inline bool AMNSolver::simplify(){
 
 inline Clause* AMNSolver::propagate(Lit p, Clause* confl){
 	if(empty || confl != NULL){	return confl; }
-	confl = EU_propagate(p);
-	if(confl==NULL){
-		confl = amnpropagate(p);
-	}
-	return confl;
+	return amnpropagate(p);
 }
 
 #endif /* AMNSolver_H_ */

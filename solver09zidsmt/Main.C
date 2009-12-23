@@ -10,7 +10,7 @@
 
 #include "Solver.h"
 #include "TSolver.h"
-#include "AMOSolver.h"
+#include "AMNSolver.h"
 
 /*************************************************************************************/
 
@@ -115,7 +115,7 @@ static void parse_Aggr(B& in, Solver* S, TSolver* TS, AggrType type) {
 
 
 template<class B>
-static void parse_ECNF_main(B& in, Solver* S, TSolver* TS, AMOSolver* AS) { // NOTE: this parser does not read translation information.
+static void parse_ECNF_main(B& in, Solver* S, TSolver* TS, AMNSolver* AS) { // NOTE: this parser does not read translation information.
     vec<Lit> lits;
     for (;;){
         skipWhitespace(in);
@@ -144,21 +144,30 @@ static void parse_ECNF_main(B& in, Solver* S, TSolver* TS, AMOSolver* AS) { // N
                 case 'E':
                     if (match(in,"EU")) {
                         readClause(in, S, lits);
-                        AS->addAMO(lits);
-						S->addClause(lits);
-                        //Clause * cl;
-                        //S.addClause(lits,cl); // TODO
-                        //S.addAMO(lits,cl);
+                        AS->addEE(lits, 1);
                     } else
                         ParseError("Unexpected char '%c' after 'E' (expecting \"EU\").\n",*in);
                     break;
                 case 'A':
-                    if (match(in,"AMO")) {
-                        readClause(in, S, lits);
-                        AS->addAMO(lits);
-                    } else
-                        ParseError("Unexpected char '%c' after 'A' (expecting \"AMO\").\n",*in);
-                    break;
+                	++in;
+					if (*in=='M') {
+						++in;
+						int n = 0;
+						if(*in=='O'){
+							n=1;
+							++in;
+						}else{
+							n = parseInt(in);
+						}
+						readClause(in, S, lits);
+						AS->addAMN(lits, n);
+					}else if(match(in, "L")){
+						int n = parseInt(in);
+						readClause(in, S, lits);
+						AS->addALN(lits, n);
+					}else
+						ParseError("Unexpected char '%c' after 'A' (expecting \"AMN\").\n",*in);
+					break;
                 case 'M':
                     ++in;
                     if (*in == 'i' && match(in,"in"))
@@ -228,7 +237,7 @@ static void parse_ECNF_main(B& in, Solver* S, TSolver* TS, AMOSolver* AS) { // N
 }
 
 template<class B>
-static void parse_main(B& in, Solver* S, TSolver* TS, AMOSolver* AS) {
+static void parse_main(B& in, Solver* S, TSolver* TS, AMNSolver* AS) {
     bool ecnf = false;
     for (;;){
         skipWhitespace(in);
@@ -300,7 +309,7 @@ static void parse_main(B& in, Solver* S, TSolver* TS, AMOSolver* AS) {
 
 // Inserts problem into solver.
 //
-static void parse(gzFile input_stream, Solver* S, TSolver* TS, AMOSolver* AS) {
+static void parse(gzFile input_stream, Solver* S, TSolver* TS, AMNSolver* AS) {
     StreamBuffer in(input_stream);
     parse_main(in, S, TS, AS); }
 
@@ -379,9 +388,9 @@ int main(int argc, char** argv)
 {
     Solver*      S = new Solver();
     TSolver* 	TS = new TSolver();
-    AMOSolver* 	AS = new AMOSolver();
+    AMNSolver* 	AS = new AMNSolver();
     S->setTSolver(TS);
-    S->setAMOSolver(AS);
+    S->setAMNSolver(AS);
     TS->setSolver(S);
     AS->setSolver(S);
     //S->verbosity = 1;

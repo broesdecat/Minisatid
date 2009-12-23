@@ -47,8 +47,7 @@ public:
 	/////////////////////ENDSOLVER NECESSARY
 
 	/////////////////////INITIALIZATION
-	bool    addRule      (bool conj, vec<Lit>& ps);          // Add a rule to the solver.
-	bool    addAMO       (vec<Lit>& ps);                           // Add an At most one statement to the solver.
+	void    addRule      (bool conj, vec<Lit>& ps);          // Add a rule to the solver.
 	void    addSet       (int id, vec<Lit>& l, vec<int>& w);
 	void    addAggrExpr  (int defn, int set_id, int min, int max, AggrType type);
 	void    finishECNF_DataStructures ();                          // Initialize the ECNF data structures. NOTE: aggregates may set the "ok" value to false!

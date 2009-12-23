@@ -176,6 +176,10 @@ void Solver::addClause(Clause* c){
 void Solver::addToTrail(Lit l){
 	trail.push(l);
 }
+
+void Solver::justAddClause(Clause* c){
+	clauses.push(c);
+}
 /////////END TSOLVER
 
 void Solver::attachClause(Clause& c) {
@@ -565,8 +569,9 @@ FoundWatch:;
 		//////////////END TSOLVER
 
 		// TODO: fast way of stopping the while loop if confl != NULL ? (check if next line in code would be correct)
-		if(confl!=NULL){ qhead = trail.size();}
+		//if(confl!=NULL){ qhead = trail.size();}
 	}
+
 	propagations += num_props;
 	simpDB_props -= num_props;
 	return confl;
