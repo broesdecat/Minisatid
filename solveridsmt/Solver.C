@@ -146,7 +146,7 @@ bool Solver::addClause(vec<Lit>& ps) {
 	else if (ps.size() == 1) {
 		assert(value(ps[0]) == l_Undef);
 		setTrue(ps[0]);
-		if(verbosity>=3){
+		if(verbosity>=2){
     		reportf("Clause added: ");
 			printLit(ps[0]);
 			reportf("\n");
@@ -823,6 +823,7 @@ void Solver::invalidateModel(const vec<Lit>& lits, int& init_qhead) {
 
 	if (lits.size() == 1) {
 		setTrue(lits[0]);
+		if (verbosity>=2) {reportf("Propagating literal in invalidation "); printLit(lits[0]); reportf("\n");}
 		++init_qhead;
 	} else {
 		Clause* c = Clause_new(lits, false);

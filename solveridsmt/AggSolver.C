@@ -83,17 +83,22 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
 	assert(lits.size()==weights.size());
 	// Find out if lits contains any doubles.
 	vec<Lit> ps(lits.size());
-	for (int i = 0; i < lits.size(); i++)
+	for (int i = 0; i < lits.size(); i++){
 		ps[i] = lits[i];
+	}
+
 	sort(ps);
-	Lit p;
-	int i;
-	for (i = 0, p = lit_Undef; i < ps.size(); i++)
-		if (ps[i] == p || ps[i] == ~p)
-			reportf("ERROR! (W)Set %d contains the same literal twice.\n",set_id), exit(
-					3);
-		else
-			p = ps[i];
+	Lit previous = lit_Undef;
+	for (int i = 0; i < ps.size(); i++){
+		if (ps[i] == previous || ps[i] == ~previous){
+			//TODO correct the code such that at least an atom and its negation can be used in the same expression
+			reportf("ERROR! (W)Set %d contains the same literal ", set_id);
+			printLit(previous);	reportf(" twice. Please use a placeholder.\n");
+			exit(3);
+		} else{
+			previous = ps[i];
+		}
+	}
 	// For each set_id we add NB_AGGR_TYPES sets.
 	while (set_id * NB_AGGR_TYPES > aggr_sets.size())
 		aggr_sets.push(new AggrSet()); // NOTE: each of these has type "SUM"!

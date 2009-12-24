@@ -9,7 +9,7 @@
 #include <zlib.h>
 
 #include "Solver.h"
-#include "TSolver.h"
+#include "IDSolver.h"
 #include "AMNSolver.h"
 #include "AggSolver.h"
 
@@ -124,7 +124,7 @@ static void parse_Aggr(B& in, Solver* S, AggSolver* AGG, AggrType type) {
 
 
 template<class B>
-static void parse_ECNF_main(B& in, Solver* S, TSolver* TS, AMNSolver* AS, AggSolver* AGG) { // NOTE: this parser does not read translation information.
+static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AMNSolver* AS, AggSolver* AGG) { // NOTE: this parser does not read translation information.
     vec<Lit> lits;
     for (;;){
         skipWhitespace(in);
@@ -247,7 +247,7 @@ static void parse_ECNF_main(B& in, Solver* S, TSolver* TS, AMNSolver* AS, AggSol
 }
 
 template<class B>
-static void parse_main(B& in, Solver* S, TSolver* TS, AMNSolver* AS, AggSolver* AGG) {
+static void parse_main(B& in, Solver* S, IDSolver* TS, AMNSolver* AS, AggSolver* AGG) {
     bool ecnf = false;
     for (;;){
         skipWhitespace(in);
@@ -319,7 +319,7 @@ static void parse_main(B& in, Solver* S, TSolver* TS, AMNSolver* AS, AggSolver* 
 
 // Inserts problem into solver.
 //
-static void parse(gzFile input_stream, Solver* S, TSolver* TS, AMNSolver* AS, AggSolver *AGG) {
+static void parse(gzFile input_stream, Solver* S, IDSolver* TS, AMNSolver* AS, AggSolver *AGG) {
     StreamBuffer in(input_stream);
     parse_main(in, S, TS, AS, AGG); }
 
@@ -397,10 +397,10 @@ const char* hasPrefix(const char* str, const char* prefix)
 int main(int argc, char** argv)
 {
     Solver*      S = new Solver();
-    TSolver* 	TS = new TSolver();
+    IDSolver* 	TS = new IDSolver();
     AMNSolver* 	AS = new AMNSolver();
     AggSolver* 	AggS = new AggSolver();
-    S->setTSolver(TS);
+    S->setIDSolver(TS);
     S->setAMNSolver(AS);
     S->setAggSolver(AggS);
     TS->setSolver(S);
@@ -424,20 +424,20 @@ int main(int argc, char** argv)
 
         }else if ((value = hasPrefix(argv[i], "-defn_strategy="))){
             if (strcmp(value, "always") == 0)
-                TS->defn_strategy = TSolver::always;
+                TS->defn_strategy = IDSolver::always;
             else if (strcmp(value, "adaptive") == 0)
-                TS->defn_strategy = TSolver::adaptive;
+                TS->defn_strategy = IDSolver::adaptive;
             else if (strcmp(value, "lazy") == 0)
-                TS->defn_strategy = TSolver::lazy;
+                TS->defn_strategy = IDSolver::lazy;
             else{
                 reportf("ERROR! illegal definition strategy %s\n", value);
                 exit(0); }
 
         }else if ((value = hasPrefix(argv[i], "-defn_search="))){
             if (strcmp(value, "include_cs") == 0)
-                TS->defn_search = TSolver::include_cs;
+                TS->defn_search = IDSolver::include_cs;
             else if (strcmp(value, "stop_at_cs") == 0)
-                TS->defn_search = TSolver::stop_at_cs;
+                TS->defn_search = IDSolver::stop_at_cs;
             else{
                 reportf("ERROR! illegal definition ssearch type %s\n", value);
                 exit(0); }
@@ -458,9 +458,9 @@ int main(int argc, char** argv)
 
         }else if ((value = hasPrefix(argv[i], "-ufsalgo="))){
 			if (strcmp(value, "depth") == 0){
-				TS->ufs_strategy = TSolver::depth_first;
+				TS->ufs_strategy = IDSolver::depth_first;
 			}else if(strcmp(value, "breadth") == 0){
-				TS->ufs_strategy = TSolver::breadth_first;
+				TS->ufs_strategy = IDSolver::breadth_first;
 			}else{
 				reportf("ERROR! unknown choice of unfounded set algorithm: %s\n", value);
 				exit(0);
@@ -474,6 +474,7 @@ int main(int argc, char** argv)
             S->verbosity = verbosity;
             TS->verbosity = verbosity;
             AS->verbosity = verbosity;
+            AggS->verbosity = verbosity;
 
         }else if ((value = hasPrefix(argv[i], "-maxruntime="))){
            S->maxruntime = (double)strtol(value, NULL, 10);
@@ -534,7 +535,7 @@ int main(int argc, char** argv)
 		parse(in, S, TS, AS, AggS);
 
 		if(!modes.def){
-			S->setTSolver(NULL);
+			S->setIDSolver(NULL);
 			delete TS;
 		}
 		if(!modes.aggr){

@@ -1,10 +1,10 @@
-#include "TSolver.h"
+#include "IDSolver.h"
 
 #include "Sort.h"
 #include "Map.h"
 #include <cmath>
 
-TSolver::TSolver():
+IDSolver::IDSolver():
 	defn_strategy(always),
 	defn_search(include_cs),
 	ufs_strategy(breadth_first),
@@ -22,15 +22,15 @@ TSolver::TSolver():
 {
 }
 
-inline lbool    TSolver::value(Var x) const   { return solver->value(x); /* toLbool(assigns[x]); */}
-inline lbool    TSolver::value(Lit p) const   { return solver->value(p); /*toLbool(assigns[var(p)]) ^ sign(p);*/ }
-inline int      TSolver::nVars()      const   { return solver->nVars(); /*assigns.size();*/ }
+inline lbool    IDSolver::value(Var x) const   { return solver->value(x); /* toLbool(assigns[x]); */}
+inline lbool    IDSolver::value(Lit p) const   { return solver->value(p); /*toLbool(assigns[var(p)]) ^ sign(p);*/ }
+inline int      IDSolver::nVars()      const   { return solver->nVars(); /*assigns.size();*/ }
 
-TSolver::~TSolver() {
+IDSolver::~IDSolver() {
 }
 
 //@pre: conflicts are empty
-bool TSolver::simplify(){
+bool IDSolver::simplify(){
 	// Note that ecnf_mode.init is still true, if this is the first time running simplify!
 	init = false;
 
@@ -272,8 +272,9 @@ bool TSolver::simplify(){
 			}*/
 
 			Lit p = Lit(v,true);
-			if (!(value(p) != l_Undef ? value(p) != l_False : (solver->setTrue(p, NULL), true)))
-			  throw theoryUNSAT;
+			if (!(value(p) != l_Undef ? value(p) != l_False : (solver->setTrue(p, NULL), true))){
+				throw theoryUNSAT;
+			}
 
 			defType[v] = NONDEF;
 			--atoms_in_pos_loops;
@@ -283,7 +284,7 @@ bool TSolver::simplify(){
 		reportf(" ]\n");
 
 	if (atoms_in_pos_loops == 0){
-		solver->setTSolver(NULL);
+		solver->setIDSolver(NULL);
 		if (atoms_in_pos_loops == 0 && verbosity >= 1)
 				reportf("| All recursive atoms falsified in initializations.                           |\n");
 		return true;
@@ -292,7 +293,7 @@ bool TSolver::simplify(){
 	return true;
 }
 
-void TSolver::notifyVarAdded(){
+void IDSolver::notifyVarAdded(){
 	seen.push(0);
 	seen2.push(0);
 
@@ -303,7 +304,7 @@ void TSolver::notifyVarAdded(){
 }
 
 // First literal in ps is head atom.
-void TSolver::addRule(bool conj, vec<Lit>& ps) {
+void IDSolver::addRule(bool conj, vec<Lit>& ps) {
 	assert(ps.size() > 0);
 	assert(!sign(ps[0]));
 
@@ -366,7 +367,7 @@ void TSolver::addRule(bool conj, vec<Lit>& ps) {
 // SAT(ID) additional methods
 
 // Using the vector "defdVars", initialize all other SAT(ID) additional data structures.
-void TSolver::finishECNF_DataStructures() {
+void IDSolver::finishECNF_DataStructures() {
 	init = false;
 
 	if (verbosity >= 1)
@@ -444,7 +445,7 @@ void TSolver::finishECNF_DataStructures() {
 		reportf("| Number of recursive atoms : %6d                                          |\n",(int)atoms_in_pos_loops);
 
 	if (atoms_in_pos_loops == 0) {
-		solver->setTSolver(NULL);
+		solver->setIDSolver(NULL);
 		if (verbosity >= 1)
 			reportf("|    (there will be no definitional propagations)                             |\n");
 		return;
@@ -471,7 +472,7 @@ void TSolver::finishECNF_DataStructures() {
  * @post: root will be a partition that will be the exact partition of SCCs, by setting everything on the stack to the same root in the end
  * #post: the scc will be denoted by the variable in the scc which was visited first
  */
-void TSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter) {
+void IDSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter) {
 	assert(defType[i]!=NONDEF);
 	assert(!incomp[i]);
 	visited[i] = ++counter;
@@ -546,7 +547,7 @@ void TSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, v
  * preceding unit propagations, and for which a simple supporting replacement
  * justification may not be cycle-free.
  */
-void TSolver::findCycleSources() {
+void IDSolver::findCycleSources() {
 	clearCycleSources();
 	clear_changes();
 
@@ -630,7 +631,7 @@ void TSolver::findCycleSources() {
  *
  * Only called by findCycleSources()
  */
-void TSolver::findCycleSources(Var v) {
+void IDSolver::findCycleSources(Var v) {
 	if (isCS[v])
 		return;
 	if (defType[v] == DISJ) {
@@ -711,7 +712,7 @@ void TSolver::findCycleSources(Var v) {
 /*
  * Return true if indirectpropagation is necessary
  */
-bool TSolver::indirectPropagateNow() {
+bool IDSolver::indirectPropagateNow() {
 	if (defn_strategy == always)
 		return true;
 	// Decide if state is two-valued (then we definitely have to search).
@@ -732,7 +733,7 @@ bool TSolver::indirectPropagateNow() {
 //TODO voorlopig wordt er nog overal met completion clauses gewerkt, die dus altijd een disjunctie zijn en geordend zoals minisat er zin in heeft, dus checken voor head en dergelijke
 //TODO werkt niet voor aggregaten
 //justification is een subgrafe van de dependency grafe
-UFS TSolver::visitForUFSgeneral(Var v, Var cs, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited, vec<bool>& incomp){
+UFS IDSolver::visitForUFSgeneral(Var v, Var cs, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited, vec<bool>& incomp){
 	visited[v]=visittime;visittime++;root[v]=v;
 
 	DefType type = defType[v];
@@ -881,7 +882,7 @@ UFS TSolver::visitForUFSgeneral(Var v, Var cs, std::set<Var>& ufs, int visittime
  *
  */
 
-void TSolver::changeJustifications(Var definednode, Lit firstjustification, vec<vec<Lit> >& network, vec<int>& vis){
+void IDSolver::changeJustifications(Var definednode, Lit firstjustification, vec<vec<Lit> >& network, vec<int>& vis){
 	vec<Lit> queue;
 
 	if(!hasJustification(definednode, vis)){
@@ -904,21 +905,21 @@ void TSolver::changeJustifications(Var definednode, Lit firstjustification, vec<
 	}
 }
 
-inline bool TSolver::visitedEarlier(Var x, Var y, vec<Var>& vis){
+inline bool IDSolver::visitedEarlier(Var x, Var y, vec<Var>& vis){
 	int x1 = vis[x]>0?vis[x]:-vis[x];
 	int y1 = vis[y]>0?vis[y]:-vis[y];
 	return x1<y1;
 }
 
-inline bool TSolver::visited(Var x, vec<Var>& vis){
+inline bool IDSolver::visited(Var x, vec<Var>& vis){
 	return vis[x]!=0;
 }
 
-inline int TSolver::visitedAt(Var x, vec<Var>& vis){
+inline int IDSolver::visitedAt(Var x, vec<Var>& vis){
 	return vis[x]>0?vis[x]:-vis[x];
 }
 
-inline bool TSolver::hasJustification(Var x, vec<Var>& vis){
+inline bool IDSolver::hasJustification(Var x, vec<Var>& vis){
 	return vis[x]<0;
 }
 
@@ -926,7 +927,7 @@ inline bool TSolver::hasJustification(Var x, vec<Var>& vis){
 //Finding unfounded checks by
 //validjust indicates both that the element is already in a justification or is in another found component (in which case it might also be false, not requiring a justification)
 //TODO werkt niet voor aggregaten
-UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<Var>& stack, vec<Var>& vis, vec<vec<Lit> >& network, vec<Var>& tempseen){
+UFS IDSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<Var>& stack, vec<Var>& vis, vec<vec<Lit> >& network, vec<Var>& tempseen){
 	vis[v]=visittime;
 	int timevisited = visittime;
 	visittime++;
@@ -1078,7 +1079,7 @@ UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<Va
  |    Otherwise, the justification and the watches will be adjusted and 'aligned', such that the
  |    justification is loop-free.
  |________________________________________________________________________________________________@*/
-Clause* TSolver::indirectPropagate() {
+Clause* IDSolver::indirectPropagate() {
 	if (!indirectPropagateNow()) {
 		return NULL;
 	}
@@ -1182,7 +1183,7 @@ Clause* TSolver::indirectPropagate() {
 	}
 }
 
-bool TSolver::unfounded(Var cs, std::set<Var>& ufs) {
+bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 	//justify_calls++;
 	bool rslt = false; // if we go straight to Finish, this will be the result.
 	vec<Var> tmpseen; // use to speed up the cleaning of data structures in "Finish"
@@ -1216,7 +1217,7 @@ bool TSolver::unfounded(Var cs, std::set<Var>& ufs) {
 }
 
 // Helper for 'unfounded(..)'. True if v can be immediately justified by one change_justification action.
-bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
+bool IDSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 	switch (defType[v]) {
 	case CONJ: {
 		Clause& c = *definition[v];
@@ -1456,7 +1457,7 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 }
 
 // Helper for 'unfounded(..)'. Propagate the fact that 'v' is now justified. True if 'cs' is now justified.
-bool TSolver::Justify(Var v, Var cs, std::set<Var>& ufs, Queue<Var>& q) {
+bool IDSolver::Justify(Var v, Var cs, std::set<Var>& ufs, Queue<Var>& q) {
 	Queue<Var> tojustify;
 	tojustify.insert(v); // ... starting with v.
 	while (tojustify.size() > 0) {
@@ -1522,14 +1523,14 @@ bool TSolver::Justify(Var v, Var cs, std::set<Var>& ufs, Queue<Var>& q) {
 }
 
 // Change sp_justification: v is now justified by j.
-void TSolver::change_jstfc_disj(Var v, Lit j) {
+void IDSolver::change_jstfc_disj(Var v, Lit j) {
 	assert(defType[v]==DISJ);
 	sp_justification_disj[v] = j;
 	changed_vars.push(v);
 }
 
 // Change sp_justification: v is now justified by j.
-void TSolver::change_jstfc_aggr(Var v, const vec<Lit>& j) {
+void IDSolver::change_jstfc_aggr(Var v, const vec<Lit>& j) {
 	// NOTE: maybe more efficient implementation possible if j changes very little from previous justification? Especially for MIN and MAX.
 	/*FIXME assert(defType[v]==AGGR);
 	sp_justification_aggr[v].clear();
@@ -1541,7 +1542,7 @@ void TSolver::change_jstfc_aggr(Var v, const vec<Lit>& j) {
 /**
  * Creates the loop formula given an unfounded set
  */
-void TSolver::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf){
+void IDSolver::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf){
 	for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
 		switch (defType[*tch]) {
 		case CONJ:
@@ -1621,7 +1622,7 @@ void TSolver::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf){
  * each of those atoms, and return NULL.
  * For each atom in UFS that is false, don't do anything
  */
-Clause* TSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
+Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	assert(!ufs.empty());
 
 	// Create the loop formula: add the antecedents (first element will be filled in later).
@@ -1702,7 +1703,7 @@ Clause* TSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 /* Precondition:  !seen[i] for each i.
  * Postcondition: seen[i]  for exactly those i that are ancestors of cs in sp_justification. If defn_search==stop_at_cs, there should not be other cycle sources then cs in the path from added literals to cs.
  */
-void TSolver::markNonJustified(Var cs, vec<Var>& tmpseen) {
+void IDSolver::markNonJustified(Var cs, vec<Var>& tmpseen) {
 
 	Queue<Var> q;
 	markNonJustifiedAddParents(cs, cs, q, tmpseen);
@@ -1715,7 +1716,7 @@ void TSolver::markNonJustified(Var cs, vec<Var>& tmpseen) {
 	}
 }
 
-inline void TSolver::markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q, vec<Var>& tmpseen) {
+inline void IDSolver::markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q, vec<Var>& tmpseen) {
 	if (!seen[v] && (scc[v] == scc[cs]) && (defn_search == include_cs || v == cs || !isCS[v])) {
 		seen[v] = 1;
 		tmpseen.push(v);
@@ -1724,7 +1725,7 @@ inline void TSolver::markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q, vec<Va
 	}
 }
 
-void TSolver::markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>& tmpseen) {
+void IDSolver::markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>& tmpseen) {
 	vec<Var>& v = disj_occurs[x + x];
 	for (int i = 0; i < v.size(); ++i){
 		if (var(sp_justification_disj[v[i]]) == x){
@@ -1810,7 +1811,7 @@ void TSolver::markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>&
  }
  */
 
-bool TSolver::isCycleFree() { // currently only when no recursice aggregates!! TODO
+bool IDSolver::isCycleFree() { // currently only when no recursice aggregates!! TODO
     //FIXME assert(!ecnf_mode.aggr);
 
     reportf("Showing cf- and sp-justification for disjunctive atoms. <<<<<<<<<<\n");
@@ -1911,7 +1912,7 @@ bool TSolver::isCycleFree() { // currently only when no recursice aggregates!! T
     return cnt_nonjustified==0;
 }
 
-inline void TSolver::apply_changes() {
+inline void IDSolver::apply_changes() {
     for (int i=changed_vars.size()-1; i>=0; i--) {
         Var v = changed_vars[i];
         if (!seen[v]) {
@@ -1931,7 +1932,7 @@ inline void TSolver::apply_changes() {
     changed_vars.clear();
 }
 
-inline void TSolver::clear_changes() {
+inline void IDSolver::clear_changes() {
     for (int i=changed_vars.size()-1; i>=0; i--) {
         Var v = changed_vars[i];
         if (!seen[v]) {
@@ -1950,26 +1951,22 @@ inline void TSolver::clear_changes() {
     changed_vars.clear();
 }
 
-inline Clause* TSolver::getExplanation(Lit p) {
-	return NULL;
-}
-
 //=================================================================================================
 // Debug + etc:
 // a literal is a variable shifted one to the left
 // a variable is a literal shifted one to the right
 
-inline void TSolver::printLit(Lit l){
+inline void IDSolver::printLit(Lit l){
     solver->printLit(l);
 }
 
 
 template<class C>
-inline void TSolver::printClause(const C& c){
+inline void IDSolver::printClause(const C& c){
     solver->printClause(c);
 }
 
-inline void TSolver::printRule(const Rule& c){
+inline void IDSolver::printRule(const Rule& c){
     for (int i = 0; i < c.size(); i++){
         printLit(c[i]);
         fprintf(stderr, " ");
@@ -1979,7 +1976,7 @@ inline void TSolver::printRule(const Rule& c){
 /*
 OLD CODE
 //makes each literal (or its negation) that has recently been assigned into a cycle source if it occurs in a disjunctive rule
-void TSolver::findCycleSources() {
+void IDSolver::findCycleSources() {
 	clearCycleSources();
 	clear_changes();
 

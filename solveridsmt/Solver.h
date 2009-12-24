@@ -30,7 +30,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "Alg.h"
 
 #include "SolverTypes.h"
-#include "TSolver.h"
+#include "IDSolver.h"
 #include "AMNSolver.h"
 #include "AggSolver.h"
 
@@ -80,15 +80,15 @@ static inline uint64_t memUsed() { return 0; }
 //=================================================================================================
 // Solver -- the main class:
 
-class TSolver;
+class IDSolver;
 class AMNSolver;
 class AggSolver;
 
 class Solver {
 public:
 	/////////////////////TSOLVER NECESSARY
-	TSolver* 	tsolver;
-	void setTSolver(TSolver* ts){tsolver = ts;}
+	IDSolver* 	tsolver;
+	void setIDSolver(IDSolver* ts){tsolver = ts;}
 	AMNSolver* 	amnsolver;
 	void setAMNSolver(AMNSolver* ts){amnsolver = ts;}
 	AggSolver* 	aggsolver;

@@ -33,6 +33,8 @@ void AMNSolver::finishECNF_DataStructures() {
 		empty = true;
 	}
 
+	//FIXME probleem in combinatie met aggregaat initialisatie
+
 	/*print useful information
 	 if (verbosity >= 1){
 	 //calculate number of amn statements and literals
@@ -183,16 +185,18 @@ Clause* AMNSolver::amnpropagate(Lit p) {
 			if (counter == bound) { //add a learned clause for each unknown one, and make it FALSE
 				ps.push(~p);
 
+				if (verbosity >= 3) { printClause(c); reportf(" "); }
+
 				vec<Lit> ps2;
 				ps.copyTo(ps2);
 				for (int j = 0; j < c.size(); j++) {
 					if (value(c[j]) == l_Undef) {
 						ps2[0]=~c[j];
 
-						if (verbosity >= 2) { printLit(~c[j]); reportf(" "); }
-
 						Clause* rc = Clause_new(ps2, true);
 						solver->setTrue(~c[j], rc);
+
+						if (verbosity >= 2) { printLit(~c[j]); reportf(" "); }
 					}
 				}
 			} else { //generate a conflict clause containing all true ones

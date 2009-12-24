@@ -1,6 +1,6 @@
 
-#ifndef TSOLVER_H_
-#define TSOLVER_H_
+#ifndef IDSOLVER_H_
+#define IDSOLVER_H_
 
 #include <cstdio>
 #include <set>
@@ -24,10 +24,10 @@ enum UFS {NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK};
 
 class Solver;
 
-class TSolver{
+class IDSolver{
 public:
-	TSolver();
-	virtual ~TSolver();
+	IDSolver();
+	virtual ~IDSolver();
 
 	/////////////////////SOLVER NECESSARY
 	bool 	simplify	();
@@ -170,30 +170,30 @@ protected:
 //=================================================================================================
 // Implementation of inline methods:
 
-inline void     TSolver::addCycleSource(Var v)        { if (!isCS[v]) {isCS[v]=true; css.push(v);} }
-inline void     TSolver::clearCycleSources()          { for (int i=0;i<css.size();i++) isCS[css[i]]=false; css.clear(); }
+inline void     IDSolver::addCycleSource(Var v)        { if (!isCS[v]) {isCS[v]=true; css.push(v);} }
+inline void     IDSolver::clearCycleSources()          { for (int i=0;i<css.size();i++) isCS[css[i]]=false; css.clear(); }
 
 /**
  * All these methods are used to allow branch prediction in SATsolver methods and to minimize the number of
  * subsequent calls
  */
 
-inline Clause* TSolver::propagate(Lit p, Clause* confl){
+inline Clause* IDSolver::propagate(Lit p, Clause* confl){
 	return confl;
 }
 
 //only call this when the whole queue has been propagated
-inline Clause* TSolver::propagateDefinitions(Clause* confl){
+inline Clause* IDSolver::propagateDefinitions(Clause* confl){
 	if (init || confl!=NULL) {return confl;}
 	return indirectPropagate();
 }
 
-inline void TSolver::backtrack ( Lit l){
+inline void IDSolver::backtrack ( Lit l){
 	return;
 }
 
-inline Clause* getExplanation	(Lit p){
+inline Clause* IDSolver::getExplanation	(Lit p){
 	return NULL;
 }
 
-#endif /* TSOLVER_H_ */
+#endif /* IDSOLVER_H_ */
