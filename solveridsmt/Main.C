@@ -11,12 +11,21 @@
 #include "Solver.h"
 #include "TSolver.h"
 #include "AMNSolver.h"
+#include "AggSolver.h"
 
 /*************************************************************************************/
 
 #if defined(__linux__)
 #include <fpu_control.h>
 #endif
+
+struct ECNF_mode {
+	bool def,aggr,mnmz; // True for those extensions that are being used.  TODO : extra state for recursive aggregates!!
+
+	ECNF_mode() : def(false), aggr(false), mnmz(false) {}
+};
+
+ECNF_mode modes;
 
 //=================================================================================================
 // DIMACS Parser:
@@ -96,7 +105,7 @@ static bool match(B& in, const char* str) {
 
 ////////START OF EXTENSIONS
 template<class B>
-static void parse_Aggr(B& in, Solver* S, TSolver* TS, AggrType type) {
+static void parse_Aggr(B& in, Solver* S, AggSolver* AGG, AggrType type) {
     int defn = parseInt(in);
     if (defn<=0)
         ParseError("Defining literal of aggregate expression has to be an atom (found %d).\n",defn);
@@ -109,13 +118,13 @@ static void parse_Aggr(B& in, Solver* S, TSolver* TS, AggrType type) {
     int zero = parseInt(in);
     if (zero != 0)
         ParseError("Aggregate expression has to be closed with '0' (found %d).\n",zero);
-    TS->addAggrExpr(defn,set_id,min,max,type);
+    AGG->addAggrExpr(defn,set_id,min,max,type);
 }
 /////////END OF EXTENSIONS
 
 
 template<class B>
-static void parse_ECNF_main(B& in, Solver* S, TSolver* TS, AMNSolver* AS) { // NOTE: this parser does not read translation information.
+static void parse_ECNF_main(B& in, Solver* S, TSolver* TS, AMNSolver* AS, AggSolver* AGG) { // NOTE: this parser does not read translation information.
     vec<Lit> lits;
     for (;;){
         skipWhitespace(in);
@@ -129,7 +138,7 @@ static void parse_ECNF_main(B& in, Solver* S, TSolver* TS, AMNSolver* AS) { // N
 //////////////////START OF EXTENSIONS
 				case 'C':
                     if (match(in,"Card"))
-                        parse_Aggr(in, S, TS, SUM); // NOTE: weights =1 are automatically added.
+                        parse_Aggr(in, S, AGG, SUM); // NOTE: weights =1 are automatically added.
                     else { // conjunctive rule.
                         ++in;
                         readClause(in, S, lits);
@@ -171,9 +180,9 @@ static void parse_ECNF_main(B& in, Solver* S, TSolver* TS, AMNSolver* AS) { // N
                 case 'M':
                     ++in;
                     if (*in == 'i' && match(in,"in"))
-                        parse_Aggr(in, S, TS, MIN);
+                        parse_Aggr(in, S, AGG, MIN);
                     else if (*in == 'a' && match(in,"ax"))
-                        parse_Aggr(in, S, TS, MAX);
+                        parse_Aggr(in, S, AGG, MAX);
                     /*else if (*in == 'n' && match(in,"nmz")) {
                         readClause(in, S, lits);
                         TS->Subsetminimize(lits);
@@ -182,7 +191,7 @@ static void parse_ECNF_main(B& in, Solver* S, TSolver* TS, AMNSolver* AS) { // N
                     break;
                 case 'P':
                     if (match(in,"Prod"))
-                        parse_Aggr(in, S, TS, PROD);
+                        parse_Aggr(in, S, AGG, PROD);
                     else
                         ParseError("Unexpected char '%c' after 'P' (expecting \"Prod\").\n",*in);
                     break;
@@ -192,9 +201,9 @@ static void parse_ECNF_main(B& in, Solver* S, TSolver* TS, AMNSolver* AS) { // N
                         int set_id = parseInt(in); // Note that set_id 0 cannot exist.
                         readClause(in, S, lits);
                         vec<int> w(lits.size(),1); // Treat CARD as SUM with all weights =1.
-                        TS->addSet(set_id,lits,w);
+                        AGG->addSet(set_id,lits,w);
                     } else if (*in == 'u' && match(in,"um"))
-                        parse_Aggr(in, S, TS, SUM);
+                        parse_Aggr(in, S, AGG, SUM);
                     else
                         ParseError("Unexpected char '%c' after 'S' (expecting \"Set\" or \"Sum\").\n",*in);
                     break;
@@ -218,7 +227,7 @@ static void parse_ECNF_main(B& in, Solver* S, TSolver* TS, AMNSolver* AS) { // N
                             parsed_lit = parseInt(in);
                             weights.push(parsed_lit);
                         }
-                        TS->addSet(set_id,lits,weights);
+                        AGG->addSet(set_id,lits,weights);
                     } else
                         ParseError("Unexpected char '%c' after 'W' (expecting \"WSet\").\n",*in);
                     break;
@@ -233,11 +242,12 @@ static void parse_ECNF_main(B& in, Solver* S, TSolver* TS, AMNSolver* AS) { // N
 //////////////////START OF EXTENSIONS
     TS->finishECNF_DataStructures();
     AS->finishECNF_DataStructures();
+    AGG->finishECNF_DataStructures();
 //////////////////END OF EXTENSIONS
 }
 
 template<class B>
-static void parse_main(B& in, Solver* S, TSolver* TS, AMNSolver* AS) {
+static void parse_main(B& in, Solver* S, TSolver* TS, AMNSolver* AS, AggSolver* AGG) {
     bool ecnf = false;
     for (;;){
         skipWhitespace(in);
@@ -264,7 +274,7 @@ static void parse_main(B& in, Solver* S, TSolver* TS, AMNSolver* AS) {
                     if (*in=='d' && match(in,"def")) {
                         if (S->verbosity>=1)
                             reportf("|    May contain inductive definitions.                                       |\n");
-                        TS->ecnf_mode.def=true;
+                        modes.def = true;
                         //TODObroes as long as the definitions are defined as clauses in minisat, removing satisfied clauses is not allowed
                         S->dontRemoveSatisfied();
                     } else if (*in=='e' && match(in,"eu")) {
@@ -278,13 +288,13 @@ static void parse_main(B& in, Solver* S, TSolver* TS, AMNSolver* AS) {
                         } else if (*in=='g' && match(in,"ggr")) {
                             if (S->verbosity>=1)
                                 reportf("|    May contain aggregate expressions.                                       |\n");
-                            TS->ecnf_mode.aggr=true;
+                            modes.aggr = true;
                         } else
                             ParseError("Unexpected ECNF extension type (known: \"def\", \"eu\", \"amn\", \"aggr\"); stuck on '%c'.\n",*in);
                     } else if (*in=='m' && match(in,"mnmz")) {
                         if (S->verbosity>=1)
                             reportf("|    May contain an optimize statement.                                       |\n");
-                        TS->ecnf_mode.mnmz=true;
+                        modes.mnmz = true;
                     } else
                         ParseError("Unexpected ECNF extension type (known: \"def\", \"eu\", \"amn\", \"aggr\"); stuck on '%c'.\n",*in);
                 }
@@ -301,7 +311,7 @@ static void parse_main(B& in, Solver* S, TSolver* TS, AMNSolver* AS) {
             ParseError("Unexpected char: %c\n", *in);
     }
     if (ecnf){
-    	parse_ECNF_main(in, S, TS, AS);
+    	parse_ECNF_main(in, S, TS, AS, AGG);
     }else{
     	reportf("Format no longer supported.\n"), exit(1);
     }
@@ -309,9 +319,9 @@ static void parse_main(B& in, Solver* S, TSolver* TS, AMNSolver* AS) {
 
 // Inserts problem into solver.
 //
-static void parse(gzFile input_stream, Solver* S, TSolver* TS, AMNSolver* AS) {
+static void parse(gzFile input_stream, Solver* S, TSolver* TS, AMNSolver* AS, AggSolver *AGG) {
     StreamBuffer in(input_stream);
-    parse_main(in, S, TS, AS); }
+    parse_main(in, S, TS, AS, AGG); }
 
 //=================================================================================================
 
@@ -389,11 +399,13 @@ int main(int argc, char** argv)
     Solver*      S = new Solver();
     TSolver* 	TS = new TSolver();
     AMNSolver* 	AS = new AMNSolver();
+    AggSolver* 	AggS = new AggSolver();
     S->setTSolver(TS);
     S->setAMNSolver(AS);
+    S->setAggSolver(AggS);
     TS->setSolver(S);
     AS->setSolver(S);
-    //S->verbosity = 1;
+    AggS->setSolver(S);
 
     int         i, j;
     int         N = 1;
@@ -519,7 +531,20 @@ int main(int argc, char** argv)
     bool ret = false;
 
     try{
-		parse(in, S, TS, AS);
+		parse(in, S, TS, AS, AggS);
+
+		if(!modes.def){
+			S->setTSolver(NULL);
+			delete TS;
+		}
+		if(!modes.aggr){
+			S->setAggSolver(NULL);
+			delete AggS;
+		}
+		if(!modes.mnmz){
+			//later
+		}
+
 		gzclose(in);
 		FILE* res = (argc >= 3) ? fopen(argv[2], "wb") : NULL;
 
@@ -543,13 +568,19 @@ int main(int argc, char** argv)
 		ret = S->solve();
 		printStats(S);
 
-		delete TS;
+		if(modes.def){
+			delete TS;
+		}
+		if(modes.aggr){
+			delete AggS;
+		}
 		delete AS;
 	}catch(int e){
 		if(e==memOVERFLOW){
 			printf("Memory overflow");
 			exit(33);
 		}else if(e==theoryUNSAT){
+			printf("Theory UNSAT");
 			ret=false;
 		}
 	}

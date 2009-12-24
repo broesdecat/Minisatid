@@ -17,7 +17,8 @@ TSolver::TSolver():
 	/*succesful_justify_calls(0), extdisj_sizes(0),
 	total_marked_size(0),*/
 	//  , fw_propagation_attempts(0), fw_propagations(0)
-	adaption_total(0),	adaption_current(0)
+	adaption_total(0),	adaption_current(0),
+	init(true)
 {
 }
 
@@ -28,336 +29,266 @@ inline int      TSolver::nVars()      const   { return solver->nVars(); /*assign
 TSolver::~TSolver() {
 }
 
-void TSolver::doBacktrack(Lit l){
-	// Fix the Aggregate min and max values.
-	if (aggr_reason[var(l)] != NULL) {
-		delete aggr_reason[var(l)];
-		aggr_reason[var(l)] = NULL;
-	}
-	vec<AggrWatch>& vcw = Aggr_watches[var(l)];
-	for (int i = 0; i < vcw.size(); i++) {
-		if (vcw[i].set->stack.size() == 0 || var(l) != var(
-				vcw[i].set->stack.last().lit)) // l hadn't yet propagated.
-			continue;
-		AggrSet::PropagationInfo pi = vcw[i].set->stack.last();
-		vcw[i].set->stack.pop();
-		Occurrence tp = relativeOccurrence(vcw[i].type, l);
-		assert(tp == pi.type);
-		if (tp == DEFN) // These propagations don't affect 'min' and 'max'.
-			continue;
-		bool trues = tp == POS;
-		switch (vcw[i].set->type) {
-		case SUM:
-			if (trues)
-				vcw[i].set->min -= vcw[i].set->set[vcw[i].index].weight;
-			else
-				vcw[i].set->max += vcw[i].set->set[vcw[i].index].weight;
-			break;
-		case PROD:
-			if (trues)
-				vcw[i].set->min = vcw[i].set->min
-						/ vcw[i].set->set[vcw[i].index].weight;
-			else
-				vcw[i].set->max *= vcw[i].set->set[vcw[i].index].weight;
-			break;
-		case MIN:
-			if (trues)
-				while (vcw[i].set->max < vcw[i].set->set.size()
-						&& value(vcw[i].set->set[vcw[i].set->max].lit)
-								!= l_True)
-					vcw[i].set->max++;
-			else if (vcw[i].set->set[pi.weight].weight
-					<= vcw[i].set->set[vcw[i].set->min].weight) // TODO PropagationInfo should have "index" too!
-				while (vcw[i].set->min >= 0
-						&& vcw[i].set->set[vcw[i].set->min].lit
-								!= ~pi.lit)
-					vcw[i].set->min--;
-
-			break;
-		case MAX:
-			if (trues)
-				while (vcw[i].set->min >= 0 && value(vcw[i].set->set[vcw[i].set->min].lit) != l_True)
-					vcw[i].set->min--;
-			else if (vcw[i].set->set[pi.weight].weight
-					>= vcw[i].set->set[vcw[i].set->max].weight)
-				while (vcw[i].set->max < vcw[i].set->set.size()
-						&& vcw[i].set->set[vcw[i].set->max].lit
-								!= ~pi.lit)
-					vcw[i].set->max++;
-			break;
-		default:
-			assert(false);
-			break;
-		}
-	}
-}
-
 //@pre: conflicts are empty
 bool TSolver::simplify(){
 	// Note that ecnf_mode.init is still true, if this is the first time running simplify!
-	ecnf_mode.init = false;
-	bool old_ecnf_def = ecnf_mode.def;
-	ecnf_mode.def = false;
-	ecnf_mode.def = old_ecnf_def;
+	init = false;
 
 	// Initialization procedure to ensure correctness of subsequent indirectPropagate() calls.
 	// This has to be done before the first choice.
-	if (ecnf_mode.def) {
-		// NOTE: we're doing a stable model initialization here. No need for a loop.
-		cf_justification_disj.clear();
-		cf_justification_disj.growTo(nVars());
-		sp_justification_disj.clear();
-		sp_justification_disj.growTo(nVars());
-		cf_justification_aggr.clear();
-		cf_justification_aggr.growTo(2 * nVars());
-		sp_justification_aggr.clear();
-		sp_justification_aggr.growTo(2 * nVars());
 
-		vec<int> nb_body_lits_to_justify; // Note: use as boolean for DISJ and AGGR, as int for CONJ.
-		nb_body_lits_to_justify.growTo(nVars(), 0); // Unless there are big conjunctions, we could use 'seen' instead of 'nb_body_lits_to_justify'.
+	// NOTE: we're doing a stable model initialization here. No need for a loop.
+	cf_justification_disj.clear();
+	cf_justification_disj.growTo(nVars());
+	sp_justification_disj.clear();
+	sp_justification_disj.growTo(nVars());
+	/*FIXME cf_justification_aggr.clear();
+	cf_justification_aggr.growTo(2 * nVars());
+	sp_justification_aggr.clear();
+	sp_justification_aggr.growTo(2 * nVars());*/
 
-		// *** First : initialize nb_body_lits_to_justify, and the propagation queue propq.
-		for (int i = 0; i < defdVars.size(); i++) {
-			Var v = defdVars[i];
-			if (value(v) == l_False)
+	vec<int> nb_body_lits_to_justify; // Note: use as boolean for DISJ and AGGR, as int for CONJ.
+	nb_body_lits_to_justify.growTo(nVars(), 0); // Unless there are big conjunctions, we could use 'seen' instead of 'nb_body_lits_to_justify'.
+
+	// *** First : initialize nb_body_lits_to_justify, and the propagation queue propq.
+	for (int i = 0; i < defdVars.size(); i++) {
+		Var v = defdVars[i];
+		if (value(v) == l_False)
+			continue;
+		switch (defType[v]) {
+		case DISJ:
+			nb_body_lits_to_justify[v] = 1;
+			break;
+		case CONJ:
+			nb_body_lits_to_justify[v] = definition[v]->size() - 1;
+			break;
+		/*FIXME case AGGR:
+			nb_body_lits_to_justify[v] = 1;
+			break;*/
+		default:
+			break;
+		}
+	}
+
+	// *** Next: initialize a queue of literals that are safe with regard to cycle-freeness. (i.e.: either are not in justification, or are justified in a cycle-free way.)
+	Queue<Lit> propq;
+	for (int i = 0; i < nVars(); ++i)
+		if (value(i) != l_True)
+			propq.insert(Lit(i, true)); // First all non-false negative literals.
+	for (int i = 0; i < nVars(); ++i)
+		if (defType[i] == NONDEF && value(i) != l_False)
+			propq.insert(Lit(i, false)); // Then all non-false non-defined positive literals.
+
+	// *** Next: propagate safeness to defined literals until fixpoint.
+	// While we do this, we build the initial justification.
+	while (propq.size() > 0) {
+		Lit l = propq.peek();
+		propq.pop();
+
+		for (int i = 0; i < disj_occurs[toInt(l)].size(); ++i) { // Find disjunctions that may be made cycle-safe through l.
+			Var v = (disj_occurs[toInt(l)])[i];
+			if (defType[v] == NONDEF || value(v) == l_False)
 				continue;
-			switch (defType[v]) {
-			case DISJ:
-				nb_body_lits_to_justify[v] = 1;
-				break;
-			case CONJ:
-				nb_body_lits_to_justify[v] = definition[v]->size() - 1;
-				break;
-			case AGGR:
-				nb_body_lits_to_justify[v] = 1;
-				break;
-			default:
-				break;
+			assert(defType[v]==DISJ);
+			if (nb_body_lits_to_justify[v] > 0) {
+				nb_body_lits_to_justify[v] = 0;
+				propq.insert(Lit(v, false));
+				cf_justification_disj[v] = l;
+				sp_justification_disj[v] = l;
 			}
 		}
-
-		// *** Next: initialize a queue of literals that are safe with regard to cycle-freeness. (i.e.: either are not in justification, or are justified in a cycle-free way.)
-		Queue<Lit> propq;
-		for (int i = 0; i < nVars(); ++i)
-			if (value(i) != l_True)
-				propq.insert(Lit(i, true)); // First all non-false negative literals.
-		for (int i = 0; i < nVars(); ++i)
-			if (defType[i] == NONDEF && value(i) != l_False)
-				propq.insert(Lit(i, false)); // Then all non-false non-defined positive literals.
-
-		// *** Next: propagate safeness to defined literals until fixpoint.
-		// While we do this, we build the initial justification.
-		while (propq.size() > 0) {
-			Lit l = propq.peek();
-			propq.pop();
-
-			for (int i = 0; i < disj_occurs[toInt(l)].size(); ++i) { // Find disjunctions that may be made cycle-safe through l.
-				Var v = (disj_occurs[toInt(l)])[i];
-				if (defType[v] == NONDEF || value(v) == l_False)
+		for (int i = 0; i < conj_occurs[toInt(l)].size(); ++i) { // Find conjunctions that may be made cycle-safe through l.
+			Var v = (conj_occurs[toInt(l)])[i];
+			if (defType[v] == NONDEF || value(v) == l_False)
+				continue;
+			assert(defType[v]==CONJ);
+			--nb_body_lits_to_justify[v];
+			if (nb_body_lits_to_justify[v] == 0)
+				propq.insert(Lit(v, false));
+		}
+		/*FIXME if (ecnf_mode.aggr) { // TODO
+			for (int i = 0; i < Aggr_watches[var(l)].size(); ++i) { // Find aggregate expressions that may be made cycle-safe through l.
+				AggrWatch& aw = (Aggr_watches[var(l)])[i];
+				if (aw.type == DEFN)
 					continue;
-				assert(defType[v]==DISJ);
-				if (nb_body_lits_to_justify[v] > 0) {
-					nb_body_lits_to_justify[v] = 0;
-					propq.insert(Lit(v, false));
-					cf_justification_disj[v] = l;
-					sp_justification_disj[v] = l;
-				}
-			}
-			for (int i = 0; i < conj_occurs[toInt(l)].size(); ++i) { // Find conjunctions that may be made cycle-safe through l.
-				Var v = (conj_occurs[toInt(l)])[i];
-				if (defType[v] == NONDEF || value(v) == l_False)
-					continue;
-				assert(defType[v]==CONJ);
-				--nb_body_lits_to_justify[v];
-				if (nb_body_lits_to_justify[v] == 0)
-					propq.insert(Lit(v, false));
-			}
-			if (ecnf_mode.aggr) { // TODO
-				for (int i = 0; i < Aggr_watches[var(l)].size(); ++i) { // Find aggregate expressions that may be made cycle-safe through l.
-					AggrWatch& aw = (Aggr_watches[var(l)])[i];
-					if (aw.type == DEFN)
+				vec<AggrExpr*>& exprs = aw.set->exprs;
+				for (int j = 0; j < exprs.size(); ++j) {
+					Var v = var(exprs[j]->c);
+					if (defType[v] == NONDEF || value(v) == l_False)
 						continue;
-					vec<AggrExpr*>& exprs = aw.set->exprs;
-					for (int j = 0; j < exprs.size(); ++j) {
-						Var v = var(exprs[j]->c);
-						if (defType[v] == NONDEF || value(v) == l_False)
-							continue;
-						assert(defType[v]==AGGR);
-						if (nb_body_lits_to_justify[v] > 0) {
-							vec<Lit> jstf; // Only add it if complete (!nb_body_lits_to_justify[v]).
-							vec<AggrSet::WLit>& lits = aw.set->set;
-							switch (aw.set->type) {
-							case SUM: {
-								int min = 0;
-								int max = aw.set->cmax;
-								bool complete = false;
-								for (int k = 0; !complete && k < lits.size(); ++k) {
-									Lit ll = lits[k].lit;
-									if (value(ll) != l_False) {
-										if (sign(ll)
-												|| nb_body_lits_to_justify[var(
-														ll)] == 0) {
-											jstf.push(ll);
-											min += lits[k].weight;
-											if (min >= exprs[j]->min && max
-													<= exprs[j]->max)
-												complete = true;
-										}
-									}
-									if (value(ll) != l_True) {
-										if (!sign(ll)
-												|| nb_body_lits_to_justify[var(
-														ll)] == 0) {
-											jstf.push(~ll);
-											max -= lits[k].weight;
-											if (min >= exprs[j]->min && max
-													<= exprs[j]->max)
-												complete = true;
-										}
-									}
-								}
-								if (complete)
-									nb_body_lits_to_justify[v] = 0;
-								break;
-							}
-							case PROD: {
-								int min = 1;
-								int max = aw.set->cmax;
-								bool complete = false;
-								for (int k = 0; !complete && k < lits.size(); ++k) {
-									Lit ll = lits[k].lit;
-									if (value(ll) != l_False) {
-										if (sign(ll)
-												|| nb_body_lits_to_justify[var(
-														ll)] == 0) {
-											jstf.push(ll);
-											min *= lits[k].weight;
-											if (min >= exprs[j]->min && max
-													<= exprs[j]->max)
-												complete = true;
-										}
-									}
-									if (value(ll) != l_True) {
-										if (!sign(ll)
-												|| nb_body_lits_to_justify[var(
-														ll)] == 0) {
-											jstf.push(~ll);
-											max = max / lits[k].weight;
-											if (min >= exprs[j]->min && max
-													<= exprs[j]->max)
-												complete = true;
-										}
-									}
-								}
-								if (complete)
-									nb_body_lits_to_justify[v] = 0;
-								break;
-							}
-							case MIN: {
-								bool aux = true;
-								int k = 0;
-								for (; aux && lits[k].weight < exprs[j]->min; ++k) {
-									Lit ll = lits[k].lit;
-									if (!sign(ll)
-											|| nb_body_lits_to_justify[var(ll)]
-													== 0)
-										jstf.push(~ll);
-									else
-										aux = false;
-								}// NB: 'aux' switches meaning inbetween here...
-								for (; aux && lits[k].weight <= exprs[j]->max; ++k) {
-									Lit ll = lits[k].lit;
-									if (value(ll) != l_False && (sign(ll)
-											|| nb_body_lits_to_justify[var(ll)]
-													== 0)) {
+					assert(defType[v]==AGGR);
+					if (nb_body_lits_to_justify[v] > 0) {
+						vec<Lit> jstf; // Only add it if complete (!nb_body_lits_to_justify[v]).
+						vec<AggrSet::WLit>& lits = aw.set->set;
+						switch (aw.set->type) {
+						case SUM: {
+							int min = 0;
+							int max = aw.set->cmax;
+							bool complete = false;
+							for (int k = 0; !complete && k < lits.size(); ++k) {
+								Lit ll = lits[k].lit;
+								if (value(ll) != l_False) {
+									if (sign(ll)
+											|| nb_body_lits_to_justify[var(
+													ll)] == 0) {
 										jstf.push(ll);
-										aux = false;
+										min += lits[k].weight;
+										if (min >= exprs[j]->min && max
+												<= exprs[j]->max)
+											complete = true;
 									}
 								}
-								if (!aux)
-									nb_body_lits_to_justify[v] = 0;
-								break;
-							}
-							case MAX: {
-								bool aux = true;
-								int k = lits.size() - 1;
-								for (; aux && lits[k].weight > exprs[j]->max; --k) {
-									Lit ll = lits[k].lit;
+								if (value(ll) != l_True) {
 									if (!sign(ll)
-											|| nb_body_lits_to_justify[var(ll)]
-													== 0)
+											|| nb_body_lits_to_justify[var(
+													ll)] == 0) {
 										jstf.push(~ll);
-									else
-										aux = false;
-								}// NB: 'aux' switches meaning inbetween here...
-								for (; aux && lits[k].weight >= exprs[j]->min; --k) {
-									Lit ll = lits[k].lit;
-									if (value(ll) != l_False
-											&& (!sign(ll)
-													|| !nb_body_lits_to_justify[var(
-															ll)])) {
-										jstf.push(ll);
-										aux = false;
+										max -= lits[k].weight;
+										if (min >= exprs[j]->min && max
+												<= exprs[j]->max)
+											complete = true;
 									}
 								}
-								if (!aux)
-									nb_body_lits_to_justify[v] = 0;
-								break;
 							}
-							}
-							if (nb_body_lits_to_justify[v] == 0) {
-								propq.insert(Lit(v, false));
-								assert(sp_justification_aggr[v].size()==0);
-								assert(cf_justification_aggr[v].size()==0);
-								for (int j = 0; j < jstf.size(); ++j) {
-									sp_justification_aggr[v].push(jstf[j]);
-									cf_justification_aggr[v].push(jstf[j]);
+							if (complete)
+								nb_body_lits_to_justify[v] = 0;
+							break;
+						}
+						case PROD: {
+							int min = 1;
+							int max = aw.set->cmax;
+							bool complete = false;
+							for (int k = 0; !complete && k < lits.size(); ++k) {
+								Lit ll = lits[k].lit;
+								if (value(ll) != l_False) {
+									if (sign(ll)
+											|| nb_body_lits_to_justify[var(
+													ll)] == 0) {
+										jstf.push(ll);
+										min *= lits[k].weight;
+										if (min >= exprs[j]->min && max
+												<= exprs[j]->max)
+											complete = true;
+									}
 								}
+								if (value(ll) != l_True) {
+									if (!sign(ll)
+											|| nb_body_lits_to_justify[var(
+													ll)] == 0) {
+										jstf.push(~ll);
+										max = max / lits[k].weight;
+										if (min >= exprs[j]->min && max
+												<= exprs[j]->max)
+											complete = true;
+									}
+								}
+							}
+							if (complete)
+								nb_body_lits_to_justify[v] = 0;
+							break;
+						}
+						case MIN: {
+							bool aux = true;
+							int k = 0;
+							for (; aux && lits[k].weight < exprs[j]->min; ++k) {
+								Lit ll = lits[k].lit;
+								if (!sign(ll)
+										|| nb_body_lits_to_justify[var(ll)]
+												== 0)
+									jstf.push(~ll);
+								else
+									aux = false;
+							}// NB: 'aux' switches meaning inbetween here...
+							for (; aux && lits[k].weight <= exprs[j]->max; ++k) {
+								Lit ll = lits[k].lit;
+								if (value(ll) != l_False && (sign(ll)
+										|| nb_body_lits_to_justify[var(ll)]
+												== 0)) {
+									jstf.push(ll);
+									aux = false;
+								}
+							}
+							if (!aux)
+								nb_body_lits_to_justify[v] = 0;
+							break;
+						}
+						case MAX: {
+							bool aux = true;
+							int k = lits.size() - 1;
+							for (; aux && lits[k].weight > exprs[j]->max; --k) {
+								Lit ll = lits[k].lit;
+								if (!sign(ll)
+										|| nb_body_lits_to_justify[var(ll)]
+												== 0)
+									jstf.push(~ll);
+								else
+									aux = false;
+							}// NB: 'aux' switches meaning inbetween here...
+							for (; aux && lits[k].weight >= exprs[j]->min; --k) {
+								Lit ll = lits[k].lit;
+								if (value(ll) != l_False
+										&& (!sign(ll)
+												|| !nb_body_lits_to_justify[var(
+														ll)])) {
+									jstf.push(ll);
+									aux = false;
+								}
+							}
+							if (!aux)
+								nb_body_lits_to_justify[v] = 0;
+							break;
+						}
+						}
+						if (nb_body_lits_to_justify[v] == 0) {
+							propq.insert(Lit(v, false));
+							assert(sp_justification_aggr[v].size()==0);
+							assert(cf_justification_aggr[v].size()==0);
+							for (int j = 0; j < jstf.size(); ++j) {
+								sp_justification_aggr[v].push(jstf[j]);
+								cf_justification_aggr[v].push(jstf[j]);
 							}
 						}
 					}
 				}
 			}
-		}
-
-		// *** Finally, vars v that still have nb_body_lits_to_justify[v]>0 can never possibly become true: make them false.
-		if (verbosity >= 2)
-			reportf("Initialization of justification makes these atoms false: [");
-		vec<Lit> empty;
-		for (int i = 0; i < defdVars.size(); i++) {
-			Var v = defdVars[i];
-			if (nb_body_lits_to_justify[v] > 0) {
-				if (verbosity >= 2)
-					reportf(" %d",v+1);
-
-				/*Lit p = Lit(v, true);
-				if(value(v)==l_Undef){
-					solver->setTrue(p);
-				}else if(value(p)==l_False){
-						return false;
-				}*/
-
-				Lit p = Lit(v,true);
-				if (!(value(p) != l_Undef ? value(p) != l_False : (solver->setTrue(p, NULL), true)))
-				  throw theoryUNSAT;
-
-				defType[v] = NONDEF;
-				--atoms_in_pos_loops;
-			}
-		}
-		if (verbosity >= 2)
-			reportf(" ]\n");
-
-		if (atoms_in_pos_loops == 0)
-			ecnf_mode.def = false;
-
-		if (atoms_in_pos_loops == 0 && verbosity >= 1)
-			reportf("| All recursive atoms falsified in initializations.                           |\n");
-		//if (ecnf_mode.def && verbosity>=2) assert(isCycleFree()); // Only for debugging!!
+		}*/
 	}
 
-	if (verbosity >= 2 && (ecnf_mode.def || ecnf_mode.aggr))
-		reportf("ECNF data structures initialized and theory simplified.\n");
+	// *** Finally, vars v that still have nb_body_lits_to_justify[v]>0 can never possibly become true: make them false.
+	if (verbosity >= 2)
+		reportf("Initialization of justification makes these atoms false: [");
+	vec<Lit> empty;
+	for (int i = 0; i < defdVars.size(); i++) {
+		Var v = defdVars[i];
+		if (nb_body_lits_to_justify[v] > 0) {
+			if (verbosity >= 2)
+				reportf(" %d",v+1);
+
+			/*Lit p = Lit(v, true);
+			if(value(v)==l_Undef){
+				solver->setTrue(p);
+			}else if(value(p)==l_False){
+					return false;
+			}*/
+
+			Lit p = Lit(v,true);
+			if (!(value(p) != l_Undef ? value(p) != l_False : (solver->setTrue(p, NULL), true)))
+			  throw theoryUNSAT;
+
+			defType[v] = NONDEF;
+			--atoms_in_pos_loops;
+		}
+	}
+	if (verbosity >= 2)
+		reportf(" ]\n");
+
+	if (atoms_in_pos_loops == 0){
+		solver->setTSolver(NULL);
+		if (atoms_in_pos_loops == 0 && verbosity >= 1)
+				reportf("| All recursive atoms falsified in initializations.                           |\n");
+		return true;
+	}
+
 	return true;
 }
 
@@ -365,22 +296,14 @@ void TSolver::notifyVarAdded(){
 	seen.push(0);
 	seen2.push(0);
 
-	if (ecnf_mode.def) {
-		defType.push(NONDEF);
-		definition.push(NULL);
-		disj_occurs.growTo(2 * nVars()); // May be tested on in findCycleSources().
-		conj_occurs.growTo(2 * nVars()); // Probably not needed anyway...
-	}
-	if (ecnf_mode.aggr) {
-		Aggr_watches.push();
-		aggr_reason.push();
-	}
+	defType.push(NONDEF);
+	definition.push(NULL);
+	disj_occurs.growTo(2 * nVars()); // May be tested on in findCycleSources().
+	conj_occurs.growTo(2 * nVars()); // Probably not needed anyway...
 }
 
 // First literal in ps is head atom.
 void TSolver::addRule(bool conj, vec<Lit>& ps) {
-	if (!ecnf_mode.def)
-		reportf("ERROR! Attempt at adding rule, though ECNF specifiers did not contain \"def\".\n"), exit(3);
 	assert(ps.size() > 0);
 	assert(!sign(ps[0]));
 
@@ -444,128 +367,101 @@ void TSolver::addRule(bool conj, vec<Lit>& ps) {
 
 // Using the vector "defdVars", initialize all other SAT(ID) additional data structures.
 void TSolver::finishECNF_DataStructures() {
-	if (ecnf_mode.aggr) {
-		if (verbosity >= 1)
-			reportf("| Number of aggregate exprs.: %4d",aggr_exprs.size());
-		if (aggr_exprs.size() == 0) {
-			ecnf_mode.aggr = false;
-			if (verbosity >= 1) {
-				reportf("                                            |\n");
-				reportf("|    (there will be no aggregate propagations)                                |\n");
-			}
-		} else {
-			int total_nb_set_lits = 0;
-			for (int i = 0; i < aggr_sets.size(); i += NB_AGGR_TYPES)
-				total_nb_set_lits += aggr_sets[i]->set.size();
-			if (verbosity >= 1)
-				reportf(", over %4d sets, avg. size: %7.2f lits.  |\n",aggr_sets.size()/NB_AGGR_TYPES,(double)total_nb_set_lits/(double)(aggr_sets.size()/NB_AGGR_TYPES));
-			// Now do the initial propagations based on set literals that already have a truth value.
-			// Note: this is based on the fact that until now ecnf_mode.init=false.
-			Clause * confl = NULL;
-			for (int i = 0; i < solver->qhead && confl == NULL; ++i) // from qhead onwards will still be propagated by simplify().
-				confl = Aggr_propagate(solver->trail[i]);
-			if (confl != NULL) {
-				throw theoryUNSAT;
-			}
+	init = false;
+
+	if (verbosity >= 1)
+		reportf("| Number of rules           : %6d                                          |\n",defdVars.size());
+
+	// ****** Based on this, initialize "scc". ******
+	scc.growTo(nVars(), 0);
+	//for memory efficiency, the scc datastructure is used to keep the root of the nodes
+	//in the end, the algorithm sets ALL of the nodes on the stack to the same root
+	//so then the SCC is correct
+	vec<int> & root = scc;
+	vec<bool> incomp(nVars(), false);
+	vec<int> stack;
+	vec<int> visited(nVars(), 0); // =0 represents not visited; >0 corresponds to a unique value (the counter).
+	int counter = 1;
+
+	for (int i=0; i<nVars(); i++){
+		if (defType[i]!=NONDEF && visited[i]==0){
+			visit(i,root,incomp,stack,visited,counter);
 		}
 	}
 
-	if (ecnf_mode.def) {
+	// Based on "scc", determine which atoms should actually be considered defined. Meanwhile initialize "disj_occurs" and "conj_occurs".
+	// NOTE: because we've searched scc's in the *positive* dependency graph, rules like  P <- ~Q, Q <- ~P will be marked NONDEF here. Hence final well-foundedness check needs to check in defdVars.
+	atoms_in_pos_loops = 0;
+	disj_occurs.growTo(2 * nVars());
+	conj_occurs.growTo(2 * nVars());
+	Lit l;
+	Lit jstf;
+	for (int i = 0; i < defdVars.size(); ++i) {
+		Var v = defdVars[i];
+		bool isdefd = false;
+		switch (defType[v]) {
+		case DISJ: {
+			Clause& dfn = *definition[v];
+			//Rule& dfn = *definition[v];
+			for (int j = 0; j < dfn.size(); ++j) {
+				l = dfn[j];
+				if (l != Lit(v, true))
+					disj_occurs[toInt(l)].push(v);
+				if (!sign(l) && scc[v] == scc[var(l)])
+					isdefd = true;
+			}
+			break;
+		}
+		case CONJ: {
+			Clause& dfn = *definition[v];
+			//Rule& dfn = *definition[v];
+			for (int j = 0; j < dfn.size(); ++j) {
+				l = ~dfn[j];
+				if (l != Lit(v, true))
+					conj_occurs[toInt(l)].push(v);
+				if (!sign(l) && scc[v] == scc[var(l)])
+					isdefd = true;
+			}
+			break;
+		}
+		/*FIXME case AGGR: {
+			assert(ecnf_mode.aggr);
+			AggrWatch& aw = (Aggr_watches[v])[0];
+			for (int j = 0; !isdefd && j < aw.set->set.size(); ++j)
+				if (scc[v] == scc[var(aw.set->set[j].lit)]) // NOTE: disregard sign here: set literals can occur both pos and neg in justifications. This could possibly be made more precise for MIN and MAX...
+					isdefd = true;
+			break;
+		}*/
+		default:
+			assert(false);
+		}
+		if (isdefd)
+			atoms_in_pos_loops++;
+		else
+			defType[v] = NONDEF; // NOTE: no reason to set definition[v]=NULL.
+	}
+	if (verbosity >= 1)
+		reportf("| Number of recursive atoms : %6d                                          |\n",(int)atoms_in_pos_loops);
+
+	if (atoms_in_pos_loops == 0) {
+		solver->setTSolver(NULL);
 		if (verbosity >= 1)
-			reportf("| Number of rules           : %6d                                          |\n",defdVars.size());
+			reportf("|    (there will be no definitional propagations)                             |\n");
+		return;
+	}
 
-		// ****** Based on this, initialize "scc". ******
-		scc.growTo(nVars(), 0);
-		//for memory efficiency, the scc datastructure is used to keep the root of the nodes
-		//in the end, the algorithm sets ALL of the nodes on the stack to the same root
-		//so then the SCC is correct
-		vec<int> & root = scc;
-		vec<bool> incomp(nVars(), false);
-		vec<int> stack;
-		vec<int> visited(nVars(), 0); // =0 represents not visited; >0 corresponds to a unique value (the counter).
-		int counter = 1;
+	isCS.growTo(nVars(), false);
 
-        for (int i=0; i<nVars(); i++){
-        	if (defType[i]!=NONDEF && visited[i]==0){
-        		visit(i,root,incomp,stack,visited,counter);
-        	}
-        }
+	// TODO verify whether there could still be propagations pending due to the fact that rules are not simplified while parsing.
 
-		// Based on "scc", determine which atoms should actually be considered defined. Meanwhile initialize "disj_occurs" and "conj_occurs".
-		// NOTE: because we've searched scc's in the *positive* dependency graph, rules like  P <- ~Q, Q <- ~P will be marked NONDEF here. Hence final well-foundedness check needs to check in defdVars.
-		atoms_in_pos_loops = 0;
-		disj_occurs.growTo(2 * nVars());
-		conj_occurs.growTo(2 * nVars());
-		Lit l;
-		Lit jstf;
-		for (int i = 0; i < defdVars.size(); ++i) {
-			Var v = defdVars[i];
-			bool isdefd = false;
-			switch (defType[v]) {
-			case DISJ: {
-				Clause& dfn = *definition[v];
-				//Rule& dfn = *definition[v];
-				for (int j = 0; j < dfn.size(); ++j) {
-					l = dfn[j];
-					if (l != Lit(v, true))
-						disj_occurs[toInt(l)].push(v);
-					if (!sign(l) && scc[v] == scc[var(l)])
-						isdefd = true;
-				}
-				break;
-			}
-			case CONJ: {
-				Clause& dfn = *definition[v];
-				//Rule& dfn = *definition[v];
-				for (int j = 0; j < dfn.size(); ++j) {
-					l = ~dfn[j];
-					if (l != Lit(v, true))
-						conj_occurs[toInt(l)].push(v);
-					if (!sign(l) && scc[v] == scc[var(l)])
-						isdefd = true;
-				}
-				break;
-			}
-			case AGGR: {
-				assert(ecnf_mode.aggr);
-				AggrWatch& aw = (Aggr_watches[v])[0];
-				for (int j = 0; !isdefd && j < aw.set->set.size(); ++j)
-					if (scc[v] == scc[var(aw.set->set[j].lit)]) // NOTE: disregard sign here: set literals can occur both pos and neg in justifications. This could possibly be made more precise for MIN and MAX...
-						isdefd = true;
-				break;
-			}
-			default:
-				assert(false);
-			}
-			if (isdefd)
-				atoms_in_pos_loops++;
-			else
-				defType[v] = NONDEF; // NOTE: no reason to set definition[v]=NULL.
-		}
-		if (verbosity >= 1)
-			reportf("| Number of recursive atoms : %6d                                          |\n",(int)atoms_in_pos_loops);
-		if (atoms_in_pos_loops == 0) {
-			ecnf_mode.def = false;
-			if (verbosity >= 1)
-				reportf("|    (there will be no definitional propagations)                             |\n");
-		}
-
-		if (ecnf_mode.def) {
-			isCS.growTo(nVars(), false);
-			// used_conj.growTo(nVars()); WITH guards system.
-		}
-		// TODO verify whether there could still be propagations pending due to the fact that rules are not simplified while parsing.
-
-		//Dit verhoogt heel erg de snelheid op sokobans en dergelijke, maar in combinatie met aggregaten gaat het verkeerd
-		//TODO do something smarter for aggregates
-		if(!ecnf_mode.aggr){
-			for (int i=0; i<nVars(); i++){
-				if (value(i) != l_Undef){
-					solver->addToTrail(Lit(i,(value(i)==l_False)));
-				}
-			}
+	//Dit verhoogt heel erg de snelheid op sokobans en dergelijke, maar in combinatie met aggregaten gaat het verkeerd
+	//FIXME if(!ecnf_mode.aggr){
+	for (int i=0; i<nVars(); i++){
+		if (value(i) != l_Undef){
+			solver->addToTrail(Lit(i,(value(i)==l_False)));
 		}
 	}
+	//}
 }
 
 /**
@@ -615,7 +511,7 @@ void TSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, v
 		}
 		break;
 	}
-	case AGGR: {
+	/*FIXME case AGGR: {
 		AggrWatch& aw = (Aggr_watches[i])[0];
 		for (int j = 0; j < aw.set->set.size(); ++j) {
 			Var w = var(aw.set->set[j].lit);
@@ -629,7 +525,7 @@ void TSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, v
 			}
 		}
 		break;
-	}
+	}*/
 	default:
 		assert(false);
 	}
@@ -669,8 +565,8 @@ void TSolver::findCycleSources() {
 				}
 			}
 
-			if (ecnf_mode.aggr) {
-				// Aggr_watches[v] is a list of sets in which v occurs (each AggrWatch says: which set, what type of occurrence).
+			//FIXME if (ecnf_mode.aggr) {
+				/*// Aggr_watches[v] is a list of sets in which v occurs (each AggrWatch says: which set, what type of occurrence).
 				// If defType[v]==AGGR, (Aggr_watches[v])[0] has type==DEFN and expr->c==Lit(v,false).
 				vec<AggrWatch>& as = Aggr_watches[var(l)];
 				for (int j = 0; j < as.size(); j++) {
@@ -690,7 +586,7 @@ void TSolver::findCycleSources() {
 						}
 					}
 				}
-			}
+			}*/
 		}
 	} else {
 		// NOTE: with a clever trail system, we could even after conflicts avoid having to look at all rules.
@@ -705,7 +601,7 @@ void TSolver::findCycleSources() {
 				}
 			}
 
-			else if (defType[v] == AGGR) {
+			/*FIXME else if (defType[v] == AGGR) {
 				if (value(v) == l_False){ continue; }
 				vec<Lit>& cf = cf_justification_aggr[v];
 				int k = 0;
@@ -715,7 +611,7 @@ void TSolver::findCycleSources() {
 				if (k < cf.size()){ // There is a false literal in the cf_justification.
 					findCycleSources(v);
 				}
-			}
+			}*/
 		}
 	}
 	//nb_times_findCS++;
@@ -748,7 +644,7 @@ void TSolver::findCycleSources(Var v) {
 				jstf)])
 			addCycleSource(v);
 	} else {
-		assert(defType[v]==AGGR);
+		/*FIXME assert(defType[v]==AGGR);
 		bool becomes_cycle_source = false;
 
 		AggrWatch& aw = (Aggr_watches[v])[0];
@@ -808,7 +704,7 @@ void TSolver::findCycleSources(Var v) {
 
 		change_jstfc_aggr(v, nj);
 		if (becomes_cycle_source)
-			addCycleSource(v);
+			addCycleSource(v);*/
 	}
 }
 
@@ -833,7 +729,8 @@ bool TSolver::indirectPropagateNow() {
 /////////////
 //Finding unfounded checks by
 //Generalized tarjanUFS
-//TODObroes voorlopig wordt er nog overal met completion clauses gewerkt, die dus altijd een disjunctie zijn en geordend zoals minisat er zin in heeft, dus checken voor head en dergelijke
+//TODO voorlopig wordt er nog overal met completion clauses gewerkt, die dus altijd een disjunctie zijn en geordend zoals minisat er zin in heeft, dus checken voor head en dergelijke
+//TODO werkt niet voor aggregaten
 //justification is een subgrafe van de dependency grafe
 UFS TSolver::visitForUFSgeneral(Var v, Var cs, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited, vec<bool>& incomp){
 	visited[v]=visittime;visittime++;root[v]=v;
@@ -1028,6 +925,7 @@ inline bool TSolver::hasJustification(Var x, vec<Var>& vis){
 /////////////
 //Finding unfounded checks by
 //validjust indicates both that the element is already in a justification or is in another found component (in which case it might also be false, not requiring a justification)
+//TODO werkt niet voor aggregaten
 UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<Var>& stack, vec<Var>& vis, vec<vec<Lit> >& network, vec<Var>& tempseen){
 	vis[v]=visittime;
 	int timevisited = visittime;
@@ -1164,8 +1062,6 @@ UFS TSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<Va
 	return STILLPOSSIBLE;
 }
 
-int count = 0;
-
 /*_________________________________________________________________________________________________
  |
  |  indirectPropagate : [void]  ->  [Clause*]
@@ -1209,13 +1105,11 @@ Clause* TSolver::indirectPropagate() {
 
  		for (; !ufs_found && j < css.size(); j++){//hij komt nooit in het geval dat hij iets op de stack moet pushen, altijd disj unfounded???
  			if(isCS[css[j]] && seen[css[j]]==0){
- 				//TODO om seen te gebruiken, mag dat niet tegelijk gebruikt kunnen worden in unfounded()
-
- 				//TODO 2: programma goed documenteren en een pseudo code versie bijhouden naast een lijst met optimalisaties
+ 				//TODO om geen seen2 nodig te hebben, mag dat niet tegelijk gebruikt kunnen worden in unfounded()
  				vec<vec<Lit> > network;	//maps a node to a list of nodes that have visited the first one
 										//as index, the visited time is used
 
- 				//TODO offset gaat nog mis omdat niet alles een justification moet hebben, maar dat ze wel aan het netwerk worden toegevoegd als dat niet zo is
+ 				//offset gaat nog mis omdat niet alles een justification moet hebben, maar dat ze wel aan het netwerk worden toegevoegd als dat niet zo is
  				//offset = visittime-1;
  				network.growTo(visittime+1);
  				network[visittime].push(Lit(css[j]));
@@ -1256,7 +1150,7 @@ Clause* TSolver::indirectPropagate() {
 	}
 
 	//justifiable_cycle_sources += ufs_found ? (j - 1) : j; // This includes those that are removed inside "unfounded".
-	//succesful_justify_calls += (justify_calls - old_justify_calls); //TODO this is no longer be correct for the tarjan algo
+	//succesful_justify_calls += (justify_calls - old_justify_calls); //no longer correct for tarjan algo
 
 	if (ufs_found) {
 		if (verbosity >= 2) {
@@ -1386,7 +1280,7 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 		}
 		break;
 	}
-	case AGGR: {
+	/*FIXME case AGGR: {
 		AggrWatch& aw = (Aggr_watches[v])[0];
 		vec<AggrSet::WLit>& lits = aw.set->set;
 		switch (aw.set->type) {
@@ -1553,7 +1447,7 @@ bool TSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 		}
 		}
 		break;
-	}
+	}*/
 	default:
 		assert(false);
 	}
@@ -1608,7 +1502,7 @@ bool TSolver::Justify(Var v, Var cs, std::set<Var>& ufs, Queue<Var>& q) {
 				}
 			}
 
-			if (ecnf_mode.aggr) {
+			/*FIXME if (ecnf_mode.aggr) {
 				// Record aggregates that might now be justified on the main queue. TODO : can we do this less eagerly? something like used_conjs?
 				vec<AggrWatch>& aw = Aggr_watches[k];
 				for (int i = 0; i < aw.size(); ++i) {
@@ -1621,7 +1515,7 @@ bool TSolver::Justify(Var v, Var cs, std::set<Var>& ufs, Queue<Var>& q) {
 							q.insert(d);
 					}
 				}
-			}
+			}*/
 		}
 	}
 	return false;
@@ -1637,11 +1531,11 @@ void TSolver::change_jstfc_disj(Var v, Lit j) {
 // Change sp_justification: v is now justified by j.
 void TSolver::change_jstfc_aggr(Var v, const vec<Lit>& j) {
 	// NOTE: maybe more efficient implementation possible if j changes very little from previous justification? Especially for MIN and MAX.
-	assert(defType[v]==AGGR);
+	/*FIXME assert(defType[v]==AGGR);
 	sp_justification_aggr[v].clear();
 	for (int i = 0; i < j.size(); i++)
 		sp_justification_aggr[v].push(j[i]);
-	changed_vars.push(v);
+	changed_vars.push(v);*/
 }
 
 /**
@@ -1666,7 +1560,7 @@ void TSolver::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf){
 				}
 				break;
 			}
-		case AGGR:
+		/*FIXME case AGGR:
 			{
 				AggrWatch& aw = (Aggr_watches[*tch])[0];
 				vec<AggrSet::WLit>& lits = aw.set->set;
@@ -1715,7 +1609,7 @@ void TSolver::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf){
 					}
 				}
 				break;
-			}
+			}*/
 		}
 	}
 }
@@ -1726,7 +1620,6 @@ void TSolver::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf){
  * Otherwise, add a loop formula for each atom in ufs, enqueue the negation of
  * each of those atoms, and return NULL.
  * For each atom in UFS that is false, don't do anything
- * TODO don't find UFS that are already completely false
  */
 Clause* TSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	assert(!ufs.empty());
@@ -1820,56 +1713,6 @@ void TSolver::markNonJustified(Var cs, vec<Var>& tmpseen) {
 		q.pop();
 		markNonJustifiedAddParents(x, cs, q, tmpseen);
 	}
-
-	//#define addVar(x)      { if (!seen[x] && (scc[x]==cs_scc)) { seen[x]=1; tmpseen.push(x); q.insert(x); total_marked_size++; } }
-	//#define addVarStop(x)  { if (!seen[x] && (scc[x]==cs_scc) && (x==cs || !isCS[x])) { seen[x]=1; tmpseen.push(x); q.insert(x); total_marked_size++; } }
-	//#define addParents(x)     { vec<Var>& v = disj_occurs[x+x]; for (int i=0; i<v.size(); ++i) { if (var(sp_justification_disj[v[i]])==x) { Var y=v[i]; addVar(y); } } vec<Var>& w = conj_occurs[x+x]; for (int i=0; i<w.size(); i++) {Var y=w[i]; addVar(y);} }
-	//#define addParentsStop(x) { vec<Var>& v = disj_occurs[x+x]; for (int i=0; i<v.size(); ++i) { if (var(sp_justification_disj[v[i]])==x) { Var y=v[i]; addVarStop(y); } } vec<Var>& w = conj_occurs[x+x]; for (int i=0; i<w.size(); i++) {Var y=w[i]; addVarStop(y);} }
-	//NOTE: error in here--cf. markNonJustifiedAddParents#define addAllParents(x)      { vec<Var>& v = disj_occurs[x+x]; for (int i=0; i<v.size(); ++i) { if (var(sp_justification_disj[v[i]])==x) { Var y=v[i]; addVar(y); } } vec<Var>& w = conj_occurs[x+x]; for (int i=0; i<w.size(); i++) { Var y=w[i]; addVar(y); } vec<AggrWatch>& aw = Aggr_watches[x]; for (int i=0; i<aw.size(); i++) { if (aw[i].type==DEFN) continue; Var y=var(aw[i].expr->c); if (!seen[y] && (scc[y]==cs_scc)) { vec<Lit>& jstfc = sp_justification_aggr[y]; for (int j=0; j<jstfc.size(); j++) { if (jstfc[j]==Lit(x,false)) { seen[y]=1; tmpseen.push(y); q.insert(y); total_marked_size++; break; } } } } }
-	//SAME HERE.#define addAllParentsStop(x)  { vec<Var>& v = disj_occurs[x+x]; for (int i=0; i<v.size(); ++i) { if (var(sp_justification_disj[v[i]])==x) { Var y=v[i]; addVarStop(y); } } vec<Var>& w = conj_occurs[x+x]; for (int i=0; i<w.size(); i++) {Var y=w[i]; addVarStop(y);} vec<AggrWatch> & aw = Aggr_watches[x]; for (int i=0; i<aw.size(); i++) { if (aw[i].type==DEFN) continue; Var y=var(aw[i].expr->c); if (!seen[y] && (scc[y]==cs_scc)) { vec<Lit> & jstfc = sp_justification_aggr[y]; for (int j=0; j<jstfc.size(); j++) { if (jstfc[j]==Lit(x,false)) { seen[y]=1; tmpseen.push(y); q.insert(y); total_marked_size++; break; } } } } }
-	//
-	//    Queue<Var> q;
-	//    int cs_scc = scc[cs];
-	//
-	//    if (ecnf_mode.aggr) {
-	//        if (defn_search==include_cs) {
-	//            // Add parents of cs.
-	//            addAllParents(cs);
-	//            // Now recursively do the same with each enqueued Var.
-	//            Var x;
-	//            while (q.size() > 0) {
-	//                x = q.peek(); q.pop();
-	//                addAllParents(x);
-	//            }
-	//        } else { // stop_at_cs
-	//            addAllParentsStop(cs);
-	//            // Now recursively do the same with each enqueued Var.
-	//            Var x;
-	//            while (q.size() > 0) {
-	//                x = q.peek(); q.pop();
-	//                addAllParentsStop(x);
-	//            }
-	//        }
-	//    } else {
-	//        if (defn_search==include_cs) {
-	//            // Add parents of cs.
-	//            addParents(cs);
-	//            // Now recursively do the same with each enqueued Var.
-	//            Var x;
-	//            while (q.size() > 0) {
-	//                x = q.peek(); q.pop();
-	//                addParents(x);
-	//            }
-	//        } else { // stop_at_cs
-	//            addParentsStop(cs);
-	//            // Now recursively do the same with each enqueued Var.
-	//            Var x;
-	//            while (q.size() > 0) {
-	//                x = q.peek(); q.pop();
-	//                addParentsStop(x);
-	//            }
-	//        }
-	//    }
 }
 
 inline void TSolver::markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q, vec<Var>& tmpseen) {
@@ -1892,7 +1735,7 @@ void TSolver::markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>&
 	for (int i = 0; i < w.size(); i++){
 		markNonJustifiedAddVar(w[i], cs, q, tmpseen);
 	}
-	if (ecnf_mode.aggr) {
+	/*FIXME if (ecnf_mode.aggr) {
 		vec<AggrWatch>& aw = Aggr_watches[x];
 		for (int i = 0; i < aw.size(); i++) {
 			if (aw[i].type != DEFN) { // Else x is the head, hence not used in the justification.
@@ -1907,376 +1750,9 @@ void TSolver::markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>&
 				}
 			}
 		}
-	}
+	}*/
 }
 
-Clause* TSolver::aggrEnqueue(Lit p, AggrReason* ar) {
-	if (verbosity >= 2) {
-		reportf("%seriving ", value(p)==l_True ? "Again d" : "D");
-		printLit(p);
-		reportf(" because of the aggregate expression ");
-		printAggrExpr(*ar->expr, *ar->set);
-	}
-
-	if (value(p) == l_False) {
-		if (verbosity >= 2)
-			reportf("Conflict.\n");
-		AggrReason* old_ar = aggr_reason[var(p)];
-		aggr_reason[var(p)] = ar;
-		Clause* confl = getExplanation(p);
-		solver->addLearnedClause(confl);
-		aggr_reason[var(p)] = old_ar;
-		return confl;
-	} else if (value(p) == l_Undef) {
-		aggr_reason[var(p)] = ar;
-		solver->setTrue(p);
-	} else
-		delete ar;
-	return NULL;
-}
-
-void TSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
-	if (!ecnf_mode.aggr)
-		reportf("ERROR! Attempt at adding aggregate set, though ECNF specifiers did not contain \"aggr\".\n"), exit(
-				3);
-	if (lits.size() == 0) {
-		reportf("Error: Set nr. %d is empty,\n",set_id);
-		exit(3);
-	}
-	assert(lits.size()==weights.size());
-	// Find out if lits contains any doubles.
-	vec<Lit> ps(lits.size());
-	for (int i = 0; i < lits.size(); i++)
-		ps[i] = lits[i];
-	sort(ps);
-	Lit p;
-	int i;
-	for (i = 0, p = lit_Undef; i < ps.size(); i++)
-		if (ps[i] == p || ps[i] == ~p)
-			reportf("ERROR! (W)Set %d contains the same literal twice.\n",set_id), exit(
-					3);
-		else
-			p = ps[i];
-	// For each set_id we add NB_AGGR_TYPES sets.
-	while (set_id * NB_AGGR_TYPES > aggr_sets.size())
-		aggr_sets.push(new AggrSet()); // NOTE: each of these has type "SUM"!
-	// But we only initialize the default one.
-	AggrSet &as = *aggr_sets[(set_id - 1) * NB_AGGR_TYPES + SUM];
-	if (as.set.size() > 0) {
-		reportf("Error: Set nr. %d is defined more then once.\n",set_id), exit(
-				3);
-	}
-	for (int i = 0; i < lits.size(); i++) {
-		if (weights[i] < 0) {
-			reportf("Error: Set nr. %d contains a negative weight, %d.\n",set_id,weights[i]), exit(
-					3);
-		}
-		as.set.push(AggrSet::WLit(lits[i], weights[i]));
-		as.max += weights[i];
-	}
-	qsort(as.set, as.set.size(), sizeof(AggrSet::WLit), compare_WLits);
-	as.cmax = as.max;
-}
-
-/*void TSolver::Subsetminimize(const vec<Lit>& lits) {
-	if (!ecnf_mode.mnmz)
-		reportf("ERROR! Attempt at adding a subset minimize statement, though ECNF specifiers did not contain \"mnmz\".\n"), exit(
-				3);
-	if (lits.size() == 0) {
-		reportf("Error: The set of literals to be minimized is empty,\n");
-		exit(3);
-	}
-	if (to_minimize.size() != 0) {
-		reportf("At most one set of literals to be minimized can be given.\n");
-		exit(3);
-	}
-
-	for (int i = 0; i < lits.size(); i++)
-		to_minimize.push(lits[i]);
-}*/
-
-/*
- Adds an aggregate expression.
- Revisions of these expressions, in case of non-standard weights, will be
- done at a later time. These revisions introduce new atoms; something which
- can be done only after parsing.
-
- NOTE: do not set "ecnf_mode.aggr=true" yet!! Then it will already
- propagate, but in that case the constraint that each derived literal is
- added only once to the queue would be required (otherwise "trues" and
- "falses" get too many counts.)
- */
-void TSolver::addAggrExpr(int defn, int set_id, int min, int max, AggrType type) {
-	if (!ecnf_mode.aggr)
-		reportf("ERROR! Attempt at adding aggregate expression, though ECNF specifiers did not contain \"aggr\".\n"), exit(
-				3);
-
-	if (set_id * NB_AGGR_TYPES > aggr_sets.size()) {
-		reportf("Error: Set nr. %d is used, but not defined yet.\n",set_id), exit(
-				3);
-	}
-	if (min < 0 || min > max) {
-		reportf("Error: aggregate expression with minimum %d and maximum %d is not valid.\n",min,max), exit(
-				3);
-	}
-
-	Lit c = Lit(defn, false);
-	defType[var(c)] = AGGR;
-	//TODObroes add if really usefull varBumpActivity(var(c)); // These guys ought to be initially a bit more important then the rest.
-	if (ecnf_mode.def)
-		defdVars.push(var(c));
-	AggrExpr* ae = new AggrExpr(min, max, c);
-	aggr_exprs.push(ae);
-	AggrSet* as = aggr_sets[(set_id - 1) * NB_AGGR_TYPES + type];
-	as->exprs.push(ae);
-	if (as->type == SUM && type != SUM) {
-		// It's the first aggregate expression of type 'type' for this set. Initialize the set.
-		as->type = type;
-		AggrSet* sum_as = aggr_sets[(set_id - 1) * NB_AGGR_TYPES + SUM]; // We'll copy from this set, which has been initialized already.
-		for (int i = 0; i < sum_as->set.size(); i++)
-			as->set.push(sum_as->set[i]);
-		switch (as->type) {
-		// If type=SUM or PROD: min/max  attainable with current truth values. If type=MIN: index of first non-false / first true literal (can go out of range!); if type=MAX: index of last true / last non-false literal (can go out of range!).
-		case PROD:
-			as->min = 1;
-			as->max = 1;
-			for (int i = 0; i < sum_as->set.size(); i++)
-				as->max *= sum_as->set[i].weight;
-			as->cmax = as->max;
-			if (as->cmax == 0)
-				reportf("ERROR! Weight zero in a PROD expression.\n"), exit(3);
-			break;
-		case MIN:
-			as->min = 0; // [,)
-			as->max = as->set.size(); // [,)
-			break;
-		case MAX:
-			as->min = -1; // (,]
-			as->max = as->set.size() - 1; // (,]
-			break;
-		default:
-			assert(false);
-			break;
-		}
-	}
-
-	Aggr_watches[var(c)].push(AggrWatch(as, ae, -1, DEFN));
-
-	bool already_occurs = false; // Making sure that for a set with several expressions, watches from the set literals are added only once.
-	vec<AggrWatch>& vcw = Aggr_watches[var(as->set[0].lit)]; // Note: set is not empty.
-	for (int i = 0; !already_occurs && i < vcw.size(); i++)
-		if (vcw[i].set == as)
-			already_occurs = true;
-	for (int i = 0; !already_occurs && i < as->set.size(); i++)
-		Aggr_watches[var(as->set[i].lit)].push(AggrWatch(as, NULL, i, sign(
-				as->set[i].lit) ? NEG : POS));
-}
-
-Clause* TSolver::Aggr_propagate(Lit p) { // TODO: do something about double work? E.g. first propagation head->some body literal, then backward again...
-	Clause* confl = NULL;
-
-	vec<AggrWatch>& ws = Aggr_watches[var(p)];
-	if (verbosity >= 2 && ws.size() > 0)
-		reportf("Aggr_propagate(%s%d).\n",sign(p)?"-":"",var(p)+1);
-	for (int i = 0; confl == NULL && i < ws.size(); i++) {
-		AggrSet& as = *ws[i].set;
-		Occurrence tp = relativeOccurrence(ws[i].type, p);
-		as.stack.push(AggrSet::PropagationInfo(p, as.set[ws[i].index].weight,
-				tp));
-		if (tp == DEFN) // It's a defining literal.
-			confl = Aggr_propagate(as, *ws[i].expr);
-		else { // It's a set literal.
-			// First update the set's "min" and "max" values.
-			bool trues = tp == POS;
-			switch (as.type) {
-			case SUM:
-				if (trues)
-					as.min += as.set[ws[i].index].weight;
-				else
-					as.max -= as.set[ws[i].index].weight;
-				break;
-			case PROD:
-				// NOTE: this assumes weights are different from zero!
-				if (trues)
-					as.min *= as.set[ws[i].index].weight;
-				else {
-					assert(as.max % as.set[ws[i].index].weight==0);
-					as.max = as.max / as.set[ws[i].index].weight;
-				}
-				break;
-			case MIN:
-				if (trues) {
-					if (ws[i].index < as.max)
-						as.max = ws[i].index;
-				} else {/*if (ws[i].index==as.min)*/
-					while (as.min < as.set.size() && value(as.set[as.min].lit)
-							== l_False)
-						++as.min;
-				}
-				break;
-			case MAX:
-				if (trues) {
-					if (ws[i].index > as.min)
-						as.min = ws[i].index;
-				} else {/*if (ws[i].index==as.max)*/
-					while (as.max >= 0 && value(as.set[as.max].lit) == l_False)
-						--as.max;
-				}
-				break;
-			default:
-				assert(false);
-				break;
-			}
-			int min = as.min;
-			int max = as.max;
-
-			if (as.type == MIN) {
-				if (as.min < as.set.size())
-					min = as.set[as.min].weight;
-				else
-					min = 2147483647;
-				if (as.max < as.set.size())
-					max = as.set[as.max].weight;
-				else
-					max = 2147483647;
-			} else if (as.type == MAX) {
-				if (as.min >= 0)
-					min = as.set[as.min].weight;
-				else
-					min = -1;
-				if (as.max >= 0)
-					max = as.set[as.max].weight;
-				else
-					max = -1;
-			}
-			// Now try to propagate.
-			for (int e = 0; confl == NULL && e < as.exprs.size(); e++) {
-				AggrExpr& ae = *as.exprs[e];
-				if (min >= ae.min && max <= ae.max)
-					confl = aggrEnqueue(ae.c, new AggrReason(&ae, &as, DEFN));
-				else if (min > ae.max)
-					confl = aggrEnqueue(~ae.c, new AggrReason(&ae, &as, DEFN));
-				else if (max < ae.min)
-					confl = aggrEnqueue(~ae.c, new AggrReason(&ae, &as, DEFN));
-				else
-					confl = Aggr_propagate(as, ae);
-			}
-		}
-	}
-
-	return confl;
-}
-
-Clause* TSolver::Aggr_propagate(AggrSet& as, AggrExpr& ae) {
-	Clause* confl = NULL;
-	switch (as.type) {
-	// TODO SUM / PROD propagations can be made more efficient using ordering of literals!!
-	case SUM:
-		if (value(ae.c) == l_True) {
-			for (int u = 0; u < as.set.size(); u++) {
-				if (value(as.set[u].lit) == l_Undef) {// no conflict possible
-					if (as.min + as.set[u].weight > ae.max)
-						aggrEnqueue(~as.set[u].lit, new AggrReason(&ae, &as,
-								NEG));
-					else if (as.max - as.set[u].weight < ae.min)
-						aggrEnqueue(as.set[u].lit,
-								new AggrReason(&ae, &as, POS));
-				}
-			}
-		} else if (value(ae.c) == l_False) {
-			if (as.min >= ae.min || as.max <= ae.max) {// no conflicts possible
-				int minw = 2147483647;
-				for (int u = 0; u < as.set.size(); u++)
-					if (value(as.set[u].lit) == l_Undef && as.set[u].weight
-							< minw)
-						minw = as.set[u].weight;
-				bool maketrue = minw != 2147483647 && as.min >= ae.min
-						&& as.max - minw <= ae.max;
-				bool makefalse = minw != 2147483647 && as.max <= ae.max
-						&& as.min + minw >= ae.min;
-				if (maketrue)
-					for (int u = 0; u < as.set.size(); u++)
-						if (value(as.set[u].lit) == l_Undef)
-							aggrEnqueue(as.set[u].lit, new AggrReason(&ae, &as,
-									POS));
-				if (makefalse)
-					for (int u = 0; u < as.set.size(); u++)
-						if (value(as.set[u].lit) == l_Undef)
-							aggrEnqueue(~as.set[u].lit, new AggrReason(&ae,
-									&as, NEG));
-			}
-		}
-		break;
-	case PROD: // cfr. SUM, but * and / instead of + and -.
-		if (value(ae.c) == l_True) {
-			for (int u = 0; u < as.set.size(); u++) {
-				if (value(as.set[u].lit) == l_Undef) {
-					if (as.min * as.set[u].weight > ae.max)
-						aggrEnqueue(~as.set[u].lit, new AggrReason(&ae, &as,
-								NEG));
-					else if (as.max / as.set[u].weight < ae.min)
-						aggrEnqueue(as.set[u].lit,
-								new AggrReason(&ae, &as, POS));
-				}
-			}
-		} else if (value(ae.c) == l_False) {
-			if (as.min >= ae.min || as.max <= ae.max) {
-				int minw = 2147483647;
-				for (int u = 0; u < as.set.size(); u++)
-					if (value(as.set[u].lit) == l_Undef && as.set[u].weight
-							< minw)
-						minw = as.set[u].weight;
-				bool maketrue = minw != 2147483647 && as.min >= ae.min
-						&& as.max / minw <= ae.max;
-				bool makefalse = minw != 2147483647 && as.max <= ae.max
-						&& as.min * minw >= ae.min;
-				if (maketrue)
-					for (int u = 0; u < as.set.size(); u++)
-						if (value(as.set[u].lit) == l_Undef)
-							aggrEnqueue(as.set[u].lit, new AggrReason(&ae, &as,
-									POS));
-				if (makefalse)
-					for (int u = 0; u < as.set.size(); u++)
-						if (value(as.set[u].lit) == l_Undef)
-							aggrEnqueue(~as.set[u].lit, new AggrReason(&ae,
-									&as, NEG));
-			}
-		}
-		break;
-	case MIN:
-		if (value(ae.c) == l_True) {
-			for (int u = as.min; confl == NULL && u < as.set.size()
-					&& as.set[u].weight < ae.min; ++u)
-				confl = aggrEnqueue(~as.set[u].lit, new AggrReason(&ae, &as,
-						NEG));
-		} else if (value(ae.c) == l_False) {
-			if (as.min < as.set.size() && as.set[as.min].weight >= ae.min)
-				for (int u = as.min; confl == NULL && u < as.set.size()
-						&& as.set[u].weight <= ae.max; ++u)
-					confl = aggrEnqueue(~as.set[u].lit, new AggrReason(&ae,
-							&as, NEG));
-		}
-		break;
-	case MAX:
-		if (value(ae.c) == l_True) {
-			for (int u = as.max; confl == NULL && u >= 0 && as.set[u].weight
-					> ae.max; --u)
-				confl = aggrEnqueue(~as.set[u].lit, new AggrReason(&ae, &as,
-						NEG));
-		} else if (value(ae.c) == l_False) {
-			if (as.max >= 0 && as.set[as.max].weight <= ae.max)
-				for (int u = as.max; confl == NULL && u >= 0
-						&& as.set[u].weight >= ae.min; --u)
-					confl = aggrEnqueue(~as.set[u].lit, new AggrReason(&ae,
-							&as, NEG));
-		}
-		break;
-	default:
-		assert(false);
-		break;
-	}
-	return confl;
-}
 /* (@&) if there is but one remaining non-false literal with weight <= ae.max, that literal has to be made true.
  Lit candidate; bool use_candidate=true;
  for (int u=0;confl==NULL && u<as.set.size();u++) {
@@ -2334,196 +1810,8 @@ Clause* TSolver::Aggr_propagate(AggrSet& as, AggrExpr& ae) {
  }
  */
 
-/*_________________________________________________________________________________________________
- |
- |  implicitReasonClause : (Lit)  ->  [Clause*]
- |
- |  Description:
- |    Use for a literal that was deduced using a aggregate expression. This method constructs,
- |    from the AggrReason stored for it, a "reason clause" usable in clause learning.
- |    Note that this clause is not attached, bumped, or any of the likes. Delete it immediately
- |    after use, to avoid memory leaks.
- |________________________________________________________________________________________________@*/
-Clause* TSolver::getExplanation(Lit p) {
-	assert(ecnf_mode.aggr);
-	vec<Lit> lits;
-	lits.push(p);
-
-	AggrReason& ar = *aggr_reason[var(p)];
-	int i = 0;
-	for (; i < Aggr_watches[var(p)].size() && (Aggr_watches[var(p)])[i].set
-			!= ar.set; ++i)
-		;
-	assert(i<Aggr_watches[var(p)].size());
-	int p_idx = (Aggr_watches[var(p)])[i].index;
-	AggrType tp = ar.set->type;
-	if (tp == SUM || tp == PROD) {
-		int cmax = ar.set->cmax;
-		int min_needed = tp == SUM ? 0 : 1;
-		int max_needed = cmax;
-		if (ar.type == DEFN) {
-			// [mn >= i && mx =< j  ==>  c]  OR  [mn > j  || mx < i  ==>  ~c]
-			if (ar.expr->c == p) {
-				min_needed = ar.expr->min;
-				max_needed = ar.expr->max;
-			} else {
-				assert(ar.expr->c==~p);
-				if (ar.set->min > ar.expr->max)
-					min_needed = ar.expr->max + 1;
-				else
-					max_needed = ar.expr->min - 1;
-			}
-		} else if (ar.type == POS) {
-			// c is true && mx = i  OR  c is false && mn >= i && mx = j+1
-			if (value(ar.expr->c) == l_True) {
-				lits.push(~ar.expr->c);
-				max_needed = ar.expr->min + ar.set->set[p_idx].weight - 1;
-			} else {
-				assert(value(ar.expr->c)==l_False);
-				lits.push(ar.expr->c);
-				min_needed = ar.expr->min;
-				max_needed = ar.expr->max + ar.set->set[p_idx].weight;
-			}
-		} else {
-			assert(ar.type==NEG);
-			// c is true && mn = j  OR  c is false && mx =< j && mn = i-1
-			if (value(ar.expr->c) == l_True) {
-				lits.push(~ar.expr->c);
-				min_needed = ar.expr->max - ar.set->set[p_idx].weight + 1;
-			} else {
-				assert(value(ar.expr->c)==l_False);
-				lits.push(ar.expr->c);
-				min_needed = ar.expr->min - ar.set->set[p_idx].weight;
-				max_needed = ar.expr->max;
-			}
-		}
-
-		/* We now walk over the stack and add literals that are relevant to the
-		 reason clause, until it is big enough. When that is depends on the type
-		 of propagation that was done to derive p.
-		 */
-		Lit q;
-		char t;
-		for (int i = 0; min_needed + (cmax - max_needed)
-				> (ar.set->type == SUM ? 0 : 1); i++) {
-			q = ar.set->stack[i].lit;
-			assert(q!=p); // We should have assembled a reason clause before encountering this.
-			t = ar.set->stack[i].type;
-
-			// if (t==0) then q is irrelevant to this derivation.
-			if (t == 1 && min_needed > (ar.set->type == SUM ? 0 : 1)) {
-				lits.push(~q);
-				if (ar.set->type == SUM)
-					min_needed -= ar.set->stack[i].weight;
-				else
-					/*PROD*/
-					min_needed = min_needed / ar.set->stack[i].weight
-							+ (min_needed % ar.set->stack[i].weight == 0 ? 0
-									: 1);
-			} else if (t == 2 && max_needed < cmax) {
-				lits.push(~q);
-				if (ar.set->type == SUM)
-					max_needed += ar.set->stack[i].weight;
-				else
-					/*PROD*/
-					max_needed *= ar.set->stack[i].weight;
-			}
-		}
-	} else { // tp == MIN or tp == MAX
-		if (ar.type == DEFN) {
-			if (ar.expr->c == p) {
-				// NB: we're not using the stack now; assert that each of the used literals is on it, before p.
-				if (tp == MIN) {
-					for (int i = 0; i < ar.set->min && ar.set->set[i].weight
-							< ar.expr->min; ++i)
-						lits.push(ar.set->set[i].lit);
-					assert(ar.set->max<ar.set->set.size() && ar.set->set[ar.set->max].weight >= ar.expr->min && ar.set->set[ar.set->max].weight <= ar.expr->max);
-					lits.push(~ar.set->set[ar.set->max].lit);
-				} else { // tp==MAX
-					for (int i = ar.set->set.size() - 1; i > ar.set->max
-							&& ar.set->set[i].weight > ar.expr->max; --i)
-						lits.push(ar.set->set[i].lit);
-					assert(ar.set->min>=0 && ar.set->set[ar.set->min].weight >= ar.expr->min && ar.set->set[ar.set->min].weight <= ar.expr->max);
-					lits.push(~ar.set->set[ar.set->min].lit);
-				}
-			} else {
-				assert(ar.expr->c==~p);
-				// either the real MIN/MAX is too small, or too big.
-				if (tp == MIN) {
-					if (ar.set->max < ar.set->set.size()
-							&& ar.set->set[ar.set->max].weight < ar.expr->min) {
-						reportf("First option; ar.set->max=%d; its weight=%d; ar.expr->min=%d.\n",ar.set->max,ar.set->set[ar.set->max].weight,ar.expr->min);
-						lits.push(~ar.set->stack[ar.set->max].lit);
-					} else {
-						assert(ar.set->max == ar.set->set.size() || ar.set->set[ar.set->min].weight>ar.expr->max); // NOTE: this does not assert that all these literals are on stack before p.
-						reportf("Second option; ar.expr->max=%d.\n",ar.expr->max);
-						for (int i = 0; i < ar.set->set.size()
-								&& ar.set->set[i].weight <= ar.expr->max; ++i)
-							lits.push(ar.set->set[i].lit);
-					}
-				} else { // tp==MAX
-					if (ar.set->min >= 0 && ar.set->set[ar.set->min].weight
-							> ar.expr->max)
-						lits.push(~ar.set->stack[ar.set->min].lit);
-					else {
-						assert(ar.set->min < 0 || ar.set->set[ar.set->max].weight<ar.expr->min); // NOTE: this does not assert that all these literals are on stack before p.
-						for (int i = ar.set->set.size() - 1; i >= 0
-								&& ar.set->set[i].weight >= ar.expr->min; ++i)
-							lits.push(ar.set->set[i].lit);
-					}
-				}
-			}
-		} else if (ar.type == POS) {
-			assert(false); // This type of propagation should not occur as long as the (@&) TODO's haven't been implemented.
-			/*            if (value(ar.expr->c)==l_True) {
-			 lits.push(~ar.expr->c);
-			 } else { assert(value(ar.expr->c)==l_False);
-			 lits.push(ar.expr->c);
-			 }
-			 */
-		} else {
-			assert(ar.type==NEG);
-			if (tp == MIN) {
-				if (value(ar.expr->c) == l_True) // assert that p's weight is < ar.expr->min
-					lits.push(~ar.expr->c);
-				else {
-					assert(value(ar.expr->c)==l_False);
-					lits.push(ar.expr->c);
-					for (int i = 0; i < ar.set->set.size()
-							&& ar.set->set[i].weight < ar.expr->min; ++i)
-						lits.push(ar.set->set[i].lit); // assert that these literals are on the stack, before p.
-				}
-			} else { // tp==MAX
-				if (value(ar.expr->c) == l_True) // assert that p's weight is > ar.expr->max
-					lits.push(~ar.expr->c);
-				else {
-					assert(value(ar.expr->c)==l_False);
-					lits.push(ar.expr->c);
-					for (int i = ar.set->set.size() - 1; i >= 0
-							&& ar.set->set[i].weight > ar.expr->max; ++i)
-						lits.push(ar.set->set[i].lit); // assert that these literals are on the stack, before p.
-				}
-			}
-		}
-	}
-
-	Clause* c = Clause_new(lits, true);
-	if (verbosity >= 2) {
-		reportf("Implicit reason clause for ");
-		printLit(p);
-		reportf(" : ");
-		printClause(*c);
-		reportf("\n");
-	}
-
-	return c;
-}
-
 bool TSolver::isCycleFree() { // currently only when no recursice aggregates!! TODO
-    if (!ecnf_mode.def)
-        return true;
-
-    assert(!ecnf_mode.aggr);
+    //FIXME assert(!ecnf_mode.aggr);
 
     reportf("Showing cf- and sp-justification for disjunctive atoms. <<<<<<<<<<\n");
     for (int i = 0; i < nVars(); i++) {
@@ -2628,13 +1916,13 @@ inline void TSolver::apply_changes() {
         Var v = changed_vars[i];
         if (!seen[v]) {
             if (defType[v]==DISJ) cf_justification_disj[v] = sp_justification_disj[v];
-            else {
+            /*FIXME else {
                 assert(defType[v]==AGGR);
                 vec<Lit>& sp = sp_justification_aggr[v];
                 vec<Lit>& cf = cf_justification_aggr[v];
                 cf.clear();
                 for (int j=0; j<sp.size(); ++j) cf.push(sp[j]);
-            }
+            }*/
             seen[v]=1;
         }
     }
@@ -2648,18 +1936,22 @@ inline void TSolver::clear_changes() {
         Var v = changed_vars[i];
         if (!seen[v]) {
             if (defType[v]==DISJ) sp_justification_disj[v] = cf_justification_disj[v];
-            else {
+            /*FIXME else {
                 assert(defType[v]==AGGR);
                 vec<Lit>& sp = sp_justification_aggr[v];
                 vec<Lit>& cf = cf_justification_aggr[v];
                 sp.clear();
                 for (int j=0; j<cf.size(); ++j) sp.push(cf[j]);
-            }
+            }*/
         }
     }
     for (int i=0; i<changed_vars.size(); i++)
     	seen[changed_vars[i]]=0;
     changed_vars.clear();
+}
+
+inline Clause* TSolver::getExplanation(Lit p) {
+	return NULL;
 }
 
 //=================================================================================================
@@ -2682,18 +1974,6 @@ inline void TSolver::printRule(const Rule& c){
         printLit(c[i]);
         fprintf(stderr, " ");
     }
-}
-
-inline void TSolver::printAggrSet(const AggrSet& as){
-    for (int i=0; i<as.set.size(); ++i) {
-        reportf(" "); printLit(as.set[i].lit); reportf("(%d)",as.set[i].weight);
-    }
-}
-
-inline void TSolver::printAggrExpr(const AggrExpr& ae, const AggrSet& as){
-    printLit(ae.c); reportf(" <- %d <= %s{",ae.min, as.type==SUM ? "sum" : (as.type==PROD ? "prod" : (as.type==MIN ? "min" : "max")));
-    printAggrSet(as);
-    reportf(" } <= %d. Known values: min=%d, max=%d\n",ae.max,as.min,as.max);
 }
 
 /*

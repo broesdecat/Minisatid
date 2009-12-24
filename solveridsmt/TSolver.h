@@ -20,13 +20,6 @@ const DefType DISJ   = 1;
 const DefType CONJ   = 2;
 const DefType AGGR   = 3;
 
-struct ECNF_mode {
-	bool init;              // True as long as we haven't finished the initialization.
-	bool def,aggr,mnmz; // True for those extensions that are being used.  TODO : extra state for recursive aggregates!!
-
-	ECNF_mode() : init(true), def(false), aggr(false), mnmz(false) {}
-};
-
 enum UFS {NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK};
 
 class Solver;
@@ -48,17 +41,11 @@ public:
 
 	/////////////////////INITIALIZATION
 	void    addRule      (bool conj, vec<Lit>& ps);          // Add a rule to the solver.
-	void    addSet       (int id, vec<Lit>& l, vec<int>& w);
-	void    addAggrExpr  (int defn, int set_id, int min, int max, AggrType type);
 	void    finishECNF_DataStructures ();                          // Initialize the ECNF data structures. NOTE: aggregates may set the "ok" value to false!
 
 	void setSolver(Solver* s){
 		solver = s;
 	}
-
-	// Mode of operation:
-	//
-	ECNF_mode ecnf_mode;
 
 	int	verbosity;          // Verbosity level. 0=silent, 1=some progress report
 	int	defn_strategy;      // Controls which propagation strategy will be used for definitions.                         (default always)
@@ -71,9 +58,7 @@ public:
 	/////////////////////END INITIALIZATION
 
 protected:
-	//maybe strange method, but allows to inline the normal backtrack method in the solver search and allows
-	//branch prediction much better i think
-	void 	doBacktrack 	( Lit l);
+	bool init;
 
 	vec<int>	seen, seen2;
 
@@ -95,19 +80,6 @@ protected:
 	// ECNF_mode.mnmz additions to Solver state:
 	vec<Lit>            to_minimize;
 
-	// ECNF_mode.aggr additions to Solver state:
-	//
-	vec<AggrExpr*>        aggr_exprs;           // List of aggregate expressions as occurring in the problem.
-	vec<AggrSet*>         aggr_sets;            // List of aggregate sets being used.
-	vec<AggrReason*>      aggr_reason;          // For each atom, like 'reason'.
-	vec<vec<AggrWatch> >  Aggr_watches;         // Aggr_watches[v] is a list of sets in which v occurs (each AggrWatch says: which set, what type of occurrence).
-	// If defType[v]==AGGR, (Aggr_watches[v])[0] has type==DEFN and expr->c==Lit(v,false).
-
-	// NOTE: this adds an invariant to the system: each literal with a truth value is put on the trail only once.
-	Clause* Aggr_propagate        (Lit p);                      // Perform propagations from aggregate expressions.
-	Clause* Aggr_propagate        (AggrSet& cs, AggrExpr& ce);  // Auxiliary for the previous.
-	Clause* aggrEnqueue           (Lit p, AggrReason* cr);      // Like "enqueue", but for aggregate propagations.
-
 	// ECNF_mode.def additions to Solver state:
 	//
 	vec<Var>        defdVars;            // May include variables that get marked NONDEF later.
@@ -124,9 +96,9 @@ protected:
 
 	// Justifications:
 	vec<Lit>        cf_justification_disj;  // Per atom. cf_ = cycle free.
-	vec<vec<Lit> >  cf_justification_aggr;  //           sp_ = supporting.
+	//FIXME vec<vec<Lit> >  cf_justification_aggr;  //           sp_ = supporting.
 	vec<Lit>        sp_justification_disj;  //           _aggr. = only for AGGR atoms.
-	vec<vec<Lit> >  sp_justification_aggr;  //           _disj. = only for DISJ atoms.
+	//FIXME vec<vec<Lit> >  sp_justification_aggr;  //           _disj. = only for DISJ atoms.
 	vec<Var>        changed_vars;           // A list of the atoms whose sp_ and cf_ justification are different.
 
 	int       adaption_total;     // Used only if defn_strategy==adaptive. Number of decision levels between indirectPropagate() uses.
@@ -188,8 +160,6 @@ protected:
 	template<class C>
 	void     printClause      (const C& c);
 	void     printRule        (const Rule& c);
-	void     printAggrSet     (const AggrSet& as);
-	void     printAggrExpr    (const AggrExpr& ae, const AggrSet& as);
 	void     checkLiteralCount();
 	bool     isCycleFree      ();                      // Verifies whether cf_justification is indeed cycle free.
 
@@ -209,22 +179,21 @@ inline void     TSolver::clearCycleSources()          { for (int i=0;i<css.size(
  */
 
 inline Clause* TSolver::propagate(Lit p, Clause* confl){
-	if (ecnf_mode.init || ! ecnf_mode.aggr || confl != NULL) {return confl;}
-	return Aggr_propagate(p);
+	return confl;
 }
 
 //only call this when the whole queue has been propagated
 inline Clause* TSolver::propagateDefinitions(Clause* confl){
-	if (ecnf_mode.init || ! ecnf_mode.def || confl!=NULL) {return confl;}
+	if (init || confl!=NULL) {return confl;}
 	return indirectPropagate();
 }
 
 inline void TSolver::backtrack ( Lit l){
-	if(ecnf_mode.init || !ecnf_mode.aggr){
-		return;
-	}else{
-		doBacktrack(l);
-	}
+	return;
+}
+
+inline Clause* getExplanation	(Lit p){
+	return NULL;
 }
 
 #endif /* TSOLVER_H_ */

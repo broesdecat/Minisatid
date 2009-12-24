@@ -32,6 +32,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "SolverTypes.h"
 #include "TSolver.h"
 #include "AMNSolver.h"
+#include "AggSolver.h"
 
 #ifdef _MSC_VER
 #include <ctime>
@@ -81,6 +82,7 @@ static inline uint64_t memUsed() { return 0; }
 
 class TSolver;
 class AMNSolver;
+class AggSolver;
 
 class Solver {
 public:
@@ -89,6 +91,8 @@ public:
 	void setTSolver(TSolver* ts){tsolver = ts;}
 	AMNSolver* 	amnsolver;
 	void setAMNSolver(AMNSolver* ts){amnsolver = ts;}
+	AggSolver* 	aggsolver;
+	void setAggSolver(AggSolver* ts){aggsolver = ts;}
 
     lbool   value      (Var x) const;       // The current value of a variable.
     lbool   value      (Lit p) const;       // The current value of a literal.
@@ -114,7 +118,6 @@ public:
 
     //TEMP:
     void addToTrail(Lit l);
-    void justAddClause(Clause* c);
 	/////////////////////END TSOLVER NECESSARY
 
     // Constructor/Destructor:

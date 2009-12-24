@@ -92,8 +92,15 @@ Var Solver::newVar(bool sign, bool dvar) {
 	decision_var.push((char) dvar);
 
 	//////////////START TSOLVER
-	tsolver->notifyVarAdded();
-	amnsolver->notifyVarAdded();
+	if(tsolver!=NULL){
+		tsolver->notifyVarAdded();
+	}
+	if(amnsolver!=NULL){
+		amnsolver->notifyVarAdded();
+	}
+	if(aggsolver!=NULL){
+		aggsolver->notifyVarAdded();
+	}
 	//////////////END TSOLVER
 
 	insertVarOrder(v);
@@ -176,10 +183,6 @@ void Solver::addClause(Clause* c){
 void Solver::addToTrail(Lit l){
 	trail.push(l);
 }
-
-void Solver::justAddClause(Clause* c){
-	clauses.push(c);
-}
 /////////END TSOLVER
 
 void Solver::attachClause(Clause& c) {
@@ -227,8 +230,15 @@ void Solver::cancelFurther(int init_qhead) {
 		//TODObroes: zorgen dat de Tsolvers enkel de noodzakelijke elementen bijhouden en dat het voor de anderen een lege, constante call is
 
 	    //////////////START TSOLVER
-		tsolver->backtrack(trail[c]);
-		amnsolver->backtrack(trail[c]);
+		if(tsolver!=NULL){
+			tsolver->backtrack(trail[c]);
+		}
+		if(amnsolver!=NULL){
+			amnsolver->backtrack(trail[c]);
+		}
+		if(aggsolver!=NULL){
+			aggsolver->backtrack(trail[c]);
+		}
 		//////////////END TSOLVER
 	}
 
@@ -358,8 +368,8 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel) {
 		confl = reason[var(p)];
 
 		//////////////START TSOLVER
-		if (confl == NULL && pathC > 1) {
-			confl = tsolver->getExplanation(p);
+		if (aggsolver!=NULL && confl == NULL && pathC > 1) {
+			confl = aggsolver->getExplanation(p);
 			deleteImplicitClause = true;
 		}
 		//////////////END TSOLVER
@@ -561,10 +571,19 @@ FoundWatch:;
         if (verbosity>=2) reportf(" ).\n");
 
 		//////////////START TSOLVER
-        confl = amnsolver->propagate(p, confl);
-        confl = tsolver->propagate(p, confl);
+        if(amnsolver!=NULL && confl == NULL){
+        	confl = amnsolver->propagate(p, confl);
+        }
+        if(tsolver!=NULL && confl == NULL){
+        	confl = tsolver->propagate(p, confl);
+        }
+        if(aggsolver!=NULL && confl == NULL){
+        	confl = aggsolver->propagate(p, confl);
+        }
 		if(qhead==trail.size()){
-			confl = tsolver->propagateDefinitions(confl);
+			if(tsolver!=NULL && confl == NULL){
+				confl = tsolver->propagateDefinitions(confl);
+			}
 		}
 		//////////////END TSOLVER
 
@@ -652,7 +671,11 @@ bool Solver::simplify() {
 	simpDB_props = clauses_literals + learnts_literals; // (shouldn't depend on stats really, but it will do for now)
 
     //////////////START TSOLVER
-	if(conflicts==0 && (!tsolver->simplify() || !amnsolver->simplify())){
+	if(conflicts==0 && ((tsolver!=NULL && !tsolver->simplify())
+								||
+						(amnsolver!=NULL && !amnsolver->simplify())
+								||
+						(aggsolver!=NULL && !aggsolver->simplify()))){
 		ok = false;
 		return false;
 	}

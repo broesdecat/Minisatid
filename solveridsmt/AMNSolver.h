@@ -81,8 +81,8 @@ protected:
 	template<class C>
 	void     printClause      (const C& c);
 
-    vec<vec<Clause*> >  EU_watches;       // 'EU_watches[lit]' is a list of EU-constraints watching 'lit' (will go there if literal becomes true).
-	Clause* EU_propagate(Lit p);
+    //vec<vec<Clause*> >  EU_watches;       // 'EU_watches[lit]' is a list of EU-constraints watching 'lit' (will go there if literal becomes true).
+	//Clause* EU_propagate(Lit p);
 };
 
 //=======================
@@ -90,7 +90,7 @@ protected:
 //=======================
 
 inline void AMNSolver::backtrack ( Lit l){
-	if(empty){ return; }
+	if(empty || init){ return; }
 	cardbacktrack(l);
 }
 
@@ -100,12 +100,8 @@ inline bool AMNSolver::simplify(){
 }
 
 inline Clause* AMNSolver::propagate(Lit p, Clause* confl){
-	if(empty || confl != NULL){	return confl; }
-	confl = EU_propagate(p);
-	if(confl==NULL){
-		confl = amnpropagate(p);
-	}
-	return confl;
+	if(empty || init || confl != NULL){	return confl; }
+	return amnpropagate(p);
 }
 
 #endif /* AMNSolver_H_ */
