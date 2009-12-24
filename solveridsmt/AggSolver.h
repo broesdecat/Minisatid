@@ -29,7 +29,8 @@ public:
 
 	/////////////////////INITIALIZATION
 	void    addSet       (int id, vec<Lit>& l, vec<int>& w);
-	void    addAggrExpr  (int defn, int set_id, int min, int max, AggrType type);
+	//void    addAggrExpr  (int defn, int set_id, int min, int max, AggrType type);
+	void    addAggrExpr  (int defn, int set_id, int bound, bool lower, AggrType type);
 	void    finishECNF_DataStructures ();       // Initialize datastructures.
 
 	void setSolver(Solver* s){

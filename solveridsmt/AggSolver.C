@@ -22,11 +22,49 @@ void AggSolver::notifyVarAdded(){
 	aggr_reason.push();
 }
 
+int AggSolver::getMinimum(vec<AggrSet::WLit>& lits){
+	int min = lits[0].weight;
+	for(int j=1; j<lits.size(); i++){
+		if(min > lits[j].weight){
+			min = lits[j].weight;
+		}
+	}
+	return min;
+}
+
+int AggSolver::getMaximum(vec<AggrSet::WLit>& lits){
+	int max = lits[0].weight;
+	for(int j=1; j<lits.size(); i++){
+		if(max < lits[j].weight){
+			max = lits[j].weight;
+		}
+	}
+	return max;
+}
+
+int AggSolver::getSum(vec<AggrSet::WLit>& lits){
+	int max = lits[0].weight;
+	for(int j=1; j<lits.size(); i++){
+		max += lits[j].weight;
+	}
+	return max;
+}
+
+int AggSolver::getProduct(vec<AggrSet::WLit>& lits){
+	int max = lits[0].weight;
+	for(int j=1; j<lits.size(); i++){
+		max *= lits[j].weight;
+	}
+	return max;
+}
+
 void AggSolver::finishECNF_DataStructures() {
 	init = false;
 
-	if (verbosity >= 1)
+	if (verbosity >= 1){
 		reportf("| Number of aggregate exprs.: %4d",aggr_exprs.size());
+	}
+
 	if (aggr_exprs.size() == 0) {
 		solver->setAggSolver(NULL);
 		if (verbosity >= 1) {
@@ -36,10 +74,41 @@ void AggSolver::finishECNF_DataStructures() {
 		return;
 	} else {
 		int total_nb_set_lits = 0;
-		for (int i = 0; i < aggr_sets.size(); i += NB_AGGR_TYPES)
-			total_nb_set_lits += aggr_sets[i]->set.size();
-		if (verbosity >= 1)
-			reportf(", over %4d sets, avg. size: %7.2f lits.  |\n",aggr_sets.size()/NB_AGGR_TYPES,(double)total_nb_set_lits/(double)(aggr_sets.size()/NB_AGGR_TYPES));
+		for (int i = 0; i < aggr_sets.size(); i++){
+			total_nb_set_lits += aggr_sets[i]->wlitset.size();
+		}
+		if (verbosity >= 1){
+			reportf(", over %4d sets, avg. size: %7.2f lits.  |\n",aggr_sets.size(),(double)total_nb_set_lits/(double)(aggr_sets.size()));
+		}
+
+		//initialize all counters
+		for(int i=0; i<aggr_exprs.size(); i++){
+			AggrExpr& exp = *aggr_exprs[i];
+			AggrSet& set = *exp.set;
+			switch(exp.type){
+			case MIN:
+				exp.max = getMinimum(set.wlitset); //max is het beste minimum
+				exp.min = getMaximum(set.wlitset); //max is het beste minimum
+				break;
+			case MAX:
+				exp.min = getMinimum(set.wlitset);
+				exp.max = getMaximum(set.wlitset);
+				break;
+			case SUM:
+				exp.min = 0;
+				exp.max = getSum(set.wlitset);
+				break;
+			case PROD:
+				exp.min = 0;
+				exp.max = getProduct(set.wlitset);
+				break;
+			default:
+				assert(false);
+				break;
+			}
+		}
+
+		//TODO TODO TODO TODO hier was ik aan aan het werken
 		// Now do the initial propagations based on set literals that already have a truth value.
 		Clause * confl = NULL;
 		for (int i = 0; i < solver->qhead && confl == NULL; ++i) // from qhead onwards will still be propagated by simplify().
@@ -48,6 +117,70 @@ void AggSolver::finishECNF_DataStructures() {
 			throw theoryUNSAT;
 		}
 	}
+}
+
+void AggSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
+	int setindex = set_id-1;
+	if (lits.size() == 0) {
+		reportf("Error: Set nr. %d is empty,\n",set_id); exit(3);
+	}
+	if(aggr_sets.size()>set_id && aggr_sets[setindex]->wlitset.size()>0){
+		reportf("Error: Set nr. %d is defined more then once.\n",set_id), exit(3);
+	}
+	assert(lits.size()==weights.size());
+
+	//literals occurring multiple times are allowed from now in
+	//FIXME if a literal occurs multiple times, the correct value has to be used, depending on the aggregate type
+	//for example if MIN 3=5 3=6, then it should be 5!!!
+
+	aggr_sets.growTo(set_id);
+	AggrSet& set = *aggr_sets[setindex];
+
+	int max = 0;
+	for (int i = 0; i < lits.size(); i++) {
+		if (weights[i] < 0) {
+			reportf("Error: Set nr. %d contains a negative weight, %d.\n",set_id,weights[i]), exit(3);
+		}
+		set.wlitset.push(AggrSet::WLit(lits[i], weights[i]));
+		max += weights[i];
+	}
+	qsort(set.wlitset, set.wlitset.size(), sizeof(AggrSet::WLit), compare_WLits);
+	set.cmax = max;
+
+	//for every literal in the set, add a watch that points to the sets in which it occurs
+	for (int i = 0; !already_occurs && i < as->set.size(); i++){
+		Aggr_watches[var(as->wlitset[i].lit)].push(AggrWatch(as, NULL, i, sign(as->wlitset[i].lit) ? NEG : POS));
+	}
+}
+
+/*
+ Adds an aggregate expression with only one bound on it. The bound is always interpreted as lEQ or gEQ
+ */
+//TODO check if infinity should be expressible too
+void AggSolver::addAggrExpr(int defn, int setid, int bound, bool lower, AggrType type) {
+	if (setid > aggr_sets.size()) {
+		reportf("Error: Set nr. %d is used, but not defined yet.\n",setid), exit(3);
+	}
+
+	//the head of the aggregate
+	Lit c = Lit(defn, false);
+	int setindex = setid-1;
+
+	//TODObroes add if really usefull varBumpActivity(var(c)); // These guys ought to be initially a bit more important then the rest.
+
+	AggrExpr* ae = new AggrExpr(lower, bound, c, type, aggr_sets[setindex]);
+	aggr_exprs.push(ae);
+	AggrSet* as = aggr_sets[setindex];
+	as->exprs.push(ae);
+
+	//TODO check when this is created
+	Aggr_watches[var(c)].push(AggrWatch(ae, -1, DEFN));
+
+	/*FIXME
+	defType[var(c)] = AGGR;
+	if (ecnf_mode.def){
+		defdVars.push(var(c));
+	}*/
 }
 
 Clause* AggSolver::aggrEnqueue(Lit p, AggrReason* ar) {
@@ -73,144 +206,6 @@ Clause* AggSolver::aggrEnqueue(Lit p, AggrReason* ar) {
 	} else
 		delete ar;
 	return NULL;
-}
-
-void AggSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
-	if (lits.size() == 0) {
-		reportf("Error: Set nr. %d is empty,\n",set_id);
-		exit(3);
-	}
-	assert(lits.size()==weights.size());
-	// Find out if lits contains any doubles.
-	vec<Lit> ps(lits.size());
-	for (int i = 0; i < lits.size(); i++){
-		ps[i] = lits[i];
-	}
-
-	sort(ps);
-	Lit previous = lit_Undef;
-	for (int i = 0; i < ps.size(); i++){
-		if (ps[i] == previous || ps[i] == ~previous){
-			//TODO correct the code such that at least an atom and its negation can be used in the same expression
-			reportf("ERROR! (W)Set %d contains the same literal ", set_id);
-			printLit(previous);	reportf(" twice. Please use a placeholder.\n");
-			exit(3);
-		} else{
-			previous = ps[i];
-		}
-	}
-	// For each set_id we add NB_AGGR_TYPES sets.
-	while (set_id * NB_AGGR_TYPES > aggr_sets.size())
-		aggr_sets.push(new AggrSet()); // NOTE: each of these has type "SUM"!
-	// But we only initialize the default one.
-	AggrSet &as = *aggr_sets[(set_id - 1) * NB_AGGR_TYPES + SUM];
-	if (as.set.size() > 0) {
-		reportf("Error: Set nr. %d is defined more then once.\n",set_id), exit(
-				3);
-	}
-	for (int i = 0; i < lits.size(); i++) {
-		if (weights[i] < 0) {
-			reportf("Error: Set nr. %d contains a negative weight, %d.\n",set_id,weights[i]), exit(
-					3);
-		}
-		as.set.push(AggrSet::WLit(lits[i], weights[i]));
-		as.max += weights[i];
-	}
-	qsort(as.set, as.set.size(), sizeof(AggrSet::WLit), compare_WLits);
-	as.cmax = as.max;
-}
-
-/*void TSolver::Subsetminimize(const vec<Lit>& lits) {
-	if (!ecnf_mode.mnmz)
-		reportf("ERROR! Attempt at adding a subset minimize statement, though ECNF specifiers did not contain \"mnmz\".\n"), exit(
-				3);
-	if (lits.size() == 0) {
-		reportf("Error: The set of literals to be minimized is empty,\n");
-		exit(3);
-	}
-	if (to_minimize.size() != 0) {
-		reportf("At most one set of literals to be minimized can be given.\n");
-		exit(3);
-	}
-
-	for (int i = 0; i < lits.size(); i++)
-		to_minimize.push(lits[i]);
-}*/
-
-/*
- Adds an aggregate expression.
- Revisions of these expressions, in case of non-standard weights, will be
- done at a later time. These revisions introduce new atoms; something which
- can be done only after parsing.
-
- NOTE ???: do not set "ecnf_mode.aggr=true" yet!! Then it will already
- propagate, but in that case the constraint that each derived literal is
- added only once to the queue would be required (otherwise "trues" and
- "falses" get too many counts.)
- */
-void AggSolver::addAggrExpr(int defn, int set_id, int min, int max, AggrType type) {
-	if (set_id * NB_AGGR_TYPES > aggr_sets.size()) {
-		reportf("Error: Set nr. %d is used, but not defined yet.\n",set_id), exit(
-				3);
-	}
-	if (min < 0 || min > max) {
-		reportf("Error: aggregate expression with minimum %d and maximum %d is not valid.\n",min,max), exit(
-				3);
-	}
-
-	Lit c = Lit(defn, false);
-
-	//TODObroes add if really usefull varBumpActivity(var(c)); // These guys ought to be initially a bit more important then the rest.
-	/*FIXME
-	defType[var(c)] = AGGR;
-	if (ecnf_mode.def){
-		defdVars.push(var(c));
-	}*/
-	AggrExpr* ae = new AggrExpr(min, max, c);
-	aggr_exprs.push(ae);
-	AggrSet* as = aggr_sets[(set_id - 1) * NB_AGGR_TYPES + type];
-	as->exprs.push(ae);
-	if (as->type == SUM && type != SUM) {
-		// It's the first aggregate expression of type 'type' for this set. Initialize the set.
-		as->type = type;
-		AggrSet* sum_as = aggr_sets[(set_id - 1) * NB_AGGR_TYPES + SUM]; // We'll copy from this set, which has been initialized already.
-		for (int i = 0; i < sum_as->set.size(); i++)
-			as->set.push(sum_as->set[i]);
-		switch (as->type) {
-		// If type=SUM or PROD: min/max  attainable with current truth values. If type=MIN: index of first non-false / first true literal (can go out of range!); if type=MAX: index of last true / last non-false literal (can go out of range!).
-		case PROD:
-			as->min = 1;
-			as->max = 1;
-			for (int i = 0; i < sum_as->set.size(); i++)
-				as->max *= sum_as->set[i].weight;
-			as->cmax = as->max;
-			if (as->cmax == 0)
-				reportf("ERROR! Weight zero in a PROD expression.\n"), exit(3);
-			break;
-		case MIN:
-			as->min = 0; // [,)
-			as->max = as->set.size(); // [,)
-			break;
-		case MAX:
-			as->min = -1; // (,]
-			as->max = as->set.size() - 1; // (,]
-			break;
-		default:
-			assert(false);
-			break;
-		}
-	}
-
-	Aggr_watches[var(c)].push(AggrWatch(as, ae, -1, DEFN));
-
-	bool already_occurs = false; // Making sure that for a set with several expressions, watches from the set literals are added only once.
-	vec<AggrWatch>& vcw = Aggr_watches[var(as->set[0].lit)]; // Note: set is not empty.
-	for (int i = 0; !already_occurs && i < vcw.size(); i++)
-		if (vcw[i].set == as)
-			already_occurs = true;
-	for (int i = 0; !already_occurs && i < as->set.size(); i++)
-		Aggr_watches[var(as->set[i].lit)].push(AggrWatch(as, NULL, i, sign(
-				as->set[i].lit) ? NEG : POS));
 }
 
 Clause* AggSolver::Aggr_propagate(Lit p) { // TODO: do something about double work? E.g. first propagation head->some body literal, then backward again...
@@ -667,6 +662,90 @@ void AggSolver::doBacktrack(Lit l){
 	}
 }
 
+/*void TSolver::Subsetminimize(const vec<Lit>& lits) {
+	if (!ecnf_mode.mnmz)
+		reportf("ERROR! Attempt at adding a subset minimize statement, though ECNF specifiers did not contain \"mnmz\".\n"), exit(
+				3);
+	if (lits.size() == 0) {
+		reportf("Error: The set of literals to be minimized is empty,\n");
+		exit(3);
+	}
+	if (to_minimize.size() != 0) {
+		reportf("At most one set of literals to be minimized can be given.\n");
+		exit(3);
+	}
+
+	for (int i = 0; i < lits.size(); i++)
+		to_minimize.push(lits[i]);
+}*/
+
+/*void AggSolver::addAggrExpr(int defn, int set_id, int min, int max, AggrType type) {
+	//TODO hier beginnen verbeteren, en dit is al geen mooie oplossing!
+	if (set_id * NB_AGGR_TYPES > aggr_sets.size()) {
+		reportf("Error: Set nr. %d is used, but not defined yet.\n",set_id), exit(3);
+	}
+	if (min < 0 || min > max) {
+		reportf("Error: aggregate expression with minimum %d and maximum %d is not valid.\n",min,max), exit(3);
+	}
+
+	Lit c = Lit(defn, false);
+
+	defType[var(c)] = AGGR;
+	if (ecnf_mode.def){
+		defdVars.push(var(c));
+	}
+	AggrExpr* ae = new AggrExpr(min, max, c);
+	aggr_exprs.push(ae);
+	AggrSet* as = aggr_sets[(set_id - 1) * NB_AGGR_TYPES + type];
+	as->exprs.push(ae);
+	if (as->type == SUM && type != SUM) {
+		// It's the first aggregate expression of type 'type' for this set. Initialize the set.
+		as->type = type;
+		AggrSet* sum_as = aggr_sets[(set_id - 1) * NB_AGGR_TYPES + SUM]; // We'll copy from this set, which has been initialized already.
+		for (int i = 0; i < sum_as->set.size(); i++)
+			as->set.push(sum_as->set[i]);
+		switch (as->type) {
+		// If type=SUM or PROD: min/max  attainable with current truth values. If type=MIN: index of first non-false / first true literal (can go out of range!); if type=MAX: index of last true / last non-false literal (can go out of range!).
+		case PROD:
+			as->min = 1;
+			as->max = 1;
+			for (int i = 0; i < sum_as->set.size(); i++){
+				as->max *= sum_as->set[i].weight;
+			}
+			as->cmax = as->max;
+			if (as->cmax == 0){
+				reportf("ERROR! Weight zero in a PROD expression.\n"), exit(3);
+			}
+			break;
+		case MIN:
+			as->min = 0; // [,)
+			as->max = as->set.size(); // [,)
+			break;
+		case MAX:
+			as->min = -1; // (,]
+			as->max = as->set.size() - 1; // (,]
+			break;
+		default:
+			assert(false);
+			break;
+		}
+	}
+
+	Aggr_watches[var(c)].push(AggrWatch(as, ae, -1, DEFN));
+
+	bool already_occurs = false; // Making sure that for a set with several expressions, watches from the set literals are added only once.
+	vec<AggrWatch>& vcw = Aggr_watches[var(as->set[0].lit)]; // Note: set is not empty.
+	for (int i = 0; !already_occurs && i < vcw.size(); i++){
+		if (vcw[i].set == as){
+			already_occurs = true;
+		}
+	}
+	for (int i = 0; !already_occurs && i < as->set.size(); i++){
+		Aggr_watches[var(as->set[i].lit)].push(AggrWatch(as, NULL, i, sign(as->set[i].lit) ? NEG : POS));
+	}
+
+}*/
+
 //=================================================================================================
 // Debug + etc:
 
@@ -684,13 +763,15 @@ inline void AggSolver::printClause(const C& c) {
 
 
 inline void AggSolver::printAggrSet(const AggrSet& as){
-    for (int i=0; i<as.set.size(); ++i) {
-        reportf(" "); printLit(as.set[i].lit); reportf("(%d)",as.set[i].weight);
+    for (int i=0; i<as.wlitset.size(); ++i) {
+        reportf(" "); printLit(as.wlitset[i].lit); reportf("(%d)",as.wlitset[i].weight);
     }
 }
 
 inline void AggSolver::printAggrExpr(const AggrExpr& ae, const AggrSet& as){
-    printLit(ae.c); reportf(" <- %d <= %s{",ae.min, as.type==SUM ? "sum" : (as.type==PROD ? "prod" : (as.type==MIN ? "min" : "max")));
+	//TODO repair aggregate printing
+	reportf("Repair aggregate printing");
+    /*printLit(ae.c); reportf(" <- %d <= %s{",ae.min, ae.type==SUM ? "sum" : (ae.type==PROD ? "prod" : (ae.type==MIN ? "min" : "max")));
     printAggrSet(as);
-    reportf(" } <= %d. Known values: min=%d, max=%d\n",ae.max,as.min,as.max);
+    reportf(" } <= %d. Known values: min=%d, max=%d\n",ae.max,as.min,as.max);*/
 }

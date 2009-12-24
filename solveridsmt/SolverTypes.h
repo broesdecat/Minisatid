@@ -218,16 +218,24 @@ inline Occurrence relativeOccurrence(Occurrence o, Lit l) {
     else         return sign(l)? POS : NEG;
 }
 
-struct AggrExpr {                     // c <=> (min =< #set =< max).
-    int             min, max;
-    Lit             c;
+/**
+ * if lower, then c <=> bound =< #set
+ * else then c <=> #set =< bound
+ */
+struct AggrExpr {
+	AggrType type;
+	int	bound, currentmin, currentmax; //current keeps the currently derived min and max bounds
+	bool lower;
+    Lit	head;
+    AggrSet* set;
 
-    AggrExpr(int n, int x, Lit l) : min(n), max(x), c(l) {}
+    AggrExpr(bool lower, int bound, Lit head, AggrType type, AggrSet* set) :
+    	type(type), bound(bound), set(set), lower(lower), head(head) {}
 };
 struct AggrSet {
-    struct WLit {                     // Weighted literal
-        Lit         lit;
-        int         weight;
+    struct WLit {  // Weighted literal
+    	Lit	lit;
+		int	weight;
 
         WLit(Lit l, int w) : lit(l), weight(w) {}
     };
@@ -239,21 +247,13 @@ struct AggrSet {
         PropagationInfo(Lit l, int w, Occurrence t) : lit(l), weight(w), type(t) {}
     };
 
-    AggrType        type;             // In what type of aggregate expressions this set occurs.
-    vec<WLit>       set;              // Stores the actual set of weighted literals.
-    int             min, max;         // If type=SUM or PROD: min/max  attainable with current truth values. If type=MIN: index of first non-false / first true literal (can go out of range!); if type=MAX: index of last true / last non-false literal (can go out of range!).
-    int             cmax;             // (constant) sum of all weights / set.size(). Not used when type==MIN or MAX.
-    vec<AggrExpr*>  exprs;            // In which expressions does this set occur. NOTE: there's no point in splitting this in "already satisfied" and "not yet satisfied"; we can't avoid doing most of the propagation work anew.
-    vec<PropagationInfo> stack;       // Stack of propagations of this set's expressions so far.
+    vec<WLit>	wlitset;			// Stores the actual set of weighted literals.
+    int			cmax;				// (constant) sum of all weights / set.size(). Not used when type==MIN or MAX.
+    vec<AggrExpr*>  exprs;			// In which expressions does this set occur. NOTE: there's no point in splitting this in "already satisfied" and "not yet satisfied"; we can't avoid doing most of the propagation work anew.
+    vec<PropagationInfo> stack;		// Stack of propagations of this set's expressions so far.
 
-    AggrSet();
+    AggrSet(): min(0), max(0){};
 };
-
-inline AggrSet::AggrSet()
-    : type(SUM) // SUM is the default.
-    , min(0)
-    , max(0)
-{}
 
 struct AggrWatch {
     AggrSet*        set;
@@ -261,7 +261,7 @@ struct AggrWatch {
     AggrExpr*       expr;             // Not used (NULL) if type!=DEFN
     int             index;            // Not used if type==DEFN
 
-    AggrWatch(AggrSet* s, AggrExpr* e, int i, Occurrence t) : set(s), type(t), expr(e), index(i) {}
+    AggrWatch(AggrSet* s, AggrExpr* e, int i, Occurrence t = DEFN) : set(s), type(t), expr(e), index(i) {}
 };
 struct AggrReason {                   // Needed to build (with implicitReasonClause(Lit)) a reason clause for a cardinality propagation.
     AggrExpr*       expr;
