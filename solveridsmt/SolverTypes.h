@@ -23,6 +23,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include <cassert>
 #include <stdint.h>
+#include "Alg.h"
 
 #define theoryUNSAT 20
 #define memOVERFLOW 33
@@ -200,86 +201,7 @@ inline void Clause::strengthen(Lit p)
     calcAbstraction();
 }
 
-typedef char AggrType;
-const AggrType SUM  = 0; // NOTE: CARD = (SUM with weights =1).
-const AggrType PROD = 1;
-const AggrType MIN  = 2;
-const AggrType MAX  = 3;
-const int NB_AGGR_TYPES = 4;
-
-typedef char Occurrence;
-const Occurrence DEFN = 0;
-const Occurrence POS  = 1;
-const Occurrence NEG  = 2;
-
-inline Occurrence relativeOccurrence(Occurrence o, Lit l) {
-    if (o==DEFN) return DEFN;
-    if (o==POS)  return sign(l)? NEG : POS;
-    else         return sign(l)? POS : NEG;
-}
-
-/**
- * if lower, then c <=> bound =< #set
- * else then c <=> #set =< bound
- */
-struct AggrExpr {
-	AggrType type;
-	int	bound, currentmin, currentmax; //current keeps the currently derived min and max bounds
-	bool lower;
-    Lit	head;
-    AggrSet* set;
-
-    AggrExpr(bool lower, int bound, Lit head, AggrType type, AggrSet* set) :
-    	type(type), bound(bound), set(set), lower(lower), head(head) {}
-};
-struct AggrSet {
-    struct WLit {  // Weighted literal
-    	Lit	lit;
-		int	weight;
-
-        WLit(Lit l, int w) : lit(l), weight(w) {}
-    };
-    struct PropagationInfo {          // Propagated literal
-        Lit         lit;              // value(lit)==l_True.
-        int         weight;
-        Occurrence  type;
-
-        PropagationInfo(Lit l, int w, Occurrence t) : lit(l), weight(w), type(t) {}
-    };
-
-    vec<WLit>	wlitset;			// Stores the actual set of weighted literals.
-    int			cmax;				// (constant) sum of all weights / set.size(). Not used when type==MIN or MAX.
-    vec<AggrExpr*>  exprs;			// In which expressions does this set occur. NOTE: there's no point in splitting this in "already satisfied" and "not yet satisfied"; we can't avoid doing most of the propagation work anew.
-    vec<PropagationInfo> stack;		// Stack of propagations of this set's expressions so far.
-
-    AggrSet(): min(0), max(0){};
-};
-
-struct AggrWatch {
-    AggrSet*        set;
-    Occurrence      type;
-    AggrExpr*       expr;             // Not used (NULL) if type!=DEFN
-    int             index;            // Not used if type==DEFN
-
-    AggrWatch(AggrSet* s, AggrExpr* e, int i, Occurrence t = DEFN) : set(s), type(t), expr(e), index(i) {}
-};
-struct AggrReason {                   // Needed to build (with implicitReasonClause(Lit)) a reason clause for a cardinality propagation.
-    AggrExpr*       expr;
-    AggrSet*        set;
-    Occurrence      type;
-
-    AggrReason(AggrExpr* e, AggrSet* s, Occurrence t) : expr(e), set(s), type(t) {}
-};
-
-inline int compare_WLits(const void* a, const void* b) {
-    AggrSet::WLit* arg1 = (AggrSet::WLit*)a;
-    AggrSet::WLit* arg2 = (AggrSet::WLit*)b;
-    if (arg1->weight < arg2->weight) return -1;
-    else if (arg1->weight == arg2->weight) return 0;
-    else return 1;
-}    
-
-class Rule {
+/*class Rule {
     uint32_t size_etc;
     Lit     data[0];
 
@@ -305,6 +227,6 @@ public:
     Lit&     operator [] (int i)         { return data[i]; }
     Lit      operator [] (int i) const   { return data[i]; }
     operator const Lit* (void) const         { return data; }
-};
+};*/
 
 #endif

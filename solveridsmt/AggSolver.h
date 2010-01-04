@@ -7,15 +7,16 @@
 #include "Sort.h"
 #include "Alg.h"
 
-#include "SolverTypes.h"
+#include "Agg.h"
 #include "Solver.h"
 
 class Solver;
+class Agg;
 
-/**
- */
 class AggSolver{
 public:
+	static AggSolver* aggsolver;
+
 	AggSolver();
 	virtual ~AggSolver();
 
@@ -40,28 +41,37 @@ public:
 	int       verbosity;          // Verbosity level. 0=silent, 1=some progress report
 	/////////////////////END INITIALIZATION
 
+	// NOTE: this adds an invariant to the system: each literal with a truth value is put on the trail only once.
+	Clause* Aggr_propagate        (Lit p);                      // Perform propagations from aggregate expressions.
+	Clause* aggrEnqueue           (Lit p, AggrReason* cr);      // Like "enqueue", but for aggregate propagations.
+
+	lbool	value(Var x) const;
+	lbool	value(Lit p) const;
+	int		nVars()      const;
+
 protected:
 	// ECNF_mode.aggr additions to Solver state:
 	//
-	vec<AggrExpr*>        aggr_exprs;           // List of aggregate expressions as occurring in the problem.
+	vec<Agg*>        aggr_exprs;           // List of aggregate expressions as occurring in the problem.
 	vec<AggrSet*>         aggr_sets;            // List of aggregate sets being used.
 	vec<AggrReason*>      aggr_reason;          // For each atom, like 'reason'.
 	vec<vec<AggrWatch> >  Aggr_watches;         // Aggr_watches[v] is a list of sets in which v occurs (each AggrWatch says: which set, what type of occurrence).
 	// If defType[v]==AGGR, (Aggr_watches[v])[0] has type==DEFN and expr->c==Lit(v,false).
-
-	// NOTE: this adds an invariant to the system: each literal with a truth value is put on the trail only once.
-	Clause* Aggr_propagate        (Lit p);                      // Perform propagations from aggregate expressions.
-	Clause* Aggr_propagate        (AggrSet& cs, AggrExpr& ce);  // Auxiliary for the previous.
-	Clause* aggrEnqueue           (Lit p, AggrReason* cr);      // Like "enqueue", but for aggregate propagations.
+	vec<bool> countedlit;				//maps a toint(literal) to the fact whether it has been counted (true) or not => is used to check whether backtracking is necessary
 
 	//maybe strange method, but allows to inline the normal backtrack method in the solver search and allows
 	//branch prediction much better i think
 	void 	doBacktrack(Lit l);
+	void 	backtrackOnePropagation(Agg& ae, Occurrence tp, int index);
+
+	int getCurrentMinimum(vec<WLit>& lits);
+	int getCurrentMaximum(vec<WLit>& lits);
+	int getMinimum(vec<WLit>& lits);
+	int getMaximum(vec<WLit>& lits);
+	int getSum(vec<WLit>& lits);
+	int getProduct(vec<WLit>& lits);
 
 	Solver* solver;
-	lbool	value(Var x) const;
-	lbool	value(Lit p) const;
-	int		nVars()      const;
 
 	bool 	init;	//indicates whether still in initialization mode
 	bool 	empty; 	//indicates no amn statements are present, so always return from T call
@@ -71,7 +81,7 @@ protected:
 	template<class C>
 	void     printClause      (const C& c);
 	void     printAggrSet     (const AggrSet& as);
-	void     printAggrExpr    (const AggrExpr& ae, const AggrSet& as);
+	void     printAggrExpr    (const Agg& ae, const AggrSet& as);
 };
 
 //=======================

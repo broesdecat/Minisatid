@@ -164,6 +164,8 @@ Clause* AMNSolver::amnpropagate(Lit p) {
 	for (int i = 0; i < ws.size(); i++) {
 		amncounter[ws[i]]++;
 	}
+	//FIXME: als er meerdere amns zijn met dezelfde literal, en bij de eerste is het conflict, dan
+	//gaat hij het bij allemaal backtracken!
 	amncountedlit[toInt(p)] = true;
 
 	for (int i = 0; i < ws.size(); i++) {

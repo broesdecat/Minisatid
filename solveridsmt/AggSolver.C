@@ -2,6 +2,7 @@
 
 AggSolver::AggSolver() :
 	init(true), empty(false) {
+	AggSolver::aggsolver = this;
 }
 
 AggSolver::~AggSolver() {
@@ -10,7 +11,12 @@ AggSolver::~AggSolver() {
 inline lbool AggSolver::value(Var x) const {
 	return solver->value(x);
 }
-inline lbool AggSolver::value(Lit p) const {
+
+//FIXME deze aggsolver manier is niet echt mooi (om Agg toegang te geven tot aggsolver
+//en het zorgt ook dat value niet inline kan zijn hier (wat zeker niet de bedoeling is)
+AggSolver* AggSolver::aggsolver;
+
+lbool AggSolver::value(Lit p) const {
 	return solver->value(p);
 }
 inline int AggSolver::nVars() const {
@@ -20,42 +26,7 @@ inline int AggSolver::nVars() const {
 void AggSolver::notifyVarAdded(){
 	Aggr_watches.push();
 	aggr_reason.push();
-}
-
-int AggSolver::getMinimum(vec<AggrSet::WLit>& lits){
-	int min = lits[0].weight;
-	for(int j=1; j<lits.size(); i++){
-		if(min > lits[j].weight){
-			min = lits[j].weight;
-		}
-	}
-	return min;
-}
-
-int AggSolver::getMaximum(vec<AggrSet::WLit>& lits){
-	int max = lits[0].weight;
-	for(int j=1; j<lits.size(); i++){
-		if(max < lits[j].weight){
-			max = lits[j].weight;
-		}
-	}
-	return max;
-}
-
-int AggSolver::getSum(vec<AggrSet::WLit>& lits){
-	int max = lits[0].weight;
-	for(int j=1; j<lits.size(); i++){
-		max += lits[j].weight;
-	}
-	return max;
-}
-
-int AggSolver::getProduct(vec<AggrSet::WLit>& lits){
-	int max = lits[0].weight;
-	for(int j=1; j<lits.size(); i++){
-		max *= lits[j].weight;
-	}
-	return max;
+	countedlit.push(false);
 }
 
 void AggSolver::finishECNF_DataStructures() {
@@ -73,42 +44,20 @@ void AggSolver::finishECNF_DataStructures() {
 		}
 		return;
 	} else {
+		countedlit.growTo(nVars(), false);
+
 		int total_nb_set_lits = 0;
 		for (int i = 0; i < aggr_sets.size(); i++){
 			total_nb_set_lits += aggr_sets[i]->wlitset.size();
 		}
-		if (verbosity >= 1){
-			reportf(", over %4d sets, avg. size: %7.2f lits.  |\n",aggr_sets.size(),(double)total_nb_set_lits/(double)(aggr_sets.size()));
-		}
+		if (verbosity >= 1){reportf(", over %4d sets, avg. size: %7.2f lits.  |\n",aggr_sets.size(),(double)total_nb_set_lits/(double)(aggr_sets.size()));	}
 
 		//initialize all counters
 		for(int i=0; i<aggr_exprs.size(); i++){
-			AggrExpr& exp = *aggr_exprs[i];
-			AggrSet& set = *exp.set;
-			switch(exp.type){
-			case MIN:
-				exp.max = getMinimum(set.wlitset); //max is het beste minimum
-				exp.min = getMaximum(set.wlitset); //max is het beste minimum
-				break;
-			case MAX:
-				exp.min = getMinimum(set.wlitset);
-				exp.max = getMaximum(set.wlitset);
-				break;
-			case SUM:
-				exp.min = 0;
-				exp.max = getSum(set.wlitset);
-				break;
-			case PROD:
-				exp.min = 0;
-				exp.max = getProduct(set.wlitset);
-				break;
-			default:
-				assert(false);
-				break;
-			}
+			aggr_exprs[i]->initialize();
 		}
 
-		//TODO TODO TODO TODO hier was ik aan aan het werken
+		//TODO TODO TODO TODO eigenlijk alles eerst finishen, dan alles propageren, dan beginnen searchen
 		// Now do the initial propagations based on set literals that already have a truth value.
 		Clause * confl = NULL;
 		for (int i = 0; i < solver->qhead && confl == NULL; ++i) // from qhead onwards will still be propagated by simplify().
@@ -141,16 +90,11 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
 		if (weights[i] < 0) {
 			reportf("Error: Set nr. %d contains a negative weight, %d.\n",set_id,weights[i]), exit(3);
 		}
-		set.wlitset.push(AggrSet::WLit(lits[i], weights[i]));
+		set.wlitset.push(WLit(lits[i], weights[i]));
 		max += weights[i];
 	}
-	qsort(set.wlitset, set.wlitset.size(), sizeof(AggrSet::WLit), compare_WLits);
+	qsort(set.wlitset, set.wlitset.size(), sizeof(WLit), compare_WLits);
 	set.cmax = max;
-
-	//for every literal in the set, add a watch that points to the sets in which it occurs
-	for (int i = 0; !already_occurs && i < as->set.size(); i++){
-		Aggr_watches[var(as->wlitset[i].lit)].push(AggrWatch(as, NULL, i, sign(as->wlitset[i].lit) ? NEG : POS));
-	}
 }
 
 /*
@@ -166,15 +110,35 @@ void AggSolver::addAggrExpr(int defn, int setid, int bound, bool lower, AggrType
 	Lit c = Lit(defn, false);
 	int setindex = setid-1;
 
-	//TODObroes add if really usefull varBumpActivity(var(c)); // These guys ought to be initially a bit more important then the rest.
+	//TODObroes add if really useful varBumpActivity(var(c)); // These guys ought to be initially a bit more important then the rest.
 
-	AggrExpr* ae = new AggrExpr(lower, bound, c, type, aggr_sets[setindex]);
+	Agg* ae;
+	switch(type){
+	case MIN:
+		ae = new MinAgg(lower, bound, c, aggr_sets[setindex]);
+		break;
+	case MAX:
+		ae = new MaxAgg(lower, bound, c, aggr_sets[setindex]);
+		break;
+	case SUM:
+		ae = new SumAgg(lower, bound, c, aggr_sets[setindex]);
+		break;
+	case PROD:
+		ae = new ProdAgg(lower, bound, c, aggr_sets[setindex]);
+		break;
+	default: assert(false);break;
+	}
 	aggr_exprs.push(ae);
+
 	AggrSet* as = aggr_sets[setindex];
 	as->exprs.push(ae);
 
-	//TODO check when this is created
-	Aggr_watches[var(c)].push(AggrWatch(ae, -1, DEFN));
+	Aggr_watches[var(c)].push(AggrWatch(ae, -1, HEAD));
+
+	//for every literal in the litset, add a watch that points to the expressions in which it occurs
+	for (int i = 0; i < as->wlitset.size(); i++){
+		Aggr_watches[var(as->wlitset[i].lit)].push(AggrWatch(ae, i, sign(as->wlitset[i].lit) ? NEG : POS));
+	}
 
 	/*FIXME
 	defType[var(c)] = AGGR;
@@ -183,17 +147,24 @@ void AggSolver::addAggrExpr(int defn, int setid, int bound, bool lower, AggrType
 	}*/
 }
 
+/**
+ * @PRE: literal p can be derived to be true because of the given aggregate reason
+ *
+ * it is then checked whether there is a conflict (construct conflict and add learned clause),
+ * whether it can be propagated to the solver or whether it was already true.
+ */
 Clause* AggSolver::aggrEnqueue(Lit p, AggrReason* ar) {
 	if (verbosity >= 2) {
 		reportf("%seriving ", value(p)==l_True ? "Again d" : "D");
 		printLit(p);
 		reportf(" because of the aggregate expression ");
-		printAggrExpr(*ar->expr, *ar->set);
+		printAggrExpr(*ar->expr, *ar->expr->set);
 	}
 
 	if (value(p) == l_False) {
-		if (verbosity >= 2)
+		if (verbosity >= 2){
 			reportf("Conflict.\n");
+		}
 		AggrReason* old_ar = aggr_reason[var(p)];
 		aggr_reason[var(p)] = ar;
 		Clause* confl = getExplanation(p);
@@ -211,206 +182,31 @@ Clause* AggSolver::aggrEnqueue(Lit p, AggrReason* ar) {
 Clause* AggSolver::Aggr_propagate(Lit p) { // TODO: do something about double work? E.g. first propagation head->some body literal, then backward again...
 	Clause* confl = NULL;
 
+	assert(!countedlit[toInt(p)]);
+	countedlit[toInt(p)]=true;
+
 	vec<AggrWatch>& ws = Aggr_watches[var(p)];
-	if (verbosity >= 2 && ws.size() > 0)
+	if (verbosity >= 2 && ws.size() > 0){
 		reportf("Aggr_propagate(%s%d).\n",sign(p)?"-":"",var(p)+1);
+	}
 	for (int i = 0; confl == NULL && i < ws.size(); i++) {
-		AggrSet& as = *ws[i].set;
+		Agg& ae = *ws[i].expr;
 		Occurrence tp = relativeOccurrence(ws[i].type, p);
-		as.stack.push(AggrSet::PropagationInfo(p, as.set[ws[i].index].weight,
-				tp));
-		if (tp == DEFN) // It's a defining literal.
-			confl = Aggr_propagate(as, *ws[i].expr);
+		ae.stack.push(PropagationInfo(p, ae.set->wlitset[ws[i].index].weight,tp));
+		if (tp == HEAD) // The head literal has been propagated
+			confl = ae.propagate(value(ae.head)==l_True);
 		else { // It's a set literal.
-			// First update the set's "min" and "max" values.
-			bool trues = tp == POS;
-			switch (as.type) {
-			case SUM:
-				if (trues)
-					as.min += as.set[ws[i].index].weight;
-				else
-					as.max -= as.set[ws[i].index].weight;
-				break;
-			case PROD:
-				// NOTE: this assumes weights are different from zero!
-				if (trues)
-					as.min *= as.set[ws[i].index].weight;
-				else {
-					assert(as.max % as.set[ws[i].index].weight==0);
-					as.max = as.max / as.set[ws[i].index].weight;
-				}
-				break;
-			case MIN:
-				if (trues) {
-					if (ws[i].index < as.max)
-						as.max = ws[i].index;
-				} else {/*if (ws[i].index==as.min)*/
-					while (as.min < as.set.size() && value(as.set[as.min].lit)
-							== l_False)
-						++as.min;
-				}
-				break;
-			case MAX:
-				if (trues) {
-					if (ws[i].index > as.min)
-						as.min = ws[i].index;
-				} else {/*if (ws[i].index==as.max)*/
-					while (as.max >= 0 && value(as.set[as.max].lit) == l_False)
-						--as.max;
-				}
-				break;
-			default:
-				assert(false);
-				break;
+			lbool result = ae.updateAndCheckPropagate(ae.set->wlitset[ws[i].index], tp==POS);
+			if(result==l_True){
+				confl = aggrEnqueue(ae.head, new AggrReason(&ae, HEAD));
+			}else if(result==l_False){
+				confl = aggrEnqueue(~ae.head, new AggrReason(&ae, HEAD));
+			}else if(value(ae.head)!=l_Undef){
+				confl = ae.propagate(value(ae.head)==l_True);
 			}
-			int min = as.min;
-			int max = as.max;
+		}
+	}// TODO SUM / PROD propagations can be made more efficient using ordering of literals!!
 
-			if (as.type == MIN) {
-				if (as.min < as.set.size())
-					min = as.set[as.min].weight;
-				else
-					min = 2147483647;
-				if (as.max < as.set.size())
-					max = as.set[as.max].weight;
-				else
-					max = 2147483647;
-			} else if (as.type == MAX) {
-				if (as.min >= 0)
-					min = as.set[as.min].weight;
-				else
-					min = -1;
-				if (as.max >= 0)
-					max = as.set[as.max].weight;
-				else
-					max = -1;
-			}
-			// Now try to propagate.
-			for (int e = 0; confl == NULL && e < as.exprs.size(); e++) {
-				AggrExpr& ae = *as.exprs[e];
-				if (min >= ae.min && max <= ae.max)
-					confl = aggrEnqueue(ae.c, new AggrReason(&ae, &as, DEFN));
-				else if (min > ae.max)
-					confl = aggrEnqueue(~ae.c, new AggrReason(&ae, &as, DEFN));
-				else if (max < ae.min)
-					confl = aggrEnqueue(~ae.c, new AggrReason(&ae, &as, DEFN));
-				else
-					confl = Aggr_propagate(as, ae);
-			}
-		}
-	}
-
-	return confl;
-}
-
-Clause* AggSolver::Aggr_propagate(AggrSet& as, AggrExpr& ae) {
-	Clause* confl = NULL;
-	switch (as.type) {
-	// TODO SUM / PROD propagations can be made more efficient using ordering of literals!!
-	case SUM:
-		if (value(ae.c) == l_True) {
-			for (int u = 0; u < as.set.size(); u++) {
-				if (value(as.set[u].lit) == l_Undef) {// no conflict possible
-					if (as.min + as.set[u].weight > ae.max)
-						aggrEnqueue(~as.set[u].lit, new AggrReason(&ae, &as,
-								NEG));
-					else if (as.max - as.set[u].weight < ae.min)
-						aggrEnqueue(as.set[u].lit,
-								new AggrReason(&ae, &as, POS));
-				}
-			}
-		} else if (value(ae.c) == l_False) {
-			if (as.min >= ae.min || as.max <= ae.max) {// no conflicts possible
-				int minw = 2147483647;
-				for (int u = 0; u < as.set.size(); u++)
-					if (value(as.set[u].lit) == l_Undef && as.set[u].weight
-							< minw)
-						minw = as.set[u].weight;
-				bool maketrue = minw != 2147483647 && as.min >= ae.min
-						&& as.max - minw <= ae.max;
-				bool makefalse = minw != 2147483647 && as.max <= ae.max
-						&& as.min + minw >= ae.min;
-				if (maketrue)
-					for (int u = 0; u < as.set.size(); u++)
-						if (value(as.set[u].lit) == l_Undef)
-							aggrEnqueue(as.set[u].lit, new AggrReason(&ae, &as,
-									POS));
-				if (makefalse)
-					for (int u = 0; u < as.set.size(); u++)
-						if (value(as.set[u].lit) == l_Undef)
-							aggrEnqueue(~as.set[u].lit, new AggrReason(&ae,
-									&as, NEG));
-			}
-		}
-		break;
-	case PROD: // cfr. SUM, but * and / instead of + and -.
-		if (value(ae.c) == l_True) {
-			for (int u = 0; u < as.set.size(); u++) {
-				if (value(as.set[u].lit) == l_Undef) {
-					if (as.min * as.set[u].weight > ae.max)
-						aggrEnqueue(~as.set[u].lit, new AggrReason(&ae, &as,
-								NEG));
-					else if (as.max / as.set[u].weight < ae.min)
-						aggrEnqueue(as.set[u].lit,
-								new AggrReason(&ae, &as, POS));
-				}
-			}
-		} else if (value(ae.c) == l_False) {
-			if (as.min >= ae.min || as.max <= ae.max) {
-				int minw = 2147483647;
-				for (int u = 0; u < as.set.size(); u++)
-					if (value(as.set[u].lit) == l_Undef && as.set[u].weight
-							< minw)
-						minw = as.set[u].weight;
-				bool maketrue = minw != 2147483647 && as.min >= ae.min
-						&& as.max / minw <= ae.max;
-				bool makefalse = minw != 2147483647 && as.max <= ae.max
-						&& as.min * minw >= ae.min;
-				if (maketrue)
-					for (int u = 0; u < as.set.size(); u++)
-						if (value(as.set[u].lit) == l_Undef)
-							aggrEnqueue(as.set[u].lit, new AggrReason(&ae, &as,
-									POS));
-				if (makefalse)
-					for (int u = 0; u < as.set.size(); u++)
-						if (value(as.set[u].lit) == l_Undef)
-							aggrEnqueue(~as.set[u].lit, new AggrReason(&ae,
-									&as, NEG));
-			}
-		}
-		break;
-	case MIN:
-		if (value(ae.c) == l_True) {
-			for (int u = as.min; confl == NULL && u < as.set.size()
-					&& as.set[u].weight < ae.min; ++u)
-				confl = aggrEnqueue(~as.set[u].lit, new AggrReason(&ae, &as,
-						NEG));
-		} else if (value(ae.c) == l_False) {
-			if (as.min < as.set.size() && as.set[as.min].weight >= ae.min)
-				for (int u = as.min; confl == NULL && u < as.set.size()
-						&& as.set[u].weight <= ae.max; ++u)
-					confl = aggrEnqueue(~as.set[u].lit, new AggrReason(&ae,
-							&as, NEG));
-		}
-		break;
-	case MAX:
-		if (value(ae.c) == l_True) {
-			for (int u = as.max; confl == NULL && u >= 0 && as.set[u].weight
-					> ae.max; --u)
-				confl = aggrEnqueue(~as.set[u].lit, new AggrReason(&ae, &as,
-						NEG));
-		} else if (value(ae.c) == l_False) {
-			if (as.max >= 0 && as.set[as.max].weight <= ae.max)
-				for (int u = as.max; confl == NULL && u >= 0
-						&& as.set[u].weight >= ae.min; --u)
-					confl = aggrEnqueue(~as.set[u].lit, new AggrReason(&ae,
-							&as, NEG));
-		}
-		break;
-	default:
-		assert(false);
-		break;
-	}
 	return confl;
 }
 
@@ -421,18 +217,18 @@ Clause* AggSolver::Aggr_propagate(AggrSet& as, AggrExpr& ae) {
  |  Description:
  |    Use for a literal that was deduced using a aggregate expression. This method constructs,
  |    from the AggrReason stored for it, a "reason clause" usable in clause learning.
- |    Note that this clause is not attached, bumped, or any of the likes. Delete it immediately
+ |    This clause is saved nowhere except in the object returned. Delete it immediately
  |    after use, to avoid memory leaks.
  |________________________________________________________________________________________________@*/
 Clause* AggSolver::getExplanation(Lit p) {
-	vec<Lit> lits;
+	/*vec<Lit> lits;
 	lits.push(p);
 
 	AggrReason& ar = *aggr_reason[var(p)];
 	int i = 0;
-	for (; i < Aggr_watches[var(p)].size() && (Aggr_watches[var(p)])[i].set
-			!= ar.set; ++i)
+	for (; i < Aggr_watches[var(p)].size() && (Aggr_watches[var(p)])[i].set!= ar.set; ++i){
 		;
+	}
 	assert(i<Aggr_watches[var(p)].size());
 	int p_idx = (Aggr_watches[var(p)])[i].index;
 	AggrType tp = ar.set->type;
@@ -440,7 +236,7 @@ Clause* AggSolver::getExplanation(Lit p) {
 		int cmax = ar.set->cmax;
 		int min_needed = tp == SUM ? 0 : 1;
 		int max_needed = cmax;
-		if (ar.type == DEFN) {
+		if (ar.type == HEAD) {
 			// [mn >= i && mx =< j  ==>  c]  OR  [mn > j  || mx < i  ==>  ~c]
 			if (ar.expr->c == p) {
 				min_needed = ar.expr->min;
@@ -477,10 +273,10 @@ Clause* AggSolver::getExplanation(Lit p) {
 			}
 		}
 
-		/* We now walk over the stack and add literals that are relevant to the
-		 reason clause, until it is big enough. When that is depends on the type
-		 of propagation that was done to derive p.
-		 */
+//		 We now walk over the stack and add literals that are relevant to the
+//		 reason clause, until it is big enough. When that is depends on the type
+//		 of propagation that was done to derive p.
+//
 		Lit q;
 		char t;
 		for (int i = 0; min_needed + (cmax - max_needed)
@@ -495,7 +291,7 @@ Clause* AggSolver::getExplanation(Lit p) {
 				if (ar.set->type == SUM)
 					min_needed -= ar.set->stack[i].weight;
 				else
-					/*PROD*/
+					//PROD
 					min_needed = min_needed / ar.set->stack[i].weight
 							+ (min_needed % ar.set->stack[i].weight == 0 ? 0
 									: 1);
@@ -504,12 +300,12 @@ Clause* AggSolver::getExplanation(Lit p) {
 				if (ar.set->type == SUM)
 					max_needed += ar.set->stack[i].weight;
 				else
-					/*PROD*/
+					//PROD
 					max_needed *= ar.set->stack[i].weight;
 			}
 		}
 	} else { // tp == MIN or tp == MAX
-		if (ar.type == DEFN) {
+		if (ar.type == HEAD) {
 			if (ar.expr->c == p) {
 				// NB: we're not using the stack now; assert that each of the used literals is on it, before p.
 				if (tp == MIN) {
@@ -554,12 +350,12 @@ Clause* AggSolver::getExplanation(Lit p) {
 			}
 		} else if (ar.type == POS) {
 			assert(false); // This type of propagation should not occur as long as the (@&) TODO's haven't been implemented.
-			/*            if (value(ar.expr->c)==l_True) {
-			 lits.push(~ar.expr->c);
-			 } else { assert(value(ar.expr->c)==l_False);
-			 lits.push(ar.expr->c);
-			 }
-			 */
+//			           if (value(ar.expr->c)==l_True) {
+//			 lits.push(~ar.expr->c);
+//			 } else { assert(value(ar.expr->c)==l_False);
+//			 lits.push(ar.expr->c);
+//			 }
+//
 		} else {
 			assert(ar.type==NEG);
 			if (tp == MIN) {
@@ -595,69 +391,50 @@ Clause* AggSolver::getExplanation(Lit p) {
 		reportf("\n");
 	}
 
-	return c;
+	return c;*/
+	return NULL;
 }
 
+/**
+ * SUM: substract the weight if positive, add the weight if negative
+ * PROD: divide by weight if positive, multiply by weight if negative
+ * MIN:	if equal to current max, find new max if positive,
+ * 		if equal to current min, find new min if negative
+ * MAX: reverse
+ */
+void AggSolver::backtrackOnePropagation(Agg& ae, Occurrence tp, int index){
+	if (tp == HEAD){ //propagation didn't affect min/max
+		return;
+	}
+
+	PropagationInfo pi = ae.stack.last();
+	ae.stack.pop();
+	assert(tp == pi.type);
+	bool wasinset = tp == POS; 	//pos means that a literal that was already certainly in the set is now only possibly in the set
+								//neg means that instead of certainly out, it now might be
+	ae.backtrack(ae.set->wlitset[index], wasinset);
+}
+
+/**
+ * Correct the min and max values of the aggregates in which l was propagated
+ */
 void AggSolver::doBacktrack(Lit l){
-	// Fix the Aggregate min and max values.
+	//TODO review
 	if (aggr_reason[var(l)] != NULL) {
 		delete aggr_reason[var(l)];
 		aggr_reason[var(l)] = NULL;
 	}
-	vec<AggrWatch>& vcw = Aggr_watches[var(l)];
-	for (int i = 0; i < vcw.size(); i++) {
-		if (vcw[i].set->stack.size() == 0 || var(l) != var(
-				vcw[i].set->stack.last().lit)) // l hadn't yet propagated.
-			continue;
-		AggrSet::PropagationInfo pi = vcw[i].set->stack.last();
-		vcw[i].set->stack.pop();
-		Occurrence tp = relativeOccurrence(vcw[i].type, l);
-		assert(tp == pi.type);
-		if (tp == DEFN) // These propagations don't affect 'min' and 'max'.
-			continue;
-		bool trues = tp == POS;
-		switch (vcw[i].set->type) {
-		case SUM:
-			if (trues)
-				vcw[i].set->min -= vcw[i].set->set[vcw[i].index].weight;
-			else
-				vcw[i].set->max += vcw[i].set->set[vcw[i].index].weight;
-			break;
-		case PROD:
-			if (trues)
-				vcw[i].set->min = vcw[i].set->min
-						/ vcw[i].set->set[vcw[i].index].weight;
-			else
-				vcw[i].set->max *= vcw[i].set->set[vcw[i].index].weight;
-			break;
-		case MIN:
-			if (trues)
-				while (vcw[i].set->max < vcw[i].set->set.size()
-						&& value(vcw[i].set->set[vcw[i].set->max].lit)
-								!= l_True)
-					vcw[i].set->max++;
-			else if (vcw[i].set->set[pi.weight].weight
-					<= vcw[i].set->set[vcw[i].set->min].weight) // TODO PropagationInfo should have "index" too!
-				while (vcw[i].set->min >= 0
-						&& vcw[i].set->set[vcw[i].set->min].lit
-								!= ~pi.lit)
-					vcw[i].set->min--;
+	//TODO end review
 
-			break;
-		case MAX:
-			if (trues)
-				while (vcw[i].set->min >= 0 && value(vcw[i].set->set[vcw[i].set->min].lit) != l_True)
-					vcw[i].set->min--;
-			else if (vcw[i].set->set[pi.weight].weight
-					>= vcw[i].set->set[vcw[i].set->max].weight)
-				while (vcw[i].set->max < vcw[i].set->set.size()
-						&& vcw[i].set->set[vcw[i].set->max].lit
-								!= ~pi.lit)
-					vcw[i].set->max++;
-			break;
-		default:
-			assert(false);
-			break;
+	if(countedlit[toInt(l)]){
+		countedlit[toInt(l)] = false;
+
+		vec<AggrWatch>& vcw = Aggr_watches[var(l)];
+		for(int i=0; i<vcw.size(); i++){
+			Agg& ae = *vcw[i].expr;
+			if(ae.stack.size()!=0 && var(ae.stack.last().wlit.lit)==var(l)){
+				backtrackOnePropagation(ae, vcw[i].type, vcw[i].index);
+			}
 		}
 	}
 }
@@ -677,73 +454,6 @@ void AggSolver::doBacktrack(Lit l){
 
 	for (int i = 0; i < lits.size(); i++)
 		to_minimize.push(lits[i]);
-}*/
-
-/*void AggSolver::addAggrExpr(int defn, int set_id, int min, int max, AggrType type) {
-	//TODO hier beginnen verbeteren, en dit is al geen mooie oplossing!
-	if (set_id * NB_AGGR_TYPES > aggr_sets.size()) {
-		reportf("Error: Set nr. %d is used, but not defined yet.\n",set_id), exit(3);
-	}
-	if (min < 0 || min > max) {
-		reportf("Error: aggregate expression with minimum %d and maximum %d is not valid.\n",min,max), exit(3);
-	}
-
-	Lit c = Lit(defn, false);
-
-	defType[var(c)] = AGGR;
-	if (ecnf_mode.def){
-		defdVars.push(var(c));
-	}
-	AggrExpr* ae = new AggrExpr(min, max, c);
-	aggr_exprs.push(ae);
-	AggrSet* as = aggr_sets[(set_id - 1) * NB_AGGR_TYPES + type];
-	as->exprs.push(ae);
-	if (as->type == SUM && type != SUM) {
-		// It's the first aggregate expression of type 'type' for this set. Initialize the set.
-		as->type = type;
-		AggrSet* sum_as = aggr_sets[(set_id - 1) * NB_AGGR_TYPES + SUM]; // We'll copy from this set, which has been initialized already.
-		for (int i = 0; i < sum_as->set.size(); i++)
-			as->set.push(sum_as->set[i]);
-		switch (as->type) {
-		// If type=SUM or PROD: min/max  attainable with current truth values. If type=MIN: index of first non-false / first true literal (can go out of range!); if type=MAX: index of last true / last non-false literal (can go out of range!).
-		case PROD:
-			as->min = 1;
-			as->max = 1;
-			for (int i = 0; i < sum_as->set.size(); i++){
-				as->max *= sum_as->set[i].weight;
-			}
-			as->cmax = as->max;
-			if (as->cmax == 0){
-				reportf("ERROR! Weight zero in a PROD expression.\n"), exit(3);
-			}
-			break;
-		case MIN:
-			as->min = 0; // [,)
-			as->max = as->set.size(); // [,)
-			break;
-		case MAX:
-			as->min = -1; // (,]
-			as->max = as->set.size() - 1; // (,]
-			break;
-		default:
-			assert(false);
-			break;
-		}
-	}
-
-	Aggr_watches[var(c)].push(AggrWatch(as, ae, -1, DEFN));
-
-	bool already_occurs = false; // Making sure that for a set with several expressions, watches from the set literals are added only once.
-	vec<AggrWatch>& vcw = Aggr_watches[var(as->set[0].lit)]; // Note: set is not empty.
-	for (int i = 0; !already_occurs && i < vcw.size(); i++){
-		if (vcw[i].set == as){
-			already_occurs = true;
-		}
-	}
-	for (int i = 0; !already_occurs && i < as->set.size(); i++){
-		Aggr_watches[var(as->set[i].lit)].push(AggrWatch(as, NULL, i, sign(as->set[i].lit) ? NEG : POS));
-	}
-
 }*/
 
 //=================================================================================================
@@ -768,7 +478,7 @@ inline void AggSolver::printAggrSet(const AggrSet& as){
     }
 }
 
-inline void AggSolver::printAggrExpr(const AggrExpr& ae, const AggrSet& as){
+inline void AggSolver::printAggrExpr(const Agg& ae, const AggrSet& as){
 	//TODO repair aggregate printing
 	reportf("Repair aggregate printing");
     /*printLit(ae.c); reportf(" <- %d <= %s{",ae.min, ae.type==SUM ? "sum" : (ae.type==PROD ? "prod" : (ae.type==MIN ? "min" : "max")));

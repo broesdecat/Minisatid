@@ -159,7 +159,7 @@ protected:
 	void     printLit         (Lit l);
 	template<class C>
 	void     printClause      (const C& c);
-	void     printRule        (const Rule& c);
+	//void     printRule        (const Rule& c);
 	void     checkLiteralCount();
 	bool     isCycleFree      ();                      // Verifies whether cf_justification is indeed cycle free.
 

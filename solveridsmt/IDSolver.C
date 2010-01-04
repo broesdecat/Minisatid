@@ -1966,12 +1966,12 @@ inline void IDSolver::printClause(const C& c){
     solver->printClause(c);
 }
 
-inline void IDSolver::printRule(const Rule& c){
+/*inline void IDSolver::printRule(const Rule& c){
     for (int i = 0; i < c.size(); i++){
         printLit(c[i]);
         fprintf(stderr, " ");
     }
-}
+}*/
 
 /*
 OLD CODE
