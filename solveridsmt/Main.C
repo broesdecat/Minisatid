@@ -104,8 +104,32 @@ static bool match(B& in, const char* str) {
 
 
 ////////START OF EXTENSIONS
+/*
+ * AGGREGATE GROUND FORMAT:
+ *
+ * aggL HEAD SET BOUND 0
+ * aggG HEAD SET BOUND 0
+ *
+ * where agg one from {Max, Min, Prod, Sum, Card}
+ *
+ * semantics:
+ * aggL then HEAD <=> aggvalue =< BOUND
+ * aggG then HEAD <=> BOUND >= aggvalue
+ */
+
 template<class B>
 static void parse_Aggr(B& in, Solver* S, AggSolver* AGG, AggrType type) {
+	bool lower;
+	if (*in=='L'){
+		lower = true;
+	}else if(*in=='G'){
+		lower = false;
+	}else{
+		ParseError("You have to define whether it is a LEQ or a GEQ expression.\n");
+		//TODO mogelijk hier iets doen met backwards compatibility?
+	}
+	++in;
+
     int defn = parseInt(in);
     if (defn<=0)
         ParseError("Defining literal of aggregate expression has to be an atom (found %d).\n",defn);
@@ -113,12 +137,11 @@ static void parse_Aggr(B& in, Solver* S, AggSolver* AGG, AggrType type) {
     while (defn >= S->nVars()) S->newVar();
     S->setDecisionVar(defn,true);
     int set_id = parseInt(in);
-    int min = parseInt(in);
-    int max = parseInt(in);
+    int bound = parseInt(in);
     int zero = parseInt(in);
     if (zero != 0)
         ParseError("Aggregate expression has to be closed with '0' (found %d).\n",zero);
-    AGG->addAggrExpr(defn,set_id,min,max,type);
+    AGG->addAggrExpr(defn,set_id,bound,lower,type);
 }
 /////////END OF EXTENSIONS
 

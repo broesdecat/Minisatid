@@ -25,12 +25,18 @@ public:
 	void 	backtrack 		( Lit l);
 	Clause* getExplanation	(Lit p);    // Create a clause that implicitly was the reason for p's propagation.
 	void 	notifyVarAdded	(); 		//correctly initialize AMNSolver datastructures when vars are added
-	Clause* 	propagate	(Lit p, Clause* confl);
+	Clause* propagate	(Lit p, Clause* confl);
 	/////////////////////ENDSOLVER NECESSARY
 
 	/////////////////////INITIALIZATION
 	void    addSet       (int id, vec<Lit>& l, vec<int>& w);
-	//void    addAggrExpr  (int defn, int set_id, int min, int max, AggrType type);
+	//void  addAggrExpr  (int defn, int set_id, int min, int max, AggrType type);
+
+	/**
+	 * Adds an aggregate of the given type with number defn for set set_id.
+	 * If lower, then AGG <= bound
+	 * else 		  bound <= AGG
+	 */
 	void    addAggrExpr  (int defn, int set_id, int bound, bool lower, AggrType type);
 	void    finishECNF_DataStructures ();       // Initialize datastructures.
 
@@ -38,7 +44,7 @@ public:
 		solver = s;
 	}
 
-	int       verbosity;          // Verbosity level. 0=silent, 1=some progress report
+	int	verbosity;          // Verbosity level. 0=silent, 1=some progress report
 	/////////////////////END INITIALIZATION
 
 	// NOTE: this adds an invariant to the system: each literal with a truth value is put on the trail only once.
@@ -49,13 +55,20 @@ public:
 	lbool	value(Lit p) const;
 	int		nVars()      const;
 
+	// Debug:
+	void     printLit         (Lit l);
+	template<class C>
+	void     printClause      (const C& c);
+	void     printAggrSet     (const AggrSet& as);
+	void     printAggrExpr    (const Agg& ae);
+
 protected:
 	// ECNF_mode.aggr additions to Solver state:
 	//
-	vec<Agg*>        aggr_exprs;           // List of aggregate expressions as occurring in the problem.
-	vec<AggrSet*>         aggr_sets;            // List of aggregate sets being used.
-	vec<AggrReason*>      aggr_reason;          // For each atom, like 'reason'.
-	vec<vec<AggrWatch> >  Aggr_watches;         // Aggr_watches[v] is a list of sets in which v occurs (each AggrWatch says: which set, what type of occurrence).
+	vec<Agg*>        	aggr_exprs;           // List of aggregate expressions as occurring in the problem.
+	vec<AggrSet*>		aggr_sets;            // List of aggregate sets being used.
+	vec<AggrReason*>	aggr_reason;          // For each atom, like 'reason'.
+	vec<vec<AggrWatch> > Aggr_watches;         // Aggr_watches[v] is a list of sets in which v occurs (each AggrWatch says: which set, what type of occurrence).
 	// If defType[v]==AGGR, (Aggr_watches[v])[0] has type==DEFN and expr->c==Lit(v,false).
 	vec<bool> countedlit;				//maps a toint(literal) to the fact whether it has been counted (true) or not => is used to check whether backtracking is necessary
 
@@ -64,24 +77,17 @@ protected:
 	void 	doBacktrack(Lit l);
 	void 	backtrackOnePropagation(Agg& ae, Occurrence tp, int index);
 
-	int getCurrentMinimum(vec<WLit>& lits);
-	int getCurrentMaximum(vec<WLit>& lits);
-	int getMinimum(vec<WLit>& lits);
-	int getMaximum(vec<WLit>& lits);
-	int getSum(vec<WLit>& lits);
-	int getProduct(vec<WLit>& lits);
+	int 	getCurrentMinimum(vec<WLit>& lits);
+	int 	getCurrentMaximum(vec<WLit>& lits);
+	int 	getMinimum(vec<WLit>& lits);
+	int 	getMaximum(vec<WLit>& lits);
+	int 	getSum(vec<WLit>& lits);
+	int 	getProduct(vec<WLit>& lits);
 
 	Solver* solver;
 
 	bool 	init;	//indicates whether still in initialization mode
 	bool 	empty; 	//indicates no amn statements are present, so always return from T call
-
-	// Debug:
-	void     printLit         (Lit l);
-	template<class C>
-	void     printClause      (const C& c);
-	void     printAggrSet     (const AggrSet& as);
-	void     printAggrExpr    (const Agg& ae, const AggrSet& as);
 };
 
 //=======================

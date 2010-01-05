@@ -56,10 +56,10 @@ struct AggrWatch {
     AggrWatch(Agg* e, int i, Occurrence t = HEAD) : type(t), expr(e), index(i) {}
 };
 struct AggrReason {			// Needed to build (with implicitReasonClause(Lit)) a reason clause for a cardinality propagation.
-    Agg*		expr;
+    Agg&		expr;
     Occurrence	type;
 
-    AggrReason(Agg* e, Occurrence t) : expr(e), type(t) {}
+    AggrReason(Agg& e, Occurrence t) : expr(e), type(t) {}
 };
 
 inline int compare_WLits(const void* a, const void* b) {
@@ -74,84 +74,103 @@ class Agg{
 public:
 	int	bound, currentworst, currentbest, emptysetValue, truecount; //current keeps the currently derived min and max bounds
 	//truecount is the number of literals certainly in the set
-	bool lower;
-    Lit	head;
-    AggrSet* set;
+	bool 		lower;
+    Lit			head;
+    AggrSet& 	set;
     vec<PropagationInfo> stack;		// Stack of propagations of this expression so far.
 
-    Agg(bool lower, int bound, Lit head, AggrSet* set) :
+    Agg(bool lower, int bound, Lit head, AggrSet& set) :
 	    	bound(bound), emptysetValue(0), truecount(0), lower(lower), head(head), set(set) {}
 
-    virtual void initialize();
+    virtual void 	initialize();
 
     /**
      * Updates the values of the aggregate and then returns whether the head can be directly propagated from the body
      */
-    virtual lbool updateAndCheckPropagate(WLit l, bool addtoset);
+    virtual lbool 	updateAndCheckPropagate(WLit l, bool addtoset);
     virtual Clause* propagate(bool headtrue) = 0;
-    virtual void backtrack(WLit l, bool wasinset);
+    virtual void 	backtrack(WLit l, bool wasinset);
+	virtual void	getExplanation(Lit p, vec<Lit>& lits, int p_index, AggrReason& ar) = 0;
 
-    virtual int getCurrentBestPossible(bool alltimebest=false) = 0;
-    virtual int getCurrentBestCertain() = 0;
+    virtual int 	getCurrentBestPossible(bool alltimebest=false) = 0;
+    virtual int 	getCurrentBestCertain() = 0;
 
-    lbool value(Lit p);
+			lbool	value(Lit p);
+
+			void	printAgg(const char* name) const;
+    virtual void 	print() const = 0;
 };
 
 class MinAgg: public Agg {
 public:
-	MinAgg(bool lower, int bound, Lit head, AggrSet* set):
+	MinAgg(bool lower, int bound, Lit head, AggrSet& set):
 		Agg(lower, bound, head, set){
 			emptysetValue = std::numeric_limits<int>::max();
 		};
+
 	virtual ~MinAgg();
 
-	lbool updateAndCheckPropagate(WLit l, bool addtoset);
+	lbool 	updateAndCheckPropagate(WLit l, bool addtoset);
 	Clause* propagate(bool headtrue);
+	void	getExplanation(Lit p, vec<Lit>& lits, int p_index, AggrReason& ar);
 
-	int getCurrentBestPossible(bool alltimebest=false);
-	int getCurrentBestCertain();
+	int 	getCurrentBestPossible(bool alltimebest=false);
+	int 	getCurrentBestCertain();
+
+	void 	print() const;
 };
 
 class SumAgg: public Agg {
 public:
-	SumAgg(bool lower, int bound, Lit head, AggrSet* set):
+	SumAgg(bool lower, int bound, Lit head, AggrSet& set):
 		Agg(lower, bound, head, set){
 			emptysetValue = 0;
 		};
 	virtual ~SumAgg();
 
 	Clause* propagate(bool headtrue);
+	void	getExplanation(Lit p, vec<Lit>& lits, int p_index, AggrReason& ar);
 
-	int getCurrentBestPossible(bool alltimebest=false);
-	int getCurrentBestCertain();
+	int 	getCurrentBestPossible(bool alltimebest=false);
+	int 	getCurrentBestCertain();
+
+	void 	print() const;
 };
 
 class MaxAgg: public Agg {
 public:
-	MaxAgg(bool lower, int bound, Lit head, AggrSet* set):
+	MaxAgg(bool lower, int bound, Lit head, AggrSet& set):
 		Agg(lower, bound, head, set){
 			emptysetValue = std::numeric_limits<int>::min();
 		};
+
 	virtual ~MaxAgg();
 
 	Clause* propagate(bool headtrue);
+	void	getExplanation(Lit p, vec<Lit>& lits, int p_index, AggrReason& ar);
 
-	int getCurrentBestPossible(bool alltimebest=false);
-	int getCurrentBestCertain();
+	int 	getCurrentBestPossible(bool alltimebest=false);
+	int 	getCurrentBestCertain();
+
+	void 	print() const;
 };
 
 class ProdAgg: public Agg {
 public:
-	ProdAgg(bool lower, int bound, Lit head, AggrSet* set):
+	ProdAgg(bool lower, int bound, Lit head, AggrSet& set):
 		Agg(lower, bound, head, set){
 			emptysetValue = 0;
 		};
+
 	virtual ~ProdAgg();
 
 	Clause* propagate(bool headtrue);
+	void	getExplanation(Lit p, vec<Lit>& lits, int p_index, AggrReason& ar);
 
-	int getCurrentBestPossible(bool alltimebest=false);
-	int getCurrentBestCertain();
+	int		getCurrentBestPossible(bool alltimebest=false);
+	int 	getCurrentBestCertain();
+
+	void 	print() const;
 };
 
 #endif /* MINAGG_H_ */

@@ -335,6 +335,16 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel) {
 		assert(confl != NULL); // (otherwise should be UIP)
 		Clause& c = *confl;
 
+		if(verbosity>2){
+			reportf("Current conflict clause: ");
+			printClause(c);
+			reportf("Current learned clause: ");
+			for(int i=0; i<out_learnt.size();i++){
+				printLit(out_learnt[i]); reportf(" ");
+			}
+			reportf("\n");
+		}
+
 		if (c.learnt())
 			claBumpActivity(c);
 
@@ -365,6 +375,12 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel) {
 		while (!seen[var(trail[index--])])
 			;
 		p = trail[index + 1];
+
+		if(verbosity>2){
+			reportf("Getting explanation for ");
+			printLit(p);reportf("\n");
+		}
+
 		confl = reason[var(p)];
 
 		//////////////START TSOLVER
