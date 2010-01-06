@@ -101,14 +101,20 @@ public:
     virtual void 	print() const = 0;
 };
 
-class MinAgg: public Agg {
+class MIMAAgg: public Agg {
+private:
+	bool min;
 public:
-	MinAgg(bool lower, int bound, Lit head, AggrSet& set):
-		Agg(lower, bound, head, set){
-			emptysetValue = std::numeric_limits<int>::max();
+	MIMAAgg(bool lower, int bound, Lit head, AggrSet& set, bool min):
+		Agg(lower, bound, head, set), min(min){
+			if(min){
+				emptysetValue = std::numeric_limits<int>::max();
+			}else{
+				emptysetValue = std::numeric_limits<int>::min();
+			}
 		};
 
-	virtual ~MinAgg();
+	virtual ~MIMAAgg();
 
 	lbool 	updateAndCheckPropagate(WLit l, bool addtoset);
 	Clause* propagate(bool headtrue);
@@ -134,24 +140,6 @@ public:
 
 		};
 	virtual ~SPAgg();
-
-	Clause* propagate(bool headtrue);
-	void	getExplanation(Lit p, vec<Lit>& lits, int p_index, AggrReason& ar);
-
-	int 	getCurrentBestPossible(bool alltimebest=false);
-	int 	getCurrentBestCertain();
-
-	void 	print() const;
-};
-
-class MaxAgg: public Agg {
-public:
-	MaxAgg(bool lower, int bound, Lit head, AggrSet& set):
-		Agg(lower, bound, head, set){
-			emptysetValue = std::numeric_limits<int>::min();
-		};
-
-	virtual ~MaxAgg();
 
 	Clause* propagate(bool headtrue);
 	void	getExplanation(Lit p, vec<Lit>& lits, int p_index, AggrReason& ar);

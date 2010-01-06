@@ -41,13 +41,18 @@ lbool Agg::updateAndCheckPropagate(WLit l, bool addtoset) {
 	}
 }
 
-int MinAgg::getCurrentBestPossible(bool alltimebest) {
-	int min = emptysetValue;
+/*********************
+ * MIN-MAX AGGREGATE *
+ *********************/
 
+int MIMAAgg::getCurrentBestPossible(bool alltimebest) {
+	int result = emptysetValue;
+	bool value;
 	if(alltimebest){
 		for (int j = 0; j < set.wlitset.size(); j++) {
-			if(min > set.wlitset[j].weight){
-				min = set.wlitset[j].weight;
+			value = result > set.wlitset[j].weight;
+			if(min?value:!value){
+				result = set.wlitset[j].weight;
 			}
 		}
 	}else{
@@ -62,17 +67,18 @@ int MinAgg::getCurrentBestPossible(bool alltimebest) {
 					break;
 				}
 			}
-			if (!invalid && min > weight) {
-				min = weight;
+			value = result > weight;
+			if (!invalid && min?value:!value) {
+				result = weight;
 			}
 		}
 	}
-	return min;
+	return result;
 }
 
-int MinAgg::getCurrentBestCertain() {
-	int min = emptysetValue;
-
+int MIMAAgg::getCurrentBestCertain() {
+	int result = emptysetValue;
+	bool value;
 	for(int i=0; i<set.wlitset.size(); i++){
 		Lit l = set.wlitset[i].lit;
 		int weight = set.wlitset[i].weight;
@@ -83,19 +89,25 @@ int MinAgg::getCurrentBestCertain() {
 				break;
 			}
 		}
-		if (!invalid && min > weight) {
-			min = weight;
+		value = result > weight;
+		if (!invalid && min?value:!value) {
+			result = weight;
 		}
 	}
 
-	return min;
+	return result;
 }
 
-MinAgg::~MinAgg() {
+MIMAAgg::~MIMAAgg() {
 }
 
 //OVERRIDDEN BECAUSE BEST IS LOWER THAN WORST
-lbool MinAgg::updateAndCheckPropagate(WLit l, bool addtoset) {
+lbool MIMAAgg::updateAndCheckPropagate(WLit l, bool addtoset) {
+	//FIXME DEZE NOG UPDATEN OM ZOWEL MIN ALS MAX TE KUNNEN
+	if(!min){
+		return Agg::updateAndCheckPropagate(l, addtoset);
+	}
+
 	//update values
 	if (addtoset) {
 		truecount++;
@@ -119,87 +131,23 @@ lbool MinAgg::updateAndCheckPropagate(WLit l, bool addtoset) {
 }
 
 /**
+ * MIN AGG
  * If the head is true && A <= AGG, make all literals false that have a weight smaller than the bound (because that would make the aggregate false)
  * If the head is false && AGG <= B, make all literals false that have a weight smaller than the bound (because that would make the aggregate false)
- */
-Clause* MinAgg::propagate(bool headtrue) {
-	Clause* confl = NULL;
-	if ((headtrue && !lower) || (!headtrue && lower)) {
-		for (int i = 0; confl == NULL && i < set.wlitset.size(); i++) {
-			if (set.wlitset[i].weight < bound) {
-				confl = AggSolver::aggsolver->aggrEnqueue(~set.wlitset[i].lit, new AggrReason(*this, NEG));
-			}
-		}
-	}
-	return confl;
-}
-
-/*****************
- * MAX AGGREGATE *
- *****************/
-
-MaxAgg::~MaxAgg() {
-}
-
-int MaxAgg::getCurrentBestPossible(bool alltimebest) {
-	int max = emptysetValue;
-
-	if(alltimebest){
-		for (int j = 0; j < set.wlitset.size(); j++) {
-			if(max < set.wlitset[j].weight){
-				max = set.wlitset[j].weight;
-			}
-		}
-	}else{
-		for(int i=0; i<set.wlitset.size(); i++){
-			Lit l = set.wlitset[i].lit;
-			int weight = set.wlitset[i].weight;
-			bool invalid = false;
-			for (int j = 0; j < stack.size(); j++) {
-				if(stack[j].wlit.lit==~l){
-					invalid = true;
-					break;
-				}
-			}
-			if (!invalid && max < weight) {
-				max = weight;
-			}
-		}
-	}
-
-	return max;
-}
-
-int MaxAgg::getCurrentBestCertain() {
-	int max = emptysetValue;
-
-	for(int i=0; i<set.wlitset.size(); i++){
-		Lit l = set.wlitset[i].lit;
-		int weight = set.wlitset[i].weight;
-		bool invalid = true;
-		for (int j = 0; j < stack.size(); j++) {
-			if(stack[j].wlit.lit==l){
-				invalid = false;
-				break;
-			}
-		}
-		if (!invalid && max < weight) {
-			max = weight;
-		}
-	}
-
-	return max;
-}
-
-/**
+ *
+ * MAX AGG
  * If the head is true && AGG <= B, make all literals false that have a weight higher than the bound (because that would make the aggregate false)
  * If the head is false && A <= AGG, make all literals false that have a weight higher than the bound (because that would make the aggregate false)
  */
-Clause* MaxAgg::propagate(bool headtrue) {
+Clause* MIMAAgg::propagate(bool headtrue) {
 	Clause* confl = NULL;
-	if ((headtrue && lower) || (!headtrue && !lower)) {
+	bool value;
+	if ((min && headtrue && !lower) || (min && !headtrue && lower)
+			||
+			(!min && headtrue && lower) || (!min && !headtrue && !lower)) {
 		for (int i = 0; confl == NULL && i < set.wlitset.size(); i++) {
-			if (set.wlitset[i].weight > bound) {
+			value = set.wlitset[i].weight < bound;
+			if (min?value:!value) {
 				confl = AggSolver::aggsolver->aggrEnqueue(~set.wlitset[i].lit, new AggrReason(*this, NEG));
 			}
 		}
@@ -242,7 +190,6 @@ int SPAgg::getCurrentBestPossible(bool alltimebest) {
 				}else{
 					max *= weight;
 				}
-
 			}
 		}
 	}
@@ -350,6 +297,8 @@ Clause* SPAgg::propagate(bool headtrue){
 /**
  * ALL SIGNS INVERTED TO MAKE A CLAUSE
  *
+ * MINIMUM AGGREGATE:
+ *
  * empty set: +INFINITY
  *
  * head true & AGG <= B: one literal that is true and smaller/eq than B
@@ -360,130 +309,83 @@ Clause* SPAgg::propagate(bool headtrue){
  * 				 A <= AGG: head is false and all other smaller ones are false
  * type is neq & AGG <= B: head is false
  * 				 A <= AGG: head is true
+ *
+ * EXACTLY THE OPPOSITE HOLDS FOR A MAXIMUM AGGREGATE
  */
-void MinAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
-	if (ar.type == HEAD) {
-		if (ar.expr.head == p) {
-			if(lower){
-				for(int i=0; i<stack.size(); i++){
-					if(stack[i].wlit.weight<=bound && stack[i].type==POS){
-						lits.push(~stack[i].wlit.lit);
-						break;
-					}
-				}
-			}else{
-				for(int i=0; i<set.wlitset.size() && set.wlitset[i].weight < bound; i++){
-					lits.push(set.wlitset[i].lit);
-				}
-			}
-		} else {
-			if(lower){
-				for(int i=0; i<set.wlitset.size() && set.wlitset[i].weight <= bound; i++){
-					lits.push(set.wlitset[i].lit);
-				}
-			}else{
-				for(int i=0; i<stack.size(); i++){
-					if(stack[i].wlit.weight<bound && stack[i].type==POS){
-						lits.push(~stack[i].wlit.lit);
-						break;
-					}
-				}
-			}
-		}
-	} else if (ar.type == POS) {
-		if(lower){
-			lits.push(~head);
-			for(int i=0; i<set.wlitset.size() && set.wlitset[i].weight<=bound; i++){
-				if(set.wlitset[i].lit!=p){
-					lits.push(set.wlitset[i].lit);
-				}
-			}
-		}else{
-			lits.push(head);
-			for(int i=0; i<set.wlitset.size() && set.wlitset[i].weight<bound; i++){
-				if(set.wlitset[i].lit!=p){
-					lits.push(set.wlitset[i].lit);
-				}
-			}
-		}
-	} else {//NEG type
-		if(lower){
-			lits.push(head);
-		}else{
-			lits.push(~head);
-		}
+void MIMAAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
+	Occurrence tp = POS;
+	bool value;
+	if(!min){
+		tp = NEG;
 	}
-}
-
-/**
- * ALL SIGNS INVERTED TO MAKE A CLAUSE
- *
- * empty set: -INFINITY
- *
- * head true & AGG <= B: all literals false with weight larger than B
- * 			   A <= AGG: one literal true and larger/eq than A
- * head false & AGG <= B: one literal true and larger than B
- * 				A <= AGG: all literals false with weight larger/eq than A
- * type is pos & AGG <= B: head is false and all other larger ones are false
- * 				 A <= AGG: head is true and all other larger/eq ones are false
- * type is neq & AGG <= B: head is true
- * 				 A <= AGG: head is false
- */
-void MaxAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
 	if (ar.type == HEAD) {
 		if (ar.expr.head == p) {
-			if(lower){
-				for(int i=0; i<set.wlitset.size(); i++){
-					if(set.wlitset[i].weight > bound){
-						lits.push(set.wlitset[i].lit);
+			if((lower && min) || (!lower && ! min)){
+				for(int i=0; i<stack.size(); i++){
+					value = stack[i].wlit.weight<=bound;
+					if(min?value:!value && stack[i].type==tp){
+						lits.push(~stack[i].wlit.lit);
+						break;
 					}
 				}
 			}else{
-				for(int i=0; i<stack.size(); i++){
-					if(stack[i].wlit.weight>=bound && stack[i].type==POS){
-						lits.push(~stack[i].wlit.lit);
+				for(int i=0; i<set.wlitset.size(); i++){
+					lits.push(set.wlitset[i].lit);
+					value = set.wlitset[i].weight < bound;
+					if(min?value:!value){
 						break;
 					}
 				}
 			}
 		} else {
-			if(lower){
-				for(int i=0; i<stack.size(); i++){
-					if(stack[i].wlit.weight>bound && stack[i].type==POS){
-						lits.push(~stack[i].wlit.lit);
+			if((lower && min) || (!lower && ! min)){
+				for(int i=0; i<set.wlitset.size(); i++){
+					lits.push(set.wlitset[i].lit);
+					value = set.wlitset[i].weight <= bound;
+					if(min?value:!value){
 						break;
 					}
 				}
 			}else{
-				for(int i=0; i<set.wlitset.size(); i++){
-					if(set.wlitset[i].weight >= bound){
-						lits.push(set.wlitset[i].lit);
+				for(int i=0; i<stack.size(); i++){
+					value = stack[i].wlit.weight<bound;
+					if(min?value:!value && stack[i].type==tp){
+						lits.push(~stack[i].wlit.lit);
+						break;
 					}
 				}
 			}
 		}
 	} else if (ar.type == POS) {
-		if(lower){
-			lits.push(head);
+		if((lower && min) || (!lower && ! min)){
+			lits.push(~head);
 			for(int i=0; i<set.wlitset.size(); i++){
-				if(set.wlitset[i].weight>bound && set.wlitset[i].lit!=p){
+				if(set.wlitset[i].lit!=p){
 					lits.push(set.wlitset[i].lit);
+				}
+				value = set.wlitset[i].weight<=bound;
+				if(min?value:!value){
+					break;
 				}
 			}
 		}else{
-			lits.push(~head);
+			lits.push(head);
 			for(int i=0; i<set.wlitset.size(); i++){
-				if(set.wlitset[i].weight>=bound && set.wlitset[i].lit!=p){
+				if(set.wlitset[i].lit!=p){
 					lits.push(set.wlitset[i].lit);
+				}
+				value = set.wlitset[i].weight<bound;
+				if(min?value:!value){
+					break;
 				}
 			}
 		}
 	} else {//NEG type
-		if(lower){
-			lits.push(~head);
-		}else{
-			lits.push(head);
+		Lit h = head;
+		if((!lower && min) || (lower && !min)){
+			h = ~h;
 		}
+		lits.push(h);
 	}
 }
 
@@ -625,12 +527,13 @@ void Agg::printAgg(const char* name) const{
 	}
 }
 
-void MinAgg::print() const{
-	printAgg("MIN");
-}
+void MIMAAgg::print() const{
+	if(min){
+		printAgg("MIN");
+	}else{
+		printAgg("MAX");
+	}
 
-void MaxAgg::print() const{
-	printAgg("MAX");
 }
 
 void SPAgg::print() const{

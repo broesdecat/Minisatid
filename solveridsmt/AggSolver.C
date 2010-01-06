@@ -121,10 +121,10 @@ void AggSolver::addAggrExpr(int defn, int setid, int bound, bool lower, AggrType
 	Agg* ae;
 	switch(type){
 	case MIN:
-		ae = new MinAgg(lower, bound, c, *aggr_sets[setindex]);
+		ae = new MIMAAgg(lower, bound, c, *aggr_sets[setindex], true);
 		break;
 	case MAX:
-		ae = new MaxAgg(lower, bound, c, *aggr_sets[setindex]);
+		ae = new MIMAAgg(lower, bound, c, *aggr_sets[setindex], false);
 		break;
 	case SUM:
 		ae = new SPAgg(lower, bound, c, *aggr_sets[setindex], true);
