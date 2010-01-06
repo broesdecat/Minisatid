@@ -34,18 +34,18 @@ struct WLit {  // Weighted literal
 
 struct PropagationInfo {	// Propagated literal
 	WLit        wlit;		// value(lit)==l_True.
-    Occurrence  type;
+    Occurrence  type;		// POS if the literal in the set became true, NEG otherwise
+							//		(and HEAD if the head was propagate)
 
     PropagationInfo(Lit l, int w, Occurrence t) : wlit(WLit(l,w)), type(t) {}
 };
 
-//INVARIANT: the WLITset is stored sorted from small to large weight!
+//INVARIANT: the WLITset is stored sorted from smallest to largest weight!
 struct AggrSet {
     vec<WLit>	wlitset;	// Stores the actual set of weighted literals.
-    int			cmax;		// (constant) sum of all weights / set.size(). Not used when type==MIN or MAX.
     vec<Agg*>	exprs;		// In which expressions does this set occur. NOTE: there's no point in splitting this in "already satisfied" and "not yet satisfied"; we can't avoid doing most of the propagation work anew.
 
-    AggrSet(): cmax(0){};
+    AggrSet(){};
 };
 
 struct AggrWatch {
@@ -53,7 +53,7 @@ struct AggrWatch {
     Agg*		expr;		// Not used (NULL) if type!=DEFN
     int			index;		// Not used if type==DEFN
 
-    AggrWatch(Agg* e, int i, Occurrence t = HEAD) : type(t), expr(e), index(i) {}
+    AggrWatch(Agg* e, int i, Occurrence t) : type(t), expr(e), index(i) {}
 };
 struct AggrReason {			// Needed to build (with implicitReasonClause(Lit)) a reason clause for a cardinality propagation.
     Agg&		expr;

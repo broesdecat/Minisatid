@@ -58,7 +58,15 @@ Solver::Solver() :
 	tot_literals(0),
 
 	ok(true),
-	remove_satisfied(true),
+	remove_satisfied(false),
+	/*
+	 * FIXME: Als removesatisfied aanstaat, blijkt hij door een bug (die ik niet helemaal begrijp),
+	 * ook backtrackt over het stuk trail dat de propagaties bevat VOORDAT er gezocht wordt. Maar als
+	 * hun clauses verwijderd zijn (want er wordt normaal bijgehouden dat die literals altijd waar zijn),
+	 * dan zijn er dus inconsistenties. Zie bij invalidatemodel met cancelfurther
+	 * het idee is dat propagaties voor de search (of voordat naar een volgend
+	 * model wordt gezocht) gemaakt worden en dat over die propagaties niet gebacktrackt wordt.
+	 */
 
 	cla_inc(1), var_inc(1), simpDB_assigns(-1),
 	simpDB_props(0),
@@ -222,7 +230,6 @@ bool Solver::satisfied(const Clause& c) const {
 ///////////////START CHANGES
 // Can be used to go beyond level 0!
 void Solver::cancelFurther(int init_qhead) {
-
 	for (int c = trail.size() - 1; c >= init_qhead; c--) {
 		Var x = var(trail[c]);
 		assigns[x] = toInt(l_Undef);
@@ -249,10 +256,30 @@ void Solver::cancelFurther(int init_qhead) {
 // Revert to the state at given level (keeping all assignment at 'level' but not beyond).
 //
 void Solver::backtrackTo(int level) {
+	/*reportf("Before backtrack.\n");
+	for(int i=0; i<trail.size(); i++){
+		printLit(trail[i]); reportf(" ");
+	}
+	reportf("\n");
+	for(int i=0; i<trail_lim.size(); i++){
+		reportf("%i ",trail_lim[i]);
+	}
+	reportf("\n");*/
+
 	if (decisionLevel() > level) {
 		cancelFurther(trail_lim[level]);
 		trail_lim.shrink(trail_lim.size() - level);
 	}
+
+	/*reportf("After backtrack.\n");
+	for(int i=0; i<trail.size(); i++){
+		printLit(trail[i]); reportf(" ");
+	}
+	reportf("\n");
+	for(int i=0; i<trail_lim.size(); i++){
+		reportf("%i ",trail_lim[i]);
+	}
+	reportf("\n");*/
 }
 ///////////////END CHANGES
 
@@ -738,6 +765,19 @@ lbool Solver::search(int nof_conflicts, int nof_learnts) {
             return l_False;
         }
         if (verbosity>=2) reportf("Starting decision level %d.\n",trail_lim.size());
+
+        if (verbosity>=4 && trail_lim.size()==0){
+        	reportf("CLAUSES\n");
+        	for(int i=0; i<clauses.size(); i++){
+        		printClause(*clauses[i]);
+        	}
+        	reportf("LEARNTS\n");
+        	for(int i=0; i<learnts.size(); i++){
+				printClause(*learnts[i]);
+			}
+        	reportf("END\n");
+        }
+
         Clause* confl = propagate();
         if (confl != NULL){
             // CONFLICT
@@ -834,8 +874,12 @@ double Solver::progressEstimate() const {
 void Solver::invalidateModel(const vec<Lit>& lits, int& init_qhead) {
 	//FIXME nog een error in het vinden van dubbele modellen
 	backtrackTo(0);
-	if (init_qhead < qhead)
+	if (init_qhead < qhead){
+		//FIXME hier zit de fout met remove satisfied: hij delete atomen waarvan de clause
+		//gedelete kan zijn omdat afgeleid is dat ze waar zijn ZONDER ZOEKEN, dus
+		//zouden ze niet van de trail gehaald mogen worden?
 		cancelFurther(init_qhead);
+	}
 
 	if (lits.size() == 1) {
 		setTrue(lits[0]);

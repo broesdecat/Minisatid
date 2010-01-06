@@ -10,16 +10,11 @@ void Agg::backtrack(WLit l, bool wasinset) {
 		truecount--;
 		if (truecount == 0) {
 			currentworst = emptysetValue;
-		} else {
-			if (l.weight == currentworst) {
-				currentworst = getCurrentBestCertain();
-			}
-		}
-	} else {
-		if (l.weight == currentbest) {
-			currentbest = getCurrentBestPossible();
 		}
 	}
+	//FIXME: hier een update methode voor maken ipv alles opnieuw te berekenen
+	currentworst = getCurrentBestCertain();
+	currentbest = getCurrentBestPossible();
 }
 
 void Agg::initialize() {
@@ -48,9 +43,28 @@ lbool Agg::updateAndCheckPropagate(WLit l, bool addtoset) {
 
 int MinAgg::getCurrentBestPossible(bool alltimebest) {
 	int min = emptysetValue;
-	for (int j = 0; j < set.wlitset.size(); j++) {
-		if ((alltimebest || value(set.wlitset[j].lit) != l_False) && min > set.wlitset[j].weight) {
-			min = set.wlitset[j].weight;
+
+	if(alltimebest){
+		for (int j = 0; j < set.wlitset.size(); j++) {
+			if(min > set.wlitset[j].weight){
+				min = set.wlitset[j].weight;
+			}
+		}
+	}else{
+		//FIXME really not optimal
+		for(int i=0; i<set.wlitset.size(); i++){
+			Lit l = set.wlitset[i].lit;
+			int weight = set.wlitset[i].weight;
+			bool invalid = false;
+			for (int j = 0; j < stack.size(); j++) {
+				if(stack[j].wlit.lit==~l){
+					invalid = true;
+					break;
+				}
+			}
+			if (!invalid && min > weight) {
+				min = weight;
+			}
 		}
 	}
 	return min;
@@ -58,11 +72,22 @@ int MinAgg::getCurrentBestPossible(bool alltimebest) {
 
 int MinAgg::getCurrentBestCertain() {
 	int min = emptysetValue;
-	for (int j = 0; j < set.wlitset.size(); j++) {
-		if (value(set.wlitset[j].lit) == l_True && min	> set.wlitset[j].weight) {
-			min = set.wlitset[j].weight;
+
+	for(int i=0; i<set.wlitset.size(); i++){
+		Lit l = set.wlitset[i].lit;
+		int weight = set.wlitset[i].weight;
+		bool invalid = true;
+		for (int j = 0; j < stack.size(); j++) {
+			if(stack[j].wlit.lit==l){
+				invalid = false;
+				break;
+			}
+		}
+		if (!invalid && min > weight) {
+			min = weight;
 		}
 	}
+
 	return min;
 }
 
@@ -93,9 +118,6 @@ lbool MinAgg::updateAndCheckPropagate(WLit l, bool addtoset) {
 	}
 }
 
-//de literals in de set zijn geordend naar stijgende weight, zodat gericht kan worden gezocht
-//FIXME GEBRUIK deze optimalisatie
-
 /**
  * If the head is true && A <= AGG, make all literals false that have a weight smaller than the bound (because that would make the aggregate false)
  * If the head is false && AGG <= B, make all literals false that have a weight smaller than the bound (because that would make the aggregate false)
@@ -121,22 +143,51 @@ MaxAgg::~MaxAgg() {
 
 int MaxAgg::getCurrentBestPossible(bool alltimebest) {
 	int max = emptysetValue;
-	for (int j = 0; j < set.wlitset.size(); j++) {
-		if ((alltimebest || value(set.wlitset[j].lit) != l_False) && max < set.wlitset[j].weight) {
-			max = set.wlitset[j].weight;
+
+	if(alltimebest){
+		for (int j = 0; j < set.wlitset.size(); j++) {
+			if(max < set.wlitset[j].weight){
+				max = set.wlitset[j].weight;
+			}
+		}
+	}else{
+		for(int i=0; i<set.wlitset.size(); i++){
+			Lit l = set.wlitset[i].lit;
+			int weight = set.wlitset[i].weight;
+			bool invalid = false;
+			for (int j = 0; j < stack.size(); j++) {
+				if(stack[j].wlit.lit==~l){
+					invalid = true;
+					break;
+				}
+			}
+			if (!invalid && max < weight) {
+				max = weight;
+			}
 		}
 	}
+
 	return max;
 }
 
 int MaxAgg::getCurrentBestCertain() {
 	int max = emptysetValue;
-	for (int j = 0; j < set.wlitset.size(); j++) {
-		if (value(set.wlitset[j].lit) == l_True && max
-				< set.wlitset[j].weight) {
-			max = set.wlitset[j].weight;
+
+	for(int i=0; i<set.wlitset.size(); i++){
+		Lit l = set.wlitset[i].lit;
+		int weight = set.wlitset[i].weight;
+		bool invalid = true;
+		for (int j = 0; j < stack.size(); j++) {
+			if(stack[j].wlit.lit==l){
+				invalid = false;
+				break;
+			}
+		}
+		if (!invalid && max < weight) {
+			max = weight;
 		}
 	}
+
 	return max;
 }
 
@@ -165,21 +216,49 @@ SumAgg::~SumAgg() {
 
 int SumAgg::getCurrentBestPossible(bool alltimebest) {
 	int max = emptysetValue;
-	for (int j = 0; j < set.wlitset.size(); j++) {
-		if (alltimebest || value(set.wlitset[j].lit) != l_False) {
+
+	if(alltimebest){
+		for (int j = 0; j < set.wlitset.size(); j++) {
 			max += set.wlitset[j].weight;
 		}
+	}else{
+		for(int i=0; i<set.wlitset.size(); i++){
+			Lit l = set.wlitset[i].lit;
+			int weight = set.wlitset[i].weight;
+			bool invalid = false;
+			for (int j = 0; j < stack.size(); j++) {
+				if(stack[j].wlit.lit==~l){
+					invalid = true;
+					break;
+				}
+			}
+			if (!invalid) {
+				max += weight;
+			}
+		}
 	}
+
 	return max;
 }
 
 int SumAgg::getCurrentBestCertain() {
 	int max = emptysetValue;
-	for (int j = 0; j < set.wlitset.size(); j++) {
-		if (value(set.wlitset[j].lit) == l_True) {
-			max += set.wlitset[j].weight;
+
+	for(int i=0; i<set.wlitset.size(); i++){
+		Lit l = set.wlitset[i].lit;
+		int weight = set.wlitset[i].weight;
+		bool invalid = true;
+		for (int j = 0; j < stack.size(); j++) {
+			if(stack[j].wlit.lit==l){
+				invalid = false;
+				break;
+			}
+		}
+		if (!invalid) {
+			max += weight;
 		}
 	}
+
 	return max;
 }
 
@@ -242,21 +321,49 @@ ProdAgg::~ProdAgg() {
 
 int ProdAgg::getCurrentBestPossible(bool alltimebest) {
 	int max = emptysetValue;
-	for (int j = 0; j < set.wlitset.size(); j++) {
-		if (alltimebest || value(set.wlitset[j].lit) != l_False) {
-			max *= set.wlitset[j].weight;
+
+	if(alltimebest){
+		for (int j = 0; j < set.wlitset.size(); j++) {
+			max += set.wlitset[j].weight;
+		}
+	}else{
+		for(int i=0; i<set.wlitset.size(); i++){
+			Lit l = set.wlitset[i].lit;
+			int weight = set.wlitset[i].weight;
+			bool invalid = false;
+			for (int j = 0; j < stack.size(); j++) {
+				if(stack[j].wlit.lit==~l){
+					invalid = true;
+					break;
+				}
+			}
+			if (!invalid) {
+				max *= weight;
+			}
 		}
 	}
+
 	return max;
 }
 
 int ProdAgg::getCurrentBestCertain() {
 	int max = emptysetValue;
-	for (int j = 0; j < set.wlitset.size(); j++) {
-		if (value(set.wlitset[j].lit) == l_True) {
-			max *= set.wlitset[j].weight;
+
+	for(int i=0; i<set.wlitset.size(); i++){
+		Lit l = set.wlitset[i].lit;
+		int weight = set.wlitset[i].weight;
+		bool invalid = true;
+		for (int j = 0; j < stack.size(); j++) {
+			if(stack[j].wlit.lit==l){
+				invalid = false;
+				break;
+			}
+		}
+		if (!invalid) {
+			max *= weight;
 		}
 	}
+
 	return max;
 }
 
@@ -443,67 +550,102 @@ void MaxAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
 	}
 }
 
+/**
+ * INVERTED SIGNS FOR CLAUSE!
+ *
+ * empty set is 0
+ *
+ * head true & AGG <= B: from the stack, keep adding false literals until possiblesum <= B
+ * 			   A <= AGG: from the stack, keep adding true literals until A <= certainsum
+ * head false & AGG <= B: from the stack, keep adding true literals until certainsum > B
+ * 			    A <= AGG: from the stack, keep adding false literals until possiblesum < A
+ * type is pos & AGG <= B: head is false and from the stack,
+ * 					keep adding false literals until possiblesum - lit itself <= B
+ * 			     A <= AGG: head is true and from the stack,
+ * 					keep adding false literals until A > possiblesum - lit itself
+ * type is neg & AGG <= B: head is true and from the stack,
+ * 					keep adding true literals until certainsum + lit itself > B
+ * 			     A <= AGG: head is false and from the stack,
+ * 					keep adding true literals until A <= certainsum + lit itself
+ *
+ * true meaning that the literal has the same sign as in the set
+ * false meaning that the literal has the opposite sign as compared to the set
+ */
 void SumAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
-	/*int cmax = ar.expr.set.headmax;
-	int min_needed = 0;
-	int max_needed = cmax;
-	if (ar.type == HEAD) {
-		// [mn >= i && mx =< j  ==>  c]  OR  [mn > j  || mx < i  ==>  ~c]
-		if (ar.expr.head == p) {
-			min_needed = ar.expr.min;
-			max_needed = ar.expr.max;
-		} else {
-			assert(ar.expr.head==~p);
-			if (ar.expr.set.min > ar.expr.max)
-				min_needed = ar.expr.max + 1;
-			else
-				max_needed = ar.expr.min - 1;
-		}
-	} else if (ar.type == POS) {
-		// c is true && mx = i  OR  c is false && mn >= i && mx = j+1
-		if (value(ar.expr.head) == l_True) {
-			lits.push(~ar.expr.head);
-			max_needed = ar.expr.min + ar.expr.set.wlitset[p_idx].weight - 1;
-		} else {
-			assert(value(ar.expr.head)==l_False);
-			lits.push(ar.expr.head);
-			min_needed = ar.expr.min;
-			max_needed = ar.expr.max + ar.expr.set.wlitset[p_idx].weight;
-		}
-	} else {
-		assert(ar.type==NEG);
-		// c is true && mn = j  OR  c is false && mx =< j && mn = i-1
-		if (value(ar.expr.head) == l_True) {
-			lits.push(~ar.expr.head);
-			min_needed = ar.expr.max - ar.expr.set.wlitset[p_idx].weight + 1;
-		} else {
-			assert(value(ar.expr.head)==l_False);
-			lits.push(ar.expr.head);
-			min_needed = ar.expr.min - ar.expr.set.wlitset[p_idx].weight;
-			max_needed = ar.expr.max;
-		}
+	int possiblesum, certainsum;
+	certainsum = emptysetValue;
+	possiblesum = getCurrentBestPossible(true);
+
+	lbool headValue = AggSolver::aggsolver->value(head);
+	if(ar.type == POS || ar.type == NEG){
+		lits.push(headValue==l_True?~head:head);
 	}
 
-//		 We now walk over the stack and add literals that are relevant to the
-//		 reason clause, until it is big enough. When that is depends on the type
-//		 of propagation that was done to derive p.
-//
-	Lit q;
-	char t;
-	for (int i = 0; min_needed + (cmax - max_needed)> (ar.expr.set.type == SUM ? 0 : 1); i++) {
-		q = ar.expr.set.stack[i].lit;
-		assert(q!=p); // We should have assembled a reason clause before encountering this.
-		t = ar.expr.set.stack[i].type;
+	if(ar.type == POS){
+		possiblesum -= set.wlitset[p_idx].weight;
+	}else if(ar.type == NEG){
+		certainsum += set.wlitset[p_idx].weight;
+	}
 
-		// if (t==0) then q is irrelevant to this derivation.
-		if (t == 1 && min_needed > (ar.expr.set.type == SUM ? 0 : 1)) {
-			lits.push(~q);
-			min_needed -= ar.expr.set.stack[i].weight;
-		} else if (t == 2 && max_needed < cmax) {
-			lits.push(~q);
-			max_needed += ar.expr.set.stack[i].weight;
+	//an explanation can exist without any other set literals, so check for this
+	if(ar.type==NEG && ((lower && certainsum > bound) || (!lower && certainsum >= bound))){
+		return;
+	}
+	if(ar.type==POS && ((lower && possiblesum <= bound) || (!lower && possiblesum < bound))){
+		return;
+	}
+
+	bool derived = false, fullyexplained = false;
+	for(int i=0; !fullyexplained && i<stack.size() && stack[i].wlit.lit!=p; i++){
+		if(stack[i].type == POS){ //means that the literal in the set became true
+			certainsum += stack[i].wlit.weight;
+
+			if(ar.type==HEAD){
+				if(head==p && !lower){
+					lits.push(~stack[i].wlit.lit);
+					if(bound <= certainsum){
+						fullyexplained = true;
+					}
+				}else if(head==~p && lower){
+					lits.push(~stack[i].wlit.lit);
+					if(bound < certainsum){
+						fullyexplained = true;
+					}
+				}
+			}else if(ar.type==NEG){
+				lits.push(~stack[i].wlit.lit);
+				if((lower && certainsum > bound) || (!lower && certainsum >= bound)){
+					fullyexplained = true;
+				}
+			}
+		}else if(stack[i].type == NEG){ //the literal in the set became false
+			possiblesum -= stack[i].wlit.weight;
+
+			if(ar.type==HEAD){
+				if(head==p && lower){
+					lits.push(~stack[i].wlit.lit);
+					if(possiblesum <= bound){
+						fullyexplained = true;
+					}
+				}else if(head==~p && !lower){
+					lits.push(~stack[i].wlit.lit);
+					if(possiblesum < bound){
+						fullyexplained = true;
+					}
+				}
+			}else if(ar.type==POS){
+				lits.push(~stack[i].wlit.lit);
+				if((lower && possiblesum <= bound) || (!lower && possiblesum < bound)){
+					fullyexplained = true;
+				}
+			}
+		}else{
+			//head derived, can only happen once
+			assert(!derived);
+			derived = true;
 		}
-	}*/
+	}
+	assert(fullyexplained);
 }
 
 void ProdAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){

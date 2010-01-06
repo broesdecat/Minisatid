@@ -12,7 +12,7 @@ inline lbool AggSolver::value(Var x) const {
 	return solver->value(x);
 }
 
-//FIXME deze aggsolver manier is niet echt mooi (om Agg toegang te geven tot aggsolver
+//TODO deze aggsolver manier is niet echt mooi (om Agg toegang te geven tot aggsolver
 //en het zorgt ook dat value niet inline kan zijn hier (wat zeker niet de bedoeling is)
 AggSolver* AggSolver::aggsolver;
 
@@ -58,6 +58,9 @@ void AggSolver::finishECNF_DataStructures() {
 		}
 
 		//FIXME eigenlijk alles eerst finishen, dan alles propageren, dan beginnen searchen
+		//aka dus eens nadenken over solver interactie (eigenlijk blijven propageren tussen alle solvers
+		//zolang er iets veranderd.
+
 		// Now do the initial propagations based on set literals that already have a truth value.
 		Clause * confl = NULL;
 		for (int i = 0; i < solver->qhead && confl == NULL; ++i) // from qhead onwards will still be propagated by simplify().
@@ -87,16 +90,13 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
 	}
 	AggrSet& set = *aggr_sets[setindex];
 
-	int max = 0;
 	for (int i = 0; i < lits.size(); i++) {
 		if (weights[i] < 0) {
 			reportf("Error: Set nr. %d contains a negative weight, %d.\n",set_id,weights[i]), exit(3);
 		}
 		set.wlitset.push(WLit(lits[i], weights[i]));
-		max += weights[i];
 	}
 	qsort(set.wlitset, set.wlitset.size(), sizeof(WLit), compare_WLits);
-	set.cmax = max;
 }
 
 /*
@@ -180,12 +180,12 @@ Clause* AggSolver::aggrEnqueue(Lit p, AggrReason* ar) {
 	return NULL;
 }
 
-//FIXME waarom niet alle propagatie in agg steken in een logische methode?
+//TODO waarom niet alle propagatie in agg steken in een logische methode?
 Clause* AggSolver::Aggr_propagate(Lit p) {
 	Clause* confl = NULL;
 
-	assert(!countedlit[toInt(p)]);
-	countedlit[toInt(p)]=true;
+	assert(!countedlit[var(p)]);
+	countedlit[var(p)]=true;
 
 	vec<AggrWatch>& ws = Aggr_watches[var(p)];
 	if (verbosity >= 2 && ws.size() > 0){
@@ -195,14 +195,14 @@ Clause* AggSolver::Aggr_propagate(Lit p) {
 		Agg& ae = *ws[i].expr;
 		Occurrence tp = relativeOccurrence(ws[i].type, p);
 		ae.stack.push(PropagationInfo(p, ae.set.wlitset[ws[i].index].weight,tp));
-		if (tp == HEAD) // The head literal has been propagated
+		if (tp == HEAD){ // The head literal has been propagated
 			confl = ae.propagate(!sign(p));
-		else { // It's a set literal.
+		}else { // It's a set literal.
 			lbool result = ae.updateAndCheckPropagate(ae.set.wlitset[ws[i].index], tp==POS);
 			if(result==l_True){
-				confl = aggrEnqueue(ae.head, new AggrReason(ae, HEAD));
+				confl = aggrEnqueue(ae.head, new AggrReason(ae, tp==HEAD));
 			}else if(result==l_False){
-				confl = aggrEnqueue(~ae.head, new AggrReason(ae, HEAD));
+				confl = aggrEnqueue(~ae.head, new AggrReason(ae, tp==HEAD));
 			}else if(value(ae.head)!=l_Undef){
 				confl = ae.propagate(value(ae.head)==l_True);
 			}
@@ -263,16 +263,15 @@ Clause* AggSolver::getExplanation(Lit p) {
  * MAX: reverse
  */
 void AggSolver::backtrackOnePropagation(Agg& ae, Occurrence tp, int index){
+	PropagationInfo pi = ae.stack.last();
+	ae.stack.pop();
+
 	if (tp == HEAD){ //propagation didn't affect min/max
 		return;
 	}
 
-	PropagationInfo pi = ae.stack.last();
-	ae.stack.pop();
 	//assert(tp == pi.type);
 	bool wasinset = pi.type == POS;
-			//pos means that a literal that was already certainly in the set is now only possibly in the set
-			//neg means that instead of certainly out, it now might be
 	ae.backtrack(ae.set.wlitset[index], wasinset);
 }
 
@@ -282,15 +281,13 @@ void AggSolver::backtrackOnePropagation(Agg& ae, Occurrence tp, int index){
  * @PRE: backtracking is in anti-chronologous order!
  */
 void AggSolver::doBacktrack(Lit l){
-	//TODO review
 	if (aggr_reason[var(l)] != NULL) {
 		delete aggr_reason[var(l)];
 		aggr_reason[var(l)] = NULL;
 	}
-	//end review
 
-	if(countedlit[toInt(l)]){
-		countedlit[toInt(l)] = false;
+	if(countedlit[var(l)]){
+		countedlit[var(l)] = false;
 
 		vec<AggrWatch>& vcw = Aggr_watches[var(l)];
 		for(int i=0; i<vcw.size(); i++){
@@ -322,7 +319,6 @@ void AggSolver::doBacktrack(Lit l){
 //=================================================================================================
 // Debug + etc:
 
-//TODO ook hier is inline niet mogelijk in verschillende klassen
 void AggSolver::printLit(Lit l) {
 	reportf("%s%d:%c", sign(l) ? "-" : "", var(l)+1, value(l) == l_True ? '1' : (value(l) == l_False ? '0' : 'X'));
 }
