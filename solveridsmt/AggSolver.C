@@ -127,7 +127,7 @@ void AggSolver::addAggrExpr(int defn, int setid, int bound, bool lower, AggrType
 		ae = new MaxAgg(lower, bound, c, *aggr_sets[setindex]);
 		break;
 	case SUM:
-		ae = new SumAgg(lower, bound, c, *aggr_sets[setindex]);
+		ae = new SPAgg(lower, bound, c, *aggr_sets[setindex], true);
 		break;
 	case PROD:
 		for(int i=0; i<aggr_sets[setindex]->wlitset.size(); i++){
@@ -136,7 +136,7 @@ void AggSolver::addAggrExpr(int defn, int setid, int bound, bool lower, AggrType
 						"be used in combination with a product aggregate\n", setid), exit(3);
 			}
 		}
-		ae = new ProdAgg(lower, bound, c, *aggr_sets[setindex]);
+		ae = new SPAgg(lower, bound, c, *aggr_sets[setindex], false);
 		break;
 	default: assert(false);break;
 	}

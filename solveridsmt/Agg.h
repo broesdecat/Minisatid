@@ -99,8 +99,6 @@ public:
 
 			void	printAgg(const char* name) const;
     virtual void 	print() const = 0;
-
-			void 	ExplanationHelperMethodForSumAndProd(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar, bool sum);
 };
 
 class MinAgg: public Agg {
@@ -122,13 +120,15 @@ public:
 	void 	print() const;
 };
 
-class SumAgg: public Agg {
+class SPAgg: public Agg {
+private:
+	bool sum;
 public:
-	SumAgg(bool lower, int bound, Lit head, AggrSet& set):
-		Agg(lower, bound, head, set){
+	SPAgg(bool lower, int bound, Lit head, AggrSet& set, bool sum):
+		Agg(lower, bound, head, set),sum(sum){
 			emptysetValue = 0;
 		};
-	virtual ~SumAgg();
+	virtual ~SPAgg();
 
 	Clause* propagate(bool headtrue);
 	void	getExplanation(Lit p, vec<Lit>& lits, int p_index, AggrReason& ar);
@@ -152,24 +152,6 @@ public:
 	void	getExplanation(Lit p, vec<Lit>& lits, int p_index, AggrReason& ar);
 
 	int 	getCurrentBestPossible(bool alltimebest=false);
-	int 	getCurrentBestCertain();
-
-	void 	print() const;
-};
-
-class ProdAgg: public Agg {
-public:
-	ProdAgg(bool lower, int bound, Lit head, AggrSet& set):
-		Agg(lower, bound, head, set){
-			emptysetValue = 1;
-		};
-
-	virtual ~ProdAgg();
-
-	Clause* propagate(bool headtrue);
-	void	getExplanation(Lit p, vec<Lit>& lits, int p_index, AggrReason& ar);
-
-	int		getCurrentBestPossible(bool alltimebest=false);
 	int 	getCurrentBestCertain();
 
 	void 	print() const;

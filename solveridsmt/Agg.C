@@ -207,19 +207,23 @@ Clause* MaxAgg::propagate(bool headtrue) {
 	return confl;
 }
 
-/*****************
- * SUM AGGREGATE *
- *****************/
+/*********************
+ * SUM-PRODUCT AGGREGATE *
+ *********************/
 
-SumAgg::~SumAgg() {
+SPAgg::~SPAgg() {
 }
 
-int SumAgg::getCurrentBestPossible(bool alltimebest) {
+int SPAgg::getCurrentBestPossible(bool alltimebest) {
 	int max = emptysetValue;
 
 	if(alltimebest){
 		for (int j = 0; j < set.wlitset.size(); j++) {
-			max += set.wlitset[j].weight;
+			if(sum){
+				max += set.wlitset[j].weight;
+			}else{
+				max *= set.wlitset[j].weight;
+			}
 		}
 	}else{
 		for(int i=0; i<set.wlitset.size(); i++){
@@ -233,7 +237,12 @@ int SumAgg::getCurrentBestPossible(bool alltimebest) {
 				}
 			}
 			if (!invalid) {
-				max += weight;
+				if(sum){
+					max += weight;
+				}else{
+					max *= weight;
+				}
+
 			}
 		}
 	}
@@ -241,7 +250,7 @@ int SumAgg::getCurrentBestPossible(bool alltimebest) {
 	return max;
 }
 
-int SumAgg::getCurrentBestCertain() {
+int SPAgg::getCurrentBestCertain() {
 	int max = emptysetValue;
 
 	for(int i=0; i<set.wlitset.size(); i++){
@@ -255,7 +264,11 @@ int SumAgg::getCurrentBestCertain() {
 			}
 		}
 		if (!invalid) {
-			max += weight;
+			if(sum){
+				max += weight;
+			}else{
+				max *= weight;
+			}
 		}
 	}
 
@@ -271,21 +284,31 @@ int SumAgg::getCurrentBestCertain() {
  * 					 or making a literal true would increase the bestpossible above the bound (and gEQ)
  * 		then make that literal and all higher ones (in weight) true (resp. false)
  */
-Clause* SumAgg::propagate(bool headtrue) {
+Clause* SPAgg::propagate(bool headtrue){
+	Clause* c = NULL;
 	if (headtrue) {
 		bool foundhighweight = false;
-		for (int u = 0; u < set.wlitset.size(); u++) {
+		for (int u = 0; c==NULL && u < set.wlitset.size(); u++) {
 			if (value(set.wlitset[u].lit) == l_Undef) {// no conflict possible
-				if ((lower && currentworst + set.wlitset[u].weight > bound)
-						||
-					(!lower && currentbest - set.wlitset[u].weight < bound)){
-					foundhighweight = true;
+				if(sum){
+					if ((lower && currentworst + set.wlitset[u].weight > bound)
+							||
+						(!lower && currentbest - set.wlitset[u].weight < bound)){
+						foundhighweight = true;
+					}
+				}else{
+					if ((lower && currentworst * set.wlitset[u].weight > bound)
+							||
+						(!lower && currentbest / set.wlitset[u].weight < bound)){
+						foundhighweight = true;
+					}
 				}
+
 				if(foundhighweight){
 					if(lower){
-						AggSolver::aggsolver->aggrEnqueue(~set.wlitset[u].lit, new AggrReason(*this, NEG));
+						c = AggSolver::aggsolver->aggrEnqueue(~set.wlitset[u].lit, new AggrReason(*this, NEG));
 					}else{
-						AggSolver::aggsolver->aggrEnqueue(set.wlitset[u].lit, new AggrReason(*this, POS));
+						c = AggSolver::aggsolver->aggrEnqueue(set.wlitset[u].lit, new AggrReason(*this, POS));
 					}
 				}
 			}
@@ -294,116 +317,30 @@ Clause* SumAgg::propagate(bool headtrue) {
 		bool foundhighweight = false;
 		for (int u = 0; u < set.wlitset.size(); u++) {
 			if (value(set.wlitset[u].lit) == l_Undef) {
-				if ((lower && currentbest - set.wlitset[u].weight <= bound)
-						||
-					(!lower && currentworst+set.wlitset[u].weight >=bound)) {
-					foundhighweight = true;
+				if(sum){
+					if ((lower && currentbest - set.wlitset[u].weight <= bound)
+							||
+						(!lower && currentworst+set.wlitset[u].weight >=bound)) {
+						foundhighweight = true;
+					}
+				}else{
+					if ((lower && currentbest / set.wlitset[u].weight <= bound)
+							||
+						(!lower && currentworst*set.wlitset[u].weight >=bound)) {
+						foundhighweight = true;
+					}
 				}
 				if(foundhighweight){
 					if(lower){
-						AggSolver::aggsolver->aggrEnqueue(set.wlitset[u].lit, new AggrReason(*this, POS));
+						c = AggSolver::aggsolver->aggrEnqueue(set.wlitset[u].lit, new AggrReason(*this, POS));
 					}else{
-						AggSolver::aggsolver->aggrEnqueue(~set.wlitset[u].lit, new AggrReason(*this, NEG));
+						c = AggSolver::aggsolver->aggrEnqueue(~set.wlitset[u].lit, new AggrReason(*this, NEG));
 					}
 				}
 			}
 		}
 	}
-	return NULL;
-}
-
-/*********************
- * PRODUCT AGGREGATE *
- *********************/
-
-ProdAgg::~ProdAgg() {
-}
-
-int ProdAgg::getCurrentBestPossible(bool alltimebest) {
-	int max = emptysetValue;
-
-	if(alltimebest){
-		for (int j = 0; j < set.wlitset.size(); j++) {
-			max *= set.wlitset[j].weight;
-		}
-	}else{
-		for(int i=0; i<set.wlitset.size(); i++){
-			Lit l = set.wlitset[i].lit;
-			int weight = set.wlitset[i].weight;
-			bool invalid = false;
-			for (int j = 0; j < stack.size(); j++) {
-				if(stack[j].wlit.lit==~l){
-					invalid = true;
-					break;
-				}
-			}
-			if (!invalid) {
-				max *= weight;
-			}
-		}
-	}
-
-	return max;
-}
-
-int ProdAgg::getCurrentBestCertain() {
-	int max = emptysetValue;
-
-	for(int i=0; i<set.wlitset.size(); i++){
-		Lit l = set.wlitset[i].lit;
-		int weight = set.wlitset[i].weight;
-		bool invalid = true;
-		for (int j = 0; j < stack.size(); j++) {
-			if(stack[j].wlit.lit==l){
-				invalid = false;
-				break;
-			}
-		}
-		if (!invalid) {
-			max *= weight;
-		}
-	}
-
-	return max;
-}
-
-Clause* ProdAgg::propagate(bool headtrue) {
-	//FIXME
-	/*if (value(ae.c) == l_True) {
-	 for (int u = 0; u < as.set.size(); u++) {
-	 if (value(as.set[u].lit) == l_Undef) {
-	 if (as.min * as.set[u].weight > ae.max)
-	 aggrEnqueue(~as.set[u].lit, new AggrReason(&ae, &as,
-	 NEG));
-	 else if (as.max / as.set[u].weight < ae.min)
-	 aggrEnqueue(as.set[u].lit,
-	 new AggrReason(&ae, &as, POS));
-	 }
-	 }
-	 } else if (value(ae.c) == l_False) {
-	 if (as.min >= ae.min || as.max <= ae.max) {
-	 int minw = 2147483647;
-	 for (int u = 0; u < as.set.size(); u++)
-	 if (value(as.set[u].lit) == l_Undef && as.set[u].weight
-	 < minw)
-	 minw = as.set[u].weight;
-	 bool maketrue = minw != 2147483647 && as.min >= ae.min
-	 && as.max / minw <= ae.max;
-	 bool makefalse = minw != 2147483647 && as.max <= ae.max
-	 && as.min * minw >= ae.min;
-	 if (maketrue)
-	 for (int u = 0; u < as.set.size(); u++)
-	 if (value(as.set[u].lit) == l_Undef)
-	 aggrEnqueue(as.set[u].lit, new AggrReason(&ae, &as,
-	 POS));
-	 if (makefalse)
-	 for (int u = 0; u < as.set.size(); u++)
-	 if (value(as.set[u].lit) == l_Undef)
-	 aggrEnqueue(~as.set[u].lit, new AggrReason(&ae,
-	 &as, NEG));
-	 }
-	 }*/
-	return NULL;
+	return c;
 }
 
 /*******************
@@ -571,15 +508,7 @@ void MaxAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
  * true meaning that the literal has the same sign as in the set
  * false meaning that the literal has the opposite sign as compared to the set
  */
-void SumAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
-	ExplanationHelperMethodForSumAndProd(p, lits, p_idx, ar, true);
-}
-
-void ProdAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
-	ExplanationHelperMethodForSumAndProd(p, lits, p_idx, ar, false);
-}
-
-void Agg::ExplanationHelperMethodForSumAndProd(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar, bool sum){
+void SPAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
 	int possiblesum, certainsum;
 	certainsum = emptysetValue;
 	possiblesum = getCurrentBestPossible(true);
@@ -704,10 +633,10 @@ void MaxAgg::print() const{
 	printAgg("MAX");
 }
 
-void SumAgg::print() const{
-	printAgg("SUM");
-}
-
-void ProdAgg::print() const{
-	printAgg("PROD");
+void SPAgg::print() const{
+	if(sum){
+		printAgg("SUM");
+	}else{
+		printAgg("PROD");
+	}
 }
