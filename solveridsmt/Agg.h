@@ -99,6 +99,8 @@ public:
 
 			void	printAgg(const char* name) const;
     virtual void 	print() const = 0;
+
+			void 	ExplanationHelperMethodForSumAndProd(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar, bool sum);
 };
 
 class MinAgg: public Agg {
@@ -159,7 +161,7 @@ class ProdAgg: public Agg {
 public:
 	ProdAgg(bool lower, int bound, Lit head, AggrSet& set):
 		Agg(lower, bound, head, set){
-			emptysetValue = 0;
+			emptysetValue = 1;
 		};
 
 	virtual ~ProdAgg();

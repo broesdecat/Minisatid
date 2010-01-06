@@ -99,8 +99,13 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
 	qsort(set.wlitset, set.wlitset.size(), sizeof(WLit), compare_WLits);
 }
 
-/*
- Adds an aggregate expression with only one bound on it. The bound is always interpreted as lEQ or gEQ
+/**
+ * Adds an aggregate expression with only one bound on it. The bound is always interpreted as lEQ or gEQ
+ *
+ * @PRE: no negative weights
+ * 		 no double literals
+ * 		 no literals occuring both positive and negative
+ * 		 no 0 weights when using a product aggregate
  */
 void AggSolver::addAggrExpr(int defn, int setid, int bound, bool lower, AggrType type) {
 	if (setid > aggr_sets.size()) {
@@ -125,6 +130,12 @@ void AggSolver::addAggrExpr(int defn, int setid, int bound, bool lower, AggrType
 		ae = new SumAgg(lower, bound, c, *aggr_sets[setindex]);
 		break;
 	case PROD:
+		for(int i=0; i<aggr_sets[setindex]->wlitset.size(); i++){
+			if(aggr_sets[setindex]->wlitset[i].weight<1){
+				reportf("Error: Set nr. %d contains a 0 (zero) weight, which cannot "
+						"be used in combination with a product aggregate\n", setid), exit(3);
+			}
+		}
 		ae = new ProdAgg(lower, bound, c, *aggr_sets[setindex]);
 		break;
 	default: assert(false);break;

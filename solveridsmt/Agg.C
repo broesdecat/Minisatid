@@ -324,7 +324,7 @@ int ProdAgg::getCurrentBestPossible(bool alltimebest) {
 
 	if(alltimebest){
 		for (int j = 0; j < set.wlitset.size(); j++) {
-			max += set.wlitset[j].weight;
+			max *= set.wlitset[j].weight;
 		}
 	}else{
 		for(int i=0; i<set.wlitset.size(); i++){
@@ -572,6 +572,14 @@ void MaxAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
  * false meaning that the literal has the opposite sign as compared to the set
  */
 void SumAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
+	ExplanationHelperMethodForSumAndProd(p, lits, p_idx, ar, true);
+}
+
+void ProdAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
+	ExplanationHelperMethodForSumAndProd(p, lits, p_idx, ar, false);
+}
+
+void Agg::ExplanationHelperMethodForSumAndProd(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar, bool sum){
 	int possiblesum, certainsum;
 	certainsum = emptysetValue;
 	possiblesum = getCurrentBestPossible(true);
@@ -582,9 +590,19 @@ void SumAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
 	}
 
 	if(ar.type == POS){
-		possiblesum -= set.wlitset[p_idx].weight;
+		if(sum){
+			possiblesum -= set.wlitset[p_idx].weight;
+		}else{
+			possiblesum /= set.wlitset[p_idx].weight;
+		}
+
 	}else if(ar.type == NEG){
-		certainsum += set.wlitset[p_idx].weight;
+		if(sum){
+			certainsum += set.wlitset[p_idx].weight;
+		}else{
+			certainsum *= set.wlitset[p_idx].weight;
+		}
+
 	}
 
 	//an explanation can exist without any other set literals, so check for this
@@ -598,7 +616,12 @@ void SumAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
 	bool derived = false, fullyexplained = false;
 	for(int i=0; !fullyexplained && i<stack.size() && stack[i].wlit.lit!=p; i++){
 		if(stack[i].type == POS){ //means that the literal in the set became true
-			certainsum += stack[i].wlit.weight;
+			if(sum){
+				certainsum += stack[i].wlit.weight;
+			}else{
+				certainsum *= stack[i].wlit.weight;
+			}
+
 
 			if(ar.type==HEAD){
 				if(head==p && !lower){
@@ -619,7 +642,12 @@ void SumAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
 				}
 			}
 		}else if(stack[i].type == NEG){ //the literal in the set became false
-			possiblesum -= stack[i].wlit.weight;
+			if(sum){
+				possiblesum -= stack[i].wlit.weight;
+			}else{
+				possiblesum /= stack[i].wlit.weight;
+			}
+
 
 			if(ar.type==HEAD){
 				if(head==p && lower){
@@ -646,71 +674,6 @@ void SumAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
 		}
 	}
 	assert(fullyexplained);
-}
-
-void ProdAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
-	/*int cmax = ar.expr.set.headmax;
-	int min_needed = 1;
-	int max_needed = cmax;
-	if (ar.type == HEAD) {
-		// [mn >= i && mx =< j  ==>  c]  OR  [mn > j  || mx < i  ==>  ~c]
-		if (ar.expr.head == p) {
-			min_needed = ar.expr.min;
-			max_needed = ar.expr.max;
-		} else {
-			assert(ar.expr.head==~p);
-			if (ar.expr.set.min > ar.expr.max)
-				min_needed = ar.expr.max + 1;
-			else
-				max_needed = ar.expr.min - 1;
-		}
-	} else if (ar.type == POS) {
-		// c is true && mx = i  OR  c is false && mn >= i && mx = j+1
-		if (value(ar.expr.head) == l_True) {
-			lits.push(~ar.expr.head);
-			max_needed = ar.expr.min + ar.expr.set.wlitset[p_idx].weight - 1;
-		} else {
-			assert(value(ar.expr.head)==l_False);
-			lits.push(ar.expr.head);
-			min_needed = ar.expr.min;
-			max_needed = ar.expr.max + ar.expr.set.wlitset[p_idx].weight;
-		}
-	} else {
-		assert(ar.type==NEG);
-		// c is true && mn = j  OR  c is false && mx =< j && mn = i-1
-		if (value(ar.expr.head) == l_True) {
-			lits.push(~ar.expr.head);
-			min_needed = ar.expr.max - ar.expr.set.wlitset[p_idx].weight + 1;
-		} else {
-			assert(value(ar.expr.head)==l_False);
-			lits.push(ar.expr.head);
-			min_needed = ar.expr.min - ar.expr.set.wlitset[p_idx].weight;
-			max_needed = ar.expr.max;
-		}
-	}
-
-//		 We now walk over the stack and add literals that are relevant to the
-//		 reason clause, until it is big enough. When that is depends on the type
-//		 of propagation that was done to derive p.
-//
-	Lit q;
-	char t;
-	for (int i = 0; min_needed + (cmax - max_needed)
-			> (ar.expr.set.type == SUM ? 0 : 1); i++) {
-		q = ar.expr.set.stack[i].lit;
-		assert(q!=p); // We should have assembled a reason clause before encountering this.
-		t = ar.expr.set.stack[i].type;
-
-		// if (t==0) then q is irrelevant to this derivation.
-		if (t == 1 && min_needed > (ar.expr.set.type == SUM ? 0 : 1)) {
-			lits.push(~q);
-			min_needed = min_needed / ar.expr.set.stack[i].weight
-							+ (min_needed % ar.expr.set.stack[i].weight == 0 ? 0	: 1);
-		} else if (t == 2 && max_needed < cmax) {
-			lits.push(~q);
-			max_needed *= ar.expr.set.stack[i].weight;
-		}
-	}*/
 }
 
 
