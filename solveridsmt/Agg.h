@@ -126,7 +126,12 @@ private:
 public:
 	SPAgg(bool lower, int bound, Lit head, AggrSet& set, bool sum):
 		Agg(lower, bound, head, set),sum(sum){
-			emptysetValue = 0;
+			if(sum){
+				emptysetValue = 0;
+			}else{
+				emptysetValue = 1;
+			}
+
 		};
 	virtual ~SPAgg();
 
