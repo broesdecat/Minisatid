@@ -58,7 +58,51 @@ Clause* Agg::propagate(Lit p, AggrWatch& ws){
 	return confl;
 }
 
-void Agg::initialize() {
+/*
+ * To be able to handle multiple times the same literal and also its negation, we will be checking here if the set conforms to that
+ * If it does not, a duplicate will be created, which will only be used in this aggregate and which conforms to the rules
+ */
+void Agg::doSetReduction() {
+	AggrSet* newset = new AggrSet();
+	int indexinnew = 0;
+	bool setisreduced = false;
+	newset->wlitset.push_back(set.wlitset[0]);
+	for(vector<int>::size_type i=1; i<set.wlitset.size(); i++){
+		WLit old = newset->wlitset[indexinnew];
+		WLit newl = newset->wlitset[i];
+		if(var(old.lit)==var(newl.lit)){
+			setisreduced = true;
+			if(old==newl){
+				//same literal, only keep best one
+				if(isBetter(newl.weight, old.weight)){
+					newset->wlitset.pop_back();
+					newset->wlitset.push_back(newl);
+				}
+			}else{
+				//literal and it negation, keep the best one and add the other one to the certainbound
+				if(isBetter(newl.weight, old.weight)){
+					replaceEmptysetValue(old.weight);
+					newset->wlitset.pop_back();
+					newset->wlitset.push_back(newl);
+				}else{
+					replaceEmptysetValue(newl.weight);
+				}
+			}
+		}else{
+			newset->wlitset.push_back(set.wlitset[i]);
+			indexinnew++;
+		}
+	}
+
+	if(setisreduced){
+		AggSolver::aggsolver->aggr_sets.push(newset);
+		set = *newset;
+	}else{
+		delete newset;
+	}
+}
+
+void Agg::initialize(){
 	currentbestpossible = getBestPossible();
 	currentbestcertain = emptysetValue;
 	possiblecount = set.wlitset.size();
@@ -86,6 +130,16 @@ lbool MinAgg::canPropagateHead() {
 	} else {
 		return l_Undef;
 	}
+}
+
+void MinAgg::replaceEmptysetValue(int value){
+	if(emptysetValue>value){
+		emptysetValue = value;
+	}
+}
+
+bool MinAgg::isBetter(int one, int two){
+	return one<two;
 }
 
 void MinAgg::removeFromCertainSet(WLit l){
@@ -214,6 +268,16 @@ void MaxAgg::removeFromPossibleSet(WLit l){
 	}
 }
 
+void MaxAgg::replaceEmptysetValue(int value){
+	if(emptysetValue<value){
+		emptysetValue = value;
+	}
+}
+
+bool MaxAgg::isBetter(int one, int two){
+	return one>two;
+}
+
 /**
  * If the head is true && AGG <= B, make all literals false that have a weight higher than the bound (because that would make the aggregate false)
  * If the head is false && A <= AGG, make all literals false that have a weight higher than the bound (because that would make the aggregate false)
@@ -291,6 +355,20 @@ void SPAgg::removeFromPossibleSet(WLit l){
 			currentbestpossible /= l.weight;
 		}
 	}
+}
+
+void SPAgg::replaceEmptysetValue(int value){
+	if(sum){
+		emptysetValue += value;
+	}else{
+		emptysetValue *= value;
+	}
+}
+
+bool SPAgg::isBetter(int one, int two){
+	reportf("A sum aggregate in which the same literal occurs multiple times is currently not allowed, "
+				"because there are no clear semantics. Please rewrite the theory.");exit(3);
+	return one>two;
 }
 
 /**

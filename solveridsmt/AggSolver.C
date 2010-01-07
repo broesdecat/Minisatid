@@ -66,10 +66,6 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
 	}
 	assert(lits.size()==weights.size());
 
-	//literals occurring multiple times are allowed from now in
-	//FIXME if a literal occurs multiple times, the correct value has to be used, depending on the aggregate type
-	//for example if MIN 3=5 3=6, then it should be 5!!!
-
 	while(aggr_sets.size()<set_id){
 		aggr_sets.push(new AggrSet());
 	}
@@ -115,7 +111,9 @@ void AggSolver::addAggrExpr(int defn, int setid, int bound, bool lower, AggrType
 		ae = new SPAgg(lower, bound, c, *aggr_sets[setindex], true);
 		break;
 	case PROD:
-		for(int i=0; i<aggr_sets[setindex]->wlitset.size(); i++){
+		//TODO this can be solved by taking 0 out of the set and making the necessary transformations
+		// p <=> a <= prod{l1=0, l2=2} can be replaced with p <=> a <= prod{l2=2} & l1~=0 if a is strictly positive
+		for(vector<int>::size_type i=0; i<aggr_sets[setindex]->wlitset.size(); i++){
 			if(aggr_sets[setindex]->wlitset[i].weight<1){
 				reportf("Error: Set nr. %d contains a 0 (zero) weight, which cannot "
 						"be used in combination with a product aggregate\n", setid), exit(3);
@@ -128,12 +126,10 @@ void AggSolver::addAggrExpr(int defn, int setid, int bound, bool lower, AggrType
 	aggr_exprs.push(ae);
 
 	AggrSet& as = *aggr_sets[setindex];
-	as.exprs.push(ae);
 
 	Aggr_watches[var(c)].push(AggrWatch(ae, -1, HEAD));
 
-	//for every literal in the litset, add a watch that points to the expressions in which it occurs
-	for (int i = 0; i < as.wlitset.size(); i++){
+	for (vector<int>::size_type i = 0; i < as.wlitset.size(); i++){
 		Aggr_watches[var(as.wlitset[i].lit)].push(AggrWatch(ae, i, sign(as.wlitset[i].lit) ? NEG : POS));
 	}
 
@@ -292,7 +288,7 @@ inline void AggSolver::printAggrExpr(const Agg& ae){
 	}else{
 		reportf(" <- %d <= %s{", ae.bound, ae.name.c_str());
 	}
-	for (int i=0; i<ae.set.wlitset.size(); ++i) {
+	for (vector<int>::size_type i=0; i<ae.set.wlitset.size(); ++i) {
 		reportf(" "); printLit(ae.set.wlitset[i].lit, ae.setcopy[i]); reportf("(%d)",ae.set.wlitset[i].weight);
 	}
 	if(ae.lower){

@@ -38,8 +38,7 @@ struct WLit {  // Weighted literal
 
     bool operator <  (WLit p) const { return weight < p.weight; }
     bool operator <  (int bound) const { return weight < bound; }
-    bool operator !=  (WLit p) const { return weight != p.weight; }
-    bool operator ==  (WLit p) const { return weight == p.weight; }
+    bool operator ==  (WLit p) const { return weight == p.weight && lit==p.lit; }
 };
 
 struct PropagationInfo {	// Propagated literal
@@ -53,7 +52,6 @@ struct PropagationInfo {	// Propagated literal
 //INVARIANT: the WLITset is stored sorted from smallest to largest weight!
 struct AggrSet {
     vector<WLit>	wlitset;	// Stores the actual set of weighted literals.
-    vec<Agg*>	exprs;		// In which expressions does this set occur. NOTE: there's no point in splitting this in "already satisfied" and "not yet satisfied"; we can't avoid doing most of the propagation work anew.
 
     AggrSet(){};
 };
@@ -106,6 +104,10 @@ public:
 	virtual void addToCertainSet(WLit l) = 0;
 	virtual void addToPossibleSet(WLit l) = 0;
 	virtual void removeFromPossibleSet(WLit l) = 0;
+
+	virtual void doSetReduction();
+	virtual void replaceEmptysetValue(int value) = 0;
+	virtual bool isBetter(int one, int two) = 0;
 };
 
 class MinAgg: public Agg {
@@ -127,6 +129,9 @@ public:
 	void	addToCertainSet(WLit l);
 	void	addToPossibleSet(WLit l);
 	void	removeFromPossibleSet(WLit l);
+
+	void replaceEmptysetValue(int value);
+	bool isBetter(int one, int two);
 };
 
 class MaxAgg: public Agg {
@@ -135,6 +140,7 @@ public:
 		Agg(lower, bound, head, set){
 			emptysetValue = std::numeric_limits<int>::min();
 			name = "MAX";
+			doSetReduction();
 		};
 
 	virtual ~MaxAgg();
@@ -147,6 +153,9 @@ public:
 	void	addToCertainSet(WLit l);
 	void	addToPossibleSet(WLit l);
 	void	removeFromPossibleSet(WLit l);
+
+	void replaceEmptysetValue(int value);
+	bool isBetter(int one, int two);
 };
 
 class SPAgg: public Agg {
@@ -174,6 +183,9 @@ public:
 	void	addToCertainSet(WLit l);
 	void	addToPossibleSet(WLit l);
 	void	removeFromPossibleSet(WLit l);
+
+	void replaceEmptysetValue(int value);
+	bool isBetter(int one, int two);
 };
 
 #endif /* MINAGG_H_ */

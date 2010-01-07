@@ -48,13 +48,13 @@ public:
 	/////////////////////END INITIALIZATION
 
 	//are used by agg.c, but preferably should be move into protected again
-	Clause* aggrEnqueue           (Lit p, AggrReason* cr);      // Like "enqueue", but for aggregate propagations.
+	Clause* 		aggrEnqueue(Lit p, AggrReason* cr);	// Like "enqueue", but for aggregate propagations.
+	vec<AggrSet*>	aggr_sets;      					// List of aggregate sets being used.
 
 protected:
 	// ECNF_mode.aggr additions to Solver state:
 	//
 	vec<Agg*>        	aggr_exprs;           // List of aggregate expressions as occurring in the problem.
-	vec<AggrSet*>		aggr_sets;            // List of aggregate sets being used.
 	vec<AggrReason*>	aggr_reason;          // For each atom, like 'reason'.
 	vec<vec<AggrWatch> > Aggr_watches;         // Aggr_watches[v] is a list of sets in which v occurs (each AggrWatch says: which set, what type of occurrence).
 	// If defType[v]==AGGR, (Aggr_watches[v])[0] has type==HEAD and expr->c==Lit(v,false).
