@@ -3,6 +3,7 @@
 
 #include <limits>
 #include "Vec.h"
+#include <vector>
 #include "SolverTypes.h"
 
 #include <iostream>
@@ -34,6 +35,11 @@ struct WLit {  // Weighted literal
 	int	weight;
 
     WLit(Lit l, int w) : lit(l), weight(w) {}
+
+    bool operator <  (WLit p) const { return weight < p.weight; }
+    bool operator <  (int bound) const { return weight < bound; }
+    bool operator !=  (WLit p) const { return weight != p.weight; }
+    bool operator ==  (WLit p) const { return weight == p.weight; }
 };
 
 struct PropagationInfo {	// Propagated literal
@@ -46,7 +52,7 @@ struct PropagationInfo {	// Propagated literal
 
 //INVARIANT: the WLITset is stored sorted from smallest to largest weight!
 struct AggrSet {
-    vec<WLit>	wlitset;	// Stores the actual set of weighted literals.
+    vector<WLit>	wlitset;	// Stores the actual set of weighted literals.
     vec<Agg*>	exprs;		// In which expressions does this set occur. NOTE: there's no point in splitting this in "already satisfied" and "not yet satisfied"; we can't avoid doing most of the propagation work anew.
 
     AggrSet(){};
@@ -65,14 +71,6 @@ struct AggrReason {			// Needed to build (with implicitReasonClause(Lit)) a reas
 
     AggrReason(Agg& e, Occurrence t) : expr(e), type(t) {}
 };
-
-inline int compare_WLits(const void* a, const void* b) {
-    WLit* arg1 = (WLit*)a;
-    WLit* arg2 = (WLit*)b;
-    if (arg1->weight < arg2->weight) return -1;
-    else if (arg1->weight == arg2->weight) return 0;
-    else return 1;
-}
 
 class Agg{
 public:

@@ -1,4 +1,5 @@
 #include "AggSolver.h"
+#include <algorithm>
 
 AggSolver* AggSolver::aggsolver;
 
@@ -78,9 +79,9 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
 		if (weights[i] < 0) {
 			reportf("Error: Set nr. %d contains a negative weight, %d.\n",set_id,weights[i]), exit(3);
 		}
-		set.wlitset.push(WLit(lits[i], weights[i]));
+		set.wlitset.push_back(WLit(lits[i], weights[i]));
 	}
-	qsort(set.wlitset, set.wlitset.size(), sizeof(WLit), compare_WLits);
+	sort(set.wlitset.begin(), set.wlitset.end());
 }
 
 /**

@@ -1,5 +1,6 @@
 #include "Agg.h"
 #include "AggSolver.h"
+#include <algorithm>
 
 void Agg::backtrack(Occurrence tp, int index) {
 	PropagationInfo pi = stack.last();
@@ -65,7 +66,7 @@ void Agg::initialize() {
 
 int MinAgg::getBestPossible() {
 	int min = emptysetValue;
-	for (int j = 0; j < set.wlitset.size(); j++) {
+	for (vector<Lit>::size_type j = 0; j < set.wlitset.size(); j++) {
 		if(min > set.wlitset[j].weight){
 			min = set.wlitset[j].weight;
 		}
@@ -124,7 +125,7 @@ void MinAgg::removeFromPossibleSet(WLit l){
 	}else{
 		if(l.weight==currentbestpossible){
 			currentbestpossible = emptysetValue;
-			for(int i=0; i<set.wlitset.size(); i++){
+			for(vector<Lit>::size_type i=0; i<set.wlitset.size(); i++){
 				if(setcopy[i] != l_False && currentbestpossible > set.wlitset[i].weight){
 					currentbestpossible = set.wlitset[i].weight;
 				}
@@ -140,7 +141,7 @@ void MinAgg::removeFromPossibleSet(WLit l){
 Clause* MinAgg::propagate(bool headtrue) {
 	Clause* confl = NULL;
 	if ((headtrue && !lower) || (!headtrue && lower)) {
-		for (int i = 0; confl == NULL && i < set.wlitset.size(); i++) {
+		for (vector<Lit>::size_type i = 0; confl == NULL && i < set.wlitset.size(); i++) {
 			if (set.wlitset[i].weight < bound) {
 				confl = AggSolver::aggsolver->aggrEnqueue(~set.wlitset[i].lit, new AggrReason(*this, NEG));
 			}
@@ -159,7 +160,7 @@ MaxAgg::~MaxAgg() {
 int MaxAgg::getBestPossible() {
 	int max = emptysetValue;
 
-	for (int j = 0; j < set.wlitset.size(); j++) {
+	for (vector<Lit>::size_type j = 0; j < set.wlitset.size(); j++) {
 		if(max < set.wlitset[j].weight){
 			max = set.wlitset[j].weight;
 		}
@@ -204,7 +205,7 @@ void MaxAgg::removeFromPossibleSet(WLit l){
 	}else{
 		if(l.weight==currentbestpossible){
 			currentbestpossible = emptysetValue;
-			for(int i=0; i<set.wlitset.size(); i++){
+			for(vector<Lit>::size_type i=0; i<set.wlitset.size(); i++){
 				if(setcopy[i] != l_False && currentbestpossible < set.wlitset[i].weight){
 					currentbestpossible = set.wlitset[i].weight;
 				}
@@ -220,7 +221,7 @@ void MaxAgg::removeFromPossibleSet(WLit l){
 Clause* MaxAgg::propagate(bool headtrue) {
 	Clause* confl = NULL;
 	if ((headtrue && lower) || (!headtrue && !lower)) {
-		for (int i = 0; confl == NULL && i < set.wlitset.size(); i++) {
+		for (vector<Lit>::size_type i = 0; confl == NULL && i < set.wlitset.size(); i++) {
 			if (set.wlitset[i].weight > bound) {
 				confl = AggSolver::aggsolver->aggrEnqueue(~set.wlitset[i].lit, new AggrReason(*this, NEG));
 			}
@@ -238,7 +239,7 @@ SPAgg::~SPAgg() {
 
 int SPAgg::getBestPossible() {
 	int max = emptysetValue;
-	for (int j = 0; j < set.wlitset.size(); j++) {
+	for (vector<Lit>::size_type j = 0; j < set.wlitset.size(); j++) {
 		if(sum){
 			max += set.wlitset[j].weight;
 		}else{
@@ -302,59 +303,74 @@ void SPAgg::removeFromPossibleSet(WLit l){
  * 		then make that literal and all higher ones (in weight) true (resp. false)
  *
  * Only unknown literals are checked! The other literals will already have been included in the bounds, so using them is wrong (and not useful)
+ *
+ * IMPORTANT: smart use of the fact that all literals in the set are ordered according to the weight:
+ * 		if !lower and substracting from bestpossible gets below the bound, then all literals with that weight and higher should be false
+ * 		if lower and adding to bestcertain gets above the bound, then all literals with that weight and higher should be false
+ * this is done using the lower_bound binary search algorithm of std
  */
 Clause* SPAgg::propagate(bool headtrue){
 	Clause* c = NULL;
+	vector<WLit>::iterator pos;
+
 	if (headtrue) {
-		bool foundhighweight = false;
-		for (int u = 0; c==NULL && u < set.wlitset.size(); u++) {
-			if (setcopy[u]==l_Undef) {// no conflicts possible (because setting an unknown literal
-				if(sum){
-					if ((lower && currentbestcertain + set.wlitset[u].weight > bound)
-							||
-						(!lower && currentbestpossible - set.wlitset[u].weight < bound)){
-						foundhighweight = true;
-					}
-				}else{
-					if ((lower && currentbestcertain * set.wlitset[u].weight > bound)
-							||
-						(!lower && currentbestpossible / set.wlitset[u].weight < bound)){
-						foundhighweight = true;
-					}
-				}
-				if(foundhighweight){
-					if(lower){
-						c = AggSolver::aggsolver->aggrEnqueue(~set.wlitset[u].lit, new AggrReason(*this, NEG));
-					}else{
-						c = AggSolver::aggsolver->aggrEnqueue(set.wlitset[u].lit, new AggrReason(*this, POS));
-					}
-				}
+		if(lower){
+			int weightbound;
+			if(sum){
+				weightbound = bound-currentbestcertain;
+			}else{
+				//currentbestcertain = 0 not possible (always leq 1)
+				weightbound = bound/currentbestcertain;
 			}
+			//+1 because larger and not eq
+			pos = lower_bound(set.wlitset.begin(), set.wlitset.end(), weightbound+1);
+		}else{
+			int weightbound;
+			if(sum){
+				weightbound = currentbestpossible-bound;
+			}else{
+				//if bound == 0, it is never possible to obtain a smaller product, so get first weight larger than 0
+				weightbound = bound==0?0:currentbestpossible/bound;
+			}
+			//+1 because larger and not eq
+			pos = lower_bound(set.wlitset.begin(), set.wlitset.end(), weightbound+1);
 		}
 	} else {
-		bool foundhighweight = false;
-		for (int u = 0; u < set.wlitset.size(); u++) {
-			if (setcopy[u]==l_Undef) { //again no conflicts possible
-				if(sum){
-					if ((lower && currentbestpossible - set.wlitset[u].weight <= bound)
-							||
-						(!lower && currentbestcertain+set.wlitset[u].weight >=bound)) {
-						foundhighweight = true;
-					}
-				}else{
-					if ((lower && currentbestpossible / set.wlitset[u].weight <= bound)
-							||
-						(!lower && currentbestcertain*set.wlitset[u].weight >=bound)) {
-						foundhighweight = true;
-					}
-				}
-				if(foundhighweight){
-					if(lower){
-						c = AggSolver::aggsolver->aggrEnqueue(set.wlitset[u].lit, new AggrReason(*this, POS));
-					}else{
-						c = AggSolver::aggsolver->aggrEnqueue(~set.wlitset[u].lit, new AggrReason(*this, NEG));
-					}
-				}
+		if(lower){
+			int weightbound;
+			if(sum){
+				weightbound = currentbestpossible - bound;
+			}else{
+				//if bound == 0, it is never possible to obtain a smaller product, so get first weight larger than 0
+				weightbound = bound==0?0:currentbestpossible/bound;
+			}
+			pos = lower_bound(set.wlitset.begin(), set.wlitset.end(), weightbound);
+		}else{
+			int weightbound;
+			if(sum){
+				weightbound = bound - currentbestcertain;
+			}else{
+				//currentbestcertain = 0 not possible (always leq 1)
+				weightbound = bound/currentbestcertain;
+			}
+			pos = lower_bound(set.wlitset.begin(), set.wlitset.end(), weightbound);
+		}
+	}
+	if(pos==set.wlitset.end()){
+		return c;
+	}
+	//find the index of the literal
+	int start = 0;
+	vector<WLit>::iterator it = set.wlitset.begin();
+	while(it!=pos){
+		it++; start++;
+	}
+	for (vector<Lit>::size_type u = start; c==NULL && u < set.wlitset.size(); u++) {
+		if (setcopy[u]==l_Undef) {// no conflicts possible (because setting an unknown literal
+			if((lower && headtrue) || (!lower && !headtrue)){
+				c = AggSolver::aggsolver->aggrEnqueue(~set.wlitset[u].lit, new AggrReason(*this, NEG));
+			}else{
+				c = AggSolver::aggsolver->aggrEnqueue(set.wlitset[u].lit, new AggrReason(*this, POS));
 			}
 		}
 	}
@@ -390,13 +406,13 @@ void MinAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
 					}
 				}
 			}else{
-				for(int i=0; i<set.wlitset.size() && set.wlitset[i].weight < bound; i++){
+				for(vector<Lit>::size_type i=0; i<set.wlitset.size() && set.wlitset[i].weight < bound; i++){
 					lits.push(set.wlitset[i].lit);
 				}
 			}
 		} else {
 			if(lower){
-				for(int i=0; i<set.wlitset.size() && set.wlitset[i].weight <= bound; i++){
+				for(vector<Lit>::size_type i=0; i<set.wlitset.size() && set.wlitset[i].weight <= bound; i++){
 					lits.push(set.wlitset[i].lit);
 				}
 			}else{
@@ -411,14 +427,14 @@ void MinAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
 	} else if (ar.type == POS) {
 		if(lower){
 			lits.push(~head);
-			for(int i=0; i<set.wlitset.size() && set.wlitset[i].weight<=bound; i++){
+			for(vector<Lit>::size_type i=0; i<set.wlitset.size() && set.wlitset[i].weight<=bound; i++){
 				if(set.wlitset[i].lit!=p){
 					lits.push(set.wlitset[i].lit);
 				}
 			}
 		}else{
 			lits.push(head);
-			for(int i=0; i<set.wlitset.size() && set.wlitset[i].weight<bound; i++){
+			for(vector<Lit>::size_type i=0; i<set.wlitset.size() && set.wlitset[i].weight<bound; i++){
 				if(set.wlitset[i].lit!=p){
 					lits.push(set.wlitset[i].lit);
 				}
@@ -451,7 +467,7 @@ void MaxAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
 	if (ar.type == HEAD) {
 		if (ar.expr.head == p) {
 			if(lower){
-				for(int i=0; i<set.wlitset.size(); i++){
+				for(vector<Lit>::size_type i=0; i<set.wlitset.size(); i++){
 					if(set.wlitset[i].weight > bound){
 						lits.push(set.wlitset[i].lit);
 					}
@@ -473,7 +489,7 @@ void MaxAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
 					}
 				}
 			}else{
-				for(int i=0; i<set.wlitset.size(); i++){
+				for(vector<Lit>::size_type i=0; i<set.wlitset.size(); i++){
 					if(set.wlitset[i].weight >= bound){
 						lits.push(set.wlitset[i].lit);
 					}
@@ -483,14 +499,14 @@ void MaxAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
 	} else if (ar.type == POS) {
 		if(lower){
 			lits.push(head);
-			for(int i=0; i<set.wlitset.size(); i++){
+			for(vector<Lit>::size_type i=0; i<set.wlitset.size(); i++){
 				if(set.wlitset[i].weight>bound && set.wlitset[i].lit!=p){
 					lits.push(set.wlitset[i].lit);
 				}
 			}
 		}else{
 			lits.push(~head);
-			for(int i=0; i<set.wlitset.size(); i++){
+			for(vector<Lit>::size_type i=0; i<set.wlitset.size(); i++){
 				if(set.wlitset[i].weight>=bound && set.wlitset[i].lit!=p){
 					lits.push(set.wlitset[i].lit);
 				}
