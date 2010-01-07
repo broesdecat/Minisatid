@@ -62,20 +62,33 @@ Clause* Agg::propagate(Lit p, AggrWatch& ws){
  * To be able to handle multiple times the same literal and also its negation, we will be checking here if the set conforms to that
  * If it does not, a duplicate will be created, which will only be used in this aggregate and which conforms to the rules
  */
+
+bool compareLits(WLit one, WLit two) { return var(one.lit)>var(two.lit); }
+
+
+/**
+ * FIXME:
+ * 1 de methode werkt nog niet
+ * 2 ze werkt ook nog verkeerd: bij som moet als de empty value wordt aangepast, dit worden AFGETROKKEN van het gewicht van zijn negatie
+ * 3 de emptysetvalue wordt ook nog verkeerd aangepast
+ */
 void Agg::doSetReduction() {
+	vector<WLit> oldset = set.wlitset;
+	std::sort(oldset.begin(), oldset.end(), compareLits);
 	AggrSet* newset = new AggrSet();
 	int indexinnew = 0;
 	bool setisreduced = false;
-	newset->wlitset.push_back(set.wlitset[0]);
-	for(vector<int>::size_type i=1; i<set.wlitset.size(); i++){
+	newset->wlitset.push_back(oldset[0]);
+	for(vector<int>::size_type i=1; i<oldset.size(); i++){
 		WLit old = newset->wlitset[indexinnew];
-		WLit newl = newset->wlitset[i];
+		WLit newl = oldset[i];
 		if(var(old.lit)==var(newl.lit)){
 			setisreduced = true;
 			if(old==newl){
 				//same literal, only keep best one
 				if(isBetter(newl.weight, old.weight)){
 					newset->wlitset.pop_back();
+					newl.weight = getCombinedWeightFirstBetter(newl.weight, old.weight);
 					newset->wlitset.push_back(newl);
 				}
 			}else{
@@ -89,10 +102,13 @@ void Agg::doSetReduction() {
 				}
 			}
 		}else{
-			newset->wlitset.push_back(set.wlitset[i]);
+			newset->wlitset.push_back(newl);
 			indexinnew++;
 		}
 	}
+
+	//important to sort again to guarantee that it is sorted according to the weights
+	std::sort(newset->wlitset.begin(), newset->wlitset.end());
 
 	if(setisreduced){
 		AggSolver::aggsolver->aggr_sets.push(newset);
@@ -188,6 +204,10 @@ void MinAgg::removeFromPossibleSet(WLit l){
 	}
 }
 
+int	MinAgg::getCombinedWeightFirstBetter(int first, int second){
+	return first;
+}
+
 /**
  * If the head is true && A <= AGG, make all literals false that have a weight smaller than the bound (because that would make the aggregate false)
  * If the head is false && AGG <= B, make all literals false that have a weight smaller than the bound (because that would make the aggregate false)
@@ -278,6 +298,10 @@ bool MaxAgg::isBetter(int one, int two){
 	return one>two;
 }
 
+int	MaxAgg::getCombinedWeightFirstBetter(int first, int second){
+	return first;
+}
+
 /**
  * If the head is true && AGG <= B, make all literals false that have a weight higher than the bound (because that would make the aggregate false)
  * If the head is false && A <= AGG, make all literals false that have a weight higher than the bound (because that would make the aggregate false)
@@ -365,10 +389,17 @@ void SPAgg::replaceEmptysetValue(int value){
 	}
 }
 
+//FIXME dit zijn echt wel lelijke hacks
 bool SPAgg::isBetter(int one, int two){
-	reportf("A sum aggregate in which the same literal occurs multiple times is currently not allowed, "
-				"because there are no clear semantics. Please rewrite the theory.");exit(3);
-	return one>two;
+	return true; //should always call replacement code
+}
+
+int	SPAgg::getCombinedWeightFirstBetter(int first, int second){
+	if(sum){
+		return first+second;
+	}else{
+		return first*second;
+	}
 }
 
 /**

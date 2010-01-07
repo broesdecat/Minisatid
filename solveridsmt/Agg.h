@@ -85,7 +85,6 @@ public:
 
     Agg(bool lower, int bound, Lit head, AggrSet& set) :
 	    	bound(bound), emptysetValue(0), truecount(0), lower(lower), head(head), set(set) {
-    	setcopy.growTo(set.wlitset.size(), l_Undef);
     }
 
     virtual void 	initialize();
@@ -105,9 +104,12 @@ public:
 	virtual void addToPossibleSet(WLit l) = 0;
 	virtual void removeFromPossibleSet(WLit l) = 0;
 
+	//cannot be done in the agg constructor, because it needs a subclass OBJECT to work with, which is only constructed later
 	virtual void doSetReduction();
+
 	virtual void replaceEmptysetValue(int value) = 0;
 	virtual bool isBetter(int one, int two) = 0;
+	virtual int	 getCombinedWeightFirstBetter(int, int) = 0;
 };
 
 class MinAgg: public Agg {
@@ -116,6 +118,8 @@ public:
 		Agg(lower, bound, head, set){
 			emptysetValue = std::numeric_limits<int>::max();
 			name = "MIN";
+			doSetReduction();
+			setcopy.growTo(set.wlitset.size(), l_Undef);
 		};
 
 	virtual ~MinAgg();
@@ -132,6 +136,7 @@ public:
 
 	void replaceEmptysetValue(int value);
 	bool isBetter(int one, int two);
+	int	 getCombinedWeightFirstBetter(int, int);
 };
 
 class MaxAgg: public Agg {
@@ -141,6 +146,7 @@ public:
 			emptysetValue = std::numeric_limits<int>::min();
 			name = "MAX";
 			doSetReduction();
+			setcopy.growTo(set.wlitset.size(), l_Undef);
 		};
 
 	virtual ~MaxAgg();
@@ -156,6 +162,7 @@ public:
 
 	void replaceEmptysetValue(int value);
 	bool isBetter(int one, int two);
+	int	 getCombinedWeightFirstBetter(int, int);
 };
 
 class SPAgg: public Agg {
@@ -171,7 +178,8 @@ public:
 				emptysetValue = 1;
 				name = "PROD";
 			}
-
+			doSetReduction();
+			setcopy.growTo(set.wlitset.size(), l_Undef);
 		};
 	virtual ~SPAgg();
 
@@ -186,6 +194,7 @@ public:
 
 	void replaceEmptysetValue(int value);
 	bool isBetter(int one, int two);
+	int	 getCombinedWeightFirstBetter(int, int);
 };
 
 #endif /* MINAGG_H_ */
