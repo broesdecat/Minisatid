@@ -15,8 +15,8 @@ class Agg;
 
 class AggSolver{
 public:
-	static AggSolver* aggsolver;
 
+	static AggSolver* aggsolver;
 	AggSolver();
 	virtual ~AggSolver();
 
@@ -47,20 +47,8 @@ public:
 	int	verbosity;          // Verbosity level. 0=silent, 1=some progress report
 	/////////////////////END INITIALIZATION
 
-	// NOTE: this adds an invariant to the system: each literal with a truth value is put on the trail only once.
-	Clause* Aggr_propagate        (Lit p);                      // Perform propagations from aggregate expressions.
+	//are used by agg.c, but preferably should be move into protected again
 	Clause* aggrEnqueue           (Lit p, AggrReason* cr);      // Like "enqueue", but for aggregate propagations.
-
-	lbool	value(Var x) const;
-	lbool	value(Lit p) const;
-	int		nVars()      const;
-
-	// Debug:
-	void     printLit         (Lit l);
-	template<class C>
-	void     printClause      (const C& c);
-	void     printAggrSet     (const AggrSet& as);
-	void     printAggrExpr    (const Agg& ae);
 
 protected:
 	// ECNF_mode.aggr additions to Solver state:
@@ -69,8 +57,7 @@ protected:
 	vec<AggrSet*>		aggr_sets;            // List of aggregate sets being used.
 	vec<AggrReason*>	aggr_reason;          // For each atom, like 'reason'.
 	vec<vec<AggrWatch> > Aggr_watches;         // Aggr_watches[v] is a list of sets in which v occurs (each AggrWatch says: which set, what type of occurrence).
-	// If defType[v]==AGGR, (Aggr_watches[v])[0] has type==DEFN and expr->c==Lit(v,false).
-	vec<bool> countedlit;				//maps a toint(literal) to the fact whether it has been counted (true) or not => is used to check whether backtracking is necessary
+	// If defType[v]==AGGR, (Aggr_watches[v])[0] has type==HEAD and expr->c==Lit(v,false).
 
 	//maybe strange method, but allows to inline the normal backtrack method in the solver search and allows
 	//branch prediction much better i think
@@ -88,6 +75,18 @@ protected:
 
 	bool 	init;	//indicates whether still in initialization mode
 	bool 	empty; 	//indicates no amn statements are present, so always return from T call
+
+	// NOTE: this adds an invariant to the system: each literal with a truth value is put on the trail only once.
+	Clause* Aggr_propagate        (Lit p);                      // Perform propagations from aggregate expressions.
+
+	int		nVars()      const;
+
+	// Debug:
+	void     printLit         (Lit l, lbool value);
+	template<class C>
+	void     printClause      (const C& c);
+	//void     printAggrSet     (const AggrSet& as);
+	void     printAggrExpr    (const Agg& ae);
 };
 
 //=======================

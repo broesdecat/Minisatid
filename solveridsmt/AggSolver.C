@@ -1,5 +1,7 @@
 #include "AggSolver.h"
 
+AggSolver* AggSolver::aggsolver;
+
 AggSolver::AggSolver() :
 	init(true), empty(false) {
 	AggSolver::aggsolver = this;
@@ -8,25 +10,9 @@ AggSolver::AggSolver() :
 AggSolver::~AggSolver() {
 }
 
-inline lbool AggSolver::value(Var x) const {
-	return solver->value(x);
-}
-
-//TODO deze aggsolver manier is niet echt mooi (om Agg toegang te geven tot aggsolver
-//en het zorgt ook dat value niet inline kan zijn hier (wat zeker niet de bedoeling is)
-AggSolver* AggSolver::aggsolver;
-
-lbool AggSolver::value(Lit p) const {
-	return solver->value(p);
-}
-inline int AggSolver::nVars() const {
-	return solver->nVars();
-}
-
 void AggSolver::notifyVarAdded(){
 	Aggr_watches.push();
 	aggr_reason.push();
-	countedlit.push(false);
 }
 
 void AggSolver::finishECNF_DataStructures() {
@@ -44,8 +30,6 @@ void AggSolver::finishECNF_DataStructures() {
 		}
 		return;
 	} else {
-		countedlit.growTo(nVars(), false);
-
 		int total_nb_set_lits = 0;
 		for (int i = 0; i < aggr_sets.size(); i++){
 			total_nb_set_lits += aggr_sets[i]->wlitset.size();
@@ -121,10 +105,10 @@ void AggSolver::addAggrExpr(int defn, int setid, int bound, bool lower, AggrType
 	Agg* ae;
 	switch(type){
 	case MIN:
-		ae = new MIMAAgg(lower, bound, c, *aggr_sets[setindex], true);
+		ae = new MinAgg(lower, bound, c, *aggr_sets[setindex]);
 		break;
 	case MAX:
-		ae = new MIMAAgg(lower, bound, c, *aggr_sets[setindex], false);
+		ae = new MaxAgg(lower, bound, c, *aggr_sets[setindex]);
 		break;
 	case SUM:
 		ae = new SPAgg(lower, bound, c, *aggr_sets[setindex], true);
@@ -164,16 +148,20 @@ void AggSolver::addAggrExpr(int defn, int setid, int bound, bool lower, AggrType
  *
  * it is then checked whether there is a conflict (construct conflict and add learned clause),
  * whether it can be propagated to the solver or whether it was already true.
+ *
+ * this is the only method that is allowed to check the literal values of the sat solver
+ *
+ * should not do any changes to the agg datastructures!
  */
 Clause* AggSolver::aggrEnqueue(Lit p, AggrReason* ar) {
 	if (verbosity >= 2) {
-		reportf("%seriving ", value(p)==l_True ? "Again d" : "D");
-		printLit(p);
+		reportf("%seriving ", solver->value(p)==l_True ? "Again d" : "D");
+		printLit(p, solver->value(p));
 		reportf(" because of the aggregate expression ");
 		printAggrExpr(ar->expr);
 	}
 
-	if (value(p) == l_False) {
+	if (solver->value(p) == l_False) {
 		if (verbosity >= 2){
 			reportf("Conflict.\n");
 		}
@@ -183,7 +171,7 @@ Clause* AggSolver::aggrEnqueue(Lit p, AggrReason* ar) {
 		solver->addLearnedClause(confl);
 		aggr_reason[var(p)] = old_ar;
 		return confl;
-	} else if (value(p) == l_Undef) {
+	} else if (solver->value(p) == l_Undef) {
 		aggr_reason[var(p)] = ar;
 		solver->setTrue(p);
 	} else
@@ -191,35 +179,19 @@ Clause* AggSolver::aggrEnqueue(Lit p, AggrReason* ar) {
 	return NULL;
 }
 
-//TODO waarom niet alle propagatie in agg steken in een logische methode?
+/**
+ * Goes through all watches and propagates the fact that p was set true.
+ */
 Clause* AggSolver::Aggr_propagate(Lit p) {
 	Clause* confl = NULL;
-
-	assert(!countedlit[var(p)]);
-	countedlit[var(p)]=true;
-
 	vec<AggrWatch>& ws = Aggr_watches[var(p)];
 	if (verbosity >= 2 && ws.size() > 0){
 		reportf("Aggr_propagate(%s%d).\n",sign(p)?"-":"",var(p)+1);
 	}
 	for (int i = 0; confl == NULL && i < ws.size(); i++) {
 		Agg& ae = *ws[i].expr;
-		Occurrence tp = relativeOccurrence(ws[i].type, p);
-		ae.stack.push(PropagationInfo(p, ae.set.wlitset[ws[i].index].weight,tp));
-		if (tp == HEAD){ // The head literal has been propagated
-			confl = ae.propagate(!sign(p));
-		}else { // It's a set literal.
-			lbool result = ae.updateAndCheckPropagate(ae.set.wlitset[ws[i].index], tp==POS);
-			if(result==l_True){
-				confl = aggrEnqueue(ae.head, new AggrReason(ae, tp==HEAD));
-			}else if(result==l_False){
-				confl = aggrEnqueue(~ae.head, new AggrReason(ae, tp==HEAD));
-			}else if(value(ae.head)!=l_Undef){
-				confl = ae.propagate(value(ae.head)==l_True);
-			}
-		}
+		confl = ae.propagate(p, ws[i]);
 	}
-
 	return confl;
 }
 
@@ -254,36 +226,10 @@ Clause* AggSolver::getExplanation(Lit p) {
 	Clause* c = Clause_new(lits, true);
 	if (verbosity >= 2) {
 		reportf("Implicit reason clause for ");
-		printLit(p); reportf(" : "); printClause(*c); reportf("\n");
-	}
-
-	if(verbosity>2){
-		reportf("Aggregate explanation for ");
-		printLit(p); reportf(" is  ");
-		printClause(*c); reportf("\n");
+		printLit(p, !sign(p)); reportf(" : "); printClause(*c); reportf("\n");
 	}
 
 	return c;
-}
-
-/**
- * SUM: substract the weight if positive, add the weight if negative
- * PROD: divide by weight if positive, multiply by weight if negative
- * MIN:	if equal to current max, find new max if positive,
- * 		if equal to current min, find new min if negative
- * MAX: reverse
- */
-void AggSolver::backtrackOnePropagation(Agg& ae, Occurrence tp, int index){
-	PropagationInfo pi = ae.stack.last();
-	ae.stack.pop();
-
-	if (tp == HEAD){ //propagation didn't affect min/max
-		return;
-	}
-
-	//assert(tp == pi.type);
-	bool wasinset = pi.type == POS;
-	ae.backtrack(ae.set.wlitset[index], wasinset);
 }
 
 /**
@@ -297,15 +243,11 @@ void AggSolver::doBacktrack(Lit l){
 		aggr_reason[var(l)] = NULL;
 	}
 
-	if(countedlit[var(l)]){
-		countedlit[var(l)] = false;
-
-		vec<AggrWatch>& vcw = Aggr_watches[var(l)];
-		for(int i=0; i<vcw.size(); i++){
-			Agg& ae = *vcw[i].expr;
-			if(ae.stack.size()!=0 && var(ae.stack.last().wlit.lit)==var(l)){
-				backtrackOnePropagation(ae, vcw[i].type, vcw[i].index);
-			}
+	vec<AggrWatch>& vcw = Aggr_watches[var(l)];
+	for(int i=0; i<vcw.size(); i++){
+		Agg& ae = *vcw[i].expr;
+		if(ae.stack.size()!=0 && var(ae.stack.last().wlit.lit)==var(l)){
+			ae.backtrack(vcw[i].type, vcw[i].index);
 		}
 	}
 }
@@ -330,25 +272,31 @@ void AggSolver::doBacktrack(Lit l){
 //=================================================================================================
 // Debug + etc:
 
-void AggSolver::printLit(Lit l) {
-	reportf("%s%d:%c", sign(l) ? "-" : "", var(l)+1, value(l) == l_True ? '1' : (value(l) == l_False ? '0' : 'X'));
+inline void AggSolver::printLit(Lit l, lbool value) {
+	reportf("%s%d:%c", sign(l) ? "-" : "", var(l)+1, value == l_True ? '1' : (value == l_False ? '0' : 'X'));
 }
 
 template<class C>
 inline void AggSolver::printClause(const C& c) {
 	for (int i = 0; i < c.size(); i++) {
-		printLit(c[i]);
+		printLit(c[i], !sign(c[i]));
 		fprintf(stderr, " ");
 	}
 }
 
-
-void AggSolver::printAggrSet(const AggrSet& as){
-    for (int i=0; i<as.wlitset.size(); ++i) {
-        reportf(" "); printLit(as.wlitset[i].lit); reportf("(%d)",as.wlitset[i].weight);
-    }
-}
-
-void AggSolver::printAggrExpr(const Agg& ae){
-	ae.print();
+inline void AggSolver::printAggrExpr(const Agg& ae){
+	printLit(ae.head, ae.headvalue);
+	if(ae.lower){
+		reportf(" <- %s{", ae.name.c_str());
+	}else{
+		reportf(" <- %d <= %s{", ae.bound, ae.name.c_str());
+	}
+	for (int i=0; i<ae.set.wlitset.size(); ++i) {
+		reportf(" "); printLit(ae.set.wlitset[i].lit, ae.setcopy[i]); reportf("(%d)",ae.set.wlitset[i].weight);
+	}
+	if(ae.lower){
+		reportf(" } <= %d. Known values: currentbestcertain=%d, currentbestpossible=%d\n", ae.bound, ae.currentbestcertain, ae.currentbestpossible);
+	}else{
+		reportf(" }. Known values: currentbestcertain=%d, currentbestpossible=%d\n", ae.currentbestcertain, ae.currentbestpossible);
+	}
 }

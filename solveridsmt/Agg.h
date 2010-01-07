@@ -5,6 +5,10 @@
 #include "Vec.h"
 #include "SolverTypes.h"
 
+#include <iostream>
+
+using namespace std;
+
 class Agg;
 
 typedef char AggrType;
@@ -49,7 +53,7 @@ struct AggrSet {
 };
 
 struct AggrWatch {
-    Occurrence	type;
+    Occurrence	type;		//whether the watch is on the head(HEAD), on the literal in the set(POS) or on its negation(NEG)
     Agg*		expr;		// Not used (NULL) if type!=DEFN
     int			index;		// Not used if type==DEFN
 
@@ -72,58 +76,79 @@ inline int compare_WLits(const void* a, const void* b) {
 
 class Agg{
 public:
-	int	bound, currentworst, currentbest, emptysetValue, truecount; //current keeps the currently derived min and max bounds
-	//truecount is the number of literals certainly in the set
+	int	bound, currentbestcertain, currentbestpossible, emptysetValue, truecount, possiblecount;
+					//current keeps the currently derived min and max bounds
+					//truecount is the number of literals certainly in the set
 	bool 		lower;
+    string 		name;
     Lit			head;
     AggrSet& 	set;
+    vec<lbool>	setcopy;			//same indices as set.wlitset. The value of the literal as how it has been propagated IN THIS EXPRESSIOn
+    lbool		headvalue;			//same for head
     vec<PropagationInfo> stack;		// Stack of propagations of this expression so far.
 
     Agg(bool lower, int bound, Lit head, AggrSet& set) :
-	    	bound(bound), emptysetValue(0), truecount(0), lower(lower), head(head), set(set) {}
+	    	bound(bound), emptysetValue(0), truecount(0), lower(lower), head(head), set(set) {
+    	setcopy.growTo(set.wlitset.size(), l_Undef);
+    }
 
     virtual void 	initialize();
 
     /**
      * Updates the values of the aggregate and then returns whether the head can be directly propagated from the body
      */
-    virtual lbool 	updateAndCheckPropagate(WLit l, bool addtoset);
+    virtual lbool 	canPropagateHead();
     virtual Clause* propagate(bool headtrue) = 0;
-    virtual void 	backtrack(WLit l, bool wasinset);
+    Clause* propagate(Lit p, AggrWatch& ws);
+    virtual void 	backtrack(Occurrence tp, int index);
 	virtual void	getExplanation(Lit p, vec<Lit>& lits, int p_index, AggrReason& ar) = 0;
 
-    virtual int 	getCurrentBestPossible(bool alltimebest=false) = 0;
-    virtual int 	getCurrentBestCertain() = 0;
-
-			lbool	value(Lit p);
-
-			void	printAgg(const char* name) const;
-    virtual void 	print() const = 0;
+	virtual int getBestPossible() = 0;
+	virtual void removeFromCertainSet(WLit l) = 0;
+	virtual void addToCertainSet(WLit l) = 0;
+	virtual void addToPossibleSet(WLit l) = 0;
+	virtual void removeFromPossibleSet(WLit l) = 0;
 };
 
-class MIMAAgg: public Agg {
-private:
-	bool min;
+class MinAgg: public Agg {
 public:
-	MIMAAgg(bool lower, int bound, Lit head, AggrSet& set, bool min):
-		Agg(lower, bound, head, set), min(min){
-			if(min){
-				emptysetValue = std::numeric_limits<int>::max();
-			}else{
-				emptysetValue = std::numeric_limits<int>::min();
-			}
+	MinAgg(bool lower, int bound, Lit head, AggrSet& set):
+		Agg(lower, bound, head, set){
+			emptysetValue = std::numeric_limits<int>::max();
+			name = "MIN";
 		};
 
-	virtual ~MIMAAgg();
+	virtual ~MinAgg();
 
-	lbool 	updateAndCheckPropagate(WLit l, bool addtoset);
+	lbool 	canPropagateHead();
 	Clause* propagate(bool headtrue);
 	void	getExplanation(Lit p, vec<Lit>& lits, int p_index, AggrReason& ar);
 
-	int 	getCurrentBestPossible(bool alltimebest=false);
-	int 	getCurrentBestCertain();
+	int 	getBestPossible();
+	void	removeFromCertainSet(WLit l);
+	void	addToCertainSet(WLit l);
+	void	addToPossibleSet(WLit l);
+	void	removeFromPossibleSet(WLit l);
+};
 
-	void 	print() const;
+class MaxAgg: public Agg {
+public:
+	MaxAgg(bool lower, int bound, Lit head, AggrSet& set):
+		Agg(lower, bound, head, set){
+			emptysetValue = std::numeric_limits<int>::min();
+			name = "MAX";
+		};
+
+	virtual ~MaxAgg();
+
+	Clause* propagate(bool headtrue);
+	void	getExplanation(Lit p, vec<Lit>& lits, int p_index, AggrReason& ar);
+
+	int 	getBestPossible();
+	void	removeFromCertainSet(WLit l);
+	void	addToCertainSet(WLit l);
+	void	addToPossibleSet(WLit l);
+	void	removeFromPossibleSet(WLit l);
 };
 
 class SPAgg: public Agg {
@@ -134,8 +159,10 @@ public:
 		Agg(lower, bound, head, set),sum(sum){
 			if(sum){
 				emptysetValue = 0;
+				name = "SUM";
 			}else{
 				emptysetValue = 1;
+				name = "PROD";
 			}
 
 		};
@@ -144,10 +171,11 @@ public:
 	Clause* propagate(bool headtrue);
 	void	getExplanation(Lit p, vec<Lit>& lits, int p_index, AggrReason& ar);
 
-	int 	getCurrentBestPossible(bool alltimebest=false);
-	int 	getCurrentBestCertain();
-
-	void 	print() const;
+	int 	getBestPossible();
+	void	removeFromCertainSet(WLit l);
+	void	addToCertainSet(WLit l);
+	void	addToPossibleSet(WLit l);
+	void	removeFromPossibleSet(WLit l);
 };
 
 #endif /* MINAGG_H_ */
