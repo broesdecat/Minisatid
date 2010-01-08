@@ -205,8 +205,8 @@ Clause* AggSolver::getExplanation(Lit p) {
 	lits.push(p);
 	AggrReason& ar = *aggr_reason[var(p)];
 
-	//find the index of the literal in the set that resulted in the reason
-	//TODO save the watch and the index in the reason?
+	//find the index of the literal in the set that resulted in the reason.
+	//Can be optimized by storing it in the reason, but usually the number of aggregate expressions it not that high.
 	int i = 0;
 	while (i < Aggr_watches[var(p)].size() && (&(Aggr_watches[var(p)])[i].expr->set)!= &(ar.expr->set)){
 		i++;
@@ -263,6 +263,32 @@ void AggSolver::doBacktrack(Lit l){
 	for (int i = 0; i < lits.size(); i++)
 		to_minimize.push(lits[i]);
 }*/
+
+/*****************
+ * IDSOLVER PART *
+ *****************/
+
+/**
+ * Propagate the fact that L has a cyclefree and supporting justification
+ * All new justifications are pushed onto the existing queue
+ */
+void AggSolver::propagateJustifications(Var l, vec<vec<Lit> >& jstf, vec<Var>& lits, vec<int> &nb_body_lits_to_justify){
+	for (int i = 0; i < Aggr_watches[l].size(); ++i) {
+		AggrWatch& aw = (Aggr_watches[l])[i];
+		if (aw.type == HEAD){
+			continue;
+		}
+		if(aw.expr->headvalue == l_False){
+			continue;
+		}
+		Var v = var(aw.expr->head);
+		lits.push(v);
+		jstf.push();
+		if (nb_body_lits_to_justify[v] > 0) {
+			aw.expr->propagateJustifications(jstf.last(), nb_body_lits_to_justify);
+		}
+	}
+}
 
 //=================================================================================================
 // Debug + etc:

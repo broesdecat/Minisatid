@@ -756,3 +756,124 @@ void SPAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
 	}
 	assert(headfound && explained);
 }
+
+/*************************
+ * IDSOLVER PROPAGATIONS *
+ *************************/
+
+//FIXME rewrite this all, with only one bound!
+
+/**
+ * Goes through all that are already justifified. If those together are enough to justify the head (making it TRUE!),
+ * then return those as a justification
+ *
+ * use emtpysetvalue! (which might already be better than the default)
+ *
+ * if AGG <= B: if bestpossible > bound => NOT justifiable
+ * 				if bestcertain <= bound => take the stack as justification (can be done better)
+ * 				else try to find one literal that is already justified and would make the head true
+ * 					if not found, then not justifiable
+ * ANALOGOUSLY for A <= AGG
+ */
+void MinAgg::propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify){
+	if(lower){ //AGG <= B
+		if(currentbestpossible>bound){ // not justifiable
+		}else if(currentbestcertain <= bound){
+			for(int i=0; i<stack.size(); i++){
+				if(stack[i].type!=HEAD){
+					jstf.push(stack[i].wlit.lit);
+				}
+			}
+			nb_body_lits_to_justify[var(head)] = 0;
+		}else{
+			for(int i=0; i<set->wlitset.size(); i++){
+				if(nb_body_lits_to_justify[var(set->wlitset[i].lit)] == 0 && set->wlitset[i].weight<=bound){
+					jstf.push(set->wlitset[i].lit);
+					nb_body_lits_to_justify[var(head)] = 0;
+					break;
+				}
+			}
+		}
+	}else{ //A <= AGG
+		if(currentbestcertain<bound){ // not justifiable
+		}else if(currentbestpossible >= bound){
+			for(int i=0; i<stack.size(); i++){
+				if(stack[i].type!=HEAD){
+					jstf.push(stack[i].wlit.lit);
+				}
+			}
+			nb_body_lits_to_justify[var(head)] = 0;
+		}else{
+			//FIXME: add all literals that are necessarily false to justify head
+		}
+	}
+}
+
+void MaxAgg::propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify){
+	if(lower){ //AGG <= B
+		if(currentbestcertain>bound){ // not justifiable
+		}else if(currentbestpossible <= bound){
+			for(int i=0; i<stack.size(); i++){
+				if(stack[i].type!=HEAD){
+					jstf.push(stack[i].wlit.lit);
+				}
+			}
+			nb_body_lits_to_justify[var(head)] = 0;
+		}else{
+			//FIXME: add all literals that are necessarily false to justify head
+		}
+	}else{ //A <= AGG
+		if(currentbestpossible<bound){ // not justifiable
+		}else if(currentbestcertain >= bound){
+			for(int i=0; i<stack.size(); i++){
+				if(stack[i].type!=HEAD){
+					jstf.push(stack[i].wlit.lit);
+				}
+			}
+			nb_body_lits_to_justify[var(head)] = 0;
+		}else{
+			for(int i=0; i<set->wlitset.size(); i++){
+				if(nb_body_lits_to_justify[var(set->wlitset[i].lit)] == 0 && set->wlitset[i].weight>=bound){
+					jstf.push(set->wlitset[i].lit);
+					nb_body_lits_to_justify[var(head)] = 0;
+					break;
+				}
+			}
+		}
+	}
+}
+
+void SPAgg::propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify){
+	//FIXME
+	/* min = emptysetValue;
+	int max = set->cmax;
+	bool complete = false;
+	for (int k = 0; !complete && k < lits.size(); ++k) {
+		Lit ll = lits[k].lit;
+		if (value(ll) != l_False) {
+			if (sign(ll)
+					|| nb_body_lits_to_justify[var(
+							ll)] == 0) {
+				jstf.push(ll);
+				min += lits[k].weight;
+				if (min >= exprs[j]->min && max
+						<= exprs[j]->max)
+					complete = true;
+			}
+		}
+		if (value(ll) != l_True) {
+			if (!sign(ll)
+					|| nb_body_lits_to_justify[var(
+							ll)] == 0) {
+				jstf.push(~ll);
+				max -= lits[k].weight;
+				if (min >= exprs[j]->min && max
+						<= exprs[j]->max)
+					complete = true;
+			}
+		}
+	}
+	if (complete){
+		nb_body_lits_to_justify[v] = 0;
+	}*/
+}

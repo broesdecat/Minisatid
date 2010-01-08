@@ -1,4 +1,3 @@
-
 #ifndef IDSOLVER_H_
 #define IDSOLVER_H_
 
@@ -13,16 +12,13 @@
 
 #include "SolverTypes.h"
 #include "Solver.h"
+#include "AggSolver.h"
 
-typedef char DefType;
-const DefType NONDEF = 0;
-const DefType DISJ   = 1;
-const DefType CONJ   = 2;
-const DefType AGGR   = 3;
-
+enum DefType {NONDEF, DISJ, CONJ, AGGR};
 enum UFS {NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK};
 
 class Solver;
+class AggSolver;
 
 class IDSolver{
 public:
@@ -45,6 +41,10 @@ public:
 
 	void setSolver(Solver* s){
 		solver = s;
+	}
+
+	void setAggSolver(AggSolver* s){
+		aggsolver = s;
 	}
 
 	int	verbosity;          // Verbosity level. 0=silent, 1=some progress report
@@ -75,31 +75,32 @@ protected:
 	//uint64_t nb_times_findCS, justify_calls, cs_removed_in_justify, succesful_justify_calls, extdisj_sizes, total_marked_size;
 	//    uint64_t fw_propagation_attempts, fw_propagations;
 
-	Solver* solver;
+	Solver* 		solver;
+	AggSolver* 		aggsolver;
 
 	// ECNF_mode.mnmz additions to Solver state:
-	vec<Lit>            to_minimize;
+	vec<Lit>		to_minimize;
 
 	// ECNF_mode.def additions to Solver state:
 	//
-	vec<Var>        defdVars;            // May include variables that get marked NONDEF later.
-	vec<DefType>    defType;             // Per atom: what type is it (non-defined, disjunctive, conjunctive, aggregate).
-	vec<Clause*>    definition;          // If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
+	vec<Var>		defdVars;	// May include variables that get marked NONDEF later.
+	vec<DefType>	defType;	// Per atom: what type is it (non-defined, disjunctive, conjunctive, aggregate).
+	vec<Clause*>	definition;	// If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
 	// Note that v occurs negatively if DISJ, positively if CONJ; and the reverse for the body literals.
-	// If defType[v]==NONDEF, it may be that v *was* defined by a non-recursive rule: then definition[v] also is the 'long clause' of the completion of that rule.
-	vec<int>        scc;                 // To which strongly connected component does the atom belong. Zero iff defType[v]==NONDEF.
+	// If defType[v]==NONDEF, it may be that v *was* defined by a non-recursive rule: then definition[v] also is the 'long clause'
+	//	of the completion of that rule, which was just not deleted, but wont be used any more
+	vec<int>		scc;		// To which strongly connected component does the atom belong. Zero iff defType[v]==NONDEF.
 
 	// Rules (body to head):
-	vec<vec<Var> >  disj_occurs;         // Per literal: in which DISJ rules (defining atom) it is body literal.
-	vec<vec<Var> >  conj_occurs;         // Per literal: in which CONJ rules (defining atom) it is body literal.
-	// cfr. Aggr_watches for the same thing in AGGR rules.
+	vec<vec<Var> >  disj_occurs;         // Per literal: a vector of heads of DISJ rules in which it is a body literal.
+	vec<vec<Var> >  conj_occurs;         // Per literal: a vector of heads of CONJ rules in which it is a body literal.
 
 	// Justifications:
-	vec<Lit>        cf_justification_disj;  // Per atom. cf_ = cycle free.
-	//FIXME vec<vec<Lit> >  cf_justification_aggr;  //           sp_ = supporting.
-	vec<Lit>        sp_justification_disj;  //           _aggr. = only for AGGR atoms.
-	//FIXME vec<vec<Lit> >  sp_justification_aggr;  //           _disj. = only for DISJ atoms.
-	vec<Var>        changed_vars;           // A list of the atoms whose sp_ and cf_ justification are different.
+	vec<Lit>        cf_justification_disj;	// Per atom. cf_ = cycle free, sp_ = supporting.
+	vec<Lit>        sp_justification_disj;	// _aggr. = only for AGGR atoms, _disj. = only for DISJ atoms.
+	vec<vec<Lit> >  sp_justification_aggr;
+	vec<vec<Lit> >  cf_justification_aggr;
+	vec<Var>        changed_vars;			// A list of the atoms whose sp_ and cf_ justification are different.
 
 	int       adaption_total;     // Used only if defn_strategy==adaptive. Number of decision levels between indirectPropagate() uses.
 	int       adaption_current;   // Used only if defn_strategy==adaptive. Number of decision levels left until next indirectPropagate() use.
@@ -134,7 +135,7 @@ protected:
 	bool	unfounded          (Var cs, std::set<Var>& ufs);      // True iff 'cs' is currently in an unfounded set, 'ufs'.
 	Clause*	assertUnfoundedSet (const std::set<Var>& ufs);
 
-	UFS 	visitForUFSgeneral	(Var v, Var cs, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited, vec<bool>& incomp);
+	//UFS 	visitForUFSgeneral	(Var v, Var cs, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited, vec<bool>& incomp);
 
 	UFS 	visitForUFSsimple	(Var v, std::set<Var>& ufs, int& visittime, vec<Var>& stack, vec<Var>& visited, vec<vec<Lit> >& network, vec<Var>& tempseen);
 	void 	changeJustifications(Var definednode, Lit firstjustification, vec<vec<Lit> >& network, vec<int>& visited); //changes the justifications of the tarjan algorithm

@@ -9,13 +9,14 @@
 
 #include "Agg.h"
 #include "Solver.h"
+#include "IDSolver.h"
 
 class Solver;
+class IDSolver;
 class Agg;
 
 class AggSolver{
 public:
-
 	static AggSolver* aggsolver;
 	AggSolver();
 	virtual ~AggSolver();
@@ -28,10 +29,12 @@ public:
 	Clause* propagate	(Lit p, Clause* confl);
 	/////////////////////ENDSOLVER NECESSARY
 
+	/////////////////////IDSOLVER NECESSARY
+	void propagateJustifications(Var l, vec<vec<Lit> >& jstf, vec<Var>& v, vec<int> &nb_body_lits_to_justify);
+	/////////////////////END IDSOLVER NECESSARY
+
 	/////////////////////INITIALIZATION
 	void    addSet       (int id, vec<Lit>& l, vec<int>& w);
-	//void  addAggrExpr  (int defn, int set_id, int min, int max, AggrType type);
-
 	/**
 	 * Adds an aggregate of the given type with number defn for set set_id.
 	 * If lower, then AGG <= bound
@@ -42,6 +45,10 @@ public:
 
 	void setSolver(Solver* s){
 		solver = s;
+	}
+
+	void setIDSolver(IDSolver* s){
+		idsolver = s;
 	}
 
 	int	verbosity;          // Verbosity level. 0=silent, 1=some progress report
@@ -72,6 +79,7 @@ protected:
 	int 	getProduct(vec<WLit>& lits);
 
 	Solver* solver;
+	IDSolver* idsolver;
 
 	bool 	init;	//indicates whether still in initialization mode
 	bool 	empty; 	//indicates no amn statements are present, so always return from T call

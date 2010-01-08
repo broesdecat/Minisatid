@@ -174,6 +174,7 @@ static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AMNSolver* AS, AggSo
                     TS->addRule(false, lits);
                     break;
                 case 'E':
+                	//TODO delete after comparing speeds
                     if (match(in,"EU")) {
                         readClause(in, S, lits);
                         AS->addEE(lits, 1);
@@ -181,6 +182,7 @@ static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AMNSolver* AS, AggSo
                         ParseError("Unexpected char '%c' after 'E' (expecting \"EU\").\n",*in);
                     break;
                 case 'A':
+                	//TODO delete after comparing speeds
                 	++in;
                     if (*in=='M') {
                     	++in;
@@ -427,8 +429,10 @@ int main(int argc, char** argv)
     S->setAMNSolver(AS);
     S->setAggSolver(AggS);
     TS->setSolver(S);
+    TS->setAggSolver(AggS);
     AS->setSolver(S);
     AggS->setSolver(S);
+    AggS->setIDSolver(TS);
 
     int         i, j;
     int         N = 1;
@@ -559,10 +563,12 @@ int main(int argc, char** argv)
 
 		if(!modes.def){
 			S->setIDSolver(NULL);
+			AggS->setIDSolver(NULL);
 			delete TS;
 		}
 		if(!modes.aggr){
 			S->setAggSolver(NULL);
+			TS->setAggSolver(NULL);
 			delete AggS;
 		}
 		if(!modes.mnmz){

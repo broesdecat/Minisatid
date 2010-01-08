@@ -12,17 +12,8 @@ using namespace std;
 
 class Agg;
 
-typedef char AggrType;
-const AggrType SUM  = 0; // NOTE: CARD = (SUM with weights =1).
-const AggrType PROD = 1;
-const AggrType MIN  = 2;
-const AggrType MAX  = 3;
-const int NB_AGGR_TYPES = 4;
-
-typedef char Occurrence;
-const Occurrence HEAD = 0;
-const Occurrence POS  = 1;
-const Occurrence NEG  = 2;
+enum AggrType {SUM, PROD, MIN, MAX};
+enum Occurrence {HEAD, POS, NEG};
 
 inline Occurrence relativeOccurrence(Occurrence o, Lit l) {
     if (o==HEAD) return HEAD;
@@ -109,6 +100,8 @@ public:
 	//Returns the weight a combined literal should have if both weights are in the set at the same time
 	virtual int	 getCombinedWeight(int one, int two) = 0;
 	virtual WLit handleOccurenceOfBothSigns(WLit one, WLit two) = 0;
+
+	virtual void	propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify) = 0;
 };
 
 class MinAgg: public Agg {
@@ -135,6 +128,8 @@ public:
 
 	int	 	getCombinedWeight(int, int);
 	WLit 	handleOccurenceOfBothSigns(WLit one, WLit two);
+
+	void	propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify);
 };
 
 class MaxAgg: public Agg {
@@ -160,6 +155,8 @@ public:
 
 	int	 	getCombinedWeight(int, int);
 	WLit 	handleOccurenceOfBothSigns(WLit one, WLit two);
+
+	void	propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify);
 };
 
 class SPAgg: public Agg {
@@ -191,6 +188,8 @@ public:
 
 	int		getCombinedWeight(int, int);
 	WLit 	handleOccurenceOfBothSigns(WLit one, WLit two);
+
+	void	propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify);
 };
 
 #endif /* MINAGG_H_ */
