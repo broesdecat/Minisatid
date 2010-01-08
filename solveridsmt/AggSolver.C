@@ -102,13 +102,13 @@ void AggSolver::addAggrExpr(int defn, int setid, int bound, bool lower, AggrType
 	Agg* ae;
 	switch(type){
 	case MIN:
-		ae = new MinAgg(lower, bound, c, *aggr_sets[setindex]);
+		ae = new MinAgg(lower, bound, c, aggr_sets[setindex]);
 		break;
 	case MAX:
-		ae = new MaxAgg(lower, bound, c, *aggr_sets[setindex]);
+		ae = new MaxAgg(lower, bound, c, aggr_sets[setindex]);
 		break;
 	case SUM:
-		ae = new SPAgg(lower, bound, c, *aggr_sets[setindex], true);
+		ae = new SPAgg(lower, bound, c, aggr_sets[setindex], true);
 		break;
 	case PROD:
 		//TODO this can be solved by taking 0 out of the set and making the necessary transformations
@@ -119,18 +119,16 @@ void AggSolver::addAggrExpr(int defn, int setid, int bound, bool lower, AggrType
 						"be used in combination with a product aggregate\n", setid), exit(3);
 			}
 		}
-		ae = new SPAgg(lower, bound, c, *aggr_sets[setindex], false);
+		ae = new SPAgg(lower, bound, c, aggr_sets[setindex], false);
 		break;
 	default: assert(false);break;
 	}
 	aggr_exprs.push(ae);
 
-	AggrSet& as = *aggr_sets[setindex];
-
 	Aggr_watches[var(c)].push(AggrWatch(ae, -1, HEAD));
 
-	for (vector<int>::size_type i = 0; i < as.wlitset.size(); i++){
-		Aggr_watches[var(as.wlitset[i].lit)].push(AggrWatch(ae, i, sign(as.wlitset[i].lit) ? NEG : POS));
+	for (vector<int>::size_type i = 0; i < ae->set->wlitset.size(); i++){
+		Aggr_watches[var(ae->set->wlitset[i].lit)].push(AggrWatch(ae, i, sign(ae->set->wlitset[i].lit) ? NEG : POS));
 	}
 
 	/*TODO
@@ -155,7 +153,7 @@ Clause* AggSolver::aggrEnqueue(Lit p, AggrReason* ar) {
 		reportf("%seriving ", solver->value(p)==l_True ? "Again d" : "D");
 		printLit(p, solver->value(p));
 		reportf(" because of the aggregate expression ");
-		printAggrExpr(ar->expr);
+		printAggrExpr(*(ar->expr));
 	}
 
 	if (solver->value(p) == l_False) {
@@ -210,14 +208,14 @@ Clause* AggSolver::getExplanation(Lit p) {
 	//find the index of the literal in the set that resulted in the reason
 	//TODO save the watch and the index in the reason?
 	int i = 0;
-	while (i < Aggr_watches[var(p)].size() && (&(Aggr_watches[var(p)])[i].expr->set)!= &(ar.expr.set)){
+	while (i < Aggr_watches[var(p)].size() && (&(Aggr_watches[var(p)])[i].expr->set)!= &(ar.expr->set)){
 		i++;
 	}
 	assert(i<Aggr_watches[var(p)].size());
 	int p_idx = (Aggr_watches[var(p)])[i].index;
 
 	//get the explanation from the aggregate expression
-	ar.expr.getExplanation(p, lits, p_idx, ar);
+	ar.expr->getExplanation(p, lits, p_idx, ar);
 
 	//create a conflict clause and return it
 	Clause* c = Clause_new(lits, true);
@@ -288,8 +286,8 @@ inline void AggSolver::printAggrExpr(const Agg& ae){
 	}else{
 		reportf(" <- %d <= %s{", ae.bound, ae.name.c_str());
 	}
-	for (vector<int>::size_type i=0; i<ae.set.wlitset.size(); ++i) {
-		reportf(" "); printLit(ae.set.wlitset[i].lit, ae.setcopy[i]); reportf("(%d)",ae.set.wlitset[i].weight);
+	for (vector<int>::size_type i=0; i<ae.set->wlitset.size(); ++i) {
+		reportf(" "); printLit(ae.set->wlitset[i].lit, ae.setcopy[i]); reportf("(%d)",ae.set->wlitset[i].weight);
 	}
 	if(ae.lower){
 		reportf(" } <= %d. Known values: currentbestcertain=%d, currentbestpossible=%d\n", ae.bound, ae.currentbestcertain, ae.currentbestpossible);

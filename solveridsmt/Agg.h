@@ -58,16 +58,16 @@ struct AggrSet {
 
 struct AggrWatch {
     Occurrence	type;		//whether the watch is on the head(HEAD), on the literal in the set(POS) or on its negation(NEG)
-    Agg*		expr;		// Not used (NULL) if type!=DEFN
-    int			index;		// Not used if type==DEFN
+    Agg*		expr;		// Not used (NULL) if type!=HEAD
+    int			index;		// Not used if type==HEAD
 
     AggrWatch(Agg* e, int i, Occurrence t) : type(t), expr(e), index(i) {}
 };
 struct AggrReason {			// Needed to build (with implicitReasonClause(Lit)) a reason clause for a cardinality propagation.
-    Agg&		expr;
+    Agg*		expr;
     Occurrence	type;
 
-    AggrReason(Agg& e, Occurrence t) : expr(e), type(t) {}
+    AggrReason(Agg* e, Occurrence t) : expr(e), type(t) {}
 };
 
 class Agg{
@@ -78,12 +78,12 @@ public:
 	bool 		lower;
     string 		name;
     Lit			head;
-    AggrSet& 	set;
+    AggrSet* 	set;
     vec<lbool>	setcopy;			//same indices as set.wlitset. The value of the literal as how it has been propagated IN THIS EXPRESSIOn
     lbool		headvalue;			//same for head
     vec<PropagationInfo> stack;		// Stack of propagations of this expression so far.
 
-    Agg(bool lower, int bound, Lit head, AggrSet& set) :
+    Agg(bool lower, int bound, Lit head, AggrSet* set) :
 	    	bound(bound), emptysetValue(0), truecount(0), lower(lower), head(head), set(set) {
     }
 
@@ -108,16 +108,17 @@ public:
 	virtual void doSetReduction();
 	//Returns the weight a combined literal should have if both weights are in the set at the same time
 	virtual int	 getCombinedWeight(int one, int two) = 0;
+	virtual WLit handleOccurenceOfBothSigns(WLit one, WLit two) = 0;
 };
 
 class MinAgg: public Agg {
 public:
-	MinAgg(bool lower, int bound, Lit head, AggrSet& set):
+	MinAgg(bool lower, int bound, Lit head, AggrSet* set):
 		Agg(lower, bound, head, set){
 			emptysetValue = std::numeric_limits<int>::max();
 			name = "MIN";
 			doSetReduction();
-			setcopy.growTo(set.wlitset.size(), l_Undef);
+			setcopy.growTo(set->wlitset.size(), l_Undef);
 		};
 
 	virtual ~MinAgg();
@@ -133,16 +134,17 @@ public:
 	void	removeFromPossibleSet(WLit l);
 
 	int	 	getCombinedWeight(int, int);
+	WLit 	handleOccurenceOfBothSigns(WLit one, WLit two);
 };
 
 class MaxAgg: public Agg {
 public:
-	MaxAgg(bool lower, int bound, Lit head, AggrSet& set):
+	MaxAgg(bool lower, int bound, Lit head, AggrSet* set):
 		Agg(lower, bound, head, set){
 			emptysetValue = std::numeric_limits<int>::min();
 			name = "MAX";
 			doSetReduction();
-			setcopy.growTo(set.wlitset.size(), l_Undef);
+			setcopy.growTo(set->wlitset.size(), l_Undef);
 		};
 
 	virtual ~MaxAgg();
@@ -157,13 +159,14 @@ public:
 	void	removeFromPossibleSet(WLit l);
 
 	int	 	getCombinedWeight(int, int);
+	WLit 	handleOccurenceOfBothSigns(WLit one, WLit two);
 };
 
 class SPAgg: public Agg {
 private:
 	bool sum;
 public:
-	SPAgg(bool lower, int bound, Lit head, AggrSet& set, bool sum):
+	SPAgg(bool lower, int bound, Lit head, AggrSet* set, bool sum):
 		Agg(lower, bound, head, set),sum(sum){
 			if(sum){
 				emptysetValue = 0;
@@ -173,7 +176,7 @@ public:
 				name = "PROD";
 			}
 			doSetReduction();
-			setcopy.growTo(set.wlitset.size(), l_Undef);
+			setcopy.growTo(set->wlitset.size(), l_Undef);
 		};
 	virtual ~SPAgg();
 
@@ -187,6 +190,7 @@ public:
 	void	removeFromPossibleSet(WLit l);
 
 	int		getCombinedWeight(int, int);
+	WLit 	handleOccurenceOfBothSigns(WLit one, WLit two);
 };
 
 #endif /* MINAGG_H_ */
