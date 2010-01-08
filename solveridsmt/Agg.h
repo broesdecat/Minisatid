@@ -106,10 +106,8 @@ public:
 
 	//cannot be done in the agg constructor, because it needs a subclass OBJECT to work with, which is only constructed later
 	virtual void doSetReduction();
-
-	virtual void replaceEmptysetValue(int value) = 0;
-	virtual bool isBetter(int one, int two) = 0;
-	virtual int	 getCombinedWeightFirstBetter(int, int) = 0;
+	//Returns the weight a combined literal should have if both weights are in the set at the same time
+	virtual int	 getCombinedWeight(int one, int two) = 0;
 };
 
 class MinAgg: public Agg {
@@ -134,9 +132,7 @@ public:
 	void	addToPossibleSet(WLit l);
 	void	removeFromPossibleSet(WLit l);
 
-	void replaceEmptysetValue(int value);
-	bool isBetter(int one, int two);
-	int	 getCombinedWeightFirstBetter(int, int);
+	int	 	getCombinedWeight(int, int);
 };
 
 class MaxAgg: public Agg {
@@ -160,9 +156,7 @@ public:
 	void	addToPossibleSet(WLit l);
 	void	removeFromPossibleSet(WLit l);
 
-	void replaceEmptysetValue(int value);
-	bool isBetter(int one, int two);
-	int	 getCombinedWeightFirstBetter(int, int);
+	int	 	getCombinedWeight(int, int);
 };
 
 class SPAgg: public Agg {
@@ -192,9 +186,7 @@ public:
 	void	addToPossibleSet(WLit l);
 	void	removeFromPossibleSet(WLit l);
 
-	void replaceEmptysetValue(int value);
-	bool isBetter(int one, int two);
-	int	 getCombinedWeightFirstBetter(int, int);
+	int		getCombinedWeight(int, int);
 };
 
 #endif /* MINAGG_H_ */

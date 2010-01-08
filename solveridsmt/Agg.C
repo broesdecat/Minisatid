@@ -63,43 +63,33 @@ Clause* Agg::propagate(Lit p, AggrWatch& ws){
  * If it does not, a duplicate will be created, which will only be used in this aggregate and which conforms to the rules
  */
 
-bool compareLits(WLit one, WLit two) { return var(one.lit)>var(two.lit); }
+bool compareLits(WLit one, WLit two) { return var(one.lit)<var(two.lit); }
 
 
 /**
- * FIXME:
- * 1 de methode werkt nog niet
- * 2 ze werkt ook nog verkeerd: bij som moet als de empty value wordt aangepast, dit worden AFGETROKKEN van het gewicht van zijn negatie
- * 3 de emptysetvalue wordt ook nog verkeerd aangepast
+ * Checks whether the same literal occurs multiple times in the set. If this is the case, all identical literals are combined into one.
+ * How the weights are combined depends on the aggregate type, and the combination is made by the method getCombinedWeight.
+ * For this reason, the method cannot be called in the constructor of Agg (because the subtype has not been constructed yet.
  */
 void Agg::doSetReduction() {
 	vector<WLit> oldset = set.wlitset;
 	std::sort(oldset.begin(), oldset.end(), compareLits);
+
 	AggrSet* newset = new AggrSet();
 	int indexinnew = 0;
+	newset->wlitset.push_back(oldset[indexinnew]);
+
 	bool setisreduced = false;
-	newset->wlitset.push_back(oldset[0]);
 	for(vector<int>::size_type i=1; i<oldset.size(); i++){
 		WLit old = newset->wlitset[indexinnew];
 		WLit newl = oldset[i];
 		if(var(old.lit)==var(newl.lit)){
 			setisreduced = true;
-			if(old==newl){
+			if(old.lit==newl.lit){
 				//same literal, only keep best one
-				if(isBetter(newl.weight, old.weight)){
-					newset->wlitset.pop_back();
-					newl.weight = getCombinedWeightFirstBetter(newl.weight, old.weight);
-					newset->wlitset.push_back(newl);
-				}
+				newset->wlitset[newset->wlitset.size()-1].weight = getCombinedWeight(newl.weight, old.weight);
 			}else{
-				//literal and it negation, keep the best one and add the other one to the certainbound
-				if(isBetter(newl.weight, old.weight)){
-					replaceEmptysetValue(old.weight);
-					newset->wlitset.pop_back();
-					newset->wlitset.push_back(newl);
-				}else{
-					replaceEmptysetValue(newl.weight);
-				}
+				reportf("Both literal and its negation present, which is not allowed."); exit(3);
 			}
 		}else{
 			newset->wlitset.push_back(newl);
@@ -148,16 +138,6 @@ lbool MinAgg::canPropagateHead() {
 	}
 }
 
-void MinAgg::replaceEmptysetValue(int value){
-	if(emptysetValue>value){
-		emptysetValue = value;
-	}
-}
-
-bool MinAgg::isBetter(int one, int two){
-	return one<two;
-}
-
 void MinAgg::removeFromCertainSet(WLit l){
 	truecount--;
 	if (truecount == 0) {
@@ -204,8 +184,8 @@ void MinAgg::removeFromPossibleSet(WLit l){
 	}
 }
 
-int	MinAgg::getCombinedWeightFirstBetter(int first, int second){
-	return first;
+int	MinAgg::getCombinedWeight(int first, int second){
+	return first<second?first:second;
 }
 
 /**
@@ -288,18 +268,8 @@ void MaxAgg::removeFromPossibleSet(WLit l){
 	}
 }
 
-void MaxAgg::replaceEmptysetValue(int value){
-	if(emptysetValue<value){
-		emptysetValue = value;
-	}
-}
-
-bool MaxAgg::isBetter(int one, int two){
-	return one>two;
-}
-
-int	MaxAgg::getCombinedWeightFirstBetter(int first, int second){
-	return first;
+int	MaxAgg::getCombinedWeight(int first, int second){
+	return first>second?first:second;
 }
 
 /**
@@ -381,20 +351,7 @@ void SPAgg::removeFromPossibleSet(WLit l){
 	}
 }
 
-void SPAgg::replaceEmptysetValue(int value){
-	if(sum){
-		emptysetValue += value;
-	}else{
-		emptysetValue *= value;
-	}
-}
-
-//FIXME dit zijn echt wel lelijke hacks
-bool SPAgg::isBetter(int one, int two){
-	return true; //should always call replacement code
-}
-
-int	SPAgg::getCombinedWeightFirstBetter(int first, int second){
+int	SPAgg::getCombinedWeight(int first, int second){
 	if(sum){
 		return first+second;
 	}else{
