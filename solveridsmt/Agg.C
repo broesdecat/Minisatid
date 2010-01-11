@@ -761,6 +761,8 @@ void SPAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
  * IDSOLVER PROPAGATIONS *
  *************************/
 
+//TODO rely more on the weight order of the literals in the set
+
 //FIXME ik denk dat de huidige implementatie van propagatejustifications nog niet correct is
 
 /**
@@ -1052,4 +1054,233 @@ void SPAgg::justifyHead(vec<Lit>& just){
 			assert(sum>=bound);
 		}
 	}
+}
+
+//FIXME onderstaande code nakijken
+
+/**
+ * Add all literals not in the unfounded set to the loopformula, if
+ */
+void MinAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen){
+	if(lower){
+		for (int i=0; i<set->wlitset.size() && set->wlitset[i].weight <= bound; ++i) {
+			if (ufs.find(var(set->wlitset[i].lit)) == ufs.end()) {
+				loopf.push(set->wlitset[i].lit);
+				seen[var(set->wlitset[i].lit)] = (sign(set->wlitset[i].lit) ? 1 : 2);
+			}
+		}
+	}else{
+		for (int i=0; i<set->wlitset.size() && set->wlitset[i].weight < bound; ++i) {
+			if (ufs.find(var(set->wlitset[i].lit)) == ufs.end()) {
+				loopf.push(~set->wlitset[i].lit);
+				seen[var(set->wlitset[i].lit)] = (sign(set->wlitset[i].lit) ? 2 : 1);
+			}
+		}
+	}
+}
+
+void MaxAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen){
+	if(lower){
+		for (int i=set->wlitset.size()-1; i>0 && set->wlitset[i].weight > bound; --i) {
+			if (ufs.find(var(set->wlitset[i].lit)) == ufs.end()) {
+				loopf.push(~set->wlitset[i].lit);
+				seen[var(set->wlitset[i].lit)] = (sign(set->wlitset[i].lit) ? 2 : 1);
+			}
+		}
+	}else{
+		for (int i=set->wlitset.size()-1; i>0 && set->wlitset[i].weight >= bound; --i) {
+			if (ufs.find(var(set->wlitset[i].lit)) == ufs.end()) {
+				loopf.push(set->wlitset[i].lit);
+				seen[var(set->wlitset[i].lit)] = (sign(set->wlitset[i].lit) ? 1 : 2);
+			}
+		}
+	}
+}
+
+/**
+ * TODO Geen idee wat hier nuttig aan is van loop formula, toch zeker niet om loops te vermijden?
+ */
+void SPAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen){
+	for (int i = 0; i < set->wlitset.size(); ++i) {
+		Lit l = set->wlitset[i].lit;
+		if (setcopy[i] == l_True) {
+			if (sign(l) || ufs.find(var(l)) == ufs.end()) {
+				loopf.push(l);
+				seen[var(l)] = (sign(l) ? 1 : 2);
+			}
+		} else if (setcopy[i] == l_False) {
+			if (~sign(l) || ufs.find(var(l)) == ufs.end()) {
+				loopf.push(~l);
+				seen[var(l)] = (sign(l) ? 2 : 1);
+			}
+		}
+	}
+}
+
+bool MinAgg::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q){
+	//FIXME TODO HIER BEN IK
+	vec<Var> add_to_q;
+	vec<Lit> nj;
+	int atqsize = 0;
+	if(lower){
+		for (int i=0; set->wlitset[i].weight <= bound; ++i) {
+			Lit l = set->wlitset[i].lit;
+			if (value(l) != l_False) {
+				if (!sign(l) && seen[var(l)] && scc[v] == scc[var(l)] && ufs.find(var(l)) == ufs.end())
+					add_to_q.push(var(l));
+				else {
+					nj.push(l);
+					break;
+				}
+			}
+		}
+		atqsize = add_to_q.size();
+	}else{
+		for (int i=0; set->wlitset[i].weight < bound; ++i) { // NOTE: these are exactly the same always. Find some way of doing this only the first time.
+			Lit l = set->wlitset[i].lit;
+			nj.push(~l);
+			if (sign(l) && seen[var(l)] && scc[v] == scc[var(l)] && ufs.find(var(l)) == ufs.end())
+				add_to_q.push(var(l));
+		}
+		atqsize = add_to_q.size();
+
+		if (set->wlitset[i].weight < bound) {
+			if (atqsize == 0) {
+				change_jstfc_aggr(v, nj);
+				return true;
+			}
+		}
+	}
+
+	for (int i = 0; i < atqsize; ++i) {
+		q.insert(add_to_q[i]);
+		ufs.insert(add_to_q[i]);
+	}
+	return false;
+}
+
+bool MaxAgg::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q){
+	/*vec<Var> add_to_q;
+	vec<Lit> nj;
+	int i = lits.size() - 1;
+	for (; lits[i].weight > aw.expr->max; --i) { // NOTE: these are exactly the same always. Find some way of doing this only the first time.
+		Lit l = lits[i].lit;
+		nj.push(~l);
+		if (sign(l) && seen[var(l)] && scc[v] == scc[var(l)]
+				&& ufs.find(var(l)) == ufs.end())
+			add_to_q.push(var(l));
+	}
+	int atqsize = add_to_q.size();
+	for (; lits[i].weight >= aw.expr->min; --i) {
+		Lit l = lits[i].lit;
+		if (value(l) != l_False) {
+			if (!sign(l) && seen[var(l)] && scc[v] == scc[var(l)]
+					&& ufs.find(var(l)) == ufs.end())
+				add_to_q.push(var(l));
+			else {
+				nj.push(l);
+				break;
+			}
+		}
+	}
+	if (lits[i].weight < aw.expr->min) {
+		if (atqsize == 0) {
+			change_jstfc_aggr(v, nj);
+			return true;
+		}
+	} else
+		atqsize = add_to_q.size();
+	for (int i = 0; i < atqsize; ++i) {
+		q.insert(add_to_q[i]);
+		ufs.insert(add_to_q[i]);
+	}*/
+	return false;
+}
+
+bool SPAgg::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q){
+	/*int min = 0;
+	int max = aw.set->cmax;
+	bool complete = false;
+	vec<Lit> nj;
+	vec<Var> add_to_q;
+	// Use only negative or justified literals.
+	for (int i = 0; !complete && i < lits.size(); ++i) {
+		Lit l = lits[i].lit;
+		// Note: l_Undef literals may be used twice, once pos and once neg!
+		if (value(l) != l_False) {
+			if (!sign(l) && seen[var(l)]) {
+				if (ufs.find(var(l)) == ufs.end())
+					add_to_q.push(var(l));
+			} else {
+				nj.push(l);
+				min += lits[i].weight;
+				if (min >= aw.expr->min && max <= aw.expr->max)
+					complete = true;
+			}
+		}
+		if (value(l) != l_True) {
+			if (sign(l) && seen[var(l)]) {
+				if (ufs.find(var(l)) == ufs.end())
+					add_to_q.push(var(l));
+			} else {
+				nj.push(~l);
+				max -= lits[i].weight;
+				if (min >= aw.expr->min && max <= aw.expr->max)
+					complete = true;
+			}
+		}
+	}
+	if (complete) {
+		change_jstfc_aggr(v, nj);
+		return true;
+	} else {
+		for (int i = 0; i < add_to_q.size(); ++i) {
+			q.insert(add_to_q[i]);
+			ufs.insert(add_to_q[i]);
+		}
+	}
+	break;
+}
+case PROD: {
+	int min = 1;
+	int max = aw.set->cmax;
+	bool complete = false;
+	vec<Lit> nj;
+	vec<Var> add_to_q;
+	// Use only negative or justified literals.
+	for (int i = 0; !complete && i < lits.size(); ++i) {
+		Lit l = lits[i].lit;
+		if (value(l) != l_False) {
+			if (!sign(l) && seen[var(l)]) {
+				if (ufs.find(var(l)) == ufs.end())
+					add_to_q.push(var(l));
+			} else {
+				nj.push(l);
+				min *= lits[i].weight;
+				if (min >= aw.expr->min && max <= aw.expr->max)
+					complete = true;
+			}
+		}
+		if (value(l) != l_True) {
+			if (sign(l) && seen[var(l)]) {
+				if (ufs.find(var(l)) == ufs.end())
+					add_to_q.push(var(l));
+			} else {
+				nj.push(~l);
+				max = max / lits[i].weight;
+				if (min >= aw.expr->min && max <= aw.expr->max)
+					complete = true;
+			}
+		}
+	}
+	if (complete) {
+		change_jstfc_aggr(v, nj);
+		return true;
+	} else {
+		for (int i = 0; i < add_to_q.size(); ++i) {
+			q.insert(add_to_q[i]);
+			ufs.insert(add_to_q[i]);
+		}
+	}*/
+	return false;
 }

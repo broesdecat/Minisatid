@@ -717,181 +717,21 @@ bool IDSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 			}
 		}
 		for (int i = 0; i < add_to_q.size(); ++i) {
-			std::pair<std::set<Var>::iterator, bool> pr = ufs.insert(
-					add_to_q[i]);
+			std::pair<std::set<Var>::iterator, bool> pr = ufs.insert(add_to_q[i]);
 			if (pr.second)
 				q.insert(add_to_q[i]);
 		}
 		break;
 	}
-	/*FIXME case AGGR: {
-		AggrWatch& aw = (Aggr_watches[v])[0];
-		vec<AggrSet::WLit>& lits = aw.set->set;
-		switch (aw.set->type) {
-		case SUM: {
-			int min = 0;
-			int max = aw.set->cmax;
-			bool complete = false;
-			vec<Lit> nj;
-			vec<Var> add_to_q;
-			// Use only negative or justified literals.
-			for (int i = 0; !complete && i < lits.size(); ++i) {
-				Lit l = lits[i].lit;
-				// Note: l_Undef literals may be used twice, once pos and once neg!
-				if (value(l) != l_False) {
-					if (!sign(l) && seen[var(l)]) {
-						if (ufs.find(var(l)) == ufs.end())
-							add_to_q.push(var(l));
-					} else {
-						nj.push(l);
-						min += lits[i].weight;
-						if (min >= aw.expr->min && max <= aw.expr->max)
-							complete = true;
-					}
-				}
-				if (value(l) != l_True) {
-					if (sign(l) && seen[var(l)]) {
-						if (ufs.find(var(l)) == ufs.end())
-							add_to_q.push(var(l));
-					} else {
-						nj.push(~l);
-						max -= lits[i].weight;
-						if (min >= aw.expr->min && max <= aw.expr->max)
-							complete = true;
-					}
-				}
-			}
-			if (complete) {
-				change_jstfc_aggr(v, nj);
-				return true;
-			} else {
-				for (int i = 0; i < add_to_q.size(); ++i) {
-					q.insert(add_to_q[i]);
-					ufs.insert(add_to_q[i]);
-				}
-			}
-			break;
-		}
-		case PROD: {
-			int min = 1;
-			int max = aw.set->cmax;
-			bool complete = false;
-			vec<Lit> nj;
-			vec<Var> add_to_q;
-			// Use only negative or justified literals.
-			for (int i = 0; !complete && i < lits.size(); ++i) {
-				Lit l = lits[i].lit;
-				if (value(l) != l_False) {
-					if (!sign(l) && seen[var(l)]) {
-						if (ufs.find(var(l)) == ufs.end())
-							add_to_q.push(var(l));
-					} else {
-						nj.push(l);
-						min *= lits[i].weight;
-						if (min >= aw.expr->min && max <= aw.expr->max)
-							complete = true;
-					}
-				}
-				if (value(l) != l_True) {
-					if (sign(l) && seen[var(l)]) {
-						if (ufs.find(var(l)) == ufs.end())
-							add_to_q.push(var(l));
-					} else {
-						nj.push(~l);
-						max = max / lits[i].weight;
-						if (min >= aw.expr->min && max <= aw.expr->max)
-							complete = true;
-					}
-				}
-			}
-			if (complete) {
-				change_jstfc_aggr(v, nj);
-				return true;
-			} else {
-				for (int i = 0; i < add_to_q.size(); ++i) {
-					q.insert(add_to_q[i]);
-					ufs.insert(add_to_q[i]);
-				}
-			}
-			break;
-		}
-		case MIN: {
-			vec<Var> add_to_q;
-			vec<Lit> nj;
-			int i = 0;
-			for (; lits[i].weight < aw.expr->min; ++i) { // NOTE: these are exactly the same always. Find some way of doing this only the first time.
-				Lit l = lits[i].lit;
-				nj.push(~l);
-				if (sign(l) && seen[var(l)] && scc[v] == scc[var(l)]
-						&& ufs.find(var(l)) == ufs.end())
-					add_to_q.push(var(l));
-			}
-			int atqsize = add_to_q.size();
-			for (; lits[i].weight <= aw.expr->max; ++i) {
-				Lit l = lits[i].lit;
-				if (value(l) != l_False) {
-					if (!sign(l) && seen[var(l)] && scc[v] == scc[var(l)]
-							&& ufs.find(var(l)) == ufs.end())
-						add_to_q.push(var(l));
-					else {
-						nj.push(l);
-						break;
-					}
-				}
-			}
-			if (lits[i].weight < aw.expr->min) {
-				if (atqsize == 0) {
-					change_jstfc_aggr(v, nj);
-					return true;
-				}
-			} else
-				atqsize = add_to_q.size();
-			for (int i = 0; i < atqsize; ++i) {
-				q.insert(add_to_q[i]);
-				ufs.insert(add_to_q[i]);
-			}
-			break;
-		}
-		case MAX: {
-			vec<Var> add_to_q;
-			vec<Lit> nj;
-			int i = lits.size() - 1;
-			for (; lits[i].weight > aw.expr->max; --i) { // NOTE: these are exactly the same always. Find some way of doing this only the first time.
-				Lit l = lits[i].lit;
-				nj.push(~l);
-				if (sign(l) && seen[var(l)] && scc[v] == scc[var(l)]
-						&& ufs.find(var(l)) == ufs.end())
-					add_to_q.push(var(l));
-			}
-			int atqsize = add_to_q.size();
-			for (; lits[i].weight >= aw.expr->min; --i) {
-				Lit l = lits[i].lit;
-				if (value(l) != l_False) {
-					if (!sign(l) && seen[var(l)] && scc[v] == scc[var(l)]
-							&& ufs.find(var(l)) == ufs.end())
-						add_to_q.push(var(l));
-					else {
-						nj.push(l);
-						break;
-					}
-				}
-			}
-			if (lits[i].weight < aw.expr->min) {
-				if (atqsize == 0) {
-					change_jstfc_aggr(v, nj);
-					return true;
-				}
-			} else
-				atqsize = add_to_q.size();
-			for (int i = 0; i < atqsize; ++i) {
-				q.insert(add_to_q[i]);
-				ufs.insert(add_to_q[i]);
-			}
-			break;
-		}
+	case AGGR: {
+		//TODO: idsolver should not directly call aggregate expressions, but use the aggregate solver for this!
+		AggrWatch& aw = aggsolver->getWatchOfHeadOccurence(v);
+		bool returnvalue = aw.expr->directlyJustifiable(v, ufs, q);
+		if(returnvalue==true){
+			return returnvalue;
 		}
 		break;
-	}*/
+	}
 	default:
 		assert(false);
 	}
@@ -946,20 +786,19 @@ bool IDSolver::Justify(Var v, Var cs, std::set<Var>& ufs, Queue<Var>& q) {
 				}
 			}
 
-			/*FIXME if (ecnf_mode.aggr) {
+			if(aggsolver!=NULL){
 				// Record aggregates that might now be justified on the main queue. TODO : can we do this less eagerly? something like used_conjs?
-				vec<AggrWatch>& aw = Aggr_watches[k];
+				vec<AggrWatch>& aw = aggsolver->getWatches(k);
 				for (int i = 0; i < aw.size(); ++i) {
-					if (aw[i].type == DEFN)
+					if (aw[i].type == HEAD){
 						continue;
-					vec<AggrExpr*>& exprs = aw[i].set->exprs;
-					for (int j = 0; j < exprs.size(); ++j) {
-						Var d = var(exprs[j]->c);
-						if (seen[d]) //  && ufs.find(d) != ufs.end())  WITH this extra test: only bottom-up propagate in already marked literals.
-							q.insert(d);
+					}
+					Var d = var(aw[i].expr->head);
+					if (seen[d]){ //  && ufs.find(d) != ufs.end())  WITH this extra test: only bottom-up propagate in already marked literals.
+						q.insert(d);
 					}
 				}
-			}*/
+			}
 		}
 	}
 	return false;
@@ -975,11 +814,12 @@ void IDSolver::change_jstfc_disj(Var v, Lit j) {
 // Change sp_justification: v is now justified by j.
 void IDSolver::change_jstfc_aggr(Var v, const vec<Lit>& j) {
 	// NOTE: maybe more efficient implementation possible if j changes very little from previous justification? Especially for MIN and MAX.
-	/*FIXME assert(defType[v]==AGGR);
+	assert(defType[v]==AGGR);
 	sp_justification_aggr[v].clear();
-	for (int i = 0; i < j.size(); i++)
+	for (int i = 0; i < j.size(); i++){
 		sp_justification_aggr[v].push(j[i]);
-	changed_vars.push(v);*/
+	}
+	changed_vars.push(v);
 }
 
 /////
@@ -1185,6 +1025,8 @@ UFS IDSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<V
 
 /**
  * Creates the loop formula given an unfounded set
+ *
+ * form: UFSLITERAL IMPLIES DISJUNCTION(external disjuncts)
  */
 void IDSolver::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf){
 	for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
@@ -1197,64 +1039,18 @@ void IDSolver::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf){
 				//Rule& cl = *definition[*tch];
 				for (int i = 0; i < cl.size(); i++) {
 					Lit l = cl[i];
-					if (l != Lit(*tch, true) && seen[var(l)] != (sign(l) ? 1 : 2)
-							&& ufs.find(var(cl[i])) == ufs.end()) {
+					if (l != Lit(*tch, true) && seen[var(l)] != (sign(l) ? 1 : 2) && ufs.find(var(cl[i])) == ufs.end()) {
 						loopf.push(l);
 						seen[var(l)] = (sign(l) ? 1 : 2); // Just in case P and ~P both appear; otherwise we might get something between well-founded and ultimate semantics...
 					}
 				}
 				break;
 			}
-		/*FIXME case AGGR:
+		case AGGR:
 			{
-				AggrWatch& aw = (Aggr_watches[*tch])[0];
-				vec<AggrSet::WLit>& lits = aw.set->set;
-				if (aw.set->type == SUM || aw.set->type == PROD) {
-					for (int i = 0; i < lits.size(); ++i) {
-						Lit l = lits[i].lit;
-						if (value(l) == l_True) {
-							if (sign(l) || ufs.find(var(l)) == ufs.end()) {
-								loopf.push(l);
-								seen[var(l)] = (sign(l) ? 1 : 2);
-							}
-						} else if (value(l) == l_False) {
-							if (~sign(l) || ufs.find(var(l)) == ufs.end()) {
-								loopf.push(~l);
-								seen[var(l)] = (sign(l) ? 2 : 1);
-							}
-						}
-					}
-				} else if (aw.set->type == MIN) {
-					int i = 0;
-					for (; lits[i].weight < aw.expr->min; ++i) {
-						if (ufs.find(var(lits[i].lit)) == ufs.end()) {
-							loopf.push(~lits[i].lit);
-							seen[var(lits[i].lit)] = (sign(lits[i].lit) ? 2 : 1);
-						}
-					}
-					for (; lits[i].weight <= aw.expr->max; ++i) {
-						if (ufs.find(var(lits[i].lit)) == ufs.end()) {
-							loopf.push(lits[i].lit);
-							seen[var(lits[i].lit)] = (sign(lits[i].lit) ? 1 : 2);
-						}
-					}
-				} else { // MAX
-					int i = lits.size() - 1;
-					for (; lits[i].weight > aw.expr->max; --i) {
-						if (ufs.find(var(lits[i].lit)) == ufs.end()) {
-							loopf.push(~lits[i].lit);
-							seen[var(lits[i].lit)] = (sign(lits[i].lit) ? 2 : 1);
-						}
-					}
-					for (; lits[i].weight >= aw.expr->min; --i) {
-						if (ufs.find(var(lits[i].lit)) == ufs.end()) {
-							loopf.push(lits[i].lit);
-							seen[var(lits[i].lit)] = (sign(lits[i].lit) ? 1 : 2);
-						}
-					}
-				}
-				break;
-			}*/
+				AggrWatch& aw = aggsolver->getWatchOfHeadOccurence(*tch);
+				aw.expr->createLoopFormula(ufs, loopf, seen);
+			}
 		}
 	}
 }
@@ -1265,6 +1061,9 @@ void IDSolver::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf){
  * Otherwise, add a loop formula for each atom in ufs, enqueue the negation of
  * each of those atoms, and return NULL.
  * For each atom in UFS that is false, don't do anything
+ *
+ * Loop formulas are created in the form
+ * UFSLITERAL IMPLIES DISJUNCTION(external disjuncts)
  */
 Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	assert(!ufs.empty());
@@ -1379,26 +1178,107 @@ void IDSolver::markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>
 	for (int i = 0; i < w.size(); i++){
 		markNonJustifiedAddVar(w[i], cs, q, tmpseen);
 	}
-	/*FIXME if (ecnf_mode.aggr) {
-		vec<AggrWatch>& aw = Aggr_watches[x];
+	if (aggsolver!=NULL) {
+		vec<AggrWatch>& aw = aggsolver->getWatches(x);
 		for (int i = 0; i < aw.size(); i++) {
-			if (aw[i].type != DEFN) { // Else x is the head, hence not used in the justification.
-				for (int j = 0; j < aw[i].set->exprs.size(); j++) {
-					Var y = var(aw[i].set->exprs[j]->c); // Find the head of the aggregate expression where x is watched in the body.
-					vec<Lit>& jstfc = sp_justification_aggr[y];
-					int k = 0;
-					for (; k < jstfc.size() && jstfc[k] != Lit(x, false); k++)
-						;
-					if (k < jstfc.size()) // Found that x is actually used in y's justification.
+			if (aw[i].type != HEAD) { // Else x is the head, hence not used in the justification.
+				Var y = var(aw[i].expr->head); // Find the head of the aggregate expression where x is watched in the body.
+				vec<Lit>& jstfc = sp_justification_aggr[y];
+				for (int k=0; k < jstfc.size(); k++){
+					if(jstfc[k] == Lit(x, false)){ // Found that x is actually used in y's justification.
 						markNonJustifiedAddVar(y, cs, q, tmpseen);
+						break;
+					}
 				}
 			}
 		}
-	}*/
+	}
 }
 
-bool IDSolver::isCycleFree() { // currently only when no recursice aggregates!! TODO
-    //FIXME assert(!ecnf_mode.aggr);
+inline void IDSolver::apply_changes() {
+    for (int i=changed_vars.size()-1; i>=0; i--) {
+        Var v = changed_vars[i];
+        if (!seen[v]) {
+            if (defType[v]==DISJ) cf_justification_disj[v] = sp_justification_disj[v];
+            else {
+                assert(defType[v]==AGGR);
+                vec<Lit>& sp = sp_justification_aggr[v];
+                vec<Lit>& cf = cf_justification_aggr[v];
+                cf.clear();
+                for (int j=0; j<sp.size(); ++j) cf.push(sp[j]);
+            }
+            seen[v]=1;
+        }
+    }
+    for (int i=0; i<changed_vars.size(); i++)
+    	seen[changed_vars[i]]=0;
+    changed_vars.clear();
+}
+
+inline void IDSolver::clear_changes() {
+    for (int i=changed_vars.size()-1; i>=0; i--) {
+        Var v = changed_vars[i];
+        if (!seen[v]) {
+            if (defType[v]==DISJ) sp_justification_disj[v] = cf_justification_disj[v];
+            else {
+                assert(defType[v]==AGGR);
+                vec<Lit>& sp = sp_justification_aggr[v];
+                vec<Lit>& cf = cf_justification_aggr[v];
+                sp.clear();
+                for (int j=0; j<cf.size(); ++j) sp.push(cf[j]);
+            }
+        }
+    }
+    for (int i=0; i<changed_vars.size(); i++)
+    	seen[changed_vars[i]]=0;
+    changed_vars.clear();
+}
+
+/*********************
+ * AGGSOLVER METHODS *
+ *********************/
+
+vec<Lit>& IDSolver::getCFJustificationAggr(Var v){
+	return cf_justification_aggr[v];
+}
+
+void IDSolver::cycleSource(Var v, vec<Lit>& nj, bool becamecyclesource){
+	change_jstfc_aggr(v,nj);
+	for(int i=0; i<nj.size(); i++){
+		if(becamecyclesource && defType[var(nj[i])] != NONDEF && scc[v] == scc[var(nj[i])]){
+			addCycleSource(v);
+			break;
+		}
+	}
+}
+
+//=================================================================================================
+// Debug + etc:
+// a literal is a variable shifted one to the left
+// a variable is a literal shifted one to the right
+
+inline void IDSolver::printLit(Lit l){
+    solver->printLit(l);
+}
+
+
+template<class C>
+inline void IDSolver::printClause(const C& c){
+    solver->printClause(c);
+}
+
+/*inline void IDSolver::printRule(const Rule& c){
+    for (int i = 0; i < c.size(); i++){
+        printLit(c[i]);
+        fprintf(stderr, " ");
+    }
+}*/
+
+/**
+ * For debugging purposes, not for recursive aggregates (yet).
+ */
+bool IDSolver::isCycleFree() {
+    assert(aggsolver==NULL);
 
     reportf("Showing cf- and sp-justification for disjunctive atoms. <<<<<<<<<<\n");
     for (int i = 0; i < nVars(); i++) {
@@ -1498,85 +1378,6 @@ bool IDSolver::isCycleFree() { // currently only when no recursice aggregates!! 
     return cnt_nonjustified==0;
 }
 
-inline void IDSolver::apply_changes() {
-    for (int i=changed_vars.size()-1; i>=0; i--) {
-        Var v = changed_vars[i];
-        if (!seen[v]) {
-            if (defType[v]==DISJ) cf_justification_disj[v] = sp_justification_disj[v];
-            /*FIXME else {
-                assert(defType[v]==AGGR);
-                vec<Lit>& sp = sp_justification_aggr[v];
-                vec<Lit>& cf = cf_justification_aggr[v];
-                cf.clear();
-                for (int j=0; j<sp.size(); ++j) cf.push(sp[j]);
-            }*/
-            seen[v]=1;
-        }
-    }
-    for (int i=0; i<changed_vars.size(); i++)
-    	seen[changed_vars[i]]=0;
-    changed_vars.clear();
-}
-
-inline void IDSolver::clear_changes() {
-    for (int i=changed_vars.size()-1; i>=0; i--) {
-        Var v = changed_vars[i];
-        if (!seen[v]) {
-            if (defType[v]==DISJ) sp_justification_disj[v] = cf_justification_disj[v];
-            /*FIXME else {
-                assert(defType[v]==AGGR);
-                vec<Lit>& sp = sp_justification_aggr[v];
-                vec<Lit>& cf = cf_justification_aggr[v];
-                sp.clear();
-                for (int j=0; j<cf.size(); ++j) sp.push(cf[j]);
-            }*/
-        }
-    }
-    for (int i=0; i<changed_vars.size(); i++)
-    	seen[changed_vars[i]]=0;
-    changed_vars.clear();
-}
-
-/*********************
- * AGGSOLVER METHODS *
- *********************/
-
-vec<Lit>& IDSolver::getCFJustificationAggr(Var v){
-	return cf_justification_aggr[v];
-}
-
-void IDSolver::cycleSource(Var v, vec<Lit>& nj, bool becamecyclesource){
-	change_jstfc_aggr(v,nj);
-	for(int i=0; i<nj.size(); i++){
-		if(becamecyclesource && defType[var(nj[i])] != NONDEF && scc[v] == scc[var(nj[i])]){
-			addCycleSource(v);
-			break;
-		}
-	}
-}
-
-//=================================================================================================
-// Debug + etc:
-// a literal is a variable shifted one to the left
-// a variable is a literal shifted one to the right
-
-inline void IDSolver::printLit(Lit l){
-    solver->printLit(l);
-}
-
-
-template<class C>
-inline void IDSolver::printClause(const C& c){
-    solver->printClause(c);
-}
-
-/*inline void IDSolver::printRule(const Rule& c){
-    for (int i = 0; i < c.size(); i++){
-        printLit(c[i]);
-        fprintf(stderr, " ");
-    }
-}*/
-
 
 //TARJAN ALGORITHM FOR FINDING UNFOUNDED SETS IN GENERAL INDUCTIVE DEFINITIONS (NOT ONLY SINGLE CONJUNCTS). THIS DOES NOT WORK YET
 ///////////////
@@ -1667,7 +1468,7 @@ inline void IDSolver::printClause(const C& c){
 //		while(x!=v){
 //			incomp[x]=true;
 //			/*if(defType[x]==DISJ){
-//				//change the justification randomly to one of the body literals (TODO TODO completely not sure if this is correct!!!!!)
+//				//change the justification randomly to one of the body literals CHECK IF THIS IS CORRECT
 //				Queue<Var> q;
 //				Justify(v, cs, ufs, q);
 //			}*/

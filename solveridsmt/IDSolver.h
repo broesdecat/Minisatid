@@ -167,7 +167,7 @@ protected:
 	void     printClause      (const C& c);
 	//void     printRule        (const Rule& c);
 	void     checkLiteralCount();
-	bool     isCycleFree      ();                      // Verifies whether cf_justification is indeed cycle free.
+	bool     isCycleFree      ();			// Verifies whether cf_justification is indeed cycle free, not used, for debugging purposes.
 
 	void 	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf);
 };

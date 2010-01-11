@@ -20,6 +20,10 @@ AggrWatch& AggSolver::getWatchOfHeadOccurence(Var v){
 	return Aggr_watches[v][0];
 }
 
+vec<AggrWatch>& AggSolver::getWatches(Var v){
+	return Aggr_watches[v];
+}
+
 void AggSolver::finishECNF_DataStructures() {
 	init = false;
 

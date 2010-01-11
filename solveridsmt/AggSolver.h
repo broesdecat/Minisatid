@@ -34,6 +34,7 @@ public:
 
 	//geeft de watch terug naar het aggregaat waarvan v de head is
 	AggrWatch& getWatchOfHeadOccurence(Var v);
+	vec<AggrWatch>& getWatches(Var v);
 
 	void findCycleSourcesFromBody(Lit l);
 	void findCycleSourcesFromHead(Var l);
