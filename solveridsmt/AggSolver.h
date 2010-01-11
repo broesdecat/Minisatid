@@ -31,6 +31,12 @@ public:
 
 	/////////////////////IDSOLVER NECESSARY
 	void propagateJustifications(Var l, vec<vec<Lit> >& jstf, vec<Var>& v, vec<int> &nb_body_lits_to_justify);
+
+	//geeft de watch terug naar het aggregaat waarvan v de head is
+	AggrWatch& getWatchOfHeadOccurence(Var v);
+
+	void findCycleSourcesFromBody(Lit l);
+	void findCycleSourcesFromHead(Var l);
 	/////////////////////END IDSOLVER NECESSARY
 
 	/////////////////////INITIALIZATION
@@ -61,10 +67,11 @@ public:
 protected:
 	// ECNF_mode.aggr additions to Solver state:
 	//
-	vec<Agg*>        	aggr_exprs;           // List of aggregate expressions as occurring in the problem.
-	vec<AggrReason*>	aggr_reason;          // For each atom, like 'reason'.
-	vec<vec<AggrWatch> > Aggr_watches;         // Aggr_watches[v] is a list of sets in which v occurs (each AggrWatch says: which set, what type of occurrence).
-	// If defType[v]==AGGR, (Aggr_watches[v])[0] has type==HEAD and expr->c==Lit(v,false).
+	vec<Agg*>				aggr_exprs;		// List of aggregate expressions as occurring in the problem.
+	vec<AggrReason*>		aggr_reason;	// For each atom, like 'reason'.
+	vec<vec<AggrWatch> >	Aggr_watches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
+			//INVARIANT: if a literal is defined by an aggregate, the watch on the expression in which it is head
+			//	will be the first element of its watches list
 
 	//maybe strange method, but allows to inline the normal backtrack method in the solver search and allows
 	//branch prediction much better i think
@@ -85,7 +92,9 @@ protected:
 	bool 	empty; 	//indicates no amn statements are present, so always return from T call
 
 	// NOTE: this adds an invariant to the system: each literal with a truth value is put on the trail only once.
-	Clause* Aggr_propagate        (Lit p);                      // Perform propagations from aggregate expressions.
+	Clause* Aggr_propagate		(Lit p);		// Perform propagations from aggregate expressions.
+
+	void 	findCycleSources	(AggrWatch& v);
 
 	int		nVars()      const;
 

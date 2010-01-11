@@ -761,7 +761,7 @@ void SPAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
  * IDSOLVER PROPAGATIONS *
  *************************/
 
-//FIXME rewrite this all, with only one bound!
+//FIXME ik denk dat de huidige implementatie van propagatejustifications nog niet correct is
 
 /**
  * Goes through all that are already justifified. If those together are enough to justify the head (making it TRUE!),
@@ -769,11 +769,14 @@ void SPAgg::getExplanation(Lit p, vec<Lit>& lits, int p_idx, AggrReason& ar){
  *
  * use emtpysetvalue! (which might already be better than the default)
  *
- * if AGG <= B: if bestpossible > bound => NOT justifiable
- * 				if bestcertain <= bound => take the stack as justification (can be done better)
- * 				else try to find one literal that is already justified and would make the head true
+ * AGG <= B: bestpossible > bound => NOT justifiable
+ * 			 bestcertain <= bound => take the stack as justification (can be done better)
+ * 			 else try to find one literal that is already justified and would make the head true
  * 					if not found, then not justifiable
- * ANALOGOUSLY for A <= AGG
+ * A <= AGG: bestcertain < bound => NOT justifiable
+ * 			 bestpossible >= bound => take stack as justification
+ * 			 else check that all literals with a weight < bound are already justified. If this is the case
+ * 				they all form the justification. Otherwise not justifiable.
  */
 void MinAgg::propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify){
 	if(lower){ //AGG <= B
@@ -786,7 +789,7 @@ void MinAgg::propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_j
 			}
 			nb_body_lits_to_justify[var(head)] = 0;
 		}else{
-			for(int i=0; i<set->wlitset.size(); i++){
+			for(vector<int>::size_type i=0; i<set->wlitset.size(); i++){
 				if(nb_body_lits_to_justify[var(set->wlitset[i].lit)] == 0 && set->wlitset[i].weight<=bound){
 					jstf.push(set->wlitset[i].lit);
 					nb_body_lits_to_justify[var(head)] = 0;
@@ -804,7 +807,22 @@ void MinAgg::propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_j
 			}
 			nb_body_lits_to_justify[var(head)] = 0;
 		}else{
-			//FIXME: add all literals that are necessarily false to justify head
+			bool foundonenotjustified = false;
+			for(vector<int>::size_type i=0; i<set->wlitset.size(); i++){
+				if(set->wlitset[i].weight<bound){
+					if(nb_body_lits_to_justify[var(set->wlitset[i].lit)] == 0){
+						jstf.push(set->wlitset[i].lit);
+					}else{
+						foundonenotjustified = true;
+						break;
+					}
+				}
+			}
+			if(foundonenotjustified){
+				jstf.clear();
+			}else{
+				nb_body_lits_to_justify[var(head)] = 0;
+			}
 		}
 	}
 }
@@ -820,7 +838,22 @@ void MaxAgg::propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_j
 			}
 			nb_body_lits_to_justify[var(head)] = 0;
 		}else{
-			//FIXME: add all literals that are necessarily false to justify head
+			bool foundonenotjustified = false;
+			for(vector<int>::size_type i=0; i<set->wlitset.size(); i++){
+				if(set->wlitset[i].weight>bound){
+					if(nb_body_lits_to_justify[var(set->wlitset[i].lit)] == 0){
+						jstf.push(set->wlitset[i].lit);
+					}else{
+						foundonenotjustified = true;
+						break;
+					}
+				}
+			}
+			if(foundonenotjustified){
+				jstf.clear();
+			}else{
+				nb_body_lits_to_justify[var(head)] = 0;
+			}
 		}
 	}else{ //A <= AGG
 		if(currentbestpossible<bound){ // not justifiable
@@ -832,7 +865,7 @@ void MaxAgg::propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_j
 			}
 			nb_body_lits_to_justify[var(head)] = 0;
 		}else{
-			for(int i=0; i<set->wlitset.size(); i++){
+			for(vector<int>::size_type i=0; i<set->wlitset.size(); i++){
 				if(nb_body_lits_to_justify[var(set->wlitset[i].lit)] == 0 && set->wlitset[i].weight>=bound){
 					jstf.push(set->wlitset[i].lit);
 					nb_body_lits_to_justify[var(head)] = 0;
@@ -843,37 +876,180 @@ void MaxAgg::propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_j
 	}
 }
 
+/**
+ * use emtpysetvalue! (which might already be better than the default)
+ *
+ * AGG <= B: bestcertain > bound => NOT justifiable
+ * 			 bestpossible <= bound => take the stack as justification (can be done better)
+ * 			 else take all false and unknown justified literals, until the bestpossible is below/eq B
+ * A <= AGG: bestpossible < bound => NOT justifiable
+ * 			 bestcertain >= bound => take stack as justification
+ * 			 else take a sum of all non-false literals that are already justified and add them to the justification
+ * 				until the sum is larger-eq than A
+ */
 void SPAgg::propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify){
-	//FIXME
-	/* min = emptysetValue;
-	int max = set->cmax;
-	bool complete = false;
-	for (int k = 0; !complete && k < lits.size(); ++k) {
-		Lit ll = lits[k].lit;
-		if (value(ll) != l_False) {
-			if (sign(ll)
-					|| nb_body_lits_to_justify[var(
-							ll)] == 0) {
-				jstf.push(ll);
-				min += lits[k].weight;
-				if (min >= exprs[j]->min && max
-						<= exprs[j]->max)
-					complete = true;
+	if(lower){ //AGG <= B
+		if(currentbestcertain>bound){ // not justifiable
+		}else if(currentbestpossible <= bound){
+			for(int i=0; i<stack.size(); i++){
+				if(stack[i].type!=HEAD){
+					jstf.push(stack[i].wlit.lit);
+				}
+			}
+			nb_body_lits_to_justify[var(head)] = 0;
+		}else{
+			int bestposs = currentbestpossible;
+			for(vector<int>::size_type i=0; bestposs>bound && i<set->wlitset.size(); i++){
+				if(nb_body_lits_to_justify[var(set->wlitset[i].lit)] == 0){
+					if(setcopy[i]==l_Undef){
+						bestposs -= set->wlitset[i].weight;
+					}
+					jstf.push(set->wlitset[i].lit);
+				}
+			}
+			if(bestposs>bound){
+				jstf.clear();
+			}else{
+				nb_body_lits_to_justify[var(head)] = 0;
 			}
 		}
-		if (value(ll) != l_True) {
-			if (!sign(ll)
-					|| nb_body_lits_to_justify[var(
-							ll)] == 0) {
-				jstf.push(~ll);
-				max -= lits[k].weight;
-				if (min >= exprs[j]->min && max
-						<= exprs[j]->max)
-					complete = true;
+	}else{ //A <= AGG
+		if(currentbestpossible<bound){ // not justifiable
+		}else if(currentbestcertain >= bound){
+			for(int i=0; i<stack.size(); i++){
+				if(stack[i].type!=HEAD){
+					jstf.push(stack[i].wlit.lit);
+				}
+			}
+			nb_body_lits_to_justify[var(head)] = 0;
+		}else{
+			int sum = emptysetValue;
+			for(vector<int>::size_type i=0; i<set->wlitset.size(); i++){
+				if(nb_body_lits_to_justify[var(set->wlitset[i].lit)] == 0 && setcopy[i] != l_False){
+					jstf.push(set->wlitset[i].lit);
+				}
+			}
+			if(sum>=bound){
+				nb_body_lits_to_justify[var(head)] = 0;
+			}else{
+				jstf.clear();
 			}
 		}
 	}
-	if (complete){
-		nb_body_lits_to_justify[v] = 0;
-	}*/
+}
+
+/**
+ * Creates a new SP justification. According to an overestimating heuristic, it is decided whether the new justification
+ * might not be cycle free, in which case it is added as a cycle source.
+ *
+ * @pre: v is not false, so a justification exists (TODO is this a correct precondition? It supposes that all possible propagations have been done?)
+ */
+bool Agg::becomesCycleSource(vec<Lit>& nj){
+	justifyHead(nj);
+	assert(nj.size()>0);
+	//TODO maybe some sign checking of the literals in the justification is also possible here (see old code), but it is not clear why
+	return true;
+}
+
+/**
+ * Justification for the head of the aggregate expression
+ * @pre: head is not false
+ *
+ * AGG <= B: bestcertain <= bound => take the first element on the stack with a weight smaller/eq as bound (and POS!)
+ * 			 else find a literal that is not false and with weight smaller/eq as b
+ * A <= AGG: a justification will consist of the negation of all literals with value lower than A
+ * 				no positive value is needed, because the empty set is also a solution
+ */
+void MinAgg::justifyHead(vec<Lit>& just){
+	if(lower){
+		if(currentbestcertain <= bound){
+			for(int i=0; i<stack.size(); i++){
+				if(stack[i].wlit.weight<=bound && stack[i].type==POS){
+					just.push(stack[i].wlit.lit);
+					break;
+				}
+			}
+		}else{
+			for(vector<int>::size_type i=0; i<set->wlitset.size(); i++){
+				if(setcopy[i]!=l_False && set->wlitset[i].weight<=bound){
+					just.push(set->wlitset[i].lit);
+					break;
+				}
+			}
+		}
+	}else{
+		for(vector<int>::size_type i=0; i<set->wlitset.size(); i++){
+			if(set->wlitset[i].weight<bound){
+				just.push(~set->wlitset[i].lit);
+			}
+		}
+	}
+}
+
+/**
+ * AGG <= B: add the negation of all literals with weight larger than B
+ */
+void MaxAgg::justifyHead(vec<Lit>& just){
+	if(lower){
+		for(vector<int>::size_type i=0; i<set->wlitset.size(); i++){
+			if(set->wlitset[i].weight>bound){
+				just.push(~set->wlitset[i].lit);
+			}
+		}
+	}else{
+		if(currentbestcertain >= bound){
+			for(int i=0; i<stack.size(); i++){
+				if(stack[i].wlit.weight<=bound && stack[i].type==POS){
+					just.push(stack[i].wlit.lit);
+					break;
+				}
+			}
+		}else{
+			for(vector<int>::size_type i=0; i<set->wlitset.size(); i++){
+				if(setcopy[i]!=l_False && set->wlitset[i].weight>=bound){
+					just.push(set->wlitset[i].lit);
+					break;
+				}
+			}
+		}
+	}
+}
+
+/**
+ * AGG <= B: add the negation of a number of non-true literals in the set until the bestpossible value is below/eq B
+ * A <= AGG: bestpossible < bound => NOT justifiable
+ * 			 bestcertain >= bound => take the first element on the stack with a weight smaller/eq as bound (and POS!)
+ * 			 else take a number of true/unknown literals until the sum is large enough
+ */
+void SPAgg::justifyHead(vec<Lit>& just){
+	if(lower){
+		int bestpos = currentbestpossible;
+		for(vector<int>::size_type i=0; i<set->wlitset.size() && bestpos<=bound; i++){
+			if(setcopy[i]==l_Undef){
+				bestpos -= set->wlitset[i].weight;
+				just.push(~set->wlitset[i].lit);
+			}else if(setcopy[i]==l_False){
+				just.push(~set->wlitset[i].lit);
+			}
+		}
+	}else{
+		if(currentbestpossible < bound){ assert(false); } //not justifiable
+		else if(currentbestcertain >= bound){
+			for(int i=0; i<stack.size(); i++){
+				if(stack[i].wlit.weight<=bound && stack[i].type==POS){
+					just.push(stack[i].wlit.lit);
+					break;
+				}
+			}
+		}else{
+			int sum = currentbestcertain;
+			for(vector<int>::size_type i=0; sum<bound && i<set->wlitset.size(); i++){
+				if(setcopy[i]!=l_False){
+					sum += set->wlitset[i].weight;
+					just.push(set->wlitset[i].lit);
+				}
+			}
+			assert(sum>=bound);
+		}
+	}
 }

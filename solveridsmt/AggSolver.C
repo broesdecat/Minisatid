@@ -16,6 +16,10 @@ void AggSolver::notifyVarAdded(){
 	aggr_reason.push();
 }
 
+AggrWatch& AggSolver::getWatchOfHeadOccurence(Var v){
+	return Aggr_watches[v][0];
+}
+
 void AggSolver::finishECNF_DataStructures() {
 	init = false;
 
@@ -94,7 +98,7 @@ void AggSolver::addAggrExpr(int defn, int setid, int bound, bool lower, AggrType
 	}
 
 	//the head of the aggregate
-	Lit c = Lit(defn, false);
+	Lit head = Lit(defn, false);
 	int setindex = setid-1;
 
 	//add if really useful varBumpActivity(var(c)); // These guys ought to be initially a bit more important then the rest.
@@ -102,13 +106,13 @@ void AggSolver::addAggrExpr(int defn, int setid, int bound, bool lower, AggrType
 	Agg* ae;
 	switch(type){
 	case MIN:
-		ae = new MinAgg(lower, bound, c, aggr_sets[setindex]);
+		ae = new MinAgg(lower, bound, head, aggr_sets[setindex]);
 		break;
 	case MAX:
-		ae = new MaxAgg(lower, bound, c, aggr_sets[setindex]);
+		ae = new MaxAgg(lower, bound, head, aggr_sets[setindex]);
 		break;
 	case SUM:
-		ae = new SPAgg(lower, bound, c, aggr_sets[setindex], true);
+		ae = new SPAgg(lower, bound, head, aggr_sets[setindex], true);
 		break;
 	case PROD:
 		//TODO this can be solved by taking 0 out of the set and making the necessary transformations
@@ -119,19 +123,26 @@ void AggSolver::addAggrExpr(int defn, int setid, int bound, bool lower, AggrType
 						"be used in combination with a product aggregate\n", setid), exit(3);
 			}
 		}
-		ae = new SPAgg(lower, bound, c, aggr_sets[setindex], false);
+		ae = new SPAgg(lower, bound, head, aggr_sets[setindex], false);
 		break;
 	default: assert(false);break;
 	}
 	aggr_exprs.push(ae);
 
-	Aggr_watches[var(c)].push(AggrWatch(ae, -1, HEAD));
+	//This step guarantees the invariant that the head occurence of var(l) is always the first element of the watches of var(l)
+	if(Aggr_watches[var(head)].size()>0){
+		AggrWatch w = Aggr_watches[var(head)][0];
+		Aggr_watches[var(head)][0] = AggrWatch(ae, -1, HEAD);
+		Aggr_watches[var(head)].push(w);
+	}else{
+		Aggr_watches[var(head)].push(AggrWatch(ae, -1, HEAD));
+	}
 
 	for (vector<int>::size_type i = 0; i < ae->set->wlitset.size(); i++){
 		Aggr_watches[var(ae->set->wlitset[i].lit)].push(AggrWatch(ae, i, sign(ae->set->wlitset[i].lit) ? NEG : POS));
 	}
 
-	/*TODO
+	/*FIXME
 	defType[var(c)] = AGGR;
 	if (ecnf_mode.def){
 		defdVars.push(var(c));
@@ -288,6 +299,63 @@ void AggSolver::propagateJustifications(Var l, vec<vec<Lit> >& jstf, vec<Var>& l
 			aw.expr->propagateJustifications(jstf.last(), nb_body_lits_to_justify);
 		}
 	}
+}
+
+/**
+ * This is called when l has been recently assigned (became true), so all aggregates with ~l in the body and part
+ * of the justification may have become cycle sources
+ */
+void AggSolver::findCycleSourcesFromBody(Lit l){
+	vec<AggrWatch>& as = Aggr_watches[var(l)];
+	if(as.size()==0){ return; }
+
+	int j=0;
+	if(as[0].type==HEAD){ //the head does not have to be checked
+		j = 1;
+	}
+	for (; j < as.size(); j++) { // ~l is possibly used in the head atom's cf_justification.
+		AggrWatch& aw = as[j];
+		Lit head = aw.expr->head;
+		if (aw.expr->headvalue != l_False) {
+			//TODO de IDsolver gebruikt de meest recente values, de aggsolver niet, maar hier maakt het denk ik niet uit, omdat defpropagatie maar gedaan wordt na alle gewone propagaties
+			vec<Lit>& cf = idsolver->getCFJustificationAggr(var(head));
+			for (int k=0; k < cf.size(); k++){
+				if(cf[k] == ~l){ // ~l is indeed used in the cf_justification.
+					findCycleSources(aw);
+					break;
+				}
+			}
+		}
+	}
+}
+
+/**
+ * Checks whether the CF justification of l is still valid (no elements have become false)
+ */
+void AggSolver::findCycleSourcesFromHead(Var v){
+	AggrWatch& aw = getWatchOfHeadOccurence(v);
+	if (aw.expr->headvalue == l_False){ return; }
+	vec<Lit>& cf = idsolver->getCFJustificationAggr(v);
+	for(int i=0; i<cf.size(); i++){
+		//TODO using solver value here, currently not wrong (see higher), but not maintainable
+		if(solver->value(cf[i]) == l_False){ // There is a false literal in the cf_justification.
+			findCycleSources(aw);
+			break;
+		}
+	}
+}
+
+/*
+ * Precondition: V is of type DISJ. It is non-false, and its cf_justification does not support it.
+ * Postcondition: sp_justification..[v] supports v. v is added a cycle source if necessary (i.e., if there might be a cycle through its sp_justification).
+ */
+void AggSolver::findCycleSources(AggrWatch& v){
+	if(idsolver->isCS[var(v.expr->head)]){ return; }
+
+	vec<Lit> nj; // New sp_justification.
+	bool becomes_cycle_source = v.expr->becomesCycleSource(nj);
+
+	idsolver->cycleSource(var(v.expr->head), nj, becomes_cycle_source);
 }
 
 //=================================================================================================

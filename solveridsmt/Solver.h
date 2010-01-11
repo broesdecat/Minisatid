@@ -115,9 +115,6 @@ public:
     bool 	existsUnknownVar(); 								//true if the current assignment is completely two-valued
     Var		newVar(bool polarity = true, bool dvar = false); 	// Add a new variable with parameters specifying variable mode.
     void 	dontRemoveSatisfied();
-
-    //TEMP:
-    void addToTrail(Lit l);
 	/////////////////////END TSOLVER NECESSARY
 
     // Constructor/Destructor:

@@ -35,6 +35,12 @@ public:
 	//void Subsetminimize(const vec<Lit>& lits);
 	/////////////////////ENDSOLVER NECESSARY
 
+	/////////////////////AGGSOLVER NECESSARY
+	vec<Lit>&	getCFJustificationAggr(Var v);
+	vec<bool>	isCS;                   		// Per atom: is it a cycle source?
+	void 		cycleSource(Var v, vec<Lit>& nj, bool becamecyclesource);
+	/////////////////////END AGGSOLVER NECESSARY
+
 	/////////////////////INITIALIZATION
 	void    addRule      (bool conj, vec<Lit>& ps);          // Add a rule to the solver.
 	void    finishECNF_DataStructures ();                          // Initialize the ECNF data structures. NOTE: aggregates may set the "ok" value to false!
@@ -106,7 +112,6 @@ protected:
 	int       adaption_current;   // Used only if defn_strategy==adaptive. Number of decision levels left until next indirectPropagate() use.
 
 	// Cycle sources:
-	vec<bool>       isCS;                   // Per atom: is it a cycle source?
 	vec<Var>        css;                    // List of cycle sources. May still include atoms v that have !isCS[v].
 
 	// Justification methods:

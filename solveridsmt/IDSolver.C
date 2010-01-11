@@ -284,21 +284,31 @@ void IDSolver::finishECNF_DataStructures() {
 			}
 			break;
 		}
-		/*FIXME case AGGR: {
-			assert(ecnf_mode.aggr);
-			AggrWatch& aw = (Aggr_watches[v])[0];
-			for (int j = 0; !isdefd && j < aw.set->set.size(); ++j)
-				if (scc[v] == scc[var(aw.set->set[j].lit)]) // NOTE: disregard sign here: set literals can occur both pos and neg in justifications. This could possibly be made more precise for MIN and MAX...
-					isdefd = true;
+		case AGGR: {
+			if(aggsolver!=NULL){
+				AggrSet* set = aggsolver->getWatchOfHeadOccurence(v).expr->set;
+				/*
+				 * TODO eigenlijk is het niet logisch om aggregaten te behandelen als rules als dit niet zo geschreven is
+				 * het party-goer probleem is een voorbeeld
+				 * momenteel zorgt de grounder ervoor dat het via een equivalentie uitgeschreven als geen rule bedoeld is
+				 * zodat de semantiek toch completion semantiek wordt, maar eigenlijk zou het groundformaat moeten aangeven of het een rule is of niet
+				 */
+				for (int j = 0; !isdefd && j < set->wlitset.size(); ++j){
+					if (scc[v] == scc[var(set->wlitset[j].lit)]){ // NOTE: disregard sign here: set literals can occur both pos and neg in justifications. This could possibly be made more precise for MIN and MAX...
+						isdefd = true;
+					}
+				}
+			}
 			break;
-		}*/
+		}
 		default:
 			assert(false);
 		}
-		if (isdefd)
+		if (isdefd){
 			atoms_in_pos_loops++;
-		else
+		}else{
 			defType[v] = NONDEF; // NOTE: no reason to set definition[v]=NULL.
+		}
 	}
 	if (verbosity >= 1)
 		reportf("| Number of recursive atoms : %6d                                          |\n",(int)atoms_in_pos_loops);
@@ -312,13 +322,15 @@ void IDSolver::finishECNF_DataStructures() {
 
 	isCS.growTo(nVars(), false);
 
-	// TODO verify whether there could still be propagations pending due to the fact that rules are not simplified while parsing.
+	//FIXME is dit wel juist? waarom zou een literal nu moeten worden toegevoegd aan de propagatie als hij ergens anders
+	//true is geworden. Dit gaat dan ook fout lopen omdat settrue checkt op undef
+	//moet het mss eerder zijn: herpropagate de hele trail? => regel smt propagation dus beter
 
-	//Dit verhoogt heel erg de snelheid op sokobans en dergelijke, maar in combinatie met aggregaten gaat het verkeerd
-	//FIXME het zou nu moeten werken in combinatie met aggregaten, test dit!
+	//this dramatically decreases solving time on some problems
 	for (int i=0; i<nVars(); i++){
 		if (value(i) != l_Undef){
-			solver->addToTrail(Lit(i,(value(i)==l_False)));
+			solver->setTrue(Lit(i,(value(i)==l_False)));
+			//was addToTrail
 		}
 	}
 }
@@ -357,7 +369,7 @@ void IDSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, 
 		for (int j = 0; j < definition[i]->size(); ++j) {
 			Lit l = (*definition[i])[j];
 			int w = var(l);
-			//TODObroes een conjunctieve rule wordt ALTIJD uitgeschreven (completion) als head OR not bodyx OR not bodyx2 ...
+			//een conjunctieve rule wordt ALTIJD uitgeschreven (completion) als head OR not bodyx OR not bodyx2 ...
 			//dus een conjunctieve rule gaat altijd al zijn positieve defined kinderen volgen
 			if (defType[w] != NONDEF && i != w && sign(l)) {
 				if (visited[w]==0){
@@ -370,10 +382,10 @@ void IDSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, 
 		}
 		break;
 	}
-	/*FIXME case AGGR: {
-		AggrWatch& aw = (Aggr_watches[i])[0];
-		for (int j = 0; j < aw.set->set.size(); ++j) {
-			Var w = var(aw.set->set[j].lit);
+	case AGGR: {
+		AggrSet* set = aggsolver->getWatchOfHeadOccurence(i).expr->set;
+		for (vector<int>::size_type j = 0; j < set->wlitset.size(); ++j) {
+			Var w = var(set->wlitset[j].lit);
 			if (defType[w] != NONDEF) {
 				if (visited[w]==0){
 					visit(w,root,incomp,stack,visited,counter);
@@ -384,7 +396,7 @@ void IDSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, 
 			}
 		}
 		break;
-	}*/
+	}
 	default:
 		assert(false);
 	}
@@ -423,28 +435,9 @@ void IDSolver::findCycleSources() {
 				}
 			}
 
-			//FIXME if (ecnf_mode.aggr) {
-				/*// Aggr_watches[v] is a list of sets in which v occurs (each AggrWatch says: which set, what type of occurrence).
-				// If defType[v]==AGGR, (Aggr_watches[v])[0] has type==DEFN and expr->c==Lit(v,false).
-				vec<AggrWatch>& as = Aggr_watches[var(l)];
-				for (int j = 0; j < as.size(); j++) {
-					AggrWatch& aw = as[j];
-					if (aw.type != DEFN) { // ~l is possibly used in the defining atom's cf_justification.
-						for (int e = 0; e < aw.set->exprs.size(); e++) {
-							Lit defn = aw.set->exprs[e]->c;
-							//Lit defn = aw.expr->c;
-							if (value(defn) != l_False) {
-								vec<Lit>& cf = cf_justification_aggr[var(defn)];
-								int k = 0;
-								for (; k < cf.size() && cf[k] != ~l; k++)
-									;
-								if (k < cf.size()) // ~l is indeed used in the cf_justification.
-									findCycleSources(var(defn));
-							}
-						}
-					}
-				}
-			}*/
+			if(aggsolver!=NULL){
+				aggsolver->findCycleSourcesFromBody(l);
+			}
 		}
 	} else {
 		// NOTE: with a clever trail system, we could even after conflicts avoid having to look at all rules.
@@ -457,19 +450,9 @@ void IDSolver::findCycleSources() {
 				if (value(v) != l_False && value(cf_justification_disj[v]) == l_False){
 					findCycleSources(v);
 				}
+			}else if (defType[v] == AGGR) {
+				aggsolver->findCycleSourcesFromHead(v);
 			}
-
-			/*FIXME else if (defType[v] == AGGR) {
-				if (value(v) == l_False){ continue; }
-				vec<Lit>& cf = cf_justification_aggr[v];
-				int k = 0;
-				while(k < cf.size() && value(cf[k]) != l_False){
-					k++;
-				}
-				if (k < cf.size()){ // There is a false literal in the cf_justification.
-					findCycleSources(v);
-				}
-			}*/
 		}
 	}
 	//nb_times_findCS++;
@@ -483,87 +466,23 @@ void IDSolver::findCycleSources() {
 }
 
 /*
- * Precondition: V is of type DISJ or AGGR. It is non-false, and its cf_justification does not support it.
+ * Precondition: V is of type DISJ. It is non-false, and its cf_justification does not support it.
  * Postcondition: sp_justification..[v] supports v. v is added a cycle source if necessary (i.e., if there might be a cycle through its sp_justification).
  *
  * Only called by findCycleSources()
  */
 void IDSolver::findCycleSources(Var v) {
-	if (isCS[v])
+	if(isCS[v]){
 		return;
-	if (defType[v] == DISJ) {
-		Clause& c = *definition[v];
-		//Rule& c = *definition[v];
-		//TODObroes IMPLICIETE INVARIANT HIER is dat minisat zijn clauses herordend, zodat de eerste of de tweede literal false zijn!!!
-		Lit jstf = c[c[0] == Lit(v, true) ? 1 : 0]; // We will use this literal as the supporting literal.
-		assert(value(jstf)!=l_False);
-		change_jstfc_disj(v, jstf);
-		if (!sign(jstf) && defType[var(jstf)] != NONDEF && scc[v] == scc[var(
-				jstf)])
-			addCycleSource(v);
-	} else {
-		/*FIXME assert(defType[v]==AGGR);
-		bool becomes_cycle_source = false;
-
-		AggrWatch& aw = (Aggr_watches[v])[0];
-		vec<AggrSet::WLit>& lits = aw.set->set;
-		vec<Lit> nj; // New sp_justification.
-		if (aw.set->type == SUM || aw.set->type == PROD) { // Note: no need to test weights, because v is not false.
-			for (int i = 0; i < lits.size(); ++i) { // Also note: here we make a huge simplification of possible justifications. It has the advantage of being uniquely defined, and the disadvantage of a higher chance of adding v as a cycle source.
-				Lit k = lits[i].lit;
-				if (value(k) == l_Undef) {
-					nj.push(k);
-					nj.push(~k);
-					if (!becomes_cycle_source && defType[var(k)] != NONDEF
-							&& scc[v] == scc[var(k)]) // first test: to avoid having to do other tests.
-						becomes_cycle_source = true;
-				} else {
-					if (value(k) == l_False)
-						k = ~k;
-					nj.push(k);
-					if (!becomes_cycle_source && !sign(k) && defType[var(k)]
-							!= NONDEF && scc[v] == scc[var(k)])
-						becomes_cycle_source = true;
-				}
-			}
-		} else if (aw.set->type == MIN) {
-			int i = 0;
-			for (; lits[i].weight < aw.expr->min; ++i) { // NOTE: because v is not false, the test will fail before i==set.size(), and also none of the encountered literals will be true.
-				Lit k = lits[i].lit;
-				nj.push(~k);
-				if (!becomes_cycle_source && sign(k) && defType[var(k)]
-						!= NONDEF && scc[v] == scc[var(k)])
-					becomes_cycle_source = true;
-			}
-			for (; value(lits[i].lit) != l_False; ++i)
-				; // NOTE: because v is not false, the test will fail before i==set.size()
-			Lit k = lits[i].lit;
-			nj.push(k);
-			if (!becomes_cycle_source && !sign(k) && defType[var(k)] != NONDEF
-					&& scc[v] == scc[var(k)])
-				becomes_cycle_source = true;
-		} else { // MAX
-			int i = lits.size() - 1;
-			for (; lits[i].weight > aw.expr->max; --i) { // NOTE: because v is not false, the test will fail before i<0, and also none of the encountered literals will be true.
-				Lit k = lits[i].lit;
-				nj.push(~k);
-				if (!becomes_cycle_source && sign(k) && defType[var(k)]
-						!= NONDEF && scc[v] == scc[var(k)])
-					becomes_cycle_source = true;
-			}
-			for (; value(lits[i].lit) != l_False; --i)
-				; // NOTE: because v is not false, the test will fail before i<0
-			Lit k = lits[i].lit;
-			nj.push(k);
-			if (!becomes_cycle_source && !sign(k) && defType[var(k)] != NONDEF
-					&& scc[v] == scc[var(k)])
-				becomes_cycle_source = true;
-		}
-
-		change_jstfc_aggr(v, nj);
-		if (becomes_cycle_source)
-			addCycleSource(v);*/
 	}
+	Clause& c = *definition[v];
+	//Rule& c = *definition[v];
+	//TODO INVARIANT clauses van minisat zijn geordend zodat eerste 2 elementen de watches zijn
+	Lit jstf = c[c[0] == Lit(v, true) ? 1 : 0]; // We will use this literal as the supporting literal.
+	assert(value(jstf)!=l_False);
+	vec<Lit> jstfs;
+	jstfs.push(jstf);
+	cycleSource(v, jstfs, !sign(jstf));
 }
 
 /*
@@ -1616,6 +1535,24 @@ inline void IDSolver::clear_changes() {
     for (int i=0; i<changed_vars.size(); i++)
     	seen[changed_vars[i]]=0;
     changed_vars.clear();
+}
+
+/*********************
+ * AGGSOLVER METHODS *
+ *********************/
+
+vec<Lit>& IDSolver::getCFJustificationAggr(Var v){
+	return cf_justification_aggr[v];
+}
+
+void IDSolver::cycleSource(Var v, vec<Lit>& nj, bool becamecyclesource){
+	change_jstfc_aggr(v,nj);
+	for(int i=0; i<nj.size(); i++){
+		if(becamecyclesource && defType[var(nj[i])] != NONDEF && scc[v] == scc[var(nj[i])]){
+			addCycleSource(v);
+			break;
+		}
+	}
 }
 
 //=================================================================================================

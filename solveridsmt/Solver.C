@@ -187,10 +187,6 @@ void Solver::addClause(Clause* c){
 		printClause(*c);
 	}
 }
-
-void Solver::addToTrail(Lit l){
-	trail.push(l);
-}
 /////////END TSOLVER
 
 void Solver::attachClause(Clause& c) {
@@ -616,9 +612,6 @@ FoundWatch:;
 		//////////////START TSOLVER
         if(amnsolver!=NULL && confl == NULL){
         	confl = amnsolver->propagate(p, confl);
-        }
-        if(tsolver!=NULL && confl == NULL){
-        	confl = tsolver->propagate(p, confl);
         }
         if(aggsolver!=NULL && confl == NULL){
         	confl = aggsolver->propagate(p, confl);

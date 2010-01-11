@@ -89,19 +89,21 @@ public:
     virtual void 	backtrack(Occurrence tp, int index);
 	virtual void	getExplanation(Lit p, vec<Lit>& lits, int p_index, AggrReason& ar) = 0;
 
-	virtual int getBestPossible() = 0;
-	virtual void removeFromCertainSet(WLit l) = 0;
-	virtual void addToCertainSet(WLit l) = 0;
-	virtual void addToPossibleSet(WLit l) = 0;
-	virtual void removeFromPossibleSet(WLit l) = 0;
+	virtual int 	getBestPossible() = 0;
+	virtual void 	removeFromCertainSet(WLit l) = 0;
+	virtual void 	addToCertainSet(WLit l) = 0;
+	virtual void 	addToPossibleSet(WLit l) = 0;
+	virtual void 	removeFromPossibleSet(WLit l) = 0;
 
 	//cannot be done in the agg constructor, because it needs a subclass OBJECT to work with, which is only constructed later
-	virtual void doSetReduction();
+	virtual void 	doSetReduction();
 	//Returns the weight a combined literal should have if both weights are in the set at the same time
-	virtual int	 getCombinedWeight(int one, int two) = 0;
-	virtual WLit handleOccurenceOfBothSigns(WLit one, WLit two) = 0;
+	virtual int	 	getCombinedWeight(int one, int two) = 0;
+	virtual WLit 	handleOccurenceOfBothSigns(WLit one, WLit two) = 0;
 
 	virtual void	propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify) = 0;
+			bool 	becomesCycleSource(vec<Lit>& nj);
+	virtual void 	justifyHead(vec<Lit>& just) = 0;
 };
 
 class MinAgg: public Agg {
@@ -130,6 +132,7 @@ public:
 	WLit 	handleOccurenceOfBothSigns(WLit one, WLit two);
 
 	void	propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify);
+	void 	justifyHead(vec<Lit>& just);
 };
 
 class MaxAgg: public Agg {
@@ -157,6 +160,7 @@ public:
 	WLit 	handleOccurenceOfBothSigns(WLit one, WLit two);
 
 	void	propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify);
+	void 	justifyHead(vec<Lit>& just);
 };
 
 class SPAgg: public Agg {
@@ -190,6 +194,7 @@ public:
 	WLit 	handleOccurenceOfBothSigns(WLit one, WLit two);
 
 	void	propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify);
+	void 	justifyHead(vec<Lit>& just);
 };
 
 #endif /* MINAGG_H_ */
