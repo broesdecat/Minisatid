@@ -20,7 +20,7 @@
 #endif
 
 struct ECNF_mode {
-	bool def,aggr,mnmz; // True for those extensions that are being used.  TODO : extra state for recursive aggregates!!
+	bool def,aggr,mnmz; // True for those extensions that are being used.
 
 	ECNF_mode() : def(false), aggr(false), mnmz(false) {}
 };
@@ -126,7 +126,7 @@ static void parse_Aggr(B& in, Solver* S, AggSolver* AGG, AggrType type) {
 		lower = false;
 	}else{
 		ParseError("You have to define whether it is a LEQ or a GEQ expression.\n");
-		//TODO mogelijk hier iets doen met backwards compatibility?
+		//NOTE: backwards compatibility issue?
 	}
 	++in;
 
@@ -300,7 +300,8 @@ static void parse_main(B& in, Solver* S, IDSolver* TS, AMNSolver* AS, AggSolver*
                         if (S->verbosity>=1)
                             reportf("|    May contain inductive definitions.                                       |\n");
                         modes.def = true;
-                        //TODObroes as long as the definitions are defined as clauses in minisat, removing satisfied clauses is not allowed
+                        //TODO as long as the definitions are defined as clauses in minisat, removing satisfied clauses is not allowed
+                        //		even then, there is a problem with the removal, see solver docs
                         S->dontRemoveSatisfied();
                     } else if (*in=='e' && match(in,"eu")) {
                         if (S->verbosity>=1)
@@ -351,9 +352,9 @@ static void parse(gzFile input_stream, Solver* S, IDSolver* TS, AMNSolver* AS, A
 //=================================================================================================
 
 
-void printStats(Solver* solver) // TODO stats for aggr, eu.
+void printStats(Solver* solver)
 {
-	//TODO repair later
+	//TODO repair later + add extra stats
     /*if (solver.verbosity>=1) {
         double cpu_time = cpuTime();
         uint64_t mem_used = memUsed();

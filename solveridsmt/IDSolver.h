@@ -38,7 +38,8 @@ public:
 	/////////////////////AGGSOLVER NECESSARY
 	vec<Lit>&	getCFJustificationAggr(Var v);
 	vec<bool>	isCS;                   		// Per atom: is it a cycle source?
-	void 		cycleSource(Var v, vec<Lit>& nj, bool becamecyclesource);
+	void 		cycleSource			(Var v, vec<Lit>& nj, bool becamecyclesource);
+	void 		notifyAggrHead		(Var head);
 	/////////////////////END AGGSOLVER NECESSARY
 
 	/////////////////////INITIALIZATION

@@ -33,13 +33,23 @@ public:
 	void propagateJustifications(Var l, vec<vec<Lit> >& jstf, vec<Var>& v, vec<int> &nb_body_lits_to_justify);
 
 	//geeft de watch terug naar het aggregaat waarvan v de head is
-	AggrWatch& getWatchOfHeadOccurence(Var v);
-	vec<AggrWatch>& getWatches(Var v);
 
 	void findCycleSourcesFromBody(Lit l);
 	void findCycleSourcesFromHead(Var l);
 
 	bool directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q, vec<Lit>& j, vec<int>& seen, const vec<int>& scc);
+	void createLoopFormula(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
+
+	/**
+	 * Adds the heads of the aggregates in which x occurs as a body literal to heads
+	 */
+	void getHeadsOfAggrInWhichOccurs(Var x, vec<Var>& heads);
+
+	/**
+	 * Returns the set literals of the aggregate with the given head x.
+	 * TODO rewrite the code such that a reference can be returned to the vec of literals in the set
+	 */
+	void getLiteralsOfAggr(Var x, vec<Lit>& lits);
 	/////////////////////END IDSOLVER NECESSARY
 
 	/////////////////////INITIALIZATION
@@ -68,6 +78,9 @@ public:
 	vec<AggrSet*>	aggr_sets;      					// List of aggregate sets being used.
 
 protected:
+	AggrWatch& 			getWatchOfHeadOccurence	(Var v);
+	vec<AggrWatch>& 	getWatches				(Var v);
+
 	// ECNF_mode.aggr additions to Solver state:
 	//
 	vec<Agg*>				aggr_exprs;		// List of aggregate expressions as occurring in the problem.

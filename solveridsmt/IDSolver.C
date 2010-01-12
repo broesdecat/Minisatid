@@ -286,15 +286,16 @@ void IDSolver::finishECNF_DataStructures() {
 		}
 		case AGGR: {
 			if(aggsolver!=NULL){
-				AggrSet* set = aggsolver->getWatchOfHeadOccurence(v).expr->set;
+				vec<Lit> lits;
+				aggsolver->getLiteralsOfAggr(v, lits);
 				/*
 				 * TODO eigenlijk is het niet logisch om aggregaten te behandelen als rules als dit niet zo geschreven is
 				 * het party-goer probleem is een voorbeeld
 				 * momenteel zorgt de grounder ervoor dat het via een equivalentie uitgeschreven als geen rule bedoeld is
 				 * zodat de semantiek toch completion semantiek wordt, maar eigenlijk zou het groundformaat moeten aangeven of het een rule is of niet
 				 */
-				for (int j = 0; !isdefd && j < set->wlitset.size(); ++j){
-					if (scc[v] == scc[var(set->wlitset[j].lit)]){ // NOTE: disregard sign here: set literals can occur both pos and neg in justifications. This could possibly be made more precise for MIN and MAX...
+				for (int j = 0; !isdefd && j < lits.size(); ++j){
+					if (scc[v] == scc[var(lits[j])]){ // NOTE: disregard sign here: set literals can occur both pos and neg in justifications. This could possibly be made more precise for MIN and MAX...
 						isdefd = true;
 					}
 				}
@@ -383,9 +384,10 @@ void IDSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, 
 		break;
 	}
 	case AGGR: {
-		AggrSet* set = aggsolver->getWatchOfHeadOccurence(i).expr->set;
-		for (vector<int>::size_type j = 0; j < set->wlitset.size(); ++j) {
-			Var w = var(set->wlitset[j].lit);
+		vec<Lit> lits;
+		aggsolver->getLiteralsOfAggr(i, lits);
+		for (int j = 0; j < lits.size(); ++j) {
+			Var w = var(lits[j]);
 			if (defType[w] != NONDEF) {
 				if (visited[w]==0){
 					visit(w,root,incomp,stack,visited,counter);
@@ -421,6 +423,7 @@ void IDSolver::findCycleSources() {
 	clearCycleSources();
 	clear_changes();
 
+	//TODO mag prevconflicts hier niet weg (of alleszins de -1 beginwaarde?)
 	if (prev_conflicts == solver->conflicts && defn_strategy == always && solver->decisionLevel()!=0) {
 		for(int i=0; i<solver->getNbOfRecentAssignments(); i++){
 			Lit l = solver->getRecentAssignments(i);
@@ -476,13 +479,14 @@ void IDSolver::findCycleSources(Var v) {
 		return;
 	}
 	Clause& c = *definition[v];
-	//Rule& c = *definition[v];
-	//TODO INVARIANT clauses van minisat zijn geordend zodat eerste 2 elementen de watches zijn
-	Lit jstf = c[c[0] == Lit(v, true) ? 1 : 0]; // We will use this literal as the supporting literal.
-	assert(value(jstf)!=l_False);
+	//TODO reimplement with Rule& c = *definition[v];
+	//NOTE: this is the only place where the invariant was used that minisat orders the literals in a clause in such a way that
+	//		the first and second literal are the watches of the 2-watched DPLL
+	int i=0;
+	while(value(c[i])==l_False){ i++; }	//find the index of the first literal that is not false
 	vec<Lit> jstfs;
-	jstfs.push(jstf);
-	cycleSource(v, jstfs, !sign(jstf));
+	jstfs.push(c[i]); 			// We will use this literal as the supporting literal.
+	cycleSource(v, jstfs, !sign(c[i]));
 }
 
 /*
@@ -821,12 +825,10 @@ bool IDSolver::Justify(Var v, Var cs, std::set<Var>& ufs, Queue<Var>& q) {
 
 			if(aggsolver!=NULL){
 				// Record aggregates that might now be justified on the main queue. TODO : can we do this less eagerly? something like used_conjs?
-				vec<AggrWatch>& aw = aggsolver->getWatches(k);
-				for (int i = 0; i < aw.size(); ++i) {
-					if (aw[i].type == HEAD){
-						continue;
-					}
-					Var d = var(aw[i].expr->head);
+				vec<Var> heads;
+				aggsolver->getHeadsOfAggrInWhichOccurs(k, heads);
+				for (int i = 0; i < heads.size(); ++i) {
+					Var d = heads[i];
 					if (seen[d]){ //  && ufs.find(d) != ufs.end())  WITH this extra test: only bottom-up propagate in already marked literals.
 						q.insert(d);
 					}
@@ -1080,10 +1082,11 @@ void IDSolver::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf){
 				break;
 			}
 		case AGGR:
-			{
-				AggrWatch& aw = aggsolver->getWatchOfHeadOccurence(*tch);
-				aw.expr->createLoopFormula(ufs, loopf, seen);
-			}
+			aggsolver->createLoopFormula(*tch, ufs, loopf, seen);
+			break;
+		default:
+			assert(false);
+			break;
 		}
 	}
 }
@@ -1212,16 +1215,14 @@ void IDSolver::markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>
 		markNonJustifiedAddVar(w[i], cs, q, tmpseen);
 	}
 	if (aggsolver!=NULL) {
-		vec<AggrWatch>& aw = aggsolver->getWatches(x);
-		for (int i = 0; i < aw.size(); i++) {
-			if (aw[i].type != HEAD) { // Else x is the head, hence not used in the justification.
-				Var y = var(aw[i].expr->head); // Find the head of the aggregate expression where x is watched in the body.
-				vec<Lit>& jstfc = sp_justification_aggr[y];
-				for (int k=0; k < jstfc.size(); k++){
-					if(jstfc[k] == Lit(x, false)){ // Found that x is actually used in y's justification.
-						markNonJustifiedAddVar(y, cs, q, tmpseen);
-						break;
-					}
+		vec<Var> heads;
+		aggsolver->getHeadsOfAggrInWhichOccurs(x, heads);
+		for(int i=0; i<heads.size(); i++){
+			vec<Lit>& jstfc = sp_justification_aggr[heads[i]];
+			for (int k=0; k < jstfc.size(); k++){
+				if(jstfc[k] == Lit(x, false)){ // Found that x is actually used in y's justification.
+					markNonJustifiedAddVar(heads[i], cs, q, tmpseen);
+					break;
 				}
 			}
 		}
@@ -1283,6 +1284,11 @@ void IDSolver::cycleSource(Var v, vec<Lit>& nj, bool becamecyclesource){
 			break;
 		}
 	}
+}
+
+void IDSolver::notifyAggrHead(Var head){
+	assert(defType[head]==NONDEF);
+	defType[head]=AGGR;
 }
 
 //=================================================================================================

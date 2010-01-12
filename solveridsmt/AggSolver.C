@@ -146,11 +146,7 @@ void AggSolver::addAggrExpr(int defn, int setid, int bound, bool lower, AggrType
 		Aggr_watches[var(ae->set->wlitset[i].lit)].push(AggrWatch(ae, i, sign(ae->set->wlitset[i].lit) ? NEG : POS));
 	}
 
-	/*FIXME
-	defType[var(c)] = AGGR;
-	if (ecnf_mode.def){
-		defdVars.push(var(c));
-	}*/
+	idsolver->notifyAggrHead(var(head));
 }
 
 /**
@@ -283,6 +279,26 @@ void AggSolver::doBacktrack(Lit l){
  * IDSOLVER PART *
  *****************/
 
+void AggSolver::createLoopFormula(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen){
+	getWatchOfHeadOccurence(v).expr->createLoopFormula(ufs, loopf, seen);
+}
+
+void AggSolver::getHeadsOfAggrInWhichOccurs(Var x, vec<Var>& heads){
+	vec<AggrWatch>& w = Aggr_watches[x];
+	for(int i=0; i<w.size(); i++){
+		if(var(w[i].expr->head)!=x){
+			heads.push(var(w[i].expr->head));
+		}
+	}
+}
+
+void AggSolver::getLiteralsOfAggr(Var x, vec<Lit>& lits){
+	vector<WLit>& ll = getWatchOfHeadOccurence(x).expr->set->wlitset;
+	for(vector<WLit>::size_type i=0; i<ll.size(); i++){
+		lits.push(ll[i].lit);
+	}
+}
+
 /**
  * Propagate the fact that L has a cyclefree and supporting justification
  * All new justifications are pushed onto the existing queue
@@ -322,6 +338,7 @@ void AggSolver::findCycleSourcesFromBody(Lit l){
 		Lit head = aw.expr->head;
 		if (aw.expr->headvalue != l_False) {
 			//TODO de IDsolver gebruikt de meest recente values, de aggsolver niet, maar hier maakt het denk ik niet uit, omdat defpropagatie maar gedaan wordt na alle gewone propagaties
+			//	mss een assert doen met een boolean die checkt of we wel definitiepropagatie mogen doen.
 			vec<Lit>& cf = idsolver->getCFJustificationAggr(var(head));
 			for (int k=0; k < cf.size(); k++){
 				if(cf[k] == ~l){ // ~l is indeed used in the cf_justification.
@@ -341,7 +358,6 @@ void AggSolver::findCycleSourcesFromHead(Var v){
 	if (aw.expr->headvalue == l_False){ return; }
 	vec<Lit>& cf = idsolver->getCFJustificationAggr(v);
 	for(int i=0; i<cf.size(); i++){
-		//TODO using solver value here, currently not wrong (see higher), but not maintainable
 		if(solver->value(cf[i]) == l_False){ // There is a false literal in the cf_justification.
 			findCycleSources(aw);
 			break;
