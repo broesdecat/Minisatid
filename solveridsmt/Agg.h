@@ -107,7 +107,7 @@ public:
 			bool 	becomesCycleSource(vec<Lit>& nj);
 	virtual void 	justifyHead(vec<Lit>& just) = 0;
 	virtual void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) = 0;
-	virtual bool	directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) = 0;
+	virtual bool	directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q, vec<Lit>& j, vec<int>& seen, const vec<int>& scc) = 0;
 };
 
 class MinAgg: public Agg {
@@ -138,7 +138,7 @@ public:
 	void	propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify);
 	void 	justifyHead(vec<Lit>& just);
 	void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
-	bool	directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q);
+	bool	directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q, vec<Lit>& j, vec<int>& seen, const vec<int>& scc);
 };
 
 class MaxAgg: public Agg {
@@ -168,7 +168,7 @@ public:
 	void	propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify);
 	void 	justifyHead(vec<Lit>& just);
 	void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
-	bool	directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q);
+	bool	directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q, vec<Lit>& j, vec<int>& seen, const vec<int>& scc);
 };
 
 class SPAgg: public Agg {
@@ -204,7 +204,7 @@ public:
 	void	propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify);
 	void 	justifyHead(vec<Lit>& just);
 	void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
-	bool	directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q);
+	bool	directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q, vec<Lit>& j, vec<int>& seen, const vec<int>& scc);
 };
 
 #endif /* MINAGG_H_ */

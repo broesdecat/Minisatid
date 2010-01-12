@@ -38,6 +38,8 @@ public:
 
 	void findCycleSourcesFromBody(Lit l);
 	void findCycleSourcesFromHead(Var l);
+
+	bool directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q, vec<Lit>& j, vec<int>& seen, const vec<int>& scc);
 	/////////////////////END IDSOLVER NECESSARY
 
 	/////////////////////INITIALIZATION

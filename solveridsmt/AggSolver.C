@@ -362,6 +362,11 @@ void AggSolver::findCycleSources(AggrWatch& v){
 	idsolver->cycleSource(var(v.expr->head), nj, becomes_cycle_source);
 }
 
+bool AggSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q, vec<Lit>& j, vec<int>& seen, const vec<int>& scc){
+	AggrWatch& aw = aggsolver->getWatchOfHeadOccurence(v);
+	return aw.expr->directlyJustifiable(v, ufs, q, j, seen, scc);
+}
+
 //=================================================================================================
 // Debug + etc:
 

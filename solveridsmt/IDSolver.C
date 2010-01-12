@@ -645,11 +645,14 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 	while (q.size() > 0) {
 		v = q.peek();
 		q.pop();
-		if (!seen[v])
+		if (!seen[v]){
 			continue;
-		if (directlyJustifiable(v, ufs, q))
-			if (Justify(v, cs, ufs, q))
+		}
+		if (directlyJustifiable(v, ufs, q)){
+			if (Justify(v, cs, ufs, q)){
 				goto Finish;
+			}
+		}
 	}
 	assert(ufs.size() > 0); // The ufs atoms form an unfounded set. 'cs' is in it.
 	rslt = true;
@@ -659,23 +662,59 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 	return rslt;
 }
 
+inline bool IDSolver::isJustified(Var x){
+	return seen[x]==0;
+}
+
+//TODO dit steunt erop dat er als clause wordt opgeslagen
+/**
+ * Returns true if literal x as a body literal is positive (and because of the storing with inverted signs as clause, it
+ * is positive if it has a sign)
+ */
+inline bool IDSolver::isPositiveBodyL(Lit x){
+	return sign(x);
+}
+
 // Helper for 'unfounded(..)'. True if v can be immediately justified by one change_justification action.
+/**
+ * Checks the rule in which v is the head to check whether it is justified by its body at the moment.
+ * If this is the case, true is returned.
+ * Else, add all nonjustified body literals to the queue that have to be propagated (no negative body literals in a rule)
+ *
+ * seen is used as a justification mark/counter: seen==0 means is-justified
+ *
+ * Conjunction:
+ * 		justified if seen or if negative literal
+ * 		all nonjustified body literals
+ */
 bool IDSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
+	bool vcanbejustified = false;
 	switch (defType[v]) {
 	case CONJ: {
 		Clause& c = *definition[v];
 		//Rule& c = *definition[v];
-		// NOTE: sign(c[i]) fails for the head literal; FOR BODY LITERALS, SIGN IS INVERTED
-		// Find a non-justified body literal, pref. already ufs.
+		// NOTE: clause representation, so sign(c[i]) will fail for the head literal; body literals have an INVERTED sign
+		int nonjustified = 0;
+		for (int i=0; i < c.size(); ++i){
+			Var x = var(c[i]);
+			if (!isJustified(x) && isPositiveBodyL(c[i])) {	//positive, nonjustified literal
+				nonjustified++;
+				std::pair<std::set<Var>::iterator, bool> pr = ufs.insert(x);
+				if (pr.second){ //is in fact a duplicate check, previous insert returns true if it was inserted into the ufs SET
+					q.insert(x);
+				}
+			}
+		}
+		if (nonjustified==0){
+			vcanbejustified = true; // Each body literal has either !sign (is NEGATIVE) or !seen (is justified wrt v).
+		}else{
+			seen[v]=nonjustified;
+		}
+
+		/* // WITH guards system
+		// Find a non-justified body literal, preferably in ufs.
 		// - If not found: bottom up propagation
 		// - If found: set conjunction's watch to it; make sure it's ufs and on queue.
-		int i = 0;
-		for (; i < c.size() && !(sign(c[i]) && seen[var(c[i])]); ++i)
-			;
-		if (i == c.size())
-			return true; // Each body literal has either !sign (is NEGATIVE) or !seen (is justified wrt v).
-
-		/*            // WITH guards system
 		 Var candidate = var(c[i]);    // Else: this var is non-justified, but might not be ufs.
 		 for (; i<c.size() && !(sign(c[i]) && seen[var(c[i])] && ufs.find(var(c[i])) != ufs.end()); ++i);
 		 if (i==c.size()) {
@@ -686,16 +725,6 @@ bool IDSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 		 used_conj[var(c[i])].push(v); // non-justified AND already ufs.
 		 */
 		// WITHOUT guards system. Use 'seen[v]' as a counter: number of 'seen' body literals!
-		seen[v]=0;
-		for (; i < c.size(); ++i) {
-			Var x = var(c[i]);
-			if (seen[x] && sign(c[i])) {
-				seen[v]++;
-				std::pair<std::set<Var>::iterator, bool> pr = ufs.insert(x);
-				if (pr.second)
-					q.insert(x);
-			}
-		}
 		break;
 	}
 	case DISJ: {
@@ -704,39 +733,43 @@ bool IDSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 		// Find a justified non-false body literal.
 		// - If found: set watch to it; bottom up propagation
 		// - If not found: touch all non-false body literals; add them to queue.
-		vec<Var> add_to_q;
 		for (int i = 0; i < c.size(); ++i) {
 			Lit bdl = c[i];
 			Var b = var(bdl);
-			if (bdl != Lit(v, true) && value(bdl) != l_False) { //only look at positive literals that are not false
-				if (sign(bdl) || !seen[b]) {
+			if (value(bdl) != l_False && bdl != Lit(v, true)) { //only look at positive literals that are not false
+				//TODO in prev if, a body literal==~head is not used, but why?
+
+				//bdl is not false. If bdl is negative, then it is a valid justification. Otherwise it has to be justified
+				//FIXME ik heb het sign van isPositiveBodyL omgekeerd, maar ben niet zeker of dit juist is
+				if (!isPositiveBodyL(bdl) || isJustified(b)) {
 					change_jstfc_disj(v, bdl);
-					return true; // bad style, but anyway...
-				} else
-					add_to_q.push(b);
+					vcanbejustified = true;
+					break;
+				} else{
+					std::pair<std::set<Var>::iterator, bool> pr = ufs.insert(b);
+					if (pr.second){
+						q.insert(b);
+					}
+				}
 			}
-		}
-		for (int i = 0; i < add_to_q.size(); ++i) {
-			std::pair<std::set<Var>::iterator, bool> pr = ufs.insert(add_to_q[i]);
-			if (pr.second)
-				q.insert(add_to_q[i]);
 		}
 		break;
 	}
 	case AGGR: {
-		//TODO: idsolver should not directly call aggregate expressions, but use the aggregate solver for this!
-		AggrWatch& aw = aggsolver->getWatchOfHeadOccurence(v);
-		bool returnvalue = aw.expr->directlyJustifiable(v, ufs, q);
-		if(returnvalue==true){
-			return returnvalue;
+		vec<Lit> justification;
+		aggsolver->directlyJustifiable(v, ufs, q, justification, seen, scc);
+		if(justification.size()!=0){
+			change_jstfc_aggr(v, justification);
+			vcanbejustified = true;
 		}
+		//TODO: idsolver should not directly call aggregate expressions in other places, but go through the aggregate SOLVER
 		break;
 	}
 	default:
 		assert(false);
 	}
 
-	return false;
+	return vcanbejustified;
 }
 
 // Helper for 'unfounded(..)'. Propagate the fact that 'v' is now justified. True if 'cs' is now justified.
@@ -746,7 +779,7 @@ bool IDSolver::Justify(Var v, Var cs, std::set<Var>& ufs, Queue<Var>& q) {
 	while (tojustify.size() > 0) {
 		Var k = tojustify.peek();
 		tojustify.pop();
-		if (seen[k]) { // Prevent infinite loop. NB: 'seen' here is the same as in 'unfounded': means: k has path in sp_justification to cs.
+		if (!isJustified(k)) { // Prevent infinite loop.
 			// Make it justified.
 			ufs.erase(k);
 			seen[k]=0;

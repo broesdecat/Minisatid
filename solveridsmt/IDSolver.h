@@ -150,11 +150,13 @@ protected:
 	int		visitedAt(Var x, vec<Var>& visitedandjust);
 	bool	hasJustification(Var x, vec<Var>& visitedandjust);
 
-	void	markNonJustified   (Var cs, vec<Var>& tmpseen);                           // Auxiliary for 'unfounded(..)'. Marks all ancestors of 'cs' in sp_justification as 'seen'.
-	void	markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q, vec<Var>& tmpseen);
-	void	markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>& tmpseen);
-	bool	directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q);            // Auxiliary for 'unfounded(..)'. True if v can be immediately justified by one change_jstfc action.
-	bool	Justify            (Var v, Var cs, std::set<Var>& ufs, Queue<Var>& q);    // Auxiliary for 'unfounded(..)'. Propagate the fact that 'v' is now justified. True if 'cs' is now justified
+	void	markNonJustified   	(Var cs, vec<Var>& tmpseen);                           // Auxiliary for 'unfounded(..)'. Marks all ancestors of 'cs' in sp_justification as 'seen'.
+	void	markNonJustifiedAddVar		(Var v, Var cs, Queue<Var> &q, vec<Var>& tmpseen);
+	void	markNonJustifiedAddParents	(Var x, Var cs, Queue<Var> &q, vec<Var>& tmpseen);
+	bool	directlyJustifiable	(Var v, std::set<Var>& ufs, Queue<Var>& q);            // Auxiliary for 'unfounded(..)'. True if v can be immediately justified by one change_jstfc action.
+	bool	isJustified			(Var x);
+	bool	isPositiveBodyL		(Lit x);
+	bool	Justify            	(Var v, Var cs, std::set<Var>& ufs, Queue<Var>& q);    // Auxiliary for 'unfounded(..)'. Propagate the fact that 'v' is now justified. True if 'cs' is now justified
 
 	// Another propagation method (too expensive in practice):
 	// void     fwIndirectPropagate();
