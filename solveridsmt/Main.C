@@ -280,6 +280,7 @@ static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AMNSolver* AS, AggSo
 			reportf("|    (there will be no definitional propagations)                             |\n");
 		}
 	}
+	S->finishParsing();
 //////////////////END OF EXTENSIONS
 }
 

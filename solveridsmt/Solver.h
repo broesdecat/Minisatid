@@ -97,9 +97,6 @@ public:
     lbool   value      (Var x) const;       // The current value of a variable.
     lbool   value      (Lit p) const;       // The current value of a literal.
     int     nVars      ()      const;       // The current number of variables.
-
-    int		qhead;            // Head of queue (as index into the trail -- no more explicit propagation queue in MiniSat).
-    vec<Lit>	trail;            // Assignment stack; stores all assigments made in the order they were made.
 	int 	getLevel(int var) 			const;
 	Lit 	getRecentAssignments(int i) const;
 	int 	getNbOfRecentAssignments() 	const;
@@ -115,9 +112,9 @@ public:
     bool 	existsUnknownVar(); 								//true if the current assignment is completely two-valued
     Var		newVar(bool polarity = true, bool dvar = false); 	// Add a new variable with parameters specifying variable mode.
     void 	dontRemoveSatisfied();
-
-    void	addToTrail(Lit l);
 	/////////////////////END TSOLVER NECESSARY
+
+    void finishParsing();
 
     // Constructor/Destructor:
     //
@@ -167,6 +164,9 @@ public:
     void     printClause      (const C& c);
 
 protected:
+    int			qhead;            // Head of queue (as index into the trail -- no more explicit propagation queue in MiniSat).
+	vec<Lit>	trail;            // Assignment stack; stores all assigments made in the order they were made.
+
     void    invalidateModel(const vec<Lit>& lits, int& init_qhead);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
     bool    okay         () const;                  // FALSE means solver is in a conflicting state
 

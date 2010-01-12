@@ -116,6 +116,14 @@ Var Solver::newVar(bool sign, bool dvar) {
 }
 
 //////////////START TSOLVER
+/**
+ * Used to notify the sat solver that all tsolver datastructures have been initialized.
+ * The sat solver will then reset the q-pointer to the start, so all literals already on the queue are repropagated in due course.
+ */
+void Solver::finishParsing(){
+	qhead = 0;
+}
+
 bool Solver::existsUnknownVar(){
 	Var v = var_Undef;
 	while (v == var_Undef || toLbool(assigns[v]) != l_Undef || !decision_var[v]) {
@@ -128,10 +136,6 @@ bool Solver::existsUnknownVar(){
 			v = order_heap[0];
 	}
 	return v==var_Undef;
-}
-
-void Solver::addToTrail(Lit l){
-	trail.push(l);
 }
 //////////////END TSOLVER
 
@@ -692,9 +696,6 @@ void Solver::removeSatisfied(vec<Clause*>& cs) {
  |________________________________________________________________________________________________@*/
 bool Solver::simplify() {
 	assert(decisionLevel() == 0);
-
-	if (!ok || propagate() != NULL)
-		return ok = false;
 
 	if (nAssigns() == simpDB_assigns || (simpDB_props > 0))
 		return true;

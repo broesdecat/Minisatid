@@ -296,7 +296,7 @@ void AggSolver::getLiteralsOfAggr(Var x, vec<Lit>& lits){
 }
 
 /**
- * Propagate the fact that L has a cyclefree and supporting justification
+ * Propagate the fact that l has a cyclefree and supporting justification
  * All new justifications are pushed onto the existing queue
  */
 void AggSolver::propagateJustifications(Var l, vec<vec<Lit> >& jstf, vec<Var>& lits, vec<int> &nb_body_lits_to_justify){
@@ -309,9 +309,9 @@ void AggSolver::propagateJustifications(Var l, vec<vec<Lit> >& jstf, vec<Var>& l
 			continue;
 		}
 		Var v = var(aw.expr->head);
-		lits.push(v);
-		jstf.push();
-		if (nb_body_lits_to_justify[v] > 0) {
+		if (nb_body_lits_to_justify[v] > 0) { //only push when it has not yet been derived!
+			lits.push(v);
+			jstf.push();
 			aw.expr->propagateJustifications(jstf.last(), nb_body_lits_to_justify);
 		}
 	}
