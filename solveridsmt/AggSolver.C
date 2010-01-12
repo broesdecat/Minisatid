@@ -24,7 +24,7 @@ vec<AggrWatch>& AggSolver::getWatches(Var v){
 	return Aggr_watches[v];
 }
 
-void AggSolver::finishECNF_DataStructures() {
+bool AggSolver::finishECNF_DataStructures() {
 	init = false;
 
 	if (verbosity >= 1){
@@ -32,12 +32,7 @@ void AggSolver::finishECNF_DataStructures() {
 	}
 
 	if (aggr_exprs.size() == 0) {
-		solver->setAggSolver(NULL);
-		if (verbosity >= 1) {
-			reportf("                                            |\n");
-			reportf("|    (there will be no aggregate propagations)                                |\n");
-		}
-		return;
+		return false;
 	} else {
 		int total_nb_set_lits = 0;
 		for (int i = 0; i < aggr_sets.size(); i++){
@@ -55,12 +50,13 @@ void AggSolver::finishECNF_DataStructures() {
 		//zolang er iets veranderd.
 
 		// Now do the initial propagations based on set literals that already have a truth value.
-		Clause * confl = NULL;
+		/*Clause * confl = NULL;
 		for (int i = 0; i < solver->qhead && confl == NULL; ++i) // from qhead onwards will still be propagated by simplify().
 			confl = Aggr_propagate(solver->trail[i]);
 		if (confl != NULL) {
 			throw theoryUNSAT;
-		}
+		}*/
+		return true;
 	}
 }
 
@@ -375,7 +371,7 @@ void AggSolver::findCycleSources(AggrWatch& v){
 	vec<Lit> nj; // New sp_justification.
 	bool becomes_cycle_source = v.expr->becomesCycleSource(nj);
 
-	idsolver->cycleSource(var(v.expr->head), nj, becomes_cycle_source);
+	idsolver->cycleSourceAggr(var(v.expr->head), nj, becomes_cycle_source);
 }
 
 bool AggSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q, vec<Lit>& j, vec<int>& seen, const vec<int>& scc){

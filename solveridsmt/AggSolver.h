@@ -60,7 +60,11 @@ public:
 	 * else 		  bound <= AGG
 	 */
 	void    addAggrExpr  (int defn, int set_id, int bound, bool lower, AggrType type);
-	void    finishECNF_DataStructures ();       // Initialize datastructures.
+	/**
+	 * Initializes data structures and checks whether there are any aggregates present.
+	 * @Return: true if there are aggregates
+	 */
+	bool    finishECNF_DataStructures ();
 
 	void setSolver(Solver* s){
 		solver = s;

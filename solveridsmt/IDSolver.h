@@ -38,13 +38,13 @@ public:
 	/////////////////////AGGSOLVER NECESSARY
 	vec<Lit>&	getCFJustificationAggr(Var v);
 	vec<bool>	isCS;                   		// Per atom: is it a cycle source?
-	void 		cycleSource			(Var v, vec<Lit>& nj, bool becamecyclesource);
+	void 		cycleSourceAggr		(Var v, vec<Lit>& nj, bool becamecyclesource);
 	void 		notifyAggrHead		(Var head);
 	/////////////////////END AGGSOLVER NECESSARY
 
 	/////////////////////INITIALIZATION
 	void    addRule      (bool conj, vec<Lit>& ps);          // Add a rule to the solver.
-	void    finishECNF_DataStructures ();                          // Initialize the ECNF data structures. NOTE: aggregates may set the "ok" value to false!
+	bool    finishECNF_DataStructures ();                          // Initialize the ECNF data structures. NOTE: aggregates may set the "ok" value to false!
 
 	void setSolver(Solver* s){
 		solver = s;
@@ -116,16 +116,17 @@ protected:
 	vec<Var>        css;                    // List of cycle sources. May still include atoms v that have !isCS[v].
 
 	// Justification methods:
-	void     apply_changes      ();                                // Copy sp_justification to cf_justification.
-	void     clear_changes      ();                                // Restore sp_justification to the state of cf_justification.
-	void     change_jstfc_disj  (Var v, Lit j);                    // Change sp_justification of DISJ atom v to j.
-	void     change_jstfc_aggr  (Var v, const vec<Lit>& j);        // Change sp_justification of AGGR atom v to j.
+	void	apply_changes      ();                                // Copy sp_justification to cf_justification.
+	void	clear_changes      ();                                // Restore sp_justification to the state of cf_justification.
+	void	change_jstfc_disj  (Var v, Lit j);                    // Change sp_justification of DISJ atom v to j.
+	void	change_jstfc_aggr  (Var v, const vec<Lit>& j);        // Change sp_justification of AGGR atom v to j.
 
 	// Cycle source methods:
-	void     addCycleSource     (Var v);
-	void     clearCycleSources  ();
-	void     findCycleSources   ();                                // Starting from cf_justification, creates a supporting justification in sp_justification, and records the changed atoms in 'cycle sources'.
-	void     findCycleSources   (Var v);                           // Auxiliary for findCycleSources(): v is non-false and its cf_justification does not support it.
+	void	addCycleSource     (Var v);
+	void	clearCycleSources  ();
+	void	findCycleSources   ();                                // Starting from cf_justification, creates a supporting justification in sp_justification, and records the changed atoms in 'cycle sources'.
+	void	findCycleSources   (Var v);                           // Auxiliary for findCycleSources(): v is non-false and its cf_justification does not support it.
+	void	cycleSourceDisj		(Var v, Lit& just, bool becamecyclesource);
 
 
 	// Propagation method:

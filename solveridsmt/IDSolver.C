@@ -113,7 +113,6 @@ bool IDSolver::simplify(){
 			}
 		}
 		if (aggsolver!=NULL) {
-			//FIXME investigate order of initialization, propagation and simplification! of different solvers!
 			vec<vec<Lit> > jstf;
 			vec<Var> v;
 			aggsolver->propagateJustifications(var(l), jstf, v, nb_body_lits_to_justify);
@@ -226,11 +225,12 @@ void IDSolver::addRule(bool conj, vec<Lit>& ps) {
 // SAT(ID) additional methods
 
 // Using the vector "defdVars", initialize all other SAT(ID) additional data structures.
-void IDSolver::finishECNF_DataStructures() {
+bool IDSolver::finishECNF_DataStructures() {
 	init = false;
 
-	if (verbosity >= 1)
+	if (verbosity >= 1){
 		reportf("| Number of rules           : %6d                                          |\n",defdVars.size());
+	}
 
 	// ****** Based on this, initialize "scc". ******
 	scc.growTo(nVars(), 0);
@@ -311,29 +311,26 @@ void IDSolver::finishECNF_DataStructures() {
 			defType[v] = NONDEF; // NOTE: no reason to set definition[v]=NULL.
 		}
 	}
-	if (verbosity >= 1)
+	if (verbosity >= 1){
 		reportf("| Number of recursive atoms : %6d                                          |\n",(int)atoms_in_pos_loops);
+	}
+
 
 	if (atoms_in_pos_loops == 0) {
-		solver->setIDSolver(NULL);
-		if (verbosity >= 1)
-			reportf("|    (there will be no definitional propagations)                             |\n");
-		return;
+		return false;
 	}
 
 	isCS.growTo(nVars(), false);
 
-	//FIXME is dit wel juist? waarom zou een literal nu moeten worden toegevoegd aan de propagatie als hij ergens anders
-	//true is geworden. Dit gaat dan ook fout lopen omdat settrue checkt op undef
-	//moet het mss eerder zijn: herpropagate de hele trail? => regel smt propagation dus beter
-
+	//FIXME moet het mss eerder zijn: herpropagate de hele trail? => regel smt propagation dus beter
 	//this dramatically decreases solving time on some problems
-	for (int i=0; i<nVars(); i++){
+	/*for (int i=0; i<nVars(); i++){
 		if (value(i) != l_Undef){
-			solver->setTrue(Lit(i,(value(i)==l_False)));
-			//was addToTrail
+			solver->addToTrail(Lit(i,(value(i)==l_False)));
 		}
-	}
+	}*/
+
+	return true;
 }
 
 /**
@@ -484,9 +481,14 @@ void IDSolver::findCycleSources(Var v) {
 	//		the first and second literal are the watches of the 2-watched DPLL
 	int i=0;
 	while(value(c[i])==l_False){ i++; }	//find the index of the first literal that is not false
-	vec<Lit> jstfs;
-	jstfs.push(c[i]); 			// We will use this literal as the supporting literal.
-	cycleSource(v, jstfs, !sign(c[i]));
+	cycleSourceDisj(v, c[i], !sign(c[i])); // We will use c[i] this literal as the supporting literal.
+}
+
+void IDSolver::cycleSourceDisj(Var v, Lit& jstf, bool becamecyclesource){
+	change_jstfc_disj(v,jstf);
+	if (!sign(jstf) && defType[var(jstf)]!=NONDEF && scc[v]==scc[var(jstf)]){
+		addCycleSource(v);
+	}
 }
 
 /*
@@ -742,10 +744,8 @@ bool IDSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 			Var b = var(bdl);
 			if (value(bdl) != l_False && bdl != Lit(v, true)) { //only look at positive literals that are not false
 				//TODO in prev if, a body literal==~head is not used, but why?
-
-				//bdl is not false. If bdl is negative, then it is a valid justification. Otherwise it has to be justified
-				//FIXME ik heb het sign van isPositiveBodyL omgekeerd, maar ben niet zeker of dit juist is
-				if (!isPositiveBodyL(bdl) || isJustified(b)) {
+				//bdl is not false, so if it is positive, then it is a justification, otherwise if it is already justified, then also
+				if (isPositiveBodyL(bdl) || isJustified(b)) {
 					change_jstfc_disj(v, bdl);
 					vcanbejustified = true;
 					break;
@@ -1276,7 +1276,7 @@ vec<Lit>& IDSolver::getCFJustificationAggr(Var v){
 	return cf_justification_aggr[v];
 }
 
-void IDSolver::cycleSource(Var v, vec<Lit>& nj, bool becamecyclesource){
+void IDSolver::cycleSourceAggr(Var v, vec<Lit>& nj, bool becamecyclesource){
 	change_jstfc_aggr(v,nj);
 	for(int i=0; i<nj.size(); i++){
 		if(becamecyclesource && defType[var(nj[i])] != NONDEF && scc[v] == scc[var(nj[i])]){

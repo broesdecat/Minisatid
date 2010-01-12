@@ -129,6 +129,10 @@ bool Solver::existsUnknownVar(){
 	}
 	return v==var_Undef;
 }
+
+void Solver::addToTrail(Lit l){
+	trail.push(l);
+}
 //////////////END TSOLVER
 
 bool Solver::addClause(vec<Lit>& ps) {

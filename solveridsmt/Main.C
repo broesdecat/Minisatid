@@ -265,9 +265,21 @@ static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AMNSolver* AS, AggSo
         }
     }
 //////////////////START OF EXTENSIONS
-    TS->finishECNF_DataStructures();
-    AS->finishECNF_DataStructures();
-    AGG->finishECNF_DataStructures();
+    //call definition solver last
+	AS->finishECNF_DataStructures();
+	if(modes.aggr){
+		modes.aggr = AGG->finishECNF_DataStructures();
+		if(!modes.aggr && S->verbosity >= 1){
+			reportf("                                            |\n");
+			reportf("|    (there will be no aggregate propagations)                                |\n");
+		}
+	}
+	if(modes.def){
+		modes.def = TS->finishECNF_DataStructures();
+		if(!modes.def && S->verbosity >= 1){
+			reportf("|    (there will be no definitional propagations)                             |\n");
+		}
+	}
 //////////////////END OF EXTENSIONS
 }
 
