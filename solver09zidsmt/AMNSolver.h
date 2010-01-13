@@ -94,8 +94,8 @@ inline bool AMNSolver::simplify(){
 	return true;
 }
 
-inline Clause* AMNSolver::propagate(Lit p, Clause* confl){
-	if(empty || confl != NULL){	return confl; }
+inline Clause* AMNSolver::propagate(Lit p){
+	if(empty){	return NULL; }
 	return amnpropagate(p);
 }
 

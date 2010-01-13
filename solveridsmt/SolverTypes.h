@@ -201,32 +201,4 @@ inline void Clause::strengthen(Lit p)
     calcAbstraction();
 }
 
-/*class Rule {
-    uint32_t size_etc;
-    Lit     data[0];
-
-public:
-    // NOTE: This constructor cannot be used directly (doesn't allocate enough memory).
-    template<class V>
-    Rule(const V& ps) {
-        size_etc = (ps.size() << 3);
-        for (int i = 0; i < ps.size(); i++) data[i] = ps[i]; }
-
-    // -- use this function instead:
-    template<class V>
-    friend Rule* Rule_new(const V& ps) {
-        assert(sizeof(Lit)      == sizeof(uint32_t));
-        void* mem = malloc(sizeof(Rule) + sizeof(uint32_t)*(ps.size()));
-        if(mem==NULL) throw memOVERFLOW;
-        return new (mem) Rule(ps); }
-
-    int          size        ()      const   { return size_etc >> 3; }
-
-    // NOTE: somewhat unsafe to change the clause in-place! Must manually call 'calcAbstraction' afterwards for
-    //       subsumption operations to behave correctly.
-    Lit&     operator [] (int i)         { return data[i]; }
-    Lit      operator [] (int i) const   { return data[i]; }
-    operator const Lit* (void) const         { return data; }
-};*/
-
 #endif

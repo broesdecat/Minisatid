@@ -5,6 +5,7 @@
 #include <set>
 #include <stack>
 #include <queue>
+#include <vector>
 #include <map>
 
 #include "Vec.h"
@@ -16,11 +17,39 @@
 #include "Solver.h"
 #include "AggSolver.h"
 
-enum DefType {NONDEF, DISJ, CONJ, AGGR};
+/**
+ * The different possible typs of definitions.
+ * If a variable is NONDEFALL, no definition is associated with it.
+ * If a variable is NONDEFPOS, a definition is associated with it, but there is not recursion through it in the POSITIVE dependency graph
+ * 		but there might be recursion over negation (relevant for the well-founded model)
+ */
+enum DefType {NONDEFALL, NONDEFPOS, DISJ, CONJ, AGGR};
 enum UFS {NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK};
 
 class Solver;
 class AggSolver;
+
+class Rule {
+private:
+    vec<Lit> lits;
+    Var head;
+    DefType type;
+
+public:
+    Rule(vec<Lit>& ps, bool conj){
+    	conj? type=CONJ:type=DISJ;
+    	head = var(ps[0]);
+    	for(int i=1; i<ps.size(); i++){
+    		lits.push(ps[i]);
+    	}
+    }
+
+    int 	size() 	const	{ return lits.size(); }
+    Lit 	getHeadLiteral() 	const	{ return Lit(head, false); }
+    Lit 	operator [](int i) 	const	{ return lits[i]; }
+    DefType getType() 			const	{ return type; }
+    void 	setType(DefType t)			{ type = t; }
+};
 
 class IDSolver{
 public:
@@ -32,23 +61,24 @@ public:
 	void 	backtrack 	( Lit l);
 	Clause* getExplanation	(Lit p);    // Create a clause that implicitly was the reason for p's propagation.
 	void 	notifyVarAdded	(); 		//correctly initialized TSolver datastructures when vars are added
-	Clause* 	propagate		(Lit p, Clause* confl);
-	Clause* 	propagateDefinitions(Clause* confl);
+	Clause* 	propagate		(Lit p);
+	Clause* 	propagateDefinitions();
 	//void Subsetminimize(const vec<Lit>& lits);
 
 	bool isWellFoundedModel();
 	/////////////////////ENDSOLVER NECESSARY
 
 	/////////////////////AGGSOLVER NECESSARY
-	vec<Lit>&	getCFJustificationAggr(Var v);
 	vec<bool>	isCS;                   		// Per atom: is it a cycle source?
-	void 		cycleSourceAggr		(Var v, vec<Lit>& nj, bool becamecyclesource);
-	void 		notifyAggrHead		(Var head);
+
+	vec<Lit>&	getCFJustificationAggr	(Var v);
+	void 		cycleSourceAggr			(Var v, vec<Lit>& nj, bool becamecyclesource);
+	void 		notifyAggrHead			(Var head);
 	/////////////////////END AGGSOLVER NECESSARY
 
 	/////////////////////INITIALIZATION
-	void    addRule      (bool conj, vec<Lit>& ps);          // Add a rule to the solver.
-	bool    finishECNF_DataStructures ();                          // Initialize the ECNF data structures. NOTE: aggregates may set the "ok" value to false!
+	void    	addRule      				(bool conj, vec<Lit>& ps);	// Add a rule to the solver.
+	bool    	finishECNF_DataStructures 	();							// Initialize the ECNF data structures. NOTE: aggregates may set the "ok" value to false!
 
 	void setSolver(Solver* s){
 		solver = s;
@@ -69,8 +99,7 @@ public:
 	/////////////////////END INITIALIZATION
 
 protected:
-	bool init;
-
+	bool 		init;
 	vec<int>	seen, seen2;
 
 	lbool	value(Var x) const;
@@ -95,13 +124,16 @@ protected:
 	// ECNF_mode.def additions to Solver state:
 	//
 	vec<Var>		defdVars;	// May include variables that get marked NONDEF later.
-	vec<DefType>	defType;	// Per atom: what type is it (non-defined, disjunctive, conjunctive, aggregate).
-	vec<Clause*>	definition;	// If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
+	vec<Rule*>		definition;	// If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
 	// Note that v occurs negatively if DISJ, positively if CONJ; and the reverse for the body literals.
 	// NOTE: If defType[v]==NONDEF, it may be that v is defined, but that no positive loop can exist. It SHOULD NOT be deleted then
 	//		because it will be used for WELLFOUNDED model checking later on.
 	//	of the completion of that rule, which was just not deleted, but wont be used any more
 	vec<int>		scc;		// To which strongly connected component does the atom belong. Zero iff defType[v]==NONDEF.
+
+	DefType 	getDefType(Var v);
+	bool		isDefInPosGraph(Var v);
+	void		setTypeIfNoPosLoops(Var v);
 
 	// Rules (body to head):
 	vec<vec<Var> >  disj_occurs;         // Per literal: a vector of heads of DISJ rules in which it is a body literal.
@@ -131,7 +163,7 @@ protected:
 	void	clearCycleSources  ();
 	void	findCycleSources   ();                                // Starting from cf_justification, creates a supporting justification in sp_justification, and records the changed atoms in 'cycle sources'.
 	void	findCycleSources   (Var v);                           // Auxiliary for findCycleSources(): v is non-false and its cf_justification does not support it.
-	void	cycleSourceDisj		(Var v, Lit& just, bool becamecyclesource);
+	void	cycleSourceDisj		(Var v, Lit just, bool becamecyclesource);
 
 
 	// Propagation method:
@@ -157,13 +189,13 @@ protected:
 	int		visitedAt(Var x, vec<Var>& visitedandjust);
 	bool	hasJustification(Var x, vec<Var>& visitedandjust);
 
-	void	markNonJustified   	(Var cs, vec<Var>& tmpseen);                           // Auxiliary for 'unfounded(..)'. Marks all ancestors of 'cs' in sp_justification as 'seen'.
+	void	markNonJustified   			(Var cs, vec<Var>& tmpseen);                           // Auxiliary for 'unfounded(..)'. Marks all ancestors of 'cs' in sp_justification as 'seen'.
 	void	markNonJustifiedAddVar		(Var v, Var cs, Queue<Var> &q, vec<Var>& tmpseen);
 	void	markNonJustifiedAddParents	(Var x, Var cs, Queue<Var> &q, vec<Var>& tmpseen);
-	bool	directlyJustifiable	(Var v, std::set<Var>& ufs, Queue<Var>& q);            // Auxiliary for 'unfounded(..)'. True if v can be immediately justified by one change_jstfc action.
-	bool	isJustified			(Var x);
-	bool	isPositiveBodyL		(Lit x);
-	bool	Justify            	(Var v, Var cs, std::set<Var>& ufs, Queue<Var>& q);    // Auxiliary for 'unfounded(..)'. Propagate the fact that 'v' is now justified. True if 'cs' is now justified
+	bool	directlyJustifiable			(Var v, std::set<Var>& ufs, Queue<Var>& q);            // Auxiliary for 'unfounded(..)'. True if v can be immediately justified by one change_jstfc action.
+	bool	isJustified					(Var x);
+	bool	isPositiveBodyL				(Lit x);
+	bool	Justify            			(Var v, Var cs, std::set<Var>& ufs, Queue<Var>& q);    // Auxiliary for 'unfounded(..)'. Propagate the fact that 'v' is now justified. True if 'cs' is now justified
 
 	// Another propagation method (too expensive in practice):
 	// void     fwIndirectPropagate();
@@ -174,7 +206,7 @@ protected:
 	void     printLit         (Lit l);
 	template<class C>
 	void     printClause      (const C& c);
-	//void     printRule        (const Rule& c);
+	void     printRule        (const Rule& c);
 	void     checkLiteralCount();
 	bool     isCycleFree      ();			// Verifies whether cf_justification is indeed cycle free, not used, for debugging purposes.
 
@@ -252,13 +284,13 @@ inline void     IDSolver::clearCycleSources()          { for (int i=0;i<css.size
  * subsequent calls
  */
 
-inline Clause* IDSolver::propagate(Lit p, Clause* confl){
-	return confl;
+inline Clause* IDSolver::propagate(Lit p){
+	return NULL;
 }
 
 //only call this when the whole queue has been propagated
-inline Clause* IDSolver::propagateDefinitions(Clause* confl){
-	if (init || confl!=NULL) {return confl;}
+inline Clause* IDSolver::propagateDefinitions(){
+	if (init) {return NULL;}
 	return indirectPropagate();
 }
 

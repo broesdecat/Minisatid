@@ -25,7 +25,7 @@ public:
 	bool 	simplify		();
 	void 	backtrack 		( Lit l);
 	void 	notifyVarAdded	(); 		//correctly initialize AMNSolver datastructures when vars are added
-	Clause* 	propagate	(Lit p, Clause* confl);
+	Clause* 	propagate	(Lit p);
 	/////////////////////ENDSOLVER NECESSARY
 
 	/////////////////////INITIALIZATION
@@ -99,8 +99,8 @@ inline bool AMNSolver::simplify(){
 	return true;
 }
 
-inline Clause* AMNSolver::propagate(Lit p, Clause* confl){
-	if(empty || init || confl != NULL){	return confl; }
+inline Clause* AMNSolver::propagate(Lit p){
+	if(empty || init){	return NULL; }
 	return amnpropagate(p);
 }
 

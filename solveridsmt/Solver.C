@@ -597,14 +597,14 @@ FoundWatch:;
 
 		//////////////START TSOLVER
         if(amnsolver!=NULL && confl == NULL){
-        	confl = amnsolver->propagate(p, confl);
+        	confl = amnsolver->propagate(p);
         	if(confl!=NULL){ qhead = trail.size(); break; }
         }
         if(aggsolver!=NULL && confl == NULL){
-        	confl = aggsolver->propagate(p, confl);
+        	confl = aggsolver->propagate(p);
         }
 		if(qhead==trail.size() && confl==NULL && tsolver!=NULL){
-			confl = tsolver->propagateDefinitions(confl);
+			confl = tsolver->propagateDefinitions();
 		}
 		if(confl!=NULL){
 			qhead = trail.size();

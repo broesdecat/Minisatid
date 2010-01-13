@@ -26,7 +26,7 @@ public:
 	void 	backtrack 		( Lit l);
 	Clause* getExplanation	(Lit p);    // Create a clause that implicitly was the reason for p's propagation.
 	void 	notifyVarAdded	(); 		//correctly initialize AMNSolver datastructures when vars are added
-	Clause* propagate	(Lit p, Clause* confl);
+	Clause* propagate	(Lit p);
 	/////////////////////ENDSOLVER NECESSARY
 
 	/////////////////////IDSOLVER NECESSARY
@@ -143,8 +143,8 @@ inline bool AggSolver::simplify(){
 	return true;
 }
 
-inline Clause* AggSolver::propagate(Lit p, Clause* confl){
-	if (init || confl != NULL) {return confl;}
+inline Clause* AggSolver::propagate(Lit p){
+	if (init) {return NULL;}
 	return Aggr_propagate(p);
 }
 
