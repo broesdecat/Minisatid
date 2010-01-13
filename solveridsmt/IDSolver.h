@@ -3,6 +3,8 @@
 
 #include <cstdio>
 #include <set>
+#include <stack>
+#include <queue>
 #include <map>
 
 #include "Vec.h"
@@ -33,6 +35,8 @@ public:
 	Clause* 	propagate		(Lit p, Clause* confl);
 	Clause* 	propagateDefinitions(Clause* confl);
 	//void Subsetminimize(const vec<Lit>& lits);
+
+	bool isWellFoundedModel();
 	/////////////////////ENDSOLVER NECESSARY
 
 	/////////////////////AGGSOLVER NECESSARY
@@ -94,7 +98,8 @@ protected:
 	vec<DefType>	defType;	// Per atom: what type is it (non-defined, disjunctive, conjunctive, aggregate).
 	vec<Clause*>	definition;	// If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
 	// Note that v occurs negatively if DISJ, positively if CONJ; and the reverse for the body literals.
-	// If defType[v]==NONDEF, it may be that v *was* defined by a non-recursive rule: then definition[v] also is the 'long clause'
+	// NOTE: If defType[v]==NONDEF, it may be that v is defined, but that no positive loop can exist. It SHOULD NOT be deleted then
+	//		because it will be used for WELLFOUNDED model checking later on.
 	//	of the completion of that rule, which was just not deleted, but wont be used any more
 	vec<int>		scc;		// To which strongly connected component does the atom belong. Zero iff defType[v]==NONDEF.
 
@@ -174,6 +179,65 @@ protected:
 	bool     isCycleFree      ();			// Verifies whether cf_justification is indeed cycle free, not used, for debugging purposes.
 
 	void 	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf);
+
+	/*******************************
+	 * WELL FOUNDED MODEL CHECKING *
+	 *******************************/
+
+private:
+    stack<int> wfstack;          //!< Stack for Tarjan's algorithm.
+    /*    - _visited[v] == 0  \f$ \Rightarrow \f$ v is not visited yet.
+     *    - _visited[v] > 0   \f$ \Rightarrow \f$ v is visited, but not yet in a component.
+     *    - _visited[v] == -1 \f$ \Rightarrow \f$ v is in a component.
+     */
+    vector<int> wfvisited;
+    vector<Var> wfroot;				//!< Root vector for Tarjan's algorithm.
+    vector<Var> wfmixedCycleRoots;	//!< To store one literal for each mixed cycle in the justification graph.
+    vector<int> wfcounters;
+    int 		wfvisitNr;			//!< Counter for Tarjan's algorithm.
+
+    set<Lit> 		wfmarkedAtoms;	//!< The set of all literals that are marked.
+    vector<bool> 	wfisMarked;		//!< Vector to check whether a literal is marked.
+    queue<Lit> 		wfqueuePropagate;
+    bool 			wffixpoint;
+
+	/*!
+	 * \brief Implementation of Tarjan's algorithm for detecting strongly connected components.
+	 */
+	void visitWF(Var, bool);
+	/*!
+	 * \brief Search for mixed cycles in the justification graph of the current model.
+	 *
+	 * \post For every mixed cycle in the justification graph, there is one literal of the cycle on \c _mixedCycleRoots.
+	 *
+	 * Main structure of findMixedCycles():
+	 * \code
+	 *    for( //each defined, true literal litp with non empty body )
+	 *       Visit(litp);
+	 * \endcode
+	 */
+	void findMixedCycles();
+	/*!
+	 * \brief Mark all atoms that are above the mixed cycle roots in the justification graph.
+	 *
+	 * Main structure of markUpward()
+	 * \code
+	 *    \\ mark all cycle roots.
+	 *    \\ mark all literals that are above the cycle roots.
+	 * \endcode
+	 */
+	void markUpward();
+	/*!
+	 * \brief Mark a literal.
+	 */
+	void mark(Lit);
+	/*!
+	 * \brief For marked literal l, set _counters[l] to the number of marked bodyliterals in its body. When l is conj/disj, and contains an false/true unmarked bodyliteral, l is pushed on _queuePropagate.
+	 */
+	void initializeCounters();
+	void forwardPropagate(bool);
+	void overestimateCounters();
+	void removeMarks();
 };
 
 

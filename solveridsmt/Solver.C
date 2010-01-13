@@ -238,9 +238,7 @@ void Solver::cancelFurther(int init_qhead) {
 		Var x = var(trail[c]);
 		assigns[x] = toInt(l_Undef);
 		insertVarOrder(x);
-		//TODObroes: zorgen dat de Tsolvers enkel de noodzakelijke elementen bijhouden en dat het voor de anderen een lege, constante call is
-
-	    //////////////START TSOLVER
+		//////////////START TSOLVER
 		if(tsolver!=NULL){
 			tsolver->backtrack(trail[c]);
 		}
@@ -260,30 +258,10 @@ void Solver::cancelFurther(int init_qhead) {
 // Revert to the state at given level (keeping all assignment at 'level' but not beyond).
 //
 void Solver::backtrackTo(int level) {
-	/*reportf("Before backtrack.\n");
-	for(int i=0; i<trail.size(); i++){
-		printLit(trail[i]); reportf(" ");
-	}
-	reportf("\n");
-	for(int i=0; i<trail_lim.size(); i++){
-		reportf("%i ",trail_lim[i]);
-	}
-	reportf("\n");*/
-
 	if (decisionLevel() > level) {
 		cancelFurther(trail_lim[level]);
 		trail_lim.shrink(trail_lim.size() - level);
 	}
-
-	/*reportf("After backtrack.\n");
-	for(int i=0; i<trail.size(); i++){
-		printLit(trail[i]); reportf(" ");
-	}
-	reportf("\n");
-	for(int i=0; i<trail_lim.size(); i++){
-		reportf("%i ",trail_lim[i]);
-	}
-	reportf("\n");*/
 }
 ///////////////END CHANGES
 
@@ -620,19 +598,18 @@ FoundWatch:;
 		//////////////START TSOLVER
         if(amnsolver!=NULL && confl == NULL){
         	confl = amnsolver->propagate(p, confl);
+        	if(confl!=NULL){ qhead = trail.size(); break; }
         }
         if(aggsolver!=NULL && confl == NULL){
         	confl = aggsolver->propagate(p, confl);
         }
-		if(qhead==trail.size()){
-			if(tsolver!=NULL && confl == NULL){
-				confl = tsolver->propagateDefinitions(confl);
-			}
+		if(qhead==trail.size() && confl==NULL && tsolver!=NULL){
+			confl = tsolver->propagateDefinitions(confl);
+		}
+		if(confl!=NULL){
+			qhead = trail.size();
 		}
 		//////////////END TSOLVER
-
-		// TODO: fast way of stopping the while loop if confl != NULL ? (check if next line in code would be correct)
-		//if(confl!=NULL){ qhead = trail.size();}
 	}
 
 	propagations += num_props;
@@ -909,7 +886,7 @@ bool Solver::solve() {
 	try{
 
 	/////////////////////// START OF EXTENSIONS
-	//TODObroes nodig voor minimize opdrachten, werken nu dus nog niet
+	//nodig voor minimize opdrachten, werken nu dus nog niet
 /*TEMP COMMENT	if (ecnf_mode.mnmz && to_minimize.size() == 0)
 		ecnf_mode.mnmz = false;
 	if (ecnf_mode.mnmz)
@@ -964,7 +941,7 @@ bool Solver::solve() {
 				if (learnt.size() > 0)
 					invalidateModel(learnt, init_qhead);
 				else
-					break; // The found model is certainly already minimal.  TODO make sure no more attempts at finding new model are tried?
+					break; // The found model is certainly already minimal.  NOTE: make sure no more attempts at finding new model are tried?
 			}
 			if (cp_model.size() > 0) {
 				model.clear();
@@ -1070,11 +1047,13 @@ bool Solver::solve(const vec<Lit>& assumps) {
 	// Search:
 	while (status == l_Undef) {
 		if (verbosity >= 1)
-			reportf("| %9d | %7d %8d %8d | %8d %8d %6.0f | %6.3f %% |\n", (int)conflicts, order_heap.size(), nClauses(), (int)clauses_literals, (int)nof_learnts, nLearnts(), (double)learnts_literals/nLearnts(), progress_estimate*100), fflush(
-					stdout);
+			reportf("| %9d | %7d %8d %8d | %8d %8d %6.0f | %6.3f %% |\n", (int)conflicts, order_heap.size(), nClauses(), (int)clauses_literals, (int)nof_learnts, nLearnts(), (double)learnts_literals/nLearnts(), progress_estimate*100), fflush(stdout);
 		status = search((int) nof_conflicts, (int) nof_learnts);
 		nof_conflicts *= restart_inc;
 		nof_learnts *= learntsize_inc;
+		if(tsolver!=NULL){
+			tsolver->isWellFoundedModel();
+		}
 		// TODO: if ecnf_mode.def, then do final check for well-foundedness, using "defdVars", for situations like P <- ~Q, Q <- ~P.
 	}
 	learntsize_inc = (9 + learntsize_inc) / 10; // For multiple models, make sure the allowed number of learnt clauses doesn't increase too rapidly.

@@ -1287,6 +1287,7 @@ void IDSolver::cycleSourceAggr(Var v, vec<Lit>& nj, bool becamecyclesource){
 }
 
 void IDSolver::notifyAggrHead(Var head){
+	defdVars.push(head);
 	assert(defType[head]==NONDEF);
 	defType[head]=AGGR;
 }
@@ -1415,6 +1416,352 @@ bool IDSolver::isCycleFree() {
     } else
         reportf("OK; cf_justification is cycle free.\n");
     return cnt_nonjustified==0;
+}
+
+/****************************
+ * WELL FOUNDED MODEL CHECK *
+ ****************************/
+
+/**
+ * FIXME het onderstaande is momenteel niet te implementeren, omdat het steunt op een juiste versie van de datastructuren
+ * defType en definition, maar het probleem is dat die zijn opgesteld in functie van loops in de POSITIEVE dependency
+ * graph, dus wat hier nu uitkomt is nonsense
+ */
+
+bool IDSolver::isWellFoundedModel() {
+	return true;
+	wfroot = vector<Var>(nVars(), 0);
+	wfvisited = vector<int>(nVars(), 0);
+	wfcounters = vector<int>(nVars(),0);
+	wfisMarked = vector<bool>(nVars(),false);
+	wfvisitNr = 1;
+
+	findMixedCycles();
+	if(wfmixedCycleRoots.empty()) return true;
+
+	markUpward();
+	wffixpoint = false;
+
+	/**
+	* until full fixpoint
+	* 	pas de TP operator toe tot fixpoint
+	* 	hou een ondergrens en een bovengrens bij, voor de certainly true en de certainly false
+	* 	maak een gepaste onderschatting voor de negative unknown literals
+	* 	wat dan wordt afgeleid is certainly true
+	* 	maak een overschatting voor de negatieve unknown literals
+	* 	wat niet wordt afgeleid is certainly false
+	* 	kijk of full fixpoint reached, anders begin opnieuw
+	*/
+	while(!wffixpoint) {
+		wffixpoint = true;
+
+		initializeCounters();
+		forwardPropagate(true);
+		if(wfmarkedAtoms.empty()){
+			return true;
+		}
+		overestimateCounters();
+		forwardPropagate(false);
+		removeMarks();
+		if(wfmarkedAtoms.empty()){
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void IDSolver::mark(Lit l) {
+   wfisMarked[toInt(l)] = true;
+   wfmarkedAtoms.insert(l);
+}
+
+void IDSolver::markUpward() {
+	for(vector<int>::size_type n = 0; n < wfmixedCycleRoots.size(); ++n) {
+		Var temp = wfmixedCycleRoots[n];
+		Lit root = Lit(temp, temp<0);
+		wfqueuePropagate.push(root);
+		mark(root);
+	}
+
+	while(!wfqueuePropagate.empty()) {
+		Lit l = wfqueuePropagate.front();
+		wfqueuePropagate.pop();
+
+		assert(value(l)==l_False);
+
+		// true conjuntions with ~defLitp in the body
+		for(int i=0; i<conj_occurs[toInt(l)].size(); i++){
+			Var head = conj_occurs[toInt(l)][i];
+			if(value(head)==l_True){
+				if(!wfisMarked[head]) {
+					wfqueuePropagate.push(Lit(head, false));
+					mark(Lit(head, false));
+				}
+			}
+		}
+
+		// true disjunctions and false conjunctions where l is the direct justification watch
+		for(int i=0; i<disj_occurs[toInt(l)].size(); i++){
+			Var head = disj_occurs[toInt(l)][i];
+			Lit just = cf_justification_disj[head];
+			if(value(head)==l_True && just==l){
+				Lit h = Lit(head, true);	//FIXME dit steunt eigenlijk allemaal op hoe het in de completion is opgeslagen, dus dit allemaal aanpassen
+				if(!wfisMarked[toInt(h)]) {
+					wfqueuePropagate.push(h);
+					mark(h);
+				}
+			}
+		}
+		for(int i=0; i<conj_occurs[toInt(l)].size(); i++){
+			Var head = conj_occurs[toInt(l)][i];
+			int f = 0; //there are no justifications for conjunctions, so take the first false element encountered.
+			for(; f<definition[head]->size(); f++){
+				Lit just = definition[head]->operator [](f);
+				if(value(just)==l_False){
+					break;
+				}
+			}
+			if(f==definition[head]->size()){
+				continue;
+			}
+			Lit just = definition[head]->operator [](f);
+			if(just==l){
+				Lit h = Lit(head, true);
+				if(!wfisMarked[toInt(h)]) {
+					wfqueuePropagate.push(h);
+					mark(h);
+				}
+			}
+		}
+		// false disjunctions with defLitp in the body
+		for(int i=0; i<disj_occurs[toInt(l)].size(); i++){
+			Var head = disj_occurs[toInt(l)][i];
+			if(value(head)==l_False){
+				if(!wfisMarked[head]) {
+					wfqueuePropagate.push(Lit(head, false));
+					mark(Lit(head, false));
+				}
+			}
+		}
+	}
+}
+
+/**
+ * Visit the heads of all rules and check the current justification for loops with mixed signs (because of standard propagation,
+ * there are no other loops). The head is always positive, so pure negative loops are not possible.
+ */
+void IDSolver::findMixedCycles() {
+	for(int i=0; i<defdVars.size(); i++){
+		Var v = defdVars[i];
+		if(definition[v]->size()>0){
+			if(!wfvisited[v]){
+				visitWF(v, true);
+			}
+		}
+	}
+}
+
+/**
+ * NOTE: do not use the NONDEF type, because NONDEF only means there is no POSITIVE loop positive in the definition
+ */
+//FIXME currently no well founded model checking over aggregates
+void IDSolver::visitWF(Var v, bool pos) {
+	wfroot[v] = v;
+	wfvisited[v] = wfvisitNr;
+	wfvisitNr++;
+	wfstack.push(pos?v:-v);	//if the visit was through a negative literal, the negation of v is pushed
+
+	assert(defType[v]!=AGGR);
+
+	bool headtrue = value(Lit(v, false))==l_True;
+
+	//head is false and disj, or head is true and conj: use all body literals to check for justification
+	//value is false: use all body literals as justification if DISJ, only one if CONJ
+	if((headtrue && defType[v]==CONJ) || (!headtrue && defType[v]==DISJ)){
+		for(int i=0; i<definition[v]->size(); i++){
+			Lit l = definition[v]->operator [](i);
+			Var w = var(l);
+			if(definition[w]!=NULL){
+				if(wfvisited[w]==0){
+					visitWF(w, !sign(l));
+				}
+				if(wfvisited[w]>0 && wfvisited[w]<wfvisited[v]){ //not in component and visited earlier
+					wfroot[v] = wfroot[w];
+				}
+			}
+		}
+	}else{//head is true and DISJ or head is false and CONJ: for DISJ, just check its one justification
+			// for a CONJ, randomly check one of the false literals. If there is no loop through it, problem solved.
+			//			If there is, it will be found later if another false literal exists without a mixed loop.
+		if(defType[v]==CONJ){
+			for(int i=0; i<definition[v]->size(); i++){
+				Lit l = definition[v]->operator [](i);
+				Var w = var(l);
+				if(definition[w]!=NULL && value(l)==l_True){ //l_True because body literals have inverted sign in conj
+					for(int z=0; z<wfvisited.size(); z++){
+						reportf("%d ", wfvisited[z]);
+					}
+					reportf(", and checking for %d\n", w);
+					if(wfvisited[w]==0){
+						visitWF(w, !sign(l));
+					}
+					if(wfvisited[w]>0 && wfvisited[w]<wfvisited[v]){ //not in component and visited earlier
+						wfroot[v] = wfroot[w];
+					}
+					break;
+				}
+			}
+		}else{
+			Lit l = cf_justification_disj[v];
+			Var w = var(l);
+			if(definition[w]!=NULL){
+				if(wfvisited[w]==0){
+					visitWF(w, !sign(l));
+				}
+				if(wfvisited[w]>0 && wfvisited[w]<wfvisited[v]){ //not in component and visited earlier
+					wfroot[v] = wfroot[w];
+				}
+			}
+		}
+	}
+
+	if(wfroot[v] == v) {
+		bool mixedComponent = false;
+		int w = 0;
+
+		while(v != w) {
+			w = wfstack.top();
+			wfstack.pop();
+			wfvisited[w] = -1; // -1 indicates that the atom is in a component.
+			if(  (v < 0 && w > 0) || (v > 0 && w < 0) ){ // v and w have a different sign.
+				mixedComponent = true;
+			}
+		}
+		if(mixedComponent){
+			wfmixedCycleRoots.push_back(v);
+		}
+	}
+}
+
+/**
+ * Initializes the body counter of the rules on the number of marked atoms. If any atom is false, it is pushed on the queue
+ */
+void IDSolver::initializeCounters() {
+	for(set<Lit>::iterator i=wfmarkedAtoms.begin(); i!=wfmarkedAtoms.end(); i++){
+		int n=0;
+		Var v = var(*i);
+		for(int j=0; j<definition[v]->size(); j++){
+			Lit bl = definition[v]->operator [](j);
+			if(wfisMarked[var(bl)]){
+				n++;
+			}else if((defType[v]==DISJ && value(bl)==l_False) || (defType[v]==CONJ && value(bl)==l_True)) {
+				wfqueuePropagate.push(bl);
+				break;
+			}
+		}
+		wfcounters[v] = n;
+	}
+}
+
+void IDSolver::forwardPropagate(bool removemarks) {
+	while(!wfqueuePropagate.empty()) {
+		Lit l = wfqueuePropagate.front();
+		wfqueuePropagate.pop();
+
+		if(!wfisMarked[var(l)]){
+			continue;
+		}
+
+		wfisMarked[var(l)] = false;
+		if(removemarks) {
+			wfmarkedAtoms.erase(l);
+			wffixpoint = false;
+		}
+
+		assert(value(l)==l_False);
+
+		//update head counters when the LITERAL occurs in the body -> substract one because literal became false
+		for(int i=0; i<disj_occurs[toInt(l)].size(); i++){
+			Var head = disj_occurs[toInt(l)][i];
+			if(--wfcounters[head]==0){
+				wfqueuePropagate.push(Lit(head, false));
+			}
+		}
+		for(int i=0; i<conj_occurs[toInt(l)].size(); i++){
+			Var head = conj_occurs[toInt(l)][i];
+			if(--wfcounters[head]==0){
+				wfqueuePropagate.push(Lit(head, false));
+			}
+		}
+
+		l = ~l;
+		//-l became true, so if a head of a rule in which -l is a body literal is marked, push its negation on the queue and set the counter to 0
+		for(int i=0; i<disj_occurs[toInt(l)].size(); i++){
+			Var head = disj_occurs[toInt(l)][i];
+			if(wfisMarked[head]) {
+				wfqueuePropagate.push(Lit(head, true));
+				wfcounters[head] = 0;
+			}
+		}
+		for(int i=0; i<conj_occurs[toInt(l)].size(); i++){
+			Var head = conj_occurs[toInt(l)][i];
+			if(wfisMarked[head]) {
+				wfqueuePropagate.push(Lit(head, true));
+				wfcounters[head] = 0;
+			}
+		}
+	}
+}
+
+
+void IDSolver::overestimateCounters() {
+	for(set<Lit>::iterator i=wfmarkedAtoms.begin(); i!=wfmarkedAtoms.end(); i++){
+		Lit markedl = *i;
+		assert(wfcounters[toInt(markedl)] > 0);
+
+		if(defType[var(markedl)]==CONJ) {
+			for(int j=0; j<definition[var(markedl)]->size(); j++) {
+				Lit bl = definition[var(markedl)]->operator [](j);
+				if(wfcounters[toInt(bl)]!=0 && !sign(bl)) {
+					if((--wfcounters[toInt(markedl)])==0){
+						wfqueuePropagate.push(markedl);
+					}
+				}
+			}
+		}else {
+			for(int j=0; j<definition[var(markedl)]->size(); j++) {
+				Lit bl = definition[var(markedl)]->operator [](j);
+				if(wfcounters[toInt(bl)]!=0 && sign(bl)) {
+					wfqueuePropagate.push(markedl);
+					wfcounters[toInt(markedl)] = 0;
+				}
+			}
+		}
+	}
+}
+
+/**
+ * Removes all elements from the marked stack that are already marked and removes their mark
+ * Sets all elements marked that are on the stack but not marked at the moment
+ */
+void IDSolver::removeMarks() {
+	stack<Lit> temp;
+	for(set<Lit>::iterator i=wfmarkedAtoms.begin(); i!=wfmarkedAtoms.end(); i++){
+		Lit markedl = *i;
+		if(wfisMarked[toInt(markedl)]) {
+			assert(sign(markedl));
+			temp.push(markedl);
+			wfisMarked[toInt(markedl)] = false;
+			wffixpoint = false;
+		}else {
+			wfisMarked[toInt(markedl)] = true;
+		}
+	}
+	while(!temp.empty()) {
+		wfmarkedAtoms.erase(temp.top());
+		temp.pop();
+	}
 }
 
 
