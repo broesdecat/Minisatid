@@ -295,7 +295,7 @@ inline bool IDSolver::isFalse(Var v)			{ return value(v)==l_False; }
 inline bool IDSolver::isUnknown(Lit l)			{ return value(l)==l_Undef; }
 inline bool IDSolver::isUnknown(Var v)			{ return value(v)==l_Undef; }
 inline bool IDSolver::canBecomeTrue(Lit l)		{ return value(l)!=l_False; }
-inline bool IDSolver::inSameSCC(Var x, Var y) 	{ return scc[x] == scc[y]; }
+inline bool IDSolver::inSameSCC(Var x, Var y) 	{ return scc[x] == scc[y] && scc[x]!=-1; }	//-1 indicates not defined
 
 inline DefType IDSolver::getDefType(Var v)		{ return defType[v]; }
 inline bool IDSolver::isDefInPosGraph(Var v)	{ return isDefined(v) && getDefType(v)!=NONDEFPOS; }

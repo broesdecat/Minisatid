@@ -68,7 +68,7 @@ bool IDSolver::simplify(){
 			nb_body_lits_to_justify[v] = 1;
 			break;
 		case CONJ:
-			nb_body_lits_to_justify[v] = definition[v]->size() - 1;
+			nb_body_lits_to_justify[v] = definition[v]->size();
 			break;
 		case AGGR:
 			nb_body_lits_to_justify[v] = 1;
@@ -86,7 +86,7 @@ bool IDSolver::simplify(){
 		}
 	}
 	for (int i = 0; i < nVars(); ++i){
-		if (!isDefInPosGraph(i) && !isTrue(i)){
+		if (!isDefInPosGraph(i) && !isFalse(i)){
 			propq.insert(Lit(i, false)); // Then all non-false non-defined positive literals.
 		}
 	}
@@ -181,7 +181,9 @@ bool IDSolver::simplify(){
 
 	if (atoms_in_pos_loops == 0 && !neglooppossible){
 		solver->setIDSolver(NULL);
-		aggsolver->setIDSolver(NULL);
+		if(aggsolver!=NULL){
+			aggsolver->setIDSolver(NULL);
+		}
 		if (verbosity >= 1){
 			reportf("| All recursive atoms falsified in initializations.                           |\n");
 		}
@@ -207,10 +209,14 @@ bool IDSolver::setTypeIfNoPosLoops(Var v){
 	}else{
 		delete definition[v];
 		definition[v] = NULL;
+		defType[v] = NONDEFALL;
 	}
 	return found;
 }
 
+/**
+ * FIXME: logically, this is called for EVERY variable. Currently, that would go miserably wrong.
+ */
 void IDSolver::notifyVarAdded(){
 	seen.push(0);
 	seen2.push(0);
@@ -249,6 +255,8 @@ void IDSolver::addRule(bool conj, vec<Lit>& ps) {
 
 		Rule* r = new Rule(ps, conj);
 		defdVars.push(var(ps[0]));
+		defType.growTo(nVars(), NONDEFALL);
+		defType[var(ps[0])]=conj?CONJ:DISJ;
 		definition[var(ps[0])] = r;
 
 		//create completions
@@ -278,6 +286,8 @@ void IDSolver::addRule(bool conj, vec<Lit>& ps) {
 
 // Using the vector "defdVars", initialize all other SAT(ID) additional data structures.
 bool IDSolver::finishECNF_DataStructures() {
+	defType.growTo(nVars(), NONDEFALL);
+
 	init = false;
 
 	if (verbosity >= 1){
@@ -285,7 +295,7 @@ bool IDSolver::finishECNF_DataStructures() {
 	}
 
 	// ****** Based on this, initialize "scc". ******
-	scc.growTo(nVars(), 0);
+	scc.growTo(nVars(), -1);
 	//for memory efficiency, the scc datastructure is used to keep the root of the nodes
 	//in the end, the algorithm sets ALL of the nodes on the stack to the same root
 	//so then the SCC is correct
@@ -343,7 +353,7 @@ bool IDSolver::finishECNF_DataStructures() {
 				vec<Lit> lits;
 				aggsolver->getLiteralsOfAggr(v, lits);
 				for (int j = 0; !isdefd && j < lits.size(); ++j){
-					if (scc[v] == scc[var(lits[j])]){ // NOTE: disregard sign here: set literals can occur both pos and neg in justifications. This could possibly be made more precise for MIN and MAX...
+					if (inSameSCC(v, var(lits[j]))){ // NOTE: disregard sign here: set literals can occur both pos and neg in justifications. This could possibly be made more precise for MIN and MAX...
 						isdefd = true;
 					}
 				}
@@ -1121,10 +1131,13 @@ bool IDSolver::isCycleFree() {
             justified.push(Lit(i,false));
         } else {
             ++cnt_nonjustified;
-            isfree.push(getDefType(i)==CONJ ? (definition[i]->size()-1) : 1);
+            isfree.push(getDefType(i)==CONJ ? definition[i]->size() : 1);
         }
     }
-    assert(cnt_nonjustified>0);
+
+    if(cnt_nonjustified==0){
+    	return true;
+    }
 
     int idx=0;
     while (cnt_nonjustified>0 && idx<justified.size()) {
@@ -1177,7 +1190,7 @@ bool IDSolver::isCycleFree() {
                         Rule& c = *definition[v];
                         for (int j=0; j<c.size(); j++) {
                             Var vj = var(c[j]);
-                            if (c[j]!=c.getHeadLiteral() && !isPositive(c[j]) && (isfree[vj]!=0 || printed[vj])) {
+                            if (c[j]!=c.getHeadLiteral() && isPositive(c[j]) && (isfree[vj]!=0 || printed[vj])) {
                                 reportf(" %d",vj+1);
                                 if (!printed[vj]){
                                 	cycle.push(vj);
@@ -1203,9 +1216,7 @@ bool IDSolver::isCycleFree() {
  ****************************/
 
 /**
- * FIXME het onderstaande is momenteel niet te implementeren, omdat het steunt op een juiste versie van de datastructuren
- * defType en definition, maar het probleem is dat die zijn opgesteld in functie van loops in de POSITIEVE dependency
- * graph, dus wat hier nu uitkomt is nonsense
+ * FIXME
  */
 
 bool IDSolver::isWellFoundedModel() {
@@ -1359,7 +1370,7 @@ void IDSolver::visitWF(Var v, bool pos) {
 	//head is false and disj, or head is true and conj: use all body literals to check for justification
 	//value is false: use all body literals as justification if DISJ, only one if CONJ
 	if((headtrue && getDefType(v)==CONJ) || (!headtrue && getDefType(v)==DISJ)){
-		for(int i=0; i<definition[v]->size(); i++){
+		for(int i=0; i<definition[v]->size(); i++){ //FIXME HEAD IS NO LONGER IN THE SAME LIST
 			Lit l = definition[v]->operator [](i);
 			Var w = var(l);
 			if(definition[w]!=NULL){
@@ -1879,97 +1890,3 @@ UFS IDSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<V
 //		}
 //	}
 //}
-//
-////makes each literal (or its negation) that has recently been assigned into a cycle source if it occurs in a disjunctive rule
-//void IDSolver::findCycleSources() {
-//	clearCycleSources();
-//	clear_changes();
-//
-//	//ADDED LAST PART FOR CONSISTENCY
-//	if (prev_conflicts == solver->conflicts && defn_strategy == always && solver->decisionLevel()!=0) {
-//		for(int i=0; i<solver->getNbOfRecentAssignments(); i++){
-//			Lit x = solver->getRecentAssignments(i);
-//			if(value(x)==l_True){
-//				x = ~x;
-//			}
-//			for(int j=0; j<disj_occurs[toInt(x)].size(); j++) {
-//				Var v = disj_occurs[toInt(x)][j];
-//				if(defType[v]==CONJ || defType[v]==DISJ || defType[v]==AGGR){
-//					addCycleSource(v);
-//				}
-//			}
-//		}
-//	} else {
-//		for(int i=0; i<solver->getNbOfRecentAssignments(); i++){
-//			Lit x = solver->getRecentAssignments(i);
-//			if(value(x)==l_True){
-//				x = ~x;
-//			}
-//			for(int j=0; j<disj_occurs[toInt(x)].size(); j++) {
-//				Var v = disj_occurs[toInt(x)][j];
-//				if(defType[v]==CONJ || defType[v]==DISJ || defType[v]==AGGR){
-//					addCycleSource(v);
-//				}
-//			}
-//		}
-//	}
-//}
-
-
-/* Code that maarten already commented. No idea what it does.
- (@&) if there is but one remaining non-false literal with weight <= ae.max, that literal has to be made true.
- Lit candidate; bool use_candidate=true;
- for (int u=0;confl==NULL && u<as.set.size();u++) {
- if (use_candidate && value(as.set[u].lit)!=l_False && as.set[u].weight<=ae.max) {
- if (candidate!=lit_Undef)
- use_candidate=false;
- else
- candidate=as.set[u].lit;
- }
- }
- if (use_candidate && candidate!=lit_Undef && value(candidate)==l_Undef)
- aggrEnqueue(candidate,new AggrReason(&ae,&as,POS));
-
- as.set[as.max].weight <= ae.max and there is but one non-false literal with weight < ae.min, that literal has to become true.
- if (as.max<=ae.max) {
- Lit candidate; bool use_candidate=true;
- for (int u=0;u<as.set.size();u++) {
- if (use_candidate && value(as.set[u].lit)!=l_False && as.set[u].weight<ae.min) {
- if (candidate!=lit_Undef)
- use_candidate=false;
- else
- candidate=as.set[u].lit;
- }
- }
- if (use_candidate && candidate!=lit_Undef && value(candidate)==l_Undef)
- aggrEnqueue(candidate,new AggrReason(&ae,&as,POS));
- }
-
- if there is but one remaining non-false literal with weight >= ae.min, that literal has to be made true.
- Lit candidate; bool use_candidate=true;
- for (int u=0;confl==NULL && u<as.set.size();u++) {
- if (use_candidate && value(as.set[u].lit)!=l_False && as.set[u].weight>=ae.min) {
- if (candidate!=lit_Undef)
- use_candidate=false;
- else
- candidate=as.set[u].lit;
- }
- }
- if (use_candidate && candidate!=lit_Undef && value(candidate)==l_Undef)
- aggrEnqueue(candidate,new AggrReason(&ae,&as,POS));
-
- as.set[as.max].weight <= ae.max and there is but one non-false literal with weight < ae.min, that literal has to become true.
- if (as.min>=ae.min) {
- Lit candidate; bool use_candidate=true;
- for (int u=0;u<as.set.size();u++) {
- if (use_candidate && value(as.set[u].lit)!=l_False && as.set[u].weight>ae.max) {
- if (candidate!=lit_Undef)
- use_candidate=false;
- else
- candidate=as.set[u].lit;
- }
- }
- if (use_candidate && candidate!=lit_Undef && value(candidate)==l_Undef)
- aggrEnqueue(candidate,new AggrReason(&ae,&as,POS));
- }
- */

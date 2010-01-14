@@ -1051,10 +1051,15 @@ bool Solver::solve(const vec<Lit>& assumps) {
 		status = search((int) nof_conflicts, (int) nof_learnts);
 		nof_conflicts *= restart_inc;
 		nof_learnts *= learntsize_inc;
-		if(tsolver!=NULL){
-			tsolver->isWellFoundedModel();
+		if(status==l_True && tsolver!=NULL){
+			bool wellfounded = tsolver->isWellFoundedModel();
+			if(verbosity>=1){
+				reportf("The model is %s.\n", wellfounded?"well-founded":"stable but not well-founded");
+			}
+			if(!wellfounded){
+				status=l_False;
+			}
 		}
-		// TODO: if ecnf_mode.def, then do final check for well-foundedness, using "defdVars", for situations like P <- ~Q, Q <- ~P.
 	}
 	learntsize_inc = (9 + learntsize_inc) / 10; // For multiple models, make sure the allowed number of learnt clauses doesn't increase too rapidly.
 
