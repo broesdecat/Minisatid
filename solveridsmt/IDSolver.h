@@ -32,13 +32,11 @@ class AggSolver;
 class Rule {
 private:
     vec<Lit> lits;
-    Var head;
-    DefType type;
 
 public:
-    Rule(vec<Lit>& ps, bool conj){
-    	conj? type=CONJ:type=DISJ;
-    	head = var(ps[0]);
+    const Var head;
+
+    Rule(vec<Lit>& ps, bool conj): head(var(ps[0])){
     	for(int i=1; i<ps.size(); i++){
     		lits.push(ps[i]);
     	}
@@ -47,8 +45,6 @@ public:
     int 	size() 	const	{ return lits.size(); }
     Lit 	getHeadLiteral() 	const	{ return Lit(head, false); }
     Lit 	operator [](int i) 	const	{ return lits[i]; }
-    DefType getType() 			const	{ return type; }
-    void 	setType(DefType t)			{ type = t; }
 };
 
 class IDSolver{
@@ -123,17 +119,19 @@ protected:
 
 	// ECNF_mode.def additions to Solver state:
 	//
-	vec<Var>		defdVars;	// May include variables that get marked NONDEF later.
+	vec<Var>		defdVars;	// All the vars that are the head of some kind of definition (disj, conj or aggr). Allows to iterate over all definitions.
 	vec<Rule*>		definition;	// If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
 	// Note that v occurs negatively if DISJ, positively if CONJ; and the reverse for the body literals.
 	// NOTE: If defType[v]==NONDEF, it may be that v is defined, but that no positive loop can exist. It SHOULD NOT be deleted then
 	//		because it will be used for WELLFOUNDED model checking later on.
 	//	of the completion of that rule, which was just not deleted, but wont be used any more
+	vec<DefType>	defType;	// Gives the type of definition for each VAR
 	vec<int>		scc;		// To which strongly connected component does the atom belong. Zero iff defType[v]==NONDEF.
 
 	DefType 	getDefType(Var v);
 	bool		isDefInPosGraph(Var v);
-	void		setTypeIfNoPosLoops(Var v);
+	bool		isDefined(Var v);
+	bool		setTypeIfNoPosLoops(Var v);
 
 	// Rules (body to head):
 	vec<vec<Var> >  disj_occurs;         // Per literal: a vector of heads of DISJ rules in which it is a body literal.
@@ -159,11 +157,10 @@ protected:
 	void	change_jstfc_aggr  (Var v, const vec<Lit>& j);        // Change sp_justification of AGGR atom v to j.
 
 	// Cycle source methods:
-	void	addCycleSource     (Var v);
-	void	clearCycleSources  ();
-	void	findCycleSources   ();                                // Starting from cf_justification, creates a supporting justification in sp_justification, and records the changed atoms in 'cycle sources'.
-	void	findCycleSources   (Var v);                           // Auxiliary for findCycleSources(): v is non-false and its cf_justification does not support it.
-	void	cycleSourceDisj		(Var v, Lit just, bool becamecyclesource);
+	void	addCycleSource		(Var v);
+	void	clearCycleSources	();
+	void	findCycleSources	();                                // Starting from cf_justification, creates a supporting justification in sp_justification, and records the changed atoms in 'cycle sources'.
+	void	justify				(Var v);
 
 
 	// Propagation method:
@@ -181,21 +178,22 @@ protected:
 
 	//UFS 	visitForUFSgeneral	(Var v, Var cs, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited, vec<bool>& incomp);
 
-	UFS 	visitForUFSsimple	(Var v, std::set<Var>& ufs, int& visittime, vec<Var>& stack, vec<Var>& visited, vec<vec<Lit> >& network, vec<Var>& tempseen);
-	void 	changeJustifications(Var definednode, Lit firstjustification, vec<vec<Lit> >& network, vec<int>& visited); //changes the justifications of the tarjan algorithm
+	UFS 	visitForUFSsimple	(Var v, std::set<Var>& ufs, int& visittime, vec<Var>& stack, vec<Var>& visited, vec<vec<Lit> >& network);
+	void 	changeJustificationsTarjan(Var definednode, Lit firstjustification, vec<vec<Lit> >& network, vec<int>& visited); //changes the justifications of the tarjan algorithm
 
-	bool	visitedEarlier(Var x, Var y, vec<Var>& visitedandjust);
-	bool	visited(Var x, vec<Var>& visitedandjust);
-	int		visitedAt(Var x, vec<Var>& visitedandjust);
-	bool	hasJustification(Var x, vec<Var>& visitedandjust);
+	bool	visitedEarlierTarjan(Var x, Var y, vec<Var>& visitedandjust);
+	bool	visitedTarjan(Var x, vec<Var>& visitedandjust);
+	int		visitedAtTarjan(Var x, vec<Var>& visitedandjust);
+	bool	hasJustificationTarjan(Var x, vec<Var>& visitedandjust);
 
 	void	markNonJustified   			(Var cs, vec<Var>& tmpseen);                           // Auxiliary for 'unfounded(..)'. Marks all ancestors of 'cs' in sp_justification as 'seen'.
 	void	markNonJustifiedAddVar		(Var v, Var cs, Queue<Var> &q, vec<Var>& tmpseen);
 	void	markNonJustifiedAddParents	(Var x, Var cs, Queue<Var> &q, vec<Var>& tmpseen);
 	bool	directlyJustifiable			(Var v, std::set<Var>& ufs, Queue<Var>& q);            // Auxiliary for 'unfounded(..)'. True if v can be immediately justified by one change_jstfc action.
+	bool	isJustified					(Lit x);
 	bool	isJustified					(Var x);
-	bool	isPositiveBodyL				(Lit x);
-	bool	Justify            			(Var v, Var cs, std::set<Var>& ufs, Queue<Var>& q);    // Auxiliary for 'unfounded(..)'. Propagate the fact that 'v' is now justified. True if 'cs' is now justified
+	bool	propagateJustified			(Var v, Var cs, std::set<Var>& ufs, Queue<Var>& q);    // Auxiliary for 'unfounded(..)'. Propagate the fact that 'v' is now justified. True if 'cs' is now justified
+	Clause* addLoopfClause				(Lit l, vec<Lit>& lits);
 
 	// Another propagation method (too expensive in practice):
 	// void     fwIndirectPropagate();
@@ -210,7 +208,17 @@ protected:
 	void     checkLiteralCount();
 	bool     isCycleFree      ();			// Verifies whether cf_justification is indeed cycle free, not used, for debugging purposes.
 
-	void 	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf);
+	void 	addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf);
+
+	inline bool isPositive(Lit l);
+	inline bool isTrue(Lit l);
+	inline bool isFalse(Lit l);
+	inline bool isUnknown(Lit l);
+	inline bool isTrue(Var l);
+	inline bool isFalse(Var l);
+	inline bool isUnknown(Var l);
+	inline bool canBecomeTrue(Lit l);
+	inline bool inSameSCC(Var x, Var y);
 
 	/*******************************
 	 * WELL FOUNDED MODEL CHECKING *
@@ -276,8 +284,22 @@ private:
 //=================================================================================================
 // Implementation of inline methods:
 
-inline void     IDSolver::addCycleSource(Var v)        { if (!isCS[v]) {isCS[v]=true; css.push(v);} }
-inline void     IDSolver::clearCycleSources()          { for (int i=0;i<css.size();i++) isCS[css[i]]=false; css.clear(); }
+inline void	IDSolver::addCycleSource(Var v)		{ if (!isCS[v]) {isCS[v]=true; css.push(v);} }
+inline void	IDSolver::clearCycleSources()		{ for (int i=0;i<css.size();i++) isCS[css[i]]=false; css.clear(); }
+
+inline bool IDSolver::isPositive(Lit l)			{ return !sign(l); }
+inline bool IDSolver::isTrue(Lit l)				{ return value(l)==l_True; }
+inline bool IDSolver::isTrue(Var v)				{ return value(v)==l_True; }
+inline bool IDSolver::isFalse(Lit l)			{ return value(l)==l_False; }
+inline bool IDSolver::isFalse(Var v)			{ return value(v)==l_False; }
+inline bool IDSolver::isUnknown(Lit l)			{ return value(l)==l_Undef; }
+inline bool IDSolver::isUnknown(Var v)			{ return value(v)==l_Undef; }
+inline bool IDSolver::canBecomeTrue(Lit l)		{ return value(l)!=l_False; }
+inline bool IDSolver::inSameSCC(Var x, Var y) 	{ return scc[x] == scc[y]; }
+
+inline DefType IDSolver::getDefType(Var v)		{ return defType[v]; }
+inline bool IDSolver::isDefInPosGraph(Var v)	{ return isDefined(v) && getDefType(v)!=NONDEFPOS; }
+inline bool	IDSolver::isDefined(Var v)			{ return getDefType(v)!=NONDEFALL; }
 
 /**
  * All these methods are used to allow branch prediction in SATsolver methods and to minimize the number of
