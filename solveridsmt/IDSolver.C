@@ -205,7 +205,7 @@ bool IDSolver::setTypeIfNoPosLoops(Var v){
 		}
 	}
 	if(found){
-		defType[v] = NONDEFPOS;
+		defType[v] = defType[v]==CONJ?NONDEFPOSCONJ:NONDEFPOSDISJ;
 	}else{
 		delete definition[v];
 		definition[v] = NULL;
@@ -1215,12 +1215,9 @@ bool IDSolver::isCycleFree() {
  * WELL FOUNDED MODEL CHECK *
  ****************************/
 
-/**
- * FIXME
- */
+//FIXME currently no well founded model checking over aggregates
 
 bool IDSolver::isWellFoundedModel() {
-	return true;
 	wfroot = vector<Var>(nVars(), 0);
 	wfvisited = vector<int>(nVars(), 0);
 	wfcounters = vector<int>(nVars(),0);
@@ -1228,7 +1225,18 @@ bool IDSolver::isWellFoundedModel() {
 	wfvisitNr = 1;
 
 	findMixedCycles();
-	if(wfmixedCycleRoots.empty()) return true;
+
+	if(verbosity>1){
+		reportf("general SCCs found");
+		for(vector<int>::size_type z=0; z<wfroot.size(); z++){
+			reportf("%d has root %d\n", z, wfroot[z]);
+		}
+		reportf("Mixedcycles are %s present: \n", wfmixedCycleRoots.empty()?"not":"possibly");
+	}
+
+	if(wfmixedCycleRoots.empty()){
+		return true;
+	}
 
 	markUpward();
 	wffixpoint = false;
@@ -1262,82 +1270,6 @@ bool IDSolver::isWellFoundedModel() {
 	return false;
 }
 
-void IDSolver::mark(Lit l) {
-   wfisMarked[toInt(l)] = true;
-   wfmarkedAtoms.insert(l);
-}
-
-void IDSolver::markUpward() {
-	for(vector<int>::size_type n = 0; n < wfmixedCycleRoots.size(); ++n) {
-		Var temp = wfmixedCycleRoots[n];
-		Lit root = Lit(temp, temp<0);
-		wfqueuePropagate.push(root);
-		mark(root);
-	}
-
-	while(!wfqueuePropagate.empty()) {
-		Lit l = wfqueuePropagate.front();
-		wfqueuePropagate.pop();
-
-		assert(value(l)==l_False);
-
-		// true conjuntions with ~defLitp in the body
-		for(int i=0; i<conj_occurs[toInt(l)].size(); i++){
-			Var head = conj_occurs[toInt(l)][i];
-			if(value(head)==l_True){
-				if(!wfisMarked[head]) {
-					wfqueuePropagate.push(Lit(head, false));
-					mark(Lit(head, false));
-				}
-			}
-		}
-
-		// true disjunctions and false conjunctions where l is the direct justification watch
-		for(int i=0; i<disj_occurs[toInt(l)].size(); i++){
-			Var head = disj_occurs[toInt(l)][i];
-			Lit just = cf_justification_disj[head];
-			if(value(head)==l_True && just==l){
-				Lit h = Lit(head, true);	//FIXME dit steunt eigenlijk allemaal op hoe het in de completion is opgeslagen, dus dit allemaal aanpassen
-				if(!wfisMarked[toInt(h)]) {
-					wfqueuePropagate.push(h);
-					mark(h);
-				}
-			}
-		}
-		for(int i=0; i<conj_occurs[toInt(l)].size(); i++){
-			Var head = conj_occurs[toInt(l)][i];
-			int f = 0; //there are no justifications for conjunctions, so take the first false element encountered.
-			for(; f<definition[head]->size(); f++){
-				Lit just = definition[head]->operator [](f);
-				if(value(just)==l_False){
-					break;
-				}
-			}
-			if(f==definition[head]->size()){
-				continue;
-			}
-			Lit just = definition[head]->operator [](f);
-			if(just==l){
-				Lit h = Lit(head, true);
-				if(!wfisMarked[toInt(h)]) {
-					wfqueuePropagate.push(h);
-					mark(h);
-				}
-			}
-		}
-		// false disjunctions with defLitp in the body
-		for(int i=0; i<disj_occurs[toInt(l)].size(); i++){
-			Var head = disj_occurs[toInt(l)][i];
-			if(value(head)==l_False){
-				if(!wfisMarked[head]) {
-					wfqueuePropagate.push(Lit(head, false));
-					mark(Lit(head, false));
-				}
-			}
-		}
-	}
-}
-
 /**
  * Visit the heads of all rules and check the current justification for loops with mixed signs (because of standard propagation,
  * there are no other loops). The head is always positive, so pure negative loops are not possible.
@@ -1345,7 +1277,7 @@ void IDSolver::markUpward() {
 void IDSolver::findMixedCycles() {
 	for(int i=0; i<defdVars.size(); i++){
 		Var v = defdVars[i];
-		if(definition[v]->size()>0){
+		if(isDefined(v)){
 			if(!wfvisited[v]){
 				visitWF(v, true);
 			}
@@ -1353,10 +1285,6 @@ void IDSolver::findMixedCycles() {
 	}
 }
 
-/**
- * NOTE: do not use the NONDEF type, because NONDEF only means there is no POSITIVE loop positive in the definition
- */
-//FIXME currently no well founded model checking over aggregates
 void IDSolver::visitWF(Var v, bool pos) {
 	wfroot[v] = v;
 	wfvisited[v] = wfvisitNr;
@@ -1367,35 +1295,31 @@ void IDSolver::visitWF(Var v, bool pos) {
 
 	bool headtrue = value(Lit(v, false))==l_True;
 
-	//head is false and disj, or head is true and conj: use all body literals to check for justification
-	//value is false: use all body literals as justification if DISJ, only one if CONJ
-	if((headtrue && getDefType(v)==CONJ) || (!headtrue && getDefType(v)==DISJ)){
-		for(int i=0; i<definition[v]->size(); i++){ //FIXME HEAD IS NO LONGER IN THE SAME LIST
+	//head is false and disj, or head is true and conj: all body literals are its justification
+	if((headtrue && isConjunctive(v)) || (!headtrue && isDisjunctive(v))){
+		for(int i=0; i<definition[v]->size(); i++){
 			Lit l = definition[v]->operator [](i);
 			Var w = var(l);
-			if(definition[w]!=NULL){
+			if(isDefined(w)){
 				if(wfvisited[w]==0){
-					visitWF(w, !sign(l));
+					visitWF(w, isPositive(l));
 				}
 				if(wfvisited[w]>0 && wfvisited[w]<wfvisited[v]){ //not in component and visited earlier
 					wfroot[v] = wfroot[w];
 				}
 			}
 		}
-	}else{//head is true and DISJ or head is false and CONJ: for DISJ, just check its one justification
-			// for a CONJ, randomly check one of the false literals. If there is no loop through it, problem solved.
+	}else{//head is true and DISJ or head is false and CONJ: one literal is needed for justification
+			// for DISJ, the justification is already known (cf_just)
+			// for a CONJ, randomly choose one of the false body literals. If there is no loop through it, then it is a good choice.
 			//			If there is, it will be found later if another false literal exists without a mixed loop.
-		if(getDefType(v)==CONJ){
+		if(isConjunctive(v)){
 			for(int i=0; i<definition[v]->size(); i++){
 				Lit l = definition[v]->operator [](i);
 				Var w = var(l);
-				if(definition[w]!=NULL && value(l)==l_True){ //l_True because body literals have inverted sign in conj
-					for(vector<int>::size_type z=0; z<wfvisited.size(); z++){
-						reportf("%d ", wfvisited[z]);
-					}
-					reportf(", and checking for %d\n", w);
+				if(isDefined(w) && isFalse(l)){
 					if(wfvisited[w]==0){
-						visitWF(w, !sign(l));
+						visitWF(w, isPositive(l));
 					}
 					if(wfvisited[w]>0 && wfvisited[w]<wfvisited[v]){ //not in component and visited earlier
 						wfroot[v] = wfroot[w];
@@ -1404,11 +1328,13 @@ void IDSolver::visitWF(Var v, bool pos) {
 				}
 			}
 		}else{
+			assert(isDisjunctive(v));
 			Lit l = cf_justification_disj[v];
 			Var w = var(l);
-			if(definition[w]!=NULL){
+			if(isDefined(w)){
+				assert(isTrue(w));
 				if(wfvisited[w]==0){
-					visitWF(w, !sign(l));
+					visitWF(w, isPositive(l));
 				}
 				if(wfvisited[w]>0 && wfvisited[w]<wfvisited[v]){ //not in component and visited earlier
 					wfroot[v] = wfroot[w];
@@ -1418,16 +1344,18 @@ void IDSolver::visitWF(Var v, bool pos) {
 	}
 
 	if(wfroot[v] == v) {
+		int w = -1;	//Var goes from ZERO to nVars-1
 		bool mixedComponent = false;
-		int w = 0;
 
 		while(v != w) {
 			w = wfstack.top();
 			wfstack.pop();
-			wfvisited[w] = -1; // -1 indicates that the atom is in a component.
-			if(  (v < 0 && w > 0) || (v > 0 && w < 0) ){ // v and w have a different sign.
-				mixedComponent = true;
+			if(w<0){
+				mixedComponent = mixedComponent || w<0; //if any body literal was encountered with a negative sign, there is certainly a mixed loop
+				w = -w;
 			}
+			wfroot[w]=v;
+			wfvisited[w] = -1; // -1 indicates that the atom is in a component.
 		}
 		if(mixedComponent){
 			wfmixedCycleRoots.push_back(v);
@@ -1436,35 +1364,133 @@ void IDSolver::visitWF(Var v, bool pos) {
 }
 
 /**
- * Initializes the body counter of the rules on the number of marked atoms. If any atom is false, it is pushed on the queue
+ * De markering geeft aan welke atomen nog UNKNOWN zijn, dus in de huidige iteratie nog niet konden worden
+ * afgeleid door de lower en upper bounds.
+ *
+ * Hoe de initiele bepalen: de cycle source is unknown. Alle heads die daarvan afhangen omdat het in de justification zit zijn unknown
+ *
+ * Dus vanaf nu markering voor VARS niet voor literals
  */
-void IDSolver::initializeCounters() {
-	for(set<Lit>::iterator i=wfmarkedAtoms.begin(); i!=wfmarkedAtoms.end(); i++){
-		int n=0;
-		Var v = var(*i);
-		for(int j=0; j<definition[v]->size(); j++){
-			Lit bl = definition[v]->operator [](j);
-			if(wfisMarked[var(bl)]){
-				n++;
-			}else if((getDefType(v)==DISJ && value(bl)==l_False) || (getDefType(v)==CONJ && value(bl)==l_True)) {
-				wfqueuePropagate.push(bl);
-				break;
-			}
-		}
-		wfcounters[v] = n;
+
+/**
+ * Marks the head of a rule
+ */
+void IDSolver::mark(Var h) {
+	Lit l = Lit(h, isFalse(h));	//holds the literal that has to be propagated, so has the model value
+	if(!wfisMarked[h]){
+		wfqueuePropagate.push(l);
+		wfisMarked[h] = true;
+		wfmarkedAtoms.insert(h);
 	}
 }
 
-void IDSolver::forwardPropagate(bool removemarks) {
+/**
+ * marks all literals that can be reached upwards from the cycle roots.
+ */
+void IDSolver::markUpward() {
+	for(vector<int>::size_type n = 0; n < wfmixedCycleRoots.size(); ++n) {
+		Var temp = wfmixedCycleRoots[n];
+		mark(temp);
+	}
+
 	while(!wfqueuePropagate.empty()) {
 		Lit l = wfqueuePropagate.front();
 		wfqueuePropagate.pop();
 
-		if(!wfisMarked[var(l)]){
+		//when here, l is the literal that has become true in the model
+
+		//false CONJ with -l as just, true CONJ with l in body
+		//just is taken as the first literal that is tested and is false in CONJ
+		for(int i=0; i<conj_occurs[toInt(l)].size(); i++){
+			Var head = conj_occurs[toInt(l)][i];
+			if(isTrue(head)){
+				mark(head);
+			}
+		}
+		for(int i=0; i<conj_occurs[toInt(~l)].size(); i++){
+			Var head = conj_occurs[toInt(~l)][i];
+			if(isFalse(head)){
+				mark(head);
+			}
+		}
+
+		//false DISJ with -l in body, true DISJ with l as just
+		for(int i=0; i<disj_occurs[toInt(l)].size(); i++){
+			Var head = disj_occurs[toInt(l)][i];
+			if(isTrue(head) && l==cf_justification_disj[head]){
+				mark(head);
+			}
+		}
+		for(int i=0; i<disj_occurs[toInt(~l)].size(); i++){
+			Var head = disj_occurs[toInt(~l)][i];
+			if(isFalse(head)){
+				mark(head);
+			}
+		}
+	}
+}
+
+/**
+ * Initializes the body counter of the rules on the number of marked body literals. True literals can immediately be propagated, so
+ * they are added to the queue.
+ *
+ * The CONJ counters count the number of literals still needed to make the CONJ true
+ * The DISJ counters count the number of literals still needed to make the DISJ false
+ */
+void IDSolver::initializeCounters() {
+	for(set<Var>::iterator i=wfmarkedAtoms.begin(); i!=wfmarkedAtoms.end(); i++){
+		Var v = *i;
+		wfcounters[v] = 0;
+		for(int j=0; j<definition[v]->size(); j++){
+			Lit bl = definition[v]->operator [](j);
+			if(wfisMarked[var(bl)]){
+				wfcounters[v]++;
+			}else{
+				if(isConjunctive(v) && isFalse(bl) && isFalse(v)){
+					wfqueuePropagate.push(bl);
+					break;
+				}else if(isDisjunctive(v) && isTrue(bl) && isTrue(v)) {
+					wfqueuePropagate.push(bl);
+					break;
+				}
+			}
+		}
+	}
+}
+
+/*
+ * TODO TODO: ik weet niet of het zo de bedoeling is, maar ik heb aangenomen dat marked aangeeft dat een atoom in de huidige iteratie
+ * nog unknown is. En de counter geven aan hoeveel er nog nodig zijn om de head respectievelijk true (conj) of false (disj) te maken
+ * Maar de rest moet nog omgeschreven worden in deze vorm.
+ *
+ * De propagate queue is dan een queue die bijhoudt of iets een waarde heeft gekregen (de waarde van het model dan) en dat dat gepropageerd
+ * moet worden
+ */
+
+
+/**
+ * Counters probably keep the number of literals needed to make it true for CONJ and the number of literals needed to make it false for DISJ!!!
+ */
+
+void IDSolver::forwardPropagate(bool removemarks) {
+	if(verbosity>1){
+		reportf("Before propagation\n");
+		for(set<Lit>::iterator i=wfmarkedAtoms.begin(); i!=wfmarkedAtoms.end(); i++){
+			Var v = var(*i);
+			reportf("atom %d, counter %d\n", v, wfcounters[v]);
+		}
+		reportf("\n");
+	}
+
+	while(!wfqueuePropagate.empty()) {
+		Lit l = wfqueuePropagate.front();
+		wfqueuePropagate.pop();
+
+		if(!wfisMarked[toInt(l)]){
 			continue;
 		}
 
-		wfisMarked[var(l)] = false;
+		wfisMarked[toInt(l)] = false;
 		if(removemarks) {
 			wfmarkedAtoms.erase(l);
 			wffixpoint = false;
@@ -1473,59 +1499,78 @@ void IDSolver::forwardPropagate(bool removemarks) {
 		assert(value(l)==l_False);
 
 		//update head counters when the LITERAL occurs in the body -> substract one because literal became false
+
+		//if DISJ and counter gets 0, then head will be false, so add false head to queue
 		for(int i=0; i<disj_occurs[toInt(l)].size(); i++){
 			Var head = disj_occurs[toInt(l)][i];
 			if(--wfcounters[head]==0){
-				wfqueuePropagate.push(Lit(head, false));
+				wfqueuePropagate.push(Lit(head, true));
 			}
 		}
+
+		//if CONJ and l became false, then head will be false, so add false head to queue
 		for(int i=0; i<conj_occurs[toInt(l)].size(); i++){
 			Var head = conj_occurs[toInt(l)][i];
-			if(--wfcounters[head]==0){
-				wfqueuePropagate.push(Lit(head, false));
+			if(wfisMarked[toInt(Lit(head, false))]) {
+				wfqueuePropagate.push(Lit(head, true));
+				wfcounters[head] = 0;
 			}
 		}
 
 		l = ~l;
 		//-l became true, so if a head of a rule in which -l is a body literal is marked, push its negation on the queue and set the counter to 0
+
+		//if DISJ and l became true, then head will be true, so add true head to queue
 		for(int i=0; i<disj_occurs[toInt(l)].size(); i++){
 			Var head = disj_occurs[toInt(l)][i];
-			if(wfisMarked[head]) {
-				wfqueuePropagate.push(Lit(head, true));
+			if(wfisMarked[toInt(Lit(head, false))]) {
+				wfqueuePropagate.push(Lit(head, false));
 				wfcounters[head] = 0;
 			}
 		}
+
+		//if CONJ and counter gets 0, then head will be true, so add true head to queue
 		for(int i=0; i<conj_occurs[toInt(l)].size(); i++){
 			Var head = conj_occurs[toInt(l)][i];
-			if(wfisMarked[head]) {
-				wfqueuePropagate.push(Lit(head, true));
-				wfcounters[head] = 0;
+			if(--wfcounters[head]==0){
+				wfqueuePropagate.push(Lit(head, false));
 			}
 		}
 	}
+
+	if(verbosity>1){
+		reportf("Before propagation\n");
+		for(set<Lit>::iterator i=wfmarkedAtoms.begin(); i!=wfmarkedAtoms.end(); i++){
+			Var v = var(*i);
+			reportf("atom %d, counter %d\n", v, wfcounters[v]);
+		}
+		reportf("\n");
+	}
 }
 
-
+/**
+ * Overestimate by making all unknown literals true (positive literals with counter>0) and for them reduce their head counter
+ */
 void IDSolver::overestimateCounters() {
-	for(set<Lit>::iterator i=wfmarkedAtoms.begin(); i!=wfmarkedAtoms.end(); i++){
-		Lit markedl = *i;
-		assert(wfcounters[toInt(markedl)] > 0);
+	for(set<Var>::iterator i=wfmarkedAtoms.begin(); i!=wfmarkedAtoms.end(); i++){
+		Var v = *i;
+		assert(wfcounters[v] > 0);
 
-		if(getDefType(var(markedl))==CONJ) {
-			for(int j=0; j<definition[var(markedl)]->size(); j++) {
-				Lit bl = definition[var(markedl)]->operator [](j);
-				if(wfcounters[toInt(bl)]!=0 && !sign(bl)) {
-					if((--wfcounters[toInt(markedl)])==0){
-						wfqueuePropagate.push(markedl);
+		if(isConjunctive(v)) {
+			for(int j=0; j<definition[v]->size(); j++) {
+				Lit bl = definition[v]->operator [](j);
+				if(wfcounters[var(bl)]!=0 && isPositive(bl)) {
+					if((--wfcounters[v])==0){
+						wfqueuePropagate.push(Lit(v, isFalse(v)));
 					}
 				}
 			}
 		}else {
-			for(int j=0; j<definition[var(markedl)]->size(); j++) {
-				Lit bl = definition[var(markedl)]->operator [](j);
-				if(wfcounters[toInt(bl)]!=0 && sign(bl)) {
-					wfqueuePropagate.push(markedl);
-					wfcounters[toInt(markedl)] = 0;
+			for(int j=0; j<definition[v]->size(); j++) {
+				Lit bl = definition[v]->operator [](j);
+				if(wfcounters[var(bl)]!=0 && isPositive(bl)) {
+					wfqueuePropagate.push(Lit(v, isFalse(v)));
+					wfcounters[v] = 0;
 				}
 			}
 		}
@@ -1537,16 +1582,15 @@ void IDSolver::overestimateCounters() {
  * Sets all elements marked that are on the stack but not marked at the moment
  */
 void IDSolver::removeMarks() {
-	stack<Lit> temp;
-	for(set<Lit>::iterator i=wfmarkedAtoms.begin(); i!=wfmarkedAtoms.end(); i++){
-		Lit markedl = *i;
-		if(wfisMarked[toInt(markedl)]) {
-			assert(sign(markedl));
-			temp.push(markedl);
-			wfisMarked[toInt(markedl)] = false;
+	stack<Var> temp;
+	for(set<Var>::iterator i=wfmarkedAtoms.begin(); i!=wfmarkedAtoms.end(); i++){
+		Var v = *i;
+		if(wfisMarked[v]) {
+			temp.push(v);
+			wfisMarked[v] = false;
 			wffixpoint = false;
 		}else {
-			wfisMarked[toInt(markedl)] = true;
+			wfisMarked[v] = true;
 		}
 	}
 	while(!temp.empty()) {

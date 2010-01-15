@@ -23,7 +23,7 @@
  * If a variable is NONDEFPOS, a definition is associated with it, but there is not recursion through it in the POSITIVE dependency graph
  * 		but there might be recursion over negation (relevant for the well-founded model)
  */
-enum DefType {NONDEFALL, NONDEFPOS, DISJ, CONJ, AGGR};
+enum DefType {NONDEFALL, NONDEFPOSDISJ, NONDEFPOSCONJ, DISJ, CONJ, AGGR};
 enum UFS {NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK};
 
 class Solver;
@@ -131,6 +131,8 @@ protected:
 	DefType 	getDefType(Var v);
 	bool		isDefInPosGraph(Var v);
 	bool		isDefined(Var v);
+	bool 		isConjunctive(Var v);
+	bool 		isDisjunctive(Var v);
 	bool		setTypeIfNoPosLoops(Var v);
 
 	// Rules (body to head):
@@ -236,8 +238,8 @@ private:
     vector<int> wfcounters;
     int 		wfvisitNr;			//!< Counter for Tarjan's algorithm.
 
-    set<Lit> 		wfmarkedAtoms;	//!< The set of all literals that are marked.
-    vector<bool> 	wfisMarked;		//!< Vector to check whether a literal is marked.
+    set<Var> 		wfmarkedAtoms;	//!< The set of all literals that are marked.
+    vector<bool> 	wfisMarked;		//!< Vector to check whether an atom is marked (still unknown).
     queue<Lit> 		wfqueuePropagate;
     bool 			wffixpoint;
 
@@ -270,7 +272,7 @@ private:
 	/*!
 	 * \brief Mark a literal.
 	 */
-	void mark(Lit);
+	void mark(Var);
 	/*!
 	 * \brief For marked literal l, set _counters[l] to the number of marked bodyliterals in its body. When l is conj/disj, and contains an false/true unmarked bodyliteral, l is pushed on _queuePropagate.
 	 */
@@ -298,8 +300,10 @@ inline bool IDSolver::canBecomeTrue(Lit l)		{ return value(l)!=l_False; }
 inline bool IDSolver::inSameSCC(Var x, Var y) 	{ return scc[x] == scc[y] && scc[x]!=-1; }	//-1 indicates not defined
 
 inline DefType IDSolver::getDefType(Var v)		{ return defType[v]; }
-inline bool IDSolver::isDefInPosGraph(Var v)	{ return isDefined(v) && getDefType(v)!=NONDEFPOS; }
+inline bool IDSolver::isDefInPosGraph(Var v)	{ return isDefined(v) && getDefType(v)!=NONDEFPOSCONJ && getDefType(v)!=NONDEFPOSDISJ; }
 inline bool	IDSolver::isDefined(Var v)			{ return getDefType(v)!=NONDEFALL; }
+inline bool IDSolver::isConjunctive(Var v)		{ return getDefType(v)==CONJ || getDefType(v)==NONDEFPOSCONJ; }
+inline bool IDSolver::isDisjunctive(Var v)		{ return getDefType(v)==DISJ || getDefType(v)==NONDEFPOSDISJ; }
 
 /**
  * All these methods are used to allow branch prediction in SATsolver methods and to minimize the number of
