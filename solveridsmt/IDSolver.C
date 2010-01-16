@@ -1446,21 +1446,22 @@ void IDSolver::initializeCounters() {
 			if(wfisMarked[var(bl)]){
 				wfcounters[v]++;
 			}else{
-				if(isConjunctive(v) && isFalse(bl) && isFalse(v)){
+				if(isConjunctive(v) && isFalse(v) && isFalse(bl)){ //one false atom justifies a false conjunction
 					wfqueuePropagate.push(bl);
 					break;
-				}else if(isDisjunctive(v) && isTrue(bl) && isTrue(v)) {
+				}else if(isDisjunctive(v) && isTrue(bl) && isTrue(v)) { //one true atom justified a true disjunction
 					wfqueuePropagate.push(bl);
 					break;
 				}
+				//in these cases, the counter itself does not matter, one body propagation will unmark the head.
 			}
 		}
 	}
 }
 
 /*
- * TODO TODO: ik weet niet of het zo de bedoeling is, maar ik heb aangenomen dat marked aangeeft dat een atoom in de huidige iteratie
- * nog unknown is. En de counter geven aan hoeveel er nog nodig zijn om de head respectievelijk true (conj) of false (disj) te maken
+ * marked geeft aan dat een atoom in de huidige iteratie nog unknown is. En de counter geven aan hoeveel er 
+ * nog nodig zijn om de head respectievelijk true (conj) of false (disj) te maken
  * Maar de rest moet nog omgeschreven worden in deze vorm.
  *
  * De propagate queue is dan een queue die bijhoudt of iets een waarde heeft gekregen (de waarde van het model dan) en dat dat gepropageerd
@@ -1475,8 +1476,8 @@ void IDSolver::initializeCounters() {
 void IDSolver::forwardPropagate(bool removemarks) {
 	if(verbosity>1){
 		reportf("Before propagation\n");
-		for(set<Lit>::iterator i=wfmarkedAtoms.begin(); i!=wfmarkedAtoms.end(); i++){
-			Var v = var(*i);
+		for(set<Var>::iterator i=wfmarkedAtoms.begin(); i!=wfmarkedAtoms.end(); i++){
+			Var v = *i;
 			reportf("atom %d, counter %d\n", v, wfcounters[v]);
 		}
 		reportf("\n");
@@ -1486,44 +1487,22 @@ void IDSolver::forwardPropagate(bool removemarks) {
 		Lit l = wfqueuePropagate.front();
 		wfqueuePropagate.pop();
 
-		if(!wfisMarked[toInt(l)]){
-			continue;
-		}
+		if(!wfisMarked[var(l)]){ continue;	}
+		wfisMarked[var(l)] = false;
 
-		wfisMarked[toInt(l)] = false;
 		if(removemarks) {
-			wfmarkedAtoms.erase(l);
+			wfmarkedAtoms.erase(var(l));
 			wffixpoint = false;
 		}
 
-		assert(value(l)==l_False);
+		assert(isTrue(l));
 
-		//update head counters when the LITERAL occurs in the body -> substract one because literal became false
-
-		//if DISJ and counter gets 0, then head will be false, so add false head to queue
-		for(int i=0; i<disj_occurs[toInt(l)].size(); i++){
-			Var head = disj_occurs[toInt(l)][i];
-			if(--wfcounters[head]==0){
-				wfqueuePropagate.push(Lit(head, true));
-			}
-		}
-
-		//if CONJ and l became false, then head will be false, so add false head to queue
-		for(int i=0; i<conj_occurs[toInt(l)].size(); i++){
-			Var head = conj_occurs[toInt(l)][i];
-			if(wfisMarked[toInt(Lit(head, false))]) {
-				wfqueuePropagate.push(Lit(head, true));
-				wfcounters[head] = 0;
-			}
-		}
-
-		l = ~l;
-		//-l became true, so if a head of a rule in which -l is a body literal is marked, push its negation on the queue and set the counter to 0
+		//l became true, so if a head of a rule in which l is a body literal is marked, push its negation on the queue and set the counter to 0
 
 		//if DISJ and l became true, then head will be true, so add true head to queue
 		for(int i=0; i<disj_occurs[toInt(l)].size(); i++){
 			Var head = disj_occurs[toInt(l)][i];
-			if(wfisMarked[toInt(Lit(head, false))]) {
+			if(wfisMarked[var(Lit(head, false))]) {
 				wfqueuePropagate.push(Lit(head, false));
 				wfcounters[head] = 0;
 			}
@@ -1536,12 +1515,34 @@ void IDSolver::forwardPropagate(bool removemarks) {
 				wfqueuePropagate.push(Lit(head, false));
 			}
 		}
+
+
+		l = ~l;
+
+		//update head counters when l occurs in the body -> substract one because literal became false
+
+		//if DISJ and counter gets 0, then head will be false, so add false head to queue
+		for(int i=0; i<disj_occurs[toInt(l)].size(); i++){
+			Var head = disj_occurs[toInt(l)][i];
+			if(--wfcounters[head]==0){
+				wfqueuePropagate.push(Lit(head, true));
+			}
+		}
+
+		//if CONJ and l became false, then head will be false, so add false head to queue
+		for(int i=0; i<conj_occurs[toInt(l)].size(); i++){
+			Var head = conj_occurs[toInt(l)][i];
+			if(wfisMarked[var(Lit(head, false))]) {
+				wfqueuePropagate.push(Lit(head, true));
+				wfcounters[head] = 0;
+			}
+		}
 	}
 
 	if(verbosity>1){
 		reportf("Before propagation\n");
-		for(set<Lit>::iterator i=wfmarkedAtoms.begin(); i!=wfmarkedAtoms.end(); i++){
-			Var v = var(*i);
+		for(set<Var>::iterator i=wfmarkedAtoms.begin(); i!=wfmarkedAtoms.end(); i++){
+			Var v = *i;
 			reportf("atom %d, counter %d\n", v, wfcounters[v]);
 		}
 		reportf("\n");
@@ -1561,7 +1562,7 @@ void IDSolver::overestimateCounters() {
 				Lit bl = definition[v]->operator [](j);
 				if(wfcounters[var(bl)]!=0 && isPositive(bl)) {
 					if((--wfcounters[v])==0){
-						wfqueuePropagate.push(Lit(v, isFalse(v)));
+						wfqueuePropagate.push(Lit(v, false)); //if the counter gets to zero when all unknowns are made true, then the head becomes true
 					}
 				}
 			}
@@ -1569,7 +1570,7 @@ void IDSolver::overestimateCounters() {
 			for(int j=0; j<definition[v]->size(); j++) {
 				Lit bl = definition[v]->operator [](j);
 				if(wfcounters[var(bl)]!=0 && isPositive(bl)) {
-					wfqueuePropagate.push(Lit(v, isFalse(v)));
+					wfqueuePropagate.push(Lit(v, false)); //if an unknown is made true, then the head becomes true
 					wfcounters[v] = 0;
 				}
 			}
