@@ -26,8 +26,6 @@
 // Constructor/Destructor:
 
 Solver::Solver() :
-	qhead(0),
-
 	// Parameters: (formerly in 'SearchParams')
 	var_decay(1 / 0.95),
 	clause_decay(1 / 0.999),
@@ -56,6 +54,8 @@ Solver::Solver() :
 	learnts_literals(0),
 	max_literals(0),
 	tot_literals(0),
+
+	qhead(0),
 
 	ok(true),
 	remove_satisfied(false),
@@ -170,7 +170,12 @@ bool Solver::addClause(vec<Lit>& ps) {
 		return ok = (propagate() == NULL);
 	} else {
 		Clause* c = Clause_new(ps, false);
-		addClause(c);
+		clauses.push(c);
+		attachClause(*c);
+		if(verbosity>=3){
+			reportf("Clause added: ");
+			printClause(*c);
+		}
 	}
 
 	return true;
@@ -183,15 +188,6 @@ void Solver::addLearnedClause(Clause* c){
 	claBumpActivity(*c);
 	if(verbosity>=3){
 		reportf("Learned clause added: ");
-		printClause(*c);
-	}
-}
-
-void Solver::addClause(Clause* c){
-	clauses.push(c);
-	attachClause(*c);
-	if(verbosity>=3){
-		reportf("Clause added: ");
 		printClause(*c);
 	}
 }
@@ -603,6 +599,9 @@ FoundWatch:;
         if(aggsolver!=NULL && confl == NULL){
         	confl = aggsolver->propagate(p);
         }
+        if(tsolver!=NULL && confl == NULL){
+			confl = tsolver->propagate(p);
+		}
 		if(qhead==trail.size() && confl==NULL && tsolver!=NULL){
 			confl = tsolver->propagateDefinitions();
 		}
@@ -871,6 +870,25 @@ void Solver::invalidateModel(const vec<Lit>& lits, int& init_qhead) {
 	claDecayActivity();
 }
 
+/////////////////////// START OF EXTENSIONS
+//FIXME HIER WAS IK BEZIG (en eigenlijk andere solver voorzien hiervoor?)
+void Solver::Subsetminimize(const vec<Lit>& lits) {
+	/*if (!ecnf_mode.mnmz)
+		reportf("ERROR! Attempt at adding a subset minimize statement, though ECNF specifiers did not contain \"mnmz\".\n"), exit(3);*/
+	if (lits.size() == 0) {
+		reportf("Error: The set of literals to be minimized is empty,\n");
+		exit(3);
+	}
+	if (to_minimize.size() != 0) {
+		reportf("At most one set of literals to be minimized can be given.\n");
+		exit(3);
+	}
+
+	for (int i = 0; i < lits.size(); i++){
+		to_minimize.push(lits[i]);
+	}
+}
+
 bool Solver::solve() {
 	if (!ok)
 		return false;
@@ -884,14 +902,11 @@ bool Solver::solve() {
 	}
 
 	try{
-
-	/////////////////////// START OF EXTENSIONS
 	//nodig voor minimize opdrachten, werken nu dus nog niet
 /*TEMP COMMENT	if (ecnf_mode.mnmz && to_minimize.size() == 0)
 		ecnf_mode.mnmz = false;
 	if (ecnf_mode.mnmz)
 		remove_satisfied = false;*/
-	/////////////////////// END OF EXTENSIONS
 
 	int init_qhead = qhead;
 	for (int n = nb_models; nb_models == 0 || n > 0; n--) {
@@ -899,21 +914,20 @@ bool Solver::solve() {
 		bool rslt = false;
 		vec<Lit> assmpt;
 		vec<Lit> learnt;
-		/////////////////////// START OF EXTENSIONS
-//TEMP COMMENT		if (!ecnf_mode.mnmz)
-			/////////////////////// END OF EXTENSIONS
-			rslt = solve(assmpt); // The standard: solve with empty assumptions.
-			/////////////////////// START OF EXTENSIONS
-/*TEMP COMMENT		else {
-			assumptions.clear();
 
+		if (true) //FIXME for minimize
+			rslt = solve(assmpt); // The standard: solve with empty assumptions.
+		else {
+			assumptions.clear();
 			vec<lbool> cp_model;
 			while (solve(assmpt)) {
 				if (verbosity >= 2) {
 					reportf("Found a (perhaps non-minimal) model: [");
-					for (int i = 0; i < model.size(); i++)
-						if (model[i] != l_Undef)
+					for (int i = 0; i < model.size(); i++){
+						if (model[i] != l_Undef){
 							reportf(" %s%d",(model[i]==l_True ? "":"-"), i+1);
+						}
+					}
 					reportf(" ]\n");
 					reportf("To minimize: [");
 					for (int i = 0; i < to_minimize.size(); i++) {
@@ -925,32 +939,37 @@ bool Solver::solve() {
 
 				// save the model that was just found
 				cp_model.clear();
-				for (int i = 0; i < model.size(); i++)
+				for (int i = 0; i < model.size(); i++){
 					cp_model.push(model[i]);
+				}
 				// create a new set of assumptions, and add a new learned clause, based on this model and on the mnmz set
 				assmpt.clear();
 				learnt.clear();
 				for (int i = 0; i < to_minimize.size(); i++) {
 					Lit li = ~to_minimize[i];
-					if (sign(li) == (cp_model[var(li)] == l_True))
+					if (sign(li) == (cp_model[var(li)] == l_True)){
 						learnt.push(li);
-					else
+					}else{
+						//dit is juist omdat het over SUBSET minimaliteit gaat. De cardinaliteit van de set is niet noodzakelijk minimaal.
 						assmpt.push(li);
+					}
 				}
 
-				if (learnt.size() > 0)
+				if (learnt.size() > 0){
 					invalidateModel(learnt, init_qhead);
-				else
-					break; // The found model is certainly already minimal.  NOTE: make sure no more attempts at finding new model are tried?
+				}else{
+					break; //the set is empty, so certainly minimal.
+				}
 			}
 			if (cp_model.size() > 0) {
 				model.clear();
-				for (int i = 0; i < cp_model.size(); i++)
+				for (int i = 0; i < cp_model.size(); i++){
 					model.push(cp_model[i]);
+				}
 				cp_model.clear();
 				rslt = true;
 			}
-		}*/
+		}
 		///////////////////////END OF EXTENSIONS
 
 		if (rslt) {
@@ -1016,11 +1035,13 @@ bool Solver::solve() {
 	}
 	backtrackTo(0);
 
-	if (res != NULL)
+	if (res != NULL){
 		fclose(res);
+	}
 
-	if (verbosity >= 1)
+	if (verbosity >= 1){
 		reportf("===============================================================================\n");
+	}
 
 	}catch(int x){
 		if(x==theoryUNSAT){

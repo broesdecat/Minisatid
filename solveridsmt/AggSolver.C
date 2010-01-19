@@ -20,10 +20,6 @@ AggrWatch& AggSolver::getWatchOfHeadOccurence(Var v){
 	return Aggr_watches[v][0];
 }
 
-vec<AggrWatch>& AggSolver::getWatches(Var v){
-	return Aggr_watches[v];
-}
-
 bool AggSolver::finishECNF_DataStructures() {
 	init = false;
 
@@ -228,7 +224,7 @@ Clause* AggSolver::getExplanation(Lit p) {
 	Clause* c = Clause_new(lits, true);
 	if (verbosity >= 2) {
 		reportf("Implicit reason clause for ");
-		printLit(p, !sign(p)); reportf(" : "); printClause(*c); reportf("\n");
+		printLit(p, !sign(p)); reportf(" : "); solver->printClause(*c); reportf("\n");
 	}
 
 	return c;
@@ -253,23 +249,6 @@ void AggSolver::doBacktrack(Lit l){
 		}
 	}
 }
-
-/*void TSolver::Subsetminimize(const vec<Lit>& lits) {
-	if (!ecnf_mode.mnmz)
-		reportf("ERROR! Attempt at adding a subset minimize statement, though ECNF specifiers did not contain \"mnmz\".\n"), exit(
-				3);
-	if (lits.size() == 0) {
-		reportf("Error: The set of literals to be minimized is empty,\n");
-		exit(3);
-	}
-	if (to_minimize.size() != 0) {
-		reportf("At most one set of literals to be minimized can be given.\n");
-		exit(3);
-	}
-
-	for (int i = 0; i < lits.size(); i++)
-		to_minimize.push(lits[i]);
-}*/
 
 /*****************
  * IDSOLVER PART *
@@ -384,14 +363,6 @@ bool AggSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q, ve
 
 inline void AggSolver::printLit(Lit l, lbool value) {
 	reportf("%s%d:%c", sign(l) ? "-" : "", var(l)+1, value == l_True ? '1' : (value == l_False ? '0' : 'X'));
-}
-
-template<class C>
-inline void AggSolver::printClause(const C& c) {
-	for (int i = 0; i < c.size(); i++) {
-		printLit(c[i], !sign(c[i]));
-		fprintf(stderr, " ");
-	}
 }
 
 inline void AggSolver::printAggrExpr(const Agg& ae){

@@ -32,8 +32,6 @@ public:
 	/////////////////////IDSOLVER NECESSARY
 	void propagateJustifications(Var l, vec<vec<Lit> >& jstf, vec<Var>& v, vec<int> &nb_body_lits_to_justify);
 
-	//geeft de watch terug naar het aggregaat waarvan v de head is
-
 	void findCycleSourcesFromBody(Lit l);
 	void findCycleSourcesFromHead(Var l);
 
@@ -83,7 +81,6 @@ public:
 
 protected:
 	AggrWatch& 			getWatchOfHeadOccurence	(Var v);
-	vec<AggrWatch>& 	getWatches				(Var v);
 
 	// ECNF_mode.aggr additions to Solver state:
 	//
@@ -98,32 +95,20 @@ protected:
 	void 	doBacktrack(Lit l);
 	void 	backtrackOnePropagation(Agg& ae, Occurrence tp, int index);
 
-	int 	getCurrentMinimum(vec<WLit>& lits);
-	int 	getCurrentMaximum(vec<WLit>& lits);
-	int 	getMinimum(vec<WLit>& lits);
-	int 	getMaximum(vec<WLit>& lits);
-	int 	getSum(vec<WLit>& lits);
-	int 	getProduct(vec<WLit>& lits);
+	Solver*		solver;
+	IDSolver*	idsolver;
 
-	Solver* solver;
-	IDSolver* idsolver;
-
-	bool 	init;	//indicates whether still in initialization mode
-	bool 	empty; 	//indicates no amn statements are present, so always return from T call
+	bool		init;	//indicates whether still in initialization mode
+	bool		empty; 	//indicates no amn statements are present, so always return from T call
 
 	// NOTE: this adds an invariant to the system: each literal with a truth value is put on the trail only once.
 	Clause* Aggr_propagate		(Lit p);		// Perform propagations from aggregate expressions.
-
 	void 	findCycleSources	(AggrWatch& v);
-
 	int		nVars()      const;
 
 	// Debug:
-	void     printLit         (Lit l, lbool value);
-	template<class C>
-	void     printClause      (const C& c);
-	//void     printAggrSet     (const AggrSet& as);
-	void     printAggrExpr    (const Agg& ae);
+	void     printLit        (Lit l, lbool value);
+	void     printAggrExpr   (const Agg& ae);
 };
 
 //=======================

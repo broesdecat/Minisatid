@@ -62,8 +62,9 @@ static inline int memReadStat(int field)
     FILE*   in = fopen(name, "rb");
     if (in == NULL) return 0;
     int     value;
-    for (; field >= 0; field--)
-        fscanf(in, "%d", &value);
+    for (; field >= 0; field--){
+    	fscanf(in, "%d", &value);
+    }
     fclose(in);
     return value;
 }
@@ -86,7 +87,7 @@ class AggSolver;
 
 class Solver {
 public:
-	/////////////////////TSOLVER NECESSARY
+	/////SMT NECESSARY
 	IDSolver* 	tsolver;
 	void setIDSolver(IDSolver* ts){tsolver = ts;}
 	AMNSolver* 	amnsolver;
@@ -94,27 +95,35 @@ public:
 	AggSolver* 	aggsolver;
 	void setAggSolver(AggSolver* ts){aggsolver = ts;}
 
-    lbool   value      (Var x) const;       // The current value of a variable.
-    lbool   value      (Lit p) const;       // The current value of a literal.
-    int     nVars      ()      const;       // The current number of variables.
-	int 	getLevel(int var) 			const;
-	Lit 	getRecentAssignments(int i) const;
-	int 	getNbOfRecentAssignments() 	const;
-    int     decisionLevel()    const; 		// Gives the current decisionlevel.
+	lbool   value      (Var x) const;       // The current value of a variable.
+	lbool   value      (Lit p) const;       // The current value of a literal.
+	int     nVars      ()      const;       // The current number of variables.
 
     //VERY VERY IMPORTANT: THE FIRST LITERAL IN THE CLAUSE HAS TO BE THE ONE WHICH CAN BE PROPAGATED FROM THE REST!!!!!!!
-    void 	addLearnedClause(Clause* c);	//don't check anything, just add it to the clauses and bump activity
-    void 	addClause(Clause* c);			//don't check anything, just add it to the clauses
-    bool    addClause    (vec<Lit>& ps);                           // Add a clause to the solver. NOTE! 'ps' may be shrunk by this method!
+    void 	addLearnedClause(Clause* c);	// don't check anything, just add it to the clauses and bump activity
+    bool    addClause		(vec<Lit>& ps);	// Add a clause to the solver. NOTE! 'ps' may be shrunk by this method!
+    void    backtrackTo		(int level);	// Backtrack until a certain level.
+    void    setTrue			(Lit p, Clause* from = NULL);				// Enqueue a literal. Assumes value of literal is undefined
+    Var		newVar			(bool polarity = true, bool dvar = false);	// Add a new variable with parameters specifying variable mode.
+	/////END SMT NECESSARY
 
-    void    backtrackTo      (int level);						// Backtrack until a certain level.
-    void    setTrue (Lit p, Clause* from = NULL);		// Enqueue a literal. Assumes value of literal is undefined.
+	/////////////////////TSOLVER NECESSARY
+    /*
+     * Returns the decision level at which a variable was deduced. This allows to get the variable that was propagated earliest/latest
+     */
+	int 	getLevel(int var) 			const;
+
+	/**
+	 * Allows to loop over all assignments made in the current decision level.
+	 */
+	Lit 	getRecentAssignments(int i) const;
+	int 	getNbOfRecentAssignments() 	const;
+
     bool 	existsUnknownVar(); 								//true if the current assignment is completely two-valued
-    Var		newVar(bool polarity = true, bool dvar = false); 	// Add a new variable with parameters specifying variable mode.
-    void 	dontRemoveSatisfied();
 	/////////////////////END TSOLVER NECESSARY
 
     void finishParsing();
+    void Subsetminimize(const vec<Lit>& lits);
 
     // Constructor/Destructor:
     //
@@ -169,6 +178,7 @@ protected:
 
     void    invalidateModel(const vec<Lit>& lits, int& init_qhead);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
     bool    okay         () const;                  // FALSE means solver is in a conflicting state
+    int     decisionLevel()    const; 		// Gives the current decisionlevel.
 
     Clause* propagate        ();								// Perform unit propagation. Returns possibly conflicting clause.
 
@@ -263,6 +273,9 @@ protected:
     uint32_t abstractLevel    (Var x) const; // Used to represent an abstraction of sets of decision levels.
     double   progressEstimate ()      const; // DELETE THIS ?? IT'S NOT VERY USEFUL ...
 
+    //Mnmz additions
+    vec<Lit>            to_minimize;
+
     // Debug:
     void     verifyModel      ();
     void     checkLiteralCount();
@@ -329,9 +342,7 @@ inline bool     Solver::okay          ()      const   { return ok; }
 
 inline int		Solver::getLevel(int var)			const	{return level[var];}
 inline Lit	 	Solver::getRecentAssignments(int i) const	{return trail[i+trail_lim.last()];}
-inline int 		Solver::getNbOfRecentAssignments() 	const	{return trail.size()-trail_lim.last();}
-
-inline void		Solver::dontRemoveSatisfied()				{ remove_satisfied = false;}
+inline int 		Solver::getNbOfRecentAssignments() 	const	{return trail_lim.size()==0?0:trail.size()-trail_lim.last();}
 
 //=================================================================================================
 // Debug + etc:

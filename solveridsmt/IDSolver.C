@@ -147,8 +147,6 @@ bool IDSolver::simplify(){
 	 * Otherwise, it is checked (overestimation) whether a negative loop might be possible. If this is not the case, the definition is removed
 	 * from the data structures.
 	 */
-	bool neglooppossible = true;
-	vec<Var> reduceddefdVars;
 	for (int i = 0; i < defdVars.size(); i++) {
 		Var v = defdVars[i];
 		if (nb_body_lits_to_justify[v] > 0) {
@@ -161,25 +159,18 @@ bool IDSolver::simplify(){
 				solver->setTrue(p, NULL);
 			}
 
-			bool stilldefined = setTypeIfNoPosLoops(v);
-			neglooppossible = neglooppossible && stilldefined;
+			setTypeIfNoPosLoops(v);
 			--atoms_in_pos_loops;
-
-			if(stilldefined){
-				reduceddefdVars.push(v);
-			}
-		}else{
-			reduceddefdVars.push(v);
 		}
 	}
-	defdVars.clear();
-	reduceddefdVars.copyTo(defdVars);
 
 	if (verbosity >= 2){
 		reportf(" ]\n");
 	}
 
-	if (atoms_in_pos_loops == 0 && !neglooppossible){
+	//FIXME FIXME dit moet er terug in
+	//FIXME: maar simplify kan meerdere keren worden aangeroepen! Werkt dit dan sowieso nog wel?
+	/*if (atoms_in_pos_loops == 0){
 		solver->setIDSolver(NULL);
 		if(aggsolver!=NULL){
 			aggsolver->setIDSolver(NULL);
@@ -187,14 +178,14 @@ bool IDSolver::simplify(){
 		if (verbosity >= 1){
 			reportf("| All recursive atoms falsified in initializations.                           |\n");
 		}
-	}
+	}*/
 
 	return true;
 }
 
 
 /**
- * Checks whether v might become throught because of an atom that is a negative body literal and is also defined.
+ * Checks whether v might become true because of an atom that is a negative body literal and is also defined.
  */
 bool IDSolver::setTypeIfNoPosLoops(Var v){
 	bool found = false;
@@ -207,9 +198,13 @@ bool IDSolver::setTypeIfNoPosLoops(Var v){
 	if(found){
 		defType[v] = defType[v]==CONJ?NONDEFPOSCONJ:NONDEFPOSDISJ;
 	}else{
-		delete definition[v];
+		//FIXME dit mag niet: het kan zijn dat er een grote loop ontstaat als er 1 negatieve arc in zit
+		//dus eerst alles checken, en dan eventueel nog vanalles schrappen?
+		//FIXME FIXME TODO TODO idtests 11 werkt niet omdat hij afleidt dat er geen lussen kunnen zijn
+		/*delete definition[v];
 		definition[v] = NULL;
-		defType[v] = NONDEFALL;
+		defType[v] = NONDEFALL;*/
+		defType[v] = defType[v]==CONJ?NONDEFPOSCONJ:NONDEFPOSDISJ;
 	}
 	return found;
 }
@@ -281,43 +276,53 @@ void IDSolver::addRule(bool conj, vec<Lit>& ps) {
 	}
 }
 
-//=================================================================================================
-// SAT(ID) additional methods
-
-// Using the vector "defdVars", initialize all other SAT(ID) additional data structures.
+/*
+ * Using the vector "defdVars", initialize all other SAT(ID) additional data structures.
+ *
+ * @PRE: aggregates have to have been finished
+ */
+//FIXME eigenlijk is de oplossing om negatieve loops te chekcen door SCCs te zoeken in de volledige grafe en die dan te verfijnen naar de
+//positive dependency graph
 bool IDSolver::finishECNF_DataStructures() {
+	init = false;
 	defType.growTo(nVars(), NONDEFALL);
 
-	init = false;
+	if (verbosity >= 1){reportf("| Number of rules           : %6d                                          |\n",defdVars.size()); }
 
-	if (verbosity >= 1){
-		reportf("| Number of rules           : %6d                                          |\n",defdVars.size());
-	}
-
-	// ****** Based on this, initialize "scc". ******
+	// Initialize scc of full dependency graph
 	scc.growTo(nVars(), -1);
-	//for memory efficiency, the scc datastructure is used to keep the root of the nodes
-	//in the end, the algorithm sets ALL of the nodes on the stack to the same root
-	//so then the SCC is correct
-	vec<int> & root = scc;
 	vec<bool> incomp(nVars(), false);
 	vec<int> stack;
-	vec<int> visited(nVars(), 0); // =0 represents not visited; >0 corresponds to a unique value (the counter).
+	vec<int> visited(nVars(), 0); // =0 represents not visited; >0 corresponds to visited through a positive body literal, <0 through a negative body literal
+	vec<int> rootofmixed;
 	int counter = 1;
 
 	for (int i=0; i<nVars(); i++){
-		if (isDefInPosGraph(i) && visited[i]==0){
-			visit(i,root,incomp,stack,visited,counter);
+		if (visited[i]==0){
+			visitFull(i,scc,incomp,stack,visited,counter,true,rootofmixed);
 		}
 	}
 
-	// Based on "scc", determine which atoms should actually be considered defined. Meanwhile initialize "disj_occurs" and "conj_occurs".
+	//all var in rootofmixed are the roots of mixed loops. All other are no loops (size 1) or positive loops
+
+	// Initialize scc of positive dependency graph
+	//FIXME adapt from previous one (full dependency graph)
+	incomp.clear();	incomp.growTo(nVars(), false);
+	stack.clear();
+	visited.clear(); visited.growTo(nVars(), 0); // =0 represents not visited; >0 corresponds to a unique value (the counter).
+	counter = 1;
+
+	for (int i=0; i<rootofmixed.size(); i++){
+		if (isDefInPosGraph(rootofmixed[i]) && visited[rootofmixed[i]]==0){
+			visit(rootofmixed[i],scc,incomp,stack,visited,counter);
+		}
+	}
+
+	// Determine which literals should no longer be considered defined (according to the scc in the positive graph) + init occurs
 	atoms_in_pos_loops = 0;
 	disj_occurs.growTo(2 * nVars());
 	conj_occurs.growTo(2 * nVars());
-	Lit l, jstf;
-	bool neglooppossible = true;
-	vec<Var> reduceddefdVars;
+	Lit l;
 	for (int i = 0; i < defdVars.size(); ++i) {
 		Var v = defdVars[i];
 		bool isdefd = false;
@@ -363,34 +368,91 @@ bool IDSolver::finishECNF_DataStructures() {
 		default:
 			assert(false);
 		}
-
-		bool stilldefined = false;
 		if (isdefd){
 			atoms_in_pos_loops++;
-			stilldefined = true;
-		}else{
-			stilldefined = setTypeIfNoPosLoops(v);
-			neglooppossible = neglooppossible && stilldefined;
-		}
-		if(stilldefined){
-			reduceddefdVars.push(v);
 		}
 	}
-
-	defdVars.clear();
-	reduceddefdVars.copyTo(defdVars);
 
 	if (verbosity >= 1){
-		reportf("| Number of recursive atoms : %6d                                          |\n",(int)atoms_in_pos_loops);
+		reportf("| Number of recursive atoms in positive loops : %6d                        |\n",(int)atoms_in_pos_loops);
+		/*if(neglooppossible){
+			reportf("| Negative loop still possible                                             |\n");
+		}*/
 	}
 
-	if (atoms_in_pos_loops == 0 && !neglooppossible) {
+	if (atoms_in_pos_loops == 0 /*&& !neglooppossible*/) {
 		return false;
 	}
 
 	isCS.growTo(nVars(), false);
 
 	return true;
+}
+
+/**
+ * Executes the basic tarjan algorithm for finding strongly connected components (scc). It does this in the FULL dependency graph
+ * @pre: only call it on defined nodes that are not already in a found scc
+ * @post: root will be a partition that will be the exact partition of SCCs, by setting everything on the stack to the same root in the end
+ * @post: the scc will be denoted by the variable in the scc which was visited first
+ */
+void IDSolver::visitFull(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter, bool throughPositiveLit, vec<int>& rootofmixed) {
+	assert(!incomp[i]);
+	++counter;
+	visited[i] = throughPositiveLit?counter:-counter;
+	root[i] = i;
+	stack.push(i);
+
+	switch (getDefType(i)) {
+	case DISJ:
+	case CONJ:{
+		for (int j = 0; j < definition[i]->size(); ++j) {
+			Lit l = (*definition[i])[j];
+			int w = var(l);
+			if (visited[w]==0){
+				visitFull(w,root,incomp,stack,visited,counter,isPositive(l),rootofmixed);
+			}else if(!incomp[w] && !isPositive(l) && visited[i]>0){
+				visited[i] = -visited[i];
+			}
+			if (!incomp[w] && abs(visited[root[i]])>abs(visited[root[w]])){
+				root[i] = root[w];
+			}
+		}
+		break;
+	}
+	case AGGR: {
+		vec<Lit> lits;
+		aggsolver->getLiteralsOfAggr(i, lits);
+		for (int j = 0; j < lits.size(); ++j) {
+			Var w = var(lits[j]);
+			if (visited[w]==0){
+				visitFull(w,root,incomp,stack,visited,counter,isPositive(lits[j]), rootofmixed);
+			} else if(!incomp[w] && !isPositive(lits[j]) && visited[i]>0){
+				visited[i] = -visited[i];
+			}
+			if (!incomp[w] && abs(visited[root[i]])>abs(visited[root[w]])){
+				root[i] = root[w];
+			}
+		}
+		break;
+	}
+	default:
+		assert(false);
+	}
+
+	if (root[i] == i) {
+		bool mixed = false;
+		int w;
+		do {
+			w = stack.last();
+			stack.pop();
+			visited[w]<0?mixed=true:true;
+			root[w] = i; //these are the found sccs
+			incomp[w] = true;
+		} while (w != i);
+		if(mixed){
+			rootofmixed.push(i);
+		}
+	}
 }
 
 /**
@@ -557,7 +619,7 @@ void IDSolver::findCycleSources() {
 	clear_changes();
 
 	//TODO mag prevconflicts hier niet weg (of alleszins de -1 beginwaarde?)
-	if (prev_conflicts == solver->conflicts && defn_strategy == always && solver->decisionLevel()!=0) {
+	if (prev_conflicts == solver->conflicts && defn_strategy == always && solver->getNbOfRecentAssignments()>0) {
 		for(int i=0; i<solver->getNbOfRecentAssignments(); i++){
 			Lit l = solver->getRecentAssignments(i);
 
@@ -895,8 +957,9 @@ Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 		// Set the backtrack level.
 		int lvl = 0;
 		for (int i = 1; i < loopf.size(); i++){
-			if (solver->getLevel(var(loopf[i])) > lvl){
-				lvl = solver->getLevel(var(loopf[i]));
+			int litlevel = solver->getLevel(var(loopf[i]));
+			if (litlevel > lvl){
+				lvl = litlevel;
 			}
 		}
 		solver->backtrackTo(lvl);
@@ -1217,6 +1280,18 @@ bool IDSolver::isCycleFree() {
 
 //FIXME currently no well founded model checking over aggregates
 
+/**
+ * ALGORITHM (FIXME, is NOT implemented like this):
+ * after stable model generation, it is not certain that there are no MIXED loops.
+ * So the idea is to iterate until fixpoint to create a certainly true and a certainly false bound.
+ * Initialize counters for all unmarked literals (and queue those unmarked literals)
+ * Then first step: assume all positive body literals false: any counter that gets to 0 then allows to propagate the head as true) and
+ * iterate the marking until fixpoint (and propagate through pos and neg literals)
+ * Then second step, assume all negative body literals true: any counter that does not get to 0 can never be justified, so propagate the
+ * head as false.
+ * Keep doing this, each time replacing the respective body literals that have not yet been assigned, until fixpoint. Everything that is
+ * still not derived is UNKNOWN (3-valued model).
+ */
 bool IDSolver::isWellFoundedModel() {
 	wfroot = vector<Var>(nVars(), 0);
 	wfvisited = vector<int>(nVars(), 0);
@@ -1397,6 +1472,28 @@ void IDSolver::markUpward() {
 		Lit l = wfqueuePropagate.front();
 		wfqueuePropagate.pop();
 
+		//FIXME 1: temporarily adding all heads as marked
+		//FIXME 2: het is nu een algoritme uit den duim gezogen, eerst bewijzen dat er iets van correctheid in zit
+		for(int i=0; i<conj_occurs[toInt(l)].size(); i++){
+			Var head = conj_occurs[toInt(l)][i];
+			mark(head);
+		}
+		for(int i=0; i<conj_occurs[toInt(~l)].size(); i++){
+			Var head = conj_occurs[toInt(~l)][i];
+			mark(head);
+		}
+
+		//false DISJ with -l in body, true DISJ with l as just
+		for(int i=0; i<disj_occurs[toInt(l)].size(); i++){
+			Var head = disj_occurs[toInt(l)][i];
+			mark(head);
+		}
+		for(int i=0; i<disj_occurs[toInt(~l)].size(); i++){
+			Var head = disj_occurs[toInt(~l)][i];
+			mark(head);
+		}
+
+		/*
 		//when here, l is the literal that has become true in the model
 
 		//false CONJ with -l as just, true CONJ with l in body
@@ -1427,6 +1524,7 @@ void IDSolver::markUpward() {
 				mark(head);
 			}
 		}
+		*/
 	}
 }
 
@@ -1446,14 +1544,7 @@ void IDSolver::initializeCounters() {
 			if(wfisMarked[var(bl)]){
 				wfcounters[v]++;
 			}else{
-				if(isConjunctive(v) && isFalse(v) && isFalse(bl)){ //one false atom justifies a false conjunction
-					wfqueuePropagate.push(bl);
-					break;
-				}else if(isDisjunctive(v) && isTrue(bl) && isTrue(v)) { //one true atom justified a true disjunction
-					wfqueuePropagate.push(bl);
-					break;
-				}
-				//in these cases, the counter itself does not matter, one body propagation will unmark the head.
+				isTrue(bl)?wfqueuePropagate.push(bl):wfqueuePropagate.push(~bl);
 			}
 		}
 	}
@@ -1472,7 +1563,6 @@ void IDSolver::initializeCounters() {
 /**
  * Counters probably keep the number of literals needed to make it true for CONJ and the number of literals needed to make it false for DISJ!!!
  */
-
 void IDSolver::forwardPropagate(bool removemarks) {
 	if(verbosity>1){
 		reportf("Before propagation\n");
@@ -1487,7 +1577,6 @@ void IDSolver::forwardPropagate(bool removemarks) {
 		Lit l = wfqueuePropagate.front();
 		wfqueuePropagate.pop();
 
-		if(!wfisMarked[var(l)]){ continue;	}
 		wfisMarked[var(l)] = false;
 
 		if(removemarks) {
@@ -1495,14 +1584,12 @@ void IDSolver::forwardPropagate(bool removemarks) {
 			wffixpoint = false;
 		}
 
-		assert(isTrue(l));
-
 		//l became true, so if a head of a rule in which l is a body literal is marked, push its negation on the queue and set the counter to 0
 
 		//if DISJ and l became true, then head will be true, so add true head to queue
 		for(int i=0; i<disj_occurs[toInt(l)].size(); i++){
 			Var head = disj_occurs[toInt(l)][i];
-			if(wfisMarked[var(Lit(head, false))]) {
+			if(wfisMarked[head]) {
 				wfqueuePropagate.push(Lit(head, false));
 				wfcounters[head] = 0;
 			}
@@ -1532,7 +1619,7 @@ void IDSolver::forwardPropagate(bool removemarks) {
 		//if CONJ and l became false, then head will be false, so add false head to queue
 		for(int i=0; i<conj_occurs[toInt(l)].size(); i++){
 			Var head = conj_occurs[toInt(l)][i];
-			if(wfisMarked[var(Lit(head, false))]) {
+			if(wfisMarked[head]) {
 				wfqueuePropagate.push(Lit(head, true));
 				wfcounters[head] = 0;
 			}
@@ -1540,7 +1627,7 @@ void IDSolver::forwardPropagate(bool removemarks) {
 	}
 
 	if(verbosity>1){
-		reportf("Before propagation\n");
+		reportf("After propagation\n");
 		for(set<Var>::iterator i=wfmarkedAtoms.begin(); i!=wfmarkedAtoms.end(); i++){
 			Var v = *i;
 			reportf("atom %d, counter %d\n", v, wfcounters[v]);
@@ -1557,26 +1644,10 @@ void IDSolver::overestimateCounters() {
 		Var v = *i;
 		assert(wfcounters[v] > 0);
 
-		if(isConjunctive(v)) {
-			for(int j=0; j<definition[v]->size(); j++) {
-				Lit bl = definition[v]->operator [](j);
-				if(wfcounters[var(bl)]!=0 && isPositive(bl)) {
-					if((--wfcounters[v])==0){
-						wfqueuePropagate.push(Lit(v, false)); //if the counter gets to zero when all unknowns are made true, then the head becomes true
-					}
-				}
-			}
-		}else {
-			for(int j=0; j<definition[v]->size(); j++) {
-				Lit bl = definition[v]->operator [](j);
-				if(wfcounters[var(bl)]!=0 && isPositive(bl)) {
-					wfqueuePropagate.push(Lit(v, false)); //if an unknown is made true, then the head becomes true
-					wfcounters[v] = 0;
-				}
-			}
-		}
+		wfqueuePropagate.push(Lit(v, false));
 	}
 }
+
 
 /**
  * Removes all elements from the marked stack that are already marked and removes their mark

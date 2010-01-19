@@ -20,7 +20,7 @@
 /**
  * The different possible typs of definitions.
  * If a variable is NONDEFALL, no definition is associated with it.
- * If a variable is NONDEFPOS, a definition is associated with it, but there is not recursion through it in the POSITIVE dependency graph
+ * If a variable is NONDEFPOS, a definition is associated with it, but there is no recursion through it in the POSITIVE dependency graph
  * 		but there might be recursion over negation (relevant for the well-founded model)
  */
 enum DefType {NONDEFALL, NONDEFPOSDISJ, NONDEFPOSCONJ, DISJ, CONJ, AGGR};
@@ -57,8 +57,8 @@ public:
 	void 	backtrack 	( Lit l);
 	Clause* getExplanation	(Lit p);    // Create a clause that implicitly was the reason for p's propagation.
 	void 	notifyVarAdded	(); 		//correctly initialized TSolver datastructures when vars are added
-	Clause* 	propagate		(Lit p);
-	Clause* 	propagateDefinitions();
+	Clause* propagateDefinitions();
+	Clause* propagate(Lit p);
 	//void Subsetminimize(const vec<Lit>& lits);
 
 	bool isWellFoundedModel();
@@ -201,6 +201,7 @@ protected:
 	// void     fwIndirectPropagate();
 
 	void visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter); // Method to initialize 'scc'.
+	void visitFull(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter, bool throughPositiveLit, vec<int>& rootofmixed);
 
 	// Debug:
 	void     printLit         (Lit l);
@@ -325,7 +326,7 @@ inline void IDSolver::backtrack ( Lit l){
 }
 
 inline Clause* IDSolver::getExplanation	(Lit p){
-	return NULL;
+	assert(false);
 }
 
 #endif /* IDSOLVER_H_ */

@@ -208,10 +208,10 @@ static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AMNSolver* AS, AggSo
                         parse_Aggr(in, S, AGG, MIN);
                     else if (*in == 'a' && match(in,"ax"))
                         parse_Aggr(in, S, AGG, MAX);
-                    /*else if (*in == 'n' && match(in,"nmz")) {
+                    else if (*in == 'n' && match(in,"nmz")) {
                         readClause(in, S, lits);
-                        TS->Subsetminimize(lits);
-                    }*/ else
+                        S->Subsetminimize(lits);
+                    }else
                         ParseError("Unexpected char '%c' after 'M' (expecting \"Min\", \"Max\" or \"Mnmz\").\n",*in);
                     break;
                 case 'P':
@@ -313,9 +313,6 @@ static void parse_main(B& in, Solver* S, IDSolver* TS, AMNSolver* AS, AggSolver*
                         if (S->verbosity>=1)
                             reportf("|    May contain inductive definitions.                                       |\n");
                         modes.def = true;
-                        //TODO as long as the definitions are defined as clauses in minisat, removing satisfied clauses is not allowed
-                        //		even then, there is a problem with the removal, see solver docs
-                        S->dontRemoveSatisfied();
                     } else if (*in=='e' && match(in,"eu")) {
                         if (S->verbosity>=1)
                             reportf("|    May contain exists unique statements (registered as at-most-one).        |\n");
