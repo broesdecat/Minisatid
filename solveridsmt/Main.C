@@ -462,20 +462,20 @@ int main(int argc, char** argv)
 
         }else if ((value = hasPrefix(argv[i], "-defn_strategy="))){
             if (strcmp(value, "always") == 0)
-                TS->defn_strategy = IDSolver::always;
+                TS->defn_strategy = always;
             else if (strcmp(value, "adaptive") == 0)
-                TS->defn_strategy = IDSolver::adaptive;
+                TS->defn_strategy = adaptive;
             else if (strcmp(value, "lazy") == 0)
-                TS->defn_strategy = IDSolver::lazy;
+                TS->defn_strategy = lazy;
             else{
                 reportf("ERROR! illegal definition strategy %s\n", value);
                 exit(0); }
 
         }else if ((value = hasPrefix(argv[i], "-defn_search="))){
             if (strcmp(value, "include_cs") == 0)
-                TS->defn_search = IDSolver::include_cs;
+                TS->defn_search = include_cs;
             else if (strcmp(value, "stop_at_cs") == 0)
-                TS->defn_search = IDSolver::stop_at_cs;
+                TS->defn_search = stop_at_cs;
             else{
                 reportf("ERROR! illegal definition ssearch type %s\n", value);
                 exit(0); }
@@ -496,9 +496,9 @@ int main(int argc, char** argv)
 
         }else if ((value = hasPrefix(argv[i], "-ufsalgo="))){
 			if (strcmp(value, "depth") == 0){
-				TS->ufs_strategy = IDSolver::depth_first;
+				TS->ufs_strategy = depth_first;
 			}else if(strcmp(value, "breadth") == 0){
-				TS->ufs_strategy = IDSolver::breadth_first;
+				TS->ufs_strategy = breadth_first;
 			}else{
 				reportf("ERROR! unknown choice of unfounded set algorithm: %s\n", value);
 				exit(0);

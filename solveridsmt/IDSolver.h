@@ -23,9 +23,13 @@
  * If a variable is NONDEFPOS, a definition is associated with it, but there is no recursion through it in the POSITIVE dependency graph
  * 		but there might be recursion over negation (relevant for the well-founded model)
  */
-enum DefType	{NONDEF, DISJ, CONJ, AGGR};
-enum DefOcc		{NONDEF, POSLOOP, MIXEDLOOP, BOTHLOOP};
-enum UFS {NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK};
+enum DefType	{NONDEFTYPE, DISJ, CONJ, AGGR};
+enum DefOcc		{NONDEFOCC, POSLOOP, MIXEDLOOP, BOTHLOOP};
+enum UFS 		{NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK};
+
+enum FINDCS			{ always, adaptive, lazy};
+enum MARKDEPTH		{ include_cs, stop_at_cs};
+enum SEARCHSTRAT	{ breadth_first, depth_first};
 
 class Solver;
 class AggSolver;
@@ -62,7 +66,7 @@ public:
 	Clause* propagate(Lit p);
 	//void Subsetminimize(const vec<Lit>& lits);
 
-	bool isWellFoundedModel();
+	bool 	isWellFoundedModel();
 	/////////////////////ENDSOLVER NECESSARY
 
 	/////////////////////AGGSOLVER NECESSARY
@@ -86,13 +90,9 @@ public:
 	}
 
 	int	verbosity;          // Verbosity level. 0=silent, 1=some progress report
-	int	defn_strategy;      // Controls which propagation strategy will be used for definitions.                         (default always)
-	int	defn_search;        // Controls which search type will be used for definitions.                                  (default include_cs)
-	int	ufs_strategy;		//Which algorithm to use to find unfounded sets
-
-	enum { always = 0, adaptive = 1, lazy = 2 };
-	enum { include_cs = 0, stop_at_cs = 1 };
-	enum { breadth_first = 0, depth_first = 1 };
+	FINDCS		defn_strategy;      // Controls which propagation strategy will be used for definitions.                         (default always)
+	MARKDEPTH	defn_search;        // Controls which search type will be used for definitions.                                  (default include_cs)
+	SEARCHSTRAT	ufs_strategy;		//Which algorithm to use to find unfounded sets
 	/////////////////////END INITIALIZATION
 
 protected:
@@ -225,8 +225,8 @@ protected:
 	inline bool isUnknown(Var l);
 	inline bool canBecomeTrue(Lit l);
 	inline bool inSameSCC(Var x, Var y);
-	inline Lit 	createNegativeLiteral(i);
-	inline Lit 	createPositiveLiteral(i);
+	inline Lit 	createNegativeLiteral(Var x);
+	inline Lit 	createPositiveLiteral(Var x);
 
 	/*******************************
 	 * WELL FOUNDED MODEL CHECKING *
@@ -304,12 +304,12 @@ inline bool IDSolver::isUnknown(Lit l)			{ return value(l)==l_Undef; }
 inline bool IDSolver::isUnknown(Var v)			{ return value(v)==l_Undef; }
 inline bool IDSolver::canBecomeTrue(Lit l)		{ return value(l)!=l_False; }
 inline bool IDSolver::inSameSCC(Var x, Var y) 	{ return scc[x] == scc[y] && scc[x]!=-1; }	//-1 indicates not defined
-inline Lit 	IDSolver::createNegativeLiteral(i)	{ return Lit(i, true); }
-inline Lit 	IDSolver::createPositiveLiteral(i)	{ return Lit(i, false); }
+inline Lit 	IDSolver::createNegativeLiteral(Var i)	{ return Lit(i, true); }
+inline Lit 	IDSolver::createPositiveLiteral(Var i)	{ return Lit(i, false); }
 
 inline DefType IDSolver::getDefType(Var v)		{ return defType[v]; }
 inline bool IDSolver::isDefInPosGraph(Var v)	{ return defOcc[v]==POSLOOP || defOcc[v]==BOTHLOOP; }
-inline bool	IDSolver::isDefined(Var v)			{ return defOcc[v]!=NONDEF; }
+inline bool	IDSolver::isDefined(Var v)			{ return defOcc[v]!=NONDEFOCC; }
 inline bool IDSolver::isConjunctive(Var v)		{ return getDefType(v)==CONJ; }
 inline bool IDSolver::isDisjunctive(Var v)		{ return getDefType(v)==DISJ; }
 
@@ -324,7 +324,7 @@ inline Clause* IDSolver::propagate(Lit p){
 
 //only call this when the whole queue has been propagated
 inline Clause* IDSolver::propagateDefinitions(){
-	if (init) {return NULL;}
+	if (init || !posloops) {return NULL;}
 	return indirectPropagate();
 }
 
