@@ -61,33 +61,32 @@ bool IDSolver::simplify(){
 
 	for (int i = 0; i < defdVars.size(); i++) {
 		Var v = defdVars[i];
-		if (value(v) == l_False)
+		if (isFalse(v)){
 			continue;
+		}
 		switch (getDefType(v)) {
 		case DISJ:
+		case AGGR:
 			nb_body_lits_to_justify[v] = 1;
 			break;
 		case CONJ:
 			nb_body_lits_to_justify[v] = definition[v]->size();
 			break;
-		case AGGR:
-			nb_body_lits_to_justify[v] = 1;
-			break;
 		default:
-			break;
+			assert(false);
 		}
 	}
 
 	// initialize a queue of literals that are safe with regard to cycle-freeness. (i.e.: either are not in justification, or are justified in a cycle-free way.)
 	Queue<Lit> propq;
 	for (int i = 0; i < nVars(); ++i){
-		if (!isTrue(i)){
-			propq.insert(Lit(i, true)); // First negative literals are added that are not already false (or the positive part is not true)
+		Lit l = createNegativeLiteral(i);
+		if (!isFalse(l)){
+			propq.insert(l); // First negative literals are added that are not already false
 		}
-	}
-	for (int i = 0; i < nVars(); ++i){
-		if (!isDefInPosGraph(i) && !isFalse(i)){
-			propq.insert(Lit(i, false)); // Then all non-false non-defined positive literals.
+		l = createPositiveLiteral(i);
+		if (!isDefInPosGraph(i) && !isFalse(l)){
+			propq.insert(l); // Then all non-false non-defined positive literals.
 		}
 	}
 
@@ -104,7 +103,7 @@ bool IDSolver::simplify(){
 			}
 			if (nb_body_lits_to_justify[v] > 0) {
 				nb_body_lits_to_justify[v] = 0;
-				propq.insert(Lit(v, false));
+				propq.insert(createPositiveLiteral(v));
 				cf_justification_disj[v] = l;
 				sp_justification_disj[v] = l;
 			}
@@ -116,7 +115,7 @@ bool IDSolver::simplify(){
 			}
 			nb_body_lits_to_justify[v]--;
 			if (nb_body_lits_to_justify[v] == 0){
-				propq.insert(Lit(v, false));
+				propq.insert(createPositiveLiteral(v));
 			}
 		}
 		if (aggsolver!=NULL) {
@@ -125,7 +124,7 @@ bool IDSolver::simplify(){
 			aggsolver->propagateJustifications(var(l), jstf, v, nb_body_lits_to_justify);
 			for(int i=0; i<v.size(); i++){
 				if (nb_body_lits_to_justify[v[i]] == 0) {
-					propq.insert(Lit(v[i], false));
+					propq.insert(createPositiveLiteral(v[i]));
 					assert(sp_justification_aggr[v[i]].size()==0);
 					assert(cf_justification_aggr[v[i]].size()==0);
 					for (int j = 0; j < jstf[i].size(); ++j) {
@@ -147,30 +146,42 @@ bool IDSolver::simplify(){
 	 * Otherwise, it is checked (overestimation) whether a negative loop might be possible. If this is not the case, the definition is removed
 	 * from the data structures.
 	 */
+	vec<Var> reducedVars;
 	for (int i = 0; i < defdVars.size(); i++) {
 		Var v = defdVars[i];
 		if (nb_body_lits_to_justify[v] > 0) {
 			if (verbosity >= 2){ reportf(" %d",v+1); }
-
-			Lit p = Lit(v,true);
-			if(isFalse(p)){
+			if(isTrue(v)){
 				throw theoryUNSAT;
-			}else if(isUnknown(p)){
-				solver->setTrue(p, NULL);
+			}else if(isUnknown(v)){
+				solver->setTrue(createPositiveLiteral(v), NULL);
 			}
 
-			setTypeIfNoPosLoops(v);
+			if(defOcc[v]==POSLOOP){
+				defOcc[v] = NONDEF;
+				definition[v] = NULL;
+				defType[v] = NONDEF;
+			}else{
+				defOcc[v] = MIXEDLOOP;
+				reducedVars.push(v);
+			}
 			--atoms_in_pos_loops;
+		}else{
+			reducedVars.push(v);
 		}
 	}
+	defdVars.clear();
+	reducedVars.copyTo(defdVars);
 
 	if (verbosity >= 2){
 		reportf(" ]\n");
 	}
 
-	//FIXME FIXME dit moet er terug in
-	//FIXME: maar simplify kan meerdere keren worden aangeroepen! Werkt dit dan sowieso nog wel?
-	/*if (atoms_in_pos_loops == 0){
+	if (atoms_in_pos_loops == 0){
+		posloops = false;
+	}
+
+	if(!posloops && !negloops){
 		solver->setIDSolver(NULL);
 		if(aggsolver!=NULL){
 			aggsolver->setIDSolver(NULL);
@@ -178,35 +189,12 @@ bool IDSolver::simplify(){
 		if (verbosity >= 1){
 			reportf("| All recursive atoms falsified in initializations.                           |\n");
 		}
-	}*/
+	}
 
 	return true;
-}
 
-
-/**
- * Checks whether v might become true because of an atom that is a negative body literal and is also defined.
- */
-bool IDSolver::setTypeIfNoPosLoops(Var v){
-	bool found = false;
-	Rule& r = *definition[v];
-	for(int i=0; i<r.size(); i++){
-		if(isDefined(var(r[i])) && !isPositive(r[i])){
-			found = true;
-		}
-	}
-	if(found){
-		defType[v] = defType[v]==CONJ?NONDEFPOSCONJ:NONDEFPOSDISJ;
-	}else{
-		//FIXME dit mag niet: het kan zijn dat er een grote loop ontstaat als er 1 negatieve arc in zit
-		//dus eerst alles checken, en dan eventueel nog vanalles schrappen?
-		//FIXME FIXME TODO TODO idtests 11 werkt niet omdat hij afleidt dat er geen lussen kunnen zijn
-		/*delete definition[v];
-		definition[v] = NULL;
-		defType[v] = NONDEFALL;*/
-		defType[v] = defType[v]==CONJ?NONDEFPOSCONJ:NONDEFPOSDISJ;
-	}
-	return found;
+	//FIXME: include check in propagation methods that they only are executed when posloops is true (otherwise, only
+	//the well founded model checking in the end is necessary
 }
 
 /**
@@ -214,10 +202,11 @@ bool IDSolver::setTypeIfNoPosLoops(Var v){
  */
 void IDSolver::notifyVarAdded(){
 	seen.push(0);
-	seen2.push(0);
+	//seen2.push(0);
 
 	definition.push(NULL);
-	defType.push(NONDEFALL);
+	defType.push(NONDEF);
+	defOcc.push(NONDEF);
 	disj_occurs.growTo(2 * nVars()); // May be tested on in findCycleSources().
 	conj_occurs.growTo(2 * nVars()); // Probably not needed anyway...
 }
@@ -250,11 +239,13 @@ void IDSolver::addRule(bool conj, vec<Lit>& ps) {
 
 		Rule* r = new Rule(ps, conj);
 		defdVars.push(var(ps[0]));
-		defType.growTo(nVars(), NONDEFALL);
+		defType.growTo(nVars(), NONDEF);
+		defOcc.growTo(nVars(), NONDEF);
 		defType[var(ps[0])]=conj?CONJ:DISJ;
+		//defOcc is initialized when finishing the datastructures
 		definition[var(ps[0])] = r;
 
-		//create completions
+		//create the completion
 		if (conj){
 			for (int i = 1; i < ps.size(); i++){
 				ps[i] = ~ps[i];
@@ -281,35 +272,38 @@ void IDSolver::addRule(bool conj, vec<Lit>& ps) {
  *
  * @PRE: aggregates have to have been finished
  */
-//FIXME eigenlijk is de oplossing om negatieve loops te chekcen door SCCs te zoeken in de volledige grafe en die dan te verfijnen naar de
-//positive dependency graph
 bool IDSolver::finishECNF_DataStructures() {
 	init = false;
-	defType.growTo(nVars(), NONDEFALL);
+	defType.growTo(nVars(), NONDEF);
+	defOcc.growTo(nVars(), NONDEF);
 
 	if (verbosity >= 1){reportf("| Number of rules           : %6d                                          |\n",defdVars.size()); }
 
 	// Initialize scc of full dependency graph
 	scc.growTo(nVars(), -1);
 	vec<bool> incomp(nVars(), false);
-	vec<int> stack;
+	vec<Var> stack;
 	vec<int> visited(nVars(), 0); // =0 represents not visited; >0 corresponds to visited through a positive body literal, <0 through a negative body literal
-	vec<int> rootofmixed;
+	vec<Var> rootofmixed;
+	vec<Var> nodeinmixed;
 	int counter = 1;
 
 	for (int i=0; i<nVars(); i++){
 		if (visited[i]==0){
-			visitFull(i,scc,incomp,stack,visited,counter,true,rootofmixed);
+			visitFull(i,scc,incomp,stack,visited,counter,true,rootofmixed, nodeinmixed);
 		}
 	}
 
 	//all var in rootofmixed are the roots of mixed loops. All other are no loops (size 1) or positive loops
 
 	// Initialize scc of positive dependency graph
-	//FIXME adapt from previous one (full dependency graph)
-	incomp.clear();	incomp.growTo(nVars(), false);
+	for (int i=0; i<nodeinmixed(); i++){
+		incomp[nodeinmixed[i]]=false;
+		defOcc[nodeinmixed[i]]=MIXEDLOOP;
+		visited[nodeinmixed[i]]=0;
+	}
 	stack.clear();
-	visited.clear(); visited.growTo(nVars(), 0); // =0 represents not visited; >0 corresponds to a unique value (the counter).
+	nodeinmixed.clear();
 	counter = 1;
 
 	for (int i=0; i<rootofmixed.size(); i++){
@@ -323,6 +317,7 @@ bool IDSolver::finishECNF_DataStructures() {
 	disj_occurs.growTo(2 * nVars());
 	conj_occurs.growTo(2 * nVars());
 	Lit l;
+	vec<Var> reducedVars;
 	for (int i = 0; i < defdVars.size(); ++i) {
 		Var v = defdVars[i];
 		bool isdefd = false;
@@ -370,17 +365,35 @@ bool IDSolver::finishECNF_DataStructures() {
 		}
 		if (isdefd){
 			atoms_in_pos_loops++;
+			reducedVars.push(v);
+			defOcc[v]=defOcc[v]==MIXEDLOOP?BOTH:POSLOOP;
+		}else{
+			if(defOcc[v]==NONDEF){
+				definition[v] = NULL;
+				defType[v] = NONDEF;
+			}else if(defOcc[v]==MIXEDLOOP){
+				reducedVars.push(v);
+			}
 		}
+	}
+	defdVars.clear();
+	reducedVars.copyTo(defdVars);
+
+	if(atoms_in_pos_loops==0){
+		posloops = false;
+	}
+	if(rootofmixed.size()==0){
+		negloops = false;
 	}
 
 	if (verbosity >= 1){
 		reportf("| Number of recursive atoms in positive loops : %6d                        |\n",(int)atoms_in_pos_loops);
-		/*if(neglooppossible){
-			reportf("| Negative loop still possible                                             |\n");
-		}*/
+		if(negloops){
+			reportf("| Mixed loops also exist                                                  |\n");
+		}
 	}
 
-	if (atoms_in_pos_loops == 0 /*&& !neglooppossible*/) {
+	if (!negloops && !posloops) {
 		return false;
 	}
 
@@ -395,7 +408,7 @@ bool IDSolver::finishECNF_DataStructures() {
  * @post: root will be a partition that will be the exact partition of SCCs, by setting everything on the stack to the same root in the end
  * @post: the scc will be denoted by the variable in the scc which was visited first
  */
-void IDSolver::visitFull(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter, bool throughPositiveLit, vec<int>& rootofmixed) {
+void IDSolver::visitFull(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter, bool throughPositiveLit, vec<int>& rootofmixed, vec<Var>& nodeinmixed) {
 	assert(!incomp[i]);
 	++counter;
 	visited[i] = throughPositiveLit?counter:-counter;
@@ -409,7 +422,7 @@ void IDSolver::visitFull(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &sta
 			Lit l = (*definition[i])[j];
 			int w = var(l);
 			if (visited[w]==0){
-				visitFull(w,root,incomp,stack,visited,counter,isPositive(l),rootofmixed);
+				visitFull(w,root,incomp,stack,visited,counter,isPositive(l),rootofmixed, nodeinmixed);
 			}else if(!incomp[w] && !isPositive(l) && visited[i]>0){
 				visited[i] = -visited[i];
 			}
@@ -425,8 +438,8 @@ void IDSolver::visitFull(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &sta
 		for (int j = 0; j < lits.size(); ++j) {
 			Var w = var(lits[j]);
 			if (visited[w]==0){
-				visitFull(w,root,incomp,stack,visited,counter,isPositive(lits[j]), rootofmixed);
-			} else if(!incomp[w] && !isPositive(lits[j]) && visited[i]>0){
+				visitFull(w,root,incomp,stack,visited,counter,true, rootofmixed, nodeinmixed);
+			} else if(!incomp[w] && visited[i]>0){
 				visited[i] = -visited[i];
 			}
 			if (!incomp[w] && abs(visited[root[i]])>abs(visited[root[w]])){
@@ -440,6 +453,7 @@ void IDSolver::visitFull(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &sta
 	}
 
 	if (root[i] == i) {
+		vec<Var> scc;
 		bool mixed = false;
 		int w;
 		do {
@@ -447,10 +461,12 @@ void IDSolver::visitFull(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &sta
 			stack.pop();
 			visited[w]<0?mixed=true:true;
 			root[w] = i; //these are the found sccs
+			scc.push(w);
 			incomp[w] = true;
 		} while (w != i);
 		if(mixed){
 			rootofmixed.push(i);
+			scc.copyTo(nodeinmixed);
 		}
 	}
 }
@@ -475,7 +491,7 @@ void IDSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, 
 		for (int j = 0; j < definition[i]->size(); ++j) {
 			Lit l = (*definition[i])[j];
 			int w = var(l);
-			if (isDefInPosGraph(w) && i != w && isPositive(l)) {
+			if (i != w && isPositive(l)) {
 				if (visited[w]==0){
 					visit(w,root,incomp,stack,visited,counter);
 				}
@@ -491,19 +507,15 @@ void IDSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, 
 		aggsolver->getLiteralsOfAggr(i, lits);
 		for (int j = 0; j < lits.size(); ++j) {
 			Var w = var(lits[j]);
-			if (isDefInPosGraph(w)) {
-				if (visited[w]==0){
-					visit(w,root,incomp,stack,visited,counter);
-				}
-				if (!incomp[w] && visited[root[i]]>visited[root[w]]){
-					root[i] = root[w];
-				}
+			if (visited[w]==0){
+				visit(w,root,incomp,stack,visited,counter);
+			}
+			if (!incomp[w] && visited[root[i]]>visited[root[w]]){
+				root[i] = root[w];
 			}
 		}
 		break;
 	}
-	default:
-		assert(false);
 	}
 
 	if (root[i] == i) {
@@ -516,6 +528,8 @@ void IDSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, 
 		} while (w != i);
 	}
 }
+
+//TODO verified code until here
 
 /*_________________________________________________________________________________________________
  |

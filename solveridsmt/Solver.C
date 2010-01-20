@@ -915,9 +915,9 @@ bool Solver::solve() {
 		vec<Lit> assmpt;
 		vec<Lit> learnt;
 
-		if (true) //FIXME for minimize
+		if (true){ //FIXME for minimize
 			rslt = solve(assmpt); // The standard: solve with empty assumptions.
-		else {
+		}else {
 			assumptions.clear();
 			vec<lbool> cp_model;
 			while (solve(assmpt)) {

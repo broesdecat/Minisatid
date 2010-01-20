@@ -23,7 +23,8 @@
  * If a variable is NONDEFPOS, a definition is associated with it, but there is no recursion through it in the POSITIVE dependency graph
  * 		but there might be recursion over negation (relevant for the well-founded model)
  */
-enum DefType {NONDEFALL, NONDEFPOSDISJ, NONDEFPOSCONJ, DISJ, CONJ, AGGR};
+enum DefType	{NONDEF, DISJ, CONJ, AGGR};
+enum DefOcc		{NONDEF, POSLOOP, MIXEDLOOP, BOTHLOOP};
 enum UFS {NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK};
 
 class Solver;
@@ -126,7 +127,9 @@ protected:
 	//		because it will be used for WELLFOUNDED model checking later on.
 	//	of the completion of that rule, which was just not deleted, but wont be used any more
 	vec<DefType>	defType;	// Gives the type of definition for each VAR
+	vec<DefOcc>		defOcc;	// Gives the type of definition occurence for each VAR
 	vec<int>		scc;		// To which strongly connected component does the atom belong. Zero iff defType[v]==NONDEF.
+	bool 			posloops, negloops;
 
 	DefType 	getDefType(Var v);
 	bool		isDefInPosGraph(Var v);
@@ -201,7 +204,7 @@ protected:
 	// void     fwIndirectPropagate();
 
 	void visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter); // Method to initialize 'scc'.
-	void visitFull(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter, bool throughPositiveLit, vec<int>& rootofmixed);
+	void visitFull(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter, bool throughPositiveLit, vec<int>& rootofmixed, vec<Var>& nodeinmixed);
 
 	// Debug:
 	void     printLit         (Lit l);
@@ -222,6 +225,8 @@ protected:
 	inline bool isUnknown(Var l);
 	inline bool canBecomeTrue(Lit l);
 	inline bool inSameSCC(Var x, Var y);
+	inline Lit 	createNegativeLiteral(i);
+	inline Lit 	createPositiveLiteral(i);
 
 	/*******************************
 	 * WELL FOUNDED MODEL CHECKING *
@@ -299,12 +304,14 @@ inline bool IDSolver::isUnknown(Lit l)			{ return value(l)==l_Undef; }
 inline bool IDSolver::isUnknown(Var v)			{ return value(v)==l_Undef; }
 inline bool IDSolver::canBecomeTrue(Lit l)		{ return value(l)!=l_False; }
 inline bool IDSolver::inSameSCC(Var x, Var y) 	{ return scc[x] == scc[y] && scc[x]!=-1; }	//-1 indicates not defined
+inline Lit 	IDSolver::createNegativeLiteral(i)	{ return Lit(i, true); }
+inline Lit 	IDSolver::createPositiveLiteral(i)	{ return Lit(i, false); }
 
 inline DefType IDSolver::getDefType(Var v)		{ return defType[v]; }
-inline bool IDSolver::isDefInPosGraph(Var v)	{ return isDefined(v) && getDefType(v)!=NONDEFPOSCONJ && getDefType(v)!=NONDEFPOSDISJ; }
-inline bool	IDSolver::isDefined(Var v)			{ return getDefType(v)!=NONDEFALL; }
-inline bool IDSolver::isConjunctive(Var v)		{ return getDefType(v)==CONJ || getDefType(v)==NONDEFPOSCONJ; }
-inline bool IDSolver::isDisjunctive(Var v)		{ return getDefType(v)==DISJ || getDefType(v)==NONDEFPOSDISJ; }
+inline bool IDSolver::isDefInPosGraph(Var v)	{ return defOcc[v]==POSLOOP || defOcc[v]==BOTHLOOP; }
+inline bool	IDSolver::isDefined(Var v)			{ return defOcc[v]!=NONDEF; }
+inline bool IDSolver::isConjunctive(Var v)		{ return getDefType(v)==CONJ; }
+inline bool IDSolver::isDisjunctive(Var v)		{ return getDefType(v)==DISJ; }
 
 /**
  * All these methods are used to allow branch prediction in SATsolver methods and to minimize the number of
