@@ -155,7 +155,7 @@ bool IDSolver::simplify(){
 			if(isTrue(v)){
 				throw theoryUNSAT;
 			}else if(isUnknown(v)){
-				solver->setTrue(createPositiveLiteral(v), NULL);
+				solver->setTrue(createNegativeLiteral(v), NULL);
 			}
 
 			if(defOcc[v]==POSLOOP){
@@ -1254,16 +1254,16 @@ bool IDSolver::isCycleFree() {
 
     // Verify cycles.
     vec<int> isfree; // per variable. 0 = free, >0 = number of literals in body still to be justified.
+    isfree.growTo(nVars(), 0);
     vec<Lit> justified;
     int cnt_nonjustified = 0;
     for (int i=0;i<nVars();++i) {
         justified.push(Lit(i,true)); // negative literals are justified anyhow.
         if (!isDefInPosGraph(i)) {
-            isfree.push(0);
             justified.push(Lit(i,false));
         } else {
             ++cnt_nonjustified;
-            isfree.push(getDefType(i)==CONJ ? definition[i]->size() : 1);
+            isfree[i]=getDefType(i)==CONJ ? definition[i]->size() : 1;
         }
     }
 
@@ -1285,7 +1285,7 @@ bool IDSolver::isCycleFree() {
 
         for (int i=0;i<ds.size();++i) {
             Var d = ds[i];
-            if (cf_justification_disj[d]==l) {
+            if (cf_justification_disj[d]==l && isfree[d]>0) {
                 assert(isfree[d]==1);
                 isfree[d]=0;
                 justified.push(Lit(d,false));
@@ -1304,7 +1304,7 @@ bool IDSolver::isCycleFree() {
             Var d = as[i];
             bool found = false;
             for(int j=0; j<cf_justification_aggr[d].size(); j++){
-            	if (cf_justification_aggr[d][j]==l) {
+            	if (cf_justification_aggr[d][j]==l && isfree[d]>0) {
             		found = true;
             		break;
             	}
@@ -1505,8 +1505,8 @@ void IDSolver::visitWF(Var v, vector<Var> &root, vector<bool> &incomp, stack<Var
 			l = cf_justification_disj[v];
 		}
 		Var w = var(l);
+		assert(isTrue(l));
 		if(isDefined(w)){
-			assert(isTrue(w));
 			if(visited[w]==0){
 				visitWF(w, root, incomp, stack, visited, counter, isPositive(l), rootofmixed);
 			}else if(!incomp[w] && !isPositive(l) && visited[v]>0){
@@ -1586,7 +1586,7 @@ void IDSolver::markUpward() {
 		}
 		for(int i=0; i<disj_occurs[toInt(~l)].size(); i++){
 			Var head = disj_occurs[toInt(~l)][i];
-			if((isTrue(head) && cf_justification_disj[head]==l) || isFalse(head)){
+			if((isTrue(head) && cf_justification_disj[head]==~l) || isFalse(head)){
 				mark(head);
 			}
 		}
@@ -1612,7 +1612,7 @@ void IDSolver::initializeCounters() {
 				wfcounters[v]++;
 			}else if(isFalse(bl) && defType[v]==CONJ){
 				canbepropagated = true;
-			}else if(isTrue(bl) && defType[v]==DISJ){
+			}else if(isTrue(bl) && defType[v]==DISJ && var(bl)!=v){
 				canbepropagated = true;
 			}
 		}
@@ -1650,7 +1650,9 @@ void IDSolver::forwardPropagate(bool removemarks) {
 		Lit l = wfqueue.front();
 		wfqueue.pop();
 
-		assert(wfisMarked[var(l)]);
+		if(!wfisMarked[var(l)]){
+			continue;
+		}
 		wfisMarked[var(l)] = false;
 
 		if(removemarks) {
@@ -1671,7 +1673,7 @@ void IDSolver::forwardPropagate(bool removemarks) {
 		//if CONJ and counter gets 0, then head will be true, so add true head to queue
 		for(int i=0; i<conj_occurs[toInt(l)].size(); i++){
 			Var head = conj_occurs[toInt(l)][i];
-			if(--wfcounters[head]==0){
+			if(wfisMarked[head] && --wfcounters[head]==0){
 				wfqueue.push(createPositiveLiteral(head));
 			}
 		}
@@ -1683,7 +1685,7 @@ void IDSolver::forwardPropagate(bool removemarks) {
 		//if DISJ and counter gets 0, then head will be false, so add false head to queue
 		for(int i=0; i<disj_occurs[toInt(l)].size(); i++){
 			Var head = disj_occurs[toInt(l)][i];
-			if(--wfcounters[head]==0){
+			if(wfisMarked[head] && --wfcounters[head]==0){
 				wfqueue.push(createNegativeLiteral(head));
 			}
 		}
@@ -1716,10 +1718,14 @@ void IDSolver::overestimateCounters() {
 		Var v = *i;
 		assert(wfcounters[v] > 0);
 
-		for(int j=0; j<definition[v]->size(); i++){
+		for(int j=0; j<definition[v]->size(); j++){
 			Lit bdl = definition[v]->operator [](j);
-			if(wfisMarked[var(bdl)] && !isPositive(bdl)){
-				wfcounters[v]--;
+			if(wfisMarked[var(bdl)] && !isPositive(bdl) && v!=var(bdl)){
+				if(defType[v]==CONJ){
+					wfcounters[v]--;
+				}else{
+					wfcounters[v]=0;
+				}
 			}
 		}
 
