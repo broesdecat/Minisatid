@@ -233,26 +233,17 @@ protected:
 	 *******************************/
 
 private:
-    stack<int> wfstack;          //!< Stack for Tarjan's algorithm.
-    /*    - _visited[v] == 0  \f$ \Rightarrow \f$ v is not visited yet.
-     *    - _visited[v] > 0   \f$ \Rightarrow \f$ v is visited, but not yet in a component.
-     *    - _visited[v] == -1 \f$ \Rightarrow \f$ v is in a component.
-     */
-    vector<int> wfvisited;
-    vector<Var> wfroot;				//!< Root vector for Tarjan's algorithm.
-    vector<Var> wfmixedCycleRoots;	//!< To store one literal for each mixed cycle in the justification graph.
-    vector<int> wfcounters;
-    int 		wfvisitNr;			//!< Counter for Tarjan's algorithm.
-
-    set<Var> 		wfmarkedAtoms;	//!< The set of all literals that are marked.
-    vector<bool> 	wfisMarked;		//!< Vector to check whether an atom is marked (still unknown).
-    queue<Lit> 		wfqueuePropagate;
-    bool 			wffixpoint;
+	vector<Var> wfroot;
+	queue<Lit> wfqueue;
+	set<Var> wfmarkedAtoms;
+	vector<bool> wfisMarked;
+	vector<int> wfcounters;
+	bool wffixpoint;
 
 	/*!
 	 * \brief Implementation of Tarjan's algorithm for detecting strongly connected components.
 	 */
-	void visitWF(Var, bool);
+	void visitWF(Var i, vector<Var> &root, vector<bool> &incomp, stack<Var> &stack, vector<Var> &visited, int& counter, bool throughPositiveLit, vector<int>& rootofmixed);
 	/*!
 	 * \brief Search for mixed cycles in the justification graph of the current model.
 	 *
@@ -264,7 +255,7 @@ private:
 	 *       Visit(litp);
 	 * \endcode
 	 */
-	void findMixedCycles();
+	void findMixedCycles(vector<Var> &root, vector<int>& rootofmixed);
 	/*!
 	 * \brief Mark all atoms that are above the mixed cycle roots in the justification graph.
 	 *
@@ -309,7 +300,7 @@ inline Lit 	IDSolver::createPositiveLiteral(Var i)	{ return Lit(i, false); }
 
 inline DefType IDSolver::getDefType(Var v)		{ return defType[v]; }
 inline bool IDSolver::isDefInPosGraph(Var v)	{ return defOcc[v]==POSLOOP || defOcc[v]==BOTHLOOP; }
-inline bool	IDSolver::isDefined(Var v)			{ return defOcc[v]!=NONDEFOCC; }
+inline bool	IDSolver::isDefined(Var v)			{ return defType[v]!=NONDEFTYPE; }
 inline bool IDSolver::isConjunctive(Var v)		{ return getDefType(v)==CONJ; }
 inline bool IDSolver::isDisjunctive(Var v)		{ return getDefType(v)==DISJ; }
 
