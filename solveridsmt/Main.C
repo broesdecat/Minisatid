@@ -13,6 +13,10 @@
 #include "AMNSolver.h"
 #include "AggSolver.h"
 
+#include "Debug.h"
+
+int msglevel;
+
 /*************************************************************************************/
 
 #if defined(__linux__)
@@ -269,15 +273,15 @@ static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AMNSolver* AS, AggSo
 	AS->finishECNF_DataStructures();
 	if(modes.aggr){
 		modes.aggr = AGG->finishECNF_DataStructures();
-		if(!modes.aggr && S->verbosity >= 1){
-			reportf("                                            |\n");
-			reportf("|    (there will be no aggregate propagations)                                |\n");
+		if(!modes.aggr){
+			pmesg(DEFAULTOUTPUT, "                                            |\n"
+								 "|    (there will be no aggregate propagations)                                |\n");
 		}
 	}
 	if(modes.def){
 		modes.def = TS->finishECNF_DataStructures();
-		if(!modes.def && S->verbosity >= 1){
-			reportf("|    (there will be no definitional propagations)                             |\n");
+		if(!modes.def){
+			pmesg(DEFAULTOUTPUT, "|    (there will be no definitional propagations)                             |\n");
 		}
 	}
 	S->finishParsing();

@@ -4,6 +4,8 @@
 #include "Map.h"
 #include <cmath>
 
+#include "Debug.h"
+
 /*
  * TODO eigenlijk is het niet logisch om aggregaten te behandelen als rules als dit niet zo geschreven is
  * het party-goer probleem is een voorbeeld
@@ -138,9 +140,7 @@ bool IDSolver::simplify(){
 	}
 
 	// vars v that still have nb_body_lits_to_justify[v]>0 can never possibly become true: make them false.
-	if (verbosity >= 2){
-		reportf("Initialization of justification makes these atoms false: [");
-	}
+	pmesg(LONGOUTPUT, "Initialization of justification makes these atoms false: [");
 
 	/**
 	 * Goes through all definitions and checks whether they can still become true (if they have been justified).
@@ -1352,7 +1352,7 @@ bool IDSolver::isCycleFree() {
                         }
                         reportf(" in its body.\n");
                     }else{
-                    	reportf("Change aggregate output here (iscyclefree method)"); //TODO change output
+                    	reportf("Change aggregate output here (iscyclefree method)"); //TODO change output (and make the method used by the solver
                     }
                     printed[v]=true;
                 }
@@ -1373,7 +1373,7 @@ bool IDSolver::isCycleFree() {
 //FIXME currently no well founded model checking over aggregates
 
 /**
- * ALGORITHM (FIXME, is NOT implemented like this):
+ * ALGORITHM
  * The point is to calculate both an underapproximation and an overapproximation regarding the negative defined body literals, by
  * using for each iterating the derivation of the rule heads until the least fixpoint.
  * This boils down to two steps: in the first step, assuming all positive and all negative defined body literals are false and starting
