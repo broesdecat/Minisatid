@@ -51,12 +51,12 @@ bool IDSolver::simplify(){
 	// NOTE: we're doing a stable model initialization here. No need for a loop.
 	cf_justification_disj.clear();
 	cf_justification_disj.growTo(nVars());
-	sp_justification_disj.clear();
-	sp_justification_disj.growTo(nVars());
+	//sp_justification_disj.clear();
+	//sp_justification_disj.growTo(nVars());
 	cf_justification_aggr.clear();
 	cf_justification_aggr.growTo(2 * nVars());
-	sp_justification_aggr.clear();
-	sp_justification_aggr.growTo(2 * nVars());
+	//sp_justification_aggr.clear();
+	//sp_justification_aggr.growTo(2 * nVars());
 
 	// initialize nb_body_lits_to_justify
 	vec<int> nb_body_lits_to_justify;			//The number of body literals needed to be true to derive the head.
@@ -108,7 +108,7 @@ bool IDSolver::simplify(){
 				nb_body_lits_to_justify[v] = 0;
 				propq.insert(createPositiveLiteral(v));
 				cf_justification_disj[v] = l;
-				sp_justification_disj[v] = l;
+				//sp_justification_disj[v] = l;
 			}
 		}
 		for (int i = 0; i < conj_occurs[toInt(l)].size(); ++i) { // Find conjunctions that may be made cycle-safe through l.
@@ -128,10 +128,10 @@ bool IDSolver::simplify(){
 			for(int i=0; i<v.size(); i++){
 				if (nb_body_lits_to_justify[v[i]] == 0) {
 					propq.insert(createPositiveLiteral(v[i]));
-					assert(sp_justification_aggr[v[i]].size()==0);
+					//assert(sp_justification_aggr[v[i]].size()==0);
 					assert(cf_justification_aggr[v[i]].size()==0);
 					for (int j = 0; j < jstf[i].size(); ++j) {
-						sp_justification_aggr[v[i]].push(jstf[i][j]);
+						//sp_justification_aggr[v[i]].push(jstf[i][j]);
 						cf_justification_aggr[v[i]].push(jstf[i][j]);
 					}
 				}
@@ -682,7 +682,7 @@ Clause* IDSolver::indirectPropagate() {
  */
 void IDSolver::findCycleSources() {
 	clearCycleSources();
-	clear_changes();
+	//clear_changes();
 
 	if (prev_conflicts == solver->conflicts && defn_strategy == always && solver->getNbOfRecentAssignments()>0) {
 		for(int i=0; i<solver->getNbOfRecentAssignments(); i++){
@@ -743,14 +743,21 @@ void IDSolver::justify(Var v) {
 	//NOTE: this is the only place where the invariant was used that minisat orders the literals in a clause in such a way that
 	//		the first and second literal are the watches of the 2-watched DPLL
 	//now a linear search is done through the definition to find a non-false body literal
-	int i=0;
-	while(isFalse(c[i])){ i++; }	//find the index of the first literal that is not false
 
-	Lit jstf = c[i];
-	change_jstfc_disj(v,c[i]);
+	/*
+	 * new code: creating justifications that are always both supporting and cycle free
+	 * Do not change the justification here, unless a literal can be found that is not false and not defined in the same scc (or open or
+	 * negative). In that case, it is not a cycle source, in other cases, just add it as a cycle source
+	 */
 
-	//If positive loops might originate from the new justification, add it as a cycle source
-	if (isDefInPosGraph(var(jstf)) && inSameSCC(v, var(jstf))){
+	bool isjustified = false;
+	for(int i=0; !isjustified && i<c.size(); i++){
+		if(!isFalse(c[i]) && (!inSameSCC(v, var(c[i])) || !isPositive(c[i]))){
+			isjustified = true;
+			change_jstfc_disj(v, c[i]);
+		}
+	}
+	if(!isjustified){
 		addCycleSource(v);
 	}
 }
@@ -781,23 +788,38 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 
 	markNonJustified(cs, tmpseen);
 	bool csisjustified = false;
-	if (isJustified(cs)) {
-		isCS[cs] = false;
-		csisjustified = true;
-	}else{
-		q.insert(cs);
-		ufs.clear();
-		ufs.insert(cs);
-		while (!csisjustified && q.size() > 0) {
-			v = q.peek();
-			q.pop();
-			if (isJustified(v)){
-				continue;
-			}
-			if (directlyJustifiable(v, ufs, q)){
-				if (propagateJustified(v, cs, ufs, q)){
-					csisjustified = true;
-				}
+
+	/**
+	 * FIXME: The justification is only used in the in the marking, and that is done upwards. So instead of after the marking checking
+	 * whether a cycle is found, it has to be checked whether one of the body literals of the cycle source was marked. Important, also
+	 * check whether the cycle source is marked!
+	 */
+	for(int i=0;!csisjustified && i<definition[cs]->size(); i++){
+		Lit l = definition[cs]->operator [](i);
+		if(isPositive(l) && isJustified(var(l)) && !isFalse(l)){
+			change_jstfc_disj(cs, l);
+			isCS[cs] = false;
+			csisjustified = true;
+		}
+	}
+
+	seen[cs]=1; //no valid justification can be created just from looking at the body literals
+	//TODO op voorbeeld 14 maakt het een atoom justication dat al false is, dus gaat er nog iets mis!
+
+	assert(!isJustified(cs));
+
+	q.insert(cs);
+	ufs.clear();
+	ufs.insert(cs);
+	while (!csisjustified && q.size() > 0) {
+		v = q.peek();
+		q.pop();
+		if (isJustified(v)){
+			continue;
+		}
+		if (directlyJustifiable(v, ufs, q)){
+			if (propagateJustified(v, cs, ufs, q)){
+				csisjustified = true;
 			}
 		}
 	}
@@ -855,13 +877,15 @@ bool IDSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 		for (int i = 0; i < c.size(); ++i) {
 			Lit bdl = c[i];
 			if(bdl == c.getHeadLiteral()) { continue; }
-			if (isJustified(bdl)) {
-				change_jstfc_disj(v, bdl);
-				seen[v] = 0;
-				break;
-			}else{
-				if (ufs.insert(var(bdl)).second){
-					q.insert(var(bdl));
+			if(!isFalse(bdl)){
+				if (isJustified(bdl)) {
+					change_jstfc_disj(v, bdl);
+					seen[v] = 0;
+					break;
+				}else{
+					if (ufs.insert(var(bdl)).second){
+						q.insert(var(bdl));
+					}
 				}
 			}
 		}
@@ -949,17 +973,17 @@ bool IDSolver::propagateJustified(Var v, Var cs, std::set<Var>& ufs, Queue<Var>&
 // Change sp_justification: v is now justified by j.
 void IDSolver::change_jstfc_disj(Var v, Lit j) {
 	assert(getDefType(v)==DISJ);
-	sp_justification_disj[v] = j;
-	changed_vars.push(v);
+	cf_justification_disj[v] = j;
+	//changed_vars.push(v);
 }
 
 // Change sp_justification: v is now justified by j.
 // NOTE: maybe more efficient implementation possible if j changes very little from previous justification? Especially for MIN and MAX.
 void IDSolver::change_jstfc_aggr(Var v, const vec<Lit>& j) {
 	assert(getDefType(v)==AGGR);
-	sp_justification_aggr[v].clear();
-	j.copyTo(sp_justification_aggr[v]);
-	changed_vars.push(v);
+	cf_justification_aggr[v].clear();
+	j.copyTo(cf_justification_aggr[v]);
+	//changed_vars.push(v);
 }
 
 /**
@@ -975,7 +999,7 @@ void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf){
 			for (int i = 0; i < c.size(); i++) {
 				Lit l = c[i];
 				//add literals not in the ufs and not the head as external disjuncts
-				if (l != c.getHeadLiteral() && seen[var(l)] != (isPositive(l) ? 2 : 1) && ufs.find(var(c[i])) == ufs.end()) {
+				if (l != c.getHeadLiteral() && seen[var(l)] != (isPositive(l) ? 2 : 1) && (!isPositive(l) || ufs.find(var(c[i])) == ufs.end())) {
 					loopf.push(l);
 					//remembers whether a literal has already been added, but both P and ~P can be added ONCE
 					seen[var(l)] = (isPositive(l) ? 2 : 1); // Just in case P and ~P both appear; otherwise we might get something between well-founded and ultimate semantics...
@@ -1098,7 +1122,7 @@ void IDSolver::markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>
 	Lit poslit = createPositiveLiteral(x);
 	vec<Var>& v = disj_occurs[toInt(poslit)];
 	for (int i = 0; i < v.size(); ++i){
-		if (var(sp_justification_disj[v[i]]) == x){
+		if (var(cf_justification_disj[v[i]]) == x){
 			markNonJustifiedAddVar(v[i], cs, q, tmpseen);
 		}
 	}
@@ -1110,7 +1134,7 @@ void IDSolver::markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>
 		vec<Var> heads;
 		aggsolver->getHeadsOfAggrInWhichOccurs(x, heads);
 		for(int i=0; i<heads.size(); i++){
-			vec<Lit>& jstfc = sp_justification_aggr[heads[i]];
+			vec<Lit>& jstfc = cf_justification_aggr[heads[i]];
 			for (int k=0; k < jstfc.size(); k++){
 				if(jstfc[k] == poslit){ // Found that x is actually used in y's justification.
 					markNonJustifiedAddVar(heads[i], cs, q, tmpseen);
@@ -1134,7 +1158,7 @@ inline void IDSolver::markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q, vec<V
  * FIXME: eliminate supporting justification
  */
 inline void IDSolver::apply_changes() {
-    for (int i=0; i<changed_vars.size(); i++){
+    /*for (int i=0; i<changed_vars.size(); i++){
         Var v = changed_vars[i];
         if (isJustified(v)) {
             if (getDefType(v)==DISJ){
@@ -1149,7 +1173,7 @@ inline void IDSolver::apply_changes() {
     for (int i=0; i<changed_vars.size(); i++){
     	seen[changed_vars[i]]=0; //then reset all seen to 0
     }
-    changed_vars.clear();
+    changed_vars.clear();*/
 
 	if (defn_strategy == adaptive) {
 		if (adaption_current == adaption_total) {
@@ -1167,7 +1191,7 @@ inline void IDSolver::apply_changes() {
 /**
  * Resets the changes: adds the cycle free just as the supporting
  */
-inline void IDSolver::clear_changes() {
+/*inline void IDSolver::clear_changes() {
     for (int i=changed_vars.size()-1; i>=0; i--) {
         Var v = changed_vars[i];
         if (isJustified(v)) {
@@ -1185,7 +1209,7 @@ inline void IDSolver::clear_changes() {
     	seen[changed_vars[i]]=0;	//then reset all seen to 0
     }
     changed_vars.clear();
-}
+}*/
 
 /*********************
  * AGGSOLVER METHODS *
@@ -1246,8 +1270,6 @@ bool IDSolver::isCycleFree() {
             printLit(Lit(i,false)); reportf(" <- ");
             printLit(cf_justification_disj[i]);
             reportf("(cf); ");
-            printLit(sp_justification_disj[i]);
-            reportf("(sp)\n");
         }
     }
     reportf(">>>>>>>>>>\n");
@@ -1505,7 +1527,6 @@ void IDSolver::visitWF(Var v, vector<Var> &root, vector<bool> &incomp, stack<Var
 			l = cf_justification_disj[v];
 		}
 		Var w = var(l);
-		assert(isTrue(l));
 		if(isDefined(w)){
 			if(visited[w]==0){
 				visitWF(w, root, incomp, stack, visited, counter, isPositive(l), rootofmixed);

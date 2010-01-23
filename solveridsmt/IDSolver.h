@@ -144,10 +144,10 @@ protected:
 
 	// Justifications:
 	vec<Lit>        cf_justification_disj;	// Per atom. cf_ = cycle free, sp_ = supporting.
-	vec<Lit>        sp_justification_disj;	// _aggr. = only for AGGR atoms, _disj. = only for DISJ atoms.
-	vec<vec<Lit> >  sp_justification_aggr;
+	//vec<Lit>        sp_justification_disj;	// _aggr. = only for AGGR atoms, _disj. = only for DISJ atoms.
+	//vec<vec<Lit> >  sp_justification_aggr;
 	vec<vec<Lit> >  cf_justification_aggr;
-	vec<Var>        changed_vars;			// A list of the atoms whose sp_ and cf_ justification are different.
+	//vec<Var>        changed_vars;			// A list of the atoms whose sp_ and cf_ justification are different.
 
 	int       adaption_total;     // Used only if defn_strategy==adaptive. Number of decision levels between indirectPropagate() uses.
 	int       adaption_current;   // Used only if defn_strategy==adaptive. Number of decision levels left until next indirectPropagate() use.
@@ -157,7 +157,7 @@ protected:
 
 	// Justification methods:
 	void	apply_changes      ();                                // Copy sp_justification to cf_justification.
-	void	clear_changes      ();                                // Restore sp_justification to the state of cf_justification.
+	//void	clear_changes      ();                                // Restore sp_justification to the state of cf_justification.
 	void	change_jstfc_disj  (Var v, Lit j);                    // Change sp_justification of DISJ atom v to j.
 	void	change_jstfc_aggr  (Var v, const vec<Lit>& j);        // Change sp_justification of AGGR atom v to j.
 
