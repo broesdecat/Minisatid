@@ -39,7 +39,6 @@ Solver::Solver() :
 	,
 	expensive_ccmin(true),
 	polarity_mode(polarity_false),
-	verbosity(0),
 	random_seed(91648253),
 	maxruntime(0.0)
 

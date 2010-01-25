@@ -12,12 +12,12 @@ AggSolver::~AggSolver() {
 }
 
 void AggSolver::notifyVarAdded(){
-	Aggr_watches.push();
+	aggr_watches.push();
 	aggr_reason.push();
 }
 
-AggrWatch& AggSolver::getWatchOfHeadOccurence(Var v){
-	return Aggr_watches[v][0];
+inline AggrWatch& AggSolver::getWatchOfHeadOccurence(Var v){
+	return aggr_watches[v][0];
 }
 
 bool AggSolver::finishECNF_DataStructures() {
@@ -29,44 +29,35 @@ bool AggSolver::finishECNF_DataStructures() {
 
 	if (aggr_exprs.size() == 0) {
 		return false;
-	} else {
+	}
+
+	if(verbosity >=1){
 		int total_nb_set_lits = 0;
 		for (int i = 0; i < aggr_sets.size(); i++){
 			total_nb_set_lits += aggr_sets[i]->wlitset.size();
 		}
-		if (verbosity >= 1){reportf(", over %4d sets, avg. size: %7.2f lits.  |\n",aggr_sets.size(),(double)total_nb_set_lits/(double)(aggr_sets.size()));	}
-
-		//initialize all counters
-		for(int i=0; i<aggr_exprs.size(); i++){
-			aggr_exprs[i]->initialize();
-		}
-
-		//FIXME eigenlijk alles eerst finishen, dan alles propageren, dan beginnen searchen
-		//aka dus eens nadenken over solver interactie (eigenlijk blijven propageren tussen alle solvers
-		//zolang er iets veranderd.
-
-		// Now do the initial propagations based on set literals that already have a truth value.
-		/*Clause * confl = NULL;
-		for (int i = 0; i < solver->qhead && confl == NULL; ++i) // from qhead onwards will still be propagated by simplify().
-			confl = Aggr_propagate(solver->trail[i]);
-		if (confl != NULL) {
-			throw theoryUNSAT;
-		}*/
-		return true;
+		reportf(", over %4d sets, avg. size: %7.2f lits.  |\n",aggr_sets.size(),(double)total_nb_set_lits/(double)(aggr_sets.size()));
 	}
+
+	//initialize all counters
+	for(int i=0; i<aggr_exprs.size(); i++){
+		aggr_exprs[i]->initialize();
+	}
+
+	return true;
 }
 
 void AggSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
 	int setindex = set_id-1;
-	if (lits.size() == 0) {
-		reportf("Error: Set nr. %d is empty,\n",set_id); exit(3);
+	if(lits.size()==0){
+		reportf("Error: Set nr. %d is empty.\n",set_id), exit(3);
 	}
-	if(aggr_sets.size()>set_id && aggr_sets[setindex]->wlitset.size()>0){
+	if(aggr_sets.size()>setindex && aggr_sets[setindex]!=NULL && aggr_sets[setindex]->wlitset.size()!=0){
 		reportf("Error: Set nr. %d is defined more then once.\n",set_id), exit(3);
 	}
 	assert(lits.size()==weights.size());
 
-	while(aggr_sets.size()<set_id){
+	while(aggr_sets.size()<=setindex){
 		aggr_sets.push(new AggrSet());
 	}
 	AggrSet& set = *aggr_sets[setindex];
@@ -80,16 +71,8 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
 	sort(set.wlitset.begin(), set.wlitset.end());
 }
 
-/**
- * Adds an aggregate expression with only one bound on it. The bound is always interpreted as lEQ or gEQ
- *
- * @PRE: no negative weights
- * 		 no double literals
- * 		 no literals occuring both positive and negative
- * 		 no 0 weights when using a product aggregate
- */
 void AggSolver::addAggrExpr(int defn, int setid, int bound, bool lower, AggrType type) {
-	if (setid > aggr_sets.size()) {
+	if (setid > aggr_sets.size() || aggr_sets[setid-1]==NULL || aggr_sets[setid-1]->wlitset.size()==0) {
 		reportf("Error: Set nr. %d is used, but not defined yet.\n",setid), exit(3);
 	}
 
@@ -114,44 +97,46 @@ void AggSolver::addAggrExpr(int defn, int setid, int bound, bool lower, AggrType
 		//TODO this can be solved by taking 0 out of the set and making the necessary transformations
 		// p <=> a <= prod{l1=0, l2=2} can be replaced with p <=> a <= prod{l2=2} & l1~=0 if a is strictly positive
 		for(vector<int>::size_type i=0; i<aggr_sets[setindex]->wlitset.size(); i++){
-			if(aggr_sets[setindex]->wlitset[i].weight<1){
+			if(aggr_sets[setindex]->wlitset[i].weight==0){
 				reportf("Error: Set nr. %d contains a 0 (zero) weight, which cannot "
 						"be used in combination with a product aggregate\n", setid), exit(3);
 			}
 		}
 		ae = new SPAgg(lower, bound, head, aggr_sets[setindex], false);
 		break;
-	default: assert(false);break;
+	default:
+		assert(false);
 	}
 	aggr_exprs.push(ae);
 
 	//This step guarantees the invariant that the head occurence of var(l) is always the first element of the watches of var(l)
-	if(Aggr_watches[var(head)].size()>0){
-		AggrWatch w = Aggr_watches[var(head)][0];
-		Aggr_watches[var(head)][0] = AggrWatch(ae, -1, HEAD);
-		Aggr_watches[var(head)].push(w);
+	if(aggr_watches[var(head)].size()>0){
+		assert(aggr_watches[var(head)][0].type!=HEAD);
+		AggrWatch w = aggr_watches[var(head)][0];
+		aggr_watches[var(head)][0] = AggrWatch(ae, -1, HEAD);
+		aggr_watches[var(head)].push(w);
 	}else{
-		Aggr_watches[var(head)].push(AggrWatch(ae, -1, HEAD));
+		aggr_watches[var(head)].push(AggrWatch(ae, -1, HEAD));
 	}
+	assert(aggr_watches[var(head)][0].type==HEAD);
 
 	for (vector<int>::size_type i = 0; i < ae->set->wlitset.size(); i++){
-		Aggr_watches[var(ae->set->wlitset[i].lit)].push(AggrWatch(ae, i, sign(ae->set->wlitset[i].lit) ? NEG : POS));
+		aggr_watches[var(ae->set->wlitset[i].lit)].push(AggrWatch(ae, i, sign(ae->set->wlitset[i].lit) ? NEG : POS));
 	}
 
+	//notify the id solver that a new aggregate definition has been added
 	idsolver->notifyAggrHead(var(head));
 }
 
 /**
- * @PRE: literal p can be derived to be true because of the given aggregate reason
+ * The method propagates the fact that p has been derived to the SAT solver. If a conflict occurs,
+ * a conflict clause is returned. Otherwise, the value is set to true in the sat solver.
  *
- * it is then checked whether there is a conflict (construct conflict and add learned clause),
- * whether it can be propagated to the solver or whether it was already true.
+ * @pre: literal p can be derived to be true because of the given aggregate reason
  *
- * this is the only method that is allowed to check the literal values of the sat solver
- *
- * should not do any changes to the agg datastructures!
+ * @remarks: only method allowed to use the sat solver datastructures
  */
-Clause* AggSolver::aggrEnqueue(Lit p, AggrReason* ar) {
+Clause* AggSolver::notifySATsolverOfPropagation(Lit p, AggrReason* ar) {
 	if (verbosity >= 2) {
 		reportf("%seriving ", solver->value(p)==l_True ? "Again d" : "D");
 		printLit(p, solver->value(p));
@@ -172,56 +157,35 @@ Clause* AggSolver::aggrEnqueue(Lit p, AggrReason* ar) {
 	} else if (solver->value(p) == l_Undef) {
 		aggr_reason[var(p)] = ar;
 		solver->setTrue(p);
-	} else
+	} else{
 		delete ar;
+	}
 	return NULL;
 }
 
-/**
- * Goes through all watches and propagates the fact that p was set true.
- */
 Clause* AggSolver::Aggr_propagate(Lit p) {
 	Clause* confl = NULL;
-	vec<AggrWatch>& ws = Aggr_watches[var(p)];
+	vec<AggrWatch>& ws = aggr_watches[var(p)];
 	if (verbosity >= 2 && ws.size() > 0){
 		reportf("Aggr_propagate(%s%d).\n",sign(p)?"-":"",var(p)+1);
 	}
 	for (int i = 0; confl == NULL && i < ws.size(); i++) {
-		Agg& ae = *ws[i].expr;
-		confl = ae.propagate(p, ws[i]);
+		confl = (*ws[i].expr).propagate(p, ws[i]);
 	}
 	return confl;
 }
 
-/*_________________________________________________________________________________________________
- |
- |  implicitReasonClause : (Lit)  ->  [Clause*]
- |
- |  Description:
- |    Use for a literal that was deduced using a aggregate expression. This method constructs,
- |    from the AggrReason stored for it, a "reason clause" usable in clause learning.
- |    This clause is saved nowhere except in the object returned. Delete it immediately
- |    after use, to avoid memory leaks.
- |________________________________________________________________________________________________@*/
 Clause* AggSolver::getExplanation(Lit p) {
 	vec<Lit> lits;
 	lits.push(p);
 	AggrReason& ar = *aggr_reason[var(p)];
 
-	//find the index of the literal in the set that resulted in the reason.
-	//Can be optimized by storing it in the reason, but usually the number of aggregate expressions it not that high.
-	int i = 0;
-	while (i < Aggr_watches[var(p)].size() && (&(Aggr_watches[var(p)])[i].expr->set)!= &(ar.expr->set)){
-		i++;
-	}
-	assert(i<Aggr_watches[var(p)].size());
-	int p_idx = (Aggr_watches[var(p)])[i].index;
-
 	//get the explanation from the aggregate expression
-	ar.expr->getExplanation(p, lits, p_idx, ar);
+	ar.expr->getExplanation(p, lits, ar);
 
 	//create a conflict clause and return it
 	Clause* c = Clause_new(lits, true);
+
 	if (verbosity >= 2) {
 		reportf("Implicit reason clause for ");
 		printLit(p, !sign(p)); reportf(" : "); solver->printClause(*c); reportf("\n");
@@ -230,21 +194,17 @@ Clause* AggSolver::getExplanation(Lit p) {
 	return c;
 }
 
-/**
- * Correct the min and max values of the aggregates in which l was propagated
- *
- * @PRE: backtracking is in anti-chronologous order!
- */
 void AggSolver::doBacktrack(Lit l){
 	if (aggr_reason[var(l)] != NULL) {
 		delete aggr_reason[var(l)];
 		aggr_reason[var(l)] = NULL;
 	}
 
-	vec<AggrWatch>& vcw = Aggr_watches[var(l)];
+	vec<AggrWatch>& vcw = aggr_watches[var(l)];
 	for(int i=0; i<vcw.size(); i++){
 		Agg& ae = *vcw[i].expr;
-		if(ae.stack.size()!=0 && var(ae.stack.last().wlit.lit)==var(l)){
+		if(ae.stack.size()!=0){
+			assert(var(ae.stack.last().wlit.lit)==var(l));
 			ae.backtrack(vcw[i].type, vcw[i].index);
 		}
 	}
@@ -254,12 +214,14 @@ void AggSolver::doBacktrack(Lit l){
  * IDSOLVER PART *
  *****************/
 
+//FIXME debug the idsolver part
+
 void AggSolver::createLoopFormula(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen){
 	getWatchOfHeadOccurence(v).expr->createLoopFormula(ufs, loopf, seen);
 }
 
 void AggSolver::getHeadsOfAggrInWhichOccurs(Var x, vec<Var>& heads){
-	vec<AggrWatch>& w = Aggr_watches[x];
+	vec<AggrWatch>& w = aggr_watches[x];
 	for(int i=0; i<w.size(); i++){
 		if(var(w[i].expr->head)!=x){
 			heads.push(var(w[i].expr->head));
@@ -278,20 +240,21 @@ void AggSolver::getLiteralsOfAggr(Var x, vec<Lit>& lits){
  * Propagate the fact that l has a cyclefree and supporting justification
  * All new justifications are pushed onto the existing queue
  */
-void AggSolver::propagateJustifications(Var l, vec<vec<Lit> >& jstf, vec<Var>& lits, vec<int> &nb_body_lits_to_justify){
-	for (int i = 0; i < Aggr_watches[l].size(); ++i) {
-		AggrWatch& aw = (Aggr_watches[l])[i];
-		if (aw.type == HEAD){
-			continue;
-		}
-		if(aw.expr->headvalue == l_False){
-			continue;
-		}
-		Var v = var(aw.expr->head);
-		if (nb_body_lits_to_justify[v] > 0) { //only push when it has not yet been derived!
-			lits.push(v);
-			jstf.push();
-			aw.expr->propagateJustifications(jstf.last(), nb_body_lits_to_justify);
+void AggSolver::propagateJustifications(Var w, vec<vec<Lit> >& jstf, vec<Var>& lits, vec<int> &nb_body_lits_to_justify){
+	for (int i = 0; i < aggr_watches[w].size(); ++i) {
+		AggrWatch& aw = (aggr_watches[w])[i];
+		if(aw.type == HEAD){ continue; }
+		if(aw.expr->headvalue == l_False){ continue; }
+
+		Var head = var(aw.expr->head);
+		if (nb_body_lits_to_justify[head] > 0) { //check its body for justification hwen it has not yet been derived
+			vec<Lit> newjust;
+			aw.expr->propagateJustifications(newjust, nb_body_lits_to_justify);
+			if(nb_body_lits_to_justify[head]==0){ //head has now been derived
+				lits.push(head);
+				jstf.push();
+				newjust.copyTo(jstf.last());
+			}
 		}
 	}
 }
@@ -301,7 +264,7 @@ void AggSolver::propagateJustifications(Var l, vec<vec<Lit> >& jstf, vec<Var>& l
  * of the justification may have become cycle sources
  */
 void AggSolver::findCycleSourcesFromBody(Lit l){
-	vec<AggrWatch>& as = Aggr_watches[var(l)];
+	vec<AggrWatch>& as = aggr_watches[var(l)];
 	if(as.size()==0){ return; }
 
 	int j=0;
@@ -312,8 +275,6 @@ void AggSolver::findCycleSourcesFromBody(Lit l){
 		AggrWatch& aw = as[j];
 		Lit head = aw.expr->head;
 		if (aw.expr->headvalue != l_False) {
-			//TODO de IDsolver gebruikt de meest recente values, de aggsolver niet, maar hier maakt het denk ik niet uit, omdat defpropagatie maar gedaan wordt na alle gewone propagaties
-			//	mss een assert doen met een boolean die checkt of we wel definitiepropagatie mogen doen.
 			vec<Lit>& cf = idsolver->getCFJustificationAggr(var(head));
 			for (int k=0; k < cf.size(); k++){
 				if(cf[k] == ~l){ // ~l is indeed used in the cf_justification.
@@ -373,11 +334,11 @@ inline void AggSolver::printAggrExpr(const Agg& ae){
 		reportf(" <- %d <= %s{", ae.bound, ae.name.c_str());
 	}
 	for (vector<int>::size_type i=0; i<ae.set->wlitset.size(); ++i) {
-		reportf(" "); printLit(ae.set->wlitset[i].lit, ae.setcopy[i]); reportf("(%d)",ae.set->wlitset[i].weight);
+		reportf(" "); printLit(ae.set->wlitset[i].lit, ae.litvalue[i]); reportf("(%d)",ae.set->wlitset[i].weight);
 	}
 	if(ae.lower){
-		reportf(" } <= %d. Known values: currentbestcertain=%d, currentbestpossible=%d\n", ae.bound, ae.currentbestcertain, ae.currentbestpossible);
+		reportf(" } <= %d. Known values: bestcertain=%d, bestpossible=%d\n", ae.bound, ae.currentbestcertain, ae.currentbestpossible);
 	}else{
-		reportf(" }. Known values: currentbestcertain=%d, currentbestpossible=%d\n", ae.currentbestcertain, ae.currentbestpossible);
+		reportf(" }. Known values: bestcertain=%d, bestpossible=%d\n", ae.currentbestcertain, ae.currentbestpossible);
 	}
 }

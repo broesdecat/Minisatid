@@ -13,9 +13,7 @@
 #include "AMNSolver.h"
 #include "AggSolver.h"
 
-#include "Debug.h"
-
-int msglevel;
+int verbosity;
 
 /*************************************************************************************/
 
@@ -273,15 +271,15 @@ static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AMNSolver* AS, AggSo
 	AS->finishECNF_DataStructures();
 	if(modes.aggr){
 		modes.aggr = AGG->finishECNF_DataStructures();
-		if(!modes.aggr){
-			pmesg(DEFAULTOUTPUT, "                                            |\n"
-								 "|    (there will be no aggregate propagations)                                |\n");
+		if(!modes.aggr && verbosity >= 1){
+			reportf("                                            |\n"
+					"|    (there will be no aggregate propagations)                                |\n");
 		}
 	}
 	if(modes.def){
 		modes.def = TS->finishECNF_DataStructures();
-		if(!modes.def){
-			pmesg(DEFAULTOUTPUT, "|    (there will be no definitional propagations)                             |\n");
+		if(!modes.def && verbosity >= 1){
+			reportf("|    (there will be no definitional propagations)                             |\n");
 		}
 	}
 	S->finishParsing();
@@ -300,7 +298,7 @@ static void parse_main(B& in, Solver* S, IDSolver* TS, AMNSolver* AS, AggSolver*
             if (match(in, "cnf")){
                 int vars    = parseInt(in);
                 int clauses = parseInt(in);
-                if (S->verbosity>=1) {
+                if (verbosity>=1) {
                     reportf("|  Number of variables:  %-12d                                         |\n", vars);
                     reportf("|  Number of clauses:    %-12d                                         |\n", clauses);
                 }
@@ -308,31 +306,31 @@ static void parse_main(B& in, Solver* S, IDSolver* TS, AMNSolver* AS, AggSolver*
                 break;
             }else if (match(in,"ecnf")) {
                 ecnf=true;
-                if (S->verbosity>=1)
+                if (verbosity>=1)
                     reportf("| Reading ECNF file.                                                          |\n");
                 for (;*in!='\n';) {
                     while (*in == 9 || *in == 11 || *in == 12 || *in == 13 || *in == 32) ++in;
                     if (*in==EOF || *in=='\0' || *in=='\n') break;
                     if (*in=='d' && match(in,"def")) {
-                        if (S->verbosity>=1)
+                        if (verbosity>=1)
                             reportf("|    May contain inductive definitions.                                       |\n");
                         modes.def = true;
                     } else if (*in=='e' && match(in,"eu")) {
-                        if (S->verbosity>=1)
+                        if (verbosity>=1)
                             reportf("|    May contain exists unique statements (registered as at-most-one).        |\n");
                     } else if (*in=='a') {
                         ++in;
                         if (*in=='m' && match(in,"mo")) {
-                            if (S->verbosity>=1)
+                            if (verbosity>=1)
                                 reportf("|    May contain at most one statements                                  |\n");
                         } else if (*in=='g' && match(in,"ggr")) {
-                            if (S->verbosity>=1)
+                            if (verbosity>=1)
                                 reportf("|    May contain aggregate expressions.                                       |\n");
                             modes.aggr = true;
                         } else
                             ParseError("Unexpected ECNF extension type (known: \"def\", \"eu\", \"amn\", \"aggr\"); stuck on '%c'.\n",*in);
                     } else if (*in=='m' && match(in,"mnmz")) {
-                        if (S->verbosity>=1)
+                        if (verbosity>=1)
                             reportf("|    May contain an optimize statement.                                       |\n");
                         modes.mnmz = true;
                     } else
@@ -509,14 +507,11 @@ int main(int argc, char** argv)
 			}
 
         }else if ((value = hasPrefix(argv[i], "-verbosity="))){
-            int verbosity = (int)strtol(value, NULL, 10);
-            if (verbosity == 0 && errno == EINVAL){
+            int verb = (int)strtol(value, NULL, 10);
+            if (verb == 0 && errno == EINVAL){
                 reportf("ERROR! illegal verbosity level %s\n", value);
                 exit(0); }
-            S->verbosity = verbosity;
-            TS->verbosity = verbosity;
-            AS->verbosity = verbosity;
-            AggS->verbosity = verbosity;
+            verbosity = verb;
 
         }else if ((value = hasPrefix(argv[i], "-maxruntime="))){
            S->maxruntime = (double)strtol(value, NULL, 10);
@@ -545,12 +540,12 @@ int main(int argc, char** argv)
     argc = j;
 
 
-    if (S->verbosity>=1)
+    if (verbosity>=1)
         reportf("This is MiniSat 2.0 beta\n");
 #if defined(__linux__)
     fpu_control_t oldcw, newcw;
     _FPU_GETCW(oldcw); newcw = (oldcw & ~_FPU_EXTENDED) | _FPU_DOUBLE; _FPU_SETCW(newcw);
-    if (S->verbosity>=1)
+    if (verbosity>=1)
         reportf("WARNING: for repeatability, setting FPU to use double precision\n");
 #endif
     double cpu_time = cpuTime();
@@ -566,7 +561,7 @@ int main(int argc, char** argv)
     if (in == NULL)
         reportf("ERROR! Could not open file: %s\n", argc == 1 ? "<stdin>" : argv[1]), exit(1);
 
-    if (S->verbosity>=1) {
+    if (verbosity>=1) {
         reportf("============================[ Problem Statistics ]=============================\n");
         reportf("|                                                                             |\n");
     }
@@ -593,13 +588,13 @@ int main(int argc, char** argv)
 		gzclose(in);
 		FILE* res = (argc >= 3) ? fopen(argv[2], "wb") : NULL;
 
-		if (S->verbosity>=1) {
+		if (verbosity>=1) {
 			double parse_time = cpuTime() - cpu_time;
 			reportf("| Parsing time              : %7.2f s                                       |\n", parse_time);
 		}
 
 		if (!S->simplify()){
-			if (S->verbosity>=1) {
+			if (verbosity>=1) {
 				reportf("===============================================================================\n");
 				reportf("Solved by unit propagation\n");
 			}

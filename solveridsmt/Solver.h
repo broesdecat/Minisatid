@@ -34,6 +34,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "AMNSolver.h"
 #include "AggSolver.h"
 
+extern int verbosity;
+
 #ifdef _MSC_VER
 #include <ctime>
 
@@ -156,7 +158,6 @@ public:
     double    learntsize_inc;     // The limit for learnt clauses is multiplied with this factor each restart.                 (default 1.1)
     bool      expensive_ccmin;    // Controls conflict clause minimization.                                                    (default TRUE)
     int       polarity_mode;      // Controls which polarity the decision heuristic chooses. See enum below for allowed modes. (default polarity_false)
-    int       verbosity;          // Verbosity level. 0=silent, 1=some progress report                                         (default 0)
     double    random_seed;        // Used by the random variable selection.
     double    maxruntime;         // When 0: don't use it.
 

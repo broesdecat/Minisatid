@@ -31,6 +31,8 @@ enum FINDCS			{ always, adaptive, lazy};
 enum MARKDEPTH		{ include_cs, stop_at_cs};
 enum SEARCHSTRAT	{ breadth_first, depth_first};
 
+extern int verbosity;
+
 class Solver;
 class AggSolver;
 
@@ -89,7 +91,6 @@ public:
 		aggsolver = s;
 	}
 
-	int	verbosity;          // Verbosity level. 0=silent, 1=some progress report
 	FINDCS		defn_strategy;      // Controls which propagation strategy will be used for definitions.                         (default always)
 	MARKDEPTH	defn_search;        // Controls which search type will be used for definitions.                                  (default include_cs)
 	SEARCHSTRAT	ufs_strategy;		//Which algorithm to use to find unfounded sets
@@ -238,40 +239,25 @@ private:
 	set<Var> wfmarkedAtoms;
 	vector<bool> wfisMarked;
 	vector<int> wfcounters;
+	vector<Var> wfrootnodes;
 	bool wffixpoint;
 
-	/*!
-	 * \brief Implementation of Tarjan's algorithm for detecting strongly connected components.
+	/*
+	 * Implementation of Tarjan's algorithm for detecting strongly connected components.
 	 */
 	void visitWF(Var i, vector<Var> &root, vector<bool> &incomp, stack<Var> &stack, vector<Var> &visited, int& counter, bool throughPositiveLit, vector<int>& rootofmixed);
-	/*!
-	 * \brief Search for mixed cycles in the justification graph of the current model.
-	 *
-	 * \post For every mixed cycle in the justification graph, there is one literal of the cycle on \c _mixedCycleRoots.
-	 *
-	 * Main structure of findMixedCycles():
-	 * \code
-	 *    for( //each defined, true literal litp with non empty body )
-	 *       Visit(litp);
-	 * \endcode
+	/*
+	 * Search for mixed cycles in the justification graph of the current model.
+	 * @post For every mixed cycle in the justification graph, there is one literal of the cycle on \c _mixedCycleRoots.
 	 */
 	void findMixedCycles(vector<Var> &root, vector<int>& rootofmixed);
-	/*!
-	 * \brief Mark all atoms that are above the mixed cycle roots in the justification graph.
-	 *
-	 * Main structure of markUpward()
-	 * \code
-	 *    \\ mark all cycle roots.
-	 *    \\ mark all literals that are above the cycle roots.
-	 * \endcode
+	/*
+	 * Mark all atoms that are above the mixed cycle roots in the justification graph.
 	 */
 	void markUpward();
-	/*!
-	 * \brief Mark a literal.
-	 */
 	void mark(Var);
-	/*!
-	 * \brief For marked literal l, set _counters[l] to the number of marked bodyliterals in its body. When l is conj/disj, and contains an false/true unmarked bodyliteral, l is pushed on _queuePropagate.
+	/*
+	 * For marked literal l, set _counters[l] to the number of marked bodyliterals in its body. When l is conj/disj, and contains an false/true unmarked bodyliteral, l is pushed on _queuePropagate.
 	 */
 	void initializeCounters();
 	void forwardPropagate(bool);

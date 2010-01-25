@@ -56,13 +56,21 @@ struct AggrWatch {
 
     AggrWatch(Agg* e, int i, Occurrence t) : type(t), expr(e), index(i) {}
 };
-struct AggrReason {			// Needed to build (with implicitReasonClause(Lit)) a reason clause for a cardinality propagation.
+struct AggrReason {
     Agg*		expr;
     Occurrence	type;
+    int 		index; //the index of the literal, in the weight set of expr, for which this is the reason (-1 if head)
 
-    AggrReason(Agg* e, Occurrence t) : expr(e), type(t) {}
+    AggrReason(Agg* e, Occurrence t, int index) : expr(e), type(t), index(index) {}
 };
 
+/**
+ * The certain values contain info about the elements of the set that are currently CERTAINLY in the set (by their
+ * truth value).
+ * The possible values contain info about all elements that eventually MIGHT still be in the set (by their truth value).
+ *
+ * An aggregate is (currently) always a definition, so its head is always a positive literal.
+ */
 class Agg{
 public:
 	int	bound, currentbestcertain, currentbestpossible, emptysetValue, truecount, possiblecount;
@@ -72,7 +80,7 @@ public:
     string 		name;
     Lit			head;
     AggrSet* 	set;
-    vec<lbool>	setcopy;			//same indices as set.wlitset. The value of the literal as how it has been propagated IN THIS EXPRESSIOn
+    vec<lbool>	litvalue;			//same indices as set.wlitset. The value of the literal as how it has been propagated IN THIS EXPRESSIOn
     lbool		headvalue;			//same for head
     vec<PropagationInfo> stack;		// Stack of propagations of this expression so far.
 
@@ -85,20 +93,22 @@ public:
     /**
      * Updates the values of the aggregate and then returns whether the head can be directly propagated from the body
      */
-    virtual lbool 	canPropagateHead();
-    virtual Clause* propagate(bool headtrue) = 0;
-    Clause* propagate(Lit p, AggrWatch& ws);
-    virtual void 	backtrack(Occurrence tp, int index);
-	virtual void	getExplanation(Lit p, vec<Lit>& lits, int p_index, AggrReason& ar) = 0;
+    virtual lbool 	canPropagateHead() = 0;
+			Clause* propagate		(Lit p, AggrWatch& ws);
+    virtual void 	backtrack		(Occurrence tp, int index);
 
-	virtual int 	getBestPossible() = 0;
-	virtual void 	removeFromCertainSet(WLit l) = 0;
-	virtual void 	addToCertainSet(WLit l) = 0;
-	virtual void 	addToPossibleSet(WLit l) = 0;
-	virtual void 	removeFromPossibleSet(WLit l) = 0;
+    virtual Clause* propagate		(bool headtrue) = 0;
+    virtual Clause* propagateHead	(bool headtrue) = 0;
+	virtual void	getExplanation	(Lit p, vec<Lit>& lits, AggrReason& ar) = 0;
 
-	//cannot be done in the agg constructor, because it needs a subclass OBJECT to work with, which is only constructed later
-	virtual void 	doSetReduction();
+	/**
+	 * Checks whether duplicate literals occur in the set. If this is the case, their values are appropriately combined.
+	 *
+	 * @post: each literal only occurs once in the set.
+	 *
+	 * @remark: has to be called in the SUBCLASS constructors, because it needs the subclass data of which agg it is.
+	 */
+			void 	doSetReduction();
 	//Returns the weight a combined literal should have if both weights are in the set at the same time
 	virtual int	 	getCombinedWeight(int one, int two) = 0;
 	virtual WLit 	handleOccurenceOfBothSigns(WLit one, WLit two) = 0;
@@ -108,6 +118,12 @@ public:
 	virtual void 	justifyHead(vec<Lit>& just) = 0;
 	virtual void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) = 0;
 	virtual bool	directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q, vec<Lit>& j, vec<int>& seen, const vec<int>& scc) = 0;
+
+	virtual int 	getBestPossible			() 		 = 0;
+	virtual void 	removeFromCertainSet	(WLit l) = 0;
+	virtual void 	addToCertainSet			(WLit l) = 0;
+	virtual void 	addToPossibleSet		(WLit l) = 0;
+	virtual void 	removeFromPossibleSet	(WLit l) = 0;
 };
 
 class MinAgg: public Agg {
@@ -117,20 +133,15 @@ public:
 			emptysetValue = std::numeric_limits<int>::max();
 			name = "MIN";
 			doSetReduction();
-			setcopy.growTo(set->wlitset.size(), l_Undef);
+			litvalue.growTo(set->wlitset.size(), l_Undef); //only initialize after setreduction!
 		};
 
 	virtual ~MinAgg();
 
 	lbool 	canPropagateHead();
 	Clause* propagate(bool headtrue);
-	void	getExplanation(Lit p, vec<Lit>& lits, int p_index, AggrReason& ar);
-
-	int 	getBestPossible();
-	void	removeFromCertainSet(WLit l);
-	void	addToCertainSet(WLit l);
-	void	addToPossibleSet(WLit l);
-	void	removeFromPossibleSet(WLit l);
+	Clause* propagateHead(bool headtrue);
+	void	getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar);
 
 	int	 	getCombinedWeight(int, int);
 	WLit 	handleOccurenceOfBothSigns(WLit one, WLit two);
@@ -139,6 +150,12 @@ public:
 	void 	justifyHead(vec<Lit>& just);
 	void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
 	bool	directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q, vec<Lit>& j, vec<int>& seen, const vec<int>& scc);
+
+	int 	getBestPossible();
+	void	addToCertainSet			(WLit l);
+	void	addToPossibleSet		(WLit l);
+	void	removeFromCertainSet	(WLit l);
+	void	removeFromPossibleSet	(WLit l);
 };
 
 class MaxAgg: public Agg {
@@ -148,19 +165,15 @@ public:
 			emptysetValue = std::numeric_limits<int>::min();
 			name = "MAX";
 			doSetReduction();
-			setcopy.growTo(set->wlitset.size(), l_Undef);
+			litvalue.growTo(set->wlitset.size(), l_Undef); //only initialize after setreduction!
 		};
 
 	virtual ~MaxAgg();
 
+	lbool 	canPropagateHead();
 	Clause* propagate(bool headtrue);
-	void	getExplanation(Lit p, vec<Lit>& lits, int p_index, AggrReason& ar);
-
-	int 	getBestPossible();
-	void	removeFromCertainSet(WLit l);
-	void	addToCertainSet(WLit l);
-	void	addToPossibleSet(WLit l);
-	void	removeFromPossibleSet(WLit l);
+	Clause* propagateHead(bool headtrue);
+	void	getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar);
 
 	int	 	getCombinedWeight(int, int);
 	WLit 	handleOccurenceOfBothSigns(WLit one, WLit two);
@@ -169,6 +182,12 @@ public:
 	void 	justifyHead(vec<Lit>& just);
 	void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
 	bool	directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q, vec<Lit>& j, vec<int>& seen, const vec<int>& scc);
+
+	int 	getBestPossible();
+	void	addToCertainSet			(WLit l);
+	void	addToPossibleSet		(WLit l);
+	void	removeFromCertainSet	(WLit l);
+	void	removeFromPossibleSet	(WLit l);
 };
 
 class SPAgg: public Agg {
@@ -185,18 +204,14 @@ public:
 				name = "PROD";
 			}
 			doSetReduction();
-			setcopy.growTo(set->wlitset.size(), l_Undef);
+			litvalue.growTo(set->wlitset.size(), l_Undef); //only initialize after setreduction!
 		};
 	virtual ~SPAgg();
 
+	lbool 	canPropagateHead();
 	Clause* propagate(bool headtrue);
-	void	getExplanation(Lit p, vec<Lit>& lits, int p_index, AggrReason& ar);
-
-	int 	getBestPossible();
-	void	removeFromCertainSet(WLit l);
-	void	addToCertainSet(WLit l);
-	void	addToPossibleSet(WLit l);
-	void	removeFromPossibleSet(WLit l);
+	Clause* propagateHead(bool headtrue);
+	void	getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar);
 
 	int		getCombinedWeight(int, int);
 	WLit 	handleOccurenceOfBothSigns(WLit one, WLit two);
@@ -205,6 +220,12 @@ public:
 	void 	justifyHead(vec<Lit>& just);
 	void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
 	bool	directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q, vec<Lit>& j, vec<int>& seen, const vec<int>& scc);
+
+	int 	getBestPossible();
+	void	addToCertainSet			(WLit l);
+	void	addToPossibleSet		(WLit l);
+	void	removeFromCertainSet	(WLit l);
+	void	removeFromPossibleSet	(WLit l);
 };
 
 #endif /* MINAGG_H_ */
