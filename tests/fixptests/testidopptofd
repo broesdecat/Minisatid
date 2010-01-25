@@ -1,0 +1,17 @@
+Given:
+	type X = {AA; AB}
+	D(X)
+Find:
+	A
+	B
+	C(X)
+Satisfying:
+	GFD[
+		A <- B.
+		LFD[			
+			B <- C(AA).
+			!x[X]: C(x) <- D(AA).
+		]
+	]
+Data:
+	D = {AB}

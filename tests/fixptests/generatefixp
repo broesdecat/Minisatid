@@ -1,0 +1,13 @@
+#!/bin/bash
+for i in $(seq 1 1 500)
+do
+	j=$(($i*2))
+   echo "GFD[P($j) <- P($(($j-1))) & P(1000)"
+  	j=$(($j+1))
+   echo "LFD[P($j) <- P($(($j-1))) | P(1000)"
+done
+
+for i in $(seq 1 1 1000)
+do
+   echo -n "]"
+done

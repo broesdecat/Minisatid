@@ -1,0 +1,18 @@
+Given:
+	type X = {AA; AB}
+	D(X)
+Find:
+	A
+	B
+	C(X)
+Satisfying:
+	/*LFD[			
+		B <- C(x).
+		C(x) <- D(x).
+	]*/
+	{
+		B <- C(x).
+		C(x) <- D(x).
+	}
+Data:
+	D = { AA }
