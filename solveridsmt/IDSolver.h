@@ -11,7 +11,6 @@
 #include "Vec.h"
 #include "Queue.h"
 #include "Heap.h"
-#include "Alg.h"
 
 #include "SolverTypes.h"
 #include "Solver.h"
@@ -72,10 +71,9 @@ public:
 	/////////////////////ENDSOLVER NECESSARY
 
 	/////////////////////AGGSOLVER NECESSARY
-	vec<bool>	isCS;                   		// Per atom: is it a cycle source?
-
+	vec<bool>	isCS;                   // Per atom: is it a cycle source?
 	vec<Lit>&	getCFJustificationAggr	(Var v);
-	void 		cycleSourceAggr			(Var v, vec<Lit>& nj, bool becamecyclesource);
+	void 		cycleSourceAggr			(Var v, vec<Lit>& nj);
 	void 		notifyAggrHead			(Var head);
 	/////////////////////END AGGSOLVER NECESSARY
 

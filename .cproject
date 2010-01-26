@@ -43,6 +43,9 @@
 </tool>
 </toolChain>
 </folderInfo>
+<sourceEntries>
+<entry excluding="*.o*|**/*.o*|solveridsmt/**.o**|solveridsmt/Agg.gcno|solveridsmt/Agg.occ|solveridsmt/AggSolver.gcno|solveridsmt/AggSolver.occ" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name=""/>
+</sourceEntries>
 </configuration>
 </storageModule>
 <storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>

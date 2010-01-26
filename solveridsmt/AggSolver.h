@@ -5,7 +5,6 @@
 
 #include "Vec.h"
 #include "Sort.h"
-#include "Alg.h"
 
 #include "Agg.h"
 #include "Solver.h"
@@ -105,6 +104,10 @@ public:
 	Clause* 		notifySATsolverOfPropagation(Lit p, AggrReason* cr);	// Like "enqueue", but for aggregate propagations.
 	vec<AggrSet*>	aggr_sets;      					// List of aggregate sets being used.
 
+	// Debug:
+	void     printLit        (Lit l, lbool value);
+	void     printAggrExpr   (const Agg& ae);
+
 protected:
 	/**
 	 * Returns the watch set on the aggregate in which the given variable is the head.
@@ -146,10 +149,6 @@ protected:
 
 	void 	findCycleSources	(AggrWatch& v);
 	int		nVars()      const;
-
-	// Debug:
-	void     printLit        (Lit l, lbool value);
-	void     printAggrExpr   (const Agg& ae);
 };
 
 //=======================

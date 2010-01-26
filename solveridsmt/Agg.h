@@ -114,7 +114,7 @@ public:
 	virtual WLit 	handleOccurenceOfBothSigns(WLit one, WLit two) = 0;
 
 	virtual void	propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify) = 0;
-			bool 	becomesCycleSource(vec<Lit>& nj);
+			void 	becomesCycleSource(vec<Lit>& nj);
 	virtual void 	justifyHead(vec<Lit>& just) = 0;
 	virtual void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) = 0;
 	virtual bool	directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q, vec<Lit>& j, vec<int>& seen, const vec<int>& scc) = 0;

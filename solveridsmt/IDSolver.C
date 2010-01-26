@@ -726,11 +726,10 @@ void IDSolver::findCycleSources() {
 	}
 }
 
-/*
- * Find a new supporting justification for v, because its previous one is no longer supporting.
- *
- * Precondition: V is of type DISJ. It is non-false, and its cf_justification does not support it.
- * Postcondition: sp_justification[v] supports v. v is added a cycle source if necessary (i.e., if there might be a cycle through its sp_justification).
+/**
+ * Creating cycle sources that are always cycle free: do not immediately change the previous justification. Only
+ * if a new one can be found that is not false and does not depend on literal in the same scc.
+ * In all other cases, add v as a cycle source.
  *
  * Only called by findCycleSources()
  */
@@ -789,22 +788,34 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 	markNonJustified(cs, tmpseen);
 	bool csisjustified = false;
 
+	seen[cs]=1; //no valid justification can be created just from looking at the body literals
+
+
 	/**
+	 * FIXME: is next code necessary?
 	 * FIXME: The justification is only used in the in the marking, and that is done upwards. So instead of after the marking checking
 	 * whether a cycle is found, it has to be checked whether one of the body literals of the cycle source was marked. Important, also
 	 * check whether the cycle source is marked!
 	 */
-	for(int i=0;!csisjustified && i<definition[cs]->size(); i++){
-		Lit l = definition[cs]->operator [](i);
-		if(isPositive(l) && isJustified(var(l)) && !isFalse(l)){
-			change_jstfc_disj(cs, l);
-			isCS[cs] = false;
-			csisjustified = true;
+	/*if(defType[cs]==DISJ){
+		for(int i=0;!csisjustified && i<definition[cs]->size(); i++){
+			Lit l = definition[cs]->operator [](i);
+			if(isPositive(l) && isJustified(var(l)) && !isFalse(l)){
+				change_jstfc_disj(cs, l);
+				isCS[cs] = false;
+				csisjustified = true;
+			}
 		}
+	}else{
+		assert(defType[cs]==AGGR);
+		//FIXME should check here whether cs is justified (by checking whether his marked children are a justification)
 	}
 
-	seen[cs]=1; //no valid justification can be created just from looking at the body literals
-	//TODO op voorbeeld 14 maakt het een atoom justication dat al false is, dus gaat er nog iets mis!
+	if(csisjustified){
+		return false;
+	}*/
+
+	//TODO op voorbeeld 14 maakt het een atoom justicatied dat al false is, dus gaat er nog iets mis!
 
 	assert(!isJustified(cs));
 
@@ -853,7 +864,7 @@ inline bool IDSolver::isJustified(Var x){
  * If the rule with head v can be justified, do that justification.
  * Otherwise, add all nonjustified body literals to the queue that have to be propagated (no negative body literals in a rule)
  *
- * @Post: v is now justified it a justification can be found based on the current seen vector
+ * @Post: v is now justified if a justification can be found based on the current seen vector
  * @Returns: true if v is now justified
  */
 bool IDSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
@@ -960,6 +971,7 @@ bool IDSolver::propagateJustified(Var v, Var cs, std::set<Var>& ufs, Queue<Var>&
 			vec<Var> heads;
 			aggsolver->getHeadsOfAggrInWhichOccurs(k, heads);
 			for (int i = 0; i < heads.size(); ++i) {
+				if(heads[i]==k){ continue; } //k can never justify its own head
 				Var d = heads[i];
 				if (!isJustified(d)){
 					q.insert(d);
@@ -1219,13 +1231,22 @@ vec<Lit>& IDSolver::getCFJustificationAggr(Var v){
 	return cf_justification_aggr[v];
 }
 
-void IDSolver::cycleSourceAggr(Var v, vec<Lit>& just, bool becamecyclesource){
-	change_jstfc_aggr(v,just);
-	for(int i=0; i<just.size(); i++){
-		if(becamecyclesource && isDefInPosGraph(var(just[i])) && inSameSCC(v, var(just[i]))){
-			addCycleSource(v);
-			break;
+/**
+ * Checks whether the aggregate head v has a new external justification (just).
+ * If this is the case (all literal in other scc than v or not defined in pos graph), then the new just is added.
+ * Otherwise, v is added as a cycle source.
+ */
+void IDSolver::cycleSourceAggr(Var v, vec<Lit>& just){
+	bool alljustifiedexternally = true;
+	for(int i=0; alljustifiedexternally && i<just.size(); i++){
+		if(isDefInPosGraph(var(just[i])) && inSameSCC(v, var(just[i]))){
+			alljustifiedexternally = false;
 		}
+	}
+	if(!alljustifiedexternally){
+		addCycleSource(v);
+	}else{
+		change_jstfc_aggr(v,just);
 	}
 }
 

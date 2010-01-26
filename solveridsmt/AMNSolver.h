@@ -5,7 +5,6 @@
 
 #include "Vec.h"
 #include "Sort.h"
-#include "Alg.h"
 
 #include "SolverTypes.h"
 #include "Solver.h"
