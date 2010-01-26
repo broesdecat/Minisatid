@@ -14,6 +14,8 @@ class Solver;
 class IDSolver;
 class Agg;
 
+extern int verbosity;
+
 class AggSolver{
 public:
 	static AggSolver* aggsolver;
@@ -97,7 +99,6 @@ public:
 		idsolver = s;
 	}
 
-	int	verbosity;          // Verbosity level. 0=silent, 1=some progress report
 	/////////////////////END INITIALIZATION
 
 	//are used by agg.c, but preferably should be move into protected again

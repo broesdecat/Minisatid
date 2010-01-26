@@ -3,16 +3,16 @@
 #include <algorithm>
 
 void Agg::backtrack(Occurrence tp, int index) {
-	Lit l = set->wlitset[index].lit;
-	if(verbosity>2){
-		reportf("Literal"); AggSolver::aggsolver->printLit(l, litvalue[index]);
+	PropagationInfo pi = stack.last();
+	stack.pop();
+
+	if(verbosity>5){
+		reportf("Literal"); AggSolver::aggsolver->printLit(pi.wlit.lit, l_True);
 		reportf(" was backtracked in ");
 		AggSolver::aggsolver->printAggrExpr(*this);
 	}
 
-	assert(var(stack.last().wlit.lit)==var(l));
-	PropagationInfo pi = stack.last();
-	stack.pop();
+	assert(tp==HEAD || var(pi.wlit.lit)==var(set->wlitset[index].lit));
 
 	if (tp == HEAD){ //propagation didn't affect min/max
 		headvalue = l_Undef;
@@ -28,14 +28,17 @@ void Agg::backtrack(Occurrence tp, int index) {
 }
 
 Clause* Agg::propagate(Lit p, AggrWatch& ws){
+	assert((ws.type==HEAD && headvalue==l_Undef && var(head)==var(p))
+			||
+		(litvalue[ws.index]==l_Undef && var(set->wlitset[ws.index].lit)==var(p)));
+
 	Clause* confl = NULL;
 
-	if(verbosity>2){
+	if(verbosity>5){
 		reportf("Literal"); AggSolver::aggsolver->printLit(p, l_True); reportf(" was propagated in ");
 		AggSolver::aggsolver->printAggrExpr(*this);
 	}
 
-	//FIXME: error if p is head
 	Occurrence tp = relativeOccurrence(ws.type, p);
 	stack.push(PropagationInfo(p, set->wlitset[ws.index].weight,tp));
 
@@ -1124,6 +1127,8 @@ bool MaxAgg::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q, vec<L
 	}
 	return justified;
 }
+
+//FIXME code review of sum/product recursive aggregates has not yet been done
 
 /**
  * use emtpysetvalue! (which might already be better than the default)

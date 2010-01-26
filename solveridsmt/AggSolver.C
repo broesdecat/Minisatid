@@ -44,6 +44,16 @@ bool AggSolver::finishECNF_DataStructures() {
 		aggr_exprs[i]->initialize();
 	}
 
+	if(verbosity>=5){
+		for(int i=0; i<aggr_watches.size(); i++){
+			reportf("Watches for %d: ", i+1);
+			for(int j=0; j<aggr_watches[i].size(); j++){
+				solver->printLit(aggr_watches[i][j].expr->set->wlitset[aggr_watches[i][j].index].lit);
+			}
+			reportf("\n");
+		}
+	}
+
 	return true;
 }
 
