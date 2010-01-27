@@ -137,16 +137,21 @@ protected:
 	bool 		isDisjunctive(Var v);
 	bool		setTypeIfNoPosLoops(Var v);
 
+	void 		propagateJustificationDisj(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& heads);
+	void 		propagateJustificationConj(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& heads);
+	void 		propagateJustificationAggr(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& heads);
+
+	bool 		findJustificationDisj(Var v, vec<Lit>& jstf);
+	bool 		findJustificationDisj(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust);
+	bool 		findJustificationConj(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust);
+	bool 		findJustificationAggr(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust);
+
 	// Rules (body to head):
 	vec<vec<Var> >  disj_occurs;         // Per literal: a vector of heads of DISJ rules in which it is a body literal.
 	vec<vec<Var> >  conj_occurs;         // Per literal: a vector of heads of CONJ rules in which it is a body literal.
 
 	// Justifications:
-	vec<Lit>        cf_justification_disj;	// Per atom. cf_ = cycle free, sp_ = supporting.
-	//vec<Lit>        sp_justification_disj;	// _aggr. = only for AGGR atoms, _disj. = only for DISJ atoms.
-	//vec<vec<Lit> >  sp_justification_aggr;
-	vec<vec<Lit> >  cf_justification_aggr;
-	//vec<Var>        changed_vars;			// A list of the atoms whose sp_ and cf_ justification are different.
+	vec<vec<Lit> >       justification;	// Per atom. cf_ = cycle free, sp_ = supporting.
 
 	int       adaption_total;     // Used only if defn_strategy==adaptive. Number of decision levels between indirectPropagate() uses.
 	int       adaption_current;   // Used only if defn_strategy==adaptive. Number of decision levels left until next indirectPropagate() use.
@@ -155,16 +160,14 @@ protected:
 	vec<Var>        css;                    // List of cycle sources. May still include atoms v that have !isCS[v].
 
 	// Justification methods:
-	void	apply_changes      ();                                // Copy sp_justification to cf_justification.
-	//void	clear_changes      ();                                // Restore sp_justification to the state of cf_justification.
-	void	change_jstfc_disj  (Var v, Lit j);                    // Change sp_justification of DISJ atom v to j.
-	void	change_jstfc_aggr  (Var v, const vec<Lit>& j);        // Change sp_justification of AGGR atom v to j.
+	void	apply_changes      ();
+	void 	changejust(Var v, vec<Lit>& j);
 
 	// Cycle source methods:
 	void	addCycleSource		(Var v);
 	void	clearCycleSources	();
-	void	findCycleSources	();                                // Starting from cf_justification, creates a supporting justification in sp_justification, and records the changed atoms in 'cycle sources'.
-	void	justify				(Var v);
+	void	findCycleSources	();
+	void	findJustification				(Var v);
 
 
 	// Propagation method:
@@ -196,7 +199,7 @@ protected:
 	bool	directlyJustifiable			(Var v, std::set<Var>& ufs, Queue<Var>& q);            // Auxiliary for 'unfounded(..)'. True if v can be immediately justified by one change_jstfc action.
 	bool	isJustified					(Lit x);
 	bool	isJustified					(Var x);
-	bool	propagateJustified			(Var v, Var cs, std::set<Var>& ufs, Queue<Var>& q);    // Auxiliary for 'unfounded(..)'. Propagate the fact that 'v' is now justified. True if 'cs' is now justified
+	bool	propagateJustified			(Var v, Var cs, std::set<Var>& ufs);    // Auxiliary for 'unfounded(..)'. Propagate the fact that 'v' is now justified. True if 'cs' is now justified
 	Clause* addLoopfClause				(Lit l, vec<Lit>& lits);
 
 	// Another propagation method (too expensive in practice):
@@ -211,7 +214,7 @@ protected:
 	void     printClause      (const C& c);
 	void     printRule        (const Rule& c);
 	void     checkLiteralCount();
-	bool     isCycleFree      ();			// Verifies whether cf_justification is indeed cycle free, not used, for debugging purposes.
+	bool     isCycleFree      ();			// Verifies whether justification is indeed cycle free, not used, for debugging purposes.
 
 	void 	addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf);
 

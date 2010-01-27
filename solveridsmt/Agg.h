@@ -71,6 +71,7 @@ struct AggrReason {
  *
  * An aggregate is (currently) always a definition, so its head is always a positive literal.
  */
+
 class Agg{
 public:
 	int	bound, currentbestcertain, currentbestpossible, emptysetValue, truecount, possiblecount;
@@ -115,15 +116,18 @@ public:
 
 	virtual void	propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify) = 0;
 			void 	becomesCycleSource(vec<Lit>& nj);
-	virtual void 	justifyHead(vec<Lit>& just) = 0;
 	virtual void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) = 0;
-	virtual bool	directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q, vec<Lit>& j, vec<int>& seen, const vec<int>& scc) = 0;
+	virtual bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) = 0;
 
 	virtual int 	getBestPossible			() 		 = 0;
 	virtual void 	removeFromCertainSet	(WLit l) = 0;
 	virtual void 	addToCertainSet			(WLit l) = 0;
 	virtual void 	addToPossibleSet		(WLit l) = 0;
 	virtual void 	removeFromPossibleSet	(WLit l) = 0;
+
+	bool isJustified		(Var x, vec<int>& currentjust);
+	bool isJustified		(int index, vec<int>& currentjust, bool real);
+	bool oppositeIsJustified(int index, vec<int>& currentjust, bool real);
 };
 
 class MinAgg: public Agg {
@@ -147,9 +151,8 @@ public:
 	WLit 	handleOccurenceOfBothSigns(WLit one, WLit two);
 
 	void	propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify);
-	void 	justifyHead(vec<Lit>& just);
 	void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
-	bool	directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q, vec<Lit>& j, vec<int>& seen, const vec<int>& scc);
+	bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real);
 
 	int 	getBestPossible();
 	void	addToCertainSet			(WLit l);
@@ -179,9 +182,8 @@ public:
 	WLit 	handleOccurenceOfBothSigns(WLit one, WLit two);
 
 	void	propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify);
-	void 	justifyHead(vec<Lit>& just);
 	void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
-	bool	directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q, vec<Lit>& j, vec<int>& seen, const vec<int>& scc);
+	bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real);
 
 	int 	getBestPossible();
 	void	addToCertainSet			(WLit l);
@@ -217,9 +219,8 @@ public:
 	WLit 	handleOccurenceOfBothSigns(WLit one, WLit two);
 
 	void	propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify);
-	void 	justifyHead(vec<Lit>& just);
 	void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
-	bool	directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q, vec<Lit>& j, vec<int>& seen, const vec<int>& scc);
+	bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real);
 
 	int 	getBestPossible();
 	void	addToCertainSet			(WLit l);

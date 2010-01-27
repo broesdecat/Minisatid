@@ -38,12 +38,12 @@ public:
 	/////////////////////ENDSOLVER NECESSARY
 
 	/////////////////////IDSOLVER NECESSARY
-	void propagateJustifications(Var l, vec<vec<Lit> >& jstf, vec<Var>& v, vec<int> &nb_body_lits_to_justify);
+	void propagateJustifications(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& v, vec<int> &nb_body_lits_to_justify);
 
 	void findCycleSourcesFromBody(Lit l);
 	void findCycleSourcesFromHead(Var l);
 
-	bool directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q, vec<Lit>& j, vec<int>& seen, const vec<int>& scc);
+	bool directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust);
 	void createLoopFormula(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
 
 	/**
@@ -149,6 +149,7 @@ protected:
 	Clause* Aggr_propagate		(Lit p);
 
 	void 	findCycleSources	(AggrWatch& v);
+
 	int		nVars()      const;
 };
 
