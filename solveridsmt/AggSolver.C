@@ -81,13 +81,16 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
 	sort(set.wlitset.begin(), set.wlitset.end());
 }
 
-void AggSolver::addAggrExpr(int defn, int setid, int bound, bool lower, AggrType type) {
+void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrType type) {
 	if (setid > aggr_sets.size() || aggr_sets[setid-1]==NULL || aggr_sets[setid-1]->wlitset.size()==0) {
 		reportf("Error: Set nr. %d is used, but not defined yet.\n",setid), exit(3);
 	}
+	if(aggr_watches[headv].size()>0 && aggr_watches[headv][0].type==HEAD){ //INVARIANT: it has to be guaranteed that there is a watch on ALL heads
+		reportf("Error: Two aggregates have the same head(%d).\n",headv+1), exit(3);
+	}
 
 	//the head of the aggregate
-	Lit head = Lit(defn, false);
+	Lit head = Lit(headv, false);
 	int setindex = setid-1;
 
 	//add if really useful varBumpActivity(var(c)); // These guys ought to be initially a bit more important then the rest.
@@ -223,8 +226,6 @@ void AggSolver::doBacktrack(Lit l){
  * IDSOLVER PART *
  *****************/
 
-//FIXME debug the idsolver part
-
 void AggSolver::createLoopFormula(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen){
 	getWatchOfHeadOccurence(v).expr->createLoopFormula(ufs, loopf, seen);
 }
@@ -249,31 +250,40 @@ void AggSolver::getLiteralsOfAggr(Var x, vec<Lit>& lits){
  *
  * @post: any new derived heads are in heads, with its respective justification in jstf
  */
-void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstf, vec<Lit>& heads, vec<int> &nb_body_lits_to_justify){
+void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& heads, vec<int> &currentjust){
 	for (int i = 0; i < aggr_watches[var(w)].size(); ++i) {
 		AggrWatch& aw = (aggr_watches[var(w)])[i];
 		if(aw.type == HEAD){ continue; }
 		if(aw.expr->headvalue == l_False){ continue; }
 
 		Var head = var(aw.expr->head);
-		if (nb_body_lits_to_justify[head] > 0) { //only check its body for justification when it has not yet been derived
-			vec<Lit> newjust;
-			aw.expr->propagateJustifications(newjust, nb_body_lits_to_justify);
-			if(nb_body_lits_to_justify[head]==0){ //head has now been derived
+		if (currentjust[head] > 0) { //only check its body for justification when it has not yet been derived
+			vec<Lit> jstf; vec<Var> nonjstf;
+			if(aw.expr->canJustifyHead(jstf, nonjstf, currentjust, false)){
+				currentjust[head]=0;
 				heads.push(Lit(head, false));
-				jstf.push();
-				newjust.copyTo(jstf.last());
+				jstfs.push();
+				jstf.copyTo(jstfs.last());
 			}
 		}
 	}
 }
 
 /**
+ * The given head is not false. So it has a (possibly looping) justification. Find this justification
+ * and return true if the justification is external (maybe this is better checked in the IDsolver).
+ */
+bool AggSolver::findJustificationAggr(Var head, vec<Lit>& jstf){
+	//FIXME FIXME implement this method
+	return false;
+}
+
+/**
  * This is called when l has been recently assigned (became true), so all aggregates with ~l in the body and part
  * of the justification may have become cycle sources
  */
-//FIXME change this into FIND justification (and cycle sources is taken care of elsewhere)
-void AggSolver::findCycleSourcesFromBody(Lit l){
+//change this into FIND justification (and cycle sources is taken care of elsewhere)
+/*void AggSolver::findCycleSourcesFromBody(Lit l){
 	vec<AggrWatch>& as = aggr_watches[var(l)];
 	if(as.size()==0){ return; }
 
@@ -296,13 +306,13 @@ void AggSolver::findCycleSourcesFromBody(Lit l){
 			}
 		}
 	}
-}
+}*/
 
 /**
  * Checks whether the CF justification of l is still valid (no elements have become false)
  */
-//FIXME change this into FIND justification (and cycle sources is taken care of elsewhere)
-void AggSolver::findCycleSourcesFromHead(Var v){
+//change this into FIND justification (and cycle sources is taken care of elsewhere)
+/*void AggSolver::findCycleSourcesFromHead(Var v){
 	AggrWatch& aw = getWatchOfHeadOccurence(v);
 	if (aw.expr->headvalue == l_False || idsolver->isCS[v]){
 		return;
@@ -317,15 +327,14 @@ void AggSolver::findCycleSourcesFromHead(Var v){
 	if(!alltrue){
 		findCycleSources(aw);
 	}
-}
+}*/
 
 /*
- * Precondition: V is of type AGGR. Its head is non-false, and its cf_justification does not support it.
- * If a justification can be found that is non-false and does not depend on any literal in the same scc,
- * than the justification is changed. Otherwise, it is added as a cycle source.
+ * V is not false so find a justification for it. Preferably find one that does not involve loops.
+ * If a justification is found, but it contains loops, v is added as a cycle source
  */
 void AggSolver::findCycleSources(AggrWatch& v){
-	vec<Lit> nj; // New sp_justification.
+	vec<Lit> nj;
 	v.expr->becomesCycleSource(nj);
 
 	idsolver->cycleSourceAggr(var(v.expr->head), nj);
@@ -339,7 +348,6 @@ bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, ve
 //=================================================================================================
 // Debug + etc:
 
-//TODO these can be inlined if they are not used in Agg
 void AggSolver::printLit(Lit l, lbool value) {
 	reportf("%s%d:%c", sign(l) ? "-" : "", var(l)+1, value == l_True ? '1' : (value == l_False ? '0' : 'X'));
 }

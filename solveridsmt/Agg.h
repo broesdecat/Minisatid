@@ -114,7 +114,6 @@ public:
 	virtual int	 	getCombinedWeight(int one, int two) = 0;
 	virtual WLit 	handleOccurenceOfBothSigns(WLit one, WLit two) = 0;
 
-	virtual void	propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify) = 0;
 			void 	becomesCycleSource(vec<Lit>& nj);
 	virtual void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) = 0;
 	virtual bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) = 0;
@@ -150,7 +149,6 @@ public:
 	int	 	getCombinedWeight(int, int);
 	WLit 	handleOccurenceOfBothSigns(WLit one, WLit two);
 
-	void	propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify);
 	void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
 	bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real);
 
@@ -181,7 +179,6 @@ public:
 	int	 	getCombinedWeight(int, int);
 	WLit 	handleOccurenceOfBothSigns(WLit one, WLit two);
 
-	void	propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify);
 	void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
 	bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real);
 
@@ -218,7 +215,6 @@ public:
 	int		getCombinedWeight(int, int);
 	WLit 	handleOccurenceOfBothSigns(WLit one, WLit two);
 
-	void	propagateJustifications(vec<Lit>& jstf, vec<int>& nb_body_lits_to_justify);
 	void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
 	bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real);
 

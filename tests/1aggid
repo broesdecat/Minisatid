@@ -1,0 +1,5 @@
+p ecnf def aggr
+D 1 2 3 0
+D 2 1 3 0
+WSet 1 3=1 2=2 6=3 0
+SumL 7 1 5 0

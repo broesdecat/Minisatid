@@ -683,49 +683,28 @@ void IDSolver::findCycleSources() {
 
 	if (prev_conflicts == solver->conflicts && defn_strategy == always && solver->getNbOfRecentAssignments()>0) {
 		for(int i=0; i<solver->getNbOfRecentAssignments(); i++){
-			Lit l = solver->getRecentAssignments(i);
-
-			//make each head a cycle source if the cf just of the head pointed to literal ~l (which has become false) and the head is currently not false
+			Lit l = solver->getRecentAssignments(i); //l has become true, so find occurences of ~l
 			vec<Var>& ds = disj_occurs[toInt(~l)];
 			for (int j = 0; j < ds.size(); j++) {
-				Var head = ds[j];
-				if (!isFalse(head) && isDefInPosGraph(head) && justification[head][0] == ~l) {
-					if(isCS[head]){ continue; }
-					vec<Lit> jstf;
-					bool external = findJustificationDisj(head, jstf);
-					assert(jstf.size()>0);
-					if(external){
-						changejust(head, jstf);
-					}else{
-						addCycleSource(head);
-					}
-				}
+				handlePossibleCycleSource(ds[j], ~l);
 			}
 
 			if(aggsolver!=NULL){
-				//TODO check that only if definposgraph is added as cs
-				aggsolver->findCycleSourcesFromBody(l);
+				vec<Var> heads;
+				//FIXME does it matter that the sign of l is forgotten here?
+				aggsolver->getHeadsOfAggrInWhichOccurs(var(~l), heads);
+
+				for(int j=0; j<heads.size(); j++){
+					handlePossibleCycleSource(heads[j], ~l);
+				}
 			}
 		}
 	} else {
 		// NOTE: with a clever trail system, we could even after conflicts avoid having to look at all rules.
 		prev_conflicts = solver->conflicts;
 		for (int i = 0; i < defdVars.size(); i++) {
-			Var head = defdVars[i];
-
-			//each head that has a false body literal which is its justification is a cycle source
-			if (getDefType(head) == DISJ && isDefInPosGraph(head) && !isFalse(head) && isFalse(justification[head][0])) {
-				if(isCS[head]){ continue; }
-				vec<Lit> jstf;
-				bool external = findJustificationDisj(head, jstf);
-				assert(jstf.size()>0);
-				if(external){
-					changejust(head, jstf);
-				}else{
-					addCycleSource(head);
-				}
-			}else if (getDefType(head) == AGGR && isDefInPosGraph(head)) {
-				aggsolver->findCycleSourcesFromHead(head);
+			if(defType[defdVars[i]]==DISJ || defType[defdVars[i]]==AGGR){
+				handlePossibleCycleSource(defdVars[i]);
 			}
 		}
 	}
@@ -735,6 +714,40 @@ void IDSolver::findCycleSources() {
 			reportf(" %d",css[i]+1);
 		}
 		reportf(".\n");
+	}
+}
+
+void IDSolver::handlePossibleCycleSource(Var head, Lit lbecamefalse){
+	bool dependsonl = false;
+	for(int i=0; !dependsonl && i<justification[head].size(); i++){
+		if(justification[head][i]==lbecamefalse){
+			dependsonl = true;
+		}
+	}
+	if(!dependsonl){
+		isCS[head] = false;
+	}
+	if(isCS[head]){ return; }
+
+	handlePossibleCycleSource(head);
+}
+
+void IDSolver::handlePossibleCycleSource(Var head){
+	if (!isFalse(head) && isDefInPosGraph(head)) {
+		vec<Lit> jstf;
+		bool external;
+		if(defType[head]==DISJ){
+			external = findJustificationDisj(head, jstf);
+		}else{
+			assert(defType[head]==AGGR);
+			external = aggsolver->findJustificationAggr(head, jstf);
+		}
+		assert(jstf.size()>0);
+		if(external){
+			changejust(head, jstf);
+		}else{
+			addCycleSource(head);
+		}
 	}
 }
 
@@ -749,7 +762,7 @@ bool IDSolver::findJustificationDisj(Var v, vec<Lit>& jstf) {
 	int pos = -1;
 	for(int i=0; !externallyjustified && i<c.size(); i++){
 		if(!isFalse(c[i])){
-			if(!inSameSCC(v, var(c[i])) || !isPositive(c[i])){
+			if(!inSameSCC(v, var(c[i])) || !isPositive(c[i])){	//FIXME: maybe do this checking afterwards in handlepossiblecyclesource, so that it can be done the same for aggr
 				externallyjustified = true;
 				pos = i;
 			}else{
@@ -791,8 +804,6 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 	bool csisjustified = false;
 
 	seen[cs]=1; //no valid justification can be created just from looking at the body literals
-
-	//TODO op voorbeeld 14 maakt het een atoom justicatied dat al false is, dus gaat er nog iets mis!
 
 	assert(!isJustified(cs));
 
@@ -882,9 +893,9 @@ bool IDSolver::findJustificationAggr(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, v
 	aggsolver->directlyJustifiable(v, jstf, nonjstf, currentjust);
 	if(jstf.size()>0){
 		changejust(v, jstf);
-		seen[v] = 0;
+		currentjust[v] = 0;
 	}
-	return seen[v]==0;
+	return currentjust[v]==0;
 }
 
 /**
@@ -915,7 +926,6 @@ bool IDSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 		changejust(v, jstf);
 	}else{
 		for(int i=0; i<nonjstf.size(); i++){
-			//FIXME some check needed here for same scc
 			if (inSameSCC(nonjstf[i], v) && ufs.insert(nonjstf[i]).second){ //set insert returns true (in second) if the insertion worked (no duplicates)
 				q.insert(nonjstf[i]);
 			}

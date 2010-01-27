@@ -893,47 +893,6 @@ void Agg::becomesCycleSource(vec<Lit>& j){
 }
 
 /**
- * Goes through all that are already justified. If those together are enough to justify the head,
- * then return those as a justification and set nb_body_... to 0
- *
- * AGG <= B: bestpossible > bound => NOT justifiable
- * 			 bestcertain <= bound => take the stack as justification (can be done better)
- * 			 else try to find one literal that is already justified and would make the head true
- * 					if not found, then not justifiable
- * A <= AGG: bestcertain < bound => NOT justifiable
- * 			 bestpossible >= bound => take stack as justification
- * 			 else check that all literals with a weight < bound are already justified. If this is the case
- * 				they all form the justification. Otherwise not justifiable.
- *
- * TODO can be written more efficiently by checking the current bounds and using the stack (see code before 26/01/2010)
- */
-void MinAgg::propagateJustifications(vec<Lit>& jstf, vec<int>& currentjust){
-	if(lower){ //AGG <= B
-		for(vector<int>::size_type i=0; i<set->wlitset.size() && set->wlitset[i].weight<=bound; i++){ //start from lowest weight
-			if(isJustified(i, currentjust, false)){
-				jstf.push(set->wlitset[i].lit);
-				currentjust[var(head)] = 0;
-				break;
-			}
-		}
-	}else{ //A <= AGG
-		bool alljustified = true;
-		for(vector<int>::size_type i=0; alljustified && i<set->wlitset.size() && set->wlitset[i].weight<bound; i++){
-			if(oppositeIsJustified(i, currentjust, false)){
-				jstf.push(~set->wlitset[i].lit);
-			}else{
-				alljustified = false;
-			}
-		}
-		if(!alljustified){
-			jstf.clear();
-		}else{
-			currentjust[var(head)] = 0;
-		}
-	}
-}
-
-/**
  * Add all literals that could make the head true and are not in the unfounded set to the loopformula
  */
 void MinAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen){
@@ -965,6 +924,7 @@ void MinAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<in
  * 			 so no conclusions have to be drawn from the literals above/eq the bound
  * 					if so, change the justification to the negation of all those below the bound literals
  * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
+ * TODO it might be possible to write this more efficiently, for some ideas see commits before 26/01/2010
  */
 bool MinAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real){
 	vector<WLit> lits = set->wlitset;
@@ -996,33 +956,6 @@ bool MinAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& current
 		jstf.clear();
 	}
 	return justified;
-}
-
-void MaxAgg::propagateJustifications(vec<Lit>& jstf, vec<int>& currentjust){
-	if(lower){ //AGG <= B
-		bool alljustified = true;
-		for(vector<int>::size_type i=set->wlitset.size()-1;
-				alljustified && i>=0 && set->wlitset[i].weight>=bound; i--){ //start from highest weight
-			if(oppositeIsJustified(i, currentjust, false)){
-				jstf.push(~set->wlitset[i].lit);
-			}else{
-				alljustified = false;
-			}
-		}
-		if(!alljustified){
-			jstf.clear();
-		}else{
-			currentjust[var(head)] = 0;
-		}
-	}else{ //A <= AGG
-		for(vector<int>::size_type i=set->wlitset.size()-1; i>=0 && set->wlitset[i].weight<bound; i--){ //start from highest weight
-			if(isJustified(i, currentjust, false)){
-				jstf.push(set->wlitset[i].lit);
-				currentjust[var(head)] = 0;
-				break;
-			}
-		}
-	}
 }
 
 void MaxAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen){
@@ -1075,57 +1008,6 @@ bool MaxAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& current
 		jstf.clear();
 	}
 	return justified;
-}
-
-/**
- * use emtpysetvalue! (which might already be better than the default)
- *
- * AGG <= B: bestcertain > bound => NOT justifiable
- * 			 bestpossible <= bound => take the stack as justification (can be done better)
- * 			 else take all false and unknown justified literals, until the bestpossible is below/eq B
- * A <= AGG: bestpossible < bound => NOT justifiable
- * 			 bestcertain >= bound => take stack as justification
- * 			 else take a sum of all non-false literals that are already justified and add them to the justification
- * 				until the sum is larger-eq than A
- */
-void SPAgg::propagateJustifications(vec<Lit>& jstf, vec<Var>& currentjust){
-	if(lower){ //AGG <= B
-		int bestposs = getBestPossible();
-		for(vector<int>::size_type i=0; bestposs>bound && i<set->wlitset.size(); i++){
-			Lit l = set->wlitset[i].lit;
-			if(oppositeIsJustified(i, currentjust, false)){
-				if(sum){
-					bestposs -= set->wlitset[i].weight;
-				}else{
-					bestposs /= set->wlitset[i].weight;
-				}
-				jstf.push(~set->wlitset[i].lit);
-			}
-		}
-		if(bestposs>bound){
-			jstf.clear();
-		}else{
-			currentjust[var(head)] = 0;
-		}
-	}else{ //A <= AGG
-		int sum = emptysetValue;
-		for(vector<int>::size_type i=0; i<set->wlitset.size(); i++){
-			Lit l = set->wlitset[i].lit;
-			if(isJustified(i, currentjust, false)){
-				jstf.push(set->wlitset[i].lit);
-				if(this->sum){
-					sum += set->wlitset[i].weight;
-				}else{
-					sum *= set->wlitset[i].weight;
-				}
-			}
-		}
-		if(sum>=bound){
-			currentjust[var(head)] = 0;
-		}else{
-			jstf.clear();
-		}
-	}
 }
 
 /**
