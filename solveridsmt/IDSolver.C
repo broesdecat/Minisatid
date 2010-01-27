@@ -187,18 +187,10 @@ bool IDSolver::simplify(){
 		for(int i=0; i<defdVars.size(); i++){
 			Var w = defdVars[i];
 			switch(defOcc[w]){
-			case NONDEFOCC:
-				reportf("%d=NONDEFOCC, ", w);
-				break;
-			case MIXEDLOOP:
-				reportf("%d=MIXEDLOOP, ", w);
-				break;
-			case BOTHLOOP:
-				reportf("%d=BOTHLOOP, ", w);
-				break;
-			case POSLOOP:
-				reportf("%d=POSLOOP, ", w);
-				break;
+			case NONDEFOCC:	reportf("%d=NONDEFOCC, ", w); break;
+			case MIXEDLOOP:	reportf("%d=MIXEDLOOP, ", w); break;
+			case BOTHLOOP:	reportf("%d=BOTHLOOP, ", w); break;
+			case POSLOOP:	reportf("%d=POSLOOP, ", w); break;
 			}
 		}
 	}
@@ -619,6 +611,7 @@ Clause* IDSolver::indirectPropagate() {
  	}else{
  		int visittime = 1;	//time at which NO node has been visited yet
  		vec<Var> stack;
+ 		seen2.growTo(nVars(), 0);
  		/* the seen2 variable is used to indicate:
  		 * 		that a value has been visited (and its number is the time at which it was visited
  		 * 		0 means not yet visited
@@ -627,7 +620,7 @@ Clause* IDSolver::indirectPropagate() {
  		 */
  		for (int j=0; !ufs_found && j < css.size(); j++){//hij komt nooit in het geval dat hij iets op de stack moet pushen, altijd disj unfounded???
  			if(isCS[css[j]] && seen[css[j]]==0){
- 				//om geen seen2 nodig te hebben, mag dat niet tegelijk gebruikt kunnen worden in unfounded()
+ 				//om geen seen2 nodig te hebben, mag seen niet tegelijk gebruikt kunnen worden in unfounded()
  				vec<vec<Lit> > network;	//maps a node to a list of nodes that have visited the first one
 										//as index, the visited time is used
  				network.growTo(visittime+1);
@@ -1444,7 +1437,7 @@ bool IDSolver::isWellFoundedModel() {
 	wfroot.resize(nVars(), -1);
 	vector<Var> rootofmixed;
 	wfisMarked.resize(nVars(), false);
-	wfcounters.resize(nVars(), 0);
+	//seen is used as justification counters, expected to be a vec of 0 of size nvars
 
 	findMixedCycles(wfroot, rootofmixed);
 
@@ -1487,6 +1480,10 @@ bool IDSolver::isWellFoundedModel() {
 		if(wfmarkedAtoms.empty()){
 			return true;
 		}
+	}
+
+	for(int i=0; i<nVars(); i++){
+		seen[i]=0;
 	}
 
 	return false;
@@ -1678,20 +1675,20 @@ void IDSolver::markUpward() {
 void IDSolver::initializeCounters() {
 	for(set<Var>::iterator i=wfmarkedAtoms.begin(); i!=wfmarkedAtoms.end(); i++){
 		Var v = *i;
-		wfcounters[v] = 0;
+		seen[v] = 0;
 		bool canbepropagated = false;
 		for(int j=0; !canbepropagated && j<definition[v]->size(); j++){
 			Lit bl = definition[v]->operator [](j);
 			if(wfisMarked[var(bl)]){
-				wfcounters[v]++;
+				seen[v]++;
 			}else if(isFalse(bl) && defType[v]==CONJ){
 				canbepropagated = true;
 			}else if(isTrue(bl) && defType[v]==DISJ && var(bl)!=v){
 				canbepropagated = true;
 			}
 		}
-		if(wfcounters[v]==0 || canbepropagated){
-			wfcounters[v] = 0;
+		if(seen[v]==0 || canbepropagated){
+			seen[v] = 0;
 			wfqueue.push(isTrue(v)?createPositiveLiteral(v):createNegativeLiteral(v));
 		}
 	}
@@ -1731,14 +1728,14 @@ void IDSolver::forwardPropagate(bool removemarks) {
 			Var head = disj_occurs[toInt(l)][i];
 			if(wfisMarked[head]) {
 				wfqueue.push(createPositiveLiteral(head));
-				wfcounters[head] = 0;
+				seen[head] = 0;
 			}
 		}
 
 		//if CONJ and counter gets 0, then head will be true, so add true head to queue
 		for(int i=0; i<conj_occurs[toInt(l)].size(); i++){
 			Var head = conj_occurs[toInt(l)][i];
-			if(wfisMarked[head] && --wfcounters[head]==0){
+			if(wfisMarked[head] && --seen[head]==0){
 				wfqueue.push(createPositiveLiteral(head));
 			}
 		}
@@ -1750,7 +1747,7 @@ void IDSolver::forwardPropagate(bool removemarks) {
 		//if DISJ and counter gets 0, then head will be false, so add false head to queue
 		for(int i=0; i<disj_occurs[toInt(l)].size(); i++){
 			Var head = disj_occurs[toInt(l)][i];
-			if(wfisMarked[head] && --wfcounters[head]==0){
+			if(wfisMarked[head] && --seen[head]==0){
 				wfqueue.push(createNegativeLiteral(head));
 			}
 		}
@@ -1760,7 +1757,7 @@ void IDSolver::forwardPropagate(bool removemarks) {
 			Var head = conj_occurs[toInt(l)][i];
 			if(wfisMarked[head]) {
 				wfqueue.push(createNegativeLiteral(head));
-				wfcounters[head] = 0;
+				seen[head] = 0;
 			}
 		}
 	}
@@ -1772,20 +1769,20 @@ void IDSolver::forwardPropagate(bool removemarks) {
 void IDSolver::overestimateCounters() {
 	for(set<Var>::iterator i=wfmarkedAtoms.begin(); i!=wfmarkedAtoms.end(); i++){
 		Var v = *i;
-		assert(wfcounters[v] > 0);
+		assert(seen[v] > 0);
 
 		for(int j=0; j<definition[v]->size(); j++){
 			Lit bdl = definition[v]->operator [](j);
 			if(wfisMarked[var(bdl)] && !isPositive(bdl) && v!=var(bdl)){
 				if(defType[v]==CONJ){
-					wfcounters[v]--;
+					seen[v]--;
 				}else{
-					wfcounters[v]=0;
+					seen[v]=0;
 				}
 			}
 		}
 
-		if(wfcounters[v]==0){
+		if(seen[v]==0){
 			wfqueue.push(createPositiveLiteral(v));
 		}
 	}

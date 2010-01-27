@@ -236,7 +236,6 @@ private:
 	queue<Lit> wfqueue;
 	set<Var> wfmarkedAtoms;
 	vector<bool> wfisMarked;
-	vector<int> wfcounters;
 	vector<Var> wfrootnodes;
 	bool wffixpoint;
 
