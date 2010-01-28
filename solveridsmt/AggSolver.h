@@ -55,9 +55,8 @@ public:
 
 	/**
 	 * Returns the set literals of the aggregate with the given head x.
-	 * TODO rewrite the code such that a reference can be returned to the vec of literals in the set
 	 */
-	void getLiteralsOfAggr(Var x, vec<Lit>& lits);
+	vector<WLit>& getLiteralsOfAggr(Var x);
 	/////////////////////END IDSOLVER NECESSARY
 
 	/////////////////////INITIALIZATION

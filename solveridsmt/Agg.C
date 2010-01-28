@@ -222,13 +222,13 @@ WLit MinAgg::handleOccurenceOfBothSigns(WLit one, WLit two){
 Clause* MinAgg::propagateHead(bool headtrue) {
 	Clause* confl = NULL;
 	if (headtrue && !lower) {
-		int i=0;
+		vector<int>::size_type i=0;
 		while( confl == NULL && i<set->wlitset.size() && set->wlitset[i].weight<bound){
 			confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~set->wlitset[i].lit, new AggrReason(this, NEG, i));
 			i++;
 		}
 	}else if(!headtrue && lower){
-		int i=0;
+		vector<int>::size_type i=0;
 		while( confl == NULL && i<set->wlitset.size() && set->wlitset[i].weight<=bound){
 			confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~set->wlitset[i].lit, new AggrReason(this, NEG, i));
 			i++;
@@ -360,13 +360,13 @@ WLit MaxAgg::handleOccurenceOfBothSigns(WLit one, WLit two){
 Clause* MaxAgg::propagateHead(bool headtrue) {
 	Clause* confl = NULL;
 	if (headtrue && lower) {
-		int i=0;
+		vector<int>::size_type i=0;
 		while( confl == NULL && i<set->wlitset.size() && bound<set->wlitset[i].weight){
 			confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~set->wlitset[i].lit, new AggrReason(this, NEG, i));
 			i++;
 		}
 	}else if(!headtrue && !lower){
-		int i=0;
+		vector<int>::size_type i=0;
 		while( confl == NULL && i<set->wlitset.size() && bound<=set->wlitset[i].weight){
 			confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~set->wlitset[i].lit, new AggrReason(this, NEG, i));
 			i++;
@@ -483,7 +483,7 @@ int	SPAgg::getCombinedWeight(int first, int second){
 
 WLit SPAgg::handleOccurenceOfBothSigns(WLit one, WLit two){
 	if(!sum){
-		//TODO: om dit toe te laten, ofwel bij elke operatie op en literal al zijn voorkomens overlopen
+		//NOTE: om dit toe te laten, ofwel bij elke operatie op en literal al zijn voorkomens overlopen
 		//ofwel aggregaten voor doubles ondersteunen (het eerste is eigenlijk de beste oplossing)
 		//Mogelijke eenvoudige implementatie: weigts bijhouden als doubles (en al de rest als ints)
 		reportf("Product aggregates in which both the literal and its negation occur "
@@ -927,7 +927,7 @@ void MinAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<in
  * 			 so no conclusions have to be drawn from the literals above/eq the bound
  * 					if so, change the justification to the negation of all those below the bound literals
  * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
- * TODO it might be possible to write this more efficiently, for some ideas see commits before 26/01/2010
+ * NOTE it might be possible to write this more efficiently, for some ideas see commits before 26/01/2010
  */
 bool MinAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real){
 	vector<WLit> lits = set->wlitset;
@@ -1022,7 +1022,6 @@ bool MaxAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& current
 }
 
 /**
- * FIXME: ik weet niet of dit juist is
  * Idee is dat alle literals worden toegevoegd die (onafhankelijk van hun weight) mogelijk de head
  * waar kunnen maken. Dus als al die literals false worden, kan de head zeker op geen andere manier nog
  * waar worden dan door de ufs.
@@ -1032,7 +1031,7 @@ void SPAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int
 		for (vector<int>::size_type i = 0; i < set->wlitset.size(); ++i) {
 			Lit l = set->wlitset[i].lit;
 			if (l!=head && ufs.find(var(l)) == ufs.end() && seen[var(l)] != (sign(l) ? 1 : 2)) {
-				loopf.push(l);
+				loopf.push(~l);
 				seen[var(l)] = (sign(l) ? 1 : 2);
 			}
 		}
@@ -1040,7 +1039,7 @@ void SPAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int
 		for (vector<int>::size_type i = 0; i < set->wlitset.size(); ++i) {
 			Lit l = set->wlitset[i].lit;
 			if (l!=head && ufs.find(var(l)) == ufs.end() && seen[var(l)] != (sign(l) ? 2 : 1)) {
-				loopf.push(~l);
+				loopf.push(l);
 				seen[var(l)] = (sign(l) ? 2 : 1);
 			}
 		}

@@ -381,10 +381,9 @@ bool IDSolver::finishECNF_DataStructures() {
 		}
 		case AGGR: {
 			if(aggsolver!=NULL){
-				vec<Lit> lits;
-				aggsolver->getLiteralsOfAggr(v, lits);
-				for (int j = 0; !isdefd && j < lits.size(); ++j){
-					if (inSameSCC(v, var(lits[j]))){ // NOTE: disregard sign here: set literals can occur both pos and neg in justifications. This could possibly be made more precise for MIN and MAX...
+				vector<WLit>& lits = aggsolver->getLiteralsOfAggr(i);
+				for (vector<int>::size_type j = 0; !isdefd && j < lits.size(); ++j){
+					if (inSameSCC(v, var(lits[j].lit))){ // NOTE: disregard sign here: set literals can occur both pos and neg in justifications. This could possibly be made more precise for MIN and MAX...
 						isdefd = true;
 					}
 				}
@@ -480,10 +479,9 @@ void IDSolver::visitFull(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &sta
 		break;
 	}
 	case AGGR: {
-		vec<Lit> lits;
-		aggsolver->getLiteralsOfAggr(i, lits);
-		for (int j = 0; j < lits.size(); ++j) {
-			Var w = var(lits[j]);
+		vector<WLit>& lits = aggsolver->getLiteralsOfAggr(i);
+		for (vector<int>::size_type j = 0; j < lits.size(); ++j) {
+			Var w = var(lits[j].lit);
 			if(!isDefined(w)){
 				continue;
 			}
@@ -554,10 +552,9 @@ void IDSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, 
 		break;
 	}
 	case AGGR: {
-		vec<Lit> lits;
-		aggsolver->getLiteralsOfAggr(i, lits);
-		for (int j = 0; j < lits.size(); ++j) {
-			Var w = var(lits[j]);
+		vector<WLit>& lits = aggsolver->getLiteralsOfAggr(i);
+		for (vector<int>::size_type j = 0; j < lits.size(); ++j) {
+			Var w = var(lits[j].lit);
 			if (isDefined(w) && visited[w]==0){
 				visit(w,root,incomp,stack,visited,counter);
 			}
@@ -688,7 +685,6 @@ void IDSolver::findCycleSources() {
 
 			if(aggsolver!=NULL){
 				vec<Var> heads;
-				//FIXME does it matter that the sign of l is forgotten here?
 				aggsolver->getHeadsOfAggrInWhichOccurs(var(~l), heads);
 
 				for(int j=0; j<heads.size(); j++){
@@ -807,7 +803,7 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 
 	markNonJustified(cs, tmpseen);
 	bool csisjustified = false;
-	//FIXME: check whether cs should be marked
+
 	seen[cs]=1; //no valid justification can be created just from looking at the body literals
 
 	assert(!isJustified(cs));

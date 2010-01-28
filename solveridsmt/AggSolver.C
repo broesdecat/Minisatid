@@ -107,7 +107,7 @@ void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrTyp
 		ae = new SPAgg(lower, bound, head, aggr_sets[setindex], true);
 		break;
 	case PROD:
-		//TODO this can be solved by taking 0 out of the set and making the necessary transformations
+		//NOTE this can be solved by taking 0 out of the set and making the necessary transformations
 		// p <=> a <= prod{l1=0, l2=2} can be replaced with p <=> a <= prod{l2=2} & l1~=0 if a is strictly positive
 		for(vector<int>::size_type i=0; i<aggr_sets[setindex]->wlitset.size(); i++){
 			if(aggr_sets[setindex]->wlitset[i].weight==0){
@@ -216,7 +216,7 @@ void AggSolver::doBacktrack(Lit l){
 	vec<AggrWatch>& vcw = aggr_watches[var(l)];
 	for(int i=0; i<vcw.size(); i++){
 		Agg& ae = *vcw[i].expr;
-		//FIXME: currenlty, the same literal can still occur in head and body, which causes propagation
+		//currently, the same literal can still occur in head and body, which causes propagation
 		//(and backtrack) twice for the same literal in the same expression
 		//using this method, it is possible that they are backtracked in a different order than the watch list,
 		//but this should be no problem
@@ -241,11 +241,8 @@ void AggSolver::getHeadsOfAggrInWhichOccurs(Var x, vec<Var>& heads){
 	}
 }
 
-void AggSolver::getLiteralsOfAggr(Var x, vec<Lit>& lits){
-	vector<WLit>& ll = getWatchOfHeadOccurence(x).expr->set->wlitset;
-	for(vector<WLit>::size_type i=0; i<ll.size(); i++){
-		lits.push(ll[i].lit);
-	}
+vector<WLit>& AggSolver::getLiteralsOfAggr(Var x){
+	return getWatchOfHeadOccurence(x).expr->set->wlitset;
 }
 
 /**
