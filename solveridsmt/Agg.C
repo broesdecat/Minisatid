@@ -2,7 +2,10 @@
 #include "AggSolver.h"
 #include <algorithm>
 
-void Agg::backtrack(Occurrence tp, int index) {
+//NOTE never use a decrementing vector iterator unless minding the 0 problem!!! (it is unsigned, so checking that
+//the number is still positive is wrong!
+
+void Agg::backtrack(int index) {
 	PropagationInfo pi = stack.last();
 	stack.pop();
 
@@ -12,9 +15,9 @@ void Agg::backtrack(Occurrence tp, int index) {
 		AggSolver::aggsolver->printAggrExpr(*this);
 	}
 
-	assert(tp==HEAD || var(pi.wlit.lit)==var(set->wlitset[index].lit));
+	assert(pi.type==HEAD || var(pi.wlit.lit)==var(set->wlitset[index].lit));
 
-	if (tp == HEAD){ //propagation didn't affect min/max
+	if (pi.type == HEAD){ //propagation didn't affect min/max
 		headvalue = l_Undef;
 		return;
 	}
@@ -28,9 +31,9 @@ void Agg::backtrack(Occurrence tp, int index) {
 }
 
 Clause* Agg::propagate(Lit p, AggrWatch& ws){
-	assert((ws.type==HEAD && headvalue==l_Undef && var(head)==var(p))
+	/*assert((ws.type==HEAD && headvalue==l_Undef && var(head)==var(p))
 			||
-		(litvalue[ws.index]==l_Undef && var(set->wlitset[ws.index].lit)==var(p)));
+		(litvalue[ws.index]==l_Undef && var(set->wlitset[ws.index].lit)==var(p)));*/
 
 	Clause* confl = NULL;
 
@@ -220,13 +223,13 @@ Clause* MinAgg::propagateHead(bool headtrue) {
 	Clause* confl = NULL;
 	if (headtrue && !lower) {
 		int i=0;
-		while( confl == NULL && set->wlitset[i].weight<bound){
+		while( confl == NULL && i<set->wlitset.size() && set->wlitset[i].weight<bound){
 			confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~set->wlitset[i].lit, new AggrReason(this, NEG, i));
 			i++;
 		}
 	}else if(!headtrue && lower){
 		int i=0;
-		while( confl == NULL && set->wlitset[i].weight<=bound){
+		while( confl == NULL && i<set->wlitset.size() && set->wlitset[i].weight<=bound){
 			confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~set->wlitset[i].lit, new AggrReason(this, NEG, i));
 			i++;
 		}
@@ -356,20 +359,20 @@ WLit MaxAgg::handleOccurenceOfBothSigns(WLit one, WLit two){
  */
 Clause* MaxAgg::propagateHead(bool headtrue) {
 	Clause* confl = NULL;
-		if (headtrue && lower) {
-			int i=0;
-			while( confl == NULL && bound<set->wlitset[i].weight){
-				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~set->wlitset[i].lit, new AggrReason(this, NEG, i));
-				i++;
-			}
-		}else if(!headtrue && !lower){
-			int i=0;
-			while( confl == NULL && bound<=set->wlitset[i].weight){
-				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~set->wlitset[i].lit, new AggrReason(this, NEG, i));
-				i++;
-			}
+	if (headtrue && lower) {
+		int i=0;
+		while( confl == NULL && i<set->wlitset.size() && bound<set->wlitset[i].weight){
+			confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~set->wlitset[i].lit, new AggrReason(this, NEG, i));
+			i++;
 		}
-		return confl;
+	}else if(!headtrue && !lower){
+		int i=0;
+		while( confl == NULL && i<set->wlitset.size() && bound<=set->wlitset[i].weight){
+			confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~set->wlitset[i].lit, new AggrReason(this, NEG, i));
+			i++;
+		}
+	}
+	return confl;
 }
 
 /**
@@ -865,14 +868,14 @@ inline bool Agg::oppositeIsJustified(int index, vec<int>& currentjust, bool real
 	if(real){
 		return litvalue[index]!=l_True;
 	}else{
-		return !sign(set->wlitset[index].lit) || isJustified(var(set->wlitset[index].lit), currentjust);
+		return litvalue[index]!=l_True && (!sign(set->wlitset[index].lit) || isJustified(var(set->wlitset[index].lit), currentjust));
 	}
 }
 inline bool Agg::isJustified(int index, vec<int>& currentjust, bool real){
 	if(real){
 		return litvalue[index]!=l_False;
 	}else{
-		return sign(set->wlitset[index].lit) || isJustified(var(set->wlitset[index].lit), currentjust);
+		return litvalue[index]!=l_False && (sign(set->wlitset[index].lit) || isJustified(var(set->wlitset[index].lit), currentjust));
 	}
 }
 inline bool Agg::isJustified(Var x, vec<int>& currentjust){
@@ -961,7 +964,9 @@ bool MinAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& current
 void MaxAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen){
 	vector<WLit> lits = set->wlitset;
 	if(lower){
-		for (vector<int>::size_type i=lits.size()-1; i>0 && lits[i].weight > bound; --i) {
+		bool end = false;
+		for (vector<int>::size_type i=lits.size()-1; !end && lits[i].weight>bound; i--) {
+			if(i==0){ end = true; }
 			Lit l = lits[i].lit;
 			if (l!=head && ufs.find(var(l)) == ufs.end() && seen[var(l)] != (sign(l) ? 2 : 1)) {
 				loopf.push(~l);
@@ -969,7 +974,9 @@ void MaxAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<in
 			}
 		}
 	}else{
-		for (vector<int>::size_type i=lits.size()-1; i>0 && lits[i].weight >= bound; --i) {
+		bool end = false;
+		for (vector<int>::size_type i=lits.size()-1; !end && lits[i].weight>=bound; i--) {
+			if(i==0){ end = true; }
 			Lit l = lits[i].lit;
 			if (l!=head &&  ufs.find(var(l)) == ufs.end() && seen[var(l)] != (sign(l) ? 1 : 2)) {
 				loopf.push(l);
@@ -983,7 +990,9 @@ bool MaxAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& current
 	vector<WLit> lits = set->wlitset;
 	bool justified = false;
 	if(lower){
-		for (vector<int>::size_type i=lits.size()-1; lits[i].weight>bound; i--) {
+		bool end = false;
+		for (vector<int>::size_type i=lits.size()-1; !end && lits[i].weight>bound; i--) {
+			if(i==0){ end = true; }
 			Lit l = lits[i].lit;
 			if(oppositeIsJustified(i, currentjust, real)){
 				jstf.push(~l); //push negative literal, because it should become false
@@ -994,7 +1003,9 @@ bool MaxAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& current
 			justified = true;
 		}
 	}else{
-		for (vector<int>::size_type i=lits.size()-1; lits[i].weight>=bound; i--) {
+		bool end = false;
+		for (vector<int>::size_type i=lits.size()-1; !end && lits[i].weight>=bound; i--) {
+			if(i==0){ end = true; }
 			Lit l = lits[i].lit;
 			if(isJustified(i, currentjust, real)){
 				jstf.push(l);

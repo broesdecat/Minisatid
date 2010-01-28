@@ -216,16 +216,13 @@ void IDSolver::propagateJustificationAggr(Lit l, vec<vec<Lit> >& jstf, vec<Lit>&
 	aggsolver->propagateJustifications(l, jstf, heads, seen);
 }
 
-/**
- * FIXME: logically, this is called for EVERY variable. Currently, that would go miserably wrong.
- */
 void IDSolver::notifyVarAdded(){
-	seen.push(0);
+	seen.growTo(nVars(), 0);
 	//seen2.push(0);
 
-	definition.push(NULL);
-	defType.push(NONDEFTYPE);
-	defOcc.push(NONDEFOCC);
+	definition.growTo(nVars(), NULL);
+	defType.growTo(nVars(), NONDEFTYPE);
+	defOcc.growTo(nVars(), NONDEFOCC);
 	disj_occurs.growTo(2 * nVars()); // May be tested on in findCycleSources().
 	conj_occurs.growTo(2 * nVars()); // Probably not needed anyway...
 }
@@ -718,6 +715,9 @@ void IDSolver::findCycleSources() {
 }
 
 void IDSolver::handlePossibleCycleSource(Var head, Lit lbecamefalse){
+	if(isCS[head]){
+		return;
+	}
 	bool dependsonl = false;
 	for(int i=0; !dependsonl && i<justification[head].size(); i++){
 		if(justification[head][i]==lbecamefalse){
@@ -727,7 +727,6 @@ void IDSolver::handlePossibleCycleSource(Var head, Lit lbecamefalse){
 	if(!dependsonl){
 		isCS[head] = false;
 	}
-	if(isCS[head]){ return; }
 
 	handlePossibleCycleSource(head);
 }
@@ -740,7 +739,13 @@ void IDSolver::handlePossibleCycleSource(Var head){
 			external = findJustificationDisj(head, jstf);
 		}else{
 			assert(defType[head]==AGGR);
-			external = aggsolver->findJustificationAggr(head, jstf);
+			aggsolver->findJustificationAggr(head, jstf);
+			external = true;
+			for(int i=0; external && i<jstf.size(); i++){
+				if(inSameSCC(head, var(jstf[i])) && isPositive(jstf[i])){
+					external = false;
+				}
+			}
 		}
 		assert(jstf.size()>0);
 		if(external){
@@ -762,7 +767,7 @@ bool IDSolver::findJustificationDisj(Var v, vec<Lit>& jstf) {
 	int pos = -1;
 	for(int i=0; !externallyjustified && i<c.size(); i++){
 		if(!isFalse(c[i])){
-			if(!inSameSCC(v, var(c[i])) || !isPositive(c[i])){	//FIXME: maybe do this checking afterwards in handlepossiblecyclesource, so that it can be done the same for aggr
+			if(!inSameSCC(v, var(c[i])) || !isPositive(c[i])){
 				externallyjustified = true;
 				pos = i;
 			}else{
@@ -802,7 +807,7 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 
 	markNonJustified(cs, tmpseen);
 	bool csisjustified = false;
-
+	//FIXME: check whether cs should be marked
 	seen[cs]=1; //no valid justification can be created just from looking at the body literals
 
 	assert(!isJustified(cs));
@@ -890,9 +895,7 @@ bool IDSolver::findJustificationConj(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, v
 
 bool IDSolver::findJustificationAggr(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust){
 	currentjust[v] = 1; //used as boolean (0 is justified, 1 is not)
-	aggsolver->directlyJustifiable(v, jstf, nonjstf, currentjust);
-	if(jstf.size()>0){
-		changejust(v, jstf);
+	if(aggsolver->directlyJustifiable(v, jstf, nonjstf, currentjust)){
 		currentjust[v] = 0;
 	}
 	return currentjust[v]==0;
@@ -1350,8 +1353,6 @@ bool IDSolver::isCycleFree() {
  * WELL FOUNDED MODEL CHECK *
  ****************************/
 
-//FIXME currently no well founded model checking over aggregates
-
 /**
  * ALGORITHM
  * The point is to calculate both an underapproximation and an overapproximation regarding the negative defined body literals, by
@@ -1367,6 +1368,7 @@ bool IDSolver::isCycleFree() {
  * Everything that is not derived in the end is unknown in the three-valued well-founded model, meaning that there is no two-valued well-
  * founded model, so the current interpretation is not a valid well-founded model.
  */
+//FIXME currently no well founded model checking over aggregates
 bool IDSolver::isWellFoundedModel() {
 	if(!negloops){
 		return true;

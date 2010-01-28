@@ -96,7 +96,7 @@ public:
      */
     virtual lbool 	canPropagateHead() = 0;
 			Clause* propagate		(Lit p, AggrWatch& ws);
-    virtual void 	backtrack		(Occurrence tp, int index);
+    virtual void 	backtrack		(int index);
 
     virtual Clause* propagate		(bool headtrue) = 0;
     virtual Clause* propagateHead	(bool headtrue) = 0;

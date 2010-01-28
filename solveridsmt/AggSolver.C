@@ -216,8 +216,12 @@ void AggSolver::doBacktrack(Lit l){
 	vec<AggrWatch>& vcw = aggr_watches[var(l)];
 	for(int i=0; i<vcw.size(); i++){
 		Agg& ae = *vcw[i].expr;
+		//FIXME: currenlty, the same literal can still occur in head and body, which causes propagation
+		//(and backtrack) twice for the same literal in the same expression
+		//using this method, it is possible that they are backtracked in a different order than the watch list,
+		//but this should be no problem
 		if(ae.stack.size()!=0 && var(ae.stack.last().wlit.lit)==var(l)){
-			ae.backtrack(vcw[i].type, vcw[i].index);
+			ae.backtrack(vcw[i].index);
 		}
 	}
 }
@@ -274,60 +278,11 @@ void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& 
  * and return true if the justification is external (maybe this is better checked in the IDsolver).
  */
 bool AggSolver::findJustificationAggr(Var head, vec<Lit>& jstf){
-	//FIXME FIXME implement this method
-	return false;
+	AggrWatch& aw = aggsolver->getWatchOfHeadOccurence(head);
+	vec<Var> nonjstf;
+	vec<int> currentjust;
+	return aw.expr->canJustifyHead(jstf, nonjstf, currentjust, true);
 }
-
-/**
- * This is called when l has been recently assigned (became true), so all aggregates with ~l in the body and part
- * of the justification may have become cycle sources
- */
-//change this into FIND justification (and cycle sources is taken care of elsewhere)
-/*void AggSolver::findCycleSourcesFromBody(Lit l){
-	vec<AggrWatch>& as = aggr_watches[var(l)];
-	if(as.size()==0){ return; }
-
-	int j=0;
-	if(as[0].type==HEAD){ //the head does not have to be checked
-		j = 1;
-	}
-	for (; j < as.size(); j++) { // ~l is possibly used in the head atom's cf_justification.
-		AggrWatch& aw = as[j];
-		if (aw.expr->headvalue != l_False && !idsolver->isCS[var(aw.expr->head)]) {
-			vec<Lit>& cf = idsolver->getCFJustificationAggr(var(aw.expr->head));
-			bool alltrue = true;
-			for(int i=0; alltrue && i<cf.size(); i++){
-				if(cf[i] == ~l){ // ~l is indeed used in the cf_justification.
-					alltrue = false;
-				}
-			}
-			if(!alltrue){
-				findCycleSources(aw);
-			}
-		}
-	}
-}*/
-
-/**
- * Checks whether the CF justification of l is still valid (no elements have become false)
- */
-//change this into FIND justification (and cycle sources is taken care of elsewhere)
-/*void AggSolver::findCycleSourcesFromHead(Var v){
-	AggrWatch& aw = getWatchOfHeadOccurence(v);
-	if (aw.expr->headvalue == l_False || idsolver->isCS[v]){
-		return;
-	}
-	vec<Lit>& cf = idsolver->getCFJustificationAggr(v);
-	bool alltrue = true;
-	for(int i=0; alltrue && i<cf.size(); i++){
-		if(solver->value(cf[i]) == l_False){ // There is a false literal in the cf_justification.
-			alltrue = false;
-		}
-	}
-	if(!alltrue){
-		findCycleSources(aw);
-	}
-}*/
 
 /*
  * V is not false so find a justification for it. Preferably find one that does not involve loops.
