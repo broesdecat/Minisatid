@@ -1364,7 +1364,10 @@ bool IDSolver::isCycleFree() {
  * Everything that is not derived in the end is unknown in the three-valued well-founded model, meaning that there is no two-valued well-
  * founded model, so the current interpretation is not a valid well-founded model.
  */
-//FIXME currently no well founded model checking over aggregates
+/**
+ * FIXME currently no well founded model checking over aggregates
+ * this can be done by implementing wf propagation and counter methods in aggregates.
+ */
 bool IDSolver::isWellFoundedModel() {
 	if(!negloops){
 		return true;
