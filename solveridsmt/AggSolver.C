@@ -95,6 +95,25 @@ void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrTyp
 
 	//add if really useful varBumpActivity(var(c)); // These guys ought to be initially a bit more important then the rest.
 
+	/*
+	 * FIXME min and max can be completely replaced by reduction to SAT
+	 * I will do that here currently, and when johan starts working on the grounder again, that will go there
+	 * The only disadvantage might be that sets that are only saved once will be grounded several times,
+	 * but clause splitting will come to the rescue
+	 * example:
+	 * MIN{B1, B2, B3, B4, B5} <= B1
+	 * MIN{B1, B2, B3, B4, B5} <= B3
+	 * MIN{B1, B2, B3, B4, B5} <= B5
+	 *
+	 * results in
+	 * head1 <- B1
+	 * head2 <- B1 or B2 or B3
+	 * head3 <- B1 or B2 or B3 or B4 or B5
+	 * which can be optimized (if propagation are the same) to
+	 * head1 <- B1
+	 * head2 <- head1 or B2 or B3
+	 * head3 <- head2 or B4 or B5
+	 */
 	Agg* ae;
 	switch(type){
 	case MIN:
