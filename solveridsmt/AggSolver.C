@@ -81,7 +81,89 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
 	sort(set.wlitset.begin(), set.wlitset.end());
 }
 
-void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrType type) {
+/*
+ * For a minimum: if lower,  head <=> disj of all literals with weight lower/eq than bound
+ * 				  if higher, head <=> conj of negation of all literals with weight lower than bound
+ */
+void AggSolver::addMinAgg(bool defined, bool lower, int bound, Lit head, AggrSet& set){
+	vec<Lit> clause;
+
+	if(defined){
+		clause.push(head);
+		for(vector<int>::size_type i=0; i<set.wlitset.size() && set.wlitset[i].weight<=bound; i++){
+			if(set.wlitset[i].weight==bound && !lower){
+				break;
+			}
+			if(lower){
+				clause.push(set.wlitset[i].lit);
+			}else{
+				clause.push(~set.wlitset[i].lit);
+			}
+		}
+		idsolver->addRule(!lower, clause);
+	}else{
+		clause.push(lower?~head:head);
+		for(vector<int>::size_type i=0; i<set.wlitset.size() && set.wlitset[i].weight<=bound; i++){
+			if(set.wlitset[i].weight==bound && !lower){
+				break;
+			}
+			clause.push(set.wlitset[i].lit);
+		}
+		solver->addClause(clause);
+		for(vector<int>::size_type i=0; i<set.wlitset.size() && set.wlitset[i].weight<=bound; i++){
+			if(set.wlitset[i].weight==bound && !lower){
+				break;
+			}
+			clause.clear();
+			clause.push(lower?head:~head);
+			clause.push(~set.wlitset[i].lit);
+			solver->addClause(clause);
+		}
+	}
+}
+
+/*
+ * For a maximum: if lower,  head <=> conj of negation of all literals with weight higher than bound
+ * 				  if higher, head <=> disj of all literals with weight higher/eq than bound
+ */
+void AggSolver::addMaxAgg(bool defined, bool lower, int bound, Lit head, AggrSet& set){
+	vec<Lit> clause;
+
+	if(defined){
+		clause.push(head);
+		for(vector<int>::size_type i=set.wlitset.size()-1; set.wlitset[i].weight>=bound; i--){
+			if(i==0 || (set.wlitset[i].weight==bound && lower)){
+				break;
+			}
+			if(lower){
+				clause.push(~set.wlitset[i].lit);
+			}else{
+				clause.push(set.wlitset[i].lit);
+			}
+		}
+		idsolver->addRule(lower, clause);
+	}else{
+		clause.push(lower?head:~head);
+		for(vector<int>::size_type i=set.wlitset.size()-1; set.wlitset[i].weight>=bound; i--){
+			if(i==0 || (set.wlitset[i].weight==bound && lower)){
+				break;
+			}
+			clause.push(set.wlitset[i].lit);
+		}
+		solver->addClause(clause);
+		for(vector<int>::size_type i=set.wlitset.size()-1; set.wlitset[i].weight>=bound; i--){
+			if(i==0 || (set.wlitset[i].weight==bound && lower)){
+				break;
+			}
+			clause.clear();
+			clause.push(lower?~head:head);
+			clause.push(~set.wlitset[i].lit);
+			solver->addClause(clause);
+		}
+	}
+}
+
+void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrType type, bool defined) {
 	if (setid > aggr_sets.size() || aggr_sets[setid-1]==NULL || aggr_sets[setid-1]->wlitset.size()==0) {
 		reportf("Error: Set nr. %d is used, but not defined yet.\n",setid), exit(3);
 	}
@@ -117,10 +199,14 @@ void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrTyp
 	Agg* ae;
 	switch(type){
 	case MIN:
-		ae = new MinAgg(lower, bound, head, aggr_sets[setindex]);
+		addMinAgg(defined, lower, bound, head, *aggr_sets[setindex]);
+		return;
+		//ae = new MinAgg(lower, bound, head, aggr_sets[setindex]);
 		break;
 	case MAX:
-		ae = new MaxAgg(lower, bound, head, aggr_sets[setindex]);
+		addMaxAgg(defined, lower, bound, head, *aggr_sets[setindex]);
+		return;
+		//ae = new MaxAgg(lower, bound, head, aggr_sets[setindex]);
 		break;
 	case SUM:
 		ae = new SPAgg(lower, bound, head, aggr_sets[setindex], true);
@@ -156,8 +242,10 @@ void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrTyp
 		aggr_watches[var(ae->set->wlitset[i].lit)].push(AggrWatch(ae, i, sign(ae->set->wlitset[i].lit) ? NEG : POS));
 	}
 
-	//notify the id solver that a new aggregate definition has been added
-	idsolver->notifyAggrHead(var(head));
+	if(defined){ //add as definition to use definition semantics
+		//notify the id solver that a new aggregate definition has been added
+		idsolver->notifyAggrHead(var(head));
+	}
 }
 
 /**

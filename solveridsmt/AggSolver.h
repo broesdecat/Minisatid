@@ -84,7 +84,7 @@ public:
 	 *
 	 * @pre: no weights==0 when using a product aggregate
 	 */
-	void    addAggrExpr  (int defn, int set_id, int bound, bool lower, AggrType type);
+	void    addAggrExpr  (int defn, int set_id, int bound, bool lower, AggrType type, bool defined);
 
 	/**
 	 * Checks presence of aggregates and initializes all counters.
@@ -152,6 +152,9 @@ protected:
 	void 	findCycleSources	(AggrWatch& v);
 
 	int		nVars()      const;
+
+	void 	addMinAgg(bool defined, bool lower, int bound, Lit head, AggrSet& set);
+	void 	addMaxAgg(bool defined, bool lower, int bound, Lit head, AggrSet& set);
 };
 
 //=======================
