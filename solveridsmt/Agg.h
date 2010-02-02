@@ -42,26 +42,83 @@ struct PropagationInfo {	// Propagated literal
     PropagationInfo(Lit l, int w, Occurrence t) : wlit(WLit(l,w)), type(t) {}
 };
 
-//INVARIANT: the WLITset is stored sorted from smallest to largest weight!
-struct AggrSet {
-    vector<WLit>	wlitset;	// Stores the actual set of weighted literals.
-
-    AggrSet(){};
-};
-
 struct AggrWatch {
     Occurrence	type;		//whether the watch is on the head(HEAD), on the literal in the set(POS) or on its negation(NEG)
-    Agg*		expr;		// Not used (NULL) if type!=HEAD
+    AggrSet*	set;		// Not used (NULL) if type!=HEAD
     int			index;		// Not used if type==HEAD
 
-    AggrWatch(Agg* e, int i, Occurrence t) : type(t), expr(e), index(i) {}
+    AggrWatch(AggrSet* e, int i, Occurrence t) : type(t), set(e), index(i) {}
 };
+
 struct AggrReason {
     Agg*		expr;
     Occurrence	type;
     int 		index; //the index of the literal, in the weight set of expr, for which this is the reason (-1 if head)
 
     AggrReason(Agg* e, Occurrence t, int index) : expr(e), type(t), index(index) {}
+};
+
+//INVARIANT: the WLITset is stored sorted from smallest to largest weight!
+class AggrSet {
+public:
+    vector<WLit>	wlitset;	// Stores the actual set of weighted literals.
+    int currentbestcertain, currentbestpossible, truecount, posscount;
+			//current keeps the currently derived min and max bounds
+			//truecount is the number of literals certainly in the set
+    int emptysetvalue;
+
+    vec<lbool>	litvalue;			//same indices as set.wlitset. The value of the literal as how it has been propagated IN THIS EXPRESSIOn
+    vec<PropagationInfo> stack;		// Stack of propagations of this expression so far.
+
+    AggrSet(){};
+
+    virtual void addToSet(WLit l) = 0;
+    virtual void removeFromSet(WLit l) = 0;
+			void propagate();
+			void justify();
+			void backtrack();
+
+	/**
+	 * Checks whether duplicate literals occur in the set. If this is the case, their values are appropriately combined.
+	 *
+	 * @post: each literal only occurs once in the set.
+	 *
+	 * @remark: has to be called in the SUBCLASS constructors, because it needs the subclass data of which agg it is.
+	 */
+			void 	doSetReduction();
+	//Returns the weight a combined literal should have if both weights are in the set at the same time
+	virtual int	 	getCombinedWeight(int one, int two) = 0;
+	virtual WLit 	handleOccurenceOfBothSigns(WLit one, WLit two) = 0;
+
+	virtual int 	getBestPossible			() 		 = 0;
+	virtual void 	removeFromCertainSet	(WLit l) = 0;
+	virtual void 	addToCertainSet			(WLit l) = 0;
+	virtual void 	addToPossibleSet		(WLit l) = 0;
+	virtual void 	removeFromPossibleSet	(WLit l) = 0;
+};
+
+class AggrMinSet{
+	vector<MinAgg*>	aggregates;
+
+	AggrMinSet(){};
+};
+
+class AggrMaxSet{
+	vector<MaxAgg*>	aggregates;
+
+	AggrMaxSet(){};
+};
+
+class AggrSumSet{
+	vector<SPAgg*>	aggregates;
+
+	AggrSumSet(){};
+};
+
+class AggrProdSet{
+	vector<SPAgg*>	aggregates;
+
+	AggrProdSet(){};
 };
 
 /**
@@ -74,19 +131,17 @@ struct AggrReason {
 
 class Agg{
 public:
-	int	bound, currentbestcertain, currentbestpossible, emptysetValue, truecount, possiblecount;
-					//current keeps the currently derived min and max bounds
-					//truecount is the number of literals certainly in the set
+	int			bound;
 	bool 		lower;
     string 		name;
-    Lit			head;
+
     AggrSet* 	set;
-    vec<lbool>	litvalue;			//same indices as set.wlitset. The value of the literal as how it has been propagated IN THIS EXPRESSIOn
+
+    Lit			head;
     lbool		headvalue;			//same for head
-    vec<PropagationInfo> stack;		// Stack of propagations of this expression so far.
 
     Agg(bool lower, int bound, Lit head, AggrSet* set) :
-	    	bound(bound), emptysetValue(0), truecount(0), lower(lower), head(head), set(set) {
+	    	bound(bound), lower(lower), head(head), set(set) {
     }
 
     virtual void 	initialize();
@@ -102,27 +157,9 @@ public:
     virtual Clause* propagateHead	(bool headtrue) = 0;
 	virtual void	getExplanation	(Lit p, vec<Lit>& lits, AggrReason& ar) = 0;
 
-	/**
-	 * Checks whether duplicate literals occur in the set. If this is the case, their values are appropriately combined.
-	 *
-	 * @post: each literal only occurs once in the set.
-	 *
-	 * @remark: has to be called in the SUBCLASS constructors, because it needs the subclass data of which agg it is.
-	 */
-			void 	doSetReduction();
-	//Returns the weight a combined literal should have if both weights are in the set at the same time
-	virtual int	 	getCombinedWeight(int one, int two) = 0;
-	virtual WLit 	handleOccurenceOfBothSigns(WLit one, WLit two) = 0;
-
 			void 	becomesCycleSource(vec<Lit>& nj);
 	virtual void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) = 0;
 	virtual bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) = 0;
-
-	virtual int 	getBestPossible			() 		 = 0;
-	virtual void 	removeFromCertainSet	(WLit l) = 0;
-	virtual void 	addToCertainSet			(WLit l) = 0;
-	virtual void 	addToPossibleSet		(WLit l) = 0;
-	virtual void 	removeFromPossibleSet	(WLit l) = 0;
 
 	bool isJustified		(Var x, vec<int>& currentjust);
 	bool isJustified		(int index, vec<int>& currentjust, bool real);

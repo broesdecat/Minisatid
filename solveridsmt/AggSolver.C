@@ -81,6 +81,8 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
 	sort(set.wlitset.begin(), set.wlitset.end());
 }
 
+
+//Two methods for doing reduction of min and max aggregates right to SAT(ID)
 /*
  * For a minimum: if lower,  head <=> disj of all literals with weight lower/eq than bound
  * 				  if higher, head <=> conj of negation of all literals with weight lower than bound
@@ -199,14 +201,14 @@ void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrTyp
 	Agg* ae;
 	switch(type){
 	case MIN:
-		addMinAgg(defined, lower, bound, head, *aggr_sets[setindex]);
-		return;
-		//ae = new MinAgg(lower, bound, head, aggr_sets[setindex]);
+		//addMinAgg(defined, lower, bound, head, *aggr_sets[setindex]);
+		//return;
+		ae = new MinAgg(lower, bound, head, aggr_sets[setindex]);
 		break;
 	case MAX:
-		addMaxAgg(defined, lower, bound, head, *aggr_sets[setindex]);
-		return;
-		//ae = new MaxAgg(lower, bound, head, aggr_sets[setindex]);
+		//addMaxAgg(defined, lower, bound, head, *aggr_sets[setindex]);
+		//return;
+		ae = new MaxAgg(lower, bound, head, aggr_sets[setindex]);
 		break;
 	case SUM:
 		ae = new SPAgg(lower, bound, head, aggr_sets[setindex], true);
