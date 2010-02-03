@@ -13,6 +13,11 @@
 using namespace std;
 
 class Agg;
+class MinAgg;
+class MaxAgg;
+class ProdAgg;
+class SumAgg;
+class AggrSet;
 
 enum AggrType {SUM, PROD, MIN, MAX};
 enum Occurrence {HEAD, POS, NEG};
@@ -61,28 +66,36 @@ struct AggrReason {
 //INVARIANT: the WLITset is stored sorted from smallest to largest weight!
 class AggrSet {
 public:
+	vector<Agg*>	aggregates;
     vector<WLit>	wlitset;	// Stores the actual set of weighted literals.
-    int currentbestcertain, currentbestpossible, truecount, posscount;
-			//current keeps the currently derived min and max bounds
-			//truecount is the number of literals certainly in the set
-    int emptysetvalue;
+    int 			currentbestcertain, currentbestpossible, truecount, possiblecount;
+						//current keeps the currently derived min and max bounds
+						//truecount is the number of literals certainly in the set
+    int 			emptysetValue;
 
-    vec<lbool>	litvalue;			//same indices as set.wlitset. The value of the literal as how it has been propagated IN THIS EXPRESSIOn
+    vec<lbool>		litvalue;			//same indices as set.wlitset. The value of the literal as how it has been propagated IN THIS EXPRESSIOn
     vec<PropagationInfo> stack;		// Stack of propagations of this expression so far.
 
-    AggrSet(){};
+    string 			name;
 
-    virtual void addToSet(WLit l) = 0;
-    virtual void removeFromSet(WLit l) = 0;
-			void propagate();
-			void justify();
-			void backtrack();
+    AggrSet(vec<Lit>& lits, vec<int>& weights){
+		for (int i = 0; i < lits.size(); i++) {
+			wlitset.push_back(WLit(lits[i], weights[i]));
+		}
+		sort(wlitset.begin(), wlitset.end());
+    };
+
+			void initialize();
+			Clause* propagate		(Lit p, AggrWatch& ws);
+    virtual void 	backtrack		(int index);
+
+    virtual void	backtrackHeads();
+    virtual Clause* propagateHeads(bool headval);
+    virtual Clause* propagateBodies();
 
 	/**
 	 * Checks whether duplicate literals occur in the set. If this is the case, their values are appropriately combined.
-	 *
 	 * @post: each literal only occurs once in the set.
-	 *
 	 * @remark: has to be called in the SUBCLASS constructors, because it needs the subclass data of which agg it is.
 	 */
 			void 	doSetReduction();
@@ -91,34 +104,100 @@ public:
 	virtual WLit 	handleOccurenceOfBothSigns(WLit one, WLit two) = 0;
 
 	virtual int 	getBestPossible			() 		 = 0;
+    /*virtual void 	addToSet				(WLit l) = 0;
+    virtual void 	removeFromSet			(WLit l) = 0;*/
 	virtual void 	removeFromCertainSet	(WLit l) = 0;
 	virtual void 	addToCertainSet			(WLit l) = 0;
 	virtual void 	addToPossibleSet		(WLit l) = 0;
 	virtual void 	removeFromPossibleSet	(WLit l) = 0;
+
+	bool isJustified		(Var x, vec<int>& currentjust);
+	bool isJustified		(int index, vec<int>& currentjust, bool real);
+	bool oppositeIsJustified(int index, vec<int>& currentjust, bool real);
 };
 
-class AggrMinSet{
-	vector<MinAgg*>	aggregates;
+class AggrMinSet: public AggrSet{
+public:
+	AggrMinSet(vec<Lit>& lits, vec<int>& weights):AggrSet(lits, weights){
+		emptysetValue = std::numeric_limits<int>::max();
+		name = "MIN";
+		doSetReduction();
+		litvalue.growTo(wlitset.size(), l_Undef); //only initialize after setreduction!
+	};
 
-	AggrMinSet(){};
+	virtual int	 	getCombinedWeight			(int one, int two);
+	virtual WLit 	handleOccurenceOfBothSigns	(WLit one, WLit two);
+
+	virtual int 	getBestPossible			();
+    /*virtual void 	addToSet				(WLit l);
+    virtual void 	removeFromSet			(WLit l);*/
+	virtual void 	removeFromCertainSet	(WLit l);
+	virtual void 	addToCertainSet			(WLit l);
+	virtual void 	addToPossibleSet		(WLit l);
+	virtual void 	removeFromPossibleSet	(WLit l);
 };
 
-class AggrMaxSet{
-	vector<MaxAgg*>	aggregates;
+class AggrMaxSet: public AggrSet{
+public:
+	AggrMaxSet(vec<Lit>& lits, vec<int>& weights):AggrSet(lits, weights){
+		emptysetValue = std::numeric_limits<int>::min();
+		name = "MAX";
+		doSetReduction();
+		litvalue.growTo(wlitset.size(), l_Undef); //only initialize after setreduction!
+	};
 
-	AggrMaxSet(){};
+	virtual int	 	getCombinedWeight			(int one, int two);
+	virtual WLit 	handleOccurenceOfBothSigns	(WLit one, WLit two);
+
+	virtual int 	getBestPossible			();
+    /*virtual void 	addToSet				(WLit l);
+    virtual void 	removeFromSet			(WLit l);*/
+	virtual void 	removeFromCertainSet	(WLit l);
+	virtual void 	addToCertainSet			(WLit l);
+	virtual void 	addToPossibleSet		(WLit l);
+	virtual void 	removeFromPossibleSet	(WLit l);
 };
 
-class AggrSumSet{
-	vector<SPAgg*>	aggregates;
+class AggrSumSet: public AggrSet{
+public:
+	AggrSumSet(vec<Lit>& lits, vec<int>& weights):AggrSet(lits, weights){
+		emptysetValue = 0;
+		name = "SUM";
+		doSetReduction();
+		litvalue.growTo(wlitset.size(), l_Undef); //only initialize after setreduction!
+	};
 
-	AggrSumSet(){};
+	virtual int	 	getCombinedWeight			(int one, int two);
+	virtual WLit 	handleOccurenceOfBothSigns	(WLit one, WLit two);
+
+	virtual int 	getBestPossible			();
+    /*virtual void 	addToSet				(WLit l);
+    virtual void 	removeFromSet			(WLit l);*/
+	virtual void 	removeFromCertainSet	(WLit l);
+	virtual void 	addToCertainSet			(WLit l);
+	virtual void 	addToPossibleSet		(WLit l);
+	virtual void 	removeFromPossibleSet	(WLit l);
 };
 
-class AggrProdSet{
-	vector<SPAgg*>	aggregates;
+class AggrProdSet: public AggrSet{
+public:
+	AggrProdSet(vec<Lit>& lits, vec<int>& weights):AggrSet(lits, weights){
+		emptysetValue = 1;
+		name = "PROD";
+		doSetReduction();
+		litvalue.growTo(wlitset.size(), l_Undef); //only initialize after setreduction!
+	};
 
-	AggrProdSet(){};
+	virtual int	 	getCombinedWeight			(int one, int two);
+	virtual WLit 	handleOccurenceOfBothSigns	(WLit one, WLit two);
+
+	virtual int 	getBestPossible			();
+    /*virtual void 	addToSet				(WLit l);
+    virtual void 	removeFromSet			(WLit l);*/
+	virtual void 	removeFromCertainSet	(WLit l);
+	virtual void 	addToCertainSet			(WLit l);
+	virtual void 	addToPossibleSet		(WLit l);
+	virtual void 	removeFromPossibleSet	(WLit l);
 };
 
 /**
@@ -133,25 +212,20 @@ class Agg{
 public:
 	int			bound;
 	bool 		lower;
-    string 		name;
-
-    AggrSet* 	set;
 
     Lit			head;
     lbool		headvalue;			//same for head
 
-    Agg(bool lower, int bound, Lit head, AggrSet* set) :
-	    	bound(bound), lower(lower), head(head), set(set) {
-    }
+    AggrSet* 	set;
 
-    virtual void 	initialize();
+    Agg(bool lower, int bound, Lit head, AggrSet* set) :
+	    bound(bound), lower(lower), head(head), set(set) {
+    }
 
     /**
      * Updates the values of the aggregate and then returns whether the head can be directly propagated from the body
      */
     virtual lbool 	canPropagateHead() = 0;
-			Clause* propagate		(Lit p, AggrWatch& ws);
-    virtual void 	backtrack		(int index);
 
     virtual Clause* propagate		(bool headtrue) = 0;
     virtual Clause* propagateHead	(bool headtrue) = 0;
@@ -160,70 +234,38 @@ public:
 			void 	becomesCycleSource(vec<Lit>& nj);
 	virtual void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) = 0;
 	virtual bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) = 0;
-
-	bool isJustified		(Var x, vec<int>& currentjust);
-	bool isJustified		(int index, vec<int>& currentjust, bool real);
-	bool oppositeIsJustified(int index, vec<int>& currentjust, bool real);
 };
 
 class MinAgg: public Agg {
 public:
-	MinAgg(bool lower, int bound, Lit head, AggrSet* set):
+	MinAgg(bool lower, int bound, Lit head, AggrMinSet* set):
 		Agg(lower, bound, head, set){
-			emptysetValue = std::numeric_limits<int>::max();
-			name = "MIN";
-			doSetReduction();
-			litvalue.growTo(set->wlitset.size(), l_Undef); //only initialize after setreduction!
-		};
-
-	virtual ~MinAgg();
+		set->aggregates.push_back(this);
+	};
 
 	lbool 	canPropagateHead();
 	Clause* propagate(bool headtrue);
 	Clause* propagateHead(bool headtrue);
 	void	getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar);
 
-	int	 	getCombinedWeight(int, int);
-	WLit 	handleOccurenceOfBothSigns(WLit one, WLit two);
-
 	void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
 	bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real);
-
-	int 	getBestPossible();
-	void	addToCertainSet			(WLit l);
-	void	addToPossibleSet		(WLit l);
-	void	removeFromCertainSet	(WLit l);
-	void	removeFromPossibleSet	(WLit l);
 };
 
 class MaxAgg: public Agg {
 public:
-	MaxAgg(bool lower, int bound, Lit head, AggrSet* set):
+	MaxAgg(bool lower, int bound, Lit head, AggrMaxSet* set):
 		Agg(lower, bound, head, set){
-			emptysetValue = std::numeric_limits<int>::min();
-			name = "MAX";
-			doSetReduction();
-			litvalue.growTo(set->wlitset.size(), l_Undef); //only initialize after setreduction!
-		};
-
-	virtual ~MaxAgg();
+		set->aggregates.push_back(this);
+	};
 
 	lbool 	canPropagateHead();
 	Clause* propagate(bool headtrue);
 	Clause* propagateHead(bool headtrue);
 	void	getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar);
 
-	int	 	getCombinedWeight(int, int);
-	WLit 	handleOccurenceOfBothSigns(WLit one, WLit two);
-
 	void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
 	bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real);
-
-	int 	getBestPossible();
-	void	addToCertainSet			(WLit l);
-	void	addToPossibleSet		(WLit l);
-	void	removeFromCertainSet	(WLit l);
-	void	removeFromPossibleSet	(WLit l);
 };
 
 class SPAgg: public Agg {
@@ -232,34 +274,31 @@ private:
 public:
 	SPAgg(bool lower, int bound, Lit head, AggrSet* set, bool sum):
 		Agg(lower, bound, head, set),sum(sum){
-			if(sum){
-				emptysetValue = 0;
-				name = "SUM";
-			}else{
-				emptysetValue = 1;
-				name = "PROD";
-			}
-			doSetReduction();
-			litvalue.growTo(set->wlitset.size(), l_Undef); //only initialize after setreduction!
-		};
-	virtual ~SPAgg();
+	};
 
 	lbool 	canPropagateHead();
 	Clause* propagate(bool headtrue);
 	Clause* propagateHead(bool headtrue);
 	void	getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar);
 
-	int		getCombinedWeight(int, int);
-	WLit 	handleOccurenceOfBothSigns(WLit one, WLit two);
-
 	void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
 	bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real);
+};
 
-	int 	getBestPossible();
-	void	addToCertainSet			(WLit l);
-	void	addToPossibleSet		(WLit l);
-	void	removeFromCertainSet	(WLit l);
-	void	removeFromPossibleSet	(WLit l);
+class SumAgg: public SPAgg {
+public:
+	SumAgg(bool lower, int bound, Lit head, AggrSumSet* set):
+		SPAgg(lower, bound, head, set, true){
+		set->aggregates.push_back(this);
+	};
+};
+
+class ProdAgg: public SPAgg {
+public:
+	ProdAgg(bool lower, int bound, Lit head, AggrProdSet* set):
+		SPAgg(lower, bound, head, set, false){
+		set->aggregates.push_back(this);
+	}
 };
 
 #endif /* MINAGG_H_ */

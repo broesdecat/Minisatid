@@ -104,7 +104,6 @@ public:
 
 	//are used by agg.c, but preferably should be move into protected again
 	Clause* 		notifySATsolverOfPropagation(Lit p, AggrReason* cr);	// Like "enqueue", but for aggregate propagations.
-	vec<AggrSet*>	aggr_sets;      					// List of aggregate sets being used.
 
 	// Debug:
 	void     printLit        (Lit l, lbool value);
@@ -114,11 +113,15 @@ protected:
 	/**
 	 * Returns the watch set on the aggregate in which the given variable is the head.
 	 */
-	AggrWatch& 			getWatchOfHeadOccurence	(Var v);
+	Agg& 			getAggWithHeadOccurence	(Var v);
 
 	// ECNF_mode.aggr additions to Solver state:
 	//
-	vec<Agg*>				aggr_exprs;		// List of aggregate expressions as occurring in the problem.
+	vector<AggrMinSet*>		aggrminsets;
+	vector<AggrMaxSet*>		aggrmaxsets;
+	vector<AggrSumSet*>		aggrsumsets;
+	vector<AggrProdSet*>	aggrprodsets;
+	int						aggr_exprs;		// The number of aggregate expression in the theory
 	vec<AggrReason*>		aggr_reason;	// For each atom, like 'reason'.
 	vec<vec<AggrWatch> >	aggr_watches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
 			//INVARIANT: if a literal is defined by an aggregate, the watch on the expression in which it is head
@@ -149,12 +152,14 @@ protected:
 	 */
 	Clause* Aggr_propagate		(Lit p);
 
-	void 	findCycleSources	(AggrWatch& v);
+	void 	findCycleSources	(Agg& v);
 
 	int		nVars()      const;
 
 	void 	addMinAgg(bool defined, bool lower, int bound, Lit head, AggrSet& set);
 	void 	addMaxAgg(bool defined, bool lower, int bound, Lit head, AggrSet& set);
+
+	void	finishSets(AggrSet* set);
 };
 
 //=======================
