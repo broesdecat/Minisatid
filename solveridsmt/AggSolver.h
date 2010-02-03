@@ -124,6 +124,7 @@ protected:
 	int						aggr_exprs;		// The number of aggregate expression in the theory
 	vec<AggrReason*>		aggr_reason;	// For each atom, like 'reason'.
 	vec<vec<AggrWatch> >	aggr_watches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
+	vec<Agg*>				head_watches;
 			//INVARIANT: if a literal is defined by an aggregate, the watch on the expression in which it is head
 			//	will be the first element of its watches list
 

@@ -12,6 +12,7 @@ AggSolver::~AggSolver() {
 }
 
 void AggSolver::notifyVarAdded(){
+	head_watches.push();
 	aggr_watches.push();
 	aggr_reason.push();
 }
@@ -59,7 +60,8 @@ bool AggSolver::finishECNF_DataStructures() {
 		reportf(", over %4d sets, avg. size: %7.2f lits.  |\n",nb_sets,(double)total_nb_set_lits/(double)(nb_sets));
 	}
 
-	for(vector<int>::size_type i=0; i<aggrminsets.size(); i++){
+	int nbsets = aggrminsets.size();
+	for(vector<int>::size_type i=0; i<nbsets; i++){
 		finishSets(aggrminsets[i]);
 		finishSets(aggrmaxsets[i]);
 		finishSets(aggrsumsets[i]);
@@ -253,12 +255,11 @@ void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrTyp
 	}
 	aggr_exprs++;
 
-	//This step guarantees the invariant that the head occurence of var(l) is always the first element of the watches of var(l)
-	assert(aggr_watches[var(head)][0].type!=HEAD);
-	AggrWatch w = aggr_watches[var(head)][0];
-	aggr_watches[var(head)][0] = AggrWatch(ae->set, -1, HEAD);
-	aggr_watches[var(head)].push(w);
-	assert(aggr_watches[var(head)][0].type==HEAD);
+	//FIXME: de behandeling van deze head watches overal verspreiden (naast aggr_watches deze ook gebruiken, of
+	//afh van de situatie zelfs alleen deze)!
+	//FIXME 2: maar 1 datastructuur voor de verschillende soorten sets (en de type safety wat verminderen)
+	head_watches.growTo(var(head));
+	head_watches[var(head)] = ae;
 
 	if(defined){ //add as definition to use definition semantics
 		//notify the id solver that a new aggregate definition has been added
@@ -345,6 +346,8 @@ void AggSolver::doBacktrack(Lit l){
 		//(and backtrack) twice for the same literal in the same expression
 		//using this method, it is possible that they are backtracked in a different order than the watch list,
 		//but this should be no problem
+
+		//second condition ensures that only backtracking is done if the value was indeed propagated in the set
 		if(set.stack.size()!=0 && var(set.stack.last().wlit.lit)==var(l)){
 			set.backtrack(vcw[i].index);
 		}

@@ -49,8 +49,8 @@ struct PropagationInfo {	// Propagated literal
 
 struct AggrWatch {
     Occurrence	type;		//whether the watch is on the head(HEAD), on the literal in the set(POS) or on its negation(NEG)
-    AggrSet*	set;		// Not used (NULL) if type!=HEAD
-    int			index;		// Not used if type==HEAD
+    AggrSet*	set;
+    int			index;
 
     AggrWatch(AggrSet* e, int i, Occurrence t) : type(t), set(e), index(i) {}
 };
@@ -89,8 +89,8 @@ public:
 			Clause* propagate		(Lit p, AggrWatch& ws);
     virtual void 	backtrack		(int index);
 
-    virtual void	backtrackHeads();
-    virtual Clause* propagateHeads(bool headval);
+    virtual void	backtrackHeads(Var h);
+    virtual Clause* propagateHeads(Var h, bool headval);
     virtual Clause* propagateBodies();
 
 	/**

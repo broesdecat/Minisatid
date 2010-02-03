@@ -12,7 +12,7 @@ void AggrSet::backtrack(int index) {
 	assert(pi.type==HEAD || var(pi.wlit.lit)==var(wlitset[index].lit));
 
 	if (pi.type == HEAD){ //propagation didn't affect min/max
-		backtrackHeads();
+		backtrackHeads(var(pi.wlit.lit));
 		return;
 	}
 
@@ -34,8 +34,9 @@ Clause* AggrSet::propagate(Lit p, AggrWatch& ws){
 	Occurrence tp = relativeOccurrence(ws.type, p);
 	stack.push(PropagationInfo(p, wlitset[ws.index].weight,tp));
 
-	if (tp == HEAD){ // The head literal has been propagated
-		confl = propagateHeads(!sign(p));
+	if (tp == HEAD){ // The head literal has been propagated => find the aggregate in which it is the head
+		//FIXME: maak headwatches (expression) en bodywatches (set)
+		confl = propagateHeads(var(p), !sign(p));
 	}else { // It's a set literal.
 		litvalue[ws.index] = tp==POS?l_True:l_False;
 		tp==POS? addToCertainSet(wlitset[ws.index]):removeFromPossibleSet(wlitset[ws.index]);
@@ -46,18 +47,22 @@ Clause* AggrSet::propagate(Lit p, AggrWatch& ws){
 	return confl;
 }
 
-void AggrSet::backtrackHeads(){
+void AggrSet::backtrackHeads(Var h){
 	for(vector<Agg*>::iterator i=aggregates.begin(); i!=aggregates.end(); i++){
-		(*i)->headvalue = l_Undef;
+		if(var((*i)->head) == h){
+			(*i)->headvalue = l_Undef;
+		}
 	}
 }
 
-Clause* AggrSet::propagateHeads(bool headval){
+Clause* AggrSet::propagateHeads(Var h, bool headval){
 	Clause* confl = NULL;
 	for(vector<Agg*>::iterator i=aggregates.begin(); i!=aggregates.end() && confl==NULL; i++){
-		assert((*i)->headvalue==l_Undef);
-		(*i)->headvalue = headval;
-		confl = (*i)->propagateHead(headval);
+		if(var((*i)->head) == h){
+			assert((*i)->headvalue==l_Undef);
+			(*i)->headvalue = headval;
+			confl = (*i)->propagateHead(headval);
+		}
 	}
 	return confl;
 }
@@ -861,6 +866,10 @@ void SPAgg::getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar){
 				}
 			}
 		}else{
+			if(set->stack[i].wlit.lit!=head){
+				continue; //FIXME dit is echt lelijk (is omdat de stack nu bij de set zit, en daar dus alle heads op worden opgeslagen)
+				//vermoedelijk introduceert het stack probleem nog andere fouten
+			}
 			//head derived, can only happen once
 			assert(!derived);
 			derived = true;
