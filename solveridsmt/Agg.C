@@ -9,12 +9,7 @@ void AggrSet::backtrack(int index) {
 	PropagationInfo pi = stack.last();
 	stack.pop();
 
-	assert(pi.type==HEAD || var(pi.wlit.lit)==var(wlitset[index].lit));
-
-	if (pi.type == HEAD){ //propagation didn't affect min/max
-		backtrackHeads(var(pi.wlit.lit));
-		return;
-	}
+	assert(pi.type!=HEAD && var(pi.wlit.lit)==var(wlitset[index].lit));
 
 	litvalue[index] = l_Undef;
 	if (pi.type == POS) {
@@ -34,9 +29,8 @@ Clause* AggrSet::propagate(Lit p, AggrWatch& ws){
 	Occurrence tp = relativeOccurrence(ws.type, p);
 	stack.push(PropagationInfo(p, wlitset[ws.index].weight,tp));
 
-	if (tp == HEAD){ // The head literal has been propagated => find the aggregate in which it is the head
-		//FIXME: maak headwatches (expression) en bodywatches (set)
-		confl = propagateHeads(var(p), !sign(p));
+	if (tp == HEAD){
+		assert(false);
 	}else { // It's a set literal.
 		litvalue[ws.index] = tp==POS?l_True:l_False;
 		tp==POS? addToCertainSet(wlitset[ws.index]):removeFromPossibleSet(wlitset[ws.index]);
@@ -44,26 +38,6 @@ Clause* AggrSet::propagate(Lit p, AggrWatch& ws){
 		confl = propagateBodies();
 	}
 
-	return confl;
-}
-
-void AggrSet::backtrackHeads(Var h){
-	for(vector<Agg*>::iterator i=aggregates.begin(); i!=aggregates.end(); i++){
-		if(var((*i)->head) == h){
-			(*i)->headvalue = l_Undef;
-		}
-	}
-}
-
-Clause* AggrSet::propagateHeads(Var h, bool headval){
-	Clause* confl = NULL;
-	for(vector<Agg*>::iterator i=aggregates.begin(); i!=aggregates.end() && confl==NULL; i++){
-		if(var((*i)->head) == h){
-			assert((*i)->headvalue==l_Undef);
-			(*i)->headvalue = headval;
-			confl = (*i)->propagateHead(headval);
-		}
-	}
 	return confl;
 }
 
@@ -211,6 +185,22 @@ WLit AggrMinSet::handleOccurenceOfBothSigns(WLit one, WLit two){
 		}
 		return two;
 	}
+}
+
+/*******
+ * AGG *
+ *******/
+
+void Agg::backtrackHead(){
+	headvalue = l_Undef;
+	headindex = -1;
+}
+
+Clause* Agg::propagateHead(Lit p){
+	bool headtrue = head==p;
+	headvalue = headtrue?l_True:l_False;
+	headindex = set->stack.size();
+	return propagateHead(headtrue);
 }
 
 lbool MinAgg::canPropagateHead() {

@@ -89,8 +89,6 @@ public:
 			Clause* propagate		(Lit p, AggrWatch& ws);
     virtual void 	backtrack		(int index);
 
-    virtual void	backtrackHeads(Var h);
-    virtual Clause* propagateHeads(Var h, bool headval);
     virtual Clause* propagateBodies();
 
 	/**
@@ -214,13 +212,17 @@ public:
 	bool 		lower;
 
     Lit			head;
-    lbool		headvalue;			//same for head
+    lbool		headvalue;
+    int			headindex;	//the index in the stack when this was derived
 
     AggrSet* 	set;
 
     Agg(bool lower, int bound, Lit head, AggrSet* set) :
-	    bound(bound), lower(lower), head(head), set(set) {
+	    bound(bound), lower(lower), head(head), set(set), headindex(-1) {
     }
+
+			void 	backtrackHead();
+			Clause*	propagateHead(Lit p);
 
     /**
      * Updates the values of the aggregate and then returns whether the head can be directly propagated from the body

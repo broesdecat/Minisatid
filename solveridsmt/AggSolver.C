@@ -18,14 +18,8 @@ void AggSolver::notifyVarAdded(){
 }
 
 inline Agg& AggSolver::getAggWithHeadOccurence(Var v){
-	AggrWatch& w = aggr_watches[v][0];
-	for(vector<int>::size_type i=0; i<w.set->aggregates.size(); i++){
-		if(var(w.set->aggregates[i]->head)==v){
-			return *w.set->aggregates[i];
-		}
-	}
-	assert(false);
-	exit(3);
+	assert(head_watches[v]!=NULL);
+	return *head_watches[v];
 }
 
 bool AggSolver::finishECNF_DataStructures() {
@@ -66,16 +60,6 @@ bool AggSolver::finishECNF_DataStructures() {
 		finishSets(aggrmaxsets[i]);
 		finishSets(aggrsumsets[i]);
 		finishSets(aggrprodsets[i]);
-	}
-
-	if(verbosity>=5){
-		for(int i=0; i<aggr_watches.size(); i++){
-			reportf("Watches for %d: ", i+1);
-			for(int j=0; j<aggr_watches[i].size(); j++){
-				solver->printLit(aggr_watches[i][j].set->wlitset[aggr_watches[i][j].index].lit);
-			}
-			reportf("\n");
-		}
 	}
 
 	if (aggrminsets.size() == 0 && aggrmaxsets.size() == 0 && aggrsumsets.size() == 0 && aggrprodsets.size() == 0) {
@@ -213,7 +197,7 @@ void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrTyp
 		reportf("Error: Set nr. %d is used, but not defined yet.\n",setid), exit(3);
 	}
 	//INVARIANT: it has to be guaranteed that there is a watch on ALL heads
-	if(aggr_watches[headv].size()>0 && aggr_watches[headv][0].type==HEAD){
+	if(head_watches[headv]!=NULL){
 		reportf("Error: Two aggregates have the same head(%d).\n",headv+1), exit(3);
 	}
 
@@ -258,6 +242,7 @@ void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrTyp
 	//FIXME: de behandeling van deze head watches overal verspreiden (naast aggr_watches deze ook gebruiken, of
 	//afh van de situatie zelfs alleen deze)!
 	//FIXME 2: maar 1 datastructuur voor de verschillende soorten sets (en de type safety wat verminderen)
+	//FIXME 3: in het aggregaat zelf dan opslaan wat de size was van de stack toen de head afgeleid werd
 	head_watches.growTo(var(head));
 	head_watches[var(head)] = ae;
 
@@ -308,6 +293,9 @@ Clause* AggSolver::Aggr_propagate(Lit p) {
 	if (verbosity >= 2 && ws.size() > 0){
 		reportf("Aggr_propagate(%s%d).\n",sign(p)?"-":"",var(p)+1);
 	}
+	if(head_watches[var(p)]!=NULL){
+		confl = head_watches[var(p)]->propagateHead(p);
+	}
 	for (int i = 0; confl == NULL && i < ws.size(); i++) {
 		confl = (*ws[i].set).propagate(p, ws[i]);
 	}
@@ -337,6 +325,10 @@ void AggSolver::doBacktrack(Lit l){
 	if (aggr_reason[var(l)] != NULL) {
 		delete aggr_reason[var(l)];
 		aggr_reason[var(l)] = NULL;
+	}
+
+	if(head_watches[var(l)]!=NULL){
+		head_watches[var(l)]->backtrackHead();
 	}
 
 	vec<AggrWatch>& vcw = aggr_watches[var(l)];
