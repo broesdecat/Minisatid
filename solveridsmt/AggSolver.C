@@ -359,7 +359,7 @@ void AggSolver::getHeadsOfAggrInWhichOccurs(Var x, vec<Var>& heads){
 	vec<AggrWatch>& w = aggr_watches[x];
 	for(int i=0; i<w.size(); i++){
 		for(vector<int>::size_type j=0; j<w[i].set->aggregates.size(); j++){
-			heads.push(var(w[i].set->aggregates[i]->head));
+			heads.push(var(w[i].set->aggregates[j]->head));
 		}
 	}
 }
@@ -378,7 +378,7 @@ void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& 
 	for (int i = 0; i < aggr_watches[var(w)].size(); ++i) {
 		AggrWatch& aw = (aggr_watches[var(w)])[i];
 		for(vector<int>::size_type j=0; j<aw.set->aggregates.size(); j++){
-			Agg& expr = *aw.set->aggregates[i];
+			Agg& expr = *aw.set->aggregates[j];
 			if(expr.headvalue == l_False){ continue; }
 
 			Var head = var(expr.head);

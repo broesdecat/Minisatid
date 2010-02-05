@@ -889,8 +889,10 @@ void Solver::Subsetminimize(const vec<Lit>& lits) {
 }
 
 bool Solver::solve() {
-	if (!ok)
+	if (!ok){
+		printf("UNSATISFIABLE\n");
 		return false;
+	}
 	bool solved = true;
 
 	if (verbosity >= 1) {

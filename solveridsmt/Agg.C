@@ -787,7 +787,7 @@ void SPAgg::getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar){
 		}
 	}
 
-	bool explained = false, headfound = false;
+	bool explained = false, headfound = false, addhead = false;
 
 	//an explanation can exist without any other set literals, so check for this
 	if(ar.type==NEG && ((lower && certainsum > bound) || (!lower && certainsum >= bound))){
@@ -802,10 +802,12 @@ void SPAgg::getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar){
 
 	if(headindex==0){
 		headfound = true;
+		addhead = true;
 	}
 	for(int i=0; !(headfound && explained) && i<set->stack.size() && set->stack[i].wlit.lit!=p; i++){
 		if(headindex==i+1){
 			headfound = true;
+			addhead = true;
 		}
 		if(set->stack[i].type == POS){ //means that the literal in the set became true
 			if(sum){
@@ -863,7 +865,7 @@ void SPAgg::getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar){
 			}
 		}
 	}
-	if(headfound){
+	if(addhead){
 		if((ar.type == POS && lower) || (ar.type == NEG && !lower)){
 			lits.push(head);
 		}else{

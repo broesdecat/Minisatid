@@ -633,10 +633,10 @@ int main(int argc, char** argv)
 		delete AS;
 	}catch(int e){
 		if(e==memOVERFLOW){
-			printf("Memory overflow");
+			reportf("Memory overflow");
 			exit(33);
 		}else if(e==theoryUNSAT){
-			printf("Theory UNSAT");
+			reportf("Theory UNSAT");
 			ret=false;
 		}
 	}

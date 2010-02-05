@@ -210,7 +210,7 @@ public:
     AggrSet* 	set;
 
     Agg(bool lower, int bound, Lit head, AggrSet* set) :
-	    bound(bound), lower(lower), head(head), headindex(-1), set(set) {
+	    bound(bound), lower(lower), head(head), headindex(-1), headvalue(l_Undef), set(set) {
     }
 
 			void 	backtrackHead();
