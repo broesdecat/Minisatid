@@ -119,8 +119,6 @@ public:
 	AggrMinSet(vec<Lit>& lits, vec<int>& weights):AggrSet(lits, weights){
 		emptysetValue = std::numeric_limits<int>::max();
 		name = "MIN";
-		doSetReduction();
-		litvalue.growTo(wlitset.size(), l_Undef); //only initialize after setreduction!
 	};
 
 	virtual int	 	getCombinedWeight			(int one, int two);
@@ -140,8 +138,6 @@ public:
 	AggrMaxSet(vec<Lit>& lits, vec<int>& weights):AggrSet(lits, weights){
 		emptysetValue = std::numeric_limits<int>::min();
 		name = "MAX";
-		doSetReduction();
-		litvalue.growTo(wlitset.size(), l_Undef); //only initialize after setreduction!
 	};
 
 	virtual int	 	getCombinedWeight			(int one, int two);
@@ -161,8 +157,6 @@ public:
 	AggrSumSet(vec<Lit>& lits, vec<int>& weights):AggrSet(lits, weights){
 		emptysetValue = 0;
 		name = "SUM";
-		doSetReduction();
-		litvalue.growTo(wlitset.size(), l_Undef); //only initialize after setreduction!
 	};
 
 	virtual int	 	getCombinedWeight			(int one, int two);
@@ -182,8 +176,6 @@ public:
 	AggrProdSet(vec<Lit>& lits, vec<int>& weights):AggrSet(lits, weights){
 		emptysetValue = 1;
 		name = "PROD";
-		doSetReduction();
-		litvalue.growTo(wlitset.size(), l_Undef); //only initialize after setreduction!
 	};
 
 	virtual int	 	getCombinedWeight			(int one, int two);
@@ -218,7 +210,7 @@ public:
     AggrSet* 	set;
 
     Agg(bool lower, int bound, Lit head, AggrSet* set) :
-	    bound(bound), lower(lower), head(head), set(set), headindex(-1) {
+	    bound(bound), lower(lower), head(head), headindex(-1), set(set) {
     }
 
 			void 	backtrackHead();

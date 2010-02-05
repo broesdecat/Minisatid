@@ -377,7 +377,6 @@ vector<WLit>& AggSolver::getLiteralsOfAggr(Var x){
 void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& heads, vec<int> &currentjust){
 	for (int i = 0; i < aggr_watches[var(w)].size(); ++i) {
 		AggrWatch& aw = (aggr_watches[var(w)])[i];
-		if(aw.type == HEAD){ continue; }
 		for(vector<int>::size_type j=0; j<aw.set->aggregates.size(); j++){
 			Agg& expr = *aw.set->aggregates[i];
 			if(expr.headvalue == l_False){ continue; }

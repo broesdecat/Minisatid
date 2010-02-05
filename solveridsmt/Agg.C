@@ -20,13 +20,10 @@ void AggrSet::backtrack(int index) {
 }
 
 Clause* AggrSet::propagate(Lit p, AggrWatch& ws){
-	/*assert((ws.type==HEAD && headvalue==l_Undef && var(head)==var(p))
-			||
-		(litvalue[ws.index]==l_Undef && var(set->wlitset[ws.index].lit)==var(p)));*/
-
 	Clause* confl = NULL;
 
 	Occurrence tp = relativeOccurrence(ws.type, p);
+	assert(tp!=HEAD);
 	stack.push(PropagationInfo(p, wlitset[ws.index].weight,tp));
 
 	if (tp == HEAD){
@@ -104,6 +101,9 @@ void AggrSet::doSetReduction() {
 }
 
 void AggrSet::initialize(){
+	doSetReduction();
+	litvalue.growTo(wlitset.size(), l_Undef); //only initialize after setreduction!
+
 	currentbestpossible = getBestPossible();
 	currentbestcertain = emptysetValue;
 	possiblecount = wlitset.size();
@@ -787,7 +787,7 @@ void SPAgg::getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar){
 		}
 	}
 
-	bool derived = false, explained = false, headfound = false;
+	bool explained = false, headfound = false;
 
 	//an explanation can exist without any other set literals, so check for this
 	if(ar.type==NEG && ((lower && certainsum > bound) || (!lower && certainsum >= bound))){
@@ -800,7 +800,13 @@ void SPAgg::getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar){
 		headfound = true;
 	}
 
+	if(headindex==0){
+		headfound = true;
+	}
 	for(int i=0; !(headfound && explained) && i<set->stack.size() && set->stack[i].wlit.lit!=p; i++){
+		if(headindex==i+1){
+			headfound = true;
+		}
 		if(set->stack[i].type == POS){ //means that the literal in the set became true
 			if(sum){
 				certainsum += set->stack[i].wlit.weight;
@@ -855,23 +861,16 @@ void SPAgg::getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar){
 					}
 				}
 			}
-		}else{
-			if(set->stack[i].wlit.lit!=head){
-				continue; //FIXME dit is echt lelijk (is omdat de stack nu bij de set zit, en daar dus alle heads op worden opgeslagen)
-				//vermoedelijk introduceert het stack probleem nog andere fouten
-			}
-			//head derived, can only happen once
-			assert(!derived);
-			derived = true;
-
-			if((ar.type == POS && lower) || (ar.type == NEG && !lower)){
-				lits.push(head);
-			}else{
-				lits.push(~head);
-			}
-			headfound = true;
 		}
 	}
+	if(headfound){
+		if((ar.type == POS && lower) || (ar.type == NEG && !lower)){
+			lits.push(head);
+		}else{
+			lits.push(~head);
+		}
+	}
+
 	assert(headfound && explained);
 }
 
