@@ -22,13 +22,8 @@ class AggrSet;
 enum AggrType {SUM, PROD, MIN, MAX};
 enum Occurrence {HEAD, POS, NEG};
 
-inline Occurrence relativeOccurrence(Occurrence o, Lit l) {
-    if (o==HEAD) return HEAD;
-    if (o==POS)  return sign(l)? NEG : POS;
-    else         return sign(l)? POS : NEG;
-}
-
-struct WLit {  // Weighted literal
+class WLit {  // Weighted literal
+public:
 	Lit	lit;
 	int	weight;
 
@@ -37,6 +32,13 @@ struct WLit {  // Weighted literal
     bool operator <  (WLit p) const { return weight < p.weight; }
     bool operator <  (int bound) const { return weight < bound; }
     bool operator ==  (WLit p) const { return weight == p.weight && lit==p.lit; }
+};
+
+class WLV: public WLit{
+public:
+	lbool value;
+
+	WLV(Lit l, int w, lbool value) : WLit(l, w), value(value) {}
 };
 
 struct PropagationInfo {	// Propagated literal
@@ -58,31 +60,30 @@ struct AggrWatch {
 struct AggrReason {
     Agg*		expr;
     Occurrence	type;
-    int 		index; //the index of the literal, in the weight set of expr, for which this is the reason (-1 if head)
+    int 		weight; //the index of the literal, in the weight set of expr, for which this is the reason (-1 if head)
 
-    AggrReason(Agg* e, Occurrence t, int index) : expr(e), type(t), index(index) {}
+    AggrReason(Agg* e, Occurrence t, int weight) : expr(e), type(t), weight(weight) {}
 };
 
 //INVARIANT: the WLITset is stored sorted from smallest to largest weight!
 class AggrSet {
 public:
 	vector<Agg*>	aggregates;
-    vector<WLit>	wlitset;	// Stores the actual set of weighted literals.
-    int 			currentbestcertain, currentbestpossible, truecount, possiblecount;
-						//current keeps the currently derived min and max bounds
-						//truecount is the number of literals certainly in the set
-    int 			emptysetValue;
+	vector<WLV> wlits;
 
-    vec<lbool>		litvalue;			//same indices as set.wlitset. The value of the literal as how it has been propagated IN THIS EXPRESSIOn
-    vec<PropagationInfo> stack;		// Stack of propagations of this expression so far.
+    int currentbestcertain, currentbestpossible, truecount, possiblecount, emptysetvalue;
+			//current keeps the currently derived min and max bounds
+			//truecount is the number of literals certainly in the set
 
-    string 			name;
+    vector<PropagationInfo> stack;		// Stack of propagations of this expression so far.
+
+    string name;
 
     AggrSet(vec<Lit>& lits, vec<int>& weights){
 		for (int i = 0; i < lits.size(); i++) {
-			wlitset.push_back(WLit(lits[i], weights[i]));
+			wlits.push_back(WLV(lits[i], weights[i], l_Undef));
 		}
-		sort(wlitset.begin(), wlitset.end());
+		sort(wlits.begin(), wlits.end());
     };
 
 			void initialize();
@@ -117,7 +118,7 @@ public:
 class AggrMinSet: public AggrSet{
 public:
 	AggrMinSet(vec<Lit>& lits, vec<int>& weights):AggrSet(lits, weights){
-		emptysetValue = std::numeric_limits<int>::max();
+		emptysetvalue = std::numeric_limits<int>::max();
 		name = "MIN";
 	};
 
@@ -136,7 +137,7 @@ public:
 class AggrMaxSet: public AggrSet{
 public:
 	AggrMaxSet(vec<Lit>& lits, vec<int>& weights):AggrSet(lits, weights){
-		emptysetValue = std::numeric_limits<int>::min();
+		emptysetvalue = std::numeric_limits<int>::min();
 		name = "MAX";
 	};
 
@@ -155,7 +156,7 @@ public:
 class AggrSumSet: public AggrSet{
 public:
 	AggrSumSet(vec<Lit>& lits, vec<int>& weights):AggrSet(lits, weights){
-		emptysetValue = 0;
+		emptysetvalue = 0;
 		name = "SUM";
 	};
 
@@ -174,7 +175,7 @@ public:
 class AggrProdSet: public AggrSet{
 public:
 	AggrProdSet(vec<Lit>& lits, vec<int>& weights):AggrSet(lits, weights){
-		emptysetValue = 1;
+		emptysetvalue = 1;
 		name = "PROD";
 	};
 
@@ -204,8 +205,8 @@ public:
 	bool 		lower;
 
     Lit			head;
-    lbool		headvalue;
     int			headindex;	//the index in the stack when this was derived
+    lbool		headvalue;
 
     AggrSet* 	set;
 

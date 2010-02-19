@@ -313,6 +313,7 @@ inline void IDSolver::backtrack ( Lit l){
 
 inline Clause* IDSolver::getExplanation	(Lit p){
 	assert(false);
+	return NULL;
 }
 
 #endif /* IDSOLVER_H_ */

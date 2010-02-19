@@ -381,7 +381,7 @@ bool IDSolver::finishECNF_DataStructures() {
 		}
 		case AGGR: {
 			if(aggsolver!=NULL){
-				vector<WLit>& lits = aggsolver->getLiteralsOfAggr(i);
+				vector<WLV>& lits = aggsolver->getLiteralsOfAggr(i);
 				for (vector<int>::size_type j = 0; !isdefd && j < lits.size(); ++j){
 					if (inSameSCC(v, var(lits[j].lit))){ // NOTE: disregard sign here: set literals can occur both pos and neg in justifications. This could possibly be made more precise for MIN and MAX...
 						isdefd = true;
@@ -479,7 +479,7 @@ void IDSolver::visitFull(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &sta
 		break;
 	}
 	case AGGR: {
-		vector<WLit>& lits = aggsolver->getLiteralsOfAggr(i);
+		vector<WLV>& lits = aggsolver->getLiteralsOfAggr(i);
 		for (vector<int>::size_type j = 0; j < lits.size(); ++j) {
 			Var w = var(lits[j].lit);
 			if(!isDefined(w)){
@@ -552,7 +552,7 @@ void IDSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, 
 		break;
 	}
 	case AGGR: {
-		vector<WLit>& lits = aggsolver->getLiteralsOfAggr(i);
+		vector<WLV>& lits = aggsolver->getLiteralsOfAggr(i);
 		for (vector<int>::size_type j = 0; j < lits.size(); ++j) {
 			Var w = var(lits[j].lit);
 			if (isDefined(w) && visited[w]==0){
@@ -801,12 +801,12 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 	Queue<Var> q;
 	Var v;
 
+	reportf("Start unfounded %d\n", cs);
+
 	markNonJustified(cs, tmpseen);
 	bool csisjustified = false;
 
 	seen[cs]=1; //no valid justification can be created just from looking at the body literals
-
-	assert(!isJustified(cs));
 
 	q.insert(cs);
 	ufs.clear();
@@ -910,7 +910,7 @@ bool IDSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 	bool justified;
 	switch(defType[v]){
 	case CONJ:
-		justified = findJustificationDisj(v, jstf, nonjstf, seen);
+		justified = findJustificationConj(v, jstf, nonjstf, seen);
 		break;
 	case DISJ:
 		justified = findJustificationDisj(v, jstf, nonjstf, seen);
@@ -920,6 +920,8 @@ bool IDSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 		break;
 	default:
 		assert(false);
+		reportf("The program tried to justify an rule that was not AGGR, DISJ or CONJ.\n");
+		exit(3);
 	}
 	if(justified){
 		changejust(v, jstf);
@@ -1111,12 +1113,14 @@ void IDSolver::markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>
 	Lit poslit = createPositiveLiteral(x);
 	vec<Var>& v = disj_occurs[toInt(poslit)];
 	for (int i = 0; i < v.size(); ++i){
+		reportf("%d justified by %d\n", v[i]+1, var(justification[v[i]][0])+1);
 		if (var(justification[v[i]][0]) == x){
 			markNonJustifiedAddVar(v[i], cs, q, tmpseen);
 		}
 	}
 	vec<Var>& w = conj_occurs[toInt(poslit)];
 	for (int i = 0; i < w.size(); i++){
+		reportf("%d is justified by %d\n", w[i]+1, x+1);
 		markNonJustifiedAddVar(w[i], cs, q, tmpseen);
 	}
 	if (aggsolver!=NULL) {

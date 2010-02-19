@@ -56,7 +56,7 @@ public:
 	/**
 	 * Returns the set literals of the aggregate with the given head x.
 	 */
-	vector<WLit>& getLiteralsOfAggr(Var x);
+	vector<WLV>& getLiteralsOfAggr(Var x);
 	/////////////////////END IDSOLVER NECESSARY
 
 	/////////////////////INITIALIZATION

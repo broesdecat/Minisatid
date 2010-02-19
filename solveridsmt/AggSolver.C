@@ -40,22 +40,22 @@ bool AggSolver::finishECNF_DataStructures() {
 		int total_nb_set_lits = 0;
 		int nb_sets = aggrminsets.size() + aggrmaxsets.size() + aggrsumsets.size() + aggrprodsets.size();
 		for (vector<int>::size_type i = 0; i < aggrminsets.size(); i++){
-			total_nb_set_lits += aggrminsets[i]->wlitset.size();
+			total_nb_set_lits += aggrminsets[i]->wlits.size();
 		}
 		for (vector<int>::size_type i = 0; i < aggrmaxsets.size(); i++){
-			total_nb_set_lits += aggrmaxsets[i]->wlitset.size();
+			total_nb_set_lits += aggrmaxsets[i]->wlits.size();
 		}
 		for (vector<int>::size_type i = 0; i < aggrsumsets.size(); i++){
-			total_nb_set_lits += aggrsumsets[i]->wlitset.size();
+			total_nb_set_lits += aggrsumsets[i]->wlits.size();
 		}
 		for (vector<int>::size_type i = 0; i < aggrprodsets.size(); i++){
-			total_nb_set_lits += aggrprodsets[i]->wlitset.size();
+			total_nb_set_lits += aggrprodsets[i]->wlits.size();
 		}
 		reportf(", over %4d sets, avg. size: %7.2f lits.  |\n",nb_sets,(double)total_nb_set_lits/(double)(nb_sets));
 	}
 
 	int nbsets = aggrminsets.size();
-	for(vector<int>::size_type i=0; i<nbsets; i++){
+	for(int i=0; i<nbsets; i++){
 		finishSets(aggrminsets[i]);
 		finishSets(aggrmaxsets[i]);
 		finishSets(aggrsumsets[i]);
@@ -74,8 +74,8 @@ void AggSolver::finishSets(AggrSet* s){
 		delete s;
 	}else{
 		s->initialize();
-		for (vector<int>::size_type i = 0; i < s->wlitset.size(); i++){
-			aggr_watches[var(s->wlitset[i].lit)].push(AggrWatch(s, i, sign(s->wlitset[i].lit) ? NEG : POS));
+		for (vector<int>::size_type i = 0; i < s->wlits.size(); i++){
+			aggr_watches[var(s->wlits[i].lit)].push(AggrWatch(s, i, sign(s->wlits[i].lit) ? NEG : POS));
 		}
 	}
 }
@@ -86,7 +86,7 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
 	if(lits.size()==0){
 		reportf("Error: Set nr. %d is empty.\n",set_id), exit(3);
 	}
-	if(aggrminsets.size()>setindex && aggrminsets[setindex]!=NULL && aggrminsets[setindex]->wlitset.size()!=0){
+	if(aggrminsets.size()>setindex && aggrminsets[setindex]!=NULL && aggrminsets[setindex]->wlits.size()!=0){
 		reportf("Error: Set nr. %d is defined more then once.\n",set_id), exit(3);
 	}
 	for(int i=0; i<weights.size(); i++){
@@ -94,6 +94,8 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
 			reportf("Error: Set nr. %d contains a negative weight, %d.\n",set_id,weights[i]), exit(3);
 		}
 	}
+
+	//TODO: add checks for bound lower than maxint and higher than minint
 
 	assert(lits.size()==weights.size());
 
@@ -119,33 +121,33 @@ void AggSolver::addMinAgg(bool defined, bool lower, int bound, Lit head, AggrSet
 
 	if(defined){
 		clause.push(head);
-		for(vector<int>::size_type i=0; i<set.wlitset.size() && set.wlitset[i].weight<=bound; i++){
-			if(set.wlitset[i].weight==bound && !lower){
+		for(vector<int>::size_type i=0; i<set.wlits.size() && set.wlits[i].weight<=bound; i++){
+			if(set.wlits[i].weight==bound && !lower){
 				break;
 			}
 			if(lower){
-				clause.push(set.wlitset[i].lit);
+				clause.push(set.wlits[i].lit);
 			}else{
-				clause.push(~set.wlitset[i].lit);
+				clause.push(~set.wlits[i].lit);
 			}
 		}
 		idsolver->addRule(!lower, clause);
 	}else{
 		clause.push(lower?~head:head);
-		for(vector<int>::size_type i=0; i<set.wlitset.size() && set.wlitset[i].weight<=bound; i++){
-			if(set.wlitset[i].weight==bound && !lower){
+		for(vector<int>::size_type i=0; i<set.wlits.size() && set.wlits[i].weight<=bound; i++){
+			if(set.wlits[i].weight==bound && !lower){
 				break;
 			}
-			clause.push(set.wlitset[i].lit);
+			clause.push(set.wlits[i].lit);
 		}
 		solver->addClause(clause);
-		for(vector<int>::size_type i=0; i<set.wlitset.size() && set.wlitset[i].weight<=bound; i++){
-			if(set.wlitset[i].weight==bound && !lower){
+		for(vector<int>::size_type i=0; i<set.wlits.size() && set.wlits[i].weight<=bound; i++){
+			if(set.wlits[i].weight==bound && !lower){
 				break;
 			}
 			clause.clear();
 			clause.push(lower?head:~head);
-			clause.push(~set.wlitset[i].lit);
+			clause.push(~set.wlits[i].lit);
 			solver->addClause(clause);
 		}
 	}
@@ -160,40 +162,40 @@ void AggSolver::addMaxAgg(bool defined, bool lower, int bound, Lit head, AggrSet
 
 	if(defined){
 		clause.push(head);
-		for(vector<int>::size_type i=set.wlitset.size()-1; set.wlitset[i].weight>=bound; i--){
-			if(i==0 || (set.wlitset[i].weight==bound && lower)){
+		for(vector<int>::size_type i=set.wlits.size()-1; set.wlits[i].weight>=bound; i--){
+			if(i==0 || (set.wlits[i].weight==bound && lower)){
 				break;
 			}
 			if(lower){
-				clause.push(~set.wlitset[i].lit);
+				clause.push(~set.wlits[i].lit);
 			}else{
-				clause.push(set.wlitset[i].lit);
+				clause.push(set.wlits[i].lit);
 			}
 		}
 		idsolver->addRule(lower, clause);
 	}else{
 		clause.push(lower?head:~head);
-		for(vector<int>::size_type i=set.wlitset.size()-1; set.wlitset[i].weight>=bound; i--){
-			if(i==0 || (set.wlitset[i].weight==bound && lower)){
+		for(vector<int>::size_type i=set.wlits.size()-1; set.wlits[i].weight>=bound; i--){
+			if(i==0 || (set.wlits[i].weight==bound && lower)){
 				break;
 			}
-			clause.push(set.wlitset[i].lit);
+			clause.push(set.wlits[i].lit);
 		}
 		solver->addClause(clause);
-		for(vector<int>::size_type i=set.wlitset.size()-1; set.wlitset[i].weight>=bound; i--){
-			if(i==0 || (set.wlitset[i].weight==bound && lower)){
+		for(vector<int>::size_type i=set.wlits.size()-1; set.wlits[i].weight>=bound; i--){
+			if(i==0 || (set.wlits[i].weight==bound && lower)){
 				break;
 			}
 			clause.clear();
 			clause.push(lower?~head:head);
-			clause.push(~set.wlitset[i].lit);
+			clause.push(~set.wlits[i].lit);
 			solver->addClause(clause);
 		}
 	}
 }
 
 void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrType type, bool defined) {
-	if (((vector<int>::size_type)setid) > aggrminsets.size() || aggrminsets[setid-1]==NULL || aggrminsets[setid-1]->wlitset.size()==0) {
+	if (((vector<int>::size_type)setid) > aggrminsets.size() || aggrminsets[setid-1]==NULL || aggrminsets[setid-1]->wlits.size()==0) {
 		reportf("Error: Set nr. %d is used, but not defined yet.\n",setid), exit(3);
 	}
 	//INVARIANT: it has to be guaranteed that there is a watch on ALL heads
@@ -226,8 +228,8 @@ void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrTyp
 	case PROD:
 		//NOTE this can be solved by taking 0 out of the set and making the necessary transformations
 		// p <=> a <= prod{l1=0, l2=2} can be replaced with p <=> a <= prod{l2=2} & l1~=0 if a is strictly positive
-		for(vector<int>::size_type i=0; i<aggrprodsets[setindex]->wlitset.size(); i++){
-			if(aggrprodsets[setindex]->wlitset[i].weight==0){
+		for(vector<int>::size_type i=0; i<aggrprodsets[setindex]->wlits.size(); i++){
+			if(aggrprodsets[setindex]->wlits[i].weight==0){
 				reportf("Error: Set nr. %d contains a 0 (zero) weight, which cannot "
 						"be used in combination with a product aggregate\n", setid), exit(3);
 			}
@@ -236,6 +238,8 @@ void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrTyp
 		break;
 	default:
 		assert(false);
+		reportf("Only aggregates MIN, MAX, SUM or PROD are allowed in the solver.\n");
+		exit(3);
 	}
 	aggr_exprs++;
 
@@ -262,8 +266,8 @@ void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrTyp
  */
 Clause* AggSolver::notifySATsolverOfPropagation(Lit p, AggrReason* ar) {
 	if (verbosity >= 2) {
-		reportf("%seriving ", solver->value(p)==l_True ? "Again d" : "D");
-		printLit(p, solver->value(p));
+		reportf("Deriving ");
+		printLit(p, l_True);
 		reportf(" because of the aggregate expression ");
 		printAggrExpr(*(ar->expr));
 	}
@@ -340,7 +344,7 @@ void AggSolver::doBacktrack(Lit l){
 		//but this should be no problem
 
 		//second condition ensures that only backtracking is done if the value was indeed propagated in the set
-		if(set.stack.size()!=0 && var(set.stack.last().wlit.lit)==var(l)){
+		if(set.stack.size()!=0 && var(set.stack.back().wlit.lit)==var(l)){
 			set.backtrack(vcw[i].index);
 		}
 	}
@@ -364,8 +368,8 @@ void AggSolver::getHeadsOfAggrInWhichOccurs(Var x, vec<Var>& heads){
 	}
 }
 
-vector<WLit>& AggSolver::getLiteralsOfAggr(Var x){
-	return getAggWithHeadOccurence(x).set->wlitset;
+vector<WLV>& AggSolver::getLiteralsOfAggr(Var x){
+	return getAggWithHeadOccurence(x).set->wlits;
 }
 
 /**
@@ -435,8 +439,8 @@ void AggSolver::printAggrExpr(const Agg& ae){
 	}else{
 		reportf(" <- %d <= %s{", ae.bound, ae.set->name.c_str());
 	}
-	for (vector<int>::size_type i=0; i<ae.set->wlitset.size(); ++i) {
-		reportf(" "); printLit(ae.set->wlitset[i].lit, ae.set->litvalue[i]); reportf("(%d)",ae.set->wlitset[i].weight);
+	for (vector<int>::size_type i=0; i<ae.set->wlits.size(); ++i) {
+		reportf(" "); printLit(ae.set->wlits[i].lit, ae.set->wlits[i].value); reportf("(%d)",ae.set->wlits[i].weight);
 	}
 	if(ae.lower){
 		reportf(" } <= %d. Known values: bestcertain=%d, bestpossible=%d\n", ae.bound, ae.set->currentbestcertain, ae.set->currentbestpossible);
