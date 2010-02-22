@@ -30,8 +30,10 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "Alg.h"
 
 #include "SolverTypes.h"
-#include "TSolver.h"
-#include "AMNSolver.h"
+#include "IDSolver.h"
+#include "AggSolver.h"
+
+extern int verbosity;
 
 #ifdef _MSC_VER
 #include <ctime>
@@ -79,52 +81,53 @@ static inline uint64_t memUsed() { return 0; }
 //=================================================================================================
 // Solver -- the main class:
 
-class TSolver;
-class AMNSolver;
+class IDSolver;
+class AggSolver;
 
 class Solver {
 public:
-
-    /////////////////////TSOLVER NECESSARY
-	TSolver* 	tsolver;
-	void setTSolver(TSolver* ts){tsolver = ts;}
-	AMNSolver* 	amosolver;
-	void setAMNSolver(AMNSolver* ts){amosolver = ts;}
+	/////SMT NECESSARY
+	IDSolver* 	tsolver;
+	void setIDSolver(IDSolver* ts){tsolver = ts;}
+	AggSolver* 	aggsolver;
+	void setAggSolver(AggSolver* ts){aggsolver = ts;}
 
 	lbool   value      (Var x) const;       // The current value of a variable.
 	lbool   value      (Lit p) const;       // The current value of a literal.
 	int     nVars      ()      const;       // The current number of variables.
 
-	int		qhead;            // Head of queue (as index into the trail -- no more explicit propagation queue in MiniSat).
-	vec<Lit>	trail;            // Assignment stack; stores all assigments made in the order they were made.
+    //VERY VERY IMPORTANT: THE FIRST LITERAL IN THE CLAUSE HAS TO BE THE ONE WHICH CAN BE PROPAGATED FROM THE REST!!!!!!!
+    void 	addLearnedClause(Clause* c);	// don't check anything, just add it to the clauses and bump activity
+    bool    addClause		(vec<Lit>& ps);	// Add a clause to the solver. NOTE! 'ps' may be shrunk by this method!
+    void    backtrackTo		(int level);	// Backtrack until a certain level.
+    void    setTrue			(Lit p, Clause* from = NULL);				// Enqueue a literal. Assumes value of literal is undefined
+    Var		newVar			(bool polarity = true, bool dvar = false);	// Add a new variable with parameters specifying variable mode.
+	/////END SMT NECESSARY
+
+	/////////////////////TSOLVER NECESSARY
+    /*
+     * Returns the decision level at which a variable was deduced. This allows to get the variable that was propagated earliest/latest
+     */
 	int 	getLevel(int var) 			const;
+
+	/**
+	 * Allows to loop over all assignments made in the current decision level.
+	 */
 	Lit 	getRecentAssignments(int i) const;
 	int 	getNbOfRecentAssignments() 	const;
-	int     decisionLevel()    const; 		// Gives the current decisionlevel.
 
-	void 	addLearnedClause(Clause* c);	//don't check anything, just add it to the clauses and bump activity
-	void 	addClause(Clause* c);			//don't check anything, just add it to the clauses
-	bool    addClause    (vec<Lit>& ps);                           // Add a clause to the solver. NOTE! 'ps' may be shrunk by this method!
-
-	void    backtrackTo      (int level);						// Backtrack until a certain level.
-	void    setTrue (Lit p, Clause* from = NULL);		// Enqueue a literal. Assumes value of literal is undefined.
-	bool 	existsUnknownVar(); 								//true if the current assignment is completely two-valued
-	Var		newVar(bool polarity = true, bool dvar = false); 	// Add a new variable with parameters specifying variable mode.
-	void 	dontRemoveSatisfied();
-
-    //TEMP:
-    void addToTrail(Lit l);
+    bool 	existsUnknownVar(); 								//true if the current assignment is completely two-valued
 	/////////////////////END TSOLVER NECESSARY
 
-    /////////EXTRA CHANGES FOR OUR SOLVER
-    FILE*   res;                                    // Report results in this file.
-    int nb_models;
-    /////////END EXTRA CHANGES
+    void finishParsing();
 
     // Constructor/Destructor:
     //
     Solver();
     ~Solver();
+
+    int     nb_models;                              // Number of models wanted (all if N=0).
+    FILE*   res;                                    // Report results in this file.
 
     // Solving:
     //
@@ -172,8 +175,12 @@ public:
     void     printClause      (const C& c);
 
 protected:
+    int			qhead;            // Head of queue (as index into the trail -- no more explicit propagation queue in MiniSat).
+	vec<Lit>	trail;            // Assignment stack; stores all assigments made in the order they were made.
+
     void     cancelFurther    (int init_qhead);                                        // Backtrack within level 0 until the given 'qhead' value.
 
+    int     decisionLevel()    const; 		// Gives the current decisionlevel.
     void    invalidateModel(const vec<Lit>& lits, int& init_qhead);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
 	bool    okay         () const;                  // FALSE means solver is in a conflicting state
 

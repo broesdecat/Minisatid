@@ -45,9 +45,8 @@ struct PropagationInfo {	// Propagated literal
 	WLit        wlit;		// value(lit)==l_True.
     Occurrence  type;		// POS if the literal in the set became true, NEG otherwise
 							//		(and HEAD if the head was propagate)
-    long prevbestcertain, prevbestpossible; //values BEFORE the propagation was added
 
-    PropagationInfo(Lit l, int w, Occurrence t, long prevcertain, long prevpossible) : wlit(WLit(l,w)), type(t), prevbestcertain(prevcertain), prevbestpossible(prevpossible) {}
+    PropagationInfo(Lit l, int w, Occurrence t) : wlit(WLit(l,w)), type(t) {}
 };
 
 struct AggrWatch {
@@ -72,7 +71,7 @@ public:
 	vector<Agg*>	aggregates;
 	vector<WLV> wlits;
 
-    int currentbestcertain, currentbestpossible, emptysetvalue;
+    int currentbestcertain, currentbestpossible, truecount, possiblecount, emptysetvalue;
 			//current keeps the currently derived min and max bounds
 			//truecount is the number of literals certainly in the set
 
@@ -106,9 +105,9 @@ public:
 	virtual int 	getBestPossible			() 		 = 0;
     /*virtual void 	addToSet				(WLit l) = 0;
     virtual void 	removeFromSet			(WLit l) = 0;*/
-	//virtual void 	removeFromCertainSet	(WLit l) = 0;
+	virtual void 	removeFromCertainSet	(WLit l) = 0;
 	virtual void 	addToCertainSet			(WLit l) = 0;
-	//virtual void 	addToPossibleSet		(WLit l) = 0;
+	virtual void 	addToPossibleSet		(WLit l) = 0;
 	virtual void 	removeFromPossibleSet	(WLit l) = 0;
 
 	bool isJustified		(Var x, vec<int>& currentjust);
@@ -129,9 +128,9 @@ public:
 	virtual int 	getBestPossible			();
     /*virtual void 	addToSet				(WLit l);
     virtual void 	removeFromSet			(WLit l);*/
-	//virtual void 	removeFromCertainSet	(WLit l);
+	virtual void 	removeFromCertainSet	(WLit l);
 	virtual void 	addToCertainSet			(WLit l);
-	//virtual void 	addToPossibleSet		(WLit l);
+	virtual void 	addToPossibleSet		(WLit l);
 	virtual void 	removeFromPossibleSet	(WLit l);
 };
 
@@ -148,9 +147,9 @@ public:
 	virtual int 	getBestPossible			();
     /*virtual void 	addToSet				(WLit l);
     virtual void 	removeFromSet			(WLit l);*/
-	//virtual void 	removeFromCertainSet	(WLit l);
+	virtual void 	removeFromCertainSet	(WLit l);
 	virtual void 	addToCertainSet			(WLit l);
-	//virtual void 	addToPossibleSet		(WLit l);
+	virtual void 	addToPossibleSet		(WLit l);
 	virtual void 	removeFromPossibleSet	(WLit l);
 };
 
@@ -167,9 +166,9 @@ public:
 	virtual int 	getBestPossible			();
     /*virtual void 	addToSet				(WLit l);
     virtual void 	removeFromSet			(WLit l);*/
-	//virtual void 	removeFromCertainSet	(WLit l);
+	virtual void 	removeFromCertainSet	(WLit l);
 	virtual void 	addToCertainSet			(WLit l);
-	//virtual void 	addToPossibleSet		(WLit l);
+	virtual void 	addToPossibleSet		(WLit l);
 	virtual void 	removeFromPossibleSet	(WLit l);
 };
 
@@ -186,9 +185,9 @@ public:
 	virtual int 	getBestPossible			();
     /*virtual void 	addToSet				(WLit l);
     virtual void 	removeFromSet			(WLit l);*/
-	//virtual void 	removeFromCertainSet	(WLit l);
+	virtual void 	removeFromCertainSet	(WLit l);
 	virtual void 	addToCertainSet			(WLit l);
-	//virtual void 	addToPossibleSet		(WLit l);
+	virtual void 	addToPossibleSet		(WLit l);
 	virtual void 	removeFromPossibleSet	(WLit l);
 };
 

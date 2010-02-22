@@ -1,44 +1,75 @@
-AMNSolver.o: AMNSolver.C AMNSolver.h ../mtl/Vec.h ../mtl/Alg.h \
-  SolverTypes.h Solver.h ../mtl/Queue.h ../mtl/Vec.h ../mtl/Heap.h \
-  TSolver.h
+Agg.o: Agg.C Agg.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h SolverTypes.h \
+  ../mtl/Alg.h AggSolver.h ../mtl/Sort.h Solver.h ../mtl/Heap.h \
+  IDSolver.h
+AggSolver.o: AggSolver.C AggSolver.h ../mtl/Vec.h ../mtl/Sort.h \
+  ../mtl/Vec.h Agg.h ../mtl/Queue.h SolverTypes.h ../mtl/Alg.h Solver.h \
+  ../mtl/Heap.h IDSolver.h
+IDSolver.o: IDSolver.C IDSolver.h ../mtl/Vec.h ../mtl/Queue.h \
+  ../mtl/Vec.h ../mtl/Heap.h SolverTypes.h ../mtl/Alg.h Solver.h \
+  AggSolver.h ../mtl/Sort.h Agg.h ../mtl/Map.h
 Main.o: Main.C Solver.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h \
-  ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h TSolver.h AMNSolver.h
+  ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h IDSolver.h AggSolver.h \
+  ../mtl/Sort.h Agg.h
 Solver.o: Solver.C Solver.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h \
-  ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h TSolver.h AMNSolver.h \
-  ../mtl/Sort.h
-TSolver.o: TSolver.C TSolver.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h \
-  ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h Solver.h AMNSolver.h \
-  ../mtl/Sort.h ../mtl/Map.h
-AMNSolver.op: AMNSolver.C AMNSolver.h ../mtl/Vec.h ../mtl/Alg.h \
-  SolverTypes.h Solver.h ../mtl/Queue.h ../mtl/Vec.h ../mtl/Heap.h \
-  TSolver.h
+  ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h IDSolver.h AggSolver.h \
+  ../mtl/Sort.h Agg.h
+Agg.occ: Agg.C Agg.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h SolverTypes.h \
+  ../mtl/Alg.h AggSolver.h ../mtl/Sort.h Solver.h ../mtl/Heap.h \
+  IDSolver.h
+AggSolver.occ: AggSolver.C AggSolver.h ../mtl/Vec.h ../mtl/Sort.h \
+  ../mtl/Vec.h Agg.h ../mtl/Queue.h SolverTypes.h ../mtl/Alg.h Solver.h \
+  ../mtl/Heap.h IDSolver.h
+IDSolver.occ: IDSolver.C IDSolver.h ../mtl/Vec.h ../mtl/Queue.h \
+  ../mtl/Vec.h ../mtl/Heap.h SolverTypes.h ../mtl/Alg.h Solver.h \
+  AggSolver.h ../mtl/Sort.h Agg.h ../mtl/Map.h
+Main.occ: Main.C Solver.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h \
+  ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h IDSolver.h AggSolver.h \
+  ../mtl/Sort.h Agg.h
+Solver.occ: Solver.C Solver.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h \
+  ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h IDSolver.h AggSolver.h \
+  ../mtl/Sort.h Agg.h
+Agg.op: Agg.C Agg.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h SolverTypes.h \
+  ../mtl/Alg.h AggSolver.h ../mtl/Sort.h Solver.h ../mtl/Heap.h \
+  IDSolver.h
+AggSolver.op: AggSolver.C AggSolver.h ../mtl/Vec.h ../mtl/Sort.h \
+  ../mtl/Vec.h Agg.h ../mtl/Queue.h SolverTypes.h ../mtl/Alg.h Solver.h \
+  ../mtl/Heap.h IDSolver.h
+IDSolver.op: IDSolver.C IDSolver.h ../mtl/Vec.h ../mtl/Queue.h \
+  ../mtl/Vec.h ../mtl/Heap.h SolverTypes.h ../mtl/Alg.h Solver.h \
+  AggSolver.h ../mtl/Sort.h Agg.h ../mtl/Map.h
 Main.op: Main.C Solver.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h \
-  ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h TSolver.h AMNSolver.h
+  ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h IDSolver.h AggSolver.h \
+  ../mtl/Sort.h Agg.h
 Solver.op: Solver.C Solver.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h \
-  ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h TSolver.h AMNSolver.h \
-  ../mtl/Sort.h
-TSolver.op: TSolver.C TSolver.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h \
-  ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h Solver.h AMNSolver.h \
-  ../mtl/Sort.h ../mtl/Map.h
-AMNSolver.od: AMNSolver.C AMNSolver.h ../mtl/Vec.h ../mtl/Alg.h \
-  SolverTypes.h Solver.h ../mtl/Queue.h ../mtl/Vec.h ../mtl/Heap.h \
-  TSolver.h
+  ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h IDSolver.h AggSolver.h \
+  ../mtl/Sort.h Agg.h
+Agg.od: Agg.C Agg.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h SolverTypes.h \
+  ../mtl/Alg.h AggSolver.h ../mtl/Sort.h Solver.h ../mtl/Heap.h \
+  IDSolver.h
+AggSolver.od: AggSolver.C AggSolver.h ../mtl/Vec.h ../mtl/Sort.h \
+  ../mtl/Vec.h Agg.h ../mtl/Queue.h SolverTypes.h ../mtl/Alg.h Solver.h \
+  ../mtl/Heap.h IDSolver.h
+IDSolver.od: IDSolver.C IDSolver.h ../mtl/Vec.h ../mtl/Queue.h \
+  ../mtl/Vec.h ../mtl/Heap.h SolverTypes.h ../mtl/Alg.h Solver.h \
+  AggSolver.h ../mtl/Sort.h Agg.h ../mtl/Map.h
 Main.od: Main.C Solver.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h \
-  ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h TSolver.h AMNSolver.h
+  ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h IDSolver.h AggSolver.h \
+  ../mtl/Sort.h Agg.h
 Solver.od: Solver.C Solver.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h \
-  ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h TSolver.h AMNSolver.h \
-  ../mtl/Sort.h
-TSolver.od: TSolver.C TSolver.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h \
-  ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h Solver.h AMNSolver.h \
-  ../mtl/Sort.h ../mtl/Map.h
-AMNSolver.or: AMNSolver.C AMNSolver.h ../mtl/Vec.h ../mtl/Alg.h \
-  SolverTypes.h Solver.h ../mtl/Queue.h ../mtl/Vec.h ../mtl/Heap.h \
-  TSolver.h
+  ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h IDSolver.h AggSolver.h \
+  ../mtl/Sort.h Agg.h
+Agg.or: Agg.C Agg.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h SolverTypes.h \
+  ../mtl/Alg.h AggSolver.h ../mtl/Sort.h Solver.h ../mtl/Heap.h \
+  IDSolver.h
+AggSolver.or: AggSolver.C AggSolver.h ../mtl/Vec.h ../mtl/Sort.h \
+  ../mtl/Vec.h Agg.h ../mtl/Queue.h SolverTypes.h ../mtl/Alg.h Solver.h \
+  ../mtl/Heap.h IDSolver.h
+IDSolver.or: IDSolver.C IDSolver.h ../mtl/Vec.h ../mtl/Queue.h \
+  ../mtl/Vec.h ../mtl/Heap.h SolverTypes.h ../mtl/Alg.h Solver.h \
+  AggSolver.h ../mtl/Sort.h Agg.h ../mtl/Map.h
 Main.or: Main.C Solver.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h \
-  ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h TSolver.h AMNSolver.h
+  ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h IDSolver.h AggSolver.h \
+  ../mtl/Sort.h Agg.h
 Solver.or: Solver.C Solver.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h \
-  ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h TSolver.h AMNSolver.h \
-  ../mtl/Sort.h
-TSolver.or: TSolver.C TSolver.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h \
-  ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h Solver.h AMNSolver.h \
-  ../mtl/Sort.h ../mtl/Map.h
+  ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h IDSolver.h AggSolver.h \
+  ../mtl/Sort.h Agg.h

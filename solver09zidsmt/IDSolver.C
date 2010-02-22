@@ -649,7 +649,6 @@ Clause* IDSolver::indirectPropagate() {
 		}
  	}
 
- 	Clause* confl = NULL;
 	if (ufs_found) {
 		if (verbosity >= 2) {
 			reportf("Found an unfounded set of size %d: {",ufs.size());
@@ -660,13 +659,12 @@ Clause* IDSolver::indirectPropagate() {
 		if (defn_strategy == adaptive){
 			adaption_current++; // This way we make sure that if adaption_current > adaption_total, this decision level had indirect propagations.
 		}
-		confl = assertUnfoundedSet(ufs);
+		return assertUnfoundedSet(ufs);
 	} else { // Found a witness justification.
 		apply_changes();
+		assert(aggsolver!=NULL || isCycleFree());
+		return NULL;
 	}
-
-	assert(aggsolver!=NULL || isCycleFree());
-	return confl;
 }
 
 /**
@@ -680,10 +678,9 @@ void IDSolver::findCycleSources() {
 	if (prev_conflicts == solver->conflicts && defn_strategy == always && solver->getNbOfRecentAssignments()>0) {
 		for(int i=0; i<solver->getNbOfRecentAssignments(); i++){
 			Lit l = solver->getRecentAssignments(i); //l has become true, so find occurences of ~l
-
 			vec<Var>& ds = disj_occurs[toInt(~l)];
 			for (int j = 0; j < ds.size(); j++) {
-				checkJustification(ds[j], ~l);
+				handlePossibleCycleSource(ds[j], ~l);
 			}
 
 			if(aggsolver!=NULL){
@@ -691,7 +688,7 @@ void IDSolver::findCycleSources() {
 				aggsolver->getHeadsOfAggrInWhichOccurs(var(~l), heads);
 
 				for(int j=0; j<heads.size(); j++){
-					checkJustification(heads[j], ~l);
+					handlePossibleCycleSource(heads[j], ~l);
 				}
 			}
 		}
@@ -700,7 +697,7 @@ void IDSolver::findCycleSources() {
 		prev_conflicts = solver->conflicts;
 		for (int i = 0; i < defdVars.size(); i++) {
 			if(defType[defdVars[i]]==DISJ || defType[defdVars[i]]==AGGR){
-				checkJustification(defdVars[i]);
+				handlePossibleCycleSource(defdVars[i]);
 			}
 		}
 	}
@@ -713,7 +710,7 @@ void IDSolver::findCycleSources() {
 	}
 }
 
-void IDSolver::checkJustification(Var head, Lit lbecamefalse){
+void IDSolver::handlePossibleCycleSource(Var head, Lit lbecamefalse){
 	if(isCS[head]){
 		return;
 	}
@@ -725,26 +722,6 @@ void IDSolver::checkJustification(Var head, Lit lbecamefalse){
 	}
 	if(!dependsonl){
 		isCS[head] = false;
-		return;
-	}
-
-	handlePossibleCycleSource(head);
-}
-
-void IDSolver::checkJustification(Var head){
-    if(isCS[head] || value(head)==l_False){
-		return;
-	}
-
-    bool dependsonfalse = false;
-	for(int i=0; !dependsonfalse && i<justification[head].size(); i++){
-		if(value(justification[head][i])==l_False){
-			dependsonfalse = true;
-		}
-	}
-	if(!dependsonfalse){
-		isCS[head] = false;
-		return;
 	}
 
 	handlePossibleCycleSource(head);
@@ -786,7 +763,7 @@ bool IDSolver::findJustificationDisj(Var v, vec<Lit>& jstf) {
 	int pos = -1;
 	for(int i=0; !externallyjustified && i<c.size(); i++){
 		if(!isFalse(c[i])){
-			if(!inSameSCC(v, var(c[i])) || !isPositive(c[i]) || defType[var(c[i])]==NONDEFTYPE){
+			if(!inSameSCC(v, var(c[i])) || !isPositive(c[i])){
 				externallyjustified = true;
 				pos = i;
 			}else{
@@ -824,11 +801,12 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 	Queue<Var> q;
 	Var v;
 
+	reportf("Start unfounded %d\n", cs);
+
 	markNonJustified(cs, tmpseen);
 	bool csisjustified = false;
 
 	seen[cs]=1; //no valid justification can be created just from looking at the body literals
-	tmpseen.push(cs);
 
 	q.insert(cs);
 	ufs.clear();
@@ -850,17 +828,10 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 		seen[tmpseen[i]] = 0;
 	}
 
-#ifdef DEBUG
-	for(int i=0; i<nVars(); i++){
-		assert(seen[i]==0);
-	}
-#endif
-
 	if(!csisjustified){
 		assert(ufs.size() > 0); // The ufs atoms form an unfounded set. 'cs' is in it.
 		return true;
 	}else{
-		ufs.clear();
 		return false;
 	}
 }
@@ -888,19 +859,16 @@ bool IDSolver::findJustificationDisj(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, v
 	int pos = -1;
 	for(int i=0; !externallyjustified && i<c.size(); i++){
 		if(c.getHeadLiteral()==c[i]){ continue;	}
-
-		if (!isFalse(c[i])) {
-            if (!isPositive(c[i]) || currentjust[var(c[i])]==0) {
-            	if(!inSameSCC(v, var(c[i]))){
-            		externallyjustified = true;
-					pos = i;
-				}else{
-					pos = i;
-				}
-            } else{
-            	nonjstf.push(var(c[i]));
-            }
-        }
+		if(!isFalse(c[i]) && currentjust[var(c[i])]==0){
+			if(!inSameSCC(v, var(c[i])) || !isPositive(c[i])){
+				externallyjustified = true;
+				pos = i;
+			}else{
+				pos = i;
+			}
+		}else{
+			nonjstf.push(var(c[i]));
+		}
 	}
 	if(pos>=0){
 		jstf.push(c[pos]);
@@ -913,7 +881,7 @@ bool IDSolver::findJustificationConj(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, v
 	Rule& c = *definition[v];
 	currentjust[v]=0;
 	for(int i=0; i<c.size(); i++){
-		if(isPositive(c[i]) && currentjust[var(c[i])]!=0){
+		if(isFalse(c[i]) || currentjust[var(c[i])]!=0){
 			currentjust[v]++;
 			nonjstf.push(var(c[i]));
 		}
@@ -959,11 +927,8 @@ bool IDSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 		changejust(v, jstf);
 	}else{
 		for(int i=0; i<nonjstf.size(); i++){
-			assert(!isJustified(nonjstf[i]));
-			if (inSameSCC(nonjstf[i], v)){
-				if(ufs.insert(nonjstf[i]).second){ //set insert returns true (in second) if the insertion worked (no duplicates)
-					q.insert(nonjstf[i]);
-				}
+			if (inSameSCC(nonjstf[i], v) && ufs.insert(nonjstf[i]).second){ //set insert returns true (in second) if the insertion worked (no duplicates)
+				q.insert(nonjstf[i]);
 			}
 		}
 	}
@@ -1025,7 +990,7 @@ void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf){
 			for (int i = 0; i < c.size(); i++) {
 				Lit l = c[i];
 				//add literals not in the ufs and not the head as external disjuncts
-				if (l != c.getHeadLiteral() && seen[var(l)] != (isPositive(l) ? 2 : 1) && ufs.find(var(c[i])) == ufs.end()) {
+				if (l != c.getHeadLiteral() && seen[var(l)] != (isPositive(l) ? 2 : 1) && (!isPositive(l) || ufs.find(var(c[i])) == ufs.end())) {
 					loopf.push(l);
 					//remembers whether a literal has already been added, but both P and ~P can be added ONCE
 					seen[var(l)] = (isPositive(l) ? 2 : 1); // Just in case P and ~P both appear; otherwise we might get something between well-founded and ultimate semantics...
@@ -1038,8 +1003,6 @@ void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf){
 			break;
 		default:
 			assert(false);
-			reportf("Only AGGR, CONJ or DISJ should be checked for external disjuncts!");
-			exit(3);
 			break;
 		}
 	}
@@ -1150,12 +1113,14 @@ void IDSolver::markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>
 	Lit poslit = createPositiveLiteral(x);
 	vec<Var>& v = disj_occurs[toInt(poslit)];
 	for (int i = 0; i < v.size(); ++i){
+		reportf("%d justified by %d\n", v[i]+1, var(justification[v[i]][0])+1);
 		if (var(justification[v[i]][0]) == x){
 			markNonJustifiedAddVar(v[i], cs, q, tmpseen);
 		}
 	}
 	vec<Var>& w = conj_occurs[toInt(poslit)];
 	for (int i = 0; i < w.size(); i++){
+		reportf("%d is justified by %d\n", w[i]+1, x+1);
 		markNonJustifiedAddVar(w[i], cs, q, tmpseen);
 	}
 	if (aggsolver!=NULL) {
@@ -1260,17 +1225,15 @@ inline void IDSolver::printRule(const Rule& c){
 bool IDSolver::isCycleFree() {
     assert(aggsolver==NULL);
 
-    if(verbosity>=2){
-        reportf("Showing cf- and sp-justification for disjunctive atoms. <<<<<<<<<<\n");
-        for (int i = 0; i < nVars(); i++) {
-            if (getDefType(i)==DISJ) {
-                printLit(Lit(i,false)); reportf(" <- ");
-                printLit(justification[i][0]);
-                reportf("(cf); ");
-            }
+    reportf("Showing cf- and sp-justification for disjunctive atoms. <<<<<<<<<<\n");
+    for (int i = 0; i < nVars(); i++) {
+        if (getDefType(i)==DISJ) {
+            printLit(Lit(i,false)); reportf(" <- ");
+            printLit(justification[i][0]);
+            reportf("(cf); ");
         }
-        reportf(">>>>>>>>>>\n");
     }
+    reportf(">>>>>>>>>>\n");
 
     // Verify cycles.
     vec<int> isfree; // per variable. 0 = free, >0 = number of literals in body still to be justified.

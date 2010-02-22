@@ -186,9 +186,9 @@ protected:
     // Temporaries (to reduce allocation overhead). Each variable is prefixed by the method in which it is
     // used, exept 'seen' wich is used in several places.
     //
-    vec<Lit>            analyze_stack;
-    vec<Lit>            analyze_toclear;
-    vec<Lit>            add_tmp;
+    vec<Lit>	analyze_stack;
+    vec<Lit>	analyze_toclear;
+    vec<Lit>	add_tmp;
     vec<int>	seen;
     // vec< vec<Var> >     used_conj;        // Temporary to unfounded(Var, set<Var>&). Only when guards system used.
 

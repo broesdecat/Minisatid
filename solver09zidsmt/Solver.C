@@ -31,7 +31,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 Solver::Solver() :
 	ok(true),
-	remove_satisfied(true),
+	remove_satisfied(false),
 	qhead(0),
 
 	// Parameters: (formerly in 'SearchParams')
@@ -97,8 +97,12 @@ Var Solver::newVar(bool sign, bool dvar)
     decision_var.push((char)dvar);
 
 	//////////////START TSOLVER
-	tsolver->notifyVarAdded();
-	amosolver->notifyVarAdded();
+	if(tsolver!=NULL){
+		tsolver->notifyVarAdded();
+	}
+	if(aggsolver!=NULL){
+		aggsolver->notifyVarAdded();
+	}
 	//////////////END TSOLVER
 
     insertVarOrder(v);
@@ -139,29 +143,39 @@ bool Solver::addClause(vec<Lit>& ps)
     return true;
 }
 
-/////////START TSOLVER
+//////////////START TSOLVER
+/**
+ * Used to notify the sat solver that all tsolver datastructures have been initialized.
+ * The sat solver will then reset the q-pointer to the start, so all literals already on the queue are repropagated in due course.
+ */
+void Solver::finishParsing(){
+	qhead = 0;
+}
+
+bool Solver::existsUnknownVar(){
+	Var v = var_Undef;
+	while (v == var_Undef || toLbool(assigns[v]) != l_Undef || !decision_var[v]) {
+		if (v != var_Undef)
+			order_heap.removeMin();
+		if (order_heap.empty()) {
+			v = var_Undef;
+			break;
+		} else
+			v = order_heap[0];
+	}
+	return v==var_Undef;
+}
+
 void Solver::addLearnedClause(Clause* c){
 	learnts.push(c);
 	attachClause(*c);
 	claBumpActivity(*c);
-	if(verbosity>=2){
+	if(verbosity>=3){
+		reportf("Learned clause added: ");
 		printClause(*c);
 	}
-}
-
-void Solver::addClause(Clause* c){
-	clauses.push(c);
-	attachClause(*c);
-	if(verbosity>=2){
-		printClause(*c);
-	}
-}
-
-void Solver::addToTrail(Lit l){
-	trail.push(l);
 }
 /////////END TSOLVER
-
 
 void Solver::attachClause(Clause& c) {
     assert(c.size() > 1);
@@ -196,16 +210,17 @@ bool Solver::satisfied(const Clause& c) const {
 ///////////////START CHANGES
 // Can be used to go beyond level 0!
 void Solver::cancelFurther(int init_qhead) {
-
 	for (int c = trail.size() - 1; c >= init_qhead; c--) {
 		Var x = var(trail[c]);
 		assigns[x] = toInt(l_Undef);
 		insertVarOrder(x);
-		//TODObroes: vermoedelijk alleen aanroepen als c defined of geaggregeerd is (mss moeilijk te checken)
-
-	    //////////////START TSOLVER
-		tsolver->backtrack(trail[c]);
-		amosolver->backtrack(trail[c]);
+		//////////////START TSOLVER
+		if(tsolver!=NULL){
+			tsolver->backtrack(trail[c]);
+		}
+		if(aggsolver!=NULL){
+			aggsolver->backtrack(trail[c]);
+		}
 		//////////////END TSOLVER
 	}
 
@@ -326,8 +341,8 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 		confl = reason[var(p)];
 
 		//////////////START TSOLVER
-		if (confl == NULL && pathC > 1) {
-			confl = tsolver->getExplanation(p);
+		if (aggsolver!=NULL && confl == NULL && pathC > 1) {
+			confl = aggsolver->getExplanation(p);
 			deleteImplicitClause = true;
 		}
 		//////////////END TSOLVER
@@ -523,10 +538,17 @@ Clause* Solver::propagate()
         }
         ws.shrink(i - j);
 		//////////////START TSOLVER
-        confl = amosolver->propagate(p, confl);
-        confl = tsolver->propagate(p, confl);
-		if(qhead==trail.size()){
-			confl = tsolver->propagateDefinitions(confl);
+        if(aggsolver!=NULL && confl == NULL){
+        	confl = aggsolver->propagate(p);
+        }
+        if(tsolver!=NULL && confl == NULL){
+			confl = tsolver->propagate(p);
+		}
+		if(qhead==trail.size() && confl==NULL && tsolver!=NULL){
+			confl = tsolver->propagateDefinitions();
+		}
+		if(confl!=NULL){
+			qhead = trail.size();
 		}
 		//////////////END TSOLVER
     }
@@ -611,7 +633,9 @@ bool Solver::simplify()
     simpDB_props   = clauses_literals + learnts_literals;   // (shouldn't depend on stats really, but it will do for now)
 
     //////////////START TSOLVER
-	if(conflicts==0 && (!tsolver->simplify() || !amosolver->simplify())){
+	if(conflicts==0 && ((tsolver!=NULL && !tsolver->simplify())
+								||
+						(aggsolver!=NULL && !aggsolver->simplify()))){
 		ok = false;
 		return false;
 	}
@@ -761,12 +785,18 @@ double Solver::progressEstimate() const
 
 ////////////START TSOLVER
 void Solver::invalidateModel(const vec<Lit>& lits, int& init_qhead) {
+	//FIXME nog een error in het vinden van dubbele modellen
 	backtrackTo(0);
-	if (init_qhead < qhead)
+	if (init_qhead < qhead){
+		//FIXME hier zit de fout met remove satisfied: hij delete atomen waarvan de clause
+		//gedelete kan zijn omdat afgeleid is dat ze waar zijn ZONDER ZOEKEN, dus
+		//zouden ze niet van de trail gehaald mogen worden?
 		cancelFurther(init_qhead);
+	}
 
 	if (lits.size() == 1) {
 		setTrue(lits[0]);
+		if (verbosity>=2) {reportf("Propagating literal in invalidation "); printLit(lits[0]); reportf("\n");}
 		++init_qhead;
 	} else {
 		Clause* c = Clause_new(lits, false);
@@ -965,22 +995,6 @@ bool Solver::solve(const vec<Lit>& assumps)
     backtrackTo(0);
     return status == l_True;
 }
-
-//////////////START TSOLVER
-bool Solver::existsUnknownVar(){
-	Var v = var_Undef;
-	while (v == var_Undef || toLbool(assigns[v]) != l_Undef || !decision_var[v]) {
-		if (v != var_Undef)
-			order_heap.removeMin();
-		if (order_heap.empty()) {
-			v = var_Undef;
-			break;
-		} else
-			v = order_heap[0];
-	}
-	return v==var_Undef;
-}
-//////////////END TSOLVER
 
 //=================================================================================================
 // Debug methods:
