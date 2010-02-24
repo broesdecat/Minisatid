@@ -17,38 +17,33 @@ void AggrSet::backtrack(int index) {
 }
 
 Clause* AggrSet::propagate(Lit p, AggrWatch& ws){
-	Clause* confl = NULL;
-
 	Occurrence tp;
     if (ws.type==POS){
     	tp = sign(p)? NEG : POS;
     }else{
     	tp = sign(p)? POS : NEG;
     }
+
 	stack.push_back(PropagationInfo(p, wlits[ws.index].weight,tp, currentbestcertain, currentbestpossible));
+	wlits[ws.index].value = tp==POS?l_True:l_False;
 
-	if (tp == HEAD){
-		assert(false);
-	}else { // It's a set literal.
-		wlits[ws.index].value = tp==POS?l_True:l_False;
-		tp==POS? addToCertainSet(wlits[ws.index]):removeFromPossibleSet(wlits[ws.index]);
+	tp==POS? addToCertainSet(wlits[ws.index]):removeFromPossibleSet(wlits[ws.index]);
 
-		confl = propagateBodies();
-	}
-
-	return confl;
+	return propagateBodies();
 }
 
 Clause* AggrSet::propagateBodies(){
 	Clause* confl = NULL;
 	for(vector<Agg*>::iterator i=aggregates.begin(); i!=aggregates.end() && confl==NULL; i++){
-		lbool result = (*i)->canPropagateHead();
-		if(result==l_True){
-			confl = AggSolver::aggsolver->notifySATsolverOfPropagation((*i)->head, new AggrReason(*i, HEAD, -1));
-		}else if(result==l_False){
-			confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~(*i)->head, new AggrReason(*i, HEAD, -1));
-		}else if((*i)->headvalue != l_Undef){ //the head cannot be directly propagated, but its value has already been found
+		if((*i)->headvalue != l_Undef){ //head is already known
 			confl = (*i)->propagate((*i)->headvalue==l_True);
+		}else{ //head is not yet known, so at most the head can be propagated
+			lbool result = (*i)->canPropagateHead();
+			if(result==l_True){
+				confl = AggSolver::aggsolver->notifySATsolverOfPropagation((*i)->head, new AggrReason(*i, HEAD, -1));
+			}else if(result==l_False){
+				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~(*i)->head, new AggrReason(*i, HEAD, -1));
+			}
 		}
 	}
 	return confl;
@@ -125,34 +120,11 @@ int AggrMinSet::getBestPossible() {
 	return min;
 }
 
-/*void AggrMinSet::removeFromCertainSet(WLit l){
-	truecount--;
-	if (truecount == 0) {
-		currentbestcertain = emptysetvalue;
-	}else{
-		if(l.weight==currentbestcertain){
-			currentbestcertain = emptysetvalue;
-			for(vector<WLV>::size_type i=0; i<stack.size(); i++){
-				if(stack[i].type==POS && stack[i].wlit.weight<currentbestcertain){
-					currentbestcertain = stack[i].wlit.weight;
-				}
-			}
-		}
-	}
-}*/
-
 void AggrMinSet::addToCertainSet(WLit l){
 	if(l.weight<currentbestcertain){
 		currentbestcertain = l.weight;
 	}
 }
-
-/*void AggrMinSet::addToPossibleSet(WLit l){
-	possiblecount++;
-	if(l.weight<currentbestpossible){
-		currentbestpossible = l.weight;
-	}
-}*/
 
 void AggrMinSet::removeFromPossibleSet(WLit l){
 	if(l.weight==currentbestpossible){
@@ -270,34 +242,11 @@ int AggrMaxSet::getBestPossible() {
 	return max;
 }
 
-/*void AggrMaxSet::removeFromCertainSet(WLit l){
-	truecount--;
-	if (truecount == 0) {
-		currentbestcertain = emptysetvalue;
-	}else{
-		if(l.weight==currentbestcertain){
-			currentbestcertain = emptysetvalue;
-			for(vector<WLV>::size_type i=0; i<stack.size(); i++){
-				if(stack[i].type==POS && currentbestcertain<stack[i].wlit.weight){
-					currentbestcertain = stack[i].wlit.weight;
-				}
-			}
-		}
-	}
-}*/
-
 void AggrMaxSet::addToCertainSet(WLit l){
 	if(l.weight>currentbestcertain){
 		currentbestcertain = l.weight;
 	}
 }
-
-/*void AggrMaxSet::addToPossibleSet(WLit l){
-	possiblecount++;
-	if(l.weight>currentbestpossible){
-		currentbestpossible = l.weight;
-	}
-}*/
 
 void AggrMaxSet::removeFromPossibleSet(WLit l){
 	if(l.weight==currentbestpossible){
@@ -396,23 +345,9 @@ int AggrSumSet::getBestPossible() {
 	return max;
 }
 
-/*void AggrSumSet::removeFromCertainSet(WLit l){
-	truecount--;
-	if (truecount == 0) {
-		currentbestcertain = emptysetvalue;
-	}else{
-		currentbestcertain -= l.weight;
-	}
-}*/
-
 void AggrSumSet::addToCertainSet(WLit l){
 	currentbestcertain += l.weight;
 }
-
-/*void AggrSumSet::addToPossibleSet(WLit l){
-	possiblecount++;
-	currentbestpossible += l.weight;
-}*/
 
 void AggrSumSet::removeFromPossibleSet(WLit l){
 	currentbestpossible -= l.weight;
@@ -447,23 +382,9 @@ int AggrProdSet::getBestPossible() {
 	return max;
 }
 
-/*void AggrProdSet::removeFromCertainSet(WLit l){
-	truecount--;
-	if (truecount == 0) {
-		currentbestcertain = emptysetvalue;
-	}else{
-		currentbestcertain /= l.weight;
-	}
-}*/
-
 void AggrProdSet::addToCertainSet(WLit l){
 	currentbestcertain *= l.weight;
 }
-
-/*void AggrProdSet::addToPossibleSet(WLit l){
-	possiblecount++;
-	currentbestpossible *= l.weight;
-}*/
 
 void AggrProdSet::removeFromPossibleSet(WLit l){
 	currentbestpossible /= l.weight;
@@ -514,9 +435,9 @@ lbool SPAgg::canPropagateHead(){
 Clause* SPAgg::propagateHead(bool headtrue){
 	return propagate(headtrue);
 }
+
 Clause* SPAgg::propagate(bool headtrue){
 	Clause* c = NULL;
-	vector<WLV>::iterator pos;
 	int weightbound;
 
 	//determine the lower bound of which weight literals to consider
@@ -557,7 +478,7 @@ Clause* SPAgg::propagate(bool headtrue){
 			}
 		}
 	}
-	pos = lower_bound(set->wlits.begin(), set->wlits.end(), weightbound);
+	vector<WLV>::iterator pos = lower_bound(set->wlits.begin(), set->wlits.end(), weightbound);
 	if(pos==set->wlits.end()){
 		return c;
 	}
@@ -568,11 +489,14 @@ Clause* SPAgg::propagate(bool headtrue){
 	while(it!=pos){
 		it++; start++;
 	}
+
 	for (vector<Lit>::size_type u = start; c==NULL && u < set->wlits.size(); u++) {
-		if (set->wlits[u].value==l_Undef) {// no conflicts possible (because setting an unknown literal
+		if (set->wlits[u].value==l_Undef) {//if already propagated as an aggregate, then those best-values have already been adapted
 			if((lower && headtrue) || (!lower && !headtrue)){
+				//assert((headtrue && set->currentbestcertain+set->wlits[u].weight>bound) || (!headtrue && set->currentbestcertain+set->wlits[u].weight>=bound));
 				c = AggSolver::aggsolver->notifySATsolverOfPropagation(~set->wlits[u].lit, new AggrReason(this, NEG, set->wlits[u].weight));
 			}else{
+				//assert((!headtrue && set->currentbestpossible-set->wlits[u].weight<=bound) || (headtrue && set->currentbestpossible-set->wlits[u].weight<bound));
 				c = AggSolver::aggsolver->notifySATsolverOfPropagation(set->wlits[u].lit, new AggrReason(this, POS, set->wlits[u].weight));
 			}
 		}
@@ -745,8 +669,6 @@ void MaxAgg::getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar){
  * true meaning that the literal has the same sign as in the set
  * false meaning that the literal has the opposite sign as compared to the set
  */
-
-//TODO ERROR BECAUSE HE PUSHES THE HEAD WHEN TYPE IS HEAD
 void SPAgg::getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar){
 	int possiblesum, certainsum;
 	certainsum = set->emptysetvalue;
@@ -767,29 +689,26 @@ void SPAgg::getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar){
 		}
 	}
 
-	bool explained = false, headfound = false, addhead = false;
+	bool explained = false;
+	if(ar.type!=HEAD){ //a body literal can only be propagated if the head is already derived
+		assert(headvalue!=l_Undef);
+		lits.push(headvalue==l_True?~head:head);
 
-	//an explanation can exist without any other set literals, so check for this
-	if(ar.type==NEG && ((lower && certainsum > bound) || (!lower && certainsum >= bound))){
-		explained = true;
-	}
-	if(ar.type==POS && ((lower && possiblesum <= bound) || (!lower && possiblesum < bound))){
-		explained = true;
-	}
-	if(ar.type==HEAD){
-		headfound = true;
+		//an explanation can exist without any other set literals, so check for this
+		if(ar.type==NEG && ((lower && certainsum > bound) || (!lower && certainsum >= bound))){
+			explained = true;
+		}
+		if(ar.type==POS && ((lower && possiblesum <= bound) || (!lower && possiblesum < bound))){
+			explained = true;
+		}
+	}else{
 		if((lower && certainsum>bound) || (!lower && certainsum>=bound) || (lower && possiblesum <= bound) || (!lower && possiblesum < bound)){
 			explained = true;
 		}
-	}else if(headindex==0){
-		headfound = true;
-		addhead = true;
 	}
-	for(vector<WLV>::size_type i=0; !(headfound && explained) && i<set->stack.size() && set->stack[i].wlit.lit!=p; i++){
-		if(!headfound && headindex==i+1){
-			headfound = true;
-			addhead = true;
-		}
+
+	for(vector<WLV>::size_type i=0; !explained && i<set->stack.size() && ((ar.type==HEAD && i<headindex) || var(set->stack[i].wlit.lit)!=var(p)); i++){
+		bool push = false;
 		if(set->stack[i].type == POS){ //means that the literal in the set became true
 			if(sum){
 				certainsum += set->stack[i].wlit.weight;
@@ -799,22 +718,20 @@ void SPAgg::getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar){
 
 			if(ar.type==HEAD){
 				if(head==p && !lower){
-					lits.push(~set->stack[i].wlit.lit);
+					push = true;
 					if(bound <= certainsum){
 						explained = true;
 					}
 				}else if(head==~p && lower){
-					lits.push(~set->stack[i].wlit.lit);
+					push = true;
 					if(bound < certainsum){
 						explained = true;
 					}
 				}
 			}else if(ar.type==NEG){
-				if(!explained){ //for NEG, you have to keep searching until also the head has been added
-					lits.push(~set->stack[i].wlit.lit);
-					if((lower && certainsum > bound) || (!lower && certainsum >= bound)){
-						explained = true;
-					}
+				push = true;
+				if((lower && certainsum > bound) || (!lower && certainsum >= bound)){
+					explained = true;
 				}
 			}
 		}else if(set->stack[i].type == NEG){ //the literal in the set became false
@@ -826,36 +743,44 @@ void SPAgg::getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar){
 
 			if(ar.type==HEAD){
 				if(head==p && lower){
-					lits.push(~set->stack[i].wlit.lit);
+					push = true;
 					if(possiblesum <= bound){
 						explained = true;
 					}
 				}else if(head==~p && !lower){
-					lits.push(~set->stack[i].wlit.lit);
+					push = true;
 					if(possiblesum < bound){
 						explained = true;
 					}
 				}
 			}else if(ar.type==POS){
-				if(!explained){ //for POS, you have to keep searching until also the head has been added
-					lits.push(~set->stack[i].wlit.lit);
-					if((lower && possiblesum <= bound) || (!lower && possiblesum < bound)){
-						explained = true;
-					}
+				push = true;
+				if((lower && possiblesum <= bound) || (!lower && possiblesum < bound)){
+					explained = true;
 				}
 			}
 		}
-	}
-	if(addhead){
-		if((ar.type == POS && lower) || (ar.type == NEG && !lower)){
-			lits.push(head);
-		}else{
-			lits.push(~head);
+		if(push){
+			lits.push(~set->stack[i].wlit.lit);
 		}
 	}
 
-	assert(headfound && explained);
+	assert(explained);
 }
+
+/**
+ * getExplanationSum:
+ * if head true:
+ * 		make sum of stack elements IN set until explained
+ * if head false:
+ * 		substract stack elements NOT IN set until explained
+ * if literal IN set
+ * 		add head
+ * 		add stack elements NOT IN set until poss-literal weight violates bound
+ * if literal NOT IN set
+ * 		add head
+ * 		add stack elements IN set until certain+literal weight violates bound
+ */
 
 /************************
  * RECURSIVE AGGREGATES *

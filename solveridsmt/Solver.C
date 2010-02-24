@@ -701,6 +701,8 @@ bool Solver::simplify() {
 		ok = false;
 		return false;
 	}
+
+	// Important: DO NOT PROPAGATE BEFORE SIMPLIFY!!! (TODO CHANGE CODE TO ALLOW THIS!)
 	//////////////END TSOLVER
 
 	return true;

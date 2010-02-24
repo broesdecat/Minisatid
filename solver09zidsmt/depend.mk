@@ -10,6 +10,7 @@ IDSolver.o: IDSolver.C IDSolver.h ../mtl/Vec.h ../mtl/Queue.h \
 Main.o: Main.C Solver.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h \
   ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h IDSolver.h AggSolver.h \
   ../mtl/Sort.h Agg.h
+solver.o: solver.C
 Solver.o: Solver.C Solver.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h \
   ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h IDSolver.h AggSolver.h \
   ../mtl/Sort.h Agg.h
@@ -25,6 +26,7 @@ IDSolver.occ: IDSolver.C IDSolver.h ../mtl/Vec.h ../mtl/Queue.h \
 Main.occ: Main.C Solver.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h \
   ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h IDSolver.h AggSolver.h \
   ../mtl/Sort.h Agg.h
+solver.occ: solver.C
 Solver.occ: Solver.C Solver.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h \
   ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h IDSolver.h AggSolver.h \
   ../mtl/Sort.h Agg.h
@@ -40,6 +42,7 @@ IDSolver.op: IDSolver.C IDSolver.h ../mtl/Vec.h ../mtl/Queue.h \
 Main.op: Main.C Solver.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h \
   ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h IDSolver.h AggSolver.h \
   ../mtl/Sort.h Agg.h
+solver.op: solver.C
 Solver.op: Solver.C Solver.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h \
   ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h IDSolver.h AggSolver.h \
   ../mtl/Sort.h Agg.h
@@ -55,6 +58,7 @@ IDSolver.od: IDSolver.C IDSolver.h ../mtl/Vec.h ../mtl/Queue.h \
 Main.od: Main.C Solver.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h \
   ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h IDSolver.h AggSolver.h \
   ../mtl/Sort.h Agg.h
+solver.od: solver.C
 Solver.od: Solver.C Solver.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h \
   ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h IDSolver.h AggSolver.h \
   ../mtl/Sort.h Agg.h
@@ -70,6 +74,7 @@ IDSolver.or: IDSolver.C IDSolver.h ../mtl/Vec.h ../mtl/Queue.h \
 Main.or: Main.C Solver.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h \
   ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h IDSolver.h AggSolver.h \
   ../mtl/Sort.h Agg.h
+solver.or: solver.C
 Solver.or: Solver.C Solver.h ../mtl/Vec.h ../mtl/Queue.h ../mtl/Vec.h \
   ../mtl/Heap.h ../mtl/Alg.h SolverTypes.h IDSolver.h AggSolver.h \
   ../mtl/Sort.h Agg.h

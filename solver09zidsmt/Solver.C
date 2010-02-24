@@ -615,8 +615,8 @@ bool Solver::simplify()
 {
     assert(decisionLevel() == 0);
 
-    if (!ok || propagate() != NULL)
-        return ok = false;
+    //if (!ok || propagate() != NULL)
+    //    return ok = false;
 
     if (nAssigns() == simpDB_assigns || (simpDB_props > 0))
         return true;
@@ -633,9 +633,9 @@ bool Solver::simplify()
     simpDB_props   = clauses_literals + learnts_literals;   // (shouldn't depend on stats really, but it will do for now)
 
     //////////////START TSOLVER
-	if(conflicts==0 && ((tsolver!=NULL && !tsolver->simplify())
+	if(conflicts==0 && (tsolver!=NULL && !tsolver->simplify())
 								||
-						(aggsolver!=NULL && !aggsolver->simplify()))){
+						(aggsolver!=NULL && !aggsolver->simplify())){
 		ok = false;
 		return false;
 	}
@@ -699,6 +699,8 @@ lbool Solver::search()
             }
 
             varDecayActivity();
+            claDecayActivity();
+
             claDecayActivity();
 
         }else{

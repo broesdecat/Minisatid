@@ -12,11 +12,8 @@ void AggrSet::backtrack(int index) {
 	assert(pi.type!=HEAD && var(pi.wlit.lit)==var(wlits[index].lit));
 
 	wlits[index].value = l_Undef;
-	if (pi.type == POS) {
-		removeFromCertainSet(pi.wlit);
-	}else{
-		addToPossibleSet(pi.wlit);
-	}
+	currentbestcertain = pi.prevbestcertain;
+	currentbestpossible = pi.prevbestpossible;
 }
 
 Clause* AggrSet::propagate(Lit p, AggrWatch& ws){
@@ -28,7 +25,7 @@ Clause* AggrSet::propagate(Lit p, AggrWatch& ws){
     }else{
     	tp = sign(p)? POS : NEG;
     }
-	stack.push_back(PropagationInfo(p, wlits[ws.index].weight,tp));
+	stack.push_back(PropagationInfo(p, wlits[ws.index].weight,tp, currentbestcertain, currentbestpossible));
 
 	if (tp == HEAD){
 		assert(false);
@@ -112,7 +109,6 @@ void AggrSet::initialize(){
 
 	currentbestpossible = getBestPossible();
 	currentbestcertain = emptysetvalue;
-	possiblecount = wlits.size();
 }
 
 /*****************
@@ -129,7 +125,7 @@ int AggrMinSet::getBestPossible() {
 	return min;
 }
 
-void AggrMinSet::removeFromCertainSet(WLit l){
+/*void AggrMinSet::removeFromCertainSet(WLit l){
 	truecount--;
 	if (truecount == 0) {
 		currentbestcertain = emptysetvalue;
@@ -143,33 +139,27 @@ void AggrMinSet::removeFromCertainSet(WLit l){
 			}
 		}
 	}
-}
+}*/
 
 void AggrMinSet::addToCertainSet(WLit l){
-	truecount++;
 	if(l.weight<currentbestcertain){
 		currentbestcertain = l.weight;
 	}
 }
 
-void AggrMinSet::addToPossibleSet(WLit l){
+/*void AggrMinSet::addToPossibleSet(WLit l){
 	possiblecount++;
 	if(l.weight<currentbestpossible){
 		currentbestpossible = l.weight;
 	}
-}
+}*/
 
 void AggrMinSet::removeFromPossibleSet(WLit l){
-	possiblecount--;
-	if(possiblecount==0){
+	if(l.weight==currentbestpossible){
 		currentbestpossible = emptysetvalue;
-	}else{
-		if(l.weight==currentbestpossible){
-			currentbestpossible = emptysetvalue;
-			for(vector<Lit>::size_type i=0; i<wlits.size(); i++){
-				if(wlits[i].value != l_False && wlits[i].weight<currentbestpossible){
-					currentbestpossible = wlits[i].weight;
-				}
+		for(vector<Lit>::size_type i=0; i<wlits.size() && wlits[i].weight<currentbestpossible; i++){
+			if(wlits[i].value != l_False){
+				currentbestpossible = wlits[i].weight;
 			}
 		}
 	}
@@ -254,7 +244,7 @@ Clause* MinAgg::propagateHead(bool headtrue) {
  */
 Clause* MinAgg::propagate(bool headtrue) {
 	Clause* confl = NULL;
-	if(set->possiblecount==1 && ((headtrue && lower) || (!headtrue && !lower))){
+	if(set->stack.size()==set->wlits.size()-1 && ((headtrue && lower) || (!headtrue && !lower))){
 		for(vector<WLV>::size_type i=0; i<set->wlits.size(); i++){
 			if(set->wlits[i].value==l_Undef){
 				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(set->wlits[i].lit, new AggrReason(this, POS, set->wlits[i].weight));
@@ -280,7 +270,7 @@ int AggrMaxSet::getBestPossible() {
 	return max;
 }
 
-void AggrMaxSet::removeFromCertainSet(WLit l){
+/*void AggrMaxSet::removeFromCertainSet(WLit l){
 	truecount--;
 	if (truecount == 0) {
 		currentbestcertain = emptysetvalue;
@@ -294,33 +284,27 @@ void AggrMaxSet::removeFromCertainSet(WLit l){
 			}
 		}
 	}
-}
+}*/
 
 void AggrMaxSet::addToCertainSet(WLit l){
-	truecount++;
 	if(l.weight>currentbestcertain){
 		currentbestcertain = l.weight;
 	}
 }
 
-void AggrMaxSet::addToPossibleSet(WLit l){
+/*void AggrMaxSet::addToPossibleSet(WLit l){
 	possiblecount++;
 	if(l.weight>currentbestpossible){
 		currentbestpossible = l.weight;
 	}
-}
+}*/
 
 void AggrMaxSet::removeFromPossibleSet(WLit l){
-	possiblecount--;
-	if(possiblecount==0){
+	if(l.weight==currentbestpossible){
 		currentbestpossible = emptysetvalue;
-	}else{
-		if(l.weight==currentbestpossible){
-			currentbestpossible = emptysetvalue;
-			for(vector<Lit>::size_type i=0; i<wlits.size(); i++){
-				if(wlits[i].value != l_False && currentbestpossible < wlits[i].weight){
-					currentbestpossible = wlits[i].weight;
-				}
+		for(vector<Lit>::size_type i=0; i<wlits.size() && currentbestpossible < wlits[i].weight; i++){
+			if(wlits[i].value != l_False){
+				currentbestpossible = wlits[i].weight;
 			}
 		}
 	}
@@ -389,7 +373,7 @@ Clause* MaxAgg::propagateHead(bool headtrue) {
  */
 Clause* MaxAgg::propagate(bool headtrue) {
 	Clause* confl = NULL;
-	if(set->possiblecount==1 && ((headtrue && !lower) || (!headtrue && lower))){
+	if(set->stack.size()==set->wlits.size()-1 && ((headtrue && !lower) || (!headtrue && lower))){
 		for(vector<WLV>::size_type i=0; i<set->wlits.size(); i++){
 			if(set->wlits[i].value==l_Undef){
 				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(set->wlits[i].lit, new AggrReason(this, POS, set->wlits[i].weight));
@@ -412,32 +396,26 @@ int AggrSumSet::getBestPossible() {
 	return max;
 }
 
-void AggrSumSet::removeFromCertainSet(WLit l){
+/*void AggrSumSet::removeFromCertainSet(WLit l){
 	truecount--;
 	if (truecount == 0) {
 		currentbestcertain = emptysetvalue;
 	}else{
 		currentbestcertain -= l.weight;
 	}
-}
+}*/
 
 void AggrSumSet::addToCertainSet(WLit l){
-	truecount++;
 	currentbestcertain += l.weight;
 }
 
-void AggrSumSet::addToPossibleSet(WLit l){
+/*void AggrSumSet::addToPossibleSet(WLit l){
 	possiblecount++;
 	currentbestpossible += l.weight;
-}
+}*/
 
 void AggrSumSet::removeFromPossibleSet(WLit l){
-	possiblecount--;
-	if(possiblecount==0){
-		currentbestpossible = emptysetvalue;
-	}else{
-		currentbestpossible -= l.weight;
-	}
+	currentbestpossible -= l.weight;
 }
 
 /**
@@ -469,32 +447,26 @@ int AggrProdSet::getBestPossible() {
 	return max;
 }
 
-void AggrProdSet::removeFromCertainSet(WLit l){
+/*void AggrProdSet::removeFromCertainSet(WLit l){
 	truecount--;
 	if (truecount == 0) {
 		currentbestcertain = emptysetvalue;
 	}else{
 		currentbestcertain /= l.weight;
 	}
-}
+}*/
 
 void AggrProdSet::addToCertainSet(WLit l){
-	truecount++;
 	currentbestcertain *= l.weight;
 }
 
-void AggrProdSet::addToPossibleSet(WLit l){
+/*void AggrProdSet::addToPossibleSet(WLit l){
 	possiblecount++;
 	currentbestpossible *= l.weight;
-}
+}*/
 
 void AggrProdSet::removeFromPossibleSet(WLit l){
-	possiblecount--;
-	if(possiblecount==0){
-		currentbestpossible = emptysetvalue;
-	}else{
-		currentbestpossible /= l.weight;
-	}
+	currentbestpossible /= l.weight;
 }
 
 /**

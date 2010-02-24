@@ -169,7 +169,9 @@ protected:
 	void	findCycleSources	();
 	void	findJustification				(Var v);
 	void 	handlePossibleCycleSource(Var head);
-	void 	handlePossibleCycleSource(Var head, Lit lbecamefalse);
+	//void 	handlePossibleCycleSource(Var head, Lit lbecamefalse);
+	void 	checkJustification(Var head);
+	void 	checkJustification(Var head, Lit lbecamefalse);
 
 
 	// Propagation method:
