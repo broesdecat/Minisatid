@@ -279,7 +279,9 @@ Clause* AggSolver::notifySATsolverOfPropagation(Lit p, AggrReason* ar) {
 		AggrReason* old_ar = aggr_reason[var(p)];
 		aggr_reason[var(p)] = ar;
 		Clause* confl = getExplanation(p);
-		solver->addLearnedClause(confl);
+		if(confl->size()>1){
+			solver->addLearnedClause(confl);
+		}
 		aggr_reason[var(p)] = old_ar;
 		return confl;
 	} else if (solver->value(p) == l_Undef) {

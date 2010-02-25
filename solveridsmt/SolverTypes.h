@@ -28,6 +28,25 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #define theoryUNSAT 20
 #define memOVERFLOW 33
 
+enum POLARITY { polarity_true = 0, polarity_false = 1, polarity_user = 2, polarity_rnd = 3 };
+
+enum FINDCS			{ always, adaptive, lazy};
+enum MARKDEPTH		{ include_cs, stop_at_cs};
+enum SEARCHSTRAT	{ breadth_first, depth_first};
+
+struct Parameters{
+	POLARITY polarity_mode;
+	FINDCS defn_strategy;
+	MARKDEPTH defn_search;
+	SEARCHSTRAT ufs_strategy;
+	bool def,aggr,mnmz, subsetmnmz; // True for those extensions that are being used.
+	double var_decay, random_var_freq, maxruntime;
+
+	Parameters() : def(false), aggr(false), mnmz(false), subsetmnmz(false), defn_strategy(always),
+			polarity_mode(polarity_false), defn_search(include_cs), ufs_strategy(breadth_first),
+			var_decay(1 / 0.95), random_var_freq(0.02), maxruntime(0.0){}
+};
+
 //=================================================================================================
 // Variables, literals, lifted booleans, clauses:
 

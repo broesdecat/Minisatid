@@ -26,10 +26,6 @@ enum DefType	{NONDEFTYPE, DISJ, CONJ, AGGR};
 enum DefOcc		{NONDEFOCC, POSLOOP, MIXEDLOOP, BOTHLOOP};
 enum UFS 		{NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK};
 
-enum FINDCS			{ always, adaptive, lazy};
-enum MARKDEPTH		{ include_cs, stop_at_cs};
-enum SEARCHSTRAT	{ breadth_first, depth_first};
-
 extern int verbosity;
 
 class Solver;

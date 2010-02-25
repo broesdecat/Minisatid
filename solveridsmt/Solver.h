@@ -31,10 +31,11 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include "SolverTypes.h"
 #include "IDSolver.h"
-#include "AMNSolver.h"
 #include "AggSolver.h"
 
 extern int verbosity;
+struct Parameters;
+extern Parameters params;
 
 #ifdef _MSC_VER
 #include <ctime>
@@ -84,17 +85,16 @@ static inline uint64_t memUsed() { return 0; }
 // Solver -- the main class:
 
 class IDSolver;
-class AMNSolver;
 class AggSolver;
 
 class Solver {
 public:
 	/////SMT NECESSARY
 	IDSolver* 	tsolver;
+	IDSolver* getIDSolver(){ return tsolver; }
 	void setIDSolver(IDSolver* ts){tsolver = ts;}
-	AMNSolver* 	amnsolver;
-	void setAMNSolver(AMNSolver* ts){amnsolver = ts;}
 	AggSolver* 	aggsolver;
+	AggSolver* getAggSolver(){ return aggsolver; }
 	void setAggSolver(AggSolver* ts){aggsolver = ts;}
 
 	lbool   value      (Var x) const;       // The current value of a variable.
@@ -134,10 +134,13 @@ public:
 
     // Solving:
     //
-    bool    simplify     ();	                     // Removes already satisfied clauses.
-    bool    solve        ();                        // Search for nb_models models without assumptions.
-    int     nb_models;                              // Number of models wanted (all if N=0).
-    FILE*   res;                                    // Report results in this file.
+    bool    simplify	();		// Removes already satisfied clauses.
+
+    bool 	findNext	(const vec<Lit>& assumpts, vec<Lit>& model);
+    bool    solve		();		// Search for nb_models models without assumptions.
+    int     nb_models;				// Number of models wanted (all if N=0).
+    int		modelsfound;
+    FILE*   res;					// Report results in this file.
 
     // Variable mode:
     // 
@@ -161,8 +164,6 @@ public:
     double    random_seed;        // Used by the random variable selection.
     double    maxruntime;         // When 0: don't use it.
 
-    enum { polarity_true = 0, polarity_false = 1, polarity_user = 2, polarity_rnd = 3 };
-
     // Statistics: (read-only member variable)
     //
     uint64_t starts, decisions, rnd_decisions, propagations, conflicts;
@@ -177,7 +178,6 @@ protected:
     int			qhead;            // Head of queue (as index into the trail -- no more explicit propagation queue in MiniSat).
 	vec<Lit>	trail;            // Assignment stack; stores all assigments made in the order they were made.
 
-    void    invalidateModel(const vec<Lit>& lits, int& init_qhead);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
     bool    okay         () const;                  // FALSE means solver is in a conflicting state
     int     decisionLevel()    const; 		// Gives the current decisionlevel.
 
@@ -201,6 +201,12 @@ protected:
     //vec<Lit>	trail;            // Assignment stack; stores all assigments made in the order they were made.
 	//vec<int>	trail_lim;        // Separator indices for different decision levels in 'trail'.
 
+    void    invalidateModel(vec<Lit>& invalidation);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
+    void 	invalidate(vec<Lit>& invalidation);
+    bool 	invalidateValue(vec<Lit>& invalidation);
+    bool 	invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt);
+    void 	printModel	();
+    bool 	findOptimal(vec<Lit>& assumps, vec<Lit>& m);
     bool    solve        (const vec<Lit>& assumps); // Search for a model that respects a given set of assumptions.
 
     // Helper structures:

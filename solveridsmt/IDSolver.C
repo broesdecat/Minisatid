@@ -1084,9 +1084,15 @@ Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 		if (isTrue(*tch)) {
 			loopf[0] = createNegativeLiteral(*tch);	//negate the head to create a clause
 			Clause* c = Clause_new(loopf, true);
-			solver->addLearnedClause(c);
-			if (verbosity >= 2) {
-				reportf("Adding conflicting loop formula: [ ");	printClause(*c); reportf("].\n");
+			if(c->size()>1){
+				solver->addLearnedClause(c);
+				if (verbosity >= 2) {
+					reportf("Adding conflicting loop formula: [ ");	printClause(*c); reportf("].\n");
+				}
+			}else{
+				if (verbosity >= 2) {
+					reportf("Adding conflicting loop formula: [ ");	printLit((*c)[0]); reportf("].\n");
+				}
 			}
 			return c;
 		}
@@ -1126,8 +1132,13 @@ Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 Clause* IDSolver::addLoopfClause(Lit l, vec<Lit>& lits){
 	lits[0] = l;
 	Clause* c = Clause_new(lits, true);
-	solver->addLearnedClause(c);
-	if (verbosity >= 2) {reportf("Adding loop formula: [ "); printClause(*c); reportf("].\n");}
+	if(c->size()>1){
+		solver->addLearnedClause(c);
+		if (verbosity >= 2) {reportf("Adding loop formula: [ "); printClause(*c); reportf("].\n");}
+	}else{
+		if (verbosity >= 2) {reportf("Adding loop formula: [ "); printLit((*c)[0]); reportf("].\n");}
+	}
+
 	return c;
 }
 

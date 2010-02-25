@@ -8,9 +8,9 @@
 #include <signal.h>
 #include <zlib.h>
 
+#include "SolverTypes.h"
 #include "Solver.h"
 #include "IDSolver.h"
-#include "AMNSolver.h"
 #include "AggSolver.h"
 
 int verbosity;
@@ -165,7 +165,7 @@ static void parse_Aggr(B& in, Solver* S, AggSolver* AGG, AggrType type) {
 
 
 template<class B>
-static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AMNSolver* AS, AggSolver* AGG) { // NOTE: this parser does not read translation information.
+static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AggSolver* AGG) { // NOTE: this parser does not read translation information.
     vec<Lit> lits;
     for (;;){
         skipWhitespace(in);
@@ -190,35 +190,6 @@ static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AMNSolver* AS, AggSo
                     ++in;
                     readClause(in, S, lits);
                     TS->addRule(false, lits);
-                    break;
-                case 'E':
-                	//TODO delete after comparing speeds
-                    if (match(in,"EU")) {
-                        readClause(in, S, lits);
-                        AS->addEE(lits, 1);
-                    } else
-                        ParseError("Unexpected char '%c' after 'E' (expecting \"EU\").\n",*in);
-                    break;
-                case 'A':
-                	//TODO delete after comparing speeds
-                	++in;
-                    if (*in=='M') {
-                    	++in;
-                    	int n = 0;
-                    	if(*in=='O'){
-                    		n=1;
-                    		++in;
-                    	}else{
-                    		n = parseInt(in);
-                    	}
-                    	readClause(in, S, lits);
-						AS->addAMN(lits, n);
-                    }else if(match(in, "L")){
-                    	int n = parseInt(in);
-                    	readClause(in, S, lits);
-						AS->addALN(lits, n);
-                    }else
-                        ParseError("Unexpected char '%c' after 'A' (expecting \"AMN\").\n",*in);
                     break;
                 case 'M':
                     ++in;
@@ -284,7 +255,6 @@ static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AMNSolver* AS, AggSo
     }
 //////////////////START OF EXTENSIONS
     //call definition solver last
-	AS->finishECNF_DataStructures();
 	if(modes.aggr){
 		modes.aggr = AGG->finishECNF_DataStructures();
 		if(!modes.aggr && verbosity >= 1){
@@ -303,7 +273,7 @@ static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AMNSolver* AS, AggSo
 }
 
 template<class B>
-static void parse_main(B& in, Solver* S, IDSolver* TS, AMNSolver* AS, AggSolver* AGG) {
+static void parse_main(B& in, Solver* S, IDSolver* TS, AggSolver* AGG) {
     bool ecnf = false;
     for (;;){
         skipWhitespace(in);
@@ -365,7 +335,7 @@ static void parse_main(B& in, Solver* S, IDSolver* TS, AMNSolver* AS, AggSolver*
             ParseError("Unexpected char: %c\n", *in);
     }
     if (ecnf){
-    	parse_ECNF_main(in, S, TS, AS, AGG);
+    	parse_ECNF_main(in, S, TS, AGG);
     }else{
     	reportf("Format no longer supported.\n"), exit(1);
     }
@@ -373,9 +343,9 @@ static void parse_main(B& in, Solver* S, IDSolver* TS, AMNSolver* AS, AggSolver*
 
 // Inserts problem into solver.
 //
-static void parse(gzFile input_stream, Solver* S, IDSolver* TS, AMNSolver* AS, AggSolver *AGG) {
+static void parse(gzFile input_stream, Solver* S, IDSolver* TS, AggSolver *AGG) {
     StreamBuffer in(input_stream);
-    parse_main(in, S, TS, AS, AGG); }
+    parse_main(in, S, TS, AGG); }
 
 //=================================================================================================
 
@@ -410,10 +380,9 @@ void printStats(Solver* solver)
     }*/
 }
 
-Solver* solver;
 static void SIGINT_handler(int signum) {
     reportf("\n"); reportf("*** INTERRUPTED ***\n");
-    printStats(solver);
+    //printStats(s);
     reportf("\n"); reportf("*** INTERRUPTED ***\n");
     exit(1);
 }
@@ -452,14 +421,11 @@ int main(int argc, char** argv)
 {
     Solver*      S = new Solver();
     IDSolver* 	TS = new IDSolver();
-    AMNSolver* 	AS = new AMNSolver();
     AggSolver* 	AggS = new AggSolver();
     S->setIDSolver(TS);
-    S->setAMNSolver(AS);
     S->setAggSolver(AggS);
     TS->setSolver(S);
     TS->setAggSolver(AggS);
-    AS->setSolver(S);
     AggS->setSolver(S);
     AggS->setIDSolver(TS);
 
@@ -469,11 +435,11 @@ int main(int argc, char** argv)
     for (i = j = 0; i < argc; i++){
         if ((value = hasPrefix(argv[i], "-polarity-mode="))){
             if (strcmp(value, "true") == 0)
-               S->polarity_mode = Solver::polarity_true;
+               S->polarity_mode = polarity_true;
             else if (strcmp(value, "false") == 0)
-               S->polarity_mode = Solver::polarity_false;
+               S->polarity_mode = polarity_false;
             else if (strcmp(value, "rnd") == 0)
-               S->polarity_mode = Solver::polarity_rnd;
+               S->polarity_mode = polarity_rnd;
             else{
                 reportf("ERROR! unknown polarity-mode %s\n", value);
                 exit(0); }
@@ -566,7 +532,6 @@ int main(int argc, char** argv)
 #endif
     double cpu_time = cpuTime();
 
-    solver = S;
     signal(SIGINT,SIGINT_handler);
     signal(SIGHUP,SIGINT_handler);
 
@@ -585,7 +550,7 @@ int main(int argc, char** argv)
     bool ret = false;
 
     try{
-		parse(in, S, TS, AS, AggS);
+		parse(in, S, TS, AggS);
 
 		if(!modes.def){
 			S->setIDSolver(NULL);
@@ -630,7 +595,6 @@ int main(int argc, char** argv)
 		if(modes.aggr){
 			delete AggS;
 		}
-		delete AS;
 	}catch(int e){
 		if(e==memOVERFLOW){
 			reportf("Memory overflow");

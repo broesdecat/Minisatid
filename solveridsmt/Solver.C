@@ -102,9 +102,6 @@ Var Solver::newVar(bool sign, bool dvar) {
 	if(tsolver!=NULL){
 		tsolver->notifyVarAdded();
 	}
-	if(amnsolver!=NULL){
-		amnsolver->notifyVarAdded();
-	}
 	if(aggsolver!=NULL){
 		aggsolver->notifyVarAdded();
 	}
@@ -236,9 +233,6 @@ void Solver::cancelFurther(int init_qhead) {
 		//////////////START TSOLVER
 		if(tsolver!=NULL){
 			tsolver->backtrack(trail[c]);
-		}
-		if(amnsolver!=NULL){
-			amnsolver->backtrack(trail[c]);
 		}
 		if(aggsolver!=NULL){
 			aggsolver->backtrack(trail[c]);
@@ -591,10 +585,6 @@ FoundWatch:;
         if (verbosity>=2) reportf(" ).\n");
 
 		//////////////START TSOLVER
-        if(amnsolver!=NULL && confl == NULL){
-        	confl = amnsolver->propagate(p);
-        	if(confl!=NULL){ qhead = trail.size(); break; }
-        }
         if(aggsolver!=NULL && confl == NULL){
         	confl = aggsolver->propagate(p);
         }
@@ -688,8 +678,6 @@ bool Solver::simplify() {
 
     //////////////START TSOLVER
 	if(conflicts==0 && ((tsolver!=NULL && !tsolver->simplify())
-								||
-						(amnsolver!=NULL && !amnsolver->simplify())
 								||
 						(aggsolver!=NULL && !aggsolver->simplify()))){
 		ok = false;
@@ -846,26 +834,15 @@ double Solver::progressEstimate() const {
 }
 
 ////////////START TSOLVER
-void Solver::invalidateModel(const vec<Lit>& lits, int& init_qhead) {
-	//FIXME nog een error in het vinden van dubbele modellen
+void Solver::invalidateModel(vec<Lit>& learnt) {
 	backtrackTo(0);
-	if (init_qhead < qhead){
-		//FIXME hier zit de fout met remove satisfied: hij delete atomen waarvan de clause
-		//gedelete kan zijn omdat afgeleid is dat ze waar zijn ZONDER ZOEKEN, dus
-		//zouden ze niet van de trail gehaald mogen worden?
-		cancelFurther(init_qhead);
-	}
 
-	if (lits.size() == 1) {
-		setTrue(lits[0]);
-		if (verbosity>=2) {reportf("Propagating literal in invalidation "); printLit(lits[0]); reportf("\n");}
-		++init_qhead;
-	} else {
-		Clause* c = Clause_new(lits, false);
-        clauses.push(c);
-        if (verbosity>=2) {reportf("Adding model-invalidating clause: [ "); printClause(*c); reportf("]\n");}
-        attachClause(*c);
-	}
+	//FIXME: hier werd soms verder gebacktrackt dan het laagste decision level (in de unit propagaties dus)
+	//maar geen idee waarom dit nodig was. Mss toch eens nakijken?
+
+	if (verbosity>=2) {	reportf("Adding model-invalidating clause: [ "); }
+	addClause(learnt);
+	if (verbosity>=2) {	reportf("]\n"); }
 
 	varDecayActivity();
 	claDecayActivity();
@@ -890,12 +867,68 @@ void Solver::Subsetminimize(const vec<Lit>& lits) {
 	}
 }
 
-bool Solver::solve() {
+/**
+ * Checks satisfiability of the theory.
+ * If no model is found or no more models exist, false is returned. True otherwise
+ * If a model is found, it is printed and returned in <m>, the theory is extended to prevent
+ * 		the same model from being found again and
+ * 		the datastructures are reset to prepare to find the next model
+ */
+bool Solver::findNext(const vec<Lit>& assmpt, vec<Lit>& m){
+	bool rslt = solve(assmpt);
+
+	if(rslt){
+		modelsfound++;
+
+		printModel();
+
+		for (int i = 0; i < nVars(); i++){
+			if (model[i] != l_Undef){
+				m.push(model[i]==l_True?Lit(i, false):Lit(i, true));
+			}
+		}
+
+		//check if more models can exist
+		if (trail_lim.size() /*FIXME + assmpts.size() */!= 0) { //choices were made, so other models possible
+			vec<Lit> invalidation;
+			invalidate(invalidation);
+			invalidateModel(invalidation);
+		}else{
+			rslt = false; //no more models possible
+		}
+	}
+
+	return rslt;
+}
+
+void Solver::printModel(){
+	if (modelsfound==1) {
+		fprintf(res==NULL?stdout:res, "SAT\n");
+		if(verbosity>=1){
+			printf("SATISFIABLE\n");
+		}
+	}
+
+	if(nb_models!=1){
+		printf("%d model%s found.\n", modelsfound, modelsfound>1 ? "s" : "");
+	}
+
+	for (int i = 0; i < nVars(); i++){
+		if (model[i] != l_Undef){
+			fprintf(res==NULL?stdout:res, "%s%s%d", (i == 0) ? "" : " ", (model[i]== l_True) ? "" : "-", i + 1);
+		}
+	}
+	fprintf(res==NULL?stdout:res, " 0\n");
+}
+
+bool Solver::solve(){
+	bool solved = false;
+
+	//TODO check that it is only called once
 	if (!ok){
-		printf("UNSATISFIABLE\n");
+		fprintf(res==NULL?stdout:res, "UNSAT\n");
 		return false;
 	}
-	bool solved = true;
 
 	if (verbosity >= 1) {
 		reportf("============================[ Search Statistics ]==============================\n");
@@ -904,139 +937,34 @@ bool Solver::solve() {
 		reportf("===============================================================================\n");
 	}
 
-	try{
-	//nodig voor minimize opdrachten, werken nu dus nog niet
-/*TEMP COMMENT	if (ecnf_mode.mnmz && to_minimize.size() == 0)
-		ecnf_mode.mnmz = false;
-	if (ecnf_mode.mnmz)
-		remove_satisfied = false;*/
+try{
+	modelsfound = 0;
+	bool moremodels = true;
 
-	int init_qhead = qhead;
-	for (int n = nb_models; nb_models == 0 || n > 0; n--) {
-
-		bool rslt = false;
+	if(params.mnmz || params.subsetmnmz){
 		vec<Lit> assmpt;
-		vec<Lit> learnt;
-
-		if (true){ //FIXME for minimize
-			rslt = solve(assmpt); // The standard: solve with empty assumptions.
-		}else {
-			assumptions.clear();
-			vec<lbool> cp_model;
-			while (solve(assmpt)) {
-				if (verbosity >= 2) {
-					reportf("Found a (perhaps non-minimal) model: [");
-					for (int i = 0; i < model.size(); i++){
-						if (model[i] != l_Undef){
-							reportf(" %s%d",(model[i]==l_True ? "":"-"), i+1);
-						}
-					}
-					reportf(" ]\n");
-					reportf("To minimize: [");
-					for (int i = 0; i < to_minimize.size(); i++) {
-						reportf(" ");
-						printLit(to_minimize[i]);
-					}
-					reportf(" ]\n");
-				}
-
-				// save the model that was just found
-				cp_model.clear();
-				for (int i = 0; i < model.size(); i++){
-					cp_model.push(model[i]);
-				}
-				// create a new set of assumptions, and add a new learned clause, based on this model and on the mnmz set
-				assmpt.clear();
-				learnt.clear();
-				for (int i = 0; i < to_minimize.size(); i++) {
-					Lit li = ~to_minimize[i];
-					if (sign(li) == (cp_model[var(li)] == l_True)){
-						learnt.push(li);
-					}else{
-						//dit is juist omdat het over SUBSET minimaliteit gaat. De cardinaliteit van de set is niet noodzakelijk minimaal.
-						assmpt.push(li);
-					}
-				}
-
-				if (learnt.size() > 0){
-					invalidateModel(learnt, init_qhead);
-				}else{
-					break; //the set is empty, so certainly minimal.
-				}
-			}
-			if (cp_model.size() > 0) {
-				model.clear();
-				for (int i = 0; i < cp_model.size(); i++){
-					model.push(cp_model[i]);
-				}
-				cp_model.clear();
-				rslt = true;
-			}
-		}
-		///////////////////////END OF EXTENSIONS
-
-		if (rslt) {
-			if (nb_models == 1) {
-				printf("SATISFIABLE\n");
-			} else if (verbosity >= 1)
-				printf("%d model%s found.\n", nb_models - n + 1,
-						nb_models == n ? "" : "s");
-			if (res != NULL) {
-				if (n == nb_models)
-					fprintf(res, "SAT\n");
-				for (int i = 0; i < nVars(); i++){
-					if (model[i] != l_Undef){
-						fprintf(res, "%s%s%d", (i == 0) ? "" : " ", (model[i]== l_True) ? "" : "-", i + 1);
-					}
-				}
-				fprintf(res, " 0\n");
-			}else{
-				if (n == nb_models)
-					fprintf(stdout, "SAT\n");
-				for (int i = 0; i < nVars(); i++){
-					if (model[i] != l_Undef){
-						fprintf(stdout, "%s%s%d", (i == 0) ? "" : " ", (model[i]== l_True) ? "" : "-", i + 1);
-					}
-				}
-				fprintf(stdout, " 0\n");
-			}
-			if (n > 1 || nb_models == 0) {
-				if (trail_lim.size() + assmpt.size() == 0) {
-					if (nb_models != 1 && verbosity >= 1)
-						printf("There are no more models.\n");
-					break;
-				} else {
-					learnt.clear();
-					// Add negation of model as learnt clause for next iteration.
-					for (int i = 0; i < trail_lim.size(); i++)
-						learnt.push(~trail[trail_lim[i]]);
-					for (int i = 0; i < assmpt.size(); i++)
-						learnt.push(~assmpt[i]);
-					// Remove doubles.
-					sort(learnt);
-					Lit p;
-					int i, j;
-					for (i = j = 0, p = lit_Undef; i < learnt.size(); i++)
-						if (learnt[i] != p)
-							learnt[j++] = p = learnt[i];
-					learnt.shrink(i - j);
-					invalidateModel(learnt, init_qhead);
-				}
-			}
-		} else {
-			if (nb_models == 1 || n == nb_models) {
-				printf("UNSATISFIABLE\n");
-				if (res != NULL){
-					fprintf(res, "UNSAT\n");
-				}else{
-					fprintf(stdout, "UNSAT\n");
-				}
-				solved = false;
-			}
-			break;
-		}
+		vec<Lit> model;
+		findOptimal(assmpt, model);
 	}
-	backtrackTo(0);
+
+	while(moremodels && (nb_models==0 || modelsfound<nb_models)){
+		vec<Lit> assmpt;
+		vec<Lit> model;
+		moremodels = findNext(assmpt, model);
+	}
+
+	if(modelsfound==0){
+		printf("UNSATISFIABLE\n");
+		fprintf(res==NULL?stdout:res, "UNSAT\n");
+	}else if(!moremodels){
+		printf("There are no more models.\n");
+	}
+
+	if(nb_models==0 || nb_models==modelsfound){
+		solved = true;
+	}else{
+		solved = false;
+	}
 
 	if (res != NULL){
 		fclose(res);
@@ -1048,12 +976,134 @@ bool Solver::solve() {
 
 	}catch(int x){
 		if(x==theoryUNSAT){
-			return false;
+			//FIXME:
+			reportf("Dit staat nog op de verkeerde plaats");
+			assert(false);
+			solved = false;
 		}
 	}
 	return solved;
 }
-////////////END TSOLVER
+
+void Solver::invalidate(vec<Lit>& invalidation){
+	// Add negation of model as clause for next iteration.
+	//add all choice literals
+	for (int i = 0; i < trail_lim.size(); i++){
+		invalidation.push(~trail[trail_lim[i]]);
+	}
+	//add all assumptions
+	/*for (int i = 0; i < assmpt.size(); i++){
+		learnt.push(~assmpt[i]);
+	}*/
+	// Remove doubles.
+	sort(invalidation);
+	Lit p = lit_Undef;
+	int i=0, j=0;
+	for (; i < invalidation.size(); i++){
+		if (invalidation[i] != p){
+			invalidation[j++] = (p = invalidation[i]);
+		}
+	}
+	invalidation.shrink(i - j);
+}
+
+bool Solver::invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt){
+	int subsetsize = 0;
+
+	for(int i=0; i<to_minimize.size(); i++){
+		if(model[i]==l_True){
+			invalidation.push(~to_minimize[i]);
+			subsetsize++;
+		}else{
+			assmpt.push(~to_minimize[i]);
+		}
+	}
+
+	if(subsetsize==0){
+		return true; //optimum has already been found!!!
+	}else{
+		return false;
+	}
+}
+
+bool Solver::invalidateValue(vec<Lit>& invalidation){
+	bool currentoptimumfound = false;
+
+	for(int i=0; !currentoptimumfound && i<to_minimize.size(); i++){
+		if(!currentoptimumfound && model[i]==l_True){
+			currentoptimumfound = true;
+		}
+		if(!currentoptimumfound){
+			invalidation.push(to_minimize[i]);
+		}
+	}
+
+	if(invalidation.size()==0){
+		return true; //optimum has already been found!!!
+	}else{
+		return false;
+	}
+}
+
+/**
+ * DOES NOT INVALIDATE THE FOUND OPTIMUM (to be able to search more models with the same optimum)
+ *
+ * Returns true if an optimal model was found
+ */
+bool Solver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
+	bool rslt = true, hasmodels = false, optimumreached = false;
+	while(!optimumreached && rslt){
+		rslt = solve(assmpt);
+
+		if(rslt && !optimumreached){
+			if(!hasmodels){
+				hasmodels = true;
+			}
+
+			m.clear();
+			for (int i = 0; i < nVars(); i++){
+				if (model[i] != l_Undef){
+					m.push(model[i]==l_True?Lit(i, false):Lit(i, true));
+				}
+			}
+
+			vec<Lit> invalidation;
+			if(params.mnmz){
+				optimumreached = invalidateValue(invalidation);
+			}else{
+				assert(params.subsetmnmz);
+				assmpt.clear();
+				optimumreached = invalidateSubset(invalidation, assmpt);
+			}
+
+			if(!optimumreached){
+				if (trail_lim.size() /*FIXME + assmpts.size() */!= 0) { //choices were made, so other models possible
+					invalidateModel(invalidation);
+				}else{
+					optimumreached = true;
+				}
+			}
+		}
+	}
+
+	if(!hasmodels){
+		assert(!optimumreached);
+		fprintf(res==NULL?stdout:res, " UNSAT\n");
+		printf("SATISFIABLE\n");
+	}else{
+		assert(optimumreached);
+		fprintf(res==NULL?stdout:res, " SAT\n");
+		printf("UNSATISFIABLE\n");
+		for (int i = 0; i < nVars(); i++){
+			fprintf(res==NULL?stdout:res, "%s%s%d", (i == 0) ? "" : " ", !sign(m[i]) ? "" : "-", i + 1);
+		}
+		fprintf(res==NULL?stdout:res, " 0\n");
+
+		modelsfound++;
+	}
+
+	return optimumreached;
+}
 
 bool Solver::solve(const vec<Lit>& assumps) {
 	model.clear();
