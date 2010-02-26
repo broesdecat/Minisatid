@@ -966,7 +966,7 @@ try{
 	if(modelsfound==0){
 		printf("UNSATISFIABLE\n");
 		fprintf(res==NULL?stdout:res, "UNSAT\n");
-	}else if(!moremodels){
+	}else if(!moremodels && nb_models!=1){
 		printf("There are no more models.\n");
 	}
 
@@ -1095,11 +1095,14 @@ bool Solver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 				}
 			}
 
-			printf("Temporary model: \n");
-			for (int i = 0; i < nVars(); i++){
-				fprintf(res==NULL?stdout:res, "%s%s%d", (i == 0) ? "" : " ", !sign(m[i]) ? "" : "-", i + 1);
+			if(verbosity>2){
+				printf("Temporary model: \n");
+				for (int i = 0; i < nVars(); i++){
+					printf("%s%s%d", (i == 0) ? "" : " ", !sign(m[i]) ? "" : "-", i + 1);
+				}
+				printf(" 0\n");
 			}
-			fprintf(res==NULL?stdout:res, " 0\n");
+
 		}else if(!rslt){
 			optimumreached = true;
 		}
