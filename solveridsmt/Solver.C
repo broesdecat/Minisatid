@@ -69,7 +69,8 @@ Solver::Solver() :
 
 	cla_inc(1), var_inc(1), simpDB_assigns(-1),
 	simpDB_props(0),
-	progress_estimate(0), order_heap(VarOrderLt(activity)) {
+	progress_estimate(0), order_heap(VarOrderLt(activity)),
+	subsetmnmz(false), mnmz(false){
 }
 
 Solver::~Solver() {
@@ -835,6 +836,8 @@ double Solver::progressEstimate() const {
 
 ////////////START TSOLVER
 void Solver::invalidateModel(vec<Lit>& learnt) {
+	//FIXME: do not backtrack to 0, but do analyzefinal on learnt to check to which level to backtrack.
+	//for subsetminimize this is not so clear, because assumptions have to be added too, so maybe there backtrack to 0 is necessary (for unit propagation before search)
 	backtrackTo(0);
 
 	//FIXME: hier werd soms verder gebacktrackt dan het laagste decision level (in de unit propagaties dus)
@@ -849,17 +852,24 @@ void Solver::invalidateModel(vec<Lit>& learnt) {
 }
 
 /////////////////////// START OF EXTENSIONS
-//FIXME HIER WAS IK BEZIG (en eigenlijk andere solver voorzien hiervoor?)
-void Solver::Subsetminimize(const vec<Lit>& lits) {
+//FIXME (en eigenlijk andere solver voorzien hiervoor?)
+void Solver::addMinimize(const vec<Lit>& lits, bool subset) {
 	/*if (!ecnf_mode.mnmz)
 		reportf("ERROR! Attempt at adding a subset minimize statement, though ECNF specifiers did not contain \"mnmz\".\n"), exit(3);*/
 	if (lits.size() == 0) {
 		reportf("Error: The set of literals to be minimized is empty,\n");
 		exit(3);
 	}
-	if (to_minimize.size() != 0) {
+	if (mnmz!=false || subsetmnmz!=false) {
 		reportf("At most one set of literals to be minimized can be given.\n");
 		exit(3);
+	}
+
+	//FIXME: opslaan welke mnmz het nu is (niet in params?)
+	if(subset){
+		subsetmnmz = true;
+	}else{
+		mnmz = true;
 	}
 
 	for (int i = 0; i < lits.size(); i++){
@@ -941,16 +951,16 @@ try{
 	modelsfound = 0;
 	bool moremodels = true;
 
-	if(params.mnmz || params.subsetmnmz){
+	if(mnmz || subsetmnmz){
 		vec<Lit> assmpt;
 		vec<Lit> model;
 		findOptimal(assmpt, model);
-	}
-
-	while(moremodels && (nb_models==0 || modelsfound<nb_models)){
-		vec<Lit> assmpt;
-		vec<Lit> model;
-		moremodels = findNext(assmpt, model);
+	}else{
+		while(moremodels && (nb_models==0 || modelsfound<nb_models)){
+			vec<Lit> assmpt;
+			vec<Lit> model;
+			moremodels = findNext(assmpt, model);
+		}
 	}
 
 	if(modelsfound==0){
@@ -1045,8 +1055,9 @@ bool Solver::invalidateValue(vec<Lit>& invalidation){
 	}
 }
 
-/**
- * DOES NOT INVALIDATE THE FOUND OPTIMUM (to be able to search more models with the same optimum)
+/*
+ * If the optimum possible value is reached, the model is not invalidated. Otherwise, unsat has to be found first, so it is invalidated.
+ * FIXME: add code that allows to reset the solver when the optimal value has been found, to search for more models with the same optimal value.
  *
  * Returns true if an optimal model was found
  */
@@ -1068,10 +1079,10 @@ bool Solver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 			}
 
 			vec<Lit> invalidation;
-			if(params.mnmz){
+			if(mnmz){
 				optimumreached = invalidateValue(invalidation);
 			}else{
-				assert(params.subsetmnmz);
+				assert(subsetmnmz);
 				assmpt.clear();
 				optimumreached = invalidateSubset(invalidation, assmpt);
 			}
@@ -1083,17 +1094,25 @@ bool Solver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 					optimumreached = true;
 				}
 			}
+
+			printf("Temporary model: \n");
+			for (int i = 0; i < nVars(); i++){
+				fprintf(res==NULL?stdout:res, "%s%s%d", (i == 0) ? "" : " ", !sign(m[i]) ? "" : "-", i + 1);
+			}
+			fprintf(res==NULL?stdout:res, " 0\n");
+		}else if(!rslt){
+			optimumreached = true;
 		}
 	}
 
 	if(!hasmodels){
 		assert(!optimumreached);
 		fprintf(res==NULL?stdout:res, " UNSAT\n");
-		printf("SATISFIABLE\n");
+		printf("UNSATISFIABLE\n");
 	}else{
 		assert(optimumreached);
 		fprintf(res==NULL?stdout:res, " SAT\n");
-		printf("UNSATISFIABLE\n");
+		printf("SATISFIABLE\n");
 		for (int i = 0; i < nVars(); i++){
 			fprintf(res==NULL?stdout:res, "%s%s%d", (i == 0) ? "" : " ", !sign(m[i]) ? "" : "-", i + 1);
 		}

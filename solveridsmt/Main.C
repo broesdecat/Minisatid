@@ -199,7 +199,7 @@ static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AggSolver* AGG) { //
                         parse_Aggr(in, S, AGG, MAX);
                     else if (*in == 'n' && match(in,"nmz")) {
                         readClause(in, S, lits);
-                        S->Subsetminimize(lits);
+                        S->addMinimize(lits, false);
                     }else
                         ParseError("Unexpected char '%c' after 'M' (expecting \"Min\", \"Max\" or \"Mnmz\").\n",*in);
                     break;
@@ -216,10 +216,19 @@ static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AggSolver* AGG) { //
                         readClause(in, S, lits);
                         vec<int> w(lits.size(),1); // Treat CARD as SUM with all weights =1.
                         AGG->addSet(set_id,lits,w);
-                    } else if (*in == 'u' && match(in,"um"))
-                        parse_Aggr(in, S, AGG, SUM);
-                    else
-                        ParseError("Unexpected char '%c' after 'S' (expecting \"Set\" or \"Sum\").\n",*in);
+                    } else if (*in == 'u'){
+						++in;
+						if(*in == 'm' && match(in, "m")){
+							parse_Aggr(in, S, AGG, SUM);
+						}else if(*in == 'b' && match(in, "bsetMnmz")){
+							readClause(in, S, lits);
+							S->addMinimize(lits, true);
+						}else{
+							ParseError("Unexpected char '%c' after 'Su' (expecting \"Sum\" or \"SubsetMnmz\").\n", *in);
+						}
+					} else{
+						ParseError("Unexpected char '%c' after 'S' (expecting \"Set\", \"Sum\" or \"SubsetMnmz\").\n",*in);
+					}
                     break;
                 case 'W':
                     if (match(in,"WSet")) {

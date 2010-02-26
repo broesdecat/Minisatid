@@ -125,7 +125,7 @@ public:
 	/////////////////////END TSOLVER NECESSARY
 
     void finishParsing();
-    void Subsetminimize(const vec<Lit>& lits);
+    void addMinimize(const vec<Lit>& lits, bool subsetmnmz);
 
     // Constructor/Destructor:
     //
@@ -281,7 +281,8 @@ protected:
     double   progressEstimate ()      const; // DELETE THIS ?? IT'S NOT VERY USEFUL ...
 
     //Mnmz additions
-    vec<Lit>            to_minimize;
+    bool 		subsetmnmz, mnmz;
+    vec<Lit>	to_minimize;
 
     // Debug:
     void     verifyModel      ();
