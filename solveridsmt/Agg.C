@@ -89,13 +89,13 @@ void AggrSet::doSetReduction() {
 		}
 	}
 
-	//important to sort again to guarantee that it is sorted according to the weights
-	std::sort(newset.begin(), newset.end());
-
 	if(setisreduced){
 		wlits.clear();
 		wlits.insert(wlits.begin(), newset.begin(), newset.end());
 	}
+
+	//important to sort again to guarantee that it is sorted according to the weights
+	std::sort(wlits.begin(), wlits.end());
 }
 
 void AggrSet::initialize(){

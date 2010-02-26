@@ -42,8 +42,10 @@ struct Parameters{
 	bool def,aggr,mnmz, subsetmnmz; // True for those extensions that are being used.
 	double var_decay, random_var_freq, maxruntime;
 
-	Parameters() : def(false), aggr(false), mnmz(false), subsetmnmz(false), defn_strategy(always),
-			polarity_mode(polarity_false), defn_search(include_cs), ufs_strategy(breadth_first),
+	Parameters() :
+			polarity_mode(polarity_false), defn_strategy(always),
+			defn_search(include_cs), ufs_strategy(breadth_first),
+			def(false), aggr(false), mnmz(false), subsetmnmz(false),
 			var_decay(1 / 0.95), random_var_freq(0.02), maxruntime(0.0){}
 };
 
