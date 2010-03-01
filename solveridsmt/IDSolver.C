@@ -136,7 +136,7 @@ bool IDSolver::simplify(){
 	defdVars.clear();
 	reducedVars.copyTo(defdVars);
 
-	if(!aggpresent){
+	if(!aggpresent && aggsolver!=NULL){
 		aggsolver -> setIDSolver(NULL);
 		aggsolver = NULL;
 	}

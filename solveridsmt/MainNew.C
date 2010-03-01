@@ -44,10 +44,16 @@ public:
 
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+static bool inline isWhiteSpace(char c){
+	return (c >= 9 && c <= 13) || c == 32;
+}
+
 template<class B>
 static void skipWhitespace(B& in) {
-    while ((*in >= 9 && *in <= 13) || *in == 32)
-        ++in; }
+    while (isWhiteSpace(*in)){
+    	++in;
+    }
+}
 
 template<class B>
 static void skipLine(B& in) {
@@ -70,7 +76,7 @@ static int parseInt(B& in) {
     return neg ? -val : val; }
 
 template<class B>
-static void readClause(B& in, MODSolver* S, vec<Lit>& lits) {
+static void readClause(B& in, vec<Lit>& lits) {
     int     parsed_lit, var;
     lits.clear();
     for (;;){
@@ -107,7 +113,7 @@ static bool match(B& in, const char* str) {
  */
 
 template<class B>
-static void parse_Aggr(B& in, MODSolver* S, AggrType type) {
+static void parse_Aggr(B& in, AggrType type, int id, bool constr) {
 	char boundtype, deftype;
 	if(*in==' '){
 		 ParseError("No bound comparison operator for the aggregate (L or G) was given.\n");
@@ -144,102 +150,200 @@ static void parse_Aggr(B& in, MODSolver* S, AggrType type) {
     int zero = parseInt(in);
     if (zero != 0)
         ParseError("Aggregate expression has to be closed with '0' (found %d).\n",zero);
-    S->addAggrExpr(false, defn,set_id,bound,lower,type, defined);
+    MODSolver::getModalOperator(id)->addAggrExpr(constr, defn,set_id,bound,lower,type, defined);
 }
-/////////END OF EXTENSIONS
-
 
 template<class B>
-static void parse_ECNF_main(B& in, MODSolver* S) { // NOTE: this parser does not read translation information.
+static void readWSet(B& in, vec<Lit>& lits, vec<int>& weights){
+	int     parsed_lit, var;
+	lits.clear();
+	for (;;){
+		parsed_lit = parseInt(in);
+		if (parsed_lit == 0) break;
+		var = abs(parsed_lit)-1;
+		lits.push( (parsed_lit > 0) ? Lit(var) : ~Lit(var) );
+		if (*in != '=')
+			ParseError("Encountered weightless literal in \"WSet\" declaration.\n");
+		++in;
+		parsed_lit = parseInt(in);
+		weights.push(parsed_lit);
+	}
+}
+
+template<class B>
+static void readInts(B& in, vec<int>& ints){
+	int parsed_lit;
+	for (;;){
+		parsed_lit = parseInt(in);
+		if (parsed_lit == 0) break;
+		ints.push(parsed_lit);
+	}
+}
+
+template<class B>
+void readRigidAtoms(B& in){
+	int id = parseInt(in);
+	vec<int> atoms;
+	readInts(in, atoms);
+	MODSolver::getModalOperator(id)->addRigidAtoms(atoms);
+}
+
+template<class B>
+static void readStatement(B& in, vec<Lit>& lits, int id, bool constr);
+
+/**
+ * Constr is true if the statement should be added to the constraint theory, otherwise to the modal theory
+ */
+template<class B>
+void readModalStatement(B& in, bool constr){
+	int id = parseInt(in);
+	skipWhitespace(in);
+	vec<Lit> lits;
+	readStatement(in, lits, id, constr);
+}
+
+template<class B>
+void readModOpStatement(B& in, bool constr){
+	bool forall;
+	if(*in=='A' && match(in, "All")){ //forall
+		forall = true;
+	}else if(*in=='E' && match(in, "Ext")){ //existential
+		forall = false;
+	}else{
+		ParseError("Unexpected char '%c', instead expecting A or E, indicating \"All\" (universal modal operator) or \"Ext\" (existential modal operator) .\n", *in);
+	}
+	int id = parseInt(in);
+	int head = parseInt(in);
+
+	MODSolver* m = MODSolver::getModalOperator(id);
+	if(m==NULL){
+		ParseError("Modal operators should be defined from root to children. ID %d is not yet defined.\n", id);
+	}
+	m->setHead(head);
+	m->setForall(forall);
+
+	vec<int> ids;
+	readInts(in, ids);
+	for(int i=0; i<ids.size(); i++){
+		assert(MODSolver::getModalOperator(ids[i])==NULL);
+		m->addChild(new MODSolver(ids[i]), constr);
+	}
+	//TODO: op einde mogelijk een check of alle modale operatoren geinitialiseerd zijn geweest
+}
+
+template<class B>
+static void readStatement(B& in, vec<Lit>& lits, int id, bool constr){
+	switch(*in){
+	case 'C':
+		++in;
+		if (*in=='a' && match(in,"ard")){ //CARD
+			parse_Aggr(in, SUM, id, constr); break;
+		}else if(*in=='O' && match(in,"ONSTR")){ //CONSTR
+			readModalStatement(in, true);
+		}else { //C
+			readClause(in, lits);
+			MODSolver::getModalOperator(id)->addRule(constr, true, lits);
+		}
+		break;
+	case 'D': //D
+		++in;
+		readClause(in, lits);
+		MODSolver::getModalOperator(id)->addRule(constr, false, lits);
+		break;
+	case 'M':
+		++in;
+		if (*in == 'i' && match(in,"in")){ //MIN
+			parse_Aggr(in, MIN, id, constr);
+		} else if (*in == 'a' && match(in,"ax")){ //MAX
+			parse_Aggr(in, MAX, id, constr);
+		} else if (*in == 'n' && match(in,"nmz")) { //MNMZ
+			readClause(in, lits);
+			//FIXME ADD
+			//S->subsetMinimize(lits);
+		}else if(*in == 'O' && match(in, "OD")){ //MOD
+			readModalStatement(in, false);
+		}else if(*in == 'o' && match(in, "od")){ //Mod
+			readModOpStatement(in, constr);
+		}else {
+			ParseError("Unexpected char '%c' after 'M' (expecting \"Min\", \"Max\", \"Mod\" or \"Mnmz\").\n",*in);
+		}
+		break;
+	case 'P':
+		++in;
+		if (match(in,"rod")){ //PROD
+			parse_Aggr(in, PROD, id, constr); break;
+		}else{
+			ParseError("Unexpected char '%c' after 'P' (expecting \"Prod\").\n",*in);
+		}
+		break;
+	case 'R':
+		++in;
+		if (match(in,"IGID")){ //RIGID
+			readRigidAtoms(in);
+		}else{
+			ParseError("Unexpected char '%c' after 'R' (expecting \"RIGID\").\n",*in);
+		}
+		break;
+	case 'S':
+		++in;
+		if (*in == 'e' && match(in,"et")) { //SET
+			int set_id = parseInt(in); // Note that set_id 0 cannot exist.
+			readClause(in, lits);
+			vec<int> w(lits.size(),1); // Treat CARD as SUM with all weights =1.
+			MODSolver::getModalOperator(id)->addSet(constr, set_id,lits,w);
+		} else if (*in == 'u'){
+			++in;
+			if(*in == 'm' && match(in, "m")){ //SUM
+				parse_Aggr(in, SUM, id, constr); break;
+			}else if(*in == 'b' && match(in, "bsetMnmz")){ //SUBSETMNMZ
+				readClause(in, lits);
+				//FIXME add rest
+			}else{
+				ParseError("Unexpected char '%c' after 'Su' (expecting \"Sum\" or \"SubsetMnmz\").\n", *in);
+			}
+		} else{
+			ParseError("Unexpected char '%c' after 'S' (expecting \"Set\", \"Sum\" or \"SubsetMnmz\").\n",*in);
+		}
+		break;
+	case 'W':
+		++in;
+		if (match(in,"Set")) { //WSET
+			int set_id = parseInt(in); // Note that set_id 0 cannot exist.
+			vec<int> weights;
+			readWSet(in, lits, weights);
+			MODSolver::getModalOperator(id)->addSet(constr, set_id,lits,weights);
+		} else{
+			ParseError("Unexpected char '%c' after 'W' (expecting \"WSet\").\n",*in);
+		}
+		break;
+	default:
+		readClause(in, lits);
+		MODSolver::getModalOperator(id)->addClause(constr, lits);
+		break;
+	}
+}
+
+template<class B>
+static void parse_ECNF_main(B& in) { // NOTE: this parser does not read translation information.
     vec<Lit> lits;
     for (;;){
         skipWhitespace(in);
-        char c=*in;
-        if (c==EOF)
-            break;
-        else if (c == 'p' || c == 'c')
-            skipLine(in);
-        else {
-            switch (c) {
-				case 'C':
-                    if (match(in,"Card")){
-                    	parse_Aggr(in, S, SUM);
-                    }else { // conjunctive rule.
-                        ++in;
-                        readClause(in, S, lits);
-                        S->addRule(false, true, lits);
-                    }
-                    break;
-                case 'D': // disjunctive rule.
-                    ++in;
-                    readClause(in, S, lits);
-                    S->addRule(false, false, lits);
-                    break;
-                case 'M':
-                    ++in;
-                    if (*in == 'i' && match(in,"in"))
-                        parse_Aggr(in, S, MIN);
-                    else if (*in == 'a' && match(in,"ax"))
-                        parse_Aggr(in, S, MAX);
-                    else if (*in == 'n' && match(in,"nmz")) {
-                        readClause(in, S, lits);
-                        S->subsetMinimize(lits);
-                    }else
-                        ParseError("Unexpected char '%c' after 'M' (expecting \"Min\", \"Max\" or \"Mnmz\").\n",*in);
-                    break;
-                case 'P':
-                    if (match(in,"Prod"))
-                        parse_Aggr(in, S, PROD);
-                    else
-                        ParseError("Unexpected char '%c' after 'P' (expecting \"Prod\").\n",*in);
-                    break;
-                case 'S':
-                    ++in;
-                    if (*in == 'e' && match(in,"et")) {
-                        int set_id = parseInt(in); // Note that set_id 0 cannot exist.
-                        readClause(in, S, lits);
-                        vec<int> w(lits.size(),1); // Treat CARD as SUM with all weights =1.
-                        S->addSet(false, set_id,lits,w);
-                    } else if (*in == 'u' && match(in,"um"))
-                        parse_Aggr(in, S, SUM);
-                    else
-                        ParseError("Unexpected char '%c' after 'S' (expecting \"Set\" or \"Sum\").\n",*in);
-                    break;
-                case 'W':
-                    if (match(in,"WSet")) {
-                        int set_id = parseInt(in); // Note that set_id 0 cannot exist.
-
-                        int     parsed_lit, var;
-                        lits.clear();
-                        vec<int> weights;
-                        for (;;){
-                            parsed_lit = parseInt(in);
-                            if (parsed_lit == 0) break;
-                            var = abs(parsed_lit)-1;
-                            lits.push( (parsed_lit > 0) ? Lit(var) : ~Lit(var) );
-                            if (*in != '=')
-                                ParseError("Encountered weightless literal in \"WSet\" declaration.\n");
-                            ++in;
-                            parsed_lit = parseInt(in);
-                            weights.push(parsed_lit);
-                        }
-                        S->addSet(false, set_id,lits,weights);
-                    } else
-                        ParseError("Unexpected char '%c' after 'W' (expecting \"WSet\").\n",*in);
-                    break;
-                default:
-                    readClause(in, S, lits);
-                    S->addClause(false, lits);
-                    break;
-            }
+        char c = *in;
+        if (c == EOF){
+        	break;
+        }else if (c == 'p' || c == 'c'){
+        	skipLine(in);
+        }else {
+        	lits.clear();
+        	readStatement(in, lits, 0, true);
         }
     }
 
-    S->finishDatastructures();
+    MODSolver::getModalOperator(0)->finishDatastructures();
 }
 
 template<class B>
-static void parse_main(B& in, MODSolver* S) {
+static void parse_main(B& in) {
     bool ecnf = false;
     for (;;){
         skipWhitespace(in);
@@ -301,7 +405,7 @@ static void parse_main(B& in, MODSolver* S) {
             ParseError("Unexpected char: %c\n", *in);
     }
     if (ecnf){
-    	parse_ECNF_main(in, S);
+    	parse_ECNF_main(in);
     }else{
     	reportf("Format no longer supported.\n"), exit(1);
     }
@@ -309,9 +413,9 @@ static void parse_main(B& in, MODSolver* S) {
 
 // Inserts problem into solver.
 //
-static void parse(gzFile input_stream, MODSolver* S) {
+static void parse(gzFile input_stream) {
     StreamBuffer in(input_stream);
-    parse_main(in, S); }
+    parse_main(in); }
 
 //=================================================================================================
 
@@ -352,9 +456,11 @@ static const char* hasPrefix(const char* str, const char* prefix)
 }
 
 
-int main2(int argc, char** argv)
+int main(int argc, char** argv)
 {
-    MODSolver* S = new MODSolver();
+    MODSolver* S = new MODSolver(0);
+    S->setForall(false);
+    S->setHead(0);
 
     int         i, j;
     int         N = 1;
@@ -388,7 +494,7 @@ int main2(int argc, char** argv)
             else if (strcmp(value, "stop_at_cs") == 0)
             	params.defn_search = stop_at_cs;
             else{
-                reportf("ERROR! illegal definition ssearch type %s\n", value);
+                reportf("ERROR! illegal definition search type %s\n", value);
                 exit(0); }
 
         }else if ((value = hasPrefix(argv[i], "-rnd-freq="))){
@@ -477,7 +583,7 @@ int main2(int argc, char** argv)
     bool ret = false;
 
     try{
-		parse(in, S);
+		parse(in);
 
 		gzclose(in);
 		FILE* res = (argc >= 3) ? fopen(argv[2], "wb") : NULL;
@@ -487,7 +593,7 @@ int main2(int argc, char** argv)
 			reportf("| Parsing time              : %7.2f s                                       |\n", parse_time);
 		}
 
-		S->solve();
+		S->propagate(Lit(0, false));
 	}catch(int e){
 		if(e==memOVERFLOW){
 			reportf("Memory overflow");

@@ -27,6 +27,7 @@
 
 Solver::Solver() :
 	// Parameters: (formerly in 'SearchParams')
+	res(NULL), nb_models(1),modelsfound(0),
 	var_decay(1 / 0.95),
 	clause_decay(1 / 0.999),
 	random_var_freq(0.02),
@@ -883,6 +884,12 @@ void Solver::addMinimize(const vec<Lit>& lits, bool subset) {
  * If a model is found, it is printed and returned in <m>, the theory is extended to prevent
  * 		the same model from being found again and
  * 		the datastructures are reset to prepare to find the next model
+ */
+/**
+ * Important: assmpt are the first DECISIONS that are made. So they are not automatic unit propagations
+ * and can be backtracked!
+ * FIXME: een mooier design maken zodat het duidelijk is naarwaar gebacktrackt moet worden (tot voor of tot
+ * na de assumptions, afhankelijk van of ze voor alle modellen moeten gelden of alleen voor het huidige).
  */
 bool Solver::findNext(const vec<Lit>& assmpt, vec<Lit>& m){
 	bool rslt = solve(assmpt);

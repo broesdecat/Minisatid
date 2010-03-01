@@ -426,7 +426,7 @@ const char* hasPrefix(const char* str, const char* prefix)
 }
 
 
-int main(int argc, char** argv)
+int main2(int argc, char** argv)
 {
     Solver*      S = new Solver();
     IDSolver* 	TS = new IDSolver();

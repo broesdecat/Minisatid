@@ -47,53 +47,72 @@ struct A{
 	AggrType type;
 };
 
+class MODSolver;
+
+struct Theory{
+	vector<MODSolver*> children;
+	vector<A> aggrs;
+	vector<R> rules;
+	vector<C> clauses;
+	vector<S> sets;
+};
+
 class Solver;
 
 class MODSolver {
+private:
+	int 	id;
+	bool	forall;
+	AV 		head;
+
+	vector<AV> rigidatoms, modalatoms;
+	Theory modaltheory, constrtheory;
+
+	static MODSolver* root;
+	static MODSolver* getModalOperator(int id, MODSolver& m);
+
 public:
-	MODSolver();
+	static MODSolver* getModalOperator(int id);
+
+	MODSolver(int id);
 	virtual ~MODSolver();
 
-	Solver* constr, *mod;
-	MODSolver* parent;
-	vector<AV> rigidatoms, modalatoms;
+	void setHead(int h){ head = h; }
+	void setForall(bool f) { forall = f; }
 
-	vector<A> constraggrs, modaggrs;
-	vector<R> constrrules, modrules;
-	vector<C> constrclauses, modclauses;
-	vector<S> constrsets, modsets;
-
-	bool forall;
-	AV head;
-
-	void addRigidAtom(Var a){
-		rigidatoms.push_back(AV(a));
-	}
-	void addRule(bool constr, bool conj, vec<Lit>& lits);
-	void addClause(bool constr, vec<Lit>& lits);
-	void addSet(bool constr, int set_id, vec<Lit>& lits, vec<int>& w);
-	void addAggrExpr(bool constr, int defn, int set_id, int bound, bool lower, AggrType type, bool defined);
-
+	//Solve methods
 	Clause* propagate(Lit l);
-	bool canSearch();
-	void backtrack(Lit l);
+	bool 	canSearch();
+	void 	backtrack(Lit l);
 	Clause* getExplanation(Lit l);
 
-	/*
-	 * Initialization
-	 */
+	//modal initialization
+	void 	addChild(MODSolver* m, bool constr);
+	//void 	addRigidAtom	(Var a){ rigidatoms.push_back(AV(a)); }
+	void 	addRigidAtoms	(vec<int>& atoms);
+	void 	finishDatastructures();
 
-	void subsetMinimize(vec<Lit>& lits);
+	//data initialization
+	void 	addRule			(bool constr, bool conj, vec<Lit>& lits);
+	void 	addClause		(bool constr, vec<Lit>& lits);
+	void 	addSet			(bool constr, int set_id, vec<Lit>& lits, vec<int>& w);
+	void 	addAggrExpr		(bool constr, int defn, int set_id, int bound, bool lower, AggrType type, bool defined);
 
-	void finishDatastructures();
+	vector<MODSolver*>::iterator beginModalChildren(){ return modaltheory.children.begin(); }
+	vector<MODSolver*>::iterator endModalChildren(){ return modaltheory.children.end(); }
+	vector<MODSolver*>::iterator beginConstrChildren(){ return constrtheory.children.begin(); }
+	vector<MODSolver*>::iterator endConstrChildren(){ return constrtheory.children.end(); }
+private:
+	int 	getID			(){ return id; }
 
-	void copyToVector(vec<Lit>& lits, vector<Lit> literals, bool constr);
+	void 	copyToVector	(vec<Lit>& lits, vector<Lit>& literals, bool constr);
 
-	void solve();
-
-	Solver* initSolver();
-	Solver* initializeSolver(bool c);
-
+	//solver initialization
+	Solver*	initSolver		();
+	Solver*	initializeExistsSolver();
+	Solver*	initializeConstrSolver();
+	Solver*	initializeModalSolver();
+	Solver*	initializeSolver(Theory& t);
 };
 
 #endif /* MODSOLVER_H_ */
