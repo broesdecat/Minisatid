@@ -106,6 +106,7 @@ bool IDSolver::simplify(){
 	 * from the data structures.
 	 */
 	vec<Var> reducedVars;
+	bool aggpresent = false;
 	for (int i = 0; i < defdVars.size(); i++) {
 		Var v = defdVars[i];
 		if (seen[v] > 0) {
@@ -127,10 +128,18 @@ bool IDSolver::simplify(){
 			--atoms_in_pos_loops;
 		}else{
 			reducedVars.push(v);
+			if(!aggpresent && defType[v]==AGGR){
+				aggpresent = true;
+			}
 		}
 	}
 	defdVars.clear();
 	reducedVars.copyTo(defdVars);
+
+	if(!aggpresent){
+		aggsolver -> setIDSolver(NULL);
+		aggsolver = NULL;
+	}
 
 	for(int i=0; i<usedseen.size(); i++){
 		seen[usedseen[i]] = 0;
@@ -148,6 +157,7 @@ bool IDSolver::simplify(){
 		solver->setIDSolver(NULL);
 		if(aggsolver!=NULL){
 			aggsolver->setIDSolver(NULL);
+			aggsolver = NULL;
 		}
 		if (verbosity >= 1){
 			reportf("| All recursive atoms falsified in initializations.                           |\n");
