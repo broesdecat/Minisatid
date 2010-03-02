@@ -456,7 +456,7 @@ static const char* hasPrefix(const char* str, const char* prefix)
 }
 
 
-int main(int argc, char** argv)
+int main2(int argc, char** argv)
 {
     MODSolver* S = new MODSolver(0);
     S->setForall(false);

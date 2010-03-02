@@ -79,12 +79,14 @@ bool IDSolver::simplify(){
 
 	// propagate safeness to defined literals until fixpoint.
 	// While we do this, we build the initial justification.
+	vec<Lit> heads;
+	vec<vec<Lit> > jstf;
 	while (propq.size() > 0) {
 		Lit l = propq.last(); //only heads are added to the queue
 		propq.pop();
 
-		vec<Lit> heads;
-		vec<vec<Lit> > jstf;
+		heads.clear();
+		jstf.clear();
 		propagateJustificationDisj(l, jstf, heads);
 		propagateJustificationConj(l, jstf, heads);
 		propagateJustificationAggr(l, jstf, heads);
@@ -109,7 +111,7 @@ bool IDSolver::simplify(){
 	bool aggpresent = false;
 	for (int i = 0; i < defdVars.size(); i++) {
 		Var v = defdVars[i];
-		if (seen[v] > 0) {
+		if (seen[v] > 0 || isFalse(v)) {
 			if(verbosity >= 2){ reportf(" %d",v+1); }
 			if(isTrue(v)){
 				throw theoryUNSAT;
@@ -122,6 +124,7 @@ bool IDSolver::simplify(){
 				definition[v] = NULL;
 				defType[v] = NONDEFTYPE;
 			}else{
+				//FIXME is dit wel juist? want de var gaat dan geen justification gekregen hebben
 				defOcc[v] = MIXEDLOOP;
 				reducedVars.push(v);
 			}
@@ -178,7 +181,7 @@ bool IDSolver::simplify(){
 
 #ifdef DEBUG
 	for(int i=0; i<defdVars.size(); i++){
-		assert(justification[defdVars[i]].size()>0 || defType[defdVars[i]]==CONJ);
+		assert(justification[defdVars[i]].size()>0 || defType[defdVars[i]]!=DISJ);
 	}
 #endif
 

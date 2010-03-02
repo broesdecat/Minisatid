@@ -36,7 +36,6 @@ MODSolver*	MODSolver::getModalOperator(int id, MODSolver& m){
 			found = getModalOperator(id, **i);
 		}
 	}
-	assert(found!=NULL);
 	return found;
 }
 
@@ -85,6 +84,9 @@ Clause* MODSolver::propagate(Lit l){
 	}
 
 	//TODO unit propagation
+	//TODO propagate to lower modal operators
+	//TODO let solver propagate back to modal operator parent
+	//FIXME: make sure that only one search is done concurrently
 
 	if(canSearch()){
 		if(forall){
@@ -98,12 +100,16 @@ Clause* MODSolver::propagate(Lit l){
 			bool hasnextmodel = true, allsatisfied = true;
 			while(hasnextmodel && allsatisfied){
 				model.clear();
-				hasnextmodel = constr->findNext(assumpts, model);
+				if (constr->simplify()){
+					hasnextmodel = constr->findNext(assumpts, model);
+				}
 				if(model.size()!=0){
 					Solver* modal = initializeModalSolver();
 					vec<Lit> fullmodel;
 					//TODO select relevant part of model (possibly add more rigid ones)
-					modal->findNext(model, fullmodel);
+					if (modal->simplify()){
+						modal->findNext(model, fullmodel);
+					}
 					if(fullmodel.size()==0){
 						allsatisfied = false;
 					}
@@ -123,7 +129,9 @@ Clause* MODSolver::propagate(Lit l){
 				assert((*i).value!=l_Undef);
 				assumpts.push(Lit((*i).atom, (*i).value==l_True?false:true));
 			}
-			solver->findNext(assumpts, model);
+			if (solver->simplify()){
+				solver->findNext(assumpts, model);
+			}
 			if((model.size()!=0 && head.value==l_True) || (model.size()==0 && head.value==l_False)){
 				printf("Satisfied");
 			}else{
@@ -224,12 +232,12 @@ Solver* MODSolver::initializeSolver(Theory& t){
 		aggsolver->addAggrExpr((*i).head, (*i).set, (*i).bound, (*i).lower, (*i).type, (*i).defined);
 	}
 
-	if(!aggsolver->finishECNF_DataStructures()){
+	if(params.aggr && !aggsolver->finishECNF_DataStructures()){
 		solver->setAggSolver(NULL);
 		idsolver->setAggSolver(NULL);
 		delete aggsolver;
 	}
-	if(!idsolver->finishECNF_DataStructures()){
+	if(params.def && !idsolver->finishECNF_DataStructures()){
 		solver->setIDSolver(NULL);
 		aggsolver->setIDSolver(NULL);
 		delete idsolver;
@@ -277,10 +285,15 @@ void MODSolver::finishDatastructures(){
 }
 
 void MODSolver::addRule(bool constr, bool conj, vec<Lit>& lits){
-	vector<Lit> literals;
-	copyToVector(lits, literals, constr);
 	R r;
-	r.lits = literals;
+	copyToVector(lits, r.lits, constr);
+
+	/*reportf("Rule %d, %d: ", r.lits.size(), lits.size());
+	for(int i=0; i<r.lits.size(); i++){
+		reportf("%d ", var(r.lits[i])+1);
+	}
+	reportf("\n");*/
+
 	r.conj = conj;
 	if(constr){
 		constrtheory.rules.push_back(r);
@@ -289,17 +302,15 @@ void MODSolver::addRule(bool constr, bool conj, vec<Lit>& lits){
 	}
 }
 void MODSolver::addClause(bool constr, vec<Lit>& lits){
-	vector<Lit> literals;
-	copyToVector(lits, literals, constr);
 	C r;
+	copyToVector(lits, r.lits, constr);
 
-	reportf("Printing clause: ");
+	/*reportf("Clause %d, %d: ", r.lits.size(), lits.size());
 	for(int i=0; i<r.lits.size(); i++){
 		reportf("%d ", var(r.lits[i])+1);
 	}
-	reportf("\n");
+	reportf("\n");*/
 
-	r.lits = literals;
 	if(constr){
 		constrtheory.clauses.push_back(r);
 	}else{
@@ -307,16 +318,15 @@ void MODSolver::addClause(bool constr, vec<Lit>& lits){
 	}
 }
 void MODSolver::addSet(bool constr, int set_id, vec<Lit>& lits, vec<int>& w){
-	vector<Lit> literals;
-	copyToVector(lits, literals, constr);
-	vector<int> weights;
-	for(int i=0; i<w.size(); i++){
-		weights.push_back(w[i]);
-	}
 	S s;
-	s.lits = literals;
-	s.weights = weights;
 	s.id = set_id;
+	copyToVector(lits, s.lits, constr);
+	for(int i=0; i<w.size(); i++){
+		s.weights.push_back(w[i]);
+	}
+
+	//reportf("Set\n");
+
 	if(constr){
 		constrtheory.sets.push_back(s);
 	}else{
@@ -331,6 +341,9 @@ void MODSolver::addAggrExpr(bool constr, int defn, int set_id, int bound, bool l
 	a.set = set_id;
 	a.type = type;
 	a.lower = lower;
+
+	//reportf("Aggr %d\n", a.head);
+
 	if(constr){
 		constrtheory.aggrs.push_back(a);
 	}else{
