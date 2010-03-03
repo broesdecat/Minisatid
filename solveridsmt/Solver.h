@@ -87,6 +87,8 @@ static inline uint64_t memUsed() { return 0; }
 class IDSolver;
 class AggSolver;
 
+enum MINIM {MNMZ, SUBSETMNMZ, SUMMNMZ, NONE};
+
 class Solver {
 public:
 	/////SMT NECESSARY
@@ -125,7 +127,27 @@ public:
 	/////////////////////END TSOLVER NECESSARY
 
     void finishParsing();
-    void addMinimize(const vec<Lit>& lits, bool subsetmnmz);
+
+    /*
+     * OPTIMIZATION INFORMATION
+     */
+
+    MINIM		optim;
+    Var 		head;
+    vec<Lit>	to_minimize;
+
+    void 	addMinimize(const vec<Lit>& lits, bool subsetmnmz);
+    void 	addSumMinimize(const Var head, const int setid);
+    bool 	invalidateValue(vec<Lit>& invalidation);
+	bool 	invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt);
+	bool 	findOptimal(vec<Lit>& assumps, vec<Lit>& m);
+
+	void    invalidateModel(vec<Lit>& invalidation);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
+	void 	invalidate(vec<Lit>& invalidation);
+	bool 	findNext	(const vec<Lit>& assumpts, vec<Lit>& model);
+	bool    solve        (const vec<Lit>& assumps); // Search for a model that respects a given set of assumptions.
+	bool    solve		();		// Search for nb_models models without assumptions.
+	void 	printModel	();
 
     // Constructor/Destructor:
     //
@@ -136,8 +158,6 @@ public:
     //
     bool    simplify	();		// Removes already satisfied clauses.
 
-    bool 	findNext	(const vec<Lit>& assumpts, vec<Lit>& model);
-    bool    solve		();		// Search for nb_models models without assumptions.
     int     nb_models;				// Number of models wanted (all if N=0).
     int		modelsfound;
     FILE*   res;					// Report results in this file.
@@ -200,14 +220,6 @@ protected:
     vec<int>	level;            // 'level[var]' contains the level at which the assignment was made.
     //vec<Lit>	trail;            // Assignment stack; stores all assigments made in the order they were made.
 	//vec<int>	trail_lim;        // Separator indices for different decision levels in 'trail'.
-
-    void    invalidateModel(vec<Lit>& invalidation);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
-    void 	invalidate(vec<Lit>& invalidation);
-    bool 	invalidateValue(vec<Lit>& invalidation);
-    bool 	invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt);
-    void 	printModel	();
-    bool 	findOptimal(vec<Lit>& assumps, vec<Lit>& m);
-    bool    solve        (const vec<Lit>& assumps); // Search for a model that respects a given set of assumptions.
 
     // Helper structures:
     //
@@ -279,10 +291,6 @@ protected:
     //
     uint32_t abstractLevel    (Var x) const; // Used to represent an abstraction of sets of decision levels.
     double   progressEstimate ()      const; // DELETE THIS ?? IT'S NOT VERY USEFUL ...
-
-    //Mnmz additions
-    bool 		subsetmnmz, mnmz;
-    vec<Lit>	to_minimize;
 
     // Debug:
     void     verifyModel      ();

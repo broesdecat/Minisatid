@@ -40,9 +40,6 @@ public:
 	/////////////////////IDSOLVER NECESSARY
 	void propagateJustifications(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& v, vec<int> &nb_body_lits_to_justify);
 
-	//void findCycleSourcesFromBody(Lit l);
-	//void findCycleSourcesFromHead(Var l);
-
 	bool findJustificationAggr(Var head, vec<Lit>& jstf);
 
 	bool directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust);
@@ -108,6 +105,8 @@ public:
 	// Debug:
 	void     printLit        (Lit l, lbool value);
 	void     printAggrExpr   (const Agg& ae);
+
+    bool 	invalidateSum(vec<Lit>& invalidation, Var head);
 
 protected:
 	/**

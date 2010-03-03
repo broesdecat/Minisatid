@@ -219,7 +219,19 @@ static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AggSolver* AGG) { //
                     } else if (*in == 'u'){
 						++in;
 						if(*in == 'm' && match(in, "m")){
-							parse_Aggr(in, S, AGG, SUM);
+							if(*in==' '){
+								parse_Aggr(in, S, AGG, SUM);
+							}else if(match(in, "Mnmz")){ //SumMnmz
+								int head = parseInt(in);
+								int setid = parseInt(in);
+								int zero = parseInt(in);
+							    if (zero != 0){
+							    	ParseError("Expression has to be closed with '0' (found %d).\n",zero);
+							    }
+							    S->addSumMinimize(head, setid);
+							}else{
+								ParseError("Unexpected char '%c' after 'Sum' (expecting \"SumMnmz).\n", *in);
+							}
 						}else if(*in == 'b' && match(in, "bsetMnmz")){
 							readClause(in, S, lits);
 							S->addMinimize(lits, true);

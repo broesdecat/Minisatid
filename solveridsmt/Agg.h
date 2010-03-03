@@ -225,6 +225,12 @@ public:
 
     virtual Clause* propagate		(bool headtrue) = 0;
     virtual Clause* propagateHead	(bool headtrue) = 0;
+
+    /**
+     * Should find a set L+ such that "bigwedge{l | l in L+} implies p"
+     * which is equivalent with the clause bigvee{~l|l in L+} or p
+     * and this is returned as the set {~l|l in L+}
+     */
 	virtual void	getExplanation	(Lit p, vec<Lit>& lits, AggrReason& ar) = 0;
 
 			void 	becomesCycleSource(vec<Lit>& nj);

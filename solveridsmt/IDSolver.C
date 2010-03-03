@@ -565,6 +565,8 @@ void IDSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, 
 		break;
 	}
 	case AGGR: {
+		//TODO this can be optimized by using another method which only returns literals possibly in the
+		//positive dependency graph.
 		vector<WLV>& lits = aggsolver->getLiteralsOfAggr(i);
 		for (vector<int>::size_type j = 0; j < lits.size(); ++j) {
 			Var w = var(lits[j].lit);

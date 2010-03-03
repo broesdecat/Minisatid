@@ -12,9 +12,9 @@ AggSolver::~AggSolver() {
 }
 
 void AggSolver::notifyVarAdded(){
-	head_watches.push();
+	head_watches.push(NULL);
 	aggr_watches.push();
-	aggr_reason.push();
+	aggr_reason.push(NULL);
 }
 
 inline Agg& AggSolver::getAggWithHeadOccurence(Var v){
@@ -198,6 +198,9 @@ void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrTyp
 	if (((vector<int>::size_type)setid) > aggrminsets.size() || aggrminsets[setid-1]==NULL || aggrminsets[setid-1]->wlits.size()==0) {
 		reportf("Error: Set nr. %d is used, but not defined yet.\n",setid), exit(3);
 	}
+
+	head_watches.growTo(headv+1);
+
 	//INVARIANT: it has to be guaranteed that there is a watch on ALL heads
 	if(head_watches[headv]!=NULL){
 		reportf("Error: Two aggregates have the same head(%d).\n",headv+1), exit(3);
@@ -247,7 +250,6 @@ void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrTyp
 	//afh van de situatie zelfs alleen deze)!
 	//FIXME 2: maar 1 datastructuur voor de verschillende soorten sets (en de type safety wat verminderen)
 	//FIXME 3: in het aggregaat zelf dan opslaan wat de size was van de stack toen de head afgeleid werd
-	head_watches.growTo(var(head));
 	head_watches[var(head)] = ae;
 
 	if(defined){ //add as definition to use definition semantics
@@ -425,6 +427,21 @@ void AggSolver::findCycleSources(Agg& v){
 bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust){
 	Agg& expr = aggsolver->getAggWithHeadOccurence(v);
 	return expr.canJustifyHead(jstf, nonjstf, currentjust, false);
+}
+
+bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head){
+	SumAgg* a = dynamic_cast<SumAgg*>(head_watches[head]);
+	a->bound = a->set->currentbestcertain++;
+
+	if(a->set->getBestPossible()==a->set->currentbestcertain){
+		return true;
+	}
+
+	AggrReason* reason = new AggrReason(a, HEAD, -1);
+	a->getExplanation(~a->head, invalidation, *reason);
+	delete reason;
+
+	return false;
 }
 
 //=================================================================================================

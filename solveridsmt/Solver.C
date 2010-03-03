@@ -22,10 +22,14 @@
 #include "Map.h"
 #include <cmath>
 
+#include <limits.h>
+
 //=================================================================================================
 // Constructor/Destructor:
 
 Solver::Solver() :
+	optim(NONE), head(0),
+
 	// Parameters: (formerly in 'SearchParams')
 	res(NULL), nb_models(1),modelsfound(0),
 	var_decay(1 / 0.95),
@@ -70,8 +74,7 @@ Solver::Solver() :
 
 	cla_inc(1), var_inc(1), simpDB_assigns(-1),
 	simpDB_props(0),
-	progress_estimate(0), order_heap(VarOrderLt(activity)),
-	subsetmnmz(false), mnmz(false){
+	progress_estimate(0), order_heap(VarOrderLt(activity)){
 }
 
 Solver::~Solver() {
@@ -853,29 +856,41 @@ void Solver::invalidateModel(vec<Lit>& learnt) {
 }
 
 /////////////////////// START OF EXTENSIONS
-//FIXME (en eigenlijk andere solver voorzien hiervoor?)
+//TODO in andere solver?
 void Solver::addMinimize(const vec<Lit>& lits, bool subset) {
-	/*if (!ecnf_mode.mnmz)
+	/*TODO if (!ecnf_mode.mnmz)
 		reportf("ERROR! Attempt at adding a subset minimize statement, though ECNF specifiers did not contain \"mnmz\".\n"), exit(3);*/
 	if (lits.size() == 0) {
 		reportf("Error: The set of literals to be minimized is empty,\n");
 		exit(3);
 	}
-	if (mnmz!=false || subsetmnmz!=false) {
+	if (optim!=NONE) {
 		reportf("At most one set of literals to be minimized can be given.\n");
 		exit(3);
 	}
 
-	//FIXME: opslaan welke mnmz het nu is (niet in params?)
 	if(subset){
-		subsetmnmz = true;
+		optim = SUBSETMNMZ;
 	}else{
-		mnmz = true;
+		optim = MNMZ;
 	}
 
 	for (int i = 0; i < lits.size(); i++){
 		to_minimize.push(lits[i]);
 	}
+}
+
+void Solver::addSumMinimize(const Var head, const int setid){
+	/*TODO if (!ecnf_mode.mnmz)
+		reportf("ERROR! Attempt at adding a subset minimize statement, though ECNF specifiers did not contain \"mnmz\".\n"), exit(3);*/
+	if (optim!=NONE) {
+		reportf("Only one optimization statement is possible.\n");
+		exit(3);
+	}
+
+	optim = SUMMNMZ;
+	this->head = head;
+	getAggSolver()->addAggrExpr(head, setid, INT_MIN, false, SUM, false);
 }
 
 /**
@@ -958,7 +973,7 @@ try{
 	modelsfound = 0;
 	bool moremodels = true;
 
-	if(mnmz || subsetmnmz){
+	if(optim!=NONE){
 		vec<Lit> assmpt;
 		vec<Lit> model;
 		findOptimal(assmpt, model);
@@ -1086,12 +1101,17 @@ bool Solver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 			}
 
 			vec<Lit> invalidation;
-			if(mnmz){
+			switch(optim){
+			case MNMZ:
 				optimumreached = invalidateValue(invalidation);
-			}else{
-				assert(subsetmnmz);
+				break;
+			case SUBSETMNMZ:
 				assmpt.clear();
 				optimumreached = invalidateSubset(invalidation, assmpt);
+				break;
+			case SUMMNMZ:
+				optimumreached = getAggSolver()->invalidateSum(invalidation, head);
+				break;
 			}
 
 			if(!optimumreached){

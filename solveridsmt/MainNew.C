@@ -237,7 +237,7 @@ static void readStatement(B& in, vec<Lit>& lits, int id, bool constr){
 	case 'C':
 		++in;
 		if (*in=='a' && match(in,"ard")){ //CARD
-			parse_Aggr(in, SUM, id, constr); break;
+			parse_Aggr(in, SUM, id, constr);
 		}else if(*in=='O' && match(in,"ONSTR")){ //CONSTR
 			readModalStatement(in, true);
 		}else { //C
@@ -271,7 +271,7 @@ static void readStatement(B& in, vec<Lit>& lits, int id, bool constr){
 	case 'P':
 		++in;
 		if (match(in,"rod")){ //PROD
-			parse_Aggr(in, PROD, id, constr); break;
+			parse_Aggr(in, PROD, id, constr);
 		}else{
 			ParseError("Unexpected char '%c' after 'P' (expecting \"Prod\").\n",*in);
 		}
@@ -294,7 +294,19 @@ static void readStatement(B& in, vec<Lit>& lits, int id, bool constr){
 		} else if (*in == 'u'){
 			++in;
 			if(*in == 'm' && match(in, "m")){ //SUM
-				parse_Aggr(in, SUM, id, constr); break;
+				if(*in==' '){
+					parse_Aggr(in, SUM, id, constr);
+				}else if(match(in, "Mnmz")){ //SumMnmz
+					int head = parseInt(in);
+					int setid = parseInt(in);
+					int zero = parseInt(in);
+					if (zero != 0){
+						ParseError("Expression has to be closed with '0' (found %d).\n",zero);
+					}
+					//FIXME MODSolver::getModalOperator(id)->addSumMinimize(head, setid);
+				}else{
+					ParseError("Unexpected char '%c' after 'Sum' (expecting \"SumMnmz).\n", *in);
+				}
 			}else if(*in == 'b' && match(in, "bsetMnmz")){ //SUBSETMNMZ
 				readClause(in, lits);
 				//FIXME add rest
