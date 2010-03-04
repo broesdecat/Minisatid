@@ -453,6 +453,7 @@ Clause* SPAgg::propagate(bool headtrue){
 			weightbound++;
 		}else{
 			if(sum){
+				//FIXME: calculations can easily overflow!
 				weightbound = set->currentbestpossible-bound;
 			}else{
 				//if bound == 0, it is never possible to obtain a smaller product, so get first weight larger than 0

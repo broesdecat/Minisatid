@@ -7,6 +7,7 @@
 #include <vector>
 #include <set>
 #include "SolverTypes.h"
+#include <limits.h>
 
 #include <iostream>
 
@@ -32,6 +33,31 @@ public:
     bool operator <  (WLit p) const { return weight < p.weight; }
     bool operator <  (int bound) const { return weight < bound; }
     bool operator ==  (WLit p) const { return weight == p.weight && lit==p.lit; }
+};
+
+
+//FIXME: introduced to prevent overflows etc
+class Weight{
+private:
+	const int weight;
+public:
+	Weight(int w):weight(w){}
+
+	bool operator <  (const Weight p) const { return weight < p.weight; }
+	Weight operator+ (const Weight p) const {
+		long lhs = weight;
+		long rhs = p.weight;
+		long temp = rhs+lhs;
+		int val;
+		if(INT_MAX < temp){
+			val = INT_MAX;
+		}else if(temp < INT_MIN){
+			val = INT_MIN;
+		}else{
+			val = temp;
+		}
+		return Weight(val);
+	}
 };
 
 class WLV: public WLit{

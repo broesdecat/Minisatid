@@ -223,6 +223,8 @@ static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AggSolver* AGG) { //
 								parse_Aggr(in, S, AGG, SUM);
 							}else if(match(in, "Mnmz")){ //SumMnmz
 								int head = parseInt(in);
+								 while (head >= S->nVars()) S->newVar();
+								S->setDecisionVar(head,true); // S.nVars()-1   or   var
 								int setid = parseInt(in);
 								int zero = parseInt(in);
 							    if (zero != 0){

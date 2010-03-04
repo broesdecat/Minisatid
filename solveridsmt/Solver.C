@@ -847,9 +847,9 @@ void Solver::invalidateModel(vec<Lit>& learnt) {
 	//FIXME: hier werd soms verder gebacktrackt dan het laagste decision level (in de unit propagaties dus)
 	//maar geen idee waarom dit nodig was. Mss toch eens nakijken?
 
-	if (verbosity>=2) {	reportf("Adding model-invalidating clause: [ "); }
+	if (verbosity>=3) {	reportf("Adding model-invalidating clause: [ "); }
 	addClause(learnt);
-	if (verbosity>=2) {	reportf("]\n"); }
+	if (verbosity>=3) {	reportf("]\n"); }
 
 	varDecayActivity();
 	claDecayActivity();
@@ -890,6 +890,9 @@ void Solver::addSumMinimize(const Var head, const int setid){
 
 	optim = SUMMNMZ;
 	this->head = head;
+	vec<Lit> cl;
+	cl.push(Lit(head, false));
+	addClause(cl);
 	getAggSolver()->addAggrExpr(head, setid, INT_MIN, false, SUM, false);
 }
 
@@ -1110,6 +1113,7 @@ bool Solver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 				optimumreached = invalidateSubset(invalidation, assmpt);
 				break;
 			case SUMMNMZ:
+				//FIXME the invalidation turns out to be empty
 				optimumreached = getAggSolver()->invalidateSum(invalidation, head);
 				break;
 			}

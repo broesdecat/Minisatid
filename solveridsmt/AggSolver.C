@@ -431,7 +431,12 @@ bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, ve
 
 bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head){
 	SumAgg* a = dynamic_cast<SumAgg*>(head_watches[head]);
-	a->bound = a->set->currentbestcertain++;
+
+	if(verbosity>0){
+		reportf("Current optimum: %d\n", a->set->currentbestcertain);
+	}
+
+	a->bound = a->set->currentbestcertain + 1;
 
 	if(a->set->getBestPossible()==a->set->currentbestcertain){
 		return true;
