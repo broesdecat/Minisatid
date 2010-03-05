@@ -217,6 +217,12 @@ Clause* MinAgg::propagateHead(bool headtrue) {
 Clause* MinAgg::propagate(bool headtrue) {
 	Clause* confl = NULL;
 	if(set->stack.size()==set->wlits.size()-1 && ((headtrue && lower) || (!headtrue && !lower))){
+		if(!headtrue && !lower && set->currentbestpossible<bound){
+			return confl;
+		}
+		if(headtrue && lower && set->currentbestpossible<=bound){
+			return confl;
+		}
 		for(vector<WLV>::size_type i=0; i<set->wlits.size(); i++){
 			if(set->wlits[i].value==l_Undef){
 				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(set->wlits[i].lit, new AggrReason(this, POS, set->wlits[i].weight));
@@ -313,7 +319,7 @@ Clause* MaxAgg::propagateHead(bool headtrue) {
 
 /**
  * If only one value is still possible and the head has already been derived, then this last literal
- * might also be propagated
+ * might also be propagated, if the constraint is NOT YET SATISFIED!!!
  *
  * head is true  && A <= AGG: Last literal has to be true
  * head is true  && AGG <= B: No conclusion possible (emptyset is also a solution)
@@ -323,6 +329,12 @@ Clause* MaxAgg::propagateHead(bool headtrue) {
 Clause* MaxAgg::propagate(bool headtrue) {
 	Clause* confl = NULL;
 	if(set->stack.size()==set->wlits.size()-1 && ((headtrue && !lower) || (!headtrue && lower))){
+		if(!headtrue && lower && set->currentbestcertain>bound){
+			return confl;
+		}
+		if(headtrue && !lower && set->currentbestcertain>=bound){
+			return confl;
+		}
 		for(vector<WLV>::size_type i=0; i<set->wlits.size(); i++){
 			if(set->wlits[i].value==l_Undef){
 				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(set->wlits[i].lit, new AggrReason(this, POS, set->wlits[i].weight));

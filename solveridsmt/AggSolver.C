@@ -156,6 +156,8 @@ void AggSolver::addMinAgg(bool defined, bool lower, int bound, Lit head, AggrSet
 /*
  * For a maximum: if lower,  head <=> conj of negation of all literals with weight higher than bound
  * 				  if higher, head <=> disj of all literals with weight higher/eq than bound
+ *
+ * IMPORTANT: counting down on vectors cannot check for i>= 0, because the type is UNSIGNED!
  */
 void AggSolver::addMaxAgg(bool defined, bool lower, int bound, Lit head, AggrSet& set){
 	vec<Lit> clause;
@@ -163,7 +165,7 @@ void AggSolver::addMaxAgg(bool defined, bool lower, int bound, Lit head, AggrSet
 	if(defined){
 		clause.push(head);
 		for(vector<int>::size_type i=set.wlits.size()-1; set.wlits[i].weight>=bound; i--){
-			if(i==0 || (set.wlits[i].weight==bound && lower)){
+			if(set.wlits[i].weight==bound && lower){
 				break;
 			}
 			if(lower){
@@ -171,25 +173,34 @@ void AggSolver::addMaxAgg(bool defined, bool lower, int bound, Lit head, AggrSet
 			}else{
 				clause.push(set.wlits[i].lit);
 			}
+			if(i==0){
+				break;
+			}
 		}
 		idsolver->addRule(lower, clause);
 	}else{
 		clause.push(lower?head:~head);
 		for(vector<int>::size_type i=set.wlits.size()-1; set.wlits[i].weight>=bound; i--){
-			if(i==0 || (set.wlits[i].weight==bound && lower)){
+			if(set.wlits[i].weight==bound && lower){
 				break;
 			}
 			clause.push(set.wlits[i].lit);
+			if(i==0){
+				break;
+			}
 		}
 		solver->addClause(clause);
 		for(vector<int>::size_type i=set.wlits.size()-1; set.wlits[i].weight>=bound; i--){
-			if(i==0 || (set.wlits[i].weight==bound && lower)){
+			if(set.wlits[i].weight==bound && lower){
 				break;
 			}
 			clause.clear();
 			clause.push(lower?~head:head);
 			clause.push(~set.wlits[i].lit);
 			solver->addClause(clause);
+			if(i==0){
+				break;
+			}
 		}
 	}
 }
@@ -216,12 +227,12 @@ void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrTyp
 	Agg* ae;
 	switch(type){
 	case MIN:
-		//addMinAgg(defined, lower, bound, head, *aggr_sets[setindex]);
+		//addMinAgg(defined, lower, bound, head, *aggrminsets[setindex]);
 		//return;
 		ae = new MinAgg(lower, bound, head, aggrminsets[setindex]);
 		break;
 	case MAX:
-		//addMaxAgg(defined, lower, bound, head, *aggr_sets[setindex]);
+		//addMaxAgg(defined, lower, bound, head, *aggrmaxsets[setindex]);
 		//return;
 		ae = new MaxAgg(lower, bound, head, aggrmaxsets[setindex]);
 		break;
