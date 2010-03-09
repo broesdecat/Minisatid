@@ -363,9 +363,6 @@ inline int 		Solver::getNbOfRecentAssignments() 	const	{return trail_lim.size()=
 //=================================================================================================
 // Debug + etc:
 
-
-#define reportf(format, args...) ( fflush(stdout), fprintf(stderr, format, ## args), fflush(stderr) )
-
 static inline void logLit(FILE* f, Lit l)
 {
     fprintf(f, "%sx%d", sign(l) ? "~" : "", var(l)+1);
@@ -390,10 +387,8 @@ static inline const char* showBool(bool b) { return b ? "true" : "false"; }
 // Just like 'assert()' but expression will be evaluated in the release version as well.
 static inline void check(bool expr) { assert(expr); }
 
-
-inline void Solver::printLit(Lit l)
-{
-    reportf("%s%d:%c", sign(l) ? "-" : "", var(l)+1, value(l) == l_True ? '1' : (value(l) == l_False ? '0' : 'X'));
+inline void Solver::printLit(Lit l){
+    reportf("%s%d:%c", sign(l) ? "-" : "", gprintVar(var(l)), value(l) == l_True ? '1' : (value(l) == l_False ? '0' : 'X'));
 }
 
 
@@ -401,8 +396,8 @@ template<class C>
 inline void Solver::printClause(const C& c)
 {
     for (int i = 0; i < c.size(); i++){
-        printLit(c[i]);
-        reportf(" ");
+    	gprintLit(c[i], value(c[i]));
+    	reportf(" ");
     }
     reportf("\n");
 }

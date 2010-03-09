@@ -259,9 +259,9 @@ public:
      */
 	virtual void	getExplanation	(Lit p, vec<Lit>& lits, AggrReason& ar) = 0;
 
-			void 	becomesCycleSource(vec<Lit>& nj);
+			void 	becomesCycleSource(vec<Lit>& nj) const;
 	virtual void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) = 0;
-	virtual bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) = 0;
+	virtual bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const = 0;
 };
 
 class MinAgg: public Agg {
@@ -277,7 +277,7 @@ public:
 	void	getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar);
 
 	void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
-	bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real);
+	bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
 };
 
 class MaxAgg: public Agg {
@@ -293,7 +293,7 @@ public:
 	void	getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar);
 
 	void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
-	bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real);
+	bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
 };
 
 class SPAgg: public Agg {
@@ -310,7 +310,7 @@ public:
 	void	getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar);
 
 	void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
-	bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real);
+	bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
 };
 
 class SumAgg: public SPAgg {

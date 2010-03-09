@@ -682,9 +682,7 @@ bool Solver::simplify() {
 	simpDB_props = clauses_literals + learnts_literals; // (shouldn't depend on stats really, but it will do for now)
 
     //////////////START TSOLVER
-	if(conflicts==0 && ((tsolver!=NULL && !tsolver->simplify())
-								||
-						(aggsolver!=NULL && !aggsolver->simplify()))){
+	if(conflicts==0 && (tsolver!=NULL && !tsolver->simplify())){
 		ok = false;
 		return false;
 	}
@@ -760,6 +758,7 @@ lbool Solver::search(int nof_conflicts, int nof_learnts) {
             assert(value(learnt_clause[0]) == l_Undef);
 
             if (learnt_clause.size() == 1){
+            	//FIXME: dit wordt bij backtracken dus meteen vergeten?
             	setTrue(learnt_clause[0]);
                 if (verbosity>=2) {reportf("Adding learnt clause: [ "); printLit(learnt_clause[0]); reportf(" ], backtracking until level %d.\n",backtrack_level);}
             }else{

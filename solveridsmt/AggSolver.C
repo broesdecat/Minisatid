@@ -4,7 +4,7 @@
 AggSolver* AggSolver::aggsolver;
 
 AggSolver::AggSolver() :
-	init(true), empty(false) {
+	init(true) {
 	AggSolver::aggsolver = this;
 }
 
@@ -116,7 +116,7 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
  * For a minimum: if lower,  head <=> disj of all literals with weight lower/eq than bound
  * 				  if higher, head <=> conj of negation of all literals with weight lower than bound
  */
-void AggSolver::addMinAgg(bool defined, bool lower, int bound, Lit head, AggrSet& set){
+void AggSolver::minAggAsSAT(bool defined, bool lower, int bound, const Lit& head, const AggrSet& set){
 	vec<Lit> clause;
 
 	if(defined){
@@ -159,7 +159,7 @@ void AggSolver::addMinAgg(bool defined, bool lower, int bound, Lit head, AggrSet
  *
  * IMPORTANT: counting down on vectors cannot check for i>= 0, because the type is UNSIGNED!
  */
-void AggSolver::addMaxAgg(bool defined, bool lower, int bound, Lit head, AggrSet& set){
+void AggSolver::maxAggAsSAT(bool defined, bool lower, int bound, const Lit& head, const AggrSet& set){
 	vec<Lit> clause;
 
 	if(defined){
@@ -214,7 +214,7 @@ void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrTyp
 
 	//INVARIANT: it has to be guaranteed that there is a watch on ALL heads
 	if(head_watches[headv]!=NULL){
-		reportf("Error: Two aggregates have the same head(%d).\n",headv+1), exit(3);
+		reportf("Error: Two aggregates have the same head(%d).\n", gprintVar(headv)), exit(3);
 	}
 
 	//the head of the aggregate
@@ -227,12 +227,12 @@ void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrTyp
 	Agg* ae;
 	switch(type){
 	case MIN:
-		//addMinAgg(defined, lower, bound, head, *aggrminsets[setindex]);
+		//minAggAsSAT(defined, lower, bound, head, *aggrminsets[setindex]);
 		//return;
 		ae = new MinAgg(lower, bound, head, aggrminsets[setindex]);
 		break;
 	case MAX:
-		//addMaxAgg(defined, lower, bound, head, *aggrmaxsets[setindex]);
+		//maxAggAsSAT(defined, lower, bound, head, *aggrmaxsets[setindex]);
 		//return;
 		ae = new MaxAgg(lower, bound, head, aggrmaxsets[setindex]);
 		break;
@@ -255,7 +255,6 @@ void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrTyp
 		reportf("Only aggregates MIN, MAX, SUM or PROD are allowed in the solver.\n");
 		exit(3);
 	}
-	aggr_exprs++;
 
 	//FIXME: de behandeling van deze head watches overal verspreiden (naast aggr_watches deze ook gebruiken, of
 	//afh van de situatie zelfs alleen deze)!
@@ -278,26 +277,42 @@ void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrTyp
  * @remarks: only method allowed to use the sat solver datastructures
  */
 Clause* AggSolver::notifySATsolverOfPropagation(Lit p, AggrReason* ar) {
-	if (verbosity >= 2) {
-		reportf("Deriving ");
-		printLit(p, l_True);
-		reportf(" because of the aggregate expression ");
-		printAggrExpr(*(ar->expr));
-	}
-
 	if (solver->value(p) == l_False) {
-		if (verbosity >= 2){
-			reportf("Conflict.\n");
+		if (verbosity >= 2) {
+			reportf("Deriving conflict in ");
+			gprintLit(p, l_True);
+			reportf(" because of the aggregate expression ");
+			printAggrExpr(*(ar->expr));
 		}
 		AggrReason* old_ar = aggr_reason[var(p)];
 		aggr_reason[var(p)] = ar;
 		Clause* confl = getExplanation(p);
+
+		/*
+		 * Due to current (TODO this can be avoided) incomplete propagation, the conflict should possibly
+		 * have been derived at an earlier level. So check for this and first backtrack to that level.
+		 */
+		int lvl = 0;
+		for (int i = 1; i < confl->size(); i++){
+			int litlevel = solver->getLevel(var(confl->operator [](i)));
+			if (litlevel > lvl){
+				lvl = litlevel;
+			}
+		}
+		solver->backtrackTo(lvl);
+
 		if(confl->size()>1){
 			solver->addLearnedClause(confl);
 		}
 		aggr_reason[var(p)] = old_ar;
 		return confl;
 	} else if (solver->value(p) == l_Undef) {
+		if (verbosity >= 2) {
+			reportf("Deriving ");
+			gprintLit(p, l_True);
+			reportf(" because of the aggregate expression ");
+			printAggrExpr(*(ar->expr));
+		}
 		aggr_reason[var(p)] = ar;
 		solver->setTrue(p);
 	} else{
@@ -306,11 +321,13 @@ Clause* AggSolver::notifySATsolverOfPropagation(Lit p, AggrReason* ar) {
 	return NULL;
 }
 
-Clause* AggSolver::Aggr_propagate(Lit p) {
+Clause* AggSolver::Aggr_propagate(const Lit& p) {
 	Clause* confl = NULL;
 	vec<AggrWatch>& ws = aggr_watches[var(p)];
 	if (verbosity >= 2 && ws.size() > 0){
-		reportf("Aggr_propagate(%s%d).\n",sign(p)?"-":"",var(p)+1);
+		reportf("Aggr_propagate(");
+		gprintLit(p, l_True);
+		reportf(").\n");
 	}
 	if(head_watches[var(p)]!=NULL){
 		confl = head_watches[var(p)]->propagateHead(p);
@@ -321,7 +338,7 @@ Clause* AggSolver::Aggr_propagate(Lit p) {
 	return confl;
 }
 
-Clause* AggSolver::getExplanation(Lit p) {
+Clause* AggSolver::getExplanation(const Lit& p) {
 	vec<Lit> lits;
 	lits.push(p);
 	AggrReason& ar = *aggr_reason[var(p)];
@@ -334,13 +351,17 @@ Clause* AggSolver::getExplanation(Lit p) {
 
 	if (verbosity >= 2) {
 		reportf("Implicit reason clause for ");
-		printLit(p, !sign(p)); reportf(" : "); solver->printClause(*c); reportf("\n");
+		gprintLit(p, sign(p)?l_False:l_True); reportf(" : "); solver->printClause(*c); reportf("\n");
 	}
 
 	return c;
 }
 
-void AggSolver::doBacktrack(Lit l){
+/**
+ * Not viable to backtrack a certain number of literals, unless also tracking whether a literal was propagated in
+ * which solvers when a conflict occurred
+ */
+void AggSolver::doBacktrack(const Lit& l){
 	if (aggr_reason[var(l)] != NULL) {
 		delete aggr_reason[var(l)];
 		aggr_reason[var(l)] = NULL;
@@ -429,7 +450,7 @@ bool AggSolver::findJustificationAggr(Var head, vec<Lit>& jstf){
  * V is not false so find a justification for it. Preferably find one that does not involve loops.
  * If a justification is found, but it contains loops, v is added as a cycle source
  */
-void AggSolver::findCycleSources(Agg& v){
+void AggSolver::findCycleSources(const Agg& v) const{
 	vec<Lit> nj;
 	v.becomesCycleSource(nj);
 	idsolver->cycleSourceAggr(var(v.head), nj);
@@ -463,19 +484,15 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head){
 //=================================================================================================
 // Debug + etc:
 
-void AggSolver::printLit(Lit l, lbool value) {
-	reportf("%s%d:%c", sign(l) ? "-" : "", var(l)+1, value == l_True ? '1' : (value == l_False ? '0' : 'X'));
-}
-
 void AggSolver::printAggrExpr(const Agg& ae){
-	printLit(ae.head, ae.headvalue);
+	gprintLit(ae.head, ae.headvalue);
 	if(ae.lower){
 		reportf(" <- %s{", ae.set->name.c_str());
 	}else{
 		reportf(" <- %d <= %s{", ae.bound, ae.set->name.c_str());
 	}
 	for (vector<int>::size_type i=0; i<ae.set->wlits.size(); ++i) {
-		reportf(" "); printLit(ae.set->wlits[i].lit, ae.set->wlits[i].value); reportf("(%d)",ae.set->wlits[i].weight);
+		reportf(" "); gprintLit(ae.set->wlits[i].lit, ae.set->wlits[i].value); reportf("(%d)",ae.set->wlits[i].weight);
 	}
 	if(ae.lower){
 		reportf(" } <= %d. Known values: bestcertain=%d, bestpossible=%d\n", ae.bound, ae.set->currentbestcertain, ae.set->currentbestpossible);

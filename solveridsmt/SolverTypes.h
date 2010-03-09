@@ -21,6 +21,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #ifndef SolverTypes_h
 #define SolverTypes_h
 
+#include <cstdio>
+#include <string>
 #include <cassert>
 #include <stdint.h>
 #include "Alg.h"
@@ -220,6 +222,24 @@ inline void Clause::strengthen(Lit p)
 {
     remove(*this, p);
     calcAbstraction();
+}
+
+/******************
+ * DEBUGGING INFO *
+ ******************/
+
+#define reportf(format, args...) ( fflush(stdout), fprintf(stderr, format, ## args), fflush(stderr) )
+
+inline int gprintVar(Var v){
+	return v+1;
+}
+
+inline void gprintLit(const Lit& l, const lbool val){
+	reportf("%s%d:%c", (sign(l) ? "-" : ""), gprintVar(var(l)), (val == l_True ? '1' : (val == l_False ? '0' : 'X')));
+}
+
+inline void gprintLit(const Lit& l){
+	reportf("%s%d", (sign(l) ? "-" : ""), gprintVar(var(l)));
 }
 
 #endif

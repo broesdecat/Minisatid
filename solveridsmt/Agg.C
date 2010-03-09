@@ -5,6 +5,10 @@
 //NOTE never use a decrementing vector iterator unless minding the 0 problem!!! (it is unsigned, so checking that
 //the number is still positive is wrong!
 
+typedef vector<int> list;
+typedef vector<int>::iterator listiterator;
+typedef vector<int>::size_type listsize;
+
 void AggrSet::backtrack(int index) {
 	PropagationInfo pi = stack.back();
 	stack.pop_back();
@@ -36,13 +40,17 @@ Clause* AggrSet::propagateBodies(){
 	Clause* confl = NULL;
 	for(vector<Agg*>::iterator i=aggregates.begin(); i!=aggregates.end() && confl==NULL; i++){
 		if((*i)->headvalue != l_Undef){ //head is already known
-			confl = (*i)->propagate((*i)->headvalue==l_True);
+			lbool result = (*i)->canPropagateHead();
+			if(result!=l_Undef && result!=(*i)->headvalue){
+				//conflict!
+				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(result==l_True?(*i)->head:~(*i)->head, new AggrReason(*i, HEAD, -1));
+			}else{
+				confl = (*i)->propagate((*i)->headvalue==l_True);
+			}
 		}else{ //head is not yet known, so at most the head can be propagated
 			lbool result = (*i)->canPropagateHead();
-			if(result==l_True){
-				confl = AggSolver::aggsolver->notifySATsolverOfPropagation((*i)->head, new AggrReason(*i, HEAD, -1));
-			}else if(result==l_False){
-				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~(*i)->head, new AggrReason(*i, HEAD, -1));
+			if(result!=l_Undef){
+				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(result==l_True?(*i)->head:~(*i)->head, new AggrReason(*i, HEAD, -1));
 			}
 		}
 	}
@@ -216,13 +224,17 @@ Clause* MinAgg::propagateHead(bool headtrue) {
  */
 Clause* MinAgg::propagate(bool headtrue) {
 	Clause* confl = NULL;
+	//FIXME: possible to propagate faster: do not check whether there is only one unassigned one left, but check if there is one unassigned left
+	//that complies with the head value
+		//dit mss oplossen door een clause aan de sat solver toe te voegen in het begin
+	//FIXME 2: soms kan er afgeleid worden dat een aggregaat nooit true of nooit false zal zijn, gezien zijn weights. Dit dan ook effectief in het begin afleiden!
+	if(!headtrue && !lower && set->currentbestpossible<bound){
+		return confl;
+	}
+	if(headtrue && lower && set->currentbestpossible<=bound){
+		return confl;
+	}
 	if(set->stack.size()==set->wlits.size()-1 && ((headtrue && lower) || (!headtrue && !lower))){
-		if(!headtrue && !lower && set->currentbestpossible<bound){
-			return confl;
-		}
-		if(headtrue && lower && set->currentbestpossible<=bound){
-			return confl;
-		}
 		for(vector<WLV>::size_type i=0; i<set->wlits.size(); i++){
 			if(set->wlits[i].value==l_Undef){
 				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(set->wlits[i].lit, new AggrReason(this, POS, set->wlits[i].weight));
@@ -414,8 +426,12 @@ WLit AggrProdSet::handleOccurenceOfBothSigns(WLit one, WLit two){
 	//ofwel aggregaten voor doubles ondersteunen (het eerste is eigenlijk de beste oplossing)
 	//Mogelijke eenvoudige implementatie: weigts bijhouden als doubles (en al de rest als ints)
 	reportf("Product aggregates in which both the literal and its negation occur "
-			"are currently not supported. Replace %s%d or %s%d by a tseitin.\n",
-			sign(one.lit)?"-":"", var(one.lit)+1, sign(two.lit)?"-":"", var(two.lit)+1); exit(3);
+			"are currently not supported. Replace ");
+	gprintLit(one.lit);
+	reportf("or ");
+	gprintLit(two.lit);
+	reportf("by a tseitin.\n");
+	exit(3);
 }
 
 lbool SPAgg::canPropagateHead(){
@@ -828,7 +844,7 @@ inline bool AggrSet::isJustified(Var x, vec<int>& currentjust){
  * Finds a new justification.
  * @pre: head is not false, so a justification exists
  */
-void Agg::becomesCycleSource(vec<Lit>& j){
+void Agg::becomesCycleSource(vec<Lit>& j) const {
 	assert(headvalue!=l_False);
 	vec<Var> nonj;
 	vec<int> s;
@@ -871,7 +887,7 @@ void MinAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<in
  * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
  * NOTE it might be possible to write this more efficiently, for some ideas see commits before 26/01/2010
  */
-bool MinAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real){
+bool MinAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
 	vector<WLV>& lits = set->wlits;
 	bool justified = false;
 	if(lower){
@@ -928,7 +944,7 @@ void MaxAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<in
 	}
 }
 
-bool MaxAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real){
+bool MaxAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
 	vector<WLV>& lits = set->wlits;
 	bool justified = false;
 	if(lower){
@@ -992,7 +1008,7 @@ void SPAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int
  * AGG <= B: add a number of justified literals such that they guarantee the bestpossible value is below the bound
  * A <= AGG: need a justification of which the sum exceed/eq the bound
  */
-bool SPAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real){
+bool SPAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
 	vector<WLV>& lits = set->wlits;
 	bool justified = false;
 	if(lower){

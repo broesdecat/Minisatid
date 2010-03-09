@@ -209,7 +209,7 @@ protected:
 	void visitFull(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter, bool throughPositiveLit, vec<int>& rootofmixed, vec<Var>& nodeinmixed);
 
 	// Debug:
-	void     printLit         (Lit l);
+	//void     printLit         (Lit l);
 	template<class C>
 	void     printClause      (const C& c);
 	void     printRule        (const Rule& c);

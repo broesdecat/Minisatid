@@ -219,7 +219,7 @@ static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AggSolver* AGG) { //
                     } else if (*in == 'u'){
 						++in;
 						if(*in == 'm' && match(in, "m")){
-							if(*in==' '){
+							if(*in==' ' || *in=='C' || *in=='D'){
 								parse_Aggr(in, S, AGG, SUM);
 							}else if(match(in, "Mnmz")){ //SumMnmz
 								int head = parseInt(in);
@@ -232,7 +232,7 @@ static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AggSolver* AGG) { //
 							    }
 							    S->addSumMinimize(head, setid);
 							}else{
-								ParseError("Unexpected char '%c' after 'Sum' (expecting \"SumMnmz).\n", *in);
+								ParseError("Unexpected char '%c' after 'Sum' (expecting \"SumMnmz\", \"SumC\" or \"SumD\").\n", *in);
 							}
 						}else if(*in == 'b' && match(in, "bsetMnmz")){
 							readClause(in, S, lits);

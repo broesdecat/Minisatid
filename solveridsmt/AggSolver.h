@@ -16,6 +16,15 @@ class Agg;
 
 extern int verbosity;
 
+/*
+ * CLAUSE LEARNING INVARIANT:
+ * The conflicting clause always contains at least one literal of the current decision level.
+ * When doing incomplete propagation, as is currently the case with aggregates, this does not always happen
+ * (when he only later derives that a certain literal was already entailed, extra backtracking should occur
+ * before doing conflict analysis and backtracking further). The IDsolver already does this, when using the
+ * heuristic to delay propagations.
+ */
+
 class AggSolver{
 public:
 	static AggSolver* aggsolver;
@@ -23,8 +32,7 @@ public:
 	virtual ~AggSolver();
 
 	/////////////////////SOLVER NECESSARY
-	bool 	simplify		();
-	void 	backtrack 		( Lit l);
+	void 	backtrack 		(const Lit& l);
 
 	/*
 	 * Returns the explanation for the deduction of p from an aggregate expression.
@@ -32,9 +40,9 @@ public:
 	 * @post the first element in the reason clause will be the literal itself (invariant by minisat!)
 	 * @post the clause is not saved, so HAS to be deleted after use
 	 */
-	Clause* getExplanation	(Lit p);
+	Clause* getExplanation	(const Lit& p);
 	void 	notifyVarAdded	(); 		//correctly initialize AMNSolver datastructures when vars are added
-	Clause* propagate	(Lit p);
+	Clause* propagate	(const Lit& p);
 	/////////////////////ENDSOLVER NECESSARY
 
 	/////////////////////IDSOLVER NECESSARY
@@ -103,7 +111,6 @@ public:
 	Clause* 		notifySATsolverOfPropagation(Lit p, AggrReason* cr);	// Like "enqueue", but for aggregate propagations.
 
 	// Debug:
-	void     printLit        (Lit l, lbool value);
 	void     printAggrExpr   (const Agg& ae);
 
     bool 	invalidateSum(vec<Lit>& invalidation, Var head);
@@ -120,7 +127,7 @@ protected:
 	vector<AggrMaxSet*>		aggrmaxsets;
 	vector<AggrSumSet*>		aggrsumsets;
 	vector<AggrProdSet*>	aggrprodsets;
-	int						aggr_exprs;		// The number of aggregate expression in the theory
+
 	vec<AggrReason*>		aggr_reason;	// For each atom, like 'reason'.
 	vec<vec<AggrWatch> >	aggr_watches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
 	vec<Agg*>				head_watches;
@@ -136,28 +143,22 @@ protected:
 	 *
 	 * @PRE: backtracking is in anti-chronologous order and all literals are visited!
 	 */
-	void 	doBacktrack(Lit l);
-	void 	backtrackOnePropagation(Agg& ae, Occurrence tp, int index);
+	void 	doBacktrack(const Lit& l);
 
 	Solver*		solver;
 	IDSolver*	idsolver;
 
 	bool		init;	//indicates whether still in initialization mode
-	bool		empty; 	//indicates no amn statements are present, so always return from T call
-
-	// NOTE: this adds an invariant to the system: each literal with a truth value is put on the trail only once.
 
 	/**
 	 * Goes through all watches and propagates the fact that p was set true.
 	 */
-	Clause* Aggr_propagate		(Lit p);
+	Clause* Aggr_propagate		(const Lit& p);
 
-	void 	findCycleSources	(Agg& v);
+	void 	findCycleSources	(const Agg& v) const;
 
-	int		nVars()      const;
-
-	void 	addMinAgg(bool defined, bool lower, int bound, Lit head, AggrSet& set);
-	void 	addMaxAgg(bool defined, bool lower, int bound, Lit head, AggrSet& set);
+	void 	minAggAsSAT(bool defined, bool lower, int bound, const Lit& head, const AggrSet& set);
+	void 	maxAggAsSAT(bool defined, bool lower, int bound, const Lit& head, const AggrSet& set);
 
 	void	finishSets(AggrSet* set);
 };
@@ -166,20 +167,12 @@ protected:
 //INLINE METHODS
 //=======================
 
-inline void AggSolver::backtrack ( Lit l){
-	if(init){
-		return;
-	}else{
-		doBacktrack(l);
-	}
+inline void AggSolver::backtrack (const Lit& l){
+	if(init){ return; }
+	doBacktrack(l);
 }
 
-//@pre: conflicts are empty
-inline bool AggSolver::simplify(){
-	return true;
-}
-
-inline Clause* AggSolver::propagate(Lit p){
+inline Clause* AggSolver::propagate(const Lit& p){
 	if (init) {return NULL;}
 	return Aggr_propagate(p);
 }
