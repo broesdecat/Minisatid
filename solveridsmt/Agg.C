@@ -130,7 +130,7 @@ Clause* Agg::propagateHead(Lit p){
  * MAX AGGREGATE *
  *****************/
 
-int AggrMaxSet::getBestPossible() {
+Weight AggrMaxSet::getBestPossible() {
 	return wlits.back().weight;
 }
 
@@ -155,7 +155,7 @@ void AggrMaxSet::removeFromPossibleSet(WLit l){
 	}
 }
 
-int	AggrMaxSet::getCombinedWeight(int first, int second){
+Weight	AggrMaxSet::getCombinedWeight(Weight first, Weight second){
 	return first>second?first:second;
 }
 
@@ -239,8 +239,8 @@ Clause* MaxAgg::propagate(bool headtrue) {
  * SUM AGGREGATE *
  *****************/
 
-int AggrSumSet::getBestPossible() {
-	int max = emptysetvalue;
+Weight AggrSumSet::getBestPossible() {
+	Weight max = emptysetvalue;
 	for (lwlv::iterator j = wlits.begin(); j < wlits.end(); j++) {
 		max += (*j).weight;
 	}
@@ -258,7 +258,7 @@ void AggrSumSet::removeFromPossibleSet(WLit l){
 /**
  * multi-set semantics!
  */
-int	AggrSumSet::getCombinedWeight(int first, int second){
+Weight	AggrSumSet::getCombinedWeight(Weight first, Weight second){
 	return first+second;
 }
 
@@ -276,8 +276,8 @@ WLit AggrSumSet::handleOccurenceOfBothSigns(WLit one, WLit two){
  * PRODUCT AGGREGATE *
  *********************/
 
-int AggrProdSet::getBestPossible() {
-	int max = emptysetvalue;
+Weight AggrProdSet::getBestPossible() {
+	Weight max = emptysetvalue;
 	for (lwlv::iterator j = wlits.begin(); j < wlits.end(); j++) {
 		max *= (*j).weight;
 	}
@@ -295,7 +295,7 @@ void AggrProdSet::removeFromPossibleSet(WLit l){
 /**
  * multi-set semantics!
  */
-int	AggrProdSet::getCombinedWeight(int first, int second){
+Weight	AggrProdSet::getCombinedWeight(Weight first, Weight second){
 	return first*second;
 }
 
@@ -344,7 +344,7 @@ Clause* SPAgg::propagateHead(bool headtrue){
 
 Clause* SPAgg::propagate(bool headtrue){
 	Clause* c = NULL;
-	int weightbound;
+	Weight weightbound(0);
 
 	//determine the lower bound of which weight literals to consider
 	if (headtrue) {
@@ -356,7 +356,7 @@ Clause* SPAgg::propagate(bool headtrue){
 				weightbound = bound/set->currentbestcertain;
 			}
 			//+1 because larger and not eq
-			weightbound++;
+			weightbound+=1;
 		}else{
 			if(sum){
 				//FIXME: calculations can easily overflow!
@@ -366,7 +366,7 @@ Clause* SPAgg::propagate(bool headtrue){
 				weightbound = bound==0?0:set->currentbestpossible/bound;
 			}
 			//+1 because larger and not eq
-			weightbound++;
+			weightbound+=1;
 		}
 	} else {
 		if(lower){
@@ -509,9 +509,8 @@ void MaxAgg::getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar){
  * false meaning that the literal has the opposite sign as compared to the set
  */
 void SPAgg::getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar){
-	int possiblesum, certainsum;
-	certainsum = set->emptysetvalue;
-	possiblesum = set->getBestPossible();
+	Weight certainsum = set->emptysetvalue;
+	Weight possiblesum = set->getBestPossible();
 
 	if(ar.type == POS){
 		if(sum){
@@ -758,7 +757,7 @@ bool SPAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentj
 	lwlv& lits = set->wlits;
 	bool justified = false;
 	if(lower){
-		int bestpossible = set->getBestPossible();
+		Weight bestpossible = set->getBestPossible();
 		for (lwlv::iterator i = lits.begin(); !justified && i < lits.end(); ++i) {
 			Lit& l = (*i).lit;
 			if(set->oppositeIsJustified(*i, currentjust, real)){
@@ -776,7 +775,7 @@ bool SPAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentj
 			}
 		}
 	}else{
-		int bestcertain = set->emptysetvalue;
+		Weight bestcertain = set->emptysetvalue;
 		for (lwlv::iterator i = lits.begin(); !justified && i < lits.end(); ++i) {
 			Lit l = (*i).lit;
 			if(set->isJustified(*i, currentjust, real)){

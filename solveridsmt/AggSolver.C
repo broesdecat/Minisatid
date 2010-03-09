@@ -425,12 +425,12 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head){
 	SumAgg* a = dynamic_cast<SumAgg*>(head_watches[head]);
 
 	if(verbosity>0){
-		reportf("Current optimum: %d\n", a->set->currentbestcertain);
+		reportf("Current optimum: %d\n", a->set->currentbestcertain.getValue());
 	}
 
 	a->bound = a->set->currentbestcertain + 1;
 
-	if(a->set->getBestPossible()==a->set->currentbestcertain){
+	if(a->set->getBestPossible()==a->set->currentbestcertain.getValue()){
 		return true;
 	}
 
@@ -449,14 +449,14 @@ void AggSolver::printAggrExpr(const Agg& ae){
 	if(ae.lower){
 		reportf(" <- %s{", ae.set->name.c_str());
 	}else{
-		reportf(" <- %d <= %s{", ae.bound, ae.set->name.c_str());
+		reportf(" <- %d <= %s{", ae.bound.getValue(), ae.set->name.c_str());
 	}
 	for (vector<int>::size_type i=0; i<ae.set->wlits.size(); ++i) {
-		reportf(" "); gprintLit(ae.set->wlits[i].lit, ae.set->wlits[i].value); reportf("(%d)",ae.set->wlits[i].weight);
+		reportf(" "); gprintLit(ae.set->wlits[i].lit, ae.set->wlits[i].value); reportf("(%d)",ae.set->wlits[i].weight.getValue());
 	}
 	if(ae.lower){
-		reportf(" } <= %d. Known values: bestcertain=%d, bestpossible=%d\n", ae.bound, ae.set->currentbestcertain, ae.set->currentbestpossible);
+		reportf(" } <= %d. Known values: bestcertain=%d, bestpossible=%d\n", ae.bound.getValue(), ae.set->currentbestcertain.getValue(), ae.set->currentbestpossible.getValue());
 	}else{
-		reportf(" }. Known values: bestcertain=%d, bestpossible=%d\n", ae.set->currentbestcertain, ae.set->currentbestpossible);
+		reportf(" }. Known values: bestcertain=%d, bestpossible=%d\n", ae.set->currentbestcertain.getValue(), ae.set->currentbestpossible.getValue());
 	}
 }

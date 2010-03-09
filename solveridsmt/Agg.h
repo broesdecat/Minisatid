@@ -27,29 +27,23 @@ typedef vector<PropagationInfo> lprop;
 enum AggrType {SUM, PROD, MIN, MAX};
 enum Occurrence {HEAD, POS, NEG};
 
-struct WLit {  // Weighted literal
-public:
-	Lit	lit;
-	int	weight;
-
-    WLit(Lit l, int w) : lit(l), weight(w) {}
-
-    bool operator<	(const WLit& p)		const { return weight < p.weight; }
-    bool operator<	(const int bound)	const { return weight < bound; }
-    bool operator==	(const WLit& p)		const { return weight == p.weight && lit==p.lit; }
-};
-
-
-//FIXME: introduced to prevent overflows etc
-class Weight{
+struct Weight{
 private:
-	const int weight;
+	int weight;
+
 public:
 	Weight(int w):weight(w){}
+	Weight(const Weight& w):weight(w.weight){}
 
-	bool operator <  (const Weight p) const { return weight < p.weight; }
-	Weight operator+ (const Weight p) const {
-		long lhs = weight;
+	bool operator <  (const Weight& p) const { return weight < p.weight; }
+	bool operator >  (const Weight& p) const { return weight > p.weight; }
+	bool operator <=  (const Weight& p) const { return weight <= p.weight; }
+	bool operator >=  (const Weight& p) const { return weight >= p.weight; }
+	bool operator==  (const Weight& p) const { return weight == p.weight; }
+	bool operator!=  (const Weight& p) const { return !(*this==p); }
+	const Weight operator+ (const Weight& p) {
+		return Weight(weight+p.weight);
+		/*long lhs = weight;
 		long rhs = p.weight;
 		long temp = rhs+lhs;
 		int val;
@@ -60,24 +54,65 @@ public:
 		}else{
 			val = temp;
 		}
-		return Weight(val);
+		return Weight(val);*/
 	}
+	const Weight operator- (const Weight& p) {
+		return Weight(weight-p.weight);
+	}
+	const Weight operator/ (const Weight& p) {
+		return Weight(weight/p.weight);
+	}
+	const Weight operator* (const Weight& p) {
+		return Weight(weight*p.weight);
+	}
+	Weight& operator+= (const Weight& p) {
+		weight+=p.weight;
+		return *this;
+	}
+	Weight& operator-= (const Weight& p) {
+		weight-=p.weight;
+		return *this;
+	}
+	Weight& operator/= (const Weight& p) {
+		weight/=p.weight;
+		return *this;
+	}
+	Weight& operator*= (const Weight& p) {
+		weight*=p.weight;
+		return *this;
+	}
+
+	int getValue() const{
+		return weight;
+	}
+};
+
+struct WLit {  // Weighted literal
+public:
+	Lit	lit;
+	Weight	weight;
+
+    WLit(Lit l, Weight w) : lit(l), weight(w) {}
+
+    bool operator<	(const WLit& p)		 const { return weight < p.weight; }
+    bool operator<	(const Weight& bound)const { return weight < bound; }
+    bool operator==	(const WLit& p)		 const { return weight == p.weight && lit==p.lit; }
 };
 
 struct WLV: public WLit{
 public:
 	lbool value;
 
-	WLV(Lit l, int w, lbool value) : WLit(l, w), value(value) {}
+	WLV(Lit l, Weight w, lbool value) : WLit(l, w), value(value) {}
 };
 
 struct PropagationInfo {	// Propagated literal
 	WLit        wlit;		// value(lit)==l_True.
     Occurrence  type;		// POS if the literal in the set became true, NEG otherwise
 							//		(and HEAD if the head was propagate)
-    long prevbestcertain, prevbestpossible; //values BEFORE the propagation was added
+    Weight prevbestcertain, prevbestpossible; //values BEFORE the propagation was added
 
-    PropagationInfo(Lit l, int w, Occurrence t, long prevcertain, long prevpossible) : wlit(WLit(l,w)), type(t), prevbestcertain(prevcertain), prevbestpossible(prevpossible) {}
+    PropagationInfo(Lit l, Weight w, Occurrence t, Weight prevcertain, Weight prevpossible) : wlit(WLit(l,w)), type(t), prevbestcertain(prevcertain), prevbestpossible(prevpossible) {}
 };
 
 struct AggrWatch {
@@ -91,18 +126,18 @@ struct AggrWatch {
 struct AggrReason {
     Agg*		expr;
     Occurrence	type;
-    int 		weight; //the index of the literal, in the weight set of expr, for which this is the reason (-1 if head)
+    Weight 		weight; //the index of the literal, in the weight set of expr, for which this is the reason (-1 if head)
 
-    AggrReason(Agg* e, Occurrence t, int weight) : expr(e), type(t), weight(weight) {}
+    AggrReason(Agg* e, Occurrence t, Weight weight) : expr(e), type(t), weight(weight) {}
 };
 
 //INVARIANT: the WLITset is stored sorted from smallest to largest weight!
 class AggrSet {
 public:
 	lagg	aggregates;
-	lwlv wlits;
+	lwlv 	wlits;
 
-    int currentbestcertain, currentbestpossible, emptysetvalue;
+    Weight currentbestcertain, currentbestpossible, emptysetvalue;
 			//current keeps the currently derived min and max bounds
 			//truecount is the number of literals certainly in the set
 
@@ -110,9 +145,9 @@ public:
 
     string name;
 
-    AggrSet(vec<Lit>& lits, vec<int>& weights){
+    AggrSet(vec<Lit>& lits, vec<int>& weights):currentbestcertain(0),currentbestpossible(0),emptysetvalue(0){
 		for (int i = 0; i < lits.size(); i++) {
-			wlits.push_back(WLV(lits[i], weights[i], l_Undef));
+			wlits.push_back(WLV(lits[i], Weight(weights[i]), l_Undef));
 		}
 		sort(wlits.begin(), wlits.end());
     };
@@ -130,10 +165,10 @@ public:
 	 */
 			void 	doSetReduction();
 	//Returns the weight a combined literal should have if both weights are in the set at the same time
-	virtual int	 	getCombinedWeight(int one, int two) = 0;
+	virtual Weight 	getCombinedWeight(Weight one, Weight two) = 0;
 	virtual WLit 	handleOccurenceOfBothSigns(WLit one, WLit two) = 0;
 
-	virtual int 	getBestPossible			() 		 = 0;
+	virtual Weight 	getBestPossible			() 		 = 0;
 	virtual void 	addToCertainSet			(WLit l) = 0;
 	virtual void 	removeFromPossibleSet	(WLit l) = 0;
 
@@ -145,14 +180,14 @@ public:
 class AggrMaxSet: public AggrSet{
 public:
 	AggrMaxSet(vec<Lit>& lits, vec<int>& weights):AggrSet(lits, weights){
-		emptysetvalue = std::numeric_limits<int>::min();
+		emptysetvalue = Weight(std::numeric_limits<int>::min());
 		name = "MAX";
 	};
 
-	virtual int	 	getCombinedWeight			(int one, int two);
+	virtual Weight 	getCombinedWeight(Weight one, Weight two);
 	virtual WLit 	handleOccurenceOfBothSigns	(WLit one, WLit two);
 
-	virtual int 	getBestPossible			();
+	virtual Weight 	getBestPossible			();
 	virtual void 	addToCertainSet			(WLit l);
 	virtual void 	removeFromPossibleSet	(WLit l);
 };
@@ -160,14 +195,14 @@ public:
 class AggrSumSet: public AggrSet{
 public:
 	AggrSumSet(vec<Lit>& lits, vec<int>& weights):AggrSet(lits, weights){
-		emptysetvalue = 0;
+		emptysetvalue = Weight(0);
 		name = "SUM";
 	};
 
-	virtual int	 	getCombinedWeight			(int one, int two);
+	virtual Weight 	getCombinedWeight(Weight one, Weight two);
 	virtual WLit 	handleOccurenceOfBothSigns	(WLit one, WLit two);
 
-	virtual int 	getBestPossible			();
+	virtual Weight 	getBestPossible			();
 	virtual void 	addToCertainSet			(WLit l);
 	virtual void 	removeFromPossibleSet	(WLit l);
 };
@@ -175,14 +210,14 @@ public:
 class AggrProdSet: public AggrSet{
 public:
 	AggrProdSet(vec<Lit>& lits, vec<int>& weights):AggrSet(lits, weights){
-		emptysetvalue = 1;
+		emptysetvalue = Weight(1);
 		name = "PROD";
 	};
 
-	virtual int	 	getCombinedWeight			(int one, int two);
+	virtual Weight 	getCombinedWeight(Weight one, Weight two);
 	virtual WLit 	handleOccurenceOfBothSigns	(WLit one, WLit two);
 
-	virtual int 	getBestPossible			();
+	virtual Weight 	getBestPossible			();
 	virtual void 	addToCertainSet			(WLit l);
 	virtual void 	removeFromPossibleSet	(WLit l);
 };
@@ -197,7 +232,7 @@ public:
 
 class Agg{
 public:
-	int			bound;
+	Weight		bound;
 	bool 		lower;
 
     Lit			head;
@@ -206,7 +241,7 @@ public:
 
     AggrSet* 	set;
 
-    Agg(bool lower, int bound, Lit head, AggrSet* set) :
+    Agg(bool lower, Weight bound, Lit head, AggrSet* set) :
 	    bound(bound), lower(lower), head(head), headindex(-1), headvalue(l_Undef), set(set) {
     }
 
