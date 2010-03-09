@@ -123,7 +123,7 @@ protected:
 
 	// ECNF_mode.aggr additions to Solver state:
 	//
-	vector<AggrMinSet*>		aggrminsets;
+	vector<AggrMaxSet*>		aggrminsets;
 	vector<AggrMaxSet*>		aggrmaxsets;
 	vector<AggrSumSet*>		aggrsumsets;
 	vector<AggrProdSet*>	aggrprodsets;
@@ -157,7 +157,6 @@ protected:
 
 	void 	findCycleSources	(const Agg& v) const;
 
-	void 	minAggAsSAT(bool defined, bool lower, int bound, const Lit& head, const AggrSet& set);
 	void 	maxAggAsSAT(bool defined, bool lower, int bound, const Lit& head, const AggrSet& set);
 
 	void	finishSets(AggrSet* set);

@@ -87,9 +87,10 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
 		reportf("Error: Set nr. %d is empty.\n",set_id), exit(3);
 	}
 	if(aggrminsets.size()>setindex && aggrminsets[setindex]!=NULL && aggrminsets[setindex]->wlits.size()!=0){
-		reportf("Error: Set nr. %d is defined more then once.\n",set_id), exit(3);
+		reportf("Error: Set nr. %d is defined more than once.\n",set_id), exit(3);
 	}
 	for(int i=0; i<weights.size(); i++){
+		//FIXME dit zou mogen bij de meeste behalve prod aggregaten?
 		if (weights[i] < 0) {
 			reportf("Error: Set nr. %d contains a negative weight, %d.\n",set_id,weights[i]), exit(3);
 		}
@@ -100,56 +101,15 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
 	assert(lits.size()==weights.size());
 
 	while(aggrminsets.size()<=setindex){
-		aggrminsets.push_back(new AggrMinSet(lits, weights));
 		aggrmaxsets.push_back(new AggrMaxSet(lits, weights));
 		aggrsumsets.push_back(new AggrSumSet(lits, weights));
 		aggrprodsets.push_back(new AggrProdSet(lits, weights));
-	}
-}
 
-/*
- * Two methods for doing reduction of min and max aggregates right to SAT(ID)
- * The main disadvantage of the method is when the same set is used very often (like in optimization problems, where
- * you will have one atom for the set being equal to each possible value) and there is few possibility of real optimizations there
- */
-/*
- * For a minimum: if lower,  head <=> disj of all literals with weight lower/eq than bound
- * 				  if higher, head <=> conj of negation of all literals with weight lower than bound
- */
-void AggSolver::minAggAsSAT(bool defined, bool lower, int bound, const Lit& head, const AggrSet& set){
-	vec<Lit> clause;
-
-	if(defined){
-		clause.push(head);
-		for(vector<int>::size_type i=0; i<set.wlits.size() && set.wlits[i].weight<=bound; i++){
-			if(set.wlits[i].weight==bound && !lower){
-				break;
-			}
-			if(lower){
-				clause.push(set.wlits[i].lit);
-			}else{
-				clause.push(~set.wlits[i].lit);
-			}
+		vec<int> weights2;
+		for(int i=0; i<weights.size(); i++){
+			weights2.push(-weights[i]);
 		}
-		idsolver->addRule(!lower, clause);
-	}else{
-		clause.push(lower?~head:head);
-		for(vector<int>::size_type i=0; i<set.wlits.size() && set.wlits[i].weight<=bound; i++){
-			if(set.wlits[i].weight==bound && !lower){
-				break;
-			}
-			clause.push(set.wlits[i].lit);
-		}
-		solver->addClause(clause);
-		for(vector<int>::size_type i=0; i<set.wlits.size() && set.wlits[i].weight<=bound; i++){
-			if(set.wlits[i].weight==bound && !lower){
-				break;
-			}
-			clause.clear();
-			clause.push(lower?head:~head);
-			clause.push(~set.wlits[i].lit);
-			solver->addClause(clause);
-		}
+		aggrminsets.push_back(new AggrMaxSet(lits, weights2));
 	}
 }
 
@@ -227,9 +187,9 @@ void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrTyp
 	Agg* ae;
 	switch(type){
 	case MIN:
-		//minAggAsSAT(defined, lower, bound, head, *aggrminsets[setindex]);
+		//maxAggAsSAT(defined, !lower, -bound, head, *aggrminsets[setindex]);
 		//return;
-		ae = new MinAgg(lower, bound, head, aggrminsets[setindex]);
+		ae = new MaxAgg(!lower, -bound, head, aggrminsets[setindex]);
 		break;
 	case MAX:
 		//maxAggAsSAT(defined, lower, bound, head, *aggrmaxsets[setindex]);
