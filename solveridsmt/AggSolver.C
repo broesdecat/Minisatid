@@ -89,14 +89,21 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
 	if(aggrminsets.size()>setindex && aggrminsets[setindex]!=NULL && aggrminsets[setindex]->wlits.size()!=0){
 		reportf("Error: Set nr. %d is defined more than once.\n",set_id), exit(3);
 	}
+
+	vec<int> weights2; //inverted weights to handle minimum as maximum
 	for(int i=0; i<weights.size(); i++){
+		weights2.push(-weights[i]);
+
 		//FIXME dit zou mogen bij de meeste behalve prod aggregaten?
 		if (weights[i] < 0) {
 			reportf("Error: Set nr. %d contains a negative weight, %d.\n",set_id,weights[i]), exit(3);
 		}
-	}
 
-	//TODO: add checks for bound lower than maxint and higher than minint
+		if(weights[i]==INT_MAX || weights[i]==INT_MIN){
+			//TODO: print only once
+			reportf("Warning: Possible loss of precision, at least one of the aggregate weights = +/- infinity.\n");
+		}
+	}
 
 	assert(lits.size()==weights.size());
 
@@ -104,11 +111,6 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
 		aggrmaxsets.push_back(new AggrMaxSet(lits, weights));
 		aggrsumsets.push_back(new AggrSumSet(lits, weights));
 		aggrprodsets.push_back(new AggrProdSet(lits, weights));
-
-		vec<int> weights2;
-		for(int i=0; i<weights.size(); i++){
-			weights2.push(-weights[i]);
-		}
 		aggrminsets.push_back(new AggrMaxSet(lits, weights2));
 	}
 }
@@ -170,12 +172,25 @@ void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrTyp
 		reportf("Error: Set nr. %d is used, but not defined yet.\n",setid), exit(3);
 	}
 
-	head_watches.growTo(headv+1);
-
 	//INVARIANT: it has to be guaranteed that there is a watch on ALL heads
-	if(head_watches[headv]!=NULL){
+	if(head_watches.size()>headv && head_watches[headv]!=NULL){
 		reportf("Error: Two aggregates have the same head(%d).\n", gprintVar(headv)), exit(3);
 	}
+
+	if(bound == INT_MAX || bound == INT_MIN){
+		if((bound == INT_MAX && !lower) || (bound==INT_MIN && lower)){
+			reportf("The semantics of (value<=-infinity) or (+infinity <= value) are undefined. "
+					"Please rewrite the aggregate with head %d.\n", gprintVar(headv));
+			exit(3);
+		}
+		reportf("An aggregate expression occurred with bound = +/- infinity. It was dropped.\n");
+		vec<Lit> lits;
+		lits.push(Lit(headv, false));
+		solver->addClause(lits);
+		return;
+	}
+
+	head_watches.growTo(headv+1);
 
 	//the head of the aggregate
 	Lit head = Lit(headv, false);

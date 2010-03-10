@@ -2,6 +2,50 @@
 #include "AggSolver.h"
 #include <algorithm>
 
+Weight& Weight::operator+= (const Weight& p) {
+	int temp = weight+p.weight;
+	if(INT_MAX-p.weight>=weight){
+		weight = temp;
+	}else{
+		reportf("ERROR! Loss of precision due to overflow in weight calculations.\n");exit(3);
+	}
+	return *this;
+}
+
+Weight& Weight::operator-= (const Weight& p) {
+	int temp = weight-p.weight;
+	if(INT_MIN+p.weight<=weight){
+		weight = temp;
+	}else{
+		reportf("ERROR! Loss of precision due to overflow in weight calculations.\n");exit(3);
+	}
+	return *this;
+}
+
+Weight& Weight::operator/= (const Weight& p) {
+	assert(p.weight!=0);
+	if((weight==INT_MAX || weight==INT_MIN) && (p.weight==INT_MAX || p.weight==INT_MIN)){
+		reportf("(+/-)infinity / (+/-)infinity is undefined.\n"); exit(3);
+	}
+	weight/=p.weight;
+	return *this;
+}
+
+Weight& Weight::operator*= (const Weight& p) {
+	if(p.weight==0 || weight==0){
+		weight = 0;
+	}else{
+		int temp = weight*p.weight;
+		bool lower = (weight>0 && p.weight<0) || (weight<0 && p.weight>0);
+		if((lower && INT_MIN/p.weight<=weight) || (!lower && INT_MAX/p.weight>=weight)){
+			weight = temp;
+		}else{
+			reportf("ERROR! Loss of precision due to overflow in weight calculations.\n");exit(3);
+		}
+	}
+	return *this;
+}
+
 //NOTE never use a decrementing vector iterator unless minding the 0 problem!!! (it is unsigned, so checking that
 //the number is still positive is wrong!
 

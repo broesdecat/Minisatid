@@ -75,10 +75,17 @@ static int parseInt(B& in) {
     if      (*in == '-') neg = true, ++in;
     else if (*in == '+') ++in;
     if (*in < '0' || *in > '9') reportf("PARSE ERROR! Unexpected char: %c\n", *in), exit(3);
-    while (*in >= '0' && *in <= '9')
-        val = val*10 + (*in - '0'),
-        ++in;
-    return neg ? -val : val; }
+    while (*in >= '0' && *in <= '9'){
+    	int c = (*in - '0');
+    	int temp = val;
+    	val = val*10 + c;
+    	if((INT_MAX-c)/10 < temp){
+    		reportf("PARSE ERROR! Integer overflow on a number (%d) in the theory.\n", val);exit(3);
+    	}
+		++in;
+    }
+    return neg ? -val : val;
+}
 
 template<class B>
 static void readClause(B& in, Solver* S, vec<Lit>& lits) {

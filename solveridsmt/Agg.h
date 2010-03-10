@@ -27,6 +27,10 @@ typedef vector<PropagationInfo> lprop;
 enum AggrType {SUM, PROD, MIN, MAX};
 enum Occurrence {HEAD, POS, NEG};
 
+/*
+ * Class to support checks for overflow on weight calculations. If overflow is detected, the program is exited.
+ * TODO: improve support for large integer or even floating points by using the GMP library (arbitrary size numbers).
+ */
 struct Weight{
 private:
 	int weight;
@@ -41,46 +45,30 @@ public:
 	bool operator >=  (const Weight& p) const { return weight >= p.weight; }
 	bool operator==  (const Weight& p) const { return weight == p.weight; }
 	bool operator!=  (const Weight& p) const { return !(*this==p); }
-	const Weight operator+ (const Weight& p) {
-		return Weight(weight+p.weight);
-		/*long lhs = weight;
-		long rhs = p.weight;
-		long temp = rhs+lhs;
-		int val;
-		if(INT_MAX < temp){
-			val = INT_MAX;
-		}else if(temp < INT_MIN){
-			val = INT_MIN;
-		}else{
-			val = temp;
-		}
-		return Weight(val);*/
+	const Weight operator+ (const Weight& p) const {
+		Weight result = *this;
+		result += p.weight;
+		return result;
 	}
-	const Weight operator- (const Weight& p) {
-		return Weight(weight-p.weight);
+	const Weight operator- (const Weight& p) const {
+		Weight result = *this;
+		result -= p.weight;
+		return result;
 	}
-	const Weight operator/ (const Weight& p) {
-		return Weight(weight/p.weight);
+	const Weight operator/ (const Weight& p) const {
+		Weight result = *this;
+		result /= p.weight;
+		return result;
 	}
-	const Weight operator* (const Weight& p) {
-		return Weight(weight*p.weight);
+	const Weight operator* (const Weight& p) const {
+		Weight result = *this;
+		result *= p.weight;
+		return result;
 	}
-	Weight& operator+= (const Weight& p) {
-		weight+=p.weight;
-		return *this;
-	}
-	Weight& operator-= (const Weight& p) {
-		weight-=p.weight;
-		return *this;
-	}
-	Weight& operator/= (const Weight& p) {
-		weight/=p.weight;
-		return *this;
-	}
-	Weight& operator*= (const Weight& p) {
-		weight*=p.weight;
-		return *this;
-	}
+	Weight& operator+= (const Weight& p);
+	Weight& operator-= (const Weight& p);
+	Weight& operator/= (const Weight& p);
+	Weight& operator*= (const Weight& p);
 
 	int getValue() const{
 		return weight;
