@@ -88,6 +88,21 @@ static int parseInt(B& in) {
 }
 
 template<class B>
+static Weight parseWeight(B& in) {
+    Weight	val(0);
+    bool	neg = false;
+    skipWhitespace(in);
+    if      (*in == '-') neg = true, ++in;
+    else if (*in == '+') ++in;
+    if (*in < '0' || *in > '9') reportf("PARSE ERROR! Unexpected char: %c\n", *in), exit(3);
+    while (*in >= '0' && *in <= '9'){
+    	val = val*10 + (*in - '0');
+		++in;
+    }
+    return neg ? -val : val;
+}
+
+template<class B>
 static void readClause(B& in, Solver* S, vec<Lit>& lits) {
     int     parsed_lit, var;
     lits.clear();
@@ -162,6 +177,7 @@ static void parse_Aggr(B& in, Solver* S, AggSolver* AGG, AggrType type) {
     while (defn >= S->nVars()) S->newVar();
     S->setDecisionVar(defn,true);
     int set_id = parseInt(in);
+    //Weight bound = parseWeight(in);
     int bound = parseInt(in);
     int zero = parseInt(in);
     if (zero != 0)
@@ -221,7 +237,10 @@ static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AggSolver* AGG) { //
                     if (*in == 'e' && match(in,"et")) {
                         int set_id = parseInt(in); // Note that set_id 0 cannot exist.
                         readClause(in, S, lits);
-                        vec<int> w(lits.size(),1); // Treat CARD as SUM with all weights =1.
+                        vector<Weight> w; // Treat CARD as SUM with all weights =1.
+                        for(int i=0; i<lits.size(); i++){
+                        	w.push_back(Weight(1));
+                        }
                         AGG->addSet(set_id,lits,w);
                     } else if (*in == 'u'){
 						++in;
@@ -257,7 +276,7 @@ static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AggSolver* AGG) { //
 
                         int     parsed_lit, var;
                         lits.clear();
-                        vec<int> weights;
+                        vector<Weight> weights;
                         for (;;){
                             parsed_lit = parseInt(in);
                             if (parsed_lit == 0) break;
@@ -268,8 +287,8 @@ static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AggSolver* AGG) { //
                             if (*in != '=')
                                 ParseError("Encountered weightless literal in \"WSet\" declaration.\n");
                             ++in;
-                            parsed_lit = parseInt(in);
-                            weights.push(parsed_lit);
+                            //weights.push(parseWeight(in));
+                            weights.push_back(parseWeight(in));
                         }
                         AGG->addSet(set_id,lits,weights);
                     } else

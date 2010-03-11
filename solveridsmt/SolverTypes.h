@@ -224,6 +224,14 @@ inline void Clause::strengthen(Lit p)
     calcAbstraction();
 }
 
+/*
+ * Arbitrary precision integers
+ */
+
+#include "BigInteger.hh"
+#include "BigIntegerUtils.hh"
+typedef BigInteger Weight;
+
 /******************
  * DEBUGGING INFO *
  ******************/

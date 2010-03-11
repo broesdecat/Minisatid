@@ -2,53 +2,6 @@
 #include "AggSolver.h"
 #include <algorithm>
 
-Weight& Weight::operator+= (const Weight& p) {
-	int temp = weight+p.weight;
-	if(INT_MAX-p.weight>=weight){
-		weight = temp;
-	}else{
-		reportf("ERROR! Loss of precision due to overflow in weight calculations.\n");exit(3);
-	}
-	return *this;
-}
-
-Weight& Weight::operator-= (const Weight& p) {
-	int temp = weight-p.weight;
-	if(INT_MIN+p.weight<=weight){
-		weight = temp;
-	}else{
-		reportf("ERROR! Loss of precision due to overflow in weight calculations.\n");exit(3);
-	}
-	return *this;
-}
-
-Weight& Weight::operator/= (const Weight& p) {
-	assert(p.weight!=0);
-	if((weight==INT_MAX || weight==INT_MIN) && (p.weight==INT_MAX || p.weight==INT_MIN)){
-		reportf("(+/-)infinity / (+/-)infinity is undefined.\n"); exit(3);
-	}
-	weight/=p.weight;
-	return *this;
-}
-
-Weight& Weight::operator*= (const Weight& p) {
-	if(p.weight==0 || weight==0){
-		weight = 0;
-	}else{
-		int temp = weight*p.weight;
-		bool lower = (weight>0 && p.weight<0) || (weight<0 && p.weight>0);
-		if((lower && INT_MIN/p.weight<=weight) || (!lower && INT_MAX/p.weight>=weight)){
-			weight = temp;
-		}else{
-			reportf("ERROR! Loss of precision due to overflow in weight calculations.\n");exit(3);
-		}
-	}
-	return *this;
-}
-
-//NOTE never use a decrementing vector iterator unless minding the 0 problem!!! (it is unsigned, so checking that
-//the number is still positive is wrong!
-
 void AggrSet::backtrack(int index) {
 	PropagationInfo pi = stack.back();
 	stack.pop_back();
@@ -147,9 +100,8 @@ void AggrSet::doSetReduction() {
 }
 
 void AggrSet::initialize(){
+	initEmptySetValue(); //important to do first!
 	doSetReduction();
-	//litvalue.growTo(wlits.size(), l_Undef); //only initialize after setreduction!
-
 	currentbestpossible = getBestPossible();
 	currentbestcertain = emptysetvalue;
 }
@@ -176,6 +128,10 @@ Clause* Agg::propagateHead(Lit p){
 
 Weight AggrMaxSet::getBestPossible() {
 	return wlits.back().weight;
+}
+
+void AggrMaxSet::initEmptySetValue(){
+	emptysetvalue = wlits.front().weight-Weight(1);
 }
 
 void AggrMaxSet::addToCertainSet(WLit l){
@@ -291,6 +247,10 @@ Weight AggrSumSet::getBestPossible() {
 	return max;
 }
 
+void AggrSumSet::initEmptySetValue(){
+	emptysetvalue = Weight(0);
+}
+
 void AggrSumSet::addToCertainSet(WLit l){
 	currentbestcertain += l.weight;
 }
@@ -326,6 +286,10 @@ Weight AggrProdSet::getBestPossible() {
 		max *= (*j).weight;
 	}
 	return max;
+}
+
+void AggrProdSet::initEmptySetValue(){
+	emptysetvalue = Weight(1);
 }
 
 void AggrProdSet::addToCertainSet(WLit l){
@@ -553,6 +517,9 @@ void MaxAgg::getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar){
  * false meaning that the literal has the opposite sign as compared to the set
  */
 void SPAgg::getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar){
+	getExplanationIgnoreHead(p, lits, ar, false);
+}
+void SPAgg::getExplanationIgnoreHead(Lit p, vec<Lit>& lits, AggrReason& ar, bool ignorehead){
 	Weight certainsum = set->emptysetvalue;
 	Weight possiblesum = set->getBestPossible();
 
@@ -590,7 +557,8 @@ void SPAgg::getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar){
 	}
 
 	int counter = 0;
-	for(lprop::iterator i=set->stack.begin(); !explained && i<set->stack.end() && ((ar.type==HEAD && counter<headindex) || var((*i).wlit.lit)!=var(p)); i++){
+	//FIXME: getting explanation for sum optimization is not possible because of check on headindex (which is not relevant then)
+	for(lprop::iterator i=set->stack.begin(); !explained && i<set->stack.end() && ((ar.type!=HEAD && var((*i).wlit.lit)!=var(p)) || ignorehead || counter<headindex); i++){
 		counter++;
 
 		bool push = false;

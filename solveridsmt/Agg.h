@@ -27,54 +27,6 @@ typedef vector<PropagationInfo> lprop;
 enum AggrType {SUM, PROD, MIN, MAX};
 enum Occurrence {HEAD, POS, NEG};
 
-/*
- * Class to support checks for overflow on weight calculations. If overflow is detected, the program is exited.
- * TODO: improve support for large integer or even floating points by using the GMP library (arbitrary size numbers).
- */
-struct Weight{
-private:
-	int weight;
-
-public:
-	Weight(int w):weight(w){}
-	Weight(const Weight& w):weight(w.weight){}
-
-	bool operator <  (const Weight& p) const { return weight < p.weight; }
-	bool operator >  (const Weight& p) const { return weight > p.weight; }
-	bool operator <=  (const Weight& p) const { return weight <= p.weight; }
-	bool operator >=  (const Weight& p) const { return weight >= p.weight; }
-	bool operator==  (const Weight& p) const { return weight == p.weight; }
-	bool operator!=  (const Weight& p) const { return !(*this==p); }
-	const Weight operator+ (const Weight& p) const {
-		Weight result = *this;
-		result += p.weight;
-		return result;
-	}
-	const Weight operator- (const Weight& p) const {
-		Weight result = *this;
-		result -= p.weight;
-		return result;
-	}
-	const Weight operator/ (const Weight& p) const {
-		Weight result = *this;
-		result /= p.weight;
-		return result;
-	}
-	const Weight operator* (const Weight& p) const {
-		Weight result = *this;
-		result *= p.weight;
-		return result;
-	}
-	Weight& operator+= (const Weight& p);
-	Weight& operator-= (const Weight& p);
-	Weight& operator/= (const Weight& p);
-	Weight& operator*= (const Weight& p);
-
-	int getValue() const{
-		return weight;
-	}
-};
-
 struct WLit {  // Weighted literal
 public:
 	Lit	lit;
@@ -133,9 +85,9 @@ public:
 
     string name;
 
-    AggrSet(vec<Lit>& lits, vec<int>& weights):currentbestcertain(0),currentbestpossible(0),emptysetvalue(0){
-		for (int i = 0; i < lits.size(); i++) {
-			wlits.push_back(WLV(lits[i], Weight(weights[i]), l_Undef));
+    AggrSet(vec<Lit>& lits, vector<Weight>& weights):currentbestcertain(0),currentbestpossible(0),emptysetvalue(0){
+    	for (int i = 0; i < lits.size(); i++) {
+			wlits.push_back(WLV(lits[i], weights[i], l_Undef));
 		}
 		sort(wlits.begin(), wlits.end());
     };
@@ -157,6 +109,7 @@ public:
 	virtual WLit 	handleOccurenceOfBothSigns(WLit one, WLit two) = 0;
 
 	virtual Weight 	getBestPossible			() 		 = 0;
+	virtual void 	initEmptySetValue		()		 = 0;
 	virtual void 	addToCertainSet			(WLit l) = 0;
 	virtual void 	removeFromPossibleSet	(WLit l) = 0;
 
@@ -167,8 +120,8 @@ public:
 
 class AggrMaxSet: public AggrSet{
 public:
-	AggrMaxSet(vec<Lit>& lits, vec<int>& weights):AggrSet(lits, weights){
-		emptysetvalue = Weight(std::numeric_limits<int>::min());
+	AggrMaxSet(vec<Lit>& lits, vector<Weight>& weights):AggrSet(lits, weights){
+		emptysetvalue = Weight(0);
 		name = "MAX";
 	};
 
@@ -176,13 +129,14 @@ public:
 	virtual WLit 	handleOccurenceOfBothSigns	(WLit one, WLit two);
 
 	virtual Weight 	getBestPossible			();
+	virtual void 	initEmptySetValue		();
 	virtual void 	addToCertainSet			(WLit l);
 	virtual void 	removeFromPossibleSet	(WLit l);
 };
 
 class AggrSumSet: public AggrSet{
 public:
-	AggrSumSet(vec<Lit>& lits, vec<int>& weights):AggrSet(lits, weights){
+	AggrSumSet(vec<Lit>& lits, vector<Weight>& weights):AggrSet(lits, weights){
 		emptysetvalue = Weight(0);
 		name = "SUM";
 	};
@@ -191,13 +145,14 @@ public:
 	virtual WLit 	handleOccurenceOfBothSigns	(WLit one, WLit two);
 
 	virtual Weight 	getBestPossible			();
+	virtual void 	initEmptySetValue		();
 	virtual void 	addToCertainSet			(WLit l);
 	virtual void 	removeFromPossibleSet	(WLit l);
 };
 
 class AggrProdSet: public AggrSet{
 public:
-	AggrProdSet(vec<Lit>& lits, vec<int>& weights):AggrSet(lits, weights){
+	AggrProdSet(vec<Lit>& lits, vector<Weight>& weights):AggrSet(lits, weights){
 		emptysetvalue = Weight(1);
 		name = "PROD";
 	};
@@ -206,6 +161,7 @@ public:
 	virtual WLit 	handleOccurenceOfBothSigns	(WLit one, WLit two);
 
 	virtual Weight 	getBestPossible			();
+	virtual void 	initEmptySetValue		();
 	virtual void 	addToCertainSet			(WLit l);
 	virtual void 	removeFromPossibleSet	(WLit l);
 };
@@ -258,7 +214,7 @@ public:
 
 class MaxAgg: public Agg {
 public:
-	MaxAgg(bool lower, int bound, Lit head, AggrMaxSet* set):
+	MaxAgg(bool lower, Weight bound, Lit head, AggrMaxSet* set):
 		Agg(lower, bound, head, set){
 		set->aggregates.push_back(this);
 	};
@@ -276,7 +232,7 @@ class SPAgg: public Agg {
 private:
 	bool sum;
 public:
-	SPAgg(bool lower, int bound, Lit head, AggrSet* set, bool sum):
+	SPAgg(bool lower, Weight bound, Lit head, AggrSet* set, bool sum):
 		Agg(lower, bound, head, set),sum(sum){
 	};
 
@@ -284,6 +240,7 @@ public:
 	Clause* propagate(bool headtrue);
 	Clause* propagateHead(bool headtrue);
 	void	getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar);
+	void	getExplanationIgnoreHead(Lit p, vec<Lit>& lits, AggrReason& ar, bool ignorehead);
 
 	void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
 	bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
@@ -291,7 +248,7 @@ public:
 
 class SumAgg: public SPAgg {
 public:
-	SumAgg(bool lower, int bound, Lit head, AggrSumSet* set):
+	SumAgg(bool lower, Weight bound, Lit head, AggrSumSet* set):
 		SPAgg(lower, bound, head, set, true){
 		set->aggregates.push_back(this);
 	};
@@ -299,7 +256,7 @@ public:
 
 class ProdAgg: public SPAgg {
 public:
-	ProdAgg(bool lower, int bound, Lit head, AggrProdSet* set):
+	ProdAgg(bool lower, Weight bound, Lit head, AggrProdSet* set):
 		SPAgg(lower, bound, head, set, false){
 		set->aggregates.push_back(this);
 	}

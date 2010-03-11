@@ -158,9 +158,9 @@ public:
     //
     bool    simplify	();		// Removes already satisfied clauses.
 
+    FILE*   res;					// Report results in this file.
     int     nb_models;				// Number of models wanted (all if N=0).
     int		modelsfound;
-    FILE*   res;					// Report results in this file.
 
     // Variable mode:
     // 

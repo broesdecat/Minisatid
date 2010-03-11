@@ -76,7 +76,7 @@ public:
 	 *
 	 * @remark: please ensure that all id numbers are used without gaps in the numbering.
 	 */
-	void    addSet       (int id, vec<Lit>& l, vec<int>& w);
+	void    addSet       (int id, vec<Lit>& l, vector<Weight>& w);
 
 	/**
 	 * Adds an aggregate of the given type with number defn for set set_id.
@@ -89,7 +89,7 @@ public:
 	 *
 	 * @pre: no weights==0 when using a product aggregate
 	 */
-	void    addAggrExpr  (int defn, int set_id, int bound, bool lower, AggrType type, bool defined);
+	void    addAggrExpr  (int defn, int set_id, Weight bound, bool lower, AggrType type, bool defined);
 
 	/**
 	 * Checks presence of aggregates and initializes all counters.
@@ -113,6 +113,7 @@ public:
 	// Debug:
 	void     printAggrExpr   (const Agg& ae);
 
+	void 	addMnmzSum(Var headv, int setid, bool lower);
     bool 	invalidateSum(vec<Lit>& invalidation, Var head);
 
 protected:
@@ -157,7 +158,7 @@ protected:
 
 	void 	findCycleSources	(const Agg& v) const;
 
-	void 	maxAggAsSAT(bool defined, bool lower, int bound, const Lit& head, const AggrSet& set);
+	void 	maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& head, const AggrSet& set);
 
 	void	finishSets(AggrSet* set);
 };

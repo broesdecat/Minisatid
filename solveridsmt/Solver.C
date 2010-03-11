@@ -892,7 +892,7 @@ void Solver::addSumMinimize(const Var head, const int setid){
 	vec<Lit> cl;
 	cl.push(Lit(head, false));
 	addClause(cl);
-	getAggSolver()->addAggrExpr(head, setid, INT_MIN, false, SUM, false);
+	getAggSolver()->addMnmzSum(head, setid, false);
 }
 
 /**
@@ -1114,6 +1114,9 @@ bool Solver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 			case SUMMNMZ:
 				//FIXME the invalidation turns out to be empty
 				optimumreached = getAggSolver()->invalidateSum(invalidation, head);
+				break;
+			case NONE:
+				assert(false);
 				break;
 			}
 

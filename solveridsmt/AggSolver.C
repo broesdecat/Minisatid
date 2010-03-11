@@ -80,7 +80,7 @@ void AggSolver::finishSets(AggrSet* s){
 	}
 }
 
-void AggSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
+void AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 	assert(set_id>0);
 	uint setindex = set_id-1;
 	if(lits.size()==0){
@@ -90,22 +90,16 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
 		reportf("Error: Set nr. %d is defined more than once.\n",set_id), exit(3);
 	}
 
-	vec<int> weights2; //inverted weights to handle minimum as maximum
-	for(int i=0; i<weights.size(); i++){
-		weights2.push(-weights[i]);
+	//vec<Weight> weights2; //inverted weights to handle minimum as maximum
+	vector<Weight> weights2;
+	for(vector<Weight>::iterator i=weights.begin(); i<weights.end(); i++){
+		weights2.push_back(-Weight(*i));
 
-		//FIXME dit zou mogen bij de meeste behalve prod aggregaten?
-		if (weights[i] < 0) {
-			reportf("Error: Set nr. %d contains a negative weight, %d.\n",set_id,weights[i]), exit(3);
-		}
-
-		if(weights[i]==INT_MAX || weights[i]==INT_MIN){
-			//TODO: print only once
-			reportf("Warning: Possible loss of precision, at least one of the aggregate weights = +/- infinity.\n");
+		//Required by the weight klasse om overflow te kunnen checken
+		if (*i < 0) {
+			reportf("Error: Set nr. %d contains a negative weight, %s.\n",set_id,bigIntegerToString(*i).c_str()), exit(3);
 		}
 	}
-
-	assert(lits.size()==weights.size());
 
 	while(aggrminsets.size()<=setindex){
 		aggrmaxsets.push_back(new AggrMaxSet(lits, weights));
@@ -121,7 +115,7 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vec<int>& weights) {
  *
  * IMPORTANT: counting down on vectors cannot check for i>= 0, because the type is UNSIGNED!
  */
-void AggSolver::maxAggAsSAT(bool defined, bool lower, int bound, const Lit& head, const AggrSet& set){
+void AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& head, const AggrSet& set){
 	vec<Lit> clause;
 
 	if(defined){
@@ -167,7 +161,7 @@ void AggSolver::maxAggAsSAT(bool defined, bool lower, int bound, const Lit& head
 	}
 }
 
-void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrType type, bool defined) {
+void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, AggrType type, bool defined) {
 	if (((vector<int>::size_type)setid) > aggrminsets.size() || aggrminsets[setid-1]==NULL || aggrminsets[setid-1]->wlits.size()==0) {
 		reportf("Error: Set nr. %d is used, but not defined yet.\n",setid), exit(3);
 	}
@@ -175,19 +169,6 @@ void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrTyp
 	//INVARIANT: it has to be guaranteed that there is a watch on ALL heads
 	if(head_watches.size()>headv && head_watches[headv]!=NULL){
 		reportf("Error: Two aggregates have the same head(%d).\n", gprintVar(headv)), exit(3);
-	}
-
-	if(bound == INT_MAX || bound == INT_MIN){
-		if((bound == INT_MAX && !lower) || (bound==INT_MIN && lower)){
-			reportf("The semantics of (value<=-infinity) or (+infinity <= value) are undefined. "
-					"Please rewrite the aggregate with head %d.\n", gprintVar(headv));
-			exit(3);
-		}
-		reportf("An aggregate expression occurred with bound = +/- infinity. It was dropped.\n");
-		vec<Lit> lits;
-		lits.push(Lit(headv, false));
-		solver->addClause(lits);
-		return;
 	}
 
 	head_watches.growTo(headv+1);
@@ -231,16 +212,33 @@ void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrTyp
 		exit(3);
 	}
 
-	//FIXME: de behandeling van deze head watches overal verspreiden (naast aggr_watches deze ook gebruiken, of
-	//afh van de situatie zelfs alleen deze)!
-	//FIXME 2: maar 1 datastructuur voor de verschillende soorten sets (en de type safety wat verminderen)
-	//FIXME 3: in het aggregaat zelf dan opslaan wat de size was van de stack toen de head afgeleid werd
 	head_watches[var(head)] = ae;
 
 	if(defined){ //add as definition to use definition semantics
 		//notify the id solver that a new aggregate definition has been added
 		idsolver->notifyAggrHead(var(head));
 	}
+}
+
+//FIXME no optimizations should take place on mnmz aggregates (partially helped by separate add method).
+void AggSolver::addMnmzSum(Var headv, int setid, bool lower) {
+	if (((vector<int>::size_type)setid) > aggrminsets.size() || aggrminsets[setid-1]==NULL || aggrminsets[setid-1]->wlits.size()==0) {
+		reportf("Error: Set nr. %d is used, but not defined yet.\n",setid), exit(3);
+	}
+
+	if(head_watches.size()>headv && head_watches[headv]!=NULL){
+		reportf("Error: Two aggregates have the same head(%d).\n", gprintVar(headv)), exit(3);
+	}
+
+	head_watches.growTo(headv+1);
+
+	//the head of the aggregate
+	Lit head = Lit(headv, false);
+	assert(setid>0);
+	uint setindex = setid-1;
+
+	Agg* ae = new SumAgg(lower, lower?INT_MAX:INT_MIN, head, aggrsumsets[setindex]);
+	head_watches[var(head)] = ae;
 }
 
 /**
@@ -440,17 +438,17 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head){
 	SumAgg* a = dynamic_cast<SumAgg*>(head_watches[head]);
 
 	if(verbosity>0){
-		reportf("Current optimum: %d\n", a->set->currentbestcertain.getValue());
+		reportf("Current optimum: %s\n", bigIntegerToString(a->set->currentbestcertain).c_str());
 	}
 
 	a->bound = a->set->currentbestcertain + 1;
 
-	if(a->set->getBestPossible()==a->set->currentbestcertain.getValue()){
+	if(a->set->getBestPossible()==a->set->currentbestcertain){
 		return true;
 	}
 
 	AggrReason* reason = new AggrReason(a, HEAD, -1);
-	a->getExplanation(~a->head, invalidation, *reason);
+	a->getExplanationIgnoreHead(~a->head, invalidation, *reason, true);
 	delete reason;
 
 	return false;
@@ -464,14 +462,14 @@ void AggSolver::printAggrExpr(const Agg& ae){
 	if(ae.lower){
 		reportf(" <- %s{", ae.set->name.c_str());
 	}else{
-		reportf(" <- %d <= %s{", ae.bound.getValue(), ae.set->name.c_str());
+		reportf(" <- %s <= %s{", bigIntegerToString(ae.bound).c_str(), ae.set->name.c_str());
 	}
 	for (vector<int>::size_type i=0; i<ae.set->wlits.size(); ++i) {
-		reportf(" "); gprintLit(ae.set->wlits[i].lit, ae.set->wlits[i].value); reportf("(%d)",ae.set->wlits[i].weight.getValue());
+		reportf(" "); gprintLit(ae.set->wlits[i].lit, ae.set->wlits[i].value); reportf("(%s)",bigIntegerToString(ae.set->wlits[i].weight).c_str());
 	}
 	if(ae.lower){
-		reportf(" } <= %d. Known values: bestcertain=%d, bestpossible=%d\n", ae.bound.getValue(), ae.set->currentbestcertain.getValue(), ae.set->currentbestpossible.getValue());
+		reportf(" } <= %s. Known values: bestcertain=%s, bestpossible=%s\n", bigIntegerToString(ae.bound).c_str(), bigIntegerToString(ae.set->currentbestcertain).c_str(), bigIntegerToString(ae.set->currentbestpossible).c_str());
 	}else{
-		reportf(" }. Known values: bestcertain=%d, bestpossible=%d\n", ae.set->currentbestcertain.getValue(), ae.set->currentbestpossible.getValue());
+		reportf(" }. Known values: bestcertain=%s, bestpossible=%s\n", bigIntegerToString(ae.set->currentbestcertain).c_str(), bigIntegerToString(ae.set->currentbestpossible).c_str());
 	}
 }
