@@ -171,9 +171,11 @@ static void parse_Aggr(B& in, Solver* S, AggSolver* AGG, AggrType type) {
 	++in;
 
     int defn = parseInt(in);
-    if (defn<=0)
-        ParseError("Defining literal of aggregate expression has to be an atom (found %d).\n",defn);
-    else defn--;
+    if (defn<=0){
+    	ParseError("Defining literal of aggregate expression has to be an atom (found %d).\n",defn);
+    }else{
+    	defn--; //to make it a var
+    }
     while (defn >= S->nVars()) S->newVar();
     S->setDecisionVar(defn,true);
     int set_id = parseInt(in);
@@ -248,8 +250,8 @@ static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AggSolver* AGG) { //
 							if(*in==' ' || *in=='C' || *in=='D'){
 								parse_Aggr(in, S, AGG, SUM);
 							}else if(match(in, "Mnmz")){ //SumMnmz
-								int head = parseInt(in);
-								 while (head >= S->nVars()) S->newVar();
+								Var head = parseInt(in) - 1; //-1 to make it a var
+								while (head >= S->nVars()) S->newVar();
 								S->setDecisionVar(head,true); // S.nVars()-1   or   var
 								int setid = parseInt(in);
 								int zero = parseInt(in);

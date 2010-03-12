@@ -221,6 +221,7 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 }
 
 //FIXME no optimizations should take place on mnmz aggregates (partially helped by separate add method).
+//FIXME 2 more optimization should/could take place on other aggregates
 void AggSolver::addMnmzSum(Var headv, int setid, bool lower) {
 	if (((vector<int>::size_type)setid) > aggrminsets.size() || aggrminsets[setid-1]==NULL || aggrminsets[setid-1]->wlits.size()==0) {
 		reportf("Error: Set nr. %d is used, but not defined yet.\n",setid), exit(3);
