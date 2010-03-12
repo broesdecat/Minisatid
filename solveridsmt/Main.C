@@ -204,39 +204,46 @@ static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AggSolver* AGG) { //
 //////////////////START OF EXTENSIONS
 				case 'C':
                     if (match(in,"Card")){
+                    	if(!modes.aggr){ throw NoAggrAllowedExc();}
                     	parse_Aggr(in, S, AGG, SUM);
                     }else { // conjunctive rule.
+                    	if(!modes.def){ throw NoDefAllowedExc();}
                         ++in;
                         readClause(in, S, lits);
                         TS->addRule(true, lits);
                     }
                     break;
                 case 'D': // disjunctive rule.
+                	if(!modes.def){ throw NoDefAllowedExc();}
                     ++in;
                     readClause(in, S, lits);
                     TS->addRule(false, lits);
                     break;
                 case 'M':
                     ++in;
-                    if (*in == 'i' && match(in,"in"))
+                    if (*in == 'i' && match(in,"in")){
+                    	if(!modes.aggr){ throw NoAggrAllowedExc();}
                         parse_Aggr(in, S, AGG, MIN);
-                    else if (*in == 'a' && match(in,"ax"))
+                    }else if (*in == 'a' && match(in,"ax")){
+                    	if(!modes.aggr){ throw NoAggrAllowedExc();}
                         parse_Aggr(in, S, AGG, MAX);
-                    else if (*in == 'n' && match(in,"nmz")) {
+                    }else if (*in == 'n' && match(in,"nmz")) {
                         readClause(in, S, lits);
                         S->addMinimize(lits, false);
                     }else
                         ParseError("Unexpected char '%c' after 'M' (expecting \"Min\", \"Max\" or \"Mnmz\").\n",*in);
                     break;
                 case 'P':
-                    if (match(in,"Prod"))
+                    if (match(in,"Prod")){
+                    	if(!modes.aggr){ throw NoAggrAllowedExc();}
                         parse_Aggr(in, S, AGG, PROD);
-                    else
+                    }else
                         ParseError("Unexpected char '%c' after 'P' (expecting \"Prod\").\n",*in);
                     break;
                 case 'S':
                     ++in;
                     if (*in == 'e' && match(in,"et")) {
+                    	if(!modes.aggr){ throw NoAggrAllowedExc();}
                         int set_id = parseInt(in); // Note that set_id 0 cannot exist.
                         readClause(in, S, lits);
                         vector<Weight> w; // Treat CARD as SUM with all weights =1.
@@ -245,6 +252,7 @@ static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AggSolver* AGG) { //
                         }
                         AGG->addSet(set_id,lits,w);
                     } else if (*in == 'u'){
+                    	if(!modes.aggr){ throw NoAggrAllowedExc();}
 						++in;
 						if(*in == 'm' && match(in, "m")){
 							if(*in==' ' || *in=='C' || *in=='D'){
@@ -274,6 +282,7 @@ static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AggSolver* AGG) { //
                     break;
                 case 'W':
                     if (match(in,"WSet")) {
+                    	if(!modes.aggr){ throw NoAggrAllowedExc();}
                         int set_id = parseInt(in); // Note that set_id 0 cannot exist.
 
                         int     parsed_lit, var;
@@ -352,15 +361,9 @@ static void parse_main(B& in, Solver* S, IDSolver* TS, AggSolver* AGG) {
                         if (verbosity>=1)
                             reportf("|    May contain inductive definitions.                                       |\n");
                         modes.def = true;
-                    } else if (*in=='e' && match(in,"eu")) {
-                        if (verbosity>=1)
-                            reportf("|    May contain exists unique statements (registered as at-most-one).        |\n");
                     } else if (*in=='a') {
                         ++in;
-                        if (*in=='m' && match(in,"mo")) {
-                            if (verbosity>=1)
-                                reportf("|    May contain at most one statements                                  |\n");
-                        } else if (*in=='g' && match(in,"ggr")) {
+                        if (*in=='g' && match(in,"ggr")) {
                             if (verbosity>=1)
                                 reportf("|    May contain aggregate expressions.                                       |\n");
                             modes.aggr = true;
@@ -646,14 +649,15 @@ int main(int argc, char** argv)
 		if(modes.aggr){
 			delete AggS;
 		}
-	}catch(int e){
-		if(e==memOVERFLOW){
-			reportf("Memory overflow");
-			exit(33);
-		}else if(e==theoryUNSAT){
-			reportf("Theory UNSAT");
-			ret=false;
-		}
+	}catch(bad_alloc e){ //FIXME: handle all these elegantly
+		reportf("Memory overflow, cannot continue solving.\n"); exit(3);
+	}catch(UNSAT){
+		reportf("Always UNSAT\n");
+		ret = false;
+	}catch(NoDefAllowedExc){
+		reportf("Theory header did not contain definition specifier, but the theory contained definitions.\n"); exit(3);
+	}catch(NoAggrAllowedExc){
+		reportf("Theory header did not contain aggregate specifier, but the theory contained aggregates.\n"); exit(3);
 	}
 
 #ifdef NDEBUG

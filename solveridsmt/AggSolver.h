@@ -115,6 +115,7 @@ public:
 
 	void 	addMnmzSum(Var headv, int setid, bool lower);
     bool 	invalidateSum(vec<Lit>& invalidation, Var head);
+    void 	propagateMnmz(Var head);
 
 protected:
 	/**

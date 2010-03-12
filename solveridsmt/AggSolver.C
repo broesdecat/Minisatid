@@ -318,7 +318,7 @@ Clause* AggSolver::getExplanation(const Lit& p) {
 	AggrReason& ar = *aggr_reason[var(p)];
 
 	//get the explanation from the aggregate expression
-	ar.expr->getExplanation(p, lits, ar);
+	ar.expr->getExplanation(lits, ar);
 
 	//create a conflict clause and return it
 	Clause* c = Clause_new(lits, true);
@@ -448,11 +448,18 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head){
 		return true;
 	}
 
-	AggrReason* reason = new AggrReason(a, HEAD, -1);
-	a->getExplanationIgnoreHead(~a->head, invalidation, *reason, true);
-	delete reason;
+	a->getMinimExplan(invalidation);
 
 	return false;
+}
+
+/**
+ * FIXME:
+ * has to be called after each solution has been found, just before starting to search
+ */
+void AggSolver::propagateMnmz(Var head){
+	SumAgg* a = dynamic_cast<SumAgg*>(head_watches[head]);
+	a->propagateHead(true);
 }
 
 //=================================================================================================

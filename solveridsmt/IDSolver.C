@@ -114,7 +114,7 @@ bool IDSolver::simplify(){
 		if (seen[v] > 0 || isFalse(v)) {
 			if(verbosity >= 2){ reportf(" %d", gprintVar(v)); }
 			if(isTrue(v)){
-				throw theoryUNSAT;
+				throw UNSAT();
 			}else if(isUnknown(v)){
 				solver->setTrue(createNegativeLiteral(v), NULL);
 			}
@@ -257,7 +257,7 @@ void IDSolver::addRule(bool conj, vec<Lit>& ps) {
 	if (ps.size() == 1) {
 		Lit head = conj?ps[0]:~ps[0]; //empty set conj = true, empty set disj = false
 		if (isFalse(head)){
-			throw theoryUNSAT;
+			throw UNSAT();
 		}
 		vec<Lit> v;
 		v.push(head);

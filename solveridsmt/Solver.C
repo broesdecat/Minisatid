@@ -1008,13 +1008,11 @@ try{
 		reportf("===============================================================================\n");
 	}
 
-	}catch(int x){
-		if(x==theoryUNSAT){
-			//FIXME:
-			reportf("Dit staat nog op de verkeerde plaats");
-			assert(false);
-			solved = false;
-		}
+	}catch(UNSAT x){
+		//FIXME:
+		reportf("Dit staat nog op de verkeerde plaats");
+		assert(false);
+		solved = false;
 	}
 	return solved;
 }
@@ -1088,6 +1086,10 @@ bool Solver::invalidateValue(vec<Lit>& invalidation){
 bool Solver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 	bool rslt = true, hasmodels = false, optimumreached = false;
 	while(!optimumreached && rslt){
+		if(optim==SUMMNMZ){
+			//Noodzakelijk om de aanpassingen aan de bound door te propageren.
+			aggsolver->propagateMnmz(head);
+		}
 		rslt = solve(assmpt);
 
 		if(rslt && !optimumreached){

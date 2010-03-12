@@ -21,14 +21,20 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #ifndef SolverTypes_h
 #define SolverTypes_h
 
+#include <exception>
+
 #include <cstdio>
 #include <string>
 #include <cassert>
 #include <stdint.h>
 #include "Alg.h"
 
-#define theoryUNSAT 20
-#define memOVERFLOW 33
+class ParseExc: public std::exception{ };
+class NoDefAllowedExc: public ParseExc{ };
+class NoAggrAllowedExc: public ParseExc{ };
+
+class UNSAT: public std::exception { };
+
 
 enum POLARITY { polarity_true = 0, polarity_false = 1, polarity_user = 2, polarity_rnd = 3 };
 
@@ -152,7 +158,6 @@ public:
         assert(sizeof(Lit)      == sizeof(uint32_t));
         assert(sizeof(float)    == sizeof(uint32_t));
         void* mem = malloc(sizeof(Clause) + sizeof(uint32_t)*(ps.size()));
-        if(mem==NULL) throw memOVERFLOW;
         return new (mem) Clause(ps, learnt); }
 
     int          size        ()      const   { return size_etc >> 3; }

@@ -65,10 +65,9 @@ struct AggrWatch {
 
 struct AggrReason {
     Agg*		expr;
-    Occurrence	type;
-    Weight 		weight; //the index of the literal, in the weight set of expr, for which this is the reason (-1 if head)
+    int 		index;
 
-    AggrReason(Agg* e, Occurrence t, Weight weight) : expr(e), type(t), weight(weight) {}
+    AggrReason(Agg* e, int index) : expr(e), index(index) {}
 };
 
 //INVARIANT: the WLITset is stored sorted from smallest to largest weight!
@@ -205,7 +204,8 @@ public:
      * which is equivalent with the clause bigvee{~l|l in L+} or p
      * and this is returned as the set {~l|l in L+}
      */
-	virtual void	getExplanation	(Lit p, vec<Lit>& lits, AggrReason& ar) = 0;
+    virtual void	getExplanation	(vec<Lit>& lits, AggrReason& ar) = 0;
+	//virtual void	getExplanation	(Lit p, vec<Lit>& lits, AggrReason& ar) = 0;
 
 			void 	becomesCycleSource(vec<Lit>& nj) const;
 	virtual void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) = 0;
@@ -222,7 +222,8 @@ public:
 	lbool 	canPropagateHead();
 	Clause* propagate(bool headtrue);
 	Clause* propagateHead(bool headtrue);
-	void	getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar);
+	//void	getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar);
+	void	getExplanation(vec<Lit>& lits, AggrReason& ar);
 
 	void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
 	bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
@@ -239,8 +240,8 @@ public:
 	lbool 	canPropagateHead();
 	Clause* propagate(bool headtrue);
 	Clause* propagateHead(bool headtrue);
-	void	getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar);
-	void	getExplanationIgnoreHead(Lit p, vec<Lit>& lits, AggrReason& ar, bool ignorehead);
+	//void	getExplanation(Lit p, vec<Lit>& lits, AggrReason& ar);
+	void	getExplanation(vec<Lit>& lits, AggrReason& ar);
 
 	void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
 	bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
@@ -252,6 +253,8 @@ public:
 		SPAgg(lower, bound, head, set, true){
 		set->aggregates.push_back(this);
 	};
+
+	void	getMinimExplan(vec<Lit>& lits);
 };
 
 class ProdAgg: public SPAgg {
