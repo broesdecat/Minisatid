@@ -17,9 +17,9 @@ void AggSolver::notifyVarAdded(){
 	aggr_reason.push(NULL);
 }
 
-inline Agg& AggSolver::getAggWithHeadOccurence(Var v) const{
+inline weak_ptr<Agg> AggSolver::getAggWithHeadOccurence(Var v) const{
 	assert(head_watches[v]!=NULL);
-	return *head_watches[v];
+	return head_watches[v];
 }
 
 bool AggSolver::finishECNF_DataStructures() {
@@ -172,20 +172,20 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 
 	//add if really useful varBumpActivity(var(c)); // These guys ought to be initially a bit more important then the rest.
 
-	Agg* ae;
+	boost::shared_ptr<Agg> ae;
 	switch(type){
 	case MIN:
 		//maxAggAsSAT(defined, !lower, -bound, head, *aggrminsets[setindex]);
 		//return;
-		ae = new MaxAgg(!lower, -bound, head, aggrminsets[setindex]);
+		ae = boost::shared_ptr<Agg>(new MaxAgg(!lower, -bound, head, aggrminsets[setindex]));
 		break;
 	case MAX:
 		//maxAggAsSAT(defined, lower, bound, head, *aggrmaxsets[setindex]);
 		//return;
-		ae = new MaxAgg(lower, bound, head, aggrmaxsets[setindex]);
+		ae = boost::shared_ptr<Agg>(new MaxAgg(lower, bound, head, aggrmaxsets[setindex]));
 		break;
 	case SUM:
-		ae = new SumAgg(lower, bound, head, aggrsumsets[setindex]);
+		ae = boost::shared_ptr<Agg>(new SumAgg(lower, bound, head, aggrsumsets[setindex]));
 		break;
 	case PROD:
 		//NOTE this can be solved by taking 0 out of the set and making the necessary transformations
@@ -196,7 +196,7 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 						"be used in combination with a product aggregate\n", setid), exit(3);
 			}
 		}
-		ae = new ProdAgg(lower, bound, head, aggrprodsets[setindex]);
+		ae = shared_ptr<Agg>(new ProdAgg(lower, bound, head, aggrprodsets[setindex]));
 		break;
 	default:
 		assert(false);
@@ -204,12 +204,14 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 		exit(3);
 	}
 
-	head_watches[var(head)] = ae;
+	head_watches[var(head)] = boost::weak_ptr<Agg>(ae);
 
 	if(defined){ //add as definition to use definition semantics
 		//notify the id solver that a new aggregate definition has been added
 		idsolver->notifyAggrHead(var(head));
 	}
+
+	aggregates.push_back(ae);
 }
 
 //FIXME no optimizations should take place on mnmz aggregates (partially helped by separate add method).
@@ -461,7 +463,7 @@ void AggSolver::propagateMnmz(Var head){
 //=================================================================================================
 // Debug + etc:
 
-void AggSolver::printAggrExpr(const Agg& ae){
+void AggSolver::printAggrExpr(weak_ptr<Agg> ae){
 	gprintLit(ae.getHead(), ae.getHeadValue());
 	const AggrSet* set = ae.getSet();
 	if(ae.isLower()){

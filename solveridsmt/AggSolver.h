@@ -112,7 +112,7 @@ public:
 	Clause* 		notifySATsolverOfPropagation(const Lit& p, AggrReason* cr);	// Like "enqueue", but for aggregate propagations.
 
 	// Debug:
-	void     printAggrExpr   (const Agg& ae);
+	void     printAggrExpr   (boost::weak_ptr<Agg> ae);
 
 	void 	addMnmzSum(Var headv, int setid, bool lower);
     bool 	invalidateSum(vec<Lit>& invalidation, Var head);
@@ -122,7 +122,7 @@ protected:
 	/**
 	 * Returns the watch set on the aggregate in which the given variable is the head.
 	 */
-	Agg& 			getAggWithHeadOccurence	(Var v) const;
+    boost::weak_ptr<Agg>	getAggWithHeadOccurence	(Var v) const;
 
 	// ECNF_mode.aggr additions to Solver state:
 	//
@@ -133,7 +133,8 @@ protected:
 
 	vec<AggrReason*>		aggr_reason;	// For each atom, like 'reason'.
 	vec<vec<AggrWatch> >	aggr_watches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
-	vec<Agg*>				head_watches;
+	vec<boost::weak_ptr<Agg> >		head_watches;
+	vector<boost::shared_ptr<Agg> > aggregates;	//A vector to store all created aggregates as shared pointers, to allow easy destruction in the end
 			//INVARIANT: if a literal is defined by an aggregate, the watch on the expression in which it is head
 			//	will be the first element of its watches list
 
@@ -158,7 +159,7 @@ protected:
 	 */
 	Clause* Aggr_propagate		(const Lit& p);
 
-	void 	findCycleSources	(const Agg& v) const;
+	void 	findCycleSources	(boost::weak_ptr<Agg>) const;
 
 	void 	maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& head, const AggrSet& set);
 

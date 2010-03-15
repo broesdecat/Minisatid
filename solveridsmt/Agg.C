@@ -33,20 +33,21 @@ Clause* AggrSet::propagate(const Lit& p, const AggrWatch& ws){
 
 Clause* AggrSet::propagateBodies(){
 	Clause* confl = NULL;
-	for(lagg::const_iterator i=getAggBegin(); i<getAggEnd() && confl==NULL; i++){
-		lbool hv = (*i)->getHeadValue();
+	for(lwagg::const_iterator i=getAggBegin(); i<getAggEnd() && confl==NULL; i++){
+		boost::shared_ptr<Agg> pAgg = boost::shared_ptr<Agg>(*i);
+		lbool hv = pAgg->getHeadValue();
 		if(hv != l_Undef){ //head is already known
-			lbool result = (*i)->canPropagateHead();
+			lbool result = pAgg->canPropagateHead();
 			if(result!=l_Undef && result!=hv){
 				//conflict!
-				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(result==l_True?(*i)->getHead():~(*i)->getHead(), new AggrReason(**i, (*i)->getHeadIndex()));
+				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(result==l_True?pAgg->getHead():~pAgg->getHead(), new AggrReason(*i, pAgg->getHeadIndex()));
 			}else{
-				confl = (*i)->propagate(hv==l_True);
+				confl = pAgg->propagate(hv==l_True);
 			}
 		}else{ //head is not yet known, so at most the head can be propagated
-			lbool result = (*i)->canPropagateHead();
+			lbool result = pAgg->canPropagateHead();
 			if(result!=l_Undef){
-				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(result==l_True?(*i)->getHead():~(*i)->getHead(), new AggrReason(**i, (*i)->getHeadIndex()));
+				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(result==l_True?pAgg->getHead():~pAgg->getHead(), new AggrReason(*i, pAgg->getHeadIndex()));
 			}
 		}
 	}
@@ -200,13 +201,13 @@ Clause* MaxAgg::propagateHead(bool headtrue) {
 	if (headtrue && lower) {
 		lwlv::const_reverse_iterator i=set->getWLRBegin();
 		while( confl == NULL && i<set->getWLREnd() && bound<(*i).getWeight()){
-			confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(*this, set->getStackSize()));
+			confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(getAgg(), set->getStackSize()));
 			i++;
 		}
 	}else if(!headtrue && !lower){
 		lwlv::const_reverse_iterator i=set->getWLRBegin();
 		while( confl == NULL && i<set->getWLREnd() && bound<=(*i).getWeight()){
-			confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(*this, set->getStackSize()));
+			confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(getAgg(), set->getStackSize()));
 			i++;
 		}
 	}
@@ -246,7 +247,7 @@ Clause* MaxAgg::propagate(bool headtrue) {
 		}
 	}
 	if(exactlyoneleft){
-		confl = AggSolver::aggsolver->notifySATsolverOfPropagation((*pos).getLit(), new AggrReason(*this, set->getStackSize()));
+		confl = AggSolver::aggsolver->notifySATsolverOfPropagation((*pos).getLit(), new AggrReason(getAgg(), set->getStackSize()));
 	}
 	return confl;
 }
@@ -414,10 +415,10 @@ Clause* SPAgg::propagate(bool headtrue){
 		if ((*u).getValue()==l_Undef) {//if already propagated as an aggregate, then those best-values have already been adapted
 			if((lower && headtrue) || (!lower && !headtrue)){
 				//assert((headtrue && set->currentbestcertain+set->wlits[u].weight>bound) || (!headtrue && set->currentbestcertain+set->wlits[u].weight>=bound));
-				c = AggSolver::aggsolver->notifySATsolverOfPropagation(~(*u).getLit(), new AggrReason(*this, set->getStackSize()));
+				c = AggSolver::aggsolver->notifySATsolverOfPropagation(~(*u).getLit(), new AggrReason(getAgg(), set->getStackSize()));
 			}else{
 				//assert((!headtrue && set->currentbestpossible-set->wlits[u].weight<=bound) || (headtrue && set->currentbestpossible-set->wlits[u].weight<bound));
-				c = AggSolver::aggsolver->notifySATsolverOfPropagation((*u).getLit(), new AggrReason(*this, set->getStackSize()));
+				c = AggSolver::aggsolver->notifySATsolverOfPropagation((*u).getLit(), new AggrReason(getAgg(), set->getStackSize()));
 			}
 		}
 	}
@@ -429,10 +430,11 @@ Clause* SPAgg::propagate(bool headtrue){
  *******************/
 
 void Agg::getExplanation(vec<Lit>& lits, AggrReason& ar) const{
-	AggrSet& s = *ar.getAgg().set;
-	if(ar.getIndex() >= ar.getAgg().headindex){
+	shared_ptr<Agg> pAgg = shared_ptr<Agg>(ar.getAgg());
+	AggrSet& s = *pAgg->set;
+	if(ar.getIndex() >= pAgg->headindex){
 		//the head literal is saved as it occurred in the theory, so adapt for its current truth value!
-		lits.push(ar.getAgg().headvalue==l_True?~ar.getAgg().head:ar.getAgg().head);
+		lits.push(pAgg->headvalue==l_True?~pAgg->head:pAgg->head);
 	}
 	int counter = 0;
 	for(lprop::const_iterator i=s.getStackBegin(); counter<ar.getIndex() && i<s.getStackEnd(); i++,counter++){

@@ -6,10 +6,15 @@
 #include <set>
 #include <iostream>
 
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/smart_ptr/weak_ptr.hpp>
+#include <boost/smart_ptr/enable_shared_from_this.hpp>
+
 #include "Vec.h"
 #include "SolverTypes.h"
 
 using namespace std;
+using namespace boost;
 
 class Agg;
 class MaxAgg;
@@ -18,10 +23,12 @@ class SumAgg;
 class AggrSet;
 
 class WLV;
-struct PropagationInfo;
+class PropagationInfo;
 
 typedef vector<WLV> lwlv;
-typedef vector<Agg*> lagg;
+//typedef vector<Agg*> lagg;
+typedef vector<shared_ptr<Agg> > lsagg;
+typedef vector<weak_ptr<Agg> > lwagg;
 typedef vector<PropagationInfo> lprop;
 
 enum AggrType {SUM, PROD, MIN, MAX};
@@ -89,14 +96,14 @@ public:
 
 class AggrReason {
 private:
-	Agg&	expr;
-	int 	index;
+	weak_ptr<Agg>	expr;
+	int 			index;
 
 public:
-    AggrReason(Agg& e, int index) : expr(e), index(index) {}
+    AggrReason(weak_ptr<Agg> e, int index) : expr(e), index(index) {}
 
-    Agg& 	getAgg() 	const { return expr; }
-    int 	getIndex() 	const { return index; }
+    weak_ptr<Agg> 	getAgg() 	const { return expr; }
+    int 			getIndex() 	const { return index; }
 };
 
 //INVARIANT: the WLITset is stored sorted from smallest to largest weight!
@@ -106,35 +113,9 @@ protected:
 				//current keeps the currently derived min and max bounds
 	string name;
 
-	lagg	aggregates;
+	lwagg	aggregates;
 	lwlv 	wlits;
-	lprop stack;		// Stack of propagations of this expression so far.
-
-public:
-	string getName() const { return name; }
-	const Weight& getEmptySetValue() const { return emptysetvalue; }
-	const Weight& getCP() const { return currentbestpossible; }
-	const Weight& getCC() const { return currentbestcertain; }
-	void setEmptySetValue(const Weight& w) { emptysetvalue = w; }
-	void setCP(const Weight& w) { currentbestpossible = w; }
-	void setCC(const Weight& w) { currentbestcertain = w; }
-
-	lagg::const_iterator 	getAggBegin() 	const 	{ return aggregates.begin(); }
-	lagg::const_iterator 	getAggEnd() 	const 	{ return aggregates.end(); }
-	void 					addAgg(Agg* aggr)		{ aggregates.push_back(aggr); }
-	int 					nbAgg() 				{ return aggregates.size(); }
-
-	lwlv::const_iterator getWLBegin() 			const { return wlits.begin(); }
-	lwlv::const_iterator getWLEnd()				const { return wlits.end(); }
-	lwlv::const_reverse_iterator getWLRBegin() 	const { return wlits.rbegin(); }
-	lwlv::const_reverse_iterator getWLREnd() 	const { return wlits.rend(); }
-	const WLV& operator[](int i) 				const { return wlits[i]; }
-	int size() const { return wlits.size(); }
-
-	int getStackSize() const { return stack.size(); }
-	const PropagationInfo getStackBack() const { return stack.back(); }
-	lprop::const_iterator getStackBegin() 			const { return stack.begin(); }
-	lprop::const_iterator getStackEnd()				const { return stack.end(); }
+	lprop 	stack;		// Stack of propagations of this expression so far.
 
 public:
     AggrSet(vec<Lit>& lits, vector<Weight>& weights):currentbestcertain(0),currentbestpossible(0),emptysetvalue(0){
@@ -168,6 +149,34 @@ public:
 	bool isJustified		(Var x, vec<int>& currentjust) const;
 	bool isJustified		(const WLV& elem, vec<int>& currentjust, bool real) const;
 	bool oppositeIsJustified(const WLV& elem, vec<int>& currentjust, bool real) const;
+
+	/**
+	 * GETTERS - SETTERS
+	 */
+	string getName() const { return name; }
+	const Weight& getEmptySetValue() const { return emptysetvalue; }
+	const Weight& getCP() const { return currentbestpossible; }
+	const Weight& getCC() const { return currentbestcertain; }
+	void setEmptySetValue(const Weight& w) { emptysetvalue = w; }
+	void setCP(const Weight& w) { currentbestpossible = w; }
+	void setCC(const Weight& w) { currentbestcertain = w; }
+
+	lwagg::const_iterator 	getAggBegin() 	const 	{ return aggregates.begin(); }
+	lwagg::const_iterator 	getAggEnd() 	const 	{ return aggregates.end(); }
+	void 					addAgg(weak_ptr<Agg> aggr)		{ aggregates.push_back(aggr); }
+	int 					nbAgg() 				{ return aggregates.size(); }
+
+	lwlv::const_iterator getWLBegin() 			const { return wlits.begin(); }
+	lwlv::const_iterator getWLEnd()				const { return wlits.end(); }
+	lwlv::const_reverse_iterator getWLRBegin() 	const { return wlits.rbegin(); }
+	lwlv::const_reverse_iterator getWLREnd() 	const { return wlits.rend(); }
+	const WLV& operator[](int i) 				const { return wlits[i]; }
+	int size() const { return wlits.size(); }
+
+	int getStackSize() const { return stack.size(); }
+	const PropagationInfo getStackBack() const { return stack.back(); }
+	lprop::const_iterator getStackBegin() 			const { return stack.begin(); }
+	lprop::const_iterator getStackEnd()				const { return stack.end(); }
 };
 
 class AggrMaxSet: public AggrSet{
@@ -223,7 +232,7 @@ public:
  * An aggregate is (currently) always a definition, so its head is always a positive literal.
  */
 
-class Agg{
+class Agg: public enable_shared_from_this<Agg>{
 protected:
 	Weight		bound;
 	bool 		lower;
@@ -238,7 +247,8 @@ public:
 
     Agg(bool lower, Weight bound, Lit head, AggrSet* set) :
 	    bound(bound), lower(lower), head(head), headindex(-1), headvalue(l_Undef), set(set) {
-    	set->addAgg(this);
+    	//FIXME FIXME
+    	//set->addAgg(this);
     }
 
     /**
@@ -274,6 +284,11 @@ public:
 			void 	becomesCycleSource(vec<Lit>& nj) const;
 	virtual void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) const = 0;
 	virtual bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const = 0;
+
+    virtual shared_ptr<Agg> getAgg()
+    {
+        return shared_from_this();
+    }
 };
 
 class MaxAgg: public Agg {
