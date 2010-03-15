@@ -368,13 +368,13 @@ static void parse_main(B& in, Solver* S, IDSolver* TS, AggSolver* AGG) {
                                 reportf("|    May contain aggregate expressions.                                       |\n");
                             modes.aggr = true;
                         } else
-                            ParseError("Unexpected ECNF extension type (known: \"def\", \"eu\", \"amn\", \"aggr\"); stuck on '%c'.\n",*in);
+                            ParseError("Unexpected ECNF extension type (known: \"def\" and \"aggr\"); stuck on '%c'.\n",*in);
                     } else if (*in=='m' && match(in,"mnmz")) {
                         if (verbosity>=1)
                             reportf("|    May contain an optimize statement.                                       |\n");
                         modes.mnmz = true;
                     } else
-                        ParseError("Unexpected ECNF extension type (known: \"def\", \"eu\", \"amn\", \"aggr\"); stuck on '%c'.\n",*in);
+                        ParseError("Unexpected ECNF extension type (known: \"def\" and \"aggr\"); stuck on '%c'.\n",*in);
                 }
                 ++in;
                 break;

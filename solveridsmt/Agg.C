@@ -3,47 +3,50 @@
 #include <algorithm>
 
 void AggrSet::backtrack(int index) {
+	//BELANGRIJK: hier had ik een referentie gezet en dan deed ik pop, wat dus niet mag, want dan is die value kwijt!
 	PropagationInfo pi = stack.back();
 	stack.pop_back();
 
-	assert(pi.type!=HEAD && var(pi.wlit.lit)==var(wlits[index].lit));
+	assert(pi.getType()!=HEAD && var(pi.getLit())==var(wlits[index].getLit()));
 
-	wlits[index].value = l_Undef;
-	currentbestcertain = pi.prevbestcertain;
-	currentbestpossible = pi.prevbestpossible;
+	wlits[index].setValue(l_Undef);
+	setCC(pi.getPC());
+	setCP(pi.getPP());
 }
 
-Clause* AggrSet::propagate(Lit p, AggrWatch& ws){
+Clause* AggrSet::propagate(const Lit& p, const AggrWatch& ws){
 	Occurrence tp;
-    if (ws.type==POS){
+    if (ws.getType()==POS){
     	tp = sign(p)? NEG : POS;
     }else{
     	tp = sign(p)? POS : NEG;
     }
 
-	stack.push_back(PropagationInfo(p, wlits[ws.index].weight,tp, currentbestcertain, currentbestpossible));
-	wlits[ws.index].value = tp==POS?l_True:l_False;
+	stack.push_back(PropagationInfo(p, wlits[ws.getIndex()].getWeight(),tp, getCC(), getCP()));
 
-	tp==POS? addToCertainSet(wlits[ws.index]):removeFromPossibleSet(wlits[ws.index]);
+	wlits[ws.getIndex()].setValue(tp==POS?l_True:l_False);
+
+	tp==POS? addToCertainSet(wlits[ws.getIndex()]):removeFromPossibleSet(wlits[ws.getIndex()]);
 
 	return propagateBodies();
 }
 
 Clause* AggrSet::propagateBodies(){
 	Clause* confl = NULL;
-	for(lagg::iterator i=aggregates.begin(); i<aggregates.end() && confl==NULL; i++){
-		if((*i)->headvalue != l_Undef){ //head is already known
+	for(lagg::const_iterator i=getAggBegin(); i<getAggEnd() && confl==NULL; i++){
+		lbool hv = (*i)->getHeadValue();
+		if(hv != l_Undef){ //head is already known
 			lbool result = (*i)->canPropagateHead();
-			if(result!=l_Undef && result!=(*i)->headvalue){
+			if(result!=l_Undef && result!=hv){
 				//conflict!
-				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(result==l_True?(*i)->head:~(*i)->head, new AggrReason(*i, (*i)->headindex));
+				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(result==l_True?(*i)->getHead():~(*i)->getHead(), new AggrReason(**i, (*i)->getHeadIndex()));
 			}else{
-				confl = (*i)->propagate((*i)->headvalue==l_True);
+				confl = (*i)->propagate(hv==l_True);
 			}
 		}else{ //head is not yet known, so at most the head can be propagated
 			lbool result = (*i)->canPropagateHead();
 			if(result!=l_Undef){
-				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(result==l_True?(*i)->head:~(*i)->head, new AggrReason(*i, (*i)->headindex));
+				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(result==l_True?(*i)->getHead():~(*i)->getHead(), new AggrReason(**i, (*i)->getHeadIndex()));
 			}
 		}
 	}
@@ -54,7 +57,9 @@ Clause* AggrSet::propagateBodies(){
  * To be able to handle multiple times the same literal and also its negation, we will be checking here if the set conforms to that
  * If it does not, a duplicate will be created, which will only be used in this aggregate and which conforms to the rules
  */
-bool compareLits(WLit one, WLit two) { return var(one.lit)<var(two.lit); }
+bool compareLits(const WLit& one, const WLit& two) {
+	return var(one.getLit())<var(two.getLit());
+}
 
 /**
  * Checks whether the same literal occurs multiple times in the set
@@ -76,13 +81,14 @@ void AggrSet::doSetReduction() {
 	for(lwlv::size_type i=1; i<oldset.size(); i++){
 		WLV oldl = newset[indexinnew];
 		WLV newl = oldset[i];
-		if(var(oldl.lit)==var(newl.lit)){ //same variable
+		if(var(oldl.getLit())==var(newl.getLit())){ //same variable
 			setisreduced = true;
-			if(oldl.lit==newl.lit){ //same literal, keep combined weight
-				newset[indexinnew].weight = getCombinedWeight(newl.weight, oldl.weight);
+			if(oldl.getLit()==newl.getLit()){ //same literal, keep combined weight
+				Weight w = getCombinedWeight(newl.getWeight(), oldl.getWeight());
+				newset[indexinnew] = WLV(oldl.getLit(), w, oldl.getValue());
 			}else{ //opposite signs
-				WLit wl = handleOccurenceOfBothSigns((WLit)oldl, (WLit)newl);
-				newset[indexinnew] = WLV(wl.lit, wl.weight, oldl.value);
+				WLit wl = handleOccurenceOfBothSigns(oldl, newl);
+				newset[indexinnew] = WLV(wl.getLit(), wl.getWeight(), oldl.getValue());
 			}
 		}else{
 			newset.push_back(newl);
@@ -102,8 +108,8 @@ void AggrSet::doSetReduction() {
 void AggrSet::initialize(){
 	initEmptySetValue(); //important to do first!
 	doSetReduction();
-	currentbestpossible = getBestPossible();
-	currentbestcertain = emptysetvalue;
+	setCP(getBestPossible());
+	setCC(getEmptySetValue());
 }
 
 /*******
@@ -115,10 +121,10 @@ void Agg::backtrackHead(){
 	headindex = -1;
 }
 
-Clause* Agg::propagateHead(Lit p){
+Clause* Agg::propagateHead(const Lit& p){
 	bool headtrue = head==p;
 	headvalue = headtrue?l_True:l_False;
-	headindex = set->stack.size();
+	headindex = set->getStackSize();
 	return propagateHead(headtrue);
 }
 
@@ -126,57 +132,57 @@ Clause* Agg::propagateHead(Lit p){
  * MAX AGGREGATE *
  *****************/
 
-Weight AggrMaxSet::getBestPossible() {
-	return wlits.back().weight;
+Weight AggrMaxSet::getBestPossible() const{
+	return wlits.back().getWeight();
 }
 
 void AggrMaxSet::initEmptySetValue(){
-	emptysetvalue = wlits.front().weight-Weight(1);
+	setEmptySetValue(wlits.front().getWeight()-Weight(1));
 }
 
-void AggrMaxSet::addToCertainSet(WLit l){
-	if(l.weight>currentbestcertain){
-		currentbestcertain = l.weight;
+void AggrMaxSet::addToCertainSet(const WLit& l){
+	if(l.getWeight()>getCC()){
+		setCC(l.getWeight());
 	}
 }
 
-void AggrMaxSet::removeFromPossibleSet(WLit l){
-	if(l.weight==currentbestpossible){
+void AggrMaxSet::removeFromPossibleSet(const WLit& l){
+	if(l.getWeight()==getCP()){
 		bool found = false;
 		for(lwlv::reverse_iterator i=wlits.rbegin(); !found && i<wlits.rend(); i++){
-			if((*i).value != l_False){
-				currentbestpossible = (*i).weight;
+			if((*i).getValue() != l_False){
+				setCP((*i).getWeight());
 				found = true;
 			}
 		}
 		if(!found){
-			currentbestpossible = emptysetvalue;
+			setCP(getEmptySetValue());
 		}
 	}
 }
 
-Weight	AggrMaxSet::getCombinedWeight(Weight first, Weight second){
+Weight	AggrMaxSet::getCombinedWeight(const Weight& first, const Weight& second) const{
 	return first>second?first:second;
 }
 
-WLit AggrMaxSet::handleOccurenceOfBothSigns(WLit one, WLit two){
-	if(one.weight>two.weight){
-		if(emptysetvalue<two.weight){
-			emptysetvalue = two.weight;
+WLit AggrMaxSet::handleOccurenceOfBothSigns(const WLit& one, const WLit& two){
+	if(one.getWeight()>two.getWeight()){
+		if(getEmptySetValue()<two.getWeight()){
+			setEmptySetValue(two.getWeight());
 		}
 		return one;
 	}else{
-		if(emptysetvalue<one.weight){
-			emptysetvalue = one.weight;
+		if(getEmptySetValue()<one.getWeight()){
+			setEmptySetValue(one.getWeight());
 		}
 		return two;
 	}
 }
 
-lbool MaxAgg::canPropagateHead(){
-	if ((lower && set->currentbestcertain > bound) || (!lower && set->currentbestpossible < bound)) {
+lbool Agg::canPropagateHead() const{
+	if ((lower && set->getCC() > bound) || (!lower && set->getCP() < bound)) {
 		return l_False;
-	} else if ((lower && set->currentbestpossible <= bound) || (!lower && set->currentbestcertain >= bound)) {
+	} else if ((lower && set->getCP() <= bound) || (!lower && set->getCC() >= bound)) {
 		return l_True;
 	} else {
 		return l_Undef;
@@ -192,15 +198,15 @@ lbool MaxAgg::canPropagateHead(){
 Clause* MaxAgg::propagateHead(bool headtrue) {
 	Clause* confl = NULL;
 	if (headtrue && lower) {
-		lwlv::reverse_iterator i=set->wlits.rbegin();
-		while( confl == NULL && i<set->wlits.rend() && bound<(*i).weight){
-			confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~(*i).lit, new AggrReason(this, set->stack.size()));
+		lwlv::const_reverse_iterator i=set->getWLRBegin();
+		while( confl == NULL && i<set->getWLREnd() && bound<(*i).getWeight()){
+			confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(*this, set->getStackSize()));
 			i++;
 		}
 	}else if(!headtrue && !lower){
-		lwlv::reverse_iterator i=set->wlits.rbegin();
-		while( confl == NULL && i<set->wlits.rend() && bound<=(*i).weight){
-			confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~(*i).lit, new AggrReason(this, set->stack.size()));
+		lwlv::const_reverse_iterator i=set->getWLRBegin();
+		while( confl == NULL && i<set->getWLREnd() && bound<=(*i).getWeight()){
+			confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(*this, set->getStackSize()));
 			i++;
 		}
 	}
@@ -224,23 +230,23 @@ Clause* MaxAgg::propagate(bool headtrue) {
 	if((lower && headtrue) || (!lower && !headtrue)){
 		return confl;
 	}
-	lwlv::iterator pos = set->wlits.end();
+	lwlv::const_iterator pos = set->getWLEnd();
 	bool exactlyoneleft = true;
-	for(lwlv::iterator i=set->wlits.begin(); exactlyoneleft && i<set->wlits.end(); i++){
-		if((!lower && headtrue && (*i).weight>=bound) || (lower && !headtrue && (*i).weight>bound)){
-			if((*i).value==l_Undef){
-				if(pos!=set->wlits.end()){
+	for(lwlv::const_iterator i=set->getWLBegin(); exactlyoneleft && i<set->getWLEnd(); i++){
+		if((!lower && headtrue && (*i).getWeight()>=bound) || (lower && !headtrue && (*i).getWeight()>bound)){
+			if((*i).getValue()==l_Undef){
+				if(pos!=set->getWLEnd()){
 					exactlyoneleft = false;
 				}else{
 					pos = i;
 				}
-			}else if((*i).value==l_True){
+			}else if((*i).getValue()==l_True){
 				exactlyoneleft = false;
 			}
 		}
 	}
 	if(exactlyoneleft){
-		confl = AggSolver::aggsolver->notifySATsolverOfPropagation((*pos).lit, new AggrReason(this, set->stack.size()));
+		confl = AggSolver::aggsolver->notifySATsolverOfPropagation((*pos).getLit(), new AggrReason(*this, set->getStackSize()));
 	}
 	return confl;
 }
@@ -249,40 +255,40 @@ Clause* MaxAgg::propagate(bool headtrue) {
  * SUM AGGREGATE *
  *****************/
 
-Weight AggrSumSet::getBestPossible() {
+Weight AggrSumSet::getBestPossible() const{
 	Weight max = emptysetvalue;
-	for (lwlv::iterator j = wlits.begin(); j < wlits.end(); j++) {
-		max += (*j).weight;
+	for (lwlv::const_iterator j = wlits.begin(); j < wlits.end(); j++) {
+		max += (*j).getWeight();
 	}
 	return max;
 }
 
 void AggrSumSet::initEmptySetValue(){
-	emptysetvalue = Weight(0);
+	setEmptySetValue(Weight(0));
 }
 
-void AggrSumSet::addToCertainSet(WLit l){
-	currentbestcertain += l.weight;
+void AggrSumSet::addToCertainSet(const WLit& l){
+	setCC(getCC()+l.getWeight());
 }
 
-void AggrSumSet::removeFromPossibleSet(WLit l){
-	currentbestpossible -= l.weight;
+void AggrSumSet::removeFromPossibleSet(const WLit& l){
+	setCP(getCP()-l.getWeight());
 }
 
 /**
  * multi-set semantics!
  */
-Weight	AggrSumSet::getCombinedWeight(Weight first, Weight second){
+Weight	AggrSumSet::getCombinedWeight(const Weight& first, const Weight& second) const{
 	return first+second;
 }
 
-WLit AggrSumSet::handleOccurenceOfBothSigns(WLit one, WLit two){
-	if(one.weight<two.weight){
-		emptysetvalue += one.weight;
-		return WLit(two.lit, two.weight-one.weight);
+WLit AggrSumSet::handleOccurenceOfBothSigns(const WLit& one, const WLit& two){
+	if(one.getWeight()<two.getWeight()){
+		setEmptySetValue(getEmptySetValue() + one.getWeight());
+		return WLit(two.getLit(), two.getWeight()-one.getWeight());
 	}else{
-		emptysetvalue += two.weight;
-		return WLit(one.lit, one.weight-two.weight);
+		setEmptySetValue(getEmptySetValue() + two.getWeight());
+		return WLit(one.getLit(), one.getWeight()-two.getWeight());
 	}
 }
 
@@ -290,54 +296,44 @@ WLit AggrSumSet::handleOccurenceOfBothSigns(WLit one, WLit two){
  * PRODUCT AGGREGATE *
  *********************/
 
-Weight AggrProdSet::getBestPossible() {
-	Weight max = emptysetvalue;
-	for (lwlv::iterator j = wlits.begin(); j < wlits.end(); j++) {
-		max *= (*j).weight;
+Weight AggrProdSet::getBestPossible() const{
+	Weight max = getEmptySetValue();
+	for (lwlv::const_iterator j = wlits.begin(); j < wlits.end(); j++) {
+		max *= (*j).getWeight();
 	}
 	return max;
 }
 
 void AggrProdSet::initEmptySetValue(){
-	emptysetvalue = Weight(1);
+	setEmptySetValue(Weight(1));
 }
 
-void AggrProdSet::addToCertainSet(WLit l){
-	currentbestcertain *= l.weight;
+void AggrProdSet::addToCertainSet(const WLit& l){
+	setCC(getCC()* l.getWeight());
 }
 
-void AggrProdSet::removeFromPossibleSet(WLit l){
-	currentbestpossible /= l.weight;
+void AggrProdSet::removeFromPossibleSet(const WLit& l){
+	setCP(getCP() / l.getWeight());
 }
 
 /**
  * multi-set semantics!
  */
-Weight	AggrProdSet::getCombinedWeight(Weight first, Weight second){
+Weight	AggrProdSet::getCombinedWeight(const Weight& first, const Weight& second) const{
 	return first*second;
 }
 
-WLit AggrProdSet::handleOccurenceOfBothSigns(WLit one, WLit two){
+WLit AggrProdSet::handleOccurenceOfBothSigns(const WLit& one, const WLit& two){
 	//NOTE: om dit toe te laten, ofwel bij elke operatie op en literal al zijn voorkomens overlopen
 	//ofwel aggregaten voor doubles ondersteunen (het eerste is eigenlijk de beste oplossing)
 	//Mogelijke eenvoudige implementatie: weigts bijhouden als doubles (en al de rest als ints)
 	reportf("Product aggregates in which both the literal and its negation occur "
 			"are currently not supported. Replace ");
-	gprintLit(one.lit);
+	gprintLit(one.getLit());
 	reportf("or ");
-	gprintLit(two.lit);
+	gprintLit(two.getLit());
 	reportf("by a tseitin.\n");
 	exit(3);
-}
-
-lbool SPAgg::canPropagateHead(){
-	if ((lower && set->currentbestcertain > bound) || (!lower && set->currentbestpossible < bound)) {
-		return l_False;
-	} else if ((lower && set->currentbestpossible <= bound) || (!lower && set->currentbestcertain >= bound)) {
-		return l_True;
-	} else {
-		return l_Undef;
-	}
 }
 
 /**
@@ -368,19 +364,19 @@ Clause* SPAgg::propagate(bool headtrue){
 	if (headtrue) {
 		if(lower){
 			if(sum){
-				weightbound = bound-set->currentbestcertain;
+				weightbound = bound-set->getCC();
 			}else{
 				//currentbestcertain = 0 not possible (always geq 1)
-				weightbound = bound/set->currentbestcertain;
+				weightbound = bound/set->getCC();
 			}
 			//+1 because larger and not eq
 			weightbound+=1;
 		}else{
 			if(sum){
-				weightbound = set->currentbestpossible-bound;
+				weightbound = set->getCP()-bound;
 			}else{
 				//if bound == 0, it is never possible to obtain a smaller product, so get first weight larger than 0
-				weightbound = bound==0?0:set->currentbestpossible/bound;
+				weightbound = bound==0?0:set->getCP()/bound;
 			}
 			//+1 because larger and not eq
 			weightbound+=1;
@@ -388,40 +384,40 @@ Clause* SPAgg::propagate(bool headtrue){
 	} else {
 		if(lower){
 			if(sum){
-				weightbound = set->currentbestpossible-bound;
+				weightbound = set->getCP()-bound;
 			}else{
 				//if bound == 0, it is never possible to obtain a smaller product, so get first weight larger than 0
-				weightbound = bound==0?0:set->currentbestpossible/bound;
+				weightbound = bound==0?0:set->getCP()/bound;
 			}
 		}else{
 			if(sum){
-				weightbound = bound - set->currentbestcertain;
+				weightbound = bound - set->getCC();
 			}else{
 				//currentbestcertain = 0 not possible (always leq 1)
-				weightbound = bound/set->currentbestcertain;
+				weightbound = bound/set->getCC();
 			}
 		}
 	}
-	lwlv::iterator pos = lower_bound(set->wlits.begin(), set->wlits.end(), weightbound);
-	if(pos==set->wlits.end()){
+	lwlv::const_iterator pos = lower_bound(set->getWLBegin(), set->getWLEnd(), weightbound);
+	if(pos==set->getWLEnd()){
 		return c;
 	}
 
 	//find the index of the literal
 	int start = 0;
-	lwlv::iterator it = set->wlits.begin();
+	lwlv::const_iterator it = set->getWLBegin();
 	while(it!=pos){
 		it++; start++;
 	}
 
-	for (lwlv::iterator u = set->wlits.begin()+start; c==NULL && u < set->wlits.end(); u++) {
-		if ((*u).value==l_Undef) {//if already propagated as an aggregate, then those best-values have already been adapted
+	for (lwlv::const_iterator u = set->getWLBegin()+start; c==NULL && u < set->getWLEnd(); u++) {
+		if ((*u).getValue()==l_Undef) {//if already propagated as an aggregate, then those best-values have already been adapted
 			if((lower && headtrue) || (!lower && !headtrue)){
 				//assert((headtrue && set->currentbestcertain+set->wlits[u].weight>bound) || (!headtrue && set->currentbestcertain+set->wlits[u].weight>=bound));
-				c = AggSolver::aggsolver->notifySATsolverOfPropagation(~(*u).lit, new AggrReason(this, set->stack.size()));
+				c = AggSolver::aggsolver->notifySATsolverOfPropagation(~(*u).getLit(), new AggrReason(*this, set->getStackSize()));
 			}else{
 				//assert((!headtrue && set->currentbestpossible-set->wlits[u].weight<=bound) || (headtrue && set->currentbestpossible-set->wlits[u].weight<bound));
-				c = AggSolver::aggsolver->notifySATsolverOfPropagation((*u).lit, new AggrReason(this, set->stack.size()));
+				c = AggSolver::aggsolver->notifySATsolverOfPropagation((*u).getLit(), new AggrReason(*this, set->getStackSize()));
 			}
 		}
 	}
@@ -432,30 +428,20 @@ Clause* SPAgg::propagate(bool headtrue){
  * CLAUSE LEARNING *
  *******************/
 
-void MaxAgg::getExplanation(vec<Lit>& lits, AggrReason& ar){
-	AggrSet& s = *ar.expr->set;
-	if(ar.index >= ar.expr->headindex){
+void Agg::getExplanation(vec<Lit>& lits, AggrReason& ar) const{
+	AggrSet& s = *ar.getAgg().set;
+	if(ar.getIndex() >= ar.getAgg().headindex){
 		//the head literal is saved as it occurred in the theory, so adapt for its current truth value!
-		lits.push(ar.expr->headvalue==l_True?~ar.expr->head:ar.expr->head);
+		lits.push(ar.getAgg().headvalue==l_True?~ar.getAgg().head:ar.getAgg().head);
 	}
-	for(int i=0; i<ar.index && i<s.stack.size(); i++){
-		lits.push(~(s.stack[i].wlit.lit));
-	}
-}
-
-void SPAgg::getExplanation(vec<Lit>& lits, AggrReason& ar){
-	AggrSet& s = *ar.expr->set;
-	if(ar.index >= ar.expr->headindex){
-		//the head literal is saved as it occurred in the theory, so adapt for its current truth value!
-		lits.push(ar.expr->headvalue==l_True?~ar.expr->head:ar.expr->head);
-	}
-	for(int i=0; i<ar.index && i<s.stack.size(); i++){
-		lits.push(~(s.stack[i].wlit.lit));
+	int counter = 0;
+	for(lprop::const_iterator i=s.getStackBegin(); counter<ar.getIndex() && i<s.getStackEnd(); i++,counter++){
+		lits.push(~(*i).getLit());
 	}
 }
 
 void SumAgg::getMinimExplan(vec<Lit>& lits){
-	Weight certainsum = set->emptysetvalue;
+	Weight certainsum = set->getEmptySetValue();
 	Weight possiblesum = set->getBestPossible();
 
 	bool explained = false;
@@ -463,10 +449,10 @@ void SumAgg::getMinimExplan(vec<Lit>& lits){
 		explained = true;
 	}
 
-	for(lprop::iterator i=set->stack.begin(); !explained && i<set->stack.end(); i++){
+	for(lprop::const_iterator i=set->getStackBegin(); !explained && i<set->getStackEnd(); i++){
 		bool push = false;
-		if((*i).type == POS){ //means that the literal in the set became true
-			certainsum += (*i).wlit.weight;
+		if((*i).getType() == POS){ //means that the literal in the set became true
+			certainsum += (*i).getWeight();
 
 			if(lower){
 				push = true;
@@ -474,8 +460,8 @@ void SumAgg::getMinimExplan(vec<Lit>& lits){
 					explained = true;
 				}
 			}
-		}else if((*i).type == NEG){ //the literal in the set became false
-			possiblesum -= (*i).wlit.weight;
+		}else if((*i).getType() == NEG){ //the literal in the set became false
+			possiblesum -= (*i).getWeight();
 
 			if(!lower){
 				push = true;
@@ -485,26 +471,12 @@ void SumAgg::getMinimExplan(vec<Lit>& lits){
 			}
 		}
 		if(push){
-			lits.push(~(*i).wlit.lit);
+			lits.push(~(*i).getLit());
 		}
 	}
 
 	assert(explained);
 }
-
-/**
- * getExplanationSum:
- * if head true:
- * 		make sum of stack elements IN set until explained
- * if head false:
- * 		substract stack elements NOT IN set until explained
- * if literal IN set
- * 		add head
- * 		add stack elements NOT IN set until poss-literal weight violates bound
- * if literal NOT IN set
- * 		add head
- * 		add stack elements IN set until certain+literal weight violates bound
- */
 
 /************************
  * RECURSIVE AGGREGATES *
@@ -517,21 +489,21 @@ void SumAgg::getMinimExplan(vec<Lit>& lits){
  * Also, if a literal has to become FALSE, its INVERSION should be added to the justification!
  */
 
-inline bool AggrSet::oppositeIsJustified(WLV& elem, vec<int>& currentjust, bool real){
+inline bool AggrSet::oppositeIsJustified(const WLV& elem, vec<int>& currentjust, bool real) const{
 	if(real){
-		return elem.value!=l_True;
+		return elem.getValue()!=l_True;
 	}else{
-		return elem.value!=l_True && (!sign(elem.lit) || isJustified(var(elem.lit), currentjust));
+		return elem.getValue()!=l_True && (!sign(elem.getLit()) || isJustified(var(elem.getLit()), currentjust));
 	}
 }
-inline bool AggrSet::isJustified(WLV& elem, vec<int>& currentjust, bool real){
+inline bool AggrSet::isJustified(const WLV& elem, vec<int>& currentjust, bool real) const{
 	if(real){
-		return elem.value!=l_False;
+		return elem.getValue()!=l_False;
 	}else{
-		return elem.value!=l_False && (sign(elem.lit) || isJustified(var(elem.lit), currentjust));
+		return elem.getValue()!=l_False && (sign(elem.getLit()) || isJustified(var(elem.getLit()), currentjust));
 	}
 }
-inline bool AggrSet::isJustified(Var x, vec<int>& currentjust){
+inline bool AggrSet::isJustified(Var x, vec<int>& currentjust) const{
 	return currentjust[x]==0;
 }
 
@@ -551,19 +523,18 @@ void Agg::becomesCycleSource(vec<Lit>& j) const {
 /**
  * Add all literals that could make the head true and are not in the unfounded set to the loopformula
  */
-void MaxAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen){
-	lwlv& lits = set->wlits;
+void MaxAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) const{
 	if(lower){
-		for (lwlv::reverse_iterator i=lits.rbegin(); i<lits.rend() && (*i).weight>bound; i++) {
-			Lit& l = (*i).lit;
+		for (lwlv::const_reverse_iterator i=set->getWLRBegin(); i<set->getWLREnd() && (*i).getWeight()>bound; i++) {
+			const Lit& l = (*i).getLit();
 			if (l!=head && ufs.find(var(l)) == ufs.end() && seen[var(l)] != (sign(l) ? 2 : 1)) {
 				loopf.push(~l);
 				seen[var(l)] = (sign(l) ? 2 : 1);
 			}
 		}
 	}else{
-		for (lwlv::reverse_iterator i=lits.rbegin(); i<lits.rend() && (*i).weight>=bound; i++) {
-			Lit l = (*i).lit;
+		for (lwlv::const_reverse_iterator i=set->getWLRBegin(); i<set->getWLREnd() && (*i).getWeight()>=bound; i++) {
+			const Lit l = (*i).getLit();
 			if (l!=head &&  ufs.find(var(l)) == ufs.end() && seen[var(l)] != (sign(l) ? 1 : 2)) {
 				loopf.push(l);
 				seen[var(l)] = (sign(l) ? 1 : 2);
@@ -584,11 +555,10 @@ void MaxAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<in
  * NOTE it might be possible to write this more efficiently, for some ideas see commits before 26/01/2010
  */
 bool MaxAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
-	lwlv& lits = set->wlits;
 	bool justified = false;
 	if(lower){
-		for(lwlv::reverse_iterator i=lits.rbegin(); i<lits.rend() && (*i).weight>bound; i++) {
-			Lit& l = (*i).lit;
+		for(lwlv::const_reverse_iterator i=set->getWLRBegin(); i<set->getWLREnd() && (*i).getWeight()>bound; i++) {
+			const Lit& l = (*i).getLit();
 			if(set->oppositeIsJustified(*i, currentjust, real)){
 				jstf.push(~l); //push negative literal, because it should become false
 				nonjstf.push(var(l));
@@ -598,8 +568,8 @@ bool MaxAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& current
 			justified = true;
 		}
 	}else{
-		for(lwlv::reverse_iterator i=lits.rbegin(); i<lits.rend() && (*i).weight>=bound; i++) {
-			Lit& l = (*i).lit;
+		for(lwlv::const_reverse_iterator i=set->getWLRBegin(); i<set->getWLREnd() && (*i).getWeight()>=bound; i++) {
+			const Lit& l = (*i).getLit();
 			if(set->isJustified(*i, currentjust, real)){
 				jstf.push(l);
 				justified = true;
@@ -619,12 +589,12 @@ bool MaxAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& current
  * waar kunnen maken. Dus als al die literals false worden, kan de head zeker op geen andere manier nog
  * waar worden dan door de ufs.
  */
-void SPAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen){
+void SPAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) const{
 	int f = lower?1:2;
 	int s = lower?2:1;
 
-	for (lwlv::iterator i = set->wlits.begin(); i < set->wlits.end(); ++i) {
-		Lit& l = (*i).lit;
+	for (lwlv::const_iterator i = set->getWLBegin(); i < set->getWLEnd(); ++i) {
+		const Lit& l = (*i).getLit();
 		if (l!=head && ufs.find(var(l)) == ufs.end() && seen[var(l)] != (sign(l) ? f : s)) {
 			loopf.push(lower?~l:l);
 			seen[var(l)] = (sign(l) ? f : s);
@@ -637,18 +607,17 @@ void SPAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int
  * A <= AGG: need a justification of which the sum exceed/eq the bound
  */
 bool SPAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
-	lwlv& lits = set->wlits;
 	bool justified = false;
 	if(lower){
 		Weight bestpossible = set->getBestPossible();
-		for (lwlv::iterator i = lits.begin(); !justified && i < lits.end(); ++i) {
-			Lit& l = (*i).lit;
+		for (lwlv::const_iterator i = set->getWLBegin(); !justified && i < set->getWLEnd(); ++i) {
+			const Lit& l = (*i).getLit();
 			if(set->oppositeIsJustified(*i, currentjust, real)){
 				jstf.push(~l);
 				if(sum){
-					bestpossible -= (*i).weight;
+					bestpossible -= (*i).getWeight();
 				}else{
-					bestpossible /= (*i).weight;
+					bestpossible /= (*i).getWeight();
 				}
 				if (bestpossible <= bound){
 					justified = true;
@@ -658,15 +627,15 @@ bool SPAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentj
 			}
 		}
 	}else{
-		Weight bestcertain = set->emptysetvalue;
-		for (lwlv::iterator i = lits.begin(); !justified && i < lits.end(); ++i) {
-			Lit l = (*i).lit;
+		Weight bestcertain = set->getEmptySetValue();
+		for (lwlv::const_iterator i = set->getWLBegin(); !justified && i < set->getWLEnd(); ++i) {
+			const Lit& l = (*i).getLit();
 			if(set->isJustified(*i, currentjust, real)){
 				jstf.push(l);
 				if(sum){
-					bestcertain += (*i).weight;
+					bestcertain += (*i).getWeight();
 				}else{
-					bestcertain *= (*i).weight;
+					bestcertain *= (*i).getWeight();
 				}
 				if (bestcertain >= bound){
 					justified = true;

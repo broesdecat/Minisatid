@@ -61,7 +61,8 @@ public:
 	/**
 	 * Returns the set literals of the aggregate with the given head x.
 	 */
-	vector<WLV>& getLiteralsOfAggr(Var x);
+	lwlv::const_iterator getAggLiteralsBegin(Var x) const;
+	lwlv::const_iterator getAggLiteralsEnd(Var x) const;
 	/////////////////////END IDSOLVER NECESSARY
 
 	/////////////////////INITIALIZATION
@@ -108,7 +109,7 @@ public:
 	/////////////////////END INITIALIZATION
 
 	//are used by agg.c, but preferably should be move into protected again
-	Clause* 		notifySATsolverOfPropagation(Lit p, AggrReason* cr);	// Like "enqueue", but for aggregate propagations.
+	Clause* 		notifySATsolverOfPropagation(const Lit& p, AggrReason* cr);	// Like "enqueue", but for aggregate propagations.
 
 	// Debug:
 	void     printAggrExpr   (const Agg& ae);
@@ -121,7 +122,7 @@ protected:
 	/**
 	 * Returns the watch set on the aggregate in which the given variable is the head.
 	 */
-	Agg& 			getAggWithHeadOccurence	(Var v);
+	Agg& 			getAggWithHeadOccurence	(Var v) const;
 
 	// ECNF_mode.aggr additions to Solver state:
 	//

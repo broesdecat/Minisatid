@@ -394,9 +394,8 @@ bool IDSolver::finishECNF_DataStructures() {
 		}
 		case AGGR: {
 			if(aggsolver!=NULL){
-				vector<WLV>& lits = aggsolver->getLiteralsOfAggr(i);
-				for (vector<int>::size_type j = 0; !isdefd && j < lits.size(); ++j){
-					if (inSameSCC(v, var(lits[j].lit))){ // NOTE: disregard sign here: set literals can occur both pos and neg in justifications. This could possibly be made more precise for MIN and MAX...
+				for (lwlv::const_iterator j = aggsolver->getAggLiteralsBegin(i); !isdefd && j < aggsolver->getAggLiteralsEnd(i); ++j){
+					if (inSameSCC(v, var((*j).getLit()))){ // NOTE: disregard sign here: set literals can occur both pos and neg in justifications. This could possibly be made more precise for MIN and MAX...
 						isdefd = true;
 					}
 				}
@@ -492,9 +491,8 @@ void IDSolver::visitFull(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &sta
 		break;
 	}
 	case AGGR: {
-		vector<WLV>& lits = aggsolver->getLiteralsOfAggr(i);
-		for (vector<int>::size_type j = 0; j < lits.size(); ++j) {
-			Var w = var(lits[j].lit);
+		for (lwlv::const_iterator j = aggsolver->getAggLiteralsBegin(i); j < aggsolver->getAggLiteralsEnd(i); ++j){
+			Var w = var((*j).getLit());
 			if(!isDefined(w)){
 				continue;
 			}
@@ -567,9 +565,8 @@ void IDSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, 
 	case AGGR: {
 		//TODO this can be optimized by using another method which only returns literals possibly in the
 		//positive dependency graph.
-		vector<WLV>& lits = aggsolver->getLiteralsOfAggr(i);
-		for (vector<int>::size_type j = 0; j < lits.size(); ++j) {
-			Var w = var(lits[j].lit);
+		for (lwlv::const_iterator j = aggsolver->getAggLiteralsBegin(i); j < aggsolver->getAggLiteralsEnd(i); ++j){
+			Var w = var((*j).getLit());
 			if (isDefined(w) && visited[w]==0){
 				visit(w,root,incomp,stack,visited,counter);
 			}
