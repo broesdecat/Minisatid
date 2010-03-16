@@ -25,10 +25,13 @@ class AggrSet;
 class WLV;
 class PropagationInfo;
 
+typedef shared_ptr<Agg> pAgg;
+typedef weak_ptr<Agg> wpAgg;
+
 typedef vector<WLV> lwlv;
 //typedef vector<Agg*> lagg;
-typedef vector<shared_ptr<Agg> > lsagg;
-typedef vector<weak_ptr<Agg> > lwagg;
+typedef vector<pAgg> lsagg;
+typedef vector<wpAgg> lwagg;
 typedef vector<PropagationInfo> lprop;
 
 enum AggrType {SUM, PROD, MIN, MAX};
@@ -96,14 +99,14 @@ public:
 
 class AggrReason {
 private:
-	weak_ptr<Agg>	expr;
+	wpAgg	expr;
 	int 			index;
 
 public:
-    AggrReason(weak_ptr<Agg> e, int index) : expr(e), index(index) {}
+    AggrReason(wpAgg e, int index) : expr(e), index(index) {}
 
-    weak_ptr<Agg> 	getAgg() 	const { return expr; }
-    int 			getIndex() 	const { return index; }
+    wpAgg 	getAgg() 	const { return expr; }
+    int 	getIndex() 	const { return index; }
 };
 
 //INVARIANT: the WLITset is stored sorted from smallest to largest weight!
@@ -163,7 +166,7 @@ public:
 
 	lwagg::const_iterator 	getAggBegin() 	const 	{ return aggregates.begin(); }
 	lwagg::const_iterator 	getAggEnd() 	const 	{ return aggregates.end(); }
-	void 					addAgg(weak_ptr<Agg> aggr)		{ aggregates.push_back(aggr); }
+	void 					addAgg(wpAgg aggr)		{ aggregates.push_back(aggr); }
 	int 					nbAgg() 				{ return aggregates.size(); }
 
 	lwlv::const_iterator getWLBegin() 			const { return wlits.begin(); }
@@ -247,8 +250,6 @@ public:
 
     Agg(bool lower, Weight bound, Lit head, AggrSet* set) :
 	    bound(bound), lower(lower), head(head), headindex(-1), headvalue(l_Undef), set(set) {
-    	//FIXME FIXME
-    	//set->addAgg(this);
     }
 
     /**
@@ -260,6 +261,8 @@ public:
 	const 	lbool& 	getHeadValue() 	const	{ return headvalue; }
 			int 	getHeadIndex() 	const	{ return headindex; }
 	const 	AggrSet*	getSet() 	const	{ return set; }
+
+	void 	addAggToSet() 				{ set->addAgg(getAgg()); }
 
 	void 	setBound(const Weight& b)	{ bound = b; }
 
@@ -285,7 +288,7 @@ public:
 	virtual void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) const = 0;
 	virtual bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const = 0;
 
-    virtual shared_ptr<Agg> getAgg()
+    virtual pAgg getAgg()
     {
         return shared_from_this();
     }

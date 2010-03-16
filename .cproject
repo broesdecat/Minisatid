@@ -24,6 +24,9 @@
 <tool id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.1414885506" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug">
 <option id="gnu.cpp.compiler.exe.debug.option.optimization.level.125962884" name="Optimization Level" superClass="gnu.cpp.compiler.exe.debug.option.optimization.level" value="gnu.cpp.compiler.optimization.level.none" valueType="enumerated"/>
 <option id="gnu.cpp.compiler.exe.debug.option.debugging.level.1816617873" name="Debug Level" superClass="gnu.cpp.compiler.exe.debug.option.debugging.level" value="gnu.cpp.compiler.debugging.level.max" valueType="enumerated"/>
+<option id="gnu.cpp.compiler.option.include.paths.1701023943" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
+<listOptionValue builtIn="false" value="/export/home1/NoCsBack/dtai/broes/include"/>
+</option>
 <inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1708231251" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 </tool>
 <tool id="cdt.managedbuild.tool.gnu.c.compiler.exe.debug.367862288" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.exe.debug">
@@ -216,8 +219,8 @@
 </scannerInfoProvider>
 </profile>
 </scannerConfigBuildInfo>
-<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.1111454487;cdt.managedbuild.config.gnu.exe.debug.1111454487.;cdt.managedbuild.tool.gnu.c.compiler.exe.debug.367862288;cdt.managedbuild.tool.gnu.c.compiler.input.1223120950">
-<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileC"/>
+<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.1111454487;cdt.managedbuild.config.gnu.exe.debug.1111454487.;cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.1414885506;cdt.managedbuild.tool.gnu.cpp.compiler.input.1708231251">
+<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileCPP"/>
 <profile id="org.eclipse.cdt.make.core.GCCStandardMakePerProjectProfile">
 <buildOutputProvider>
 <openAction enabled="true" filePath=""/>
@@ -299,8 +302,8 @@
 </scannerInfoProvider>
 </profile>
 </scannerConfigBuildInfo>
-<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.1111454487;cdt.managedbuild.config.gnu.exe.debug.1111454487.;cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.1414885506;cdt.managedbuild.tool.gnu.cpp.compiler.input.1708231251">
-<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileCPP"/>
+<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.1111454487;cdt.managedbuild.config.gnu.exe.debug.1111454487.;cdt.managedbuild.tool.gnu.c.compiler.exe.debug.367862288;cdt.managedbuild.tool.gnu.c.compiler.input.1223120950">
+<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileC"/>
 <profile id="org.eclipse.cdt.make.core.GCCStandardMakePerProjectProfile">
 <buildOutputProvider>
 <openAction enabled="true" filePath=""/>
@@ -488,6 +491,9 @@
 <tool id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.431308607" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release">
 <option id="gnu.cpp.compiler.exe.release.option.optimization.level.225286702" name="Optimization Level" superClass="gnu.cpp.compiler.exe.release.option.optimization.level" value="gnu.cpp.compiler.optimization.level.most" valueType="enumerated"/>
 <option id="gnu.cpp.compiler.exe.release.option.debugging.level.1053307470" name="Debug Level" superClass="gnu.cpp.compiler.exe.release.option.debugging.level" value="gnu.cpp.compiler.debugging.level.none" valueType="enumerated"/>
+<option id="gnu.cpp.compiler.option.include.paths.659370163" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
+<listOptionValue builtIn="false" value="/export/home1/NoCsBack/dtai/broes/include"/>
+</option>
 <inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.264849556" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 </tool>
 <tool id="cdt.managedbuild.tool.gnu.c.compiler.exe.release.113071070" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.exe.release">
@@ -677,8 +683,8 @@
 </scannerInfoProvider>
 </profile>
 </scannerConfigBuildInfo>
-<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.1111454487;cdt.managedbuild.config.gnu.exe.debug.1111454487.;cdt.managedbuild.tool.gnu.c.compiler.exe.debug.367862288;cdt.managedbuild.tool.gnu.c.compiler.input.1223120950">
-<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileC"/>
+<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.1111454487;cdt.managedbuild.config.gnu.exe.debug.1111454487.;cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.1414885506;cdt.managedbuild.tool.gnu.cpp.compiler.input.1708231251">
+<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileCPP"/>
 <profile id="org.eclipse.cdt.make.core.GCCStandardMakePerProjectProfile">
 <buildOutputProvider>
 <openAction enabled="true" filePath=""/>
@@ -760,8 +766,8 @@
 </scannerInfoProvider>
 </profile>
 </scannerConfigBuildInfo>
-<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.1111454487;cdt.managedbuild.config.gnu.exe.debug.1111454487.;cdt.managedbuild.tool.gnu.cpp.compiler.exe.debug.1414885506;cdt.managedbuild.tool.gnu.cpp.compiler.input.1708231251">
-<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileCPP"/>
+<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.exe.debug.1111454487;cdt.managedbuild.config.gnu.exe.debug.1111454487.;cdt.managedbuild.tool.gnu.c.compiler.exe.debug.367862288;cdt.managedbuild.tool.gnu.c.compiler.input.1223120950">
+<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="org.eclipse.cdt.managedbuilder.core.GCCManagedMakePerProjectProfileC"/>
 <profile id="org.eclipse.cdt.make.core.GCCStandardMakePerProjectProfile">
 <buildOutputProvider>
 <openAction enabled="true" filePath=""/>

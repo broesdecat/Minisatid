@@ -34,20 +34,20 @@ Clause* AggrSet::propagate(const Lit& p, const AggrWatch& ws){
 Clause* AggrSet::propagateBodies(){
 	Clause* confl = NULL;
 	for(lwagg::const_iterator i=getAggBegin(); i<getAggEnd() && confl==NULL; i++){
-		boost::shared_ptr<Agg> pAgg = boost::shared_ptr<Agg>(*i);
-		lbool hv = pAgg->getHeadValue();
+		pAgg pa = (*i).lock();
+		lbool hv = pa->getHeadValue();
 		if(hv != l_Undef){ //head is already known
-			lbool result = pAgg->canPropagateHead();
+			lbool result = pa->canPropagateHead();
 			if(result!=l_Undef && result!=hv){
 				//conflict!
-				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(result==l_True?pAgg->getHead():~pAgg->getHead(), new AggrReason(*i, pAgg->getHeadIndex()));
+				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(result==l_True?pa->getHead():~pa->getHead(), new AggrReason(*i, pa->getHeadIndex()));
 			}else{
-				confl = pAgg->propagate(hv==l_True);
+				confl = pa->propagate(hv==l_True);
 			}
 		}else{ //head is not yet known, so at most the head can be propagated
-			lbool result = pAgg->canPropagateHead();
+			lbool result = pa->canPropagateHead();
 			if(result!=l_Undef){
-				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(result==l_True?pAgg->getHead():~pAgg->getHead(), new AggrReason(*i, pAgg->getHeadIndex()));
+				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(result==l_True?pa->getHead():~pa->getHead(), new AggrReason(*i, pa->getHeadIndex()));
 			}
 		}
 	}
@@ -430,11 +430,11 @@ Clause* SPAgg::propagate(bool headtrue){
  *******************/
 
 void Agg::getExplanation(vec<Lit>& lits, AggrReason& ar) const{
-	shared_ptr<Agg> pAgg = shared_ptr<Agg>(ar.getAgg());
-	AggrSet& s = *pAgg->set;
-	if(ar.getIndex() >= pAgg->headindex){
+	pAgg pa = ar.getAgg().lock();
+	AggrSet& s = *pa->set;
+	if(ar.getIndex() >= pa->headindex){
 		//the head literal is saved as it occurred in the theory, so adapt for its current truth value!
-		lits.push(pAgg->headvalue==l_True?~pAgg->head:pAgg->head);
+		lits.push(pa->headvalue==l_True?~pa->head:pa->head);
 	}
 	int counter = 0;
 	for(lprop::const_iterator i=s.getStackBegin(); counter<ar.getIndex() && i<s.getStackEnd(); i++,counter++){
