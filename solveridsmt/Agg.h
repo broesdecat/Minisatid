@@ -21,12 +21,23 @@ class MaxAgg;
 class ProdAgg;
 class SumAgg;
 class AggrSet;
+class AggrReason;
+class AggrWatch;
 
 class WLV;
 class PropagationInfo;
 
 typedef shared_ptr<Agg> pAgg;
 typedef weak_ptr<Agg> wpAgg;
+
+typedef shared_ptr<AggrSet> pSet;
+typedef weak_ptr<AggrSet> wpSet;
+
+typedef shared_ptr<AggrReason> pReason;
+typedef weak_ptr<AggrReason> wpReason;
+
+typedef shared_ptr<AggrWatch> pWatch;
+typedef weak_ptr<AggrWatch> wpWatch;
 
 typedef vector<WLV> lwlv;
 //typedef vector<Agg*> lagg;
@@ -86,15 +97,15 @@ public:
 class AggrWatch {
 private:
     Occurrence	type;		//whether the watch is on the head(HEAD), on the literal in the set(POS) or on its negation(NEG)
-    AggrSet*	set;
+    wpSet		set;
     int			index;
 
 public:
-    AggrWatch(AggrSet* e, int i, Occurrence t) : type(t), set(e), index(i) {}
+    AggrWatch(const wpSet& e, int i, Occurrence t) : type(t), set(e), index(i) {}
 
     Occurrence 	getType() 	const 	{ return type; }
     int 		getIndex() 	const 	{ return index; }
-    AggrSet* 	getSet() 	const	{ return set; }
+    pSet 		getSet() 	const	{ return set.lock(); }
 };
 
 class AggrReason {
@@ -105,7 +116,7 @@ private:
 public:
     AggrReason(wpAgg e, int index) : expr(e), index(index) {}
 
-    wpAgg 	getAgg() 	const { return expr; }
+    pAgg 	getAgg() 	const { return expr.lock(); }
     int 	getIndex() 	const { return index; }
 };
 
@@ -244,11 +255,15 @@ protected:
 	int			headindex;	//the index in the stack when this was derived
 	lbool		headvalue;
 
-	AggrSet* 	set;
+	wpSet	 	set;
+
+    virtual pAgg getAgg(){
+        return shared_from_this();
+    }
 
 public:
 
-    Agg(bool lower, Weight bound, Lit head, AggrSet* set) :
+    Agg(bool lower, Weight bound, Lit head, const wpSet& set) :
 	    bound(bound), lower(lower), head(head), headindex(-1), headvalue(l_Undef), set(set) {
     }
 
@@ -260,9 +275,9 @@ public:
 	const 	Lit& 	getHead()		const	{ return head; }
 	const 	lbool& 	getHeadValue() 	const	{ return headvalue; }
 			int 	getHeadIndex() 	const	{ return headindex; }
-	const 	AggrSet*	getSet() 	const	{ return set; }
+			pSet	getSet()	 	const	{ return set.lock(); }
 
-	void 	addAggToSet() 				{ set->addAgg(getAgg()); }
+	void 	addAggToSet() 				{ set.lock()->addAgg(getAgg()); }
 
 	void 	setBound(const Weight& b)	{ bound = b; }
 
@@ -287,16 +302,11 @@ public:
 			void 	becomesCycleSource(vec<Lit>& nj) const;
 	virtual void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) const = 0;
 	virtual bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const = 0;
-
-    virtual pAgg getAgg()
-    {
-        return shared_from_this();
-    }
 };
 
 class MaxAgg: public Agg {
 public:
-	MaxAgg(bool lower, Weight bound, Lit head, AggrMaxSet* set):
+	MaxAgg(bool lower, Weight bound, Lit head, const wpSet& set):
 		Agg(lower, bound, head, set){
 	};
 
@@ -312,7 +322,7 @@ private:
 	bool sum;
 
 public:
-	SPAgg(bool lower, Weight bound, Lit head, AggrSet* set, bool sum):
+	SPAgg(bool lower, Weight bound, Lit head, const wpSet& set, bool sum):
 		Agg(lower, bound, head, set),sum(sum){
 	};
 
@@ -325,7 +335,7 @@ public:
 
 class SumAgg: public SPAgg {
 public:
-	SumAgg(bool lower, Weight bound, Lit head, AggrSumSet* set):
+	SumAgg(bool lower, Weight bound, Lit head, const wpSet& set):
 		SPAgg(lower, bound, head, set, true){
 	};
 
@@ -334,7 +344,7 @@ public:
 
 class ProdAgg: public SPAgg {
 public:
-	ProdAgg(bool lower, Weight bound, Lit head, AggrProdSet* set):
+	ProdAgg(bool lower, Weight bound, Lit head, const wpSet& set):
 		SPAgg(lower, bound, head, set, false){
 	}
 };

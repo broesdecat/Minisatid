@@ -237,6 +237,10 @@ inline void Clause::strengthen(Lit p)
 #include "BigIntegerUtils.hh"
 typedef BigInteger Weight;
 
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/smart_ptr/weak_ptr.hpp>
+#include <boost/smart_ptr/enable_shared_from_this.hpp>
+
 /******************
  * DEBUGGING INFO *
  ******************/

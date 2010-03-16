@@ -103,7 +103,7 @@ static Weight parseWeight(B& in) {
 }
 
 template<class B>
-static void readClause(B& in, Solver* S, vec<Lit>& lits) {
+static void readClause(B& in, pSolver S, vec<Lit>& lits) {
     int     parsed_lit, var;
     lits.clear();
     for (;;){
@@ -142,7 +142,7 @@ static bool match(B& in, const char* str) {
  */
 
 template<class B>
-static void parse_Aggr(B& in, Solver* S, AggSolver* AGG, AggrType type) {
+static void parse_Aggr(B& in, pSolver S, pAggSolver AGG, AggrType type) {
 	char boundtype, deftype;
 	if(*in==' '){
 		 ParseError("No bound comparison operator for the aggregate (L or G) was given.\n");
@@ -190,7 +190,7 @@ static void parse_Aggr(B& in, Solver* S, AggSolver* AGG, AggrType type) {
 
 
 template<class B>
-static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AggSolver* AGG) { // NOTE: this parser does not read translation information.
+static void parse_ECNF_main(B& in, pSolver S, pIDSolver TS, pAggSolver AGG) { // NOTE: this parser does not read translation information.
     vec<Lit> lits;
     for (;;){
         skipWhitespace(in);
@@ -333,7 +333,7 @@ static void parse_ECNF_main(B& in, Solver* S, IDSolver* TS, AggSolver* AGG) { //
 }
 
 template<class B>
-static void parse_main(B& in, Solver* S, IDSolver* TS, AggSolver* AGG) {
+static void parse_main(B& in, pSolver S, pIDSolver TS, pAggSolver AGG) {
     bool ecnf = false;
     for (;;){
         skipWhitespace(in);
@@ -397,14 +397,14 @@ static void parse_main(B& in, Solver* S, IDSolver* TS, AggSolver* AGG) {
 
 // Inserts problem into solver.
 //
-static void parse(gzFile input_stream, Solver* S, IDSolver* TS, AggSolver *AGG) {
+static void parse(gzFile input_stream, pSolver S, pIDSolver TS, pAggSolver AGG) {
     StreamBuffer in(input_stream);
     parse_main(in, S, TS, AGG); }
 
 //=================================================================================================
 
 
-void printStats(Solver* solver)
+void printStats(pSolver solver)
 {
 	//TODO repair later + add extra stats
     /*if (solver.verbosity>=1) {
@@ -473,9 +473,9 @@ const char* hasPrefix(const char* str, const char* prefix)
 
 int main(int argc, char** argv)
 {
-    Solver*      S = new Solver();
-    IDSolver* 	TS = new IDSolver();
-    AggSolver* 	AggS = new AggSolver();
+    pSolver		S 	= pSolver(new Solver());
+    pIDSolver	TS 	= pIDSolver(new IDSolver());
+    pAggSolver	AggS = pAggSolver(new AggSolver());
     S->setIDSolver(TS);
     S->setAggSolver(AggS);
     TS->setSolver(S);
@@ -607,14 +607,14 @@ int main(int argc, char** argv)
 		parse(in, S, TS, AggS);
 
 		if(!modes.def){
-			S->setIDSolver(NULL);
-			AggS->setIDSolver(NULL);
-			delete TS;
+			S->setIDSolver(pIDSolver());
+			AggS->setIDSolver(pIDSolver());
+			TS = pIDSolver();
 		}
 		if(!modes.aggr){
-			S->setAggSolver(NULL);
-			TS->setAggSolver(NULL);
-			delete AggS;
+			S->setAggSolver(pAggSolver());
+			TS->setAggSolver(pAggSolver());
+			AggS = pAggSolver();
 		}
 		if(!modes.mnmz){
 			//later
@@ -642,13 +642,6 @@ int main(int argc, char** argv)
 		S->res=res;
 		ret = S->solve();
 		printStats(S);
-
-		if(modes.def){
-			delete TS;
-		}
-		if(modes.aggr){
-			delete AggS;
-		}
 	}catch(bad_alloc e){ //FIXME: handle all these elegantly
 		reportf("Memory overflow, cannot continue solving.\n"); exit(3);
 	}catch(UNSAT){

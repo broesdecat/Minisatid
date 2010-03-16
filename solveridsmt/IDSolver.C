@@ -140,8 +140,8 @@ bool IDSolver::simplify(){
 	reducedVars.copyTo(defdVars);
 
 	if(!aggpresent && aggsolver!=NULL){
-		aggsolver -> setIDSolver(NULL);
-		aggsolver = NULL;
+		aggsolver -> setIDSolver(pIDSolver());
+		aggsolver = pAggSolver();
 	}
 
 	for(int i=0; i<usedseen.size(); i++){
@@ -157,10 +157,10 @@ bool IDSolver::simplify(){
 	}
 
 	if(!posloops && !negloops){
-		solver->setIDSolver(NULL);
-		if(aggsolver!=NULL){
-			aggsolver->setIDSolver(NULL);
-			aggsolver = NULL;
+		solver->setIDSolver(pIDSolver());
+		if(aggsolver.get()!=NULL){
+			aggsolver->setIDSolver(pIDSolver());
+			aggsolver = pAggSolver();
 		}
 		if (verbosity >= 1){
 			reportf("| All recursive atoms falsified in initializations.                           |\n");

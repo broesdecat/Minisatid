@@ -14,6 +14,16 @@ class Solver;
 class IDSolver;
 class Agg;
 
+class IDSolver;
+typedef shared_ptr<IDSolver> pIDSolver;
+typedef weak_ptr<IDSolver> wpIDSolver;
+class AggSolver;
+typedef shared_ptr<AggSolver> pAggSolver;
+typedef weak_ptr<AggSolver> wpAggSolver;
+class Solver;
+typedef shared_ptr<Solver> pSolver;
+typedef weak_ptr<Solver> wpSolver;
+
 extern int verbosity;
 
 /*
@@ -27,6 +37,7 @@ extern int verbosity;
 
 class AggSolver{
 public:
+	//FIXME FIXME: dit moet weg als er meerdere mogelijk zijn!!!!!
 	static AggSolver* aggsolver;
 	AggSolver();
 	virtual ~AggSolver();
@@ -98,43 +109,42 @@ public:
 	 */
 	bool    finishECNF_DataStructures ();
 
-	void setSolver(Solver* s){
+	void setSolver(pSolver s){
 		solver = s;
 	}
 
-	void setIDSolver(IDSolver* s){
+	void setIDSolver(pIDSolver s){
 		idsolver = s;
 	}
 
 	/////////////////////END INITIALIZATION
 
 	//are used by agg.c, but preferably should be move into protected again
-	Clause* 		notifySATsolverOfPropagation(const Lit& p, AggrReason* cr);	// Like "enqueue", but for aggregate propagations.
+	Clause* notifySATsolverOfPropagation(const Lit& p, AggrReason* cr);	// Like "enqueue", but for aggregate propagations.
 
 	// Debug:
-	void     printAggrExpr   (wpAgg ae);
+	void    printAggrExpr   (pAgg ae);
 
-	void 	addMnmzSum(Var headv, int setid, bool lower);
-    bool 	invalidateSum(vec<Lit>& invalidation, Var head);
-    void 	propagateMnmz(Var head);
+	//Optimisation support
+	void 	addMnmzSum		(Var headv, int setid, bool lower);
+    bool 	invalidateSum	(vec<Lit>& invalidation, Var head);
+    void 	propagateMnmz	(Var head);
 
 protected:
 	/**
-	 * Returns the watch set on the aggregate in which the given variable is the head.
+	 * Returns the aggregate in which the given variable is the head.
 	 */
-    wpAgg	getAggWithHeadOccurence	(Var v) const;
+    pAgg	getAggWithHeadOccurence	(Var v) const;
 
-	// ECNF_mode.aggr additions to Solver state:
-	//
-	vector<AggrMaxSet*>		aggrminsets;
-	vector<AggrMaxSet*>		aggrmaxsets;
-	vector<AggrSumSet*>		aggrsumsets;
-	vector<AggrProdSet*>	aggrprodsets;
+	vector<pSet>	aggrminsets;
+	vector<pSet>	aggrmaxsets;
+	vector<pSet>	aggrsumsets;
+	vector<pSet>	aggrprodsets;
 
-	vector<AggrReason*>		aggr_reason;	// For each atom, like 'reason'.
+	vector<AggrReason*>			aggr_reason;	// For each atom, like 'reason'.
 	vector<vector<AggrWatch> >	aggr_watches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
 	vector<wpAgg >				head_watches;
-	vector<pAgg > 			aggregates;	//A vector to store all created aggregates as shared pointers, to allow easy destruction in the end
+	vector<pAgg > 				aggregates;		//A vector to store all created aggregates as shared pointers, to allow easy destruction in the end
 			//INVARIANT: if a literal is defined by an aggregate, the watch on the expression in which it is head
 			//	will be the first element of its watches list
 
@@ -149,8 +159,8 @@ protected:
 	 */
 	void 	doBacktrack(const Lit& l);
 
-	Solver*		solver;
-	IDSolver*	idsolver;
+	pSolver		solver;
+	pIDSolver	idsolver;
 
 	bool		init;	//indicates whether still in initialization mode
 
@@ -159,11 +169,10 @@ protected:
 	 */
 	Clause* Aggr_propagate		(const Lit& p);
 
-	void 	findCycleSources	(wpAgg) const;
+	//void 	findCycleSources	(pAgg) const;
 
 	void 	maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& head, const AggrSet& set);
-
-	void	finishSets(AggrSet* set);
+	void	finishSets(pSet set);
 };
 
 //=======================

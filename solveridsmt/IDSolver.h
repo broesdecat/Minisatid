@@ -16,6 +16,17 @@
 #include "Solver.h"
 #include "AggSolver.h"
 
+
+class IDSolver;
+typedef shared_ptr<IDSolver> pIDSolver;
+typedef weak_ptr<IDSolver> wpIDSolver;
+class AggSolver;
+typedef shared_ptr<AggSolver> pAggSolver;
+typedef weak_ptr<AggSolver> wpAggSolver;
+class Solver;
+typedef shared_ptr<Solver> pSolver;
+typedef weak_ptr<Solver> wpSolver;
+
 /**
  * The different possible typs of definitions.
  * If a variable is NONDEFALL, no definition is associated with it.
@@ -77,11 +88,11 @@ public:
 	void    	addRule      				(bool conj, vec<Lit>& ps);	// Add a rule to the solver.
 	bool    	finishECNF_DataStructures 	();							// Initialize the ECNF data structures. NOTE: aggregates may set the "ok" value to false!
 
-	void setSolver(Solver* s){
+	void setSolver(pSolver s){
 		solver = s;
 	}
 
-	void setAggSolver(AggSolver* s){
+	void setAggSolver(pAggSolver s){
 		aggsolver = s;
 	}
 
@@ -107,8 +118,8 @@ protected:
 	//uint64_t nb_times_findCS, justify_calls, cs_removed_in_justify, succesful_justify_calls, extdisj_sizes, total_marked_size;
 	//    uint64_t fw_propagation_attempts, fw_propagations;
 
-	Solver* 		solver;
-	AggSolver* 		aggsolver;
+	pSolver 		solver;
+	pAggSolver 		aggsolver;
 
 	// ECNF_mode.mnmz additions to Solver state:
 	vec<Lit>		to_minimize;

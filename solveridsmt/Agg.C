@@ -125,7 +125,7 @@ void Agg::backtrackHead(){
 Clause* Agg::propagateHead(const Lit& p){
 	bool headtrue = head==p;
 	headvalue = headtrue?l_True:l_False;
-	headindex = set->getStackSize();
+	headindex = set.lock()->getStackSize();
 	return propagateHead(headtrue);
 }
 
@@ -181,9 +181,10 @@ WLit AggrMaxSet::handleOccurenceOfBothSigns(const WLit& one, const WLit& two){
 }
 
 lbool Agg::canPropagateHead() const{
-	if ((lower && set->getCC() > bound) || (!lower && set->getCP() < bound)) {
+	pSet s = set.lock();
+	if ((lower && s->getCC() > bound) || (!lower && s->getCP() < bound)) {
 		return l_False;
-	} else if ((lower && set->getCP() <= bound) || (!lower && set->getCC() >= bound)) {
+	} else if ((lower && s->getCP() <= bound) || (!lower && s->getCC() >= bound)) {
 		return l_True;
 	} else {
 		return l_Undef;
@@ -197,17 +198,18 @@ lbool Agg::canPropagateHead() const{
  * 		make all literals false with weight larger/eq than bound
  */
 Clause* MaxAgg::propagateHead(bool headtrue) {
+	pSet s = set.lock();
 	Clause* confl = NULL;
 	if (headtrue && lower) {
-		lwlv::const_reverse_iterator i=set->getWLRBegin();
-		while( confl == NULL && i<set->getWLREnd() && bound<(*i).getWeight()){
-			confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(getAgg(), set->getStackSize()));
+		lwlv::const_reverse_iterator i=s->getWLRBegin();
+		while( confl == NULL && i<s->getWLREnd() && bound<(*i).getWeight()){
+			confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(getAgg(), s->getStackSize()));
 			i++;
 		}
 	}else if(!headtrue && !lower){
-		lwlv::const_reverse_iterator i=set->getWLRBegin();
-		while( confl == NULL && i<set->getWLREnd() && bound<=(*i).getWeight()){
-			confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(getAgg(), set->getStackSize()));
+		lwlv::const_reverse_iterator i=s->getWLRBegin();
+		while( confl == NULL && i<s->getWLREnd() && bound<=(*i).getWeight()){
+			confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(getAgg(), s->getStackSize()));
 			i++;
 		}
 	}
@@ -231,12 +233,13 @@ Clause* MaxAgg::propagate(bool headtrue) {
 	if((lower && headtrue) || (!lower && !headtrue)){
 		return confl;
 	}
-	lwlv::const_iterator pos = set->getWLEnd();
+	pSet s = set.lock();
+	lwlv::const_iterator pos = s->getWLEnd();
 	bool exactlyoneleft = true;
-	for(lwlv::const_iterator i=set->getWLBegin(); exactlyoneleft && i<set->getWLEnd(); i++){
+	for(lwlv::const_iterator i=s->getWLBegin(); exactlyoneleft && i<s->getWLEnd(); i++){
 		if((!lower && headtrue && (*i).getWeight()>=bound) || (lower && !headtrue && (*i).getWeight()>bound)){
 			if((*i).getValue()==l_Undef){
-				if(pos!=set->getWLEnd()){
+				if(pos!=s->getWLEnd()){
 					exactlyoneleft = false;
 				}else{
 					pos = i;
@@ -247,7 +250,7 @@ Clause* MaxAgg::propagate(bool headtrue) {
 		}
 	}
 	if(exactlyoneleft){
-		confl = AggSolver::aggsolver->notifySATsolverOfPropagation((*pos).getLit(), new AggrReason(getAgg(), set->getStackSize()));
+		confl = AggSolver::aggsolver->notifySATsolverOfPropagation((*pos).getLit(), new AggrReason(getAgg(), s->getStackSize()));
 	}
 	return confl;
 }
@@ -360,24 +363,25 @@ Clause* SPAgg::propagateHead(bool headtrue){
 Clause* SPAgg::propagate(bool headtrue){
 	Clause* c = NULL;
 	Weight weightbound(0);
+	pSet s = set.lock();
 
 	//determine the lower bound of which weight literals to consider
 	if (headtrue) {
 		if(lower){
 			if(sum){
-				weightbound = bound-set->getCC();
+				weightbound = bound-s->getCC();
 			}else{
 				//currentbestcertain = 0 not possible (always geq 1)
-				weightbound = bound/set->getCC();
+				weightbound = bound/s->getCC();
 			}
 			//+1 because larger and not eq
 			weightbound+=1;
 		}else{
 			if(sum){
-				weightbound = set->getCP()-bound;
+				weightbound = s->getCP()-bound;
 			}else{
 				//if bound == 0, it is never possible to obtain a smaller product, so get first weight larger than 0
-				weightbound = bound==0?0:set->getCP()/bound;
+				weightbound = bound==0?0:s->getCP()/bound;
 			}
 			//+1 because larger and not eq
 			weightbound+=1;
@@ -385,40 +389,40 @@ Clause* SPAgg::propagate(bool headtrue){
 	} else {
 		if(lower){
 			if(sum){
-				weightbound = set->getCP()-bound;
+				weightbound = s->getCP()-bound;
 			}else{
 				//if bound == 0, it is never possible to obtain a smaller product, so get first weight larger than 0
-				weightbound = bound==0?0:set->getCP()/bound;
+				weightbound = bound==0?0:s->getCP()/bound;
 			}
 		}else{
 			if(sum){
-				weightbound = bound - set->getCC();
+				weightbound = bound - s->getCC();
 			}else{
 				//currentbestcertain = 0 not possible (always leq 1)
-				weightbound = bound/set->getCC();
+				weightbound = bound/s->getCC();
 			}
 		}
 	}
-	lwlv::const_iterator pos = lower_bound(set->getWLBegin(), set->getWLEnd(), weightbound);
-	if(pos==set->getWLEnd()){
+	lwlv::const_iterator pos = lower_bound(s->getWLBegin(), s->getWLEnd(), weightbound);
+	if(pos==s->getWLEnd()){
 		return c;
 	}
 
 	//find the index of the literal
 	int start = 0;
-	lwlv::const_iterator it = set->getWLBegin();
+	lwlv::const_iterator it = s->getWLBegin();
 	while(it!=pos){
 		it++; start++;
 	}
 
-	for (lwlv::const_iterator u = set->getWLBegin()+start; c==NULL && u < set->getWLEnd(); u++) {
+	for (lwlv::const_iterator u = s->getWLBegin()+start; c==NULL && u < s->getWLEnd(); u++) {
 		if ((*u).getValue()==l_Undef) {//if already propagated as an aggregate, then those best-values have already been adapted
 			if((lower && headtrue) || (!lower && !headtrue)){
 				//assert((headtrue && set->currentbestcertain+set->wlits[u].weight>bound) || (!headtrue && set->currentbestcertain+set->wlits[u].weight>=bound));
-				c = AggSolver::aggsolver->notifySATsolverOfPropagation(~(*u).getLit(), new AggrReason(getAgg(), set->getStackSize()));
+				c = AggSolver::aggsolver->notifySATsolverOfPropagation(~(*u).getLit(), new AggrReason(getAgg(), s->getStackSize()));
 			}else{
 				//assert((!headtrue && set->currentbestpossible-set->wlits[u].weight<=bound) || (headtrue && set->currentbestpossible-set->wlits[u].weight<bound));
-				c = AggSolver::aggsolver->notifySATsolverOfPropagation((*u).getLit(), new AggrReason(getAgg(), set->getStackSize()));
+				c = AggSolver::aggsolver->notifySATsolverOfPropagation((*u).getLit(), new AggrReason(getAgg(), s->getStackSize()));
 			}
 		}
 	}
@@ -430,28 +434,31 @@ Clause* SPAgg::propagate(bool headtrue){
  *******************/
 
 void Agg::getExplanation(vec<Lit>& lits, AggrReason& ar) const{
-	pAgg pa = ar.getAgg().lock();
-	AggrSet& s = *pa->set;
-	if(ar.getIndex() >= pa->headindex){
+	assert(ar.getAgg().get() == this);
+
+	if(ar.getIndex() >= headindex){
 		//the head literal is saved as it occurred in the theory, so adapt for its current truth value!
-		lits.push(pa->headvalue==l_True?~pa->head:pa->head);
+		lits.push(headvalue==l_True?~head:head);
 	}
+
 	int counter = 0;
-	for(lprop::const_iterator i=s.getStackBegin(); counter<ar.getIndex() && i<s.getStackEnd(); i++,counter++){
+	pSet s = set.lock();
+	for(lprop::const_iterator i=s->getStackBegin(); counter<ar.getIndex() && i<s->getStackEnd(); i++,counter++){
 		lits.push(~(*i).getLit());
 	}
 }
 
 void SumAgg::getMinimExplan(vec<Lit>& lits){
-	Weight certainsum = set->getEmptySetValue();
-	Weight possiblesum = set->getBestPossible();
+	pSet s = set.lock();
+	Weight certainsum = s->getEmptySetValue();
+	Weight possiblesum = s->getBestPossible();
 
 	bool explained = false;
 	if((lower && certainsum>bound) || (!lower && certainsum>=bound) || (lower && possiblesum <= bound) || (!lower && possiblesum < bound)){
 		explained = true;
 	}
 
-	for(lprop::const_iterator i=set->getStackBegin(); !explained && i<set->getStackEnd(); i++){
+	for(lprop::const_iterator i=s->getStackBegin(); !explained && i<s->getStackEnd(); i++){
 		bool push = false;
 		if((*i).getType() == POS){ //means that the literal in the set became true
 			certainsum += (*i).getWeight();
@@ -526,8 +533,9 @@ void Agg::becomesCycleSource(vec<Lit>& j) const {
  * Add all literals that could make the head true and are not in the unfounded set to the loopformula
  */
 void MaxAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) const{
+	pSet s = set.lock();
 	if(lower){
-		for (lwlv::const_reverse_iterator i=set->getWLRBegin(); i<set->getWLREnd() && (*i).getWeight()>bound; i++) {
+		for (lwlv::const_reverse_iterator i=s->getWLRBegin(); i<s->getWLREnd() && (*i).getWeight()>bound; i++) {
 			const Lit& l = (*i).getLit();
 			if (l!=head && ufs.find(var(l)) == ufs.end() && seen[var(l)] != (sign(l) ? 2 : 1)) {
 				loopf.push(~l);
@@ -535,7 +543,7 @@ void MaxAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<in
 			}
 		}
 	}else{
-		for (lwlv::const_reverse_iterator i=set->getWLRBegin(); i<set->getWLREnd() && (*i).getWeight()>=bound; i++) {
+		for (lwlv::const_reverse_iterator i=s->getWLRBegin(); i<s->getWLREnd() && (*i).getWeight()>=bound; i++) {
 			const Lit l = (*i).getLit();
 			if (l!=head &&  ufs.find(var(l)) == ufs.end() && seen[var(l)] != (sign(l) ? 1 : 2)) {
 				loopf.push(l);
@@ -558,10 +566,11 @@ void MaxAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<in
  */
 bool MaxAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
 	bool justified = false;
+	pSet s = set.lock();
 	if(lower){
-		for(lwlv::const_reverse_iterator i=set->getWLRBegin(); i<set->getWLREnd() && (*i).getWeight()>bound; i++) {
+		for(lwlv::const_reverse_iterator i=s->getWLRBegin(); i<s->getWLREnd() && (*i).getWeight()>bound; i++) {
 			const Lit& l = (*i).getLit();
-			if(set->oppositeIsJustified(*i, currentjust, real)){
+			if(s->oppositeIsJustified(*i, currentjust, real)){
 				jstf.push(~l); //push negative literal, because it should become false
 				nonjstf.push(var(l));
 			}
@@ -570,9 +579,9 @@ bool MaxAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& current
 			justified = true;
 		}
 	}else{
-		for(lwlv::const_reverse_iterator i=set->getWLRBegin(); i<set->getWLREnd() && (*i).getWeight()>=bound; i++) {
+		for(lwlv::const_reverse_iterator i=s->getWLRBegin(); i<s->getWLREnd() && (*i).getWeight()>=bound; i++) {
 			const Lit& l = (*i).getLit();
-			if(set->isJustified(*i, currentjust, real)){
+			if(s->isJustified(*i, currentjust, real)){
 				jstf.push(l);
 				justified = true;
 			}else{
@@ -595,7 +604,8 @@ void SPAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int
 	int f = lower?1:2;
 	int s = lower?2:1;
 
-	for (lwlv::const_iterator i = set->getWLBegin(); i < set->getWLEnd(); ++i) {
+	pSet pset = set.lock();
+	for (lwlv::const_iterator i = pset->getWLBegin(); i < pset->getWLEnd(); ++i) {
 		const Lit& l = (*i).getLit();
 		if (l!=head && ufs.find(var(l)) == ufs.end() && seen[var(l)] != (sign(l) ? f : s)) {
 			loopf.push(lower?~l:l);
@@ -610,11 +620,12 @@ void SPAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int
  */
 bool SPAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
 	bool justified = false;
+	pSet s = set.lock();
 	if(lower){
-		Weight bestpossible = set->getBestPossible();
-		for (lwlv::const_iterator i = set->getWLBegin(); !justified && i < set->getWLEnd(); ++i) {
+		Weight bestpossible = s->getBestPossible();
+		for (lwlv::const_iterator i = s->getWLBegin(); !justified && i < s->getWLEnd(); ++i) {
 			const Lit& l = (*i).getLit();
-			if(set->oppositeIsJustified(*i, currentjust, real)){
+			if(s->oppositeIsJustified(*i, currentjust, real)){
 				jstf.push(~l);
 				if(sum){
 					bestpossible -= (*i).getWeight();
@@ -629,10 +640,10 @@ bool SPAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentj
 			}
 		}
 	}else{
-		Weight bestcertain = set->getEmptySetValue();
-		for (lwlv::const_iterator i = set->getWLBegin(); !justified && i < set->getWLEnd(); ++i) {
+		Weight bestcertain = s->getEmptySetValue();
+		for (lwlv::const_iterator i = s->getWLBegin(); !justified && i < s->getWLEnd(); ++i) {
 			const Lit& l = (*i).getLit();
-			if(set->isJustified(*i, currentjust, real)){
+			if(s->isJustified(*i, currentjust, real)){
 				jstf.push(l);
 				if(sum){
 					bestcertain += (*i).getWeight();

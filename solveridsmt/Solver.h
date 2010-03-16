@@ -33,6 +33,16 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "IDSolver.h"
 #include "AggSolver.h"
 
+class IDSolver;
+typedef shared_ptr<IDSolver> pIDSolver;
+typedef weak_ptr<IDSolver> wpIDSolver;
+class AggSolver;
+typedef shared_ptr<AggSolver> pAggSolver;
+typedef weak_ptr<AggSolver> wpAggSolver;
+class Solver;
+typedef shared_ptr<Solver> pSolver;
+typedef weak_ptr<Solver> wpSolver;
+
 extern int verbosity;
 struct Parameters;
 extern Parameters params;
@@ -92,12 +102,13 @@ enum MINIM {MNMZ, SUBSETMNMZ, SUMMNMZ, NONE};
 class Solver {
 public:
 	/////SMT NECESSARY
-	IDSolver* 	tsolver;
-	IDSolver* getIDSolver(){ return tsolver; }
-	void setIDSolver(IDSolver* ts){tsolver = ts;}
-	AggSolver* 	aggsolver;
-	AggSolver* getAggSolver(){ return aggsolver; }
-	void setAggSolver(AggSolver* ts){aggsolver = ts;}
+	pIDSolver 	tsolver;
+	pIDSolver 	getIDSolver(){ return tsolver; }
+	void setIDSolver(pIDSolver ts){tsolver = ts;}
+
+	pAggSolver 	aggsolver;
+	pAggSolver getAggSolver(){ return aggsolver; }
+	void setAggSolver(pAggSolver ts){aggsolver = ts;}
 
 	lbool   value      (Var x) const;       // The current value of a variable.
 	lbool   value      (Lit p) const;       // The current value of a literal.
