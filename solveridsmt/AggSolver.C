@@ -169,7 +169,9 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 		reportf("Error: Two aggregates have the same head(%d).\n", gprintVar(headv)), exit(3);
 	}
 
-	head_watches.resize(headv+1);
+	while(head_watches.size()<headv+1){
+		head_watches.push_back(wpAgg(pAgg()));
+	}
 
 	//the head of the aggregate
 	Lit head = Lit(headv, false);
@@ -234,7 +236,9 @@ void AggSolver::addMnmzSum(Var headv, int setid, bool lower) {
 		reportf("Error: Two aggregates have the same head(%d).\n", gprintVar(headv)), exit(3);
 	}
 
-	head_watches.resize(headv+1);
+	while(head_watches.size()<headv+1){
+		head_watches.push_back(wpAgg(pAgg()));
+	}
 
 	//the head of the aggregate
 	Lit head = Lit(headv, false);

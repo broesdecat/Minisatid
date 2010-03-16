@@ -208,34 +208,45 @@ public:
 	virtual void 	removeFromPossibleSet	(const WLit& l);
 };
 
-class AggrSumSet: public AggrSet{
+class AggrSPSet: public AggrSet{
 public:
-	AggrSumSet(vec<Lit>& lits, vector<Weight>& weights):AggrSet(lits, weights){
+	AggrSPSet(vec<Lit>& lits, vector<Weight>& weights):AggrSet(lits, weights){
+	};
+
+	virtual Weight 	getCombinedWeight(const Weight& one, const Weight& two) const;
+	virtual WLit 	handleOccurenceOfBothSigns(const WLit& one, const WLit& two) = 0;
+
+	virtual Weight 	getBestPossible			() 		const;
+	virtual void 	initEmptySetValue		() = 0;
+	virtual void 	addToCertainSet			(const WLit& l);
+	virtual void 	removeFromPossibleSet	(const WLit& l);
+
+	virtual Weight	add(const Weight& lhs, const Weight& rhs) const = 0;
+	virtual Weight	remove(const Weight& lhs, const Weight& rhs) const = 0;
+};
+
+class AggrSumSet: public AggrSPSet{
+public:
+	AggrSumSet(vec<Lit>& lits, vector<Weight>& weights):AggrSPSet(lits, weights){
 		name = "SUM";
 	};
 
-	virtual Weight 	getCombinedWeight(const Weight& one, const Weight& two) const;
 	virtual WLit 	handleOccurenceOfBothSigns(const WLit& one, const WLit& two);
-
-	virtual Weight 	getBestPossible			() 		const;
 	virtual void 	initEmptySetValue		();
-	virtual void 	addToCertainSet			(const WLit& l);
-	virtual void 	removeFromPossibleSet	(const WLit& l);
+	virtual Weight	add(const Weight& lhs, const Weight& rhs) const;
+	virtual Weight	remove(const Weight& lhs, const Weight& rhs) const;
 };
 
-class AggrProdSet: public AggrSet{
+class AggrProdSet: public AggrSPSet{
 public:
-	AggrProdSet(vec<Lit>& lits, vector<Weight>& weights):AggrSet(lits, weights){
+	AggrProdSet(vec<Lit>& lits, vector<Weight>& weights):AggrSPSet(lits, weights){
 		name = "PROD";
 	};
 
-	virtual Weight 	getCombinedWeight(const Weight& one, const Weight& two) const;
 	virtual WLit 	handleOccurenceOfBothSigns(const WLit& one, const WLit& two);
-
-	virtual Weight 	getBestPossible			() 		const;
 	virtual void 	initEmptySetValue		();
-	virtual void 	addToCertainSet			(const WLit& l);
-	virtual void 	removeFromPossibleSet	(const WLit& l);
+	virtual Weight	add(const Weight& lhs, const Weight& rhs) const;
+	virtual Weight	remove(const Weight& lhs, const Weight& rhs) const;
 };
 
 /**
@@ -318,12 +329,9 @@ public:
 };
 
 class SPAgg: public Agg {
-private:
-	bool sum;
-
 public:
-	SPAgg(bool lower, Weight bound, Lit head, const wpSet& set, bool sum):
-		Agg(lower, bound, head, set),sum(sum){
+	SPAgg(bool lower, Weight bound, Lit head, const wpSet& set):
+		Agg(lower, bound, head, set){
 	};
 
     virtual Clause* propagate		(bool headtrue);
@@ -331,22 +339,31 @@ public:
 
 	virtual void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) const;
 	virtual bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
+
+	virtual Weight	add(const Weight& lhs, const Weight& rhs) const = 0;
+	virtual Weight	remove(const Weight& lhs, const Weight& rhs) const = 0;
 };
 
 class SumAgg: public SPAgg {
 public:
 	SumAgg(bool lower, Weight bound, Lit head, const wpSet& set):
-		SPAgg(lower, bound, head, set, true){
+		SPAgg(lower, bound, head, set){
 	};
 
 	void	getMinimExplan(vec<Lit>& lits);
+
+	Weight	add(const Weight& lhs, const Weight& rhs) const;
+	Weight	remove(const Weight& lhs, const Weight& rhs) const;
 };
 
 class ProdAgg: public SPAgg {
 public:
 	ProdAgg(bool lower, Weight bound, Lit head, const wpSet& set):
-		SPAgg(lower, bound, head, set, false){
+		SPAgg(lower, bound, head, set){
 	}
+
+	Weight	add(const Weight& lhs, const Weight& rhs) const;
+	Weight	remove(const Weight& lhs, const Weight& rhs) const;
 };
 
 #endif /* MINAGG_H_ */

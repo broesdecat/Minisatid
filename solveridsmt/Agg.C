@@ -138,7 +138,9 @@ Weight AggrMaxSet::getBestPossible() const{
 }
 
 void AggrMaxSet::initEmptySetValue(){
-	setEmptySetValue(wlits.front().getWeight()-Weight(1));
+	//FIXME FIXME: moet eigenlijk een voorstelling van -infinity zijn
+	//ik had eerst: minimum van de set -1, maar de bound kan NOG lager liggen, dus dan is het fout
+	setEmptySetValue(Weight(-400000000));
 }
 
 void AggrMaxSet::addToCertainSet(const WLit& l){
@@ -259,40 +261,42 @@ Clause* MaxAgg::propagate(bool headtrue) {
  * SUM AGGREGATE *
  *****************/
 
-Weight AggrSumSet::getBestPossible() const{
-	Weight max = emptysetvalue;
-	for (lwlv::const_iterator j = wlits.begin(); j < wlits.end(); j++) {
-		max += (*j).getWeight();
-	}
-	return max;
+Weight	AggrSumSet::add(const Weight& lhs, const Weight& rhs) const{
+	return lhs+rhs;
+}
+Weight	AggrSumSet::remove(const Weight& lhs, const Weight& rhs) const{
+	return lhs-rhs;
+}
+Weight	AggrProdSet::add(const Weight& lhs, const Weight& rhs) const{
+	return lhs*rhs;
+}
+Weight	AggrProdSet::remove(const Weight& lhs, const Weight& rhs) const{
+	return rhs==0?0:lhs/rhs;
+}
+Weight	SumAgg::add(const Weight& lhs, const Weight& rhs) const{
+	return lhs+rhs;
+}
+Weight	SumAgg::remove(const Weight& lhs, const Weight& rhs) const{
+	return lhs-rhs;
+}
+Weight	ProdAgg::add(const Weight& lhs, const Weight& rhs) const{
+	return lhs*rhs;
+}
+Weight	ProdAgg::remove(const Weight& lhs, const Weight& rhs) const{
+	return rhs==0?0:lhs/rhs;
 }
 
 void AggrSumSet::initEmptySetValue(){
 	setEmptySetValue(Weight(0));
 }
 
-void AggrSumSet::addToCertainSet(const WLit& l){
-	setCC(getCC()+l.getWeight());
-}
-
-void AggrSumSet::removeFromPossibleSet(const WLit& l){
-	setCP(getCP()-l.getWeight());
-}
-
-/**
- * multi-set semantics!
- */
-Weight	AggrSumSet::getCombinedWeight(const Weight& first, const Weight& second) const{
-	return first+second;
-}
-
 WLit AggrSumSet::handleOccurenceOfBothSigns(const WLit& one, const WLit& two){
 	if(one.getWeight()<two.getWeight()){
 		setEmptySetValue(getEmptySetValue() + one.getWeight());
-		return WLit(two.getLit(), two.getWeight()-one.getWeight());
+		return WLit(two.getLit(), this->remove(two.getWeight(), one.getWeight()));
 	}else{
 		setEmptySetValue(getEmptySetValue() + two.getWeight());
-		return WLit(one.getLit(), one.getWeight()-two.getWeight());
+		return WLit(one.getLit(), this->remove(one.getWeight(), two.getWeight()));
 	}
 }
 
@@ -300,31 +304,31 @@ WLit AggrSumSet::handleOccurenceOfBothSigns(const WLit& one, const WLit& two){
  * PRODUCT AGGREGATE *
  *********************/
 
-Weight AggrProdSet::getBestPossible() const{
+Weight AggrSPSet::getBestPossible() const{
 	Weight max = getEmptySetValue();
 	for (lwlv::const_iterator j = wlits.begin(); j < wlits.end(); j++) {
-		max *= (*j).getWeight();
+		max = this->add(max, (*j).getWeight());
 	}
 	return max;
+}
+
+void AggrSPSet::addToCertainSet(const WLit& l){
+	setCC(this->add(getCC(), l.getWeight()));
+}
+
+void AggrSPSet::removeFromPossibleSet(const WLit& l){
+	setCP(this->remove(getCP(), l.getWeight()));
 }
 
 void AggrProdSet::initEmptySetValue(){
 	setEmptySetValue(Weight(1));
 }
 
-void AggrProdSet::addToCertainSet(const WLit& l){
-	setCC(getCC()* l.getWeight());
-}
-
-void AggrProdSet::removeFromPossibleSet(const WLit& l){
-	setCP(getCP() / l.getWeight());
-}
-
 /**
  * multi-set semantics!
  */
-Weight	AggrProdSet::getCombinedWeight(const Weight& first, const Weight& second) const{
-	return first*second;
+Weight	AggrSPSet::getCombinedWeight(const Weight& first, const Weight& second) const{
+	return this->add(first, second);
 }
 
 WLit AggrProdSet::handleOccurenceOfBothSigns(const WLit& one, const WLit& two){
@@ -368,39 +372,19 @@ Clause* SPAgg::propagate(bool headtrue){
 	//determine the lower bound of which weight literals to consider
 	if (headtrue) {
 		if(lower){
-			if(sum){
-				weightbound = bound-s->getCC();
-			}else{
-				//currentbestcertain = 0 not possible (always geq 1)
-				weightbound = bound/s->getCC();
-			}
+			weightbound = this->remove(bound, s->getCC());
 			//+1 because larger and not eq
 			weightbound+=1;
 		}else{
-			if(sum){
-				weightbound = s->getCP()-bound;
-			}else{
-				//if bound == 0, it is never possible to obtain a smaller product, so get first weight larger than 0
-				weightbound = bound==0?0:s->getCP()/bound;
-			}
+			weightbound = this->remove(s->getCP(), bound);
 			//+1 because larger and not eq
 			weightbound+=1;
 		}
 	} else {
 		if(lower){
-			if(sum){
-				weightbound = s->getCP()-bound;
-			}else{
-				//if bound == 0, it is never possible to obtain a smaller product, so get first weight larger than 0
-				weightbound = bound==0?0:s->getCP()/bound;
-			}
+			weightbound = this->remove(s->getCP(), bound);
 		}else{
-			if(sum){
-				weightbound = bound - s->getCC();
-			}else{
-				//currentbestcertain = 0 not possible (always leq 1)
-				weightbound = bound/s->getCC();
-			}
+			weightbound = this->remove(bound, s->getCC());
 		}
 	}
 	lwlv::const_iterator pos = lower_bound(s->getWLBegin(), s->getWLEnd(), weightbound);
@@ -569,10 +553,10 @@ bool MaxAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& current
 	pSet s = set.lock();
 	if(lower){
 		for(lwlv::const_reverse_iterator i=s->getWLRBegin(); i<s->getWLREnd() && (*i).getWeight()>bound; i++) {
-			const Lit& l = (*i).getLit();
 			if(s->oppositeIsJustified(*i, currentjust, real)){
-				jstf.push(~l); //push negative literal, because it should become false
-				nonjstf.push(var(l));
+				jstf.push(~(*i).getLit()); //push negative literal, because it should become false
+			}else if(real ||currentjust[var((*i).getLit())]!=0){
+				nonjstf.push(var((*i).getLit()));
 			}
 		}
 		if(nonjstf.size()==0){
@@ -580,12 +564,11 @@ bool MaxAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& current
 		}
 	}else{
 		for(lwlv::const_reverse_iterator i=s->getWLRBegin(); i<s->getWLREnd() && (*i).getWeight()>=bound; i++) {
-			const Lit& l = (*i).getLit();
 			if(s->isJustified(*i, currentjust, real)){
-				jstf.push(l);
+				jstf.push((*i).getLit());
 				justified = true;
-			}else{
-				nonjstf.push(var(l));
+			}else if(real || currentjust[var((*i).getLit())]!=0){
+				nonjstf.push(var((*i).getLit()));
 			}
 		}
 	}
@@ -621,40 +604,31 @@ void SPAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int
 bool SPAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
 	bool justified = false;
 	pSet s = set.lock();
+
 	if(lower){
 		Weight bestpossible = s->getBestPossible();
 		for (lwlv::const_iterator i = s->getWLBegin(); !justified && i < s->getWLEnd(); ++i) {
-			const Lit& l = (*i).getLit();
 			if(s->oppositeIsJustified(*i, currentjust, real)){
-				jstf.push(~l);
-				if(sum){
-					bestpossible -= (*i).getWeight();
-				}else{
-					bestpossible /= (*i).getWeight();
-				}
+				jstf.push(~(*i).getLit());
+				bestpossible = this->remove(bestpossible, (*i).getWeight());
 				if (bestpossible <= bound){
 					justified = true;
 				}
-			}else{
-				nonjstf.push(var(l));
+			}else if(real ||currentjust[var((*i).getLit())]!=0){
+				nonjstf.push(var((*i).getLit()));
 			}
 		}
 	}else{
 		Weight bestcertain = s->getEmptySetValue();
 		for (lwlv::const_iterator i = s->getWLBegin(); !justified && i < s->getWLEnd(); ++i) {
-			const Lit& l = (*i).getLit();
 			if(s->isJustified(*i, currentjust, real)){
-				jstf.push(l);
-				if(sum){
-					bestcertain += (*i).getWeight();
-				}else{
-					bestcertain *= (*i).getWeight();
-				}
+				jstf.push((*i).getLit());
+				bestcertain = this->add(bestcertain, (*i).getWeight());
 				if (bestcertain >= bound){
 					justified = true;
 				}
-			}else{
-				nonjstf.push(var(l));
+			}else if(real ||currentjust[var((*i).getLit())]!=0){
+				nonjstf.push(var((*i).getLit()));
 			}
 		}
 	}

@@ -952,6 +952,7 @@ bool IDSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 	vec<Lit> jstf;
 	vec<Var> nonjstf;
 	bool justified;
+
 	switch(defType[v]){
 	case CONJ:
 		justified = findJustificationConj(v, jstf, nonjstf, seen);
