@@ -8,19 +8,24 @@
 
 #include "Agg.h"
 #include "AggTypes.h"
+#include "AggSolver.h"
 
 #include "Vec.h"
 
 using namespace std;
 using namespace boost;
 
+class AggSolver;
+typedef shared_ptr<AggSolver> pAggSolver;
+typedef weak_ptr<AggSolver> wpAggSolver;
+
 namespace Aggrs{
 
 class Agg;
+class AggrSet;
+
 typedef weak_ptr<Agg> wpAgg;
 typedef vector<wpAgg> lwagg;
-
-class AggrSet;
 typedef shared_ptr<AggrSet> pSet;
 typedef weak_ptr<AggrSet> wpSet;
 
@@ -37,9 +42,10 @@ protected:
 	lprop 	stack;		// Stack of propagations of this expression so far.
 	Weight 	currentbestcertain, currentbestpossible, emptysetvalue;
 					//current keeps the currently derived min and max bounds
+	wpAggSolver aggsolver; //the solver that handles this set
 
 public:
-    AggrSet(vec<Lit>& lits, vector<Weight>& weights);
+    AggrSet(vec<Lit>& lits, vector<Weight>& weights, wpAggSolver s);
 
 	void 			initialize();
 	Clause* 		propagate(const Lit& p, const AggrWatch& ws);
@@ -92,11 +98,13 @@ public:
 	const PropagationInfo 			getStackBack() 		const 	{ return stack.back(); }
 	lprop::const_iterator 			getStackBegin() 	const 	{ return stack.begin(); }
 	lprop::const_iterator 			getStackEnd()		const 	{ return stack.end(); }
+
+	pAggSolver						getSolver()			const	{ return aggsolver.lock(); }
 };
 
 class AggrMaxSet: public AggrSet{
 public:
-	AggrMaxSet(vec<Lit>& lits, vector<Weight>& weights):AggrSet(lits, weights){
+	AggrMaxSet(vec<Lit>& lits, vector<Weight>& weights, weak_ptr<AggSolver> s):AggrSet(lits, weights, s){
 		name = "MAX";
 		//FIXME FIXME: moet eigenlijk een voorstelling van -infinity zijn
 		//ik had eerst: minimum van de set -1, maar de bound kan NOG lager liggen, dus dan is het fout
@@ -112,7 +120,7 @@ public:
 
 class AggrSPSet: public AggrSet{
 public:
-	AggrSPSet(vec<Lit>& lits, vector<Weight>& weights):AggrSet(lits, weights){};
+	AggrSPSet(vec<Lit>& lits, vector<Weight>& weights, weak_ptr<AggSolver> s):AggrSet(lits, weights, s){};
 
 	virtual Weight 	getCombinedWeight			(const Weight& one, const Weight& two) 	const;
 	virtual WLit 	handleOccurenceOfBothSigns	(const WLit& one, const WLit& two) 			  = 0;
@@ -125,7 +133,7 @@ public:
 
 class AggrSumSet: public AggrSPSet{
 public:
-	AggrSumSet(vec<Lit>& lits, vector<Weight>& weights):AggrSPSet(lits, weights){
+	AggrSumSet(vec<Lit>& lits, vector<Weight>& weights, weak_ptr<AggSolver> s):AggrSPSet(lits, weights, s){
 		name = "SUM";
 		emptysetvalue = 0;
 	};
@@ -137,7 +145,7 @@ public:
 
 class AggrProdSet: public AggrSPSet{
 public:
-	AggrProdSet(vec<Lit>& lits, vector<Weight>& weights):AggrSPSet(lits, weights){
+	AggrProdSet(vec<Lit>& lits, vector<Weight>& weights, weak_ptr<AggSolver> s):AggrSPSet(lits, weights, s){
 		name = "PROD";
 		emptysetvalue = 1;
 	};

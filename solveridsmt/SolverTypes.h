@@ -246,6 +246,7 @@ typedef BigInteger Weight;
  ******************/
 
 #define reportf(format, args...) ( fflush(stdout), fprintf(stderr, format, ## args), fflush(stderr) )
+#define greportf(ver, format, args...) ( ver>=verbosity?fflush(stdout), fprintf(stderr, format, ## args), fflush(stderr):true )
 
 inline int gprintVar(Var v){
 	return v+1;

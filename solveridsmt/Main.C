@@ -15,6 +15,11 @@
 
 int verbosity;
 
+/*extern int yyparse();
+extern void yydestroy();
+extern void yyinit(shared_ptr<Solver> s, shared_ptr<IDSolver> ids, shared_ptr<AggSolver> aggs);
+extern FILE* yyin;*/
+
 /*************************************************************************************/
 
 #if defined(__linux__)
@@ -605,6 +610,15 @@ int main(int argc, char** argv)
 
     try{
 		parse(in, S, TS, AggS);
+    	/*yyinit(S, TS, AggS);
+
+    	yyin = fopen(argv[1],"r");
+		if(!yyin) {
+			cerr << "`" << argv[1] << "' is not a valid filename or not readable." << endl;
+			return 1;
+		}
+    	yyparse();
+    	yydestroy();*/
 
 		if(!modes.def){
 			S->setIDSolver(pIDSolver());

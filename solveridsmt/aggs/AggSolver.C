@@ -1,12 +1,8 @@
 #include "AggSolver.h"
 #include <algorithm>
 
-AggSolver* AggSolver::aggsolver;
-
 AggSolver::AggSolver() :
-	init(true) {
-	AggSolver::aggsolver = this;
-}
+	init(true) {}
 
 AggSolver::~AggSolver() {
 }
@@ -111,11 +107,13 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 		weights2.push_back(-Weight(*i));
 	}
 
+	weak_ptr<AggSolver> wpAggSolver(shared_from_this());
 	while(aggrminsets.size()<=setindex){
-		aggrmaxsets.push_back(pSet(new AggrMaxSet(lits, weights)));
-		aggrsumsets.push_back(pSet(new AggrSumSet(lits, weights)));
-		aggrprodsets.push_back(pSet(new AggrProdSet(lits, weights)));
-		aggrminsets.push_back(pSet(new AggrMaxSet(lits, weights2)));
+
+		aggrmaxsets.push_back(pSet(new AggrMaxSet(lits, weights, wpAggSolver)));
+		aggrsumsets.push_back(pSet(new AggrSumSet(lits, weights, wpAggSolver)));
+		aggrprodsets.push_back(pSet(new AggrProdSet(lits, weights, wpAggSolver)));
+		aggrminsets.push_back(pSet(new AggrMaxSet(lits, weights2, wpAggSolver)));
 	}
 }
 
@@ -309,8 +307,10 @@ Clause* AggSolver::Aggr_propagate(const Lit& p) {
 		gprintLit(p, l_True);
 		reportf(").\n");
 	}
-	if(head_watches[var(p)].lock().get()!=NULL){
-		confl = head_watches[var(p)].lock()->propagateHead(p);
+
+	pAgg pa = head_watches[var(p)].lock();
+	if(pa.get()!=NULL){
+		confl = pa->propagateHead(p);
 	}
 	for (vector<AggrWatch>::const_iterator i = ws.begin(); confl == NULL && i < ws.end(); i++) {
 		confl = (*i).getSet()->propagate(p, (*i));
@@ -319,11 +319,11 @@ Clause* AggSolver::Aggr_propagate(const Lit& p) {
 }
 
 Clause* AggSolver::getExplanation(const Lit& p) {
-	vec<Lit> lits;
-	lits.push(p);
 	AggrReason& ar = *aggr_reason[var(p)];
 
 	//get the explanation from the aggregate expression
+	vec<Lit> lits;
+	lits.push(p);
 	ar.getAgg()->getExplanation(lits, ar);
 
 	//create a conflict clause and return it
@@ -347,8 +347,9 @@ void AggSolver::doBacktrack(const Lit& l){
 		aggr_reason[var(l)] = NULL;
 	}
 
-	if(head_watches[var(l)].lock().get()!=NULL){
-		head_watches[var(l)].lock()->backtrackHead();
+	pAgg pa = head_watches[var(l)].lock();
+	if(pa.get()!=NULL){
+		pa->backtrackHead();
 	}
 
 	vector<AggrWatch>& vcw = aggr_watches[var(l)];
@@ -426,11 +427,16 @@ void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& 
 bool AggSolver::findJustificationAggr(Var head, vec<Lit>& jstf){
 	vec<Var> nonjstf;
 	vec<int> currentjust;
-	return aggsolver->getAggWithHeadOccurence(head)->canJustifyHead(jstf, nonjstf, currentjust, true);
+	return getAggWithHeadOccurence(head)->canJustifyHead(jstf, nonjstf, currentjust, true);
 }
 
+/**
+ * Check whether the given var is justified by the current justification graph. If this is the case, jstf will
+ * contain its justification and true will be returned. Otherwise, false will be returned and nonjstf will contain
+ * all body literals of v that are not justified.
+ */
 bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust){
-	return aggsolver->getAggWithHeadOccurence(v)->canJustifyHead(jstf, nonjstf, currentjust, false);
+	return getAggWithHeadOccurence(v)->canJustifyHead(jstf, nonjstf, currentjust, false);
 }
 
 bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head){

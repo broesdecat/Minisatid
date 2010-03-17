@@ -12,11 +12,28 @@
 
 extern int verbosity;
 
-using namespace Aggrs;
+namespace Aggrs{
 
-class Solver;
-class IDSolver;
-class Aggrs::Agg;
+class Agg;
+class AggrSet;
+
+typedef shared_ptr<Agg> pAgg;
+typedef vector<pAgg> lsagg;
+typedef weak_ptr<Agg> wpAgg;
+typedef vector<wpAgg> lwagg;
+
+typedef shared_ptr<AggrSet> pSet;
+typedef weak_ptr<AggrSet> wpSet;
+
+class AggrReason;
+typedef shared_ptr<AggrReason> pReason;
+typedef weak_ptr<AggrReason> wpReason;
+
+class AggrWatch;
+typedef shared_ptr<AggrWatch> pWatch;
+typedef weak_ptr<AggrWatch> wpWatch;
+
+}
 
 class IDSolver;
 typedef shared_ptr<IDSolver> pIDSolver;
@@ -28,6 +45,8 @@ class Solver;
 typedef shared_ptr<Solver> pSolver;
 typedef weak_ptr<Solver> wpSolver;
 
+using namespace Aggrs;
+
 /*
  * CLAUSE LEARNING INVARIANT:
  * The conflicting clause always contains at least one literal of the current decision level.
@@ -37,10 +56,8 @@ typedef weak_ptr<Solver> wpSolver;
  * heuristic to delay propagations.
  */
 
-class AggSolver{
+class AggSolver: public enable_shared_from_this<AggSolver>{
 public:
-	//FIXME FIXME: dit moet weg als er meerdere mogelijk zijn!!!!!
-	static AggSolver* aggsolver;
 	AggSolver();
 	virtual ~AggSolver();
 
@@ -122,7 +139,7 @@ public:
 	/////////////////////END INITIALIZATION
 
 	//are used by agg.c, but preferably should be move into protected again
-	Clause* notifySATsolverOfPropagation(const Lit& p, AggrReason* cr);	// Like "enqueue", but for aggregate propagations.
+	Clause* notifySATsolverOfPropagation(const Lit& p, Aggrs::AggrReason* cr);	// Like "enqueue", but for aggregate propagations.
 
 	// Debug:
 	void    printAggrExpr   (pAgg ae);
@@ -143,7 +160,7 @@ protected:
 	vector<pSet>	aggrsumsets;
 	vector<pSet>	aggrprodsets;
 
-	vector<AggrReason*>			aggr_reason;	// For each atom, like 'reason'.
+	vector<Aggrs::AggrReason*>			aggr_reason;	// For each atom, like 'reason'.
 	vector<vector<AggrWatch> >	aggr_watches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
 	vector<wpAgg >				head_watches;
 	vector<pAgg > 				aggregates;		//A vector to store all created aggregates as shared pointers, to allow easy destruction in the end

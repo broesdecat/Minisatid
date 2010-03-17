@@ -19,7 +19,8 @@ void AggrSet::backtrack(int index) {
 	setCP(pi.getPP());
 }
 
-AggrSet::AggrSet(vec<Lit>& lits, vector<Weight>& weights):currentbestcertain(0),currentbestpossible(0),emptysetvalue(0){
+AggrSet::AggrSet(vec<Lit>& lits, vector<Weight>& weights, weak_ptr<AggSolver> s):
+		currentbestcertain(0),currentbestpossible(0),emptysetvalue(0), aggsolver(s){
 	for (int i = 0; i < lits.size(); i++) {
 		wlits.push_back(WLV(lits[i], weights[i], l_Undef));
 	}
@@ -52,14 +53,14 @@ Clause* AggrSet::propagateBodies(){
 			lbool result = pa->canPropagateHead();
 			if(result!=l_Undef && result!=hv){
 				//conflict!
-				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(result==l_True?pa->getHead():~pa->getHead(), new AggrReason(*i, pa->getHeadIndex()));
+				confl = getSolver()->notifySATsolverOfPropagation(result==l_True?pa->getHead():~pa->getHead(), new AggrReason(*i, pa->getHeadIndex()));
 			}else{
 				confl = pa->propagate(hv==l_True);
 			}
 		}else{ //head is not yet known, so at most the head can be propagated
 			lbool result = pa->canPropagateHead();
 			if(result!=l_Undef){
-				confl = AggSolver::aggsolver->notifySATsolverOfPropagation(result==l_True?pa->getHead():~pa->getHead(), new AggrReason(*i, pa->getHeadIndex()));
+				confl = getSolver()->notifySATsolverOfPropagation(result==l_True?pa->getHead():~pa->getHead(), new AggrReason(*i, pa->getHeadIndex()));
 			}
 		}
 	}
@@ -210,13 +211,13 @@ Clause* MaxAgg::propagateHead(bool headtrue) {
 	if (headtrue && lower) {
 		lwlv::const_reverse_iterator i=s->getWLRBegin();
 		while( confl == NULL && i<s->getWLREnd() && bound<(*i).getWeight()){
-			confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(getAgg(), s->getStackSize()));
+			confl = s->getSolver()->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(getAgg(), s->getStackSize()));
 			i++;
 		}
 	}else if(!headtrue && !lower){
 		lwlv::const_reverse_iterator i=s->getWLRBegin();
 		while( confl == NULL && i<s->getWLREnd() && bound<=(*i).getWeight()){
-			confl = AggSolver::aggsolver->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(getAgg(), s->getStackSize()));
+			confl = s->getSolver()->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(getAgg(), s->getStackSize()));
 			i++;
 		}
 	}
@@ -257,7 +258,7 @@ Clause* MaxAgg::propagate(bool headtrue) {
 		}
 	}
 	if(exactlyoneleft){
-		confl = AggSolver::aggsolver->notifySATsolverOfPropagation((*pos).getLit(), new AggrReason(getAgg(), s->getStackSize()));
+		confl = s->getSolver()->notifySATsolverOfPropagation((*pos).getLit(), new AggrReason(getAgg(), s->getStackSize()));
 	}
 	return confl;
 }
@@ -400,10 +401,10 @@ Clause* SPAgg::propagate(bool headtrue){
 		if ((*u).getValue()==l_Undef) {//if already propagated as an aggregate, then those best-values have already been adapted
 			if((lower && headtrue) || (!lower && !headtrue)){
 				//assert((headtrue && set->currentbestcertain+set->wlits[u].weight>bound) || (!headtrue && set->currentbestcertain+set->wlits[u].weight>=bound));
-				c = AggSolver::aggsolver->notifySATsolverOfPropagation(~(*u).getLit(), new AggrReason(getAgg(), s->getStackSize()));
+				c = s->getSolver()->notifySATsolverOfPropagation(~(*u).getLit(), new AggrReason(getAgg(), s->getStackSize()));
 			}else{
 				//assert((!headtrue && set->currentbestpossible-set->wlits[u].weight<=bound) || (headtrue && set->currentbestpossible-set->wlits[u].weight<bound));
-				c = AggSolver::aggsolver->notifySATsolverOfPropagation((*u).getLit(), new AggrReason(getAgg(), s->getStackSize()));
+				c = s->getSolver()->notifySATsolverOfPropagation((*u).getLit(), new AggrReason(getAgg(), s->getStackSize()));
 			}
 		}
 	}

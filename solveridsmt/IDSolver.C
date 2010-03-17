@@ -1360,12 +1360,12 @@ bool IDSolver::isCycleFree() {
     }
 
     if (cnt_nonjustified>0) {
-        reportf("WARNING: There remain %d literals non-justified.\n",cnt_nonjustified);
+        greportf(4,"WARNING: There remain %d literals non-justified.\n",cnt_nonjustified);
 
         vec<bool> printed; printed.growTo(nVars(),false);
         int i=0;
         while (i<nVars()) {
-            reportf("Cycle:\n");
+            greportf(4,"Cycle:\n");
             for (;i<nVars() && (!isDefInPosGraph(i) || isfree[i]==0);i++) ;
             if (i<nVars()) {
                 vec<Var> cycle;
@@ -1374,25 +1374,27 @@ bool IDSolver::isCycleFree() {
                 while (idx<cycle.size()) {
                     Var v = cycle[idx++];
                     if (getDefType(v)==DISJ) {
-                        reportf("D %d justified by ", gprintVar(v)); gprintLit(justification[v][0]); reportf(".\n");
+                    	if(verbosity>=4){
+                    		reportf("D %d justified by ", gprintVar(v)); gprintLit(justification[v][0]); reportf(".\n");
+                    	}
                         if (!printed[var(justification[v][0])]){
                         	cycle.push(var(justification[v][0]));
                         }
                     } else if(getDefType(v)==CONJ){
-                        reportf("C %d has", gprintVar(v));
+                        greportf(4,"C %d has", gprintVar(v));
                         Rule& c = *definition[v];
                         for (int j=0; j<c.size(); j++) {
                             Var vj = var(c[j]);
                             if (c[j]!=c.getHeadLiteral() && isPositive(c[j]) && (isfree[vj]!=0 || printed[vj])) {
-                                reportf(" %d", gprintVar(vj));
+                                greportf(4," %d", gprintVar(vj));
                                 if (!printed[vj]){
                                 	cycle.push(vj);
                                 }
                             }
                         }
-                        reportf(" in its body.\n");
+                        greportf(4," in its body.\n");
                     }else{
-                    	reportf("Change aggregate output here (iscyclefree method)"); //TODO change output (and make the method used by the solver
+                    	greportf(4,"Change aggregate output here (iscyclefree method)"); //TODO change output (and make the method used by the solver
                     }
                     printed[v]=true;
                 }
@@ -1401,8 +1403,9 @@ bool IDSolver::isCycleFree() {
                 }
             }
         }
-    } else
-        reportf("OK; justification is cycle free.\n");
+    } else{
+		greportf(4,"OK; justification is cycle free.\n");
+    }
     return cnt_nonjustified==0;
 }
 
