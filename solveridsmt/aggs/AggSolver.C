@@ -55,6 +55,11 @@ bool AggSolver::finishECNF_DataStructures() {
 		reportf(", over %4d sets, avg. size: %7.2f lits.  |\n",nb_sets,(double)total_nb_set_lits/(double)(nb_sets));
 	}
 
+	for(vector<pAgg>::const_iterator i=aggregates.begin(); i<aggregates.end(); i++){
+		//FIXME dit is eigenlijk echt lelijk, zou liefst in de constructor van agg staan
+		(*i)->addAggToSet();
+	}
+
 	for(vector<pSet>::iterator i=aggrminsets.begin(); i<aggrminsets.end(); i++){
 		if((*i)->nbAgg()==0){ aggrminsets.erase(i);
 		}else{ finishSets(*i); }
@@ -97,15 +102,13 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 		reportf("Error: Set nr. %d is defined more than once.\n",set_id), exit(3);
 	}
 
-	//vec<Weight> weights2; //inverted weights to handle minimum as maximum
-	vector<Weight> weights2;
+	vector<Weight> weights2; //inverted weights to handle minimum as maximum
 	for(vector<Weight>::iterator i=weights.begin(); i<weights.end(); i++){
-		weights2.push_back(-Weight(*i));
-
-		//Required by the weight klasse om overflow te kunnen checken
 		if (*i < 0) {
 			reportf("Error: Set nr. %d contains a negative weight, %s.\n",set_id,bigIntegerToString(*i).c_str()), exit(3);
 		}
+
+		weights2.push_back(-Weight(*i));
 	}
 
 	while(aggrminsets.size()<=setindex){
@@ -113,49 +116,6 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 		aggrsumsets.push_back(pSet(new AggrSumSet(lits, weights)));
 		aggrprodsets.push_back(pSet(new AggrProdSet(lits, weights)));
 		aggrminsets.push_back(pSet(new AggrMaxSet(lits, weights2)));
-	}
-}
-
-/*
- * For a maximum: if lower,  head <=> conj of negation of all literals with weight higher than bound
- * 				  if higher, head <=> disj of all literals with weight higher/eq than bound
- *
- * IMPORTANT: counting down on vectors cannot check for i>= 0, because the type is UNSIGNED!
- */
-void AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& head, const AggrSet& set){
-	vec<Lit> clause;
-
-	if(defined){
-		clause.push(head);
-		for(lwlv::const_reverse_iterator i=set.getWLRBegin(); i<set.getWLREnd() && (*i).getWeight()>=bound; i++){
-			if((*i).getWeight()==bound && lower){
-				break;
-			}
-			if(lower){
-				clause.push(~(*i).getLit());
-			}else{
-				clause.push((*i).getLit());
-			}
-		}
-		idsolver->addRule(lower, clause);
-	}else{
-		clause.push(lower?head:~head);
-		for(lwlv::const_reverse_iterator i=set.getWLRBegin(); i<set.getWLREnd() && (*i).getWeight()>=bound; i++){
-			if((*i).getWeight()==bound && lower){
-				break;
-			}
-			clause.push((*i).getLit());
-		}
-		solver->addClause(clause);
-		for(lwlv::const_reverse_iterator i=set.getWLRBegin(); i<set.getWLREnd() && (*i).getWeight()>=bound; i++){
-			if((*i).getWeight()==bound && lower){
-				break;
-			}
-			clause.clear();
-			clause.push(lower?~head:head);
-			clause.push(~(*i).getLit());
-			solver->addClause(clause);
-		}
 	}
 }
 
@@ -212,9 +172,6 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 		exit(3);
 	}
 
-	//FIXME dit is eigenlijk echt lelijk, zou liefst in de constructor van agg staan
-	ae->addAggToSet();
-
 	head_watches[var(head)] = wpAgg(ae);
 
 	if(defined){ //add as definition to use definition semantics
@@ -246,9 +203,49 @@ void AggSolver::addMnmzSum(Var headv, int setid, bool lower) {
 	uint setindex = setid-1;
 
 	pAgg ae(new SumAgg(lower, lower?INT_MAX:INT_MIN, head, wpSet(aggrsumsets[setindex])));
-	ae->addAggToSet();
 	aggregates.push_back(ae);
 	head_watches[var(head)] = wpAgg(ae);
+}
+
+/*
+ * For a maximum: if lower,  head <=> conj of negation of all literals with weight higher than bound
+ * 				  if higher, head <=> disj of all literals with weight higher/eq than bound
+ */
+void AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& head, const AggrSet& set){
+	vec<Lit> clause;
+
+	if(defined){
+		clause.push(head);
+		for(lwlv::const_reverse_iterator i=set.getWLRBegin(); i<set.getWLREnd() && (*i).getWeight()>=bound; i++){
+			if((*i).getWeight()==bound && lower){
+				break;
+			}
+			if(lower){
+				clause.push(~(*i).getLit());
+			}else{
+				clause.push((*i).getLit());
+			}
+		}
+		idsolver->addRule(lower, clause);
+	}else{
+		clause.push(lower?head:~head);
+		for(lwlv::const_reverse_iterator i=set.getWLRBegin(); i<set.getWLREnd() && (*i).getWeight()>=bound; i++){
+			if((*i).getWeight()==bound && lower){
+				break;
+			}
+			clause.push((*i).getLit());
+		}
+		solver->addClause(clause);
+		for(lwlv::const_reverse_iterator i=set.getWLRBegin(); i<set.getWLREnd() && (*i).getWeight()>=bound; i++){
+			if((*i).getWeight()==bound && lower){
+				break;
+			}
+			clause.clear();
+			clause.push(lower?~head:head);
+			clause.push(~(*i).getLit());
+			solver->addClause(clause);
+		}
+	}
 }
 
 /**
@@ -432,16 +429,6 @@ bool AggSolver::findJustificationAggr(Var head, vec<Lit>& jstf){
 	return aggsolver->getAggWithHeadOccurence(head)->canJustifyHead(jstf, nonjstf, currentjust, true);
 }
 
-/*
- * V is not false so find a justification for it. Preferably find one that does not involve loops.
- * If a justification is found, but it contains loops, v is added as a cycle source
- */
-/*void AggSolver::findCycleSources(pAgg p) const{
-	vec<Lit> nj;
-	p->becomesCycleSource(nj);
-	idsolver->cycleSourceAggr(var(p->getHead()), nj);
-}*/
-
 bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust){
 	return aggsolver->getAggWithHeadOccurence(v)->canJustifyHead(jstf, nonjstf, currentjust, false);
 }
@@ -472,9 +459,6 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head){
 void AggSolver::propagateMnmz(Var head){
 	dynamic_cast<SumAgg*>(head_watches[head].lock().get())->propagateHead(true);
 }
-
-//=================================================================================================
-// Debug + etc:
 
 void AggSolver::printAggrExpr(pAgg ae){
 	gprintLit(ae->getHead(), ae->getHeadValue());

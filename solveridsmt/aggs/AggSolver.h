@@ -10,9 +10,13 @@
 #include "Solver.h"
 #include "IDSolver.h"
 
+extern int verbosity;
+
+using namespace Aggrs;
+
 class Solver;
 class IDSolver;
-class Agg;
+class Aggrs::Agg;
 
 class IDSolver;
 typedef shared_ptr<IDSolver> pIDSolver;
@@ -23,8 +27,6 @@ typedef weak_ptr<AggSolver> wpAggSolver;
 class Solver;
 typedef shared_ptr<Solver> pSolver;
 typedef weak_ptr<Solver> wpSolver;
-
-extern int verbosity;
 
 /*
  * CLAUSE LEARNING INVARIANT:
@@ -168,8 +170,6 @@ protected:
 	 * Goes through all watches and propagates the fact that p was set true.
 	 */
 	Clause* Aggr_propagate		(const Lit& p);
-
-	//void 	findCycleSources	(pAgg) const;
 
 	void 	maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& head, const AggrSet& set);
 	void	finishSets(pSet set);

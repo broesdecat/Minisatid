@@ -1,6 +1,11 @@
 #include "Agg.h"
-#include "AggSolver.h"
+#include "AggSets.h"
+#include "AggTypes.h"
 #include <algorithm>
+
+#include "AggSolver.h"
+
+using namespace Aggrs;
 
 void AggrSet::backtrack(int index) {
 	//BELANGRIJK: hier had ik een referentie gezet en dan deed ik pop, wat dus niet mag, want dan is die value kwijt!
@@ -12,6 +17,13 @@ void AggrSet::backtrack(int index) {
 	wlits[index].setValue(l_Undef);
 	setCC(pi.getPC());
 	setCP(pi.getPP());
+}
+
+AggrSet::AggrSet(vec<Lit>& lits, vector<Weight>& weights):currentbestcertain(0),currentbestpossible(0),emptysetvalue(0){
+	for (int i = 0; i < lits.size(); i++) {
+		wlits.push_back(WLV(lits[i], weights[i], l_Undef));
+	}
+	sort(wlits.begin(), wlits.end());
 }
 
 Clause* AggrSet::propagate(const Lit& p, const AggrWatch& ws){
@@ -107,7 +119,6 @@ void AggrSet::doSetReduction() {
 }
 
 void AggrSet::initialize(){
-	initEmptySetValue(); //important to do first!
 	doSetReduction();
 	setCP(getBestPossible());
 	setCC(getEmptySetValue());
@@ -135,12 +146,6 @@ Clause* Agg::propagateHead(const Lit& p){
 
 Weight AggrMaxSet::getBestPossible() const{
 	return wlits.back().getWeight();
-}
-
-void AggrMaxSet::initEmptySetValue(){
-	//FIXME FIXME: moet eigenlijk een voorstelling van -infinity zijn
-	//ik had eerst: minimum van de set -1, maar de bound kan NOG lager liggen, dus dan is het fout
-	setEmptySetValue(Weight(-400000000));
 }
 
 void AggrMaxSet::addToCertainSet(const WLit& l){
@@ -286,10 +291,6 @@ Weight	ProdAgg::remove(const Weight& lhs, const Weight& rhs) const{
 	return rhs==0?0:lhs/rhs;
 }
 
-void AggrSumSet::initEmptySetValue(){
-	setEmptySetValue(Weight(0));
-}
-
 WLit AggrSumSet::handleOccurenceOfBothSigns(const WLit& one, const WLit& two){
 	if(one.getWeight()<two.getWeight()){
 		setEmptySetValue(getEmptySetValue() + one.getWeight());
@@ -318,10 +319,6 @@ void AggrSPSet::addToCertainSet(const WLit& l){
 
 void AggrSPSet::removeFromPossibleSet(const WLit& l){
 	setCP(this->remove(getCP(), l.getWeight()));
-}
-
-void AggrProdSet::initEmptySetValue(){
-	setEmptySetValue(Weight(1));
 }
 
 /**
