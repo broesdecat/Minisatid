@@ -51,7 +51,6 @@ public:
 	Clause* 		propagate(const Lit& p, const AggrWatch& ws);
 
     virtual void 	backtrack(int index);
-    virtual Clause* propagateBodies();
 
 	/**
 	 * Checks whether duplicate literals occur in the set. If this is the case, their values are appropriately combined.

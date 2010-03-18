@@ -36,27 +36,16 @@ Clause* AggrSet::propagate(const Lit& p, const AggrWatch& ws){
     }
 
 	stack.push_back(PropagationInfo(p, wlits[ws.getIndex()].getWeight(),tp, getCC(), getCP()));
-
 	wlits[ws.getIndex()].setValue(tp==POS?l_True:l_False);
-
 	tp==POS? addToCertainSet(wlits[ws.getIndex()]):removeFromPossibleSet(wlits[ws.getIndex()]);
 
-	return propagateBodies();
-}
-
-Clause* AggrSet::propagateBodies(){
 	Clause* confl = NULL;
 	for(lwagg::const_iterator i=getAggBegin(); i<getAggEnd() && confl==NULL; i++){
 		pAgg pa = (*i).lock();
 		lbool hv = pa->getHeadValue();
 		if(hv != l_Undef){ //head is already known
-			lbool result = pa->canPropagateHead();
-			if(result!=l_Undef && result!=hv){
-				//conflict!
-				confl = getSolver()->notifySATsolverOfPropagation(result==l_True?pa->getHead():~pa->getHead(), new AggrReason(*i, pa->getHeadIndex()));
-			}else{
-				confl = pa->propagate(hv==l_True);
-			}
+			assert(pa->canPropagateHead()!=(hv==l_True?l_False:l_True));	//A conflicting propagation is not possible if we have complete propagation
+			confl = pa->propagate(hv==l_True);
 		}else{ //head is not yet known, so at most the head can be propagated
 			lbool result = pa->canPropagateHead();
 			if(result!=l_Undef){
