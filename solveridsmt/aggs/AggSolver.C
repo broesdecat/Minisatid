@@ -7,6 +7,13 @@ AggSolver::AggSolver() :
 AggSolver::~AggSolver() {
 }
 
+void AggSolver::remove(){
+	solver->resetAggSolver();
+	solver.reset();
+	idsolver.reset();
+	//FIXME: prevent from using a solver after it has been removed
+}
+
 void AggSolver::notifyVarAdded(){
 	head_watches.push_back(wpAgg(pAgg()));
 	assert(head_watches.back().lock().get()==NULL);
@@ -105,11 +112,20 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 		}
 
 		weights2.push_back(-Weight(*i));
+
+	}
+
+	if(verbosity>=5){
+		reportf("Added set %d: ", set_id);
+		vector<Weight>::iterator w=weights.begin();
+		for(int i=0; i<lits.size(); i++,w++){
+			reportf("%d=%s, ", gprintVar(var(lits[i])), bigIntegerToString(*w).c_str());
+		}
+		reportf("\n");
 	}
 
 	weak_ptr<AggSolver> wpAggSolver(shared_from_this());
 	while(aggrminsets.size()<=setindex){
-
 		aggrmaxsets.push_back(pSet(new AggrMaxSet(lits, weights, wpAggSolver)));
 		aggrsumsets.push_back(pSet(new AggrSumSet(lits, weights, wpAggSolver)));
 		aggrprodsets.push_back(pSet(new AggrProdSet(lits, weights, wpAggSolver)));
@@ -178,6 +194,10 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 	}
 
 	aggregates.push_back(ae);
+
+	if(verbosity>=5){
+		reportf("Added %s aggregate with head %d on set %d, %s %s of type %s.\n", defined?"defined":"completion", gprintVar(headv), setid, lower?"AGG<=":"AGG>=", bigIntegerToString(bound).c_str(), ae->getSet()->getName().c_str());
+	}
 }
 
 //FIXME no optimizations should take place on mnmz aggregates (partially helped by separate add method).

@@ -24,28 +24,28 @@ char* lexcopy(const char* input) {
 
 ^"c grounder error".* {cerr << "There was a grounding error, so no solving is possible." << endl; exit(-1);}
 ^"c ".*      {/* disregard comments */}
-^"p ecnf def".*  {/*return PROBLEMLINE;*/ /* disregard actual data */}
-^"p ecnf aggr".*  {/*return PROBLEMLINE;*/ /* disregard actual data */}
 ^"p cnf".*   {/*return PROBLEMLINE;*/ /* disregard actual data */}
+
+^"p ecnf"  	{ ADJ; }
+"def" 		{ ADJ; return DEF_PRESENT;}
+"aggr" 		{ ADJ; return AGG_PRESENT;}
 
 "WSet"   {ADJ; return WSET_DEFN;}
 "Set"    {ADJ; return SET_DEFN;}
-"Card"   {ADJ; return CARDINIALITY_DEFN;}
+"Card"   {ADJ; return CARD_DEFN;}
 "Sum"    {ADJ; return SUM_DEFN;}
 "Prod"	{ADJ; return PROD_DEFN;}
 "Min"		{ADJ; return MIN_DEFN;}
 "Max"		{ADJ; return MAX_DEFN;}
-"LB"		{ADJ; return LOWER;}
-"GB"		{ADJ; return GREATER;}
-"CS"		{ADJ; return COMPSEM;}
-"DS"		{ADJ; return DEFSEM;}
 
-"D"	   {ADJ; return DISJUNCTION;}
-"C"	   {ADJ; return CONJUNCTION;}
+"D"	   {ADJ; yylval.boolean = true;  return SEM_DEFN;}
+"C"	   {ADJ; yylval.boolean = false; return SEM_DEFN;}
+"L"	   {ADJ; yylval.boolean = true;  return SIGN_DEFN;}
+"G"	   {ADJ; yylval.boolean = false; return SIGN_DEFN;}
 
-"SubsetMnmz"	{ADJ; return SUBSETMIN;}
-"Mnmz"     		{ADJ; return MIN;}
-"SumMnmz"		{ADJ; return SUMMIN;}
+"SubsetMnmz"	{ADJ; return SUBSETMIN_DEFN;}
+"Mnmz"     		{ADJ; return MNMZ_DEFN;}
+"SumMnmz"		{ADJ; return SUMMIN_DEFN;}
 
 " "	   {ADJ; /* disregard whitespaces */}
 "\t"	   {ADJ; /*                       */}

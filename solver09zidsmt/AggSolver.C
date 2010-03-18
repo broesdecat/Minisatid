@@ -254,6 +254,11 @@ void AggSolver::addAggrExpr(Var headv, int setid, int bound, bool lower, AggrTyp
 		//notify the id solver that a new aggregate definition has been added
 		idsolver->notifyAggrHead(var(head));
 	}
+
+	if(verbosity>=5){
+		reportf("Added %s aggregate with head %d on set %d, %s %d of type %s.",
+				defined?"defined":"completion", gprintVar(var(ae->getHead())), setid, ae->isLower()?"AGG<=":"AGG>=", bound, ae->getSet()->getName());
+	}
 }
 
 /**

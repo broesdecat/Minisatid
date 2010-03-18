@@ -8,12 +8,12 @@
 
 CSRCS     ?= $(wildcard *.C)
 CHDRS     ?= $(wildcard *.h)
-COBJS     ?= $(addsuffix .o, $(basename $(CSRCS))) #parse.tab.o lex.yy.o
+COBJS     ?= $(addsuffix .o, $(basename $(CSRCS))) parse.tab.o lex.yy.o
 
-PCOBJS     = $(addsuffix p,  $(COBJS)) #parse.tab.o lex.yy.o
-DCOBJS     = $(addsuffix d,  $(COBJS)) #parse.tab.o lex.yy.o
-RCOBJS     = $(addsuffix r,  $(COBJS)) #parse.tab.o lex.yy.o
-CCCOBJS     = $(addsuffix cc,  $(COBJS)) #parse.tab.o lex.yy.o
+PCOBJS     = $(addsuffix p,  $(COBJS))
+DCOBJS     = $(addsuffix d,  $(COBJS))
+RCOBJS     = $(addsuffix r,  $(COBJS))
+CCCOBJS     = $(addsuffix cc,  $(COBJS))
 
 EXEC      ?= $(notdir $(shell pwd))
 LIB       ?= $(EXEC)
@@ -67,14 +67,15 @@ lib$(LIB)d.a:	$(filter-out Main.od, $(DCOBJS))
 	@echo Compiling: "$@ ( $< )"
 	@$(CXX) $(CFLAGS) -c -o $@ $<
 	
-#%.o:	%.c
-#	@$(CXX) $(CFLAGS) -c -o $@ $<
+## Build parser
+%.o %.op %.od %.or %.occ:	%.cc
+	@$(CXX) $(CFLAGS) -c -o $@ $<
 
-#%.tab.C:%.yy
-#	bison --defines --output=$@ $<
+%.tab.cc:  %.yy
+	bison --defines --output=$@ $<
 
-#%.yy.c:	%.ll
-#	flex -o$@ $<
+%.yy.C:	%.ll
+	flex -o$@ $<
 
 
 ## Linking rules (standard/profile/debug/release)
@@ -91,7 +92,7 @@ lib$(LIB).a lib$(LIB)d.a:
 ## Clean rule
 clean:
 	@rm -f $(EXEC) $(EXEC)_codecover $(EXEC)_profile $(EXEC)_debug $(EXEC)_release $(EXEC)_static \
-	  $(COBJS) $(CCCOBJS) $(PCOBJS) $(DCOBJS) $(RCOBJS) *.core depend.mak lib$(LIB).a lib$(LIB)d.a
+	  $(COBJS) $(CCCOBJS) $(PCOBJS) $(DCOBJS) $(RCOBJS) parse.tab.cc parse.tab.hh *.core depend.mak lib$(LIB).a lib$(LIB)d.a
 
 ## Make dependencies
 depend.mk: $(CSRCS) $(CHDRS)

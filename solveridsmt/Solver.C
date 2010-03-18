@@ -31,7 +31,7 @@ Solver::Solver() :
 	optim(NONE), head(0),
 
 	// Parameters: (formerly in 'SearchParams')
-	res(NULL), nb_models(1),modelsfound(0),
+	res(NULL), nb_models(1), modelsfound(0),
 	var_decay(1 / 0.95),
 	clause_decay(1 / 0.999),
 	random_var_freq(0.02),
@@ -104,10 +104,10 @@ Var Solver::newVar(bool sign, bool dvar) {
 	decision_var.push((char) dvar);
 
 	//////////////START TSOLVER
-	if(tsolver!=NULL){
+	if(tsolver.get()!=NULL){
 		tsolver->notifyVarAdded();
 	}
-	if(aggsolver!=NULL){
+	if(aggsolver.get()!=NULL){
 		aggsolver->notifyVarAdded();
 	}
 	//////////////END TSOLVER
@@ -236,10 +236,10 @@ void Solver::cancelFurther(int init_qhead) {
 		assigns[x] = toInt(l_Undef);
 		insertVarOrder(x);
 		//////////////START TSOLVER
-		if(tsolver!=NULL){
+		if(tsolver.get()!=NULL){
 			tsolver->backtrack(trail[c]);
 		}
-		if(aggsolver!=NULL){
+		if(aggsolver.get()!=NULL){
 			aggsolver->backtrack(trail[c]);
 		}
 		//////////////END TSOLVER
@@ -387,7 +387,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel) {
 		confl = reason[var(p)];
 
 		//////////////START TSOLVER
-		if (aggsolver!=NULL && confl == NULL && pathC > 1) {
+		if (aggsolver.get()!=NULL && confl == NULL && pathC > 1) {
 			confl = aggsolver->getExplanation(p);
 			deleteImplicitClause = true;
 		}
@@ -590,13 +590,13 @@ FoundWatch:;
         if (verbosity>=2) reportf(" ).\n");
 
 		//////////////START TSOLVER
-        if(aggsolver!=NULL && confl == NULL){
+        if(aggsolver.get()!=NULL && confl == NULL){
         	confl = aggsolver->propagate(p);
         }
-        if(tsolver!=NULL && confl == NULL){
+        if(tsolver.get()!=NULL && confl == NULL){
 			confl = tsolver->propagate(p);
 		}
-		if(qhead==trail.size() && confl==NULL && tsolver!=NULL){
+		if(qhead==trail.size() && confl==NULL && tsolver.get()!=NULL){
 			confl = tsolver->propagateDefinitions();
 		}
 		if(confl!=NULL){
@@ -682,7 +682,7 @@ bool Solver::simplify() {
 	simpDB_props = clauses_literals + learnts_literals; // (shouldn't depend on stats really, but it will do for now)
 
     //////////////START TSOLVER
-	if(conflicts==0 && (tsolver!=NULL && !tsolver->simplify())){
+	if(conflicts==0 && (tsolver.get()!=NULL && !tsolver->simplify())){
 		ok = false;
 		return false;
 	}
@@ -1087,6 +1087,7 @@ bool Solver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 	bool rslt = true, hasmodels = false, optimumreached = false;
 	while(!optimumreached && rslt){
 		if(optim==SUMMNMZ){
+			assert(aggsolver.get()!=NULL);
 			//Noodzakelijk om de aanpassingen aan de bound door te propageren.
 			aggsolver->propagateMnmz(head);
 		}
@@ -1182,7 +1183,7 @@ bool Solver::solve(const vec<Lit>& assumps) {
 		status = search((int) nof_conflicts, (int) nof_learnts);
 		nof_conflicts *= restart_inc;
 		nof_learnts *= learntsize_inc;
-		if(status==l_True && tsolver!=NULL){
+		if(status==l_True && tsolver.get()!=NULL){
 			bool wellfounded = tsolver->isWellFoundedModel();
 			if(verbosity>=1){
 				reportf("The model is %s.\n", wellfounded?"well-founded":"stable but not well-founded");

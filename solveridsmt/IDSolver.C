@@ -24,6 +24,12 @@ IDSolver::IDSolver():
 {
 }
 
+void IDSolver::remove(){
+	solver->resetIDSolver();
+	solver.reset();
+	aggsolver.reset();
+}
+
 inline lbool    IDSolver::value(Var x) const   { return solver->value(x); }
 inline lbool    IDSolver::value(Lit p) const   { return solver->value(p); }
 inline int      IDSolver::nVars()      const   { return solver->nVars();  }
@@ -139,9 +145,9 @@ bool IDSolver::simplify(){
 	defdVars.clear();
 	reducedVars.copyTo(defdVars);
 
-	if(!aggpresent && aggsolver!=NULL){
-		aggsolver -> setIDSolver(pIDSolver());
-		aggsolver = pAggSolver();
+	if(!aggpresent && aggsolver.get()!=NULL){
+		aggsolver->resetIDSolver();
+		aggsolver.reset();
 	}
 
 	for(int i=0; i<usedseen.size(); i++){
@@ -157,10 +163,10 @@ bool IDSolver::simplify(){
 	}
 
 	if(!posloops && !negloops){
-		solver->setIDSolver(pIDSolver());
+		solver->resetIDSolver();
 		if(aggsolver.get()!=NULL){
-			aggsolver->setIDSolver(pIDSolver());
-			aggsolver = pAggSolver();
+			aggsolver->resetIDSolver();
+			aggsolver.reset();
 		}
 		if (verbosity >= 1){
 			reportf("| All recursive atoms falsified in initializations.                           |\n");
@@ -223,7 +229,7 @@ void IDSolver::propagateJustificationConj(Lit l, vec<vec<Lit> >& jstf, vec<Lit>&
 }
 
 void IDSolver::propagateJustificationAggr(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& heads){
-	if (aggsolver==NULL) {
+	if (aggsolver.get()==NULL) {
 		return;
 	}
 	aggsolver->propagateJustifications(l, jstf, heads, seen);
@@ -253,6 +259,14 @@ void IDSolver::notifyVarAdded(){
 void IDSolver::addRule(bool conj, vec<Lit>& ps) {
 	assert(ps.size() > 0);
 	assert(isPositive(ps[0]));
+
+	if(verbosity>=5){
+		reportf("Adding %s rule, %d <- ", conj?"conjunctive":"disjunctive", gprintVar(var(ps[0])));
+		for(int i=1; i<ps.size(); i++){
+			reportf("%d ", gprintVar(var(ps[i])));
+		}
+		reportf("\n");
+	}
 
 	if (ps.size() == 1) {
 		Lit head = conj?ps[0]:~ps[0]; //empty set conj = true, empty set disj = false
@@ -393,7 +407,7 @@ bool IDSolver::finishECNF_DataStructures() {
 			break;
 		}
 		case AGGR: {
-			if(aggsolver!=NULL){
+			if(aggsolver.get()!=NULL){
 				for (lwlv::const_iterator j = aggsolver->getAggLiteralsBegin(i); !isdefd && j < aggsolver->getAggLiteralsEnd(i); ++j){
 					if (inSameSCC(v, var((*j).getLit()))){ // NOTE: disregard sign here: set literals can occur both pos and neg in justifications. This could possibly be made more precise for MIN and MAX...
 						isdefd = true;
@@ -677,7 +691,7 @@ Clause* IDSolver::indirectPropagate() {
 		apply_changes();
 	}
 
-	assert(aggsolver!=NULL || isCycleFree());
+	assert(aggsolver.get()!=NULL || isCycleFree());
 	return confl;
 }
 
@@ -698,7 +712,7 @@ void IDSolver::findCycleSources() {
 				checkJustification(ds[j], ~l);
 			}
 
-			if(aggsolver!=NULL){
+			if(aggsolver.get()!=NULL){
 				vec<Var> heads;
 				aggsolver->getHeadsOfAggrInWhichOccurs(var(~l), heads);
 
@@ -1182,7 +1196,7 @@ void IDSolver::markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>
 	for (int i = 0; i < w.size(); i++){
 		markNonJustifiedAddVar(w[i], cs, q, tmpseen);
 	}
-	if (aggsolver!=NULL) {
+	if (aggsolver.get()!=NULL) {
 		vec<Var> heads;
 		aggsolver->getHeadsOfAggrInWhichOccurs(x, heads);
 		for(int i=0; i<heads.size(); i++){
@@ -1278,7 +1292,7 @@ inline void IDSolver::printRule(const Rule& c){
  * For debugging purposes, checks for POSITIVE LOOPS.
  */
 bool IDSolver::isCycleFree() {
-    assert(aggsolver==NULL);
+    assert(aggsolver.get()==NULL);
 
     if(verbosity>=2){
         reportf("Showing cf- and sp-justification for disjunctive atoms. <<<<<<<<<<\n");
@@ -1319,7 +1333,7 @@ bool IDSolver::isCycleFree() {
         vec<Var>& ds = disj_occurs[toInt(l)];
         vec<Var>& cs = conj_occurs[toInt(l)];
         vec<Var> as;
-        if(aggsolver!=NULL){
+        if(aggsolver.get()!=NULL){
         	aggsolver->getHeadsOfAggrInWhichOccurs(var(l), as);
         }
 
@@ -1437,8 +1451,8 @@ bool IDSolver::isWellFoundedModel() {
 		return true;
 	}
 
-	if(aggsolver!=NULL){
-		reportf("For recursive aggregates, only stable semantics are currently supported!");
+	if(aggsolver.get()!=NULL){
+		reportf("For recursive aggregates, only stable semantics are currently supported!\n");
 		return true;
 	}
 

@@ -57,6 +57,9 @@ using namespace Aggrs;
  */
 
 class AggSolver: public enable_shared_from_this<AggSolver>{
+private:
+	pSolver		solver;
+	pIDSolver	idsolver;
 public:
 	AggSolver();
 	virtual ~AggSolver();
@@ -128,13 +131,10 @@ public:
 	 */
 	bool    finishECNF_DataStructures ();
 
-	void setSolver(pSolver s){
-		solver = s;
-	}
-
-	void setIDSolver(pIDSolver s){
-		idsolver = s;
-	}
+	void 		setSolver				(pSolver s)		{ solver = s; }
+	void 		setIDSolver				(pIDSolver s)	{ idsolver = s; }
+	void		resetIDSolver			()				{ idsolver.reset(); }
+	void 		remove					();
 
 	/////////////////////END INITIALIZATION
 
@@ -177,9 +177,6 @@ protected:
 	 * @PRE: backtracking is in anti-chronologous order and all literals are visited!
 	 */
 	void 	doBacktrack(const Lit& l);
-
-	pSolver		solver;
-	pIDSolver	idsolver;
 
 	bool		init;	//indicates whether still in initialization mode
 

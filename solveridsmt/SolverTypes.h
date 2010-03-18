@@ -241,12 +241,20 @@ typedef BigInteger Weight;
 #include <boost/smart_ptr/weak_ptr.hpp>
 #include <boost/smart_ptr/enable_shared_from_this.hpp>
 
+struct ECNF_mode {
+	bool def,aggr,mnmz; // True for those extensions that are being used.
+	int nbmodels;	//Find at least this number of models. If there are less models,
+					//UNSAT will be returned (after finding the existing number)
+
+	ECNF_mode() : def(false), aggr(false), mnmz(false), nbmodels(1) {}
+};
+
 /******************
  * DEBUGGING INFO *
  ******************/
 
 #define reportf(format, args...) ( fflush(stdout), fprintf(stderr, format, ## args), fflush(stderr) )
-#define greportf(ver, format, args...) ( ver>=verbosity?fflush(stdout), fprintf(stderr, format, ## args), fflush(stderr):true )
+#define greportf(ver, format, args...) ( verbosity>=ver?fflush(stdout), fprintf(stderr, format, ## args), fflush(stderr):true )
 
 inline int gprintVar(Var v){
 	return v+1;

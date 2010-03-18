@@ -15,6 +15,8 @@ using namespace std;
 using namespace boost;
 using namespace Aggrs;
 
+extern ECNF_mode modes;
+
 /*! \file parse.tab.cc
  */
 
@@ -49,15 +51,17 @@ int lineNo = 1;
 int charPos = 1;
 
 //! Auxiliary variables, used while parsing.
-void error(bool during_parsing, char *msg) {
-   cerr << "Parse error: ";
-   if (during_parsing)
-      cerr << "Line " << lineNo << ", column " << charPos << ": ";
-   cerr << msg;
-   if (during_parsing && strlen(yytext))
-      cerr << " on \"" << yytext << "\"";
-   cerr << endl;
-   exit(-1);
+void error(bool during_parsing, const char * msg) {
+	cerr << "Parse error: ";
+	if (during_parsing){
+		cerr << "Line " << lineNo << ", column " << charPos << ": "; 
+	}
+	cerr << msg;
+	if (during_parsing && strlen(yytext)){
+		cerr << " on \"" << yytext << "\"";		
+	}
+	cerr << endl;
+	exit(1);
 }
 
 // If an unforeseen parse error occurs, it calls this function (e.g. with msg="syntax error")
@@ -65,116 +69,124 @@ void yyerror(char* msg) {
    error(true, msg);
 }
 
-vector<int> numbers;
+vector<Weight> weights;
+vec<Lit> lits;
+bool disj;
+int setid;
 
-void readclause(vec<Lit>& lits){
-	int var;
-	for(vector<int>::iterator i=numbers.begin(); i<numbers.end(); i++){
-		if ((*i) == 0) break;
-		var = abs((*i))-1;
-		while (var >= solver->nVars()) solver->newVar();
-		solver->setDecisionVar(var,true); // S.nVars()-1   or   var
-		lits.push( ((*i) > 0) ? Lit(var) : ~Lit(var) );
-	}
+void addLit(int nb){
+	int var = abs(nb)-1;
+	while (var >= solver->nVars()) solver->newVar();
+	solver->setDecisionVar(var,true); // S.nVars()-1   or   var
+	lits.push( (nb > 0) ? Lit(var) : ~Lit(var) );
 }
 
-/*! Finished parsing a clause.
- */
-void addclause() {
-	cout << "Clause";
-	for(vector<int>::iterator i=numbers.begin(); i<numbers.end(); i++){
-		cout << *i <<" ";
-	}
-	cout <<endl;
-	
-	vec<Lit> lits;
-	readclause(lits);
-	solver->addClause(lits);
-	numbers.clear();
-}
-
-/*! Finished parsing a rule.
- */
-void adddisjrule(int hd) {
-	cout << "Disj rule, head " <<hd <<", body ";
-	for(vector<int>::iterator i=numbers.begin(); i<numbers.end(); i++){
-		cout << *i <<" ";
-	}
-	cout <<endl;
-	
-	vec<Lit> lits;
-	readclause(lits);
-	idsolver->addRule(false, lits);
-	numbers.clear();
-}
-
-void addconjrule(int hd){
-	cout << "Conj rule, head " <<hd <<", body ";
-	for(vector<int>::iterator i=numbers.begin(); i<numbers.end(); i++){
-		cout << *i <<" ";
-	}
-	cout <<endl;
-	
-	vec<Lit> lits;
-	readclause(lits);
-	idsolver->addRule(true, lits);
-	numbers.clear();
+inline void addAgg(int h, int setid, int w, AggrType a, bool l, bool d){
+	aggsolver->addAggrExpr(abs(h)-1, setid, Weight(w), l, a, d); 
 }
 
 %}
 
 %union {
 	int integer;
-   char* character;
+    char* characterstring;
+    bool boolean;
 }
 
 %token EQ DISJUNCTION CONJUNCTION ZERO 
-%token SUBSETMIN MIN SUMMIN LOWER GREATER COMPSEM DEFSEM
-%token SET_DEFN CARDINIALITY_DEFN SUM_DEFN PROD_DEFN MIN_DEFN MAX_DEFN WSET_DEFN
+%token SUBSETMIN_DEFN MNMZ_DEFN SUMMIN_DEFN
+%token SET_DEFN WSET_DEFN SUM_DEFN PROD_DEFN MIN_DEFN MAX_DEFN CARD_DEFN 
 %token <integer>   NUMBER
+%token <boolean> SEM_DEFN SIGN_DEFN
+%token DEF_PRESENT AGG_PRESENT
 
 %start init
 
 %%
 
-init     :  ground
-         ;
+init	:	header theory
+		;
 
-ground   :
-            theory
-         ;
+header	: 	/*empty*/
+		| 	header DEF_PRESENT	{ modes.def = true;}
+		| 	header AGG_PRESENT	{ modes.aggr = true; }
+		;
 
-theory   :  /* empty */
-         |  theory clause
-         |  theory rule
-         ;
+theory	:	/* empty */
+		|	theory clause
+		|	theory rule
+		| 	theory sum
+		| 	theory max
+		| 	theory min
+		| 	theory card
+		| 	theory prod
+		|	theory set
+		|	theory wset
+		;
 
-clause   :  body ZERO                            { addclause(); }
-         ;
+clause	:  body ZERO	{ 	solver->addClause(lits); lits.clear(); }
+		;
 
-rule     :  DISJUNCTION NUMBER                   { if ($2 < 0) error(true, "Encountered a rule with negative literal as head.");
-                                                 }
-            body ZERO                            { adddisjrule($2); }
-         |  CONJUNCTION NUMBER                   { if ($2 < 0) error(true, "Encountered a rule with negative literal as head.");
-                                                 }
-            body ZERO                            { addconjrule($2); }
-         ;
+rule	:	SEM_DEFN NUMBER                  
+						{ 	if ($2 < 0) error(true, "Encountered a rule with negative literal as head.");
+							addLit($2);
+							disj = $1;
+						}
+			body ZERO  	{ idsolver->addRule(!disj, lits); lits.clear(); }
+		;
+            
+sum		:	SUM_DEFN  SEM_DEFN SIGN_DEFN NUMBER NUMBER NUMBER ZERO	{ addAgg($4, $5, $6, SUM, $3, $2); }
+		;
+max		:	MAX_DEFN  SEM_DEFN SIGN_DEFN NUMBER NUMBER NUMBER ZERO	{ addAgg($4, $5, $6, MAX, $3, $2); }	
+		;
+min		:	MIN_DEFN  SEM_DEFN SIGN_DEFN NUMBER NUMBER NUMBER ZERO	{ addAgg($4, $5, $6, MIN, $3, $2); }	
+		;
+card	:	CARD_DEFN SEM_DEFN SIGN_DEFN NUMBER NUMBER NUMBER ZERO	{ addAgg($4, $5, $6, SUM, $3, $2); }
+		;
+prod	:	PROD_DEFN SEM_DEFN SIGN_DEFN NUMBER NUMBER NUMBER ZERO	{ addAgg($4, $5, $6, PROD, $3, $2); }
+		;
+sum		:	SUM_DEFN  SEM_DEFN SIGN_DEFN NUMBER NUMBER ZERO ZERO	{ addAgg($4, $5, 0, SUM, $3, $2); }
+		;
+max		:	MAX_DEFN  SEM_DEFN SIGN_DEFN NUMBER NUMBER ZERO ZERO	{ addAgg($4, $5, 0, MAX, $3, $2); }	
+		;
+min		:	MIN_DEFN  SEM_DEFN SIGN_DEFN NUMBER NUMBER ZERO ZERO	{ addAgg($4, $5, 0, MIN, $3, $2); }	
+		;
+card	:	CARD_DEFN SEM_DEFN SIGN_DEFN NUMBER NUMBER ZERO ZERO	{ addAgg($4, $5, 0, SUM, $3, $2); }
+		;
+prod	:	PROD_DEFN SEM_DEFN SIGN_DEFN NUMBER NUMBER ZERO ZERO	{ addAgg($4, $5, 0, PROD, $3, $2); }
+		;
+
+set		:	SET_DEFN NUMBER { setid = $2;	}
+			body ZERO	{ 
+							for(int i=0; i<lits.size(); i++){
+								weights.push_back(1);
+							}
+							aggsolver->addSet(setid, lits, weights);
+							lits.clear(); weights.clear();
+						}
+		;
+
+wset	:	WSET_DEFN NUMBER { setid = $2;	}
+			wbody ZERO	{ 
+							aggsolver->addSet(setid, lits, weights);
+							lits.clear(); weights.clear();
+						}
+		;
 
 body     :  /* empty */
-         |  body NUMBER                          { numbers.push_back($2); }
+         |  body NUMBER { addLit($2); }
          ;
+         
+wbody	:	/* empty */
+		|	wbody NUMBER EQ ZERO	{ addLit($2); weights.push_back(Weight(0)); }
+		|	wbody NUMBER EQ NUMBER	{ addLit($2); weights.push_back(Weight($4)); }
+		;
+		
+//TODO MINIMIZATION
             
 %%
 
-/* yywrap: Called when EOF is reached on current input.
- * Have it return 1 if processing is finished, or
- * do something to fix the EOF condition (like open
- * another file and point to it) and return 0 to indicate
- * more input is available.
- */
-//extern int yylex();
-
 int yywrap() {
-   cerr << "End of file reached before it was expected... bailing out." << endl;
+	cerr << "End of file reached before it was expected... bailing out." << endl;
 	return 1;
 }

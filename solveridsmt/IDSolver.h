@@ -61,20 +61,23 @@ public:
 };
 
 class IDSolver{
+private:
+	pSolver 		solver;
+	pAggSolver 		aggsolver;
+
 public:
 	IDSolver();
 	virtual ~IDSolver();
 
 	/////////////////////SOLVER NECESSARY
-	bool 	simplify	();
-	void 	backtrack 	( Lit l);
-	Clause* getExplanation	(Lit p);    // Create a clause that implicitly was the reason for p's propagation.
-	void 	notifyVarAdded	(); 		//correctly initialized TSolver datastructures when vars are added
-	Clause* propagateDefinitions();
-	Clause* propagate(Lit p);
-	//void Subsetminimize(const vec<Lit>& lits);
+	bool 		simplify				();
+	void 		backtrack 				( Lit l);
+	Clause* 	getExplanation			(Lit p);    // Create a clause that implicitly was the reason for p's propagation.
+	void 		notifyVarAdded			(); 		//correctly initialized TSolver datastructures when vars are added
+	Clause* 	propagateDefinitions	();
+	Clause* 	propagate				(Lit p);
 
-	bool 	isWellFoundedModel();
+	bool 		isWellFoundedModel		();
 	/////////////////////ENDSOLVER NECESSARY
 
 	/////////////////////AGGSOLVER NECESSARY
@@ -85,16 +88,12 @@ public:
 	/////////////////////END AGGSOLVER NECESSARY
 
 	/////////////////////INITIALIZATION
-	void    	addRule      				(bool conj, vec<Lit>& ps);	// Add a rule to the solver.
-	bool    	finishECNF_DataStructures 	();							// Initialize the ECNF data structures. NOTE: aggregates may set the "ok" value to false!
+	void    	addRule      			(bool conj, vec<Lit>& ps);	// Add a rule to the solver.
+	bool    	finishECNF_DataStructures();							// Initialize the ECNF data structures. NOTE: aggregates may set the "ok" value to false!
 
-	void setSolver(pSolver s){
-		solver = s;
-	}
-
-	void setAggSolver(pAggSolver s){
-		aggsolver = s;
-	}
+	void 		setSolver				(pSolver s)		{ solver = s; }
+	void 		setAggSolver			(pAggSolver s)	{ aggsolver = s; }
+	void 		remove					();
 
 	FINDCS		defn_strategy;      // Controls which propagation strategy will be used for definitions.                         (default always)
 	MARKDEPTH	defn_search;        // Controls which search type will be used for definitions.                                  (default include_cs)
@@ -118,8 +117,7 @@ protected:
 	//uint64_t nb_times_findCS, justify_calls, cs_removed_in_justify, succesful_justify_calls, extdisj_sizes, total_marked_size;
 	//    uint64_t fw_propagation_attempts, fw_propagations;
 
-	pSolver 		solver;
-	pAggSolver 		aggsolver;
+
 
 	// ECNF_mode.mnmz additions to Solver state:
 	vec<Lit>		to_minimize;

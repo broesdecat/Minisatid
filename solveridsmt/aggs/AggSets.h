@@ -107,8 +107,8 @@ public:
 	AggrMaxSet(vec<Lit>& lits, vector<Weight>& weights, weak_ptr<AggSolver> s):AggrSet(lits, weights, s){
 		name = "MAX";
 		//FIXME FIXME: moet eigenlijk een voorstelling van -infinity zijn
-		//ik had eerst: minimum van de set -1, maar de bound kan NOG lager liggen, dus dan is het fout
-		emptysetvalue = 2000000000;
+		//ik had eerst: |minimum van de set| -1, maar de bound kan NOG lager liggen, dus dan is het fout
+		emptysetvalue = Weight(INT_MIN)-1;
 	};
 
 	virtual Weight 	getCombinedWeight			(const Weight& one, const Weight& two) 	const;

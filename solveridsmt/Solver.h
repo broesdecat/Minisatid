@@ -100,15 +100,18 @@ class AggSolver;
 enum MINIM {MNMZ, SUBSETMNMZ, SUMMNMZ, NONE};
 
 class Solver {
+private:
+	pIDSolver 	tsolver;
+	pAggSolver 	aggsolver;
+
 public:
 	/////SMT NECESSARY
-	pIDSolver 	tsolver;
-	pIDSolver 	getIDSolver(){ return tsolver; }
-	void setIDSolver(pIDSolver ts){tsolver = ts;}
-
-	pAggSolver 	aggsolver;
-	pAggSolver getAggSolver(){ return aggsolver; }
-	void setAggSolver(pAggSolver ts){aggsolver = ts;}
+	void 		setIDSolver				(const pIDSolver& s)	{ tsolver = s; }
+	void 		resetIDSolver			() 						{ tsolver.reset();}
+	void 		setAggSolver			(const pAggSolver& s)	{ aggsolver = s; }
+	void 		resetAggSolver			()						{ aggsolver.reset(); }
+	pIDSolver 	getIDSolver				()				const 	{ return tsolver; }
+	pAggSolver 	getAggSolver			()				const 	{ return aggsolver; }
 
 	lbool   value      (Var x) const;       // The current value of a variable.
 	lbool   value      (Lit p) const;       // The current value of a literal.
