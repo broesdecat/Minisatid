@@ -241,12 +241,15 @@ typedef BigInteger Weight;
 #include <boost/smart_ptr/weak_ptr.hpp>
 #include <boost/smart_ptr/enable_shared_from_this.hpp>
 
+enum IDSEM {STABLE,WELLF};
+
 struct ECNF_mode {
 	bool def,aggr,mnmz; // True for those extensions that are being used.
+	IDSEM sem;
 	int nbmodels;	//Find at least this number of models. If there are less models,
 					//UNSAT will be returned (after finding the existing number)
 
-	ECNF_mode() : def(false), aggr(false), mnmz(false), nbmodels(1) {}
+	ECNF_mode() : def(false), aggr(false), mnmz(false), sem(WELLF), nbmodels(1) {}
 };
 
 /******************

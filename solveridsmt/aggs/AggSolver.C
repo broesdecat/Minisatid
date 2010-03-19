@@ -93,6 +93,9 @@ void AggSolver::finishSets(pSet s){
 	for (lwlv::const_iterator i = s->getWLBegin(); i < s->getWLEnd(); i++, index++){
 		aggr_watches[var((*i).getLit())].push_back(AggrWatch(wpSet(s), index, sign((*i).getLit()) ? NEG : POS));
 	}
+	for(lwagg::const_iterator i=s->getAggBegin(); i<s->getAggEnd(); i++){
+		(*i).lock()->initialize();
+	}
 }
 
 void AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
@@ -339,11 +342,13 @@ Clause* AggSolver::Aggr_propagate(const Lit& p) {
 }
 
 Clause* AggSolver::getExplanation(const Lit& p) {
+	assert(aggr_reason[var(p)]!=NULL);
 	AggrReason& ar = *aggr_reason[var(p)];
 
 	//get the explanation from the aggregate expression
 	vec<Lit> lits;
 	lits.push(p);
+
 	ar.getAgg()->getExplanation(lits, ar);
 
 	//create a conflict clause and return it

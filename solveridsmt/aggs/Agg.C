@@ -49,7 +49,7 @@ Clause* AggrSet::propagate(const Lit& p, const AggrWatch& ws){
 		}else{ //head is not yet known, so at most the head can be propagated
 			lbool result = pa->canPropagateHead();
 			if(result!=l_Undef){
-				confl = getSolver()->notifySATsolverOfPropagation(result==l_True?pa->getHead():~pa->getHead(), new AggrReason(*i, pa->getHeadIndex()));
+				confl = getSolver()->notifySATsolverOfPropagation(result==l_True?pa->getHead():~pa->getHead(), new AggrReason(*i, true));
 			}
 		}
 	}
@@ -117,6 +117,20 @@ void AggrSet::initialize(){
 /*******
  * AGG *
  *******/
+
+void Agg::initialize(){
+	Clause* confl = NULL;
+
+	lbool hv = canPropagateHead();
+	if(hv==l_True){
+		confl = getSet()->getSolver()->notifySATsolverOfPropagation(head, new AggrReason(getAgg(), true));
+	}else if(hv==l_False){
+		confl = getSet()->getSolver()->notifySATsolverOfPropagation(~head, new AggrReason(getAgg(), true));
+	}
+	if(confl!=NULL){
+		throw UNSAT();
+	}
+}
 
 void Agg::backtrackHead(){
 	headvalue = l_Undef;
@@ -200,13 +214,13 @@ Clause* MaxAgg::propagateHead(bool headtrue) {
 	if (headtrue && lower) {
 		lwlv::const_reverse_iterator i=s->getWLRBegin();
 		while( confl == NULL && i<s->getWLREnd() && bound<(*i).getWeight()){
-			confl = s->getSolver()->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(getAgg(), s->getStackSize()));
+			confl = s->getSolver()->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(getAgg()));
 			i++;
 		}
 	}else if(!headtrue && !lower){
 		lwlv::const_reverse_iterator i=s->getWLRBegin();
 		while( confl == NULL && i<s->getWLREnd() && bound<=(*i).getWeight()){
-			confl = s->getSolver()->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(getAgg(), s->getStackSize()));
+			confl = s->getSolver()->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(getAgg()));
 			i++;
 		}
 	}
@@ -247,7 +261,7 @@ Clause* MaxAgg::propagate(bool headtrue) {
 		}
 	}
 	if(exactlyoneleft){
-		confl = s->getSolver()->notifySATsolverOfPropagation((*pos).getLit(), new AggrReason(getAgg(), s->getStackSize()));
+		confl = s->getSolver()->notifySATsolverOfPropagation((*pos).getLit(), new AggrReason(getAgg()));
 	}
 	return confl;
 }
@@ -390,10 +404,10 @@ Clause* SPAgg::propagate(bool headtrue){
 		if ((*u).getValue()==l_Undef) {//if already propagated as an aggregate, then those best-values have already been adapted
 			if((lower && headtrue) || (!lower && !headtrue)){
 				//assert((headtrue && set->currentbestcertain+set->wlits[u].weight>bound) || (!headtrue && set->currentbestcertain+set->wlits[u].weight>=bound));
-				c = s->getSolver()->notifySATsolverOfPropagation(~(*u).getLit(), new AggrReason(getAgg(), s->getStackSize()));
+				c = s->getSolver()->notifySATsolverOfPropagation(~(*u).getLit(), new AggrReason(getAgg()));
 			}else{
 				//assert((!headtrue && set->currentbestpossible-set->wlits[u].weight<=bound) || (headtrue && set->currentbestpossible-set->wlits[u].weight<bound));
-				c = s->getSolver()->notifySATsolverOfPropagation((*u).getLit(), new AggrReason(getAgg(), s->getStackSize()));
+				c = s->getSolver()->notifySATsolverOfPropagation((*u).getLit(), new AggrReason(getAgg()));
 			}
 		}
 	}
@@ -407,7 +421,7 @@ Clause* SPAgg::propagate(bool headtrue){
 void Agg::getExplanation(vec<Lit>& lits, AggrReason& ar) const{
 	assert(ar.getAgg().get() == this);
 
-	if(ar.getIndex() >= headindex){
+	if(!ar.isHeadReason() && ar.getIndex() >= headindex){
 		//the head literal is saved as it occurred in the theory, so adapt for its current truth value!
 		lits.push(headvalue==l_True?~head:head);
 	}
@@ -416,6 +430,17 @@ void Agg::getExplanation(vec<Lit>& lits, AggrReason& ar) const{
 	pSet s = set.lock();
 	for(lprop::const_iterator i=s->getStackBegin(); counter<ar.getIndex() && i<s->getStackEnd(); i++,counter++){
 		lits.push(~(*i).getLit());
+	}
+
+	if(verbosity>=5){
+		reportf("Aggregate explanation for ");
+		gprintLit((*(s->getStackBegin()+ar.getIndex()-1)).getLit());
+		reportf(" is");
+		for(int i=0; i<lits.size(); i++){
+			reportf(" ");
+			gprintLit(lits[i]);
+		}
+		reportf("\n");
 	}
 }
 

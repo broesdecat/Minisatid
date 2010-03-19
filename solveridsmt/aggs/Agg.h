@@ -67,6 +67,7 @@ public:
 
 	void 	setBound(const Weight& b)	{ bound = b; }
 
+	void 	initialize();
 	void 	backtrackHead();
 	Clause*	propagateHead(const Lit& p);
 
@@ -147,10 +148,16 @@ private:
 	int 		index;
 
 public:
-    AggrReason(wpAgg e, int index) : expr(e), index(index) {}
+	AggrReason(wpAgg e, bool head = false): expr(e), index(0) {
+		index = e.lock()->getSet()->getStackSize();
+		if(head==true){
+			index = -index;
+		}
+    }
 
     pAgg 		getAgg() 	const	{ return expr.lock(); }
-    int 		getIndex() 	const{ return index; }
+    int 		getIndex() 	const	{ return abs(index); }
+    bool		isHeadReason() const{ return index<0; }
 };
 }
 

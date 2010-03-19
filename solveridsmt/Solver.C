@@ -24,6 +24,8 @@
 
 #include <limits.h>
 
+extern ECNF_mode modes;
+
 //=================================================================================================
 // Constructor/Destructor:
 
@@ -1183,7 +1185,7 @@ bool Solver::solve(const vec<Lit>& assumps) {
 		status = search((int) nof_conflicts, (int) nof_learnts);
 		nof_conflicts *= restart_inc;
 		nof_learnts *= learntsize_inc;
-		if(status==l_True && tsolver.get()!=NULL){
+		if(status==l_True && modes.sem==WELLF && tsolver.get()!=NULL){
 			bool wellfounded = tsolver->isWellFoundedModel();
 			if(verbosity>=1){
 				reportf("The model is %s.\n", wellfounded?"well-founded":"stable but not well-founded");

@@ -82,6 +82,9 @@ void addLit(int nb){
 }
 
 inline void addAgg(int h, int setid, int w, AggrType a, bool l, bool d){
+	if(h<1){
+		error(false, "No negative heads are allowed!\n");
+	}
 	aggsolver->addAggrExpr(abs(h)-1, setid, Weight(w), l, a, d); 
 }
 

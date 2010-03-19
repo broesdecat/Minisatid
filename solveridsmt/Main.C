@@ -197,6 +197,15 @@ void parseCommandline(const pSolver& S, const pIDSolver& TS, const pAggSolver& A
 				reportf("ERROR! unknown choice of unfounded set algorithm: %s\n", value);
 				exit(0);
 			}
+        }else if ((value = hasPrefix(argv[i], "-idsem="))){
+			if (strcmp(value, "wellf") == 0){
+				modes.sem = WELLF;
+			}else if(strcmp(value, "stable") == 0){
+				modes.sem = STABLE;
+			}else{
+				reportf("ERROR! unknown choice of unfounded set algorithm: %s\n", value);
+				exit(0);
+			}
         }else if ((value = hasPrefix(argv[i], "-verbosity="))){
             int verb = (int)strtol(value, NULL, 10);
             if (verb == 0 && errno == EINVAL){
@@ -273,6 +282,7 @@ void printUsage(char** argv){
     reportf("  -defn_strategy = {always,adaptive,lazy}\n");
     reportf("  -defn_search   = {include_cs,stop_at_cs}\n");
     reportf("  -maxruntime    = <num> (in seconds)\n");
+    reportf("  -idsem         = use {stable,wellf} semantics for inductive definitions.\n");
     reportf("\n");
 }
 

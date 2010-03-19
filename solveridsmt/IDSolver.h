@@ -143,8 +143,8 @@ protected:
 	bool		setTypeIfNoPosLoops(Var v);
 
 	void 		propagateJustificationDisj(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& heads);
-	void 		propagateJustificationConj(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& heads);
 	void 		propagateJustificationAggr(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& heads);
+	void 		propagateJustificationConj(Lit l, vec<Lit>& heads);
 
 	bool 		findJustificationDisj(Var v, vec<Lit>& jstf);
 	bool 		findJustificationDisj(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust);
@@ -152,8 +152,8 @@ protected:
 	bool 		findJustificationAggr(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust);
 
 	// Rules (body to head):
-	vec<vec<Var> >  disj_occurs;         // Per literal: a vector of heads of DISJ rules in which it is a body literal.
-	vec<vec<Var> >  conj_occurs;         // Per literal: a vector of heads of CONJ rules in which it is a body literal.
+	vector<vector<Var> >  disj_occurs;         // Per literal: a vector of heads of DISJ rules in which it is a body literal.
+	vector<vector<Var> >  conj_occurs;         // Per literal: a vector of heads of CONJ rules in which it is a body literal.
 
 	// Justifications:
 	vec<vec<Lit> >       justification;	// Per atom. cf_ = cycle free, sp_ = supporting.
