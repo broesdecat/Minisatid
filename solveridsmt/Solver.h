@@ -74,9 +74,10 @@ static inline int memReadStat(int field)
     sprintf(name, "/proc/%d/statm", pid);
     FILE*   in = fopen(name, "rb");
     if (in == NULL) return 0;
-    int     value;
+    int     value = -1, read;
     for (; field >= 0; field--){
-    	fscanf(in, "%d", &value);
+    	read = fscanf(in, "%d", &value);
+    	if(read==EOF){ break; }
     }
     fclose(in);
     return value;

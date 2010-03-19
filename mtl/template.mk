@@ -6,21 +6,21 @@
 ##        "make"    for the standard version (optimized, but with debug information and assertions active)
 ##		added: Code coverage version (CC prefix): no optimization, extra options, to use gcov
 
-CSRCS     ?= $(wildcard *.C)
-CHDRS     ?= $(wildcard *.h)
-COBJS     ?= $(addsuffix .o, $(basename $(CSRCS))) parse.tab.o lex.yy.o
+CSRCS	?= $(wildcard *.C)
+CHDRS	?= $(wildcard *.h)
+COBJS	?= $(addsuffix .o, $(basename $(CSRCS))) parse.tab.o lex.yy.o
 
-PCOBJS     = $(addsuffix p,  $(COBJS))
-DCOBJS     = $(addsuffix d,  $(COBJS))
-RCOBJS     = $(addsuffix r,  $(COBJS))
-CCCOBJS     = $(addsuffix cc,  $(COBJS))
+PCOBJS	= $(addsuffix p,  $(COBJS))
+DCOBJS	= $(addsuffix d,  $(COBJS))
+RCOBJS	= $(addsuffix r,  $(COBJS))
+CCCOBJS	= $(addsuffix cc,  $(COBJS))
 
-EXEC      ?= $(notdir $(shell pwd))
-LIB       ?= $(EXEC)
+EXEC	?= $(notdir $(shell pwd))
+LIB		?= $(EXEC)
 
-CXX       ?= g++
-CFLAGS    ?= -Wall
-LFLAGS    ?= -Wall
+CXX		?= g++
+CFLAGS	?= -Wall
+LFLAGS	?= -Wall
 
 COPTIMIZE ?= -O3
 
@@ -36,26 +36,26 @@ lib:	lib$(LIB).a
 libd:	lib$(LIB)d.a
 
 ## Compile options
-%.o:			CFLAGS +=$(COPTIMIZE) -ggdb -D DEBUG
+%.o:		CFLAGS +=$(COPTIMIZE) -ggdb -D DEBUG
 %.occ:		CFLAGS +=-O0 -fprofile-arcs -ftest-coverage -ggdb -D DEBUG # -D INVARIANTS
-%.op:			CFLAGS +=$(COPTIMIZE) -pg -ggdb -D NDEBUG
-%.od:			CFLAGS +=-O0 -ggdb -D DEBUG # -D INVARIANTS
-%.or:			CFLAGS +=$(COPTIMIZE) -D NDEBUG
+%.op:		CFLAGS +=$(COPTIMIZE) -pg -ggdb -D NDEBUG
+%.od:		CFLAGS +=-O0 -ggdb -D DEBUG # -D INVARIANTS
+%.or:		CFLAGS +=$(COPTIMIZE) -D NDEBUG
 
 ## Link options
-$(EXEC):					LFLAGS := -ggdb $(LFLAGS)
+$(EXEC):			LFLAGS := -ggdb $(LFLAGS)
 $(EXEC)_codecover: 	LFLAGS := -ggdb -lgcov $(LFLAGS)
-$(EXEC)_profile:		LFLAGS := -ggdb -pg $(LFLAGS)
-$(EXEC)_debug:			LFLAGS := -ggdb $(LFLAGS)
-$(EXEC)_release:		LFLAGS := $(LFLAGS)
+$(EXEC)_profile:	LFLAGS := -ggdb -pg $(LFLAGS)
+$(EXEC)_debug:		LFLAGS := -ggdb $(LFLAGS)
+$(EXEC)_release:	LFLAGS := $(LFLAGS)
 $(EXEC)_static:		LFLAGS := --static $(LFLAGS)
 
 ## Dependencies
-$(EXEC):					$(COBJS)
+$(EXEC):			$(COBJS)
 $(EXEC)_codecover:	$(CCCOBJS)
-$(EXEC)_profile:		$(PCOBJS)
-$(EXEC)_debug:			$(DCOBJS)
-$(EXEC)_release:		$(RCOBJS)
+$(EXEC)_profile:	$(PCOBJS)
+$(EXEC)_debug:		$(DCOBJS)
+$(EXEC)_release:	$(RCOBJS)
 $(EXEC)_static:		$(RCOBJS)
 
 lib$(LIB).a:	$(filter-out Main.or, $(RCOBJS))

@@ -14,8 +14,12 @@ using namespace boost;
 namespace Aggrs{
 
 class Agg;
+class AggrSet;
+
 typedef shared_ptr<Agg> pAgg;
 typedef weak_ptr<Agg> wpAgg;
+typedef shared_ptr<AggrSet> pSet;
+typedef weak_ptr<AggrSet> wpSet;
 
 typedef vector<pAgg> lsagg;
 typedef vector<wpAgg> lwagg;
@@ -63,7 +67,7 @@ public:
 			int 	getHeadIndex() 	const	{ return headindex; }
 			pSet	getSet()	 	const	{ return set.lock(); }
 
-	void 	addAggToSet() 				{ set.lock()->addAgg(getAgg()); }
+			void 	addAggToSet();
 
 	void 	setBound(const Weight& b)	{ bound = b; }
 
@@ -148,12 +152,7 @@ private:
 	int 		index;
 
 public:
-	AggrReason(wpAgg e, bool head = false): expr(e), index(0) {
-		index = e.lock()->getSet()->getStackSize();
-		if(head==true){
-			index = -index;
-		}
-    }
+	AggrReason(wpAgg e, bool head = false);
 
     pAgg 		getAgg() 	const	{ return expr.lock(); }
     int 		getIndex() 	const	{ return abs(index); }

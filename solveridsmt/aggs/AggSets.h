@@ -1,16 +1,17 @@
 #ifndef AGGSETS_H_
 #define AGGSETS_H_
 
-#include <limits>
+#include <limits.h>
 #include <vector>
 #include <set>
 #include <iostream>
 
-#include "Agg.h"
 #include "AggTypes.h"
-#include "AggSolver.h"
-
 #include "Vec.h"
+
+
+#include "Agg.h"
+#include "AggSolver.h"
 
 using namespace std;
 using namespace boost;
@@ -66,9 +67,9 @@ public:
 	virtual void 	addToCertainSet(const WLit& l) 			= 0;
 	virtual void 	removeFromPossibleSet(const WLit& l)	= 0;
 
-	bool 			isJustified(Var x, vec<int>& currentjust) 								const;
-	bool 			isJustified(const WLV& elem, vec<int>& currentjust, bool real) 			const;
-	bool 			oppositeIsJustified(const WLV& elem, vec<int>& currentjust, bool real) 	const;
+	bool 			oppositeIsJustified	(const WLV& elem, vec<int>& currentjust, bool real) const;
+	bool 			isJustified			(const WLV& elem, vec<int>& currentjust, bool real) const;
+	bool 			isJustified			(Var x, vec<int>& currentjust) const;
 
 	/**
 	 * GETTERS - SETTERS

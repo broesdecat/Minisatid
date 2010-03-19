@@ -1,5 +1,7 @@
 %{
 #include <iostream>
+#include <stdio.h>
+#include <cstring>
 #include <vector>
 #include <list>
 #include <map>
