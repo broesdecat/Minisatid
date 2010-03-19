@@ -1,4 +1,9 @@
 #include "AggSolver.h"
+
+#include "Agg.h"
+#include "AggSets.h"
+#include "Solver.h"
+#include "IDSolver.h"
 #include <algorithm>
 
 AggSolver::AggSolver() :

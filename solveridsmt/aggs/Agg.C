@@ -1,6 +1,7 @@
 #include "Agg.h"
 #include <algorithm>
 
+#include "AggSets.h"
 #include "AggSolver.h"
 
 using namespace Aggrs;

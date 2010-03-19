@@ -16,7 +16,6 @@
 #include "Solver.h"
 #include "AggSolver.h"
 
-
 class IDSolver;
 typedef shared_ptr<IDSolver> pIDSolver;
 typedef weak_ptr<IDSolver> wpIDSolver;
@@ -38,9 +37,6 @@ enum DefOcc		{NONDEFOCC, POSLOOP, MIXEDLOOP, BOTHLOOP};
 enum UFS 		{NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK};
 
 extern int verbosity;
-
-class Solver;
-class AggSolver;
 
 class Rule {
 private:
@@ -273,31 +269,6 @@ private:
 	void overestimateCounters();
 	void removeMarks();
 };
-
-
-//=================================================================================================
-// Implementation of inline methods:
-
-inline void	IDSolver::addCycleSource(Var v)		{ if (!isCS[v]) {isCS[v]=true; css.push(v);} }
-inline void	IDSolver::clearCycleSources()		{ for (int i=0;i<css.size();i++) isCS[css[i]]=false; css.clear(); }
-
-inline bool IDSolver::isPositive(Lit l)			{ return !sign(l); }
-inline bool IDSolver::isTrue(Lit l)				{ return value(l)==l_True; }
-inline bool IDSolver::isTrue(Var v)				{ return value(v)==l_True; }
-inline bool IDSolver::isFalse(Lit l)			{ return value(l)==l_False; }
-inline bool IDSolver::isFalse(Var v)			{ return value(v)==l_False; }
-inline bool IDSolver::isUnknown(Lit l)			{ return value(l)==l_Undef; }
-inline bool IDSolver::isUnknown(Var v)			{ return value(v)==l_Undef; }
-inline bool IDSolver::canBecomeTrue(Lit l)		{ return value(l)!=l_False; }
-inline bool IDSolver::inSameSCC(Var x, Var y) 	{ return scc[x] == scc[y] && scc[x]!=-1; }	//-1 indicates not defined
-inline Lit 	IDSolver::createNegativeLiteral(Var i)	{ return Lit(i, true); }
-inline Lit 	IDSolver::createPositiveLiteral(Var i)	{ return Lit(i, false); }
-
-inline DefType IDSolver::getDefType(Var v)		{ return defType[v]; }
-inline bool IDSolver::isDefInPosGraph(Var v)	{ return defOcc[v]==POSLOOP || defOcc[v]==BOTHLOOP; }
-inline bool	IDSolver::isDefined(Var v)			{ return defType[v]!=NONDEFTYPE; }
-inline bool IDSolver::isConjunctive(Var v)		{ return getDefType(v)==CONJ; }
-inline bool IDSolver::isDisjunctive(Var v)		{ return getDefType(v)==DISJ; }
 
 /**
  * All these methods are used to allow branch prediction in SATsolver methods and to minimize the number of

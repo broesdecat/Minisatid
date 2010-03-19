@@ -9,10 +9,6 @@
 #include "AggTypes.h"
 #include "Vec.h"
 
-
-#include "Agg.h"
-#include "AggSolver.h"
-
 using namespace std;
 using namespace boost;
 

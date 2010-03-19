@@ -3,12 +3,9 @@
 
 #include <cstdio>
 
+#include "AggTypes.h"
 #include "Vec.h"
 #include "Sort.h"
-
-#include "Agg.h"
-#include "Solver.h"
-#include "IDSolver.h"
 
 extern int verbosity;
 
@@ -35,10 +32,14 @@ typedef weak_ptr<AggrWatch> wpWatch;
 
 }
 
+class Solver;
 class IDSolver;
+class AggSolver;
+
+typedef shared_ptr<Solver> pSolver;
+typedef weak_ptr<Solver> wpSolver;
 typedef shared_ptr<IDSolver> pIDSolver;
 typedef weak_ptr<IDSolver> wpIDSolver;
-class AggSolver;
 typedef shared_ptr<AggSolver> pAggSolver;
 typedef weak_ptr<AggSolver> wpAggSolver;
 class Solver;
@@ -160,7 +161,7 @@ protected:
 	vector<pSet>	aggrsumsets;
 	vector<pSet>	aggrprodsets;
 
-	vector<Aggrs::AggrReason*>			aggr_reason;	// For each atom, like 'reason'.
+	vector<Aggrs::AggrReason*>	aggr_reason;	// For each atom, like 'reason'.
 	vector<vector<AggrWatch> >	aggr_watches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
 	vector<wpAgg >				head_watches;
 	vector<pAgg > 				aggregates;		//A vector to store all created aggregates as shared pointers, to allow easy destruction in the end

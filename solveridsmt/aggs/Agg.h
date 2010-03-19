@@ -6,7 +6,8 @@
 #include <set>
 #include <iostream>
 
-#include "AggSets.h"
+#include "AggTypes.h"
+#include "Vec.h"
 
 using namespace std;
 using namespace boost;
