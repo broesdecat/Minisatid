@@ -22,6 +22,7 @@ extern FILE* yyin;
 extern int 	yyparse			();
 extern void yydestroy		();
 extern void yyinit			(pSolver s, pIDSolver ids, pAggSolver aggs);
+bool parseError = false;
 
 void 		initSolvers		(const pSolver& S, const pIDSolver& TS, const pAggSolver& AggS);
 
@@ -37,9 +38,9 @@ void 		printUsage		(char** argv);
 int main(int argc, char** argv){
 	greportf(1, "This is MiniSAT-SMT 1.0\n");
 
-	pSolver		S 	= pSolver(new Solver());
-	pIDSolver	TS	= pIDSolver(new IDSolver());
-	pAggSolver	AggS = pAggSolver(new AggSolver());
+	pSolver		S(new Solver());
+	pIDSolver	TS(new IDSolver());
+	pAggSolver	AggS(new AggSolver());
     initSolvers(S, TS, AggS);
 
     parseCommandline(S, TS, AggS, argc, argv);
@@ -158,20 +159,20 @@ void parseCommandline(const pSolver& S, const pIDSolver& TS, const pAggSolver& A
             }
         }else if ((value = hasPrefix(argv[i], "-defn_strategy="))){
             if (strcmp(value, "always") == 0){
-                TS->defn_strategy = always;
+            	modes.defn_strategy = always;
             }else if (strcmp(value, "adaptive") == 0){
-                TS->defn_strategy = adaptive;
+            	modes.defn_strategy = adaptive;
 			}else if (strcmp(value, "lazy") == 0){
-                TS->defn_strategy = lazy;
+				modes.defn_strategy = lazy;
 			}else{
                 reportf("ERROR! illegal definition strategy %s\n", value);
                 exit(0);
 			}
         }else if ((value = hasPrefix(argv[i], "-defn_search="))){
             if (strcmp(value, "include_cs") == 0)
-                TS->defn_search = include_cs;
+            	modes.defn_search = include_cs;
             else if (strcmp(value, "stop_at_cs") == 0)
-                TS->defn_search = stop_at_cs;
+            	modes.defn_search = stop_at_cs;
             else{
                 reportf("ERROR! illegal definition ssearch type %s\n", value);
                 exit(0); }
@@ -190,9 +191,9 @@ void parseCommandline(const pSolver& S, const pIDSolver& TS, const pAggSolver& A
            S->var_decay = 1 / decay;
         }else if ((value = hasPrefix(argv[i], "-ufsalgo="))){
 			if (strcmp(value, "depth") == 0){
-				TS->ufs_strategy = depth_first;
+				modes.ufs_strategy = depth_first;
 			}else if(strcmp(value, "breadth") == 0){
-				TS->ufs_strategy = breadth_first;
+				modes.ufs_strategy = breadth_first;
 			}else{
 				reportf("ERROR! unknown choice of unfounded set algorithm: %s\n", value);
 				exit(0);
@@ -246,6 +247,11 @@ void parse(const pSolver& S, const pIDSolver& TS, const pAggSolver& AggS, const 
 	}
 	yyparse();
 	yydestroy();
+	fclose(yyin);
+	if(parseError){
+		reportf("At least one parsing error, program will exit.\n");
+		exit(3);
+	}
 	finishParsing(S, TS, AggS);
 }
 

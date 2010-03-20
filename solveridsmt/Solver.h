@@ -29,23 +29,21 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "Heap.h"
 #include "Alg.h"
 
-#include "SolverTypes.h"
+#include "solverfwd.h"
+#include "debug.h"
+
 #include "IDSolver.h"
 #include "AggSolver.h"
 
 class IDSolver;
+class AggSolver;
+class Solver;
 typedef shared_ptr<IDSolver> pIDSolver;
 typedef weak_ptr<IDSolver> wpIDSolver;
-class AggSolver;
 typedef shared_ptr<AggSolver> pAggSolver;
 typedef weak_ptr<AggSolver> wpAggSolver;
-class Solver;
 typedef shared_ptr<Solver> pSolver;
 typedef weak_ptr<Solver> wpSolver;
-
-extern int verbosity;
-struct Parameters;
-extern Parameters params;
 
 #ifdef _MSC_VER
 #include <ctime>
@@ -95,24 +93,19 @@ static inline uint64_t memUsed() { return 0; }
 //=================================================================================================
 // Solver -- the main class:
 
-class IDSolver;
-class AggSolver;
-
-enum MINIM {MNMZ, SUBSETMNMZ, SUMMNMZ, NONE};
-
 class Solver {
 private:
-	pIDSolver 	tsolver;
-	pAggSolver 	aggsolver;
+	wpIDSolver 	tsolver;
+	wpAggSolver	aggsolver;
 
 public:
 	/////SMT NECESSARY
-	void 		setIDSolver				(const pIDSolver& s)	{ tsolver = s; }
+	void 		setIDSolver				(const pIDSolver& s)	{ tsolver = wpIDSolver(s); }
 	void 		resetIDSolver			() 						{ tsolver.reset();}
-	void 		setAggSolver			(const pAggSolver& s)	{ aggsolver = s; }
+	void 		setAggSolver			(const pAggSolver& s)	{ aggsolver = wpAggSolver(s); }
 	void 		resetAggSolver			()						{ aggsolver.reset(); }
-	pIDSolver 	getIDSolver				()				const 	{ return tsolver; }
-	pAggSolver 	getAggSolver			()				const 	{ return aggsolver; }
+	pIDSolver 	getIDSolver				()				const 	{ return tsolver.lock(); }
+	pAggSolver 	getAggSolver			()				const 	{ return aggsolver.lock(); }
 
 	lbool   value      (Var x) const;       // The current value of a variable.
 	lbool   value      (Lit p) const;       // The current value of a literal.

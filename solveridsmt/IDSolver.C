@@ -4,35 +4,32 @@
 #include "Map.h"
 #include <cmath>
 
-inline lbool	IDSolver::value(Var x) const   { return solver->value(x); }
-inline lbool	IDSolver::value(Lit p) const   { return solver->value(p); }
-inline int		IDSolver::nVars()      const   { return solver->nVars();  }
+inline lbool	IDSolver::value(Var x) const   { return getSolver()->value(x); }
+inline lbool	IDSolver::value(Lit p) const   { return getSolver()->value(p); }
+inline int		IDSolver::nVars()      const   { return getSolver()->nVars();  }
 
 inline void	IDSolver::addCycleSource(Var v)		{ if (!isCS[v]) {isCS[v]=true; css.push(v);} }
 inline void	IDSolver::clearCycleSources()		{ for (int i=0;i<css.size();i++) isCS[css[i]]=false; css.clear(); }
 
-inline bool IDSolver::isPositive(Lit l)			{ return !sign(l); }
-inline bool IDSolver::isTrue(Lit l)				{ return value(l)==l_True; }
-inline bool IDSolver::isTrue(Var v)				{ return value(v)==l_True; }
-inline bool IDSolver::isFalse(Lit l)			{ return value(l)==l_False; }
-inline bool IDSolver::isFalse(Var v)			{ return value(v)==l_False; }
-inline bool IDSolver::isUnknown(Lit l)			{ return value(l)==l_Undef; }
-inline bool IDSolver::isUnknown(Var v)			{ return value(v)==l_Undef; }
-inline bool IDSolver::canBecomeTrue(Lit l)		{ return value(l)!=l_False; }
-inline bool IDSolver::inSameSCC(Var x, Var y) 	{ return scc[x] == scc[y] && scc[x]!=-1; }	//-1 indicates not defined
-inline Lit 	IDSolver::createNegativeLiteral(Var i)	{ return Lit(i, true); }
-inline Lit 	IDSolver::createPositiveLiteral(Var i)	{ return Lit(i, false); }
+inline bool IDSolver::isPositive(Lit l) 			const	{ return !sign(l); }
+inline bool IDSolver::isTrue(Lit l)		 			const	{ return value(l)==l_True; }
+inline bool IDSolver::isTrue(Var v)		 			const	{ return value(v)==l_True; }
+inline bool IDSolver::isFalse(Lit l)	 			const	{ return value(l)==l_False; }
+inline bool IDSolver::isFalse(Var v)	 			const	{ return value(v)==l_False; }
+inline bool IDSolver::isUnknown(Lit l)	 			const	{ return value(l)==l_Undef; }
+inline bool IDSolver::isUnknown(Var v)	 			const	{ return value(v)==l_Undef; }
+inline bool IDSolver::canBecomeTrue(Lit l)			const	{ return value(l)!=l_False; }
+inline bool IDSolver::inSameSCC(Var x, Var y)		const	{ return scc[x] == scc[y] && scc[x]!=-1; }	//-1 indicates not defined
+inline Lit 	IDSolver::createNegativeLiteral(Var i)	const	{ return Lit(i, true); }
+inline Lit 	IDSolver::createPositiveLiteral(Var i)	const	{ return Lit(i, false); }
 
-inline DefType IDSolver::getDefType(Var v)		{ return defType[v]; }
-inline bool IDSolver::isDefInPosGraph(Var v)	{ return defOcc[v]==POSLOOP || defOcc[v]==BOTHLOOP; }
-inline bool	IDSolver::isDefined(Var v)			{ return defType[v]!=NONDEFTYPE; }
-inline bool IDSolver::isConjunctive(Var v)		{ return getDefType(v)==CONJ; }
-inline bool IDSolver::isDisjunctive(Var v)		{ return getDefType(v)==DISJ; }
+inline DefType IDSolver::getDefType(Var v)	 		const	{ return defType[v]; }
+inline bool IDSolver::isDefInPosGraph(Var v) 		const	{ return defOcc[v]==POSLOOP || defOcc[v]==BOTHLOOP; }
+inline bool	IDSolver::isDefined(Var v)		 		const	{ return defType[v]!=NONDEFTYPE; }
+inline bool IDSolver::isConjunctive(Var v)			const	{ return getDefType(v)==CONJ; }
+inline bool IDSolver::isDisjunctive(Var v)			const	{ return getDefType(v)==DISJ; }
 
 IDSolver::IDSolver():
-	defn_strategy(always),
-	defn_search(include_cs),
-	ufs_strategy(breadth_first),
 	init(true),
 	prev_conflicts(-1),
 //	//first time test (prev_conflicts==conflicts) should fail
@@ -50,19 +47,20 @@ IDSolver::IDSolver():
 }
 
 void IDSolver::remove(){
-	solver->resetIDSolver();
+	getSolver()->resetIDSolver();
 	solver.reset();
 	aggsolver.reset();
 }
 
 IDSolver::~IDSolver() {
+	deleteList<Rule>(definition);
 }
 
 void IDSolver::notifyVarAdded(){
 	seen.growTo(nVars(), 0);
 	//seen2.push(0);
 
-	definition.growTo(nVars(), NULL);
+	definition.resize(nVars(), NULL);
 	defType.growTo(nVars(), NONDEFTYPE);
 	defOcc.growTo(nVars(), NONDEFOCC);
 	disj_occurs.resize(2 * nVars()); // May be tested on in findCycleSources().
@@ -98,7 +96,7 @@ void IDSolver::addRule(bool conj, vec<Lit>& ps) {
 		}
 		vec<Lit> v;
 		v.push(head);
-		solver->addClause(v);
+		getSolver()->addClause(v);
 	} else {
 		//rules with only one body atom have to be treated as conjunctive
 		conj = conj || ps.size()==2;
@@ -122,13 +120,13 @@ void IDSolver::addRule(bool conj, vec<Lit>& ps) {
 
 		vec<Lit> temp; //because addclause empties temp
 		ps.copyTo(temp);
-		solver->addClause(temp);
+		getSolver()->addClause(temp);
 
 		for (int i = 1; i < ps.size(); i++) {
 			vec<Lit> binclause(2);
 			binclause[0] = ~ps[0];
 			binclause[1] = ~ps[i];
-			solver->addClause(binclause);
+			getSolver()->addClause(binclause);
 		}
 	}
 }
@@ -231,8 +229,8 @@ bool IDSolver::finishECNF_DataStructures() {
 			break;
 		}
 		case AGGR: {
-			if(aggsolver.get()!=NULL){
-				for (lwlv::const_iterator j = aggsolver->getAggLiteralsBegin(i); !isdefd && j < aggsolver->getAggLiteralsEnd(i); ++j){
+			if(getAggSolver().get()!=NULL){
+				for (lwlv::const_iterator j = getAggSolver()->getAggLiteralsBegin(i); !isdefd && j < getAggSolver()->getAggLiteralsEnd(i); ++j){
 					if (inSameSCC(v, var((*j).getLit()))){ // NOTE: disregard sign here: set literals can occur both pos and neg in justifications. This could possibly be made more precise for MIN and MAX...
 						isdefd = true;
 					}
@@ -263,7 +261,10 @@ bool IDSolver::finishECNF_DataStructures() {
 					}
 				}
 
+				Rule* r = definition[v];
 				definition[v] = NULL;
+				delete r;
+
 				defType[v] = NONDEFTYPE;
 			}else if(defOcc[v]==MIXEDLOOP){ //might occur in a mixed loop
 				reducedVars.push(v);
@@ -328,9 +329,8 @@ void IDSolver::visitFull(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &sta
 		for (int j = 0; j < definition[i]->size(); ++j) {
 			Lit l = (*definition[i])[j];
 			int w = var(l);
-			if(!isDefined(w)){
-				continue;
-			}
+			if(!isDefined(w)){ continue; }
+
 			if (visited[w]==0){
 				visitFull(w,root,incomp,stack,visited,counter,isPositive(l),rootofmixed, nodeinmixed);
 			}else if(!incomp[w] && !isPositive(l) && visited[i]>0){
@@ -343,11 +343,10 @@ void IDSolver::visitFull(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &sta
 		break;
 	}
 	case AGGR: {
-		for (lwlv::const_iterator j = aggsolver->getAggLiteralsBegin(i); j < aggsolver->getAggLiteralsEnd(i); ++j){
+		for (lwlv::const_iterator j = getAggSolver()->getAggLiteralsBegin(i); j < getAggSolver()->getAggLiteralsEnd(i); ++j){
 			Var w = var((*j).getLit());
-			if(!isDefined(w)){
-				continue;
-			}
+			if(!isDefined(w)){ continue; }
+
 			if (visited[w]==0){
 				visitFull(w,root,incomp,stack,visited,counter,true, rootofmixed, nodeinmixed);
 			} else if(!incomp[w] && visited[i]>0){
@@ -392,6 +391,7 @@ void IDSolver::visitFull(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &sta
  * @post: the scc will be denoted by the variable in the scc which was visited first
  */
 void IDSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter) {
+	assert(root[i]>=0 && root[i]<nVars());
 	assert(!incomp[i]);
 	visited[i] = ++counter;
 	root[i] = i;
@@ -417,9 +417,11 @@ void IDSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, 
 	case AGGR: {
 		//TODO this can be optimized by using another method which only returns literals possibly in the
 		//positive dependency graph.
-		for (lwlv::const_iterator j = aggsolver->getAggLiteralsBegin(i); j < aggsolver->getAggLiteralsEnd(i); ++j){
+		for (lwlv::const_iterator j = getAggSolver()->getAggLiteralsBegin(i); j < getAggSolver()->getAggLiteralsEnd(i); ++j){
 			Var w = var((*j).getLit());
-			if (isDefined(w) && visited[w]==0){
+			if(!isDefined(w)){ continue; }
+
+			if(visited[w]==0){
 				visit(w,root,incomp,stack,visited,counter);
 			}
 			if (!incomp[w] && visited[root[i]]>visited[root[w]]){
@@ -530,13 +532,16 @@ bool IDSolver::simplify(){
 			if(isTrue(v)){
 				throw UNSAT();
 			}else if(isUnknown(v)){
-				solver->setTrue(createNegativeLiteral(v), NULL);
+				getSolver()->setTrue(createNegativeLiteral(v), NULL);
 			}
 
 			if(defOcc[v]==POSLOOP){
 				defOcc[v] = NONDEFOCC;
-				definition[v] = NULL;
 				defType[v] = NONDEFTYPE;
+
+				Rule* r = definition[v];
+				definition[v] = NULL;
+				delete r;
 			}else{
 				//FIXME is dit wel juist? want de var gaat dan geen justification gekregen hebben
 				defOcc[v] = MIXEDLOOP;
@@ -575,8 +580,8 @@ bool IDSolver::simplify(){
 		}
 	}
 
-	if(!aggpresent && aggsolver.get()!=NULL){
-		aggsolver->resetIDSolver();
+	if(!aggpresent && getAggSolver().get()!=NULL){
+		getAggSolver()->resetIDSolver();
 		aggsolver.reset();
 	}
 
@@ -593,9 +598,9 @@ bool IDSolver::simplify(){
 	}
 
 	if(!posloops && !negloops){
-		solver->resetIDSolver();
-		if(aggsolver.get()!=NULL){
-			aggsolver->resetIDSolver();
+		getSolver()->resetIDSolver();
+		if(getAggSolver().get()!=NULL){
+			getAggSolver()->resetIDSolver();
 			aggsolver.reset();
 		}
 		if (verbosity >= 1){
@@ -669,10 +674,10 @@ void IDSolver::propagateJustificationConj(Lit l, vec<Lit>& heads){
 }
 
 void IDSolver::propagateJustificationAggr(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& heads){
-	if (aggsolver.get()==NULL) {
+	if (getAggSolver().get()==NULL) {
 		return;
 	}
-	aggsolver->propagateJustifications(l, jstf, heads, seen);
+	getAggSolver()->propagateJustifications(l, jstf, heads, seen);
 }
 
 /*_________________________________________________________________________________________________
@@ -702,7 +707,7 @@ Clause* IDSolver::indirectPropagate() {
 	std::set<Var> ufs;
 	//uint64_t old_justify_calls = justify_calls;
 
- 	if(ufs_strategy==breadth_first){
+ 	if(modes.ufs_strategy==breadth_first){
  		for (int j=0; !ufs_found && j < css.size(); j++){
 			if(isCS[css[j]]){
 				ufs_found = unfounded(css[j], ufs);
@@ -753,7 +758,7 @@ Clause* IDSolver::indirectPropagate() {
 				reportf(" %d",gprintVar(*it));
 			reportf(" }.\n");
 		}
-		if (defn_strategy == adaptive){
+		if (modes.defn_strategy == adaptive){
 			adaption_current++; // This way we make sure that if adaption_current > adaption_total, this decision level had indirect propagations.
 		}
 		confl = assertUnfoundedSet(ufs);
@@ -761,7 +766,7 @@ Clause* IDSolver::indirectPropagate() {
 		apply_changes();
 	}
 
-	assert(aggsolver.get()!=NULL || isCycleFree());
+	assert(getAggSolver().get()!=NULL || isCycleFree());
 	return confl;
 }
 
@@ -773,18 +778,18 @@ Clause* IDSolver::indirectPropagate() {
 void IDSolver::findCycleSources() {
 	clearCycleSources();
 
-	if (prev_conflicts == solver->conflicts && defn_strategy == always && solver->getNbOfRecentAssignments()>0) {
-		for(int i=0; i<solver->getNbOfRecentAssignments(); i++){
-			Lit l = solver->getRecentAssignments(i); //l has become true, so find occurences of ~l
+	if (prev_conflicts == getSolver()->conflicts && modes.defn_strategy == always && getSolver()->getNbOfRecentAssignments()>0) {
+		for(int i=0; i<getSolver()->getNbOfRecentAssignments(); i++){
+			Lit l = getSolver()->getRecentAssignments(i); //l has become true, so find occurences of ~l
 
 			const vector<Var>& ds = disj_occurs[toInt(~l)];
 			for (vector<Var>::const_iterator j = ds.begin(); j < ds.end(); j++) {
 				checkJustification(*j, ~l);
 			}
 
-			if(aggsolver.get()!=NULL){
+			if(getAggSolver().get()!=NULL){
 				vec<Var> heads;
-				aggsolver->getHeadsOfAggrInWhichOccurs(var(~l), heads);
+				getAggSolver()->getHeadsOfAggrInWhichOccurs(var(~l), heads);
 
 				for(int j=0; j<heads.size(); j++){
 					checkJustification(heads[j], ~l);
@@ -793,7 +798,7 @@ void IDSolver::findCycleSources() {
 		}
 	} else {
 		// NOTE: with a clever trail system, we could even after conflicts avoid having to look at all rules.
-		prev_conflicts = solver->conflicts;
+		prev_conflicts = getSolver()->conflicts;
 		for (int i = 0; i < defdVars.size(); i++) {
 			if(defType[defdVars[i]]==DISJ || defType[defdVars[i]]==AGGR){
 				checkJustification(defdVars[i]);
@@ -854,7 +859,7 @@ void IDSolver::handlePossibleCycleSource(Var head){
 			external = findJustificationDisj(head, jstf);
 		}else{
 			assert(defType[head]==AGGR);
-			aggsolver->findJustificationAggr(head, jstf);
+			getAggSolver()->findJustificationAggr(head, jstf);
 			external = true;
 			for(int i=0; external && i<jstf.size(); i++){
 				if(inSameSCC(head, var(jstf[i])) && isPositive(jstf[i])){
@@ -902,11 +907,11 @@ bool IDSolver::findJustificationDisj(Var v, vec<Lit>& jstf) {
 bool IDSolver::indirectPropagateNow() {
 	bool propagate = true;
 	// if not always and state is three-valued.
-	if (defn_strategy != always && solver->existsUnknownVar()){
-		if (defn_strategy == lazy){
+	if (modes.defn_strategy != always && getSolver()->existsUnknownVar()){
+		if (modes.defn_strategy == lazy){
 			propagate = false;
 		}
-		if (defn_strategy == adaptive && adaption_current < adaption_total) {
+		if (modes.defn_strategy == adaptive && adaption_current < adaption_total) {
 			adaption_current++;
 			propagate = false;
 		}
@@ -967,10 +972,10 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
  *
  * seen==0 || negative body literal <=> justified
  */
-inline bool IDSolver::isJustified(Lit x){
+inline bool IDSolver::isJustified(Lit x) const{
 	return isJustified(var(x)) || !isPositive(x);
 }
-inline bool IDSolver::isJustified(Var x){
+inline bool IDSolver::isJustified(Var x) const{
 	return seen[x]==0;
 }
 
@@ -1019,7 +1024,7 @@ bool IDSolver::findJustificationConj(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, v
 
 bool IDSolver::findJustificationAggr(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust){
 	currentjust[v] = 1; //used as boolean (0 is justified, 1 is not)
-	if(aggsolver->directlyJustifiable(v, jstf, nonjstf, currentjust)){
+	if(getAggSolver()->directlyJustifiable(v, jstf, nonjstf, currentjust)){
 		currentjust[v] = 0;
 	}
 	return currentjust[v]==0;
@@ -1139,7 +1144,7 @@ void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf){
 			break;
 		}
 		case AGGR:
-			aggsolver->createLoopFormula(*tch, ufs, loopf, seen);
+			getAggSolver()->createLoopFormula(*tch, ufs, loopf, seen);
 			break;
 		default:
 			assert(false);
@@ -1172,16 +1177,16 @@ Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	vec<Lit> loopf(1);
 	addExternalDisjuncts(ufs, loopf);
 
-	if (defn_strategy != always) {// Maybe the loop formula could have been derived at an earlier level: in that case we first have to backtrack to that level.
+	if (modes.defn_strategy != always) {// Maybe the loop formula could have been derived at an earlier level: in that case we first have to backtrack to that level.
 		// Set the backtrack level.
 		int lvl = 0;
 		for (int i = 1; i < loopf.size(); i++){
-			int litlevel = solver->getLevel(var(loopf[i]));
+			int litlevel = getSolver()->getLevel(var(loopf[i]));
 			if (litlevel > lvl){
 				lvl = litlevel;
 			}
 		}
-		solver->backtrackTo(lvl);
+		getSolver()->backtrackTo(lvl);
 	}
 
 	// Check if any of the literals in the loop are already true, which leads to a conflict.
@@ -1190,9 +1195,9 @@ Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 			loopf[0] = createNegativeLiteral(*tch);	//negate the head to create a clause
 			Clause* c = Clause_new(loopf, true);
 			if(c->size()>1){
-				solver->addLearnedClause(c);
+				getSolver()->addLearnedClause(c);
 				if (verbosity >= 2) {
-					reportf("Adding conflicting loop formula: [ ");	printClause(*c); reportf("].\n");
+					reportf("Adding conflicting loop formula: [ ");	print(*c); reportf("].\n");
 				}
 			}else{
 				if (verbosity >= 2) {
@@ -1206,7 +1211,7 @@ Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	// No conflict: then enqueue all facts and their loop formulas.
 	if (loopf.size() >= 5) {
 		//introduce a new var to represent all external disjuncts: v <=> \bigvee external disj
-        Var v = solver->newVar();
+        Var v = getSolver()->newVar();
         if (verbosity >= 2) { reportf("Adding new variable for loop formulas: %d.\n", gprintVar(v)); }
 
         // ~v \vee \bigvee\extdisj{L}
@@ -1227,7 +1232,7 @@ Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
 		if(isUnknown(*tch)){
 			Clause* c = addLoopfClause(createNegativeLiteral(*tch), loopf);
-			solver->setTrue(loopf[0], c);
+			getSolver()->setTrue(loopf[0], c);
 		}
 	}
 
@@ -1238,8 +1243,8 @@ Clause* IDSolver::addLoopfClause(Lit l, vec<Lit>& lits){
 	lits[0] = l;
 	Clause* c = Clause_new(lits, true);
 	if(c->size()>1){
-		solver->addLearnedClause(c);
-		if (verbosity >= 2) {reportf("Adding loop formula: [ "); printClause(*c); reportf("].\n");}
+		getSolver()->addLearnedClause(c);
+		if (verbosity >= 2) {reportf("Adding loop formula: [ "); print(*c); reportf("].\n");}
 	}else{
 		if (verbosity >= 2) {reportf("Adding loop formula: [ "); gprintLit((*c)[0]); reportf("].\n");}
 	}
@@ -1248,7 +1253,7 @@ Clause* IDSolver::addLoopfClause(Lit l, vec<Lit>& lits){
 }
 
 /* Precondition:  seen[i]==0 for each i.
- * Postcondition: seen[i]  for exactly those i that are ancestors of cs in sp_justification. If defn_search==stop_at_cs, there should not be other cycle sources then cs in the path from added literals to cs.
+ * Postcondition: seen[i]  for exactly those i that are ancestors of cs in sp_justification. If modes.defn_search==stop_at_cs, there should not be other cycle sources then cs in the path from added literals to cs.
  */
 void IDSolver::markNonJustified(Var cs, vec<Var>& tmpseen) {
 	Queue<Var> q;
@@ -1274,9 +1279,9 @@ void IDSolver::markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>
 	for(vector<Var>::const_iterator i=w.begin(); i<w.end(); i++){
 		markNonJustifiedAddVar(*i, cs, q, tmpseen);
 	}
-	if (aggsolver.get()!=NULL) {
+	if (getAggSolver().get()!=NULL) {
 		vec<Var> heads;
-		aggsolver->getHeadsOfAggrInWhichOccurs(x, heads);
+		getAggSolver()->getHeadsOfAggrInWhichOccurs(x, heads);
 		for(int i=0; i<heads.size(); i++){
 			vec<Lit>& jstfc = justification[heads[i]];
 			for (int k=0; k < jstfc.size(); k++){
@@ -1290,7 +1295,7 @@ void IDSolver::markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>
 }
 
 inline void IDSolver::markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q, vec<Var>& tmpseen) {
-	if (isJustified(v) && inSameSCC(v, cs) && (defn_search == include_cs || v == cs || !isCS[v])) {
+	if (isJustified(v) && inSameSCC(v, cs) && (modes.defn_search == include_cs || v == cs || !isCS[v])) {
 		seen[v] = 1;
 		tmpseen.push(v);
 		q.insert(v);
@@ -1301,7 +1306,7 @@ inline void IDSolver::markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q, vec<V
  * Propagates the changes from supporting to cycle free
  */
 inline void IDSolver::apply_changes() {
-	if (defn_strategy == adaptive) {
+	if (modes.defn_strategy == adaptive) {
 		if (adaption_current == adaption_total) {
 			adaption_total++; // Next time, skip one decision level extra.
 		}else{
@@ -1318,7 +1323,7 @@ inline void IDSolver::apply_changes() {
  * AGGSOLVER METHODS *
  *********************/
 
-vec<Lit>& IDSolver::getCFJustificationAggr(Var v){
+const vec<Lit>& IDSolver::getCFJustificationAggr(Var v) const{
 	return justification[v];
 }
 
@@ -1354,13 +1359,11 @@ void IDSolver::notifyAggrHead(Var head){
 // a literal is a variable shifted one to the left
 // a variable is a literal shifted one to the right
 
-
-template<class C>
-inline void IDSolver::printClause(const C& c){
-    solver->printClause(c);
+inline void IDSolver::print(const Clause& c) const{
+    getSolver()->printClause(c);
 }
 
-inline void IDSolver::printRule(const Rule& c){
+inline void IDSolver::print(const Rule& c) const{
     for (int i = 0; i < c.size(); i++){
         gprintLit(c[i]);
         fprintf(stderr, " ");
@@ -1370,13 +1373,13 @@ inline void IDSolver::printRule(const Rule& c){
 /**
  * For debugging purposes, checks for POSITIVE LOOPS.
  */
-bool IDSolver::isCycleFree() {
+bool IDSolver::isCycleFree() const{
 #ifdef DEBUG
 	for(int i=0; i<nVars(); i++){
 		assert(justification[i].size()>0 || defType[i]==CONJ || defType[i]==NONDEFTYPE);
 	}
 #endif
-    assert(aggsolver.get()==NULL);
+    assert(getAggSolver().get()==NULL);
 
     if(verbosity>=2){
         reportf("Showing cf- and sp-justification for disjunctive atoms. <<<<<<<<<<\n");
@@ -1414,11 +1417,11 @@ bool IDSolver::isCycleFree() {
         Lit l = justified[idx++];
 
         // Occurrences as justifying literal.
-        vector<Var>& ds = disj_occurs[toInt(l)];
-        vector<Var>& cs = conj_occurs[toInt(l)];
+        const vector<Var>& ds = disj_occurs[toInt(l)];
+        const vector<Var>& cs = conj_occurs[toInt(l)];
         vec<Var> as;
-        if(aggsolver.get()!=NULL){
-        	aggsolver->getHeadsOfAggrInWhichOccurs(var(l), as);
+        if(getAggSolver().get()!=NULL){
+        	getAggSolver()->getHeadsOfAggrInWhichOccurs(var(l), as);
         }
 
         for (vector<Var>::const_iterator i=ds.begin();i<ds.end();++i) {
@@ -1531,12 +1534,12 @@ bool IDSolver::isCycleFree() {
  * FIXME currently no well founded model checking over aggregates
  * this can be done by implementing wf propagation and counter methods in aggregates.
  */
-bool IDSolver::isWellFoundedModel() {
+bool IDSolver::isWellFoundedModel(){
 	if(!negloops){
 		return true;
 	}
 
-	if(aggsolver.get()!=NULL){
+	if(getAggSolver().get()!=NULL){
 		reportf("For recursive aggregates, only stable semantics are currently supported!\n");
 		return true;
 	}
@@ -1964,21 +1967,21 @@ void IDSolver::changeJustificationsTarjan(Var definednode, Lit firstjustificatio
 	}
 }
 
-inline bool IDSolver::visitedEarlierTarjan(Var x, Var y, vec<Var>& vis){
+inline bool IDSolver::visitedEarlierTarjan(Var x, Var y, const vec<Var>& vis) const{
 	int x1 = vis[x]>0?vis[x]:-vis[x];
 	int y1 = vis[y]>0?vis[y]:-vis[y];
 	return x1<y1;
 }
 
-inline bool IDSolver::visitedTarjan(Var x, vec<Var>& vis){
+inline bool IDSolver::visitedTarjan(Var x, const vec<Var>& vis) const{
 	return vis[x]!=0;
 }
 
-inline int IDSolver::visitedAtTarjan(Var x, vec<Var>& vis){
+inline int IDSolver::visitedAtTarjan(Var x, const vec<Var>& vis) const{
 	return vis[x]>0?vis[x]:-vis[x];
 }
 
-inline bool IDSolver::hasJustificationTarjan(Var x, vec<Var>& vis){
+inline bool IDSolver::hasJustificationTarjan(Var x, const vec<Var>& vis) const{
 	return vis[x]<0;
 }
 
@@ -1998,7 +2001,7 @@ UFS IDSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<V
 
 	Rule* c = definition[v];
 	if(verbosity >=1){
-		printClause(*c);
+		print(*c);
 	}
 
 	Lit definedChild;

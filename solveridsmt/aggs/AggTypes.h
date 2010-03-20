@@ -11,9 +11,14 @@
 #include <boost/smart_ptr/enable_shared_from_this.hpp>
 
 #include "SolverTypes.h"
+#include "solverfwd.h"
 
 using namespace std;
 using namespace boost;
+
+#include "BigInteger.hh"
+#include "BigIntegerUtils.hh"
+typedef int Weight;
 
 namespace Aggrs{
 class WLV;

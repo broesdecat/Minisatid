@@ -19,23 +19,17 @@ using namespace Aggrs;
 
 extern ECNF_mode modes;
 
-/*! \file parse.tab.cc
- */
-
-#define min(x,y) ( (x<y) ? x : y)
-
-char* copy(const char* input) {
-   char* rslt = (char*)malloc(strlen(input)+1);
-   strcpy(rslt, input);
-   return rslt;
-}
-
 extern int yylex(void);
 extern char * yytext;
 
-shared_ptr<Solver> 		solver;
-shared_ptr<IDSolver> 	idsolver;
-shared_ptr<AggSolver> 	aggsolver;
+shared_ptr<Solver>		solver;
+shared_ptr<IDSolver>	idsolver;
+shared_ptr<AggSolver>	aggsolver;
+
+vector<Weight> weights;
+vec<Lit> lits;
+bool disj;
+int setid;
 
 void yyinit(shared_ptr<Solver> s, shared_ptr<IDSolver> ids, shared_ptr<AggSolver> aggs){
 	solver = s;
@@ -47,6 +41,8 @@ void yydestroy(){
 	solver = shared_ptr<Solver>();
 	idsolver = shared_ptr<IDSolver>();
 	aggsolver = shared_ptr<AggSolver>();
+	weights.clear();
+	lits.clear();
 }
 
 int lineNo = 1;
@@ -68,13 +64,8 @@ void error(bool during_parsing, const char * msg) {
 
 // If an unforeseen parse error occurs, it calls this function (e.g. with msg="syntax error")
 void yyerror(char* msg) {
-   error(true, msg);
+	error(true, msg);
 }
-
-vector<Weight> weights;
-vec<Lit> lits;
-bool disj;
-int setid;
 
 void addLit(int nb){
 	int var = abs(nb)-1;
@@ -94,7 +85,6 @@ inline void addAgg(int h, int setid, int w, AggrType a, bool l, bool d){
 
 %union {
 	int integer;
-    char* characterstring;
     bool boolean;
 }
 

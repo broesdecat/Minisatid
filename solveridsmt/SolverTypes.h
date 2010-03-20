@@ -29,37 +29,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <stdint.h>
 #include "Alg.h"
 
-class ParseExc: public std::exception{ };
-class NoDefAllowedExc: public ParseExc{ };
-class NoAggrAllowedExc: public ParseExc{ };
-
-class UNSAT: public std::exception { };
-
-
-enum POLARITY { polarity_true = 0, polarity_false = 1, polarity_user = 2, polarity_rnd = 3 };
-
-enum FINDCS			{ always, adaptive, lazy};
-enum MARKDEPTH		{ include_cs, stop_at_cs};
-enum SEARCHSTRAT	{ breadth_first, depth_first};
-
-struct Parameters{
-	POLARITY polarity_mode;
-	FINDCS defn_strategy;
-	MARKDEPTH defn_search;
-	SEARCHSTRAT ufs_strategy;
-	bool def,aggr,mnmz, subsetmnmz; // True for those extensions that are being used.
-	double var_decay, random_var_freq, maxruntime;
-
-	Parameters() :
-			polarity_mode(polarity_false), defn_strategy(always),
-			defn_search(include_cs), ufs_strategy(breadth_first),
-			def(false), aggr(false), mnmz(false), subsetmnmz(false),
-			var_decay(1 / 0.95), random_var_freq(0.02), maxruntime(0.0){}
-};
-
 //=================================================================================================
 // Variables, literals, lifted booleans, clauses:
-
 
 // NOTE! Variables are just integers. No abstraction here. They should be chosen from 0..N,
 // so that they can be used as array indices.
@@ -185,11 +156,11 @@ public:
 /*_________________________________________________________________________________________________
 |
 |  subsumes : (other : const Clause&)  ->  Lit
-|  
+|
 |  Description:
 |       Checks if clause subsumes 'other', and at the same time, if it can be used to simplify 'other'
 |       by subsumption resolution.
-|  
+|
 |    Result:
 |       lit_Error  - No subsumption or simplification
 |       lit_Undef  - Clause subsumes 'other'
@@ -227,48 +198,6 @@ inline void Clause::strengthen(Lit p)
 {
     remove(*this, p);
     calcAbstraction();
-}
-
-/*
- * Arbitrary precision integers
- */
-
-#include "BigInteger.hh"
-#include "BigIntegerUtils.hh"
-typedef BigInteger Weight;
-
-#include <boost/smart_ptr/shared_ptr.hpp>
-#include <boost/smart_ptr/weak_ptr.hpp>
-#include <boost/smart_ptr/enable_shared_from_this.hpp>
-
-enum IDSEM {STABLE,WELLF};
-
-struct ECNF_mode {
-	bool def,aggr,mnmz; // True for those extensions that are being used.
-	IDSEM sem;
-	int nbmodels;	//Find at least this number of models. If there are less models,
-					//UNSAT will be returned (after finding the existing number)
-
-	ECNF_mode() : def(false), aggr(false), mnmz(false), sem(WELLF), nbmodels(1) {}
-};
-
-/******************
- * DEBUGGING INFO *
- ******************/
-
-#define reportf(format, args...) ( fflush(stdout), fprintf(stderr, format, ## args), fflush(stderr) )
-#define greportf(ver, format, args...) ( verbosity>=ver?fflush(stdout), fprintf(stderr, format, ## args), fflush(stderr):true )
-
-inline int gprintVar(Var v){
-	return v+1;
-}
-
-inline void gprintLit(const Lit& l, const lbool val){
-	reportf("%s%d:%c", (sign(l) ? "-" : ""), gprintVar(var(l)), (val == l_True ? '1' : (val == l_False ? '0' : 'X')));
-}
-
-inline void gprintLit(const Lit& l){
-	reportf("%s%d", (sign(l) ? "-" : ""), gprintVar(var(l)));
 }
 
 #endif

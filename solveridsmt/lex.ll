@@ -6,12 +6,7 @@ using namespace std;
 
 extern int lineNo;
 extern int charPos;
-
-char* lexcopy(const char* input) {
-   char* rslt = (char*)malloc(strlen(input)+1);
-   strcpy(rslt, input);
-   return rslt;
-}
+extern bool parseError;
 
 #define ADJ (charPos += yyleng)
 %}
@@ -30,18 +25,18 @@ char* lexcopy(const char* input) {
 "def" 		{ ADJ; return DEF_PRESENT;}
 "aggr" 		{ ADJ; return AGG_PRESENT;}
 
-"WSet"   {ADJ; return WSET_DEFN;}
-"Set"    {ADJ; return SET_DEFN;}
-"Card"   {ADJ; return CARD_DEFN;}
-"Sum"    {ADJ; return SUM_DEFN;}
+"WSet"	{ADJ; return WSET_DEFN;}
+"Set"	{ADJ; return SET_DEFN;}
+"Card"	{ADJ; return CARD_DEFN;}
+"Sum"	{ADJ; return SUM_DEFN;}
 "Prod"	{ADJ; return PROD_DEFN;}
-"Min"		{ADJ; return MIN_DEFN;}
-"Max"		{ADJ; return MAX_DEFN;}
+"Min"	{ADJ; return MIN_DEFN;}
+"Max"	{ADJ; return MAX_DEFN;}
 
-"D"	   {ADJ; yylval.boolean = true;  return SEM_DEFN;}
-"C"	   {ADJ; yylval.boolean = false; return SEM_DEFN;}
-"L"	   {ADJ; yylval.boolean = true;  return SIGN_DEFN;}
-"G"	   {ADJ; yylval.boolean = false; return SIGN_DEFN;}
+"D"		{ADJ; yylval.boolean = true;  return SEM_DEFN;}
+"C"		{ADJ; yylval.boolean = false; return SEM_DEFN;}
+"L"		{ADJ; yylval.boolean = true;  return SIGN_DEFN;}
+"G"		{ADJ; yylval.boolean = false; return SIGN_DEFN;}
 
 "SubsetMnmz"	{ADJ; return SUBSETMIN_DEFN;}
 "Mnmz"     		{ADJ; return MNMZ_DEFN;}
@@ -59,13 +54,13 @@ char* lexcopy(const char* input) {
 "0"      {ADJ; return ZERO;}
 -?[0-9]+ {ADJ; yylval.integer = atoi(yytext); return NUMBER;}
 
-<*>.	      {/* Anything else: parse error */
-            /*ADJ;*/
-            cerr  << "Line " << lineNo 
-               << ", Column " << charPos 
-               << ": Parse error (unexpected character '"
-               << yytext
-               << "' encountered)." 
-               << endl;
-         }
+<*>.	{/* Anything else: parse error */
+			parseError = true;
+			cerr	<< "Line " << lineNo 
+					<< ", Column " << charPos 
+					<< ": Parse error (unexpected character '"
+					<< yytext
+					<< "' encountered)." 
+					<< endl;
+		}
          

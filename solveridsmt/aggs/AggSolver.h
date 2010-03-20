@@ -3,46 +3,34 @@
 
 #include <cstdio>
 
-#include "AggTypes.h"
 #include "Vec.h"
 #include "Sort.h"
 
-extern int verbosity;
+#include "solverfwd.h"
+#include "AggTypes.h"
 
 namespace Aggrs{
+	class Agg;
+	class AggrSet;
+	class AggrWatch;
+	class AggrReason;
 
-class Agg;
-class AggrSet;
+	typedef Agg* pAgg;
+	typedef vector<pAgg> lsagg;
 
-typedef shared_ptr<Agg> pAgg;
-typedef vector<pAgg> lsagg;
-typedef weak_ptr<Agg> wpAgg;
-typedef vector<wpAgg> lwagg;
-
-typedef shared_ptr<AggrSet> pSet;
-typedef weak_ptr<AggrSet> wpSet;
-
-class AggrReason;
-typedef shared_ptr<AggrReason> pReason;
-typedef weak_ptr<AggrReason> wpReason;
-
-class AggrWatch;
-typedef shared_ptr<AggrWatch> pWatch;
-typedef weak_ptr<AggrWatch> wpWatch;
-
+	typedef AggrSet* pSet;
 }
 
-class Solver;
+#include "IDSolver.h"
+#include "Solver.h"
+
 class IDSolver;
 class AggSolver;
-
-typedef shared_ptr<Solver> pSolver;
-typedef weak_ptr<Solver> wpSolver;
+class Solver;
 typedef shared_ptr<IDSolver> pIDSolver;
 typedef weak_ptr<IDSolver> wpIDSolver;
 typedef shared_ptr<AggSolver> pAggSolver;
 typedef weak_ptr<AggSolver> wpAggSolver;
-class Solver;
 typedef shared_ptr<Solver> pSolver;
 typedef weak_ptr<Solver> wpSolver;
 
@@ -59,8 +47,8 @@ using namespace Aggrs;
 
 class AggSolver: public enable_shared_from_this<AggSolver>{
 private:
-	pSolver		solver;
-	pIDSolver	idsolver;
+	wpSolver	solver;
+	wpIDSolver	idsolver;
 public:
 	AggSolver();
 	virtual ~AggSolver();
@@ -132,8 +120,10 @@ public:
 	 */
 	bool    finishECNF_DataStructures ();
 
-	void 		setSolver				(pSolver s)		{ solver = s; }
-	void 		setIDSolver				(pIDSolver s)	{ idsolver = s; }
+	void 		setSolver				(pSolver s)		{ solver = wpSolver(s); }
+	void 		setIDSolver				(pIDSolver s)	{ idsolver = wpIDSolver(s); }
+	pSolver		getSolver				()	const		{ return solver.lock(); }
+	pIDSolver	getIDSolver				()	const		{ return idsolver.lock(); }
 	void		resetIDSolver			()				{ idsolver.reset(); }
 	void 		remove					();
 
@@ -161,10 +151,10 @@ protected:
 	vector<pSet>	aggrsumsets;
 	vector<pSet>	aggrprodsets;
 
-	vector<Aggrs::AggrReason*>	aggr_reason;	// For each atom, like 'reason'.
+	vector<AggrReason*>	aggr_reason;	// For each atom, like 'reason'.
 	vector<vector<AggrWatch> >	aggr_watches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
-	vector<wpAgg >				head_watches;
-	vector<pAgg > 				aggregates;		//A vector to store all created aggregates as shared pointers, to allow easy destruction in the end
+	vector<pAgg>				head_watches;	//	does NOT own the pointers
+	vector<pAgg> 				aggregates;		//A vector to store all created aggregates as shared pointers, to allow easy destruction in the end
 			//INVARIANT: if a literal is defined by an aggregate, the watch on the expression in which it is head
 			//	will be the first element of its watches list
 
@@ -187,7 +177,7 @@ protected:
 	Clause* Aggr_propagate		(const Lit& p);
 
 	void 	maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& head, const AggrSet& set);
-	void	finishSets(pSet set);
+	void	finishSets(vector<pSet>& sets);
 };
 
 //=======================

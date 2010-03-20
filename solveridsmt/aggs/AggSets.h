@@ -21,20 +21,17 @@ namespace Aggrs{
 class Agg;
 class AggrSet;
 
-typedef weak_ptr<Agg> wpAgg;
-typedef vector<wpAgg> lwagg;
-typedef shared_ptr<AggrSet> pSet;
-typedef weak_ptr<AggrSet> wpSet;
+typedef Agg* pAgg;
+typedef vector<pAgg> lsagg;
+typedef AggrSet* pSet;
 
 class AggrWatch;
-typedef shared_ptr<AggrWatch> pWatch;
-typedef weak_ptr<AggrWatch> wpWatch;
 
 //INVARIANT: the WLITset is stored sorted from smallest to largest weight!
 class AggrSet {
 protected:
 	string 	name;
-	lwagg	aggregates;
+	lsagg	aggregates;		//does NOT own the pointers
 	lwlv 	wlits;
 	lprop 	stack;		// Stack of propagations of this expression so far.
 	Weight 	currentbestcertain, currentbestpossible, emptysetvalue;
@@ -42,7 +39,7 @@ protected:
 	wpAggSolver aggsolver; //the solver that handles this set
 
 public:
-    AggrSet(vec<Lit>& lits, vector<Weight>& weights, wpAggSolver s);
+    AggrSet(const vec<Lit>& lits, const vector<Weight>& weights, wpAggSolver s);
 
 	void 			initialize();
 	Clause* 		propagate(const Lit& p, const AggrWatch& ws);
@@ -78,9 +75,9 @@ public:
 	void 							setCP(const Weight& w) 		{ currentbestpossible = w; }
 	void 							setCC(const Weight& w) 		{ currentbestcertain = w; }
 
-	lwagg::const_iterator 			getAggBegin() 		const	{ return aggregates.begin(); }
-	lwagg::const_iterator 			getAggEnd() 		const	{ return aggregates.end(); }
-	void 							addAgg(wpAgg aggr)			{ aggregates.push_back(aggr); }
+	lsagg::const_iterator 			getAggBegin() 		const	{ return aggregates.begin(); }
+	lsagg::const_iterator 			getAggEnd() 		const	{ return aggregates.end(); }
+	void 							addAgg(pAgg aggr)			{ aggregates.push_back(aggr); }
 	int 							nbAgg() 			const	{ return aggregates.size(); }
 
 	lwlv::const_iterator 			getWLBegin() 		const 	{ return wlits.begin(); }
@@ -100,13 +97,7 @@ public:
 
 class AggrMaxSet: public AggrSet{
 public:
-	AggrMaxSet(vec<Lit>& lits, vector<Weight>& weights, weak_ptr<AggSolver> s):AggrSet(lits, weights, s){
-		name = "MAX";
-		//FIXME FIXME: moet eigenlijk een voorstelling van -infinity zijn
-		//ik had eerst: |minimum van de set| -1, maar de bound kan NOG lager liggen, dus dan is het fout
-		emptysetvalue = Weight(INT_MIN)-1;
-	};
-
+	AggrMaxSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s);
 	virtual Weight 	getCombinedWeight			(const Weight& one, const Weight& two) 	const;
 	virtual WLit 	handleOccurenceOfBothSigns	(const WLit& one, const WLit& two);
 	virtual Weight 	getBestPossible				() 										const;
@@ -116,7 +107,7 @@ public:
 
 class AggrSPSet: public AggrSet{
 public:
-	AggrSPSet(vec<Lit>& lits, vector<Weight>& weights, weak_ptr<AggSolver> s):AggrSet(lits, weights, s){};
+	AggrSPSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s);
 
 	virtual Weight 	getCombinedWeight			(const Weight& one, const Weight& two) 	const;
 	virtual WLit 	handleOccurenceOfBothSigns	(const WLit& one, const WLit& two) 			  = 0;
@@ -129,10 +120,7 @@ public:
 
 class AggrSumSet: public AggrSPSet{
 public:
-	AggrSumSet(vec<Lit>& lits, vector<Weight>& weights, weak_ptr<AggSolver> s):AggrSPSet(lits, weights, s){
-		name = "SUM";
-		emptysetvalue = 0;
-	};
+	AggrSumSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s);
 
 	virtual WLit 	handleOccurenceOfBothSigns	(const WLit& one, const WLit& two);
 	virtual Weight	add							(const Weight& lhs, const Weight& rhs) const;
@@ -141,10 +129,7 @@ public:
 
 class AggrProdSet: public AggrSPSet{
 public:
-	AggrProdSet(vec<Lit>& lits, vector<Weight>& weights, weak_ptr<AggSolver> s):AggrSPSet(lits, weights, s){
-		name = "PROD";
-		emptysetvalue = 1;
-	};
+	AggrProdSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s);
 
 	virtual WLit 	handleOccurenceOfBothSigns	(const WLit& one, const WLit& two);
 	virtual Weight	add							(const Weight& lhs, const Weight& rhs) const;
@@ -154,15 +139,15 @@ public:
 class AggrWatch {
 private:
     Occurrence	type;		//whether the watch is on the head(HEAD), on the literal in the set(POS) or on its negation(NEG)
-    wpSet		set;
+    pSet		set;		//does NOT own the pointer
     int			index;
 
 public:
-    AggrWatch(const wpSet& e, int i, Occurrence t) : type(t), set(e), index(i) {}
+    AggrWatch(pSet e, int i, Occurrence t) : type(t), set(e), index(i) {}
 
     Occurrence 	getType() 	const 	{ return type; }
     int 		getIndex() 	const 	{ return index; }
-    pSet 		getSet() 	const	{ return set.lock(); }
+    pSet 		getSet() 	const	{ return set; }
 };
 }
 

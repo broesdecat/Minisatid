@@ -17,12 +17,35 @@ void AggrSet::backtrack(int index) {
 	setCP(pi.getPP());
 }
 
-AggrSet::AggrSet(vec<Lit>& lits, vector<Weight>& weights, weak_ptr<AggSolver> s):
+AggrSet::AggrSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s):
 		currentbestcertain(0),currentbestpossible(0),emptysetvalue(0), aggsolver(s){
 	for (int i = 0; i < lits.size(); i++) {
 		wlits.push_back(WLV(lits[i], weights[i], l_Undef));
 	}
 	sort(wlits.begin(), wlits.end());
+}
+
+AggrMaxSet::AggrMaxSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s):
+		AggrSet(lits, weights, s){
+	name = "MAX";
+	//FIXME FIXME: moet eigenlijk een voorstelling van -infinity zijn
+	//ik had eerst: |minimum van de set| -1, maar de bound kan NOG lager liggen, dus dan is het fout
+	emptysetvalue = Weight(INT_MIN)-1;
+}
+
+AggrSPSet::AggrSPSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s):
+		AggrSet(lits, weights, s){};
+
+AggrSumSet::AggrSumSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s):
+		AggrSPSet(lits, weights, s){
+	name = "SUM";
+	emptysetvalue = 0;
+};
+
+AggrProdSet::AggrProdSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s):
+		AggrSPSet(lits, weights, s){
+	name = "PROD";
+	emptysetvalue = 1;
 }
 
 Clause* AggrSet::propagate(const Lit& p, const AggrWatch& ws){
@@ -38,8 +61,8 @@ Clause* AggrSet::propagate(const Lit& p, const AggrWatch& ws){
 	tp==POS? addToCertainSet(wlits[ws.getIndex()]):removeFromPossibleSet(wlits[ws.getIndex()]);
 
 	Clause* confl = NULL;
-	for(lwagg::const_iterator i=getAggBegin(); i<getAggEnd() && confl==NULL; i++){
-		pAgg pa = (*i).lock();
+	for(lsagg::const_iterator i=getAggBegin(); i<getAggEnd() && confl==NULL; i++){
+		pAgg pa = (*i);
 		lbool hv = pa->getHeadValue();
 		if(hv != l_Undef){ //head is already known
 			assert(pa->canPropagateHead()!=(hv==l_True?l_False:l_True));	//A conflicting propagation is not possible if we have complete propagation

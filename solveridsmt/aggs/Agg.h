@@ -17,17 +17,11 @@ namespace Aggrs{
 class Agg;
 class AggrSet;
 
-typedef shared_ptr<Agg> pAgg;
-typedef weak_ptr<Agg> wpAgg;
-typedef shared_ptr<AggrSet> pSet;
-typedef weak_ptr<AggrSet> wpSet;
+typedef Agg* pAgg;
+typedef AggrSet* pSet;
 
 typedef vector<pAgg> lsagg;
-typedef vector<wpAgg> lwagg;
-
 class AggrReason;
-typedef shared_ptr<AggrReason> pReason;
-typedef weak_ptr<AggrReason> wpReason;
 
 /**
  * The certain values contain info about the elements of the set that are currently CERTAINLY in the set (by their
@@ -37,7 +31,7 @@ typedef weak_ptr<AggrReason> wpReason;
  * An aggregate is (currently) always a definition, so its head is always a positive literal.
  */
 
-class Agg: public enable_shared_from_this<Agg>{
+class Agg{
 protected:
 	Weight		bound;
 	bool 		lower;
@@ -46,15 +40,11 @@ protected:
 	int			headindex;	//the index in the stack when this was derived
 	lbool		headvalue;
 
-	wpSet	 	set;
-
-    virtual pAgg getAgg(){
-        return shared_from_this();
-    }
+	pSet	 	set;		//does NOT own the pointer
 
 public:
 
-    Agg(bool lower, Weight bound, Lit head, const wpSet& set) :
+    Agg(bool lower, Weight bound, Lit head, const pSet& set) :
 	    bound(bound), lower(lower), head(head), headindex(-1), headvalue(l_Undef), set(set) {
     }
 
@@ -66,7 +56,7 @@ public:
 	const 	Lit& 	getHead()		const	{ return head; }
 	const 	lbool& 	getHeadValue() 	const	{ return headvalue; }
 			int 	getHeadIndex() 	const	{ return headindex; }
-			pSet	getSet()	 	const	{ return set.lock(); }
+			pSet	getSet()	 	const	{ return set; }
 
 			void 	addAggToSet();
 
@@ -98,7 +88,7 @@ public:
 
 class MaxAgg: public Agg {
 public:
-	MaxAgg(bool lower, Weight bound, Lit head, const wpSet& set):
+	MaxAgg(bool lower, Weight bound, Lit head, const pSet& set):
 		Agg(lower, bound, head, set){
 	};
 
@@ -111,7 +101,7 @@ public:
 
 class SPAgg: public Agg {
 public:
-	SPAgg(bool lower, Weight bound, Lit head, const wpSet& set):
+	SPAgg(bool lower, Weight bound, Lit head, const pSet& set):
 		Agg(lower, bound, head, set){
 	};
 
@@ -127,7 +117,7 @@ public:
 
 class SumAgg: public SPAgg {
 public:
-	SumAgg(bool lower, Weight bound, Lit head, const wpSet& set):
+	SumAgg(bool lower, Weight bound, Lit head, const pSet& set):
 		SPAgg(lower, bound, head, set){
 	};
 
@@ -139,7 +129,7 @@ public:
 
 class ProdAgg: public SPAgg {
 public:
-	ProdAgg(bool lower, Weight bound, Lit head, const wpSet& set):
+	ProdAgg(bool lower, Weight bound, Lit head, const pSet& set):
 		SPAgg(lower, bound, head, set){
 	}
 
@@ -149,13 +139,13 @@ public:
 
 class AggrReason {
 private:
-	wpAgg		expr;
+	pAgg		expr;		//does NOT own the pointer
 	int 		index;
 
 public:
-	AggrReason(wpAgg e, bool head = false);
+	AggrReason(pAgg e, bool head = false);
 
-    pAgg 		getAgg() 	const	{ return expr.lock(); }
+    pAgg 		getAgg() 	const	{ return expr; }
     int 		getIndex() 	const	{ return abs(index); }
     bool		isHeadReason() const{ return index<0; }
 };

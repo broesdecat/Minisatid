@@ -1,34 +1,50 @@
 #include "AggSolver.h"
 
-#include "Agg.h"
-#include "AggSets.h"
 #include "Solver.h"
 #include "IDSolver.h"
+
+#include "Agg.h"
+#include "AggSets.h"
+
+typedef shared_ptr<IDSolver> pIDSolver;
+typedef weak_ptr<IDSolver> wpIDSolver;
+typedef shared_ptr<AggSolver> pAggSolver;
+typedef weak_ptr<AggSolver> wpAggSolver;
+typedef shared_ptr<Solver> pSolver;
+typedef weak_ptr<Solver> wpSolver;
+
+
 #include <algorithm>
 
 AggSolver::AggSolver() :
 	init(true) {}
 
 AggSolver::~AggSolver() {
+	deleteList<Agg>(aggregates);
+	deleteList<AggrSet>(aggrmaxsets);
+	deleteList<AggrSet>(aggrminsets);
+	deleteList<AggrSet>(aggrsumsets);
+	deleteList<AggrSet>(aggrprodsets);
+	deleteList<AggrReason>(aggr_reason);
 }
 
 void AggSolver::remove(){
-	solver->resetAggSolver();
-	solver.reset();
-	idsolver.reset();
+	getSolver()->resetAggSolver();
+	getSolver().reset();
+	getIDSolver().reset();
 	//FIXME: prevent from using a solver after it has been removed
 }
 
 void AggSolver::notifyVarAdded(){
-	head_watches.push_back(wpAgg(pAgg()));
-	assert(head_watches.back().lock().get()==NULL);
+	head_watches.push_back(pAgg(pAgg()));
+	assert(head_watches.back()==NULL);
 	aggr_watches.push_back(vector<AggrWatch>());
 	aggr_reason.push_back(NULL);
 }
 
 inline pAgg AggSolver::getAggWithHeadOccurence(Var v) const{
-	assert(head_watches[v].lock().get()!=NULL);
-	return head_watches[v].lock();
+	assert(head_watches[v]!=NULL);
+	return head_watches[v];
 }
 
 bool AggSolver::finishECNF_DataStructures() {
@@ -68,22 +84,10 @@ bool AggSolver::finishECNF_DataStructures() {
 		(*i)->addAggToSet();
 	}
 
-	for(vector<pSet>::iterator i=aggrminsets.begin(); i<aggrminsets.end(); i++){
-		if((*i)->nbAgg()==0){ aggrminsets.erase(i);
-		}else{ finishSets(*i); }
-	}
-	for(vector<pSet>::iterator i=aggrmaxsets.begin(); i<aggrmaxsets.end(); i++){
-		if((*i)->nbAgg()==0){ aggrmaxsets.erase(i);
-		}else{ finishSets(*i); }
-	}
-	for(vector<pSet>::iterator i=aggrsumsets.begin(); i<aggrsumsets.end(); i++){
-		if((*i)->nbAgg()==0){ aggrsumsets.erase(i);
-		}else{ finishSets(*i); }
-	}
-	for(vector<pSet>::iterator i=aggrprodsets.begin(); i<aggrprodsets.end(); i++){
-		if((*i)->nbAgg()==0){ aggrprodsets.erase(i);
-		}else{ finishSets(*i); }
-	}
+	finishSets(aggrminsets);
+	finishSets(aggrmaxsets);
+	finishSets(aggrsumsets);
+	finishSets(aggrprodsets);
 
 	if (aggrminsets.size() == 0 && aggrmaxsets.size() == 0 && aggrsumsets.size() == 0 && aggrprodsets.size() == 0) {
 		return false;
@@ -92,14 +96,22 @@ bool AggSolver::finishECNF_DataStructures() {
 	return true;
 }
 
-void AggSolver::finishSets(pSet s){
-	s->initialize();
-	int index = 0;
-	for (lwlv::const_iterator i = s->getWLBegin(); i < s->getWLEnd(); i++, index++){
-		aggr_watches[var((*i).getLit())].push_back(AggrWatch(wpSet(s), index, sign((*i).getLit()) ? NEG : POS));
-	}
-	for(lwagg::const_iterator i=s->getAggBegin(); i<s->getAggEnd(); i++){
-		(*i).lock()->initialize();
+void AggSolver::finishSets(vector<pSet>& sets){
+	for(vector<pSet>::iterator i=sets.begin(); i<sets.end(); i++){
+		pSet s = *i;
+		if(s->nbAgg()==0){
+			delete *i;
+			sets.erase(i);
+		}else{
+			s->initialize();
+			int index = 0;
+			for (lwlv::const_iterator i = s->getWLBegin(); i < s->getWLEnd(); i++, index++){
+				aggr_watches[var((*i).getLit())].push_back(AggrWatch(pSet(s), index, sign((*i).getLit()) ? NEG : POS));
+			}
+			for(lsagg::const_iterator i=s->getAggBegin(); i<s->getAggEnd(); i++){
+				(*i)->initialize();
+			}
+		}
 	}
 }
 
@@ -109,7 +121,7 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 	if(lits.size()==0){
 		reportf("Error: Set nr. %d is empty.\n",set_id), exit(3);
 	}
-	if(aggrminsets.size()>setindex && aggrminsets[setindex].get()!=NULL && aggrminsets[setindex]->size()!=0){
+	if(aggrminsets.size()>setindex && aggrminsets[setindex]!=NULL && aggrminsets[setindex]->size()!=0){
 		reportf("Error: Set nr. %d is defined more than once.\n",set_id), exit(3);
 	}
 
@@ -134,25 +146,25 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 
 	weak_ptr<AggSolver> wpAggSolver(shared_from_this());
 	while(aggrminsets.size()<=setindex){
-		aggrmaxsets.push_back(pSet(new AggrMaxSet(lits, weights, wpAggSolver)));
-		aggrsumsets.push_back(pSet(new AggrSumSet(lits, weights, wpAggSolver)));
-		aggrprodsets.push_back(pSet(new AggrProdSet(lits, weights, wpAggSolver)));
-		aggrminsets.push_back(pSet(new AggrMaxSet(lits, weights2, wpAggSolver)));
+		aggrmaxsets.push_back(new AggrMaxSet(lits, weights, wpAggSolver));
+		aggrsumsets.push_back(new AggrSumSet(lits, weights, wpAggSolver));
+		aggrprodsets.push_back(new AggrProdSet(lits, weights, wpAggSolver));
+		aggrminsets.push_back(new AggrMaxSet(lits, weights2, wpAggSolver));
 	}
 }
 
 void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, AggrType type, bool defined) {
-	if (((vector<int>::size_type)setid) > aggrminsets.size() || aggrminsets[setid-1].get()==NULL || aggrminsets[setid-1]->size()==0) {
+	if (((vector<int>::size_type)setid) > aggrminsets.size() || aggrminsets[setid-1]==NULL || aggrminsets[setid-1]->size()==0) {
 		reportf("Error: Set nr. %d is used, but not defined yet.\n",setid), exit(3);
 	}
 
 	//INVARIANT: it has to be guaranteed that there is a watch on ALL heads
-	if(head_watches.size()>headv && head_watches[headv].lock().get()!=NULL){
+	if(head_watches.size()>headv && head_watches[headv]!=NULL){
 		reportf("Error: Two aggregates have the same head(%d).\n", gprintVar(headv)), exit(3);
 	}
 
 	while(head_watches.size()<headv+1){
-		head_watches.push_back(wpAgg(pAgg()));
+		head_watches.push_back(pAgg(pAgg()));
 	}
 
 	//the head of the aggregate
@@ -167,15 +179,15 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 	case MIN:
 		//maxAggAsSAT(defined, !lower, -bound, head, *aggrminsets[setindex]);
 		//return;
-		ae = pAgg(new MaxAgg(!lower, -bound, head, wpSet(aggrminsets[setindex])));
+		ae = pAgg(new MaxAgg(!lower, -bound, head, pSet(aggrminsets[setindex])));
 		break;
 	case MAX:
 		//maxAggAsSAT(defined, lower, bound, head, *aggrmaxsets[setindex]);
 		//return;
-		ae = pAgg(new MaxAgg(lower, bound, head, wpSet(aggrmaxsets[setindex])));
+		ae = pAgg(new MaxAgg(lower, bound, head, pSet(aggrmaxsets[setindex])));
 		break;
 	case SUM:
-		ae = pAgg(new SumAgg(lower, bound, head, wpSet(aggrsumsets[setindex])));
+		ae = pAgg(new SumAgg(lower, bound, head, pSet(aggrsumsets[setindex])));
 		break;
 	case PROD:
 		//NOTE this can be solved by taking 0 out of the set and making the necessary transformations
@@ -186,7 +198,7 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 						"be used in combination with a product aggregate\n", setid), exit(3);
 			}
 		}
-		ae = pAgg(new ProdAgg(lower, bound, head, wpSet(aggrprodsets[setindex])));
+		ae = pAgg(new ProdAgg(lower, bound, head, pSet(aggrprodsets[setindex])));
 		break;
 	default:
 		assert(false);
@@ -194,11 +206,11 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 		exit(3);
 	}
 
-	head_watches[var(head)] = wpAgg(ae);
+	head_watches[var(head)] = pAgg(ae);
 
 	if(defined){ //add as definition to use definition semantics
 		//notify the id solver that a new aggregate definition has been added
-		idsolver->notifyAggrHead(var(head));
+		getIDSolver()->notifyAggrHead(var(head));
 	}
 
 	aggregates.push_back(ae);
@@ -211,16 +223,16 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 //FIXME no optimizations should take place on mnmz aggregates (partially helped by separate add method).
 //FIXME 2 more optimization should/could take place on other aggregates
 void AggSolver::addMnmzSum(Var headv, int setid, bool lower) {
-	if (((vector<int>::size_type)setid) > aggrminsets.size() || aggrminsets[setid-1].get()==NULL || aggrminsets[setid-1]->size()==0) {
+	if (((vector<int>::size_type)setid) > aggrminsets.size() || aggrminsets[setid-1]==NULL || aggrminsets[setid-1]->size()==0) {
 		reportf("Error: Set nr. %d is used, but not defined yet.\n",setid), exit(3);
 	}
 
-	if(head_watches.size()>headv && head_watches[headv].lock().get()!=NULL){
+	if(head_watches.size()>headv && head_watches[headv]!=NULL){
 		reportf("Error: Two aggregates have the same head(%d).\n", gprintVar(headv)), exit(3);
 	}
 
 	while(head_watches.size()<headv+1){
-		head_watches.push_back(wpAgg(pAgg()));
+		head_watches.push_back(pAgg(pAgg()));
 	}
 
 	//the head of the aggregate
@@ -228,9 +240,9 @@ void AggSolver::addMnmzSum(Var headv, int setid, bool lower) {
 	assert(setid>0);
 	uint setindex = setid-1;
 
-	pAgg ae(new SumAgg(lower, lower?INT_MAX:INT_MIN, head, wpSet(aggrsumsets[setindex])));
+	pAgg ae = new SumAgg(lower, lower?INT_MAX:INT_MIN, head, pSet(aggrsumsets[setindex]));
 	aggregates.push_back(ae);
-	head_watches[var(head)] = wpAgg(ae);
+	head_watches[var(head)] = ae;
 }
 
 /*
@@ -252,7 +264,7 @@ void AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& h
 				clause.push((*i).getLit());
 			}
 		}
-		idsolver->addRule(lower, clause);
+		getIDSolver()->addRule(lower, clause);
 	}else{
 		clause.push(lower?head:~head);
 		for(lwlv::const_reverse_iterator i=set.getWLRBegin(); i<set.getWLREnd() && (*i).getWeight()>=bound; i++){
@@ -261,7 +273,7 @@ void AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& h
 			}
 			clause.push((*i).getLit());
 		}
-		solver->addClause(clause);
+		getSolver()->addClause(clause);
 		for(lwlv::const_reverse_iterator i=set.getWLRBegin(); i<set.getWLREnd() && (*i).getWeight()>=bound; i++){
 			if((*i).getWeight()==bound && lower){
 				break;
@@ -269,7 +281,7 @@ void AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& h
 			clause.clear();
 			clause.push(lower?~head:head);
 			clause.push(~(*i).getLit());
-			solver->addClause(clause);
+			getSolver()->addClause(clause);
 		}
 	}
 }
@@ -283,7 +295,7 @@ void AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& h
  * @remarks: only method allowed to use the sat solver datastructures
  */
 Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
-	if (solver->value(p) == l_False) {
+	if (getSolver()->value(p) == l_False) {
 		if (verbosity >= 2) {
 			reportf("Deriving conflict in ");
 			gprintLit(p, l_True);
@@ -300,27 +312,31 @@ Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 		 */
 		int lvl = 0;
 		for (int i = 1; i < confl->size(); i++){
-			int litlevel = solver->getLevel(var(confl->operator [](i)));
+			int litlevel = getSolver()->getLevel(var(confl->operator [](i)));
 			if (litlevel > lvl){
 				lvl = litlevel;
 			}
 		}
-		solver->backtrackTo(lvl);
+		getSolver()->backtrackTo(lvl);
 
 		if(confl->size()>1){
-			solver->addLearnedClause(confl);
+			getSolver()->addLearnedClause(confl);
 		}
+
 		aggr_reason[var(p)] = old_ar;
+		delete ar;
+
 		return confl;
-	} else if (solver->value(p) == l_Undef) {
+	} else if (getSolver()->value(p) == l_Undef) {
 		if (verbosity >= 2) {
 			reportf("Deriving ");
 			gprintLit(p, l_True);
 			reportf(" because of the aggregate expression ");
 			printAggrExpr(ar->getAgg());
 		}
+		assert(aggr_reason[var(p)]==NULL);
 		aggr_reason[var(p)] = ar;
-		solver->setTrue(p);
+		getSolver()->setTrue(p);
 	} else{
 		delete ar;
 	}
@@ -336,8 +352,8 @@ Clause* AggSolver::Aggr_propagate(const Lit& p) {
 		reportf(").\n");
 	}
 
-	pAgg pa = head_watches[var(p)].lock();
-	if(pa.get()!=NULL){
+	pAgg pa = head_watches[var(p)];
+	if(pa!=NULL){
 		confl = pa->propagateHead(p);
 	}
 	for (vector<AggrWatch>::const_iterator i = ws.begin(); confl == NULL && i < ws.end(); i++) {
@@ -361,7 +377,7 @@ Clause* AggSolver::getExplanation(const Lit& p) {
 
 	if (verbosity >= 2) {
 		reportf("Implicit reason clause for ");
-		gprintLit(p, sign(p)?l_False:l_True); reportf(" : "); solver->printClause(*c); reportf("\n");
+		gprintLit(p, sign(p)?l_False:l_True); reportf(" : "); getSolver()->printClause(*c); reportf("\n");
 	}
 
 	return c;
@@ -377,8 +393,8 @@ void AggSolver::doBacktrack(const Lit& l){
 		aggr_reason[var(l)] = NULL;
 	}
 
-	pAgg pa = head_watches[var(l)].lock();
-	if(pa.get()!=NULL){
+	pAgg pa = head_watches[var(l)];
+	if(pa!=NULL){
 		pa->backtrackHead();
 	}
 
@@ -409,8 +425,8 @@ void AggSolver::getHeadsOfAggrInWhichOccurs(Var x, vec<Var>& heads){
 	vector<AggrWatch>& w = aggr_watches[x];
 	for(vector<AggrWatch>::const_iterator i=w.begin(); i<w.end(); i++){
 		pSet s = (*i).getSet();
-		for(lwagg::const_iterator j=s->getAggBegin(); j<s->getAggEnd(); j++){
-			heads.push(var((*j).lock()->getHead()));
+		for(lsagg::const_iterator j=s->getAggBegin(); j<s->getAggEnd(); j++){
+			heads.push(var((*j)->getHead()));
 		}
 	}
 }
@@ -432,8 +448,8 @@ lwlv::const_iterator AggSolver::getAggLiteralsEnd(Var x) const {
 void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& heads, vec<int> &currentjust){
 	for (vector<AggrWatch>::const_iterator i = aggr_watches[var(w)].begin(); i < aggr_watches[var(w)].end(); i++) {
 		pSet set = (*i).getSet();
-		for(lwagg::const_iterator j=set->getAggBegin(); j<set->getAggEnd(); j++){
-			pAgg expr = (*j).lock();
+		for(lsagg::const_iterator j=set->getAggBegin(); j<set->getAggEnd(); j++){
+			pAgg expr = (*j);
 			if(expr->getHeadValue() == l_False){ continue; }
 
 			Var head = var(expr->getHead());
@@ -470,7 +486,7 @@ bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, ve
 }
 
 bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head){
-	pAgg a = head_watches[head].lock();
+	pAgg a = head_watches[head];
 	pSet s = a->getSet();
 
 	if(verbosity>0){
@@ -483,7 +499,7 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head){
 		return true;
 	}
 
-	dynamic_cast<SumAgg*>(a.get())->getMinimExplan(invalidation);
+	dynamic_cast<SumAgg*>(a)->getMinimExplan(invalidation);
 
 	return false;
 }
@@ -493,7 +509,7 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head){
  * has to be called after each solution has been found, just before starting to search
  */
 void AggSolver::propagateMnmz(Var head){
-	dynamic_cast<SumAgg*>(head_watches[head].lock().get())->propagateHead(true);
+	dynamic_cast<SumAgg*>(head_watches[head])->propagateHead(true);
 }
 
 void AggSolver::printAggrExpr(pAgg ae){
