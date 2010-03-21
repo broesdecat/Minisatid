@@ -107,10 +107,10 @@ Var Solver::newVar(bool sign, bool dvar) {
 
 	//////////////START TSOLVER
 	if(getIDSolver().get()!=NULL){
-		getIDSolver()->notifyVarAdded();
+		getIDSolver()->notifyVarAdded(nVars());
 	}
 	if(getAggSolver().get()!=NULL){
-		getAggSolver()->notifyVarAdded();
+		getAggSolver()->notifyVarAdded(nVars());
 	}
 	//////////////END TSOLVER
 

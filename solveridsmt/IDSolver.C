@@ -56,15 +56,15 @@ IDSolver::~IDSolver() {
 	deleteList<Rule>(definition);
 }
 
-void IDSolver::notifyVarAdded(){
-	seen.growTo(nVars(), 0);
+void IDSolver::notifyVarAdded(int nvars){
+	seen.growTo(nvars, 0);
 	//seen2.push(0);
 
-	definition.resize(nVars(), NULL);
-	defType.growTo(nVars(), NONDEFTYPE);
-	defOcc.growTo(nVars(), NONDEFOCC);
-	disj_occurs.resize(2 * nVars()); // May be tested on in findCycleSources().
-	conj_occurs.resize(2 * nVars()); // Probably not needed anyway...
+	definition.resize(nvars, NULL);
+	defType.growTo(nvars, NONDEFTYPE);
+	defOcc.growTo(nvars, NONDEFOCC);
+	disj_occurs.resize(2 * nvars); // May be tested on in findCycleSources().
+	conj_occurs.resize(2 * nvars); // Probably not needed anyway...
 }
 
 /**
@@ -89,6 +89,8 @@ void IDSolver::addRule(bool conj, vec<Lit>& ps) {
 		reportf("\n");
 	}
 
+	pSolver solver(getSolver());
+
 	if (ps.size() == 1) {
 		Lit head = conj?ps[0]:~ps[0]; //empty set conj = true, empty set disj = false
 		if (isFalse(head)){
@@ -96,15 +98,15 @@ void IDSolver::addRule(bool conj, vec<Lit>& ps) {
 		}
 		vec<Lit> v;
 		v.push(head);
-		getSolver()->addClause(v);
+		solver->addClause(v);
 	} else {
 		//rules with only one body atom have to be treated as conjunctive
 		conj = conj || ps.size()==2;
 
 		Rule* r = new Rule(ps, conj);
 		defdVars.push(var(ps[0]));
-		defType.growTo(nVars(), NONDEFTYPE);
-		defOcc.growTo(nVars(), NONDEFOCC);
+		//defType.growTo(nVars(), NONDEFTYPE);
+		//defOcc.growTo(nVars(), NONDEFOCC);
 		defType[var(ps[0])]=conj?CONJ:DISJ;
 		//defOcc is initialized when finishing the datastructures
 		definition[var(ps[0])] = r;
@@ -120,13 +122,13 @@ void IDSolver::addRule(bool conj, vec<Lit>& ps) {
 
 		vec<Lit> temp; //because addclause empties temp
 		ps.copyTo(temp);
-		getSolver()->addClause(temp);
+		solver->addClause(temp);
 
 		for (int i = 1; i < ps.size(); i++) {
 			vec<Lit> binclause(2);
 			binclause[0] = ~ps[0];
 			binclause[1] = ~ps[i];
-			getSolver()->addClause(binclause);
+			solver->addClause(binclause);
 		}
 	}
 }
@@ -138,16 +140,19 @@ void IDSolver::addRule(bool conj, vec<Lit>& ps) {
  */
 bool IDSolver::finishECNF_DataStructures() {
 	init = false;
-	defType.growTo(nVars(), NONDEFTYPE);
-	defOcc.growTo(nVars(), NONDEFOCC);
+	int nvars = nVars();
+	pAggSolver aggsolver(getAggSolver());
+
+	defType.growTo(nvars, NONDEFTYPE);
+	defOcc.growTo(nvars, NONDEFOCC);
 
 	if (verbosity >= 1){reportf("| Number of rules           : %6d                                          |\n",defdVars.size()); }
 
 	// Initialize scc of full dependency graph
-	scc.growTo(nVars(), -1);
-	vec<bool> incomp(nVars(), false);
+	scc.growTo(nvars, -1);
+	vec<bool> incomp(nvars, false);
 	vec<Var> stack;
-	vec<int> visited(nVars(), 0); // =0 represents not visited; >0 corresponds to visited through a positive body literal, <0 through a negative body literal
+	vec<int> visited(nvars, 0); // =0 represents not visited; >0 corresponds to visited through a positive body literal, <0 through a negative body literal
 	vec<Var> rootofmixed;
 	vec<Var> nodeinmixed;
 	int counter = 1;
@@ -160,7 +165,7 @@ bool IDSolver::finishECNF_DataStructures() {
 
 	if(verbosity >= 5){
 		reportf("Printing sccs full graph:");
-		for (int i=0; i<nVars(); i++){
+		for (int i=0; i<nvars; i++){
 			reportf("SCC of %d is %d\n", gprintVar(i), gprintVar(scc[i]));
 		}
 		reportf("Ended printing sccs. Size of roots = %d, nodes in mixed = %d.\n", rootofmixed.size(), nodeinmixed.size());
@@ -185,7 +190,7 @@ bool IDSolver::finishECNF_DataStructures() {
 
 	if(verbosity >= 5){
 		reportf("Printing sccs pos graph:");
-		for (int i=0; i<nVars(); i++){
+		for (int i=0; i<nvars; i++){
 			reportf("SCC of %d is %d\n", gprintVar(i), gprintVar(scc[i]));
 		}
 		reportf("Ended printing sccs.\n");
@@ -193,8 +198,8 @@ bool IDSolver::finishECNF_DataStructures() {
 
 	// Determine which literals should no longer be considered defined (according to the scc in the positive graph) + init occurs
 	atoms_in_pos_loops = 0;
-	disj_occurs.resize(2 * nVars());
-	conj_occurs.resize(2 * nVars());
+	disj_occurs.resize(2 * nvars);
+	conj_occurs.resize(2 * nvars);
 
 	Lit l;
 	vec<Var> reducedVars;
@@ -229,8 +234,8 @@ bool IDSolver::finishECNF_DataStructures() {
 			break;
 		}
 		case AGGR: {
-			if(getAggSolver().get()!=NULL){
-				for (lwlv::const_iterator j = getAggSolver()->getAggLiteralsBegin(i); !isdefd && j < getAggSolver()->getAggLiteralsEnd(i); ++j){
+			if(aggsolver.get()!=NULL){
+				for (lwlv::const_iterator j = aggsolver->getAggLiteralsBegin(i); !isdefd && j < aggsolver->getAggLiteralsEnd(i); ++j){
 					if (inSameSCC(v, var((*j).getLit()))){ // NOTE: disregard sign here: set literals can occur both pos and neg in justifications. This could possibly be made more precise for MIN and MAX...
 						isdefd = true;
 					}
@@ -292,7 +297,7 @@ bool IDSolver::finishECNF_DataStructures() {
 		return false;
 	}
 
-	isCS.growTo(nVars(), false);
+	isCS.growTo(nvars, false);
 
 	if(verbosity > 1){
 		for(int i=0; i<defdVars.size(); i++){

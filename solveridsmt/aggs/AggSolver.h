@@ -63,7 +63,7 @@ public:
 	 * @post the clause is not saved, so HAS to be deleted after use
 	 */
 	Clause* getExplanation	(const Lit& p);
-	void 	notifyVarAdded	(); 		//correctly initialize AMNSolver datastructures when vars are added
+	void 	notifyVarAdded	(int nvars); 		//correctly initialize AMNSolver datastructures when vars are added
 	Clause* propagate	(const Lit& p);
 	/////////////////////ENDSOLVER NECESSARY
 

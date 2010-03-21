@@ -68,7 +68,7 @@ public:
 	bool 		simplify				();
 	void 		backtrack 				(const Lit& l);
 	Clause* 	getExplanation			(const Lit& p);    // Create a clause that implicitly was the reason for p's propagation.
-	void 		notifyVarAdded			(); 		//correctly initialized TSolver datastructures when vars are added
+	void 		notifyVarAdded			(int nvars); 		//correctly initialized TSolver datastructures when vars are added
 	Clause* 	propagateDefinitions	();
 	Clause* 	propagate				(const Lit&);
 

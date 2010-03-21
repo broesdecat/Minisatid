@@ -35,11 +35,15 @@ void AggSolver::remove(){
 	//FIXME: prevent from using a solver after it has been removed
 }
 
-void AggSolver::notifyVarAdded(){
-	head_watches.push_back(pAgg(pAgg()));
+void AggSolver::notifyVarAdded(int nvars){
+	head_watches.resize(nvars);
+	aggr_watches.resize(nvars);
+	aggr_reason.resize(nvars);
+
+	//head_watches.push_back(pAgg(pAgg()));
 	assert(head_watches.back()==NULL);
-	aggr_watches.push_back(vector<AggrWatch>());
-	aggr_reason.push_back(NULL);
+	//aggr_watches.push_back(vector<AggrWatch>());
+	//aggr_reason.push_back(NULL);
 }
 
 inline pAgg AggSolver::getAggWithHeadOccurence(Var v) const{

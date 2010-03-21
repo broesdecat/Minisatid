@@ -95,17 +95,18 @@ static inline uint64_t memUsed() { return 0; }
 
 class Solver {
 private:
-	wpIDSolver 	tsolver;
-	wpAggSolver	aggsolver;
+	//this class is the owner, to allow most efficiency
+	pIDSolver 	tsolver;
+	pAggSolver	aggsolver;
 
 public:
 	/////SMT NECESSARY
-	void 		setIDSolver				(const pIDSolver& s)	{ tsolver = wpIDSolver(s); }
-	void 		resetIDSolver			() 						{ tsolver.reset();}
-	void 		setAggSolver			(const pAggSolver& s)	{ aggsolver = wpAggSolver(s); }
-	void 		resetAggSolver			()						{ aggsolver.reset(); }
-	pIDSolver 	getIDSolver				()				const 	{ return tsolver.lock(); }
-	pAggSolver 	getAggSolver			()				const 	{ return aggsolver.lock(); }
+	void 				setIDSolver				(const pIDSolver& s)	{ tsolver = s; }
+	void 				resetIDSolver			() 						{ tsolver.reset();}
+	void 				setAggSolver			(const pAggSolver& s)	{ aggsolver = s; }
+	void 				resetAggSolver			()						{ aggsolver.reset(); }
+	const pIDSolver& 	getIDSolver				()				const 	{ return tsolver; }
+	const pAggSolver& 	getAggSolver			()				const 	{ return aggsolver; }
 
 	lbool   value      (Var x) const;       // The current value of a variable.
 	lbool   value      (Lit p) const;       // The current value of a literal.

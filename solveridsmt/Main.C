@@ -15,6 +15,8 @@
 #include <fpu_control.h>
 #endif
 
+//TODO handle exit(x) with exception throwing instead, giving much cleaner code!!!
+
 int verbosity;
 ECNF_mode modes;
 
