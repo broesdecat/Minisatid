@@ -18,7 +18,7 @@ using namespace boost;
 
 #include "BigInteger.hh"
 #include "BigIntegerUtils.hh"
-typedef BigInteger Weight;
+typedef int Weight;
 
 namespace Aggrs{
 class WLV;

@@ -1353,10 +1353,26 @@ void IDSolver::cycleSourceAggr(Var v, vec<Lit>& just){
 }
 
 void IDSolver::notifyAggrHead(Var head){
-	assert(!isDefined(head));
+	assert(!isDefined(head) && init);
 	defType[head] = AGGR;
 	defOcc[head] = NONDEFOCC;
 	defdVars.push(head);
+}
+
+void IDSolver::removeAggrHead(Var head){
+	assert(init);
+	if(isDefined(head)){
+		defType[head] = NONDEFTYPE;
+		defOcc[head] = NONDEFOCC;
+
+		vec<Var> dnew;
+		for(int i=0; i<dnew.size(); i++){
+			if(defdVars[i]!=head){
+				dnew.push(defdVars[i]);
+			}
+		}
+		dnew.copyTo(defdVars);
+	}
 }
 
 //=================================================================================================

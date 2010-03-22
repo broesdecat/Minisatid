@@ -8,7 +8,7 @@
 
 CSRCS	?= $(wildcard *.C)
 CHDRS	?= $(wildcard *.h)
-COBJS	?= $(addsuffix .o, $(basename $(CSRCS)))
+COBJS	?= $(addsuffix .o, $(basename $(CSRCS))) parse.tab.o lex.yy.o
 
 PCOBJS	= $(addsuffix p,  $(COBJS))
 DCOBJS	= $(addsuffix d,  $(COBJS))
@@ -37,17 +37,17 @@ libd:	lib$(LIB)d.a
 
 ## Compile options
 %.o:		CFLAGS +=$(COPTIMIZE) -ggdb -D DEBUG
-%.occ:	CFLAGS +=-O0 -fprofile-arcs -ftest-coverage -ggdb -D DEBUG # -D INVARIANTS
+%.occ:		CFLAGS +=-O0 -fprofile-arcs -ftest-coverage -ggdb -D DEBUG # -D INVARIANTS
 %.op:		CFLAGS +=$(COPTIMIZE) -pg -ggdb -D NDEBUG
 %.od:		CFLAGS +=-O0 -ggdb -D DEBUG # -D INVARIANTS
 %.or:		CFLAGS +=$(COPTIMIZE) -D NDEBUG
 
 ## Link options
-$(EXEC):					LFLAGS := -ggdb $(LFLAGS)
+$(EXEC):			LFLAGS := -ggdb $(LFLAGS)
 $(EXEC)_codecover: 	LFLAGS := -ggdb -lgcov $(LFLAGS)
-$(EXEC)_profile:		LFLAGS := -ggdb -pg $(LFLAGS)
-$(EXEC)_debug:			LFLAGS := -ggdb $(LFLAGS)
-$(EXEC)_release:		LFLAGS := $(LFLAGS)
+$(EXEC)_profile:	LFLAGS := -ggdb -pg $(LFLAGS)
+$(EXEC)_debug:		LFLAGS := -ggdb $(LFLAGS)
+$(EXEC)_release:	LFLAGS := $(LFLAGS)
 $(EXEC)_static:		LFLAGS := --static $(LFLAGS)
 
 ## Dependencies
@@ -66,6 +66,17 @@ lib$(LIB)d.a:	$(filter-out Main.od, $(DCOBJS))
 %.o %.op %.od %.or %.occ:	%.C
 	@echo Compiling: "$@ ( $< )"
 	@$(CXX) $(CFLAGS) -c -o $@ $<
+	
+## Build parser
+%.o %.op %.od %.or %.occ:	%.cc
+	@$(CXX) $(CFLAGS) -c -o $@ $<
+
+%.tab.cc:  %.yy
+	bison --defines --output=$@ $<
+
+%.yy.C:	%.ll
+	flex -o$@ $<
+
 
 ## Linking rules (standard/profile/debug/release)
 $(EXEC) $(EXEC)_codecover $(EXEC)_profile $(EXEC)_debug $(EXEC)_release $(EXEC)_static:
@@ -81,7 +92,7 @@ lib$(LIB).a lib$(LIB)d.a:
 ## Clean rule
 clean:
 	@rm -f $(EXEC) $(EXEC)_codecover $(EXEC)_profile $(EXEC)_debug $(EXEC)_release $(EXEC)_static \
-	  $(COBJS) $(CCCOBJS) $(PCOBJS) $(DCOBJS) $(RCOBJS) *.core depend.mak lib$(LIB).a lib$(LIB)d.a
+	  $(COBJS) $(CCCOBJS) $(PCOBJS) $(DCOBJS) $(RCOBJS) parse.tab.cc parse.tab.hh *.core depend.mak lib$(LIB).a lib$(LIB)d.a
 
 ## Make dependencies
 depend.mk: $(CSRCS) $(CHDRS)

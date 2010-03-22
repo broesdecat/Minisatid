@@ -5,4 +5,4 @@ EXEC      = minisatid
 CFLAGS    = -I$(MTL) -I/export/home1/NoCsBack/dtai/broes/include -Iaggs -Ibigint -I../solveridsmt -Wall -ffloat-store
 LFLAGS    = -lz
 
-include ../mtl/template.mk
+include ../mtl/template2.mk

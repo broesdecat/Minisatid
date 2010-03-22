@@ -79,6 +79,7 @@ public:
 	const vec<Lit>&	getCFJustificationAggr	(Var v) const;
 	void 			cycleSourceAggr			(Var v, vec<Lit>& nj);
 	void 			notifyAggrHead			(Var head);
+	void 			removeAggrHead			(Var head);
 	/////////////////////END AGGSOLVER NECESSARY
 
 	/////////////////////INITIALIZATION

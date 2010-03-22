@@ -36,6 +36,8 @@ protected:
 	Weight		bound;
 	bool 		lower;
 
+	bool 		nomoreprops, headprop;//indicates that this aggregate is always true, so no more propagation is necessary
+
 	Lit			head;
 	int			headindex;	//the index in the stack when this was derived
 	lbool		headvalue;
@@ -45,7 +47,9 @@ protected:
 public:
 
     Agg(bool lower, Weight bound, Lit head, const pSet& set) :
-	    bound(bound), lower(lower), head(head), headindex(-1), headvalue(l_Undef), set(set) {
+	    bound(bound), lower(lower),
+	    nomoreprops(false), headprop(false),
+	    head(head), headindex(-1), headvalue(l_Undef), set(set) {
     }
 
     /**
@@ -62,7 +66,7 @@ public:
 
 	void 	setBound(const Weight& b)	{ bound = b; }
 
-	void 	initialize();
+	bool 	initialize();
 	void 	backtrackHead();
 	Clause*	propagateHead(const Lit& p);
 

@@ -28,6 +28,11 @@ AggSolver::~AggSolver() {
 	deleteList<AggrReason>(aggr_reason);
 }
 
+void AggSolver::removeHeadWatch(Var x){
+	head_watches[x] = NULL;
+	getIDSolver()->removeAggrHead(x);
+}
+
 void AggSolver::remove(){
 	getSolver()->resetAggSolver();
 	getSolver().reset();
@@ -109,12 +114,14 @@ void AggSolver::finishSets(vector<pSet>& sets){
 			sets.erase(i);
 		}else{
 			s->initialize();
-			int index = 0;
-			for (lwlv::const_iterator i = s->getWLBegin(); i < s->getWLEnd(); i++, index++){
-				aggr_watches[var((*i).getLit())].push_back(AggrWatch(pSet(s), index, sign((*i).getLit()) ? NEG : POS));
-			}
-			for(lsagg::const_iterator i=s->getAggBegin(); i<s->getAggEnd(); i++){
-				(*i)->initialize();
+			if(s->nbAgg()==0){
+				delete *i;
+				sets.erase(i);
+			}else{
+				int index = 0;
+				for (lwlv::const_iterator i = s->getWLBegin(); i < s->getWLEnd(); i++, index++){
+					aggr_watches[var((*i).getLit())].push_back(AggrWatch(pSet(s), index, sign((*i).getLit()) ? NEG : POS));
+				}
 			}
 		}
 	}

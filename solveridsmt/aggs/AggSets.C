@@ -30,7 +30,8 @@ AggrMaxSet::AggrMaxSet(const vec<Lit>& lits, const vector<Weight>& weights, weak
 	name = "MAX";
 	//FIXME FIXME: moet eigenlijk een voorstelling van -infinity zijn
 	//ik had eerst: |minimum van de set| -1, maar de bound kan NOG lager liggen, dus dan is het fout
-	emptysetvalue = Weight(INT_MIN)-1;
+	emptysetvalue = Weight(INT_MIN);
+	assert(emptysetvalue<=INT_MIN);
 }
 
 AggrSPSet::AggrSPSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s):
@@ -133,6 +134,17 @@ void AggrSet::initialize(){
 	doSetReduction();
 	setCP(getBestPossible());
 	setCC(getEmptySetValue());
+
+	for(lsagg::iterator i=aggregates.begin(); i<aggregates.end();){
+		if((*i)->initialize()){
+			//If after initialization, the head will have a fixed value, then this is
+			//independent of any further propagations within that aggregate.
+			getSolver()->removeHeadWatch(var((*i)->getHead()));
+			i = aggregates.erase(i);
+		}else{
+			i++;
+		}
+	}
 }
 
 

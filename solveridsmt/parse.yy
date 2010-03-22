@@ -122,6 +122,7 @@ theory	:	/* empty */
 		| 	theory prod
 		|	theory set
 		|	theory wset
+		|	theory mnmz
 		;
 
 clause	:  body ZERO	{ 	solver->addClause(lits); lits.clear(); }
@@ -181,6 +182,8 @@ wbody	:	/* empty */
 		|	wbody NUMBER EQ ZERO	{ addLit($2); weights.push_back(Weight(0)); }
 		|	wbody NUMBER EQ NUMBER	{ addLit($2); weights.push_back(Weight($4)); }
 		;
+		
+mnmz	:	MNMZ_DEFN body ZERO		{ solver->addMinimize(lits, false); lits.clear();}
 		
 //TODO MINIMIZATION
             

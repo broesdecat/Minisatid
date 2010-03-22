@@ -17,10 +17,17 @@ void Agg::addAggToSet(){
 	set->addAgg(this);
 }
 
-void Agg::initialize(){
+/**
+ * Returns true if this aggregate can be propagated in the initialization, so it will never change truth value
+ * and can be left out of any propagations.
+ */
+bool Agg::initialize(){
 	Clause* confl = NULL;
 
 	lbool hv = canPropagateHead();
+	if(hv!=l_Undef){
+		nomoreprops = true;
+	}
 	if(hv==l_True){
 		confl = getSet()->getSolver()->notifySATsolverOfPropagation(head, new AggrReason(this, true));
 	}else if(hv==l_False){
@@ -29,18 +36,25 @@ void Agg::initialize(){
 	if(confl!=NULL){
 		throw UNSAT();
 	}
+	return nomoreprops;
 }
 
 void Agg::backtrackHead(){
+	if(nomoreprops){ return; }
+
 	headvalue = l_Undef;
 	headindex = -1;
+	//headprop = false;
 }
 
 Clause* Agg::propagateHead(const Lit& p){
+	if(nomoreprops || headprop){ return NULL; }
+
 	bool headtrue = head==p;
 	headvalue = headtrue?l_True:l_False;
 	headindex = set->getStackSize();
-	return propagateHead(headtrue);
+	Clause* confl = propagateHead(headtrue);
+	return confl;
 }
 
 /*****************
@@ -48,10 +62,14 @@ Clause* Agg::propagateHead(const Lit& p){
  *****************/
 
 lbool Agg::canPropagateHead() const{
+	if(nomoreprops || headprop){ return headvalue; }
+
 	pSet s = set;
 	if ((lower && s->getCC() > bound) || (!lower && s->getCP() < bound)) {
+		//headprop = true;
 		return l_False;
 	} else if ((lower && s->getCP() <= bound) || (!lower && s->getCC() >= bound)) {
+		//headprop = true;
 		return l_True;
 	} else {
 		return l_Undef;
@@ -65,11 +83,14 @@ lbool Agg::canPropagateHead() const{
  * 		make all literals false with weight larger/eq than bound
  */
 Clause* MaxAgg::propagateHead(bool headtrue) {
+	if(nomoreprops || headprop){ return NULL; }
+
 	pSet s = set;
 	Clause* confl = NULL;
 	if (headtrue && lower) {
 		lwlv::const_reverse_iterator i=s->getWLRBegin();
 		while( confl == NULL && i<s->getWLREnd() && bound<(*i).getWeight()){
+			//because these propagations are independent of the other set literals, they can also be written as clauses
 			confl = s->getSolver()->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(this));
 			i++;
 		}
@@ -83,6 +104,7 @@ Clause* MaxAgg::propagateHead(bool headtrue) {
 	if(confl==NULL){
 		confl = propagate(headtrue);
 	}
+
 	return confl;
 }
 
@@ -97,6 +119,9 @@ Clause* MaxAgg::propagateHead(bool headtrue) {
  */
 Clause* MaxAgg::propagate(bool headtrue) {
 	Clause* confl = NULL;
+
+	if(nomoreprops || headprop){ return confl; }
+
 	if((lower && headtrue) || (!lower && !headtrue)){
 		return confl;
 	}
@@ -157,10 +182,14 @@ Weight	ProdAgg::remove(const Weight& lhs, const Weight& rhs) const{
  * this is done using the lower_bound binary search algorithm of std
  */
 Clause* SPAgg::propagateHead(bool headtrue){
+	if(nomoreprops || headprop){ return NULL; }
+
 	return propagate(headtrue);
 }
 
 Clause* SPAgg::propagate(bool headtrue){
+	if(nomoreprops || headprop){ return NULL; }
+
 	Clause* c = NULL;
 	Weight weightbound(0);
 	pSet s = set;

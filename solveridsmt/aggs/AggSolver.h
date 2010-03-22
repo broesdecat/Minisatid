@@ -127,6 +127,7 @@ public:
 	void		resetIDSolver			()				{ idsolver.reset(); }
 	void 		remove					();
 
+	void 		removeHeadWatch(Var x);
 	/////////////////////END INITIALIZATION
 
 	//are used by agg.c, but preferably should be move into protected again
@@ -153,6 +154,8 @@ protected:
 
 	vector<AggrReason*>	aggr_reason;	// For each atom, like 'reason'.
 	vector<vector<AggrWatch> >	aggr_watches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
+
+	//index on VAR (heads are always positive
 	vector<pAgg>				head_watches;	//	does NOT own the pointers
 	vector<pAgg> 				aggregates;		//A vector to store all created aggregates as shared pointers, to allow easy destruction in the end
 			//INVARIANT: if a literal is defined by an aggregate, the watch on the expression in which it is head
