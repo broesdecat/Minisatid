@@ -36,9 +36,10 @@ void AggSolver::remove(){
 }
 
 void AggSolver::notifyVarAdded(int nvars){
-	head_watches.resize(nvars);
+	head_watches.resize(nvars, NULL);
+	assert(head_watches.size()==nvars);
 	aggr_watches.resize(nvars);
-	aggr_reason.resize(nvars);
+	aggr_reason.resize(nvars, NULL);
 
 	//head_watches.push_back(pAgg(pAgg()));
 	assert(head_watches.back()==NULL);
@@ -167,9 +168,11 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 		reportf("Error: Two aggregates have the same head(%d).\n", gprintVar(headv)), exit(3);
 	}
 
-	while(head_watches.size()<headv+1){
+	assert(head_watches.size()>headv);
+
+	/*while(head_watches.size()<headv+1){
 		head_watches.push_back(pAgg(pAgg()));
-	}
+	}*/
 
 	//the head of the aggregate
 	Lit head = Lit(headv, false);
@@ -235,9 +238,10 @@ void AggSolver::addMnmzSum(Var headv, int setid, bool lower) {
 		reportf("Error: Two aggregates have the same head(%d).\n", gprintVar(headv)), exit(3);
 	}
 
-	while(head_watches.size()<headv+1){
+	assert(head_watches.size()>headv);
+	/*while(head_watches.size()<headv+1){
 		head_watches.push_back(pAgg(pAgg()));
-	}
+	}*/
 
 	//the head of the aggregate
 	Lit head = Lit(headv, false);

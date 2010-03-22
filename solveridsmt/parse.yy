@@ -67,10 +67,15 @@ void yyerror(char* msg) {
 	error(true, msg);
 }
 
-void addLit(int nb){
+int readLit(int nb){
 	int var = abs(nb)-1;
 	while (var >= solver->nVars()) solver->newVar();
 	solver->setDecisionVar(var,true); // S.nVars()-1   or   var
+	return var;
+}
+
+void addLit(int nb){
+	int var = readLit(nb);
 	lits.push( (nb > 0) ? Lit(var) : ~Lit(var) );
 }
 
@@ -130,25 +135,25 @@ rule	:	SEM_DEFN NUMBER
 			body ZERO  	{ idsolver->addRule(!disj, lits); lits.clear(); }
 		;
             
-sum		:	SUM_DEFN  SEM_DEFN SIGN_DEFN NUMBER NUMBER NUMBER ZERO	{ addAgg($4, $5, $6, SUM, $3, $2); }
+sum		:	SUM_DEFN  SEM_DEFN SIGN_DEFN NUMBER NUMBER NUMBER ZERO	{ readLit($4); addAgg($4, $5, $6, SUM, $3, $2); }
 		;
-max		:	MAX_DEFN  SEM_DEFN SIGN_DEFN NUMBER NUMBER NUMBER ZERO	{ addAgg($4, $5, $6, MAX, $3, $2); }	
+max		:	MAX_DEFN  SEM_DEFN SIGN_DEFN NUMBER NUMBER NUMBER ZERO	{ readLit($4); addAgg($4, $5, $6, MAX, $3, $2); }	
 		;
-min		:	MIN_DEFN  SEM_DEFN SIGN_DEFN NUMBER NUMBER NUMBER ZERO	{ addAgg($4, $5, $6, MIN, $3, $2); }	
+min		:	MIN_DEFN  SEM_DEFN SIGN_DEFN NUMBER NUMBER NUMBER ZERO	{ readLit($4); addAgg($4, $5, $6, MIN, $3, $2); }	
 		;
-card	:	CARD_DEFN SEM_DEFN SIGN_DEFN NUMBER NUMBER NUMBER ZERO	{ addAgg($4, $5, $6, SUM, $3, $2); }
+card	:	CARD_DEFN SEM_DEFN SIGN_DEFN NUMBER NUMBER NUMBER ZERO	{ readLit($4); addAgg($4, $5, $6, SUM, $3, $2); }
 		;
-prod	:	PROD_DEFN SEM_DEFN SIGN_DEFN NUMBER NUMBER NUMBER ZERO	{ addAgg($4, $5, $6, PROD, $3, $2); }
+prod	:	PROD_DEFN SEM_DEFN SIGN_DEFN NUMBER NUMBER NUMBER ZERO	{ readLit($4); addAgg($4, $5, $6, PROD, $3, $2); }
 		;
-sum		:	SUM_DEFN  SEM_DEFN SIGN_DEFN NUMBER NUMBER ZERO ZERO	{ addAgg($4, $5, 0, SUM, $3, $2); }
+sum		:	SUM_DEFN  SEM_DEFN SIGN_DEFN NUMBER NUMBER ZERO ZERO	{ readLit($4); addAgg($4, $5, 0, SUM, $3, $2); }
 		;
-max		:	MAX_DEFN  SEM_DEFN SIGN_DEFN NUMBER NUMBER ZERO ZERO	{ addAgg($4, $5, 0, MAX, $3, $2); }	
+max		:	MAX_DEFN  SEM_DEFN SIGN_DEFN NUMBER NUMBER ZERO ZERO	{ readLit($4); addAgg($4, $5, 0, MAX, $3, $2); }	
 		;
-min		:	MIN_DEFN  SEM_DEFN SIGN_DEFN NUMBER NUMBER ZERO ZERO	{ addAgg($4, $5, 0, MIN, $3, $2); }	
+min		:	MIN_DEFN  SEM_DEFN SIGN_DEFN NUMBER NUMBER ZERO ZERO	{ readLit($4); addAgg($4, $5, 0, MIN, $3, $2); }	
 		;
-card	:	CARD_DEFN SEM_DEFN SIGN_DEFN NUMBER NUMBER ZERO ZERO	{ addAgg($4, $5, 0, SUM, $3, $2); }
+card	:	CARD_DEFN SEM_DEFN SIGN_DEFN NUMBER NUMBER ZERO ZERO	{ readLit($4); addAgg($4, $5, 0, SUM, $3, $2); }
 		;
-prod	:	PROD_DEFN SEM_DEFN SIGN_DEFN NUMBER NUMBER ZERO ZERO	{ addAgg($4, $5, 0, PROD, $3, $2); }
+prod	:	PROD_DEFN SEM_DEFN SIGN_DEFN NUMBER NUMBER ZERO ZERO	{ readLit($4); addAgg($4, $5, 0, PROD, $3, $2); }
 		;
 
 set		:	SET_DEFN NUMBER { setid = $2;	}
