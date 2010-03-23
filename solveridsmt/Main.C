@@ -69,24 +69,29 @@ int main(int argc, char** argv){
     try{
     	parse(S, TS, AggS, argv[1]);
 
-    	if(!modes.aggr){
-    		AggS->remove();
-    		AggS.reset();
-    		greportf(1, "|                                                                             |\n"
-    					"|    (there will be no aggregate propagations)                                |\n");
-    	}
-    	if(!modes.def){
-    		TS->remove();
-    		TS.reset();
-    		greportf(1, "|    (there will be no definitional propagations)                             |\n");
-    	}
-    	if(!modes.mnmz){
-    		//later
-    	}
+		if(!modes.aggr){
+			AggS->remove();
+			AggS.reset();
+			greportf(1, "|                                                                             |\n"
+						"|    (there will be no aggregate propagations)                                |\n");
+		}
+		if(!modes.def){
+			TS->remove();
+			TS.reset();
+			greportf(1, "|    (there will be no definitional propagations)                             |\n");
+		}
+		if(!modes.mnmz){
+			//later
+		}
 
 		greportf(1, 	"| Parsing time              : %7.2f s                                    |\n", cpuTime()-cpu_time);
 
 		FILE* res = (argc >= 3) ? fopen(argv[2], "wb") : NULL;
+
+		if (verbosity >= 1) {
+			double parse_time = cpuTime() - cpu_time;
+			reportf("| Parsing time              : %7.2f s                                       |\n", parse_time);
+		}
 
 		if (!S->simplify()){
 			greportf(1, "===============================================================================\n"

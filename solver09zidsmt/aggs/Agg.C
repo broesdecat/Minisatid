@@ -28,6 +28,7 @@ bool Agg::initialize(){
 	lbool hv = canPropagateHead();
 	if(hv!=l_Undef && !optimagg){
 		nomoreprops = true;
+		//reportf("No more propagations for %d", gprintVar(var(head)));
 	}
 	if(hv==l_True){
 		confl = getSet()->getSolver()->notifySATsolverOfPropagation(head, new AggrReason(this, true));

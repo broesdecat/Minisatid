@@ -1,5 +1,7 @@
+c optimal if 3 is true
+
 p ecnf def mnmz aggr
-Mnmz 1 2 3 4 5 0
+Mnmt 1 2 3 4 5 0
 -1 -2 -3 -4 0
 3 4 0
 -2 0

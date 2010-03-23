@@ -855,7 +855,6 @@ void Solver::invalidateModel(vec<Lit>& learnt) {
 	claDecayActivity();
 }
 
-/////////////////////// START OF EXTENSIONS
 //TODO in andere solver?
 void Solver::addMinimize(const vec<Lit>& lits, bool subset) {
 	/*TODO if (!ecnf_mode.mnmz)
@@ -1044,7 +1043,7 @@ bool Solver::invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt){
 	int subsetsize = 0;
 
 	for(int i=0; i<to_minimize.size(); i++){
-		if(model[i]==l_True){
+		if(model[var(to_minimize[i])]==l_True){
 			invalidation.push(~to_minimize[i]);
 			subsetsize++;
 		}else{
@@ -1063,7 +1062,8 @@ bool Solver::invalidateValue(vec<Lit>& invalidation){
 	bool currentoptimumfound = false;
 
 	for(int i=0; !currentoptimumfound && i<to_minimize.size(); i++){
-		if(!currentoptimumfound && model[i]==l_True){
+		if(!currentoptimumfound && model[var(to_minimize[i])]==l_True){
+			reportf("Current optimum is var %d\n", gprintVar(var(to_minimize[i])));
 			currentoptimumfound = true;
 		}
 		if(!currentoptimumfound){
@@ -1071,13 +1071,14 @@ bool Solver::invalidateValue(vec<Lit>& invalidation){
 		}
 	}
 
+
+
 	if(invalidation.size()==0){
 		return true; //optimum has already been found!!!
 	}else{
 		return false;
 	}
 }
-
 /*
  * If the optimum possible value is reached, the model is not invalidated. Otherwise, unsat has to be found first, so it is invalidated.
  * FIXME: add code that allows to reset the solver when the optimal value has been found, to search for more models with the same optimal value.
@@ -1163,6 +1164,8 @@ bool Solver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 
 	return optimumreached;
 }
+
+////////////END TSOLVER
 
 bool Solver::solve(const vec<Lit>& assumps) {
 	model.clear();

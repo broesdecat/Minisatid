@@ -1,7 +1,8 @@
 MTL       = ../mtl
-CHDRS     = $(wildcard *.h) $(wildcard $(MTL)/*.h)
+CHDRS     = $(wildcard *.h) $(wildcard $(MTL)/*.h) $(wildcard aggs/*.h) $(wildcard bigint/*.hh) parse.tab.hh
+CSRCS     = $(wildcard *.C) $(wildcard aggs/*.C)  $(wildcard bigint/*.C)
 EXEC      = minisat
-CFLAGS    = -I$(MTL) -Wall -ffloat-store -O3 -fno-strict-aliasing -DNDEBUG -static #-m64
+CFLAGS    = -I$(MTL) -I/export/home1/NoCsBack/dtai/broes/include -Iaggs -Ibigint -I../solver09zidsmt -Wall -ffloat-store -fno-strict-aliasing
 LFLAGS    = -lz
 
-include ../mtl/template.mk
+include ../mtl/template2.mk

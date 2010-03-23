@@ -29,11 +29,21 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "Heap.h"
 #include "Alg.h"
 
-#include "SolverTypes.h"
+#include "solverfwd.h"
+#include "debug.h"
+
 #include "IDSolver.h"
 #include "AggSolver.h"
 
-extern int verbosity;
+class IDSolver;
+class AggSolver;
+class Solver;
+typedef shared_ptr<IDSolver> pIDSolver;
+typedef weak_ptr<IDSolver> wpIDSolver;
+typedef shared_ptr<AggSolver> pAggSolver;
+typedef weak_ptr<AggSolver> wpAggSolver;
+typedef shared_ptr<Solver> pSolver;
+typedef weak_ptr<Solver> wpSolver;
 
 #ifdef _MSC_VER
 #include <ctime>
@@ -81,16 +91,20 @@ static inline uint64_t memUsed() { return 0; }
 //=================================================================================================
 // Solver -- the main class:
 
-class IDSolver;
-class AggSolver;
-
 class Solver {
+private:
+	//this class is the owner, to allow most efficiency
+	pIDSolver 	tsolver;
+	pAggSolver	aggsolver;
+
 public:
 	/////SMT NECESSARY
-	IDSolver* 	tsolver;
-	void setIDSolver(IDSolver* ts){tsolver = ts;}
-	AggSolver* 	aggsolver;
-	void setAggSolver(AggSolver* ts){aggsolver = ts;}
+	void 				setIDSolver				(const pIDSolver& s)	{ tsolver = s; }
+	void 				resetIDSolver			() 						{ tsolver.reset();}
+	void 				setAggSolver			(const pAggSolver& s)	{ aggsolver = s; }
+	void 				resetAggSolver			()						{ aggsolver.reset(); }
+	const pIDSolver& 	getIDSolver				()				const 	{ return tsolver; }
+	const pAggSolver& 	getAggSolver			()				const 	{ return aggsolver; }
 
 	lbool   value      (Var x) const;       // The current value of a variable.
 	lbool   value      (Lit p) const;       // The current value of a literal.
@@ -121,20 +135,42 @@ public:
 
     void finishParsing();
 
+    /*
+     * OPTIMIZATION INFORMATION
+     */
+
+    MINIM		optim;
+    Var 		head;
+    vec<Lit>	to_minimize;
+
+    void 	addMinimize(const vec<Lit>& lits, bool subsetmnmz);
+    void 	addSumMinimize(const Var head, const int setid);
+    bool 	invalidateValue(vec<Lit>& invalidation);
+	bool 	invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt);
+	bool 	findOptimal(vec<Lit>& assumps, vec<Lit>& m);
+
+	void    invalidateModel(vec<Lit>& invalidation);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
+	void 	invalidate(vec<Lit>& invalidation);
+	bool 	findNext	(const vec<Lit>& assumpts, vec<Lit>& model);
+	bool    solve        (const vec<Lit>& assumps); // Search for a model that respects a given set of assumptions.
+	bool    solve		();		// Search for nb_models models without assumptions.
+	void 	printModel	();
+
     // Constructor/Destructor:
     //
-    Solver();
-    ~Solver();
-
-    int     nb_models;                              // Number of models wanted (all if N=0).
-    FILE*   res;                                    // Report results in this file.
+	Solver();
+    virtual ~Solver();
 
     // Solving:
     //
-    bool    simplify     ();                        // Removes already satisfied clauses.
-    bool    solve        (const vec<Lit>& assumps); // Search for a model that respects a given set of assumptions.
-    bool    solve        ();                        // Search without assumptions.
+    bool    simplify	();		// Removes already satisfied clauses.
 
+    FILE*   res;					// Report results in this file.
+    int     nb_models;				// Number of models wanted (all if N=0).
+    int		modelsfound;
+
+    // Variable mode:
+    //
     void    setDecisionVar (Var v, bool b); // Declare if a variable should be eligible for selection in the decision heuristic.
 
     // Extra results: (read-only member variable)
@@ -178,11 +214,8 @@ protected:
     int			qhead;            // Head of queue (as index into the trail -- no more explicit propagation queue in MiniSat).
 	vec<Lit>	trail;            // Assignment stack; stores all assigments made in the order they were made.
 
-    void     cancelFurther    (int init_qhead);                                        // Backtrack within level 0 until the given 'qhead' value.
-
     int     decisionLevel()    const; 		// Gives the current decisionlevel.
-    void    invalidateModel(const vec<Lit>& lits, int& init_qhead);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
-	bool    okay         () const;                  // FALSE means solver is in a conflicting state
+    bool    okay         () const;                  // FALSE means solver is in a conflicting state
 
     // Helper structures:
     //
@@ -243,6 +276,7 @@ protected:
     void     insertVarOrder   (Var x);                                                 // Insert a variable in the decision order priority queue.
     Lit      pickBranchLit    (int polarity_mode, double random_var_freq);             // Return the next decision variable.
     void     newDecisionLevel ();                                                      // Begins a new decision level.
+    void     cancelFurther    (int init_qhead);                                        // Backtrack within level 0 until the given 'qhead' value.
     bool     enqueue          (Lit p, Clause* from = NULL);                            // Test if fact 'p' contradicts current state, enqueue otherwise.
     void     analyze          (Clause* confl, vec<Lit>& out_learnt, int& out_btlevel); // (bt = backtrack)
     void     analyzeFinal     (Lit p, vec<Lit>& out_conflict);                         // COULD THIS BE IMPLEMENTED BY THE ORDINARIY "analyze" BY SOME REASONABLE GENERALIZATION?
@@ -332,18 +366,14 @@ inline int      Solver::nClauses      ()      const   { return clauses.size(); }
 inline int      Solver::nLearnts      ()      const   { return learnts.size(); }
 inline int      Solver::nVars         ()      const   { return assigns.size(); }
 inline void     Solver::setDecisionVar(Var v, bool b) { decision_var[v] = (char)b; if (b) { insertVarOrder(v); } }
-//inline bool     Solver::solve         ()              { vec<Lit> tmp; return solve(tmp); }
 inline bool     Solver::okay          ()      const   { return ok; }
 
 inline int		Solver::getLevel(int var)			const	{return level[var];}
 inline Lit	 	Solver::getRecentAssignments(int i) const	{return trail[i+trail_lim.last()];}
-inline int 		Solver::getNbOfRecentAssignments() 	const	{return trail.size()-trail_lim.last();}
+inline int 		Solver::getNbOfRecentAssignments() 	const	{return trail_lim.size()==0?0:trail.size()-trail_lim.last();}
 
 //=================================================================================================
 // Debug + etc:
-
-
-#define reportf(format, args...) ( fflush(stdout), fprintf(stderr, format, ## args), fflush(stderr) )
 
 static inline void logLit(FILE* f, Lit l)
 {
