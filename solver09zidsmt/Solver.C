@@ -256,8 +256,7 @@ void Solver::backtrackTo(int level) {
 // Major methods:
 
 
-Lit Solver::pickBranchLit(int polarity_mode, double random_var_freq)
-{
+Lit Solver::pickBranchLit(int polarity_mode, double random_var_freq){
     Var next = var_Undef;
 
     // Random decision:
@@ -274,15 +273,19 @@ Lit Solver::pickBranchLit(int polarity_mode, double random_var_freq)
         }else
             next = order_heap.removeMin();
 
-    bool sign = false;
-    switch (polarity_mode){
-    case polarity_true:  sign = false; break;
-    case polarity_false: sign = true;  break;
-    case polarity_stored:  sign = polarity[next]; break; /* MODIFIED 2009 */
-    case polarity_rnd:   sign = irand(random_seed, 2); break;
-    default: assert(false); }
+    if(next==var_Undef){ //bug otherwise with polarity_stored
+    	return lit_Undef;
+    }else{
+        bool sign = false;
+        switch (polarity_mode){
+        case polarity_true:  sign = false; break;
+        case polarity_false: sign = true;  break;
+        case polarity_stored:  sign = polarity[next]; break; /* MODIFIED 2009 */
+        case polarity_rnd:   sign = irand(random_seed, 2); break;
+        default: assert(false); }
 
-    return next == var_Undef ? lit_Undef : Lit(next, sign);
+        return Lit(next, sign);
+    }
 }
 
 
@@ -1097,13 +1100,13 @@ bool Solver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 				}
 			}
 
-			//if(verbosity>2){
+			if(verbosity>2){
 				printf("Temporary model: \n");
 				for (int i = 0; i < nVars(); i++){
 					printf("%s%s%d", (i == 0) ? "" : " ", !sign(m[i]) ? "" : "-", i + 1);
 				}
 				printf(" 0\n");
-			//}
+			}
 
 		}else if(!rslt){
 			optimumreached = true;
