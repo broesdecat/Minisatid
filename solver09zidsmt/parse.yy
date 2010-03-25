@@ -63,7 +63,7 @@ void error(bool during_parsing, const char * msg) {
 }
 
 // If an unforeseen parse error occurs, it calls this function (e.g. with msg="syntax error")
-void yyerror(char* msg) {
+void yyerror(const char* msg) {
 	error(true, msg);
 }
 

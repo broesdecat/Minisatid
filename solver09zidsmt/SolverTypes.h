@@ -102,7 +102,7 @@ const lbool l_Undef = toLbool( 0);
 class Clause {
     uint32_t size_etc;
     union { float act; uint32_t abst; } extra;
-    Lit     data[];
+    Lit     data[1];
 
 public:
     void calcAbstraction() {
@@ -123,7 +123,7 @@ public:
     friend Clause* Clause_new(const V& ps, bool learnt = false) {
         assert(sizeof(Lit)      == sizeof(uint32_t));
         assert(sizeof(float)    == sizeof(uint32_t));
-        void* mem = malloc(sizeof(Clause) + sizeof(uint32_t)*(ps.size()));
+        void* mem = malloc(sizeof(Clause) + sizeof(uint32_t)*(ps.size()-1));
         return new (mem) Clause(ps, learnt); }
 
     int          size        ()      const   { return size_etc >> 3; }

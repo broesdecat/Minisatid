@@ -74,7 +74,8 @@ static inline int memReadStat(int field)
     if (in == NULL) return 0;
     int     value;
     for (; field >= 0; field--)
-        fscanf(in, "%d", &value);
+    	read = fscanf(in, "%d", &value);
+    	if(read==EOF){ break; }
     fclose(in);
     return value;
 }
@@ -156,6 +157,8 @@ public:
 	bool    solve		();		// Search for nb_models models without assumptions.
 	void 	printModel	();
 
+    int 	getNbOfLearnts() const;
+
     // Constructor/Destructor:
     //
 	Solver();
@@ -188,7 +191,6 @@ public:
     bool      expensive_ccmin;    // Controls conflict clause minimization.                                                    (default TRUE)
     int       polarity_mode;      // Controls which polarity the decision heuristic chooses. See enum below for allowed modes. (default polarity_false)
     int       verbosity;          // Verbosity level. 0=silent, 1=some progress report
-    double    random_seed;        // Used by the random variable selection.
 
 	/* Modified 2009 */
 	int restartLess;
@@ -209,6 +211,8 @@ public:
     void     printLit         (Lit l);
     template<class C>
     void     printClause      (const C& c);
+
+    void     reduceDB         ();                                                      // Reduce the set of learnt clauses.
 
 protected:
     int			qhead;            // Head of queue (as index into the trail -- no more explicit propagation queue in MiniSat).
@@ -255,9 +259,10 @@ protected:
     vec<Clause*>        reason;           // 'reason[var]' is the clause that implied the variables current value, or 'NULL' if none.
     int                 simpDB_assigns;   // Number of top-level assignments since last execution of 'simplify()'.
     int64_t             simpDB_props;     // Remaining number of propagations that must be made before next execution of 'simplify()'.
+    double    random_seed;        // Used by the random variable selection.
     vec<Lit>            assumptions;      // Current set of assumptions provided to solve by the user.
-    Heap<VarOrderLt>    order_heap;       // A priority queue of variables ordered with respect to the variable activity.
     double              progress_estimate;// Set by 'search()'.
+    Heap<VarOrderLt>    order_heap;       // A priority queue of variables ordered with respect to the variable activity.
 
     lbool   modelValue (Lit p) const;       // The value of a literal in the last model. The last call to solve must have been satisfiable.
     int     nClauses   ()      const;       // The current number of original clauses.
@@ -282,7 +287,6 @@ protected:
     void     analyzeFinal     (Lit p, vec<Lit>& out_conflict);                         // COULD THIS BE IMPLEMENTED BY THE ORDINARIY "analyze" BY SOME REASONABLE GENERALIZATION?
     bool     litRedundant     (Lit p, uint32_t abstract_levels);                       // (helper method for 'analyze()')
     lbool    search           ();                    // Search for a given number of conflicts.
-    void     reduceDB         ();                                                      // Reduce the set of learnt clauses.
     void     removeSatisfied  (vec<Clause*>& cs);                                      // Shrink 'cs' to contain only non-satisfied clauses.
 
     // Maintaining Variable/Clause activity:
@@ -371,6 +375,8 @@ inline bool     Solver::okay          ()      const   { return ok; }
 inline int		Solver::getLevel(int var)			const	{return level[var];}
 inline Lit	 	Solver::getRecentAssignments(int i) const	{return trail[i+trail_lim.last()];}
 inline int 		Solver::getNbOfRecentAssignments() 	const	{return trail_lim.size()==0?0:trail.size()-trail_lim.last();}
+
+inline int 		Solver::getNbOfLearnts() 			const 	{ return learnts.size()-nAssigns(); }
 
 //=================================================================================================
 // Debug + etc:

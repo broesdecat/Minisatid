@@ -39,10 +39,28 @@ void 		printStats		(pSolver solver);
 static void SIGINT_handler	(int signum);
 void 		printUsage		(char** argv);
 
+
+wpSolver wps;
 void		noMoreMem(){
-	//TODO in the future, delete half of learned clauses here
-	reportf("There is no more memory to allocate, program aborting.\n");
-	exit(3);
+	//Tries to reduce the memory of the solver by reducing the number of learned clauses
+	//This keeps being called until enough memory is free or no more learned clauses can be/are deleted (causing abort).
+	bool reducedmem = false;
+	pSolver s = wps.lock();
+	if(s.get()!=NULL){
+		int before = s->getNbOfLearnts();
+		if(before > 0){
+			s->reduceDB();
+			int after = s->getNbOfLearnts();
+			if(after<before){
+				reducedmem = true;
+			}
+		}
+	}
+
+	if(!reducedmem){
+		reportf("There is no more memory to allocate, program aborting.\n");
+		exit(3);
+	}
 }
 
 int main(int argc, char** argv) {
@@ -51,6 +69,7 @@ int main(int argc, char** argv) {
 	std::set_new_handler(noMoreMem);
 
 	pSolver		S(new Solver());
+	wps = wpSolver(S);
 	pIDSolver	TS(new IDSolver());
 	pAggSolver	AggS(new AggSolver());
     initSolvers(S, TS, AggS);

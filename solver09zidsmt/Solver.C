@@ -32,10 +32,7 @@ extern ECNF_mode modes;
 
 Solver::Solver() :
 	optim(NONE), head(0),
-
-	ok(true),
-	remove_satisfied(false),
-	qhead(0),
+	res(NULL), nb_models(1), modelsfound(0),
 
 	// Parameters: (formerly in 'SearchParams')
 	var_decay(1 / 0.95),
@@ -63,6 +60,10 @@ Solver::Solver() :
 	learnts_literals(0),
 	max_literals(0),
 	tot_literals(0),
+
+	qhead(0),
+	ok(true),
+	remove_satisfied(false),
 
 	cla_inc(1), var_inc(1), simpDB_assigns(-1),
 	simpDB_props(0), random_seed(91648253),

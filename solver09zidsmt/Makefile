@@ -3,7 +3,7 @@ CHDRS     = $(wildcard *.h) $(wildcard $(MTL)/*.h) $(wildcard aggs/*.h) $(wildca
 CSRCS     = $(wildcard *.C) $(wildcard aggs/*.C)  $(wildcard bigint/*.C)
 EXEC      = minisat
 CFLAGS    = -I$(MTL) -I/export/home1/NoCsBack/dtai/broes/include -Iaggs \
-						-Ibigint -I../solver09zidsmt -Wall -ffloat-store #-pedantic #-fno-strict-aliasing
+						-Ibigint -I../solver09zidsmt -Wall -ffloat-store -pedantic -Wno-variadic-macros #-fno-strict-aliasing
 LFLAGS    = -lz
 
 include ../mtl/template2.mk

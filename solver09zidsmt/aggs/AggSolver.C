@@ -121,8 +121,8 @@ void AggSolver::finishSets(vector<pSet>& sets){
 				greportf(3, "Set is empty after initialization, so deleted.\n");
 			}else{
 				int index = 0;
-				for (lwlv::const_iterator i = s->getWLBegin(); i < s->getWLEnd(); i++, index++){
-					aggr_watches[var((*i).getLit())].push_back(AggrWatch(pSet(s), index, sign((*i).getLit()) ? NEG : POS));
+				for (lwlv::const_iterator j = s->getWLBegin(); j < s->getWLEnd(); j++, index++){
+					aggr_watches[var((*j).getLit())].push_back(AggrWatch(pSet(s), index, sign((*j).getLit()) ? NEG : POS));
 				}
 				i++;
 			}

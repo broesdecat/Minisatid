@@ -35,13 +35,13 @@ AggrMaxSet::AggrMaxSet(const vec<Lit>& lits, const vector<Weight>& weights, weak
 }
 
 AggrSPSet::AggrSPSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s):
-		AggrSet(lits, weights, s){};
+		AggrSet(lits, weights, s){}
 
 AggrSumSet::AggrSumSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s):
 		AggrSPSet(lits, weights, s){
 	name = "SUM";
 	emptysetvalue = 0;
-};
+}
 
 AggrProdSet::AggrProdSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s):
 		AggrSPSet(lits, weights, s){
@@ -132,8 +132,6 @@ void AggrSet::doSetReduction() {
 
 void AggrSet::initialize(){
 	doSetReduction();
-
-	reportf("Bestpossible is %s\n", bigIntegerToString(getBestPossible()).c_str());
 
 	setCP(getBestPossible());
 	setCC(getEmptySetValue());
