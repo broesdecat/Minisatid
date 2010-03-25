@@ -29,4 +29,6 @@ inline void gprintLit(const Lit& l){
 	reportf("%s%d", (sign(l) ? "-" : ""), gprintVar(var(l)));
 }
 
+void noMoreMem();
+
 #endif /* DEBUG_H_ */

@@ -11,6 +11,8 @@
 #include "IDSolver.h"
 #include "AggSolver.h"
 
+#include "debug.h"
+
 #if defined(__linux__)
 #include <fpu_control.h>
 #endif
@@ -37,8 +39,16 @@ void 		printStats		(pSolver solver);
 static void SIGINT_handler	(int signum);
 void 		printUsage		(char** argv);
 
+void		noMoreMem(){
+	//TODO in the future, delete half of learned clauses here
+	reportf("There is no more memory to allocate, program aborting.\n");
+	exit(3);
+}
+
 int main(int argc, char** argv) {
 	greportf(1, "This is MiniSAT-SMT 1.0\n");
+
+	std::set_new_handler(noMoreMem);
 
 	pSolver		S(new Solver());
 	pIDSolver	TS(new IDSolver());
@@ -112,13 +122,18 @@ int main(int argc, char** argv) {
 		printStats(S);
 	}catch(bad_alloc e){ //FIXME: handle all these elegantly
 		reportf("Memory overflow, cannot continue solving.\n"); exit(3);
-	}catch(UNSAT){
-		reportf("Always UNSAT\n");
+	}catch(UNSAT e2){
+		reportf("%s\n", e2.what());
 		ret = false;
-	}catch(NoDefAllowedExc){
-		reportf("Theory header did not contain definition specifier, but the theory contained definitions.\n"); exit(3);
-	}catch(NoAggrAllowedExc){
-		reportf("Theory header did not contain aggregate specifier, but the theory contained aggregates.\n"); exit(3);
+	}catch(NoDefAllowedExc e3){
+		reportf("%s\n", e3.what());
+		exit(3);
+	}catch(NoAggrAllowedExc e4){
+		reportf("%s\n", e4.what());
+		exit(3);
+	}catch(int ex){
+		reportf("Unexpected exception thrown as int with code %d\n", ex);
+		exit(3);
 	}
 
 #ifdef NDEBUG

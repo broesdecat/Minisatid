@@ -107,21 +107,24 @@ bool AggSolver::finishECNF_DataStructures() {
 }
 
 void AggSolver::finishSets(vector<pSet>& sets){
-	for(vector<pSet>::iterator i=sets.begin(); i<sets.end(); i++){
+	for(vector<pSet>::iterator i=sets.begin(); i<sets.end(); ){
 		pSet s = *i;
 		if(s->nbAgg()==0){
 			delete *i;
-			sets.erase(i);
+			i = sets.erase(i);
+			greportf(3, "Set is empty, so deleted.\n");
 		}else{
 			s->initialize();
 			if(s->nbAgg()==0){
 				delete *i;
-				sets.erase(i);
+				i = sets.erase(i);
+				greportf(3, "Set is empty after initialization, so deleted.\n");
 			}else{
 				int index = 0;
 				for (lwlv::const_iterator i = s->getWLBegin(); i < s->getWLEnd(); i++, index++){
 					aggr_watches[var((*i).getLit())].push_back(AggrWatch(pSet(s), index, sign((*i).getLit()) ? NEG : POS));
 				}
+				i++;
 			}
 		}
 	}

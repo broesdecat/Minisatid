@@ -132,6 +132,9 @@ void AggrSet::doSetReduction() {
 
 void AggrSet::initialize(){
 	doSetReduction();
+
+	reportf("Bestpossible is %s\n", bigIntegerToString(getBestPossible()).c_str());
+
 	setCP(getBestPossible());
 	setCC(getEmptySetValue());
 

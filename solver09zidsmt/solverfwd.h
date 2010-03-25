@@ -16,11 +16,31 @@
 #include "idsolvertypes.h"
 #include "AggTypes.h"
 
-class ParseExc: public std::exception{ };
-class NoDefAllowedExc: public ParseExc{ };
-class NoAggrAllowedExc: public ParseExc{ };
+class ParseExc: public std::exception{
+public:
+	virtual const char* what() const throw(){
+		return "Parse exception";
+	}
+};
+class NoDefAllowedExc: public ParseExc{
+public:
+	virtual const char* what() const throw(){
+		return "Definition found but not definition allowed by header";
+	}
+};
+class NoAggrAllowedExc: public ParseExc{
+public:
+	virtual const char* what() const throw(){
+		return "Aggregate found but not aggregates allowed by header";
+	}
+};
 
-class UNSAT: public std::exception { };
+class UNSAT: public std::exception {
+public:
+	virtual const char* what() const throw(){
+		return "UNSAT exception";
+	}
+};
 
 extern int verbosity;
 

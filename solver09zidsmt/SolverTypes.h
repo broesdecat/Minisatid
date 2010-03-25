@@ -25,9 +25,6 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <stdint.h>
 #include "Alg.h"
 
-#define theoryUNSAT 20
-#define memOVERFLOW 33
-
 //=================================================================================================
 // Variables, literals, lifted booleans, clauses:
 
@@ -105,7 +102,7 @@ const lbool l_Undef = toLbool( 0);
 class Clause {
     uint32_t size_etc;
     union { float act; uint32_t abst; } extra;
-    Lit     data[0];
+    Lit     data[];
 
 public:
     void calcAbstraction() {
