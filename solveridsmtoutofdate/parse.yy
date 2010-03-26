@@ -5,16 +5,13 @@
 #include <vector>
 #include <list>
 #include <map>
+	
+#include "solverfwd.h"
 #include "Solver.h"
 #include "IDSolver.h"
 #include "AggSolver.h"
 #include "Vec.h"
-#include <boost/smart_ptr/shared_ptr.hpp>
-#include <boost/smart_ptr/weak_ptr.hpp>
-#include <boost/smart_ptr/enable_shared_from_this.hpp>
 	
-using namespace std;
-using namespace boost;
 using namespace Aggrs;
 
 extern ECNF_mode modes;
@@ -63,7 +60,7 @@ void error(bool during_parsing, const char * msg) {
 }
 
 // If an unforeseen parse error occurs, it calls this function (e.g. with msg="syntax error")
-void yyerror(char* msg) {
+void yyerror(const char* msg) {
 	error(true, msg);
 }
 

@@ -9,9 +9,6 @@
 #include "AggTypes.h"
 #include "Vec.h"
 
-using namespace std;
-using namespace boost;
-
 namespace Aggrs{
 
 class Agg;
@@ -48,10 +45,11 @@ public:
 
     Agg(bool lower, Weight bound, Lit head, const pSet& set) :
 	    bound(bound), lower(lower),
-	    nomoreprops(false), headprop(false),
-	    head(head), headindex(-1), headvalue(l_Undef), set(set),
-	    optimagg(false){
+	    nomoreprops(false), headprop(false), optimagg(false),
+	    head(head), headindex(-1), headvalue(l_Undef), set(set){
     }
+
+    virtual ~Agg(){}
 
     /**
      * GET-SET METHODS

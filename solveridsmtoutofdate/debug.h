@@ -14,8 +14,8 @@
  * DEBUGGING INFO *
  ******************/
 
-#define reportf(format, args...) ( fflush(stdout), fprintf(stderr, format, ## args), fflush(stderr) )
-#define greportf(ver, format, args...) ( verbosity>=ver?fflush(stdout), fprintf(stderr, format, ## args), fflush(stderr):true )
+#define reportf(...) ( fflush(stdout), fprintf(stderr, __VA_ARGS__), fflush(stderr) )
+#define greportf(ver, ...) ( verbosity>=ver?fflush(stdout), fprintf(stderr, __VA_ARGS__), fflush(stderr):true )
 
 inline int gprintVar(Var v){
 	return v+1;
@@ -28,5 +28,7 @@ inline void gprintLit(const Lit& l, const lbool val){
 inline void gprintLit(const Lit& l){
 	reportf("%s%d", (sign(l) ? "-" : ""), gprintVar(var(l)));
 }
+
+void noMoreMem();
 
 #endif /* DEBUG_H_ */

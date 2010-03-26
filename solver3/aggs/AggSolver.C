@@ -1,7 +1,6 @@
 #include "AggSolver.h"
-
-#include "Solver.h"
-#include "IDSolver.h"
+#include "../Solver.h"
+#include "../IDSolver.h"
 
 #include "Agg.h"
 #include "AggSets.h"
@@ -12,7 +11,6 @@ typedef shared_ptr<AggSolver> pAggSolver;
 typedef weak_ptr<AggSolver> wpAggSolver;
 typedef shared_ptr<Solver> pSolver;
 typedef weak_ptr<Solver> wpSolver;
-
 
 #include <algorithm>
 
@@ -107,21 +105,24 @@ bool AggSolver::finishECNF_DataStructures() {
 }
 
 void AggSolver::finishSets(vector<pSet>& sets){
-	for(vector<pSet>::iterator i=sets.begin(); i<sets.end(); i++){
+	for(vector<pSet>::iterator i=sets.begin(); i<sets.end(); ){
 		pSet s = *i;
 		if(s->nbAgg()==0){
 			delete *i;
-			sets.erase(i);
+			i = sets.erase(i);
+			greportf(3, "Set is empty, so deleted.\n");
 		}else{
 			s->initialize();
 			if(s->nbAgg()==0){
 				delete *i;
-				sets.erase(i);
+				i = sets.erase(i);
+				greportf(3, "Set is empty after initialization, so deleted.\n");
 			}else{
 				int index = 0;
-				for (lwlv::const_iterator i = s->getWLBegin(); i < s->getWLEnd(); i++, index++){
-					aggr_watches[var((*i).getLit())].push_back(AggrWatch(pSet(s), index, sign((*i).getLit()) ? NEG : POS));
+				for (lwlv::const_iterator j = s->getWLBegin(); j < s->getWLEnd(); j++, index++){
+					aggr_watches[var((*j).getLit())].push_back(AggrWatch(pSet(s), index, sign((*j).getLit()) ? NEG : POS));
 				}
+				i++;
 			}
 		}
 	}
@@ -129,7 +130,7 @@ void AggSolver::finishSets(vector<pSet>& sets){
 
 void AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 	assert(set_id>0);
-	uint setindex = set_id-1;
+	int setindex = set_id-1;
 	if(lits.size()==0){
 		reportf("Error: Set nr. %d is empty.\n",set_id), exit(3);
 	}
@@ -140,7 +141,8 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 	vector<Weight> weights2; //inverted weights to handle minimum as maximum
 	for(vector<Weight>::iterator i=weights.begin(); i<weights.end(); i++){
 		if (*i < 0) {
-			reportf("Error: Set nr. %d contains a negative weight, %s.\n",set_id,bigIntegerToString(*i).c_str()), exit(3);
+			//reportf("Error: Set nr. %d contains a negative weight, %s.\n",set_id,bigIntegerToString(*i).c_str()), exit(3);
+			reportf("Error: Set nr. %d contains a negative weight, %d.\n",set_id,*i), exit(3);
 		}
 
 		weights2.push_back(-Weight(*i));
@@ -151,7 +153,8 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 		reportf("Added set %d: ", set_id);
 		vector<Weight>::iterator w=weights.begin();
 		for(int i=0; i<lits.size(); i++,w++){
-			reportf("%d=%s, ", gprintVar(var(lits[i])), bigIntegerToString(*w).c_str());
+			//reportf("%d=%s, ", gprintVar(var(lits[i])), bigIntegerToString(*w).c_str());
+			reportf("%d=%d, ", gprintVar(var(lits[i])), *w);
 		}
 		reportf("\n");
 	}
@@ -184,7 +187,7 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 	//the head of the aggregate
 	Lit head = Lit(headv, false);
 	assert(setid>0);
-	uint setindex = setid-1;
+	int setindex = setid-1;
 
 	//add if really useful varBumpActivity(var(c)); // These guys ought to be initially a bit more important then the rest.
 
@@ -230,7 +233,8 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 	aggregates.push_back(ae);
 
 	if(verbosity>=5){
-		reportf("Added %s aggregate with head %d on set %d, %s %s of type %s.\n", defined?"defined":"completion", gprintVar(headv), setid, lower?"AGG<=":"AGG>=", bigIntegerToString(bound).c_str(), ae->getSet()->getName().c_str());
+		//reportf("Added %s aggregate with head %d on set %d, %s %s of type %s.\n", defined?"defined":"completion", gprintVar(headv), setid, lower?"AGG<=":"AGG>=", bigIntegerToString(bound).c_str(), ae->getSet()->getName().c_str());
+		reportf("Added %s aggregate with head %d on set %d, %s %d of type %s.\n", defined?"defined":"completion", gprintVar(headv), setid, lower?"AGG <=":"AGG >=", bound, ae->getSet()->getName().c_str());
 	}
 }
 
@@ -253,9 +257,8 @@ void AggSolver::addMnmzSum(Var headv, int setid, bool lower) {
 	//the head of the aggregate
 	Lit head = Lit(headv, false);
 	assert(setid>0);
-	uint setindex = setid-1;
 
-	pAgg ae = new SumAgg(lower, lower?INT_MAX:INT_MIN, head, pSet(aggrsumsets[setindex]));
+	pAgg ae = new SumAgg(lower, lower?INT_MAX:INT_MIN, head, pSet(aggrsumsets[setid-1]));
 	ae->setOptimAgg(); //FIXME temporary solution
 	aggregates.push_back(ae);
 	head_watches[var(head)] = ae;
@@ -506,7 +509,8 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head){
 	pSet s = a->getSet();
 
 	if(verbosity>0){
-		reportf("Current optimum: %s\n", bigIntegerToString(s->getCC()).c_str());
+		//reportf("Current optimum: %s\n", bigIntegerToString(s->getCC()).c_str());
+		reportf("Current optimum: %d\n", s->getCC());
 	}
 
 	a->setBound(s->getCC() + 1);
@@ -534,14 +538,14 @@ void AggSolver::printAggrExpr(pAgg ae){
 	if(ae->isLower()){
 		reportf(" <- %s{", set->getName().c_str());
 	}else{
-		reportf(" <- %s <= %s{", bigIntegerToString(ae->getBound()).c_str(), set->getName().c_str());
+		reportf(" <- %d <= %s{", ae->getBound(), set->getName().c_str());
 	}
 	for (lwlv::const_iterator i=set->getWLBegin(); i<set->getWLEnd(); ++i) {
-		reportf(" "); gprintLit((*i).getLit(), (*i).getValue()); reportf("(%s)",bigIntegerToString((*i).getWeight()).c_str());
+		reportf(" "); gprintLit((*i).getLit(), (*i).getValue()); reportf("(%d)",(*i).getWeight());
 	}
 	if(ae->isLower()){
-		reportf(" } <= %s. Known values: bestcertain=%s, bestpossible=%s\n", bigIntegerToString(ae->getBound()).c_str(), bigIntegerToString(set->getCC()).c_str(), bigIntegerToString(set->getCP()).c_str());
+		reportf(" } <= %d. Known values: bestcertain=%d, bestpossible=%d\n", ae->getBound(), set->getCC(), set->getCP());
 	}else{
-		reportf(" }. Known values: bestcertain=%s, bestpossible=%s\n", bigIntegerToString(set->getCC()).c_str(), bigIntegerToString(set->getCP()).c_str());
+		reportf(" }. Known values: bestcertain=%d, bestpossible=%d\n", set->getCC(), set->getCP());
 	}
 }

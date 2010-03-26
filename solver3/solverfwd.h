@@ -8,19 +8,42 @@
 #ifndef SOLVERFWD_H_
 #define SOLVERFWD_H_
 
-#include <boost/smart_ptr/shared_ptr.hpp>
+/*#include <boost/smart_ptr/shared_ptr.hpp>
 #include <boost/smart_ptr/weak_ptr.hpp>
-#include <boost/smart_ptr/enable_shared_from_this.hpp>
+#include <boost/smart_ptr/enable_shared_from_this.hpp>*/
+
+#include <tr1/memory>
 
 #include "SolverTypes.h"
-#include "idsolvertypes.h"
+#include "IDTypes.h"
 #include "AggTypes.h"
+#include "debug.h"
 
-class ParseExc: public std::exception{ };
-class NoDefAllowedExc: public ParseExc{ };
-class NoAggrAllowedExc: public ParseExc{ };
+class ParseExc: public std::exception{
+public:
+	virtual const char* what() const throw(){
+		return "Parse exception";
+	}
+};
+class NoDefAllowedExc: public ParseExc{
+public:
+	virtual const char* what() const throw(){
+		return "Definition found but not definition allowed by header";
+	}
+};
+class NoAggrAllowedExc: public ParseExc{
+public:
+	virtual const char* what() const throw(){
+		return "Aggregate found but not aggregates allowed by header";
+	}
+};
 
-class UNSAT: public std::exception { };
+class UNSAT: public std::exception {
+public:
+	virtual const char* what() const throw(){
+		return "UNSAT exception";
+	}
+};
 
 extern int verbosity;
 

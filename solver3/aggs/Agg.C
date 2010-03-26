@@ -1,9 +1,9 @@
-#include "Agg.h"
+#include <math.h>
 #include <algorithm>
 
+#include "Agg.h"
 #include "AggSets.h"
 #include "AggSolver.h"
-#include <math.h>
 
 using namespace Aggrs;
 
@@ -28,6 +28,7 @@ bool Agg::initialize(){
 	lbool hv = canPropagateHead();
 	if(hv!=l_Undef && !optimagg){
 		nomoreprops = true;
+		//reportf("No more propagations for %d", gprintVar(var(head)));
 	}
 	if(hv==l_True){
 		confl = getSet()->getSolver()->notifySATsolverOfPropagation(head, new AggrReason(this, true));
@@ -257,13 +258,22 @@ void Agg::getExplanation(vec<Lit>& lits, AggrReason& ar) const{
 
 	int counter = 0;
 	pSet s = set;
+
+	assert(ar.isHeadReason() || ar.getIndex()<=s->getStackSize());
+
 	for(lprop::const_iterator i=s->getStackBegin(); counter<ar.getIndex() && i<s->getStackEnd(); i++,counter++){
 		lits.push(~(*i).getLit());
 	}
 
 	if(verbosity>=5){
 		reportf("Aggregate explanation for ");
-		gprintLit((*(s->getStackBegin()+ar.getIndex()-1)).getLit());
+		if(ar.isHeadReason()){
+			gprintLit(getHead());
+		}else{
+
+			gprintLit((*(s->getStackBegin()+ar.getIndex()-1)).getLit());
+		}
+
 		reportf(" is");
 		for(int i=0; i<lits.size(); i++){
 			reportf(" ");

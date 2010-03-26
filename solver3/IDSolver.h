@@ -13,8 +13,6 @@
 #include "Heap.h"
 
 #include "solverfwd.h"
-#include "debug.h"
-
 #include "Solver.h"
 #include "AggSolver.h"
 
