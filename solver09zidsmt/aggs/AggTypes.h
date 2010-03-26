@@ -14,7 +14,7 @@ using namespace tr1;
 
 #include "BigInteger.hh"
 #include "BigIntegerUtils.hh"
-typedef BigInteger Weight;
+typedef int Weight;
 
 namespace Aggrs{
 class WLV;
