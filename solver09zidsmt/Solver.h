@@ -67,15 +67,17 @@ static inline double cpuTime(void) {
 #if defined(__linux__)
 static inline int memReadStat(int field)
 {
+	int read;
     char    name[256];
     pid_t pid = getpid();
     sprintf(name, "/proc/%d/statm", pid);
     FILE*   in = fopen(name, "rb");
     if (in == NULL) return 0;
     int     value;
-    for (; field >= 0; field--)
+    for (; field >= 0; field--){
     	read = fscanf(in, "%d", &value);
     	if(read==EOF){ break; }
+    }
     fclose(in);
     return value;
 }

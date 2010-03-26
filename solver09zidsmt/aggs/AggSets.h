@@ -9,9 +9,6 @@
 #include "AggTypes.h"
 #include "Vec.h"
 
-using namespace std;
-using namespace boost;
-
 class AggSolver;
 typedef shared_ptr<AggSolver> pAggSolver;
 typedef weak_ptr<AggSolver> wpAggSolver;
@@ -40,6 +37,7 @@ protected:
 
 public:
     AggrSet(const vec<Lit>& lits, const vector<Weight>& weights, wpAggSolver s);
+    virtual ~AggrSet(){}
 
 	void 			initialize();
 	Clause* 		propagate(const Lit& p, const AggrWatch& ws);

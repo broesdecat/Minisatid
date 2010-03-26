@@ -37,26 +37,26 @@ libd:	lib$(LIB)d.a
 
 ## Compile options
 %.o:		CFLAGS +=$(COPTIMIZE) -ggdb -D DEBUG
-%.occ:	CFLAGS +=-O0 -fprofile-arcs -ftest-coverage -ggdb -D DEBUG # -D INVARIANTS
 %.op:		CFLAGS +=$(COPTIMIZE) -pg -ggdb -D NDEBUG
 %.od:		CFLAGS +=-O0 -ggdb -D DEBUG # -D INVARIANTS
 %.or:		CFLAGS +=$(COPTIMIZE) -D NDEBUG
+%.occ:	CFLAGS +=-O0 -fprofile-arcs -ftest-coverage -ggdb -D DEBUG # -D INVARIANTS
 
 ## Link options
-$(EXEC):			LFLAGS := -ggdb $(LFLAGS)
+$(EXEC):					LFLAGS := -ggdb $(LFLAGS)
 $(EXEC)_codecover: 	LFLAGS := -ggdb -lgcov $(LFLAGS)
-$(EXEC)_profile:	LFLAGS := -ggdb -pg $(LFLAGS)
-$(EXEC)_debug:		LFLAGS := -ggdb $(LFLAGS)
-$(EXEC)_release:	LFLAGS := $(LFLAGS)
+$(EXEC)_profile:		LFLAGS := -ggdb -pg $(LFLAGS)
+$(EXEC)_debug:			LFLAGS := -ggdb $(LFLAGS)
+$(EXEC)_release:		LFLAGS := $(LFLAGS)
 $(EXEC)_static:		LFLAGS := --static $(LFLAGS)
 
 ## Dependencies
-$(EXEC):			$(COBJS)
-$(EXEC)_codecover:	$(CCCOBJS)
-$(EXEC)_profile:	$(PCOBJS)
-$(EXEC)_debug:		$(DCOBJS)
-$(EXEC)_release:	$(RCOBJS)
+$(EXEC):					$(COBJS)
+$(EXEC)_profile:		$(PCOBJS)
+$(EXEC)_debug:			$(DCOBJS)
+$(EXEC)_release:		$(RCOBJS)
 $(EXEC)_static:		$(RCOBJS)
+$(EXEC)_codecover:	$(CCCOBJS)
 
 lib$(LIB).a:	$(filter-out Main.or, $(RCOBJS))
 lib$(LIB)d.a:	$(filter-out Main.od, $(DCOBJS))

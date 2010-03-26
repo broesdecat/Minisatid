@@ -5,16 +5,13 @@
 #include <vector>
 #include <list>
 #include <map>
+	
+#include "solverfwd.h"
 #include "Solver.h"
 #include "IDSolver.h"
 #include "AggSolver.h"
 #include "Vec.h"
-#include <boost/smart_ptr/shared_ptr.hpp>
-#include <boost/smart_ptr/weak_ptr.hpp>
-#include <boost/smart_ptr/enable_shared_from_this.hpp>
 	
-using namespace std;
-using namespace boost;
 using namespace Aggrs;
 
 extern ECNF_mode modes;

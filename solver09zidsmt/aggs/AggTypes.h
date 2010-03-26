@@ -6,15 +6,11 @@
 #include <set>
 #include <iostream>
 
-#include <boost/smart_ptr/shared_ptr.hpp>
-#include <boost/smart_ptr/weak_ptr.hpp>
-#include <boost/smart_ptr/enable_shared_from_this.hpp>
-
 #include "SolverTypes.h"
 #include "solverfwd.h"
 
 using namespace std;
-using namespace boost;
+using namespace tr1;
 
 #include "BigInteger.hh"
 #include "BigIntegerUtils.hh"

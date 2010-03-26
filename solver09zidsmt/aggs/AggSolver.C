@@ -132,7 +132,7 @@ void AggSolver::finishSets(vector<pSet>& sets){
 
 void AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 	assert(set_id>0);
-	uint setindex = set_id-1;
+	int setindex = set_id-1;
 	if(lits.size()==0){
 		reportf("Error: Set nr. %d is empty.\n",set_id), exit(3);
 	}
@@ -187,7 +187,7 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 	//the head of the aggregate
 	Lit head = Lit(headv, false);
 	assert(setid>0);
-	uint setindex = setid-1;
+	int setindex = setid-1;
 
 	//add if really useful varBumpActivity(var(c)); // These guys ought to be initially a bit more important then the rest.
 
@@ -256,9 +256,8 @@ void AggSolver::addMnmzSum(Var headv, int setid, bool lower) {
 	//the head of the aggregate
 	Lit head = Lit(headv, false);
 	assert(setid>0);
-	uint setindex = setid-1;
 
-	pAgg ae = new SumAgg(lower, lower?INT_MAX:INT_MIN, head, pSet(aggrsumsets[setindex]));
+	pAgg ae = new SumAgg(lower, lower?INT_MAX:INT_MIN, head, pSet(aggrsumsets[setid-1]));
 	ae->setOptimAgg(); //FIXME temporary solution
 	aggregates.push_back(ae);
 	head_watches[var(head)] = ae;

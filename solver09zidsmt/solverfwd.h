@@ -8,9 +8,11 @@
 #ifndef SOLVERFWD_H_
 #define SOLVERFWD_H_
 
-#include <boost/smart_ptr/shared_ptr.hpp>
+/*#include <boost/smart_ptr/shared_ptr.hpp>
 #include <boost/smart_ptr/weak_ptr.hpp>
-#include <boost/smart_ptr/enable_shared_from_this.hpp>
+#include <boost/smart_ptr/enable_shared_from_this.hpp>*/
+
+#include <tr1/memory>
 
 #include "SolverTypes.h"
 #include "idsolvertypes.h"
