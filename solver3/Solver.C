@@ -1026,9 +1026,12 @@ bool Solver::findNext(const vec<Lit>& assmpt, vec<Lit>& m){
 
 		printModel();
 
+		m.clear();
 		for (int i = 0; i < nVars(); i++){
-			if (model[i] != l_Undef){
-				m.push(model[i]==l_True?Lit(i, false):Lit(i, true));
+			if(value(i)==l_True){
+				m.push(Lit(i, false));
+			}else if(value(i)==l_False){
+				m.push(Lit(i, true));
 			}
 		}
 
@@ -1068,8 +1071,10 @@ bool Solver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 
 			m.clear();
 			for (int i = 0; i < nVars(); i++){
-				if (model[i] != l_Undef){
-					m.push(model[i]==l_True?Lit(i, false):Lit(i, true));
+				if(value(i)==l_True){
+					m.push(Lit(i, false));
+				}else if(value(i)==l_False){
+					m.push(Lit(i, true));
 				}
 			}
 
@@ -1099,10 +1104,10 @@ bool Solver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 				}
 			}
 
-			if(verbosity>2){
+			if(verbosity>0){
 				printf("Temporary model: \n");
-				for (int i = 0; i < nVars(); i++){
-					printf("%s%s%d", (i == 0) ? "" : " ", !sign(m[i]) ? "" : "-", i + 1);
+				for (int i = 0; i < m.size(); i++){
+					printf("%s%s%d", (i == 0) ? "" : " ", !sign(m[i]) ? "" : "-", gprintVar(var(m[i])));
 				}
 				printf(" 0\n");
 			}

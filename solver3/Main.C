@@ -255,6 +255,7 @@ void parseCommandline(const pSolver& S, const pIDSolver& TS, const pAggSolver& A
                 reportf("ERROR! illegal verbosity level %s\n", value);
                 exit(0); }
             verbosity = verb;
+            S->verbosity = verb;
         }else if (strncmp(&argv[i][0], "-n",2) == 0){
             char* endptr;
             modes.nbmodels = strtol(&argv[i][2], &endptr, 0);

@@ -18,13 +18,13 @@ typedef BigInteger Weight;
 #include "../debug.h"
 
 template <typename T>
-const char* printWeight(T w);
+string printWeight(const T& w);
+
+/*template <>
+string printWeight<int>(int w);*/
 
 template <>
-const char* printWeight<int>(int w);
-
-template <>
-const char* printWeight<BigInteger>(BigInteger w);
+string printWeight<BigInteger>(const BigInteger& w);
 
 namespace Aggrs{
 class WLV;
