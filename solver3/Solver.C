@@ -858,7 +858,7 @@ void Solver::addSumMinimize(const Var head, const int setid){
 	vec<Lit> cl;
 	cl.push(Lit(head, false));
 	addClause(cl);
-	getAggSolver()->addMnmzSum(head, setid, false);
+	getAggSolver()->addMnmzSum(head, setid, true);
 }
 
 void Solver::printModel(){
@@ -996,8 +996,6 @@ bool Solver::invalidateValue(vec<Lit>& invalidation){
 			invalidation.push(to_minimize[i]);
 		}
 	}
-
-
 
 	if(invalidation.size()==0){
 		return true; //optimum has already been found!!!

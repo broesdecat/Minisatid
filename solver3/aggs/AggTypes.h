@@ -11,9 +11,20 @@
 using namespace std;
 using namespace tr1;
 
-//#include "BigInteger.hh"
-//#include "BigIntegerUtils.hh"
-typedef int Weight;
+#include "BigInteger.hh"
+#include "BigIntegerUtils.hh"
+typedef BigInteger Weight;
+
+#include "../debug.h"
+
+template <typename T>
+const char* printWeight(T w);
+
+template <>
+const char* printWeight<int>(int w);
+
+template <>
+const char* printWeight<BigInteger>(BigInteger w);
 
 namespace Aggrs{
 class WLV;

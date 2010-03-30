@@ -142,7 +142,7 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 	for(vector<Weight>::iterator i=weights.begin(); i<weights.end(); i++){
 		if (*i < 0) {
 			//reportf("Error: Set nr. %d contains a negative weight, %s.\n",set_id,bigIntegerToString(*i).c_str()), exit(3);
-			reportf("Error: Set nr. %d contains a negative weight, %d.\n",set_id,*i), exit(3);
+			reportf("Error: Set nr. %d contains a negative weight, %s.\n",set_id,printWeight(*i)), exit(3);
 		}
 
 		weights2.push_back(-Weight(*i));
@@ -154,7 +154,7 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 		vector<Weight>::iterator w=weights.begin();
 		for(int i=0; i<lits.size(); i++,w++){
 			//reportf("%d=%s, ", gprintVar(var(lits[i])), bigIntegerToString(*w).c_str());
-			reportf("%d=%d, ", gprintVar(var(lits[i])), *w);
+			reportf("%d=%s, ", gprintVar(var(lits[i])), printWeight(*w));
 		}
 		reportf("\n");
 	}
@@ -234,7 +234,7 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 
 	if(verbosity>=5){
 		//reportf("Added %s aggregate with head %d on set %d, %s %s of type %s.\n", defined?"defined":"completion", gprintVar(headv), setid, lower?"AGG<=":"AGG>=", bigIntegerToString(bound).c_str(), ae->getSet()->getName().c_str());
-		reportf("Added %s aggregate with head %d on set %d, %s %d of type %s.\n", defined?"defined":"completion", gprintVar(headv), setid, lower?"AGG <=":"AGG >=", bound, ae->getSet()->getName().c_str());
+		reportf("Added %s aggregate with head %d on set %d, %s %s of type %s.\n", defined?"defined":"completion", gprintVar(headv), setid, lower?"AGG <=":"AGG >=", printWeight(bound), ae->getSet()->getName().c_str());
 	}
 }
 
@@ -508,12 +508,9 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head){
 	pAgg a = head_watches[head];
 	pSet s = a->getSet();
 
-	if(verbosity>0){
-		//reportf("Current optimum: %s\n", bigIntegerToString(s->getCC()).c_str());
-		reportf("Current optimum: %d\n", s->getCC());
-	}
+	greportf(0,"Current optimum: %s\n", printWeight(s->getCC()));
 
-	a->setBound(s->getCC() + 1);
+	a->setBound(s->getCC() - 1);
 
 	if(s->getBestPossible()==s->getCC()){
 		return true;
@@ -538,14 +535,14 @@ void AggSolver::printAggrExpr(pAgg ae){
 	if(ae->isLower()){
 		reportf(" <- %s{", set->getName().c_str());
 	}else{
-		reportf(" <- %d <= %s{", ae->getBound(), set->getName().c_str());
+		reportf(" <- %s <= %s{", printWeight(ae->getBound()), set->getName().c_str());
 	}
 	for (lwlv::const_iterator i=set->getWLBegin(); i<set->getWLEnd(); ++i) {
-		reportf(" "); gprintLit((*i).getLit(), (*i).getValue()); reportf("(%d)",(*i).getWeight());
+		reportf(" "); gprintLit((*i).getLit(), (*i).getValue()); reportf("(%s)",printWeight((*i).getWeight()));
 	}
 	if(ae->isLower()){
-		reportf(" } <= %d. Known values: bestcertain=%d, bestpossible=%d\n", ae->getBound(), set->getCC(), set->getCP());
+		reportf(" } <= %s. Known values: bestcertain=%s, bestpossible=%s\n", printWeight(ae->getBound()), printWeight(set->getCC()), printWeight(set->getCP()));
 	}else{
-		reportf(" }. Known values: bestcertain=%d, bestpossible=%d\n", set->getCC(), set->getCP());
+		reportf(" }. Known values: bestcertain=%s, bestpossible=%s\n", printWeight(set->getCC()), printWeight(set->getCP()));
 	}
 }

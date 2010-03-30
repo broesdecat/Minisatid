@@ -283,6 +283,10 @@ void Agg::getExplanation(vec<Lit>& lits, AggrReason& ar) const{
 	}
 }
 
+/**
+ * This method returns a reason clause that is currently false and that explains why the current optimizing
+ * sum aggregate is violated. This can serve as a learned clause to backtrack during optimization search.
+ */
 void SumAgg::getMinimExplan(vec<Lit>& lits){
 	pSet s = set;
 	Weight certainsum = s->getEmptySetValue();

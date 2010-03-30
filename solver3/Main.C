@@ -64,7 +64,8 @@ void		noMoreMem(){
 }
 
 int main(int argc, char** argv) {
-	greportf(1, "This is MiniSAT-SMT 1.0\n");
+	verbosity = 0;
+	greportf(0, "This is MiniSAT-SMT 1.0\n");
 
 	std::set_new_handler(noMoreMem);
 
