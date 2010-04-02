@@ -216,6 +216,13 @@ public:
 
     void     reduceDB         ();                                                      // Reduce the set of learnt clauses.
 
+    // Maintaining Variable/Clause activity:
+	//
+	void     varDecayActivity ();                      // Decay all variables with the specified factor. Implemented by increasing the 'bump' value instead.
+	void     varBumpActivity  (Var v);                 // Increase a variable with the current 'bump' value.
+	void     claDecayActivity ();                      // Decay all clauses with the specified factor. Implemented by increasing the 'bump' value instead.
+	void     claBumpActivity  (Clause& c);             // Increase a clause with the current 'bump' value.
+
 protected:
     int			qhead;            // Head of queue (as index into the trail -- no more explicit propagation queue in MiniSat).
 	vec<Lit>	trail;            // Assignment stack; stores all assigments made in the order they were made.
@@ -290,13 +297,6 @@ protected:
     bool     litRedundant     (Lit p, uint32_t abstract_levels);                       // (helper method for 'analyze()')
     lbool    search           ();                    // Search for a given number of conflicts.
     void     removeSatisfied  (vec<Clause*>& cs);                                      // Shrink 'cs' to contain only non-satisfied clauses.
-
-    // Maintaining Variable/Clause activity:
-    //
-    void     varDecayActivity ();                      // Decay all variables with the specified factor. Implemented by increasing the 'bump' value instead.
-    void     varBumpActivity  (Var v);                 // Increase a variable with the current 'bump' value.
-    void     claDecayActivity ();                      // Decay all clauses with the specified factor. Implemented by increasing the 'bump' value instead.
-    void     claBumpActivity  (Clause& c);             // Increase a clause with the current 'bump' value.
 
     // Operations on clauses:
     //

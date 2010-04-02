@@ -1,6 +1,7 @@
-#include "AggSets.h"
 #include <algorithm>
+
 #include "Agg.h"
+#include "AggSets.h"
 #include "AggSolver.h"
 
 using namespace Aggrs;
@@ -211,7 +212,11 @@ Weight	AggrProdSet::add(const Weight& lhs, const Weight& rhs) const{
 	return lhs*rhs;
 }
 Weight	AggrProdSet::remove(const Weight& lhs, const Weight& rhs) const{
-	return rhs==0?0:lhs/rhs;
+	if(rhs==0){
+		return 0;
+	}else{
+		return lhs/rhs;
+	}
 }
 
 WLit AggrSumSet::handleOccurenceOfBothSigns(const WLit& one, const WLit& two){

@@ -203,6 +203,13 @@ public:
     template<class C>
     void     printClause      (const C& c);
 
+    // Maintaining Variable/Clause activity:
+	//
+	void     varDecayActivity ();                      // Decay all variables with the specified factor. Implemented by increasing the 'bump' value instead.
+	void     varBumpActivity  (Var v);                 // Increase a variable with the current 'bump' value.
+	void     claDecayActivity ();                      // Decay all clauses with the specified factor. Implemented by increasing the 'bump' value instead.
+	void     claBumpActivity  (Clause& c);             // Increase a clause with the current 'bump' value.
+
 protected:
     int			qhead;            // Head of queue (as index into the trail -- no more explicit propagation queue in MiniSat).
 	vec<Lit>	trail;            // Assignment stack; stores all assigments made in the order they were made.
@@ -280,13 +287,6 @@ protected:
     int     nClauses   ()      const;       // The current number of original clauses.
     int     nAssigns   ()      const;       // The current number of assigned literas.
     int     nLearnts   ()      const;       // The current number of learnt clauses.
-
-    // Maintaining Variable/Clause activity:
-    //
-    void     varDecayActivity ();                      // Decay all variables with the specified factor. Implemented by increasing the 'bump' value instead.
-    void     varBumpActivity  (Var v);                 // Increase a variable with the current 'bump' value.
-    void     claDecayActivity ();                      // Decay all clauses with the specified factor. Implemented by increasing the 'bump' value instead.
-    void     claBumpActivity  (Clause& c);             // Increase a clause with the current 'bump' value.
 
     // Operations on clauses:
     //

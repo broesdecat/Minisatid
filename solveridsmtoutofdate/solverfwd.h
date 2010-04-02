@@ -15,8 +15,9 @@
 #include <tr1/memory>
 
 #include "SolverTypes.h"
-#include "idsolvertypes.h"
+#include "IDTypes.h"
 #include "AggTypes.h"
+#include "debug.h"
 
 class ParseExc: public std::exception{
 public:

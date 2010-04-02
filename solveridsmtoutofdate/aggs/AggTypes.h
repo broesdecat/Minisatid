@@ -6,15 +6,41 @@
 #include <set>
 #include <iostream>
 
-#include "SolverTypes.h"
-#include "solverfwd.h"
+#include "../solverfwd.h"
 
 using namespace std;
 using namespace tr1;
 
+template <typename T>
+string printWeight(const T& w);
+
+#ifdef GMP
+#include "gmpxx.h"
+typedef mpz_class Weight;
+
+//MEDIUM SPEED, NEED LIB INSTALLED, MUCH FASTER THAN BIGINT FOR ARBITRARY PREC
+template <>
+string printWeight<mpz_class>(const mpz_class& w);
+
+#else
+#ifdef BIGINT
 #include "BigInteger.hh"
 #include "BigIntegerUtils.hh"
+typedef BigInteger Weight;
+//SLOWEST, NO LIB NEEDED AND HAS OVERFLOW SUPPORT
+template <>
+string printWeight<BigInteger>(const BigInteger& w);
+
+#else
 typedef int Weight;
+//FIXME FAST, NOT CORRECT ON OVERFLOW
+template <>
+string printWeight<int>(int w);
+
+#endif
+#endif
+
+#include "../debug.h"
 
 namespace Aggrs{
 class WLV;

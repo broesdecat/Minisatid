@@ -6,7 +6,6 @@
 #include "Vec.h"
 #include "Sort.h"
 
-#include "solverfwd.h"
 #include "AggTypes.h"
 
 namespace Aggrs{
@@ -20,9 +19,6 @@ namespace Aggrs{
 
 	typedef AggrSet* pSet;
 }
-
-#include "IDSolver.h"
-#include "Solver.h"
 
 class IDSolver;
 class AggSolver;

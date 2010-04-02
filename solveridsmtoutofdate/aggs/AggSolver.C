@@ -1,7 +1,6 @@
 #include "AggSolver.h"
-
-#include "Solver.h"
-#include "IDSolver.h"
+#include "../Solver.h"
+#include "../IDSolver.h"
 
 #include "Agg.h"
 #include "AggSets.h"
@@ -12,7 +11,6 @@ typedef shared_ptr<AggSolver> pAggSolver;
 typedef weak_ptr<AggSolver> wpAggSolver;
 typedef shared_ptr<Solver> pSolver;
 typedef weak_ptr<Solver> wpSolver;
-
 
 #include <algorithm>
 
@@ -143,7 +141,8 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 	vector<Weight> weights2; //inverted weights to handle minimum as maximum
 	for(vector<Weight>::iterator i=weights.begin(); i<weights.end(); i++){
 		if (*i < 0) {
-			reportf("Error: Set nr. %d contains a negative weight, %s.\n",set_id,bigIntegerToString(*i).c_str()), exit(3);
+			//reportf("Error: Set nr. %d contains a negative weight, %s.\n",set_id,bigIntegerToString(*i).c_str()), exit(3);
+			reportf("Error: Set nr. %d contains a negative weight, %s.\n",set_id,printWeight(*i).c_str()), exit(3);
 		}
 
 		weights2.push_back(-Weight(*i));
@@ -154,7 +153,8 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 		reportf("Added set %d: ", set_id);
 		vector<Weight>::iterator w=weights.begin();
 		for(int i=0; i<lits.size(); i++,w++){
-			reportf("%d=%s, ", gprintVar(var(lits[i])), bigIntegerToString(*w).c_str());
+			//reportf("%d=%s, ", gprintVar(var(lits[i])), bigIntegerToString(*w).c_str());
+			reportf("%d=%s, ", gprintVar(var(lits[i])), printWeight(*w).c_str());
 		}
 		reportf("\n");
 	}
@@ -186,6 +186,8 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 
 	//the head of the aggregate
 	Lit head = Lit(headv, false);
+	getSolver()->varBumpActivity(var(head)); // These guys ought to be initially a bit more important then the rest.
+
 	assert(setid>0);
 	int setindex = setid-1;
 
@@ -233,7 +235,8 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 	aggregates.push_back(ae);
 
 	if(verbosity>=5){
-		reportf("Added %s aggregate with head %d on set %d, %s %s of type %s.\n", defined?"defined":"completion", gprintVar(headv), setid, lower?"AGG<=":"AGG>=", bigIntegerToString(bound).c_str(), ae->getSet()->getName().c_str());
+		//reportf("Added %s aggregate with head %d on set %d, %s %s of type %s.\n", defined?"defined":"completion", gprintVar(headv), setid, lower?"AGG<=":"AGG>=", bigIntegerToString(bound).c_str(), ae->getSet()->getName().c_str());
+		reportf("Added %s aggregate with head %d on set %d, %s %s of type %s.\n", defined?"defined":"completion", gprintVar(headv), setid, lower?"AGG <=":"AGG >=", printWeight(bound).c_str(), ae->getSet()->getName().c_str());
 	}
 }
 
@@ -507,11 +510,9 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head){
 	pAgg a = head_watches[head];
 	pSet s = a->getSet();
 
-	if(verbosity>0){
-		reportf("Current optimum: %s\n", bigIntegerToString(s->getCC()).c_str());
-	}
+	greportf(0,"Current optimum: %s\n", printWeight(s->getCC()).c_str());
 
-	a->setBound(s->getCC() + 1);
+	a->setBound(s->getCC() - 1);
 
 	if(s->getBestPossible()==s->getCC()){
 		return true;
@@ -536,14 +537,14 @@ void AggSolver::printAggrExpr(pAgg ae){
 	if(ae->isLower()){
 		reportf(" <- %s{", set->getName().c_str());
 	}else{
-		reportf(" <- %s <= %s{", bigIntegerToString(ae->getBound()).c_str(), set->getName().c_str());
+		reportf(" <- %s <= %s{", printWeight(ae->getBound()).c_str(), set->getName().c_str());
 	}
 	for (lwlv::const_iterator i=set->getWLBegin(); i<set->getWLEnd(); ++i) {
-		reportf(" "); gprintLit((*i).getLit(), (*i).getValue()); reportf("(%s)",bigIntegerToString((*i).getWeight()).c_str());
+		reportf(" "); gprintLit((*i).getLit(), (*i).getValue()); reportf("(%s)",printWeight((*i).getWeight()).c_str());
 	}
 	if(ae->isLower()){
-		reportf(" } <= %s. Known values: bestcertain=%s, bestpossible=%s\n", bigIntegerToString(ae->getBound()).c_str(), bigIntegerToString(set->getCC()).c_str(), bigIntegerToString(set->getCP()).c_str());
+		reportf(" } <= %s. Known values: bestcertain=%s, bestpossible=%s\n", printWeight(ae->getBound()).c_str(), printWeight(set->getCC()).c_str(), printWeight(set->getCP()).c_str());
 	}else{
-		reportf(" }. Known values: bestcertain=%s, bestpossible=%s\n", bigIntegerToString(set->getCC()).c_str(), bigIntegerToString(set->getCP()).c_str());
+		reportf(" }. Known values: bestcertain=%s, bestpossible=%s\n", printWeight(set->getCC()).c_str(), printWeight(set->getCP()).c_str());
 	}
 }

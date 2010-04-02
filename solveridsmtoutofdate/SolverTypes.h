@@ -21,16 +21,13 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #ifndef SolverTypes_h
 #define SolverTypes_h
 
-#include <exception>
-
-#include <cstdio>
-#include <string>
 #include <cassert>
 #include <stdint.h>
 #include "Alg.h"
 
 //=================================================================================================
 // Variables, literals, lifted booleans, clauses:
+
 
 // NOTE! Variables are just integers. No abstraction here. They should be chosen from 0..N,
 // so that they can be used as array indices.
@@ -53,8 +50,6 @@ class Lit {
     friend int  var         (Lit p);
     friend Lit  unsign      (Lit p);
     friend Lit  id          (Lit p, bool sgn);
-
-    friend int  hash        (Lit p) { return toInt(p); }
 
     bool operator == (Lit p) const { return x == p.x; }
     bool operator != (Lit p) const { return x != p.x; }
@@ -107,7 +102,7 @@ const lbool l_Undef = toLbool( 0);
 class Clause {
     uint32_t size_etc;
     union { float act; uint32_t abst; } extra;
-    Lit     data[0];
+    Lit     data[1];
 
 public:
     void calcAbstraction() {
@@ -128,7 +123,7 @@ public:
     friend Clause* Clause_new(const V& ps, bool learnt = false) {
         assert(sizeof(Lit)      == sizeof(uint32_t));
         assert(sizeof(float)    == sizeof(uint32_t));
-        void* mem = malloc(sizeof(Clause) + sizeof(uint32_t)*(ps.size()));
+        void* mem = malloc(sizeof(Clause) + sizeof(uint32_t)*(ps.size()-1));
         return new (mem) Clause(ps, learnt); }
 
     int          size        ()      const   { return size_etc >> 3; }
@@ -156,11 +151,11 @@ public:
 /*_________________________________________________________________________________________________
 |
 |  subsumes : (other : const Clause&)  ->  Lit
-|
+|  
 |  Description:
 |       Checks if clause subsumes 'other', and at the same time, if it can be used to simplify 'other'
 |       by subsumption resolution.
-|
+|  
 |    Result:
 |       lit_Error  - No subsumption or simplification
 |       lit_Undef  - Clause subsumes 'other'

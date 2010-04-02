@@ -186,6 +186,8 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 
 	//the head of the aggregate
 	Lit head = Lit(headv, false);
+	getSolver()->varBumpActivity(var(head)); // These guys ought to be initially a bit more important then the rest.
+
 	assert(setid>0);
 	int setindex = setid-1;
 
@@ -314,6 +316,10 @@ void AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& h
  * @remarks: only method allowed to use the sat solver datastructures
  */
 Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
+
+	//cool, dit doet keiveel?
+	getSolver()->varBumpActivity(var(p));	//mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt?
+
 	if (getSolver()->value(p) == l_False) {
 		if (verbosity >= 2) {
 			reportf("Deriving conflict in ");
@@ -340,6 +346,8 @@ Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 
 		if(confl->size()>1){
 			getSolver()->addLearnedClause(confl);
+		}else{
+			reportf("HIER iets doen");
 		}
 
 		aggr_reason[var(p)] = old_ar;
