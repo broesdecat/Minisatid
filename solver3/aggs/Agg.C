@@ -163,10 +163,14 @@ Weight	ProdAgg::add(const Weight& lhs, const Weight& rhs) const{
 	return lhs*rhs;
 }
 Weight	ProdAgg::remove(const Weight& lhs, const Weight& rhs) const{
-	Weight w = rhs==0?0:lhs/rhs;
-	if(w==1 && lhs>rhs){
-		w=2;
+	Weight w = 0;
+	if(rhs!=0){
+		w = lhs/rhs;
+		if(w==1 && lhs>rhs){
+			w=2;
+		}
 	}
+
 	return w;
 }
 
@@ -270,8 +274,7 @@ void Agg::getExplanation(vec<Lit>& lits, AggrReason& ar) const{
 		if(ar.isHeadReason()){
 			gprintLit(getHead());
 		}else{
-
-			gprintLit((*(s->getStackBegin()+ar.getIndex()-1)).getLit());
+			gprintLit((*(s->getStackBegin()+ar.getIndex())).getLit());
 		}
 
 		reportf(" is");

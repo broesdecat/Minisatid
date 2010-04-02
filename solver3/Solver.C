@@ -325,6 +325,17 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
         assert(confl != NULL);          // (otherwise should be UIP)
         Clause& c = *confl;
 
+		if (verbosity > 2) {
+			reportf("Current conflict clause: ");
+			printClause(c);
+			reportf("Current learned clause: ");
+			for (int i = 0; i < out_learnt.size(); i++) {
+				printLit(out_learnt[i]);
+				reportf(" ");
+			}
+			reportf("\n");
+		}
+
         if (c.learnt())
             claBumpActivity(c);
 
@@ -356,6 +367,12 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 			;
 		p = trail[index + 1];
 		confl = reason[var(p)];
+
+		if (verbosity > 2) {
+			reportf("Getting explanation for ");
+			printLit(p);
+			reportf("\n");
+		}
 
 		//////////////START TSOLVER
 		if (aggsolver!=NULL && confl == NULL && pathC > 1) {
@@ -518,6 +535,12 @@ Clause* Solver::propagate()
         Clause         **i, **j, **end;
         num_props++;
 
+		if (verbosity >= 2) {
+			reportf("Propagating literal ");
+			printLit(p);
+			reportf(": (");
+		}
+
         for (i = j = (Clause**)ws, end = i + ws.size();  i != end;){
             Clause& c = **i++;
 
@@ -543,17 +566,26 @@ Clause* Solver::propagate()
                 // Did not find watch -- clause is unit under assignment:
                 *j++ = &c;
                 if (value(first) == l_False){
+					if (verbosity >= 2)
+						reportf(" Conflict");
                     confl = &c;
                     qhead = trail.size();
                     // Copy the remaining watches:
                     while (i < end)
                         *j++ = *i++;
-                }else
+                }else{
                 	setTrue(first, &c);
+					if (verbosity >= 2) {
+						reportf(" ");
+						printLit(first);
+					}
+                }
             }
         FoundWatch:;
         }
         ws.shrink(i - j);
+		if (verbosity >= 2)
+			reportf(" ).\n");
 		//////////////START TSOLVER
         if(getAggSolver().get()!=NULL && confl == NULL){
         	confl = getAggSolver()->propagate(p);
@@ -696,6 +728,21 @@ lbool Solver::search()
             conflicts++; conflictC++;
             if (decisionLevel() == 0) return l_False;
 
+    		if (verbosity >= 2)
+    			reportf("Starting decision level %d.\n",trail_lim.size());
+
+    		if (verbosity >= 4 && trail_lim.size() == 0) {
+    			reportf("CLAUSES\n");
+    			for (int i = 0; i < clauses.size(); i++) {
+    				printClause(*clauses[i]);
+    			}
+    			reportf("LEARNTS\n");
+    			for (int i = 0; i < learnts.size(); i++) {
+    				printClause(*learnts[i]);
+    			}
+    			reportf("END\n");
+    		}
+
             first = false;
 
             learnt_clause.clear();
@@ -778,6 +825,12 @@ lbool Solver::search()
                 if (next == lit_Undef)
                     // Model found:
                     return l_True;
+
+				if (verbosity >= 2) {
+					reportf("Choice literal: ");
+					printLit(next);
+					reportf(".\n");
+				}
             }
 
             // Increase decision level and enqueue 'next'
