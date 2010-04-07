@@ -41,6 +41,12 @@ bool Agg::initialize(){
 	return nomoreprops;
 }
 
+void Agg::backtrack(int stacksize){
+	if(headprop && headproptime>stacksize){
+		headprop = false;
+	}
+}
+
 void Agg::backtrackHead(){
 	if(nomoreprops){ return; }
 
@@ -67,15 +73,22 @@ lbool Agg::canPropagateHead() const{
 	if(nomoreprops || headprop){ return headvalue; }
 
 	pSet s = set;
+	lbool value;
 	if ((lower && s->getCC() > bound) || (!lower && s->getCP() < bound)) {
 		//headprop = true;
-		return l_False;
+		value = l_False;
 	} else if ((lower && s->getCP() <= bound) || (!lower && s->getCC() >= bound)) {
 		//headprop = true;
-		return l_True;
+		value = l_True;
 	} else {
-		return l_Undef;
+		value = l_Undef;
 	}
+
+	if(value!=l_Undef){
+		headproptime = getSet()->getStackSize();
+		headprop = true;
+	}
+	return value;
 }
 
 /**
@@ -226,6 +239,7 @@ Clause* SPAgg::propagate(bool headtrue){
 			weightbound = this->remove(bound, s->getCC());
 		}
 	}
+
 	lwlv::const_iterator pos = lower_bound(s->getWLBegin(), s->getWLEnd(), weightbound);
 	if(pos==s->getWLEnd()){
 		return c;
@@ -466,4 +480,34 @@ bool SPAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentj
 		}
 	}
 	return justified;
+}
+
+//=========== DEBUG =================
+
+void Aggrs::printAggrSet(pSet set, bool endl){
+	reportf("%s{", set->getName().c_str());
+	for (lwlv::const_iterator i=set->getWLBegin(); i<set->getWLEnd(); ++i) {
+		reportf(" "); gprintLit((*i).getLit(), (*i).getValue()); reportf("(%s)",printWeight((*i).getWeight()).c_str());
+	}
+	if(endl){
+		reportf(" }\n");
+	}else{
+		reportf(" }");
+	}
+}
+
+void Aggrs::printAggrExpr(pAgg ae){
+	gprintLit(ae->getHead(), ae->getHeadValue());
+	pSet set = ae->getSet();
+	if(ae->isLower()){
+		reportf(" <- ");
+	}else{
+		reportf(" <- %s <= ", printWeight(ae->getBound()).c_str());
+	}
+	printAggrSet(set, false);
+	if(ae->isLower()){
+		reportf(" <= %s. Known values: bestcertain=%s, bestpossible=%s\n", printWeight(ae->getBound()).c_str(), printWeight(set->getCC()).c_str(), printWeight(set->getCP()).c_str());
+	}else{
+		reportf(". Known values: bestcertain=%s, bestpossible=%s\n", printWeight(set->getCC()).c_str(), printWeight(set->getCP()).c_str());
+	}
 }

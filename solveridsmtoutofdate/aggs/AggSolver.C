@@ -92,10 +92,24 @@ bool AggSolver::finishECNF_DataStructures() {
 		(*i)->addAggToSet();
 	}
 
+	greportf(3, "Initializing all sets:\n");
 	finishSets(aggrminsets);
 	finishSets(aggrmaxsets);
 	finishSets(aggrsumsets);
 	finishSets(aggrprodsets);
+	if(verbosity>=3){
+		int counter = 0;
+		for(vector<vector<AggrWatch> >::const_iterator i=aggr_watches.begin(); i<aggr_watches.end(); i++,counter++){
+			reportf("Watches of var %d:\n", gprintVar(counter));
+			if(head_watches[counter]!=NULL){
+				reportf("HEADwatch = ");Aggrs::printAggrExpr(head_watches[counter]);
+			}
+			for(vector<AggrWatch>::const_iterator j=(*i).begin(); j<(*i).end(); j++){
+				Aggrs::printAggrSet((*j).getSet(), true);
+			}
+		}
+	}
+	greportf(3, "Initializing finished.\n");
 
 	if (aggrminsets.size() == 0 && aggrmaxsets.size() == 0 && aggrsumsets.size() == 0 && aggrprodsets.size() == 0) {
 		return false;
@@ -123,6 +137,15 @@ void AggSolver::finishSets(vector<pSet>& sets){
 					aggr_watches[var((*j).getLit())].push_back(AggrWatch(pSet(s), index, sign((*j).getLit()) ? NEG : POS));
 				}
 				i++;
+			}
+		}
+	}
+
+	if(verbosity>=3){
+		for(vector<pSet>::iterator i=sets.begin(); i<sets.end(); i++){
+			pSet s = *i;
+			for(lsagg::const_iterator j=s->getAggBegin(); j<s->getAggEnd(); j++){
+				Aggrs::printAggrExpr(*j);
 			}
 		}
 	}
@@ -316,12 +339,16 @@ void AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& h
  * @remarks: only method allowed to use the sat solver datastructures
  */
 Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
+
+	//cool, dit doet keiveel?
+	getSolver()->varBumpActivity(var(p));	//mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt?
+
 	if (getSolver()->value(p) == l_False) {
 		if (verbosity >= 2) {
 			reportf("Deriving conflict in ");
 			gprintLit(p, l_True);
 			reportf(" because of the aggregate expression ");
-			printAggrExpr(ar->getAgg());
+			Aggrs::printAggrExpr(ar->getAgg());
 		}
 		AggrReason* old_ar = aggr_reason[var(p)];
 		aggr_reason[var(p)] = ar;
@@ -342,6 +369,8 @@ Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 
 		if(confl->size()>1){
 			getSolver()->addLearnedClause(confl);
+		}else{
+			reportf("HIER iets doen");
 		}
 
 		aggr_reason[var(p)] = old_ar;
@@ -353,7 +382,7 @@ Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 			reportf("Deriving ");
 			gprintLit(p, l_True);
 			reportf(" because of the aggregate expression ");
-			printAggrExpr(ar->getAgg());
+			Aggrs::printAggrExpr(ar->getAgg());
 		}
 		assert(aggr_reason[var(p)]==NULL);
 		aggr_reason[var(p)] = ar;
@@ -367,13 +396,14 @@ Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 Clause* AggSolver::Aggr_propagate(const Lit& p) {
 	Clause* confl = NULL;
 	vector<AggrWatch>& ws = aggr_watches[var(p)];
-	if (verbosity >= 2 && ws.size() > 0){
+	pAgg pa = head_watches[var(p)];
+
+	if (verbosity >= 2 && (ws.size() > 0 || pa !=NULL)){
 		reportf("Aggr_propagate(");
 		gprintLit(p, l_True);
 		reportf(").\n");
 	}
 
-	pAgg pa = head_watches[var(p)];
 	if(pa!=NULL){
 		confl = pa->propagateHead(p);
 	}
@@ -529,22 +559,4 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head){
  */
 void AggSolver::propagateMnmz(Var head){
 	dynamic_cast<SumAgg*>(head_watches[head])->propagateHead(true);
-}
-
-void AggSolver::printAggrExpr(pAgg ae){
-	gprintLit(ae->getHead(), ae->getHeadValue());
-	pSet set = ae->getSet();
-	if(ae->isLower()){
-		reportf(" <- %s{", set->getName().c_str());
-	}else{
-		reportf(" <- %s <= %s{", printWeight(ae->getBound()).c_str(), set->getName().c_str());
-	}
-	for (lwlv::const_iterator i=set->getWLBegin(); i<set->getWLEnd(); ++i) {
-		reportf(" "); gprintLit((*i).getLit(), (*i).getValue()); reportf("(%s)",printWeight((*i).getWeight()).c_str());
-	}
-	if(ae->isLower()){
-		reportf(" } <= %s. Known values: bestcertain=%s, bestpossible=%s\n", printWeight(ae->getBound()).c_str(), printWeight(set->getCC()).c_str(), printWeight(set->getCP()).c_str());
-	}else{
-		reportf(" }. Known values: bestcertain=%s, bestpossible=%s\n", printWeight(set->getCC()).c_str(), printWeight(set->getCP()).c_str());
-	}
 }

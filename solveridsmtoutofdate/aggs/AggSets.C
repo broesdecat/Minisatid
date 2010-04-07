@@ -16,6 +16,10 @@ void AggrSet::backtrack(int index) {
 	wlits[index].setValue(l_Undef);
 	setCC(pi.getPC());
 	setCP(pi.getPP());
+
+	for(lsagg::const_iterator i=getAggBegin(); i<getAggEnd(); i++){
+		(*i)->backtrack(stack.size());
+	}
 }
 
 AggrSet::AggrSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s):
@@ -65,6 +69,12 @@ Clause* AggrSet::propagate(const Lit& p, const AggrWatch& ws){
 	Clause* confl = NULL;
 	for(lsagg::const_iterator i=getAggBegin(); i<getAggEnd() && confl==NULL; i++){
 		pAgg pa = (*i);
+
+		if(verbosity>=4){
+			reportf("Propagating into aggr: ");
+			Aggrs::printAggrExpr(pa);
+		}
+
 		lbool hv = pa->getHeadValue();
 		if(hv != l_Undef){ //head is already known
 			assert(pa->canPropagateHead()!=(hv==l_True?l_False:l_True));	//A conflicting propagation is not possible if we have complete propagation

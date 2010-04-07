@@ -129,9 +129,6 @@ public:
 	//are used by agg.c, but preferably should be move into protected again
 	Clause* notifySATsolverOfPropagation(const Lit& p, Aggrs::AggrReason* cr);	// Like "enqueue", but for aggregate propagations.
 
-	// Debug:
-	void    printAggrExpr   (pAgg ae);
-
 	//Optimisation support
 	void 	addMnmzSum		(Var headv, int setid, bool lower);
     bool 	invalidateSum	(vec<Lit>& invalidation, Var head);

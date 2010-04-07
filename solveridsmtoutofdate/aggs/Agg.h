@@ -33,7 +33,9 @@ protected:
 	Weight		bound;
 	bool 		lower;
 
-	bool 		nomoreprops, headprop, optimagg;//indicates that this aggregate is always true, so no more propagation is necessary
+	bool 		nomoreprops, optimagg;//indicates that this aggregate is always true, so no more propagation is necessary
+	mutable bool headprop;
+	mutable int	headproptime; //stack size at first moment where head can be propagated.
 
 	Lit			head;
 	int			headindex;	//the index in the stack when this was derived
@@ -67,6 +69,7 @@ public:
 
 	bool 	initialize();
 	void 	backtrackHead();
+	void	backtrack(int stacksize);
 	Clause*	propagateHead(const Lit& p);
 
     /**
@@ -154,6 +157,10 @@ public:
     int 		getIndex() 	const	{ return abs(index); }
     bool		isHeadReason() const{ return index<0; }
 };
+
+void printAggrSet(pSet, bool);
+void printAggrExpr(pAgg);
+
 }
 
 #endif /* AGG_H_ */

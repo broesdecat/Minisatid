@@ -9,6 +9,7 @@
 #define DEBUG_H_
 
 #include "SolverTypes.h"
+#include "stdio.h"
 
 /******************
  * DEBUGGING INFO *
