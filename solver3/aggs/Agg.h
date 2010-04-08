@@ -47,7 +47,7 @@ public:
 
     Agg(bool lower, Weight bound, Lit head, const pSet& set) :
 	    bound(bound), lower(lower),
-	    nomoreprops(false), headprop(false), optimagg(false),
+	    nomoreprops(false), optimagg(false), headprop(false), headproptime(-1),
 	    head(head), headindex(-1), headvalue(l_Undef), set(set){
     }
 

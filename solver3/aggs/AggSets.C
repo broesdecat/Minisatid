@@ -159,6 +159,27 @@ void AggrSet::initialize(){
 	}
 }
 
+void AggrSumSet::initialize(){
+	lwlv wlits2;
+	Weight totalneg(0);
+	for(lwlv::const_iterator i=wlits.begin(); i<wlits.end(); i++){
+		if ((*i).getWeight() < 0) {
+			totalneg-=(*i).getWeight();
+		}
+	}
+	if(totalneg > 0){
+		for(lwlv::const_iterator i=wlits.begin(); i<wlits.end(); i++){
+			wlits2.push_back(WLV((*i).getLit(), abs((*i).getWeight()), (*i).getValue()));
+		}
+		wlits = wlits2;
+		for(lsagg::const_iterator i=getAggBegin(); i<getAggEnd(); i++){
+			(*i)->setBound((*i)->getBound()+totalneg);
+		}
+	}
+
+	AggrSet::initialize();
+}
+
 
 /*****************
  * MAX AGGREGATE *

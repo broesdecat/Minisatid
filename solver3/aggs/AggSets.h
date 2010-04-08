@@ -39,7 +39,7 @@ public:
     AggrSet(const vec<Lit>& lits, const vector<Weight>& weights, wpAggSolver s);
     virtual ~AggrSet(){}
 
-	void 			initialize();
+	virtual void 	initialize();
 	Clause* 		propagate(const Lit& p, const AggrWatch& ws);
 
     virtual void 	backtrack(int index);
@@ -119,6 +119,8 @@ public:
 class AggrSumSet: public AggrSPSet{
 public:
 	AggrSumSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s);
+
+	virtual void 	initialize();
 
 	virtual WLit 	handleOccurenceOfBothSigns	(const WLit& one, const WLit& two);
 	virtual Weight	add							(const Weight& lhs, const Weight& rhs) const;
