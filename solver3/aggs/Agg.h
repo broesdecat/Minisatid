@@ -171,7 +171,7 @@ private:
 	Expl		expl;
 
 public:
-	AggrReason(pAgg e, Expl e, bool head = false);
+	AggrReason(pAgg, Expl, bool head = false);
 
     pAgg 		getAgg() 	const	{ return expr; }
     int 		getIndex() 	const	{ return abs(index); }

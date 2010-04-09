@@ -269,6 +269,8 @@ Clause* SPAgg::propagate(bool headtrue){
 Clause* CardAgg::propagate(bool headtrue){
 	if(nomoreprops || headprop){ return NULL; }
 
+	reportf("PASSED IN CARD \n");
+
 	pSet s = getSet();
 
 	bool makefalse = false;
