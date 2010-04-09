@@ -210,20 +210,23 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 
 	//add if really useful varBumpActivity(var(c)); // These guys ought to be initially a bit more important then the rest.
 
+	Bound b = lower?LOWERBOUND:UPPERBOUND;
+
 	pAgg ae;
 	switch(type){
 	case MIN:
 		//maxAggAsSAT(defined, !lower, -bound, head, *aggrminsets[setindex]);
 		//return;
-		ae = pAgg(new MaxAgg(!lower, -bound, head, pSet(aggrminsets[setindex])));
+		b = (b==LOWERBOUND?UPPERBOUND:LOWERBOUND);
+		ae = pAgg(new MaxAgg(b, -bound, head, pSet(aggrminsets[setindex])));
 		break;
 	case MAX:
 		//maxAggAsSAT(defined, lower, bound, head, *aggrmaxsets[setindex]);
 		//return;
-		ae = pAgg(new MaxAgg(lower, bound, head, pSet(aggrmaxsets[setindex])));
+		ae = pAgg(new MaxAgg(b, bound, head, pSet(aggrmaxsets[setindex])));
 		break;
 	case SUM:
-		ae = pAgg(new SumAgg(lower, bound, head, pSet(aggrsumsets[setindex])));
+		ae = pAgg(new SumAgg(b, bound, head, pSet(aggrsumsets[setindex])));
 		break;
 	case PROD:
 		//NOTE this can be solved by taking 0 out of the set and making the necessary transformations
@@ -234,7 +237,7 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 						"be used in combination with a product aggregate\n", setid, printWeight((*i).getWeight()).c_str()), exit(3);
 			}
 		}
-		ae = pAgg(new ProdAgg(lower, bound, head, pSet(aggrprodsets[setindex])));
+		ae = pAgg(new ProdAgg(b, bound, head, pSet(aggrprodsets[setindex])));
 		break;
 	default:
 		assert(false);
@@ -277,7 +280,8 @@ void AggSolver::addMnmzSum(Var headv, int setid, bool lower) {
 	Lit head = Lit(headv, false);
 	assert(setid>0);
 
-	pAgg ae = new SumAgg(lower, lower?INT_MAX:INT_MIN, head, pSet(aggrsumsets[setid-1]));
+	Bound b = lower?LOWERBOUND:UPPERBOUND;
+	pAgg ae = new SumAgg(b, lower?INT_MAX:INT_MIN, head, pSet(aggrsumsets[setid-1]));
 	ae->setOptimAgg(); //FIXME temporary solution
 	aggregates.push_back(ae);
 	head_watches[var(head)] = ae;
@@ -536,7 +540,12 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head){
 
 	greportf(0,"Current optimum: %s\n", printWeight(s->getCC()).c_str());
 
-	a->setBound(s->getCC() - 1);
+	if(a->isLower()){
+		a->setLowerBound(s->getCC() - 1);
+	}else if(a->isUpper()){
+		a->setUpperBound(s->getCC() - 1);
+	}
+
 
 	if(s->getBestPossible()==s->getCC()){
 		return true;

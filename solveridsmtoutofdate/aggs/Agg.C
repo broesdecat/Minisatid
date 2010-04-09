@@ -25,7 +25,7 @@ void Agg::addAggToSet(){
 bool Agg::initialize(){
 	Clause* confl = NULL;
 
-	lbool hv = canPropagateHead();
+	lbool hv = canPropagateHead(getSet()->getCC(), getSet()->getCP());
 	if(hv!=l_Undef && !optimagg){
 		nomoreprops = true;
 		//reportf("No more propagations for %d", gprintVar(var(head)));
@@ -52,7 +52,6 @@ void Agg::backtrackHead(){
 
 	headvalue = l_Undef;
 	headindex = -1;
-	//headprop = false;
 }
 
 Clause* Agg::propagateHead(const Lit& p){
@@ -69,26 +68,20 @@ Clause* Agg::propagateHead(const Lit& p){
  * MAX AGGREGATE *
  *****************/
 
-lbool Agg::canPropagateHead() const{
+lbool Agg::canPropagateHead(const Weight& CC, const Weight& CP) const{
 	if(nomoreprops || headprop){ return headvalue; }
 
-	pSet s = set;
-	lbool value;
-	if ((lower && s->getCC() > bound) || (!lower && s->getCP() < bound)) {
-		//headprop = true;
-		value = l_False;
-	} else if ((lower && s->getCP() <= bound) || (!lower && s->getCC() >= bound)) {
-		//headprop = true;
-		value = l_True;
-	} else {
-		value = l_Undef;
-	}
-
-	if(value!=l_Undef){
+	if ((lower && CC > bound) || (!lower && CP < bound)) {
 		headproptime = getSet()->getStackSize();
 		headprop = true;
+		return l_False;
+	} else if ((lower && CP <= bound) || (!lower && CC >= bound)) {
+		headproptime = getSet()->getStackSize();
+		headprop = true;
+		return l_True;
+	} else {
+		return l_Undef;
 	}
-	return value;
 }
 
 /**

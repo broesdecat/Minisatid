@@ -75,7 +75,7 @@ public:
     /**
      * Updates the values of the aggregate and then returns whether the head can be directly propagated from the body
      */
-    virtual lbool 	canPropagateHead() const;
+    virtual lbool 	canPropagateHead(const Weight& CC, const Weight& CP) const;
 
     virtual Clause* propagate		(bool headtrue) = 0;
     virtual Clause* propagateHead	(bool headtrue) = 0;
