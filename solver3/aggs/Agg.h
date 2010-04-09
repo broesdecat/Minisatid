@@ -126,13 +126,20 @@ public:
 class SumAgg: public SPAgg {
 public:
 	SumAgg(bool lower, Weight bound, Lit head, const pSet& set):
-		SPAgg(lower, bound, head, set){
-	};
+		SPAgg(lower, bound, head, set){};
 
 	void	getMinimExplan(vec<Lit>& lits);
 
 	Weight	add(const Weight& lhs, const Weight& rhs) const;
 	Weight	remove(const Weight& lhs, const Weight& rhs) const;
+};
+
+class CardAgg:public SumAgg{
+public:
+	CardAgg(bool lower, Weight bound, Lit head, const pSet& set):
+		SUmAgg(lower, bound, head, set){};
+
+    virtual Clause* propagate		(bool headtrue);
 };
 
 class ProdAgg: public SPAgg {

@@ -223,7 +223,17 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 		ae = pAgg(new MaxAgg(lower, bound, head, pSet(aggrmaxsets[setindex])));
 		break;
 	case SUM:
-		ae = pAgg(new SumAgg(lower, bound, head, pSet(aggrsumsets[setindex])));
+		bool allone = true;
+		for(lwlv::const_iterator i=aggrsumsets[setindex]->getWLBegin(); allone && i<aggrsumsets[setindex]->getWLEnd(); i++){
+			if((*i).getWeight()!=1){
+				allone==false;
+			}
+		}
+		if(allone){
+			ae = pAgg(new CardAgg(lower, bound, head, pSet(aggrsumsets[setindex])));
+		}else{
+			ae = pAgg(new SumAgg(lower, bound, head, pSet(aggrsumsets[setindex])));
+		}
 		break;
 	case PROD:
 		//NOTE this can be solved by taking 0 out of the set and making the necessary transformations

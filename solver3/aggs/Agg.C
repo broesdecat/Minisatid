@@ -273,6 +273,43 @@ Clause* SPAgg::propagate(bool headtrue){
 	return c;
 }
 
+Clause* CardAgg::propagate(bool headtrue){
+	if(nomoreprops || headprop){ return NULL; }
+
+	bool makefalse = false;
+	bool maketrue = false;
+	if(headtrue){
+		if(isLower() && getBound()==getSet()->getCC()){
+			makefalse = true;
+		}else if(isUpper() && getBound()==getSet()->getCP()){
+			makefalse = true;
+		}
+	}else{
+		if(isLower() && getBound()+1==getSet()->getCP()){
+			maketrue = true;
+		}else if(isUpper() && getBound()-1==getSet()->getCC()){
+			maketrue = true;
+		}
+	}
+
+	Clause* c = NULL;
+
+	if(!makefalse && !makefalse){
+		return c;
+	}
+
+	for (lwlv::const_iterator u = s->getWLBegin(); c==NULL && u < s->getWLEnd(); u++) {
+		if ((*u).getValue()==l_Undef) {//if already propagated as an aggregate, then those best-values have already been adapted
+			if(maketrue){
+				c = s->getSolver()->notifySATsolverOfPropagation((*u).getLit(), new AggrReason(this, basedon));
+			}else{
+				c = s->getSolver()->notifySATsolverOfPropagation(~(*u).getLit(), new AggrReason(this, basedon));
+			}
+		}
+	}
+	return c;
+}
+
 void Agg::getExplanation(vec<Lit>& lits, AggrReason& ar) const{
 	assert(ar.getAgg() == this);
 
