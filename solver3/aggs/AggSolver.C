@@ -334,8 +334,8 @@ void AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& h
  */
 Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 
-	//cool, dit doet keiveel?
-	getSolver()->varBumpActivity(var(p));	//mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt?
+	//cool, dit doet keiveel? => zoals gewoonlijk werkt het niet altijd: wel voor fastfood, niet voor hanoi
+	//getSolver()->varBumpActivity(var(p));	//mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt?
 
 	if (getSolver()->value(p) == l_False) {
 		if (verbosity >= 2) {

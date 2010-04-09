@@ -82,7 +82,7 @@ Clause* AggrSet::propagate(const Lit& p, const AggrWatch& ws){
 		}else{ //head is not yet known, so at most the head can be propagated
 			lbool result = pa->canPropagateHead();
 			if(result!=l_Undef){
-				confl = getSolver()->notifySATsolverOfPropagation(result==l_True?pa->getHead():~pa->getHead(), new AggrReason(*i, true));
+				confl = getSolver()->notifySATsolverOfPropagation(result==l_True?pa->getHead():~pa->getHead(), new AggrReason(*i, CPANDCC, true));
 			}
 		}
 	}

@@ -47,7 +47,7 @@ public:
 
     Agg(bool lower, Weight bound, Lit head, const pSet& set) :
 	    bound(bound), lower(lower),
-	    nomoreprops(false), headprop(false), optimagg(false),
+	    nomoreprops(false), optimagg(false), headprop(false), headproptime(-1),
 	    head(head), headindex(-1), headvalue(l_Undef), set(set){
     }
 
@@ -145,17 +145,21 @@ public:
 	Weight	remove(const Weight& lhs, const Weight& rhs) const;
 };
 
+enum Expl{BASEDONCC,BASEDONCP,CPANDCC, HEADONLY};
+
 class AggrReason {
 private:
 	pAgg		expr;		//does NOT own the pointer
 	int 		index;
+	Expl		expl;
 
 public:
-	AggrReason(pAgg e, bool head = false);
+	AggrReason(pAgg e, Expl e, bool head = false);
 
     pAgg 		getAgg() 	const	{ return expr; }
     int 		getIndex() 	const	{ return abs(index); }
     bool		isHeadReason() const{ return index<0; }
+    Expl		getExpl() const		{ return expl; }
 };
 
 void printAggrSet(pSet, bool);

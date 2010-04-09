@@ -235,7 +235,7 @@ bool IDSolver::finishECNF_DataStructures() {
 		}
 		case AGGR: {
 			if(aggsolver.get()!=NULL){
-				for (lwlv::const_iterator j = aggsolver->getAggLiteralsBegin(i); !isdefd && j < aggsolver->getAggLiteralsEnd(i); ++j){
+				for (lwlv::const_iterator j = aggsolver->getAggLiteralsBegin(v); !isdefd && j < aggsolver->getAggLiteralsEnd(v); ++j){
 					if (inSameSCC(v, var((*j).getLit()))){ // NOTE: disregard sign here: set literals can occur both pos and neg in justifications. This could possibly be made more precise for MIN and MAX...
 						isdefd = true;
 					}
@@ -255,20 +255,35 @@ bool IDSolver::finishECNF_DataStructures() {
 			if(defOcc[v]==NONDEFOCC){ //will not occur in a loop
 				//IMPORTANT: after this point, disj/conj_occurs might also contain NONDEF links
 				//assumes any literal only occurs once!
-				Rule& dfn = *definition[v];
-				for (int j = 0; j < dfn.size(); ++j) {
-					l = dfn[j];
-					if(disj_occurs[toInt(l)].size()>0 && disj_occurs[toInt(l)].back()==v){
-						disj_occurs[toInt(l)].pop_back();
+				if(defType[v]==AGGR){
+					if(aggsolver.get()!=NULL){
+						for (lwlv::const_iterator j = aggsolver->getAggLiteralsBegin(v); !isdefd && j < aggsolver->getAggLiteralsEnd(v); ++j){
+							l = (*j).getLit();
+							if(disj_occurs[toInt(l)].size()>0 && disj_occurs[toInt(l)].back()==v){
+								disj_occurs[toInt(l)].pop_back();
+							}
+							if(conj_occurs[toInt(l)].size()>0 && conj_occurs[toInt(l)].back()==v){
+								conj_occurs[toInt(l)].pop_back();
+							}
+						}
 					}
-					if(conj_occurs[toInt(l)].size()>0 && conj_occurs[toInt(l)].back()==v){
-						conj_occurs[toInt(l)].pop_back();
+				}else{
+					Rule& dfn = *definition[v];
+					for (int j = 0; j < dfn.size(); ++j) {
+						l = dfn[j];
+						if(disj_occurs[toInt(l)].size()>0 && disj_occurs[toInt(l)].back()==v){
+							disj_occurs[toInt(l)].pop_back();
+						}
+						if(conj_occurs[toInt(l)].size()>0 && conj_occurs[toInt(l)].back()==v){
+							conj_occurs[toInt(l)].pop_back();
+						}
 					}
+
+					Rule* r = definition[v];
+					definition[v] = NULL;
+					delete r;
 				}
 
-				Rule* r = definition[v];
-				definition[v] = NULL;
-				delete r;
 
 				defType[v] = NONDEFTYPE;
 			}else if(defOcc[v]==MIXEDLOOP){ //might occur in a mixed loop
@@ -1366,7 +1381,7 @@ void IDSolver::removeAggrHead(Var head){
 		defOcc[head] = NONDEFOCC;
 
 		vec<Var> dnew;
-		for(int i=0; i<dnew.size(); i++){
+		for(int i=0; i<defdVars.size(); i++){
 			if(defdVars[i]!=head){
 				dnew.push(defdVars[i]);
 			}

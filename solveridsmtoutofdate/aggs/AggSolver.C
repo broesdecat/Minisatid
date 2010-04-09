@@ -163,13 +163,7 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 
 	vector<Weight> weights2; //inverted weights to handle minimum as maximum
 	for(vector<Weight>::iterator i=weights.begin(); i<weights.end(); i++){
-		if (*i < 0) {
-			//reportf("Error: Set nr. %d contains a negative weight, %s.\n",set_id,bigIntegerToString(*i).c_str()), exit(3);
-			reportf("Error: Set nr. %d contains a negative weight, %s.\n",set_id,printWeight(*i).c_str()), exit(3);
-		}
-
 		weights2.push_back(-Weight(*i));
-
 	}
 
 	if(verbosity>=5){
@@ -235,9 +229,9 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 		//NOTE this can be solved by taking 0 out of the set and making the necessary transformations
 		// p <=> a <= prod{l1=0, l2=2} can be replaced with p <=> a <= prod{l2=2} & l1~=0 if a is strictly positive
 		for(lwlv::const_iterator i=aggrprodsets[setindex]->getWLBegin(); i<aggrprodsets[setindex]->getWLEnd(); i++){
-			if((*i).getWeight()==0){
-				reportf("Error: Set nr. %d contains a 0 (zero) weight, which cannot "
-						"be used in combination with a product aggregate\n", setid), exit(3);
+			if((*i).getWeight() < 1){
+				reportf("Error: Set nr. %d contains a 0 (zero) or negative weight %s, which cannot "
+						"be used in combination with a product aggregate\n", setid, printWeight((*i).getWeight()).c_str()), exit(3);
 			}
 		}
 		ae = pAgg(new ProdAgg(lower, bound, head, pSet(aggrprodsets[setindex])));
@@ -340,8 +334,8 @@ void AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& h
  */
 Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 
-	//cool, dit doet keiveel?
-	getSolver()->varBumpActivity(var(p));	//mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt?
+	//cool, dit doet keiveel? => zoals gewoonlijk werkt het niet altijd: wel voor fastfood, niet voor hanoi
+	//getSolver()->varBumpActivity(var(p));	//mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt?
 
 	if (getSolver()->value(p) == l_False) {
 		if (verbosity >= 2) {

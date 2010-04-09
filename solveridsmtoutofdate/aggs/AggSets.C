@@ -82,7 +82,7 @@ Clause* AggrSet::propagate(const Lit& p, const AggrWatch& ws){
 		}else{ //head is not yet known, so at most the head can be propagated
 			lbool result = pa->canPropagateHead();
 			if(result!=l_Undef){
-				confl = getSolver()->notifySATsolverOfPropagation(result==l_True?pa->getHead():~pa->getHead(), new AggrReason(*i, true));
+				confl = getSolver()->notifySATsolverOfPropagation(result==l_True?pa->getHead():~pa->getHead(), new AggrReason(*i, CPANDCC, true));
 			}
 		}
 	}
@@ -157,6 +157,27 @@ void AggrSet::initialize(){
 			i++;
 		}
 	}
+}
+
+void AggrSumSet::initialize(){
+	lwlv wlits2;
+	Weight totalneg(0);
+	for(lwlv::const_iterator i=wlits.begin(); i<wlits.end(); i++){
+		if ((*i).getWeight() < 0) {
+			totalneg-=(*i).getWeight();
+		}
+	}
+	if(totalneg > 0){
+		for(lwlv::const_iterator i=wlits.begin(); i<wlits.end(); i++){
+			wlits2.push_back(WLV((*i).getLit(), abs((*i).getWeight()), (*i).getValue()));
+		}
+		wlits = wlits2;
+		for(lsagg::const_iterator i=getAggBegin(); i<getAggEnd(); i++){
+			(*i)->setBound((*i)->getBound()+totalneg);
+		}
+	}
+
+	AggrSet::initialize();
 }
 
 

@@ -7,7 +7,7 @@
 
 using namespace Aggrs;
 
-AggrReason::AggrReason(pAgg e, bool head): expr(e), index(0) {
+AggrReason::AggrReason(pAgg e, Expl exp, bool head): expr(e), index(0), expl(exp) {
 	index = e->getSet()->getStackSize();
 	if(head==true){
 		index = -index;
@@ -31,9 +31,9 @@ bool Agg::initialize(){
 		//reportf("No more propagations for %d", gprintVar(var(head)));
 	}
 	if(hv==l_True){
-		confl = getSet()->getSolver()->notifySATsolverOfPropagation(head, new AggrReason(this, true));
+		confl = getSet()->getSolver()->notifySATsolverOfPropagation(head, new AggrReason(this, CPANDCC, true));
 	}else if(hv==l_False){
-		confl = getSet()->getSolver()->notifySATsolverOfPropagation(~head, new AggrReason(this, true));
+		confl = getSet()->getSolver()->notifySATsolverOfPropagation(~head, new AggrReason(this, CPANDCC, true));
 	}
 	if(confl!=NULL){
 		throw UNSAT();
@@ -106,13 +106,13 @@ Clause* MaxAgg::propagateHead(bool headtrue) {
 		lwlv::const_reverse_iterator i=s->getWLRBegin();
 		while( confl == NULL && i<s->getWLREnd() && bound<(*i).getWeight()){
 			//because these propagations are independent of the other set literals, they can also be written as clauses
-			confl = s->getSolver()->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(this));
+			confl = s->getSolver()->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(this,HEADONLY));
 			i++;
 		}
 	}else if(!headtrue && !lower){
 		lwlv::const_reverse_iterator i=s->getWLRBegin();
 		while( confl == NULL && i<s->getWLREnd() && bound<=(*i).getWeight()){
-			confl = s->getSolver()->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(this));
+			confl = s->getSolver()->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(this,HEADONLY));
 			i++;
 		}
 	}
@@ -157,7 +157,8 @@ Clause* MaxAgg::propagate(bool headtrue) {
 		}
 	}
 	if(exactlyoneleft){
-		confl = s->getSolver()->notifySATsolverOfPropagation((*pos).getLit(), new AggrReason(this));
+		//FIXME BASEDONCP is not correct enough (ONCPABOVEBOUND)
+		confl = s->getSolver()->notifySATsolverOfPropagation((*pos).getLit(), new AggrReason(this, BASEDONCP));
 	}
 	return confl;
 }
@@ -217,15 +218,19 @@ Clause* SPAgg::propagate(bool headtrue){
 	Weight weightbound(0);
 	pSet s = set;
 
+	Expl basedon = CPANDCC;
+
 	//determine the lower bound of which weight literals to consider
 	if (headtrue) {
 		if(lower){
+			basedon = BASEDONCC;
 			weightbound = this->remove(bound, s->getCC());
 			//+1 because larger and not eq
 			if(this->add(weightbound, s->getCC())==bound){
 				weightbound+=1;
 			}
 		}else{
+			basedon = BASEDONCP;
 			weightbound = this->remove(s->getCP(), bound);
 			//+1 because larger and not eq
 			if(this->add(weightbound, bound)==s->getCP()){
@@ -234,8 +239,10 @@ Clause* SPAgg::propagate(bool headtrue){
 		}
 	} else {
 		if(lower){
+			basedon = BASEDONCP;
 			weightbound = this->remove(s->getCP(), bound);
 		}else{
+			basedon = BASEDONCC;
 			weightbound = this->remove(bound, s->getCC());
 		}
 	}
@@ -256,10 +263,10 @@ Clause* SPAgg::propagate(bool headtrue){
 		if ((*u).getValue()==l_Undef) {//if already propagated as an aggregate, then those best-values have already been adapted
 			if((lower && headtrue) || (!lower && !headtrue)){
 				//assert((headtrue && set->currentbestcertain+set->wlits[u].weight>bound) || (!headtrue && set->currentbestcertain+set->wlits[u].weight>=bound));
-				c = s->getSolver()->notifySATsolverOfPropagation(~(*u).getLit(), new AggrReason(this));
+				c = s->getSolver()->notifySATsolverOfPropagation(~(*u).getLit(), new AggrReason(this, basedon));
 			}else{
 				//assert((!headtrue && set->currentbestpossible-set->wlits[u].weight<=bound) || (headtrue && set->currentbestpossible-set->wlits[u].weight<bound));
-				c = s->getSolver()->notifySATsolverOfPropagation((*u).getLit(), new AggrReason(this));
+				c = s->getSolver()->notifySATsolverOfPropagation((*u).getLit(), new AggrReason(this, basedon));
 			}
 		}
 	}
@@ -279,9 +286,34 @@ void Agg::getExplanation(vec<Lit>& lits, AggrReason& ar) const{
 
 	assert(ar.isHeadReason() || ar.getIndex()<=s->getStackSize());
 
-	for(lprop::const_iterator i=s->getStackBegin(); counter<ar.getIndex() && i<s->getStackEnd(); i++,counter++){
-		lits.push(~(*i).getLit());
+//	This is correct, but not minimal enough. We expect to be able to do better
+//	for(lprop::const_iterator i=s->getStackBegin(); counter<ar.getIndex() && i<s->getStackEnd(); i++,counter++){
+//		lits.push(~(*i).getLit());
+//	}
+
+	if(ar.getExpl()!=HEADONLY){
+		for(lprop::const_iterator i=s->getStackBegin(); counter<ar.getIndex() && i<s->getStackEnd(); i++,counter++){
+			switch(ar.getExpl()){
+			case BASEDONCC:
+				if((*i).getType()==POS){
+					lits.push(~(*i).getLit());
+				}
+				break;
+			case BASEDONCP:
+				if((*i).getType()==NEG){
+					lits.push(~(*i).getLit());
+				}
+				break;
+			case CPANDCC:
+				lits.push(~(*i).getLit());
+				break;
+			}
+		}
 	}
+
+
+
+
 
 	if(verbosity>=5){
 		reportf("Aggregate explanation for ");
