@@ -17,8 +17,9 @@ void AggrSet::backtrack(int index) {
 	setCC(pi.getPC());
 	setCP(pi.getPP());
 
+	int s = stack.size();
 	for(lsagg::const_iterator i=getAggBegin(); i<getAggEnd(); i++){
-		(*i)->backtrack(stack.size());
+		(*i)->backtrack(s);
 	}
 }
 
@@ -77,10 +78,10 @@ Clause* AggrSet::propagate(const Lit& p, const AggrWatch& ws){
 
 		lbool hv = pa->getHeadValue();
 		if(hv != l_Undef){ //head is already known
-			assert(pa->canPropagateHead()!=(hv==l_True?l_False:l_True));	//A conflicting propagation is not possible if we have complete propagation
+			assert(pa->canPropagateHead(getCC(), getCP())!=(hv==l_True?l_False:l_True));	//A conflicting propagation is not possible if we have complete propagation
 			confl = pa->propagate(hv==l_True);
 		}else{ //head is not yet known, so at most the head can be propagated
-			lbool result = pa->canPropagateHead();
+			lbool result = pa->canPropagateHead(getCC(), getCP());
 			if(result!=l_Undef){
 				confl = getSolver()->notifySATsolverOfPropagation(result==l_True?pa->getHead():~pa->getHead(), new AggrReason(*i, CPANDCC, true));
 			}
@@ -173,7 +174,7 @@ void AggrSumSet::initialize(){
 		}
 		wlits = wlits2;
 		for(lsagg::const_iterator i=getAggBegin(); i<getAggEnd(); i++){
-			(*i)->setBound((*i)->getBound()+totalneg);
+			(*i)->addToBounds(totalneg);
 		}
 	}
 

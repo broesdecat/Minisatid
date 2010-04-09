@@ -28,25 +28,28 @@ class AggrReason;
  * An aggregate is (currently) always a definition, so its head is always a positive literal.
  */
 
+enum Bound {UPPERBOUND, LOWERBOUND/*, BOTHBOUNDS*/};
+
 class Agg{
-protected:
-	Weight		bound;
-	bool 		lower;
-
-	bool 		nomoreprops, optimagg;//indicates that this aggregate is always true, so no more propagation is necessary
-	mutable bool headprop;
-	mutable int	headproptime; //stack size at first moment where head can be propagated.
-
+private:
+	//Ready for possible future extensions to also allow double bounded aggregates.
+	Weight		bound/*, boundupper*/;
+	Bound 		bounds;
 	Lit			head;
 	int			headindex;	//the index in the stack when this was derived
 	lbool		headvalue;
 
 	pSet	 	set;		//does NOT own the pointer
 
+protected:
+	bool 		nomoreprops, optimagg;//indicates that this aggregate is always true, so no more propagation is necessary
+	mutable bool headprop;
+	mutable int	headproptime; //stack size at first moment where head can be propagated.
+
 public:
 
-    Agg(bool lower, Weight bound, Lit head, const pSet& set) :
-	    bound(bound), lower(lower),
+    Agg(Bound bounds, Weight bound, Lit head, const pSet& set) :
+	    bound(bound), bounds(bounds),
 	    nomoreprops(false), optimagg(false), headprop(false), headproptime(-1),
 	    head(head), headindex(-1), headvalue(l_Undef), set(set){
     }
@@ -56,8 +59,12 @@ public:
     /**
      * GET-SET METHODS
      */
-    const 	Weight& getBound()		const	{ return bound; }
-			bool 	isLower()		const	{ return lower; }
+    const 	Weight& getLowerBound()	const	{ return bound; }
+    const 	Weight& getUpperBound()	const	{ return bound;/*bounds==BOTHBOUNDS?bound:boundupper; */}
+    void			setLowerBound(Weight w)	{ bound = w;}
+    void			setUpperBound(Weight w)	{ bound = w; /* bounds==BOTHBOUNDS?bound=w:boundupper = w;*/}
+			bool 	isLower()		const	{ return bounds!=UPPERBOUND; }
+			bool 	isUpper()		const	{ return bounds!=LOWERBOUND; }
 	const 	Lit& 	getHead()		const	{ return head; }
 	const 	lbool& 	getHeadValue() 	const	{ return headvalue; }
 			int 	getHeadIndex() 	const	{ return headindex; }
@@ -65,7 +72,10 @@ public:
 
 			void 	addAggToSet();
 
-	void 	setBound(const Weight& b)	{ bound = b; }
+	void	addToBounds(const Weight& b){
+		bound+=b;
+		//boundupper+=b;
+	}
 
 	bool 	initialize();
 	void 	backtrackHead();
@@ -75,7 +85,7 @@ public:
     /**
      * Updates the values of the aggregate and then returns whether the head can be directly propagated from the body
      */
-    virtual lbool 	canPropagateHead() const;
+    virtual lbool 	canPropagateHead(const Weight& CC, const Weight& CP) const;
 
     virtual Clause* propagate		(bool headtrue) = 0;
     virtual Clause* propagateHead	(bool headtrue) = 0;
@@ -96,8 +106,8 @@ public:
 
 class MaxAgg: public Agg {
 public:
-	MaxAgg(bool lower, Weight bound, Lit head, const pSet& set):
-		Agg(lower, bound, head, set){
+	MaxAgg(Bound bounds, Weight bound, Lit head, const pSet& set):
+		Agg(bounds, bound, head, set){
 	};
 
     virtual Clause* propagate		(bool headtrue);
@@ -109,8 +119,8 @@ public:
 
 class SPAgg: public Agg {
 public:
-	SPAgg(bool lower, Weight bound, Lit head, const pSet& set):
-		Agg(lower, bound, head, set){
+	SPAgg(Bound bounds, Weight bound, Lit head, const pSet& set):
+		Agg(bounds, bound, head, set){
 	};
 
     virtual Clause* propagate		(bool headtrue);
@@ -125,8 +135,8 @@ public:
 
 class SumAgg: public SPAgg {
 public:
-	SumAgg(bool lower, Weight bound, Lit head, const pSet& set):
-		SPAgg(lower, bound, head, set){};
+	SumAgg(Bound bounds, Weight bound, Lit head, const pSet& set):
+		SPAgg(bounds, bound, head, set){};
 
 	void	getMinimExplan(vec<Lit>& lits);
 
@@ -136,16 +146,16 @@ public:
 
 class CardAgg:public SumAgg{
 public:
-	CardAgg(bool lower, Weight bound, Lit head, const pSet& set):
-		SUmAgg(lower, bound, head, set){};
+	CardAgg(Bound bounds, Weight bound, Lit head, const pSet& set):
+		SumAgg(bounds, bound, head, set){};
 
     virtual Clause* propagate		(bool headtrue);
 };
 
 class ProdAgg: public SPAgg {
 public:
-	ProdAgg(bool lower, Weight bound, Lit head, const pSet& set):
-		SPAgg(lower, bound, head, set){
+	ProdAgg(Bound bounds, Weight bound, Lit head, const pSet& set):
+		SPAgg(bounds, bound, head, set){
 	}
 
 	Weight	add(const Weight& lhs, const Weight& rhs) const;
