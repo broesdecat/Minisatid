@@ -138,10 +138,10 @@ public:
 	SumAgg(Bound bounds, Weight bound, Lit head, const pSet& set):
 		SPAgg(bounds, bound, head, set){};
 
-	void	getMinimExplan(vec<Lit>& lits);
+	virtual void	getMinimExplan(vec<Lit>& lits);
 
-	Weight	add(const Weight& lhs, const Weight& rhs) const;
-	Weight	remove(const Weight& lhs, const Weight& rhs) const;
+	virtual Weight	add(const Weight& lhs, const Weight& rhs) const;
+	virtual Weight	remove(const Weight& lhs, const Weight& rhs) const;
 };
 
 class CardAgg:public SumAgg{
@@ -158,8 +158,8 @@ public:
 		SPAgg(bounds, bound, head, set){
 	}
 
-	Weight	add(const Weight& lhs, const Weight& rhs) const;
-	Weight	remove(const Weight& lhs, const Weight& rhs) const;
+	virtual Weight	add(const Weight& lhs, const Weight& rhs) const;
+	virtual Weight	remove(const Weight& lhs, const Weight& rhs) const;
 };
 
 enum Expl{BASEDONCC,BASEDONCP,CPANDCC, HEADONLY};

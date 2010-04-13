@@ -269,8 +269,6 @@ Clause* SPAgg::propagate(bool headtrue){
 Clause* CardAgg::propagate(bool headtrue){
 	if(nomoreprops || headprop){ return NULL; }
 
-	reportf("PASSED IN CARD \n");
-
 	pSet s = getSet();
 
 	bool makefalse = false;
@@ -281,7 +279,7 @@ Clause* CardAgg::propagate(bool headtrue){
 			makefalse = true;
 			basedon = BASEDONCC;
 		}else if(isUpper() && getUpperBound()==s->getCP()){
-			makefalse = true;
+			maketrue = true;
 			basedon = BASEDONCP;
 		}
 	}else{
@@ -289,14 +287,14 @@ Clause* CardAgg::propagate(bool headtrue){
 			maketrue = true;
 			basedon = BASEDONCP;
 		}else if(isUpper() && getUpperBound()-1==s->getCC()){
-			maketrue = true;
+			makefalse = true;
 			basedon = BASEDONCC;
 		}
 	}
 
 	Clause* c = NULL;
 
-	if(!makefalse && !makefalse){
+	if(!makefalse && !maketrue){
 		return c;
 	}
 

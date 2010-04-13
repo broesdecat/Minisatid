@@ -22,7 +22,9 @@ string printWeight<BigInteger>(const BigInteger& w){
 #else
 template <>
 string printWeight<int>(const int& w){
-	return "1";
+	char s[15];
+	sprintf(s, "%d", w);
+	return s;
 }
 
 #endif
