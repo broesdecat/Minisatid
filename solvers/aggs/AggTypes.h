@@ -6,7 +6,8 @@
 #include <set>
 #include <iostream>
 
-#include "../solverfwd.h"
+#include "solverfwd.h"
+#include "debug.h"
 
 using namespace std;
 using namespace tr1;
@@ -39,8 +40,6 @@ string printWeight<int>(const int& w);
 
 #endif
 #endif
-
-#include "../debug.h"
 
 namespace Aggrs{
 class WLV;

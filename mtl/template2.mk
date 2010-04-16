@@ -97,7 +97,9 @@ clean:
 ## Make dependencies
 depend.mk: $(CSRCS) $(CHDRS)
 	@echo Making dependencies ...
-	@echo $(CSRCS)
+	@echo "headers $(CHDRS)"
+	@echo "sources $(CSRCS)"
+	@echo "objects $(COBJS)"
 	@$(CXX) $(CFLAGS) -MM $(CSRCS) > depend.mk
 	@cp depend.mk /tmp/depend.mk.tmp
 	@sed "s/o:/occ:/" /tmp/depend.mk.tmp >> depend.mk
