@@ -50,6 +50,13 @@ extern int verbosity;
 enum MINIM {MNMZ, SUBSETMNMZ, SUMMNMZ, NONE};
 
 struct ECNF_mode {
+	//minisat specific: TODO: initialize them on time!!!
+	double random_var_freq, var_decay;
+	POLARITY polarity_mode;
+	//verbosity
+
+	//rest
+
 	bool def,aggr,mnmz; // True for those extensions that are being used.
 	IDSEM sem;
 	int nbmodels;	//Find at least this number of models. If there are less models,
@@ -59,6 +66,7 @@ struct ECNF_mode {
 	SEARCHSTRAT	ufs_strategy;		//Which algorithm to use to find unfounded sets
 
 	ECNF_mode() :
+		random_var_freq(0.02), var_decay(1 / 0.95), polarity_mode(polarity_stored),
 		def(false), aggr(false), mnmz(false), sem(WELLF), nbmodels(1),
 		defn_strategy(always), defn_search(include_cs), ufs_strategy(breadth_first){}
 };

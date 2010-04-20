@@ -8,7 +8,6 @@
 #ifndef IDSOLVERTYPES_H_
 #define IDSOLVERTYPES_H_
 
-enum POLARITY	{ polarity_true = 0, polarity_false = 1, polarity_user = 2, polarity_rnd = 3 };
 enum FINDCS		{ always, adaptive, lazy};
 enum MARKDEPTH	{ include_cs, stop_at_cs};
 enum SEARCHSTRAT{ breadth_first, depth_first};

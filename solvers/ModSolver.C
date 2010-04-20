@@ -1,55 +1,102 @@
-///*
-// * MODSolver.cpp
-// *
-// *  Created on: Feb 24, 2010
-// *      Author: broes
-// */
-//
-//#include "MODSolver.h"
-//#include <algorithm>
-//
-//Parameters params;
-//
-//MODSolver* MODSolver::root;
-//
-//MODSolver*	MODSolver::getModalOperator(int id){
-//	if(id==0){
-//		return root;
-//	}else{
-//		return getModalOperator(id, *root);
-//	}
-//}
-//
-//MODSolver*	MODSolver::getModalOperator(int id, MODSolver& m){
-//	MODSolver* found = NULL;
-//	for(vector<MODSolver*>::iterator i=m.beginModalChildren(); found==NULL && i!=m.endModalChildren(); i++){
-//		if((*i)->getID()){
-//			found = *i;
-//		}else{
-//			found = getModalOperator(id, **i);
-//		}
-//	}
-//	for(vector<MODSolver*>::iterator i=m.beginConstrChildren(); found==NULL && i!=m.endConstrChildren(); i++){
-//		if((*i)->getID()){
-//			found = *i;
-//		}else{
-//			found = getModalOperator(id, **i);
-//		}
-//	}
-//	return found;
-//}
-//
-//MODSolver::MODSolver(int id):id(id), forall(false), head(AV(-1)) {
-//	if(id==0){
-//		assert(root==NULL);
-//		root = this;
-//	}
-//}
-//
-//MODSolver::~MODSolver() {
-//
-//}
-//
+#include "ModSolver.h"
+#include <algorithm>
+
+extern ECNF_mode modes;
+
+void SolverData::finishParsing(){
+    //important to call definition solver last
+	if(modes.aggr){
+		modes.aggr = m->getAggSolver()->finishECNF_DataStructures();
+	}
+	if(modes.def){
+		modes.def = m->getIDSolver()->finishECNF_DataStructures();
+	}
+	m->finishParsing();
+
+	if(!modes.aggr){
+		m->getAggSolver()->remove();
+		greportf(1, "|                                                                             |\n"
+					"|    (there will be no aggregate propagations)                                |\n");
+	}
+	if(!modes.def){
+		m->getIDSolver()->remove();
+		greportf(1, "|    (there will be no definitional propagations)                             |\n");
+	}
+	if(!modes.mnmz){
+		//later
+	}
+
+	m->verbosity = verbosity;
+	m->var_decay = modes.var_decay;
+	m->random_var_freq = modes.random_var_freq;
+	m->polarity_mode = modes.polarity_mode;
+}
+
+void copyToVec(const vec<Lit>& v, vector<Lit>& v2){
+	for(int i=0; i<v.size(); i++){
+	    v2.push_back(v[i]);
+	}
+}
+
+void ModSolver::addClause(const vec<Lit>& lits){
+	C r;
+	copyToVec(lits, r.lits);
+
+	/*reportf("Clause %d, %d: ", r.lits.size(), lits.size());
+	for(int i=0; i<r.lits.size(); i++){
+		reportf("%d ", var(r.lits[i])+1);
+	}
+	reportf("\n");*/
+
+	theory.clauses.push_back(r);
+}
+void ModSolver::addSet(int set_id, const vec<Lit>& lits, const vector<Weight>& w){
+	S s;
+	s.id = set_id;
+	copyToVec(lits, s.lits);
+	for(int i=0; i<w.size(); i++){
+		s.weights.push_back(w[i]);
+	}
+
+	//reportf("Set\n");
+
+	theory.sets.push_back(s);
+}
+void ModSolver::addAggrExpr(int defn, int set_id, Weight bound, bool lower, AggrType type, bool defined){
+	A a;
+	a.bound = bound;
+	a.head = defn;
+	a.defined = defined;
+	a.set = set_id;
+	a.type = type;
+	a.lower = lower;
+
+	//reportf("Aggr %d\n", a.head);
+
+	atoms.push_back(AV(defn));
+	theory.aggrs.push_back(a);
+}
+
+
+
+ModSolverHier::ModSolverHier(){
+	vec<Lit> l;
+	solvers.push_back(shared_ptr<ModSolver>(new ExistentialModSolver(0, -1, l)));
+}
+
+void ModSolverHier::addModSolver(int modid, Var head, bool exist, const vec<Lit>& atoms){
+	assert(modid>0);
+	if(solvers.size()<modid+1){
+		solvers.resize(modid+1, shared_ptr<ModSolver>());
+	}
+	assert(solvers[modid].get()==NULL);
+	if(exist){
+		solvers[modid] = shared_ptr<ModSolver>(new ExistentialModSolver(modid, head, atoms));
+	}else{
+		solvers[modid] = shared_ptr<ModSolver>(new UniversalModSolver(modid, head, atoms));
+	}
+}
+
 ///**
 // * Check if l is present in this modsolver as head or rigid atom.
 // * 		If not, return
@@ -271,20 +318,6 @@
 //	return S;
 //}
 //
-//void MODSolver::addChild(MODSolver* m, bool constr){
-//	if(constr){
-//		constrtheory.children.push_back(m);
-//	}else{
-//		modaltheory.children.push_back(m);
-//	}
-//}
-//
-//void 	MODSolver::addRigidAtoms(vec<int>& atoms){
-//	for(int i=0; i<atoms.size(); i++){
-//		rigidatoms.push_back(atoms[i]);
-//	}
-//}
-//
 //void MODSolver::finishDatastructures(){
 //	sort(modalatoms.begin(), modalatoms.end());
 //	for(vector<MODSolver*>::iterator i=beginConstrChildren(); i!=endConstrChildren(); i++){
@@ -295,79 +328,3 @@
 //	}
 //}
 //
-//void MODSolver::addRule(bool constr, bool conj, vec<Lit>& lits){
-//	R r;
-//	copyToVector(lits, r.lits, constr);
-//
-//	/*reportf("Rule %d, %d: ", r.lits.size(), lits.size());
-//	for(int i=0; i<r.lits.size(); i++){
-//		reportf("%d ", var(r.lits[i])+1);
-//	}
-//	reportf("\n");*/
-//
-//	r.conj = conj;
-//	if(constr){
-//		constrtheory.rules.push_back(r);
-//	}else{
-//		modaltheory.rules.push_back(r);
-//	}
-//}
-//void MODSolver::addClause(bool constr, vec<Lit>& lits){
-//	C r;
-//	copyToVector(lits, r.lits, constr);
-//
-//	/*reportf("Clause %d, %d: ", r.lits.size(), lits.size());
-//	for(int i=0; i<r.lits.size(); i++){
-//		reportf("%d ", var(r.lits[i])+1);
-//	}
-//	reportf("\n");*/
-//
-//	if(constr){
-//		constrtheory.clauses.push_back(r);
-//	}else{
-//		modaltheory.clauses.push_back(r);
-//	}
-//}
-//void MODSolver::addSet(bool constr, int set_id, vec<Lit>& lits, vec<Weight>& w){
-//	S s;
-//	s.id = set_id;
-//	copyToVector(lits, s.lits, constr);
-//	for(int i=0; i<w.size(); i++){
-//		s.weights.push_back(w[i]);
-//	}
-//
-//	//reportf("Set\n");
-//
-//	if(constr){
-//		constrtheory.sets.push_back(s);
-//	}else{
-//		modaltheory.sets.push_back(s);
-//	}
-//}
-//void MODSolver::addAggrExpr(bool constr, int defn, int set_id, Weight bound, bool lower, AggrType type, bool defined){
-//	A a;
-//	a.bound = bound;
-//	a.head = defn;
-//	a.defined = defined;
-//	a.set = set_id;
-//	a.type = type;
-//	a.lower = lower;
-//
-//	//reportf("Aggr %d\n", a.head);
-//
-//	if(constr){
-//		constrtheory.aggrs.push_back(a);
-//	}else{
-//		modalatoms.push_back(AV(defn));
-//		modaltheory.aggrs.push_back(a);
-//	}
-//}
-//
-//void MODSolver::copyToVector(vec<Lit>& lits, vector<Lit>& literals, bool constr){
-//	for(int i=0; i<lits.size(); i++){
-//		literals.push_back(lits[i]);
-//		if(!constr){
-//			modalatoms.push_back(AV(var(lits[i])));
-//		}
-//	}
-//}
