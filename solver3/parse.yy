@@ -140,7 +140,7 @@ inline void initModSolver(){
 
 shared_ptr<Data> getData(){
 	if(solver.get()!=NULL){
-		return shared_ptr<Data>(new SolverData(solver));
+		return shared_ptr<Data>(new SolverData(solver, idsolver, aggsolver));
 	}else if(modhier.get()!=NULL){
 		return shared_ptr<Data>(new ModSolverData(modhier->getModSolver(0)));
 	}

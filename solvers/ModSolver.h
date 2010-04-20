@@ -7,6 +7,8 @@
 #include "Vec.h"
 #include "SolverTypes.h"
 #include "Solver.h"
+#include "IDSolver.h"
+#include "AggSolver.h"
 #include <stdio.h>
 
 using namespace std;
@@ -14,6 +16,8 @@ using namespace tr1;
 
 class ModSolver;
 class Solver;
+class IDSolver;
+class AggSolver;
 
 class Data{
 private:
@@ -23,7 +27,7 @@ public:
 	Data(){};
 	virtual ~Data(){};
 
-	void setNbModels(int nb){ nbmodels = nb; }
+	virtual void setNbModels(int nb){ nbmodels = nb; }
 	void setRes(FILE* f){ res = f; }
 
 	virtual bool simplify() = 0;
@@ -34,9 +38,16 @@ public:
 class SolverData: public Data{
 private:
 	shared_ptr<Solver> m;
+	shared_ptr<IDSolver> md;
+	shared_ptr<AggSolver> ma;
 
 public:
-	SolverData(shared_ptr<Solver> m):Data(),m(m){};
+	SolverData(shared_ptr<Solver> m, shared_ptr<IDSolver> md, shared_ptr<AggSolver> ma):Data(),m(m), md(md), ma(ma){};
+
+	virtual void setNbModels(int nb){
+		Data::setNbModels(nb);
+		m->nb_models=nb;
+	}
 
 	virtual bool simplify(){
 		return m->simplify();
