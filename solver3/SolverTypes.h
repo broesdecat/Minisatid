@@ -195,6 +195,4 @@ inline void Clause::strengthen(Lit p)
     calcAbstraction();
 }
 
-enum POLARITY	{ polarity_true = 0, polarity_false = 1, polarity_stored = 2, polarity_rnd = 3 };
-
 #endif

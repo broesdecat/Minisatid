@@ -49,6 +49,8 @@ extern int verbosity;
 
 enum MINIM {MNMZ, SUBSETMNMZ, SUMMNMZ, NONE};
 
+enum POLARITY	{ polarity_true = 0, polarity_false = 1, polarity_stored = 2, polarity_rnd = 3 };
+
 struct ECNF_mode {
 	//minisat specific: TODO: initialize them on time!!!
 	double random_var_freq, var_decay;

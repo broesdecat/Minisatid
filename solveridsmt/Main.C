@@ -6,10 +6,13 @@
 #include <signal.h>
 #include <zlib.h>
 
-#include "SolverTypes.h"
+#include "solverfwd.h"
 #include "Solver.h"
 #include "IDSolver.h"
 #include "AggSolver.h"
+#include "ModSolver.h"
+
+#include "debug.h"
 
 #if defined(__linux__)
 #include <fpu_control.h>
@@ -20,18 +23,20 @@
 int verbosity;
 ECNF_mode modes;
 
+typedef shared_ptr<Data> pData;
+
+extern pData getData		();
 extern FILE* yyin;
 extern int 	yyparse			();
 extern void yydestroy		();
-extern void yyinit			(pSolver s, pIDSolver ids, pAggSolver aggs);
+extern void yyinit			(/*pSolver s, pIDSolver ids, pAggSolver aggs*/);
 bool parseError = false;
 
-void 		initSolvers		(const pSolver& S, const pIDSolver& TS, const pAggSolver& AggS);
+//void 		initSolvers		(const pSolver& S, const pIDSolver& TS, const pAggSolver& AggS);
 
 const char* hasPrefix		(const char* str, const char* prefix);
-void 		parseCommandline(const pSolver&, const pIDSolver&, const pAggSolver&, int& argc, char** argv);
-void 		parse			(const pSolver&, const pIDSolver&, const pAggSolver&, const char* file);
-void 		finishParsing	(const pSolver&, const pIDSolver&, const pAggSolver&);
+void 		parseCommandline(/*const pSolver&, const pIDSolver&, const pAggSolver&,*/ int& argc, char** argv);
+pData 		parse			(/*const pSolver&, const pIDSolver&, const pAggSolver&,*/ const char* file);
 
 void 		printStats		(pSolver solver);
 static void SIGINT_handler	(int signum);
@@ -40,12 +45,7 @@ void 		printUsage		(char** argv);
 int main(int argc, char** argv){
 	greportf(1, "This is MiniSAT-SMT 1.0\n");
 
-	pSolver		S(new Solver());
-	pIDSolver	TS(new IDSolver());
-	pAggSolver	AggS(new AggSolver());
-    initSolvers(S, TS, AggS);
-
-    parseCommandline(S, TS, AggS, argc, argv);
+    parseCommandline(/*S, TS, AggS,*/ argc, argv);
 
 #if defined(__linux__)
     fpu_control_t oldcw, newcw;
@@ -67,22 +67,7 @@ int main(int argc, char** argv){
 
     bool ret = false;
     try{
-    	parse(S, TS, AggS, argv[1]);
-
-		if(!modes.aggr){
-			AggS->remove();
-			AggS.reset();
-			greportf(1, "|                                                                             |\n"
-						"|    (there will be no aggregate propagations)                                |\n");
-		}
-		if(!modes.def){
-			TS->remove();
-			TS.reset();
-			greportf(1, "|    (there will be no definitional propagations)                             |\n");
-		}
-		if(!modes.mnmz){
-			//later
-		}
+    	pData d = parse(/*S, TS, AggS,*/ argv[1]);
 
 		greportf(1, 	"| Parsing time              : %7.2f s                                    |\n", cpuTime()-cpu_time);
 
@@ -93,7 +78,7 @@ int main(int argc, char** argv){
 			reportf("| Parsing time              : %7.2f s                                       |\n", parse_time);
 		}
 
-		if (!S->simplify()){
+		if (!d->simplify()){
 			greportf(1, "===============================================================================\n"
 						"Solved by unit propagation\n");
 			if (res != NULL){
@@ -103,12 +88,12 @@ int main(int argc, char** argv){
 			exit(20);
 		}
 
-		S->nb_models=modes.nbmodels;
-		S->res=res;
+		d->setNbModels(modes.nbmodels);
+		d->setRes(res);
 
-		ret = S->solve();
+		ret = d->solve();
 
-		printStats(S);
+		//printStats(S);
 	}catch(bad_alloc e){ //FIXME: handle all these elegantly
 		reportf("Memory overflow, cannot continue solving.\n"); exit(3);
 	}catch(UNSAT){
@@ -127,15 +112,6 @@ int main(int argc, char** argv){
 #endif
 }
 
-void initSolvers(const pSolver& S, const pIDSolver& TS, const pAggSolver& AggS){
-	S->setIDSolver(TS);
-	S->setAggSolver(AggS);
-	TS->setSolver(S);
-	TS->setAggSolver(AggS);
-	AggS->setSolver(S);
-	AggS->setIDSolver(TS);
-}
-
 /****************
  * Parsing code *
  ****************/
@@ -149,17 +125,17 @@ const char* hasPrefix(const char* str, const char* prefix){
     }
 }
 
-void parseCommandline(const pSolver& S, const pIDSolver& TS, const pAggSolver& AggS, int& argc, char** argv){
+void parseCommandline(/*const pSolver& S, const pIDSolver& TS, const pAggSolver& AggS,*/ int& argc, char** argv){
     int         i, j;
     const char* value;
     for (i = j = 0; i < argc; i++){
         if ((value = hasPrefix(argv[i], "-polarity-mode="))){
             if (strcmp(value, "true") == 0){
-               S->polarity_mode = polarity_true;
+               modes.polarity_mode = polarity_true;
             }else if (strcmp(value, "false") == 0){
-               S->polarity_mode = polarity_false;
+            	modes.polarity_mode = polarity_false;
             }else if (strcmp(value, "rnd") == 0){
-               S->polarity_mode = polarity_rnd;
+            	modes.polarity_mode = polarity_rnd;
             }else{
                 reportf("ERROR! unknown polarity-mode %s\n", value);
                 exit(0);
@@ -188,14 +164,14 @@ void parseCommandline(const pSolver& S, const pIDSolver& TS, const pAggSolver& A
             if (sscanf(value, "%lf", &rnd) <= 0 || rnd < 0 || rnd > 1){
                 reportf("ERROR! illegal rnd-freq constant %s\n", value);
                 exit(0); }
-            S->random_var_freq = rnd;
+            modes.random_var_freq = rnd;
 
         }else if ((value = hasPrefix(argv[i], "-decay="))){
             double decay;
             if (sscanf(value, "%lf", &decay) <= 0 || decay <= 0 || decay > 1){
                 reportf("ERROR! illegal decay constant %s\n", value);
                 exit(0); }
-           S->var_decay = 1 / decay;
+            modes.var_decay = 1 / decay;
         }else if ((value = hasPrefix(argv[i], "-ufsalgo="))){
 			if (strcmp(value, "depth") == 0){
 				modes.ufs_strategy = depth_first;
@@ -221,8 +197,8 @@ void parseCommandline(const pSolver& S, const pIDSolver& TS, const pAggSolver& A
                 exit(0); }
             verbosity = verb;
         }else if ((value = hasPrefix(argv[i], "-maxruntime="))){
-           S->maxruntime = (double)strtol(value, NULL, 10);
-            if (S->maxruntime <= 0.0) {
+           modes.maxruntime = (double)strtol(value, NULL, 10);
+            if (modes.maxruntime <= 0.0) {
                 reportf("ERROR! maxruntime should be bigger then zero.\n");
                 exit(0); }
         }else if (strncmp(&argv[i][0], "-n",2) == 0){
@@ -245,32 +221,25 @@ void parseCommandline(const pSolver& S, const pIDSolver& TS, const pAggSolver& A
     argc = j;
 }
 
-void parse(const pSolver& S, const pIDSolver& TS, const pAggSolver& AggS, const char* file){
-   	yyinit(S, TS, AggS);
+pData parse(/*const pSolver& S, const pIDSolver& TS, const pAggSolver& AggS,*/ const char* file){
+   	yyinit(/*S, TS, AggS*/);
 	yyin = fopen(file,"r");
 	if(!yyin) {
 		cerr << "`" << file << "' is not a valid filename or not readable." << endl;
 		exit(1);
 	}
 	yyparse();
+	pData d = getData();
+
 	yydestroy();
 	fclose(yyin);
 	if(parseError){
 		reportf("At least one parsing error, program will exit.\n");
 		exit(3);
 	}
-	finishParsing(S, TS, AggS);
-}
+	d->finishParsing(/*S, TS, AggS*/);
 
-void finishParsing(const pSolver& S, const pIDSolver& TS, const pAggSolver& AGG){
-    //important to call definition solver last
-	if(modes.aggr){
-		modes.aggr = AGG->finishECNF_DataStructures();
-	}
-	if(modes.def){
-		modes.def = TS->finishECNF_DataStructures();
-	}
-	S->finishParsing();
+	return d;
 }
 
 /**************************************

@@ -191,7 +191,7 @@ public:
     double    random_var_freq;    // The frequency with which the decision heuristic tries to choose a random variable.        (default 0.02)
     double    learntsize_inc;     // The limit for learnt clauses is multiplied with this factor each restart.                 (default 1.1)
     bool      expensive_ccmin;    // Controls conflict clause minimization.                                                    (default TRUE)
-    int       polarity_mode;      // Controls which polarity the decision heuristic chooses. See enum below for allowed modes. (default polarity_false)
+    POLARITY  polarity_mode;      // Controls which polarity the decision heuristic chooses. See enum below for allowed modes. (default polarity_false)
     int       verbosity;          // Verbosity level. 0=silent, 1=some progress report
 
 	/* Modified 2009 */
@@ -201,8 +201,6 @@ public:
 	double nof_learnts;
 	int* backtrackLevels;
 	vec<bool> polarity;
-
-    enum { polarity_true = 0, polarity_false = 1, polarity_stored = 2, polarity_rnd = 3 };
 
     // Statistics: (read-only member variable)
     //

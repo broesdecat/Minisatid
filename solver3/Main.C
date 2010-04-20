@@ -6,7 +6,7 @@
 #include <signal.h>
 #include <zlib.h>
 
-#include "SolverTypes.h"
+#include "solverfwd.h"
 #include "Solver.h"
 #include "IDSolver.h"
 #include "AggSolver.h"

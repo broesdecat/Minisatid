@@ -10,58 +10,61 @@ extern bool parseError;
 
 #define ADJ (charPos += yyleng)
 %}
-                  
+
 /* lex definitions: */
 %option noyywrap
 
 %x TRANSLATION_MODUS
 %%
 
-^"c grounder error".* {cerr << "There was a grounding error, so no solving is possible." << endl; exit(-1);}
-^"c ".*      {/* disregard comments */}
-^"p cnf".*   {/*return PROBLEMLINE;*/ /* disregard actual data */}
+^"c grounder error".*	{cerr << "There was a grounding error, so no solving is possible." << endl; exit(-1);}
+^"c ".*		{/* disregard comments */}
+^"p cnf".*	{/*return PROBLEMLINE;*/ /* disregard actual data */}
 
-^"p ecnf"  	{ ADJ; }
-"def" 		{ ADJ; return DEF_PRESENT;}
-"aggr" 		{ ADJ; return AGG_PRESENT;}
-"mnmz" 		{ ADJ; return MNMZ_PRESENT;}
+^"p ecnf"  	{ADJ; }
+"def" 		{ADJ; return DEFPRESENT;}
+"aggr" 		{ADJ; return AGGPRESENT;}
+"mod" 		{ADJ; return MODPRESENT;}
+"mnmz" 		{ADJ; return MNMZPRESENT;}
 
-"WSet"	{ADJ; return WSET_DEFN;}
-"Set"		{ADJ; return SET_DEFN;}
-"Card"	{ADJ; return CARD_DEFN;}
-"Sum"		{ADJ; return SUM_DEFN;}
-"Prod"	{ADJ; return PROD_DEFN;}
-"Min"		{ADJ; return MIN_DEFN;}
-"Max"		{ADJ; return MAX_DEFN;}
+"WSet"		{ADJ; return WSETDEFN;}
+"Set"		{ADJ; return SETDEFN;}
+"Card"		{ADJ; return CARDDEFN;}
+"Sum"		{ADJ; return SUMDEFN;}
+"Prod"		{ADJ; return PRODDEFN;}
+"Min"		{ADJ; return MINDEFN;}
+"Max"		{ADJ; return MAXDEFN;}
 
-"D"		{ADJ; yylval.boolean = true;  return SEM_DEFN;}
-"C"		{ADJ; yylval.boolean = false; return SEM_DEFN;}
-"L"		{ADJ; yylval.boolean = true;  return SIGN_DEFN;}
-"G"		{ADJ; yylval.boolean = false; return SIGN_DEFN;}
+"D"			{ADJ; yylval.boolean = true;  return SEMDEFN;}
+"C"			{ADJ; yylval.boolean = false; return SEMDEFN;}
+"L"			{ADJ; yylval.boolean = true;  return SIGNDEFN;}
+"G"			{ADJ; yylval.boolean = false; return SIGNDEFN;}
 
-"SubsetMnmz"	{ADJ; return SUBSETMIN_DEFN;}
-"Mnmt"     		{ADJ; return MNMZ_DEFN;}
-"SumMnmz"		{ADJ; return SUMMIN_DEFN;}
+"E"			{ADJ; yylval.boolean = true;  return QUANT;}
+"A"			{ADJ; yylval.boolean = false; return QUANT;}
 
-" "	   {ADJ; /* disregard whitespaces */}
-"\t"	   {ADJ; /*                       */}
-"\n"	   {charPos = 1; lineNo++; /*     */}
+"SubsetMnmz"	{ADJ; return SUBSETMINDEFN;}
+"Mnmt"     		{ADJ; return MNMZDEFN;}
+"SumMnmz"		{ADJ; return SUMMINDEFN;}
 
-"="	   {ADJ; return EQ;}
+" "			{ADJ; /* disregard whitespaces */}
+"\t"		{ADJ; /*                       */}
+"\n"		{charPos = 1; lineNo++; /*     */}
+
+"="			{ADJ; return EQ;}
 
  /* Longest match is returned -> if e.g. "20", NUMBER is returned.
     If "0", then ZERO is returned since it's the first matching rule.
   */
-"0"      {ADJ; return ZERO;}
--?[0-9]+ {ADJ; yylval.integer = atoi(yytext); return NUMBER;}
+"0"			{ADJ; return ZERO;}
+-?[0-9]+	{ADJ; yylval.integer = atoi(yytext); return NUMBER;}
 
-<*>.	{/* Anything else: parse error */
-			parseError = true;
-			cerr	<< "Line " << lineNo 
-					<< ", Column " << charPos 
-					<< ": Parse error (unexpected character '"
-					<< yytext
-					<< "' encountered)." 
-					<< endl;
-		}
-         
+<*>.		{/* Anything else: parse error */
+				parseError = true;
+				cerr	<< "Line " << lineNo 
+						<< ", Column " << charPos 
+						<< ": Parse error (unexpected character '"
+						<< yytext
+						<< "' encountered)." 
+						<< endl;
+			}

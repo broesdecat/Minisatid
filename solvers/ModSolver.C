@@ -26,7 +26,7 @@ void SolverData::finishParsing(){
 		//later
 	}
 
-	m->verbosity = verbosity;
+	//FIXME: niet elke solver ondersteund dit? m->verbosity = verbosity;
 	m->var_decay = modes.var_decay;
 	m->random_var_freq = modes.random_var_freq;
 	m->polarity_mode = modes.polarity_mode;
