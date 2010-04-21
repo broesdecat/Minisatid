@@ -26,6 +26,7 @@ shared_ptr<IDSolver>		idsolver;
 shared_ptr<AggSolver>		aggsolver;
 
 vector<Weight> weights;
+vector<Var> nb;
 vec<Lit> lits;
 bool disj;
 int setid, modid;
@@ -79,8 +80,10 @@ void yyerror(const char* msg) {
  */
 inline Var readLit(int nb){
 	Var var = abs(nb)-1;
-	while (var >= solver->nVars()) solver->newVar();
-	solver->setDecisionVar(var,true); // S.nVars()-1   or   var
+	if(solver.get()!=NULL){
+		while (var >= solver->nVars()) solver->newVar();
+		solver->setDecisionVar(var,true); // S.nVars()-1   or   var	
+	}
 	return var;
 }
 
@@ -93,14 +96,36 @@ inline void addLit(int nb){
 }
 
 inline void addSet(int modid, int setid, const vec<Lit>& lits, const vector<Weight>& weights){
+	if(modhier->getModSolver(modid)==NULL){
+		reportf("No modal operator with id %d was defined! ", modid+1);
+		error(true, "");
+	}
 	modhier->getModSolver(modid)->addSet(setid, lits, weights);
 }
 
-inline void addQuantSet(bool exists, int modid, int head, const vec<Lit>& atoms){
+inline void addQuantSet(bool exists, int modid, int head, const vector<int>& atoms){
 	modhier->addModSolver(modid, head, exists, atoms); 
 }
 
+inline void addChildren(int parent, const vector<int>& children){
+	if(modhier->getModSolver(parent)==NULL){
+		reportf("No modal operator with id %d was defined! ", parent+1);
+		error(true, "");
+	}
+	for(vector<int>::const_iterator i=children.begin(); i<children.end(); i++){
+		if(modhier->getModSolver(*i)==NULL){
+			reportf("No modal operator with id %d was defined! ", *i+1);
+			error(true, "");
+		}
+	}
+	modhier->getModSolver(parent)->setChildren(children);
+}
+
 inline void addClause(int modid, const vec<Lit>& lits){
+	if(modhier->getModSolver(modid)==NULL){
+		reportf("No modal operator with id %d was defined! ", modid+1);
+		error(true, "");
+	}
 	modhier->getModSolver(modid)->addClause(lits); 
 }
 
@@ -115,6 +140,10 @@ inline void addAgg(int head, int setid, int w, AggrType a, bool l, bool d){
 }
 
 inline void addAgg(int modid, int head, int setid, int w, AggrType a, bool l, bool d){
+	if(modhier->getModSolver(modid)==NULL){
+		reportf("No modal operator with id %d was defined! ", modid+1);
+		error(true, "");
+	}
 	if(head<1){
 		error(false, "No negative heads are allowed!\n");
 	}
@@ -136,13 +165,14 @@ inline void initSolvers(){
 
 inline void initModSolver(){
 	modhier = shared_ptr<ModSolverHier>(new ModSolverHier());
+	modhier->initialize();
 }
 
 shared_ptr<Data> getData(){
 	if(solver.get()!=NULL){
 		return shared_ptr<Data>(new SolverData(solver, idsolver, aggsolver));
 	}else if(modhier.get()!=NULL){
-		return shared_ptr<Data>(new ModSolverData(modhier->getModSolver(0)));
+		return shared_ptr<Data>(new ModSolverData(modhier));
 	}
 	assert(false);
 	exit(1);
@@ -161,7 +191,7 @@ shared_ptr<Data> getData(){
 %token SUBSETMINDEFN MNMZDEFN SUMMINDEFN
 %token SETDEFN WSETDEFN SUMDEFN PRODDEFN MINDEFN MAXDEFN CARDDEFN 
 %token <integer> NUMBER
-%token <boolean> SEMDEFN SIGNDEFN QUANT
+%token <boolean> SEMDEFN SIGNDEFN QUANT MODDEFN
 %token DEFPRESENT AGGPRESENT MNMZPRESENT MODPRESENT
 
 %start init
@@ -195,6 +225,7 @@ theory	:	/* empty */
 		
 mtheory	:	/* empty */
 		|	mtheory matomset
+		|	mtheory modhier
 		|	mtheory mclause
 		|	mtheory rule
 		| 	mtheory msum
@@ -220,6 +251,14 @@ summnmz :	SUMMINDEFN NUMBER NUMBER ZERO 	{ solver->addSumMinimize(readLit($2), $
 
 body	:  /* empty */
 		|  body NUMBER { addLit($2); }
+		;
+		
+intbody	:  /* empty */
+		|  intbody NUMBER { nb.push_back($2); }
+		;
+		
+varbody	:  /* empty */
+		|  varbody NUMBER { nb.push_back($2-1); }
 		;
          
 wbody	:	/* empty */
@@ -270,33 +309,35 @@ wset	:	WSETDEFN NUMBER { setid = $2;	}
 						}
 		;
 
-//MODAL PART
-matomset:	QUANT NUMBER NUMBER body ZERO	{ addQuantSet($1, $2, $3, lits); lits.clear(); }
+//MODAL PART: USE INDEXES+1 AS MODAL IDs IN THE THEORY
+matomset:	QUANT NUMBER NUMBER varbody ZERO	{ addQuantSet($1-1, readLit($2), $3, nb); nb.clear(); }
 		;
-mclause	:	NUMBER body ZERO	{ addClause($1, lits); lits.clear(); }
+modhier :	MODDEFN	NUMBER varbody ZERO { addChildren($2-1, nb); nb.clear();}
 		;
-msum	:	SUMDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ readLit($5); addAgg($2, $5, $6, $7, SUM, $4, $3); }
+mclause	:	NUMBER body ZERO	{ addClause($1-1, lits); lits.clear(); }
 		;
-mmax	:	MAXDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ readLit($5); addAgg($2, $5, $6, $7, MAX, $4, $3); }	
+msum	:	SUMDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ readLit($5); addAgg($2-1, $5, $6, $7, SUM, $4, $3); }
 		;
-mmin	:	MINDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ readLit($5); addAgg($2, $5, $6, $7, MIN, $4, $3); }	
+mmax	:	MAXDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ readLit($5); addAgg($2-1, $5, $6, $7, MAX, $4, $3); }	
 		;
-mcard	:	CARDDEFN NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ readLit($5); addAgg($2, $5, $6, $7, SUM, $4, $3); }
+mmin	:	MINDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ readLit($5); addAgg($2-1, $5, $6, $7, MIN, $4, $3); }	
 		;
-mprod	:	PRODDEFN NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ readLit($5); addAgg($2, $5, $6, $7, PROD, $4, $3); }
+mcard	:	CARDDEFN NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ readLit($5); addAgg($2-1, $5, $6, $7, SUM, $4, $3); }
 		;
-msum	:	SUMDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ readLit($5); addAgg($2, $5, $6, 0, SUM, $4, $3); }
+mprod	:	PRODDEFN NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ readLit($5); addAgg($2-1, $5, $6, $7, PROD, $4, $3); }
 		;
-mmax	:	MAXDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ readLit($5); addAgg($2, $5, $6, 0, MAX, $4, $3); }	
+msum	:	SUMDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ readLit($5); addAgg($2-1, $5, $6, 0, SUM, $4, $3); }
 		;
-mmin	:	MINDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ readLit($5); addAgg($2, $5, $6, 0, MIN, $4, $3); }	
+mmax	:	MAXDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ readLit($5); addAgg($2-1, $5, $6, 0, MAX, $4, $3); }	
 		;
-mcard	:	CARDDEFN NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ readLit($5); addAgg($2, $5, $6, 0, SUM, $4, $3); }
+mmin	:	MINDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ readLit($5); addAgg($2-1, $5, $6, 0, MIN, $4, $3); }	
 		;
-mprod	:	PRODDEFN NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ readLit($5); addAgg($2, $5, $6, 0, PROD, $4, $3); }
+mcard	:	CARDDEFN NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ readLit($5); addAgg($2-1, $5, $6, 0, SUM, $4, $3); }
+		;
+mprod	:	PRODDEFN NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ readLit($5); addAgg($2-1, $5, $6, 0, PROD, $4, $3); }
 		;
 
-mset	:	SETDEFN NUMBER NUMBER { setid = $3; modid = $2;	}
+mset	:	SETDEFN NUMBER NUMBER { setid = $3; modid = $2-1;	}
 			body ZERO	{ 
 						for(int i=0; i<lits.size(); i++){
 								weights.push_back(1);
@@ -306,7 +347,7 @@ mset	:	SETDEFN NUMBER NUMBER { setid = $3; modid = $2;	}
 						}
 		;
 
-mwset	:	WSETDEFN NUMBER NUMBER { setid = $3; modid = $2;	}
+mwset	:	WSETDEFN NUMBER NUMBER { setid = $3; modid = $2-1;	}
 			wbody ZERO	{ 
 							addSet(modid, setid, lits, weights);
 							lits.clear(); weights.clear();

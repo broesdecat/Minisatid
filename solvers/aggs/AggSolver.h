@@ -114,7 +114,7 @@ public:
 	 * Checks presence of aggregates and initializes all counters.
 	 * @Return: true if there are aggregates present
 	 */
-	bool    finishECNF_DataStructures ();
+	bool    finishECNF_DataStructures (); //throws UNSAT
 
 	void 		setSolver				(pSolver s)		{ solver = wpSolver(s); }
 	void 		setIDSolver				(pIDSolver s)	{ idsolver = wpIDSolver(s); }
@@ -173,7 +173,7 @@ protected:
 	Clause* Aggr_propagate		(const Lit& p);
 
 	void 	maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& head, const AggrSet& set);
-	void	finishSets(vector<pSet>& sets);
+	void	finishSets(vector<pSet>& sets); //throws UNSAT
 };
 
 //=======================

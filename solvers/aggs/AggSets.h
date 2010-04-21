@@ -39,7 +39,7 @@ public:
     AggrSet(const vec<Lit>& lits, const vector<Weight>& weights, wpAggSolver s);
     virtual ~AggrSet(){}
 
-	virtual void 	initialize();
+	virtual void 	initialize(); //throws UNSAT
 	Clause* 		propagate(const Lit& p, const AggrWatch& ws);
 
     virtual void 	backtrack(int index);

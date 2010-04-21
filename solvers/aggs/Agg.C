@@ -7,11 +7,8 @@
 
 using namespace Aggrs;
 
-AggrReason::AggrReason(pAgg e, Expl exp, bool head): expr(e), index(0), expl(exp) {
+AggrReason::AggrReason(pAgg e, Expl exp, bool head): expr(e), index(0), expl(exp), head(head) {
 	index = e->getSet()->getStackSize();
-	if(head==true){
-		index = -index;
-	}
 }
 
 void Agg::addAggToSet(){
@@ -328,6 +325,8 @@ void Agg::getExplanation(vec<Lit>& lits, AggrReason& ar) const{
 //		lits.push(~(*i).getLit());
 //	}
 
+
+
 	if(ar.getExpl()!=HEADONLY){
 		for(lprop::const_iterator i=s->getStackBegin(); counter<ar.getIndex() && i<s->getStackEnd(); i++,counter++){
 			switch(ar.getExpl()){
@@ -347,9 +346,6 @@ void Agg::getExplanation(vec<Lit>& lits, AggrReason& ar) const{
 			}
 		}
 	}
-
-
-
 
 
 	if(verbosity>=5){

@@ -363,8 +363,9 @@ Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 		Clause* confl = getExplanation(p);
 
 		/*
-		 * Due to current (TODO this can be avoided) incomplete propagation, the conflict should possibly
-		 * have been derived at an earlier level. So check for this and first backtrack to that level.
+		 * Due to current possibly incomplete propagation, the conflict could possibly
+		 * have been derived at an earlier level. So check for this and first backtrack
+		 * to that level.
 		 */
 		int lvl = 0;
 		for (int i = 1; i < confl->size(); i++){
@@ -378,7 +379,9 @@ Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 		if(confl->size()>1){
 			getSolver()->addLearnedClause(confl);
 		}else{
-			reportf("HIER iets doen");
+			//FIXME
+			assert(confl->size()==1);
+			reportf("Er is een conflict van lengte 1, dus eigenlijk een unit clause, maar die kan niet meer toegevoegd worden tijdens het solven.");
 		}
 
 		aggr_reason[var(p)] = old_ar;

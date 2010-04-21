@@ -101,12 +101,13 @@ int main(int argc, char** argv) {
 	greportf(1, "|                                                                             |\n");
 
     bool ret = false;
+    FILE* res = NULL;
 	try {
-    	pData d = parse(/*S, TS, AggS,*/ argv[1]);
+		res = (argc >= 3) ? fopen(argv[2], "wb") : NULL;
+
+		pData d = parse(/*S, TS, AggS,*/ argv[1]);
 
 		greportf(1, 	"| Parsing time              : %7.2f s                                    |\n", cpuTime()-cpu_time);
-
-		FILE* res = (argc >= 3) ? fopen(argv[2], "wb") : NULL;
 
 		if (verbosity >= 1) {
 			double parse_time = cpuTime() - cpu_time;
@@ -116,10 +117,7 @@ int main(int argc, char** argv) {
 		if (!d->simplify()) {
 			greportf(1, "===============================================================================\n"
 						"Solved by unit propagation\n");
-			if (res != NULL)
-				fprintf(res, "UNSAT\n"), fclose(res);
-			printf("UNSATISFIABLE\n");
-			exit(20);
+			throw UNSAT();
 		}
 
 		d->setNbModels(modes.nbmodels);
@@ -131,8 +129,11 @@ int main(int argc, char** argv) {
 	}catch(bad_alloc e){ //FIXME: handle all these elegantly
 		reportf("Memory overflow, cannot continue solving.\n"); exit(3);
 	}catch(UNSAT e2){
+		if (res != NULL)
+			fprintf(res, "UNSAT\n"), fclose(res);
+		printf("UNSATISFIABLE\n");
 		reportf("%s\n", e2.what());
-		ret = false;
+		ret = 20;
 	}catch(NoDefAllowedExc e3){
 		reportf("%s\n", e3.what());
 		exit(3);

@@ -35,6 +35,8 @@ extern bool parseError;
 "Min"		{ADJ; return MINDEFN;}
 "Max"		{ADJ; return MAXDEFN;}
 
+"Mod"		{ADJ; return MODDEFN;}
+
 "D"			{ADJ; yylval.boolean = true;  return SEMDEFN;}
 "C"			{ADJ; yylval.boolean = false; return SEMDEFN;}
 "L"			{ADJ; yylval.boolean = true;  return SIGNDEFN;}

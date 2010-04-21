@@ -3,7 +3,7 @@
 
 extern ECNF_mode modes;
 
-void SolverData::finishParsing(){
+void SolverData::finishParsing(){ //throws UNSAT
     //important to call definition solver last
 	if(modes.aggr){
 		modes.aggr = m->getAggSolver()->finishECNF_DataStructures();
@@ -36,6 +36,31 @@ void copyToVec(const vec<Lit>& v, vector<Lit>& v2){
 	for(int i=0; i<v.size(); i++){
 	    v2.push_back(v[i]);
 	}
+}
+
+void ModSolver::setChildren(const vector<Var>& a){
+	//FIXME check that no ancestors become children or that some already have a parent
+	for(vector<Var>::const_iterator i=a.begin(); i<a.end(); i++){
+		children.push_back(*i);
+		modhier.lock()->getModSolver(*i)->setParent(id);
+	}
+}
+
+bool ModSolver::solve(){
+	printModSolver(this);
+	for(vector<int>::const_iterator i=getChildren().begin(); i<getChildren().end(); i++){
+		printModSolver(modhier.lock()->getModSolver(*i));
+	}
+
+	return false;
+}
+
+bool ModSolverData::solve(){
+	return m->solve();
+}
+
+bool ModSolverHier::solve(){
+	return getModSolver(0)->solve();
 }
 
 void ModSolver::addClause(const vec<Lit>& lits){
@@ -80,20 +105,55 @@ void ModSolver::addAggrExpr(int defn, int set_id, Weight bound, bool lower, Aggr
 
 
 ModSolverHier::ModSolverHier(){
-	vec<Lit> l;
-	solvers.push_back(shared_ptr<ModSolver>(new ExistentialModSolver(0, -1, l)));
+
 }
 
-void ModSolverHier::addModSolver(int modid, Var head, bool exist, const vec<Lit>& atoms){
+void ModSolverHier::initialize(){
+	vector<int> l;
+	solvers.push_back(new ExistentialModSolver(0, -1, l, shared_from_this()));
+}
+
+void ModSolverHier::addModSolver(int modid, Var head, bool exist, const vector<Var>& atoms){
 	assert(modid>0);
 	if(solvers.size()<modid+1){
-		solvers.resize(modid+1, shared_ptr<ModSolver>());
+		solvers.resize(modid+1, NULL);
 	}
-	assert(solvers[modid].get()==NULL);
+	assert(solvers[modid]==NULL);
 	if(exist){
-		solvers[modid] = shared_ptr<ModSolver>(new ExistentialModSolver(modid, head, atoms));
+		solvers[modid] = new ExistentialModSolver(modid, head, atoms, shared_from_this());
 	}else{
-		solvers[modid] = shared_ptr<ModSolver>(new UniversalModSolver(modid, head, atoms));
+		solvers[modid] = new UniversalModSolver(modid, head, atoms, shared_from_this());
+	}
+}
+
+void printModSolver(const ModSolver* m){
+	reportf("ModSolver %d, parent %d, head %d, children ", m->getId(), m->getParentId(), gprintVar(m->getHead()));
+	for(vector<int>::const_iterator i=m->getChildren().begin(); i<m->getChildren().end(); i++){
+		reportf("%d ", *i);
+	}
+	reportf("\nModal atoms ");
+	for(vector<AV>::const_iterator i=m->getAtoms().begin(); i<m->getAtoms().end(); i++){
+		reportf("%d ", gprintVar((*i).atom));
+	}
+	reportf("\n");
+	//print theory:
+	for(vector<C>::const_iterator i=m->getTheory().clauses.begin(); i<m->getTheory().clauses.end(); i++){
+		reportf("Clause ");
+		for(vector<Lit>::const_iterator j=(*i).lits.begin(); j<(*i).lits.end(); j++){
+			gprintLit(*j);reportf(" ");
+		}
+		reportf("\n");
+	}
+	for(vector<S>::const_iterator i=m->getTheory().sets.begin(); i<m->getTheory().sets.end(); i++){
+		reportf("Set %d, ", (*i).id);
+		for(int j=0; j<(*i).lits.size(); j++){
+			gprintLit((*i).lits[j]);reportf("=%s", printWeight((*i).weights[j]).c_str());
+		}
+		reportf("\n");
+	}
+	for(vector<A>::const_iterator i=m->getTheory().aggrs.begin(); i<m->getTheory().aggrs.end(); i++){
+		reportf("Aggr set %d, head %d, bound %s \n", (*i).set, (*i).head, printWeight((*i).bound).c_str());
+		//FIXME not finished
 	}
 }
 

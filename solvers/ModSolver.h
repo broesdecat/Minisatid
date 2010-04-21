@@ -18,6 +18,7 @@ class ModSolver;
 class Solver;
 class IDSolver;
 class AggSolver;
+class ModSolverHier;
 
 class Data{
 private:
@@ -28,7 +29,7 @@ public:
 	virtual ~Data(){};
 
 	virtual void setNbModels(int nb){ nbmodels = nb; }
-	void setRes(FILE* f){ res = f; }
+	virtual void setRes(FILE* f){ res = f; }
 
 	virtual bool simplify() = 0;
 	virtual bool solve() = 0;
@@ -49,24 +50,29 @@ public:
 		m->nb_models=nb;
 	}
 
+	virtual void setRes(FILE* f){
+		Data::setRes(f);
+		m->res = f;
+	}
+
 	virtual bool simplify(){
 		return m->simplify();
 	}
 	virtual bool solve(){
 		return m->solve();
 	}
-	virtual void finishParsing();
+	virtual void finishParsing(); //throws UNSAT
 };
 
 class ModSolverData: public Data{
 private:
-	shared_ptr<ModSolver> m;
+	shared_ptr<ModSolverHier> m;
 
 public:
-	ModSolverData(shared_ptr<ModSolver> m):Data(),m(m){};
+	ModSolverData(shared_ptr<ModSolverHier> m):Data(),m(m){};
 
-	virtual bool simplify(){ return false;}
-	virtual bool solve(){ return false; }
+	virtual bool simplify(){ return true;}
+	virtual bool solve();
 	virtual void finishParsing(){}
 };
 
@@ -111,6 +117,8 @@ struct A{
 	AggrType type;
 };
 
+//FIXME: wel inductieve definities kunnen inlezen!
+
 struct Theory{
 	vector<A> aggrs;
 	vector<C> clauses;
@@ -119,19 +127,29 @@ struct Theory{
 
 class ModSolver{
 private:
-	int id;
+	int id, parentid;
 	vector<AV> atoms; //atoms which are rigid within this solver
+	vector<int> children;
 
 	AV 		head;
 	Theory 	theory;
 
+	weak_ptr<ModSolverHier> modhier;
+
 public:
-	ModSolver(int id, Var head, const vec<Lit>& a):id(id),head(head){
+	ModSolver(int id, Var head, const vector<Var>& a, shared_ptr<ModSolverHier> mh):id(id),head(head), modhier(mh){
 		for(int i=0; i<a.size(); i++){
-			atoms.push_back(AV(var(a[i])));
+			atoms.push_back(AV(a[i]));
 		}
 	}
 	virtual ~ModSolver(){}
+
+	void setChildren(const vector<Var>& a);
+	void setParent(int id){
+		parentid = id;
+	}
+
+	virtual bool solve();
 
 	/*//Solve methods
 	Clause* propagate(Lit l);
@@ -148,87 +166,45 @@ public:
 	//solver initialization
 	//Solver*	initSolver		();
 	//Solver*	initializeSolver(Theory& t);
+
+	Var getHead()const {return head.atom;}
+	int getId() const{return id;}
+	int getParentId()const{return parentid;}
+	const Theory& getTheory()const{return theory;}
+	const vector<AV>& getAtoms()const{return atoms;}
+	const vector<int>& getChildren()const{return children;}
 };
 
 class ExistentialModSolver: public ModSolver{
 public:
-	ExistentialModSolver(int id, Var head, const vec<Lit>& a):ModSolver(id, head, a){}
+	ExistentialModSolver(int id, Var head, const vector<Var>& a, shared_ptr<ModSolverHier> mh):ModSolver(id, head, a, mh){}
 };
 
 class UniversalModSolver: public ModSolver{
 public:
-	UniversalModSolver(int id, Var head, const vec<Lit>& a):ModSolver(id, head, a){}
+	UniversalModSolver(int id, Var head, const vector<Var>& a, shared_ptr<ModSolverHier> mh):ModSolver(id, head, a, mh){}
 };
 
 
 
-class ModSolverHier{
+class ModSolverHier: public enable_shared_from_this<ModSolverHier>{
 private:
-	vector<shared_ptr<ModSolver> > solvers;
+	vector<ModSolver* > solvers;
 
 public:
 	ModSolverHier();
 
-	void addModSolver(int modid, Var head, bool exist, const vec<Lit>& atoms);
+	void initialize();
 
-	shared_ptr<ModSolver> getModSolver(int modid){return solvers[modid];}
+	void addModSolver(int modid, Var head, bool exist, const vector<Var>& atoms);
+
+	ModSolver* getModSolver(int modid){
+		return solvers[modid];
+	}
+
+	bool solve();
 };
 
-#endif MODSOLVER_H_
+void printModSolver(const ModSolver* m);
 
-//class MODSolver {
-//private:
-//	int 	id;
-//	bool	forall;
-//	AV 		head;
-//
-//	vector<AV> rigidatoms, modalatoms;
-//	Theory modaltheory, constrtheory;
-//
-//	static MODSolver* root;
-//	static MODSolver* getModalOperator(int id, MODSolver& m);
-//
-//public:
-//	static MODSolver* getModalOperator(int id);
-//
-//	MODSolver(int id);
-//	virtual ~MODSolver();
-//
-//	void setHead(int h){ head = h; }
-//	void setForall(bool f) { forall = f; }
-//
-//	//Solve methods
-//	Clause* propagate(Lit l);
-//	bool 	canSearch();
-//	void 	backtrack(Lit l);
-//	Clause* getExplanation(Lit l);
-//
-//	//modal initialization
-//	void 	addChild(MODSolver* m, bool constr);
-//	//void 	addRigidAtom	(Var a){ rigidatoms.push_back(AV(a)); }
-//	void 	addRigidAtoms	(vec<int>& atoms);
-//	void 	finishDatastructures();
-//
-//	//data initialization
-//	void 	addRule			(bool constr, bool conj, vec<Lit>& lits);
-//	void 	addClause		(bool constr, vec<Lit>& lits);
-//	void 	addSet			(bool constr, int set_id, vec<Lit>& lits, vec<Weight>& w);
-//	void 	addAggrExpr		(bool constr, int defn, int set_id, Weight bound, bool lower, AggrType type, bool defined);
-//
-//	vector<MODSolver*>::iterator beginModalChildren(){ return modaltheory.children.begin(); }
-//	vector<MODSolver*>::iterator endModalChildren(){ return modaltheory.children.end(); }
-//	vector<MODSolver*>::iterator beginConstrChildren(){ return constrtheory.children.begin(); }
-//	vector<MODSolver*>::iterator endConstrChildren(){ return constrtheory.children.end(); }
-//private:
-//	int 	getID			(){ return id; }
-//
-//	void 	copyToVector	(vec<Lit>& lits, vector<Lit>& literals, bool constr);
-//
-//	//solver initialization
-//	Solver*	initSolver		();
-//	Solver*	initializeExistsSolver();
-//	Solver*	initializeConstrSolver();
-//	Solver*	initializeModalSolver();
-//	Solver*	initializeSolver(Theory& t);
-//};
-//
+#endif// MODSOLVER_H_

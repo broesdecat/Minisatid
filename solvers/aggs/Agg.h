@@ -50,8 +50,8 @@ public:
 
     Agg(Bound bounds, Weight bound, Lit head, const pSet& set) :
 	    bound(bound), bounds(bounds),
-	    nomoreprops(false), optimagg(false), headprop(false), headproptime(-1),
-	    head(head), headindex(-1), headvalue(l_Undef), set(set){
+	    head(head), headindex(-1), headvalue(l_Undef), set(set),
+	    nomoreprops(false), optimagg(false), headprop(false), headproptime(-1){
     }
 
     virtual ~Agg(){}
@@ -77,7 +77,7 @@ public:
 		//boundupper+=b;
 	}
 
-	bool 	initialize();
+	bool 	initialize(); //throws UNSAT
 	void 	backtrackHead();
 	void	backtrack(int stacksize);
 	Clause*	propagateHead(const Lit& p);
@@ -169,13 +169,14 @@ private:
 	pAgg		expr;		//does NOT own the pointer
 	int 		index;
 	Expl		expl;
+	bool 		head;
 
 public:
 	AggrReason(pAgg, Expl, bool head = false);
 
     pAgg 		getAgg() 	const	{ return expr; }
-    int 		getIndex() 	const	{ return abs(index); }
-    bool		isHeadReason() const{ return index<0; }
+    int 		getIndex() 	const	{ return index; }
+    bool		isHeadReason() const{ return head; }
     Expl		getExpl() const		{ return expl; }
 };
 
