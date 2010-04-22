@@ -99,49 +99,23 @@ struct AV{
     bool operator <  (AV p) const { return atom < p.atom;  }
 };
 
-struct C{
-	vector<Lit> lits;
-};
-
-struct S{
-	int id;
-	vector<Lit> lits;
-	vector<Weight> weights;
-
-};
-
-struct A{
-	bool lower, defined;
-	int head, set;
-	Weight bound;
-	AggrType type;
-};
-
-//FIXME: wel inductieve definities kunnen inlezen!
-
-struct Theory{
-	vector<A> aggrs;
-	vector<C> clauses;
-	vector<S> sets;
-};
-
 class ModSolver{
 private:
+	bool negated;
 	int id, parentid;
 	vector<AV> atoms; //atoms which are rigid within this solver
 	vector<int> children;
 
 	AV 		head;
-	Theory 	theory;
+
+	shared_ptr<Solver>			solver;
+	shared_ptr<IDSolver>		idsolver;
+	shared_ptr<AggSolver>		aggsolver;
 
 	weak_ptr<ModSolverHier> modhier;
 
 public:
-	ModSolver(int id, Var head, const vector<Var>& a, shared_ptr<ModSolverHier> mh):id(id),head(head), modhier(mh){
-		for(int i=0; i<a.size(); i++){
-			atoms.push_back(AV(a[i]));
-		}
-	}
+	ModSolver(bool neg, int id, Var head, const vector<Var>& a, shared_ptr<ModSolverHier> mh);
 	virtual ~ModSolver(){}
 
 	void setChildren(const vector<Var>& a);
@@ -158,8 +132,9 @@ public:
 	Clause* getExplanation(Lit l);*/
 
 	//data initialization
-	void 	addClause		(const vec<Lit>& lits);
-	void 	addSet			(int set_id, const vec<Lit>& lits, const vector<Weight>& w);
+	void 	addClause		(vec<Lit>& lits);
+	void 	addRule			(bool conj, vec<Lit>& lits);
+	void 	addSet			(int set_id, vec<Lit>& lits, vector<Weight>& w);
 	void 	addAggrExpr		(int defn, int set_id, Weight bound, bool lower, AggrType type, bool defined);
 	//void 	finishDatastructures();
 
@@ -170,21 +145,10 @@ public:
 	Var getHead()const {return head.atom;}
 	int getId() const{return id;}
 	int getParentId()const{return parentid;}
-	const Theory& getTheory()const{return theory;}
+	//const Theory& getTheory()const{return theory;}
 	const vector<AV>& getAtoms()const{return atoms;}
 	const vector<int>& getChildren()const{return children;}
 };
-
-class ExistentialModSolver: public ModSolver{
-public:
-	ExistentialModSolver(int id, Var head, const vector<Var>& a, shared_ptr<ModSolverHier> mh):ModSolver(id, head, a, mh){}
-};
-
-class UniversalModSolver: public ModSolver{
-public:
-	UniversalModSolver(int id, Var head, const vector<Var>& a, shared_ptr<ModSolverHier> mh):ModSolver(id, head, a, mh){}
-};
-
 
 
 class ModSolverHier: public enable_shared_from_this<ModSolverHier>{
@@ -196,7 +160,7 @@ public:
 
 	void initialize();
 
-	void addModSolver(int modid, Var head, bool exist, const vector<Var>& atoms);
+	void addModSolver(int modid, Var head, bool neg, const vector<Var>& atoms);
 
 	ModSolver* getModSolver(int modid){
 		return solvers[modid];

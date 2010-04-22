@@ -95,7 +95,7 @@ inline void addLit(int nb){
 	lits.push( (nb > 0) ? Lit(var) : ~Lit(var) );
 }
 
-inline void addSet(int modid, int setid, const vec<Lit>& lits, const vector<Weight>& weights){
+inline void addSet(int modid, int setid, vec<Lit>& lits, vector<Weight>& weights){
 	if(modhier->getModSolver(modid)==NULL){
 		reportf("No modal operator with id %d was defined! ", modid+1);
 		error(true, "");
@@ -121,7 +121,7 @@ inline void addChildren(int parent, const vector<int>& children){
 	modhier->getModSolver(parent)->setChildren(children);
 }
 
-inline void addClause(int modid, const vec<Lit>& lits){
+inline void addClause(int modid, vec<Lit>& lits){
 	if(modhier->getModSolver(modid)==NULL){
 		reportf("No modal operator with id %d was defined! ", modid+1);
 		error(true, "");
@@ -310,7 +310,7 @@ wset	:	WSETDEFN NUMBER { setid = $2;	}
 		;
 
 //MODAL PART: USE INDEXES+1 AS MODAL IDs IN THE THEORY
-matomset:	QUANT NUMBER NUMBER varbody ZERO	{ addQuantSet($1-1, readLit($2), $3, nb); nb.clear(); }
+matomset:	QUANT NUMBER NUMBER varbody ZERO	{ addQuantSet($1, $2-1, readLit($3), nb); nb.clear(); }
 		;
 modhier :	MODDEFN	NUMBER varbody ZERO { addChildren($2-1, nb); nb.clear();}
 		;
