@@ -5,6 +5,8 @@
 #include "Agg.h"
 #include "AggSets.h"
 
+#include "Utils.h"
+
 typedef shared_ptr<IDSolver> pIDSolver;
 typedef weak_ptr<IDSolver> wpIDSolver;
 typedef shared_ptr<AggSolver> pAggSolver;
@@ -58,7 +60,7 @@ inline pAgg AggSolver::getAggWithHeadOccurence(Var v) const{
 bool AggSolver::finishECNF_DataStructures() {
 	init = false;
 
-	if (verbosity >= 1){
+	if (modes.verbosity >= 1){
 		reportf("| Number of minimum exprs.: %4d",aggrminsets.size());
 		reportf("| Number of maximum exprs.: %4d",aggrmaxsets.size());
 		reportf("| Number of sum     exprs.: %4d",aggrsumsets.size());
@@ -69,7 +71,7 @@ bool AggSolver::finishECNF_DataStructures() {
 		return false;
 	}
 
-	if(verbosity >=1){
+	if(modes.verbosity >=1){
 		int total_nb_set_lits = 0;
 		int nb_sets = aggrminsets.size() + aggrmaxsets.size() + aggrsumsets.size() + aggrprodsets.size();
 		for (vector<int>::size_type i = 0; i < aggrminsets.size(); i++){
@@ -92,12 +94,14 @@ bool AggSolver::finishECNF_DataStructures() {
 		(*i)->addAggToSet();
 	}
 
-	greportf(3, "Initializing all sets:\n");
+	if(modes.verbosity>=3){
+		reportf("Initializing all sets:\n");
+	}
 	finishSets(aggrminsets);
 	finishSets(aggrmaxsets);
 	finishSets(aggrsumsets);
 	finishSets(aggrprodsets);
-	if(verbosity>=3){
+	if(modes.verbosity>=3){
 		int counter = 0;
 		for(vector<vector<AggrWatch> >::const_iterator i=aggr_watches.begin(); i<aggr_watches.end(); i++,counter++){
 			reportf("Watches of var %d:\n", gprintVar(counter));
@@ -109,7 +113,9 @@ bool AggSolver::finishECNF_DataStructures() {
 			}
 		}
 	}
-	greportf(3, "Initializing finished.\n");
+	if(modes.verbosity>=3){
+		reportf("Initializing finished.\n");
+	}
 
 	if (aggrminsets.size() == 0 && aggrmaxsets.size() == 0 && aggrsumsets.size() == 0 && aggrprodsets.size() == 0) {
 		return false;
@@ -124,13 +130,17 @@ void AggSolver::finishSets(vector<pSet>& sets){
 		if(s->nbAgg()==0){
 			delete *i;
 			i = sets.erase(i);
-			greportf(3, "Set is empty, so deleted.\n");
+			if(modes.verbosity>=3){
+				reportf("Set is deleted.\n");
+			}
 		}else{
 			s->initialize();
 			if(s->nbAgg()==0){
 				delete *i;
 				i = sets.erase(i);
-				greportf(3, "Set is empty after initialization, so deleted.\n");
+				if(modes.verbosity>=3){
+					reportf("Set is empty after initialization, so deleted.\n");
+				}
 			}else{
 				int index = 0;
 				for (lwlv::const_iterator j = s->getWLBegin(); j < s->getWLEnd(); j++, index++){
@@ -141,7 +151,7 @@ void AggSolver::finishSets(vector<pSet>& sets){
 		}
 	}
 
-	if(verbosity>=3){
+	if(modes.verbosity>=3){
 		for(vector<pSet>::iterator i=sets.begin(); i<sets.end(); i++){
 			pSet s = *i;
 			for(lsagg::const_iterator j=s->getAggBegin(); j<s->getAggEnd(); j++){
@@ -166,7 +176,7 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 		weights2.push_back(-Weight(*i));
 	}
 
-	if(verbosity>=5){
+	if(modes.verbosity>=5){
 		reportf("Added set %d: ", set_id);
 		vector<Weight>::iterator w=weights.begin();
 		for(int i=0; i<lits.size(); i++,w++){
@@ -264,7 +274,7 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 
 	aggregates.push_back(ae);
 
-	if(verbosity>=5){
+	if(modes.verbosity>=5){
 		//reportf("Added %s aggregate with head %d on set %d, %s %s of type %s.\n", defined?"defined":"completion", gprintVar(headv), setid, lower?"AGG<=":"AGG>=", bigIntegerToString(bound).c_str(), ae->getSet()->getName().c_str());
 		reportf("Added %s aggregate with head %d on set %d, %s %s of type %s.\n", defined?"defined":"completion", gprintVar(headv), setid, lower?"AGG <=":"AGG >=", printWeight(bound).c_str(), ae->getSet()->getName().c_str());
 	}
@@ -352,7 +362,7 @@ Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 	getSolver()->varBumpActivity(var(p));	//mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt?
 
 	if (getSolver()->value(p) == l_False) {
-		if (verbosity >= 2) {
+		if (modes.verbosity >= 2) {
 			reportf("Deriving conflict in ");
 			gprintLit(p, l_True);
 			reportf(" because of the aggregate expression ");
@@ -389,7 +399,7 @@ Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 
 		return confl;
 	} else if (getSolver()->value(p) == l_Undef) {
-		if (verbosity >= 2) {
+		if (modes.verbosity >= 2) {
 			reportf("Deriving ");
 			gprintLit(p, l_True);
 			reportf(" because of the aggregate expression ");
@@ -409,7 +419,7 @@ Clause* AggSolver::Aggr_propagate(const Lit& p) {
 	vector<AggrWatch>& ws = aggr_watches[var(p)];
 	pAgg pa = head_watches[var(p)];
 
-	if (verbosity >= 2 && (ws.size() > 0 || pa !=NULL)){
+	if (modes.verbosity >= 2 && (ws.size() > 0 || pa !=NULL)){
 		reportf("Aggr_propagate(");
 		gprintLit(p, l_True);
 		reportf(").\n");
@@ -437,7 +447,7 @@ Clause* AggSolver::getExplanation(const Lit& p) {
 	//create a conflict clause and return it
 	Clause* c = Clause_new(lits, true);
 
-	if (verbosity >= 2) {
+	if (modes.verbosity >= 2) {
 		reportf("Implicit reason clause for ");
 		gprintLit(p, sign(p)?l_False:l_True); reportf(" : "); getSolver()->printClause(*c); reportf("\n");
 	}
@@ -551,7 +561,7 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head){
 	pAgg a = head_watches[head];
 	pSet s = a->getSet();
 
-	greportf(0,"Current optimum: %s\n", printWeight(s->getCC()).c_str());
+	reportf("Current optimum: %s\n", printWeight(s->getCC()).c_str());
 
 	if(a->isLower()){
 		a->setLowerBound(s->getCC() - 1);

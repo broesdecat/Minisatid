@@ -35,9 +35,9 @@ Solver::Solver() :
 
 	// Parameters: (formerly in 'SearchParams')
 	res(NULL), nb_models(1), modelsfound(0),
-	var_decay(1 / 0.95),
+	var_decay(modes.var_decay),
 	clause_decay(1 / 0.999),
-	random_var_freq(0.02),
+	random_var_freq(modes.random_var_freq),
 	restart_first(100),
 	restart_inc(1.5),
 	learntsize_factor((double) 1 / (double) 3),
@@ -46,7 +46,7 @@ Solver::Solver() :
 	// More parameters:
 	,
 	expensive_ccmin(true),
-	polarity_mode(polarity_false),
+	polarity_mode(modes.polarity_mode),
 	random_seed(91648253),
 	maxruntime(0.0)
 

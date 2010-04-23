@@ -9,72 +9,15 @@
 #include "Solver.h"
 #include "IDSolver.h"
 #include "AggSolver.h"
+#include "Solvers.h"
 #include <stdio.h>
 
 using namespace std;
-using namespace tr1;
 
-class ModSolver;
 class Solver;
 class IDSolver;
 class AggSolver;
-class ModSolverHier;
-
-class Data{
-private:
-	int nbmodels;
-	FILE* res;
-public:
-	Data(){};
-	virtual ~Data(){};
-
-	virtual void setNbModels(int nb){ nbmodels = nb; }
-	virtual void setRes(FILE* f){ res = f; }
-
-	virtual bool simplify() = 0;
-	virtual bool solve() = 0;
-	virtual void finishParsing() = 0;
-};
-
-class SolverData: public Data{
-private:
-	shared_ptr<Solver> m;
-	shared_ptr<IDSolver> md;
-	shared_ptr<AggSolver> ma;
-
-public:
-	SolverData(shared_ptr<Solver> m, shared_ptr<IDSolver> md, shared_ptr<AggSolver> ma):Data(),m(m), md(md), ma(ma){};
-
-	virtual void setNbModels(int nb){
-		Data::setNbModels(nb);
-		m->nb_models=nb;
-	}
-
-	virtual void setRes(FILE* f){
-		Data::setRes(f);
-		m->res = f;
-	}
-
-	virtual bool simplify(){
-		return m->simplify();
-	}
-	virtual bool solve(){
-		return m->solve();
-	}
-	virtual void finishParsing(); //throws UNSAT
-};
-
-class ModSolverData: public Data{
-private:
-	shared_ptr<ModSolverHier> m;
-
-public:
-	ModSolverData(shared_ptr<ModSolverHier> m):Data(),m(m){};
-
-	virtual bool simplify(){ return true;}
-	virtual bool solve();
-	virtual void finishParsing(){}
-};
+class ModSolverData;
 
 /**
  * Each modsolver has an id, a parent and a number of children
@@ -108,14 +51,14 @@ private:
 
 	AV 		head;
 
-	shared_ptr<Solver>			solver;
-	shared_ptr<IDSolver>		idsolver;
-	shared_ptr<AggSolver>		aggsolver;
+	shared_ptr<Solver>		solver;
+	shared_ptr<IDSolver>	idsolver;
+	shared_ptr<AggSolver>	aggsolver;
 
-	weak_ptr<ModSolverHier> modhier;
+	weak_ptr<ModSolverData> modhier;
 
 public:
-	ModSolver(bool neg, int id, Var head, const vector<Var>& a, shared_ptr<ModSolverHier> mh);
+	ModSolver(bool neg, int id, Var head, const vector<Var>& a, shared_ptr<ModSolverData> mh);
 	virtual ~ModSolver(){}
 
 	void setChildren(const vector<Var>& a);
@@ -132,6 +75,7 @@ public:
 	Clause* getExplanation(Lit l);*/
 
 	//data initialization
+	void	addVar			(int v);
 	void 	addClause		(vec<Lit>& lits);
 	void 	addRule			(bool conj, vec<Lit>& lits);
 	void 	addSet			(int set_id, vec<Lit>& lits, vector<Weight>& w);
@@ -148,25 +92,6 @@ public:
 	//const Theory& getTheory()const{return theory;}
 	const vector<AV>& getAtoms()const{return atoms;}
 	const vector<int>& getChildren()const{return children;}
-};
-
-
-class ModSolverHier: public enable_shared_from_this<ModSolverHier>{
-private:
-	vector<ModSolver* > solvers;
-
-public:
-	ModSolverHier();
-
-	void initialize();
-
-	void addModSolver(int modid, Var head, bool neg, const vector<Var>& atoms);
-
-	ModSolver* getModSolver(int modid){
-		return solvers[modid];
-	}
-
-	bool solve();
 };
 
 void printModSolver(const ModSolver* m);

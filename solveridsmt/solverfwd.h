@@ -55,8 +55,7 @@ struct ECNF_mode {
 	//minisat specific: TODO: initialize them on time!!!
 	double random_var_freq, var_decay;
 	POLARITY polarity_mode;
-	int maxruntime;
-	//verbosity
+	int maxruntime, verbosity;
 
 	//rest
 

@@ -8,6 +8,8 @@
 #include <vector>
 #include <map>
 
+#include "Utils.h"
+
 #include "Vec.h"
 #include "Queue.h"
 #include "Heap.h"
@@ -25,15 +27,6 @@ typedef shared_ptr<AggSolver> pAggSolver;
 typedef weak_ptr<AggSolver> wpAggSolver;
 typedef shared_ptr<Solver> pSolver;
 typedef weak_ptr<Solver> wpSolver;
-
-template<class T>
-void deleteList(vector<T*> l){
-	for(class vector<T*>::iterator i=l.begin(); i<l.end(); i++){
-		if(*i!=NULL){
-			delete(*i);
-		}
-	}
-}
 
 class Rule {
 private:

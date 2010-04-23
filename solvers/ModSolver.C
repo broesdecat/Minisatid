@@ -3,50 +3,12 @@
 
 extern ECNF_mode modes;
 
-ModSolver::ModSolver(bool neg, int id, Var head, const vector<Var>& a, shared_ptr<ModSolverHier> mh):negated(neg),id(id),head(head), modhier(mh){
+ModSolver::ModSolver(bool neg, int id, Var head, const vector<Var>& a, shared_ptr<ModSolverData> mh):negated(neg),id(id),head(head), modhier(mh){
 	for(int i=0; i<a.size(); i++){
 		atoms.push_back(AV(a[i]));
 	}
 
-	solver = shared_ptr<Solver>(new Solver());
-	idsolver = shared_ptr<IDSolver>(new IDSolver());
-	aggsolver = shared_ptr<AggSolver>(new AggSolver());
-
-	solver->setIDSolver(idsolver);
-	solver->setAggSolver(aggsolver);
-	idsolver->setSolver(solver);
-	idsolver->setAggSolver(aggsolver);
-	aggsolver->setSolver(solver);
-	aggsolver->setIDSolver(idsolver);
-}
-
-void SolverData::finishParsing(){ //throws UNSAT
-    //important to call definition solver last
-	if(modes.aggr){
-		modes.aggr = m->getAggSolver()->finishECNF_DataStructures();
-	}
-	if(modes.def){
-		modes.def = m->getIDSolver()->finishECNF_DataStructures();
-	}
-	m->finishParsing();
-
-	if(!modes.aggr){
-		m->getAggSolver()->remove();
-		greportf(1, "|                                                                             |\n"
-					"|    (there will be no aggregate propagations)                                |\n");
-	}
-	if(!modes.def){
-		m->getIDSolver()->remove();
-		greportf(1, "|    (there will be no definitional propagations)                             |\n");
-	}
-	if(!modes.mnmz){
-		//later
-	}
-
-	//FIXME: niet elke solver ondersteund dit? m->verbosity = verbosity;
-	m->var_decay = modes.var_decay;
-	m->random_var_freq = modes.random_var_freq;
-	m->polarity_mode = modes.polarity_mode;
+	initializeSolvers(solver, idsolver, aggsolver);
 }
 
 void copyToVec(const vec<Lit>& v, vector<Lit>& v2){
@@ -73,11 +35,12 @@ bool ModSolver::solve(){
 }
 
 bool ModSolverData::solve(){
-	return m->solve();
+	return getModSolver(0)->solve();
 }
 
-bool ModSolverHier::solve(){
-	return getModSolver(0)->solve();
+void ModSolver::addVar(int var){
+	while (var >= solver->nVars()) solver->newVar();
+	solver->setDecisionVar(var,true); // S.nVars()-1   or   var
 }
 
 void ModSolver::addClause(vec<Lit>& lits){
@@ -93,26 +56,6 @@ void ModSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& w){
 }
 void ModSolver::addAggrExpr(int defn, int set_id, Weight bound, bool lower, AggrType type, bool defined){
 	aggsolver->addAggrExpr(defn, set_id, bound, lower, type, defined);
-}
-
-
-
-ModSolverHier::ModSolverHier(){
-
-}
-
-void ModSolverHier::initialize(){
-	vector<int> l;
-	solvers.push_back(new ModSolver(false, 0, -1, l, shared_from_this()));
-}
-
-void ModSolverHier::addModSolver(int modid, Var head, bool neg, const vector<Var>& atoms){
-	assert(modid>0);
-	if(solvers.size()<modid+1){
-		solvers.resize(modid+1, NULL);
-	}
-	assert(solvers[modid]==NULL);
-	solvers[modid] = new ModSolver(neg, modid, head, atoms, shared_from_this());
 }
 
 void printModSolver(const ModSolver* m){

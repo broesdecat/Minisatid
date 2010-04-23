@@ -20,7 +20,6 @@
 
 //TODO handle exit(x) with exception throwing instead, giving much cleaner code!!!
 
-int verbosity;
 ECNF_mode modes;
 
 typedef shared_ptr<Data> pData;
@@ -67,8 +66,7 @@ void		noMoreMem(){
 }
 
 int main(int argc, char** argv) {
-	verbosity = 0;
-	greportf(0, "This is MiniSAT-SMT 1.0\n");
+	reportf("This is MiniSAT-SMT 1.0\n");
 
 	std::set_new_handler(noMoreMem);
 
@@ -85,7 +83,7 @@ int main(int argc, char** argv) {
 	_FPU_GETCW(oldcw);
 	newcw = (oldcw & ~_FPU_EXTENDED) | _FPU_DOUBLE;
 	_FPU_SETCW(newcw);
-	if (verbosity >= 1)
+	if (modes.verbosity >= 1)
 		reportf("WARNING: for repeatability, setting FPU to use double precision\n");
 #endif
 
@@ -97,8 +95,10 @@ int main(int argc, char** argv) {
 	if (argc == 1)
 		reportf("Reading from standard input... Use '-h' or '--help' for help.\n");
 
-    greportf(1, "============================[ Problem Statistics ]=============================\n");
-	greportf(1, "|                                                                             |\n");
+	if(modes.verbosity>0){
+		reportf("============================[ Problem Statistics ]=============================\n");
+		reportf("|                                                                             |\n");
+	}
 
     bool ret = false;
     FILE* res = NULL;
@@ -107,16 +107,20 @@ int main(int argc, char** argv) {
 
 		pData d = parse(/*S, TS, AggS,*/ argv[1]);
 
-		greportf(1, 	"| Parsing time              : %7.2f s                                    |\n", cpuTime()-cpu_time);
+		if(modes.verbosity>0){
+			reportf("| Parsing time              : %7.2f s                                    |\n", cpuTime()-cpu_time);
+		}
 
-		if (verbosity >= 1) {
+		if (modes.verbosity >= 1) {
 			double parse_time = cpuTime() - cpu_time;
 			reportf("| Parsing time              : %7.2f s                                       |\n", parse_time);
 		}
 
 		if (!d->simplify()) {
-			greportf(1, "===============================================================================\n"
+			if(modes.verbosity>0){
+				reportf("===============================================================================\n"
 						"Solved by unit propagation\n");
+			}
 			throw UNSAT();
 		}
 
@@ -243,7 +247,7 @@ void parseCommandline(/*const pSolver& S, const pIDSolver& TS, const pAggSolver&
             if (verb == 0 && errno == EINVAL){
                 reportf("ERROR! illegal verbosity level %s\n", value);
                 exit(0); }
-            verbosity = verb;
+           	modes.verbosity=verb;
         }else if (strncmp(&argv[i][0], "-n",2) == 0){
             char* endptr;
             modes.nbmodels = strtol(&argv[i][2], &endptr, 0);

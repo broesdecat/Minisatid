@@ -81,7 +81,7 @@ void IDSolver::addRule(bool conj, vec<Lit>& ps) {
 	assert(ps.size() > 0);
 	assert(isPositive(ps[0]));
 
-	if(verbosity>=5){
+	if(modes.verbosity>=5){
 		reportf("Adding %s rule, %d <- ", conj?"conjunctive":"disjunctive", gprintVar(var(ps[0])));
 		for(int i=1; i<ps.size(); i++){
 			reportf("%d ", gprintVar(var(ps[i])));
@@ -146,7 +146,7 @@ bool IDSolver::finishECNF_DataStructures() {
 	defType.growTo(nvars, NONDEFTYPE);
 	defOcc.growTo(nvars, NONDEFOCC);
 
-	if (verbosity >= 1){reportf("| Number of rules           : %6d                                          |\n",defdVars.size()); }
+	if (modes.verbosity >= 1){reportf("| Number of rules           : %6d                                          |\n",defdVars.size()); }
 
 	// Initialize scc of full dependency graph
 	scc.growTo(nvars, -1);
@@ -163,7 +163,7 @@ bool IDSolver::finishECNF_DataStructures() {
 		}
 	}
 
-	if(verbosity >= 5){
+	if(modes.verbosity >= 5){
 		reportf("Printing sccs full graph:");
 		for (int i=0; i<nvars; i++){
 			reportf("SCC of %d is %d\n", gprintVar(i), gprintVar(scc[i]));
@@ -188,7 +188,7 @@ bool IDSolver::finishECNF_DataStructures() {
 		}
 	}
 
-	if(verbosity >= 5){
+	if(modes.verbosity >= 5){
 		reportf("Printing sccs pos graph:");
 		for (int i=0; i<nvars; i++){
 			reportf("SCC of %d is %d\n", gprintVar(i), gprintVar(scc[i]));
@@ -301,7 +301,7 @@ bool IDSolver::finishECNF_DataStructures() {
 		negloops = false;
 	}
 
-	if (verbosity >= 1){
+	if (modes.verbosity >= 1){
 		reportf("| Number of recursive atoms in positive loops : %6d                        |\n",(int)atoms_in_pos_loops);
 		if(negloops){
 			reportf("| Mixed loops also exist                                                  |\n");
@@ -314,7 +314,7 @@ bool IDSolver::finishECNF_DataStructures() {
 
 	isCS.growTo(nvars, false);
 
-	if(verbosity > 1){
+	if(modes.verbosity > 1){
 		for(int i=0; i<defdVars.size(); i++){
 			Var w = defdVars[i];
 			switch(defOcc[w]){
@@ -534,7 +534,7 @@ bool IDSolver::simplify(){
 	}
 
 	// vars v that still have nb_body_lits_to_justify[v]>0 can never possibly become true: make them false.
-	if(verbosity > 2){
+	if(modes.verbosity > 2){
 		reportf("Initialization of justification makes these atoms false: [");
 	}
 
@@ -548,7 +548,7 @@ bool IDSolver::simplify(){
 	for (int i = 0; i < defdVars.size(); i++) {
 		Var v = defdVars[i];
 		if (seen[v] > 0 || isFalse(v)) {
-			if(verbosity >= 2){ reportf(" %d", gprintVar(v)); }
+			if(modes.verbosity >= 2){ reportf(" %d", gprintVar(v)); }
 			if(isTrue(v)){
 				throw UNSAT();
 			}else if(isUnknown(v)){
@@ -609,7 +609,7 @@ bool IDSolver::simplify(){
 		seen[usedseen[i]] = 0;
 	}
 
-	if (verbosity >= 2){
+	if (modes.verbosity >= 2){
 		reportf(" ]\n");
 	}
 
@@ -623,12 +623,12 @@ bool IDSolver::simplify(){
 			getAggSolver()->resetIDSolver();
 			aggsolver.reset();
 		}
-		if (verbosity >= 1){
+		if (modes.verbosity >= 1){
 			reportf("| All recursive atoms falsified in initializations.                           |\n");
 		}
 	}
 
-	if(verbosity > 1){
+	if(modes.verbosity > 1){
 		for(int i=0; i<defdVars.size(); i++){
 			Var w = defdVars[i];
 			switch(defOcc[w]){
@@ -772,7 +772,7 @@ Clause* IDSolver::indirectPropagate() {
 
  	Clause* confl = NULL;
 	if (ufs_found) {
-		if (verbosity >= 2) {
+		if (modes.verbosity >= 2) {
 			reportf("Found an unfounded set of size %d: {",ufs.size());
 			for (std::set<Var>::iterator it = ufs.begin(); it != ufs.end(); ++it)
 				reportf(" %d",gprintVar(*it));
@@ -825,7 +825,7 @@ void IDSolver::findCycleSources() {
 			}
 		}
 	}
-	if (verbosity >= 2) {
+	if (modes.verbosity >= 2) {
 		reportf("Indirect propagations. Verifying %d cycle sources:",css.size());
 		for (int i = 0; i < css.size(); ++i){
 			reportf(" %d", gprintVar(css[i]));
@@ -1216,11 +1216,11 @@ Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 			Clause* c = Clause_new(loopf, true);
 			if(c->size()>1){
 				getSolver()->addLearnedClause(c);
-				if (verbosity >= 2) {
+				if (modes.verbosity >= 2) {
 					reportf("Adding conflicting loop formula: [ ");	print(*c); reportf("].\n");
 				}
 			}else{
-				if (verbosity >= 2) {
+				if (modes.verbosity >= 2) {
 					reportf("Adding conflicting loop formula: [ ");	gprintLit((*c)[0]); reportf("].\n");
 				}
 			}
@@ -1232,7 +1232,7 @@ Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	if (loopf.size() >= 5) {
 		//introduce a new var to represent all external disjuncts: v <=> \bigvee external disj
         Var v = getSolver()->newVar();
-        if (verbosity >= 2) { reportf("Adding new variable for loop formulas: %d.\n", gprintVar(v)); }
+        if (modes.verbosity >= 2) { reportf("Adding new variable for loop formulas: %d.\n", gprintVar(v)); }
 
         // ~v \vee \bigvee\extdisj{L}
         addLoopfClause(createNegativeLiteral(v), loopf);
@@ -1264,9 +1264,9 @@ Clause* IDSolver::addLoopfClause(Lit l, vec<Lit>& lits){
 	Clause* c = Clause_new(lits, true);
 	if(c->size()>1){
 		getSolver()->addLearnedClause(c);
-		if (verbosity >= 2) {reportf("Adding loop formula: [ "); print(*c); reportf("].\n");}
+		if (modes.verbosity >= 2) {reportf("Adding loop formula: [ "); print(*c); reportf("].\n");}
 	}else{
-		if (verbosity >= 2) {reportf("Adding loop formula: [ "); gprintLit((*c)[0]); reportf("].\n");}
+		if (modes.verbosity >= 2) {reportf("Adding loop formula: [ "); gprintLit((*c)[0]); reportf("].\n");}
 	}
 
 	return c;
@@ -1417,7 +1417,7 @@ bool IDSolver::isCycleFree() const{
 #endif
     assert(getAggSolver().get()==NULL);
 
-    if(verbosity>=2){
+    if(modes.verbosity>=2){
         reportf("Showing cf- and sp-justification for disjunctive atoms. <<<<<<<<<<\n");
         for (int i = 0; i < nVars(); i++) {
             if (getDefType(i)==DISJ) {
@@ -1498,12 +1498,16 @@ bool IDSolver::isCycleFree() const{
     }
 
     if (cnt_nonjustified>0) {
-        greportf(4,"WARNING: There remain %d literals non-justified.\n",cnt_nonjustified);
+    	if(modes.verbosity>3){
+    		reportf("WARNING: There remain %d literals non-justified.\n",cnt_nonjustified);
+    	}
 
         vec<bool> printed; printed.growTo(nVars(),false);
         int i=0;
         while (i<nVars()) {
-            greportf(4,"Cycle:\n");
+        	if(modes.verbosity>3){
+        		reportf("Cycle:\n");
+        	}
             for (;i<nVars() && (!isDefInPosGraph(i) || isfree[i]==0);i++) ;
             if (i<nVars()) {
                 vec<Var> cycle;
@@ -1512,27 +1516,35 @@ bool IDSolver::isCycleFree() const{
                 while (idx<cycle.size()) {
                     Var v = cycle[idx++];
                     if (getDefType(v)==DISJ) {
-                    	if(verbosity>=4){
+                    	if(modes.verbosity>=4){
                     		reportf("D %d justified by ", gprintVar(v)); gprintLit(justification[v][0]); reportf(".\n");
                     	}
                         if (!printed[var(justification[v][0])]){
                         	cycle.push(var(justification[v][0]));
                         }
                     } else if(getDefType(v)==CONJ){
-                        greportf(4,"C %d has", gprintVar(v));
+                    	if(modes.verbosity>3){
+                    		reportf("C %d has", gprintVar(v));
+                    	}
                         Rule& c = *definition[v];
                         for (int j=0; j<c.size(); j++) {
                             Var vj = var(c[j]);
                             if (c[j]!=c.getHeadLiteral() && isPositive(c[j]) && (isfree[vj]!=0 || printed[vj])) {
-                                greportf(4," %d", gprintVar(vj));
+                            	if(modes.verbosity>3){
+                            		reportf(" %d", gprintVar(vj));
+                            	}
                                 if (!printed[vj]){
                                 	cycle.push(vj);
                                 }
                             }
                         }
-                        greportf(4," in its body.\n");
+                    	if(modes.verbosity>3){
+                    		reportf(" in its body.\n");
+                    	}
                     }else{
-                    	greportf(4,"Change aggregate output here (iscyclefree method)"); //TODO change output (and make the method used by the solver
+                    	if(modes.verbosity>3){
+                    		reportf("Change aggregate output here (iscyclefree method)"); //TODO change output (and make the method used by the solver
+                    	}
                     }
                     printed[v]=true;
                 }
@@ -1542,7 +1554,9 @@ bool IDSolver::isCycleFree() const{
             }
         }
     } else{
-		greportf(4,"OK; justification is cycle free.\n");
+    	if(modes.verbosity>3){
+    		reportf("OK; justification is cycle free.\n");
+    	}
     }
     return cnt_nonjustified==0;
 }
@@ -1588,7 +1602,7 @@ bool IDSolver::isWellFoundedModel(){
 
 	findMixedCycles(wfroot, rootofmixed);
 
-	if(verbosity > 1){
+	if(modes.verbosity > 1){
 		reportf("general SCCs found");
 		for(vector<int>::size_type z=0; z<wfroot.size(); z++){
 			reportf("%d has root %d\n", gprintVar(z), gprintVar(wfroot[z]));
@@ -2036,7 +2050,7 @@ UFS IDSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<V
 	assert(type==CONJ || type==DISJ);
 
 	Rule* c = definition[v];
-	if(verbosity >=1){
+	if(modes.verbosity >=1){
 		print(*c);
 	}
 
@@ -2125,7 +2139,7 @@ UFS IDSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<V
 			return STILLPOSSIBLE;
 		}
 		if(ufs.size()>1){
-			if(verbosity >=4){
+			if(modes.verbosity >=4){
 				fprintf(stderr, "ufsfound: ");
 				for(std::set<Var>::iterator i=ufs.begin(); i!=ufs.end(); i++){
 					Var x = *i;
@@ -2142,7 +2156,7 @@ UFS IDSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<V
 				}
 			}
 			if(containsx>1){ //there is a loop of length 1, so x itself is an UFS
-				if(verbosity >=4){
+				if(modes.verbosity >=4){
 					fprintf(stderr, "ufsfound: ");
 					for(std::set<Var>::iterator i=ufs.begin(); i!=ufs.end(); i++){
 						Var x = *i;

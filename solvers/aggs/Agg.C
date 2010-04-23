@@ -348,7 +348,7 @@ void Agg::getExplanation(vec<Lit>& lits, AggrReason& ar) const{
 	}
 
 
-	if(verbosity>=5){
+	if(modes.verbosity>=5){
 		reportf("Aggregate explanation for ");
 		if(ar.isHeadReason()){
 			gprintLit(getHead());

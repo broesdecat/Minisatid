@@ -16,7 +16,6 @@
  ******************/
 
 #define reportf(...) ( fflush(stdout), fprintf(stderr, __VA_ARGS__), fflush(stderr) )
-#define greportf(ver, ...) ( verbosity>=ver?fflush(stdout), fprintf(stderr, __VA_ARGS__), fflush(stderr):true )
 
 inline int gprintVar(Var v){
 	return v+1;
