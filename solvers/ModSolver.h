@@ -18,6 +18,14 @@ class Solver;
 class IDSolver;
 class AggSolver;
 class ModSolverData;
+class ModSolver;
+
+typedef ModSolver* pModSolver;
+typedef vector<pModSolver> vmsolvers;
+typedef vmsolvers::size_type modindex;
+typedef vector<modindex> vmodindex;
+
+//TODO IMPORTANT: the sat-solver should decide ALL its variables, not leave some open
 
 /**
  * Each modsolver has an id, a parent and a number of children
@@ -37,36 +45,39 @@ struct AV{
 
 	AV(Var a): atom(a), value(l_Undef){}
 
-    bool operator == (AV p) const { return atom == p.atom; }
+/*    bool operator == (AV p) const { return atom == p.atom; }
     bool operator != (AV p) const { return atom != p.atom; }
-    bool operator <  (AV p) const { return atom < p.atom;  }
+    bool operator <  (AV p) const { return atom < p.atom;  }*/
+};
+
+struct LV{
+	Lit lit;
+	lbool value;
+
+	LV(Lit a): lit(a), value(l_Undef){}
 };
 
 class ModSolver{
 private:
-	bool negated;
-	int id, parentid;
-	vector<AV> atoms; //atoms which are rigid within this solver
-	vector<int> children;
+	modindex id, parentid;
 
-	AV 		head;
+	LV			head;
+	vector<AV> 	atoms; //atoms which are rigid within this solver
 
-	shared_ptr<Solver>		solver;
-	shared_ptr<IDSolver>	idsolver;
-	shared_ptr<AggSolver>	aggsolver;
+	vmodindex children;
+
+	pSolver		solver;
+	pIDSolver	idsolver;
+	pAggSolver	aggsolver;
 
 	weak_ptr<ModSolverData> modhier;
 
 public:
-	ModSolver(bool neg, int id, Var head, const vector<Var>& a, shared_ptr<ModSolverData> mh);
+	ModSolver(modindex id, Lit head, const vector<Var>& a, shared_ptr<ModSolverData> mh);
 	virtual ~ModSolver(){}
 
 	void setChildren(const vector<Var>& a);
-	void setParent(int id){
-		parentid = id;
-	}
-
-	virtual bool solve();
+	void setParent(modindex id){	parentid = id; }
 
 	/*//Solve methods
 	Clause* propagate(Lit l);
@@ -78,20 +89,64 @@ public:
 	void	addVar			(int v);
 	void 	addClause		(vec<Lit>& lits);
 	void 	addRule			(bool conj, vec<Lit>& lits);
-	void 	addSet			(int set_id, vec<Lit>& lits, vector<Weight>& w);
-	void 	addAggrExpr		(int defn, int set_id, Weight bound, bool lower, AggrType type, bool defined);
-	//void 	finishDatastructures();
+	void 	addSet			(int setid, vec<Lit>& lits, vector<Weight>& w);
+	void 	addAggrExpr		(int defn, int setid, Weight bound, bool lower, AggrType type, bool defined);
+	void 	finishParsing();
 
 	//solver initialization
 	//Solver*	initSolver		();
 	//Solver*	initializeSolver(Theory& t);
 
-	Var getHead()const {return head.atom;}
-	int getId() const{return id;}
-	int getParentId()const{return parentid;}
-	//const Theory& getTheory()const{return theory;}
-	const vector<AV>& getAtoms()const{return atoms;}
-	const vector<int>& getChildren()const{return children;}
+	/**
+	 * Workflow: parents propagates some literal down
+	 * if not all rigid atoms or head known:
+	 * 		do unit propagation in sat solver
+	 * 		after unit propagation: any new rigid atom/head propagations are propagated UP
+	 *
+	 * if all rigid atoms and head are known
+	 * 		search in sat solver
+	 * 		this can only results in conflicts, not in new propagations
+	 *
+	 * propagate by sat solver -> propagate in this mod solver by propagating it to all modal solvers.
+	 *
+	 * SAT-solver should contains all atoms occurring in its theory, all heads of the children and all
+	 * rigid atoms of the children. It should also decide them all.
+	 *
+	 * The model of a theory is the interpretation of all atoms decided by the root SAT solver.
+	 */
+	void printModel();
+
+	/**
+	 * Propagation coming from the parent solver: propagate it through the tree, until a conflict is found.
+	 * SHOULD also return unit propagated implied rigid atoms.
+	 */
+	Clause* propagateDown(Lit l);
+	/**
+	 * Propagation coming from the sat-solver: should propagate it through all modal solvers.
+	 *
+	 * Should NOT be called from other sources than the SAT-solver.
+	 */
+	Clause* propagate(Lit l);
+	/**
+	 * Same as enqueue or notifyofpropagation: add it to the sat-solver queue, but remember why it was
+	 * propagated. Id indicates from which modal solver the propagation came.
+	 * to ask an explanation later on.
+	 */
+	void propagateUp(Lit l, modindex id);
+
+	void backtrack(Lit l);
+
+	/**
+	 * This will be difficult to implement?
+	 */
+	Clause* getExplanation(Lit l);
+
+	Lit 		getHead()		const 	{ return head.lit; }
+	lbool 		getHeadValue()	const	{ return head.value; }
+	modindex 	getId() 		const	{ return id;}
+	modindex	getParentId()	const	{ return parentid;}
+	const vector<AV>& 			getAtoms()		const	{ return atoms;}
+	const vmodindex& 	getChildren()	const	{ return children;}
 };
 
 void printModSolver(const ModSolver* m);

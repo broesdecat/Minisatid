@@ -35,7 +35,7 @@ private:
 public:
     const Var head;
 
-    Rule(const vec<Lit>& ps, bool conj): head(var(ps[0])){
+    Rule(const vec<Lit>& ps): head(var(ps[0])){
     	for(int i=1; i<ps.size(); i++){
     		lits.push(ps[i]);
     	}

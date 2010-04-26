@@ -34,16 +34,16 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include "IDSolver.h"
 #include "AggSolver.h"
+#include "ModSolver.h"
 
 class IDSolver;
 class AggSolver;
 class Solver;
+class ModSolver;
 typedef shared_ptr<IDSolver> pIDSolver;
-typedef weak_ptr<IDSolver> wpIDSolver;
 typedef shared_ptr<AggSolver> pAggSolver;
-typedef weak_ptr<AggSolver> wpAggSolver;
 typedef shared_ptr<Solver> pSolver;
-typedef weak_ptr<Solver> wpSolver;
+typedef ModSolver* pModSolver;
 
 #ifdef _MSC_VER
 #include <ctime>
@@ -99,15 +99,18 @@ private:
 	//this class is the owner, to allow most efficiency
 	pIDSolver 	tsolver;
 	pAggSolver	aggsolver;
+	pModSolver	parentsolver;
 
 public:
 	/////SMT NECESSARY
+	void 				setModSolver			(pModSolver s)			{ parentsolver = s; }
 	void 				setIDSolver				(const pIDSolver& s)	{ tsolver = s; }
 	void 				resetIDSolver			() 						{ tsolver.reset();}
 	void 				setAggSolver			(const pAggSolver& s)	{ aggsolver = s; }
 	void 				resetAggSolver			()						{ aggsolver.reset(); }
 	const pIDSolver& 	getIDSolver				()				const 	{ return tsolver; }
 	const pAggSolver& 	getAggSolver			()				const 	{ return aggsolver; }
+	const pModSolver& 	getModSolver			()				const 	{ return parentsolver; }
 
 	lbool   value      (Var x) const;       // The current value of a variable.
 	lbool   value      (Lit p) const;       // The current value of a literal.

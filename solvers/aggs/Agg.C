@@ -210,6 +210,8 @@ Clause* SPAgg::propagate(bool headtrue){
 
 	Expl basedon = CPANDCC;
 
+	//FIXME: correct for overflow when using ints as weight.
+
 	//determine the lower bound of which weight literals to consider
 	if (headtrue) {
 		if(isLower()){

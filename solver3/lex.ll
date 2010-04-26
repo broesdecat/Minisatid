@@ -42,8 +42,7 @@ extern bool parseError;
 "L"			{ADJ; yylval.boolean = true;  return SIGNDEFN;}
 "G"			{ADJ; yylval.boolean = false; return SIGNDEFN;}
 
-"E"			{ADJ; yylval.boolean = false;  return QUANT;} //existential quantifier
-"EN"		{ADJ; yylval.boolean = true; return QUANT;} //\lnot existential quantifier
+"E"			{ADJ; return QUANT;} //existential quantifier
 
 "SubsetMnmz"	{ADJ; return SUBSETMINDEFN;}
 "Mnmt"     		{ADJ; return MNMZDEFN;}

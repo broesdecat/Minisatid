@@ -104,6 +104,7 @@ void initSolver(){
 
 void initModSolver(){
 	modsolver = shared_ptr<ModSolverData>(new ModSolverData());
+	modsolver->initialize();
 	mod = true;
 }
 
@@ -128,8 +129,8 @@ shared_ptr<Data> getData(){
 %token SUBSETMINDEFN MNMZDEFN SUMMINDEFN
 %token SETDEFN WSETDEFN SUMDEFN PRODDEFN MINDEFN MAXDEFN CARDDEFN 
 %token <integer> NUMBER
-%token <boolean> SEMDEFN SIGNDEFN QUANT MODDEFN
-%token DEFPRESENT AGGPRESENT MNMZPRESENT MODPRESENT
+%token <boolean> SEMDEFN SIGNDEFN
+%token DEFPRESENT AGGPRESENT MNMZPRESENT MODPRESENT QUANT MODDEFN
 
 %start init
 
@@ -242,7 +243,7 @@ wset	:	WSETDEFN NUMBER { setid = $2;	}
 		;
 
 //MODAL PART: USE INDEXES+1 AS MODAL IDs IN THE THEORY
-matomset:	QUANT NUMBER NUMBER varbody ZERO	{ modsolver->addModSolver($2-1, readVar($3), $1, nb)?error(true, ""):true; nb.clear(); }
+matomset:	QUANT NUMBER NUMBER varbody ZERO	{ modsolver->addModSolver($2-1, readLit($3), nb)?error(true, ""):true; nb.clear(); }
 		;
 modhier :	MODDEFN	NUMBER varbody ZERO { modsolver->addChildren($2-1, nb)?error(true, ""):true; nb.clear();}
 		;

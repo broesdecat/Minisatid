@@ -44,11 +44,11 @@ private:
 public:
 	SolverData();
 
-	virtual void setNbModels	(int nb)	{ solver->nb_models=nb; }
-	virtual void setRes			(FILE* f)	{ solver->res = f; }
+	virtual void setNbModels	(int nb);
+	virtual void setRes			(FILE* f);
 
-	virtual bool simplify		()			{ return solver->simplify(); }
-	virtual bool solve			()			{ return solver->solve(); }
+	virtual bool simplify		();
+	virtual bool solve			();
 	virtual void finishParsing(); //throws UNSAT
 
 	void	addVar			(Var v);
@@ -61,34 +61,39 @@ public:
     void 	addSumMinimize(const Var head, const int setid);
 };
 
+typedef vector<pModSolver> vmsolvers;
+typedef vmsolvers::size_type modindex;
+
 class ModSolverData: public Data, public enable_shared_from_this<ModSolverData>{
 private:
+	//FIXME these are not yet used.
 	int nb_models;
 	FILE* res;
 
-	vector<pModSolver> solvers;
+	vmsolvers solvers;
 
 public:
-	ModSolverData();
+	ModSolverData();	//HAVE to call initialize after constructor
 	~ModSolverData();
 
 	virtual void setNbModels	(int nb)	{ nb_models=nb; }
 	virtual void setRes			(FILE* f)	{ res = f; }
 
-	virtual bool 	simplify		(){ return true;}
+	virtual bool 	simplify		();
 	virtual bool 	solve			();
-	virtual void 	finishParsing	(){}
+	virtual void 	finishParsing	();
 			void 	initialize		();
 
 			void 	addVar			(Var v);
-			bool 	addClause		(int modid, vec<Lit>& lits);
-			bool 	addRule			(int modid, bool conj, vec<Lit>& lits);
-			bool 	addSet			(int modid, int set_id, vec<Lit>& lits, vector<Weight>& w);
-			bool 	addAggrExpr		(int modid, Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined);
-			bool 	addChildren		(int modid, const vector<int>& children);
-			bool 	addModSolver	(int modid, Var head, bool neg, const vector<Var>& atoms);
+			bool 	addClause		(modindex modid, vec<Lit>& lits);
+			bool 	addRule			(modindex modid, bool conj, vec<Lit>& lits);
+			bool 	addSet			(modindex modid, int set_id, vec<Lit>& lits, vector<Weight>& w);
+			bool 	addAggrExpr		(modindex modid, Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined);
+			bool 	addChildren		(modindex modid, const vector<int>& children);
+			bool 	addModSolver	(modindex modid, Lit head, const vector<Var>& atoms);
 
-	pModSolver getModSolver(int modid){	return solvers[modid];	}
+			bool	existsModSolver(modindex modid){ return modid<solvers.size() && solvers[modid]!=NULL; }
+			pModSolver getModSolver(modindex modid){ assert(existsModSolver(modid));return solvers[modid];}
 
 };
 

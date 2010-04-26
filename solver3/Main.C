@@ -42,6 +42,7 @@ static void SIGINT_handler	(int signum);
 void 		printUsage		(char** argv);
 
 
+//FIXME: adapt for modal solver
 wpSolver wps;
 void		noMoreMem(){
 	//Tries to reduce the memory of the solver by reducing the number of learned clauses

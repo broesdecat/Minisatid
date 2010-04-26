@@ -103,7 +103,7 @@ void IDSolver::addRule(bool conj, vec<Lit>& ps) {
 		//rules with only one body atom have to be treated as conjunctive
 		conj = conj || ps.size()==2;
 
-		Rule* r = new Rule(ps, conj);
+		Rule* r = new Rule(ps);
 		defdVars.push(var(ps[0]));
 		//defType.growTo(nVars(), NONDEFTYPE);
 		//defOcc.growTo(nVars(), NONDEFOCC);

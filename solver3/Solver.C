@@ -31,6 +31,7 @@ extern ECNF_mode modes;
 
 
 Solver::Solver() :
+	parentsolver(NULL),
 	optim(NONE), head(0),
 	res(NULL), nb_models(1), modelsfound(0),
 
@@ -234,6 +235,9 @@ void Solver::cancelFurther(int init_qhead) {
 		}
 		if(getAggSolver().get()!=NULL){
 			getAggSolver()->backtrack(trail[c]);
+		}
+		if(getModSolver()!=NULL){
+			getModSolver()->backtrack(trail[c]);
 		}
 		//////////////END TSOLVER
 	}
@@ -593,6 +597,9 @@ Clause* Solver::propagate()
         if(getIDSolver().get()!=NULL && confl == NULL){
 			confl = getIDSolver()->propagate(p);
 		}
+        if(getModSolver()!=NULL && confl == NULL){
+        	confl = getModSolver()->propagate(p);
+        }
 		if(qhead==trail.size() && confl==NULL && getIDSolver().get()!=NULL){
 			confl = getIDSolver()->propagateDefinitions();
 		}
@@ -867,8 +874,14 @@ void Solver::invalidateModel(vec<Lit>& learnt) {
 	//maar geen idee waarom dit nodig was. Mss toch eens nakijken?
 
 	if (verbosity>=3) {	reportf("Adding model-invalidating clause: [ "); }
-	addClause(learnt);
+	bool result = addClause(learnt);
 	if (verbosity>=3) {	reportf("]\n"); }
+
+	if(!result){
+		//FIXME
+		reportf("In invalidatemodel, something is wrong.");
+		throw UNSAT();
+	}
 
 	varDecayActivity();
 	claDecayActivity();
@@ -910,7 +923,8 @@ void Solver::addSumMinimize(const Var head, const int setid){
 	this->head = head;
 	vec<Lit> cl;
 	cl.push(Lit(head, false));
-	addClause(cl);
+	bool result = addClause(cl);
+	//FIXME handle result;
 	getAggSolver()->addMnmzSum(head, setid, true);
 }
 
