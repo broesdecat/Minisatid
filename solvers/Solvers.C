@@ -7,32 +7,28 @@ void SolverData::addVar(Var v){
 }
 
 bool SolverData::addClause(vec<Lit>& lits){
-	solver->addClause(lits);
-	return false;
+	return solver->addClause(lits);
 }
 bool SolverData::addRule(bool conj, vec<Lit>& lits){
-	idsolver->addRule(conj, lits);
-	return false;
+	return idsolver->addRule(conj, lits);
 }
 bool SolverData::addSet(int setid, vec<Lit>& lits, vector<Weight>& w){
-	aggsolver->addSet(setid, lits, w);
-	return false;
+	return aggsolver->addSet(setid, lits, w);
 }
 
 bool SolverData::addAggrExpr(Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined){
 	if(sign(head)){
 		reportf( "No negative heads are allowed!\n");
-		return true;
+		exit(1);
 	}
-	aggsolver->addAggrExpr(var(head), setid, bound, lower, type, defined);
-	return false;
+	return aggsolver->addAggrExpr(var(head), setid, bound, lower, type, defined);
 }
 
-void SolverData::addMinimize(const vec<Lit>& lits, bool subsetmnmz){
-	solver->addMinimize(lits, subsetmnmz);
+bool SolverData::addMinimize(const vec<Lit>& lits, bool subsetmnmz){
+	return solver->addMinimize(lits, subsetmnmz);
 }
-void SolverData::addSumMinimize(const Var head, const int setid){
-	solver->addSumMinimize(head, setid);
+bool SolverData::addSumMinimize(const Var head, const int setid){
+	return solver->addSumMinimize(head, setid);
 }
 
 
@@ -76,43 +72,39 @@ void SolverData::finishParsing(){ //throws UNSAT
 bool ModSolverData::addClause(modindex modid, vec<Lit>& lits){
 	if(!existsModSolver(modid)){
 		reportf("No modal operator with id %d was defined! ", modid+1);
-		return true;
+		exit(1);
 	}
 	pModSolver m = getModSolver(modid);
-	m->addClause(lits);
-	return false;
+	return m->addClause(lits);
 }
 bool ModSolverData::addRule(modindex modid, bool conj, vec<Lit>& lits){
 	if(!existsModSolver(modid)){
 		reportf("No modal operator with id %d was defined! ", modid+1);
-		return true;
+		exit(1);
 	}
 	pModSolver m = getModSolver(modid);
-	m->addRule(conj, lits);
-	return false;
+	return m->addRule(conj, lits);
 }
 bool ModSolverData::addSet(modindex modid, int setid, vec<Lit>& lits, vector<Weight>& w){
 	if(!existsModSolver(modid)){
 		reportf("No modal operator with id %d was defined! ", modid+1);
-		return true;
+		exit(1);
 	}
 	pModSolver m = getModSolver(modid);
-	m->addSet(setid, lits, w);
-	return false;
+	return m->addSet(setid, lits, w);
 }
 
 bool ModSolverData::addAggrExpr(modindex modid, Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined){
 	if(sign(head)){
 		reportf( "No negative heads are allowed!\n");
-		return true;
+		exit(1);
 	}
 	if(!existsModSolver(modid)){
 		reportf("No modal operator with id %d was defined! ", modid+1);
-		return true;
+		exit(1);
 	}
 	pModSolver m = getModSolver(modid);
-	m->addAggrExpr(var(head), setid, bound, lower, type, defined);
-	return false;
+	return m->addAggrExpr(var(head), setid, bound, lower, type, defined);
 }
 
 void ModSolverData::addVar(Var v){
@@ -147,12 +139,12 @@ bool ModSolverData::addModSolver(modindex modid, Lit head, const vector<Var>& at
 bool ModSolverData::addChildren(modindex modid, const vector<int>& children){
 	if(!existsModSolver(modid)){
 		reportf("No modal operator with id %d was defined! ", modid+1);
-		return true;
+		exit(1);
 	}
 	for(vector<int>::const_iterator i=children.begin(); i<children.end(); i++){
 		if(!existsModSolver(*i)){
 			reportf("No modal operator with id %d was defined! ", *i+1);
-			return true;
+			exit(1);
 		}
 	}
 	pModSolver m = getModSolver(modid);

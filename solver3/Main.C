@@ -29,6 +29,7 @@ extern FILE* yyin;
 extern int 	yyparse			();
 extern void yydestroy		();
 extern void yyinit			(/*pSolver s, pIDSolver ids, pAggSolver aggs*/);
+extern bool unsatfound;
 bool parseError = false;
 
 //void 		initSolvers		(const pSolver& S, const pIDSolver& TS, const pAggSolver& AggS);
@@ -117,28 +118,32 @@ int main(int argc, char** argv) {
 			reportf("| Parsing time              : %7.2f s                                       |\n", parse_time);
 		}
 
-		if (!d->simplify()) {
+		if(d.get()==NULL){
+			ret = false;
 			if(modes.verbosity>0){
 				reportf("===============================================================================\n"
-						"Solved by unit propagation\n");
+						"Unsatisfiable found by parsing\n");
 			}
-			throw UNSAT();
+		}else{
+			if (!d->simplify()) {
+				if(modes.verbosity>0){
+					reportf("===============================================================================\n"
+							"Solved by unit propagation\n");
+				}
+				ret = false;
+			}else{
+				d->setNbModels(modes.nbmodels);
+				d->setRes(res);
+
+				ret = d->solve();
+			}
 		}
-
-		d->setNbModels(modes.nbmodels);
-		d->setRes(res);
-
-		ret = d->solve();
 
 		//TODO printStats(S);
 	}catch(bad_alloc e){ //FIXME: handle all these elegantly
 		reportf("Memory overflow, cannot continue solving.\n"); exit(3);
 	}catch(UNSAT e2){
-		if (res != NULL)
-			fprintf(res, "UNSAT\n"), fclose(res);
-		printf("UNSATISFIABLE\n");
-		reportf("%s\n", e2.what());
-		ret = 20;
+		ret = false;
 	}catch(NoDefAllowedExc e3){
 		reportf("%s\n", e3.what());
 		exit(3);
@@ -148,6 +153,12 @@ int main(int argc, char** argv) {
 	}catch(int ex){
 		reportf("Unexpected exception thrown as int with code %d\n", ex);
 		exit(3);
+	}
+
+	if(!ret){
+		if (res != NULL)
+			fprintf(res, "UNSAT\n"), fclose(res);
+		printf("UNSATISFIABLE\n");
 	}
 
 #ifdef NDEBUG
@@ -269,6 +280,10 @@ void parseCommandline(/*const pSolver& S, const pIDSolver& TS, const pAggSolver&
     argc = j;
 }
 
+/**
+ * Returns a data object representing the solver configuration from the input theory.
+ * If the input theory was already found to be unsatisfiable, an empty shared pointer is returned.
+ */
 pData parse(/*const pSolver& S, const pIDSolver& TS, const pAggSolver& AggS,*/ const char* file){
    	yyinit(/*S, TS, AggS*/);
 	yyin = fopen(file,"r");
@@ -277,6 +292,11 @@ pData parse(/*const pSolver& S, const pIDSolver& TS, const pAggSolver& AggS,*/ c
 		exit(1);
 	}
 	yyparse();
+
+	if(unsatfound){
+		return shared_ptr<Data>();
+	}
+
 	pData d = getData();
 
 	yydestroy();

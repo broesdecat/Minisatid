@@ -95,7 +95,7 @@ public:
 	 *
 	 * @remark: please ensure that all id numbers are used without gaps in the numbering.
 	 */
-	void    addSet       (int id, vec<Lit>& l, vector<Weight>& w);
+	bool    addSet       (int id, vec<Lit>& l, vector<Weight>& w);
 
 	/**
 	 * Adds an aggregate of the given type with number defn for set set_id.
@@ -108,7 +108,7 @@ public:
 	 *
 	 * @pre: no weights==0 when using a product aggregate
 	 */
-	void    addAggrExpr  (int defn, int set_id, Weight bound, bool lower, AggrType type, bool defined);
+	bool    addAggrExpr  (int defn, int set_id, Weight bound, bool lower, AggrType type, bool defined);
 
 	/**
 	 * Checks presence of aggregates and initializes all counters.
@@ -130,7 +130,7 @@ public:
 	Clause* notifySATsolverOfPropagation(const Lit& p, Aggrs::AggrReason* cr);	// Like "enqueue", but for aggregate propagations.
 
 	//Optimisation support
-	void 	addMnmzSum		(Var headv, int setid, bool lower);
+	bool 	addMnmzSum		(Var headv, int setid, bool lower);
     bool 	invalidateSum	(vec<Lit>& invalidation, Var head);
     void 	propagateMnmz	(Var head);
 
@@ -172,7 +172,7 @@ protected:
 	 */
 	Clause* Aggr_propagate		(const Lit& p);
 
-	void 	maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& head, const AggrSet& set);
+	bool 	maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& head, const AggrSet& set);
 	void	finishSets(vector<pSet>& sets); //throws UNSAT
 };
 

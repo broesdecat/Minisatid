@@ -74,7 +74,7 @@ public:
 	/////////////////////END AGGSOLVER NECESSARY
 
 	/////////////////////INITIALIZATION
-	void    	addRule      			(bool conj, vec<Lit>& ps);	// Add a rule to the solver.
+	bool    	addRule      			(bool conj, vec<Lit>& ps);	// Add a rule to the solver.
 	bool    	finishECNF_DataStructures();							// Initialize the ECNF data structures. NOTE: aggregates may set the "ok" value to false!
 
 	void 		setSolver				(pSolver s)		{ solver = wpSolver(s); }

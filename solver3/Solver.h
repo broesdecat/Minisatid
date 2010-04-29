@@ -149,13 +149,13 @@ public:
     Var 		head;
     vec<Lit>	to_minimize;
 
-    void 	addMinimize(const vec<Lit>& lits, bool subsetmnmz);
-    void 	addSumMinimize(const Var head, const int setid);
+    bool 	addMinimize(const vec<Lit>& lits, bool subsetmnmz);
+    bool 	addSumMinimize(const Var head, const int setid);
     bool 	invalidateValue(vec<Lit>& invalidation);
 	bool 	invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt);
 	bool 	findOptimal(vec<Lit>& assumps, vec<Lit>& m);
 
-	void    invalidateModel(vec<Lit>& invalidation);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
+	bool    invalidateModel(vec<Lit>& invalidation);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
 	void 	invalidate(vec<Lit>& invalidation);
 	bool 	findNext	(const vec<Lit>& assumpts, vec<Lit>& model);
 	bool    solve        (const vec<Lit>& assumps); // Search for a model that respects a given set of assumptions.

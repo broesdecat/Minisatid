@@ -873,13 +873,9 @@ void Solver::invalidateModel(vec<Lit>& learnt) {
 	//FIXME: hier werd soms verder gebacktrackt dan het laagste decision level (in de unit propagaties dus)
 	//maar geen idee waarom dit nodig was. Mss toch eens nakijken?
 
-	if (verbosity >= 3) {
-		reportf("Adding model-invalidating clause: [ ");
-	}
+	if (verbosity >= 3) { reportf("Adding model-invalidating clause: [ "); }
 	addClause(learnt);
-	if (verbosity >= 3) {
-		reportf("]\n");
-	}
+	if (verbosity >= 3) { reportf("]\n"); }
 
 	varDecayActivity();
 	claDecayActivity();

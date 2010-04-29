@@ -77,7 +77,7 @@ void IDSolver::notifyVarAdded(int nvars){
  *
  * If only one body literal, the clause is always made conjunctive (for algorithmic correctness later on), semantics are the same.
  */
-void IDSolver::addRule(bool conj, vec<Lit>& ps) {
+bool IDSolver::addRule(bool conj, vec<Lit>& ps) {
 	assert(ps.size() > 0);
 	assert(isPositive(ps[0]));
 
@@ -91,6 +91,8 @@ void IDSolver::addRule(bool conj, vec<Lit>& ps) {
 
 	pSolver solver(getSolver());
 
+	bool notunsat = true;
+
 	if (ps.size() == 1) {
 		Lit head = conj?ps[0]:~ps[0]; //empty set conj = true, empty set disj = false
 		if (isFalse(head)){
@@ -98,7 +100,7 @@ void IDSolver::addRule(bool conj, vec<Lit>& ps) {
 		}
 		vec<Lit> v;
 		v.push(head);
-		solver->addClause(v);
+		notunsat = solver->addClause(v);
 	} else {
 		//rules with only one body atom have to be treated as conjunctive
 		conj = conj || ps.size()==2;
@@ -122,15 +124,16 @@ void IDSolver::addRule(bool conj, vec<Lit>& ps) {
 
 		vec<Lit> temp; //because addclause empties temp
 		ps.copyTo(temp);
-		solver->addClause(temp);
+		notunsat = solver->addClause(temp);
 
-		for (int i = 1; i < ps.size(); i++) {
+		for (int i = 1; notunsat && i < ps.size(); i++) {
 			vec<Lit> binclause(2);
 			binclause[0] = ~ps[0];
 			binclause[1] = ~ps[i];
-			solver->addClause(binclause);
+			notunsat = solver->addClause(binclause);
 		}
 	}
+	return notunsat;
 }
 
 /*

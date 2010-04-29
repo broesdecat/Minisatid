@@ -57,8 +57,8 @@ public:
 	bool 	addSet			(int set_id, vec<Lit>& lits, vector<Weight>& w);
 	bool 	addAggrExpr		(Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined);
 
-    void 	addMinimize(const vec<Lit>& lits, bool subsetmnmz);
-    void 	addSumMinimize(const Var head, const int setid);
+    bool 	addMinimize(const vec<Lit>& lits, bool subsetmnmz);
+    bool 	addSumMinimize(const Var head, const int setid);
 };
 
 typedef vector<pModSolver> vmsolvers;

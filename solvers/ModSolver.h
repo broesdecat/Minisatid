@@ -87,10 +87,10 @@ public:
 
 	//data initialization
 	void	addVar			(int v);
-	void 	addClause		(vec<Lit>& lits);
-	void 	addRule			(bool conj, vec<Lit>& lits);
-	void 	addSet			(int setid, vec<Lit>& lits, vector<Weight>& w);
-	void 	addAggrExpr		(int defn, int setid, Weight bound, bool lower, AggrType type, bool defined);
+	bool 	addClause		(vec<Lit>& lits);
+	bool 	addRule			(bool conj, vec<Lit>& lits);
+	bool 	addSet			(int setid, vec<Lit>& lits, vector<Weight>& w);
+	bool 	addAggrExpr		(int defn, int setid, Weight bound, bool lower, AggrType type, bool defined);
 	void 	finishParsing();
 
 	//solver initialization

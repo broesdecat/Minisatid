@@ -161,7 +161,7 @@ void AggSolver::finishSets(vector<pSet>& sets){
 	}
 }
 
-void AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
+bool AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 	assert(set_id>0);
 	int setindex = set_id-1;
 	if(lits.size()==0){
@@ -193,9 +193,11 @@ void AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 		aggrprodsets.push_back(new AggrProdSet(lits, weights, wpAggSolver));
 		aggrminsets.push_back(new AggrMaxSet(lits, weights2, wpAggSolver));
 	}
+
+	return true;
 }
 
-void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, AggrType type, bool defined) {
+bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, AggrType type, bool defined) {
 	if (((vector<int>::size_type)setid) > aggrminsets.size() || aggrminsets[setid-1]==NULL || aggrminsets[setid-1]->size()==0) {
 		reportf("Error: Set nr. %d is used, but not defined yet.\n",setid), exit(3);
 	}
@@ -225,14 +227,12 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 	pAgg ae;
 	switch(type){
 	case MIN:
-		//maxAggAsSAT(defined, !lower, -bound, head, *aggrminsets[setindex]);
-		//return;
+		//return maxAggAsSAT(defined, !lower, -bound, head, *aggrminsets[setindex]);
 		b = (b==LOWERBOUND?UPPERBOUND:LOWERBOUND);
 		ae = pAgg(new MaxAgg(b, -bound, head, pSet(aggrminsets[setindex])));
 		break;
 	case MAX:
-		//maxAggAsSAT(defined, lower, bound, head, *aggrmaxsets[setindex]);
-		//return;
+		//return maxAggAsSAT(defined, lower, bound, head, *aggrmaxsets[setindex]);
 		ae = pAgg(new MaxAgg(b, bound, head, pSet(aggrmaxsets[setindex])));
 		break;
 	case SUM:{
@@ -278,11 +278,13 @@ void AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 		//reportf("Added %s aggregate with head %d on set %d, %s %s of type %s.\n", defined?"defined":"completion", gprintVar(headv), setid, lower?"AGG<=":"AGG>=", bigIntegerToString(bound).c_str(), ae->getSet()->getName().c_str());
 		reportf("Added %s aggregate with head %d on set %d, %s %s of type %s.\n", defined?"defined":"completion", gprintVar(headv), setid, lower?"AGG <=":"AGG >=", printWeight(bound).c_str(), ae->getSet()->getName().c_str());
 	}
+
+	return true;
 }
 
 //FIXME no optimizations should take place on mnmz aggregates (partially helped by separate add method).
 //FIXME 2 more optimization should/could take place on other aggregates
-void AggSolver::addMnmzSum(Var headv, int setid, bool lower) {
+bool AggSolver::addMnmzSum(Var headv, int setid, bool lower) {
 	if (((vector<int>::size_type)setid) > aggrminsets.size() || aggrminsets[setid-1]==NULL || aggrminsets[setid-1]->size()==0) {
 		reportf("Error: Set nr. %d is used, but not defined yet.\n",setid), exit(3);
 	}
@@ -305,14 +307,18 @@ void AggSolver::addMnmzSum(Var headv, int setid, bool lower) {
 	ae->setOptimAgg(); //FIXME temporary solution
 	aggregates.push_back(ae);
 	head_watches[var(head)] = ae;
+
+	return true;
 }
 
 /*
  * For a maximum: if lower,  head <=> conj of negation of all literals with weight higher than bound
  * 				  if higher, head <=> disj of all literals with weight higher/eq than bound
  */
-void AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& head, const AggrSet& set){
+bool AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& head, const AggrSet& set){
 	vec<Lit> clause;
+
+	bool notunsat = true;
 
 	if(defined){
 		clause.push(head);
@@ -326,7 +332,7 @@ void AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& h
 				clause.push((*i).getLit());
 			}
 		}
-		getIDSolver()->addRule(lower, clause);
+		notunsat = getIDSolver()->addRule(lower, clause);
 	}else{
 		clause.push(lower?head:~head);
 		for(lwlv::const_reverse_iterator i=set.getWLRBegin(); i<set.getWLREnd() && (*i).getWeight()>=bound; i++){
@@ -335,17 +341,19 @@ void AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& h
 			}
 			clause.push((*i).getLit());
 		}
-		getSolver()->addClause(clause);
-		for(lwlv::const_reverse_iterator i=set.getWLRBegin(); i<set.getWLREnd() && (*i).getWeight()>=bound; i++){
+		notunsat = getSolver()->addClause(clause);
+		for(lwlv::const_reverse_iterator i=set.getWLRBegin(); notunsat && i<set.getWLREnd() && (*i).getWeight()>=bound; i++){
 			if((*i).getWeight()==bound && lower){
 				break;
 			}
 			clause.clear();
 			clause.push(lower?~head:head);
 			clause.push(~(*i).getLit());
-			getSolver()->addClause(clause);
+			notunsat = getSolver()->addClause(clause);
 		}
 	}
+
+	return notunsat;
 }
 
 /**

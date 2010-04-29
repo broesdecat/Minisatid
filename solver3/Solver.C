@@ -865,7 +865,10 @@ double Solver::progressEstimate() const
 
 
 ////////////START TSOLVER
-void Solver::invalidateModel(vec<Lit>& learnt) {
+/**
+ * Returns false if invalidating the model leads to UNSAT, meaning that no more models are possible. Otherwise true.
+ */
+bool Solver::invalidateModel(vec<Lit>& learnt) {
 	//FIXME: do not backtrack to 0, but do analyzefinal on learnt to check to which level to backtrack.
 	//for subsetminimize this is not so clear, because assumptions have to be added too, so maybe there backtrack to 0 is necessary (for unit propagation before search)
 	backtrackTo(0);
@@ -877,18 +880,14 @@ void Solver::invalidateModel(vec<Lit>& learnt) {
 	bool result = addClause(learnt);
 	if (verbosity>=3) {	reportf("]\n"); }
 
-	if(!result){
-		//FIXME
-		reportf("In invalidatemodel, something is wrong.");
-		throw UNSAT();
-	}
-
 	varDecayActivity();
 	claDecayActivity();
+
+	return result;
 }
 
 //TODO in andere solver?
-void Solver::addMinimize(const vec<Lit>& lits, bool subset) {
+bool Solver::addMinimize(const vec<Lit>& lits, bool subset) {
 	/*TODO if (!ecnf_mode.mnmz)
 		reportf("ERROR! Attempt at adding a subset minimize statement, though ECNF specifiers did not contain \"mnmz\".\n"), exit(3);*/
 	if (lits.size() == 0) {
@@ -909,9 +908,11 @@ void Solver::addMinimize(const vec<Lit>& lits, bool subset) {
 	for (int i = 0; i < lits.size(); i++){
 		to_minimize.push(lits[i]);
 	}
+
+	return true;
 }
 
-void Solver::addSumMinimize(const Var head, const int setid){
+bool Solver::addSumMinimize(const Var head, const int setid){
 	/*TODO if (!ecnf_mode.mnmz)
 		reportf("ERROR! Attempt at adding a subset minimize statement, though ECNF specifiers did not contain \"mnmz\".\n"), exit(3);*/
 	if (optim!=NONE) {
@@ -923,9 +924,13 @@ void Solver::addSumMinimize(const Var head, const int setid){
 	this->head = head;
 	vec<Lit> cl;
 	cl.push(Lit(head, false));
-	bool result = addClause(cl);
+	bool notunsat = addClause(cl);
 	//FIXME handle result;
-	getAggSolver()->addMnmzSum(head, setid, true);
+	if(notunsat){
+		notunsat = getAggSolver()->addMnmzSum(head, setid, true);
+	}
+
+	return notunsat;
 }
 
 void Solver::printModel(){
@@ -1106,7 +1111,7 @@ bool Solver::findNext(const vec<Lit>& assmpt, vec<Lit>& m){
 		if (trail_lim.size() /*FIXME + assmpts.size() */!= 0) { //choices were made, so other models possible
 			vec<Lit> invalidation;
 			invalidate(invalidation);
-			invalidateModel(invalidation);
+			rslt = invalidateModel(invalidation);
 		}else{
 			rslt = false; //no more models possible
 		}
@@ -1165,7 +1170,7 @@ bool Solver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 
 			if(!optimumreached){
 				if (trail_lim.size() /*FIXME + assmpts.size() */!= 0) { //choices were made, so other models possible
-					invalidateModel(invalidation);
+					optimumreached = !invalidateModel(invalidation);
 				}else{
 					optimumreached = true;
 				}

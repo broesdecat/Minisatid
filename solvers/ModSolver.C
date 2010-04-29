@@ -60,15 +60,16 @@ bool ModSolver::addClause(vec<Lit>& lits){
 	return solver->addClause(lits);
 }
 
-void ModSolver::addRule(bool conj, vec<Lit>& lits){
-	idsolver->addRule(conj,lits);
+bool ModSolver::addRule(bool conj, vec<Lit>& lits){
+	return idsolver->addRule(conj,lits);
 }
 
-void ModSolver::addSet(int setid, vec<Lit>& lits, vector<Weight>& w){
-	aggsolver->addSet(setid, lits, w);
+bool ModSolver::addSet(int setid, vec<Lit>& lits, vector<Weight>& w){
+	return aggsolver->addSet(setid, lits, w);
 }
-void ModSolver::addAggrExpr(int defn, int set_id, Weight bound, bool lower, AggrType type, bool defined){
-	aggsolver->addAggrExpr(defn, set_id, bound, lower, type, defined);
+
+bool ModSolver::addAggrExpr(int defn, int set_id, Weight bound, bool lower, AggrType type, bool defined){
+	return aggsolver->addAggrExpr(defn, set_id, bound, lower, type, defined);
 }
 
 
