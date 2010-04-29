@@ -969,7 +969,6 @@ bool Solver::solve() {
 		reportf("===============================================================================\n");
 	}
 
-try{
 	modelsfound = 0;
 	bool moremodels = true;
 
@@ -1004,13 +1003,6 @@ try{
 
 	if (verbosity >= 1){
 		reportf("===============================================================================\n");
-	}
-
-	}catch(UNSAT x){
-		//FIXME:
-		reportf("Dit staat nog op de verkeerde plaats");
-		assert(false);
-		solved = false;
 	}
 	return solved;
 }

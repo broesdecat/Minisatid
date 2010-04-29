@@ -39,7 +39,7 @@ public:
     AggrSet(const vec<Lit>& lits, const vector<Weight>& weights, wpAggSolver s);
     virtual ~AggrSet(){}
 
-	virtual void 	initialize(); //throws UNSAT
+	virtual bool 	initialize(); //throws UNSAT
 	Clause* 		propagate(const Lit& p, const AggrWatch& ws);
 
     virtual void 	backtrack(int index);
@@ -120,7 +120,7 @@ class AggrSumSet: public AggrSPSet{
 public:
 	AggrSumSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s);
 
-	virtual void 	initialize();
+	virtual bool 	initialize();
 
 	virtual WLit 	handleOccurenceOfBothSigns	(const WLit& one, const WLit& two);
 	virtual Weight	add							(const Weight& lhs, const Weight& rhs) const;

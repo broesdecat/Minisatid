@@ -142,8 +142,6 @@ int main(int argc, char** argv) {
 		//TODO printStats(S);
 	}catch(bad_alloc e){ //FIXME: handle all these elegantly
 		reportf("Memory overflow, cannot continue solving.\n"); exit(3);
-	}catch(UNSAT e2){
-		ret = false;
 	}catch(NoDefAllowedExc e3){
 		reportf("%s\n", e3.what());
 		exit(3);

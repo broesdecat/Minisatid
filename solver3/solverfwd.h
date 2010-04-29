@@ -38,13 +38,6 @@ public:
 	}
 };
 
-class UNSAT: public std::exception {
-public:
-	virtual const char* what() const throw(){
-		return "UNSAT exception";
-	}
-};
-
 extern int verbosity;
 
 enum MINIM {MNMZ, SUBSETMNMZ, SUMMNMZ, NONE};

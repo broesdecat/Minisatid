@@ -173,7 +173,7 @@ protected:
 	Clause* Aggr_propagate		(const Lit& p);
 
 	bool 	maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& head, const AggrSet& set);
-	void	finishSets(vector<pSet>& sets); //throws UNSAT
+	bool	finishSets(vector<pSet>& sets); //throws UNSAT
 };
 
 //=======================

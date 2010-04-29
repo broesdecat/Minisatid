@@ -97,10 +97,11 @@ bool AggSolver::finishECNF_DataStructures() {
 	if(modes.verbosity>=3){
 		reportf("Initializing all sets:\n");
 	}
-	finishSets(aggrminsets);
-	finishSets(aggrmaxsets);
-	finishSets(aggrsumsets);
-	finishSets(aggrprodsets);
+	if(!finishSets(aggrminsets)){ return false; }
+	if(!finishSets(aggrmaxsets)){ return false; }
+	if(!finishSets(aggrsumsets)){ return false; }
+	if(!finishSets(aggrprodsets)){ return false; }
+
 	if(modes.verbosity>=3){
 		int counter = 0;
 		for(vector<vector<AggrWatch> >::const_iterator i=aggr_watches.begin(); i<aggr_watches.end(); i++,counter++){
@@ -124,7 +125,7 @@ bool AggSolver::finishECNF_DataStructures() {
 	return true;
 }
 
-void AggSolver::finishSets(vector<pSet>& sets){
+bool AggSolver::finishSets(vector<pSet>& sets){
 	for(vector<pSet>::iterator i=sets.begin(); i<sets.end(); ){
 		pSet s = *i;
 		if(s->nbAgg()==0){
@@ -134,7 +135,10 @@ void AggSolver::finishSets(vector<pSet>& sets){
 				reportf("Set is deleted.\n");
 			}
 		}else{
-			s->initialize();
+			bool notunsat = s->initialize();
+			if(!notunsat){
+				return false;
+			}
 			if(s->nbAgg()==0){
 				delete *i;
 				i = sets.erase(i);
@@ -150,6 +154,7 @@ void AggSolver::finishSets(vector<pSet>& sets){
 			}
 		}
 	}
+	return true;
 
 	if(modes.verbosity>=3){
 		for(vector<pSet>::iterator i=sets.begin(); i<sets.end(); i++){

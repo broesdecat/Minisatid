@@ -19,7 +19,7 @@ void Agg::addAggToSet(){
  * Returns true if this aggregate can be propagated in the initialization, so it will never change truth value
  * and can be left out of any propagations.
  */
-bool Agg::initialize(){
+lbool Agg::initialize(){
 	Clause* confl = NULL;
 
 	lbool hv = canPropagateHead(getSet()->getCC(), getSet()->getCP());
@@ -33,9 +33,10 @@ bool Agg::initialize(){
 		confl = getSet()->getSolver()->notifySATsolverOfPropagation(~getHead(), new AggrReason(this, CPANDCC, true));
 	}
 	if(confl!=NULL){
-		throw UNSAT();
+		return l_False;
 	}
-	return nomoreprops;
+
+	return nomoreprops?l_True:l_Undef;
 }
 
 void Agg::backtrack(int stacksize){

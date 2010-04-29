@@ -142,25 +142,30 @@ void AggrSet::doSetReduction() {
 	std::sort(wlits.begin(), wlits.end());
 }
 
-void AggrSet::initialize(){
+bool AggrSet::initialize(){
 	doSetReduction();
 
 	setCP(getBestPossible());
 	setCC(getEmptySetValue());
 
 	for(lsagg::iterator i=aggregates.begin(); i<aggregates.end();){
-		if((*i)->initialize()){
+		lbool result = (*i)->initialize();
+		if(result==l_True){
 			//If after initialization, the head will have a fixed value, then this is
 			//independent of any further propagations within that aggregate.
 			getSolver()->removeHeadWatch(var((*i)->getHead()));
 			i = aggregates.erase(i);
+		}else if(result==l_False){
+			//UNSAT because always false
+			return false;
 		}else{
 			i++;
 		}
 	}
+	return true;
 }
 
-void AggrSumSet::initialize(){
+bool AggrSumSet::initialize(){
 	lwlv wlits2;
 	Weight totalneg(0);
 	for(lwlv::const_iterator i=wlits.begin(); i<wlits.end(); i++){
@@ -178,7 +183,7 @@ void AggrSumSet::initialize(){
 		}
 	}
 
-	AggrSet::initialize();
+	return AggrSet::initialize();
 }
 
 

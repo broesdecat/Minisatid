@@ -77,7 +77,7 @@ public:
 		//boundupper+=b;
 	}
 
-	bool 	initialize(); //throws UNSAT
+	lbool 	initialize(); //throws UNSAT
 	void 	backtrackHead();
 	void	backtrack(int stacksize);
 	Clause*	propagateHead(const Lit& p);
