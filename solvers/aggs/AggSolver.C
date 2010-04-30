@@ -37,7 +37,6 @@ void AggSolver::remove(){
 	getSolver()->resetAggSolver();
 	getSolver().reset();
 	getIDSolver().reset();
-	//FIXME: prevent from using a solver after it has been removed
 }
 
 void AggSolver::notifyVarAdded(int nvars){
@@ -402,9 +401,11 @@ Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 		if(confl->size()>1){
 			getSolver()->addLearnedClause(confl);
 		}else{
-			//FIXME
-			assert(confl->size()==1);
-			reportf("Er is een conflict van lengte 1, dus eigenlijk een unit clause, maar die kan niet meer toegevoegd worden tijdens het solven.");
+			//TODO: found a conflict of size one, which cannot be added easily. The solution of backtracking everything might not be the best.
+			getSolver()->backtrackTo(lvl);
+			vec<Lit> ps;
+			ps.push(confl->operator [](0));
+			getSolver()->addClause(ps);
 		}
 
 		aggr_reason[var(p)] = old_ar;
@@ -593,8 +594,9 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head){
 }
 
 /**
- * FIXME:
- * has to be called after each solution has been found, just before starting to search
+ * FIXME: not really beautiful solution, maybe it can be fixed with ASSUMPTIONS?
+ * This method has to be called after every temporary solution has been found to force the propagation of
+ * the newly adapted bound.
  */
 void AggSolver::propagateMnmz(Var head){
 	dynamic_cast<SumAgg*>(head_watches[head])->propagateHead(true);

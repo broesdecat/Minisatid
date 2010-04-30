@@ -154,8 +154,9 @@ int main(int argc, char** argv) {
 	}
 
 	if(!ret){
-		if (res != NULL)
+		if (res != NULL){
 			fprintf(res, "UNSAT\n"), fclose(res);
+		}
 		printf("UNSATISFIABLE\n");
 	}
 

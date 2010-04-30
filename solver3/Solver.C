@@ -958,7 +958,6 @@ bool Solver::solve() {
 
 	//TODO check that it is only called once
 	if (!ok){
-		fprintf(res==NULL?stdout:res, "UNSAT\n");
 		return false;
 	}
 
@@ -984,21 +983,16 @@ bool Solver::solve() {
 		}
 	}
 
-	if(modelsfound==0){
-		printf("UNSATISFIABLE\n");
-		fprintf(res==NULL?stdout:res, "UNSAT\n");
-	}else if(!moremodels && nb_models!=1){
+	if(modelsfound!=0 && !moremodels && nb_models!=1){
 		printf("There are no more models.\n");
 	}
 
-	if(nb_models==0 || nb_models==modelsfound){
+	if(modelsfound==0){
+		solved = false;
+	}else if(nb_models==0 || nb_models==modelsfound){
 		solved = true;
 	}else{
 		solved = false;
-	}
-
-	if (res != NULL){
-		fclose(res);
 	}
 
 	if (verbosity >= 1){
