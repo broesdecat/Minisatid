@@ -10,8 +10,7 @@
 #include "Vec.h"
 
 class AggSolver;
-typedef shared_ptr<AggSolver> pAggSolver;
-typedef weak_ptr<AggSolver> wpAggSolver;
+typedef AggSolver* pAggSolver;
 
 namespace Aggrs{
 
@@ -33,10 +32,10 @@ protected:
 	lprop 	stack;		// Stack of propagations of this expression so far.
 	Weight 	currentbestcertain, currentbestpossible, emptysetvalue;
 					//current keeps the currently derived min and max bounds
-	wpAggSolver aggsolver; //the solver that handles this set
+	pAggSolver aggsolver; //the solver that handles this set
 
 public:
-    AggrSet(const vec<Lit>& lits, const vector<Weight>& weights, wpAggSolver s);
+    AggrSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver s);
     virtual ~AggrSet(){}
 
 	virtual bool 	initialize(); //throws UNSAT
@@ -90,12 +89,12 @@ public:
 	lprop::const_iterator 			getStackBegin() 	const 	{ return stack.begin(); }
 	lprop::const_iterator 			getStackEnd()		const 	{ return stack.end(); }
 
-	pAggSolver						getSolver()			const	{ return aggsolver.lock(); }
+	pAggSolver						getSolver()			const	{ return aggsolver; }
 };
 
 class AggrMaxSet: public AggrSet{
 public:
-	AggrMaxSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s);
+	AggrMaxSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver s);
 	virtual Weight 	getCombinedWeight			(const Weight& one, const Weight& two) 	const;
 	virtual WLit 	handleOccurenceOfBothSigns	(const WLit& one, const WLit& two);
 	virtual Weight 	getBestPossible				() 										const;
@@ -105,7 +104,7 @@ public:
 
 class AggrSPSet: public AggrSet{
 public:
-	AggrSPSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s);
+	AggrSPSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver s);
 
 	virtual Weight 	getCombinedWeight			(const Weight& one, const Weight& two) 	const;
 	virtual WLit 	handleOccurenceOfBothSigns	(const WLit& one, const WLit& two) 			  = 0;
@@ -118,7 +117,7 @@ public:
 
 class AggrSumSet: public AggrSPSet{
 public:
-	AggrSumSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s);
+	AggrSumSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver s);
 
 	virtual bool 	initialize();
 
@@ -129,7 +128,7 @@ public:
 
 class AggrProdSet: public AggrSPSet{
 public:
-	AggrProdSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s);
+	AggrProdSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver s);
 
 	virtual WLit 	handleOccurenceOfBothSigns	(const WLit& one, const WLit& two);
 	virtual Weight	add							(const Weight& lhs, const Weight& rhs) const;

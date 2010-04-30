@@ -7,10 +7,8 @@
 #include <map>
 	
 #include "solverfwd.h"
-#include "Solver.h"
-#include "IDSolver.h"
-#include "ModSolver.h"
-#include "AggSolver.h"
+#include "SOSolverHier.h"
+#include "PCSolver.h"
 #include "Vec.h"
 	
 using namespace Aggrs;
@@ -21,7 +19,7 @@ extern int yylex(void);
 extern char * yytext;
 
 bool mod;
-shared_ptr<SolverData>		solver;
+shared_ptr<PCSolver>		solver;
 shared_ptr<ModSolverData>	modsolver;
 
 vector<Weight> weights;
@@ -121,7 +119,7 @@ inline void addLit(int nb){
 }
 
 void initSolver(){
-	solver = shared_ptr<SolverData>(new SolverData());
+	solver = shared_ptr<PCSolver>(new PCSolver());
 	mod = false;
 }
 

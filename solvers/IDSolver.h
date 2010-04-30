@@ -15,18 +15,15 @@
 #include "Heap.h"
 
 #include "solverfwd.h"
-#include "Solver.h"
-#include "AggSolver.h"
 
-class IDSolver;
+#include "PCSolver.h"
+class PCSolver;
+typedef PCSolver* pPCSolver;
+
+#include "AggSolver.h"
 class AggSolver;
-class Solver;
-typedef shared_ptr<IDSolver> pIDSolver;
-typedef weak_ptr<IDSolver> wpIDSolver;
-typedef shared_ptr<AggSolver> pAggSolver;
-typedef weak_ptr<AggSolver> wpAggSolver;
-typedef shared_ptr<Solver> pSolver;
-typedef weak_ptr<Solver> wpSolver;
+typedef AggSolver* pAggSolver;
+
 
 class Rule {
 private:
@@ -48,12 +45,15 @@ public:
 
 class IDSolver{
 private:
-	wpSolver 		solver;
-	wpAggSolver 	aggsolver;
+	pPCSolver 		solver;
+	pAggSolver		aggsolver;
 
 public:
-	IDSolver();
+	IDSolver(pPCSolver s);
 	virtual ~IDSolver();
+
+	pAggSolver getAggSolver()const{return aggsolver;}
+	void		setAggSolver(pAggSolver a){aggsolver = a;}	//TODO call this
 
 	/////////////////////SOLVER NECESSARY
 	bool 		simplify				();
@@ -77,14 +77,12 @@ public:
 	bool    	addRule      			(bool conj, vec<Lit>& ps);	// Add a rule to the solver.
 	bool    	finishECNF_DataStructures();							// Initialize the ECNF data structures. NOTE: aggregates may set the "ok" value to false!
 
-	void 		setSolver				(pSolver s)		{ solver = wpSolver(s); }
-	void 		setAggSolver			(pAggSolver s)	{ aggsolver = wpAggSolver(s); }
-	pSolver 	getSolver				()	const		{ return solver.lock(); }
-	pAggSolver	getAggSolver			()	const 		{ return aggsolver.lock(); }
+	pPCSolver 	getSolver				()	const		{ return solver; }
 	void 		remove					();			//remove this idsolver from the solver network
 	/////////////////////END INITIALIZATION
 
 protected:
+	bool recagg;	//true if recursive aggregates are present
 	vec<bool>	isCS;                   // Per atom: is it a cycle source?
 	bool 		init;
 	vec<int>	seen, seen2;

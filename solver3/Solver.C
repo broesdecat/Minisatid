@@ -24,51 +24,38 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "Sort.h"
 #include <cmath>
 
-extern ECNF_mode modes;
 
 //=================================================================================================
 // Constructor/Destructor:
 
 
-Solver::Solver() :
-	parentsolver(NULL),
-	optim(NONE), head(0),
-	res(NULL), nb_models(1), modelsfound(0),
+Solver::Solver(pPCSolver s/**A**/) :
+	solver(s), /**A**/
+    // Parameters: (formerly in 'SearchParams')
+    var_decay(1 / 0.95), clause_decay(1 / 0.999), random_var_freq(0.02), learntsize_inc(1.1)
 
-	// Parameters: (formerly in 'SearchParams')
-	var_decay(modes.var_decay),
-	clause_decay(1 / 0.999),
-	random_var_freq(modes.random_var_freq),
-	//restart_first(100),
-	//restart_inc(1.5),
-	//learntsize_factor((double) 1 / (double) 3),
-	learntsize_inc(1.1)
+    // More parameters:
+    //
+  , expensive_ccmin  (true)
+  , polarity_mode    (polarity_stored)
+  , verbosity        (0)
+  , random_seed      (91648253)
 
-	// More parameters:
-	,
-	expensive_ccmin(true),
-	polarity_mode(modes.polarity_mode),
-	verbosity(modes.verbosity),
-	//maxruntime(0.0),
+    // Statistics: (formerly in 'SolverStats')
+    //
+  , starts(0), decisions(0), rnd_decisions(0), propagations(0), conflicts(0)
+  , clauses_literals(0), learnts_literals(0), max_literals(0), tot_literals(0)
 
-	// Statistics: (formerly in 'SolverStats')
-	starts(0),
-	decisions(0),
-	rnd_decisions(0),
-	propagations(0),
-	conflicts(0),
-	clauses_literals(0),
-	learnts_literals(0),
-	max_literals(0),
-	tot_literals(0),
-
-	qhead(0),
-	ok(true),
-	remove_satisfied(false),
-
-	cla_inc(1), var_inc(1), simpDB_assigns(-1),
-	simpDB_props(0), random_seed(91648253),
-	progress_estimate(0), order_heap(VarOrderLt(activity)){}
+  , ok               (true)
+  , cla_inc          (1)
+  , var_inc          (1)
+  , qhead            (0)
+  , simpDB_assigns   (-1)
+  , simpDB_props     (0)
+  , order_heap       (VarOrderLt(activity))
+  , progress_estimate(0)
+  , remove_satisfied (false/*A*/)
+{}
 
 
 Solver::~Solver()
@@ -97,44 +84,19 @@ Var Solver::newVar(bool sign, bool dvar)
     seen      .push(0);
 
 	polarity.push(false);
-	/*polarity .push((char) sign);
-		*/
     decision_var.push((char)dvar);
 
-	//////////////START TSOLVER
-	if(getIDSolver().get()!=NULL){
-		getIDSolver()->notifyVarAdded(nVars());
-	}
-	if(getAggSolver().get()!=NULL){
-		getAggSolver()->notifyVarAdded(nVars());
-	}
-	//////////////END TSOLVER
-
     insertVarOrder(v);
+
     return v;
 }
 
-//////////////START TSOLVER
-/**
- * Used to notify the sat solver that all tsolver datastructures have been initialized.
- * The sat solver will then reset the q-pointer to the start, so all literals already on the queue are repropagated in due course.
- */
+/*************
+ * ADDITIONS *
+ *************/
+
 void Solver::finishParsing(){
 	qhead = 0;
-}
-
-bool Solver::existsUnknownVar(){
-	Var v = var_Undef;
-	while (v == var_Undef || toLbool(assigns[v]) != l_Undef || !decision_var[v]) {
-		if (v != var_Undef)
-			order_heap.removeMin();
-		if (order_heap.empty()) {
-			v = var_Undef;
-			break;
-		} else
-			v = order_heap[0];
-	}
-	return v==var_Undef;
 }
 
 void Solver::addLearnedClause(Clause* c){
@@ -146,51 +108,45 @@ void Solver::addLearnedClause(Clause* c){
 		printClause(*c);
 	}
 }
-//////////////END TSOLVER
+
+/*****************
+ * END ADDITIONS *
+ *****************/
 
 
 bool Solver::addClause(vec<Lit>& ps)
 {
     assert(decisionLevel() == 0);
 
-	if (!ok){
-		return false;
-	}
+    if (!ok)
+        return false;
+    else{
+        // Check if clause is satisfied and remove false/duplicate literals:
+        sort(ps);
+        Lit p; int i, j;
+        for (i = j = 0, p = lit_Undef; i < ps.size(); i++)
+            if (value(ps[i]) == l_True || ps[i] == ~p)
+                return true;
+            else if (value(ps[i]) != l_False && ps[i] != p)
+                ps[j++] = p = ps[i];
+        ps.shrink(i - j);
+    }
 
-	// Check if clause is satisfied and remove false/duplicate literals:
-	sort(ps);
-	Lit p;
-	int i, j;
-	for (i = j = 0, p = lit_Undef; i < ps.size(); i++)
-		if (value(ps[i]) == l_True || ps[i] == ~p)
-			return true;
-		else if (value(ps[i]) != l_False && ps[i] != p)
-			ps[j++] = p = ps[i];
-	ps.shrink(i - j);
+    if (ps.size() == 0)
+        return ok = false;
+    else if (ps.size() == 1){
+        assert(value(ps[0]) == l_Undef);
+        uncheckedEnqueue(ps[0]);
+        return ok = (propagate() == NULL);
+    }else{
+        Clause* c = Clause_new(ps, false);
+        clauses.push(c);
+        attachClause(*c);
+    }
 
-	if (ps.size() == 0)
-		return ok = false;
-	else if (ps.size() == 1) {
-		assert(value(ps[0]) == l_Undef);
-		setTrue(ps[0]);
-		if(verbosity>=2){
-    		reportf("Clause added: ");
-			printLit(ps[0]);
-			reportf("\n");
-		}
-		return ok = (propagate() == NULL);
-	} else {
-		Clause* c = Clause_new(ps, false);
-		clauses.push(c);
-		attachClause(*c);
-		if(verbosity>=3){
-			reportf("Clause added: ");
-			printClause(*c);
-		}
-	}
-
-	return true;
+    return true;
 }
+
 
 void Solver::attachClause(Clause& c) {
     assert(c.size() > 1);
@@ -222,46 +178,28 @@ bool Solver::satisfied(const Clause& c) const {
     return false; }
 
 
-///////////////START CHANGES
-// Can be used to go beyond level 0!
-void Solver::cancelFurther(int init_qhead) {
-	for (int c = trail.size() - 1; c >= init_qhead; c--) {
-		Var x = var(trail[c]);
-		assigns[x] = toInt(l_Undef);
-		insertVarOrder(x);
-		//////////////START TSOLVER
-		if(getIDSolver().get()!=NULL){
-			getIDSolver()->backtrack(trail[c]);
-		}
-		if(getAggSolver().get()!=NULL){
-			getAggSolver()->backtrack(trail[c]);
-		}
-		if(getModSolver()!=NULL){
-			getModSolver()->backtrack(trail[c]);
-		}
-		//////////////END TSOLVER
-	}
-
-	qhead = init_qhead;
-	trail.shrink(trail.size() - qhead);
-}
-
 // Revert to the state at given level (keeping all assignment at 'level' but not beyond).
 //
-void Solver::backtrackTo(int level) {
-	if (decisionLevel() > level) {
-		cancelFurther(trail_lim[level]);
-		trail_lim.shrink(trail_lim.size() - level);
-	}
-}
-///////////////END CHANGES
+void Solver::cancelUntil(int level) {
+    if (decisionLevel() > level){
+        for (int c = trail.size()-1; c >= trail_lim[level]; c--){
+            Var     x  = var(trail[c]);
+            assigns[x] = toInt(l_Undef);
+            insertVarOrder(x);
+            /*A*/solver->backtrackRest(trail[c]);
+        }
+        qhead = trail_lim[level];
+        trail.shrink(trail.size() - trail_lim[level]);
+        trail_lim.shrink(trail_lim.size() - level);
+    } }
 
 
 //=================================================================================================
 // Major methods:
 
 
-Lit Solver::pickBranchLit(int polarity_mode, double random_var_freq){
+Lit Solver::pickBranchLit(int polarity_mode, double random_var_freq)
+{
     Var next = var_Undef;
 
     // Random decision:
@@ -278,19 +216,15 @@ Lit Solver::pickBranchLit(int polarity_mode, double random_var_freq){
         }else
             next = order_heap.removeMin();
 
-    if(next==var_Undef){ //bug otherwise with polarity_stored
-    	return lit_Undef;
-    }else{
-        bool sign = false;
-        switch (polarity_mode){
-        case polarity_true:  sign = false; break;
-        case polarity_false: sign = true;  break;
-        case polarity_stored:  sign = polarity[next]; break; /* MODIFIED 2009 */
-        case polarity_rnd:   sign = irand(random_seed, 2); break;
-        default: assert(false); }
+    bool sign = false;
+    switch (polarity_mode){
+    case polarity_true:  sign = false; break;
+    case polarity_false: sign = true;  break;
+    case polarity_stored:  sign = polarity[next]; break; /* MODIFIED 2009 */
+    case polarity_rnd:   sign = irand(random_seed, 2); break;
+    default: assert(false); }
 
-        return Lit(next, sign);
-    }
+    return next == var_Undef ? lit_Undef : Lit(next, sign);
 }
 
 
@@ -322,23 +256,10 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
     int index   = trail.size() - 1;
     out_btlevel = 0;
 
-	//////////////START TSOLVER
-	bool deleteImplicitClause = false;
-	//////////////END TSOLVER
+	/*A*/bool deleteImplicitClause = false;
     do{
         assert(confl != NULL);          // (otherwise should be UIP)
         Clause& c = *confl;
-
-		if (verbosity > 2) {
-			reportf("Current conflict clause: ");
-			printClause(c);
-			reportf("Current learned clause: ");
-			for (int i = 0; i < out_learnt.size(); i++) {
-				printLit(out_learnt[i]);
-				reportf(" ");
-			}
-			reportf("\n");
-		}
 
         if (c.learnt())
             claBumpActivity(c);
@@ -359,35 +280,29 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
             }
         }
 
-		//////////////START TSOLVER
+        /*AB*/
 		if (deleteImplicitClause) {
 			delete confl;
 			deleteImplicitClause = false;
 		}
-		//////////////END TSOLVER
+        /*AE*/
 
-		// Select next clause to look at:
-		while (!seen[var(trail[index--])])
-			;
-		p = trail[index + 1];
-		confl = reason[var(p)];
+        // Select next clause to look at:
+        while (!seen[var(trail[index--])]);
+        p     = trail[index+1];
+        confl = reason[var(p)];
 
-		if (verbosity > 2) {
-			reportf("Getting explanation for ");
-			printLit(p);
-			reportf("\n");
-		}
+        /*AB*/
+        if(confl==NULL && pathC>1){
+        	confl = solver->getExplanation(p);
+        	deleteImplicitClause = true;
+        }
+        /*AE*/
 
-		//////////////START TSOLVER
-		if (aggsolver!=NULL && confl == NULL && pathC > 1) {
-			confl = aggsolver->getExplanation(p);
-			deleteImplicitClause = true;
-		}
-		//////////////END TSOLVER
         seen[var(p)] = 0;
         pathC--;
 
-    } while (pathC > 0);
+    }while (pathC > 0);
     out_learnt[0] = ~p;
 
     // Simplify conflict clause:
@@ -506,7 +421,7 @@ void Solver::analyzeFinal(Lit p, vec<Lit>& out_conflict)
 }
 
 
-void Solver::setTrue(Lit p, Clause* from)
+void Solver::uncheckedEnqueue(Lit p, Clause* from)
 {
     assert(value(p) == l_Undef);
     assigns [var(p)] = toInt(lbool(!sign(p)));  // <<== abstract but not uttermost effecient
@@ -539,12 +454,6 @@ Clause* Solver::propagate()
         Clause         **i, **j, **end;
         num_props++;
 
-		if (verbosity >= 2) {
-			reportf("Propagating literal ");
-			printLit(p);
-			reportf(": (");
-		}
-
         for (i = j = (Clause**)ws, end = i + ws.size();  i != end;){
             Clause& c = **i++;
 
@@ -570,43 +479,28 @@ Clause* Solver::propagate()
                 // Did not find watch -- clause is unit under assignment:
                 *j++ = &c;
                 if (value(first) == l_False){
-					if (verbosity >= 2)
-						reportf(" Conflict");
                     confl = &c;
                     qhead = trail.size();
                     // Copy the remaining watches:
                     while (i < end)
                         *j++ = *i++;
-                }else{
-                	setTrue(first, &c);
-					if (verbosity >= 2) {
-						reportf(" ");
-						printLit(first);
-					}
-                }
+                }else
+                    uncheckedEnqueue(first, &c);
             }
         FoundWatch:;
         }
         ws.shrink(i - j);
-		if (verbosity >= 2)
-			reportf(" ).\n");
-		//////////////START TSOLVER
-        if(getAggSolver().get()!=NULL && confl == NULL){
-        	confl = getAggSolver()->propagate(p);
-        }
-        if(getIDSolver().get()!=NULL && confl == NULL){
-			confl = getIDSolver()->propagate(p);
+        /*AB*/
+		if(confl==NULL){
+			confl = solver->propagate(p);
 		}
-        if(getModSolver()!=NULL && confl == NULL){
-        	confl = getModSolver()->propagate(p);
-        }
-		if(qhead==trail.size() && confl==NULL && getIDSolver().get()!=NULL){
-			confl = getIDSolver()->propagateDefinitions();
+		if(qhead==trail.size() && confl==NULL){
+			confl = solver->propagateDefinitions();
 		}
 		if(confl!=NULL){
 			qhead = trail.size();
 		}
-		//////////////END TSOLVER
+        /*AE*/
     }
     propagations += num_props;
     simpDB_props -= num_props;
@@ -671,8 +565,10 @@ bool Solver::simplify()
 {
     assert(decisionLevel() == 0);
 
+    /*AB*/
     //if (!ok || propagate() != NULL)
-    //    return ok = false;
+    //   return ok = false;
+    /*AE*/
 
     if (nAssigns() == simpDB_assigns || (simpDB_props > 0))
         return true;
@@ -688,8 +584,8 @@ bool Solver::simplify()
     simpDB_assigns = nAssigns();
     simpDB_props   = clauses_literals + learnts_literals;   // (shouldn't depend on stats really, but it will do for now)
 
-    //////////////START TSOLVER
-	if(conflicts==0 && (getIDSolver().get()!=NULL && !getIDSolver()->simplify())){
+    /*AB*/
+	if(conflicts==0 && !solver->simplify()){
 		ok = false;
 		return false;
 	}
@@ -700,7 +596,7 @@ bool Solver::simplify()
 		return false;
 	}
 	// Important: DO NOT PROPAGATE BEFORE SIMPLIFY!!! (TODO CHANGE CODE TO ALLOW THIS!)
-	//////////////END TSOLVER
+	/*AE*/
 
     return true;
 }
@@ -735,45 +631,26 @@ lbool Solver::search()
             conflicts++; conflictC++;
             if (decisionLevel() == 0) return l_False;
 
-    		if (verbosity >= 2)
-    			reportf("Starting decision level %d.\n",trail_lim.size());
-
-    		if (verbosity >= 4 && trail_lim.size() == 0) {
-    			reportf("CLAUSES\n");
-    			for (int i = 0; i < clauses.size(); i++) {
-    				printClause(*clauses[i]);
-    			}
-    			reportf("LEARNTS\n");
-    			for (int i = 0; i < learnts.size(); i++) {
-    				printClause(*learnts[i]);
-    			}
-    			reportf("END\n");
-    		}
-
             first = false;
 
             learnt_clause.clear();
             analyze(confl, learnt_clause, backtrack_level);
-            backtrackTo(backtrack_level);
+            cancelUntil(backtrack_level);
             assert(value(learnt_clause[0]) == l_Undef);
 
 			backtrackLevels[conflicts % restartMore]= backtrack_level;
 
             if (learnt_clause.size() == 1){
-            	setTrue(learnt_clause[0]);
-            	if (verbosity>=2) {reportf("Adding learnt clause: [ "); printLit(learnt_clause[0]); reportf(" ], backtracking until level %d.\n",backtrack_level);}
+                uncheckedEnqueue(learnt_clause[0]);
             }else{
                 Clause* c = Clause_new(learnt_clause, true);
                 learnts.push(c);
                 attachClause(*c);
                 claBumpActivity(*c);
-                setTrue(learnt_clause[0], c);
-                if (verbosity>=2) {reportf("Adding learnt clause: [ "); printClause(*c); reportf("], backtracking until level %d.\n",backtrack_level);}
+                uncheckedEnqueue(learnt_clause[0], c);
             }
 
             varDecayActivity();
-            claDecayActivity();
-
             claDecayActivity();
 
         }else{
@@ -795,7 +672,7 @@ lbool Solver::search()
 				if(LM > restartTolerance && nofLM>= restartLess) { /* Modified 2009 */
 					// AVOIDANCE OF PLATEAUX
 	                progress_estimate= progressEstimate();
-	                backtrackTo(0);
+    	            cancelUntil(0);
         	        return l_Undef;
 				}
 			}
@@ -832,18 +709,12 @@ lbool Solver::search()
                 if (next == lit_Undef)
                     // Model found:
                     return l_True;
-
-				if (verbosity >= 2) {
-					reportf("Choice literal: ");
-					printLit(next);
-					reportf(".\n");
-				}
             }
 
             // Increase decision level and enqueue 'next'
             assert(value(next) == l_Undef);
             newDecisionLevel();
-            setTrue(next);
+            uncheckedEnqueue(next);
         }
     }
 }
@@ -864,343 +735,12 @@ double Solver::progressEstimate() const
 }
 
 
-////////////START TSOLVER
-/**
- * Returns false if invalidating the model leads to UNSAT, meaning that no more models are possible. Otherwise true.
- */
-bool Solver::invalidateModel(vec<Lit>& learnt) {
-	//FIXME: do not backtrack to 0, but do analyzefinal on learnt to check to which level to backtrack.
-	//for subsetminimize this is not so clear, because assumptions have to be added too, so maybe there backtrack to 0 is necessary (for unit propagation before search)
-	backtrackTo(0);
-
-	//FIXME: hier werd soms verder gebacktrackt dan het laagste decision level (in de unit propagaties dus)
-	//maar geen idee waarom dit nodig was. Mss toch eens nakijken?
-
-	if (verbosity>=3) {	reportf("Adding model-invalidating clause: [ "); }
-	bool result = addClause(learnt);
-	if (verbosity>=3) {	reportf("]\n"); }
-
-	varDecayActivity();
-	claDecayActivity();
-
-	return result;
-}
-
-//TODO in andere solver?
-bool Solver::addMinimize(const vec<Lit>& lits, bool subset) {
-	/*TODO if (!ecnf_mode.mnmz)
-		reportf("ERROR! Attempt at adding a subset minimize statement, though ECNF specifiers did not contain \"mnmz\".\n"), exit(3);*/
-	if (lits.size() == 0) {
-		reportf("Error: The set of literals to be minimized is empty,\n");
-		exit(3);
-	}
-	if (optim!=NONE) {
-		reportf("At most one set of literals to be minimized can be given.\n");
-		exit(3);
-	}
-
-	if(subset){
-		optim = SUBSETMNMZ;
-	}else{
-		optim = MNMZ;
-	}
-
-	for (int i = 0; i < lits.size(); i++){
-		to_minimize.push(lits[i]);
-	}
-
-	return true;
-}
-
-bool Solver::addSumMinimize(const Var head, const int setid){
-	/*TODO if (!ecnf_mode.mnmz)
-		reportf("ERROR! Attempt at adding a subset minimize statement, though ECNF specifiers did not contain \"mnmz\".\n"), exit(3);*/
-	if (optim!=NONE) {
-		reportf("Only one optimization statement is possible.\n");
-		exit(3);
-	}
-
-	optim = SUMMNMZ;
-	this->head = head;
-	vec<Lit> cl;
-	cl.push(Lit(head, false));
-	bool notunsat = addClause(cl);
-	//FIXME handle result;
-	if(notunsat){
-		notunsat = getAggSolver()->addMnmzSum(head, setid, true);
-	}
-
-	return notunsat;
-}
-
-void Solver::printModel(){
-	if (modelsfound==1) {
-		fprintf(res==NULL?stdout:res, "SAT\n");
-		if(verbosity>=1){
-			printf("SATISFIABLE\n");
-		}
-	}
-
-	if(nb_models!=1){
-		printf("%d model%s found.\n", modelsfound, modelsfound>1 ? "s" : "");
-	}
-
-	for (int i = 0; i < nVars(); i++){
-		if (model[i] != l_Undef){
-			fprintf(res==NULL?stdout:res, "%s%s%d", (i == 0) ? "" : " ", (model[i]== l_True) ? "" : "-", i + 1);
-		}
-	}
-	fprintf(res==NULL?stdout:res, " 0\n");
-}
-
-bool Solver::solve() {
-	bool solved = false;
-
-	//TODO check that it is only called once
-	if (!ok){
-		return false;
-	}
-
-	if (verbosity >= 1) {
-		reportf("============================[ Search Statistics ]==============================\n");
-		reportf("| Conflicts |          ORIGINAL         |          LEARNT          | Progress |\n");
-		reportf("|           |    Vars  Clauses Literals |    Limit  Clauses Lit/Cl |          |\n");
-		reportf("===============================================================================\n");
-	}
-
-	modelsfound = 0;
-	bool moremodels = true;
-
-	if(optim!=NONE){
-		vec<Lit> assmpt;
-		vec<Lit> model;
-		findOptimal(assmpt, model);
-	}else{
-		while(moremodels && (nb_models==0 || modelsfound<nb_models)){
-			vec<Lit> assmpt;
-			vec<Lit> model;
-			moremodels = findNext(assmpt, model);
-		}
-	}
-
-	if(modelsfound!=0 && !moremodels && nb_models!=1){
-		printf("There are no more models.\n");
-	}
-
-	if(modelsfound==0){
-		solved = false;
-	}else if(nb_models==0 || nb_models==modelsfound){
-		solved = true;
-	}else{
-		solved = false;
-	}
-
-	if (verbosity >= 1){
-		reportf("===============================================================================\n");
-	}
-	return solved;
-}
-
-void Solver::invalidate(vec<Lit>& invalidation){
-	// Add negation of model as clause for next iteration.
-	//add all choice literals
-	for (int i = 0; i < trail_lim.size(); i++){
-		invalidation.push(~trail[trail_lim[i]]);
-	}
-	//add all assumptions
-	/*for (int i = 0; i < assmpt.size(); i++){
-		learnt.push(~assmpt[i]);
-	}*/
-	// Remove doubles.
-	sort(invalidation);
-	Lit p = lit_Undef;
-	int i=0, j=0;
-	for (; i < invalidation.size(); i++){
-		if (invalidation[i] != p){
-			invalidation[j++] = (p = invalidation[i]);
-		}
-	}
-	invalidation.shrink(i - j);
-}
-
-bool Solver::invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt){
-	int subsetsize = 0;
-
-	for(int i=0; i<to_minimize.size(); i++){
-		if(model[var(to_minimize[i])]==l_True){
-			invalidation.push(~to_minimize[i]);
-			subsetsize++;
-		}else{
-			assmpt.push(~to_minimize[i]);
-		}
-	}
-
-	if(subsetsize==0){
-		return true; //optimum has already been found!!!
-	}else{
-		return false;
-	}
-}
-
-bool Solver::invalidateValue(vec<Lit>& invalidation){
-	bool currentoptimumfound = false;
-
-	for(int i=0; !currentoptimumfound && i<to_minimize.size(); i++){
-		if(!currentoptimumfound && model[var(to_minimize[i])]==l_True){
-			reportf("Current optimum is var %d\n", gprintVar(var(to_minimize[i])));
-			currentoptimumfound = true;
-		}
-		if(!currentoptimumfound){
-			invalidation.push(to_minimize[i]);
-		}
-	}
-
-	if(invalidation.size()==0){
-		return true; //optimum has already been found!!!
-	}else{
-		return false;
-	}
-}
-
-
-/**
- * Checks satisfiability of the theory.
- * If no model is found or no more models exist, false is returned. True otherwise
- * If a model is found, it is printed and returned in <m>, the theory is extended to prevent
- * 		the same model from being found again and
- * 		the datastructures are reset to prepare to find the next model
- */
-/**
- * Important: assmpt are the first DECISIONS that are made. So they are not automatic unit propagations
- * and can be backtracked!
- * FIXME: een mooier design maken zodat het duidelijk is naarwaar gebacktrackt moet worden (tot voor of tot
- * na de assumptions, afhankelijk van of ze voor alle modellen moeten gelden of alleen voor het huidige).
- */
-bool Solver::findNext(const vec<Lit>& assmpt, vec<Lit>& m){
-	bool rslt = solve(assmpt);
-
-	if(rslt){
-		modelsfound++;
-
-		printModel();
-
-		m.clear();
-		for (int i = 0; i < nVars(); i++){
-			if(value(i)==l_True){
-				m.push(Lit(i, false));
-			}else if(value(i)==l_False){
-				m.push(Lit(i, true));
-			}
-		}
-
-		//check if more models can exist
-		if (trail_lim.size() /*FIXME + assmpts.size() */!= 0) { //choices were made, so other models possible
-			vec<Lit> invalidation;
-			invalidate(invalidation);
-			rslt = invalidateModel(invalidation);
-		}else{
-			rslt = false; //no more models possible
-		}
-	}
-
-	return rslt;
-}
-
-/*
- * If the optimum possible value is reached, the model is not invalidated. Otherwise, unsat has to be found first, so it is invalidated.
- * FIXME: add code that allows to reset the solver when the optimal value has been found, to search for more models with the same optimal value.
- *
- * Returns true if an optimal model was found
- */
-bool Solver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
-	bool rslt = true, hasmodels = false, optimumreached = false;
-	while(!optimumreached && rslt){
-		if(optim==SUMMNMZ){
-			assert(getAggSolver().get()!=NULL);
-			//Noodzakelijk om de aanpassingen aan de bound door te propageren.
-			getAggSolver()->propagateMnmz(head);
-		}
-		rslt = solve(assmpt);
-
-		if(rslt && !optimumreached){
-			if(!hasmodels){
-				hasmodels = true;
-			}
-
-			m.clear();
-			for (int i = 0; i < nVars(); i++){
-				if(value(i)==l_True){
-					m.push(Lit(i, false));
-				}else if(value(i)==l_False){
-					m.push(Lit(i, true));
-				}
-			}
-
-			vec<Lit> invalidation;
-			switch(optim){
-			case MNMZ:
-				optimumreached = invalidateValue(invalidation);
-				break;
-			case SUBSETMNMZ:
-				assmpt.clear();
-				optimumreached = invalidateSubset(invalidation, assmpt);
-				break;
-			case SUMMNMZ:
-				//FIXME the invalidation turns out to be empty
-				optimumreached = getAggSolver()->invalidateSum(invalidation, head);
-				break;
-			case NONE:
-				assert(false);
-				break;
-			}
-
-			if(!optimumreached){
-				if (trail_lim.size() /*FIXME + assmpts.size() */!= 0) { //choices were made, so other models possible
-					optimumreached = !invalidateModel(invalidation);
-				}else{
-					optimumreached = true;
-				}
-			}
-
-			if(verbosity>0){
-				printf("Temporary model: \n");
-				for (int i = 0; i < m.size(); i++){
-					printf("%s%s%d", (i == 0) ? "" : " ", !sign(m[i]) ? "" : "-", gprintVar(var(m[i])));
-				}
-				printf(" 0\n");
-			}
-
-		}else if(!rslt){
-			optimumreached = true;
-		}
-	}
-
-	if(!hasmodels){
-		assert(!optimumreached);
-		fprintf(res==NULL?stdout:res, " UNSAT\n");
-		printf("UNSATISFIABLE\n");
-	}else{
-		assert(optimumreached);
-		fprintf(res==NULL?stdout:res, " SAT\n");
-		printf("SATISFIABLE\n");
-		for (int i = 0; i < nVars(); i++){
-			fprintf(res==NULL?stdout:res, "%s%s%d", (i == 0) ? "" : " ", !sign(m[i]) ? "" : "-", i + 1);
-		}
-		fprintf(res==NULL?stdout:res, " 0\n");
-
-		modelsfound++;
-	}
-
-	return optimumreached;
-}
-////////////END TSOLVER
-
-bool Solver::solve(const vec<Lit>& assumps){
+bool Solver::solve(const vec<Lit>& assumps)
+{
     model.clear();
     conflict.clear();
 
-    if (!ok)
-		return false;
+    if (!ok) return false;
 
     assumps.copyTo(assumptions);
 
@@ -1216,16 +756,8 @@ bool Solver::solve(const vec<Lit>& assumps){
 
     // Search:
     while (status == l_Undef){
-		status = search();
-		if(status==l_True && modes.sem==WELLF && getIDSolver().get()!=NULL){
-			bool wellfounded = getIDSolver()->isWellFoundedModel();
-			if(verbosity>=1){
-				reportf("The model is %s.\n", wellfounded?"well-founded":"stable but not well-founded");
-			}
-			if(!wellfounded){
-				status=l_False;
-			}
-		}
+    	status = search();
+    	status = solver->checkStatus(status);
     }
 
     if (status == l_True){
@@ -1241,7 +773,7 @@ bool Solver::solve(const vec<Lit>& assumps){
             ok = false;
     }
 
-    //backtrackTo(0);
+    /*A*///cancelUntil(0);
     return status == l_True;
 }
 

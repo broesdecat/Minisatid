@@ -20,15 +20,9 @@ namespace Aggrs{
 	typedef AggrSet* pSet;
 }
 
-class IDSolver;
-class AggSolver;
-class Solver;
-typedef shared_ptr<IDSolver> pIDSolver;
-typedef weak_ptr<IDSolver> wpIDSolver;
-typedef shared_ptr<AggSolver> pAggSolver;
-typedef weak_ptr<AggSolver> wpAggSolver;
-typedef shared_ptr<Solver> pSolver;
-typedef weak_ptr<Solver> wpSolver;
+#include "PCSolver.h"
+class PCSolver;
+typedef PCSolver* pPCSolver;
 
 using namespace Aggrs;
 
@@ -43,10 +37,9 @@ using namespace Aggrs;
 
 class AggSolver: public enable_shared_from_this<AggSolver>{
 private:
-	wpSolver	solver;
-	wpIDSolver	idsolver;
+	pPCSolver solver;
 public:
-	AggSolver();
+	AggSolver(pPCSolver s);
 	virtual ~AggSolver();
 
 	/////////////////////SOLVER NECESSARY
@@ -116,11 +109,8 @@ public:
 	 */
 	bool    finishECNF_DataStructures (); //throws UNSAT
 
-	void 		setSolver				(pSolver s)		{ solver = wpSolver(s); }
-	void 		setIDSolver				(pIDSolver s)	{ idsolver = wpIDSolver(s); }
-	pSolver		getSolver				()	const		{ return solver.lock(); }
-	pIDSolver	getIDSolver				()	const		{ return idsolver.lock(); }
-	void		resetIDSolver			()				{ idsolver.reset(); }
+	pPCSolver	getSolver				()	const		{ return solver; }
+	//void		resetIDSolver			()				{ idsolver.reset(); }
 	void 		remove					();
 
 	void 		removeHeadWatch(Var x);

@@ -5,8 +5,9 @@
 #include <vector>
 #include <set>
 #include <iostream>
+#include <tr1/memory>
 
-#include "solverfwd.h"
+#include "SolverTypes.h"
 #include "debug.h"
 
 using namespace std;
@@ -48,7 +49,6 @@ typedef vector<WLV> lwlv;
 class PropagationInfo;
 typedef vector<PropagationInfo> lprop;
 
-enum AggrType {SUM, PROD, MIN, MAX};
 enum Occurrence {HEAD, POS, NEG};
 
 class WLit {  // Weighted literal

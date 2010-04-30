@@ -23,7 +23,7 @@ void AggrSet::backtrack(int index) {
 	}
 }
 
-AggrSet::AggrSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s):
+AggrSet::AggrSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver s):
 		currentbestcertain(0),currentbestpossible(0),emptysetvalue(0), aggsolver(s){
 	for (int i = 0; i < lits.size(); i++) {
 		wlits.push_back(WLV(lits[i], weights[i], l_Undef));
@@ -31,7 +31,7 @@ AggrSet::AggrSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<A
 	sort(wlits.begin(), wlits.end());
 }
 
-AggrMaxSet::AggrMaxSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s):
+AggrMaxSet::AggrMaxSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver s):
 		AggrSet(lits, weights, s){
 	name = "MAX";
 	//FIXME FIXME: moet eigenlijk een voorstelling van -infinity zijn
@@ -40,16 +40,16 @@ AggrMaxSet::AggrMaxSet(const vec<Lit>& lits, const vector<Weight>& weights, weak
 	assert(emptysetvalue<=INT_MIN);
 }
 
-AggrSPSet::AggrSPSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s):
+AggrSPSet::AggrSPSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver s):
 		AggrSet(lits, weights, s){}
 
-AggrSumSet::AggrSumSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s):
+AggrSumSet::AggrSumSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver s):
 		AggrSPSet(lits, weights, s){
 	name = "SUM";
 	emptysetvalue = 0;
 }
 
-AggrProdSet::AggrProdSet(const vec<Lit>& lits, const vector<Weight>& weights, weak_ptr<AggSolver> s):
+AggrProdSet::AggrProdSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver s):
 		AggrSPSet(lits, weights, s){
 	name = "PROD";
 	emptysetvalue = 1;

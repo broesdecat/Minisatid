@@ -6,25 +6,43 @@
 #include <signal.h>
 #include <zlib.h>
 
-#include "solverfwd.h"
-#include "Solver.h"
-#include "IDSolver.h"
-#include "AggSolver.h"
-#include "ModSolver.h"
-
-#include "debug.h"
-
 #if defined(__linux__)
 #include <fpu_control.h>
 #endif
+
+#ifdef _MSC_VER
+#include <ctime>
+
+static inline double cpuTime(void) {
+    return (double)clock() / CLOCKS_PER_SEC;
+}
+
+#else
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <unistd.h>
+
+static inline double cpuTime(void) {
+    struct rusage ru;
+    getrusage(RUSAGE_SELF, &ru);
+    return (double)ru.ru_utime.tv_sec + (double)ru.ru_utime.tv_usec / 1000000;
+}
+#endif
+
+#include "solverfwd.h"
+#include "SolverI.h"
+
+#include "debug.h"
 
 //TODO handle exit(x) with exception throwing instead, giving much cleaner code!!!
 
 ECNF_mode modes;
 
+class Data;
 typedef shared_ptr<Data> pData;
 
 extern pData getData		();
+
 extern FILE* yyin;
 extern int 	yyparse			();
 extern void yydestroy		();
@@ -38,33 +56,34 @@ const char* hasPrefix		(const char* str, const char* prefix);
 void 		parseCommandline(/*const pSolver&, const pIDSolver&, const pAggSolver&,*/ int& argc, char** argv);
 pData 		parse			(/*const pSolver&, const pIDSolver&, const pAggSolver&,*/ const char* file);
 
-void 		printStats		(pSolver solver);
+void 		printStats		(/*pSolver solver*/);
 static void SIGINT_handler	(int signum);
 void 		printUsage		(char** argv);
 
 
 //FIXME: adapt for modal solver
-wpSolver wps;
+//wpSolver wps;
 void		noMoreMem(){
 	//Tries to reduce the memory of the solver by reducing the number of learned clauses
 	//This keeps being called until enough memory is free or no more learned clauses can be/are deleted (causing abort).
-	bool reducedmem = false;
-	pSolver s = wps.lock();
-	if(s.get()!=NULL){
-		int before = s->getNbOfLearnts();
-		if(before > 0){
-			s->reduceDB();
-			int after = s->getNbOfLearnts();
-			if(after<before){
-				reducedmem = true;
-			}
-		}
-	}
-
-	if(!reducedmem){
-		reportf("There is no more memory to allocate, program aborting.\n");
-		exit(3);
-	}
+//	TODO TODO FIXME
+//	bool reducedmem = false;
+//	pSolver s = wps.lock();
+//	if(s.get()!=NULL){
+//		int before = s->getNbOfLearnts();
+//		if(before > 0){
+//			s->reduceDB();
+//			int after = s->getNbOfLearnts();
+//			if(after<before){
+//				reducedmem = true;
+//			}
+//		}
+//	}
+//
+//	if(!reducedmem){
+//		reportf("There is no more memory to allocate, program aborting.\n");
+//		exit(3);
+//	}
 }
 
 int main(int argc, char** argv) {
@@ -142,12 +161,6 @@ int main(int argc, char** argv) {
 		//TODO printStats(S);
 	}catch(bad_alloc e){ //FIXME: handle all these elegantly
 		reportf("Memory overflow, cannot continue solving.\n"); exit(3);
-	}catch(NoDefAllowedExc e3){
-		reportf("%s\n", e3.what());
-		exit(3);
-	}catch(NoAggrAllowedExc e4){
-		reportf("%s\n", e4.what());
-		exit(3);
 	}catch(int ex){
 		reportf("Unexpected exception thrown as int with code %d\n", ex);
 		exit(3);
@@ -287,7 +300,7 @@ pData parse(/*const pSolver& S, const pIDSolver& TS, const pAggSolver& AggS,*/ c
    	yyinit(/*S, TS, AggS*/);
 	yyin = fopen(file,"r");
 	if(!yyin) {
-		cerr << "`" << file << "' is not a valid filename or not readable." << endl;
+		reportf("`%s' is not a valid filename or not readable.\n", file);
 		exit(1);
 	}
 	yyparse();
@@ -301,7 +314,7 @@ pData parse(/*const pSolver& S, const pIDSolver& TS, const pAggSolver& AggS,*/ c
 	yydestroy();
 	fclose(yyin);
 	if(parseError){
-		reportf("At least one parsing error, program will exit.\n");
+		reportf("At least one parsing error, program will ex;it.\n");
 		exit(3);
 	}
 
@@ -335,6 +348,6 @@ void printUsage(char** argv) {
 	reportf("\n");
 }
 
-void printStats(pSolver solver){
+void printStats(/*pSolver solver*/){
 	//TODO repair later + add extra stats
 }

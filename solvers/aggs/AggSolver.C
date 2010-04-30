@@ -1,22 +1,14 @@
 #include "AggSolver.h"
-#include "Solver.h"
-#include "IDSolver.h"
 
 #include "Agg.h"
 #include "AggSets.h"
 
 #include "Utils.h"
 
-typedef shared_ptr<IDSolver> pIDSolver;
-typedef weak_ptr<IDSolver> wpIDSolver;
-typedef shared_ptr<AggSolver> pAggSolver;
-typedef weak_ptr<AggSolver> wpAggSolver;
-typedef shared_ptr<Solver> pSolver;
-typedef weak_ptr<Solver> wpSolver;
-
 #include <algorithm>
 
-AggSolver::AggSolver() :
+AggSolver::AggSolver(pPCSolver s) :
+	solver(s),
 	init(true) {}
 
 AggSolver::~AggSolver() {
@@ -30,13 +22,12 @@ AggSolver::~AggSolver() {
 
 void AggSolver::removeHeadWatch(Var x){
 	head_watches[x] = NULL;
-	getIDSolver()->removeAggrHead(x);
+	getSolver()->removeAggrHead(x);
 }
 
 void AggSolver::remove(){
+	//FIXME is this still necessary?
 	getSolver()->resetAggSolver();
-	getSolver().reset();
-	getIDSolver().reset();
 }
 
 void AggSolver::notifyVarAdded(int nvars){
@@ -190,12 +181,12 @@ bool AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 		reportf("\n");
 	}
 
-	weak_ptr<AggSolver> wpAggSolver(shared_from_this());
+	//pAggSolver aggsolver(shared_from_this());
 	while(aggrminsets.size()<=setindex){
-		aggrmaxsets.push_back(new AggrMaxSet(lits, weights, wpAggSolver));
-		aggrsumsets.push_back(new AggrSumSet(lits, weights, wpAggSolver));
-		aggrprodsets.push_back(new AggrProdSet(lits, weights, wpAggSolver));
-		aggrminsets.push_back(new AggrMaxSet(lits, weights2, wpAggSolver));
+		aggrmaxsets.push_back(new AggrMaxSet(lits, weights, this));
+		aggrsumsets.push_back(new AggrSumSet(lits, weights, this));
+		aggrprodsets.push_back(new AggrProdSet(lits, weights, this));
+		aggrminsets.push_back(new AggrMaxSet(lits, weights2, this));
 	}
 
 	return true;
@@ -273,7 +264,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 
 	if(defined){ //add as definition to use definition semantics
 		//notify the id solver that a new aggregate definition has been added
-		getIDSolver()->notifyAggrHead(var(head));
+		getSolver()->notifyAggrHead(var(head));
 	}
 
 	aggregates.push_back(ae);
@@ -336,7 +327,7 @@ bool AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& h
 				clause.push((*i).getLit());
 			}
 		}
-		notunsat = getIDSolver()->addRule(lower, clause);
+		notunsat = getSolver()->addRule(lower, clause);
 	}else{
 		clause.push(lower?head:~head);
 		for(lwlv::const_reverse_iterator i=set.getWLRBegin(); i<set.getWLREnd() && (*i).getWeight()>=bound; i++){

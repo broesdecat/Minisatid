@@ -29,7 +29,8 @@ inline bool	IDSolver::isDefined(Var v)		 		const	{ return defType[v]!=NONDEFTYPE
 inline bool IDSolver::isConjunctive(Var v)			const	{ return getDefType(v)==CONJ; }
 inline bool IDSolver::isDisjunctive(Var v)			const	{ return getDefType(v)==DISJ; }
 
-IDSolver::IDSolver():
+IDSolver::IDSolver(pPCSolver s):
+	solver(s),
 	init(true),
 	prev_conflicts(-1),
 //	//first time test (prev_conflicts==conflicts) should fail
@@ -47,9 +48,8 @@ IDSolver::IDSolver():
 }
 
 void IDSolver::remove(){
+	//FIXME is dit nog nodig?
 	getSolver()->resetIDSolver();
-	solver.reset();
-	aggsolver.reset();
 }
 
 IDSolver::~IDSolver() {
@@ -89,15 +89,13 @@ bool IDSolver::addRule(bool conj, vec<Lit>& ps) {
 		reportf("\n");
 	}
 
-	pSolver solver(getSolver());
-
 	bool notunsat = true;
 
 	if (ps.size() == 1) {
 		Lit head = conj?ps[0]:~ps[0]; //empty set conj = true, empty set disj = false
 		vec<Lit> v;
 		v.push(head);
-		notunsat = solver->addClause(v);
+		notunsat = getSolver()->addClause(v);
 	} else {
 		//rules with only one body atom have to be treated as conjunctive
 		conj = conj || ps.size()==2;
@@ -121,13 +119,13 @@ bool IDSolver::addRule(bool conj, vec<Lit>& ps) {
 
 		vec<Lit> temp; //because addclause empties temp
 		ps.copyTo(temp);
-		notunsat = solver->addClause(temp);
+		notunsat = getSolver()->addClause(temp);
 
 		for (int i = 1; notunsat && i < ps.size(); i++) {
 			vec<Lit> binclause(2);
 			binclause[0] = ~ps[0];
 			binclause[1] = ~ps[i];
-			notunsat = solver->addClause(binclause);
+			notunsat = getSolver()->addClause(binclause);
 		}
 	}
 	return notunsat;
@@ -141,7 +139,6 @@ bool IDSolver::addRule(bool conj, vec<Lit>& ps) {
 bool IDSolver::finishECNF_DataStructures() {
 	init = false;
 	int nvars = nVars();
-	pAggSolver aggsolver(getAggSolver());
 
 	defType.growTo(nvars, NONDEFTYPE);
 	defOcc.growTo(nvars, NONDEFOCC);
@@ -234,8 +231,8 @@ bool IDSolver::finishECNF_DataStructures() {
 			break;
 		}
 		case AGGR: {
-			if(aggsolver.get()!=NULL){
-				for (lwlv::const_iterator j = aggsolver->getAggLiteralsBegin(v); !isdefd && j < aggsolver->getAggLiteralsEnd(v); ++j){
+			if(getAggSolver()!=NULL){
+				for (lwlv::const_iterator j = getAggSolver()->getAggLiteralsBegin(v); !isdefd && j < getAggSolver()->getAggLiteralsEnd(v); ++j){
 					if (inSameSCC(v, var((*j).getLit()))){ // NOTE: disregard sign here: set literals can occur both pos and neg in justifications. This could possibly be made more precise for MIN and MAX...
 						isdefd = true;
 					}
@@ -256,8 +253,8 @@ bool IDSolver::finishECNF_DataStructures() {
 				//IMPORTANT: after this point, disj/conj_occurs might also contain NONDEF links
 				//assumes any literal only occurs once!
 				if(defType[v]==AGGR){
-					if(aggsolver.get()!=NULL){
-						for (lwlv::const_iterator j = aggsolver->getAggLiteralsBegin(v); !isdefd && j < aggsolver->getAggLiteralsEnd(v); ++j){
+					if(getAggSolver()!=NULL){
+						for (lwlv::const_iterator j = getAggSolver()->getAggLiteralsBegin(v); !isdefd && j < getAggSolver()->getAggLiteralsEnd(v); ++j){
 							l = (*j).getLit();
 							if(disj_occurs[toInt(l)].size()>0 && disj_occurs[toInt(l)].back()==v){
 								disj_occurs[toInt(l)].pop_back();
@@ -552,7 +549,7 @@ bool IDSolver::simplify(){
 			if(isTrue(v)){
 				return false;
 			}else if(isUnknown(v)){
-				getSolver()->setTrue(createNegativeLiteral(v), NULL);
+				getSolver()->setTrue(createNegativeLiteral(v));
 			}
 
 			if(defOcc[v]==POSLOOP){
@@ -600,9 +597,9 @@ bool IDSolver::simplify(){
 		}
 	}
 
-	if(!aggpresent && getAggSolver().get()!=NULL){
-		getAggSolver()->resetIDSolver();
-		aggsolver.reset();
+	if(!aggpresent && getAggSolver()!=NULL){
+		//getAggSolver()->resetIDSolver();
+		aggsolver = NULL;
 	}
 
 	for(int i=0; i<usedseen.size(); i++){
@@ -619,10 +616,6 @@ bool IDSolver::simplify(){
 
 	if(!posloops && !negloops){
 		getSolver()->resetIDSolver();
-		if(getAggSolver().get()!=NULL){
-			getAggSolver()->resetIDSolver();
-			aggsolver.reset();
-		}
 		if (modes.verbosity >= 1){
 			reportf("| All recursive atoms falsified in initializations.                           |\n");
 		}
@@ -694,7 +687,7 @@ void IDSolver::propagateJustificationConj(Lit l, vec<Lit>& heads){
 }
 
 void IDSolver::propagateJustificationAggr(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& heads){
-	if (getAggSolver().get()==NULL) {
+	if (getAggSolver()==NULL) {
 		return;
 	}
 	getAggSolver()->propagateJustifications(l, jstf, heads, seen);
@@ -786,7 +779,7 @@ Clause* IDSolver::indirectPropagate() {
 		apply_changes();
 	}
 
-	assert(getAggSolver().get()!=NULL || isCycleFree());
+	assert(getAggSolver()!=NULL || isCycleFree());
 	return confl;
 }
 
@@ -798,7 +791,7 @@ Clause* IDSolver::indirectPropagate() {
 void IDSolver::findCycleSources() {
 	clearCycleSources();
 
-	if (prev_conflicts == getSolver()->conflicts && modes.defn_strategy == always && getSolver()->getNbOfRecentAssignments()>0) {
+	if (prev_conflicts == getSolver()->getConflicts() && modes.defn_strategy == always && getSolver()->getNbOfRecentAssignments()>0) {
 		for(int i=0; i<getSolver()->getNbOfRecentAssignments(); i++){
 			Lit l = getSolver()->getRecentAssignments(i); //l has become true, so find occurences of ~l
 
@@ -807,7 +800,7 @@ void IDSolver::findCycleSources() {
 				checkJustification(*j, ~l);
 			}
 
-			if(getAggSolver().get()!=NULL){
+			if(getAggSolver()!=NULL){
 				vec<Var> heads;
 				getAggSolver()->getHeadsOfAggrInWhichOccurs(var(~l), heads);
 
@@ -818,7 +811,7 @@ void IDSolver::findCycleSources() {
 		}
 	} else {
 		// NOTE: with a clever trail system, we could even after conflicts avoid having to look at all rules.
-		prev_conflicts = getSolver()->conflicts;
+		prev_conflicts = getSolver()->getConflicts();
 		for (int i = 0; i < defdVars.size(); i++) {
 			if(defType[defdVars[i]]==DISJ || defType[defdVars[i]]==AGGR){
 				checkJustification(defdVars[i]);
@@ -1231,7 +1224,7 @@ Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	// No conflict: then enqueue all facts and their loop formulas.
 	if (loopf.size() >= 5) {
 		//introduce a new var to represent all external disjuncts: v <=> \bigvee external disj
-        Var v = getSolver()->newVar();
+        Var v = getSolver()->addVar(nVars()); //TODO not cleanest solution
         if (modes.verbosity >= 2) { reportf("Adding new variable for loop formulas: %d.\n", gprintVar(v)); }
 
         // ~v \vee \bigvee\extdisj{L}
@@ -1299,7 +1292,7 @@ void IDSolver::markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>
 	for(vector<Var>::const_iterator i=w.begin(); i<w.end(); i++){
 		markNonJustifiedAddVar(*i, cs, q, tmpseen);
 	}
-	if (getAggSolver().get()!=NULL) {
+	if (getAggSolver()!=NULL) {
 		vec<Var> heads;
 		getAggSolver()->getHeadsOfAggrInWhichOccurs(x, heads);
 		for(int i=0; i<heads.size(); i++){
@@ -1415,7 +1408,7 @@ bool IDSolver::isCycleFree() const{
 		assert(justification[i].size()>0 || defType[i]==CONJ || defType[i]==NONDEFTYPE);
 	}
 #endif
-    assert(getAggSolver().get()==NULL);
+    assert(getAggSolver()==NULL);
 
     if(modes.verbosity>=2){
         reportf("Showing cf- and sp-justification for disjunctive atoms. <<<<<<<<<<\n");
@@ -1456,7 +1449,7 @@ bool IDSolver::isCycleFree() const{
         const vector<Var>& ds = disj_occurs[toInt(l)];
         const vector<Var>& cs = conj_occurs[toInt(l)];
         vec<Var> as;
-        if(getAggSolver().get()!=NULL){
+        if(getAggSolver()!=NULL){
         	getAggSolver()->getHeadsOfAggrInWhichOccurs(var(l), as);
         }
 
@@ -1589,7 +1582,7 @@ bool IDSolver::isWellFoundedModel(){
 		return true;
 	}
 
-	if(getAggSolver().get()!=NULL){
+	if(getAggSolver()!=NULL){
 		reportf("For recursive aggregates, only stable semantics are currently supported!\n");
 		return true;
 	}
