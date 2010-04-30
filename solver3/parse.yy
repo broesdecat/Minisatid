@@ -119,7 +119,7 @@ inline void addLit(int nb){
 }
 
 void initSolver(){
-	solver = shared_ptr<PCSolver>(new PCSolver());
+	solver = shared_ptr<PCSolver>(new PCSolver(modes));
 	mod = false;
 }
 

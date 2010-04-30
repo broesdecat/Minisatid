@@ -920,7 +920,7 @@ bool IDSolver::findJustificationDisj(Var v, vec<Lit>& jstf) {
 bool IDSolver::indirectPropagateNow() {
 	bool propagate = true;
 	// if not always and state is three-valued.
-	if (modes.defn_strategy != always && getSolver()->existsUnknownVar()){
+	if (modes.defn_strategy != always && getSolver()->totalModelFound()){
 		if (modes.defn_strategy == lazy){
 			propagate = false;
 		}
@@ -1224,7 +1224,7 @@ Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	// No conflict: then enqueue all facts and their loop formulas.
 	if (loopf.size() >= 5) {
 		//introduce a new var to represent all external disjuncts: v <=> \bigvee external disj
-        Var v = getSolver()->addVar(nVars()); //TODO not cleanest solution
+        Var v = getSolver()->newVar();
         if (modes.verbosity >= 2) { reportf("Adding new variable for loop formulas: %d.\n", gprintVar(v)); }
 
         // ~v \vee \bigvee\extdisj{L}

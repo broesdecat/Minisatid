@@ -91,9 +91,7 @@ Var Solver::newVar(bool sign, bool dvar)
     return v;
 }
 
-/*************
- * ADDITIONS *
- *************/
+/*AB*/
 
 void Solver::finishParsing(){
 	qhead = 0;
@@ -109,9 +107,21 @@ void Solver::addLearnedClause(Clause* c){
 	}
 }
 
-/*****************
- * END ADDITIONS *
- *****************/
+bool Solver::totalModelFound(){
+	Var v = var_Undef;
+	while (v == var_Undef || toLbool(assigns[v]) != l_Undef || !decision_var[v]) {
+		if (v != var_Undef)
+			order_heap.removeMin();
+		if (order_heap.empty()) {
+			v = var_Undef;
+			break;
+		} else
+			v = order_heap[0];
+	}
+	return v==var_Undef;
+}
+
+/*AE*/
 
 
 bool Solver::addClause(vec<Lit>& ps)
@@ -585,7 +595,7 @@ bool Solver::simplify()
     simpDB_props   = clauses_literals + learnts_literals;   // (shouldn't depend on stats really, but it will do for now)
 
     /*AB*/
-	if(conflicts==0 && !solver->simplify()){
+	if(conflicts==0 && !solver->simplifyRest()){
 		ok = false;
 		return false;
 	}

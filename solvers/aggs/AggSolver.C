@@ -31,6 +31,7 @@ void AggSolver::remove(){
 }
 
 void AggSolver::notifyVarAdded(int nvars){
+	assert(head_watches.size()<nvars);
 	head_watches.resize(nvars, NULL);
 	assert(head_watches.size()==nvars);
 	aggr_watches.resize(nvars);
