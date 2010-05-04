@@ -42,8 +42,12 @@ bool ModSolverData::addAggrExpr(modindex modid, Lit head, int setid, Weight boun
 }
 
 void ModSolverData::addVar(Var v){
+	//FIXME this should not be to every solver
+	//FIXME the order is currently wrong
 	for(vector<pModSolver>::const_iterator i=solvers.begin(); i<solvers.end(); i++){
-		(*i)->addVar(v);
+		if((*i)!=NULL){
+			(*i)->addVar(v);
+		}
 	}
 }
 
@@ -67,7 +71,7 @@ bool ModSolverData::addModSolver(modindex modid, Lit head, const vector<Var>& at
 	}
 	assert(solvers[modid]==NULL);
 	solvers[modid] = new ModSolver(modid, head, atoms, shared_from_this());
-	return false;
+	return true;
 }
 
 bool ModSolverData::addChildren(modindex modid, const vector<int>& children){
@@ -83,7 +87,7 @@ bool ModSolverData::addChildren(modindex modid, const vector<int>& children){
 	}
 	pModSolver m = getModSolver(modid);
 	m->setChildren(children);
-	return false;
+	return true;
 }
 
 bool ModSolverData::simplify(){

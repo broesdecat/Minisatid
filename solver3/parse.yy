@@ -27,7 +27,8 @@ vector<Var> nb;
 vec<Lit> lits;
 bool disj;
 int setid, modid;
-bool unsatfound;
+bool unsatfound = false;
+bool parseError = false;
 
 /**
  * Initializes the solvers to add the datastructures
@@ -69,7 +70,7 @@ int charPos = 1;
 // If an unforeseen parse error occurs, it calls this function (e.g. with msg="syntax error")
 void yyerror(const char* msg) {
 	if(unsatfound){
-		return; //this is used to stop the parser when unsat has been found
+		cerr << msg;
 	}else{
 		cerr << "Parse error: ";
 		cerr << "Line " << lineNo << ", column " << charPos << ": "; 
@@ -78,7 +79,9 @@ void yyerror(const char* msg) {
 			cerr << " on \"" << yytext << "\"";		
 		}
 		cerr << endl;
+		parseError = true;
 	}	
+	throw 333; //Dit is lelijk, maar vermijd veel aanpassingen (YYABORT en YYRETURN)
 }
 
 
@@ -89,7 +92,7 @@ void yyerror(const char* msg) {
 void CR(bool result){
 	if(!result){
 		unsatfound = true;
-		yyerror("Unsat was found during parsing");
+		yyerror("Unsat was found during parsing.\n");
 	}		
 }
 
@@ -198,14 +201,17 @@ mtheory	:	/* empty */
 			
 mnmz	:	MNMZDEFN body ZERO				{ CR(solver->addMinimize(lits, false)); lits.clear();}
 subsetmnmz: SUBSETMINDEFN body ZERO 		{ CR(solver->addMinimize(lits, true)); lits.clear();}
-summnmz :	SUMMINDEFN NUMBER NUMBER ZERO 	{ CR(solver->addSumMinimize(readVar($2), $3)); }
+summnmz :	SUMMINDEFN NUMBER NUMBER ZERO 	{ CR(solver->addSumMinimize(readVar($2), $3));}
 
 body	:  /* empty */
 		|  body NUMBER { addLit($2); }
 		;
 		
 varbody	:  /* empty */
-		|  varbody NUMBER { nb.push_back($2-1); }
+		|  varbody NUMBER	{ 
+								if($2<0){yyerror("Rigid atoms cannot have a sign.\n");}
+								nb.push_back(readVar($2)); 
+							}
 		;
          
 wbody	:	/* empty */

@@ -48,7 +48,7 @@ extern int 	yyparse			();
 extern void yydestroy		();
 extern void yyinit			(/*pSolver s, pIDSolver ids, pAggSolver aggs*/);
 extern bool unsatfound;
-bool parseError = false;
+extern bool parseError;
 
 //void 		initSolvers		(const pSolver& S, const pIDSolver& TS, const pAggSolver& AggS);
 
@@ -303,19 +303,21 @@ pData parse(/*const pSolver& S, const pIDSolver& TS, const pAggSolver& AggS,*/ c
 		reportf("`%s' is not a valid filename or not readable.\n", file);
 		exit(1);
 	}
-	yyparse();
-
-	if(unsatfound){
-		return shared_ptr<Data>();
+	try{
+		yyparse();
+	}catch(int i ){
+		if(i==333 && parseError){
+			exit(1);
+		}
 	}
 
 	pData d = getData();
 
 	yydestroy();
 	fclose(yyin);
-	if(parseError){
-		reportf("At least one parsing error, program will ex;it.\n");
-		exit(3);
+
+	if(unsatfound){
+		return shared_ptr<Data>();
 	}
 
 	if(!d->finishParsing()){
