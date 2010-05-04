@@ -23,24 +23,24 @@ private:
 	vmsolvers solvers;
 
 public:
-	ModSolverData(){};	//HAVE to call initialize after constructor
-	~ModSolverData(){};
+	ModSolverData();	//HAVE to call initialize after constructor
+	~ModSolverData();
 
 	virtual void setNbModels	(int nb)	{ nb_models=nb; }
 	virtual void setRes			(FILE* f)	{ res = f; }
 
-	virtual bool 	simplify		(){return false;};
-	virtual bool 	solve			(){return false;};
-	virtual void 	finishParsing	(){};
-			void 	initialize		(){};
+	virtual bool 	simplify		();
+	virtual bool 	solve			();
+	virtual bool 	finishParsing	();
+			void 	initialize		();
 
-			void 	addVar			(Var v){};
-			bool 	addClause		(modindex modid, vec<Lit>& lits){return false;};
-			bool 	addRule			(modindex modid, bool conj, vec<Lit>& lits){return false;};
-			bool 	addSet			(modindex modid, int set_id, vec<Lit>& lits, vector<Weight>& w){return false;};
-			bool 	addAggrExpr		(modindex modid, Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined){return false;};
-			bool 	addChildren		(modindex modid, const vector<int>& children){return false;};
-			bool 	addModSolver	(modindex modid, Lit head, const vector<Var>& atoms){return false;};
+			void 	addVar			(Var v);
+			bool 	addClause		(modindex modid, vec<Lit>& lits);
+			bool 	addRule			(modindex modid, bool conj, vec<Lit>& lits);
+			bool 	addSet			(modindex modid, int set_id, vec<Lit>& lits, vector<Weight>& w);
+			bool 	addAggrExpr		(modindex modid, Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined);
+			bool 	addChildren		(modindex modid, const vector<int>& children);
+			bool 	addModSolver	(modindex modid, Lit head, const vector<Var>& atoms);
 
 			bool	existsModSolver(modindex modid){ return modid<solvers.size() && solvers[modid]!=NULL; }
 			pModSolver getModSolver(modindex modid){ assert(existsModSolver(modid));return solvers[modid];}

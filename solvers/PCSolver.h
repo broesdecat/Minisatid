@@ -59,7 +59,7 @@ public:
 	bool 	addRule			(bool conj, vec<Lit>& lits);
 	bool 	addSet			(int set_id, vec<Lit>& lits, vector<Weight>& w);
 	bool 	addAggrExpr		(Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined);
-	void 	finishParsing	(); //throws UNSAT
+	bool 	finishParsing	(); //throws UNSAT
 
 	bool 	simplify		();
 	bool 	simplifyRest		();
@@ -67,6 +67,7 @@ public:
 	bool    invalidateModel	(vec<Lit>& invalidation);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
 	void 	invalidate		(vec<Lit>& invalidation);
 	bool 	solve			();
+	bool	solve(const vec<Lit>& assmpt);
 	void 	printModel		() const;
 
 	void	removeAggrHead	(Var x);

@@ -151,7 +151,7 @@ bool PCSolver::addAggrExpr(Lit head, int setid, Weight bound, bool lower, AggrTy
 	return getAggSolver()->addAggrExpr(var(head), setid, bound, lower, type, defined);
 }
 
-void PCSolver::finishParsing(){ //throws UNSAT
+bool PCSolver::finishParsing(){ //throws UNSAT
     //important to call definition solver last
 	if(aggsolverpresent){
 		modes.aggr = getAggSolver()->finishECNF_DataStructures();
@@ -162,9 +162,7 @@ void PCSolver::finishParsing(){ //throws UNSAT
 			confl = getAggSolver()->propagate(trail[i]);
 		}
 		if(confl!=NULL){
-			reportf("UNSAT in finishparsing, solve this still (unsat is correct).\n");
-			exit(3);
-			//FIXME handle correctly
+			return false;
 		}
 	}
 	if(idsolverpresent){
@@ -187,6 +185,8 @@ void PCSolver::finishParsing(){ //throws UNSAT
 	if(!modes.mnmz){
 		//TODO later
 	}
+
+	return true;
 }
 
 /*********************
@@ -323,6 +323,10 @@ bool PCSolver::solve() {
 	return solved;
 }
 
+bool PCSolver::solve(const vec<Lit>& assmpt){
+	return getSolver()->solve(assmpt);
+}
+
 
 /**
  * Checks satisfiability of the theory.
@@ -338,7 +342,7 @@ bool PCSolver::solve() {
  * na de assumptions, afhankelijk van of ze voor alle modellen moeten gelden of alleen voor het huidige).
  */
 bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m){
-	bool rslt = getSolver()->solve(assmpt);
+	bool rslt = solve(assmpt);
 
 	if(rslt){
 		modelsfound++;

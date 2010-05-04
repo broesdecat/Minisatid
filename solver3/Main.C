@@ -318,7 +318,9 @@ pData parse(/*const pSolver& S, const pIDSolver& TS, const pAggSolver& AggS,*/ c
 		exit(3);
 	}
 
-	d->finishParsing();
+	if(!d->finishParsing()){
+		return shared_ptr<Data>();
+	}
 
 	return d;
 }
