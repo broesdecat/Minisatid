@@ -14,22 +14,25 @@ typedef vector<Lit> vlit;
 #include "Solver.h"
 #include "IDSolver.h"
 #include "AggSolver.h"
+#include "ModSolver.h"
 
 class Solver;
 class IDSolver;
 class AggSolver;
+class ModSolver;
 
 typedef Solver* pSolver;
 typedef IDSolver* pIDSolver;
 typedef AggSolver* pAggSolver;
-
+typedef ModSolver* pModSolver;
 
 class PCSolver: public Data{
 private:
 	pSolver solver;
 	pIDSolver idsolver;
 	pAggSolver aggsolver;
-	bool aggsolverpresent, idsolverpresent;
+	pModSolver modsolver;
+	bool aggsolverpresent, idsolverpresent, modsolverpresent;
 
 	FILE* res;
 	int nb_models, modelsfound;
@@ -45,10 +48,13 @@ private:
 	const pSolver&		getSolver		() const;
 	const pIDSolver& 	getIDSolver		() const;
 	const pAggSolver& 	getAggSolver	() const;
+	const pModSolver& 	getModSolver	() const;
 
 public:
 	PCSolver(ECNF_mode modes);
 	~PCSolver();
+
+	void 	setModSolver(pModSolver m);
 
 	void 	setNbModels		(int nb);
 	void 	setRes			(FILE* f);

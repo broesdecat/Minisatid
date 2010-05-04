@@ -9,7 +9,7 @@ PCSolver::PCSolver(ECNF_mode modes):Data(),
 			res(NULL), nb_models(1),
 			modelsfound(0), modes(modes),
 			optim(NONE),head(-1),
-			aggsolverpresent(false), idsolverpresent(false){
+			aggsolverpresent(false), idsolverpresent(false), modsolverpresent(false){
 	solver = new Solver(this);
 	if(modes.def){
 		idsolver = new IDSolver(this);
@@ -54,6 +54,15 @@ inline const pIDSolver& PCSolver::getIDSolver() const {
 
 inline const pAggSolver& PCSolver::getAggSolver() const {
 	return aggsolver;
+}
+
+inline const pModSolver& PCSolver::getModSolver() const {
+	return modsolver;
+}
+
+void PCSolver::setModSolver(pModSolver m){
+	modsolver = m;
+	modsolverpresent = true;
 }
 
 lbool PCSolver::value(Var x) const{
@@ -243,6 +252,9 @@ void PCSolver::backtrackRest(Lit l){
 	if(idsolverpresent){
 		getIDSolver()->backtrack(l);
 	}
+	if(modsolverpresent){
+		getModSolver()->backtrack(l);
+	}
 }
 
 Clause* PCSolver::propagate(Lit l){
@@ -252,6 +264,9 @@ Clause* PCSolver::propagate(Lit l){
 	}
 	if(idsolverpresent && confl == NULL){
 		confl = getIDSolver()->propagate(l);
+	}
+	if(modsolverpresent && confl == NULL){
+		confl = getModSolver()->propagateDown(l);
 	}
 	return confl;
 }
@@ -272,11 +287,14 @@ bool PCSolver::simplify(){
 }
 
 bool PCSolver::simplifyRest(){
+	bool result = true;
 	if(idsolverpresent){
-		return getIDSolver()->simplify();
-	}else{
-		return true;
+		result = getIDSolver()->simplify();
 	}
+	if(modsolverpresent && result){
+		result = getModSolver()->simplify();
+	}
+	return result;
 }
 
 
@@ -616,5 +634,4 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 
 	return optimumreached;
 }
-////////////END TSOLVER
 

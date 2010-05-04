@@ -11,7 +11,7 @@ ModSolver::ModSolver(modindex id, Lit head, const vector<Var>& a, shared_ptr<Mod
 	}
 
 	solver = new PCSolver(modes);
-	//FIXME solver->setModSolver(this);
+	solver->setModSolver(this);
 }
 
 void copyToVec(const vec<Lit>& v, vector<Lit>& v2){

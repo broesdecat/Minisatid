@@ -44,9 +44,9 @@ extern bool parseError;
 
 "E"			{ADJ; return QUANT;} //existential quantifier
 
-"Mnmz"	{ADJ; return SUBSETMINDEFN;}
-"Mnmt"     		{ADJ; return MNMZDEFN;}
-"SumMnmz"		{ADJ; return SUMMINDEFN;}
+"Mnmz"		{ADJ; return SUBSETMINDEFN;}
+"Mnmt"     	{ADJ; return MNMZDEFN;}
+"SumMnmz"	{ADJ; return SUMMINDEFN;}
 
 " "			{ADJ; /* disregard whitespaces */}
 "\t"		{ADJ; /*                       */}

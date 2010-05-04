@@ -9,6 +9,7 @@ bool ModSolverData::addClause(modindex modid, vec<Lit>& lits){
 	pModSolver m = getModSolver(modid);
 	return m->addClause(lits);
 }
+
 bool ModSolverData::addRule(modindex modid, bool conj, vec<Lit>& lits){
 	if(!existsModSolver(modid)){
 		reportf("No modal operator with id %d was defined! ", modid+1);
@@ -17,6 +18,7 @@ bool ModSolverData::addRule(modindex modid, bool conj, vec<Lit>& lits){
 	pModSolver m = getModSolver(modid);
 	return m->addRule(conj, lits);
 }
+
 bool ModSolverData::addSet(modindex modid, int setid, vec<Lit>& lits, vector<Weight>& w){
 	if(!existsModSolver(modid)){
 		reportf("No modal operator with id %d was defined! ", modid+1);
