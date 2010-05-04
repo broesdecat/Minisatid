@@ -105,6 +105,7 @@ bool AggSolver::finishECNF_DataStructures() {
 			}
 		}
 	}
+
 	if(modes.verbosity>=3){
 		reportf("Initializing finished.\n");
 	}

@@ -98,8 +98,7 @@ public:
 	/**
 	 * Allows to loop over all assignments made in the current decision level.
 	 */
-	Lit 	getRecentAssignments(int i) const;
-	int 	getNbOfRecentAssignments() 	const;
+	vector<Lit> 	getRecentAssignments() const;
 
 	bool 	totalModelFound();				//true if the current assignment is completely two-valued
 

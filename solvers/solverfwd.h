@@ -9,6 +9,8 @@
 #define SOLVERFWD_H_
 
 #include <tr1/memory>
+#include <stdlib.h>
+
 using namespace std;
 using namespace tr1;
 

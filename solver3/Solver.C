@@ -93,8 +93,48 @@ Var Solver::newVar(bool sign, bool dvar)
 
 /*AB*/
 
-void Solver::finishParsing(){
-	qhead = 0;
+/**
+ * This is (currently) necessary, because the intialization schema is the following:
+ *
+ * add elements: /
+ * add unit clause: PROPAGATION
+ * add aggregate: /
+ *
+ * finishDatastructures:
+ * 		initialize all aggregates and propagate the already derived atoms in them
+ *
+ */
+//void Solver::finishParsing(){
+//	qhead = 0;
+//}
+
+vector<Lit> Solver::getTrail()const{
+	vector<Lit> v;
+	for(int i=0; i<trail.size(); i++){
+		v.push_back(trail[i]);
+	}
+	return v;
+}
+
+vector<Lit> Solver::getAllChoices()const {
+	vector<Lit> v;
+	for(int i=0; i<trail_lim.size(); i++){
+		v.push_back(trail[trail_lim[i]]);
+	}
+	return v;
+}
+
+vector<Lit> Solver::getRecentAssignments() const{
+	vector<Lit> v;
+	if(trail_lim.size()==0){
+		return v;
+	}
+	int index = trail_lim.last();
+	while(index<trail.size()){
+		v.push_back(trail[index]);
+		index++;
+	}
+	return v;
 }
 
 void Solver::addLearnedClause(Clause* c){
@@ -575,10 +615,8 @@ bool Solver::simplify()
 {
     assert(decisionLevel() == 0);
 
-    /*AB*/
-    //if (!ok || propagate() != NULL)
-    //   return ok = false;
-    /*AE*/
+    if (!ok || propagate() != NULL)
+       return ok = false;
 
     if (nAssigns() == simpDB_assigns || (simpDB_props > 0))
         return true;
@@ -601,11 +639,10 @@ bool Solver::simplify()
 	}
 
 	// There might be stuff to propagate now.
-	if (propagate()!=NULL) { // NOTE: this includes the first round of indirectPropagate()!! Make sure first time ALL cycle sources are searched.
+	if (propagate()!=NULL) {
 		ok = false;
 		return false;
 	}
-	// Important: DO NOT PROPAGATE BEFORE SIMPLIFY!!! (TODO CHANGE CODE TO ALLOW THIS!)
 	/*AE*/
 
     return true;

@@ -71,22 +71,20 @@ private:
 /*A*/	pPCSolver solver;
 
 public:
-/*A*/	void		addLearnedClause(Clause* c);	// don't check anything, just add it to the clauses and bump activity
-/*A*/	void		cancelUntil		(int level);	// Backtrack until a certain level.
-/*A*/	void		uncheckedEnqueue(Lit p, Clause* from = NULL);				// Enqueue a literal. Assumes value of literal is undefined
-/*A*/	int 		getLevel(int var) 			const;
-/*A*/	Lit 		getRecentAssignments(int i) const;
-/*A*/	int 		getNbOfRecentAssignments() 	const;
-/*A*/	bool 		totalModelFound();				//true if the current assignment is completely two-valued
-/*A*/	void 		finishParsing();
-/*A*/	vec<Lit>	trail;            // Assignment stack; stores all assigments made in the order they were made.
-/*A*/	vec<int>	trail_lim;        // Separator indices for different decision levels in 'trail'.
-/*A*/	void    	varDecayActivity ();                      // Decay all variables with the specified factor. Implemented by increasing the 'bump' value instead.
-/*A*/	void     	varBumpActivity  (Var v);                 // Increase a variable with the current 'bump' value.
-/*A*/	void     	claDecayActivity ();                      // Decay all clauses with the specified factor. Implemented by increasing the 'bump' value instead.
 /*AB*/
-		template<class C>
-		void     printClause      (const C& c);
+	void		addLearnedClause(Clause* c);	// don't check anything, just add it to the clauses and bump activity
+	void		cancelUntil		(int level);	// Backtrack until a certain level.
+	void		uncheckedEnqueue(Lit p, Clause* from = NULL);				// Enqueue a literal. Assumes value of literal is undefined
+	int 		getLevel(int var) 			const;
+	bool 		totalModelFound();				//true if the current assignment is completely two-valued
+	vector<Lit> getTrail()const;
+	vector<Lit> getAllChoices() const;
+	vector<Lit> getRecentAssignments() const;
+	void    	varDecayActivity ();                      // Decay all variables with the specified factor. Implemented by increasing the 'bump' value instead.
+	void     	varBumpActivity  (Var v);                 // Increase a variable with the current 'bump' value.
+	void     	claDecayActivity ();                      // Decay all clauses with the specified factor. Implemented by increasing the 'bump' value instead.
+	template<class C>
+	void     printClause      (const C& c);
 /*AE*/
 
     // Constructor/Destructor:
@@ -151,6 +149,9 @@ public:
     uint64_t clauses_literals, learnts_literals, max_literals, tot_literals;
 
 protected:
+
+    vec<Lit>	trail;            // Assignment stack; stores all assigments made in the order they were made.
+	vec<int>	trail_lim;        // Separator indices for different decision levels in 'trail'.
 
     // Helper structures:
     //
@@ -305,8 +306,6 @@ inline bool     Solver::solve         ()              { vec<Lit> tmp; return sol
 inline bool     Solver::okay          ()      const   { return ok; }
 
 inline int		Solver::getLevel(int var)			const	{return level[var];}
-inline Lit	 	Solver::getRecentAssignments(int i) const	{return trail[i+trail_lim.last()];}
-inline int 		Solver::getNbOfRecentAssignments() 	const	{return trail_lim.size()==0?0:trail.size()-trail_lim.last();}
 
 //=================================================================================================
 // Debug + etc:

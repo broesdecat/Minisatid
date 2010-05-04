@@ -83,11 +83,8 @@ int PCSolver::getLevel(int var) const	{
 	return getSolver()->getLevel(var);
 }
 
-Lit PCSolver::getRecentAssignments(int i) const{
-	return getSolver()->getRecentAssignments(i);
-}
-int PCSolver::getNbOfRecentAssignments() 	const{
-	return getSolver()->getNbOfRecentAssignments();
+vector<Lit> PCSolver::getRecentAssignments() const{
+	return getSolver()->getRecentAssignments();
 }
 
 bool PCSolver::totalModelFound(){
@@ -158,11 +155,21 @@ void PCSolver::finishParsing(){ //throws UNSAT
     //important to call definition solver last
 	if(aggsolverpresent){
 		modes.aggr = getAggSolver()->finishECNF_DataStructures();
+		//
+		vector<Lit> trail = getSolver()->getTrail();
+		Clause* confl = NULL;
+		for (int i=0; i<trail.size() && confl==NULL; i++){
+			confl = getAggSolver()->propagate(trail[i]);
+		}
+		if(confl!=NULL){
+			reportf("UNSAT in finishparsing, solve this still (unsat is correct).\n");
+			exit(3);
+			//FIXME handle correctly
+		}
 	}
 	if(idsolverpresent){
 		modes.def = getIDSolver()->finishECNF_DataStructures();
 	}
-	getSolver()->finishParsing();
 
 	if(!aggsolverpresent){
 		delete aggsolver;
@@ -178,7 +185,7 @@ void PCSolver::finishParsing(){ //throws UNSAT
 		}
 	}
 	if(!modes.mnmz){
-		//later
+		//TODO later
 	}
 }
 
@@ -348,7 +355,7 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m){
 		}
 
 		//check if more models can exist
-		if (getSolver()->trail_lim.size() /*FIXME + assmpts.size() */!= 0) { //choices were made, so other models possible
+		if (getSolver()->getAllChoices().size() /*FIXME + assmpts.size() */!= 0) { //choices were made, so other models possible
 			vec<Lit> invalidation;
 			invalidate(invalidation);
 			rslt = invalidateModel(invalidation);
@@ -364,8 +371,9 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m){
 void PCSolver::invalidate(vec<Lit>& invalidation){
 	// Add negation of model as clause for next iteration.
 	//add all choice literals
-	for (int i = 0; i < getSolver()->trail_lim.size(); i++){
-		invalidation.push(~getSolver()->trail[getSolver()->trail_lim[i]]);
+	vector<Lit> v = getSolver()->getAllChoices();
+	for (int i = 0; i < v.size(); i++){
+		invalidation.push(~v[i]);
 	}
 	//add all assumptions
 	/*for (int i = 0; i < assmpt.size(); i++){
@@ -566,7 +574,7 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 			}
 
 			if(!optimumreached){
-				if (getSolver()->trail_lim.size() /*FIXME + assmpts.size() */!= 0) { //choices were made, so other models possible
+				if (getSolver()->getAllChoices().size() /*FIXME + assmpts.size() */!= 0) { //choices were made, so other models possible
 					optimumreached = !invalidateModel(invalidation);
 				}else{
 					optimumreached = true;
