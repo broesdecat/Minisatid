@@ -3,15 +3,44 @@
 
 extern ECNF_mode modes;
 
-ModSolver::ModSolver(modindex id, Lit head, const vector<Var>& a, shared_ptr<ModSolverData> mh):id(id),head(head), modhier(mh){
+ModSolver::ModSolver(modindex child, modindex parentid, Lit head, shared_ptr<ModSolverData> mh):
+		id(child), parentid(parentid),head(head), modhier(mh){
 	//FIXME ID should be unique to the parent theory and as head of the modal solver. It should not occur in its children, lower or above the parent
 	//FIXME there is no use for children rigid atoms that do not occur in the parent theory
-	for(int i=0; i<a.size(); i++){
-		atoms.push_back(AV(a[i]));
-	}
 
 	solver = new PCSolver(modes);
 	solver->setModSolver(this);
+	mh->getModSolver(parentid)->addChild(child);
+	addVar(var(head));
+	mh->getModSolver(parentid)->addVar(var(head));
+}
+
+void ModSolver::addVars(vec<Lit>& a){
+	for(int i=0; i<a.size(); i++){
+		addVar(var(a[i]));
+	}
+}
+
+void ModSolver::addVars(vector<Var>& a){
+	for(int i=0; i<a.size(); i++){
+		addVar(a[i]);
+	}
+}
+
+void ModSolver::addAtoms(const vector<Var>& a){
+	for(int i=0; i<a.size(); i++){
+		atoms.push_back(AV(a[i]));
+		addVar(a[i]);
+		modhier.lock()->getModSolver(getParentId())->addVar(a[i]);
+	}
+}
+
+void ModSolver::setParent(modindex id){
+	parentid = id;
+	shared_ptr<ModSolverData> mh = modhier.lock();
+	for(vector<AV>::const_iterator i=atoms.begin(); i<atoms.end(); i++){
+		mh->getModSolver(getParentId())->addVar((*i).atom);
+	}
 }
 
 void copyToVec(const vec<Lit>& v, vector<Lit>& v2){
@@ -20,12 +49,9 @@ void copyToVec(const vec<Lit>& v, vector<Lit>& v2){
 	}
 }
 
-void ModSolver::setChildren(const vector<Var>& a){
+void ModSolver::addChild(modindex childid){
 	//FIXME check that no ancestors become children or that some already have a parent
-	for(vector<Var>::const_iterator i=a.begin(); i<a.end(); i++){
-		children.push_back(*i);
-		modhier.lock()->getModSolver(*i)->setParent(id);
-	}
+	children.push_back(childid);
 }
 
 bool ModSolver::finishParsing(){
@@ -53,18 +79,22 @@ void ModSolver::addVar(int var){
 }
 
 bool ModSolver::addClause(vec<Lit>& lits){
+	addVars(lits);
 	return solver->addClause(lits);
 }
 
 bool ModSolver::addRule(bool conj, vec<Lit>& lits){
+	addVars(lits);
 	return solver->addRule(conj,lits);
 }
 
 bool ModSolver::addSet(int setid, vec<Lit>& lits, vector<Weight>& w){
+	addVars(lits);
 	return solver->addSet(setid, lits, w);
 }
 
 bool ModSolver::addAggrExpr(Lit head, int set_id, Weight bound, bool lower, AggrType type, bool defined){
+	addVar(var(head));
 	return solver->addAggrExpr(head, set_id, bound, lower, type, defined);
 }
 

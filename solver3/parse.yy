@@ -84,6 +84,10 @@ void yyerror(const char* msg) {
 	throw 333; //Dit is lelijk, maar vermijd veel aanpassingen (YYABORT en YYRETURN)
 }
 
+AggrType getAggrType(int type){
+	return static_cast<AggrType>(type);
+}
+
 
 /**
  * CR-CheckResult: checks the result of passing some data to the solvers.
@@ -101,11 +105,11 @@ void CR(bool result){
  */
 inline Var readVar(int nb){
 	Var var = abs(nb)-1;
-	if(!mod){
+	/*if(!mod){
 		solver->addVar(var);
 	}else{
-		modsolver->addVar(var);	
-	}
+		modsolver->addVar(modid, var);	
+	}*/
 	return var;
 }
 
@@ -151,8 +155,8 @@ shared_ptr<Data> getData(){
 
 %token EQ DISJUNCTION CONJUNCTION ZERO
 %token SUBSETMINDEFN MNMZDEFN SUMMINDEFN
-%token SETDEFN WSETDEFN SUMDEFN PRODDEFN MINDEFN MAXDEFN CARDDEFN 
-%token <integer> NUMBER
+%token SETDEFN WSETDEFN  
+%token <integer> NUMBER AGGDEFN
 %token <boolean> SEMDEFN SIGNDEFN
 %token DEFPRESENT AGGPRESENT MNMZPRESENT MODPRESENT QUANT MODDEFN
 
@@ -173,11 +177,7 @@ header	: 	/*empty*/
 theory	:	/* empty */
 		|	theory clause
 		|	theory rule
-		| 	theory sum
-		| 	theory max
-		| 	theory min
-		| 	theory card
-		| 	theory prod
+		| 	theory agg
 		|	theory set
 		|	theory wset
 		|	theory mnmz
@@ -190,11 +190,7 @@ mtheory	:	/* empty */
 		|	mtheory modhier
 		|	mtheory mclause
 		|	mtheory mrule
-		| 	mtheory msum
-		| 	mtheory mmax
-		| 	mtheory mmin
-		| 	mtheory mcard
-		| 	mtheory mprod
+		| 	mtheory magg
 		|	mtheory mset
 		|	mtheory mwset
 		;
@@ -231,25 +227,9 @@ rule	:	SEMDEFN NUMBER
 						}
 			body ZERO  	{ CR(solver->addRule(!disj, lits)); lits.clear(); }
 		;
-sum		:	SUMDEFN  SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ CR(solver->addAggrExpr(readLit($4), $5, Weight($6), $3, SUM, $2)); }
+agg		:	AGGDEFN  SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ CR(solver->addAggrExpr(readLit($4), $5, Weight($6), $3, getAggrType($1), $2)); }
 		;
-max		:	MAXDEFN  SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ CR(solver->addAggrExpr(readLit($4), $5, Weight($6), $3, MAX, $2)); }	
-		;
-min		:	MINDEFN  SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ CR(solver->addAggrExpr(readLit($4), $5, Weight($6), $3, MIN, $2)); }	
-		;
-card	:	CARDDEFN SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ CR(solver->addAggrExpr(readLit($4), $5, Weight($6), $3, SUM, $2)); }
-		;
-prod	:	PRODDEFN SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ CR(solver->addAggrExpr(readLit($4), $5, Weight($6), $3, PROD, $2)); }
-		;
-sum		:	SUMDEFN  SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ CR(solver->addAggrExpr(readLit($4), $5, Weight(0), $3, SUM, $2)); }
-		;
-max		:	MAXDEFN  SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ CR(solver->addAggrExpr(readLit($4), $5, Weight(0), $3, MAX, $2)); }	
-		;
-min		:	MINDEFN  SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ CR(solver->addAggrExpr(readLit($4), $5, Weight(0), $3, MIN, $2)); }	
-		;
-card	:	CARDDEFN SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ CR(solver->addAggrExpr(readLit($4), $5, Weight(0), $3, SUM, $2)); }
-		;
-prod	:	PRODDEFN SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ CR(solver->addAggrExpr(readLit($4), $5, Weight(0), $3, PROD, $2)); }
+agg		:	AGGDEFN  SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ CR(solver->addAggrExpr(readLit($4), $5, Weight(0), $3, getAggrType($1), $2)); }
 		;
 
 set		:	SETDEFN NUMBER { setid = $2;	}
@@ -270,18 +250,31 @@ wset	:	WSETDEFN NUMBER { setid = $2;	}
 		;
 
 //MODAL PART: USE INDEXES+1 AS MODAL IDs IN THE THEORY
-matomset:	QUANT NUMBER NUMBER varbody ZERO	{ CR(modsolver->addModSolver($2-1, readLit($3), nb)); nb.clear(); }
+			//FIXME: probleem gevonden: de HEAD kan niet correct aan de juiste worden toegevoegd, 
+			//want de parent is nog niet gekend!
+			//FIXME 2: je kan nu vars enzo toevoegen terwijl de kinderen van een mod op nog niet gekend
+			//zijn, wat dus onvolledige kennis geeft!
+/*matomset:	QUANT NUMBER NUMBER { Lit l = readLit($3); modid = $2-1; CR(modsolver->addModSolver(modid, l));}
+			varbody ZERO	{ modsolver->addAtoms(modid, nb); nb.clear(); }
 		;
-modhier :	MODDEFN	NUMBER varbody ZERO { CR(modsolver->addChildren($2-1, nb)); nb.clear();}
+modhier :	MODDEFN	NUMBER {modid = $2-1;} 
+			varbody ZERO { CR(modsolver->addChildren(modid, nb)); nb.clear();}
+		;*/
+			//		PARENTID CHILDID HEAD
+modhier :	MODDEFN	NUMBER 	NUMBER 	NUMBER ZERO 
+				{ CR(modsolver->addChild($2-1, $3-1, readLit($4))); }
 		;
-mclause	:	NUMBER body ZERO	{ CR(modsolver->addClause($1-1, lits)); lits.clear(); }
+matomset:	QUANT NUMBER { modid = $2-1; }
+			varbody ZERO { modsolver->addAtoms(modid, nb); nb.clear(); }
 		;
-mrule	:	SEMDEFN NUMBER NUMBER                  
-						{ 	if ($3 < 0) yyerror("Encountered a rule with negative literal as head.");
-							addLit($3);
-							disj = $1;
+mclause	:	NUMBER {modid = $1-1;} 
+			body ZERO { CR(modsolver->addClause(modid, lits)); lits.clear(); }
+		;
+mrule	:	SEMDEFN NUMBER {disj = $1; modid = $2-1;} NUMBER                  
+						{ 	if ($1 < 0) yyerror("Encountered a rule with negative literal as head.");
+							addLit($4);
 						}
-			body ZERO  	{ CR(modsolver->addRule($2, !disj, lits)); lits.clear(); }
+			body ZERO  { CR(modsolver->addRule(modid, !disj, lits)); lits.clear(); }
 		;
 			
 /*
@@ -291,28 +284,12 @@ mrule	:	SEMDEFN NUMBER NUMBER
  * addAggrExpr($2-1, $5, $6, Weight($7), $4, type, $3)
  */
 			
-msum	:	SUMDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ CR(modsolver->addAggrExpr($2-1, readLit($5), $6, Weight($7), $4, SUM, $3)); }
+magg	:	AGGDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ CR(modsolver->addAggrExpr($2-1, readLit($5), $6, Weight($7), $4, getAggrType($1), $3)); }
 		;
-mmax	:	MAXDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ CR(modsolver->addAggrExpr($2-1, readLit($5), $6, Weight($7), $4, MAX, $3)); }	
-		;
-mmin	:	MINDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ CR(modsolver->addAggrExpr($2-1, readLit($5), $6, Weight($7), $4, MIN, $3)); }	
-		;
-mcard	:	CARDDEFN NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ CR(modsolver->addAggrExpr($2-1, readLit($5), $6, Weight($7), $4, SUM, $3)); }
-		;
-mprod	:	PRODDEFN NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ CR(modsolver->addAggrExpr($2-1, readLit($5), $6, Weight($7), $4, PROD, $3)); }
-		;
-msum	:	SUMDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ CR(modsolver->addAggrExpr($2-1, readLit($5), $6, Weight(0), $4, SUM, $3)); }
-		;
-mmax	:	MAXDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ CR(modsolver->addAggrExpr($2-1, readLit($5), $6, Weight(0), $4, MAX, $3)); }	
-		;
-mmin	:	MINDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ CR(modsolver->addAggrExpr($2-1, readLit($5), $6, Weight(0), $4, MIN, $3)); }	
-		;
-mcard	:	CARDDEFN NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ CR(modsolver->addAggrExpr($2-1, readLit($5), $6, Weight(0), $4, SUM, $3)); }
-		;
-mprod	:	PRODDEFN NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ CR(modsolver->addAggrExpr($2-1, readLit($5), $6, Weight(0), $4, PROD, $3)); }
+magg	:	AGGDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ CR(modsolver->addAggrExpr($2-1, readLit($5), $6, Weight(0), $4, getAggrType($1), $3)); }
 		;
 
-mset	:	SETDEFN NUMBER NUMBER { setid = $3; modid = $2-1;	}
+mset	:	SETDEFN NUMBER NUMBER { modid = $2-1; setid = $3; }
 			body ZERO	{ 
 						for(int i=0; i<lits.size(); i++){
 								weights.push_back(1);
@@ -322,7 +299,7 @@ mset	:	SETDEFN NUMBER NUMBER { setid = $3; modid = $2-1;	}
 						}
 		;
 
-mwset	:	WSETDEFN NUMBER NUMBER { setid = $3; modid = $2-1;	}
+mwset	:	WSETDEFN NUMBER NUMBER { modid = $2-1; setid = $3; }
 			wbody ZERO	{ 
 						CR(modsolver->addSet(modid, setid, lits, weights));
 						lits.clear(); weights.clear();

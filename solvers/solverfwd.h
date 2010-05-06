@@ -53,7 +53,7 @@ enum DefType	{NONDEFTYPE, DISJ, CONJ, AGGR};
 enum DefOcc		{NONDEFOCC, POSLOOP, MIXEDLOOP, BOTHLOOP};
 enum UFS 		{NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK};
 
-enum AggrType {SUM, PROD, MIN, MAX};
+enum AggrType {SUM, PROD, MIN, MAX, CARD};
 
 extern int verbosity;
 

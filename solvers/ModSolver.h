@@ -68,11 +68,12 @@ private:
 	weak_ptr<ModSolverData> modhier;
 
 public:
-	ModSolver(modindex id, Lit head, const vector<Var>& a, shared_ptr<ModSolverData> mh);
+	ModSolver(modindex child, modindex parentid, Lit head, shared_ptr<ModSolverData> mh);
 	virtual ~ModSolver(){}
 
-	void setChildren(const vector<Var>& a);
-	void setParent(modindex id){	parentid = id; }
+	void addAtoms(const vector<Var>& atoms);
+	void addChild(modindex child);
+	void setParent(modindex id);
 
 	/*//Solve methods
 	Clause* propagate(Lit l);
@@ -82,6 +83,8 @@ public:
 
 	//data initialization
 	void	addVar			(int v);
+	void 	addVars			(vec<Lit>& a);
+	void 	addVars			(vector<Var>& a);
 	bool 	addClause		(vec<Lit>& lits);
 	bool 	addRule			(bool conj, vec<Lit>& lits);
 	bool 	addSet			(int setid, vec<Lit>& lits, vector<Weight>& w);

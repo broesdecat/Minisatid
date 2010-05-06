@@ -41,14 +41,12 @@ bool ModSolverData::addAggrExpr(modindex modid, Lit head, int setid, Weight boun
 	return m->addAggrExpr(head, setid, bound, lower, type, defined);
 }
 
-void ModSolverData::addVar(Var v){
-	//FIXME this should not be to every solver
-	//FIXME the order is currently wrong
-	for(vector<pModSolver>::const_iterator i=solvers.begin(); i<solvers.end(); i++){
-		if((*i)!=NULL){
-			(*i)->addVar(v);
-		}
+void ModSolverData::addVar(modindex modid, Var v){
+	if(!existsModSolver(modid)){
+		reportf("No modal operator with id %d was defined! ", modid+1);
+		exit(1);
 	}
+	getModSolver(modid)->addVar(v);
 }
 
 ModSolverData::ModSolverData():Data(){
@@ -60,33 +58,40 @@ ModSolverData::~ModSolverData(){
 }
 
 void ModSolverData::initialize(){
-	vector<int> l;
-	solvers.push_back(new ModSolver(0, Lit(-1), l, shared_from_this()));
+	solvers.push_back(new ModSolver(0, -1, Lit(-1), shared_from_this()));
 }
 
-bool ModSolverData::addModSolver(modindex modid, Lit head, const vector<Var>& atoms){
+void ModSolverData::addAtoms(modindex modid, const vector<Var>& atoms){
+	if(!existsModSolver(modid)){
+		reportf("No modal operator with id %d was defined! ", modid+1);
+		exit(1);
+	}
+	getModSolver(modid)->addAtoms(atoms);
+}
+
+/*bool ModSolverData::addModSolver(modindex modid, Lit head){
 	assert(modid>0);
 	if(solvers.size()<modid+1){
 		solvers.resize(modid+1, NULL);
 	}
 	assert(solvers[modid]==NULL);
-	solvers[modid] = new ModSolver(modid, head, atoms, shared_from_this());
+	solvers[modid] = new ModSolver(modid, head, shared_from_this());
 	return true;
-}
+}*/
 
-bool ModSolverData::addChildren(modindex modid, const vector<int>& children){
-	if(!existsModSolver(modid)){
-		reportf("No modal operator with id %d was defined! ", modid+1);
+bool ModSolverData::addChild(modindex parent, modindex child, Lit head){
+	if(!existsModSolver(parent)){
+		reportf("No modal operator with id %d was defined! ", parent+1);
 		exit(1);
 	}
-	for(vector<int>::const_iterator i=children.begin(); i<children.end(); i++){
-		if(!existsModSolver(*i)){
-			reportf("No modal operator with id %d was defined! ", *i+1);
-			exit(1);
-		}
+	if(existsModSolver(child)){
+		reportf("Modal operator with id %d was already defined! ", child+1);
+		exit(1);
 	}
-	pModSolver m = getModSolver(modid);
-	m->setChildren(children);
+	if(solvers.size()<parent+1){
+		solvers.resize(parent+1, NULL);
+	}
+	solvers[parent] = new ModSolver(child, parent, head, shared_from_this());
 	return true;
 }
 

@@ -137,22 +137,32 @@ void PCSolver::addVar(Var v){
 	getSolver()->setDecisionVar(v,true); // S.nVars()-1   or   var
 }
 
+void PCSolver::addVars(vec<Lit>& a){
+	for(int i=0; i<a.size(); i++){
+		addVar(var(a[i]));
+	}
+}
+
 bool PCSolver::addClause(vec<Lit>& lits){
+	addVars(lits);
 	return getSolver()->addClause(lits);
 }
 
 bool PCSolver::addRule(bool conj, vec<Lit>& lits){
 	assert(idsolverpresent);
+	addVars(lits);
 	return getIDSolver()->addRule(conj, lits);
 }
 
 bool PCSolver::addSet(int setid, vec<Lit>& lits, vector<Weight>& w){
 	assert(aggsolverpresent);
+	addVars(lits);
 	return getAggSolver()->addSet(setid, lits, w);
 }
 
 bool PCSolver::addAggrExpr(Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined){
 	assert(aggsolverpresent);
+	addVar(var(head));
 	if(sign(head)){
 		reportf( "No negative heads are allowed!\n");
 		exit(1);

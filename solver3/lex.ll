@@ -2,6 +2,8 @@
 /* C++ declarations: */
 #include <iostream>
 #include "parse.tab.hh"
+#include "solverfwd.h"
+
 using namespace std;
 
 extern int lineNo;
@@ -29,11 +31,11 @@ extern bool parseError;
 
 "WSet"		{ADJ; return WSETDEFN;}
 "Set"		{ADJ; return SETDEFN;}
-"Card"		{ADJ; return CARDDEFN;}
-"Sum"		{ADJ; return SUMDEFN;}
-"Prod"		{ADJ; return PRODDEFN;}
-"Min"		{ADJ; return MINDEFN;}
-"Max"		{ADJ; return MAXDEFN;}
+"Card"		{ADJ; yylval.integer = CARD; return AGGDEFN;}
+"Sum"		{ADJ; yylval.integer = SUM; return AGGDEFN;}
+"Prod"		{ADJ; yylval.integer = PROD; return AGGDEFN;}
+"Min"		{ADJ; yylval.integer = MIN; return AGGDEFN;}
+"Max"		{ADJ; yylval.integer = MAX; return AGGDEFN;}
 
 "Mod"		{ADJ; return MODDEFN;}
 
@@ -68,4 +70,5 @@ extern bool parseError;
 						<< yytext
 						<< "' encountered)." 
 						<< endl;
+				throw 333;
 			}

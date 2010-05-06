@@ -34,13 +34,14 @@ public:
 	virtual bool 	finishParsing	();
 			void 	initialize		();
 
-			void 	addVar			(Var v);
+			void 	addVar			(modindex modid, Var v);
 			bool 	addClause		(modindex modid, vec<Lit>& lits);
 			bool 	addRule			(modindex modid, bool conj, vec<Lit>& lits);
 			bool 	addSet			(modindex modid, int set_id, vec<Lit>& lits, vector<Weight>& w);
 			bool 	addAggrExpr		(modindex modid, Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined);
-			bool 	addChildren		(modindex modid, const vector<int>& children);
-			bool 	addModSolver	(modindex modid, Lit head, const vector<Var>& atoms);
+			bool 	addChild		(modindex parent, modindex child, Lit head);
+			void	addAtoms		(modindex modid, const vector<Var>& atoms);
+			//bool 	addModSolver	(modindex modid, Lit head);
 
 			bool	existsModSolver(modindex modid){ return modid<solvers.size() && solvers[modid]!=NULL; }
 			pModSolver getModSolver(modindex modid){ assert(existsModSolver(modid));return solvers[modid];}
