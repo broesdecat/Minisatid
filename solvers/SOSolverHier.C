@@ -58,7 +58,7 @@ ModSolverData::~ModSolverData(){
 }
 
 void ModSolverData::initialize(){
-	solvers.push_back(new ModSolver(0, -1, Lit(-1), shared_from_this()));
+	solvers.push_back(new ModSolver(0, Lit(-1), shared_from_this()));
 }
 
 void ModSolverData::addAtoms(modindex modid, const vector<Var>& atoms){
@@ -88,10 +88,11 @@ bool ModSolverData::addChild(modindex parent, modindex child, Lit head){
 		reportf("Modal operator with id %d was already defined! ", child+1);
 		exit(1);
 	}
-	if(solvers.size()<parent+1){
-		solvers.resize(parent+1, NULL);
+	if(solvers.size()<child+1){
+		solvers.resize(child+1, NULL);
 	}
-	solvers[parent] = new ModSolver(child, parent, head, shared_from_this());
+	solvers[child] = new ModSolver(child, head, shared_from_this());
+	solvers[child]->setParent(parent);
 	return true;
 }
 

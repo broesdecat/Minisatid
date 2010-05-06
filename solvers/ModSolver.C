@@ -3,16 +3,15 @@
 
 extern ECNF_mode modes;
 
-ModSolver::ModSolver(modindex child, modindex parentid, Lit head, shared_ptr<ModSolverData> mh):
-		id(child), parentid(parentid),head(head), modhier(mh){
+ModSolver::ModSolver(modindex child, Lit head, shared_ptr<ModSolverData> mh):
+		id(child), head(head), modhier(mh){
 	//FIXME ID should be unique to the parent theory and as head of the modal solver. It should not occur in its children, lower or above the parent
 	//FIXME there is no use for children rigid atoms that do not occur in the parent theory
-
 	solver = new PCSolver(modes);
 	solver->setModSolver(this);
-	mh->getModSolver(parentid)->addChild(child);
-	addVar(var(head));
-	mh->getModSolver(parentid)->addVar(var(head));
+	if(var(head)>0){
+		addVar(var(head));
+	}
 }
 
 void ModSolver::addVars(vec<Lit>& a){
@@ -41,6 +40,8 @@ void ModSolver::setParent(modindex id){
 	for(vector<AV>::const_iterator i=atoms.begin(); i<atoms.end(); i++){
 		mh->getModSolver(getParentId())->addVar((*i).atom);
 	}
+	modhier.lock()->getModSolver(id)->addChild(this->id);
+	modhier.lock()->getModSolver(id)->addVar(var(head.lit));
 }
 
 void copyToVec(const vec<Lit>& v, vector<Lit>& v2){

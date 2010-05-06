@@ -68,7 +68,7 @@ private:
 	weak_ptr<ModSolverData> modhier;
 
 public:
-	ModSolver(modindex child, modindex parentid, Lit head, shared_ptr<ModSolverData> mh);
+	ModSolver(modindex child, Lit head, shared_ptr<ModSolverData> mh);
 	virtual ~ModSolver(){}
 
 	void addAtoms(const vector<Var>& atoms);
