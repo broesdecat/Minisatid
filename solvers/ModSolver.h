@@ -57,6 +57,7 @@ struct LV{
 class ModSolver{
 private:
 	modindex id, parentid;
+	bool hasparent;
 
 	LV			head;
 	vector<AV> 	atoms; //atoms which are rigid within this solver
@@ -74,6 +75,9 @@ public:
 	void addAtoms(const vector<Var>& atoms);
 	void addChild(modindex child);
 	void setParent(modindex id);
+
+	void 	setNbModels		(int nb);
+	void 	setRes			(FILE* f);
 
 	/*//Solve methods
 	Clause* propagate(Lit l);

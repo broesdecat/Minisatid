@@ -5,8 +5,9 @@
  * INITIALIZATION *
  ******************/
 
+//Has to be value copy of modes!
 PCSolver::PCSolver(ECNF_mode modes):Data(),
-			res(NULL), nb_models(1),
+			res(NULL), nb_models(modes.nbmodels),
 			modelsfound(0), modes(modes),
 			optim(NONE),head(-1),
 			aggsolverpresent(false), idsolverpresent(false), modsolverpresent(false){
@@ -23,7 +24,11 @@ PCSolver::PCSolver(ECNF_mode modes):Data(),
 		idsolver->setAggSolver(aggsolver);
 	}
 
-	//FIXME! also initialize parameters of Solver with modes
+	//solver->maxruntime = modes.maxruntime;
+	solver->polarity_mode = modes.polarity_mode;
+	solver->random_var_freq = modes.random_var_freq;
+	solver->verbosity = modes.verbosity;
+	solver->var_decay = modes.var_decay;
 }
 
 PCSolver::~PCSolver(){
@@ -229,7 +234,7 @@ lbool PCSolver::checkStatus(lbool status) const{
 	if(!idsolverpresent || status!=l_True){
 		return status;
 	}
-	if(!getIDSolver()->isWellFoundedModel()){
+	if(modes.sem==WELLF && !getIDSolver()->isWellFoundedModel()){
 		return l_False;
 	}
 	return status;
@@ -276,7 +281,7 @@ Clause* PCSolver::propagate(Lit l){
 		confl = getIDSolver()->propagate(l);
 	}
 	if(modsolverpresent && confl == NULL){
-		confl = getModSolver()->propagateDown(l);
+		confl = getModSolver()->propagate(l);
 	}
 	return confl;
 }
@@ -307,8 +312,12 @@ bool PCSolver::simplifyRest(){
 	return result;
 }
 
+bool PCSolver::solve(){
+	vec<Lit> assmpt;
+	return solveAll(assmpt);
+}
 
-bool PCSolver::solve() {
+bool PCSolver::solveAll(vec<Lit>& assmpt){
 	bool solved = false;
 
 	if (modes.verbosity >= 1) {
@@ -321,15 +330,22 @@ bool PCSolver::solve() {
 	modelsfound = 0;
 	bool moremodels = true;
 
+	//permanent assump = assertions: add as clause
+	for(int i=0; i<assmpt.size(); i++){
+		vec<Lit> ps;
+		ps.push(assmpt[i]);
+		addClause(ps);
+	}
+
 	if(optim!=NONE){
-		vec<Lit> assmpt;
 		vec<Lit> model;
-		findOptimal(assmpt, model);
+		vec<Lit> assump;
+		findOptimal(assump, model);
 	}else{
 		while(moremodels && (nb_models==0 || modelsfound<nb_models)){
-			vec<Lit> assmpt;
 			vec<Lit> model;
-			moremodels = findNext(assmpt, model);
+			vec<Lit> assump;
+			moremodels = findNext(assump, model);
 		}
 	}
 

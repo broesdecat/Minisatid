@@ -4,10 +4,14 @@
 extern ECNF_mode modes;
 
 ModSolver::ModSolver(modindex child, Lit head, shared_ptr<ModSolverData> mh):
-		id(child), head(head), modhier(mh){
+		id(child), parentid(-1), hasparent(false), head(head), modhier(mh){
 	//FIXME ID should be unique to the parent theory and as head of the modal solver. It should not occur in its children, lower or above the parent
 	//FIXME there is no use for children rigid atoms that do not occur in the parent theory
-	solver = new PCSolver(modes);
+	ECNF_mode modescopy(modes);
+	if(var(head)>0){ //TODO improve, should not check by head<0
+		modescopy.nbmodels = 1;
+	}
+	solver = new PCSolver(modescopy);
 	solver->setModSolver(this);
 	if(var(head)>0){
 		addVar(var(head));
@@ -35,7 +39,7 @@ void ModSolver::addAtoms(const vector<Var>& a){
 }
 
 void ModSolver::setParent(modindex id){
-	parentid = id;
+	parentid = id; hasparent = true;
 	shared_ptr<ModSolverData> mh = modhier.lock();
 	for(vector<AV>::const_iterator i=atoms.begin(); i<atoms.end(); i++){
 		mh->getModSolver(getParentId())->addVar((*i).atom);
@@ -99,6 +103,13 @@ bool ModSolver::addAggrExpr(Lit head, int set_id, Weight bound, bool lower, Aggr
 	return solver->addAggrExpr(head, set_id, bound, lower, type, defined);
 }
 
+void ModSolver::setNbModels(int nb){
+	solver->setNbModels(nb);
+}
+
+void ModSolver::setRes(FILE* f){
+	solver->setRes(f);
+}
 
 Clause* ModSolver::propagateDown(Lit l){
 	Clause* confl = NULL;
@@ -132,6 +143,7 @@ Clause* ModSolver::propagateDown(Lit l){
 
 	//FIXME unit propagation
 
+	//FIXME: make 2 modsolvers, one to be the root
 	//If all rigid atoms and head are known, do search in this solver
 	bool allknown = true;
 	vec<Lit> assumpts;
@@ -148,7 +160,14 @@ Clause* ModSolver::propagateDown(Lit l){
 	if(!allknown){
 		return confl;
 	}
-	bool result = solver->solve(assumpts);
+
+	bool result = false;
+	if(!hasparent){
+		result = solver->solveAll(assumpts);
+	}else{
+		result = solver->solve(assumpts);
+	}
+
 	if((result && getHeadValue()!=l_True) || (!result && getHeadValue()!=l_False)){
 		//conflict between head and body
 		//FIXME good clause learning

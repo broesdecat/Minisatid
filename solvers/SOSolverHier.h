@@ -16,18 +16,14 @@ typedef vmsolvers::size_type modindex;
 
 class ModSolverData: public Data, public enable_shared_from_this<ModSolverData>{
 private:
-	//FIXME these are not yet used.
-	int nb_models;
-	FILE* res;
-
 	vmsolvers solvers;
 
 public:
 	ModSolverData();	//HAVE to call initialize after constructor
 	~ModSolverData();
 
-	virtual void setNbModels	(int nb)	{ nb_models=nb; }
-	virtual void setRes			(FILE* f)	{ res = f; }
+	virtual void setNbModels	(int nb);
+	virtual void setRes			(FILE* f);
 
 	virtual bool 	simplify		();
 	virtual bool 	solve			();

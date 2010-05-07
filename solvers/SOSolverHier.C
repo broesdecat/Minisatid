@@ -41,6 +41,14 @@ bool ModSolverData::addAggrExpr(modindex modid, Lit head, int setid, Weight boun
 	return m->addAggrExpr(head, setid, bound, lower, type, defined);
 }
 
+void ModSolverData::setNbModels(int nb){
+	solvers[0]->setNbModels(nb);
+}
+
+void ModSolverData::setRes(FILE* f){
+	solvers[0]->setRes(f);
+}
+
 void ModSolverData::addVar(modindex modid, Var v){
 	if(!existsModSolver(modid)){
 		reportf("No modal operator with id %d was defined! ", modid+1);
@@ -105,8 +113,6 @@ bool ModSolverData::solve(){
 	if(confl!=NULL){
 		return false;
 	}
-
-	solvers[0]->printModel();
 	return true;
 }
 
