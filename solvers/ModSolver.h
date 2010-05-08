@@ -137,6 +137,7 @@ public:
 	void propagateUp(Lit l, modindex id);
 
 	bool simplify();
+	bool solve(); //ONLY TO BE CALLED FOR ONCE INSTANCE AND FROM SOSOLVERHIER
 
 	void backtrack(Lit l);
 

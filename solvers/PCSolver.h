@@ -54,6 +54,10 @@ public:
 	PCSolver(ECNF_mode modes);
 	~PCSolver();
 
+	//DEBUG
+	int getModID();
+	//END DEBUG
+
 	void 	setModSolver(pModSolver m);
 
 	void 	setNbModels		(int nb);

@@ -311,6 +311,17 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
         assert(confl != NULL);          // (otherwise should be UIP)
         Clause& c = *confl;
 
+		if (verbosity > 2) {
+			reportf("Current conflict clause: ");
+			printClause(c);
+			reportf("Current learned clause: ");
+			for (int i = 0; i < out_learnt.size(); i++) {
+				printLit(out_learnt[i]);
+				reportf(" ");
+			}
+			reportf("\n");
+		}
+
         if (c.learnt())
             claBumpActivity(c);
 
@@ -343,6 +354,12 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
         confl = reason[var(p)];
 
         /*AB*/
+		if (verbosity > 2) {
+			reportf("Getting explanation for ");
+			printLit(p);
+			reportf("\n");
+		}
+
         if(confl==NULL && pathC>1){
         	confl = solver->getExplanation(p);
         	deleteImplicitClause = true;
@@ -499,6 +516,14 @@ Clause* Solver::propagate()
     int     num_props = 0;
 
     while (qhead < trail.size()){
+    	if(verbosity>4){
+    		reportf("Trail, mod %d: ", solver->getModID());
+    		for(int i=0; i<trail.size(); i++){
+    			gprintLit(trail[i]); reportf(" ");
+    		}
+    		reportf(".\n");
+    	}
+
         Lit            p   = trail[qhead++];     // 'p' is enqueued fact to propagate.
         vec<Clause*>&  ws  = watches[toInt(p)];
         Clause         **i, **j, **end;
@@ -753,9 +778,16 @@ lbool Solver::search()
                 decisions++;
                 next = pickBranchLit(polarity_mode, random_var_freq);
 
-                if (next == lit_Undef)
+                if (next == lit_Undef){
                     // Model found:
                     return l_True;
+				}
+
+				if (verbosity >= 2) {
+					reportf("Choice literal: ");
+					printLit(next);
+					reportf(".\n");
+				}
             }
 
             // Increase decision level and enqueue 'next'

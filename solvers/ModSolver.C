@@ -111,6 +111,11 @@ void ModSolver::setRes(FILE* f){
 	solver->setRes(f);
 }
 
+bool ModSolver::solve(){
+	//FIXME remove head from root
+	return solver->solve();
+}
+
 Clause* ModSolver::propagateDown(Lit l){
 	Clause* confl = NULL;
 
@@ -141,12 +146,16 @@ Clause* ModSolver::propagateDown(Lit l){
 		return confl;
 	}
 
-	//FIXME unit propagation
+	//TODO unit propagation
 
-	//FIXME: make 2 modsolvers, one to be the root
+	//TODO: make 2 modsolvers, one to be the root
 	//If all rigid atoms and head are known, do search in this solver
 	bool allknown = true;
+
 	vec<Lit> assumpts;
+	if(getHeadValue()==l_Undef){
+		allknown = false;
+	}
 	for(vector<AV>::const_iterator j=getAtoms().begin(); allknown && j<getAtoms().end(); j++){
 		if((*j).value==l_Undef){
 			allknown = false;
@@ -161,22 +170,28 @@ Clause* ModSolver::propagateDown(Lit l){
 		return confl;
 	}
 
-	bool result = false;
-	if(!hasparent){
-		result = solver->solveAll(assumpts);
-	}else{
-		result = solver->solve(assumpts);
-	}
+	//FIXME: he starts searching before head is known, so any derivation will be a propagation,
+	//no a conflict!!!! => he now only starts when head is known
 
+	bool result = false;
+	assert(hasparent);
+	result = solver->solve(assumpts);
+
+	//FIXME: returns a conflict which can be based on decision variables only,
+	//so clause learning will crash.
+	//IMPORTANT INVARIANT: THE LAST DECISION VARIABLE SHOULD ALWAYS BE INCLUDED IN THE CONFLICT CLAUSE
+	//IMPORTANT INVARIANT: CONFLICTS HAVE TO BE DETECTED BY PROPAGATION: BACKTRACK UNTIL PREVIOUS CHOICE
 	if((result && getHeadValue()!=l_True) || (!result && getHeadValue()!=l_False)){
 		//conflict between head and body
 		//FIXME good clause learning
 		vec<Lit> confldisj;
-		confldisj.push(~getHead());
+		//PROBLEM: order of lits in conflict depends on order of assumptions and on order of propagations by parent
 		for(vector<AV>::const_iterator j=getAtoms().begin(); j<getAtoms().end(); j++){
-			confldisj.push(Lit((*j).atom, (*j).value==l_True));
+			confldisj.push(Lit((*j).atom, (*j).value==l_False));
 		}
+		confldisj.push(getHead());
 		confl = Clause_new(confldisj, true);
+
 	}
 	solver->backtrackTo(0);
 	return confl;
@@ -187,10 +202,28 @@ Clause* ModSolver::propagate(Lit l){
 	for(vmodindex::const_iterator i=getChildren().begin(); confl==NULL && i<getChildren().end(); i++){
 		confl = modhier.lock()->getModSolver(*i)->propagateDown(l);
 	}
+	if(confl!=NULL){
+		/*
+		 * Due to current possibly incomplete propagation, the conflict could possibly
+		 * have been derived at an earlier level. So check for this and first backtrack
+		 * to that level.
+		 */
+		int lvl = 0;
+		for (int i = 1; i < confl->size(); i++){
+			int litlevel = solver->getLevel(var(confl->operator [](i)));
+			if (litlevel > lvl){
+				lvl = litlevel;
+			}
+		}
+		solver->backtrackTo(lvl);
+		//reportf("Level %d.\n", lvl);
+	}
 	return confl;
 }
 
 void ModSolver::propagateUp(Lit l, modindex id){
+	assert(false);
+	//FIXME or include reason or extend getexplanation to modal solvers (first is maybe best)
 	//FIXME save id for clause learning
 	solver->setTrue(l);
 }
@@ -198,19 +231,21 @@ void ModSolver::propagateUp(Lit l, modindex id){
 void ModSolver::backtrack(Lit l){
 	if(var(l)==var(getHead()) && getHeadValue()!=l_Undef){
 		head.value = l_Undef;
+		reportf("backtracked head");
 		//FIXME: head is not allowed to occur in the theory or lower.
 	}
+	//FIXME THIS IS WRONG: he does not backtrack the children
 	for(vector<AV>::iterator i=atoms.begin(); i<atoms.end(); i++){
 		if((*i).atom==var(l)){
 			if((*i).value!=l_Undef){
 				(*i).value = l_Undef;
 				solver->backtrackTo(solver->getLevel(var(l)));
-				for(vmodindex::const_iterator j=getChildren().begin(); j<getChildren().end(); j++){
-					modhier.lock()->getModSolver((*j))->backtrack(l);
-				}
 			}
 			break;
 		}
+	}
+	for(vmodindex::const_iterator j=getChildren().begin(); j<getChildren().end(); j++){
+		modhier.lock()->getModSolver((*j))->backtrack(l);
 	}
 }
 

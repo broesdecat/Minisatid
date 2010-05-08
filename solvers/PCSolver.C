@@ -5,6 +5,13 @@
  * INITIALIZATION *
  ******************/
 
+int PCSolver::getModID(){
+	if(modsolver!=NULL){
+		return modsolver->getId();
+	}
+	return -1;
+}
+
 //Has to be value copy of modes!
 PCSolver::PCSolver(ECNF_mode modes):Data(),
 			res(NULL), nb_models(modes.nbmodels),
@@ -249,6 +256,9 @@ void PCSolver::resetIDSolver(){
  **********************/
 
 Clause* PCSolver::getExplanation(Lit l){
+	if(modes.verbosity>2){
+		reportf("Find an explanation for "); gprintLit(l); reportf("\n");
+	}
 	return aggsolverpresent?getAggSolver()->getExplanation(l):NULL;
 }
 
@@ -450,9 +460,13 @@ bool PCSolver::invalidateModel(vec<Lit>& learnt) {
 	//FIXME: hier werd soms verder gebacktrackt dan het laagste decision level (in de unit propagaties dus)
 	//maar geen idee waarom dit nodig was. Mss toch eens nakijken?
 
-	if (modes.verbosity>=3) {	reportf("Adding model-invalidating clause: [ "); }
+	if (modes.verbosity>=3) {
+		reportf("Adding model-invalidating clause: [ ");
+		gprintClause(learnt);
+		reportf("]\n");
+	}
+
 	bool result = addClause(learnt);
-	if (modes.verbosity>=3) {	reportf("]\n"); }
 
 	getSolver()->varDecayActivity();
 	getSolver()->claDecayActivity();

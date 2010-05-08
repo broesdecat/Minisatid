@@ -109,11 +109,7 @@ bool ModSolverData::simplify(){
 }
 
 bool ModSolverData::solve(){
-	Clause* confl = solvers[0]->propagateDown(solvers[0]->getHead());
-	if(confl!=NULL){
-		return false;
-	}
-	return true;
+	return solvers[0]->solve();
 }
 
 bool ModSolverData::finishParsing(){

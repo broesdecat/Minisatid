@@ -11,6 +11,8 @@
 #include "SolverTypes.h"
 #include "stdio.h"
 
+#include "Vec.h"
+
 /******************
  * DEBUGGING INFO *
  ******************/
@@ -27,6 +29,12 @@ inline void gprintLit(const Lit& l, const lbool val){
 
 inline void gprintLit(const Lit& l){
 	reportf("%s%d", (sign(l) ? "-" : ""), gprintVar(var(l)));
+}
+
+inline void gprintClause(const vec<Lit>& c){
+	for(int i=0; i<c.size(); i++){
+		gprintLit(c[i]); reportf(" ");
+	}
 }
 
 void noMoreMem();
