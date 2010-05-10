@@ -323,7 +323,9 @@ bool IDSolver::finishECNF_DataStructures() {
 		}
 	}
 
-	return true;
+	//TODO this might not be the best choice, as at the start, simplification is called twice! But
+	//it simplifies the solve algorithm and allows to keep the sat solver the same.
+	return simplify();
 }
 
 /**
@@ -464,10 +466,6 @@ void IDSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, 
 
 //@pre: conflicts are empty
 bool IDSolver::simplify(){
-	// Note that ecnf_mode.init is still true, if this is the first time running simplify!
-	init = false;
-
-	// Initialization procedure to ensure correctness of subsequent indirectPropagate() calls.
 	// This has to be done before the first choice.
 
 	// NOTE: we're doing a stable model initialization here. No need for a loop.
@@ -791,9 +789,10 @@ Clause* IDSolver::indirectPropagate() {
 void IDSolver::findCycleSources() {
 	clearCycleSources();
 
-	if (prev_conflicts == getSolver()->getConflicts() && modes.defn_strategy == always && getSolver()->getNbOfRecentAssignments()>0) {
-		for(int i=0; i<getSolver()->getNbOfRecentAssignments(); i++){
-			Lit l = getSolver()->getRecentAssignments(i); //l has become true, so find occurences of ~l
+	vector<Lit> ass = getSolver()->getRecentAssignments();
+	if (prev_conflicts == getSolver()->getConflicts() && modes.defn_strategy == always && ass.size()>0) {
+		for(int i=0; i<ass.size(); i++){
+			Lit l = ass[i]; //l has become true, so find occurences of ~l
 
 			const vector<Var>& ds = disj_occurs[toInt(~l)];
 			for (vector<Var>::const_iterator j = ds.begin(); j < ds.end(); j++) {
