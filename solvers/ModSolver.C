@@ -119,7 +119,9 @@ bool ModSolver::solve(){
 Clause* ModSolver::propagateDown(Lit l){
 	Clause* confl = NULL;
 
-	gprintLit(l); reportf(" propagated down into modal solver %d.\n", getId()+1);
+	if(modes.verbosity>4){
+		gprintLit(l); reportf(" propagated down into modal solver %d.\n", getId()+1);
+	}
 
 	//Adapt head value
 	bool contains = false;
@@ -170,6 +172,10 @@ Clause* ModSolver::propagateDown(Lit l){
 		return confl;
 	}
 
+	if(modes.verbosity>4){
+		reportf("Checking lower solver %d.\n", getId());
+	}
+
 	//FIXME: he starts searching before head is known, so any derivation will be a propagation,
 	//no a conflict!!!! => he now only starts when head is known
 
@@ -185,15 +191,23 @@ Clause* ModSolver::propagateDown(Lit l){
 		//conflict between head and body
 		//FIXME good clause learning
 		vec<Lit> confldisj;
+		confldisj.push(l);
+		if(var(l)!=var(getHead())){
+			confldisj.push(getHead());
+		}
 		//PROBLEM: order of lits in conflict depends on order of assumptions and on order of propagations by parent
 		for(vector<AV>::const_iterator j=getAtoms().begin(); j<getAtoms().end(); j++){
-			confldisj.push(Lit((*j).atom, (*j).value==l_False));
+			if(var(l)!=(*j).atom){
+				confldisj.push(Lit((*j).atom, (*j).value==l_False));
+			}
 		}
-		confldisj.push(getHead());
 		confl = Clause_new(confldisj, true);
-
 	}
-	solver->backtrackTo(0);
+	if(modes.verbosity>4){
+		reportf("Finished checking lower solver %d: %s.\n", getId(), confl==NULL?"no conflict":"conflict");
+	}
+
+	//solver->backtrackTo(0);
 	return confl;
 }
 
@@ -204,19 +218,21 @@ Clause* ModSolver::propagate(Lit l){
 	}
 	if(confl!=NULL){
 		/*
-		 * Due to current possibly incomplete propagation, the conflict could possibly
-		 * have been derived at an earlier level. So check for this and first backtrack
-		 * to that level.
+		 * Due to current incomplete propagation, the conflict could possibly have been derived at an earlier level.
+		 * So check for this and first backtrack to that level.
 		 */
 		int lvl = 0;
-		for (int i = 1; i < confl->size(); i++){
+		for (int i = 0; i < confl->size(); i++){
 			int litlevel = solver->getLevel(var(confl->operator [](i)));
 			if (litlevel > lvl){
 				lvl = litlevel;
 			}
 		}
 		solver->backtrackTo(lvl);
-		//reportf("Level %d.\n", lvl);
+
+		if(modes.verbosity>4){
+			reportf("Level %d in modal %d.\n", lvl, getId());
+		}
 	}
 	return confl;
 }
@@ -231,7 +247,6 @@ void ModSolver::propagateUp(Lit l, modindex id){
 void ModSolver::backtrack(Lit l){
 	if(var(l)==var(getHead()) && getHeadValue()!=l_Undef){
 		head.value = l_Undef;
-		reportf("backtracked head");
 		//FIXME: head is not allowed to occur in the theory or lower.
 	}
 	//FIXME THIS IS WRONG: he does not backtrack the children

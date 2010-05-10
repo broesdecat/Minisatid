@@ -784,7 +784,7 @@ lbool Solver::search()
 				}
 
 				if (verbosity >= 2) {
-					reportf("Choice literal: ");
+					reportf("Choice literal at level %d: ", decisionLevel());
 					printLit(next);
 					reportf(".\n");
 				}
