@@ -93,48 +93,8 @@ Var Solver::newVar(bool sign, bool dvar)
 
 /*AB*/
 
-/**
- * This is (currently) necessary, because the intialization schema is the following:
- *
- * add elements: /
- * add unit clause: PROPAGATION
- * add aggregate: /
- *
- * finishDatastructures:
- * 		initialize all aggregates and propagate the already derived atoms in them
- *
- */
-//void Solver::finishParsing(){
-//	qhead = 0;
-//}
-
-vector<Lit> Solver::getTrail()const{
-	vector<Lit> v;
-	for(int i=0; i<trail.size(); i++){
-		v.push_back(trail[i]);
-	}
-	return v;
-}
-
-vector<Lit> Solver::getAllChoices()const {
-	vector<Lit> v;
-	for(int i=0; i<trail_lim.size(); i++){
-		v.push_back(trail[trail_lim[i]]);
-	}
-	return v;
-}
-
-vector<Lit> Solver::getRecentAssignments() const{
-	vector<Lit> v;
-	if(trail_lim.size()==0){
-		return v;
-	}
-	int index = trail_lim.last();
-	while(index<trail.size()){
-		v.push_back(trail[index]);
-		index++;
-	}
-	return v;
+void Solver::finishParsing(){
+	qhead = 0;
 }
 
 void Solver::addLearnedClause(Clause* c){
@@ -311,17 +271,6 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
         assert(confl != NULL);          // (otherwise should be UIP)
         Clause& c = *confl;
 
-		if (verbosity > 2) {
-			reportf("Current conflict clause: ");
-			printClause(c);
-			reportf("Current learned clause: ");
-			for (int i = 0; i < out_learnt.size(); i++) {
-				printLit(out_learnt[i]);
-				reportf(" ");
-			}
-			reportf("\n");
-		}
-
         if (c.learnt())
             claBumpActivity(c);
 
@@ -354,12 +303,6 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
         confl = reason[var(p)];
 
         /*AB*/
-		if (verbosity > 2) {
-			reportf("Getting explanation for ");
-			printLit(p);
-			reportf("\n");
-		}
-
         if(confl==NULL && pathC>1){
         	confl = solver->getExplanation(p);
         	deleteImplicitClause = true;
@@ -516,14 +459,6 @@ Clause* Solver::propagate()
     int     num_props = 0;
 
     while (qhead < trail.size()){
-    	if(verbosity>4){
-    		reportf("Trail, mod %d: ", solver->getModID());
-    		for(int i=0; i<trail.size(); i++){
-    			gprintLit(trail[i]); reportf(" ");
-    		}
-    		reportf(".\n");
-    	}
-
         Lit            p   = trail[qhead++];     // 'p' is enqueued fact to propagate.
         vec<Clause*>&  ws  = watches[toInt(p)];
         Clause         **i, **j, **end;
@@ -640,8 +575,10 @@ bool Solver::simplify()
 {
     assert(decisionLevel() == 0);
 
-    if (!ok || propagate() != NULL)
-       return ok = false;
+    /*AB*/
+    //if (!ok || propagate() != NULL)
+    //   return ok = false;
+    /*AE*/
 
     if (nAssigns() == simpDB_assigns || (simpDB_props > 0))
         return true;
@@ -664,10 +601,11 @@ bool Solver::simplify()
 	}
 
 	// There might be stuff to propagate now.
-	if (propagate()!=NULL) {
+	if (propagate()!=NULL) { // NOTE: this includes the first round of indirectPropagate()!! Make sure first time ALL cycle sources are searched.
 		ok = false;
 		return false;
 	}
+	// Important: DO NOT PROPAGATE BEFORE SIMPLIFY!!! (TODO CHANGE CODE TO ALLOW THIS!)
 	/*AE*/
 
     return true;
@@ -778,16 +716,9 @@ lbool Solver::search()
                 decisions++;
                 next = pickBranchLit(polarity_mode, random_var_freq);
 
-                if (next == lit_Undef){
+                if (next == lit_Undef)
                     // Model found:
                     return l_True;
-				}
-
-				if (verbosity >= 2) {
-					reportf("Choice literal: ");
-					printLit(next);
-					reportf(".\n");
-				}
             }
 
             // Increase decision level and enqueue 'next'

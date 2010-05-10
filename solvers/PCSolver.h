@@ -14,25 +14,22 @@ typedef vector<Lit> vlit;
 #include "Solver.h"
 #include "IDSolver.h"
 #include "AggSolver.h"
-#include "ModSolver.h"
 
 class Solver;
 class IDSolver;
 class AggSolver;
-class ModSolver;
 
 typedef Solver* pSolver;
 typedef IDSolver* pIDSolver;
 typedef AggSolver* pAggSolver;
-typedef ModSolver* pModSolver;
+
 
 class PCSolver: public Data{
 private:
 	pSolver solver;
 	pIDSolver idsolver;
 	pAggSolver aggsolver;
-	pModSolver modsolver;
-	bool aggsolverpresent, idsolverpresent, modsolverpresent;
+	bool aggsolverpresent, idsolverpresent;
 
 	FILE* res;
 	int nb_models, modelsfound;
@@ -48,29 +45,21 @@ private:
 	const pSolver&		getSolver		() const;
 	const pIDSolver& 	getIDSolver		() const;
 	const pAggSolver& 	getAggSolver	() const;
-	const pModSolver& 	getModSolver	() const;
 
 public:
 	PCSolver(ECNF_mode modes);
 	~PCSolver();
-
-	//DEBUG
-	int getModID();
-	//END DEBUG
-
-	void 	setModSolver(pModSolver m);
 
 	void 	setNbModels		(int nb);
 	void 	setRes			(FILE* f);
 
 	Var		newVar			();
 	void	addVar			(Var v);
-	void 	addVars			(vec<Lit>& a);
 	bool 	addClause		(vec<Lit>& lits);
 	bool 	addRule			(bool conj, vec<Lit>& lits);
 	bool 	addSet			(int set_id, vec<Lit>& lits, vector<Weight>& w);
 	bool 	addAggrExpr		(Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined);
-	bool 	finishParsing	(); //throws UNSAT
+	void 	finishParsing	(); //throws UNSAT
 
 	bool 	simplify		();
 	bool 	simplifyRest		();
@@ -78,8 +67,6 @@ public:
 	bool    invalidateModel	(vec<Lit>& invalidation);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
 	void 	invalidate		(vec<Lit>& invalidation);
 	bool 	solve			();
-	bool	solve			(const vec<Lit>& assmpt);
-	bool 	solveAll		(vec<Lit>& assmpt);
 	void 	printModel		() const;
 
 	void	removeAggrHead	(Var x);
@@ -111,7 +98,8 @@ public:
 	/**
 	 * Allows to loop over all assignments made in the current decision level.
 	 */
-	vector<Lit> 	getRecentAssignments() const;
+	Lit 	getRecentAssignments(int i) const;
+	int 	getNbOfRecentAssignments() 	const;
 
 	bool 	totalModelFound();				//true if the current assignment is completely two-valued
 

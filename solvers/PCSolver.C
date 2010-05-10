@@ -5,19 +5,11 @@
  * INITIALIZATION *
  ******************/
 
-int PCSolver::getModID(){
-	if(modsolver!=NULL){
-		return modsolver->getId();
-	}
-	return -1;
-}
-
-//Has to be value copy of modes!
 PCSolver::PCSolver(ECNF_mode modes):Data(),
-			res(NULL), nb_models(modes.nbmodels),
+			res(NULL), nb_models(1),
 			modelsfound(0), modes(modes),
 			optim(NONE),head(-1),
-			aggsolverpresent(false), idsolverpresent(false), modsolverpresent(false){
+			aggsolverpresent(false), idsolverpresent(false){
 	solver = new Solver(this);
 	if(modes.def){
 		idsolver = new IDSolver(this);
@@ -31,11 +23,7 @@ PCSolver::PCSolver(ECNF_mode modes):Data(),
 		idsolver->setAggSolver(aggsolver);
 	}
 
-	//solver->maxruntime = modes.maxruntime;
-	solver->polarity_mode = modes.polarity_mode;
-	solver->random_var_freq = modes.random_var_freq;
-	solver->verbosity = modes.verbosity;
-	solver->var_decay = modes.var_decay;
+	//FIXME! also initialize parameters of Solver with modes
 }
 
 PCSolver::~PCSolver(){
@@ -68,15 +56,6 @@ inline const pAggSolver& PCSolver::getAggSolver() const {
 	return aggsolver;
 }
 
-inline const pModSolver& PCSolver::getModSolver() const {
-	return modsolver;
-}
-
-void PCSolver::setModSolver(pModSolver m){
-	modsolver = m;
-	modsolverpresent = true;
-}
-
 lbool PCSolver::value(Var x) const{
 	return getSolver()->value(x);
 }
@@ -104,8 +83,11 @@ int PCSolver::getLevel(int var) const	{
 	return getSolver()->getLevel(var);
 }
 
-vector<Lit> PCSolver::getRecentAssignments() const{
-	return getSolver()->getRecentAssignments();
+Lit PCSolver::getRecentAssignments(int i) const{
+	return getSolver()->getRecentAssignments(i);
+}
+int PCSolver::getNbOfRecentAssignments() 	const{
+	return getSolver()->getNbOfRecentAssignments();
 }
 
 bool PCSolver::totalModelFound(){
@@ -149,32 +131,22 @@ void PCSolver::addVar(Var v){
 	getSolver()->setDecisionVar(v,true); // S.nVars()-1   or   var
 }
 
-void PCSolver::addVars(vec<Lit>& a){
-	for(int i=0; i<a.size(); i++){
-		addVar(var(a[i]));
-	}
-}
-
 bool PCSolver::addClause(vec<Lit>& lits){
-	addVars(lits);
 	return getSolver()->addClause(lits);
 }
 
 bool PCSolver::addRule(bool conj, vec<Lit>& lits){
 	assert(idsolverpresent);
-	addVars(lits);
 	return getIDSolver()->addRule(conj, lits);
 }
 
 bool PCSolver::addSet(int setid, vec<Lit>& lits, vector<Weight>& w){
 	assert(aggsolverpresent);
-	addVars(lits);
 	return getAggSolver()->addSet(setid, lits, w);
 }
 
 bool PCSolver::addAggrExpr(Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined){
 	assert(aggsolverpresent);
-	addVar(var(head));
 	if(sign(head)){
 		reportf( "No negative heads are allowed!\n");
 		exit(1);
@@ -182,23 +154,15 @@ bool PCSolver::addAggrExpr(Lit head, int setid, Weight bound, bool lower, AggrTy
 	return getAggSolver()->addAggrExpr(var(head), setid, bound, lower, type, defined);
 }
 
-bool PCSolver::finishParsing(){ //throws UNSAT
+void PCSolver::finishParsing(){ //throws UNSAT
     //important to call definition solver last
 	if(aggsolverpresent){
 		modes.aggr = getAggSolver()->finishECNF_DataStructures();
-		//
-		vector<Lit> trail = getSolver()->getTrail();
-		Clause* confl = NULL;
-		for (int i=0; i<trail.size() && confl==NULL; i++){
-			confl = getAggSolver()->propagate(trail[i]);
-		}
-		if(confl!=NULL){
-			return false;
-		}
 	}
 	if(idsolverpresent){
 		modes.def = getIDSolver()->finishECNF_DataStructures();
 	}
+	getSolver()->finishParsing();
 
 	if(!aggsolverpresent){
 		delete aggsolver;
@@ -214,10 +178,8 @@ bool PCSolver::finishParsing(){ //throws UNSAT
 		}
 	}
 	if(!modes.mnmz){
-		//TODO later
+		//later
 	}
-
-	return true;
 }
 
 /*********************
@@ -241,7 +203,7 @@ lbool PCSolver::checkStatus(lbool status) const{
 	if(!idsolverpresent || status!=l_True){
 		return status;
 	}
-	if(modes.sem==WELLF && !getIDSolver()->isWellFoundedModel()){
+	if(!getIDSolver()->isWellFoundedModel()){
 		return l_False;
 	}
 	return status;
@@ -256,9 +218,6 @@ void PCSolver::resetIDSolver(){
  **********************/
 
 Clause* PCSolver::getExplanation(Lit l){
-	if(modes.verbosity>2){
-		reportf("Find an explanation for "); gprintLit(l); reportf("\n");
-	}
 	return aggsolverpresent?getAggSolver()->getExplanation(l):NULL;
 }
 
@@ -277,9 +236,6 @@ void PCSolver::backtrackRest(Lit l){
 	if(idsolverpresent){
 		getIDSolver()->backtrack(l);
 	}
-	if(modsolverpresent){
-		getModSolver()->backtrack(l);
-	}
 }
 
 Clause* PCSolver::propagate(Lit l){
@@ -289,9 +245,6 @@ Clause* PCSolver::propagate(Lit l){
 	}
 	if(idsolverpresent && confl == NULL){
 		confl = getIDSolver()->propagate(l);
-	}
-	if(modsolverpresent && confl == NULL){
-		confl = getModSolver()->propagate(l);
 	}
 	return confl;
 }
@@ -312,22 +265,15 @@ bool PCSolver::simplify(){
 }
 
 bool PCSolver::simplifyRest(){
-	bool result = true;
 	if(idsolverpresent){
-		result = getIDSolver()->simplify();
+		return getIDSolver()->simplify();
+	}else{
+		return true;
 	}
-	if(modsolverpresent && result){
-		result = getModSolver()->simplify();
-	}
-	return result;
 }
 
-bool PCSolver::solve(){
-	vec<Lit> assmpt;
-	return solveAll(assmpt);
-}
 
-bool PCSolver::solveAll(vec<Lit>& assmpt){
+bool PCSolver::solve() {
 	bool solved = false;
 
 	if (modes.verbosity >= 1) {
@@ -340,22 +286,15 @@ bool PCSolver::solveAll(vec<Lit>& assmpt){
 	modelsfound = 0;
 	bool moremodels = true;
 
-	//permanent assump = assertions: add as clause
-	for(int i=0; i<assmpt.size(); i++){
-		vec<Lit> ps;
-		ps.push(assmpt[i]);
-		addClause(ps);
-	}
-
 	if(optim!=NONE){
+		vec<Lit> assmpt;
 		vec<Lit> model;
-		vec<Lit> assump;
-		findOptimal(assump, model);
+		findOptimal(assmpt, model);
 	}else{
 		while(moremodels && (nb_models==0 || modelsfound<nb_models)){
+			vec<Lit> assmpt;
 			vec<Lit> model;
-			vec<Lit> assump;
-			moremodels = findNext(assump, model);
+			moremodels = findNext(assmpt, model);
 		}
 	}
 
@@ -377,10 +316,6 @@ bool PCSolver::solveAll(vec<Lit>& assmpt){
 	return solved;
 }
 
-bool PCSolver::solve(const vec<Lit>& assmpt){
-	return getSolver()->solve(assmpt);
-}
-
 
 /**
  * Checks satisfiability of the theory.
@@ -396,7 +331,7 @@ bool PCSolver::solve(const vec<Lit>& assmpt){
  * na de assumptions, afhankelijk van of ze voor alle modellen moeten gelden of alleen voor het huidige).
  */
 bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m){
-	bool rslt = solve(assmpt);
+	bool rslt = getSolver()->solve(assmpt);
 
 	if(rslt){
 		modelsfound++;
@@ -413,7 +348,7 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m){
 		}
 
 		//check if more models can exist
-		if (getSolver()->getAllChoices().size() /*FIXME + assmpts.size() */!= 0) { //choices were made, so other models possible
+		if (getSolver()->trail_lim.size() /*FIXME + assmpts.size() */!= 0) { //choices were made, so other models possible
 			vec<Lit> invalidation;
 			invalidate(invalidation);
 			rslt = invalidateModel(invalidation);
@@ -429,9 +364,8 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m){
 void PCSolver::invalidate(vec<Lit>& invalidation){
 	// Add negation of model as clause for next iteration.
 	//add all choice literals
-	vector<Lit> v = getSolver()->getAllChoices();
-	for (int i = 0; i < v.size(); i++){
-		invalidation.push(~v[i]);
+	for (int i = 0; i < getSolver()->trail_lim.size(); i++){
+		invalidation.push(~getSolver()->trail[getSolver()->trail_lim[i]]);
 	}
 	//add all assumptions
 	/*for (int i = 0; i < assmpt.size(); i++){
@@ -460,13 +394,9 @@ bool PCSolver::invalidateModel(vec<Lit>& learnt) {
 	//FIXME: hier werd soms verder gebacktrackt dan het laagste decision level (in de unit propagaties dus)
 	//maar geen idee waarom dit nodig was. Mss toch eens nakijken?
 
-	if (modes.verbosity>=3) {
-		reportf("Adding model-invalidating clause: [ ");
-		gprintClause(learnt);
-		reportf("]\n");
-	}
-
+	if (modes.verbosity>=3) {	reportf("Adding model-invalidating clause: [ "); }
 	bool result = addClause(learnt);
+	if (modes.verbosity>=3) {	reportf("]\n"); }
 
 	getSolver()->varDecayActivity();
 	getSolver()->claDecayActivity();
@@ -636,7 +566,7 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 			}
 
 			if(!optimumreached){
-				if (getSolver()->getAllChoices().size() /*FIXME + assmpts.size() */!= 0) { //choices were made, so other models possible
+				if (getSolver()->trail_lim.size() /*FIXME + assmpts.size() */!= 0) { //choices were made, so other models possible
 					optimumreached = !invalidateModel(invalidation);
 				}else{
 					optimumreached = true;
@@ -674,4 +604,5 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 
 	return optimumreached;
 }
+////////////END TSOLVER
 

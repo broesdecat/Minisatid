@@ -2,8 +2,6 @@
 /* C++ declarations: */
 #include <iostream>
 #include "parse.tab.hh"
-#include "solverfwd.h"
-
 using namespace std;
 
 extern int lineNo;
@@ -31,11 +29,11 @@ extern bool parseError;
 
 "WSet"		{ADJ; return WSETDEFN;}
 "Set"		{ADJ; return SETDEFN;}
-"Card"		{ADJ; yylval.integer = CARD; return AGGDEFN;}
-"Sum"		{ADJ; yylval.integer = SUM; return AGGDEFN;}
-"Prod"		{ADJ; yylval.integer = PROD; return AGGDEFN;}
-"Min"		{ADJ; yylval.integer = MIN; return AGGDEFN;}
-"Max"		{ADJ; yylval.integer = MAX; return AGGDEFN;}
+"Card"		{ADJ; return CARDDEFN;}
+"Sum"		{ADJ; return SUMDEFN;}
+"Prod"		{ADJ; return PRODDEFN;}
+"Min"		{ADJ; return MINDEFN;}
+"Max"		{ADJ; return MAXDEFN;}
 
 "Mod"		{ADJ; return MODDEFN;}
 
@@ -46,9 +44,9 @@ extern bool parseError;
 
 "E"			{ADJ; return QUANT;} //existential quantifier
 
-"Mnmz"		{ADJ; return SUBSETMINDEFN;}
-"Mnmt"     	{ADJ; return MNMZDEFN;}
-"SumMnmz"	{ADJ; return SUMMINDEFN;}
+"Mnmz"	{ADJ; return SUBSETMINDEFN;}
+"Mnmt"     		{ADJ; return MNMZDEFN;}
+"SumMnmz"		{ADJ; return SUMMINDEFN;}
 
 " "			{ADJ; /* disregard whitespaces */}
 "\t"		{ADJ; /*                       */}
@@ -70,5 +68,4 @@ extern bool parseError;
 						<< yytext
 						<< "' encountered)." 
 						<< endl;
-				throw 333;
 			}

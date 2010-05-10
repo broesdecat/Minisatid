@@ -1,9 +1,9 @@
-c optimal if only 5 is true
+c optimal if 1 2 3 4 5 7
 
 p ecnf def aggr
 WSet 1 1=1 2=2 3=3 4=4 5=5 6=6 7=7 0
 SumMnmz 10 1 0
 -7 -6 0
-8 6 0
-9 5 0
+8 -6 0
+9 -5 0
 -8 -9 0

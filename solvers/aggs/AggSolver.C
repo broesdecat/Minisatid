@@ -105,7 +105,6 @@ bool AggSolver::finishECNF_DataStructures() {
 			}
 		}
 	}
-
 	if(modes.verbosity>=3){
 		reportf("Initializing finished.\n");
 	}
@@ -232,14 +231,6 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 		//return maxAggAsSAT(defined, lower, bound, head, *aggrmaxsets[setindex]);
 		ae = pAgg(new MaxAgg(b, bound, head, pSet(aggrmaxsets[setindex])));
 		break;
-	case CARD:
-#ifdef DEBUG
-		for(int i=0; i<aggrsumsets[setindex]->size(); i++){
-			if(aggrsumsets[setindex]->operator [](i).getWeight()!=1){
-				reportf("Cardinality was loaded with wrong weights");
-			}
-		}
-#endif
 	case SUM:{
 		/*bool allone = true;
 		for(lwlv::const_iterator i=aggrsumsets[setindex]->getWLBegin(); allone && i<aggrsumsets[setindex]->getWLEnd(); i++){

@@ -14,7 +14,7 @@ public:
 
 	virtual bool 	simplify() = 0;
 	virtual bool 	solve() = 0;
-	virtual bool 	finishParsing() = 0;
+	virtual void 	finishParsing() = 0;
 };
 
 #endif /* SOLVERI_H_ */
