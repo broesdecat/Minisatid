@@ -300,6 +300,17 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
     int pathC = 0;
     Lit p     = lit_Undef;
 
+    /*AB*/
+	/*int lvl = 0;
+	for (int i = 0; i < confl->size(); i++){
+		int litlevel = level[var(confl->operator [](i))];
+		if (litlevel > lvl){
+			lvl = litlevel;
+		}
+	}
+	assert(lvl==decisionLevel());*/
+    /*AE*/
+
     // Generate conflict clause:
     //
     out_learnt.push();      // (leave room for the asserting literal)
@@ -361,6 +372,14 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 		}
 
         if(confl==NULL && pathC>1){
+
+			reportf("Current learned clause: ");
+			for (int i = 0; i < out_learnt.size(); i++) {
+				printLit(out_learnt[i]);
+				reportf(" ");
+			}
+			reportf("\n");
+
         	confl = solver->getExplanation(p);
         	deleteImplicitClause = true;
         }

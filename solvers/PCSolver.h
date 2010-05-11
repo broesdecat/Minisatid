@@ -113,6 +113,7 @@ public:
 	 * Allows to loop over all assignments made in the current decision level.
 	 */
 	vector<Lit> getRecentAssignments() const;
+	int			getNbDecisions	() const;
 	vector<Lit>	getDecisions	() const;
 
 	bool 		totalModelFound	();				//true if the current assignment is completely two-valued

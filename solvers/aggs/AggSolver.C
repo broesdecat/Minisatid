@@ -385,25 +385,10 @@ Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 		aggr_reason[var(p)] = ar;
 		Clause* confl = getExplanation(p);
 
-		/*
-		 * Due to current possibly incomplete propagation, the conflict could possibly
-		 * have been derived at an earlier level. So check for this and first backtrack
-		 * to that level.
-		 */
-		int lvl = 0;
-		for (int i = 1; i < confl->size(); i++){
-			int litlevel = getSolver()->getLevel(var(confl->operator [](i)));
-			if (litlevel > lvl){
-				lvl = litlevel;
-			}
-		}
-		getSolver()->backtrackTo(lvl);
-
 		if(confl->size()>1){
 			getSolver()->addLearnedClause(confl);
 		}else{
 			//TODO: found a conflict of size one, which cannot be added easily. The solution of backtracking everything might not be the best.
-			getSolver()->backtrackTo(lvl);
 			vec<Lit> ps;
 			ps.push(confl->operator [](0));
 			getSolver()->addClause(ps);
@@ -465,6 +450,27 @@ Clause* AggSolver::getExplanation(const Lit& p) {
 	if (modes.verbosity >= 2) {
 		reportf("Implicit reason clause for ");
 		gprintLit(p, sign(p)?l_False:l_True); reportf(" : "); getSolver()->printClause(*c); reportf("\n");
+	}
+
+	/*
+	 * FIXME: toch maar gewoon in de SAT solver analyze schrijven? (is nogal SAT solver afhankelijk vermoed ik)
+	 * Due to current possibly incomplete propagation, the conflict could possibly
+	 * have been derived at an earlier level. So check for this and first backtrack
+	 * to that level.
+	 */
+	int lvl = 0;
+	for (int i = 0; i < c->size(); i++){
+		int litlevel = getSolver()->getLevel(var(c->operator [](i)));
+		if (litlevel > lvl){
+			lvl = litlevel;
+		}
+	}
+	if(getSolver()->getNbDecisions()>lvl){
+		if(modes.verbosity >= 2){
+			getSolver()->printClause(*c);
+			reportf("Backtracking from %d to %d", getSolver()->getNbDecisions(), lvl);
+		}
+		getSolver()->backtrackTo(lvl);
 	}
 
 	return c;

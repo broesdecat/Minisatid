@@ -108,6 +108,10 @@ vector<Lit> PCSolver::getRecentAssignments() const{
 	return getSolver()->getRecentAssignments();
 }
 
+int PCSolver::getNbDecisions() const{
+	return getSolver()->decisionLevel();
+}
+
 vector<Lit> PCSolver::getDecisions() const{
 	return getSolver()->getDecisions();
 }
