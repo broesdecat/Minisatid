@@ -108,6 +108,10 @@ vector<Lit> PCSolver::getRecentAssignments() const{
 	return getSolver()->getRecentAssignments();
 }
 
+vector<Lit> PCSolver::getDecisions() const{
+	return getSolver()->getDecisions();
+}
+
 bool PCSolver::totalModelFound(){
 	return getSolver()->totalModelFound();
 }
@@ -130,7 +134,7 @@ void PCSolver::varBumpActivity(Var v)	{
  ************************/
 
 Var PCSolver::newVar(){
-	Var v = getSolver()->newVar();
+	Var v = nVars();
 	addVar(v);
 	return v;
 }
@@ -377,6 +381,10 @@ bool PCSolver::solveAll(vec<Lit>& assmpt){
 	return solved;
 }
 
+bool PCSolver::solvenosearch(const vec<Lit>& assmpt){
+	return getSolver()->solve(assmpt, true);
+}
+
 bool PCSolver::solve(const vec<Lit>& assmpt){
 	return getSolver()->solve(assmpt);
 }
@@ -413,7 +421,7 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m){
 		}
 
 		//check if more models can exist
-		if (getSolver()->getAllChoices().size() /*FIXME + assmpts.size() */!= 0) { //choices were made, so other models possible
+		if (getSolver()->decisionLevel() /*FIXME + assmpts.size() */!= 0) { //choices were made, so other models possible
 			vec<Lit> invalidation;
 			invalidate(invalidation);
 			rslt = invalidateModel(invalidation);
@@ -429,7 +437,7 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m){
 void PCSolver::invalidate(vec<Lit>& invalidation){
 	// Add negation of model as clause for next iteration.
 	//add all choice literals
-	vector<Lit> v = getSolver()->getAllChoices();
+	vector<Lit> v = getSolver()->getDecisions();
 	for (int i = 0; i < v.size(); i++){
 		invalidation.push(~v[i]);
 	}
@@ -636,7 +644,7 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 			}
 
 			if(!optimumreached){
-				if (getSolver()->getAllChoices().size() /*FIXME + assmpts.size() */!= 0) { //choices were made, so other models possible
+				if (getSolver()->decisionLevel() /*FIXME + assmpts.size() */!= 0) { //choices were made, so other models possible
 					optimumreached = !invalidateModel(invalidation);
 				}else{
 					optimumreached = true;

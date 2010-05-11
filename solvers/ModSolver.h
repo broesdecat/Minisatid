@@ -57,7 +57,7 @@ struct LV{
 class ModSolver{
 private:
 	modindex id, parentid;
-	bool hasparent;
+	bool hasparent, searching;
 
 	LV			head;
 	vector<AV> 	atoms; //atoms which are rigid within this solver
@@ -67,6 +67,8 @@ private:
 	pPCSolver	solver;
 
 	weak_ptr<ModSolverData> modhier;
+
+	pPCSolver getSolver() const { return solver; }
 
 public:
 	ModSolver(modindex child, Lit head, shared_ptr<ModSolverData> mh);

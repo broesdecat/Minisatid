@@ -12,7 +12,7 @@ ModSolver::ModSolver(modindex child, Lit head, shared_ptr<ModSolverData> mh):
 		modescopy.nbmodels = 1;
 	}
 	solver = new PCSolver(modescopy);
-	solver->setModSolver(this);
+	getSolver()->setModSolver(this);
 	if(var(head)>0){
 		addVar(var(head));
 	}
@@ -60,7 +60,7 @@ void ModSolver::addChild(modindex childid){
 }
 
 bool ModSolver::finishParsing(){
-	bool result = solver->finishParsing();
+	bool result = getSolver()->finishParsing();
 
 	for(vmodindex::const_iterator i=getChildren().begin(); result && i<getChildren().end(); i++){
 		result = modhier.lock()->getModSolver(*i)->finishParsing();
@@ -70,7 +70,7 @@ bool ModSolver::finishParsing(){
 }
 
 bool ModSolver::simplify(){
-	bool result = solver->simplify();
+	bool result = getSolver()->simplify();
 
 	for(vmodindex::const_iterator i=getChildren().begin(); result && i<getChildren().end(); i++){
 		result = modhier.lock()->getModSolver(*i)->simplify();
@@ -80,44 +80,46 @@ bool ModSolver::simplify(){
 }
 
 void ModSolver::addVar(int var){
-	solver->addVar(var);
+	getSolver()->addVar(var);
 }
 
 bool ModSolver::addClause(vec<Lit>& lits){
 	addVars(lits);
-	return solver->addClause(lits);
+	return getSolver()->addClause(lits);
 }
 
 bool ModSolver::addRule(bool conj, vec<Lit>& lits){
 	addVars(lits);
-	return solver->addRule(conj,lits);
+	return getSolver()->addRule(conj,lits);
 }
 
 bool ModSolver::addSet(int setid, vec<Lit>& lits, vector<Weight>& w){
 	addVars(lits);
-	return solver->addSet(setid, lits, w);
+	return getSolver()->addSet(setid, lits, w);
 }
 
 bool ModSolver::addAggrExpr(Lit head, int set_id, Weight bound, bool lower, AggrType type, bool defined){
 	addVar(var(head));
-	return solver->addAggrExpr(head, set_id, bound, lower, type, defined);
+	return getSolver()->addAggrExpr(head, set_id, bound, lower, type, defined);
 }
 
 void ModSolver::setNbModels(int nb){
-	solver->setNbModels(nb);
+	getSolver()->setNbModels(nb);
 }
 
 void ModSolver::setRes(FILE* f){
-	solver->setRes(f);
+	getSolver()->setRes(f);
 }
 
 bool ModSolver::solve(){
 	//FIXME remove head from root
-	return solver->solve();
+	return getSolver()->solve();
 }
 
 Clause* ModSolver::propagateDown(Lit l){
 	Clause* confl = NULL;
+	bool result = false;
+	searching = false;
 
 	if(modes.verbosity>4){
 		gprintLit(l); reportf(" propagated down into modal solver %d.\n", getId()+1);
@@ -148,8 +150,6 @@ Clause* ModSolver::propagateDown(Lit l){
 		return confl;
 	}
 
-	//TODO unit propagation
-
 	//TODO: make 2 modsolvers, one to be the root
 	//If all rigid atoms and head are known, do search in this solver
 	bool allknown = true;
@@ -163,13 +163,26 @@ Clause* ModSolver::propagateDown(Lit l){
 			allknown = false;
 		}else{
 			//important: prevent double propagations! Only add what is not yet known by the solver
-			if(solver->value((*j).atom)==l_Undef){
+			if(getSolver()->value((*j).atom)==l_Undef){
 				assumpts.push(Lit((*j).atom, (*j).value==l_False));
 			}
 		}
 	}
 	if(!allknown){
-		return confl;
+		//FIXME this code is not correct
+		/*//do propagations
+		result = getSolver()->solvenosearch(assumpts);
+		if(!result){
+			//FIXME UNSAT found, so can certainly do something upwards!
+		}
+		getSolver()->backtrackTo(0);
+	}
+
+	//recheck whether all is known after propagation
+	for(vector<AV>::const_iterator j=getAtoms().begin(); j<getAtoms().end(); j++){
+		if((*j).value==l_Undef){*/
+			return confl;
+		/*}*/
 	}
 
 	if(modes.verbosity>4){
@@ -179,9 +192,9 @@ Clause* ModSolver::propagateDown(Lit l){
 	//FIXME: he starts searching before head is known, so any derivation will be a propagation,
 	//no a conflict!!!! => he now only starts when head is known
 
-	bool result = false;
 	assert(hasparent);
-	result = solver->solve(assumpts);
+	searching = true;
+	result = getSolver()->solve(assumpts);
 
 	//FIXME: returns a conflict which can be based on decision variables only,
 	//so clause learning will crash.
@@ -207,12 +220,18 @@ Clause* ModSolver::propagateDown(Lit l){
 		reportf("Finished checking lower solver %d: %s.\n", getId(), confl==NULL?"no conflict":"conflict");
 	}
 
-	//solver->backtrackTo(0);
+	getSolver()->backtrackTo(0);
 	return confl;
 }
 
 Clause* ModSolver::propagate(Lit l){
 	Clause* confl = NULL;
+
+	if(!searching){
+		vector<Lit> v = getSolver()->getDecisions();
+		//FIXME propagate up WITH reason
+	}
+
 	for(vmodindex::const_iterator i=getChildren().begin(); confl==NULL && i<getChildren().end(); i++){
 		confl = modhier.lock()->getModSolver(*i)->propagateDown(l);
 	}
@@ -223,12 +242,12 @@ Clause* ModSolver::propagate(Lit l){
 		 */
 		int lvl = 0;
 		for (int i = 0; i < confl->size(); i++){
-			int litlevel = solver->getLevel(var(confl->operator [](i)));
+			int litlevel = getSolver()->getLevel(var(confl->operator [](i)));
 			if (litlevel > lvl){
 				lvl = litlevel;
 			}
 		}
-		solver->backtrackTo(lvl);
+		getSolver()->backtrackTo(lvl);
 
 		if(modes.verbosity>4){
 			reportf("Level %d in modal %d.\n", lvl, getId());
@@ -241,7 +260,7 @@ void ModSolver::propagateUp(Lit l, modindex id){
 	assert(false);
 	//FIXME or include reason or extend getexplanation to modal solvers (first is maybe best)
 	//FIXME save id for clause learning
-	solver->setTrue(l);
+	getSolver()->setTrue(l);
 }
 
 void ModSolver::backtrack(Lit l){
@@ -254,7 +273,7 @@ void ModSolver::backtrack(Lit l){
 		if((*i).atom==var(l)){
 			if((*i).value!=l_Undef){
 				(*i).value = l_Undef;
-				solver->backtrackTo(solver->getLevel(var(l)));
+				getSolver()->backtrackTo(getSolver()->getLevel(var(l)));
 			}
 			break;
 		}
@@ -265,7 +284,7 @@ void ModSolver::backtrack(Lit l){
 }
 
 void ModSolver::printModel(){
-	solver->printModel();
+	getSolver()->printModel();
 }
 
 void printModSolver(const ModSolver* m){

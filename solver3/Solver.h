@@ -78,7 +78,8 @@ public:
 	int 		getLevel(int var) 			const;
 	bool 		totalModelFound();				//true if the current assignment is completely two-valued
 	vector<Lit> getTrail()const;
-	vector<Lit> getAllChoices() const;
+	vector<Lit> getDecisions() const;
+	int			decisionLevel    ()      const; // Gives the current decisionlevel.
 	vector<Lit> getRecentAssignments() const;
 	void    	varDecayActivity ();                      // Decay all variables with the specified factor. Implemented by increasing the 'bump' value instead.
 	void     	varBumpActivity  (Var v);                 // Increase a variable with the current 'bump' value.
@@ -100,7 +101,7 @@ public:
     // Solving:
     //
     bool    simplify     ();                        // Removes already satisfied clauses.
-    bool    solve        (const vec<Lit>& assumps); // Search for a model that respects a given set of assumptions.
+    bool    solve        (const vec<Lit>& assumps /*AB*/, bool nosearch = false/*AE*/); // Search for a model that respects a given set of assumptions.
     bool    solve        ();                        // Search without assumptions.
     bool    okay         () const;                  // FALSE means solver is in a conflicting state
 
@@ -211,7 +212,7 @@ protected:
     void     analyze          (Clause* confl, vec<Lit>& out_learnt, int& out_btlevel); // (bt = backtrack)
     void     analyzeFinal     (Lit p, vec<Lit>& out_conflict);                         // COULD THIS BE IMPLEMENTED BY THE ORDINARIY "analyze" BY SOME REASONABLE GENERALIZATION?
     bool     litRedundant     (Lit p, uint32_t abstract_levels);                       // (helper method for 'analyze()')
-    lbool    search           ();                    // Search for a given number of conflicts.
+    lbool    search           (/*AB*/bool nosearch = false/*AB*/);                    // Search for a given number of conflicts.
     void     reduceDB         ();                                                      // Reduce the set of learnt clauses.
     void     removeSatisfied  (vec<Clause*>& cs);                                      // Shrink 'cs' to contain only non-satisfied clauses.
 
@@ -232,7 +233,7 @@ protected:
 
     // Misc:
     //
-    int      decisionLevel    ()      const; // Gives the current decisionlevel.
+    /*AB*///int      decisionLevel    ()      const; // Gives the current decisionlevel.
     uint32_t abstractLevel    (Var x) const; // Used to represent an abstraction of sets of decision levels.
     double   progressEstimate ()      const; // DELETE THIS ?? IT'S NOT VERY USEFUL ...
 

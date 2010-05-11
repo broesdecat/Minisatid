@@ -116,7 +116,7 @@ vector<Lit> Solver::getTrail()const{
 	return v;
 }
 
-vector<Lit> Solver::getAllChoices()const {
+vector<Lit> Solver::getDecisions()const {
 	vector<Lit> v;
 	for(int i=0; i<trail_lim.size(); i++){
 		v.push_back(trail[trail_lim[i]]);
@@ -685,7 +685,7 @@ bool Solver::simplify()
 |    all variables are decision variables, this means that the clause set is satisfiable. 'l_False'
 |    if the clause set is unsatisfiable. 'l_Undef' if the bound on restart-strategy.
 |________________________________________________________________________________________________@*/
-lbool Solver::search()
+lbool Solver::search(/*AB*/bool nosearch/*AE*/)
 {
     assert(ok);
     int         backtrack_level;
@@ -774,6 +774,12 @@ lbool Solver::search()
             }
 
             if (next == lit_Undef){
+            	/*AB*/
+            	if(nosearch){
+            		return true;
+            	}
+            	/*AE*/
+
                 // New variable decision:
                 decisions++;
                 next = pickBranchLit(polarity_mode, random_var_freq);
@@ -814,7 +820,7 @@ double Solver::progressEstimate() const
 }
 
 
-bool Solver::solve(const vec<Lit>& assumps)
+bool Solver::solve(const vec<Lit>& assumps /*AB*/, bool nosearch /*AE*/)
 {
     model.clear();
     conflict.clear();
@@ -835,8 +841,13 @@ bool Solver::solve(const vec<Lit>& assumps)
 
     // Search:
     while (status == l_Undef){
-    	status = search();
+    	status = search(/*AB*/nosearch/*AE*/);
     	status = solver->checkStatus(status);
+    	/*AB*/
+    	if(nosearch){
+    		return status==l_True;
+    	}
+    	/*AE*/
     }
 
     if (status == l_True){
