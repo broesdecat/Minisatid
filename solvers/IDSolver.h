@@ -91,7 +91,8 @@ protected:
 	lbool	value(Lit p) const;
 	int		nVars()      const;
 
-	int64_t prev_conflicts/*not strictly a statistic!*/;
+	bool firstsearch;
+	uint64_t prev_conflicts/*not strictly a statistic!*/;
 
 	// Statistics: (read-only member variable)
 	//

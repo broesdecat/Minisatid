@@ -30,7 +30,7 @@ void AggSolver::remove(){
 	getSolver()->resetAggSolver();
 }
 
-void AggSolver::notifyVarAdded(int nvars){
+void AggSolver::notifyVarAdded(uint nvars){
 	assert(head_watches.size()<nvars);
 	head_watches.resize(nvars, NULL);
 	assert(head_watches.size()==nvars);
@@ -160,7 +160,7 @@ bool AggSolver::finishSets(vector<pSet>& sets){
 
 bool AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 	assert(set_id>0);
-	int setindex = set_id-1;
+	uint setindex = set_id-1;
 	if(lits.size()==0){
 		reportf("Error: Set nr. %d is empty.\n",set_id), exit(3);
 	}
@@ -199,12 +199,15 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 		reportf("Error: Set nr. %d is used, but not defined yet.\n",setid), exit(3);
 	}
 
+	assert(headv>-1);
+	uint nb = headv;
+
 	//INVARIANT: it has to be guaranteed that there is a watch on ALL heads
-	if(head_watches.size()>headv && head_watches[headv]!=NULL){
+	if(head_watches.size()>nb && head_watches[headv]!=NULL){
 		reportf("Error: Two aggregates have the same head(%d).\n", gprintVar(headv)), exit(3);
 	}
 
-	assert(head_watches.size()>headv);
+	assert(head_watches.size()>nb);
 
 	/*while(head_watches.size()<headv+1){
 		head_watches.push_back(pAgg(pAgg()));
@@ -294,11 +297,14 @@ bool AggSolver::addMnmzSum(Var headv, int setid, bool lower) {
 		reportf("Error: Set nr. %d is used, but not defined yet.\n",setid), exit(3);
 	}
 
-	if(head_watches.size()>headv && head_watches[headv]!=NULL){
+	assert(headv>0);
+	uint nb = headv;
+
+	if(head_watches.size()>nb && head_watches[headv]!=NULL){
 		reportf("Error: Two aggregates have the same head(%d).\n", gprintVar(headv)), exit(3);
 	}
 
-	assert(head_watches.size()>headv);
+	assert(head_watches.size()>nb);
 	/*while(head_watches.size()<headv+1){
 		head_watches.push_back(pAgg(pAgg()));
 	}*/

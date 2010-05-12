@@ -29,8 +29,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 // Constructor/Destructor:
 
 
-Solver::Solver(pPCSolver s/**A**/) :
-	solver(s), /**A**/
+Solver::Solver(pPCSolver s/*A*/) :
+	solver(s), /*A*/
     // Parameters: (formerly in 'SearchParams')
     var_decay(1 / 0.95), clause_decay(1 / 0.999), random_var_freq(0.02), learntsize_inc(1.1)
 
@@ -390,8 +390,8 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
         }
 
         if(verbosity>4){
-        	for(int i=0; i<explain.size(); i++){
-        		gprintLit(explain[i]); reportf(" ");
+        	for(vector<Lit>::const_iterator i=explain.begin(); i<explain.end(); i++){
+        		gprintLit(*i); reportf(" ");
         	}
         	reportf("\n");
 		}

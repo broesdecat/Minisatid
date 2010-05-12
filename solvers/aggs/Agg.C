@@ -346,6 +346,9 @@ void Agg::getExplanation(vec<Lit>& lits, AggrReason& ar) const{
 			case CPANDCC:
 				lits.push(~(*i).getLit());
 				break;
+			default:
+				assert(false);
+				break;
 			}
 		}
 	}

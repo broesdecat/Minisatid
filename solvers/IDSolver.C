@@ -32,8 +32,8 @@ inline bool IDSolver::isDisjunctive(Var v)			const	{ return getDefType(v)==DISJ;
 IDSolver::IDSolver(pPCSolver s):
 	solver(s),
 	init(true),
-	prev_conflicts(-1),
-//	//first time test (prev_conflicts==conflicts) should fail
+	firstsearch(true),
+	prev_conflicts(0),
 //	cycle_sources(0), justifiable_cycle_sources(0),
 //	cycles(0),
 //	cycle_sizes(0),
@@ -790,9 +790,9 @@ void IDSolver::findCycleSources() {
 	clearCycleSources();
 
 	vector<Lit> ass = getSolver()->getRecentAssignments();
-	if (prev_conflicts == getSolver()->getConflicts() && modes.defn_strategy == always && ass.size()>0) {
-		for(int i=0; i<ass.size(); i++){
-			Lit l = ass[i]; //l has become true, so find occurences of ~l
+	if (!firstsearch && prev_conflicts == getSolver()->getConflicts() && modes.defn_strategy == always && ass.size()>0) {
+		for(vector<Lit>::const_iterator i=ass.begin(); i<ass.end(); i++){
+			Lit l = *i; //l has become true, so find occurences of ~l
 
 			const vector<Var>& ds = disj_occurs[toInt(~l)];
 			for (vector<Var>::const_iterator j = ds.begin(); j < ds.end(); j++) {
@@ -810,6 +810,7 @@ void IDSolver::findCycleSources() {
 		}
 	} else {
 		// NOTE: with a clever trail system, we could even after conflicts avoid having to look at all rules.
+		firstsearch = false;
 		prev_conflicts = getSolver()->getConflicts();
 		for (int i = 0; i < defdVars.size(); i++) {
 			if(defType[defdVars[i]]==DISJ || defType[defdVars[i]]==AGGR){
@@ -919,7 +920,7 @@ bool IDSolver::findJustificationDisj(Var v, vec<Lit>& jstf) {
 bool IDSolver::indirectPropagateNow() {
 	bool propagate = true;
 	// if not always and state is three-valued.
-	if (modes.defn_strategy != always && getSolver()->totalModelFound()){
+	if (modes.defn_strategy != always && !getSolver()->totalModelFound()){
 		if (modes.defn_strategy == lazy){
 			propagate = false;
 		}
