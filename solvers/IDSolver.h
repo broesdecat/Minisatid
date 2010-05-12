@@ -82,7 +82,7 @@ public:
 	/////////////////////END INITIALIZATION
 
 protected:
-	bool recagg;	//true if recursive aggregates are present
+	bool 		recagg;	//true if recursive aggregates are present
 	vec<bool>	isCS;                   // Per atom: is it a cycle source?
 	bool 		init;
 	vec<int>	seen, seen2;

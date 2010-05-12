@@ -216,7 +216,7 @@ void parseCommandline(/*const pSolver& S, const pIDSolver& TS, const pAggSolver&
                 reportf("ERROR! unknown polarity-mode %s\n", value);
                 exit(0);
             }
-        }else if ((value = hasPrefix(argv[i], "-defn_strategy="))){
+        }else if ((value = hasPrefix(argv[i], "-defn-strategy="))){
             if (strcmp(value, "always") == 0){
             	modes.defn_strategy = always;
             }else if (strcmp(value, "adaptive") == 0){
@@ -227,7 +227,7 @@ void parseCommandline(/*const pSolver& S, const pIDSolver& TS, const pAggSolver&
                 reportf("ERROR! illegal definition strategy %s\n", value);
                 exit(0);
 			}
-        }else if ((value = hasPrefix(argv[i], "-defn_search="))){
+        }else if ((value = hasPrefix(argv[i], "-defn-search="))){
             if (strcmp(value, "include_cs") == 0)
             	modes.defn_search = include_cs;
             else if (strcmp(value, "stop_at_cs") == 0)
@@ -346,8 +346,8 @@ void printUsage(char** argv) {
 	reportf("  -decay         = <num> [ 0 - 1 ]\n");
 	reportf("  -rnd-freq      = <num> [ 0 - 1 ]\n");
 	reportf("  -verbosity     = {0,1,2}\n");
-	reportf("  -defn_strategy = {always,adaptive,lazy}\n");
-	reportf("  -defn_search   = {include_cs,stop_at_cs}\n");
+	reportf("  -defn-strategy = {always,adaptive,lazy}\n");
+	reportf("  -defn-search   = {include_cs,stop_at_cs}\n");
 	reportf("  -maxruntime    = <num> (in seconds)\n");
 	reportf("\n");
 }

@@ -385,6 +385,23 @@ Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 		aggr_reason[var(p)] = ar;
 		Clause* confl = getExplanation(p);
 
+		/*
+		 * FIXME: toch maar gewoon in de SAT solver analyze schrijven? (is nogal SAT solver afhankelijk vermoed ik)
+		 * Due to current possibly incomplete propagation, the conflict could possibly
+		 * have been derived at an earlier level. So check for this and first backtrack
+		 * to that level.
+		 */
+		int lvl = 0;
+		for (int i = 0; i < confl->size(); i++){
+			int litlevel = getSolver()->getLevel(var(confl->operator [](i)));
+			if (litlevel > lvl){
+				lvl = litlevel;
+			}
+		}
+		if(getSolver()->getNbDecisions()>lvl){
+			getSolver()->backtrackTo(lvl);
+		}
+
 		if(confl->size()>1){
 			getSolver()->addLearnedClause(confl);
 		}else{
@@ -458,7 +475,8 @@ Clause* AggSolver::getExplanation(const Lit& p) {
 	 * have been derived at an earlier level. So check for this and first backtrack
 	 * to that level.
 	 */
-	int lvl = 0;
+	//FIXME: dit mag hier niet staan denk ik, want dan zou hij ook backtracken als hij een reason clause aan het opstellen is. Zoek hier een oplossing voor!
+	/*int lvl = 0;
 	for (int i = 0; i < c->size(); i++){
 		int litlevel = getSolver()->getLevel(var(c->operator [](i)));
 		if (litlevel > lvl){
@@ -471,7 +489,7 @@ Clause* AggSolver::getExplanation(const Lit& p) {
 			reportf("Backtracking from %d to %d", getSolver()->getNbDecisions(), lvl);
 		}
 		getSolver()->backtrackTo(lvl);
-	}
+	}*/
 
 	return c;
 }

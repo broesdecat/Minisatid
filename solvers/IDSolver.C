@@ -1241,10 +1241,20 @@ Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
         loopf[1] = createPositiveLiteral(v);
 	}
 
+	bool canpropagate = true;
+	for(int i=1; canpropagate && i<loopf.size(); i++){
+		if(getSolver()->value(loopf[i])==l_Undef){
+			canpropagate = false;
+		}
+	}
+
 	for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
 		if(isUnknown(*tch)){
-			Clause* c = addLoopfClause(createNegativeLiteral(*tch), loopf);
-			getSolver()->setTrue(loopf[0], c);
+			Lit l = createNegativeLiteral(*tch);
+			Clause* c = addLoopfClause(l, loopf);
+			if(canpropagate){
+				getSolver()->setTrue(l, c);
+			}
 		}
 	}
 
