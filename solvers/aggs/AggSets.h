@@ -130,6 +130,8 @@ class AggrProdSet: public AggrSPSet{
 public:
 	AggrProdSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver s);
 
+	virtual bool 	initialize();
+
 	virtual WLit 	handleOccurenceOfBothSigns	(const WLit& one, const WLit& two);
 	virtual Weight	add							(const Weight& lhs, const Weight& rhs) const;
 	virtual Weight	remove						(const Weight& lhs, const Weight& rhs) const;

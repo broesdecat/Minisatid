@@ -1189,17 +1189,16 @@ Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	vec<Lit> loopf(1);
 	addExternalDisjuncts(ufs, loopf);
 
-	if (modes.defn_strategy != always) {// Maybe the loop formula could have been derived at an earlier level: in that case we first have to backtrack to that level.
-		// Set the backtrack level.
-		int lvl = 0;
-		for (int i = 1; i < loopf.size(); i++){
-			int litlevel = getSolver()->getLevel(var(loopf[i]));
-			if (litlevel > lvl){
-				lvl = litlevel;
-			}
+	// Maybe the loop formula could have been derived at an earlier level: in that case we first have to backtrack to that level.
+	// Set the backtrack level.
+	int lvl = 0;
+	for (int i = 1; i < loopf.size(); i++){
+		int litlevel = getSolver()->getLevel(var(loopf[i]));
+		if (litlevel > lvl){
+			lvl = litlevel;
 		}
-		getSolver()->backtrackTo(lvl);
 	}
+	getSolver()->backtrackTo(lvl);
 
 	// Check if any of the literals in the loop are already true, which leads to a conflict.
 	for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
@@ -1207,6 +1206,7 @@ Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 			loopf[0] = createNegativeLiteral(*tch);	//negate the head to create a clause
 			Clause* c = Clause_new(loopf, true);
 			if(c->size()>1){
+
 				getSolver()->addLearnedClause(c);
 				if (modes.verbosity >= 2) {
 					reportf("Adding conflicting loop formula: [ ");	print(*c); reportf("].\n");
@@ -1227,6 +1227,7 @@ Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
         if (modes.verbosity >= 2) { reportf("Adding new variable for loop formulas: %d.\n", gprintVar(v)); }
 
         // ~v \vee \bigvee\extdisj{L}
+
         addLoopfClause(createNegativeLiteral(v), loopf);
 
         // \forall d \in \extdisj{L}: ~d \vee v
