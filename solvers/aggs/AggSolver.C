@@ -30,7 +30,7 @@ void AggSolver::remove(){
 	getSolver()->resetAggSolver();
 }
 
-void AggSolver::notifyVarAdded(int nvars){
+void AggSolver::notifyVarAdded(uint nvars){
 	assert(head_watches.size()<nvars);
 	head_watches.resize(nvars, NULL);
 	assert(head_watches.size()==nvars);
@@ -160,7 +160,7 @@ bool AggSolver::finishSets(vector<pSet>& sets){
 
 bool AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 	assert(set_id>0);
-	int setindex = set_id-1;
+	uint setindex = set_id-1;
 	if(lits.size()==0){
 		reportf("Error: Set nr. %d is empty.\n",set_id), exit(3);
 	}
@@ -205,12 +205,15 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 		reportf("Error: Set nr. %d is used, but not defined yet.\n",setid), exit(3);
 	}
 
+	assert(headv>-1);
+	uint nb = headv;
+
 	//INVARIANT: it has to be guaranteed that there is a watch on ALL heads
-	if(head_watches.size()>headv && head_watches[headv]!=NULL){
+	if(head_watches.size()>nb && head_watches[headv]!=NULL){
 		reportf("Error: Two aggregates have the same head(%d).\n", gprintVar(headv)), exit(3);
 	}
 
-	assert(head_watches.size()>headv);
+	assert(head_watches.size()>nb);
 
 	/*while(head_watches.size()<headv+1){
 		head_watches.push_back(pAgg(pAgg()));
@@ -300,11 +303,14 @@ bool AggSolver::addMnmzSum(Var headv, int setid, bool lower) {
 		reportf("Error: Set nr. %d is used, but not defined yet.\n",setid), exit(3);
 	}
 
-	if(head_watches.size()>headv && head_watches[headv]!=NULL){
+	assert(headv>0);
+	uint nb = headv;
+
+	if(head_watches.size()>nb && head_watches[headv]!=NULL){
 		reportf("Error: Two aggregates have the same head(%d).\n", gprintVar(headv)), exit(3);
 	}
 
-	assert(head_watches.size()>headv);
+	assert(head_watches.size()>nb);
 	/*while(head_watches.size()<headv+1){
 		head_watches.push_back(pAgg(pAgg()));
 	}*/
@@ -391,6 +397,23 @@ Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 		aggr_reason[var(p)] = ar;
 		Clause* confl = getExplanation(p);
 
+		/*
+		 * FIXME: toch maar gewoon in de SAT solver analyze schrijven? (is nogal SAT solver afhankelijk vermoed ik)
+		 * Due to current possibly incomplete propagation, the conflict could possibly
+		 * have been derived at an earlier level. So check for this and first backtrack
+		 * to that level.
+		 */
+		int lvl = 0;
+		for (int i = 0; i < confl->size(); i++){
+			int litlevel = getSolver()->getLevel(var(confl->operator [](i)));
+			if (litlevel > lvl){
+				lvl = litlevel;
+			}
+		}
+		if(getSolver()->getNbDecisions()>lvl){
+			getSolver()->backtrackTo(lvl);
+		}
+
 		if(confl->size()>1){
 			getSolver()->addLearnedClause(confl);
 		}else{
@@ -464,7 +487,8 @@ Clause* AggSolver::getExplanation(const Lit& p) {
 	 * have been derived at an earlier level. So check for this and first backtrack
 	 * to that level.
 	 */
-	int lvl = 0;
+	//FIXME: dit mag hier niet staan denk ik, want dan zou hij ook backtracken als hij een reason clause aan het opstellen is. Zoek hier een oplossing voor!
+	/*int lvl = 0;
 	for (int i = 0; i < c->size(); i++){
 		int litlevel = getSolver()->getLevel(var(c->operator [](i)));
 		if (litlevel > lvl){
@@ -477,7 +501,7 @@ Clause* AggSolver::getExplanation(const Lit& p) {
 			reportf("Backtracking from %d to %d", getSolver()->getNbDecisions(), lvl);
 		}
 		getSolver()->backtrackTo(lvl);
-	}
+	}*/
 
 	return c;
 }

@@ -38,7 +38,6 @@ string printWeight<BigInteger>(const BigInteger& w);
 #else
 #define INTWEIGHT
 typedef int Weight;
-//FIXME FAST, NOT CORRECT ON OVERFLOW
 template <>
 string printWeight<int>(const int& w);
 

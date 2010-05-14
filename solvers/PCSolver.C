@@ -14,10 +14,10 @@ int PCSolver::getModID(){
 
 //Has to be value copy of modes!
 PCSolver::PCSolver(ECNF_mode modes):Data(),
+			aggsolverpresent(false), idsolverpresent(false), modsolverpresent(false),
 			res(NULL), nb_models(modes.nbmodels),
 			modelsfound(0), modes(modes),
-			optim(NONE),head(-1),
-			aggsolverpresent(false), idsolverpresent(false), modsolverpresent(false){
+			optim(NONE),head(-1){
 	solver = new Solver(this);
 	if(modes.def){
 		idsolver = new IDSolver(this);
@@ -84,8 +84,9 @@ lbool PCSolver::value(Var x) const{
 lbool PCSolver::value(Lit p) const{
 	return getSolver()->value(p);
 }
-int PCSolver::nVars() const{
-	return getSolver()->nVars();
+
+uint PCSolver::nVars() const{
+	return getSolver()->nbVars();
 }
 
 void PCSolver::addLearnedClause(Clause* c){
@@ -120,7 +121,7 @@ bool PCSolver::totalModelFound(){
 	return getSolver()->totalModelFound();
 }
 
-int	PCSolver::getConflicts(){
+uint64_t PCSolver::getConflicts(){
 	return getSolver()->conflicts;
 }
 
@@ -144,7 +145,9 @@ Var PCSolver::newVar(){
 }
 
 void PCSolver::addVar(Var v){
-	while (v >= nVars()){
+	assert(v>-1);
+	uint var = v;
+	while (var >= nVars()){
 		getSolver()->newVar(true, false);
 		//FIXME: it would seem to have to be -1, but isnt the case?
 		if(idsolverpresent){
@@ -197,8 +200,8 @@ bool PCSolver::finishParsing(){ //throws UNSAT
 		//
 		vector<Lit> trail = getSolver()->getTrail();
 		Clause* confl = NULL;
-		for (int i=0; i<trail.size() && confl==NULL; i++){
-			confl = getAggSolver()->propagate(trail[i]);
+		for (vector<Lit>::const_iterator i=trail.begin(); i<trail.end() && confl==NULL; i++){
+			confl = getAggSolver()->propagate(*i);
 		}
 		if(confl!=NULL){
 			return false;
@@ -416,7 +419,7 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m){
 		printModel();
 
 		m.clear();
-		for (int i = 0; i < nVars(); i++){
+		for (uint i = 0; i < nVars(); i++){
 			if(value(i)==l_True){
 				m.push(Lit(i, false));
 			}else if(value(i)==l_False){
@@ -442,8 +445,8 @@ void PCSolver::invalidate(vec<Lit>& invalidation){
 	// Add negation of model as clause for next iteration.
 	//add all choice literals
 	vector<Lit> v = getSolver()->getDecisions();
-	for (int i = 0; i < v.size(); i++){
-		invalidation.push(~v[i]);
+	for (vector<Lit>::const_iterator i = v.begin(); i < v.end(); i++){
+		invalidation.push(~(*i));
 	}
 	//add all assumptions
 	/*for (int i = 0; i < assmpt.size(); i++){
@@ -499,7 +502,8 @@ void PCSolver::printModel() const{
 		printf("%d model%s found.\n", modelsfound, modelsfound>1 ? "s" : "");
 	}
 
-	for (int i = 0; i < nVars(); i++){
+	int nvars = (int)nVars();
+	for (int i = 0; i < nvars; i++){
 		if (getSolver()->model[i] != l_Undef){
 			fprintf(res==NULL?stdout:res, "%s%s%d", (i == 0) ? "" : " ", (getSolver()->model[i]== l_True) ? "" : "-", i + 1);
 		}
@@ -621,7 +625,8 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 			}
 
 			m.clear();
-			for (int i = 0; i < nVars(); i++){
+			int nvars = (int)nVars();
+			for (int i = 0; i < nvars; i++){
 				if(value(i)==l_True){
 					m.push(Lit(i, false));
 				}else if(value(i)==l_False){
@@ -676,7 +681,8 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 		assert(optimumreached);
 		fprintf(res==NULL?stdout:res, " SAT\n");
 		printf("SATISFIABLE\n");
-		for (int i = 0; i < nVars(); i++){
+		int nvars = (int)nVars();
+		for (int i = 0; i < nvars; i++){
 			fprintf(res==NULL?stdout:res, "%s%s%d", (i == 0) ? "" : " ", !sign(m[i]) ? "" : "-", i + 1);
 		}
 		fprintf(res==NULL?stdout:res, " 0\n");

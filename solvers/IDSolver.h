@@ -82,7 +82,7 @@ public:
 	/////////////////////END INITIALIZATION
 
 protected:
-	bool recagg;	//true if recursive aggregates are present
+	bool 		recagg;	//true if recursive aggregates are present
 	vec<bool>	isCS;                   // Per atom: is it a cycle source?
 	bool 		init;
 	vec<int>	seen, seen2;
@@ -91,7 +91,8 @@ protected:
 	lbool	value(Lit p) const;
 	int		nVars()      const;
 
-	int64_t prev_conflicts/*not strictly a statistic!*/;
+	bool firstsearch;
+	uint64_t prev_conflicts/*not strictly a statistic!*/;
 
 	// Statistics: (read-only member variable)
 	//

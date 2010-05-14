@@ -8,7 +8,7 @@
 
 CSRCS	?= $(wildcard *.C)
 CHDRS	?= $(wildcard *.h)
-COBJS	?= $(addsuffix .o, $(basename $(CSRCS))) parse.tab.o lex.yy.o
+COBJS	?= $(addsuffix .o, $(basename $(CSRCS))) ../solvers/parse.tab.o ../solvers/lex.yy.o
 
 PCOBJS	= $(addsuffix p,  $(COBJS))
 DCOBJS	= $(addsuffix d,  $(COBJS))
@@ -80,7 +80,7 @@ lib$(LIB)d.a:	$(filter-out Main.od, $(DCOBJS))
 
 ## Linking rules (standard/profile/debug/release)
 $(EXEC) $(EXEC)_codecover $(EXEC)_profile $(EXEC)_debug $(EXEC)_release $(EXEC)_static:
-	@echo Linking: "$@ ( $^ )"
+	@echo Linking: "$@" #( $^ )"
 	@$(CXX) $^ $(LFLAGS) -o $@
 
 ## Library rule
@@ -97,9 +97,6 @@ clean:
 ## Make dependencies
 depend.mk: $(CSRCS) $(CHDRS)
 	@echo Making dependencies ...
-	@echo "headers $(CHDRS)"
-	@echo "sources $(CSRCS)"
-	@echo "objects $(COBJS)"
 	@$(CXX) $(CFLAGS) -MM $(CSRCS) > depend.mk
 	@cp depend.mk /tmp/depend.mk.tmp
 	@sed "s/o:/occ:/" /tmp/depend.mk.tmp >> depend.mk
@@ -109,3 +106,7 @@ depend.mk: $(CSRCS) $(CHDRS)
 	@rm /tmp/depend.mk.tmp
 
 -include depend.mk
+
+#@echo "headers $(CHDRS)"
+#@echo "sources $(CSRCS)"
+#@echo "objects $(COBJS)"

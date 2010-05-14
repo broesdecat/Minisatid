@@ -19,60 +19,31 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #ifndef Solver_h
 #define Solver_h
-
 #include <cstdio>
-#include <set>
-#include <map>
 
 #include "Vec.h"
-#include "Queue.h"
 #include "Heap.h"
 #include "Alg.h"
 
-#include "solverfwd.h"
+#include "SolverTypes.h"
+
+/*AB*/
 #include "debug.h"
-
-#include "IDSolver.h"
-#include "AggSolver.h"
-
-class IDSolver;
-class AggSolver;
-class Solver;
-typedef shared_ptr<IDSolver> pIDSolver;
-typedef weak_ptr<IDSolver> wpIDSolver;
-typedef shared_ptr<AggSolver> pAggSolver;
-typedef weak_ptr<AggSolver> wpAggSolver;
-typedef shared_ptr<Solver> pSolver;
-typedef weak_ptr<Solver> wpSolver;
-
-#ifdef _MSC_VER
-#include <ctime>
-
-static inline double cpuTime(void) {
-    return (double)clock() / CLOCKS_PER_SEC;
-}
-
-#else
-#include <sys/time.h>
-#include <sys/resource.h>
-#include <unistd.h>
-
-static inline double cpuTime(void) {
-    struct rusage ru;
-    getrusage(RUSAGE_SELF, &ru);
-    return (double)ru.ru_utime.tv_sec + (double)ru.ru_utime.tv_usec / 1000000;
-}
-#endif
+#include "PCSolver.h"
+class PCSolver;
+typedef PCSolver* pPCSolver;
+/*AE*/
 
 #if defined(__linux__)
 static inline int memReadStat(int field)
 {
+	int read;
     char    name[256];
     pid_t pid = getpid();
     sprintf(name, "/proc/%d/statm", pid);
     FILE*   in = fopen(name, "rb");
     if (in == NULL) return 0;
-    int     value = -1, read;
+    int     value;
     for (; field >= 0; field--){
     	read = fscanf(in, "%d", &value);
     	if(read==EOF){ break; }
@@ -95,86 +66,59 @@ static inline uint64_t memUsed() { return 0; }
 
 class Solver {
 private:
-	//this class is the owner, to allow most efficiency
-	pIDSolver 	tsolver;
-	pAggSolver	aggsolver;
+/*A*/	pPCSolver solver;
 
 public:
-	/////SMT NECESSARY
-	void 				setIDSolver				(const pIDSolver& s)	{ tsolver = s; }
-	void 				resetIDSolver			() 						{ tsolver.reset();}
-	void 				setAggSolver			(const pAggSolver& s)	{ aggsolver = s; }
-	void 				resetAggSolver			()						{ aggsolver.reset(); }
-	const pIDSolver& 	getIDSolver				()				const 	{ return tsolver; }
-	const pAggSolver& 	getAggSolver			()				const 	{ return aggsolver; }
-
-	lbool   value      (Var x) const;       // The current value of a variable.
-	lbool   value      (Lit p) const;       // The current value of a literal.
-	int     nVars      ()      const;       // The current number of variables.
-
-    //VERY VERY IMPORTANT: THE FIRST LITERAL IN THE CLAUSE HAS TO BE THE ONE WHICH CAN BE PROPAGATED FROM THE REST!!!!!!!
-    void 	addLearnedClause(Clause* c);	// don't check anything, just add it to the clauses and bump activity
-    bool    addClause		(vec<Lit>& ps);	// Add a clause to the solver. NOTE! 'ps' may be shrunk by this method!
-    void    backtrackTo		(int level);	// Backtrack until a certain level.
-    void    setTrue			(Lit p, Clause* from = NULL);				// Enqueue a literal. Assumes value of literal is undefined
-    Var		newVar			(bool polarity = true, bool dvar = false);	// Add a new variable with parameters specifying variable mode.
-	/////END SMT NECESSARY
-
-	/////////////////////TSOLVER NECESSARY
-    /*
-     * Returns the decision level at which a variable was deduced. This allows to get the variable that was propagated earliest/latest
-     */
-	int 	getLevel(int var) 			const;
-
-	/**
-	 * Allows to loop over all assignments made in the current decision level.
-	 */
-	Lit 	getRecentAssignments(int i) const;
-	int 	getNbOfRecentAssignments() 	const;
-
-    bool 	existsUnknownVar(); 								//true if the current assignment is completely two-valued
-	/////////////////////END TSOLVER NECESSARY
-
-    void finishParsing();
-
-    /*
-     * OPTIMIZATION INFORMATION
-     */
-
-    MINIM		optim;
-    Var 		head;
-    vec<Lit>	to_minimize;
-
-    void 	addMinimize(const vec<Lit>& lits, bool subsetmnmz);
-    void 	addSumMinimize(const Var head, const int setid);
-    bool 	invalidateValue(vec<Lit>& invalidation);
-	bool 	invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt);
-	bool 	findOptimal(vec<Lit>& assumps, vec<Lit>& m);
-
-	void    invalidateModel(vec<Lit>& invalidation);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
-	void 	invalidate(vec<Lit>& invalidation);
-	bool 	findNext	(const vec<Lit>& assumpts, vec<Lit>& model);
-	bool    solve        (const vec<Lit>& assumps); // Search for a model that respects a given set of assumptions.
-	bool    solve		();		// Search for nb_models models without assumptions.
-	void 	printModel	();
+/*AB*/
+	void		addLearnedClause(Clause* c);	// don't check anything, just add it to the clauses and bump activity
+	void		cancelUntil		(int level);	// Backtrack until a certain level.
+	void		uncheckedEnqueue(Lit p, Clause* from = NULL);				// Enqueue a literal. Assumes value of literal is undefined
+	int 		getLevel(int var) 			const;
+	bool 		totalModelFound();				//true if the current assignment is completely two-valued
+	vector<Lit> getTrail()const;
+	vector<Lit> getDecisions() const;
+	int			decisionLevel    ()      const; // Gives the current decisionlevel.
+	vector<Lit> getRecentAssignments() const;
+	void    	varDecayActivity ();                      // Decay all variables with the specified factor. Implemented by increasing the 'bump' value instead.
+	void     	varBumpActivity  (Var v);                 // Increase a variable with the current 'bump' value.
+	void     	claDecayActivity ();                      // Decay all clauses with the specified factor. Implemented by increasing the 'bump' value instead.
+	template<class C>
+	void     printClause      (const C& c);
+/*AE*/
 
     // Constructor/Destructor:
     //
-	Solver();
-    virtual ~Solver();
+    Solver(pPCSolver s /*A*/);
+    ~Solver();
+
+    // Problem specification:
+    //
+    Var     newVar    (bool polarity = true, bool dvar = true); // Add a new variable with parameters specifying variable mode.
+    bool    addClause (vec<Lit>& ps);                           // Add a clause to the solver. NOTE! 'ps' may be shrunk by this method!
 
     // Solving:
     //
-    bool    simplify	();		// Removes already satisfied clauses.
+    bool    simplify     ();                        // Removes already satisfied clauses.
+    bool    solve        (const vec<Lit>& assumps /*AB*/, bool nosearch = false/*AE*/); // Search for a model that respects a given set of assumptions.
+    bool    solve        ();                        // Search without assumptions.
+    bool    okay         () const;                  // FALSE means solver is in a conflicting state
 
-    FILE*   res;					// Report results in this file.
-    int     nb_models;				// Number of models wanted (all if N=0).
-    int		modelsfound;
+    void    setDecisionVar (Var v, bool b); // Declare if a variable should be eligible for selection in the decision heuristic.
+
+    // Read state:
+    //
+    lbool   value      (Var x) const;       // The current value of a variable.
+    lbool   value      (Lit p) const;       // The current value of a literal.
+    lbool   modelValue (Lit p) const;       // The value of a literal in the last model. The last call to solve must have been satisfiable.
+    int     nAssigns   ()      const;       // The current number of assigned literals.
+    int     nClauses   ()      const;       // The current number of original clauses.
+    int     nLearnts   ()      const;       // The current number of learnt clauses.
+    int     nVars      ()      const;       // The current number of variables.
+    uint    nbVars     ()      const;       // The current number of variables.
 
     // Variable mode:
     // 
     void    setPolarity    (Var v, bool b); // Declare which polarity the decision heuristic should use for a variable. Requires mode 'polarity_user'.
-    void    setDecisionVar (Var v, bool b); // Declare if a variable should be eligible for selection in the decision heuristic.
 
     // Extra results: (read-only member variable)
     //
@@ -192,30 +136,28 @@ public:
     int       polarity_mode;      // Controls which polarity the decision heuristic chooses. See enum below for allowed modes. (default polarity_false)
     double    random_seed;        // Used by the random variable selection.
     double    maxruntime;         // When 0: don't use it.
+    int       verbosity;          // Verbosity level. 0=silent, 1=some progress report                                         (default 0)
 
     // Statistics: (read-only member variable)
     //
     uint64_t starts, decisions, rnd_decisions, propagations, conflicts;
     uint64_t clauses_literals, learnts_literals, max_literals, tot_literals;
 
+    enum { polarity_true = 0, polarity_false = 1, polarity_user = 2, polarity_rnd = 3 };
+
     //Debug
     void     printLit         (Lit l);
-    template<class C>
-    void     printClause      (const C& c);
 
     // Maintaining Variable/Clause activity:
 	//
-	void     varDecayActivity ();                      // Decay all variables with the specified factor. Implemented by increasing the 'bump' value instead.
-	void     varBumpActivity  (Var v);                 // Increase a variable with the current 'bump' value.
-	void     claDecayActivity ();                      // Decay all clauses with the specified factor. Implemented by increasing the 'bump' value instead.
 	void     claBumpActivity  (Clause& c);             // Increase a clause with the current 'bump' value.
 
 protected:
     int			qhead;            // Head of queue (as index into the trail -- no more explicit propagation queue in MiniSat).
 	vec<Lit>	trail;            // Assignment stack; stores all assigments made in the order they were made.
 
-    bool    okay         () const;                  // FALSE means solver is in a conflicting state
-    int     decisionLevel()    const; 		// Gives the current decisionlevel.
+	/*A*///bool    okay         () const;                  // FALSE means solver is in a conflicting state
+    /*A*///int     decisionLevel()    const; 		// Gives the current decisionlevel.
 
     Clause* propagate        ();								// Perform unit propagation. Returns possibly conflicting clause.
 
@@ -275,18 +217,18 @@ protected:
     void     insertVarOrder   (Var x);                                                 // Insert a variable in the decision order priority queue.
     Lit      pickBranchLit    (int polarity_mode, double random_var_freq);             // Return the next decision variable.
     void     newDecisionLevel ();                                                      // Begins a new decision level.
-    void     cancelFurther    (int init_qhead);                                        // Backtrack within level 0 until the given 'qhead' value.
+    /*A*///void     cancelFurther    (int init_qhead);                                        // Backtrack within level 0 until the given 'qhead' value.
     void     analyze          (Clause* confl, vec<Lit>& out_learnt, int& out_btlevel); // (bt = backtrack)
     void     analyzeFinal     (Lit p, vec<Lit>& out_conflict);                         // COULD THIS BE IMPLEMENTED BY THE ORDINARIY "analyze" BY SOME REASONABLE GENERALIZATION?
     bool     litRedundant     (Lit p, uint32_t abstract_levels);                       // (helper method for 'analyze()')
-    lbool    search           (int nof_conflicts, int nof_learnts);                    								   // Search for a given number of conflicts. //CHANGED FOR 09z had args int nof_conflicts, int nof_learnts
+    lbool    search           (int nof_conflicts, int nof_learnts/*AB*/, bool nosearch/*AE*/);                    								   // Search for a given number of conflicts. //CHANGED FOR 09z had args int nof_conflicts, int nof_learnts
     void     reduceDB         ();                                                      // Reduce the set of learnt clauses.
     void     removeSatisfied  (vec<Clause*>& cs);                                      // Shrink 'cs' to contain only non-satisfied clauses.
 
-    lbool   modelValue (Lit p) const;       // The value of a literal in the last model. The last call to solve must have been satisfiable.
-    int     nClauses   ()      const;       // The current number of original clauses.
-    int     nAssigns   ()      const;       // The current number of assigned literas.
-    int     nLearnts   ()      const;       // The current number of learnt clauses.
+    /*A*///lbool   modelValue (Lit p) const;       // The value of a literal in the last model. The last call to solve must have been satisfiable.
+    /*A*///int     nClauses   ()      const;       // The current number of original clauses.
+    /*A*///int     nAssigns   ()      const;       // The current number of assigned literas.
+    /*A*///int     nLearnts   ()      const;       // The current number of learnt clauses.
 
     // Operations on clauses:
     //
@@ -366,8 +308,10 @@ inline void     Solver::setDecisionVar(Var v, bool b) { decision_var[v] = (char)
 inline bool     Solver::okay          ()      const   { return ok; }
 
 inline int		Solver::getLevel(int var)			const	{return level[var];}
-inline Lit	 	Solver::getRecentAssignments(int i) const	{return trail[i+trail_lim.last()];}
-inline int 		Solver::getNbOfRecentAssignments() 	const	{return trail_lim.size()==0?0:trail.size()-trail_lim.last();}
+
+/*AB*/
+inline uint     Solver::nbVars        ()      const   { return (uint)nVars(); }
+/*AE*/
 
 //=================================================================================================
 // Debug + etc:
