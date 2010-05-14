@@ -1,0 +1,15 @@
+Solver README:
+
+This is the solver of the IDP system. It generates models for theories in the propositional fragment of FO(.).
+
+To get it working, you need the following software packages:
+bison
+flex
+gcc, version 4.0 or up
+
+Optionally, the solver can be built with support for arbitrary precision integers, allowing large optimization problems.
+For this, the GMP (GNU Multi Precision library) has to be installed on your system. To built, replace
+CFLAGS    = -I$(MTL) ...
+with
+CFLAGS    = -D GMP -I$(MTL) ...
+in the makefile.
