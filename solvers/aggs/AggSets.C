@@ -203,13 +203,13 @@ bool AggrSumSet::initialize(){
 bool AggrProdSet::initialize(){
 #ifdef INTWEIGHT
 	//Test whether the total product of the weights is not infinity for intweights
-	Weight total(0);
+	Weight total(1);
 	for(lwlv::const_iterator i=wlits.begin(); i<wlits.end(); i++){
 		if(INT_MAX/total < (*i).getWeight()){
 			reportf("The total product of weights exceeds max-int, correctness cannot be guaranteed in limited precision.\n");
 			exit(3);
 		}
-		total += (*i).getWeight();
+		total *= (*i).getWeight();
 	}
 #endif
 

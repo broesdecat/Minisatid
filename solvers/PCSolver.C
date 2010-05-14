@@ -160,7 +160,7 @@ void PCSolver::addVar(Var v){
 	getSolver()->setDecisionVar(v,true); // S.nVars()-1   or   var
 }
 
-void PCSolver::addVars(vec<Lit>& a){
+void PCSolver::addVars(const vec<Lit>& a){
 	for(int i=0; i<a.size(); i++){
 		addVar(var(a[i]));
 	}
@@ -534,6 +534,7 @@ bool PCSolver::addMinimize(const vec<Lit>& lits, bool subset) {
 		optim = MNMZ;
 	}
 
+	addVars(lits);
 	for (int i = 0; i < lits.size(); i++){
 		to_minimize.push(lits[i]);
 	}
@@ -549,6 +550,7 @@ bool PCSolver::addSumMinimize(const Var head, const int setid){
 		exit(3);
 	}
 
+	addVar(head);
 	optim = SUMMNMZ;
 	this->head = head;
 	vec<Lit> cl;

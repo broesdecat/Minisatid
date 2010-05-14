@@ -195,9 +195,9 @@ mtheory	:	/* empty */
 		|	mtheory mwset
 		;
 			
-mnmz	:	MNMZDEFN body ZERO				{ CR(solver->addMinimize(lits, false)); lits.clear();}
+mnmz	:	MNMZDEFN body ZERO					{ CR(solver->addMinimize(lits, false)); lits.clear();}
 subsetmnmz: SUBSETMINDEFN body ZERO 		{ CR(solver->addMinimize(lits, true)); lits.clear();}
-summnmz :	SUMMINDEFN NUMBER NUMBER ZERO 	{ CR(solver->addSumMinimize(readVar($2), $3));}
+summnmz :	SUMMINDEFN NUMBER NUMBER ZERO { CR(solver->addSumMinimize(readVar($2), $3));}
 
 body	:  /* empty */
 		|  body NUMBER { addLit($2); }
@@ -205,9 +205,9 @@ body	:  /* empty */
 		
 varbody	:  /* empty */
 		|  varbody NUMBER	{ 
-								if($2<0){yyerror("Rigid atoms cannot have a sign.\n");}
-								nb.push_back(readVar($2)); 
-							}
+									if($2<0){yyerror("Rigid atoms cannot have a sign.\n");}
+									nb.push_back(readVar($2)); 
+								}
 		;
          
 wbody	:	/* empty */

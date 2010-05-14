@@ -65,7 +65,7 @@ public:
 
 	Var			newVar			();
 	void		addVar			(Var v);
-	void 		addVars			(vec<Lit>& a);
+	void 		addVars			(const vec<Lit>& a);
 	bool 		addClause		(vec<Lit>& lits);
 	bool 		addRule			(bool conj, vec<Lit>& lits);
 	bool 		addSet			(int set_id, vec<Lit>& lits, vector<Weight>& w);

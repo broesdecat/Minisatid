@@ -4,7 +4,7 @@
 #include <errno.h>
 
 #include <signal.h>
-#include <zlib.h>
+//#include <zlib.h>
 
 #if defined(__linux__)
 #include <fpu_control.h>

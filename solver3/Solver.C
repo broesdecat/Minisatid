@@ -266,6 +266,12 @@ Lit Solver::pickBranchLit(int polarity_mode, double random_var_freq)
         }else
             next = order_heap.removeMin();
 
+    /*AB*/
+    if(next==var_Undef){
+    	return lit_Undef;
+    }
+    /*AE*/
+
     bool sign = false;
     switch (polarity_mode){
     case polarity_true:  sign = false; break;
@@ -274,7 +280,9 @@ Lit Solver::pickBranchLit(int polarity_mode, double random_var_freq)
     case polarity_rnd:   sign = irand(random_seed, 2); break;
     default: assert(false); }
 
-    return next == var_Undef ? lit_Undef : Lit(next, sign);
+    /*AB*/ //omdat anders polarity[next] als eens durft crashen
+    return Lit(next, sign);
+    /*AE*/
 }
 
 

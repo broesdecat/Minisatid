@@ -764,7 +764,7 @@ Clause* IDSolver::indirectPropagate() {
  	Clause* confl = NULL;
 	if (ufs_found) {
 		if (modes.verbosity >= 2) {
-			reportf("Found an unfounded set of size %d: {",ufs.size());
+			reportf("Found an unfounded set of size %d: {",(int)ufs.size());
 			for (std::set<Var>::iterator it = ufs.begin(); it != ufs.end(); ++it)
 				reportf(" %d",gprintVar(*it));
 			reportf(" }.\n");
