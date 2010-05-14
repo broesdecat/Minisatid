@@ -1,0 +1,3 @@
+p ecnf aggr
+WSet 1 1=4200000000 0
+Max C G 2 1 5 0
