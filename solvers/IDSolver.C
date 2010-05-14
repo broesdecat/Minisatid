@@ -1190,18 +1190,6 @@ Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	vec<Lit> loopf(1);
 	addExternalDisjuncts(ufs, loopf);
 
-	if (modes.defn_strategy != always) {// Maybe the loop formula could have been derived at an earlier level: in that case we first have to backtrack to that level.
-		// Set the backtrack level.
-		int lvl = 0;
-		for (int i = 1; i < loopf.size(); i++){
-			int litlevel = getSolver()->getLevel(var(loopf[i]));
-			if (litlevel > lvl){
-				lvl = litlevel;
-			}
-		}
-		getSolver()->backtrackTo(lvl);
-	}
-
 	// Check if any of the literals in the loop are already true, which leads to a conflict.
 	for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
 		if (isTrue(*tch)) {

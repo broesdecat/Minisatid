@@ -300,7 +300,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
     int pathC = 0;
     Lit p     = lit_Undef;
 
-    /*AB*/
+    /*AB VERY IMPORTANT*/
 	int lvl = 0;
 	for (int i = 0; i < confl->size(); i++){
 		int litlevel = level[var(confl->operator [](i))];
