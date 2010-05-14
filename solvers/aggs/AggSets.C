@@ -166,7 +166,6 @@ bool AggrSet::initialize(){
 }
 
 bool AggrSumSet::initialize(){
-	//Calculate the total negative weight to make all weight positive
 	lwlv wlits2;
 	Weight totalneg(0);
 	for(lwlv::const_iterator i=wlits.begin(); i<wlits.end(); i++){
@@ -184,37 +183,9 @@ bool AggrSumSet::initialize(){
 		}
 	}
 
-#ifdef INTWEIGHT
-	//Test whether the total sum of the weights is not infinity for intweights
-	Weight total(0);
-	for(lwlv::const_iterator i=wlits.begin(); i<wlits.end(); i++){
-		if(INT_MAX-total < (*i).getWeight()){
-			reportf("The total sum of weights exceeds max-int, correctness cannot be guaranteed in limited precision.\n");
-			exit(3);
-		}
-		total += (*i).getWeight();
-	}
-#endif
-
 	return AggrSet::initialize();
 }
 
-
-bool AggrProdSet::initialize(){
-#ifdef INTWEIGHT
-	//Test whether the total product of the weights is not infinity for intweights
-	Weight total(0);
-	for(lwlv::const_iterator i=wlits.begin(); i<wlits.end(); i++){
-		if(INT_MAX/total < (*i).getWeight()){
-			reportf("The total product of weights exceeds max-int, correctness cannot be guaranteed in limited precision.\n");
-			exit(3);
-		}
-		total += (*i).getWeight();
-	}
-#endif
-
-	return AggrSet::initialize();
-}
 
 /*****************
  * MAX AGGREGATE *
@@ -269,34 +240,12 @@ WLit AggrMaxSet::handleOccurenceOfBothSigns(const WLit& one, const WLit& two){
  *****************/
 
 Weight	AggrSumSet::add(const Weight& lhs, const Weight& rhs) const{
-#ifdef INTWEIGHT
-	if(lhs>0 && rhs > 0 && INT_MAX-lhs < rhs){
-		return INT_MAX;
-	}else if(lhs<0 && rhs<0 && INT_MIN-lhs>rhs){
-		return INT_MIN;
-	}
-#endif
 	return lhs+rhs;
 }
 Weight	AggrSumSet::remove(const Weight& lhs, const Weight& rhs) const{
 	return lhs-rhs;
 }
 Weight	AggrProdSet::add(const Weight& lhs, const Weight& rhs) const{
-#ifdef INTWEIGHT
-	bool sign = false;
-	Weight l = lhs, r = rhs;
-	if(l<0){
-		l= -l;
-		sign = true;
-	}
-	if(r<0){
-		r = -r;
-		sign = !sign;
-	}
-	if(INT_MAX/l < r){
-		return sign?INT_MIN:INT_MAX;
-	}
-#endif
 	return lhs*rhs;
 }
 Weight	AggrProdSet::remove(const Weight& lhs, const Weight& rhs) const{

@@ -170,12 +170,6 @@ bool AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 
 	vector<Weight> weights2; //inverted weights to handle minimum as maximum
 	for(vector<Weight>::iterator i=weights.begin(); i<weights.end(); i++){
-#ifdef INTWEIGHT
-		if(*i == INT_MAX || *i == INT_MIN){
-			reportf("Weights equal to or larger than the largest integer number are not allowed in limited precision.\n");
-			exit(3);
-		}
-#endif
 		weights2.push_back(-Weight(*i));
 	}
 

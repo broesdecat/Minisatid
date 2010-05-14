@@ -349,23 +349,6 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
     int index   = trail.size() - 1;
     out_btlevel = 0;
 
-//    reportf("Conflicts: %d.\n", conflicts);
-
-    /*if(conflicts>43954){
-    	reportf("Choices: ");
-    	for(int i=0; i<trail_lim.size(); i++){
-			gprintLit(trail[trail_lim[i]]);reportf(" ");
-		}
-		reportf("\n");
-		reportf("Trail: ");
-    	for(int i=0; i<trail.size(); i++){
-    		gprintLit(trail[i]);reportf(" ");
-    	}
-    	reportf("\n");
-    	reportf("Confl: "); printClause(*confl);
-    	verbosity = 3;
-    }*/
-
 	/*A*/bool deleteImplicitClause = false;
     do{
         assert(confl != NULL);          // (otherwise should be UIP)

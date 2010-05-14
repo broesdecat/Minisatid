@@ -6,23 +6,26 @@ string printWeight(const T& w){
 	exit(1);
 }
 
-#ifdef GMPWEIGHT
+#ifdef GMP
 template <>
 string printWeight<mpz_class>(const mpz_class& w){
 	return w.get_str();
 }
-#endif
-#ifdef BIGINTWEIGHT
+
+#else
+#ifdef BIGINT
 template <>
 string printWeight<BigInteger>(const BigInteger& w){
 	return bigIntegerToString(w);
 }
-#endif
-#ifdef INTWEIGHT
+
+#else
 template <>
 string printWeight<int>(const int& w){
 	char s[15];
 	sprintf(s, "%d", w);
 	return s;
 }
+
+#endif
 #endif

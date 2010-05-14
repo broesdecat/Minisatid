@@ -17,7 +17,6 @@ template <typename T>
 string printWeight(const T& w);
 
 #ifdef GMP
-#define GMPWEIGHT
 #include "gmpxx.h"
 typedef mpz_class Weight;
 
@@ -27,7 +26,6 @@ string printWeight<mpz_class>(const mpz_class& w);
 
 #else
 #ifdef BIGINT
-#define BIGINTWEIGHT
 #include "BigInteger.hh"
 #include "BigIntegerUtils.hh"
 typedef BigInteger Weight;
@@ -36,7 +34,6 @@ template <>
 string printWeight<BigInteger>(const BigInteger& w);
 
 #else
-#define INTWEIGHT
 typedef int Weight;
 template <>
 string printWeight<int>(const int& w);

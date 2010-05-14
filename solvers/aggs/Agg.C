@@ -159,34 +159,12 @@ Clause* MaxAgg::propagate(bool headtrue) {
  *****************/
 
 Weight	SumAgg::add(const Weight& lhs, const Weight& rhs) const{
-#ifdef INTWEIGHT
-	if(lhs>0 && rhs > 0 && INT_MAX-lhs < rhs){
-		return INT_MAX;
-	}else if(lhs<0 && rhs<0 && INT_MIN-lhs>rhs){
-		return INT_MIN;
-	}
-#endif
 	return lhs+rhs;
 }
 Weight	SumAgg::remove(const Weight& lhs, const Weight& rhs) const{
 	return lhs-rhs;
 }
 Weight	ProdAgg::add(const Weight& lhs, const Weight& rhs) const{
-#ifdef INTWEIGHT
-	bool sign = false;
-	Weight l = lhs, r = rhs;
-	if(l<0){
-		l= -l;
-		sign = true;
-	}
-	if(r<0){
-		r = -r;
-		sign = !sign;
-	}
-	if(INT_MAX/l < r){
-		return sign?INT_MIN:INT_MAX;
-	}
-#endif
 	return lhs*rhs;
 }
 Weight	ProdAgg::remove(const Weight& lhs, const Weight& rhs) const{
@@ -261,12 +239,6 @@ Clause* SPAgg::propagate(bool headtrue){
 			weightbound = this->remove(getUpperBound(), s->getCC());
 		}
 	}
-
-#ifdef INTWEIGHT
-	if(weightbound == INT_MAX || weightbound == INT_MIN){
-		return c;
-	}
-#endif
 
 	lwlv::const_iterator pos = lower_bound(s->getWLBegin(), s->getWLEnd(), weightbound);
 	if(pos==s->getWLEnd()){
