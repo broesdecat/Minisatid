@@ -30,7 +30,7 @@ void AggSolver::remove(){
 	getSolver()->resetAggSolver();
 }
 
-void AggSolver::notifyVarAdded(uint nvars){
+void AggSolver::notifyVarAdded(uint64_t nvars){
 	assert(head_watches.size()<nvars);
 	head_watches.resize(nvars, NULL);
 	assert(head_watches.size()==nvars);
@@ -160,7 +160,7 @@ bool AggSolver::finishSets(vector<pSet>& sets){
 
 bool AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 	assert(set_id>0);
-	uint setindex = set_id-1;
+	uint64_t setindex = set_id-1;
 	if(lits.size()==0){
 		reportf("Error: Set nr. %d is empty.\n",set_id), exit(3);
 	}
@@ -206,7 +206,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 	}
 
 	assert(headv>-1);
-	uint nb = headv;
+	uint64_t nb = headv;
 
 	//INVARIANT: it has to be guaranteed that there is a watch on ALL heads
 	if(head_watches.size()>nb && head_watches[headv]!=NULL){
@@ -304,7 +304,7 @@ bool AggSolver::addMnmzSum(Var headv, int setid, bool lower) {
 	}
 
 	assert(headv>0);
-	uint nb = headv;
+	uint64_t nb = headv;
 
 	if(head_watches.size()>nb && head_watches[headv]!=NULL){
 		reportf("Error: Two aggregates have the same head(%d).\n", gprintVar(headv)), exit(3);

@@ -116,7 +116,7 @@ public:
     int     nClauses   ()      const;       // The current number of original clauses.
     int     nLearnts   ()      const;       // The current number of learnt clauses.
     int     nVars      ()      const;       // The current number of variables.
-    uint    nbVars     ()      const;       // The current number of variables.
+    uint64_t    nbVars     ()      const;       // The current number of variables.
 
     // Extra results: (read-only member variable)
     //
@@ -307,9 +307,9 @@ inline void     Solver::setDecisionVar(Var v, bool b) { decision_var[v] = (char)
 inline bool     Solver::solve         ()              { vec<Lit> tmp; return solve(tmp); }
 inline bool     Solver::okay          ()      const   { return ok; }
 
-inline int		Solver::getLevel(int var)			const	{return level[var];}
+inline int		Solver::getLevel	  (int var) const {return level[var];}
 /*AB*/
-inline uint     Solver::nbVars        ()      const   { return (uint)nVars(); }
+inline uint64_t Solver::nbVars        ()      const   { return (uint64_t)nVars(); }
 /*AE*/
 
 //=================================================================================================

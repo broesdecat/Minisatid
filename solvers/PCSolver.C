@@ -14,6 +14,7 @@ int PCSolver::getModID(){
 
 //Has to be value copy of modes!
 PCSolver::PCSolver(ECNF_mode modes):Data(),
+			solver(NULL), idsolver(NULL), aggsolver(NULL), modsolver(NULL),
 			aggsolverpresent(false), idsolverpresent(false), modsolverpresent(false),
 			res(NULL), nb_models(modes.nbmodels),
 			modelsfound(0), modes(modes),
@@ -85,7 +86,7 @@ lbool PCSolver::value(Lit p) const{
 	return getSolver()->value(p);
 }
 
-uint PCSolver::nVars() const{
+uint64_t PCSolver::nVars() const{
 	return getSolver()->nbVars();
 }
 
@@ -146,7 +147,7 @@ Var PCSolver::newVar(){
 
 void PCSolver::addVar(Var v){
 	assert(v>-1);
-	uint var = v;
+	uint64_t var = v;
 	while (var >= nVars()){
 		getSolver()->newVar(true, false);
 		//FIXME: it would seem to have to be -1, but isnt the case?
@@ -211,14 +212,14 @@ bool PCSolver::finishParsing(){ //throws UNSAT
 		modes.def = getIDSolver()->finishECNF_DataStructures();
 	}
 
-	if(!aggsolverpresent){
+	if(!aggsolverpresent && modes.aggr){ //In this case, the aggsolver has been initialized and will not be present
 		delete aggsolver;
 		if(modes.verbosity>0){
 			reportf("|                                                                             |\n"
 					"|    (there will be no aggregate propagations)                                |\n");
 		}
 	}
-	if(!idsolverpresent){
+	if(!idsolverpresent && modes.def){ //In this case, the idsolver has been initialized and will not be present
 		delete idsolver;
 		if(modes.verbosity>0){
 			reportf("|    (there will be no definitional propagations)                             |\n");
@@ -419,7 +420,7 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m){
 		printModel();
 
 		m.clear();
-		for (uint i = 0; i < nVars(); i++){
+		for (uint64_t i = 0; i < nVars(); i++){
 			if(value(i)==l_True){
 				m.push(Lit(i, false));
 			}else if(value(i)==l_False){

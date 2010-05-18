@@ -97,7 +97,7 @@ public:
 
 	lbool		value			(Var x) const;		// The current value of a variable.
 	lbool		value			(Lit p) const;		// The current value of a literal.
-	uint			nVars			()      const;		// The current number of variables.
+	uint64_t	nVars			()      const;		// The current number of variables.
 
 	//IMPORTANT: THE FIRST LITERAL IN THE CLAUSE HAS TO BE THE ONE WHICH CAN BE PROPAGATED FROM THE REST!!!!!!!
 	void 		addLearnedClause(Clause* c);	// don't check anything, just add it to the clauses and bump activity

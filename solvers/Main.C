@@ -10,6 +10,7 @@
 #include <fpu_control.h>
 #endif
 
+#if defined(__linux__)
 #ifdef _MSC_VER
 #include <ctime>
 
@@ -27,6 +28,9 @@ static inline double cpuTime(void) {
     getrusage(RUSAGE_SELF, &ru);
     return (double)ru.ru_utime.tv_sec + (double)ru.ru_utime.tv_usec / 1000000;
 }
+#endif
+#else
+static inline double cpuTime(void) { return 0; }
 #endif
 
 #include "solverfwd.h"
@@ -111,7 +115,9 @@ int main(int argc, char** argv) {
 	double cpu_time = cpuTime();
 
 	signal(SIGINT, SIGINT_handler);
+#if defined(__linux__)
 	signal(SIGHUP, SIGINT_handler);
+#endif
 
 	if (argc == 1)
 		reportf("Reading from standard input... Use '-h' or '--help' for help.\n");
