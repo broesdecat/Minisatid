@@ -70,6 +70,12 @@ lib$(LIB)d.a:	$(filter-out Main.od, $(DCOBJS))
 ## Build parser
 %.o %.op %.od %.or %.occ:	%.cc
 	@$(CXX) $(CFLAGS) -c -o $@ $<
+	
+%.tab.cc: %.yy
+	bison --defines --output=$@ $<
+	
+%.yy.C: %.ll
+	flex -o$@ $<
 
 ## Linking rules (standard/profile/debug/release)
 $(EXEC) $(EXEC)_codecover $(EXEC)_profile $(EXEC)_debug $(EXEC)_release $(EXEC)_static:
