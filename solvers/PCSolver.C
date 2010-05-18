@@ -197,7 +197,7 @@ bool PCSolver::addAggrExpr(Lit head, int setid, Weight bound, bool lower, AggrTy
 bool PCSolver::finishParsing(){ //throws UNSAT
     //important to call definition solver last
 	if(aggsolverpresent){
-		modes.aggr = getAggSolver()->finishECNF_DataStructures();
+		idsolverpresent = getAggSolver()->finishECNF_DataStructures();
 		//
 		vector<Lit> trail = getSolver()->getTrail();
 		Clause* confl = NULL;
@@ -209,7 +209,7 @@ bool PCSolver::finishParsing(){ //throws UNSAT
 		}
 	}
 	if(idsolverpresent){
-		modes.def = getIDSolver()->finishECNF_DataStructures();
+		idsolverpresent = getIDSolver()->finishECNF_DataStructures();
 	}
 
 	if(!aggsolverpresent && modes.aggr){ //In this case, the aggsolver has been initialized and will not be present

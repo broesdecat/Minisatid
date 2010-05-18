@@ -31,6 +31,7 @@ inline bool IDSolver::isDisjunctive(Var v)			const	{ return getDefType(v)==DISJ;
 
 IDSolver::IDSolver(pPCSolver s):
 	solver(s),
+	aggsolver(NULL),
 	init(true),
 	firstsearch(true),
 	prev_conflicts(0),
