@@ -30,7 +30,7 @@ s:	$(EXEC)
 p:	$(EXEC)_profile
 d:	$(EXEC)_debug
 r:	$(EXEC)_release
-cc: 	$(EXEC)_codecover
+cc: $(EXEC)_codecover
 rs:	$(EXEC)_static
 lib:	lib$(LIB).a
 libd:	lib$(LIB)d.a
@@ -71,13 +71,6 @@ lib$(LIB)d.a:	$(filter-out Main.od, $(DCOBJS))
 %.o %.op %.od %.or %.occ:	%.cc
 	@$(CXX) $(CFLAGS) -c -o $@ $<
 
-%.tab.cc:  %.yy
-	bison --defines --output=$@ $<
-
-%.yy.C:	%.ll
-	flex -o$@ $<
-
-
 ## Linking rules (standard/profile/debug/release)
 $(EXEC) $(EXEC)_codecover $(EXEC)_profile $(EXEC)_debug $(EXEC)_release $(EXEC)_static:
 	@echo Linking: "$@" #( $^ )"
@@ -98,12 +91,12 @@ clean:
 depend.mk: $(CSRCS) $(CHDRS)
 	@echo Making dependencies ...
 	@$(CXX) $(CFLAGS) -MM $(CSRCS) > depend.mk
-	@cp depend.mk /tmp/depend.mk.tmp
-	@sed "s/o:/occ:/" /tmp/depend.mk.tmp >> depend.mk
-	@sed "s/o:/op:/" /tmp/depend.mk.tmp >> depend.mk
-	@sed "s/o:/od:/" /tmp/depend.mk.tmp >> depend.mk
-	@sed "s/o:/or:/" /tmp/depend.mk.tmp >> depend.mk
-	@rm /tmp/depend.mk.tmp
+	@cp depend.mk depend.mk.tmp
+	@sed "s/o:/occ:/" depend.mk.tmp >> depend.mk
+	@sed "s/o:/op:/" depend.mk.tmp >> depend.mk
+	@sed "s/o:/od:/" depend.mk.tmp >> depend.mk
+	@sed "s/o:/or:/" depend.mk.tmp >> depend.mk
+	@rm depend.mk.tmp
 
 -include depend.mk
 
