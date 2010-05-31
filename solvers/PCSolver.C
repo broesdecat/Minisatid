@@ -5,9 +5,9 @@
  * INITIALIZATION *
  ******************/
 
-int PCSolver::getModID(){
+int PCSolver::getModPrintID(){
 	if(modsolver!=NULL){
-		return modsolver->getId();
+		return modsolver->getPrintId();
 	}
 	return -1;
 }
@@ -306,7 +306,7 @@ void PCSolver::backtrackRest(Lit l){
 		getIDSolver()->backtrack(l);
 	}
 	if(modsolverpresent){
-		getModSolver()->backtrack(l);
+		getModSolver()->backtrackFromSameLevel(l);
 	}
 }
 

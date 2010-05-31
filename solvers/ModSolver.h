@@ -13,13 +13,13 @@
 using namespace std;
 
 class PCSolver;
-
 typedef PCSolver* pPCSolver;
 
 class ModSolverData;
-class ModSolver;
 
+class ModSolver;
 typedef ModSolver* pModSolver;
+
 typedef vector<pModSolver> vmsolvers;
 typedef vmsolvers::size_type modindex;
 typedef vector<modindex> vmodindex;
@@ -61,6 +61,7 @@ private:
 
 	LV			head;
 	vector<AV> 	atoms; //atoms which are rigid within this solver
+	vector<bool> propfromabove;
 
 	vmodindex children;
 
@@ -88,9 +89,7 @@ public:
 	Clause* getExplanation(Lit l);*/
 
 	//data initialization
-	void	addVar			(int v);
-	void 	addVars			(vec<Lit>& a);
-	void 	addVars			(vector<Var>& a);
+	void	addVar			(Var v);
 	bool 	addClause		(vec<Lit>& lits);
 	bool 	addRule			(bool conj, vec<Lit>& lits);
 	bool 	addSet			(int setid, vec<Lit>& lits, vector<Weight>& w);
@@ -141,7 +140,8 @@ public:
 	bool simplify();
 	bool solve(); //ONLY TO BE CALLED FOR ONCE INSTANCE AND FROM SOSOLVERHIER
 
-	void backtrack(Lit l);
+	void backtrackFromAbove(Lit l);
+	void backtrackFromSameLevel(Lit l);
 
 	/**
 	 * This will be difficult to implement?
@@ -150,13 +150,18 @@ public:
 
 	Lit 				getHead		()	const 	{ return head.lit; }
 	lbool 				getHeadValue()	const	{ return head.value; }
-	modindex 			getId		()	const	{ return id; }
+	//modindex 			getId		()	const	{ return id; }
+	int		 			getPrintId	()	const	{ return id+1; }
 	modindex			getParentId	()	const	{ return parentid; }
+	int					getParentPrintId	()	const	{ return parentid+1; }
 	const vector<AV>& 	getAtoms	()	const	{ return atoms; }
 	const vmodindex& 	getChildren	()	const	{ return children; }
 
 	const ModSolverData& getModSolverData() const { return *modhier.lock().get(); }
 	const PCSolver& 	getPCSolver()	const	{ return *solver; }
+
+private:
+	void 	addVars			(vec<Lit>& a);
 };
 
 void print(const ModSolver& m);

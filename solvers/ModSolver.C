@@ -13,20 +13,12 @@ ModSolver::ModSolver(modindex child, Lit head, shared_ptr<ModSolverData> mh):
 	}
 	solver = new PCSolver(modescopy);
 	getSolver()->setModSolver(this);
-	if(var(head)>0){
-		addVar(var(head));
-	}
+	//Important: head does NOT occur in the modal theory, so should NOT be added as a var in it.
 }
 
 void ModSolver::addVars(vec<Lit>& a){
 	for(int i=0; i<a.size(); i++){
 		addVar(var(a[i]));
-	}
-}
-
-void ModSolver::addVars(vector<Var>& a){
-	for(int i=0; i<a.size(); i++){
-		addVar(a[i]);
 	}
 }
 
@@ -36,6 +28,7 @@ void ModSolver::addAtoms(const vector<Var>& a){
 		addVar(a[i]);
 		modhier.lock()->getModSolver(getParentId())->addVar(a[i]);
 	}
+	propfromabove = vector<bool>(atoms.size(), false);
 }
 
 void ModSolver::setParent(modindex id){
@@ -79,7 +72,7 @@ bool ModSolver::simplify(){
 	return result;
 }
 
-void ModSolver::addVar(int var){
+void ModSolver::addVar(Var var){
 	getSolver()->addVar(var);
 }
 
@@ -122,7 +115,7 @@ Clause* ModSolver::propagateDown(Lit l){
 	searching = false;
 
 	if(modes.verbosity>4){
-		gprintLit(l); reportf(" propagated down into modal solver %d.\n", getId()+1);
+		gprintLit(l); reportf(" propagated down into modal solver %d.\n", getPrintId());
 	}
 
 	//Adapt head value
@@ -134,15 +127,16 @@ Clause* ModSolver::propagateDown(Lit l){
 	}
 
 	//adapt rigid atoms value
-	for(vector<AV>::iterator i = atoms.begin(); i<atoms.end(); i++){
-		if(var(l)==(*i).atom){
+	for(int i=0; i<atoms.size(); i++){
+		if(var(l)==atoms[i].atom){
 			contains = true;
-			assert((*i).value==l_Undef);
+			assert(atoms[i].value==l_Undef);
 			if(sign(l)){
-				(*i).value = l_False;
+				atoms[i].value = l_False;
 			}else{
-				(*i).value = l_True;
+				atoms[i].value = l_True;
 			}
+			propfromabove[i]=true;
 		}
 	}
 
@@ -158,16 +152,22 @@ Clause* ModSolver::propagateDown(Lit l){
 	if(getHeadValue()==l_Undef){
 		allknown = false;
 	}
+
+	//reportf("Adding assumptions ");
+
 	for(vector<AV>::const_iterator j=getAtoms().begin(); allknown && j<getAtoms().end(); j++){
 		if((*j).value==l_Undef){
 			allknown = false;
 		}else{
 			//important: prevent double propagations! Only add what is not yet known by the solver
 			if(getSolver()->value((*j).atom)==l_Undef){
-				assumpts.push(Lit((*j).atom, (*j).value==l_False));
+				Lit l = Lit((*j).atom, (*j).value==l_False);
+				assumpts.push(l);
+				//gprintLit(l); reportf(" ");
 			}
 		}
 	}
+	//reportf("\n");
 	if(!allknown){
 		//FIXME this code is not correct
 		//FIXME propagation should only occur for existential theories
@@ -188,7 +188,7 @@ Clause* ModSolver::propagateDown(Lit l){
 	}
 
 	if(modes.verbosity>4){
-		reportf("Checking lower solver %d.\n", getId());
+		reportf("Checking lower solver %d.\n", getPrintId());
 	}
 
 	//FIXME: he starts searching before head is known, so any derivation will be a propagation,
@@ -219,7 +219,7 @@ Clause* ModSolver::propagateDown(Lit l){
 		confl = Clause_new(confldisj, true);
 	}
 	if(modes.verbosity>4){
-		reportf("Finished checking lower solver %d: %s.\n", getId(), confl==NULL?"no conflict":"conflict");
+		reportf("Finished checking lower solver %d: %s.\n", getPrintId(), confl==NULL?"no conflict":"conflict");
 	}
 
 	getSolver()->backtrackTo(0);
@@ -254,7 +254,7 @@ Clause* ModSolver::propagate(Lit l){
 		getSolver()->backtrackTo(lvl);
 
 		if(modes.verbosity>4){
-			reportf("Level %d in modal %d.\n", lvl, getId());
+			reportf("Level %d in modal %d.\n", lvl, getPrintId());
 		}
 	}
 	return confl;
@@ -267,26 +267,70 @@ void ModSolver::propagateUp(Lit l, modindex id){
 	getSolver()->setTrue(l);
 }
 
-void ModSolver::backtrack(Lit l){
+/**
+ * For backtracking on rigid atoms, there are two possibilities:
+ * 		the backtracking comes from above, so it has to be done
+ * 		the backtracking is from the PC-solver
+ * 			in this case, it might be that it was propagated or chosen by the PC Solver, in which case it should be backtracked
+ * 						or it might be that it was propagated from above, in which case it should NOT be backtracked
+ * 			currently, this is solved by storing an boolean remembering whether it was propagated from above or from the pc solver
+ */
+void ModSolver::backtrackFromAbove(Lit l){
+	//reportf("Backtracking "); gprintLit(l); reportf(" from above in mod %d\n", getPrintId());
+
 	if(var(l)==var(getHead()) && getHeadValue()!=l_Undef){
 		head.value = l_Undef;
 		//FIXME: head is not allowed to occur in the theory or lower.
 	}
-	//FIXME THIS IS WRONG: he does not backtrack the children
-	for(vector<AV>::iterator i=atoms.begin(); i<atoms.end(); i++){
-		if((*i).atom==var(l)){
-			if((*i).value!=l_Undef){
-				(*i).value = l_Undef;
-				int solverlevel = getSolver()->getLevel(var(l));
-				if(solverlevel>=0){ //otherwise it was not propagated!
-					getSolver()->backtrackTo(solverlevel);
-				}
-			}
+	int c = -1;
+	for(int i=0; i<atoms.size(); i++){
+		if(atoms[i].atom==var(l)){
+			c = i;
 			break;
 		}
 	}
+	if(c!=-1){
+		if(atoms[c].value!=l_Undef){
+			atoms[c].value = l_Undef;
+			int solverlevel = getSolver()->getLevel(var(l));
+			if(solverlevel>=0){ //otherwise it was not propagated!
+				getSolver()->backtrackTo(solverlevel);
+			}
+		}
+		propfromabove[c] = false;
+	}
+
 	for(vmodindex::const_iterator j=getChildren().begin(); j<getChildren().end(); j++){
-		modhier.lock()->getModSolver((*j))->backtrack(l);
+		modhier.lock()->getModSolver((*j))->backtrackFromAbove(l);
+	}
+}
+
+void ModSolver::backtrackFromSameLevel(Lit l){
+	//reportf("Backtracking "); gprintLit(l); reportf(" from same level in mod %d\n", getPrintId());
+
+	if(var(l)==var(getHead()) && getHeadValue()!=l_Undef){
+		head.value = l_Undef;
+		//FIXME: head is not allowed to occur in the theory or lower.
+	}
+	int c = -1;
+	for(int i=0; i<atoms.size(); i++){
+		if(atoms[i].atom==var(l)){
+			c = i;
+			break;
+		}
+	}
+	if(c!=-1){
+		int solverlevel = getSolver()->getLevel(var(l));
+		if(solverlevel>=0){ //otherwise it was not propagated!
+			getSolver()->backtrackTo(solverlevel);
+		}
+		if(!propfromabove[c] && atoms[c].value!=l_Undef){
+			atoms[c].value = l_Undef;
+		}
+	}
+
+	for(vmodindex::const_iterator j=getChildren().begin(); j<getChildren().end(); j++){
+		modhier.lock()->getModSolver((*j))->backtrackFromAbove(l);
 	}
 }
 
@@ -295,7 +339,7 @@ void ModSolver::printModel(){
 }
 
 void print(const ModSolver& m){
-	reportf("ModSolver %d, parent %d, head ", m.getId(), m.getParentId() );
+	reportf("ModSolver %d, parent %d, head ", m.getPrintId(), m.getParentPrintId() );
 	gprintLit(m.getHead(), m.getHeadValue());
 	reportf(", children ");
 	for(vmodindex::const_iterator i=m.getChildren().begin(); i<m.getChildren().end(); i++){

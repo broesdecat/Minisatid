@@ -568,6 +568,7 @@ void Solver::uncheckedEnqueue(Lit p, Clause* from)
     reason  [var(p)] = from;
     polarity[var(p)] = sign(p); /* Modified 2009 */
     trail.push(p);
+    //reportf("Enqueued "); gprintLit(p); reportf(" in mod %d\n", solver->getModPrintID());
 }
 
 
@@ -589,7 +590,7 @@ Clause* Solver::propagate()
 
     while (qhead < trail.size()){
     	if(verbosity>4){
-    		reportf("Trail, mod %d: ", solver->getModID());
+    		reportf("Trail, mod %d: ", solver->getModPrintID());
     		for(int i=0; i<trail.size(); i++){
     			gprintLit(trail[i]); reportf(" ");
     		}
@@ -962,7 +963,9 @@ void Solver::verifyModel()
 
     assert(!failed);
 
-    reportf("Verified %d original clauses.\n", clauses.size());
+    if(verbosity>3){
+    	reportf("Verified %d original clauses.\n", clauses.size());
+    }
 }
 
 
