@@ -150,59 +150,42 @@ Clause* ModSolver::propagateDown(Lit l){
 
 	vec<Lit> assumpts;
 	if(getHeadValue()==l_Undef){
-		allknown = false;
+		return NULL;
 	}
 
 	//reportf("Adding assumptions ");
 
-	for(vector<AV>::const_iterator j=getAtoms().begin(); allknown && j<getAtoms().end(); j++){
-		if((*j).value==l_Undef){
-			allknown = false;
-		}else{
+	for(vector<AV>::const_iterator j=getAtoms().begin(); j<getAtoms().end(); j++){
+		if((*j).value!=l_Undef){
 			//important: prevent double propagations! Only add what is not yet known by the solver
 			if(getSolver()->value((*j).atom)==l_Undef){
 				Lit l = Lit((*j).atom, (*j).value==l_False);
 				assumpts.push(l);
 				//gprintLit(l); reportf(" ");
 			}
+		}else{
+			allknown = false;
 		}
-	}
-	//reportf("\n");
-	if(!allknown){
-		//FIXME this code is not correct
-		//FIXME propagation should only occur for existential theories
-		//TODO make head a VAR, not a literal
-		/*//do propagations
-		result = getSolver()->solvenosearch(assumpts);
-		if(!result){
-			//FIXME UNSAT found, so can certainly do something upwards!
-		}
-		getSolver()->backtrackTo(0);
-	}
-
-	//recheck whether all is known after propagation
-	for(vector<AV>::const_iterator j=getAtoms().begin(); j<getAtoms().end(); j++){
-		if((*j).value==l_Undef){*/
-			return confl;
-		/*}*/
 	}
 
 	if(modes.verbosity>4){
 		reportf("Checking lower solver %d.\n", getPrintId());
 	}
 
-	//FIXME: he starts searching before head is known, so any derivation will be a propagation,
-	//no a conflict!!!! => he now only starts when head is known
-
 	assert(hasparent);
 	searching = true;
 	result = getSolver()->solve(assumpts);
 
-	//FIXME: returns a conflict which can be based on decision variables only,
-	//so clause learning will crash.
-	//IMPORTANT INVARIANT: THE LAST DECISION VARIABLE SHOULD ALWAYS BE INCLUDED IN THE CONFLICT CLAUSE
-	//IMPORTANT INVARIANT: CONFLICTS HAVE TO BE DETECTED BY PROPAGATION: BACKTRACK UNTIL PREVIOUS CHOICE
-	if((result && getHeadValue()!=l_True) || (!result && getHeadValue()!=l_False)){
+	bool conflict = false;
+	//Search if no model found and should be sat or if model found, should be unsat and all values are known
+	if(getHeadValue()==l_True && !result){
+		conflict = true;
+	}
+	if(getHeadValue()==l_False && result && allknown){
+		conflict = true;
+	}
+
+	if(conflict){
 		//conflict between head and body
 		//FIXME good clause learning
 		vec<Lit> confldisj;
@@ -225,6 +208,124 @@ Clause* ModSolver::propagateDown(Lit l){
 	getSolver()->backtrackTo(0);
 	return confl;
 }
+
+//Vorige, WERKENDE code!!!
+//Clause* ModSolver::propagateDown(Lit l){
+//	Clause* confl = NULL;
+//	bool result = false;
+//	searching = false;
+//
+//	if(modes.verbosity>4){
+//		gprintLit(l); reportf(" propagated down into modal solver %d.\n", getPrintId());
+//	}
+//
+//	//Adapt head value
+//	bool contains = false;
+//	if(var(getHead())==var(l)){
+//		contains = true;
+//		assert(getHeadValue()==l_Undef);
+//		head.value = l==getHead()?l_True:l_False;
+//	}
+//
+//	//adapt rigid atoms value
+//	for(int i=0; i<atoms.size(); i++){
+//		if(var(l)==atoms[i].atom){
+//			contains = true;
+//			assert(atoms[i].value==l_Undef);
+//			if(sign(l)){
+//				atoms[i].value = l_False;
+//			}else{
+//				atoms[i].value = l_True;
+//			}
+//			propfromabove[i]=true;
+//		}
+//	}
+//
+//	if(!contains){
+//		return confl;
+//	}
+//
+//	//TODO: make 2 modsolvers, one to be the root
+//	//If all rigid atoms and head are known, do search in this solver
+//	bool allknown = true;
+//
+//	vec<Lit> assumpts;
+//	if(getHeadValue()==l_Undef){
+//		allknown = false;
+//	}
+//
+//	//reportf("Adding assumptions ");
+//
+//	for(vector<AV>::const_iterator j=getAtoms().begin(); allknown && j<getAtoms().end(); j++){
+//		if((*j).value==l_Undef){
+//			allknown = false;
+//		}else{
+//			//important: prevent double propagations! Only add what is not yet known by the solver
+//			if(getSolver()->value((*j).atom)==l_Undef){
+//				Lit l = Lit((*j).atom, (*j).value==l_False);
+//				assumpts.push(l);
+//				//gprintLit(l); reportf(" ");
+//			}
+//		}
+//	}
+//	//reportf("\n");
+//	if(!allknown){
+//		//FIXME this code is not correct
+//		//FIXME propagation should only occur for existential theories
+//		//TODO make head a VAR, not a literal
+//		/*//do propagations
+//		result = getSolver()->solvenosearch(assumpts);
+//		if(!result){
+//			//FIXME UNSAT found, so can certainly do something upwards!
+//		}
+//		getSolver()->backtrackTo(0);
+//	}
+//
+//	//recheck whether all is known after propagation
+//	for(vector<AV>::const_iterator j=getAtoms().begin(); j<getAtoms().end(); j++){
+//		if((*j).value==l_Undef){*/
+//			return confl;
+//		/*}*/
+//	}
+//
+//	if(modes.verbosity>4){
+//		reportf("Checking lower solver %d.\n", getPrintId());
+//	}
+//
+//	//FIXME: he starts searching before head is known, so any derivation will be a propagation,
+//	//no a conflict!!!! => he now only starts when head is known
+//
+//	assert(hasparent);
+//	searching = true;
+//	result = getSolver()->solve(assumpts);
+//
+//	//FIXME: returns a conflict which can be based on decision variables only,
+//	//so clause learning will crash.
+//	//IMPORTANT INVARIANT: THE LAST DECISION VARIABLE SHOULD ALWAYS BE INCLUDED IN THE CONFLICT CLAUSE
+//	//IMPORTANT INVARIANT: CONFLICTS HAVE TO BE DETECTED BY PROPAGATION: BACKTRACK UNTIL PREVIOUS CHOICE
+//	if((result && getHeadValue()!=l_True) || (!result && getHeadValue()!=l_False)){
+//		//conflict between head and body
+//		//FIXME good clause learning
+//		vec<Lit> confldisj;
+//		confldisj.push(l);
+//		if(var(l)!=var(getHead())){
+//			confldisj.push(getHead());
+//		}
+//		//PROBLEM: order of lits in conflict depends on order of assumptions and on order of propagations by parent
+//		for(vector<AV>::const_iterator j=getAtoms().begin(); j<getAtoms().end(); j++){
+//			if(var(l)!=(*j).atom){
+//				confldisj.push(Lit((*j).atom, (*j).value==l_False));
+//			}
+//		}
+//		confl = Clause_new(confldisj, true);
+//	}
+//	if(modes.verbosity>4){
+//		reportf("Finished checking lower solver %d: %s.\n", getPrintId(), confl==NULL?"no conflict":"conflict");
+//	}
+//
+//	getSolver()->backtrackTo(0);
+//	return confl;
+//}
 
 Clause* ModSolver::propagate(Lit l){
 	Clause* confl = NULL;
