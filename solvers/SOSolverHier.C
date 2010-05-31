@@ -113,5 +113,13 @@ bool ModSolverData::solve(){
 }
 
 bool ModSolverData::finishParsing(){
-	return solvers[0]->finishParsing();
+	bool result = solvers[0]->finishParsing();
+	print(*this);
+	return result;
+}
+
+void print(const ModSolverData& d){
+	reportf("Printing theory\n");
+	print(*d.getModSolver((modindex)0));
+	reportf("End of theory\n");
 }

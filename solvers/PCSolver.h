@@ -45,10 +45,10 @@ private:
 	Var 		head;
 	vec<Lit>	to_minimize;
 
-	const pSolver&		getSolver		() const;
-	const pIDSolver& 	getIDSolver		() const;
-	const pAggSolver& 	getAggSolver	() const;
-	const pModSolver& 	getModSolver	() const;
+	pSolver const 		getSolver		() const;
+	pIDSolver const 	getIDSolver		() const;
+	pAggSolver const	getAggSolver	() const;
+	pModSolver const	getModSolver	() const;
 
 public:
 	PCSolver(ECNF_mode modes);
@@ -146,6 +146,13 @@ public:
     bool 	invalidateValue	(vec<Lit>& invalidation);
 	bool 	invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt);
 	bool 	findOptimal		(vec<Lit>& assumps, vec<Lit>& m);
+
+	Solver const * const getCSolver		() const;
+	IDSolver const * const 	getCIDSolver	() const;
+	AggSolver const * const	getCAggSolver	() const;
+	ModSolver const * const	getCModSolver	() const;
 };
+
+void print(const PCSolver& s);
 
 #endif /* PCSOLVER_H_ */

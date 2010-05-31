@@ -2301,3 +2301,24 @@ UFS IDSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<V
 //		}
 //	}
 //}
+
+void print(IDSolver const * const s){
+	if(s==NULL){
+		reportf("No definitions\n");
+		return;
+	}
+	reportf("Definitions\n");
+	for(int i=0; i<s->definition.size(); i++){
+		const Rule& r = *s->definition[i];
+		if(s->defType[i]==CONJ || s->defType[i]==DISJ){
+			reportf("%sRule", s->defType[i]==CONJ?"C":"D");
+			gprintLit(r.getHeadLiteral());
+			int counter = 0;
+			while(counter<r.size()){
+				gprintLit(r[counter]);
+				counter++;
+			}
+			reportf("\n");
+		}
+	}
+}

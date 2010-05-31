@@ -39,9 +39,10 @@ public:
 			void	addAtoms		(modindex modid, const vector<Var>& atoms);
 			//bool 	addModSolver	(modindex modid, Lit head);
 
-			bool	existsModSolver(modindex modid){ return modid<solvers.size() && solvers[modid]!=NULL; }
-			pModSolver getModSolver(modindex modid){ assert(existsModSolver(modid));return solvers[modid];}
-
+			bool	existsModSolver(modindex modid) const { return modid<solvers.size() && solvers[modid]!=NULL; }
+			pModSolver getModSolver(modindex modid) const { assert(existsModSolver(modid));return solvers[modid];}
 };
+
+void print(const ModSolverData& d);
 
 #endif /* SOSOLVER_H_ */

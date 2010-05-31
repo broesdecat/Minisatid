@@ -85,7 +85,7 @@ public:
 	void     	varBumpActivity  (Var v);                 // Increase a variable with the current 'bump' value.
 	void     	claDecayActivity ();                      // Decay all clauses with the specified factor. Implemented by increasing the 'bump' value instead.
 	template<class C>
-	void     printClause      (const C& c);
+	void     	printClause      (const C& c) const;
 /*AE*/
 
     // Constructor/Destructor:
@@ -150,6 +150,8 @@ public:
     uint64_t starts, decisions, rnd_decisions, propagations, conflicts;
     uint64_t clauses_literals, learnts_literals, max_literals, tot_literals;
 
+    vec<Clause*>        clauses;          // List of problem clauses.
+
 protected:
 
     vec<Lit>	trail;            // Assignment stack; stores all assigments made in the order they were made.
@@ -173,7 +175,6 @@ protected:
     // Solver state:
     //
     bool                ok;               // If FALSE, the constraints are already unsatisfiable. No part of the solver state may be used!
-    vec<Clause*>        clauses;          // List of problem clauses.
     vec<Clause*>        learnts;          // List of learnt clauses.
     double              cla_inc;          // Amount to bump next clause with.
     vec<double>         activity;         // A heuristic measurement of the activity of a variable.
@@ -239,7 +240,7 @@ protected:
     double   progressEstimate ()      const; // DELETE THIS ?? IT'S NOT VERY USEFUL ...
 
     // Debug:
-    void     printLit         (Lit l);
+    void     printLit         (Lit l) const;
     /*AB*/
     //template<class C>
     //void     printClause      (const C& c);
@@ -343,20 +344,22 @@ static inline const char* showBool(bool b) { return b ? "true" : "false"; }
 static inline void check(bool expr) { assert(expr); }
 
 
-inline void Solver::printLit(Lit l)
+inline void Solver::printLit(Lit l) const
 {
     reportf("%s%d:%c", sign(l) ? "-" : "", var(l)+1, value(l) == l_True ? '1' : (value(l) == l_False ? '0' : 'X'));
 }
 
 
 template<class C>
-inline void Solver::printClause(const C& c)
+inline void Solver::printClause(const C& c) const
 {
     for (int i = 0; i < c.size(); i++){
         printLit(c[i]);
         fprintf(stderr, " ");
     }
 }
+
+void print(Solver const * const s);
 
 
 //=================================================================================================

@@ -24,6 +24,9 @@ typedef PCSolver* pPCSolver;
 class AggSolver;
 typedef AggSolver* pAggSolver;
 
+class IDSolver;
+typedef IDSolver* pIDSolver;
+
 
 class Rule {
 private:
@@ -52,7 +55,7 @@ public:
 	IDSolver(pPCSolver s);
 	virtual ~IDSolver();
 
-	pAggSolver getAggSolver()const{return aggsolver;}
+	pAggSolver	getAggSolver()const{return aggsolver;}
 	void		setAggSolver(pAggSolver a){aggsolver = a;}	//TODO call this
 
 	/////////////////////SOLVER NECESSARY
@@ -81,22 +84,30 @@ public:
 	void 		remove					();			//remove this idsolver from the solver network
 	/////////////////////END INITIALIZATION
 
+	vector<Rule*>	definition;	// If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
+	// Note that v occurs negatively if DISJ, positively if CONJ; and the reverse for the body literals.
+	// NOTE: If defType[v]==NONDEF, it may be that v is defined, but that no positive loop can exist. It SHOULD NOT be deleted then
+	//		because it will be used for WELLFOUNDED model checking later on.
+	//	of the completion of that rule, which was just not deleted, but wont be used any more
+	//	OWNER
+	vec<DefType>	defType;	// Gives the type of definition for each VAR
+
 protected:
 	bool 		recagg;	//true if recursive aggregates are present
 	vec<bool>	isCS;                   // Per atom: is it a cycle source?
 	bool 		init;
 	vec<int>	seen, seen2;
 
-	lbool	value(Var x) const;
-	lbool	value(Lit p) const;
-	int		nVars()      const;
+	lbool		value(Var x) const;
+	lbool		value(Lit p) const;
+	int			nVars()      const;
 
-	bool firstsearch;
-	uint64_t prev_conflicts/*not strictly a statistic!*/;
+	bool 		firstsearch;
+	uint64_t 	prev_conflicts/*not strictly a statistic!*/;
 
 	// Statistics: (read-only member variable)
 	//
-	uint64_t atoms_in_pos_loops;
+	uint64_t 	atoms_in_pos_loops;
 	//uint64_t cycle_sources, justifiable_cycle_sources, cycles, cycle_sizes, justify_conflicts;
 	//uint64_t nb_times_findCS, justify_calls, cs_removed_in_justify, succesful_justify_calls, extdisj_sizes, total_marked_size;
 	//uint64_t fw_propagation_attempts, fw_propagations;
@@ -107,14 +118,7 @@ protected:
 	// ECNF_mode.def additions to Solver state:
 	//
 	vec<Var>		defdVars;	// All the vars that are the head of some kind of definition (disj, conj or aggr). Allows to iterate over all definitions.
-	vector<Rule*>	definition;	// If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
-	// Note that v occurs negatively if DISJ, positively if CONJ; and the reverse for the body literals.
-	// NOTE: If defType[v]==NONDEF, it may be that v is defined, but that no positive loop can exist. It SHOULD NOT be deleted then
-	//		because it will be used for WELLFOUNDED model checking later on.
-	//	of the completion of that rule, which was just not deleted, but wont be used any more
-	//	OWNER
-	vec<DefType>	defType;	// Gives the type of definition for each VAR
-	vec<DefOcc>		defOcc;	// Gives the type of definition occurence for each VAR
+	vec<DefOcc>		defOcc;		// Gives the type of definition occurrence for each VAR
 	vec<int>		scc;		// To which strongly connected component does the atom belong. Zero iff defType[v]==NONDEF.
 	bool 			posloops, negloops;
 
@@ -250,6 +254,8 @@ private:
 	void overestimateCounters();
 	void removeMarks();
 };
+
+void print(IDSolver const * const id);
 
 /**
  * All these methods are used to allow branch prediction in SATsolver methods and to minimize the number of

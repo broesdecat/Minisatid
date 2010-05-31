@@ -148,14 +148,17 @@ public:
 	 */
 	Clause* getExplanation(Lit l);
 
-	Lit 		getHead()		const 	{ return head.lit; }
-	lbool 		getHeadValue()	const	{ return head.value; }
-	modindex 	getId() 		const	{ return id;}
-	modindex	getParentId()	const	{ return parentid;}
-	const vector<AV>& 	getAtoms()		const	{ return atoms;}
-	const vmodindex& 	getChildren()	const	{ return children;}
+	Lit 				getHead		()	const 	{ return head.lit; }
+	lbool 				getHeadValue()	const	{ return head.value; }
+	modindex 			getId		()	const	{ return id; }
+	modindex			getParentId	()	const	{ return parentid; }
+	const vector<AV>& 	getAtoms	()	const	{ return atoms; }
+	const vmodindex& 	getChildren	()	const	{ return children; }
+
+	const ModSolverData& getModSolverData() const { return *modhier.lock().get(); }
+	const PCSolver& 	getPCSolver()	const	{ return *solver; }
 };
 
-void printModSolver(const ModSolver* m);
+void print(const ModSolver& m);
 
 #endif// MODSOLVER_H_

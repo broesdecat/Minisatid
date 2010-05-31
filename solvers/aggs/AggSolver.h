@@ -24,6 +24,9 @@ namespace Aggrs{
 class PCSolver;
 typedef PCSolver* pPCSolver;
 
+class AggSolver;
+typedef AggSolver* pAggSolver;
+
 using namespace Aggrs;
 
 /*
@@ -179,5 +182,7 @@ inline Clause* AggSolver::propagate(const Lit& p){
 	if (init) {return NULL;}
 	return Aggr_propagate(p);
 }
+
+void print(AggSolver const * const p);
 
 #endif /* AggSolver_H_ */

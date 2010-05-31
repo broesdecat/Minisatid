@@ -638,3 +638,11 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head){
 void AggSolver::propagateMnmz(Var head){
 	dynamic_cast<SumAgg*>(head_watches[head])->propagateHead(true);
 }
+
+void print(AggSolver const * const p){
+	if(p==NULL){
+		reportf("No aggregates\n");
+		return;
+	}
+	reportf("Aggregates\n");
+}

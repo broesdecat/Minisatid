@@ -1,5 +1,0 @@
-time lparse -d none n1800.facts disjunctive.lp | smodels
-time lparse -d none n2000.facts disjunctive.lp | smodels
-time lparse -d none n2200.facts disjunctive.lp | smodels
-time lparse -d none n2400.facts disjunctive.lp | smodels
-time lparse -d none n2600.facts disjunctive.lp | smodels

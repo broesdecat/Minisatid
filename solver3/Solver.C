@@ -862,7 +862,7 @@ lbool Solver::search(/*AB*/bool nosearch/*AE*/)
 				}
 
 				if (verbosity >= 2) {
-					reportf("Choice literal at level %d: ", decisionLevel());
+					reportf("Choice literal at decisionlevel %d: ", decisionLevel());
 					printLit(next);
 					reportf(".\n");
 				}
@@ -978,4 +978,13 @@ void Solver::checkLiteralCount()
         fprintf(stderr, "literal count: %d, real value = %d\n", (int)clauses_literals, cnt);
         assert((int)clauses_literals == cnt);
     }
+}
+
+void print(Solver const * const s){
+	assert(s!=NULL);
+	reportf("Clauses\n");
+	for(int i=0; i< s->clauses.size(); i++){
+		s->printClause(*s->clauses[i]);
+		reportf("\n");
+	}
 }

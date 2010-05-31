@@ -57,19 +57,35 @@ void PCSolver::setRes(FILE* f){
 	res = f;
 }
 
-inline const pSolver& PCSolver::getSolver() const {
+inline pSolver const PCSolver::getSolver() const {
 	return solver;
 }
 
-inline const pIDSolver& PCSolver::getIDSolver() const {
+inline pIDSolver const PCSolver::getIDSolver() const {
 	return idsolver;
 }
 
-inline const pAggSolver& PCSolver::getAggSolver() const {
+inline pAggSolver const PCSolver::getAggSolver() const {
 	return aggsolver;
 }
 
-inline const pModSolver& PCSolver::getModSolver() const {
+inline pModSolver const PCSolver::getModSolver() const {
+	return modsolver;
+}
+
+inline Solver const * const PCSolver::getCSolver() const {
+	return solver;
+}
+
+inline IDSolver const * const PCSolver::getCIDSolver() const {
+	return idsolver;
+}
+
+inline AggSolver const * const PCSolver::getCAggSolver() const {
+	return aggsolver;
+}
+
+inline ModSolver const * const PCSolver::getCModSolver() const {
 	return modsolver;
 }
 
@@ -490,29 +506,6 @@ bool PCSolver::invalidateModel(vec<Lit>& learnt) {
 	return result;
 }
 
-
-void PCSolver::printModel() const{
-	if (modelsfound==1) {
-		fprintf(res==NULL?stdout:res, "SAT\n");
-		if(modes.verbosity>=1){
-			printf("SATISFIABLE\n");
-		}
-	}
-
-	if(nb_models!=1){
-		printf("%d model%s found.\n", modelsfound, modelsfound>1 ? "s" : "");
-	}
-
-	int nvars = (int)nVars();
-	for (int i = 0; i < nvars; i++){
-		if (getSolver()->model[i] != l_Undef){
-			fprintf(res==NULL?stdout:res, "%s%s%d", (i == 0) ? "" : " ", (getSolver()->model[i]== l_True) ? "" : "-", i + 1);
-		}
-	}
-	fprintf(res==NULL?stdout:res, " 0\n");
-}
-
-
 /************************
  * OPTIMIZATION METHODS *
  ************************/
@@ -696,3 +689,29 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 	return optimumreached;
 }
 
+void PCSolver::printModel() const{
+	if (modelsfound==1) {
+		fprintf(res==NULL?stdout:res, "SAT\n");
+		if(modes.verbosity>=1){
+			printf("SATISFIABLE\n");
+		}
+	}
+
+	if(nb_models!=1){
+		printf("%d model%s found.\n", modelsfound, modelsfound>1 ? "s" : "");
+	}
+
+	int nvars = (int)nVars();
+	for (int i = 0; i < nvars; i++){
+		if (getSolver()->model[i] != l_Undef){
+			fprintf(res==NULL?stdout:res, "%s%s%d", (i == 0) ? "" : " ", (getSolver()->model[i]== l_True) ? "" : "-", i + 1);
+		}
+	}
+	fprintf(res==NULL?stdout:res, " 0\n");
+}
+
+void print(const PCSolver& s){
+	print(s.getCSolver());
+	print(s.getCAggSolver());
+	print(s.getCIDSolver());
+}

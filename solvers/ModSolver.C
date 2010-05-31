@@ -170,6 +170,8 @@ Clause* ModSolver::propagateDown(Lit l){
 	}
 	if(!allknown){
 		//FIXME this code is not correct
+		//FIXME propagation should only occur for existential theories
+		//TODO make head a VAR, not a literal
 		/*//do propagations
 		result = getSolver()->solvenosearch(assumpts);
 		if(!result){
@@ -232,6 +234,8 @@ Clause* ModSolver::propagate(Lit l){
 		//FIXME propagate up WITH reason
 	}
 
+	//FIXME FIXME: IMPORTANT! Problem is that unit clauses might be added (and propagated) before
+	//the children have been loaded!!!!!
 	for(vmodindex::const_iterator i=getChildren().begin(); confl==NULL && i<getChildren().end(); i++){
 		confl = modhier.lock()->getModSolver(*i)->propagateDown(l);
 	}
@@ -273,7 +277,10 @@ void ModSolver::backtrack(Lit l){
 		if((*i).atom==var(l)){
 			if((*i).value!=l_Undef){
 				(*i).value = l_Undef;
-				getSolver()->backtrackTo(getSolver()->getLevel(var(l)));
+				int solverlevel = getSolver()->getLevel(var(l));
+				if(solverlevel>=0){ //otherwise it was not propagated!
+					getSolver()->backtrackTo(solverlevel);
+				}
 			}
 			break;
 		}
@@ -287,35 +294,21 @@ void ModSolver::printModel(){
 	getSolver()->printModel();
 }
 
-void printModSolver(const ModSolver* m){
-	reportf("ModSolver %d, parent %d, head ", m->getId(), m->getParentId() );
-	gprintLit(m->getHead(), m->getHeadValue());
+void print(const ModSolver& m){
+	reportf("ModSolver %d, parent %d, head ", m.getId(), m.getParentId() );
+	gprintLit(m.getHead(), m.getHeadValue());
 	reportf(", children ");
-	for(vmodindex::const_iterator i=m->getChildren().begin(); i<m->getChildren().end(); i++){
+	for(vmodindex::const_iterator i=m.getChildren().begin(); i<m.getChildren().end(); i++){
 		reportf("%d ", *i);
 	}
 	reportf("\nModal atoms ");
-	for(vector<AV>::const_iterator i=m->getAtoms().begin(); i<m->getAtoms().end(); i++){
+	for(vector<AV>::const_iterator i=m.getAtoms().begin(); i<m.getAtoms().end(); i++){
 		reportf("%d ", gprintVar((*i).atom));
 	}
-	reportf("\n");
-	//print theory:
-/*	for(vector<C>::const_iterator i=m->getTheory().clauses.begin(); i<m->getTheory().clauses.end(); i++){
-		reportf("Clause ");
-		for(vector<Lit>::const_iterator j=(*i).lits.begin(); j<(*i).lits.end(); j++){
-			gprintLit(*j);reportf(" ");
-		}
-		reportf("\n");
+	reportf("\nsubtheory\n");
+	print(m.getPCSolver());
+	reportf("SubSolvers\n");
+	for(vmodindex::const_iterator i=m.getChildren().begin(); i<m.getChildren().end(); i++){
+		print(*m.getModSolverData().getModSolver(*i));
 	}
-	for(vector<S>::const_iterator i=m->getTheory().sets.begin(); i<m->getTheory().sets.end(); i++){
-		reportf("Set %d, ", (*i).id);
-		for(int j=0; j<(*i).lits.size(); j++){
-			gprintLit((*i).lits[j]);reportf("=%s", printWeight((*i).weights[j]).c_str());
-		}
-		reportf("\n");
-	}
-	for(vector<A>::const_iterator i=m->getTheory().aggrs.begin(); i<m->getTheory().aggrs.end(); i++){
-		reportf("Aggr set %d, head %d, bound %s \n", (*i).set, (*i).head, printWeight((*i).bound).c_str());
-		//FIXME not finished
-	}*/
 }
