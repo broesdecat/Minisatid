@@ -185,14 +185,20 @@ theory	:	/* empty */
 		|	theory summnmz
 		;
 		
-mtheory	:	/* empty */
-		|	mtheory matomset
-		|	mtheory modhier
-		|	mtheory mclause
-		|	mtheory mrule
-		| 	mtheory magg
-		|	mtheory mset
-		|	mtheory mwset
+mtheory	:	mhier mrest
+		;
+
+mhier	:	/* empty */
+		|	mhier matomset
+		|	mhier modhier
+		;
+		
+mrest	: 	/* empty */
+		|	mrest mclause
+		|	mrest mrule
+		| 	mrest magg
+		|	mrest mset
+		|	mrest mwset
 		;
 			
 mnmz	:	MNMZDEFN body ZERO					{ CR(solver->addMinimize(lits, false)); lits.clear();}
@@ -249,18 +255,11 @@ wset	:	WSETDEFN NUMBER { setid = $2;	}
 						}
 		;
 
-//MODAL PART: USE INDEXES+1 AS MODAL IDs IN THE THEORY
-			//FIXME: probleem gevonden: de HEAD kan niet correct aan de juiste worden toegevoegd, 
-			//want de parent is nog niet gekend!
-			//FIXME 2: je kan nu vars enzo toevoegen terwijl de kinderen van een mod op nog niet gekend
-			//zijn, wat dus onvolledige kennis geeft!
-/*matomset:	QUANT NUMBER NUMBER { Lit l = readLit($3); modid = $2-1; CR(modsolver->addModSolver(modid, l));}
-			varbody ZERO	{ modsolver->addAtoms(modid, nb); nb.clear(); }
-		;
-modhier :	MODDEFN	NUMBER {modid = $2-1;} 
-			varbody ZERO { CR(modsolver->addChildren(modid, nb)); nb.clear();}
-		;*/
-			//		PARENTID CHILDID HEAD
+//MODAL PART: USES INDEXES+1 AS MODAL IDs IN THE THEORY
+	//FIXME: probleem gevonden: de HEAD kan niet correct aan de juiste worden toegevoegd, 
+	//want de parent is nog niet gekend! => ALLE MODS MOETEN EERST IN DE THEORIE!!!
+	//FIXME 2: je kan nu vars enzo toevoegen terwijl de kinderen van een mod op nog niet gekend
+	//zijn, wat dus onvolledige kennis geeft!
 modhier :	MODDEFN	NUMBER 	NUMBER 	NUMBER ZERO 
 				{ CR(modsolver->addChild($2-1, $3-1, readLit($4))); }
 		;

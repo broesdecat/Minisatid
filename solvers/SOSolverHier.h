@@ -27,6 +27,7 @@ public:
 
 	virtual bool 	simplify		();
 	virtual bool 	solve			();
+			void	verifyHierarchy	();
 	virtual bool 	finishParsing	();
 			void 	initialize		();
 
@@ -37,7 +38,6 @@ public:
 			bool 	addAggrExpr		(modindex modid, Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined);
 			bool 	addChild		(modindex parent, modindex child, Lit head);
 			void	addAtoms		(modindex modid, const vector<Var>& atoms);
-			//bool 	addModSolver	(modindex modid, Lit head);
 
 			bool	existsModSolver(modindex modid) const { return modid<solvers.size() && solvers[modid]!=NULL; }
 			pModSolver getModSolver(modindex modid) const { assert(existsModSolver(modid));return solvers[modid];}

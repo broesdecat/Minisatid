@@ -73,7 +73,6 @@ public:
 	bool 		finishParsing	(); //throws UNSAT
 
 	bool 		simplify		();
-	bool 		simplifyRest		();
 	bool 		findNext		(const vec<Lit>& assumpts, vec<Lit>& model);
 	bool    	invalidateModel	(vec<Lit>& invalidation);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
 	void 		invalidate		(vec<Lit>& invalidation);
@@ -135,7 +134,7 @@ public:
 
 	void 	backtrackRest	(Lit l);
 	Clause* propagate		(Lit l);
-	Clause* propagateDefinitions();
+	Clause* propagateAtEndOfQueue();
 
 	/****************
 	 * OPTIMIZATION *

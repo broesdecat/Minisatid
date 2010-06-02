@@ -66,7 +66,7 @@ ModSolverData::~ModSolverData(){
 }
 
 void ModSolverData::initialize(){
-	solvers.push_back(new ModSolver(0, Lit(-1), shared_from_this()));
+	solvers.push_back(new ModSolver(0, -1, shared_from_this()));
 }
 
 void ModSolverData::addAtoms(modindex modid, const vector<Var>& atoms){
@@ -87,7 +87,7 @@ void ModSolverData::addAtoms(modindex modid, const vector<Var>& atoms){
 	return true;
 }*/
 
-bool ModSolverData::addChild(modindex parent, modindex child, Lit head){
+bool ModSolverData::addChild(modindex parent, modindex child, Lit h){
 	if(!existsModSolver(parent)){
 		reportf("No modal operator with id %d was defined! ", parent+1);
 		exit(1);
@@ -96,9 +96,14 @@ bool ModSolverData::addChild(modindex parent, modindex child, Lit head){
 		reportf("Modal operator with id %d was already defined! ", child+1);
 		exit(1);
 	}
+	if(sign(h)){
+		reportf("Modal operator %d has a negative head. This is not allowed.", child+1);
+		exit(1);
+	}
 	if(solvers.size()<child+1){
 		solvers.resize(child+1, NULL);
 	}
+	Var head = var(h);
 	solvers[child] = new ModSolver(child, head, shared_from_this());
 	solvers[child]->setParent(parent);
 	return true;
@@ -109,12 +114,55 @@ bool ModSolverData::simplify(){
 }
 
 bool ModSolverData::solve(){
-	return solvers[0]->solve();
+	return solvers[0]->propagateDownAtEndOfQueue()==0;
+}
+
+/**
+ * Verifies whether the hierarchy is indeed a tree:
+ * no loops exist
+ * no-one is child of more than one solver
+ * no solver has no parent unless it is the root
+ *
+ * Algorithm:
+ * go through the tree BREADTH-FIRST, starting from the root
+ * remember whether a solver has been seen and how many times
+ */
+void ModSolverData::verifyHierarchy(){
+	vector<modindex> queue;
+	vector<int> visitcount(solvers.size(), 0);
+	queue.push_back(0);
+	visitcount[0]++;
+	while(queue.size()>0){
+		modindex s = queue.back();
+		queue.pop_back();
+		pModSolver solver = getModSolver(s);
+		for(vmodindex::const_iterator i=solver->getChildren().begin(); i<solver->getChildren().end(); i++){
+			if(visitcount[*i]==0){
+				queue.push_back(*i);
+			}
+			visitcount[*i]++;
+		}
+	}
+	for(vmsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
+		if(visitcount[(*i)->getId()]!=1 && *i!=NULL){
+			reportf("The hierarchy of modal solvers does not form a tree. "
+					"The Solver with id %d is %s.",
+							(*i)->getPrintId(),
+							visitcount[(*i)->getId()]==0?"not referenced":"referenced multiple times");
+			exit(3);
+		}
+	}
 }
 
 bool ModSolverData::finishParsing(){
+	verifyHierarchy();
+
 	bool result = solvers[0]->finishParsing();
-	print(*this);
+
+	if(modes.verbosity>=5){
+		print(*this);
+	}
+
 	return result;
 }
 

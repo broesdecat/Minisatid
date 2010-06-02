@@ -3,77 +3,35 @@
 
 extern ECNF_mode modes;
 
-ModSolver::ModSolver(modindex child, Lit head, shared_ptr<ModSolverData> mh):
+//Important: The head variable does not occur in this theory, so should NOT automatically be
+//added as a var in it.
+/**
+ * Constructs a ModSolver, with a given head, index and hierarchy pointer. A PCSolver is initialized.
+ */
+ModSolver::ModSolver(modindex child, Var head, shared_ptr<ModSolverData> mh):
 		id(child), parentid(-1), hasparent(false), head(head), modhier(mh){
-	//FIXME ID should be unique to the parent theory and as head of the modal solver. It should not occur in its children, lower or above the parent
-	//FIXME there is no use for children rigid atoms that do not occur in the parent theory
 	ECNF_mode modescopy(modes);
-	if(var(head)>0){ //TODO improve, should not check by head<0
-		modescopy.nbmodels = 1;
-	}
+	modescopy.nbmodels = 1;
+
 	solver = new PCSolver(modescopy);
 	getSolver()->setModSolver(this);
-	//Important: head does NOT occur in the modal theory, so should NOT be added as a var in it.
 }
 
+/******************************
+ * ADD/INITIALIZATION METHODS *
+ ******************************/
+
+void ModSolver::addVar(Var var){
+	getSolver()->addVar(var);
+}
+
+/**
+ * Add all variables in the given vector as variables in the theory.
+ */
 void ModSolver::addVars(vec<Lit>& a){
 	for(int i=0; i<a.size(); i++){
 		addVar(var(a[i]));
 	}
-}
-
-void ModSolver::addAtoms(const vector<Var>& a){
-	for(int i=0; i<a.size(); i++){
-		atoms.push_back(AV(a[i]));
-		addVar(a[i]);
-		modhier.lock()->getModSolver(getParentId())->addVar(a[i]);
-	}
-	propfromabove = vector<bool>(atoms.size(), false);
-}
-
-void ModSolver::setParent(modindex id){
-	parentid = id; hasparent = true;
-	shared_ptr<ModSolverData> mh = modhier.lock();
-	for(vector<AV>::const_iterator i=atoms.begin(); i<atoms.end(); i++){
-		mh->getModSolver(getParentId())->addVar((*i).atom);
-	}
-	modhier.lock()->getModSolver(id)->addChild(this->id);
-	modhier.lock()->getModSolver(id)->addVar(var(head.lit));
-}
-
-void copyToVec(const vec<Lit>& v, vector<Lit>& v2){
-	for(int i=0; i<v.size(); i++){
-	    v2.push_back(v[i]);
-	}
-}
-
-void ModSolver::addChild(modindex childid){
-	//FIXME check that no ancestors become children or that some already have a parent
-	children.push_back(childid);
-}
-
-bool ModSolver::finishParsing(){
-	bool result = getSolver()->finishParsing();
-
-	for(vmodindex::const_iterator i=getChildren().begin(); result && i<getChildren().end(); i++){
-		result = modhier.lock()->getModSolver(*i)->finishParsing();
-	}
-
-	return result;
-}
-
-bool ModSolver::simplify(){
-	bool result = getSolver()->simplify();
-
-	for(vmodindex::const_iterator i=getChildren().begin(); result && i<getChildren().end(); i++){
-		result = modhier.lock()->getModSolver(*i)->simplify();
-	}
-
-	return result;
-}
-
-void ModSolver::addVar(Var var){
-	getSolver()->addVar(var);
 }
 
 bool ModSolver::addClause(vec<Lit>& lits){
@@ -104,30 +62,125 @@ void ModSolver::setRes(FILE* f){
 	getSolver()->setRes(f);
 }
 
-bool ModSolver::solve(){
-	//FIXME remove head from root
-	return getSolver()->solve();
+/**
+ * Adds the list of variables to the rigid atoms of this ModSolver. They are automatically added
+ * as variables, this is maybe not completely necessary when they are not used in the PC theory,
+ * but requires some algorithmic changes then, so currently they are added. In addition,
+ * they are added as variables to the parent solver, that has to decide on values for them.
+ */
+void ModSolver::addAtoms(const vector<Var>& a){
+	for(vector<Var>::const_iterator i=a.begin(); i<a.end(); i++){
+		atoms.push_back(AV(*i));
+		addVar(*i);
+		modhier.lock()->getModSolver(getParentId())->addVar(*i);
+	}
+
+	//Create a bool-vector mapping each atom to whether it was propagated from above or from this
+	//own theory
+	propfromabove = vector<bool>(atoms.size(), false);
+}
+
+
+/**
+ * Sets the id of the parent modal solver. All rigid atoms are then added (possibly again) to the
+ * parent solver, as well as this solver as a child and the head as a variable.
+ */
+void ModSolver::setParent(modindex id){
+	parentid = id; hasparent = true;
+	pModSolver parent = modhier.lock()->getModSolver(getParentId());
+	for(vector<AV>::const_iterator i=atoms.begin(); i<atoms.end(); i++){
+		parent->addVar((*i).atom);
+	}
+	parent->addChild(this->id);
+	parent->addVar(head.atom);
+}
+
+/**
+ * Adds a modal solver as a child of this solver, by id.
+ */
+void ModSolver::addChild(modindex childid){
+	children.push_back(childid);
+}
+
+/**
+ * Recursively notify all PCSolvers that parsing has finished
+ */
+bool ModSolver::finishParsing(){
+	bool result = getSolver()->finishParsing();
+
+	for(vmodindex::const_iterator i=getChildren().begin(); result && i<getChildren().end(); i++){
+		result = modhier.lock()->getModSolver(*i)->finishParsing();
+	}
+
+	return result;
+}
+
+/*****************
+ * SOLVE METHODS *
+ *****************/
+
+/*
+ * First simplifies PC solver, afterwards simplifies lower modal operators.
+ */
+bool ModSolver::simplify(){
+	bool result = getSolver()->simplify();
+	for(vmodindex::const_iterator i=getChildren().begin(); result && i<getChildren().end(); i++){
+		result = modhier.lock()->getModSolver(*i)->simplify();
+	}
+	return result;
 }
 
 Clause* ModSolver::propagateDown(Lit l){
-	Clause* confl = NULL;
-	bool result = false;
-	searching = false;
-
 	if(modes.verbosity>4){
 		gprintLit(l); reportf(" propagated down into modal solver %d.\n", getPrintId());
 	}
 
+	adaptValuesOnPropagation(l);
+
+	return NULL;
+}
+
+Clause* ModSolver::propagateDownAtEndOfQueue(){
+	if(modes.verbosity>4){
+		reportf("End of queue propagation down into modal solver %d.\n", getPrintId());
+	}
+	vec<Lit> assumpts;
+	bool allknown = createAssumptions(assumpts);
+
+	/*TODO future:
+	bool result;
+	if(!allknown){
+		result = doUnitPropagation(assumpts);
+	}else{
+		result = search(assumpts);
+	}
+	*/
+
+	bool result = search(assumpts);
+
+	Clause* confl = analyzeResult(result, allknown);
+
+	if(modes.verbosity>4){
+		reportf("Finished checking solver %d: %s.\n", getPrintId(), confl==NULL?"no conflict":"conflict");
+	}
+
+	getSolver()->backtrackTo(0);
+
+	return confl;
+}
+
+bool ModSolver::adaptValuesOnPropagation(Lit l){
+	bool contains = false; //Indicates whether l is a rigid atom i this solver
+
 	//Adapt head value
-	bool contains = false;
-	if(var(getHead())==var(l)){
-		contains = true;
+	if(hasparent && getHead()==var(l)){
 		assert(getHeadValue()==l_Undef);
-		head.value = l==getHead()?l_True:l_False;
+		contains = true;
+		head.value = !sign(l)?l_True:l_False;
 	}
 
 	//adapt rigid atoms value
-	for(int i=0; i<atoms.size(); i++){
+	for(vector<AV>::size_type i=0; i<atoms.size(); i++){
 		if(var(l)==atoms[i].atom){
 			contains = true;
 			assert(atoms[i].value==l_Undef);
@@ -140,44 +193,42 @@ Clause* ModSolver::propagateDown(Lit l){
 		}
 	}
 
-	if(!contains){
-		return confl;
-	}
+	return contains;
+}
 
-	//TODO: make 2 modsolvers, one to be the root
-	//If all rigid atoms and head are known, do search in this solver
-	bool allknown = true;
-
-	vec<Lit> assumpts;
+bool ModSolver::createAssumptions(vec<Lit>& assumpts) const{
 	if(getHeadValue()==l_Undef){
-		return NULL;
+		return false;
 	}
 
-	//reportf("Adding assumptions ");
-
+	bool allknown = true;
 	for(vector<AV>::const_iterator j=getAtoms().begin(); j<getAtoms().end(); j++){
 		if((*j).value!=l_Undef){
-			//important: prevent double propagations! Only add what is not yet known by the solver
-			if(getSolver()->value((*j).atom)==l_Undef){
-				Lit l = Lit((*j).atom, (*j).value==l_False);
-				assumpts.push(l);
-				//gprintLit(l); reportf(" ");
-			}
+			assumpts.push(Lit((*j).atom, (*j).value==l_False));
 		}else{
 			allknown = false;
 		}
 	}
 
-	if(modes.verbosity>4){
-		reportf("Checking lower solver %d.\n", getPrintId());
-	}
+	return allknown;
+}
 
-	assert(hasparent);
+void ModSolver::doUnitPropagation(const vec<Lit>& assumpts){
+
+}
+
+bool ModSolver::search(const vec<Lit>& assumpts){
 	searching = true;
-	result = getSolver()->solve(assumpts);
+	bool result = getSolver()->solve(assumpts);
+	searching = false;
+	return result;
+}
 
+Clause* ModSolver::analyzeResult(bool result, bool allknown){
 	bool conflict = false;
-	//Search if no model found and should be sat or if model found, should be unsat and all values are known
+	Clause* confl = NULL;
+
+	//if no model found and should be sat or if model found, should be unsat and all values are known
 	if(getHeadValue()==l_True && !result){
 		conflict = true;
 	}
@@ -185,27 +236,19 @@ Clause* ModSolver::propagateDown(Lit l){
 		conflict = true;
 	}
 
-	if(conflict){
-		//conflict between head and body
+	if(conflict){ //conflict between head and body
 		//FIXME good clause learning
 		vec<Lit> confldisj;
-		confldisj.push(l);
-		if(var(l)!=var(getHead())){
-			confldisj.push(getHead());
+		if(getHeadValue()!=l_Undef){
+			confldisj.push(Lit(getHead()));
 		}
 		//PROBLEM: order of lits in conflict depends on order of assumptions and on order of propagations by parent
 		for(vector<AV>::const_iterator j=getAtoms().begin(); j<getAtoms().end(); j++){
-			if(var(l)!=(*j).atom){
-				confldisj.push(Lit((*j).atom, (*j).value==l_False));
-			}
+			confldisj.push(Lit((*j).atom, (*j).value==l_False));
 		}
 		confl = Clause_new(confldisj, true);
 	}
-	if(modes.verbosity>4){
-		reportf("Finished checking lower solver %d: %s.\n", getPrintId(), confl==NULL?"no conflict":"conflict");
-	}
 
-	getSolver()->backtrackTo(0);
 	return confl;
 }
 
@@ -328,35 +371,23 @@ Clause* ModSolver::propagateDown(Lit l){
 //}
 
 Clause* ModSolver::propagate(Lit l){
-	Clause* confl = NULL;
-
-	if(!searching){
+	/*if(!searching){
 		vector<Lit> v = getSolver()->getDecisions();
 		//FIXME propagate up WITH reason
-	}
-
-	//FIXME FIXME: IMPORTANT! Problem is that unit clauses might be added (and propagated) before
-	//the children have been loaded!!!!!
+	}*/
+	Clause* confl = NULL;
 	for(vmodindex::const_iterator i=getChildren().begin(); confl==NULL && i<getChildren().end(); i++){
 		confl = modhier.lock()->getModSolver(*i)->propagateDown(l);
 	}
-	if(confl!=NULL){
-		/*
-		 * Due to current incomplete propagation, the conflict could possibly have been derived at an earlier level.
-		 * So check for this and first backtrack to that level.
-		 */
-		int lvl = 0;
-		for (int i = 0; i < confl->size(); i++){
-			int litlevel = getSolver()->getLevel(var(confl->operator [](i)));
-			if (litlevel > lvl){
-				lvl = litlevel;
-			}
-		}
-		getSolver()->backtrackTo(lvl);
+	return confl;
+}
 
-		if(modes.verbosity>4){
-			reportf("Level %d in modal %d.\n", lvl, getPrintId());
-		}
+//In future, we might want to delay effectively propagating and searching in subfolders to the point where the
+//queue is empty, so we will need a propagateDown and a propagateDownEndOfQueue
+Clause* ModSolver::propagateAtEndOfQueue(){
+	Clause* confl = NULL;
+	for(vmodindex::const_iterator i=getChildren().begin(); confl==NULL && i<getChildren().end(); i++){
+		confl = modhier.lock()->getModSolver(*i)->propagateDownAtEndOfQueue();
 	}
 	return confl;
 }
@@ -379,12 +410,12 @@ void ModSolver::propagateUp(Lit l, modindex id){
 void ModSolver::backtrackFromAbove(Lit l){
 	//reportf("Backtracking "); gprintLit(l); reportf(" from above in mod %d\n", getPrintId());
 
-	if(var(l)==var(getHead()) && getHeadValue()!=l_Undef){
+	if(var(l)==getHead() && getHeadValue()!=l_Undef){
 		head.value = l_Undef;
 		//FIXME: head is not allowed to occur in the theory or lower.
 	}
 	int c = -1;
-	for(int i=0; i<atoms.size(); i++){
+	for(vector<AV>::size_type i=0; i<atoms.size(); i++){
 		if(atoms[i].atom==var(l)){
 			c = i;
 			break;
@@ -409,12 +440,12 @@ void ModSolver::backtrackFromAbove(Lit l){
 void ModSolver::backtrackFromSameLevel(Lit l){
 	//reportf("Backtracking "); gprintLit(l); reportf(" from same level in mod %d\n", getPrintId());
 
-	if(var(l)==var(getHead()) && getHeadValue()!=l_Undef){
+	if(var(l)==getHead() && getHeadValue()!=l_Undef){
 		head.value = l_Undef;
 		//FIXME: head is not allowed to occur in the theory or lower.
 	}
 	int c = -1;
-	for(int i=0; i<atoms.size(); i++){
+	for(vector<AV>::size_type i=0; i<atoms.size(); i++){
 		if(atoms[i].atom==var(l)){
 			c = i;
 			break;
@@ -441,7 +472,7 @@ void ModSolver::printModel(){
 
 void print(const ModSolver& m){
 	reportf("ModSolver %d, parent %d, head ", m.getPrintId(), m.getParentPrintId() );
-	gprintLit(m.getHead(), m.getHeadValue());
+	gprintLit(Lit(m.getHead()), m.getHeadValue());
 	reportf(", children ");
 	for(vmodindex::const_iterator i=m.getChildren().begin(); i<m.getChildren().end(); i++){
 		reportf("%d ", *i);

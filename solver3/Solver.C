@@ -643,7 +643,7 @@ Clause* Solver::propagate()
 			confl = solver->propagate(p);
 		}
 		if(qhead==trail.size() && confl==NULL){
-			confl = solver->propagateDefinitions();
+			confl = solver->propagateAtEndOfQueue();
 		}
 		if(confl!=NULL){
 			qhead = trail.size();
@@ -730,19 +730,6 @@ bool Solver::simplify()
     simpDB_assigns = nAssigns();
     simpDB_props   = clauses_literals + learnts_literals;   // (shouldn't depend on stats really, but it will do for now)
 
-    /*AB*/
-	if(conflicts==0 && !solver->simplifyRest()){
-		ok = false;
-		return false;
-	}
-
-	// There might be stuff to propagate now.
-	if (propagate()!=NULL) {
-		ok = false;
-		return false;
-	}
-	/*AE*/
-
     return true;
 }
 
@@ -823,7 +810,7 @@ lbool Solver::search(/*AB*/bool nosearch/*AE*/)
 			}
 
             // Simplify the set of problem clauses:
-            if (decisionLevel() == 0 && !simplify())
+            if (decisionLevel() == 0 && /*AB*/ !solver->simplify() /*AE*/)
                 return l_False;
 
             if (nof_learnts >= 0 && learnts.size()-nAssigns() >= nof_learnts)

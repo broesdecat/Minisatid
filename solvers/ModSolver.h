@@ -47,19 +47,12 @@ struct AV{
     bool operator <  (AV p) const { return atom < p.atom;  }*/
 };
 
-struct LV{
-	Lit lit;
-	lbool value;
-
-	LV(Lit a): lit(a), value(l_Undef){}
-};
-
 class ModSolver{
 private:
 	modindex id, parentid;
 	bool hasparent, searching;
 
-	LV			head;
+	AV			head;
 	vector<AV> 	atoms; //atoms which are rigid within this solver
 	vector<bool> propfromabove;
 
@@ -72,7 +65,7 @@ private:
 	pPCSolver getSolver() const { return solver; }
 
 public:
-	ModSolver(modindex child, Lit head, shared_ptr<ModSolverData> mh);
+	ModSolver(modindex child, Var head, shared_ptr<ModSolverData> mh);
 	virtual ~ModSolver(){}
 
 	void addAtoms(const vector<Var>& atoms);
@@ -124,12 +117,14 @@ public:
 	 * SHOULD also return unit propagated implied rigid atoms.
 	 */
 	Clause* propagateDown(Lit l);
+	Clause* propagateDownAtEndOfQueue();
 	/**
 	 * Propagation coming from the sat-solver: should propagate it through all modal solvers.
 	 *
 	 * Should NOT be called from other sources than the SAT-solver.
 	 */
 	Clause* propagate(Lit l);
+	Clause* propagateAtEndOfQueue();
 	/**
 	 * Same as enqueue or notifyofpropagation: add it to the sat-solver queue, but remember why it was
 	 * propagated. Id indicates from which modal solver the propagation came.
@@ -138,7 +133,6 @@ public:
 	void propagateUp(Lit l, modindex id);
 
 	bool simplify();
-	bool solve(); //ONLY TO BE CALLED FOR ONCE INSTANCE AND FROM SOSOLVERHIER
 
 	void backtrackFromAbove(Lit l);
 	void backtrackFromSameLevel(Lit l);
@@ -148,9 +142,9 @@ public:
 	 */
 	Clause* getExplanation(Lit l);
 
-	Lit 				getHead		()	const 	{ return head.lit; }
-	lbool 				getHeadValue()	const	{ return head.value; }
-	//modindex 			getId		()	const	{ return id; }
+	Var 				getHead		()	const 	{ return head.atom; }
+	lbool 				getHeadValue()	const	{ return hasparent?head.value:true; }
+	modindex 			getId		()	const	{ return id; }
 	int		 			getPrintId	()	const	{ return id+1; }
 	modindex			getParentId	()	const	{ return parentid; }
 	int					getParentPrintId	()	const	{ return parentid+1; }
@@ -158,10 +152,16 @@ public:
 	const vmodindex& 	getChildren	()	const	{ return children; }
 
 	const ModSolverData& getModSolverData() const { return *modhier.lock().get(); }
-	const PCSolver& 	getPCSolver()	const	{ return *solver; }
+	const PCSolver& 	getPCSolver	()	const	{ return *solver; }
 
 private:
-	void 	addVars			(vec<Lit>& a);
+	void 		addVars		(vec<Lit>& a);
+
+	bool		adaptValuesOnPropagation(Lit l);
+	bool 		createAssumptions	(vec<Lit>&) const;
+	void 		doUnitPropagation	(const vec<Lit>&);
+	bool 		search				(const vec<Lit>&);
+	Clause* 	analyzeResult		(bool result, bool allknown);
 };
 
 void print(const ModSolver& m);

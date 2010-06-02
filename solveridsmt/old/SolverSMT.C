@@ -600,7 +600,7 @@
 //        	confl = getModSolver()->propagate(p);
 //        }
 //		if(qhead==trail.size() && confl==NULL && getIDSolver().get()!=NULL){
-//			confl = getIDSolver()->propagateDefinitions();
+//			confl = getIDSolver()->propagateAtEndOfQueue();
 //		}
 //		if(confl!=NULL){
 //			qhead = trail.size();

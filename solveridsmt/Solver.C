@@ -553,7 +553,7 @@ Clause* Solver::propagate()
 			confl = solver->propagate(p);
 		}
 		if(qhead==trail.size() && confl==NULL){
-			confl = solver->propagateDefinitions();
+			confl = solver->propagateAtEndOfQueue();
 		}
 		if(confl!=NULL){
 			qhead = trail.size();
