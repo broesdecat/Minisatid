@@ -22,9 +22,10 @@ extern bool parseError;
 ^"c grounder error".*	{cerr << "There was a grounding error, so no solving is possible." << endl; 
 						 throw idpexception();}
 ^"c ".*		{/* disregard comments */}
-^"p cnf".*	{/*return PROBLEMLINE;*/ /* disregard actual data */}
 
-^"p ecnf"  	{ADJ; }
+^"p "		{ADJ; }
+"cnf"		{ADJ; return CNF;}
+"ecnf"		{ADJ; return ECNF;}
 "def" 		{ADJ; return DEFPRESENT;}
 "aggr" 		{ADJ; return AGGPRESENT;}
 "mod" 		{ADJ; return MODPRESENT;}
@@ -45,7 +46,8 @@ extern bool parseError;
 "L"			{ADJ; yylval.boolean = true;  return SIGNDEFN;}
 "G"			{ADJ; yylval.boolean = false; return SIGNDEFN;}
 
-"E"			{ADJ; return QUANT;} //existential quantifier
+"e"			{ADJ; return QUANT;} //existential quantifier
+"a"			{ADJ; return QUANT;} //existential quantifier
 
 "Mnmz"		{ADJ; return SUBSETMINDEFN;}
 "Mnmt"     	{ADJ; return MNMZDEFN;}
@@ -60,7 +62,7 @@ extern bool parseError;
  /* Longest match is returned -> if e.g. "20", NUMBER is returned.
     If "0", then ZERO is returned since it's the first matching rule.
   */
-"0"			{ADJ; return ZERO;}
+"0"			{ADJ; yylval.integer = 0; return ZERO;}
 -?[0-9]+	{ADJ; yylval.integer = atoi(yytext); return NUMBER;}
 
 <*>.		{/* Anything else: parse error */

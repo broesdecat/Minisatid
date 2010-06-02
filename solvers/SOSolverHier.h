@@ -41,7 +41,7 @@ public:
 
 			bool	existsModSolver(modindex modid) const { return modid<solvers.size() && solvers[modid]!=NULL; }
 			bool	checkexistsModSolver(modindex modid) const;
-			pModSolver getModSolver(modindex modid) const { assert(existsModSolver(modid));return solvers[modid];}
+			pModSolver getModSolver(modindex modid) const { checkexistsModSolver(modid); return solvers[modid];}
 };
 
 void print(const ModSolverData& d);

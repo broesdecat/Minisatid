@@ -9,7 +9,8 @@ extern ECNF_mode modes;
  * Constructs a ModSolver, with a given head, index and hierarchy pointer. A PCSolver is initialized.
  */
 ModSolver::ModSolver(modindex child, Var head, shared_ptr<ModSolverData> mh):
-		id(child), parentid(-1), hasparent(false), head(head), modhier(mh){
+		id(child), parentid(-1), hasparent(false), init(true),
+		head(head), modhier(mh){
 	ECNF_mode modescopy(modes);
 	modescopy.nbmodels = 1;
 
@@ -112,6 +113,8 @@ bool ModSolver::finishParsing(){
 		result = modhier.lock()->getModSolver(*i)->finishParsing();
 	}
 
+	init = false;
+
 	return result;
 }
 
@@ -147,6 +150,9 @@ Clause* ModSolver::propagateDown(Lit l){
 }
 
 Clause* ModSolver::propagateDownAtEndOfQueue(){
+	if(init){
+		return NULL;
+	}
 	if(modes.verbosity>4){
 		reportf("End of queue propagation down into modal solver %d.\n", getPrintId());
 	}
@@ -161,6 +167,10 @@ Clause* ModSolver::propagateDownAtEndOfQueue(){
 		result = search(assumpts);
 	}
 	*/
+
+	if(!allknown){
+		return NULL;
+	}
 
 	bool result = search(assumpts);
 

@@ -23,12 +23,19 @@ shared_ptr<PCSolver>		solver;
 shared_ptr<ModSolverData>	modsolver;
 
 vector<Weight> weights;
-vector<Var> nb;
+vector<Var> nb, rigidatoms;
 vec<Lit> lits;
 bool disj;
 int setid, modid;
 bool unsatfound = false;
 bool parseError = false;
+
+bool solverdecided = false;
+int cnfcurrentmodid = 0;
+Var cnfcurrenthead = -1;
+int atoms, clauses;
+vector<int> modalops;
+vector<Lit> heads;
 
 /**
  * Initializes the solvers to add the datastructures
@@ -112,12 +119,14 @@ inline void addLit(int nb){
 void initSolver(){
 	solver = shared_ptr<PCSolver>(new PCSolver(modes));
 	mod = false;
+	solverdecided = true;
 }
 
 void initModSolver(){
 	modsolver = shared_ptr<ModSolverData>(new ModSolverData());
 	modsolver->initialize();
 	mod = true;
+	solverdecided = true;
 }
 
 shared_ptr<Data> getData(){
@@ -137,25 +146,71 @@ shared_ptr<Data> getData(){
     bool boolean;
 }
 
-%token EQ DISJUNCTION CONJUNCTION ZERO
+%token EQ DISJUNCTION CONJUNCTION
 %token SUBSETMINDEFN MNMZDEFN SUMMINDEFN
 %token SETDEFN WSETDEFN  
-%token <integer> NUMBER AGGDEFN
+%token <integer> ZERO NUMBER AGGDEFN
 %token <boolean> SEMDEFN SIGNDEFN
-%token DEFPRESENT AGGPRESENT MNMZPRESENT MODPRESENT QUANT MODDEFN
+%token CNF ECNF DEFPRESENT AGGPRESENT MNMZPRESENT MODPRESENT QUANT MODDEFN
 
 %start init
 
 %%
 
-init	:	header {initSolver();} theory
-		|	header MODPRESENT {initModSolver();} mtheory
+init	:	CNF	NUMBER NUMBER { atoms = $2; clauses = $3; } ctheory
+		|	CNF	ZERO NUMBER { atoms = $2; clauses = $3; } ctheory
+		|	CNF	NUMBER ZERO { atoms = $2; clauses = $3; } ctheory
+		|	CNF	ZERO ZERO { atoms = $2; clauses = $3; } ctheory
+		|	ECNF header {initSolver();} theory
+		|	ECNF header MODPRESENT {initModSolver();} mtheory
 		;
 
 header	: 	/*empty*/
 		| 	header DEFPRESENT	{ modes.def = true;}
 		| 	header AGGPRESENT	{ modes.aggr = true; }
 		| 	header MNMZPRESENT	{ modes.mnmz = true; }
+		;
+		
+ctheory	: 	cmhier {
+				for(vector<int>::size_type i = 0; i<modalops.size(); i++){
+					lits.push(heads[i]);
+					CR(modsolver->addClause(modalops[i], lits)); lits.clear();	
+				}
+			}cclauses
+		;
+
+cmhier	:	/* empty */
+		|	QUANT { 
+				if(!solverdecided){
+					initModSolver();
+					cnfcurrenthead = atoms;
+					modalops.push_back(0);
+					heads.push_back(Lit(cnfcurrenthead, true));
+				}else{
+					cnfcurrentmodid++;
+					CR(modsolver->addChild(cnfcurrentmodid-1, cnfcurrentmodid, Lit(cnfcurrenthead)));
+					modsolver->addAtoms(cnfcurrentmodid, rigidatoms);
+					assert(rigidatoms.size()!=0);
+					cnfcurrenthead++;
+					modalops.push_back(cnfcurrentmodid);
+					heads.push_back(Lit(cnfcurrenthead, true));
+				}
+			}
+			rigidvarbody ZERO cmhier
+		;
+
+cclauses:	/* empty */
+		|	body ZERO	{
+				if(!solverdecided){
+					initSolver();
+				}
+				if(mod){
+					CR(modsolver->addClause(cnfcurrentmodid, lits)); lits.clear();
+				}else{
+					CR(solver->addClause(lits)); lits.clear();
+				}
+			}
+			cclauses
 		;
 
 theory	:	/* empty */
@@ -194,11 +249,21 @@ body	:  /* empty */
 		;
 		
 varbody	:  /* empty */
-		|  varbody NUMBER	{ 
-									if($2<0){yyerror("Rigid atoms cannot have a sign.\n");}
-									nb.push_back(readVar($2)); 
-								}
+		|  varbody NUMBER	
+			{ 
+				if($2<0){yyerror("Rigid atoms cannot have a sign.\n");}
+				nb.push_back(readVar($2)); 
+			}
 		;
+		
+rigidvarbody	
+		:  /* empty */
+		|  rigidvarbody NUMBER	
+			{ 
+				if($2<0){yyerror("Rigid atoms cannot have a sign.\n");}
+				rigidatoms.push_back(readVar($2)); 
+			}
+		;		
          
 wbody	:	/* empty */
 		|	wbody NUMBER EQ ZERO	{ addLit($2); weights.push_back(Weight(0)); }

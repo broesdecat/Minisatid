@@ -589,7 +589,7 @@ Clause* Solver::propagate()
     int     num_props = 0;
 
     while (qhead < trail.size()){
-    	if(verbosity>4){
+    	if(verbosity>5){
     		reportf("Trail, mod %d: ", solver->getModPrintID());
     		for(int i=0; i<trail.size(); i++){
     			gprintLit(trail[i]); reportf(" ");

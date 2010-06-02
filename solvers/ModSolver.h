@@ -50,7 +50,7 @@ struct AV{
 class ModSolver{
 private:
 	modindex id, parentid;
-	bool hasparent, searching;
+	bool hasparent, searching, init;
 
 	AV			head;
 	vector<AV> 	atoms; //atoms which are rigid within this solver
