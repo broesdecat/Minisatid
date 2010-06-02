@@ -190,7 +190,7 @@ bool AggrSumSet::initialize(){
 	for(lwlv::const_iterator i=wlits.begin(); i<wlits.end(); i++){
 		if(INT_MAX-total < (*i).getWeight()){
 			reportf("The total sum of weights exceeds max-int, correctness cannot be guaranteed in limited precision.\n");
-			exit(3);
+			throw idpexception();
 		}
 		total += (*i).getWeight();
 	}
@@ -207,7 +207,7 @@ bool AggrProdSet::initialize(){
 	for(lwlv::const_iterator i=wlits.begin(); i<wlits.end(); i++){
 		if(INT_MAX/total < (*i).getWeight()){
 			reportf("The total product of weights exceeds max-int, correctness cannot be guaranteed in limited precision.\n");
-			exit(3);
+			throw idpexception();
 		}
 		total *= (*i).getWeight();
 	}
@@ -347,11 +347,8 @@ WLit AggrProdSet::handleOccurenceOfBothSigns(const WLit& one, const WLit& two){
 	//Mogelijke eenvoudige implementatie: weigts bijhouden als doubles (en al de rest als ints)
 	reportf("Product aggregates in which both the literal and its negation occur "
 			"are currently not supported. Replace ");
-	gprintLit(one.getLit());
-	reportf("or ");
-	gprintLit(two.getLit());
-	reportf("by a tseitin.\n");
-	exit(3);
+	gprintLit(one.getLit()); reportf("or "); gprintLit(two.getLit()); reportf("by a tseitin.\n");
+	throw idpexception();
 }
 
 

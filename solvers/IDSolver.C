@@ -1069,7 +1069,7 @@ bool IDSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 	default:
 		assert(false);
 		reportf("The program tried to justify an rule that was not AGGR, DISJ or CONJ.\n");
-		exit(3);
+		throw idpexception();
 	}
 	if(justified){
 		assert(jstf.size()>0);
@@ -1163,7 +1163,7 @@ void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf){
 		default:
 			assert(false);
 			reportf("Only AGGR, CONJ or DISJ should be checked for external disjuncts!");
-			exit(3);
+			throw idpexception();
 			break;
 		}
 	}
