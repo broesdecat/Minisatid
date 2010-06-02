@@ -4,7 +4,6 @@
 #include <errno.h>
 
 #include <signal.h>
-//#include <zlib.h>
 
 #if defined(__linux__)
 #include <fpu_control.h>
@@ -38,8 +37,6 @@ static inline double cpuTime(void) { return 0; }
 
 #include "debug.h"
 
-//TODO handle exit(x) with exception throwing instead, giving much cleaner code!!!
-
 ECNF_mode modes;
 
 class Data;
@@ -50,27 +47,25 @@ extern pData getData		();
 extern FILE* yyin;
 extern int 	yyparse			();
 extern void yydestroy		();
-extern void yyinit			(/*pSolver s, pIDSolver ids, pAggSolver aggs*/);
+extern void yyinit			();
 extern bool unsatfound;
 extern bool parseError;
 
-//void 		initSolvers		(const pSolver& S, const pIDSolver& TS, const pAggSolver& AggS);
-
 const char* hasPrefix		(const char* str, const char* prefix);
-void 		parseCommandline(/*const pSolver&, const pIDSolver&, const pAggSolver&,*/ int& argc, char** argv);
-pData 		parse			(/*const pSolver&, const pIDSolver&, const pAggSolver&,*/ const char* file);
+void 		parseCommandline(int& argc, char** argv);
+pData 		parse			(const char* file);
 
-void 		printStats		(/*pSolver solver*/);
+void 		printStats		();
 static void SIGINT_handler	(int signum);
 void 		printUsage		(char** argv);
 
 
-//FIXME: adapt for modal solver
-//wpSolver wps;
+//TODO: adapt to new design
 void		noMoreMem(){
 	//Tries to reduce the memory of the solver by reducing the number of learned clauses
 	//This keeps being called until enough memory is free or no more learned clauses can be/are deleted (causing abort).
-//	TODO TODO FIXME
+	reportf("The solver ran out of memory.");
+	throw idpexception();
 //	bool reducedmem = false;
 //	pSolver s = wps.lock();
 //	if(s.get()!=NULL){
@@ -86,22 +81,12 @@ void		noMoreMem(){
 //
 //	if(!reducedmem){
 //		reportf("There is no more memory to allocate, program aborting.\n");
-//		exit(3);
+//		throw new idpexception();
 //	}
 }
 
 int main(int argc, char** argv) {
-	reportf("This is MiniSAT-SMT 1.0\n");
-
 	std::set_new_handler(noMoreMem);
-
-/*	pSolver		S(new Solver());
-	wps = wpSolver(S);
-	pIDSolver	TS(new IDSolver());
-	pAggSolver	AggS(new AggSolver());
-    initSolvers(S, TS, AggS);*/
-
-    parseCommandline(/*S, TS, AggS,*/ argc, argv);
 
 #if defined(__linux__)
 	fpu_control_t oldcw, newcw;
@@ -119,20 +104,22 @@ int main(int argc, char** argv) {
 	signal(SIGHUP, SIGINT_handler);
 #endif
 
-	if (argc == 1)
-		reportf("Reading from standard input... Use '-h' or '--help' for help.\n");
-
-	if(modes.verbosity>0){
-		reportf("============================[ Problem Statistics ]=============================\n");
-		reportf("|                                                                             |\n");
-	}
-
     bool ret = false;
     FILE* res = NULL;
 	try {
+		parseCommandline(argc, argv);
+
+		if (argc == 1)
+			reportf("Reading from standard input... Use '-h' or '--help' for help.\n");
+
+		if(modes.verbosity>0){
+			reportf("============================[ Problem Statistics ]=============================\n");
+			reportf("|                                                                             |\n");
+		}
+
 		res = (argc >= 3) ? fopen(argv[2], "wb") : NULL;
 
-		pData d = parse(/*S, TS, AggS,*/ argv[1]);
+		pData d = parse(argv[1]);
 
 		if(modes.verbosity>0){
 			reportf("| Parsing time              : %7.2f s                                    |\n", cpuTime()-cpu_time);
@@ -164,12 +151,10 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		//TODO printStats(S);
-	}catch(bad_alloc e){ //FIXME: handle all these elegantly
-		reportf("Memory overflow, cannot continue solving.\n"); exit(3);
-	}catch(int ex){
-		reportf("Unexpected exception thrown as int with code %d\n", ex);
-		exit(3);
+		printStats();
+	}catch(exception& e){
+		reportf("Exception caught, program will abort.\n");
+		return 1;
 	}
 
 	if(!ret){
@@ -186,15 +171,6 @@ int main(int argc, char** argv) {
 #endif
 }
 
-/*void initSolvers(const pSolver& S, const pIDSolver& TS, const pAggSolver& AggS){
-	S->setIDSolver(TS);
-	S->setAggSolver(AggS);
-	TS->setSolver(S);
-	TS->setAggSolver(AggS);
-	AggS->setSolver(S);
-	AggS->setIDSolver(TS);
-}*/
-
 /****************
  * Parsing code *
  ****************/
@@ -207,7 +183,7 @@ const char* hasPrefix(const char* str, const char* prefix) {
 		return NULL;
 }
 
-void parseCommandline(/*const pSolver& S, const pIDSolver& TS, const pAggSolver& AggS,*/ int& argc, char** argv){
+void parseCommandline(int& argc, char** argv){
     int         i, j;
     const char* value;
     for (i = j = 0; i < argc; i++){
@@ -219,8 +195,8 @@ void parseCommandline(/*const pSolver& S, const pIDSolver& TS, const pAggSolver&
             }else if (strcmp(value, "rnd") == 0){
             	modes.polarity_mode = polarity_rnd;
             }else{
-                reportf("ERROR! unknown polarity-mode %s\n", value);
-                exit(0);
+            	reportf("ERROR! unknown choice of polarity-mode %s\n", value);
+            	throw idpexception();
             }
         }else if ((value = hasPrefix(argv[i], "-defn-strategy="))){
             if (strcmp(value, "always") == 0){
@@ -231,7 +207,7 @@ void parseCommandline(/*const pSolver& S, const pIDSolver& TS, const pAggSolver&
 				modes.defn_strategy = lazy;
 			}else{
                 reportf("ERROR! illegal definition strategy %s\n", value);
-                exit(0);
+                throw idpexception();
 			}
         }else if ((value = hasPrefix(argv[i], "-defn-search="))){
             if (strcmp(value, "include_cs") == 0)
@@ -239,20 +215,22 @@ void parseCommandline(/*const pSolver& S, const pIDSolver& TS, const pAggSolver&
             else if (strcmp(value, "stop_at_cs") == 0)
             	modes.defn_search = stop_at_cs;
             else{
-                reportf("ERROR! illegal definition ssearch type %s\n", value);
-                exit(0);
+                reportf("ERROR! illegal definition search type %s\n", value);
+                throw idpexception();
             }
         }else if ((value = hasPrefix(argv[i], "-rnd-freq="))){
             double rnd;
             if (sscanf(value, "%lf", &rnd) <= 0 || rnd < 0 || rnd > 1){
                 reportf("ERROR! illegal rnd-freq constant %s\n", value);
-                exit(0); }
+                throw idpexception();
+            }
             modes.random_var_freq = rnd;
         }else if ((value = hasPrefix(argv[i], "-decay="))){
             double decay;
             if (sscanf(value, "%lf", &decay) <= 0 || decay <= 0 || decay > 1){
                 reportf("ERROR! illegal decay constant %s\n", value);
-                exit(0); }
+                throw idpexception();
+            }
             modes.var_decay = 1 / decay;
         }else if ((value = hasPrefix(argv[i], "-ufsalgo="))){
 			if (strcmp(value, "depth") == 0){
@@ -261,7 +239,7 @@ void parseCommandline(/*const pSolver& S, const pIDSolver& TS, const pAggSolver&
 				modes.ufs_strategy = breadth_first;
 			}else{
 				reportf("ERROR! unknown choice of unfounded set algorithm: %s\n", value);
-				exit(0);
+				throw idpexception();
 			}
         }else if ((value = hasPrefix(argv[i], "-idsem="))){
 			if (strcmp(value, "wellf") == 0){
@@ -270,27 +248,28 @@ void parseCommandline(/*const pSolver& S, const pIDSolver& TS, const pAggSolver&
 				modes.sem = STABLE;
 			}else{
 				reportf("ERROR! unknown choice of unfounded set algorithm: %s\n", value);
-				exit(0);
+				throw idpexception();
 			}
         }else if ((value = hasPrefix(argv[i], "-verbosity="))){
             int verb = (int)strtol(value, NULL, 10);
             if (verb == 0 && errno == EINVAL){
                 reportf("ERROR! illegal verbosity level %s\n", value);
-                exit(0); }
+                throw idpexception();
+            }
            	modes.verbosity=verb;
         }else if (strncmp(&argv[i][0], "-n",2) == 0){
             char* endptr;
             modes.nbmodels = strtol(&argv[i][2], &endptr, 0);
             if (modes.nbmodels < 0 || *endptr != '\0') {
                reportf("ERROR! option `-nN': N must be a positive integer, or 0 to get all models.");
-               exit(0);
+               throw idpexception();
             }
         }else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "-help") == 0 || strcmp(argv[i], "--help") == 0){
             printUsage(argv);
             exit(0);
         }else if (strncmp(argv[i], "-", 1) == 0){
             reportf("ERROR! unknown flag %s\n", argv[i]);
-            exit(0);
+            throw idpexception();
         }else{
             argv[j++] = argv[i];
         }
@@ -302,20 +281,14 @@ void parseCommandline(/*const pSolver& S, const pIDSolver& TS, const pAggSolver&
  * Returns a data object representing the solver configuration from the input theory.
  * If the input theory was already found to be unsatisfiable, an empty shared pointer is returned.
  */
-pData parse(/*const pSolver& S, const pIDSolver& TS, const pAggSolver& AggS,*/ const char* file){
-   	yyinit(/*S, TS, AggS*/);
+pData parse(const char* file){
+   	yyinit();
 	yyin = fopen(file,"r");
 	if(!yyin) {
 		reportf("`%s' is not a valid filename or not readable.\n", file);
-		exit(1);
+		throw idpexception();
 	}
-	try{
-		yyparse();
-	}catch(int i ){
-		if(i==333 && parseError){
-			exit(1);
-		}
-	}
+	yyparse();
 
 	pData d = getData();
 
@@ -341,7 +314,7 @@ static void SIGINT_handler(int signum) {
     reportf("\n"); reportf("*** INTERRUPTED ***\n");
     //printStats(s);
     //reportf("\n"); reportf("*** INTERRUPTED ***\n");
-    exit(1);
+    throw idpexception();
 }
 
 void printUsage(char** argv) {
@@ -358,6 +331,6 @@ void printUsage(char** argv) {
 	reportf("\n");
 }
 
-void printStats(/*pSolver solver*/){
+void printStats(){
 	//TODO repair later + add extra stats
 }

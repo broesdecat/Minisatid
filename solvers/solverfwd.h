@@ -15,28 +15,18 @@ using namespace std;
 using namespace tr1;
 
 #include "SolverTypes.h"
-//#include "IDSolver.h"
-//#include "AggTypes.h"
-//#include "debug.h"
 
-/*class ParseExc: public std::exception{
- public:
- virtual const char* what() const throw(){
- return "Parse exception";
- }
- };
- class NoDefAllowedExc: public ParseExc{
- public:
- virtual const char* what() const throw(){
- return "Definition found but not definition allowed by header";
- }
- };
- class NoAggrAllowedExc: public ParseExc{
- public:
- virtual const char* what() const throw(){
- return "Aggregate found but not aggregates allowed by header";
- }
- };*/
+class idpexception: public std::exception{
+//private:
+//	const char* mess;
+public:
+	idpexception(): std::exception(){
+	}
+
+	virtual const char* what() const throw(){
+		return "";
+	}
+};
 
 enum FINDCS {
 	always, adaptive, lazy

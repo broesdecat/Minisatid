@@ -205,7 +205,7 @@ bool PCSolver::addAggrExpr(Lit head, int setid, Weight bound, bool lower, AggrTy
 	addVar(var(head));
 	if(sign(head)){
 		reportf( "No negative heads are allowed!\n");
-		exit(1);
+		throw idpexception();
 	}
 	return getAggSolver()->addAggrExpr(var(head), setid, bound, lower, type, defined);
 }
@@ -523,14 +523,14 @@ bool PCSolver::invalidateModel(vec<Lit>& learnt) {
 
 bool PCSolver::addMinimize(const vec<Lit>& lits, bool subset) {
 	/*TODO if (!ecnf_mode.mnmz)
-		reportf("ERROR! Attempt at adding a subset minimize statement, though ECNF specifiers did not contain \"mnmz\".\n"), exit(3);*/
+		reportf("ERROR! Attempt at adding a subset minimize statement, though ECNF specifiers did not contain \"mnmz\".\n"); throw idpexception();*/
 	if (lits.size() == 0) {
 		reportf("Error: The set of literals to be minimized is empty,\n");
-		exit(3);
+		throw idpexception();
 	}
 	if (optim!=NONE) {
 		reportf("At most one set of literals to be minimized can be given.\n");
-		exit(3);
+		throw idpexception();
 	}
 
 	if(subset){
@@ -549,10 +549,10 @@ bool PCSolver::addMinimize(const vec<Lit>& lits, bool subset) {
 
 bool PCSolver::addSumMinimize(const Var head, const int setid){
 	/*TODO if (!ecnf_mode.mnmz)
-		reportf("ERROR! Attempt at adding a subset minimize statement, though ECNF specifiers did not contain \"mnmz\".\n"), exit(3);*/
+		reportf("ERROR! Attempt at adding a subset minimize statement, though ECNF specifiers did not contain \"mnmz\".\n"); throw idpexception();*/
 	if (optim!=NONE) {
 		reportf("Only one optimization statement is possible.\n");
-		exit(3);
+		throw idpexception();
 	}
 
 	addVar(head);

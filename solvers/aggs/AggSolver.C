@@ -162,10 +162,10 @@ bool AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 	assert(set_id>0);
 	uint64_t setindex = set_id-1;
 	if(lits.size()==0){
-		reportf("Error: Set nr. %d is empty.\n",set_id), exit(3);
+		reportf("Error: Set nr. %d is empty.\n",set_id); throw idpexception();
 	}
 	if(aggrminsets.size()>setindex && aggrminsets[setindex]!=NULL && aggrminsets[setindex]->size()!=0){
-		reportf("Error: Set nr. %d is defined more than once.\n",set_id), exit(3);
+		reportf("Error: Set nr. %d is defined more than once.\n",set_id); throw idpexception();
 	}
 
 	vector<Weight> weights2; //inverted weights to handle minimum as maximum
@@ -173,7 +173,7 @@ bool AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 #ifdef INTWEIGHT
 		if(*i == INT_MAX || *i == INT_MIN){
 			reportf("Weights equal to or larger than the largest integer number are not allowed in limited precision.\n");
-			exit(3);
+			throw idpexception();
 		}
 #endif
 		weights2.push_back(-Weight(*i));
@@ -183,13 +183,11 @@ bool AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 		reportf("Added set %d: ", set_id);
 		vector<Weight>::iterator w=weights.begin();
 		for(int i=0; i<lits.size(); i++,w++){
-			//reportf("%d=%s, ", gprintVar(var(lits[i])), bigIntegerToString(*w).c_str());
 			reportf("%d=%s, ", gprintVar(var(lits[i])), printWeight(*w).c_str());
 		}
 		reportf("\n");
 	}
 
-	//pAggSolver aggsolver(shared_from_this());
 	while(aggrminsets.size()<=setindex){
 		aggrmaxsets.push_back(new AggrMaxSet(lits, weights, this));
 		aggrsumsets.push_back(new AggrSumSet(lits, weights, this));
@@ -202,7 +200,8 @@ bool AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 
 bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, AggrType type, bool defined) {
 	if (((vector<int>::size_type)setid) > aggrminsets.size() || aggrminsets[setid-1]==NULL || aggrminsets[setid-1]->size()==0) {
-		reportf("Error: Set nr. %d is used, but not defined yet.\n",setid), exit(3);
+		reportf("Error: Set nr. %d is used, but not defined yet.\n",setid);
+		throw idpexception();
 	}
 
 	assert(headv>-1);
@@ -210,7 +209,8 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 
 	//INVARIANT: it has to be guaranteed that there is a watch on ALL heads
 	if(head_watches.size()>nb && head_watches[headv]!=NULL){
-		reportf("Error: Two aggregates have the same head(%d).\n", gprintVar(headv)), exit(3);
+		reportf("Error: Two aggregates have the same head(%d).\n", gprintVar(headv));
+		throw idpexception();
 	}
 
 	assert(head_watches.size()>nb);
@@ -268,7 +268,9 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 		for(lwlv::const_iterator i=aggrprodsets[setindex]->getWLBegin(); i<aggrprodsets[setindex]->getWLEnd(); i++){
 			if((*i).getWeight() < 1){
 				reportf("Error: Set nr. %d contains a 0 (zero) or negative weight %s, which cannot "
-						"be used in combination with a product aggregate\n", setid, printWeight((*i).getWeight()).c_str()), exit(3);
+						"be used in combination with a product aggregate\n",
+						setid, printWeight((*i).getWeight()).c_str());
+				throw idpexception();
 			}
 		}
 		ae = pAgg(new ProdAgg(b, bound, head, pSet(aggrprodsets[setindex])));
@@ -276,7 +278,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 	default:
 		assert(false);
 		reportf("Only aggregates MIN, MAX, SUM or PROD are allowed in the solver.\n");
-		exit(3);
+		throw idpexception();
 	}
 
 	head_watches[var(head)] = pAgg(ae);
@@ -300,14 +302,16 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 //FIXME 2 more optimization should/could take place on other aggregates
 bool AggSolver::addMnmzSum(Var headv, int setid, bool lower) {
 	if (((vector<int>::size_type)setid) > aggrminsets.size() || aggrminsets[setid-1]==NULL || aggrminsets[setid-1]->size()==0) {
-		reportf("Error: Set nr. %d is used, but not defined yet.\n",setid), exit(3);
+		reportf("Error: Set nr. %d is used, but not defined yet.\n",setid);
+		throw idpexception();
 	}
 
 	assert(headv>0);
 	uint64_t nb = headv;
 
 	if(head_watches.size()>nb && head_watches[headv]!=NULL){
-		reportf("Error: Two aggregates have the same head(%d).\n", gprintVar(headv)), exit(3);
+		reportf("Error: Two aggregates have the same head(%d).\n", gprintVar(headv));
+		throw idpexception();
 	}
 
 	assert(head_watches.size()>nb);

@@ -1,29 +1,27 @@
 #include "SOSolverHier.h"
 #include "Utils.h"
 
-bool ModSolverData::addClause(modindex modid, vec<Lit>& lits){
+bool ModSolverData::checkexistsModSolver(modindex modid) const {
 	if(!existsModSolver(modid)){
 		reportf("No modal operator with id %d was defined! ", modid+1);
-		exit(1);
+		throw idpexception();
 	}
+}
+
+bool ModSolverData::addClause(modindex modid, vec<Lit>& lits){
+	checkexistsModSolver(modid);
 	pModSolver m = getModSolver(modid);
 	return m->addClause(lits);
 }
 
 bool ModSolverData::addRule(modindex modid, bool conj, vec<Lit>& lits){
-	if(!existsModSolver(modid)){
-		reportf("No modal operator with id %d was defined! ", modid+1);
-		exit(1);
-	}
+	checkexistsModSolver(modid);
 	pModSolver m = getModSolver(modid);
 	return m->addRule(conj, lits);
 }
 
 bool ModSolverData::addSet(modindex modid, int setid, vec<Lit>& lits, vector<Weight>& w){
-	if(!existsModSolver(modid)){
-		reportf("No modal operator with id %d was defined! ", modid+1);
-		exit(1);
-	}
+	checkexistsModSolver(modid);
 	pModSolver m = getModSolver(modid);
 	return m->addSet(setid, lits, w);
 }
@@ -31,12 +29,9 @@ bool ModSolverData::addSet(modindex modid, int setid, vec<Lit>& lits, vector<Wei
 bool ModSolverData::addAggrExpr(modindex modid, Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined){
 	if(sign(head)){
 		reportf( "No negative heads are allowed!\n");
-		exit(1);
+		throw idpexception();
 	}
-	if(!existsModSolver(modid)){
-		reportf("No modal operator with id %d was defined! ", modid+1);
-		exit(1);
-	}
+	checkexistsModSolver(modid);
 	pModSolver m = getModSolver(modid);
 	return m->addAggrExpr(head, setid, bound, lower, type, defined);
 }
@@ -50,10 +45,7 @@ void ModSolverData::setRes(FILE* f){
 }
 
 void ModSolverData::addVar(modindex modid, Var v){
-	if(!existsModSolver(modid)){
-		reportf("No modal operator with id %d was defined! ", modid+1);
-		exit(1);
-	}
+	checkexistsModSolver(modid);
 	getModSolver(modid)->addVar(v);
 }
 
@@ -70,35 +62,19 @@ void ModSolverData::initialize(){
 }
 
 void ModSolverData::addAtoms(modindex modid, const vector<Var>& atoms){
-	if(!existsModSolver(modid)){
-		reportf("No modal operator with id %d was defined! ", modid+1);
-		exit(1);
-	}
+	checkexistsModSolver(modid);
 	getModSolver(modid)->addAtoms(atoms);
 }
 
-/*bool ModSolverData::addModSolver(modindex modid, Lit head){
-	assert(modid>0);
-	if(solvers.size()<modid+1){
-		solvers.resize(modid+1, NULL);
-	}
-	assert(solvers[modid]==NULL);
-	solvers[modid] = new ModSolver(modid, head, shared_from_this());
-	return true;
-}*/
-
 bool ModSolverData::addChild(modindex parent, modindex child, Lit h){
-	if(!existsModSolver(parent)){
-		reportf("No modal operator with id %d was defined! ", parent+1);
-		exit(1);
-	}
+	checkexistsModSolver(parent);
 	if(existsModSolver(child)){
 		reportf("Modal operator with id %d was already defined! ", child+1);
-		exit(1);
+		throw idpexception();
 	}
 	if(sign(h)){
 		reportf("Modal operator %d has a negative head. This is not allowed.", child+1);
-		exit(1);
+		throw idpexception();
 	}
 	if(solvers.size()<child+1){
 		solvers.resize(child+1, NULL);
@@ -114,7 +90,7 @@ bool ModSolverData::simplify(){
 }
 
 bool ModSolverData::solve(){
-	return solvers[0]->propagateDownAtEndOfQueue()==0;
+	return solvers[0]->solve();
 }
 
 /**
@@ -147,9 +123,9 @@ void ModSolverData::verifyHierarchy(){
 		if(visitcount[(*i)->getId()]!=1 && *i!=NULL){
 			reportf("The hierarchy of modal solvers does not form a tree. "
 					"The Solver with id %d is %s.",
-							(*i)->getPrintId(),
-							visitcount[(*i)->getId()]==0?"not referenced":"referenced multiple times");
-			exit(3);
+						(*i)->getPrintId(),
+						visitcount[(*i)->getId()]==0?"not referenced":"referenced multiple times");
+			throw idpexception();
 		}
 	}
 }

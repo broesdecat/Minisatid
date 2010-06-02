@@ -19,7 +19,8 @@ extern bool parseError;
 %x TRANSLATION_MODUS
 %%
 
-^"c grounder error".*	{cerr << "There was a grounding error, so no solving is possible." << endl; exit(-1);}
+^"c grounder error".*	{cerr << "There was a grounding error, so no solving is possible." << endl; 
+						 throw idpexception();}
 ^"c ".*		{/* disregard comments */}
 ^"p cnf".*	{/*return PROBLEMLINE;*/ /* disregard actual data */}
 

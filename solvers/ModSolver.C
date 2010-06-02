@@ -119,6 +119,12 @@ bool ModSolver::finishParsing(){
  * SOLVE METHODS *
  *****************/
 
+//Responsible for printing models and finding multiple ones!
+//Only used by root solver currently
+bool ModSolver::solve(){
+	return solver->solve();
+}
+
 /*
  * First simplifies PC solver, afterwards simplifies lower modal operators.
  */

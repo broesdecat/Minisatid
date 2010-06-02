@@ -40,6 +40,7 @@ public:
 			void	addAtoms		(modindex modid, const vector<Var>& atoms);
 
 			bool	existsModSolver(modindex modid) const { return modid<solvers.size() && solvers[modid]!=NULL; }
+			bool	checkexistsModSolver(modindex modid) const;
 			pModSolver getModSolver(modindex modid) const { assert(existsModSolver(modid));return solvers[modid];}
 };
 

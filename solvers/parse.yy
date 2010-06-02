@@ -51,22 +51,6 @@ void yydestroy(){
 int lineNo = 1;
 int charPos = 1;
 
-/*
- * Prints an error message when a input error has been found and exits the program.
- */
-/*bool error(bool during_parsing, const char * msg) {
-	cerr << "Parse error: ";
-	if (during_parsing){
-		cerr << "Line " << lineNo << ", column " << charPos << ": "; 
-	}
-	cerr << msg;
-	if (during_parsing && strlen(yytext)){
-		cerr << " on \"" << yytext << "\"";		
-	}
-	cerr << endl;
-	exit(1);
-}*/
-
 // If an unforeseen parse error occurs, it calls this function (e.g. with msg="syntax error")
 void yyerror(const char* msg) {
 	if(unsatfound){
@@ -81,7 +65,7 @@ void yyerror(const char* msg) {
 		cerr << endl;
 		parseError = true;
 	}	
-	throw 333; //Dit is lelijk, maar vermijd veel aanpassingen (YYABORT en YYRETURN)
+	throw idpexception();
 }
 
 AggrType getAggrType(int type){

@@ -154,6 +154,8 @@ public:
 	const ModSolverData& getModSolverData() const { return *modhier.lock().get(); }
 	const PCSolver& 	getPCSolver	()	const	{ return *solver; }
 
+	bool 				solve();
+
 private:
 	void 		addVars		(vec<Lit>& a);
 
