@@ -150,6 +150,11 @@ public:
 	IDSolver const * const 	getCIDSolver	() const;
 	AggSolver const * const	getCAggSolver	() const;
 	ModSolver const * const	getCModSolver	() const;
+
+	/*
+	 * SATsolver asks this to PC such that more info (modal e.g.) can be printed.
+	 */
+	void printChoiceMade(int level, Lit l) const;
 };
 
 void print(const PCSolver& s);

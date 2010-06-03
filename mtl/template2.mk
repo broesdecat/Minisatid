@@ -69,11 +69,11 @@ lib$(LIB)d.a:	$(filter-out Main.od, $(DCOBJS))
 	
 %.y.cpp: %.y
 	@echo Compiling: "$@ ( $< )"
-	bison -p ecnf --defines --output=$@ $<
+	@bison -p ecnf --defines --output=$@ $<
 	
 %.l.cpp: %.l
 	@echo Compiling: "$@ ( $< )"
-	flex -P ecnf -o$@ $<
+	@flex -P ecnf -o$@ $<
 
 ## Linking rules (standard/profile/debug/release)
 $(EXEC) $(EXEC)_codecover $(EXEC)_profile $(EXEC)_debug $(EXEC)_release $(EXEC)_static:

@@ -850,9 +850,7 @@ lbool Solver::search(/*AB*/bool nosearch/*AE*/)
 				}
 
 				if (verbosity >= 2) {
-					reportf("Choice literal at decisionlevel %d: ", decisionLevel());
-					printLit(next);
-					reportf(".\n");
+					solver->printChoiceMade(decisionLevel(), next);
 				}
             }
 

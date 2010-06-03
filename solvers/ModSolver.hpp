@@ -56,6 +56,8 @@ private:
 	vector<AV> 	atoms; //atoms which are rigid within this solver
 	vector<bool> propfromabove;
 
+	vector<Lit> propagations;
+
 	vmodindex children;
 
 	pPCSolver	solver;

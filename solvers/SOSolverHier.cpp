@@ -58,10 +58,10 @@ bool ModSolverData::addClause(modindex modid, vec<Lit>& lits){
 		}
 	}
 	if(negated){
-		reportf("orig %d => new %d\n", modid, previd);
+		//reportf("orig %d => new %d\n", modid, previd);
 		return getModSolver(previd)->addClause(lits);
 	}else{
-		reportf("orig %d => new %d\n", modid, currentid);
+		//reportf("orig %d => new %d\n", modid, currentid);
 		return getModSolver(currentid)->addClause(lits);
 	}
 }

@@ -721,6 +721,14 @@ void PCSolver::printModel() const{
 	fprintf(res==NULL?stdout:res, " 0\n");
 }
 
+void PCSolver::printChoiceMade(int level, Lit l) const{
+	if(modes.verbosity>=5){
+		reportf("Choice literal at decisionlevel %d in modal solver %d: ", level, modsolver->getPrintId());
+		gprintLit(l);
+		reportf(".\n");
+	}
+}
+
 void print(const PCSolver& s){
 	print(s.getCSolver());
 	print(s.getCAggSolver());
