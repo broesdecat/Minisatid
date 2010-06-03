@@ -30,7 +30,7 @@ int setid, modid;
 bool unsatfound = false;
 bool parseError = false;
 
-bool solverdecided = false;
+bool solverdecided = false, negatemod = false;
 int cnfcurrentmodid = 0;
 Var cnfcurrenthead = -1;
 int atoms, clauses;
@@ -150,8 +150,8 @@ shared_ptr<Data> getData(){
 %token SUBSETMINDEFN MNMZDEFN SUMMINDEFN
 %token SETDEFN WSETDEFN  
 %token <integer> ZERO NUMBER AGGDEFN
-%token <boolean> SEMDEFN SIGNDEFN
-%token CNF ECNF DEFPRESENT AGGPRESENT MNMZPRESENT MODPRESENT QUANT MODDEFN
+%token <boolean> SEMDEFN SIGNDEFN QUANTe
+%token CNF ECNF DEFPRESENT AGGPRESENT MNMZPRESENT MODPRESENT  MODDEFN
 
 %start init
 
@@ -172,6 +172,11 @@ header	: 	/*empty*/
 		;
 		
 ctheory	: 	cmhier {
+				if(negatemod){
+					reportf("The quantifiers require to negate the full theory, this is "
+							"not handled at the moment.\n");
+					throw idpexception();
+				}
 				for(vector<int>::size_type i = 0; i<modalops.size(); i++){
 					lits.push(heads[i]);
 					CR(modsolver->addClause(modalops[i], lits)); lits.clear();	
@@ -180,20 +185,36 @@ ctheory	: 	cmhier {
 		;
 
 cmhier	:	/* empty */
-		|	QUANT { 
+		|	QUANTe { 
+				bool writeexists;
+				if($1 && negatemod){
+					negatemod = false;
+					writeexists = false;
+				}else if($1 && !negatemod){
+					negatemod = false;
+					writeexists = true;
+				}else if(!$1 && negatemod){
+					negatemod = true;
+					writeexists = true;
+				}else{
+					negatemod = true;
+					writeexists = false;
+				}
 				if(!solverdecided){
 					initModSolver();
 					cnfcurrenthead = atoms;
-					modalops.push_back(0);
-					heads.push_back(Lit(cnfcurrenthead, true));
 				}else{
+					modalops.push_back(cnfcurrentmodid);
+					if(writeexists){
+						heads.push_back(Lit(cnfcurrenthead, false));
+					}else{
+						heads.push_back(Lit(cnfcurrenthead, true));
+					}
 					cnfcurrentmodid++;
 					CR(modsolver->addChild(cnfcurrentmodid-1, cnfcurrentmodid, Lit(cnfcurrenthead)));
 					modsolver->addAtoms(cnfcurrentmodid, rigidatoms);
 					assert(rigidatoms.size()!=0);
 					cnfcurrenthead++;
-					modalops.push_back(cnfcurrentmodid);
-					heads.push_back(Lit(cnfcurrenthead, true));
 				}
 			}
 			rigidvarbody ZERO cmhier
@@ -276,7 +297,7 @@ wbody	:	/* empty */
 clause	:  body ZERO	{ CR(solver->addClause(lits)); lits.clear(); }
 		;
 rule	:	SEMDEFN NUMBER                  
-						{ 	if ($2 < 0) yyerror("Encountered a rule with negative literal as head.");
+						{ 	if ($2 < 0) yyerror("Encountered a rule with negative literal as head.\n");
 							addLit($2);
 							disj = $1;
 						}
@@ -312,7 +333,14 @@ wset	:	WSETDEFN NUMBER { setid = $2;	}
 modhier :	MODDEFN	NUMBER 	NUMBER 	NUMBER ZERO 
 				{ CR(modsolver->addChild($2-1, $3-1, readLit($4))); }
 		;
-matomset:	QUANT NUMBER { modid = $2-1; }
+matomset:	QUANTe NUMBER 
+				{ 
+					if(!$1){
+						reportf("Forall quantifiers are not part of the chosen input format.\n");
+						throw idpexception();
+					}
+					modid = $2-1; 
+				}
 			varbody ZERO { modsolver->addAtoms(modid, nb); nb.clear(); }
 		;
 mclause	:	NUMBER {modid = $1-1;} 

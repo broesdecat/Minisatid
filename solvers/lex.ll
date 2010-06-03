@@ -46,8 +46,8 @@ extern bool parseError;
 "L"			{ADJ; yylval.boolean = true;  return SIGNDEFN;}
 "G"			{ADJ; yylval.boolean = false; return SIGNDEFN;}
 
-"e"			{ADJ; return QUANT;} //existential quantifier
-"a"			{ADJ; return QUANT;} //existential quantifier
+"e"			{ADJ; yylval.boolean = true; return QUANTe;} //existential quantifier
+"a"			{ADJ; yylval.boolean = false; return QUANTe;} //universal quantifier
 
 "Mnmz"		{ADJ; return SUBSETMINDEFN;}
 "Mnmt"     	{ADJ; return MNMZDEFN;}
