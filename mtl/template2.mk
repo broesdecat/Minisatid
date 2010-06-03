@@ -68,9 +68,11 @@ lib$(LIB)d.a:	$(filter-out Main.od, $(DCOBJS))
 	@$(CXX) $(CFLAGS) -c -o $@ $<
 	
 %.y.cpp: %.y
+	@echo Compiling: "$@ ( $< )"
 	bison -p ecnf --defines --output=$@ $<
 	
 %.l.cpp: %.l
+	@echo Compiling: "$@ ( $< )"
 	flex -P ecnf -o$@ $<
 
 ## Linking rules (standard/profile/debug/release)
@@ -87,7 +89,8 @@ lib$(LIB).a lib$(LIB)d.a:
 ## Clean rule
 clean:
 	@rm -f $(EXEC) $(EXEC)_codecover $(EXEC)_profile $(EXEC)_debug $(EXEC)_release $(EXEC)_static \
-	  $(COBJS) $(CCCOBJS) $(PCOBJS) $(DCOBJS) $(RCOBJS) *.core depend.mak lib$(LIB).a lib$(LIB)d.a
+		$(PSRCS) $(PHDRS) $(COBJS) $(CCCOBJS) $(PCOBJS) $(DCOBJS) $(RCOBJS) *.core depend.mk lib$(LIB).a lib$(LIB)d.a
+	  	  
 
 ## Make dependencies
 depend.mk: $(CSRCS) $(CHDRS)

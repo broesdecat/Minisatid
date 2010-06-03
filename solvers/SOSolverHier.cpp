@@ -8,10 +8,62 @@ void ModSolverData::checkexistsModSolver(modindex modid) const {
 	}
 }
 
+/**
+ * Try to add the clause as high up in the hierarchy as possible.
+ *
+ * How can this be done: if all literals of a clause are rigid atoms, then the clause
+ * if effectively relevant to the parent modal operator.
+ * The sign of the modal operators decides whether the clause has to be negated or not.
+ * If it is too difficult too negate it, it is not pushed upwards.
+ *
+ * This is only possible if the sign of the modal operator is fixed. It is guaranteed that if
+ * it is certainly fixed, the head will be known at this point in time.
+ *
+ * Currently done substitutions
+ */
 bool ModSolverData::addClause(modindex modid, vec<Lit>& lits){
 	checkexistsModSolver(modid);
-	pModSolver m = getModSolver(modid);
-	return m->addClause(lits);
+	modindex previd = modid, currentid = modid;
+	pModSolver m = NULL;
+	bool negated = false;
+	while(true){
+		m = getModSolver(currentid);
+		bool alloccur = true;
+		for(int i=0; alloccur && i<lits.size(); i++){
+			bool seen = false;
+			for(vector<AV>::const_iterator j=m->getAtoms().begin(); !seen && j<m->getAtoms().end(); j++){
+				if((*j).atom==var(lits[i])){
+					seen = true;
+				}
+			}
+			if(!seen){
+				alloccur = false;
+			}
+		}
+		if(!alloccur){
+			break;
+		}
+		if(m->getHeadValue()==l_Undef){
+			break;
+		}else if(m->getHeadValue()==l_False){
+			negated = !negated;
+		}
+		int parentid = m->getParentId();
+		if(parentid==-1){
+			break;
+		}
+		currentid = parentid;
+		if(!negated){
+			 previd = currentid;
+		}
+	}
+	if(negated){
+		reportf("orig %d => new %d\n", modid, previd);
+		return getModSolver(previd)->addClause(lits);
+	}else{
+		reportf("orig %d => new %d\n", modid, currentid);
+		return getModSolver(currentid)->addClause(lits);
+	}
 }
 
 bool ModSolverData::addRule(modindex modid, bool conj, vec<Lit>& lits){
