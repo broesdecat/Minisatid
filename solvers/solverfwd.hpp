@@ -14,7 +14,7 @@
 using namespace std;
 using namespace tr1;
 
-#include "SolverTypes.h"
+#include "SolverTypes.hpp"
 
 class idpexception: public std::exception{
 //private:

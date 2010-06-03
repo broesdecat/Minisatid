@@ -6,7 +6,7 @@
 #include <set>
 #include <iostream>
 
-#include "AggTypes.h"
+#include "AggTypes.hpp"
 #include "Vec.h"
 
 namespace Aggrs{

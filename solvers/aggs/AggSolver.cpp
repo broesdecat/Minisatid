@@ -1,9 +1,9 @@
-#include "AggSolver.h"
+#include "AggSolver.hpp"
 
-#include "Agg.h"
-#include "AggSets.h"
+#include "Agg.hpp"
+#include "AggSets.hpp"
 
-#include "Utils.h"
+#include "Utils.hpp"
 
 #include <algorithm>
 

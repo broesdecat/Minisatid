@@ -8,7 +8,7 @@
 #ifndef DEBUG_H_
 #define DEBUG_H_
 
-#include "SolverTypes.h"
+#include "SolverTypes.hpp"
 #include "stdio.h"
 
 #include "Vec.h"

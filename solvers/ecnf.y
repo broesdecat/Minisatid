@@ -6,17 +6,17 @@
 #include <list>
 #include <map>
 	
-#include "solverfwd.h"
-#include "SOSolverHier.h"
-#include "PCSolver.h"
+#include "solverfwd.hpp"
+#include "SOSolverHier.hpp"
+#include "PCSolver.hpp"
 #include "Vec.h"
 	
 using namespace Aggrs;
 
 extern ECNF_mode modes;
 
-extern int yylex(void);
-extern char * yytext;
+extern int ecnflex(void);
+extern char * ecnftext;
 
 bool mod;
 shared_ptr<PCSolver>		solver;
@@ -66,8 +66,8 @@ void yyerror(const char* msg) {
 		cerr << "Parse error: ";
 		cerr << "Line " << lineNo << ", column " << charPos << ": "; 
 		cerr << msg;
-		if (strlen(yytext)){
-			cerr << " on \"" << yytext << "\"";		
+		if (strlen(ecnftext)){
+			cerr << " on \"" << ecnftext << "\"";		
 		}
 		cerr << endl;
 		parseError = true;

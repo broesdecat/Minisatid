@@ -5,9 +5,9 @@
 #include <vector>
 #include <tr1/memory>
 #include "Vec.h"
-#include "SolverTypes.h"
-#include "PCSolver.h"
-#include "SOSolverHier.h"
+#include "SolverTypes.hpp"
+#include "PCSolver.hpp"
+#include "SOSolverHier.hpp"
 #include <stdio.h>
 
 using namespace std;

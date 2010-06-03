@@ -1,8 +1,8 @@
 #include <algorithm>
 
-#include "Agg.h"
-#include "AggSets.h"
-#include "AggSolver.h"
+#include "Agg.hpp"
+#include "AggSets.hpp"
+#include "AggSolver.hpp"
 
 using namespace Aggrs;
 

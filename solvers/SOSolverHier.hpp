@@ -1,13 +1,13 @@
 #ifndef SOSOLVER_H_
 #define SOSOLVER_H_
 
-#include "solverfwd.h"
-#include "AggTypes.h"
+#include "solverfwd.hpp"
+#include "AggTypes.hpp"
 #include "Vec.h"
-#include "SolverI.h"
+#include "SolverI.hpp"
 class Data;
 
-#include "ModSolver.h"
+#include "ModSolver.hpp"
 class ModSolver;
 typedef ModSolver* pModSolver;
 
@@ -40,7 +40,7 @@ public:
 			void	addAtoms		(modindex modid, const vector<Var>& atoms);
 
 			bool	existsModSolver(modindex modid) const { return modid<solvers.size() && solvers[modid]!=NULL; }
-			bool	checkexistsModSolver(modindex modid) const;
+			void	checkexistsModSolver(modindex modid) const;
 			pModSolver getModSolver(modindex modid) const { checkexistsModSolver(modid); return solvers[modid];}
 };
 

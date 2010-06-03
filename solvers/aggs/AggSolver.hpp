@@ -6,7 +6,7 @@
 #include "Vec.h"
 #include "Sort.h"
 
-#include "AggTypes.h"
+#include "AggTypes.hpp"
 
 namespace Aggrs{
 	class Agg;
@@ -20,7 +20,7 @@ namespace Aggrs{
 	typedef AggrSet* pSet;
 }
 
-#include "PCSolver.h"
+#include "PCSolver.hpp"
 class PCSolver;
 typedef PCSolver* pPCSolver;
 

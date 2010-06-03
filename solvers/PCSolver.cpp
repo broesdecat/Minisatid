@@ -1,5 +1,5 @@
-#include "PCSolver.h"
-#include "Utils.h"
+#include "PCSolver.hpp"
+#include "Utils.hpp"
 
 /******************
  * INITIALIZATION *

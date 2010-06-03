@@ -1,4 +1,4 @@
-#include "AggTypes.h"
+#include "AggTypes.hpp"
 #include "cstdlib"
 
 template <typename T>

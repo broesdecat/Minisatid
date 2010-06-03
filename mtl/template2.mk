@@ -6,9 +6,9 @@
 ##        "make"    for the standard version (optimized, but with debug information and assertions active)
 ##		added: Code coverage version (CC prefix): no optimization, extra options, to use gcov
 
-CSRCS	?= $(wildcard *.C)
-CHDRS	?= $(wildcard *.h)
-COBJS	?= $(addsuffix .o, $(basename $(CSRCS))) ../solvers/parse.tab.o ../solvers/lex.yy.o
+CSRCS	?= $(wildcard *.cpp)
+CHDRS	?= $(wildcard *.hpp)
+COBJS	?= $(addsuffix .o, $(basename $(CSRCS)))
 
 PCOBJS	= $(addsuffix p,  $(COBJS))
 DCOBJS	= $(addsuffix d,  $(COBJS))
@@ -63,19 +63,15 @@ lib$(LIB)d.a:	$(filter-out Main.od, $(DCOBJS))
 
 
 ## Build rule
-%.o %.op %.od %.or %.occ:	%.C
+%.o %.op %.od %.or %.occ:	%.cpp
 	@echo Compiling: "$@ ( $< )"
 	@$(CXX) $(CFLAGS) -c -o $@ $<
 	
-## Build parser
-%.o %.op %.od %.or %.occ:	%.cc
-	@$(CXX) $(CFLAGS) -c -o $@ $<
+%.y.cpp: %.y
+	bison -p ecnf --defines --output=$@ $<
 	
-%.tab.cc: %.yy
-	bison --defines --output=$@ $<
-	
-%.yy.C: %.ll
-	flex -o$@ $<
+%.l.cpp: %.l
+	flex -P ecnf -o$@ $<
 
 ## Linking rules (standard/profile/debug/release)
 $(EXEC) $(EXEC)_codecover $(EXEC)_profile $(EXEC)_debug $(EXEC)_release $(EXEC)_static:
@@ -91,7 +87,7 @@ lib$(LIB).a lib$(LIB)d.a:
 ## Clean rule
 clean:
 	@rm -f $(EXEC) $(EXEC)_codecover $(EXEC)_profile $(EXEC)_debug $(EXEC)_release $(EXEC)_static \
-	  $(COBJS) $(CCCOBJS) $(PCOBJS) $(DCOBJS) $(RCOBJS) ../solvers/parse.tab.cc ../solvers/parse.tab.hh ../solvers/lex.yy.C *.core depend.mak lib$(LIB).a lib$(LIB)d.a
+	  $(COBJS) $(CCCOBJS) $(PCOBJS) $(DCOBJS) $(RCOBJS) *.core depend.mak lib$(LIB).a lib$(LIB)d.a
 
 ## Make dependencies
 depend.mk: $(CSRCS) $(CHDRS)

@@ -7,8 +7,8 @@
 #include <iostream>
 #include <tr1/memory>
 
-#include "SolverTypes.h"
-#include "debug.h"
+#include "SolverTypes.hpp"
+#include "debug.hpp"
 
 using namespace std;
 using namespace tr1;

@@ -8,19 +8,19 @@
 #include <vector>
 #include <map>
 
-#include "Utils.h"
+#include "Utils.hpp"
 
 #include "Vec.h"
 #include "Queue.h"
 #include "Heap.h"
 
-#include "solverfwd.h"
+#include "solverfwd.hpp"
 
-#include "PCSolver.h"
+#include "PCSolver.hpp"
 class PCSolver;
 typedef PCSolver* pPCSolver;
 
-#include "AggSolver.h"
+#include "AggSolver.hpp"
 class AggSolver;
 typedef AggSolver* pAggSolver;
 

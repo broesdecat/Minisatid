@@ -1,7 +1,7 @@
-#include "SOSolverHier.h"
-#include "Utils.h"
+#include "SOSolverHier.hpp"
+#include "Utils.hpp"
 
-bool ModSolverData::checkexistsModSolver(modindex modid) const {
+void ModSolverData::checkexistsModSolver(modindex modid) const {
 	if(!existsModSolver(modid)){
 		reportf("No modal operator with id %d was defined! ", modid+1);
 		throw idpexception();

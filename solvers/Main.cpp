@@ -32,10 +32,10 @@ static inline double cpuTime(void) {
 static inline double cpuTime(void) { return 0; }
 #endif
 
-#include "solverfwd.h"
-#include "SolverI.h"
+#include "solverfwd.hpp"
+#include "SolverI.hpp"
 
-#include "debug.h"
+#include "debug.hpp"
 
 ECNF_mode modes;
 
@@ -44,12 +44,11 @@ typedef shared_ptr<Data> pData;
 
 extern pData getData		();
 
-extern FILE* yyin;
-extern int 	yyparse			();
+extern FILE* ecnfin;
+extern int 	ecnfparse			();
 extern void yydestroy		();
 extern void yyinit			();
 extern bool unsatfound;
-extern bool parseError;
 
 const char* hasPrefix		(const char* str, const char* prefix);
 void 		parseCommandline(int& argc, char** argv);
@@ -106,7 +105,7 @@ int main(int argc, char** argv) {
 
     bool ret = false;
     FILE* res = NULL;
-	try {
+	try{
 		parseCommandline(argc, argv);
 
 		if (argc == 1)
@@ -282,18 +281,18 @@ void parseCommandline(int& argc, char** argv){
  * If the input theory was already found to be unsatisfiable, an empty shared pointer is returned.
  */
 pData parse(const char* file){
-   	yyinit();
-	yyin = fopen(file,"r");
-	if(!yyin) {
+	yyinit();
+	ecnfin = fopen(file,"r");
+	if(!ecnfin) {
 		reportf("`%s' is not a valid filename or not readable.\n", file);
 		throw idpexception();
 	}
-	yyparse();
+	ecnfparse();
 
 	pData d = getData();
 
 	yydestroy();
-	fclose(yyin);
+	fclose(ecnfin);
 
 	if(unsatfound){
 		return shared_ptr<Data>();

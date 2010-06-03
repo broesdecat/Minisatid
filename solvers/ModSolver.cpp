@@ -1,4 +1,4 @@
-#include "ModSolver.h"
+#include "ModSolver.hpp"
 #include <algorithm>
 
 extern ECNF_mode modes;
@@ -35,6 +35,17 @@ void ModSolver::addVars(vec<Lit>& a){
 	}
 }
 
+/**
+ * Try to add the clause as high up in the hierarchy as possible.
+ *
+ * How can this be done: if all literals of a clause are rigid atoms, then the clause
+ * if effectively relevant to the parent modal operator.
+ * The sign of the modal operators decides whether the clause has to be negated or not.
+ * If it is too difficult too negate it, it is not pushed upwards.
+ *
+ * This is only possible if the sign of the modal operator is fixed. It is guaranteed that if
+ * it is certainly fixed, the head will be known at this point in time.
+ */
 bool ModSolver::addClause(vec<Lit>& lits){
 	addVars(lits);
 	return getSolver()->addClause(lits);
