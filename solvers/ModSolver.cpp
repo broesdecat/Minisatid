@@ -18,6 +18,10 @@ ModSolver::ModSolver(modindex child, Var head, shared_ptr<ModSolverData> mh):
 	getSolver()->setModSolver(this);
 }
 
+ModSolver::~ModSolver(){
+	delete solver;
+}
+
 /******************************
  * ADD/INITIALIZATION METHODS *
  ******************************/

@@ -1,11 +1,97 @@
 #include "SOSolverHier.hpp"
 #include "Utils.hpp"
 
+ModSolverData::ModSolverData():Data(), state(NEW){
+
+}
+
+ModSolverData::~ModSolverData(){
+	deleteList<ModSolver>(solvers);
+}
+
 void ModSolverData::checkexistsModSolver(modindex modid) const {
 	if(!existsModSolver(modid)){
 		reportf("No modal operator with id %d was defined! ", modid+1);
 		throw idpexception();
 	}
+}
+
+void ModSolverData::setNbModels(int nb){
+	solvers[0]->setNbModels(nb);
+}
+
+void ModSolverData::setRes(FILE* f){
+	solvers[0]->setRes(f);
+}
+
+bool ModSolverData::simplify(){
+	assert(state==ALLLOADED);
+	return solvers[0]->simplify();
+}
+
+bool ModSolverData::solve(){
+	assert(state==ALLLOADED);
+	return solvers[0]->solve();
+}
+
+bool ModSolverData::finishParsing(){
+	assert(state==LOADINGREST);
+	state = ALLLOADED;
+
+	verifyHierarchy();
+
+	bool result = solvers[0]->finishParsing();
+
+	if(modes.verbosity>=5){
+		print(*this);
+	}
+
+	return result;
+}
+
+//Add information for hierarchy
+
+bool ModSolverData::addChild(modindex parent, modindex child, Lit h){
+	if(state==NEW){
+		initialize();
+	}
+	assert(state==LOADINGHIER);
+
+	checkexistsModSolver(parent);
+	if(existsModSolver(child)){
+		reportf("Modal operator with id %d was already defined! ", child+1);
+		throw idpexception();
+	}
+	if(sign(h)){
+		reportf("Modal operator %d has a negative head. This is not allowed.", child+1);
+		throw idpexception();
+	}
+	if(solvers.size()<child+1){
+		solvers.resize(child+1, NULL);
+	}
+	Var head = var(h);
+	solvers[child] = new ModSolver(child, head, shared_from_this());
+	solvers[child]->setParent(parent);
+	return true;
+}
+
+void ModSolverData::addAtoms(modindex modid, const vector<Var>& atoms){
+	assert(state==LOADINGHIER);
+
+	checkexistsModSolver(modid);
+	getModSolver(modid)->addAtoms(atoms);
+}
+
+//Add information for PC-Solver
+
+void ModSolverData::addVar(modindex modid, Var v){
+	if(state==LOADINGHIER){
+		state = LOADINGREST;
+	}
+	assert(state==LOADINGREST);
+
+	checkexistsModSolver(modid);
+	getModSolver(modid)->addVar(v);
 }
 
 /**
@@ -22,6 +108,11 @@ void ModSolverData::checkexistsModSolver(modindex modid) const {
  * Currently done substitutions
  */
 bool ModSolverData::addClause(modindex modid, vec<Lit>& lits){
+	if(state==LOADINGHIER){
+		state = LOADINGREST;
+	}
+	assert(state==LOADINGREST);
+
 	checkexistsModSolver(modid);
 	modindex previd = modid, currentid = modid;
 	pModSolver m = NULL;
@@ -67,18 +158,33 @@ bool ModSolverData::addClause(modindex modid, vec<Lit>& lits){
 }
 
 bool ModSolverData::addRule(modindex modid, bool conj, vec<Lit>& lits){
+	if(state==LOADINGHIER){
+		state = LOADINGREST;
+	}
+	assert(state==LOADINGREST);
+
 	checkexistsModSolver(modid);
 	pModSolver m = getModSolver(modid);
 	return m->addRule(conj, lits);
 }
 
 bool ModSolverData::addSet(modindex modid, int setid, vec<Lit>& lits, vector<Weight>& w){
+	if(state==LOADINGHIER){
+		state = LOADINGREST;
+	}
+	assert(state==LOADINGREST);
+
 	checkexistsModSolver(modid);
 	pModSolver m = getModSolver(modid);
 	return m->addSet(setid, lits, w);
 }
 
 bool ModSolverData::addAggrExpr(modindex modid, Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined){
+	if(state==LOADINGHIER){
+		state = LOADINGREST;
+	}
+	assert(state==LOADINGREST);
+
 	if(sign(head)){
 		reportf( "No negative heads are allowed!\n");
 		throw idpexception();
@@ -88,61 +194,11 @@ bool ModSolverData::addAggrExpr(modindex modid, Lit head, int setid, Weight boun
 	return m->addAggrExpr(head, setid, bound, lower, type, defined);
 }
 
-void ModSolverData::setNbModels(int nb){
-	solvers[0]->setNbModels(nb);
-}
-
-void ModSolverData::setRes(FILE* f){
-	solvers[0]->setRes(f);
-}
-
-void ModSolverData::addVar(modindex modid, Var v){
-	checkexistsModSolver(modid);
-	getModSolver(modid)->addVar(v);
-}
-
-ModSolverData::ModSolverData():Data(){
-
-}
-
-ModSolverData::~ModSolverData(){
-	deleteList<ModSolver>(solvers);
-}
+//Private methods
 
 void ModSolverData::initialize(){
 	solvers.push_back(new ModSolver(0, -1, shared_from_this()));
-}
-
-void ModSolverData::addAtoms(modindex modid, const vector<Var>& atoms){
-	checkexistsModSolver(modid);
-	getModSolver(modid)->addAtoms(atoms);
-}
-
-bool ModSolverData::addChild(modindex parent, modindex child, Lit h){
-	checkexistsModSolver(parent);
-	if(existsModSolver(child)){
-		reportf("Modal operator with id %d was already defined! ", child+1);
-		throw idpexception();
-	}
-	if(sign(h)){
-		reportf("Modal operator %d has a negative head. This is not allowed.", child+1);
-		throw idpexception();
-	}
-	if(solvers.size()<child+1){
-		solvers.resize(child+1, NULL);
-	}
-	Var head = var(h);
-	solvers[child] = new ModSolver(child, head, shared_from_this());
-	solvers[child]->setParent(parent);
-	return true;
-}
-
-bool ModSolverData::simplify(){
-	return solvers[0]->simplify();
-}
-
-bool ModSolverData::solve(){
-	return solvers[0]->solve();
+	state = LOADINGHIER;
 }
 
 /**
@@ -156,6 +212,8 @@ bool ModSolverData::solve(){
  * remember whether a solver has been seen and how many times
  */
 void ModSolverData::verifyHierarchy(){
+	assert(state = ALLLOADED);
+
 	vector<modindex> queue;
 	vector<int> visitcount(solvers.size(), 0);
 	queue.push_back(0);
@@ -180,18 +238,6 @@ void ModSolverData::verifyHierarchy(){
 			throw idpexception();
 		}
 	}
-}
-
-bool ModSolverData::finishParsing(){
-	verifyHierarchy();
-
-	bool result = solvers[0]->finishParsing();
-
-	if(modes.verbosity>=5){
-		print(*this);
-	}
-
-	return result;
 }
 
 void print(const ModSolverData& d){

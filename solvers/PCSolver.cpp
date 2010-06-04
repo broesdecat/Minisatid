@@ -166,7 +166,6 @@ void PCSolver::addVar(Var v){
 	uint64_t var = v;
 	while (var >= nVars()){
 		getSolver()->newVar(true, false);
-		//FIXME: it would seem to have to be -1, but isnt the case?
 		if(idsolverpresent){
 			getIDSolver()->notifyVarAdded(nVars());
 		}
@@ -435,8 +434,6 @@ bool PCSolver::solve(const vec<Lit>& assmpt){
 /**
  * Important: assmpt are the first DECISIONS that are made. So they are not automatic unit propagations
  * and can be backtracked!
- * FIXME: een mooier design maken zodat het duidelijk is naarwaar gebacktrackt moet worden (tot voor of tot
- * na de assumptions, afhankelijk van of ze voor alle modellen moeten gelden of alleen voor het huidige).
  */
 bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m){
 	bool rslt = solve(assmpt);
@@ -456,7 +453,7 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m){
 		}
 
 		//check if more models can exist
-		if (getSolver()->decisionLevel() /*FIXME + assmpts.size() */!= 0) { //choices were made, so other models possible
+		if (getSolver()->decisionLevel() != assmpt.size()) { //choices were made, so other models possible
 			vec<Lit> invalidation;
 			invalidate(invalidation);
 			rslt = invalidateModel(invalidation);
@@ -500,9 +497,6 @@ bool PCSolver::invalidateModel(vec<Lit>& learnt) {
 	//for subsetminimize this is not so clear, because assumptions have to be added too, so maybe there backtrack to 0 is necessary (for unit propagation before search)
 	getSolver()->cancelUntil(0);
 
-	//FIXME: hier werd soms verder gebacktrackt dan het laagste decision level (in de unit propagaties dus)
-	//maar geen idee waarom dit nodig was. Mss toch eens nakijken?
-
 	if (modes.verbosity>=3) {
 		reportf("Adding model-invalidating clause: [ ");
 		gprintClause(learnt);
@@ -522,8 +516,11 @@ bool PCSolver::invalidateModel(vec<Lit>& learnt) {
  ************************/
 
 bool PCSolver::addMinimize(const vec<Lit>& lits, bool subset) {
-	/*TODO if (!ecnf_mode.mnmz)
-		reportf("ERROR! Attempt at adding a subset minimize statement, though ECNF specifiers did not contain \"mnmz\".\n"); throw idpexception();*/
+	if (!modes.mnmz){
+		reportf("ERROR! Attempt at adding an optimization statement, though header "
+				"did not contain \"mnmz\".\n");
+		throw idpexception();
+	}
 	if (lits.size() == 0) {
 		reportf("Error: The set of literals to be minimized is empty,\n");
 		throw idpexception();
@@ -548,8 +545,11 @@ bool PCSolver::addMinimize(const vec<Lit>& lits, bool subset) {
 }
 
 bool PCSolver::addSumMinimize(const Var head, const int setid){
-	/*TODO if (!ecnf_mode.mnmz)
-		reportf("ERROR! Attempt at adding a subset minimize statement, though ECNF specifiers did not contain \"mnmz\".\n"); throw idpexception();*/
+	if (!modes.mnmz){
+		reportf("ERROR! Attempt at adding an optimization statement, though header "
+				"did not contain \"mnmz\".\n");
+		throw idpexception();
+	}
 	if (optim!=NONE) {
 		reportf("Only one optimization statement is possible.\n");
 		throw idpexception();
@@ -660,7 +660,7 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 			}
 
 			if(!optimumreached){
-				if (getSolver()->decisionLevel() /*FIXME + assmpts.size() */!= 0) { //choices were made, so other models possible
+				if (getSolver()->decisionLevel() != assmpt.size()) { //choices were made, so other models possible
 					optimumreached = !invalidateModel(invalidation);
 				}else{
 					optimumreached = true;

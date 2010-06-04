@@ -293,6 +293,7 @@ pData parse(const char* file){
 
 	yydestroy();
 	fclose(ecnfin);
+    //There is still a memory leak of about 16 Kb in the flex scanner.
 
 	if(unsatfound){
 		return shared_ptr<Data>();

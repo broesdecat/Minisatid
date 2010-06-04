@@ -55,6 +55,7 @@ Solver::Solver(pPCSolver s/*A*/) :
   , order_heap       (VarOrderLt(activity))
   , progress_estimate(0)
   , remove_satisfied (false/*A*/)
+  /*AB*/, backtrackLevels(NULL)/*AE*/
 {}
 
 
@@ -62,6 +63,12 @@ Solver::~Solver()
 {
     for (int i = 0; i < learnts.size(); i++) free(learnts[i]);
     for (int i = 0; i < clauses.size(); i++) free(clauses[i]);
+
+    /*AB*/
+    if(backtrackLevels!=NULL){
+    	delete[] backtrackLevels;
+    }
+    /*AE*/
 }
 
 
@@ -187,7 +194,8 @@ bool Solver::addClause(vec<Lit>& ps)
     else if (ps.size() == 1){
         assert(value(ps[0]) == l_Undef);
         uncheckedEnqueue(ps[0]);
-        return ok = (propagate() == NULL);
+		return ok = (propagate() == NULL);
+        /*AE*/
     }else{
         Clause* c = Clause_new(ps, false);
         clauses.push(c);
@@ -406,7 +414,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 
         /*AB*/
 		if (deleteImplicitClause) {
-			delete confl;
+			free(confl);
 			deleteImplicitClause = false;
 		}
         /*AE*/
@@ -430,6 +438,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 		}
 
         if(confl==NULL && pathC>1){
+        	//Explanation still returns an owning pointer, so handle it properly
         	confl = solver->getExplanation(p);
         	deleteImplicitClause = true;
         }
@@ -639,11 +648,20 @@ Clause* Solver::propagate()
         }
         ws.shrink(i - j);
         /*AB*/
+        //Important: standard propagate returns a conflic clause that ALREADY exists in the clause store
+        //such that is does not have to be deleted specifically.
+        //So propagate should NOT return clause pointers it owns
 		if(confl==NULL){
 			confl = solver->propagate(p);
+			if(confl!=NULL){
+				addLearnedClause(confl);
+			}
 		}
 		if(qhead==trail.size() && confl==NULL){
 			confl = solver->propagateAtEndOfQueue();
+			if(confl!=NULL){
+				addLearnedClause(confl);
+			}
 		}
 		if(confl!=NULL){
 			qhead = trail.size();
@@ -714,7 +732,7 @@ bool Solver::simplify()
     assert(decisionLevel() == 0);
 
     if (!ok || propagate() != NULL)
-       return ok = false;
+    	return ok = false;
 
     if (nAssigns() == simpDB_assigns || (simpDB_props > 0))
         return true;
@@ -761,7 +779,8 @@ lbool Solver::search(/*AB*/bool nosearch/*AE*/)
         if (confl != NULL){
             // CONFLICT
             conflicts++; conflictC++;
-            if (decisionLevel() == 0) return l_False;
+            if (decisionLevel() == 0)
+            	return l_False;
 
             first = false;
 
@@ -893,6 +912,11 @@ bool Solver::solve(const vec<Lit>& assumps /*AB*/, bool nosearch /*AE*/)
 	restartLess= 5;
 	restartMore= 42;
 	restartTolerance= nVars() / 10000 +10;
+	/*AB*/
+	if(backtrackLevels != NULL){
+		delete[] backtrackLevels;
+	}
+	/*AE*/
 	backtrackLevels= new int[restartMore];
 
     lbool   status        = l_Undef;

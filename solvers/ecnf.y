@@ -124,7 +124,6 @@ void initSolver(){
 
 void initModSolver(){
 	modsolver = shared_ptr<ModSolverData>(new ModSolverData());
-	modsolver->initialize();
 	mod = true;
 	solverdecided = true;
 }

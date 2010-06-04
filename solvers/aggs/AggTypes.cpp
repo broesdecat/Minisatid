@@ -3,6 +3,7 @@
 
 template <typename T>
 string printWeight(const T& w){
+	return "";
 }
 
 #ifdef GMPWEIGHT

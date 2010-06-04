@@ -184,7 +184,7 @@ bool Solver::addClause(vec<Lit>& ps)
     else if (ps.size() == 1){
         assert(value(ps[0]) == l_Undef);
         uncheckedEnqueue(ps[0]);
-        return ok = (propagate() == NULL);
+		return ok = (propagate() == NULL);
     }else{
         Clause* c = Clause_new(ps, false);
         clauses.push(c);
@@ -341,7 +341,8 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 
         /*AB*/
 		if (deleteImplicitClause) {
-			delete confl;
+			//FIXME THIS IS WRONG
+			free(confl);
 			deleteImplicitClause = false;
 		}
 		/*AE*/
@@ -623,7 +624,7 @@ bool Solver::simplify()
     assert(decisionLevel() == 0);
 
     if (!ok || propagate() != NULL)
-        return ok = false;
+    	return ok = false;
 
     if (nAssigns() == simpDB_assigns || (simpDB_props > 0))
         return true;
@@ -686,7 +687,8 @@ lbool Solver::search(int nof_conflicts, int nof_learnts/*AB*/, bool nosearch/*AE
         if (confl != NULL){
             // CONFLICT
             conflicts++; conflictC++;
-            if (decisionLevel() == 0) return l_False;
+            if (decisionLevel() == 0)
+            	return l_False;
 
             first = false;
 
