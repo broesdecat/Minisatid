@@ -648,20 +648,13 @@ Clause* Solver::propagate()
         }
         ws.shrink(i - j);
         /*AB*/
-        //Important: standard propagate returns a conflic clause that ALREADY exists in the clause store
-        //such that is does not have to be deleted specifically.
-        //So propagate should NOT return clause pointers it owns
+        //Important: standard propagate returns a conflict clause that ALREADY exists in the clause store
+        //so these functions should return POINTERS OWNED BY SOMEONE ELSE
 		if(confl==NULL){
 			confl = solver->propagate(p);
-			if(confl!=NULL){
-				addLearnedClause(confl);
-			}
 		}
 		if(qhead==trail.size() && confl==NULL){
 			confl = solver->propagateAtEndOfQueue();
-			if(confl!=NULL){
-				addLearnedClause(confl);
-			}
 		}
 		if(confl!=NULL){
 			qhead = trail.size();

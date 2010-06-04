@@ -171,16 +171,20 @@ header	: 	/*empty*/
 		;
 		
 ctheory	: 	cmhier {
-				if(negatemod){
-					reportf("The quantifiers require to negate the full theory, this is "
-							"not handled at the moment.\n");
-					throw idpexception();
+				if(!solverdecided){
+					initSolver();
+				}else{
+					if(negatemod){
+						reportf("The quantifiers require to negate the full theory, this is "
+								"not handled at the moment.\n");
+						throw idpexception();
+					}
+					for(vector<int>::size_type i = 0; i<modalops.size(); i++){
+						lits.push(heads[i]);
+						CR(modsolver->addClause(modalops[i], lits)); lits.clear();	
+					}
 				}
-				for(vector<int>::size_type i = 0; i<modalops.size(); i++){
-					lits.push(heads[i]);
-					CR(modsolver->addClause(modalops[i], lits)); lits.clear();	
-				}
-			}cclauses
+			} cclauses
 		;
 
 cmhier	:	/* empty */
@@ -219,19 +223,20 @@ cmhier	:	/* empty */
 			rigidvarbody ZERO cmhier
 		;
 
+//FIXME: dit blijkt nodig om de performantie omhoog te krikken, eens onderzoeken waarom
 cclauses:	/* empty */
-		|	body ZERO	{
-				if(!solverdecided){
-					initSolver();
-				}
+		|	cclauses cclause
+		;
+			
+cclause: body ZERO	{
 				if(mod){
 					CR(modsolver->addClause(cnfcurrentmodid, lits)); lits.clear();
 				}else{
 					CR(solver->addClause(lits)); lits.clear();
 				}
 			}
-			cclauses
 		;
+
 
 theory	:	/* empty */
 		|	theory clause

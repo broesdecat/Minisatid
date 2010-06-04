@@ -309,6 +309,10 @@ void PCSolver::backtrackRest(Lit l){
 	}
 }
 
+/**
+ * Returns not-owning pointer
+ */
+//FIXME: maybe let all lower ones return owning pointer, so only one reference to addlearnedclause?
 Clause* PCSolver::propagate(Lit l){
 	Clause* confl = NULL;
 	if(aggsolverpresent){
@@ -323,12 +327,16 @@ Clause* PCSolver::propagate(Lit l){
 	return confl;
 }
 
+/**
+ * Returns not-owning pointer
+ */
 Clause* PCSolver::propagateAtEndOfQueue(){
 	Clause* confl = NULL;
 	if(idsolverpresent && confl == NULL){
 		confl = getIDSolver()->propagateDefinitions();
 	}
 	if(modsolverpresent && confl == NULL){
+		//FIXME: check if pointer is not-owning
 		confl = getModSolver()->propagateAtEndOfQueue();
 	}
 	return confl;

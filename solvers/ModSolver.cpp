@@ -143,6 +143,9 @@ bool ModSolver::simplify(){
 	return result;
 }
 
+/**
+ * Returns non-owning pointer
+ */
 Clause* ModSolver::propagateDown(Lit l){
 	if(modes.verbosity>4){
 		gprintLit(l); reportf(" propagated down into modal solver %d.\n", getPrintId());
@@ -153,6 +156,9 @@ Clause* ModSolver::propagateDown(Lit l){
 	return NULL;
 }
 
+/**
+ * Returns non-owning pointer
+ */
 Clause* ModSolver::propagateDownAtEndOfQueue(){
 	if(init){
 		return NULL;
@@ -179,6 +185,9 @@ Clause* ModSolver::propagateDownAtEndOfQueue(){
 	bool result = search(assumpts);
 
 	Clause* confl = analyzeResult(result, allknown);
+	//FIXME what if size is one?
+	assert(confl->size()>1);
+	solver->addLearnedClause(confl);
 
 	if(modes.verbosity>4){
 		reportf("Finished checking solver %d: %s.\n", getPrintId(), confl==NULL?"no conflict":"conflict");
@@ -281,6 +290,9 @@ Clause* ModSolver::analyzeResult(bool result, bool allknown){
 	return confl;
 }
 
+/**
+ * Returns non-owning pointer
+ */
 Clause* ModSolver::propagate(Lit l){
 	/*if(!searching){
 		vector<Lit> v = getSolver()->getDecisions();
@@ -295,6 +307,9 @@ Clause* ModSolver::propagate(Lit l){
 
 //In future, we might want to delay effectively propagating and searching in subfolders to the point where the
 //queue is empty, so we will need a propagateDown and a propagateDownEndOfQueue
+/**
+ * Returns non-owning pointer
+ */
 Clause* ModSolver::propagateAtEndOfQueue(){
 	Clause* confl = NULL;
 	for(vmodindex::const_iterator i=getChildren().begin(); confl==NULL && i<getChildren().end(); i++){

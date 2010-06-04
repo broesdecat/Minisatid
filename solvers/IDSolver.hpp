@@ -262,11 +262,17 @@ void print(IDSolver const * const id);
  * subsequent calls
  */
 
+/**
+ * Returns non-owning pointer
+ */
 inline Clause* IDSolver::propagate(const Lit& p){
 	return NULL;
 }
 
 //only call this when the whole queue has been propagated
+/**
+ * Returns non-owning pointer
+ */
 inline Clause* IDSolver::propagateDefinitions(){
 	if (init || !posloops) {return NULL;}
 	return indirectPropagate();

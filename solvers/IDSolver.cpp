@@ -707,6 +707,8 @@ void IDSolver::propagateJustificationAggr(Lit l, vec<vec<Lit> >& jstf, vec<Lit>&
  |      returned.
  |    Otherwise, the justification and the watches will be adjusted and 'aligned', such that the
  |    justification is loop-free.
+ |
+ |	Returns non-owning pointer
  |________________________________________________________________________________________________@*/
 Clause* IDSolver::indirectPropagate() {
 	if (!indirectPropagateNow()) {
@@ -1182,7 +1184,7 @@ void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf){
  * Loop formulas are created in the form
  * UFSLITERAL IMPLIES DISJUNCTION(external disjuncts)
  *
- * @Return a conflict clause if any conflict is found
+ * Returns a non-owning pointer
  */
 Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	assert(!ufs.empty());
@@ -1202,6 +1204,10 @@ Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 					reportf("Adding conflicting loop formula: [ ");	print(*c); reportf("].\n");
 				}
 			}else{
+				vec<Lit> ps;
+				ps.push(c->operator [](0));
+				getSolver()->backtrackTo(0); //TODO this is incorrect when there are assumptions and certainly not what we want
+				getSolver()->addClause(ps);
 				if (modes.verbosity >= 2) {
 					reportf("Adding conflicting loop formula: [ ");	gprintLit((*c)[0]); reportf("].\n");
 				}

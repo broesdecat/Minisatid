@@ -52,12 +52,16 @@ void Agg::backtrackHead(){
 	headindex = -1;
 }
 
+/**
+ * Returns non-owning pointer
+ */
 Clause* Agg::propagateHead(const Lit& p){
 	if(nomoreprops || headprop){ return NULL; }
 
 	bool headtrue = getHead()==p;
 	headvalue = headtrue?l_True:l_False;
 	headindex = getSet()->getStackSize();
+	//FIXME: check if pointer is not-owning
 	Clause* confl = propagateHead(headtrue);
 	return confl;
 }

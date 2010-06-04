@@ -384,6 +384,8 @@ bool AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& h
  * @pre: literal p can be derived to be true because of the given aggregate reason
  *
  * @remarks: only method allowed to use the sat solver datastructures
+ *
+ * Returns non-owning pointer
  */
 Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 
@@ -401,27 +403,11 @@ Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 		aggr_reason[var(p)] = ar;
 		Clause* confl = getExplanation(p);
 
-		/*
-		 * FIXME: toch maar gewoon in de SAT solver analyze schrijven? (is nogal SAT solver afhankelijk vermoed ik)
-		 * Due to current possibly incomplete propagation, the conflict could possibly
-		 * have been derived at an earlier level. So check for this and first backtrack
-		 * to that level.
-		 */
-		int lvl = 0;
-		for (int i = 0; i < confl->size(); i++){
-			int litlevel = getSolver()->getLevel(var(confl->operator [](i)));
-			if (litlevel > lvl){
-				lvl = litlevel;
-			}
-		}
-		if(getSolver()->getNbDecisions()>lvl){
-			getSolver()->backtrackTo(lvl);
-		}
-
 		if(confl->size()>1){
 			getSolver()->addLearnedClause(confl);
 		}else{
 			//TODO: found a conflict of size one, which cannot be added easily. The solution of backtracking everything might not be the best.
+			getSolver()->backtrackTo(0); //TODO this is incorrect when there are assumptions
 			vec<Lit> ps;
 			ps.push(confl->operator [](0));
 			getSolver()->addClause(ps);
@@ -447,6 +433,9 @@ Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 	return NULL;
 }
 
+/**
+ * Returns non-owning pointer
+ */
 Clause* AggSolver::Aggr_propagate(const Lit& p) {
 	Clause* confl = NULL;
 	vector<AggrWatch>& ws = aggr_watches[var(p)];
@@ -462,6 +451,7 @@ Clause* AggSolver::Aggr_propagate(const Lit& p) {
 		confl = pa->propagateHead(p);
 	}
 	for (vector<AggrWatch>::const_iterator i = ws.begin(); confl == NULL && i < ws.end(); i++) {
+		//FIXME: check if pointer is not-owning
 		confl = (*i).getSet()->propagate(p, (*i));
 	}
 	return confl;
