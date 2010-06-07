@@ -414,7 +414,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 
         /*AB*/
 		if (deleteImplicitClause) {
-			free(confl);
+			delete confl;
 			deleteImplicitClause = false;
 		}
         /*AE*/
