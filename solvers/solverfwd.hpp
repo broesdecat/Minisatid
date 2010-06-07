@@ -75,7 +75,6 @@ enum POLARITY {
 };
 
 struct ECNF_mode {
-	//minisat specific: TODO: initialize them on time!!!
 	double random_var_freq, var_decay;
 	POLARITY polarity_mode;
 	int verbosity;
@@ -92,10 +91,9 @@ struct ECNF_mode {
 	SEARCHSTRAT ufs_strategy; //Which algorithm to use to find unfounded sets
 
 	ECNF_mode() :
-		random_var_freq(0.02), var_decay(1 / 0.95), polarity_mode(
-				polarity_stored), def(false), aggr(false), mnmz(false), sem(
-				WELLF), nbmodels(1), defn_strategy(always), defn_search(
-				include_cs), ufs_strategy(breadth_first) {
+		random_var_freq(0.02), var_decay(1 / 0.95), polarity_mode(polarity_stored),
+		def(false), aggr(false), mnmz(false), sem(WELLF), nbmodels(1),
+		defn_strategy(always), defn_search(include_cs), ufs_strategy(breadth_first) {
 	}
 };
 extern ECNF_mode modes;

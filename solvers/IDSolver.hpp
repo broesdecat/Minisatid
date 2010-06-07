@@ -59,7 +59,6 @@ public:
 	void		setAggSolver(pAggSolver a){aggsolver = a;}	//TODO call this
 
 	/////////////////////SOLVER NECESSARY
-	bool 		simplify				();
 	void 		backtrack 				(const Lit& l);
 	Clause* 	getExplanation			(const Lit& p);    // Create a clause that implicitly was the reason for p's propagation.
 	void 		notifyVarAdded			(int nvars); 		//correctly initialized TSolver datastructures when vars are added
@@ -81,7 +80,6 @@ public:
 	bool    	finishECNF_DataStructures();							// Initialize the ECNF data structures. NOTE: aggregates may set the "ok" value to false!
 
 	pPCSolver 	getSolver				()	const		{ return solver; }
-	void 		remove					();			//remove this idsolver from the solver network
 	/////////////////////END INITIALIZATION
 
 	vector<Rule*>	definition;	// If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
@@ -128,6 +126,8 @@ protected:
 	bool 		isConjunctive		(Var v) const;
 	bool 		isDisjunctive		(Var v) const;
 	bool		setTypeIfNoPosLoops	(Var v) const;
+
+	bool 		initAfterSimplify		();
 
 	void 		propagateJustificationDisj(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& heads);
 	void 		propagateJustificationAggr(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& heads);

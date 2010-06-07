@@ -344,7 +344,6 @@ Clause* PCSolver::propagateAtEndOfQueue(){
 		confl = getIDSolver()->propagateDefinitions();
 	}
 	if(modsolverpresent && confl == NULL){
-		//FIXME: check if pointer is not-owning
 		confl = getModSolver()->propagateAtEndOfQueue();
 	}
 	return confl;
@@ -358,22 +357,7 @@ Clause* PCSolver::propagateAtEndOfQueue(){
  * Important: the SATsolver never calls his own simplify, he always goes through the PC solver
  */
 bool PCSolver::simplify(){
-	bool result = true;
-	result = solver->simplify();
-	if(idsolverpresent && result){
-		result = getIDSolver()->simplify();
-	}
-	/* Currently, the modal solver is not simplified when it is asked by the sat solver.
-	 * Maybe it is not a problem to keep it like that
-	if(modsolverpresent && result){
-		result = getModSolver()->simplify();
-	}
-	*/
-	if(result){
-		//Simplify again, which might lead to more propagation because of simplifications in other solvers
-		solver->simplify();
-	}
-	return result;
+	return solver->simplify();
 }
 
 bool PCSolver::solve(){

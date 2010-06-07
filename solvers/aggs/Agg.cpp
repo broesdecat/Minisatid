@@ -61,7 +61,6 @@ Clause* Agg::propagateHead(const Lit& p){
 	bool headtrue = getHead()==p;
 	headvalue = headtrue?l_True:l_False;
 	headindex = getSet()->getStackSize();
-	//FIXME: check if pointer is not-owning
 	Clause* confl = propagateHead(headtrue);
 	return confl;
 }
@@ -91,6 +90,9 @@ lbool Agg::canPropagateHead(const Weight& CC, const Weight& CP) const{
  * 		make all literals false with weight larger than bound
  * head is false && A <= AGG:
  * 		make all literals false with weight larger/eq than bound
+ */
+/**
+ * Returns non-owning pointer
  */
 Clause* MaxAgg::propagateHead(bool headtrue) {
 	if(nomoreprops || headprop){ return NULL; }
@@ -127,6 +129,9 @@ Clause* MaxAgg::propagateHead(bool headtrue) {
  * head is false && A <= AGG: No conclusion possible (emptyset is also a solution)
  * head is false && AGG <= B: Last literal has to be true
  */
+/**
+ * Returns non-owning pointer
+ */
 Clause* MaxAgg::propagate(bool headtrue) {
 	Clause* confl = NULL;
 
@@ -152,7 +157,7 @@ Clause* MaxAgg::propagate(bool headtrue) {
 		}
 	}
 	if(exactlyoneleft){
-		//FIXME BASEDONCP is not correct enough (ONCPABOVEBOUND)
+		//TODO BASEDONCP is not correct enough (ONCPABOVEBOUND)
 		confl = s->getSolver()->notifySATsolverOfPropagation((*pos).getLit(), new AggrReason(this, BASEDONCP));
 	}
 	return confl;
@@ -222,12 +227,18 @@ Weight	ProdAgg::remove(const Weight& lhs, const Weight& rhs) const{
  * 		if lower and adding to bestcertain gets above the bound, then all literals with that weight and higher should be false
  * this is done using the lower_bound binary search algorithm of std
  */
+/**
+ * Returns non-owning pointer
+ */
 Clause* SPAgg::propagateHead(bool headtrue){
 	if(nomoreprops || headprop){ return NULL; }
 
 	return propagate(headtrue);
 }
 
+/**
+ * Returns non-owning pointer
+ */
 Clause* SPAgg::propagate(bool headtrue){
 	if(nomoreprops || headprop){ return NULL; }
 
@@ -236,8 +247,6 @@ Clause* SPAgg::propagate(bool headtrue){
 	pSet s = getSet();
 
 	Expl basedon = CPANDCC;
-
-	//FIXME: correct for overflow when using ints as weight.
 
 	//determine the lower bound of which weight literals to consider
 	if (headtrue) {
@@ -298,6 +307,9 @@ Clause* SPAgg::propagate(bool headtrue){
 	return c;
 }
 
+/**
+ * Returns non-owning pointer
+ */
 Clause* CardAgg::propagate(bool headtrue){
 	if(nomoreprops || headprop){ return NULL; }
 

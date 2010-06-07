@@ -381,7 +381,7 @@ bool AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& h
  */
 Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 
-	//cool, dit doet keiveel? => zoals gewoonlijk werkt het niet altijd: wel voor fastfood, niet voor hanoi
+	//This strongly improves the performance of some benchmarks, e.g. FastFood. For Hanoi it has no effect
 	getSolver()->varBumpActivity(var(p));	//mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt?
 
 	if (getSolver()->value(p) == l_False) {
@@ -435,7 +435,6 @@ Clause* AggSolver::Aggr_propagate(const Lit& p) {
 		confl = pa->propagateHead(p);
 	}
 	for (vector<AggrWatch>::const_iterator i = ws.begin(); confl == NULL && i < ws.end(); i++) {
-		//FIXME: check if pointer is not-owning
 		confl = (*i).getSet()->propagate(p, (*i));
 	}
 	return confl;

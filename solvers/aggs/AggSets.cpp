@@ -79,7 +79,6 @@ Clause* AggrSet::propagate(const Lit& p, const AggrWatch& ws){
 		lbool hv = pa->getHeadValue();
 		if(hv != l_Undef){ //head is already known
 			assert(pa->canPropagateHead(getCC(), getCP())!=(hv==l_True?l_False:l_True));	//A conflicting propagation is not possible if we have complete propagation
-			//FIXME: check if pointer is not-owning
 			confl = pa->propagate(hv==l_True);
 		}else{ //head is not yet known, so at most the head can be propagated
 			lbool result = pa->canPropagateHead(getCC(), getCP());

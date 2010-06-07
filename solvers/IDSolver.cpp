@@ -48,11 +48,6 @@ IDSolver::IDSolver(pPCSolver s):
 {
 }
 
-void IDSolver::remove(){
-	//FIXME is dit nog nodig?
-	getSolver()->resetIDSolver();
-}
-
 IDSolver::~IDSolver() {
 	deleteList<Rule>(definition);
 }
@@ -326,7 +321,7 @@ bool IDSolver::finishECNF_DataStructures() {
 
 	//TODO this might not be the best choice, as at the start, simplification is called twice! But
 	//it simplifies the solve algorithm and allows to keep the sat solver the same.
-	return simplify();
+	return initAfterSimplify();
 }
 
 /**
@@ -466,7 +461,7 @@ void IDSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, 
 }
 
 //@pre: conflicts are empty
-bool IDSolver::simplify(){
+bool IDSolver::initAfterSimplify(){
 	// This has to be done before the first choice.
 
 	// NOTE: we're doing a stable model initialization here. No need for a loop.
