@@ -111,7 +111,7 @@ void PCSolver::addLearnedClause(Clause* c){
 		getSolver()->addLearnedClause(c);
 	}else{
 		//TODO maybe backtracking to 0 is not the best method.
-		getSolver()->backtrackTo(0);
+		backtrackTo(0);
 		vec<Lit> ps;
 		ps.push(c->operator [](0));
 		getSolver()->addClause(ps);
