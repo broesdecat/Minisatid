@@ -1198,19 +1198,9 @@ Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 		if (isTrue(*tch)) {
 			loopf[0] = createNegativeLiteral(*tch);	//negate the head to create a clause
 			Clause* c = Clause_new(loopf, true);
-			if(c->size()>1){
-				getSolver()->addLearnedClause(c);
-				if (modes.verbosity >= 2) {
-					reportf("Adding conflicting loop formula: [ ");	print(*c); reportf("].\n");
-				}
-			}else{
-				vec<Lit> ps;
-				ps.push(c->operator [](0));
-				getSolver()->backtrackTo(0); //TODO this is incorrect when there are assumptions and certainly not what we want
-				getSolver()->addClause(ps);
-				if (modes.verbosity >= 2) {
-					reportf("Adding conflicting loop formula: [ ");	gprintLit((*c)[0]); reportf("].\n");
-				}
+			getSolver()->addLearnedClause(c);
+			if (modes.verbosity >= 2) {
+				reportf("Adding conflicting loop formula: [ ");	print(*c); reportf("].\n");
 			}
 			return c;
 		}
@@ -1260,11 +1250,10 @@ Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 Clause* IDSolver::addLoopfClause(Lit l, vec<Lit>& lits){
 	lits[0] = l;
 	Clause* c = Clause_new(lits, true);
-	if(c->size()>1){
-		getSolver()->addLearnedClause(c);
-		if (modes.verbosity >= 2) {reportf("Adding loop formula: [ "); print(*c); reportf("].\n");}
-	}else{
-		if (modes.verbosity >= 2) {reportf("Adding loop formula: [ "); gprintLit((*c)[0]); reportf("].\n");}
+	getSolver()->addLearnedClause(c);
+
+	if (modes.verbosity >= 2) {
+		reportf("Adding loop formula: [ "); print(*c); reportf("].\n");
 	}
 
 	return c;

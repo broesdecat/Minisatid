@@ -25,11 +25,6 @@ void AggSolver::removeHeadWatch(Var x){
 	getSolver()->removeAggrHead(x);
 }
 
-void AggSolver::remove(){
-	//FIXME is this still necessary?
-	getSolver()->resetAggSolver();
-}
-
 void AggSolver::notifyVarAdded(uint64_t nvars){
 	assert(head_watches.size()<nvars);
 	head_watches.resize(nvars, NULL);
@@ -37,10 +32,7 @@ void AggSolver::notifyVarAdded(uint64_t nvars){
 	aggr_watches.resize(nvars);
 	aggr_reason.resize(nvars, NULL);
 
-	//head_watches.push_back(pAgg(pAgg()));
 	assert(head_watches.back()==NULL);
-	//aggr_watches.push_back(vector<AggrWatch>());
-	//aggr_reason.push_back(NULL);
 }
 
 inline pAgg AggSolver::getAggWithHeadOccurence(Var v) const{
@@ -403,15 +395,7 @@ Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 		aggr_reason[var(p)] = ar;
 		Clause* confl = getExplanation(p);
 
-		if(confl->size()>1){
-			getSolver()->addLearnedClause(confl);
-		}else{
-			//TODO: found a conflict of size one, which cannot be added easily. The solution of backtracking everything might not be the best.
-			getSolver()->backtrackTo(0); //TODO this is incorrect when there are assumptions
-			vec<Lit> ps;
-			ps.push(confl->operator [](0));
-			getSolver()->addClause(ps);
-		}
+		getSolver()->addLearnedClause(confl);
 
 		aggr_reason[var(p)] = old_ar;
 		delete ar;

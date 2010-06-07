@@ -185,8 +185,6 @@ Clause* ModSolver::propagateDownAtEndOfQueue(){
 	bool result = search(assumpts);
 
 	Clause* confl = analyzeResult(result, allknown);
-	//FIXME what if size is one?
-	assert(confl->size()>1);
 	solver->addLearnedClause(confl);
 
 	if(modes.verbosity>4){

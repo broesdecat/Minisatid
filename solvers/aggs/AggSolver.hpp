@@ -113,8 +113,6 @@ public:
 	bool    	finishECNF_DataStructures (); //throws UNSAT
 
 	pPCSolver	getSolver				()	const		{ return solver; }
-	//void		resetIDSolver			()				{ idsolver.reset(); }
-	void 		remove					();
 
 	void 		removeHeadWatch(Var x);
 	/////////////////////END INITIALIZATION

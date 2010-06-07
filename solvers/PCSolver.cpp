@@ -107,7 +107,15 @@ uint64_t PCSolver::nVars() const{
 }
 
 void PCSolver::addLearnedClause(Clause* c){
-	getSolver()->addLearnedClause(c);
+	if(c->size()>1){
+		getSolver()->addLearnedClause(c);
+	}else{
+		//TODO maybe backtracking to 0 is not the best method.
+		getSolver()->backtrackTo(0);
+		vec<Lit> ps;
+		ps.push(c->operator [](0));
+		getSolver()->addClause(ps);
+	}
 }
 
 void PCSolver::backtrackTo(int level){
