@@ -82,15 +82,18 @@ public:
 	pPCSolver 	getSolver				()	const		{ return solver; }
 	/////////////////////END INITIALIZATION
 
+	int 	getNbDefinitions() 		const { return definition.size(); }
+	Rule* 	getDefinition(Var i) 	const { return definition[i]; }
+	DefType getDefType(Var i) 		const { return defType[i]; }
+
+protected:
 	vector<Rule*>	definition;	// If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
 	// Note that v occurs negatively if DISJ, positively if CONJ; and the reverse for the body literals.
 	// NOTE: If defType[v]==NONDEF, it may be that v is defined, but that no positive loop can exist. It SHOULD NOT be deleted then
 	//		because it will be used for WELLFOUNDED model checking later on.
-	//	of the completion of that rule, which was just not deleted, but wont be used any more
-	//	OWNER
-	vec<DefType>	defType;	// Gives the type of definition for each VAR
+	vector<DefType>	defType;	// Gives the type of definition for each VAR
+	vector<DefOcc>		defOcc;		// Gives the type of definition occurrence for each VAR
 
-protected:
 	bool 		recagg;	//true if recursive aggregates are present
 	vec<bool>	isCS;                   // Per atom: is it a cycle source?
 	bool 		init;
@@ -116,11 +119,9 @@ protected:
 	// ECNF_mode.def additions to Solver state:
 	//
 	vec<Var>		defdVars;	// All the vars that are the head of some kind of definition (disj, conj or aggr). Allows to iterate over all definitions.
-	vec<DefOcc>		defOcc;		// Gives the type of definition occurrence for each VAR
 	vec<int>		scc;		// To which strongly connected component does the atom belong. Zero iff defType[v]==NONDEF.
 	bool 			posloops, negloops;
 
-	DefType 	getDefType			(Var v) const;
 	bool		isDefInPosGraph		(Var v) const;
 	bool		isDefined			(Var v) const;
 	bool 		isConjunctive		(Var v) const;

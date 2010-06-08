@@ -83,8 +83,7 @@ void ModSolver::addAtoms(const vector<Var>& a){
 		modhier.lock()->getModSolver(getParentId())->addVar(*i);
 	}
 
-	//Create a bool-vector mapping each atom to whether it was propagated from above or from this
-	//own theory
+	//Creates a bool-vector mapping each atom to whether it was propagated from above or from this theory
 	propfromabove = vector<bool>(atoms.size(), false);
 }
 
@@ -111,7 +110,7 @@ void ModSolver::addChild(modindex childid){
 }
 
 /**
- * Recursively notify all PCSolvers that parsing has finished
+ * Recursively notify all Solvers that parsing has finished
  */
 bool ModSolver::finishParsing(){
 	bool result = getSolver()->finishParsing();
@@ -129,14 +128,15 @@ bool ModSolver::finishParsing(){
  * SOLVE METHODS *
  *****************/
 
-//Responsible for printing models and finding multiple ones!
-//Only used by root solver currently
+/**
+ * Tells the root solver to do model expansion on his theory
+ */
 bool ModSolver::solve(){
 	return getSolver()->solve();
 }
 
 /*
- * First simplifies PC solver, afterwards simplifies lower modal operators.
+ * Simplifies PC solver and afterwards simplifies lower modal operators.
  */
 bool ModSolver::simplify(){
 	bool result = getSolver()->simplify();
@@ -147,7 +147,10 @@ bool ModSolver::simplify(){
 }
 
 /**
- * Returns non-owning pointer
+ * Propagates l to be true from the parent modal solver.
+ * As long as the PC-solver is still propagating, this solver should not do anything more than store
+ * the propagation, as modal satisfiability checking can be much more expensive. So this solver always
+ * return NULL (if not, it should return a non-owning pointer).
  */
 Clause* ModSolver::propagateDown(Lit l){
 	if(modes.verbosity>4){
@@ -160,7 +163,9 @@ Clause* ModSolver::propagateDown(Lit l){
 }
 
 /**
- * Returns clause constructed for PARENT solver, so returns OWNING pointer
+ * Notifies the modal solver that propagation of the parent solver are finished. At this point, the modal solver
+ * will be propagated.
+ * Returns an OWNING pointer, because the conflict clause is intended to be used by the PARENT solver
  */
 Clause* ModSolver::propagateDownAtEndOfQueue(){
 	if(init){
@@ -180,10 +185,6 @@ Clause* ModSolver::propagateDownAtEndOfQueue(){
 		result = search(assumpts);
 	}
 	*/
-
-	/*if(!allknown){
-		return NULL;
-	}*/
 
 	bool result = search(assumpts, allknown);
 
@@ -209,7 +210,7 @@ bool ModSolver::adaptValuesOnPropagation(Lit l){
 	}
 
 	//adapt rigid atoms value
-	for(vector<AV>::size_type i=0; i<atoms.size(); i++){
+	for(vector<AV>::size_type i=0; !contains && i<atoms.size(); i++){
 		if(var(l)==atoms[i].atom){
 			contains = true;
 			assert(atoms[i].value==l_Undef);
@@ -219,13 +220,12 @@ bool ModSolver::adaptValuesOnPropagation(Lit l){
 				atoms[i].value = l_True;
 			}
 			propfromabove[i]=true;
+			reportf("PROPAGATION modal %d: ", getPrintId());
+			gprintLit(l);
+			reportf("\n");
+			propagations.push_back(l);
 		}
 	}
-
-	/*reportf("PROPAGATION: ");
-	gprintLit(l);
-	reportf("\n");
-	propagations.push_back(l);*/
 
 	return contains;
 }
@@ -351,7 +351,9 @@ void ModSolver::propagateUp(Lit l, modindex id){
  * 			currently, this is solved by storing an boolean remembering whether it was propagated from above or from the pc solver
  */
 void ModSolver::backtrackFromAbove(Lit l){
-	//reportf("Backtracking "); gprintLit(l); reportf(" from above in mod %d\n", getPrintId());
+	if(modes.verbosity>4){
+		reportf("Backtracking "); gprintLit(l); reportf(" from above in mod %d\n", getPrintId());
+	}
 
 	if(var(l)==getHead() && getHeadValue()!=l_Undef){
 		head.value = l_Undef;
@@ -365,11 +367,11 @@ void ModSolver::backtrackFromAbove(Lit l){
 		}
 	}
 	if(c!=-1){
-		/*reportf("BACKTRACK: ");
+		reportf("BACKTRACK modal %d: ", getPrintId());
 		gprintLit(l);
 		reportf("\n");
 		assert(propagations.size()>0 && var(propagations.back())==var(l));
-		propagations.pop_back();*/
+		propagations.pop_back();
 
 		if(atoms[c].value!=l_Undef){
 			atoms[c].value = l_Undef;
@@ -380,14 +382,12 @@ void ModSolver::backtrackFromAbove(Lit l){
 		}
 		propfromabove[c] = false;
 	}
-
-	/*for(vmodindex::const_iterator j=getChildren().begin(); j<getChildren().end(); j++){
-		modhier.lock()->getModSolver((*j))->backtrackFromAbove(l);
-	}*/
 }
 
 void ModSolver::backtrackFromSameLevel(Lit l){
-	//reportf("Backtracking "); gprintLit(l); reportf(" from same level in mod %d\n", getPrintId());
+	if(modes.verbosity>4){
+		reportf("Backtracking "); gprintLit(l); reportf(" from same level in mod %d\n", getPrintId());
+	}
 
 	if(var(l)==getHead() && getHeadValue()!=l_Undef){
 		head.value = l_Undef;

@@ -23,7 +23,6 @@ inline bool IDSolver::inSameSCC(Var x, Var y)		const	{ return scc[x] == scc[y] &
 inline Lit 	IDSolver::createNegativeLiteral(Var i)	const	{ return Lit(i, true); }
 inline Lit 	IDSolver::createPositiveLiteral(Var i)	const	{ return Lit(i, false); }
 
-inline DefType IDSolver::getDefType(Var v)	 		const	{ return defType[v]; }
 inline bool IDSolver::isDefInPosGraph(Var v) 		const	{ return defOcc[v]==POSLOOP || defOcc[v]==BOTHLOOP; }
 inline bool	IDSolver::isDefined(Var v)		 		const	{ return defType[v]!=NONDEFTYPE; }
 inline bool IDSolver::isConjunctive(Var v)			const	{ return getDefType(v)==CONJ; }
@@ -57,8 +56,9 @@ void IDSolver::notifyVarAdded(int nvars){
 	//seen2.push(0);
 
 	definition.resize(nvars, NULL);
-	defType.growTo(nvars, NONDEFTYPE);
-	defOcc.growTo(nvars, NONDEFOCC);
+	defType.resize(nvars, NONDEFTYPE);
+	defOcc.resize(nvars, NONDEFOCC);
+	//assert(definition.size()==defType.size());
 	disj_occurs.resize(2 * nvars); // May be tested on in findCycleSources().
 	conj_occurs.resize(2 * nvars); // Probably not needed anyway...
 }
@@ -136,8 +136,9 @@ bool IDSolver::finishECNF_DataStructures() {
 	init = false;
 	int nvars = nVars();
 
-	defType.growTo(nvars, NONDEFTYPE);
-	defOcc.growTo(nvars, NONDEFOCC);
+	definition.resize(nvars, NULL);
+	defType.resize(nvars, NONDEFTYPE);
+	defOcc.resize(nvars, NONDEFOCC);
 
 	if (modes.verbosity >= 1){reportf("| Number of rules           : %6d                                          |\n",defdVars.size()); }
 
@@ -2299,17 +2300,20 @@ void print(IDSolver const * const s){
 		return;
 	}
 	reportf("Definitions\n");
-	for(int i=0; i<s->definition.size(); i++){
-		const Rule& r = *s->definition[i];
-		if(s->defType[i]==CONJ || s->defType[i]==DISJ){
-			reportf("%sRule", s->defType[i]==CONJ?"C":"D");
-			gprintLit(r.getHeadLiteral());
-			int counter = 0;
-			while(counter<r.size()){
-				gprintLit(r[counter]);
-				counter++;
+	for(int i=0; i<s->getNbDefinitions(); i++){
+		if(s->getDefinition(i)!=NULL){
+			DefType d = s->getDefType(i);
+			if(d==CONJ || d==DISJ){
+				reportf("%sRule", d==CONJ?"C":"D");
+				const Rule& r = *s->getDefinition(i);
+				gprintLit(r.getHeadLiteral());
+				int counter = 0;
+				while(counter<r.size()){
+					gprintLit(r[counter]);
+					counter++;
+				}
+				reportf("\n");
 			}
-			reportf("\n");
 		}
 	}
 }
