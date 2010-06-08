@@ -110,6 +110,7 @@ void PCSolver::addLearnedClause(Clause* c){
 	if(c->size()>1){
 		getSolver()->addLearnedClause(c);
 	}else{
+		assert(c->size()==1);
 		//TODO maybe backtracking to 0 is not the best method.
 		backtrackTo(0);
 		vec<Lit> ps;

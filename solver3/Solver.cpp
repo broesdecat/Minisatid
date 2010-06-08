@@ -151,6 +151,7 @@ void Solver::addLearnedClause(Clause* c){
 	if(verbosity>=3){
 		reportf("Learned clause added: ");
 		printClause(*c);
+		reportf("\n");
 	}
 }
 
@@ -374,8 +375,9 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 			reportf("DECISION LEVEL %d\n", decisionLevel());
 			reportf("Current conflict clause: ");
 			printClause(c);
+			reportf("\n");
 			reportf("Current learned clause: ");
-			for (int i = 0; i < out_learnt.size(); i++) {
+			for (int i = 1; i < out_learnt.size(); i++) {
 				printLit(out_learnt[i]);
 				reportf(" ");
 			}
@@ -414,7 +416,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 
         /*AB*/
 		if (deleteImplicitClause) {
-			delete confl;
+			free(confl);
 			deleteImplicitClause = false;
 		}
         /*AE*/

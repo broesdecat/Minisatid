@@ -346,6 +346,7 @@ static inline void check(bool expr) { assert(expr); }
 
 inline void Solver::printLit(Lit l) const
 {
+	assert(nVars()>var(l));
     reportf("%s%d:%c", sign(l) ? "-" : "", var(l)+1, value(l) == l_True ? '1' : (value(l) == l_False ? '0' : 'X'));
 }
 

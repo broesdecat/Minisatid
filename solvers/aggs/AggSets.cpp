@@ -34,7 +34,7 @@ AggrSet::AggrSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver
 AggrMaxSet::AggrMaxSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver s):
 		AggrSet(lits, weights, s){
 	name = "MAX";
-	//FIXME FIXME: moet eigenlijk een voorstelling van -infinity zijn
+	//FIXME moet eigenlijk een voorstelling van -infinity zijn
 	//ik had eerst: |minimum van de set| -1, maar de bound kan NOG lager liggen, dus dan is het fout
 	emptysetvalue = Weight(INT_MIN);
 	assert(emptysetvalue<=INT_MIN);

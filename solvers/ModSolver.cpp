@@ -27,6 +27,9 @@ ModSolver::~ModSolver(){
  ******************************/
 
 void ModSolver::addVar(Var var){
+	if(modes.verbosity>5){
+		reportf("Var %d added to modal solver %d.\n", var, getPrintId());
+	}
 	getSolver()->addVar(var);
 }
 
@@ -129,7 +132,7 @@ bool ModSolver::finishParsing(){
 //Responsible for printing models and finding multiple ones!
 //Only used by root solver currently
 bool ModSolver::solve(){
-	return solver->solve();
+	return getSolver()->solve();
 }
 
 /*
@@ -157,7 +160,7 @@ Clause* ModSolver::propagateDown(Lit l){
 }
 
 /**
- * Returns non-owning pointer
+ * Returns clause constructed for PARENT solver, so returns OWNING pointer
  */
 Clause* ModSolver::propagateDownAtEndOfQueue(){
 	if(init){
@@ -178,14 +181,13 @@ Clause* ModSolver::propagateDownAtEndOfQueue(){
 	}
 	*/
 
-	if(!allknown){
+	/*if(!allknown){
 		return NULL;
-	}
+	}*/
 
-	bool result = search(assumpts);
+	bool result = search(assumpts, allknown);
 
 	Clause* confl = analyzeResult(result, allknown);
-	solver->addLearnedClause(confl);
 
 	if(modes.verbosity>4){
 		reportf("Finished checking solver %d: %s.\n", getPrintId(), confl==NULL?"no conflict":"conflict");
@@ -249,13 +251,23 @@ void ModSolver::doUnitPropagation(const vec<Lit>& assumpts){
 
 }
 
-bool ModSolver::search(const vec<Lit>& assumpts){
-	searching = true;
-	bool result = getSolver()->solve(assumpts);
+bool ModSolver::search(const vec<Lit>& assumpts, bool search){
+	searching = search;
+	bool result;
+	if(searching){
+		result = getSolver()->solve(assumpts);
+	}else{
+		result = getSolver()->solvenosearch(assumpts);
+	}
 	searching = false;
 	return result;
 }
 
+/**
+ * Important, returns a clause constructed to be added to the PARENT solver: the vars are NOT necessarily
+ * decision vars in this PC solver
+ * Returns owning pointer
+ */
 Clause* ModSolver::analyzeResult(bool result, bool allknown){
 	bool conflict = false;
 	Clause* confl = NULL;
@@ -269,19 +281,23 @@ Clause* ModSolver::analyzeResult(bool result, bool allknown){
 	}
 
 	if(conflict){ //conflict between head and body
-		//FIXME good clause learning
-		//Only have to be literals that were DOWN propagated!
+		//TODO can the clause learning be improved?
 		vec<Lit> confldisj;
-		if(getHeadValue()!=l_Undef){
-			confldisj.push(Lit(getHead()));
+		if(hasparent && getHeadValue()!=l_Undef){
+			confldisj.push(Lit(getHead(), getHeadValue()==l_True));
 		}
 		//TODO order of lits in conflict depends on order of assumptions and on order of propagations by parent
-		for(vector<AV>::const_iterator j=getAtoms().begin(); j<getAtoms().end(); j++){
-			confldisj.push(Lit((*j).atom, (*j).value==l_False));
+		for(vector<AV>::size_type j=0; j<getAtoms().size(); j++){
+			if(propfromabove[j]){
+				confldisj.push(Lit(getAtoms()[j].atom, getAtoms()[j].value==l_True));
+			}
 		}
+		assert(confldisj.size()>0);
+
 		confl = Clause_new(confldisj, true);
+
 		if(modes.verbosity>=5){
-			solver->printClause(*confl);
+			printClause(*confl);
 		}
 	}
 
@@ -312,6 +328,9 @@ Clause* ModSolver::propagateAtEndOfQueue(){
 	Clause* confl = NULL;
 	for(vmodindex::const_iterator i=getChildren().begin(); confl==NULL && i<getChildren().end(); i++){
 		confl = modhier.lock()->getModSolver(*i)->propagateDownAtEndOfQueue();
+	}
+	if(confl!=NULL){
+		getSolver()->addLearnedClause(confl);
 	}
 	return confl;
 }
@@ -413,4 +432,17 @@ void print(const ModSolver& m){
 	for(vmodindex::const_iterator i=m.getChildren().begin(); i<m.getChildren().end(); i++){
 		print(*m.getModSolverData().getModSolver(*i));
 	}
+}
+
+/**
+ * Important: PCSolver printclause looks at the signs of the variables, this is not as easy any more
+ * in the modal solver
+ */
+template<class C>
+inline void printClause(const C& c)
+{
+    for (int i = 0; i < c.size(); i++){
+        gprintLit(c[i]);
+        fprintf(stderr, " ");
+    }
 }

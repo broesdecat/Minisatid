@@ -84,12 +84,12 @@ public:
 	Clause* getExplanation(Lit l);*/
 
 	//data initialization
-	void	addVar			(Var v);
-	bool 	addClause		(vec<Lit>& lits);
-	bool 	addRule			(bool conj, vec<Lit>& lits);
-	bool 	addSet			(int setid, vec<Lit>& lits, vector<Weight>& w);
-	bool 	addAggrExpr		(Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined);
-	bool 	finishParsing();
+	void				addVar			(Var v);
+	bool 				addClause		(vec<Lit>& lits);
+	bool 				addRule			(bool conj, vec<Lit>& lits);
+	bool 				addSet			(int setid, vec<Lit>& lits, vector<Weight>& w);
+	bool 				addAggrExpr		(Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined);
+	bool 				finishParsing();
 
 	//solver initialization
 	//Solver*	initSolver		();
@@ -112,37 +112,37 @@ public:
 	 *
 	 * The model of a theory is the interpretation of all atoms decided by the root SAT solver.
 	 */
-	void printModel();
+	void 				printModel();
 
 	/**
 	 * Propagation coming from the parent solver: propagate it through the tree, until a conflict is found.
 	 * SHOULD also return unit propagated implied rigid atoms.
 	 */
-	Clause* propagateDown(Lit l);
-	Clause* propagateDownAtEndOfQueue();
+	Clause* 			propagateDown(Lit l);
+	Clause* 			propagateDownAtEndOfQueue();
 	/**
 	 * Propagation coming from the sat-solver: should propagate it through all modal solvers.
 	 *
 	 * Should NOT be called from other sources than the SAT-solver.
 	 */
-	Clause* propagate(Lit l);
-	Clause* propagateAtEndOfQueue();
+	Clause* 			propagate(Lit l);
+	Clause* 			propagateAtEndOfQueue();
 	/**
 	 * Same as enqueue or notifyofpropagation: add it to the sat-solver queue, but remember why it was
 	 * propagated. Id indicates from which modal solver the propagation came.
 	 * to ask an explanation later on.
 	 */
-	void propagateUp(Lit l, modindex id);
+	void 				propagateUp(Lit l, modindex id);
 
-	bool simplify();
+	bool 				simplify();
 
-	void backtrackFromAbove(Lit l);
-	void backtrackFromSameLevel(Lit l);
+	void 				backtrackFromAbove(Lit l);
+	void 				backtrackFromSameLevel(Lit l);
 
 	/**
 	 * This will be difficult to implement?
 	 */
-	Clause* getExplanation(Lit l);
+	Clause* 			getExplanation(Lit l);
 
 	Var 				getHead		()	const 	{ return head.atom; }
 	lbool 				getHeadValue()	const	{ return hasparent?head.value:true; }
@@ -159,15 +159,17 @@ public:
 	bool 				solve();
 
 private:
-	void 		addVars		(vec<Lit>& a);
+	void 				addVars		(vec<Lit>& a);
 
-	bool		adaptValuesOnPropagation(Lit l);
-	bool 		createAssumptions	(vec<Lit>&) const;
-	void 		doUnitPropagation	(const vec<Lit>&);
-	bool 		search				(const vec<Lit>&);
-	Clause* 	analyzeResult		(bool result, bool allknown);
+	bool				adaptValuesOnPropagation(Lit l);
+	bool 				createAssumptions	(vec<Lit>&) const;
+	void 				doUnitPropagation	(const vec<Lit>&);
+	bool 				search				(const vec<Lit>&, bool search = true);
+	Clause* 			analyzeResult		(bool result, bool allknown);
 };
 
+template<class C>
+void printClause(const C& c);
 void print(const ModSolver& m);
 
 #endif// MODSOLVER_H_
