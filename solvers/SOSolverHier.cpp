@@ -122,8 +122,8 @@ bool ModSolverData::addClause(modindex modid, vec<Lit>& lits){
 		bool alloccur = true;
 		for(int i=0; alloccur && i<lits.size(); i++){
 			bool seen = false;
-			for(vector<AV>::const_iterator j=m->getAtoms().begin(); !seen && j<m->getAtoms().end(); j++){
-				if((*j).atom==var(lits[i])){
+			for(vector<Var>::const_iterator j=m->getAtoms().begin(); !seen && j<m->getAtoms().end(); j++){
+				if(*j==var(lits[i])){
 					seen = true;
 				}
 			}
@@ -211,6 +211,7 @@ void ModSolverData::initialize(){
  * go through the tree BREADTH-FIRST, starting from the root
  * remember whether a solver has been seen and how many times
  */
+//FIXME: should verify that any head only occurs in the theory of the parent modal solver.
 void ModSolverData::verifyHierarchy(){
 	assert(state = ALLLOADED);
 

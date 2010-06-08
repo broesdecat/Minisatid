@@ -49,30 +49,27 @@ struct AV{
 
 class ModSolver{
 private:
-	modindex id, parentid;
-	bool hasparent, searching, init;
+	bool hasparent, searching, init; //, startedsearch;
 
 	AV			head;
-	vector<AV> 	atoms; //atoms which are rigid within this solver
-	vector<bool> propfromabove;
+	vector<Var>	atoms; //atoms which are rigid within this solver
 
-	vector<Lit> propagations;
-
-	vmodindex children;
-
+	modindex 	id, parentid;
 	pPCSolver	solver;
-
+	vmodindex 	children;
 	weak_ptr<ModSolverData> modhier;
 
-	pPCSolver getSolver() const { return solver; }
+	vec<Lit> 	assumptions;
+	//int			startindex;
+	vector<bool> propfromabove; //Indicates whether this literal was propagated by the parent
 
 public:
 	ModSolver(modindex child, Var head, shared_ptr<ModSolverData> mh);
 	virtual ~ModSolver();
 
-	void addAtoms(const vector<Var>& atoms);
-	void addChild(modindex child);
-	void setParent(modindex id);
+	void 	addAtoms		(const vector<Var>& atoms);
+	void 	addChild		(modindex child);
+	void	setParent		(modindex id);
 
 	void 	setNbModels		(int nb);
 	void 	setRes			(FILE* f);
@@ -144,13 +141,14 @@ public:
 	 */
 	Clause* 			getExplanation(Lit l);
 
-	Var 				getHead		()	const 	{ return head.atom; }
-	lbool 				getHeadValue()	const	{ return hasparent?head.value:true; }
+	bool				hasParent	()	const 	{ return hasparent; }
+	Var 				getHead		()	const 	{ assert(hasparent); return head.atom; }
+	lbool 				getHeadValue()	const	{ assert(hasparent); return head.value; }
 	modindex 			getId		()	const	{ return id; }
 	int		 			getPrintId	()	const	{ return id+1; }
 	modindex			getParentId	()	const	{ return parentid; }
 	int					getParentPrintId	()	const	{ return parentid+1; }
-	const vector<AV>& 	getAtoms	()	const	{ return atoms; }
+	const vector<Var>& 	getAtoms	()	const	{ return atoms; }
 	const vmodindex& 	getChildren	()	const	{ return children; }
 
 	const ModSolverData& getModSolverData() const { return *modhier.lock().get(); }
@@ -159,10 +157,11 @@ public:
 	bool 				solve();
 
 private:
+	pPCSolver 			getSolver	()	const	{ return solver; }
+
 	void 				addVars		(vec<Lit>& a);
 
-	bool				adaptValuesOnPropagation(Lit l);
-	bool 				createAssumptions	(vec<Lit>&) const;
+	void				adaptValuesOnPropagation(Lit l);
 	void 				doUnitPropagation	(const vec<Lit>&);
 	bool 				search				(const vec<Lit>&, bool search = true);
 	Clause* 			analyzeResult		(bool result, bool allknown);
