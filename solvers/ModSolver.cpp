@@ -220,11 +220,11 @@ bool ModSolver::adaptValuesOnPropagation(Lit l){
 				atoms[i].value = l_True;
 			}
 			propfromabove[i]=true;
-			reportf("PROPAGATION modal %d: ", getPrintId());
-			gprintLit(l);
-			reportf("\n");
-			propagations.push_back(l);
 		}
+	}
+
+	if(contains){
+		propagations.push_back(l);
 	}
 
 	return contains;
@@ -355,24 +355,21 @@ void ModSolver::backtrackFromAbove(Lit l){
 		reportf("Backtracking "); gprintLit(l); reportf(" from above in mod %d\n", getPrintId());
 	}
 
+	bool contains = false;
+
 	if(var(l)==getHead() && getHeadValue()!=l_Undef){
 		head.value = l_Undef;
+		contains = true;
 		//FIXME: head is not allowed to occur in the theory or lower.
 	}
 	int c = -1;
-	for(vector<AV>::size_type i=0; i<atoms.size(); i++){
-		if(atoms[i].atom==var(l)){
+	for(vector<AV>::size_type i=0; !contains && i<atoms.size(); i++){
+		if(atoms[i].atom==var(l) && atoms[i].value!=l_Undef){
 			c = i;
-			break;
+			contains = true;
 		}
 	}
 	if(c!=-1){
-		reportf("BACKTRACK modal %d: ", getPrintId());
-		gprintLit(l);
-		reportf("\n");
-		assert(propagations.size()>0 && var(propagations.back())==var(l));
-		propagations.pop_back();
-
 		if(atoms[c].value!=l_Undef){
 			atoms[c].value = l_Undef;
 			int solverlevel = getSolver()->getLevel(var(l));
@@ -381,6 +378,11 @@ void ModSolver::backtrackFromAbove(Lit l){
 			}
 		}
 		propfromabove[c] = false;
+	}
+
+	if(contains){
+		assert(propagations.size()>0 && var(propagations.back())==var(l));
+		propagations.pop_back();
 	}
 }
 
