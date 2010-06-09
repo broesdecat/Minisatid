@@ -353,13 +353,6 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 		reportf("\n");
 	}
 
-	/*for(int i=0; i<clauses.size(); i++){
-		printClause(*clauses[i]);reportf("\n");
-	}
-	for(int i=0; i<learnts.size(); i++){
-		printClause(*learnts[i]);reportf("\n");
-	}*/
-
     // Generate conflict clause:
     //
     out_learnt.push();      // (leave room for the asserting literal)
@@ -400,9 +393,26 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
             		}
                     pathC++;
                 }else{
-                    out_learnt.push(q);
-                    if (level[var(q)] > out_btlevel)
-                        out_btlevel = level[var(q)];
+                	/*AB INCORRECT IDEA*/
+                	//might it help here to filter out literals that were not decision literals?
+                	//Important: take care that q is added if its decision variable is not in the clause!
+                	/*int qlevel = level[var(q)];
+					Lit v = trail[trail_lim[qlevel]];
+					out_learnt.push(v);
+					if (level[var(v)] > out_btlevel)
+						out_btlevel = level[var(v)];
+
+					for (int k = j+1; k < c.size(); k++){
+						if(level[var(c[k])]==qlevel){
+							seen[var(c[k])] = 1;
+						}
+					}*/
+                	/*AE*/
+
+					out_learnt.push(q);
+					if (level[var(q)] > out_btlevel)
+						out_btlevel = level[var(q)];
+
                 }
             }
         }
@@ -454,6 +464,13 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 
     }while (pathC > 0);
     out_learnt[0] = ~p;
+
+    /*if(verbosity>=0){
+    	for(int i=0; i<out_learnt.size(); i++){
+    		gprintLit(out_learnt[i]); reportf(" ");
+    	}
+    	reportf("\n");
+	}*/
 
     // Simplify conflict clause:
     //

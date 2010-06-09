@@ -724,7 +724,11 @@ void PCSolver::printModel() const{
 
 void PCSolver::printChoiceMade(int level, Lit l) const{
 	if(modes.verbosity>=5){
-		reportf("Choice literal at decisionlevel %d in modal solver %d: ", level, modsolver->getPrintId());
+		reportf("Choice literal at decisionlevel %d", level);
+		if(modsolverpresent){
+			reportf(" in modal solver %d", modsolver->getPrintId());
+		}
+		reportf(": ");
 		gprintLit(l);
 		reportf(".\n");
 	}
