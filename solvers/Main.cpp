@@ -45,14 +45,14 @@ typedef shared_ptr<Data> pData;
 extern pData getData		();
 
 extern FILE* ecnfin;
-extern int 	ecnfparse			();
+extern int 	ecnfparse		();
 extern void yydestroy		();
 extern void yyinit			();
 extern bool unsatfound;
 
 const char* hasPrefix		(const char* str, const char* prefix);
 void 		parseCommandline(int& argc, char** argv);
-pData 		parse			(const char* file);
+pData 		parse			();
 
 void 		printStats		();
 static void SIGINT_handler	(int signum);
@@ -108,17 +108,38 @@ int main(int argc, char** argv) {
 	try{
 		parseCommandline(argc, argv);
 
-		if (argc == 1)
+		/**
+		 * First argument: executable
+		 * Second argument if provided: input file.
+		 * Third argument if provided: output file.
+		 */
+
+		ecnfin = stdin; //Default read from stdin
+		res = stdout; 	//Default write to stdout
+
+		if(argc==1){
 			reportf("Reading from standard input... Use '-h' or '--help' for help.\n");
+		}else if(argc>1){
+			ecnfin = fopen(argv[1], "r");
+			if(!ecnfin) {
+				reportf("`%s' is not a valid filename or not readable.\n", argv[1]);
+				throw idpexception();
+			}
+			if(argc>2){
+				res = fopen(argv[2], "wb");
+			}
+		}
 
 		if(modes.verbosity>0){
 			reportf("============================[ Problem Statistics ]=============================\n");
 			reportf("|                                                                             |\n");
 		}
 
-		res = (argc >= 3) ? fopen(argv[2], "wb") : NULL;
+		pData d = parse();
 
-		pData d = parse(argv[1]);
+		if(ecnfin != stdin){
+			fclose(ecnfin);
+		}
 
 		if(modes.verbosity>0){
 			reportf("| Parsing time              : %7.2f s                                    |\n", cpuTime()-cpu_time);
@@ -280,19 +301,14 @@ void parseCommandline(int& argc, char** argv){
  * Returns a data object representing the solver configuration from the input theory.
  * If the input theory was already found to be unsatisfiable, an empty shared pointer is returned.
  */
-pData parse(const char* file){
+pData parse(){
 	yyinit();
-	ecnfin = fopen(file,"r");
-	if(!ecnfin) {
-		reportf("`%s' is not a valid filename or not readable.\n", file);
-		throw idpexception();
-	}
+
 	ecnfparse();
 
 	pData d = getData();
 
 	yydestroy();
-	fclose(ecnfin);
     //There is still a memory leak of about 16 Kb in the flex scanner.
 
 	if(unsatfound){
