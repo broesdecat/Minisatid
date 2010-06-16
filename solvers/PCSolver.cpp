@@ -210,7 +210,7 @@ bool PCSolver::addSet(int setid, vec<Lit>& lits){
 	return addSet(setid, lits, w);
 }
 
-bool PCSolver::addSet(int setid, vec<Lit>& lits, vector<Weight>& w){
+bool PCSolver::addSet(int setid, vec<Lit>& lits, const vector<Weight>& w){
 	assert(aggsolverpresent);
 	addVars(lits);
 	return getAggSolver()->addSet(setid, lits, w);

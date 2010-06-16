@@ -150,7 +150,7 @@ bool AggSolver::finishSets(vector<pSet>& sets){
 	}
 }
 
-bool AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
+bool AggSolver::addSet(int set_id, vec<Lit>& lits, const vector<Weight>& weights) {
 	assert(set_id>0);
 	uint64_t setindex = set_id-1;
 	if(lits.size()==0){
@@ -161,7 +161,7 @@ bool AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 	}
 
 	vector<Weight> weights2; //inverted weights to handle minimum as maximum
-	for(vector<Weight>::iterator i=weights.begin(); i<weights.end(); i++){
+	for(vector<Weight>::const_iterator i=weights.begin(); i<weights.end(); i++){
 #ifdef INTWEIGHT
 		if(*i == INT_MAX || *i == INT_MIN){
 			reportf("Weights equal to or larger than the largest integer number are not allowed in limited precision.\n");
@@ -173,7 +173,7 @@ bool AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 
 	if(getSolver()->modes().verbosity>=5){
 		reportf("Added set %d: ", set_id);
-		vector<Weight>::iterator w=weights.begin();
+		vector<Weight>::const_iterator w=weights.begin();
 		for(int i=0; i<lits.size(); i++,w++){
 			reportf("%d=%s, ", gprintVar(var(lits[i])), printWeight(*w).c_str());
 		}
