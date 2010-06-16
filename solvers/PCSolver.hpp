@@ -66,11 +66,9 @@ public:
 	void		addVar			(Var v);
 	void 		addVars			(const vec<Lit>& a);
 	bool 		addClause		(vec<Lit>& lits);
-	bool 		addClause		(const vector<int>& lits);
 	bool 		addRule			(bool conj, vec<Lit>& lits);
-	bool 		addRule			(bool conj, int head, const vector<int>& body);
+	bool 		addSet			(int set_id, vec<Lit>& lits);
 	bool 		addSet			(int set_id, vec<Lit>& lits, vector<Weight>& w);
-	bool 		addSet			(int set_id, const vector<int>& lits, vector<Weight>& w);
 	bool 		addAggrExpr		(Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined);
 	bool 		finishParsing	(); //throws UNSAT
 

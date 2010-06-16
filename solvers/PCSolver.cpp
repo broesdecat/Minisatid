@@ -196,58 +196,24 @@ bool PCSolver::addClause(vec<Lit>& lits){
 	return getSolver()->addClause(lits);
 }
 
-bool PCSolver::addClause(const vector<int>& lits){
-	vec<Lit> l;
-	for(vector<int>::const_iterator i=lits.begin(); i<lits.end(); i++){
-		if(*i<0){
-			l.push(Lit(-(*i), true));
-		}else{
-			l.push(Lit(*i, false));
-		}
-
-	}
-	return addClause(l);
-}
-
 bool PCSolver::addRule(bool conj, vec<Lit>& lits){
 	assert(idsolverpresent);
 	addVars(lits);
 	return getIDSolver()->addRule(conj, lits);
 }
 
-bool PCSolver::addRule(bool conj, int head, const vector<int>& body){
-	vec<Lit> l;
-	if(head<0){
-		l.push(Lit(-head, true));
-	}else{
-		l.push(Lit(head, false));
-	}
-	for(vector<int>::const_iterator i=body.begin(); i<body.end(); i++){
-		if(*i<0){
-			l.push(Lit(-(*i), true));
-		}else{
-			l.push(Lit(*i, false));
-		}
-	}
-	return addRule(conj, l);
+bool PCSolver::addSet(int setid, vec<Lit>& lits){
+	assert(aggsolverpresent);
+	addVars(lits);
+	vector<Weight> w;
+	w.resize(lits.size(), 1);
+	return addSet(setid, lits, w);
 }
 
 bool PCSolver::addSet(int setid, vec<Lit>& lits, vector<Weight>& w){
 	assert(aggsolverpresent);
 	addVars(lits);
 	return getAggSolver()->addSet(setid, lits, w);
-}
-
-bool PCSolver::addSet(int set_id, const vector<int>& lits, vector<Weight>& w){
-	vec<Lit> l;
-	for(vector<int>::const_iterator i=lits.begin(); i<lits.end(); i++){
-		if(*i<0){
-			l.push(Lit(-(*i), true));
-		}else{
-			l.push(Lit(*i, false));
-		}
-	}
-	return addSet(set_id, l, w);
 }
 
 bool PCSolver::addAggrExpr(Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined){
