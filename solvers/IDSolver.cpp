@@ -48,7 +48,7 @@ IDSolver::IDSolver(pPCSolver s):
 }
 
 IDSolver::~IDSolver() {
-	deleteList<Rule>(definition);
+	deleteList<PropRule>(definition);
 }
 
 void IDSolver::notifyVarAdded(int nvars){
@@ -96,7 +96,7 @@ bool IDSolver::addRule(bool conj, vec<Lit>& ps) {
 		//rules with only one body atom have to be treated as conjunctive
 		conj = conj || ps.size()==2;
 
-		Rule* r = new Rule(ps);
+		PropRule* r = new PropRule(ps);
 		defdVars.push(var(ps[0]));
 		//defType.growTo(nVars(), NONDEFTYPE);
 		//defOcc.growTo(nVars(), NONDEFOCC);
@@ -202,7 +202,7 @@ bool IDSolver::finishECNF_DataStructures() {
 		bool isdefd = false;
 		switch (getDefType(v)) {
 		case DISJ: {
-			Rule& dfn = *definition[v];
+			PropRule& dfn = *definition[v];
 			for (int j = 0; j < dfn.size(); ++j) {
 				l = dfn[j];
 				if (l != dfn.getHeadLiteral()){ //don't look for a justification that is the head literal itself
@@ -215,7 +215,7 @@ bool IDSolver::finishECNF_DataStructures() {
 			break;
 		}
 		case CONJ: {
-			Rule& dfn = *definition[v];
+			PropRule& dfn = *definition[v];
 			for (int j = 0; j < dfn.size(); ++j) {
 				l = dfn[j];
 				if (l != dfn.getHeadLiteral()){ //don't look for a justification that is the head literal itself
@@ -262,7 +262,7 @@ bool IDSolver::finishECNF_DataStructures() {
 						}
 					}
 				}else{
-					Rule& dfn = *definition[v];
+					PropRule& dfn = *definition[v];
 					for (int j = 0; j < dfn.size(); ++j) {
 						l = dfn[j];
 						if(disj_occurs[toInt(l)].size()>0 && disj_occurs[toInt(l)].back()==v){
@@ -273,7 +273,7 @@ bool IDSolver::finishECNF_DataStructures() {
 						}
 					}
 
-					Rule* r = definition[v];
+					PropRule* r = definition[v];
 					definition[v] = NULL;
 					delete r;
 				}
@@ -551,7 +551,7 @@ bool IDSolver::initAfterSimplify(){
 				defOcc[v] = NONDEFOCC;
 				defType[v] = NONDEFTYPE;
 
-				Rule* r = definition[v];
+				PropRule* r = definition[v];
 				definition[v] = NULL;
 				delete r;
 			}else{
@@ -578,7 +578,7 @@ bool IDSolver::initAfterSimplify(){
 	for (int i = 0; i < defdVars.size(); ++i) {
 		Var v = defdVars[i];
 		if(getDefType(v)==CONJ || getDefType(v)==DISJ){
-			Rule& dfn = *definition[v];
+			PropRule& dfn = *definition[v];
 			for (int j = 0; j < dfn.size(); ++j) {
 				Lit l = dfn[j];
 				if (l != dfn.getHeadLiteral()){ //don't look for a justification that is the head literal itself
@@ -894,7 +894,7 @@ void IDSolver::handlePossibleCycleSource(Var head){
  * Return true if the justification is external
  */
 bool IDSolver::findJustificationDisj(Var v, vec<Lit>& jstf) {
-	Rule& c = *definition[v];
+	PropRule& c = *definition[v];
 	bool externallyjustified = false;
 	int pos = -1;
 	for(int i=0; !externallyjustified && i<c.size(); i++){
@@ -995,7 +995,7 @@ inline bool IDSolver::isJustified(Var x) const{
  * Checks whether there is a justification for v given the current justification counters
  */
 bool IDSolver::findJustificationDisj(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust) {
-	Rule& c = *definition[v];
+	PropRule& c = *definition[v];
 	bool externallyjustified = false;
 	currentjust[v]=1;
 	int pos = -1;
@@ -1023,7 +1023,7 @@ bool IDSolver::findJustificationDisj(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, v
 }
 
 bool IDSolver::findJustificationConj(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust) {
-	Rule& c = *definition[v];
+	PropRule& c = *definition[v];
 	currentjust[v]=0;
 	for(int i=0; i<c.size(); i++){
 		if(isPositive(c[i]) && currentjust[var(c[i])]!=0){
@@ -1143,7 +1143,7 @@ void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf){
 		case CONJ:
 			break;
 		case DISJ:{
-			Rule& c = *definition[*tch];
+			PropRule& c = *definition[*tch];
 			for (int i = 0; i < c.size(); i++) {
 				Lit l = c[i];
 				//add literals not in the ufs and not the head as external disjuncts
@@ -1382,7 +1382,7 @@ inline void IDSolver::print(const Clause& c) const{
     getSolver()->printClause(c);
 }
 
-inline void IDSolver::print(const Rule& c) const{
+inline void IDSolver::print(const PropRule& c) const{
     for (int i = 0; i < c.size(); i++){
         gprintLit(c[i]);
         fprintf(stderr, " ");
@@ -1509,7 +1509,7 @@ bool IDSolver::isCycleFree() const{
                     	if(modes.verbosity>3){
                     		reportf("C %d has", gprintVar(v));
                     	}
-                        Rule& c = *definition[v];
+                        PropRule& c = *definition[v];
                         for (int j=0; j<c.size(); j++) {
                             Var vj = var(c[j]);
                             if (c[j]!=c.getHeadLiteral() && isPositive(c[j]) && (isfree[vj]!=0 || printed[vj])) {
@@ -2032,7 +2032,7 @@ UFS IDSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<V
 	if(type==AGGR){return OLDCHECK;}
 	assert(type==CONJ || type==DISJ);
 
-	Rule* c = definition[v];
+	PropRule* c = definition[v];
 	if(modes.verbosity >=1){
 		print(*c);
 	}
@@ -2172,7 +2172,7 @@ UFS IDSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<V
 //	assert(type==CONJ || type==DISJ);
 //
 //	Clause* c = definition[v];
-//	//Rule* c = definition[v];
+//	//PropRule* c = definition[v];
 //
 //	for(int i=0; i<c->size(); i++){
 //		DefType childtype = defType[var(c->operator [](i))];
@@ -2305,7 +2305,7 @@ void print(IDSolver const * const s){
 			DefType d = s->getDefType(i);
 			if(d==CONJ || d==DISJ){
 				reportf("%sRule", d==CONJ?"C":"D");
-				const Rule& r = *s->getDefinition(i);
+				const PropRule& r = *s->getDefinition(i);
 				gprintLit(r.getHeadLiteral());
 				int counter = 0;
 				while(counter<r.size()){

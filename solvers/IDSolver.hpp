@@ -28,14 +28,14 @@ class IDSolver;
 typedef IDSolver* pIDSolver;
 
 
-class Rule {
+class PropRule {
 private:
     vec<Lit> lits;
 
 public:
     const Var head;
 
-    Rule(const vec<Lit>& ps): head(var(ps[0])){
+    PropRule(const vec<Lit>& ps): head(var(ps[0])){
     	for(int i=1; i<ps.size(); i++){
     		lits.push(ps[i]);
     	}
@@ -82,12 +82,12 @@ public:
 	pPCSolver 	getSolver				()	const		{ return solver; }
 	/////////////////////END INITIALIZATION
 
-	int 	getNbDefinitions() 		const { return definition.size(); }
-	Rule* 	getDefinition(Var i) 	const { return definition[i]; }
-	DefType getDefType(Var i) 		const { return defType[i]; }
+	int 		getNbDefinitions() 		const { return definition.size(); }
+	PropRule* 	getDefinition(Var i) 	const { return definition[i]; }
+	DefType 	getDefType(Var i) 		const { return defType[i]; }
 
 protected:
-	vector<Rule*>	definition;	// If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
+	vector<PropRule*>	definition;	// If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
 	// Note that v occurs negatively if DISJ, positively if CONJ; and the reverse for the body literals.
 	// NOTE: If defType[v]==NONDEF, it may be that v is defined, but that no positive loop can exist. It SHOULD NOT be deleted then
 	//		because it will be used for WELLFOUNDED model checking later on.
@@ -204,7 +204,7 @@ protected:
 
 	// Debug:
 	void	print		(const Clause& c)	const;
-	void	print		(const Rule& c)		const;
+	void	print		(const PropRule& c)		const;
 	bool	isCycleFree	() 					const;			// Verifies whether justification is indeed cycle free, not used, for debugging purposes.
 
 	void	addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf);
