@@ -22,7 +22,7 @@ private:
 	modhierstate state;	//stores the current state of the parsing.
 
 public:
-	ModSolverData				();
+	ModSolverData				(ECNF_mode modes);
 	virtual ~ModSolverData		();
 
 	void	setNbModels			(int nb);

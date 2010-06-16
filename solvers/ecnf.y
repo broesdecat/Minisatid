@@ -123,7 +123,7 @@ void initSolver(){
 }
 
 void initModSolver(){
-	modsolver = shared_ptr<ModSolverData>(new ModSolverData());
+	modsolver = shared_ptr<ModSolverData>(new ModSolverData(modes));
 	mod = true;
 	solverdecided = true;
 }

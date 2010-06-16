@@ -13,11 +13,11 @@ int PCSolver::getModPrintID(){
 }
 
 //Has to be value copy of modes!
-PCSolver::PCSolver(ECNF_mode modes):Data(),
+PCSolver::PCSolver(ECNF_mode modes):Data(modes),
 			solver(NULL), idsolver(NULL), aggsolver(NULL), modsolver(NULL),
 			aggsolverpresent(false), idsolverpresent(false), modsolverpresent(false),
 			res(NULL), nb_models(modes.nbmodels),
-			modelsfound(0), modes(modes),
+			modelsfound(0),
 			optim(NONE),head(-1){
 	solver = new Solver(this);
 	if(modes.def){
@@ -278,20 +278,20 @@ bool PCSolver::finishParsing(){ //throws UNSAT
 		idsolverpresent = getIDSolver()->finishECNF_DataStructures();
 	}
 
-	if(!aggsolverpresent && modes.aggr){ //In this case, the aggsolver has been initialized and will not be present
+	if(!aggsolverpresent && modes().aggr){ //In this case, the aggsolver has been initialized and will not be present
 		delete aggsolver;
-		if(modes.verbosity>0){
+		if(modes().verbosity>0){
 			reportf("|                                                                             |\n"
 					"|    (there will be no aggregate propagations)                                |\n");
 		}
 	}
-	if(!idsolverpresent && modes.def){ //In this case, the idsolver has been initialized and will not be present
+	if(!idsolverpresent && modes().def){ //In this case, the idsolver has been initialized and will not be present
 		delete idsolver;
-		if(modes.verbosity>0){
+		if(modes().verbosity>0){
 			reportf("|    (there will be no definitional propagations)                             |\n");
 		}
 	}
-	if(!modes.mnmz){
+	if(!modes().mnmz){
 		//TODO later
 	}
 
@@ -319,7 +319,7 @@ lbool PCSolver::checkStatus(lbool status) const{
 	if(!idsolverpresent || status!=l_True){
 		return status;
 	}
-	if(modes.sem==WELLF && !getIDSolver()->isWellFoundedModel()){
+	if(modes().sem==WELLF && !getIDSolver()->isWellFoundedModel()){
 		return l_False;
 	}
 	return status;
@@ -334,7 +334,7 @@ void PCSolver::resetIDSolver(){
  **********************/
 
 Clause* PCSolver::getExplanation(Lit l){
-	if(modes.verbosity>2){
+	if(modes().verbosity>2){
 		reportf("Find an explanation for "); gprintLit(l); reportf("\n");
 	}
 	return aggsolverpresent?getAggSolver()->getExplanation(l):NULL;
@@ -411,7 +411,7 @@ bool PCSolver::solve(){
 bool PCSolver::solveAll(vec<Lit>& assmpt){
 	bool solved = false;
 
-	if (modes.verbosity >= 1) {
+	if (modes().verbosity >= 1) {
 		reportf("============================[ Search Statistics ]==============================\n");
 		reportf("| Conflicts |          ORIGINAL         |          LEARNT          | Progress |\n");
 		reportf("|           |    Vars  Clauses Literals |    Limit  Clauses Lit/Cl |          |\n");
@@ -452,7 +452,7 @@ bool PCSolver::solveAll(vec<Lit>& assmpt){
 		solved = false;
 	}
 
-	if (modes.verbosity >= 1){
+	if (modes().verbosity >= 1){
 		reportf("===============================================================================\n");
 	}
 	return solved;
@@ -540,7 +540,7 @@ bool PCSolver::invalidateModel(vec<Lit>& learnt) {
 	//for subsetminimize this is not so clear, because assumptions have to be added too, so maybe there backtrack to 0 is necessary (for unit propagation before search)
 	getSolver()->cancelUntil(0);
 
-	if (modes.verbosity>=3) {
+	if (modes().verbosity>=3) {
 		reportf("Adding model-invalidating clause: [ ");
 		gprintClause(learnt);
 		reportf("]\n");
@@ -559,7 +559,7 @@ bool PCSolver::invalidateModel(vec<Lit>& learnt) {
  ************************/
 
 bool PCSolver::addMinimize(const vec<Lit>& lits, bool subset) {
-	if (!modes.mnmz){
+	if (!modes().mnmz){
 		reportf("ERROR! Attempt at adding an optimization statement, though header "
 				"did not contain \"mnmz\".\n");
 		throw idpexception();
@@ -588,7 +588,7 @@ bool PCSolver::addMinimize(const vec<Lit>& lits, bool subset) {
 }
 
 bool PCSolver::addSumMinimize(const Var head, const int setid){
-	if (!modes.mnmz){
+	if (!modes().mnmz){
 		reportf("ERROR! Attempt at adding an optimization statement, though header "
 				"did not contain \"mnmz\".\n");
 		throw idpexception();
@@ -710,7 +710,7 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 				}
 			}
 
-			if(modes.verbosity>0){
+			if(modes().verbosity>0){
 				printf("Temporary model: \n");
 				for (int i = 0; i < m.size(); i++){
 					printf("%s%s%d", (i == 0) ? "" : " ", !sign(m[i]) ? "" : "-", gprintVar(var(m[i])));
@@ -746,7 +746,7 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 void PCSolver::printModel() const{
 	if (modelsfound==1) {
 		fprintf(res==NULL?stdout:res, "SAT\n");
-		if(modes.verbosity>=1){
+		if(modes().verbosity>=1){
 			printf("SATISFIABLE\n");
 		}
 	}
@@ -765,7 +765,7 @@ void PCSolver::printModel() const{
 }
 
 void PCSolver::printChoiceMade(int level, Lit l) const{
-	if(modes.verbosity>=5){
+	if(modes().verbosity>=5){
 		reportf("Choice literal at decisionlevel %d", level);
 		if(modsolverpresent){
 			reportf(" in modal solver %d", modsolver->getPrintId());

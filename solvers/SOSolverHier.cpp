@@ -1,7 +1,7 @@
 #include "SOSolverHier.hpp"
 #include "Utils.hpp"
 
-ModSolverData::ModSolverData():Data(), state(NEW){
+ModSolverData::ModSolverData(ECNF_mode modes):Data(modes), state(NEW){
 
 }
 
@@ -42,7 +42,7 @@ bool ModSolverData::finishParsing(){
 
 	bool result = solvers[0]->finishParsing();
 
-	if(modes.verbosity>=5){
+	if(modes().verbosity>=5){
 		print(*this);
 	}
 

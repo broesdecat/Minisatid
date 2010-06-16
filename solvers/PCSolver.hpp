@@ -36,7 +36,6 @@ private:
 
 	FILE* res;
 	int nb_models, modelsfound;
-	ECNF_mode modes;
 
 	/****************************
 	 * OPTIMIZATION INFORMATION *
@@ -158,8 +157,6 @@ public:
 	 * SATsolver asks this to PC such that more info (modal e.g.) can be printed.
 	 */
 	void printChoiceMade(int level, Lit l) const;
-
-	const ECNF_mode& getModes() const { return modes; }
 };
 
 void print(const PCSolver& s);

@@ -43,7 +43,7 @@ inline pAgg AggSolver::getAggWithHeadOccurence(Var v) const{
 bool AggSolver::finishECNF_DataStructures() {
 	init = false;
 
-	if (getSolver()->getModes().verbosity >= 1){
+	if (getSolver()->modes().verbosity >= 1){
 		reportf("| Number of minimum exprs.: %4d",aggrminsets.size());
 		reportf("| Number of maximum exprs.: %4d",aggrmaxsets.size());
 		reportf("| Number of sum     exprs.: %4d",aggrsumsets.size());
@@ -54,7 +54,7 @@ bool AggSolver::finishECNF_DataStructures() {
 		return false;
 	}
 
-	if(getSolver()->getModes().verbosity >=1){
+	if(getSolver()->modes().verbosity >=1){
 		int total_nb_set_lits = 0;
 		int nb_sets = aggrminsets.size() + aggrmaxsets.size() + aggrsumsets.size() + aggrprodsets.size();
 		for (vector<int>::size_type i = 0; i < aggrminsets.size(); i++){
@@ -77,7 +77,7 @@ bool AggSolver::finishECNF_DataStructures() {
 		(*i)->addAggToSet();
 	}
 
-	if(getSolver()->getModes().verbosity>=3){
+	if(getSolver()->modes().verbosity>=3){
 		reportf("Initializing all sets:\n");
 	}
 	if(!finishSets(aggrminsets)){ return false; }
@@ -85,7 +85,7 @@ bool AggSolver::finishECNF_DataStructures() {
 	if(!finishSets(aggrsumsets)){ return false; }
 	if(!finishSets(aggrprodsets)){ return false; }
 
-	if(getSolver()->getModes().verbosity>=3){
+	if(getSolver()->modes().verbosity>=3){
 		int counter = 0;
 		for(vector<vector<AggrWatch> >::const_iterator i=aggr_watches.begin(); i<aggr_watches.end(); i++,counter++){
 			reportf("Watches of var %d:\n", gprintVar(counter));
@@ -98,7 +98,7 @@ bool AggSolver::finishECNF_DataStructures() {
 		}
 	}
 
-	if(getSolver()->getModes().verbosity>=3){
+	if(getSolver()->modes().verbosity>=3){
 		reportf("Initializing finished.\n");
 	}
 
@@ -115,7 +115,7 @@ bool AggSolver::finishSets(vector<pSet>& sets){
 		if(s->nbAgg()==0){
 			delete *i;
 			i = sets.erase(i);
-			if(getSolver()->getModes().verbosity>=3){
+			if(getSolver()->modes().verbosity>=3){
 				reportf("Set is deleted.\n");
 			}
 		}else{
@@ -126,7 +126,7 @@ bool AggSolver::finishSets(vector<pSet>& sets){
 			if(s->nbAgg()==0){
 				delete *i;
 				i = sets.erase(i);
-				if(getSolver()->getModes().verbosity>=3){
+				if(getSolver()->modes().verbosity>=3){
 					reportf("Set is empty after initialization, so deleted.\n");
 				}
 			}else{
@@ -140,7 +140,7 @@ bool AggSolver::finishSets(vector<pSet>& sets){
 	}
 	return true;
 
-	if(getSolver()->getModes().verbosity>=3){
+	if(getSolver()->modes().verbosity>=3){
 		for(vector<pSet>::iterator i=sets.begin(); i<sets.end(); i++){
 			pSet s = *i;
 			for(lsagg::const_iterator j=s->getAggBegin(); j<s->getAggEnd(); j++){
@@ -171,7 +171,7 @@ bool AggSolver::addSet(int set_id, vec<Lit>& lits, vector<Weight>& weights) {
 		weights2.push_back(-Weight(*i));
 	}
 
-	if(getSolver()->getModes().verbosity>=5){
+	if(getSolver()->modes().verbosity>=5){
 		reportf("Added set %d: ", set_id);
 		vector<Weight>::iterator w=weights.begin();
 		for(int i=0; i<lits.size(); i++,w++){
@@ -282,7 +282,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 
 	aggregates.push_back(ae);
 
-	if(getSolver()->getModes().verbosity>=5){
+	if(getSolver()->modes().verbosity>=5){
 		//reportf("Added %s aggregate with head %d on set %d, %s %s of type %s.\n", defined?"defined":"completion", gprintVar(headv), setid, lower?"AGG<=":"AGG>=", bigIntegerToString(bound).c_str(), ae->getSet()->getName().c_str());
 		reportf("Added %s aggregate with head %d on set %d, %s %s of type %s.\n", defined?"defined":"completion", gprintVar(headv), setid, lower?"AGG <=":"AGG >=", printWeight(bound).c_str(), ae->getSet()->getName().c_str());
 	}
@@ -385,7 +385,7 @@ Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 	getSolver()->varBumpActivity(var(p));	//mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt?
 
 	if (getSolver()->value(p) == l_False) {
-		if (getSolver()->getModes().verbosity >= 2) {
+		if (getSolver()->modes().verbosity >= 2) {
 			reportf("Deriving conflict in ");
 			gprintLit(p, l_True);
 			reportf(" because of the aggregate expression ");
@@ -402,7 +402,7 @@ Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 
 		return confl;
 	} else if (getSolver()->value(p) == l_Undef) {
-		if (getSolver()->getModes().verbosity >= 2) {
+		if (getSolver()->modes().verbosity >= 2) {
 			reportf("Deriving ");
 			gprintLit(p, l_True);
 			reportf(" because of the aggregate expression ");
@@ -425,7 +425,7 @@ Clause* AggSolver::Aggr_propagate(const Lit& p) {
 	vector<AggrWatch>& ws = aggr_watches[var(p)];
 	pAgg pa = head_watches[var(p)];
 
-	if (getSolver()->getModes().verbosity >= 2 && (ws.size() > 0 || pa !=NULL)){
+	if (getSolver()->modes().verbosity >= 2 && (ws.size() > 0 || pa !=NULL)){
 		reportf("Aggr_propagate(");
 		gprintLit(p, l_True);
 		reportf(").\n");
@@ -453,7 +453,7 @@ Clause* AggSolver::getExplanation(const Lit& p) {
 	//create a conflict clause and return it
 	Clause* c = Clause_new(lits, true);
 
-	if (getSolver()->getModes().verbosity >= 2) {
+	if (getSolver()->modes().verbosity >= 2) {
 		reportf("Implicit reason clause for ");
 		gprintLit(p, sign(p)?l_False:l_True); reportf(" : "); getSolver()->printClause(*c); reportf("\n");
 	}

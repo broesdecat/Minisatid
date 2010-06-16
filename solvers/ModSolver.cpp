@@ -1,8 +1,6 @@
 #include "ModSolver.hpp"
 #include <algorithm>
 
-extern ECNF_mode modes;
-
 //Important: The head variable does not occur in this theory, so should NOT automatically be
 //added as a var in it.
 /**
@@ -11,7 +9,7 @@ extern ECNF_mode modes;
 ModSolver::ModSolver(modindex child, Var head, shared_ptr<ModSolverData> mh):
 		id(child), parentid(-1), hasparent(false), init(true), //, startedsearch(false), startindex(-1),
 		head(head), modhier(mh){
-	ECNF_mode modescopy(modes);
+	ECNF_mode modescopy(mh->modes());
 	modescopy.nbmodels = 1;
 
 	solver = new PCSolver(modescopy);
