@@ -397,8 +397,8 @@ void Agg::getExplanation(vec<Lit>& lits, AggrReason& ar) const{
 		}
 	}
 
-
-	if(modes.verbosity>=5){
+	//TODO dit is vrij lelijk en onefficient :)
+	if(getSet()->getSolver()->getSolver()->modes().verbosity>=5){
 		reportf("Aggregate explanation for ");
 		if(ar.isHeadReason()){
 			gprintLit(getHead());

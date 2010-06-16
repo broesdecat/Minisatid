@@ -71,7 +71,8 @@ Clause* AggrSet::propagate(const Lit& p, const AggrWatch& ws){
 	for(lsagg::const_iterator i=getAggBegin(); i<getAggEnd() && confl==NULL; i++){
 		pAgg pa = (*i);
 
-		if(modes.verbosity>=4){
+		//TODO dit is vrij lelijk
+		if(getSolver()->getSolver()->modes().verbosity>=4){
 			reportf("Propagating into aggr: ");
 			Aggrs::printAggrExpr(pa);
 		}
