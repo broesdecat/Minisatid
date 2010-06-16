@@ -25,7 +25,7 @@ ModSolver::~ModSolver(){
  ******************************/
 
 void ModSolver::addVar(Var var){
-	if(modes().verbosity>5){
+	if(modhier.lock()->modes().verbosity>5){
 		reportf("Var %d added to modal solver %d.\n", var, getPrintId());
 	}
 	getSolver()->addVar(var);
@@ -164,7 +164,7 @@ bool ModSolver::simplify(){
  * return NULL (if not, it should return a non-owning pointer).
  */
 Clause* ModSolver::propagateDown(Lit l){
-	if(modes().verbosity>4){
+	if(modhier.lock()->modes().verbosity>4){
 		gprintLit(l); reportf(" propagated down into modal solver %d.\n", getPrintId());
 	}
 
@@ -203,7 +203,7 @@ Clause* ModSolver::propagateDownAtEndOfQueue(){
 	if(init){
 		return NULL;
 	}
-	if(modes().verbosity>4){
+	if(modhier.lock()->modes().verbosity>4){
 		reportf("End of queue propagation down into modal solver %d.\n", getPrintId());
 	}
 
@@ -226,7 +226,7 @@ Clause* ModSolver::propagateDownAtEndOfQueue(){
 
 	Clause* confl = analyzeResult(result, allknown);
 
-	if(modes().verbosity>4){
+	if(modhier.lock()->modes().verbosity>4){
 		reportf("Finished checking solver %d: %s.\n", getPrintId(), confl==NULL?"no conflict":"conflict");
 	}
 
@@ -304,7 +304,7 @@ Clause* ModSolver::analyzeResult(bool result, bool allknown){
 
 		confl = Clause_new(confldisj, true);
 
-		if(modes().verbosity>=5){
+		if(modhier.lock()->modes().verbosity>=5){
 			printClause(*confl);
 		}
 	}
@@ -360,7 +360,7 @@ void ModSolver::propagateUp(Lit l, modindex id){
  * 			currently, this is solved by storing an boolean remembering whether it was propagated from above or from the pc solver
  */
 void ModSolver::backtrackFromAbove(Lit l){
-	if(modes().verbosity>4){
+	if(modhier.lock()->modes().verbosity>4){
 		reportf("Backtracking "); gprintLit(l); reportf(" from above in mod %d\n", getPrintId());
 	}
 
@@ -390,7 +390,7 @@ void ModSolver::backtrackFromAbove(Lit l){
 }
 
 void ModSolver::backtrackFromSameLevel(Lit l){
-	if(modes().verbosity>4){
+	if(modhier.lock()->modes().verbosity>4){
 		reportf("Backtracking "); gprintLit(l); reportf(" from same level in mod %d\n", getPrintId());
 	}
 
