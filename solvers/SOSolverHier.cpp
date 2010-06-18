@@ -2,7 +2,7 @@
 #include "Utils.hpp"
 
 ModSolverData::ModSolverData(ECNF_mode modes):Data(modes), state(NEW){
-
+	//propagationsolver = new PCSolver(modes);
 }
 
 ModSolverData::~ModSolverData(){
@@ -39,6 +39,13 @@ bool ModSolverData::finishParsing(){
 	state = ALLLOADED;
 
 	verifyHierarchy();
+
+	/*if(!initialsolverone->solve()){
+		return false;
+	}
+	if(initialsolvertwo->solve()){
+		return true;
+	}*/
 
 	bool result = solvers[0]->finishParsing();
 
@@ -78,6 +85,8 @@ bool ModSolverData::addChild(modindex parent, modindex child, Lit h){
 void ModSolverData::addAtoms(modindex modid, const vector<Var>& atoms){
 	assert(state==LOADINGHIER);
 
+	//allAtoms.insert(allAtoms.end(), atoms.begin(), atoms.end());
+
 	checkexistsModSolver(modid);
 	getModSolver(modid)->addAtoms(atoms);
 }
@@ -89,6 +98,8 @@ void ModSolverData::addVar(modindex modid, Var v){
 		state = LOADINGREST;
 	}
 	assert(state==LOADINGREST);
+
+	//allAtoms.push_back(v);
 
 	checkexistsModSolver(modid);
 	getModSolver(modid)->addVar(v);
@@ -112,7 +123,24 @@ bool ModSolverData::addClause(modindex modid, vec<Lit>& lits){
 		state = LOADINGREST;
 	}
 	assert(state==LOADINGREST);
+/*
+	//Check two initial propagation rules
+	bool allexist = true;
+	vec<Lit> onlyexists;
+	for(int i=0; i<lits.size(); i++){
+		if(isForall(lits[i])){
+			allexist = false;
+		}else{
+			onlyexists.push(lits[i]);
+			//TODO forall reduction necessary!
+		}
+	}
+	if(allexist){
+		initialsolverone->addClause(lits);
+	}
+	initialsolvertwo->addClause(onlyexists);*/
 
+	//Try to add a clause as high up in the hierarchy as possible.
 	checkexistsModSolver(modid);
 	modindex previd = modid, currentid = modid;
 	pModSolver m = NULL;
@@ -148,13 +176,15 @@ bool ModSolverData::addClause(modindex modid, vec<Lit>& lits){
 			 previd = currentid;
 		}
 	}
+	bool result;
 	if(negated){
 		//reportf("orig %d => new %d\n", modid, previd);
-		return getModSolver(previd)->addClause(lits);
+		result = getModSolver(previd)->addClause(lits);
 	}else{
 		//reportf("orig %d => new %d\n", modid, currentid);
-		return getModSolver(currentid)->addClause(lits);
+		result = getModSolver(currentid)->addClause(lits);
 	}
+	return result;
 }
 
 bool ModSolverData::addRule(modindex modid, bool conj, vec<Lit>& lits){
