@@ -415,9 +415,10 @@ bool PCSolver::solveAll(vec<Lit>& assmpt, vector<vector<int> >& models){
 		vec<Lit> assump;
 		findOptimal(assump, model);
 
+		//put models in return models
 		vector<int> modelasint;
 		for(int i=0; i<model.size(); i++){
-			modelasint.push_back(toInt(model[i]));
+			modelasint.push_back(sign(model[i])?-var(model[i]):var(model[i]));
 		}
 		models.push_back(modelasint);
 
@@ -427,9 +428,10 @@ bool PCSolver::solveAll(vec<Lit>& assmpt, vector<vector<int> >& models){
 			vec<Lit> assump;
 			moremodels = findNext(assump, model);
 
+			//put models in return models
 			vector<int> modelasint;
 			for(int i=0; i<model.size(); i++){
-				modelasint.push_back(toInt(model[i]));
+				modelasint.push_back(sign(model[i])?-var(model[i]):var(model[i]));
 			}
 			models.push_back(modelasint);
 		}
