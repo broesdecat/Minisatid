@@ -418,7 +418,8 @@ bool PCSolver::solveAll(vec<Lit>& assmpt, vector<vector<int> >& models){
 		//put models in return models
 		vector<int> modelasint;
 		for(int i=0; i<model.size(); i++){
-			modelasint.push_back(sign(model[i])?-var(model[i]):var(model[i]));
+			int atom = var(model[i])+1;
+			modelasint.push_back(sign(model[i])?-atom:atom);
 		}
 		models.push_back(modelasint);
 
@@ -431,7 +432,8 @@ bool PCSolver::solveAll(vec<Lit>& assmpt, vector<vector<int> >& models){
 			//put models in return models
 			vector<int> modelasint;
 			for(int i=0; i<model.size(); i++){
-				modelasint.push_back(sign(model[i])?-var(model[i]):var(model[i]));
+				int atom = var(model[i])+1;
+				modelasint.push_back(sign(model[i])?-atom:atom);
 			}
 			models.push_back(modelasint);
 		}
