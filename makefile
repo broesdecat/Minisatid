@@ -12,13 +12,13 @@ YACCFLAGS=--defines
 
 # filenames
 # ############################################################
-PHDRS	= solvers/ecnf.y.hpp 
+PHDRS	= solvers/ecnfparser.h 
 CHDRS	= $(PHDRS) solvers/debug.hpp solvers/IDSolver.hpp solvers/ModSolver.hpp 
 CHDRS	+= solvers/PCSolver.hpp solvers/solverfwd.hpp solvers/SolverI.hpp solvers/SOSolverHier.hpp solvers/Utils.hpp 
 CHDRS	+= solvers/aggs/Agg.hpp solvers/aggs/AggSets.hpp solvers/aggs/AggSolver.hpp solvers/aggs/AggTypes.hpp 
 CHDRS	+= mtl/Vec.h mtl/Queue.h mtl/Alg.h mtl/Heap.h mtl/Map.h mtl/Sort.h
 CHDRS += solver3/Solver.hpp solver3/SolverTypes.hpp
-PSRCS	= solvers/ecnf.y.cpp solvers/ecnf.l.cpp
+PSRCS	= solvers/ecnfparser.cpp solvers/ecnftoken.cpp
 CSRCS	= $(PSRCS) solvers/Main.cpp solvers/IDSolver.cpp solvers/Main.cpp solvers/ModSolver.cpp solvers/PCSolver.cpp 
 CSRCS	+= solvers/SOSolverHier.cpp solvers/Utils.cpp solvers/aggs/Agg.cpp solvers/aggs/AggSets.cpp solvers/aggs/AggSolver.cpp solvers/aggs/AggTypes.cpp
 CSRCS += solver3/Solver.cpp 
@@ -82,13 +82,13 @@ $(EXEC)_codecover:	$(CCCOBJS)
 	@echo Compiling: "$@ ( $< )"
 	@$(CXX) $(CXXFLAGS) -c -o $@ $<
 	
-%.y.cpp: %.y
+%/ecnfparser.cpp: %/ecnfparser.ypp
 	@echo Compiling: "$@ ( $< )"
-	@$(YACC) $(YACCFLAGS) -p ecnf --output=$@ $<
+	@$(YACC) $(YACCFLAGS) --output=$@ $< #-p ecnf 
 	
-%.l.cpp: %.l
+%/ecnftoken.cpp: %/ecnftoken.lpp
 	@echo Compiling: "$@ ( $< )"
-	@$(FLEX) $(FLEXFLAGS) -P ecnf -o$@ $<
+	@$(FLEX) $(FLEXFLAGS) -o$@ $< #-P ecnf
 
 $(EXEC) $(EXEC)_codecover $(EXEC)_profile $(EXEC)_debug $(EXEC)_release $(EXEC)_static:
 	@echo Linking: "$@ ( $^ )"

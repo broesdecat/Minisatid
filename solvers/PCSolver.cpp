@@ -371,10 +371,26 @@ bool PCSolver::simplify(){
 
 bool PCSolver::solve(){
 	vec<Lit> assmpt;
-	return solveAll(assmpt);
+	vector<vector<int> > models;
+	return solveAll(assmpt, models);
 }
 
-bool PCSolver::solveAll(vec<Lit>& assmpt){
+bool PCSolver::solve(vector<vector<int> >& models){
+	vec<Lit> assmpt;
+	return solveAll(assmpt, models);
+}
+
+//Straight to solver
+bool PCSolver::solvenosearch(const vec<Lit>& assmpt){
+	return getSolver()->solve(assmpt, true);
+}
+
+//Straight to solver
+bool PCSolver::solve(const vec<Lit>& assmpt){
+	return getSolver()->solve(assmpt);
+}
+
+bool PCSolver::solveAll(vec<Lit>& assmpt, vector<vector<int> >& models){
 	bool solved = false;
 
 	if (modes().verbosity >= 1) {
@@ -398,11 +414,24 @@ bool PCSolver::solveAll(vec<Lit>& assmpt){
 		vec<Lit> model;
 		vec<Lit> assump;
 		findOptimal(assump, model);
+
+		vector<int> modelasint;
+		for(int i=0; i<model.size(); i++){
+			modelasint.push_back(toInt(model[i]));
+		}
+		models.push_back(modelasint);
+
 	}else{
 		while(moremodels && (nb_models==0 || modelsfound<nb_models)){
 			vec<Lit> model;
 			vec<Lit> assump;
 			moremodels = findNext(assump, model);
+
+			vector<int> modelasint;
+			for(int i=0; i<model.size(); i++){
+				modelasint.push_back(toInt(model[i]));
+			}
+			models.push_back(modelasint);
 		}
 	}
 
@@ -422,14 +451,6 @@ bool PCSolver::solveAll(vec<Lit>& assmpt){
 		reportf("===============================================================================\n");
 	}
 	return solved;
-}
-
-bool PCSolver::solvenosearch(const vec<Lit>& assmpt){
-	return getSolver()->solve(assmpt, true);
-}
-
-bool PCSolver::solve(const vec<Lit>& assmpt){
-	return getSolver()->solve(assmpt);
 }
 
 
@@ -603,7 +624,9 @@ bool PCSolver::invalidateValue(vec<Lit>& invalidation){
 
 	for(int i=0; !currentoptimumfound && i<to_minimize.size(); i++){
 		if(!currentoptimumfound && getSolver()->model[var(to_minimize[i])]==l_True){
-			reportf("Current optimum is var %d\n", gprintVar(var(to_minimize[i])));
+			if(modes().verbosity>=1) {
+				reportf("Current optimum is var %d\n", gprintVar(var(to_minimize[i])));
+			}
 			currentoptimumfound = true;
 		}
 		if(!currentoptimumfound){

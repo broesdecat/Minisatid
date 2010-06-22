@@ -15,8 +15,10 @@ using namespace Aggrs;
 
 extern ECNF_mode modes;
 
-extern int ecnflex(void);
-extern char * ecnftext;
+//extern int ecnflex(void);
+//extern char * ecnftext;
+extern int yylex(void);
+extern char * yytext;
 
 bool mod;
 shared_ptr<PCSolver>		solver;
@@ -66,8 +68,8 @@ void yyerror(const char* msg) {
 		cerr << "Parse error: ";
 		cerr << "Line " << lineNo << ", column " << charPos << ": "; 
 		cerr << msg;
-		if (strlen(ecnftext)){
-			cerr << " on \"" << ecnftext << "\"";		
+		if (strlen(/*ecnftext*/yytext)){
+			cerr << " on \"" << /*ecnftext*/yytext << "\"";		
 		}
 		cerr << endl;
 		parseError = true;

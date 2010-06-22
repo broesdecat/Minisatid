@@ -44,8 +44,10 @@ typedef shared_ptr<Data> pData;
 
 extern pData getData		();
 
-extern FILE* ecnfin;
-extern int 	ecnfparse		();
+//extern FILE*	ecnfin;
+//extern int	ecnfparse	();
+extern FILE* yyin;
+extern int 	yyparse			();
 extern void yydestroy		();
 extern void yyinit			();
 extern bool unsatfound;
@@ -114,14 +116,14 @@ int main(int argc, char** argv) {
 		 * Third argument if provided: output file.
 		 */
 
-		ecnfin = stdin; //Default read from stdin
+		/*ecnfin*/yyin = stdin; //Default read from stdin
 		res = stdout; 	//Default write to stdout
 
 		if(argc==1){
 			reportf("Reading from standard input... Use '-h' or '--help' for help.\n");
 		}else if(argc>1){
-			ecnfin = fopen(argv[1], "r");
-			if(!ecnfin) {
+			/*ecnfin*/yyin = fopen(argv[1], "r");
+			if(!/*ecnfin*/yyin) {
 				reportf("`%s' is not a valid filename or not readable.\n", argv[1]);
 				throw idpexception();
 			}
@@ -137,8 +139,8 @@ int main(int argc, char** argv) {
 
 		pData d = parse();
 
-		if(ecnfin != stdin){
-			fclose(ecnfin);
+		if(/*ecnfin*/yyin != stdin){
+			fclose(/*ecnfin*/yyin);
 		}
 
 		if(modes.verbosity>0){
@@ -304,7 +306,14 @@ void parseCommandline(int& argc, char** argv){
 pData parse(){
 	yyinit();
 
-	ecnfparse();
+	try{
+		/*ecnfparse();*/
+		yyparse();
+	}catch(idpexception& e){
+		if(!unsatfound){
+			throw e;
+		}
+	}
 
 	pData d = getData();
 
