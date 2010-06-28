@@ -1,7 +1,8 @@
 AM_LDFLAGS = $(SVNDIGEST_LDFLAGS)
 AM_CXXFLAGS = $(SVNDIGEST_CXXFLAGS)
-CXXFLAGS =  -I$(top_srcdir)/mtl -I$(top_srcdir)/solvers -I$(top_srcdir)/solvers/aggs -I$(top_srcdir)/solver3 @AM_CXXFLAGS@
+CXXFLAGS =  -I$(top_srcdir)/mtl -I$(top_srcdir)/solver3 -I$(top_srcdir)/../../othersoftware/gecode/release-3.3.1 @AM_CXXFLAGS@
 LDFLAGS = @AM_LDFLAGS@
+#LDFLAGS += -L$(top_srcdir)/../../othersoftware/gecode/release-3.3.1 -lgecodesupport -lgecodekernel -lgecodesearch -lgecodeminimodel -lgecodegist -lgecodedriver -lgecodeint
 
 YFLAGS = -d @AM_YFLAGS@
 LFLAGS = @AM_LFLAGS@ #TODO prefix blijkt niet te werken, dus code herschreven om maar 1 parser te ondersteunen
@@ -11,13 +12,27 @@ bin_PROGRAMS = minisatid
 BUILT_SOURCES = ecnfparser.h
 
 minisatid_SOURCES = 
-minisatid_SOURCES += solvers/Main.cpp solver3/Solver.cpp solvers/IDSolver.cpp solvers/ecnftoken.lpp solvers/ecnfparser.ypp
-minisatid_SOURCES += solvers/ModSolver.cpp solvers/PCSolver.cpp solvers/SOSolverHier.cpp solvers/Utils.cpp solvers/aggs/Agg.cpp 
-minisatid_SOURCES += solvers/aggs/AggSets.cpp solvers/aggs/AggSolver.cpp solvers/aggs/AggTypes.cpp
+minisatid_SOURCES += solvers/Main.cpp 
+minisatid_SOURCES += solvers/ecnftoken.lpp solvers/ecnfparser.ypp
+minisatid_SOURCES += solvers/PCSolver.cpp solvers/Utils.cpp 
+minisatid_SOURCES += solver3/Solver.cpp 
+minisatid_SOURCES += solvers/IDSolver.cpp
+minisatid_SOURCES += solvers/aggs/AggSets.cpp solvers/aggs/AggSolver.cpp solvers/aggs/AggTypes.cpp solvers/aggs/Agg.cpp
+minisatid_SOURCES += solvers/CPSolver.cpp
+minisatid_SOURCES += solvers/ModSolver.cpp solvers/SOSolverHier.cpp 
+minisatid_SOURCES += solvers/Print.cpp
 
 include_HEADERS = 
-include_HEADERS += solver3/Solver.hpp solver3/SolverTypes.hpp solvers/debug.hpp solvers/IDSolver.hpp solvers/ModSolver.hpp
-include_HEADERS += solvers/PCSolver.hpp solvers/solverfwd.hpp solvers/SolverI.hpp solvers/SOSolverHier.hpp solvers/Utils.hpp 
-include_HEADERS += solvers/aggs/Agg.hpp solvers/aggs/AggSets.hpp solvers/aggs/AggSolver.hpp solvers/aggs/AggTypes.hpp 
+include_HEADERS += solvers/debug.hpp solvers/Print.hpp solvers/solverfwd.hpp solvers/SolverI.hpp
+include_HEADERS += solver3/Solver.hpp solver3/SolverTypes.hpp
 include_HEADERS += mtl/Vec.h mtl/Queue.h mtl/Alg.h mtl/Heap.h mtl/Map.h mtl/Sort.h
+include_HEADERS += solvers/IDSolver.hpp
+include_HEADERS += solvers/aggs/Agg.hpp solvers/aggs/AggSets.hpp solvers/aggs/AggSolver.hpp solvers/aggs/AggTypes.hpp 
+include_HEADERS += solvers/PCSolver.hpp solvers/Utils.hpp 
+include_HEADERS += solvers/CPSolver.hpp
+include_HEADERS += solvers/ModSolver.hpp solvers/SOSolverHier.hpp 
+#include_HEADERS += gecode/kernel.hh gecode/int.hh gecode/minimodel.hh driver.hh
+
+
 dist_doc_DATA = README
+dist_doc_DATA = makefilewinmac

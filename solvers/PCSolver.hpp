@@ -1,8 +1,8 @@
 #ifndef PCSOLVER_H_
 #define PCSOLVER_H_
 
-#include "SolverI.hpp"
-#include "solverfwd.hpp"
+#include "solvers/SolverI.hpp"
+#include "solvers/solverfwd.hpp"
 
 #include <vector>
 
@@ -12,9 +12,16 @@ typedef vector<Lit> vlit;
 
 
 #include "Solver.hpp"
-#include "IDSolver.hpp"
-#include "AggSolver.hpp"
-#include "ModSolver.hpp"
+#include "solvers/IDSolver.hpp"
+#include "solvers/CPSolver.hpp"
+#include "solvers/aggs/AggSolver.hpp"
+#include "solvers/ModSolver.hpp"
+
+namespace CP{
+	class CPSolver;
+}
+
+using namespace CP;
 
 class Solver;
 class IDSolver;
@@ -23,45 +30,85 @@ class ModSolver;
 
 typedef Solver* pSolver;
 typedef IDSolver* pIDSolver;
+typedef CPSolver* pCPSolver;
 typedef AggSolver* pAggSolver;
 typedef ModSolver* pModSolver;
 
+/*class PCSolver;
+
+class SolverI{
+private:
+	PCSolver * const pcsolver;
+public:
+	SolverI(PCSolver* const solver);
+	virtual ~SolverI(){};
+
+	virtual void notifyVarAdded(int nbVars) = 0;
+	virtual bool finishECNF_DataStructures() = 0;
+	virtual void backtrack(Lit l) = 0;
+	virtual Clause* propagate(Lit l) = 0;
+	virtual Clause* propagateAtEndOfQueue() = 0;
+};*/
+
 class PCSolver: public Data{
 private:
+	//OWNING POINTER
 	pSolver solver;
+	//OWNING POINTER
 	pIDSolver idsolver;
+	//OWNING POINTER
+	pCPSolver cpsolver;
+	//OWNING POINTER
 	pAggSolver aggsolver;
+	//NON-OWNING POINTER
 	pModSolver modsolver;
-	bool aggsolverpresent, idsolverpresent, modsolverpresent;
+	/*
+	 * Indicates whether the solver was constructed
+	 */
+	bool aggcreated, idcreated, cpcreated;
+	/*
+	 * Indicates whether the solver should be integrated into the search
+	 */
+	bool aggsolverpresent, idsolverpresent, modsolverpresent, cpsolverpresent;
 
 	FILE* res;
 	int nb_models, modelsfound;
 
-	/****************************
-	 * OPTIMIZATION INFORMATION *
-	 ****************************/
+	/*
+	 * OPTIMIZATION INFORMATION
+	 */
 	MINIM		optim;
 	Var 		head;
 	vec<Lit>	to_minimize;
 
+	/*
+	 * Getters for solver pointers
+	 */
 	pSolver const 		getSolver		() const;
 	pIDSolver const 	getIDSolver		() const;
+	pCPSolver const 	getCPSolver		() const;
 	pAggSolver const	getAggSolver	() const;
 	pModSolver const	getModSolver	() const;
 
 public:
 	PCSolver(ECNF_mode modes);
-	~PCSolver();
+	virtual ~PCSolver();
 
-	//DEBUG
-	int 		getModPrintID		();
-	//END DEBUG
+	/*
+	 * Getters for constant solver pointers
+	 */
+	Solver	 const * const getCSolver		() const;
+	IDSolver const * const getCIDSolver		() const;
+	CPSolver const * const getCCPSolver		() const;
+	AggSolver const * const	getCAggSolver	() const;
+	ModSolver const * const	getCModSolver	() const;
 
+	/*
+	 * INITIALIZATION
+	 */
 	void 		setModSolver	(pModSolver m);
-
 	void 		setNbModels		(int nb);
 	void 		setRes			(FILE* f);
-
 	Var			newVar			();
 	void		addVar			(Var v);
 	void 		addVars			(const vec<Lit>& a);
@@ -72,6 +119,9 @@ public:
 	bool 		addAggrExpr		(Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined);
 	bool 		finishParsing	(); //throws UNSAT
 
+	/*
+	 * SOLVING
+	 */
 	bool 		simplify		();
 	bool 		findNext		(const vec<Lit>& assumpts, vec<Lit>& model);
 	bool    	invalidateModel	(vec<Lit>& invalidation);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
@@ -90,10 +140,14 @@ public:
 	lbool 		checkStatus		(lbool status) const; //if status==l_True, do wellfoundednesscheck in IDSolver, if not wellfounded, return l_False, otherwise status
 	Clause* 	getExplanation	(Lit l);
 
-    /**************************
-     * NECESSARY FOR IDSOLVER *
-     **************************/
+    /*
+     * Solver callbacks
+     */
 
+	/*
+	 * The definition is valid, so the idsolver can be removed from further propagations
+	 * TODO what if the pcsolver is reset?
+	 */
 	void 		resetIDSolver	();
 
 	lbool		value			(Var x) const;		// The current value of a variable.
@@ -105,60 +159,49 @@ public:
 	void    	backtrackTo		(int level);	// Backtrack until a certain level.
 	void    	setTrue			(Lit p, Clause* c = NULL);		// Enqueue a literal. Assumes value of literal is undefined
 
-	/*
-	 * Returns the decision level at which a variable was deduced. This allows to get the variable that was propagated earliest/latest
-	 */
-	int 		getLevel		(int var) const;
-
 	/**
 	 * Allows to loop over all assignments made in the current decision level.
 	 */
 	vector<Lit> getRecentAssignments() const;
+	/*
+	 * Returns the decision level at which a variable was deduced. This allows to get the variable that was propagated earliest/latest
+	 */
+	int 		getLevel		(int var) const;
 	int			getNbDecisions	() const;
 	vector<Lit>	getDecisions	() const;
+	uint64_t	getConflicts	() const;
 
-	bool 		totalModelFound	();				//true if the current assignment is completely two-valued
+	/*
+	 * true if the current assignment is completely two-valued
+	 * Cannot be const!
+	 */
+	bool 		totalModelFound	();
 
-	uint64_t	getConflicts	();
-
-	void		printClause		(const Clause& c);
-
-	/***************************
-	 * NECESSARY FOR AGGSOLVER *
-	 ***************************/
-
-	void 	resetAggSolver	();
-	void	varBumpActivity	(Var v);		// Increase a variable with the current 'bump' value.
-
-	/************************
-	 * NECESSARY FOR SOLVER *
-	 ************************/
+	void	varBumpActivity	(Var v);
 
 	void 	backtrackRest	(Lit l);
 	Clause* propagate		(Lit l);
 	Clause* propagateAtEndOfQueue();
 
-	/****************
-	 * OPTIMIZATION *
-	 ****************/
-
+	/*
+	 * OPTIMIZATION
+	 */
     bool 	addMinimize		(const vec<Lit>& lits, bool subsetmnmz);
     bool 	addSumMinimize	(const Var head, const int setid);
     bool 	invalidateValue	(vec<Lit>& invalidation);
 	bool 	invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt);
 	bool 	findOptimal		(vec<Lit>& assumps, vec<Lit>& m);
 
-	Solver const * const getCSolver		() const;
-	IDSolver const * const 	getCIDSolver	() const;
-	AggSolver const * const	getCAggSolver	() const;
-	ModSolver const * const	getCModSolver	() const;
 
+	/*
+	 * DEBUG
+	 */
+	int		getModPrintID	() const;
+	void	printClause		(const Clause& c) const;
 	/*
 	 * SATsolver asks this to PC such that more info (modal e.g.) can be printed.
 	 */
-	void printChoiceMade(int level, Lit l) const;
+	void	printChoiceMade	(int level, Lit l) const;
 };
-
-void print(const PCSolver& s);
 
 #endif /* PCSOLVER_H_ */

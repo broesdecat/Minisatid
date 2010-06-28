@@ -1,4 +1,6 @@
-#include "IDSolver.hpp"
+#include "solvers/IDSolver.hpp"
+
+#include "solvers/Utils.hpp"
 
 #include "Sort.h"
 #include "Map.h"
@@ -1196,7 +1198,9 @@ Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 			Clause* c = Clause_new(loopf, true);
 			getSolver()->addLearnedClause(c);
 			if (getSolver()->modes().verbosity >= 2) {
-				reportf("Adding conflicting loop formula: [ ");	print(*c); reportf("].\n");
+				reportf("Adding conflicting loop formula: [ ");
+				Print::printClause(*c, getSolver());
+				reportf("].\n");
 			}
 			return c;
 		}
@@ -1249,7 +1253,9 @@ Clause* IDSolver::addLoopfClause(Lit l, vec<Lit>& lits){
 	getSolver()->addLearnedClause(c);
 
 	if (getSolver()->modes().verbosity >= 2) {
-		reportf("Adding loop formula: [ "); print(*c); reportf("].\n");
+		reportf("Adding loop formula: [ ");
+		Print::printClause(*c, getSolver());
+		reportf("].\n");
 	}
 
 	return c;
@@ -1377,10 +1383,6 @@ void IDSolver::removeAggrHead(Var head){
 // Debug + etc:
 // a literal is a variable shifted one to the left
 // a variable is a literal shifted one to the right
-
-inline void IDSolver::print(const Clause& c) const{
-    getSolver()->printClause(c);
-}
 
 inline void IDSolver::print(const PropRule& c) const{
     for (int i = 0; i < c.size(); i++){
@@ -2293,27 +2295,3 @@ UFS IDSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<V
 //		}
 //	}
 //}
-
-void print(IDSolver const * const s){
-	if(s==NULL){
-		reportf("No definitions\n");
-		return;
-	}
-	reportf("Definitions\n");
-	for(int i=0; i<s->getNbDefinitions(); i++){
-		if(s->getDefinition(i)!=NULL){
-			DefType d = s->getDefType(i);
-			if(d==CONJ || d==DISJ){
-				reportf("%sRule", d==CONJ?"C":"D");
-				const PropRule& r = *s->getDefinition(i);
-				gprintLit(r.getHeadLiteral());
-				int counter = 0;
-				while(counter<r.size()){
-					gprintLit(r[counter]);
-					counter++;
-				}
-				reportf("\n");
-			}
-		}
-	}
-}

@@ -1,4 +1,7 @@
-#include "ModSolver.hpp"
+#include "solvers/ModSolver.hpp"
+
+#include "solvers/Utils.hpp"
+
 #include <algorithm>
 
 //Important: The head variable does not occur in this theory, so should NOT automatically be
@@ -305,7 +308,7 @@ Clause* ModSolver::analyzeResult(bool result, bool allknown){
 		confl = Clause_new(confldisj, true);
 
 		if(modhier.lock()->modes().verbosity>=5){
-			printClause(*confl);
+			Print::printClause(*confl, getSolver());
 		}
 	}
 
@@ -407,39 +410,4 @@ void ModSolver::backtrackFromSameLevel(Lit l){
 
 void ModSolver::printModel(){
 	getSolver()->printModel();
-}
-
-void print(const ModSolver& m){
-	reportf("ModSolver %d, parent %d", m.getPrintId(), m.getParentPrintId() );
-	if(m.hasParent()){
-		reportf(", head");
-		gprintLit(Lit(m.getHead()), m.getHeadValue());
-	}
-	reportf(", children ");
-	for(vmodindex::const_iterator i=m.getChildren().begin(); i<m.getChildren().end(); i++){
-		reportf("%d ", *i);
-	}
-	reportf("\nModal atoms ");
-	for(vector<Var>::const_iterator i=m.getAtoms().begin(); i<m.getAtoms().end(); i++){
-		reportf("%d ", gprintVar(*i));
-	}
-	reportf("\nsubtheory\n");
-	print(m.getPCSolver());
-	reportf("SubSolvers\n");
-	for(vmodindex::const_iterator i=m.getChildren().begin(); i<m.getChildren().end(); i++){
-		print(*m.getModSolverData().getModSolver(*i));
-	}
-}
-
-/**
- * Important: PCSolver printclause looks at the signs of the variables, this is not as easy any more
- * in the modal solver
- */
-template<class C>
-inline void printClause(const C& c)
-{
-    for (int i = 0; i < c.size(); i++){
-        gprintLit(c[i]);
-        fprintf(stderr, " ");
-    }
 }

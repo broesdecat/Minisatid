@@ -29,8 +29,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "SolverTypes.hpp"
 
 /*AB*/
-#include "debug.hpp"
-#include "PCSolver.hpp"
+#include "solvers/debug.hpp"
+#include "solvers/PCSolver.hpp"
 class PCSolver;
 typedef PCSolver* pPCSolver;
 /*AE*/
@@ -359,9 +359,6 @@ inline void Solver::printClause(const C& c) const
         fprintf(stderr, " ");
     }
 }
-
-void print(Solver const * const s);
-
 
 //=================================================================================================
 #endif

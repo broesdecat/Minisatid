@@ -6,7 +6,7 @@
 #include "Vec.h"
 #include "Sort.h"
 
-#include "AggTypes.hpp"
+#include "solvers/aggs/AggTypes.hpp"
 
 namespace Aggrs{
 	class Agg;
@@ -20,7 +20,7 @@ namespace Aggrs{
 	typedef AggrSet* pSet;
 }
 
-#include "PCSolver.hpp"
+#include "solvers/PCSolver.hpp"
 class PCSolver;
 typedef PCSolver* pPCSolver;
 
@@ -180,7 +180,5 @@ inline Clause* AggSolver::propagate(const Lit& p){
 	if (init) {return NULL;}
 	return Aggr_propagate(p);
 }
-
-void print(AggSolver const * const p);
 
 #endif /* AggSolver_H_ */

@@ -6,8 +6,8 @@
 #include <tr1/memory>
 #include "Vec.h"
 #include "SolverTypes.hpp"
-#include "PCSolver.hpp"
-#include "SOSolverHier.hpp"
+#include "solvers/PCSolver.hpp"
+#include "solvers/SOSolverHier.hpp"
 #include <stdio.h>
 
 using namespace std;
@@ -151,8 +151,8 @@ public:
 	const vector<Var>& 	getAtoms	()	const	{ return atoms; }
 	const vmodindex& 	getChildren	()	const	{ return children; }
 
-	const ModSolverData& getModSolverData() const { return *modhier.lock().get(); }
-	const PCSolver& 	getPCSolver	()	const	{ return *solver; }
+	const ModSolverData& getModSolverData() const	{ return *modhier.lock().get(); }
+	PCSolver const * const getCPCSolver	()	const	{ return solver; }
 
 	bool 				solve();
 
@@ -166,9 +166,5 @@ private:
 	bool 				search				(const vec<Lit>&, bool search = true);
 	Clause* 			analyzeResult		(bool result, bool allknown);
 };
-
-template<class C>
-void printClause(const C& c);
-void print(const ModSolver& m);
 
 #endif// MODSOLVER_H_

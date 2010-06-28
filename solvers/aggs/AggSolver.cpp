@@ -1,9 +1,9 @@
-#include "AggSolver.hpp"
+#include "solvers/aggs/AggSolver.hpp"
 
-#include "Agg.hpp"
-#include "AggSets.hpp"
+#include "solvers/aggs/Agg.hpp"
+#include "solvers/aggs/AggSets.hpp"
 
-#include "Utils.hpp"
+#include "solvers/Utils.hpp"
 
 #include <algorithm>
 
@@ -455,7 +455,9 @@ Clause* AggSolver::getExplanation(const Lit& p) {
 
 	if (getSolver()->modes().verbosity >= 2) {
 		reportf("Implicit reason clause for ");
-		gprintLit(p, sign(p)?l_False:l_True); reportf(" : "); getSolver()->printClause(*c); reportf("\n");
+		gprintLit(p, sign(p)?l_False:l_True); reportf(" : ");
+		Print::printClause(*c, getSolver());
+		reportf("\n");
 	}
 
 	return c;
@@ -592,12 +594,4 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head){
  */
 void AggSolver::propagateMnmz(Var head){
 	dynamic_cast<SumAgg*>(head_watches[head])->propagateHead(true);
-}
-
-void print(AggSolver const * const p){
-	if(p==NULL){
-		reportf("No aggregates\n");
-		return;
-	}
-	reportf("Aggregates\n");
 }

@@ -1,10 +1,10 @@
 #ifndef SOSOLVER_H_
 #define SOSOLVER_H_
 
-#include "solverfwd.hpp"
-#include "AggTypes.hpp"
+#include "solvers/solverfwd.hpp"
+#include "solvers/aggs/AggTypes.hpp"
 #include "Vec.h"
-#include "SolverI.hpp"
+#include "solvers/SolverI.hpp"
 class Data;
 
 /**
@@ -39,7 +39,7 @@ class Data;
  *
  */
 
-#include "ModSolver.hpp"
+#include "solvers/ModSolver.hpp"
 class ModSolver;
 typedef ModSolver* pModSolver;
 
@@ -88,7 +88,5 @@ private:
 	void	checkexistsModSolver(modindex modid) const;
 	bool	existsModSolver		(modindex modid) const { return modid<solvers.size() && solvers[modid]!=NULL; }
 };
-
-void print(const ModSolverData& d);
 
 #endif /* SOSOLVER_H_ */

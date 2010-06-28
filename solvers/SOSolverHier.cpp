@@ -1,5 +1,5 @@
-#include "SOSolverHier.hpp"
-#include "Utils.hpp"
+#include "solvers/SOSolverHier.hpp"
+#include "solvers/Utils.hpp"
 
 ModSolverData::ModSolverData(ECNF_mode modes):Data(modes), state(NEW){
 	//propagationsolver = new PCSolver(modes);
@@ -50,7 +50,7 @@ bool ModSolverData::finishParsing(){
 	bool result = solvers[0]->finishParsing();
 
 	if(modes().verbosity>=5){
-		print(*this);
+		Print::print(this);
 	}
 
 	return result;
@@ -269,10 +269,4 @@ void ModSolverData::verifyHierarchy(){
 			throw idpexception();
 		}
 	}
-}
-
-void print(const ModSolverData& d){
-	reportf("Printing theory\n");
-	print(*d.getModSolver((modindex)0));
-	reportf("End of theory\n");
 }

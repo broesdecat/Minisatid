@@ -2,7 +2,7 @@
 /* C++ declarations: */
 #include <iostream>
 #include "ecnfparser.h"
-#include "solverfwd.hpp"
+#include "solvers/solverfwd.hpp"
 
 using namespace std;
 

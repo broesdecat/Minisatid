@@ -1,11 +1,15 @@
-#include "PCSolver.hpp"
-#include "Utils.hpp"
+#include "solvers/PCSolver.hpp"
+#include "solvers/Utils.hpp"
+
+/*SolverI::SolverI(PCSolver* const solver): pcsolver(solver){
+
+};*/
 
 /******************
  * INITIALIZATION *
  ******************/
 
-int PCSolver::getModPrintID(){
+int PCSolver::getModPrintID() const{
 	if(modsolver!=NULL){
 		return modsolver->getPrintId();
 	}
@@ -14,23 +18,31 @@ int PCSolver::getModPrintID(){
 
 //Has to be value copy of modes!
 PCSolver::PCSolver(ECNF_mode modes):Data(modes),
-			solver(NULL), idsolver(NULL), aggsolver(NULL), modsolver(NULL),
-			aggsolverpresent(false), idsolverpresent(false), modsolverpresent(false),
+			solver(NULL), idsolver(NULL), aggsolver(NULL), modsolver(NULL), cpsolver(NULL),
+			aggcreated(false), idcreated(false), cpcreated(false),
+			aggsolverpresent(false), idsolverpresent(false), modsolverpresent(false), cpsolverpresent(false),
 			res(NULL), nb_models(modes.nbmodels),
 			modelsfound(0),
 			optim(NONE),head(-1){
 	solver = new Solver(this);
 	if(modes.def){
 		idsolver = new IDSolver(this);
-		idsolverpresent = true;
+		idcreated = true;
 	}
+	idsolverpresent = idcreated;
 	if(modes.aggr){
 		aggsolver = new AggSolver(this);
-		aggsolverpresent = true;
+		aggcreated = true;
 	}
+	aggsolverpresent = aggcreated;
 	if(modes.def && modes.aggr){
 		idsolver->setAggSolver(aggsolver);
 	}
+	if(modes.cp){
+		cpsolver = new CPSolver(this);
+		cpcreated = true;
+	}
+	cpsolverpresent = cpcreated;
 
 	//solver->maxruntime = modes.maxruntime;
 	solver->polarity_mode = modes.polarity_mode;
@@ -40,11 +52,14 @@ PCSolver::PCSolver(ECNF_mode modes):Data(modes),
 }
 
 PCSolver::~PCSolver(){
-	if(idsolverpresent){
+	if(idcreated){
 		delete idsolver;
 	}
-	if(aggsolverpresent){
+	if(aggcreated){
 		delete aggsolver;
+	}
+	if(cpcreated){
+		delete cpsolver;
 	}
 	delete solver;
 }
@@ -65,6 +80,10 @@ inline pIDSolver const PCSolver::getIDSolver() const {
 	return idsolver;
 }
 
+inline pCPSolver const PCSolver::getCPSolver() const {
+	return cpsolver;
+}
+
 inline pAggSolver const PCSolver::getAggSolver() const {
 	return aggsolver;
 }
@@ -73,19 +92,23 @@ inline pModSolver const PCSolver::getModSolver() const {
 	return modsolver;
 }
 
-inline Solver const * const PCSolver::getCSolver() const {
+Solver const * const PCSolver::getCSolver() const {
 	return solver;
 }
 
-inline IDSolver const * const PCSolver::getCIDSolver() const {
+IDSolver const * const PCSolver::getCIDSolver() const {
 	return idsolver;
 }
 
-inline AggSolver const * const PCSolver::getCAggSolver() const {
+CPSolver const * const PCSolver::getCCPSolver() const {
+	return cpsolver;
+}
+
+AggSolver const * const PCSolver::getCAggSolver() const {
 	return aggsolver;
 }
 
-inline ModSolver const * const PCSolver::getCModSolver() const {
+ModSolver const * const PCSolver::getCModSolver() const {
 	return modsolver;
 }
 
@@ -147,12 +170,8 @@ bool PCSolver::totalModelFound(){
 	return getSolver()->totalModelFound();
 }
 
-uint64_t PCSolver::getConflicts(){
+uint64_t PCSolver::getConflicts() const{
 	return getSolver()->conflicts;
-}
-
-void PCSolver::printClause(const Clause& c){
-	getSolver()->printClause(c);
 }
 
 void PCSolver::varBumpActivity(Var v)	{
@@ -244,22 +263,19 @@ bool PCSolver::finishParsing(){ //throws UNSAT
 		idsolverpresent = getIDSolver()->finishECNF_DataStructures();
 	}
 
-	if(!aggsolverpresent && modes().aggr){ //In this case, the aggsolver has been initialized and will not be present
-		delete aggsolver;
+	if(!aggsolverpresent){
 		if(modes().verbosity>0){
 			reportf("|                                                                             |\n"
 					"|    (there will be no aggregate propagations)                                |\n");
 		}
 	}
-	if(!idsolverpresent && modes().def){ //In this case, the idsolver has been initialized and will not be present
-		delete idsolver;
+	if(!idsolverpresent){
 		if(modes().verbosity>0){
 			reportf("|    (there will be no definitional propagations)                             |\n");
 		}
 	}
-	if(!modes().mnmz){
-		//TODO later
-	}
+
+	//TODO later modes.mnmz, modes.cp
 
 	return true;
 }
@@ -306,13 +322,9 @@ Clause* PCSolver::getExplanation(Lit l){
 	return aggsolverpresent?getAggSolver()->getExplanation(l):NULL;
 }
 
-void PCSolver::resetAggSolver(){
-	aggsolverpresent = false;
-}
-
-/***********************
- * SAT SOLVER SPECIFIC *
- ***********************/
+/*
+ * SAT SOLVER SPECIFIC
+ */
 
 void PCSolver::backtrackRest(Lit l){
 	if(aggsolverpresent){
@@ -767,10 +779,4 @@ void PCSolver::printChoiceMade(int level, Lit l) const{
 		gprintLit(l);
 		reportf(".\n");
 	}
-}
-
-void print(const PCSolver& s){
-	print(s.getCSolver());
-	print(s.getCAggSolver());
-	print(s.getCIDSolver());
 }

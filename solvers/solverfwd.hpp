@@ -82,7 +82,7 @@ struct ECNF_mode {
 
 	//rest
 
-	bool def, aggr, mnmz; // True for those extensions that are being used.
+	bool def, aggr, mnmz, cp; // True for those extensions that are being used.
 	IDSEM sem;
 	int nbmodels; //Find at least this number of models. If there are less models,
 	//UNSAT will be returned (after finding the existing number)
@@ -92,7 +92,7 @@ struct ECNF_mode {
 
 	ECNF_mode() :
 		random_var_freq(0.02), var_decay(1 / 0.95), polarity_mode(polarity_stored), verbosity(0),
-		def(false), aggr(false), mnmz(false), sem(WELLF), nbmodels(1),
+		def(false), aggr(false), mnmz(false), cp(false), sem(WELLF), nbmodels(1),
 		defn_strategy(always), defn_search(include_cs), ufs_strategy(breadth_first) {
 	}
 };

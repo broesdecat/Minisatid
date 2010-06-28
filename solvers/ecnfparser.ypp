@@ -6,9 +6,9 @@
 #include <list>
 #include <map>
 	
-#include "solverfwd.hpp"
-#include "SOSolverHier.hpp"
-#include "PCSolver.hpp"
+#include "solvers/solverfwd.hpp"
+#include "solvers/SOSolverHier.hpp"
+#include "solvers/PCSolver.hpp"
 #include "Vec.h"
 	
 using namespace Aggrs;

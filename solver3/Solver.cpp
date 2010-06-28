@@ -1003,12 +1003,3 @@ void Solver::checkLiteralCount()
         assert((int)clauses_literals == cnt);
     }
 }
-
-void print(Solver const * const s){
-	assert(s!=NULL);
-	reportf("Clauses\n");
-	for(int i=0; i< s->clauses.size(); i++){
-		s->printClause(*s->clauses[i]);
-		reportf("\n");
-	}
-}

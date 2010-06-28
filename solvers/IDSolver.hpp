@@ -8,19 +8,17 @@
 #include <vector>
 #include <map>
 
-#include "Utils.hpp"
-
 #include "Vec.h"
 #include "Queue.h"
 #include "Heap.h"
 
-#include "solverfwd.hpp"
+#include "solvers/solverfwd.hpp"
 
-#include "PCSolver.hpp"
+#include "solvers/PCSolver.hpp"
 class PCSolver;
 typedef PCSolver* pPCSolver;
 
-#include "AggSolver.hpp"
+#include "solvers/aggs/AggSolver.hpp"
 class AggSolver;
 typedef AggSolver* pAggSolver;
 
@@ -255,8 +253,6 @@ private:
 	void overestimateCounters();
 	void removeMarks();
 };
-
-void print(IDSolver const * const id);
 
 /**
  * All these methods are used to allow branch prediction in SATsolver methods and to minimize the number of

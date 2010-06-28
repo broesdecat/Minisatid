@@ -8,7 +8,7 @@
 #include <tr1/memory>
 
 #include "SolverTypes.hpp"
-#include "debug.hpp"
+#include "solvers/debug.hpp"
 
 using namespace std;
 using namespace tr1;
