@@ -10,6 +10,7 @@ using namespace std;
 
 typedef vector<Lit> vlit;
 
+//FIXME: the parser does -1, but +1 is always printed, also when NOT going through the parser
 
 #include "Solver.hpp"
 #include "solvers/IDSolver.hpp"

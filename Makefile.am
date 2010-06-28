@@ -1,8 +1,7 @@
 AM_LDFLAGS = $(SVNDIGEST_LDFLAGS)
 AM_CXXFLAGS = $(SVNDIGEST_CXXFLAGS)
-CXXFLAGS =  -I$(top_srcdir)/mtl -I$(top_srcdir)/solver3 -I$(top_srcdir)/../../othersoftware/gecode/release-3.3.1 @AM_CXXFLAGS@
-LDFLAGS = @AM_LDFLAGS@
-#LDFLAGS += -L$(top_srcdir)/../../othersoftware/gecode/release-3.3.1 -lgecodesupport -lgecodekernel -lgecodesearch -lgecodeminimodel -lgecodegist -lgecodedriver -lgecodeint
+CXXFLAGS =  -I$(top_srcdir)/mtl -I$(top_srcdir)/solver3 -I$(top_srcdir)/../../othersoftware/gecode/install/include/ @AM_CXXFLAGS@
+#LDFLAGS = -L$(top_srcdir)/../../othersoftware/gecode/install/lib/ -lgecodedriver -lgecodeminimodel -lgecodeset -lgecodeint -lgecodekernel -lgecodesupport @AM_LDFLAGS@
 
 YFLAGS = -d @AM_YFLAGS@
 LFLAGS = @AM_LFLAGS@ #TODO prefix blijkt niet te werken, dus code herschreven om maar 1 parser te ondersteunen
@@ -31,8 +30,8 @@ include_HEADERS += solvers/aggs/Agg.hpp solvers/aggs/AggSets.hpp solvers/aggs/Ag
 include_HEADERS += solvers/PCSolver.hpp solvers/Utils.hpp 
 include_HEADERS += solvers/CPSolver.hpp
 include_HEADERS += solvers/ModSolver.hpp solvers/SOSolverHier.hpp 
-#include_HEADERS += gecode/kernel.hh gecode/int.hh gecode/minimodel.hh driver.hh
+include_HEADERS += gecode/kernel.hh gecode/int.hh gecode/minimodel.hh gecode/driver.hh
 
 
 dist_doc_DATA = README
-dist_doc_DATA = makefilewinmac
+dist_doc_DATA += makefilewinmac

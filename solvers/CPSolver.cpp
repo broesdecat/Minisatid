@@ -7,16 +7,16 @@
 
 #include "solvers/CPSolver.hpp"
 
-/*#include "gecode/kernel.hh"
+#include "gecode/kernel.hh"
 #include "gecode/driver.hh"
 #include "gecode/int.hh"
-#include "gecode/minimodel.hh"*/
+#include "gecode/minimodel.hh"
 
-//using namespace Gecode;
+using namespace Gecode;
 
 namespace CP {
 
-/*class CPScript: public Space{
+class CPScript: public Space{
 public:
 	CPScript(): Space(){
 
@@ -29,10 +29,10 @@ public:
 	virtual Space* copy(bool share){
 		return new CPScript(share, *this);
 	}
-};*/
+};
 
 CPSolver::CPSolver(PCSolver * solver):pcsolver(solver) {
-	/*Space* space = new CPScript();
+	Space* space = new CPScript();
 
 	SizeOptions opt("Test configuration");
 	opt.icl(ICL_DOM);
@@ -46,7 +46,7 @@ CPSolver::CPSolver(PCSolver * solver):pcsolver(solver) {
 		n[p].init(*space,0,periods-1);
 	}
 
-	distinct(*space, n, opt.icl());*/
+	distinct(*space, n, opt.icl());
 }
 
 CPSolver::~CPSolver() {
