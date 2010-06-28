@@ -427,6 +427,8 @@ bool PCSolver::solveAll(vec<Lit>& assmpt, vector<vector<int> >& models){
 		vec<Lit> assump;
 		findOptimal(assump, model);
 
+		//FIXME FIXME in some cases, there is no last model, so this should be checked!
+
 		//put models in return models
 		vector<int> modelasint;
 		for(int i=0; i<model.size(); i++){
