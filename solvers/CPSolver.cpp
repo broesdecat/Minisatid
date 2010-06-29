@@ -5,6 +5,9 @@
  *      Author: broes
  */
 
+#include <set>
+#include <map>
+
 #include "solvers/CPSolver.hpp"
 
 #include "gecode/kernel.hh"
@@ -13,8 +16,36 @@
 #include "gecode/minimodel.hh"
 
 using namespace Gecode;
+using namespace std;
 
 namespace CP {
+
+/**
+ * Mapping of variable-relation-value to Integer (SAT-atom)
+ *
+ * Initial loading: add ALL necessary SAT-atoms with respective mapping.
+ *
+ * Later, given a variable and (possibly reduced) domain: go over all atoms and check whether they
+ * are true-false-unknown
+ */
+
+struct Expr{
+	char rel;
+	int constant;
+};
+
+class IntVarWrapper{
+	IntVar var;
+	map<Var, Expr> maptoexpr;
+	map<Expr, Var> maptoatom;
+public:
+	void becameTrue(Var v){
+		map<Var, Expr>::const_iterator it = maptoexpr.find(v);
+		if(it!=maptoexpr.end()){
+			//var.
+		}
+	}
+};
 
 class CPScript: public Space{
 public:
@@ -32,6 +63,8 @@ public:
 };
 
 CPSolver::CPSolver(PCSolver * solver):pcsolver(solver) {
+
+	//TEST CODE, which works!
 	Space* space = new CPScript();
 
 	SizeOptions opt("Test configuration");
@@ -39,14 +72,24 @@ CPSolver::CPSolver(PCSolver * solver):pcsolver(solver) {
 	opt.size(18);
 
 	int periods = 10;
-	IntArgs rh(periods), ra(periods), rg(periods);
 	IntVarArgs n(periods);
+	IntVar n2;
 
 	for (int p=0; p<periods; p++){
-		n[p].init(*space,0,periods-1);
+		n[p].init(*space,1,10);
 	}
 
 	distinct(*space, n, opt.icl());
+
+	StatusStatistics* s = new StatusStatistics();
+	SpaceStatus status = space->status(*s);
+	if(status==SS_FAILED){
+		reportf("No solution\n");
+	}else if(status==SS_SOLVED){
+		reportf("Solution found\n");
+	}else{
+		reportf("Choices left to make\n");
+	}
 }
 
 CPSolver::~CPSolver() {
