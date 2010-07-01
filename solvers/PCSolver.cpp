@@ -226,7 +226,10 @@ bool PCSolver::addAggrExpr(Lit head, int setid, Weight bound, bool lower, AggrTy
 	return getAggSolver()->addAggrExpr(var(head), setid, bound, lower, type, defined);
 }
 
-bool PCSolver::finishParsing(){ //throws UNSAT
+/*
+ * Returns "false" if UNSAT was already found, otherwise "true"
+ */
+bool PCSolver::finishParsing(){
     //important to call definition solver last
 	if(aggsolverpresent){
 		aggsolverpresent = getAggSolver()->finishECNF_DataStructures();
@@ -242,6 +245,14 @@ bool PCSolver::finishParsing(){ //throws UNSAT
 	}
 	if(idsolverpresent){
 		idsolverpresent = getIDSolver()->finishECNF_DataStructures();
+		if(idsolverpresent){
+			//TODO this might not be the best choice to do this now, as at the start,
+			//simplification is called twice! But it simplifies the solve algorithm and
+			//allows to keep the sat solver the same.
+			if(!getIDSolver()->initAfterSimplify()){
+				return false;
+			}
+		}
 	}
 
 	if(!aggsolverpresent && modes().aggr){ //In this case, the aggsolver has been initialized and will not be present

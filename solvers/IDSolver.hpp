@@ -86,6 +86,9 @@ public:
 	PropRule* 	getDefinition(Var i) 	const { return definition[i]; }
 	DefType 	getDefType(Var i) 		const { return defType[i]; }
 
+	//False if problem unsat
+	bool 		initAfterSimplify		();
+
 protected:
 	vector<PropRule*>	definition;	// If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
 	// Note that v occurs negatively if DISJ, positively if CONJ; and the reverse for the body literals.
@@ -127,8 +130,6 @@ protected:
 	bool 		isConjunctive		(Var v) const;
 	bool 		isDisjunctive		(Var v) const;
 	bool		setTypeIfNoPosLoops	(Var v) const;
-
-	bool 		initAfterSimplify		();
 
 	void 		propagateJustificationDisj(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& heads);
 	void 		propagateJustificationAggr(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& heads);

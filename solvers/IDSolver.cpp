@@ -320,9 +320,7 @@ bool IDSolver::finishECNF_DataStructures() {
 		}
 	}
 
-	//TODO this might not be the best choice, as at the start, simplification is called twice! But
-	//it simplifies the solve algorithm and allows to keep the sat solver the same.
-	return initAfterSimplify();
+	return true;
 }
 
 /**
