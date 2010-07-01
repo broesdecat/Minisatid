@@ -29,24 +29,6 @@ namespace CP {
  * are true-false-unknown
  */
 
-struct Expr{
-	char rel;
-	int constant;
-};
-
-class IntVarWrapper{
-	IntVar var;
-	map<Var, Expr> maptoexpr;
-	map<Expr, Var> maptoatom;
-public:
-	void becameTrue(Var v){
-		map<Var, Expr>::const_iterator it = maptoexpr.find(v);
-		if(it!=maptoexpr.end()){
-			//var.
-		}
-	}
-};
-
 class CPScript: public Space{
 public:
 	CPScript(): Space(){
