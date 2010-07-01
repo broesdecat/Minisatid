@@ -1,0 +1,31 @@
+### compilers and compile flags to use ###
+GPP=g++
+GPPFLAGS= -Imtl -Isolver3 -I. -Isolvers -Isolvers/aggs
+LDFLAGS=
+
+# files to use
+OBJECTS=solvers/Main.o ecnftoken.o ecnfparser.o solvers/PCSolver.o solvers/Utils.o solver3/Solver.o
+OBJECTS += solvers/IDSolver.o solvers/aggs/AggSets.o solvers/aggs/AggSolver.o solvers/aggs/AggTypes.o solvers/aggs/Agg.o solvers/ModSolver.o
+OBJECTS += solvers/SOSolverHier.o
+
+### make rules ###
+
+all: r
+
+r: GPPFLAGS += -O3 -D NDEBUG
+s: GPPFLAGS += -O3 -D NDEBUG
+
+r: $(OBJECTS)
+	$(GPP) $(GPPFLAGS) $(LDFLAGS) -o minisatid $(OBJECTS)
+
+s: $(OBJECTS)
+	$(GPP) $(GPPFLAGS) $(LDFLAGS) --static -o minisatid_static $(OBJECTS)
+
+clean:
+	-rm -f $(OBJECTS)
+
+%.o:	%.cpp
+	$(GPP) $(GPPFLAGS) -c -o $@ $<
+	
+%.o:	%.cc
+	$(GPP) $(GPPFLAGS) -c -o $@ $<
