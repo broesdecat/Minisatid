@@ -3,10 +3,10 @@
 
 #include <cstdio>
 
-#include "Vec.h"
-#include "Sort.h"
+#include "mtl/Vec.h"
+#include "mtl/Sort.h"
 
-#include "AggTypes.hpp"
+#include "solvers/aggs/AggTypes.hpp"
 
 namespace Aggrs{
 	class Agg;
@@ -20,7 +20,7 @@ namespace Aggrs{
 	typedef AggrSet* pSet;
 }
 
-#include "PCSolver.hpp"
+#include "solvers/PCSolver.hpp"
 class PCSolver;
 typedef PCSolver* pPCSolver;
 

@@ -32,10 +32,10 @@ static inline double cpuTime(void) {
 static inline double cpuTime(void) { return 0; }
 #endif
 
-#include "solverfwd.hpp"
-#include "SolverI.hpp"
+#include "solvers/solverfwd.hpp"
+#include "solvers/SolverI.hpp"
 
-#include "debug.hpp"
+#include "solvers/debug.hpp"
 
 ECNF_mode modes;
 

@@ -22,15 +22,15 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include <cstdio>
 
-#include "Vec.h"
-#include "Heap.h"
-#include "Alg.h"
+#include "mtl/Vec.h"
+#include "mtl/Heap.h"
+#include "mtl/Alg.h"
 
-#include "SolverTypes.hpp"
+#include "solver3/SolverTypes.hpp"
 
 /*AB*/
-#include "debug.hpp"
-#include "PCSolver.hpp"
+#include "solvers/debug.hpp"
+#include "solvers/PCSolver.hpp"
 class PCSolver;
 typedef PCSolver* pPCSolver;
 /*AE*/

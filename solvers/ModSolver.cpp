@@ -1,4 +1,4 @@
-#include "ModSolver.hpp"
+#include "solvers/ModSolver.hpp"
 #include <algorithm>
 
 //Important: The head variable does not occur in this theory, so should NOT automatically be

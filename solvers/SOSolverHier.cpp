@@ -1,5 +1,5 @@
-#include "SOSolverHier.hpp"
-#include "Utils.hpp"
+#include "solvers/SOSolverHier.hpp"
+#include "solvers/Utils.hpp"
 
 ModSolverData::ModSolverData(ECNF_mode modes):Data(modes), state(NEW){
 	//propagationsolver = new PCSolver(modes);

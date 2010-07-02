@@ -1,10 +1,10 @@
 #ifndef SOSOLVER_H_
 #define SOSOLVER_H_
 
-#include "solverfwd.hpp"
-#include "AggTypes.hpp"
-#include "Vec.h"
-#include "SolverI.hpp"
+#include "solvers/solverfwd.hpp"
+#include "solvers/aggs/AggTypes.hpp"
+#include "mtl/Vec.h"
+#include "solvers/SolverI.hpp"
 class Data;
 
 /**
@@ -39,7 +39,7 @@ class Data;
  *
  */
 
-#include "ModSolver.hpp"
+#include "solvers/ModSolver.hpp"
 class ModSolver;
 typedef ModSolver* pModSolver;
 

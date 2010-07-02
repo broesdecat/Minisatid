@@ -1,6 +1,6 @@
 AM_LDFLAGS = $(SVNDIGEST_LDFLAGS)
 AM_CXXFLAGS = $(SVNDIGEST_CXXFLAGS)
-CXXFLAGS =  -I$(top_srcdir)/mtl -I$(top_srcdir)/solvers -I$(top_srcdir)/solvers/aggs -I$(top_srcdir)/solver3 @AM_CXXFLAGS@
+CXXFLAGS = @AM_CXXFLAGS@
 LDFLAGS = @AM_LDFLAGS@
 
 YFLAGS = -d @AM_YFLAGS@

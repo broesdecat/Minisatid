@@ -1,8 +1,8 @@
 #ifndef PCSOLVER_H_
 #define PCSOLVER_H_
 
-#include "SolverI.hpp"
-#include "solverfwd.hpp"
+#include "solvers/SolverI.hpp"
+#include "solvers/solverfwd.hpp"
 
 #include <vector>
 
@@ -11,10 +11,10 @@ using namespace std;
 typedef vector<Lit> vlit;
 
 
-#include "Solver.hpp"
-#include "IDSolver.hpp"
-#include "AggSolver.hpp"
-#include "ModSolver.hpp"
+#include "solver3/Solver.hpp"
+#include "solvers/IDSolver.hpp"
+#include "solvers/aggs/AggSolver.hpp"
+#include "solvers/ModSolver.hpp"
 
 class Solver;
 class IDSolver;

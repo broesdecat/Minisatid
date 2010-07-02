@@ -4,10 +4,10 @@
 #include <set>
 #include <vector>
 #include <tr1/memory>
-#include "Vec.h"
-#include "SolverTypes.hpp"
-#include "PCSolver.hpp"
-#include "SOSolverHier.hpp"
+#include "mtl/Vec.h"
+#include "solver3/SolverTypes.hpp"
+#include "solvers/PCSolver.hpp"
+#include "solvers/SOSolverHier.hpp"
 #include <stdio.h>
 
 using namespace std;

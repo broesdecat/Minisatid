@@ -1,4 +1,4 @@
-#include "AggTypes.hpp"
+#include "solvers/aggs/AggTypes.hpp"
 #include "cstdlib"
 
 template <typename T>
