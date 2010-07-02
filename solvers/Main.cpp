@@ -319,13 +319,9 @@ pData parse(){
 	pData d = getData();
 
 	yydestroy();
-    //There is still a memory leak of about 16 Kb in the flex scanner.
+    //There is still a memory leak of about 16 Kb in the flex scanner, which is inherent to the flex C scanner
 
-	if(unsatfound){
-		return shared_ptr<Data>();
-	}
-
-	if(!d->finishParsing()){
+	if(unsatfound || !d->finishParsing()){ //UNSAT so empty shared pointer
 		return shared_ptr<Data>();
 	}
 

@@ -22,16 +22,27 @@ AC_SUBST([AM_LFLAGS])
 AC_SUBST([AM_LDFLAGS])
 AC_SUBST([LIBS])
 
+SD_CXXFLAGS=
+SD_LDFLAGS=
+
 AC_ARG_ENABLE([build],
 [  --enable-build    Turn on debugging (debug), profiling (profile), release version(release), static release version (static) or code cover building (codecover)],
 [case "${enableval}" in
-  debug)   SD_CXXFLAGS="-O0 -ggdb -D DEBUG" SD_LDFLAGS="-ggdb" ;;
-  profile) SD_CXXFLAGS="-O3 -pg -ggdb -D NDEBUG" SD_LDFLAGS="-ggdb" ;;
-  release) SD_CXXFLAGS="-O3 -D NDEBUG" SD_LDFLAGS="" ;;
-  static)  SD_CXXFLAGS="-O3 -D NDEBUG" SD_LDFLAGS="--static" ;;
-  codecover) SD_CXXFLAGS="-O0 -fprofile-arcs -ftest-coverage -ggdb -D DEBUG" SD_LDFLAGS="-ggdb -lcov" ;;
+  debug)   SD_CXXFLAGS+="-O0 -ggdb -D DEBUG" SD_LDFLAGS+="-ggdb" ;;
+  profile) SD_CXXFLAGS+="-O3 -pg -ggdb -D NDEBUG" SD_LDFLAGS+="-ggdb" ;;
+  release) SD_CXXFLAGS+="-O3 -D NDEBUG" SD_LDFLAGS+="" ;;
+  static)  SD_CXXFLAGS+="-O3 -D NDEBUG" SD_LDFLAGS+="--static" ;;
+  codecover) SD_CXXFLAGS+="-O0 -fprofile-arcs -ftest-coverage -ggdb -D DEBUG" SD_LDFLAGS+="-ggdb -lcov" ;;
   *) AC_MSG_ERROR([bad value ${enableval} for --enable-build]) ;;
-esac],[SD_CXXFLAGS="-DNDEBUG $SD_CXXFLAGS -O3" SD_LDFLAGS="$SD_LDFLAGS"])
+esac],[SD_CXXFLAGS+="-DNDEBUG $SD_CXXFLAGS -O3" SD_LDFLAGS+="$SD_LDFLAGS"])
+
+AC_ARG_ENABLE([bits],
+[  --enable-bits    Turn on 32/64 bit compiling],
+[case "${enableval}" in
+	32) SD_CXXFLAGS+=" -m32" ;;
+	64) SD_CXXFLAGS+=" -m64";;
+	*) AC_MSG_ERROR([bad value ${enableval} for --enable-bits]) ;;
+esac],[])
 
 # Export flags
 AC_SUBST([SVNDIGEST_LDFLAGS], $SD_LDFLAGS)
