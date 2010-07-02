@@ -82,7 +82,7 @@ bool IDSolver::addRule(bool conj, vec<Lit>& ps) {
 	if(getSolver()->modes().verbosity>=5){
 		reportf("Adding %s rule, %d <- ", conj?"conjunctive":"disjunctive", gprintVar(var(ps[0])));
 		for(int i=1; i<ps.size(); i++){
-			reportf("%d ", gprintVar(var(ps[i])));
+			reportf("%s%d ", sign(ps[i])?"-":"",gprintVar(var(ps[i])));
 		}
 		reportf("\n");
 	}
@@ -943,6 +943,14 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 	seen[cs]=1; //no valid justification can be created just from looking at the body literals
 	tmpseen.push(cs);
 
+	if(getSolver()->modes().verbosity>5){
+		for(int i=0; i<defdVars.size(); i++){
+			if(isJustified(defdVars[i])){
+				reportf("Still justified %d\n", gprintVar(defdVars[i]));
+			}
+		}
+	}
+
 	q.insert(cs);
 	ufs.clear();
 	ufs.insert(cs);
@@ -953,6 +961,9 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 			continue;
 		}
 		if (directlyJustifiable(v, ufs, q)){
+			if(getSolver()->modes().verbosity>5){
+				reportf("Can directly justify %d\n", gprintVar(v));
+			}
 			if (propagateJustified(v, cs, ufs)){
 				csisjustified = true;
 			}
@@ -1116,12 +1127,18 @@ bool IDSolver::propagateJustified(Var v, Var cs, std::set<Var>& ufs) {
 			assert(jstf[i].size()>0);
 			changejust(var(heads[i]), jstf[i]);
 			justifiedq.push(var(heads[i]));
+			if(getSolver()->modes().verbosity>5){
+				reportf("justified %d\n", gprintVar(var(heads[i])));
+			}
 		}
 
 		heads.clear();
 		propagateJustificationConj(bdl, heads);
 		for(int i=0; i<heads.size(); i++){
 			justifiedq.push(var(heads[i]));
+			if(getSolver()->modes().verbosity>5){
+				reportf("justified %d\n", gprintVar(var(heads[i])));
+			}
 		}
 	}
 	return false;
@@ -1302,10 +1319,19 @@ void IDSolver::markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>
 }
 
 inline void IDSolver::markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q, vec<Var>& tmpseen) {
-	if (isJustified(v) && inSameSCC(v, cs) && (getSolver()->modes().defn_search == include_cs || v == cs || !isCS[v])) {
-		seen[v] = 1;
-		tmpseen.push(v);
-		q.insert(v);
+	if(inSameSCC(v, cs) && (getSolver()->modes().defn_search == include_cs || v == cs || !isCS[v])) {
+		if (seen[v]==0){
+			seen[v]=1;
+			tmpseen.push(v);
+			q.insert(v);
+
+		}else{
+			seen[v]++;
+		}
+
+		if (getSolver()->modes().verbosity > 5) {
+			reportf("Not justified %d, times %d\n", gprintVar(v), seen[v]);
+		}
 	}
 }
 
