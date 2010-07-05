@@ -14,6 +14,7 @@
 #include "gecode/driver.hh"
 #include "gecode/int.hh"
 #include "gecode/minimodel.hh"
+#include <gecode/int/view.hpp>
 
 using namespace Gecode;
 using namespace std;
@@ -72,6 +73,9 @@ CPSolver::CPSolver(PCSolver * solver):pcsolver(solver) {
 	}else{
 		reportf("Choices left to make\n");
 	}
+
+	Gecode::Int::IntView x;
+	x.lq(space, 5);
 }
 
 CPSolver::~CPSolver() {
