@@ -4,8 +4,8 @@
 #include <set>
 #include <vector>
 #include <tr1/memory>
-#include "Vec.h"
-#include "SolverTypes.hpp"
+#include "mtl/Vec.h"
+#include "solver3/SolverTypes.hpp"
 #include "solvers/PCSolver.hpp"
 #include "solvers/SOSolverHier.hpp"
 #include <stdio.h>
@@ -145,9 +145,9 @@ public:
 	Var 				getHead		()	const 	{ assert(hasparent); return head.atom; }
 	lbool 				getHeadValue()	const	{ assert(hasparent); return head.value; }
 	modindex 			getId		()	const	{ return id; }
-	int		 			getPrintId	()	const	{ return id+1; }
+	modindex 			getPrintId	()	const	{ return id+1; }
 	modindex			getParentId	()	const	{ return parentid; }
-	int					getParentPrintId	()	const	{ return parentid+1; }
+	modindex			getParentPrintId	()	const	{ return parentid+1; }
 	const vector<Var>& 	getAtoms	()	const	{ return atoms; }
 	const vmodindex& 	getChildren	()	const	{ return children; }
 

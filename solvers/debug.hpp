@@ -8,10 +8,10 @@
 #ifndef DEBUG_H_
 #define DEBUG_H_
 
-#include "SolverTypes.hpp"
+#include "solver3/SolverTypes.hpp"
 #include "stdio.h"
 
-#include "Vec.h"
+#include "mtl/Vec.h"
 
 /******************
  * DEBUGGING INFO *

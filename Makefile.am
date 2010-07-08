@@ -1,6 +1,6 @@
 AM_LDFLAGS = $(SVNDIGEST_LDFLAGS)
 AM_CXXFLAGS = $(SVNDIGEST_CXXFLAGS)
-CXXFLAGS =  -I$(top_srcdir)/mtl -I$(top_srcdir)/solver3 -I$(top_srcdir)/../../othersoftware/gecode/installnostat/include/ @AM_CXXFLAGS@
+CXXFLAGS = -I$(top_srcdir)/../../othersoftware/gecode/installnostat/include/ @AM_CXXFLAGS@
 LDFLAGS = -L$(top_srcdir)/../../othersoftware/gecode/installnostat/lib/ -lgecodedriver -lgecodeminimodel -lgecodeset -lgecodeint -lgecodekernel -lgecodesupport @AM_LDFLAGS@
 
 YFLAGS = -d @AM_YFLAGS@

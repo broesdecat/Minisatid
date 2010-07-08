@@ -7,7 +7,7 @@
 #include <iostream>
 #include <tr1/memory>
 
-#include "SolverTypes.hpp"
+#include "solver3/SolverTypes.hpp"
 #include "solvers/debug.hpp"
 
 using namespace std;

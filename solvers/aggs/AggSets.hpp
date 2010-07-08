@@ -7,7 +7,7 @@
 #include <iostream>
 
 #include "solvers/aggs/AggTypes.hpp"
-#include "Vec.h"
+#include "mtl/Vec.h"
 
 class AggSolver;
 typedef AggSolver* pAggSolver;

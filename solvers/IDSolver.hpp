@@ -8,9 +8,11 @@
 #include <vector>
 #include <map>
 
-#include "Vec.h"
-#include "Queue.h"
-#include "Heap.h"
+#include "solvers/Utils.hpp"
+
+#include "mtl/Vec.h"
+#include "mtl/Queue.h"
+#include "mtl/Heap.h"
 
 #include "solvers/solverfwd.hpp"
 

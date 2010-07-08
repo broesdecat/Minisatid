@@ -44,10 +44,10 @@ bool AggSolver::finishECNF_DataStructures() {
 	init = false;
 
 	if (getSolver()->modes().verbosity >= 1){
-		reportf("| Number of minimum exprs.: %4d",aggrminsets.size());
-		reportf("| Number of maximum exprs.: %4d",aggrmaxsets.size());
-		reportf("| Number of sum     exprs.: %4d",aggrsumsets.size());
-		reportf("| Number of product exprs.: %4d",aggrprodsets.size());
+		reportf("| Number of minimum exprs.: %4zu",aggrminsets.size());
+		reportf("| Number of maximum exprs.: %4zu",aggrmaxsets.size());
+		reportf("| Number of sum     exprs.: %4zu",aggrsumsets.size());
+		reportf("| Number of product exprs.: %4zu",aggrprodsets.size());
 	}
 
 	if (aggrminsets.size() == 0) {

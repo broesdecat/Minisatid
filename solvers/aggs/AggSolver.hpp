@@ -3,8 +3,8 @@
 
 #include <cstdio>
 
-#include "Vec.h"
-#include "Sort.h"
+#include "mtl/Vec.h"
+#include "mtl/Sort.h"
 
 #include "solvers/aggs/AggTypes.hpp"
 

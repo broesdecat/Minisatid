@@ -9,7 +9,7 @@
 #include "solvers/solverfwd.hpp"
 #include "solvers/SOSolverHier.hpp"
 #include "solvers/PCSolver.hpp"
-#include "Vec.h"
+#include "mtl/Vec.h"
 	
 using namespace Aggrs;
 
