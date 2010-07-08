@@ -97,7 +97,7 @@ void printClause(const Clause& c, PCSolver const * const s){
 
 template<>
 void print(ModSolver const * const m){
-	reportf("ModSolver %d, parent %d", m->getPrintId(), m->getParentPrintId() );
+	reportf("ModSolver %zu, parent %zu", m->getPrintId(), m->getParentPrintId() );
 	if(m->hasParent()){
 		reportf(", head");
 		gprintLit(Lit(m->getHead()), m->getHeadValue());

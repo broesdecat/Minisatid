@@ -1,12 +1,9 @@
 #include "solvers/PCSolver.hpp"
 #include "solvers/Utils.hpp"
-<<<<<<< HEAD:solvers/PCSolver.cpp
 
 /*SolverI::SolverI(PCSolver* const solver): pcsolver(solver){
 
 };*/
-=======
->>>>>>> public:solvers/PCSolver.cpp
 
 /******************
  * INITIALIZATION *

@@ -8,15 +8,19 @@
 #ifndef PRINT_HPP_
 #define PRINT_HPP_
 
-#include "Solver.hpp"
+#include "solver3/Solver.hpp"
 #include "solvers/PCSolver.hpp"
 #include "solvers/IDSolver.hpp"
+#include "solvers/SOSolverHier.hpp"
 #include "solvers/aggs/AggSolver.hpp"
 #include "solvers/CPSolver.hpp"
 
+class Solver;
 class PCsolver;
 class AggSolver;
-class IDsolver;
+class ModSolver;
+class IDSolver;
+class ModSolverData;
 namespace CP{
 	class CPSolver;
 }
