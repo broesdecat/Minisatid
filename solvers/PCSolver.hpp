@@ -12,27 +12,17 @@ typedef vector<Lit> vlit;
 
 //FIXME: the parser does -1, but +1 is always printed, also when NOT going through the parser
 
-<<<<<<< HEAD:solvers/PCSolver.hpp
-#include "Solver.hpp"
-=======
 #include "solver3/Solver.hpp"
->>>>>>> public:solvers/PCSolver.hpp
 #include "solvers/IDSolver.hpp"
-<<<<<<< HEAD:solvers/PCSolver.hpp
 #include "solvers/CPSolver.hpp"
-=======
->>>>>>> public:solvers/PCSolver.hpp
 #include "solvers/aggs/AggSolver.hpp"
 #include "solvers/ModSolver.hpp"
-<<<<<<< HEAD:solvers/PCSolver.hpp
 
 namespace CP{
 	class CPSolver;
 }
 
 using namespace CP;
-=======
->>>>>>> public:solvers/PCSolver.hpp
 
 class Solver;
 class IDSolver;
@@ -44,22 +34,6 @@ typedef IDSolver* pIDSolver;
 typedef CPSolver* pCPSolver;
 typedef AggSolver* pAggSolver;
 typedef ModSolver* pModSolver;
-
-/*class PCSolver;
-
-class SolverI{
-private:
-	PCSolver * const pcsolver;
-public:
-	SolverI(PCSolver* const solver);
-	virtual ~SolverI(){};
-
-	virtual void notifyVarAdded(int nbVars) = 0;
-	virtual bool finishECNF_DataStructures() = 0;
-	virtual void backtrack(Lit l) = 0;
-	virtual Clause* propagate(Lit l) = 0;
-	virtual Clause* propagateAtEndOfQueue() = 0;
-};*/
 
 class PCSolver: public Data{
 private:
@@ -105,7 +79,6 @@ public:
 	PCSolver(ECNF_mode modes);
 	virtual ~PCSolver();
 
-<<<<<<< HEAD:solvers/PCSolver.hpp
 	/*
 	 * Getters for constant solver pointers
 	 */
@@ -114,11 +87,6 @@ public:
 	CPSolver const * const getCCPSolver		() const;
 	AggSolver const * const	getCAggSolver	() const;
 	ModSolver const * const	getCModSolver	() const;
-=======
-	//DEBUG
-	int		 	getModPrintID	();
-	//END DEBUG
->>>>>>> public:solvers/PCSolver.hpp
 
 	/*
 	 * INITIALIZATION
