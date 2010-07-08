@@ -14,12 +14,32 @@
 #include "gecode/driver.hh"
 #include "gecode/int.hh"
 #include "gecode/minimodel.hh"
-#include <gecode/int/view.hpp>
+//#include <gecode/int/view.hpp>
 
 using namespace Gecode;
 using namespace std;
 
 namespace CP {
+//
+class CPScript: public Space{
+public:
+	CPScript();
+	CPScript(bool share, CPScript& s);
+	virtual Space* copy(bool share);
+};
+
+CPScript::CPScript(): Space(){
+
+}
+
+CPScript::CPScript(bool share, CPScript& s): Space(share, s){
+	//TODO copy members
+}
+
+Space* CPScript::copy(bool share){
+	return new CPScript(share, *this);
+}
+
 
 /**
  * Mapping of variable-relation-value to Integer (SAT-atom)
@@ -30,21 +50,66 @@ namespace CP {
  * are true-false-unknown
  */
 
-class CPScript: public Space{
-public:
-	CPScript(): Space(){
+/*struct TermIntVar{
+	vector<string> term; //First element is the function symbol, subsequent ones are the arguments
+	vector<int> domain;
+	IntVar var;
 
+	bool operator==(const TermIntVar& rhs){
+		vector<string>::const_iterator i=term.begin();
+		vector<string>::const_iterator j=rhs.term.begin();
+		if(rhs.term.size()!=term.size()){
+			return false;
+		}
+		for(; i<term.end(); i++, j++){
+			if(*i.compare(*j)){
+				return false;
+			}
+		}
+		return true;
 	}
-
-	CPScript(bool share, CPScript& s): Space(share, s){
-		//TODO copy members
-	}
-
-	virtual Space* copy(bool share){
-		return new CPScript(share, *this);
-	}
-};
-
+};*/
+//
+////Let this solver decide whether to use a reified representation or not
+//
+///*class SumConstraint{
+//private:
+//	IntVarArgs set;
+//	IntRelType rel;
+//
+//	bool intrhs;
+//	IntVar trhs;
+//	int irhs;
+//
+//	int atom;
+//
+//public:
+//	//not reified sum constraint
+//	SumConstraint(vector<TermIntVar> set, IntRelType rel, TermIntVar rhs, int atom){
+//		//this->set = set;
+//		this->rel = rel;
+//		//this->trhs = rhs;
+//		this->intrhs = false;
+//	}
+//
+//	SumConstraint(vector<TermIntVar> set, IntRelType rel, int rhs, int atom){
+//		//this->set = set;
+//		this->rel = rel;
+//		this->irhs = rhs;
+//		this->intrhs = true;
+//	}
+//
+//	void writeOut(CPScript& space){
+//		if(intrhs){
+//			linear(space, set, rel, irhs);
+//		}else{
+//			linear(space, set, rel, trhs);
+//		}
+//	}
+//};
+//*/
+//
+//
 CPSolver::CPSolver(PCSolver * solver):pcsolver(solver) {
 
 	//TEST CODE, which works!
