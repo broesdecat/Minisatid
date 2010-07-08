@@ -54,7 +54,7 @@ public:
 	~PCSolver();
 
 	//DEBUG
-	int 		getModPrintID		();
+	int		 	getModPrintID	();
 	//END DEBUG
 
 	void 		setModSolver	(pModSolver m);

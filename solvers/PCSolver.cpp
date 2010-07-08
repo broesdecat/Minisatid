@@ -7,9 +7,9 @@
 
 int PCSolver::getModPrintID(){
 	if(modsolver!=NULL){
-		return modsolver->getPrintId();
+		return (int)modsolver->getPrintId();
 	}
-	return -1;
+	return 0;
 }
 
 //Has to be value copy of modes!

@@ -26,7 +26,7 @@ ModSolver::~ModSolver(){
 
 void ModSolver::addVar(Var var){
 	if(modhier.lock()->modes().verbosity>5){
-		reportf("Var %d added to modal solver %d.\n", var, getPrintId());
+		reportf("Var %d added to modal solver %zu.\n", var, getPrintId());
 	}
 	getSolver()->addVar(var);
 }
@@ -165,7 +165,7 @@ bool ModSolver::simplify(){
  */
 Clause* ModSolver::propagateDown(Lit l){
 	if(modhier.lock()->modes().verbosity>4){
-		gprintLit(l); reportf(" propagated down into modal solver %d.\n", getPrintId());
+		gprintLit(l); reportf(" propagated down into modal solver %zu.\n", getPrintId());
 	}
 
 	adaptValuesOnPropagation(l);
@@ -204,7 +204,7 @@ Clause* ModSolver::propagateDownAtEndOfQueue(){
 		return NULL;
 	}
 	if(modhier.lock()->modes().verbosity>4){
-		reportf("End of queue propagation down into modal solver %d.\n", getPrintId());
+		reportf("End of queue propagation down into modal solver %zu.\n", getPrintId());
 	}
 
 	bool allknown = false;
@@ -227,7 +227,7 @@ Clause* ModSolver::propagateDownAtEndOfQueue(){
 	Clause* confl = analyzeResult(result, allknown);
 
 	if(modhier.lock()->modes().verbosity>4){
-		reportf("Finished checking solver %d: %s.\n", getPrintId(), confl==NULL?"no conflict":"conflict");
+		reportf("Finished checking solver %zu: %s.\n", getPrintId(), confl==NULL?"no conflict":"conflict");
 	}
 
 	getSolver()->backtrackTo(0);
@@ -361,7 +361,7 @@ void ModSolver::propagateUp(Lit l, modindex id){
  */
 void ModSolver::backtrackFromAbove(Lit l){
 	if(modhier.lock()->modes().verbosity>4){
-		reportf("Backtracking "); gprintLit(l); reportf(" from above in mod %d\n", getPrintId());
+		reportf("Backtracking "); gprintLit(l); reportf(" from above in mod %zu\n", getPrintId());
 	}
 
 	if(var(l)==getHead() && getHeadValue()!=l_Undef){
@@ -391,7 +391,7 @@ void ModSolver::backtrackFromAbove(Lit l){
 
 void ModSolver::backtrackFromSameLevel(Lit l){
 	if(modhier.lock()->modes().verbosity>4){
-		reportf("Backtracking "); gprintLit(l); reportf(" from same level in mod %d\n", getPrintId());
+		reportf("Backtracking "); gprintLit(l); reportf(" from same level in mod %zu\n", getPrintId());
 	}
 
 	/*for(vector<AV>::size_type i=0; i<atoms.size(); i++){
@@ -410,7 +410,7 @@ void ModSolver::printModel(){
 }
 
 void print(const ModSolver& m){
-	reportf("ModSolver %d, parent %d", m.getPrintId(), m.getParentPrintId() );
+	reportf("ModSolver %zu, parent %zu", m.getPrintId(), m.getParentPrintId() );
 	if(m.hasParent()){
 		reportf(", head");
 		gprintLit(Lit(m.getHead()), m.getHeadValue());

@@ -11,7 +11,7 @@ ModSolverData::~ModSolverData(){
 
 void ModSolverData::checkexistsModSolver(modindex modid) const {
 	if(!existsModSolver(modid)){
-		reportf("No modal operator with id %d was defined! ", modid+1);
+		reportf("No modal operator with id %zu was defined! ", modid+1);
 		throw idpexception();
 	}
 }
@@ -66,11 +66,11 @@ bool ModSolverData::addChild(modindex parent, modindex child, Lit h){
 
 	checkexistsModSolver(parent);
 	if(existsModSolver(child)){
-		reportf("Modal operator with id %d was already defined! ", child+1);
+		reportf("Modal operator with id %zu was already defined! ", child+1);
 		throw idpexception();
 	}
 	if(sign(h)){
-		reportf("Modal operator %d has a negative head. This is not allowed.", child+1);
+		reportf("Modal operator %zu has a negative head. This is not allowed.", child+1);
 		throw idpexception();
 	}
 	if(solvers.size()<child+1){
@@ -263,7 +263,7 @@ void ModSolverData::verifyHierarchy(){
 	for(vmsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
 		if(visitcount[(*i)->getId()]!=1 && *i!=NULL){
 			reportf("The hierarchy of modal solvers does not form a tree. "
-					"The Solver with id %d is %s.",
+					"The Solver with id %zu is %s.",
 						(*i)->getPrintId(),
 						visitcount[(*i)->getId()]==0?"not referenced":"referenced multiple times");
 			throw idpexception();
