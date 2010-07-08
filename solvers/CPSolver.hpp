@@ -14,37 +14,6 @@ class PCSolver;
 
 namespace CP {
 
-/*class CPConstraint{
-private:
-	CPIntVar* var;
-	CPRelation relation;
-	int integer;
-
-public:
-	CPConstraint();
-	~CPConstraint();
-
-	void propagate();
-	void backtrack();
-
-	CPRelation 	getRelation	() const { return relation; }
-	CPIntVar*	getVar		() const { return var; }
-	int 		getInteger	() const { return integer; }
-
-	bool operator==(const CPConstraint& constr) const{
-		if(constr.getRelation()!=getRelation()){
-			return false;
-		}
-		if(constr.getVar()!=getVar()){
-			return false;
-		}
-		if(constr.getInteger()!=getInteger()){
-			return false;
-		}
-		return true;
-	}
-};*/
-
 /**
  * Class to interface with cp propagation (and who knows, search) engines.
  *
@@ -56,8 +25,12 @@ public:
  * 			constraints, vars and domains can be added to the space
  * 			space has an operation "status" which propagates until fixpoint or failure
  */
+
+class CPSolverData;
+
 class CPSolver {
 	PCSolver * pcsolver;
+	CPSolverData* solverdata;
 	//map<int, CPConstraint> mapatomtoexpr;
 	//map<CPConstraint, int> mapexprtoatom;
 
@@ -65,7 +38,14 @@ public:
 	CPSolver(PCSolver * pcsolver);
 	virtual ~CPSolver();
 
-	//propagateLiteral(Lit l);
+	enum EqType{
+		CPEQ, CPNEQ, CPLEQ, CPGEQ, CPG, CPL
+	};
+
+	void addTerm(vector<string> term, int min, int max);
+	void addSum(vector<vector<string> > term, EqType rel, int bound, int atom);
+
+	Clause* propagateLiteral(Lit l);
 
 private:
 	/**

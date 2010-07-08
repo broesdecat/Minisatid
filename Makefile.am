@@ -29,8 +29,7 @@ include_HEADERS += solvers/IDSolver.hpp
 include_HEADERS += solvers/aggs/Agg.hpp solvers/aggs/AggSets.hpp solvers/aggs/AggSolver.hpp solvers/aggs/AggTypes.hpp 
 include_HEADERS += solvers/PCSolver.hpp solvers/Utils.hpp 
 include_HEADERS += solvers/CPSolver.hpp
-include_HEADERS += solvers/ModSolver.hpp solvers/SOSolverHier.hpp 
-include_HEADERS += gecode/kernel.hh gecode/int.hh gecode/minimodel.hh gecode/driver.hh
+include_HEADERS += solvers/ModSolver.hpp solvers/SOSolverHier.hpp
 
 
 dist_doc_DATA = README
