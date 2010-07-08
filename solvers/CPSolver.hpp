@@ -43,6 +43,7 @@ public:
 	};
 
 	void addTerm(vector<string> term, int min, int max);
+	void addAllDifferent(vector<vector<string> > term, int atom);
 	void addSum(vector<vector<string> > term, EqType rel, int bound, int atom);
 
 	Clause* propagateLiteral(Lit l);

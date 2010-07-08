@@ -33,7 +33,7 @@ CPScript::CPScript(): Space(){
 }
 
 CPScript::CPScript(bool share, CPScript& s): Space(share, s){
-	//TODO copy members
+	//TODO copy CPScript-specific members
 }
 
 Space* CPScript::copy(bool share){
@@ -105,7 +105,19 @@ IntRelType negate(IntRelType eq){
 
 //Let this solver decide whether to use a reified representation or not
 
-class SumConstraint{
+class Constraint{
+private:
+	int atom;
+public:
+	Constraint(int atom): atom(atom){}
+
+	int getAtom() { return atom; }
+
+	virtual void writeOut(Space& space) = 0;
+	virtual void writeNegationOut(Space& space) = 0;
+};
+
+class SumConstraint: public Constraint{
 private:
 	IntVarArgs set;
 	IntRelType rel;
@@ -114,13 +126,11 @@ private:
 	IntVar trhs;
 	int irhs;
 
-	int atom;
-
 public:
 	//not reified sum constraint
 
 	SumConstraint(vector<TermIntVar*> tset, IntRelType rel, TermIntVar rhs, int atom)
-		: set(tset.size()), rel(rel), intrhs(false), trhs(rhs.var){
+		: Constraint(atom), set(tset.size()), rel(rel), intrhs(false), trhs(rhs.var){
 		for(vector<TermIntVar*>::size_type i=0; i<tset.size(); i++){
 			//FIXME is this a COPY or not???
 			set[i] = tset[i]->var;
@@ -128,19 +138,11 @@ public:
 	}
 
 	SumConstraint(vector<TermIntVar*> tset, IntRelType rel, int rhs, int atom)
-		: set(tset.size()), rel(rel), intrhs(true), irhs(rhs){
+		: Constraint(atom), set(tset.size()), rel(rel), intrhs(true), irhs(rhs){
 		for(vector<TermIntVar*>::size_type i=0; i<tset.size(); i++){
 			//FIXME is this a COPY or not???
 			set[i] = tset[i]->var;
 		}
-	}
-
-	SumConstraint(IntVarArgs set, IntRelType rel, IntVar rhs, int atom)
-		: set(set), rel(rel), intrhs(false), trhs(rhs){
-	}
-
-	SumConstraint(IntVarArgs set, IntRelType rel, int rhs, int atom)
-		: set(set), rel(rel), intrhs(true), irhs(rhs){
 	}
 
 	void writeOut(Space& space){
@@ -158,15 +160,38 @@ public:
 			linear(space, set, negate(rel), trhs); //TODO choose consistency
 		}
 	}
+};
 
-	int getAtom() { return atom; }
+class DistinctConstraint: public Constraint{
+private:
+	IntVarArgs set;
+public:
+	//not reified distinct constraint
+
+	DistinctConstraint(vector<TermIntVar*> tset, int atom)
+		: Constraint(atom), set(tset.size()){
+		for(vector<TermIntVar*>::size_type i=0; i<tset.size(); i++){
+			//FIXME is this a COPY or not???
+			set[i] = tset[i]->var;
+		}
+	}
+
+	void writeOut(Space& space){
+		distinct(space, set); //TODO choose consistency
+	}
+
+	void writeNegationOut(Space& space){
+		//TODO not possible, write out as clause?
+		//quadratic number of clauses needed
+		assert(false);
+	}
 };
 
 class CPSolverData{
 private:
 	Space* space;
 	vector<TermIntVar*> vars;
-	vector<SumConstraint*> sums;
+	vector<Constraint*> constraints;
 
 public:
 	CPSolverData(): space(new CPScript()){
@@ -200,7 +225,7 @@ public:
 
 	Space* getSpace(){ return space; }
 	vector<TermIntVar*>& getTerms() { return vars; }
-	vector<SumConstraint*>& getSums() { return sums; }
+	vector<Constraint*>& getConstraints() { return constraints; }
 };
 
 void CPSolver::addTerm(vector<string> term, int min, int max){
@@ -243,7 +268,20 @@ void CPSolver::addSum(vector<vector<string> > term, EqType rel, int bound, int a
 			}
 		}
 	}
-	solverdata->getSums().push_back(new SumConstraint(set, toRelType(rel), bound, atom));
+	solverdata->getConstraints().push_back(new SumConstraint(set, toRelType(rel), bound, atom));
+}
+
+void CPSolver::addAllDifferent(vector<vector<string> > term, int atom){
+	vector<TermIntVar*> set;
+	for(int i=0; i<term.size(); i++){
+		for(vector<TermIntVar*>::const_iterator j=solverdata->getTerms().begin(); j<solverdata->getTerms().end(); j++){
+			if((*j)->operator ==(term[i])){
+				set.push_back(*j);
+				break;
+			}
+		}
+	}
+	solverdata->getConstraints().push_back(new DistinctConstraint(set, atom));
 }
 
 
@@ -255,8 +293,8 @@ CPSolver::~CPSolver() {
 }
 
 Clause* CPSolver::propagateLiteral(Lit l){
-	SumConstraint* f = NULL;
-	for(vector<SumConstraint*>::const_iterator i=solverdata->getSums().begin(); i<solverdata->getSums().end(); i++){
+	Constraint* f = NULL;
+	for(vector<Constraint*>::const_iterator i=solverdata->getConstraints().begin(); i<solverdata->getConstraints().end(); i++){
 		if((*i)->getAtom()==var(l)){
 			f = *i;
 			break;
