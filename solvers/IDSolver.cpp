@@ -1,9 +1,8 @@
 #include "solvers/IDSolver.hpp"
-
 #include "solvers/Utils.hpp"
 
-#include "Sort.h"
-#include "Map.h"
+#include "mtl/Sort.h"
+#include "mtl/Map.h"
 #include <cmath>
 
 inline lbool	IDSolver::value(Var x) const   { return getSolver()->value(x); }

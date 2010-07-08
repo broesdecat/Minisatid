@@ -1,7 +1,7 @@
 AM_LDFLAGS = $(SVNDIGEST_LDFLAGS)
 AM_CXXFLAGS = $(SVNDIGEST_CXXFLAGS)
-CXXFLAGS =  -I$(top_srcdir)/mtl -I$(top_srcdir)/solver3 -I$(top_srcdir)/../../othersoftware/gecode/install/include/ @AM_CXXFLAGS@
-#LDFLAGS = -L$(top_srcdir)/../../othersoftware/gecode/install/lib/ -lgecodedriver -lgecodeminimodel -lgecodeset -lgecodeint -lgecodekernel -lgecodesupport @AM_LDFLAGS@
+CXXFLAGS =  -I$(top_srcdir)/../../othersoftware/gecode/installnostat/include/ @AM_CXXFLAGS@
+#LDFLAGS = -L$(top_srcdir)/../../othersoftware/gecode/installnostat/lib/ -lgecodedriver -lgecodeminimodel -lgecodeset -lgecodeint -lgecodekernel -lgecodesupport @AM_LDFLAGS@
 
 YFLAGS = -d @AM_YFLAGS@
 LFLAGS = @AM_LFLAGS@ #TODO prefix blijkt niet te werken, dus code herschreven om maar 1 parser te ondersteunen

@@ -1,9 +1,12 @@
 #include "solvers/PCSolver.hpp"
 #include "solvers/Utils.hpp"
+<<<<<<< HEAD:solvers/PCSolver.cpp
 
 /*SolverI::SolverI(PCSolver* const solver): pcsolver(solver){
 
 };*/
+=======
+>>>>>>> public:solvers/PCSolver.cpp
 
 /******************
  * INITIALIZATION *
@@ -11,9 +14,9 @@
 
 int PCSolver::getModPrintID() const{
 	if(modsolver!=NULL){
-		return modsolver->getPrintId();
+		return (int)modsolver->getPrintId();
 	}
-	return -1;
+	return 0;
 }
 
 //Has to be value copy of modes!
