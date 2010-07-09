@@ -47,8 +47,12 @@ public:
 	void addSum(vector<vector<string> > term, EqType rel, int bound, int atom);
 
 	Clause* propagateLiteral(Lit l);
+	Clause* propagateAtEndOfQueue();
+
+	void backtrack();
 
 private:
+	Clause* propagateFinal();
 	/**
 	 * Probably implement with a list of intvars, their original domains and a starting integer atom number
 	 */

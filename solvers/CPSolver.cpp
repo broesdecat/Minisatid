@@ -108,6 +108,7 @@ IntRelType negate(IntRelType eq){
 class Constraint{
 private:
 	int atom;
+
 public:
 	Constraint(int atom): atom(atom){}
 
@@ -115,37 +116,66 @@ public:
 
 	virtual void writeOut(Space& space) = 0;
 	virtual void writeNegationOut(Space& space) = 0;
+
+	virtual bool isReified(){
+		return false;
+	}
+
+	virtual bool isAssignedTrue() = 0;
+	virtual bool isAssignedFalse() = 0;
 };
 
 class SumConstraint: public Constraint{
 private:
 	IntVarArgs set;
 	IntRelType rel;
+	BoolVar var;
 
 	bool intrhs;
 	IntVar trhs;
 	int irhs;
 
 public:
-	//not reified sum constraint
-
-	SumConstraint(vector<TermIntVar*> tset, IntRelType rel, TermIntVar rhs, int atom)
-		: Constraint(atom), set(tset.size()), rel(rel), intrhs(false), trhs(rhs.var){
+	SumConstraint(Space& space, vector<TermIntVar*> tset, IntRelType rel, TermIntVar rhs, int atom)
+		: Constraint(atom), set(tset.size()), rel(rel), intrhs(false), trhs(rhs.var),
+		  var(BoolVar(space, 0, 1)){
 		for(vector<TermIntVar*>::size_type i=0; i<tset.size(); i++){
 			//FIXME is this a COPY or not???
 			set[i] = tset[i]->var;
 		}
+		linear(space, set, rel, trhs, var/*,consistency level*/);
 	}
 
-	SumConstraint(vector<TermIntVar*> tset, IntRelType rel, int rhs, int atom)
-		: Constraint(atom), set(tset.size()), rel(rel), intrhs(true), irhs(rhs){
+	SumConstraint(Space& space, vector<TermIntVar*> tset, IntRelType rel, int rhs, int atom)
+		: Constraint(atom), set(tset.size()), rel(rel), intrhs(true), irhs(rhs),
+		  var(BoolVar(space, 0, 1)){
 		for(vector<TermIntVar*>::size_type i=0; i<tset.size(); i++){
 			//FIXME is this a COPY or not???
 			set[i] = tset[i]->var;
 		}
+		linear(space, set, rel, irhs, var/*,consistency level*/);
+	}
+
+	bool isReified(){
+		return true;
 	}
 
 	void writeOut(Space& space){
+		var.one();
+	}
+
+	void writeNegationOut(Space& space){
+		var.zero();
+	}
+
+	bool isAssignedTrue(){
+		return var.min()==1;
+	}
+	bool isAssignedFalse(){
+		return var.max()==0;
+	}
+
+	/*void writeOut(Space& space){
 		if(intrhs){
 			linear(space, set, rel, irhs); //TODO choose consistency
 		}else{
@@ -159,42 +189,87 @@ public:
 		}else{
 			linear(space, set, negate(rel), trhs); //TODO choose consistency
 		}
-	}
+	}*/
 };
 
-class DistinctConstraint: public Constraint{
-private:
-	IntVarArgs set;
+//class DistinctConstraint: public Constraint{
+//private:
+//	IntVarArgs set;
+//public:
+//	//not reified distinct constraint
+//
+//	DistinctConstraint(vector<TermIntVar*> tset, int atom)
+//		: Constraint(atom), set(tset.size()){
+//		for(vector<TermIntVar*>::size_type i=0; i<tset.size(); i++){
+//			//FIXME is this a COPY or not???
+//			set[i] = tset[i]->var;
+//		}
+//	}
+//
+//	/*void writeOut(Space& space){
+//		distinct(space, set); //TODO choose consistency
+//	}
+//
+//	void writeNegationOut(Space& space){
+//		//TODO not possible, write out as clause?
+//		//quadratic number of clauses needed
+//		assert(false);
+//	}*/
+//};
+
+//Atmostone NON REIF
+//BinaryKnapSack (also LINEAR) REIF
+//min max abs mult (arithmetic constraints) NON REIF
+//count NON REIF
+//Binary arith = , <=, ... REIF
+
+/**
+ * The new propagator that will be registered to all boolean change events
+ */
+class DPLLTPropagator: public Propagator{
+protected:
+  /// Constructor for posting
+	DPLLTPropagator(Home home, ViewArray<View>& x): Propagator(home){
+
+	}
+  /// Constructor for cloning \a p
+	DPLLTPropagator(Space& home, bool share, DPLLTPropagator& p): Propagator(home){
+
+	}
 public:
-	//not reified distinct constraint
+  /// Copy propagator during cloning
+  virtual Actor*     copy(Space& home, bool share){
 
-	DistinctConstraint(vector<TermIntVar*> tset, int atom)
-		: Constraint(atom), set(tset.size()){
-		for(vector<TermIntVar*>::size_type i=0; i<tset.size(); i++){
-			//FIXME is this a COPY or not???
-			set[i] = tset[i]->var;
-		}
-	}
+  }
+  /// Perform propagation
+  virtual ExecStatus propagate(Space& home, const ModEventDelta& med){
 
-	void writeOut(Space& space){
-		distinct(space, set); //TODO choose consistency
-	}
-
-	void writeNegationOut(Space& space){
-		//TODO not possible, write out as clause?
-		//quadratic number of clauses needed
-		assert(false);
-	}
+  }
+  /// Post propagator for view array \a x
+  static ExecStatus post(Home home, ViewArray<BoolView>& x){
+	  new (home) Val<View>(home,x);
+	  return ES_OK;
+  }
 };
+
+void
+dpllprop(Home home, const BoolVarArgs& x) {
+	if (home.failed()) return;
+	ViewArray<BoolView> xv(home,x);
+	GECODE_ES_FAIL(DPLLTPropagator::post(home,xv));
+}
 
 class CPSolverData{
 private:
-	Space* space;
 	vector<TermIntVar*> vars;
 	vector<Constraint*> constraints;
+	vector<Space*> history;
 
 public:
-	CPSolverData(): space(new CPScript()){
+	CPSolverData(){
+		Space* space = new CPScript();
+		history.push_back(space);
+
 		SizeOptions opt("Test configuration");
 		opt.icl(ICL_DOM);
 		opt.size(18);
@@ -223,7 +298,8 @@ public:
 		x.lq(*space, 5);
 	}
 
-	Space* getSpace(){ return space; }
+	Space* getSpace(){ return history.back(); }
+	void backtrack(){ history.pop_back(); }
 	vector<TermIntVar*>& getTerms() { return vars; }
 	vector<Constraint*>& getConstraints() { return constraints; }
 };
@@ -268,11 +344,11 @@ void CPSolver::addSum(vector<vector<string> > term, EqType rel, int bound, int a
 			}
 		}
 	}
-	solverdata->getConstraints().push_back(new SumConstraint(set, toRelType(rel), bound, atom));
+	solverdata->getConstraints().push_back(new SumConstraint(*solverdata->getSpace(), set, toRelType(rel), bound, atom));
 }
 
 void CPSolver::addAllDifferent(vector<vector<string> > term, int atom){
-	vector<TermIntVar*> set;
+/*	vector<TermIntVar*> set;
 	for(int i=0; i<term.size(); i++){
 		for(vector<TermIntVar*>::const_iterator j=solverdata->getTerms().begin(); j<solverdata->getTerms().end(); j++){
 			if((*j)->operator ==(term[i])){
@@ -281,7 +357,7 @@ void CPSolver::addAllDifferent(vector<vector<string> > term, int atom){
 			}
 		}
 	}
-	solverdata->getConstraints().push_back(new DistinctConstraint(set, atom));
+	solverdata->getConstraints().push_back(new DistinctConstraint(set, atom));*/
 }
 
 
@@ -293,7 +369,10 @@ CPSolver::~CPSolver() {
 }
 
 Clause* CPSolver::propagateLiteral(Lit l){
+	//TODO only if l is still unknown!!!
+
 	Constraint* f = NULL;
+	Clause* confl = NULL;
 	for(vector<Constraint*>::const_iterator i=solverdata->getConstraints().begin(); i<solverdata->getConstraints().end(); i++){
 		if((*i)->getAtom()==var(l)){
 			f = *i;
@@ -301,7 +380,7 @@ Clause* CPSolver::propagateLiteral(Lit l){
 		}
 	}
 	if(f==NULL){
-		return NULL;
+		return confl;
 	}
 
 	if(sign(l)){
@@ -310,7 +389,63 @@ Clause* CPSolver::propagateLiteral(Lit l){
 		f->writeOut(*solverdata->getSpace());
 	}
 
-	return NULL; //FIXME
+	return confl;
+}
+
+void CPSolver::backtrack(){
+	solverdata->backtrack();
+}
+
+Clause* CPSolver::propagateAtEndOfQueue(){
+	//TODO remember if there were any changes
+
+	Clause* confl = NULL;
+	StatusStatistics stats;
+	SpaceStatus status = solverdata->getSpace()->status(stats);
+
+	if(status == SS_FAILED){
+		//Conflict
+		//Very simple clause generation:
+		vec<Lit> clause;
+		//TODO should be of PREVIOUS space!
+		/* ADD STACK IN CORRECT ORDER!
+		 * for(vector<Constraint*>::const_iterator i=solverdata->getConstraints().begin(); i<solverdata->getConstraints().end(); i++){
+			if((*i)->getAtom()==var(l)){
+				continue;
+			}
+			if((*i)->isAssignedTrue()){
+				clause.push(Lit((*i)->getAtom(), true));
+			}else if((*i)->isAssignedFalse()){
+				clause.push(Lit((*i)->getAtom()));
+			}
+		}*/
+		confl = Clause_new(clause, true);
+	}else{
+		if(solverdata->allBooleansKnown()){ //dmv counter als er een assigned wordt
+			confl = propagateFinal();
+		}
+		if(confl==NULL){
+			for(vector<Constraint*>::const_iterator i=solverdata->getConstraints().begin(); i<solverdata->getConstraints().end(); i++){
+				//if((*i)->isNewlyAssigned()){
+					//FIXME propagate to solver
+				//}
+			}
+		}
+	}
+
+	return confl;
+}
+
+Clause* CPSolver::propagateFinal(){
+	Clause* confl = NULL;
+	Options o;
+	o.solutions(1);
+	DFS<CPScript> d = DFS<CPScript>(solverdata->getSpace(), o);
+	Space* newspace = d.next();
+	if(newspace==NULL){
+		//TODO add conflict clause
+	}
+	return confl;
 }
 
 }
