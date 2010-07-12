@@ -25,10 +25,10 @@ namespace CP {
  * 			constraints, vars and domains can be added to the space
  * 			space has an operation "status" which propagates until fixpoint or failure
  */
-
 class CPSolverData;
 
 class CPSolver {
+	bool init;
 	PCSolver * pcsolver;
 	CPSolverData* solverdata;
 	//map<int, CPConstraint> mapatomtoexpr;
@@ -38,18 +38,16 @@ public:
 	CPSolver(PCSolver * pcsolver);
 	virtual ~CPSolver();
 
-	enum EqType{
-		CPEQ, CPNEQ, CPLEQ, CPGEQ, CPG, CPL
-	};
-
 	void addTerm(vector<string> term, int min, int max);
 	void addAllDifferent(vector<vector<string> > term, int atom);
-	void addSum(vector<vector<string> > term, EqType rel, int bound, int atom);
+	void addSum(vector<vector<string> > term, MINISAT::EqType rel, int bound, int atom);
 
-	Clause* propagateLiteral(Lit l);
+	Clause* propagate(Lit l);
 	Clause* propagateAtEndOfQueue();
 
 	void backtrack();
+
+	bool finishParsing();
 
 private:
 	Clause* propagateFinal();

@@ -13,7 +13,7 @@
 #include "solvers/IDSolver.hpp"
 #include "solvers/SOSolverHier.hpp"
 #include "solvers/aggs/AggSolver.hpp"
-#include "solvers/CPSolver.hpp"
+#include "solvers/cpsolver/CPSolver.hpp"
 
 class Solver;
 class PCsolver;

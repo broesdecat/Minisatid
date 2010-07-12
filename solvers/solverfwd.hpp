@@ -16,6 +16,12 @@ using namespace tr1;
 
 #include "solver3/SolverTypes.hpp"
 
+namespace MINISAT{
+	enum EqType{
+		MEQ, MNEQ, MLEQ, MGEQ, MG, ML
+	};
+}
+
 class idpexception: public std::exception{
 //private:
 //	const char* mess;

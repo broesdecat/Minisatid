@@ -17,7 +17,7 @@ minisatid_SOURCES += solvers/PCSolver.cpp solvers/Utils.cpp
 minisatid_SOURCES += solver3/Solver.cpp 
 minisatid_SOURCES += solvers/IDSolver.cpp
 minisatid_SOURCES += solvers/aggs/AggSets.cpp solvers/aggs/AggSolver.cpp solvers/aggs/AggTypes.cpp solvers/aggs/Agg.cpp
-minisatid_SOURCES += solvers/CPSolver.cpp
+minisatid_SOURCES += solvers/cpsolver/CPSolver.cpp solvers/cpsolver/CPScript.cpp
 minisatid_SOURCES += solvers/ModSolver.cpp solvers/SOSolverHier.cpp 
 minisatid_SOURCES += solvers/Print.cpp
 
@@ -28,7 +28,7 @@ include_HEADERS += mtl/Vec.h mtl/Queue.h mtl/Alg.h mtl/Heap.h mtl/Map.h mtl/Sort
 include_HEADERS += solvers/IDSolver.hpp
 include_HEADERS += solvers/aggs/Agg.hpp solvers/aggs/AggSets.hpp solvers/aggs/AggSolver.hpp solvers/aggs/AggTypes.hpp 
 include_HEADERS += solvers/PCSolver.hpp solvers/Utils.hpp 
-include_HEADERS += solvers/CPSolver.hpp
+include_HEADERS += solvers/cpsolver/CPSolver.hpp solvers/cpsolver/CPScript.hpp
 include_HEADERS += solvers/ModSolver.hpp solvers/SOSolverHier.hpp
 
 

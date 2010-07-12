@@ -5,6 +5,38 @@
 
 };*/
 
+shared_ptr<Data> unittest(){
+	ECNF_mode modes;
+	modes.cp = true;
+	shared_ptr<PCSolver> pcsolver = shared_ptr<PCSolver>(new PCSolver(modes));
+	vec<Lit> lits, lits2, lits3;
+	lits.push(Lit(1));
+	lits.push(Lit(2, true));
+	lits.push(Lit(3));
+	lits2.push(Lit(1));
+	lits2.push(Lit(2));
+	lits2.push(Lit(3));
+	lits3.push(Lit(3, true));
+	pcsolver->addClause(lits);
+	pcsolver->addClause(lits2);
+	pcsolver->addClause(lits3);
+	vector<string> groundone, groundtwo;
+	groundone.push_back("A");
+	groundtwo.push_back("B");
+	pcsolver->addIntVar(groundone, -3, 7);
+	pcsolver->addIntVar(groundtwo, 7, 10);
+	vector<vector<string> > terms;
+	terms.push_back(groundone);
+	terms.push_back(groundtwo);
+	pcsolver->addCPSum(Lit(1), terms, MINISAT::MGEQ, 16);
+
+	if(!pcsolver->finishParsing()){
+		return shared_ptr<Data>();
+	}
+
+	return pcsolver;
+}
+
 /******************
  * INITIALIZATION *
  ******************/
@@ -245,6 +277,23 @@ bool PCSolver::addAggrExpr(Lit head, int setid, Weight bound, bool lower, AggrTy
 	return getAggSolver()->addAggrExpr(var(head), setid, bound, lower, type, defined);
 }
 
+bool PCSolver::addIntVar(vector<string> groundname, int min, int max){
+	assert(cpsolverpresent);
+	getCPSolver()->addTerm(groundname, min, max);
+	return true;
+}
+
+bool PCSolver::addCPSum(Lit head, vector<vector<string> > termnames, MINISAT::EqType rel, int bound){
+	assert(cpsolverpresent);
+	addVar(var(head));
+	if(sign(head)){
+		reportf( "No negative heads are allowed!\n");
+		throw idpexception();
+	}
+	getCPSolver()->addSum(termnames, rel, bound, var(head));
+	return true;
+}
+
 /*
  * Returns "false" if UNSAT was already found, otherwise "true"
  */
@@ -257,6 +306,17 @@ bool PCSolver::finishParsing(){
 		Clause* confl = NULL;
 		for (vector<Lit>::const_iterator i=trail.begin(); i<trail.end() && confl==NULL; i++){
 			confl = getAggSolver()->propagate(*i);
+		}
+		if(confl!=NULL){
+			return false;
+		}
+	}
+	if(cpsolverpresent){
+		cpsolverpresent = getCPSolver()->finishParsing();
+		vector<Lit> trail = getSolver()->getTrail();
+		Clause* confl = NULL;
+		for (vector<Lit>::const_iterator i=trail.begin(); i<trail.end() && confl==NULL; i++){
+			confl = getCPSolver()->propagate(*i);
 		}
 		if(confl!=NULL){
 			return false;
@@ -278,6 +338,11 @@ bool PCSolver::finishParsing(){
 		if(modes().verbosity>0){
 			reportf("|                                                                             |\n"
 					"|    (there will be no aggregate propagations)                                |\n");
+		}
+	}
+	if(!cpsolverpresent){
+		if(modes().verbosity>0){
+			reportf("|    (there will be no CP           propagations)                             |\n");
 		}
 	}
 	if(!idsolverpresent){
@@ -344,6 +409,9 @@ void PCSolver::backtrackRest(Lit l){
 	if(idsolverpresent){
 		getIDSolver()->backtrack(l);
 	}
+	if(cpsolverpresent && getDecisions().back()==l){ //FIXME ugly and slow!
+		getCPSolver()->backtrack();
+	}
 	if(modsolverpresent){
 		getModSolver()->backtrackFromSameLevel(l);
 	}
@@ -361,6 +429,9 @@ Clause* PCSolver::propagate(Lit l){
 	if(idsolverpresent && confl == NULL){
 		confl = getIDSolver()->propagate(l);
 	}
+	if(cpsolverpresent && confl == NULL){
+		confl = getCPSolver()->propagate(l);
+	}
 	if(modsolverpresent && confl == NULL){
 		confl = getModSolver()->propagate(l);
 	}
@@ -374,6 +445,9 @@ Clause* PCSolver::propagateAtEndOfQueue(){
 	Clause* confl = NULL;
 	if(idsolverpresent && confl == NULL){
 		confl = getIDSolver()->propagateDefinitions();
+	}
+	if(cpsolverpresent && confl == NULL){
+		confl = getCPSolver()->propagateAtEndOfQueue();
 	}
 	if(modsolverpresent && confl == NULL){
 		confl = getModSolver()->propagateAtEndOfQueue();

@@ -14,7 +14,7 @@ typedef vector<Lit> vlit;
 
 #include "solver3/Solver.hpp"
 #include "solvers/IDSolver.hpp"
-#include "solvers/CPSolver.hpp"
+#include "solvers/cpsolver/CPSolver.hpp"
 #include "solvers/aggs/AggSolver.hpp"
 #include "solvers/ModSolver.hpp"
 
@@ -34,6 +34,7 @@ typedef IDSolver* pIDSolver;
 typedef CPSolver* pCPSolver;
 typedef AggSolver* pAggSolver;
 typedef ModSolver* pModSolver;
+
 
 class PCSolver: public Data{
 private:
@@ -102,6 +103,9 @@ public:
 	bool 		addSet			(int id, vec<Lit>& lits);
 	bool 		addSet			(int id, vec<Lit>& lits, const vector<Weight>& w);
 	bool 		addAggrExpr		(Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined);
+	bool 		addIntVar		(vector<string> groundname, int min, int max);
+	bool 		addCPSum		(Lit head, vector<vector<string> > termnames, MINISAT::EqType rel, int bound);
+
 	bool 		finishParsing	(); //throws UNSAT
 
 	/*
@@ -188,5 +192,7 @@ public:
 	 */
 	void	printChoiceMade	(int level, Lit l) const;
 };
+
+shared_ptr<Data> unittest();
 
 #endif /* PCSOLVER_H_ */
