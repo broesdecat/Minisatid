@@ -252,6 +252,7 @@ public:
 		//getSpace()->operator <<(cout);
 		cout << *getSpace() <<endl;
 		history.push_back(getSpace()->copy(false));
+		cout << *getSpace() <<endl;
 	}
 	void backtrack(){ history.pop_back(); }
 
@@ -350,7 +351,11 @@ Clause* CPSolver::propagate(Lit l){
 		return confl;
 	}
 
+	trail.push_back(l);
+
 	solverdata->getConstraints()[constrindex]->propagate(!sign(l), *solverdata->getSpace());
+
+	//FIXME check for failure here too (adding constraints also does simple checks)
 
 	return confl;
 }
@@ -358,6 +363,12 @@ Clause* CPSolver::propagate(Lit l){
 void CPSolver::backtrack(){
 	if(init){ return; }
 	solverdata->backtrack();
+}
+
+void CPSolver::backtrack(Lit l){
+	if(l==trail.back()){
+		trail.pop_back();
+	}
 }
 
 Clause* CPSolver::propagateAtEndOfQueue(){
@@ -371,19 +382,21 @@ Clause* CPSolver::propagateAtEndOfQueue(){
 		//Conflict
 		//Very simple clause generation:
 		vec<Lit> clause;
-		//TODO should be of PREVIOUS space!
-		/* ADD STACK IN CORRECT ORDER!
-		 * for(vector<Constraint*>::const_iterator i=solverdata->getConstraints().begin(); i<solverdata->getConstraints().end(); i++){
-			if((*i)->getAtom()==var(l)){
-				continue;
-			}
-			if((*i)->isAssignedTrue()){
+		//FIXME should be of PREVIOUS space!
+		//FIXME ADD STACK IN CORRECT ORDER! First add the conflicting one!
+		for(vector<Constraint*>::const_iterator i=solverdata->getConstraints().begin(); i<solverdata->getConstraints().end(); i++){
+			if(solverdata->getSpace()->isTrue((*i)->getBoolVar())){
 				clause.push(Lit((*i)->getAtom(), true));
-			}else if((*i)->isAssignedFalse()){
+			}else if(solverdata->getSpace()->isFalse((*i)->getBoolVar())){
 				clause.push(Lit((*i)->getAtom()));
 			}
-		}*/
+		}
+		for(int i=0; i<trail.size(); i++){
+			clause.push(~trail[i]);
+		}
 		confl = Clause_new(clause, true);
+		//FIXME staat het hier juist?
+		//pcsolver->addLearnedClause(confl);
 	}else{
 		if(solverdata->allBooleansKnown()){ //dmv counter als er een assigned wordt
 			confl = propagateFinal();

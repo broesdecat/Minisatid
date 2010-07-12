@@ -13,13 +13,13 @@ namespace CP{
 	}
 
 	CPScript::CPScript(bool share, CPScript& s): Space(share, s), boolvars(s.boolvars), intvars(s.intvars){
-		for(int i=0; i<boolvars.size(); i++){
+		/*for(int i=0; i<boolvars.size(); i++){
 			boolvars[i].update(*this, share, s.boolvars[i]);
 		}
 
 		for(int i=0; i<intvars.size(); i++){
 			intvars[i].update(*this, share, s.intvars[i]);
-		}
+		}*/
 	}
 
 	CPScript* CPScript::copy(bool share){

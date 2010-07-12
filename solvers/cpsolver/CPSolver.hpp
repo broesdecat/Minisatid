@@ -34,6 +34,8 @@ class CPSolver {
 	//map<int, CPConstraint> mapatomtoexpr;
 	//map<CPConstraint, int> mapexprtoatom;
 
+	vector<Lit> trail;
+
 public:
 	CPSolver(PCSolver * pcsolver);
 	virtual ~CPSolver();
@@ -46,6 +48,7 @@ public:
 	Clause* propagateAtEndOfQueue();
 
 	void backtrack();
+	void backtrack(Lit l);
 
 	bool finishParsing();
 

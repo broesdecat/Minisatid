@@ -327,6 +327,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 	}
 	cancelUntil(lvl);
 	assert(lvl==decisionLevel());
+	assert(confl!=NULL);
     /*AE*/
 
     //reportf("Conflicts: %d.\n", conflicts);

@@ -408,6 +408,9 @@ void PCSolver::backtrackRest(Lit l){
 	if(idsolverpresent){
 		getIDSolver()->backtrack(l);
 	}
+	if(cpsolverpresent){
+		getCPSolver()->backtrack(l);
+	}
 	if(cpsolverpresent && getDecisions().back()==l){ //FIXME ugly and slow!
 		getCPSolver()->backtrack();
 	}
