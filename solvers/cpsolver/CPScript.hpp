@@ -54,6 +54,8 @@ namespace CP{
 			return boolvars.size()-1;
 		}
 	};
+
+	ostream& operator <<(ostream& ostream, const CPScript& script);
 }
 
 #endif /* CPSCRIPT_HPP_ */

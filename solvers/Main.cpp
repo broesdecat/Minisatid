@@ -118,7 +118,7 @@ int main(int argc, char** argv) {
 		 * Third argument if provided: output file.
 		 */
 
-		pData d = unittest();
+		pData d = unittest(modes);
 
 //		//An outputfile is not allowed when the inputfile is piped (//TODO should add a -o argument for this)
 //		/*ecnfin*/yyin = stdin; //Default read from stdin

@@ -5,18 +5,17 @@
 
 };*/
 
-shared_ptr<Data> unittest(){
-	ECNF_mode modes;
+shared_ptr<Data> unittest(ECNF_mode& modes){
 	modes.cp = true;
 	shared_ptr<PCSolver> pcsolver = shared_ptr<PCSolver>(new PCSolver(modes));
 	vec<Lit> lits, lits2, lits3;
-	lits.push(Lit(1));
-	lits.push(Lit(2, true));
-	lits.push(Lit(3));
+	lits.push(Lit(0));
+	lits.push(Lit(1, true));
+	lits.push(Lit(2));
+	lits2.push(Lit(0));
 	lits2.push(Lit(1));
 	lits2.push(Lit(2));
-	lits2.push(Lit(3));
-	lits3.push(Lit(3, true));
+	lits3.push(Lit(2, true));
 	pcsolver->addClause(lits);
 	pcsolver->addClause(lits2);
 	pcsolver->addClause(lits3);
@@ -28,7 +27,7 @@ shared_ptr<Data> unittest(){
 	vector<vector<string> > terms;
 	terms.push_back(groundone);
 	terms.push_back(groundtwo);
-	pcsolver->addCPSum(Lit(1), terms, MINISAT::MGEQ, 16);
+	pcsolver->addCPSum(Lit(0), terms, MINISAT::MGEQ, 18);
 
 	if(!pcsolver->finishParsing()){
 		return shared_ptr<Data>();

@@ -12,10 +12,7 @@ namespace CP{
 
 	}
 
-	CPScript::CPScript(bool share, CPScript& s): Space(share, s){
-		boolvars.insert(boolvars.begin(), s.getBoolVars().begin(), s.getBoolVars().end());
-		intvars.insert(intvars.begin(), s.getIntVars().begin(), s.getIntVars().end());
-
+	CPScript::CPScript(bool share, CPScript& s): Space(share, s), boolvars(s.boolvars), intvars(s.intvars){
 		for(int i=0; i<boolvars.size(); i++){
 			boolvars[i].update(*this, share, s.boolvars[i]);
 		}
@@ -27,5 +24,17 @@ namespace CP{
 
 	CPScript* CPScript::copy(bool share){
 		return new CPScript(share, *this);
+	}
+
+	ostream& operator <<(ostream& ostream, const CPScript& script){
+		ostream <<"Space:" <<endl;
+		for(int i=0; i<script.getBoolVars().size(); i++){
+			ostream << script.getBoolVars()[i] <<endl;
+		}
+
+		for(int i=0; i<script.getIntVars().size(); i++){
+			ostream << script.getIntVars()[i] <<endl;
+		}
+		return ostream;
 	}
 }

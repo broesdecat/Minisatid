@@ -193,6 +193,6 @@ public:
 	void	printChoiceMade	(int level, Lit l) const;
 };
 
-shared_ptr<Data> unittest();
+shared_ptr<Data> unittest(ECNF_mode& modes);
 
 #endif /* PCSOLVER_H_ */

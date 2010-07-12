@@ -113,7 +113,6 @@ private:
 
 public:
 	Constraint(int atom, CPScript& space): atom(atom), var(space.addBoolVar()){
-		cout <<space.getBoolVars()[getBoolVar()] <<endl;
 	}
 
 	int getAtom() const { return atom; }
@@ -131,17 +130,17 @@ public:
 	}
 
 	bool isAssigned(const CPScript& space) const{
-		cout <<space.getBoolVars()[getBoolVar()] <<endl;
 		return space.isAssigned(getBoolVar());
 	}
 
 	void propagate(bool becametrue, CPScript& space){
 		assert(!isAssigned(space));
-		if(becametrue){
-			//TODO WRONG METHOD space.getBoolVars()[getBoolVar()].one();
-		}else{
-			//TODO WRONG METHOD space.getBoolVars()[getBoolVar()].zero();
-		}
+		cout <<"Before rel" << space.getBoolVars()[getBoolVar()] <<endl;
+		//BoolVar v(space, 0, 1);
+		//rel(space, v, IRT_GQ, becametrue?1:0);
+		rel(space, space.getBoolVars()[getBoolVar()], IRT_GQ, becametrue?1:0);
+		//Int::BoolView v(space.getBoolVars()[getBoolVar()]);
+		//v.eq(space, becametrue?1:0);
 	}
 
 	boolindex getBoolVar() const { return var; }
@@ -249,7 +248,11 @@ public:
 	}
 
 	CPScript* getSpace() const{ return history.back(); }
-	void addSpace(){ history.push_back(getSpace()->copy(false)); }
+	void addSpace(){
+		//getSpace()->operator <<(cout);
+		cout << *getSpace() <<endl;
+		history.push_back(getSpace()->copy(false));
+	}
 	void backtrack(){ history.pop_back(); }
 
 	const vector<TermIntVar>& getTerms() const { return terms; }
@@ -393,6 +396,8 @@ Clause* CPSolver::propagateAtEndOfQueue(){
 		}
 	}
 
+	solverdata->addSpace();
+
 	return confl;
 }
 
@@ -410,6 +415,7 @@ Clause* CPSolver::propagateFinal(){
 
 bool CPSolver::finishParsing(){
 	init = false;
+	solverdata->addSpace();
 	return true;
 }
 
