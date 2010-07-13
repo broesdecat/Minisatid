@@ -262,7 +262,6 @@ public:
 	CPScript* getSpace() const{ return history.back(); }
 
 	void addSpace(){
-		cout << history.back() <<endl;
 		history.push_back(static_cast<CPScript*>(getSpace()->clone()));
 	}
 
@@ -505,18 +504,20 @@ Clause* CPSolver::propagateFinal(){
 
 	solverdata->getSpace()->addBranchers();
 
-	searchEngine_ = new DFS<CPScript>(solverdata->getSpace(), searchOptions_.def);
-	if (enumerator_)
-	{
-		delete enumerator_;
-		enumerator_ = NULL;
-	}
+	searchOptions_ = Search::Options::def;
+	searchOptions_.stop = NULL; //new Search::MemoryStop(1000000000);
+
+	searchEngine_ = new DFS<CPScript>(solverdata->getSpace(), searchOptions_);
 	enumerator_ = searchEngine_->next();
 
 	if(enumerator_==NULL){
-		cout <<"Conflict found" <<endl;
-		assert(false);
-		//TODO add conflict clause
+		if(searchEngine_->stopped()){
+			throw idpexception("memory overflow on CP part");
+		}else{
+			cout <<"Conflict found" <<endl;
+			assert(false);
+			//TODO add conflict clause
+		}
 	}else{
 		//FIXME: adding this as a space brings problems, because on backtracking two space have to be removed instead of one
 		//on the other hand, not adding it would not be consistent, as the last space has to be the one with the real solution!

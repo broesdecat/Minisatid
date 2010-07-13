@@ -78,15 +78,18 @@ shared_ptr<Data> unittest2(ECNF_mode& modes){ //magic seq
 	lits.push(Lit(2));
 	pcsolver->addClause(lits);
 	vector<vector<string> > elemx;
-	int n = 500;
+	int n = 90;
 	for(int i=0; i<n; i++){
 		vector<string> x;
 		string s;
-		s.insert(s.begin(), char(i));
+		s.insert(s.end(), char((i/60)+65));
+		s.insert(s.end(), char((i%60)+65));
+		//cout <<char((i/50)+56) <<"|" <<char((i%50)+56) <<"|" <<s <<"&&";
 		x.push_back(s);
 		pcsolver->addIntVar(x, 0, n);
 		elemx.push_back(x);
 	}
+	//cout <<endl;
 
 	for(int i=0; i<n; i++){
 		pcsolver->addCPCount(elemx, i, MINISAT::MEQ, elemx[i]);

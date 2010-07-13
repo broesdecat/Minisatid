@@ -26,6 +26,7 @@ namespace CP{
 
 	CPScript* CPScript::copy(bool share){
 		cout <<"Copying space" <<endl;
+		cout <<*this <<endl;
 		return new CPScript(share, *this);
 	}
 

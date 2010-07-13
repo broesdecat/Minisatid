@@ -23,14 +23,17 @@ namespace MINISAT{
 }
 
 class idpexception: public std::exception{
-//private:
-//	const char* mess;
+private:
+	const char* mess;
 public:
-	idpexception(): std::exception(){
+	idpexception(): std::exception(), mess(""){
+	}
+
+	idpexception(const char* m): std::exception(), mess(m){
 	}
 
 	virtual const char* what() const throw(){
-		return "";
+		return mess;
 	}
 };
 
