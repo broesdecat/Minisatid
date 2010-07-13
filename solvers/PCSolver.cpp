@@ -5,7 +5,7 @@
 
 };*/
 
-shared_ptr<Data> unittest(ECNF_mode& modes){
+shared_ptr<Data> unittest(ECNF_mode& modes){ //unsat
 	modes.cp = true;
 	shared_ptr<PCSolver> pcsolver = shared_ptr<PCSolver>(new PCSolver(modes));
 	vec<Lit> lits, lits2, lits3;
@@ -28,6 +28,70 @@ shared_ptr<Data> unittest(ECNF_mode& modes){
 	terms.push_back(groundone);
 	terms.push_back(groundtwo);
 	pcsolver->addCPSum(Lit(0), terms, MINISAT::MGEQ, 18);
+
+	if(!pcsolver->finishParsing()){
+		return shared_ptr<Data>();
+	}
+
+	return pcsolver;
+}
+
+//shared_ptr<Data> unittest2(ECNF_mode& modes){
+//	modes.cp = true;
+//	shared_ptr<PCSolver> pcsolver = shared_ptr<PCSolver>(new PCSolver(modes));
+//	vec<Lit> lits;
+//	lits.push(Lit(0));
+//	lits.push(Lit(1));
+//	pcsolver->addClause(lits);
+//	lits.push(Lit(0));
+//	lits.push(~Lit(1));
+//	pcsolver->addClause(lits);
+//	vector<vector<string> > elemx;
+//	vector<string> x;
+//	x.push_back("A");
+//	pcsolver->addIntVar(x, 0, 1);
+//	elemx.push_back(x);
+//	x.clear(); x.push_back("B");
+//	pcsolver->addIntVar(x, 0, 1);
+//	elemx.push_back(x);
+//	x.clear(); x.push_back("C");
+//	pcsolver->addIntVar(x, 0, 1);
+//	elemx.push_back(x);
+//	x.clear(); x.push_back("X");
+//	pcsolver->addIntVar(x, -100, 300);
+//	pcsolver->addCPSum(Lit(0), elemx, MINISAT::MEQ, x);
+//	//pcsolver->addCPCount(elemx, 1, MINISAT::MEQ, x);
+//
+//	if(!pcsolver->finishParsing()){
+//		return shared_ptr<Data>();
+//	}
+//
+//	return pcsolver;
+//}
+
+shared_ptr<Data> unittest2(ECNF_mode& modes){ //magic seq
+	modes.cp = true;
+	shared_ptr<PCSolver> pcsolver = shared_ptr<PCSolver>(new PCSolver(modes));
+	vec<Lit> lits;
+	lits.push(Lit(0));
+	lits.push(Lit(1));
+	lits.push(Lit(2));
+	pcsolver->addClause(lits);
+	vector<vector<string> > elemx;
+	int n = 500;
+	for(int i=0; i<n; i++){
+		vector<string> x;
+		string s;
+		s.insert(s.begin(), char(i));
+		x.push_back(s);
+		pcsolver->addIntVar(x, 0, n);
+		elemx.push_back(x);
+	}
+
+	for(int i=0; i<n; i++){
+		pcsolver->addCPCount(elemx, i, MINISAT::MEQ, elemx[i]);
+		//pcsolver->addCPSum(Lit(0), elemx, MINISAT::MEQ, elemx[i]);
+	}
 
 	if(!pcsolver->finishParsing()){
 		return shared_ptr<Data>();
@@ -290,6 +354,23 @@ bool PCSolver::addCPSum(Lit head, vector<vector<string> > termnames, MINISAT::Eq
 		throw idpexception();
 	}
 	getCPSolver()->addSum(termnames, rel, bound, var(head));
+	return true;
+}
+
+bool PCSolver::addCPSum(Lit head, vector<vector<string> > termnames, MINISAT::EqType rel, vector<string> rhstermname){
+	assert(cpsolverpresent);
+	addVar(var(head));
+	if(sign(head)){
+		reportf( "No negative heads are allowed!\n");
+		throw idpexception();
+	}
+	getCPSolver()->addSum(termnames, rel, rhstermname, var(head));
+	return true;
+}
+
+bool PCSolver::addCPCount(vector<vector<string> > termnames, int value, MINISAT::EqType rel, vector<string> rhstermname){
+	assert(cpsolverpresent);
+	getCPSolver()->addCount(termnames, rel, value, rhstermname);
 	return true;
 }
 

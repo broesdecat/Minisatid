@@ -43,6 +43,9 @@ public:
 	void addTerm(vector<string> term, int min, int max);
 	void addAllDifferent(vector<vector<string> > term, int atom);
 	void addSum(vector<vector<string> > term, MINISAT::EqType rel, int bound, int atom);
+	void addSum(vector<vector<string> > term, MINISAT::EqType rel, vector<string> rhsterm, int atom);
+	//void addCount(vector<vector<string> > term, MINISAT::EqType rel, int value, int rhs);
+	void addCount(vector<vector<string> > terms, MINISAT::EqType rel, int value, vector<string> rhsterm);
 
 	Clause* propagate(Lit l);
 	Clause* propagateAtEndOfQueue();

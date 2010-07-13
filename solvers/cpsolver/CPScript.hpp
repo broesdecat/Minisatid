@@ -53,6 +53,14 @@ namespace CP{
 			boolvars.push_back(BoolVar(*this, 0, 1));
 			return boolvars.size()-1;
 		}
+
+		void addBranchers(){
+			IntVarArgs x(intvars.size());
+			for(int i=0; i<intvars.size(); i++){
+				x[i]=intvars[i];
+			}
+			branch(*this, x, INT_VAR_SIZE_MIN, INT_VAL_SPLIT_MAX);
+		}
 	};
 
 	ostream& operator <<(ostream& ostream, const CPScript& script);

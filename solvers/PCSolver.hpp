@@ -105,6 +105,8 @@ public:
 	bool 		addAggrExpr		(Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined);
 	bool 		addIntVar		(vector<string> groundname, int min, int max);
 	bool 		addCPSum		(Lit head, vector<vector<string> > termnames, MINISAT::EqType rel, int bound);
+	bool 		addCPSum		(Lit head, vector<vector<string> > termnames, MINISAT::EqType rel, vector<string> rhstermname);
+	bool 		addCPCount		(vector<vector<string> > termnames, int value, MINISAT::EqType rel, vector<string> rhstermname);
 
 	bool 		finishParsing	(); //throws UNSAT
 
@@ -194,5 +196,6 @@ public:
 };
 
 shared_ptr<Data> unittest(ECNF_mode& modes);
+shared_ptr<Data> unittest2(ECNF_mode& modes);
 
 #endif /* PCSOLVER_H_ */

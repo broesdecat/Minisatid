@@ -118,7 +118,8 @@ int main(int argc, char** argv) {
 		 * Third argument if provided: output file.
 		 */
 
-		pData d = unittest(modes);
+		//pData d = unittest(modes);
+		pData d = unittest2(modes);
 
 //		//An outputfile is not allowed when the inputfile is piped (//TODO should add a -o argument for this)
 //		/*ecnfin*/yyin = stdin; //Default read from stdin
@@ -179,7 +180,7 @@ int main(int argc, char** argv) {
 		}
 
 		printStats();
-	}catch(exception& e){
+	}catch(idpexception& e){
 		reportf("Exception caught, program will abort.\n");
 		return 1;
 	}

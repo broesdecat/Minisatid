@@ -178,10 +178,37 @@ public:
 		}
 		linear(space, ar, rel, irhs, space.getBoolVars()[getBoolVar()]/*,consistency level*/);
 	}
+};
 
-	/*bool isReified(){
-		return true;
-	}*/
+class CountConstraint{
+private:
+	vector<TermIntVar> set;
+	IntRelType rel;
+
+	bool intrhs;
+	TermIntVar trhs;
+	int irhs;
+
+public:
+	CountConstraint(CPScript& space, vector<TermIntVar> tset, IntRelType rel, int value, TermIntVar rhs)
+		: set(tset.size()), rel(rel), intrhs(false), trhs(rhs){
+		IntVarArgs ar(tset.size());
+		for(vector<TermIntVar>::size_type i=0; i<tset.size(); i++){
+			set[i] = tset[i];
+			ar[i] = space.getIntVars()[tset[i].var];
+		}
+		count(space, ar, value, rel, space.getIntVars()[trhs.var]/*,consistency level*/);
+	}
+
+//	CountConstraint(CPScript& space, vector<TermIntVar> tset, IntRelType rel, int rhs)
+//		: set(tset.size()), rel(rel), intrhs(true), irhs(rhs){
+//		IntVarArgs ar(tset.size());
+//		for(vector<TermIntVar>::size_type i=0; i<tset.size(); i++){
+//			set[i] = tset[i];
+//			ar[i] = space.getIntVars()[tset[i].var];
+//		}
+//		//count(space, ar, rel, irhs/*,consistency level*/);
+//	}
 };
 
 //class DistinctConstraint: public Constraint{
@@ -215,21 +242,6 @@ public:
 //count NON REIF
 //Binary arith = , <=, ... REIF
 
-/*template <class T>
-void update(CPScript& space, bool share, T newt, T oldt){
-
-}
-
-template <>
-void update(CPScript& space, bool share, TermIntVar newt, TermIntVar oldt){
-	newt.var.update(space, share, oldt.var);
-}*/
-
-/*template <>
-void update(Space& space, bool share, SumConstraint newt, SumConstraint oldt){
-	newt.vars.update(space, share, oldt.vars);
-}*/
-
 class CPSolverData{
 private:
 	vector<CPScript*> history;
@@ -248,13 +260,22 @@ public:
 	}
 
 	CPScript* getSpace() const{ return history.back(); }
+
 	void addSpace(){
-		//getSpace()->operator <<(cout);
-		cout << *getSpace() <<endl;
-		history.push_back(getSpace()->copy(false));
-		cout << *getSpace() <<endl;
+		cout << history.back() <<endl;
+		history.push_back(static_cast<CPScript*>(getSpace()->clone()));
 	}
+
+	void addSpace(CPScript* space){
+		history.push_back(space);
+	}
+
 	void backtrack(){ history.pop_back(); }
+
+	int size() const { return history.size(); }
+	CPScript const * const operator[](int i) const{
+		return history[i];
+	}
 
 	const vector<TermIntVar>& getTerms() const { return terms; }
 	const vector<Constraint*>& getConstraints() const{ return constraints; }
@@ -307,13 +328,74 @@ void CPSolver::addSum(vector<vector<string> > term, MINISAT::EqType rel, int bou
 	}
 	solverdata->addConstraint(new SumConstraint(*solverdata->getSpace(), set, toRelType(rel), bound, atom));
 
-	//FIXME: propagations here are done immediately, so also have to be propagated (to OTHER solvers)
-
-/*	for(int i=0; i<solverdata->getConstraints().size(); i++){
-		if(solverdata->getConstraints()[i]->isAssigned(*solverdata->getSpace())){
-		}
-	}*/
+	//FIXME: some simplifications/propagations are done immediately, so can be propagated sooner (to OTHER solvers)
 }
+
+void CPSolver::addSum(vector<vector<string> > term, MINISAT::EqType rel, vector<string> rhsterm, int atom){
+	vector<TermIntVar> set;
+	for(int i=0; i<term.size(); i++){
+		for(vector<TermIntVar>::const_iterator j=solverdata->getTerms().begin(); j<solverdata->getTerms().end(); j++){
+			if((*j).operator ==(term[i])){
+				set.push_back(*j);
+				break;
+			}
+		}
+	}
+	TermIntVar rhs;
+	for(vector<TermIntVar>::const_iterator j=solverdata->getTerms().begin(); j<solverdata->getTerms().end(); j++){
+		if((*j)==rhsterm){
+			rhs = *j;
+			break;
+		}
+	}
+	solverdata->addConstraint(new SumConstraint(*solverdata->getSpace(), set, toRelType(rel), rhs, atom));
+
+	//FIXME: some simplifications/propagations are done immediately, so can be propagated sooner (to OTHER solvers)
+}
+
+void CPSolver::addCount(vector<vector<string> > terms, MINISAT::EqType rel, int value, vector<string> rhsterm){
+	vector<TermIntVar> set;
+	for(int i=0; i<terms.size(); i++){
+		for(vector<TermIntVar>::const_iterator j=solverdata->getTerms().begin(); j<solverdata->getTerms().end(); j++){
+			if((*j)==terms[i]){
+				set.push_back(*j);
+				break;
+			}
+		}
+	}
+	TermIntVar rhs;
+	for(vector<TermIntVar>::const_iterator j=solverdata->getTerms().begin(); j<solverdata->getTerms().end(); j++){
+		if((*j)==rhsterm){
+			rhs = *j;
+			break;
+		}
+	}
+	/*solverdata->addConstraint(*/ //FIXME store them //FIXME make all constraints not-stack objects
+	CountConstraint(*solverdata->getSpace(), set, toRelType(rel), value, rhs);
+	/*);*/
+}
+
+/*void CPSolver::addCount(vector<vector<string> > terms, MINISAT::EqType rel, vector<string> term){
+	vector<TermIntVar> set;
+	for(int i=0; i<terms.size(); i++){
+		for(vector<TermIntVar>::const_iterator j=solverdata->getTerms().begin(); j<solverdata->getTerms().end(); j++){
+			if((*j)==terms[i]){
+				set.push_back(*j);
+				break;
+			}
+		}
+	}
+	TermIntVar rhs;
+	for(vector<TermIntVar>::const_iterator j=solverdata->getTerms().begin(); j<solverdata->getTerms().end(); j++){
+		if((*j)==term){
+			rhs = *j;
+			break;
+		}
+	}
+	//solverdata->addConstraint(
+	//FIXME store them //FIXME make all constraints not-stack objects
+	CountConstraint(*solverdata->getSpace(), set, toRelType(rel), rhs);
+}*/
 
 void CPSolver::addAllDifferent(vector<vector<string> > term, int atom){
 /*	vector<TermIntVar*> set;
@@ -366,7 +448,7 @@ void CPSolver::backtrack(){
 }
 
 void CPSolver::backtrack(Lit l){
-	if(l==trail.back()){
+	if(trail.size()>0 && l==trail.back()){
 		trail.pop_back();
 	}
 }
@@ -416,18 +498,49 @@ Clause* CPSolver::propagateAtEndOfQueue(){
 
 Clause* CPSolver::propagateFinal(){
 	Clause* confl = NULL;
-	//Options o("CPScript");
-	//o.solutions(1);
-	DFS<CPScript> d = DFS<CPScript>(solverdata->getSpace()/*, o*/);
-	Space* newspace = d.next();
-	if(newspace==NULL){
-		//TODO add conflict clause
+
+	Search::Options searchOptions_;
+	DFS<CPScript>* searchEngine_; // depth first search
+	CPScript* enumerator_ = NULL;
+
+	solverdata->getSpace()->addBranchers();
+
+	searchEngine_ = new DFS<CPScript>(solverdata->getSpace(), searchOptions_.def);
+	if (enumerator_)
+	{
+		delete enumerator_;
+		enumerator_ = NULL;
 	}
+	enumerator_ = searchEngine_->next();
+
+	if(enumerator_==NULL){
+		cout <<"Conflict found" <<endl;
+		assert(false);
+		//TODO add conflict clause
+	}else{
+		//FIXME: adding this as a space brings problems, because on backtracking two space have to be removed instead of one
+		//on the other hand, not adding it would not be consistent, as the last space has to be the one with the real solution!
+		//maybe replacing might help?
+		solverdata->addSpace(enumerator_);
+		for(int i=0; i<solverdata->size(); i++){
+			cout << *solverdata->operator[](i) <<endl;
+		}
+		cout <<*enumerator_<<endl;
+	}
+
 	return confl;
 }
 
 bool CPSolver::finishParsing(){
 	init = false;
+
+	StatusStatistics stats;
+	SpaceStatus status = solverdata->getSpace()->status(stats);
+
+	if(status==SS_FAILED){
+		return false;
+	}
+
 	solverdata->addSpace();
 	return true;
 }
