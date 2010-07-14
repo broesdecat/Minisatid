@@ -523,9 +523,9 @@ Clause* CPSolver::propagateFinal(){
 		//on the other hand, not adding it would not be consistent, as the last space has to be the one with the real solution!
 		//maybe replacing might help?
 		solverdata->addSpace(enumerator_);
-		for(int i=0; i<solverdata->size(); i++){
+		/*for(int i=0; i<solverdata->size(); i++){
 			cout << *solverdata->operator[](i) <<endl;
-		}
+		}*/
 		cout <<*enumerator_<<endl;
 	}
 
