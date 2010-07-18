@@ -40,12 +40,14 @@ public:
 	CPSolver(PCSolver * pcsolver);
 	virtual ~CPSolver();
 
-	void addTerm(vector<string> term, int min, int max);
-	void addAllDifferent(vector<vector<string> > term, int atom);
-	void addSum(vector<vector<string> > term, MINISAT::EqType rel, int bound, int atom);
-	void addSum(vector<vector<string> > term, MINISAT::EqType rel, vector<string> rhsterm, int atom);
+	void addTerm(int term, int min, int max);
+	void addAllDifferent(vector<int> term);
+	void addSum(vector<int> term, MINISAT::EqType rel, int bound, int atom);
+	void addSum(vector<int> term, vector<int> mult, MINISAT::EqType rel, int bound, int atom);
+	void addSumVar(vector<int> term, MINISAT::EqType rel, int rhsterm, int atom);
+	void addSumVar(vector<int> term, vector<int>, MINISAT::EqType rel, int rhsterm, int atom);
 	//void addCount(vector<vector<string> > term, MINISAT::EqType rel, int value, int rhs);
-	void addCount(vector<vector<string> > terms, MINISAT::EqType rel, int value, vector<string> rhsterm);
+	void addCount(vector<int> terms, MINISAT::EqType rel, int value, int rhsterm);
 
 	Clause* propagate(Lit l);
 	Clause* propagateAtEndOfQueue();

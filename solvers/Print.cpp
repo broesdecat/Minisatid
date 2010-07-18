@@ -104,7 +104,7 @@ void print(ModSolver const * const m){
 	}
 	reportf(", children ");
 	for(vmodindex::const_iterator i=m->getChildren().begin(); i<m->getChildren().end(); i++){
-		reportf("%d ", *i);
+		reportf("%zu ", *i);
 	}
 	reportf("\nModal atoms ");
 	for(vector<Var>::const_iterator i=m->getAtoms().begin(); i<m->getAtoms().end(); i++){

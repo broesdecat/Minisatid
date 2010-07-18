@@ -103,10 +103,12 @@ public:
 	bool 		addSet			(int id, vec<Lit>& lits);
 	bool 		addSet			(int id, vec<Lit>& lits, const vector<Weight>& w);
 	bool 		addAggrExpr		(Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined);
-	bool 		addIntVar		(vector<string> groundname, int min, int max);
-	bool 		addCPSum		(Lit head, vector<vector<string> > termnames, MINISAT::EqType rel, int bound);
-	bool 		addCPSum		(Lit head, vector<vector<string> > termnames, MINISAT::EqType rel, vector<string> rhstermname);
-	bool 		addCPCount		(vector<vector<string> > termnames, int value, MINISAT::EqType rel, vector<string> rhstermname);
+	bool 		addIntVar		(int groundname, int min, int max);
+	bool 		addCPSum		(Lit head, vector<int> termnames, MINISAT::EqType rel, int bound);
+	bool 		addCPSum		(Lit head, vector<int> termnames, vector<int> mult, MINISAT::EqType rel, int bound);
+	bool 		addCPSumVar		(Lit head, vector<int> termnames, MINISAT::EqType rel, int rhstermname);
+	bool 		addCPSumVar		(Lit head, vector<int> termnames, vector<int> mult, MINISAT::EqType rel, int rhstermname);
+	bool 		addCPCount		(vector<int> termnames, int value, MINISAT::EqType rel, int rhstermname);
 
 	bool 		finishParsing	(); //throws UNSAT
 

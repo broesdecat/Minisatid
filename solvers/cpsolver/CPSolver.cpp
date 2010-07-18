@@ -15,7 +15,6 @@
 #include <gecode/driver.hh>
 #include <gecode/int.hh>
 #include <gecode/minimodel.hh>
-//#include "gecode/int/view.hpp"
 
 using namespace Gecode;
 using namespace std;
@@ -71,7 +70,7 @@ class TermIntVar{
 //private:
 //	TermIntVar(TermIntVar&){}
 public:
-	vector<string> term; //First element is the function symbol, subsequent ones are the arguments
+	int term; //First element is the function symbol, subsequent ones are the arguments
 	int min, max;
 	termindex var;
 
@@ -79,7 +78,7 @@ public:
 
 	}
 
-	TermIntVar(CPScript& space, vector<string> groundterm, int min, int max)
+	TermIntVar(CPScript& space, int groundterm, int min, int max)
 		: term(groundterm), min(min), max(max), var(space.addIntVar(min, max)){
 	}
 
@@ -89,20 +88,28 @@ public:
 		return this->operator ==(rhs.term);
 	}
 
-	bool operator==(const vector<string>& rhs) const{
-		vector<string>::const_iterator i=term.begin();
-		vector<string>::const_iterator j=rhs.begin();
-		if(rhs.size()!=term.size()){
-			return false;
-		}
-		for(; i<term.end(); i++, j++){
-			if((*i).compare(*j)){
-				return false;
-			}
-		}
-		return true;
+	bool operator==(const int& rhs) const{
+		return term==rhs;
 	}
 };
+
+/*
+ * Extended propositional language:
+ * Take Constraints out of CP and into data structures!
+ * and make write(Constraint) in CP?
+ *
+ * to define intvars
+ * 		IntVar groundlit min max
+ * 			groundlit is an ID or a string or ...
+ * to restrict domain
+ *		HEAD groundlit REL int
+ * 		HEAD groundlit REL groundlit
+ * 		Set groundlit+
+ * 		Agg HEAD the same, but with REL
+ * 		...
+ * Recursive aggregates: not an issue
+ * Add our smart aggregate clause learning? Difficult, find new clause learning
+ */
 
 //Let this solver decide whether to use a reified representation or not
 
@@ -157,10 +164,13 @@ private:
 	TermIntVar trhs;
 	int irhs;
 
+	bool withmult;
+	vector<int> mult;
+
 public:
 	SumConstraint(CPScript& space, vector<TermIntVar> tset, IntRelType rel, TermIntVar rhs, int atom)
 		: Constraint(atom, space), set(tset.size()), rel(rel), intrhs(false),
-		  trhs(rhs){
+		  trhs(rhs), withmult(false){
 		IntVarArgs ar(tset.size());
 		for(vector<TermIntVar>::size_type i=0; i<tset.size(); i++){
 			set[i] = tset[i];
@@ -170,13 +180,42 @@ public:
 	}
 
 	SumConstraint(CPScript& space, vector<TermIntVar> tset, IntRelType rel, int rhs, int atom)
-		: Constraint(atom, space), set(tset.size()), rel(rel), intrhs(true), irhs(rhs){
+		: Constraint(atom, space), set(tset.size()), rel(rel), intrhs(true), irhs(rhs), withmult(false){
 		IntVarArgs ar(tset.size());
 		for(vector<TermIntVar>::size_type i=0; i<tset.size(); i++){
 			set[i] = tset[i];
 			ar[i] = space.getIntVars()[tset[i].var];
 		}
 		linear(space, ar, rel, irhs, space.getBoolVars()[getBoolVar()]/*,consistency level*/);
+	}
+
+	SumConstraint(CPScript& space, vector<TermIntVar> tset, vector<int> mult, IntRelType rel, TermIntVar rhs, int atom)
+		: Constraint(atom, space), set(tset.size()), rel(rel), intrhs(false),
+		  trhs(rhs), withmult(true), mult(mult){
+		IntVarArgs ar(tset.size());
+		for(vector<TermIntVar>::size_type i=0; i<tset.size(); i++){
+			set[i] = tset[i];
+			ar[i] = space.getIntVars()[tset[i].var];
+		}
+		IntArgs ia(mult.size());
+		for(int i=0; i<mult.size(); i++){
+			ia[i]=mult[i];
+		}
+		linear(space, ia, ar, rel, space.getIntVars()[trhs.var], space.getBoolVars()[getBoolVar()]/*,consistency level*/);
+	}
+
+	SumConstraint(CPScript& space, vector<TermIntVar> tset, vector<int> mult, IntRelType rel, int rhs, int atom)
+		: Constraint(atom, space), set(tset.size()), rel(rel), intrhs(true), irhs(rhs), withmult(true), mult(mult){
+		IntVarArgs ar(tset.size());
+		for(vector<TermIntVar>::size_type i=0; i<tset.size(); i++){
+			set[i] = tset[i];
+			ar[i] = space.getIntVars()[tset[i].var];
+		}
+		IntArgs ia(mult.size());
+		for(int i=0; i<mult.size(); i++){
+			ia[i]=mult[i];
+		}
+		linear(space, ia, ar, rel, irhs, space.getBoolVars()[getBoolVar()]/*,consistency level*/);
 	}
 };
 
@@ -211,36 +250,72 @@ public:
 //	}
 };
 
-//class DistinctConstraint: public Constraint{
-//private:
-//	IntVarArgs set;
-//public:
-//	//not reified distinct constraint
-//
-//	DistinctConstraint(vector<TermIntVar*> tset, int atom)
-//		: Constraint(atom), set(tset.size()){
-//		for(vector<TermIntVar*>::size_type i=0; i<tset.size(); i++){
-//			// is this a COPY or not???
-//			set[i] = tset[i]->var;
-//		}
-//	}
-//
-//	/*void writeOut(Space& space){
-//		distinct(space, set); // choose consistency
-//	}
-//
-//	void writeNegationOut(Space& space){
-//		// not possible, write out as clause?
-//		//quadratic number of clauses needed
-//		assert(false);
-//	}*/
-//};
+class BinArithConstraint{
+private:
+	TermIntVar lhs;
+	IntRelType rel;
+
+	bool intrhs;
+	TermIntVar trhs;
+	int irhs;
+
+public:
+	BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelType rel, TermIntVar rhs)
+		: lhs(lhs), rel(rel), intrhs(false), trhs(rhs){
+		IntVar ialhs = space.getIntVars()[lhs.var], iarhs = space.getIntVars()[trhs.var];
+		switch (rel) {
+			case Gecode::IRT_EQ:
+				post(space, ialhs==iarhs);
+			case Gecode::IRT_NQ:
+				post(space, ialhs!=iarhs);
+			case Gecode::IRT_LQ:
+				post(space, ialhs<=iarhs);
+			case Gecode::IRT_GQ:
+				post(space, ialhs>=iarhs);
+			case Gecode::IRT_LE:
+				post(space, ialhs<iarhs);
+			case Gecode::IRT_GR:
+				post(space, ialhs>iarhs);
+		}
+	}
+
+	BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelType rel, int rhs)
+		: lhs(lhs), rel(rel), intrhs(true), irhs(rhs){
+		IntVar ialhs = space.getIntVars()[lhs.var];
+		int iarhs = irhs;
+		switch (rel) {
+			case Gecode::IRT_EQ:
+				post(space, ialhs==iarhs);
+			case Gecode::IRT_NQ:
+				post(space, ialhs!=iarhs);
+			case Gecode::IRT_LQ:
+				post(space, ialhs<=iarhs);
+			case Gecode::IRT_GQ:
+				post(space, ialhs>=iarhs);
+			case Gecode::IRT_LE:
+				post(space, ialhs<iarhs);
+			case Gecode::IRT_GR:
+				post(space, ialhs>iarhs);
+		}
+	}
+};
+
+class DistinctConstraint/*: public NonReifConstraint*/{
+private:
+	IntVarArgs set;
+public:
+	//global distinct constraint
+	DistinctConstraint(CPScript& space, vector<TermIntVar> tset)
+		: set(tset.size()){
+		for(int i=0; i<tset.size(); i++){
+			set[i] = space.getIntVars()[tset[i].var];
+		}
+		distinct(space, set);
+	}
+};
 
 //Atmostone NON REIF
-//BinaryKnapSack (also LINEAR) REIF
 //min max abs mult (arithmetic constraints) NON REIF
-//count NON REIF
-//Binary arith = , <=, ... REIF
 
 class CPSolverData{
 private:
@@ -311,11 +386,11 @@ public:
 	}
 };
 
-void CPSolver::addTerm(vector<string> term, int min, int max){
+void CPSolver::addTerm(int term, int min, int max){
 	solverdata->addTerm(TermIntVar(*solverdata->getSpace(), term, min, max));
 }
 
-void CPSolver::addSum(vector<vector<string> > term, MINISAT::EqType rel, int bound, int atom){
+void CPSolver::addSum(vector<int> term, MINISAT::EqType rel, int bound, int atom){
 	vector<TermIntVar> set;
 	for(int i=0; i<term.size(); i++){
 		for(vector<TermIntVar>::const_iterator j=solverdata->getTerms().begin(); j<solverdata->getTerms().end(); j++){
@@ -330,7 +405,20 @@ void CPSolver::addSum(vector<vector<string> > term, MINISAT::EqType rel, int bou
 	//FIXME: some simplifications/propagations are done immediately, so can be propagated sooner (to OTHER solvers)
 }
 
-void CPSolver::addSum(vector<vector<string> > term, MINISAT::EqType rel, vector<string> rhsterm, int atom){
+void CPSolver::addSum(vector<int> term, vector<int> mult, MINISAT::EqType rel, int bound, int atom){
+	vector<TermIntVar> set;
+	for(int i=0; i<term.size(); i++){
+		for(vector<TermIntVar>::const_iterator j=solverdata->getTerms().begin(); j<solverdata->getTerms().end(); j++){
+			if((*j).operator ==(term[i])){
+				set.push_back(*j);
+				break;
+			}
+		}
+	}
+	solverdata->addConstraint(new SumConstraint(*solverdata->getSpace(), set, mult, toRelType(rel), bound, atom));
+}
+
+void CPSolver::addSumVar(vector<int> term, MINISAT::EqType rel, int rhsterm, int atom){
 	vector<TermIntVar> set;
 	for(int i=0; i<term.size(); i++){
 		for(vector<TermIntVar>::const_iterator j=solverdata->getTerms().begin(); j<solverdata->getTerms().end(); j++){
@@ -348,11 +436,31 @@ void CPSolver::addSum(vector<vector<string> > term, MINISAT::EqType rel, vector<
 		}
 	}
 	solverdata->addConstraint(new SumConstraint(*solverdata->getSpace(), set, toRelType(rel), rhs, atom));
+}
+
+void CPSolver::addSumVar(vector<int> term, vector<int> mult, MINISAT::EqType rel, int rhsterm, int atom){
+	vector<TermIntVar> set;
+	for(int i=0; i<term.size(); i++){
+		for(vector<TermIntVar>::const_iterator j=solverdata->getTerms().begin(); j<solverdata->getTerms().end(); j++){
+			if((*j).operator ==(term[i])){
+				set.push_back(*j);
+				break;
+			}
+		}
+	}
+	TermIntVar rhs;
+	for(vector<TermIntVar>::const_iterator j=solverdata->getTerms().begin(); j<solverdata->getTerms().end(); j++){
+		if((*j)==rhsterm){
+			rhs = *j;
+			break;
+		}
+	}
+	solverdata->addConstraint(new SumConstraint(*solverdata->getSpace(), set, mult, toRelType(rel), rhs, atom));
 
 	//FIXME: some simplifications/propagations are done immediately, so can be propagated sooner (to OTHER solvers)
 }
 
-void CPSolver::addCount(vector<vector<string> > terms, MINISAT::EqType rel, int value, vector<string> rhsterm){
+void CPSolver::addCount(vector<int> terms, MINISAT::EqType rel, int value, int rhsterm){
 	vector<TermIntVar> set;
 	for(int i=0; i<terms.size(); i++){
 		for(vector<TermIntVar>::const_iterator j=solverdata->getTerms().begin(); j<solverdata->getTerms().end(); j++){
@@ -396,17 +504,18 @@ void CPSolver::addCount(vector<vector<string> > terms, MINISAT::EqType rel, int 
 	CountConstraint(*solverdata->getSpace(), set, toRelType(rel), rhs);
 }*/
 
-void CPSolver::addAllDifferent(vector<vector<string> > term, int atom){
-/*	vector<TermIntVar*> set;
+void CPSolver::addAllDifferent(vector<int> term){
+	vector<TermIntVar> set;
 	for(int i=0; i<term.size(); i++){
-		for(vector<TermIntVar*>::const_iterator j=solverdata->getTerms().begin(); j<solverdata->getTerms().end(); j++){
-			if((*j)->operator ==(term[i])){
+		for(vector<TermIntVar>::const_iterator j=solverdata->getTerms().begin(); j<solverdata->getTerms().end(); j++){
+			if((*j).operator ==(term[i])){
 				set.push_back(*j);
 				break;
 			}
 		}
 	}
-	solverdata->getConstraints().push_back(new DistinctConstraint(set, atom));*/
+	//TODO not added to solverdata constraints!
+	/*solverdata->getConstraints().push_back(*/new DistinctConstraint(*solverdata->getSpace(), set);//);
 }
 
 
