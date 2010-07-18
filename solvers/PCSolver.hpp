@@ -96,8 +96,10 @@ public:
 	void 		setNbModels		(int nb);
 	void 		setRes			(FILE* f);
 	Var			newVar			();
-	void		addVar			(Var v);
-	void 		addVars			(const vec<Lit>& a);
+	/**
+	 * VARS, NOT INDICES: all have to be changed into index vars
+	 */
+	Var			addVar			(Var v);
 	bool 		addClause		(vec<Lit>& lits);
 	bool 		addRule			(bool conj, vec<Lit>& lits);
 	bool 		addSet			(int id, vec<Lit>& lits);
@@ -195,6 +197,13 @@ public:
 	 * SATsolver asks this to PC such that more info (modal e.g.) can be printed.
 	 */
 	void	printChoiceMade	(int level, Lit l) const;
+
+private:
+	//IN: NONINDEXED
+	//OUT: INDEXED
+	vector<Lit> addVars(const vector<Lit>& a);
+	Lit checkHead(Lit head);
+	Lit addVar(Lit var);
 };
 
 shared_ptr<Data> unittest(ECNF_mode& modes);

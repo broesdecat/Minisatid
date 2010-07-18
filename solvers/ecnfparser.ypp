@@ -1,4 +1,4 @@
-%{
+%code requires{
 #include <iostream>
 #include <stdio.h>
 #include <cstring>
@@ -12,6 +12,10 @@
 #include "mtl/Vec.h"
 	
 using namespace Aggrs;
+}
+
+%code provides{
+	
 
 extern ECNF_mode modes;
 
@@ -138,13 +142,15 @@ shared_ptr<Data> getData(){
 	}
 }
 
-%}
+}
 
 //for a reentrant parser, you need to use %pureparser
 
 %union {
 	int integer;
     bool boolean;
+    vector<int>* vint;
+    MINISAT::EqType rel;
 }
 
 %token EQ DISJUNCTION CONJUNCTION
@@ -153,9 +159,10 @@ shared_ptr<Data> getData(){
 %token <integer> ZERO NUMBER AGGDEFN
 %token <boolean> SEMDEFN SIGNDEFN QUANTe
 %token CNF ECNF DEFPRESENT AGGPRESENT MNMZPRESENT MODPRESENT  MODDEFN
-%token INTVAR
+%token INTVAR SUMTRT SUMTRI SUMTIRT SUMTIRI COUNTTRI COUNTTRT DISTINCT REL DELIM
 
 %type <integer> number
+%type <vint> intlist
 
 %start init
 
@@ -335,7 +342,29 @@ wset	:	WSETDEFN NUMBER { setid = $2;	}
 
 intvar	:	INTVAR number number number ZERO { solver->addIntVar($2, $3, $4); }
 
-cpconstraint	:	
+termlist : /* empty */ //TODO cannot be empty!
+		|  termlist NUMBER
+			{ 
+				if($2<1){yyerror("Term identifers cannot be < 1.\n");}
+				nb.push_back($2); 
+			}
+		;
+		
+intlist :  /* empty */
+		|  intlist NUMBER
+			{ 
+				nb.push_back($2); 
+			}
+		;
+
+cpconstraint	:	/*SUMTRT NUMBER termlist REL NUMBER ZERO {solver->addSum($2, $3, $4, $5);}
+				|	SUMTRI NUMBER termlist REL number ZERO {solver->addSumVar($2, $3, $4, $5);}
+				|	SUMTIRT NUMBER termlist DELIM intlist REL NUMBER ZERO {solver->addSum($2, $3, $5, $6, $7);}
+				|	SUMTIRI NUMBER termlist DELIM intlist REL number ZERO {solver->addSumVar($2, $3, $5, $6, $7);}
+//				|	COUNTTRI termlist REL number ZERO
+				|	COUNTTRT termlist DELIM number REL NUMBER ZERO { solver->addCount($2, $4, $5, $6); }
+//				| 	DISTINCT termlist REL ZERO { solver->addDistinct($2 $3); }*/
+				;
 
 //MODAL PART: USES INDEXES+1 AS MODAL IDs IN THE THEORY
 	//FIXME: probleem gevonden: de HEAD kan niet correct aan de juiste worden toegevoegd, 
