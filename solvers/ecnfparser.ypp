@@ -152,7 +152,7 @@ shared_ptr<Data> getData(){
     vector<int>* vint;
     MINISAT::EqType rel;
 }
-
+c
 %token EQ DISJUNCTION CONJUNCTION
 %token SUBSETMINDEFN MNMZDEFN SUMMINDEFN
 %token SETDEFN WSETDEFN  

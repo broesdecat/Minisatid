@@ -20,6 +20,21 @@ namespace MINISAT{
 	enum EqType{
 		MEQ, MNEQ, MLEQ, MGEQ, MG, ML
 	};
+
+	struct Literal{
+		Atom 	atom;
+		bool 	sign;
+
+	    bool operator == (Literal p) const { return atom == p.atom && sign == p.sign; }
+	    bool operator != (Literal p) const { return atom != p.atom || sign != p.sign; }
+	    bool operator <  (Literal p) const { return atom < p.atom || (atom==p.atom && !sign && p.sign);  } // '<' guarantees that p, ~p are adjacent in the ordering.
+	};
+
+	struct Atom{
+		uint64_t atom;
+
+		Var getVar() { return atom-1; }
+	};
 }
 
 class idpexception: public std::exception{
