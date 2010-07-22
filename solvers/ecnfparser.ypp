@@ -10,7 +10,7 @@
 using namespace std::tr1;
 
 #include "solvers/ExternalInterface.hpp"
-}
+
 
 %code provides{
 
@@ -259,11 +259,15 @@ mrest	: 	/* empty */
 			
 mnmz	:	MNMZDEFN body ZERO				{ CR(solver->addMinimize(lits, false)); lits.clear();}
 subsetmnmz: SUBSETMINDEFN body ZERO 		{ CR(solver->addMinimize(lits, true)); lits.clear();}
+<<<<<<< HEAD
 <<<<<<< .merge_file_4Q0JFg
 summnmz :	SUMMINDEFN NUMBER NUMBER ZERO	{ CR(solver->addSumMinimize(readVar($2), $3));}
 =======
 summnmz :	SUMMINDEFN NUMBER NUMBER ZERO	{ CR(solver->addSumMinimize(Atom($2), $3));}
 >>>>>>> .merge_file_psyBcg
+=======
+summnmz :	SUMMINDEFN NUMBER NUMBER ZERO	{ CR(solver->addSumMinimize(Atom($2), $3));}
+>>>>>>> origin/master
 
 body	:  /* empty */
 		|  body NUMBER { addLit($2); }

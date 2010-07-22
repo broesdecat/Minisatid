@@ -16,4 +16,6 @@ using namespace tr1;
 
 #include "solver3/SolverTypes.hpp"
 
+#include "ExternalUtils.hpp"
+
 #endif /* SOLVERFWD_H_ */
