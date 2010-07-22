@@ -16,22 +16,20 @@ minisatid_SOURCES += solvers/ecnftoken.lpp solvers/ecnfparser.ypp
 minisatid_SOURCES += solvers/PCSolver.cpp solvers/Utils.cpp 
 minisatid_SOURCES += solver3/Solver.cpp 
 minisatid_SOURCES += solvers/IDSolver.cpp
-minisatid_SOURCES += solvers/aggs/AggSets.cpp solvers/aggs/AggSolver.cpp solvers/aggs/AggTypes.cpp solvers/aggs/Agg.cpp
+minisatid_SOURCES += solvers/aggs/AggSets.cpp solvers/aggs/AggSolver.cpp solvers/aggs/Agg.cpp
 minisatid_SOURCES += solvers/CPSolver.cpp
-minisatid_SOURCES += solvers/ModSolver.cpp solvers/SOSolverHier.cpp 
+minisatid_SOURCES += solvers/ModSolver.cpp solvers/SOSolverHier.cpp
+minisatid_SOURCES += solvers/ExternalInterface.cpp solvers/ExternalUtils.cpp 
 minisatid_SOURCES += solvers/Print.cpp
 
 include_HEADERS = 
 include_HEADERS += solvers/debug.hpp solvers/Print.hpp solvers/solverfwd.hpp solvers/SolverI.hpp
 include_HEADERS += solver3/Solver.hpp solver3/SolverTypes.hpp
-include_HEADERS += mtl/Vec.h mtl/Queue.h mtl/Alg.h mtl/Heap.h mtl/Map.h mtl/Sort.h
 include_HEADERS += solvers/IDSolver.hpp
 include_HEADERS += solvers/aggs/Agg.hpp solvers/aggs/AggSets.hpp solvers/aggs/AggSolver.hpp solvers/aggs/AggTypes.hpp 
 include_HEADERS += solvers/PCSolver.hpp solvers/Utils.hpp 
 include_HEADERS += solvers/CPSolver.hpp
-include_HEADERS += solvers/ModSolver.hpp solvers/SOSolverHier.hpp 
-include_HEADERS += gecode/kernel.hh gecode/int.hh gecode/minimodel.hh gecode/driver.hh
-
+include_HEADERS += solvers/ModSolver.hpp solvers/SOSolverHier.hpp
+include_HEADERS += mtl/Vec.h mtl/Queue.h mtl/Alg.h mtl/Heap.h mtl/Map.h mtl/Sort.h 
 
 dist_doc_DATA = README
-dist_doc_DATA += makefilewinmac

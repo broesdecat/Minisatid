@@ -152,7 +152,7 @@ public:
 	const vmodindex& 	getChildren	()	const	{ return children; }
 
 	const ModSolverData& getModSolverData() const	{ return *modhier.lock().get(); }
-	PCSolver const * const getCPCSolver	()	const	{ return solver; }
+	PCSolver const * 	getCPCSolver	()	const	{ return solver; }
 
 	bool 				solve();
 

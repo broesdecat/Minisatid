@@ -13,36 +13,7 @@
 using namespace std;
 using namespace tr1;
 
-template <typename T>
-string printWeight(const T& w);
-
-#ifdef GMP
-#define GMPWEIGHT
-#include "gmpxx.h"
-typedef mpz_class Weight;
-
-//MEDIUM SPEED, NEED LIB INSTALLED, MUCH FASTER THAN BIGINT FOR ARBITRARY PREC
-template <>
-string printWeight<mpz_class>(const mpz_class& w);
-
-#else
-#ifdef BIGINT
-#define BIGINTWEIGHT
-#include "BigInteger.hh"
-#include "BigIntegerUtils.hh"
-typedef BigInteger Weight;
-//SLOWEST, NO LIB NEEDED AND HAS OVERFLOW SUPPORT
-template <>
-string printWeight<BigInteger>(const BigInteger& w);
-
-#else
-#define INTWEIGHT
-typedef int Weight;
-template <>
-string printWeight<int>(const int& w);
-
-#endif
-#endif
+#include "solvers/ExternalUtils.hpp"
 
 namespace Aggrs{
 class WLV;

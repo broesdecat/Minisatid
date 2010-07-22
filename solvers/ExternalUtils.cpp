@@ -1,5 +1,7 @@
-#include "solvers/aggs/AggTypes.hpp"
-#include "cstdlib"
+#include <cstdlib>
+#include <stdio.h>
+
+#include "solvers/ExternalUtils.hpp"
 
 template <typename T>
 string printWeight(const T& w){
