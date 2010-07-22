@@ -70,11 +70,11 @@ private:
 	/*
 	 * Getters for solver pointers
 	 */
-	pSolver const 		getSolver		() const;
-	pIDSolver const 	getIDSolver		() const;
-	pCPSolver const 	getCPSolver		() const;
-	pAggSolver const	getAggSolver	() const;
-	pModSolver const	getModSolver	() const;
+	Solver * 	getSolver		() const;
+	IDSolver * 	getIDSolver		() const;
+	CPSolver *	getCPSolver		() const;
+	AggSolver *	getAggSolver	() const;
+	ModSolver *	getModSolver	() const;
 
 public:
 	PCSolver(ECNF_mode modes);
@@ -83,11 +83,11 @@ public:
 	/*
 	 * Getters for constant solver pointers
 	 */
-	Solver	 const * const getCSolver		() const;
-	IDSolver const * const getCIDSolver		() const;
-	CPSolver const * const getCCPSolver		() const;
-	AggSolver const * const	getCAggSolver	() const;
-	ModSolver const * const	getCModSolver	() const;
+	Solver	 const * getCSolver		() const;
+	IDSolver const * getCIDSolver	() const;
+	CPSolver const * getCCPSolver	() const;
+	AggSolver const * getCAggSolver	() const;
+	ModSolver const * getCModSolver	() const;
 
 	/*
 	 * INITIALIZATION
@@ -186,7 +186,6 @@ public:
     bool 	invalidateValue	(vec<Lit>& invalidation);
 	bool 	invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt);
 	bool 	findOptimal		(vec<Lit>& assumps, vec<Lit>& m);
-
 
 	/*
 	 * DEBUG

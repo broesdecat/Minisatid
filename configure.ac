@@ -3,7 +3,7 @@ AC_PROG_CXX
 AC_DECL_YYTEXT
 #AC_PROG_LEX
 AC_PROG_YACC
-AM_INIT_AUTOMAKE([-Wall -Werror foreign])
+AM_INIT_AUTOMAKE([-Wall foreign])  #-ffloat-store  -Wextra -Wno-unused-parameter -pedantic
 AC_LANG([C++])
 
 #check for the necessary headers
@@ -22,7 +22,7 @@ AC_SUBST([AM_LFLAGS])
 AC_SUBST([AM_LDFLAGS])
 AC_SUBST([LIBS])
 
-SD_CXXFLAGS=
+SD_CXXFLAGS="-ffloat-store -Wextra -Wno-unused-parameter -Wno-variadic-macros -pedantic -Wall -Wno-variadic-macros -Wreturn-type "
 SD_LDFLAGS=
 
 AC_ARG_ENABLE([build],
