@@ -44,10 +44,10 @@ private:
 	Var 		head;
 	vec<Lit>	to_minimize;
 
-	pSolver const 		getSolver		() const;
-	pIDSolver const 	getIDSolver		() const;
-	pAggSolver const	getAggSolver	() const;
-	pModSolver const	getModSolver	() const;
+	Solver * 	getSolver		() const;
+	IDSolver * 	getIDSolver		() const;
+	AggSolver *	getAggSolver	() const;
+	ModSolver *	getModSolver	() const;
 
 public:
 	PCSolver(ECNF_mode modes);
@@ -148,10 +148,10 @@ public:
 	bool 	invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt);
 	bool 	findOptimal		(vec<Lit>& assumps, vec<Lit>& m);
 
-	Solver const * const getCSolver		() const;
-	IDSolver const * const 	getCIDSolver	() const;
-	AggSolver const * const	getCAggSolver	() const;
-	ModSolver const * const	getCModSolver	() const;
+	Solver const * getCSolver		() const;
+	IDSolver const * getCIDSolver	() const;
+	AggSolver const * getCAggSolver	() const;
+	ModSolver const * getCModSolver	() const;
 
 	/*
 	 * SATsolver asks this to PC such that more info (modal e.g.) can be printed.

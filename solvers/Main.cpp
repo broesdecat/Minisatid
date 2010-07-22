@@ -32,15 +32,18 @@ static inline double cpuTime(void) {
 static inline double cpuTime(void) { return 0; }
 #endif
 
-#include "solvers/solverfwd.hpp"
-#include "solvers/SolverI.hpp"
+#include "solvers/ExternalInterface.hpp"
 
-#include "solvers/debug.hpp"
+//#include "solvers/debug.hpp"
 
 ECNF_mode modes;
 
-class Data;
-typedef shared_ptr<Data> pData;
+#include <tr1/memory>
+
+using namespace std::tr1;
+
+class SolverInterface;
+typedef shared_ptr<SolverInterface> pData;
 
 extern pData getData		();
 
@@ -322,7 +325,7 @@ pData parse(){
     //There is still a memory leak of about 16 Kb in the flex scanner, which is inherent to the flex C scanner
 
 	if(unsatfound || !d->finishParsing()){ //UNSAT so empty shared pointer
-		return shared_ptr<Data>();
+		return shared_ptr<SolverInterface>();
 	}
 
 	return d;

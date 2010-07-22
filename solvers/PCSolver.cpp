@@ -57,35 +57,35 @@ void PCSolver::setRes(FILE* f){
 	res = f;
 }
 
-inline pSolver const PCSolver::getSolver() const {
+inline pSolver PCSolver::getSolver() const {
 	return solver;
 }
 
-inline pIDSolver const PCSolver::getIDSolver() const {
+inline pIDSolver PCSolver::getIDSolver() const {
 	return idsolver;
 }
 
-inline pAggSolver const PCSolver::getAggSolver() const {
+inline pAggSolver PCSolver::getAggSolver() const {
 	return aggsolver;
 }
 
-inline pModSolver const PCSolver::getModSolver() const {
+inline pModSolver PCSolver::getModSolver() const {
 	return modsolver;
 }
 
-inline Solver const * const PCSolver::getCSolver() const {
+inline Solver const * PCSolver::getCSolver() const {
 	return solver;
 }
 
-inline IDSolver const * const PCSolver::getCIDSolver() const {
+inline IDSolver const * PCSolver::getCIDSolver() const {
 	return idsolver;
 }
 
-inline AggSolver const * const PCSolver::getCAggSolver() const {
+inline AggSolver const * PCSolver::getCAggSolver() const {
 	return aggsolver;
 }
 
-inline ModSolver const * const PCSolver::getCModSolver() const {
+inline ModSolver const * PCSolver::getCModSolver() const {
 	return modsolver;
 }
 
@@ -772,7 +772,7 @@ void PCSolver::printChoiceMade(int level, Lit l) const{
 	if(modes().verbosity>=5){
 		reportf("Choice literal at decisionlevel %d", level);
 		if(modsolverpresent){
-			reportf(" in modal solver %d", modsolver->getPrintId());
+			reportf(" in modal solver %zu", modsolver->getPrintId());
 		}
 		reportf(": ");
 		gprintLit(l);

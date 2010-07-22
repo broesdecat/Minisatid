@@ -17,16 +17,4 @@ using namespace tr1;
 #include "solver3/SolverTypes.hpp"
 #include "ExternalUtils.hpp"
 
-class idpexception: public std::exception{
-//private:
-//	const char* mess;
-public:
-	idpexception(): std::exception(){
-	}
-
-	virtual const char* what() const throw(){
-		return "";
-	}
-};
-
 #endif /* SOLVERFWD_H_ */
