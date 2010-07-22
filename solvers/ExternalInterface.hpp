@@ -52,6 +52,7 @@ public:
 
 	bool 	simplify		();
 	bool 	solve			();
+	bool 	solve			(vector<vector<int> >& models);
 
 	Atom	newVar			();
 	void	addVar			(Atom v);

@@ -55,6 +55,10 @@ bool PropositionalSolver::solve(){
 	return getSolver()->solve();
 }
 
+bool PropositionalSolver::solve(vector<vector<int> >& models){
+	return getSolver()->solve(models);
+}
+
 Atom PropositionalSolver::newVar(){
 	return getAtom(getSolver()->newVar());
 }
