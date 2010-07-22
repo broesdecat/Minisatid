@@ -166,7 +166,7 @@ int main(int argc, char** argv) {
 			if (!d->simplify()) {
 				if(modes.verbosity>0){
 					reportf("===============================================================================\n"
-							"Solved by unit propagation\n");
+							"Unsatisfiable found by unit propagation\n");
 				}
 				ret = false;
 			}else{
