@@ -6,12 +6,7 @@
 #include <list>
 #include <map>
 	
-#include "solvers/solverfwd.hpp"
-#include "solvers/SOSolverHier.hpp"
-#include "solvers/PCSolver.hpp"
-#include "mtl/Vec.h"
-	
-using namespace Aggrs;
+#include "solvers/ExternalInterface.hpp"
 
 extern ECNF_mode modes;
 
@@ -21,12 +16,12 @@ extern int yylex(void);
 extern char * yytext;
 
 bool mod;
-shared_ptr<PCSolver>		solver;
-shared_ptr<ModSolverData>	modsolver;
+shared_ptr<PropositionalSolver>		solver;
+shared_ptr<ModalSolver>	modsolver;
 
 vector<Weight> weights;
-vector<Var> nb, rigidatoms;
-vec<Lit> lits;
+vector<Atom> nb, rigidatoms;
+vec<Literal> lits;
 bool disj;
 int setid, modid;
 bool unsatfound = false;
@@ -37,7 +32,7 @@ int cnfcurrentmodid = 0;
 Var cnfcurrenthead = -1;
 int atoms, clauses;
 vector<int> modalops;
-vector<Lit> heads;
+vector<Literal> heads;
 
 /**
  * Initializes the solvers to add the datastructures
@@ -94,24 +89,6 @@ void CR(bool result){
 }
 
 /**
- * Parses the input integer (a literal) to a variable and notifies the solver of its existence
- */
-inline Var readVar(int nb){
-	Var var = abs(nb)-1;
-	/*if(!mod){
-		solver->addVar(var);
-	}else{
-		modsolver->addVar(modid, var);	
-	}*/
-	return var;
-}
-
-inline Lit readLit(int nb){
-	Var var = readVar(nb);
-	return (nb > 0) ? Lit(var) : ~Lit(var);
-}
-
-/**
  * Reads the new literal and adds it to the current list of literals
  */
 inline void addLit(int nb){
@@ -119,18 +96,18 @@ inline void addLit(int nb){
 }
 
 void initSolver(){
-	solver = shared_ptr<PCSolver>(new PCSolver(modes));
+	solver = shared_ptr<PropositionalSolver>(new PropositionalSolver(modes));
 	mod = false;
 	solverdecided = true;
 }
 
 void initModSolver(){
-	modsolver = shared_ptr<ModSolverData>(new ModSolverData(modes));
+	modsolver = shared_ptr<ModalSolver>(new ModalSolver(modes));
 	mod = true;
 	solverdecided = true;
 }
 
-shared_ptr<Data> getData(){
+shared_ptr<SolverInterface> getData(){
 	if(solver.get()!=NULL){
 		return solver;
 	}else{

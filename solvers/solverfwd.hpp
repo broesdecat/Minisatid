@@ -29,6 +29,4 @@ public:
 	}
 };
 
-//extern ECNF_mode modes;
-
 #endif /* SOLVERFWD_H_ */
