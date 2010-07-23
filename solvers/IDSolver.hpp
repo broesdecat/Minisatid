@@ -35,8 +35,8 @@ private:
 public:
     const Var head;
 
-    PropRule(const vec<Lit>& ps): head(var(ps[0])){
-    	for(int i=1; i<ps.size(); i++){
+    PropRule(Lit head, const vec<Lit>& ps): head(var(head)){
+    	for(int i=0; i<ps.size(); i++){
     		lits.push(ps[i]);
     	}
     }
@@ -76,7 +76,7 @@ public:
 	/////////////////////END AGGSOLVER NECESSARY
 
 	/////////////////////INITIALIZATION
-	bool    	addRule      			(bool conj, vec<Lit>& ps);	// Add a rule to the solver.
+	bool    	addRule      			(bool conj, Lit head, vec<Lit>& ps);	// Add a rule to the solver.
 	bool    	finishECNF_DataStructures();							// Initialize the ECNF data structures. NOTE: aggregates may set the "ok" value to false!
 
 	pPCSolver 	getSolver				()	const		{ return solver; }

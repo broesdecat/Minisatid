@@ -57,8 +57,9 @@ public:
 	Atom	newVar			();
 	void	addVar			(Atom v);
 	bool	addClause		(vector<Literal>& lits);
-	bool	addRule			(bool conj, vector<Literal>& lits);
+	bool	addRule			(bool conj, Literal head, vector<Literal>& lits);
 	bool	addSet			(int id, vector<Literal>& lits);
+	bool 	addSet			(int set_id, vector<LW>& lws);
 	bool	addSet			(int id, vector<Literal>& lits, const vector<Weight>& w);
 	bool	addAggrExpr		(Literal head, int setid, Weight bound, bool lower, AggrType type, bool defined);
 	bool	finishParsing	(); //throws UNSAT
@@ -67,11 +68,12 @@ public:
     bool 	addSumMinimize	(const Atom head, const int setid);
 
 	bool 	addIntVar		(int groundname, int min, int max);
-	bool 	addCPSum		(Literal head, vector<int> termnames, MINISAT::EqType rel, int bound);
-	bool 	addCPSum		(Literal head, vector<int> termnames, vector<int> mult, MINISAT::EqType rel, int bound);
-	bool 	addCPSumVar		(Literal head, vector<int> termnames, MINISAT::EqType rel, int rhstermname);
-	bool 	addCPSumVar		(Literal head, vector<int> termnames, vector<int> mult, MINISAT::EqType rel, int rhstermname);
-	bool 	addCPCount		(vector<int> termnames, int value, MINISAT::EqType rel, int rhstermname);
+	bool 	addCPBinaryRel	(Literal head, int groundname, MINISAT::EqType rel, int bound);
+	bool 	addCPSum		(Literal head, const vector<int>& termnames, MINISAT::EqType rel, int bound);
+	bool 	addCPSum		(Literal head, const vector<int>& termnames, vector<int> mult, MINISAT::EqType rel, int bound);
+	bool 	addCPSumVar		(Literal head, const vector<int>& termnames, MINISAT::EqType rel, int rhstermname);
+	bool 	addCPSumVar		(Literal head, const vector<int>& termnames, vector<int> mult, MINISAT::EqType rel, int rhstermname);
+	bool 	addCPCount		(const vector<int>& termnames, int value, MINISAT::EqType rel, int rhstermname);
 };
 
 typedef uint64_t modID;
@@ -102,9 +104,14 @@ public:
 	//Add information for PC-Solver
 	void 	addVar			(modID modid, Atom v);
 	bool 	addClause		(modID modid, vector<Literal>& lits);
-	bool 	addRule			(modID modid, bool conj, vector<Literal>& lits);
+	bool 	addRule			(modID modid, bool conj, Literal head, vector<Literal>& lits);
+	bool 	addSet			(modID modid, int set_id, vector<LW>& lws);
 	bool 	addSet			(modID modid, int set_id, vector<Literal>& lits, vector<Weight>& w);
 	bool 	addAggrExpr		(modID modid, Literal head, int setid, Weight bound, bool lower, AggrType type, bool defined);
 };
+
+//Throw exceptions if the inputted literals are in the wrong format.
+void checkLit(Literal lit);
+void checkLits(const vector<Literal>& lits);
 
 #endif /* EXTERNALINTERFACE_HPP_ */

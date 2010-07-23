@@ -187,7 +187,7 @@ bool ModSolverData::addClause(modindex modid, vec<Lit>& lits){
 	return result;
 }
 
-bool ModSolverData::addRule(modindex modid, bool conj, vec<Lit>& lits){
+bool ModSolverData::addRule(modindex modid, bool conj, Lit head, vec<Lit>& lits){
 	if(state==LOADINGHIER){
 		state = LOADINGREST;
 	}
@@ -195,7 +195,7 @@ bool ModSolverData::addRule(modindex modid, bool conj, vec<Lit>& lits){
 
 	checkexistsModSolver(modid);
 	pModSolver m = getModSolver(modid);
-	return m->addRule(conj, lits);
+	return m->addRule(conj, head, lits);
 }
 
 bool ModSolverData::addSet(modindex modid, int setid, vec<Lit>& lits, vector<Weight>& w){

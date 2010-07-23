@@ -185,12 +185,9 @@ Var PCSolver::newVar(){
 	return v;
 }
 
-//IN: NON_INDEXED
-//OUT: INDEXED
-Var PCSolver::addVar(Var v){
-	assert(v>0);
-	uint64_t var = v-1;
-	while (var >= nVars()){
+void PCSolver::addVar(Var v){
+	assert(v>-1);
+	while (v >= nVars()){
 		getSolver()->newVar(true, false);
 		if(idsolverpresent){
 			getIDSolver()->notifyVarAdded(nVars());
@@ -199,25 +196,32 @@ Var PCSolver::addVar(Var v){
 			getAggSolver()->notifyVarAdded(nVars());
 		}
 	}
-	getSolver()->setDecisionVar(var,true); // S.nVars()-1   or   var
-	return var;
+	getSolver()->setDecisionVar(v,true); // S.nVars()-1   or   var
 }
 
 void PCSolver::addVars(const vec<Lit>& a){
 	for(int i=0; i<a.size(); i++){
-		assert(var(a[i])>-1);
 		addVar(var(a[i]));
 	}
 }
 
 bool PCSolver::addClause(vec<Lit>& lits){
+	addVars(lits);
+	if(modes().verbosity>=7){
+		reportf("Adding clause:");
+		for(int i=0; i<lits.size(); i++){
+			reportf(" "); gprintLit(lits[i]);
+		}
+		reportf("\n");
+	}
 	return getSolver()->addClause(lits);
 }
 
-bool PCSolver::addRule(bool conj, vec<Lit>& lits){
+bool PCSolver::addRule(bool conj, Lit head, vec<Lit>& lits){
 	assert(idsolverpresent);
+	addVar(head);
 	addVars(lits);
-	return getIDSolver()->addRule(conj, lits);
+	return getIDSolver()->addRule(conj, head, lits);
 }
 
 bool PCSolver::addSet(int setid, vec<Lit>& lits){
@@ -257,7 +261,13 @@ void PCSolver::checkHead(Lit head){
 	}
 }
 
-//NON-INDEXED
+bool PCSolver::addCPBinaryRel(Lit head, int groundname, MINISAT::EqType rel, int bound){
+	assert(cpsolverpresent);
+	checkHead(head);
+	getCPSolver()->addBinRel(groundname, rel, bound, var(head));
+	return true;
+}
+
 bool PCSolver::addCPSum(Lit head, vector<int> termnames, MINISAT::EqType rel, int bound){
 	assert(cpsolverpresent);
 	checkHead(head);

@@ -91,13 +91,13 @@ shared_ptr<SolverInterface> unittest(ECNF_mode& modes){ //unsat
 	modes.cp = true;
 	shared_ptr<PropositionalSolver> pcsolver = shared_ptr<PropositionalSolver>(new PropositionalSolver(modes));
 	vector<Literal> lits, lits2, lits3;
-	lits.push_back(Literal(0));
-	lits.push_back(Literal(1, true));
-	lits.push_back(Literal(2));
-	lits2.push_back(Literal(0));
+	lits.push_back(Literal(1));
+	lits.push_back(Literal(2, true));
+	lits.push_back(Literal(3));
 	lits2.push_back(Literal(1));
 	lits2.push_back(Literal(2));
-	lits3.push_back(Literal(2, true));
+	lits2.push_back(Literal(3));
+	lits3.push_back(Literal(3, true));
 	pcsolver->addClause(lits);
 	pcsolver->addClause(lits2);
 	pcsolver->addClause(lits3);
@@ -107,7 +107,7 @@ shared_ptr<SolverInterface> unittest(ECNF_mode& modes){ //unsat
 	vector<int> terms;
 	terms.push_back(groundone);
 	terms.push_back(groundtwo);
-	pcsolver->addCPSum(Literal(0), terms, MINISAT::MGEQ, 18);
+	pcsolver->addCPSum(Literal(1), terms, MINISAT::MGEQ, 18);
 
 	if(!pcsolver->finishParsing()){
 		return shared_ptr<SolverInterface>();
@@ -120,9 +120,9 @@ shared_ptr<SolverInterface> unittest2(ECNF_mode& modes){ //magic seq
 	modes.cp = true;
 	shared_ptr<PropositionalSolver> pcsolver = shared_ptr<PropositionalSolver>(new PropositionalSolver(modes));
 	vector<Literal> lits;
-	lits.push_back(Literal(0));
 	lits.push_back(Literal(1));
 	lits.push_back(Literal(2));
+	lits.push_back(Literal(3));
 	pcsolver->addClause(lits);
 	vector<int> mult;
 	vector<int> elemx;
@@ -185,8 +185,8 @@ int main(int argc, char** argv) {
 		 * Third argument if provided: output file.
 		 */
 
-		//pData d = unittest(modes);
-		pData d = unittest2(modes);
+		pData d = unittest(modes);
+		//pData d = unittest2(modes);
 
 //		//An outputfile is not allowed when the inputfile is piped (//TODO should add a -o argument for this)
 //		/*ecnfin*/yyin = stdin; //Default read from stdin
@@ -248,7 +248,9 @@ int main(int argc, char** argv) {
 
 		printStats();
 	}catch(idpexception& e){
-		reportf("Exception caught, program will abort.\n");
+		reportf("Exception caught: ");
+		reportf(e.what());
+		reportf("\nProgram will abort.\n");
 		return 1;
 	}
 

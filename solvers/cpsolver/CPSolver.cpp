@@ -394,6 +394,10 @@ void CPSolver::addTerm(int term, int min, int max){
 	solverdata->addTerm(TermIntVar(*solverdata->getSpace(), term, min, max));
 }
 
+bool CPSolver::addBinRel(int groundname, MINISAT::EqType rel, int bound, int atom){
+	throw idpexception("Not yet implemented.");
+}
+
 void CPSolver::addSum(vector<int> term, MINISAT::EqType rel, int bound, int atom){
 	vector<TermIntVar> set;
 	for(int i=0; i<term.size(); i++){

@@ -74,13 +74,14 @@ void IDSolver::notifyVarAdded(int nvars){
  *
  * If only one body literal, the clause is always made conjunctive (for algorithmic correctness later on), semantics are the same.
  */
-bool IDSolver::addRule(bool conj, vec<Lit>& ps) {
-	assert(ps.size() > 0);
-	assert(isPositive(ps[0]));
+bool IDSolver::addRule(bool conj, Lit head, vec<Lit>& ps) {
+	if(!isPositive(head)){
+		throw idpexception("Rule heads have to be positive literals.");
+	}
 
 	if(getSolver()->modes().verbosity>=5){
-		reportf("Adding %s rule, %d <- ", conj?"conjunctive":"disjunctive", gprintVar(var(ps[0])));
-		for(int i=1; i<ps.size(); i++){
+		reportf("Adding %s rule, %d <- ", conj?"conjunctive":"disjunctive", gprintVar(var(head)));
+		for(int i=0; i<ps.size(); i++){
 			reportf("%s%d ", sign(ps[i])?"-":"",gprintVar(var(ps[i])));
 		}
 		reportf("\n");
@@ -88,40 +89,47 @@ bool IDSolver::addRule(bool conj, vec<Lit>& ps) {
 
 	bool notunsat = true;
 
-	if (ps.size() == 1) {
-		Lit head = conj?ps[0]:~ps[0]; //empty set conj = true, empty set disj = false
+	if (ps.size() == 0) {
+		Lit head = conj?head:~head; //empty set conj = true, empty set disj = false
 		vec<Lit> v;
 		v.push(head);
 		notunsat = getSolver()->addClause(v);
 	} else {
 		//rules with only one body atom have to be treated as conjunctive
-		conj = conj || ps.size()==2;
+		conj = conj || ps.size()==1;
 
-		PropRule* r = new PropRule(ps);
-		defdVars.push(var(ps[0]));
+		PropRule* r = new PropRule(head, ps);
+		defdVars.push(var(head));
 		//defType.growTo(nVars(), NONDEFTYPE);
 		//defOcc.growTo(nVars(), NONDEFOCC);
-		defType[var(ps[0])]=conj?CONJ:DISJ;
+		defType[var(head)]=conj?CONJ:DISJ;
 		//defOcc is initialized when finishing the datastructures
-		definition[var(ps[0])] = r;
+		definition[var(head)] = r;
 
 		//create the completion
+		vec<Lit> comp;
+		comp.push(head);
+
+		for(int i=0; i<ps.size(); i++){
+			comp.push(ps[i]);
+		}
+
 		if (conj){
-			for (int i = 1; i < ps.size(); i++){
-				ps[i] = ~ps[i];
+			for (int i = 1; i < comp.size(); i++){
+				comp[i] = ~comp[i];
 			}
 		}else{
-			ps[0] = ~ps[0];
+			comp[0] = ~comp[0];
 		}
 
 		vec<Lit> temp; //because addclause empties temp
-		ps.copyTo(temp);
+		comp.copyTo(temp);
 		notunsat = getSolver()->addClause(temp);
 
-		for (int i = 1; notunsat && i < ps.size(); i++) {
+		for (int i = 1; notunsat && i < comp.size(); i++) {
 			vec<Lit> binclause(2);
-			binclause[0] = ~ps[0];
-			binclause[1] = ~ps[i];
+			binclause[0] = ~comp[0];
+			binclause[1] = ~comp[i];
 			notunsat = getSolver()->addClause(binclause);
 		}
 	}

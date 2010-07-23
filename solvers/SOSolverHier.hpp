@@ -75,7 +75,7 @@ public:
 	//Add information for PC-Solver
 	void 	addVar				(modindex modid, Var v);
 	bool 	addClause			(modindex modid, vec<Lit>& lits);
-	bool 	addRule				(modindex modid, bool conj, vec<Lit>& lits);
+	bool 	addRule				(modindex modid, bool conj, Lit head, vec<Lit>& lits);
 	bool 	addSet				(modindex modid, int set_id, vec<Lit>& lits, vector<Weight>& w);
 	bool 	addAggrExpr			(modindex modid, Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined);
 

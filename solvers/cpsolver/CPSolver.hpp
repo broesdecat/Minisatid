@@ -42,6 +42,7 @@ public:
 
 	void addTerm(int term, int min, int max);
 	void addAllDifferent(vector<int> term);
+	bool addBinRel(int groundname, MINISAT::EqType rel, int bound, int atom);
 	void addSum(vector<int> term, MINISAT::EqType rel, int bound, int atom);
 	void addSum(vector<int> term, vector<int> mult, MINISAT::EqType rel, int bound, int atom);
 	void addSumVar(vector<int> term, MINISAT::EqType rel, int rhsterm, int atom);

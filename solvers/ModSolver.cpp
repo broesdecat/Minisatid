@@ -46,9 +46,10 @@ bool ModSolver::addClause(vec<Lit>& lits){
 	return getSolver()->addClause(lits);
 }
 
-bool ModSolver::addRule(bool conj, vec<Lit>& lits){
+bool ModSolver::addRule(bool conj, Lit head, vec<Lit>& lits){
+	addVar(head);
 	addVars(lits);
-	return getSolver()->addRule(conj,lits);
+	return getSolver()->addRule(conj, head, lits);
 }
 
 bool ModSolver::addSet(int setid, vec<Lit>& lits, vector<Weight>& w){

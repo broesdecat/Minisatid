@@ -334,7 +334,6 @@ bool AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& h
 	bool notunsat = true;
 
 	if(defined){
-		clause.push(head);
 		for(lwlv::const_reverse_iterator i=set.getWLRBegin(); i<set.getWLREnd() && (*i).getWeight()>=bound; i++){
 			if((*i).getWeight()==bound && lower){
 				break;
@@ -345,7 +344,7 @@ bool AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& h
 				clause.push((*i).getLit());
 			}
 		}
-		notunsat = getSolver()->addRule(lower, clause);
+		notunsat = getSolver()->addRule(lower, head, clause);
 	}else{
 		clause.push(lower?head:~head);
 		for(lwlv::const_reverse_iterator i=set.getWLRBegin(); i<set.getWLREnd() && (*i).getWeight()>=bound; i++){

@@ -10,7 +10,6 @@
 using namespace std::tr1;
 
 #include "solvers/ExternalInterface.hpp"
-
 }
 
 %code{
@@ -19,50 +18,36 @@ extern ECNF_mode modes;
 extern int 		yylex(void);
 extern char * 	yytext;
 
-bool mod;
-shared_ptr<PropositionalSolver>	solver;
-shared_ptr<ModalSolver>	modsolver;
 
-vector<Weight> weights;
-vector<Atom> nb, rigidatoms;
-vector<Literal> lits;
-bool disj;
-int setid, modid;
-bool unsatfound = false;
-bool parseError = false;
 
-bool solverdecided = false, negatemod = false;
+bool negatemod = false;
 int cnfcurrentmodid = 0;
 Atom cnfcurrenthead(-1);
-int atoms, clauses;
 vector<int> modalops;
 vector<Literal> heads;
-
-/**
- * Initializes the solvers to add the datastructures
- */
-void yyinit(){
-	unsatfound = false;
-}
-
-/**
- * Removes the solvers, releasing their locks and empties the temporary datastructures
- */
-void yydestroy(){
-	solver.reset();
-	modsolver.reset();
-	weights.clear();
-	lits.clear();
-}
 
 //Auxiliary variables, used while parsing.
 int lineNo = 1;
 int charPos = 1;
 
+bool unsatfound = false;
+
+shared_ptr<PropositionalSolver>	solver;
+shared_ptr<ModalSolver>	modsolver;
+
+void yyinit(){ }
+
+void yydestroy(){
+	solver.reset();
+	modsolver.reset();
+	heads.clear();
+	modalops.clear();
+}
+
 // If an unforeseen parse error occurs, it calls this function (e.g. with msg="syntax error")
 void yyerror(const char* msg) {
 	if(unsatfound){
-		cerr << msg;
+		throw idpexception(msg);
 	}else{
 		cerr << "Parse error: ";
 		cerr << "Line " << lineNo << ", column " << charPos << ": "; 
@@ -71,13 +56,16 @@ void yyerror(const char* msg) {
 			cerr << " on \"" << /*ecnftext*/yytext << "\"";		
 		}
 		cerr << endl;
-		parseError = true;
+		throw idpexception(msg);
 	}	
-	throw idpexception();
 }
 
 AggrType getAggrType(int type){
 	return static_cast<AggrType>(type);
+}
+
+MINISAT::EqType getRelType(int type){
+	return static_cast<MINISAT::EqType>(type);
 }
 
 
@@ -92,23 +80,12 @@ void CR(bool result){
 	}		
 }
 
-/**
- * Reads the new literal and adds it to the current list of literals
- */
-inline void addLit(int nb){
-	lits.push_back(nb);
-}
-
 void initSolver(){
 	solver = shared_ptr<PropositionalSolver>(new PropositionalSolver(modes));
-	mod = false;
-	solverdecided = true;
 }
 
 void initModSolver(){
 	modsolver = shared_ptr<ModalSolver>(new ModalSolver(modes));
-	mod = true;
-	solverdecided = true;
 }
 
 shared_ptr<SolverInterface> getData(){
@@ -119,6 +96,61 @@ shared_ptr<SolverInterface> getData(){
 	}
 }
 
+int atoms, clauses;
+
+void readCNFModalHierLevel(bool existential, vector<Atom>& rigidatoms){
+	bool writeexists;
+	if(existential && negatemod){
+		negatemod = false;
+		writeexists = false;
+	}else if(existential && !negatemod){
+		negatemod = false;
+		writeexists = true;
+	}else if(!existential && negatemod){
+		negatemod = true;
+		writeexists = true;
+	}else{
+		negatemod = true;
+		writeexists = false;
+	}
+	if(modsolver.get()==NULL && solver.get()==NULL){
+		initModSolver();
+		cnfcurrenthead = atoms;
+	}else{
+		modalops.push_back(cnfcurrentmodid);
+		if(writeexists){
+			heads.push_back(Literal(cnfcurrenthead, false));
+		}else{
+			heads.push_back(Literal(cnfcurrenthead, true));
+		}
+		cnfcurrentmodid++;
+		CR(modsolver->addChild(cnfcurrentmodid-1, cnfcurrentmodid, Literal(cnfcurrenthead)));
+		modsolver->addAtoms(cnfcurrentmodid, rigidatoms);
+		if(rigidatoms.size()!=0){
+			throw idpexception();
+		}
+		cnfcurrenthead = Atom(cnfcurrenthead.getValue());
+	}
+}
+
+void finishCNFHeader(){
+	if(modsolver.get()==NULL && solver.get()==NULL){ //plain cnf
+		initSolver();
+	}else{ //modal cnf
+		if(negatemod){
+			throw idpexception(
+					"The quantifiers require to negate the full theory, this is "
+					"not handled at the moment.\n"
+					);
+		}
+		for(vector<int>::size_type i = 0; i<modalops.size(); i++){
+			vector<Literal> lits;
+			lits.push_back(heads[i]);
+			CR(modsolver->addClause(modalops[i], lits)); lits.clear();	
+		}
+	}
+}
+
 }
 
 //for a reentrant parser, you need to use %pureparser
@@ -126,28 +158,38 @@ shared_ptr<SolverInterface> getData(){
 %union {
 	int integer;
     bool boolean;
-    //vector<int>* vint;
+    vector<int>* vints;
+    vector<Literal>* vlits;
+    vector<LW>* vlws;
+    vector<Atom>* vatoms;
     //MINISAT::EqType rel;
 }
 
-%token EQ DISJUNCTION CONJUNCTION
+%token DISJUNCTION CONJUNCTION
 %token SUBSETMINDEFN MNMZDEFN SUMMINDEFN
 %token SETDEFN WSETDEFN  
-%token <integer> ZERO NUMBER AGGDEFN
+%token <integer> ZERO NUMBER AGGDEFN REL
 %token <boolean> SEMDEFN SIGNDEFN QUANTe
-%token CNF ECNF DEFPRESENT AGGPRESENT MNMZPRESENT MODPRESENT  MODDEFN
-%token INTVAR SUMTRT SUMTRI SUMTIRT SUMTIRI COUNTTRI COUNTTRT DISTINCT REL DELIM
+%token CNF ECNF MECNF DEFPRESENT AGGPRESENT MNMZPRESENT MODDEFN
+%token INTVAR SUMTRT SUMTRI SUMTIRT SUMTIRI COUNTTRI COUNTTRT DISTINCT DELIM BINCONSTR
 
-%type <integer> number
-//%type <vint> intlist
+%type <integer> number posnumber
+%type <vints> termlist
+%type <vlits> body
+%type <vlws> wbody
+%type <vatoms> vbody
 
 %start init
 
 %%
 
-init	:	CNF	number number { atoms = $2; clauses = $3; } ctheory
-		|	ECNF header {initSolver();} theory
-		|	ECNF header MODPRESENT {initModSolver();} mtheory
+
+/*
+ * Decides whether to use (modal) CNF, ECNF or modal ECNF format
+ */
+init	:	CNF	number number { atoms = $2; clauses = $3; } cnftheory
+		|	ECNF header {initSolver();} ecnftheory
+		|	MECNF header {initModSolver();} mecnftheory
 		;
 
 header	: 	/*empty*/
@@ -156,178 +198,96 @@ header	: 	/*empty*/
 		| 	header MNMZPRESENT	{ modes.mnmz = true; }
 		;
 		
-ctheory	: 	cmhier {
-				if(!solverdecided){
-					initSolver();
-				}else{
-					if(negatemod){
-						reportf("The quantifiers require to negate the full theory, this is "
-								"not handled at the moment.\n");
-						throw idpexception();
-					}
-					for(vector<int>::size_type i = 0; i<modalops.size(); i++){
-						lits.push_back(heads[i]);
-						CR(modsolver->addClause(modalops[i], lits)); lits.clear();	
-					}
-				}
-			} cclauses
-		;
-
-cmhier	:	/* empty */
-		|	QUANTe { 
-				bool writeexists;
-				if($1 && negatemod){
-					negatemod = false;
-					writeexists = false;
-				}else if($1 && !negatemod){
-					negatemod = false;
-					writeexists = true;
-				}else if(!$1 && negatemod){
-					negatemod = true;
-					writeexists = true;
-				}else{
-					negatemod = true;
-					writeexists = false;
-				}
-				if(!solverdecided){
-					initModSolver();
-					cnfcurrenthead = atoms;
-				}else{
-					modalops.push_back(cnfcurrentmodid);
-					if(writeexists){
-						heads.push_back(Literal(cnfcurrenthead, false));
-					}else{
-						heads.push_back(Literal(cnfcurrenthead, true));
-					}
-					cnfcurrentmodid++;
-					CR(modsolver->addChild(cnfcurrentmodid-1, cnfcurrentmodid, Literal(cnfcurrenthead)));
-					modsolver->addAtoms(cnfcurrentmodid, rigidatoms);
-					if(rigidatoms.size()!=0){
-						throw idpexception();
-					}
-					cnfcurrenthead = Atom(cnfcurrenthead.getValue());
-				}
-			}
-			rigidvarbody ZERO cmhier
-		;
-
-//FIXME: dit blijkt nodig om de performantie omhoog te krikken, eens onderzoeken waarom
-cclauses:	/* empty */
-		|	cclauses cclause
-		;
-			
-cclause: body ZERO	{
-				if(mod){
-					CR(modsolver->addClause(cnfcurrentmodid, lits)); lits.clear();
-				}else{
-					CR(solver->addClause(lits)); lits.clear();
-				}
-			}
-		;
-
-
-theory	:	/* empty */
-		|	theory clause
-		|	theory rule
-		| 	theory agg
-		|	theory set
-		|	theory wset
-		|	theory mnmz
-		|	theory subsetmnmz
-		|	theory summnmz
-//		|	theory intvar
-//		|	theory cpconstraint
-		;
+//---------------------------------------------		
+// CNF THEORY	
+//---------------------------------------------
 		
-mtheory	:	mhier mrest
+cnftheory	
+		: 	modalcnf { finishCNFHeader(); } cnfclause
 		;
 
-mhier	:	/* empty */
-		|	mhier matomset
-		|	mhier modhier
-		;
-		
-mrest	: 	/* empty */
-		|	mrest mclause
-		|	mrest mrule
-		| 	mrest magg
-		|	mrest mset
-		|	mrest mwset
-		;
-			
-mnmz	:	MNMZDEFN body ZERO				{ CR(solver->addMinimize(lits, false)); lits.clear();}
-subsetmnmz: SUBSETMINDEFN body ZERO 		{ CR(solver->addMinimize(lits, true)); lits.clear();}
-summnmz :	SUMMINDEFN NUMBER NUMBER ZERO	{ CR(solver->addSumMinimize(Atom($2), $3));}
-
-body	:  /* empty */
-		|  body NUMBER { addLit($2); }
-		;
-		
-varbody	:  /* empty */
-		|  varbody NUMBER	
-			{ 
-				if($2<0){yyerror("Rigid atoms cannot have a sign.\n");}
-				nb.push_back(Atom($2)); 
-			}
-		;
-		
-rigidvarbody	
-		:  /* empty */
-		|  rigidvarbody NUMBER	
-			{ 
-				if($2<0){yyerror("Rigid atoms cannot have a sign.\n");}
-				rigidatoms.push_back(Atom($2)); 
-			}
-		;		
-         
-wbody	:	/* empty */
-		|	wbody NUMBER EQ ZERO	{ addLit($2); weights.push_back(Weight(0)); }
-		|	wbody NUMBER EQ NUMBER	{ addLit($2); weights.push_back(Weight($4)); }
-		;
-       
-		
-//NONMODAL VERSION
-		
-clause	:  body ZERO	{ CR(solver->addClause(lits)); lits.clear(); }
-		;
-rule	:	SEMDEFN NUMBER                  
-						{ 	if ($2 < 0) yyerror("Encountered a rule with negative literal as head.\n");
-							addLit($2);
-							disj = $1;
-						}
-			body ZERO  	{ CR(solver->addRule(!disj, lits)); lits.clear(); }
-		;
-agg		:	AGGDEFN  SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ CR(solver->addAggrExpr(Literal($4), $5, Weight($6), $3, getAggrType($1), $2)); }
-		;
-agg		:	AGGDEFN  SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ CR(solver->addAggrExpr(Literal($4), $5, Weight(0), $3, getAggrType($1), $2)); }
+modalcnf	
+		:	/* empty */
+		|	modalcnf QUANTe vbody ZERO { readCNFModalHierLevel($2, *$3); delete $3;} 
 		;
 
-set		:	SETDEFN NUMBER { setid = $2;	}
-			body ZERO	{ 
-							for(vector<Literal>::size_type i=0; i<lits.size(); i++){
-								weights.push_back(1);
-							}
-							CR(solver->addSet(setid, lits, weights));
-							lits.clear(); weights.clear();
-						}
-		;
-
-wset	:	WSETDEFN NUMBER { setid = $2;	}
-			wbody ZERO	{ 
-							CR(solver->addSet(setid, lits, weights));
-							lits.clear(); weights.clear();
-						}
-		;
-
-//intvar	:	INTVAR number number number ZERO { solver->addIntVar($2, $3, $4); }
-//
-//termlist : /* empty */ //TODO cannot be empty!
-//		|  termlist NUMBER
-//			{ 
-//				if($2<1){yyerror("Term identifers cannot be < 1.\n");}
-//				nb.push_back($2); 
-//			}
+//FIXME: onderstaande hielp voor betere performance, geen idee waarom
+//cclauses:	/* empty */
+//		|	cclauses cclause
 //		;
+			
+cnfclause	
+		: /*empty*/
+		| cnfclause body ZERO	
+			{	if(modsolver.get()!=NULL){
+					CR(modsolver->addClause(cnfcurrentmodid, *$2)); delete $2;
+				}else{
+					CR(solver->addClause(*$2)); delete $2;
+				}
+			}
+		;
+			
+//---------------------------------------------		
+// ECNF THEORY	
+//---------------------------------------------
+
+ecnftheory	:	/* empty */
+			|	ecnftheory clause
+			|	ecnftheory rule
+			| 	ecnftheory agg
+			|	ecnftheory set
+			|	ecnftheory wset
+			|	ecnftheory mnmz
+			|	ecnftheory subsetmnmz
+			|	ecnftheory summnmz
+			|	ecnftheory intvar
+			|	ecnftheory cpconstraint
+			;
+			
+mnmz	:	MNMZDEFN body ZERO				{ CR(solver->addMinimize(*$2, false)); delete $2;}
+subsetmnmz: SUBSETMINDEFN body ZERO 		{ CR(solver->addMinimize(*$2, true)); delete $2;}
+summnmz :	SUMMINDEFN NUMBER NUMBER ZERO	{ CR(solver->addSumMinimize(Atom($2), $3));}
+		
+clause	:	body ZERO	{ CR(solver->addClause(*$1)); delete $1; }
+		;
+rule	:	SEMDEFN NUMBER body ZERO  	{ CR(solver->addRule(!$1, Literal($2), *$3)); delete $3; }
+		;
+agg		:	AGGDEFN SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ CR(solver->addAggrExpr(Literal($4), $5, Weight($6), $3, getAggrType($1), $2)); }
+		;
+agg		:	AGGDEFN SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ CR(solver->addAggrExpr(Literal($4), $5, Weight(0), $3, getAggrType($1), $2)); }
+		;
+
+set		:	SETDEFN NUMBER body ZERO	
+				{ 
+					CR(solver->addSet($2, *$3));
+					delete $3;
+				}
+		;
+
+wset	:	WSETDEFN NUMBER	wbody ZERO	
+				{
+					CR(solver->addSet($2, *$3));
+					delete $3;
+				}
+		;
+
+//---------------------------------------------		
+// ECNF CONSTRAINT SUPPORT	
+//---------------------------------------------
+
+intvar	:	INTVAR number number number ZERO { solver->addIntVar($2, $3, $4); }
+		;
+
+cpconstraint
+		:	BINCONSTR NUMBER number REL number ZERO { solver->addCPBinaryRel(Literal($2), $3, getRelType($4), $5); }
+		|	SUMTRI NUMBER termlist REL number ZERO {solver->addCPSumVar(Literal($2), *$3, getRelType($4), $5); delete $3; }
+		;
+
+
+termlist 
+		: termlist NUMBER { $$ = $1; $$->push_back($2);	}
+		| NUMBER  	{ $$ = new vector<int>(1, $1);	}
+		;
 //		
 //intlist :  /* empty */
 //		|  intlist NUMBER
@@ -345,32 +305,49 @@ wset	:	WSETDEFN NUMBER { setid = $2;	}
 ////				| 	DISTINCT termlist REL ZERO { solver->addDistinct($2 $3); }*/
 //				;
 
+
+			
+//---------------------------------------------		
+// MECNF THEORY	
+//---------------------------------------------
+
+mecnftheory	:	mhier mrest
+			;
+
+mhier	:	/* empty */
+		|	mhier matomset
+		|	mhier modhier
+		;
+		
+mrest	: 	/* empty */
+		|	mrest mclause
+		|	mrest mrule
+		| 	mrest magg
+		|	mrest mset
+		|	mrest mwset
+		;
+			
+			
 //MODAL PART: USES INDEXES+1 AS MODAL IDs IN THE THEORY
 	//FIXME: probleem gevonden: de HEAD kan niet correct aan de juiste worden toegevoegd, 
 	//want de parent is nog niet gekend! => ALLE MODS MOETEN EERST IN DE THEORIE!!!
 	//FIXME 2: je kan nu vars enzo toevoegen terwijl de kinderen van een mod op nog niet gekend
 	//zijn, wat dus onvolledige kennis geeft!
-modhier :	MODDEFN	NUMBER 	NUMBER 	NUMBER ZERO 
+modhier :	MODDEFN	NUMBER NUMBER NUMBER ZERO 
 				{ CR(modsolver->addChild($2-1, $3-1, Literal($4))); }
 		;
-matomset:	QUANTe NUMBER 
+
+matomset:	QUANTe NUMBER vbody ZERO 
 				{ 
 					if(!$1){
-						reportf("Forall quantifiers are not part of the chosen input format.\n");
-						throw idpexception();
+						throw idpexception("Forall quantifiers are not part of the chosen input format.\n");
 					}
-					modid = $2-1; 
+					modsolver->addAtoms($2-1, *$3); delete $3;
 				}
-			varbody ZERO { modsolver->addAtoms(modid, nb); nb.clear(); }
 		;
-mclause	:	NUMBER {modid = $1-1;} 
-			body ZERO { CR(modsolver->addClause(modid, lits)); lits.clear(); }
+mclause	:	NUMBER body ZERO { CR(modsolver->addClause($1-1, *$2)); delete $2; }
 		;
-mrule	:	SEMDEFN NUMBER {disj = $1; modid = $2-1;} NUMBER                  
-						{ 	if ($1 < 0) yyerror("Encountered a rule with negative literal as head.");
-							addLit($4);
-						}
-			body ZERO  { CR(modsolver->addRule(modid, !disj, lits)); lits.clear(); }
+mrule	:	SEMDEFN NUMBER NUMBER body ZERO  { CR(modsolver->addRule($2-1, !$1, $3, *$4)); delete $4; }
 		;
 			
 /*
@@ -385,21 +362,49 @@ magg	:	AGGDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER NUMBER ZERO	{ CR(modsolver
 magg	:	AGGDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER ZERO ZERO	{ CR(modsolver->addAggrExpr($2-1, Literal($5), $6, Weight(0), $4, getAggrType($1), $3)); }
 		;
 
-mset	:	SETDEFN NUMBER NUMBER { modid = $2-1; setid = $3; }
-			body ZERO	{ 
-						for(vector<Literal>::size_type i=0; i<lits.size(); i++){
-								weights.push_back(1);
-							}
-							CR(modsolver->addSet(modid, setid, lits, weights));
-							lits.clear(); weights.clear();
-						}
+mset	:	SETDEFN NUMBER NUMBER body ZERO	
+				{
+					vector<Weight> weights;
+					for(vector<Literal>::size_type i=0; i<(*$4).size(); i++){
+						weights.push_back(1);
+					}
+					CR(modsolver->addSet($2-1, $3, *$4, weights));
+					delete $4;
+				}
 		;
 
-mwset	:	WSETDEFN NUMBER NUMBER { modid = $2-1; setid = $3; }
-			wbody ZERO	{ 
-						CR(modsolver->addSet(modid, setid, lits, weights));
-						lits.clear(); weights.clear();
-					}
+mwset	:	WSETDEFN NUMBER NUMBER wbody ZERO	
+				{ 
+					CR(modsolver->addSet($2-1, $3, *$4));
+					delete $4;
+				}
+		;
+			
+
+//---------------------------------------------		
+// GENERAL RULES
+//---------------------------------------------
+			
+body	:	body NUMBER { $$ = $1; $$->push_back(Literal(abs($2), $2<0));	}
+		|	NUMBER		{ $$ = new vector<Literal>(1,Literal(abs($1), $1<0));	}	
+		;
+		
+wbody	:	wbody NUMBER '=' number	{ $$ = $1; $$->push_back(LW(Literal(abs($2), $2<0), Weight($4)));	}
+		|	NUMBER '=' number		{ $$ = new vector<LW>(1,LW(Literal(abs($1), $1<0), Weight($3)));	}	
+		;
+		
+vbody	:	vbody posnumber { $$ = $1; $$->push_back(Atom(abs($2)));	}
+		|	posnumber		{ $$ = new vector<Atom>(1,Atom(abs($1)));	}	
+		;
+				
+posnumber
+		: NUMBER 
+			{ 
+				if($1<=0){
+					throw idpexception("Expecting a list of natural numbers larger than zero.");
+				}
+				$$ = $1;
+			}
 		;
 			
 number	:	NUMBER	{ $$ = $1; }

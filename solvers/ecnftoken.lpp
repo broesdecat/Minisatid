@@ -25,9 +25,9 @@ extern int charPos;
 ^"p "	{ADJ; }
 "cnf"	{ADJ; return CNF;}
 "ecnf"	{ADJ; return ECNF;}
+"mecnf"	{ADJ; return MECNF;}
 "def" 	{ADJ; return DEFPRESENT;}
 "aggr" 	{ADJ; return AGGPRESENT;}
-"mod" 	{ADJ; return MODPRESENT;}
 "mnmz" 	{ADJ; return MNMZPRESENT;}
 
 "WSet"	{ADJ; return WSETDEFN;}
@@ -56,7 +56,14 @@ extern int charPos;
 "\t"	{ADJ; /*                       */}
 "\n"	{charPos = 1; lineNo++; /*     */}
 
-"="		{ADJ; return EQ;}
+"BINCONST"	{ADJ; return BINCONSTR;}
+
+"!="	{ADJ; /*ecnflval*/yylval.integer = MINISAT::MNEQ; return REL;}
+"=<"	{ADJ; /*ecnflval*/yylval.integer = MINISAT::MLEQ; return REL;}
+">="	{ADJ; /*ecnflval*/yylval.integer = MINISAT::MGEQ; return REL;}
+"="		{ADJ; /*ecnflval*/yylval.integer = MINISAT::MEQ; return REL;}
+">"		{ADJ; /*ecnflval*/yylval.integer = MINISAT::MG; return REL;}
+"<"		{ADJ; /*ecnflval*/yylval.integer = MINISAT::ML; return REL;}
 
  /* Longest match is returned -> if e.g. "20", NUMBER is returned.
     If "0", then ZERO is returned since it's the first matching rule.

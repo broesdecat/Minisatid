@@ -83,7 +83,7 @@ public:
 	//data initialization
 	void				addVar			(Var v);
 	bool 				addClause		(vec<Lit>& lits);
-	bool 				addRule			(bool conj, vec<Lit>& lits);
+	bool 				addRule			(bool conj, Lit head, vec<Lit>& lits);
 	bool 				addSet			(int setid, vec<Lit>& lits, vector<Weight>& w);
 	bool 				addAggrExpr		(Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined);
 	bool 				finishParsing();
@@ -159,6 +159,7 @@ public:
 private:
 	pPCSolver 			getSolver	()	const	{ return solver; }
 
+	void 				addVar		(Lit l)		{ addVar(var(l)); }
 	void 				addVars		(vec<Lit>& a);
 
 	void				adaptValuesOnPropagation(Lit l);

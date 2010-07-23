@@ -12,6 +12,37 @@ namespace MINISAT{
 	};
 }
 
+template <typename T>
+string printWeight(const T& w);
+
+#ifdef GMP
+#define GMPWEIGHT
+#include "gmpxx.h"
+typedef mpz_class Weight;
+
+//MEDIUM SPEED, NEED LIB INSTALLED, MUCH FASTER THAN BIGINT FOR ARBITRARY PREC
+template <>
+string printWeight<mpz_class>(const mpz_class& w);
+
+#else
+#ifdef BIGINT
+#define BIGINTWEIGHT
+#include "BigInteger.hh"
+#include "BigIntegerUtils.hh"
+typedef BigInteger Weight;
+//SLOWEST, NO LIB NEEDED AND HAS OVERFLOW SUPPORT
+template <>
+string printWeight<BigInteger>(const BigInteger& w);
+
+#else
+#define INTWEIGHT
+typedef int Weight;
+template <>
+string printWeight<int>(const int& w);
+
+#endif
+#endif
+
 class Atom{
 private:
 	int atom;
@@ -34,6 +65,13 @@ public:
 
 	Atom getAtom() const {return Atom(lit<0?-lit:lit); }
 	bool getSign() const { return lit<0; }
+};
+
+struct LW{
+	Literal l;
+	Weight w;
+
+	LW(Literal l, Weight w): l(l), w(w){}
 };
 
 enum FINDCS {
@@ -104,37 +142,6 @@ struct ECNF_mode {
 		defn_strategy(always), defn_search(include_cs), ufs_strategy(breadth_first) {
 	}
 };
-
-template <typename T>
-string printWeight(const T& w);
-
-#ifdef GMP
-#define GMPWEIGHT
-#include "gmpxx.h"
-typedef mpz_class Weight;
-
-//MEDIUM SPEED, NEED LIB INSTALLED, MUCH FASTER THAN BIGINT FOR ARBITRARY PREC
-template <>
-string printWeight<mpz_class>(const mpz_class& w);
-
-#else
-#ifdef BIGINT
-#define BIGINTWEIGHT
-#include "BigInteger.hh"
-#include "BigIntegerUtils.hh"
-typedef BigInteger Weight;
-//SLOWEST, NO LIB NEEDED AND HAS OVERFLOW SUPPORT
-template <>
-string printWeight<BigInteger>(const BigInteger& w);
-
-#else
-#define INTWEIGHT
-typedef int Weight;
-template <>
-string printWeight<int>(const int& w);
-
-#endif
-#endif
 
 class idpexception: public std::exception{
 private:

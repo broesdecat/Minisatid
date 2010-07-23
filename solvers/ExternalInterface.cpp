@@ -68,6 +68,7 @@ void PropositionalSolver::addVar(Atom v){
 }
 
 bool PropositionalSolver::addClause(vector<Literal>& lits){
+	checkLits(lits);
 	vec<Lit> ll;
 	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); i++){
 		ll.push(getLit(*i));
@@ -75,15 +76,18 @@ bool PropositionalSolver::addClause(vector<Literal>& lits){
 	return getSolver()->addClause(ll);
 }
 
-bool PropositionalSolver::addRule(bool conj, vector<Literal>& lits){
+bool PropositionalSolver::addRule(bool conj, Literal head, vector<Literal>& lits){
+	checkLit(head);
+	checkLits(lits);
 	vec<Lit> ll;
 	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); i++){
 		ll.push(getLit(*i));
 	}
-	return getSolver()->addRule(conj, ll);
+	return getSolver()->addRule(conj, getLit(head), ll);
 }
 
 bool PropositionalSolver::addSet(int id, vector<Literal>& lits){
+	checkLits(lits);
 	vec<Lit> ll;
 	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); i++){
 		ll.push(getLit(*i));
@@ -91,7 +95,21 @@ bool PropositionalSolver::addSet(int id, vector<Literal>& lits){
 	return getSolver()->addSet(id, ll);
 }
 
+//Might be implemented more efficiently in the future
+bool PropositionalSolver::addSet(int id, vector<LW>& lws){
+	vector<Literal> lits;
+	vector<Weight> weights;
+
+	for(vector<LW>::const_iterator i=lws.begin(); i<lws.end(); i++){
+		lits.push_back((*i).l);
+		weights.push_back((*i).w);
+	}
+
+	return addSet(id, lits, weights);
+}
+
 bool PropositionalSolver::addSet(int id, vector<Literal>& lits, const vector<Weight>& w){
+	checkLits(lits);
 	vec<Lit> ll;
 	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); i++){
 		ll.push(getLit(*i));
@@ -100,6 +118,7 @@ bool PropositionalSolver::addSet(int id, vector<Literal>& lits, const vector<Wei
 }
 
 bool PropositionalSolver::addAggrExpr(Literal head, int setid, Weight bound, bool lower, AggrType type, bool defined){
+	checkLit(head);
 	return getSolver()->addAggrExpr(getLit(head), setid, bound, lower, type, defined);
 }
 
@@ -108,6 +127,7 @@ bool PropositionalSolver::finishParsing	(){
 }
 
 bool PropositionalSolver::addMinimize(const vector<Literal>& lits, bool subsetmnmz){
+	checkLits(lits);
 	vec<Lit> ll;
 	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); i++){
 		ll.push(getLit(*i));
@@ -123,24 +143,47 @@ bool PropositionalSolver::addIntVar(int groundname, int min, int max){
 	return getSolver()->addIntVar(groundname, min, max);
 }
 
-bool PropositionalSolver::addCPSum(Literal head, vector<int> termnames, MINISAT::EqType rel, int bound){
+bool PropositionalSolver::addCPBinaryRel(Literal head, int groundname, MINISAT::EqType rel, int bound){
+	checkLit(head);
+	return getSolver()->addCPBinaryRel(getLit(head), groundname, rel, bound);
+}
+
+bool PropositionalSolver::addCPSum(Literal head, const vector<int>& termnames, MINISAT::EqType rel, int bound){
+	checkLit(head);
 	return getSolver()->addCPSum(getLit(head), termnames, rel, bound);
 }
 
-bool PropositionalSolver::addCPSum(Literal head, vector<int> termnames, vector<int> mult, MINISAT::EqType rel, int bound){
+bool PropositionalSolver::addCPSum(Literal head, const vector<int>& termnames, vector<int> mult, MINISAT::EqType rel, int bound){
+	checkLit(head);
 	return getSolver()->addCPSum(getLit(head), termnames, mult, rel, bound);
 }
 
-bool PropositionalSolver::addCPSumVar(Literal head, vector<int> termnames, MINISAT::EqType rel, int rhstermname){
+bool PropositionalSolver::addCPSumVar(Literal head, const vector<int>& termnames, MINISAT::EqType rel, int rhstermname){
+	checkLit(head);
 	return getSolver()->addCPSum(getLit(head), termnames, rel, rhstermname);
 }
 
-bool PropositionalSolver::addCPSumVar(Literal head, vector<int> termnames, vector<int> mult, MINISAT::EqType rel, int rhstermname){
+bool PropositionalSolver::addCPSumVar(Literal head, const vector<int>& termnames, vector<int> mult, MINISAT::EqType rel, int rhstermname){
+	checkLit(head);
 	return getSolver()->addCPSum(getLit(head), termnames, mult, rel, rhstermname);
 }
 
-bool PropositionalSolver::addCPCount(vector<int> termnames, int value, MINISAT::EqType rel, int rhstermname){
+bool PropositionalSolver::addCPCount(const vector<int>& termnames, int value, MINISAT::EqType rel, int rhstermname){
 	return getSolver()->addCPCount(termnames, value, rel, rhstermname);
+}
+
+void checkLit(Literal lit){
+	if(lit.getAtom().getValue()<1){
+		throw idpexception("Variables can only be numbered starting from 1.");
+	}
+}
+
+void checkLits(const vector<Literal>& lits){
+	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); i++){
+		if((*i).getAtom().getValue()<1){
+			throw idpexception("Variables can only be numbered starting from 1.");
+		}
+	}
 }
 
 
@@ -176,12 +219,14 @@ bool ModalSolver::addClause(modID modid, vector<Literal>& lits){
 	return getSolver()->addClause(getModIndex(modid), ll);
 }
 
-bool ModalSolver::addRule(modID modid, bool conj, vector<Literal>& lits){
+bool ModalSolver::addRule(modID modid, bool conj, Literal head, vector<Literal>& lits){
+	checkLit(head);
+	checkLits(lits);
 	vec<Lit> ll;
 	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); i++){
 		ll.push(getLit(*i));
 	}
-	return getSolver()->addRule(getModIndex(modid), conj, ll);
+	return getSolver()->addRule(getModIndex(modid), conj, getLit(head), ll);
 }
 
 bool ModalSolver::addSet(modID modid, int id, vector<Literal>& lits, vector<Weight>& w){
@@ -190,6 +235,19 @@ bool ModalSolver::addSet(modID modid, int id, vector<Literal>& lits, vector<Weig
 		ll.push(getLit(*i));
 	}
 	return getSolver()->addSet(getModIndex(modid), id, ll, w);
+}
+
+//Might be implemented more efficiently in the future
+bool ModalSolver::addSet(modID modid, int id, vector<LW>& lws){
+	vector<Literal> lits;
+	vector<Weight> weights;
+
+	for(vector<LW>::const_iterator i=lws.begin(); i<lws.end(); i++){
+		lits.push_back((*i).l);
+		weights.push_back((*i).w);
+	}
+
+	return addSet(getModIndex(modid), id, lits, weights);
 }
 
 bool ModalSolver::addAggrExpr(modID modid, Literal head, int setid, Weight bound, bool lower, AggrType type, bool defined){
