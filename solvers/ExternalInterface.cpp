@@ -67,14 +67,6 @@ void PropositionalSolver::addVar(Atom v){
 	getSolver()->addVar(getVar(v));
 }
 
-void PropositionalSolver::addVars(const vector<Literal>& lits){
-	vec<Lit> ll;
-	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); i++){
-		ll.push(getLit(*i));
-	}
-	return getSolver()->addVars(ll);
-}
-
 bool PropositionalSolver::addClause(vector<Literal>& lits){
 	vec<Lit> ll;
 	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); i++){
@@ -126,6 +118,31 @@ bool PropositionalSolver::addMinimize(const vector<Literal>& lits, bool subsetmn
 bool PropositionalSolver::addSumMinimize(const Atom head, const int setid){
     return getSolver()->addSumMinimize(getVar(head), setid);
 }
+
+bool PropositionalSolver::addIntVar(int groundname, int min, int max){
+	return getSolver()->addIntVar(groundname, min, max);
+}
+
+bool PropositionalSolver::addCPSum(Literal head, vector<int> termnames, MINISAT::EqType rel, int bound){
+	return getSolver()->addCPSum(getLit(head), termnames, rel, bound);
+}
+
+bool PropositionalSolver::addCPSum(Literal head, vector<int> termnames, vector<int> mult, MINISAT::EqType rel, int bound){
+	return getSolver()->addCPSum(getLit(head), termnames, mult, rel, bound);
+}
+
+bool PropositionalSolver::addCPSumVar(Literal head, vector<int> termnames, MINISAT::EqType rel, int rhstermname){
+	return getSolver()->addCPSum(getLit(head), termnames, rel, rhstermname);
+}
+
+bool PropositionalSolver::addCPSumVar(Literal head, vector<int> termnames, vector<int> mult, MINISAT::EqType rel, int rhstermname){
+	return getSolver()->addCPSum(getLit(head), termnames, mult, rel, rhstermname);
+}
+
+bool PropositionalSolver::addCPCount(vector<int> termnames, int value, MINISAT::EqType rel, int rhstermname){
+	return getSolver()->addCPCount(termnames, value, rel, rhstermname);
+}
+
 
 /****************
  * MODEL SOLVER *

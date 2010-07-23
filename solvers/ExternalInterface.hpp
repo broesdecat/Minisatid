@@ -56,7 +56,6 @@ public:
 
 	Atom	newVar			();
 	void	addVar			(Atom v);
-	void	addVars			(const vector<Literal>& a);
 	bool	addClause		(vector<Literal>& lits);
 	bool	addRule			(bool conj, vector<Literal>& lits);
 	bool	addSet			(int id, vector<Literal>& lits);
@@ -66,6 +65,13 @@ public:
 
     bool 	addMinimize		(const vector<Literal>& lits, bool subsetmnmz);
     bool 	addSumMinimize	(const Atom head, const int setid);
+
+	bool 	addIntVar		(int groundname, int min, int max);
+	bool 	addCPSum		(Literal head, vector<int> termnames, MINISAT::EqType rel, int bound);
+	bool 	addCPSum		(Literal head, vector<int> termnames, vector<int> mult, MINISAT::EqType rel, int bound);
+	bool 	addCPSumVar		(Literal head, vector<int> termnames, MINISAT::EqType rel, int rhstermname);
+	bool 	addCPSumVar		(Literal head, vector<int> termnames, vector<int> mult, MINISAT::EqType rel, int rhstermname);
+	bool 	addCPCount		(vector<int> termnames, int value, MINISAT::EqType rel, int rhstermname);
 };
 
 typedef uint64_t modID;

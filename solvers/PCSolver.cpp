@@ -1,78 +1,6 @@
 #include "solvers/PCSolver.hpp"
 #include "solvers/Utils.hpp"
 
-/*SolverI::SolverI(PCSolver* const solver): pcsolver(solver){
-
-};*/
-
-shared_ptr<Data> unittest(ECNF_mode& modes){ //unsat
-	modes.cp = true;
-	shared_ptr<PCSolver> pcsolver = shared_ptr<PCSolver>(new PCSolver(modes));
-	vec<Lit> lits, lits2, lits3;
-	lits.push(Lit(0));
-	lits.push(Lit(1, true));
-	lits.push(Lit(2));
-	lits2.push(Lit(0));
-	lits2.push(Lit(1));
-	lits2.push(Lit(2));
-	lits3.push(Lit(2, true));
-	pcsolver->addClause(lits);
-	pcsolver->addClause(lits2);
-	pcsolver->addClause(lits3);
-	int groundone=1, groundtwo=2;
-	pcsolver->addIntVar(groundone, -3, 7);
-	pcsolver->addIntVar(groundtwo, 7, 10);
-	vector<int> terms;
-	terms.push_back(groundone);
-	terms.push_back(groundtwo);
-	pcsolver->addCPSum(Lit(0), terms, MINISAT::MGEQ, 18);
-
-	if(!pcsolver->finishParsing()){
-		return shared_ptr<Data>();
-	}
-
-	return pcsolver;
-}
-
-shared_ptr<Data> unittest2(ECNF_mode& modes){ //magic seq
-	modes.cp = true;
-	shared_ptr<PCSolver> pcsolver = shared_ptr<PCSolver>(new PCSolver(modes));
-	vec<Lit> lits;
-	lits.push(Lit(0));
-	lits.push(Lit(1));
-	lits.push(Lit(2));
-	pcsolver->addClause(lits);
-	vector<int> mult;
-	vector<int> elemx;
-	int n = 1500;
-	for(int i=0; i<n; i++){
-		mult.push_back(i-1);
-		int x = i;
-		pcsolver->addIntVar(x, 0, n);
-		elemx.push_back(x);
-	}
-
-	for(int i=0; i<n; i++){
-		pcsolver->addCPCount(elemx, i, MINISAT::MEQ, elemx[i]);
-	}
-
-	vec<Lit> lits2;
-	lits2.push(Lit(4));
-	pcsolver->addClause(lits2);
-	pcsolver->addCPSum(Lit(4), elemx, MINISAT::MEQ, n);
-
-	vec<Lit> lits3;
-	lits3.push(Lit(5));
-	pcsolver->addClause(lits3);
-	pcsolver->addCPSum(Lit(5), elemx, mult, MINISAT::MEQ, 0);
-
-	if(!pcsolver->finishParsing()){
-		return shared_ptr<Data>();
-	}
-
-	return pcsolver;
-}
-
 /******************
  * INITIALIZATION *
  ******************/
@@ -275,62 +203,44 @@ Var PCSolver::addVar(Var v){
 	return var;
 }
 
-Lit PCSolver::addVar(Lit l){
-	Var indexed = addVar(var(l));
-	return Lit(indexed, sign(l));
-}
-
-//IN: NONINDEXED
-//OUT: INDEXED
-vector<Lit> PCSolver::addVars(const vector<Lit>& a){
-	vector<Lit> indexed;
+void PCSolver::addVars(const vec<Lit>& a){
 	for(int i=0; i<a.size(); i++){
-		assert(var(a[i])>0);
-		Lit indexvar(var(a[i])-1, sign(a[i]));
-		indexed.push_back(indexvar);
-		addVar(var(indexvar));
+		assert(var(a[i])>-1);
+		addVar(var(a[i]));
 	}
-	return indexed;
 }
 
-//NON-INDEXED
-bool PCSolver::addClause(vector<Lit>& lits){
-	vector<Lit> indexed = addVars(lits);
-	return getSolver()->addClause(indexed);
+bool PCSolver::addClause(vec<Lit>& lits){
+	return getSolver()->addClause(lits);
 }
 
-//NON-INDEXED
-bool PCSolver::addRule(bool conj, vector<Lit>& lits){
+bool PCSolver::addRule(bool conj, vec<Lit>& lits){
 	assert(idsolverpresent);
-	vector<Lit> indexed = addVars(lits);
-	return getIDSolver()->addRule(conj, indexed);
+	addVars(lits);
+	return getIDSolver()->addRule(conj, lits);
 }
 
-//NON-INDEXED
-bool PCSolver::addSet(int setid, vector<Lit>& lits){
+bool PCSolver::addSet(int setid, vec<Lit>& lits){
 	assert(aggsolverpresent);
-	vector<Lit> indexed = addVars(lits);
+	addVars(lits);
 	vector<Weight> w;
-	w.resize(indexed.size(), 1);
-	return addSet(setid, indexed, w);
+	w.resize(lits.size(), 1);
+	return addSet(setid, lits, w);
 }
 
-//NON-INDEXED
-bool PCSolver::addSet(int setid, vector<Lit>& lits, const vector<Weight>& w){
+bool PCSolver::addSet(int setid, vec<Lit>& lits, const vector<Weight>& w){
 	assert(aggsolverpresent);
-	vector<Lit> indexed = addVars(lits);
-	return getAggSolver()->addSet(setid, indexed, w);
+	addVars(lits);
+	return getAggSolver()->addSet(setid, lits, w);
 }
 
-//NON-INDEXED
 bool PCSolver::addAggrExpr(Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined){
 	assert(aggsolverpresent);
-	Lit indexed = addVar(head);
-	if(sign(indexed)){
+	if(sign(head)){
 		reportf( "No negative heads are allowed!\n");
 		throw idpexception();
 	}
-	return getAggSolver()->addAggrExpr(var(indexed), setid, bound, lower, type, defined);
+	return getAggSolver()->addAggrExpr(var(head), setid, bound, lower, type, defined);
 }
 
 bool PCSolver::addIntVar(int groundname, int min, int max){
@@ -339,41 +249,40 @@ bool PCSolver::addIntVar(int groundname, int min, int max){
 	return true;
 }
 
-Lit PCSolver::checkHead(Lit head){
-	Lit indexed = addVar(head);
+void PCSolver::checkHead(Lit head){
+	addVar(head);
 	if(sign(head)){
 		reportf( "No negative heads are allowed!\n");
 		throw idpexception();
 	}
-	return indexed;
 }
 
 //NON-INDEXED
 bool PCSolver::addCPSum(Lit head, vector<int> termnames, MINISAT::EqType rel, int bound){
 	assert(cpsolverpresent);
-	Lit indexed = checkHead(head);
-	getCPSolver()->addSum(termnames, rel, bound, var(indexed));
+	checkHead(head);
+	getCPSolver()->addSum(termnames, rel, bound, var(head));
 	return true;
 }
 
 bool PCSolver::addCPSum(Lit head, vector<int> termnames, vector<int> mult, MINISAT::EqType rel, int bound){
 	assert(cpsolverpresent);
-	Lit indexed = checkHead(head);
-	getCPSolver()->addSum(termnames, mult, rel, bound, var(indexed));
+	checkHead(head);
+	getCPSolver()->addSum(termnames, mult, rel, bound, var(head));
 	return true;
 }
 
 bool PCSolver::addCPSumVar(Lit head, vector<int> termnames, MINISAT::EqType rel, int rhstermname){
 	assert(cpsolverpresent);
-	Lit indexed = checkHead(head);
-	getCPSolver()->addSum(termnames, rel, rhstermname, var(indexed));
+	checkHead(head);
+	getCPSolver()->addSum(termnames, rel, rhstermname, var(head));
 	return true;
 }
 
 bool PCSolver::addCPSumVar(Lit head, vector<int> termnames, vector<int> mult, MINISAT::EqType rel, int rhstermname){
 	assert(cpsolverpresent);
-	Lit indexed = checkHead(head);
-	getCPSolver()->addSum(termnames, mult, rel, rhstermname, var(indexed));
+	checkHead(head);
+	getCPSolver()->addSum(termnames, mult, rel, rhstermname, var(head));
 	return true;
 }
 

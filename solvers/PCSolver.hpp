@@ -198,11 +198,9 @@ public:
 	void	printChoiceMade	(int level, Lit l) const;
 
 private:
-	//IN: NONINDEXED
-	//OUT: INDEXED
-	vector<Lit> addVars(const vector<Lit>& a);
-	Lit checkHead(Lit head);
-	Lit addVar(Lit var);
+	void addVar(Lit l) { addVar(var(l)); }
+	void addVars(const vec<Lit>& a);
+	void checkHead(Lit head);
 };
 
 shared_ptr<Data> unittest(ECNF_mode& modes);

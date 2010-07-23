@@ -13,17 +13,14 @@ using namespace std::tr1;
 
 }
 
-%code provides{
+%code{
 
 extern ECNF_mode modes;
-
-//extern int ecnflex(void);
-//extern char * ecnftext;
-extern int yylex(void);
-extern char * yytext;
+extern int 		yylex(void);
+extern char * 	yytext;
 
 bool mod;
-shared_ptr<PropositionalSolver>		solver;
+shared_ptr<PropositionalSolver>	solver;
 shared_ptr<ModalSolver>	modsolver;
 
 vector<Weight> weights;
@@ -129,8 +126,8 @@ shared_ptr<SolverInterface> getData(){
 %union {
 	int integer;
     bool boolean;
-    vector<int>* vint;
-    MINISAT::EqType rel;
+    //vector<int>* vint;
+    //MINISAT::EqType rel;
 }
 
 %token EQ DISJUNCTION CONJUNCTION
@@ -142,7 +139,7 @@ shared_ptr<SolverInterface> getData(){
 %token INTVAR SUMTRT SUMTRI SUMTIRT SUMTIRI COUNTTRI COUNTTRT DISTINCT REL DELIM
 
 %type <integer> number
-%type <vint> intlist
+//%type <vint> intlist
 
 %start init
 
@@ -238,8 +235,8 @@ theory	:	/* empty */
 		|	theory mnmz
 		|	theory subsetmnmz
 		|	theory summnmz
-		|	theory intvar
-		|	theory cpconstraint
+//		|	theory intvar
+//		|	theory cpconstraint
 		;
 		
 mtheory	:	mhier mrest
@@ -322,31 +319,31 @@ wset	:	WSETDEFN NUMBER { setid = $2;	}
 						}
 		;
 
-intvar	:	INTVAR number number number ZERO { solver->addIntVar($2, $3, $4); }
-
-termlist : /* empty */ //TODO cannot be empty!
-		|  termlist NUMBER
-			{ 
-				if($2<1){yyerror("Term identifers cannot be < 1.\n");}
-				nb.push_back($2); 
-			}
-		;
-		
-intlist :  /* empty */
-		|  intlist NUMBER
-			{ 
-				nb.push_back($2); 
-			}
-		;
-
-cpconstraint	:	/*SUMTRT NUMBER termlist REL NUMBER ZERO {solver->addSum($2, $3, $4, $5);}
-				|	SUMTRI NUMBER termlist REL number ZERO {solver->addSumVar($2, $3, $4, $5);}
-				|	SUMTIRT NUMBER termlist DELIM intlist REL NUMBER ZERO {solver->addSum($2, $3, $5, $6, $7);}
-				|	SUMTIRI NUMBER termlist DELIM intlist REL number ZERO {solver->addSumVar($2, $3, $5, $6, $7);}
-//				|	COUNTTRI termlist REL number ZERO
-				|	COUNTTRT termlist DELIM number REL NUMBER ZERO { solver->addCount($2, $4, $5, $6); }
-//				| 	DISTINCT termlist REL ZERO { solver->addDistinct($2 $3); }*/
-				;
+//intvar	:	INTVAR number number number ZERO { solver->addIntVar($2, $3, $4); }
+//
+//termlist : /* empty */ //TODO cannot be empty!
+//		|  termlist NUMBER
+//			{ 
+//				if($2<1){yyerror("Term identifers cannot be < 1.\n");}
+//				nb.push_back($2); 
+//			}
+//		;
+//		
+//intlist :  /* empty */
+//		|  intlist NUMBER
+//			{ 
+//				nb.push_back($2); 
+//			}
+//		;
+//
+//cpconstraint	:	/*SUMTRT NUMBER termlist REL NUMBER ZERO {solver->addSum($2, $3, $4, $5);}
+//				|	SUMTRI NUMBER termlist REL number ZERO {solver->addSumVar($2, $3, $4, $5);}
+//				|	SUMTIRT NUMBER termlist DELIM intlist REL NUMBER ZERO {solver->addSum($2, $3, $5, $6, $7);}
+//				|	SUMTIRI NUMBER termlist DELIM intlist REL number ZERO {solver->addSumVar($2, $3, $5, $6, $7);}
+////				|	COUNTTRI termlist REL number ZERO
+//				|	COUNTTRT termlist DELIM number REL NUMBER ZERO { solver->addCount($2, $4, $5, $6); }
+////				| 	DISTINCT termlist REL ZERO { solver->addDistinct($2 $3); }*/
+//				;
 
 //MODAL PART: USES INDEXES+1 AS MODAL IDs IN THE THEORY
 	//FIXME: probleem gevonden: de HEAD kan niet correct aan de juiste worden toegevoegd, 

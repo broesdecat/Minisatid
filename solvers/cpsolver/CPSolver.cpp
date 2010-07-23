@@ -21,37 +21,41 @@ using namespace std;
 
 namespace CP {
 IntRelType negate(IntRelType eq){
+	IntRelType g;
 	switch (eq) {
 		case Gecode::IRT_EQ:
-			return Gecode::IRT_NQ;
+			g = Gecode::IRT_NQ;
 		case Gecode::IRT_NQ:
-			return Gecode::IRT_EQ;
+			g = Gecode::IRT_EQ;
 		case Gecode::IRT_LQ:
-			return Gecode::IRT_GR;
+			g = Gecode::IRT_GR;
 		case Gecode::IRT_GQ:
-			return Gecode::IRT_LE;
+			g = Gecode::IRT_LE;
 		case Gecode::IRT_LE:
-			return Gecode::IRT_GQ;
+			g = Gecode::IRT_GQ;
 		case Gecode::IRT_GR:
-			return Gecode::IRT_LQ;
+			g = Gecode::IRT_LQ;
 	}
+	return g;
 }
 
 IntRelType toRelType(MINISAT::EqType eq){
+	IntRelType g;
 	switch (eq) {
 		case MINISAT::MEQ:
-			return Gecode::IRT_EQ;
+			g =  Gecode::IRT_EQ;
 		case MINISAT::MNEQ:
-			return Gecode::IRT_NQ;
+			g =  Gecode::IRT_NQ;
 		case MINISAT::MLEQ:
-			return Gecode::IRT_LQ;
+			g =  Gecode::IRT_LQ;
 		case MINISAT::MGEQ:
-			return Gecode::IRT_GQ;
+			g =  Gecode::IRT_GQ;
 		case MINISAT::ML:
-			return Gecode::IRT_LE;
+			g =  Gecode::IRT_LE;
 		case MINISAT::MG:
-			return Gecode::IRT_GR;
+			g =  Gecode::IRT_GR;
 	}
+	return g;
 }
 
 typedef vector<IntVar>::size_type termindex;
