@@ -185,45 +185,45 @@ int main(int argc, char** argv) {
 		 * Third argument if provided: output file.
 		 */
 
-		pData d = unittest(modes);
+		//pData d = unittest(modes);
 		//pData d = unittest2(modes);
 
-//		//An outputfile is not allowed when the inputfile is piped (//TODO should add a -o argument for this)
-//		/*ecnfin*/yyin = stdin; //Default read from stdin
-//		res = stdout; 	//Default write to stdout
-//
-//		if(argc==1){
-//			reportf("Reading from standard input... Use '-h' or '--help' for help.\n");
-//		}else if(argc>1){
-//			/*ecnfin*/yyin = fopen(argv[1], "r");
-//			if(!/*ecnfin*/yyin) {
-//				reportf("`%s' is not a valid filename or not readable.\n", argv[1]);
-//				throw idpexception();
-//			}
-//			if(argc>2){
-//				res = fopen(argv[2], "wb");
-//			}
-//		}
-//
-//		if(modes.verbosity>0){
-//			reportf("============================[ Problem Statistics ]=============================\n");
-//			reportf("|                                                                             |\n");
-//		}
-//
-//		pData d = parse();
-//
-//		if(/*ecnfin*/yyin != stdin){
-//			fclose(/*ecnfin*/yyin);
-//		}
-//
-//		if(modes.verbosity>0){
-//			reportf("| Parsing time              : %7.2f s                                    |\n", cpuTime()-cpu_time);
-//		}
-//
-//		if (modes.verbosity >= 1) {
-//			double parse_time = cpuTime() - cpu_time;
-//			reportf("| Parsing time              : %7.2f s                                       |\n", parse_time);
-//		}
+		//An outputfile is not allowed when the inputfile is piped (//TODO should add a -o argument for this)
+		/*ecnfin*/yyin = stdin; //Default read from stdin
+		res = stdout; 	//Default write to stdout
+
+		if(argc==1){
+			reportf("Reading from standard input... Use '-h' or '--help' for help.\n");
+		}else if(argc>1){
+			/*ecnfin*/yyin = fopen(argv[1], "r");
+			if(!/*ecnfin*/yyin) {
+				reportf("`%s' is not a valid filename or not readable.\n", argv[1]);
+				throw idpexception();
+			}
+			if(argc>2){
+				res = fopen(argv[2], "wb");
+			}
+		}
+
+		if(modes.verbosity>0){
+			reportf("============================[ Problem Statistics ]=============================\n");
+			reportf("|                                                                             |\n");
+		}
+
+		pData d = parse();
+
+		if(/*ecnfin*/yyin != stdin){
+			fclose(/*ecnfin*/yyin);
+		}
+
+		if(modes.verbosity>0){
+			reportf("| Parsing time              : %7.2f s                                    |\n", cpuTime()-cpu_time);
+		}
+
+		if (modes.verbosity >= 1) {
+			double parse_time = cpuTime() - cpu_time;
+			reportf("| Parsing time              : %7.2f s                                       |\n", parse_time);
+		}
 
 		if(d.get()==NULL){
 			ret = false;

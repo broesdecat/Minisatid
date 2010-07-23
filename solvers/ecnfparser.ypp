@@ -174,7 +174,7 @@ void finishCNFHeader(){
 %token INTVAR SUMTRT SUMTRI SUMTIRT SUMTIRI COUNTTRI COUNTTRT DISTINCT DELIM BINCONSTR
 
 %type <integer> number posnumber
-%type <vints> termlist
+%type <vints> ibody
 %type <vlits> body
 %type <vlws> wbody
 %type <vatoms> vbody
@@ -280,14 +280,9 @@ intvar	:	INTVAR number number number ZERO { solver->addIntVar($2, $3, $4); }
 
 cpconstraint
 		:	BINCONSTR NUMBER number REL number ZERO { solver->addCPBinaryRel(Literal($2), $3, getRelType($4), $5); }
-		|	SUMTRI NUMBER termlist REL number ZERO {solver->addCPSumVar(Literal($2), *$3, getRelType($4), $5); delete $3; }
+		|	SUMTRI NUMBER ibody REL number ZERO {solver->addCPSumVar(Literal($2), *$3, getRelType($4), $5); delete $3; }
 		;
 
-
-termlist 
-		: termlist NUMBER { $$ = $1; $$->push_back($2);	}
-		| NUMBER  	{ $$ = new vector<int>(1, $1);	}
-		;
 //		
 //intlist :  /* empty */
 //		|  intlist NUMBER
@@ -386,15 +381,33 @@ mwset	:	WSETDEFN NUMBER NUMBER wbody ZERO
 //---------------------------------------------
 			
 body	:	body NUMBER { $$ = $1; $$->push_back(Literal(abs($2), $2<0));	}
-		|	NUMBER		{ $$ = new vector<Literal>(1,Literal(abs($1), $1<0));	}	
+		|				{ $$ = new vector<Literal>();	}
 		;
 		
-wbody	:	wbody NUMBER '=' number	{ $$ = $1; $$->push_back(LW(Literal(abs($2), $2<0), Weight($4)));	}
-		|	NUMBER '=' number		{ $$ = new vector<LW>(1,LW(Literal(abs($1), $1<0), Weight($3)));	}	
+wbody	:	wbody NUMBER REL number	
+				{ 
+					if(getRelType($3)!=MINISAT::MEQ) { 
+						throw idpexception("Weighted sets can only contain tuples with equality"); 
+					} 
+					$$ = $1; $$->push_back(LW(Literal(abs($2), $2<0), Weight($4)));	
+				}
+		|	NUMBER REL number		
+				{ 
+					if(getRelType($2)!=MINISAT::MEQ) {
+						throw idpexception("Weighted sets can only contain tuples with equality"); 
+					} 
+					$$ = new vector<LW>(1,LW(Literal(abs($1), $1<0), Weight($3)));	
+				}	
 		;
 		
 vbody	:	vbody posnumber { $$ = $1; $$->push_back(Atom(abs($2)));	}
 		|	posnumber		{ $$ = new vector<Atom>(1,Atom(abs($1)));	}	
+		;
+		
+
+ibody 
+		: ibody number	{ $$ = $1; $$->push_back($2);	}
+		| number  		{ $$ = new vector<int>(1, $1);	}
 		;
 				
 posnumber

@@ -58,12 +58,12 @@ extern int charPos;
 
 "BINCONST"	{ADJ; return BINCONSTR;}
 
-"!="	{ADJ; /*ecnflval*/yylval.integer = MINISAT::MNEQ; return REL;}
-"=<"	{ADJ; /*ecnflval*/yylval.integer = MINISAT::MLEQ; return REL;}
-">="	{ADJ; /*ecnflval*/yylval.integer = MINISAT::MGEQ; return REL;}
 "="		{ADJ; /*ecnflval*/yylval.integer = MINISAT::MEQ; return REL;}
 ">"		{ADJ; /*ecnflval*/yylval.integer = MINISAT::MG; return REL;}
 "<"		{ADJ; /*ecnflval*/yylval.integer = MINISAT::ML; return REL;}
+"!="	{ADJ; /*ecnflval*/yylval.integer = MINISAT::MNEQ; return REL;}
+"=<"	{ADJ; /*ecnflval*/yylval.integer = MINISAT::MLEQ; return REL;}
+">="	{ADJ; /*ecnflval*/yylval.integer = MINISAT::MGEQ; return REL;}
 
  /* Longest match is returned -> if e.g. "20", NUMBER is returned.
     If "0", then ZERO is returned since it's the first matching rule.

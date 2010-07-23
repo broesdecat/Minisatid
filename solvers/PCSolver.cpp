@@ -240,6 +240,14 @@ bool PCSolver::addSet(int setid, vec<Lit>& lits, const vector<Weight>& w){
 
 bool PCSolver::addAggrExpr(Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined){
 	assert(aggsolverpresent);
+
+	if(modes().verbosity>=7){
+		reportf("Adding aggregate with info "); gprintLit(head);
+		reportf(", %d, %d, %s, %d, %s \n", setid, bound, lower?"lower":"greater", type, defined?"defined":"completion");
+	}
+
+	addVar(head);
+
 	if(sign(head)){
 		reportf( "No negative heads are allowed!\n");
 		throw idpexception();
