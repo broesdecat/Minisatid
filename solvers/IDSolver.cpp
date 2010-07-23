@@ -90,9 +90,9 @@ bool IDSolver::addRule(bool conj, Lit head, vec<Lit>& ps) {
 	bool notunsat = true;
 
 	if (ps.size() == 0) {
-		Lit head = conj?head:~head; //empty set conj = true, empty set disj = false
+		Lit h = conj?head:~head; //empty set conj = true, empty set disj = false
 		vec<Lit> v;
-		v.push(head);
+		v.push(h);
 		notunsat = getSolver()->addClause(v);
 	} else {
 		//rules with only one body atom have to be treated as conjunctive

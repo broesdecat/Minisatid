@@ -206,7 +206,6 @@ void PCSolver::addVars(const vec<Lit>& a){
 }
 
 bool PCSolver::addClause(vec<Lit>& lits){
-	addVars(lits);
 	if(modes().verbosity>=7){
 		reportf("Adding clause:");
 		for(int i=0; i<lits.size(); i++){
@@ -214,6 +213,7 @@ bool PCSolver::addClause(vec<Lit>& lits){
 		}
 		reportf("\n");
 	}
+	addVars(lits);
 	return getSolver()->addClause(lits);
 }
 
