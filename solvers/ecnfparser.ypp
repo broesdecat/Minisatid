@@ -1,5 +1,7 @@
 //%require "2.4.2"
-%defines
+
+//does not seem to have the same effect as adding it to the makefile
+//%defines
 
 //%skeleton "lalr1.cc"
 //%language "c++"
@@ -91,7 +93,8 @@ shared_ptr<SolverInterface> getData();
 %type <vlws> wbody
 %type <vatoms> vbody
 
-%destructor { delete $$; } vbody wbody ibody body
+//Blijkt nog niet te werken, zal ook wel in een nieuwere versie zijn
+//%destructor { delete $$; reportf("DELETED.\n"); } vbody wbody ibody body
 
 %start init
 
@@ -124,11 +127,6 @@ modalcnf
 		:	/* empty */
 		|	modalcnf QUANTe vbody ZERO { readCNFModalHierLevel($2, *$3); delete $3;} 
 		;
-
-//FIXME: onderstaande hielp voor betere performance, geen idee waarom
-//cclauses:	/* empty */
-//		|	cclauses cclause
-//		;
 			
 cnfclause	
 		: /*empty*/

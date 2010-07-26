@@ -14,7 +14,6 @@ public:
 	virtual ~Data(){};
 
 	virtual void 	setNbModels(int nb) = 0;
-	virtual void	setRes(FILE* f) = 0;
 
 	virtual bool 	simplify() = 0;
 	virtual bool 	solve() = 0;

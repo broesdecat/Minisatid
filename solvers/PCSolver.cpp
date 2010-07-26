@@ -17,7 +17,7 @@ PCSolver::PCSolver(ECNF_mode modes):Data(modes),
 			solver(NULL), idsolver(NULL), aggsolver(NULL), modsolver(NULL), cpsolver(NULL),
 			aggcreated(false), idcreated(false), cpcreated(false),
 			aggsolverpresent(false), idsolverpresent(false), modsolverpresent(false), cpsolverpresent(false),
-			res(NULL), nb_models(modes.nbmodels),
+			nb_models(modes.nbmodels),
 			modelsfound(0),
 			optim(NONE),head(-1){
 	solver = new Solver(this);
@@ -62,10 +62,6 @@ PCSolver::~PCSolver(){
 
 void PCSolver::setNbModels(int nb){
 	nb_models=nb;
-}
-
-void PCSolver::setRes(FILE* f){
-	res = f;
 }
 
 inline pSolver PCSolver::getSolver() const {
@@ -201,6 +197,7 @@ void PCSolver::addVar(Var v){
 
 void PCSolver::addVars(const vec<Lit>& a){
 	for(int i=0; i<a.size(); i++){
+		//reportf("Adding var %d\n", var(a[i]));
 		addVar(var(a[i]));
 	}
 }
@@ -485,6 +482,8 @@ bool PCSolver::simplify(){
 	return solver->simplify();
 }
 
+//TODO all models are kept in memory until the end, even if a method is called that does not return the models
+//change the implementation to not save the models if not asked.
 bool PCSolver::solve(){
 	vec<Lit> assmpt;
 	vector<vector<int> > models;
@@ -536,7 +535,7 @@ bool PCSolver::solveAll(vec<Lit>& assmpt, vector<vector<int> >& models){
 		//put models in return models
 		vector<int> modelasint;
 		for(int i=0; i<model.size(); i++){
-			int atom = var(model[i])+1;
+			int atom = var(model[i]);
 			modelasint.push_back(sign(model[i])?-atom:atom);
 		}
 		models.push_back(modelasint);
@@ -550,7 +549,7 @@ bool PCSolver::solveAll(vec<Lit>& assmpt, vector<vector<int> >& models){
 			//put models in return models
 			vector<int> modelasint;
 			for(int i=0; i<model.size(); i++){
-				int atom = var(model[i])+1;
+				int atom = var(model[i]);
 				modelasint.push_back(sign(model[i])?-atom:atom);
 			}
 			models.push_back(modelasint);
@@ -593,8 +592,6 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m){
 	if(rslt){
 		modelsfound++;
 
-		printModel();
-
 		m.clear();
 		for (uint64_t i = 0; i < nVars(); i++){
 			if(value(i)==l_True){
@@ -602,6 +599,12 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m){
 			}else if(value(i)==l_False){
 				m.push(Lit(i, true));
 			}
+		}
+
+		//printModel(m);
+
+		if(nb_models!=1){
+			printf("%d model%s found.\n", modelsfound, modelsfound>1 ? "s" : "");
 		}
 
 		//check if more models can exist
@@ -834,6 +837,8 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 		}
 	}
 
+	//TODO move to upper layer to allow translation to correct format
+	/*
 	if(!hasmodels){
 		assert(!optimumreached);
 		fprintf(res==NULL?stdout:res, " UNSAT\n");
@@ -849,31 +854,11 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 		fprintf(res==NULL?stdout:res, " 0\n");
 
 		modelsfound++;
-	}
+	}*/
 
 	return optimumreached;
 }
 
-void PCSolver::printModel() const{
-	if (modelsfound==1) {
-		fprintf(res==NULL?stdout:res, "SAT\n");
-		if(modes().verbosity>=1){
-			printf("SATISFIABLE\n");
-		}
-	}
-
-	if(nb_models!=1){
-		printf("%d model%s found.\n", modelsfound, modelsfound>1 ? "s" : "");
-	}
-
-	int nvars = (int)nVars();
-	for (int i = 0; i < nvars; i++){
-		if (getSolver()->model[i] != l_Undef){
-			fprintf(res==NULL?stdout:res, "%s%s%d", (i == 0) ? "" : " ", (getSolver()->model[i]== l_True) ? "" : "-", i + 1);
-		}
-	}
-	fprintf(res==NULL?stdout:res, " 0\n");
-}
 
 void PCSolver::printChoiceMade(int level, Lit l) const{
 	if(modes().verbosity>=5){

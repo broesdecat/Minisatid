@@ -61,7 +61,6 @@ public:
 	virtual ~ModSolverData		();
 
 	void	setNbModels			(int nb);
-	void	setRes				(FILE* f);
 
 	bool 	simplify			();
 	bool 	solve				();

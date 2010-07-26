@@ -57,7 +57,6 @@ private:
 	 */
 	bool aggsolverpresent, idsolverpresent, modsolverpresent, cpsolverpresent;
 
-	FILE* res;
 	int nb_models, modelsfound;
 
 	/*
@@ -94,7 +93,6 @@ public:
 	 */
 	void 		setModSolver	(pModSolver m);
 	void 		setNbModels		(int nb);
-	void 		setRes			(FILE* f);
 	Var			newVar			();
 	void		addVar			(Var v);
 	bool 		addClause		(vec<Lit>& lits);
@@ -125,7 +123,6 @@ public:
 	bool		solvenosearch	(const vec<Lit>& assmpt);
 	bool 		solveAll		(vec<Lit>& assmpt);
 	bool 		solveAll		(vec<Lit>& assmpt, vector<vector<int> >& models);
-	void 		printModel		() const;
 
 	void		removeAggrHead	(Var x);
 	void		notifyAggrHead	(Var head);

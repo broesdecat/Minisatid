@@ -66,10 +66,6 @@ void ModSolver::setNbModels(int nb){
 	getSolver()->setNbModels(nb);
 }
 
-void ModSolver::setRes(FILE* f){
-	getSolver()->setRes(f);
-}
-
 /**
  * Adds the list of variables to the rigid atoms of this ModSolver. They are automatically added
  * as variables, this is maybe not completely necessary when they are not used in the PC theory,
@@ -408,5 +404,7 @@ void ModSolver::backtrackFromSameLevel(Lit l){
 }
 
 void ModSolver::printModel(){
-	getSolver()->printModel();
+	//TODO implement
+	throw idpexception("Not yet implemented");
+	//getSolver()->printModel();
 }

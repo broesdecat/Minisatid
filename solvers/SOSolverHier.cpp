@@ -20,10 +20,6 @@ void ModSolverData::setNbModels(int nb){
 	solvers[0]->setNbModels(nb);
 }
 
-void ModSolverData::setRes(FILE* f){
-	solvers[0]->setRes(f);
-}
-
 bool ModSolverData::simplify(){
 	assert(state==ALLLOADED);
 	return solvers[0]->simplify();

@@ -66,8 +66,7 @@ void 		printUsage		(char** argv);
 void		noMoreMem(){
 	//Tries to reduce the memory of the solver by reducing the number of learned clauses
 	//This keeps being called until enough memory is free or no more learned clauses can be/are deleted (causing abort).
-	reportf("The solver ran out of memory.");
-	throw idpexception();
+	throw idpexception("The solver ran out of memory.\n");
 //	bool reducedmem = false;
 //	pSolver s = wps.lock();
 //	if(s.get()!=NULL){

@@ -72,7 +72,6 @@ public:
 	void	setParent		(modindex id);
 
 	void 	setNbModels		(int nb);
-	void 	setRes			(FILE* f);
 
 	/*//Solve methods
 	Clause* propagate(Lit l);
