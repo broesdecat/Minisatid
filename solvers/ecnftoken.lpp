@@ -1,10 +1,19 @@
 %{
 /* C++ declarations: */
 #include <iostream>
-#include "ecnfparser.h"
-#include "solvers/solverfwd.hpp"
 
-using namespace std;
+/*
+ * Temporarily, until new bison is available
+ * SHOULD BE REMOVED THEN
+ */
+#include <vector>
+#include "solvers/solverfwd.hpp"
+using namespace std; 
+//UP TILL HERE!
+
+#include "ecnfparser.h"
+
+#include "solvers/solverfwd.hpp"
 
 extern int lineNo;
 extern int charPos;

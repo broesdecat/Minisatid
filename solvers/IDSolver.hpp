@@ -265,6 +265,7 @@ private:
 /**
  * Returns non-owning pointer
  */
+/*ARGSUSED*/
 inline Clause* IDSolver::propagate(const Lit& p){
 	return NULL;
 }
@@ -278,10 +279,12 @@ inline Clause* IDSolver::propagateDefinitions(){
 	return indirectPropagate();
 }
 
+/*ARGSUSED*/
 inline void IDSolver::backtrack ( const Lit& l){
 	return;
 }
 
+/*ARGSUSED*/
 inline Clause* IDSolver::getExplanation	(const Lit& p){
 	assert(false);
 	return NULL;

@@ -1,4 +1,12 @@
-%code requires{
+//%require "2.4.2"
+%defines
+
+//%skeleton "lalr1.cc"
+//%language "c++"
+
+//%code requires{
+//temporarily, can just ensure that anytime the parser is included, vector etc has already been included.
+%{
 #include <iostream>
 #include <stdio.h>
 #include <cstring>
@@ -7,19 +15,21 @@
 #include <map>
 
 #include <tr1/memory>
+using namespace std;
 using namespace std::tr1;
 
 #include "solvers/ExternalInterface.hpp"
-}
 
-%code{
+//}
 
+//%code{
+	
 extern ECNF_mode modes;
 extern int 		yylex(void);
 extern char * 	yytext;
 
-
-
+void yyerror(const char* msg);
+	
 bool negatemod = false;
 int cnfcurrentmodid = 0;
 Atom cnfcurrenthead(-1);
@@ -35,123 +45,25 @@ bool unsatfound = false;
 shared_ptr<PropositionalSolver>	solver;
 shared_ptr<ModalSolver>	modsolver;
 
-void yyinit(){ }
-
-void yydestroy(){
-	solver.reset();
-	modsolver.reset();
-	heads.clear();
-	modalops.clear();
-}
-
-// If an unforeseen parse error occurs, it calls this function (e.g. with msg="syntax error")
-void yyerror(const char* msg) {
-	if(unsatfound){
-		throw idpexception(msg);
-	}else{
-		cerr << "Parse error: ";
-		cerr << "Line " << lineNo << ", column " << charPos << ": "; 
-		cerr << msg;
-		if (strlen(/*ecnftext*/yytext)){
-			cerr << " on \"" << /*ecnftext*/yytext << "\"";		
-		}
-		cerr << endl;
-		throw idpexception(msg);
-	}	
-}
-
-AggrType getAggrType(int type){
-	return static_cast<AggrType>(type);
-}
-
-MINISAT::EqType getRelType(int type){
-	return static_cast<MINISAT::EqType>(type);
-}
-
+AggrType getAggrType(int type);
+MINISAT::EqType getRelType(int type);
 
 /**
  * CR-CheckResult: checks the result of passing some data to the solvers.
  * The result is false if unsat was already detected.
  */
-void CR(bool result){
-	if(!result){
-		unsatfound = true;
-		yyerror("Unsat was found during parsing.\n");
-	}		
-}
+void CR(bool result);
 
-void initSolver(){
-	solver = shared_ptr<PropositionalSolver>(new PropositionalSolver(modes));
-}
-
-void initModSolver(){
-	modsolver = shared_ptr<ModalSolver>(new ModalSolver(modes));
-}
-
-shared_ptr<SolverInterface> getData(){
-	if(solver.get()!=NULL){
-		return solver;
-	}else{
-		return modsolver;
-	}
-}
+void initSolver();
+void initModSolver();
 
 int atoms, clauses;
 
-void readCNFModalHierLevel(bool existential, vector<Atom>& rigidatoms){
-	bool writeexists;
-	if(existential && negatemod){
-		negatemod = false;
-		writeexists = false;
-	}else if(existential && !negatemod){
-		negatemod = false;
-		writeexists = true;
-	}else if(!existential && negatemod){
-		negatemod = true;
-		writeexists = true;
-	}else{
-		negatemod = true;
-		writeexists = false;
-	}
-	if(modsolver.get()==NULL && solver.get()==NULL){
-		initModSolver();
-		cnfcurrenthead = atoms;
-	}else{
-		modalops.push_back(cnfcurrentmodid);
-		if(writeexists){
-			heads.push_back(Literal(cnfcurrenthead, false));
-		}else{
-			heads.push_back(Literal(cnfcurrenthead, true));
-		}
-		cnfcurrentmodid++;
-		CR(modsolver->addChild(cnfcurrentmodid-1, cnfcurrentmodid, Literal(cnfcurrenthead)));
-		modsolver->addAtoms(cnfcurrentmodid, rigidatoms);
-		if(rigidatoms.size()!=0){
-			throw idpexception();
-		}
-		cnfcurrenthead = Atom(cnfcurrenthead.getValue());
-	}
-}
+void finishCNFHeader();
+void readCNFModalHierLevel(bool existential, vector<Atom>& rigidatoms);
+shared_ptr<SolverInterface> getData();
 
-void finishCNFHeader(){
-	if(modsolver.get()==NULL && solver.get()==NULL){ //plain cnf
-		initSolver();
-	}else{ //modal cnf
-		if(negatemod){
-			throw idpexception(
-					"The quantifiers require to negate the full theory, this is "
-					"not handled at the moment.\n"
-					);
-		}
-		for(vector<int>::size_type i = 0; i<modalops.size(); i++){
-			vector<Literal> lits;
-			lits.push_back(heads[i]);
-			CR(modsolver->addClause(modalops[i], lits)); lits.clear();	
-		}
-	}
-}
-
-}
+%}
 
 //for a reentrant parser, you need to use %pureparser
 
@@ -178,6 +90,8 @@ void finishCNFHeader(){
 %type <vlits> body
 %type <vlws> wbody
 %type <vatoms> vbody
+
+%destructor { delete $$; } vbody wbody ibody body
 
 %start init
 
@@ -428,4 +342,118 @@ number	:	NUMBER	{ $$ = $1; }
 int yywrap() {
 	cerr << "End of file reached before it was expected... bailing out." << endl;
 	return 1;
+}
+
+void yyinit(){ }
+
+void yydestroy(){
+	solver.reset();
+	modsolver.reset();
+	heads.clear();
+	modalops.clear();
+}
+
+// If an unforeseen parse error occurs, it calls this function (e.g. with msg="syntax error")
+void yyerror(const char* msg) {
+	if(unsatfound){
+		throw idpexception(msg);
+	}else{
+		cerr << "Parse error: ";
+		cerr << "Line " << lineNo << ", column " << charPos << ": "; 
+		cerr << msg;
+		if (strlen(/*ecnftext*/yytext)){
+			cerr << " on \"" << /*ecnftext*/yytext << "\"";		
+		}
+		cerr << endl;
+		throw idpexception(msg);
+	}	
+}
+
+AggrType getAggrType(int type){
+	return static_cast<AggrType>(type);
+}
+
+MINISAT::EqType getRelType(int type){
+	return static_cast<MINISAT::EqType>(type);
+}
+
+
+/**
+ * CR-CheckResult: checks the result of passing some data to the solvers.
+ * The result is false if unsat was already detected.
+ */
+void CR(bool result){
+	if(!result){
+		unsatfound = true;
+		yyerror("Unsat was found during parsing.\n");
+	}		
+}
+
+void initSolver(){
+	solver = shared_ptr<PropositionalSolver>(new PropositionalSolver(modes));
+}
+
+void initModSolver(){
+	modsolver = shared_ptr<ModalSolver>(new ModalSolver(modes));
+}
+
+shared_ptr<SolverInterface> getData(){
+	if(solver.get()!=NULL){
+		return solver;
+	}else{
+		return modsolver;
+	}
+}
+
+void readCNFModalHierLevel(bool existential, vector<Atom>& rigidatoms){
+	bool writeexists;
+	if(existential && negatemod){
+		negatemod = false;
+		writeexists = false;
+	}else if(existential && !negatemod){
+		negatemod = false;
+		writeexists = true;
+	}else if(!existential && negatemod){
+		negatemod = true;
+		writeexists = true;
+	}else{
+		negatemod = true;
+		writeexists = false;
+	}
+	if(modsolver.get()==NULL && solver.get()==NULL){
+		initModSolver();
+		cnfcurrenthead = atoms;
+	}else{
+		modalops.push_back(cnfcurrentmodid);
+		if(writeexists){
+			heads.push_back(Literal(cnfcurrenthead, false));
+		}else{
+			heads.push_back(Literal(cnfcurrenthead, true));
+		}
+		cnfcurrentmodid++;
+		CR(modsolver->addChild(cnfcurrentmodid-1, cnfcurrentmodid, Literal(cnfcurrenthead)));
+		modsolver->addAtoms(cnfcurrentmodid, rigidatoms);
+		if(rigidatoms.size()!=0){
+			throw idpexception();
+		}
+		cnfcurrenthead = Atom(cnfcurrenthead.getValue());
+	}
+}
+
+void finishCNFHeader(){
+	if(modsolver.get()==NULL && solver.get()==NULL){ //plain cnf
+		initSolver();
+	}else{ //modal cnf
+		if(negatemod){
+			throw idpexception(
+					"The quantifiers require to negate the full theory, this is "
+					"not handled at the moment.\n"
+					);
+		}
+		for(vector<int>::size_type i = 0; i<modalops.size(); i++){
+			vector<Literal> lits;
+			lits.push_back(heads[i]);
+			CR(modsolver->addClause(modalops[i], lits)); lits.clear();	
+		}
+	}
 }

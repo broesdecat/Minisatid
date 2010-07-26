@@ -9,7 +9,15 @@ AC_LANG([C++])
 #check for the necessary headers
 AC_HEADER_STDC
 AC_CHECK_HEADERS([string])
+AC_CHECK_HEADERS([vector])
+AC_CHECK_HEADERS([set])
+AC_CHECK_HEADERS([map])
+AC_CHECK_HEADERS([cstdlib])
+AC_CHECK_HEADERS([limits])
+AC_CHECK_HEADERS([assert])
+AC_CHECK_HEADERS([cmath])
 AC_CHECK_HEADERS([iostream])
+AC_CHECK_HEADERS([tr1/memory])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T
