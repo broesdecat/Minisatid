@@ -10,6 +10,8 @@
 #include <cstdlib>
 #include "solvers/PCSolver.hpp"
 
+#include <algorithm>
+
 modindex getModIndex(modID modid){
 	return (int)modid;
 }
@@ -132,6 +134,7 @@ bool PropositionalSolver::solve(vector<vector<Literal> >& models){
 				}
 				outmodel.push_back(getOrigLiteral(varmodels[i][j]));
 			}
+			sort(outmodel.begin(), outmodel.end());
 			models.push_back(outmodel);
 			printModel(outmodel);
 			//TODO at the moment, all models are calculated, afterwards they are printed.
@@ -176,10 +179,7 @@ bool PropositionalSolver::addSet(int id, vector<LW>& lws){
 		weights.push_back((*i).w);
 	}
 
-	vector<Literal> ll;
-	checkLits(lits, ll);
-
-	return addSet(id, ll, weights);
+	return addSet(id, lits, weights);
 }
 
 bool PropositionalSolver::addSet(int id, vector<Literal>& lits, const vector<Weight>& w){
@@ -189,7 +189,6 @@ bool PropositionalSolver::addSet(int id, vector<Literal>& lits, const vector<Wei
 }
 
 bool PropositionalSolver::addAggrExpr(Literal head, int setid, Weight bound, bool lower, AggrType type, bool defined){
-	checkLit(head);
 	return getSolver()->addAggrExpr(checkLit(head), setid, bound, lower, type, defined);
 }
 
@@ -204,8 +203,7 @@ bool PropositionalSolver::addMinimize(const vector<Literal>& lits, bool subsetmn
 }
 
 bool PropositionalSolver::addSumMinimize(const Atom head, const int setid){
-	Var newhead = checkAtom(head);
-    return getSolver()->addSumMinimize(newhead, setid);
+    return getSolver()->addSumMinimize(checkAtom(head), setid);
 }
 
 bool PropositionalSolver::addIntVar(int groundname, int min, int max){

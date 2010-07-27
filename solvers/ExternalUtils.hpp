@@ -65,6 +65,14 @@ public:
 
 	Atom getAtom() const {return Atom(lit<0?-lit:lit); }
 	bool getSign() const { return lit<0; }
+
+	bool operator== (const Literal& lit) const {
+		return this->lit == lit.lit;
+	}
+
+	bool operator< (const Literal& lit) const {
+		return abs(this->lit) < abs(lit.lit);
+	}
 };
 
 struct LW{

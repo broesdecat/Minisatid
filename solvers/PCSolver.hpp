@@ -114,7 +114,7 @@ public:
 	 * SOLVING
 	 */
 	bool 		simplify		();
-	bool 		findNext		(const vec<Lit>& assumpts, vec<Lit>& model);
+	bool 		findNext		(const vec<Lit>& assumpts, vec<Lit>& model, bool& moremodels);
 	bool    	invalidateModel	(vec<Lit>& invalidation);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
 	void 		invalidate		(vec<Lit>& invalidation);
 	bool 		solve			();

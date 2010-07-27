@@ -528,23 +528,24 @@ bool PCSolver::solveAll(vec<Lit>& assmpt, vec<vec<Lit> >& models){
 	if(optim!=NONE){
 		vec<Lit> model;
 		vec<Lit> assump;
-		findOptimal(assump, model);
+		bool found = findOptimal(assump, model);
 
-		//FIXME FIXME in some cases, there is no last model, so this should be checked!
-
-		//put models in return models
-		models.push();
-		model.copyTo(models[models.size()-1]);
-
+		if(found){
+			//put models in return models
+			models.push();
+			model.copyTo(models[models.size()-1]);
+		}
 	}else{
 		while(moremodels && (nb_models==0 || modelsfound<nb_models)){
 			vec<Lit> model;
 			vec<Lit> assump;
-			moremodels = findNext(assump, model);
+			bool found = findNext(assump, model, moremodels);
 
-			//put models in return models
-			models.push();
-			model.copyTo(models[models.size()-1]);
+			if(found){
+				//put models in return models
+				models.push();
+				model.copyTo(models[models.size()-1]);
+			}
 		}
 	}
 
@@ -569,7 +570,7 @@ bool PCSolver::solveAll(vec<Lit>& assmpt, vec<vec<Lit> >& models){
 
 /**
  * Checks satisfiability of the theory.
- * If no model is found or no more models exist, false is returned. True otherwise
+ * Returns false if no model was found, true otherwise.
  * If a model is found, it is printed and returned in <m>, the theory is extended to prevent
  * 		the same model from being found again and
  * 		the datastructures are reset to prepare to find the next model
@@ -578,37 +579,40 @@ bool PCSolver::solveAll(vec<Lit>& assmpt, vec<vec<Lit> >& models){
  * Important: assmpt are the first DECISIONS that are made. So they are not automatic unit propagations
  * and can be backtracked!
  */
-bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m){
+bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m, bool& moremodels){
 	bool rslt = solve(assmpt);
 
-	if(rslt){
-		modelsfound++;
+	if(!rslt){
+		moremodels = false;
+		return false;
+	}
 
-		m.clear();
+	modelsfound++;
 
-		for (uint64_t i = 0; i < nVars(); i++){
-			if(value(i)==l_True){
-				m.push(Lit(i, false));
-			}else if(value(i)==l_False){
-				m.push(Lit(i, true));
-			}
-		}
+	m.clear();
 
-		if(nb_models!=1){
-			printf("%d model%s found.\n", modelsfound, modelsfound>1 ? "s" : "");
-		}
-
-		//check if more models can exist
-		if (getSolver()->decisionLevel() != assmpt.size()) { //choices were made, so other models possible
-			vec<Lit> invalidation;
-			invalidate(invalidation);
-			rslt = invalidateModel(invalidation);
-		}else{
-			rslt = false; //no more models possible
+	for (uint64_t i = 0; i < nVars(); i++){
+		if(value(i)==l_True){
+			m.push(Lit(i, false));
+		}else if(value(i)==l_False){
+			m.push(Lit(i, true));
 		}
 	}
 
-	return rslt;
+	if(nb_models!=1){
+		printf("%d model%s found.\n", modelsfound, modelsfound>1 ? "s" : "");
+	}
+
+	//check if more models can exist
+	if (getSolver()->decisionLevel() != assmpt.size()) { //choices were made, so other models possible
+		vec<Lit> invalidation;
+		invalidate(invalidation);
+		moremodels = invalidateModel(invalidation);
+	}else{
+		moremodels = false; //no more models possible
+	}
+
+	return true;
 }
 
 
