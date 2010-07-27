@@ -31,6 +31,7 @@ class SolverInterface{
 private:
 	ECNF_mode _modes;
 
+	//MAPS FROM NON-INDEXED TO INDEXED ATOMS!!!
 	int freeindex;
 	unordered_map<int, int> origtocontiguousatommapper, contiguoustoorigatommapper;
 

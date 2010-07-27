@@ -118,11 +118,11 @@ public:
 	bool    	invalidateModel	(vec<Lit>& invalidation);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
 	void 		invalidate		(vec<Lit>& invalidation);
 	bool 		solve			();
-	bool 		solve			(vector<vector<int> >& models);
+	bool 		solve			(vec<vec<Lit> >& models);
 	bool		solve			(const vec<Lit>& assmpt);
 	bool		solvenosearch	(const vec<Lit>& assmpt);
 	bool 		solveAll		(vec<Lit>& assmpt);
-	bool 		solveAll		(vec<Lit>& assmpt, vector<vector<int> >& models);
+	bool 		solveAll		(vec<Lit>& assmpt, vec<vec<Lit> >& models);
 
 	void		removeAggrHead	(Var x);
 	void		notifyAggrHead	(Var head);

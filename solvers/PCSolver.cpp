@@ -486,11 +486,11 @@ bool PCSolver::simplify(){
 //change the implementation to not save the models if not asked.
 bool PCSolver::solve(){
 	vec<Lit> assmpt;
-	vector<vector<int> > models;
+	vec<vec<Lit> > models;
 	return solveAll(assmpt, models);
 }
 
-bool PCSolver::solve(vector<vector<int> >& models){
+bool PCSolver::solve(vec<vec<Lit> >& models){
 	vec<Lit> assmpt;
 	return solveAll(assmpt, models);
 }
@@ -505,7 +505,7 @@ bool PCSolver::solve(const vec<Lit>& assmpt){
 	return getSolver()->solve(assmpt);
 }
 
-bool PCSolver::solveAll(vec<Lit>& assmpt, vector<vector<int> >& models){
+bool PCSolver::solveAll(vec<Lit>& assmpt, vec<vec<Lit> >& models){
 	bool solved = false;
 
 	if (modes().verbosity >= 1) {
@@ -533,12 +533,8 @@ bool PCSolver::solveAll(vec<Lit>& assmpt, vector<vector<int> >& models){
 		//FIXME FIXME in some cases, there is no last model, so this should be checked!
 
 		//put models in return models
-		vector<int> modelasint;
-		for(int i=0; i<model.size(); i++){
-			int atom = var(model[i]);
-			modelasint.push_back(sign(model[i])?-atom:atom);
-		}
-		models.push_back(modelasint);
+		models.push();
+		model.copyTo(models[models.size()-1]);
 
 	}else{
 		while(moremodels && (nb_models==0 || modelsfound<nb_models)){
@@ -547,12 +543,8 @@ bool PCSolver::solveAll(vec<Lit>& assmpt, vector<vector<int> >& models){
 			moremodels = findNext(assump, model);
 
 			//put models in return models
-			vector<int> modelasint;
-			for(int i=0; i<model.size(); i++){
-				int atom = var(model[i]);
-				modelasint.push_back(sign(model[i])?-atom:atom);
-			}
-			models.push_back(modelasint);
+			models.push();
+			model.copyTo(models[models.size()-1]);
 		}
 	}
 
@@ -593,6 +585,7 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m){
 		modelsfound++;
 
 		m.clear();
+
 		for (uint64_t i = 0; i < nVars(); i++){
 			if(value(i)==l_True){
 				m.push(Lit(i, false));
@@ -600,8 +593,6 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m){
 				m.push(Lit(i, true));
 			}
 		}
-
-		//printModel(m);
 
 		if(nb_models!=1){
 			printf("%d model%s found.\n", modelsfound, modelsfound>1 ? "s" : "");
@@ -858,7 +849,6 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 
 	return optimumreached;
 }
-
 
 void PCSolver::printChoiceMade(int level, Lit l) const{
 	if(modes().verbosity>=5){

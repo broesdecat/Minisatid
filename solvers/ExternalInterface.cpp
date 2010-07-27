@@ -30,11 +30,11 @@ Var SolverInterface::checkAtom(const Atom& atom){
 	if(atom.getValue()<1){
 		throw idpexception("Variables can only be numbered starting from 1.");
 	}
-	unordered_map<int, int>::const_iterator i = origtocontiguousatommapper.find(getVar(atom));
+	unordered_map<int, int>::const_iterator i = origtocontiguousatommapper.find(atom.getValue());
 	if(i==origtocontiguousatommapper.end()){
-		//reportf("%d mapped to %d\n", getVar(atom), freeindex);
-		origtocontiguousatommapper.insert(pair<int, int>(getVar(atom), freeindex));
-		contiguoustoorigatommapper.insert(pair<int, int>(freeindex, getVar(atom)));
+		//reportf("%d mapped to %d\n", atom.getValue(), freeindex);
+		origtocontiguousatommapper.insert(pair<int, int>(atom.getValue(), freeindex));
+		contiguoustoorigatommapper.insert(pair<int, int>(freeindex, atom.getValue()));
 		return freeindex++;
 	}else{
 		return (*i).second;
@@ -71,8 +71,9 @@ void SolverInterface::checkAtoms(const vector<Atom>& lits, vector<Var>& ll){
 
 Literal SolverInterface::getOrigLiteral(const Lit& l) const{
 	Atom nonindexatom = getAtom(abs(var(l)));
-	unordered_map<int, int>::const_iterator atom = contiguoustoorigatommapper.find(nonindexatom.getValue());
+	unordered_map<int, int>::const_iterator atom = contiguoustoorigatommapper.find(getVar(nonindexatom));
 	assert(atom!=contiguoustoorigatommapper.end());
+	//reportf("Retrieving literal "); gprintLit(l); reportf("mapped as %d to %d\n", (*atom).first, (*atom).second);
 	int origatom = (*atom).second;
 	return Literal(origatom, sign(l));
 }
@@ -105,26 +106,31 @@ bool PropositionalSolver::solve(){
 }
 
 bool PropositionalSolver::solve(vector<vector<Literal> >& models){
-	vector<vector<int> > varmodels; //int-format literals, INDEXED!
+	vec<vec<Lit> > varmodels; //int-format literals, INDEXED!
 	bool result = getSolver()->solve(varmodels);
 
-	if (varmodels.size()==1) {
+	if (result) {
 		fprintf(getRes()==NULL?stdout:getRes(), "SAT\n");
 		if(modes().verbosity>=1){
 			printf("SATISFIABLE\n");
+		}
+	}else{
+		fprintf(getRes()==NULL?stdout:getRes(), "UNSAT\n");
+		if(modes().verbosity>=1){
+			printf("UNSATISFIABLE\n");
 		}
 	}
 
 	if(result){
 		//Translate into original vocabulary
-		for(vector<vector<int> >::const_iterator model=varmodels.begin(); model<varmodels.end(); model++){
+		for(int i=0; i<varmodels.size(); i++){
 			vector<Literal> outmodel;
-			for(vector<int>::const_iterator lit=(*model).begin(); lit<(*model).end(); lit++){
+			for(int j=0; j<varmodels[i].size(); j++){
 				//TODO should move more inside
-				if(wasInput(abs(*lit))){ //was not part of the input
+				if(!wasInput(var(varmodels[i][j]))){ //was not part of the input
 					continue;
 				}
-				outmodel.push_back(getOrigLiteral(Lit(abs(*lit), (*lit)<0)));
+				outmodel.push_back(getOrigLiteral(varmodels[i][j]));
 			}
 			models.push_back(outmodel);
 			printModel(outmodel);
@@ -231,11 +237,12 @@ bool PropositionalSolver::addCPCount(const vector<int>& termnames, int value, MI
 }
 
 void PropositionalSolver::printModel(const vector<Literal>& model) const{
-	int nvars = (int)getSolver()->nVars();
-	for (int i = 0; i < nvars; i++){
+	bool start = true;
+	for (vector<Literal>::const_iterator i = model.begin(); i < model.end(); i++){
 		//TODO check that this was not necessary?
 		//if (model[i] != l_Undef){
-			fprintf(getRes()==NULL?stdout:getRes(), "%s%s%d", (i == 0) ? "" : " ", (model[i].getSign()) ? "-" : "", i + 1);
+			fprintf(getRes()==NULL?stdout:getRes(), "%s%s%d", start ? "" : " ", ((*i).getSign()) ? "-" : "", (*i).getAtom().getValue());
+			start = false;
 		//}
 	}
 	fprintf(getRes()==NULL?stdout:getRes(), " 0\n");
