@@ -150,7 +150,7 @@ bool AggSolver::finishSets(vector<pSet>& sets){
 	}
 }
 
-bool AggSolver::addSet(int set_id, vec<Lit>& lits, const vector<Weight>& weights) {
+bool AggSolver::addSet(int set_id, const vec<Lit>& lits, const vector<Weight>& weights) {
 	assert(set_id>0);
 	uint64_t setindex = set_id-1;
 	if(lits.size()==0){

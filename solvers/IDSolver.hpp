@@ -76,7 +76,7 @@ public:
 	/////////////////////END AGGSOLVER NECESSARY
 
 	/////////////////////INITIALIZATION
-	bool    	addRule      			(bool conj, Lit head, vec<Lit>& ps);	// Add a rule to the solver.
+	bool    	addRule      			(bool conj, Lit head, const vec<Lit>& ps);	// Add a rule to the solver.
 	bool    	finishECNF_DataStructures();							// Initialize the ECNF data structures. NOTE: aggregates may set the "ok" value to false!
 
 	pPCSolver 	getSolver				()	const		{ return solver; }

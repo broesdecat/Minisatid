@@ -3,6 +3,9 @@
 #include <stdint.h>
 #include <errno.h>
 
+#include <iostream>
+#include <fstream>
+
 #include <signal.h>
 
 #if defined(__linux__)
@@ -33,6 +36,8 @@ static inline double cpuTime(void) { return 0; }
 #endif
 
 #include "solvers/ExternalInterface.hpp"
+
+#include "solvers/Lparseread.hpp"
 
 ECNF_mode modes;
 
@@ -218,35 +223,57 @@ int main(int argc, char** argv) {
 
 		//pData d = unittest(modes);
 		//pData d = unittest2(modes);
-		pData d = unittest3(modes);
-//
-//		//An outputfile is not allowed when the inputfile is piped (//TODO should add a -o argument for this)
-//		/*ecnfin*/yyin = stdin; //Default read from stdin
-//		res = stdout; 	//Default write to stdout
-//
-//		if(argc==1){
-//			reportf("Reading from standard input... Use '-h' or '--help' for help.\n");
-//		}else if(argc>1){
-//			/*ecnfin*/yyin = fopen(argv[1], "r");
-//			if(!/*ecnfin*/yyin) {
-//				reportf("`%s' is not a valid filename or not readable.\n", argv[1]);
-//				throw idpexception();
-//			}
-//			if(argc>2){
-//				res = fopen(argv[2], "wb");
-//			}
-//		}
-//
-//		if(modes.verbosity>0){
-//			reportf("============================[ Problem Statistics ]=============================\n");
-//			reportf("|                                                                             |\n");
-//		}
-//
-//		pData d = parse();
-//
-//		if(/*ecnfin*/yyin != stdin){
-//			fclose(/*ecnfin*/yyin);
-//		}
+		//pData d = unittest3(modes);
+
+		//An outputfile is not allowed when the inputfile is piped (//TODO should add a -o argument for this)
+		/*ecnfin*/yyin = stdin; //Default read from stdin
+		res = stdout; 	//Default write to stdout
+
+		pData d;
+		if(modes.lparse){
+			PropositionalSolver* p = new PropositionalSolver(modes);
+			d = shared_ptr<SolverInterface>(p);
+			Read* r = new Read(p);
+
+			if(argc==1){
+				reportf("Reading from standard input... Use '-h' or '--help' for help.\n");
+				r->read(cin);
+			}else if(argc>1){
+				throw idpexception("Not yet implemented");
+				//r->read(ifstream(argv[1]));
+			}
+
+			if(modes.verbosity>0){
+				reportf("============================[ Problem Statistics ]=============================\n");
+				reportf("|                                                                             |\n");
+			}
+
+
+		}else{
+			if(argc==1){
+				reportf("Reading from standard input... Use '-h' or '--help' for help.\n");
+			}else if(argc>1){
+				/*ecnfin*/yyin = fopen(argv[1], "r");
+				if(!/*ecnfin*/yyin) {
+					reportf("`%s' is not a valid filename or not readable.\n", argv[1]);
+					throw idpexception();
+				}
+				if(argc>2){
+					res = fopen(argv[2], "wb");
+				}
+			}
+
+			if(modes.verbosity>0){
+				reportf("============================[ Problem Statistics ]=============================\n");
+				reportf("|                                                                             |\n");
+			}
+
+			d = parse();
+		}
+
+		if(/*ecnfin*/yyin != stdin){
+			fclose(/*ecnfin*/yyin);
+		}
 
 		if(modes.verbosity>0){
 			reportf("| Parsing time              : %7.2f s                                    |\n", cpuTime()-cpu_time);
@@ -316,7 +343,11 @@ void parseCommandline(int& argc, char** argv){
     int         i, j;
     const char* value;
     for (i = j = 0; i < argc; i++){
-        if ((value = hasPrefix(argv[i], "-polarity-mode="))){
+    	if ((value = hasPrefix(argv[i], "-lparse"))){
+			modes.lparse = true;
+			modes.aggr = true;
+			modes.def = true;
+    	}else if ((value = hasPrefix(argv[i], "-polarity-mode="))){
             if (strcmp(value, "true") == 0){
                modes.polarity_mode = polarity_true;
             }else if (strcmp(value, "false") == 0){

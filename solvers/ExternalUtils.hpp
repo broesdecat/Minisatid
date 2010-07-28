@@ -148,7 +148,6 @@ struct ECNF_mode {
 	double random_var_freq, var_decay;
 	POLARITY polarity_mode;
 	int verbosity;
-	//verbosity
 
 	//rest
 
@@ -160,10 +159,13 @@ struct ECNF_mode {
 	MARKDEPTH defn_search; // Controls which search type will be used for definitions.                                  (default include_cs)
 	SEARCHSTRAT ufs_strategy; //Which algorithm to use to find unfounded sets
 
+	bool lparse;
+
 	ECNF_mode() :
 		random_var_freq(0.02), var_decay(1 / 0.95), polarity_mode(polarity_stored), verbosity(0),
 		def(false), aggr(false), mnmz(false), cp(false), sem(WELLF), nbmodels(1),
-		defn_strategy(always), defn_search(include_cs), ufs_strategy(breadth_first) {
+		defn_strategy(always), defn_search(include_cs), ufs_strategy(breadth_first),
+		lparse(false){
 	}
 };
 

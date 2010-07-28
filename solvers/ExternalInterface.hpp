@@ -90,10 +90,10 @@ public:
 
 	void	addVar			(Atom v);
 	bool	addClause		(vector<Literal>& lits);
-	bool	addRule			(bool conj, Literal head, vector<Literal>& lits);
-	bool	addSet			(int id, vector<Literal>& lits);
-	bool 	addSet			(int set_id, vector<LW>& lws);
-	bool	addSet			(int id, vector<Literal>& lits, const vector<Weight>& w);
+	bool	addRule			(bool conj, Literal head, const vector<Literal>& lits);
+	bool	addSet			(int id, const vector<Literal>& lits);
+	bool 	addSet			(int set_id, const vector<LW>& lws);
+	bool	addSet			(int id, const vector<Literal>& lits, const vector<Weight>& w);
 	bool	addAggrExpr		(Literal head, int setid, Weight bound, bool lower, AggrType type, bool defined);
 	bool	finishParsing	(); //throws UNSAT
 

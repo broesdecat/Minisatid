@@ -96,9 +96,9 @@ public:
 	Var			newVar			();
 	void		addVar			(Var v);
 	bool 		addClause		(vec<Lit>& lits);
-	bool 		addRule			(bool conj, Lit head, vec<Lit>& lits);
-	bool 		addSet			(int id, vec<Lit>& lits);
-	bool 		addSet			(int id, vec<Lit>& lits, const vector<Weight>& w);
+	bool 		addRule			(bool conj, Lit head, const vec<Lit>& lits);
+	bool 		addSet			(int id, const vec<Lit>& lits);
+	bool 		addSet			(int id, const vec<Lit>& lits, const vector<Weight>& w);
 	bool 		addAggrExpr		(Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined);
 	bool 		addIntVar		(int groundname, int min, int max);
 	bool 		addCPBinaryRel	(Lit head, int groundname, MINISAT::EqType rel, int bound);

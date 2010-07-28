@@ -156,21 +156,21 @@ bool PropositionalSolver::addClause(vector<Literal>& lits){
 	return getSolver()->addClause(ll);
 }
 
-bool PropositionalSolver::addRule(bool conj, Literal head, vector<Literal>& lits){
+bool PropositionalSolver::addRule(bool conj, Literal head, const vector<Literal>& lits){
 	Lit newhead = checkLit(head);
 	vec<Lit> ll;
 	checkLits(lits, ll);
 	return getSolver()->addRule(conj, newhead, ll);
 }
 
-bool PropositionalSolver::addSet(int id, vector<Literal>& lits){
+bool PropositionalSolver::addSet(int id, const vector<Literal>& lits){
 	vec<Lit> ll;
 	checkLits(lits, ll);
 	return getSolver()->addSet(id, ll);
 }
 
 //Might be implemented more efficiently in the future
-bool PropositionalSolver::addSet(int id, vector<LW>& lws){
+bool PropositionalSolver::addSet(int id, const vector<LW>& lws){
 	vector<Literal> lits;
 	vector<Weight> weights;
 
@@ -182,7 +182,7 @@ bool PropositionalSolver::addSet(int id, vector<LW>& lws){
 	return addSet(id, lits, weights);
 }
 
-bool PropositionalSolver::addSet(int id, vector<Literal>& lits, const vector<Weight>& w){
+bool PropositionalSolver::addSet(int id, const vector<Literal>& lits, const vector<Weight>& w){
 	vec<Lit> ll;
 	checkLits(lits, ll);
 	return getSolver()->addSet(id, ll, w);

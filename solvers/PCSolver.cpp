@@ -214,14 +214,14 @@ bool PCSolver::addClause(vec<Lit>& lits){
 	return getSolver()->addClause(lits);
 }
 
-bool PCSolver::addRule(bool conj, Lit head, vec<Lit>& lits){
+bool PCSolver::addRule(bool conj, Lit head, const vec<Lit>& lits){
 	assert(idsolverpresent);
 	addVar(head);
 	addVars(lits);
 	return getIDSolver()->addRule(conj, head, lits);
 }
 
-bool PCSolver::addSet(int setid, vec<Lit>& lits){
+bool PCSolver::addSet(int setid, const vec<Lit>& lits){
 	assert(aggsolverpresent);
 	addVars(lits);
 	vector<Weight> w;
@@ -229,7 +229,7 @@ bool PCSolver::addSet(int setid, vec<Lit>& lits){
 	return addSet(setid, lits, w);
 }
 
-bool PCSolver::addSet(int setid, vec<Lit>& lits, const vector<Weight>& w){
+bool PCSolver::addSet(int setid, const vec<Lit>& lits, const vector<Weight>& w){
 	assert(aggsolverpresent);
 	addVars(lits);
 	return getAggSolver()->addSet(setid, lits, w);

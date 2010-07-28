@@ -21,6 +21,7 @@ minisatid_SOURCES += solvers/cpsolver/CPSolver.cpp solvers/cpsolver/CPScript.cpp
 minisatid_SOURCES += solvers/ModSolver.cpp solvers/SOSolverHier.cpp
 minisatid_SOURCES += solvers/ExternalInterface.cpp solvers/ExternalUtils.cpp 
 minisatid_SOURCES += solvers/Print.cpp
+minisatid_SOURCES += solvers/Lparseread.cpp
 
 include_HEADERS = 
 include_HEADERS += solvers/debug.hpp solvers/Print.hpp solvers/solverfwd.hpp solvers/SolverI.hpp
@@ -31,5 +32,6 @@ include_HEADERS += solvers/PCSolver.hpp solvers/Utils.hpp
 include_HEADERS += solvers/cpsolver/CPSolver.hpp solvers/cpsolver/CPScript.hpp solvers/cpsolver/Constraint.hpp solvers/cpsolver/CPSolverData.hpp
 include_HEADERS += solvers/ModSolver.hpp solvers/SOSolverHier.hpp
 include_HEADERS += mtl/Vec.h mtl/Queue.h mtl/Alg.h mtl/Heap.h mtl/Map.h mtl/Sort.h
+include_HEADERS += solvers/Lparseread.hpp
 
 dist_doc_DATA = README

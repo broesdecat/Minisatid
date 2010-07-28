@@ -91,7 +91,7 @@ public:
 	 *
 	 * @remark: please ensure that all id numbers are used without gaps in the numbering.
 	 */
-	bool    	addSet       (int id, vec<Lit>& l, const vector<Weight>& w);
+	bool    	addSet       (int id, const vec<Lit>& l, const vector<Weight>& w);
 
 	/**
 	 * Adds an aggregate of the given type with number defn for set set_id.

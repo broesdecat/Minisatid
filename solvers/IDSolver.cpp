@@ -74,7 +74,7 @@ void IDSolver::notifyVarAdded(int nvars){
  *
  * If only one body literal, the clause is always made conjunctive (for algorithmic correctness later on), semantics are the same.
  */
-bool IDSolver::addRule(bool conj, Lit head, vec<Lit>& ps) {
+bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
 	if(!isPositive(head)){
 		throw idpexception("Rule heads have to be positive literals.");
 	}
