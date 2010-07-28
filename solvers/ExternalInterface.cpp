@@ -32,7 +32,7 @@ Var SolverInterface::checkAtom(const Atom& atom){
 	if(atom.getValue()<1){
 		throw idpexception("Variables can only be numbered starting from 1.");
 	}
-	unordered_map<int, int>::const_iterator i = origtocontiguousatommapper.find(atom.getValue());
+	atommap::const_iterator i = origtocontiguousatommapper.find(atom.getValue());
 	if(i==origtocontiguousatommapper.end()){
 		//reportf("%d mapped to %d\n", atom.getValue(), freeindex);
 		origtocontiguousatommapper.insert(pair<int, int>(atom.getValue(), freeindex));
@@ -73,7 +73,7 @@ void SolverInterface::checkAtoms(const vector<Atom>& lits, vector<Var>& ll){
 
 Literal SolverInterface::getOrigLiteral(const Lit& l) const{
 	Atom nonindexatom = getAtom(abs(var(l)));
-	unordered_map<int, int>::const_iterator atom = contiguoustoorigatommapper.find(getVar(nonindexatom));
+	atommap::const_iterator atom = contiguoustoorigatommapper.find(getVar(nonindexatom));
 	assert(atom!=contiguoustoorigatommapper.end());
 	//reportf("Retrieving literal "); gprintLit(l); reportf("mapped as %d to %d\n", (*atom).first, (*atom).second);
 	int origatom = (*atom).second;
@@ -212,6 +212,10 @@ bool PropositionalSolver::addIntVar(int groundname, int min, int max){
 
 bool PropositionalSolver::addCPBinaryRel(Literal head, int groundname, MINISAT::EqType rel, int bound){
 	return getSolver()->addCPBinaryRel(checkLit(head), groundname, rel, bound);
+}
+
+bool PropositionalSolver::addCPBinaryRelVar(Literal head, int groundname, MINISAT::EqType rel, int groundname2){
+	return getSolver()->addCPBinaryRelVar(checkLit(head), groundname, rel, groundname2);
 }
 
 bool PropositionalSolver::addCPSum(Literal head, const vector<int>& termnames, MINISAT::EqType rel, int bound){

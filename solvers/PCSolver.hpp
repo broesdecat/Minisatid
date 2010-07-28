@@ -102,6 +102,7 @@ public:
 	bool 		addAggrExpr		(Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined);
 	bool 		addIntVar		(int groundname, int min, int max);
 	bool 		addCPBinaryRel	(Lit head, int groundname, MINISAT::EqType rel, int bound);
+	bool 		addCPBinaryRelVar	(Lit head, int groundname, MINISAT::EqType rel, int groundname2);
 	bool 		addCPSum		(Lit head, vector<int> termnames, MINISAT::EqType rel, int bound);
 	bool 		addCPSum		(Lit head, vector<int> termnames, vector<int> mult, MINISAT::EqType rel, int bound);
 	bool 		addCPSumVar		(Lit head, vector<int> termnames, MINISAT::EqType rel, int rhstermname);

@@ -273,6 +273,13 @@ bool PCSolver::addCPBinaryRel(Lit head, int groundname, MINISAT::EqType rel, int
 	return true;
 }
 
+bool PCSolver::addCPBinaryRelVar(Lit head, int groundname, MINISAT::EqType rel, int groundname2){
+	assert(cpsolverpresent);
+	checkHead(head);
+	getCPSolver()->addBinRelVar(groundname, rel, groundname2, var(head));
+	return true;
+}
+
 bool PCSolver::addCPSum(Lit head, vector<int> termnames, MINISAT::EqType rel, int bound){
 	assert(cpsolverpresent);
 	checkHead(head);
@@ -425,7 +432,7 @@ void PCSolver::backtrackRest(Lit l){
 	if(cpsolverpresent){
 		getCPSolver()->backtrack(l);
 	}
-	if(cpsolverpresent && getDecisions().back()==l){ //FIXME ugly and slow!
+	if(cpsolverpresent && getDecisions().back()==l){ //FIXME INCORRECT!
 		getCPSolver()->backtrack();
 	}
 	if(modsolverpresent){

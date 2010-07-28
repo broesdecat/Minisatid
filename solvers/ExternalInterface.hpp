@@ -10,6 +10,7 @@
 
 #include "solvers/ExternalUtils.hpp"
 
+#include <map>
 #include <vector>
 #include <stdlib.h>
 #include <stdint.h>
@@ -27,13 +28,16 @@ using namespace tr1;
 //TODO here create the mapping of grounder integers to solving integers!
 //Because grounder can leave (huge!) gaps which slow solving (certainly with arithmetic expressions).
 
+//map is only a bit slower
+typedef unordered_map<int, int> atommap;
+
 class SolverInterface{
 private:
 	ECNF_mode _modes;
 
 	//MAPS FROM NON-INDEXED TO INDEXED ATOMS!!!
 	int freeindex;
-	unordered_map<int, int> origtocontiguousatommapper, contiguoustoorigatommapper;
+	atommap origtocontiguousatommapper, contiguoustoorigatommapper;
 
 	FILE* res;
 
@@ -98,6 +102,7 @@ public:
 
 	bool 	addIntVar		(int groundname, int min, int max);
 	bool 	addCPBinaryRel	(Literal head, int groundname, MINISAT::EqType rel, int bound);
+	bool 	addCPBinaryRelVar	(Literal head, int groundname, MINISAT::EqType rel, int groundname2);
 	bool 	addCPSum		(Literal head, const vector<int>& termnames, MINISAT::EqType rel, int bound);
 	bool 	addCPSum		(Literal head, const vector<int>& termnames, vector<int> mult, MINISAT::EqType rel, int bound);
 	bool 	addCPSumVar		(Literal head, const vector<int>& termnames, MINISAT::EqType rel, int rhstermname);

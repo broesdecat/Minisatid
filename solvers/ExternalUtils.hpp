@@ -4,13 +4,29 @@
 #include <stdlib.h>
 #include <string>
 
+#include <iostream>
+
 using namespace std;
 
 namespace MINISAT{
 	enum EqType{
-		MEQ, MNEQ, MLEQ, MGEQ, MG, ML
+		MEQ, MNEQ, ML, MG, MGEQ, MLEQ
 	};
 }
+
+/* does not seem to work
+std::ostream& operator<<(std::ostream& os, enum MINISAT::EqType c)
+{
+	switch(c){
+	case MINISAT::MEQ: return os << "=";
+	case MINISAT::MNEQ: return os << "~=";
+	case MINISAT::MLEQ: return os << "=<";
+	case MINISAT::MGEQ: return os << ">=";
+	case MINISAT::MG: return os << ">";
+	case MINISAT::ML: return os << "<";
+	default: return os;
+	}
+}*/
 
 template <typename T>
 string printWeight(const T& w);

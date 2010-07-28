@@ -125,7 +125,7 @@ shared_ptr<SolverInterface> unittest2(ECNF_mode& modes){ //magic seq
 	pcsolver->addClause(lits);
 	vector<int> mult;
 	vector<int> elemx;
-	int n = 1500;
+	int n = 1000;
 	for(int i=0; i<n; i++){
 		mult.push_back(i-1);
 		int x = i;
@@ -146,6 +146,38 @@ shared_ptr<SolverInterface> unittest2(ECNF_mode& modes){ //magic seq
 	lits3.push_back(Literal(5));
 	pcsolver->addClause(lits3);
 	pcsolver->addCPSum(Literal(5), elemx, mult, MINISAT::MEQ, 0);
+
+	if(!pcsolver->finishParsing()){
+		return shared_ptr<SolverInterface>();
+	}
+
+	return pcsolver;
+}
+
+shared_ptr<SolverInterface> unittest3(ECNF_mode& modes){ //unsat
+	modes.cp = true;
+	shared_ptr<PropositionalSolver> pcsolver = shared_ptr<PropositionalSolver>(new PropositionalSolver(modes));
+
+	vector<int> elemx;
+	int n = 4;
+	for(int i=1; i<n; i++){
+		pcsolver->addIntVar(i, 1, 2);
+		elemx.push_back(i);
+	}
+
+	int c = 1;
+	for(int i=0; i<elemx.size(); i++){
+		int left = c;
+		for(int j=0; j<elemx.size(); j++, c++){
+			pcsolver->addCPBinaryRelVar(Literal(c), elemx[i], MINISAT::MNEQ, elemx[j]);
+			if(i+j<n){
+				vector<Literal> lits;
+				lits.push_back(Literal(left));
+				lits.push_back(Literal(c+i+1));
+				pcsolver->addClause(lits);
+			}
+		}
+	}
 
 	if(!pcsolver->finishParsing()){
 		return shared_ptr<SolverInterface>();
@@ -186,34 +218,35 @@ int main(int argc, char** argv) {
 
 		//pData d = unittest(modes);
 		//pData d = unittest2(modes);
-
-		//An outputfile is not allowed when the inputfile is piped (//TODO should add a -o argument for this)
-		/*ecnfin*/yyin = stdin; //Default read from stdin
-		res = stdout; 	//Default write to stdout
-
-		if(argc==1){
-			reportf("Reading from standard input... Use '-h' or '--help' for help.\n");
-		}else if(argc>1){
-			/*ecnfin*/yyin = fopen(argv[1], "r");
-			if(!/*ecnfin*/yyin) {
-				reportf("`%s' is not a valid filename or not readable.\n", argv[1]);
-				throw idpexception();
-			}
-			if(argc>2){
-				res = fopen(argv[2], "wb");
-			}
-		}
-
-		if(modes.verbosity>0){
-			reportf("============================[ Problem Statistics ]=============================\n");
-			reportf("|                                                                             |\n");
-		}
-
-		pData d = parse();
-
-		if(/*ecnfin*/yyin != stdin){
-			fclose(/*ecnfin*/yyin);
-		}
+		pData d = unittest3(modes);
+//
+//		//An outputfile is not allowed when the inputfile is piped (//TODO should add a -o argument for this)
+//		/*ecnfin*/yyin = stdin; //Default read from stdin
+//		res = stdout; 	//Default write to stdout
+//
+//		if(argc==1){
+//			reportf("Reading from standard input... Use '-h' or '--help' for help.\n");
+//		}else if(argc>1){
+//			/*ecnfin*/yyin = fopen(argv[1], "r");
+//			if(!/*ecnfin*/yyin) {
+//				reportf("`%s' is not a valid filename or not readable.\n", argv[1]);
+//				throw idpexception();
+//			}
+//			if(argc>2){
+//				res = fopen(argv[2], "wb");
+//			}
+//		}
+//
+//		if(modes.verbosity>0){
+//			reportf("============================[ Problem Statistics ]=============================\n");
+//			reportf("|                                                                             |\n");
+//		}
+//
+//		pData d = parse();
+//
+//		if(/*ecnfin*/yyin != stdin){
+//			fclose(/*ecnfin*/yyin);
+//		}
 
 		if(modes.verbosity>0){
 			reportf("| Parsing time              : %7.2f s                                    |\n", cpuTime()-cpu_time);
