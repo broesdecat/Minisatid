@@ -171,13 +171,22 @@ struct ECNF_mode {
 
 class idpexception: public std::exception{
 private:
-	const char* mess;
+	string mess;
 public:
-	idpexception(): std::exception(), mess(""){	}
-	idpexception(const char* m): std::exception(), mess(m){	}
+	/*idpexception(): std::exception(){
+		strcpy (mess,"\n");
+	}*/
+	idpexception(const char* m): std::exception(){
+		mess.append("Exception caught: ");
+		mess.append(m);
+	}
+
+	~idpexception() throw(){
+
+	}
 
 	virtual const char* what() const throw(){
-		return mess;
+		return mess.c_str();
 	}
 };
 

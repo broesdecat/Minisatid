@@ -72,7 +72,7 @@ void ModSolver::setNbModels(int nb){
  * but requires some algorithmic changes then, so currently they are added. In addition,
  * they are added as variables to the parent solver, that has to decide on values for them.
  */
-void ModSolver::addAtoms(const vector<Var>& a){
+bool ModSolver::addAtoms(const vector<Var>& a){
 	for(vector<Var>::const_iterator i=a.begin(); i<a.end(); i++){
 		atoms.push_back(*i);
 		addVar(*i);
@@ -81,6 +81,8 @@ void ModSolver::addAtoms(const vector<Var>& a){
 
 	//Creates a bool-vector mapping each atom to whether it was propagated from above or from this theory
 	propfromabove = vector<bool>(atoms.size(), false);
+
+	return true;
 }
 
 

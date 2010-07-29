@@ -76,7 +76,7 @@ void IDSolver::notifyVarAdded(int nvars){
  */
 bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
 	if(!isPositive(head)){
-		throw idpexception("Rule heads have to be positive literals.");
+		throw idpexception("Negative heads are not allowed.\n");
 	}
 
 	if(getSolver()->modes().verbosity>=5){
@@ -1084,8 +1084,7 @@ bool IDSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 		break;
 	default:
 		assert(false);
-		reportf("The program tried to justify an rule that was not AGGR, DISJ or CONJ.\n");
-		throw idpexception();
+		throw idpexception("The program tried to justify a rule that was not AGGR, DISJ or CONJ.\n");
 	}
 	if(justified){
 		assert(jstf.size()>0);
@@ -1184,8 +1183,7 @@ void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf){
 			break;
 		default:
 			assert(false);
-			reportf("Only AGGR, CONJ or DISJ should be checked for external disjuncts!");
-			throw idpexception();
+			throw idpexception("Only AGGR, CONJ or DISJ should be checked for external disjuncts!\n");
 			break;
 		}
 	}

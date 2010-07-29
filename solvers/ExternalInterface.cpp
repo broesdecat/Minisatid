@@ -30,7 +30,7 @@ Literal getLiteral(Lit lit){
 
 Var SolverInterface::checkAtom(const Atom& atom){
 	if(atom.getValue()<1){
-		throw idpexception("Variables can only be numbered starting from 1.");
+		throw idpexception("Variables can only be numbered starting from 1.\n");
 	}
 	atommap::const_iterator i = origtocontiguousatommapper.find(atom.getValue());
 	if(i==origtocontiguousatommapper.end()){
@@ -325,8 +325,8 @@ bool ModalSolver::addChild(modID parent, modID child, Literal head){
 	return getSolver()->addChild(getModIndex(parent), getModIndex(child), checkLit(head));
 }
 
-void ModalSolver::addAtoms(modID modid, const vector<Atom>& atoms){
+bool ModalSolver::addAtoms(modID modid, const vector<Atom>& atoms){
 	vector<Var> aa;
 	checkAtoms(atoms, aa);
-	getSolver()->addAtoms(getModIndex(modid), aa);
+	return getSolver()->addAtoms(getModIndex(modid), aa);
 }

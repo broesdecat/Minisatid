@@ -11,8 +11,8 @@ ModSolverData::~ModSolverData(){
 
 void ModSolverData::checkexistsModSolver(modindex modid) const {
 	if(!existsModSolver(modid)){
-		reportf("No modal operator with id %zu was defined! ", modid+1);
-		throw idpexception();
+		char s[100]; sprintf(s, "No modal operator with id %zu was declared! ", modid+1);
+		throw idpexception(s);
 	}
 }
 
@@ -62,12 +62,12 @@ bool ModSolverData::addChild(modindex parent, modindex child, Lit h){
 
 	checkexistsModSolver(parent);
 	if(existsModSolver(child)){
-		reportf("Modal operator with id %zu was already defined! ", child+1);
-		throw idpexception();
+		char s[100]; sprintf(s, "Modal operator with id %zu was already defined!\n", child+1);
+		throw idpexception(s);
 	}
 	if(sign(h)){
-		reportf("Modal operator %zu has a negative head. This is not allowed.", child+1);
-		throw idpexception();
+		char s[100]; sprintf(s, "Modal operator %zu has a negative head.\n", child+1);
+		throw idpexception(s);
 	}
 	if(solvers.size()<child+1){
 		solvers.resize(child+1, NULL);
@@ -78,13 +78,13 @@ bool ModSolverData::addChild(modindex parent, modindex child, Lit h){
 	return true;
 }
 
-void ModSolverData::addAtoms(modindex modid, const vector<Var>& atoms){
+bool ModSolverData::addAtoms(modindex modid, const vector<Var>& atoms){
 	assert(state==LOADINGHIER);
 
 	//allAtoms.insert(allAtoms.end(), atoms.begin(), atoms.end());
 
 	checkexistsModSolver(modid);
-	getModSolver(modid)->addAtoms(atoms);
+	return getModSolver(modid)->addAtoms(atoms);
 }
 
 //Add information for PC-Solver
@@ -212,8 +212,7 @@ bool ModSolverData::addAggrExpr(modindex modid, Lit head, int setid, Weight boun
 	assert(state==LOADINGREST);
 
 	if(sign(head)){
-		reportf( "No negative heads are allowed!\n");
-		throw idpexception();
+		throw idpexception("Negative heads are not allowed for aggregate expressions!\n");
 	}
 	checkexistsModSolver(modid);
 	pModSolver m = getModSolver(modid);
@@ -258,11 +257,12 @@ void ModSolverData::verifyHierarchy(){
 	}
 	for(vmsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
 		if(visitcount[(*i)->getId()]!=1 && *i!=NULL){
-			reportf("The hierarchy of modal solvers does not form a tree. "
-					"The Solver with id %zu is %s.",
+			char s[200];
+			sprintf(s, "The hierarchy of modal solvers does not form a tree. "
+					"The Solver with id %zu is %s. \n",
 						(*i)->getPrintId(),
 						visitcount[(*i)->getId()]==0?"not referenced":"referenced multiple times");
-			throw idpexception();
+			throw idpexception(s);
 		}
 	}
 }

@@ -27,8 +27,7 @@ extern int charPos;
 %x TRANSLATION_MODUS
 %%
 
-^"c grounder error".*	{cerr << "There was a grounding error, so no solving is possible." << endl; 
-						 throw idpexception();}
+^"c grounder error".*	{ throw idpexception("There was a grounding error, so no solving is possible.\n");}
 ^"c ".*		{/* disregard comments */}
 
 ^"p "	{ADJ; }
@@ -41,13 +40,13 @@ extern int charPos;
 
 "WSet"	{ADJ; return WSETDEFN;}
 "Set"	{ADJ; return SETDEFN;}
-"Card"	{ADJ; /*ecnflval*/yylval.integer = CARD; return AGGDEFN;}
-"Sum"	{ADJ; /*ecnflval*/yylval.integer = SUM; return AGGDEFN;}
-"Prod"	{ADJ; /*ecnflval*/yylval.integer = PROD; return AGGDEFN;}
-"Min"	{ADJ; /*ecnflval*/yylval.integer = MIN; return AGGDEFN;}
-"Max"	{ADJ; /*ecnflval*/yylval.integer = MAX; return AGGDEFN;}
+"Card"	{ADJ; /*ecnflval*/yylval.aggr = CARD; return AGGDEFN;}
+"Sum"	{ADJ; /*ecnflval*/yylval.aggr = SUM; return AGGDEFN;}
+"Prod"	{ADJ; /*ecnflval*/yylval.aggr = PROD; return AGGDEFN;}
+"Min"	{ADJ; /*ecnflval*/yylval.aggr = MIN; return AGGDEFN;}
+"Max"	{ADJ; /*ecnflval*/yylval.aggr = MAX; return AGGDEFN;}
 
-"Mod"		{ADJ; return MODDEFN;}
+"Mod"	{ADJ; return MODDEFN;}
 
 "D"		{ADJ; /*ecnflval*/yylval.boolean = true;  return SEMDEFN;}
 "C"		{ADJ; /*ecnflval*/yylval.boolean = false; return SEMDEFN;}
@@ -67,12 +66,12 @@ extern int charPos;
 
 "BINCONST"	{ADJ; return BINCONSTR;}
 
-"="		{ADJ; /*ecnflval*/yylval.integer = MINISAT::MEQ; return REL;}
-">"		{ADJ; /*ecnflval*/yylval.integer = MINISAT::MG; return REL;}
-"<"		{ADJ; /*ecnflval*/yylval.integer = MINISAT::ML; return REL;}
-"!="	{ADJ; /*ecnflval*/yylval.integer = MINISAT::MNEQ; return REL;}
-"=<"	{ADJ; /*ecnflval*/yylval.integer = MINISAT::MLEQ; return REL;}
-">="	{ADJ; /*ecnflval*/yylval.integer = MINISAT::MGEQ; return REL;}
+"="		{ADJ; /*ecnflval*/yylval.rel = MINISAT::MEQ; return REL;}
+">"		{ADJ; /*ecnflval*/yylval.rel = MINISAT::MG; return REL;}
+"<"		{ADJ; /*ecnflval*/yylval.rel = MINISAT::ML; return REL;}
+"!="	{ADJ; /*ecnflval*/yylval.rel = MINISAT::MNEQ; return REL;}
+"=<"	{ADJ; /*ecnflval*/yylval.rel = MINISAT::MLEQ; return REL;}
+">="	{ADJ; /*ecnflval*/yylval.rel = MINISAT::MGEQ; return REL;}
 
  /* Longest match is returned -> if e.g. "20", NUMBER is returned.
     If "0", then ZERO is returned since it's the first matching rule.
@@ -81,11 +80,7 @@ extern int charPos;
 -?[0-9]+	{ADJ; /*ecnflval*/yylval.integer = atoi(yytext); return NUMBER;}
 
 <*>.		{/* Anything else: parse error */
-				cerr	<< "Line " << lineNo 
-						<< ", Column " << charPos 
-						<< ": Parse error (unexpected character '"
-						<< yytext
-						<< "' encountered)." 
-						<< endl;
-				throw idpexception();
+				char s[100];
+				sprintf(s, "Encountered unexpected character '%s'.\n", yytext);
+				throw idpexception(s);
 			}

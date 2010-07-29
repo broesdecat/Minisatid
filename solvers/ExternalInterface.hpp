@@ -134,7 +134,7 @@ public:
 
 	//Add information for hierarchy
 	bool 	addChild		(modID parent, modID child, Literal head);
-	void	addAtoms		(modID modid, const vector<Atom>& atoms);
+	bool	addAtoms		(modID modid, const vector<Atom>& atoms);
 
 	//Add information for PC-Solver
 	void 	addVar			(modID modid, Atom v);

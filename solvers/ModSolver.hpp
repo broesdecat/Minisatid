@@ -67,7 +67,7 @@ public:
 	ModSolver(modindex child, Var head, shared_ptr<ModSolverData> mh);
 	virtual ~ModSolver();
 
-	void 	addAtoms		(const vector<Var>& atoms);
+	bool 	addAtoms		(const vector<Var>& atoms);
 	void 	addChild		(modindex child);
 	void	setParent		(modindex id);
 

@@ -190,8 +190,7 @@ bool AggrSumSet::initialize(){
 	Weight total(0);
 	for(lwlv::const_iterator i=wlits.begin(); i<wlits.end(); i++){
 		if(INT_MAX-total < (*i).getWeight()){
-			reportf("The total sum of weights exceeds max-int, correctness cannot be guaranteed in limited precision.\n");
-			throw idpexception();
+			throw idpexception("The total sum of weights exceeds max-int, correctness cannot be guaranteed in limited precision.\n");
 		}
 		total += (*i).getWeight();
 	}
@@ -207,8 +206,7 @@ bool AggrProdSet::initialize(){
 	Weight total(1);
 	for(lwlv::const_iterator i=wlits.begin(); i<wlits.end(); i++){
 		if(INT_MAX/total < (*i).getWeight()){
-			reportf("The total product of weights exceeds max-int, correctness cannot be guaranteed in limited precision.\n");
-			throw idpexception();
+			throw idpexception("The total product of weights exceeds max-int, correctness cannot be guaranteed in limited precision.\n");
 		}
 		total *= (*i).getWeight();
 	}
@@ -349,7 +347,7 @@ WLit AggrProdSet::handleOccurenceOfBothSigns(const WLit& one, const WLit& two){
 	reportf("Product aggregates in which both the literal and its negation occur "
 			"are currently not supported. Replace ");
 	gprintLit(one.getLit()); reportf("or "); gprintLit(two.getLit()); reportf("by a tseitin.\n");
-	throw idpexception();
+	throw idpexception("Atoms in product aggregates have to be unique.\n");
 }
 
 

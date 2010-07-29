@@ -246,8 +246,7 @@ bool PCSolver::addAggrExpr(Lit head, int setid, Weight bound, bool lower, AggrTy
 	addVar(head);
 
 	if(sign(head)){
-		reportf( "No negative heads are allowed!\n");
-		throw idpexception();
+		throw idpexception("Negative heads are not allowed.\n");
 	}
 	return getAggSolver()->addAggrExpr(var(head), setid, bound, lower, type, defined);
 }
@@ -261,8 +260,7 @@ bool PCSolver::addIntVar(int groundname, int min, int max){
 void PCSolver::checkHead(Lit head){
 	addVar(head);
 	if(sign(head)){
-		reportf( "No negative heads are allowed!\n");
-		throw idpexception();
+		throw idpexception("Negative heads are not allowed.\n");
 	}
 }
 
@@ -674,17 +672,14 @@ bool PCSolver::invalidateModel(vec<Lit>& learnt) {
 
 bool PCSolver::addMinimize(const vec<Lit>& lits, bool subset) {
 	if (!modes().mnmz){
-		reportf("ERROR! Attempt at adding an optimization statement, though header "
+		throw idpexception("ERROR! Attempt at adding an optimization statement, though header "
 				"did not contain \"mnmz\".\n");
-		throw idpexception();
 	}
 	if (lits.size() == 0) {
-		reportf("Error: The set of literals to be minimized is empty,\n");
-		throw idpexception();
+		throw idpexception("The set of literals to be minimized is empty.\n");
 	}
 	if (optim!=NONE) {
-		reportf("At most one set of literals to be minimized can be given.\n");
-		throw idpexception();
+		throw idpexception("At most one set of literals to be minimized can be given.\n");
 	}
 
 	if(subset){
@@ -703,13 +698,11 @@ bool PCSolver::addMinimize(const vec<Lit>& lits, bool subset) {
 
 bool PCSolver::addSumMinimize(const Var head, const int setid){
 	if (!modes().mnmz){
-		reportf("ERROR! Attempt at adding an optimization statement, though header "
+		throw idpexception("ERROR! Attempt at adding an optimization statement, though header "
 				"did not contain \"mnmz\".\n");
-		throw idpexception();
 	}
 	if (optim!=NONE) {
-		reportf("Only one optimization statement is possible.\n");
-		throw idpexception();
+		throw idpexception("Only one optimization statement is allowed.\n");
 	}
 
 	addVar(head);

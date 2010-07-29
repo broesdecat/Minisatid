@@ -69,7 +69,7 @@ public:
 
 	//Add information for hierarchy
 	bool 	addChild			(modindex parent, modindex child, Lit head);
-	void	addAtoms			(modindex modid, const vector<Var>& atoms);
+	bool	addAtoms			(modindex modid, const vector<Var>& atoms);
 
 	//Add information for PC-Solver
 	void 	addVar				(modindex modid, Var v);
