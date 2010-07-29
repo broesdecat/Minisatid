@@ -238,6 +238,10 @@ bool PropositionalSolver::addCPCount(const vector<int>& termnames, int value, MI
 	return getSolver()->addCPCount(termnames, value, rel, rhstermname);
 }
 
+bool PropositionalSolver::addCPAlldifferent(const vector<int>& termnames){
+	return getSolver()->addCPAlldifferent(termnames);
+}
+
 void PropositionalSolver::printModel(const vector<Literal>& model) const{
 	bool start = true;
 	for (vector<Literal>::const_iterator i = model.begin(); i < model.end(); i++){

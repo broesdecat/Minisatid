@@ -108,6 +108,7 @@ public:
 	bool 		addCPSumVar		(Lit head, vector<int> termnames, MINISAT::EqType rel, int rhstermname);
 	bool 		addCPSumVar		(Lit head, vector<int> termnames, vector<int> mult, MINISAT::EqType rel, int rhstermname);
 	bool 		addCPCount		(vector<int> termnames, int value, MINISAT::EqType rel, int rhstermname);
+	bool 		addCPAlldifferent(const vector<int>& termnames);
 
 	bool 		finishParsing	(); //throws UNSAT
 

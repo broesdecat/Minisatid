@@ -37,6 +37,7 @@ extern int charPos;
 "def" 	{ADJ; return DEFPRESENT;}
 "aggr" 	{ADJ; return AGGPRESENT;}
 "mnmz" 	{ADJ; return MNMZPRESENT;}
+"cp" 	{ADJ; return CPPRESENT;}
 
 "WSet"	{ADJ; return WSETDEFN;}
 "Set"	{ADJ; return SETDEFN;}
@@ -64,12 +65,20 @@ extern int charPos;
 "\t"	{ADJ; /*                       */}
 "\n"	{charPos = 1; lineNo++; /*     */}
 
-"BINCONST"	{ADJ; return BINCONSTR;}
+"|"	{ADJ; return DELIM;}
+
+"INTVAR"	{ADJ; return INTVAR;}
+"BIN"	{ADJ; return BINCONSTR;}
+"SUMSTRI"	{ADJ; return SUMSTRI;}
+"SUMSTRT"	{ADJ; return SUMSTRT;}
+"SUMSTSIRI"	{ADJ; return SUMSTSIRI;}
+"SUMSTSIRT"	{ADJ; return SUMSTSIRT;}
+"COUNTSTRIT"	{ADJ; return COUNTSTRIT;}
 
 "="		{ADJ; /*ecnflval*/yylval.rel = MINISAT::MEQ; return REL;}
 ">"		{ADJ; /*ecnflval*/yylval.rel = MINISAT::MG; return REL;}
 "<"		{ADJ; /*ecnflval*/yylval.rel = MINISAT::ML; return REL;}
-"!="	{ADJ; /*ecnflval*/yylval.rel = MINISAT::MNEQ; return REL;}
+"~="	{ADJ; /*ecnflval*/yylval.rel = MINISAT::MNEQ; return REL;}
 "=<"	{ADJ; /*ecnflval*/yylval.rel = MINISAT::MLEQ; return REL;}
 ">="	{ADJ; /*ecnflval*/yylval.rel = MINISAT::MGEQ; return REL;}
 

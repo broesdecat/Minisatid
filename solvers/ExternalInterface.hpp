@@ -108,6 +108,7 @@ public:
 	bool 	addCPSumVar		(Literal head, const vector<int>& termnames, MINISAT::EqType rel, int rhstermname);
 	bool 	addCPSumVar		(Literal head, const vector<int>& termnames, vector<int> mult, MINISAT::EqType rel, int rhstermname);
 	bool 	addCPCount		(const vector<int>& termnames, int value, MINISAT::EqType rel, int rhstermname);
+	bool 	addCPAlldifferent(const vector<int>& termnames);
 
 	void 	printModel(const vector<Literal>& model) const;
 };

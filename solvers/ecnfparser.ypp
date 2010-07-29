@@ -84,8 +84,8 @@ shared_ptr<SolverInterface> getData();
 %token <boolean> SEMDEFN SIGNDEFN QUANTe
 %token <rel> REL
 %token <aggr> AGGDEFN
-%token CNF ECNF MECNF DEFPRESENT AGGPRESENT MNMZPRESENT MODDEFN
-%token INTVAR SUMTRT SUMTRI SUMTIRT SUMTIRI COUNTTRI COUNTTRT DISTINCT DELIM BINCONSTR
+%token CNF ECNF MECNF DEFPRESENT AGGPRESENT MNMZPRESENT MODDEFN CPPRESENT
+%token INTVAR SUMSTRT SUMSTRI SUMSTSIRT SUMSTSIRI COUNTSTRIT DISTINCT DELIM BINCONSTR
 
 %type <integer> number posnumber
 %type <vints> ibody
@@ -111,6 +111,7 @@ init	:	CNF	number number { atoms = $2; clauses = $3; } cnftheory
 
 header	: 	/*empty*/
 		| 	header DEFPRESENT	{ modes.def = true;}
+		| 	header CPPRESENT	{ modes.cp = true;}
 		| 	header AGGPRESENT	{ modes.aggr = true; }
 		| 	header MNMZPRESENT	{ modes.mnmz = true; }
 		;
@@ -190,11 +191,30 @@ intvar	:	INTVAR number number number ZERO
 				{ 	CR(solver->addIntVar($2, $3, $4)); }
 		;
 
+/*intvarset
+		:	INTVARSET number ibody ZERO 
+				{ 	CR(solver->addIntVarSet($2, *$3)); delete $3; }
+		;*/
+
+//abbreviations: T = intterm, I = intconst, R = relational operator, ST = set of T, SI = set of I
+
 cpconstraint
 		:	BINCONSTR NUMBER number REL number ZERO 
 				{ 	CR(solver->addCPBinaryRel(Literal($2), $3, $4, $5)); }
-		|	SUMTRI NUMBER ibody REL number ZERO 
+		|	SUMSTRI NUMBER ibody REL number ZERO 
+				{ 	CR(solver->addCPSum(Literal($2), *$3, $4, $5)); delete $3; }
+		|	SUMSTRT NUMBER ibody REL number ZERO 
 				{ 	CR(solver->addCPSumVar(Literal($2), *$3, $4, $5)); delete $3; }
+		|	SUMSTSIRI NUMBER ibody DELIM ibody REL number ZERO 
+				{ 	CR(solver->addCPSum(Literal($2), *$3, *$5, $6, $7)); delete $3; delete $5; }
+		|	SUMSTSIRT NUMBER ibody DELIM ibody REL number ZERO 
+				{ 	CR(solver->addCPSumVar(Literal($2), *$3, *$5, $6, $7)); delete $3; delete $5; }
+			//only global card at the moment!
+		|	COUNTSTRIT ibody REL number number ZERO 
+				{ 	CR(solver->addCPCount(*$2, $4, $3, $5)); delete $2; }
+			//only global alldiff at the moment!
+		|	DISTINCT ibody DELIM ZERO //DELIM to remove shift-reduce conflict 
+				{ 	CR(solver->addCPAlldifferent(*$2)); delete $2; }
 		;
 
 //		

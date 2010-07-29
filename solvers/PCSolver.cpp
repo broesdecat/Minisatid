@@ -312,6 +312,11 @@ bool PCSolver::addCPCount(vector<int> termnames, int value, MINISAT::EqType rel,
 	return true;
 }
 
+bool PCSolver::addCPAlldifferent(const vector<int>& termnames){
+	assert(cpsolverpresent);
+	return getCPSolver()->addAllDifferent(termnames);
+}
+
 /*
  * Returns "false" if UNSAT was already found, otherwise "true"
  */

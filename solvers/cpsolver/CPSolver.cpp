@@ -130,11 +130,14 @@ void CPSolver::addCount(vector<int> terms, MINISAT::EqType rel, int value, int r
 	CountConstraint(*solverdata->getSpace(), set, toRelType(rel), rhs);
 }*/
 
-void CPSolver::addAllDifferent(vector<int> term){
+bool CPSolver::addAllDifferent(vector<int> term){
 	assert(init);
 	vector<TermIntVar> set(solverdata->convertToVars(term));
 	//TODO not added to solverdata constraints!
 	/*solverdata->getConstraints().push_back(*/new DistinctConstraint(solverdata->getSpace(), set);//);
+
+	//TODO check failing of space here (and in all other ones too!).
+	return true;
 }
 
 ////////////////////////////

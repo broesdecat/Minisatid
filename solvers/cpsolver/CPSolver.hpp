@@ -39,7 +39,7 @@ namespace CP {
 		virtual ~CPSolver	();
 
 		void 	addTerm		(int term, int min, int max);
-		void 	addAllDifferent(vector<int> term);
+		bool 	addAllDifferent(vector<int> term);
 		void	addBinRel	(int groundname, MINISAT::EqType rel, int bound, int atom);
 		void	addBinRelVar(int groundname, MINISAT::EqType rel, int groundname2, int atom);
 		void 	addSum		(vector<int> term, MINISAT::EqType rel, int bound, int atom);
