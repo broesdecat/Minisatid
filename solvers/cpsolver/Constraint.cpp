@@ -21,7 +21,7 @@ void Constraint::propagate(bool becametrue, CPScript& space){
 	//cout <<"Before rel" << space.getBoolVars()[getBoolVar()] <<endl;
 	//BoolVar v(space, 0, 1);
 	//rel(space, v, IRT_GQ, becametrue?1:0);
-	rel(space, space.getBoolVars()[getBoolVar()], IRT_GQ, becametrue?1:0);
+	rel(space, space.getBoolVars()[getBoolVar()], IRT_EQ, becametrue?1:0);
 	//Int::BoolView v(space.getBoolVars()[getBoolVar()]);
 	//v.eq(space, becametrue?1:0);
 }

@@ -9,6 +9,8 @@
 
 #include "solvers/ExternalUtils.hpp"
 
+#include "solvers/debug.hpp"
+
 using namespace CP;
 
 CPSolverData::CPSolverData(){
@@ -24,6 +26,7 @@ CPSolverData::~CPSolverData(){
 bool CPSolverData::allBooleansKnown() const{
 	for(int i=0; i<getConstraints().size(); i++){
 		if(!getConstraints()[i]->isAssigned(getSpace())){
+			reportf("Unknown boolean: %d.\n", gprintVar(getConstraints()[i]->getAtom()));
 			return false;
 		}
 	}

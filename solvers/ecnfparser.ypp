@@ -85,7 +85,7 @@ shared_ptr<SolverInterface> getData();
 %token <rel> REL
 %token <aggr> AGGDEFN
 %token CNF ECNF MECNF DEFPRESENT AGGPRESENT MNMZPRESENT MODDEFN CPPRESENT
-%token INTVAR SUMSTRT SUMSTRI SUMSTSIRT SUMSTSIRI COUNTSTRIT DISTINCT DELIM BINCONSTR
+%token INTVAR SUMSTRT SUMSTRI SUMSTSIRT SUMSTSIRI COUNTSTRIT DISTINCT DELIM BINTRI BINTRT
 
 %type <integer> number posnumber
 %type <vints> ibody
@@ -199,8 +199,10 @@ intvar	:	INTVAR number number number ZERO
 //abbreviations: T = intterm, I = intconst, R = relational operator, ST = set of T, SI = set of I
 
 cpconstraint
-		:	BINCONSTR NUMBER number REL number ZERO 
+		:	BINTRI NUMBER number REL number ZERO 
 				{ 	CR(solver->addCPBinaryRel(Literal($2), $3, $4, $5)); }
+		|	BINTRT NUMBER number REL number ZERO 
+				{ 	CR(solver->addCPBinaryRelVar(Literal($2), $3, $4, $5)); }
 		|	SUMSTRI NUMBER ibody REL number ZERO 
 				{ 	CR(solver->addCPSum(Literal($2), *$3, $4, $5)); delete $3; }
 		|	SUMSTRT NUMBER ibody REL number ZERO 

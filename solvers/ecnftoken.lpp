@@ -68,7 +68,8 @@ extern int charPos;
 "|"	{ADJ; return DELIM;}
 
 "INTVAR"	{ADJ; return INTVAR;}
-"BIN"	{ADJ; return BINCONSTR;}
+"BINTRI"	{ADJ; return BINTRI;}
+"BINTRT"	{ADJ; return BINTRT;}
 "SUMSTRI"	{ADJ; return SUMSTRI;}
 "SUMSTRT"	{ADJ; return SUMSTRT;}
 "SUMSTSIRI"	{ADJ; return SUMSTSIRI;}

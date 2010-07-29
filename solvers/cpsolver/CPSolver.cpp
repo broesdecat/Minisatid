@@ -189,6 +189,8 @@ bool CPSolver::finishParsing(){
 Clause* CPSolver::propagate(Lit l){
 	if (init) {return NULL;}
 
+	//reportf("CP propagated: "); gprintLit(l); reportf(".\n");
+
 	int constrindex = -1;
 	Clause* confl = NULL;
 	for(int i=0; i<solverdata->getConstraints().size(); i++){
@@ -198,6 +200,7 @@ Clause* CPSolver::propagate(Lit l){
 		}
 	}
 	if(constrindex==-1){
+		//reportf("No constraint within CP for that literal.\n");
 		return confl;
 	}
 
@@ -255,7 +258,10 @@ Clause* CPSolver::propagateAtEndOfQueue(){
 		if(confl==NULL){
 			vector<Lit> atoms = solverdata->getBoolChanges();
 			for(int i=0; i<atoms.size(); i++){
-				pcsolver->setTrue(atoms[i], NULL);
+				if(getSolver()->value(atoms[i])==l_Undef){ //TODO niet de mooiste oplossing, maar momenteel ziet hij gepropageerde literals natuurlijk ook als changes
+					getSolver()->setTrue(atoms[i], NULL);
+				}
+
 			}
 		}
 		solverdata->addSpace();
