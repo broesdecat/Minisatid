@@ -23,7 +23,9 @@ using namespace tr1;
 #include "solvers/utils/Solverfwd.hpp"
 #include "solvers/SATUtils.h"
 
+#ifdef USEMINISAT22
 using namespace Minisat;
+#endif
 
 #define reportf(...) ( fflush(stdout), fprintf(stderr, __VA_ARGS__), fflush(stderr) )
 

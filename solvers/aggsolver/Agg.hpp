@@ -7,7 +7,7 @@
 #include <iostream>
 
 #include "solvers/aggsolver/AggTypes.hpp"
-#include "mtl/Vec.h"
+#include "solvers/SATUtils.h"
 
 namespace Aggrs{
 

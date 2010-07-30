@@ -18,7 +18,9 @@ using namespace tr1;
 using namespace std;
 
 #include "solvers/SATUtils.h"
+#ifdef USEMINISAT22
 using namespace Minisat;
+#endif
 
 namespace Aggrs{
 class WLV;

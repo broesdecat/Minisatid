@@ -2,8 +2,7 @@
 #include "solvers/utils/Utils.hpp"
 #include "solvers/utils/Print.hpp"
 
-#include "mtl/Sort.h"
-#include "mtl/Map.h"
+#include "solvers/SATUtils.h"
 #include <cmath>
 
 inline lbool	IDSolver::value(Var x) const   { return getSolver()->value(x); }

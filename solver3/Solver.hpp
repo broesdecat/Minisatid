@@ -41,9 +41,9 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include <cstdio>
 
-#include "mtl/Vec.h"
-#include "mtl/Heap.h"
-#include "mtl/Alg.h"
+#include "mtlold/Vec.h"
+#include "mtlold/Heap.h"
+#include "mtlold/Alg.h"
 
 #include "solver3/SolverTypes.hpp"
 
@@ -107,6 +107,9 @@ public:
 	void     	printClause			(const C& c) const;
 	uint64_t    nbVars				()      const;       // The current number of variables.
 	void		printStatistics		() const ;
+	Clause* 	makeClause(vec<Lit>& lits, bool b){	return Clause_new(lits, b);	}
+	const Clause* 	getClause		(int i) const { return clauses[i]; }
+	int			nbClauses			() const { return clauses.size(); }
 /*AE*/
 
     // Constructor/Destructor:
@@ -375,16 +378,6 @@ inline void Solver::printClause(const C& c) const
         fprintf(stderr, " ");
     }
 }
-
-/*AB*/
-void Solver::printStatistics() const{
-	reportf("restarts              : %lld\n", starts);
-	reportf("conflicts             : %-12lld\n", conflicts);
-	reportf("decisions             : %-12lld   (%4.2f %% random)\n", decisions, (float)rnd_decisions*100 / (float)decisions);
-	reportf("propagations          : %-12lld\n", propagations);
-    reportf("conflict literals     : %-12lld   (%4.2f %% deleted)\n", tot_literals, (max_literals - tot_literals)*100 / (double)max_literals);
-}
-/*AE*/
 
 //=================================================================================================
 #endif

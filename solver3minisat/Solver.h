@@ -22,9 +22,9 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include <cstdio>
 
-#include "mtl/Vec.h"
-#include "mtl/Heap.h"
-#include "mtl/Alg.h"
+#include "mtlold/Vec.h"
+#include "mtlold/Heap.h"
+#include "mtlold/Alg.h"
 
 #include "solver3minisat/SolverTypes.h"
 
@@ -88,6 +88,9 @@ public:
 	void     	printClause			(const C& c) const;
 	uint64_t    nbVars				()      const;       // The current number of variables.
 	void		printStatistics		() const ;
+	Clause* 	makeClause(vec<Lit>& lits, bool b){	return Clause_new(lits, b);	}
+	const Clause* 	getClause		(int i) const { return clauses[i]; }
+	int			nbClauses			() const { return clauses.size(); }
 /*AE*/
 
     // Constructor/Destructor:

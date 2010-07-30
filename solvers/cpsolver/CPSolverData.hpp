@@ -12,7 +12,9 @@
 #include "solvers/cpsolver/CPScript.hpp"
 
 #include "solvers/SATUtils.h"
+#ifdef USEMINISAT22
 using namespace Minisat;
+#endif
 
 namespace CP{
 	class CPSolverData{

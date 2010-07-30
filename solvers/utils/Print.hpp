@@ -15,11 +15,6 @@
 #include "solvers/aggsolver/AggSolver.hpp"
 #include "solvers/cpsolver/CPSolver.hpp"
 
-using namespace Minisat;
-namespace Minisat{
-	class Solver;
-}
-
 class PCsolver;
 class AggSolver;
 class ModSolver;

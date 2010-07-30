@@ -18,7 +18,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 **************************************************************************************************/
 
 #include "solver3minisat/Solver.h"
-#include "mtl/Sort.h"
+#include "mtlold/Sort.h"
 #include <cmath>
 
 

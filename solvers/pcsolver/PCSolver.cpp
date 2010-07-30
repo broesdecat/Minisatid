@@ -140,7 +140,7 @@ void PCSolver::backtrackTo(int level){
 }
 
 void PCSolver::setTrue(Lit p, CCC c){
-	getSolver()->uncheckedEnqueue(p, c->relocation());
+	getSolver()->uncheckedEnqueue(p, c);
 }
 
 CCC PCSolver::makeClause(vec<Lit>& lits, bool b){

@@ -12,7 +12,9 @@
 
 #include "solvers/SATUtils.h"
 
+#ifdef USEMINISAT22
 using namespace Minisat;
+#endif
 
 /******************
  * DEBUGGING INFO *

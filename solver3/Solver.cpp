@@ -39,7 +39,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 **************************************************************************************************/
 
 #include "solver3/Solver.hpp"
-#include "mtl/Sort.h"
+#include "mtlold/Sort.h"
 #include <cmath>
 
 
@@ -1025,3 +1025,13 @@ void Solver::checkLiteralCount()
         assert((int)clauses_literals == cnt);
     }
 }
+
+/*AB*/
+void Solver::printStatistics() const{
+	reportf("restarts              : %lld\n", starts);
+	reportf("conflicts             : %-12lld\n", conflicts);
+	reportf("decisions             : %-12lld   (%4.2f %% random)\n", decisions, (float)rnd_decisions*100 / (float)decisions);
+	reportf("propagations          : %-12lld\n", propagations);
+    reportf("conflict literals     : %-12lld   (%4.2f %% deleted)\n", tot_literals, (max_literals - tot_literals)*100 / (double)max_literals);
+}
+/*AE*/
