@@ -2,11 +2,11 @@
 #define CPUTILS_H
 
 #include <gecode/int.hh>
-#include <solvers/ExternalUtils.hpp>
+#include <solvers/external/ExternalUtils.hpp>
 
 namespace CP {
 	IntRelType negate(IntRelType eq){
-		IntRelType g;
+		IntRelType g = IRT_EQ;
 		switch (eq) {
 			case Gecode::IRT_EQ:
 				g = Gecode::IRT_NQ; break;
@@ -25,7 +25,7 @@ namespace CP {
 	}
 
 	IntRelType toRelType(MINISAT::EqType eq){
-		IntRelType g;
+		IntRelType g = IRT_EQ;
 		switch (eq) {
 			case MINISAT::MEQ:
 				g =  Gecode::IRT_EQ; break;

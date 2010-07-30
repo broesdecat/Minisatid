@@ -8,7 +8,7 @@
 #ifndef CPSOLVER_HPP_
 #define CPSOLVER_HPP_
 
-#include "solvers/PCSolver.hpp"
+#include "solvers/pcsolver/PCSolver.hpp"
 
 class PCSolver;
 

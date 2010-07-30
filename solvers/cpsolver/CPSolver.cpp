@@ -11,7 +11,7 @@
 #include "solvers/cpsolver/CPSolver.hpp"
 #include "solvers/cpsolver/CPScript.hpp"
 
-#include "CPUtils.hpp"
+#include "solvers/cpsolver/CPUtils.hpp"
 
 #include <solvers/cpsolver/Constraint.hpp>
 #include <solvers/cpsolver/CPSolverData.hpp>

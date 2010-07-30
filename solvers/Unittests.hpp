@@ -8,7 +8,7 @@
 #ifndef UNITTESTS_HPP_
 #define UNITTESTS_HPP_
 
-#include "solvers/ExternalInterface.hpp"
+#include "solvers/external/ExternalInterface.hpp"
 
 shared_ptr<SolverInterface> unittest(ECNF_mode& modes);
 shared_ptr<SolverInterface> unittest2(ECNF_mode& modes);

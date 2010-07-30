@@ -4,7 +4,7 @@
 #include <cstdio>
 using namespace std;
 
-#include "solvers/solverfwd.hpp"
+#include "solvers/utils/Solverfwd.hpp"
 
 class Data{
 private:

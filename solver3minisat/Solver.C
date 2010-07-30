@@ -1,27 +1,6 @@
-/************************************************************************************
-Copyright (c) 2009-2010, Broes De Cat
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-associated documentation files (the "Software"), to deal in the Software without restriction,
-including without limitation the rights to use, copy, modify, merge, publish, distribute,
-sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or
-substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-**************************************************************************************************/
 /****************************************************************************************[Solver.C]
 MiniSat -- Copyright (c) 2003-2006, Niklas Een, Niklas Sorensson
 
-MiniSat 09z -- Copyright (c) 2009, Markus Iser, Carsten Sinz
-
-
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
 including without limitation the rights to use, copy, modify, merge, publish, distribute,
@@ -38,7 +17,7 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
-#include "solver3/Solver.hpp"
+#include "solver3minisat/Solver.h"
 #include "mtl/Sort.h"
 #include <cmath>
 
@@ -48,16 +27,16 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 
 Solver::Solver(pPCSolver s/*A*/) :
-	solver(s), /*A*/
+solver(s), /*A*/
     // Parameters: (formerly in 'SearchParams')
-    var_decay(1 / 0.95), clause_decay(1 / 0.999), random_var_freq(0.02), learntsize_inc(1.1)
+    var_decay(1 / 0.95), clause_decay(1 / 0.999), random_var_freq(0.02)
+  , restart_first(100), restart_inc(1.5), learntsize_factor((double)1/(double)3), learntsize_inc(1.1)
 
     // More parameters:
     //
   , expensive_ccmin  (true)
-  , polarity_mode    (polarity_stored)
+  , polarity_mode    (polarity_false)
   , verbosity        (0)
-  , random_seed      (91648253)
 
     // Statistics: (formerly in 'SolverStats')
     //
@@ -71,9 +50,9 @@ Solver::Solver(pPCSolver s/*A*/) :
   , simpDB_assigns   (-1)
   , simpDB_props     (0)
   , order_heap       (VarOrderLt(activity))
+  , random_seed      (91648253)
   , progress_estimate(0)
   , remove_satisfied (false/*A*/)
-  /*AB*/, backtrackLevels(NULL)/*AE*/
 {}
 
 
@@ -81,18 +60,11 @@ Solver::~Solver()
 {
     for (int i = 0; i < learnts.size(); i++) free(learnts[i]);
     for (int i = 0; i < clauses.size(); i++) free(clauses[i]);
-
-    /*AB*/
-    if(backtrackLevels!=NULL){
-    	delete[] backtrackLevels;
-    }
-    /*AE*/
 }
 
 
 //=================================================================================================
 // Minor methods:
-
 
 // Creates a new SAT variable in the solver. If 'decision_var' is cleared, variable will not be
 // used as a decision variable (NOTE! This has effects on the meaning of a SATISFIABLE result).
@@ -108,7 +80,7 @@ Var Solver::newVar(bool sign, bool dvar)
     activity  .push(0);
     seen      .push(0);
 
-	polarity.push(false);
+    polarity    .push((char)sign);
     decision_var.push((char)dvar);
 
     insertVarOrder(v);
@@ -212,7 +184,7 @@ bool Solver::addClause(vec<Lit>& ps)
     else if (ps.size() == 1){
         assert(value(ps[0]) == l_Undef);
         uncheckedEnqueue(ps[0]);
-		return ok = (propagate() == NULL);
+        return ok = (propagate() == NULL);
     }else{
         Clause* c = Clause_new(ps, false);
         clauses.push(c);
@@ -301,30 +273,28 @@ Lit Solver::pickBranchLit(int polarity_mode, double random_var_freq)
     switch (polarity_mode){
     case polarity_true:  sign = false; break;
     case polarity_false: sign = true;  break;
-    case polarity_stored:  sign = polarity[next]; break; /* MODIFIED 2009 */
+    case polarity_user:  sign = polarity[next]; break;
     case polarity_rnd:   sign = irand(random_seed, 2); break;
     default: assert(false); }
 
-    /*AB*/ //omdat anders polarity[next] als eens durft crashen
-    return Lit(next, sign);
-    /*AE*/
+    return next == var_Undef ? lit_Undef : Lit(next, sign);
 }
 
 
 /*_________________________________________________________________________________________________
 |
 |  analyze : (confl : Clause*) (out_learnt : vec<Lit>&) (out_btlevel : int&)  ->  [void]
-|
+|  
 |  Description:
 |    Analyze conflict and produce a reason clause.
-|
+|  
 |    Pre-conditions:
 |      * 'out_learnt' is assumed to be cleared.
 |      * Current decision level must be greater than root level.
-|
+|  
 |    Post-conditions:
 |      * 'out_learnt[0]' is the asserting literal at level 'out_btlevel'.
-|
+|  
 |  Effect:
 |    Will undo part of the trail, upto but not beyond the assumption of the current decision level.
 |________________________________________________________________________________________________@*/
@@ -344,30 +314,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 	cancelUntil(lvl);
 	assert(lvl==decisionLevel());
 	assert(confl!=NULL);
-
-	//reportf("Conflicts: %d.\n", conflicts);
-	vector<Lit> explain;
-	if(verbosity>4){
-		reportf("Choices: ");
-		for(int i=0; i<trail_lim.size(); i++){
-			gprintLit(trail[trail_lim[i]]); reportf(" ");
-		}
-		reportf("\n");
-		reportf("Trail: \n");
-		for(int i=0; i<trail_lim.size()-1; i++){
-			reportf("Level: ");
-			for(int j=trail_lim[i]; j<trail_lim[i+1]; j++){
-				gprintLit(trail[j]); reportf(" ");
-			}
-			reportf("\n");
-		}
-		reportf("Level: ");
-		for(int j=trail_lim[trail_lim.size()-1]; j<trail.size(); j++){
-			gprintLit(trail[j]); reportf(" ");
-		}
-		reportf("\n");
-	}
-	/*AE*/
+    /*AE*/
 
     // Generate conflict clause:
     //
@@ -380,22 +327,6 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
         assert(confl != NULL);          // (otherwise should be UIP)
         Clause& c = *confl;
 
-        /*AB*/
-        if(verbosity>4){
-			reportf("DECISION LEVEL %d\n", decisionLevel());
-			reportf("Current conflict clause: ");
-			printClause(c);
-			reportf("\n");
-			reportf("Current learned clause: ");
-			for (int i = 1; i < out_learnt.size(); i++) {
-				printLit(out_learnt[i]);
-				reportf(" ");
-			}
-			reportf("\n");
-			reportf("Still explain: ");
-		}
-    	/*AE*/
-
         if (c.learnt())
             claBumpActivity(c);
 
@@ -405,92 +336,43 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
             if (!seen[var(q)] && level[var(q)] > 0){
                 varBumpActivity(var(q));
                 seen[var(q)] = 1;
-                if (level[var(q)] >= decisionLevel()){
-                	if(verbosity>4){
-                    	explain.push_back(q);
-            		}
+                if (level[var(q)] >= decisionLevel())
                     pathC++;
-                }else{
-                	/*AB INCORRECT IDEA*/
-                	//might it help here to filter out literals that were not decision literals?
-                	//Important: take care that q is added if its decision variable is not in the clause!
-                	/*int qlevel = level[var(q)];
-					Lit v = trail[trail_lim[qlevel]];
-					out_learnt.push(v);
-					if (level[var(v)] > out_btlevel)
-						out_btlevel = level[var(v)];
-
-					for (int k = j+1; k < c.size(); k++){
-						if(level[var(c[k])]==qlevel){
-							seen[var(c[k])] = 1;
-						}
-					}*/
-                	/*AE*/
-
-					out_learnt.push(q);
-					if (level[var(q)] > out_btlevel)
-						out_btlevel = level[var(q)];
-
+                else{
+                    out_learnt.push(q);
+                    if (level[var(q)] > out_btlevel)
+                        out_btlevel = level[var(q)];
                 }
             }
         }
-
-        /*AB*/
-        if(verbosity>4){
-        	for(vector<Lit>::const_iterator i=explain.begin(); i<explain.end(); i++){
-        		gprintLit(*i); reportf(" ");
-        	}
-        	reportf("\n");
-		}
-        /*AE*/
 
         /*AB*/
 		if (deleteImplicitClause) {
 			free(confl);
 			deleteImplicitClause = false;
 		}
-        /*AE*/
+		/*AE*/
 
-        // Select next clause to look at:
-        while (!seen[var(trail[index--])]);
-        p     = trail[index+1];
-        confl = reason[var(p)];
+		// Select next clause to look at:
+		while (!seen[var(trail[index--])]);
+		p     = trail[index+1];
+		confl = reason[var(p)];
 
-        /*AB*/
-        if(verbosity>4){
-			reportf("Getting explanation for ");
-			for(vector<Lit>::iterator i=explain.begin(); i<explain.end(); i++){
-				if(var(*i)==var(p)){
-					explain.erase(i);
-					break;
-				}
-			}
-			printLit(p);
-			reportf("\n");
+		/*AB*/
+		if(confl==NULL && pathC>1){
+			//Explanation still returns an owning pointer, so handle it properly
+			confl = solver->getExplanation(p);
+			deleteImplicitClause = true;
 		}
-
-        if(confl==NULL && pathC>1){
-        	//Explanation still returns an owning pointer, so handle it properly
-        	confl = solver->getExplanation(p);
-        	deleteImplicitClause = true;
-        }
-        if(verbosity>4 && confl!=NULL) {
-        	reportf("Explanation is "); printClause(*confl); reportf("\n");
-        }
-        /*AE*/
-
+		if(verbosity>4 && confl!=NULL) {
+			reportf("Explanation is "); printClause(*confl); reportf("\n");
+		}
+		/*AE*/
         seen[var(p)] = 0;
         pathC--;
 
     }while (pathC > 0);
     out_learnt[0] = ~p;
-
-    /*if(verbosity>=0){
-    	for(int i=0; i<out_learnt.size(); i++){
-    		gprintLit(out_learnt[i]); reportf(" ");
-    	}
-    	reportf("\n");
-	}*/
 
     // Simplify conflict clause:
     //
@@ -572,7 +454,7 @@ bool Solver::litRedundant(Lit p, uint32_t abstract_levels)
 /*_________________________________________________________________________________________________
 |
 |  analyzeFinal : (p : Lit)  ->  [void]
-|
+|  
 |  Description:
 |    Specialized analysis procedure to express the final conflict in terms of assumptions.
 |    Calculates the (possibly empty) set of assumptions that led to the assignment of 'p', and
@@ -614,20 +496,18 @@ void Solver::uncheckedEnqueue(Lit p, Clause* from)
     assigns [var(p)] = toInt(lbool(!sign(p)));  // <<== abstract but not uttermost effecient
     level   [var(p)] = decisionLevel();
     reason  [var(p)] = from;
-    polarity[var(p)] = sign(p); /* Modified 2009 */
     trail.push(p);
-    //reportf("Enqueued "); gprintLit(p); reportf(" in mod %d\n", solver->getModPrintID());
 }
 
 
 /*_________________________________________________________________________________________________
 |
 |  propagate : [void]  ->  [Clause*]
-|
+|  
 |  Description:
 |    Propagates all enqueued facts. If a conflict arises, the conflicting clause is returned,
 |    otherwise NULL.
-|
+|  
 |    Post-conditions:
 |      * the propagation queue is empty, even if there was a conflict.
 |________________________________________________________________________________________________@*/
@@ -637,14 +517,6 @@ Clause* Solver::propagate()
     int     num_props = 0;
 
     while (qhead < trail.size()){
-    	if(verbosity>5){
-    		reportf("Trail, mod %d: ", solver->getModPrintID());
-    		for(int i=0; i<trail.size(); i++){
-    			gprintLit(trail[i]); reportf(" ");
-    		}
-    		reportf(".\n");
-    	}
-
         Lit            p   = trail[qhead++];     // 'p' is enqueued fact to propagate.
         vec<Clause*>&  ws  = watches[toInt(p)];
         Clause         **i, **j, **end;
@@ -709,7 +581,7 @@ Clause* Solver::propagate()
 /*_________________________________________________________________________________________________
 |
 |  reduceDB : ()  ->  [void]
-|
+|  
 |  Description:
 |    Remove half of the learnt clauses, minus the clauses locked by the current assignment. Locked
 |    clauses are clauses that are reason to some assignment. Binary clauses are never removed.
@@ -734,7 +606,6 @@ void Solver::reduceDB()
             learnts[j++] = learnts[i];
     }
     learnts.shrink(i - j);
-    nof_learnts   *= learntsize_inc; /* Modified 2009 */
 }
 
 
@@ -754,7 +625,7 @@ void Solver::removeSatisfied(vec<Clause*>& cs)
 /*_________________________________________________________________________________________________
 |
 |  simplify : [void]  ->  [bool]
-|
+|  
 |  Description:
 |    Simplify the clause database according to the current top-level assigment. Currently, the only
 |    thing done here is the removal of satisfied clauses, but more things can be put here.
@@ -764,7 +635,7 @@ bool Solver::simplify()
     assert(decisionLevel() == 0);
 
     if (!ok || propagate() != NULL)
-    	return ok = false;
+        return ok = false;
 
     if (nAssigns() == simpDB_assigns || (simpDB_props > 0))
         return true;
@@ -786,16 +657,19 @@ bool Solver::simplify()
 
 /*_________________________________________________________________________________________________
 |
-|  search ->  [lbool]
-|
+|  search : (nof_conflicts : int) (nof_learnts : int) (params : const SearchParams&)  ->  [lbool]
+|  
 |  Description:
-|    Search for a model
+|    Search for a model the specified number of conflicts, keeping the number of learnt clauses
+|    below the provided limit. NOTE! Use negative value for 'nof_conflicts' or 'nof_learnts' to
+|    indicate infinity.
+|  
 |  Output:
 |    'l_True' if a partial assigment that is consistent with respect to the clauseset is found. If
 |    all variables are decision variables, this means that the clause set is satisfiable. 'l_False'
-|    if the clause set is unsatisfiable. 'l_Undef' if the bound on restart-strategy.
+|    if the clause set is unsatisfiable. 'l_Undef' if the bound on number of conflicts is reached.
 |________________________________________________________________________________________________@*/
-lbool Solver::search(/*AB*/bool nosearch/*AE*/)
+lbool Solver::search(int nof_conflicts, int nof_learnts, /*AB*/bool nosearch/*AB*/)
 {
     assert(ok);
     int         backtrack_level;
@@ -811,8 +685,7 @@ lbool Solver::search(/*AB*/bool nosearch/*AE*/)
         if (confl != NULL){
             // CONFLICT
             conflicts++; conflictC++;
-            if (decisionLevel() == 0)
-            	return l_False;
+            if (decisionLevel() == 0) return l_False;
 
             first = false;
 
@@ -820,8 +693,6 @@ lbool Solver::search(/*AB*/bool nosearch/*AE*/)
             analyze(confl, learnt_clause, backtrack_level);
             cancelUntil(backtrack_level);
             assert(value(learnt_clause[0]) == l_Undef);
-
-			backtrackLevels[conflicts % restartMore]= backtrack_level;
 
             if (learnt_clause.size() == 1){
                 uncheckedEnqueue(learnt_clause[0]);
@@ -838,27 +709,12 @@ lbool Solver::search(/*AB*/bool nosearch/*AE*/)
 
         }else{
             // NO CONFLICT
-            if (conflictC >= restartMore) {  /* Modified 2009 */
-            	// search and count local minimum
-				int LM= backtrackLevels[0];
-				int nofLM= 1;
 
-				for(int i=1; i< restartMore; i++) {
-					if(backtrackLevels[i]< LM) {
-						LM= backtrackLevels[i];
-						nofLM= 1;
-					} else if(backtrackLevels[i]== LM) {
-						nofLM++;
-					}
-				}
-
-				if(LM > restartTolerance && nofLM>= restartLess) { /* Modified 2009 */
-					// AVOIDANCE OF PLATEAUX
-	                progress_estimate= progressEstimate();
-    	            cancelUntil(0);
-        	        return l_Undef;
-				}
-			}
+            if (nof_conflicts >= 0 && conflictC >= nof_conflicts){
+                // Reached bound on number of conflicts:
+                progress_estimate = progressEstimate();
+                cancelUntil(0);
+                return l_Undef; }
 
             // Simplify the set of problem clauses:
             if (decisionLevel() == 0 && /*AB*/ !solver->simplify() /*AE*/)
@@ -895,10 +751,9 @@ lbool Solver::search(/*AB*/bool nosearch/*AE*/)
                 decisions++;
                 next = pickBranchLit(polarity_mode, random_var_freq);
 
-                if (next == lit_Undef){
+                if (next == lit_Undef)
                     // Model found:
                     return l_True;
-				}
 
                 /*AB*/
 				if (verbosity >= 2) {
@@ -940,30 +795,23 @@ bool Solver::solve(const vec<Lit>& assumps /*AB*/, bool nosearch /*AE*/)
 
     assumps.copyTo(assumptions);
 
-	/* Modified 2009 */
-	double cvr= (double)nClauses() / (double)nVars();
-    nof_learnts= 300000 / cvr;
-	restartLess= 5;
-	restartMore= 42;
-	restartTolerance= nVars() / 10000 +10;
-	/*AB*/
-	if(backtrackLevels != NULL){
-		delete[] backtrackLevels;
-	}
-	/*AE*/
-	backtrackLevels= new int[restartMore];
-
+    double  nof_conflicts = restart_first;
+    double  nof_learnts   = nClauses() * learntsize_factor;
     lbool   status        = l_Undef;
 
     // Search:
     while (status == l_Undef){
-    	status = search(/*AB*/nosearch/*AE*/);
-    	/*AB*/
-    	status = solver->checkStatus(status);
-    	if(nosearch){
-    		return status==l_True;
-    	}
-    	/*AE*/
+        if (verbosity >= 1)
+            reportf("| %9d | %7d %8d %8d | %8d %8d %6.0f | %6.3f %% |\n", (int)conflicts, order_heap.size(), nClauses(), (int)clauses_literals, (int)nof_learnts, nLearnts(), (double)learnts_literals/nLearnts(), progress_estimate*100), fflush(stdout);
+        status = search((int)nof_conflicts, (int)nof_learnts, /*AB*/nosearch/*AE*/);
+		/*AB*/
+		status = solver->checkStatus(status);
+		if(nosearch){
+			return status==l_True;
+		}
+		/*AE*/
+        nof_conflicts *= restart_inc;
+        nof_learnts   *= learntsize_inc;
     }
 
     if (status == l_True){
@@ -979,7 +827,7 @@ bool Solver::solve(const vec<Lit>& assumps /*AB*/, bool nosearch /*AE*/)
             ok = false;
     }
 
-    /*A*///cancelUntil(0);
+    //cancelUntil(0);
     return status == l_True;
 }
 
@@ -1006,9 +854,7 @@ void Solver::verifyModel()
 
     assert(!failed);
 
-    if(verbosity>3){
-    	reportf("Verified %d original clauses.\n", clauses.size());
-    }
+    reportf("Verified %d original clauses.\n", clauses.size());
 }
 
 

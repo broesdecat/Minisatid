@@ -1,22 +1,3 @@
-/************************************************************************************
-Copyright (c) 2006-2009, Maarten Mariën
-Copyright (c) 2009-2010, Broes De Cat
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-associated documentation files (the "Software"), to deal in the Software without restriction,
-including without limitation the rights to use, copy, modify, merge, publish, distribute,
-sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or
-substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-**************************************************************************************************/
 /****************************************************************************************[Solver.h]
 MiniSat -- Copyright (c) 2003-2006, Niklas Een, Niklas Sorensson
 
@@ -45,7 +26,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "mtl/Heap.h"
 #include "mtl/Alg.h"
 
-#include "solver3/SolverTypes.hpp"
+#include "solver3minisat/SolverTypes.h"
 
 /*AB*/
 #include "solvers/utils/Debug.hpp"
@@ -122,10 +103,13 @@ public:
     // Solving:
     //
     bool    simplify     ();                        // Removes already satisfied clauses.
-    bool    solve        (const vec<Lit>& assumps /*AB*/, bool nosearch = false/*AE*/); // Search for a model that respects a given set of assumptions.
+    bool    solve        (const vec<Lit>& assumps /*AB*/, bool nosearch = false /*AE*/); // Search for a model that respects a given set of assumptions.
     bool    solve        ();                        // Search without assumptions.
     bool    okay         () const;                  // FALSE means solver is in a conflicting state
 
+    // Variable mode:
+    // 
+    void    setPolarity    (Var v, bool b); // Declare which polarity the decision heuristic should use for a variable. Requires mode 'polarity_user'.
     void    setDecisionVar (Var v, bool b); // Declare if a variable should be eligible for selection in the decision heuristic.
 
     // Read state:
@@ -142,37 +126,29 @@ public:
     //
     vec<lbool> model;             // If problem is satisfiable, this vector contains the model (if any).
     vec<Lit>   conflict;          // If problem is unsatisfiable (possibly under assumptions),
-                                  // this vector represent the final conflict clause expressed in the assumptions.
 
     // Mode of operation:
     //
     double    var_decay;          // Inverse of the variable activity decay factor.                                            (default 1 / 0.95)
     double    clause_decay;       // Inverse of the clause activity decay factor.                                              (1 / 0.999)
     double    random_var_freq;    // The frequency with which the decision heuristic tries to choose a random variable.        (default 0.02)
+    int       restart_first;      // The initial restart limit.                                                                (default 100)
+    double    restart_inc;        // The factor with which the restart limit is multiplied in each restart.                    (default 1.5)
+    double    learntsize_factor;  // The intitial limit for learnt clauses is a factor of the original clauses.                (default 1 / 3)
     double    learntsize_inc;     // The limit for learnt clauses is multiplied with this factor each restart.                 (default 1.1)
     bool      expensive_ccmin;    // Controls conflict clause minimization.                                                    (default TRUE)
     int       polarity_mode;      // Controls which polarity the decision heuristic chooses. See enum below for allowed modes. (default polarity_false)
-    int       verbosity;          // Verbosity level. 0=silent, 1=some progress report
-    double    random_seed;        // Used by the random variable selection.
+    int       verbosity;          // Verbosity level. 0=silent, 1=some progress report                                         (default 0)
 
-	/* Modified 2009 */
-	int restartLess;
-	int restartMore;
-	float restartTolerance;
-	double nof_learnts;
-	int* backtrackLevels;
-	vec<bool> polarity;
-
-    enum { polarity_true = 0, polarity_false = 1, polarity_stored = 2, polarity_rnd = 3 };
+    enum { polarity_true = 0, polarity_false = 1, polarity_user = 2, polarity_rnd = 3 };
 
     // Statistics: (read-only member variable)
     //
     uint64_t starts, decisions, rnd_decisions, propagations, conflicts;
     uint64_t clauses_literals, learnts_literals, max_literals, tot_literals;
 
-    vec<Clause*>        clauses;          // List of problem clauses.
-
 protected:
+
     // Helper structures:
     //
     struct VarOrderLt {
@@ -191,12 +167,14 @@ protected:
     // Solver state:
     //
     bool                ok;               // If FALSE, the constraints are already unsatisfiable. No part of the solver state may be used!
+    vec<Clause*>        clauses;          // List of problem clauses.
     vec<Clause*>        learnts;          // List of learnt clauses.
     double              cla_inc;          // Amount to bump next clause with.
     vec<double>         activity;         // A heuristic measurement of the activity of a variable.
     double              var_inc;          // Amount to bump next variable with.
     vec<vec<Clause*> >  watches;          // 'watches[lit]' is a list of constraints watching 'lit' (will go there if literal becomes true).
-    vec<char>           assigns;          // The current assignments (lbool:s stored as char:s)
+    vec<char>           assigns;          // The current assignments (lbool:s stored as char:s).
+    vec<char>           polarity;         // The preferred polarity of each variable.
     vec<char>           decision_var;     // Declares if a variable is eligible for selection in the decision heuristic.
     vec<Lit>            trail;            // Assignment stack; stores all assigments made in the order they were made.
     vec<int>            trail_lim;        // Separator indices for different decision levels in 'trail'.
@@ -207,6 +185,7 @@ protected:
     int64_t             simpDB_props;     // Remaining number of propagations that must be made before next execution of 'simplify()'.
     vec<Lit>            assumptions;      // Current set of assumptions provided to solve by the user.
     Heap<VarOrderLt>    order_heap;       // A priority queue of variables ordered with respect to the variable activity.
+    double              random_seed;      // Used by the random variable selection.
     double              progress_estimate;// Set by 'search()'.
     bool                remove_satisfied; // Indicates whether possibly inefficient linear scan for satisfied clauses should be performed in 'simplify'.
 
@@ -223,22 +202,22 @@ protected:
     void     insertVarOrder   (Var x);                                                 // Insert a variable in the decision order priority queue.
     Lit      pickBranchLit    (int polarity_mode, double random_var_freq);             // Return the next decision variable.
     void     newDecisionLevel ();                                                      // Begins a new decision level.
-    /*A*///void     uncheckedEnqueue (Lit p, Clause* from = NULL);                            // Enqueue a literal. Assumes value of literal is undefined.
+    //void     uncheckedEnqueue (Lit p, Clause* from = NULL);                            // Enqueue a literal. Assumes value of literal is undefined.
     bool     enqueue          (Lit p, Clause* from = NULL);                            // Test if fact 'p' contradicts current state, enqueue otherwise.
     Clause*  propagate        ();                                                      // Perform unit propagation. Returns possibly conflicting clause.
-    /*A*///void     cancelUntil      (int level);                                             // Backtrack until a certain level.
+    //void     cancelUntil      (int level);                                             // Backtrack until a certain level.
     void     analyze          (Clause* confl, vec<Lit>& out_learnt, int& out_btlevel); // (bt = backtrack)
     void     analyzeFinal     (Lit p, vec<Lit>& out_conflict);                         // COULD THIS BE IMPLEMENTED BY THE ORDINARIY "analyze" BY SOME REASONABLE GENERALIZATION?
     bool     litRedundant     (Lit p, uint32_t abstract_levels);                       // (helper method for 'analyze()')
-    lbool    search           (/*AB*/bool nosearch = false/*AB*/);                    // Search for a given number of conflicts.
+    lbool    search           (int nof_conflicts, int nof_learnts, /*AB*/bool nosearch = false/*AB*/);                    // Search for a given number of conflicts.
     void     reduceDB         ();                                                      // Reduce the set of learnt clauses.
     void     removeSatisfied  (vec<Clause*>& cs);                                      // Shrink 'cs' to contain only non-satisfied clauses.
 
     // Maintaining Variable/Clause activity:
     //
-    /*A*///void     varDecayActivity ();                      // Decay all variables with the specified factor. Implemented by increasing the 'bump' value instead.
-    /*A*///void     varBumpActivity  (Var v);                 // Increase a variable with the current 'bump' value.
-    /*A*///void     claDecayActivity ();                      // Decay all clauses with the specified factor. Implemented by increasing the 'bump' value instead.
+    //void     varDecayActivity ();                      // Decay all variables with the specified factor. Implemented by increasing the 'bump' value instead.
+    //void     varBumpActivity  (Var v);                 // Increase a variable with the current 'bump' value.
+    //void     claDecayActivity ();                      // Decay all clauses with the specified factor. Implemented by increasing the 'bump' value instead.
     void     claBumpActivity  (Clause& c);             // Increase a clause with the current 'bump' value.
 
     // Operations on clauses:
@@ -251,16 +230,14 @@ protected:
 
     // Misc:
     //
-    /*AB*///int      decisionLevel    ()      const; // Gives the current decisionlevel.
+    //int      decisionLevel    ()      const; // Gives the current decisionlevel.
     uint32_t abstractLevel    (Var x) const; // Used to represent an abstraction of sets of decision levels.
     double   progressEstimate ()      const; // DELETE THIS ?? IT'S NOT VERY USEFUL ...
 
     // Debug:
     void     printLit         (Lit l) const;
-    /*AB*/
-    //template<class C>
-    //void     printClause      (const C& c);
-    /*AE*/
+    /*template<class C>
+    void     printClause      (const C& c);*/
     void     verifyModel      ();
     void     checkLiteralCount();
 
@@ -320,6 +297,7 @@ inline int      Solver::nAssigns      ()      const   { return trail.size(); }
 inline int      Solver::nClauses      ()      const   { return clauses.size(); }
 inline int      Solver::nLearnts      ()      const   { return learnts.size(); }
 inline int      Solver::nVars         ()      const   { return assigns.size(); }
+inline void     Solver::setPolarity   (Var v, bool b) { polarity    [v] = (char)b; }
 inline void     Solver::setDecisionVar(Var v, bool b) { decision_var[v] = (char)b; if (b) { insertVarOrder(v); } }
 inline bool     Solver::solve         ()              { vec<Lit> tmp; return solve(tmp); }
 inline bool     Solver::okay          ()      const   { return ok; }
@@ -328,6 +306,7 @@ inline bool     Solver::okay          ()      const   { return ok; }
 inline int		Solver::getLevel	  (int var) const {return level[var];}
 inline uint64_t Solver::nbVars        ()      const   { return (uint64_t)nVars(); }
 /*AE*/
+
 
 //=================================================================================================
 // Debug + etc:
@@ -362,7 +341,6 @@ static inline void check(bool expr) { assert(expr); }
 
 inline void Solver::printLit(Lit l) const
 {
-	assert(nVars()>var(l));
     reportf("%s%d:%c", sign(l) ? "-" : "", var(l)+1, value(l) == l_True ? '1' : (value(l) == l_False ? '0' : 'X'));
 }
 
@@ -377,7 +355,7 @@ inline void Solver::printClause(const C& c) const
 }
 
 /*AB*/
-void Solver::printStatistics() const{
+inline void Solver::printStatistics() const{
 	reportf("restarts              : %lld\n", starts);
 	reportf("conflicts             : %-12lld\n", conflicts);
 	reportf("decisions             : %-12lld   (%4.2f %% random)\n", decisions, (float)rnd_decisions*100 / (float)decisions);
@@ -385,6 +363,7 @@ void Solver::printStatistics() const{
     reportf("conflict literals     : %-12lld   (%4.2f %% deleted)\n", tot_literals, (max_literals - tot_literals)*100 / (double)max_literals);
 }
 /*AE*/
+
 
 //=================================================================================================
 #endif

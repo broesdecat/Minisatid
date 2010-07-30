@@ -7,9 +7,9 @@
 
 #include "solvers/cpsolver/CPSolverData.hpp"
 
-#include "solvers/ExternalUtils.hpp"
+#include "solvers/external/ExternalUtils.hpp"
 
-#include "solvers/debug.hpp"
+#include "solvers/utils/Debug.hpp"
 
 using namespace CP;
 
