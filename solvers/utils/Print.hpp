@@ -8,14 +8,18 @@
 #ifndef PRINT_HPP_
 #define PRINT_HPP_
 
-#include "solver3/Solver.hpp"
+#include "solvers/SATSolver.h"
 #include "solvers/pcsolver/PCSolver.hpp"
 #include "solvers/idsolver/IDSolver.hpp"
 #include "solvers/modsolver/SOSolverHier.hpp"
 #include "solvers/aggsolver/AggSolver.hpp"
 #include "solvers/cpsolver/CPSolver.hpp"
 
-class Solver;
+using namespace Minisat;
+namespace Minisat{
+	class Solver;
+}
+
 class PCsolver;
 class AggSolver;
 class ModSolver;

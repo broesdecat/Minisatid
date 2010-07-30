@@ -51,8 +51,8 @@ namespace CP {
 
 		bool	finishParsing();
 
-		Clause* propagate	(Lit l);
-		Clause* propagateAtEndOfQueue();
+		CCC propagate	(Lit l);
+		CCC propagateAtEndOfQueue();
 
 		void 	backtrack	();
 		void 	backtrack	(Lit l);
@@ -60,7 +60,7 @@ namespace CP {
 		PCSolver* getSolver() { return pcsolver; }
 
 	private:
-		Clause* propagateFinal();
+		CCC propagateFinal();
 	};
 
 }

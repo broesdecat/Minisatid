@@ -7,13 +7,18 @@
 #include <iostream>
 #include <tr1/memory>
 
-#include "solver3/SolverTypes.hpp"
 #include "solvers/utils/Debug.hpp"
 
 using namespace std;
 using namespace tr1;
 
 #include "solvers/external/ExternalUtils.hpp"
+
+#include <vector>
+using namespace std;
+
+#include "solvers/SATUtils.h"
+using namespace Minisat;
 
 namespace Aggrs{
 class WLV;

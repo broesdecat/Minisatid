@@ -46,8 +46,8 @@ template<>
 void print(Solver const * const s){
 	assert(s!=NULL);
 	reportf("Clauses\n");
-	for(int i=0; i< s->clauses.size(); i++){
-		s->printClause(*s->clauses[i]);
+	for(int i=0; i< s->nbClauses(); i++){
+		s->printClause(*s->getClause(i));
 		reportf("\n");
 	}
 }
@@ -100,7 +100,7 @@ void print(ModSolver const * const m){
 	reportf("ModSolver %zu, parent %zu", m->getPrintId(), m->getParentPrintId() );
 	if(m->hasParent()){
 		reportf(", head");
-		gprintLit(Lit(m->getHead()), m->getHeadValue());
+		gprintLit(mkLit(m->getHead()), m->getHeadValue());
 	}
 	reportf(", children ");
 	for(vmodindex::const_iterator i=m->getChildren().begin(); i<m->getChildren().end(); i++){

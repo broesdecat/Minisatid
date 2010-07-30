@@ -44,7 +44,7 @@ Var SolverInterface::checkAtom(const Atom& atom){
 }
 
 Lit SolverInterface::checkLit(const Literal& lit){
-	return Lit(checkAtom(lit.getAtom()), lit.getSign());
+	return mkLit(checkAtom(lit.getAtom()), lit.getSign());
 }
 
 void SolverInterface::checkLits(const vector<Literal>& lits, vec<Lit>& ll){

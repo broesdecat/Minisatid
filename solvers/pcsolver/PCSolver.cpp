@@ -40,8 +40,9 @@ PCSolver::PCSolver(ECNF_mode modes):Data(modes),
 	}
 	cpsolverpresent = cpcreated;
 
+	//TODO depends on sat solver!
 	//solver->maxruntime = modes.maxruntime;
-	solver->polarity_mode = modes.polarity_mode;
+	//solver->polarity_mode = modes.polarity_mode;
 	solver->random_var_freq = modes.random_var_freq;
 	solver->verbosity = modes.verbosity;
 	solver->var_decay = modes.var_decay;
@@ -121,7 +122,7 @@ uint64_t PCSolver::nVars() const{
 	return getSolver()->nbVars();
 }
 
-void PCSolver::addLearnedClause(Clause* c){
+void PCSolver::addLearnedClause(CCC c){
 	if(c->size()>1){
 		getSolver()->addLearnedClause(c);
 	}else{
@@ -138,8 +139,12 @@ void PCSolver::backtrackTo(int level){
 	getSolver()->cancelUntil(level);
 }
 
-void PCSolver::setTrue(Lit p, Clause* c){
-	getSolver()->uncheckedEnqueue(p, c);
+void PCSolver::setTrue(Lit p, CCC c){
+	getSolver()->uncheckedEnqueue(p, c->relocation());
+}
+
+CCC PCSolver::makeClause(vec<Lit>& lits, bool b){
+	return getSolver()->makeClause(lits, b);
 }
 
 int PCSolver::getLevel(int var) const	{
@@ -326,7 +331,7 @@ bool PCSolver::finishParsing(){
 		aggsolverpresent = getAggSolver()->finishECNF_DataStructures();
 		//
 		vector<Lit> trail = getSolver()->getTrail();
-		Clause* confl = NULL;
+		CCC confl = NULL;
 		for (vector<Lit>::const_iterator i=trail.begin(); i<trail.end() && confl==NULL; i++){
 			confl = getAggSolver()->propagate(*i);
 		}
@@ -337,7 +342,7 @@ bool PCSolver::finishParsing(){
 	if(cpsolverpresent){
 		cpsolverpresent = getCPSolver()->finishParsing();
 		vector<Lit> trail = getSolver()->getTrail();
-		Clause* confl = NULL;
+		CCC confl = NULL;
 		for (vector<Lit>::const_iterator i=trail.begin(); i<trail.end() && confl==NULL; i++){
 			confl = getCPSolver()->propagate(*i);
 		}
@@ -414,7 +419,7 @@ void PCSolver::resetIDSolver(){
  * AGGSOLVER SPECIFIC *
  **********************/
 
-Clause* PCSolver::getExplanation(Lit l){
+CCC PCSolver::getExplanation(Lit l){
 	if(modes().verbosity>2){
 		reportf("Find an explanation for "); gprintLit(l); reportf("\n");
 	}
@@ -447,8 +452,8 @@ void PCSolver::backtrackRest(Lit l){
  * Returns not-owning pointer
  */
 //FIXME: maybe let all lower ones return owning pointer, so only one reference to addlearnedclause?
-Clause* PCSolver::propagate(Lit l){
-	Clause* confl = NULL;
+CCC PCSolver::propagate(Lit l){
+	CCC confl = NULL;
 	if(aggsolverpresent){
 		confl = getAggSolver()->propagate(l);
 	}
@@ -467,8 +472,8 @@ Clause* PCSolver::propagate(Lit l){
 /**
  * Returns not-owning pointer
  */
-Clause* PCSolver::propagateAtEndOfQueue(){
-	Clause* confl = NULL;
+CCC PCSolver::propagateAtEndOfQueue(){
+	CCC confl = NULL;
 	if(idsolverpresent && confl == NULL){
 		confl = getIDSolver()->propagateDefinitions();
 	}
@@ -574,7 +579,9 @@ bool PCSolver::solveAll(vec<Lit>& assmpt, vec<vec<Lit> >& models){
 	if (modes().verbosity >= 1){
 		reportf("===============================================================================\n");
 		getSolver()->printStatistics();
-		getIDSolver()->printStatistics();
+		if(idsolverpresent){
+			getIDSolver()->printStatistics();
+		}
 	}
 	return solved;
 }
@@ -605,9 +612,9 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m, bool& moremodels){
 
 	for (uint64_t i = 0; i < nVars(); i++){
 		if(value(i)==l_True){
-			m.push(Lit(i, false));
+			m.push(mkLit(i, false));
 		}else if(value(i)==l_False){
-			m.push(Lit(i, true));
+			m.push(mkLit(i, true));
 		}
 	}
 
@@ -716,7 +723,7 @@ bool PCSolver::addSumMinimize(const Var head, const int setid){
 	optim = SUMMNMZ;
 	this->head = head;
 	vec<Lit> cl;
-	cl.push(Lit(head, false));
+	cl.push(mkLit(head, false));
 	bool notunsat = addClause(cl);
 	//FIXME handle result;
 	if(notunsat){
@@ -794,9 +801,9 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m){
 			int nvars = (int)nVars();
 			for (int i = 0; i < nvars; i++){
 				if(value(i)==l_True){
-					m.push(Lit(i, false));
+					m.push(mkLit(i, false));
 				}else if(value(i)==l_False){
-					m.push(Lit(i, true));
+					m.push(mkLit(i, true));
 				}
 			}
 

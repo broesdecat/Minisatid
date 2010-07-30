@@ -20,7 +20,7 @@ void Agg::addAggToSet(){
  * and can be left out of any propagations.
  */
 lbool Agg::initialize(){
-	Clause* confl = NULL;
+	CCC confl = NULL;
 
 	lbool hv = canPropagateHead(getSet()->getCC(), getSet()->getCP());
 	if(hv!=l_Undef && !optimagg){
@@ -55,13 +55,13 @@ void Agg::backtrackHead(){
 /**
  * Returns non-owning pointer
  */
-Clause* Agg::propagateHead(const Lit& p){
+CCC Agg::propagateHead(const Lit& p){
 	if(nomoreprops || headprop){ return NULL; }
 
 	bool headtrue = getHead()==p;
 	headvalue = headtrue?l_True:l_False;
 	headindex = getSet()->getStackSize();
-	Clause* confl = propagateHead(headtrue);
+	CCC confl = propagateHead(headtrue);
 	return confl;
 }
 
@@ -94,11 +94,11 @@ lbool Agg::canPropagateHead(const Weight& CC, const Weight& CP) const{
 /**
  * Returns non-owning pointer
  */
-Clause* MaxAgg::propagateHead(bool headtrue) {
+CCC MaxAgg::propagateHead(bool headtrue) {
 	if(nomoreprops || headprop){ return NULL; }
 
 	pSet s = getSet();
-	Clause* confl = NULL;
+	CCC confl = NULL;
 	if (headtrue && isLower()) {
 		lwlv::const_reverse_iterator i=s->getWLRBegin();
 		while( confl == NULL && i<s->getWLREnd() && getLowerBound()<(*i).getWeight()){
@@ -132,8 +132,8 @@ Clause* MaxAgg::propagateHead(bool headtrue) {
 /**
  * Returns non-owning pointer
  */
-Clause* MaxAgg::propagate(bool headtrue) {
-	Clause* confl = NULL;
+CCC MaxAgg::propagate(bool headtrue) {
+	CCC confl = NULL;
 
 	if(nomoreprops || headprop){ return confl; }
 
@@ -230,7 +230,7 @@ Weight	ProdAgg::remove(const Weight& lhs, const Weight& rhs) const{
 /**
  * Returns non-owning pointer
  */
-Clause* SPAgg::propagateHead(bool headtrue){
+CCC SPAgg::propagateHead(bool headtrue){
 	if(nomoreprops || headprop){ return NULL; }
 
 	return propagate(headtrue);
@@ -239,10 +239,10 @@ Clause* SPAgg::propagateHead(bool headtrue){
 /**
  * Returns non-owning pointer
  */
-Clause* SPAgg::propagate(bool headtrue){
+CCC SPAgg::propagate(bool headtrue){
 	if(nomoreprops || headprop){ return NULL; }
 
-	Clause* c = NULL;
+	CCC c = NULL;
 	Weight weightbound(0);
 	pSet s = getSet();
 
@@ -310,7 +310,7 @@ Clause* SPAgg::propagate(bool headtrue){
 /**
  * Returns non-owning pointer
  */
-Clause* CardAgg::propagate(bool headtrue){
+CCC CardAgg::propagate(bool headtrue){
 	if(nomoreprops || headprop){ return NULL; }
 
 	pSet s = getSet();
@@ -336,7 +336,7 @@ Clause* CardAgg::propagate(bool headtrue){
 		}
 	}
 
-	Clause* c = NULL;
+	CCC c = NULL;
 
 	if(!makefalse && !maketrue){
 		return c;

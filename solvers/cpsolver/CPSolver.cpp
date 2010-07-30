@@ -176,9 +176,9 @@ bool CPSolver::finishParsing(){
 		}
 
 		if((*i)->isAssignedTrue(solverdata->getSpace())){
-			getSolver()->setTrue(Lit((*i)->getAtom()));
+			getSolver()->setTrue(mkLit((*i)->getAtom()));
 		}else if((*i)->isAssignedFalse(solverdata->getSpace())){
-			getSolver()->setTrue(Lit((*i)->getAtom(), true));
+			getSolver()->setTrue(mkLit((*i)->getAtom(), true));
 		}
 	}
 
@@ -186,13 +186,13 @@ bool CPSolver::finishParsing(){
 	return true;
 }
 
-Clause* CPSolver::propagate(Lit l){
+CCC CPSolver::propagate(Lit l){
 	if (init) {return NULL;}
 
 	//reportf("CP propagated: "); gprintLit(l); reportf(".\n");
 
 	int constrindex = -1;
-	Clause* confl = NULL;
+	CCC confl = NULL;
 	for(int i=0; i<solverdata->getConstraints().size(); i++){
 		if(solverdata->getConstraints()[i]->getAtom()==var(l)){
 			constrindex = i;
@@ -224,10 +224,10 @@ void CPSolver::backtrack(Lit l){
 	}
 }
 
-Clause* CPSolver::propagateAtEndOfQueue(){
+CCC CPSolver::propagateAtEndOfQueue(){
 	if (init) {return NULL;}
 
-	Clause* confl = NULL;
+	CCC confl = NULL;
 	StatusStatistics stats;
 	SpaceStatus status = solverdata->getSpace().status(stats);
 	//cout <<solverdata->getSpace() <<endl;
@@ -240,15 +240,15 @@ Clause* CPSolver::propagateAtEndOfQueue(){
 		//FIXME ADD STACK IN CORRECT ORDER! First add the conflicting one!
 		for(vector<Constraint*>::const_iterator i=solverdata->getConstraints().begin(); i<solverdata->getConstraints().end(); i++){
 			if(solverdata->getSpace().isTrue((*i)->getBoolVar())){
-				clause.push(Lit((*i)->getAtom(), true));
+				clause.push(mkLit((*i)->getAtom(), true));
 			}else if(solverdata->getSpace().isFalse((*i)->getBoolVar())){
-				clause.push(Lit((*i)->getAtom()));
+				clause.push(mkLit((*i)->getAtom()));
 			}
 		}
 		for(int i=0; i<trail.size(); i++){
 			clause.push(~trail[i]);
 		}
-		confl = Clause_new(clause, true);
+		confl = getSolver()->makeClause(clause, true);
 		//FIXME staat het hier juist?
 		//pcsolver->addLearnedClause(confl);
 	}else{
@@ -270,8 +270,8 @@ Clause* CPSolver::propagateAtEndOfQueue(){
 	return confl;
 }
 
-Clause* CPSolver::propagateFinal(){
-	Clause* confl = NULL;
+CCC CPSolver::propagateFinal(){
+	CCC confl = NULL;
 
 	Search::Options searchOptions_;
 	DFS<CPScript>* searchEngine_; // depth first search

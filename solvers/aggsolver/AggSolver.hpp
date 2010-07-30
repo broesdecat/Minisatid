@@ -3,8 +3,7 @@
 
 #include <cstdio>
 
-#include "mtl/Vec.h"
-#include "mtl/Sort.h"
+#include "solvers/SATUtils.h"
 
 #include "solvers/aggsolver/AggTypes.hpp"
 
@@ -54,9 +53,9 @@ public:
 	 * @post the first element in the reason clause will be the literal itself (invariant by minisat!)
 	 * @post the clause is not saved, so HAS to be deleted after use
 	 */
-	Clause* 	getExplanation	(const Lit& p);
+	CCC 	getExplanation	(const Lit& p);
 	void 		notifyVarAdded	(uint64_t nvars); 		//correctly initialize AMNSolver datastructures when vars are added
-	Clause* 	propagate	(const Lit& p);
+	CCC 	propagate	(const Lit& p);
 	/////////////////////ENDSOLVER NECESSARY
 
 	/////////////////////IDSOLVER NECESSARY
@@ -118,7 +117,7 @@ public:
 	/////////////////////END INITIALIZATION
 
 	//are used by agg.c, but preferably should be move into protected again
-	Clause* 	notifySATsolverOfPropagation(const Lit& p, Aggrs::AggrReason* cr);	// Like "enqueue", but for aggregate propagations.
+	CCC 	notifySATsolverOfPropagation(const Lit& p, Aggrs::AggrReason* cr);	// Like "enqueue", but for aggregate propagations.
 
 	//Optimisation support
 	bool 		addMnmzSum		(Var headv, int setid, bool lower);
@@ -161,7 +160,7 @@ protected:
 	/**
 	 * Goes through all watches and propagates the fact that p was set true.
 	 */
-	Clause* 	Aggr_propagate		(const Lit& p);
+	CCC 	Aggr_propagate		(const Lit& p);
 
 	bool 		maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& head, const AggrSet& set);
 	bool		finishSets(vector<pSet>& sets); //throws UNSAT
@@ -176,7 +175,7 @@ inline void AggSolver::backtrack (const Lit& l){
 	doBacktrack(l);
 }
 
-inline Clause* AggSolver::propagate(const Lit& p){
+inline CCC AggSolver::propagate(const Lit& p){
 	if (init) {return NULL;}
 	return Aggr_propagate(p);
 }

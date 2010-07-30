@@ -4,8 +4,9 @@
 #include <set>
 #include <vector>
 #include <tr1/memory>
-#include "mtl/Vec.h"
-#include "solver3/SolverTypes.hpp"
+
+#include "solvers/SATUtils.h"
+
 #include "solvers/pcsolver/PCSolver.hpp"
 #include "solvers/modsolver/SOSolverHier.hpp"
 #include <stdio.h>
@@ -74,10 +75,10 @@ public:
 	void 	setNbModels		(int nb);
 
 	/*//Solve methods
-	Clause* propagate(Lit l);
+	CCC propagate(Lit l);
 	bool 	canSearch();
 	void 	backtrack(Lit l);
-	Clause* getExplanation(Lit l);*/
+	CCC getExplanation(Lit l);*/
 
 	//data initialization
 	void				addVar			(Var v);
@@ -114,15 +115,15 @@ public:
 	 * Propagation coming from the parent solver: propagate it through the tree, until a conflict is found.
 	 * SHOULD also return unit propagated implied rigid atoms.
 	 */
-	Clause* 			propagateDown(Lit l);
-	Clause* 			propagateDownAtEndOfQueue();
+	CCC 			propagateDown(Lit l);
+	CCC 			propagateDownAtEndOfQueue();
 	/**
 	 * Propagation coming from the sat-solver: should propagate it through all modal solvers.
 	 *
 	 * Should NOT be called from other sources than the SAT-solver.
 	 */
-	Clause* 			propagate(Lit l);
-	Clause* 			propagateAtEndOfQueue();
+	CCC 			propagate(Lit l);
+	CCC 			propagateAtEndOfQueue();
 	/**
 	 * Same as enqueue or notifyofpropagation: add it to the sat-solver queue, but remember why it was
 	 * propagated. Id indicates from which modal solver the propagation came.
@@ -138,7 +139,7 @@ public:
 	/**
 	 * This will be difficult to implement?
 	 */
-	Clause* 			getExplanation(Lit l);
+	CCC 			getExplanation(Lit l);
 
 	bool				hasParent	()	const 	{ return hasparent; }
 	Var 				getHead		()	const 	{ assert(hasparent); return head.atom; }
@@ -164,7 +165,7 @@ private:
 	void				adaptValuesOnPropagation(Lit l);
 	void 				doUnitPropagation	(const vec<Lit>&);
 	bool 				search				(const vec<Lit>&, bool search = true);
-	Clause* 			analyzeResult		(bool result, bool allknown);
+	CCC 			analyzeResult		(bool result, bool allknown);
 };
 
 #endif// MODSOLVER_H_

@@ -11,7 +11,8 @@
 #include "solvers/cpsolver/Constraint.hpp"
 #include "solvers/cpsolver/CPScript.hpp"
 
-#include "solver3/SolverTypes.hpp"
+#include "solvers/SATUtils.h"
+using namespace Minisat;
 
 namespace CP{
 	class CPSolverData{

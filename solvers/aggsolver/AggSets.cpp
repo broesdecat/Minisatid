@@ -55,7 +55,7 @@ AggrProdSet::AggrProdSet(const vec<Lit>& lits, const vector<Weight>& weights, pA
 	emptysetvalue = 1;
 }
 
-Clause* AggrSet::propagate(const Lit& p, const AggrWatch& ws){
+CCC AggrSet::propagate(const Lit& p, const AggrWatch& ws){
 	Occurrence tp;
     if (ws.getType()==POS){
     	tp = sign(p)? NEG : POS;
@@ -67,7 +67,7 @@ Clause* AggrSet::propagate(const Lit& p, const AggrWatch& ws){
 	wlits[ws.getIndex()].setValue(tp==POS?l_True:l_False);
 	tp==POS? addToCertainSet(wlits[ws.getIndex()]):removeFromPossibleSet(wlits[ws.getIndex()]);
 
-	Clause* confl = NULL;
+	CCC confl = NULL;
 	for(lsagg::const_iterator i=getAggBegin(); i<getAggEnd() && confl==NULL; i++){
 		pAgg pa = (*i);
 

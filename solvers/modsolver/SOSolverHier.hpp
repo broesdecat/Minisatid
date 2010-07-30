@@ -3,7 +3,7 @@
 
 #include "solvers/utils/Solverfwd.hpp"
 #include "solvers/aggsolver/AggTypes.hpp"
-#include "mtl/Vec.h"
+#include "solvers/SATUtils.h"
 #include "solvers/SolverI.hpp"
 class Data;
 

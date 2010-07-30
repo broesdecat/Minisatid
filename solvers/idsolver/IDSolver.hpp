@@ -10,9 +10,7 @@
 
 #include "solvers/utils/Utils.hpp"
 
-#include "mtl/Vec.h"
-#include "mtl/Queue.h"
-#include "mtl/Heap.h"
+#include "solvers/SATUtils.h"
 
 #include "solvers/utils/Solverfwd.hpp"
 
@@ -42,7 +40,7 @@ public:
     }
 
     int 	size() 				const	{ return lits.size(); }
-    Lit 	getHeadLiteral() 	const	{ return Lit(head, false); }
+    Lit 	getHeadLiteral() 	const	{ return mkLit(head, false); }
     Lit 	operator [](int i) 	const	{ return lits[i]; }
 };
 

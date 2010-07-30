@@ -80,15 +80,15 @@ public:
 	lbool 	initialize(); //throws UNSAT
 	void 	backtrackHead();
 	void	backtrack(int stacksize);
-	Clause*	propagateHead(const Lit& p);
+	CCC	propagateHead(const Lit& p);
 
     /**
      * Updates the values of the aggregate and then returns whether the head can be directly propagated from the body
      */
     virtual lbool 	canPropagateHead(const Weight& CC, const Weight& CP) const;
 
-    virtual Clause* propagate		(bool headtrue) = 0;
-    virtual Clause* propagateHead	(bool headtrue) = 0;
+    virtual CCC propagate		(bool headtrue) = 0;
+    virtual CCC propagateHead	(bool headtrue) = 0;
 
     /**
      * Should find a set L+ such that "bigwedge{l | l in L+} implies p"
@@ -110,8 +110,8 @@ public:
 		Agg(bounds, bound, head, set){
 	};
 
-    virtual Clause* propagate		(bool headtrue);
-    virtual Clause* propagateHead	(bool headtrue);
+    virtual CCC propagate		(bool headtrue);
+    virtual CCC propagateHead	(bool headtrue);
 
 	virtual void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) const;
 	virtual bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
@@ -123,8 +123,8 @@ public:
 		Agg(bounds, bound, head, set){
 	};
 
-    virtual Clause* propagate		(bool headtrue);
-    virtual Clause* propagateHead	(bool headtrue);
+    virtual CCC propagate		(bool headtrue);
+    virtual CCC propagateHead	(bool headtrue);
 
 	virtual void	createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) const;
 	virtual bool 	canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
@@ -149,7 +149,7 @@ public:
 	CardAgg(Bound bounds, Weight bound, Lit head, const pSet& set):
 		SumAgg(bounds, bound, head, set){};
 
-    virtual Clause* propagate		(bool headtrue);
+    virtual CCC propagate		(bool headtrue);
 };
 
 class ProdAgg: public SPAgg {

@@ -8,11 +8,15 @@
 
 using namespace std;
 
+#include "solvers/SATSolver.h"
+#include "solvers/SATUtils.h"
+
+using namespace Minisat;
+
 typedef vector<Lit> vlit;
 
 //FIXME: the parser does -1, but +1 is always printed, also when NOT going through the parser
 
-#include "solver3minisat/Solver.h"
 #include "solvers/idsolver/IDSolver.hpp"
 #include "solvers/cpsolver/CPSolver.hpp"
 #include "solvers/aggsolver/AggSolver.hpp"
@@ -24,7 +28,10 @@ namespace CP{
 
 using namespace CP;
 
-class Solver;
+namespace Minisat{
+	class Solver;
+}
+
 class IDSolver;
 class AggSolver;
 class ModSolver;
@@ -130,7 +137,7 @@ public:
 	void		notifyAggrHead	(Var head);
 
 	lbool 		checkStatus		(lbool status) const; //if status==l_True, do wellfoundednesscheck in IDSolver, if not wellfounded, return l_False, otherwise status
-	Clause* 	getExplanation	(Lit l);
+	CCC 	getExplanation	(Lit l);
 
     /*
      * Solver callbacks
@@ -147,9 +154,10 @@ public:
 	uint64_t	nVars			()      const;		// The current number of variables.
 
 	//IMPORTANT: THE FIRST LITERAL IN THE CLAUSE HAS TO BE THE ONE WHICH CAN BE PROPAGATED FROM THE REST!!!!!!!
-	void 		addLearnedClause(Clause* c);	// don't check anything, just add it to the clauses and bump activity
+	void 		addLearnedClause(CCC c);	// don't check anything, just add it to the clauses and bump activity
 	void    	backtrackTo		(int level);	// Backtrack until a certain level.
-	void    	setTrue			(Lit p, Clause* c = NULL);		// Enqueue a literal. Assumes value of literal is undefined
+	void    	setTrue			(Lit p, CCC c = NULL);		// Enqueue a literal. Assumes value of literal is undefined
+	CCC 		makeClause		(vec<Lit>& lits, bool b);
 
 	/**
 	 * Allows to loop over all assignments made in the current decision level.
@@ -172,8 +180,8 @@ public:
 	void	varBumpActivity	(Var v);
 
 	void 	backtrackRest	(Lit l);
-	Clause* propagate		(Lit l);
-	Clause* propagateAtEndOfQueue();
+	CCC propagate		(Lit l);
+	CCC propagateAtEndOfQueue();
 
 	/*
 	 * OPTIMIZATION

@@ -41,7 +41,7 @@ vector<Lit> CPSolverData::getBoolChanges() const{
 		assert(history.size()>1);
 		BoolVar prev = history[history.size()-2]->getBoolVars()[boolvar];
 		if(current.min() == current.max() && prev.min() != prev.max()){
-			lits.push_back(Lit(getConstraints()[i]->getAtom(), current.min()==0));
+			lits.push_back(mkLit(getConstraints()[i]->getAtom(), current.min()==0));
 		}
 	}
 	return lits;

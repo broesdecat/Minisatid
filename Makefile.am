@@ -31,18 +31,26 @@ include_HEADERS += solvers/pcsolver/PCSolver.hpp
 include_HEADERS += solvers/cpsolver/CPUtils.hpp solvers/cpsolver/CPSolver.hpp solvers/cpsolver/CPScript.hpp solvers/cpsolver/Constraint.hpp solvers/cpsolver/CPSolverData.hpp
 include_HEADERS += solvers/modsolver/ModSolver.hpp solvers/modsolver/SOSolverHier.hpp
 include_HEADERS += solvers/external/ExternalInterface.hpp solvers/external/ExternalUtils.hpp 
-include_HEADERS += mtl/Vec.h mtl/Queue.h mtl/Alg.h mtl/Heap.h mtl/Map.h mtl/Sort.h
 include_HEADERS += solvers/parser/Lparseread.hpp
 include_HEADERS += solvers/Unittests.hpp
+include_HEADERS += solvers/SATSolver.h solvers/SATUtils.h
 
 #MINISAT 2.07 09z
 #minisatid_SOURCES += solver3/Solver.cpp 
 #include_HEADERS += solver3/Solver.hpp solver3/SolverTypes.hpp
+#include_HEADERS += mtl/Vec.h mtl/Queue.h mtl/Alg.h mtl/Heap.h mtl/Map.h mtl/Sort.h
 
 #MINISAT 2.07
-minisatid_SOURCES += solver3minisat/Solver.C
-include_HEADERS += solver3minisat/Solver.h solver3minisat/SolverTypes.h
+#minisatid_SOURCES += solver3minisat/Solver.C
+#include_HEADERS += solver3minisat/Solver.h solver3minisat/SolverTypes.h
+#include_HEADERS += mtl/Vec.h mtl/Queue.h mtl/Alg.h mtl/Heap.h mtl/Map.h mtl/Sort.h
 
 #MINISAT 2.2
+minisatid_SOURCES += solver3minisat22/core/Solver.cc
+#De -I zorgt ervoor dat ze geladen worden tijdens compileren, de volledige url zorgt ervoor dat ze in de distributie worden gestoken
+include_HEADERS += solver3minisat22/core/Solver.h solver3minisat22/core/SolverTypes.h
+include_HEADERS += solver3minisat22/mtl/IntTypes.h solver3minisat22/mtl/Alg.h solver3minisat22/mtl/Vec.h solver3minisat22/mtl/Map.h solver3minisat22/mtl/Alloc.h solver3minisat22/mtl/Vec.h solver3minisat22/mtl/Heap.h solver3minisat22/mtl/Alg.h solver3minisat22/mtl/Sort.h
+include_HEADERS += solver3minisat22/utils/ParseUtils.h solver3minisat22/utils/Options.h
+CXXFLAGS += -D__STDC_LIMIT_MACROS -I$(srcdir)/solver3minisat22/
 
 dist_doc_DATA = README

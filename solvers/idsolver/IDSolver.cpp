@@ -22,8 +22,8 @@ inline bool IDSolver::isUnknown(Lit l)	 			const	{ return value(l)==l_Undef; }
 inline bool IDSolver::isUnknown(Var v)	 			const	{ return value(v)==l_Undef; }
 inline bool IDSolver::canBecomeTrue(Lit l)			const	{ return value(l)!=l_False; }
 inline bool IDSolver::inSameSCC(Var x, Var y)		const	{ return scc[x] == scc[y] && scc[x]!=-1; }	//-1 indicates not defined
-inline Lit 	IDSolver::createNegativeLiteral(Var i)	const	{ return Lit(i, true); }
-inline Lit 	IDSolver::createPositiveLiteral(Var i)	const	{ return Lit(i, false); }
+inline Lit 	IDSolver::createNegativeLiteral(Var i)	const	{ return mkLit(i, true); }
+inline Lit 	IDSolver::createPositiveLiteral(Var i)	const	{ return mkLit(i, false); }
 
 inline bool IDSolver::isDefInPosGraph(Var v) 		const	{ return defOcc[v]==POSLOOP || defOcc[v]==BOTHLOOP; }
 inline bool	IDSolver::isDefined(Var v)		 		const	{ return defType[v]!=NONDEFTYPE; }
@@ -705,7 +705,7 @@ void IDSolver::propagateJustificationAggr(Lit l, vec<vec<Lit> >& jstf, vec<Lit>&
 
 /*_________________________________________________________________________________________________
  |
- |  indirectPropagate : [void]  ->  [Clause*]
+ |  indirectPropagate : [void]  ->  [CCC]
  |
  |  Description:
  |    If there is an unfounded set w.r.t. current assignment, this method will find one. There
@@ -721,7 +721,7 @@ void IDSolver::propagateJustificationAggr(Lit l, vec<vec<Lit> >& jstf, vec<Lit>&
  |
  |	Returns non-owning pointer
  |________________________________________________________________________________________________@*/
-Clause* IDSolver::indirectPropagate() {
+CCC IDSolver::indirectPropagate() {
 	if (!indirectPropagateNow()) {
 		return NULL;
 	}
@@ -754,7 +754,7 @@ Clause* IDSolver::indirectPropagate() {
  				vec<vec<Lit> > network;	//maps a node to a list of nodes that have visited the first one
 										//as index, the visited time is used
  				network.growTo(visittime+1);
- 				network[visittime].push(Lit(css[j]));
+ 				network[visittime].push(mkLit(css[j]));
  				UFS ret = visitForUFSsimple(css[j], ufs, visittime, stack, seen2, network);
  				switch(ret){
  				case UFSFOUND:
@@ -778,7 +778,7 @@ Clause* IDSolver::indirectPropagate() {
     justifiable_cycle_sources+=ufs_found?(j-1):j; // This includes those that are removed inside "unfounded".
     succesful_justify_calls+=(justify_calls - old_justify_calls);
 
- 	Clause* confl = NULL;
+ 	CCC confl = NULL;
 	if (ufs_found) {
 		if (getSolver()->modes().verbosity >= 2) {
 			reportf("Found an unfounded set of size %d: {",(int)ufs.size());
@@ -1220,7 +1220,7 @@ void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf){
  *
  * Returns a non-owning pointer
  */
-Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
+CCC IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	assert(!ufs.empty());
 
 	unfoundedsets++;
@@ -1233,7 +1233,7 @@ Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
 		if (isTrue(*tch)) {
 			loopf[0] = createNegativeLiteral(*tch);	//negate the head to create a clause
-			Clause* c = Clause_new(loopf, true);
+			CCC c = getSolver()->makeClause(loopf, true);
 			getSolver()->addLearnedClause(c);
 			justify_conflicts++;
 			if (getSolver()->modes().verbosity >= 2) {
@@ -1276,7 +1276,7 @@ Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
 		if(isUnknown(*tch)){
 			Lit l = createNegativeLiteral(*tch);
-			Clause* c = addLoopfClause(l, loopf);
+			CCC c = addLoopfClause(l, loopf);
 			if(canpropagate){
 				getSolver()->setTrue(l, c);
 			}
@@ -1286,9 +1286,9 @@ Clause* IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
     return NULL;
 }
 
-Clause* IDSolver::addLoopfClause(Lit l, vec<Lit>& lits){
+CCC IDSolver::addLoopfClause(Lit l, vec<Lit>& lits){
 	lits[0] = l;
-	Clause* c = Clause_new(lits, true);
+	CCC c = getSolver()->makeClause(lits, true);
 	getSolver()->addLearnedClause(c);
 
 	if (getSolver()->modes().verbosity >= 2) {
@@ -1454,7 +1454,7 @@ bool IDSolver::isCycleFree() const{
         reportf("Showing cf- and sp-justification for disjunctive atoms. <<<<<<<<<<\n");
         for (int i = 0; i < nVars(); i++) {
             if (getDefType(i)==DISJ) {
-                gprintLit(Lit(i,false)); reportf(" <- ");
+                gprintLit(mkLit(i,false)); reportf(" <- ");
                 gprintLit(justification[i][0]);
                 reportf("(cf); ");
             }
@@ -1468,9 +1468,9 @@ bool IDSolver::isCycleFree() const{
     vec<Lit> justified;
     int cnt_nonjustified = 0;
     for (int i=0;i<nVars();++i) {
-        justified.push(Lit(i,true)); // negative literals are justified anyhow.
+        justified.push(mkLit(i,true)); // negative literals are justified anyhow.
         if (!isDefInPosGraph(i)) {
-            justified.push(Lit(i,false));
+            justified.push(mkLit(i,false));
         } else {
             ++cnt_nonjustified;
             isfree[i]=getDefType(i)==CONJ ? definition[i]->size() : 1;
@@ -1499,7 +1499,7 @@ bool IDSolver::isCycleFree() const{
             if (justification[d][0]==l && isfree[d]>0) {
                 assert(isfree[d]==1);
                 isfree[d]=0;
-                justified.push(Lit(d,false));
+                justified.push(mkLit(d,false));
                 --cnt_nonjustified;
             }
         }
@@ -1507,7 +1507,7 @@ bool IDSolver::isCycleFree() const{
             Var c = *i;
             isfree[c]--;
             if (isfree[c]==0) {
-                justified.push(Lit(c,false));
+                justified.push(mkLit(c,false));
                 --cnt_nonjustified;
             }
         }
@@ -1524,7 +1524,7 @@ bool IDSolver::isCycleFree() const{
             	isfree[d]--;
             }
             if (isfree[d]==0) {
-                justified.push(Lit(d,false));
+                justified.push(mkLit(d,false));
                 --cnt_nonjustified;
             }
         }
@@ -1804,7 +1804,7 @@ void IDSolver::visitWF(Var v, vector<Var> &root, vector<bool> &incomp, stack<Var
  * Marks the head of a rule
  */
 void IDSolver::mark(Var h) {
-	Lit l = Lit(h, isFalse(h));	//holds the literal that has to be propagated, so has the model value
+	Lit l = mkLit(h, isFalse(h));	//holds the literal that has to be propagated, so has the model value
 	if(!wfisMarked[h]){
 		wfqueue.push(l);
 		wfisMarked[h] = true;
@@ -2032,7 +2032,7 @@ void IDSolver::changeJustificationsTarjan(Var definednode, Lit firstjustificatio
 		vec<Lit> j; j.push(firstjustification);
 		changejust(definednode, j);
 		vis[definednode]=-vis[definednode]; //set it as justified
-		queue.push(Lit(definednode));
+		queue.push(mkLit(definednode));
 	}
 
 	while(queue.size()>0){
@@ -2117,9 +2117,9 @@ UFS IDSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<V
 		if(childfound){
 			if(visitedTarjan(var(definedChild), vis)){
 				network.growTo(visittime+1);
-				network[visittime].push(Lit(v));
+				network[visittime].push(mkLit(v));
 			}else{
-				network[visitedAtTarjan(var(definedChild), vis)].push(Lit(v));
+				network[visitedAtTarjan(var(definedChild), vis)].push(mkLit(v));
 			}
 
 			if(!visitedTarjan(var(definedChild), vis)){
@@ -2140,9 +2140,9 @@ UFS IDSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<V
 
 			if(!visitedTarjan(child, vis)){
 				network.growTo(visittime+1);
-				network[visittime].push(Lit(v));
+				network[visittime].push(mkLit(v));
 			}else{
-				network[visitedAtTarjan(child, vis)].push(Lit(v));
+				network[visitedAtTarjan(child, vis)].push(mkLit(v));
 			}
 
 			if(!visitedTarjan(child, vis)){
@@ -2221,7 +2221,7 @@ UFS IDSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<V
 //	if(type==AGGR){return OLDCHECK;}
 //	assert(type==CONJ || type==DISJ);
 //
-//	Clause* c = definition[v];
+//	CCC c = definition[v];
 //	//PropRule* c = definition[v];
 //
 //	for(int i=0; i<c->size(); i++){

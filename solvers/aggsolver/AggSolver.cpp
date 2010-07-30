@@ -214,7 +214,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 	}*/
 
 	//the head of the aggregate
-	Lit head = Lit(headv, false);
+	Lit head = mkLit(headv, false);
 	getSolver()->varBumpActivity(var(head)); // These guys ought to be initially a bit more important then the rest.
 
 	assert(setid>0);
@@ -314,7 +314,7 @@ bool AggSolver::addMnmzSum(Var headv, int setid, bool lower) {
 	}*/
 
 	//the head of the aggregate
-	Lit head = Lit(headv, false);
+	Lit head = mkLit(headv, false);
 	assert(setid>0);
 
 	Bound b = lower?LOWERBOUND:UPPERBOUND;
@@ -380,7 +380,7 @@ bool AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& h
  *
  * Returns non-owning pointer
  */
-Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
+CCC AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 
 	//This strongly improves the performance of some benchmarks, e.g. FastFood. For Hanoi it has no effect
 	getSolver()->varBumpActivity(var(p));	//mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt?
@@ -394,7 +394,7 @@ Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 		}
 		AggrReason* old_ar = aggr_reason[var(p)];
 		aggr_reason[var(p)] = ar;
-		Clause* confl = getExplanation(p);
+		CCC confl = getExplanation(p);
 
 		getSolver()->addLearnedClause(confl);
 
@@ -421,8 +421,8 @@ Clause* AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 /**
  * Returns non-owning pointer
  */
-Clause* AggSolver::Aggr_propagate(const Lit& p) {
-	Clause* confl = NULL;
+CCC AggSolver::Aggr_propagate(const Lit& p) {
+	CCC confl = NULL;
 	vector<AggrWatch>& ws = aggr_watches[var(p)];
 	pAgg pa = head_watches[var(p)];
 
@@ -441,7 +441,7 @@ Clause* AggSolver::Aggr_propagate(const Lit& p) {
 	return confl;
 }
 
-Clause* AggSolver::getExplanation(const Lit& p) {
+CCC AggSolver::getExplanation(const Lit& p) {
 	assert(aggr_reason[var(p)]!=NULL);
 	AggrReason& ar = *aggr_reason[var(p)];
 
@@ -452,7 +452,7 @@ Clause* AggSolver::getExplanation(const Lit& p) {
 	ar.getAgg()->getExplanation(lits, ar);
 
 	//create a conflict clause and return it
-	Clause* c = Clause_new(lits, true);
+	CCC c = getSolver()->makeClause(lits, true);
 
 	if (getSolver()->modes().verbosity >= 2) {
 		reportf("Implicit reason clause for ");
@@ -538,7 +538,7 @@ void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& 
 				vec<Lit> jstf; vec<Var> nonjstf;
 				if(expr->canJustifyHead(jstf, nonjstf, currentjust, false)){
 					currentjust[head]=0;
-					heads.push(Lit(head, false));
+					heads.push(mkLit(head, false));
 					jstfs.push();
 					jstf.copyTo(jstfs.last());
 				}

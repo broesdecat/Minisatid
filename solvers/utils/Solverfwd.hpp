@@ -14,7 +14,7 @@
 using namespace std;
 using namespace tr1;
 
-#include "solver3minisat/SolverTypes.h"
+#include "solvers/SATUtils.h"
 
 #include "solvers/external/ExternalUtils.hpp"
 

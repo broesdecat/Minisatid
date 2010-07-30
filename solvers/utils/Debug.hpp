@@ -8,10 +8,11 @@
 #ifndef DEBUG_H_
 #define DEBUG_H_
 
-#include "solver3/SolverTypes.hpp"
 #include "stdio.h"
 
-#include "mtl/Vec.h"
+#include "solvers/SATUtils.h"
+
+using namespace Minisat;
 
 /******************
  * DEBUGGING INFO *
