@@ -54,6 +54,6 @@ typedef Minisat::CRef rClause;
 #endif
 
 extern rClause nullPtrClause;
-rClause getClauseRef(rClause rc);
+pClause getClauseRef(rClause rc);
 
 #endif// SATSOLVER_H_

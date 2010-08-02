@@ -1,6 +1,6 @@
 AM_LDFLAGS = $(SVNDIGEST_LDFLAGS)
 AM_CXXFLAGS = $(SVNDIGEST_CXXFLAGS)
-CXXFLAGS = -I/home/broes/documents/othersoftware/gecode/installnostat/include/ @AM_CXXFLAGS@
+CXXFLAGS = -I/home/broes/documents/othersoftware/gecode/installnostat/include/ -I$(srcdir)/solver3minisat22/ @AM_CXXFLAGS@
 LDFLAGS = -L/home/broes/documents/othersoftware/gecode/installnostat/lib/ -lgecodedriver -lgecodeminimodel -lgecodeset -lgecodeint -lgecodekernel -lgecodesupport @AM_LDFLAGS@
 
 YFLAGS = -d @AM_YFLAGS@
@@ -8,7 +8,7 @@ LFLAGS = @AM_LFLAGS@ #TODO prefix blijkt niet te werken, dus code herschreven om
 
 bin_PROGRAMS = minisatid
 
-BUILT_SOURCES = ecnfparser.h
+BUILT_SOURCES = solvers/parser/ecnfparser.h
 
 minisatid_SOURCES = 
 minisatid_SOURCES += solvers/Main.cpp solvers/SATUtils.cpp
@@ -38,23 +38,36 @@ include_HEADERS += solvers/SATSolver.h solvers/SATUtils.h
 CXXFLAGS += -D__STDC_LIMIT_MACROS
 
 #MINISAT 2.07 09z
-#minisatid_SOURCES += solver3/Solver.cpp 
-#include_HEADERS += solver3/Solver.hpp solver3/SolverTypes.hpp
-#include_HEADERS += mtlold/Vec.h mtlold/Queue.h mtlold/Alg.h mtlold/Heap.h mtlold/Map.h mtlold/Sort.h
-#CXXFLAGS += -DUSEMINISAT09Z
 
-#MINISAT 2.07
-#minisatid_SOURCES += solver3minisat/Solver.C
-#include_HEADERS += solver3minisat/Solver.h solver3minisat/SolverTypes.h
-#include_HEADERS += mtlold/Vec.h mtlold/Queue.h mtlold/Alg.h mtlold/Heap.h mtlold/Map.h mtlold/Sort.h
-#CXXFLAGS += -DUSEMINISAT
+if USEMINISAT09Z
+minisatid_SOURCES += solver3/Solver.cpp 
+include_HEADERS += solver3/Solver.hpp solver3/SolverTypes.hpp
+include_HEADERS += mtlold/Vec.h mtlold/Queue.h mtlold/Alg.h mtlold/Heap.h mtlold/Map.h mtlold/Sort.h
+CXXFLAGS+=-DUSEMINISAT09Z
+else
+
+endif
 
 #MINISAT 2.2
-minisatid_SOURCES += solver3minisat22/core/Solver.cc
 #De -I zorgt ervoor dat ze geladen worden tijdens compileren, de volledige url zorgt ervoor dat ze in de distributie worden gestoken
+
+if USEMINISAT22
+minisatid_SOURCES += solver3minisat22/core/Solver.cc
 include_HEADERS += solver3minisat22/core/Solver.h solver3minisat22/core/SolverTypes.h
 include_HEADERS += solver3minisat22/mtl/IntTypes.h solver3minisat22/mtl/Alg.h solver3minisat22/mtl/Vec.h solver3minisat22/mtl/Map.h solver3minisat22/mtl/Alloc.h #solver3minisat22/mtl/Vec.h solver3minisat22/mtl/Heap.h solver3minisat22/mtl/Alg.h solver3minisat22/mtl/Sort.h
 include_HEADERS += solver3minisat22/utils/ParseUtils.h solver3minisat22/utils/Options.h
-CXXFLAGS += -DUSEMINISAT22 -I$(srcdir)/solver3minisat22/
+CXXFLAGS+=-DUSEMINISAT22
+endif
+
+#MINISAT 2.07
+
+if USEMINISAT
+minisatid_SOURCES += solver3minisat/Solver.C
+include_HEADERS += solver3minisat/Solver.h solver3minisat/SolverTypes.h
+include_HEADERS += mtlold/Vec.h mtlold/Queue.h mtlold/Alg.h mtlold/Heap.h mtlold/Map.h mtlold/Sort.h
+CXXFLAGS+=-DUSEMINISAT
+else
+
+endif
 
 dist_doc_DATA = README

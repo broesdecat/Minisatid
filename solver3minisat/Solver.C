@@ -146,10 +146,10 @@ void Solver::addLearnedClause(Clause* c){
 	}else{
 		assert(c->size()==1);
 		//TODO maybe backtracking to 0 is not the best method.
-		backtrackTo(0);
+		cancelUntil(0);
 		vec<Lit> ps;
 		ps.push(c->operator [](0));
-		getSolver()->addClause(ps);
+		addClause(ps);
 	}
 }
 
@@ -370,7 +370,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 		/*AB*/
 		if(confl==NULL && pathC>1){
 			//Explanation still returns an owning pointer, so handle it properly
-			confl = getClausePtr(solver->getExplanation(p));
+			confl = solver->getExplanation(p);
 			deleteImplicitClause = true;
 		}
 		if(verbosity>4 && confl!=NULL) {
@@ -571,10 +571,10 @@ Clause* Solver::propagate()
         //Important: standard propagate returns a conflict clause that ALREADY exists in the clause store
         //so these functions should return POINTERS OWNED BY SOMEONE ELSE
 		if(confl==NULL){
-			confl = getClausePtr(solver->propagate(p));
+			confl = solver->propagate(p);
 		}
 		if(qhead==trail.size() && confl==NULL){
-        	confl = getClausePtr(solver->propagateAtEndOfQueue());
+        	confl = solver->propagateAtEndOfQueue();
 		}
 		if(confl!=NULL){
 			qhead = trail.size();
