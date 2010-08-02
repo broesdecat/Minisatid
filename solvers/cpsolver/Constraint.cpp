@@ -15,15 +15,11 @@ Constraint::Constraint(int atom, CPScript& space): atom(atom), var(space.addBool
 void Constraint::propagate(bool becametrue, CPScript& space){
 	//TODO should be checked, but maybe this complicates which solver queues and which have to be propagated
 	//assert(!isAssigned(space));
-	/*if(isAssigned(space)){
-		return;
-	}*/
-	//cout <<"Before rel" << space.getBoolVars()[getBoolVar()] <<endl;
-	//BoolVar v(space, 0, 1);
-	//rel(space, v, IRT_GQ, becametrue?1:0);
+	//if(isAssigned(space)){
+	//	return;
+	//}
+
 	rel(space, space.getBoolVars()[getBoolVar()], IRT_EQ, becametrue?1:0);
-	//Int::BoolView v(space.getBoolVars()[getBoolVar()]);
-	//v.eq(space, becametrue?1:0);
 }
 
 SumConstraint::SumConstraint(CPScript& space, vector<TermIntVar> tset, IntRelType rel, TermIntVar rhs, int atom)
