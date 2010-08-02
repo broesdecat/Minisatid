@@ -47,7 +47,7 @@ void print(Solver const * const s){
 	assert(s!=NULL);
 	reportf("Clauses\n");
 	for(int i=0; i< s->nbClauses(); i++){
-		s->printClause(*s->getClause(i));
+		s->printClause(s->getClause(i));
 		reportf("\n");
 	}
 }
@@ -85,13 +85,13 @@ inline void printClause(const C& c){
     }
 }
 
-template<class C, class S>
-void printClause(const C& c, S const * const s){
-	s->printClause(c);
+template<class S>
+void printClause(rClause c, S const * const s){
+	s->printClause(getClauseRef(c));
 }
 
 template<>
-void printClause(const Clause& c, PCSolver const * const s){
+void printClause(rClause c, PCSolver const * const s){
 	printClause(c, s->getCSolver());
 }
 

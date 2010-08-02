@@ -122,28 +122,19 @@ uint64_t PCSolver::nVars() const{
 	return getSolver()->nbVars();
 }
 
-void PCSolver::addLearnedClause(CCC c){
-	if(c->size()>1){
-		getSolver()->addLearnedClause(c);
-	}else{
-		assert(c->size()==1);
-		//TODO maybe backtracking to 0 is not the best method.
-		backtrackTo(0);
-		vec<Lit> ps;
-		ps.push(c->operator [](0));
-		getSolver()->addClause(ps);
-	}
+void PCSolver::addLearnedClause(rClause c){
+	getSolver()->addLearnedClause(c);
 }
 
 void PCSolver::backtrackTo(int level){
 	getSolver()->cancelUntil(level);
 }
 
-void PCSolver::setTrue(Lit p, CCC c){
+void PCSolver::setTrue(Lit p, rClause c){
 	getSolver()->uncheckedEnqueue(p, c);
 }
 
-CCC PCSolver::makeClause(vec<Lit>& lits, bool b){
+rClause PCSolver::makeClause(vec<Lit>& lits, bool b){
 	return getSolver()->makeClause(lits, b);
 }
 
@@ -331,22 +322,22 @@ bool PCSolver::finishParsing(){
 		aggsolverpresent = getAggSolver()->finishECNF_DataStructures();
 		//
 		vector<Lit> trail = getSolver()->getTrail();
-		CCC confl = NULL;
-		for (vector<Lit>::const_iterator i=trail.begin(); i<trail.end() && confl==NULL; i++){
+		rClause confl = nullPtrClause;
+		for (vector<Lit>::const_iterator i=trail.begin(); i<trail.end() && confl==nullPtrClause; i++){
 			confl = getAggSolver()->propagate(*i);
 		}
-		if(confl!=NULL){
+		if(confl!=nullPtrClause){
 			return false;
 		}
 	}
 	if(cpsolverpresent){
 		cpsolverpresent = getCPSolver()->finishParsing();
 		vector<Lit> trail = getSolver()->getTrail();
-		CCC confl = NULL;
-		for (vector<Lit>::const_iterator i=trail.begin(); i<trail.end() && confl==NULL; i++){
+		rClause confl = nullPtrClause;
+		for (vector<Lit>::const_iterator i=trail.begin(); i<trail.end() && confl==nullPtrClause; i++){
 			confl = getCPSolver()->propagate(*i);
 		}
-		if(confl!=NULL){
+		if(confl!=nullPtrClause){
 			return false;
 		}
 	}
@@ -419,11 +410,11 @@ void PCSolver::resetIDSolver(){
  * AGGSOLVER SPECIFIC *
  **********************/
 
-CCC PCSolver::getExplanation(Lit l){
+rClause PCSolver::getExplanation(Lit l){
 	if(modes().verbosity>2){
 		reportf("Find an explanation for "); gprintLit(l); reportf("\n");
 	}
-	return aggsolverpresent?getAggSolver()->getExplanation(l):NULL;
+	return aggsolverpresent?getAggSolver()->getExplanation(l):nullPtrClause;
 }
 
 /*
@@ -452,18 +443,18 @@ void PCSolver::backtrackRest(Lit l){
  * Returns not-owning pointer
  */
 //FIXME: maybe let all lower ones return owning pointer, so only one reference to addlearnedclause?
-CCC PCSolver::propagate(Lit l){
-	CCC confl = NULL;
+rClause PCSolver::propagate(Lit l){
+	rClause confl = nullPtrClause;
 	if(aggsolverpresent){
 		confl = getAggSolver()->propagate(l);
 	}
-	if(idsolverpresent && confl == NULL){
+	if(idsolverpresent && confl == nullPtrClause){
 		confl = getIDSolver()->propagate(l);
 	}
-	if(cpsolverpresent && confl == NULL){
+	if(cpsolverpresent && confl == nullPtrClause){
 		confl = getCPSolver()->propagate(l);
 	}
-	if(modsolverpresent && confl == NULL){
+	if(modsolverpresent && confl == nullPtrClause){
 		confl = getModSolver()->propagate(l);
 	}
 	return confl;
@@ -472,15 +463,15 @@ CCC PCSolver::propagate(Lit l){
 /**
  * Returns not-owning pointer
  */
-CCC PCSolver::propagateAtEndOfQueue(){
-	CCC confl = NULL;
-	if(idsolverpresent && confl == NULL){
+rClause PCSolver::propagateAtEndOfQueue(){
+	rClause confl = nullPtrClause;
+	if(idsolverpresent && confl == nullPtrClause){
 		confl = getIDSolver()->propagateDefinitions();
 	}
-	if(cpsolverpresent && confl == NULL){
+	if(cpsolverpresent && confl == nullPtrClause){
 		confl = getCPSolver()->propagateAtEndOfQueue();
 	}
-	if(modsolverpresent && confl == NULL){
+	if(modsolverpresent && confl == nullPtrClause){
 		confl = getModSolver()->propagateAtEndOfQueue();
 	}
 	return confl;

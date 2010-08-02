@@ -89,7 +89,7 @@ Solver::Solver(pPCSolver s/*A*/) :
   , simpDB_props       (0)
   , order_heap         (VarOrderLt(activity))
   , progress_estimate  (0)
-  , remove_satisfied   (true)
+  , remove_satisfied   (false)///*A*/true)
 
     // Resource constraints:
     //
@@ -175,15 +175,20 @@ vector<Lit> Solver::getRecentAssignments() const{
 	return v;
 }
 
-void Solver::addLearnedClause(Clause* c){
-	CRef cref = c->relocation();
-	learnts.push(cref);
-	attachClause(cref);
-	claBumpActivity(*c);
-	if(verbosity>=3){
-		reportf("Learned clause added: ");
-		printClause(*c);
-		reportf("\n");
+void Solver::addLearnedClause(CRef rc){
+	if(ca[rc].size()>1){
+		learnts.push(rc);
+		attachClause(rc);
+
+		Clause& c = ca[rc];
+		claBumpActivity(c);
+		if(verbosity>=3){
+			reportf("Learned clause added: ");
+			printClause(rc);
+			reportf("\n");
+		}
+	}else{
+		addClause(ca[rc][0]);
 	}
 }
 
@@ -285,7 +290,9 @@ void Solver::cancelUntil(int level) {
             assigns [x] = l_Undef;
             if (phase_saving > 1 || (phase_saving == 1) && c > trail_lim.last())
                 polarity[x] = sign(trail[c]);
-            insertVarOrder(x); }
+            insertVarOrder(x);
+            /*A*/solver->backtrackRest(trail[c]);
+        }
         qhead = trail_lim[level];
         trail.shrink(trail.size() - trail_lim[level]);
         trail_lim.shrink(trail_lim.size() - level);
@@ -340,14 +347,68 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
     int pathC = 0;
     Lit p     = lit_Undef;
 
+    /*AB VERY IMPORTANT*/
+	int lvl = 0;
+	Clause& c = ca[confl];
+	for (int i = 0; i < c.size(); i++){
+		int litlevel = level(var(c[i]));
+		if (litlevel > lvl){
+			lvl = litlevel;
+		}
+	}
+	cancelUntil(lvl);
+	assert(lvl==decisionLevel());
+	assert(confl!=CRef_Undef);
+
+	//reportf("Conflicts: %d.\n", conflicts);
+	vector<Lit> explain;
+	if(verbosity>4){
+		reportf("Choices: ");
+		for(int i=0; i<trail_lim.size(); i++){
+			gprintLit(trail[trail_lim[i]]); reportf(" ");
+		}
+		reportf("\n");
+		reportf("Trail: \n");
+		for(int i=0; i<trail_lim.size()-1; i++){
+			reportf("Level: ");
+			for(int j=trail_lim[i]; j<trail_lim[i+1]; j++){
+				gprintLit(trail[j]); reportf(" ");
+			}
+			reportf("\n");
+		}
+		reportf("Level: ");
+		for(int j=trail_lim[trail_lim.size()-1]; j<trail.size(); j++){
+			gprintLit(trail[j]); reportf(" ");
+		}
+		reportf("\n");
+	}
+	/*AE*/
+
     // Generate conflict clause:
     //
     out_learnt.push();      // (leave room for the asserting literal)
     int index   = trail.size() - 1;
 
+    /*A*/bool deleteImplicitClause = false;
     do{
         assert(confl != CRef_Undef); // (otherwise should be UIP)
         Clause& c = ca[confl];
+
+        /*AB*/
+		if(verbosity>4){
+			reportf("DECISION LEVEL %d\n", decisionLevel());
+			reportf("Current conflict clause: ");
+			printClause(confl);
+			reportf("\n");
+			reportf("Current learned clause: ");
+			for (int i = 1; i < out_learnt.size(); i++) {
+				gprintLit(out_learnt[i]);
+				reportf(" ");
+			}
+			reportf("\n");
+			reportf("Still explain: ");
+		}
+		/*AE*/
 
         if (c.learnt())
             claBumpActivity(c);
@@ -365,10 +426,50 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
             }
         }
         
+        /*AB*/
+        if(verbosity>4){
+        	for(vector<Lit>::const_iterator i=explain.begin(); i<explain.end(); i++){
+        		gprintLit(*i); reportf(" ");
+        	}
+        	reportf("\n");
+		}
+        /*AE*/
+
+        /*AB*/
+		if (deleteImplicitClause) {
+			ca.free(confl);
+			deleteImplicitClause = false;
+		}
+        /*AE*/
+
         // Select next clause to look at:
         while (!seen[var(trail[index--])]);
         p     = trail[index+1];
         confl = reason(var(p));
+
+		/*AB*/
+		if(verbosity>4){
+			reportf("Getting explanation for ");
+			for(vector<Lit>::iterator i=explain.begin(); i<explain.end(); i++){
+				if(var(*i)==var(p)){
+					explain.erase(i);
+					break;
+				}
+			}
+			gprintLit(p);
+			reportf("\n");
+		}
+
+		if(confl==CRef_Undef && pathC>1){
+			//Explanation still returns an owning pointer, so handle it properly
+			confl = solver->getExplanation(p);
+			deleteImplicitClause = true;
+		}
+		if(verbosity>4 && confl!=CRef_Undef) {
+			reportf("Explanation is "); printClause(confl); reportf("\n");
+		}
+		/*AE*/
+
         seen[var(p)] = 0;
         pathC--;
 
@@ -574,6 +675,19 @@ CRef Solver::propagate()
         NextClause:;
         }
         ws.shrink(i - j);
+        /*AB*/
+        //Important: standard propagate returns a conflict clause that ALREADY exists in the clause store
+        //so these functions should return POINTERS OWNED BY SOMEONE ELSE
+		if(confl==CRef_Undef){
+			confl = solver->propagate(p);
+		}
+		if(qhead==trail.size() && confl==CRef_Undef){
+			confl = solver->propagateAtEndOfQueue();
+		}
+		if(confl!=CRef_Undef){
+			qhead = trail.size();
+		}
+        /*AE*/
     }
     propagations += num_props;
     simpDB_props -= num_props;
@@ -738,7 +852,7 @@ lbool Solver::search(int nof_conflicts/*AB*/, bool nosearch/*AE*/)
                 return l_Undef; }
 
             // Simplify the set of problem clauses:
-            if (decisionLevel() == 0 && !simplify())
+            if (decisionLevel() == 0 && /*AB*/ !solver->simplify() /*AE*/)
                 return l_False;
 
             if (learnts.size()-nAssigns() >= max_learnts)
@@ -775,6 +889,12 @@ lbool Solver::search(int nof_conflicts/*AB*/, bool nosearch/*AE*/)
                 if (next == lit_Undef)
                     // Model found:
                     return l_True;
+
+                /*AB*/
+				if (verbosity >= 2) {
+					solver->printChoiceMade(decisionLevel(), next);
+				}
+				/*AE*/
             }
 
             // Increase decision level and enqueue 'next'
@@ -853,11 +973,12 @@ lbool Solver::solve_(/*AB*/bool nosearch/*AE*/)
     while (status == l_Undef){
         double rest_base = luby_restart ? luby(restart_inc, curr_restarts) : pow(restart_inc, curr_restarts);
         status = search(rest_base * restart_first/*AB*/, nosearch/*AE*/);
-        /*AB*/
-		if(nosearch){
-			return status;
-		}
-		/*AE*/
+    	/*AB*/
+    	status = solver->checkStatus(status);
+    	if(nosearch){
+    		return status;
+    	}
+    	/*AE*/
         if (!withinBudget()) break;
         curr_restarts++;
     }
@@ -873,7 +994,7 @@ lbool Solver::solve_(/*AB*/bool nosearch/*AE*/)
     }else if (status == l_False && conflict.size() == 0)
         ok = false;
 
-    /*A*/cancelUntil(0);
+    /*A*///cancelUntil(0);
     return status;
 }
 
@@ -955,8 +1076,9 @@ void Solver::toDimacs(FILE* f, const vec<Lit>& assumps)
 }
 
 /*AB*/
-void Solver::printClause(const Clause& c) const{
+void Solver::printClause(CRef rc) const{
     vec<Var> map; Var max = 0;
+    const  Clause& c = ca[rc];
     for (int i = 0; i < c.size(); i++)
         if (value(c[i]) != l_False)
             fprintf(stderr, "%s%d ", sign(c[i]) ? "-" : "", mapVar(var(c[i]), map, max)+1);

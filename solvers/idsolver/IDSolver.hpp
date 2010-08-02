@@ -59,10 +59,10 @@ public:
 
 	/////////////////////SOLVER NECESSARY
 	void 		backtrack 				(const Lit& l);
-	Clause* 	getExplanation			(const Lit& p);    // Create a clause that implicitly was the reason for p's propagation.
+	rClause 	getExplanation			(const Lit& p);    // Create a clause that implicitly was the reason for p's propagation.
 	void 		notifyVarAdded			(int nvars); 		//correctly initialized TSolver datastructures when vars are added
-	Clause* 	propagateDefinitions	();
-	Clause* 	propagate				(const Lit&);
+	rClause 	propagateDefinitions	();
+	rClause 	propagate				(const Lit&);
 
 	bool 		isWellFoundedModel		();
 	/////////////////////ENDSOLVER NECESSARY
@@ -170,7 +170,7 @@ protected:
 	void 	checkJustification			(Var head, Lit lbecamefalse);
 
 	// Propagation method:
-	Clause*  indirectPropagate  		();                        /* Main method.
+	rClause  indirectPropagate  		();                        /* Main method.
                                                                       1) Finds cycle sources and supporting justification.
                                                                       2) Applies 'unfounded(..)' on each of them,
                                                                       3) ... asserting an unfounded set as soon as one is found, or
@@ -180,7 +180,7 @@ protected:
 	// Auxiliary for indirectPropagate:
 	bool	indirectPropagateNow();                               // Decide (depending on chosen strategy) whether or not to do propagations now.
 	bool	unfounded          (Var cs, std::set<Var>& ufs);      // True iff 'cs' is currently in an unfounded set, 'ufs'.
-	Clause*	assertUnfoundedSet (const std::set<Var>& ufs);
+	rClause	assertUnfoundedSet (const std::set<Var>& ufs);
 
 //	UFS 	visitForUFSgeneral	(Var v, Var cs, std::set<Var>& ufs, int visittime, vec<Var>& stack, vec<Var>& root, vec<Var>& visited, vec<bool>& incomp);
 	UFS 	visitForUFSsimple	(Var v, std::set<Var>& ufs, int& visittime, vec<Var>& stack, vec<Var>& visited, vec<vec<Lit> >& network);
@@ -198,7 +198,7 @@ protected:
 	bool	isJustified					(Lit x) const;
 	bool	isJustified					(Var x) const;
 	bool	propagateJustified			(Var v, Var cs, std::set<Var>& ufs);    // Auxiliary for 'unfounded(..)'. Propagate the fact that 'v' is now justified. True if 'cs' is now justified
-	Clause* addLoopfClause				(Lit l, vec<Lit>& lits);
+	rClause addLoopfClause				(Lit l, vec<Lit>& lits);
 
 	// Another propagation method (too expensive in practice):
 	// void     fwIndirectPropagate();
@@ -268,16 +268,16 @@ private:
 /**
  * Returns non-owning pointer
  */
-inline Clause* IDSolver::propagate(const Lit& p){
-	return NULL;
+inline rClause IDSolver::propagate(const Lit& p){
+	return nullPtrClause;
 }
 
 //only call this when the whole queue has been propagated
 /**
  * Returns non-owning pointer
  */
-inline Clause* IDSolver::propagateDefinitions(){
-	if (init || !posloops) {return NULL;}
+inline rClause IDSolver::propagateDefinitions(){
+	if (init || !posloops) {return nullPtrClause;}
 	return indirectPropagate();
 }
 
@@ -285,9 +285,9 @@ inline void IDSolver::backtrack( const Lit& l){
 	return;
 }
 
-inline Clause* IDSolver::getExplanation(const Lit& p){
+inline rClause IDSolver::getExplanation(const Lit& p){
 	assert(false);
-	return NULL;
+	return nullPtrClause;
 }
 
 inline void IDSolver::printStatistics() const{

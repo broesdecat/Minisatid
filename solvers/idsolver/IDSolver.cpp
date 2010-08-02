@@ -720,9 +720,9 @@ void IDSolver::propagateJustificationAggr(Lit l, vec<vec<Lit> >& jstf, vec<Lit>&
  |
  |	Returns non-owning pointer
  |________________________________________________________________________________________________@*/
-CCC IDSolver::indirectPropagate() {
+rClause IDSolver::indirectPropagate() {
 	if (!indirectPropagateNow()) {
-		return NULL;
+		return nullPtrClause;
 	}
 
 	findCycleSources();
@@ -777,7 +777,7 @@ CCC IDSolver::indirectPropagate() {
     justifiable_cycle_sources+=ufs_found?(j-1):j; // This includes those that are removed inside "unfounded".
     succesful_justify_calls+=(justify_calls - old_justify_calls);
 
- 	CCC confl = NULL;
+    rClause confl = nullPtrClause;
 	if (ufs_found) {
 		if (getSolver()->modes().verbosity >= 2) {
 			reportf("Found an unfounded set of size %d: {",(int)ufs.size());
@@ -1219,7 +1219,7 @@ void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf){
  *
  * Returns a non-owning pointer
  */
-CCC IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
+rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	assert(!ufs.empty());
 
 	unfoundedsets++;
@@ -1232,12 +1232,12 @@ CCC IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
 		if (isTrue(*tch)) {
 			loopf[0] = createNegativeLiteral(*tch);	//negate the head to create a clause
-			CCC c = getSolver()->makeClause(loopf, true);
+			rClause c = getSolver()->makeClause(loopf, true);
 			getSolver()->addLearnedClause(c);
 			justify_conflicts++;
 			if (getSolver()->modes().verbosity >= 2) {
 				reportf("Adding conflicting loop formula: [ ");
-				Print::printClause(*c, getSolver());
+				Print::printClause(c, getSolver());
 				reportf("].\n");
 			}
 			return c;
@@ -1275,24 +1275,24 @@ CCC IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
 		if(isUnknown(*tch)){
 			Lit l = createNegativeLiteral(*tch);
-			CCC c = addLoopfClause(l, loopf);
+			rClause c = addLoopfClause(l, loopf);
 			if(canpropagate){
 				getSolver()->setTrue(l, c);
 			}
 		}
 	}
 
-    return NULL;
+    return nullPtrClause;
 }
 
-CCC IDSolver::addLoopfClause(Lit l, vec<Lit>& lits){
+rClause IDSolver::addLoopfClause(Lit l, vec<Lit>& lits){
 	lits[0] = l;
-	CCC c = getSolver()->makeClause(lits, true);
+	rClause c = getSolver()->makeClause(lits, true);
 	getSolver()->addLearnedClause(c);
 
 	if (getSolver()->modes().verbosity >= 2) {
 		reportf("Adding loop formula: [ ");
-		Print::printClause(*c, getSolver());
+		Print::printClause(c, getSolver());
 		reportf("].\n");
 	}
 

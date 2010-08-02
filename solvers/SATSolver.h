@@ -10,11 +10,11 @@ class Solver;
 #include "solver3/Solver.hpp"
 #endif
 #ifdef USEMINISAT22
+#include "solver3minisat22/core/Solver.h"
 using namespace Minisat;
 namespace Minisat{
 	class Solver;
 }
-#include "solver3minisat22/Solver.h"
 #endif
 
 

@@ -55,7 +55,7 @@ AggrProdSet::AggrProdSet(const vec<Lit>& lits, const vector<Weight>& weights, pA
 	emptysetvalue = 1;
 }
 
-CCC AggrSet::propagate(const Lit& p, const AggrWatch& ws){
+rClause AggrSet::propagate(const Lit& p, const AggrWatch& ws){
 	Occurrence tp;
     if (ws.getType()==POS){
     	tp = sign(p)? NEG : POS;
@@ -67,8 +67,8 @@ CCC AggrSet::propagate(const Lit& p, const AggrWatch& ws){
 	wlits[ws.getIndex()].setValue(tp==POS?l_True:l_False);
 	tp==POS? addToCertainSet(wlits[ws.getIndex()]):removeFromPossibleSet(wlits[ws.getIndex()]);
 
-	CCC confl = NULL;
-	for(lsagg::const_iterator i=getAggBegin(); i<getAggEnd() && confl==NULL; i++){
+	rClause confl = nullPtrClause;
+	for(lsagg::const_iterator i=getAggBegin(); i<getAggEnd() && confl == nullPtrClause; i++){
 		pAgg pa = (*i);
 
 		//TODO dit is vrij lelijk
@@ -84,7 +84,8 @@ CCC AggrSet::propagate(const Lit& p, const AggrWatch& ws){
 		}else{ //head is not yet known, so at most the head can be propagated
 			lbool result = pa->canPropagateHead(getCC(), getCP());
 			if(result!=l_Undef){
-				confl = getSolver()->notifySATsolverOfPropagation(result==l_True?pa->getHead():~pa->getHead(), new AggrReason(*i, CPANDCC, true));
+				rClause cc = getSolver()->notifySATsolverOfPropagation(result==l_True?pa->getHead():~pa->getHead(), new AggrReason(*i, CPANDCC, true));
+				confl = cc;
 			}
 		}
 	}

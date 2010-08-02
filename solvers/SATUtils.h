@@ -7,7 +7,8 @@
 #include "mtlold/Heap.h"
 #include "mtlold/Sort.h"
 #include "solver3minisat/SolverTypes.h"
-typedef Clause* CCC;
+typedef Clause& pClause;
+typedef Clause* rClause;
 
 Lit mkLit(Var x, bool sign = false);
 #endif
@@ -18,7 +19,8 @@ Lit mkLit(Var x, bool sign = false);
 #include "mtlold/Heap.h"
 #include "mtlold/Sort.h"
 #include "solver3/SolverTypes.hpp"
-typedef Clause* CCC;
+typedef Clause& pClause;
+typedef Clause* rClause;
 
 Lit mkLit(Var x, bool sign = false);
 #endif
@@ -29,7 +31,11 @@ Lit mkLit(Var x, bool sign = false);
 #include "mtl/Heap.h"
 #include "mtl/Sort.h"
 #include "core/SolverTypes.h"
-typedef Minisat::Clause* CCC;
+typedef Minisat::CRef pClause;
+typedef Minisat::CRef rClause;
 #endif
+
+extern rClause nullPtrClause;
+rClause getClauseRef(rClause rc);
 
 #endif// SATSOLVER_H_

@@ -39,7 +39,7 @@ public:
     virtual ~AggrSet(){}
 
 	virtual bool 	initialize(); //throws UNSAT
-	CCC 		propagate(const Lit& p, const AggrWatch& ws);
+	rClause 		propagate(const Lit& p, const AggrWatch& ws);
 
     virtual void 	backtrack(int index);
 

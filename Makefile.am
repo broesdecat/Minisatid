@@ -35,11 +35,13 @@ include_HEADERS += solvers/parser/Lparseread.hpp
 include_HEADERS += solvers/Unittests.hpp
 include_HEADERS += solvers/SATSolver.h solvers/SATUtils.h
 
+CXXFLAGS += -D__STDC_LIMIT_MACROS
+
 #MINISAT 2.07 09z
-minisatid_SOURCES += solver3/Solver.cpp 
-include_HEADERS += solver3/Solver.hpp solver3/SolverTypes.hpp
-include_HEADERS += mtlold/Vec.h mtlold/Queue.h mtlold/Alg.h mtlold/Heap.h mtlold/Map.h mtlold/Sort.h
-CXXFLAGS += -DUSEMINISAT09Z
+#minisatid_SOURCES += solver3/Solver.cpp 
+#include_HEADERS += solver3/Solver.hpp solver3/SolverTypes.hpp
+#include_HEADERS += mtlold/Vec.h mtlold/Queue.h mtlold/Alg.h mtlold/Heap.h mtlold/Map.h mtlold/Sort.h
+#CXXFLAGS += -DUSEMINISAT09Z
 
 #MINISAT 2.07
 #minisatid_SOURCES += solver3minisat/Solver.C
@@ -48,11 +50,11 @@ CXXFLAGS += -DUSEMINISAT09Z
 #CXXFLAGS += -DUSEMINISAT
 
 #MINISAT 2.2
-#minisatid_SOURCES += solver3minisat22/core/Solver.cc
+minisatid_SOURCES += solver3minisat22/core/Solver.cc
 #De -I zorgt ervoor dat ze geladen worden tijdens compileren, de volledige url zorgt ervoor dat ze in de distributie worden gestoken
-#include_HEADERS += solver3minisat22/core/Solver.h solver3minisat22/core/SolverTypes.h
-#include_HEADERS += solver3minisat22/mtl/IntTypes.h solver3minisat22/mtl/Alg.h solver3minisat22/mtl/Vec.h solver3minisat22/mtl/Map.h solver3minisat22/mtl/Alloc.h #solver3minisat22/mtl/Vec.h solver3minisat22/mtl/Heap.h solver3minisat22/mtl/Alg.h solver3minisat22/mtl/Sort.h
-#include_HEADERS += solver3minisat22/utils/ParseUtils.h solver3minisat22/utils/Options.h
-#CXXFLAGS += -D__STDC_LIMIT_MACROS -I$(srcdir)/solver3minisat22/
+include_HEADERS += solver3minisat22/core/Solver.h solver3minisat22/core/SolverTypes.h
+include_HEADERS += solver3minisat22/mtl/IntTypes.h solver3minisat22/mtl/Alg.h solver3minisat22/mtl/Vec.h solver3minisat22/mtl/Map.h solver3minisat22/mtl/Alloc.h #solver3minisat22/mtl/Vec.h solver3minisat22/mtl/Heap.h solver3minisat22/mtl/Alg.h solver3minisat22/mtl/Sort.h
+include_HEADERS += solver3minisat22/utils/ParseUtils.h solver3minisat22/utils/Options.h
+CXXFLAGS += -DUSEMINISAT22 -I$(srcdir)/solver3minisat22/
 
 dist_doc_DATA = README

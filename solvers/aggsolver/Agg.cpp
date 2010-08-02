@@ -20,7 +20,7 @@ void Agg::addAggToSet(){
  * and can be left out of any propagations.
  */
 lbool Agg::initialize(){
-	CCC confl = NULL;
+	rClause confl = nullPtrClause;
 
 	lbool hv = canPropagateHead(getSet()->getCC(), getSet()->getCP());
 	if(hv!=l_Undef && !optimagg){
@@ -32,7 +32,7 @@ lbool Agg::initialize(){
 	}else if(hv==l_False){
 		confl = getSet()->getSolver()->notifySATsolverOfPropagation(~getHead(), new AggrReason(this, CPANDCC, true));
 	}
-	if(confl!=NULL){
+	if(confl!=nullPtrClause){
 		return l_False;
 	}
 
@@ -55,13 +55,13 @@ void Agg::backtrackHead(){
 /**
  * Returns non-owning pointer
  */
-CCC Agg::propagateHead(const Lit& p){
-	if(nomoreprops || headprop){ return NULL; }
+rClause Agg::propagateHead(const Lit& p){
+	if(nomoreprops || headprop){ return nullPtrClause; }
 
 	bool headtrue = getHead()==p;
 	headvalue = headtrue?l_True:l_False;
 	headindex = getSet()->getStackSize();
-	CCC confl = propagateHead(headtrue);
+	rClause confl = propagateHead(headtrue);
 	return confl;
 }
 
@@ -94,26 +94,26 @@ lbool Agg::canPropagateHead(const Weight& CC, const Weight& CP) const{
 /**
  * Returns non-owning pointer
  */
-CCC MaxAgg::propagateHead(bool headtrue) {
-	if(nomoreprops || headprop){ return NULL; }
+rClause MaxAgg::propagateHead(bool headtrue) {
+	if(nomoreprops || headprop){ return nullPtrClause; }
 
 	pSet s = getSet();
-	CCC confl = NULL;
+	rClause confl = nullPtrClause;
 	if (headtrue && isLower()) {
 		lwlv::const_reverse_iterator i=s->getWLRBegin();
-		while( confl == NULL && i<s->getWLREnd() && getLowerBound()<(*i).getWeight()){
+		while( confl == nullPtrClause && i<s->getWLREnd() && getLowerBound()<(*i).getWeight()){
 			//because these propagations are independent of the other set literals, they can also be written as clauses
 			confl = s->getSolver()->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(this,HEADONLY));
 			i++;
 		}
 	}else if(!headtrue && isUpper()){
 		lwlv::const_reverse_iterator i=s->getWLRBegin();
-		while( confl == NULL && i<s->getWLREnd() && getUpperBound()<=(*i).getWeight()){
+		while( confl == nullPtrClause && i<s->getWLREnd() && getUpperBound()<=(*i).getWeight()){
 			confl = s->getSolver()->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(this,HEADONLY));
 			i++;
 		}
 	}
-	if(confl==NULL){
+	if(confl==nullPtrClause){
 		confl = propagate(headtrue);
 	}
 
@@ -132,8 +132,8 @@ CCC MaxAgg::propagateHead(bool headtrue) {
 /**
  * Returns non-owning pointer
  */
-CCC MaxAgg::propagate(bool headtrue) {
-	CCC confl = NULL;
+rClause MaxAgg::propagate(bool headtrue) {
+	rClause confl = nullPtrClause;
 
 	if(nomoreprops || headprop){ return confl; }
 
@@ -230,8 +230,8 @@ Weight	ProdAgg::remove(const Weight& lhs, const Weight& rhs) const{
 /**
  * Returns non-owning pointer
  */
-CCC SPAgg::propagateHead(bool headtrue){
-	if(nomoreprops || headprop){ return NULL; }
+rClause SPAgg::propagateHead(bool headtrue){
+	if(nomoreprops || headprop){ return nullPtrClause; }
 
 	return propagate(headtrue);
 }
@@ -239,10 +239,10 @@ CCC SPAgg::propagateHead(bool headtrue){
 /**
  * Returns non-owning pointer
  */
-CCC SPAgg::propagate(bool headtrue){
-	if(nomoreprops || headprop){ return NULL; }
+rClause SPAgg::propagate(bool headtrue){
+	if(nomoreprops || headprop){ return nullPtrClause; }
 
-	CCC c = NULL;
+	rClause c = nullPtrClause;
 	Weight weightbound(0);
 	pSet s = getSet();
 
@@ -293,7 +293,7 @@ CCC SPAgg::propagate(bool headtrue){
 		it++; start++;
 	}
 
-	for (lwlv::const_iterator u = s->getWLBegin()+start; c==NULL && u < s->getWLEnd(); u++) {
+	for (lwlv::const_iterator u = s->getWLBegin()+start; c==nullPtrClause && u < s->getWLEnd(); u++) {
 		if ((*u).getValue()==l_Undef) {//if already propagated as an aggregate, then those best-values have already been adapted
 			if((isLower() && headtrue) || (isUpper() && !headtrue)){
 				//assert((headtrue && set->currentbestcertain+set->wlits[u].weight>bound) || (!headtrue && set->currentbestcertain+set->wlits[u].weight>=bound));
@@ -310,8 +310,8 @@ CCC SPAgg::propagate(bool headtrue){
 /**
  * Returns non-owning pointer
  */
-CCC CardAgg::propagate(bool headtrue){
-	if(nomoreprops || headprop){ return NULL; }
+rClause CardAgg::propagate(bool headtrue){
+	if(nomoreprops || headprop){ return nullPtrClause; }
 
 	pSet s = getSet();
 
@@ -336,13 +336,13 @@ CCC CardAgg::propagate(bool headtrue){
 		}
 	}
 
-	CCC c = NULL;
+	rClause c = nullPtrClause;
 
 	if(!makefalse && !maketrue){
 		return c;
 	}
 
-	for (lwlv::const_iterator u = s->getWLBegin(); c==NULL && u < s->getWLEnd(); u++) {
+	for (lwlv::const_iterator u = s->getWLBegin(); c==nullPtrClause && u < s->getWLEnd(); u++) {
 		if ((*u).getValue()==l_Undef) {//if already propagated as an aggregate, then those best-values have already been adapted
 			if(maketrue){
 				c = s->getSolver()->notifySATsolverOfPropagation((*u).getLit(), new AggrReason(this, basedon));

@@ -53,11 +53,11 @@ void print(ModSolverData const * const s);
 template<class C>
 void printClause(const C& c);
 
-template<class C, class S>
-void printClause(const C& c, S const * const s);
+template<class S>
+void printClause(rClause c, S const * const s);
 
 template<>
-void printClause(const Clause& c, PCSolver const * const s);
+void printClause(rClause c, PCSolver const * const s);
 
 }
 

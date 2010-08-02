@@ -45,7 +45,7 @@ private:
 
 public:
 /*AB*/
-	void		addLearnedClause	(Clause* c);	// don't check anything, just add it to the clauses and bump activity
+	void		addLearnedClause	(CRef c);	// don't check anything, just add it to the clauses and bump activity
 	void		cancelUntil			(int level);	// Backtrack until a certain level.
 	void		uncheckedEnqueue	(Lit p, CRef from = CRef_Undef);				// Enqueue a literal. Assumes value of literal is undefined
 	int 		getLevel			(int var) 			const;
@@ -57,11 +57,11 @@ public:
 	void    	varDecayActivity	();                      // Decay all variables with the specified factor. Implemented by increasing the 'bump' value instead.
 	void     	varBumpActivity		(Var v);                 // Increase a variable with the current 'bump' value.
 	void     	claDecayActivity	();                      // Decay all clauses with the specified factor. Implemented by increasing the 'bump' value instead.
-	void     	printClause			(const Clause& c) const;
+	void     	printClause			(const CRef c) const;
 	uint64_t    nbVars				()      const;       // The current number of variables.
 	void		printStatistics		() const ;
-	Clause*		makeClause			(vec<Lit>& lits, bool b){ return ca.lea(ca.alloc(lits, b));	}
-	const Clause* 	getClause		(int i) const { return ca.lea(clauses[i]); }
+	CRef		makeClause			(vec<Lit>& lits, bool b){ return ca.alloc(lits, b);	}
+	CRef	 	getClause			(int i) const { return clauses[i]; }
 	int			nbClauses			() const { return clauses.size(); }
 /*AE*/
 

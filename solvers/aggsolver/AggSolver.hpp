@@ -53,9 +53,9 @@ public:
 	 * @post the first element in the reason clause will be the literal itself (invariant by minisat!)
 	 * @post the clause is not saved, so HAS to be deleted after use
 	 */
-	CCC 	getExplanation	(const Lit& p);
+	rClause 	getExplanation	(const Lit& p);
 	void 		notifyVarAdded	(uint64_t nvars); 		//correctly initialize AMNSolver datastructures when vars are added
-	CCC 	propagate	(const Lit& p);
+	rClause 	propagate	(const Lit& p);
 	/////////////////////ENDSOLVER NECESSARY
 
 	/////////////////////IDSOLVER NECESSARY
@@ -117,7 +117,7 @@ public:
 	/////////////////////END INITIALIZATION
 
 	//are used by agg.c, but preferably should be move into protected again
-	CCC 	notifySATsolverOfPropagation(const Lit& p, Aggrs::AggrReason* cr);	// Like "enqueue", but for aggregate propagations.
+	rClause 	notifySATsolverOfPropagation(const Lit& p, Aggrs::AggrReason* cr);	// Like "enqueue", but for aggregate propagations.
 
 	//Optimisation support
 	bool 		addMnmzSum		(Var headv, int setid, bool lower);
@@ -160,7 +160,7 @@ protected:
 	/**
 	 * Goes through all watches and propagates the fact that p was set true.
 	 */
-	CCC 	Aggr_propagate		(const Lit& p);
+	rClause 	Aggr_propagate		(const Lit& p);
 
 	bool 		maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& head, const AggrSet& set);
 	bool		finishSets(vector<pSet>& sets); //throws UNSAT
@@ -175,8 +175,8 @@ inline void AggSolver::backtrack (const Lit& l){
 	doBacktrack(l);
 }
 
-inline CCC AggSolver::propagate(const Lit& p){
-	if (init) {return NULL;}
+inline rClause AggSolver::propagate(const Lit& p){
+	if (init) {return nullPtrClause;}
 	return Aggr_propagate(p);
 }
 

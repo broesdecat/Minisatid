@@ -115,15 +115,15 @@ public:
 	 * Propagation coming from the parent solver: propagate it through the tree, until a conflict is found.
 	 * SHOULD also return unit propagated implied rigid atoms.
 	 */
-	CCC 			propagateDown(Lit l);
-	CCC 			propagateDownAtEndOfQueue();
+	rClause 			propagateDown(Lit l);
+	rClause 			propagateDownAtEndOfQueue();
 	/**
 	 * Propagation coming from the sat-solver: should propagate it through all modal solvers.
 	 *
 	 * Should NOT be called from other sources than the SAT-solver.
 	 */
-	CCC 			propagate(Lit l);
-	CCC 			propagateAtEndOfQueue();
+	rClause 			propagate(Lit l);
+	rClause 			propagateAtEndOfQueue();
 	/**
 	 * Same as enqueue or notifyofpropagation: add it to the sat-solver queue, but remember why it was
 	 * propagated. Id indicates from which modal solver the propagation came.
@@ -139,7 +139,7 @@ public:
 	/**
 	 * This will be difficult to implement?
 	 */
-	CCC 			getExplanation(Lit l);
+	rClause 			getExplanation(Lit l);
 
 	bool				hasParent	()	const 	{ return hasparent; }
 	Var 				getHead		()	const 	{ assert(hasparent); return head.atom; }
@@ -165,7 +165,7 @@ private:
 	void				adaptValuesOnPropagation(Lit l);
 	void 				doUnitPropagation	(const vec<Lit>&);
 	bool 				search				(const vec<Lit>&, bool search = true);
-	CCC 			analyzeResult		(bool result, bool allknown);
+	rClause 			analyzeResult		(bool result, bool allknown);
 };
 
 #endif// MODSOLVER_H_

@@ -75,21 +75,21 @@ public:
 	void		addLearnedClause	(Clause* c);	// don't check anything, just add it to the clauses and bump activity
 	void		cancelUntil			(int level);	// Backtrack until a certain level.
 	void		uncheckedEnqueue	(Lit p, Clause* from = NULL);				// Enqueue a literal. Assumes value of literal is undefined
-	int 		getLevel			(int var) 			const;
+	int 		getLevel			(int var) const;
 	bool 		totalModelFound		();				//true if the current assignment is completely two-valued
-	vector<Lit> getTrail			()const;
+	vector<Lit> getTrail			() const;
 	vector<Lit> getDecisions		() const;
-	int			decisionLevel		()      const; // Gives the current decisionlevel.
+	int			decisionLevel		() const; // Gives the current decisionlevel.
 	vector<Lit> getRecentAssignments() const;
 	void    	varDecayActivity	();                      // Decay all variables with the specified factor. Implemented by increasing the 'bump' value instead.
 	void     	varBumpActivity		(Var v);                 // Increase a variable with the current 'bump' value.
 	void     	claDecayActivity	();                      // Decay all clauses with the specified factor. Implemented by increasing the 'bump' value instead.
 	template<class C>
 	void     	printClause			(const C& c) const;
-	uint64_t    nbVars				()      const;       // The current number of variables.
+	uint64_t    nbVars				() const;       // The current number of variables.
 	void		printStatistics		() const ;
 	Clause* 	makeClause(vec<Lit>& lits, bool b){	return Clause_new(lits, b);	}
-	const Clause* 	getClause		(int i) const { return clauses[i]; }
+	const Clause& 	getClause		(int i) const { return *clauses[i]; }
 	int			nbClauses			() const { return clauses.size(); }
 /*AE*/
 

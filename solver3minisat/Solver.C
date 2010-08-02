@@ -134,13 +134,22 @@ vector<Lit> Solver::getRecentAssignments() const{
 }
 
 void Solver::addLearnedClause(Clause* c){
-	learnts.push(c);
-	attachClause(*c);
-	claBumpActivity(*c);
-	if(verbosity>=3){
-		reportf("Learned clause added: ");
-		printClause(*c);
-		reportf("\n");
+	if(c->size()>1){
+		learnts.push(c);
+		attachClause(*c);
+		claBumpActivity(*c);
+		if(verbosity>=3){
+			reportf("Learned clause added: ");
+			printClause(*c);
+			reportf("\n");
+		}
+	}else{
+		assert(c->size()==1);
+		//TODO maybe backtracking to 0 is not the best method.
+		backtrackTo(0);
+		vec<Lit> ps;
+		ps.push(c->operator [](0));
+		getSolver()->addClause(ps);
 	}
 }
 
@@ -361,7 +370,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 		/*AB*/
 		if(confl==NULL && pathC>1){
 			//Explanation still returns an owning pointer, so handle it properly
-			confl = solver->getExplanation(p);
+			confl = getClausePtr(solver->getExplanation(p));
 			deleteImplicitClause = true;
 		}
 		if(verbosity>4 && confl!=NULL) {
@@ -562,10 +571,10 @@ Clause* Solver::propagate()
         //Important: standard propagate returns a conflict clause that ALREADY exists in the clause store
         //so these functions should return POINTERS OWNED BY SOMEONE ELSE
 		if(confl==NULL){
-			confl = solver->propagate(p);
+			confl = getClausePtr(solver->propagate(p));
 		}
 		if(qhead==trail.size() && confl==NULL){
-			confl = solver->propagateAtEndOfQueue();
+        	confl = getClausePtr(solver->propagateAtEndOfQueue());
 		}
 		if(confl!=NULL){
 			qhead = trail.size();

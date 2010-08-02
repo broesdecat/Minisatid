@@ -147,10 +147,11 @@ bool ModSolver::simplify(){
 		//It is anyway necessary, because if no search occurs, the modal solvers should still be checked!
 		//TODO can this be called multiple times (it shouldn't)
 		if(result){
-			CCC c =  modhier.lock()->getModSolver(*i)->propagateDownAtEndOfQueue();
-			if(c!=NULL){
+			rClause c =  modhier.lock()->getModSolver(*i)->propagateDownAtEndOfQueue();
+			if(c!=nullPtrClause){
 				result = false;
-				free(c);
+				// TODO call free on clause
+				//free(c);
 			}
 		}
 	}
@@ -164,14 +165,14 @@ bool ModSolver::simplify(){
  * the propagation, as modal satisfiability checking can be much more expensive. So this solver always
  * return NULL (if not, it should return a non-owning pointer).
  */
-CCC ModSolver::propagateDown(Lit l){
+rClause ModSolver::propagateDown(Lit l){
 	if(modhier.lock()->modes().verbosity>4){
 		gprintLit(l); reportf(" propagated down into modal solver %zu.\n", getPrintId());
 	}
 
 	adaptValuesOnPropagation(l);
 
-	return NULL;
+	return nullPtrClause;
 }
 
 /**
@@ -200,9 +201,9 @@ void ModSolver::adaptValuesOnPropagation(Lit l){
  * will be propagated.
  * Returns an OWNING pointer, because the conflict clause is intended to be used by the PARENT solver
  */
-CCC ModSolver::propagateDownAtEndOfQueue(){
+rClause ModSolver::propagateDownAtEndOfQueue(){
 	if(init){
-		return NULL;
+		return nullPtrClause;
 	}
 	if(modhier.lock()->modes().verbosity>4){
 		reportf("End of queue propagation down into modal solver %zu.\n", getPrintId());
@@ -225,10 +226,10 @@ CCC ModSolver::propagateDownAtEndOfQueue(){
 
 	bool result = search(assumptions, allknown);
 
-	CCC confl = analyzeResult(result, allknown);
+	rClause confl = analyzeResult(result, allknown);
 
 	if(modhier.lock()->modes().verbosity>4){
-		reportf("Finished checking solver %zu: %s.\n", getPrintId(), confl==NULL?"no conflict":"conflict");
+		reportf("Finished checking solver %zu: %s.\n", getPrintId(), confl==nullPtrClause?"no conflict":"conflict");
 	}
 
 	getSolver()->backtrackTo(0);
@@ -277,9 +278,9 @@ bool ModSolver::search(const vec<Lit>& assumpts, bool search){
  * decision vars in this PC solver
  * Returns owning pointer
  */
-CCC ModSolver::analyzeResult(bool result, bool allknown){
+rClause ModSolver::analyzeResult(bool result, bool allknown){
 	bool conflict = false;
-	CCC confl = NULL;
+	rClause confl = nullPtrClause;
 
 	//if no model found and should be sat or if model found, should be unsat and all values are known
 	if(getHeadValue()==l_True && !result){
@@ -306,7 +307,7 @@ CCC ModSolver::analyzeResult(bool result, bool allknown){
 		confl = getSolver()->makeClause(confldisj, true);
 
 		if(modhier.lock()->modes().verbosity>=5){
-			Print::printClause(*confl, getSolver());
+			Print::printClause(confl, getSolver());
 		}
 	}
 
@@ -316,13 +317,13 @@ CCC ModSolver::analyzeResult(bool result, bool allknown){
 /**
  * Returns non-owning pointer
  */
-CCC ModSolver::propagate(Lit l){
+rClause ModSolver::propagate(Lit l){
 	/*if(!searching){
 		vector<Lit> v = getSolver()->getDecisions();
 		//FIXME propagate up WITH reason
 	}*/
-	CCC confl = NULL;
-	for(vmodindex::const_iterator i=getChildren().begin(); confl==NULL && i<getChildren().end(); i++){
+	rClause confl = nullPtrClause;
+	for(vmodindex::const_iterator i=getChildren().begin(); confl==nullPtrClause && i<getChildren().end(); i++){
 		confl = modhier.lock()->getModSolver(*i)->propagateDown(l);
 	}
 	return confl;
@@ -333,12 +334,12 @@ CCC ModSolver::propagate(Lit l){
 /**
  * Returns non-owning pointer
  */
-CCC ModSolver::propagateAtEndOfQueue(){
-	CCC confl = NULL;
-	for(vmodindex::const_iterator i=getChildren().begin(); confl==NULL && i<getChildren().end(); i++){
+rClause ModSolver::propagateAtEndOfQueue(){
+	rClause confl = nullPtrClause;
+	for(vmodindex::const_iterator i=getChildren().begin(); confl==nullPtrClause && i<getChildren().end(); i++){
 		confl = modhier.lock()->getModSolver(*i)->propagateDownAtEndOfQueue();
 	}
-	if(confl!=NULL){
+	if(confl!=nullPtrClause){
 		getSolver()->addLearnedClause(confl);
 	}
 	return confl;

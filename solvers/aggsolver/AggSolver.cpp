@@ -380,7 +380,7 @@ bool AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& h
  *
  * Returns non-owning pointer
  */
-CCC AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
+rClause AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 
 	//This strongly improves the performance of some benchmarks, e.g. FastFood. For Hanoi it has no effect
 	getSolver()->varBumpActivity(var(p));	//mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt?
@@ -394,7 +394,7 @@ CCC AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 		}
 		AggrReason* old_ar = aggr_reason[var(p)];
 		aggr_reason[var(p)] = ar;
-		CCC confl = getExplanation(p);
+		rClause confl = getExplanation(p);
 
 		getSolver()->addLearnedClause(confl);
 
@@ -415,14 +415,15 @@ CCC AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 	} else{
 		delete ar;
 	}
-	return NULL;
+	return nullPtrClause;
 }
 
 /**
  * Returns non-owning pointer
  */
-CCC AggSolver::Aggr_propagate(const Lit& p) {
-	CCC confl = NULL;
+rClause AggSolver::Aggr_propagate(const Lit& p) {
+	rClause confl = nullPtrClause;
+
 	vector<AggrWatch>& ws = aggr_watches[var(p)];
 	pAgg pa = head_watches[var(p)];
 
@@ -435,13 +436,13 @@ CCC AggSolver::Aggr_propagate(const Lit& p) {
 	if(pa!=NULL){
 		confl = pa->propagateHead(p);
 	}
-	for (vector<AggrWatch>::const_iterator i = ws.begin(); confl == NULL && i < ws.end(); i++) {
+	for (vector<AggrWatch>::const_iterator i = ws.begin(); confl == nullPtrClause && i < ws.end(); i++) {
 		confl = (*i).getSet()->propagate(p, (*i));
 	}
 	return confl;
 }
 
-CCC AggSolver::getExplanation(const Lit& p) {
+rClause AggSolver::getExplanation(const Lit& p) {
 	assert(aggr_reason[var(p)]!=NULL);
 	AggrReason& ar = *aggr_reason[var(p)];
 
@@ -452,12 +453,12 @@ CCC AggSolver::getExplanation(const Lit& p) {
 	ar.getAgg()->getExplanation(lits, ar);
 
 	//create a conflict clause and return it
-	CCC c = getSolver()->makeClause(lits, true);
+	rClause c = getSolver()->makeClause(lits, true);
 
 	if (getSolver()->modes().verbosity >= 2) {
 		reportf("Implicit reason clause for ");
 		gprintLit(p, sign(p)?l_False:l_True); reportf(" : ");
-		Print::printClause(*c, getSolver());
+		Print::printClause(c, getSolver());
 		reportf("\n");
 	}
 

@@ -186,13 +186,13 @@ bool CPSolver::finishParsing(){
 	return true;
 }
 
-CCC CPSolver::propagate(Lit l){
-	if (init) {return NULL;}
+rClause CPSolver::propagate(Lit l){
+	if (init) {return nullPtrClause;}
 
 	//reportf("CP propagated: "); gprintLit(l); reportf(".\n");
 
 	int constrindex = -1;
-	CCC confl = NULL;
+	rClause confl = nullPtrClause;
 	for(int i=0; i<solverdata->getConstraints().size(); i++){
 		if(solverdata->getConstraints()[i]->getAtom()==var(l)){
 			constrindex = i;
@@ -207,7 +207,6 @@ CCC CPSolver::propagate(Lit l){
 	trail.push_back(l);
 
 	solverdata->getConstraints()[constrindex]->propagate(!sign(l), solverdata->getSpace());
-
 	//FIXME check for failure here too (adding constraints also does simple checks)
 
 	return confl;
@@ -224,10 +223,10 @@ void CPSolver::backtrack(Lit l){
 	}
 }
 
-CCC CPSolver::propagateAtEndOfQueue(){
-	if (init) {return NULL;}
+rClause CPSolver::propagateAtEndOfQueue(){
+	if (init) {return nullPtrClause;}
 
-	CCC confl = NULL;
+	rClause confl = nullPtrClause;
 	StatusStatistics stats;
 	SpaceStatus status = solverdata->getSpace().status(stats);
 	//cout <<solverdata->getSpace() <<endl;
@@ -255,11 +254,11 @@ CCC CPSolver::propagateAtEndOfQueue(){
 		if(solverdata->allBooleansKnown()){ //dmv counter als er een assigned wordt
 			confl = propagateFinal();
 		}
-		if(confl==NULL){
+		if(confl==nullPtrClause){
 			vector<Lit> atoms = solverdata->getBoolChanges();
 			for(int i=0; i<atoms.size(); i++){
 				if(getSolver()->value(atoms[i])==l_Undef){ //TODO niet de mooiste oplossing, maar momenteel ziet hij gepropageerde literals natuurlijk ook als changes
-					getSolver()->setTrue(atoms[i], NULL);
+					getSolver()->setTrue(atoms[i], nullPtrClause);
 				}
 
 			}
@@ -270,8 +269,8 @@ CCC CPSolver::propagateAtEndOfQueue(){
 	return confl;
 }
 
-CCC CPSolver::propagateFinal(){
-	CCC confl = NULL;
+rClause CPSolver::propagateFinal(){
+	rClause confl = nullPtrClause;
 
 	Search::Options searchOptions_;
 	DFS<CPScript>* searchEngine_; // depth first search
