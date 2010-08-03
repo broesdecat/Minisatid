@@ -1,21 +1,22 @@
-/************************************************************************************[PCSolver.hpp]
-Copyright (c) 2009-2010, Broes De Cat
+//--------------------------------------------------------------------------------------------------
+//    Copyright (c) 2009-2010, Broes De Cat, K.U.Leuven, Belgium
+//    
+//    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+//    associated documentation files (the "Software"), to deal in the Software without restriction,
+//    including without limitation the rights to use, copy, modify, merge, publish, distribute,
+//    sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+//    furnished to do so, subject to the following conditions:
+//    
+//    The above copyright notice and this permission notice shall be included in all copies or
+//    substantial portions of the Software.
+//    
+//    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+//    NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+//    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+//    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+//    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//--------------------------------------------------------------------------------------------------
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-associated documentation files (the "Software"), to deal in the Software without restriction,
-including without limitation the rights to use, copy, modify, merge, publish, distribute,
-sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or
-substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-**************************************************************************************************/
 #ifndef PCSOLVER_H_
 #define PCSOLVER_H_
 
@@ -24,16 +25,9 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 using namespace std;
 
-#include "solvers/SATSolver.h"
-
 typedef vector<Lit> vlit;
 
 //FIXME: the parser does -1, but +1 is always printed, also when NOT going through the parser
-
-#include "solvers/idsolver/IDSolver.hpp"
-#include "solvers/cpsolver/CPSolver.hpp"
-#include "solvers/aggsolver/AggSolver.hpp"
-#include "solvers/modsolver/ModSolver.hpp"
 
 namespace CP{
 	class CPSolver;
@@ -41,11 +35,18 @@ namespace CP{
 
 using namespace CP;
 
+//TODO should create "ForWardDeclare SAT" file
+#ifdef USEMINISAT
+class Solver;
+#endif
+#ifdef USEMINISAT09Z
+class Solver;
+#endif
 #ifdef USEMINISAT22
+using namespace Minisat;
 namespace Minisat{
 	class Solver;
 }
-using namespace Minisat;
 #endif
 
 class IDSolver;

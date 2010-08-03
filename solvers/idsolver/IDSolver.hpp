@@ -1,3 +1,40 @@
+//--------------------------------------------------------------------------------------------------
+//    Copyright (c) 2009-2010, Broes De Cat, K.U.Leuven, Belgium
+//    
+//    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+//    associated documentation files (the "Software"), to deal in the Software without restriction,
+//    including without limitation the rights to use, copy, modify, merge, publish, distribute,
+//    sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+//    furnished to do so, subject to the following conditions:
+//    
+//    The above copyright notice and this permission notice shall be included in all copies or
+//    substantial portions of the Software.
+//    
+//    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+//    NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+//    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+//    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+//    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//--------------------------------------------------------------------------------------------------
+
+/************************************************************************************
+Copyright (c) 2006-2009, Maarten Mariën
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+**************************************************************************************************/
 #ifndef IDSOLVER_H_
 #define IDSOLVER_H_
 
@@ -10,17 +47,12 @@
 
 #include "solvers/utils/Utils.hpp"
 
-#include "solvers/pcsolver/PCSolver.hpp"
-class PCSolver;
+#include "solvers/pcsolver/ISolver.hpp"
 typedef PCSolver* pPCSolver;
 
 #include "solvers/aggsolver/AggSolver.hpp"
 class AggSolver;
 typedef AggSolver* pAggSolver;
-
-class IDSolver;
-typedef IDSolver* pIDSolver;
-
 
 class PropRule {
 private:
@@ -40,9 +72,8 @@ public:
     Lit 	operator [](int i) 	const	{ return lits[i]; }
 };
 
-class IDSolver{
+class IDSolver: public ISolver{
 private:
-	pPCSolver 		solver;
 	pAggSolver		aggsolver;
 	long			unfoundedsets;
 
@@ -73,8 +104,6 @@ public:
 	/////////////////////INITIALIZATION
 	bool    	addRule      			(bool conj, Lit head, const vec<Lit>& ps);	// Add a rule to the solver.
 	bool    	finishECNF_DataStructures();							// Initialize the ECNF data structures. NOTE: aggregates may set the "ok" value to false!
-
-	pPCSolver 	getSolver				()	const		{ return solver; }
 	/////////////////////END INITIALIZATION
 
 	int 		getNbDefinitions() 		const { return definition.size(); }
@@ -96,7 +125,6 @@ protected:
 
 	bool 		recagg;	//true if recursive aggregates are present
 	vec<bool>	isCS;                   // Per atom: is it a cycle source?
-	bool 		init;
 	vec<int>	seen, seen2;
 
 	lbool		value(Var x) const;
@@ -273,7 +301,7 @@ inline rClause IDSolver::propagate(const Lit& p){
  * Returns non-owning pointer
  */
 inline rClause IDSolver::propagateDefinitions(){
-	if (init || !posloops) {return nullPtrClause;}
+	if (!isInitialized() || !posloops) {return nullPtrClause;}
 	return indirectPropagate();
 }
 

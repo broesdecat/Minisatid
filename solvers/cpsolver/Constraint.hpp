@@ -1,9 +1,21 @@
-/*
- * Constraint.hpp
- *
- *  Created on: Jul 27, 2010
- *      Author: broes
- */
+//--------------------------------------------------------------------------------------------------
+//    Copyright (c) 2009-2010, Broes De Cat, K.U.Leuven, Belgium
+//    
+//    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+//    associated documentation files (the "Software"), to deal in the Software without restriction,
+//    including without limitation the rights to use, copy, modify, merge, publish, distribute,
+//    sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+//    furnished to do so, subject to the following conditions:
+//    
+//    The above copyright notice and this permission notice shall be included in all copies or
+//    substantial portions of the Software.
+//    
+//    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+//    NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+//    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+//    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+//    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//--------------------------------------------------------------------------------------------------
 
 #ifndef CONSTRAINT_HPP_
 #define CONSTRAINT_HPP_
@@ -59,6 +71,7 @@ namespace CP{
 
 	public:
 		ReifiedConstraint(int atom, CPScript& space);
+		virtual ~ReifiedConstraint(){}
 
 		int 	getAtom			() 						const { return atom; }
 		BoolVar getBoolVar 		(const CPScript& space) const { return space.getBoolVars()[var]; }
@@ -84,12 +97,11 @@ namespace CP{
 
 	public:
 		SumConstraint(CPScript& space, vector<TermIntVar> tset, IntRelType rel, TermIntVar rhs, int atom);
-
 		SumConstraint(CPScript& space, vector<TermIntVar> tset, IntRelType rel, int rhs, int atom);
-
 		SumConstraint(CPScript& space, vector<TermIntVar> tset, vector<int> mult, IntRelType rel, TermIntVar rhs, int atom);
-
 		SumConstraint(CPScript& space, vector<TermIntVar> tset, vector<int> mult, IntRelType rel, int rhs, int atom);
+
+		virtual ~SumConstraint(){}
 	};
 
 	class CountConstraint{
@@ -103,6 +115,8 @@ namespace CP{
 
 	public:
 		CountConstraint(CPScript& space, vector<TermIntVar> tset, IntRelType rel, int value, TermIntVar rhs);
+
+		virtual ~CountConstraint(){}
 	};
 
 	class BinArithConstraint: public ReifiedConstraint{
@@ -116,16 +130,19 @@ namespace CP{
 
 	public:
 		BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelType rel, TermIntVar rhs, int atom);
-
 		BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelType rel, int rhs, int atom);
+
+		virtual ~BinArithConstraint(){}
 	};
 
-	class DistinctConstraint/*: public NonReifConstraint*/{
+	class DistinctConstraint: public Constraint{
 	private:
 		IntVarArgs set;
 	public:
 		//global distinct constraint
 		DistinctConstraint(CPScript& space, vector<TermIntVar> tset);
+
+		virtual ~DistinctConstraint(){}
 	};
 
 }

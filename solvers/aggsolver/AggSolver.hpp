@@ -1,9 +1,45 @@
+//--------------------------------------------------------------------------------------------------
+//    Copyright (c) 2009-2010, Broes De Cat, K.U.Leuven, Belgium
+//    
+//    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+//    associated documentation files (the "Software"), to deal in the Software without restriction,
+//    including without limitation the rights to use, copy, modify, merge, publish, distribute,
+//    sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+//    furnished to do so, subject to the following conditions:
+//    
+//    The above copyright notice and this permission notice shall be included in all copies or
+//    substantial portions of the Software.
+//    
+//    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+//    NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+//    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+//    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+//    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//--------------------------------------------------------------------------------------------------
+
+/************************************************************************************
+Copyright (c) 2006-2009, Maarten Mariën
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+**************************************************************************************************/
+
 #ifndef AggSolver_H_
 #define AggSolver_H_
 
 #include <cstdio>
-
-#include "solvers/utils/Utils.hpp"
 
 #include "solvers/aggsolver/AggTypes.hpp"
 
@@ -19,8 +55,7 @@ namespace Aggrs{
 	typedef AggrSet* pSet;
 }
 
-#include "solvers/pcsolver/PCSolver.hpp"
-class PCSolver;
+#include "solvers/pcsolver/ISolver.hpp"
 typedef PCSolver* pPCSolver;
 
 class AggSolver;
@@ -37,9 +72,7 @@ using namespace Aggrs;
  * heuristic to delay propagations.
  */
 
-class AggSolver: public tr1::enable_shared_from_this<AggSolver>{
-private:
-	pPCSolver solver;
+class AggSolver: public tr1::enable_shared_from_this<AggSolver>, public ISolver{
 public:
 	AggSolver(pPCSolver s);
 	virtual ~AggSolver();
@@ -111,8 +144,6 @@ public:
 	 */
 	bool    	finishECNF_DataStructures (); //throws UNSAT
 
-	pPCSolver	getSolver				()	const		{ return solver; }
-
 	void 		removeHeadWatch(Var x);
 	/////////////////////END INITIALIZATION
 
@@ -155,8 +186,6 @@ protected:
 	 */
 	void 		doBacktrack(const Lit& l);
 
-	bool		init;	//indicates whether still in initialization mode
-
 	/**
 	 * Goes through all watches and propagates the fact that p was set true.
 	 */
@@ -171,12 +200,12 @@ protected:
 //=======================
 
 inline void AggSolver::backtrack (const Lit& l){
-	if(init){ return; }
+	if(!isInitialized()){ return; }
 	doBacktrack(l);
 }
 
 inline rClause AggSolver::propagate(const Lit& p){
-	if (init) {return nullPtrClause;}
+	if (!isInitialized()) {return nullPtrClause;}
 	return Aggr_propagate(p);
 }
 

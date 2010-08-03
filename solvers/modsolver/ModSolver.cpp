@@ -1,7 +1,30 @@
+//--------------------------------------------------------------------------------------------------
+//    Copyright (c) 2009-2010, Broes De Cat, K.U.Leuven, Belgium
+//    
+//    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+//    associated documentation files (the "Software"), to deal in the Software without restriction,
+//    including without limitation the rights to use, copy, modify, merge, publish, distribute,
+//    sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+//    furnished to do so, subject to the following conditions:
+//    
+//    The above copyright notice and this permission notice shall be included in all copies or
+//    substantial portions of the Software.
+//    
+//    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+//    NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+//    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+//    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+//    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//--------------------------------------------------------------------------------------------------
+
 #include "solvers/modsolver/ModSolver.hpp"
+
 #include "solvers/utils/Utils.hpp"
 #include "solvers/utils/Print.hpp"
 #include <algorithm>
+
+#include "solvers/pcsolver/PCSolver.hpp"
+#include "solvers/modsolver/SOSolverHier.hpp"
 
 //Important: The head variable does not occur in this theory, so should NOT automatically be
 //added as a var in it.
@@ -9,7 +32,8 @@
  * Constructs a ModSolver, with a given head, index and hierarchy pointer. A PCSolver is initialized.
  */
 ModSolver::ModSolver(modindex child, Var head, tr1::shared_ptr<ModSolverData> mh):
-		id(child), parentid(-1), hasparent(false), init(true), //, startedsearch(false), startindex(-1),
+		ISolver(NULL),
+		id(child), parentid(-1), hasparent(false), //, startedsearch(false), startindex(-1),
 		head(head), modhier(mh){
 	ECNF_mode modescopy(mh->modes());
 	modescopy.nbmodels = 1;
@@ -118,7 +142,7 @@ bool ModSolver::finishParsing(){
 		result = modhier.lock()->getModSolver(*i)->finishParsing();
 	}
 
-	init = false;
+	notifyInitialized();
 
 	return result;
 }
@@ -202,7 +226,7 @@ void ModSolver::adaptValuesOnPropagation(Lit l){
  * Returns an OWNING pointer, because the conflict clause is intended to be used by the PARENT solver
  */
 rClause ModSolver::propagateDownAtEndOfQueue(){
-	if(init){
+	if(isInitialized()){
 		return nullPtrClause;
 	}
 	if(modhier.lock()->modes().verbosity>4){

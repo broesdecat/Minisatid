@@ -1,9 +1,21 @@
-/*
- * CPSolver.cpp
- *
- *  Created on: Jun 22, 2010
- *      Author: broes
- */
+//--------------------------------------------------------------------------------------------------
+//    Copyright (c) 2009-2010, Broes De Cat, K.U.Leuven, Belgium
+//    
+//    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+//    associated documentation files (the "Software"), to deal in the Software without restriction,
+//    including without limitation the rights to use, copy, modify, merge, publish, distribute,
+//    sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+//    furnished to do so, subject to the following conditions:
+//    
+//    The above copyright notice and this permission notice shall be included in all copies or
+//    substantial portions of the Software.
+//    
+//    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+//    NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+//    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+//    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+//    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//--------------------------------------------------------------------------------------------------
 
 #include <set>
 #include <map>
@@ -12,6 +24,7 @@
 #include "solvers/cpsolver/CPScript.hpp"
 
 #include "solvers/cpsolver/CPUtils.hpp"
+#include "solvers/pcsolver/PCSolver.hpp"
 
 #include <solvers/cpsolver/Constraint.hpp>
 #include <solvers/cpsolver/CPSolverData.hpp>
@@ -25,7 +38,7 @@ namespace CP {
 
 using namespace CP;
 
-CPSolver::CPSolver(PCSolver * solver): init(true), pcsolver(solver), solverdata(new CPSolverData()) {
+CPSolver::CPSolver(PCSolver * solver): ISolver(solver), solverdata(new CPSolverData()) {
 
 }
 
@@ -33,15 +46,15 @@ CPSolver::~CPSolver() {
 }
 
 void CPSolver::addTerm(int term, int min, int max){
-	assert(init);
+	assert(!isInitialized());
 	solverdata->addTerm(TermIntVar(solverdata->getSpace(), term, min, max));
 }
 
 void CPSolver::addBinRel(int groundname, MINISAT::EqType rel, int bound, int atom){
-	assert(init);
+	assert(!isInitialized());
 	TermIntVar lhs(solverdata->convertToVar(groundname));
 
-	if(getSolver()->modes().verbosity>=10){
+	if(getPCSolver()->modes().verbosity>=10){
 		cout <<"Added binary relation " <<gprintVar(atom) <<" <=> " <<lhs <<" " <<rel <<" "<<bound <<endl;
 	}
 
@@ -49,11 +62,11 @@ void CPSolver::addBinRel(int groundname, MINISAT::EqType rel, int bound, int ato
 }
 
 void CPSolver::addBinRelVar(int groundname, MINISAT::EqType rel, int groundname2, int atom){
-	assert(init);
+	assert(!isInitialized());
 	TermIntVar lhs(solverdata->convertToVar(groundname));
 	TermIntVar rhs(solverdata->convertToVar(groundname2));
 
-	if(getSolver()->modes().verbosity>=10){
+	if(getPCSolver()->modes().verbosity>=10){
 		cout <<"Added binary relation " <<gprintVar(atom) <<" <=> " <<lhs <<" " <<rel <<" "<<rhs <<endl;
 	}
 
@@ -61,7 +74,7 @@ void CPSolver::addBinRelVar(int groundname, MINISAT::EqType rel, int groundname2
 }
 
 void CPSolver::addSum(vector<int> term, MINISAT::EqType rel, int bound, int atom){
-	assert(init);
+	assert(!isInitialized());
 	vector<TermIntVar> set(solverdata->convertToVars(term));
 	solverdata->addConstraint(new SumConstraint(solverdata->getSpace(), set, toRelType(rel), bound, atom));
 
@@ -69,20 +82,20 @@ void CPSolver::addSum(vector<int> term, MINISAT::EqType rel, int bound, int atom
 }
 
 void CPSolver::addSum(vector<int> term, vector<int> mult, MINISAT::EqType rel, int bound, int atom){
-	assert(init);
+	assert(!isInitialized());
 	vector<TermIntVar> set(solverdata->convertToVars(term));
 	solverdata->addConstraint(new SumConstraint(solverdata->getSpace(), set, mult, toRelType(rel), bound, atom));
 }
 
 void CPSolver::addSumVar(vector<int> term, MINISAT::EqType rel, int rhsterm, int atom){
-	assert(init);
+	assert(!isInitialized());
 	vector<TermIntVar> set(solverdata->convertToVars(term));
 	TermIntVar rhs(solverdata->convertToVar(rhsterm));
 	solverdata->addConstraint(new SumConstraint(solverdata->getSpace(), set, toRelType(rel), rhs, atom));
 }
 
 void CPSolver::addSumVar(vector<int> term, vector<int> mult, MINISAT::EqType rel, int rhsterm, int atom){
-	assert(init);
+	assert(!isInitialized());
 	vector<TermIntVar> set(solverdata->convertToVars(term));
 	TermIntVar rhs(solverdata->convertToVar(rhsterm));
 	solverdata->addConstraint(new SumConstraint(solverdata->getSpace(), set, mult, toRelType(rel), rhs, atom));
@@ -91,9 +104,9 @@ void CPSolver::addSumVar(vector<int> term, vector<int> mult, MINISAT::EqType rel
 }
 
 void CPSolver::addCount(vector<int> terms, MINISAT::EqType rel, int value, int rhsterm){
-	assert(init);
+	assert(!isInitialized());
 
-	if(getSolver()->modes().verbosity>=10){
+	if(getPCSolver()->modes().verbosity>=10){
 		cout <<"Added Count(";
 		for(vector<int>::const_iterator i=terms.begin(); i<terms.end(); i++){
 			cout << *i <<"=" <<value <<", ";
@@ -131,7 +144,7 @@ void CPSolver::addCount(vector<int> terms, MINISAT::EqType rel, int value, int r
 }*/
 
 bool CPSolver::addAllDifferent(vector<int> term){
-	assert(init);
+	assert(!isInitialized());
 	vector<TermIntVar> set(solverdata->convertToVars(term));
 	//TODO not added to solverdata constraints!
 	/*solverdata->getConstraints().push_back(*/new DistinctConstraint(solverdata->getSpace(), set);//);
@@ -145,8 +158,8 @@ bool CPSolver::addAllDifferent(vector<int> term){
 ////////////////////////////
 
 bool CPSolver::finishParsing(){
-	assert(init);
-	init = false;
+	assert(!isInitialized());
+	notifyInitialized();
 
 	vector<ReifiedConstraint*> assigned;
 	for(vector<ReifiedConstraint*>::const_iterator i=solverdata->getConstraints().begin(); i<solverdata->getConstraints().end(); i++){
@@ -176,9 +189,9 @@ bool CPSolver::finishParsing(){
 		}
 
 		if((*i)->isAssignedTrue(solverdata->getSpace())){
-			getSolver()->setTrue(mkLit((*i)->getAtom()));
+			getPCSolver()->setTrue(mkLit((*i)->getAtom()));
 		}else if((*i)->isAssignedFalse(solverdata->getSpace())){
-			getSolver()->setTrue(mkLit((*i)->getAtom(), true));
+			getPCSolver()->setTrue(mkLit((*i)->getAtom(), true));
 		}
 	}
 
@@ -187,7 +200,7 @@ bool CPSolver::finishParsing(){
 }
 
 rClause CPSolver::propagate(Lit l){
-	if (init) {return nullPtrClause;}
+	if (isInitialized()) {return nullPtrClause;}
 
 	//reportf("CP propagated: "); gprintLit(l); reportf(".\n");
 
@@ -213,7 +226,7 @@ rClause CPSolver::propagate(Lit l){
 }
 
 void CPSolver::backtrack(){
-	if(init){ return; }
+	if(isInitialized()){ return; }
 	solverdata->backtrack();
 }
 
@@ -224,7 +237,7 @@ void CPSolver::backtrack(Lit l){
 }
 
 rClause CPSolver::propagateAtEndOfQueue(){
-	if (init) {return nullPtrClause;}
+	if (isInitialized()) {return nullPtrClause;}
 
 	rClause confl = nullPtrClause;
 	StatusStatistics stats;
@@ -247,7 +260,7 @@ rClause CPSolver::propagateAtEndOfQueue(){
 		for(int i=0; i<trail.size(); i++){
 			clause.push(~trail[i]);
 		}
-		confl = getSolver()->makeClause(clause, true);
+		confl = getPCSolver()->makeClause(clause, true);
 		//FIXME staat het hier juist?
 		//pcsolver->addLearnedClause(confl);
 	}else{
@@ -257,8 +270,8 @@ rClause CPSolver::propagateAtEndOfQueue(){
 		if(confl==nullPtrClause){
 			vector<Lit> atoms = solverdata->getBoolChanges();
 			for(int i=0; i<atoms.size(); i++){
-				if(getSolver()->value(atoms[i])==l_Undef){ //TODO niet de mooiste oplossing, maar momenteel ziet hij gepropageerde literals natuurlijk ook als changes
-					getSolver()->setTrue(atoms[i], nullPtrClause);
+				if(getPCSolver()->value(atoms[i])==l_Undef){ //TODO niet de mooiste oplossing, maar momenteel ziet hij gepropageerde literals natuurlijk ook als changes
+					getPCSolver()->setTrue(atoms[i], nullPtrClause);
 				}
 
 			}

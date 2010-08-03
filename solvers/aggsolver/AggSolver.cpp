@@ -1,3 +1,41 @@
+//--------------------------------------------------------------------------------------------------
+//    Copyright (c) 2009-2010, Broes De Cat, K.U.Leuven, Belgium
+//    
+//    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+//    associated documentation files (the "Software"), to deal in the Software without restriction,
+//    including without limitation the rights to use, copy, modify, merge, publish, distribute,
+//    sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+//    furnished to do so, subject to the following conditions:
+//    
+//    The above copyright notice and this permission notice shall be included in all copies or
+//    substantial portions of the Software.
+//    
+//    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+//    NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+//    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+//    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+//    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//--------------------------------------------------------------------------------------------------
+
+/************************************************************************************
+Copyright (c) 2006-2009, Maarten Mariën
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+**************************************************************************************************/
+
 #include "solvers/aggsolver/AggSolver.hpp"
 
 #include "solvers/aggsolver/Agg.hpp"
@@ -6,11 +44,11 @@
 #include "solvers/utils/Utils.hpp"
 #include "solvers/utils/Print.hpp"
 
+#include "solvers/pcsolver/PCSolver.hpp"
+
 #include <algorithm>
 
-AggSolver::AggSolver(pPCSolver s) :
-	solver(s),
-	init(true) {}
+AggSolver::AggSolver(pPCSolver s): ISolver(s) {}
 
 AggSolver::~AggSolver() {
 	deleteList<Agg>(aggregates);
@@ -23,7 +61,7 @@ AggSolver::~AggSolver() {
 
 void AggSolver::removeHeadWatch(Var x){
 	head_watches[x] = NULL;
-	getSolver()->removeAggrHead(x);
+	getPCSolver()->removeAggrHead(x);
 }
 
 void AggSolver::notifyVarAdded(uint64_t nvars){
@@ -42,9 +80,9 @@ inline pAgg AggSolver::getAggWithHeadOccurence(Var v) const{
 }
 
 bool AggSolver::finishECNF_DataStructures() {
-	init = false;
+	notifyInitialized();
 
-	if (getSolver()->modes().verbosity >= 1){
+	if (getPCSolver()->modes().verbosity >= 1){
 		reportf("| Number of minimum exprs.: %4zu",aggrminsets.size());
 		reportf("| Number of maximum exprs.: %4zu",aggrmaxsets.size());
 		reportf("| Number of sum     exprs.: %4zu",aggrsumsets.size());
@@ -55,7 +93,7 @@ bool AggSolver::finishECNF_DataStructures() {
 		return false;
 	}
 
-	if(getSolver()->modes().verbosity >=1){
+	if(getPCSolver()->modes().verbosity >=1){
 		int total_nb_set_lits = 0;
 		int nb_sets = aggrminsets.size() + aggrmaxsets.size() + aggrsumsets.size() + aggrprodsets.size();
 		for (vector<int>::size_type i = 0; i < aggrminsets.size(); i++){
@@ -78,7 +116,7 @@ bool AggSolver::finishECNF_DataStructures() {
 		(*i)->addAggToSet();
 	}
 
-	if(getSolver()->modes().verbosity>=3){
+	if(getPCSolver()->modes().verbosity>=3){
 		reportf("Initializing all sets:\n");
 	}
 	if(!finishSets(aggrminsets)){ return false; }
@@ -86,7 +124,7 @@ bool AggSolver::finishECNF_DataStructures() {
 	if(!finishSets(aggrsumsets)){ return false; }
 	if(!finishSets(aggrprodsets)){ return false; }
 
-	if(getSolver()->modes().verbosity>=3){
+	if(getPCSolver()->modes().verbosity>=3){
 		int counter = 0;
 		for(vector<vector<AggrWatch> >::const_iterator i=aggr_watches.begin(); i<aggr_watches.end(); i++,counter++){
 			reportf("Watches of var %d:\n", gprintVar(counter));
@@ -99,7 +137,7 @@ bool AggSolver::finishECNF_DataStructures() {
 		}
 	}
 
-	if(getSolver()->modes().verbosity>=3){
+	if(getPCSolver()->modes().verbosity>=3){
 		reportf("Initializing finished.\n");
 	}
 
@@ -116,7 +154,7 @@ bool AggSolver::finishSets(vector<pSet>& sets){
 		if(s->nbAgg()==0){
 			delete *i;
 			i = sets.erase(i);
-			if(getSolver()->modes().verbosity>=3){
+			if(getPCSolver()->modes().verbosity>=3){
 				reportf("Set is deleted.\n");
 			}
 		}else{
@@ -127,7 +165,7 @@ bool AggSolver::finishSets(vector<pSet>& sets){
 			if(s->nbAgg()==0){
 				delete *i;
 				i = sets.erase(i);
-				if(getSolver()->modes().verbosity>=3){
+				if(getPCSolver()->modes().verbosity>=3){
 					reportf("Set is empty after initialization, so deleted.\n");
 				}
 			}else{
@@ -141,7 +179,7 @@ bool AggSolver::finishSets(vector<pSet>& sets){
 	}
 	return true;
 
-	if(getSolver()->modes().verbosity>=3){
+	if(getPCSolver()->modes().verbosity>=3){
 		for(vector<pSet>::iterator i=sets.begin(); i<sets.end(); i++){
 			pSet s = *i;
 			for(lsagg::const_iterator j=s->getAggBegin(); j<s->getAggEnd(); j++){
@@ -173,7 +211,7 @@ bool AggSolver::addSet(int setid, const vec<Lit>& lits, const vector<Weight>& we
 		weights2.push_back(-Weight(*i));
 	}
 
-	if(getSolver()->modes().verbosity>=5){
+	if(getPCSolver()->modes().verbosity>=5){
 		reportf("Added set %d: ", setid);
 		vector<Weight>::const_iterator w=weights.begin();
 		for(int i=0; i<lits.size(); i++,w++){
@@ -215,7 +253,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 
 	//the head of the aggregate
 	Lit head = mkLit(headv, false);
-	getSolver()->varBumpActivity(var(head)); // These guys ought to be initially a bit more important then the rest.
+	getPCSolver()->varBumpActivity(var(head)); // These guys ought to be initially a bit more important then the rest.
 
 	assert(setid>0);
 	int setindex = setid-1;
@@ -279,12 +317,12 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, bool lower, Aggr
 
 	if(defined){ //add as definition to use definition semantics
 		//notify the id solver that a new aggregate definition has been added
-		getSolver()->notifyAggrHead(var(head));
+		getPCSolver()->notifyAggrHead(var(head));
 	}
 
 	aggregates.push_back(ae);
 
-	if(getSolver()->modes().verbosity>=5){
+	if(getPCSolver()->modes().verbosity>=5){
 		//reportf("Added %s aggregate with head %d on set %d, %s %s of type %s.\n", defined?"defined":"completion", gprintVar(headv), setid, lower?"AGG<=":"AGG>=", bigIntegerToString(bound).c_str(), ae->getSet()->getName().c_str());
 		reportf("Added %s aggregate with head %d on set %d, %s %s of type %s.\n", defined?"defined":"completion", gprintVar(headv), setid, lower?"AGG <=":"AGG >=", printWeight(bound).c_str(), ae->getSet()->getName().c_str());
 	}
@@ -346,7 +384,7 @@ bool AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& h
 				clause.push((*i).getLit());
 			}
 		}
-		notunsat = getSolver()->addRule(lower, head, clause);
+		notunsat = getPCSolver()->addRule(lower, head, clause);
 	}else{
 		clause.push(lower?head:~head);
 		for(lwlv::const_reverse_iterator i=set.getWLRBegin(); i<set.getWLREnd() && (*i).getWeight()>=bound; i++){
@@ -355,7 +393,7 @@ bool AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& h
 			}
 			clause.push((*i).getLit());
 		}
-		notunsat = getSolver()->addClause(clause);
+		notunsat = getPCSolver()->addClause(clause);
 		for(lwlv::const_reverse_iterator i=set.getWLRBegin(); notunsat && i<set.getWLREnd() && (*i).getWeight()>=bound; i++){
 			if((*i).getWeight()==bound && lower){
 				break;
@@ -363,7 +401,7 @@ bool AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& h
 			clause.clear();
 			clause.push(lower?~head:head);
 			clause.push(~(*i).getLit());
-			notunsat = getSolver()->addClause(clause);
+			notunsat = getPCSolver()->addClause(clause);
 		}
 	}
 
@@ -383,10 +421,10 @@ bool AggSolver::maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& h
 rClause AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 
 	//This strongly improves the performance of some benchmarks, e.g. FastFood. For Hanoi it has no effect
-	getSolver()->varBumpActivity(var(p));	//mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt?
+	getPCSolver()->varBumpActivity(var(p));	//mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt?
 
-	if (getSolver()->value(p) == l_False) {
-		if (getSolver()->modes().verbosity >= 2) {
+	if (getPCSolver()->value(p) == l_False) {
+		if (getPCSolver()->modes().verbosity >= 2) {
 			reportf("Deriving conflict in ");
 			gprintLit(p, l_True);
 			reportf(" because of the aggregate expression ");
@@ -396,14 +434,14 @@ rClause AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 		aggr_reason[var(p)] = ar;
 		rClause confl = getExplanation(p);
 
-		getSolver()->addLearnedClause(confl);
+		getPCSolver()->addLearnedClause(confl);
 
 		aggr_reason[var(p)] = old_ar;
 		delete ar;
 
 		return confl;
-	} else if (getSolver()->value(p) == l_Undef) {
-		if (getSolver()->modes().verbosity >= 2) {
+	} else if (getPCSolver()->value(p) == l_Undef) {
+		if (getPCSolver()->modes().verbosity >= 2) {
 			reportf("Deriving ");
 			gprintLit(p, l_True);
 			reportf(" because of the aggregate expression ");
@@ -411,7 +449,7 @@ rClause AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 		}
 		assert(aggr_reason[var(p)]==NULL);
 		aggr_reason[var(p)] = ar;
-		getSolver()->setTrue(p);
+		getPCSolver()->setTrue(p);
 	} else{
 		delete ar;
 	}
@@ -427,7 +465,7 @@ rClause AggSolver::Aggr_propagate(const Lit& p) {
 	vector<AggrWatch>& ws = aggr_watches[var(p)];
 	pAgg pa = head_watches[var(p)];
 
-	if (getSolver()->modes().verbosity >= 2 && (ws.size() > 0 || pa !=NULL)){
+	if (getPCSolver()->modes().verbosity >= 2 && (ws.size() > 0 || pa !=NULL)){
 		reportf("Aggr_propagate(");
 		gprintLit(p, l_True);
 		reportf(").\n");
@@ -453,12 +491,12 @@ rClause AggSolver::getExplanation(const Lit& p) {
 	ar.getAgg()->getExplanation(lits, ar);
 
 	//create a conflict clause and return it
-	rClause c = getSolver()->makeClause(lits, true);
+	rClause c = getPCSolver()->makeClause(lits, true);
 
-	if (getSolver()->modes().verbosity >= 2) {
+	if (getPCSolver()->modes().verbosity >= 2) {
 		reportf("Implicit reason clause for ");
 		gprintLit(p, sign(p)?l_False:l_True); reportf(" : ");
-		Print::printClause(c, getSolver());
+		Print::printClause(c, getPCSolver());
 		reportf("\n");
 	}
 
