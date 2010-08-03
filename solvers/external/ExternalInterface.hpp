@@ -20,8 +20,8 @@ using namespace std;
 #include <tr1/unordered_map>
 using namespace tr1;
 
-#include "solvers/utils/Solverfwd.hpp"
 #include "solvers/SATUtils.h"
+#include <tr1/memory>
 
 #ifdef USEMINISAT22
 using namespace Minisat;

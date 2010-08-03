@@ -8,109 +8,69 @@
 #ifndef CONSTRAINT_HPP_
 #define CONSTRAINT_HPP_
 
-#include <vector>
-
-#include <gecode/kernel.hh>
-#include <gecode/driver.hh>
-#include <gecode/int.hh>
-#include <gecode/minimodel.hh>
-
 #include "solvers/cpsolver/CPScript.hpp"
 
 using namespace Gecode;
-using namespace std;
 
 namespace CP{
 
 	typedef vector<IntVar>::size_type termindex;
 	typedef vector<BoolVar>::size_type boolindex;
 
-	/**
-	 * Mapping of variable-relation-value to Integer (SAT-atom)
-	 *
-	 * Initial loading: add ALL necessary SAT-atoms with respective mapping.
-	 *
-	 * Later, given a variable and (possibly reduced) domain: go over all atoms and check whether they
-	 * are true-false-unknown
+	/*
+	 * The mapping of an index to an interval bounded term to an ID number
 	 */
-
 	class TermIntVar{
-	//private:
-	//	TermIntVar(TermIntVar&){}
-	public:
-		int term; //First element is the function symbol, subsequent ones are the arguments
+	private:
+		int ID;
 		int min, max;
 		termindex var;
 
-		TermIntVar():min(-1), max(-1), var(-1){
+		//	TermIntVar(TermIntVar&){}
 
-		}
+	public:
+		TermIntVar():min(-1), max(-1), var(-1){	}
 
 		TermIntVar(CPScript& space, int groundterm, int min, int max)
-			: term(groundterm), min(min), max(max), var(space.addIntVar(min, max)){
+			: ID(groundterm), min(min), max(max), var(space.addIntVar(min, max)){
 		}
 
-		~TermIntVar(){}
+		virtual ~TermIntVar(){}
 
-		bool operator==(const TermIntVar& rhs) const{
-			return this->operator ==(rhs.term);
-		}
+		IntVar 	getIntVar(const CPScript& space) 	const { return space.getIntVars()[var];	}
 
-		bool operator==(const int& rhs) const{
-			return term==rhs;
-		}
+		bool 	operator==(const TermIntVar& rhs)	const { return this->operator ==(rhs.ID); }
+		bool 	operator==(const int& rhs) 			const { return ID==rhs; }
 
 		friend ostream &operator<<(ostream &stream, const TermIntVar& tiv);
 	};
 
-	/*
-	 * Extended propositional language:
-	 * Take Constraints out of CP and into data structures!
-	 * and make write(Constraint) in CP?
-	 *
-	 * to define intvars
-	 * 		IntVar groundlit min max
-	 * 			groundlit is an ID or a string or ...
-	 * to restrict domain
-	 *		HEAD groundlit REL int
-	 * 		HEAD groundlit REL groundlit
-	 * 		Set groundlit+
-	 * 		Agg HEAD the same, but with REL
-	 * 		...
-	 * Recursive aggregates: not an issue
-	 * Add our smart aggregate clause learning? Difficult, find new clause learning
-	 */
-
-	//Let this solver decide whether to use a reified representation or not
-
 	class Constraint{
+	public:
+		Constraint(){}
+		virtual ~Constraint(){}
+	};
+
+	// Represents ATOM <=> ConstraintReifiedBy(BoolVars[var])
+	class ReifiedConstraint: public Constraint{
 	private:
 		int atom;
 		boolindex var;
 
 	public:
-		Constraint(int atom, CPScript& space);
+		ReifiedConstraint(int atom, CPScript& space);
 
-		int getAtom() const { return atom; }
+		int 	getAtom			() 						const { return atom; }
+		BoolVar getBoolVar 		(const CPScript& space) const { return space.getBoolVars()[var]; }
 
-		bool isAssignedTrue(const CPScript& space) const{
-			return space.isTrue(getBoolVar());
-		}
+		bool	isAssigned		(const CPScript& space) const { return CP::isAssigned(getBoolVar(space)); }
+		bool	isAssignedTrue	(const CPScript& space) const { return CP::isTrue(getBoolVar(space)); }
+		bool	isAssignedFalse	(const CPScript& space) const { return CP::isFalse(getBoolVar(space)); }
 
-		bool isAssignedFalse(const CPScript& space) const{
-			return space.isFalse(getBoolVar());
-		}
-
-		bool isAssigned(const CPScript& space) const{
-			return space.isAssigned(getBoolVar());
-		}
-
-		void propagate(bool becametrue, CPScript& space);
-
-		boolindex getBoolVar() const { return var; }
+		void 	propagate		(bool becametrue, CPScript& space);
 	};
 
-	class SumConstraint: public Constraint{
+	class SumConstraint: public ReifiedConstraint{
 	private:
 		vector<TermIntVar> set;
 		IntRelType rel;
@@ -145,7 +105,7 @@ namespace CP{
 		CountConstraint(CPScript& space, vector<TermIntVar> tset, IntRelType rel, int value, TermIntVar rhs);
 	};
 
-	class BinArithConstraint: public Constraint{
+	class BinArithConstraint: public ReifiedConstraint{
 	private:
 		TermIntVar lhs;
 		IntRelType rel;

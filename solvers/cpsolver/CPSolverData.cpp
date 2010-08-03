@@ -6,10 +6,7 @@
  */
 
 #include "solvers/cpsolver/CPSolverData.hpp"
-
-#include "solvers/external/ExternalUtils.hpp"
-
-#include "solvers/utils/Debug.hpp"
+#include "solvers/utils/Utils.hpp"
 
 using namespace CP;
 
@@ -18,15 +15,13 @@ CPSolverData::CPSolverData(){
 }
 
 CPSolverData::~CPSolverData(){
-	for(int i=0; i<constraints.size(); i++){
-		delete constraints[i];
-	}
+	deleteList(constraints);
 }
 
 bool CPSolverData::allBooleansKnown() const{
-	for(int i=0; i<getConstraints().size(); i++){
-		if(!getConstraints()[i]->isAssigned(getSpace())){
-			reportf("Unknown boolean: %d.\n", gprintVar(getConstraints()[i]->getAtom()));
+	for(vconstrptr::const_iterator i=getConstraints().begin(); i<getConstraints().end(); i++){
+		if(!(*i)->isAssigned(getSpace())){
+			reportf("Unknown boolean: %d.\n", gprintVar((*i)->getAtom()));
 			return false;
 		}
 	}
@@ -35,20 +30,19 @@ bool CPSolverData::allBooleansKnown() const{
 
 vector<Lit> CPSolverData::getBoolChanges() const{
 	vector<Lit> lits;
-	for(int i=0; i<getConstraints().size(); i++){
-		int boolvar = getConstraints()[i]->getBoolVar();
-		BoolVar current = getSpace().getBoolVars()[boolvar];
+	for(vconstrptr::const_iterator i=getConstraints().begin(); i<getConstraints().end(); i++){
+		BoolVar current = (*i)->getBoolVar(getSpace());
 		assert(history.size()>1);
-		BoolVar prev = history[history.size()-2]->getBoolVars()[boolvar];
+		BoolVar prev = (*i)->getBoolVar(*history[history.size()-2]);
 		if(current.min() == current.max() && prev.min() != prev.max()){
-			lits.push_back(mkLit(getConstraints()[i]->getAtom(), current.min()==0));
+			lits.push_back(mkLit((*i)->getAtom(), current.min()==0));
 		}
 	}
 	return lits;
 }
 
 vector<TermIntVar> CPSolverData::convertToVars(const vector<int>& terms) const {
-	vector<TermIntVar> set;
+	vtiv set;
 	for(vector<int>::const_iterator i=terms.begin(); i<terms.end(); i++){
 		set.push_back(convertToVar(*i));
 	}
@@ -56,7 +50,7 @@ vector<TermIntVar> CPSolverData::convertToVars(const vector<int>& terms) const {
 }
 
 TermIntVar CPSolverData::convertToVar(int term) const {
-	for(vector<TermIntVar>::const_iterator j=getTerms().begin(); j<getTerms().end(); j++){
+	for(vtiv::const_iterator j=getTerms().begin(); j<getTerms().end(); j++){
 		if((*j).operator ==(term)){
 			return *j;
 		}

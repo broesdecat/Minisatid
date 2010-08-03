@@ -2,22 +2,11 @@
 #define AGGTYPES_H
 
 #include <limits>
-#include <vector>
 #include <set>
 #include <iostream>
-#include <tr1/memory>
 
-#include "solvers/utils/Debug.hpp"
+#include "solvers/utils/Utils.hpp"
 
-using namespace std;
-using namespace tr1;
-
-#include "solvers/external/ExternalUtils.hpp"
-
-#include <vector>
-using namespace std;
-
-#include "solvers/SATUtils.h"
 #ifdef USEMINISAT22
 using namespace Minisat;
 #endif

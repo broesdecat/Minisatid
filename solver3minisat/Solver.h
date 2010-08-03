@@ -29,7 +29,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "solver3minisat/SolverTypes.h"
 
 /*AB*/
-#include "solvers/utils/Debug.hpp"
+#include "solvers/utils/Utils.hpp"
 #include "solvers/pcsolver/PCSolver.hpp"
 class PCSolver;
 typedef PCSolver* pPCSolver;

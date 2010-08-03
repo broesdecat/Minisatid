@@ -1,9 +1,8 @@
 #ifndef SOSOLVER_H_
 #define SOSOLVER_H_
 
-#include "solvers/utils/Solverfwd.hpp"
+#include "solvers/utils/Utils.hpp"
 #include "solvers/aggsolver/AggTypes.hpp"
-#include "solvers/SATUtils.h"
 #include "solvers/SolverI.hpp"
 class Data;
 
@@ -48,7 +47,7 @@ typedef vmsolvers::size_type modindex;
 
 enum modhierstate {NEW, LOADINGHIER, LOADINGREST, ALLLOADED};
 
-class ModSolverData: public Data, public enable_shared_from_this<ModSolverData>{
+class ModSolverData: public Data, public tr1::enable_shared_from_this<ModSolverData>{
 private:
 	vmsolvers 	 solvers;
 	modhierstate state;	//stores the current state of the parsing.

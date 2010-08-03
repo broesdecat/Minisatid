@@ -31,7 +31,7 @@ AC_SUBST([AM_LFLAGS])
 AC_SUBST([AM_LDFLAGS])
 AC_SUBST([LIBS])
 
-SD_CXXFLAGS="-ffloat-store -Wextra -Wno-unused-parameter -Wno-variadic-macros -pedantic -Wall -Wno-variadic-macros -Wreturn-type "
+SD_CXXFLAGS="-ffloat-store -Wextra -Wno-unused-parameter -Wno-variadic-macros -Wno-format -pedantic -Wall -Wno-variadic-macros -Wreturn-type "
 SD_LDFLAGS=
 
 AC_ARG_ENABLE([build],

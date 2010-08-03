@@ -148,8 +148,8 @@ bool CPSolver::finishParsing(){
 	assert(init);
 	init = false;
 
-	vector<Constraint*> assigned;
-	for(vector<Constraint*>::const_iterator i=solverdata->getConstraints().begin(); i<solverdata->getConstraints().end(); i++){
+	vector<ReifiedConstraint*> assigned;
+	for(vector<ReifiedConstraint*>::const_iterator i=solverdata->getConstraints().begin(); i<solverdata->getConstraints().end(); i++){
 		if((*i)->isAssigned(solverdata->getSpace())){
 			assigned.push_back(*i);
 		}
@@ -162,11 +162,11 @@ bool CPSolver::finishParsing(){
 		return false;
 	}
 
-	for(vector<Constraint*>::const_iterator i=solverdata->getConstraints().begin(); i<solverdata->getConstraints().end(); i++){
+	for(vector<ReifiedConstraint*>::const_iterator i=solverdata->getConstraints().begin(); i<solverdata->getConstraints().end(); i++){
 
 		//check if it was not already assigned
 		bool alreadyassigned = false;
-		for(vector<Constraint*>::const_iterator j=assigned.begin(); j<assigned.end(); j++){
+		for(vector<ReifiedConstraint*>::const_iterator j=assigned.begin(); j<assigned.end(); j++){
 			if((*i)==(*j)){
 				alreadyassigned = true;
 			}
@@ -237,10 +237,10 @@ rClause CPSolver::propagateAtEndOfQueue(){
 		vec<Lit> clause;
 		//FIXME should be of PREVIOUS space!
 		//FIXME ADD STACK IN CORRECT ORDER! First add the conflicting one!
-		for(vector<Constraint*>::const_iterator i=solverdata->getConstraints().begin(); i<solverdata->getConstraints().end(); i++){
-			if(solverdata->getSpace().isTrue((*i)->getBoolVar())){
+		for(vector<ReifiedConstraint*>::const_iterator i=solverdata->getConstraints().begin(); i<solverdata->getConstraints().end(); i++){
+			if(isTrue((*i)->getBoolVar(solverdata->getSpace()))){
 				clause.push(mkLit((*i)->getAtom(), true));
-			}else if(solverdata->getSpace().isFalse((*i)->getBoolVar())){
+			}else if(isFalse((*i)->getBoolVar(solverdata->getSpace()))){
 				clause.push(mkLit((*i)->getAtom()));
 			}
 		}

@@ -19,7 +19,18 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #ifndef UTILS_H_
 #define UTILS_H_
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <vector>
+
+#include "solvers/SATUtils.h"
+#include "solvers/external/ExternalUtils.hpp"
+
+#include <tr1/memory>
+
+#ifdef USEMINISAT22
+using namespace Minisat;
+#endif
 
 using namespace std;
 
@@ -31,6 +42,26 @@ void deleteList(vector<T*> l){
 		}
 	}
 	l.clear();
+}
+
+#define reportf(...) ( fflush(stdout), fprintf(stderr, __VA_ARGS__), fflush(stderr) )
+
+inline int gprintVar(Var v){
+	return v+1;
+}
+
+inline void gprintLit(const Lit& l, const lbool val){
+	reportf("%s%d:%c", (sign(l) ? "-" : ""), gprintVar(var(l)), (val == l_True ? '1' : (val == l_False ? '0' : 'X')));
+}
+
+inline void gprintLit(const Lit& l){
+	reportf("%s%d", (sign(l) ? "-" : ""), gprintVar(var(l)));
+}
+
+inline void gprintClause(const vec<Lit>& c){
+	for(int i=0; i<c.size(); i++){
+		gprintLit(c[i]); reportf(" ");
+	}
 }
 
 #endif /* UTILS_H_ */

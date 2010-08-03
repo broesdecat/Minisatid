@@ -20,14 +20,11 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #define PCSOLVER_H_
 
 #include "solvers/SolverI.hpp"
-#include "solvers/utils/Solverfwd.hpp"
-
-#include <vector>
+#include "solvers/utils/Utils.hpp"
 
 using namespace std;
 
 #include "solvers/SATSolver.h"
-#include "solvers/SATUtils.h"
 
 typedef vector<Lit> vlit;
 
@@ -227,7 +224,7 @@ private:
 	void checkHead(Lit head);
 };
 
-shared_ptr<Data> unittest(ECNF_mode& modes);
-shared_ptr<Data> unittest2(ECNF_mode& modes);
+tr1::shared_ptr<Data> unittest(ECNF_mode& modes);
+tr1::shared_ptr<Data> unittest2(ECNF_mode& modes);
 
 #endif /* PCSOLVER_H_ */

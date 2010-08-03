@@ -8,59 +8,35 @@
 #ifndef CPSCRIPT_HPP_
 #define CPSCRIPT_HPP_
 
-#include <vector>
-
-#include <gecode/kernel.hh>
-#include <gecode/driver.hh>
-#include <gecode/int.hh>
-#include <gecode/minimodel.hh>
+#include "solvers/cpsolver/CPUtils.hpp"
 
 namespace CP{
 
 	using namespace Gecode;
-	using namespace std;
+
+	typedef vector<BoolVar> vboolv;
+	typedef vector<IntVar> vintv;
+	typedef vboolv::size_type boolvarindex;
+	typedef vintv::size_type intvarindex;
 
 	class CPScript: public Space{
 	private:
-		vector<BoolVar> boolvars;
-		vector<IntVar> intvars;
+		vboolv boolvars;
+		vintv intvars;
 
 	public:
 		CPScript();
 		CPScript(bool share, CPScript& s);
 		virtual CPScript* copy(bool share);
 
-		const vector<IntVar>& getIntVars() const { return intvars; }
-		const vector<BoolVar>& getBoolVars() const { return boolvars; }
+		const vintv& 	getIntVars()	const { return intvars; }
+		const vboolv& 	getBoolVars()	const { return boolvars; }
 
-		bool isTrue(int var) const{
-			return boolvars[var].assigned() && boolvars[var].in(1);
-		}
+		// Return the mapping of the Var to an integer number
+		intvarindex		addIntVar(int min, int max);
+		boolvarindex	addBoolVar();
 
-		bool isFalse(int var) const {
-			return boolvars[var].assigned() && boolvars[var].in(0);
-		}
-
-		bool isAssigned(int var) const{
-			return boolvars[var].assigned();
-		}
-
-		vector<IntVar>::size_type addIntVar(int min, int max){
-			intvars.push_back(IntVar(*this, min, max));
-			return intvars.size()-1;
-		}
-		vector<BoolVar>::size_type addBoolVar(){
-			boolvars.push_back(BoolVar(*this, 0, 1));
-			return boolvars.size()-1;
-		}
-
-		void addBranchers(){
-			IntVarArgs x(intvars.size());
-			for(int i=0; i<intvars.size(); i++){
-				x[i]=intvars[i];
-			}
-			branch(*this, x, INT_VAR_SIZE_MIN, INT_VAL_SPLIT_MAX);
-		}
+		void 			addBranchers();
 	};
 
 	ostream& operator <<(ostream& ostream, const CPScript& script);

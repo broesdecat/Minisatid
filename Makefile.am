@@ -16,7 +16,7 @@ minisatid_SOURCES += solvers/parser/ecnftoken.lpp solvers/parser/ecnfparser.ypp
 minisatid_SOURCES += solvers/pcsolver/PCSolver.cpp 
 minisatid_SOURCES += solvers/idsolver/IDSolver.cpp
 minisatid_SOURCES += solvers/aggsolver/AggSets.cpp solvers/aggsolver/AggSolver.cpp solvers/aggsolver/Agg.cpp
-minisatid_SOURCES += solvers/cpsolver/CPSolver.cpp solvers/cpsolver/CPScript.cpp solvers/cpsolver/Constraint.cpp solvers/cpsolver/CPSolverData.cpp
+minisatid_SOURCES += solvers/cpsolver/CPSolver.cpp solvers/cpsolver/CPScript.cpp solvers/cpsolver/Constraint.cpp solvers/cpsolver/CPSolverData.cpp solvers/cpsolver/CPUtils.cpp
 minisatid_SOURCES += solvers/modsolver/ModSolver.cpp solvers/modsolver/SOSolverHier.cpp
 minisatid_SOURCES += solvers/external/ExternalInterface.cpp solvers/external/ExternalUtils.cpp 
 minisatid_SOURCES += solvers/utils/Print.cpp solvers/utils/Utils.cpp 
@@ -24,7 +24,7 @@ minisatid_SOURCES += solvers/parser/Lparseread.cpp
 minisatid_SOURCES += solvers/Unittests.cpp
 
 include_HEADERS = 
-include_HEADERS += solvers/utils/Debug.hpp solvers/utils/Print.hpp solvers/utils/Solverfwd.hpp solvers/SolverI.hpp solvers/utils/Utils.hpp 
+include_HEADERS += solvers/utils/Print.hpp solvers/utils/Utils.hpp 
 include_HEADERS += solvers/idsolver/IDSolver.hpp
 include_HEADERS += solvers/aggsolver/Agg.hpp solvers/aggsolver/AggSolver.hpp solvers/aggsolver/AggSets.hpp solvers/aggsolver/AggSolver.hpp solvers/aggsolver/AggTypes.hpp 
 include_HEADERS += solvers/pcsolver/PCSolver.hpp 
@@ -32,10 +32,10 @@ include_HEADERS += solvers/cpsolver/CPUtils.hpp solvers/cpsolver/CPSolver.hpp so
 include_HEADERS += solvers/modsolver/ModSolver.hpp solvers/modsolver/SOSolverHier.hpp
 include_HEADERS += solvers/external/ExternalInterface.hpp solvers/external/ExternalUtils.hpp 
 include_HEADERS += solvers/parser/Lparseread.hpp
-include_HEADERS += solvers/Unittests.hpp
+include_HEADERS += solvers/Unittests.hpp solvers/SolverI.hpp 
 include_HEADERS += solvers/SATSolver.h solvers/SATUtils.h
 
-CXXFLAGS += -D__STDC_LIMIT_MACROS
+CXXFLAGS += -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS
 
 #MINISAT 2.07 09z
 

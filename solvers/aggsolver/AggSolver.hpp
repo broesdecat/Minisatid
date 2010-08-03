@@ -3,7 +3,7 @@
 
 #include <cstdio>
 
-#include "solvers/SATUtils.h"
+#include "solvers/utils/Utils.hpp"
 
 #include "solvers/aggsolver/AggTypes.hpp"
 
@@ -37,7 +37,7 @@ using namespace Aggrs;
  * heuristic to delay propagations.
  */
 
-class AggSolver: public enable_shared_from_this<AggSolver>{
+class AggSolver: public tr1::enable_shared_from_this<AggSolver>{
 private:
 	pPCSolver solver;
 public:

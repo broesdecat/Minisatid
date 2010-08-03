@@ -9,71 +9,71 @@
 
 using namespace CP;
 
-Constraint::Constraint(int atom, CPScript& space): atom(atom), var(space.addBoolVar()){
+ReifiedConstraint::ReifiedConstraint(int atom, CPScript& space): atom(atom), var(space.addBoolVar()){
 }
 
-void Constraint::propagate(bool becametrue, CPScript& space){
+void ReifiedConstraint::propagate(bool becametrue, CPScript& space){
 	//TODO should be checked, but maybe this complicates which solver queues and which have to be propagated
 	//assert(!isAssigned(space));
 	//if(isAssigned(space)){
 	//	return;
 	//}
 
-	rel(space, space.getBoolVars()[getBoolVar()], IRT_EQ, becametrue?1:0);
+	rel(space, getBoolVar(space), IRT_EQ, becametrue?1:0);
 }
 
 SumConstraint::SumConstraint(CPScript& space, vector<TermIntVar> tset, IntRelType rel, TermIntVar rhs, int atom)
-	: Constraint(atom, space), set(tset.size()), rel(rel), intrhs(false),
+	: ReifiedConstraint(atom, space), set(tset.size()), rel(rel), intrhs(false),
 	  trhs(rhs), withmult(false){
 	IntVarArgs ar(tset.size());
 	for(vector<TermIntVar>::size_type i=0; i<tset.size(); i++){
 		set[i] = tset[i];
-		ar[i] = space.getIntVars()[tset[i].var];
+		ar[i] = tset[i].getIntVar(space);
 	}
-	linear(space, ar, rel, space.getIntVars()[trhs.var], space.getBoolVars()[getBoolVar()]/*,consistency level*/);
+	linear(space, ar, rel, trhs.getIntVar(space), getBoolVar(space)/*,consistency level*/);
 }
 
 SumConstraint::SumConstraint(CPScript& space, vector<TermIntVar> tset, IntRelType rel, int rhs, int atom)
-	: Constraint(atom, space), set(tset.size()), rel(rel), intrhs(true), irhs(rhs), withmult(false){
+	: ReifiedConstraint(atom, space), set(tset.size()), rel(rel), intrhs(true), irhs(rhs), withmult(false){
 	IntVarArgs ar(tset.size());
 	for(vector<TermIntVar>::size_type i=0; i<tset.size(); i++){
 		set[i] = tset[i];
-		ar[i] = space.getIntVars()[tset[i].var];
+		ar[i] = tset[i].getIntVar(space);
 	}
-	linear(space, ar, rel, irhs, space.getBoolVars()[getBoolVar()]/*,consistency level*/);
+	linear(space, ar, rel, irhs, getBoolVar(space)/*,consistency level*/);
 }
 
 SumConstraint::SumConstraint(CPScript& space, vector<TermIntVar> tset, vector<int> mult, IntRelType rel, TermIntVar rhs, int atom)
-	: Constraint(atom, space), set(tset.size()), rel(rel), intrhs(false),
+	: ReifiedConstraint(atom, space), set(tset.size()), rel(rel), intrhs(false),
 	  trhs(rhs), withmult(true), mult(mult){
 	IntVarArgs ar(tset.size());
 	for(vector<TermIntVar>::size_type i=0; i<tset.size(); i++){
 		set[i] = tset[i];
-		ar[i] = space.getIntVars()[tset[i].var];
+		ar[i] = tset[i].getIntVar(space);
 	}
 	IntArgs ia(mult.size());
 	for(int i=0; i<mult.size(); i++){
 		ia[i]=mult[i];
 	}
-	linear(space, ia, ar, rel, space.getIntVars()[trhs.var], space.getBoolVars()[getBoolVar()]/*,consistency level*/);
+	linear(space, ia, ar, rel, trhs.getIntVar(space), getBoolVar(space)/*,consistency level*/);
 }
 
 SumConstraint::SumConstraint(CPScript& space, vector<TermIntVar> tset, vector<int> mult, IntRelType rel, int rhs, int atom)
-	: Constraint(atom, space), set(tset.size()), rel(rel), intrhs(true), irhs(rhs), withmult(true), mult(mult){
+	: ReifiedConstraint(atom, space), set(tset.size()), rel(rel), intrhs(true), irhs(rhs), withmult(true), mult(mult){
 	IntVarArgs ar(tset.size());
 	for(vector<TermIntVar>::size_type i=0; i<tset.size(); i++){
 		set[i] = tset[i];
-		ar[i] = space.getIntVars()[tset[i].var];
+		ar[i] = tset[i].getIntVar(space);
 	}
 	IntArgs ia(mult.size());
 	for(int i=0; i<mult.size(); i++){
 		ia[i]=mult[i];
 	}
-	linear(space, ia, ar, rel, irhs, space.getBoolVars()[getBoolVar()]/*,consistency level*/);
+	linear(space, ia, ar, rel, irhs, getBoolVar(space)/*,consistency level*/);
 }
 
 ostream& CP::operator<< (ostream& os, const TermIntVar& tiv){
-	return os <<tiv.term <<"[" <<tiv.min <<"," <<tiv.max <<"]";
+	return os <<tiv.ID <<"[" <<tiv.min <<"," <<tiv.max <<"]";
 }
 
 CountConstraint::CountConstraint(CPScript& space, vector<TermIntVar> tset, IntRelType rel, int value, TermIntVar rhs)
@@ -81,7 +81,7 @@ CountConstraint::CountConstraint(CPScript& space, vector<TermIntVar> tset, IntRe
 	IntVarArgs ar(tset.size());
 	for(vector<TermIntVar>::size_type i=0; i<tset.size(); i++){
 		set[i] = tset[i];
-		ar[i] = space.getIntVars()[tset[i].var];
+		ar[i] = tset[i].getIntVar(space);
 	}
 
 	/*cout <<"Added Count(";
@@ -90,7 +90,7 @@ CountConstraint::CountConstraint(CPScript& space, vector<TermIntVar> tset, IntRe
 	}
 	cout <<") " <<rel <<" " << rhs <<endl;*/
 
-	count(space, ar, value, rel, space.getIntVars()[trhs.var]/*,consistency level*/);
+	count(space, ar, value, rel, trhs.getIntVar(space)/*,consistency level*/);
 }
 
 //	CountConstraint(CPScript& space, vector<TermIntVar> tset, IntRelType rel, int rhs)
@@ -105,23 +105,23 @@ CountConstraint::CountConstraint(CPScript& space, vector<TermIntVar> tset, IntRe
 
 
 BinArithConstraint::BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelType rel, TermIntVar rhs, int atom)
-	: Constraint(atom, space), lhs(lhs), rel(rel), intrhs(false), trhs(rhs){
-	IntVar ialhs = space.getIntVars()[lhs.var], iarhs = space.getIntVars()[trhs.var];
+	: ReifiedConstraint(atom, space), lhs(lhs), rel(rel), intrhs(false), trhs(rhs){
+	IntVar ialhs = lhs.getIntVar(space), iarhs = trhs.getIntVar(space);
 
-	Gecode::rel(space, ialhs, rel, iarhs, space.getBoolVars()[getBoolVar()]);
+	Gecode::rel(space, ialhs, rel, iarhs, getBoolVar(space));
 }
 
 BinArithConstraint::BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelType rel, int rhs, int atom)
-	: Constraint(atom, space), lhs(lhs), rel(rel), intrhs(true), irhs(rhs){
-	IntVar ialhs = space.getIntVars()[lhs.var];
+	: ReifiedConstraint(atom, space), lhs(lhs), rel(rel), intrhs(true), irhs(rhs){
+	IntVar ialhs = lhs.getIntVar(space);
 	int iarhs = irhs;
-	Gecode::rel(space, ialhs, rel, iarhs, space.getBoolVars()[getBoolVar()] );
+	Gecode::rel(space, ialhs, rel, iarhs, getBoolVar(space) );
 }
 
 DistinctConstraint::DistinctConstraint(CPScript& space, vector<TermIntVar> tset)
 	: set(tset.size()){
 	for(int i=0; i<tset.size(); i++){
-		set[i] = space.getIntVars()[tset[i].var];
+		set[i] = tset[i].getIntVar(space);
 	}
 	distinct(space, set);
 }

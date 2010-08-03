@@ -22,7 +22,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <cstdio>
 using namespace std;
 
-#include "solvers/utils/Solverfwd.hpp"
+#include "solvers/utils/Utils.hpp"
 
 class Data{
 private:

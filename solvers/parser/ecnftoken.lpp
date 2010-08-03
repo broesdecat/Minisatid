@@ -7,7 +7,7 @@
  * SHOULD BE REMOVED THEN
  */
 #include <vector>
-#include "solvers/utils/Solverfwd.hpp"
+#include "solvers/utils/Utils.hpp"
 using namespace std; 
 //UP TILL HERE!
 

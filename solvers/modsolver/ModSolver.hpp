@@ -2,14 +2,10 @@
 #define MODSOLVER_H_
 
 #include <set>
-#include <vector>
-#include <tr1/memory>
 
-#include "solvers/SATUtils.h"
-
+#include "solvers/utils/Utils.hpp"
 #include "solvers/pcsolver/PCSolver.hpp"
 #include "solvers/modsolver/SOSolverHier.hpp"
-#include <stdio.h>
 
 using namespace std;
 
@@ -58,14 +54,14 @@ private:
 	modindex 	id, parentid;
 	pPCSolver	solver;
 	vmodindex 	children;
-	weak_ptr<ModSolverData> modhier;
+	tr1::weak_ptr<ModSolverData> modhier;
 
 	vec<Lit> 	assumptions;
 	//int			startindex;
 	vector<bool> propfromabove; //Indicates whether this literal was propagated by the parent
 
 public:
-	ModSolver(modindex child, Var head, shared_ptr<ModSolverData> mh);
+	ModSolver(modindex child, Var head, tr1::shared_ptr<ModSolverData> mh);
 	virtual ~ModSolver();
 
 	bool 	addAtoms		(const vector<Var>& atoms);

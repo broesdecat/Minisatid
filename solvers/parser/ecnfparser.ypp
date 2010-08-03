@@ -16,10 +16,7 @@
 #include <list>
 #include <map>
 
-#include <tr1/memory>
-using namespace std;
-using namespace std::tr1;
-
+#include "solvers/utils/Utils.hpp"
 #include "solvers/external/ExternalInterface.hpp"
 
 //}
@@ -44,8 +41,8 @@ int charPos = 1;
 
 bool unsatfound = false;
 
-shared_ptr<PropositionalSolver>	solver;
-shared_ptr<ModalSolver>	modsolver;
+tr1::shared_ptr<PropositionalSolver>	solver;
+tr1::shared_ptr<ModalSolver>	modsolver;
 
 /**
  * CR-CheckResult: checks the result of passing some data to the solvers.
