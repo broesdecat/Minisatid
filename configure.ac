@@ -3,7 +3,7 @@ AC_PROG_CXX
 AC_DECL_YYTEXT
 #AC_PROG_LEX
 AC_PROG_YACC
-AM_INIT_AUTOMAKE([-Wall foreign subdir-objects ])  #-ffloat-store  -Wextra -Wno-unused-parameter -pedantic
+AM_INIT_AUTOMAKE([-Wall foreign subdir-objects])  #-ffloat-store  -Wextra -Wno-unused-parameter -pedantic
 #AM_SILENT_RULES([yes]) from 1.11 on
 AC_LANG([C++])
 

@@ -44,8 +44,6 @@ minisatid_SOURCES += solver3/Solver.cpp
 include_HEADERS += solver3/Solver.hpp solver3/SolverTypes.hpp
 include_HEADERS += mtlold/Vec.h mtlold/Queue.h mtlold/Alg.h mtlold/Heap.h mtlold/Map.h mtlold/Sort.h
 CXXFLAGS+=-DUSEMINISAT09Z
-else
-
 endif
 
 #MINISAT 2.2
@@ -66,8 +64,6 @@ minisatid_SOURCES += solver3minisat/Solver.C
 include_HEADERS += solver3minisat/Solver.h solver3minisat/SolverTypes.h
 include_HEADERS += mtlold/Vec.h mtlold/Queue.h mtlold/Alg.h mtlold/Heap.h mtlold/Map.h mtlold/Sort.h
 CXXFLAGS+=-DUSEMINISAT
-else
-
 endif
 
 dist_doc_DATA = README
