@@ -412,8 +412,6 @@ void Agg::getExplanation(vec<Lit>& lits, AggrReason& ar) const{
 //		lits.push(~(*i).getLit());
 //	}
 
-
-
 	if(ar.getExpl()!=HEADONLY){
 		for(lprop::const_iterator i=s->getStackBegin(); counter<ar.getIndex() && i<s->getStackEnd(); i++,counter++){
 			switch(ar.getExpl()){
@@ -437,12 +435,21 @@ void Agg::getExplanation(vec<Lit>& lits, AggrReason& ar) const{
 		}
 	}
 
-	//TODO dit is vrij lelijk en onefficient :)
+	//TODO de nesting van calls is vrij lelijk en onefficient :)
 	if(getSet()->getSolver()->getPCSolver()->modes().verbosity>=5){
+
+		reportf("STACK: ");
+		for(lprop::const_iterator i=s->getStackBegin(); i<s->getStackEnd(); i++){
+			gprintLit((*i).getLit()); reportf(" ");
+		}
+		reportf("\n");
+
+
 		reportf("Aggregate explanation for ");
 		if(ar.isHeadReason()){
 			gprintLit(getHead());
 		}else{
+			reportf("(index %d)", ar.getIndex());
 			gprintLit((*(s->getStackBegin()+ar.getIndex())).getLit());
 		}
 

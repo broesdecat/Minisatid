@@ -84,7 +84,8 @@ public:
 	 * Returns the explanation for the deduction of p from an aggregate expression.
 	 * This method constructs, from the AggrReason stored for it, a "reason clause" usable in clause learning.
 	 * @post the first element in the reason clause will be the literal itself (invariant by minisat!)
-	 * @post the clause is not saved, so HAS to be deleted after use
+	 * @post the clause is added to the sat solver
+	 * @returns NON-OWNING pointer
 	 */
 	rClause 	getExplanation	(const Lit& p);
 	void 		notifyVarAdded	(uint64_t nvars); 		//correctly initialize AMNSolver datastructures when vars are added
@@ -140,9 +141,10 @@ public:
 
 	/**
 	 * Checks presence of aggregates and initializes all counters.
-	 * @Return: true if there are aggregates present
+	 * UNSAT is set to true if unsat is detected
+	 * PRESENT is set to true if aggregate propagations should be done
 	 */
-	bool    	finishECNF_DataStructures (); //throws UNSAT
+	void    	finishECNF_DataStructures (bool& present, bool& unsat); //throws UNSAT
 
 	void 		removeHeadWatch(Var x);
 	/////////////////////END INITIALIZATION

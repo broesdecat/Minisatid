@@ -131,7 +131,7 @@ public:
 	 * SHOULD also return unit propagated implied rigid atoms.
 	 */
 	rClause 			propagateDown(Lit l);
-	rClause 			propagateDownAtEndOfQueue();
+	bool	 			propagateDownAtEndOfQueue(vec<Lit>& confldisj);
 	/**
 	 * Propagation coming from the sat-solver: should propagate it through all modal solvers.
 	 *
@@ -180,7 +180,7 @@ private:
 	void				adaptValuesOnPropagation(Lit l);
 	void 				doUnitPropagation	(const vec<Lit>&);
 	bool 				search				(const vec<Lit>&, bool search = true);
-	rClause 			analyzeResult		(bool result, bool allknown);
+	bool 			analyzeResult		(bool result, bool allknown, vec<Lit>& confldisj);
 };
 
 #endif// MODSOLVER_H_

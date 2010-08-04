@@ -24,14 +24,12 @@ using namespace CP;
 ReifiedConstraint::ReifiedConstraint(int atom, CPScript& space): atom(atom), var(space.addBoolVar()){
 }
 
-void ReifiedConstraint::propagate(bool becametrue, CPScript& space){
-	//TODO should be checked, but maybe this complicates which solver queues and which have to be propagated
-	//assert(!isAssigned(space));
+rClause ReifiedConstraint::propagate(bool becametrue, CPScript& space){
+	assert(!isAssigned(space));
 
-	if(isAssigned(space)){
-		return;
-	}
 	rel(space, getBoolVar(space), IRT_EQ, becametrue?1:0);
+
+	return nullPtrClause;
 }
 
 SumConstraint::SumConstraint(CPScript& space, vector<TermIntVar> tset, IntRelType rel, TermIntVar rhs, int atom)

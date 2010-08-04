@@ -80,7 +80,7 @@ namespace CP{
 		bool	isAssignedTrue	(const CPScript& space) const { return CP::isTrue(getBoolVar(space)); }
 		bool	isAssignedFalse	(const CPScript& space) const { return CP::isFalse(getBoolVar(space)); }
 
-		void 	propagate		(bool becametrue, CPScript& space);
+		rClause propagate		(bool becametrue, CPScript& space);
 	};
 
 	class SumConstraint: public ReifiedConstraint{
@@ -104,7 +104,7 @@ namespace CP{
 		virtual ~SumConstraint(){}
 	};
 
-	class CountConstraint{
+	class CountConstraint: public Constraint{
 	private:
 		vector<TermIntVar> set;
 		IntRelType rel;

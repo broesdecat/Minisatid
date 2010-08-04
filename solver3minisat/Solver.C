@@ -342,7 +342,30 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 	cancelUntil(lvl);
 	assert(lvl==decisionLevel());
 	assert(confl!=NULL);
-    /*AE*/
+
+	//reportf("Conflicts: %d.\n", conflicts);
+	vector<Lit> explain;
+	if(verbosity>4){
+		reportf("Choices: ");
+		for(int i=0; i<trail_lim.size(); i++){
+			gprintLit(trail[trail_lim[i]]); reportf(" ");
+		}
+		reportf("\n");
+		reportf("Trail: \n");
+		for(int i=0; i<trail_lim.size()-1; i++){
+			reportf("Level: ");
+			for(int j=trail_lim[i]; j<trail_lim[i+1]; j++){
+				gprintLit(trail[j]); reportf(" ");
+			}
+			reportf("\n");
+		}
+		reportf("Level: ");
+		for(int j=trail_lim[trail_lim.size()-1]; j<trail.size(); j++){
+			gprintLit(trail[j]); reportf(" ");
+		}
+		reportf("\n");
+	}
+	/*AE*/
 
     // Generate conflict clause:
     //
@@ -350,10 +373,25 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
     int index   = trail.size() - 1;
     out_btlevel = 0;
 
-	/*A*/bool deleteImplicitClause = false;
     do{
         assert(confl != NULL);          // (otherwise should be UIP)
         Clause& c = *confl;
+
+        /*AB*/
+        if(verbosity>4){
+			reportf("DECISION LEVEL %d\n", decisionLevel());
+			reportf("Current conflict clause: ");
+			printClause(c);
+			reportf("\n");
+			reportf("Current learned clause: ");
+			for (int i = 1; i < out_learnt.size(); i++) {
+				printLit(out_learnt[i]);
+				reportf(" ");
+			}
+			reportf("\n");
+			reportf("Still explain: ");
+		}
+    	/*AE*/
 
         if (c.learnt())
             claBumpActivity(c);
@@ -375,27 +413,40 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
         }
 
         /*AB*/
-		if (deleteImplicitClause) {
-			free(confl);
-			deleteImplicitClause = false;
+        if(verbosity>4){
+        	for(vector<Lit>::const_iterator i=explain.begin(); i<explain.end(); i++){
+        		gprintLit(*i); reportf(" ");
+        	}
+        	reportf("\n");
 		}
-		/*AE*/
+        /*AE*/
 
 		// Select next clause to look at:
 		while (!seen[var(trail[index--])]);
 		p     = trail[index+1];
 		confl = reason[var(p)];
 
-		/*AB*/
-		if(confl==NULL && pathC>1){
-			//Explanation still returns an owning pointer, so handle it properly
+        /*AB*/
+        if(verbosity>4){
+			reportf("Getting explanation for ");
+			for(vector<Lit>::iterator i=explain.begin(); i<explain.end(); i++){
+				if(var(*i)==var(p)){
+					explain.erase(i);
+					break;
+				}
+			}
+			printLit(p);
+			reportf("\n");
+		}
+
+        if(confl==NULL && pathC>1){
 			confl = solver->getExplanation(p);
-			deleteImplicitClause = true;
-		}
-		if(verbosity>4 && confl!=NULL) {
-			reportf("Explanation is "); printClause(*confl); reportf("\n");
-		}
-		/*AE*/
+        }
+        if(verbosity>4 && confl!=NULL) {
+        	reportf("Explanation is "); printClause(*confl); reportf("\n");
+        }
+        /*AE*/
+
         seen[var(p)] = 0;
         pathC--;
 

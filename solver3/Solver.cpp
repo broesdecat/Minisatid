@@ -405,7 +405,6 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
     int index   = trail.size() - 1;
     out_btlevel = 0;
 
-	/*A*/bool deleteImplicitClause = false;
     do{
         assert(confl != NULL);          // (otherwise should be UIP)
         Clause& c = *confl;
@@ -474,13 +473,6 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 		}
         /*AE*/
 
-        /*AB*/
-		if (deleteImplicitClause) {
-			free(confl);
-			deleteImplicitClause = false;
-		}
-        /*AE*/
-
         // Select next clause to look at:
         while (!seen[var(trail[index--])]);
         p     = trail[index+1];
@@ -500,9 +492,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 		}
 
         if(confl==NULL && pathC>1){
-        	//Explanation still returns an owning pointer, so handle it properly
 			confl = solver->getExplanation(p);
-        	deleteImplicitClause = true;
         }
         if(verbosity>4 && confl!=NULL) {
         	reportf("Explanation is "); printClause(*confl); reportf("\n");

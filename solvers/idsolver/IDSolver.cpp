@@ -45,6 +45,10 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "solvers/SATUtils.h"
 #include <cmath>
 
+#include <stdint.h>
+#include <inttypes.h>
+#include <limits.h>
+
 inline lbool	IDSolver::value(Var x) const   { return getPCSolver()->value(x); }
 inline lbool	IDSolver::value(Lit p) const   { return getPCSolver()->value(p); }
 inline int		IDSolver::nVars()      const   { return getPCSolver()->nVars();  }
@@ -1271,8 +1275,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
 		if (isTrue(*tch)) {
 			loopf[0] = createNegativeLiteral(*tch);	//negate the head to create a clause
-			rClause c = getPCSolver()->makeClause(loopf, true);
-			getPCSolver()->addLearnedClause(c);
+			rClause c = getPCSolver()->addLearnedClause(loopf);
 			justify_conflicts++;
 			if (getPCSolver()->modes().verbosity >= 2) {
 				reportf("Adding conflicting loop formula: [ ");
@@ -1326,8 +1329,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 
 rClause IDSolver::addLoopfClause(Lit l, vec<Lit>& lits){
 	lits[0] = l;
-	rClause c = getPCSolver()->makeClause(lits, true);
-	getPCSolver()->addLearnedClause(c);
+	rClause c = getPCSolver()->addLearnedClause(lits);
 
 	if (getPCSolver()->modes().verbosity >= 2) {
 		reportf("Adding loop formula: [ ");
@@ -1443,14 +1445,14 @@ void IDSolver::cycleSourceAggr(Var v, vec<Lit>& just){
 }
 
 void IDSolver::notifyAggrHead(Var head){
-	assert(!isDefined(head) && init);
+	assert(!isDefined(head) && !isInitialized());
 	defType[head] = AGGR;
 	defOcc[head] = NONDEFOCC;
 	defdVars.push(head);
 }
 
 void IDSolver::removeAggrHead(Var head){
-	assert(init);
+	assert(!isInitialized());
 	if(isDefined(head)){
 		defType[head] = NONDEFTYPE;
 		defOcc[head] = NONDEFOCC;
@@ -2245,6 +2247,19 @@ UFS IDSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<V
 	return STILLPOSSIBLE;
 }
 
+void IDSolver::printStatistics() const{
+	reportf("cycles                : %-12" PRIu64 "\n", cycles);
+	reportf("cycle conflicts       : %-12" PRIu64 "\n", justify_conflicts);
+	reportf("avg cycle size        : %4.2f\n", (float)cycle_sizes/cycles);
+	reportf("avg extdisj size      : %4.2f\n", (float)extdisj_sizes/cycles);
+	reportf("justify runs          : %-12" PRIu64 "   (%4.2f /cycle)\n", justify_calls, (float)justify_calls/cycles);
+	reportf("avg. justify searchsp.: %6.2f lits\n", (float)total_marked_size/justify_calls);
+	reportf("cycle sources         : %-12" PRIu64 "\n", cycle_sources);
+	reportf("                      : %4.2f found per run of findCycleSources()\n", (float)nb_times_findCS/cycle_sources);
+	reportf("                      : %4.2f removed per justify run\n", (float)cs_removed_in_justify/justify_calls);
+	reportf("                      : %4.2f treated per loop\n", (float)succesful_justify_calls/nb_times_findCS);
+}
+
 //TARJAN ALGORITHM FOR FINDING UNFOUNDED SETS IN GENERAL INDUCTIVE DEFINITIONS (NOT ONLY SINGLE CONJUNCTS). THIS DOES NOT WORK YET
 ///////////////
 ////Finding unfounded checks by
@@ -2381,3 +2396,4 @@ UFS IDSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<V
 //		}
 //	}
 //}
+

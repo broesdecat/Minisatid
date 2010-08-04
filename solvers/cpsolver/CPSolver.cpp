@@ -43,14 +43,24 @@ CPSolver::CPSolver(PCSolver * solver): ISolver(solver), solverdata(new CPSolverD
 }
 
 CPSolver::~CPSolver() {
+	delete solverdata;
 }
+
+/////////////////////////////////////////
+//	INITIALIZATION
+/////////////////////////////////////////
+
+// FIXME: some simplifications/propagations are done immediately when adding a constraint to the constraint store
+// these can/should be propagated as soon as possible
+
+// FIXME: reification atoms have to be unique! CHECK THIS
 
 void CPSolver::addTerm(int term, int min, int max){
 	assert(!isInitialized());
-	solverdata->addTerm(TermIntVar(solverdata->getSpace(), term, min, max));
+	getSolverData()->addTerm(TermIntVar(getSolverData()->getSpace(), term, min, max));
 }
 
-void CPSolver::addBinRel(int groundname, MINISAT::EqType rel, int bound, int atom){
+bool CPSolver::addBinRel(int groundname, MINISAT::EqType rel, int bound, int atom){
 	assert(!isInitialized());
 	TermIntVar lhs(solverdata->convertToVar(groundname));
 
@@ -58,52 +68,66 @@ void CPSolver::addBinRel(int groundname, MINISAT::EqType rel, int bound, int ato
 		cout <<"Added binary relation " <<gprintVar(atom) <<" <=> " <<lhs <<" " <<rel <<" "<<bound <<endl;
 	}
 
-	solverdata->addConstraint(new BinArithConstraint(solverdata->getSpace(), lhs, toRelType(rel), bound, atom));
+	getSolverData()->addReifConstraint(new BinArithConstraint(getSolverData()->getSpace(), lhs, toRelType(rel), bound, atom));
+
+	StatusStatistics stats;
+	return getSolverData()->getSpace().status(stats) != SS_FAILED;
 }
 
-void CPSolver::addBinRelVar(int groundname, MINISAT::EqType rel, int groundname2, int atom){
+bool CPSolver::addBinRelVar(int groundname, MINISAT::EqType rel, int groundname2, int atom){
 	assert(!isInitialized());
-	TermIntVar lhs(solverdata->convertToVar(groundname));
-	TermIntVar rhs(solverdata->convertToVar(groundname2));
+	TermIntVar lhs(getSolverData()->convertToVar(groundname));
+	TermIntVar rhs(getSolverData()->convertToVar(groundname2));
 
 	if(getPCSolver()->modes().verbosity>=10){
 		cout <<"Added binary relation " <<gprintVar(atom) <<" <=> " <<lhs <<" " <<rel <<" "<<rhs <<endl;
 	}
 
-	solverdata->addConstraint(new BinArithConstraint(solverdata->getSpace(), lhs, toRelType(rel), rhs, atom));
+	getSolverData()->addReifConstraint(new BinArithConstraint(getSolverData()->getSpace(), lhs, toRelType(rel), rhs, atom));
+
+	StatusStatistics stats;
+	return getSolverData()->getSpace().status(stats) != SS_FAILED;
 }
 
-void CPSolver::addSum(vector<int> term, MINISAT::EqType rel, int bound, int atom){
+bool CPSolver::addSum(vector<int> term, MINISAT::EqType rel, int bound, int atom){
 	assert(!isInitialized());
-	vector<TermIntVar> set(solverdata->convertToVars(term));
-	solverdata->addConstraint(new SumConstraint(solverdata->getSpace(), set, toRelType(rel), bound, atom));
+	vector<TermIntVar> set(getSolverData()->convertToVars(term));
+	getSolverData()->addReifConstraint(new SumConstraint(getSolverData()->getSpace(), set, toRelType(rel), bound, atom));
 
-	//FIXME: some simplifications/propagations are done immediately, so can be propagated sooner (to OTHER solvers)
+	StatusStatistics stats;
+	return getSolverData()->getSpace().status(stats) != SS_FAILED;
 }
 
-void CPSolver::addSum(vector<int> term, vector<int> mult, MINISAT::EqType rel, int bound, int atom){
+bool CPSolver::addSum(vector<int> term, vector<int> mult, MINISAT::EqType rel, int bound, int atom){
 	assert(!isInitialized());
-	vector<TermIntVar> set(solverdata->convertToVars(term));
-	solverdata->addConstraint(new SumConstraint(solverdata->getSpace(), set, mult, toRelType(rel), bound, atom));
+	vector<TermIntVar> set(getSolverData()->convertToVars(term));
+	getSolverData()->addReifConstraint(new SumConstraint(getSolverData()->getSpace(), set, mult, toRelType(rel), bound, atom));
+
+	StatusStatistics stats;
+	return getSolverData()->getSpace().status(stats) != SS_FAILED;
 }
 
-void CPSolver::addSumVar(vector<int> term, MINISAT::EqType rel, int rhsterm, int atom){
+bool CPSolver::addSumVar(vector<int> term, MINISAT::EqType rel, int rhsterm, int atom){
 	assert(!isInitialized());
-	vector<TermIntVar> set(solverdata->convertToVars(term));
-	TermIntVar rhs(solverdata->convertToVar(rhsterm));
-	solverdata->addConstraint(new SumConstraint(solverdata->getSpace(), set, toRelType(rel), rhs, atom));
+	vector<TermIntVar> set(getSolverData()->convertToVars(term));
+	TermIntVar rhs(getSolverData()->convertToVar(rhsterm));
+	getSolverData()->addReifConstraint(new SumConstraint(getSolverData()->getSpace(), set, toRelType(rel), rhs, atom));
+
+	StatusStatistics stats;
+	return getSolverData()->getSpace().status(stats) != SS_FAILED;
 }
 
-void CPSolver::addSumVar(vector<int> term, vector<int> mult, MINISAT::EqType rel, int rhsterm, int atom){
+bool CPSolver::addSumVar(vector<int> term, vector<int> mult, MINISAT::EqType rel, int rhsterm, int atom){
 	assert(!isInitialized());
-	vector<TermIntVar> set(solverdata->convertToVars(term));
-	TermIntVar rhs(solverdata->convertToVar(rhsterm));
-	solverdata->addConstraint(new SumConstraint(solverdata->getSpace(), set, mult, toRelType(rel), rhs, atom));
+	vector<TermIntVar> set(getSolverData()->convertToVars(term));
+	TermIntVar rhs(getSolverData()->convertToVar(rhsterm));
+	getSolverData()->addReifConstraint(new SumConstraint(getSolverData()->getSpace(), set, mult, toRelType(rel), rhs, atom));
 
-	//FIXME: some simplifications/propagations are done immediately, so can be propagated sooner (to OTHER solvers)
+	StatusStatistics stats;
+	return getSolverData()->getSpace().status(stats) != SS_FAILED;
 }
 
-void CPSolver::addCount(vector<int> terms, MINISAT::EqType rel, int value, int rhsterm){
+bool CPSolver::addCount(vector<int> terms, MINISAT::EqType rel, int value, int rhsterm){
 	assert(!isInitialized());
 
 	if(getPCSolver()->modes().verbosity>=10){
@@ -114,135 +138,135 @@ void CPSolver::addCount(vector<int> terms, MINISAT::EqType rel, int value, int r
 		cout <<") " <<rel << " " <<rhsterm <<endl;
 	}
 
-	vector<TermIntVar> set(solverdata->convertToVars(terms));
-	TermIntVar rhs(solverdata->convertToVar(rhsterm));
-	/*solverdata->addConstraint(*/ //FIXME store them //FIXME make all constraints not-stack objects
-	CountConstraint(solverdata->getSpace(), set, toRelType(rel), value, rhs);
-	/*);*/
-}
+	vector<TermIntVar> set(getSolverData()->convertToVars(terms));
+	TermIntVar rhs(getSolverData()->convertToVar(rhsterm));
+	getSolverData()->addNonReifConstraint(new CountConstraint(getSolverData()->getSpace(), set, toRelType(rel), value, rhs));
 
-/*void CPSolver::addCount(vector<vector<string> > terms, MINISAT::EqType rel, vector<string> term){
-	vector<TermIntVar> set;
-	for(int i=0; i<terms.size(); i++){
-		for(vector<TermIntVar>::const_iterator j=solverdata->getTerms().begin(); j<solverdata->getTerms().end(); j++){
-			if((*j)==terms[i]){
-				set.push_back(*j);
-				break;
-			}
-		}
-	}
-	TermIntVar rhs;
-	for(vector<TermIntVar>::const_iterator j=solverdata->getTerms().begin(); j<solverdata->getTerms().end(); j++){
-		if((*j)==term){
-			rhs = *j;
-			break;
-		}
-	}
-	//solverdata->addConstraint(
-	//FIXME store them //FIXME make all constraints not-stack objects
-	CountConstraint(*solverdata->getSpace(), set, toRelType(rel), rhs);
-}*/
+	StatusStatistics stats;
+	return getSolverData()->getSpace().status(stats) != SS_FAILED;
+}
 
 bool CPSolver::addAllDifferent(vector<int> term){
 	assert(!isInitialized());
-	vector<TermIntVar> set(solverdata->convertToVars(term));
-	//TODO not added to solverdata constraints!
-	/*solverdata->getConstraints().push_back(*/new DistinctConstraint(solverdata->getSpace(), set);//);
+	vector<TermIntVar> set(getSolverData()->convertToVars(term));
+	getSolverData()->addNonReifConstraint(new DistinctConstraint(getSolverData()->getSpace(), set));
 
-	//TODO check failing of space here (and in all other ones too!).
-	return true;
+	StatusStatistics stats;
+	return getSolverData()->getSpace().status(stats) != SS_FAILED;
 }
 
 ////////////////////////////
-// SOLVER METHODS
+//	SOLVER METHODS
 ////////////////////////////
+
+// Space management:
+//		First space = space after adding all constraints and propagating until fixpoint
+//		Any subsequent space is after adding ALL propagations of a decision level and propagating until fixpoint
+//			so this can be MULTIPLE fixpoint propagations until next decision level!
+
+rClause CPSolver::getExplanation(const Lit& p){
+	vec<Lit> lits;
+	bool found = false;
+	lits.push(p);
+	for(vector<Lit>::const_iterator i=trail.begin(); !found && i<trail.end(); i++){
+		if(var(*i)==var(p)){
+			found = true;
+		}else{
+			lits.push(~(*i));
+		}
+	}
+	assert(found);
+	rClause c = getPCSolver()->addLearnedClause(lits);
+	return c;
+}
+
+rClause CPSolver::notifySATsolverOfPropagation(const Lit& p) {
+	if (getPCSolver()->value(p) == l_False) {
+		if (getPCSolver()->modes().verbosity >= 2) {
+			reportf("Deriving conflict in "); gprintLit(p, l_True);
+			reportf(" because of the constraint TODO \n");
+		}
+		rClause confl = getExplanation(p);
+		return confl;
+	} else if (getPCSolver()->value(p) == l_Undef) {
+		if (getPCSolver()->modes().verbosity >= 2) {
+			reportf("Deriving "); gprintLit(p, l_True);
+			reportf(" because of the constraint expression TODO \n");
+		}
+		getPCSolver()->setTrue(p);
+	} else {
+	}
+	return nullPtrClause;
+}
 
 bool CPSolver::finishParsing(){
 	assert(!isInitialized());
 	notifyInitialized();
 
-	vector<ReifiedConstraint*> assigned;
-	for(vector<ReifiedConstraint*>::const_iterator i=solverdata->getConstraints().begin(); i<solverdata->getConstraints().end(); i++){
-		if((*i)->isAssigned(solverdata->getSpace())){
-			assigned.push_back(*i);
-		}
-	}
-
+	// Propagate until fixpoint
 	StatusStatistics stats;
-	SpaceStatus status = solverdata->getSpace().status(stats);
+	SpaceStatus status = getSolverData()->getSpace().status(stats);
 
 	if(status==SS_FAILED){
 		return false;
 	}
 
-	for(vector<ReifiedConstraint*>::const_iterator i=solverdata->getConstraints().begin(); i<solverdata->getConstraints().end(); i++){
+	// Propagate all assigned reification atoms. If any conflicts, return false
+	for(vector<ReifiedConstraint*>::const_iterator i=getSolverData()->getReifConstraints().begin(); i<getSolverData()->getReifConstraints().end(); i++){
+		if((*i)->isAssigned(getSolverData()->getSpace())){
 
-		//check if it was not already assigned
-		bool alreadyassigned = false;
-		for(vector<ReifiedConstraint*>::const_iterator j=assigned.begin(); j<assigned.end(); j++){
-			if((*i)==(*j)){
-				alreadyassigned = true;
-			}
 		}
-		if(alreadyassigned){
-			continue;
-		}
-
-		if((*i)->isAssignedTrue(solverdata->getSpace())){
-			getPCSolver()->setTrue(mkLit((*i)->getAtom()));
-		}else if((*i)->isAssignedFalse(solverdata->getSpace())){
-			getPCSolver()->setTrue(mkLit((*i)->getAtom(), true));
+		rClause confl = notifySATsolverOfPropagation(mkLit((*i)->getAtom(), (*i)->isAssignedFalse(getSolverData()->getSpace())));
+		if(confl!=nullPtrClause){
+			return false;
 		}
 	}
 
-	solverdata->addSpace();
+	//Add a new timepoint to the history
+	getSolverData()->addSpace();
+
 	return true;
 }
 
 rClause CPSolver::propagate(Lit l){
-	if (isInitialized()) {return nullPtrClause;}
-
-	//reportf("CP propagated: "); gprintLit(l); reportf(".\n");
-
-	int constrindex = -1;
 	rClause confl = nullPtrClause;
-	for(int i=0; i<solverdata->getConstraints().size(); i++){
-		if(solverdata->getConstraints()[i]->getAtom()==var(l)){
-			constrindex = i;
-			break;
+	if (isInitialized()) {return confl;}
+
+	for(vreifconstrptr::const_iterator i=getSolverData()->getReifConstraints().begin(); i<getSolverData()->getReifConstraints().end(); i++){
+		if((*i)->getAtom()==var(l)){
+			if(getPCSolver()->modes().verbosity >= 5){
+				reportf("Propagated into CP: "); gprintLit(l); reportf(".\n");
+			}
+			trail.push_back(l);
+			return (*i)->propagate(!sign(l), getSolverData()->getSpace());
 		}
 	}
-	if(constrindex==-1){
-		//reportf("No constraint within CP for that literal.\n");
-		return confl;
-	}
-
-	trail.push_back(l);
-
-	solverdata->getConstraints()[constrindex]->propagate(!sign(l), solverdata->getSpace());
-	//FIXME check for failure here too (adding constraints also does simple checks)
-
 	return confl;
 }
 
+/**
+ * Backtrack one decision level
+ */
 void CPSolver::backtrack(){
 	if(isInitialized()){ return; }
-	solverdata->backtrack();
+	getSolverData()->backtrack();
 }
 
-void CPSolver::backtrack(Lit l){
+/**
+ * Backtrack one literal
+ */
+void CPSolver::backtrack(Lit l){ //TODO only useful for trail
 	if(trail.size()>0 && l==trail.back()){
 		trail.pop_back();
 	}
 }
 
 rClause CPSolver::propagateAtEndOfQueue(){
-	if (isInitialized()) {return nullPtrClause;}
-
 	rClause confl = nullPtrClause;
+	if (isInitialized()) { return confl; }
+
 	StatusStatistics stats;
 	SpaceStatus status = solverdata->getSpace().status(stats);
-	//cout <<solverdata->getSpace() <<endl;
 
 	if(status == SS_FAILED){
 		//Conflict
@@ -250,7 +274,7 @@ rClause CPSolver::propagateAtEndOfQueue(){
 		vec<Lit> clause;
 		//FIXME should be of PREVIOUS space!
 		//FIXME ADD STACK IN CORRECT ORDER! First add the conflicting one!
-		for(vector<ReifiedConstraint*>::const_iterator i=solverdata->getConstraints().begin(); i<solverdata->getConstraints().end(); i++){
+		for(vector<ReifiedConstraint*>::const_iterator i=solverdata->getReifConstraints().begin(); i<solverdata->getReifConstraints().end(); i++){
 			if(isTrue((*i)->getBoolVar(solverdata->getSpace()))){
 				clause.push(mkLit((*i)->getAtom(), true));
 			}else if(isFalse((*i)->getBoolVar(solverdata->getSpace()))){
@@ -260,23 +284,21 @@ rClause CPSolver::propagateAtEndOfQueue(){
 		for(int i=0; i<trail.size(); i++){
 			clause.push(~trail[i]);
 		}
-		confl = getPCSolver()->makeClause(clause, true);
-		//FIXME staat het hier juist?
-		//pcsolver->addLearnedClause(confl);
+
+		confl = getPCSolver()->addLearnedClause(clause);
 	}else{
-		if(solverdata->allBooleansKnown()){ //dmv counter als er een assigned wordt
+		if(solverdata->allBooleansKnown()){
 			confl = propagateFinal();
 		}
+
+		// If no conflict, propagate all changes
 		if(confl==nullPtrClause){
 			vector<Lit> atoms = solverdata->getBoolChanges();
-			for(int i=0; i<atoms.size(); i++){
-				if(getPCSolver()->value(atoms[i])==l_Undef){ //TODO niet de mooiste oplossing, maar momenteel ziet hij gepropageerde literals natuurlijk ook als changes
-					getPCSolver()->setTrue(atoms[i], nullPtrClause);
-				}
-
+			for(vector<Lit>::const_iterator i=atoms.begin(); i<atoms.end(); i++){
+				notifySATsolverOfPropagation(*i);
 			}
+			solverdata->addSpace();
 		}
-		solverdata->addSpace();
 	}
 
 	return confl;

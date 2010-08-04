@@ -29,14 +29,16 @@ using namespace Minisat;
 #endif
 
 typedef vector<CP::TermIntVar> vtiv;
-typedef vector<CP::ReifiedConstraint*> vconstrptr;
+typedef vector<CP::ReifiedConstraint*> vreifconstrptr;
+typedef vector<CP::Constraint*> vnonrconstrptr;
 
 namespace CP{
 	class CPSolverData{
 	private:
 		vector<CPScript*> history;
 		vtiv terms;
-		vconstrptr constraints;
+		vnonrconstrptr nonreifconstraints;
+		vreifconstrptr reifconstraints;
 
 	public:
 		CPSolverData();
@@ -54,9 +56,11 @@ namespace CP{
 		const vtiv& getTerms	()	const				{ return terms; }
 		void 		addTerm		(TermIntVar var)		{ terms.push_back(var);	}
 
-		const vconstrptr& 	getConstraints()	const 	{ return constraints; }
+		const vnonrconstrptr& 	getNonReifConstraints()	const 	{ return nonreifconstraints; }
+		const vreifconstrptr& 	getReifConstraints()	const 	{ return reifconstraints; }
 		//owning pointer
-		void 				addConstraint(ReifiedConstraint* c){ constraints.push_back(c); }
+		void 				addReifConstraint(ReifiedConstraint* c){ reifconstraints.push_back(c); }
+		void 				addNonReifConstraint(Constraint* c){ nonreifconstraints.push_back(c); }
 
 		bool 		allBooleansKnown() const;
 		vector<Lit> getBoolChanges	() const;

@@ -207,6 +207,9 @@ void Solver::addLearnedClause(CRef rc){
 			reportf("\n");
 		}
 	}else{
+		assert(ca[rc].size()==1);
+		//TODO maybe backtracking to 0 is not the best method.
+		cancelUntil(0);
 		addClause(ca[rc][0]);
 	}
 }
@@ -1099,8 +1102,7 @@ void Solver::printClause(CRef rc) const{
     vec<Var> map; Var max = 0;
     const  Clause& c = ca[rc];
     for (int i = 0; i < c.size(); i++)
-        if (value(c[i]) != l_False)
-            fprintf(stderr, "%s%d ", sign(c[i]) ? "-" : "", mapVar(var(c[i]), map, max)+1);
+    	fprintf(stderr, "%s%d:%c ", sign(c[i]) ? "-" : "", mapVar(var(c[i]), map, max)+1, value(c[i])==l_True?'1':(value(c[i])==l_False?'0':'X'));
 }
 /*AE*/
 

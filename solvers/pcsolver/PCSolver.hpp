@@ -154,7 +154,7 @@ public:
 	void		notifyAggrHead	(Var head);
 
 	lbool 		checkStatus		(lbool status) const; //if status==l_True, do wellfoundednesscheck in IDSolver, if not wellfounded, return l_False, otherwise status
-	rClause		getExplanation	(Lit l);
+	rClause		getExplanation	(Lit l);	//NON-OWNING pointer
 
     /*
      * Solver callbacks
@@ -171,7 +171,7 @@ public:
 	uint64_t	nVars			()      const;		// The current number of variables.
 
 	//IMPORTANT: THE FIRST LITERAL IN THE CLAUSE HAS TO BE THE ONE WHICH CAN BE PROPAGATED FROM THE REST!!!!!!!
-	void 		addLearnedClause(rClause c);	// don't check anything, just add it to the clauses and bump activity
+	rClause 	addLearnedClause(vec<Lit>& lits);	// don't check anything, just add it to the clauses and bump activity
 	void    	backtrackTo		(int level);	// Backtrack until a certain level.
 	void    	setTrue			(Lit p, rClause c = nullPtrClause);		// Enqueue a literal. Assumes value of literal is undefined
 	rClause		makeClause		(vec<Lit>& lits, bool b);

@@ -314,17 +314,4 @@ inline rClause IDSolver::getExplanation(const Lit& p){
 	return nullPtrClause;
 }
 
-inline void IDSolver::printStatistics() const{
-	reportf("cycles                : %-12" PRIu64 "\n", cycles);
-	reportf("cycle conflicts       : %-12" PRIu64 "\n", justify_conflicts);
-	reportf("avg cycle size        : %4.2f\n", (float)cycle_sizes/cycles);
-	reportf("avg extdisj size      : %4.2f\n", (float)extdisj_sizes/cycles);
-	reportf("justify runs          : %-12" PRIu64 "   (%4.2f /cycle)\n", justify_calls, (float)justify_calls/cycles);
-	reportf("avg. justify searchsp.: %6.2f lits\n", (float)total_marked_size/justify_calls);
-	reportf("cycle sources         : %-12" PRIu64 "\n", cycle_sources);
-	reportf("                      : %4.2f found per run of findCycleSources()\n", (float)nb_times_findCS/cycle_sources);
-	reportf("                      : %4.2f removed per justify run\n", (float)cs_removed_in_justify/justify_calls);
-	reportf("                      : %4.2f treated per loop\n", (float)succesful_justify_calls/nb_times_findCS);
-}
-
 #endif /* IDSOLVER_H_ */

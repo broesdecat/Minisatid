@@ -17,54 +17,26 @@
 //    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //--------------------------------------------------------------------------------------------------
 
-#ifndef SATUTILS_H_
-#define SATUTILS_H_
+#ifndef ISOLVER_HPP_
+#define ISOLVER_HPP_
 
-#ifdef USEMINISAT
-#include "mtlold/Vec.h"
-#include "mtlold/Queue.h"
-#include "mtlold/Heap.h"
-#include "mtlold/Sort.h"
-#include "solver3minisat/SolverTypes.h"
-typedef Clause& pClause;
-typedef Clause* rClause;
-Lit mkLit(Var x, bool sign = false);
+#include "solvers/utils/Utils.hpp"
 
-#else
-	#ifdef USEMINISAT09Z
-	#include "mtlold/Vec.h"
-	#include "mtlold/Queue.h"
-	#include "mtlold/Heap.h"
-	#include "mtlold/Sort.h"
-	#include "solver3/SolverTypes.hpp"
-	typedef Clause& pClause;
-	typedef Clause* rClause;
-	Lit mkLit(Var x, bool sign = false);
+class PCSolver;
 
-	#else
-		#ifdef USEMINISAT22
-		#include "mtl/Vec.h"
-		#include "mtl/Queue.h"
-		#include "mtl/Heap.h"
-		#include "mtl/Sort.h"
-		#include "core/SolverTypes.h"
-		typedef Minisat::CRef pClause;
-		typedef Minisat::CRef rClause;
+class ISolver {
+private:
+	bool 			init;
+	PCSolver* 		pcsolver; //NON-OWNING pointer
 
-		#else
-			#include "mtlold/Vec.h"
-			#include "mtlold/Queue.h"
-			#include "mtlold/Heap.h"
-			#include "mtlold/Sort.h"
-			#include "solver3minisat/SolverTypes.h"
-			typedef Clause& pClause;
-			typedef Clause* rClause;
-			Lit mkLit(Var x, bool sign = false);
-		#endif
-	#endif
-#endif
+public:
+	ISolver(PCSolver* s): init(false), pcsolver(s){ }
+	virtual ~ISolver(){};
 
-extern rClause nullPtrClause;
-pClause getClauseRef(rClause rc);
+	bool isInitialized		()	const	{ return init; }
+	void notifyInitialized	() 			{ assert(!init); init = true; }
 
-#endif// SATSOLVER_H_
+	PCSolver* getPCSolver	()	const 	{ return pcsolver; }
+};
+
+#endif /* ISOLVER_HPP_ */

@@ -39,7 +39,7 @@ namespace CP {
 	 */
 	class CPSolver: public ISolver {
 	private:
-		CPSolverData* 	solverdata;
+		CPSolverData* 	solverdata; //OWNING pointer
 
 		vector<Lit> 	trail;
 
@@ -49,14 +49,13 @@ namespace CP {
 
 		void 	addTerm		(int term, int min, int max);
 		bool 	addAllDifferent(vector<int> term);
-		void	addBinRel	(int groundname, MINISAT::EqType rel, int bound, int atom);
-		void	addBinRelVar(int groundname, MINISAT::EqType rel, int groundname2, int atom);
-		void 	addSum		(vector<int> term, MINISAT::EqType rel, int bound, int atom);
-		void 	addSum		(vector<int> term, vector<int> mult, MINISAT::EqType rel, int bound, int atom);
-		void 	addSumVar	(vector<int> term, MINISAT::EqType rel, int rhsterm, int atom);
-		void 	addSumVar	(vector<int> term, vector<int>, MINISAT::EqType rel, int rhsterm, int atom);
-		//void 	addCount	(vector<vector<string> > term, MINISAT::EqType rel, int value, int rhs);
-		void 	addCount	(vector<int> terms, MINISAT::EqType rel, int value, int rhsterm);
+		bool	addBinRel	(int groundname, MINISAT::EqType rel, int bound, int atom);
+		bool	addBinRelVar(int groundname, MINISAT::EqType rel, int groundname2, int atom);
+		bool 	addSum		(vector<int> term, MINISAT::EqType rel, int bound, int atom);
+		bool 	addSum		(vector<int> term, vector<int> mult, MINISAT::EqType rel, int bound, int atom);
+		bool 	addSumVar	(vector<int> term, MINISAT::EqType rel, int rhsterm, int atom);
+		bool 	addSumVar	(vector<int> term, vector<int>, MINISAT::EqType rel, int rhsterm, int atom);
+		bool 	addCount	(vector<int> terms, MINISAT::EqType rel, int value, int rhsterm);
 
 		bool	finishParsing();
 
@@ -67,7 +66,11 @@ namespace CP {
 		void 	backtrack	(Lit l);
 
 	private:
+		rClause getExplanation(const Lit& p);
+		rClause notifySATsolverOfPropagation(const Lit& p);
 		rClause propagateFinal();
+
+		CPSolverData* getSolverData() const { return solverdata; }
 	};
 
 }
