@@ -73,14 +73,14 @@ private:
 	modindex 	id, parentid;
 	pPCSolver	solver;
 	vmodindex 	children;
-	tr1::weak_ptr<ModSolverData> modhier;
+	ModSolverData* modhier;	//NON-OWNED POINTER!
 
 	vec<Lit> 	assumptions;
 	//int			startindex;
 	vector<bool> propfromabove; //Indicates whether this literal was propagated by the parent
 
 public:
-	ModSolver(modindex child, Var head, tr1::shared_ptr<ModSolverData> mh);
+	ModSolver(modindex child, Var head, ModSolverData* mh);
 	virtual ~ModSolver();
 
 	bool 	addAtoms		(const vector<Var>& atoms);
@@ -166,7 +166,7 @@ public:
 	const vector<Var>& 	getAtoms	()	const	{ return atoms; }
 	const vmodindex& 	getChildren	()	const	{ return children; }
 
-	const ModSolverData& getModSolverData() const	{ return *modhier.lock().get(); }
+	const ModSolverData& getModSolverData() const	{ return *modhier; }
 	PCSolver const * 	getCPCSolver	()	const	{ return solver; }
 
 	bool 				solve();

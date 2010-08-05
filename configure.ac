@@ -41,7 +41,7 @@ AC_ARG_ENABLE([build],
   profile) SD_CXXFLAGS+="-O3 -pg -ggdb -D NDEBUG " SD_LDFLAGS+="-ggdb " ;;
   release) SD_CXXFLAGS+="-O3 -D NDEBUG " SD_LDFLAGS+="" ;;
   static)  SD_CXXFLAGS+="-O3 -D NDEBUG " SD_LDFLAGS+="--static " ;;
-  codecover) SD_CXXFLAGS+="-O0 -fprofile-arcs -ftest-coverage -ggdb -D DEBUG " SD_LDFLAGS+="-ggdb -lcov " ;;
+  codecover) SD_CXXFLAGS+="-O0 -fprofile-arcs -ftest-coverage -ggdb -D DEBUG " SD_LDFLAGS+="-ggdb " ;;
   *) AC_MSG_ERROR([bad value ${enableval} for --enable-build]) ;;
 esac],[SD_CXXFLAGS+="-DNDEBUG $SD_CXXFLAGS -O3 " SD_LDFLAGS+="$SD_LDFLAGS "])
 

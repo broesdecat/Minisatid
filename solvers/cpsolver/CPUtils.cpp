@@ -21,11 +21,11 @@
 
 namespace CP {
 	bool isTrue(Gecode::BoolVar var){
-		return var.assigned() && var.in(1);
+		return var.assigned() && var.one();
 	}
 
 	bool isFalse(Gecode::BoolVar var) {
-		return var.assigned() && var.in(0);
+		return var.assigned() && var.zero();
 	}
 
 	bool isAssigned(Gecode::BoolVar var){

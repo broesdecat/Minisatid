@@ -97,14 +97,14 @@ BinArithConstraint::BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelTy
 		: ReifiedConstraint(atom, space), lhs(lhs), rel(rel), intrhs(false), trhs(rhs){
 	IntVar ialhs = lhs.getIntVar(space), iarhs = trhs.getIntVar(space);
 
-	Gecode::rel(space, ialhs, rel, iarhs, getBoolVar(space));
+	Gecode::rel(space, ialhs, rel, iarhs, getBoolVar(space), ICL_DOM);
 }
 
 BinArithConstraint::BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelType rel, int rhs, int atom)
 		: ReifiedConstraint(atom, space), lhs(lhs), rel(rel), intrhs(true), irhs(rhs){
 	IntVar ialhs = lhs.getIntVar(space);
 	int iarhs = irhs;
-	Gecode::rel(space, ialhs, rel, iarhs, getBoolVar(space) );
+	Gecode::rel(space, ialhs, rel, iarhs, getBoolVar(space), ICL_DOM);
 }
 
 DistinctConstraint::DistinctConstraint(CPScript& space, vector<TermIntVar> tset)

@@ -83,6 +83,9 @@ private:
 
 	int nb_models, modelsfound;
 
+	int init;
+	vector<Lit> initialprops;
+
 	/*
 	 * OPTIMIZATION INFORMATION
 	 */
@@ -135,6 +138,8 @@ public:
 	bool 		addCPAlldifferent(const vector<int>& termnames);
 
 	bool 		finishParsing	(); //throws UNSAT
+
+	void 		newDecisionLevel();
 
 	/*
 	 * SOLVING
@@ -194,11 +199,11 @@ public:
 	 */
 	bool 		totalModelFound	();
 
-	void	varBumpActivity	(Var v);
+	void		varBumpActivity	(Var v);
 
-	void 	backtrackRest	(Lit l);
-	rClause propagate		(Lit l);
-	rClause propagateAtEndOfQueue();
+	void 		backtrackRest	(Lit l);
+	rClause 	propagate		(Lit l);
+	rClause 	propagateAtEndOfQueue();
 
 	/*
 	 * OPTIMIZATION

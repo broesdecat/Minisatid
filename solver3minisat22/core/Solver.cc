@@ -411,7 +411,6 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
     out_learnt.push();      // (leave room for the asserting literal)
     int index   = trail.size() - 1;
 
-    /*A*/bool deleteImplicitClause = false;
     do{
         assert(confl != CRef_Undef); // (otherwise should be UIP)
         Clause& c = ca[confl];
@@ -457,13 +456,6 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
 		}
         /*AE*/
 
-        /*AB*/
-		if (deleteImplicitClause) {
-			ca.free(confl);
-			deleteImplicitClause = false;
-		}
-        /*AE*/
-
         // Select next clause to look at:
         while (!seen[var(trail[index--])]);
         p     = trail[index+1];
@@ -485,7 +477,6 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
 		if(confl==CRef_Undef && pathC>1){
 			//Explanation still returns an owning pointer, so handle it properly
 			confl = solver->getExplanation(p);
-			deleteImplicitClause = true;
 		}
 		if(verbosity>4 && confl!=CRef_Undef) {
 			reportf("Explanation is "); printClause(confl); reportf("\n");
@@ -983,12 +974,12 @@ lbool Solver::solve_(/*AB*/bool nosearch/*AE*/)
     learntsize_adjust_cnt     = (int)learntsize_adjust_confl;
     lbool   status            = l_Undef;
 
-    if (verbosity >= 1){
+    /*if (verbosity >= 1){
         printf("============================[ Search Statistics ]==============================\n");
         printf("| Conflicts |          ORIGINAL         |          LEARNT          | Progress |\n");
         printf("|           |    Vars  Clauses Literals |    Limit  Clauses Lit/Cl |          |\n");
         printf("===============================================================================\n");
-    }
+    }*/
 
     // Search:
     int curr_restarts = 0;
@@ -1005,9 +996,9 @@ lbool Solver::solve_(/*AB*/bool nosearch/*AE*/)
         curr_restarts++;
     }
 
-    if (verbosity >= 1)
+    /*if (verbosity >= 1)
         printf("===============================================================================\n");
-
+     */
 
     if (status == l_True){
         // Extend & copy model:
@@ -1150,7 +1141,8 @@ void Solver::garbageCollect()
 {
     // Initialize the next region to a size corresponding to the estimated utilization degree. This
     // is not precise but should avoid some unnecessary reallocations for the new region:
-    ClauseAllocator to(ca.size() - ca.wasted()); 
+	ClauseAllocator to(ca.size() - ca.wasted());
+
 
     relocAll(to);
     if (verbosity >= 2)

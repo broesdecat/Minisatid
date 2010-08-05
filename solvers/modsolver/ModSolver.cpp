@@ -31,7 +31,7 @@
 /**
  * Constructs a ModSolver, with a given head, index and hierarchy pointer. A PCSolver is initialized.
  */
-ModSolver::ModSolver(modindex child, Var head, tr1::shared_ptr<ModSolverData> mh):
+ModSolver::ModSolver(modindex child, Var head, ModSolverData* mh):
 		ISolver(NULL),
 		id(child), parentid(-1), hasparent(false), //, startedsearch(false), startindex(-1),
 		head(head), modhier(mh){
@@ -51,7 +51,7 @@ ModSolver::~ModSolver(){
  ******************************/
 
 void ModSolver::addVar(Var var){
-	if(modhier.lock()->modes().verbosity>5){
+	if(getModSolverData().modes().verbosity>5){
 		reportf("Var %d added to modal solver %zu.\n", var, getPrintId());
 	}
 	getSolver()->addVar(var);
@@ -101,7 +101,7 @@ bool ModSolver::addAtoms(const vector<Var>& a){
 	for(vector<Var>::const_iterator i=a.begin(); i<a.end(); i++){
 		atoms.push_back(*i);
 		addVar(*i);
-		modhier.lock()->getModSolver(getParentId())->addVar(*i);
+		getModSolverData().getModSolver(getParentId())->addVar(*i);
 	}
 
 	//Creates a bool-vector mapping each atom to whether it was propagated from above or from this theory
@@ -117,7 +117,7 @@ bool ModSolver::addAtoms(const vector<Var>& a){
  */
 void ModSolver::setParent(modindex id){
 	parentid = id; hasparent = true;
-	pModSolver parent = modhier.lock()->getModSolver(getParentId());
+	pModSolver parent = getModSolverData().getModSolver(getParentId());
 	for(vector<Var>::const_iterator i=atoms.begin(); i<atoms.end(); i++){
 		parent->addVar(*i);
 	}
@@ -139,7 +139,7 @@ bool ModSolver::finishParsing(){
 	bool result = getSolver()->finishParsing();
 
 	for(vmodindex::const_iterator i=getChildren().begin(); result && i<getChildren().end(); i++){
-		result = modhier.lock()->getModSolver(*i)->finishParsing();
+		result = getModSolverData().getModSolver(*i)->finishParsing();
 	}
 
 	notifyInitialized();
@@ -166,13 +166,13 @@ bool ModSolver::simplify(){
 	bool result = getSolver()->simplify();
 
 	for(vmodindex::const_iterator i=getChildren().begin(); result && i<getChildren().end(); i++){
-		result = modhier.lock()->getModSolver(*i)->simplify();
+		result = getModSolverData().getModSolver(*i)->simplify();
 		//TODO check if this is correct: i think it is not guaranteed that all lower solvers will be searched!
 		//It is anyway necessary, because if no search occurs, the modal solvers should still be checked!
 		//TODO can this be called multiple times (it shouldn't)
 		if(result){
 			vec<Lit> confl;
-			if(!modhier.lock()->getModSolver(*i)->propagateDownAtEndOfQueue(confl)){
+			if(!getModSolverData().getModSolver(*i)->propagateDownAtEndOfQueue(confl)){
 				result = false;
 			}
 		}
@@ -188,7 +188,7 @@ bool ModSolver::simplify(){
  * return NULL (if not, it should return a non-owning pointer).
  */
 rClause ModSolver::propagateDown(Lit l){
-	if(modhier.lock()->modes().verbosity>4){
+	if(getModSolverData().modes().verbosity>4){
 		gprintLit(l); reportf(" propagated down into modal solver %zu.\n", getPrintId());
 	}
 
@@ -224,10 +224,8 @@ void ModSolver::adaptValuesOnPropagation(Lit l){
  * Returns true if no conflict ensues
  */
 bool ModSolver::propagateDownAtEndOfQueue(vec<Lit>& confldisj){
-	if(isInitialized()){
-		return true;
-	}
-	if(modhier.lock()->modes().verbosity>4){
+	if(!isInitialized()){ return true; }
+	if(getModSolverData().modes().verbosity>4){
 		reportf("End of queue propagation down into modal solver %zu.\n", getPrintId());
 	}
 
@@ -250,7 +248,7 @@ bool ModSolver::propagateDownAtEndOfQueue(vec<Lit>& confldisj){
 
 	result = analyzeResult(result, allknown, confldisj);
 
-	if(modhier.lock()->modes().verbosity>4){
+	if(getModSolverData().modes().verbosity>4){
 		reportf("Finished checking solver %zu: %s.\n", getPrintId(), result?"no conflict":"conflict");
 	}
 
@@ -338,7 +336,7 @@ rClause ModSolver::propagate(Lit l){
 	}*/
 	rClause confl = nullPtrClause;
 	for(vmodindex::const_iterator i=getChildren().begin(); confl==nullPtrClause && i<getChildren().end(); i++){
-		confl = modhier.lock()->getModSolver(*i)->propagateDown(l);
+		confl = getModSolverData().getModSolver(*i)->propagateDown(l);
 	}
 	return confl;
 }
@@ -353,14 +351,14 @@ rClause ModSolver::propagateAtEndOfQueue(){
 	vec<Lit> confldisj;
 	for(vmodindex::const_iterator i=getChildren().begin(); noconflict && i<getChildren().end(); i++){
 		assert(confldisj.size()==0);
-		noconflict = modhier.lock()->getModSolver(*i)->propagateDownAtEndOfQueue(confldisj);
+		noconflict = getModSolverData().getModSolver(*i)->propagateDownAtEndOfQueue(confldisj);
 	}
 
 	rClause confl = nullPtrClause;
 	if(!noconflict){
 		confl = getSolver()->addLearnedClause(confldisj);
 
-		if(modhier.lock()->modes().verbosity>=5){
+		if(getModSolverData().modes().verbosity>=5){
 			Print::printClause(confl, getSolver());
 		}
 	}
@@ -384,7 +382,7 @@ void ModSolver::propagateUp(Lit l, modindex id){
  * 			currently, this is solved by storing an boolean remembering whether it was propagated from above or from the pc solver
  */
 void ModSolver::backtrackFromAbove(Lit l){
-	if(modhier.lock()->modes().verbosity>4){
+	if(getModSolverData().modes().verbosity>4){
 		reportf("Backtracking "); gprintLit(l); reportf(" from above in mod %zu\n", getPrintId());
 	}
 
@@ -393,7 +391,7 @@ void ModSolver::backtrackFromAbove(Lit l){
 	}
 	for(vector<AV>::size_type i=0; i<atoms.size(); i++){
 		if(atoms[i]==var(l)){
-			if(var(l)==var(assumptions.last())){
+			if(propfromabove[i] && var(l)==var(assumptions.last())){
 				assumptions.pop();
 				//startindex--;
 				int solverlevel = getSolver()->getLevel(var(l));
@@ -414,7 +412,7 @@ void ModSolver::backtrackFromAbove(Lit l){
 }
 
 void ModSolver::backtrackFromSameLevel(Lit l){
-	if(modhier.lock()->modes().verbosity>4){
+	if(getModSolverData().modes().verbosity>4){
 		reportf("Backtracking "); gprintLit(l); reportf(" from same level in mod %zu\n", getPrintId());
 	}
 
@@ -425,7 +423,7 @@ void ModSolver::backtrackFromSameLevel(Lit l){
 	}*/
 
 	for(vmodindex::const_iterator j=getChildren().begin(); j<getChildren().end(); j++){
-		modhier.lock()->getModSolver((*j))->backtrackFromAbove(l);
+		getModSolverData().getModSolver((*j))->backtrackFromAbove(l);
 	}
 }
 

@@ -29,20 +29,23 @@ CPSolverData::CPSolverData(){
 CPSolverData::~CPSolverData(){
 	deleteList(reifconstraints);
 	deleteList(nonreifconstraints);
+	deleteList(history);
 }
 
-// TODO dmv counter als er een assigned wordt
-bool CPSolverData::allBooleansKnown() const{
-	for(vreifconstrptr::const_iterator i=getReifConstraints().begin(); i<getReifConstraints().end(); i++){
-		if(!(*i)->isAssigned(getSpace())){
-			reportf("Unknown boolean: %d.\n", gprintVar((*i)->getAtom()));
-			return false;
-		}
-	}
-	return true;
+void CPSolverData::backtrack(){
+	CPScript* old = history.back();
+	history.pop_back();
+	delete old;
 }
 
-vector<Lit> CPSolverData::getBoolChanges() const{
+void CPSolverData::replaceLastWith(CPScript* space){
+	CPScript* old = history.back();
+	history.pop_back();
+	delete old;
+	history.push_back(space);
+}
+
+/*vector<Lit> CPSolverData::getBoolChanges() const{
 	vector<Lit> lits;
 	for(vreifconstrptr::const_iterator i=getReifConstraints().begin(); i<getReifConstraints().end(); i++){
 		BoolVar current = (*i)->getBoolVar(getSpace());
@@ -53,7 +56,7 @@ vector<Lit> CPSolverData::getBoolChanges() const{
 		}
 	}
 	return lits;
-}
+}*/
 
 vector<TermIntVar> CPSolverData::convertToVars(const vector<int>& terms) const {
 	vtiv set;

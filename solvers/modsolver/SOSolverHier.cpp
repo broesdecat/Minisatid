@@ -25,6 +25,8 @@
 
 ModSolverData::ModSolverData(ECNF_mode modes):Data(modes), state(NEW){
 	//propagationsolver = new PCSolver(modes);
+	solvers.push_back(new ModSolver(0, -1, this));
+	state = LOADINGHIER;
 }
 
 ModSolverData::~ModSolverData(){
@@ -77,9 +79,6 @@ bool ModSolverData::finishParsing(){
 //Add information for hierarchy
 
 bool ModSolverData::addChild(modindex parent, modindex child, Lit h){
-	if(state==NEW){
-		initialize();
-	}
 	assert(state==LOADINGHIER);
 
 	checkexistsModSolver(parent);
@@ -95,7 +94,7 @@ bool ModSolverData::addChild(modindex parent, modindex child, Lit h){
 		solvers.resize(child+1, NULL);
 	}
 	Var head = var(h);
-	solvers[child] = new ModSolver(child, head, shared_from_this());
+	solvers[child] = new ModSolver(child, head, this);
 	solvers[child]->setParent(parent);
 	return true;
 }
@@ -239,13 +238,6 @@ bool ModSolverData::addAggrExpr(modindex modid, Lit head, int setid, Weight boun
 	checkexistsModSolver(modid);
 	pModSolver m = getModSolver(modid);
 	return m->addAggrExpr(head, setid, bound, lower, type, defined);
-}
-
-//Private methods
-
-void ModSolverData::initialize(){
-	solvers.push_back(new ModSolver(0, -1, shared_from_this()));
-	state = LOADINGHIER;
 }
 
 /**

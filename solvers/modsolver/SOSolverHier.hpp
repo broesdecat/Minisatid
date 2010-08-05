@@ -63,7 +63,7 @@ typedef vmsolvers::size_type modindex;
 
 enum modhierstate {NEW, LOADINGHIER, LOADINGREST, ALLLOADED};
 
-class ModSolverData: public Data, public tr1::enable_shared_from_this<ModSolverData>{
+class ModSolverData: public Data{
 private:
 	vmsolvers 	 solvers;
 	modhierstate state;	//stores the current state of the parsing.
@@ -94,7 +94,6 @@ public:
 	pModSolver getModSolver		(modindex modid) const { checkexistsModSolver(modid); return solvers[modid];}
 
 private:
-	void 	initialize			();
 	void	verifyHierarchy		();
 	void	checkexistsModSolver(modindex modid) const;
 	bool	existsModSolver		(modindex modid) const { return modid<solvers.size() && solvers[modid]!=NULL; }

@@ -331,7 +331,7 @@ inline void Solver::claBumpActivity (Clause& c) {
 
 inline bool     Solver::enqueue         (Lit p, Clause* from)   { return value(p) != l_Undef ? value(p) != l_False : (uncheckedEnqueue(p, from), true); }
 inline bool     Solver::locked          (const Clause& c) const { return reason[var(c[0])] == &c && value(c[0]) == l_True; }
-inline void     Solver::newDecisionLevel()                      { trail_lim.push(trail.size()); }
+inline void     Solver::newDecisionLevel()                      { trail_lim.push(trail.size()); /*AB*/ solver->newDecisionLevel(); /*AE*/}
 
 inline int      Solver::decisionLevel ()      const   { return trail_lim.size(); }
 inline uint32_t Solver::abstractLevel (Var x) const   { return 1 << (level[x] & 31); }

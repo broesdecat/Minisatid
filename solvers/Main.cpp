@@ -150,6 +150,43 @@ void		noMoreMem(){
 //	}
 }
 
+class FileR{
+private:
+	bool opened;
+	FILE* file;
+
+	FileR (const FileR &);
+	FileR & operator= (const FileR &);
+
+public:
+	FileR(const char* name): opened(false), file(fopen(name, "r")){
+		if(file == NULL){
+			char s[100]; sprintf(s, "`%s' is not a valid filename or not readable.\n", name);
+			throw idpexception(s);
+		}
+		opened = true;
+	}
+
+	FileR(FILE* file): opened(false), file(file){}
+
+	~FileR(){
+		if(opened){
+			fclose(file);
+		}
+	}
+
+	void close(){
+		if(opened){
+			opened = false;
+			fclose(file);
+		}
+	}
+
+	FILE* getFile(){
+		return file;
+	}
+};
+
 int main(int argc, char** argv) {
 	std::set_new_handler(noMoreMem);
 
@@ -184,7 +221,6 @@ int main(int argc, char** argv) {
 		//pData d = unittest3(modes);
 
 		//An outputfile is not allowed when the inputfile is piped (//TODO should add a -o argument for this)
-		/*ecnfin*/yyin = stdin; //Default read from stdin
 		res = stdout; 	//Default write to stdout
 
 		pData d;
@@ -201,6 +237,7 @@ int main(int argc, char** argv) {
 				fb.open(argv[1],ios::in);
 				istream x(&fb);
 				r->read(x);
+				fb.close();
 				//TODO duplicate, buggy code with original (non lparse) parsing.
 			}
 
@@ -208,32 +245,30 @@ int main(int argc, char** argv) {
 				reportf("============================[ Problem Statistics ]=============================\n");
 				reportf("|                                                                             |\n");
 			}
-
-
 		}else{
-			if(argc==1){
+			if(argc==1){ //Read from stdin
 				reportf("Reading from standard input... Use '-h' or '--help' for help.\n");
-			}else if(argc>1){
-				/*ecnfin*/yyin = fopen(argv[1], "r");
-				if(!/*ecnfin*/yyin) {
-					char s[100]; sprintf(s, "`%s' is not a valid filename or not readable.\n", argv[1]);
-					throw idpexception(s);
+				/*ecnfin*/yyin = stdin;
+				if(modes.verbosity>0){
+					reportf("============================[ Problem Statistics ]=============================\n");
+					reportf("|                                                                             |\n");
 				}
+
+				d = parse();
+			}else{
+				FileR filer(argv[1]);
 				if(argc>2){
-					res = fopen(argv[2], "wb");
+					res = fopen(argv[2], "wb");	//TODO include in FileR object
 				}
+				if(modes.verbosity>0){
+					reportf("============================[ Problem Statistics ]=============================\n");
+					reportf("|                                                                             |\n");
+				}
+
+				/*ecnfin*/yyin = filer.getFile();
+				d = parse();
+				filer.close();
 			}
-
-			if(modes.verbosity>0){
-				reportf("============================[ Problem Statistics ]=============================\n");
-				reportf("|                                                                             |\n");
-			}
-
-			d = parse();
-		}
-
-		if(/*ecnfin*/yyin != stdin){
-			fclose(/*ecnfin*/yyin);
 		}
 
 		if(modes.verbosity>0){
@@ -278,11 +313,11 @@ int main(int argc, char** argv) {
 		}
 
 		printStats();
-#ifdef NDEBUG
-		exit(ret ? 10 : 20);     // (faster than "return", which will invoke the destructor for 'Solver')
-#else
+//#ifdef NDEBUG
+//		exit(ret ? 10 : 20);     // (faster than "return", which will invoke the destructor for 'Solver')
+//#else
 		return ret?10:20;
-#endif
+//#endif
 
 	}catch(idpexception& e){
 		reportf(e.what());

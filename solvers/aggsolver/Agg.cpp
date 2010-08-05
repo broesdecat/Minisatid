@@ -450,7 +450,7 @@ void Agg::getExplanation(vec<Lit>& lits, AggrReason& ar) const{
 			gprintLit(getHead());
 		}else{
 			reportf("(index %d)", ar.getIndex());
-			gprintLit((*(s->getStackBegin()+ar.getIndex())).getLit());
+			gprintLit((*(s->getWLBegin()+ar.getIndex())).getLit());
 		}
 
 		reportf(" is");

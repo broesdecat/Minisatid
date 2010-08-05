@@ -50,9 +50,6 @@ CPSolver::~CPSolver() {
 //	INITIALIZATION
 /////////////////////////////////////////
 
-// FIXME: some simplifications/propagations are done immediately when adding a constraint to the constraint store
-// these can/should be propagated as soon as possible
-
 // FIXME: reification atoms have to be unique! CHECK THIS
 
 void CPSolver::addTerm(int term, int min, int max){
@@ -70,8 +67,7 @@ bool CPSolver::addBinRel(int groundname, MINISAT::EqType rel, int bound, int ato
 
 	getSolverData()->addReifConstraint(new BinArithConstraint(getSolverData()->getSpace(), lhs, toRelType(rel), bound, atom));
 
-	StatusStatistics stats;
-	return getSolverData()->getSpace().status(stats) != SS_FAILED;
+	return true;
 }
 
 bool CPSolver::addBinRelVar(int groundname, MINISAT::EqType rel, int groundname2, int atom){
@@ -85,8 +81,7 @@ bool CPSolver::addBinRelVar(int groundname, MINISAT::EqType rel, int groundname2
 
 	getSolverData()->addReifConstraint(new BinArithConstraint(getSolverData()->getSpace(), lhs, toRelType(rel), rhs, atom));
 
-	StatusStatistics stats;
-	return getSolverData()->getSpace().status(stats) != SS_FAILED;
+	return true;
 }
 
 bool CPSolver::addSum(vector<int> term, MINISAT::EqType rel, int bound, int atom){
@@ -94,8 +89,7 @@ bool CPSolver::addSum(vector<int> term, MINISAT::EqType rel, int bound, int atom
 	vector<TermIntVar> set(getSolverData()->convertToVars(term));
 	getSolverData()->addReifConstraint(new SumConstraint(getSolverData()->getSpace(), set, toRelType(rel), bound, atom));
 
-	StatusStatistics stats;
-	return getSolverData()->getSpace().status(stats) != SS_FAILED;
+	return true;
 }
 
 bool CPSolver::addSum(vector<int> term, vector<int> mult, MINISAT::EqType rel, int bound, int atom){
@@ -103,8 +97,7 @@ bool CPSolver::addSum(vector<int> term, vector<int> mult, MINISAT::EqType rel, i
 	vector<TermIntVar> set(getSolverData()->convertToVars(term));
 	getSolverData()->addReifConstraint(new SumConstraint(getSolverData()->getSpace(), set, mult, toRelType(rel), bound, atom));
 
-	StatusStatistics stats;
-	return getSolverData()->getSpace().status(stats) != SS_FAILED;
+	return true;
 }
 
 bool CPSolver::addSumVar(vector<int> term, MINISAT::EqType rel, int rhsterm, int atom){
@@ -113,8 +106,7 @@ bool CPSolver::addSumVar(vector<int> term, MINISAT::EqType rel, int rhsterm, int
 	TermIntVar rhs(getSolverData()->convertToVar(rhsterm));
 	getSolverData()->addReifConstraint(new SumConstraint(getSolverData()->getSpace(), set, toRelType(rel), rhs, atom));
 
-	StatusStatistics stats;
-	return getSolverData()->getSpace().status(stats) != SS_FAILED;
+	return true;
 }
 
 bool CPSolver::addSumVar(vector<int> term, vector<int> mult, MINISAT::EqType rel, int rhsterm, int atom){
@@ -123,8 +115,7 @@ bool CPSolver::addSumVar(vector<int> term, vector<int> mult, MINISAT::EqType rel
 	TermIntVar rhs(getSolverData()->convertToVar(rhsterm));
 	getSolverData()->addReifConstraint(new SumConstraint(getSolverData()->getSpace(), set, mult, toRelType(rel), rhs, atom));
 
-	StatusStatistics stats;
-	return getSolverData()->getSpace().status(stats) != SS_FAILED;
+	return true;
 }
 
 bool CPSolver::addCount(vector<int> terms, MINISAT::EqType rel, int value, int rhsterm){
@@ -142,8 +133,7 @@ bool CPSolver::addCount(vector<int> terms, MINISAT::EqType rel, int value, int r
 	TermIntVar rhs(getSolverData()->convertToVar(rhsterm));
 	getSolverData()->addNonReifConstraint(new CountConstraint(getSolverData()->getSpace(), set, toRelType(rel), value, rhs));
 
-	StatusStatistics stats;
-	return getSolverData()->getSpace().status(stats) != SS_FAILED;
+	return true;
 }
 
 bool CPSolver::addAllDifferent(vector<int> term){
@@ -151,8 +141,7 @@ bool CPSolver::addAllDifferent(vector<int> term){
 	vector<TermIntVar> set(getSolverData()->convertToVars(term));
 	getSolverData()->addNonReifConstraint(new DistinctConstraint(getSolverData()->getSpace(), set));
 
-	StatusStatistics stats;
-	return getSolverData()->getSpace().status(stats) != SS_FAILED;
+	return true;
 }
 
 ////////////////////////////
@@ -214,23 +203,37 @@ bool CPSolver::finishParsing(){
 	// Propagate all assigned reification atoms. If any conflicts, return false
 	for(vector<ReifiedConstraint*>::const_iterator i=getSolverData()->getReifConstraints().begin(); i<getSolverData()->getReifConstraints().end(); i++){
 		if((*i)->isAssigned(getSolverData()->getSpace())){
-
-		}
-		rClause confl = notifySATsolverOfPropagation(mkLit((*i)->getAtom(), (*i)->isAssignedFalse(getSolverData()->getSpace())));
-		if(confl!=nullPtrClause){
-			return false;
+			rClause confl = notifySATsolverOfPropagation(mkLit((*i)->getAtom(), (*i)->isAssignedFalse(getSolverData()->getSpace())));
+			if(confl!=nullPtrClause){
+				return false;
+			}
 		}
 	}
-
-	//Add a new timepoint to the history
-	getSolverData()->addSpace();
 
 	return true;
 }
 
+//TODO clarify use here of backtrack methods
+
+void CPSolver::newDecisionLevel(){
+	//Add a new timepoint to the history
+	getSolverData()->addSpace();
+}
+
+void CPSolver::backtrackDecisionLevel(){
+	if(!isInitialized()){ return; }
+	getSolverData()->backtrack();
+}
+
 rClause CPSolver::propagate(Lit l){
 	rClause confl = nullPtrClause;
-	if (isInitialized()) {return confl;}
+	if (!isInitialized()) { return confl; }
+
+#ifdef DEBUG
+	for(int i=0; i<trail.size(); i++){
+		assert(var(trail[i])!=var(l));
+	}
+#endif
 
 	for(vreifconstrptr::const_iterator i=getSolverData()->getReifConstraints().begin(); i<getSolverData()->getReifConstraints().end(); i++){
 		if((*i)->getAtom()==var(l)){
@@ -238,66 +241,77 @@ rClause CPSolver::propagate(Lit l){
 				reportf("Propagated into CP: "); gprintLit(l); reportf(".\n");
 			}
 			trail.push_back(l);
+			if((*i)->isAssigned(getSolverData()->getSpace())){
+				return confl;
+			}
 			return (*i)->propagate(!sign(l), getSolverData()->getSpace());
 		}
 	}
 	return confl;
 }
 
-/**
- * Backtrack one decision level
- */
-void CPSolver::backtrack(){
-	if(isInitialized()){ return; }
-	getSolverData()->backtrack();
-}
-
-/**
- * Backtrack one literal
- */
-void CPSolver::backtrack(Lit l){ //TODO only useful for trail
+void CPSolver::backtrack(Lit l){
+#ifdef DEBUG
+	reportf("CP trail: ");
+	for(int i=0; i<trail.size(); i++){
+		//assert(var(trail[i])!=var(l));
+		gprintLit(trail[i]); reportf(" ");
+	}
+	reportf("\n");
+#endif
 	if(trail.size()>0 && l==trail.back()){
 		trail.pop_back();
 	}
 }
 
+/**
+ * Very simple clause generation: use all literals that were propagated into the CP solver
+ * 		(and which represent reification atoms)
+ */
+rClause CPSolver::genFullConflictClause(){
+	vec<Lit> clause;
+	for(vector<Lit>::const_reverse_iterator i=trail.rbegin(); i<trail.rend(); i++){
+		clause.push(~(*i));
+	}
+	return getPCSolver()->addLearnedClause(clause);
+}
+
+// TODO do not propagate any more when search has been done successfully, until backtrack
+
 rClause CPSolver::propagateAtEndOfQueue(){
 	rClause confl = nullPtrClause;
-	if (isInitialized()) { return confl; }
+	if (!isInitialized()) { return confl; }
+
+	if(getPCSolver()->modes().verbosity>=3){
+		cout << getSolverData()->getSpace() <<endl;
+	}
 
 	StatusStatistics stats;
-	SpaceStatus status = solverdata->getSpace().status(stats);
+	SpaceStatus status = getSolverData()->getSpace().status(stats);
 
-	if(status == SS_FAILED){
-		//Conflict
-		//Very simple clause generation:
-		vec<Lit> clause;
-		//FIXME should be of PREVIOUS space!
-		//FIXME ADD STACK IN CORRECT ORDER! First add the conflicting one!
-		for(vector<ReifiedConstraint*>::const_iterator i=solverdata->getReifConstraints().begin(); i<solverdata->getReifConstraints().end(); i++){
-			if(isTrue((*i)->getBoolVar(solverdata->getSpace()))){
-				clause.push(mkLit((*i)->getAtom(), true));
-			}else if(isFalse((*i)->getBoolVar(solverdata->getSpace()))){
-				clause.push(mkLit((*i)->getAtom()));
+	if(status == SS_FAILED){ //Conflict
+		return genFullConflictClause();
+	}
+
+	if(getPCSolver()->modes().verbosity>=3){
+		reportf("Propagated %d of %d literals\n", trail.size(), getSolverData()->getReifConstraints().size());
+		cout <<getSolverData()->getSpace() <<endl;
+	}
+
+	if(getSolverData()->getReifConstraints().size()==trail.size()){
+		confl = propagateFinal();
+	}
+
+	// If no conflict found , propagate all changes
+	if(confl==nullPtrClause){
+		// TODO duplicate with finishparsing
+		for(vector<ReifiedConstraint*>::const_iterator i=getSolverData()->getReifConstraints().begin(); i<getSolverData()->getReifConstraints().end(); i++){
+			if((*i)->isAssigned(getSolverData()->getSpace())){
+				confl = notifySATsolverOfPropagation(mkLit((*i)->getAtom(), (*i)->isAssignedFalse(getSolverData()->getSpace())));
+				if(confl!=nullPtrClause){
+					return confl;
+				}
 			}
-		}
-		for(int i=0; i<trail.size(); i++){
-			clause.push(~trail[i]);
-		}
-
-		confl = getPCSolver()->addLearnedClause(clause);
-	}else{
-		if(solverdata->allBooleansKnown()){
-			confl = propagateFinal();
-		}
-
-		// If no conflict, propagate all changes
-		if(confl==nullPtrClause){
-			vector<Lit> atoms = solverdata->getBoolChanges();
-			for(vector<Lit>::const_iterator i=atoms.begin(); i<atoms.end(); i++){
-				notifySATsolverOfPropagation(*i);
-			}
-			solverdata->addSpace();
 		}
 	}
 
@@ -311,30 +325,25 @@ rClause CPSolver::propagateFinal(){
 	DFS<CPScript>* searchEngine_; // depth first search
 	CPScript* enumerator_ = NULL;
 
-	solverdata->getSpace().addBranchers();
+	getSolverData()->getSpace().addBranchers();
 
 	searchOptions_ = Search::Options::def;
 	searchOptions_.stop = NULL; //new Search::MemoryStop(1000000000);
 
-	searchEngine_ = new DFS<CPScript>(&solverdata->getSpace(), searchOptions_);
+	searchEngine_ = new DFS<CPScript>(&getSolverData()->getSpace(), searchOptions_);
 	enumerator_ = searchEngine_->next();
 
 	if(enumerator_==NULL){
 		if(searchEngine_->stopped()){
 			throw idpexception("memory overflow on CP part");
 		}else{
-			cout <<"Conflict found" <<endl;
-			assert(false);
-			//TODO add conflict clause
+			if(getPCSolver()->modes().verbosity>=5){
+				reportf("Conflict found in CP search.\n");
+			}
+			confl = genFullConflictClause();
 		}
 	}else{
-		//FIXME: adding this as a space brings problems, because on backtracking two space have to be removed instead of one
-		//on the other hand, not adding it would not be consistent, as the last space has to be the one with the real solution!
-		//maybe replacing might help?
-		solverdata->addSpace(enumerator_);
-		/*for(int i=0; i<solverdata->size(); i++){
-			cout << *solverdata->operator[](i) <<endl;
-		}*/
+		getSolverData()->replaceLastWith(enumerator_);
 		cout <<*enumerator_<<endl;
 	}
 

@@ -41,9 +41,8 @@ PCSolver::PCSolver(ECNF_mode modes) :
 	Data(modes), solver(NULL), idsolver(NULL), aggsolver(NULL),
 			modsolver(NULL), cpsolver(NULL), aggcreated(false),
 			idcreated(false), cpcreated(false), aggsolverpresent(false),
-			idsolverpresent(false), modsolverpresent(false), cpsolverpresent(
-					false), nb_models(modes.nbmodels), modelsfound(0), optim(
-					NONE), head(-1) {
+			idsolverpresent(false), modsolverpresent(false), cpsolverpresent(false),
+			nb_models(modes.nbmodels), modelsfound(0), optim(NONE), head(-1), init(true) {
 	solver = new Solver(this);
 	if (modes.def) {
 		idsolver = new IDSolver(this);
@@ -349,6 +348,8 @@ bool PCSolver::addCPAlldifferent(const vector<int>& termnames) {
  * Returns "false" if UNSAT was already found, otherwise "true"
  */
 bool PCSolver::finishParsing() {
+	init = false;
+
 	//important to call definition solver last
 	if (aggsolverpresent) {
 		bool unsat;
@@ -356,27 +357,9 @@ bool PCSolver::finishParsing() {
 		if(unsat){
 			return false;
 		}
-
-		vector<Lit> trail = getSolver()->getTrail();
-		rClause confl = nullPtrClause;
-		for (vector<Lit>::const_iterator i = trail.begin(); i < trail.end()	&& confl == nullPtrClause; i++) {
-			confl = getAggSolver()->propagate(*i);
-		}
-		if (confl != nullPtrClause) {
-			return false;
-		}
 	}
 	if (cpsolverpresent) {
 		cpsolverpresent = getCPSolver()->finishParsing();
-		vector<Lit> trail = getSolver()->getTrail();
-		rClause confl = nullPtrClause;
-		for (vector<Lit>::const_iterator i = trail.begin(); i < trail.end()
-				&& confl == nullPtrClause; i++) {
-			confl = getCPSolver()->propagate(*i);
-		}
-		if (confl != nullPtrClause) {
-			return false;
-		}
 	}
 	if (idsolverpresent) {
 		idsolverpresent = getIDSolver()->finishECNF_DataStructures();
@@ -388,6 +371,17 @@ bool PCSolver::finishParsing() {
 				return false;
 			}
 		}
+	}
+
+	// Do all propagations that have already been done on the SAT-solver level.
+	for(vector<Lit>::const_iterator i=initialprops.begin(); i<initialprops.end(); i++){
+		if(propagate(*i) != nullPtrClause){
+			return false;
+		}
+	}
+	initialprops.clear();
+	if(propagateAtEndOfQueue() != nullPtrClause){
+		return false;
 	}
 
 	if (!aggsolverpresent) {
@@ -410,6 +404,13 @@ bool PCSolver::finishParsing() {
 	//TODO later modes.mnmz, modes.cp
 
 	return true;
+}
+
+// Called by SAT solver when new decision level is started
+void PCSolver::newDecisionLevel(){
+	if(cpsolverpresent){
+		getCPSolver()->newDecisionLevel();
+	}
 }
 
 /*********************
@@ -449,11 +450,23 @@ void PCSolver::resetIDSolver() {
 
 rClause PCSolver::getExplanation(Lit l) {
 	if (modes().verbosity > 2) {
-		reportf("Find an explanation for ");
+		reportf("Find T-theory explanation for ");
 		gprintLit(l);
 		reportf("\n");
 	}
-	return aggsolverpresent ? getAggSolver()->getExplanation(l) : nullPtrClause;
+
+	rClause explan = nullPtrClause;
+	if(aggsolverpresent && explan == nullPtrClause){
+		explan = getAggSolver()->getExplanation(l);
+	}
+
+	if(cpsolverpresent && explan == nullPtrClause){
+		explan = getCPSolver()->getExplanation(l);
+	}
+
+	assert(explan!=nullPtrClause);
+
+	return explan;
 }
 
 /*
@@ -471,7 +484,7 @@ void PCSolver::backtrackRest(Lit l) {
 		getCPSolver()->backtrack(l);
 	}
 	if (cpsolverpresent && getDecisions().back() == l) { //FIXME INCORRECT!
-		getCPSolver()->backtrack();
+		getCPSolver()->backtrackDecisionLevel();
 	}
 	if (modsolverpresent) {
 		getModSolver()->backtrackFromSameLevel(l);
@@ -483,6 +496,11 @@ void PCSolver::backtrackRest(Lit l) {
  */
 //FIXME: maybe let all lower ones return owning pointer, so only one reference to addlearnedclause?
 rClause PCSolver::propagate(Lit l) {
+	if(init){
+		initialprops.push_back(l);
+		return nullPtrClause;
+	}
+
 	rClause confl = nullPtrClause;
 	if (aggsolverpresent) {
 		confl = getAggSolver()->propagate(l);

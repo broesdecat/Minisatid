@@ -59,14 +59,19 @@ namespace CP {
 
 		bool	finishParsing();
 
+		void 	newDecisionLevel		();
+		void 	backtrackDecisionLevel	();
+
 		rClause propagate	(Lit l);
 		rClause propagateAtEndOfQueue();
 
-		void 	backtrack	();
 		void 	backtrack	(Lit l);
 
-	private:
 		rClause getExplanation(const Lit& p);
+
+	private:
+		rClause genFullConflictClause();
+
 		rClause notifySATsolverOfPropagation(const Lit& p);
 		rClause propagateFinal();
 
