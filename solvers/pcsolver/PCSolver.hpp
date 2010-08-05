@@ -201,7 +201,9 @@ public:
 
 	void		varBumpActivity	(Var v);
 
+	int decisionlevels;
 	void 		backtrackRest	(Lit l);
+	void 		backtrackDecisionLevel(int levels);
 	rClause 	propagate		(Lit l);
 	rClause 	propagateAtEndOfQueue();
 

@@ -32,7 +32,17 @@ CPSolverData::~CPSolverData(){
 	deleteList(history);
 }
 
-void CPSolverData::backtrack(){
+void CPSolverData::addSpace(){
+	history.push_back(static_cast<CPScript*>(getSpace().clone()));
+}
+
+void CPSolverData::removeSpace(){
+	/*reportf("BACKTRACKING SPACES");
+	for(int i=0; i<history.size(); i++){
+		reportf("SPACE");
+		cout <<*history[i] <<endl;
+	}*/
+
 	CPScript* old = history.back();
 	history.pop_back();
 	delete old;

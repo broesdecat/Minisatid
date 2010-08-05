@@ -45,11 +45,11 @@ namespace CP{
 		virtual ~CPSolverData();
 
 		CPScript& 	getSpace	()	const 				{ return *history.back(); }
-		void 		addSpace	()		 				{ history.push_back(static_cast<CPScript*>(getSpace().clone())); }
-		void 		addSpace	(CPScript* space)		{ history.push_back(space); }
+
 		void 		replaceLastWith	(CPScript* space);
 
-		void 		backtrack	();
+		void 		addSpace	();
+		void 		removeSpace	();
 
 		int 		size		() 	const 				{ return history.size(); }
 		CPScript const * const operator[](int i) const 	{ return history[i]; }

@@ -42,7 +42,8 @@ PCSolver::PCSolver(ECNF_mode modes) :
 			modsolver(NULL), cpsolver(NULL), aggcreated(false),
 			idcreated(false), cpcreated(false), aggsolverpresent(false),
 			idsolverpresent(false), modsolverpresent(false), cpsolverpresent(false),
-			nb_models(modes.nbmodels), modelsfound(0), optim(NONE), head(-1), init(true) {
+			nb_models(modes.nbmodels), modelsfound(0), optim(NONE), head(-1), init(true),
+			decisionlevels(0){
 	solver = new Solver(this);
 	if (modes.def) {
 		idsolver = new IDSolver(this);
@@ -406,13 +407,6 @@ bool PCSolver::finishParsing() {
 	return true;
 }
 
-// Called by SAT solver when new decision level is started
-void PCSolver::newDecisionLevel(){
-	if(cpsolverpresent){
-		getCPSolver()->newDecisionLevel();
-	}
-}
-
 /*********************
  * IDSOLVER SPECIFIC *
  *********************/
@@ -483,11 +477,26 @@ void PCSolver::backtrackRest(Lit l) {
 	if (cpsolverpresent) {
 		getCPSolver()->backtrack(l);
 	}
-	if (cpsolverpresent && getDecisions().back() == l) { //FIXME INCORRECT!
-		getCPSolver()->backtrackDecisionLevel();
-	}
 	if (modsolverpresent) {
 		getModSolver()->backtrackFromSameLevel(l);
+	}
+}
+
+// Called by SAT solver when new decision level is started
+void PCSolver::newDecisionLevel(){
+	//reportf("ADD DECISION LEVEL %d\n", ++decisionlevels);
+	if(cpsolverpresent){
+		getCPSolver()->newDecisionLevel();
+	}
+}
+
+//TODO implementeer ze hier allemaal
+void PCSolver::backtrackDecisionLevel(int levels){
+	for(int i=0; i<levels; i++){
+		//reportf("REMOVE DECISION LEVEL %d\n", --decisionlevels);
+		if (cpsolverpresent){
+			getCPSolver()->backtrackDecisionLevel();
+		}
 	}
 }
 
@@ -500,6 +509,8 @@ rClause PCSolver::propagate(Lit l) {
 		initialprops.push_back(l);
 		return nullPtrClause;
 	}
+
+	reportf("PROPAGATION LEVEL %d\n", getSolver()->getLevel(var(l)));
 
 	rClause confl = nullPtrClause;
 	if (aggsolverpresent) {

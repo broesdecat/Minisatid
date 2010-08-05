@@ -222,7 +222,7 @@ void CPSolver::newDecisionLevel(){
 
 void CPSolver::backtrackDecisionLevel(){
 	if(!isInitialized()){ return; }
-	getSolverData()->backtrack();
+	getSolverData()->removeSpace();
 }
 
 rClause CPSolver::propagate(Lit l){
