@@ -169,7 +169,7 @@ public:
 	const ModSolverData& getModSolverData() const	{ return *modhier; }
 	PCSolver const * 	getCPCSolver	()	const	{ return solver; }
 
-	bool 				solve();
+	bool 				solve(vec<vec<Lit> >& varmodels);
 
 private:
 	pPCSolver 			getSolver	()	const	{ return solver; }

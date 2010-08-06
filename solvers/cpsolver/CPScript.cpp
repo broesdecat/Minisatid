@@ -61,15 +61,15 @@ void CPScript::addBranchers(){
 
 ostream& CP::operator <<(ostream& ostream, const CPScript& script){
 	ostream <<"Space:" <<endl;
-	for(vboolv::const_iterator i=script.getBoolVars().begin(); i<script.getBoolVars().end(); i++){
+	/*for(vboolv::const_iterator i=script.getBoolVars().begin(); i<script.getBoolVars().end(); i++){
 		ostream << *i <<" " <<endl;
-	}
+	}*/
 
 	int count = 0;
 	for(vintv::const_iterator i=script.getIntVars().begin(); i<script.getIntVars().end(); i++){
 		Int::IntView v(*i);
 		std::cout << "var " <<count++ << "=" <<v <<"; ";
-		if(count%20 == 0){
+		if(count%10 == 0){
 			ostream <<endl;
 		}
 	}

@@ -58,20 +58,22 @@ private:
 	FILE* res;
 
 public:
-	SolverInterface(ECNF_mode modes):_modes(modes), freeindex(0), origtocontiguousatommapper(), contiguoustoorigatommapper(){};
+	SolverInterface(ECNF_mode modes):
+		_modes(modes), freeindex(0),
+		origtocontiguousatommapper(), contiguoustoorigatommapper(){};
+
 	virtual ~SolverInterface(){};
 
-	virtual void 	setNbModels(int nb) = 0;
-			void	setRes(FILE* f){
-		res = f;
-	}
+	virtual void 	setNbModels		(int nb) = 0;
+			void	setRes			(FILE* f)	{ res = f; }
 
-	virtual bool 	simplify() = 0;
-	virtual bool 	solve() = 0;
-	virtual bool 	finishParsing() = 0;
+	virtual bool 	simplify		() = 0;
+	virtual bool 	solve			() = 0;
+	virtual bool 	solve			(vector<vector<Literal> >& models) = 0;
+	virtual bool 	finishParsing	() = 0;
 
-	int 			verbosity() const	{ return modes().verbosity; }
-	const ECNF_mode& modes()	const	{ return _modes; }
+	int 			verbosity		() const	{ return modes().verbosity; }
+	const ECNF_mode& modes			()	const	{ return _modes; }
 
 protected:
 	Var checkAtom(const Atom& atom);
@@ -87,12 +89,35 @@ protected:
 	FILE* getRes() const { return res; }
 };
 
+template <class T>
+class SolverInterface2: public SolverInterface{
+private:
+	T* solver;
+
+public:
+	SolverInterface2(ECNF_mode modes, T* solver):
+		SolverInterface(modes),	solver(solver){};
+
+	virtual ~SolverInterface2(){
+		delete solver;
+	};
+
+	virtual void 	setNbModels(int nb) = 0;
+
+	virtual bool 	simplify		() = 0;
+			bool 	solve			();
+			bool 	solve			(vector<vector<Literal> >& models);
+	virtual bool 	finishParsing	() = 0;
+
+	void 	printModel(const vector<Literal>& model) const;
+
+protected:
+	T* getSolver() const { return solver; }
+};
+
 class PCSolver;
 
-class PropositionalSolver: public SolverInterface{
-private:
-	PCSolver* impl;
-	PCSolver* getSolver() const { return impl; }
+class PropositionalSolver: public SolverInterface2<PCSolver>{
 
 public:
 	PropositionalSolver(ECNF_mode modes);
@@ -101,8 +126,6 @@ public:
 	void 	setNbModels		(int nb);
 
 	bool 	simplify		();
-	bool 	solve			();
-	bool 	solve			(vector<vector<Literal> >& models);
 
 	void	addVar			(Atom v);
 	bool	addClause		(vector<Literal>& lits);
@@ -125,18 +148,13 @@ public:
 	bool 	addCPSumVar		(Literal head, const vector<int>& termnames, vector<int> mult, MINISAT::EqType rel, int rhstermname);
 	bool 	addCPCount		(const vector<int>& termnames, int value, MINISAT::EqType rel, int rhstermname);
 	bool 	addCPAlldifferent(const vector<int>& termnames);
-
-	void 	printModel(const vector<Literal>& model) const;
 };
 
 typedef uint64_t modID;
 
 class ModSolverData;
 
-class ModalSolver: public SolverInterface{
-private:
-	ModSolverData* impl;
-	ModSolverData* getSolver() const { return impl; }
+class ModalSolver: public SolverInterface2<ModSolverData>{
 
 public:
 	ModalSolver				(ECNF_mode modes);
@@ -145,7 +163,6 @@ public:
 	void	setNbModels		(int nb);
 
 	bool 	simplify		();
-	bool 	solve			();
 
 	bool 	finishParsing	();
 

@@ -43,6 +43,8 @@ namespace CP {
 
 		vector<Lit> 	trail;
 
+		int endenqueus;
+
 	public:
 				CPSolver	(PCSolver * pcsolver);
 		virtual ~CPSolver	();

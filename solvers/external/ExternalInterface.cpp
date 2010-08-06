@@ -100,34 +100,14 @@ Literal SolverInterface::getOrigLiteral(const Lit& l) const{
 	return Literal(origatom, sign(l));
 }
 
-
-/************
- * PROP SOLVER
- */
-
-PropositionalSolver::PropositionalSolver(ECNF_mode modes)
-		:SolverInterface(modes), impl(new PCSolver(modes)){
-
-}
-
-PropositionalSolver::~PropositionalSolver(){
-	delete impl;
-}
-
-void PropositionalSolver::setNbModels(int nb){
-	getSolver()->setNbModels(nb);
-}
-
-bool PropositionalSolver::simplify(){
-	return getSolver()->simplify();
-}
-
-bool PropositionalSolver::solve(){
+template <class T>
+bool SolverInterface2<T>::solve(){
 	vector<vector<Literal> > models;
 	return solve(models);
 }
 
-bool PropositionalSolver::solve(vector<vector<Literal> >& models){
+template <class T>
+bool SolverInterface2<T>::solve(vector<vector<Literal> >& models){
 	vec<vec<Lit> > varmodels; //int-format literals, INDEXED!
 	bool result = getSolver()->solve(varmodels);
 
@@ -163,6 +143,26 @@ bool PropositionalSolver::solve(vector<vector<Literal> >& models){
 	}
 
 	return result;
+}
+
+/***************
+ * PROP SOLVER *
+ ***************/
+
+PropositionalSolver::PropositionalSolver(ECNF_mode modes)
+		:SolverInterface2<PCSolver>(modes, new PCSolver(modes)){
+
+}
+
+PropositionalSolver::~PropositionalSolver(){
+}
+
+void PropositionalSolver::setNbModels(int nb){
+	getSolver()->setNbModels(nb);
+}
+
+bool PropositionalSolver::simplify(){
+	return getSolver()->simplify();
 }
 
 void PropositionalSolver::addVar(Atom v){
@@ -262,7 +262,8 @@ bool PropositionalSolver::addCPAlldifferent(const vector<int>& termnames){
 	return getSolver()->addCPAlldifferent(termnames);
 }
 
-void PropositionalSolver::printModel(const vector<Literal>& model) const{
+template <class T>
+void SolverInterface2<T>::printModel(const vector<Literal>& model) const{
 	bool start = true;
 	for (vector<Literal>::const_iterator i = model.begin(); i < model.end(); i++){
 		//TODO check that this was not necessary?
@@ -278,12 +279,11 @@ void PropositionalSolver::printModel(const vector<Literal>& model) const{
  * MODEL SOLVER *
  ****************/
 
-ModalSolver::ModalSolver(ECNF_mode modes):SolverInterface(modes), impl(new ModSolverData(modes)){
+ModalSolver::ModalSolver(ECNF_mode modes):SolverInterface2<ModSolverData>(modes, new ModSolverData(modes)){
 
 }
 
 ModalSolver::~ModalSolver(){
-	delete impl;
 }
 
 void ModalSolver::setNbModels(int nb){
@@ -338,10 +338,6 @@ bool ModalSolver::finishParsing	(){
 
 bool ModalSolver::simplify(){
 	return getSolver()->simplify();
-}
-
-bool ModalSolver::solve(){
-	return getSolver()->solve();
 }
 
 //Add information for hierarchy

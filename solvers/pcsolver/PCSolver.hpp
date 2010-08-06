@@ -220,7 +220,6 @@ public:
 	 * DEBUG
 	 */
 	int		getModPrintID	() const;
-	void	printClause		(const Clause& c) const;
 	/*
 	 * SATsolver asks this to PC such that more info (modal e.g.) can be printed.
 	 */

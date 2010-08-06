@@ -28,6 +28,7 @@
 
 #include <solvers/cpsolver/Constraint.hpp>
 #include <solvers/cpsolver/CPSolverData.hpp>
+#include "solvers/utils/Print.hpp"
 
 using namespace std;
 
@@ -38,7 +39,8 @@ namespace CP {
 
 using namespace CP;
 
-CPSolver::CPSolver(PCSolver * solver): ISolver(solver), solverdata(new CPSolverData()) {
+CPSolver::CPSolver(PCSolver * solver): ISolver(solver), solverdata(new CPSolverData()),
+		endenqueus(0){
 
 }
 
@@ -251,14 +253,6 @@ rClause CPSolver::propagate(Lit l){
 }
 
 void CPSolver::backtrack(Lit l){
-#ifdef DEBUG
-	reportf("CP trail: ");
-	for(int i=0; i<trail.size(); i++){
-		//assert(var(trail[i])!=var(l));
-		gprintLit(trail[i]); reportf(" ");
-	}
-	reportf("\n");
-#endif
 	if(trail.size()>0 && l==trail.back()){
 		trail.pop_back();
 	}
@@ -279,6 +273,8 @@ rClause CPSolver::genFullConflictClause(){
 // TODO do not propagate any more when search has been done successfully, until backtrack
 
 rClause CPSolver::propagateAtEndOfQueue(){
+	endenqueus++;
+
 	rClause confl = nullPtrClause;
 	if (!isInitialized()) { return confl; }
 
@@ -290,7 +286,10 @@ rClause CPSolver::propagateAtEndOfQueue(){
 	SpaceStatus status = getSolverData()->getSpace().status(stats);
 
 	if(status == SS_FAILED){ //Conflict
-		return genFullConflictClause();
+		reportf("Space failed during propagation \n");
+		confl = genFullConflictClause();
+		reportf("Learned: "); Print::printClause(confl, getPCSolver()); reportf("\n");
+		return confl;
 	}
 
 	if(getPCSolver()->modes().verbosity>=3){
@@ -299,8 +298,12 @@ rClause CPSolver::propagateAtEndOfQueue(){
 	}
 
 	if(getSolverData()->getReifConstraints().size()==trail.size()){
+	//if(endenqueus%50==0){
+		reportf("Searching ");
 		confl = propagateFinal();
+		reportf(" Ended searching \n");
 	}
+	//}
 
 	// If no conflict found , propagate all changes
 	if(confl==nullPtrClause){
@@ -318,6 +321,9 @@ rClause CPSolver::propagateAtEndOfQueue(){
 	return confl;
 }
 
+/**
+ * does NOT have to be called when all boolean are decided
+ */
 rClause CPSolver::propagateFinal(){
 	rClause confl = nullPtrClause;
 
@@ -343,8 +349,10 @@ rClause CPSolver::propagateFinal(){
 			confl = genFullConflictClause();
 		}
 	}else{
-		getSolverData()->replaceLastWith(enumerator_);
-		cout <<*enumerator_<<endl;
+		if(getSolverData()->getReifConstraints().size()==trail.size()){ //No @pre guarantee, so check!
+			getSolverData()->replaceLastWith(enumerator_);
+			cout <<*enumerator_<<endl;
+		}
 	}
 
 	return confl;

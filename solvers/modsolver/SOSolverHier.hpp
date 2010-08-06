@@ -76,6 +76,7 @@ public:
 
 	bool 	simplify			();
 	bool 	solve				();
+	bool 	solve				(vec<vec<Lit> >& varmodels);
 
 	bool 	finishParsing		();
 

@@ -50,8 +50,14 @@ bool ModSolverData::simplify(){
 }
 
 bool ModSolverData::solve(){
+	vec<vec<Lit> > varmodels;
 	assert(state==ALLLOADED);
-	return solvers[0]->solve();
+	return solvers[0]->solve(varmodels);
+}
+
+bool ModSolverData::solve(vec<vec<Lit> >& varmodels){
+	assert(state==ALLLOADED);
+	return solvers[0]->solve(varmodels);
 }
 
 bool ModSolverData::finishParsing(){

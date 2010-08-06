@@ -510,7 +510,7 @@ rClause PCSolver::propagate(Lit l) {
 		return nullPtrClause;
 	}
 
-	reportf("PROPAGATION LEVEL %d\n", getSolver()->getLevel(var(l)));
+	//reportf("PROPAGATION LEVEL %d\n", getSolver()->getLevel(var(l)));
 
 	rClause confl = nullPtrClause;
 	if (aggsolverpresent) {
