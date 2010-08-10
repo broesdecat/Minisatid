@@ -30,9 +30,9 @@ include_HEADERS += solvers/aggsolver/Agg.hpp solvers/aggsolver/AggSolver.hpp sol
 include_HEADERS += solvers/pcsolver/PCSolver.hpp solvers/pcsolver/ISolver.hpp 
 include_HEADERS += solvers/cpsolver/CPUtils.hpp solvers/cpsolver/CPSolver.hpp solvers/cpsolver/CPScript.hpp solvers/cpsolver/Constraint.hpp solvers/cpsolver/CPSolverData.hpp
 include_HEADERS += solvers/modsolver/ModSolver.hpp solvers/modsolver/SOSolverHier.hpp
-include_HEADERS += solvers/external/ExternalInterface.hpp solvers/external/ExternalUtils.hpp 
+include_HEADERS += solvers/external/ExternalInterface.hpp solvers/external/ExternalUtils.hpp
 include_HEADERS += solvers/parser/Lparseread.hpp
-include_HEADERS += solvers/Unittests.hpp solvers/SolverI.hpp 
+include_HEADERS += solvers/Unittests.hpp solvers/SolverI.hpp
 include_HEADERS += solvers/SATSolver.h solvers/SATUtils.h
 
 CXXFLAGS += -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS
