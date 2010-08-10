@@ -75,7 +75,7 @@ bool ModSolverData::finishParsing(){
 
 	bool result = solvers[0]->finishParsing();
 
-	if(modes().verbosity>=5){
+	if(modes().verbosity>=2){
 		Print::print(this);
 	}
 

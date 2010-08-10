@@ -194,6 +194,7 @@ void PCSolver::varBumpActivity(Var v) {
  ************************/
 
 Var PCSolver::newVar() {
+	assert(!init);
 	Var v = nVars();
 	addVar(v);
 	return v;

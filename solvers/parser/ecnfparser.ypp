@@ -55,8 +55,10 @@ void initModSolver();
 
 int atoms, clauses;
 
+vector<Atom> rigidatoms; //a necessary list of accumulated rigid atoms when reading qbf format
+
 void finishCNFHeader();
-void readCNFModalHierLevel(bool existential, vector<Atom>& rigidatoms);
+void readCNFModalHierLevel(bool existential, const vector<Atom>& rigidatoms);
 shared_ptr<SolverInterface> getData();
 
 %}
@@ -101,7 +103,9 @@ shared_ptr<SolverInterface> getData();
 /*
  * Decides whether to use (modal) CNF, ECNF or modal ECNF format
  */
-init	:	CNF	number number { atoms = $2; clauses = $3; } cnftheory
+init	:	CNF	number number 
+				{ atoms = $2; clauses = $3; reportf("%d atoms and %d clauses present.\n", atoms, clauses);} 
+			cnftheory
 		|	ECNF header {initSolver();} ecnftheory
 		|	MECNF header {initModSolver();} mecnftheory
 		;
@@ -123,8 +127,14 @@ cnftheory
 
 modalcnf	
 		:	/* empty */
-		|	modalcnf QUANTe vbody ZERO 
-				{ 	readCNFModalHierLevel($2, *$3); delete $3;} 
+		|	modalcnf QUANTe  
+				{ 	readCNFModalHierLevel($2, rigidatoms); }
+			rigidvars ZERO //HAS TO first add new level with PREVIOUS rigid atoms before adding to them
+		;
+		
+rigidvars
+		:	rigidvars posnumber { rigidatoms.push_back(Atom(abs($2)));	}
+		|	posnumber			{ rigidatoms.push_back(Atom(abs($1)));	}	
 		;
 			
 cnfclause	
@@ -404,7 +414,9 @@ shared_ptr<SolverInterface> getData(){
 	}
 }
 
-void readCNFModalHierLevel(bool existential, vector<Atom>& rigidatoms){
+void readCNFModalHierLevel(bool existential, const vector<Atom>& rigidatoms){
+	assert(solver.get()==NULL);
+	
 	bool writeexists;
 	if(existential && negatemod){
 		negatemod = false;
@@ -419,9 +431,9 @@ void readCNFModalHierLevel(bool existential, vector<Atom>& rigidatoms){
 		negatemod = true;
 		writeexists = false;
 	}
-	if(modsolver.get()==NULL && solver.get()==NULL){
+	if(modsolver.get()==NULL){
 		initModSolver();
-		cnfcurrenthead = atoms;
+		cnfcurrenthead = atoms+1;
 	}else{
 		modalops.push_back(cnfcurrentmodid);
 		if(writeexists){
@@ -432,10 +444,10 @@ void readCNFModalHierLevel(bool existential, vector<Atom>& rigidatoms){
 		cnfcurrentmodid++;
 		CR(modsolver->addChild(cnfcurrentmodid-1, cnfcurrentmodid, Literal(cnfcurrenthead)));
 		modsolver->addAtoms(cnfcurrentmodid, rigidatoms);
-		if(rigidatoms.size()!=0){
-			throw idpexception("List of rigid atoms not empty.\n");
+		if(rigidatoms.size()==0){
+			throw idpexception("List of rigid atoms is empty.\n");
 		}
-		cnfcurrenthead = Atom(cnfcurrenthead.getValue());
+		cnfcurrenthead = Atom(cnfcurrenthead.getValue()+1);
 	}
 }
 
