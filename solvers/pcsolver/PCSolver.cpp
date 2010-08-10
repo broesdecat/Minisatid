@@ -45,6 +45,7 @@ PCSolver::PCSolver(ECNF_mode modes) :
 			nb_models(modes.nbmodels), modelsfound(0), optim(NONE), head(-1), init(true),
 			decisionlevels(0){
 	solver = new Solver(this);
+
 	if (modes.def) {
 		idsolver = new IDSolver(this);
 		idcreated = true;

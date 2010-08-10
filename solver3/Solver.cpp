@@ -640,7 +640,9 @@ void Solver::uncheckedEnqueue(Lit p, Clause* from)
     reason  [var(p)] = from;
     polarity[var(p)] = sign(p); /* Modified 2009 */
     trail.push(p);
-    //reportf("Enqueued "); gprintLit(p); reportf(" in mod %d\n", solver->getModPrintID());
+    if(verbosity>=5){
+    	reportf("Enqueued "); gprintLit(p); reportf(" in mod %d\n", solver->getModPrintID());
+    }
 }
 
 

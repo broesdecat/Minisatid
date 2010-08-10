@@ -45,6 +45,7 @@ namespace CP{
 		virtual ~CPSolverData();
 
 		CPScript& 	getSpace	()	const 				{ return *history.back(); }
+		CPScript& 	getPrevSpace()	const 				{ assert(history.size()>1); return *history[history.size()-2]; }
 
 		void 		replaceLastWith	(CPScript* space);
 

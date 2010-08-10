@@ -389,7 +389,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
 	//reportf("Conflicts: %d.\n", conflicts);
 	vector<Lit> explain;
 	if(verbosity>4){
-		reportf("Choices: ");
+		/*reportf("Choices: ");
 		for(int i=0; i<trail_lim.size(); i++){
 			gprintLit(trail[trail_lim[i]]); reportf(" ");
 		}
@@ -406,7 +406,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
 		for(int j=trail_lim[trail_lim.size()-1]; j<trail.size(); j++){
 			gprintLit(trail[j]); reportf(" ");
 		}
-		reportf("\n");
+		reportf("\n");*/
 	}
 	/*AE*/
 
@@ -624,6 +624,9 @@ void Solver::uncheckedEnqueue(Lit p, CRef from)
     assigns[var(p)] = lbool(!sign(p));
     vardata[var(p)] = mkVarData(from, decisionLevel());
     trail.push_(p);
+    if(verbosity>=5){
+    	reportf("Enqueued "); gprintLit(p); reportf(" in mod %d\n", solver->getModPrintID());
+    }
 }
 
 
@@ -645,6 +648,16 @@ CRef Solver::propagate()
     watches.cleanAll();
 
     while (qhead < trail.size()){
+    	/*AB*/
+    	if(verbosity>11){
+    		reportf("Trail, mod %d: ", solver->getModPrintID());
+    		for(int i=0; i<trail.size(); i++){
+    			gprintLit(trail[i]); reportf(" ");
+    		}
+    		reportf(".\n");
+    	}
+    	/*AE*/
+
         Lit            p   = trail[qhead++];     // 'p' is enqueued fact to propagate.
         vec<Watcher>&  ws  = watches[p];
         Watcher        *i, *j, *end;

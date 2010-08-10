@@ -156,17 +156,18 @@ bool CPSolver::addAllDifferent(vector<int> term){
 //			so this can be MULTIPLE fixpoint propagations until next decision level!
 
 rClause CPSolver::getExplanation(const Lit& p){
+	// Important: reason is necessary, because a literal might be derived by CP, but
+	// requested an explanation before it is effectively propagated and in the trail itself
+
+	assert(propreason[p]!=-1);
+
 	vec<Lit> lits;
-	bool found = false;
 	lits.push(p);
-	for(vector<Lit>::const_iterator i=trail.begin(); !found && i<trail.end(); i++){
-		if(var(*i)==var(p)){
-			found = true;
-		}else{
-			lits.push(~(*i));
+	for(vector<Lit>::size_type i=0; i<propreason[p]; i++){
+		if(propagations.find(var(trail[i])) == propagations.end()){
+			lits.push(~trail[i]);
 		}
 	}
-	assert(found);
 	rClause c = getPCSolver()->addLearnedClause(lits);
 	return c;
 }
@@ -177,13 +178,18 @@ rClause CPSolver::notifySATsolverOfPropagation(const Lit& p) {
 			reportf("Deriving conflict in "); gprintLit(p, l_True);
 			reportf(" because of the constraint TODO \n");
 		}
+		vector<Lit>::size_type temp = propreason[p];
+		propreason[p] = trail.size();
 		rClause confl = getExplanation(p);
+		propreason[p] = temp;
 		return confl;
 	} else if (getPCSolver()->value(p) == l_Undef) {
 		if (getPCSolver()->modes().verbosity >= 2) {
 			reportf("Deriving "); gprintLit(p, l_True);
 			reportf(" because of the constraint expression TODO \n");
 		}
+		propreason[p] = trail.size();
+		propagations.insert(var(p));
 		getPCSolver()->setTrue(p);
 	} else {
 	}
@@ -255,7 +261,10 @@ rClause CPSolver::propagate(Lit l){
 void CPSolver::backtrack(Lit l){
 	if(trail.size()>0 && l==trail.back()){
 		trail.pop_back();
+		propagations.erase(var(l));
 	}
+
+	propreason[l] = -1;
 }
 
 /**
@@ -263,9 +272,49 @@ void CPSolver::backtrack(Lit l){
  * 		(and which represent reification atoms)
  */
 rClause CPSolver::genFullConflictClause(){
+	// TEMPORARY CODE: find conflicting propagated literal => start from previous space
+	/*reportf("Finding shortest reason \n");
+	CPScript& space = *static_cast<CPScript*>(getSolverData()->getPrevSpace().clone());
+	space.addBranchers();
+	vector<Lit>::const_iterator nonassigned = trail.begin();
+	int currentlevel = getPCSolver()->getLevel(var(trail.back()));
+	reportf("Current level: %d\n", currentlevel);
+	for(; nonassigned<trail.end(); nonassigned++){
+		if(getPCSolver()->getLevel(var(*nonassigned))==currentlevel){
+			break;
+		}
+	}
+	for(; nonassigned<trail.end(); nonassigned++){
+		reportf("Possible conflict literal: "); gprintLit(*nonassigned); reportf("\n");
+		for(vreifconstrptr::const_iterator i=getSolverData()->getReifConstraints().begin(); i<getSolverData()->getReifConstraints().end(); i++){
+			if((*i)->getAtom()==var(*nonassigned) && !(*i)->isAssigned(space)){
+				(*i)->propagate(!sign(*nonassigned), space);
+				break;
+			}
+		}
+
+		Search::Options searchOptions_;
+		DFS<CPScript>* searchEngine_; // depth first search
+		CPScript* enumerator_ = NULL;
+
+		searchOptions_ = Search::Options::def;
+		searchOptions_.stop = NULL; //new Search::MemoryStop(1000000000);
+
+		searchEngine_ = new DFS<CPScript>(&space, searchOptions_);
+		enumerator_ = searchEngine_->next();
+
+		if(enumerator_==NULL){
+			break;
+		}
+	}
+	reportf("Conflicting literal: "); gprintLit(*nonassigned); reportf("\n");*/
+	// END
+
 	vec<Lit> clause;
 	for(vector<Lit>::const_reverse_iterator i=trail.rbegin(); i<trail.rend(); i++){
-		clause.push(~(*i));
+		if(propagations.find(var(*i)) == propagations.end()){
+			clause.push(~(*i));
+		}
 	}
 	return getPCSolver()->addLearnedClause(clause);
 }
@@ -274,6 +323,10 @@ rClause CPSolver::genFullConflictClause(){
 
 rClause CPSolver::propagateAtEndOfQueue(){
 	endenqueus++;
+
+	/*if(endenqueus%25!=0){
+		return nullPtrClause;
+	}*/
 
 	rClause confl = nullPtrClause;
 	if (!isInitialized()) { return confl; }
@@ -286,9 +339,9 @@ rClause CPSolver::propagateAtEndOfQueue(){
 	SpaceStatus status = getSolverData()->getSpace().status(stats);
 
 	if(status == SS_FAILED){ //Conflict
-		reportf("Space failed during propagation \n");
+		//reportf("Space failed during propagation \n");
 		confl = genFullConflictClause();
-		reportf("Learned: "); Print::printClause(confl, getPCSolver()); reportf("\n");
+		//reportf("Learned: "); Print::printClause(confl, getPCSolver()); reportf("\n");
 		return confl;
 	}
 
@@ -297,13 +350,11 @@ rClause CPSolver::propagateAtEndOfQueue(){
 		cout <<getSolverData()->getSpace() <<endl;
 	}
 
-	if(getSolverData()->getReifConstraints().size()==trail.size()){
-	//if(endenqueus%50==0){
+	if(getSolverData()->getReifConstraints().size()==trail.size()/* || endenqueus%50==0*/){
 		reportf("Searching ");
 		confl = propagateFinal();
 		reportf(" Ended searching \n");
 	}
-	//}
 
 	// If no conflict found , propagate all changes
 	if(confl==nullPtrClause){
@@ -322,7 +373,7 @@ rClause CPSolver::propagateAtEndOfQueue(){
 }
 
 /**
- * does NOT have to be called when all boolean are decided
+ * does NOT have to be called when all booleans are decided
  */
 rClause CPSolver::propagateFinal(){
 	rClause confl = nullPtrClause;

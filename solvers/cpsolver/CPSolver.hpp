@@ -22,6 +22,8 @@
 
 #include "solvers/pcsolver/ISolver.hpp"
 
+#include <set>
+
 namespace CP {
 
 	class CPSolverData;
@@ -42,6 +44,9 @@ namespace CP {
 		CPSolverData* 	solverdata; //OWNING pointer
 
 		vector<Lit> 	trail;
+		set<Var>		propagations;
+
+		map<Lit, vector<Lit>::size_type > propreason;
 
 		int endenqueus;
 
