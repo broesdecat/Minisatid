@@ -1,7 +1,7 @@
 AM_LDFLAGS = $(SVNDIGEST_LDFLAGS)
 AM_CXXFLAGS = $(SVNDIGEST_CXXFLAGS)
-CXXFLAGS = -I/home/broes/documents/othersoftware/gecode/installnostat/include/ -I$(srcdir)/solver3minisat22/ @AM_CXXFLAGS@
-LDFLAGS = -L/home/broes/documents/othersoftware/gecode/installnostat/lib/ -lgecodedriver -lgecodeminimodel -lgecodeset -lgecodeint -lgecodekernel -lgecodesupport @AM_LDFLAGS@
+CXXFLAGS = -I$(srcdir)/solver3minisat22/ @AM_CXXFLAGS@
+LDFLAGS = @AM_LDFLAGS@
 
 YFLAGS = -d @AM_YFLAGS@
 LFLAGS = @AM_LFLAGS@ #TODO prefix blijkt niet te werken, dus code herschreven om maar 1 parser te ondersteunen
@@ -16,7 +16,6 @@ minisatid_SOURCES += solvers/parser/ecnftoken.lpp solvers/parser/ecnfparser.ypp
 minisatid_SOURCES += solvers/pcsolver/PCSolver.cpp 
 minisatid_SOURCES += solvers/idsolver/IDSolver.cpp
 minisatid_SOURCES += solvers/aggsolver/AggSets.cpp solvers/aggsolver/AggSolver.cpp solvers/aggsolver/Agg.cpp
-minisatid_SOURCES += solvers/cpsolver/CPSolver.cpp solvers/cpsolver/CPScript.cpp solvers/cpsolver/Constraint.cpp solvers/cpsolver/CPSolverData.cpp solvers/cpsolver/CPUtils.cpp
 minisatid_SOURCES += solvers/modsolver/ModSolver.cpp solvers/modsolver/SOSolverHier.cpp
 minisatid_SOURCES += solvers/external/ExternalInterface.cpp solvers/external/ExternalUtils.cpp 
 minisatid_SOURCES += solvers/utils/Print.cpp solvers/utils/Utils.cpp 
@@ -28,7 +27,6 @@ include_HEADERS += solvers/utils/Print.hpp solvers/utils/Utils.hpp
 include_HEADERS += solvers/idsolver/IDSolver.hpp
 include_HEADERS += solvers/aggsolver/Agg.hpp solvers/aggsolver/AggSolver.hpp solvers/aggsolver/AggSets.hpp solvers/aggsolver/AggSolver.hpp solvers/aggsolver/AggTypes.hpp 
 include_HEADERS += solvers/pcsolver/PCSolver.hpp solvers/pcsolver/ISolver.hpp 
-include_HEADERS += solvers/cpsolver/CPUtils.hpp solvers/cpsolver/CPSolver.hpp solvers/cpsolver/CPScript.hpp solvers/cpsolver/Constraint.hpp solvers/cpsolver/CPSolverData.hpp
 include_HEADERS += solvers/modsolver/ModSolver.hpp solvers/modsolver/SOSolverHier.hpp
 include_HEADERS += solvers/external/ExternalInterface.hpp solvers/external/ExternalUtils.hpp
 include_HEADERS += solvers/parser/Lparseread.hpp

@@ -75,11 +75,11 @@ private:
 	/*
 	 * Indicates whether the solver was constructed
 	 */
-	bool aggcreated, idcreated, cpcreated;
+	bool aggcreated, idcreated;
 	/*
 	 * Indicates whether the solver should be integrated into the search
 	 */
-	bool aggsolverpresent, idsolverpresent, modsolverpresent, cpsolverpresent;
+	bool aggsolverpresent, idsolverpresent, modsolverpresent;
 
 	int nb_models, modelsfound;
 
@@ -98,7 +98,6 @@ private:
 	 */
 	Solver * 	getSolver		() const;
 	IDSolver * 	getIDSolver		() const;
-	CPSolver *	getCPSolver		() const;
 	AggSolver *	getAggSolver	() const;
 	ModSolver *	getModSolver	() const;
 
@@ -111,7 +110,6 @@ public:
 	 */
 	Solver	 const * getCSolver		() const;
 	IDSolver const * getCIDSolver	() const;
-	CPSolver const * getCCPSolver	() const;
 	AggSolver const * getCAggSolver	() const;
 	ModSolver const * getCModSolver	() const;
 

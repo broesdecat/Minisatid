@@ -41,9 +41,6 @@ class AggSolver;
 class ModSolver;
 class IDSolver;
 class ModSolverData;
-namespace CP{
-	class CPSolver;
-}
 
 namespace Print {
 
@@ -55,9 +52,6 @@ void print(PCSolver const * const s);
 
 template<>
 void print(IDSolver const * const s);
-
-template<>
-void print(CP::CPSolver const * const s);
 
 template<>
 void print(AggSolver const * const s);

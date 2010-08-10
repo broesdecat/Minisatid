@@ -25,7 +25,6 @@
 #include "solvers/modsolver/ModSolver.hpp"
 #include "solvers/modsolver/SOSolverHier.hpp"
 #include "solvers/aggsolver/AggSolver.hpp"
-#include "solvers/cpsolver/CPSolver.hpp"
 
 namespace Print {
 
@@ -39,17 +38,6 @@ void print(PCSolver const * const s){
 	print(s->getCSolver());
 	print(s->getCAggSolver());
 	print(s->getCIDSolver());
-	print(s->getCCPSolver());
-}
-
-template<>
-void print(CP::CPSolver const * const p){
-	if(p==NULL){
-		reportf("No CP constraints\n");
-		return;
-	}
-	reportf("CP constraints\n");
-	//TODO
 }
 
 template<>

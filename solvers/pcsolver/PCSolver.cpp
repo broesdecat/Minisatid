@@ -21,7 +21,6 @@
 
 #include "solvers/SATSolver.h"
 #include "solvers/idsolver/IDSolver.hpp"
-#include "solvers/cpsolver/CPSolver.hpp"
 #include "solvers/aggsolver/AggSolver.hpp"
 #include "solvers/modsolver/ModSolver.hpp"
 
@@ -40,8 +39,8 @@ int PCSolver::getModPrintID() const {
 PCSolver::PCSolver(ECNF_mode modes) :
 	Data(modes), solver(NULL), idsolver(NULL), aggsolver(NULL),
 			modsolver(NULL), cpsolver(NULL), aggcreated(false),
-			idcreated(false), cpcreated(false), aggsolverpresent(false),
-			idsolverpresent(false), modsolverpresent(false), cpsolverpresent(false),
+			idcreated(false), aggsolverpresent(false),
+			idsolverpresent(false), modsolverpresent(false),
 			nb_models(modes.nbmodels), modelsfound(0), optim(NONE), head(-1), init(true),
 			decisionlevels(0){
 	solver = new Solver(this);
@@ -59,11 +58,6 @@ PCSolver::PCSolver(ECNF_mode modes) :
 	if (modes.def && modes.aggr) {
 		idsolver->setAggSolver(aggsolver);
 	}
-	if (modes.cp) {
-		cpsolver = new CPSolver(this);
-		cpcreated = true;
-	}
-	cpsolverpresent = cpcreated;
 
 	//TODO depends on sat solver!
 	//solver->maxruntime = modes.maxruntime;
@@ -80,9 +74,6 @@ PCSolver::~PCSolver() {
 	if (aggcreated) {
 		delete aggsolver;
 	}
-	if (cpcreated) {
-		delete cpsolver;
-	}
 	delete solver;
 }
 
@@ -98,20 +89,12 @@ inline pIDSolver PCSolver::getIDSolver() const {
 	return idsolver;
 }
 
-inline pCPSolver PCSolver::getCPSolver() const {
-	return cpsolver;
-}
-
 inline pAggSolver PCSolver::getAggSolver() const {
 	return aggsolver;
 }
 
 inline pModSolver PCSolver::getModSolver() const {
 	return modsolver;
-}
-
-CPSolver const * PCSolver::getCCPSolver() const {
-	return cpsolver;
 }
 
 Solver const * PCSolver::getCSolver() const {
@@ -275,9 +258,7 @@ bool PCSolver::addAggrExpr(Lit head, int setid, Weight bound, bool lower,
 }
 
 bool PCSolver::addIntVar(int groundname, int min, int max) {
-	assert(cpsolverpresent);
-	getCPSolver()->addTerm(groundname, min, max);
-	return true;
+	throw idpexception("CP-support is not compiled in.\n");
 }
 
 void PCSolver::checkHead(Lit head) {
@@ -289,62 +270,41 @@ void PCSolver::checkHead(Lit head) {
 
 bool PCSolver::addCPBinaryRel(Lit head, int groundname, MINISAT::EqType rel,
 		int bound) {
-	assert(cpsolverpresent);
-	checkHead(head);
-	getCPSolver()->addBinRel(groundname, rel, bound, var(head));
-	return true;
+	throw idpexception("CP-support is not compiled in.\n");
 }
 
 bool PCSolver::addCPBinaryRelVar(Lit head, int groundname, MINISAT::EqType rel,
 		int groundname2) {
-	assert(cpsolverpresent);
-	checkHead(head);
-	getCPSolver()->addBinRelVar(groundname, rel, groundname2, var(head));
-	return true;
+	throw idpexception("CP-support is not compiled in.\n");
 }
 
 bool PCSolver::addCPSum(Lit head, vector<int> termnames, MINISAT::EqType rel,
 		int bound) {
-	assert(cpsolverpresent);
-	checkHead(head);
-	getCPSolver()->addSum(termnames, rel, bound, var(head));
-	return true;
+	throw idpexception("CP-support is not compiled in.\n");
 }
 
 bool PCSolver::addCPSum(Lit head, vector<int> termnames, vector<int> mult,
 		MINISAT::EqType rel, int bound) {
-	assert(cpsolverpresent);
-	checkHead(head);
-	getCPSolver()->addSum(termnames, mult, rel, bound, var(head));
-	return true;
+	throw idpexception("CP-support is not compiled in.\n");
 }
 
 bool PCSolver::addCPSumVar(Lit head, vector<int> termnames,
 		MINISAT::EqType rel, int rhstermname) {
-	assert(cpsolverpresent);
-	checkHead(head);
-	getCPSolver()->addSum(termnames, rel, rhstermname, var(head));
-	return true;
+	throw idpexception("CP-support is not compiled in.\n");
 }
 
 bool PCSolver::addCPSumVar(Lit head, vector<int> termnames, vector<int> mult,
 		MINISAT::EqType rel, int rhstermname) {
-	assert(cpsolverpresent);
-	checkHead(head);
-	getCPSolver()->addSum(termnames, mult, rel, rhstermname, var(head));
-	return true;
+	throw idpexception("CP-support is not compiled in.\n");
 }
 
 bool PCSolver::addCPCount(vector<int> termnames, int value,
 		MINISAT::EqType rel, int rhstermname) {
-	assert(cpsolverpresent);
-	getCPSolver()->addCount(termnames, rel, value, rhstermname);
-	return true;
+	throw idpexception("CP-support is not compiled in.\n");
 }
 
 bool PCSolver::addCPAlldifferent(const vector<int>& termnames) {
-	assert(cpsolverpresent);
-	return getCPSolver()->addAllDifferent(termnames);
+	throw idpexception("CP-support is not compiled in.\n");
 }
 
 /*
@@ -360,9 +320,6 @@ bool PCSolver::finishParsing() {
 		if(unsat){
 			return false;
 		}
-	}
-	if (cpsolverpresent) {
-		cpsolverpresent = getCPSolver()->finishParsing();
 	}
 	if (idsolverpresent) {
 		idsolverpresent = getIDSolver()->finishECNF_DataStructures();
@@ -391,11 +348,6 @@ bool PCSolver::finishParsing() {
 		if (modes().verbosity > 0) {
 			reportf("|                                                                             |\n"
 					"|    (there will be no aggregate propagations)                                |\n");
-		}
-	}
-	if (!cpsolverpresent) {
-		if (modes().verbosity > 0) {
-			reportf("|    (there will be no CP           propagations)                             |\n");
 		}
 	}
 	if (!idsolverpresent) {
@@ -456,10 +408,6 @@ rClause PCSolver::getExplanation(Lit l) {
 		explan = getAggSolver()->getExplanation(l);
 	}
 
-	if(cpsolverpresent && explan == nullPtrClause){
-		explan = getCPSolver()->getExplanation(l);
-	}
-
 	assert(explan!=nullPtrClause);
 
 	return explan;
@@ -476,9 +424,6 @@ void PCSolver::backtrackRest(Lit l) {
 	if (idsolverpresent) {
 		getIDSolver()->backtrack(l);
 	}
-	if (cpsolverpresent) {
-		getCPSolver()->backtrack(l);
-	}
 	if (modsolverpresent) {
 		getModSolver()->backtrackFromSameLevel(l);
 	}
@@ -487,18 +432,12 @@ void PCSolver::backtrackRest(Lit l) {
 // Called by SAT solver when new decision level is started
 void PCSolver::newDecisionLevel(){
 	//reportf("ADD DECISION LEVEL %d\n", ++decisionlevels);
-	if(cpsolverpresent){
-		getCPSolver()->newDecisionLevel();
-	}
 }
 
 //TODO implementeer ze hier allemaal
 void PCSolver::backtrackDecisionLevel(int levels){
 	for(int i=0; i<levels; i++){
 		//reportf("REMOVE DECISION LEVEL %d\n", --decisionlevels);
-		if (cpsolverpresent){
-			getCPSolver()->backtrackDecisionLevel();
-		}
 	}
 }
 
@@ -521,9 +460,6 @@ rClause PCSolver::propagate(Lit l) {
 	if (idsolverpresent && confl == nullPtrClause) {
 		confl = getIDSolver()->propagate(l);
 	}
-	if (cpsolverpresent && confl == nullPtrClause) {
-		confl = getCPSolver()->propagate(l);
-	}
 	if (modsolverpresent && confl == nullPtrClause) {
 		confl = getModSolver()->propagate(l);
 	}
@@ -537,9 +473,6 @@ rClause PCSolver::propagateAtEndOfQueue() {
 	rClause confl = nullPtrClause;
 	if (idsolverpresent && confl == nullPtrClause) {
 		confl = getIDSolver()->propagateDefinitions();
-	}
-	if (cpsolverpresent && confl == nullPtrClause) {
-		confl = getCPSolver()->propagateAtEndOfQueue();
 	}
 	if (modsolverpresent && confl == nullPtrClause) {
 		confl = getModSolver()->propagateAtEndOfQueue();
