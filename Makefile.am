@@ -1,10 +1,7 @@
-AM_LDFLAGS = $(SVNDIGEST_LDFLAGS)
-AM_CXXFLAGS = $(SVNDIGEST_CXXFLAGS)
-CXXFLAGS = -I$(srcdir)/solver3minisat22/ @AM_CXXFLAGS@
-LDFLAGS = @AM_LDFLAGS@
+AM_CPPFLAGS = -I$(srcdir)/solver3minisat22/
 
-YFLAGS = -d @AM_YFLAGS@
-LFLAGS = @AM_LFLAGS@ #TODO prefix blijkt niet te werken, dus code herschreven om maar 1 parser te ondersteunen
+YFLAGS = -d 
+LFLAGS = #TODO prefix blijkt niet te werken, dus code herschreven om maar 1 parser te ondersteunen
 
 bin_PROGRAMS = minisatid
 
