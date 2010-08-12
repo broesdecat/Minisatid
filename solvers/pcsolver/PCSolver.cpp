@@ -382,6 +382,7 @@ lbool PCSolver::checkStatus(lbool status) const {
 	if (!idsolverpresent || status != l_True) {
 		return status;
 	}
+
 	if (modes().sem == WELLF && !getIDSolver()->isWellFoundedModel()) {
 		return l_False;
 	}
@@ -432,6 +433,9 @@ void PCSolver::backtrackRest(Lit l) {
 // Called by SAT solver when new decision level is started
 void PCSolver::newDecisionLevel(){
 	//reportf("ADD DECISION LEVEL %d\n", ++decisionlevels);
+	if(idsolverpresent){
+		getIDSolver()->newDecisionLevel();
+	}
 }
 
 //TODO implementeer ze hier allemaal

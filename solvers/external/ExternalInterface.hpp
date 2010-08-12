@@ -52,14 +52,14 @@ private:
 	ECNF_mode _modes;
 
 	//MAPS FROM NON-INDEXED TO INDEXED ATOMS!!!
-	int freeindex;
+	int maxnumber;
 	atommap origtocontiguousatommapper, contiguoustoorigatommapper;
 
 	FILE* res;
 
 public:
 	SolverInterface(ECNF_mode modes):
-		_modes(modes), freeindex(0),
+		_modes(modes), maxnumber(0),
 		origtocontiguousatommapper(), contiguoustoorigatommapper(){};
 
 	virtual ~SolverInterface(){};
@@ -81,10 +81,11 @@ protected:
 	void checkLits(const vector<Literal>& lits, vec<Lit>& ll);
 	void checkLits(const vector<Literal>& lits, vector<Lit>& ll);
 	void checkAtoms(const vector<Atom>& lits, vector<Var>& ll);
-	void checkLits(const vector<Literal>& lits, vector<Literal>& ll);
+	//void checkLits(const vector<Literal>& lits, vector<Literal>& ll);
 
-	bool	wasInput(int var) const { return freeindex>var; }
-	Literal getOrigLiteral(const Lit& l) const;
+	bool	wasInput(int var) const { return var<maxnumber; }
+	Atom 	getOrigAtom		(const Var& l) const;
+	Literal getOrigLiteral	(const Lit& l) const;
 
 	FILE* getRes() const { return res; }
 };

@@ -36,31 +36,47 @@ modindex getModIndex(modID modid){
 	return (int)modid;
 }
 
-Var getVar(Atom atom){
-	return atom.getValue()-1;
+Atom SolverInterface::getOrigAtom(const Var& v) const{
+	if(modes().remap){
+		atommap::const_iterator atom = contiguoustoorigatommapper.find(v);
+		assert(atom!=contiguoustoorigatommapper.end());
+		//reportf("Retrieving literal "); gprintLit(l); reportf("mapped as %d to %d\n", (*atom).first, (*atom).second);
+		int origatom = (*atom).second;
+		return origatom;
+	}else{
+		return v+1;
+	}
 }
 
-Atom getAtom(Var v){
-	return Atom(v+1);
-}
-
-Literal getLiteral(Lit lit){
+/*Literal getLiteral(Lit lit){
 	return Literal(getAtom(var(lit)), sign(lit));
-}
+}*/
 
 Var SolverInterface::checkAtom(const Atom& atom){
 	if(atom.getValue()<1){
 		throw idpexception("Variables can only be numbered starting from 1.\n");
 	}
-	atommap::const_iterator i = origtocontiguousatommapper.find(atom.getValue());
-	if(i==origtocontiguousatommapper.end()){
-		//reportf("%d mapped to %d\n", atom.getValue(), freeindex);
-		origtocontiguousatommapper.insert(pair<int, int>(atom.getValue(), freeindex));
-		contiguoustoorigatommapper.insert(pair<int, int>(freeindex, atom.getValue()));
-		return freeindex++;
+	if(modes().remap){
+		atommap::const_iterator i = origtocontiguousatommapper.find(atom.getValue());
+		if(i==origtocontiguousatommapper.end()){
+			//reportf("%d mapped to %d\n", atom.getValue(), freeindex);
+			origtocontiguousatommapper.insert(pair<int, int>(atom.getValue(), maxnumber));
+			contiguoustoorigatommapper.insert(pair<int, int>(maxnumber, atom.getValue()));
+			return maxnumber++;
+		}else{
+			return (*i).second;
+		}
 	}else{
-		return (*i).second;
+		if(atom.getValue()>maxnumber){
+			maxnumber = atom.getValue();
+		}
+		return atom.getValue()-1;
 	}
+}
+
+Literal SolverInterface::getOrigLiteral(const Lit& l) const{
+	assert(var(l)>-1);
+	return Literal(getOrigAtom(var(l)), sign(l));
 }
 
 Lit SolverInterface::checkLit(const Literal& lit){
@@ -79,25 +95,16 @@ void SolverInterface::checkLits(const vector<Literal>& lits, vector<Lit>& ll){
 	}
 }
 
-void SolverInterface::checkLits(const vector<Literal>& lits, vector<Literal>& ll){
+/*void SolverInterface::checkLits(const vector<Literal>& lits, vector<Literal>& ll){
 	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); i++){
 		ll.push_back(getLiteral(checkLit(*i)));
 	}
-}
+}*/
 
 void SolverInterface::checkAtoms(const vector<Atom>& lits, vector<Var>& ll){
 	for(vector<Atom>::const_iterator i=lits.begin(); i<lits.end(); i++){
 		ll.push_back(checkAtom(*i));
 	}
-}
-
-Literal SolverInterface::getOrigLiteral(const Lit& l) const{
-	Atom nonindexatom = getAtom(abs(var(l)));
-	atommap::const_iterator atom = contiguoustoorigatommapper.find(getVar(nonindexatom));
-	assert(atom!=contiguoustoorigatommapper.end());
-	//reportf("Retrieving literal "); gprintLit(l); reportf("mapped as %d to %d\n", (*atom).first, (*atom).second);
-	int origatom = (*atom).second;
-	return Literal(origatom, sign(l));
 }
 
 template <class T>

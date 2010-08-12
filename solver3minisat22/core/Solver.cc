@@ -446,8 +446,9 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
                 seen[var(q)] = 1;
                 if (level(var(q)) >= decisionLevel())
                     pathC++;
-                else
-                    out_learnt.push(q);
+                else {
+                	out_learnt.push(q);
+                }
             }
         }
         
@@ -479,7 +480,6 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
 		}
 
 		if(confl==CRef_Undef && pathC>1){
-			//Explanation still returns an owning pointer, so handle it properly
 			confl = solver->getExplanation(p);
 		}
 		if(verbosity>4 && confl!=CRef_Undef) {
@@ -624,9 +624,11 @@ void Solver::uncheckedEnqueue(Lit p, CRef from)
     assigns[var(p)] = lbool(!sign(p));
     vardata[var(p)] = mkVarData(from, decisionLevel());
     trail.push_(p);
+    /*AB*/
     if(verbosity>=5){
     	reportf("Enqueued "); gprintLit(p); reportf(" in mod %d\n", solver->getModPrintID());
     }
+    /*AE*/
 }
 
 
@@ -649,7 +651,7 @@ CRef Solver::propagate()
 
     while (qhead < trail.size()){
     	/*AB*/
-    	if(verbosity>11){
+    	if(verbosity>10){
     		reportf("Trail, mod %d: ", solver->getModPrintID());
     		for(int i=0; i<trail.size(); i++){
     			gprintLit(trail[i]); reportf(" ");
@@ -916,9 +918,10 @@ lbool Solver::search(int nof_conflicts/*AB*/, bool nosearch/*AE*/)
                 decisions++;
                 next = pickBranchLit();
 
-                if (next == lit_Undef)
+                if (next == lit_Undef){
                     // Model found:
                     return l_True;
+                }
 
                 /*AB*/
 				if (verbosity >= 2) {
@@ -928,6 +931,7 @@ lbool Solver::search(int nof_conflicts/*AB*/, bool nosearch/*AE*/)
             }
 
             // Increase decision level and enqueue 'next'
+            assert(value(next) == l_Undef);
             newDecisionLevel();
             uncheckedEnqueue(next);
         }
@@ -991,12 +995,14 @@ lbool Solver::solve_(/*AB*/bool nosearch/*AE*/)
     learntsize_adjust_cnt     = (int)learntsize_adjust_confl;
     lbool   status            = l_Undef;
 
+    /*AB*/
     /*if (verbosity >= 1){
         printf("============================[ Search Statistics ]==============================\n");
         printf("| Conflicts |          ORIGINAL         |          LEARNT          | Progress |\n");
         printf("|           |    Vars  Clauses Literals |    Limit  Clauses Lit/Cl |          |\n");
         printf("===============================================================================\n");
     }*/
+    /*AE*/
 
     // Search:
     int curr_restarts = 0;
@@ -1013,9 +1019,11 @@ lbool Solver::solve_(/*AB*/bool nosearch/*AE*/)
         curr_restarts++;
     }
 
+    /*AB*/
     /*if (verbosity >= 1)
         printf("===============================================================================\n");
      */
+    /*AE*/
 
     if (status == l_True){
         // Extend & copy model:

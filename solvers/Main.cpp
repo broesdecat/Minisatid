@@ -416,6 +416,8 @@ void parseCommandline(int& argc, char** argv){
 				throw idpexception(s);
             }
            	modes.verbosity=verb;
+        }else if ((value = hasPrefix(argv[i], "-remap"))){
+            modes.remap = true;
         }else if (strncmp(&argv[i][0], "-n",2) == 0){
             char* endptr;
             modes.nbmodels = strtol(&argv[i][2], &endptr, 0);

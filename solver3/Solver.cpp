@@ -17,24 +17,6 @@
 //    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //--------------------------------------------------------------------------------------------------
 
-/************************************************************************************
-Copyright (c) 2009-2010, Broes De Cat
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-associated documentation files (the "Software"), to deal in the Software without restriction,
-including without limitation the rights to use, copy, modify, merge, publish, distribute,
-sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or
-substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-**************************************************************************************************/
 /****************************************************************************************[Solver.C]
 MiniSat -- Copyright (c) 2003-2006, Niklas Een, Niklas Sorensson
 
@@ -439,25 +421,16 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
                 varBumpActivity(var(q));
                 seen[var(q)] = 1;
                 if (level[var(q)] >= decisionLevel()){
+                	/*AB*/
                 	if(verbosity>4){
                     	explain.push_back(q);
             		}
+                	/*AE*/
                     pathC++;
                 }else{
                 	/*AB INCORRECT IDEA*/
                 	//might it help here to filter out literals that were not decision literals?
                 	//Important: take care that q is added if its decision variable is not in the clause!
-                	/*int qlevel = level[var(q)];
-					Lit v = trail[trail_lim[qlevel]];
-					out_learnt.push(v);
-					if (level[var(v)] > out_btlevel)
-						out_btlevel = level[var(v)];
-
-					for (int k = j+1; k < c.size(); k++){
-						if(level[var(c[k])]==qlevel){
-							seen[var(c[k])] = 1;
-						}
-					}*/
                 	/*AE*/
 
 					out_learnt.push(q);
@@ -640,9 +613,11 @@ void Solver::uncheckedEnqueue(Lit p, Clause* from)
     reason  [var(p)] = from;
     polarity[var(p)] = sign(p); /* Modified 2009 */
     trail.push(p);
+    /*AB*/
     if(verbosity>=5){
     	reportf("Enqueued "); gprintLit(p); reportf(" in mod %d\n", solver->getModPrintID());
     }
+    /*AE*/
 }
 
 
@@ -663,13 +638,15 @@ Clause* Solver::propagate()
     int     num_props = 0;
 
     while (qhead < trail.size()){
-    	if(verbosity>5){
+    	/*AB*/
+    	if(verbosity>10){
     		reportf("Trail, mod %d: ", solver->getModPrintID());
     		for(int i=0; i<trail.size(); i++){
     			gprintLit(trail[i]); reportf(" ");
     		}
     		reportf(".\n");
     	}
+    	/*AE*/
 
         Lit            p   = trail[qhead++];     // 'p' is enqueued fact to propagate.
         vec<Clause*>&  ws  = watches[toInt(p)];
@@ -996,9 +973,11 @@ bool Solver::solve(const vec<Lit>& assumps /*AB*/, bool nosearch /*AE*/)
         // Extend & copy model:
         model.growTo(nVars());
         for (int i = 0; i < nVars(); i++) model[i] = value(i);
+/*AB*/
 #ifndef NDEBUG
         verifyModel();
 #endif
+/*AE*/
     }else{
         assert(status == l_False);
         if (conflict.size() == 0)

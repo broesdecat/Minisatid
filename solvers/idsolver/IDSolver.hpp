@@ -115,6 +115,8 @@ public:
 
 	void		printStatistics		() const ;
 
+	void 		newDecisionLevel();
+
 protected:
 	vector<PropRule*>	definition;	// If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
 	// Note that v occurs negatively if DISJ, positively if CONJ; and the reverse for the body literals.
