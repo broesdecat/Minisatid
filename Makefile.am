@@ -1,10 +1,9 @@
-AM_LDFLAGS = $(SVNDIGEST_LDFLAGS)
-AM_CXXFLAGS = $(SVNDIGEST_CXXFLAGS)
-CXXFLAGS = -I$(srcdir)/solver3minisat22/ @AM_CXXFLAGS@
-LDFLAGS = @AM_LDFLAGS@
+#building with mingw by CXX=pathnaarg++vanmingw
 
-YFLAGS = -d @AM_YFLAGS@
-LFLAGS = @AM_LFLAGS@ #TODO prefix blijkt niet te werken, dus code herschreven om maar 1 parser te ondersteunen
+AM_CPPFLAGS = -I$(srcdir)/solver3minisat22/
+
+YFLAGS = -d 
+LFLAGS = #TODO prefix blijkt niet te werken, dus code herschreven om maar 1 parser te ondersteunen
 
 bin_PROGRAMS = minisatid
 
@@ -50,8 +49,10 @@ endif
 if USEMINISAT22
 minisatid_SOURCES += solver3minisat22/core/Solver.cc
 include_HEADERS += solver3minisat22/core/Solver.h solver3minisat22/core/SolverTypes.h
-include_HEADERS += solver3minisat22/mtl/IntTypes.h solver3minisat22/mtl/Alg.h solver3minisat22/mtl/Vec.h solver3minisat22/mtl/Map.h solver3minisat22/mtl/Alloc.h #solver3minisat22/mtl/Vec.h solver3minisat22/mtl/Heap.h solver3minisat22/mtl/Alg.h solver3minisat22/mtl/Sort.h
+include_HEADERS += solver3minisat22/mtl/IntTypes.h solver3minisat22/mtl/Alg.h solver3minisat22/mtl/Vec.h solver3minisat22/mtl/Map.h solver3minisat22/mtl/Alloc.h
+include_HEADERS += solver3minisat22/mtl/Queue.h solver3minisat22/mtl/Heap.h solver3minisat22/mtl/Sort.h solver3minisat22/mtl/XAlloc.h
 include_HEADERS += solver3minisat22/utils/ParseUtils.h solver3minisat22/utils/Options.h
+include_HEADERS += solver3minisat22/zconf.h solver3minisat22/zlib.h
 CXXFLAGS+=-DUSEMINISAT22
 endif
 
