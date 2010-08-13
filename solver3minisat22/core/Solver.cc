@@ -1115,10 +1115,9 @@ void Solver::toDimacs(FILE* f, const vec<Lit>& assumps)
 
 /*AB*/
 void Solver::printClause(CRef rc) const{
-    vec<Var> map; Var max = 0;
     const  Clause& c = ca[rc];
     for (int i = 0; i < c.size(); i++)
-    	fprintf(stderr, "%s%d:%c ", sign(c[i]) ? "-" : "", mapVar(var(c[i]), map, max)+1, value(c[i])==l_True?'1':(value(c[i])==l_False?'0':'X'));
+    	fprintf(stderr, "%s%d:%c ", sign(c[i]) ? "-" : "", var(c[i])+1, value(c[i])==l_True?'1':(value(c[i])==l_False?'0':'X'));
 }
 /*AE*/
 

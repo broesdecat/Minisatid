@@ -24,6 +24,8 @@
 #include "solvers/aggsolver/AggSolver.hpp"
 #include "solvers/modsolver/ModSolver.hpp"
 
+#include "solvers/utils/Print.hpp"
+
 /******************
  * INITIALIZATION *
  ******************/
@@ -130,10 +132,12 @@ uint64_t PCSolver::nVars() const {
 	return getSolver()->nbVars();
 }
 
-rClause PCSolver::addLearnedClause(vec<Lit>& lits) {
-	rClause c = getSolver()->makeClause(lits, true);
+rClause PCSolver::createClause(vec<Lit>& lits, bool learned){
+	return getSolver()->makeClause(lits, learned);
+}
+
+void PCSolver::addLearnedClause(rClause c) {
 	getSolver()->addLearnedClause(c);
-	return c;
 }
 
 void PCSolver::backtrackTo(int level) {
@@ -359,9 +363,9 @@ bool PCSolver::finishParsing() {
 	//TODO later modes.mnmz, modes.cp
 
 	// Pre processing
-	if(aggsolverpresent){
+	/*if(aggsolverpresent){
 		getAggSolver()->findClausalPropagations();
-	}
+	}*/
 
 	return true;
 }
@@ -887,5 +891,6 @@ void PCSolver::printChoiceMade(int level, Lit l) const {
 }
 
 vector<rClause> PCSolver::getClausesWhichOnlyContain(const vector<Var>& vars){
-	return getSolver()->getClausesWhichOnlyContain(vars);
+	return vector<rClause>();
+	//return getSolver()->getClausesWhichOnlyContain(vars);
 }

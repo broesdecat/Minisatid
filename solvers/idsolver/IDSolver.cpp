@@ -951,7 +951,7 @@ rClause IDSolver::indirectPropagate() {
 void IDSolver::newDecisionLevel() {
 	//Originally checked this after indirectpropagate, which was incorrect, because only at the end of any
 	//decision level is there a guarantee of being cyclefree.
-	assert(getAggSolver()!=NULL || isCycleFree());
+	assert(isCycleFree());
 }
 
 /**
@@ -1386,7 +1386,8 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
 		if (isTrue(*tch)) {
 			loopf[0] = createNegativeLiteral(*tch); //negate the head to create a clause
-			rClause c = getPCSolver()->addLearnedClause(loopf);
+			rClause c = getPCSolver()->createClause(loopf, true);
+			getPCSolver()->addLearnedClause(c);
 			justify_conflicts++;
 			if (getPCSolver()->modes().verbosity >= 2) {
 				reportf("Adding conflicting loop formula: [ ");
@@ -1406,13 +1407,19 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 		}
 
 		// ~v \vee \bigvee\extdisj{L}
-		addLoopfClause(createNegativeLiteral(v), loopf);
+		rClause confl = addLoopfClause(createNegativeLiteral(v), loopf);
+		if(confl != nullPtrClause){
+			return confl;
+		}
 
 		// \forall d \in \extdisj{L}: ~d \vee v
 		vec<Lit> binaryclause(2);
 		binaryclause[1] = createPositiveLiteral(v);
 		for (int i = 1; i < loopf.size(); ++i) {
-			addLoopfClause(~loopf[i], binaryclause);
+			rClause confl = addLoopfClause(~loopf[i], binaryclause);
+			if(confl != nullPtrClause){
+				return confl;
+			}
 		}
 
 		loopf.shrink(2);
@@ -1421,19 +1428,12 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 		loopf[1] = createPositiveLiteral(v);
 	}
 
-	bool canpropagate = true;
-	for (int i = 1; canpropagate && i < loopf.size(); i++) {
-		if (getPCSolver()->value(loopf[i]) == l_Undef) {
-			canpropagate = false;
-		}
-	}
-
 	for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
 		if (isUnknown(*tch)) {
 			Lit l = createNegativeLiteral(*tch);
-			rClause c = addLoopfClause(l, loopf);
-			if (canpropagate) {
-				getPCSolver()->setTrue(l, c);
+			rClause confl = addLoopfClause(l, loopf);
+			if(confl != nullPtrClause){
+				return confl;
 			}
 		}
 	}
@@ -1443,7 +1443,29 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 
 rClause IDSolver::addLoopfClause(Lit l, vec<Lit>& lits) {
 	lits[0] = l;
-	rClause c = getPCSolver()->addLearnedClause(lits);
+	rClause c = getPCSolver()->createClause(lits, true);
+	getPCSolver()->addLearnedClause(c);
+
+	//if unit propagation is already possible, this might not be detected on time, so help a little
+	int unknown = 0;
+	int unknindex = -1;
+	bool allfalse = true;
+	for(int i=0; unknown<2 && i<lits.size(); i++){
+		if(value(lits[i])==l_Undef){
+			unknown++;
+			unknindex = i;
+			allfalse = false;
+		}else if(value(lits[i])==l_True){
+			allfalse = false;
+		}
+	}
+	if(allfalse){
+		return false;
+	}
+	if(unknown==1){
+		getPCSolver()->setTrue(lits[unknindex], c);
+	}
+
 
 	if (getPCSolver()->modes().verbosity >= 2) {
 		reportf("Adding loop formula: [ ");
@@ -1451,7 +1473,7 @@ rClause IDSolver::addLoopfClause(Lit l, vec<Lit>& lits) {
 		reportf("].\n");
 	}
 
-	return c;
+	return nullPtrClause;
 }
 
 /* Precondition:  seen[i]==0 for each i.

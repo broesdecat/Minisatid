@@ -39,6 +39,8 @@ ModSolver::ModSolver(modindex child, Var head, ModSolverData* mh):
 	modescopy.nbmodels = 1;
 
 	solver = new PCSolver(modescopy);
+	//FIXME FIXME on purpose not using getPCSolver and solver in ISolver
+	//but should adapt code to prevent errors (getPCSolver should NOT be called!)
 	getSolver()->setModSolver(this);
 }
 
@@ -356,7 +358,8 @@ rClause ModSolver::propagateAtEndOfQueue(){
 
 	rClause confl = nullPtrClause;
 	if(!noconflict){
-		confl = getSolver()->addLearnedClause(confldisj);
+		confl = getSolver()->createClause(confldisj, true);
+		getSolver()->addLearnedClause(confl);
 
 		if(getModSolverData().modes().verbosity>=5){
 			Print::printClause(confl, getSolver());

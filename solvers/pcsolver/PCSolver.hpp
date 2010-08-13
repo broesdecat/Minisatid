@@ -175,8 +175,9 @@ public:
 	lbool		value			(Lit p) const;		// The current value of a literal.
 	uint64_t	nVars			()      const;		// The current number of variables.
 
+	rClause 	createClause(vec<Lit>& lits, bool learned);
 	//IMPORTANT: THE FIRST LITERAL IN THE CLAUSE HAS TO BE THE ONE WHICH CAN BE PROPAGATED FROM THE REST!!!!!!!
-	rClause 	addLearnedClause(vec<Lit>& lits);	// don't check anything, just add it to the clauses and bump activity
+	void 		addLearnedClause(rClause c); //Propagate if clause is unit, return false if c is conflicting
 	void    	backtrackTo		(int level);	// Backtrack until a certain level.
 	void    	setTrue			(Lit p, rClause c = nullPtrClause);		// Enqueue a literal. Assumes value of literal is undefined
 	rClause		makeClause		(vec<Lit>& lits, bool b);

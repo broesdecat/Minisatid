@@ -180,7 +180,7 @@ private:
 	void				adaptValuesOnPropagation(Lit l);
 	void 				doUnitPropagation	(const vec<Lit>&);
 	bool 				search				(const vec<Lit>&, bool search = true);
-	bool 			analyzeResult		(bool result, bool allknown, vec<Lit>& confldisj);
+	bool 				analyzeResult		(bool result, bool allknown, vec<Lit>& confldisj);
 };
 
 #endif// MODSOLVER_H_

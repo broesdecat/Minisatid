@@ -49,7 +49,8 @@ shared_ptr<SolverInterface> unittest(ECNF_mode& modes){ //unsat
 	return pcsolver;
 }
 
-shared_ptr<SolverInterface> unittest2(ECNF_mode& modes){ //magic seq
+//Magic sequence problem
+shared_ptr<SolverInterface> unittest2(ECNF_mode& modes){
 	modes.cp = true;
 	shared_ptr<PropositionalSolver> pcsolver = shared_ptr<PropositionalSolver>(new PropositionalSolver(modes));
 	vector<Literal> lits;
@@ -80,6 +81,14 @@ shared_ptr<SolverInterface> unittest2(ECNF_mode& modes){ //magic seq
 	lits3.push_back(Literal(5));
 	pcsolver->addClause(lits3);
 	pcsolver->addCPSum(Literal(5), elemx, mult, MINISAT::MEQ, 0);
+
+	int literalcount = 6;
+	for(int i=0; i<n; i++){
+		for(int j=0; j<n; j++){
+			pcsolver->addCPBinaryRel(Literal(literalcount++), elemx[i], MINISAT::MEQ, j);
+			pcsolver->addCPBinaryRel(Literal(literalcount++), elemx[i], MINISAT::MGEQ, j);
+		}
+	}
 
 	if(!pcsolver->finishParsing()){
 		return shared_ptr<SolverInterface>();
