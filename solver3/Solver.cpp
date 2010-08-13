@@ -205,7 +205,7 @@ vector<Clause*> Solver::getClausesWhichOnlyContain(const vector<Var>& vars){
 		for(int j=0; allmatch && j<clauses[i]->size(); j++){
 			bool found = false;
 			for(int k=0; !found && k<vars.size(); k++){
-				if(var(clauses[i]->operator[] (j))==vars[i]){
+				if(var(clauses[i]->operator[] (j))==vars[k]){
 					found = true;
 				}
 			}
