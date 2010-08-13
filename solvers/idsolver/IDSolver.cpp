@@ -869,7 +869,7 @@ rClause IDSolver::indirectPropagate() {
 
 	findCycleSources();
 
-	if(css.size()==0){
+	if (css.size() == 0) {
 		return nullPtrClause;
 	}
 
@@ -948,7 +948,9 @@ rClause IDSolver::indirectPropagate() {
 	return confl;
 }
 
-void IDSolver::newDecisionLevel(){
+void IDSolver::newDecisionLevel() {
+	//Originally checked this after indirectpropagate, which was incorrect, because only at the end of any
+	//decision level is there a guarantee of being cyclefree.
 	assert(getAggSolver()!=NULL || isCycleFree());
 }
 
@@ -970,7 +972,7 @@ void IDSolver::findCycleSources() {
 
 			const vector<Var>& ds = disj_occurs[toInt(~l)];
 			for (vector<Var>::const_iterator j = ds.begin(); j < ds.end(); j++) {
-				checkJustification(*j, ~l);
+				checkJustification(*j);
 			}
 
 			if (getAggSolver() != NULL) {
@@ -978,7 +980,7 @@ void IDSolver::findCycleSources() {
 				getAggSolver()->getHeadsOfAggrInWhichOccurs(var(~l), heads);
 
 				for (int j = 0; j < heads.size(); j++) {
-					checkJustification(heads[j], ~l);
+					checkJustification(heads[j]);
 				}
 			}
 		}
@@ -1003,44 +1005,13 @@ void IDSolver::findCycleSources() {
 	cycle_sources += css.size();
 }
 
-void IDSolver::checkJustification(Var head, Lit lbecamefalse) {
-	if (isCS[head]) {
-		return;
-	}
-
-	/*	TODO proved incorrect for some sokobans, check if some correction is possible (speeds up calculation)
-	 bool dependsonl = false;
-	 for(int i=0; !dependsonl && i<justification[head].size(); i++){
-	 if(justification[head][i]==lbecamefalse){
-	 dependsonl = true;
-	 }
-	 }
-	 if(!dependsonl){
-	 isCS[head] = false;
-	 return;
-	 }
-	 */
-
-	handlePossibleCycleSource(head);
-}
-
 void IDSolver::checkJustification(Var head) {
 	if (isCS[head]) {
 		return;
 	}
 
-	/*	TODO same
-	 bool dependsonfalse = false;
-	 for(int i=0; !dependsonfalse && i<justification[head].size(); i++){
-	 if(value(justification[head][i])==l_False){
-	 dependsonfalse = true;
-	 }
-	 }
-	 if(dependsonfalse){
-	 isCS[head] = false;
-	 return;
-	 }
-	 */
+	//Incorrect to prune out heads in which Lit is not the justification
+	//Incorrect to prune out heads with false justifications
 
 	handlePossibleCycleSource(head);
 }
@@ -1082,7 +1053,8 @@ bool IDSolver::findJustificationDisj(Var v, vec<Lit>& jstf) {
 	for (int i = 0; !externallyjustified && i < c.size(); i++) {
 		if (!isFalse(c[i])) {
 			pos = i;
-			if (!inSameSCC(v, var(c[i])) || !isPositive(c[i]) || defType[var(c[i])] == NONDEFTYPE) {
+			if (!inSameSCC(v, var(c[i])) || !isPositive(c[i]) || defType[var(
+					c[i])] == NONDEFTYPE) {
 				externallyjustified = true;
 			}
 		}
@@ -1399,17 +1371,18 @@ void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf) {
  * Returns a non-owning pointer
  */
 rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
-	unfoundedsets++;
 	assert(!ufs.empty());
+
+	unfoundedsets++;
 
 	// Create the loop formula: add the external disjuncts (first element will be filled in later).
 	vec<Lit> loopf(1);
 	addExternalDisjuncts(ufs, loopf);
 
 	// Check if any of the literals in the loop are already true, which leads to a conflict.
-	for (std::set<Var>::const_iterator i=ufs.begin(); i!=ufs.end(); i++) {
-		if (isTrue(*i)) {
-			loopf[0] = createNegativeLiteral(*i); //negate the head to create a clause
+	for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
+		if (isTrue(*tch)) {
+			loopf[0] = createNegativeLiteral(*tch); //negate the head to create a clause
 			rClause c = getPCSolver()->addLearnedClause(loopf);
 			justify_conflicts++;
 			if (getPCSolver()->modes().verbosity >= 2) {
@@ -1421,9 +1394,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 		}
 	}
 
-	// No conflict
-
-	// Introduce new variable if large loop formula
+	// No conflict: then enqueue all facts and their loop formulas.
 	if (loopf.size() >= 5) {
 		//introduce a new var to represent all external disjuncts: v <=> \bigvee external disj
 		Var v = getPCSolver()->newVar();
@@ -1447,24 +1418,24 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 		loopf[1] = createPositiveLiteral(v);
 	}
 
-	rClause confl = nullPtrClause;
-	for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
-		Lit l = createNegativeLiteral(*tch);
-		rClause c = addLoopfClause(l, loopf);
-
-		if (isUnknown(*tch)) {
-			getPCSolver()->setTrue(l, c);
-		} else if(isTrue(*tch)) { //conflict!
-			if (getPCSolver()->modes().verbosity >= 2) {
-				reportf("Deriving conflict in ");
-				gprintLit(l, l_True);
-				reportf(" because of an unfounded set. \n");
-			}
-			confl = c;
+	bool canpropagate = true;
+	for (int i = 1; canpropagate && i < loopf.size(); i++) {
+		if (getPCSolver()->value(loopf[i]) == l_Undef) {
+			canpropagate = false;
 		}
 	}
 
-	return confl;
+	for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
+		if (isUnknown(*tch)) {
+			Lit l = createNegativeLiteral(*tch);
+			rClause c = addLoopfClause(l, loopf);
+			if (canpropagate) {
+				getPCSolver()->setTrue(l, c);
+			}
+		}
+	}
+
+	return nullPtrClause;
 }
 
 rClause IDSolver::addLoopfClause(Lit l, vec<Lit>& lits) {

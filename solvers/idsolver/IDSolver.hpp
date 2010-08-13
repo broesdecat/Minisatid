@@ -193,7 +193,6 @@ protected:
 	void	findJustification			(Var v);
 	void 	handlePossibleCycleSource	(Var head);
 	void 	checkJustification			(Var head);
-	void 	checkJustification			(Var head, Lit lbecamefalse);
 
 	// Propagation method:
 	rClause  indirectPropagate  		();                        /* Main method.
