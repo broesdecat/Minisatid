@@ -358,6 +358,11 @@ bool PCSolver::finishParsing() {
 
 	//TODO later modes.mnmz, modes.cp
 
+	// Pre processing
+	if(aggsolverpresent){
+		getAggSolver()->findClausalPropagations();
+	}
+
 	return true;
 }
 
@@ -879,4 +884,8 @@ void PCSolver::printChoiceMade(int level, Lit l) const {
 		gprintLit(l);
 		reportf(".\n");
 	}
+}
+
+vector<rClause> PCSolver::getClausesWhichOnlyContain(const vector<Var>& vars){
+	return getSolver()->getClausesWhichOnlyContain(vars);
 }

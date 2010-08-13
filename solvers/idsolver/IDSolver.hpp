@@ -191,7 +191,6 @@ protected:
 	void	clearCycleSources			();
 	void	findCycleSources			();
 	void	findJustification			(Var v);
-	void 	handlePossibleCycleSource	(Var head);
 	void 	checkJustification			(Var head);
 
 	// Propagation method:

@@ -1006,38 +1006,41 @@ void IDSolver::findCycleSources() {
 }
 
 void IDSolver::checkJustification(Var head) {
-	if (isCS[head]) {
+	if (isCS[head] || isFalse(head) || !isDefInPosGraph(head)) {
+		return;
+	}
+
+	bool justfalse = false;
+	for(int i=0; !justfalse && i<justification[head].size(); i++){
+		if(isFalse(justification[head][i])){
+			justfalse = true;
+		}
+	}
+	if(!justfalse){
 		return;
 	}
 
 	//Incorrect to prune out heads in which Lit is not the justification
-	//Incorrect to prune out heads with false justifications
 
-	handlePossibleCycleSource(head);
-}
-
-void IDSolver::handlePossibleCycleSource(Var head) {
-	if (!isFalse(head) && isDefInPosGraph(head)) {
-		vec<Lit> jstf;
-		bool external;
-		if (defType[head] == DISJ) {
-			external = findJustificationDisj(head, jstf);
-		} else {
-			assert(defType[head]==AGGR);
-			getAggSolver()->findJustificationAggr(head, jstf);
-			external = true;
-			for (int i = 0; external && i < jstf.size(); i++) {
-				if (inSameSCC(head, var(jstf[i])) && isPositive(jstf[i])) {
-					external = false;
-				}
+	vec<Lit> jstf;
+	bool external;
+	if (defType[head] == DISJ) {
+		external = findJustificationDisj(head, jstf);
+	} else {
+		assert(defType[head]==AGGR);
+		getAggSolver()->findJustificationAggr(head, jstf);
+		external = true;
+		for (int i = 0; external && i < jstf.size(); i++) {
+			if (inSameSCC(head, var(jstf[i])) && isPositive(jstf[i])) {
+				external = false;
 			}
 		}
-		assert(jstf.size()>0);
-		if (external) {
-			changejust(head, jstf);
-		} else {
-			addCycleSource(head);
-		}
+	}
+	assert(jstf.size()>0);
+	if (external) {
+		changejust(head, jstf);
+	} else {
+		addCycleSource(head);
 	}
 }
 

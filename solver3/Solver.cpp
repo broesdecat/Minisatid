@@ -198,6 +198,28 @@ bool Solver::totalModelFound(){
 	return v==var_Undef;
 }
 
+vector<Clause*> Solver::getClausesWhichOnlyContain(const vector<Var>& vars){
+	vector<Clause*> matches;
+	for(int i=0; i<clauses.size(); i++){
+		bool allmatch = true;
+		for(int j=0; allmatch && j<clauses[i]->size(); j++){
+			bool found = false;
+			for(int k=0; !found && k<vars.size(); k++){
+				if(var(clauses[i]->operator[] (j))==vars[i]){
+					found = true;
+				}
+			}
+			if(!found){
+				allmatch = false;
+			}
+		}
+		if(allmatch){
+			matches.push_back(clauses[i]);
+		}
+	}
+	return matches;
+}
+
 /*AE*/
 
 

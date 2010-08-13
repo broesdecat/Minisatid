@@ -145,6 +145,7 @@ public:
 	 * PRESENT is set to true if aggregate propagations should be done
 	 */
 	void    	finishECNF_DataStructures (bool& present, bool& unsat); //throws UNSAT
+	void		findClausalPropagations();
 
 	void 		removeHeadWatch(Var x);
 	/////////////////////END INITIALIZATION

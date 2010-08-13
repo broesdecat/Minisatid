@@ -197,6 +197,39 @@ bool AggSolver::finishSets(vector<pSet>& sets) {
 	return true;
 }
 
+void AggSolver::findClausalPropagations(){
+	int counter = 0;
+	for(int i=0; i<aggrminsets.size(); i++){
+		vector<Var> set;
+		for(lwlv::const_iterator j=aggrminsets[i]->getWLBegin(); j<aggrminsets[i]->getWLEnd(); j++){
+			set.push_back(var((*j).getLit()));
+		}
+		counter += getPCSolver()->getClausesWhichOnlyContain(set).size();
+	}
+	for(int i=0; i<aggrprodsets.size(); i++){
+		vector<Var> set;
+		for(lwlv::const_iterator j=aggrprodsets[i]->getWLBegin(); j<aggrprodsets[i]->getWLEnd(); j++){
+			set.push_back(var((*j).getLit()));
+		}
+		counter += getPCSolver()->getClausesWhichOnlyContain(set).size();
+	}
+	for(int i=0; i<aggrsumsets.size(); i++){
+		vector<Var> set;
+		for(lwlv::const_iterator j=aggrsumsets[i]->getWLBegin(); j<aggrsumsets[i]->getWLEnd(); j++){
+			set.push_back(var((*j).getLit()));
+		}
+		counter += getPCSolver()->getClausesWhichOnlyContain(set).size();
+	}
+	for(int i=0; i<aggrmaxsets.size(); i++){
+		vector<Var> set;
+		for(lwlv::const_iterator j=aggrmaxsets[i]->getWLBegin(); j<aggrmaxsets[i]->getWLEnd(); j++){
+			set.push_back(var((*j).getLit()));
+		}
+		counter += getPCSolver()->getClausesWhichOnlyContain(set).size();
+	}
+	reportf("Relevant clauses: %d.\n", counter);
+}
+
 bool AggSolver::addSet(int setid, const vec<Lit>& lits,
 		const vector<Weight>& weights) {
 	assert(setid>0);
