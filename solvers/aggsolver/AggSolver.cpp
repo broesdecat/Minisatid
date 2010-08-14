@@ -556,7 +556,7 @@ rClause AggSolver::getExplanation(const Lit& p) {
 
 	//create a conflict clause and return it
 	rClause c = getPCSolver()->createClause(lits, true);
-	getPCSolver()->addLearnedClause(c);
+//	getPCSolver()->addLearnedClause(c);
 
 	if (getPCSolver()->modes().verbosity >= 2) {
 		reportf("Implicit aggregate reason clause for ");
