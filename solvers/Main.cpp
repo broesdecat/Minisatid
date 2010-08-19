@@ -271,10 +271,6 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		if(modes.verbosity>0){
-			reportf("| Parsing time              : %7.2f s                                    |\n", cpuTime()-cpu_time);
-		}
-
 		if (modes.verbosity >= 1) {
 			double parse_time = cpuTime() - cpu_time;
 			reportf("| Parsing time              : %7.2f s                                       |\n", parse_time);

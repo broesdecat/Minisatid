@@ -215,8 +215,8 @@ bool PropositionalSolver::addSet(int id, const vector<Literal>& lits, const vect
 	return getSolver()->addSet(id, ll, w);
 }
 
-bool PropositionalSolver::addAggrExpr(Literal head, int setid, Weight bound, bool lower, AggrType type, bool defined){
-	return getSolver()->addAggrExpr(checkLit(head), setid, bound, lower, type, defined);
+bool PropositionalSolver::addAggrExpr(Literal head, int setid, Weight bound, Bound sign, AggrType type, HdEq sem){
+	return getSolver()->addAggrExpr(checkLit(head), setid, bound, sign, type, sem);
 }
 
 bool PropositionalSolver::finishParsing	(){
@@ -335,8 +335,8 @@ bool ModalSolver::addSet(modID modid, int id, vector<LW>& lws){
 	return addSet(getModIndex(modid), id, lits, weights);
 }
 
-bool ModalSolver::addAggrExpr(modID modid, Literal head, int setid, Weight bound, bool lower, AggrType type, bool defined){
-	return getSolver()->addAggrExpr(getModIndex(modid), checkLit(head), setid, bound, lower, type, defined);
+bool ModalSolver::addAggrExpr(modID modid, Literal head, int setid, Weight bound, Bound sign, AggrType type, HdEq sem){
+	return getSolver()->addAggrExpr(getModIndex(modid), checkLit(head), setid, bound, sign, type, sem);
 }
 
 bool ModalSolver::finishParsing	(){

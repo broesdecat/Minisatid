@@ -129,7 +129,7 @@ public:
 	Clause* 	makeClause(vec<Lit>& lits, bool b){	return Clause_new(lits, b);	}
 	const Clause& 	getClause		(int i) const { return *clauses[i]; }
 	int			nbClauses			() const { return clauses.size(); }
-	vector<Clause*> getClausesWhichOnlyContain(const vector<Var>& vars);
+	//vector<Clause*> getClausesWhichOnlyContain(const vector<Var>& vars);
 /*AE*/
 
     // Constructor/Destructor:

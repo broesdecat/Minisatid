@@ -47,8 +47,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 using namespace Aggrs;
 
 void AggrSet::backtrack(int index) {
-	//BELANGRIJK: hier had ik een referentie gezet en dan deed ik pop, wat dus niet mag, want dan is die value kwijt!
-	PropagationInfo pi = stack.back();
+	const PropagationInfo& pi = stack.back();
 	stack.pop_back();
 
 	assert(pi.getType()!=HEAD && var(pi.getLit())==var(wlits[index].getLit()));
@@ -75,7 +74,7 @@ AggrMaxSet::AggrMaxSet(const vec<Lit>& lits, const vector<Weight>& weights, pAgg
 		AggrSet(lits, weights, s){
 	name = "MAX";
 	//FIXME moet eigenlijk een voorstelling van -infinity zijn
-	//ik had eerst: |minimum van de set| -1, maar de bound kan NOG lager liggen, dus dan is het fout
+	//ik had eerst: |minimum van de set| -1, maar de bound zelf kan NOG lager liggen, dus dan is het fout
 	emptysetvalue = Weight(INT_MIN);
 	assert(emptysetvalue<=INT_MIN);
 }
@@ -124,7 +123,7 @@ rClause AggrSet::propagate(const Lit& p, const AggrWatch& ws){
 		}else{ //head is not yet known, so at most the head can be propagated
 			lbool result = pa->canPropagateHead(getCC(), getCP());
 			if(result!=l_Undef){
-				rClause cc = getSolver()->notifySATsolverOfPropagation(result==l_True?pa->getHead():~pa->getHead(), new AggrReason(*i, CPANDCC, true));
+				rClause cc = getSolver()->notifySATsolverOfPropagation(result==l_True?pa->getHead():~pa->getHead(), new AggrReason(*i, p, CPANDCC, true));
 				confl = cc;
 			}
 		}
@@ -175,9 +174,18 @@ void AggrSet::doSetReduction() {
 		}
 	}
 
+	lwlv newset2;
+	for(lwlv::size_type i=0; i<newset.size(); i++){
+		if(!isNeutralElement(newset[i].getWeight())){
+			newset2.push_back(newset[i]);
+		}else{
+			setisreduced = true;
+		}
+	}
+
 	if(setisreduced){
 		wlits.clear();
-		wlits.insert(wlits.begin(), newset.begin(), newset.end());
+		wlits.insert(wlits.begin(), newset2.begin(), newset2.end());
 	}
 
 	//important to sort again to guarantee that it is sorted according to the weights
@@ -222,7 +230,7 @@ bool AggrSumSet::initialize(){
 		}
 		wlits = wlits2;
 		for(lsagg::const_iterator i=getAggBegin(); i<getAggEnd(); i++){
-			(*i)->addToBounds(totalneg);
+			(dynamic_cast<SumAgg*>(*i))->addToBounds(totalneg);
 		}
 	}
 
@@ -421,4 +429,20 @@ bool AggrSet::isJustified(const WLV& elem, vec<int>& currentjust, bool real) con
 
 bool AggrSet::isJustified(Var x, vec<int>& currentjust) const{
 	return currentjust[x]==0;
+}
+
+///////
+// DEBUG
+///////
+
+void Aggrs::printAggrSet(pSet set, bool endl){
+	reportf("%s{", set->getName().c_str());
+	for (lwlv::const_iterator i=set->getWLBegin(); i<set->getWLEnd(); ++i) {
+		reportf(" "); gprintLit((*i).getLit(), (*i).getValue()); reportf("(%s)",printWeight((*i).getWeight()).c_str());
+	}
+	if(endl){
+		reportf(" }\n");
+	}else{
+		reportf(" }");
+	}
 }

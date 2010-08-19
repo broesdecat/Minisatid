@@ -127,6 +127,8 @@ public:
 	lprop::const_iterator 			getStackEnd()		const 	{ return stack.end(); }
 
 	pAggSolver						getSolver()			const	{ return aggsolver; }
+
+	virtual bool					isNeutralElement(const Weight& w) const = 0;
 };
 
 class AggrMaxSet: public AggrSet{
@@ -137,6 +139,8 @@ public:
 	virtual Weight 	getBestPossible				() 										const;
 	virtual void 	addToCertainSet				(const WLit& l);
 	virtual void 	removeFromPossibleSet		(const WLit& l);
+
+	virtual bool	isNeutralElement(const Weight& w) const { return false; }
 };
 
 class AggrSPSet: public AggrSet{
@@ -150,6 +154,8 @@ public:
 	virtual void 	removeFromPossibleSet		(const WLit& l);
 	virtual Weight	add							(const Weight& lhs, const Weight& rhs)	const = 0;
 	virtual Weight	remove						(const Weight& lhs, const Weight& rhs) 	const = 0;
+
+	virtual bool	isNeutralElement(const Weight& w) const = 0;
 };
 
 class AggrSumSet: public AggrSPSet{
@@ -161,6 +167,8 @@ public:
 	virtual WLit 	handleOccurenceOfBothSigns	(const WLit& one, const WLit& two);
 	virtual Weight	add							(const Weight& lhs, const Weight& rhs) const;
 	virtual Weight	remove						(const Weight& lhs, const Weight& rhs) const;
+
+	virtual bool	isNeutralElement(const Weight& w) const { return w==0; }
 };
 
 class AggrProdSet: public AggrSPSet{
@@ -172,6 +180,8 @@ public:
 	virtual WLit 	handleOccurenceOfBothSigns	(const WLit& one, const WLit& two);
 	virtual Weight	add							(const Weight& lhs, const Weight& rhs) const;
 	virtual Weight	remove						(const Weight& lhs, const Weight& rhs) const;
+
+	virtual bool	isNeutralElement(const Weight& w) const { return w==1; }
 };
 
 class AggrWatch {
@@ -187,6 +197,8 @@ public:
     int 		getIndex() 	const 	{ return index; }
     pSet 		getSet() 	const	{ return set; }
 };
+
+void printAggrSet(pSet, bool);
 }
 
 #endif /* AGGSETS_H_ */

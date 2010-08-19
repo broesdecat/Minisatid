@@ -129,10 +129,6 @@ protected:
 	vec<bool>	isCS;                   // Per atom: is it a cycle source?
 	vec<int>	seen, seen2;
 
-	lbool		value(Var x) const;
-	lbool		value(Lit p) const;
-	int			nVars()      const;
-
 	bool 		firstsearch;
 	uint64_t 	prev_conflicts/*not strictly a statistic!*/;
     uint64_t 	cycle_sources, justifiable_cycle_sources, cycles, cycle_sizes, justify_conflicts;
@@ -150,9 +146,11 @@ protected:
 
 	// ECNF_mode.def additions to Solver state:
 	//
-	vec<Var>		defdVars;	// All the vars that are the head of some kind of definition (disj, conj or aggr). Allows to iterate over all definitions.
+	vector<Var>		defdVars;	// All the vars that are the head of some kind of definition (disj, conj or aggr). Allows to iterate over all definitions.
 	vec<int>		scc;		// To which strongly connected component does the atom belong. Zero iff defType[v]==NONDEF.
 	bool 			posloops, negloops;
+
+	set<Var>		toremoveaggrheads; //The set of defined aggregates that are no longer defined and should be removed from IDSolver during simplification.
 
 	bool		isDefInPosGraph		(Var v) const;
 	bool		isDefined			(Var v) const;
@@ -164,7 +162,7 @@ protected:
 	void 		propagateJustificationAggr(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& heads);
 	void 		propagateJustificationConj(Lit l, vec<Lit>& heads);
 
-	bool 		findJustificationDisj(Var v, vec<Lit>& jstf);
+	void 		findJustificationDisj(Var v, vec<Lit>& jstf);
 	bool 		findJustificationDisj(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust);
 	bool 		findJustificationConj(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust);
 	bool 		findJustificationAggr(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust);
@@ -237,17 +235,8 @@ protected:
 
 	void	addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf);
 
-	inline bool isPositive				(Lit l) const;
-	inline bool isTrue					(Lit l) const;
-	inline bool isFalse					(Lit l) const;
-	inline bool isUnknown				(Lit l) const;
-	inline bool isTrue					(Var l) const;
-	inline bool isFalse					(Var l) const;
-	inline bool isUnknown				(Var l) const;
 	inline bool canBecomeTrue			(Lit l) const;
 	inline bool inSameSCC				(Var x, Var y) const;
-	inline Lit 	createNegativeLiteral	(Var x) const;
-	inline Lit 	createPositiveLiteral	(Var x) const;
 
 	/*******************************
 	 * WELL FOUNDED MODEL CHECKING *
