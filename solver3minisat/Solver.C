@@ -71,7 +71,7 @@ Solver::Solver(pPCSolver s/*A*/) :
   , order_heap       (VarOrderLt(activity))
   , random_seed      (91648253)
   , progress_estimate(0)
-  , remove_satisfied (false/*A*/)
+  , remove_satisfied (true/*A*/)
 {}
 
 

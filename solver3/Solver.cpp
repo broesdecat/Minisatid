@@ -75,7 +75,7 @@ Solver::Solver(pPCSolver s/*A*/) :
   , simpDB_props     (0)
   , order_heap       (VarOrderLt(activity))
   , progress_estimate(0)
-  , remove_satisfied (false/*A*/)
+  , remove_satisfied (true/*A*/)
   /*AB*/, backtrackLevels(NULL)/*AE*/
 {}
 
