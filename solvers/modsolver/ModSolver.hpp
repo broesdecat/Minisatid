@@ -24,7 +24,7 @@
 
 #include "solvers/utils/Utils.hpp"
 
-#include "solvers/pcsolver/ISolver.hpp"
+#include "solvers/pcsolver/SolverModule.hpp"
 
 using namespace std;
 
@@ -63,7 +63,7 @@ struct AV{
     bool operator <  (AV p) const { return atom < p.atom;  }*/
 };
 
-class ModSolver: public ISolver{
+class ModSolver: public SolverModule{
 private:
 	bool hasparent, searching; //, startedsearch;
 

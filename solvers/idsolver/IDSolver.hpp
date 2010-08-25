@@ -47,7 +47,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include "solvers/utils/Utils.hpp"
 
-#include "solvers/pcsolver/ISolver.hpp"
+#include "solvers/pcsolver/SolverModule.hpp"
 typedef PCSolver* pPCSolver;
 
 #include "solvers/aggsolver/AggSolver.hpp"
@@ -72,7 +72,7 @@ public:
     Lit 	operator [](int i) 	const	{ return lits[i]; }
 };
 
-class IDSolver: public ISolver{
+class IDSolver: public SolverModule{
 private:
 	pAggSolver		aggsolver;
 	long			unfoundedsets;

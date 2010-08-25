@@ -41,11 +41,16 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include <cstdio>
 
+#include <map>
+
 #include "solvers/aggsolver/AggTypes.hpp"
 
 namespace Aggrs{
 	class Agg;
 	class AggrSet;
+	class AggrSumSet;
+	class AggrProdSet;
+	class AggrMaxSet;
 	class AggrWatch;
 	class AggrReason;
 
@@ -55,7 +60,8 @@ namespace Aggrs{
 	typedef AggrSet* pSet;
 }
 
-#include "solvers/pcsolver/ISolver.hpp"
+#include "solvers/pcsolver/SolverModule.hpp"
+class PCSolver;
 typedef PCSolver* pPCSolver;
 
 class AggSolver;
@@ -72,7 +78,7 @@ using namespace Aggrs;
  * heuristic to delay propagations.
  */
 
-class AggSolver: public tr1::enable_shared_from_this<AggSolver>, public ISolver{
+class AggSolver: public tr1::enable_shared_from_this<AggSolver>, public SolverModule{
 public:
 	AggSolver(pPCSolver s);
 	virtual ~AggSolver();
@@ -141,22 +147,22 @@ public:
 	// OPTIMISATION
 	//////
 
-	bool 		addMnmzSum				(Var headv, int setid, Bound boundsign);
-    bool 		invalidateSum			(vec<Lit>& invalidation, Var head);
-    void 		propagateMnmz			(Var head);
+	bool 	addMnmzSum					(Var headv, int setid, Bound boundsign);
+    bool 	invalidateSum				(vec<Lit>& invalidation, Var head);
+    void 	propagateMnmz				(Var head);
 
 	//////
 	// RECURSIVE AGGREGATES
 	//////
-	void 		propagateJustifications	(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& v, vec<int> &nb_body_lits_to_justify);
-	void 		findJustificationAggr	(Var head, vec<Lit>& jstf);
-	bool 		directlyJustifiable		(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust);
-	void 		addExternalLiterals		(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
+	void 	propagateJustifications		(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& v, vec<int> &nb_body_lits_to_justify);
+	void 	findJustificationAggr		(Var head, vec<Lit>& jstf);
+	bool 	directlyJustifiable			(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust);
+	void 	addExternalLiterals			(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
 
 	/**
-	 * Adds the heads of the aggregates in which x occurs as a body literal to heads
+	 * Returns a vector containing the heads of the aggregates in which x occurs as a set literal
 	 */
-	void 		getHeadsOfAggrInWhichOccurs(Var x, vec<Var>& heads);
+	vector<Var> getHeadsOfAggrInWhichOccurs(Var x);
 
 	/**
 	 * Returns the set literals of the aggregate with the given head x.
@@ -171,10 +177,8 @@ protected:
 	 */
     pAgg		getAggWithHeadOccurence	(Var v) const;
 
-	vector<pSet>				aggrminsets;
-	vector<pSet>				aggrmaxsets;
-	vector<pSet>				aggrsumsets;
-	vector<pSet>				aggrprodsets;
+    map<AggrType, int > 		maptosetindex;
+	vector<vector<AggrSet*> >	sets;	//After initialization, all remaining sets.
 
 	vector<AggrReason*>			aggr_reason;	// For each atom, like 'reason'.
 	vector<vector<AggrWatch> >	aggr_watches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
@@ -184,6 +188,7 @@ protected:
 	vector<pAgg> 				aggregates;		//A vector to store all created aggregates as shared pointers, to allow easy destruction in the end
 			//INVARIANT: if a literal is defined by an aggregate, the watch on the expression in which it is head
 			//	will be the first element of its watches list
+	vector<vector<pSet> >		network;		// the pointer network of set var -> set
 
 	/**
 	 * Correct the min and max values of the aggregates in which l was propagated and delete any aggregate reasons

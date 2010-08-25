@@ -32,7 +32,7 @@
  * Constructs a ModSolver, with a given head, index and hierarchy pointer. A PCSolver is initialized.
  */
 ModSolver::ModSolver(modindex child, Var head, ModSolverData* mh):
-		ISolver(NULL),
+		SolverModule(NULL),
 		id(child), parentid(-1), hasparent(false), //, startedsearch(false), startindex(-1),
 		head(head), modhier(mh){
 	ECNF_mode modescopy(mh->modes());

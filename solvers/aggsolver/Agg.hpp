@@ -92,11 +92,7 @@ protected:
 
 public:
 
-    Agg(const Bound& bounds, const Weight& bound, const Lit& head, const pSet& set) :
-	    agg(bound, bounds, head, set),
-	    headindex(-1), headvalue(l_Undef),
-	    nomoreprops(false), optimagg(false), headprop(false), headproptime(-1){
-    }
+    Agg(const Bound& bounds, const Weight& bound, const Lit& head, const pSet& set);
 
     virtual ~Agg(){}
 
@@ -113,8 +109,6 @@ public:
 	const 	lbool& 	getHeadValue() 	const	{ return headvalue; }
 			int 	getHeadIndex() 	const	{ return headindex; }
 	const	pSet&	getSet()	 	const	{ return agg.set; }
-
-			void 	addAggToSet();
 
 			lbool 	initialize(); //throws UNSAT
 			void 	backtrackHead();

@@ -193,6 +193,9 @@ void AggrSet::doSetReduction() {
 }
 
 bool AggrSet::initialize(){
+	if(aggregates.size()==0){
+		return true;
+	}
 	doSetReduction();
 
 	setCP(getBestPossible());
@@ -250,6 +253,9 @@ bool AggrSumSet::initialize(){
 
 
 bool AggrProdSet::initialize(){
+	if(aggregates.size()==0){
+		return true;
+	}
 #ifdef INTWEIGHT
 	//Test whether the total product of the weights is not infinity for intweights
 	Weight total(1);

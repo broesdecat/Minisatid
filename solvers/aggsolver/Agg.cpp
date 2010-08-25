@@ -55,8 +55,11 @@ AggrReason::AggrReason(pAgg e, const Lit& lit, Expl exp, bool head):
 		head(head) {
 }
 
-void Agg::addAggToSet(){
-	getSet()->addAgg(this);
+Agg::Agg(const Bound& bounds, const Weight& bound, const Lit& head, const pSet& set) :
+	    agg(bound, bounds, head, set),
+	    headindex(-1), headvalue(l_Undef),
+	    nomoreprops(false), optimagg(false), headprop(false), headproptime(-1){
+	set->addAgg(this);
 }
 
 void SumAgg::addToBounds(const Weight& w){

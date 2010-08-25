@@ -75,7 +75,7 @@ public:
     AggrSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver s);
     virtual ~AggrSet(){}
 
-	virtual bool 	initialize(); //throws UNSAT
+	virtual bool 	initialize();	// Returns false if any involved aggregate is certainly UNSAT
 	rClause 		propagate(const Lit& p, const AggrWatch& ws);
 
     virtual void 	backtrack(int index);
