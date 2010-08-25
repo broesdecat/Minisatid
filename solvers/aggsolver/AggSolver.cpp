@@ -301,7 +301,8 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, Bound boundsign,
 
 	//the head of the aggregate
 	Lit head = mkLit(headv, false);
-	getPCSolver()->varBumpActivity(var(head)); // These guys ought to be initially a bit more important then the rest.
+	// These guys ought to be initially a bit more important then the rest.
+	getPCSolver()->varBumpActivity(var(head));
 
 	assert(setid>0);
 	int setindex = setid - 1;
@@ -487,9 +488,12 @@ bool AggSolver::maxAggAsSAT(HdEq sem, Bound boundsign, Weight bound, const Lit& 
  * Returns non-owning pointer
  */
 rClause AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
-
+	//FIXME FIXME!
 	//This strongly improves the performance of some benchmarks, e.g. FastFood. For Hanoi it has no effect
-	getPCSolver()->varBumpActivity(var(p)); //mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt?
+	//for Sokoban is DECREASES performance!
+	//TODO new IDEA: mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt?
+	//WILL ALSO IMPROVE WITH WATCHES
+	//getPCSolver()->varBumpActivity(var(p));
 
 	if (getPCSolver()->value(p) == l_False) {
 		if (getPCSolver()->modes().verbosity >= 2) {

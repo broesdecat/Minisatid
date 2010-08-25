@@ -192,6 +192,7 @@ public:
 	/*
 	 * Returns the decision level at which a variable was deduced. This allows to get the variable that was propagated earliest/latest
 	 */
+	vector<Lit> getTrail		() const;
 	int 		getLevel		(int var) const;
 	int			getNbDecisions	() const;
 	vector<Lit>	getDecisions	() const;

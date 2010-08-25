@@ -76,6 +76,7 @@ class IDSolver: public ISolver{
 private:
 	pAggSolver		aggsolver;
 	long			unfoundedsets;
+	int				previoustrailatsimp; //The size of the trail the previous time simplification was run.
 
 public:
 	IDSolver(pPCSolver s);

@@ -85,6 +85,7 @@ inline bool IDSolver::isDisjunctive(Var v) const {
 IDSolver::IDSolver(pPCSolver s) :
 	ISolver(s), aggsolver(NULL), firstsearch(true), prev_conflicts(0),
 			unfoundedsets(0), cycle_sources(0),
+			previoustrailatsimp(-1),
 			justifiable_cycle_sources(0),
 			cycles(0),
 			cycle_sizes(0),
@@ -575,6 +576,24 @@ void IDSolver::visit(
 
 //@pre: conflicts are empty
 bool IDSolver::initAfterSimplify() {
+	// This is called after every simplification: maybe more literals have been asserted, so more
+	// smaller sccs/more derivations can be found.
+	// So we check whether any changes are relevant since last time.
+	assert(getPCSolver()->getDecisions().size()==0);
+	int currenttrailsize = getPCSolver()->getTrail().size();
+	if(currenttrailsize==previoustrailatsimp){
+		/*if(getPCSolver()->modes().verbosity>=1){
+			reportf("No new ID simplification necessary.\n");
+		}*/
+		return true;
+	}else{
+		assert(currenttrailsize>previoustrailatsimp);
+		previoustrailatsimp = currenttrailsize;
+		if(getPCSolver()->modes().verbosity>=2){
+			reportf("Additional ID simplification done.\n");
+		}
+	}
+
 	// This has to be done before the first choice.
 
 	// NOTE: we're doing a stable model initialization here. No need for a loop.
@@ -1061,6 +1080,11 @@ bool IDSolver::indirectPropagateNow() {
 	return propagate;
 }
 
+/**
+ * A loop is never introduced into the justification. If from the cycle source, no loop can be found,
+ * the justification of the cycle source can be safely changed. If a loop is found, the cycle source becomes
+ * false, so its justification can be kept to the original one, which will be correct when backtracking.
+ */
 bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 	justify_calls++;
 	vec<Var> tmpseen; // use to speed up the cleaning of data structures in "Finish"

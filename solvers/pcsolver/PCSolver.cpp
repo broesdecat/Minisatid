@@ -170,6 +170,10 @@ int PCSolver::getNbDecisions() const {
 	return getSolver()->decisionLevel();
 }
 
+vector<Lit> PCSolver::getTrail() const {
+	return getSolver()->getTrail();
+}
+
 vector<Lit> PCSolver::getDecisions() const {
 	return getSolver()->getDecisions();
 }
@@ -336,9 +340,6 @@ bool PCSolver::finishParsing() {
 	if (idsolverpresent) {
 		idsolverpresent = getIDSolver()->finishECNF_DataStructures();
 		if (idsolverpresent) {
-			//TODO this might not be the best choice to do this now, as at the start,
-			//simplification is called twice! But it simplifies the solve algorithm and
-			//allows to keep the sat solver the same.
 			if (!getIDSolver()->initAfterSimplify()) {
 				return false;
 			}
@@ -512,7 +513,11 @@ rClause PCSolver::propagateAtEndOfQueue() {
  * Important: the SATsolver never calls his own simplify, he always goes through the PC solver
  */
 bool PCSolver::simplify() {
-	return solver->simplify();
+	bool simp = getSolver()->simplify();
+	if(simp && idsolverpresent){
+		simp = getIDSolver()->initAfterSimplify();
+	}
+	return simp;
 }
 
 //TODO all models are kept in memory until the end, even if a method is called that does not return the models
@@ -902,10 +907,10 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m) {
 }
 
 void PCSolver::printChoiceMade(int level, Lit l) const {
-	if (modes().verbosity >= 5) {
-		reportf("Choice literal at decisionlevel %d", level);
+	if (modes().verbosity >= 2) {
+		reportf("Choice literal, dl %d, ", level);
 		if (modsolverpresent) {
-			reportf(" in modal solver %zu", modsolver->getPrintId());
+			reportf("mod s %zu", modsolver->getPrintId());
 		}
 		reportf(": ");
 		gprintLit(l);
