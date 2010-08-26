@@ -46,7 +46,18 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 using namespace Aggrs;
 
+AggSet::AggSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver s):
+			aggsolver(s){
+	for (int i = 0; i < lits.size(); i++) {
+		wlits.push_back(WLV(lits[i], weights[i], l_Undef));
+	}
+	sort(wlits.begin(), wlits.end());
+}
+
 void AggrSet::backtrack(int index) {
+	if (getStack().size()==0 || var(getStack().back().getLit())!=var(getWL()[index].getLit())) {
+		return;	//Only backtrack if it was effectively propagated
+	}
 	const PropagationInfo& pi = stack.back();
 	stack.pop_back();
 
@@ -57,17 +68,13 @@ void AggrSet::backtrack(int index) {
 	setCP(pi.getPP());
 
 	int s = stack.size();
-	for(lsagg::const_iterator i=getAggBegin(); i<getAggEnd(); i++){
+	for(lsagg::const_iterator i=getAgg().begin(); i<getAgg().end(); i++){
 		(*i)->backtrack(s);
 	}
 }
 
 AggrSet::AggrSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver s):
-		currentbestcertain(0),currentbestpossible(0),emptysetvalue(0), aggsolver(s){
-	for (int i = 0; i < lits.size(); i++) {
-		wlits.push_back(WLV(lits[i], weights[i], l_Undef));
-	}
-	sort(wlits.begin(), wlits.end());
+		AggSet(lits, weights, s), currentbestcertain(0),currentbestpossible(0),emptysetvalue(0){
 }
 
 AggrMaxSet::AggrMaxSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver s):
@@ -107,7 +114,7 @@ rClause AggrSet::propagate(const Lit& p, const AggrWatch& ws){
 	tp==POS? addToCertainSet(wlits[ws.getIndex()]):removeFromPossibleSet(wlits[ws.getIndex()]);
 
 	rClause confl = nullPtrClause;
-	for(lsagg::const_iterator i=getAggBegin(); i<getAggEnd() && confl == nullPtrClause; i++){
+	for(lsagg::const_iterator i=getAgg().begin(); i<getAgg().end() && confl == nullPtrClause; i++){
 		pAgg pa = (*i);
 
 		//TODO dit is vrij lelijk
@@ -192,14 +199,15 @@ void AggrSet::doSetReduction() {
 	std::sort(wlits.begin(), wlits.end());
 }
 
-bool AggrSet::initialize(){
+pSet AggrSet::initialize(bool& unsat){
+	unsat = false;
 	if(aggregates.size()==0){
-		return true;
+		return NULL;
 	}
 	doSetReduction();
 
 	setCP(getBestPossible());
-	setCC(getEmptySetValue());
+	setCC(getESV());
 
 	for(lsagg::iterator i=aggregates.begin(); i<aggregates.end();){
 		lbool result = (*i)->initialize();
@@ -210,15 +218,20 @@ bool AggrSet::initialize(){
 			i = aggregates.erase(i);
 		}else if(result==l_False){
 			//UNSAT because always false
-			return false;
+			unsat = true;
 		}else{
 			i++;
 		}
 	}
-	return true;
+	return this;
 }
 
-bool AggrSumSet::initialize(){
+pSet AggrSumSet::initialize(bool& unsat){
+	unsat = false;
+	if(aggregates.size()==0){
+		return NULL;
+	}
+
 	//Calculate the total negative weight to make all weight positive
 	lwlv wlits2;
 	Weight totalneg(0);
@@ -232,7 +245,7 @@ bool AggrSumSet::initialize(){
 			wlits2.push_back(WLV((*i).getLit(), abs((*i).getWeight()), (*i).getValue()));
 		}
 		wlits = wlits2;
-		for(lsagg::const_iterator i=getAggBegin(); i<getAggEnd(); i++){
+		for(lsagg::const_iterator i=getAgg().begin(); i<getAgg().end(); i++){
 			(dynamic_cast<SumAgg*>(*i))->addToBounds(totalneg);
 		}
 	}
@@ -248,13 +261,14 @@ bool AggrSumSet::initialize(){
 	}
 #endif
 
-	return AggrSet::initialize();
+	return AggrSet::initialize(unsat);
 }
 
 
-bool AggrProdSet::initialize(){
+pSet AggrProdSet::initialize(bool& unsat){
+	unsat = false;
 	if(aggregates.size()==0){
-		return true;
+		return NULL;
 	}
 #ifdef INTWEIGHT
 	//Test whether the total product of the weights is not infinity for intweights
@@ -267,7 +281,84 @@ bool AggrProdSet::initialize(){
 	}
 #endif
 
-	return AggrSet::initialize();
+	return AggrSet::initialize(unsat);
+}
+
+/**
+ * Should find a set L+ such that "bigwedge{l | l in L+} implies p"
+ * which is equivalent with the clause bigvee{~l|l in L+} or p
+ * and this is returned as the set {~l|l in L+}
+ */
+void AggrSet::getExplanation(pAgg agg, vec<Lit>& lits, AggrReason& ar) const{
+	assert(ar.getAgg() == agg);
+	assert(agg->getSet()==this);
+
+	const Lit& head = agg->getHead();
+
+	if(!ar.isHeadReason() && ar.getIndex() >= agg->getHeadIndex()){
+		//the head literal is saved as it occurred in the theory, so adapt for its current truth value!
+		lits.push(getSolver()->isTrue(head)?~head:head);
+	}
+
+	const AggrSet* s = this;
+
+	//assert(ar.isHeadReason() || getPCSolver()->getLevel(ar.getLit())<=s->getStackSize());
+
+//	This is correct, but not minimal enough. We expect to be able to do better
+//	for(lprop::const_iterator i=s->getStackBegin(); counter<ar.getIndex() && i<s->getStackEnd(); i++,counter++){
+//		lits.push(~(*i).getLit());
+//	}
+
+	int counter = 0;
+	if(ar.getExpl()!=HEADONLY){
+		for(lprop::const_iterator i=s->getStack().begin(); counter<ar.getIndex() && i<s->getStack().end(); i++,counter++){
+		//for(lprop::const_iterator i=s->getStackBegin(); var(ar.getLit())!=var((*i).getLit()) && i<s->getStackEnd(); i++){
+			switch(ar.getExpl()){
+			case BASEDONCC:
+				if((*i).getType()==POS){
+					lits.push(~(*i).getLit());
+				}
+				break;
+			case BASEDONCP:
+				if((*i).getType()==NEG){
+					lits.push(~(*i).getLit());
+				}
+				break;
+			case CPANDCC:
+				lits.push(~(*i).getLit());
+				break;
+			default:
+				assert(false);
+				break;
+			}
+		}
+	}
+
+	//TODO de nesting van calls is vrij lelijk en onefficient :)
+	if(s->getSolver()->verbosity()>=5){
+
+		reportf("STACK: ");
+		for(lprop::const_iterator i=s->getStack().begin(); i<s->getStack().end(); i++){
+			gprintLit((*i).getLit()); reportf(" ");
+		}
+		reportf("\n");
+
+
+		reportf("Aggregate explanation for ");
+		if(ar.isHeadReason()){
+			gprintLit(head);
+		}else{
+			reportf("(index %d)", ar.getIndex());
+			gprintLit((*(s->getWL().begin()+ar.getIndex())).getLit());
+		}
+
+		reportf(" is");
+		for(int i=0; i<lits.size(); i++){
+			reportf(" ");
+			gprintLit(lits[i]);
+		}
+		reportf("\n");
+	}
 }
 
 /*****************
@@ -294,7 +385,7 @@ void AggrMaxSet::removeFromPossibleSet(const WLit& l){
 			}
 		}
 		if(!found){
-			setCP(getEmptySetValue());
+			setCP(getESV());
 		}
 	}
 }
@@ -305,13 +396,13 @@ Weight	AggrMaxSet::getCombinedWeight(const Weight& first, const Weight& second) 
 
 WLit AggrMaxSet::handleOccurenceOfBothSigns(const WLit& one, const WLit& two){
 	if(one.getWeight()>two.getWeight()){
-		if(getEmptySetValue()<two.getWeight()){
-			setEmptySetValue(two.getWeight());
+		if(getESV()<two.getWeight()){
+			setESV(two.getWeight());
 		}
 		return one;
 	}else{
-		if(getEmptySetValue()<one.getWeight()){
-			setEmptySetValue(one.getWeight());
+		if(getESV()<one.getWeight()){
+			setESV(one.getWeight());
 		}
 		return two;
 	}
@@ -363,17 +454,17 @@ Weight	AggrProdSet::remove(const Weight& lhs, const Weight& rhs) const{
 
 WLit AggrSumSet::handleOccurenceOfBothSigns(const WLit& one, const WLit& two){
 	if(one.getWeight()<two.getWeight()){
-		setEmptySetValue(getEmptySetValue() + one.getWeight());
+		setESV(getESV() + one.getWeight());
 		return WLit(two.getLit(), this->remove(two.getWeight(), one.getWeight()));
 	}else{
-		setEmptySetValue(getEmptySetValue() + two.getWeight());
+		setESV(getESV() + two.getWeight());
 		return WLit(one.getLit(), this->remove(one.getWeight(), two.getWeight()));
 	}
 }
 
 
 Weight AggrSPSet::getBestPossible() const{
-	Weight max = getEmptySetValue();
+	Weight max = getESV();
 	for (lwlv::const_iterator j = wlits.begin(); j < wlits.end(); j++) {
 		max = this->add(max, (*j).getWeight());
 	}
@@ -403,6 +494,155 @@ WLit AggrProdSet::handleOccurenceOfBothSigns(const WLit& one, const WLit& two){
 			"are currently not supported. Replace ");
 	gprintLit(one.getLit()); reportf("or "); gprintLit(two.getLit()); reportf("by a tseitin.\n");
 	throw idpexception("Atoms in product aggregates have to be unique.\n");
+}
+
+
+pSet AggrCardSet::initialize(bool& unsat){
+	unsat = false;
+	if(getAgg().size()==0){
+		return NULL;
+	}
+
+	//decide whether to use watched sets
+	ws = true;
+
+	//decide on number
+	bool lb=false, ub=false, headsknown = true;
+	if(getAgg().size()>1){
+		throw new idpexception("No implementation for this yet");
+	}
+	pAgg agg = getAgg()[0];
+	if(agg->isLower()){
+		lb = true;
+	}
+	if(agg->isUpper()){
+		ub = true;
+	}
+	if((ub && lb) || (!ub && !lb)){
+		throw new idpexception("No implementation for this yet");
+	}
+	if(getSolver()->value(agg->getHead())==l_Undef){
+		headsknown = false;
+	}
+
+	if(headsknown && lb){
+		numberam = 0;
+		numberm = agg->getLowerBound()+1;
+	}else if(headsknown && ub){
+		numberam = 0;
+		numberm = getWL().size()-agg->getUpperBound()+1;
+	}else{
+		if(lb){
+			numberam = getWL().size()-agg->getLowerBound();
+			numberm = agg->getLowerBound();
+		}else if(ub){
+			numberam = agg->getUpperBound();
+			numberm = getWL().size()-agg->getUpperBound();
+		}
+	}
+
+	//initialize watch set
+	int montaken = 0, amontaken = 0;
+	for(lwlv::const_iterator i=getWL().begin(); i<getWL().end(); i++){
+		bool monfound = false, amonfound = false;
+		const Lit& l = (*i).getLit();
+		if(montaken<numberm){
+			if(agg->isMonotone(*i) && getSolver()->value(l)!=l_False){
+				watched.push_back(l);
+				montaken++;
+				monfound = true;
+			}else if(!agg->isMonotone(*i) && getSolver()->value(l)!=l_True){
+				watched.push_back(~l);
+				montaken++;
+				monfound = true;
+			}
+		}else if(!monfound && amontaken<numberam){
+			if(!agg->isMonotone(*i) && getSolver()->value(l)!=l_False){
+				watched.push_back(l);
+				amontaken++;
+				amonfound = false;
+			}else if(agg->isMonotone(*i) && getSolver()->value(l)!=l_True){
+				watched.push_back(~l);
+				amontaken++;
+				amonfound = false;
+			}
+		}else if(!monfound && !amonfound){
+			nonwatched.push_back(l);
+		}
+	}
+	if(headsknown && montaken<numberm){
+		if(montaken<numberm-1){
+			unsat = true;
+			return this;	//Not enough monotone, non-false literals to satisfy the aggregate
+		}else{
+			//can propagate all in the watched set
+			for(int i=0; i<watched.size(); i++){
+				rClause confl = getSolver()->notifySATsolverOfPropagation(watched[i], new AggrReason(agg, watched[i], BASEDONCC, false));
+				if(confl!=nullPtrClause){
+					unsat = true;
+					return this;
+				}
+			}
+		}
+	}else if(!headsknown){
+		if(montaken<numberm){
+			//head is false, propagate it
+			rClause confl = getSolver()->notifySATsolverOfPropagation(~agg->getHead(), new AggrReason(agg, ~agg->getHead(), BASEDONCC, true));
+			if(confl!=nullPtrClause){
+				unsat = true;
+				return this;
+			}
+		}else if(amontaken<numberam){
+			//head is true, propagate it
+			rClause confl = getSolver()->notifySATsolverOfPropagation(agg->getHead(), new AggrReason(agg, agg->getHead(), BASEDONCC, true));
+			if(confl!=nullPtrClause){
+				unsat = true;
+				return this;
+			}
+		}
+	}
+	for(int i=0; i<watched.size(); i++){
+		getSolver()->addTempWatch(watched[i], this);
+	}
+	return this;
+}
+rClause AggrCardSet::propagate(const Lit& l, bool& removewatch){
+	//find the index
+	int index = 0;
+	for(int index=0; index<watched.size(); index++){
+		if(~l==watched[index]){
+			break;
+		}
+	}
+	//find a new one if possible
+	pAgg agg = getAgg()[0];
+	bool findmon = agg->isMonotone(WLV(l, 1, l_True));
+	int swapindex = -1;
+	for(int i=0; swapindex==-1 && i<nonwatched.size(); i++){
+		if(findmon){
+			if(agg->isMonotone(WLV(nonwatched[i], 1, l_Undef)) && getSolver()->value(nonwatched[i])!=l_False){
+				swapindex=i;
+			}else if(!agg->isMonotone(WLV(nonwatched[i], 1, l_Undef)) && getSolver()->value(nonwatched[i])!=l_True){
+				swapindex=i;
+			}
+		}else{
+			if(!agg->isMonotone(WLV(nonwatched[i], 1, l_Undef)) && getSolver()->value(nonwatched[i])!=l_False){
+				swapindex=i;
+			}else if(agg->isMonotone(WLV(nonwatched[i], 1, l_Undef)) && getSolver()->value(nonwatched[i])!=l_True){
+				swapindex=i;
+			}
+		}
+	}
+	if(swapindex==-1){
+		//no other found, do propagation
+		//TODO
+	}else{
+		Lit temp = watched[index];
+		watched[index] = nonwatched[swapindex];
+		nonwatched[swapindex] = temp;
+	}
+
+	return nullPtrClause;
 }
 
 
@@ -443,7 +683,7 @@ bool AggrSet::isJustified(Var x, vec<int>& currentjust) const{
 
 void Aggrs::printAggrSet(pSet set, bool endl){
 	reportf("%s{", set->getName().c_str());
-	for (lwlv::const_iterator i=set->getWLBegin(); i<set->getWLEnd(); ++i) {
+	for (lwlv::const_iterator i=set->getWL().begin(); i<set->getWL().end(); ++i) {
 		reportf(" "); gprintLit((*i).getLit(), (*i).getValue()); reportf("(%s)",printWeight((*i).getWeight()).c_str());
 	}
 	if(endl){

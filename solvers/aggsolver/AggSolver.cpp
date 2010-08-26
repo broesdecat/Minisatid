@@ -38,36 +38,35 @@
 
 #include "solvers/aggsolver/AggSolver.hpp"
 
-#include "solvers/aggsolver/Agg.hpp"
-#include "solvers/aggsolver/AggSets.hpp"
-
 #include "solvers/utils/Utils.hpp"
 #include "solvers/utils/Print.hpp"
 
 #include "solvers/pcsolver/PCSolver.hpp"
+
+#include "solvers/aggsolver/AggComb.hpp"
 
 #include <algorithm>
 
 AggSolver::AggSolver(pPCSolver s) :
 	SolverModule(s) {
 	int count = 0;
-	maptosetindex.operator [](CARD) = count++;
-	maptosetindex.operator [](MAX) = count++;
-	maptosetindex.operator [](PROD) = count++;
-	maptosetindex.operator [](SUM) = count++;
-	maptosetindex.operator [](MIN) = count++;
+	maptype.operator [](CARD) = count++;
+	maptype.operator [](MAX) = count++;
+	maptype.operator [](PROD) = count++;
+	maptype.operator [](SUM) = count++;
+	maptype.operator [](MIN) = count++;
 	sets.resize(count);
 }
 
 AggSolver::~AggSolver() {
-	deleteList<Agg> (aggregates);
-	for(vector<vector<AggrSet*> >::const_iterator i=sets.begin(); i<sets.end(); i++){
-		deleteList<AggrSet> (*i);
+	for(vector<vector<pcomb> >::const_iterator i=sets.begin(); i<sets.end(); i++){
+		deleteList<AggComb> (*i);
 	}
-	deleteList<AggrReason> (aggr_reason);
+	deleteList<AggReason> (aggr_reason);
 }
 
 void AggSolver::removeHeadWatch(Var x) {
+	delete head_watches[x];
 	head_watches[x] = NULL;
 	getPCSolver()->removeAggrHead(x);
 }
@@ -75,14 +74,19 @@ void AggSolver::removeHeadWatch(Var x) {
 void AggSolver::notifyVarAdded(uint64_t nvars) {
 	assert(head_watches.size()<nvars);
 	head_watches.resize(nvars, NULL);
-	aggr_watches.resize(nvars);
+	permwatches.resize(nvars);
 	aggr_reason.resize(nvars, NULL);
 	network.resize(nvars);
+	tempwatches.resize(2*nvars);
 }
 
-inline pAgg AggSolver::getAggWithHeadOccurence(Var v) const {
+void AggSolver::addTempWatch(const Lit& l, pcomb c, int setindex){
+	tempwatches[toInt(~l)].push_back(new Watch(c, setindex, true));
+}
+
+inline pcomb AggSolver::getAggWithHeadOccurence(Var v) const {
 	assert(head_watches[v]!=NULL);
-	return head_watches[v];
+	return head_watches[v]->getAggComb();
 }
 
 void AggSolver::finishECNF_DataStructures(bool& present, bool& unsat) {
@@ -91,26 +95,26 @@ void AggSolver::finishECNF_DataStructures(bool& present, bool& unsat) {
 	unsat = false;
 	present = true;
 
-	if (sets[maptosetindex[MAX]].size() == 0) {
+	if (sets[maptype[MAX]].size() == 0) {
 		present = false;
 		return;
 	}
 
 	if (verbosity() >= 1) {
 		reportf("| Number of maximum exprs.: %4zu                                              |\n",
-					sets[maptosetindex[MAX]].size());
+					sets[maptype[MAX]].size());
 		reportf("| Number of sum exprs.: %4zu                                                  |\n",
-					sets[maptosetindex[SUM]].size());
+					sets[maptype[SUM]].size());
 		reportf("| Number of product exprs.: %4zu                                              |\n",
-					sets[maptosetindex[PROD]].size());
+					sets[maptype[PROD]].size());
 		reportf("| Number of cardinality exprs.: %4zu                                          |\n",
-					sets[maptosetindex[CARD]].size());
+					sets[maptype[CARD]].size());
 
 		int nb_sets=0, total_nb_set_lits = 0;
-		for(vector<vector<AggrSet*> >::const_iterator i=sets.begin(); i<sets.end(); i++){
-			for(vector<AggrSet*>::const_iterator j=(*i).begin(); j<(*i).end(); j++){
+		for(vector<vector<pcomb> >::const_iterator i=sets.begin(); i<sets.end(); i++){
+			for(vector<pcomb>::const_iterator j=(*i).begin(); j<(*i).end(); j++){
 				nb_sets++;
-				total_nb_set_lits += (*j)->size();
+				total_nb_set_lits += (*j)->getWL().size();
 			}
 		}
 		reportf("| Over %4d sets, aggregate set avg. size: %7.2f lits.                         |\n",
@@ -121,7 +125,7 @@ void AggSolver::finishECNF_DataStructures(bool& present, bool& unsat) {
 		reportf("Initializing all sets:\n");
 	}
 
-	for(vector<vector<AggrSet*> >::iterator i=sets.begin(); i<sets.end(); i++){
+	for(vector<vector<pcomb> >::iterator i=sets.begin(); i<sets.end(); i++){
 		if (!finishSets(*i)){
 			unsat = true;
 			return;
@@ -131,26 +135,22 @@ void AggSolver::finishECNF_DataStructures(bool& present, bool& unsat) {
 	if (verbosity() >= 3) {
 		if (verbosity() >= 3) {
 			reportf("Aggregates present after initialization: \n");
-			for (vector<vector<pSet> >::iterator i = sets.begin(); i<sets.end(); i++) {
-				for (vector<pSet>::iterator j = (*i).begin(); j<(*i).end(); j++) {
-					pSet s = *j;
-					for (lsagg::const_iterator k = s->getAggBegin(); k < s->getAggEnd(); k++) {
-						Aggrs::printAggrExpr(*k);
-					}
+			for (vector<vector<pcomb> >::iterator i = sets.begin(); i<sets.end(); i++) {
+				for (vector<pcomb>::iterator j = (*i).begin(); j<(*i).end(); j++) {
+					Aggrs::printAgg(*j);
 				}
 			}
 		}
 
 		int counter = 0;
-		for (vector<vector<AggrWatch> >::const_iterator i =
-				aggr_watches.begin(); i < aggr_watches.end(); i++, counter++) {
+		for (vector<vector<pw> >::const_iterator i = permwatches.begin(); i < permwatches.end(); i++, counter++) {
 			reportf("Watches of var %d:\n", gprintVar(counter));
 			if (head_watches[counter] != NULL) {
 				reportf("HEADwatch = ");
-				Aggrs::printAggrExpr(head_watches[counter]);
+				Aggrs::printAgg(head_watches[counter]->getAggComb());
 			}
-			for (vector<AggrWatch>::const_iterator j = (*i).begin(); j< (*i).end(); j++) {
-				Aggrs::printAggrSet((*j).getSet(), true);
+			for (vector<pw>::const_iterator j = (*i).begin(); j< (*i).end(); j++) {
+				Aggrs::printAgg((*j)->getAggComb());
 			}
 		}
 
@@ -158,7 +158,7 @@ void AggSolver::finishECNF_DataStructures(bool& present, bool& unsat) {
 	}
 
 	bool allempty = true;
-	for(vector<vector<AggrSet*> >::const_iterator i=sets.begin(); allempty && i<sets.end(); i++){
+	for(vector<vector<pcomb> >::const_iterator i=sets.begin(); allempty && i<sets.end(); i++){
 		if ((*i).size()!=0){
 			allempty = false;
 		}
@@ -168,22 +168,23 @@ void AggSolver::finishECNF_DataStructures(bool& present, bool& unsat) {
 	}
 }
 
-bool AggSolver::finishSets(vector<pSet>& sets) {
-	vector<pSet>::size_type used = 0;
-	for (vector<pSet>::size_type i = 0; i < sets.size(); i++) {
-		pSet s = sets[i];
+bool AggSolver::finishSets(vector<pcomb>& sets) {
+	vector<pcomb>::size_type used = 0;
+	for (vector<pcomb>::size_type i = 0; i < sets.size(); i++) {
+		pcomb s = sets[i];
 
-		bool mightbesat = s->initialize();
-		if (!mightbesat) {
+		bool unsat;
+		s = s->initialize(unsat);
+		if (!unsat) {
 			return false;	//Problem is UNSAT
 		}
-		if (s->nbAgg() != 0) {	//There are aggregates left in the set
+		if(s!=NULL){
 			sets[used++] = s;
 			int index = 0;
-			for (lwlv::const_iterator j = s->getWLBegin(); j< s->getWLEnd(); j++, index++) {
+			for (vwl::const_iterator j = s->getWL().begin(); j< s->getWL().end(); j++, index++) {
 				Var v = var((*j).getLit());
 				network[v].push_back(s);
-				aggr_watches[v].push_back(AggrWatch(s, index, sign((*j).getLit()) ? NEG : POS));
+				permwatches[v].push_back(new Watch(s, index, true));
 			}
 		}
 	}
@@ -225,14 +226,14 @@ bool AggSolver::finishSets(vector<pSet>& sets) {
 	reportf("Relevant clauses: %d.\n", counter);
 }*/
 
-bool AggSolver::addSet(int setid, const vec<Lit>& lits,	const vector<Weight>& weights) {
+bool AggSolver::addSet(int setid, const vector<Lit>& lits,	const vector<Weight>& weights) {
 	assert(setid>0);
 	uint64_t setindex = setid - 1;
 	if (lits.size() == 0) {
 		char s[100]; sprintf(s, "Set nr. %d is empty.\n", setid);
 		throw idpexception(s);
 	}
-	if (sets[0].size() > setindex && sets[0][setindex] != NULL && sets[0][setindex]->size() != 0) {
+	if (sets[0].size()>setindex && sets[0][setindex]!=NULL && sets[0][setindex]->getWL().size()!=0) {
 		char s[100]; sprintf(s, "Set nr. %d is defined more than once.\n", setid);
 		throw idpexception(s);
 	}
@@ -264,19 +265,18 @@ bool AggSolver::addSet(int setid, const vec<Lit>& lits,	const vector<Weight>& we
 	}
 
 	while (sets[0].size() <= setindex) {
-		sets[maptosetindex[MAX]].push_back(new AggrMaxSet(lits, weights, this));
-		sets[maptosetindex[SUM]].push_back(new AggrSumSet(lits, weights, this));
-		sets[maptosetindex[PROD]].push_back(new AggrProdSet(lits, weights, this));
-		sets[maptosetindex[MIN]].push_back(new AggrMaxSet(lits, weights2, this));
-		sets[maptosetindex[CARD]].push_back(new AggrSumSet(lits, weights, this));
+		/*sets[maptype[MAX]].push_back(new AggrMaxSet(lits, weights, this));
+		sets[maptype[SUM]].push_back(new AggrSumSet(lits, weights, this));
+		sets[maptype[PROD]].push_back(new AggrProdSet(lits, weights, this));
+		sets[maptype[MIN]].push_back(new AggrMaxSet(lits, weights2, this));
+		sets[maptype[CARD]].push_back(new AggrSumSet(lits, weights, this));*/
 	}
 
 	return true;
 }
 
 bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, Bound boundsign, AggrType type, HdEq headeq) {
-	if (((vector<int>::size_type) setid) > sets[0].size()
-			|| sets[0][setid - 1] == NULL || sets[0][setid - 1]->size()	== 0) {
+	if (((vector<int>::size_type) setid)>sets[0].size() || sets[0][setid-1]==NULL || sets[0][setid-1]->getWL().size()==0) {
 		char s[100];
 		sprintf(s, "Set nr. %d is used, but not defined yet.\n", setid);
 		throw idpexception(s);
@@ -303,21 +303,24 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, Bound boundsign,
 	assert(setid>0);
 	int setindex = setid - 1;
 
-	pAgg ae;
+	int ae;
+	pcomb c;
 	switch (type) {
 	case MIN:
 		//return maxAggAsSAT(defined, !lower, -bound, head, *aggrminsets[setindex]);
 		boundsign = (boundsign == LOWERBOUND ? UPPERBOUND : LOWERBOUND);
-		ae = pAgg(new MaxAgg(boundsign, -bound, head, pSet(sets[maptosetindex[MIN]][setindex])));
+		c = sets[maptype[MIN]][setindex];
+		ae = c->addAgg(new Agg(-bound, boundsign, head, headeq));
 		break;
 	case MAX:
 		//return maxAggAsSAT(defined, lower, bound, head, *aggrmaxsets[setindex]);
-		ae = pAgg(new MaxAgg(boundsign, bound, head, pSet(sets[maptosetindex[MAX]][setindex])));
+		c = sets[maptype[MAX]][setindex];
+		ae = c->addAgg(new Agg(bound, boundsign, head, headeq));
 		break;
-	case CARD:
+	/*case CARD:
 #ifdef DEBUG
-		for(int i=0; i<sets[maptosetindex[SUM]][setindex]->size(); i++) {
-			if(sets[maptosetindex[SUM]][setindex]->operator [](i).getWeight()!=1) {
+		for(lwlv::size_type i=0; i<sets[maptype[SUM]][setindex]->getWL().size(); i++) {
+			if(sets[maptype[SUM]][setindex]->getWL()[i].getWeight()!=1) {
 				reportf("Cardinality was loaded with wrong weights");
 			}
 		}
@@ -326,23 +329,22 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, Bound boundsign,
 	case SUM: {
 		// If all weights are 1, add as a cardinality, otherwise add as a sum.
 		bool allone = true;
-		for(lwlv::const_iterator i=sets[maptosetindex[SUM]][setindex]->getWLBegin(); allone && i<sets[maptosetindex[SUM]][setindex]->getWLEnd(); i++){
+		for(lwlv::const_iterator i=sets[maptype[SUM]][setindex]->getWL().begin(); allone && i<sets[maptype[SUM]][setindex]->getWL().end(); i++){
 			if((*i).getWeight()!=1){
 				allone = false;
 			}
 		}
 		if(allone){
-			ae = pAgg(new CardAgg(boundsign, bound, head, pSet(sets[maptosetindex[CARD]][setindex])));
+			ae = pagg(new CardAgg(boundsign, bound, head, sets[maptype[CARD]][setindex]));
 		}else{
-			ae = pAgg(new SumAgg(boundsign, bound, head, pSet(sets[maptosetindex[SUM]][setindex])));
+			ae = pagg(new SumAgg(boundsign, bound, head, sets[maptype[SUM]][setindex]));
 		}
 		break;
 	}
 	case PROD:
 		//NOTE this can be solved by taking 0 out of the set and making the necessary transformations
 		// p <=> a <= prod{l1=0, l2=2} can be replaced with p <=> a <= prod{l2=2} & l1~=0 if a is strictly positive
-		for (lwlv::const_iterator i = sets[maptosetindex[PROD]][setindex]->getWLBegin(); i
-				< sets[maptosetindex[PROD]][setindex]->getWLEnd(); i++) {
+		for (lwlv::const_iterator i = sets[maptype[PROD]][setindex]->getWL().begin(); i< sets[maptype[PROD]][setindex]->getWL().end(); i++) {
 			if ((*i).getWeight() < 1) {
 				char s[200];
 				sprintf(s,
@@ -352,24 +354,27 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, Bound boundsign,
 				throw idpexception(s);
 			}
 		}
-		ae = pAgg(new ProdAgg(boundsign, bound, head, pSet(sets[maptosetindex[PROD]][setindex])));
-		break;
+		ae = pagg(new ProdAgg(boundsign, bound, head, sets[maptype[PROD]][setindex]));
+		break;*/
 	default:
 		assert(false);
 		throw idpexception("Only aggregates MIN, MAX, CARD, SUM or PROD are allowed in the solver.\n");
 	}
 
-	head_watches[var(head)] = pAgg(ae);
+	head_watches[var(head)] = new Watch(c, ae, false);
 
 	if (headeq == DEF) { //add as definition to use definition semantics
 		//notify the id solver that a new aggregate definition has been added
 		getPCSolver()->notifyAggrHead(var(head));
 	}
 
-	aggregates.push_back(ae);
+	//aggregates.push_back(ae);
 
 	if (verbosity() >= 5) {
-		reportf("Added %s aggregate with head %d on set %d, %s %s of type %s.\n", headeq == DEF?"defined":"completion", gprintVar(headv), setid, boundsign==LOWERBOUND?"AGG <=":"AGG >=", printWeight(bound).c_str(), ae->getSet()->getName().c_str());
+		reportf("Added %s aggregate with head %d on set %d, %s %s of type %s.\n",
+		        headeq == DEF?"defined":"completion", gprintVar(headv), setid,
+		        boundsign==LOWERBOUND?"AGG <=":"AGG >=", printWeight(bound).c_str(),
+		        c->getName().c_str());
 	}
 
 	return true;
@@ -378,8 +383,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, Bound boundsign,
 //FIXME no optimizations should take place on mnmz aggregates (partially helped by separate add method).
 //FIXME 2 more optimization should/could take place on other aggregates
 bool AggSolver::addMnmzSum(Var headv, int setid, Bound boundsign) {
-	if (((vector<int>::size_type) setid) > sets[0].size()
-			|| sets[0][setid - 1] == NULL || sets[0][setid - 1]->size()== 0) {
+	/*if (((vector<int>::size_type) setid)>sets[0].size() || sets[0][setid-1]==NULL || sets[0][setid-1]->getWL().size()==0) {
 		char s[100];
 		sprintf(s, "Set nr. %d is used, but not defined yet.\n", setid);
 		throw idpexception(s);
@@ -401,7 +405,7 @@ bool AggSolver::addMnmzSum(Var headv, int setid, Bound boundsign) {
 	Lit head = mkLit(headv, false);
 
 	Weight max = 0, min = 0;
-	for(lwlv::const_iterator i=sets[maptosetindex[SUM]][setid-1]->getWLBegin(); i<sets[maptosetindex[SUM]][setid-1]->getWLEnd(); i++){
+	for(lwlv::const_iterator i=sets[maptype[SUM]][setid-1]->getWL().begin(); i<sets[maptype[SUM]][setid-1]->getWL().end(); i++){
 		if((*i).getWeight()>0){
 			max += (*i).getWeight();
 		}else{
@@ -409,7 +413,7 @@ bool AggSolver::addMnmzSum(Var headv, int setid, Bound boundsign) {
 		}
 	}
 
-	pAgg ae = new SumAgg(boundsign, boundsign==LOWERBOUND ? max+1 : min, head, pSet(sets[maptosetindex[SUM]][setid-1]));
+	pagg ae = new SumAgg(boundsign, boundsign==LOWERBOUND ? max+1 : min, head, pset(sets[maptype[SUM]][setid-1]));
 	ae->setOptimAgg(); //FIXME temporary solution
 	aggregates.push_back(ae);
 	head_watches[var(head)] = ae;
@@ -421,21 +425,20 @@ bool AggSolver::addMnmzSum(Var headv, int setid, Bound boundsign) {
 		reportf("\n");
 	}
 
-	return true;
+	return true;*/
 }
 
 /*
  * For a maximum: if lower,  head <=> conj of negation of all literals with weight higher than bound
  * 				  if higher, head <=> disj of all literals with weight higher/eq than bound
  */
-bool AggSolver::maxAggAsSAT(HdEq sem, Bound boundsign, Weight bound, const Lit& head, const AggrSet& set) {
-	vec<Lit> clause;
+//bool AggSolver::maxAggAsSAT(HdEq sem, Bound boundsign, Weight bound, const Lit& head, const AggSet& set) {
+	/*vec<Lit> clause;
 
 	bool notunsat = true;
 
 	if (sem==DEF) {
-		for (lwlv::const_reverse_iterator i = set.getWLRBegin(); i
-				< set.getWLREnd() && (*i).getWeight() >= bound; i++) {
+		for (lwlv::const_reverse_iterator i = set.getWL().rbegin(); i< set.getWL().rend() && (*i).getWeight() >= bound; i++) {
 			if ((*i).getWeight() == bound && boundsign==LOWERBOUND) {
 				break;
 			}
@@ -448,16 +451,14 @@ bool AggSolver::maxAggAsSAT(HdEq sem, Bound boundsign, Weight bound, const Lit& 
 		notunsat = getPCSolver()->addRule(boundsign, head, clause);
 	} else {
 		clause.push(boundsign==LOWERBOUND ? head : ~head);
-		for (lwlv::const_reverse_iterator i = set.getWLRBegin(); i
-				< set.getWLREnd() && (*i).getWeight() >= bound; i++) {
+		for (lwlv::const_reverse_iterator i = set.getWL().rbegin(); i< set.getWL().rend() && (*i).getWeight() >= bound; i++) {
 			if ((*i).getWeight() == bound && boundsign==LOWERBOUND) {
 				break;
 			}
 			clause.push((*i).getLit());
 		}
 		notunsat = getPCSolver()->addClause(clause);
-		for (lwlv::const_reverse_iterator i = set.getWLRBegin(); notunsat && i
-				< set.getWLREnd() && (*i).getWeight() >= bound; i++) {
+		for (lwlv::const_reverse_iterator i =set.getWL().rbegin(); notunsat && i< set.getWL().rend() && (*i).getWeight() >= bound; i++) {
 			if ((*i).getWeight() == bound && boundsign==LOWERBOUND) {
 				break;
 			}
@@ -468,8 +469,8 @@ bool AggSolver::maxAggAsSAT(HdEq sem, Bound boundsign, Weight bound, const Lit& 
 		}
 	}
 
-	return notunsat;
-}
+	return notunsat;*/
+//}
 
 /**
  * The method propagates the fact that p has been derived to the SAT solver. If a conflict occurs,
@@ -481,7 +482,7 @@ bool AggSolver::maxAggAsSAT(HdEq sem, Bound boundsign, Weight bound, const Lit& 
  *
  * Returns non-owning pointer
  */
-rClause AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
+rClause AggSolver::notifySATsolverOfPropagation(const Lit& p, AggReason* ar) {
 	//FIXME FIXME!
 	//This strongly improves the performance of some benchmarks, e.g. FastFood. For Hanoi it has no effect
 	//for Sokoban is DECREASES performance!
@@ -494,9 +495,9 @@ rClause AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 			reportf("Deriving conflict in ");
 			gprintLit(p, l_True);
 			reportf(" because of the aggregate expression ");
-			Aggrs::printAggrExpr(ar->getAgg());
+			Aggrs::printAgg(ar->getAgg());
 		}
-		AggrReason* old_ar = aggr_reason[var(p)];
+		AggReason* old_ar = aggr_reason[var(p)];
 		aggr_reason[var(p)] = ar;
 		rClause confl = getExplanation(p);
 		getPCSolver()->addLearnedClause(confl);
@@ -510,7 +511,7 @@ rClause AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 			reportf("Deriving ");
 			gprintLit(p, l_True);
 			reportf(" because of the aggregate expression ");
-			Aggrs::printAggrExpr(ar->getAgg());
+			Aggrs::printAgg(ar->getAgg());
 		}
 		assert(aggr_reason[var(p)]==NULL);
 		aggr_reason[var(p)] = ar;
@@ -519,82 +520,6 @@ rClause AggSolver::notifySATsolverOfPropagation(const Lit& p, AggrReason* ar) {
 		delete ar;
 	}
 	return nullPtrClause;
-}
-
-/**
- * Should find a set L+ such that "bigwedge{l | l in L+} implies p"
- * which is equivalent with the clause bigvee{~l|l in L+} or p
- * and this is returned as the set {~l|l in L+}
- */
-void AggSolver::getExplanation(pAgg agg, vec<Lit>& lits, AggrReason& ar) const{
-	assert(ar.getAgg() == agg);
-
-	const Lit& head = agg->getHead();
-
-	if(!ar.isHeadReason() && ar.getIndex() >= agg->getHeadIndex()){
-		//the head literal is saved as it occurred in the theory, so adapt for its current truth value!
-		lits.push(isTrue(head)?~head:head);
-	}
-
-	pSet s = agg->getSet();
-
-	//assert(ar.isHeadReason() || getPCSolver()->getLevel(ar.getLit())<=s->getStackSize());
-
-//	This is correct, but not minimal enough. We expect to be able to do better
-//	for(lprop::const_iterator i=s->getStackBegin(); counter<ar.getIndex() && i<s->getStackEnd(); i++,counter++){
-//		lits.push(~(*i).getLit());
-//	}
-
-	int counter = 0;
-	if(ar.getExpl()!=HEADONLY){
-		for(lprop::const_iterator i=s->getStackBegin(); counter<ar.getIndex() && i<s->getStackEnd(); i++,counter++){
-		//for(lprop::const_iterator i=s->getStackBegin(); var(ar.getLit())!=var((*i).getLit()) && i<s->getStackEnd(); i++){
-			switch(ar.getExpl()){
-			case BASEDONCC:
-				if((*i).getType()==POS){
-					lits.push(~(*i).getLit());
-				}
-				break;
-			case BASEDONCP:
-				if((*i).getType()==NEG){
-					lits.push(~(*i).getLit());
-				}
-				break;
-			case CPANDCC:
-				lits.push(~(*i).getLit());
-				break;
-			default:
-				assert(false);
-				break;
-			}
-		}
-	}
-
-	//TODO de nesting van calls is vrij lelijk en onefficient :)
-	if(s->getSolver()->verbosity()>=5){
-
-		reportf("STACK: ");
-		for(lprop::const_iterator i=s->getStackBegin(); i<s->getStackEnd(); i++){
-			gprintLit((*i).getLit()); reportf(" ");
-		}
-		reportf("\n");
-
-
-		reportf("Aggregate explanation for ");
-		if(ar.isHeadReason()){
-			gprintLit(head);
-		}else{
-			reportf("(index %d)", ar.getIndex());
-			gprintLit((*(s->getWLBegin()+ar.getIndex())).getLit());
-		}
-
-		reportf(" is");
-		for(int i=0; i<lits.size(); i++){
-			reportf(" ");
-			gprintLit(lits[i]);
-		}
-		reportf("\n");
-	}
 }
 
 /**
@@ -609,14 +534,14 @@ rClause AggSolver::Aggr_propagate(const Lit& p) {
 		reportf(").\n");
 	}
 
-	pAgg pa = head_watches[var(p)];
+	Watch* pa = head_watches[var(p)];
 	if (pa != NULL) {
-		confl = pa->propagateHead(p);
+		confl = pa->getAggComb()->propagate(pa);
 	}
 
-	vector<AggrWatch>& ws = aggr_watches[var(p)];
-	for (vector<AggrWatch>::const_iterator i = ws.begin(); confl==nullPtrClause && i<ws.end(); i++) {
-		confl = (*i).getSet()->propagate(p, (*i));
+	vector<pw>& ws = permwatches[var(p)];
+	for (vector<pw>::const_iterator i = ws.begin(); confl==nullPtrClause && i<ws.end(); i++) {
+		confl = (*i)->getAggComb()->propagate(*i);
 	}
 
 	return confl;
@@ -630,13 +555,13 @@ rClause AggSolver::Aggr_propagate(const Lit& p) {
  */
 rClause AggSolver::getExplanation(const Lit& p) {
 	assert(aggr_reason[var(p)]!=NULL);
-	AggrReason& ar = *aggr_reason[var(p)];
+	AggReason* ar = aggr_reason[var(p)];
 
 	//get the explanation from the aggregate expression
 	vec<Lit> lits;
 	lits.push(p);
 
-	getExplanation(ar.getAgg(), lits, ar);
+	ar->getAgg()->getExplanation(lits, ar);
 
 	//create a conflict clause and return it
 	rClause c = getPCSolver()->createClause(lits, true);
@@ -663,18 +588,14 @@ void AggSolver::doBacktrack(const Lit& l) {
 		aggr_reason[var(l)] = NULL;
 	}
 
-	pAgg pa = head_watches[var(l)];
+	pw pa = head_watches[var(l)];
 	if (pa != NULL) {
-		pa->backtrackHead();
+		pa->getAggComb()->backtrack(pa);
 	}
 
-	vector<AggrWatch>& vcw = aggr_watches[var(l)];
-	for (vector<AggrWatch>::const_iterator i = vcw.begin(); i < vcw.end(); i++) {
-		pSet set = (*i).getSet();
-		//second condition ensures that only backtracking is done if the value was indeed propagated in the set
-		if (set->getStackSize() != 0 && var(set->getStackBack().getLit())==var(l)) {
-			set->backtrack((*i).getIndex());
-		}
+	vector<pw>& vcw = permwatches[var(l)];
+	for (vector<pw>::const_iterator i = vcw.begin(); i < vcw.end(); i++) {
+		(*i)->getAggComb()->backtrack(*i);
 	}
 }
 
@@ -688,9 +609,9 @@ void AggSolver::doBacktrack(const Lit& l) {
  * 		might help to make the expression true (monotone literals!)
  */
 void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) {
-	pAgg agg = getAggWithHeadOccurence(v);
+	pcomb agg = getAggWithHeadOccurence(v);
 
-	for (lwlv::const_iterator i = agg->getSet()->getWLBegin(); i < agg->getSet()->getWLEnd(); ++i) {
+	for (vwl::const_iterator i = agg->getWL().begin(); i < agg->getWL().end(); ++i) {
 		Lit l = (*i).getLit();
 		if (agg->isMonotone(*i) && ufs.find(var(l)) == ufs.end() && seen[var(l)]!=(isPositive(l)?2:1)
 				&& isFalse(l)) { //TODO deze laatste voorwaarde is een HACK: eigenlijk moeten de voorwaarden zo zijn, dat enkel relevant literals worden toegevoegd, maar momenteel worden er ook literals toegevoegd die nooit in een justification zullen zitten
@@ -704,27 +625,27 @@ void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& l
 
 vector<Var> AggSolver::getHeadsOfAggrInWhichOccurs(Var x) {
 	vector<Var> heads;
-	for (vector<pSet>::const_iterator i = network[x].begin(); i < network[x].end(); i++) {
-		for (lsagg::const_iterator j = (*i)->getAggBegin(); j < (*i)->getAggEnd(); j++) {
+	for (vector<pcomb>::const_iterator i = network[x].begin(); i < network[x].end(); i++) {
+		for (vpagg::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); j++) {
 			heads.push_back(var((*j)->getHead()));
 		}
 	}
 	return heads;
 }
 
-lwlv::const_iterator AggSolver::getAggLiteralsBegin(Var x) const {
-	return getAggWithHeadOccurence(x)->getSet()->getWLBegin();
+vwl::const_iterator AggSolver::getAggLiteralsBegin(Var x) const {
+	return getAggWithHeadOccurence(x)->getWL().begin();
 }
 
-lwlv::const_iterator AggSolver::getAggLiteralsEnd(Var x) const {
-	return getAggWithHeadOccurence(x)->getSet()->getWLEnd();
+vwl::const_iterator AggSolver::getAggLiteralsEnd(Var x) const {
+	return getAggWithHeadOccurence(x)->getWL().end();
 }
 
 void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& heads, vec<Var>& currentjust) {
-	for (vector<pSet>::const_iterator i = network[var(w)].begin(); i< network[var(w)].end(); i++) {
-		pSet set = (*i);
-		for (lsagg::const_iterator j = set->getAggBegin(); j < set->getAggEnd(); j++) {
-			pAgg expr = (*j);
+	/*for (vector<pset>::const_iterator i = network[var(w)].begin(); i< network[var(w)].end(); i++) {
+		pset set = (*i);
+		for (vpagg::const_iterator j = set->getAgg().begin(); j < set->getAgg().end(); j++) {
+			pagg expr = (*j);
 			if (expr->getHeadValue() == l_False) {
 				//reportf(" => head is false %d\n", gprintVar(var(expr->getHead())));
 				continue;
@@ -732,10 +653,10 @@ void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& 
 
 			//WRONG WRONG
 			//If not monotone, then the head can never become true by w
-			/*if(!expr->isMonotone((*(set->getWLBegin()+(*i).getIndex())))){
-				reportf(" => occurence is not monotone in agg %d \n", gprintVar(var(expr->getHead())));
-				continue;
-			}*/
+			//if(!expr->isMonotone((*(set->getWLBegin()+(*i).getIndex())))){
+			//	reportf(" => occurence is not monotone in agg %d \n", gprintVar(var(expr->getHead())));
+			//	continue;
+			//}
 
 			//reportf("=> checking agg %d \n", gprintVar(var(expr->getHead())));
 
@@ -751,7 +672,7 @@ void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& 
 				}
 			}
 		}
-	}
+	}*/
 }
 
 /**
@@ -777,8 +698,8 @@ bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, ve
 ///////
 
 bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
-	pAgg a = head_watches[head];
-	pSet s = a->getSet();
+	/*pagg a = head_watches[head];
+	pset s = a->getSet();
 
 	reportf("Current optimum: %s\n", printWeight(s->getCC()).c_str());
 
@@ -794,7 +715,7 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
 
 	dynamic_cast<SumAgg*> (a)->getMinimExplan(invalidation);
 
-	return false;
+	return false;*/
 }
 
 /**
@@ -803,5 +724,5 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
  * the newly adapted bound.
  */
 void AggSolver::propagateMnmz(Var head) {
-	dynamic_cast<SumAgg*> (head_watches[head])->propagateHead(true);
+	//dynamic_cast<SumAgg*> (head_watches[head])->propagateHead(true);
 }

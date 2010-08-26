@@ -50,35 +50,49 @@ class AggSolver;
 typedef AggSolver* pAggSolver;
 
 namespace Aggrs{
-
-class Agg;
-class AggrSet;
-
-typedef Agg* pAgg;
-typedef vector<pAgg> lsagg;
-typedef AggrSet* pSet;
-
 class AggrWatch;
 
 //INVARIANT: the WLITset is stored sorted from smallest to largest weight!
-class AggrSet {
+class AggSet{
+protected:
+	lsagg		aggregates;	//does NOT own the pointers
+	lwlv 		wlits;
+	pAggSolver	aggsolver; //the solver that handles this set
+
+public:
+    AggSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver s);
+    virtual ~AggSet(){}
+
+	const lsagg & 					getAgg	() 			const	{ return aggregates; }
+	void 							addAgg	(pAgg aggr)			{ aggregates.push_back(aggr); }
+	const lwlv & 					getWL	() 			const 	{ return wlits; }
+
+    pAggSolver						getSolver()			const	{ return aggsolver; }
+
+    virtual rClause propagate	(const Lit& p, const AggrWatch& ws) = 0;
+	virtual void 	backtrack	(int index) = 0;
+
+    virtual string 	getName() const = 0;
+    virtual pSet 	initialize	(bool& unsat) = 0;	// Returns false if any involved aggregate is certainly UNSAT
+    virtual void 	getExplanation(pAgg agg, vec<Lit>& lits, AggrReason& ar) const = 0;
+
+    virtual Weight 			getBestPossible() 	const = 0;
+    virtual const Weight& 	getCC() 			const = 0;
+};
+
+class AggrSet: public AggSet {
 protected:
 	string 	name;
-	lsagg	aggregates;		//does NOT own the pointers
-	lwlv 	wlits;
 	lprop 	stack;		// Stack of propagations of this expression so far.
 	Weight 	currentbestcertain, currentbestpossible, emptysetvalue;
 					//current keeps the currently derived min and max bounds
-	pAggSolver aggsolver; //the solver that handles this set
 
 public:
     AggrSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver s);
     virtual ~AggrSet(){}
 
-	virtual bool 	initialize();	// Returns false if any involved aggregate is certainly UNSAT
-	rClause 		propagate(const Lit& p, const AggrWatch& ws);
-
-    virtual void 	backtrack(int index);
+	virtual rClause propagate	(const Lit& p, const AggrWatch& ws);
+    virtual void 	backtrack	(int index);
 
 	/**
 	 * Checks whether duplicate literals occur in the set. If this is the case, their values are appropriately combined.
@@ -86,6 +100,7 @@ public:
 	 * @remark: has to be called in the SUBCLASS constructors, because it needs the subclass data of which agg it is.
 	 */
 	void 			doSetReduction();
+	virtual pSet 	initialize(bool& unsat);
 	//Returns the weight a combined literal should have if both weights are in the set at the same time
 	virtual Weight 	getCombinedWeight(const Weight& one, const Weight& two) 	const 	= 0;
 	virtual WLit 	handleOccurenceOfBothSigns(const WLit& one, const WLit& two) 		= 0;
@@ -94,39 +109,28 @@ public:
 	virtual void 	addToCertainSet(const WLit& l) 			= 0;
 	virtual void 	removeFromPossibleSet(const WLit& l)	= 0;
 
+	virtual void 	getExplanation(pAgg agg, vec<Lit>& lits, AggrReason& ar) const;
+
+	///////
+	// ID support
+	///////
+
 	bool 			oppositeIsJustified	(const WLV& elem, vec<int>& currentjust, bool real) const;
 	bool 			isJustified			(const WLV& elem, vec<int>& currentjust, bool real) const;
 	bool 			isJustified			(Var x, vec<int>& currentjust) const;
 
-	/**
-	 * GETTERS - SETTERS
-	 */
-	string 							getName() 			const 	{ return name; }
-	const Weight& 					getEmptySetValue() 	const 	{ return emptysetvalue; }
-	const Weight& 					getCP() 			const 	{ return currentbestpossible; }
-	const Weight& 					getCC() 			const 	{ return currentbestcertain; }
-	void 							setEmptySetValue(const Weight& w) { emptysetvalue = w; }
-	void 							setCP(const Weight& w) 		{ currentbestpossible = w; }
-	void 							setCC(const Weight& w) 		{ currentbestcertain = w; }
+	///////
+	// GETTERS - SETTERS
+	///////
+	string 							getName	() 					const 	{ return name; }
+	const Weight& 					getESV	() 					const 	{ return emptysetvalue; }
+	void 							setESV	(const Weight& w)			{ emptysetvalue = w; }
+	const Weight& 					getCP	() 					const 	{ return currentbestpossible; }
+	void 							setCP	(const Weight& w) 			{ currentbestpossible = w; }
+	const Weight& 					getCC	() 					const 	{ return currentbestcertain; }
+	void 							setCC	(const Weight& w) 			{ currentbestcertain = w; }
 
-	lsagg::const_iterator 			getAggBegin() 		const	{ return aggregates.begin(); }
-	lsagg::const_iterator 			getAggEnd() 		const	{ return aggregates.end(); }
-	void 							addAgg(pAgg aggr)			{ aggregates.push_back(aggr); }
-	int 							nbAgg() 			const	{ return aggregates.size(); }
-
-	lwlv::const_iterator 			getWLBegin() 		const 	{ return wlits.begin(); }
-	lwlv::const_iterator 			getWLEnd()			const 	{ return wlits.end(); }
-	lwlv::const_reverse_iterator 	getWLRBegin() 		const 	{ return wlits.rbegin(); }
-	lwlv::const_reverse_iterator 	getWLREnd() 		const 	{ return wlits.rend(); }
-	const WLV& 						operator[](int i) 	const 	{ return wlits[i]; }
-	int 							size() 				const 	{ return wlits.size(); }
-
-	int 							getStackSize() 		const 	{ return stack.size(); }
-	const PropagationInfo 			getStackBack() 		const 	{ return stack.back(); }
-	lprop::const_iterator 			getStackBegin() 	const 	{ return stack.begin(); }
-	lprop::const_iterator 			getStackEnd()		const 	{ return stack.end(); }
-
-	pAggSolver						getSolver()			const	{ return aggsolver; }
+	const lprop &					getStack() 			const 	{ return stack; }
 
 	virtual bool					isNeutralElement(const Weight& w) const = 0;
 };
@@ -162,7 +166,7 @@ class AggrSumSet: public AggrSPSet{
 public:
 	AggrSumSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver s);
 
-	virtual bool 	initialize();
+	virtual pSet 	initialize(bool& unsat);
 
 	virtual WLit 	handleOccurenceOfBothSigns	(const WLit& one, const WLit& two);
 	virtual Weight	add							(const Weight& lhs, const Weight& rhs) const;
@@ -175,13 +179,26 @@ class AggrProdSet: public AggrSPSet{
 public:
 	AggrProdSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver s);
 
-	virtual bool 	initialize();
+	virtual pSet 	initialize(bool& unsat);
 
 	virtual WLit 	handleOccurenceOfBothSigns	(const WLit& one, const WLit& two);
 	virtual Weight	add							(const Weight& lhs, const Weight& rhs) const;
 	virtual Weight	remove						(const Weight& lhs, const Weight& rhs) const;
 
 	virtual bool	isNeutralElement(const Weight& w) const { return w==1; }
+};
+
+class AggrCardSet: public AggSet{
+	vector<Lit> watched, nonwatched; //disjoint watched and non-watched set
+	int numberm, numberam;	//the number of mono/anti-mono literals to watch (depends on head or not, lb or not, ...)
+	bool ws; //indicates whether we are using watched sets or not
+
+	AggrCardSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver s): AggSet(lits, weights, s){}
+	~AggrCardSet(){}
+
+	virtual pSet 	initialize	(bool& unsat);
+	virtual rClause propagate	(const Lit& l, bool& removewatch);
+	virtual void 	backtrack	(int index){}
 };
 
 class AggrWatch {

@@ -253,7 +253,11 @@ bool PCSolver::addSet(int setid, const vec<Lit>& lits) {
 bool PCSolver::addSet(int setid, const vec<Lit>& lits, const vector<Weight>& w) {
 	assert(aggsolverpresent);
 	addVars(lits);
-	return getAggSolver()->addSet(setid, lits, w);
+	vector<Lit> ll;
+	for(int i=0; i<lits.size(); i++){
+		ll.push_back(lits[i]);
+	}
+	return getAggSolver()->addSet(setid, ll, w);
 }
 
 bool PCSolver::addAggrExpr(Lit head, int setid, Weight bound, Bound boundsign, AggrType type, HdEq defined) {

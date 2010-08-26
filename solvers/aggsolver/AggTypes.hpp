@@ -50,6 +50,12 @@ using namespace Minisat;
 #endif
 
 namespace Aggrs{
+class Agg;
+class AggSet;
+typedef Agg* pAgg;
+typedef vector<pAgg> lsagg;
+typedef AggSet* pSet;
+
 class WLV;
 typedef vector<WLV> lwlv;
 

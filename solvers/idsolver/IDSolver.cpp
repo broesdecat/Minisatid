@@ -301,7 +301,7 @@ bool IDSolver::finishECNF_DataStructures() {
 		}
 		case AGGR: {
 			if (getAggSolver() != NULL) {
-				for (lwlv::const_iterator j = getAggSolver()->getAggLiteralsBegin(v); !isdefd && j
+				for (vwl::const_iterator j = getAggSolver()->getAggLiteralsBegin(v); !isdefd && j
 							< getAggSolver()->getAggLiteralsEnd(v); ++j) {
 					if (inSameSCC(v, var((*j).getLit()))) { // NOTE: disregard sign here: set literals can occur both pos and neg in justifications. This could possibly be made more precise for MIN and MAX...
 						isdefd = true;
@@ -324,7 +324,7 @@ bool IDSolver::finishECNF_DataStructures() {
 				//assumes any literal only occurs once!
 				if (defType[v] == AGGR) {
 					if (getAggSolver() != NULL) {
-						for (lwlv::const_iterator j = getAggSolver()->getAggLiteralsBegin(v); !isdefd
+						for (vwl::const_iterator j = getAggSolver()->getAggLiteralsBegin(v); !isdefd
 									&& j < getAggSolver()->getAggLiteralsEnd(v); ++j) {
 							l = (*j).getLit();
 							if (disj_occurs[toInt(l)].size() > 0 && disj_occurs[toInt(l)].back() == v) {
@@ -461,7 +461,7 @@ void IDSolver::visitFull(
 		break;
 	}
 	case AGGR: {
-		for (lwlv::const_iterator j = getAggSolver()->getAggLiteralsBegin(i); j
+		for (vwl::const_iterator j = getAggSolver()->getAggLiteralsBegin(i); j
 					< getAggSolver()->getAggLiteralsEnd(i); ++j) {
 			Var w = var((*j).getLit());
 			if (!isDefined(w)) {
@@ -544,7 +544,7 @@ void IDSolver::visit(
 	case AGGR: {
 		//TODO this can be optimized by using another method which only returns literals possibly in the
 		//positive dependency graph.
-		for (lwlv::const_iterator j = getAggSolver()->getAggLiteralsBegin(i); j
+		for (vwl::const_iterator j = getAggSolver()->getAggLiteralsBegin(i); j
 					< getAggSolver()->getAggLiteralsEnd(i); ++j) {
 			Var w = var((*j).getLit());
 			if (!isDefined(w)) {

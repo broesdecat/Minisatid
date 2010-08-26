@@ -48,13 +48,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 namespace Aggrs{
 
-class Agg;
 class AggrSet;
-
-typedef Agg* pAgg;
-typedef AggrSet* pSet;
-
-typedef vector<pAgg> lsagg;
 class AggrReason;
 
 /**
@@ -71,11 +65,8 @@ struct AggDS{
 	Bound 		sign;
 	Lit			head;
 
-	pSet	 	set;		//non-owning pointer
-
-	AggDS(const Weight& bound, Bound sign, const Lit& head, const pSet& set):
-		bound(bound), sign(sign), head(head), set(set){	}
-
+	AggDS(const Weight& bound, Bound sign, const Lit& head):
+		bound(bound), sign(sign), head(head){	}
 };
 
 class Agg{
@@ -85,6 +76,7 @@ private:
 
 protected:
 	AggDS		agg;
+	AggrSet*	set;		//non-owning pointer
 
 	bool 		nomoreprops, optimagg;//indicates that this aggregate is always true, so no more propagation is necessary
 	mutable bool headprop;
@@ -92,7 +84,7 @@ protected:
 
 public:
 
-    Agg(const Bound& bounds, const Weight& bound, const Lit& head, const pSet& set);
+    Agg(const Bound& bounds, const Weight& bound, const Lit& head, const AggrSet*& set);
 
     virtual ~Agg(){}
 
@@ -108,7 +100,7 @@ public:
 	const 	Lit& 	getHead()		const	{ return agg.head; }
 	const 	lbool& 	getHeadValue() 	const	{ return headvalue; }
 			int 	getHeadIndex() 	const	{ return headindex; }
-	const	pSet&	getSet()	 	const	{ return agg.set; }
+	virtual AggrSet*	getSet()	 	const	{ return set; }
 
 			lbool 	initialize(); //throws UNSAT
 			void 	backtrackHead();
@@ -133,7 +125,7 @@ public:
 
 class MaxAgg: public Agg {
 public:
-	MaxAgg(Bound bounds, Weight bound, Lit head, const pSet& set):
+	MaxAgg(Bound bounds, Weight bound, Lit head, const AggrSet*& set):
 		Agg(bounds, bound, head, set){
 	};
 
@@ -147,7 +139,7 @@ public:
 
 class SPAgg: public Agg {
 public:
-	SPAgg(Bound bounds, Weight bound, Lit head, const pSet& set):
+	SPAgg(Bound bounds, Weight bound, Lit head, const AggrSet*& set):
 		Agg(bounds, bound, head, set){
 	};
 
@@ -165,7 +157,7 @@ protected:
 
 class SumAgg: public SPAgg {
 public:
-	SumAgg(Bound bounds, Weight bound, Lit head, const pSet& set):
+	SumAgg(Bound bounds, Weight bound, Lit head, const AggrSet*& set):
 		SPAgg(bounds, bound, head, set){};
 
 	void	getMinimExplan(vec<Lit>& lits);
@@ -180,7 +172,7 @@ protected:
 
 class CardAgg:public SumAgg{
 public:
-	CardAgg(Bound bounds, Weight bound, Lit head, const pSet& set):
+	CardAgg(Bound bounds, Weight bound, Lit head, const AggrSet*& set):
 		SumAgg(bounds, bound, head, set){};
 
     virtual rClause propagate		(bool headtrue);
@@ -188,7 +180,7 @@ public:
 
 class ProdAgg: public SPAgg {
 public:
-	ProdAgg(Bound bounds, Weight bound, Lit head, const pSet& set):
+	ProdAgg(Bound bounds, Weight bound, Lit head, const AggrSet*& set):
 		SPAgg(bounds, bound, head, set){
 	}
 

@@ -40,32 +40,34 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #define AggSolver_H_
 
 #include <cstdio>
-
 #include <map>
-
-#include "solvers/aggsolver/AggTypes.hpp"
-
-namespace Aggrs{
-	class Agg;
-	class AggrSet;
-	class AggrSumSet;
-	class AggrProdSet;
-	class AggrMaxSet;
-	class AggrWatch;
-	class AggrReason;
-
-	typedef Agg* pAgg;
-	typedef vector<pAgg> lsagg;
-
-	typedef AggrSet* pSet;
-}
+#include <set>
 
 #include "solvers/pcsolver/SolverModule.hpp"
 class PCSolver;
 typedef PCSolver* pPCSolver;
 
-class AggSolver;
-typedef AggSolver* pAggSolver;
+class WL;
+typedef vector<WL> vwl;
+
+namespace Aggrs{
+	typedef vector<Weight> vw;
+	typedef vector<Lit> vl;
+
+	class Agg;
+	class AggSet;
+	typedef Agg* pagg;
+	typedef vector<Agg*> vpagg;
+	typedef AggSet* pset;
+
+	class AggComb;
+	typedef AggComb* pcomb;
+
+	class Watch;
+	typedef Watch* pw;
+
+	class AggReason;
+}
 
 using namespace Aggrs;
 
@@ -98,7 +100,7 @@ public:
 	 *
 	 * @remark: please ensure that all id numbers are used without gaps in the numbering.
 	 */
-	bool    addSet(int id, const vec<Lit>& l, const vector<Weight>& w);
+	bool addSet(int id, const vector<Lit>& l, const vector<Weight>& w);
 
 	/**
 	 * Adds an aggregate of the given type with number defn for set set_id.
@@ -111,27 +113,25 @@ public:
 	 *
 	 * @pre: no weights==0 when using a product aggregate
 	 */
-	bool    addAggrExpr					(int defn, int set_id, Weight bound, Bound boundsign,
-										AggrType type, HdEq headeq);
+	bool addAggrExpr(int defn, int set_id, Weight bound, Bound boundsign, AggrType type, HdEq headeq);
 
 	/**
 	 * Checks presence of aggregates and initializes all counters.
 	 * UNSAT is set to true if unsat is detected
 	 * PRESENT is set to true if aggregate propagations should be done
 	 */
-	void	finishECNF_DataStructures 	(bool& present, bool& unsat); //throws UNSAT
-	void	findClausalPropagations		();
-	void	removeHeadWatch				(Var x);
+	void finishECNF_DataStructures 	(bool& present, bool& unsat); //throws UNSAT
+	void findClausalPropagations		();
+	void removeHeadWatch				(Var x);
 
 	//////
 	// SEARCH
 	//////
-
-	void 	backtrack 					(const Lit& l);
+	void backtrack 					(const Lit& l);
 
 	/*
 	 * Returns the explanation for the deduction of p from an aggregate expression.
-	 * This method constructs, from the AggrReason stored for it, a "reason clause" usable in clause learning.
+	 * This method constructs, from the AggReason stored for it, a "reason clause" usable in clause learning.
 	 * @post the first element in the reason clause will be the literal itself (invariant by minisat!)
 	 * @post the clause is added to the sat solver
 	 * @returns NON-OWNING pointer
@@ -141,12 +141,11 @@ public:
 	rClause propagate					(const Lit& p);
 
 	//are used by agg.c, but preferably should be move into protected again
-	rClause	notifySATsolverOfPropagation(const Lit& p, Aggrs::AggrReason* cr);	// Like "enqueue", but for aggregate propagations.
+	rClause	notifySATsolverOfPropagation(const Lit& p, Aggrs::AggReason* cr);	// Like "enqueue", but for aggregate propagations.
 
 	//////
 	// OPTIMISATION
 	//////
-
 	bool 	addMnmzSum					(Var headv, int setid, Bound boundsign);
     bool 	invalidateSum				(vec<Lit>& invalidation, Var head);
     void 	propagateMnmz				(Var head);
@@ -167,28 +166,31 @@ public:
 	/**
 	 * Returns the set literals of the aggregate with the given head x.
 	 */
-	lwlv::const_iterator getAggLiteralsBegin(Var x) const;
-	lwlv::const_iterator getAggLiteralsEnd	(Var x) const;
+	vwl::const_iterator getAggLiteralsBegin	(Var x) const;
+	vwl::const_iterator getAggLiteralsEnd	(Var x) const;
 
+	///////
+	// Watched literal sets
+	///////
+	void addTempWatch(const Lit& l, pcomb c, int setindex);
 
 protected:
 	/**
 	 * Returns the aggregate in which the given variable is the head.
 	 */
-    pAgg		getAggWithHeadOccurence	(Var v) const;
+    pcomb 		getAggWithHeadOccurence	(Var v) const;
 
-    map<AggrType, int > 		maptosetindex;
-	vector<vector<AggrSet*> >	sets;	//After initialization, all remaining sets.
+    map<AggrType, int > 		maptype;
+	vector<vector<pcomb> >	sets;			//After initialization, all remaining sets.
 
-	vector<AggrReason*>			aggr_reason;	// For each atom, like 'reason'.
-	vector<vector<AggrWatch> >	aggr_watches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
+	vector<AggReason*>			aggr_reason;	// For each atom, like 'reason'.
+
+	vector<vector<pw> >		tempwatches;
+	vector<vector<pw> >		permwatches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
 
 	//index on VAR (heads are always positive
-	vector<pAgg>				head_watches;	//	does NOT own the pointers
-	vector<pAgg> 				aggregates;		//A vector to store all created aggregates as shared pointers, to allow easy destruction in the end
-			//INVARIANT: if a literal is defined by an aggregate, the watch on the expression in which it is head
-			//	will be the first element of its watches list
-	vector<vector<pSet> >		network;		// the pointer network of set var -> set
+	vector<pw>				head_watches;	//	does NOT own the pointers
+	vector<vector<pcomb> >	network;		// the pointer network of set var -> set
 
 	/**
 	 * Correct the min and max values of the aggregates in which l was propagated and delete any aggregate reasons
@@ -204,12 +206,10 @@ protected:
 	/**
 	 * Goes through all watches and propagates the fact that p was set true.
 	 */
-	rClause 	Aggr_propagate		(const Lit& p);
+	rClause 	Aggr_propagate	(const Lit& p);
 
-	bool 		maxAggAsSAT			(HdEq headeq, Bound boundsign, Weight bound, const Lit& head, const AggrSet& set);
-	bool		finishSets			(vector<pSet>& sets); //throws UNSAT
-
-	void 		getExplanation(pAgg agg, vec<Lit>& lits, AggrReason& ar) const;
+	//bool 		maxAggAsSAT		(HdEq headeq, Bound boundsign, Weight bound, const Lit& head, const pset& set);
+	bool		finishSets		(vector<pcomb>& sets); //throws UNSAT
 };
 
 //=======================
