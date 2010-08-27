@@ -142,9 +142,12 @@ public:
 };
 
 class MaxAgg: public Agg {
+private:
+	AggrMaxSet* set;
 public:
-	MaxAgg(Bound bounds, Weight bound, Lit head, const pSet& set):
-		Agg(bounds, bound, head, set){
+	MaxAgg(Bound bounds, Weight bound, Lit head, AggrMaxSet* set):
+		Agg(bounds, bound, head), set(set){
+		set->addAgg(this);
 	};
 
     virtual rClause propagate		(bool headtrue);

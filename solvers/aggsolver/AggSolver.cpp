@@ -188,8 +188,8 @@ bool AggSolver::finishSets(vector<pSet>& sets) {
 	if (getPCSolver()->modes().verbosity >= 3) {
 		for (vector<pSet>::iterator i = sets.begin(); i < sets.end(); i++) {
 			pSet s = *i;
-			for (lsagg::const_iterator j = s->getAggBegin(); j < s->getAggEnd(); j++) {
-				Aggrs::printAggrExpr(*j);
+			for (vector<void*>::size_type j = 0; j < s->nbAgg(); j++) {
+				Aggrs::printAggrExpr(s->getAgg(j));
 			}
 		}
 	}
@@ -613,8 +613,8 @@ void AggSolver::getHeadsOfAggrInWhichOccurs(Var x, vec<Var>& heads) {
 	vector<AggrWatch>& w = aggr_watches[x];
 	for (vector<AggrWatch>::const_iterator i = w.begin(); i < w.end(); i++) {
 		pSet s = (*i).getSet();
-		for (lsagg::const_iterator j = s->getAggBegin(); j < s->getAggEnd(); j++) {
-			heads.push(var((*j)->getHead()));
+		for (vector<void*>::size_type j = 0; j < s->nbAgg(); j++) {
+			heads.push(var((s->getAgg(j))->getHead()));
 		}
 	}
 }
@@ -638,8 +638,8 @@ void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs,
 	for (vector<AggrWatch>::const_iterator i = aggr_watches[var(w)].begin(); i
 			< aggr_watches[var(w)].end(); i++) {
 		pSet set = (*i).getSet();
-		for (lsagg::const_iterator j = set->getAggBegin(); j < set->getAggEnd(); j++) {
-			pAgg expr = (*j);
+		for (vector<void*>::size_type j = 0; j < set->nbAgg(); j++) {
+			pAgg expr = set->getAgg(j);
 			if (expr->getHeadValue() == l_False) {
 				continue;
 			}

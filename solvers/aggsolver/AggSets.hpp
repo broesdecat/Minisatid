@@ -64,7 +64,6 @@ class AggrWatch;
 class AggrSet {
 protected:
 	string 	name;
-	lsagg	aggregates;		//does NOT own the pointers
 	lwlv 	wlits;
 	lprop 	stack;		// Stack of propagations of this expression so far.
 	Weight 	currentbestcertain, currentbestpossible, emptysetvalue;
@@ -109,10 +108,9 @@ public:
 	void 							setCP(const Weight& w) 		{ currentbestpossible = w; }
 	void 							setCC(const Weight& w) 		{ currentbestcertain = w; }
 
-	lsagg::const_iterator 			getAggBegin() 		const	{ return aggregates.begin(); }
-	lsagg::const_iterator 			getAggEnd() 		const	{ return aggregates.end(); }
-	void 							addAgg(pAgg aggr)			{ aggregates.push_back(aggr); }
-	int 							nbAgg() 			const	{ return aggregates.size(); }
+	virtual Agg*				 	getAgg(const vector<void*>::size_type&) const = 0;
+	//virtual void 							addAgg(pAgg aggr)		  = 0;
+	virtual vector<void*>::size_type 							nbAgg() 			const = 0;
 
 	lwlv::const_iterator 			getWLBegin() 		const 	{ return wlits.begin(); }
 	lwlv::const_iterator 			getWLEnd()			const 	{ return wlits.end(); }
@@ -130,6 +128,9 @@ public:
 };
 
 class AggrMaxSet: public AggrSet{
+private:
+	vector<MaxAgg*>	aggregates;		//does NOT own the pointers
+
 public:
 	AggrMaxSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver s);
 	virtual Weight 	getCombinedWeight			(const Weight& one, const Weight& two) 	const;
@@ -137,6 +138,10 @@ public:
 	virtual Weight 	getBestPossible				() 										const;
 	virtual void 	addToCertainSet				(const WLit& l);
 	virtual void 	removeFromPossibleSet		(const WLit& l);
+
+	MaxAgg*			getAgg(const vector<void*>::size_type& i) const	{ return aggregates[i];	}
+	void 							addAgg(MaxAgg* aggr)		{ aggregates.push_back(aggr); }
+	vector<void*>::size_type 							nbAgg() 			const	{ return aggregates.size(); }
 };
 
 class AggrSPSet: public AggrSet{
@@ -153,6 +158,9 @@ public:
 };
 
 class AggrSumSet: public AggrSPSet{
+private:
+	vector<SumAgg*>	aggregates;		//does NOT own the pointers
+
 public:
 	AggrSumSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver s);
 
@@ -161,9 +169,16 @@ public:
 	virtual WLit 	handleOccurenceOfBothSigns	(const WLit& one, const WLit& two);
 	virtual Weight	add							(const Weight& lhs, const Weight& rhs) const;
 	virtual Weight	remove						(const Weight& lhs, const Weight& rhs) const;
+
+	SumAgg*			getAgg(const vector<void*>::size_type& i) const	{ return aggregates[i]; }
+	void 							addAgg(SumAgg* aggr)		{ aggregates.push_back(aggr); }
+	vector<void*>::size_type 							nbAgg() 			const	{ return aggregates.size(); }
 };
 
 class AggrProdSet: public AggrSPSet{
+private:
+	vector<ProdAgg*>	aggregates;		//does NOT own the pointers
+
 public:
 	AggrProdSet(const vec<Lit>& lits, const vector<Weight>& weights, pAggSolver s);
 
@@ -172,6 +187,10 @@ public:
 	virtual WLit 	handleOccurenceOfBothSigns	(const WLit& one, const WLit& two);
 	virtual Weight	add							(const Weight& lhs, const Weight& rhs) const;
 	virtual Weight	remove						(const Weight& lhs, const Weight& rhs) const;
+
+	ProdAgg*			getAgg(const vector<void*>::size_type& i) const	{ return aggregates[i]; }
+	void 							addAgg(ProdAgg* aggr)		{ aggregates.push_back(aggr); }
+	vector<void*>::size_type 							nbAgg() 			const	{ return aggregates.size(); }
 };
 
 class AggrWatch {

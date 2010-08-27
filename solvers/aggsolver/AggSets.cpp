@@ -58,8 +58,8 @@ void AggrSet::backtrack(int index) {
 	setCP(pi.getPP());
 
 	int s = stack.size();
-	for(lsagg::const_iterator i=getAggBegin(); i<getAggEnd(); i++){
-		(*i)->backtrack(s);
+	for(vector<void*>::size_type i=0; i<nbAgg(); i++){
+		getAgg(i)->backtrack(s);
 	}
 }
 
@@ -108,8 +108,8 @@ rClause AggrSet::propagate(const Lit& p, const AggrWatch& ws){
 	tp==POS? addToCertainSet(wlits[ws.getIndex()]):removeFromPossibleSet(wlits[ws.getIndex()]);
 
 	rClause confl = nullPtrClause;
-	for(lsagg::const_iterator i=getAggBegin(); i<getAggEnd() && confl == nullPtrClause; i++){
-		pAgg pa = (*i);
+	for(vector<void*>::size_type i=0; i<nbAgg() && confl == nullPtrClause; i++){
+		pAgg pa = getAgg(i);
 
 		//TODO dit is vrij lelijk
 		if(getSolver()->getPCSolver()->modes().verbosity>=4){
@@ -124,7 +124,7 @@ rClause AggrSet::propagate(const Lit& p, const AggrWatch& ws){
 		}else{ //head is not yet known, so at most the head can be propagated
 			lbool result = pa->canPropagateHead(getCC(), getCP());
 			if(result!=l_Undef){
-				rClause cc = getSolver()->notifySATsolverOfPropagation(result==l_True?pa->getHead():~pa->getHead(), new AggrReason(*i, CPANDCC, true));
+				rClause cc = getSolver()->notifySATsolverOfPropagation(result==l_True?pa->getHead():~pa->getHead(), new AggrReason(pa, CPANDCC, true));
 				confl = cc;
 			}
 		}
@@ -190,13 +190,13 @@ bool AggrSet::initialize(){
 	setCP(getBestPossible());
 	setCC(getEmptySetValue());
 
-	for(lsagg::iterator i=aggregates.begin(); i<aggregates.end();){
-		lbool result = (*i)->initialize();
+	for(vector<void*>::size_type i=0; i<nbAgg();){
+		lbool result = getAgg(i)->initialize();
 		if(result==l_True){
 			//If after initialization, the head will have a fixed value, then this is
 			//independent of any further propagations within that aggregate.
-			getSolver()->removeHeadWatch(var((*i)->getHead()));
-			i = aggregates.erase(i);
+			getSolver()->removeHeadWatch(var(getAgg(i)->getHead()));
+			//TODO TODO i = eraseAgg(i);
 		}else if(result==l_False){
 			//UNSAT because always false
 			return false;
@@ -221,8 +221,8 @@ bool AggrSumSet::initialize(){
 			wlits2.push_back(WLV((*i).getLit(), abs((*i).getWeight()), (*i).getValue()));
 		}
 		wlits = wlits2;
-		for(lsagg::const_iterator i=getAggBegin(); i<getAggEnd(); i++){
-			(*i)->addToBounds(totalneg);
+		for(vector<void*>::size_type i=0; i<nbAgg(); i++){
+			getAgg(i)->addToBounds(totalneg);
 		}
 	}
 
