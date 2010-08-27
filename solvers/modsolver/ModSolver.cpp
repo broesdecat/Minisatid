@@ -32,7 +32,7 @@
  * Constructs a ModSolver, with a given head, index and hierarchy pointer. A PCSolver is initialized.
  */
 ModSolver::ModSolver(modindex child, Var head, ModSolverData* mh):
-		ISolver(NULL),
+		SolverModule(NULL),
 		id(child), parentid(-1), hasparent(false), //, startedsearch(false), startindex(-1),
 		head(head), modhier(mh){
 	ECNF_mode modescopy(mh->modes());
@@ -84,9 +84,9 @@ bool ModSolver::addSet(int setid, vec<Lit>& lits, vector<Weight>& w){
 	return getSolver()->addSet(setid, lits, w);
 }
 
-bool ModSolver::addAggrExpr(Lit head, int set_id, Weight bound, bool lower, AggrType type, bool defined){
+bool ModSolver::addAggrExpr(Lit head, int set_id, Weight bound, Bound boundsign, AggrType type, HdEq defined){
 	addVar(var(head));
-	return getSolver()->addAggrExpr(head, set_id, bound, lower, type, defined);
+	return getSolver()->addAggrExpr(head, set_id, bound, boundsign, type, defined);
 }
 
 void ModSolver::setNbModels(int nb){

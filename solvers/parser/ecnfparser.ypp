@@ -74,13 +74,15 @@ shared_ptr<SolverInterface> getData();
     vector<Atom>* vatoms;
     MINISAT::EqType rel;
     AggrType aggr;
+    Bound sign;
+    HdEq sem;
 }
 
 %token DISJUNCTION CONJUNCTION
 %token SUBSETMINDEFN MNMZDEFN SUMMINDEFN
 %token SETDEFN WSETDEFN  
 %token <integer> ZERO NUMBER
-%token <boolean> SEMDEFN SIGNDEFN QUANTe
+%token <sem> SEMDEFN <sign> SIGNDEFN QUANTe
 %token <rel> REL
 %token <aggr> AGGDEFN
 %token CNF ECNF MECNF DEFPRESENT AGGPRESENT MNMZPRESENT MODDEFN CPPRESENT

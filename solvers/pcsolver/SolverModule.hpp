@@ -24,19 +24,32 @@
 
 class PCSolver;
 
-class ISolver {
+class SolverModule {
 private:
 	bool 			init;
 	PCSolver* 		pcsolver; //NON-OWNING pointer
 
 public:
-	ISolver(PCSolver* s): init(false), pcsolver(s){ }
-	virtual ~ISolver(){};
+	SolverModule(PCSolver* s): init(false), pcsolver(s){ }
+	virtual ~SolverModule(){};
 
 	bool isInitialized		()	const	{ return init; }
 	void notifyInitialized	() 			{ assert(!init); init = true; }
 
 	PCSolver* getPCSolver	()	const 	{ return pcsolver; }
+
+	bool isTrue		(Lit l) const;
+	bool isFalse	(Lit l) const;
+	bool isUnknown	(Lit l) const;
+	bool isTrue		(Var l) const;
+	bool isFalse	(Var l) const;
+	bool isUnknown	(Var l) const;
+
+	int verbosity	() 		const;
+
+	lbool		value(Var x) const;
+	lbool		value(Lit p) const;
+	int			nVars()      const;
 };
 
 #endif /* ISOLVER_HPP_ */

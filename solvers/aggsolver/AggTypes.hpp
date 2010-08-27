@@ -50,6 +50,12 @@ using namespace Minisat;
 #endif
 
 namespace Aggrs{
+class Agg;
+class AggSet;
+typedef Agg* pAgg;
+typedef vector<pAgg> lsagg;
+typedef AggSet* pSet;
+
 class WLV;
 typedef vector<WLV> lwlv;
 
@@ -87,18 +93,18 @@ public:
 
 class PropagationInfo {	// Propagated literal
 private:
-	Lit 	lit;
-	Weight 	weight;
+	WLV wlv;
 	Occurrence  type;		// POS if the literal in the set became true, NEG otherwise
-							//		(and HEAD if the head was propagate)
+							//		(and HEAD if the head was propagated)
 	Weight prevcertain, prevpossible; //values BEFORE the propagation was added
 
 public:
     PropagationInfo(const Lit& l, const Weight& w, Occurrence t, const Weight& pc, const Weight& pv) :
-    	lit(l), weight(w), type(t), prevcertain(pc), prevpossible(pv) {}
+    	wlv(l, w, l_Undef), type(t), prevcertain(pc), prevpossible(pv) {}
 
-    const Lit& 			getLit()	const { return lit; }
-    const Weight&		getWeight()	const { return weight; }
+    const Lit& 			getLit()	const { return wlv.getLit(); }
+    const Weight&		getWeight()	const { return wlv.getWeight(); }
+    const WLV&			getWLV()	const { return wlv; }
     const Occurrence& 	getType() 	const { return type; }
     const Weight& 		getPC()		const { return prevcertain; }
     const Weight& 		getPP()		const { return prevpossible; }

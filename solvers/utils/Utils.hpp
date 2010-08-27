@@ -45,6 +45,22 @@ void deleteList(vector<T*> l){
 	l.clear();
 }
 
+class WL {  // Weighted literal
+private:
+	Lit lit;
+	Weight weight;
+
+public:
+    explicit WL(const Lit& l, const Weight& w) : lit(l), weight(w) {}
+
+    const Lit& 		getLit() 	const { return lit; }
+    const Weight&	getWeight() const { return weight; }
+
+    bool operator<	(const WL& p)		 const { return weight < p.weight; }
+    bool operator<	(const Weight& bound)const { return weight < bound; }
+    bool operator==	(const WL& p)		 const { return weight == p.weight && lit==p.lit; }
+};
+
 #define reportf(...) ( fflush(stdout), fprintf(stderr, __VA_ARGS__), fflush(stderr) )
 
 inline int gprintVar(Var v){

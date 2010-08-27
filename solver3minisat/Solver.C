@@ -71,7 +71,7 @@ Solver::Solver(pPCSolver s/*A*/) :
   , order_heap       (VarOrderLt(activity))
   , random_seed      (91648253)
   , progress_estimate(0)
-  , remove_satisfied (false/*A*/)
+  , remove_satisfied (true/*A*/)
 {}
 
 
@@ -377,6 +377,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
     int index   = trail.size() - 1;
     out_btlevel = 0;
 
+    bool deleteImplicitClause = false;
     do{
         assert(confl != NULL);          // (otherwise should be UIP)
         Clause& c = *confl;
@@ -423,6 +424,11 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
         	}
         	reportf("\n");
 		}
+
+        if(deleteImplicitClause){
+        	delete confl;
+        	deleteImplicitClause = false;
+        }
         /*AE*/
 
 		// Select next clause to look at:
@@ -445,6 +451,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 
         if(confl==NULL && pathC>1){
 			confl = solver->getExplanation(p);
+			deleteImplicitClause = true;
         }
         if(verbosity>4 && confl!=NULL) {
         	reportf("Explanation is "); printClause(*confl); reportf("\n");

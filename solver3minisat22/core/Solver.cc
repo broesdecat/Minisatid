@@ -108,7 +108,7 @@ Solver::Solver(pPCSolver s/*A*/) :
   , simpDB_props       (0)
   , order_heap         (VarOrderLt(activity))
   , progress_estimate  (0)
-  , remove_satisfied   (false)///*A*/true)
+  , remove_satisfied   (true)///*A*/true)
 
     // Resource constraints:
     //
@@ -415,6 +415,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
     out_learnt.push();      // (leave room for the asserting literal)
     int index   = trail.size() - 1;
 
+    bool deleteImplicitClause = false;
     do{
         assert(confl != CRef_Undef); // (otherwise should be UIP)
         Clause& c = ca[confl];
@@ -459,6 +460,11 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
         	}
         	reportf("\n");
 		}
+
+        if(deleteImplicitClause){
+        	ca.free(confl);
+        	deleteImplicitClause = false;
+        }
         /*AE*/
 
         // Select next clause to look at:
@@ -481,6 +487,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
 
 		if(confl==CRef_Undef && pathC>1){
 			confl = solver->getExplanation(p);
+			deleteImplicitClause = true;
 		}
 		if(verbosity>4 && confl!=CRef_Undef) {
 			reportf("Explanation is "); printClause(confl); reportf("\n");

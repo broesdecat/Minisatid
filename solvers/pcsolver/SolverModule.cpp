@@ -17,4 +17,38 @@
 //    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //--------------------------------------------------------------------------------------------------
 
-#include "ISolver.hpp"
+#include "solvers/pcsolver/SolverModule.hpp"
+
+#include "solvers/pcsolver/PCSolver.hpp"
+
+int SolverModule::verbosity() const	{
+	return getPCSolver()->verbosity();
+}
+
+bool SolverModule::isTrue(Lit l) const {
+	return value(l) == l_True;
+}
+bool SolverModule::isTrue(Var v) const {
+	return value(v) == l_True;
+}
+bool SolverModule::isFalse(Lit l) const {
+	return value(l) == l_False;
+}
+bool SolverModule::isFalse(Var v) const {
+	return value(v) == l_False;
+}
+bool SolverModule::isUnknown(Lit l) const {
+	return value(l) == l_Undef;
+}
+bool SolverModule::isUnknown(Var v) const {
+	return value(v) == l_Undef;
+}
+lbool SolverModule::value(Var x) const {
+	return getPCSolver()->value(x);
+}
+lbool SolverModule::value(Lit p) const {
+	return getPCSolver()->value(p);
+}
+int SolverModule::nVars() const {
+	return getPCSolver()->nVars();
+}

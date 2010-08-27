@@ -24,7 +24,7 @@
 
 #include "solvers/utils/Utils.hpp"
 
-#include "solvers/pcsolver/ISolver.hpp"
+#include "solvers/pcsolver/SolverModule.hpp"
 
 using namespace std;
 
@@ -63,7 +63,7 @@ struct AV{
     bool operator <  (AV p) const { return atom < p.atom;  }*/
 };
 
-class ModSolver: public ISolver{
+class ModSolver: public SolverModule{
 private:
 	bool hasparent, searching; //, startedsearch;
 
@@ -100,7 +100,7 @@ public:
 	bool 				addClause		(vec<Lit>& lits);
 	bool 				addRule			(bool conj, Lit head, vec<Lit>& lits);
 	bool 				addSet			(int setid, vec<Lit>& lits, vector<Weight>& w);
-	bool 				addAggrExpr		(Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined);
+	bool 				addAggrExpr		(Lit head, int set_id, Weight bound, Bound boundsign, AggrType type, HdEq defined);
 	bool 				finishParsing();
 
 	//solver initialization

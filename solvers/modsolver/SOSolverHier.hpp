@@ -89,7 +89,7 @@ public:
 	bool 	addClause			(modindex modid, vec<Lit>& lits);
 	bool 	addRule				(modindex modid, bool conj, Lit head, vec<Lit>& lits);
 	bool 	addSet				(modindex modid, int set_id, vec<Lit>& lits, vector<Weight>& w);
-	bool 	addAggrExpr			(modindex modid, Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined);
+	bool 	addAggrExpr			(modindex modid, Lit head, int setid, Weight bound, Bound boundsign, AggrType type, HdEq defined);
 
 	//Get information on hierarchy
 	pModSolver getModSolver		(modindex modid) const { checkexistsModSolver(modid); return solvers[modid];}
