@@ -24,14 +24,13 @@ AggSet::AggSet(const vector<Lit>& lits, const vector<Weight>& weights){
 }
 
 void AggSet::setWL(const vector<WL>& newset){
-	wlits.clear();
-	wlits.insert(wlits.begin(), newset.begin(), newset.end());
+	wlits=newset;
 	//important to sort again to guarantee that it is sorted according to the weights
 	std::sort(wlits.begin(), wlits.end());
 }
 
 AggComb::AggComb(const paggsol& solver, const vector<Lit>& lits, const vector<Weight>& weights):
-		aggsolver(solver), set(new AggSet(lits, weights)){
+		aggsolver(solver), set(new AggSet(lits, weights)), emptysetvalue(0){
 }
 
 AggComb::~AggComb(){
@@ -40,7 +39,7 @@ AggComb::~AggComb(){
 };
 
 FWAgg::FWAgg(const paggsol& solver, const vector<Lit>& lits, const vector<Weight>& weights):
-		AggComb(solver, lits, weights), currentbestcertain(0),currentbestpossible(0),emptysetvalue(0){
+		AggComb(solver, lits, weights), currentbestcertain(0),currentbestpossible(0){
 }
 
 rClause FWAgg::propagate(const Lit& p, const Watch& ws){
@@ -499,42 +498,305 @@ rClause MaxFWAgg::propagateAll(const Agg& agg, bool headtrue) {
 	return confl;
 }
 
-/**
- * AGG <= B: v is justified if one literal below/eq the bound is THAT IS NOT THE HEAD
- * 					if so, change the justification to the literal
- * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
- * A <= AGG: v is justified if the negation of all literals below the bound are. The emptyset is always a solution,
- * 			 so no conclusions have to be drawn from the literals above/eq the bound
- * 					if so, change the justification to the negation of all those below the bound literals
- * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
- */
-bool MaxFWAgg::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
-	bool justified = false;
-	if(agg.isLower()){
-		for(vwl::const_reverse_iterator i=getWL().rbegin(); i<getWL().rend() && (*i).getWeight()>agg.getLowerBound(); i++) {
-			if(oppositeIsJustified(*i, currentjust, real)){
-				jstf.push(~(*i).getLit()); //push negative literal, because it should become false
-			}else if(real ||currentjust[var((*i).getLit())]!=0){
-				nonjstf.push(var((*i).getLit()));
+SPFWAgg::SPFWAgg(const paggsol& solver, const vector<Lit>& lits, const vector<Weight>& weights)
+		:FWAgg(solver, lits, weights){
+}
+
+Weight SPFWAgg::getCombinedWeight(const Weight& one, const Weight& two) const {
+	return this->add(one, two);
+}
+
+Weight SPFWAgg::getBestPossible() const{
+	Weight max = getESV();
+	for (vwl::const_iterator j = getWL().begin(); j < getWL().end(); j++) {
+		max = this->add(max, (*j).getWeight());
+	}
+	return max;
+}
+
+void SPFWAgg::addToCertainSet(const WL& l){
+	setCC(this->add(getCC(), l.getWeight()));
+}
+
+void SPFWAgg::removeFromPossibleSet(const WL& l){
+	setCP(this->remove(getCP(), l.getWeight()));
+}
+
+rClause SPFWAgg::propagate(const Agg& agg, bool headtrue){
+	if(nomoreprops[agg.getIndex()] || headprop[agg.getIndex()]){ return nullPtrClause; }
+
+	return propagateAll(agg, headtrue);
+}
+
+rClause SPFWAgg::propagateAll(const Agg& agg, bool headtrue){
+	if(nomoreprops[agg.getIndex()] || headprop[agg.getIndex()]){ return nullPtrClause; }
+
+	rClause c = nullPtrClause;
+	Weight weightbound(0);
+
+	Expl basedon = CPANDCC;
+
+	//determine the lower bound of which weight literals to consider
+	if (headtrue) {
+		if(agg.isLower()){
+			basedon = BASEDONCC;
+			weightbound = remove(agg.getLowerBound(), getCC());
+			//+1 because larger and not eq
+			if(add(weightbound, getCC())==agg.getLowerBound()){
+				weightbound+=1;
+			}
+		}else{
+			basedon = BASEDONCP;
+			weightbound = remove(getCP(), agg.getUpperBound());
+			//+1 because larger and not eq
+			if(this->add(weightbound, agg.getUpperBound())==getCP()){
+				weightbound+=1;
 			}
 		}
-		if(nonjstf.size()==0){
-			justified = true;
+	} else {
+		if(agg.isLower()){
+			basedon = BASEDONCP;
+			weightbound = remove(getCP(), agg.getLowerBound());
+		}else{
+			basedon = BASEDONCC;
+			weightbound = remove(agg.getUpperBound(), getCC());
 		}
+	}
+
+#ifdef INTWEIGHT
+	if(weightbound == INT_MAX || weightbound == INT_MIN){
+		return c;
+	}
+#endif
+
+	vwl::const_iterator pos = lower_bound(getWL().begin(), getWL().begin(), weightbound);
+	if(pos==getWL().end()){
+		return c;
+	}
+
+	//find the index of the literal
+	int start = 0;
+	vwl::const_iterator it = getWL().begin();
+	while(it!=pos){
+		it++; start++;
+	}
+
+	for(int u = start; c==nullPtrClause && u < getWL().size(); u++) {
+		if(truth[u]==l_Undef){//if already propagated as an aggregate, then those best-values have already been adapted
+			const Lit& l = getWL()[u].getLit();
+			if((agg.isLower() && headtrue) || (agg.isUpper() && !headtrue)){
+				c = getSolver()->notifySATsolverOfPropagation(~l, new AggReason(agg, ~l, basedon));
+			}else{
+				c = getSolver()->notifySATsolverOfPropagation(l, new AggReason(agg, l, basedon));
+			}
+		}
+	}
+	return c;
+}
+
+SumFWAgg::SumFWAgg(const paggsol& solver, const vector<Lit>& lits, const vector<Weight>& weights)
+		:SPFWAgg(solver, lits, weights){
+	emptysetvalue = 0;
+}
+
+rClause SumFWAgg::propagate(const Agg& agg, bool headtrue){
+
+}
+
+rClause SumFWAgg::propagateAll(const Agg& agg, bool headtrue){
+
+}
+
+pcomb SumFWAgg::initialize(bool& unsat){
+	unsat = false;
+	if(aggregates.size()==0){
+		return NULL;
+	}
+
+	//Calculate the total negative weight to make all weight positive
+	vwl wlits2;
+	Weight totalneg(0);
+	for(vwl::const_iterator i=getWL().begin(); i<getWL().end(); i++){
+		if ((*i).getWeight() < 0) {
+			totalneg-=(*i).getWeight();
+		}
+	}
+	if(totalneg > 0){
+		for(vwl::const_iterator i=getWL().begin(); i<getWL().end(); i++){
+			wlits2.push_back(WL((*i).getLit(), abs((*i).getWeight())));
+		}
+		getSet()->setWL(wlits2);
+		for(vpagg::const_iterator i=getAgg().begin(); i<getAgg().end(); i++){
+			addToBounds(**i, totalneg);
+		}
+	}
+
+#ifdef INTWEIGHT
+	//Test whether the total sum of the weights is not infinity for intweights
+	Weight total(0);
+	for(vwl::const_iterator i=getWL().begin(); i<getWL().end(); i++){
+		if(INT_MAX-total < (*i).getWeight()){
+			throw idpexception("The total sum of weights exceeds max-int, correctness cannot be guaranteed in limited precision.\n");
+		}
+		total += (*i).getWeight();
+	}
+#endif
+
+	return FWAgg::initialize(unsat);
+}
+
+WL SumFWAgg::handleOccurenceOfBothSigns(const WL& one, const WL& two){
+	if(one.getWeight()<two.getWeight()){
+		setESV(getESV() + one.getWeight());
+		return WL(two.getLit(), this->remove(two.getWeight(), one.getWeight()));
 	}else{
-		for(vwl::const_reverse_iterator i=getWL().rbegin(); i<getWL().rend() && (*i).getWeight()>=agg.getUpperBound(); i++) {
-			if(isJustified(*i, currentjust, real)){
-				jstf.push((*i).getLit());
-				justified = true;
-			}else if(real || currentjust[var((*i).getLit())]!=0){
-				nonjstf.push(var((*i).getLit()));
+		setESV(getESV() + two.getWeight());
+		return WL(one.getLit(), this->remove(one.getWeight(), two.getWeight()));
+	}
+}
+
+bool SumFWAgg::isMonotone(const Agg& agg, const WL& w) const{
+
+}
+
+Weight SumFWAgg::add(const Weight& lhs, const Weight& rhs) const{
+#ifdef INTWEIGHT
+	if(lhs>0 && rhs > 0 && INT_MAX-lhs < rhs){
+		return INT_MAX;
+	}else if(lhs<0 && rhs<0 && INT_MIN-lhs>rhs){
+		return INT_MIN;
+	}
+#endif
+	return lhs+rhs;
+}
+
+Weight SumFWAgg::remove(const Weight& lhs, const Weight& rhs) const{
+	return lhs-rhs;
+}
+
+void SumFWAgg::getMinimExplan(const Agg& agg, vec<Lit>& lits){
+	Weight certainsum = getESV();
+	Weight possiblesum = getBestPossible();
+
+	bool explained = false;
+	if((agg.isLower() && certainsum>agg.getLowerBound())
+			|| (agg.isUpper() && certainsum>=agg.getUpperBound())
+			|| (agg.isLower() && possiblesum <= agg.getLowerBound())
+			|| (agg.isUpper() && possiblesum < agg.getUpperBound())){
+		explained = true;
+	}
+
+	for(vprop::const_iterator i=getStack().begin(); !explained && i<getStack().end(); i++){
+		bool push = false;
+		if((*i).getType() == POS){ //means that the literal in the set became true
+			certainsum += (*i).getWeight();
+
+			if(agg.isLower()){
+				push = true;
+				if(agg.getLowerBound() < certainsum){
+					explained = true;
+				}
+			}
+		}else if((*i).getType() == NEG){ //the literal in the set became false
+			possiblesum -= (*i).getWeight();
+
+			if(agg.isUpper()){
+				push = true;
+				if(possiblesum < agg.getUpperBound()){
+					explained = true;
+				}
 			}
 		}
+		if(push){
+			lits.push(~(*i).getLit());
+		}
 	}
-	if (!justified) {
-		jstf.clear();
+
+	assert(explained);
+}
+void SumFWAgg::addToBounds(Agg& agg, const Weight& w){
+	if(agg.isLower()){
+		agg.setLowerBound(add(agg.getLowerBound(), w));
+	}else{
+		agg.setUpperBound(add(agg.getUpperBound(), w));
 	}
-	return justified;
+}
+
+ProdFWAgg::ProdFWAgg(const paggsol& solver, const vector<Lit>& lits, const vector<Weight>& weights)
+		:SPFWAgg(solver, lits, weights){
+	emptysetvalue = 1;
+}
+
+rClause ProdFWAgg::propagate(const Agg& agg, bool headtrue){
+
+}
+
+rClause ProdFWAgg::propagateAll(const Agg& agg, bool headtrue){
+
+}
+
+pcomb ProdFWAgg::initialize(bool& unsat){
+	unsat = false;
+	if(aggregates.size()==0){
+		return NULL;
+	}
+#ifdef INTWEIGHT
+	//Test whether the total product of the weights is not infinity for intweights
+	Weight total(1);
+	for(vwl::const_iterator i=getWL().begin(); i<getWL().end(); i++){
+		if(INT_MAX/total < (*i).getWeight()){
+			throw idpexception("The total product of weights exceeds max-int, correctness cannot be guaranteed in limited precision.\n");
+		}
+		total *= (*i).getWeight();
+	}
+#endif
+
+	return FWAgg::initialize(unsat);
+}
+
+WL ProdFWAgg::handleOccurenceOfBothSigns(const WL& one, const WL& two){
+	//NOTE: om dit toe te laten, ofwel bij elke operatie op en literal al zijn voorkomens overlopen
+	//ofwel aggregaten voor doubles ondersteunen (het eerste is eigenlijk de beste oplossing)
+	//Mogelijke eenvoudige implementatie: weigts bijhouden als doubles (en al de rest als ints)
+	reportf("Product aggregates in which both the literal and its negation occur "
+			"are currently not supported. Replace ");
+	gprintLit(one.getLit()); reportf("or "); gprintLit(two.getLit()); reportf("by a tseitin.\n");
+	throw idpexception("Atoms in product aggregates have to be unique.\n");
+}
+
+bool ProdFWAgg::isMonotone(const Agg& agg, const WL& w) const{
+
+}
+
+Weight ProdFWAgg::add(const Weight& lhs, const Weight& rhs) const{
+#ifdef INTWEIGHT
+	bool sign = false;
+	Weight l = lhs, r = rhs;
+	if(l<0){
+		l= -l;
+		sign = true;
+	}
+	if(r<0){
+		r = -r;
+		sign = !sign;
+	}
+	if(INT_MAX/l < r){
+		return sign?INT_MIN:INT_MAX;
+	}
+#endif
+	return lhs*rhs;
+}
+
+Weight ProdFWAgg::remove(const Weight& lhs, const Weight& rhs) const{
+	Weight w = 0;
+	if(rhs!=0){
+		w = lhs/rhs;
+		if(w==1 && lhs>rhs){
+			w=2;
+		}
+	}
+
+	return w;
 }
 
 /************************
@@ -547,24 +809,113 @@ bool MaxFWAgg::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf,
  *
  * Also, if a literal has to become FALSE, its INVERSION should be added to the justification!
  */
-bool AggComb::oppositeIsJustified(const WL& l, vec<int>& currentjust, bool real) const{
+bool Aggrs::oppositeIsJustified(const WL& l, vec<int>& currentjust, bool real, paggsol solver){
 	if(real){
-		return getSolver()->value(l.getLit())!=l_True;
+		return solver->value(l.getLit())!=l_True;
 	}else{
-		return getSolver()->value(l.getLit())!=l_True && (!sign(l.getLit()) || isJustified(var(l.getLit()), currentjust));
+		return solver->value(l.getLit())!=l_True && (!sign(l.getLit()) || isJustified(var(l.getLit()), currentjust));
 	}
 }
 
-bool AggComb::isJustified(const WL& l, vec<int>& currentjust, bool real) const{
+bool Aggrs::isJustified(const WL& l, vec<int>& currentjust, bool real, paggsol solver){
 	if(real){
-		return getSolver()->value(l.getLit())!=l_False;
+		return solver->value(l.getLit())!=l_False;
 	}else{
-		return getSolver()->value(l.getLit())!=l_False && (sign(l.getLit()) || isJustified(var(l.getLit()), currentjust));
+		return solver->value(l.getLit())!=l_False && (sign(l.getLit()) || isJustified(var(l.getLit()), currentjust));
 	}
 }
 
-bool AggComb::isJustified(Var x, vec<int>& currentjust) const{
+bool Aggrs::isJustified(Var x, vec<int>& currentjust){
 	return currentjust[x]==0;
+}
+
+/**
+ * AGG <= B: v is justified if one literal below/eq the bound is THAT IS NOT THE HEAD
+ * 					if so, change the justification to the literal
+ * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
+ * A <= AGG: v is justified if the negation of all literals below the bound are. The emptyset is always a solution,
+ * 			 so no conclusions have to be drawn from the literals above/eq the bound
+ * 					if so, change the justification to the negation of all those below the bound literals
+ * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
+ */
+bool Aggrs::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) {
+	AggrType type = agg.getAggComb()->getType();
+	bool justified = false;
+	AggComb* s = agg.getAggComb();
+	const vwl& wl = s->getWL();
+
+	if(type==MAX){
+		if(agg.isLower()){
+			for(vwl::const_reverse_iterator i=wl.rbegin(); i<wl.rend() && (*i).getWeight()>agg.getLowerBound(); i++) {
+				if(oppositeIsJustified(*i, currentjust, real, s->getSolver())){
+					jstf.push(~(*i).getLit()); //push negative literal, because it should become false
+				}else if(real ||currentjust[var((*i).getLit())]!=0){
+					nonjstf.push(var((*i).getLit()));
+				}
+			}
+			if(nonjstf.size()==0){
+				justified = true;
+			}
+		}else{
+			for(vwl::const_reverse_iterator i=wl.rbegin(); i<wl.rend() && (*i).getWeight()>=agg.getUpperBound(); i++) {
+				if(isJustified(*i, currentjust, real, s->getSolver())){
+					jstf.push((*i).getLit());
+					justified = true;
+				}else if(real || currentjust[var((*i).getLit())]!=0){
+					nonjstf.push(var((*i).getLit()));
+				}
+			}
+		}
+		if (!justified) {
+			jstf.clear();
+		}
+	}else if(type==SUM || type==PROD || type==CARD){
+		/*FIXME
+		if(agg.isLower()){
+			Weight bestpossible = s->getBestPossible();
+			for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
+				if(oppositeIsJustified(*i, currentjust, real, agg.getAggComb()->getSolver())){
+					jstf.push(~(*i).getLit());
+					bestpossible = s->remove(bestpossible, (*i).getWeight());
+					if (bestpossible <= agg.getLowerBound()){
+						justified = true;
+					}
+				}else if(real ||currentjust[var((*i).getLit())]!=0){
+					nonjstf.push(var((*i).getLit()));
+				}
+			}
+		}else{
+			Weight bestcertain = s->getESV();
+			for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
+				if(isJustified(*i, currentjust, real, agg.getAggComb()->getSolver())){
+					jstf.push((*i).getLit());
+					bestcertain = s->add(bestcertain, (*i).getWeight());
+					if (bestcertain >= agg.getUpperBound()){
+						justified = true;
+					}
+				}else if(real ||currentjust[var((*i).getLit())]!=0){
+					nonjstf.push(var((*i).getLit()));
+				}
+			}
+		}*/
+	}
+
+	if(s->getSolver()->verbosity() >=4){
+		reportf("Justification checked for ");
+		printAgg(agg);
+
+		if(justified){
+			reportf("justification found: ");
+			for(int i=0; i<jstf.size(); i++){
+				gprintLit(jstf[i]); reportf(" ");
+			}
+			reportf("\n");
+		}else{
+			reportf("no justification found.\n");
+		}
+	}
+
+	return justified;
 }
 
 ///////
@@ -576,7 +927,7 @@ PWAgg::PWAgg(const paggsol& solver, const vector<Lit>& lits, const vector<Weight
 }
 
 CardPWAgg::CardPWAgg(const paggsol& solver, const vector<Lit>& lits, const vector<Weight>& weights):
-			PWAgg(solver, lits, weights), emptysetvalue(0){
+			PWAgg(solver, lits, weights){
 }
 
 rClause CardPWAgg::propagate(const Lit& p, const Watch& w){
@@ -586,6 +937,10 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& w){
 rClause CardPWAgg::propagate(const Agg& agg, bool headtrue){
 
 };
+
+void CardPWAgg::backtrack(const Agg& agg){
+
+}
 
 void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const{
 
@@ -602,15 +957,11 @@ Weight CardPWAgg::getCombinedWeight(const Weight& one, const Weight& two) 	const
 WL CardPWAgg::handleOccurenceOfBothSigns(const WL& one, const WL& two){
 	if(one.getWeight()>two.getWeight()){
 		setESV(getESV() + two.getWeight());
-		return WL(one.getLit(), one.getLit()-two.getLit());
+		return WL(one.getLit(), one.getWeight()-two.getWeight());
 	}else{
 		setESV(getESV() + one.getWeight());
-		return WL(one.getLit(), two.getLit()-one.getLit());
+		return WL(one.getLit(), two.getWeight()-one.getWeight());
 	}
-};
-
-bool CardPWAgg::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const{
-
 };
 
 ///////

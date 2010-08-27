@@ -676,7 +676,7 @@ void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& 
 			if (currentjust[head] > 0) { //only check its body for justification when it has not yet been derived
 				vec<Lit> jstf;
 				vec<Var> nonjstf;
-				if (s->canJustifyHead(expr, jstf, nonjstf, currentjust, false)) {
+				if (canJustifyHead(expr, jstf, nonjstf, currentjust, false)) {
 					currentjust[head] = 0;
 					heads.push(mkLit(head, false));
 					jstfs.push();
@@ -694,7 +694,7 @@ void AggSolver::findJustificationAggr(Var head, vec<Lit>& outjstf) {
 	vec<Var> nonjstf;
 	vec<int> currentjust;
 	const Agg& agg = *getAggWithHeadOccurence(head);
-	agg.getAggComb()->canJustifyHead(agg, outjstf, nonjstf,	currentjust, true);
+	canJustifyHead(agg, outjstf, nonjstf,	currentjust, true);
 }
 
 /**
@@ -704,7 +704,7 @@ void AggSolver::findJustificationAggr(Var head, vec<Lit>& outjstf) {
  */
 bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust) {
 	const Agg& agg = *getAggWithHeadOccurence(v);
-	return agg.getAggComb()->canJustifyHead(agg, jstf, nonjstf, currentjust, false);
+	return canJustifyHead(agg, jstf, nonjstf, currentjust, false);
 }
 
 ///////
