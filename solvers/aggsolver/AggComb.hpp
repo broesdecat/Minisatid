@@ -201,7 +201,7 @@ public:
 
 	virtual rClause propagate	(Watch* ws);
 	virtual void 	getExplanation(vec<Lit>& lits, AggReason& ar) const;
-	virtual void 	backtrack	(Watch* w) = 0;
+	virtual void 	backtrack	(Watch* w);
 
 	virtual Weight 	getBestPossible() 				const 	= 0;
 	virtual void 	addToCertainSet(const WL& l) 			= 0;
@@ -232,7 +232,8 @@ public:
 	virtual Weight 	getBestPossible				() 										const;
 	virtual void 	addToCertainSet				(const WL& l);
 	virtual void 	removeFromPossibleSet		(const WL& l);
-	virtual bool	isNeutralElement(const Weight& w) const { return false; }
+	virtual bool	isNeutralElement			(const Weight& w) const { return false; }
+	virtual bool 	isMonotone					(const Weight& w) const;
 
 	string 		getName() const { return "MAX"; }
 	AggrType 	getType() const { return MAX; }
