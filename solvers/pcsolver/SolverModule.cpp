@@ -25,19 +25,19 @@ int SolverModule::verbosity() const	{
 	return getPCSolver()->verbosity();
 }
 
-bool SolverModule::isTrue(Lit l) const {
+bool SolverModule::isTrue(const Lit& l) const {
 	return value(l) == l_True;
 }
 bool SolverModule::isTrue(Var v) const {
 	return value(v) == l_True;
 }
-bool SolverModule::isFalse(Lit l) const {
+bool SolverModule::isFalse(const Lit& l) const {
 	return value(l) == l_False;
 }
 bool SolverModule::isFalse(Var v) const {
 	return value(v) == l_False;
 }
-bool SolverModule::isUnknown(Lit l) const {
+bool SolverModule::isUnknown(const Lit& l) const {
 	return value(l) == l_Undef;
 }
 bool SolverModule::isUnknown(Var v) const {
@@ -46,7 +46,7 @@ bool SolverModule::isUnknown(Var v) const {
 lbool SolverModule::value(Var x) const {
 	return getPCSolver()->value(x);
 }
-lbool SolverModule::value(Lit p) const {
+lbool SolverModule::value(const Lit& p) const {
 	return getPCSolver()->value(p);
 }
 int SolverModule::nVars() const {

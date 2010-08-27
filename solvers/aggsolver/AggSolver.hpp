@@ -172,13 +172,14 @@ public:
 	///////
 	// Watched literal sets
 	///////
-	void addTempWatch(const Lit& l, pcomb c, int setindex);
+	void addPermWatch(Var v, pw w);
+	void addTempWatch(const Lit& l, pw w);
 
 protected:
 	/**
 	 * Returns the aggregate in which the given variable is the head.
 	 */
-    pcomb 		getAggWithHeadOccurence	(Var v) const;
+    pagg 		getAggWithHeadOccurence	(Var v) const;
 
     map<AggrType, int > 	maptype;
 	vector<vector<pcomb> >	sets;			//After initialization, all remaining sets.
@@ -189,7 +190,7 @@ protected:
 	vector<vector<pw> >		permwatches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
 
 	//index on VAR (heads are always positive
-	vector<pw>				head_watches;	//	does NOT own the pointers
+	vector<pagg>			head_watches;	//	does NOT own the pointers
 	vector<vector<pcomb> >	network;		// the pointer network of set var -> set
 
 	/**

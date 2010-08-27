@@ -50,10 +50,10 @@
 AggSolver::AggSolver(pPCSolver s) :
 	SolverModule(s) {
 	int count = 0;
-	maptype.operator [](CARD) = count++;
 	maptype.operator [](MAX) = count++;
+	/*maptype.operator [](CARD) = count++;
 	maptype.operator [](PROD) = count++;
-	maptype.operator [](SUM) = count++;
+	maptype.operator [](SUM) = count++;*/
 	maptype.operator [](MIN) = count++;
 	sets.resize(count);
 }
@@ -80,13 +80,17 @@ void AggSolver::notifyVarAdded(uint64_t nvars) {
 	tempwatches.resize(2*nvars);
 }
 
-void AggSolver::addTempWatch(const Lit& l, pcomb c, int setindex){
-	tempwatches[toInt(~l)].push_back(new Watch(c, setindex, true));
+void AggSolver::addPermWatch(Var v, pw w){
+	permwatches[v].push_back(w);
 }
 
-inline pcomb AggSolver::getAggWithHeadOccurence(Var v) const {
+void AggSolver::addTempWatch(const Lit& l, pw w){
+	tempwatches[toInt(~l)].push_back(w);
+}
+
+inline pagg AggSolver::getAggWithHeadOccurence(Var v) const {
 	assert(head_watches[v]!=NULL);
-	return head_watches[v]->getAggComb();
+	return head_watches[v];
 }
 
 void AggSolver::finishECNF_DataStructures(bool& present, bool& unsat) {
@@ -175,16 +179,14 @@ bool AggSolver::finishSets(vector<pcomb>& sets) {
 
 		bool unsat;
 		s = s->initialize(unsat);
-		if (!unsat) {
+		if (unsat) {
 			return false;	//Problem is UNSAT
 		}
 		if(s!=NULL){
 			sets[used++] = s;
-			int index = 0;
-			for (vwl::const_iterator j = s->getWL().begin(); j< s->getWL().end(); j++, index++) {
-				Var v = var((*j).getLit());
+			for (int j = 0; j< s->getWL().size(); j++) {
+				Var v = var(s->getWL()[j].getLit());
 				network[v].push_back(s);
-				permwatches[v].push_back(new Watch(s, index, true));
 			}
 		}
 	}
@@ -265,13 +267,12 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits,	const vector<Weight>&
 	}
 
 	while (sets[0].size() <= setindex) {
+		sets[maptype[MAX]].push_back(new MaxFWAgg(this, lits, weights));
 		/* FIXME
-		sets[maptype[MAX]].push_back(new AggrMaxSet(lits, weights, this));
 		sets[maptype[SUM]].push_back(new AggrSumSet(lits, weights, this));
 		sets[maptype[PROD]].push_back(new AggrProdSet(lits, weights, this));
-		sets[maptype[MIN]].push_back(new AggrMaxSet(lits, weights2, this));
 		sets[maptype[CARD]].push_back(new AggrSumSet(lits, weights, this));*/
-		sets[maptype[MIN]].push_back(new MaxFWAgg(lits, weights2, this));
+		sets[maptype[MIN]].push_back(new MaxFWAgg(this, lits, weights2));
 	}
 
 	return true;
@@ -305,19 +306,21 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, Bound boundsign,
 	assert(setid>0);
 	int setindex = setid - 1;
 
-	int ae;
+	pagg ae;
 	pcomb c;
 	switch (type) {
 	case MIN:
 		//return maxAggAsSAT(defined, !lower, -bound, head, *aggrminsets[setindex]);
 		boundsign = (boundsign == LOWERBOUND ? UPPERBOUND : LOWERBOUND);
 		c = sets[maptype[MIN]][setindex];
-		ae = c->addAgg(new Agg(-bound, boundsign, head, headeq));
+		ae = new Agg(-bound, boundsign, head, headeq);
+		c->addAgg(ae);
 		break;
 	case MAX:
 		//return maxAggAsSAT(defined, lower, bound, head, *aggrmaxsets[setindex]);
 		c = sets[maptype[MAX]][setindex];
-		ae = c->addAgg(new Agg(bound, boundsign, head, headeq));
+		ae = new Agg(bound, boundsign, head, headeq);
+		c->addAgg(ae);
 		break;
 	/*case CARD: FIXME
 #ifdef DEBUG
@@ -363,7 +366,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, Bound boundsign,
 		throw idpexception("Only aggregates MIN, MAX, CARD, SUM or PROD are allowed in the solver.\n");
 	}
 
-	head_watches[var(head)] = new Watch(c, ae, false);
+	head_watches[var(head)] = ae;
 
 	if (headeq == DEF) { //add as definition to use definition semantics
 		//notify the id solver that a new aggregate definition has been added
@@ -484,7 +487,7 @@ bool AggSolver::addMnmzSum(Var headv, int setid, Bound boundsign) {
  * Returns non-owning pointer
  */
 rClause AggSolver::notifySATsolverOfPropagation(const Lit& p, AggReason* ar) {
-	//FIXME FIXME!
+	//FIXME decide on what to do with it
 	//This strongly improves the performance of some benchmarks, e.g. FastFood. For Hanoi it has no effect
 	//for Sokoban is DECREASES performance!
 	//TODO new IDEA: mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt?
@@ -535,14 +538,14 @@ rClause AggSolver::Aggr_propagate(const Lit& p) {
 		reportf(").\n");
 	}
 
-	Watch* pa = head_watches[var(p)];
+	pagg pa = head_watches[var(p)];
 	if (pa != NULL) {
-		confl = pa->getAggComb()->propagate(pa);
+		confl = pa->getAggComb()->propagate(*pa, p==pa->getHead());
 	}
 
 	vector<pw>& ws = permwatches[var(p)];
 	for (vector<pw>::const_iterator i = ws.begin(); confl==nullPtrClause && i<ws.end(); i++) {
-		confl = (*i)->getAggComb()->propagate(*i);
+		confl = (*i)->getAggComb()->propagate(p, **i);
 	}
 
 	return confl;
@@ -556,13 +559,13 @@ rClause AggSolver::Aggr_propagate(const Lit& p) {
  */
 rClause AggSolver::getExplanation(const Lit& p) {
 	assert(aggr_reason[var(p)]!=NULL);
-	AggReason* ar = aggr_reason[var(p)];
+	const AggReason& ar = *aggr_reason[var(p)];
 
 	//get the explanation from the aggregate expression
 	vec<Lit> lits;
 	lits.push(p);
 
-	ar->getAgg()->getExplanation(lits, ar);
+	ar.getAgg().getAggComb()->getExplanation(lits, ar);
 
 	//create a conflict clause and return it
 	rClause c = getPCSolver()->createClause(lits, true);
@@ -590,14 +593,14 @@ void AggSolver::doBacktrack(const Lit& l) {
 		aggr_reason[var(l)] = NULL;
 	}
 
-	pw pa = head_watches[var(l)];
+	pagg pa = head_watches[var(l)];
 	if (pa != NULL) {
-		pa->getAggComb()->backtrack(pa);
+		pa->getAggComb()->backtrack(*pa);
 	}
 
 	vector<pw>& vcw = permwatches[var(l)];
 	for (vector<pw>::const_iterator i = vcw.begin(); i < vcw.end(); i++) {
-		(*i)->getAggComb()->backtrack(*i);
+		(*i)->getAggComb()->backtrack(**i);
 	}
 }
 
@@ -611,11 +614,12 @@ void AggSolver::doBacktrack(const Lit& l) {
  * 		might help to make the expression true (monotone literals!)
  */
 void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) {
-	pcomb agg = getAggWithHeadOccurence(v);
+	const Agg& agg = *getAggWithHeadOccurence(v);
+	pcomb comb = agg.getAggComb();
 
-	for (vwl::const_iterator i = agg->getWL().begin(); i < agg->getWL().end(); ++i) {
+	for (vwl::const_iterator i = comb->getWL().begin(); i < comb->getWL().end(); ++i) {
 		Lit l = (*i).getLit();
-		if (agg->isMonotone(*i) && ufs.find(var(l)) == ufs.end() && seen[var(l)]!=(isPositive(l)?2:1)
+		if (comb->isMonotone(agg, *i) && ufs.find(var(l)) == ufs.end() && seen[var(l)]!=(isPositive(l)?2:1)
 				&& isFalse(l)) { //TODO deze laatste voorwaarde is een HACK: eigenlijk moeten de voorwaarden zo zijn, dat enkel relevant literals worden toegevoegd, maar momenteel worden er ook literals toegevoegd die nooit in een justification zullen zitten
 			assert(isFalse(l));
 			loopf.push(l);
@@ -636,11 +640,11 @@ vector<Var> AggSolver::getHeadsOfAggrInWhichOccurs(Var x) {
 }
 
 vwl::const_iterator AggSolver::getAggLiteralsBegin(Var x) const {
-	return getAggWithHeadOccurence(x)->getWL().begin();
+	return getAggWithHeadOccurence(x)->getAggComb()->getWL().begin();
 }
 
 vwl::const_iterator AggSolver::getAggLiteralsEnd(Var x) const {
-	return getAggWithHeadOccurence(x)->getWL().end();
+	return getAggWithHeadOccurence(x)->getAggComb()->getWL().end();
 }
 
 /**
@@ -653,8 +657,8 @@ void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& 
 	for (vector<pcomb>::const_iterator i = network[var(w)].begin(); i< network[var(w)].end(); i++) {
 		pcomb s = (*i);
 		for (vpagg::const_iterator j = s->getAgg().begin(); j < s->getAgg().end(); j++) {
-			pagg expr = (*j);
-			if (isFalse(expr->getHead())) {
+			const Agg& expr = *(*j);
+			if (isFalse(expr.getHead())) {
 				//reportf(" => head is false %d\n", gprintVar(var(expr->getHead())));
 				continue;
 			}
@@ -668,11 +672,11 @@ void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& 
 
 			//reportf("=> checking agg %d \n", gprintVar(var(expr->getHead())));
 
-			Var head = var(expr->getHead());
+			Var head = var(expr.getHead());
 			if (currentjust[head] > 0) { //only check its body for justification when it has not yet been derived
 				vec<Lit> jstf;
 				vec<Var> nonjstf;
-				if (s->canJustifyHead(jstf, nonjstf, currentjust, false)) {
+				if (s->canJustifyHead(expr, jstf, nonjstf, currentjust, false)) {
 					currentjust[head] = 0;
 					heads.push(mkLit(head, false));
 					jstfs.push();
@@ -689,7 +693,8 @@ void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& 
 void AggSolver::findJustificationAggr(Var head, vec<Lit>& outjstf) {
 	vec<Var> nonjstf;
 	vec<int> currentjust;
-	getAggWithHeadOccurence(head)->canJustifyHead(outjstf, nonjstf,	currentjust, true);
+	const Agg& agg = *getAggWithHeadOccurence(head);
+	agg.getAggComb()->canJustifyHead(agg, outjstf, nonjstf,	currentjust, true);
 }
 
 /**
@@ -698,7 +703,8 @@ void AggSolver::findJustificationAggr(Var head, vec<Lit>& outjstf) {
  * all body literals of v that are not justified.
  */
 bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust) {
-	return getAggWithHeadOccurence(v)->canJustifyHead(jstf, nonjstf, currentjust, false);
+	const Agg& agg = *getAggWithHeadOccurence(v);
+	return agg.getAggComb()->canJustifyHead(agg, jstf, nonjstf, currentjust, false);
 }
 
 ///////

@@ -34,6 +34,9 @@ namespace Aggrs{
 	class AggComb;
 	typedef AggComb* pcomb;
 
+	class Watch;
+	typedef Watch* pw;
+
 	class PropagationInfo;
 	typedef vector<PropagationInfo> vprop;
 }
@@ -55,16 +58,32 @@ public:
 			void 	setWL(const vector<WL>& newset);
 };
 
-struct Agg{
+class Agg{
+private:
 	Weight		bound;
 	Bound 		sign;
 	Lit			head;
 	HdEq		sem;
 
-	Agg(const Weight& bound, Bound sign, const Lit& head, HdEq sem):
-		bound(bound), sign(sign), head(head), sem(sem){	}
+	AggComb* 	comb;
+	int			index;
 
-	const Lit& getHead(){ return head; }
+public:
+	Agg(const Weight& bound, Bound sign, const Lit& head, HdEq sem):
+		bound(bound), sign(sign), head(head), sem(sem), comb(NULL), index(-1){	}
+
+	const 	Lit& 		getHead() 			const 	{ return head; }
+			void 		setComb(AggComb* c, int ind) { comb = c; index = ind;	}
+			AggComb* 	getAggComb() 		const 	{ return comb; }
+			int			getIndex()			const	{ return index; }
+			void 		setIndex(int ind) 			{ index = ind; }
+
+	const 	Weight& getLowerBound()	const	{ return bound; }
+	const 	Weight& getUpperBound()	const	{ return bound;}
+			void	setLowerBound(const Weight& w)	{ bound = w;}
+			void	setUpperBound(const Weight& w)	{ bound = w;}
+			bool 	isLower()		const	{ return sign!=UPPERBOUND; }
+			bool 	isUpper()		const	{ return sign!=LOWERBOUND; }
 };
 
 
@@ -94,34 +113,38 @@ private:
 			AggComb* agg;
 	const 	int 	index;
 	const 	bool 	set;	//true if set literal, false if agg head
+	const 	bool 	pos; 	//true if the literal occurs in the set, false if its negation is in the set
 public:
-	Watch(AggComb* agg, int index, bool set):
-		agg(agg), index(index), set(set){}
+	Watch(AggComb* agg, int index, bool set, bool pos):
+		agg(agg), index(index), set(set), pos(pos){}
 
 	virtual 	~Watch(){}
 
 	AggComb* 	getAggComb() 	const { return agg; }
 	int 		getIndex() 		const { return index; }
 	bool 		isSetLit() 		const { return set; }
+	Occurrence 	getType()		const { return !set?HEAD:pos?POS:NEG; }
 };
-
 
 enum Expl{BASEDONCC,BASEDONCP,CPANDCC, HEADONLY};
 
 struct AggReason {
 private:
-	const pcomb	expr;	//non-owning pointer
+	const Agg&	expr;	//non-owning pointer
 	const Lit	l;
-	const int 	index;
+	//const int 	index;
 	const Expl	expl;
 	const bool 	head;
 
 public:
-	AggReason(pcomb, const Lit&, Expl, bool head = false);
+	AggReason(const Agg& agg, const Lit& l, Expl expl, bool head = false)
+		:expr(agg), l(l), expl(expl), head(head){
 
-	pcomb 		getAgg() 		const	{ return expr; }
+	}
+
+	const Agg&	getAgg() 		const	{ return expr; }
     const Lit&	getLit() 		const	{ return l; }
-    const int	getIndex() 		const	{ return index; }
+    //const int	getIndex() 		const	{ return index; }
     bool		isHeadReason() 	const	{ return head; }
     Expl		getExpl() 		const	{ return expl; }
 };
@@ -142,16 +165,19 @@ public:
 	const pset &		getSet	()			const	{ return set; }
 	const vwl&			getWL	()			const 	{ return set->getWL(); }
 	const vpagg & 		getAgg	() 			const	{ return aggregates; }
-	int 				addAgg	(pagg aggr)			{ aggregates.push_back(aggr); return aggregates.size()-1;}
+	void 				addAgg	(pagg aggr)			{ aggregates.push_back(aggr); aggr->setComb(this, aggregates.size()-1); }
 
 	virtual AggrType	getType				() const = 0;
 	virtual string 		getName				() const = 0;
 
-	virtual rClause 	propagate			(Watch* w) = 0;
-	virtual void 		backtrack			(Watch* w) = 0;
-    virtual void 		getExplanation		(vec<Lit>& lits, AggReason* ar) 		const = 0;
+	virtual rClause 	propagate			(const Lit& p, const Watch& w) = 0;
+	virtual rClause 	propagate			(const Agg& agg, bool headtrue) = 0;
+	virtual void 		backtrack			(const Watch& w) = 0;
+	virtual void 		backtrack			(const Agg& agg) = 0;
+    virtual void 		getExplanation		(vec<Lit>& lits, const AggReason& ar) 	const = 0;
 
-	virtual bool 		isMonotone			(const WL& l) = 0;
+    // @pre: l is always IN the aggregate set TODO check this!
+	virtual bool 		isMonotone			(const Agg& agg, const WL& l) const = 0;
 
 	///////
 	// INITIALIZATION
@@ -160,7 +186,7 @@ public:
 	 * Checks whether duplicate literals occur in the set. If this is the case, their values are appropriately combined.
 	 * @post: each literal only occurs once in the set.
 	 */
-	virtual void 	doSetReduction			()												= 0;
+	virtual void 	doSetReduction			();
 	virtual pcomb 	initialize				(bool& unsat) 									= 0;
 	//Returns the weight a combined literal should have if both weights are in the set at the same time
 	virtual Weight 	getCombinedWeight		(const Weight& one, const Weight& two) 	const 	= 0;
@@ -169,26 +195,61 @@ public:
 	///////
 	// ID support
 	///////
-	virtual bool 	canJustifyHead			(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const = 0;
+	virtual bool 	canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const = 0;
 	virtual bool 	oppositeIsJustified		(const WL& wl, vec<int>& currentjust, bool real) const;
 	virtual bool 	isJustified				(const WL& wl, vec<int>& currentjust, bool real) const;
 	virtual bool 	isJustified				(Var x, vec<int>& currentjust) const;
 };
 
 
-/*class PWAgg: public AggComb {
+class PWAgg: public AggComb {
 private:
 
 public:
 	PWAgg(const paggsol& solver, const vector<Lit>& lits, const vector<Weight>& weights);
 	virtual ~PWAgg(){};
-};*/
+};
+
+class CardPWAgg: public PWAgg {
+private:
+	Weight emptysetvalue;
+
+public:
+	const Weight& 	getESV	() 					const 	{ return emptysetvalue; }
+	void 			setESV	(const Weight& w)			{ emptysetvalue = w; }
+
+	CardPWAgg(const paggsol& solver, const vector<Lit>& lits, const vector<Weight>& weights);
+	virtual ~CardPWAgg(){};
+
+	virtual AggrType	getType				() const { return CARD; }
+	virtual string 		getName				() const { return "CARD"; }
+
+	virtual rClause 	propagate			(const Lit& p, const Watch& w){};
+	virtual rClause 	propagate			(const Agg& agg, bool headtrue){};
+	virtual void 		backtrack			(const Watch& w) {}
+	virtual void 		backtrack			(const Agg& agg) {}
+    virtual void 		getExplanation		(vec<Lit>& lits, const AggReason& ar) const{};
+
+	virtual bool 		isMonotone			(const Agg& agg, const WL& l) const { return true; }
+
+	virtual pcomb 		initialize			(bool& unsat){};
+	virtual Weight 		getCombinedWeight	(const Weight& one, const Weight& two) 	const{};
+	virtual WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two){ };
+
+	virtual bool 		canJustifyHead		(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const{};
+};
 
 
 class FWAgg: public AggComb {
 protected:
 	vprop 	stack;		// Stack of propagations of this expression so far.
-	vector<lbool> truth;
+	vector<lbool> truth, headvalue;
+	vector<int> headindex;
+	vector<bool> nomoreprops, optimagg;
+
+	mutable vector<int> headproptime;
+	mutable vector<bool> headprop;
+
 	Weight 	currentbestcertain, currentbestpossible, emptysetvalue;
 					//current keeps the currently derived min and max bounds
 public:
@@ -196,18 +257,23 @@ public:
 	virtual ~FWAgg(){};
 
 	virtual pcomb 	initialize(bool& unsat);
-	virtual lbool 	initialize(pagg agg);
-	virtual void 	doSetReduction();
+	virtual lbool 	initialize(const Agg& agg);
 
-	virtual rClause propagate	(Watch* ws);
-	virtual void 	getExplanation(vec<Lit>& lits, AggReason& ar) const;
-	virtual void 	backtrack	(Watch* w);
+    /**
+     * Updates the values of the aggregate and then returns whether the head can be directly propagated from the body
+     */
+    virtual lbool 	canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP) const;
+
+	virtual rClause propagate	(const Lit& p, const Watch& ws);
+	virtual rClause propagate(const Agg& agg, bool headtrue);
+	virtual void 	getExplanation(vec<Lit>& lits, const AggReason& ar) const;
+	virtual void 	backtrack	(const Watch& w);
+	virtual void 	backtrack	(const Agg& agg);
+	virtual void 	backtrack	(const Agg& agg, int stacksize);
 
 	virtual Weight 	getBestPossible() 				const 	= 0;
 	virtual void 	addToCertainSet(const WL& l) 			= 0;
 	virtual void 	removeFromPossibleSet(const WL& l)		= 0;
-
-	virtual bool 	isNeutralElement(const Weight& w) = 0;
 
 	///////
 	// GETTERS - SETTERS
@@ -232,14 +298,21 @@ public:
 	virtual Weight 	getBestPossible				() 										const;
 	virtual void 	addToCertainSet				(const WL& l);
 	virtual void 	removeFromPossibleSet		(const WL& l);
-	virtual bool	isNeutralElement			(const Weight& w) const { return false; }
-	virtual bool 	isMonotone					(const Weight& w) const;
+	virtual bool 	isMonotone					(const Agg& agg, const WL& w) const;
 
 	string 		getName() const { return "MAX"; }
 	AggrType 	getType() const { return MAX; }
+
+	virtual rClause propagate	(const Agg& agg, bool headtrue);
+	virtual rClause propagateAll(const Agg& agg, bool headtrue);
+
+	virtual bool 	canJustifyHead				(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
 };
 
-void printAgg(AggComb const * const c);
+void printAgg(AggComb const * const c, bool printendline = false);
+void printAgg(const Agg& c);
+
+bool isNeutralElement(const Weight& w, AggrType t);
 
 }
 

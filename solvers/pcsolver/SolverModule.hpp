@@ -38,9 +38,9 @@ public:
 
 	PCSolver* getPCSolver	()	const 	{ return pcsolver; }
 
-	bool isTrue		(Lit l) const;
-	bool isFalse	(Lit l) const;
-	bool isUnknown	(Lit l) const;
+	bool isTrue		(const Lit& l) const;
+	bool isFalse	(const Lit& l) const;
+	bool isUnknown	(const Lit& l) const;
 	bool isTrue		(Var l) const;
 	bool isFalse	(Var l) const;
 	bool isUnknown	(Var l) const;
@@ -48,7 +48,7 @@ public:
 	int verbosity	() 		const;
 
 	lbool		value(Var x) const;
-	lbool		value(Lit p) const;
+	lbool		value(const Lit& p) const;
 	int			nVars()      const;
 };
 
