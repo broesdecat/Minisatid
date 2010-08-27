@@ -599,14 +599,6 @@ SumFWAgg::SumFWAgg(const paggsol& solver, const vector<Lit>& lits, const vector<
 	emptysetvalue = 0;
 }
 
-rClause SumFWAgg::propagate(const Agg& agg, bool headtrue){
-
-}
-
-rClause SumFWAgg::propagateAll(const Agg& agg, bool headtrue){
-
-}
-
 pcomb SumFWAgg::initialize(bool& unsat){
 	unsat = false;
 	if(aggregates.size()==0){
@@ -656,7 +648,7 @@ WL SumFWAgg::handleOccurenceOfBothSigns(const WL& one, const WL& two){
 }
 
 bool SumFWAgg::isMonotone(const Agg& agg, const WL& w) const{
-
+	return (agg.isLower() && l.getWeight()<0) || (agg.isUpper() && l.getWeight()>0);
 }
 
 Weight SumFWAgg::add(const Weight& lhs, const Weight& rhs) const{
@@ -727,14 +719,6 @@ ProdFWAgg::ProdFWAgg(const paggsol& solver, const vector<Lit>& lits, const vecto
 	emptysetvalue = 1;
 }
 
-rClause ProdFWAgg::propagate(const Agg& agg, bool headtrue){
-
-}
-
-rClause ProdFWAgg::propagateAll(const Agg& agg, bool headtrue){
-
-}
-
 pcomb ProdFWAgg::initialize(bool& unsat){
 	unsat = false;
 	if(aggregates.size()==0){
@@ -765,7 +749,8 @@ WL ProdFWAgg::handleOccurenceOfBothSigns(const WL& one, const WL& two){
 }
 
 bool ProdFWAgg::isMonotone(const Agg& agg, const WL& w) const{
-
+	assert(l.getWeight()==0 || l.getWeight()>=1);
+	return agg.isUpper();
 }
 
 Weight ProdFWAgg::add(const Weight& lhs, const Weight& rhs) const{

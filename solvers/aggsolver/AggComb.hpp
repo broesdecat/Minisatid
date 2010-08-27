@@ -310,9 +310,6 @@ public:
 	string 			getName		() const { return "SUM"; }
 	AggrType 		getType		() const { return SUM; }
 
-	virtual rClause propagate	(const Agg& agg, bool headtrue);
-	virtual rClause propagateAll(const Agg& agg, bool headtrue);
-
 	virtual pcomb 	initialize	(bool& unsat);
 
 	virtual Weight	add			(const Weight& lhs, const Weight& rhs) const;
@@ -332,9 +329,6 @@ public:
 
 	string 			getName		() const { return "PROD"; }
 	AggrType 		getType		() const { return PROD; }
-
-	virtual rClause propagate	(const Agg& agg, bool headtrue);
-	virtual rClause propagateAll(const Agg& agg, bool headtrue);
 
 	virtual pcomb 	initialize	(bool& unsat);
 
