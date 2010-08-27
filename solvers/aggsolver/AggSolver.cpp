@@ -265,11 +265,13 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits,	const vector<Weight>&
 	}
 
 	while (sets[0].size() <= setindex) {
-		/*sets[maptype[MAX]].push_back(new AggrMaxSet(lits, weights, this));
+		/* FIXME
+		sets[maptype[MAX]].push_back(new AggrMaxSet(lits, weights, this));
 		sets[maptype[SUM]].push_back(new AggrSumSet(lits, weights, this));
 		sets[maptype[PROD]].push_back(new AggrProdSet(lits, weights, this));
 		sets[maptype[MIN]].push_back(new AggrMaxSet(lits, weights2, this));
 		sets[maptype[CARD]].push_back(new AggrSumSet(lits, weights, this));*/
+		sets[maptype[MIN]].push_back(new MaxFWAgg(lits, weights2, this));
 	}
 
 	return true;
@@ -317,7 +319,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, Bound boundsign,
 		c = sets[maptype[MAX]][setindex];
 		ae = c->addAgg(new Agg(bound, boundsign, head, headeq));
 		break;
-	/*case CARD:
+	/*case CARD: FIXME
 #ifdef DEBUG
 		for(lwlv::size_type i=0; i<sets[maptype[SUM]][setindex]->getWL().size(); i++) {
 			if(sets[maptype[SUM]][setindex]->getWL()[i].getWeight()!=1) {
@@ -368,8 +370,6 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, Bound boundsign,
 		getPCSolver()->notifyAggrHead(var(head));
 	}
 
-	//aggregates.push_back(ae);
-
 	if (verbosity() >= 5) {
 		reportf("Added %s aggregate with head %d on set %d, %s %s of type %s.\n",
 		        headeq == DEF?"defined":"completion", gprintVar(headv), setid,
@@ -383,7 +383,8 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, Bound boundsign,
 //FIXME no optimizations should take place on mnmz aggregates (partially helped by separate add method).
 //FIXME 2 more optimization should/could take place on other aggregates
 bool AggSolver::addMnmzSum(Var headv, int setid, Bound boundsign) {
-	/*if (((vector<int>::size_type) setid)>sets[0].size() || sets[0][setid-1]==NULL || sets[0][setid-1]->getWL().size()==0) {
+	/* FIXME
+	if (((vector<int>::size_type) setid)>sets[0].size() || sets[0][setid-1]==NULL || sets[0][setid-1]->getWL().size()==0) {
 		char s[100];
 		sprintf(s, "Set nr. %d is used, but not defined yet.\n", setid);
 		throw idpexception(s);
@@ -565,7 +566,7 @@ rClause AggSolver::getExplanation(const Lit& p) {
 
 	//create a conflict clause and return it
 	rClause c = getPCSolver()->createClause(lits, true);
-//	getPCSolver()->addLearnedClause(c);
+	//getPCSolver()->addLearnedClause(c);
 	//Adding directly as a learned clause should NOT be done: real slowdown for magicseries
 
 	if (verbosity() >= 2) {
@@ -649,11 +650,11 @@ vwl::const_iterator AggSolver::getAggLiteralsEnd(Var x) const {
  * @post: any new derived heads are in heads, with its respective justification in jstf
  */
 void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& heads, vec<Var>& currentjust) {
-	/*for (vector<pset>::const_iterator i = network[var(w)].begin(); i< network[var(w)].end(); i++) {
-		pset set = (*i);
-		for (vpagg::const_iterator j = set->getAgg().begin(); j < set->getAgg().end(); j++) {
+	for (vector<pcomb>::const_iterator i = network[var(w)].begin(); i< network[var(w)].end(); i++) {
+		pcomb s = (*i);
+		for (vpagg::const_iterator j = s->getAgg().begin(); j < s->getAgg().end(); j++) {
 			pagg expr = (*j);
-			if (expr->getHeadValue() == l_False) {
+			if (isFalse(expr->getHead())) {
 				//reportf(" => head is false %d\n", gprintVar(var(expr->getHead())));
 				continue;
 			}
@@ -671,7 +672,7 @@ void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& 
 			if (currentjust[head] > 0) { //only check its body for justification when it has not yet been derived
 				vec<Lit> jstf;
 				vec<Var> nonjstf;
-				if (expr->canJustifyHead(jstf, nonjstf, currentjust, false)) {
+				if (s->canJustifyHead(jstf, nonjstf, currentjust, false)) {
 					currentjust[head] = 0;
 					heads.push(mkLit(head, false));
 					jstfs.push();
@@ -679,7 +680,7 @@ void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& 
 				}
 			}
 		}
-	}*/
+	}
 }
 
 /**

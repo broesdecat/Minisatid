@@ -180,10 +180,10 @@ protected:
 	 */
     pcomb 		getAggWithHeadOccurence	(Var v) const;
 
-    map<AggrType, int > 		maptype;
+    map<AggrType, int > 	maptype;
 	vector<vector<pcomb> >	sets;			//After initialization, all remaining sets.
 
-	vector<AggReason*>			aggr_reason;	// For each atom, like 'reason'.
+	vector<AggReason*>		aggr_reason;	// For each atom, like 'reason'.
 
 	vector<vector<pw> >		tempwatches;
 	vector<vector<pw> >		permwatches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
