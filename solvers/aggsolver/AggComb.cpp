@@ -647,7 +647,7 @@ WL SumFWAgg::handleOccurenceOfBothSigns(const WL& one, const WL& two){
 	}
 }
 
-bool SumFWAgg::isMonotone(const Agg& agg, const WL& w) const{
+bool SumFWAgg::isMonotone(const Agg& agg, const WL& l) const{
 	return (agg.isLower() && l.getWeight()<0) || (agg.isUpper() && l.getWeight()>0);
 }
 
@@ -748,7 +748,7 @@ WL ProdFWAgg::handleOccurenceOfBothSigns(const WL& one, const WL& two){
 	throw idpexception("Atoms in product aggregates have to be unique.\n");
 }
 
-bool ProdFWAgg::isMonotone(const Agg& agg, const WL& w) const{
+bool ProdFWAgg::isMonotone(const Agg& agg, const WL& l) const{
 	assert(l.getWeight()==0 || l.getWeight()>=1);
 	return agg.isUpper();
 }
