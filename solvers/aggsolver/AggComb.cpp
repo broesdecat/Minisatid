@@ -2,20 +2,38 @@
 
 #include "solvers/aggsolver/AggSolver.hpp"
 
+#include <algorithm>
+
 using namespace Aggrs;
 
 AggSet::AggSet(const vector<Lit>& lits, const vector<Weight>& weights){
 	for(int i=0; i<lits.size(); i++){
 		wlits.push_back(WL(lits[i], weights[i]));
 	}
-	sort(wlits.begin(), wlits.end());
+	std::sort(wlits.begin(), wlits.end());
+}
+
+void AggSet::setWL(const vector<WL>& newset){
+	wlits.clear();
+	wlits.insert(wlits.begin(), newset.begin(), newset.end());
+	//important to sort again to guarantee that it is sorted according to the weights
+	std::sort(wlits.begin(), wlits.end());
 }
 
 AggComb::AggComb(const paggsol& solver, const vector<Lit>& lits, const vector<Weight>& weights):
 		aggsolver(solver), set(new AggSet(lits, weights)){
 }
 
-void FWAgg::backtrack(int index) {
+AggComb::~AggComb(){
+	deleteList<Agg>(aggregates);
+	delete set;
+};
+
+/*PWAgg::PWAgg(const paggsol& solver, const vector<Lit>& lits, const vector<Weight>& weights):
+		AggComb(solver, lits, weights){
+}*/
+
+void FWAgg::backtrack(Watch* w) {
 	/*if (getStack().size()==0 || var(getStack().back().getLit())!=var(getWL()[index].getLit())) {
 		return;	//Only backtrack if it was effectively propagated
 	}
@@ -161,21 +179,25 @@ pcomb FWAgg::initialize(bool& unsat){
 	return this;
 }
 
+lbool FWAgg::initialize(pagg agg){
+	//TODO
+}
+
 /**
  * Should find a set L+ such that "bigwedge{l | l in L+} implies p"
  * which is equivalent with the clause bigvee{~l|l in L+} or p
  * and this is returned as the set {~l|l in L+}
  */
-void FWAgg::getExplanation(pagg agg, vec<Lit>& lits, AggReason& ar) const{
-	//assert(ar.getAgg() == agg);
+void FWAgg::getExplanation(vec<Lit>& lits, AggReason& ar) const{
+/*	//assert(ar.getAgg() == agg);
 	//assert(agg->getSet()==this);
 
 	const Lit& head = agg->getHead();
 
-	/*TODO if(!ar.isHeadReason() && ar.getIndex() >= agg->getHeadIndex()){
+	if(!ar.isHeadReason() && ar.getIndex() >= agg->getHeadIndex()){
 		//the head literal is saved as it occurred in the theory, so adapt for its current truth value!
 		lits.push(getSolver()->isTrue(head)?~head:head);
-	}*/
+	}
 
 	//assert(ar.isHeadReason() || getPCSolver()->getLevel(ar.getLit())<=s->getStackSize());
 
@@ -233,7 +255,7 @@ void FWAgg::getExplanation(pagg agg, vec<Lit>& lits, AggReason& ar) const{
 			gprintLit(lits[i]);
 		}
 		reportf("\n");
-	}
+	}*/
 }
 
 /*****************
@@ -293,7 +315,7 @@ WL MaxFWAgg::handleOccurenceOfBothSigns(const WL& one, const WL& two){
  *
  * Also, if a literal has to become FALSE, its INVERSION should be added to the justification!
  */
-bool FWAgg::oppositeIsJustified(const WL& l, vec<int>& currentjust, bool real) const{
+bool AggComb::oppositeIsJustified(const WL& l, vec<int>& currentjust, bool real) const{
 	if(real){
 		return getSolver()->value(l.getLit())!=l_True;
 	}else{
@@ -301,7 +323,7 @@ bool FWAgg::oppositeIsJustified(const WL& l, vec<int>& currentjust, bool real) c
 	}
 }
 
-bool FWAgg::isJustified(const WL& l, vec<int>& currentjust, bool real) const{
+bool AggComb::isJustified(const WL& l, vec<int>& currentjust, bool real) const{
 	if(real){
 		return getSolver()->value(l.getLit())!=l_False;
 	}else{
@@ -309,7 +331,7 @@ bool FWAgg::isJustified(const WL& l, vec<int>& currentjust, bool real) const{
 	}
 }
 
-bool FWAgg::isJustified(Var x, vec<int>& currentjust) const{
+bool AggComb::isJustified(Var x, vec<int>& currentjust) const{
 	return currentjust[x]==0;
 }
 
