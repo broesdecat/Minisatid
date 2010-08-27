@@ -170,9 +170,13 @@ public:
 	virtual AggrType	getType				() const = 0;
 	virtual string 		getName				() const = 0;
 
+	// Propagate set literal
 	virtual rClause 	propagate			(const Lit& p, const Watch& w) = 0;
+	// Propagate head
 	virtual rClause 	propagate			(const Agg& agg, bool headtrue) = 0;
+	// Backtrack set literal
 	virtual void 		backtrack			(const Watch& w) = 0;
+	// Backtrack head
 	virtual void 		backtrack			(const Agg& agg) = 0;
     virtual void 		getExplanation		(vec<Lit>& lits, const AggReason& ar) 	const = 0;
 
@@ -224,19 +228,19 @@ public:
 	virtual AggrType	getType				() const { return CARD; }
 	virtual string 		getName				() const { return "CARD"; }
 
-	virtual rClause 	propagate			(const Lit& p, const Watch& w){};
-	virtual rClause 	propagate			(const Agg& agg, bool headtrue){};
+	virtual rClause 	propagate			(const Lit& p, const Watch& w);
+	virtual rClause 	propagate			(const Agg& agg, bool headtrue);
 	virtual void 		backtrack			(const Watch& w) {}
 	virtual void 		backtrack			(const Agg& agg) {}
-    virtual void 		getExplanation		(vec<Lit>& lits, const AggReason& ar) const{};
+    virtual void 		getExplanation		(vec<Lit>& lits, const AggReason& ar) const;
 
 	virtual bool 		isMonotone			(const Agg& agg, const WL& l) const { return true; }
 
-	virtual pcomb 		initialize			(bool& unsat){};
-	virtual Weight 		getCombinedWeight	(const Weight& one, const Weight& two) 	const{};
-	virtual WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two){ };
+	virtual pcomb 		initialize			(bool& unsat);
+	virtual Weight 		getCombinedWeight	(const Weight& one, const Weight& two) 	const;
+	virtual WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two);
 
-	virtual bool 		canJustifyHead		(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const{};
+	virtual bool 		canJustifyHead		(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
 };
 
 
