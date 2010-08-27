@@ -6,16 +6,6 @@
 
 using namespace Aggrs;
 
-bool Aggrs::isNeutralElement(const Weight& w, AggrType t){
-	if(t==MAX || t==MIN){
-		return false;
-	}else if(t==SUM || t==CARD){
-		return w==0;
-	}else if(t==PROD){
-		return w==1;
-	}
-}
-
 AggSet::AggSet(const vector<Lit>& lits, const vector<Weight>& weights){
 	for(int i=0; i<lits.size(); i++){
 		wlits.push_back(WL(lits[i], weights[i]));
@@ -124,7 +114,7 @@ void AggComb::doSetReduction() {
 
 	vwl newset2;
 	for(vwl::size_type i=0; i<newset.size(); i++){
-		if(!isNeutralElement(newset[i].getWeight(), getType())){
+		if(!isNeutralElement(newset[i].getWeight())){
 			newset2.push_back(newset[i]);
 		}else{
 			setisreduced = true;
@@ -651,21 +641,6 @@ bool SumFWAgg::isMonotone(const Agg& agg, const WL& l) const{
 	return (agg.isLower() && l.getWeight()<0) || (agg.isUpper() && l.getWeight()>0);
 }
 
-Weight SumFWAgg::add(const Weight& lhs, const Weight& rhs) const{
-#ifdef INTWEIGHT
-	if(lhs>0 && rhs > 0 && INT_MAX-lhs < rhs){
-		return INT_MAX;
-	}else if(lhs<0 && rhs<0 && INT_MIN-lhs>rhs){
-		return INT_MIN;
-	}
-#endif
-	return lhs+rhs;
-}
-
-Weight SumFWAgg::remove(const Weight& lhs, const Weight& rhs) const{
-	return lhs-rhs;
-}
-
 void SumFWAgg::getMinimExplan(const Agg& agg, vec<Lit>& lits){
 	Weight certainsum = getESV();
 	Weight possiblesum = getBestPossible();
@@ -753,7 +728,22 @@ bool ProdFWAgg::isMonotone(const Agg& agg, const WL& l) const{
 	return agg.isUpper();
 }
 
-Weight ProdFWAgg::add(const Weight& lhs, const Weight& rhs) const{
+Weight SumCalc::add(const Weight& lhs, const Weight& rhs) const{
+#ifdef INTWEIGHT
+	if(lhs>0 && rhs > 0 && INT_MAX-lhs < rhs){
+		return INT_MAX;
+	}else if(lhs<0 && rhs<0 && INT_MIN-lhs>rhs){
+		return INT_MIN;
+	}
+#endif
+	return lhs+rhs;
+}
+
+Weight SumCalc::remove(const Weight& lhs, const Weight& rhs) const{
+	return lhs-rhs;
+}
+
+Weight ProdCalc::add(const Weight& lhs, const Weight& rhs) const{
 #ifdef INTWEIGHT
 	bool sign = false;
 	Weight l = lhs, r = rhs;
@@ -772,7 +762,7 @@ Weight ProdFWAgg::add(const Weight& lhs, const Weight& rhs) const{
 	return lhs*rhs;
 }
 
-Weight ProdFWAgg::remove(const Weight& lhs, const Weight& rhs) const{
+Weight ProdCalc::remove(const Weight& lhs, const Weight& rhs) const{
 	Weight w = 0;
 	if(rhs!=0){
 		w = lhs/rhs;
