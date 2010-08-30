@@ -172,6 +172,7 @@ public:
 	///////
 	// Watched literal sets
 	///////
+	void setHeadWatch(Var head, Agg* agg);
 	void addPermWatch(Var v, pw w);
 	void addTempWatch(const Lit& l, pw w);
 

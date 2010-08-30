@@ -6,10 +6,8 @@
 
 using namespace Aggrs;
 
-AggSet::AggSet(const vector<Lit>& lits, const vector<Weight>& weights){
-	for(int i=0; i<lits.size(); i++){
-		wlits.push_back(WL(lits[i], weights[i]));
-	}
+AggSet::AggSet(const vector<WL>& wl){
+	wlits.insert(wlits.begin(), wl.begin(), wl.end());
 	std::sort(wlits.begin(), wlits.end());
 }
 
@@ -19,55 +17,30 @@ void AggSet::setWL(const vector<WL>& newset){
 	std::sort(wlits.begin(), wlits.end());
 }
 
-AggComb::AggComb(const paggsol& solver, const vector<Lit>& lits, const vector<Weight>& weights):
-		aggsolver(solver), set(new AggSet(lits, weights)), emptysetvalue(0){
+AggComb::AggComb(const paggsol& solver, const vector<WL>& wl):
+		aggsolver(solver), set(new AggSet(wl)), emptysetvalue(0){
 }
+
+void AggComb::addAgg(pagg aggr){
+	aggregates.push_back(aggr);
+	aggr->setComb(this, aggregates.size()-1);
+}
+
+/*AggComb::AggComb(const AggComb& comb){
+	aggregates = comb.getAgg();
+	set = comb.getSet();
+	aggsolver = comb.getSolver();
+	emptysetvalue = comb.getESV();
+}*/
 
 AggComb::~AggComb(){
 	deleteList<Agg>(aggregates);
 	delete set;
 };
 
-FWAgg::FWAgg(const paggsol& solver, const vector<Lit>& lits, const vector<Weight>& weights):
-		AggComb(solver, lits, weights), currentbestcertain(0),currentbestpossible(0){
-}
+FWAgg::FWAgg(const paggsol& solver, const vwl& wl):
+	AggComb(solver, wl), currentbestcertain(0), currentbestpossible(0){
 
-rClause FWAgg::propagate(const Lit& p, const Watch& ws){
-	Occurrence tp;
-    if (ws.getType()==POS){
-    	tp = sign(p)? NEG : POS;
-    }else{
-    	tp = sign(p)? POS : NEG;
-    }
-
-    const WL& wl = getWL()[ws.getIndex()];
-	stack.push_back(PropagationInfo(p, wl.getWeight(), tp, getCC(), getCP()));
-	truth[ws.getIndex()] = tp==POS?l_True:l_False;
-	tp==POS? addToCertainSet(wl):removeFromPossibleSet(wl);
-
-	rClause confl = nullPtrClause;
-	for(vpagg::const_iterator i=getAgg().begin(); i<getAgg().end() && confl == nullPtrClause; i++){
-		const Agg& pa = **i;
-
-		//TODO dit is vrij lelijk
-		if(getSolver()->verbosity()>=4){
-			reportf("Propagating into aggr: ");
-			Aggrs::printAgg(pa);
-		}
-
-		lbool hv = headvalue[pa.getIndex()];
-		if(hv != l_Undef){ //head is already known
-			assert(canPropagateHead(pa, getCC(), getCP())!=(hv==l_True?l_False:l_True));	//A conflicting propagation is not possible if we have complete propagation
-			confl = propagate(pa, hv==l_True);
-		}else{ //head is not yet known, so at most the head can be propagated
-			lbool result = canPropagateHead(pa, getCC(), getCP());
-			if(result!=l_Undef){
-				rClause cc = getSolver()->notifySATsolverOfPropagation(result==l_True?pa.getHead():~pa.getHead(), new AggReason(pa, p, CPANDCC, true));
-				confl = cc;
-			}
-		}
-	}
-	return confl;
 }
 
 /*
@@ -126,6 +99,14 @@ void AggComb::doSetReduction() {
 	}
 }
 
+// Final initialization call!
+pcomb AggComb::initialize(bool& unsat){
+	for(int i=0; i<getAgg().size(); i++){
+		getSolver()->setHeadWatch(var(getAgg()[i]->getHead()), getAgg()[i]);
+	}
+	return this;
+}
+
 pcomb FWAgg::initialize(bool& unsat){
 	unsat = false;
 	if(getAgg().size()==0){
@@ -147,16 +128,18 @@ pcomb FWAgg::initialize(bool& unsat){
 
 	int i=0, j=0;
 	for(; !unsat && i<aggregates.size(); i++){
-		Agg* agg = aggregates[i];
+		pagg agg = aggregates[i];
 		lbool result = initialize(*agg);
-		if(result==l_True){
+		if(result==l_True && !agg->isDefined()){
 			//If after initialization, the head will have a fixed value, then this is
 			//independent of any further propagations within that aggregate.
+			//BUT ONLY if it is not defined (or at a later stage, if it cannot be in any loop
 			getSolver()->removeHeadWatch(var(agg->getHead()));
 			delete agg;
 		}else if(result==l_False){
 			//UNSAT because always false
 			unsat = true;
+			return NULL;
 		}else{
 			agg->setIndex(j);
 			aggregates[j++] = agg;
@@ -177,7 +160,7 @@ pcomb FWAgg::initialize(bool& unsat){
 		getSolver()->addPermWatch(v, new Watch(this, j, true, sign(l) ? false : true));
 	}
 
-	return this;
+	return AggComb::initialize(unsat);
 }
 
 /**
@@ -243,12 +226,50 @@ void FWAgg::backtrack(const Watch& w) {
 /**
  * Returns non-owning pointer
  */
-rClause FWAgg::propagate(const Agg& agg, bool headtrue){
+rClause FWAgg::propagate(const Agg& agg){
 	if(nomoreprops[agg.getIndex()] || headprop[agg.getIndex()]){ return nullPtrClause; }
 
-	headvalue[agg.getIndex()] = headtrue?l_True:l_False;
+	lbool headtrue = getSolver()->value(agg.getHead());
+	headvalue[agg.getIndex()] = headtrue;
 	headindex[agg.getIndex()] = getStack().size();
-	rClause confl = propagate(agg, headtrue);
+	rClause confl = propagate(agg, headtrue==l_True);
+	return confl;
+}
+
+rClause FWAgg::propagate(const Lit& p, const Watch& ws){
+	Occurrence tp;
+    if (ws.getType()==POS){
+    	tp = sign(p)? NEG : POS;
+    }else{
+    	tp = sign(p)? POS : NEG;
+    }
+
+    const WL& wl = getWL()[ws.getIndex()];
+	stack.push_back(PropagationInfo(p, wl.getWeight(), tp, getCC(), getCP()));
+	truth[ws.getIndex()] = tp==POS?l_True:l_False;
+	tp==POS? addToCertainSet(wl):removeFromPossibleSet(wl);
+
+	rClause confl = nullPtrClause;
+	for(vpagg::const_iterator i=getAgg().begin(); i<getAgg().end() && confl == nullPtrClause; i++){
+		const Agg& pa = **i;
+
+		if(getSolver()->verbosity()>=4){
+			reportf("Propagating into aggr: ");
+			Aggrs::printAgg(pa);
+		}
+
+		lbool hv = headvalue[pa.getIndex()];
+		if(hv != l_Undef){ //head is already known
+			assert(canPropagateHead(pa, getCC(), getCP())!=(hv==l_True?l_False:l_True));	//A conflicting propagation is not possible if we have complete propagation
+			confl = propagate(pa, hv==l_True);
+		}else{ //head is not yet known, so at most the head can be propagated
+			lbool result = canPropagateHead(pa, getCC(), getCP());
+			if(result!=l_Undef){
+				rClause cc = getSolver()->notifySATsolverOfPropagation(result==l_True?pa.getHead():~pa.getHead(), new AggReason(pa, p, CPANDCC, true));
+				confl = cc;
+			}
+		}
+	}
 	return confl;
 }
 
@@ -277,9 +298,6 @@ void FWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const{
 	//assert(ar.getAgg() == agg);
 	//assert(agg->getSet()==this);
 
-	const Agg& agg = ar.getAgg();
-	const Lit& head = agg.getHead();
-
 	int index = -1;
 	for(int i=0; i<getStack().size(); i++){
 		if(getStack()[i].getLit()==ar.getLit()){
@@ -287,7 +305,13 @@ void FWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const{
 			break;
 		}
 	}
-	assert(index!=-1);
+	if(index==-1){
+		index = getStack().size();
+	}
+	//assert(index!=-1); //Is wrong because when a conflict is derived, an explanation is constructed before the conflicting literal is stacked.
+
+	const Agg& agg = ar.getAgg();
+	const Lit& head = agg.getHead();
 
 	if(!ar.isHeadReason() && index >= headindex[agg.getIndex()]){
 		//the head literal is saved as it occurred in the theory, so adapt for its current truth value!
@@ -357,8 +381,8 @@ void FWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const{
  * MAX AGGREGATE *
  *****************/
 
-MaxFWAgg::MaxFWAgg(const paggsol& solver, const vector<Lit>& lits, const vector<Weight>& weights):
-		FWAgg(solver, lits, weights){
+MaxFWAgg::MaxFWAgg(const paggsol& solver, const vector<WL>& wl):
+		FWAgg(solver, wl){
 	//FIXME moet eigenlijk een voorstelling van -infinity zijn
 	//ik had eerst: |minimum van de set| -1, maar de bound zelf kan NOG lager liggen, dus dan is het fout
 	emptysetvalue = Weight(INT_MIN);
@@ -488,8 +512,8 @@ rClause MaxFWAgg::propagateAll(const Agg& agg, bool headtrue) {
 	return confl;
 }
 
-SPFWAgg::SPFWAgg(const paggsol& solver, const vector<Lit>& lits, const vector<Weight>& weights)
-		:FWAgg(solver, lits, weights){
+SPFWAgg::SPFWAgg(const paggsol& solver, const vector<WL>& wl)
+		:FWAgg(solver, wl){
 }
 
 Weight SPFWAgg::getCombinedWeight(const Weight& one, const Weight& two) const {
@@ -559,7 +583,7 @@ rClause SPFWAgg::propagateAll(const Agg& agg, bool headtrue){
 	}
 #endif
 
-	vwl::const_iterator pos = lower_bound(getWL().begin(), getWL().begin(), weightbound);
+	vwl::const_iterator pos = lower_bound(getWL().begin(), getWL().end(), weightbound);
 	if(pos==getWL().end()){
 		return c;
 	}
@@ -584,8 +608,8 @@ rClause SPFWAgg::propagateAll(const Agg& agg, bool headtrue){
 	return c;
 }
 
-SumFWAgg::SumFWAgg(const paggsol& solver, const vector<Lit>& lits, const vector<Weight>& weights)
-		:SPFWAgg(solver, lits, weights){
+SumFWAgg::SumFWAgg(const paggsol& solver, const vector<WL>& lw)
+		:SPFWAgg(solver, lw){
 	emptysetvalue = 0;
 }
 
@@ -689,8 +713,8 @@ void SumFWAgg::addToBounds(Agg& agg, const Weight& w){
 	}
 }
 
-ProdFWAgg::ProdFWAgg(const paggsol& solver, const vector<Lit>& lits, const vector<Weight>& weights)
-		:SPFWAgg(solver, lits, weights){
+ProdFWAgg::ProdFWAgg(const paggsol& solver, const vector<WL>& wl)
+		:SPFWAgg(solver, wl){
 	emptysetvalue = 1;
 }
 
@@ -778,6 +802,99 @@ Weight ProdCalc::remove(const Weight& lhs, const Weight& rhs) const{
  * RECURSIVE AGGREGATES *
  ************************/
 
+bool MaxFWAgg::canJustifyHead( const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
+	AggrType type = agg.getAggComb()->getType();
+	bool justified = false;
+	const vwl& wl = getWL();
+
+	if(agg.isLower()){
+		for(vwl::const_reverse_iterator i=wl.rbegin(); i<wl.rend() && (*i).getWeight()>agg.getLowerBound(); i++) {
+			if(oppositeIsJustified(*i, currentjust, real, getSolver())){
+				jstf.push(~(*i).getLit()); //push negative literal, because it should become false
+			}else if(real ||currentjust[var((*i).getLit())]!=0){
+				nonjstf.push(var((*i).getLit()));
+			}
+		}
+		if(nonjstf.size()==0){
+			justified = true;
+		}
+	}else{
+		for(vwl::const_reverse_iterator i=wl.rbegin(); i<wl.rend() && (*i).getWeight()>=agg.getUpperBound(); i++) {
+			if(isJustified(*i, currentjust, real, getSolver())){
+				jstf.push((*i).getLit());
+				justified = true;
+			}else if(real || currentjust[var((*i).getLit())]!=0){
+				nonjstf.push(var((*i).getLit()));
+			}
+		}
+	}
+	if (!justified) {
+		jstf.clear();
+	}
+
+	return justified;
+}
+
+/**
+ * AGG <= B: v is justified if one literal below/eq the bound is THAT IS NOT THE HEAD
+ * 					if so, change the justification to the literal
+ * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
+ * A <= AGG: v is justified if the negation of all literals below the bound are. The emptyset is always a solution,
+ * 			 so no conclusions have to be drawn from the literals above/eq the bound
+ * 					if so, change the justification to the negation of all those below the bound literals
+ * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
+ */
+bool SPFWAgg::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
+	AggrType type = agg.getAggComb()->getType();
+	bool justified = false;
+	const vwl& wl = getWL();
+
+	if(agg.isLower()){
+		Weight bestpossible = getBestPossible();
+		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
+			if(oppositeIsJustified(*i, currentjust, real, getSolver())){
+				jstf.push(~(*i).getLit());
+				bestpossible = remove(bestpossible, (*i).getWeight());
+				if (bestpossible <= agg.getLowerBound()){
+					justified = true;
+				}
+			}else if(real ||currentjust[var((*i).getLit())]!=0){
+				nonjstf.push(var((*i).getLit()));
+			}
+		}
+	}else{
+		Weight bestcertain = getESV();
+		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
+			if(isJustified(*i, currentjust, real, getSolver())){
+				jstf.push((*i).getLit());
+				bestcertain = add(bestcertain, (*i).getWeight());
+				if (bestcertain >= agg.getUpperBound()){
+					justified = true;
+				}
+			}else if(real ||currentjust[var((*i).getLit())]!=0){
+				nonjstf.push(var((*i).getLit()));
+			}
+		}
+	}
+
+	if(getSolver()->verbosity() >=4){
+		reportf("Justification checked for ");
+		printAgg(agg);
+
+		if(justified){
+			reportf("justification found: ");
+			for(int i=0; i<jstf.size(); i++){
+				gprintLit(jstf[i]); reportf(" ");
+			}
+			reportf("\n");
+		}else{
+			reportf("no justification found.\n");
+		}
+	}
+
+	return justified;
+}
+
 /**
  * Important: to justify a head, often several body literals have to become FALSE
  * For such literals, they have to be justified if they are NEGATIVE
@@ -804,78 +921,85 @@ bool Aggrs::isJustified(Var x, vec<int>& currentjust){
 	return currentjust[x]==0;
 }
 
-/**
- * AGG <= B: v is justified if one literal below/eq the bound is THAT IS NOT THE HEAD
- * 					if so, change the justification to the literal
- * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
- * A <= AGG: v is justified if the negation of all literals below the bound are. The emptyset is always a solution,
- * 			 so no conclusions have to be drawn from the literals above/eq the bound
- * 					if so, change the justification to the negation of all those below the bound literals
- * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
- */
-bool Aggrs::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) {
+///////
+//PW Aggregates
+///////
+
+PWAgg::PWAgg(const paggsol& solver, const vector<WL>& wl):
+		AggComb(solver, wl){
+}
+
+CardPWAgg::CardPWAgg(const paggsol& solver, const vector<WL>& wl):
+			PWAgg(solver, wl){
+}
+
+rClause CardPWAgg::propagate(const Lit& p, const Watch& w){
+	assert(false);
+};
+
+rClause CardPWAgg::propagate(const Agg& agg){
+	assert(false);
+};
+
+void CardPWAgg::backtrack(const Agg& agg){
+
+}
+
+void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const{
+	assert(false);
+};
+
+pcomb CardPWAgg::initialize	(bool& unsat){
+	SumFWAgg* s = new SumFWAgg(getSolver(), getWL());
+	for(int i=0; i<getAgg().size(); i++) {
+		s->addAgg(getAgg()[i]);
+	}
+	aggregates.clear();
+	return s->initialize(unsat);
+};
+
+Weight CardPWAgg::getBestPossible() const{
+	Weight max = getESV();
+	for (vwl::const_iterator j = getWL().begin(); j < getWL().end(); j++) {
+		max = this->add(max, (*j).getWeight());
+	}
+	return max;
+}
+
+bool CardPWAgg::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const{
 	AggrType type = agg.getAggComb()->getType();
 	bool justified = false;
-	AggComb* s = agg.getAggComb();
-	const vwl& wl = s->getWL();
+	const vwl& wl = getWL();
 
-	if(type==MAX){
-		if(agg.isLower()){
-			for(vwl::const_reverse_iterator i=wl.rbegin(); i<wl.rend() && (*i).getWeight()>agg.getLowerBound(); i++) {
-				if(oppositeIsJustified(*i, currentjust, real, s->getSolver())){
-					jstf.push(~(*i).getLit()); //push negative literal, because it should become false
-				}else if(real ||currentjust[var((*i).getLit())]!=0){
-					nonjstf.push(var((*i).getLit()));
-				}
-			}
-			if(nonjstf.size()==0){
-				justified = true;
-			}
-		}else{
-			for(vwl::const_reverse_iterator i=wl.rbegin(); i<wl.rend() && (*i).getWeight()>=agg.getUpperBound(); i++) {
-				if(isJustified(*i, currentjust, real, s->getSolver())){
-					jstf.push((*i).getLit());
+	if(agg.isLower()){
+		Weight bestpossible = getBestPossible();
+		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
+			if(oppositeIsJustified(*i, currentjust, real, getSolver())){
+				jstf.push(~(*i).getLit());
+				bestpossible = remove(bestpossible, (*i).getWeight());
+				if (bestpossible <= agg.getLowerBound()){
 					justified = true;
-				}else if(real || currentjust[var((*i).getLit())]!=0){
-					nonjstf.push(var((*i).getLit()));
 				}
+			}else if(real ||currentjust[var((*i).getLit())]!=0){
+				nonjstf.push(var((*i).getLit()));
 			}
 		}
-		if (!justified) {
-			jstf.clear();
+	}else{
+		Weight bestcertain = getESV();
+		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
+			if(isJustified(*i, currentjust, real, getSolver())){
+				jstf.push((*i).getLit());
+				bestcertain = add(bestcertain, (*i).getWeight());
+				if (bestcertain >= agg.getUpperBound()){
+					justified = true;
+				}
+			}else if(real ||currentjust[var((*i).getLit())]!=0){
+				nonjstf.push(var((*i).getLit()));
+			}
 		}
-	}else if(type==SUM || type==PROD || type==CARD){
-		/*FIXME
-		if(agg.isLower()){
-			Weight bestpossible = s->getBestPossible();
-			for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
-				if(oppositeIsJustified(*i, currentjust, real, agg.getAggComb()->getSolver())){
-					jstf.push(~(*i).getLit());
-					bestpossible = s->remove(bestpossible, (*i).getWeight());
-					if (bestpossible <= agg.getLowerBound()){
-						justified = true;
-					}
-				}else if(real ||currentjust[var((*i).getLit())]!=0){
-					nonjstf.push(var((*i).getLit()));
-				}
-			}
-		}else{
-			Weight bestcertain = s->getESV();
-			for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
-				if(isJustified(*i, currentjust, real, agg.getAggComb()->getSolver())){
-					jstf.push((*i).getLit());
-					bestcertain = s->add(bestcertain, (*i).getWeight());
-					if (bestcertain >= agg.getUpperBound()){
-						justified = true;
-					}
-				}else if(real ||currentjust[var((*i).getLit())]!=0){
-					nonjstf.push(var((*i).getLit()));
-				}
-			}
-		}*/
 	}
 
-	if(s->getSolver()->verbosity() >=4){
+	if(getSolver()->verbosity() >=4){
 		reportf("Justification checked for ");
 		printAgg(agg);
 
@@ -892,38 +1016,6 @@ bool Aggrs::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, ve
 
 	return justified;
 }
-
-///////
-//PW Aggregates
-///////
-
-PWAgg::PWAgg(const paggsol& solver, const vector<Lit>& lits, const vector<Weight>& weights):
-		AggComb(solver, lits, weights){
-}
-
-CardPWAgg::CardPWAgg(const paggsol& solver, const vector<Lit>& lits, const vector<Weight>& weights):
-			PWAgg(solver, lits, weights){
-}
-
-rClause CardPWAgg::propagate(const Lit& p, const Watch& w){
-
-};
-
-rClause CardPWAgg::propagate(const Agg& agg, bool headtrue){
-
-};
-
-void CardPWAgg::backtrack(const Agg& agg){
-
-}
-
-void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const{
-
-};
-
-pcomb CardPWAgg::initialize	(bool& unsat){
-
-};
 
 Weight CardPWAgg::getCombinedWeight(const Weight& one, const Weight& two) 	const{
 	return one+two;
@@ -944,7 +1036,7 @@ WL CardPWAgg::handleOccurenceOfBothSigns(const WL& one, const WL& two){
 ///////
 
 void Aggrs::printAgg(AggComb const * const c, bool endl){
-	reportf("%s{", c->getName().c_str());
+	reportf("%s{", c->getName());
 	for (vwl::const_iterator i=c->getWL().begin(); i<c->getWL().end(); ++i) {
 		reportf(" "); gprintLit((*i).getLit()); reportf("(%s)",printWeight((*i).getWeight()).c_str());
 	}

@@ -371,7 +371,7 @@ bool IDSolver::finishECNF_DataStructures() {
 	if (verbosity() >= 1) {
 		reportf("| Number of recursive atoms in positive loops : %6d                        |\n",(int)atoms_in_pos_loops);
 		if (negloops) {
-			reportf("| Mixed loops also exist                                                  |\n");
+			reportf("| Mixed loops also exist                                                      |\n");
 		}
 	}
 
@@ -383,25 +383,21 @@ bool IDSolver::finishECNF_DataStructures() {
 
 	if (verbosity() > 5) {
 		for (int i = 0; i < defdVars.size(); i++) {
+			if(i!=0){ reportf(", "); }
 			Var w = defdVars[i];
 			switch (defOcc[w]) {
 			case NONDEFOCC:
-				reportf("%d=nondef, ", w);
-				break;
+				reportf("%d=nondef", w); break;
 			case MIXEDLOOP:
-				reportf("%d=mixed, ", w);
-				break;
+				reportf("%d=mixed", w);	break;
 			case BOTHLOOP:
-				reportf("%d=both, ", w);
-				break;
+				reportf("%d=both", w); break;
 			case POSLOOP:
-				reportf("%d=pos, ", w);
-				break;
+				reportf("%d=pos", w); break;
 			}
-			if (i % 50 == 0) {
-				reportf("\n");
-			}
+			if (i % 50 == 0) { reportf("\n"); }
 		}
+		reportf("\n");
 	}
 
 	return true;
@@ -757,25 +753,21 @@ bool IDSolver::initAfterSimplify() {
 
 	if (verbosity() > 5) {
 		for (int i = 0; i < defdVars.size(); i++) {
+			if(i!=0){ reportf(", "); }
 			Var w = defdVars[i];
 			switch (defOcc[w]) {
 			case NONDEFOCC:
-				reportf("%d=nondef, ", w);
-				break;
+				reportf("%d=nondef", w); break;
 			case MIXEDLOOP:
-				reportf("%d=mixed, ", w);
-				break;
+				reportf("%d=mixed", w);	break;
 			case BOTHLOOP:
-				reportf("%d=both, ", w);
-				break;
+				reportf("%d=both", w); break;
 			case POSLOOP:
-				reportf("%d=pos, ", w);
-				break;
+				reportf("%d=pos", w); break;
 			}
-			if (i % 50 == 0) {
-				reportf("\n");
-			}
+			if (i % 50 == 0) { reportf("\n"); }
 		}
+		reportf("\n");
 	}
 
 #ifdef DEBUG

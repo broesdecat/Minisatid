@@ -592,7 +592,7 @@ bool PCSolver::solveAll(vec<Lit>& assmpt, vec<vec<Lit> >& models) {
 		}
 
 		if (modelsfound != 0 && !moremodels && nb_models != 1) {
-			printf("There are no more models.\n");
+			printf("| There are no more models                                                    |\n");
 		}
 
 		if (modelsfound == 0) {
@@ -646,7 +646,8 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m, bool& moremodels) {
 	}
 
 	if (nb_models != 1) {
-		printf("%d model%s found.\n", modelsfound, modelsfound > 1 ? "s" : "");
+		printf("| %4d model%s found                                                            |\n",
+					modelsfound, modelsfound > 1 ? "s" : "");
 	}
 
 	//check if more models can exist
