@@ -1072,7 +1072,7 @@ pcomb CardPWAgg::initialize	(bool& unsat){
 		numberm = agg.getLowerBound()+1;
 	}
 	if(headvalue!=l_True){
-		numberam = getWL().size()-agg.getLowerBound()+1;
+		numberam = getWL().size()-agg.getLowerBound()+2; //+2 because of gEQ
 	}
 
 	//Check initial propagations
@@ -1094,7 +1094,7 @@ pcomb CardPWAgg::initialize	(bool& unsat){
 		if(nbtrue>=numberm-1){
 			confl = getSolver()->notifySolver(agg.getHead(), new AggReason(agg, agg.getHead(), BASEDONCC, false));
 		}else if(nbfalse>=numberam-1){
-			confl = getSolver()->notifySolver(~agg.getHead(), new AggReason(agg, ~agg.getHead(), BASEDONCC, false));
+			confl = getSolver()->notifySolver(~agg.getHead(), new AggReason(agg, ~agg.getHead(), BASEDONCP, false));
 		}else{
 			checkm = true;
 			checkam = true;
@@ -1140,26 +1140,30 @@ pcomb CardPWAgg::initialize	(bool& unsat){
 
 	if(!known){
 		//Take as requested number of monotone watches, or as many as possible
-		int taken = 0;
-		for(vwl::const_iterator i=getWL().begin(); i<getWL().end(); i++){
-			const Lit& l = (*i).getLit();
-			if(taken<numberm && getSolver()->value(l)!=l_False){
-				watchedm.push_back(*i);
-				taken++;
-			}else{
-				restm.push_back(*i);
+		if(checkm){
+			int taken = 0;
+			for(vwl::const_iterator i=getWL().begin(); i<getWL().end(); i++){
+				const Lit& l = (*i).getLit();
+				if(taken<numberm && getSolver()->value(l)!=l_False){
+					watchedm.push_back(*i);
+					taken++;
+				}else{
+					restm.push_back(*i);
+				}
 			}
 		}
 
 		//Take as requested number of anti-monotone watches, or as many as possible
-		taken = 0;
-		for(vwl::const_iterator i=getWL().begin(); i<getWL().end(); i++){
-			const Lit& l = (*i).getLit();
-			if(taken<numberam && getSolver()->value(l)!=l_True){
-				watchedam.push_back(*i);
-				taken++;
-			}else{
-				restam.push_back(*i);
+		if(checkam){
+			int taken = 0;
+			for(vwl::const_iterator i=getWL().begin(); i<getWL().end(); i++){
+				const Lit& l = (*i).getLit();
+				if(taken<numberam && getSolver()->value(l)!=l_True){
+					watchedam.push_back(*i);
+					taken++;
+				}else{
+					restam.push_back(*i);
+				}
 			}
 		}
 	}
@@ -1184,13 +1188,13 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& w){
 
 	const Agg& agg = *getAgg()[0];
 
-	if(w.getWL().getLit()==p && checkm){
+	if(w.getType()==NEG && checkm){
 		const vector<Lit>& trail = getSolver()->getPCSolver()->getRecentAssignments();
 		int ind = -1;
 		for(int i=0; i<restm.size(); i++){
 			lbool v = getSolver()->value(restm[i].getLit());
 			reportf("Lit "); gprintLit(restm[i].getLit()); reportf(" is %s\n", v==l_True?"true": v==l_False?"false":"unkn");
-			if(v==l_True){ // TODO might have been propagated later, check!
+			if(v==l_True){
 				ind = i;
 			}else if(ind==-1){
 				if(v==l_Undef){
@@ -1236,13 +1240,13 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& w){
 			getSolver()->addTempWatch(~watchedm[w.getIndex()].getLit(), new PWWatch(this, w.getIndex(), true, false));
 		}
 	}
-	if(w.getWL().getLit()==~p && checkam){
+	if(w.getType()==POS && checkam){
 		int ind = -1;
 		const vector<Lit>& trail = getSolver()->getPCSolver()->getRecentAssignments();
-		for(int i; i<restam.size(); i++){
+		for(int i=0; i<restam.size(); i++){
 			lbool v = getSolver()->value(restam[i].getLit());
 			reportf("Lit "); gprintLit(restam[i].getLit()); reportf(" is %s\n", v==l_True?"true": v==l_False?"false":"unkn");
-			if(v==l_False){ // TODO might have been propagated later, check!
+			if(v==l_False){
 				ind = i;
 			}else if(ind==-1){
 				if(v==l_Undef){
@@ -1271,7 +1275,7 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& w){
 			}
 		}else if(ind==-1){ // propagate rest
 			reportf("Cannot find replacement, so propagating.\n");
-			getSolver()->addTempWatch(p, new PWWatch(this, w.getIndex(), true, false));
+			getSolver()->addTempWatch(p, new PWWatch(this, w.getIndex(), true, true));
 			for(int i=0; confl==nullPtrClause && i<watchedam.size(); i++){
 				const Lit& l = watchedam[i].getLit();
 				if(var(l)!=var(p)){
@@ -1281,11 +1285,11 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& w){
 		}
 
 		if(ind!=-1){
-			gprintLit(~watchedam[w.getIndex()].getLit()); reportf(" is replaced with "); gprintLit(~restam[ind].getLit()); reportf("\n");
+			gprintLit(watchedam[w.getIndex()].getLit()); reportf(" is replaced with "); gprintLit(restam[ind].getLit()); reportf("\n");
 			WL temp = watchedam[w.getIndex()];
 			watchedam[w.getIndex()] = restam[ind];
 			restam[ind] = temp;
-			getSolver()->addTempWatch(watchedam[w.getIndex()].getLit(), new PWWatch(this, w.getIndex(), true, false));
+			getSolver()->addTempWatch(watchedam[w.getIndex()].getLit(), new PWWatch(this, w.getIndex(), true, true));
 		}
 	}
 
@@ -1308,7 +1312,7 @@ void CardPWAgg::backtrack(const Agg& agg){
 void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const{
 	if(ar.getExpl()==BASEDONCC){
 		for(int i=0; i<getWL().size(); i++){
-			if(getSolver()->value(getWL()[i].getLit())==l_False){
+			if(getSolver()->value(l)==l_False){
 				lits.push(getWL()[i].getLit());
 			}
 		}
@@ -1319,7 +1323,6 @@ void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const{
 			}
 		}
 	}
-
 };
 
 Weight CardPWAgg::getBestPossible() const{
