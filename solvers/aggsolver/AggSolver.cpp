@@ -198,8 +198,11 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 				reportf("      ");
 				Aggrs::printAgg((permwatches[i][j])->getAggComb(), true);
 			}
+			for (int j = 0; j < tempwatches[i].size(); j++) {
+				reportf("      ");
+				Aggrs::printAgg((tempwatches[i][j])->getAggComb(), true);
+			}
 		}
-		//TODO add tempvars
 
 		reportf("Initializing aggregates finished.\n");
 	}
@@ -529,8 +532,8 @@ rClause AggSolver::notifySolver(const Lit& p, AggReason* ar) {
 }
 
 void AggSolver::newDecisionLevel() {
-	/*int found = 0;
-	//TODO correct for one watched set!
+	int found = 0;
+	//Only for one watched set! FIXME: remove after testing
 	for (int i = 0; i < tempwatches.size(); i++) {
 		if (tempwatches[i].size() == 0) {
 			continue;
@@ -546,7 +549,7 @@ void AggSolver::newDecisionLevel() {
 		}
 		reportf("\n");
 	}
-	assert(found <= 1);*/
+	assert(found <= 1);
 }
 
 /**
@@ -825,9 +828,7 @@ bool AggSolver::addMnmzSum(Var headv, int setid, Bound boundsign) {
 		}
 	}
 
-	pagg ae = new Agg(boundsign == LOWERBOUND ? max + 1 : min, boundsign, head,
-			COMP);
-	//ae->setOptimAgg(); //FIXME temporary solution
+	pagg ae = new Agg(boundsign == LOWERBOUND ? max + 1 : min, boundsign, head,	COMP);
 	dynamic_cast<SumFWAgg*> (sets[maptype[SUM]][setid - 1])->addOptimAgg(ae);
 
 	if (verbosity() >= 3) {
@@ -875,5 +876,5 @@ void AggSolver::propagateMnmz(Var head) {
 ///////
 
 void AggSolver::printStatistics() const {
-reportf("aggregate propagations: %-12" PRIu64 "\n", propagations);
+	reportf("aggregate propagations: %-12" PRIu64 "\n", propagations);
 }

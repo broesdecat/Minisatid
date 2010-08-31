@@ -127,7 +127,7 @@ public:
 	bool 		isSetLit() 		const { return set; }
 	Occurrence 	getType()		const { return !set?HEAD:pos?POS:NEG; }
 
-	virtual const WL&	getWL()			const;
+	virtual WL	getWL()			const;
 };
 
 enum Expl{BASEDONCC,BASEDONCP,CPANDCC, HEADONLY};
@@ -275,8 +275,9 @@ public:
 
 class CardPWAgg: public PWAgg, CardAggT, SumCalc {
 private:
-	int numberm;
-	vector<WL> watched, rest;
+	int numberm, numberam;
+	bool checkm, checkam;
+	vector<WL> watchedm, restm, watchedam, restam;
 public:
 	CardPWAgg(const paggsol& solver, const vwl& wl);
 	virtual ~CardPWAgg(){};
@@ -296,7 +297,8 @@ public:
 	virtual Weight 	getBestPossible() const;
 	virtual bool canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
 
-	const vector<WL>& 		getWatched() const	 { return watched; }
+	const vector<WL>& 		getPosWatched() const	 { return watchedam; }
+	const vector<WL>& 		getNegWatched() const	 { return watchedm; }
 };
 
 class PWWatch: public Watch{
@@ -304,7 +306,7 @@ public:
 	PWWatch(CardPWAgg* agg, int index, bool set, bool pos):
 			Watch(agg, index, set, pos){}
 
-	virtual const WL&	getWL()			const;
+	virtual WL	getWL()			const;
 };
 
 
