@@ -21,6 +21,14 @@ AggComb::AggComb(const paggsol& solver, const vector<WL>& wl):
 		aggsolver(solver), set(new AggSet(wl)), emptysetvalue(0){
 }
 
+const WL& Watch::getWL()	const {
+	return agg->getWL()[index];
+}
+
+const WL& PWWatch::getWL()	const {
+	return dynamic_cast<CardPWAgg*>(agg)->getWatched()[index];
+}
+
 void AggComb::addAgg(pagg aggr){
 	aggregates.push_back(aggr);
 	aggr->setComb(this, aggregates.size()-1);
@@ -211,13 +219,13 @@ void FWAgg::backtrack(const Agg& agg){
 
 
 void FWAgg::backtrack(const Watch& w) {
-	if (getStack().size()==0 || var(getStack().back().getLit())!=var(getWL()[w.getIndex()].getLit())) {
+	if (getStack().size()==0 || var(getStack().back().getLit())!=var(w.getWL().getLit())) {
 		return;	//Only backtrack if it was effectively propagated
 	}
 	const PropagationInfo& pi = stack.back();
 	stack.pop_back();
 
-	assert(pi.getType()!=HEAD && var(pi.getLit())==var(getWL()[w.getIndex()].getLit()));
+	assert(pi.getType()!=HEAD && var(pi.getLit())==var(w.getWL().getLit()));
 
 	truth[w.getIndex()] = l_Undef;
 	setCC(pi.getPC());
@@ -251,7 +259,7 @@ rClause FWAgg::propagate(const Lit& p, const Watch& ws){
     	tp = sign(p)? POS : NEG;
     }
 
-    const WL& wl = getWL()[ws.getIndex()];
+    const WL& wl = ws.getWL();
 	stack.push_back(PropagationInfo(p, wl.getWeight(), tp, getCC(), getCP()));
 	truth[ws.getIndex()] = tp==POS?l_True:l_False;
 	tp==POS? addToCertainSet(wl):removeFromPossibleSet(wl);
@@ -1039,12 +1047,71 @@ CardPWAgg::CardPWAgg(const paggsol& solver, const vector<WL>& wl):
 }
 
 pcomb CardPWAgg::initialize	(bool& unsat){
-	SumFWAgg* s = new SumFWAgg(getSolver(), getWL());
-	for(int i=0; i<getAgg().size(); i++) {
-		s->addAgg(getAgg()[i]);
+	if(getAgg().size()!=1 || !getAgg()[0]->isUpper() || getSolver()->value(getAgg()[0]->getHead())!=l_True){
+		SumFWAgg* s = new SumFWAgg(getSolver(), getWL());
+		for(int i=0; i<getAgg().size(); i++) {
+			s->addAgg(getAgg()[i]);
+		}
+		aggregates.clear();
+		return s->initialize(unsat);
 	}
-	aggregates.clear();
-	return s->initialize(unsat);
+
+	//decide on number
+	bool headsknown = true;
+	const Agg& agg = *getAgg()[0];
+	if(getSolver()->value(agg.getHead())==l_Undef){
+		headsknown = false;
+	}
+
+	if(headsknown){
+		numberm = agg.getLowerBound()+1;
+	}else{
+		numberm = agg.getLowerBound();
+	}
+
+	//initialize watch set
+	int montaken = 0;
+	for(vwl::const_iterator i=getWL().begin(); i<getWL().end(); i++){
+		bool monfound = false;
+		const Lit& l = (*i).getLit();
+		if(montaken<numberm){
+			if(isMonotone(agg, *i) && getSolver()->value(l)!=l_False){
+				watched.push_back(*i);
+				montaken++;
+				monfound = true;
+			}
+		}else if(!monfound){
+			rest.push_back(*i);
+		}
+	}
+	if(headsknown && montaken<numberm){
+		if(montaken<numberm-1){
+			unsat = true;
+			return this;	//Not enough monotone, non-false literals to satisfy the aggregate
+		}else{
+			//can propagate all in the watched set
+			for(int i=0; i<watched.size(); i++){
+				const Lit& l = watched[i].getLit();
+				rClause confl = getSolver()->notifySolver(l, new AggReason(agg, l, BASEDONCC, false));
+				if(confl!=nullPtrClause){
+					unsat = true;
+					return this;
+				}
+			}
+		}
+	}else if(!headsknown && montaken<numberm){
+		//head is false, propagate it
+		rClause confl = getSolver()->notifySolver(~agg.getHead(), new AggReason(agg, ~agg.getHead(), BASEDONCC, true));
+		if(confl!=nullPtrClause){
+			unsat = true;
+			return this;
+		}
+	}
+	for(int i=0; i<watched.size(); i++){
+		getSolver()->addTempWatch(~watched[i].getLit(), new PWWatch(this, i, true, false));
+	}
+	return this;
+
 	/*unsat = false;
 	if(getAgg().size()==0){
 		return NULL;
@@ -1155,6 +1222,36 @@ pcomb CardPWAgg::initialize	(bool& unsat){
 }
 
 rClause CardPWAgg::propagate(const Lit& p, const Watch& w){
+	int ind = 0;
+	bool found = false;
+	for(; !found && ind<rest.size(); ind++){
+		lbool v = getSolver()->value(rest[ind].getLit());
+		//reportf("Lit "); gprintLit(rest[ind].getLit()); reportf(" is %s\n", v==l_True?"true": v==l_False?"false":"unkn");
+		if(v!=l_False){ // TODO might have been propagated later, check!
+			found = true;
+			break;
+		}
+	}
+
+	rClause confl = nullPtrClause;
+	if(!found){ // propagate rest
+		//reportf("Cannot find replacement, so propagating.\n");
+		getSolver()->addTempWatch(p, new PWWatch(this, w.getIndex(), true, false));
+		for(int i=0; confl==nullPtrClause && i<watched.size(); i++){
+			const Lit& l = watched[i].getLit();
+			if(var(l)!=var(p)){
+				confl = getSolver()->notifySolver(l, new AggReason(*getAgg()[0], l, BASEDONCC, false));
+			}
+		}
+	}else{
+		//gprintLit(~watched[w.getIndex()].getLit()); reportf(" is replaced with "); gprintLit(~rest[ind].getLit()); reportf("\n");
+		WL temp = watched[w.getIndex()];
+		watched[w.getIndex()] = rest[ind];
+		rest[ind] = temp;
+		getSolver()->addTempWatch(~watched[w.getIndex()].getLit(), new PWWatch(this, w.getIndex(), true, false));
+	}
+
+	return confl;
 /*	//find the index
 	int index = 0;
 	for(int index=0; index<watched.size(); index++){
@@ -1191,7 +1288,6 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& w){
 	}
 
 	return nullPtrClause;*/
-	assert(false);
 }
 
 rClause CardPWAgg::propagate(const Agg& agg){
@@ -1199,11 +1295,15 @@ rClause CardPWAgg::propagate(const Agg& agg){
 };
 
 void CardPWAgg::backtrack(const Agg& agg){
-
+	assert(false);
 }
 
 void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const{
-	assert(false);
+	for(int i=0; i<getWL().size(); i++){
+		if(getSolver()->value(getWL()[i].getLit())==l_False){
+			lits.push(getWL()[i].getLit());
+		}
+	}
 };
 
 Weight CardPWAgg::getBestPossible() const{

@@ -455,11 +455,14 @@ void PCSolver::backtrackRest(Lit l) {
 	}
 }
 
-// Called by SAT solver when new decision level is started
+// Called by SAT solver when new decision level is started, BEFORE choice has been made!
 void PCSolver::newDecisionLevel(){
 	//reportf("ADD DECISION LEVEL %d\n", ++decisionlevels);
 	if(idsolverpresent){
 		getIDSolver()->newDecisionLevel();
+	}
+	if(aggsolver){
+		getAggSolver()->newDecisionLevel();
 	}
 }
 
@@ -610,6 +613,9 @@ bool PCSolver::solveAll(vec<Lit>& assmpt, vec<vec<Lit> >& models) {
 		if (idsolverpresent) {
 			getIDSolver()->printStatistics();
 		}
+		if(aggsolverpresent){
+			getAggSolver()->printStatistics();
+		}
 	}
 	return solved;
 }
@@ -646,8 +652,8 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m, bool& moremodels) {
 	}
 
 	if (nb_models != 1) {
-		printf("| %4d model%s found                                                            |\n",
-					modelsfound, modelsfound > 1 ? "s" : "");
+		printf("| %4d model%s found                                                           |\n",
+					modelsfound, modelsfound > 1 ? "s" : " ");
 	}
 
 	//check if more models can exist

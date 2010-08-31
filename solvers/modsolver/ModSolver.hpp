@@ -125,6 +125,7 @@ public:
 	 * The model of a theory is the interpretation of all atoms decided by the root SAT solver.
 	 */
 	void 				printModel();
+	void				printStatistics		() const {};
 
 	/**
 	 * Propagation coming from the parent solver: propagate it through the tree, until a conflict is found.

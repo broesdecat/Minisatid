@@ -137,8 +137,24 @@ public:
 	 */
 	rClause 			getExplanation			(const Lit& p);
 	void 				notifyVarAdded			(uint64_t nvars); 		//correctly initialize AMNSolver datastructures when vars are added
+
+	/**
+	 * Correct the min and max values of the aggregates in which l was propagated and delete any aggregate reasons
+	 * present.
+	 *
+	 * @optimization possible: for each decision level, put the current values on a stack. Instead of recalculating it
+	 * for each literal, pop the values once for each decision level
+	 *
+	 * @PRE: backtracking is in anti-chronologous order and all literals are visited!
+	 */
+	void 				backtrack				(const Lit& l);
+
+	/**
+	 * Goes through all watches and propagates the fact that p was set true.
+	 */
 	rClause 			propagate				(const Lit& p);
-	void 				backtrack 				(const Lit& l);
+
+	void 				newDecisionLevel();
 
 	//are used by agg.c, but preferably should be move into protected again
 	rClause				notifySolver(const Lit& p, Aggrs::AggReason* cr);	// Like "enqueue", but for aggregate propagations.
@@ -176,6 +192,9 @@ public:
 	void 				addPermWatch			(Var v, pw w);
 	void 				addTempWatch			(const Lit& l, pw w);
 
+
+	void				printStatistics			() const ;
+
 protected:
 	/**
 	 * Returns the aggregate in which the given variable is the head.
@@ -192,38 +211,11 @@ protected:
 	vector<pagg>			headwatches;	//	does NOT own the pointers, vars because head always positive
 	vector<vector<pcomb> >	network;		// the pointer network of set var -> set
 
-	/**
-	 * Correct the min and max values of the aggregates in which l was propagated and delete any aggregate reasons
-	 * present.
-	 *
-	 * @optimization possible: for each decision level, put the current values on a stack. Instead of recalculating it
-	 * for each literal, pop the values once for each decision level
-	 *
-	 * @PRE: backtracking is in anti-chronologous order and all literals are visited!
-	 */
-	void 				doBacktrack				(const Lit& l);
-
-	/**
-	 * Goes through all watches and propagates the fact that p was set true.
-	 */
-	rClause 			Aggr_propagate			(const Lit& p);
-
 	bool 				maxAggAsSAT				(HdEq sem, Bound boundsign, Weight bound, const Lit& head, const AggSet& set);
 	bool				finishSets				(vector<pcomb>& sets); //throws UNSAT
+
+	//statistics
+	uint64_t propagations;
 };
-
-///////
-// INLINE METHODS
-///////
-
-inline void AggSolver::backtrack (const Lit& l){
-	if(!isInitialized()){ return; }
-	doBacktrack(l);
-}
-
-inline rClause AggSolver::propagate(const Lit& p){
-	if (!isInitialized()) {return nullPtrClause;}
-	return Aggr_propagate(p);
-}
 
 #endif /* AggSolver_H_ */

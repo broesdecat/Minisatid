@@ -2476,7 +2476,7 @@ UFS IDSolver::visitForUFSsimple(
 }
 
 void IDSolver::printStatistics() const {
-	reportf ("cycles                : %-12" PRIu64 "\n", cycles);
+	reportf("cycles                : %-12" PRIu64 "\n", cycles);
 	reportf("cycle conflicts       : %-12" PRIu64 "\n", justify_conflicts);
 	reportf("avg cycle size        : %4.2f\n", (float)cycle_sizes/cycles);
 	reportf("avg extdisj size      : %4.2f\n", (float)extdisj_sizes/cycles);
