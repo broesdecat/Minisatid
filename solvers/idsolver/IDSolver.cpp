@@ -964,7 +964,7 @@ void IDSolver::findCycleSources() {
 			}
 
 			if (getAggSolver() != NULL) {
-				vector<Var> heads = getAggSolver()->getHeadsOfAggrInWhichOccurs(var(~l));
+				vector<Var> heads = getAggSolver()->getAggHeadsWithBodyLit(var(~l));
 				for (vector<Var>::size_type j = 0; j < heads.size(); j++) {
 					checkJustification(heads[j]);
 				}
@@ -1491,7 +1491,7 @@ void IDSolver::markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>
 		markNonJustifiedAddVar(*i, cs, q, tmpseen);
 	}
 	if (getAggSolver() != NULL) {
-		vector<Var> heads = getAggSolver()->getHeadsOfAggrInWhichOccurs(x);
+		vector<Var> heads = getAggSolver()->getAggHeadsWithBodyLit(x);
 		for (vector<Var>::size_type i = 0; i < heads.size(); i++) {
 			vec<Lit>& jstfc = justification[heads[i]];
 			for (int k = 0; k < jstfc.size(); k++) {

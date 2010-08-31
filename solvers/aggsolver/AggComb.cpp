@@ -26,6 +26,17 @@ void AggComb::addAgg(pagg aggr){
 	aggr->setComb(this, aggregates.size()-1);
 }
 
+void FWAgg::addAgg(pagg aggr){
+	int startsize = aggregates.size()+1;
+	headvalue.resize(startsize, l_Undef);
+	headindex.resize(startsize, -1);
+	nomoreprops.resize(startsize, false);
+	optimagg.resize(startsize, false);
+	headproptime.resize(startsize, -1);
+	headprop.resize(startsize, false);
+	AggComb::addAgg(aggr);
+}
+
 /*AggComb::AggComb(const AggComb& comb){
 	aggregates = comb.getAgg();
 	set = comb.getSet();
@@ -100,11 +111,12 @@ void AggComb::doSetReduction() {
 }
 
 // Final initialization call!
+// @post: returns NULL if no more aggregates present!
 pcomb AggComb::initialize(bool& unsat){
 	for(int i=0; i<getAgg().size(); i++){
 		getSolver()->setHeadWatch(var(getAgg()[i]->getHead()), getAgg()[i]);
 	}
-	return this;
+	return getAgg().size()==0?NULL:this;
 }
 
 pcomb FWAgg::initialize(bool& unsat){
@@ -117,14 +129,6 @@ pcomb FWAgg::initialize(bool& unsat){
 
 	setCP(getBestPossible());
 	setCC(getESV());
-
-	int startsize = aggregates.size();
-	headvalue.resize(startsize, l_Undef);
-	headindex.resize(startsize, -1);
-	nomoreprops.resize(startsize, false);
-	optimagg.resize(startsize, false);
-	headproptime.resize(startsize, -1);
-	headprop.resize(startsize, false);
 
 	int i=0, j=0;
 	for(; !unsat && i<aggregates.size(); i++){
@@ -154,13 +158,17 @@ pcomb FWAgg::initialize(bool& unsat){
 	headproptime.resize(j, -1);
 	headprop.resize(j, false);
 
-	for (int j = 0; j< getWL().size(); j++) {
-		const Lit& l = getWL()[j].getLit();
-		Var v = var(l);
-		getSolver()->addPermWatch(v, new Watch(this, j, true, sign(l) ? false : true));
+	pcomb newagg = AggComb::initialize(unsat);
+
+	if(newagg==this){
+		for (int j = 0; j< getWL().size(); j++) {
+			const Lit& l = getWL()[j].getLit();
+			Var v = var(l);
+			getSolver()->addPermWatch(v, new Watch(this, j, true, sign(l) ? false : true));
+		}
 	}
 
-	return AggComb::initialize(unsat);
+	return newagg;
 }
 
 /**
@@ -177,9 +185,9 @@ lbool FWAgg::initialize(const Agg& agg){
 		//reportf("No more propagations for %d", gprintVar(var(head)));
 	}
 	if(hv==l_True){
-		confl = getSolver()->notifySATsolverOfPropagation(agg.getHead(), new AggReason(agg, agg.getHead(), CPANDCC, true));
+		confl = getSolver()->notifySolver(agg.getHead(), new AggReason(agg, agg.getHead(), CPANDCC, true));
 	}else if(hv==l_False){
-		confl = getSolver()->notifySATsolverOfPropagation(~agg.getHead(), new AggReason(agg, ~agg.getHead(), CPANDCC, true));
+		confl = getSolver()->notifySolver(~agg.getHead(), new AggReason(agg, ~agg.getHead(), CPANDCC, true));
 	}
 	if(confl!=nullPtrClause){
 		return l_False;
@@ -221,13 +229,12 @@ void FWAgg::backtrack(const Watch& w) {
 	}
 }
 
-/*
-
 /**
  * Returns non-owning pointer
  */
 rClause FWAgg::propagate(const Agg& agg){
-	if(nomoreprops[agg.getIndex()] || headprop[agg.getIndex()]){ return nullPtrClause; }
+	//TODO er is iets mis met headvalue, headprop etc!
+	if(nomoreprops[agg.getIndex()] || headvalue[agg.getIndex()]!=l_Undef){ return nullPtrClause; }
 
 	lbool headtrue = getSolver()->value(agg.getHead());
 	headvalue[agg.getIndex()] = headtrue;
@@ -265,7 +272,7 @@ rClause FWAgg::propagate(const Lit& p, const Watch& ws){
 		}else{ //head is not yet known, so at most the head can be propagated
 			lbool result = canPropagateHead(pa, getCC(), getCP());
 			if(result!=l_Undef){
-				rClause cc = getSolver()->notifySATsolverOfPropagation(result==l_True?pa.getHead():~pa.getHead(), new AggReason(pa, p, CPANDCC, true));
+				rClause cc = getSolver()->notifySolver(result==l_True?pa.getHead():~pa.getHead(), new AggReason(pa, p, CPANDCC, true));
 				confl = cc;
 			}
 		}
@@ -277,12 +284,16 @@ lbool FWAgg::canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP
 	if(nomoreprops[agg.getIndex()] || headprop[agg.getIndex()]){ return headvalue[agg.getIndex()]; }
 
 	if ((agg.isLower() && CC > agg.getLowerBound()) || (agg.isUpper() && CP < agg.getUpperBound())) {
-		headproptime[agg.getIndex()] = getStack().size();
-		headprop[agg.getIndex()] = true;
+		if(!optimagg[agg.getIndex()]){ // TODO niet de mooiste oplossing: bij optimagg geen headprop gebruiken want die is toch fout als de bound wordt aangepast
+			headproptime[agg.getIndex()] = getStack().size();
+			headprop[agg.getIndex()] = true;
+		}
 		return l_False;
 	} else if ((agg.isLower() && CP <= agg.getLowerBound()) || (agg.isUpper() && CC >= agg.getUpperBound())) {
-		headproptime[agg.getIndex()] = getStack().size();
-		headprop[agg.getIndex()] = true;
+		if(!optimagg[agg.getIndex()]){
+			headproptime[agg.getIndex()] = getStack().size();
+			headprop[agg.getIndex()] = true;
+		}
 		return l_True;
 	} else {
 		return l_Undef;
@@ -453,11 +464,11 @@ rClause MaxFWAgg::propagate(const Agg& agg, bool headtrue) {
 	if (headtrue && agg.isLower()) {
 		for(vwl::const_reverse_iterator i=getWL().rbegin(); confl == nullPtrClause && i<getWL().rend() && agg.getLowerBound()<(*i).getWeight(); i++){
 			//because these propagations are independent of the other set literals, they can also be written as clauses
-			confl = getSolver()->notifySATsolverOfPropagation(~(*i).getLit(), new AggReason(agg,~(*i).getLit(),HEADONLY));
+			confl = getSolver()->notifySolver(~(*i).getLit(), new AggReason(agg,~(*i).getLit(),HEADONLY));
 		}
 	}else if(!headtrue && agg.isUpper()){
 		for(vwl::const_reverse_iterator i=getWL().rbegin(); confl == nullPtrClause && i<getWL().rend() && agg.getUpperBound()<=(*i).getWeight(); i++){
-			confl = getSolver()->notifySATsolverOfPropagation(~(*i).getLit(), new AggReason(agg,~(*i).getLit(),HEADONLY));
+			confl = getSolver()->notifySolver(~(*i).getLit(), new AggReason(agg,~(*i).getLit(),HEADONLY));
 		}
 	}
 	if(confl==nullPtrClause){
@@ -507,7 +518,7 @@ rClause MaxFWAgg::propagateAll(const Agg& agg, bool headtrue) {
 	}
 	if(exactlyoneleft){
 		//TODO BASEDONCP is not correct enough (ONCPABOVEBOUND)
-		confl = getSolver()->notifySATsolverOfPropagation(getWL()[pos].getLit(), new AggReason(agg, getWL()[pos].getLit(), BASEDONCP));
+		confl = getSolver()->notifySolver(getWL()[pos].getLit(), new AggReason(agg, getWL()[pos].getLit(), BASEDONCP));
 	}
 	return confl;
 }
@@ -536,12 +547,34 @@ void SPFWAgg::removeFromPossibleSet(const WL& l){
 	setCP(this->remove(getCP(), l.getWeight()));
 }
 
+/**
+ * If head is true, and making a literal true would increase the bestcertain value above the bound (and lEQ)
+ * 					or  making a literal false would decrease the bestpossible below the bound (and gEQ)
+ * 		then make that literal and all higher ones (in weight) false (resp. true)
+ *
+ * If head is false, and making a literal false would decrease the bestcertain below the bound (and lEQ)
+ * 					 or making a literal true would increase the bestpossible above the bound (and gEQ)
+ * 		then make that literal and all higher ones (in weight) true (resp. false)
+ *
+ * Only unknown literals are checked! The other literals will already have been included in the bounds, so using them is wrong (and not useful)
+ *
+ * IMPORTANT: smart use of the fact that all literals in the set are ordered according to the weight:
+ * 		if !lower and substracting from bestpossible gets below the bound, then all literals with that weight and higher should be false
+ * 		if lower and adding to bestcertain gets above the bound, then all literals with that weight and higher should be false
+ * this is done using the lower_bound binary search algorithm of std
+ */
+/**
+ * Returns non-owning pointer
+ */
 rClause SPFWAgg::propagate(const Agg& agg, bool headtrue){
 	if(nomoreprops[agg.getIndex()] || headprop[agg.getIndex()]){ return nullPtrClause; }
 
 	return propagateAll(agg, headtrue);
 }
 
+/**
+ * Returns non-owning pointer
+ */
 rClause SPFWAgg::propagateAll(const Agg& agg, bool headtrue){
 	if(nomoreprops[agg.getIndex()] || headprop[agg.getIndex()]){ return nullPtrClause; }
 
@@ -599,9 +632,9 @@ rClause SPFWAgg::propagateAll(const Agg& agg, bool headtrue){
 		if(truth[u]==l_Undef){//if already propagated as an aggregate, then those best-values have already been adapted
 			const Lit& l = getWL()[u].getLit();
 			if((agg.isLower() && headtrue) || (agg.isUpper() && !headtrue)){
-				c = getSolver()->notifySATsolverOfPropagation(~l, new AggReason(agg, ~l, basedon));
+				c = getSolver()->notifySolver(~l, new AggReason(agg, ~l, basedon));
 			}else{
-				c = getSolver()->notifySATsolverOfPropagation(l, new AggReason(agg, l, basedon));
+				c = getSolver()->notifySolver(l, new AggReason(agg, l, basedon));
 			}
 		}
 	}
@@ -619,7 +652,7 @@ pcomb SumFWAgg::initialize(bool& unsat){
 		return NULL;
 	}
 
-	//Calculate the total negative weight to make all weight positive
+	// Transform the sum into one only containing natural numbers.
 	vwl wlits2;
 	Weight totalneg(0);
 	for(vwl::const_iterator i=getWL().begin(); i<getWL().end(); i++){
@@ -637,8 +670,9 @@ pcomb SumFWAgg::initialize(bool& unsat){
 		}
 	}
 
+	//Test whether the total sum of the weights does not overflow for integer weights
 #ifdef INTWEIGHT
-	//Test whether the total sum of the weights is not infinity for intweights
+
 	Weight total(0);
 	for(vwl::const_iterator i=getWL().begin(); i<getWL().end(); i++){
 		if(INT_MAX-total < (*i).getWeight()){
@@ -665,6 +699,10 @@ bool SumFWAgg::isMonotone(const Agg& agg, const WL& l) const{
 	return (agg.isLower() && l.getWeight()<0) || (agg.isUpper() && l.getWeight()>0);
 }
 
+/**
+ * This method returns a reason clause that is currently false and that explains why the current optimizing
+ * sum aggregate is violated. This can serve as a learned clause to backtrack during optimization search.
+ */
 void SumFWAgg::getMinimExplan(const Agg& agg, vec<Lit>& lits){
 	Weight certainsum = getESV();
 	Weight possiblesum = getBestPossible();
@@ -705,6 +743,7 @@ void SumFWAgg::getMinimExplan(const Agg& agg, vec<Lit>& lits){
 
 	assert(explained);
 }
+
 void SumFWAgg::addToBounds(Agg& agg, const Weight& w){
 	if(agg.isLower()){
 		agg.setLowerBound(add(agg.getLowerBound(), w));
@@ -802,6 +841,15 @@ Weight ProdCalc::remove(const Weight& lhs, const Weight& rhs) const{
  * RECURSIVE AGGREGATES *
  ************************/
 
+/**
+ * AGG <= B: v is justified if one literal below/eq the bound is THAT IS NOT THE HEAD
+ * 					if so, change the justification to the literal
+ * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
+ * A <= AGG: v is justified if the negation of all literals below the bound are. The emptyset is always a solution,
+ * 			 so no conclusions have to be drawn from the literals above/eq the bound
+ * 					if so, change the justification to the negation of all those below the bound literals
+ * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
+ */
 bool MaxFWAgg::canJustifyHead( const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
 	AggrType type = agg.getAggComb()->getType();
 	bool justified = false;
@@ -895,6 +943,63 @@ bool SPFWAgg::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, 
 	return justified;
 }
 
+/*bool SPAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
+	//OTHER IMPLEMENTATION (probably buggy)
+	pSet s = getSet();
+
+	Weight current = 0;
+	if(isLower()){
+		current = s->getBestPossible();
+	}else{
+		current = s->getEmptySetValue();
+	}
+
+	bool justified = false;
+	if(aggValueImpliesHead(current)){
+		justified = true;
+	}
+
+	for (lwlv::const_iterator i = s->getWLBegin(); !justified && i < s->getWLEnd(); ++i) {
+		if(isMonotone(*i) && s->isJustified(*i, currentjust, real)){
+			if(isLower()){
+				jstf.push(~(*i).getLit());
+				current = this->remove(current, (*i).getWeight());
+			}else{
+				//if(s->isJustified(*i, currentjust, real)){
+				jstf.push((*i).getLit());
+				current = this->add(current, (*i).getWeight());
+			}
+
+			if (aggValueImpliesHead(current)){
+				justified = true;
+			}
+		}else if(real ||currentjust[var((*i).getLit())]!=0){
+			nonjstf.push(var((*i).getLit()));
+		}
+	}
+
+	if (!justified) {
+		jstf.clear();
+	}
+
+	if(s->getSolver()->getPCSolver()->modes().verbosity >=4){
+		reportf("Justification checked for ");
+		printAggrExpr(this);
+
+		if(justified){
+			reportf("justification found: ");
+			for(int i=0; i<jstf.size(); i++){
+				gprintLit(jstf[i]); reportf(" ");
+			}
+			reportf("\n");
+		}else{
+			reportf("no justification found.\n");
+		}
+	}
+
+	return justified;
+}*/
+
 /**
  * Important: to justify a head, often several body literals have to become FALSE
  * For such literals, they have to be justified if they are NEGATIVE
@@ -933,9 +1038,161 @@ CardPWAgg::CardPWAgg(const paggsol& solver, const vector<WL>& wl):
 			PWAgg(solver, wl){
 }
 
+pcomb CardPWAgg::initialize	(bool& unsat){
+	SumFWAgg* s = new SumFWAgg(getSolver(), getWL());
+	for(int i=0; i<getAgg().size(); i++) {
+		s->addAgg(getAgg()[i]);
+	}
+	aggregates.clear();
+	return s->initialize(unsat);
+	/*unsat = false;
+	if(getAgg().size()==0){
+		return NULL;
+	}
+
+	//decide whether to use watched sets
+	ws = true;
+
+	//decide on number
+	bool lb=false, ub=false, headsknown = true;
+	if(getAgg().size()>1){
+		throw new idpexception("No implementation for this yet");
+	}
+	pAgg agg = getAgg()[0];
+	if(agg->isLower()){
+		lb = true;
+	}
+	if(agg->isUpper()){
+		ub = true;
+	}
+	if((ub && lb) || (!ub && !lb)){
+		throw new idpexception("No implementation for this yet");
+	}
+	if(getSolver()->value(agg->getHead())==l_Undef){
+		headsknown = false;
+	}
+
+	if(headsknown && lb){
+		numberam = 0;
+		numberm = agg->getLowerBound()+1;
+	}else if(headsknown && ub){
+		numberam = 0;
+		numberm = getWL().size()-agg->getUpperBound()+1;
+	}else{
+		if(lb){
+			numberam = getWL().size()-agg->getLowerBound();
+			numberm = agg->getLowerBound();
+		}else if(ub){
+			numberam = agg->getUpperBound();
+			numberm = getWL().size()-agg->getUpperBound();
+		}
+	}
+
+	//initialize watch set
+	int montaken = 0, amontaken = 0;
+	for(lwlv::const_iterator i=getWL().begin(); i<getWL().end(); i++){
+		bool monfound = false, amonfound = false;
+		const Lit& l = (*i).getLit();
+		if(montaken<numberm){
+			if(agg->isMonotone(*i) && getSolver()->value(l)!=l_False){
+				watched.push_back(l);
+				montaken++;
+				monfound = true;
+			}else if(!agg->isMonotone(*i) && getSolver()->value(l)!=l_True){
+				watched.push_back(~l);
+				montaken++;
+				monfound = true;
+			}
+		}else if(!monfound && amontaken<numberam){
+			if(!agg->isMonotone(*i) && getSolver()->value(l)!=l_False){
+				watched.push_back(l);
+				amontaken++;
+				amonfound = false;
+			}else if(agg->isMonotone(*i) && getSolver()->value(l)!=l_True){
+				watched.push_back(~l);
+				amontaken++;
+				amonfound = false;
+			}
+		}else if(!monfound && !amonfound){
+			nonwatched.push_back(l);
+		}
+	}
+	if(headsknown && montaken<numberm){
+		if(montaken<numberm-1){
+			unsat = true;
+			return this;	//Not enough monotone, non-false literals to satisfy the aggregate
+		}else{
+			//can propagate all in the watched set
+			for(int i=0; i<watched.size(); i++){
+				rClause confl = getSolver()->notifySATsolverOfPropagation(watched[i], new AggrReason(agg, watched[i], BASEDONCC, false));
+				if(confl!=nullPtrClause){
+					unsat = true;
+					return this;
+				}
+			}
+		}
+	}else if(!headsknown){
+		if(montaken<numberm){
+			//head is false, propagate it
+			rClause confl = getSolver()->notifySATsolverOfPropagation(~agg->getHead(), new AggrReason(agg, ~agg->getHead(), BASEDONCC, true));
+			if(confl!=nullPtrClause){
+				unsat = true;
+				return this;
+			}
+		}else if(amontaken<numberam){
+			//head is true, propagate it
+			rClause confl = getSolver()->notifySATsolverOfPropagation(agg->getHead(), new AggrReason(agg, agg->getHead(), BASEDONCC, true));
+			if(confl!=nullPtrClause){
+				unsat = true;
+				return this;
+			}
+		}
+	}
+	for(int i=0; i<watched.size(); i++){
+		getSolver()->addTempWatch(watched[i], this);
+	}
+	return this;*/
+}
+
 rClause CardPWAgg::propagate(const Lit& p, const Watch& w){
+/*	//find the index
+	int index = 0;
+	for(int index=0; index<watched.size(); index++){
+		if(~l==watched[index]){
+			break;
+		}
+	}
+	//find a new one if possible
+	pAgg agg = getAgg()[0];
+	bool findmon = agg->isMonotone(WLV(l, 1, l_True));
+	int swapindex = -1;
+	for(int i=0; swapindex==-1 && i<nonwatched.size(); i++){
+		if(findmon){
+			if(agg->isMonotone(WLV(nonwatched[i], 1, l_Undef)) && getSolver()->value(nonwatched[i])!=l_False){
+				swapindex=i;
+			}else if(!agg->isMonotone(WLV(nonwatched[i], 1, l_Undef)) && getSolver()->value(nonwatched[i])!=l_True){
+				swapindex=i;
+			}
+		}else{
+			if(!agg->isMonotone(WLV(nonwatched[i], 1, l_Undef)) && getSolver()->value(nonwatched[i])!=l_False){
+				swapindex=i;
+			}else if(agg->isMonotone(WLV(nonwatched[i], 1, l_Undef)) && getSolver()->value(nonwatched[i])!=l_True){
+				swapindex=i;
+			}
+		}
+	}
+	if(swapindex==-1){
+		//no other found, do propagation
+		//TODO
+	}else{
+		Lit temp = watched[index];
+		watched[index] = nonwatched[swapindex];
+		nonwatched[swapindex] = temp;
+	}
+
+	return nullPtrClause;*/
 	assert(false);
-};
+}
 
 rClause CardPWAgg::propagate(const Agg& agg){
 	assert(false);
@@ -947,15 +1204,6 @@ void CardPWAgg::backtrack(const Agg& agg){
 
 void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const{
 	assert(false);
-};
-
-pcomb CardPWAgg::initialize	(bool& unsat){
-	SumFWAgg* s = new SumFWAgg(getSolver(), getWL());
-	for(int i=0; i<getAgg().size(); i++) {
-		s->addAgg(getAgg()[i]);
-	}
-	aggregates.clear();
-	return s->initialize(unsat);
 };
 
 Weight CardPWAgg::getBestPossible() const{
@@ -1049,18 +1297,27 @@ void Aggrs::printAgg(AggComb const * const c, bool endl){
 
 void Aggrs::printAgg(const Agg& ae){
 	gprintLit(ae.getHead());
-	pcomb set = ae.getAggComb();
+
 	if(ae.isLower()){
 		reportf(" <- ");
 	}else{
 		reportf(" <- %s <= ", printWeight(ae.getUpperBound()).c_str());
 	}
-	printAgg(set, false);
-	if(ae.isLower()){
-		//reportf(" <= %s. Known values: bestcertain=%s, bestpossible=%s\n", printWeight(ae.getLowerBound()).c_str(), printWeight(set->getCC()).c_str(), printWeight(set->getCP()).c_str());
-		reportf(" <= %s.\n", printWeight(ae.getLowerBound()).c_str());
+	printAgg(ae.getAggComb(), false);
+
+	FWAgg const * const s = dynamic_cast<FWAgg*>(ae.getAggComb());
+	if(s!=NULL){
+		if(ae.isLower()){
+			reportf(" <= %s. Known values: bestcertain=%s, bestpossible=%s\n", printWeight(ae.getLowerBound()).c_str(), printWeight(s->getCC()).c_str(), printWeight(s->getCP()).c_str());
+		}else{
+			reportf(". Known values: bestcertain=%s, bestpossible=%s\n", printWeight(s->getCC()).c_str(), printWeight(s->getCP()).c_str());
+		}
 	}else{
-		//reportf(". Known values: bestcertain=%s, bestpossible=%s\n", printWeight(set->getCC()).c_str(), printWeight(set->getCP()).c_str());
-		reportf(".\n");
+		if(ae.isLower()){
+			reportf(" <= %s.\n", printWeight(ae.getLowerBound()).c_str());
+		}else{
+			reportf(".\n");
+		}
 	}
+
 }

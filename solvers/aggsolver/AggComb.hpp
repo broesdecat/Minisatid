@@ -54,7 +54,7 @@ private:
 public:
     AggSet(const vector<WL>& wl);
 
-    const 	vwl& 	getWL()							{return wlits;}
+    const 	vwl& 	getWL()	const						{ return wlits; }
 			void 	setWL(const vector<WL>& newset);
 };
 
@@ -73,19 +73,19 @@ public:
 		bound(bound), sign(sign), head(head), sem(sem), comb(NULL), index(-1){	}
 
 	const 	Lit& 		getHead() 			const 	{ return head; }
-			void 		setComb(AggComb* c, int ind) { comb = c; index = ind;	}
+			void 		setComb(AggComb* c, int ind){ comb = c; index = ind;	}
 			AggComb* 	getAggComb() 		const 	{ return comb; }
 			int			getIndex()			const	{ return index; }
 			void 		setIndex(int ind) 			{ index = ind; }
 
-	const 	Weight& getLowerBound()	const	{ return bound; }
-	const 	Weight& getUpperBound()	const	{ return bound;}
+	const 	Weight& getLowerBound()	const			{ return bound; }
+	const 	Weight& getUpperBound()	const			{ return bound;}
 			void	setLowerBound(const Weight& w)	{ bound = w;}
 			void	setUpperBound(const Weight& w)	{ bound = w;}
-			bool 	isLower()		const	{ return sign!=UPPERBOUND; }
-			bool 	isUpper()		const	{ return sign!=LOWERBOUND; }
+			bool 	isLower()		const			{ return sign!=UPPERBOUND; }
+			bool 	isUpper()		const			{ return sign!=LOWERBOUND; }
 
-			bool 	isDefined()		const	{ return sem==DEF; }
+			bool 	isDefined()		const			{ return sem==DEF; }
 };
 
 
@@ -224,7 +224,7 @@ public:
 	const pset &		getSet			()			const	{ return set; }
 	const vwl&			getWL			()			const 	{ return set->getWL(); }
 	const vpagg & 		getAgg			() 			const	{ return aggregates; }
-	void 				addAgg			(pagg aggr);
+	virtual void 		addAgg			(pagg aggr);
 
 	virtual Weight 		getBestPossible	() 			const 	= 0;
 	virtual bool 		canJustifyHead	(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const = 0;
@@ -297,15 +297,15 @@ public:
 
 class FWAgg: public AggComb {
 protected:
-	vprop 	stack;		// Stack of propagations of this expression so far.
-	vector<lbool> truth, headvalue;
-	vector<int> headindex;
-	vector<bool> nomoreprops, optimagg;
+	vprop 			stack;		// Stack of propagations of this expression so far.
+	vector<lbool> 	truth, headvalue;
+	vector<int> 	headindex;
+	vector<bool> 	nomoreprops, optimagg; //If optimagg, no standard aggregate optimizations on the bounds should be used!
 
-	mutable vector<int> headproptime;
-	mutable vector<bool> headprop;
+	mutable vector<int>		headproptime;
+	mutable vector<bool>	headprop;
 
-	Weight 	currentbestcertain, currentbestpossible;
+	Weight 			currentbestcertain, currentbestpossible;
 					//current keeps the currently derived min and max bounds
 public:
 	FWAgg(const paggsol& solver, const vwl& wl);
@@ -313,6 +313,10 @@ public:
 
 	virtual pcomb 	initialize(bool& unsat);
 	virtual lbool 	initialize(const Agg& agg);
+
+	void addOptimAgg(pagg agg){ addAgg(agg); optimagg[agg->getIndex()] = true;}
+
+	virtual void 				addAgg			(pagg aggr);
 
     /**
      * Updates the values of the aggregate and then returns whether the head can be directly propagated from the body

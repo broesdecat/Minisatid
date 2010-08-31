@@ -336,7 +336,7 @@ bool PCSolver::finishParsing() {
 	//important to call definition solver last
 	if (aggsolverpresent) {
 		bool unsat;
-		getAggSolver()->finishECNF_DataStructures(aggsolverpresent, unsat);
+		getAggSolver()->finishParsing(aggsolverpresent, unsat);
 		if(unsat){
 			return false;
 		}
@@ -704,6 +704,10 @@ bool PCSolver::invalidateModel(vec<Lit>& learnt) {
 	getSolver()->varDecayActivity();
 	getSolver()->claDecayActivity();
 
+	if (modes().verbosity >= 3) {
+		reportf("Model invalidated.\n");
+	}
+
 	return result;
 }
 
@@ -860,8 +864,7 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m) {
 				break;
 			case SUMMNMZ:
 				//FIXME the invalidation turns out to be empty
-				optimumreached = getAggSolver()->invalidateSum(invalidation,
-						head);
+				optimumreached = getAggSolver()->invalidateSum(invalidation, head);
 				break;
 			case NONE:
 				assert(false);
