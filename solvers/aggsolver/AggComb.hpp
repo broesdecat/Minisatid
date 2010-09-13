@@ -78,6 +78,7 @@ public:
 			int			getIndex()			const	{ return index; }
 			void 		setIndex(int ind) 			{ index = ind; }
 
+	const 	Weight& getBound() 		const	{ return bound; }
 	const 	Weight& getLowerBound()	const	{ return bound; }
 	const 	Weight& getUpperBound()	const	{ return bound;}
 			void	setLowerBound(const Weight& w)	{ bound = w;}
@@ -403,6 +404,8 @@ public:
 	virtual rClause propagateAll(const Agg& agg, bool headtrue);
 
 	virtual bool canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
+
+	virtual pcomb 	initialize	(bool& unsat);
 };
 
 void printAgg(AggComb const * const c, bool printendline = false);

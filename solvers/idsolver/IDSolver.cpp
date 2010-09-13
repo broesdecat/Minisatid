@@ -191,24 +191,21 @@ bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
 bool IDSolver::finishECNF_DataStructures() {
 	notifyInitialized();
 	int nvars = nVars();
-
-
-	//First, go over list of aggregate heads to remove (removing them one by one was much too expensive
-	vector<Var> tempdefdVars;
-	for (vector<Var>::const_iterator i = defdVars.begin(); i < defdVars.end(); i++) {
-		if (toremoveaggrheads.find(*i) != toremoveaggrheads.end()) {
-			defType[*i] = NONDEFTYPE;
-			defOcc[*i] = NONDEFOCC;
-		} else {
-			tempdefdVars.push_back(*i);
-		}
-	}
-	defdVars.clear();
-	defdVars.insert(defdVars.begin(), tempdefdVars.begin(), tempdefdVars.end());
-
 	definition.resize(nvars, NULL);
 	defType.resize(nvars, NONDEFTYPE);
 	defOcc.resize(nvars, NONDEFOCC);
+
+	//First, go over list of aggregate heads to remove those which are not longer defined
+	//(removing them one by one was much too expensive)
+	for(int i=0; i<defdVars.size(); i++){
+		if(toremoveaggrheads.find(defdVars[i])!=toremoveaggrheads.end()){
+			defType[defdVars[i]] = NONDEFTYPE;
+			defOcc[defdVars[i]] = NONDEFOCC;
+			defdVars[i] = defdVars[defdVars.size()-1];
+			defdVars.pop_back();
+			i--;
+		}
+	}
 
 	if (verbosity() >= 1) {
 		reportf("| Number of rules           : %6d                                          |\n",defdVars.size());
@@ -1225,6 +1222,15 @@ bool IDSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 		assert(jstf.size()>0);
 		changejust(v, jstf);
 	} else {
+		/*
+		 * For conjunctive rules, it is not necessary to add all non-justified literals to the queue:
+		 * one would be enough, as in the end all will have to be justified. Such a chosen literal would
+		 * act as a watched literal: as long as it is not justified, the head cannot be justified. When it
+		 * becomes justified, it should be checked whether there is another one not justified, which becomes
+		 * the new watch.
+		 * Maarten had such a "guards" system in the original code, but he claimed it complicated the code and
+		 * had only a slight performance advantage and only on some benchmarks. It is commented in his original code.
+		 */
 		for (int i = 0; i < nonjstf.size(); i++) {
 			assert(!isJustified(nonjstf[i]));
 			if (inSameSCC(nonjstf[i], v)) {

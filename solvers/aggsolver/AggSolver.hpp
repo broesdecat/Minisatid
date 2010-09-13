@@ -210,7 +210,6 @@ protected:
 	 */
 	rClause 	Aggr_propagate	(const Lit& p);
 
-	//bool 		maxAggAsSAT		(HdEq headeq, Bound boundsign, Weight bound, const Lit& head, const pset& set);
 	bool		finishSets		(vector<pcomb>& sets); //throws UNSAT
 };
 

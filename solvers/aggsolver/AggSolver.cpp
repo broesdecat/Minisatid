@@ -302,7 +302,8 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits,	const vector<Weight>&
 		sets[maptype[MAX]].push_back(new MaxFWAgg(this, lw));
 		sets[maptype[SUM]].push_back(new SumFWAgg(this, lw));
 		sets[maptype[PROD]].push_back(new ProdFWAgg(this, lw));
-		sets[maptype[CARD]].push_back(new CardPWAgg(this, lw));
+		//sets[maptype[CARD]].push_back(new CardPWAgg(this, lw));
+		sets[maptype[CARD]].push_back(new SumFWAgg(this, lw));
 		sets[maptype[MIN]].push_back(new MaxFWAgg(this, invlw));
 	}
 
@@ -410,99 +411,6 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, Bound boundsign,
 
 	return true;
 }
-
-//FIXME no optimizations should take place on mnmz aggregates (partially helped by separate add method).
-//FIXME 2 more optimization should/could take place on other aggregates
-bool AggSolver::addMnmzSum(Var headv, int setid, Bound boundsign) {
-	/* FIXME
-	if (((vector<int>::size_type) setid)>sets[0].size() || sets[0][setid-1]==NULL || sets[0][setid-1]->getWL().size()==0) {
-		char s[100];
-		sprintf(s, "Set nr. %d is used, but not defined yet.\n", setid);
-		throw idpexception(s);
-	}
-
-	assert(setid>0);
-	assert(headv>0);
-	uint64_t nb = headv;
-
-	if (head_watches.size() > nb && head_watches[headv] != NULL) {
-		char s[100];
-		sprintf(s, "Two aggregates have the same head(%d).\n", gprintVar(headv));
-		throw idpexception(s);
-	}
-
-	assert(head_watches.size()>nb);
-
-	//the head of the aggregate
-	Lit head = mkLit(headv, false);
-
-	Weight max = 0, min = 0;
-	for(lwlv::const_iterator i=sets[maptype[SUM]][setid-1]->getWL().begin(); i<sets[maptype[SUM]][setid-1]->getWL().end(); i++){
-		if((*i).getWeight()>0){
-			max += (*i).getWeight();
-		}else{
-			min += (*i).getWeight();
-		}
-	}
-
-	pagg ae = new SumAgg(boundsign, boundsign==LOWERBOUND ? max+1 : min, head, pset(sets[maptype[SUM]][setid-1]));
-	ae->setOptimAgg(); //FIXME temporary solution
-	aggregates.push_back(ae);
-	head_watches[var(head)] = ae;
-
-
-	if (verbosity() >= 3) {
-		reportf("Added sum minimization: Minimize ");
-		printAggrExpr(ae);
-		reportf("\n");
-	}
-
-	return true;*/
-}
-
-/*
- * For a maximum: if lower,  head <=> conj of negation of all literals with weight higher than bound
- * 				  if higher, head <=> disj of all literals with weight higher/eq than bound
- */
-//bool AggSolver::maxAggAsSAT(HdEq sem, Bound boundsign, Weight bound, const Lit& head, const AggSet& set) {
-	/*vec<Lit> clause;
-
-	bool notunsat = true;
-
-	if (sem==DEF) {
-		for (lwlv::const_reverse_iterator i = set.getWL().rbegin(); i< set.getWL().rend() && (*i).getWeight() >= bound; i++) {
-			if ((*i).getWeight() == bound && boundsign==LOWERBOUND) {
-				break;
-			}
-			if (boundsign==LOWERBOUND) {
-				clause.push(~(*i).getLit());
-			} else {
-				clause.push((*i).getLit());
-			}
-		}
-		notunsat = getPCSolver()->addRule(boundsign, head, clause);
-	} else {
-		clause.push(boundsign==LOWERBOUND ? head : ~head);
-		for (lwlv::const_reverse_iterator i = set.getWL().rbegin(); i< set.getWL().rend() && (*i).getWeight() >= bound; i++) {
-			if ((*i).getWeight() == bound && boundsign==LOWERBOUND) {
-				break;
-			}
-			clause.push((*i).getLit());
-		}
-		notunsat = getPCSolver()->addClause(clause);
-		for (lwlv::const_reverse_iterator i =set.getWL().rbegin(); notunsat && i< set.getWL().rend() && (*i).getWeight() >= bound; i++) {
-			if ((*i).getWeight() == bound && boundsign==LOWERBOUND) {
-				break;
-			}
-			clause.clear();
-			clause.push(boundsign==LOWERBOUND ? ~head : head);
-			clause.push(~(*i).getLit());
-			notunsat = getPCSolver()->addClause(clause);
-		}
-	}
-
-	return notunsat;*/
-//}
 
 /**
  * The method propagates the fact that p has been derived to the SAT solver. If a conflict occurs,
@@ -739,8 +647,57 @@ bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, ve
 // OPTIMIZATION
 ///////
 
+//FIXME no optimizations should take place on mnmz aggregates (partially helped by separate add method).
+//FIXME 2 more optimization should/could take place on other aggregates
+bool AggSolver::addMnmzSum(Var headv, int setid, Bound boundsign) {
+	/* FIXME
+	if (((vector<int>::size_type) setid)>sets[0].size() || sets[0][setid-1]==NULL || sets[0][setid-1]->getWL().size()==0) {
+		char s[100];
+		sprintf(s, "Set nr. %d is used, but not defined yet.\n", setid);
+		throw idpexception(s);
+	}
+
+	assert(setid>0);
+	assert(headv>0);
+	uint64_t nb = headv;
+
+	if (head_watches.size() > nb && head_watches[headv] != NULL) {
+		char s[100];
+		sprintf(s, "Two aggregates have the same head(%d).\n", gprintVar(headv));
+		throw idpexception(s);
+	}
+
+	assert(head_watches.size()>nb);
+
+	//the head of the aggregate
+	Lit head = mkLit(headv, false);
+
+	Weight max = 0, min = 0;
+	for(lwlv::const_iterator i=sets[maptype[SUM]][setid-1]->getWL().begin(); i<sets[maptype[SUM]][setid-1]->getWL().end(); i++){
+		if((*i).getWeight()>0){
+			max += (*i).getWeight();
+		}else{
+			min += (*i).getWeight();
+		}
+	}
+
+	pagg ae = new SumAgg(boundsign, boundsign==LOWERBOUND ? max+1 : min, head, pset(sets[maptype[SUM]][setid-1]));
+	ae->setOptimAgg(); //FIXME temporary solution
+	aggregates.push_back(ae);
+	head_watches[var(head)] = ae;
+
+
+	if (verbosity() >= 3) {
+		reportf("Added sum minimization: Minimize ");
+		printAggrExpr(ae);
+		reportf("\n");
+	}
+
+	return true;*/
+}
+
 bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
-	/*pagg a = head_watches[head];
+	/*TODO pagg a = head_watches[head];
 	pset s = a->getSet();
 
 	reportf("Current optimum: %s\n", printWeight(s->getCC()).c_str());

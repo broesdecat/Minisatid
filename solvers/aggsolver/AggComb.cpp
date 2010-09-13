@@ -1,6 +1,7 @@
 #include "solvers/aggsolver/AggComb.hpp"
 
 #include "solvers/aggsolver/AggSolver.hpp"
+#include "solvers/pcsolver/PCSolver.hpp"
 
 #include <algorithm>
 
@@ -350,15 +351,12 @@ void FWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const{
 		}
 	}
 
-	//TODO de nesting van calls is vrij lelijk en onefficient :)
 	if(getSolver()->verbosity()>=5){
-
 		reportf("STACK: ");
 		for(vprop::const_iterator i=getStack().begin(); i<getStack().end(); i++){
 			gprintLit((*i).getLit()); reportf(" ");
 		}
 		reportf("\n");
-
 
 		reportf("Aggregate explanation for ");
 		if(ar.isHeadReason()){
@@ -387,6 +385,56 @@ MaxFWAgg::MaxFWAgg(const paggsol& solver, const vector<WL>& wl):
 	//ik had eerst: |minimum van de set| -1, maar de bound zelf kan NOG lager liggen, dus dan is het fout
 	emptysetvalue = Weight(INT_MIN);
 	assert(emptysetvalue<=INT_MIN);
+}
+
+pcomb MaxFWAgg::initialize(bool& unsat){
+	if(false){
+		//TODO: SAT encoding, not used yet
+		bool notunsat = true;
+		for(int i=0; notunsat && i<getAgg().size(); i++){
+			/*
+			 * For a maximum: if lower,  head <=> conj of negation of all literals with weight higher than bound
+			 * 				  if higher, head <=> disj of all literals with weight higher/eq than bound
+			 */
+			vec<Lit> clause;
+			const pagg agg = getAgg()[i];
+			if(agg->isDefined()){
+				for (vwl::const_reverse_iterator i = getWL().rbegin(); i< getWL().rend() && (*i).getWeight() >= agg->getBound(); i++) {
+					if (agg->isLower() && (*i).getWeight() == agg->getBound()) {
+						break;
+					}
+					if (agg->isLower()) {
+						clause.push(~(*i).getLit());
+					} else {
+						clause.push((*i).getLit());
+					}
+				}
+				notunsat = getSolver()->getPCSolver()->addRule(agg->isLower()?LOWERBOUND:UPPERBOUND, agg->getHead(), clause);
+			} else {
+				clause.push(agg->isLower() ? agg->getHead() : ~agg->getHead());
+				for (vwl::const_reverse_iterator i = getWL().rbegin(); i< getWL().rend() && (*i).getWeight() >= agg->getBound(); i++) {
+					if (agg->isLower() && (*i).getWeight() == agg->getBound()) {
+						break;
+					}
+					clause.push((*i).getLit());
+				}
+				notunsat = getSolver()->getPCSolver()->addClause(clause);
+				for (vwl::const_reverse_iterator i =getWL().rbegin(); notunsat && i< getWL().rend() && (*i).getWeight() >= agg->getBound(); i++) {
+					if (agg->getBound() && (*i).getWeight() == agg->getBound()) {
+						break;
+					}
+					clause.clear();
+					clause.push(agg->isLower() ? ~agg->getHead() : agg->getHead());
+					clause.push(~(*i).getLit());
+					notunsat = getSolver()->getPCSolver()->addClause(clause);
+				}
+			}
+		}
+		unsat = !notunsat;
+		return NULL;
+	}else{
+		return FWAgg::initialize(unsat);
+	}
 }
 
 Weight MaxFWAgg::getBestPossible() const{
