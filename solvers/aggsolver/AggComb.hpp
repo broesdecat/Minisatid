@@ -92,6 +92,8 @@ public:
 			bool 	isUpper()		const	{ return sign!=LOWERBOUND; }
 
 			bool 	isDefined()		const	{ return sem==DEF; }
+
+			Bound	getSign()		const	{ return sign; }
 };
 
 
@@ -332,42 +334,16 @@ public:
 };
 
 class PWAgg: public Propagator {
-private:
-	vector<Lit> nf, nfex, nt, ntex;
 public:
 	PWAgg(paggs agg);
 	virtual ~PWAgg(){};
 
 	virtual void 	backtrack		(const Watch& w) {}
-
-	//Still assuming one aggregate!
-	virtual paggs 	initialize(bool& unsat){
-		/*
-		 * First find nf and nfex:
-		 * go over set, incrementally calc min and max value, by taking positive monotone set literals
-		 * and negative anti-monotone ones. If satisfied, nf is finished.
-		 * Then go over all in nf, remove them and add extra lits to nfex until satisfied again. Repeat
-		 * for all in nf.
-		 *
-		 * Same for nt and ntex, but switch mono/am and until not-satisfied.
-		 */
-
-		/*
-		 * Necessary methods: issatisfied(min, max, agg), is falsified(min, max, agg)
-		 * calcmin(set), calcmax(set)
-		 */
-	}
-
-	/*
-	 * On propagation, do same to fill the sets again.
-	 * For all literals in nt/nf for which no replacement can be found, they can be propagated as they
-	 * occur in the set.
-	 */
 };
 
 class CardPWAgg: public PWAgg, public virtual CardAggT {
 private:
-
+	vector<Lit> nf, nfex, nt, ntex;
 public:
 	CardPWAgg(paggs agg);
 	virtual ~CardPWAgg(){};
@@ -380,6 +356,9 @@ public:
 	virtual paggs 	initialize		(bool& unsat);
 
 	virtual bool 	canJustifyHead	(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
+
+	bool isNonFalse(int number, int setsize, Bound sign, Weight bound) const;
+	bool isNonTrue(int number, int setsize, Bound sign, Weight bound) const;
 };
 
 
@@ -391,7 +370,6 @@ protected:
 	vector<bool> nomoreprops, optimagg;
 
 	mutable vector<int> headproptime;
-	mutable vector<bool> headprop;
 
 	Weight 	currentbestcertain, currentbestpossible;
 					//current keeps the currently derived min and max bounds

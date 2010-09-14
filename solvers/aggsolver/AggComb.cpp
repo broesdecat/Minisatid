@@ -376,7 +376,6 @@ paggs FWAgg::initialize(bool& unsat) {
 	nomoreprops.resize(startsize, false);
 	optimagg.resize(startsize, false);
 	headproptime.resize(startsize, -1);
-	headprop.resize(startsize, false);
 
 	int i = 0, j = 0;
 	for (; !unsat && i < as().getAgg().size(); i++) {
@@ -401,8 +400,8 @@ paggs FWAgg::initialize(bool& unsat) {
 	headindex.resize(j, -1);
 	nomoreprops.resize(j, false);
 	optimagg.resize(j, false);
+	headproptime.clear(); //if it has been propagated before, it has been dropped
 	headproptime.resize(j, -1);
-	headprop.resize(j, false);
 
 	for (int j = 0; j < as().getWL().size(); j++) {
 		const Lit& l = as().getWL()[j].getLit();
@@ -447,8 +446,8 @@ lbool FWAgg::initialize(const Agg& agg) {
 }
 
 void FWAgg::backtrack(const Agg& agg, int stacksize) {
-	if (headprop[agg.getIndex()] && headproptime[agg.getIndex()] > stacksize) {
-		headprop[agg.getIndex()] = false;
+	if (headproptime[agg.getIndex()]!=-1 && headproptime[agg.getIndex()] > stacksize) {
+		headproptime[agg.getIndex()] = -1;
 	}
 }
 
@@ -484,7 +483,7 @@ void FWAgg::backtrack(const Watch& w) {
  * Returns non-owning pointer
  */
 rClause FWAgg::propagate(const Agg& agg) {
-	if (nomoreprops[agg.getIndex()] || headprop[agg.getIndex()]) {
+	if (nomoreprops[agg.getIndex()] || headproptime[agg.getIndex()]!=-1) {
 		return nullPtrClause;
 	}
 
@@ -536,18 +535,15 @@ rClause FWAgg::propagate(const Lit& p, const Watch& ws) {
 }
 
 lbool FWAgg::canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP) const {
-	if (nomoreprops[agg.getIndex()] || headprop[agg.getIndex()]) {
+	if (nomoreprops[agg.getIndex()] || headproptime[agg.getIndex()]!=-1) {
 		return headvalue[agg.getIndex()];
 	}
 
 	if ((agg.isLower() && CC > agg.getLowerBound()) || (agg.isUpper() && CP < agg.getUpperBound())) {
 		headproptime[agg.getIndex()] = getStack().size();
-		headprop[agg.getIndex()] = true;
 		return l_False;
-	} else if ((agg.isLower() && CP <= agg.getLowerBound()) || (agg.isUpper() && CC
-				>= agg.getUpperBound())) {
+	} else if ((agg.isLower() && CP <= agg.getLowerBound()) || (agg.isUpper() && CC>= agg.getUpperBound())) {
 		headproptime[agg.getIndex()] = getStack().size();
-		headprop[agg.getIndex()] = true;
 		return l_True;
 	} else {
 		return l_Undef;
@@ -736,7 +732,7 @@ void MaxFWAgg::removeFromPossibleSet(const WL& l) {
  * Returns non-owning pointer
  */
 rClause MaxFWAgg::propagate(const Agg& agg, bool headtrue) {
-	//TODO if(nomoreprops || headprop){ return nullPtrClause; }
+	if(nomoreprops[agg.getIndex()] || headproptime[agg.getIndex()]!=-1){ return nullPtrClause; }
 
 	if (false) { //ULTIMATE propagation
 		//return maxultimatepropagation(agg, headtrue);
@@ -824,8 +820,7 @@ rClause MaxFWAgg::propagate(const Agg& agg, bool headtrue) {
 rClause MaxFWAgg::propagateAll(const Agg& agg, bool headtrue) {
 	rClause confl = nullPtrClause;
 
-
-	//TODO if(nomoreprops || headprop){ return confl; }
+	if(nomoreprops[agg.getIndex()] || headproptime[agg.getIndex()]!=-1){ return confl; }
 
 	if ((agg.isLower() && headtrue) || (agg.isUpper() && !headtrue)) {
 		return confl;
@@ -873,7 +868,7 @@ void SPFWAgg::removeFromPossibleSet(const WL& l) {
 }
 
 rClause SPFWAgg::propagate(const Agg& agg, bool headtrue) {
-	if (nomoreprops[agg.getIndex()] || headprop[agg.getIndex()]) {
+	if (nomoreprops[agg.getIndex()] || headproptime[agg.getIndex()]!=-1) {
 		return nullPtrClause;
 	}
 
@@ -1209,31 +1204,121 @@ CardPWAgg::CardPWAgg(paggs agg) :
 rClause CardPWAgg::propagate(const Lit& p, const Watch& w) {
 	assert(false);
 }
-;
 
 rClause CardPWAgg::propagate(const Agg& agg) {
 	assert(false);
+	//One part of the watches is no longer necessary until backtrack.
 }
-;
 
 void CardPWAgg::backtrack(const Agg& agg) {
-
+	//Set all watches again to the side which was no longer used.
 }
 
 void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
 	assert(false);
 }
-;
 
 paggs CardPWAgg::initialize(bool& unsat) {
-	SumFWAgg* s = new SumFWAgg(asp());
-	for (int i = 0; i < as().getAgg().size(); i++) {
-		s->as().addAgg(as().getAgg()[i]);
+	if(as().getAgg().size()!=1){
+		SumFWAgg* s = new SumFWAgg(asp());
+		for (int i = 0; i < as().getAgg().size(); i++) {
+			s->as().addAgg(as().getAgg()[i]);
+		}
+		as().getRefAgg().clear();
+		return s->initialize(unsat);
 	}
-	as().getRefAgg().clear();
-	return s->initialize(unsat);
+	//TODO handle multiset (not even checked now)
+	/*
+	 * First find nf and nfex:
+	 * go over set, incrementally calc min and max value, by taking positive monotone set literals
+	 * and negative anti-monotone ones. If satisfied, nf is finished.
+	 * Then go over all in nf, remove them and add extra lits to nfex until satisfied again. Repeat
+	 * for all in nf.
+	 *
+	 * Same for nt and ntex, but switch mono/am and until not-satisfied.
+	 */
+	pagg agg = as().getAgg()[0];
+	int wlsize = as().getWL().size();
+
+	bool headtrue = as().getSolver()->value(agg->getHead())==l_True;
+	bool headfalse = as().getSolver()->value(agg->getHead())==l_False;
+
+	if(!headfalse){
+		bool nonfalse = isNonFalse(nf.size(), wlsize, agg->getSign(), agg->getBound());
+		for(int i=0; i<wlsize; i++){
+			WL wl = as().getWL()[i];
+			Lit l = isMonotone(*agg, wl)?wl.getLit():~wl.getLit();
+			if(!nonfalse){
+				nf.push_back(l);
+				nonfalse = isNonFalse(nf.size(), wlsize, agg->getSign(), agg->getBound());
+			}else{
+				nfex.push_back(l);
+				break;
+			}
+		}
+
+		if(nf.size()!=0 && nfex.size()==0 && (headfalse || headtrue)){
+			//TODO propagate the set or throw conflict
+			//TODO delete?
+			return NULL;
+		}
+	}
+
+	if(!headtrue){
+		bool nontrue = isNonTrue(nt.size(), wlsize, agg->getSign(), agg->getBound());
+		for(int i=0; i<wlsize; i++){
+			WL wl = as().getWL()[i];
+			Lit l = !isMonotone(*agg, wl)?wl.getLit():~wl.getLit();
+			if(!nontrue){
+				nt.push_back(l);
+				nontrue = isNonTrue(nt.size(), wlsize, agg->getSign(), agg->getBound());
+			}else{
+				ntex.push_back(l);
+				break;
+			}
+		}
+
+		if(nt.size()!=0 && ntex.size()==0 && (headfalse || headtrue)){
+			//TODO propagate the set or throw conflict
+			//TODO delete?
+			return NULL;
+		}
+	}
+
+	for(int i=0; i<nf.size(); i++){
+		as().getSolver()->addTempWatch(~nf[i], new Watch(asp(), i, true, true));
+	}
+	for(int i=0; i<nfex.size(); i++){
+		as().getSolver()->addTempWatch(~nfex[i], new Watch(asp(), i, false, true));
+	}
+	for(int i=0; i<nt.size(); i++){
+		as().getSolver()->addTempWatch(~nt[i], new Watch(asp(), i, true, false));
+	}
+	for(int i=0; i<ntex.size(); i++){
+		as().getSolver()->addTempWatch(~ntex[i], new Watch(asp(), i, false, false));
+	}
+
+	/*
+	 * Necessary methods: issatisfied(min, max, agg), is falsified(min, max, agg)
+	 * calcmin(set), calcmax(set)
+	 */
+
+	/*
+	 * On propagation, do same to fill the sets again.
+	 * For all literals in nt/nf for which no replacement can be found, they can be propagated as they
+	 * occur in the set.
+	 */
+
+	return asp();
 }
-;
+
+bool CardPWAgg::isNonFalse(int number, int setsize, Bound sign, Weight bound) const{
+	return (sign==LOWERBOUND && number>=setsize-bound) || (sign==UPPERBOUND && number>=bound);
+}
+
+bool CardPWAgg::isNonTrue(int number, int setsize, Bound sign, Weight bound) const{
+	return (sign==LOWERBOUND && number>bound) || (sign==UPPERBOUND && setsize-bound<number);
+}
 
 bool CardPWAgg::canJustifyHead(
 								const Agg& agg,
