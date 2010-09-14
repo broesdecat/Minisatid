@@ -256,7 +256,7 @@ public:
 	///////
 	// SEARCH
 	///////
-	bool 		canJustifyHead	(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
+	virtual bool 		canJustifyHead	(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const = 0;
 	// Propagate set literal
 	rClause 	propagate		(const Lit& p, const Watch& w);
 	// Propagate head
@@ -269,16 +269,25 @@ public:
 	void 		getExplanation	(vec<Lit>& lits, const AggReason& ar) const;
 };
 
-class MaxCalc: virtual public CalcAgg, virtual public MaxAggT{
+class MaxCalc: public CalcAgg, virtual public MaxAggT{
 public:
 	MaxCalc(const paggsol& solver, const vwl& wl);
 	virtual ~MaxCalc() {}
 	virtual Weight 	getBestPossible			() 										const;
 	virtual Weight 	getCombinedWeight		(const Weight& one, const Weight& two) 	const;
 	virtual WL 		handleOccurenceOfBothSigns(const WL& one, const WL& two) 			;
+
+	bool 		canJustifyHead	(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
 };
 
-class SumCalc: virtual public CalcAgg, virtual public SumAggT{
+class SPCalc: public CalcAgg, virtual public SPAggT{
+public:
+	SPCalc(const paggsol& solver, const vwl& wl);
+	virtual ~SPCalc() {}
+	bool 		canJustifyHead	(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
+};
+
+class SumCalc: public SPCalc, virtual public SumAggT{
 public:
 	SumCalc(const paggsol& solver, const vwl& wl);
 	virtual ~SumCalc() {}
@@ -287,7 +296,7 @@ public:
 	virtual WL 		handleOccurenceOfBothSigns(const WL& one, const WL& two) 			;
 };
 
-class ProdCalc: virtual public CalcAgg, virtual public ProdAggT{
+class ProdCalc: public SPCalc, virtual public ProdAggT{
 public:
 	ProdCalc(const paggsol& solver, const vwl& wl);
 	virtual ~ProdCalc() {}
@@ -296,7 +305,7 @@ public:
 	virtual WL 		handleOccurenceOfBothSigns(const WL& one, const WL& two) 			;
 };
 
-class CardCalc: virtual public CalcAgg, virtual public CardAggT{
+class CardCalc: public SPCalc, virtual public CardAggT{
 public:
 	CardCalc(const paggsol& solver, const vwl& wl);
 	virtual ~CardCalc() {}
@@ -312,8 +321,6 @@ protected:
 public:
 	Propagator(paggs agg);
 	virtual ~Propagator(){};
-
-	virtual bool 		canJustifyHead	(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const = 0;
 
 	// Propagate set literal
 	virtual rClause 	propagate		(const Lit& p, const Watch& w) = 0;
@@ -331,133 +338,6 @@ public:
     	const aggs& 	asc	() 	const 	{ return *agg; }
 
     virtual paggs initialize(bool& unsat);
-};
-
-class PWAgg: public Propagator {
-public:
-	PWAgg(paggs agg);
-	virtual ~PWAgg(){};
-
-	virtual void 	backtrack		(const Watch& w) {}
-};
-
-class CardPWAgg: public PWAgg, public virtual CardAggT {
-private:
-	vector<Lit> nf, nfex, nt, ntex;
-public:
-	CardPWAgg(paggs agg);
-	virtual ~CardPWAgg(){};
-
-	virtual rClause propagate		(const Lit& p, const Watch& w);
-	virtual rClause propagate		(const Agg& agg);
-	virtual void 	backtrack		(const Agg& agg);
-    virtual void 	getExplanation	(vec<Lit>& lits, const AggReason& ar) const;
-
-	virtual paggs 	initialize		(bool& unsat);
-
-	virtual bool 	canJustifyHead	(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
-
-	bool isNonFalse(int number, int setsize, Bound sign, Weight bound) const;
-	bool isNonTrue(int number, int setsize, Bound sign, Weight bound) const;
-};
-
-
-class FWAgg: public Propagator {
-protected:
-	vprop 	stack;		// Stack of propagations of this expression so far.
-	vector<lbool> truth, headvalue;
-	vector<int> headindex;
-	vector<bool> nomoreprops, optimagg;
-
-	mutable vector<int> headproptime;
-
-	Weight 	currentbestcertain, currentbestpossible;
-					//current keeps the currently derived min and max bounds
-public:
-	FWAgg(paggs agg);
-	virtual ~FWAgg(){};
-
-	virtual paggs 	initialize(bool& unsat);
-	virtual lbool 	initialize(const Agg& agg);
-
-    /**
-     * Updates the values of the aggregate and then returns whether the head can be directly propagated from the body
-     */
-    virtual lbool 	canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP) const;
-
-	virtual rClause propagate	(const Lit& p, const Watch& ws);
-
-// TODO dit is lelijk, maar het verplicht om eerst de top propagate op te roepen en daarna pas de lagere, maar er zullen wel betere manieren zijn.
-	virtual rClause propagate(const Agg& agg);
-protected:
-	virtual rClause propagate(const Agg& agg, bool headtrue) = 0;
-
-public:
-	virtual void 	getExplanation(vec<Lit>& lits, const AggReason& ar) const;
-	virtual void 	backtrack	(const Watch& w);
-	virtual void 	backtrack	(const Agg& agg);
-	virtual void 	backtrack	(const Agg& agg, int stacksize);
-
-	virtual void 	addToCertainSet(const WL& l) 			= 0;
-	virtual void 	removeFromPossibleSet(const WL& l)		= 0;
-
-	///////
-	// GETTERS - SETTERS
-	///////
-	const Weight& 	getCP	() 					const 	{ return currentbestpossible; }
-	void 			setCP	(const Weight& w) 			{ currentbestpossible = w; }
-	const Weight& 	getCC	() 					const 	{ return currentbestcertain; }
-	void 			setCC	(const Weight& w) 			{ currentbestcertain = w; }
-
-	const vprop&	getStack() 					const 	{ return stack; }
-};
-
-class SPFWAgg: public  FWAgg, virtual public SPAggT{
-public:
-	SPFWAgg(paggs agg);
-	virtual ~SPFWAgg(){};
-
-	virtual void 	addToCertainSet				(const WL& l);
-	virtual void 	removeFromPossibleSet		(const WL& l);
-
-	virtual rClause propagate	(const Agg& agg, bool headtrue);
-
-	virtual bool 	canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
-};
-
-class SumFWAgg: public  SPFWAgg, virtual public SumAggT{
-public:
-	SumFWAgg(paggs agg);
-	virtual ~SumFWAgg(){};
-
-	virtual paggs 	initialize	(bool& unsat);
-
-			void	getMinimExplan		(const Agg& agg, vec<Lit>& lits);
-			void 	addToBounds			(Agg& agg, const Weight& w);
-};
-
-class ProdFWAgg: public  SPFWAgg, virtual public ProdAggT {
-public:
-	ProdFWAgg(paggs agg);
-	virtual ~ProdFWAgg(){};
-
-	virtual paggs 	initialize	(bool& unsat);
-};
-
-class MaxFWAgg: public  FWAgg, virtual public MaxAggT {
-public:
-	MaxFWAgg(paggs agg);
-	virtual ~MaxFWAgg(){};
-
-	virtual void 	addToCertainSet				(const WL& l);
-	virtual void 	removeFromPossibleSet		(const WL& l);
-
-	virtual rClause propagate	(const Agg& agg, bool headtrue);
-	virtual rClause propagateAll(const Agg& agg, bool headtrue);
-
-	virtual bool 	canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
-
-	virtual paggs 	initialize	(bool& unsat);
 };
 
 void printAgg(aggs const * const c, bool printendline = false);
