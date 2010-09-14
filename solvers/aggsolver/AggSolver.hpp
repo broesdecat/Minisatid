@@ -60,8 +60,9 @@ namespace Aggrs{
 	typedef vector<Agg*> vpagg;
 	typedef AggSet* pset;
 
-	class AggComb;
-	typedef AggComb* pcomb;
+	class CalcAgg;
+	typedef CalcAgg aggs;
+	typedef aggs* paggs;
 
 	class Watch;
 	typedef Watch* pw;
@@ -183,7 +184,7 @@ protected:
     pagg 		getAggWithHeadOccurence	(Var v) const;
 
     map<AggrType, int > 	maptype;
-	vector<vector<pcomb> >	sets;			//After initialization, all remaining sets.
+	vector<vector<paggs> >	sets;			//After initialization, all remaining sets.
 
 	vector<AggReason*>		aggr_reason;	// For each atom, like 'reason'.
 
@@ -192,7 +193,7 @@ protected:
 
 	//index on VAR (heads are always positive
 	vector<pagg>			head_watches;	//	does NOT own the pointers
-	vector<vector<pcomb> >	network;		// the pointer network of set var -> set
+	vector<vector<paggs> >	network;		// the pointer network of set var -> set
 
 	/**
 	 * Correct the min and max values of the aggregates in which l was propagated and delete any aggregate reasons
@@ -210,7 +211,7 @@ protected:
 	 */
 	rClause 	Aggr_propagate	(const Lit& p);
 
-	bool		finishSets		(vector<pcomb>& sets); //throws UNSAT
+	bool		finishSets		(vector<paggs>& sets); //throws UNSAT
 };
 
 //=======================

@@ -59,8 +59,8 @@ AggSolver::AggSolver(pPCSolver s) :
 }
 
 AggSolver::~AggSolver() {
-	for(vector<vector<pcomb> >::const_iterator i=sets.begin(); i<sets.end(); i++){
-		deleteList<AggComb> (*i);
+	for(vector<vector<paggs> >::const_iterator i=sets.begin(); i<sets.end(); i++){
+		deleteList<aggs> (*i);
 	}
 	deleteList<AggReason> (aggr_reason);
 }
@@ -115,7 +115,7 @@ void AggSolver::finishECNF_DataStructures(bool& present, bool& unsat) {
 		reportf("Initializing all sets:\n");
 	}
 
-	for(vector<vector<pcomb> >::iterator i=sets.begin(); i<sets.end(); i++){
+	for(vector<vector<paggs> >::iterator i=sets.begin(); i<sets.end(); i++){
 		if (!finishSets(*i)){
 			unsat = true;
 			return;
@@ -152,8 +152,8 @@ void AggSolver::finishECNF_DataStructures(bool& present, bool& unsat) {
 					agg);
 
 		int nb_sets=0, total_nb_set_lits = 0;
-		for(vector<vector<pcomb> >::const_iterator i=sets.begin(); i<sets.end(); i++){
-			for(vector<pcomb>::const_iterator j=(*i).begin(); j<(*i).end(); j++){
+		for(vector<vector<paggs> >::const_iterator i=sets.begin(); i<sets.end(); i++){
+			for(vector<paggs>::const_iterator j=(*i).begin(); j<(*i).end(); j++){
 				nb_sets++;
 				total_nb_set_lits += (*j)->getWL().size();
 			}
@@ -165,8 +165,8 @@ void AggSolver::finishECNF_DataStructures(bool& present, bool& unsat) {
 	if (verbosity() >= 3) {
 		if (verbosity() >= 3) {
 			reportf("Aggregates present after initialization: \n");
-			for (vector<vector<pcomb> >::iterator i = sets.begin(); i<sets.end(); i++) {
-				for (vector<pcomb>::iterator j = (*i).begin(); j<(*i).end(); j++) {
+			for (vector<vector<paggs> >::iterator i = sets.begin(); i<sets.end(); i++) {
+				for (vector<paggs>::iterator j = (*i).begin(); j<(*i).end(); j++) {
 					Aggrs::printAgg(*j);
 				}
 			}
@@ -188,7 +188,7 @@ void AggSolver::finishECNF_DataStructures(bool& present, bool& unsat) {
 	}
 
 	bool allempty = true;
-	for(vector<vector<pcomb> >::const_iterator i=sets.begin(); allempty && i<sets.end(); i++){
+	for(vector<vector<paggs> >::const_iterator i=sets.begin(); allempty && i<sets.end(); i++){
 		if ((*i).size()!=0){
 			allempty = false;
 		}
@@ -198,13 +198,13 @@ void AggSolver::finishECNF_DataStructures(bool& present, bool& unsat) {
 	}
 }
 
-bool AggSolver::finishSets(vector<pcomb>& sets) {
-	vector<pcomb>::size_type used = 0;
-	for (vector<pcomb>::size_type i = 0; i < sets.size(); i++) {
-		pcomb s = sets[i];
+bool AggSolver::finishSets(vector<paggs>& sets) {
+	vector<paggs>::size_type used = 0;
+	for (vector<paggs>::size_type i = 0; i < sets.size(); i++) {
+		paggs s = sets[i];
 
 		bool unsat;
-		pcomb s2 = s->initialize(unsat);
+		paggs s2 = s->initialize(unsat);
 		if (unsat) {
 			return false;	//Problem is UNSAT
 		}
@@ -299,12 +299,12 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits,	const vector<Weight>&
 	}
 
 	while (sets[0].size() <= setindex) {
-		sets[maptype[MAX]].push_back(new MaxFWAgg(this, lw));
-		sets[maptype[SUM]].push_back(new SumFWAgg(this, lw));
-		sets[maptype[PROD]].push_back(new ProdFWAgg(this, lw));
+		sets[maptype[MAX]].push_back(new MaxCalc(this, lw));
+		sets[maptype[SUM]].push_back(new SumCalc(this, lw));
+		sets[maptype[PROD]].push_back(new ProdCalc(this, lw));
 		//sets[maptype[CARD]].push_back(new CardPWAgg(this, lw));
-		sets[maptype[CARD]].push_back(new SumFWAgg(this, lw));
-		sets[maptype[MIN]].push_back(new MaxFWAgg(this, invlw));
+		sets[maptype[CARD]].push_back(new SumCalc(this, lw));
+		sets[maptype[MIN]].push_back(new MaxCalc(this, invlw));
 	}
 
 	return true;
@@ -339,7 +339,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, Bound boundsign,
 	int setindex = setid - 1;
 
 	pagg ae;
-	pcomb c;
+	paggs c;
 	switch (type) {
 	case MIN:
 		//return maxAggAsSAT(defined, !lower, -bound, head, *aggrminsets[setindex]);
@@ -551,7 +551,7 @@ void AggSolver::doBacktrack(const Lit& l) {
  */
 void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) {
 	const Agg& agg = *getAggWithHeadOccurence(v);
-	pcomb comb = agg.getAggComb();
+	paggs comb = agg.getAggComb();
 
 	for (vwl::const_iterator i = comb->getWL().begin(); i < comb->getWL().end(); ++i) {
 		Lit l = (*i).getLit();
@@ -567,7 +567,7 @@ void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& l
 
 vector<Var> AggSolver::getHeadsOfAggrInWhichOccurs(Var x) {
 	vector<Var> heads;
-	for (vector<pcomb>::const_iterator i = network[x].begin(); i < network[x].end(); i++) {
+	for (vector<paggs>::const_iterator i = network[x].begin(); i < network[x].end(); i++) {
 		for (vpagg::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); j++) {
 			heads.push_back(var((*j)->getHead()));
 		}
@@ -590,8 +590,8 @@ vwl::const_iterator AggSolver::getAggLiteralsEnd(Var x) const {
  * @post: any new derived heads are in heads, with its respective justification in jstf
  */
 void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& heads, vec<Var>& currentjust) {
-	for (vector<pcomb>::const_iterator i = network[var(w)].begin(); i< network[var(w)].end(); i++) {
-		pcomb s = (*i);
+	for (vector<paggs>::const_iterator i = network[var(w)].begin(); i< network[var(w)].end(); i++) {
+		paggs s = (*i);
 		for (vpagg::const_iterator j = s->getAgg().begin(); j < s->getAgg().end(); j++) {
 			const Agg& expr = *(*j);
 			if (isFalse(expr.getHead())) {

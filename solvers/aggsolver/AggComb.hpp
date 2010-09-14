@@ -31,8 +31,13 @@ namespace Aggrs{
 	typedef vector<Agg*> vpagg;
 	typedef AggSet* pset;
 
-	class AggComb;
-	typedef AggComb* pcomb;
+	class CalcAgg;
+	typedef CalcAgg aggs;
+	typedef aggs* paggs;
+
+	class Propagator;
+	typedef Propagator comb;
+	typedef comb* pcomb;
 
 	class Watch;
 	typedef Watch* pw;
@@ -65,7 +70,7 @@ private:
 	Lit			head;
 	HdEq		sem;
 
-	AggComb* 	comb;
+	CalcAgg* 	comb;
 	int			index;
 
 public:
@@ -73,8 +78,8 @@ public:
 		bound(bound), sign(sign), head(head), sem(sem), comb(NULL), index(-1){	}
 
 	const 	Lit& 		getHead() 			const 	{ return head; }
-			void 		setComb(AggComb* c, int ind) { comb = c; index = ind;	}
-			AggComb* 	getAggComb() 		const 	{ return comb; }
+			void 		setComb(CalcAgg* c, int ind) { comb = c; index = ind;	}
+			CalcAgg* 	getAggComb() 		const 	{ return comb; }
 			int			getIndex()			const	{ return index; }
 			void 		setIndex(int ind) 			{ index = ind; }
 
@@ -113,17 +118,17 @@ public:
 
 class Watch{
 private:
-			AggComb* agg;
+	paggs agg;
 	const 	int 	index;
 	const 	bool 	set;	//true if set literal, false if agg head
 	const 	bool 	pos; 	//true if the literal occurs in the set, false if its negation is in the set
 public:
-	Watch(AggComb* agg, int index, bool set, bool pos):
+	Watch(paggs agg, int index, bool set, bool pos):
 		agg(agg), index(index), set(set), pos(pos){}
 
 	virtual 	~Watch(){}
 
-	AggComb* 	getAggComb() 	const { return agg; }
+	paggs 	getAggComb() 	const { return agg; }
 	int 		getIndex() 		const { return index; }
 	bool 		isSetLit() 		const { return set; }
 	Occurrence 	getType()		const { return !set?HEAD:pos?POS:NEG; }
@@ -157,81 +162,156 @@ class AggT{
 public:
 	virtual const char*	getName() const = 0;
 	virtual AggrType 	getType() const = 0;
-	virtual bool 		isNeutralElement(const Weight& w) const = 0;
+	virtual bool 		isNeutralElement	(const Weight& w) const = 0;
+	virtual bool 		isMonotone			(const Agg& agg, const WL& l) 	const = 0;
 };
 
 class MaxAggT: virtual public AggT{
 public:
 	virtual const char* getName() const { return "MAX"; }
 	virtual AggrType 	getType() const { return MAX; }
-	virtual bool 		isNeutralElement(const Weight& w) const { return false; }
+	virtual bool 		isNeutralElement	(const Weight& w) const { return false; }
+	virtual bool 		isMonotone			(const Agg& agg, const WL& l) 	const;
 };
 
-class ProdAggT: virtual public AggT{
+class SPAggT: virtual public AggT{
+public:
+	virtual Weight		add		(const Weight& lhs, const Weight& rhs) 	const = 0;
+	virtual Weight		remove	(const Weight& lhs, const Weight& rhs) 	const = 0;
+};
+
+class ProdAggT: virtual public SPAggT{
 public:
 	virtual const char* getName() const { return "PROD"; }
 	virtual AggrType 	getType() const { return PROD; }
 	virtual bool 		isNeutralElement(const Weight& w) const { return w==1; }
+	virtual bool 		isMonotone			(const Agg& agg, const WL& l) 	const;
+	virtual Weight		add		(const Weight& lhs, const Weight& rhs) 	const;
+	virtual Weight		remove	(const Weight& lhs, const Weight& rhs) 	const;
 };
 
-class SumAggT: virtual public AggT{
+class SumAggT: virtual public SPAggT{
 public:
 	virtual const char* getName() const { return "SUM"; }
 	virtual AggrType 	getType() const { return SUM; }
 	virtual bool 		isNeutralElement(const Weight& w) const { return w==0; }
+	virtual bool 		isMonotone			(const Agg& agg, const WL& l) 	const;
+	virtual Weight		add		(const Weight& lhs, const Weight& rhs) 	const;
+	virtual Weight		remove	(const Weight& lhs, const Weight& rhs) 	const;
 };
 
-class CardAggT: virtual public AggT{
+class CardAggT: virtual public SPAggT{
 public:
 	virtual AggrType	getType				() const { return CARD; }
 	virtual const char* getName				() const { return "CARD"; }
-	virtual bool 		isNeutralElement(const Weight& w) const { return w==0; }
-};
-
-class CalcAgg{
-public:
-	virtual Weight	add			(const Weight& lhs, const Weight& rhs) const = 0;
-	virtual Weight	remove		(const Weight& lhs, const Weight& rhs) const = 0;
-};
-
-class SumCalc: virtual public CalcAgg{
-public:
-	virtual Weight	add			(const Weight& lhs, const Weight& rhs) const;
-	virtual Weight	remove		(const Weight& lhs, const Weight& rhs) const;
-};
-
-class ProdCalc: virtual public CalcAgg{
-public:
-	virtual Weight	add			(const Weight& lhs, const Weight& rhs) const;
-	virtual Weight	remove		(const Weight& lhs, const Weight& rhs) const;
-
+	virtual bool 		isNeutralElement	(const Weight& w) 				const { return w==0; }
+	virtual bool 		isMonotone			(const Agg& agg, const WL& l) 	const { return true; }
+	virtual Weight		add		(const Weight& lhs, const Weight& rhs) 	const;
+	virtual Weight		remove	(const Weight& lhs, const Weight& rhs) 	const;
 };
 
 
-class AggComb: virtual public AggT {
+class CalcAgg: virtual public AggT{
 protected:
 	vpagg	aggregates;	//does OWN the pointers
 	pset 	set;		//does OWN pointer
 	paggsol	aggsolver;	//does NOT own this pointer
 	Weight 	emptysetvalue;
 
+	Propagator* prop;	//does OWN pointer
+
 public:
-	AggComb(const paggsol& solver, const vwl& wl);
-	//AggComb(const AggComb& comb);
-	virtual ~AggComb();
+	CalcAgg(const paggsol& solver, const vwl& wl);
+	virtual ~CalcAgg();
 
-	const paggsol&		getSolver		()			const	{ return aggsolver; }
+	const paggsol&	getSolver		()			const	{ return aggsolver; }
 
-	const pset &		getSet			()			const	{ return set; }
-	const vwl&			getWL			()			const 	{ return set->getWL(); }
-	const vpagg & 		getAgg			() 			const	{ return aggregates; }
-	void 				addAgg			(pagg aggr);
+	const pset &	getSet			()			const	{ return set; }
+	const vwl&		getWL			()			const 	{ return set->getWL(); }
+	const vpagg&	getAgg			() 			const	{ return aggregates; }
+		vpagg&	getRefAgg			() 					{ return aggregates; }
+	void 			addAgg			(pagg aggr);
 
-	virtual Weight 		getBestPossible	() 			const 	= 0;
+	const Weight& 	getESV			() 			const 	{ return emptysetvalue; }
+	void 			setESV			(const Weight& w)	{ emptysetvalue = w; }
+
+	virtual Weight 	getBestPossible	() 			const 	= 0;
+
+	///////
+	// INITIALIZATION
+	///////
+	/**
+	 * Checks whether duplicate literals occur in the set. If this is the case, their values are appropriately combined.
+	 * @post: each literal only occurs once in the set.
+	 */
+			void 	doSetReduction			();
+	//Returns the weight a combined literal should have if both weights are in the set at the same time
+	virtual Weight 	getCombinedWeight		(const Weight& one, const Weight& two) 	const 	= 0;
+	virtual WL 		handleOccurenceOfBothSigns(const WL& one, const WL& two) 				= 0;
+
+	paggs initialize(bool& unsat);
+
+	///////
+	// SEARCH
+	///////
+	bool 		canJustifyHead	(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
+	// Propagate set literal
+	rClause 	propagate		(const Lit& p, const Watch& w);
+	// Propagate head
+	rClause 	propagate		(const Agg& agg);
+	// Backtrack set literal
+	void 		backtrack		(const Watch& w) ;
+	// Backtrack head
+	void 		backtrack		(const Agg& agg);
+
+	void 		getExplanation	(vec<Lit>& lits, const AggReason& ar) const;
+};
+
+class MaxCalc: virtual public CalcAgg, virtual public MaxAggT{
+public:
+	MaxCalc(const paggsol& solver, const vwl& wl);
+	virtual ~MaxCalc() {}
+	virtual Weight 	getBestPossible			() 										const;
+	virtual Weight 	getCombinedWeight		(const Weight& one, const Weight& two) 	const;
+	virtual WL 		handleOccurenceOfBothSigns(const WL& one, const WL& two) 			;
+};
+
+class SumCalc: virtual public CalcAgg, virtual public SumAggT{
+public:
+	SumCalc(const paggsol& solver, const vwl& wl);
+	virtual ~SumCalc() {}
+	virtual Weight 	getBestPossible			() 										const;
+	virtual Weight 	getCombinedWeight		(const Weight& one, const Weight& two) 	const;
+	virtual WL 		handleOccurenceOfBothSigns(const WL& one, const WL& two) 			;
+};
+
+class ProdCalc: virtual public CalcAgg, virtual public ProdAggT{
+public:
+	ProdCalc(const paggsol& solver, const vwl& wl);
+	virtual ~ProdCalc() {}
+	virtual Weight 	getBestPossible			() 										const;
+	virtual Weight 	getCombinedWeight		(const Weight& one, const Weight& two) 	const;
+	virtual WL 		handleOccurenceOfBothSigns(const WL& one, const WL& two) 			;
+};
+
+class CardCalc: virtual public CalcAgg, virtual public CardAggT{
+public:
+	CardCalc(const paggsol& solver, const vwl& wl);
+	virtual ~CardCalc() {}
+	virtual Weight 	getBestPossible			() 										const;
+	virtual Weight 	getCombinedWeight		(const Weight& one, const Weight& two) 	const;
+	virtual WL 		handleOccurenceOfBothSigns(const WL& one, const WL& two) 			;
+};
+
+
+class Propagator {
+protected:
+	aggs * const agg;	//NON owning pointer
+public:
+	Propagator(paggs agg);
+	virtual ~Propagator(){};
+
 	virtual bool 		canJustifyHead	(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const = 0;
-
-	const Weight& 		getESV			() 			const 	{ return emptysetvalue; }
-	void 				setESV			(const Weight& w)	{ emptysetvalue = w; }
 
 	// Propagate set literal
 	virtual rClause 	propagate		(const Lit& p, const Watch& w) = 0;
@@ -241,62 +321,69 @@ public:
 	virtual void 		backtrack		(const Watch& w) = 0;
 	// Backtrack head
 	virtual void 		backtrack		(const Agg& agg) = 0;
+
     virtual void 		getExplanation	(vec<Lit>& lits, const AggReason& ar) 	const = 0;
 
-    // @pre: l is always IN the aggregate set TODO check this!
-	virtual bool 		isMonotone		(const Agg& agg, const WL& l) const = 0;
+    		aggs& 		as	() 	const 	{ return *agg; }
+    		paggs 		asp	() 	const 	{ return agg; }
+    	const aggs& 	asc	() 	const 	{ return *agg; }
 
-	///////
-	// INITIALIZATION
-	///////
-	/**
-	 * Checks whether duplicate literals occur in the set. If this is the case, their values are appropriately combined.
-	 * @post: each literal only occurs once in the set.
-	 */
-	virtual void 	doSetReduction			();
-	/**
-	 * @remark: if the returned pointer is different to the original one, the original one should be DELETED!
-	 */
-	virtual pcomb 	initialize				(bool& unsat);
-	//Returns the weight a combined literal should have if both weights are in the set at the same time
-	virtual Weight 	getCombinedWeight		(const Weight& one, const Weight& two) 	const 	= 0;
-	virtual WL 		handleOccurenceOfBothSigns(const WL& one, const WL& two) 				= 0;
+    virtual paggs initialize(bool& unsat);
 };
 
-
-class PWAgg: public AggComb {
+class PWAgg: public Propagator {
 private:
-
+	vector<Lit> nf, nfex, nt, ntex;
 public:
-	PWAgg(const paggsol& solver, const vwl& wl);
+	PWAgg(paggs agg);
 	virtual ~PWAgg(){};
+
+	virtual void 	backtrack		(const Watch& w) {}
+
+	//Still assuming one aggregate!
+	virtual paggs 	initialize(bool& unsat){
+		/*
+		 * First find nf and nfex:
+		 * go over set, incrementally calc min and max value, by taking positive monotone set literals
+		 * and negative anti-monotone ones. If satisfied, nf is finished.
+		 * Then go over all in nf, remove them and add extra lits to nfex until satisfied again. Repeat
+		 * for all in nf.
+		 *
+		 * Same for nt and ntex, but switch mono/am and until not-satisfied.
+		 */
+
+		/*
+		 * Necessary methods: issatisfied(min, max, agg), is falsified(min, max, agg)
+		 * calcmin(set), calcmax(set)
+		 */
+	}
+
+	/*
+	 * On propagation, do same to fill the sets again.
+	 * For all literals in nt/nf for which no replacement can be found, they can be propagated as they
+	 * occur in the set.
+	 */
 };
 
-class CardPWAgg: public PWAgg, CardAggT, SumCalc {
+class CardPWAgg: public PWAgg, public virtual CardAggT {
 private:
 
 public:
-	CardPWAgg(const paggsol& solver, const vwl& wl);
+	CardPWAgg(paggs agg);
 	virtual ~CardPWAgg(){};
 
-	virtual rClause 	propagate			(const Lit& p, const Watch& w);
-	virtual rClause 	propagate			(const Agg& agg);
-	virtual void 		backtrack			(const Watch& w) {}
-	virtual void 		backtrack			(const Agg& agg);
-    virtual void 		getExplanation		(vec<Lit>& lits, const AggReason& ar) const;
+	virtual rClause propagate		(const Lit& p, const Watch& w);
+	virtual rClause propagate		(const Agg& agg);
+	virtual void 	backtrack		(const Agg& agg);
+    virtual void 	getExplanation	(vec<Lit>& lits, const AggReason& ar) const;
 
-	virtual bool 		isMonotone			(const Agg& agg, const WL& l) const { return true; }
+	virtual paggs 	initialize		(bool& unsat);
 
-	virtual pcomb 		initialize			(bool& unsat);
-	virtual Weight 		getCombinedWeight	(const Weight& one, const Weight& two) 	const;
-	virtual WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two);
-
-	virtual Weight 	getBestPossible() const;
-	virtual bool canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
+	virtual bool 	canJustifyHead	(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
 };
 
 
-class FWAgg: public AggComb {
+class FWAgg: public Propagator {
 protected:
 	vprop 	stack;		// Stack of propagations of this expression so far.
 	vector<lbool> truth, headvalue;
@@ -309,10 +396,10 @@ protected:
 	Weight 	currentbestcertain, currentbestpossible;
 					//current keeps the currently derived min and max bounds
 public:
-	FWAgg(const paggsol& solver, const vwl& wl);
+	FWAgg(paggs agg);
 	virtual ~FWAgg(){};
 
-	virtual pcomb 	initialize(bool& unsat);
+	virtual paggs 	initialize(bool& unsat);
 	virtual lbool 	initialize(const Agg& agg);
 
     /**
@@ -347,68 +434,55 @@ public:
 	const vprop&	getStack() 					const 	{ return stack; }
 };
 
-class SPFWAgg: public FWAgg, virtual public CalcAgg {
+class SPFWAgg: public  FWAgg, virtual public SPAggT{
 public:
-	SPFWAgg(const paggsol& solver, const vwl& wl);
+	SPFWAgg(paggs agg);
 	virtual ~SPFWAgg(){};
 
-	virtual Weight 	getCombinedWeight			(const Weight& one, const Weight& two) 	const;
-	virtual Weight 	getBestPossible				() 										const;
 	virtual void 	addToCertainSet				(const WL& l);
 	virtual void 	removeFromPossibleSet		(const WL& l);
 
 	virtual rClause propagate	(const Agg& agg, bool headtrue);
-	virtual rClause propagateAll(const Agg& agg, bool headtrue);
 
-	virtual bool canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
+	virtual bool 	canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
 };
 
-class SumFWAgg: public SPFWAgg, SumAggT, SumCalc{
+class SumFWAgg: public  SPFWAgg, virtual public SumAggT{
 public:
-	SumFWAgg(const paggsol& solver, const vwl& wl);
+	SumFWAgg(paggs agg);
 	virtual ~SumFWAgg(){};
 
-	virtual WL	 	handleOccurenceOfBothSigns	(const WL& one, const WL& two);
-	virtual bool 	isMonotone					(const Agg& agg, const WL& w) const;
-
-	virtual pcomb 	initialize	(bool& unsat);
+	virtual paggs 	initialize	(bool& unsat);
 
 			void	getMinimExplan		(const Agg& agg, vec<Lit>& lits);
 			void 	addToBounds			(Agg& agg, const Weight& w);
 };
 
-class ProdFWAgg: public SPFWAgg, ProdCalc, ProdAggT {
+class ProdFWAgg: public  SPFWAgg, virtual public ProdAggT {
 public:
-	ProdFWAgg(const paggsol& solver, const vwl& wl);
+	ProdFWAgg(paggs agg);
 	virtual ~ProdFWAgg(){};
 
-	virtual WL	 	handleOccurenceOfBothSigns	(const WL& one, const WL& two);
-	virtual bool 	isMonotone					(const Agg& agg, const WL& w) const;
-
-	virtual pcomb 	initialize	(bool& unsat);
+	virtual paggs 	initialize	(bool& unsat);
 };
 
-class MaxFWAgg: public FWAgg, MaxAggT {
+class MaxFWAgg: public  FWAgg, virtual public MaxAggT {
 public:
-	MaxFWAgg(const paggsol& solver, const vwl& wl);
+	MaxFWAgg(paggs agg);
 	virtual ~MaxFWAgg(){};
 
-	virtual Weight 	getCombinedWeight			(const Weight& one, const Weight& two) 	const;
-	virtual WL	 	handleOccurenceOfBothSigns	(const WL& one, const WL& two);
-	virtual Weight 	getBestPossible				() 										const;
 	virtual void 	addToCertainSet				(const WL& l);
 	virtual void 	removeFromPossibleSet		(const WL& l);
-	virtual bool 	isMonotone					(const Agg& agg, const WL& w) const;
 
 	virtual rClause propagate	(const Agg& agg, bool headtrue);
 	virtual rClause propagateAll(const Agg& agg, bool headtrue);
 
-	virtual bool canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
+	virtual bool 	canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const;
 
-	virtual pcomb 	initialize	(bool& unsat);
+	virtual paggs 	initialize	(bool& unsat);
 };
 
-void printAgg(AggComb const * const c, bool printendline = false);
+void printAgg(aggs const * const c, bool printendline = false);
 void printAgg(const Agg& c);
 
 ///////
