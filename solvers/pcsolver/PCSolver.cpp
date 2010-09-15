@@ -336,7 +336,7 @@ bool PCSolver::finishParsing() {
 	//important to call definition solver last
 	if (aggsolverpresent) {
 		bool unsat;
-		getAggSolver()->finishECNF_DataStructures(aggsolverpresent, unsat);
+		getAggSolver()->finishParsing(aggsolverpresent, unsat);
 		if(unsat){
 			return false;
 		}
@@ -455,11 +455,14 @@ void PCSolver::backtrackRest(Lit l) {
 	}
 }
 
-// Called by SAT solver when new decision level is started
+// Called by SAT solver when new decision level is started, BEFORE choice has been made!
 void PCSolver::newDecisionLevel(){
 	//reportf("ADD DECISION LEVEL %d\n", ++decisionlevels);
 	if(idsolverpresent){
 		getIDSolver()->newDecisionLevel();
+	}
+	if(aggsolver){
+		getAggSolver()->newDecisionLevel();
 	}
 }
 
@@ -610,6 +613,9 @@ bool PCSolver::solveAll(vec<Lit>& assmpt, vec<vec<Lit> >& models) {
 		if (idsolverpresent) {
 			getIDSolver()->printStatistics();
 		}
+		if(aggsolverpresent){
+			getAggSolver()->printStatistics();
+		}
 	}
 	return solved;
 }
@@ -646,8 +652,8 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m, bool& moremodels) {
 	}
 
 	if (nb_models != 1) {
-		printf("| %4d model%s found                                                            |\n",
-					modelsfound, modelsfound > 1 ? "s" : "");
+		printf("| %4d model%s found                                                           |\n",
+					modelsfound, modelsfound > 1 ? "s" : " ");
 	}
 
 	//check if more models can exist
@@ -703,6 +709,10 @@ bool PCSolver::invalidateModel(vec<Lit>& learnt) {
 
 	getSolver()->varDecayActivity();
 	getSolver()->claDecayActivity();
+
+	if (modes().verbosity >= 3) {
+		reportf("Model invalidated.\n");
+	}
 
 	return result;
 }
@@ -860,8 +870,7 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m) {
 				break;
 			case SUMMNMZ:
 				//FIXME the invalidation turns out to be empty
-				optimumreached = getAggSolver()->invalidateSum(invalidation,
-						head);
+				optimumreached = getAggSolver()->invalidateSum(invalidation, head);
 				break;
 			case NONE:
 				assert(false);

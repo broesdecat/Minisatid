@@ -59,7 +59,7 @@ private:
 public:
     AggSet(const vector<WL>& wl);
 
-    const 	vwl& 	getWL()							{return wlits;}
+    const 	vwl& 	getWL()	const						{ return wlits; }
 			void 	setWL(const vector<WL>& newset);
 };
 
@@ -88,8 +88,8 @@ public:
 	const 	Weight& getUpperBound()	const	{ return bound;}
 			void	setLowerBound(const Weight& w)	{ bound = w;}
 			void	setUpperBound(const Weight& w)	{ bound = w;}
-			bool 	isLower()		const	{ return sign!=UPPERBOUND; }
-			bool 	isUpper()		const	{ return sign!=LOWERBOUND; }
+			bool 	isLower()		const			{ return sign!=UPPERBOUND; }
+			bool 	isUpper()		const			{ return sign!=LOWERBOUND; }
 
 			bool 	isDefined()		const	{ return sem==DEF; }
 
@@ -134,6 +134,8 @@ public:
 	int 		getIndex() 		const { return index; }
 	bool 		isSetLit() 		const { return set; }
 	Occurrence 	getType()		const { return !set?HEAD:pos?POS:NEG; }
+
+	virtual WL	getWL()			const;
 };
 
 enum Expl{BASEDONCC,BASEDONCP,CPANDCC, HEADONLY};

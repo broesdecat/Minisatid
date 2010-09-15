@@ -45,6 +45,18 @@ void deleteList(vector<T*> l){
 	l.clear();
 }
 
+template<class T>
+void deleteList(vector<vector<T*> > l){
+	for(class vector<vector<T*> >::iterator i=l.begin(); i<l.end(); i++){
+		for(class vector<T*>::iterator j=(*i).begin(); j<(*i).end(); j++){
+			if(*j!=NULL){
+				delete(*j);
+			}
+		}
+	}
+	l.clear();
+}
+
 class WL {  // Weighted literal
 private:
 	Lit lit;

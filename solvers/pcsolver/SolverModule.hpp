@@ -50,6 +50,8 @@ public:
 	lbool		value(Var x) const;
 	lbool		value(const Lit& p) const;
 	int			nVars()      const;
+
+	virtual void printStatistics	() const = 0;
 };
 
 #endif /* ISOLVER_HPP_ */

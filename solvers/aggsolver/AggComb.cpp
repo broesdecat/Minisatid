@@ -461,6 +461,63 @@ bool SPCalc::canJustifyHead(
 	return justified;
 }
 
+/*bool SPAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
+	//OTHER IMPLEMENTATION (probably buggy)
+	pSet s = getSet();
+
+	Weight current = 0;
+	if(isLower()){
+		current = s->getBestPossible();
+	}else{
+		current = s->getEmptySetValue();
+	}
+
+	bool justified = false;
+	if(aggValueImpliesHead(current)){
+		justified = true;
+	}
+
+	for (lwlv::const_iterator i = s->getWLBegin(); !justified && i < s->getWLEnd(); ++i) {
+		if(isMonotone(*i) && s->isJustified(*i, currentjust, real)){
+			if(isLower()){
+				jstf.push(~(*i).getLit());
+				current = this->remove(current, (*i).getWeight());
+			}else{
+				//if(s->isJustified(*i, currentjust, real)){
+				jstf.push((*i).getLit());
+				current = this->add(current, (*i).getWeight());
+			}
+
+			if (aggValueImpliesHead(current)){
+				justified = true;
+			}
+		}else if(real ||currentjust[var((*i).getLit())]!=0){
+			nonjstf.push(var((*i).getLit()));
+		}
+	}
+
+	if (!justified) {
+		jstf.clear();
+	}
+
+	if(s->getSolver()->getPCSolver()->modes().verbosity >=4){
+		reportf("Justification checked for ");
+		printAggrExpr(this);
+
+		if(justified){
+			reportf("justification found: ");
+			for(int i=0; i<jstf.size(); i++){
+				gprintLit(jstf[i]); reportf(" ");
+			}
+			reportf("\n");
+		}else{
+			reportf("no justification found.\n");
+		}
+	}
+
+	return justified;
+}*/
+
 /**
  * Important: to justify a head, often several body literals have to become FALSE
  * For such literals, they have to be justified if they are NEGATIVE
