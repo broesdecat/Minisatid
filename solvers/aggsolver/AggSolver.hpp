@@ -60,8 +60,9 @@ namespace Aggrs{
 	typedef vector<Agg*> vpagg;
 	typedef AggSet* pset;
 
-	class AggComb;
-	typedef AggComb* pcomb;
+	class CalcAgg;
+	typedef CalcAgg aggs;
+	typedef aggs* paggs;
 
 	class Watch;
 	typedef Watch* pw;
@@ -202,17 +203,17 @@ protected:
     pagg 					getAggWithHead	(Var v) const;
 
     map<AggrType, int > 	maptype;
-	vector<vector<pcomb> >	sets;			//After initialization, all remaining sets.
+	vector<vector<paggs> >	sets;			//After initialization, all remaining sets.
 
 	vector<AggReason*>		aggreason;	// For each atom, like 'reason'.
 
 	vector<vector<pw> >		tempwatches;
 	vector<vector<pw> >		permwatches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
-	vector<pagg>			headwatches;	//	does NOT own the pointers, vars because head always positive
-	vector<vector<pcomb> >	network;		// the pointer network of set var -> set
+	//index on VAR (heads are always positive
+	vector<pagg>			headwatches;	//	does NOT own the pointers
+	vector<vector<paggs> >	network;		// the pointer network of set var -> set
 
-	bool 				maxAggAsSAT				(HdEq sem, Bound boundsign, Weight bound, const Lit& head, const AggSet& set);
-	bool				finishSets				(vector<pcomb>& sets); //throws UNSAT
+	bool		finishSets		(vector<paggs>& sets); //throws UNSAT
 
 	//statistics
 	uint64_t propagations;
