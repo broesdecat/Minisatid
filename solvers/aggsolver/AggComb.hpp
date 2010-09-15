@@ -130,7 +130,7 @@ public:
 
 	virtual 	~Watch(){}
 
-	paggs 	getAggComb() 	const { return agg; }
+	paggs 		getAggComb() 	const { return agg; }
 	int 		getIndex() 		const { return index; }
 	bool 		isSetLit() 		const { return set; }
 	Occurrence 	getType()		const { return !set?HEAD:pos?POS:NEG; }

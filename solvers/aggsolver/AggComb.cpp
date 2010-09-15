@@ -10,6 +10,10 @@
 
 using namespace Aggrs;
 
+WL Watch::getWL() const {
+	return agg->getWL()[index];
+}
+
 AggSet::AggSet(const vector<WL>& wl) {
 	wlits.insert(wlits.begin(), wl.begin(), wl.end());
 	std::sort(wlits.begin(), wlits.end());

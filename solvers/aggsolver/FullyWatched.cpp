@@ -83,13 +83,13 @@ lbool FWAgg::initialize(const Agg& agg) {
 		//reportf("No more propagations for %d", gprintVar(var(head)));
 	}
 	if (hv == l_True) {
-		confl = as().getSolver()->notifySATsolverOfPropagation(agg.getHead(), new AggReason(
+		confl = as().getSolver()->notifySolver(agg.getHead(), new AggReason(
 																						agg,
 																						agg.getHead(),
 																						CPANDCC,
 																						true));
 	} else if (hv == l_False) {
-		confl = as().getSolver()->notifySATsolverOfPropagation(~agg.getHead(), new AggReason(
+		confl = as().getSolver()->notifySolver(~agg.getHead(), new AggReason(
 																						agg,
 																						~agg.getHead(),
 																						CPANDCC,
@@ -181,7 +181,7 @@ rClause FWAgg::propagate(const Lit& p, const Watch& ws) {
 			lbool result = canPropagateHead(pa, getCC(), getCP());
 			if (result != l_Undef) {
 				rClause	cc =
-							as().getSolver()->notifySATsolverOfPropagation(
+							as().getSolver()->notifySolver(
 								result == l_True ? pa.getHead() : ~pa.getHead(),
 								new AggReason(pa, p, CPANDCC, true));
 				confl = cc;
@@ -400,7 +400,7 @@ rClause MaxFWAgg::propagate(const Agg& agg, bool headtrue) {
 			for (vwl::const_reverse_iterator i = as().getWL().rbegin(); confl == nullPtrClause && i
 						< as().getWL().rend() && agg.getLowerBound() < (*i).getWeight(); i++) {
 				//because these propagations are independent of the other set literals, they can also be written as clauses
-				confl = as().getSolver()->notifySATsolverOfPropagation(
+				confl = as().getSolver()->notifySolver(
 																	~(*i).getLit(),
 																	new AggReason(
 																					agg,
@@ -410,7 +410,7 @@ rClause MaxFWAgg::propagate(const Agg& agg, bool headtrue) {
 		} else if (!headtrue && agg.isUpper()) {
 			for (vwl::const_reverse_iterator i = as().getWL().rbegin(); confl == nullPtrClause && i
 						< as().getWL().rend() && agg.getUpperBound() <= (*i).getWeight(); i++) {
-				confl = as().getSolver()->notifySATsolverOfPropagation(
+				confl = as().getSolver()->notifySolver(
 																	~(*i).getLit(),
 																	new AggReason(
 																					agg,
@@ -502,7 +502,7 @@ rClause MaxFWAgg::propagateAll(const Agg& agg, bool headtrue) {
 	}
 	if (exactlyoneleft) {
 		//TODO BASEDONCP is not correct enough (ONCPABOVEBOUND)
-		confl = as().getSolver()->notifySATsolverOfPropagation(
+		confl = as().getSolver()->notifySolver(
 															as().getWL()[pos].getLit(),
 															new AggReason(
 																			agg,
@@ -583,9 +583,9 @@ rClause SPFWAgg::propagate(const Agg& agg, bool headtrue) {
 		if (truth[u] == l_Undef) {//if already propagated as an aggregate, then those best-values have already been adapted
 			const Lit& l = as().getWL()[u].getLit();
 			if ((agg.isLower() && headtrue) || (agg.isUpper() && !headtrue)) {
-				c = as().getSolver()->notifySATsolverOfPropagation(~l, new AggReason(agg, ~l, basedon));
+				c = as().getSolver()->notifySolver(~l, new AggReason(agg, ~l, basedon));
 			} else {
-				c = as().getSolver()->notifySATsolverOfPropagation(l, new AggReason(agg, l, basedon));
+				c = as().getSolver()->notifySolver(l, new AggReason(agg, l, basedon));
 			}
 		}
 	}

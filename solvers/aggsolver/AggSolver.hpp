@@ -210,40 +210,13 @@ protected:
 	vector<vector<pw> >		tempwatches;
 	vector<vector<pw> >		permwatches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
 	//index on VAR (heads are always positive
-	vector<pagg>			head_watches;	//	does NOT own the pointers
+	vector<pagg>			headwatches;	//	does NOT own the pointers
 	vector<vector<paggs> >	network;		// the pointer network of set var -> set
 
-	/**
-	 * Correct the min and max values of the aggregates in which l was propagated and delete any aggregate reasons
-	 * present.
-	 *
-	 * @optimization possible: for each decision level, put the current values on a stack. Instead of recalculating it
-	 * for each literal, pop the values once for each decision level
-	 *
-	 * @PRE: backtracking is in anti-chronologous order and all literals are visited!
-	 */
-	void 		doBacktrack			(const Lit& l);
-
-	/**
-	 * Goes through all watches and propagates the fact that p was set true.
-	 */
-	rClause 	Aggr_propagate	(const Lit& p);
-
 	bool		finishSets		(vector<paggs>& sets); //throws UNSAT
+
+	//statistics
+	uint64_t propagations;
 };
-
-//=======================
-//INLINE METHODS
-//=======================
-
-inline void AggSolver::backtrack (const Lit& l){
-	if(!isInitialized()){ return; }
-	doBacktrack(l);
-}
-
-inline rClause AggSolver::propagate(const Lit& p){
-	if (!isInitialized()) {return nullPtrClause;}
-	return Aggr_propagate(p);
-}
 
 #endif /* AggSolver_H_ */
