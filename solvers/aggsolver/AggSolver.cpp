@@ -69,6 +69,8 @@ AggSolver::~AggSolver() {
 		deleteList<aggs> (*i);
 	}
 	deleteList<AggReason> (aggreason);
+	deleteList<Watch>(permwatches);
+	deleteList<Watch>(tempwatches);
 }
 
 void AggSolver::notifyVarAdded(uint64_t nvars) {
@@ -169,24 +171,29 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	}
 
 	if (verbosity() >= 3) {
-		if (verbosity() >= 3) {
-			reportf("Aggregates present after initialization: \n");
-			for (vector<vector<paggs> >::iterator i = sets.begin(); i<sets.end(); i++) {
-				for (vector<paggs>::iterator j = (*i).begin(); j<(*i).end(); j++) {
-					Aggrs::printAgg(*j);
-				}
+		reportf("%sggregates are present after initialization%s\n", present?"A":"No a", present?":":".");
+		for (vector<vector<paggs> >::iterator i = sets.begin(); i < sets.end(); i++) {
+			for (vector<paggs>::iterator j = (*i).begin(); j < (*i).end(); j++) {
+				Aggrs::printAgg(*j);
 			}
 		}
 
-		int counter = 0;
-		for (vector<vector<pw> >::const_iterator i = permwatches.begin(); i < permwatches.end(); i++, counter++) {
-			reportf("Watches of var %d:\n", gprintVar(counter));
-			if (headwatches[counter] != NULL) {
-				reportf("HEADwatch = ");
-				Aggrs::printAgg(headwatches[counter]->getAggComb(), true);
+		for (int i = 0; i < nVars(); i++) {
+			reportf("Watches of var %d:\n", gprintVar(i));
+			if (headwatches[i] != NULL) {
+				reportf("   headwatch\n");
+				reportf("      ");
+				Aggrs::printAgg(headwatches[i]->getAggComb(), true);
 			}
-			for (vector<pw>::const_iterator j = (*i).begin(); j< (*i).end(); j++) {
-				Aggrs::printAgg((*j)->getAggComb(), true);
+
+			reportf("   bodywatches\n");
+			for (int j = 0; j < permwatches[i].size(); j++) {
+				reportf("      ");
+				Aggrs::printAgg((permwatches[i][j])->getAggComb(), true);
+			}
+			for (int j = 0; j < tempwatches[i].size(); j++) {
+				reportf("      ");
+				Aggrs::printAgg((tempwatches[i][j])->getAggComb(), true);
 			}
 		}
 
@@ -209,16 +216,13 @@ bool AggSolver::finishSets(vector<paggs>& sets) {
 	for (vector<paggs>::size_type i = 0; i < sets.size(); i++) {
 		paggs s = sets[i];
 
-		bool unsat;
-		paggs s2 = s->initialize(unsat);
-		if (unsat) {
+		bool unsat = false, sat = false;
+		s->initialize(unsat, sat);
+		if(unsat){
 			return false; //Problem is UNSAT
-		}
-		if (s2 != s) {
+		}else if(sat){
 			delete s;
-			s = s2;
-		}
-		if (s != NULL) {
+		}else{
 			sets[used++] = s;
 			for (vwl::size_type j = 0; j < s->getWL().size(); j++) {
 				Var v = var(s->getWL()[j].getLit());
@@ -312,8 +316,8 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits,
 		sets[maptype[MAX]].push_back(new MaxCalc(this, lw));
 		sets[maptype[SUM]].push_back(new SumCalc(this, lw));
 		sets[maptype[PROD]].push_back(new ProdCalc(this, lw));
-		//sets[maptype[CARD]].push_back(new CardPWAgg(this, lw));
-		sets[maptype[CARD]].push_back(new SumCalc(this, lw));
+		sets[maptype[CARD]].push_back(new CardCalc(this, lw));
+		//sets[maptype[CARD]].push_back(new SumCalc(this, lw));
 		sets[maptype[MIN]].push_back(new MaxCalc(this, invlw));
 	}
 
@@ -481,24 +485,6 @@ rClause AggSolver::notifySolver(const Lit& p, AggReason* ar) {
 }
 
 void AggSolver::newDecisionLevel() {
-	int found = 0;
-	//Only for one watched set! FIXME: remove after testing
-	for (int i = 0; i < tempwatches.size(); i++) {
-		if (tempwatches[i].size() == 0) {
-			continue;
-		}
-		reportf("Temp watches ");
-		gprintLit(toLit(i));
-		reportf(": ");
-		if (value(toLit(i)) == l_True) {
-			found++;
-			reportf("TRUE");
-		}else if(value(toLit(i)) == l_False){
-			reportf("FALSE");
-		}
-		reportf("\n");
-	}
-	assert(found <= 1);
 }
 
 /**
@@ -534,7 +520,7 @@ rClause AggSolver::propagate(const Lit& p) {
 		return confl;
 	}
 
-	vector<pw> ws2 = tempwatches[toInt(p)]; //IMPORTANT, BECAUSE WATCHES MIGHT BE ADDED AGAIN TO THE END (if no other watches are found etc)
+	vector<pw> ws2(tempwatches[toInt(p)]); //IMPORTANT, BECAUSE WATCHES MIGHT BE ADDED AGAIN TO THE END (if no other watches are found etc)
 	tempwatches[toInt(p)].clear();
 
 	if (verbosity() >= 3) {
@@ -542,7 +528,7 @@ rClause AggSolver::propagate(const Lit& p) {
 		gprintLit(p);
 		reportf(": ");
 		for (int i = 0; i < ws2.size(); i++) {
-			gprintLit(ws2[i]->getWL().getLit());
+			printAgg(ws2[i]->getAggComb());
 			reportf(", ");
 		}
 		reportf("\n");
@@ -560,7 +546,7 @@ rClause AggSolver::propagate(const Lit& p) {
 	}
 	if (deleted) {
 		for (; i < ws2.size(); i++){
-			tempwatches[toInt(p)].push_back(tempwatches[toInt(p)][i]);
+			addTempWatch(p, ws2[i]);
 		}
 	}
 

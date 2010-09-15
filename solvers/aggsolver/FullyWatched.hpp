@@ -55,7 +55,7 @@ public:
 	FWAgg(paggs agg);
 	virtual ~FWAgg(){};
 
-	virtual paggs 	initialize(bool& unsat);
+	virtual void 	initialize(bool& unsat, bool& sat);
 	virtual lbool 	initialize(const Agg& agg);
 
     /**
@@ -106,7 +106,7 @@ public:
 	SumFWAgg(paggs agg);
 	virtual ~SumFWAgg(){};
 
-	virtual paggs 	initialize	(bool& unsat);
+	virtual void 	initialize	(bool& unsat, bool& sat);
 
 			void	getMinimExplan		(const Agg& agg, vec<Lit>& lits);
 			void 	addToBounds			(Agg& agg, const Weight& w);
@@ -117,7 +117,7 @@ public:
 	ProdFWAgg(paggs agg);
 	virtual ~ProdFWAgg(){};
 
-	virtual paggs 	initialize	(bool& unsat);
+	virtual void 	initialize	(bool& unsat, bool& sat);
 };
 
 class MaxFWAgg: public  FWAgg, virtual public MaxAggT {
@@ -131,7 +131,7 @@ public:
 	virtual rClause propagate	(const Agg& agg, bool headtrue);
 	virtual rClause propagateAll(const Agg& agg, bool headtrue);
 
-	virtual paggs 	initialize	(bool& unsat);
+	virtual void 	initialize	(bool& unsat, bool& sat);
 };
 
 }

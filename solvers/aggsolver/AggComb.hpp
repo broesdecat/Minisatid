@@ -120,7 +120,7 @@ public:
 
 class Watch{
 private:
-	paggs agg;
+			paggs 	agg;
 	const 	int 	index;
 	const 	bool 	set;	//true if set literal, false if agg head
 	const 	bool 	pos; 	//true if the literal occurs in the set, false if its negation is in the set
@@ -133,6 +133,7 @@ public:
 	paggs 		getAggComb() 	const { return agg; }
 	int 		getIndex() 		const { return index; }
 	bool 		isSetLit() 		const { return set; }
+	bool		isPos()			const { return pos; }
 	Occurrence 	getType()		const { return !set?HEAD:pos?POS:NEG; }
 
 	virtual WL	getWL()			const;
@@ -233,13 +234,15 @@ public:
 	const pset &	getSet			()			const	{ return set; }
 	const vwl&		getWL			()			const 	{ return set->getWL(); }
 	const vpagg&	getAgg			() 			const	{ return aggregates; }
-		vpagg&	getRefAgg			() 					{ return aggregates; }
+		vpagg&		getRefAgg		() 					{ return aggregates; }
 	void 			addAgg			(pagg aggr);
 
 	const Weight& 	getESV			() 			const 	{ return emptysetvalue; }
 	void 			setESV			(const Weight& w)	{ emptysetvalue = w; }
 
 	virtual Weight 	getBestPossible	() 			const 	= 0;
+
+	void 		setProp(Propagator* p) { prop = p; }
 
 	///////
 	// INITIALIZATION
@@ -253,7 +256,7 @@ public:
 	virtual Weight 	getCombinedWeight		(const Weight& one, const Weight& two) 	const 	= 0;
 	virtual WL 		handleOccurenceOfBothSigns(const WL& one, const WL& two) 				= 0;
 
-	paggs initialize(bool& unsat);
+	void initialize(bool& unsat, bool& sat);
 
 	///////
 	// SEARCH
@@ -339,7 +342,7 @@ public:
     		paggs 		asp	() 	const 	{ return agg; }
     	const aggs& 	asc	() 	const 	{ return *agg; }
 
-    virtual paggs initialize(bool& unsat);
+    virtual void initialize(bool& unsat, bool& sat);
 };
 
 void printAgg(aggs const * const c, bool printendline = false);

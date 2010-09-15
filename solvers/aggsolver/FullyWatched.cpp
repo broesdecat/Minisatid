@@ -10,16 +10,22 @@
 #include "solvers/aggsolver/AggSolver.hpp"
 #include "solvers/pcsolver/PCSolver.hpp"
 
+#include <algorithm>
+
+#include <stdint.h>
+#include <inttypes.h>
+#include <limits.h>
+
 
 FWAgg::FWAgg(paggs agg) :
 	Propagator(agg), currentbestcertain(0), currentbestpossible(0) {
 
 }
 
-paggs FWAgg::initialize(bool& unsat) {
-	unsat = false;
+void FWAgg::initialize(bool& unsat, bool& sat) {
 	if (as().getAgg().size() == 0) {
-		return NULL;
+		sat = true;
+		return;
 	}
 	as().doSetReduction();
 	truth.resize(as().getWL().size(), l_Undef);
@@ -46,7 +52,7 @@ paggs FWAgg::initialize(bool& unsat) {
 			delete agg;
 		} else if (result == l_False) {
 			unsat = true; //UNSAT because always false
-			return NULL;
+			return;
 		} else {
 			agg->setIndex(j);
 			as().getRefAgg()[j++] = agg;
@@ -66,7 +72,7 @@ paggs FWAgg::initialize(bool& unsat) {
 		as().getSolver()->addPermWatch(v, new Watch(agg, j, true, sign(l) ? false : true));
 	}
 
-	return Propagator::initialize(unsat);
+	Propagator::initialize(unsat, sat);
 }
 
 /**
@@ -301,7 +307,7 @@ MaxFWAgg::MaxFWAgg(paggs agg) :
 	FWAgg(agg) {
 }
 
-paggs MaxFWAgg::initialize(bool& unsat) {
+void MaxFWAgg::initialize(bool& unsat, bool& sat) {
 	if (as().getAgg().size() == 1) { //Simple heuristic to choose for encoding as SAT
 		//SAT encoding, not used yet
 		bool notunsat = true;
@@ -352,9 +358,10 @@ paggs MaxFWAgg::initialize(bool& unsat) {
 			}
 		}
 		unsat = !notunsat;
-		return NULL;
+		sat = true;
+		return;
 	} else {
-		return FWAgg::initialize(unsat);
+		FWAgg::initialize(unsat, sat);
 	}
 }
 
@@ -597,10 +604,11 @@ SumFWAgg::SumFWAgg(paggs agg)
 
 }
 
-paggs SumFWAgg::initialize(bool& unsat) {
+void SumFWAgg::initialize(bool& unsat, bool& sat) {
 	unsat = false;
 	if (as().getAgg().size() == 0) {
-		return NULL;
+		sat = true;
+		return;
 	}
 
 	//Calculate the total negative weight to make all weight positive
@@ -633,7 +641,7 @@ paggs SumFWAgg::initialize(bool& unsat) {
 	}
 #endif
 
-	return FWAgg::initialize(unsat);
+	FWAgg::initialize(unsat, sat);
 }
 
 void SumFWAgg::getMinimExplan(const Agg& agg, vec<Lit>& lits) {
@@ -687,10 +695,11 @@ ProdFWAgg::ProdFWAgg(paggs agg) :
 	SPFWAgg(agg) {
 }
 
-paggs ProdFWAgg::initialize(bool& unsat) {
+void ProdFWAgg::initialize(bool& unsat, bool& sat) {
 	unsat = false;
 	if (as().getAgg().size() == 0) {
-		return NULL;
+		sat = true;
+		return;
 	}
 #ifdef INTWEIGHT
 	//Test whether the total product of the weights is not infinity for intweights
@@ -703,5 +712,5 @@ paggs ProdFWAgg::initialize(bool& unsat) {
 	}
 #endif
 
-	return FWAgg::initialize(unsat);
+	FWAgg::initialize(unsat, sat);
 }

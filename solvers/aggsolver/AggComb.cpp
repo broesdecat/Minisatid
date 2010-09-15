@@ -8,6 +8,10 @@
 
 #include <algorithm>
 
+#include <stdint.h>
+#include <inttypes.h>
+#include <limits.h>
+
 using namespace Aggrs;
 
 WL Watch::getWL() const {
@@ -61,6 +65,7 @@ CalcAgg::~CalcAgg() {
 }
 
 Propagator::Propagator(paggs agg): agg(agg) {
+	agg->setProp(this);
 }
 
 MaxCalc::MaxCalc(const paggsol& solver, const vwl& wl):
@@ -70,7 +75,7 @@ MaxCalc::MaxCalc(const paggsol& solver, const vwl& wl):
 	setESV(Weight(INT_MIN));
 	assert(getESV() <= INT_MIN);
 
-	prop = new MaxFWAgg(this);
+	new MaxFWAgg(this);
 }
 
 SPCalc::SPCalc(const paggsol& solver, const vwl& wl):
@@ -80,19 +85,19 @@ SPCalc::SPCalc(const paggsol& solver, const vwl& wl):
 SumCalc::SumCalc(const paggsol& solver, const vwl& wl):
 			SPCalc(solver, wl){
 	setESV(0);
-	prop = new SumFWAgg(this);
+	new SumFWAgg(this);
 }
 
 ProdCalc::ProdCalc(const paggsol& solver, const vwl& wl):
 			SPCalc(solver, wl){
 	setESV(1);
-	prop = new ProdFWAgg(this);
+	new ProdFWAgg(this);
 }
 
 CardCalc::CardCalc(const paggsol& solver, const vwl& wl):
 			SPCalc(solver, wl){
 	setESV(0);
-	prop = new SumFWAgg(this);
+	new CardPWAgg(this);
 }
 
 /*
@@ -345,16 +350,15 @@ WL ProdCalc::handleOccurenceOfBothSigns(const WL& one, const WL& two) {
  * SPECIFIC CODE
  */
 
-paggs CalcAgg::initialize(bool& unsat) {
-	return prop->initialize(unsat);
+void CalcAgg::initialize(bool& unsat, bool& sat) {
+	prop->initialize(unsat, sat);
 }
 
 // Final initialization call!
-paggs Propagator::initialize(bool& unsat) {
+void Propagator::initialize(bool& unsat, bool& sat) {
 	for (int i = 0; i < as().getAgg().size(); i++) {
 		as().getSolver()->setHeadWatch(var(as().getAgg()[i]->getHead()), as().getAgg()[i]);
 	}
-	return asp();
 }
 
 /************************

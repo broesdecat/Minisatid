@@ -48,7 +48,7 @@ public:
 	virtual void 	backtrack		(const Watch& w) {}
 };
 
-class CardPWAgg: public PWAgg, public virtual CardAggT {
+/*class CardPWAgg: public PWAgg, public virtual CardAggT {
 private:
 	vector<Lit> nf, nfex, nt, ntex;
 public:
@@ -64,6 +64,21 @@ public:
 
 	bool isNonFalse(int number, int setsize, Bound sign, Weight bound) const;
 	bool isNonTrue(int number, int setsize, Bound sign, Weight bound) const;
+};*/
+
+class CardPWAgg: public PWAgg, public virtual CardAggT {
+private:
+	vector<WL> nf, setf;
+public:
+	CardPWAgg(paggs agg);
+	virtual ~CardPWAgg(){};
+
+	virtual rClause 	propagate			(const Lit& p, const Watch& w);
+	virtual rClause 	propagate			(const Agg& agg);
+	virtual void 		backtrack			(const Agg& agg);
+    virtual void 		getExplanation		(vec<Lit>& lits, const AggReason& ar) const;
+
+	virtual void 		initialize			(bool& unsat, bool& sat);
 };
 
 }
