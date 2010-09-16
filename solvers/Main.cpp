@@ -364,7 +364,7 @@ void parseCommandline(int& argc, char** argv){
 				char s[100]; sprintf(s, "Illegal definition strategy %s\n", value);
 				throw idpexception(s);
 			}
-        }else if ((value = hasPrefix(argv[i], "-defn-search="))){
+        /*}else if ((value = hasPrefix(argv[i], "-defn-search="))){
             if (strcmp(value, "include_cs") == 0)
             	modes.defn_search = include_cs;
             else if (strcmp(value, "stop_at_cs") == 0)
@@ -372,7 +372,7 @@ void parseCommandline(int& argc, char** argv){
             else{
 				char s[100]; sprintf(s, "Illegal definition search type %s\n", value);
 				throw idpexception(s);
-            }
+            }*/
         }else if ((value = hasPrefix(argv[i], "-rnd-freq="))){
             double rnd;
             if (sscanf(value, "%lf", &rnd) <= 0 || rnd < 0 || rnd > 1){
@@ -483,7 +483,7 @@ void printUsage(char** argv) {
 	reportf("  -rnd-freq      = <num> [ 0 - 1 ]\n");
 	reportf("  -verbosity     = {0,1,2}\n");
 	reportf("  -defn-strategy = {always,adaptive,lazy}\n");
-	reportf("  -defn-search   = {include_cs,stop_at_cs}\n");
+	//reportf("  -defn-search   = {include_cs,stop_at_cs}\n");
 	reportf("  -maxruntime    = <num> (in seconds)\n");
 	reportf("\n");
 }

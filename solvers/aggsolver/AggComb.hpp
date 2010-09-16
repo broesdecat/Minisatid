@@ -119,7 +119,7 @@ public:
 
 
 class Watch{
-protected:
+private:
 			paggs 	agg;
 	const 	int 	index;
 	const 	bool 	set;	//true if set literal, false if agg head

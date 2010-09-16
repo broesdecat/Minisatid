@@ -118,7 +118,7 @@ enum FINDCS {
 	always, adaptive, lazy
 };
 enum MARKDEPTH {
-	include_cs, stop_at_cs
+	include_cs //, stop_at_cs STOP_AT_CS is no longer correct when only one cycle-free justification is used!
 };
 enum SEARCHSTRAT {
 	breadth_first, depth_first

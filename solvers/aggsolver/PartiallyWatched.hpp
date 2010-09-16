@@ -68,26 +68,52 @@ public:
 	bool isNonTrue(int number, int setsize, Bound sign, Weight bound) const;
 };*/
 
+enum watchset { NF, NFEX, NT, NTEX };
+
+class PWatch: public Watch{
+private:
+	watchset w;
+public:
+	PWatch(paggs agg, int index, watchset w): Watch(agg, index, true, true), w(w){
+
+	}
+
+	watchset getWatchset() const { return w; }
+};
+
 class CardPWAgg: public PWAgg, public virtual CardAggT {
 private:
-	vector<WL> nf, nfex, setf;
-	vector<WL> nt, ntex, sett;
+	vwl nf, nfex, setf; //setf contains all monotone versions of set literals
+	vector<bool> nfb, nfexb;
+	vwl nt, ntex, sett; //sett contains all anti-monotone versions of set literals
+	vector<bool> ntb, ntexb;
 	lbool headvalue;
 public:
 	CardPWAgg(paggs agg);
 	virtual ~CardPWAgg(){};
 
-	void addWatches(const vector<WL>& set, bool nf, bool ex) const;
-
 	bool initializeNF();
-	bool initializeNFex();
-	bool replaceNF(vsize index);
-	bool replaceNFex(vsize index);
-
 	bool initializeNT();
-	bool initializeNTex();
-	bool replaceNT(vsize index);
-	bool replaceNTex(vsize index);
+	bool initializeNFL();
+	bool initializeNTL();
+	bool initializeEX(watchset w);
+
+	vwl& getSet(watchset w);
+	vwl& getWatches(watchset w);
+	vector<bool>& getBoolWatches(watchset w);
+
+	void addWatch(const Lit& wl, watchset w, int setindex);
+	void removeWatch(const PWatch& w);
+
+	void addToWatches(watchset w, int setindex);
+	void addToWatches(const WL& wl, watchset w);
+	void removeFromWatches(watchset w, int watchindex);
+	void watchRemoved(watchset w, int watchindex);
+
+	bool isEX(watchset w) const { return w==NFEX || w==NTEX; }
+	bool isF(watchset w) const { return w==NF || w==NFEX; }
+
+	bool replace(vsize index, watchset w);
 
 	virtual rClause 	propagate			(const Lit& p, const Watch& w);
 	virtual rClause 	propagate			(const Agg& agg);
