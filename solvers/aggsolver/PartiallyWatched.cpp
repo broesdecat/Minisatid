@@ -90,9 +90,11 @@ void CardPWAgg::addToWatches(watchset w, int setindex){
 }
 
 void CardPWAgg::addWatch(const Lit& wl, watchset w, int index){
-	reportf("Partial watch added: "); gprintLit(wl); reportf(" on index %d\n", index);
-	as().getSolver()->addTempWatch(~wl, new PWatch(asp(), index, w));
-	getBoolWatches(w)[index] = true;
+	if(getBoolWatches(w)[index]!=true){
+		reportf("Partial watch added: "); gprintLit(wl); reportf(" on index %d\n", index);
+		as().getSolver()->addTempWatch(~wl, new PWatch(asp(), index, w));
+		getBoolWatches(w)[index] = true;
+	}
 }
 
 void CardPWAgg::removeWatch(const PWatch& w){
@@ -426,17 +428,26 @@ rClause CardPWAgg::propagate(const Agg& agg){
 void CardPWAgg::backtrack(const Agg& agg){
 	reportf("BACKTRACKED HEAD\n");
 
-	//TODO Add all temp watches from NF, which have not been removed, back as temp watch!
 	if(checkingNFex()){
 		setf.push_back(nfex[0]);
 		nfex.clear();
 	}
 
-	//TODO Add all temp watches from NT, which have not been removed, back as temp watch!
-	//DO this by storing in extra boolean in nt when one has been removed!
 	if(checkingNTex()){
 		sett.push_back(ntex[0]);
 		ntex.clear();
+	}
+
+	if(checkingNF()){
+		for(int i=0; i<nf.size(); i++){
+			addWatch(nf[i].getLit(), NF, i);
+		}
+	}
+
+	if(checkingNT()){
+		for(int i=0; i<nt.size(); i++){
+			addWatch(nt[i].getLit(), NT, i);
+		}
 	}
 
 	headvalue = l_Undef;
