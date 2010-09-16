@@ -539,16 +539,26 @@ rClause AggSolver::propagate(const Lit& p) {
 	for (; confl == nullPtrClause && i < ws2.size(); i++) {
 		confl = ws2[i]->getAggComb()->propagate(p, *ws2[i]);
 		propagations++;
-		if (confl == nullPtrClause) {
+		//if (confl == nullPtrClause) {
 			delete ws2[i];
 			deleted = true;
-		}
+		//}
 	}
 	if (deleted) {
 		for (; i < ws2.size(); i++){
 			addTempWatch(p, ws2[i]);
 		}
 	}
+
+	/*reportf("Current effective watches: \n");
+	for(int i=0; i<2*nVars(); i++){
+		for(int j=0; j<tempwatches[i].size(); j++){
+			reportf("    "); gprintLit(toLit(i));
+			reportf(" watch for ");
+			printAgg(tempwatches[i][j]->getAggComb());
+			reportf("\n");
+		}
+	}*/
 
 	return confl;
 }
@@ -766,6 +776,8 @@ bool AggSolver::addMnmzSum(Var headv, int setid, Bound boundsign) {
 	}
 
 	return true;*/
+	assert(false);
+	return true;
 }
 
 bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
@@ -788,6 +800,8 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
 	s->getMinimExplan(*a, invalidation);
 
 	return false;*/
+	assert(false);
+	return false;
 }
 
 /**

@@ -473,7 +473,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 		}
 
         if(deleteImplicitClause){
-        	delete[] confl;
+        	delete confl;
         	deleteImplicitClause = false;
         }
         /*AE*/

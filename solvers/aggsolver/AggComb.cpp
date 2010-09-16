@@ -361,6 +361,10 @@ void Propagator::initialize(bool& unsat, bool& sat) {
 	}
 }
 
+lbool Propagator::value(Lit l) const {
+	return as().getSolver()->value(l);
+}
+
 /************************
  * RECURSIVE AGGREGATES *
  ************************/

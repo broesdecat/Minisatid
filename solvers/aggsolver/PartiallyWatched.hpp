@@ -33,6 +33,8 @@ namespace Aggrs{
 
 	class PropagationInfo;
 	typedef vector<PropagationInfo> vprop;
+
+	typedef vector<void*>::size_type vsize;
 }
 
 ///////
@@ -68,10 +70,24 @@ public:
 
 class CardPWAgg: public PWAgg, public virtual CardAggT {
 private:
-	vector<WL> nf, setf;
+	vector<WL> nf, nfex, setf;
+	vector<WL> nt, ntex, sett;
+	lbool headvalue;
 public:
 	CardPWAgg(paggs agg);
 	virtual ~CardPWAgg(){};
+
+	void addWatches(const vector<WL>& set, bool nf, bool ex) const;
+
+	bool initializeNF();
+	bool initializeNFex();
+	bool replaceNF(vsize index);
+	bool replaceNFex(vsize index);
+
+	bool initializeNT();
+	bool initializeNTex();
+	bool replaceNT(vsize index);
+	bool replaceNTex(vsize index);
 
 	virtual rClause 	propagate			(const Lit& p, const Watch& w);
 	virtual rClause 	propagate			(const Agg& agg);
@@ -79,6 +95,11 @@ public:
     virtual void 		getExplanation		(vec<Lit>& lits, const AggReason& ar) const;
 
 	virtual void 		initialize			(bool& unsat, bool& sat);
+
+	bool checkingNF() 	const { return headvalue!=l_False; }
+	bool checkingNFex() const { return headvalue==l_True; }
+	bool checkingNT() 	const { return headvalue!=l_True; }
+	bool checkingNTex() const { return headvalue==l_False; }
 };
 
 }

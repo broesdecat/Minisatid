@@ -119,7 +119,7 @@ public:
 
 
 class Watch{
-private:
+protected:
 			paggs 	agg;
 	const 	int 	index;
 	const 	bool 	set;	//true if set literal, false if agg head
@@ -341,6 +341,8 @@ public:
     		aggs& 		as	() 	const 	{ return *agg; }
     		paggs 		asp	() 	const 	{ return agg; }
     	const aggs& 	asc	() 	const 	{ return *agg; }
+
+    		lbool 		value(Lit l) const;
 
     virtual void initialize(bool& unsat, bool& sat);
 };

@@ -11,7 +11,7 @@ AC_PROG_CXX
 AC_DECL_YYTEXT
 #AC_PROG_LEX
 AC_PROG_YACC
-AM_INIT_AUTOMAKE([-Wall foreign subdir-objects])  #-ffloat-store  -Wextra -Wno-unused-parameter -pedantic
+AM_INIT_AUTOMAKE([foreign subdir-objects])  #-ffloat-store OTHER parameters like pedantic, seem no to work here, I set them in debug CXXflags!
 #AM_SILENT_RULES([yes]) from 1.11 on
 AC_LANG([C++])
 
@@ -41,7 +41,7 @@ LDFLAGS+=
 AC_ARG_ENABLE([build],
 [  --enable-build    Turn on debugging (debug), profiling (profile), release version(release), static release version (static) or code cover building (codecover)],
 [case "${enableval}" in
-  debug)   CXXFLAGS+="-O0 -ggdb -D DEBUG " LDFLAGS+="-ggdb " ;;
+  debug)   CXXFLAGS+="-O0 -ggdb -D DEBUG -Wall -Wextra -pedantic -Wno-unused-parameter " LDFLAGS+="-ggdb " ;;
   profile) CXXFLAGS+="-O3 -pg -ggdb -D NDEBUG " LDFLAGS+="-ggdb " ;;
   release) CXXFLAGS+="-O3 -D NDEBUG " LDFLAGS+="" ;;
   static)  CXXFLAGS+="-O3 -D NDEBUG " LDFLAGS+="--static " ;;
