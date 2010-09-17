@@ -84,9 +84,7 @@ public:
 class CardPWAgg: public PWAgg, public virtual CardAggT {
 private:
 	vwl nf, nfex, setf; //setf contains all monotone versions of set literals
-	vector<bool> nfb, nfexb;
 	vwl nt, ntex, sett; //sett contains all anti-monotone versions of set literals
-	vector<bool> ntb, ntexb;
 	lbool headvalue;
 public:
 	CardPWAgg(paggs agg);
@@ -100,15 +98,11 @@ public:
 
 	vwl& getSet(watchset w);
 	vwl& getWatches(watchset w);
-	vector<bool>& getBoolWatches(watchset w);
 
 	void addWatch(const Lit& wl, watchset w, int setindex);
-	void removeWatch(const PWatch& w);
 
 	void addToWatches(watchset w, int setindex);
-	void addToWatches(const WL& wl, watchset w);
-	void removeFromWatches(watchset w, int watchindex);
-	void watchRemoved(watchset w, int watchindex);
+	void removeWatches(watchset w);
 
 	bool isEX(watchset w) const { return w==NFEX || w==NTEX; }
 	bool isF(watchset w) const { return w==NF || w==NFEX; }

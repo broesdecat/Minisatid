@@ -186,6 +186,8 @@ public:
 	vwl::const_iterator getAggLiteralsBegin		(Var x) const;
 	vwl::const_iterator getAggLiteralsEnd		(Var x) const;
 
+	vector<vector<pw> >&	getTempWatches() { return tempwatches; }
+
 	///////
 	// Watched literal sets
 	///////

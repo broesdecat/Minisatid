@@ -522,18 +522,6 @@ rClause AggSolver::propagate(const Lit& p) {
 	vector<pw> ws2(tempwatches[toInt(p)]); //IMPORTANT, BECAUSE WATCHES MIGHT BE ADDED AGAIN TO THE END (if no other watches are found etc)
 	tempwatches[toInt(p)].clear();
 
-	if(verbosity()>=1 && ws2.size()>0){
-		reportf("Current effective watches BEFORE: \n");
-		for(int i=0; i<2*nVars(); i++){
-			for(int j=0; j<tempwatches[i].size(); j++){
-				reportf("    "); gprintLit(toLit(i));
-				reportf(" watch for ");
-				printAgg(tempwatches[i][j]->getAggComb());
-				reportf("\n");
-			}
-		}
-	}
-
 	int i = 0;
 	for (; confl == nullPtrClause && i < ws2.size(); i++) {
 		confl = ws2[i]->getAggComb()->propagate(p, *ws2[i]);
@@ -544,7 +532,7 @@ rClause AggSolver::propagate(const Lit& p) {
 		addTempWatch(p, ws2[i]);
 	}
 
-	if(verbosity()>=1 && ws2.size()>0){
+	if(verbosity()>=1){
 		reportf("Current effective watches AFTER: \n");
 		for(int i=0; i<2*nVars(); i++){
 			for(int j=0; j<tempwatches[i].size(); j++){
