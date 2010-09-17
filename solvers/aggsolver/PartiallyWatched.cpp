@@ -148,7 +148,7 @@ CardPWAgg::CardPWAgg(paggs agg) :
 
 void CardPWAgg::initialize(bool& unsat, bool& sat) {
 	// All that we can't handle at the moment is transformed into a fixed watch sum aggregate.
-	if (as().getAgg().size() != 1 /*|| value(as().getAgg()[0]->getHead())==l_Undef*/) {
+	if (as().getAgg().size() != 1) {
 		SumFWAgg* s = new SumFWAgg(asp());
 		s->initialize(unsat, sat);
 		//reportf("Fully watched propagator used\n");
