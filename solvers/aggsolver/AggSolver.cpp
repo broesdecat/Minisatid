@@ -462,11 +462,10 @@ rClause AggSolver::notifySolver(const Lit& p, AggReason* ar) {
 		AggReason* old_ar = aggreason[var(p)];
 		aggreason[var(p)] = ar;
 		rClause confl = getExplanation(p);
-		getPCSolver()->addLearnedClause(confl);
-
 		aggreason[var(p)] = old_ar;
+		//TODO this delete is no necessarily valid any more: addlearnedclause might have removed thed
 		delete ar;
-
+		getPCSolver()->addLearnedClause(confl);
 		return confl;
 	} else if (value(p) == l_Undef) {
 		if (verbosity() >= 2) {
@@ -523,16 +522,17 @@ rClause AggSolver::propagate(const Lit& p) {
 	vector<pw> ws2(tempwatches[toInt(p)]); //IMPORTANT, BECAUSE WATCHES MIGHT BE ADDED AGAIN TO THE END (if no other watches are found etc)
 	tempwatches[toInt(p)].clear();
 
-	/*if (verbosity() >= 3) {
-		reportf("Watched set for ");
-		gprintLit(p);
-		reportf(": ");
-		for (int i = 0; i < ws2.size(); i++) {
-			printAgg(ws2[i]->getAggComb());
-			reportf(", ");
+	if(verbosity()>=1 && ws2.size()>0){
+		reportf("Current effective watches BEFORE: \n");
+		for(int i=0; i<2*nVars(); i++){
+			for(int j=0; j<tempwatches[i].size(); j++){
+				reportf("    "); gprintLit(toLit(i));
+				reportf(" watch for ");
+				printAgg(tempwatches[i][j]->getAggComb());
+				reportf("\n");
+			}
 		}
-		reportf("\n");
-	}*/
+	}
 
 	int i = 0;
 	for (; confl == nullPtrClause && i < ws2.size(); i++) {
@@ -544,8 +544,8 @@ rClause AggSolver::propagate(const Lit& p) {
 		addTempWatch(p, ws2[i]);
 	}
 
-	if(verbosity()>=4 && ws2.size()>0){
-		reportf("Current effective watches: \n");
+	if(verbosity()>=1 && ws2.size()>0){
+		reportf("Current effective watches AFTER: \n");
 		for(int i=0; i<2*nVars(); i++){
 			for(int j=0; j<tempwatches[i].size(); j++){
 				reportf("    "); gprintLit(toLit(i));

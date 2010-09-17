@@ -122,10 +122,7 @@ public:
 
 	virtual void 		initialize			(bool& unsat, bool& sat);
 
-	bool checkingNF() 	const { return headvalue!=l_False; }
-	bool checkingNFex() const { return headvalue==l_True; }
-	bool checkingNT() 	const { return headvalue!=l_True; }
-	bool checkingNTex() const { return headvalue==l_False; }
+	bool checking(watchset w) const;
 };
 
 }
