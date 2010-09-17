@@ -410,7 +410,7 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& watch) {
 					confl = as().getSolver()->notifySolver(nfex[i].getLit(), new AggReason(*as().getAgg()[0], nfex[i].getLit(), BASEDONCC, false));
 				}
 			}
-		} else if (checking(NF)) {
+		} else if (isF(w.getWatchset()) && checking(NF)) {
 			//propagate head false
 			Lit l = ~as().getAgg()[0]->getHead();
 			confl = as().getSolver()->notifySolver(l, new AggReason( *as().getAgg()[0], l, BASEDONCC, false));
@@ -433,7 +433,7 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& watch) {
 					confl = as().getSolver()->notifySolver(ntex[i].getLit(), new AggReason(*as().getAgg()[0], ntex[i].getLit(), BASEDONCC, false));
 				}
 			}
-		} else if (checking(NT)) {
+		} else if (!isF(w.getWatchset()) && checking(NT)) {
 			//propagate head true
 			Lit l = as().getAgg()[0]->getHead();
 			confl = as().getSolver()->notifySolver(l, new AggReason( *as().getAgg()[0], l, BASEDONCC, false));
@@ -525,7 +525,7 @@ void CardPWAgg::backtrack(const Agg& agg) {
 
 void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
 	const Lit& head = as().getAgg()[0]->getHead();
-	if(value(head)!=l_Undef){
+	if(value(head)!=l_Undef && var(ar.getLit())!=var(head)){
 		bool add = true;
 		if(as().getSolver()->getPCSolver()->getLevel(var(head))	!= as().getSolver()->getPCSolver()->getLevel(var(ar.getLit()))){
 			const vl& trail = as().getSolver()->getPCSolver()->getRecentAssignments();

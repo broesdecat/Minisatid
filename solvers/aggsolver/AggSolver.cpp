@@ -315,8 +315,8 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits,
 	while (sets[0].size() <= setindex) {
 		sets[maptype[MAX]].push_back(new MaxCalc(this, lw));
 		sets[maptype[SUM]].push_back(new SumCalc(this, lw));
-		sets[maptype[PROD]].push_back(new ProdCalc(this, lw));
-		//sets[maptype[CARD]].push_back(new CardCalc(this, lw));
+		//sets[maptype[PROD]].push_back(new ProdCalc(this, lw));
+		sets[maptype[CARD]].push_back(new CardCalc(this, lw));
 		sets[maptype[CARD]].push_back(new SumCalc(this, lw));
 		sets[maptype[MIN]].push_back(new MaxCalc(this, invlw));
 	}
