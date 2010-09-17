@@ -91,9 +91,9 @@ void CardPWAgg::addToWatches(watchset w, int setindex) {
 
 void CardPWAgg::addWatch(const Lit& wl, watchset w, int index) {
 	if(getBoolWatches(w)[index]!=true){
-		reportf("Partial watch added: ");
+		/*reportf("Partial watch added: ");
 		gprintLit(wl);
-		reportf(" on index %d\n", index);
+		reportf(" on index %d\n", index);*/
 		as().getSolver()->addTempWatch(~wl, new PWatch(asp(), index, w));
 		getBoolWatches(w)[index] = true;
 	}
@@ -124,13 +124,13 @@ void CardPWAgg::initialize(bool& unsat, bool& sat) {
 	if (as().getAgg().size() != 1 /*|| value(as().getAgg()[0]->getHead())==l_Undef*/) {
 		SumFWAgg* s = new SumFWAgg(asp());
 		s->initialize(unsat, sat);
-		reportf("Fully watched propagator used\n");
+		//reportf("Fully watched propagator used\n");
 		return; //FIXME current propagator cannot be deleted!
 	}
 
 	const Agg& agg = *as().getAgg()[0];
 
-	reportf("Partial watched propagator used\n");
+	//reportf("Partial watched propagator used\n");
 
 	bool nffailed = false, ntfailed, nfexfailed = false, ntexfailed = false;
 	if (agg.isLower()) {
@@ -169,16 +169,14 @@ void CardPWAgg::initialize(bool& unsat, bool& sat) {
 
 	rClause confl = nullPtrClause;
 	if (nffailed) {
-		confl = as().getSolver()->notifySolver(~agg.getHead(), new AggReason(
-				agg, ~agg.getHead(), BASEDONCC, false));
+		confl = as().getSolver()->notifySolver(~agg.getHead(), new AggReason( agg, ~agg.getHead(), BASEDONCC, false));
 		if (confl != nullPtrClause) {
 			unsat = true;
 			return;
 		}
 	}
 	if (ntfailed) {
-		confl = as().getSolver()->notifySolver(agg.getHead(), new AggReason(
-				agg, agg.getHead(), BASEDONCC, false));
+		confl = as().getSolver()->notifySolver(agg.getHead(), new AggReason( agg, agg.getHead(), BASEDONCC, false));
 		if (confl != nullPtrClause) {
 			unsat = true;
 			return;
@@ -187,8 +185,7 @@ void CardPWAgg::initialize(bool& unsat, bool& sat) {
 
 	if (ntexfailed) {
 		for (vsize i = 0; confl != nullPtrClause && i < nt.size(); i++) {
-			confl = as().getSolver()->notifySolver(nt[i].getLit(),
-					new AggReason(agg, nt[i].getLit(), BASEDONCC, false));
+			confl = as().getSolver()->notifySolver(nt[i].getLit(), new AggReason(agg, nt[i].getLit(), BASEDONCC, false));
 		}
 		if (confl != nullPtrClause) {
 			unsat = true;
@@ -200,8 +197,7 @@ void CardPWAgg::initialize(bool& unsat, bool& sat) {
 	if (nfexfailed) {
 		rClause confl = nullPtrClause;
 		for (vsize i = 0; confl != nullPtrClause && i < nf.size(); i++) {
-			confl = as().getSolver()->notifySolver(nf[i].getLit(),
-					new AggReason(agg, nf[i].getLit(), BASEDONCC, false));
+			confl = as().getSolver()->notifySolver(nf[i].getLit(), new AggReason(agg, nf[i].getLit(), BASEDONCC, false));
 		}
 		if (confl != nullPtrClause) {
 			unsat = true;
@@ -323,31 +319,27 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& watch) {
 	PWatch const * pw = dynamic_cast<PWatch const *> (&watch);
 	const PWatch& w = *pw;
 
-	reportf("Partial watch propagated: ");
+	/*reportf("Partial watch propagated: ");
 	gprintLit(p);
-	reportf(" on index %d\n", w.getIndex());
+	reportf(" on index %d\n", w.getIndex());*/
 	removeWatch(w);
 
 	bool found = true;
 	if (isF(w.getWatchset())) {
-		if (!isEX(w.getWatchset()) && nf[w.getIndex()].getLit() == ~p
-				&& checkingNF()) { //non-ex
+		if (!isEX(w.getWatchset()) && nf[w.getIndex()].getLit() == ~p && checkingNF()) { //non-ex
 			found = replace(w.getIndex(), NF);
-		} else if (isEX(w.getWatchset()) && nfex[w.getIndex()].getLit() == ~p
-				&& checkingNFex()) { //nf ex
+		} else if (isEX(w.getWatchset()) && nfex[w.getIndex()].getLit() == ~p && checkingNFex()) { //nf ex
 			found = replace(w.getIndex(), NFEX);
 		}
 	} else {
-		if (!isEX(w.getWatchset()) && nt[w.getIndex()].getLit() == ~p
-				&& checkingNT()) { //non-ex
+		if (!isEX(w.getWatchset()) && nt[w.getIndex()].getLit() == ~p && checkingNT()) { //non-ex
 			found = replace(w.getIndex(), NT);
-		} else if (isEX(w.getWatchset()) && ntex[w.getIndex()].getLit() == ~p
-				&& checkingNTex()) { //nf ex
+		} else if (isEX(w.getWatchset()) && ntex[w.getIndex()].getLit() == ~p && checkingNTex()) { //nf ex
 			found = replace(w.getIndex(), NTEX);
 		}
 	}
 
-	reportf("Current partial watches: \n");
+	/*reportf("Current partial watches: \n");
 	for (int i = 0; i < nf.size(); i++) {
 		reportf("    ");
 		gprintLit(nf[i].getLit());
@@ -367,7 +359,7 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& watch) {
 		reportf("    ");
 		gprintLit(ntex[i].getLit());
 		reportf("\n");
-	}
+	}*/
 
 	if (!found) {
 		if (checkingNFex()) {
@@ -376,50 +368,40 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& watch) {
 				if (i == w.getIndex() && !isEX(w.getWatchset())) {
 					continue;
 				}
-				confl = as().getSolver()->notifySolver(nf[i].getLit(),
-						new AggReason(*as().getAgg()[0], nf[i].getLit(),
-								BASEDONCC, false));
+				confl = as().getSolver()->notifySolver(nf[i].getLit(), new AggReason(*as().getAgg()[0], nf[i].getLit(), BASEDONCC, false));
 			}
 			if (confl == nullPtrClause) {
 				for (vsize i = 0; confl == nullPtrClause && i < nfex.size(); i++) {
 					if (i == w.getIndex() && isEX(w.getWatchset())) {
 						continue;
 					}
-					confl = as().getSolver()->notifySolver(nfex[i].getLit(),
-							new AggReason(*as().getAgg()[0], nfex[i].getLit(),
-									BASEDONCC, false));
+					confl = as().getSolver()->notifySolver(nfex[i].getLit(), new AggReason(*as().getAgg()[0], nfex[i].getLit(), BASEDONCC, false));
 				}
 			}
 		} else if (checkingNF()) {
 			//propagate head true
 			Lit l = as().getAgg()[0]->getHead();
-			confl = as().getSolver()->notifySolver(l, new AggReason(
-					*as().getAgg()[0], l, BASEDONCC, false));
+			confl = as().getSolver()->notifySolver(l, new AggReason( *as().getAgg()[0], l, BASEDONCC, false));
 		} else if (checkingNTex()) {
 			// propagate all others in NF and propagate NFex
 			for (vsize i = 0; confl == nullPtrClause && i < nt.size(); i++) {
 				if (i == w.getIndex() && !isEX(w.getWatchset())) {
 					continue;
 				}
-				confl = as().getSolver()->notifySolver(nt[i].getLit(),
-						new AggReason(*as().getAgg()[0], nt[i].getLit(),
-								BASEDONCC, false));
+				confl = as().getSolver()->notifySolver(nt[i].getLit(), new AggReason(*as().getAgg()[0], nt[i].getLit(), BASEDONCC, false));
 			}
 			if (confl == nullPtrClause) {
 				for (vsize i = 0; confl == nullPtrClause && i < ntex.size(); i++) {
 					if (i == w.getIndex() && isEX(w.getWatchset())) {
 						continue;
 					}
-					confl = as().getSolver()->notifySolver(ntex[i].getLit(),
-							new AggReason(*as().getAgg()[0], ntex[i].getLit(),
-									BASEDONCC, false));
+					confl = as().getSolver()->notifySolver(ntex[i].getLit(), new AggReason(*as().getAgg()[0], ntex[i].getLit(), BASEDONCC, false));
 				}
 			}
 		} else if (checkingNT()) {
 			//propagate head false
 			Lit l = as().getAgg()[0]->getHead();
-			confl = as().getSolver()->notifySolver(~l, new AggReason(
-					*as().getAgg()[0], ~l, BASEDONCC, false));
+			confl = as().getSolver()->notifySolver(~l, new AggReason( *as().getAgg()[0], ~l, BASEDONCC, false));
 		}
 		//TODO do something about sign confusion
 		addWatch(~p, w.getWatchset(), w.getIndex());
@@ -430,7 +412,7 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& watch) {
 }
 
 rClause CardPWAgg::propagate(const Agg& agg) {
-	reportf("PROPAGATED HEAD\n");
+	//reportf("PROPAGATED HEAD\n");
 	headvalue = value(agg.getHead());
 
 	rClause confl = nullPtrClause;
@@ -440,9 +422,7 @@ rClause CardPWAgg::propagate(const Agg& agg) {
 	if (checkingNFex()) {
 		if (!initializeEX(NFEX)) {
 			for (vsize i = 0; confl == nullPtrClause && i < nf.size(); i++) {
-				confl = as().getSolver()->notifySolver(nf[i].getLit(),
-						new AggReason(*as().getAgg()[0], nf[i].getLit(),
-								BASEDONCC, false));
+				confl = as().getSolver()->notifySolver(nf[i].getLit(), new AggReason(*as().getAgg()[0], nf[i].getLit(), BASEDONCC, false));
 			}
 		}
 	}
@@ -450,9 +430,7 @@ rClause CardPWAgg::propagate(const Agg& agg) {
 	if (checkingNTex()) {
 		if (!initializeEX(NTEX)) {
 			for (vsize i = 0; confl == nullPtrClause && i < nt.size(); i++) {
-				confl = as().getSolver()->notifySolver(nt[i].getLit(),
-						new AggReason(*as().getAgg()[0], nt[i].getLit(),
-								BASEDONCC, false));
+				confl = as().getSolver()->notifySolver(nt[i].getLit(), new AggReason(*as().getAgg()[0], nt[i].getLit(), BASEDONCC, false));
 			}
 		}
 	}
@@ -461,17 +439,23 @@ rClause CardPWAgg::propagate(const Agg& agg) {
 }
 
 void CardPWAgg::backtrack(const Agg& agg) {
-	reportf("BACKTRACKED HEAD\n");
+	//reportf("BACKTRACKED HEAD\n");
 
 	if (checkingNFex()) {
-		setf.push_back(nfex[0]);
+		for(vsize i=0; i<nfex.size(); i++){
+			setf.push_back(nfex[i]);
+		}
 		nfex.clear();
 	}
 
 	if (checkingNTex()) {
-		sett.push_back(ntex[0]);
+		for(vsize i=0; i<ntex.size(); i++){
+			sett.push_back(ntex[i]);
+		}
 		ntex.clear();
 	}
+
+	headvalue = l_Undef;
 
 	if(checkingNF()){
 		for(int i=0; i<nf.size(); i++){
@@ -484,8 +468,6 @@ void CardPWAgg::backtrack(const Agg& agg) {
 			addWatch(nt[i].getLit(), NT, i);
 		}
 	}
-
-	headvalue = l_Undef;
 }
 
 void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
@@ -493,13 +475,10 @@ void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
 		const WL& wl = as().getWL()[i];
 		if (var(wl.getLit()) != var(ar.getLit()) && value(wl.getLit())
 				!= l_Undef) {
-			if (as().getSolver()->getPCSolver()->getLevel(var(wl.getLit()))
-					!= as().getSolver()->getPCSolver()->getLevel(var(
-							ar.getLit()))) {
+			if (as().getSolver()->getPCSolver()->getLevel(var(wl.getLit()))	!= as().getSolver()->getPCSolver()->getLevel(var(ar.getLit()))) {
 				lits.push(~wl.getLit());
 			} else {
-				vl trail =
-						as().getSolver()->getPCSolver()->getRecentAssignments();
+				vl trail = as().getSolver()->getPCSolver()->getRecentAssignments();
 
 				bool before = false;
 				for (int i = 0; i < trail.size(); i++) {

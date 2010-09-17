@@ -315,9 +315,9 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits,
 	while (sets[0].size() <= setindex) {
 		sets[maptype[MAX]].push_back(new MaxCalc(this, lw));
 		sets[maptype[SUM]].push_back(new SumCalc(this, lw));
-		sets[maptype[PROD]].push_back(new ProdCalc(this, lw));
+		//sets[maptype[PROD]].push_back(new ProdCalc(this, lw));
 		sets[maptype[CARD]].push_back(new CardCalc(this, lw));
-		//sets[maptype[CARD]].push_back(new SumCalc(this, lw));
+		sets[maptype[CARD]].push_back(new SumCalc(this, lw));
 		sets[maptype[MIN]].push_back(new MaxCalc(this, invlw));
 	}
 
@@ -544,7 +544,7 @@ rClause AggSolver::propagate(const Lit& p) {
 		addTempWatch(p, ws2[i]);
 	}
 
-	if(verbosity()>=1 && ws2.size()>0){
+	if(verbosity()>=4 && ws2.size()>0){
 		reportf("Current effective watches: \n");
 		for(int i=0; i<2*nVars(); i++){
 			for(int j=0; j<tempwatches[i].size(); j++){
