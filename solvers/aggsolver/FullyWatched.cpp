@@ -189,7 +189,7 @@ rClause FWAgg::propagate(const Lit& p, const Watch& ws) {
 				rClause	cc =
 							as().getSolver()->notifySolver(
 								result == l_True ? pa.getHead() : ~pa.getHead(),
-								new AggReason(pa, p, CPANDCC, true));
+								new AggReason(pa, result == l_True ? pa.getHead() : ~pa.getHead(), CPANDCC, true));
 				confl = cc;
 			}
 		}
