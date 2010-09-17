@@ -86,6 +86,7 @@ private:
 	vwl nf, nfex, setf; //setf contains all monotone versions of set literals
 	vwl nt, ntex, sett; //sett contains all anti-monotone versions of set literals
 	lbool headvalue;
+	bool headpropagatedhere;
 public:
 	CardPWAgg(paggs agg);
 	virtual ~CardPWAgg(){};

@@ -94,9 +94,9 @@ void CardPWAgg::addToWatches(watchset w, int setindex) {
 }
 
 void CardPWAgg::addWatch(const Lit& wl, watchset w, int index) {
-	reportf("Partial watch added: ");
+	/*reportf("Partial watch added: ");
 	gprintLit(wl);
-	reportf(" on index %d\n", index);
+	reportf(" on index %d\n", index);*/
 	as().getSolver()->addTempWatch(~wl, new PWatch(asp(), index, w));
 }
 
@@ -113,9 +113,9 @@ void CardPWAgg::removeWatches(watchset w){
 				list[j] = list[list.size()-1];
 				list.pop_back();
 				delete pw;
-				reportf("Partial watch removed: ");
+				/*reportf("Partial watch removed: ");
 				gprintLit(watches[i].getLit());
-				reportf(" on index %d\n", i);
+				reportf(" on index %d\n", i);*/
 				break;
 			}
 		}
@@ -143,7 +143,7 @@ PWAgg::PWAgg(paggs agg) :
 }
 
 CardPWAgg::CardPWAgg(paggs agg) :
-	PWAgg(agg), headvalue(l_Undef) {
+	PWAgg(agg), headvalue(l_Undef), headpropagatedhere(false) {
 }
 
 void CardPWAgg::initialize(bool& unsat, bool& sat) {
@@ -208,15 +208,20 @@ void CardPWAgg::initialize(bool& unsat, bool& sat) {
 		confl = as().getSolver()->notifySolver(~agg.getHead(), new AggReason( agg, ~agg.getHead(), BASEDONCC, false));
 		if (confl != nullPtrClause) {
 			unsat = true;
-			return;
+		}else{
+			sat = true;
 		}
+		return;
 	}
 	if (ntfailed) {
 		confl = as().getSolver()->notifySolver(agg.getHead(), new AggReason( agg, agg.getHead(), BASEDONCC, false));
 		if (confl != nullPtrClause) {
 			unsat = true;
 			return;
+		}else{
+			sat = true;
 		}
+		return;
 	}
 
 	if (ntexfailed) {
@@ -335,9 +340,9 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& watch) {
 	PWatch const * pw = dynamic_cast<PWatch const *> (&watch);
 	const PWatch& w = *pw;
 
-	reportf("Partial watch propagated: ");
+	/*reportf("Partial watch propagated: ");
 	gprintLit(p);
-	reportf(" on index %d\n", w.getIndex());
+	reportf(" on index %d\n", w.getIndex());*/
 
 	bool found = true;
 	if (isF(w.getWatchset())) {
@@ -406,9 +411,12 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& watch) {
 				}
 			}
 		} else if (checking(NF)) {
-			//propagate head true
+			//propagate head false
 			Lit l = ~as().getAgg()[0]->getHead();
 			confl = as().getSolver()->notifySolver(l, new AggReason( *as().getAgg()[0], l, BASEDONCC, false));
+			if(confl==nullPtrClause){
+				headpropagatedhere = true;
+			}
 		} else if (checking(NTEX)) {
 			// propagate all others in NF and propagate NFex
 			for (vsize i = 0; confl == nullPtrClause && i < nt.size(); i++) {
@@ -426,9 +434,12 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& watch) {
 				}
 			}
 		} else if (checking(NT)) {
-			//propagate head false
+			//propagate head true
 			Lit l = as().getAgg()[0]->getHead();
 			confl = as().getSolver()->notifySolver(l, new AggReason( *as().getAgg()[0], l, BASEDONCC, false));
+			if(confl==nullPtrClause){
+				headpropagatedhere = true;
+			}
 		}
 		//TODO do something about sign confusion
 		addWatch(~p, w.getWatchset(), w.getIndex());
@@ -439,7 +450,13 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& watch) {
 }
 
 rClause CardPWAgg::propagate(const Agg& agg) {
-	reportf("PROPAGATED HEAD\n");
+	if(headpropagatedhere){
+		//TODO deze check zou niet noodzakelijk mogen zijn voor de correctheid, maar is dat nu wel. Probleem is
+		//dat hij soms bij head propageren geen extension vindt en dan alles propageert, maar eigenlijk
+		//hoeft dat niet als een volledig true conflict set gevonden kan worden
+		return nullPtrClause;
+	}
+	//reportf("PROPAGATED HEAD\n");
 
 	headvalue = value(agg.getHead());
 
@@ -476,7 +493,8 @@ rClause CardPWAgg::propagate(const Agg& agg) {
 }
 
 void CardPWAgg::backtrack(const Agg& agg) {
-	reportf("BACKTRACKED HEAD\n");
+	//reportf("BACKTRACKED HEAD\n");
+	headpropagatedhere = false;
 
 	if (checking(NFEX)) {
 		removeWatches(NFEX);
