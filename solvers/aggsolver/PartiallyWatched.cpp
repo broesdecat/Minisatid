@@ -449,6 +449,8 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& watch) {
 	return nullPtrClause;
 }
 
+//TODO should not add head as watch in nf(ex) or ~head as watch in nt(ex)
+
 rClause CardPWAgg::propagate(const Agg& agg) {
 	if(headpropagatedhere){
 		//TODO deze check zou niet noodzakelijk mogen zijn voor de correctheid, maar is dat nu wel. Probleem is
@@ -466,7 +468,6 @@ rClause CardPWAgg::propagate(const Agg& agg) {
 
 	if(!checking(NF)){
 		removeWatches(NF);
-		//delete NF watches
 	}
 
 	if(!checking(NT)){

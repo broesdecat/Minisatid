@@ -315,8 +315,8 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits,
 	while (sets[0].size() <= setindex) {
 		sets[maptype[MAX]].push_back(new MaxCalc(this, lw));
 		sets[maptype[SUM]].push_back(new SumCalc(this, lw));
-		//sets[maptype[PROD]].push_back(new ProdCalc(this, lw));
-		sets[maptype[CARD]].push_back(new CardCalc(this, lw));
+		sets[maptype[PROD]].push_back(new ProdCalc(this, lw));
+		//sets[maptype[CARD]].push_back(new CardCalc(this, lw));
 		sets[maptype[CARD]].push_back(new SumCalc(this, lw));
 		sets[maptype[MIN]].push_back(new MaxCalc(this, invlw));
 	}
@@ -331,6 +331,14 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,
 		char s[100];
 		sprintf(s, "Set nr. %d is used, but not defined yet.\n", setid);
 		throw idpexception(s);
+	}
+
+	for(int i=0; i<sets[0][setid-1]->getWL().size(); i++){
+		if(var(sets[0][setid-1]->getWL()[i].getLit())==headv){
+			char s[100];
+			sprintf(s, "Set nr. %d contains the head of an aggregate, which is not allowed.\n", setid);
+			throw idpexception(s);
+		}
 	}
 
 	assert(headv > -1);
