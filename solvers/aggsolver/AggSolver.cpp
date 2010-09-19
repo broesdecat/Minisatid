@@ -215,6 +215,9 @@ bool AggSolver::finishSets(vector<paggs>& sets) {
 	vector<paggs>::size_type used = 0;
 	for (vector<paggs>::size_type i = 0; i < sets.size(); i++) {
 		paggs s = sets[i];
+		if(sets[i]==NULL){
+			continue;
+		}
 
 		bool unsat = false, sat = false;
 		s->initialize(unsat, sat);
@@ -268,8 +271,7 @@ bool AggSolver::finishSets(vector<paggs>& sets) {
  reportf("Relevant clauses: %d.\n", counter);
  }*/
 
-bool AggSolver::addSet(int setid, const vector<Lit>& lits,
-		const vector<Weight>& weights) {
+bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>& weights) {
 	assert(setid > 0);
 	uint64_t setindex = setid - 1;
 	if (lits.size() == 0) {
@@ -277,8 +279,7 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits,
 		sprintf(s, "Set nr. %d is empty.\n", setid);
 		throw idpexception(s);
 	}
-	if (sets[0].size() > setindex && sets[0][setindex] != NULL
-			&& sets[0][setindex]->getWL().size() != 0) {
+	if (sets[0].size() > setindex && sets[0][setindex] != NULL && sets[0][setindex]->getWL().size() != 0) {
 		char s[100];
 		sprintf(s, "Set nr. %d is defined more than once.\n", setid);
 		throw idpexception(s);
@@ -313,13 +314,18 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits,
 	}
 
 	while (sets[0].size() <= setindex) {
-		sets[maptype[MAX]].push_back(new MaxCalc(this, lw));
-		sets[maptype[SUM]].push_back(new SumCalc(this, lw));
-		sets[maptype[PROD]].push_back(new ProdCalc(this, lw));
-		//sets[maptype[CARD]].push_back(new CardCalc(this, lw));
-		sets[maptype[CARD]].push_back(new SumCalc(this, lw));
-		sets[maptype[MIN]].push_back(new MaxCalc(this, invlw));
+		sets[maptype[MAX]].push_back(NULL);
+		sets[maptype[SUM]].push_back(NULL);
+		sets[maptype[PROD]].push_back(NULL);
+		sets[maptype[CARD]].push_back(NULL);
+		sets[maptype[MIN]].push_back(NULL);
 	}
+	sets[maptype[MAX]][setindex] = new MaxCalc(this, lw);
+	sets[maptype[SUM]][setindex] = new SumCalc(this, lw);
+	sets[maptype[PROD]][setindex] = new ProdCalc(this, lw);
+	sets[maptype[CARD]][setindex] = new CardCalc(this, lw);
+	//sets[maptype[CARD]][setindex] =new SumCalc(this, lw);
+	sets[maptype[MIN]][setindex] = new MaxCalc(this, invlw);
 
 	return true;
 }
@@ -540,7 +546,7 @@ rClause AggSolver::propagate(const Lit& p) {
 		addTempWatch(p, ws2[i]);
 	}
 
-	if(verbosity()>=1){
+	/*if(verbosity()>=1){
 		reportf("Current effective watches AFTER: \n");
 		for(int i=0; i<2*nVars(); i++){
 			for(int j=0; j<tempwatches[i].size(); j++){
@@ -550,7 +556,7 @@ rClause AggSolver::propagate(const Lit& p) {
 				reportf("\n");
 			}
 		}
-	}
+	}*/
 
 	return confl;
 }

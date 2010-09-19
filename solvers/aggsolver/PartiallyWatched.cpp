@@ -151,13 +151,13 @@ void CardPWAgg::initialize(bool& unsat, bool& sat) {
 	if (as().getAgg().size() != 1) {
 		SumFWAgg* s = new SumFWAgg(asp());
 		s->initialize(unsat, sat);
-		//reportf("Fully watched propagator used\n");
+		reportf("Fully watched propagator used\n");
 		return; //FIXME current propagator cannot be deleted!
 	}
 
 	const Agg& agg = *as().getAgg()[0];
 
-	//reportf("Partial watched propagator used\n");
+	reportf("Partial watched propagator used\n");
 
 
 	for(int i=0; i<as().getWL().size(); i++){
