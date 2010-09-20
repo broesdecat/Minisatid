@@ -95,7 +95,7 @@ IDSolver::IDSolver(pPCSolver s) :
 
 IDSolver::~IDSolver() {
 	//reportf("Unfounded sets: %d\n", unfoundedsets);
-	deleteList<PropRule> (definition);
+	deleteList<PropRule>(definition);
 }
 
 void IDSolver::notifyVarAdded(int nvars) {

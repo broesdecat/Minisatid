@@ -57,20 +57,69 @@ namespace Aggrs{
 	class Agg;
 	class AggSet;
 	typedef Agg* pagg;
-	typedef vector<Agg*> vpagg;
 	typedef AggSet* pset;
 
 	class CalcAgg;
 	typedef CalcAgg aggs;
 	typedef aggs* paggs;
+	typedef vector<paggs> vpaggs;
+	typedef vector<vpaggs> vvpaggs;
 
 	class Watch;
 	typedef Watch* pw;
+	typedef vector<pw> vpw;
+	typedef vector<vpw> vvpw;
 
 	class AggReason;
 }
 
 using namespace Aggrs;
+
+class ParsedSet;
+class ParsedAgg;
+typedef ParsedAgg* ppagg;
+typedef vector<ppagg> vppagg;
+typedef ParsedSet paset;
+typedef ParsedSet* ppaset;
+typedef vector<ppaset> vppaset;
+
+class ParsedSet{
+private:
+	vwl	wlits;
+	vppagg aggs;	//OWNS the pointers
+	int id;
+
+public:
+	ParsedSet(int id, const vector<WL>& wl): wlits(wl){ }
+	~ParsedSet() { deleteList<ParsedAgg>(aggs); }
+
+	int getID() const { return id; }
+
+    const vwl& getWL() const { return wlits; }
+    const vppagg& getAgg() const { return aggs; }
+    void addAgg(ppagg agg){ aggs.push_back(agg); }
+};
+
+class ParsedAgg{
+private:
+	Weight		bound;
+	Bound 		sign;
+	Lit			head;
+	HdEq		sem;
+	AggrType	type;
+
+public:
+	ParsedAgg(const Weight& bound, Bound sign, const Lit& head, HdEq sem, ppaset set, AggrType type):
+			bound(bound), sign(sign), head(head), sem(sem), type(type){
+		set->addAgg(this);
+	}
+
+	const 	Lit& 	getHead() 		const 	{ return head; }
+	const 	Weight& getBound() 		const	{ return bound; }
+			Bound	getSign()		const	{ return sign; }
+			HdEq	getSem()		const	{ return sem; }
+			AggrType getType()		const	{ return type; }
+};
 
 /*
  * CLAUSE LEARNING INVARIANT:
@@ -82,6 +131,20 @@ using namespace Aggrs;
  */
 
 class AggSolver: public tr1::enable_shared_from_this<AggSolver>, public SolverModule{
+private:
+    map<int, ppaset>		parsedsets;
+	vpaggs					sets;		//After initialization, all remaining sets.
+
+	vector<AggReason*>		aggreason;	// For each atom, like 'reason'.
+
+	vvpw					tempwatches;
+	vvpw 					permwatches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
+	vector<pagg>			headwatches;	//	index on VARs (heads always positive), does NOT own the pointers
+	vvpaggs					network;		// the pointer network of set var -> set
+
+	//statistics
+	uint64_t propagations;
+
 public:
 	AggSolver(pPCSolver s);
 	virtual ~AggSolver();
@@ -186,39 +249,29 @@ public:
 	vwl::const_iterator getAggLiteralsBegin		(Var x) const;
 	vwl::const_iterator getAggLiteralsEnd		(Var x) const;
 
-	vector<vector<pw> >&	getTempWatches() { return tempwatches; }
-
 	///////
 	// Watched literal sets
 	///////
 	void 				setHeadWatch			(Var head, Agg* agg);
 	void 				addPermWatch			(Var v, pw w);
 	void 				addTempWatch			(const Lit& l, pw w);
+	vvpw&				getTempWatches			() { return tempwatches; }
 
 
 	void				printStatistics			() const ;
 
 protected:
-	/**
-	 * Returns the aggregate in which the given variable is the head.
-	 */
-    pagg 					getAggWithHead	(Var v) const;
+	// Returns the aggregate in which the given variable is the head.
+    pagg 				getAggWithHead			(Var v) const;
 
-    map<AggrType, int > 	maptype;
-	vector<vector<paggs> >	sets;			//After initialization, all remaining sets.
-
-	vector<AggReason*>		aggreason;	// For each atom, like 'reason'.
-
-	vector<vector<pw> >		tempwatches;
-	vector<vector<pw> >		permwatches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
-	//index on VAR (heads are always positive
-	vector<pagg>			headwatches;	//	does NOT own the pointers
-	vector<vector<paggs> >	network;		// the pointer network of set var -> set
-
-	bool		finishSets		(vector<paggs>& sets); //throws UNSAT
-
-	//statistics
-	uint64_t propagations;
+    // Throws UNSAT
+	bool				finishSet				(ppaset set);
+	bool 				initCalcAgg(CalcAgg* ca, vppagg aggs);	//gets OWNING pointer to ca
+	bool 				constructMaxSet(ppaset set, vppagg aggs);
+	bool 				constructMinSet(ppaset set, vppagg aggs);
+	bool 				constructProdSet(ppaset set, vppagg aggs);
+	bool 				constructSumSet(ppaset set, vppagg aggs);
+	bool 				constructCardSet(ppaset set, vppagg aggs);
 };
 
 #endif /* AggSolver_H_ */

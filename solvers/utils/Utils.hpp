@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <vector>
+#include <map>
 
 #include "solvers/SATUtils.h"
 #include "solvers/external/ExternalUtils.hpp"
@@ -37,7 +38,7 @@ using namespace std;
 
 template<class T>
 void deleteList(vector<T*> l){
-	for(class vector<T*>::iterator i=l.begin(); i<l.end(); i++){
+	for(class vector<T*>::const_iterator i=l.begin(); i!=l.end(); i++){
 		if(*i!=NULL){
 			delete(*i);
 		}
@@ -47,15 +48,35 @@ void deleteList(vector<T*> l){
 
 template<class T>
 void deleteList(vector<vector<T*> > l){
-	for(class vector<vector<T*> >::iterator i=l.begin(); i<l.end(); i++){
-		for(class vector<T*>::iterator j=(*i).begin(); j<(*i).end(); j++){
-			if(*j!=NULL){
-				delete(*j);
-			}
+	for(class vector<vector<T*> >::const_iterator i=l.begin(); i!=l.end(); i++){
+		deleteList(*i);
+	}
+	l.clear();
+}
+
+template<class T, class K>
+void deleteList(map<K, T*> l){
+	for(class map<K, T*>::const_iterator i=l.begin(); i!=l.end(); i++){
+		if((*i).second!=NULL){
+			delete((*i).second);
 		}
 	}
 	l.clear();
 }
+
+/*
+template<class T>
+void deleteList(vector<T> l){
+
+}*/
+
+/*template<class T>
+void deleteList(vector<T> l){
+	for(class vector<T>::iterator i=l.begin(); i!=l.end(); i++){
+		deleteList(*i);
+	}
+	l.clear();
+}*/
 
 class WL {  // Weighted literal
 private:
@@ -71,6 +92,9 @@ public:
     bool operator<	(const WL& p)		 const { return weight < p.weight; }
     bool operator<	(const Weight& bound)const { return weight < bound; }
     bool operator==	(const WL& p)		 const { return weight == p.weight && lit==p.lit; }
+
+    operator 	Lit()	const { return lit; }
+    operator Weight()	const { return weight; }
 };
 
 #define reportf(...) ( fflush(stdout), fprintf(stderr, __VA_ARGS__), fflush(stderr) )
