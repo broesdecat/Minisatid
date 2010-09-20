@@ -399,7 +399,7 @@ bool AggSolver::constructCardSet(ppaset set, vppagg aggs){
 	}
 
 	if(true){ //use PWatches
-		vppagg lower, higher;
+		/*vppagg lower, higher;
 		for(int i=0; i<aggs.size(); i++){
 			if(aggs[i]->getSign()==LOWERBOUND){
 				lower.push_back(aggs[i]);
@@ -410,7 +410,15 @@ bool AggSolver::constructCardSet(ppaset set, vppagg aggs){
 		CalcAgg* ca = new CardCalc(this, set->getWL());
 		bool unsat  = initCalcAgg(ca, lower);
 		CalcAgg* ca2 = new CardCalc(this, set->getWL());
-		return !unsat || initCalcAgg(ca2, higher);
+		return !unsat || initCalcAgg(ca2, higher);*/
+		bool unsat = false;
+		for(int i=0; !unsat && i<aggs.size(); i++){
+			CalcAgg* ca = new CardCalc(this, set->getWL());
+			vppagg aggs2;
+			aggs2.push_back(aggs[i]);
+			unsat = initCalcAgg(ca, aggs2);
+		}
+		return !unsat;
 	}else{
 		CalcAgg* ca = new CardCalc(this, set->getWL());
 		return initCalcAgg(ca, aggs);
