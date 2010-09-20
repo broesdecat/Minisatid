@@ -260,6 +260,8 @@ public:
 
 	void				printStatistics			() const ;
 
+	void				addSet					(CalcAgg* ca) { sets.push_back(ca); }
+
 protected:
 	// Returns the aggregate in which the given variable is the head.
     pagg 				getAggWithHead			(Var v) const;

@@ -125,12 +125,19 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 
 	vector<WL> lw;
 	for (int i = 0; i < lits.size(); i++) {
+#ifdef INTWEIGHT
+		if (weights[i] == INT_MAX || weights[i] == INT_MIN) {
+			throw idpexception(
+					"Weights equal to or larger than the largest integer number "
+						"are not allowed in limited precision.\n");
+		}
+#endif
 		lw.push_back(WL(lits[i], weights[i]));
 	}
 
 	parsedsets[setid] = new ParsedSet(setid, lw);
 
-	if (verbosity() >= 5) {
+	if (verbosity() >= 5) { // Print information on added set
 		reportf("Added set %d: ", setid);
 		vector<Weight>::const_iterator w = weights.begin();
 		bool begin = true;
@@ -146,43 +153,17 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 	}
 
 	return true;
-
-/*	vector<WL> lw, invlw; //inverted weights to handle minimum as maximum
-	for (int i = 0; i < lits.size(); i++) {
-#ifdef INTWEIGHT
-		if (weights[i] == INT_MAX || weights[i] == INT_MIN) {
-			throw idpexception(
-					"Weights equal to or larger than the largest integer number "
-						"are not allowed in limited precision.\n");
-		}
-#endif
-		lw.push_back(WL(lits[i], weights[i]));
-		invlw.push_back(WL(lits[i], -weights[i]));
-	}*/
-
-	/*while (sets[0].size() <= setindex) {
-		sets[maptype[MAX]].push_back(NULL);
-		sets[maptype[SUM]].push_back(NULL);
-		sets[maptype[PROD]].push_back(NULL);
-		sets[maptype[CARD]].push_back(NULL);
-		sets[maptype[MIN]].push_back(NULL);
-	}
-	sets[maptype[MAX]][setindex] = new MaxCalc(this, lw);
-	sets[maptype[SUM]][setindex] = new SumCalc(this, lw);
-	sets[maptype[PROD]][setindex] = new ProdCalc(this, lw);
-	sets[maptype[CARD]][setindex] = new CardCalc(this, lw);
-	//sets[maptype[CARD]][setindex] =new SumCalc(this, lw);
-	sets[maptype[MIN]][setindex] = new MaxCalc(this, invlw);*/
 }
 
 bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	Bound boundsign, AggrType type, HdEq headeq) {
-	if (parsedsets.find(setid)==parsedsets.end()) {
+	assert(type==MIN || type==MAX || type==CARD || type==SUM || type==PROD);
+
+	if (parsedsets.find(setid)==parsedsets.end()) { //Exception if set already exists
 		char s[100];
 		sprintf(s, "Set nr. %d is used, but not defined yet.\n", setid);
 		throw idpexception(s);
 	}
-
-	if (headv<=0) {
+	if (headv<=0) { //Exception if head is zero or neg
 		char s[100];
 		sprintf(s, "Heads have to be non-zero positive, which is violated for head %d.\n", headv);
 		throw idpexception(s);
@@ -193,19 +174,17 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	Bound boundsign,
 	// Check whether the head occurs in the body of the set, which is no longer allowed
 	// TODO zet in file huidige invoerformaat, zodat de grounder dat kan garanderen
 	for(int i=0; i<set->getWL().size() ;i++){
-		if(var(set->getWL()[i])==headv){
+		if(var(set->getWL()[i])==headv){ //Exception if head occurs in set itself
 			char s[100];
 			sprintf(s, "Set nr. %d contains a literal of atom %d, the head of an aggregate, which is not allowed.\n", setid, gprintVar(headv));
 			throw idpexception(s);
 		}
 	}
 
-	uint64_t nb = headv;
-
 	//INVARIANT: it has to be guaranteed that there is a watch on ALL heads
 	for(map<int, ppaset>::const_iterator i=parsedsets.begin(); i!=parsedsets.end(); i++){
 		for(int j=0; j<(*i).second->getAgg().size(); j++){
-			if(var((*i).second->getAgg()[j]->getHead())==headv){
+			if(var((*i).second->getAgg()[j]->getHead())==headv){ //Exception if two agg with same head
 				char s[100];
 				sprintf(s, "At least two aggregates have the same head(%d).\n", gprintVar(headv));
 				throw idpexception(s);
@@ -214,10 +193,11 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	Bound boundsign,
 	}
 
 #ifdef DEBUG
-	if(type == CARD){
+	if(type == CARD){ //Check if all card weights are 1
 		for(vwl::size_type i=0; i<parsedsets[setid]->getWL().size(); i++) {
 			if(parsedsets[setid]->getWL()[i].getWeight()!=1) {
 				reportf("Cardinality was loaded with wrong weights");
+				assert(false);
 			}
 		}
 	}
@@ -228,12 +208,9 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	Bound boundsign,
 
 	//the head of the aggregate
 	Lit head = mkLit(headv, false);
-
 	ppagg agg = new ParsedAgg(bound, boundsign, head, headeq, parsedsets[setid], type);
 
-	assert(type==MIN || type==MAX || type==CARD || type==SUM || type==PROD);
-
-	if (verbosity() >= 5) {
+	if (verbosity() >= 5) { //Print info on added aggregate
 		reportf("Added %s aggregate with head %d on set %d, %s %s of type ",
 				headeq == DEF?"defined":"completion", gprintVar(headv), setid,
 				boundsign==LOWERBOUND?"AGG <=":"AGG >=", printWeight(bound).c_str());
@@ -301,16 +278,15 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	}
 
 	if (verbosity() >= 1) {
-		reportf("| Number of minimum exprs.: %4zu                                              |\n", min);
-		reportf("| Number of maximum exprs.: %4zu                                              |\n", max);
-		reportf("| Number of sum exprs.: %4zu                                                  |\n", sum);
-		reportf("| Number of product exprs.: %4zu                                              |\n", prod);
+		reportf("| Number of minimum exprs.:     %4zu                                          |\n", min);
+		reportf("| Number of maximum exprs.:     %4zu                                          |\n", max);
+		reportf("| Number of sum exprs.:         %4zu                                          |\n", sum);
+		reportf("| Number of product exprs.:     %4zu                                          |\n", prod);
 		reportf("| Number of cardinality exprs.: %4zu                                          |\n", card);
 
 		reportf("| Over %4d sets, aggregate set avg. size: %7.2f lits.                      |\n",
 				nbsets,(double)setlits/(double)(nbsets));
 	}
-
 	if (verbosity() >= 3) {
 		reportf("Aggregates are present after initialization:\n");
 		for (vpaggs::const_iterator i=sets.begin(); i<sets.end(); i++) {
@@ -343,6 +319,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 bool AggSolver::finishSet(ppaset set){
 	bool unsat = false;
 
+	//Partition the aggregates according to their type
 	map<AggrType, vppagg> partaggs;
 	for(vppagg::const_iterator i = set->getAgg().begin(); i<set->getAgg().end(); i++) {
 		partaggs[(*i)->getType()].push_back(*i);
@@ -354,10 +331,10 @@ bool AggSolver::finishSet(ppaset set){
 		}
 
 		switch((*i).first){
-			case MIN: unsat = constructMinSet(set, (*i).second); break;
-			case MAX: unsat = constructMaxSet(set, (*i).second); break;
+			case MIN:  unsat = constructMinSet(set, (*i).second); break;
+			case MAX:  unsat = constructMaxSet(set, (*i).second); break;
 			case CARD: unsat = constructCardSet(set, (*i).second); break;
-			case SUM: unsat = constructSumSet(set, (*i).second); break;
+			case SUM:  unsat = constructSumSet(set, (*i).second); break;
 			case PROD: unsat = constructProdSet(set, (*i).second); break;
 		}
 	}
@@ -375,8 +352,6 @@ bool AggSolver::initCalcAgg(CalcAgg* ca, vppagg aggs){
 	ca->initialize(unsat, sat);
 	if(sat || unsat){
 		delete ca;
-	}else{
-		sets.push_back(ca);
 	}
 	return !unsat;
 }
@@ -463,7 +438,7 @@ bool AggSolver::constructSumSet(ppaset set, vppagg aggs){
 
 bool AggSolver::constructProdSet(ppaset set, vppagg aggs){
 	for(int i=0; i<set->getWL().size(); i++){
-		if(set->getWL()[i] < 1) {
+		if(set->getWL()[i] < 1) { //Exception if product contains negative/zero weights
 			char s[200];
 			sprintf(s,
 					"Error: Set nr. %d contains a 0 (zero) or negative weight %s, which cannot "

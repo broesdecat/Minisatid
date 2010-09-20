@@ -352,6 +352,9 @@ WL ProdCalc::handleOccurenceOfBothSigns(const WL& one, const WL& two) {
 
 void CalcAgg::initialize(bool& unsat, bool& sat) {
 	prop->initialize(unsat, sat);
+	if(!sat && !unsat){
+		getSolver()->addSet(this);
+	}
 }
 
 // Final initialization call!
