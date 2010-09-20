@@ -168,7 +168,7 @@ int Read::addConstraintRule (istream &f){
 	if(!getSolver()->addSet(setcount, body)){
 		return 1;
 	}
-	if(!getSolver()->addAggrExpr(head, setcount, atleast, false, CARD, true)){
+	if(!getSolver()->addAggrExpr(head, setcount, atleast, UPPERBOUND, CARD, DEF)){
 		return 1;
 	}
 	setcount++;
@@ -340,7 +340,7 @@ int Read::addWeightRule (istream &f){
 	if(!getSolver()->addSet(setcount, body, weights)){
 		return 1;
 	}
-	if(!getSolver()->addAggrExpr(head, setcount, lowerbound, false, SUM, true)){
+	if(!getSolver()->addAggrExpr(head, setcount, lowerbound, UPPERBOUND, SUM, DEF)){
 		return 1;
 	}
 	setcount++;
@@ -426,7 +426,7 @@ int Read::finishGenerateRules(){
 			return 1;
 		}
 		int atemp = maxatomnumber++;
-		if(!getSolver()->addAggrExpr(Literal(atemp), setcount, (*i).atleast, false, CARD, true)){
+		if(!getSolver()->addAggrExpr(Literal(atemp), setcount, (*i).atleast, LOWERBOUND, CARD, DEF)){
 			return 1;
 		}
 		if(!getSolver()->addRule(true, Literal(atemp), (*i).body)){

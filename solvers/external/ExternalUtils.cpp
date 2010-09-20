@@ -22,25 +22,17 @@
 
 #include "solvers/external/ExternalUtils.hpp"
 
-template <typename T>
-string printWeight(const T& w){
-	return "";
-}
-
 #ifdef GMPWEIGHT
-	template <>
-	string printWeight<mpz_class>(const mpz_class& w){
+	string printWeight(const Weight& w){
 		return w.get_str();
 	}
 #else
 	#ifdef BIGINTWEIGHT
-		template <>
-		string printWeight<BigInteger>(const BigInteger& w){
+		string printWeight(const Weight& w){
 			return bigIntegerToString(w);
 		}
 	#else //INT_WEIGHT
-		template <>
-		string printWeight<int>(const int& w){
+		string printWeight(const Weight& w){
 			char s[15];
 			sprintf(s, "%d", w);
 			return s;

@@ -84,9 +84,9 @@ bool ModSolver::addSet(int setid, vec<Lit>& lits, vector<Weight>& w){
 	return getSolver()->addSet(setid, lits, w);
 }
 
-bool ModSolver::addAggrExpr(Lit head, int set_id, Weight bound, bool lower, AggrType type, bool defined){
+bool ModSolver::addAggrExpr(Lit head, int set_id, Weight bound, Bound boundsign, AggrType type, HdEq defined){
 	addVar(var(head));
-	return getSolver()->addAggrExpr(head, set_id, bound, lower, type, defined);
+	return getSolver()->addAggrExpr(head, set_id, bound, boundsign, type, defined);
 }
 
 void ModSolver::setNbModels(int nb){

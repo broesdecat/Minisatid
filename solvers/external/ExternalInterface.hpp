@@ -134,7 +134,7 @@ public:
 	bool	addSet			(int id, const vector<Literal>& lits);
 	bool 	addSet			(int set_id, const vector<LW>& lws);
 	bool	addSet			(int id, const vector<Literal>& lits, const vector<Weight>& w);
-	bool	addAggrExpr		(Literal head, int setid, Weight bound, bool lower, AggrType type, bool defined);
+	bool	addAggrExpr		(Literal head, int setid, Weight bound, Bound sign, AggrType type, HdEq sem);
 	bool	finishParsing	(); //throws UNSAT
 
     bool 	addMinimize		(const vector<Literal>& lits, bool subsetmnmz);
@@ -177,7 +177,7 @@ public:
 	bool 	addRule			(modID modid, bool conj, Literal head, vector<Literal>& lits);
 	bool 	addSet			(modID modid, int set_id, vector<LW>& lws);
 	bool 	addSet			(modID modid, int set_id, vector<Literal>& lits, vector<Weight>& w);
-	bool 	addAggrExpr		(modID modid, Literal head, int setid, Weight bound, bool lower, AggrType type, bool defined);
+	bool 	addAggrExpr		(modID modid, Literal head, int setid, Weight bound, Bound sign, AggrType type, HdEq sem);
 };
 
 //Throw exceptions if the inputted literals are in the wrong format.

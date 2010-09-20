@@ -37,6 +37,17 @@ public:
 	void notifyInitialized	() 			{ assert(!init); init = true; }
 
 	PCSolver* getPCSolver	()	const 	{ return pcsolver; }
+
+	bool isTrue		(Lit l) const;
+	bool isFalse		(Lit l) const;
+	bool isUnknown	(Lit l) const;
+	bool isTrue		(Var l) const;
+	bool isFalse		(Var l) const;
+	bool isUnknown	(Var l) const;
+
+	lbool		value(Var x) const;
+	lbool		value(Lit p) const;
+	int			nVars()      const;
 };
 
 #endif /* ISOLVER_HPP_ */

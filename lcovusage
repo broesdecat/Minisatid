@@ -2,7 +2,7 @@ Using lcov:
 
 build with CXX flags "-fprofile-arcs -ftest-coverage"
 
-only works for SAME source and build dir SB
+only works for SAME source and build dir SB (as ABSOLUTE path)
 
 run
 	lcov -b SB -d SB --zerocounters
@@ -15,5 +15,5 @@ run
 generate html output
 	genhtml app.info
 	
-Current PROBLEM: due to some problem with how to program is built, the flex and bison files have to be present
+Current PROBLEM: due to some problem with how to program is built, the FLEX and BISON grammar files have to be present
 at the root of SB to be found correctly.

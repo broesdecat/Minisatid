@@ -77,42 +77,10 @@ public:
 	AggSolver(pPCSolver s);
 	virtual ~AggSolver();
 
-	/////////////////////SOLVER NECESSARY
-	void 		backtrack 		(const Lit& l);
+	//////
+	// INITIALIZATION
+	//////
 
-	/*
-	 * Returns the explanation for the deduction of p from an aggregate expression.
-	 * This method constructs, from the AggrReason stored for it, a "reason clause" usable in clause learning.
-	 * @post the first element in the reason clause will be the literal itself (invariant by minisat!)
-	 * @post the clause is added to the sat solver
-	 * @returns NON-OWNING pointer
-	 */
-	rClause 	getExplanation	(const Lit& p);
-	void 		notifyVarAdded	(uint64_t nvars); 		//correctly initialize AMNSolver datastructures when vars are added
-	rClause 	propagate	(const Lit& p);
-	/////////////////////ENDSOLVER NECESSARY
-
-	/////////////////////IDSOLVER NECESSARY
-	void 		propagateJustifications(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& v, vec<int> &nb_body_lits_to_justify);
-
-	bool 		findJustificationAggr(Var head, vec<Lit>& jstf);
-
-	bool 		directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust);
-	void 		createLoopFormula(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
-
-	/**
-	 * Adds the heads of the aggregates in which x occurs as a body literal to heads
-	 */
-	void 		getHeadsOfAggrInWhichOccurs(Var x, vec<Var>& heads);
-
-	/**
-	 * Returns the set literals of the aggregate with the given head x.
-	 */
-	lwlv::const_iterator getAggLiteralsBegin(Var x) const;
-	lwlv::const_iterator getAggLiteralsEnd(Var x) const;
-	/////////////////////END IDSOLVER NECESSARY
-
-	/////////////////////INITIALIZATION
 	/**
 	 * Adds the set with the given id to the solver and sets its literals and its weights.
 	 *
@@ -124,7 +92,7 @@ public:
 	 *
 	 * @remark: please ensure that all id numbers are used without gaps in the numbering.
 	 */
-	bool    	addSet       (int id, const vec<Lit>& l, const vector<Weight>& w);
+	bool    addSet(int id, const vec<Lit>& l, const vector<Weight>& w);
 
 	/**
 	 * Adds an aggregate of the given type with number defn for set set_id.
@@ -137,26 +105,65 @@ public:
 	 *
 	 * @pre: no weights==0 when using a product aggregate
 	 */
-	bool    	addAggrExpr  (int defn, int set_id, Weight bound, bool lower, AggrType type, bool defined);
+	bool    addAggrExpr					(int defn, int set_id, Weight bound, Bound boundsign,
+										AggrType type, HdEq headeq);
 
 	/**
 	 * Checks presence of aggregates and initializes all counters.
 	 * UNSAT is set to true if unsat is detected
 	 * PRESENT is set to true if aggregate propagations should be done
 	 */
-	void    	finishECNF_DataStructures (bool& present, bool& unsat); //throws UNSAT
-	void		findClausalPropagations();
+	void	finishECNF_DataStructures 	(bool& present, bool& unsat); //throws UNSAT
+	void	findClausalPropagations		();
+	void	removeHeadWatch				(Var x);
 
-	void 		removeHeadWatch(Var x);
-	/////////////////////END INITIALIZATION
+	//////
+	// SEARCH
+	//////
+
+	void 	backtrack 					(const Lit& l);
+
+	/*
+	 * Returns the explanation for the deduction of p from an aggregate expression.
+	 * This method constructs, from the AggrReason stored for it, a "reason clause" usable in clause learning.
+	 * @post the first element in the reason clause will be the literal itself (invariant by minisat!)
+	 * @post the clause is added to the sat solver
+	 * @returns NON-OWNING pointer
+	 */
+	rClause getExplanation				(const Lit& p);
+	void 	notifyVarAdded				(uint64_t nvars); 		//correctly initialize AMNSolver datastructures when vars are added
+	rClause propagate					(const Lit& p);
 
 	//are used by agg.c, but preferably should be move into protected again
-	rClause 	notifySATsolverOfPropagation(const Lit& p, Aggrs::AggrReason* cr);	// Like "enqueue", but for aggregate propagations.
+	rClause	notifySATsolverOfPropagation(const Lit& p, Aggrs::AggrReason* cr);	// Like "enqueue", but for aggregate propagations.
 
-	//Optimisation support
-	bool 		addMnmzSum		(Var headv, int setid, bool lower);
-    bool 		invalidateSum	(vec<Lit>& invalidation, Var head);
-    void 		propagateMnmz	(Var head);
+	//////
+	// OPTIMISATION
+	//////
+
+	bool 		addMnmzSum				(Var headv, int setid, Bound boundsign);
+    bool 		invalidateSum			(vec<Lit>& invalidation, Var head);
+    void 		propagateMnmz			(Var head);
+
+	//////
+	// RECURSIVE AGGREGATES
+	//////
+	void 		propagateJustifications	(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& v, vec<int> &nb_body_lits_to_justify);
+	void 		findJustificationAggr	(Var head, vec<Lit>& jstf);
+	bool 		directlyJustifiable		(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust);
+	void 		addExternalLiterals		(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
+
+	/**
+	 * Adds the heads of the aggregates in which x occurs as a body literal to heads
+	 */
+	void 		getHeadsOfAggrInWhichOccurs(Var x, vec<Var>& heads);
+
+	/**
+	 * Returns the set literals of the aggregate with the given head x.
+	 */
+	lwlv::const_iterator getAggLiteralsBegin(Var x) const;
+	lwlv::const_iterator getAggLiteralsEnd	(Var x) const;
+
 
 protected:
 	/**
@@ -164,10 +171,10 @@ protected:
 	 */
     pAgg		getAggWithHeadOccurence	(Var v) const;
 
-	vector<pSet>	aggrminsets;
-	vector<pSet>	aggrmaxsets;
-	vector<pSet>	aggrsumsets;
-	vector<pSet>	aggrprodsets;
+	vector<pSet>				aggrminsets;
+	vector<pSet>				aggrmaxsets;
+	vector<pSet>				aggrsumsets;
+	vector<pSet>				aggrprodsets;
 
 	vector<AggrReason*>			aggr_reason;	// For each atom, like 'reason'.
 	vector<vector<AggrWatch> >	aggr_watches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
@@ -187,15 +194,17 @@ protected:
 	 *
 	 * @PRE: backtracking is in anti-chronologous order and all literals are visited!
 	 */
-	void 		doBacktrack(const Lit& l);
+	void 		doBacktrack			(const Lit& l);
 
 	/**
 	 * Goes through all watches and propagates the fact that p was set true.
 	 */
 	rClause 	Aggr_propagate		(const Lit& p);
 
-	bool 		maxAggAsSAT(bool defined, bool lower, Weight bound, const Lit& head, const AggrSet& set);
-	bool		finishSets(vector<pSet>& sets); //throws UNSAT
+	bool 		maxAggAsSAT			(HdEq headeq, Bound boundsign, Weight bound, const Lit& head, const AggrSet& set);
+	bool		finishSets			(vector<pSet>& sets); //throws UNSAT
+
+	void 		getExplanation(pAgg agg, vec<Lit>& lits, AggrReason& ar) const;
 };
 
 //=======================

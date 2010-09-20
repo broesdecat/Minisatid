@@ -47,12 +47,20 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 using namespace Aggrs;
 
-AggrReason::AggrReason(pAgg e, Expl exp, bool head): expr(e), index(0), expl(exp), head(head) {
-	index = e->getSet()->getStackSize();
+AggrReason::AggrReason(pAgg e, const Lit& lit, Expl exp, bool head):
+		expr(e),
+		l(lit),
+		index(e->getSet()->getStackSize()),
+		expl(exp),
+		head(head) {
 }
 
 void Agg::addAggToSet(){
 	getSet()->addAgg(this);
+}
+
+void SumAgg::addToBounds(const Weight& w){
+	agg.bound = add(agg.bound, w);
 }
 
 /**
@@ -68,9 +76,9 @@ lbool Agg::initialize(){
 		//reportf("No more propagations for %d", gprintVar(var(head)));
 	}
 	if(hv==l_True){
-		confl = getSet()->getSolver()->notifySATsolverOfPropagation(getHead(), new AggrReason(this, CPANDCC, true));
+		confl = getSet()->getSolver()->notifySATsolverOfPropagation(getHead(), new AggrReason(this, getHead(), CPANDCC, true));
 	}else if(hv==l_False){
-		confl = getSet()->getSolver()->notifySATsolverOfPropagation(~getHead(), new AggrReason(this, CPANDCC, true));
+		confl = getSet()->getSolver()->notifySATsolverOfPropagation(~getHead(), new AggrReason(this, ~getHead(), CPANDCC, true));
 	}
 	if(confl!=nullPtrClause){
 		return l_False;
@@ -143,13 +151,13 @@ rClause MaxAgg::propagateHead(bool headtrue) {
 		lwlv::const_reverse_iterator i=s->getWLRBegin();
 		while( confl == nullPtrClause && i<s->getWLREnd() && getLowerBound()<(*i).getWeight()){
 			//because these propagations are independent of the other set literals, they can also be written as clauses
-			confl = s->getSolver()->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(this,HEADONLY));
+			confl = s->getSolver()->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(this,~(*i).getLit(),HEADONLY));
 			i++;
 		}
 	}else if(!headtrue && isUpper()){
 		lwlv::const_reverse_iterator i=s->getWLRBegin();
 		while( confl == nullPtrClause && i<s->getWLREnd() && getUpperBound()<=(*i).getWeight()){
-			confl = s->getSolver()->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(this,HEADONLY));
+			confl = s->getSolver()->notifySATsolverOfPropagation(~(*i).getLit(), new AggrReason(this,~(*i).getLit(),HEADONLY));
 			i++;
 		}
 	}
@@ -198,7 +206,7 @@ rClause MaxAgg::propagate(bool headtrue) {
 	}
 	if(exactlyoneleft){
 		//TODO BASEDONCP is not correct enough (ONCPABOVEBOUND)
-		confl = s->getSolver()->notifySATsolverOfPropagation((*pos).getLit(), new AggrReason(this, BASEDONCP));
+		confl = s->getSolver()->notifySATsolverOfPropagation((*pos).getLit(), new AggrReason(this, (*pos).getLit(), BASEDONCP));
 	}
 	return confl;
 }
@@ -337,10 +345,10 @@ rClause SPAgg::propagate(bool headtrue){
 		if ((*u).getValue()==l_Undef) {//if already propagated as an aggregate, then those best-values have already been adapted
 			if((isLower() && headtrue) || (isUpper() && !headtrue)){
 				//assert((headtrue && set->currentbestcertain+set->wlits[u].weight>bound) || (!headtrue && set->currentbestcertain+set->wlits[u].weight>=bound));
-				c = s->getSolver()->notifySATsolverOfPropagation(~(*u).getLit(), new AggrReason(this, basedon));
+				c = s->getSolver()->notifySATsolverOfPropagation(~(*u).getLit(), new AggrReason(this, ~(*u).getLit(), basedon));
 			}else{
 				//assert((!headtrue && set->currentbestpossible-set->wlits[u].weight<=bound) || (headtrue && set->currentbestpossible-set->wlits[u].weight<bound));
-				c = s->getSolver()->notifySATsolverOfPropagation((*u).getLit(), new AggrReason(this, basedon));
+				c = s->getSolver()->notifySATsolverOfPropagation((*u).getLit(), new AggrReason(this, (*u).getLit(), basedon));
 			}
 		}
 	}
@@ -385,81 +393,13 @@ rClause CardAgg::propagate(bool headtrue){
 	for (lwlv::const_iterator u = s->getWLBegin(); c==nullPtrClause && u < s->getWLEnd(); u++) {
 		if ((*u).getValue()==l_Undef) {//if already propagated as an aggregate, then those best-values have already been adapted
 			if(maketrue){
-				c = s->getSolver()->notifySATsolverOfPropagation((*u).getLit(), new AggrReason(this, basedon));
+				c = s->getSolver()->notifySATsolverOfPropagation((*u).getLit(), new AggrReason(this, (*u).getLit(), basedon));
 			}else{
-				c = s->getSolver()->notifySATsolverOfPropagation(~(*u).getLit(), new AggrReason(this, basedon));
+				c = s->getSolver()->notifySATsolverOfPropagation(~(*u).getLit(), new AggrReason(this, ~(*u).getLit(), basedon));
 			}
 		}
 	}
 	return c;
-}
-
-void Agg::getExplanation(vec<Lit>& lits, AggrReason& ar) const{
-	assert(ar.getAgg() == this);
-
-	if(!ar.isHeadReason() && ar.getIndex() >= getHeadIndex()){
-		//the head literal is saved as it occurred in the theory, so adapt for its current truth value!
-		lits.push(getHeadValue()==l_True?~getHead():getHead());
-	}
-
-	int counter = 0;
-	pSet s = getSet();
-
-	assert(ar.isHeadReason() || ar.getIndex()<=s->getStackSize());
-
-//	This is correct, but not minimal enough. We expect to be able to do better
-//	for(lprop::const_iterator i=s->getStackBegin(); counter<ar.getIndex() && i<s->getStackEnd(); i++,counter++){
-//		lits.push(~(*i).getLit());
-//	}
-
-	if(ar.getExpl()!=HEADONLY){
-		for(lprop::const_iterator i=s->getStackBegin(); counter<ar.getIndex() && i<s->getStackEnd(); i++,counter++){
-			switch(ar.getExpl()){
-			case BASEDONCC:
-				if((*i).getType()==POS){
-					lits.push(~(*i).getLit());
-				}
-				break;
-			case BASEDONCP:
-				if((*i).getType()==NEG){
-					lits.push(~(*i).getLit());
-				}
-				break;
-			case CPANDCC:
-				lits.push(~(*i).getLit());
-				break;
-			default:
-				assert(false);
-				break;
-			}
-		}
-	}
-
-	//TODO de nesting van calls is vrij lelijk en onefficient :)
-	if(getSet()->getSolver()->getPCSolver()->modes().verbosity>=5){
-
-		reportf("STACK: ");
-		for(lprop::const_iterator i=s->getStackBegin(); i<s->getStackEnd(); i++){
-			gprintLit((*i).getLit()); reportf(" ");
-		}
-		reportf("\n");
-
-
-		reportf("Aggregate explanation for ");
-		if(ar.isHeadReason()){
-			gprintLit(getHead());
-		}else{
-			reportf("(index %d)", ar.getIndex());
-			gprintLit((*(s->getWLBegin()+ar.getIndex())).getLit());
-		}
-
-		reportf(" is");
-		for(int i=0; i<lits.size(); i++){
-			reportf(" ");
-			gprintLit(lits[i]);
-		}
-		reportf("\n");
-	}
 }
 
 /**
@@ -513,44 +453,6 @@ void SumAgg::getMinimExplan(vec<Lit>& lits){
  ************************/
 
 /**
- * Finds a new justification.
- * @pre: head is not false, so a justification exists
- */
-void Agg::becomesCycleSource(vec<Lit>& j) const {
-	assert(getHeadValue()!=l_False);
-	vec<Var> nonj;
-	vec<int> s;
-	bool justified = canJustifyHead(j, nonj, s, true);
-	assert(justified);
-	assert(j.size()>0); //v is not false, so a justification exists
-}
-
-/**
- * Add all literals that could make the head true and are not in the unfounded set to the loopformula
- */
-void MaxAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) const{
-	pSet s = getSet();
-	if(isLower()){
-		for (lwlv::const_reverse_iterator i=s->getWLRBegin(); i<s->getWLREnd() && (*i).getWeight()>getLowerBound(); i++) {
-			const Lit& l = (*i).getLit();
-			if (l!=getHead() && ufs.find(var(l)) == ufs.end() && seen[var(l)] != (sign(l) ? 2 : 1)) {
-				loopf.push(~l);
-				seen[var(l)] = (sign(l) ? 2 : 1);
-			}
-		}
-	}else{
-		for (lwlv::const_reverse_iterator i=s->getWLRBegin(); i<s->getWLREnd() && (*i).getWeight()>=getUpperBound(); i++) {
-			const Lit l = (*i).getLit();
-			if (l!=getHead() &&  ufs.find(var(l)) == ufs.end() && seen[var(l)] != (sign(l) ? 1 : 2)) {
-				loopf.push(l);
-				seen[var(l)] = (sign(l) ? 1 : 2);
-			}
-		}
-	}
-}
-
-/**
- * IMPORTANT: comments from justifyHead for a minimum aggregate, has not yet been adapted.
  * AGG <= B: v is justified if one literal below/eq the bound is THAT IS NOT THE HEAD
  * 					if so, change the justification to the literal
  * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
@@ -558,7 +460,6 @@ void MaxAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<in
  * 			 so no conclusions have to be drawn from the literals above/eq the bound
  * 					if so, change the justification to the negation of all those below the bound literals
  * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
- * NOTE it might be possible to write this more efficiently, for some ideas see commits before 26/01/2010
  */
 bool MaxAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
 	bool justified = false;
@@ -588,25 +489,6 @@ bool MaxAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& current
 		jstf.clear();
 	}
 	return justified;
-}
-
-/**
- * Idee is dat alle literals worden toegevoegd die (onafhankelijk van hun weight) mogelijk de head
- * waar kunnen maken. Dus als al die literals false worden, kan de head zeker op geen andere manier nog
- * waar worden dan door de ufs.
- */
-void SPAgg::createLoopFormula(const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) const{
-	int f = isLower()?1:2;
-	int s = isLower()?2:1;
-
-	pSet pset = getSet();
-	for (lwlv::const_iterator i = pset->getWLBegin(); i < pset->getWLEnd(); ++i) {
-		const Lit& l = (*i).getLit();
-		if (l!=getHead() && ufs.find(var(l)) == ufs.end() && seen[var(l)] != (sign(l) ? f : s)) {
-			loopf.push(isLower()?~l:l);
-			seen[var(l)] = (sign(l) ? f : s);
-		}
-	}
 }
 
 /**
@@ -644,24 +526,100 @@ bool SPAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentj
 			}
 		}
 	}
+
+	if(s->getSolver()->getPCSolver()->modes().verbosity >=4){
+		reportf("Justification checked for ");
+		printAggrExpr(this);
+
+		if(justified){
+			reportf("justification found: ");
+			for(int i=0; i<jstf.size(); i++){
+				gprintLit(jstf[i]); reportf(" ");
+			}
+			reportf("\n");
+		}else{
+			reportf("no justification found.\n");
+		}
+	}
+
 	return justified;
 }
 
-//=========== DEBUG =================
+/*bool SPAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
+	//OTHER IMPLEMENTATION (probably buggy)
+	pSet s = getSet();
 
-void Aggrs::printAggrSet(pSet set, bool endl){
-	reportf("%s{", set->getName().c_str());
-	for (lwlv::const_iterator i=set->getWLBegin(); i<set->getWLEnd(); ++i) {
-		reportf(" "); gprintLit((*i).getLit(), (*i).getValue()); reportf("(%s)",printWeight((*i).getWeight()).c_str());
-	}
-	if(endl){
-		reportf(" }\n");
+	Weight current = 0;
+	if(isLower()){
+		current = s->getBestPossible();
 	}else{
-		reportf(" }");
+		current = s->getEmptySetValue();
 	}
+
+	bool justified = false;
+	if(aggValueImpliesHead(current)){
+		justified = true;
+	}
+
+	for (lwlv::const_iterator i = s->getWLBegin(); !justified && i < s->getWLEnd(); ++i) {
+		if(isMonotone(*i) && s->isJustified(*i, currentjust, real)){
+			if(isLower()){
+				jstf.push(~(*i).getLit());
+				current = this->remove(current, (*i).getWeight());
+			}else{
+				//if(s->isJustified(*i, currentjust, real)){
+				jstf.push((*i).getLit());
+				current = this->add(current, (*i).getWeight());
+			}
+
+			if (aggValueImpliesHead(current)){
+				justified = true;
+			}
+		}else if(real ||currentjust[var((*i).getLit())]!=0){
+			nonjstf.push(var((*i).getLit()));
+		}
+	}
+
+	if (!justified) {
+		jstf.clear();
+	}
+
+	if(s->getSolver()->getPCSolver()->modes().verbosity >=4){
+		reportf("Justification checked for ");
+		printAggrExpr(this);
+
+		if(justified){
+			reportf("justification found: ");
+			for(int i=0; i<jstf.size(); i++){
+				gprintLit(jstf[i]); reportf(" ");
+			}
+			reportf("\n");
+		}else{
+			reportf("no justification found.\n");
+		}
+	}
+
+	return justified;
+}*/
+
+bool MaxAgg::isMonotone(const WLV& l) const{
+	return (isLower() && l.getWeight()<=getLowerBound()) || (isUpper() && l.getWeight()>=getUpperBound());
 }
 
-void Aggrs::printAggrExpr(pAgg ae){
+bool SumAgg::isMonotone(const WLV& l) const{
+	return (isLower() && l.getWeight()<0) || (isUpper() && l.getWeight()>0);
+}
+
+bool ProdAgg::isMonotone(const WLV& l) const{
+	assert(l.getWeight()==0 || l.getWeight()>=1);
+	return isUpper();
+}
+
+///////
+// DEBUG
+///////
+
+void Aggrs::printAggrExpr(const Agg* ae){
 	gprintLit(ae->getHead(), ae->getHeadValue());
 	pSet set = ae->getSet();
 	if(ae->isLower()){

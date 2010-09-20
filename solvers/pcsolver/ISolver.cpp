@@ -17,4 +17,34 @@
 //    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //--------------------------------------------------------------------------------------------------
 
-#include "ISolver.hpp"
+#include "solvers/pcsolver/ISolver.hpp"
+
+#include "solvers/pcsolver/PCSolver.hpp"
+
+bool ISolver::isTrue(Lit l) const {
+	return value(l) == l_True;
+}
+bool ISolver::isTrue(Var v) const {
+	return value(v) == l_True;
+}
+bool ISolver::isFalse(Lit l) const {
+	return value(l) == l_False;
+}
+bool ISolver::isFalse(Var v) const {
+	return value(v) == l_False;
+}
+bool ISolver::isUnknown(Lit l) const {
+	return value(l) == l_Undef;
+}
+bool ISolver::isUnknown(Var v) const {
+	return value(v) == l_Undef;
+}
+lbool ISolver::value(Var x) const {
+	return getPCSolver()->value(x);
+}
+lbool ISolver::value(Lit p) const {
+	return getPCSolver()->value(p);
+}
+int ISolver::nVars() const {
+	return getPCSolver()->nVars();
+}

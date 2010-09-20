@@ -59,6 +59,9 @@ typedef CPSolver* pCPSolver;
 typedef AggSolver* pAggSolver;
 typedef ModSolver* pModSolver;
 
+bool isPositive(Lit l);
+Lit createNegativeLiteral(Var i);
+Lit createPositiveLiteral(Var i);
 
 class PCSolver: public Data{
 private:
@@ -86,9 +89,9 @@ private:
 	int init;
 	vector<Lit> initialprops;
 
-	/*
-	 * OPTIMIZATION INFORMATION
-	 */
+	///////
+	// OPTIMIZATION INFORMATION
+	///////
 	MINIM		optim;
 	Var 		head;
 	vec<Lit>	to_minimize;
@@ -124,7 +127,7 @@ public:
 	bool 		addRule			(bool conj, Lit head, const vec<Lit>& lits);
 	bool 		addSet			(int id, const vec<Lit>& lits);
 	bool 		addSet			(int id, const vec<Lit>& lits, const vector<Weight>& w);
-	bool 		addAggrExpr		(Lit head, int setid, Weight bound, bool lower, AggrType type, bool defined);
+	bool 		addAggrExpr		(Lit head, int setid, Weight bound, Bound boundsign, AggrType type, HdEq defined);
 	bool 		addIntVar		(int groundname, int min, int max);
 	bool 		addCPBinaryRel	(Lit head, int groundname, MINISAT::EqType rel, int bound);
 	bool 		addCPBinaryRelVar	(Lit head, int groundname, MINISAT::EqType rel, int groundname2);
@@ -189,6 +192,7 @@ public:
 	/*
 	 * Returns the decision level at which a variable was deduced. This allows to get the variable that was propagated earliest/latest
 	 */
+	vector<Lit> getTrail		() const;
 	int 		getLevel		(int var) const;
 	int			getNbDecisions	() const;
 	vector<Lit>	getDecisions	() const;
