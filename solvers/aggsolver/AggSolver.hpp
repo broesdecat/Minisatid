@@ -107,10 +107,11 @@ private:
 	Lit			head;
 	HdEq		sem;
 	AggrType	type;
+	bool 		optim;
 
 public:
 	ParsedAgg(const Weight& bound, Bound sign, const Lit& head, HdEq sem, ppaset set, AggrType type):
-			bound(bound), sign(sign), head(head), sem(sem), type(type){
+			bound(bound), sign(sign), head(head), sem(sem), type(type), optim(false){
 		set->addAgg(this);
 	}
 	~ParsedAgg(){ }
@@ -120,6 +121,8 @@ public:
 			Bound	getSign()		const	{ return sign; }
 			HdEq	getSem()		const	{ return sem; }
 			AggrType getType()		const	{ return type; }
+			void 	setOptim()				{ optim = true; }
+			bool 	isOptim()		const	{ return optim; }
 };
 
 /*

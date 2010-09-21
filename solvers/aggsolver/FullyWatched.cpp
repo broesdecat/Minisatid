@@ -78,9 +78,13 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 /**
  * Returns true if this aggregate can be propagated in the initialization, so it will never change truth value
  * and can be left out of any propagations.
+ * Returns false if the aggregate is certainly unsat.
  */
 lbool FWAgg::initialize(const Agg& agg) {
 	rClause confl = nullPtrClause;
+	if(agg.isOptim()){
+		return l_Undef;
+	}
 
 	lbool hv = canPropagateHead(agg, getCC(), getCP());
 	bool alwaystrue = false;

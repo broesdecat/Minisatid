@@ -178,7 +178,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	Bound boundsign,
 		}
 	}
 
-	//INVARIANT: it has to be guaranteed that there is a watch on ALL heads
+	//Check that not aggregates occur with the same heads
 	for(map<int, ppaset>::const_iterator i=parsedsets.begin(); i!=parsedsets.end(); i++){
 		for(int j=0; j<(*i).second->getAgg().size(); j++){
 			if(var((*i).second->getAgg()[j]->getHead())==headv){ //Exception if two agg with same head
@@ -342,7 +342,7 @@ bool AggSolver::finishSet(ppaset set){
 //gets OWNING pointer to ca
 bool AggSolver::initCalcAgg(CalcAgg* ca, vppagg aggs){
 	for(int i=0; i<aggs.size(); i++){
-		ca->addAgg(new Agg(aggs[i]->getBound(), aggs[i]->getSign(), aggs[i]->getHead(), aggs[i]->getSem()));
+		ca->addAgg(new Agg(aggs[i]->getBound(), aggs[i]->getSign(), aggs[i]->getHead(), aggs[i]->getSem(), aggs[i]->isOptim()));
 	}
 
 	bool unsat, sat;
@@ -728,30 +728,41 @@ bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, ve
 //FIXME no optimizations should take place on mnmz aggregates (partially helped by separate add method).
 //FIXME 2 more optimization should/could take place on other aggregates
 bool AggSolver::addMnmzSum(Var headv, int setid, Bound boundsign) {
-	/* FIXME
-	if (((vector<int>::size_type) setid)>sets[0].size() || sets[0][setid-1]==NULL || sets[0][setid-1]->getWL().size()==0) {
+	if (parsedsets.find(setid)==parsedsets.end()) {
 		char s[100];
 		sprintf(s, "Set nr. %d is used, but not defined yet.\n", setid);
 		throw idpexception(s);
 	}
 
-	assert(setid>0);
-	assert(headv>0);
-	uint64_t nb = headv;
+	assert(headv>=0);
 
-	if (headwatches.size() > nb && headwatches[headv] != NULL) {
-		char s[100];
-		sprintf(s, "Two aggregates have the same head(%d).\n", gprintVar(headv));
-		throw idpexception(s);
+	ppaset set = parsedsets[setid];
+
+	// Check whether the head occurs in the body of the set, which is no longer allowed
+	for(int i=0; i<set->getWL().size() ;i++){
+		if(var(set->getWL()[i])==headv){ //Exception if head occurs in set itself
+			char s[100];
+			sprintf(s, "Set nr. %d contains a literal of atom %d, the head of an aggregate, which is not allowed.\n", setid, gprintVar(headv));
+			throw idpexception(s);
+		}
 	}
 
-	assert(headwatches.size()>nb);
+	//Check that not aggregates occur with the same heads
+	for(map<int, ppaset>::const_iterator i=parsedsets.begin(); i!=parsedsets.end(); i++){
+		for(int j=0; j<(*i).second->getAgg().size(); j++){
+			if(var((*i).second->getAgg()[j]->getHead())==headv){ //Exception if two agg with same head
+				char s[100];
+				sprintf(s, "At least two aggregates have the same head(%d).\n", gprintVar(headv));
+				throw idpexception(s);
+			}
+		}
+	}
 
 	//the head of the aggregate
 	Lit head = mkLit(headv, false);
 
 	Weight max = 0, min = 0;
-	for(lwlv::const_iterator i=sets[maptype[SUM]][setid-1]->getWL().begin(); i<sets[maptype[SUM]][setid-1]->getWL().end(); i++){
+	for(vwl::const_iterator i=set->getWL().begin(); i<set->getWL().end(); i++){
 		if((*i).getWeight()>0){
 			max += (*i).getWeight();
 		}else{
@@ -759,44 +770,38 @@ bool AggSolver::addMnmzSum(Var headv, int setid, Bound boundsign) {
 		}
 	}
 
-	pagg ae = new SumAgg(boundsign, boundsign==LOWERBOUND ? max+1 : min, head, pset(sets[maptype[SUM]][setid-1]));
-	ae->setOptimAgg(); //FIXME temporary solution
-	aggregates.push_back(ae);
-	headwatches[var(head)] = ae;
-
+	ppagg ae = new ParsedAgg(boundsign==LOWERBOUND ? max+1 : min, boundsign, head, COMP, set, SUM);
+	ae->setOptim(); //FIXME temporary solution
 
 	if (verbosity() >= 3) {
 		reportf("Added sum minimization: Minimize ");
-		printAggrExpr(ae);
+		//TODO
+		//printAggrExpr(ae);
 		reportf("\n");
 	}
 
-	return true;*/
-	assert(false);
 	return true;
 }
 
 bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
-	/* TODO
 	pagg a = headwatches[head];
-	pset s = a->getSet();
+	CalcAgg* s = a->getAggComb();
+	SumFWAgg* prop = dynamic_cast<SumFWAgg*>(s->getProp());
 
-	reportf("Current optimum: %s\n", printWeight(s->getCC()).c_str());
+	reportf("Current optimum: %s\n", printWeight(prop->getCC()).c_str());
 
 	if (a->isLower()) {
-		a->setLowerBound(s->getCC() - 1);
+		a->setLowerBound(prop->getCC() - 1);
 	} else if (a->isUpper()) {
-		a->setUpperBound(s->getCC() - 1);
+		a->setUpperBound(prop->getCC() - 1);
 	}
 
-	if (s->getBestPossible() == s->getCC()) {
+	if (s->getBestPossible() == prop->getCC()) {
 		return true;
 	}
 
-	s->getMinimExplan(*a, invalidation);
+	prop->getMinimExplan(*a, invalidation);
 
-	return false;*/
-	assert(false);
 	return false;
 }
 
@@ -806,7 +811,7 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
  * the newly adapted bound.
  */
 void AggSolver::propagateMnmz(Var head) {
-	dynamic_cast<SumFWAgg*> (headwatches[head]->getAggComb())->propagate(*headwatches[head], true);
+	dynamic_cast<SumFWAgg*> (headwatches[head]->getAggComb()->getProp())->propagate(*headwatches[head], true);
 }
 
 ///////

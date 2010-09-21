@@ -73,9 +73,11 @@ private:
 	CalcAgg* 	comb;
 	int			index;
 
+	bool		optim;
+
 public:
-	Agg(const Weight& bound, Bound sign, const Lit& head, HdEq sem):
-		bound(bound), sign(sign), head(head), sem(sem), comb(NULL), index(-1){	}
+	Agg(const Weight& bound, Bound sign, const Lit& head, HdEq sem, bool optim = false):
+		bound(bound), sign(sign), head(head), sem(sem), comb(NULL), index(-1), optim(optim){	}
 
 	const 	Lit& 		getHead() 			const 	{ return head; }
 			void 		setComb(CalcAgg* c, int ind) { comb = c; index = ind;	}
@@ -94,6 +96,8 @@ public:
 			bool 	isDefined()		const	{ return sem==DEF; }
 
 			Bound	getSign()		const	{ return sign; }
+
+			bool	isOptim()		const	{ return optim; }
 };
 
 
@@ -242,7 +246,8 @@ public:
 
 	virtual Weight 	getBestPossible	() 			const 	= 0;
 
-	void 		setProp(Propagator* p) { prop = p; }
+	void 			setProp			(Propagator* p) 	{ prop = p; }
+	Propagator*		getProp			() 			const { return prop; }
 
 	///////
 	// INITIALIZATION
@@ -256,12 +261,12 @@ public:
 	virtual Weight 	getCombinedWeight		(const Weight& one, const Weight& two) 	const 	= 0;
 	virtual WL 		handleOccurenceOfBothSigns(const WL& one, const WL& two) 				= 0;
 
-	void initialize(bool& unsat, bool& sat);
+	void 			initialize(bool& unsat, bool& sat);
 
 	///////
 	// SEARCH
 	///////
-	virtual bool 		canJustifyHead	(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const = 0;
+	virtual bool canJustifyHead	(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const = 0;
 	// Propagate set literal
 	rClause 	propagate		(const Lit& p, const Watch& w);
 	// Propagate head
