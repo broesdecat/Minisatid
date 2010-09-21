@@ -559,7 +559,7 @@ rClause AggSolver::propagate(const Lit& p) {
 		addTempWatch(p, ws2[i]);
 	}
 
-	if(verbosity()>=1){
+	/*if(verbosity()>=1){
 		reportf("Current effective watches AFTER: \n");
 		for(int i=0; i<2*nVars(); i++){
 			reportf("Watch "); gprintLit(toLit(i)); reportf(" used by: ");
@@ -570,7 +570,7 @@ rClause AggSolver::propagate(const Lit& p) {
 			}
 			reportf("\n");
 		}
-	}
+	}*/
 
 	return confl;
 }

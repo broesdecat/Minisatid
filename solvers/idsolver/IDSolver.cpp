@@ -624,12 +624,12 @@ bool IDSolver::initAfterSimplify() {
 		Lit l = createNegativeLiteral(i);
 		if (!isFalse(l)) {
 			propq.push(l); // First negative literals are added that are not already false
-			reportf("Justified in initialization: "); gprintLit(l); reportf("\n");
+			//reportf("Justified in initialization: "); gprintLit(l); reportf("\n");
 		}
 		l = createPositiveLiteral(i);
 		if (!isDefInPosGraph(i) && !isFalse(l)) {
 			propq.push(l); // Then all non-false non-defined positive literals.
-			reportf("Justified in initialization: "); gprintLit(l); reportf("\n");
+			//reportf("Justified in initialization: "); gprintLit(l); reportf("\n");
 		}
 	}
 
@@ -648,7 +648,7 @@ bool IDSolver::initAfterSimplify() {
 
 		for (int i = 0; i < heads.size(); i++) {
 			assert(jstf[i].size()>0);
-			reportf("Justified in initialization: "); gprintLit(heads[i]); reportf("\n");
+			//reportf("Justified in initialization: "); gprintLit(heads[i]); reportf("\n");
 			changejust(var(heads[i]), jstf[i]);
 			propq.push(heads[i]);
 		}
@@ -822,7 +822,7 @@ void IDSolver::propagateJustificationConj(Lit l, vec<Lit>& heads) {
 		seen[v]--;
 		if (seen[v] == 0) {
 			heads.push(createPositiveLiteral(v));
-			reportf("Justified in initialization: "); gprintLit(createPositiveLiteral(v)); reportf("\n");
+			//reportf("Justified in initialization: "); gprintLit(createPositiveLiteral(v)); reportf("\n");
 		}
 	}
 }
@@ -1013,7 +1013,7 @@ void IDSolver::checkJustification(Var head) {
 
 	vec<Lit> jstf;
 	bool external = true;
-	;
+
 	if (defType[head] == DISJ) {
 		findJustificationDisj(head, jstf);
 	} else {
