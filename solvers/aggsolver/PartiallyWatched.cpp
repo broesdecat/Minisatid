@@ -78,7 +78,6 @@ void CardPWAgg::addToWatches(watchset w, int setindex) {
 	watches.push_back(wl);
 	set[setindex] = set[set.size() - 1];
 	set.pop_back();
-	addWatch(wl.getLit(), w, watches.size() - 1);
 
 	/*reportf("In set:  ");
 	for(int i=0; i<set.size(); i++){
@@ -205,7 +204,7 @@ void CardPWAgg::initialize(bool& unsat, bool& sat) {
 
 	rClause confl = nullPtrClause;
 	if (nffailed) {
-		confl = as().getSolver()->notifySolver(~agg.getHead(), new AggReason( agg, ~agg.getHead(), BASEDONCC, false));
+		confl = as().getSolver()->notifySolver(~agg.getHead(), new AggReason(agg, ~agg.getHead(), BASEDONCC, false));
 		if (confl != nullPtrClause) {
 			unsat = true;
 		}else{
@@ -214,7 +213,7 @@ void CardPWAgg::initialize(bool& unsat, bool& sat) {
 		return;
 	}
 	if (ntfailed) {
-		confl = as().getSolver()->notifySolver(agg.getHead(), new AggReason( agg, agg.getHead(), BASEDONCC, false));
+		confl = as().getSolver()->notifySolver(agg.getHead(), new AggReason(agg, agg.getHead(), BASEDONCC, false));
 		if (confl != nullPtrClause) {
 			unsat = true;
 			return;
@@ -248,6 +247,20 @@ void CardPWAgg::initialize(bool& unsat, bool& sat) {
 		return;
 	}
 
+	//IMPORTANT: only add watches AFTER initialization, otherwise delete is not complete! TODO check if this is always enough
+	for(int i=0; i<getWatches(NF).size(); i++){
+		addWatch(getWatches(NF)[i], NF, i);
+	}
+	for(int i=0; i<getWatches(NFEX).size(); i++){
+		addWatch(getWatches(NFEX)[i], NFEX, i);
+	}
+	for(int i=0; i<getWatches(NT).size(); i++){
+		addWatch(getWatches(NT)[i], NT, i);
+	}
+	for(int i=0; i<getWatches(NTEX).size(); i++){
+		addWatch(getWatches(NTEX)[i], NTEX, i);
+	}
+
 	PWAgg::initialize(unsat, sat);
 }
 
@@ -269,7 +282,7 @@ bool CardPWAgg::initializeNT() {
 	vwl& set = getSet(NT);
 	for (vsize i = 0; i < set.size(); i++) {
 		const WL& wl = set[i];
-		if (Weight(nt.size()) <= Weight(as().getWL().size()) - agg.getBound() && value(wl.getLit()) != l_True) {
+		if (Weight(nt.size()) <= Weight(as().getWL().size()) - agg.getBound() && value(wl.getLit()) != l_False) {
 			addToWatches(NT, i);
 			i--;
 		}
@@ -295,7 +308,7 @@ bool CardPWAgg::initializeNFL() {
 	vwl& set = getSet(NF);
 	for (vsize i = 0; i < set.size(); i++) {
 		const WL& wl = set[i];
-		if (Weight(nf.size()) < Weight(as().getWL().size()) - agg.getBound() && value(wl.getLit()) != l_True) {
+		if (Weight(nf.size()) < Weight(as().getWL().size()) - agg.getBound() && value(wl.getLit()) != l_False) {
 			addToWatches(NF, i);
 			i--;
 		}
@@ -479,6 +492,10 @@ rClause CardPWAgg::propagate(const Agg& agg) {
 			for (vsize i = 0; confl == nullPtrClause && i < nf.size(); i++) {
 				confl = as().getSolver()->notifySolver(nf[i].getLit(), new AggReason(*as().getAgg()[0], nf[i].getLit(), BASEDONCC, false));
 			}
+		}else{
+			for(int i=0; i<getWatches(NFEX).size(); i++){
+				addWatch(getWatches(NFEX)[i], NFEX, i);
+			}
 		}
 	}
 
@@ -486,6 +503,10 @@ rClause CardPWAgg::propagate(const Agg& agg) {
 		if (!initializeEX(NTEX)) {
 			for (vsize i = 0; confl == nullPtrClause && i < nt.size(); i++) {
 				confl = as().getSolver()->notifySolver(nt[i].getLit(), new AggReason(*as().getAgg()[0], nt[i].getLit(), BASEDONCC, false));
+			}
+		}else{
+			for(int i=0; i<getWatches(NTEX).size(); i++){
+				addWatch(getWatches(NTEX)[i], NTEX, i);
 			}
 		}
 	}

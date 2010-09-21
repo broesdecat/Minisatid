@@ -345,7 +345,7 @@ bool AggSolver::initCalcAgg(CalcAgg* ca, vppagg aggs){
 		ca->addAgg(new Agg(aggs[i]->getBound(), aggs[i]->getSign(), aggs[i]->getHead(), aggs[i]->getSem(), aggs[i]->isOptim()));
 	}
 
-	bool unsat, sat;
+	bool unsat = false, sat = false;
 	ca->initialize(unsat, sat);
 	if(sat || unsat){
 		delete ca;
@@ -557,6 +557,19 @@ rClause AggSolver::propagate(const Lit& p) {
 	}
 	for (; i < ws2.size(); i++){
 		addTempWatch(p, ws2[i]);
+	}
+
+	if(verbosity()>=1){
+		reportf("Current effective watches AFTER: \n");
+		for(int i=0; i<2*nVars(); i++){
+			reportf("Watch "); gprintLit(toLit(i)); reportf(" used by: ");
+			for(int j=0; j<tempwatches[i].size(); j++){
+				reportf("    ");
+				printAgg(tempwatches[i][j]->getAggComb(), true);
+
+			}
+			reportf("\n");
+		}
 	}
 
 	return confl;
