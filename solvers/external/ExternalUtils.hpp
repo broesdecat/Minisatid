@@ -177,12 +177,13 @@ struct ECNF_mode {
 
 	bool lparse;
 	bool remap;  //Whether he should remap the atom values from the input to fill up gaps in the numbering
+	bool pw;	//use partially watched agg structures or not.
 
 	ECNF_mode() :
 		random_var_freq(0.02), var_decay(1 / 0.95), polarity_mode(polarity_stored), verbosity(0),
 		def(false), aggr(false), mnmz(false), cp(false), sem(WELLF), nbmodels(1),
 		defn_strategy(always), defn_search(include_cs), ufs_strategy(breadth_first),
-		lparse(false), remap(false){
+		lparse(false), remap(false), pw(true){
 	}
 };
 

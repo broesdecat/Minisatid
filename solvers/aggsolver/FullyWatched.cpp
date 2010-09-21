@@ -47,7 +47,7 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 		if (result == l_True && !agg->isDefined()) {
 			//If after initialization, the head will have a fixed value, then this is
 			//independent of any further propagations within that aggregate.
-			//BUT ONLY if it is not defined (or at a later stage, if it cannot be in any loop
+			//BUT ONLY if it is not defined (or at a later stage, if it cannot be in any loop)
 			as().getSolver()->removeHeadWatch(var(agg->getHead()));
 			delete agg;
 		} else if (result == l_False) {

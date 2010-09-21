@@ -383,23 +383,23 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 	assert(lvl==decisionLevel());
 	assert(confl!=NULL);
 
-	//reportf("Conflicts: %d.\n", conflicts);
 	vector<Lit> explain;
 	if(verbosity>4){
-		reportf("Choices: ");
+		reportf("START clause learning: \n");
+		reportf("    Choices: ");
 		for(int i=0; i<trail_lim.size(); i++){
 			gprintLit(trail[trail_lim[i]]); reportf(" ");
 		}
 		reportf("\n");
-		reportf("Trail: \n");
+		reportf("    Trail: \n");
 		for(int i=0; i<trail_lim.size()-1; i++){
-			reportf("Level: ");
+			reportf("    Level: ");
 			for(int j=trail_lim[i]; j<trail_lim[i+1]; j++){
 				gprintLit(trail[j]); reportf(" ");
 			}
 			reportf("\n");
 		}
-		reportf("Level: ");
+		reportf("    Level: ");
 		for(int j=trail_lim[trail_lim.size()-1]; j<trail.size(); j++){
 			gprintLit(trail[j]); reportf(" ");
 		}
@@ -420,17 +420,17 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 
         /*AB*/
         if(verbosity>4){
-			reportf("DECISION LEVEL %d\n", decisionLevel());
-			reportf("Current conflict clause: ");
+        	reportf("    ------------------------------------- \n");
+			reportf("        Current conflict clause: ");
 			printClause(c);
 			reportf("\n");
-			reportf("Current learned clause: ");
+			reportf("        Current learned clause: ");
 			for (int i = 1; i < out_learnt.size(); i++) {
 				printLit(out_learnt[i]);
 				reportf(" ");
 			}
 			reportf("\n");
-			reportf("Still explain: ");
+
 		}
     	/*AE*/
 
@@ -466,6 +466,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 
         /*AB*/
         if(verbosity>4){
+        	reportf("        Still to explain: ");
         	for(vector<Lit>::const_iterator i=explain.begin(); i<explain.end(); i++){
         		gprintLit(*i); reportf(" ");
         	}
@@ -485,7 +486,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 
         /*AB*/
         if(verbosity>4){
-			reportf("Getting explanation for ");
+			reportf("    Now getting explanation for ");
 			for(vector<Lit>::iterator i=explain.begin(); i<explain.end(); i++){
 				if(var(*i)==var(p)){
 					explain.erase(i);
@@ -493,7 +494,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 				}
 			}
 			printLit(p);
-			reportf("\n");
+			reportf(" => ");
 		}
 
         if(confl==NULL && pathC>1){
@@ -501,7 +502,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 			deleteImplicitClause = true;
         }
         if(verbosity>4 && confl!=NULL) {
-        	reportf("Explanation is "); printClause(*confl); reportf("\n");
+        	printClause(*confl); reportf("\n");
         }
         /*AE*/
 
@@ -510,6 +511,10 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 
     }while (pathC > 0);
     out_learnt[0] = ~p;
+
+    if(verbosity>4){
+    	reportf("END clause learning: explanation found\n");
+    }
 
     /*if(verbosity>=0){
     	for(int i=0; i<out_learnt.size(); i++){

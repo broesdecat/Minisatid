@@ -97,7 +97,11 @@ ProdCalc::ProdCalc(const paggsol& solver, const vwl& wl):
 CardCalc::CardCalc(const paggsol& solver, const vwl& wl):
 			SPCalc(solver, wl){
 	setESV(0);
-	new CardPWAgg(this);
+	if(solver->getPCSolver()->modes().pw){
+		new CardPWAgg(this);
+	}else{
+		new SumFWAgg(this);
+	}
 }
 
 /*
@@ -354,6 +358,11 @@ void CalcAgg::initialize(bool& unsat, bool& sat) {
 	prop->initialize(unsat, sat);
 	if(!sat && !unsat){
 		getSolver()->addSet(this);
+		for(int i=0; i<getAgg().size(); i++){
+			if(getAgg()[i]->isDefined()){
+				getSolver()->getPCSolver()->notifyAggrHead(var(getAgg()[i]->getHead()));
+			}
+		}
 	}
 }
 

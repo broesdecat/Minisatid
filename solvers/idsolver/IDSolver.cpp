@@ -125,6 +125,8 @@ bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
 		throw idpexception("Negative heads are not allowed.\n");
 	}
 
+	//FIXME TODO check that the head is not already defined!!!!!
+
 	if (verbosity() >= 5) {
 		reportf("Adding %s rule, %d <- ", conj?"conjunctive":"disjunctive", gprintVar(var(head)));
 		for (int i = 0; i < ps.size(); i++) {
@@ -622,10 +624,12 @@ bool IDSolver::initAfterSimplify() {
 		Lit l = createNegativeLiteral(i);
 		if (!isFalse(l)) {
 			propq.push(l); // First negative literals are added that are not already false
+			reportf("Justified in initialization: "); gprintLit(l); reportf("\n");
 		}
 		l = createPositiveLiteral(i);
 		if (!isDefInPosGraph(i) && !isFalse(l)) {
 			propq.push(l); // Then all non-false non-defined positive literals.
+			reportf("Justified in initialization: "); gprintLit(l); reportf("\n");
 		}
 	}
 
@@ -644,6 +648,7 @@ bool IDSolver::initAfterSimplify() {
 
 		for (int i = 0; i < heads.size(); i++) {
 			assert(jstf[i].size()>0);
+			reportf("Justified in initialization: "); gprintLit(heads[i]); reportf("\n");
 			changejust(var(heads[i]), jstf[i]);
 			propq.push(heads[i]);
 		}
@@ -817,6 +822,7 @@ void IDSolver::propagateJustificationConj(Lit l, vec<Lit>& heads) {
 		seen[v]--;
 		if (seen[v] == 0) {
 			heads.push(createPositiveLiteral(v));
+			reportf("Justified in initialization: "); gprintLit(createPositiveLiteral(v)); reportf("\n");
 		}
 	}
 }

@@ -80,9 +80,6 @@ void AggSolver::notifyVarAdded(uint64_t nvars) {
 
 void AggSolver::setHeadWatch(Var head, Agg* agg) {
 	headwatches[head] = agg;
-	if (agg->isDefined()) {
-		getPCSolver()->notifyAggrHead(head);
-	}
 }
 
 void AggSolver::removeHeadWatch(Var x) {
@@ -163,9 +160,9 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	Bound boundsign,
 		sprintf(s, "Set nr. %d is used, but not defined yet.\n", setid);
 		throw idpexception(s);
 	}
-	if (headv<=0) { //Exception if head is zero or neg
+	if (headv<0) { //Exception if head is neg
 		char s[100];
-		sprintf(s, "Heads have to be non-zero positive, which is violated for head %d.\n", headv);
+		sprintf(s, "Heads have to be positive, which is violated for head %d.\n", headv);
 		throw idpexception(s);
 	}
 
@@ -208,7 +205,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	Bound boundsign,
 
 	//the head of the aggregate
 	Lit head = mkLit(headv, false);
-	ppagg agg = new ParsedAgg(bound, boundsign, head, headeq, parsedsets[setid], type);
+	new ParsedAgg(bound, boundsign, head, headeq, parsedsets[setid], type);
 
 	if (verbosity() >= 5) { //Print info on added aggregate
 		reportf("Added %s aggregate with head %d on set %d, %s %s of type ",
@@ -356,6 +353,14 @@ bool AggSolver::initCalcAgg(CalcAgg* ca, vppagg aggs){
 	return !unsat;
 }
 
+void AggSolver::addSet(CalcAgg* ca){
+	sets.push_back(ca);
+	//Initialize network of body literals:
+	for(int i=0; i<ca->getWL().size(); i++){
+		network[var(ca->getWL()[i])].push_back(ca);
+	}
+}
+
 bool AggSolver::constructMinSet(ppaset set, vppagg aggs){
 	vwl wl;
 	for(int i=0; i<set->getWL().size(); i++){
@@ -366,8 +371,7 @@ bool AggSolver::constructMinSet(ppaset set, vppagg aggs){
 	for(int i=0; i<aggs.size(); i++){
 		ppagg agg = aggs[i];
 		Bound sign = agg->getSign()==LOWERBOUND?UPPERBOUND:LOWERBOUND;
-		ppagg agg2 = new ParsedAgg(agg->getBound(), sign, agg->getHead(), agg->getSem(), set2, agg->getType());
-		set2->addAgg(agg2);
+		ppagg agg2 = new ParsedAgg(-agg->getBound(), sign, agg->getHead(), agg->getSem(), set2, agg->getType());
 		aggs2.push_back(agg2);
 	}
 
@@ -416,7 +420,7 @@ bool AggSolver::constructCardSet(ppaset set, vppagg aggs){
 			CalcAgg* ca = new CardCalc(this, set->getWL());
 			vppagg aggs2;
 			aggs2.push_back(aggs[i]);
-			unsat = initCalcAgg(ca, aggs2);
+			unsat = !initCalcAgg(ca, aggs2);
 		}
 		return !unsat;
 	}else{
@@ -712,11 +716,9 @@ void AggSolver::findJustificationAggr(Var head, vec<Lit>& outjstf) {
  * contain its justification and true will be returned. Otherwise, false will be returned and nonjstf will contain
  * all body literals of v that are not justified.
  */
-bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf,
-		vec<Var>& currentjust) {
+bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust) {
 	const Agg& agg = *getAggWithHead(v);
-	return agg.getAggComb()->canJustifyHead(agg, jstf, nonjstf, currentjust,
-			false);
+	return agg.getAggComb()->canJustifyHead(agg, jstf, nonjstf, currentjust, false);
 }
 
 ///////

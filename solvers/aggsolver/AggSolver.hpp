@@ -113,6 +113,7 @@ public:
 			bound(bound), sign(sign), head(head), sem(sem), type(type){
 		set->addAgg(this);
 	}
+	~ParsedAgg(){ }
 
 	const 	Lit& 	getHead() 		const 	{ return head; }
 	const 	Weight& getBound() 		const	{ return bound; }
@@ -260,7 +261,7 @@ public:
 
 	void				printStatistics			() const ;
 
-	void				addSet					(CalcAgg* ca) { sets.push_back(ca); }
+	void				addSet					(CalcAgg* ca);
 
 protected:
 	// Returns the aggregate in which the given variable is the head.
