@@ -141,7 +141,7 @@ private:
 
 	vector<AggReason*>		aggreason;	// For each atom, like 'reason'.
 
-	vvpw					tempwatches;
+	vvpw					tempwatches;	//NON-OWNED PARTIAL WATCHES
 	vvpw 					permwatches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
 	vector<pagg>			headwatches;	//	index on VARs (heads always positive), does NOT own the pointers
 	vvpaggs					network;		// the pointer network of set var -> set

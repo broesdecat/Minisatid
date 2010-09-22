@@ -20,7 +20,7 @@
 //PW as().getAgg
 ///////
 
-vwl& CardPWAgg::getSet(watchset w) {
+vptw& CardPWAgg::getSet(watchset w) {
 	switch (w) {
 	case NF:
 		return setf;
@@ -37,7 +37,7 @@ vwl& CardPWAgg::getSet(watchset w) {
 	}
 }
 
-vwl& CardPWAgg::getWatches(watchset w) {
+vptw& CardPWAgg::getWatches(watchset w) {
 	switch (w) {
 	case NF:
 		return nf;
@@ -71,76 +71,47 @@ bool CardPWAgg::checking(watchset w) const{
 	}
 }
 
-void CardPWAgg::addToWatches(watchset w, int setindex) {
-	vwl& set = getSet(w);
-	vwl& watches = getWatches(w);
-	WL wl = set[setindex];
-	watches.push_back(wl);
-	set[setindex] = set[set.size() - 1];
+/*
+ * Removes a literal from its set and adds it to a watched set
+ */
+void CardPWAgg::addToWatchedSet(watchset w, int setindex) {
+	vptw& set = getSet(w);
+	vptw& watches = getWatches(w);
+	ptw watch = set[setindex];
+	watch->watch()->setIndex(watches.size());
+	watches.push_back(watch);
+	set[setindex] = set[set.size()-1];
 	set.pop_back();
-
-	/*reportf("In set:  ");
-	for(int i=0; i<set.size(); i++){
-		gprintLit(set[i].getLit()); reportf(",");
-	}
-	reportf("\n");
-
-	reportf("Watched: ");
-	for(int i=0; i<watches.size(); i++){
-		gprintLit(watches[i].getLit()); reportf(",");
-	}
-	reportf("\n");*/
 }
 
-void CardPWAgg::addWatch(const Lit& wl, watchset w, int index) {
-	/*reportf("Partial watch added: ");
-	gprintLit(wl);
-	reportf(" on index %d\n", index);*/
-	as().getSolver()->addTempWatch(~wl, new PWatch(asp(), index, w));
+void CardPWAgg::addWatchesToSolver(watchset w){
+	for(int i=0; i<getWatches(w).size(); i++){
+		addWatchToSolver(w, getWatches(w), i);
+	}
+}
+
+void CardPWAgg::addWatchToSolver(watchset w, const vptw& set, int index) {
+	set[index]->watch()->setInUse(true);
+	set[index]->watch()->setWatchset(w);
+	as().getSolver()->addTempWatch(set[index]->lit(), set[index]->watch());
 }
 
 void CardPWAgg::removeWatches(watchset w){
-	vwl& watches = getWatches(w);
-	vwl& set = getSet(w);
-	vector<vector<pw> >& tempwatches = as().getSolver()->getTempWatches();
+	vptw& watches = getWatches(w);
+	vptw& set = getSet(w);
 
-	vwl remainingwatches;
 	for(int i=0; i<watches.size(); i++){
 		/* TODO ik denk dat iets als dit noodzakelijk is, anders kan backtracken ineens een kleinere watched set krijgen, want hij vindt geen vervanging
 		if(value(watches[i].getLit())!=l_Undef){
 			remainingwatches.push_back(watches[i]);
 			continue;
 		}*/
-		vector<pw>& list = tempwatches[toInt(~watches[i].getLit())];
-		for(int j=0; j<list.size(); j++){
-			PWatch* pw = dynamic_cast<PWatch*> (list[j]);
-			if(pw->getIndex()==i && pw->getWatchset()==w){
-				list[j] = list[list.size()-1];
-				list.pop_back();
-				delete pw;
-				/*reportf("Partial watch removed: ");
-				gprintLit(watches[i].getLit());
-				reportf(" on index %d\n", i);*/
-				break;
-			}
-		}
 
+		watches[i]->watch()->setInUse(false);
+		watches[i]->watch()->setWatchset(INSET);
 		set.push_back(watches[i]);
 	}
 	watches.clear();
-	watches.insert(watches.begin(), remainingwatches.begin(), remainingwatches.end());
-
-	/*reportf("In set:  ");
-	for(int i=0; i<set.size(); i++){
-		gprintLit(set[i].getLit()); reportf(",");
-	}
-	reportf("\n");
-
-	reportf("Watched: ");
-	for(int i=0; i<watches.size(); i++){
-		gprintLit(watches[i].getLit()); reportf(",");
-	}
-	reportf("\n");*/
 }
 
 PWAgg::PWAgg(paggs agg) :
@@ -165,46 +136,34 @@ void CardPWAgg::initialize(bool& unsat, bool& sat) {
 	//reportf("Partial watched propagator used\n");
 
 
+	//Create sets and watches
 	for(int i=0; i<as().getWL().size(); i++){
 		const WL& wl = as().getWL()[i];
 		const WL& negwl = WL(~wl.getLit(), wl.getWeight());
-		setf.push_back(agg.isLower()?negwl:wl);
-		sett.push_back(agg.isLower()?wl:negwl);
+		setf.push_back(new ToWatch(asp(), agg.isLower()?negwl:wl));
+		sett.push_back(new ToWatch(asp(), agg.isLower()?wl:negwl));
 	}
 
-
-	bool nffailed = false, ntfailed, nfexfailed = false, ntexfailed = false;
+	bool nffailed = false, ntfailed;
 	if (agg.isLower()) {
 		//Card(S)<=B
 		if (checking(NF)) {
 			nffailed = !initializeNFL();
-		}
-		if (!nffailed && checking(NFEX)) {
-			nfexfailed = !initializeEX(NFEX);
 		}
 
 		//~Card(S)<=B
 		if (checking(NT)) {
 			ntfailed = !initializeNTL();
 		}
-		if (!ntfailed && checking(NTEX)) {
-			ntexfailed = !initializeEX(NTEX);
-		}
 	} else {
 		//Card(S)>=B
 		if (checking(NF)) {
 			nffailed = !initializeNF();
 		}
-		if (!nffailed && checking(NFEX)) {
-			nfexfailed = !initializeEX(NFEX);
-		}
 
 		//~Card(S)>=B
 		if (checking(NT)) {
 			ntfailed = !initializeNT();
-		}
-		if (!ntfailed && checking(NTEX)) {
-			ntexfailed = !initializeEX(NTEX);
 		}
 	}
 
@@ -229,54 +188,20 @@ void CardPWAgg::initialize(bool& unsat, bool& sat) {
 		return;
 	}
 
-	if (ntexfailed) {
-		for (vsize i = 0; confl != nullPtrClause && i < nt.size(); i++) {
-			confl = as().getSolver()->notifySolver(nt[i].getLit(), new AggReason(agg, nt[i].getLit(), BASEDONCC, false));
-		}
-		if (confl != nullPtrClause) {
-			unsat = true;
-		} else {
-			sat = true;
-		}
-		return;
-	}
-	if (nfexfailed) {
-		rClause confl = nullPtrClause;
-		for (vsize i = 0; confl != nullPtrClause && i < nf.size(); i++) {
-			confl = as().getSolver()->notifySolver(nf[i].getLit(), new AggReason(agg, nf[i].getLit(), BASEDONCC, false));
-		}
-		if (confl != nullPtrClause) {
-			unsat = true;
-		} else {
-			sat = true;
-		}
-		return;
-	}
-
 	//IMPORTANT: only add watches AFTER initialization, otherwise delete is not complete! TODO check if this is always enough
-	for(int i=0; i<getWatches(NF).size(); i++){
-		addWatch(getWatches(NF)[i], NF, i);
-	}
-	for(int i=0; i<getWatches(NFEX).size(); i++){
-		addWatch(getWatches(NFEX)[i], NFEX, i);
-	}
-	for(int i=0; i<getWatches(NT).size(); i++){
-		addWatch(getWatches(NT)[i], NT, i);
-	}
-	for(int i=0; i<getWatches(NTEX).size(); i++){
-		addWatch(getWatches(NTEX)[i], NTEX, i);
-	}
+	addWatchesToSolver(NF);
+	addWatchesToSolver(NT);
 
 	PWAgg::initialize(unsat, sat);
 }
 
 bool CardPWAgg::initializeNF() {
 	const Agg& agg = *as().getAgg()[0];
-	vwl& set = getSet(NF);
+	vptw& set = getSet(NF);
 	for (vsize i = 0; i < set.size(); i++) {
-		const WL& wl = set[i];
+		const WL& wl = set[i]->wl();
 		if (Weight(nf.size()) < agg.getBound() && value(wl.getLit()) != l_False) {
-			addToWatches(NF, i);
+			addToWatchedSet(NF, i);
 			i--;
 		}
 	}
@@ -285,11 +210,11 @@ bool CardPWAgg::initializeNF() {
 
 bool CardPWAgg::initializeNT() {
 	const Agg& agg = *as().getAgg()[0];
-	vwl& set = getSet(NT);
+	vptw& set = getSet(NT);
 	for (vsize i = 0; i < set.size(); i++) {
-		const WL& wl = set[i];
+		const WL& wl = set[i]->wl();
 		if (Weight(nt.size()) <= Weight(as().getWL().size()) - agg.getBound() && value(wl.getLit()) != l_False) {
-			addToWatches(NT, i);
+			addToWatchedSet(NT, i);
 			i--;
 		}
 	}
@@ -298,11 +223,11 @@ bool CardPWAgg::initializeNT() {
 
 bool CardPWAgg::initializeNTL() {
 	const Agg& agg = *as().getAgg()[0];
-	vwl& set = getSet(NT);
+	vptw& set = getSet(NT);
 	for (vsize i = 0; i < set.size(); i++) {
-		const WL& wl = set[i];
+		const WL& wl = set[i]->wl();
 		if (Weight(nt.size()) <= agg.getBound() && value(wl.getLit()) != l_False) {
-			addToWatches(NT, i);
+			addToWatchedSet(NT, i);
 			i--;
 		}
 	}
@@ -311,11 +236,11 @@ bool CardPWAgg::initializeNTL() {
 
 bool CardPWAgg::initializeNFL() {
 	const Agg& agg = *as().getAgg()[0];
-	vwl& set = getSet(NF);
+	vptw& set = getSet(NF);
 	for (vsize i = 0; i < set.size(); i++) {
-		const WL& wl = set[i];
+		const WL& wl = set[i]->wl();
 		if (Weight(nf.size()) < Weight(as().getWL().size()) - agg.getBound() && value(wl.getLit()) != l_False) {
-			addToWatches(NF, i);
+			addToWatchedSet(NF, i);
 			i--;
 		}
 	}
@@ -324,11 +249,10 @@ bool CardPWAgg::initializeNFL() {
 
 bool CardPWAgg::initializeEX(watchset w) {
 	bool found = false;
-	vwl& set = getSet(w);
+	vptw& set = getSet(w);
 	for (vsize i = 0; !found && i < set.size(); i++) {
-		WL wl = set[i];
-		if (value(wl.getLit()) != l_False) {
-			addToWatches(w, i);
+		if (value(set[i]->wl().getLit()) != l_False) {
+			addToWatchedSet(w, i);
 			i--;
 			found = true;
 		}
@@ -338,15 +262,15 @@ bool CardPWAgg::initializeEX(watchset w) {
 
 bool CardPWAgg::replace(vsize index, watchset w) {
 	bool found = false;
-	vwl& set = getSet(w);
-	vwl& watches = getWatches(w);
+	vptw& set = getSet(w);
+	vptw& watches = getWatches(w);
 
 	for (vsize i = 0; !found && i < set.size(); i++) {
-		WL wl = set[i];
-		if (value(wl.getLit()) != l_False) {
+		ptw tw = set[i];
+		if (value(tw->lit()) != l_False) {
 			set[i] = watches[index];
-			watches[index] = wl;
-			addWatch(wl.getLit(), w, index);
+			watches[index] = tw;
+			addWatchToSolver(w, watches, index);
 			found = true;
 		}
 	}
@@ -359,9 +283,10 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& watch) {
 	PWatch const * pw = dynamic_cast<PWatch const *> (&watch);
 	const PWatch& w = *pw;
 
-	/*reportf("Partial watch propagated: ");
-	gprintLit(p);
-	reportf(" on index %d\n", w.getIndex());*/
+	if(!w.isInUse()){
+		w.setWatchset(INSET);
+		return confl;
+	}
 
 	bool found = true;
 	if (isF(w.getWatchset())) {
@@ -378,40 +303,6 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& watch) {
 		}
 	}
 
-	/*reportf("Current partial watches: \n");
-	watchset wt = NF;
-	for (int i = 0; i < getWatches(wt).size(); i++) {
-		if(checking(NF)){
-			reportf("    NF    ");
-			gprintLit(getWatches(wt)[i].getLit());
-			reportf("\n");
-		}
-	}
-	wt = NFEX;
-	for (int i = 0; i < getWatches(wt).size(); i++) {
-		if(checking(NFEX)){
-			reportf("    NFEX ");
-			gprintLit(getWatches(wt)[i].getLit());
-			reportf("\n");
-		}
-	}
-	wt = NT;
-	for (int i = 0; i < getWatches(wt).size(); i++) {
-		if(checking(NT)){
-			reportf("    NT   ");
-			gprintLit(getWatches(wt)[i].getLit());
-			reportf("\n");
-		}
-	}
-	wt = NTEX;
-	for (int i = 0; i < getWatches(wt).size(); i++) {
-		if(checking(NTEX)){
-			reportf("    NTEX ");
-			gprintLit(getWatches(wt)[i].getLit());
-			reportf("\n");
-		}
-	}*/
-
 	if (!found) {
 		if (checking(NFEX)) {
 			// propagate all others in NF and propagate NFex
@@ -419,14 +310,14 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& watch) {
 				if (i == w.getIndex() && !isEX(w.getWatchset())) {
 					continue;
 				}
-				confl = as().getSolver()->notifySolver(nf[i].getLit(), new AggReason(*as().getAgg()[0], nf[i].getLit(), BASEDONCC, false));
+				confl = as().getSolver()->notifySolver(nf[i]->lit(), new AggReason(*as().getAgg()[0], nf[i]->lit(), BASEDONCC, false));
 			}
 			if (confl == nullPtrClause) {
 				for (vsize i = 0; confl == nullPtrClause && i < nfex.size(); i++) {
 					if (i == w.getIndex() && isEX(w.getWatchset())) {
 						continue;
 					}
-					confl = as().getSolver()->notifySolver(nfex[i].getLit(), new AggReason(*as().getAgg()[0], nfex[i].getLit(), BASEDONCC, false));
+					confl = as().getSolver()->notifySolver(nfex[i]->lit(), new AggReason(*as().getAgg()[0], nfex[i]->lit(), BASEDONCC, false));
 				}
 			}
 		} else if (isF(w.getWatchset()) && checking(NF)) {
@@ -442,14 +333,14 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& watch) {
 				if (i == w.getIndex() && !isEX(w.getWatchset())) {
 					continue;
 				}
-				confl = as().getSolver()->notifySolver(nt[i].getLit(), new AggReason(*as().getAgg()[0], nt[i].getLit(), BASEDONCC, false));
+				confl = as().getSolver()->notifySolver(nt[i]->lit(), new AggReason(*as().getAgg()[0], nt[i]->lit(), BASEDONCC, false));
 			}
 			if (confl == nullPtrClause) {
 				for (vsize i = 0; confl == nullPtrClause && i < ntex.size(); i++) {
 					if (i == w.getIndex() && isEX(w.getWatchset())) {
 						continue;
 					}
-					confl = as().getSolver()->notifySolver(ntex[i].getLit(), new AggReason(*as().getAgg()[0], ntex[i].getLit(), BASEDONCC, false));
+					confl = as().getSolver()->notifySolver(ntex[i]->lit(), new AggReason(*as().getAgg()[0], ntex[i]->lit(), BASEDONCC, false));
 				}
 			}
 		} else if (!isF(w.getWatchset()) && checking(NT)) {
@@ -460,15 +351,19 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& watch) {
 				headpropagatedhere = true;
 			}
 		}
-		//TODO do something about sign confusion
-		addWatch(~p, w.getWatchset(), w.getIndex());
-		return confl;
 	}
 
-	return nullPtrClause;
-}
+	if(!found){
+		//If in the end not replacement was found, we add the previous one again to the solver
+		addWatchToSolver(w.getWatchset(), getWatches(w.getWatchset()), w.getIndex());
+	}else{
+		//otherwise, it is marked as no longer in use
+		w.setWatchset(INSET);
+		w.setInUse(false);
+	}
 
-//TODO should not add head as watch in nf(ex) or ~head as watch in nt(ex)
+	return confl;
+}
 
 rClause CardPWAgg::propagate(const Agg& agg) {
 	if(headpropagatedhere){
@@ -496,24 +391,20 @@ rClause CardPWAgg::propagate(const Agg& agg) {
 	if (checking(NFEX)) {
 		if (!initializeEX(NFEX)) {
 			for (vsize i = 0; confl == nullPtrClause && i < nf.size(); i++) {
-				confl = as().getSolver()->notifySolver(nf[i].getLit(), new AggReason(*as().getAgg()[0], nf[i].getLit(), BASEDONCC, false));
+				confl = as().getSolver()->notifySolver(nf[i]->lit(), new AggReason(*as().getAgg()[0], nf[i]->lit(), BASEDONCC, false));
 			}
 		}else{
-			for(int i=0; i<getWatches(NFEX).size(); i++){
-				addWatch(getWatches(NFEX)[i], NFEX, i);
-			}
+			addWatchesToSolver(NFEX);
 		}
 	}
 
 	if (checking(NTEX)) {
 		if (!initializeEX(NTEX)) {
 			for (vsize i = 0; confl == nullPtrClause && i < nt.size(); i++) {
-				confl = as().getSolver()->notifySolver(nt[i].getLit(), new AggReason(*as().getAgg()[0], nt[i].getLit(), BASEDONCC, false));
+				confl = as().getSolver()->notifySolver(nt[i]->lit(), new AggReason(*as().getAgg()[0], nt[i]->lit(), BASEDONCC, false));
 			}
 		}else{
-			for(int i=0; i<getWatches(NTEX).size(); i++){
-				addWatch(getWatches(NTEX)[i], NTEX, i);
-			}
+			addWatchesToSolver(NTEX);
 		}
 	}
 
@@ -540,6 +431,7 @@ void CardPWAgg::backtrack(const Agg& agg) {
 		}else{
 			initializeNF();
 		}
+		addWatchesToSolver(NF);
 	}
 
 	if(checking(NT)){
@@ -548,6 +440,7 @@ void CardPWAgg::backtrack(const Agg& agg) {
 		}else{
 			initializeNT();
 		}
+		addWatchesToSolver(NT);
 	}
 }
 

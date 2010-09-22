@@ -68,25 +68,49 @@ public:
 	bool isNonTrue(int number, int setsize, Bound sign, Weight bound) const;
 };*/
 
-enum watchset { NF, NFEX, NT, NTEX };
+enum watchset { NF, NFEX, NT, NTEX, INSET };
 
 class PWatch: public Watch{
 private:
-	watchset w;
+	mutable watchset w;
+	mutable bool	inuse;
 public:
-	PWatch(paggs agg, int index, watchset w): Watch(agg, index, true, true), w(w){
+	PWatch(paggs agg, int index, watchset w): Watch(agg, index, true, true), w(w), inuse(false){
 
 	}
 
 	watchset getWatchset() const { return w; }
+	void	setWatchset(watchset w2) const { w = w2; }
+	bool	isInUse() const { return inuse; }
+	void	setInUse(bool used) const { inuse = used; }
 };
+
+struct ToWatch{
+	PWatch* _watch;
+	WL		_wl;
+
+	ToWatch(paggs agg, const WL& wl): _wl(wl){
+		_watch = new PWatch(agg, -1, INSET);
+	}
+	~ToWatch(){
+		delete _watch;
+	}
+
+	const WL& wl() const { return _wl; }
+	const Lit& lit() const { return _wl.getLit(); }
+	PWatch* watch() const { return _watch; }
+};
+
+typedef ToWatch* ptw;
+typedef vector<ptw> vptw;
 
 class CardPWAgg: public PWAgg, public virtual CardAggT {
 private:
-	vwl nf, nfex, setf; //setf contains all monotone versions of set literals
-	vwl nt, ntex, sett; //sett contains all anti-monotone versions of set literals
+	vptw nf, nfex, setf; //setf contains all monotone versions of set literals
+	vptw nt, ntex, sett; //sett contains all anti-monotone versions of set literals
 	lbool headvalue;
 	bool headpropagatedhere;
+
 public:
 	CardPWAgg(paggs agg);
 	virtual ~CardPWAgg(){};
@@ -97,16 +121,11 @@ public:
 	bool initializeNTL();
 	bool initializeEX(watchset w);
 
-	vwl& getSet(watchset w);
-	vwl& getWatches(watchset w);
+	void addWatchesToSolver(watchset w);
+	void addWatchToSolver(watchset w, const vptw& set, int index);
 
-	void addWatch(const Lit& wl, watchset w, int setindex);
-
-	void addToWatches(watchset w, int setindex);
+	void addToWatchedSet(watchset w, int setindex);
 	void removeWatches(watchset w);
-
-	bool isEX(watchset w) const { return w==NFEX || w==NTEX; }
-	bool isF(watchset w) const { return w==NF || w==NFEX; }
 
 	bool replace(vsize index, watchset w);
 
@@ -118,7 +137,11 @@ public:
 
 	virtual void 		initialize			(bool& unsat, bool& sat);
 
+	vptw& getSet(watchset w);
+	vptw& getWatches(watchset w);
 	bool checking(watchset w) const;
+	bool isEX(watchset w) const { return w==NFEX || w==NTEX; }
+	bool isF(watchset w) const { return w==NF || w==NFEX; }
 };
 
 }

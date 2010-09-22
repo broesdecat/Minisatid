@@ -62,7 +62,6 @@ AggSolver::~AggSolver() {
 	deleteList<aggs> (sets);
 	deleteList<AggReason> (aggreason);
 	deleteList<Watch>(permwatches);
-	deleteList<Watch>(tempwatches);
 }
 
 void AggSolver::notifyVarAdded(uint64_t nvars) {
@@ -570,7 +569,6 @@ rClause AggSolver::propagate(const Lit& p) {
 	for (; confl == nullPtrClause && i < ws2.size(); i++) {
 		confl = ws2[i]->getAggComb()->propagate(p, *ws2[i]);
 		propagations++;
-		delete ws2[i];
 	}
 	for (; i < ws2.size(); i++){
 		addTempWatch(p, ws2[i]);

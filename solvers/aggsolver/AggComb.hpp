@@ -125,7 +125,7 @@ public:
 class Watch{
 private:
 			paggs 	agg;
-	const 	int 	index;
+			int 	index;
 	const 	bool 	set;	//true if set literal, false if agg head
 	const 	bool 	pos; 	//true if the literal occurs in the set, false if its negation is in the set
 public:
@@ -136,6 +136,7 @@ public:
 
 	paggs 		getAggComb() 	const { return agg; }
 	int 		getIndex() 		const { return index; }
+	void		setIndex(int i) 	  { index = i; }
 	bool 		isSetLit() 		const { return set; }
 	bool		isPos()			const { return pos; }
 	Occurrence 	getType()		const { return !set?HEAD:pos?POS:NEG; }
