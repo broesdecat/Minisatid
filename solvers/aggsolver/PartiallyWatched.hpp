@@ -114,6 +114,7 @@ public:
 	virtual rClause 	propagate			(const Agg& agg);
 	virtual void 		backtrack			(const Agg& agg);
     virtual void 		getExplanation		(vec<Lit>& lits, const AggReason& ar) const;
+    		bool		assertedBefore(const Var& l, const Var& p) const;
 
 	virtual void 		initialize			(bool& unsat, bool& sat);
 

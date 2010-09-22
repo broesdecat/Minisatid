@@ -546,6 +546,23 @@ rClause AggSolver::propagate(const Lit& p) {
 		return confl;
 	}
 
+	if(verbosity()>=1){
+		reportf("Current effective watches BEFORE: \n");
+		for(int i=0; i<2*nVars(); i++){
+			if(tempwatches[i].size()==0){
+				continue;
+			}
+			reportf("    Watch "); gprintLit(toLit(i)); reportf(" used by: \n");
+			for(int j=0; j<tempwatches[i].size(); j++){
+				for(int k=0; k<tempwatches[i][j]->getAggComb()->getAgg().size(); k++){
+					reportf("        ");
+					printAgg(*tempwatches[i][j]->getAggComb()->getAgg()[k]);
+				}
+			}
+		}
+		reportf("\n");
+	}
+
 	vector<pw> ws2(tempwatches[toInt(p)]); //IMPORTANT, BECAUSE WATCHES MIGHT BE ADDED AGAIN TO THE END (if no other watches are found etc)
 	tempwatches[toInt(p)].clear();
 
@@ -559,18 +576,22 @@ rClause AggSolver::propagate(const Lit& p) {
 		addTempWatch(p, ws2[i]);
 	}
 
-	/*if(verbosity()>=1){
+	if(verbosity()>=1){
 		reportf("Current effective watches AFTER: \n");
 		for(int i=0; i<2*nVars(); i++){
-			reportf("Watch "); gprintLit(toLit(i)); reportf(" used by: ");
-			for(int j=0; j<tempwatches[i].size(); j++){
-				reportf("    ");
-				printAgg(tempwatches[i][j]->getAggComb(), true);
-
+			if(tempwatches[i].size()==0){
+				continue;
 			}
-			reportf("\n");
+			reportf("    Watch "); gprintLit(toLit(i)); reportf(" used by: \n");
+			for(int j=0; j<tempwatches[i].size(); j++){
+				for(int k=0; k<tempwatches[i][j]->getAggComb()->getAgg().size(); k++){
+					reportf("        ");
+					printAgg(*tempwatches[i][j]->getAggComb()->getAgg()[k]);
+				}
+			}
 		}
-	}*/
+		reportf("\n");
+	}
 
 	return confl;
 }

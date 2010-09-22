@@ -104,7 +104,13 @@ void CardPWAgg::removeWatches(watchset w){
 	vwl& set = getSet(w);
 	vector<vector<pw> >& tempwatches = as().getSolver()->getTempWatches();
 
+	vwl remainingwatches;
 	for(int i=0; i<watches.size(); i++){
+		/* TODO ik denk dat iets als dit noodzakelijk is, anders kan backtracken ineens een kleinere watched set krijgen, want hij vindt geen vervanging
+		if(value(watches[i].getLit())!=l_Undef){
+			remainingwatches.push_back(watches[i]);
+			continue;
+		}*/
 		vector<pw>& list = tempwatches[toInt(~watches[i].getLit())];
 		for(int j=0; j<list.size(); j++){
 			PWatch* pw = dynamic_cast<PWatch*> (list[j]);
@@ -121,8 +127,8 @@ void CardPWAgg::removeWatches(watchset w){
 
 		set.push_back(watches[i]);
 	}
-
 	watches.clear();
+	watches.insert(watches.begin(), remainingwatches.begin(), remainingwatches.end());
 
 	/*reportf("In set:  ");
 	for(int i=0; i<set.size(); i++){
@@ -545,25 +551,36 @@ void CardPWAgg::backtrack(const Agg& agg) {
 	}
 }
 
-void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
-	const Lit& head = as().getAgg()[0]->getHead();
-	if(value(head)!=l_Undef && var(ar.getLit())!=var(head)){
-		bool add = true;
-		if(as().getSolver()->getPCSolver()->getLevel(var(head))	!= as().getSolver()->getPCSolver()->getLevel(var(ar.getLit()))){
-			const vl& trail = as().getSolver()->getPCSolver()->getRecentAssignments();
+/*
+ * @pre: p has been assigned in the current decision level!
+ */
+bool CardPWAgg::assertedBefore(const Var& l, const Var& p) const {
+	PCSolver* pcsol = as().getSolver()->getPCSolver();
 
-			bool before = false;
-			for (int i = 0; i < trail.size(); i++) {
-				if (var(trail[i]) == var(ar.getLit())) {
-					add = false;
-					break;
-				}
-				if (var(trail[i]) == var(head)) {
-					break;
-				}
-			}
+	//Check if level is lower
+	if(pcsol->getLevel(l) < pcsol->getLevel(p)){
+		return true;
+	}
+
+	const vl& trail = pcsol->getRecentAssignments();
+	bool before = true;
+	for (int i = 0; i < trail.size(); i++) {
+		if (var(trail[i]) == l) { // l encountered first, so before
+			break;
 		}
-		if(add){
+		if (var(trail[i]) == p) { // p encountered first, so after
+			before = false;
+			break;
+		}
+	}
+
+	return before;
+}
+
+void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
+	const Lit& head = ar.getAgg().getHead();
+	if(value(head)!=l_Undef && var(ar.getLit())!=var(head)){
+		if(assertedBefore(var(head), var(ar.getLit()))){
 			lits.push(value(head)==l_True?~head:head);
 		}
 	}
@@ -571,22 +588,7 @@ void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
 	for (vsize i = 0; i < as().getWL().size(); i++) {
 		const WL& wl = as().getWL()[i];
 		if (var(wl.getLit()) != var(ar.getLit()) && value(wl.getLit()) != l_Undef) {
-			bool add = true;
-			if (as().getSolver()->getPCSolver()->getLevel(var(wl.getLit()))	== as().getSolver()->getPCSolver()->getLevel(var(ar.getLit()))) {
-				const vl& trail = as().getSolver()->getPCSolver()->getRecentAssignments();
-
-				for (int i = 0; i < trail.size(); i++) {
-					if (var(trail[i]) == var(ar.getLit())) {
-						add = false;
-						break;
-					}
-					if (var(trail[i]) == var(wl.getLit())) {
-						break;
-					}
-				}
-			}
-
-			if(add){
+			if(assertedBefore(var(wl.getLit()), var(ar.getLit()))){
 				lits.push(value(wl.getLit())==l_True?~wl.getLit():wl.getLit());
 			}
 		}
