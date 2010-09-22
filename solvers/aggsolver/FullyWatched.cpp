@@ -226,6 +226,7 @@ void FWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
 	//assert(ar.getAgg() == agg);
 	//assert(agg->getSet()==this);
 
+	//FIXME TODO this is incorrect: when the head was propagated, getexplanation should NOT automatically look until the END!
 	int index = -1;
 	for (int i = 0; i < getStack().size(); i++) {
 		if (getStack()[i].getLit() == ar.getLit()) {
