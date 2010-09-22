@@ -938,11 +938,13 @@ rClause IDSolver::indirectPropagate() {
 
 void IDSolver::newDecisionLevel() {
 	//Originally checked this after indirectpropagate, which was incorrect, because only at the end of any
-	//decision level is there a guarantee of being cyclefree.
+	//decision level is there a guarantee of being cyclefree
+#ifdef DEBUG
 	if(!isCycleFree()){
 		reportf("NOT CYCLE FREE!");
 		exit;
 	}
+#endif
 }
 
 /**
