@@ -63,7 +63,7 @@ public:
      */
     virtual lbool 	canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP) const;
 
-	virtual rClause propagate	(const Lit& p, const Watch& ws);
+	virtual rClause propagate	(const Lit& p, pw ws);
 
 // TODO dit is lelijk, maar het verplicht om eerst de top propagate op te roepen en daarna pas de lagere, maar er zullen wel betere manieren zijn.
 	virtual rClause propagate(const Agg& agg);

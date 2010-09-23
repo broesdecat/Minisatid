@@ -269,7 +269,7 @@ public:
 	///////
 	virtual bool canJustifyHead	(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const = 0;
 	// Propagate set literal
-	rClause 	propagate		(const Lit& p, const Watch& w);
+	rClause 	propagate		(const Lit& p, pw w);
 	// Propagate head
 	rClause 	propagate		(const Agg& agg);
 	// Backtrack set literal
@@ -334,7 +334,7 @@ public:
 	virtual ~Propagator(){};
 
 	// Propagate set literal
-	virtual rClause 	propagate		(const Lit& p, const Watch& w) = 0;
+	virtual rClause 	propagate		(const Lit& p, Watch* w) = 0;
 	// Propagate head
 	virtual rClause 	propagate		(const Agg& agg) = 0;
 	// Backtrack set literal
@@ -354,7 +354,7 @@ public:
 };
 
 void printAgg(aggs const * const c, bool printendline = false);
-void printAgg(const Agg& c);
+void printAgg(const Agg& c, bool printendline = false);
 
 ///////
 // ID support

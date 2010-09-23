@@ -12,6 +12,7 @@
 
 #include "solvers/aggsolver/AggComb.hpp"
 
+class AggSolver;
 namespace Aggrs{
 	class Agg;
 	class AggSet;
@@ -30,11 +31,11 @@ namespace Aggrs{
 
 	class Watch;
 	typedef Watch* pw;
+	typedef vector<pw> vpw;
+	typedef vector<vpw> vvpw;
 
 	class PropagationInfo;
 	typedef vector<PropagationInfo> vprop;
-
-	typedef vector<void*>::size_type vsize;
 }
 
 ///////
@@ -101,7 +102,8 @@ struct ToWatch{
 	PWatch* watch() const { return _watch; }
 };
 
-typedef ToWatch* ptw;
+typedef ToWatch tw;
+typedef tw* ptw;
 typedef vector<ptw> vptw;
 
 class CardPWAgg: public PWAgg, public virtual CardAggT {
@@ -113,7 +115,7 @@ private:
 
 public:
 	CardPWAgg(paggs agg);
-	virtual ~CardPWAgg(){};
+	virtual ~CardPWAgg();
 
 	bool initializeNF();
 	bool initializeNT();
@@ -122,14 +124,14 @@ public:
 	bool initializeEX(watchset w);
 
 	void addWatchesToSolver(watchset w);
-	void addWatchToSolver(watchset w, const vptw& set, int index);
+	void addWatchToSolver(watchset w, const vptw& set, vsize index);
 
-	void addToWatchedSet(watchset w, int setindex);
+	void addToWatchedSet(watchset w, vsize setindex);
 	void removeWatches(watchset w);
 
 	bool replace(vsize index, watchset w);
 
-	virtual rClause 	propagate			(const Lit& p, const Watch& w);
+	virtual rClause 	propagate			(const Lit& p, pw w);
 	virtual rClause 	propagate			(const Agg& agg);
 	virtual void 		backtrack			(const Agg& agg);
     virtual void 		getExplanation		(vec<Lit>& lits, const AggReason& ar) const;
@@ -143,6 +145,8 @@ public:
 	bool isEX(watchset w) const { return w==NFEX || w==NTEX; }
 	bool isF(watchset w) const { return w==NF || w==NFEX; }
 };
+
+void printWatches(AggSolver* const solver, const vvpw& tempwatches);
 
 }
 

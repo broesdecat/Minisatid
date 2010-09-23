@@ -942,7 +942,7 @@ void IDSolver::newDecisionLevel() {
 #ifdef DEBUG
 	if(!isCycleFree()){
 		reportf("NOT CYCLE FREE!");
-		exit;
+		exit(-1);
 	}
 #endif
 }

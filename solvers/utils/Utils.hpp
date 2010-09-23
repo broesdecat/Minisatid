@@ -34,6 +34,8 @@
 using namespace Minisat;
 #endif
 
+typedef vector<void*>::size_type vsize;
+
 using namespace std;
 
 template<class T>

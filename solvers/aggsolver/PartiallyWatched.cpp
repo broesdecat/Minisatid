@@ -16,6 +16,25 @@
 #include <inttypes.h>
 #include <limits.h>
 
+void Aggrs::printWatches(AggSolver* const solver, const vvpw& tempwatches){
+	for(vsize i=0; i<2*solver->nVars(); i++){
+		if(tempwatches[i].size()==0){
+			continue;
+		}
+		reportf("    Watch "); gprintLit(toLit(i)); reportf(" used by: \n");
+		for(vsize j=0; j<tempwatches[i].size(); j++){
+			for(vsize k=0; k<tempwatches[i][j]->getAggComb()->getAgg().size(); k++){
+				PWatch* watch = dynamic_cast<PWatch*>(tempwatches[i][j]);
+				if(watch->isInUse()){
+					reportf("        ");
+					printAgg(*tempwatches[i][j]->getAggComb()->getAgg()[k], true);
+				}
+			}
+		}
+	}
+	reportf("\n");
+}
+
 ///////
 //PW as().getAgg
 ///////
@@ -34,6 +53,9 @@ vptw& CardPWAgg::getSet(watchset w) {
 	case NTEX:
 		return sett;
 		break;
+	default:
+		assert(false);
+		exit(-1);
 	}
 }
 
@@ -51,6 +73,9 @@ vptw& CardPWAgg::getWatches(watchset w) {
 	case NTEX:
 		return ntex;
 		break;
+	default:
+		assert(false);
+		exit(-1);
 	}
 }
 
@@ -68,39 +93,43 @@ bool CardPWAgg::checking(watchset w) const{
 	case NTEX:
 		return headvalue==l_False;
 		break;
+	default:
+		assert(false);
+		exit(-1);
 	}
 }
 
 /*
  * Removes a literal from its set and adds it to a watched set
  */
-void CardPWAgg::addToWatchedSet(watchset w, int setindex) {
+void CardPWAgg::addToWatchedSet(watchset w, vsize setindex) {
 	vptw& set = getSet(w);
 	vptw& watches = getWatches(w);
 	ptw watch = set[setindex];
-	watch->watch()->setIndex(watches.size());
 	watches.push_back(watch);
 	set[setindex] = set[set.size()-1];
 	set.pop_back();
+	watch->watch()->setWatchset(w);
+	watch->watch()->setIndex(watches.size()-1);
 }
 
 void CardPWAgg::addWatchesToSolver(watchset w){
-	for(int i=0; i<getWatches(w).size(); i++){
+	for(vsize i=0; i<getWatches(w).size(); i++){
 		addWatchToSolver(w, getWatches(w), i);
 	}
 }
 
-void CardPWAgg::addWatchToSolver(watchset w, const vptw& set, int index) {
+void CardPWAgg::addWatchToSolver(watchset w, const vptw& set, vsize index) {
+	assert(set[index]->watch()->getIndex()==index);
 	set[index]->watch()->setInUse(true);
-	set[index]->watch()->setWatchset(w);
-	as().getSolver()->addTempWatch(set[index]->lit(), set[index]->watch());
+	as().getSolver()->addTempWatch(~set[index]->lit(), set[index]->watch());
 }
 
 void CardPWAgg::removeWatches(watchset w){
 	vptw& watches = getWatches(w);
 	vptw& set = getSet(w);
 
-	for(int i=0; i<watches.size(); i++){
+	for(vsize i=0; i<watches.size(); i++){
 		/* TODO ik denk dat iets als dit noodzakelijk is, anders kan backtracken ineens een kleinere watched set krijgen, want hij vindt geen vervanging
 		if(value(watches[i].getLit())!=l_Undef){
 			remainingwatches.push_back(watches[i]);
@@ -109,6 +138,7 @@ void CardPWAgg::removeWatches(watchset w){
 
 		watches[i]->watch()->setInUse(false);
 		watches[i]->watch()->setWatchset(INSET);
+		watches[i]->watch()->setIndex(-1);
 		set.push_back(watches[i]);
 	}
 	watches.clear();
@@ -120,6 +150,15 @@ PWAgg::PWAgg(paggs agg) :
 
 CardPWAgg::CardPWAgg(paggs agg) :
 	PWAgg(agg), headvalue(l_Undef), headpropagatedhere(false) {
+}
+
+CardPWAgg::~CardPWAgg(){
+	deleteList<tw>(nf);
+	deleteList<tw>(nt);
+	deleteList<tw>(nfex);
+	deleteList<tw>(ntex);
+	deleteList<tw>(setf);
+	deleteList<tw>(sett);
 }
 
 void CardPWAgg::initialize(bool& unsat, bool& sat) {
@@ -137,7 +176,7 @@ void CardPWAgg::initialize(bool& unsat, bool& sat) {
 
 
 	//Create sets and watches
-	for(int i=0; i<as().getWL().size(); i++){
+	for(vsize i=0; i<as().getWL().size(); i++){
 		const WL& wl = as().getWL()[i];
 		const WL& negwl = WL(~wl.getLit(), wl.getWeight());
 		setf.push_back(new ToWatch(asp(), agg.isLower()?negwl:wl));
@@ -198,7 +237,7 @@ void CardPWAgg::initialize(bool& unsat, bool& sat) {
 bool CardPWAgg::initializeNF() {
 	const Agg& agg = *as().getAgg()[0];
 	vptw& set = getSet(NF);
-	for (vsize i = 0; i < set.size(); i++) {
+	for (int i = 0; i < (int)set.size(); i++) {
 		const WL& wl = set[i]->wl();
 		if (Weight(nf.size()) < agg.getBound() && value(wl.getLit()) != l_False) {
 			addToWatchedSet(NF, i);
@@ -211,7 +250,7 @@ bool CardPWAgg::initializeNF() {
 bool CardPWAgg::initializeNT() {
 	const Agg& agg = *as().getAgg()[0];
 	vptw& set = getSet(NT);
-	for (vsize i = 0; i < set.size(); i++) {
+	for (int i = 0; i < (int)set.size(); i++) {
 		const WL& wl = set[i]->wl();
 		if (Weight(nt.size()) <= Weight(as().getWL().size()) - agg.getBound() && value(wl.getLit()) != l_False) {
 			addToWatchedSet(NT, i);
@@ -224,7 +263,7 @@ bool CardPWAgg::initializeNT() {
 bool CardPWAgg::initializeNTL() {
 	const Agg& agg = *as().getAgg()[0];
 	vptw& set = getSet(NT);
-	for (vsize i = 0; i < set.size(); i++) {
+	for (int i = 0; i < (int)set.size(); i++) {
 		const WL& wl = set[i]->wl();
 		if (Weight(nt.size()) <= agg.getBound() && value(wl.getLit()) != l_False) {
 			addToWatchedSet(NT, i);
@@ -237,7 +276,7 @@ bool CardPWAgg::initializeNTL() {
 bool CardPWAgg::initializeNFL() {
 	const Agg& agg = *as().getAgg()[0];
 	vptw& set = getSet(NF);
-	for (vsize i = 0; i < set.size(); i++) {
+	for (int i = 0; i < (int)set.size(); i++) {
 		const WL& wl = set[i]->wl();
 		if (Weight(nf.size()) < Weight(as().getWL().size()) - agg.getBound() && value(wl.getLit()) != l_False) {
 			addToWatchedSet(NF, i);
@@ -250,7 +289,7 @@ bool CardPWAgg::initializeNFL() {
 bool CardPWAgg::initializeEX(watchset w) {
 	bool found = false;
 	vptw& set = getSet(w);
-	for (vsize i = 0; !found && i < set.size(); i++) {
+	for (int i = 0; !found && i < (int)set.size(); i++) {
 		if (value(set[i]->wl().getLit()) != l_False) {
 			addToWatchedSet(w, i);
 			i--;
@@ -268,8 +307,13 @@ bool CardPWAgg::replace(vsize index, watchset w) {
 	for (vsize i = 0; !found && i < set.size(); i++) {
 		ptw tw = set[i];
 		if (value(tw->lit()) != l_False) {
+			watches[index]->watch()->setIndex(-1);
+			watches[index]->watch()->setWatchset(INSET);
+			watches[index]->watch()->setInUse(false);
 			set[i] = watches[index];
 			watches[index] = tw;
+			tw->watch()->setWatchset(w);
+			tw->watch()->setIndex(index);
 			addWatchToSolver(w, watches, index);
 			found = true;
 		}
@@ -277,14 +321,47 @@ bool CardPWAgg::replace(vsize index, watchset w) {
 	return found;
 }
 
-rClause CardPWAgg::propagate(const Lit& p, const Watch& watch) {
+rClause CardPWAgg::propagate(const Lit& p, Watch* watch) {
 	rClause confl = nullPtrClause;
 
-	PWatch const * pw = dynamic_cast<PWatch const *> (&watch);
-	const PWatch& w = *pw;
+	PWatch* pw = dynamic_cast<PWatch *>(watch);
+	PWatch& w = *pw;
+
+#ifdef DEBUG
+	/*
+	 * If w inset: check if really in set (iterate), if so, set inuse false and return
+	 * If w in watch: check if really at the given index in the set and inuse has to be true
+	 */
+	if(w.getWatchset()==INSET){
+		assert(w.getIndex()==-1);
+		bool found = false;
+		for(vsize i=0; !found && i<getSet(NF).size(); i++){
+			if(getSet(NF)[i]->watch()==pw){
+				found = true;
+			}
+		}
+		for(vsize i=0; !found && i<getSet(NT).size(); i++){
+			if(getSet(NT)[i]->watch()==pw){
+				found = true;
+			}
+		}
+		assert(found);
+	}else{
+		assert(getWatches(w.getWatchset())[w.getIndex()]->watch()==pw);
+	}
+#endif
+
+	if(w.getWatchset()==INSET){
+		w.setInUse(false);
+		assert(w.getIndex()==-1);
+		return confl;
+	}
+
+	assert(w.getIndex()!=-1);
 
 	if(!w.isInUse()){
 		w.setWatchset(INSET);
+		w.setIndex(-1);
 		return confl;
 	}
 
@@ -306,14 +383,15 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& watch) {
 	if (!found) {
 		if (checking(NFEX)) {
 			// propagate all others in NF and propagate NFex
-			for (vsize i = 0; confl == nullPtrClause && i < nf.size(); i++) {
+			//TODO if i would here add also an assertion that i>=0, then it would be completely safe comparisons (except for the size)
+			for (int i = 0; confl == nullPtrClause && ((uint)i) < nf.size(); i++) {
 				if (i == w.getIndex() && !isEX(w.getWatchset())) {
 					continue;
 				}
 				confl = as().getSolver()->notifySolver(nf[i]->lit(), new AggReason(*as().getAgg()[0], nf[i]->lit(), BASEDONCC, false));
 			}
 			if (confl == nullPtrClause) {
-				for (vsize i = 0; confl == nullPtrClause && i < nfex.size(); i++) {
+				for (int i = 0; confl == nullPtrClause && ((uint)i) < nfex.size(); i++) {
 					if (i == w.getIndex() && isEX(w.getWatchset())) {
 						continue;
 					}
@@ -329,14 +407,14 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& watch) {
 			}
 		} else if (checking(NTEX)) {
 			// propagate all others in NF and propagate NFex
-			for (vsize i = 0; confl == nullPtrClause && i < nt.size(); i++) {
+			for (int i = 0; confl == nullPtrClause && ((uint)i) < nt.size(); i++) {
 				if (i == w.getIndex() && !isEX(w.getWatchset())) {
 					continue;
 				}
 				confl = as().getSolver()->notifySolver(nt[i]->lit(), new AggReason(*as().getAgg()[0], nt[i]->lit(), BASEDONCC, false));
 			}
 			if (confl == nullPtrClause) {
-				for (vsize i = 0; confl == nullPtrClause && i < ntex.size(); i++) {
+				for (int i = 0; confl == nullPtrClause && ((uint)i) < ntex.size(); i++) {
 					if (i == w.getIndex() && isEX(w.getWatchset())) {
 						continue;
 					}
@@ -358,8 +436,11 @@ rClause CardPWAgg::propagate(const Lit& p, const Watch& watch) {
 		addWatchToSolver(w.getWatchset(), getWatches(w.getWatchset()), w.getIndex());
 	}else{
 		//otherwise, it is marked as no longer in use
-		w.setWatchset(INSET);
 		w.setInUse(false);
+	}
+
+	if(w.getWatchset()!=INSET){
+		assert(getWatches(w.getWatchset())[w.getIndex()]->watch()==pw);
 	}
 
 	return confl;
@@ -457,7 +538,7 @@ bool CardPWAgg::assertedBefore(const Var& l, const Var& p) const {
 
 	const vl& trail = pcsol->getRecentAssignments();
 	bool before = true;
-	for (int i = 0; i < trail.size(); i++) {
+	for (vsize i = 0; i < trail.size(); i++) {
 		if (var(trail[i]) == l) { // l encountered first, so before
 			break;
 		}

@@ -162,12 +162,12 @@ void CalcAgg::doSetReduction() {
 }
 
 // Propagate set literal
-rClause CalcAgg::propagate(const Lit& p, const Watch& w) {
-	prop->propagate(p, w);
+rClause CalcAgg::propagate(const Lit& p, Watch* w) {
+	return prop->propagate(p, w);
 }
 // Propagate head
 rClause CalcAgg::propagate(const Agg& agg) {
-	prop->propagate(agg);
+	return prop->propagate(agg);
 }
 // Backtrack set literal
 void CalcAgg::backtrack(const Watch& w) {
@@ -468,7 +468,7 @@ bool SPCalc::canJustifyHead(
 
 	if (getSolver()->verbosity() >= 4) {
 		reportf("Justification checked for ");
-		printAgg(agg);
+		printAgg(agg, true);
 
 		if (justified) {
 			reportf("justification found: ");
@@ -581,7 +581,9 @@ void Aggrs::printAgg(aggs const * const c, bool endl) {
 	for (vwl::const_iterator i = c->getWL().begin(); i < c->getWL().end(); ++i) {
 		reportf(" ");
 		gprintLit((*i).getLit());
-		reportf("(%s)", printWeight((*i).getWeight()).c_str());
+		lbool value = c->getSolver()->value((*i).getLit());
+		reportf("(%s)", value==l_Undef?"X":value==l_True?"T":"F");
+		reportf("=%s", printWeight((*i).getWeight()).c_str());
 	}
 	if (endl) {
 		reportf(" }\n");
@@ -590,8 +592,10 @@ void Aggrs::printAgg(aggs const * const c, bool endl) {
 	}
 }
 
-void Aggrs::printAgg(const Agg& ae) {
+void Aggrs::printAgg(const Agg& ae, bool printendline) {
 	gprintLit(ae.getHead());
+	lbool value = ae.getAggComb()->getSolver()->value(ae.getHead());
+	reportf("(%s)", value==l_Undef?"X":value==l_True?"T":"F");
 	paggs set = ae.getAggComb();
 	if (ae.isLower()) {
 		reportf(" <- ");
@@ -601,9 +605,12 @@ void Aggrs::printAgg(const Agg& ae) {
 	printAgg(set, false);
 	if (ae.isLower()) {
 		//reportf(" <= %s. Known values: bestcertain=%s, bestpossible=%s\n", printWeight(ae.getLowerBound()).c_str(), printWeight(set->getCC()).c_str(), printWeight(set->getCP()).c_str());
-		reportf(" <= %s.\n", printWeight(ae.getLowerBound()).c_str());
+		reportf(" <= %s.", printWeight(ae.getLowerBound()).c_str());
 	} else {
 		//reportf(". Known values: bestcertain=%s, bestpossible=%s\n", printWeight(set->getCC()).c_str(), printWeight(set->getCP()).c_str());
-		reportf(".\n");
+		reportf(".");
+	}
+	if(printendline){
+		reportf("\n");
 	}
 }

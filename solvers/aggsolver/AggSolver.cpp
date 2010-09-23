@@ -46,6 +46,7 @@
 #include "solvers/aggsolver/AggComb.hpp"
 
 #include "solvers/aggsolver/FullyWatched.hpp"
+#include "solvers/aggsolver/PartiallyWatched.hpp"
 
 #include <algorithm>
 
@@ -120,7 +121,7 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 	}
 
 	vector<WL> lw;
-	for (int i = 0; i < lits.size(); i++) {
+	for (vsize i = 0; i < lits.size(); i++) {
 #ifdef INTWEIGHT
 		if (weights[i] == INT_MAX || weights[i] == INT_MIN) {
 			throw idpexception(
@@ -137,7 +138,7 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 		reportf("Added set %d: ", setid);
 		vector<Weight>::const_iterator w = weights.begin();
 		bool begin = true;
-		for (int i = 0; i < lits.size(); i++, w++) {
+		for (vsize i = 0; i < lits.size(); i++, w++) {
 			if (begin) {
 				begin = false;
 			} else {
@@ -169,7 +170,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	Bound boundsign,
 
 	// Check whether the head occurs in the body of the set, which is no longer allowed
 	// TODO zet in file huidige invoerformaat, zodat de grounder dat kan garanderen
-	for(int i=0; i<set->getWL().size() ;i++){
+	for(vsize i=0; i<set->getWL().size() ;i++){
 		if(var(set->getWL()[i])==headv){ //Exception if head occurs in set itself
 			char s[100];
 			sprintf(s, "Set nr. %d contains a literal of atom %d, the head of an aggregate, which is not allowed.\n", setid, gprintVar(headv));
@@ -179,7 +180,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	Bound boundsign,
 
 	//Check that not aggregates occur with the same heads
 	for(map<int, ppaset>::const_iterator i=parsedsets.begin(); i!=parsedsets.end(); i++){
-		for(int j=0; j<(*i).second->getAgg().size(); j++){
+		for(vsize j=0; j<(*i).second->getAgg().size(); j++){
 			if(var((*i).second->getAgg()[j]->getHead())==headv){ //Exception if two agg with same head
 				char s[100];
 				sprintf(s, "At least two aggregates have the same head(%d).\n", gprintVar(headv));
@@ -251,9 +252,9 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	}
 	deleteList<paset>(parsedsets);
 
-	int max = 0, min = 0, card = 0, prod = 0, sum = 0;
+	vsize max = 0, min = 0, card = 0, prod = 0, sum = 0;
 	int agg = 0, setlits = 0, nbsets = sets.size();
-	for(int i=0; i<sets.size(); i++){
+	for(vsize i=0; i<sets.size(); i++){
 		agg += sets[i]->getAgg().size();
 		setlits += sets[i]->getWL().size();
 		switch(sets[i]->getType()){
@@ -287,11 +288,11 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		reportf("Aggregates are present after initialization:\n");
 		for (vpaggs::const_iterator i=sets.begin(); i<sets.end(); i++) {
 			for (vpagg::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); j++) {
-				Aggrs::printAgg(**j);
+				Aggrs::printAgg(**j, true);
 			}
 		}
 
-		for (int i = 0; i < nVars(); i++) {
+		for (vsize i = 0; i < nVars(); i++) {
 			reportf("Watches of var %d:\n", gprintVar(i));
 			if (headwatches[i] != NULL) {
 				reportf("   headwatch\n");
@@ -300,11 +301,11 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 			}
 
 			reportf("   bodywatches\n");
-			for (int j = 0; j < permwatches[i].size(); j++) {
+			for (vsize j = 0; j < permwatches[i].size(); j++) {
 				reportf("      ");
 				Aggrs::printAgg((permwatches[i][j])->getAggComb(), true);
 			}
-			for (int j = 0; j < tempwatches[i].size(); j++) {
+			for (vsize j = 0; j < tempwatches[i].size(); j++) {
 				reportf("      ");
 				Aggrs::printAgg((tempwatches[i][j])->getAggComb(), true);
 			}
@@ -340,7 +341,7 @@ bool AggSolver::finishSet(ppaset set){
 
 //gets OWNING pointer to ca
 bool AggSolver::initCalcAgg(CalcAgg* ca, vppagg aggs){
-	for(int i=0; i<aggs.size(); i++){
+	for(vsize i=0; i<aggs.size(); i++){
 		ca->addAgg(new Agg(aggs[i]->getBound(), aggs[i]->getSign(), aggs[i]->getHead(), aggs[i]->getSem(), aggs[i]->isOptim()));
 	}
 
@@ -355,19 +356,19 @@ bool AggSolver::initCalcAgg(CalcAgg* ca, vppagg aggs){
 void AggSolver::addSet(CalcAgg* ca){
 	sets.push_back(ca);
 	//Initialize network of body literals:
-	for(int i=0; i<ca->getWL().size(); i++){
+	for(vsize i=0; i<ca->getWL().size(); i++){
 		network[var(ca->getWL()[i])].push_back(ca);
 	}
 }
 
 bool AggSolver::constructMinSet(ppaset set, vppagg aggs){
 	vwl wl;
-	for(int i=0; i<set->getWL().size(); i++){
+	for(vsize i=0; i<set->getWL().size(); i++){
 		wl.push_back(WL(set->getWL()[i], -set->getWL()[i]));
 	}
 	ppaset set2 = new ParsedSet(set->getID(), wl);
 	vppagg aggs2;
-	for(int i=0; i<aggs.size(); i++){
+	for(vsize i=0; i<aggs.size(); i++){
 		ppagg agg = aggs[i];
 		Bound sign = agg->getSign()==LOWERBOUND?UPPERBOUND:LOWERBOUND;
 		ppagg agg2 = new ParsedAgg(-agg->getBound(), sign, agg->getHead(), agg->getSem(), set2, agg->getType());
@@ -388,7 +389,7 @@ bool AggSolver::constructMaxSet(ppaset set, vppagg aggs){
 bool AggSolver::constructCardSet(ppaset set, vppagg aggs){
 	map<Var, bool> occurs;
 	bool tosum = false;
-	for(int i=0; !tosum && i<set->getWL().size(); i++){
+	for(vsize i=0; !tosum && i<set->getWL().size(); i++){
 		if(set->getWL()[i]!=1){
 			tosum = true;
 		}else if(occurs.find(var(set->getWL()[i]))!=occurs.end()){
@@ -403,7 +404,7 @@ bool AggSolver::constructCardSet(ppaset set, vppagg aggs){
 
 	if(true){ //use PWatches
 		/*vppagg lower, higher;
-		for(int i=0; i<aggs.size(); i++){
+		for(vsize i=0; i<aggs.size(); i++){
 			if(aggs[i]->getSign()==LOWERBOUND){
 				lower.push_back(aggs[i]);
 			}else{
@@ -415,7 +416,7 @@ bool AggSolver::constructCardSet(ppaset set, vppagg aggs){
 		CalcAgg* ca2 = new CardCalc(this, set->getWL());
 		return !unsat || initCalcAgg(ca2, higher);*/
 		bool unsat = false;
-		for(int i=0; !unsat && i<aggs.size(); i++){
+		for(vsize i=0; !unsat && i<aggs.size(); i++){
 			CalcAgg* ca = new CardCalc(this, set->getWL());
 			vppagg aggs2;
 			aggs2.push_back(aggs[i]);
@@ -431,7 +432,7 @@ bool AggSolver::constructCardSet(ppaset set, vppagg aggs){
 bool AggSolver::constructSumSet(ppaset set, vppagg aggs){
 	map<Var, bool> occurs;
 	bool tocard = true;
-	for(int i=0; tocard && i<set->getWL().size(); i++){
+	for(vsize i=0; tocard && i<set->getWL().size(); i++){
 		if(set->getWL()[i]!=1){
 			tocard = false;
 		}else if(occurs.find(var(set->getWL()[i]))!=occurs.end()){
@@ -448,7 +449,7 @@ bool AggSolver::constructSumSet(ppaset set, vppagg aggs){
 }
 
 bool AggSolver::constructProdSet(ppaset set, vppagg aggs){
-	for(int i=0; i<set->getWL().size(); i++){
+	for(vsize i=0; i<set->getWL().size(); i++){
 		if(set->getWL()[i] < 1) { //Exception if product contains negative/zero weights
 			char s[200];
 			sprintf(s,
@@ -484,7 +485,7 @@ rClause AggSolver::notifySolver(const Lit& p, AggReason* ar) {
 			reportf("Deriving conflict in ");
 			gprintLit(p, l_True);
 			reportf(" because of the aggregate expression ");
-			Aggrs::printAgg(ar->getAgg());
+			Aggrs::printAgg(ar->getAgg(), true);
 		}
 		AggReason* old_ar = aggreason[var(p)];
 		aggreason[var(p)] = ar;
@@ -498,7 +499,7 @@ rClause AggSolver::notifySolver(const Lit& p, AggReason* ar) {
 			reportf("Deriving ");
 			gprintLit(p, l_True);
 			reportf(" because of the aggregate expression ");
-			Aggrs::printAgg(ar->getAgg());
+			Aggrs::printAgg(ar->getAgg(), true);
 		}
 		assert(aggreason[var(p)] == NULL);
 		aggreason[var(p)] = ar;
@@ -510,6 +511,10 @@ rClause AggSolver::notifySolver(const Lit& p, AggReason* ar) {
 }
 
 void AggSolver::newDecisionLevel() {
+	if(verbosity()>=6){
+		reportf("Current effective watches on new decision level: \n");
+		printWatches(this, tempwatches);
+	}
 }
 
 /**
@@ -537,7 +542,7 @@ rClause AggSolver::propagate(const Lit& p) {
 	vector<pw>& ws = permwatches[var(p)];
 	for (vector<pw>::const_iterator i = ws.begin(); confl == nullPtrClause && i
 			< ws.end(); i++) {
-		confl = (*i)->getAggComb()->propagate(p, **i);
+		confl = (*i)->getAggComb()->propagate(p, *i);
 		propagations++;
 	}
 
@@ -545,50 +550,26 @@ rClause AggSolver::propagate(const Lit& p) {
 		return confl;
 	}
 
-	if(verbosity()>=1){
+	if(verbosity()>=8){
 		reportf("Current effective watches BEFORE: \n");
-		for(int i=0; i<2*nVars(); i++){
-			if(tempwatches[i].size()==0){
-				continue;
-			}
-			reportf("    Watch "); gprintLit(toLit(i)); reportf(" used by: \n");
-			for(int j=0; j<tempwatches[i].size(); j++){
-				for(int k=0; k<tempwatches[i][j]->getAggComb()->getAgg().size(); k++){
-					reportf("        ");
-					printAgg(*tempwatches[i][j]->getAggComb()->getAgg()[k]);
-				}
-			}
-		}
-		reportf("\n");
+		printWatches(this, tempwatches);
 	}
 
 	vector<pw> ws2(tempwatches[toInt(p)]); //IMPORTANT, BECAUSE WATCHES MIGHT BE ADDED AGAIN TO THE END (if no other watches are found etc)
 	tempwatches[toInt(p)].clear();
 
-	int i = 0;
+	vsize i = 0;
 	for (; confl == nullPtrClause && i < ws2.size(); i++) {
-		confl = ws2[i]->getAggComb()->propagate(p, *ws2[i]);
+		confl = ws2[i]->getAggComb()->propagate(p, ws2[i]);
 		propagations++;
 	}
 	for (; i < ws2.size(); i++){
 		addTempWatch(p, ws2[i]);
 	}
 
-	if(verbosity()>=1){
+	if(verbosity()>=8){
 		reportf("Current effective watches AFTER: \n");
-		for(int i=0; i<2*nVars(); i++){
-			if(tempwatches[i].size()==0){
-				continue;
-			}
-			reportf("    Watch "); gprintLit(toLit(i)); reportf(" used by: \n");
-			for(int j=0; j<tempwatches[i].size(); j++){
-				for(int k=0; k<tempwatches[i][j]->getAggComb()->getAgg().size(); k++){
-					reportf("        ");
-					printAgg(*tempwatches[i][j]->getAggComb()->getAgg()[k]);
-				}
-			}
-		}
-		reportf("\n");
+		printWatches(this, tempwatches);
 	}
 
 	return confl;
@@ -771,7 +752,7 @@ bool AggSolver::addMnmzSum(Var headv, int setid, Bound boundsign) {
 	ppaset set = parsedsets[setid];
 
 	// Check whether the head occurs in the body of the set, which is no longer allowed
-	for(int i=0; i<set->getWL().size() ;i++){
+	for(vsize i=0; i<set->getWL().size() ;i++){
 		if(var(set->getWL()[i])==headv){ //Exception if head occurs in set itself
 			char s[100];
 			sprintf(s, "Set nr. %d contains a literal of atom %d, the head of an aggregate, which is not allowed.\n", setid, gprintVar(headv));
@@ -781,7 +762,7 @@ bool AggSolver::addMnmzSum(Var headv, int setid, Bound boundsign) {
 
 	//Check that not aggregates occur with the same heads
 	for(map<int, ppaset>::const_iterator i=parsedsets.begin(); i!=parsedsets.end(); i++){
-		for(int j=0; j<(*i).second->getAgg().size(); j++){
+		for(vsize j=0; j<(*i).second->getAgg().size(); j++){
 			if(var((*i).second->getAgg()[j]->getHead())==headv){ //Exception if two agg with same head
 				char s[100];
 				sprintf(s, "At least two aggregates have the same head(%d).\n", gprintVar(headv));
@@ -856,28 +837,28 @@ void AggSolver::printStatistics() const {
 
 /*void AggSolver::findClausalPropagations(){
  int counter = 0;
- for(int i=0; i<aggrminsets.size(); i++){
+ for(vsize i=0; i<aggrminsets.size(); i++){
  vector<Var> set;
  for(lwlv::const_iterator j=aggrminsets[i]->getWLBegin(); j<aggrminsets[i]->getWLEnd(); j++){
  set.push_back(var((*j).getLit()));
  }
  counter += getPCSolver()->getClausesWhichOnlyContain(set).size();
  }
- for(int i=0; i<aggrprodsets.size(); i++){
+ for(vsize i=0; i<aggrprodsets.size(); i++){
  vector<Var> set;
  for(lwlv::const_iterator j=aggrprodsets[i]->getWLBegin(); j<aggrprodsets[i]->getWLEnd(); j++){
  set.push_back(var((*j).getLit()));
  }
  counter += getPCSolver()->getClausesWhichOnlyContain(set).size();
  }
- for(int i=0; i<aggrsumsets.size(); i++){
+ for(vsize i=0; i<aggrsumsets.size(); i++){
  vector<Var> set;
  for(lwlv::const_iterator j=aggrsumsets[i]->getWLBegin(); j<aggrsumsets[i]->getWLEnd(); j++){
  set.push_back(var((*j).getLit()));
  }
  counter += getPCSolver()->getClausesWhichOnlyContain(set).size();
  }
- for(int i=0; i<aggrmaxsets.size(); i++){
+ for(vsize i=0; i<aggrmaxsets.size(); i++){
  vector<Var> set;
  for(lwlv::const_iterator j=aggrmaxsets[i]->getWLBegin(); j<aggrmaxsets[i]->getWLEnd(); j++){
  set.push_back(var((*j).getLit()));

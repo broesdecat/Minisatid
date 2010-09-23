@@ -161,17 +161,17 @@ rClause FWAgg::propagate(const Agg& agg) {
 	return confl;
 }
 
-rClause FWAgg::propagate(const Lit& p, const Watch& ws) {
+rClause FWAgg::propagate(const Lit& p, pw ws) {
 	Occurrence tp;
-	if (ws.getType() == POS) {
+	if (ws->getType() == POS) {
 		tp = sign(p) ? NEG : POS;
 	} else {
 		tp = sign(p) ? POS : NEG;
 	}
 
-	const WL& wl = as().getWL()[ws.getIndex()];
+	const WL& wl = as().getWL()[ws->getIndex()];
 	stack.push_back(PropagationInfo(p, wl.getWeight(), tp, getCC(), getCP()));
-	truth[ws.getIndex()] = tp == POS ? l_True : l_False;
+	truth[ws->getIndex()] = tp == POS ? l_True : l_False;
 	tp == POS ? addToCertainSet(wl) : removeFromPossibleSet(wl);
 
 	rClause confl = nullPtrClause;
@@ -180,7 +180,7 @@ rClause FWAgg::propagate(const Lit& p, const Watch& ws) {
 
 		if (as().getSolver()->verbosity() >= 4) {
 			reportf("Propagating into aggr: ");
-			Aggrs::printAgg(pa);
+			Aggrs::printAgg(pa, true);
 		}
 
 		lbool hv = headvalue[pa.getIndex()];
