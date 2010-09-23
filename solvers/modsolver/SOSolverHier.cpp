@@ -60,6 +60,12 @@ bool ModSolverData::solve(vec<vec<Lit> >& varmodels){
 	return solvers[0]->solve(varmodels);
 }
 
+
+bool ModSolverData::solve(const vec<Lit>& assumptions, vec<vec<Lit> >& varmodels){
+	assert(state==ALLLOADED);
+	return solvers[0]->solve(varmodels, assumptions);
+}
+
 bool ModSolverData::finishParsing(){
 	assert(state==LOADINGREST);
 	state = ALLLOADED;

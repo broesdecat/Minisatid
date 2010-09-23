@@ -107,6 +107,12 @@ void SolverInterface::checkAtoms(const vector<Atom>& lits, vector<Var>& ll){
 	}
 }
 
+void PropositionalSolver::addForcedChoices(const vector<Literal> lits){
+	vec<Lit> ll;
+	checkLits(lits, ll);
+	getSolver()->addForcedChoices(ll);
+}
+
 template <class T>
 bool SolverInterface2<T>::solve(){
 	vector<vector<Literal> > models;

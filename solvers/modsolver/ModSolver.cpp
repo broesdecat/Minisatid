@@ -160,6 +160,10 @@ bool ModSolver::solve(vec<vec<Lit> >& varmodels){
 	return getSolver()->solve(varmodels);
 }
 
+bool ModSolver::solve(vec<vec<Lit> >& varmodels, const vec<Lit>& assumptions){
+return getSolver()->solve(assumptions, varmodels);
+}
+
 /*
  * Simplifies PC solver and afterwards simplifies lower modal operators.
  * Returns false if the problem is unsat (and then does not simplify other solvers).
@@ -287,9 +291,9 @@ bool ModSolver::search(const vec<Lit>& assumpts, bool search){
 	bool result;
 	searching = search;
 	if(searching){
-		result = getSolver()->solve(assumpts);
+		result = getSolver()->findModel(assumpts);
 	}else{
-		result = getSolver()->solvenosearch(assumpts);
+		result = getSolver()->propagate(assumpts);
 	}
 	searching = false;
 	return result;

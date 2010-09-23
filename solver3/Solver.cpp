@@ -52,6 +52,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 Solver::Solver(pPCSolver s/*A*/) :
 	solver(s), /*A*/
+	choicestaken(0), /*A*/
     // Parameters: (formerly in 'SearchParams')
     var_decay(1 / 0.95), clause_decay(1 / 0.999), random_var_freq(0.02), learntsize_inc(1.1)
 
@@ -314,6 +315,17 @@ void Solver::cancelUntil(int level) {
 Lit Solver::pickBranchLit(int polarity_mode, double random_var_freq)
 {
     Var next = var_Undef;
+
+    /*AB*/
+    //Forced decision if available:
+    while(choicestaken<forcedchoices.size() && value(forcedchoices[choicestaken])!=l_Undef){
+		reportf("Forced choice already propagated\n");
+		choicestaken++;
+	}
+	if(choicestaken<forcedchoices.size()){
+		return forcedchoices[choicestaken++];
+	}
+    /*AE*/
 
     // Random decision:
     if (drand(random_seed) < random_var_freq && !order_heap.empty()){

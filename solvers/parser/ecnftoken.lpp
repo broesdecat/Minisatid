@@ -37,6 +37,8 @@ extern int charPos;
 "mnmz" 	{ADJ; return MNMZPRESENT;}
 "cp" 	{ADJ; return CPPRESENT;}
 
+"forcesearch" { ADJ; return FORCECHOICE; }
+
 "WSet"	{ADJ; return WSETDEFN;}
 "Set"	{ADJ; return SETDEFN;}
 "Card"	{ADJ; /*ecnflval*/yylval.aggr = CARD; return AGGDEFN;}

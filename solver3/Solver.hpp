@@ -106,7 +106,11 @@ static inline uint64_t memUsed() { return 0; }
 
 class Solver {
 private:
-/*A*/	pPCSolver solver;
+/*AB*/
+	pPCSolver	solver;
+	vec<Lit> 	forcedchoices;
+	int		 	choicestaken;
+/*AE*/
 
 public:
 /*AB*/
@@ -129,6 +133,7 @@ public:
 	Clause* 	makeClause(vec<Lit>& lits, bool b){	return Clause_new(lits, b);	}
 	const Clause& 	getClause		(int i) const { return *clauses[i]; }
 	int			nbClauses			() const { return clauses.size(); }
+	void		addForcedChoices	(const vec<Lit>& fc) { fc.copyTo(forcedchoices); }
 	//vector<Clause*> getClausesWhichOnlyContain(const vector<Var>& vars);
 /*AE*/
 

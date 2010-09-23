@@ -96,6 +96,11 @@ private:
 	Var 		head;
 	vec<Lit>	to_minimize;
 
+	///////
+	// FORCED CHOICES TO MAKE DURING SEARCH
+	///////
+	vec<Lit> forcedchoices;
+
 	/*
 	 * Getters for solver pointers
 	 */
@@ -138,6 +143,8 @@ public:
 	bool 		addCPCount		(vector<int> termnames, int value, MINISAT::EqType rel, int rhstermname);
 	bool 		addCPAlldifferent(const vector<int>& termnames);
 
+	void		addForcedChoices(const vec<Lit>& forcedchoices);
+
 	bool 		finishParsing	(); //throws UNSAT
 
 	void 		newDecisionLevel();
@@ -149,12 +156,12 @@ public:
 	bool 		findNext		(const vec<Lit>& assumpts, vec<Lit>& model, bool& moremodels);
 	bool    	invalidateModel	(vec<Lit>& invalidation);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
 	void 		invalidate		(vec<Lit>& invalidation);
+
+	bool 		propagate		(const vec<Lit>& assmpt);
+	bool 		findModel		(const vec<Lit>& assmpt);
 	bool 		solve			();
 	bool 		solve			(vec<vec<Lit> >& models);
-	bool		solve			(const vec<Lit>& assmpt);
-	bool		solvenosearch	(const vec<Lit>& assmpt);
-	bool 		solveAll		(vec<Lit>& assmpt);
-	bool 		solveAll		(vec<Lit>& assmpt, vec<vec<Lit> >& models);
+	bool 		solve			(const vec<Lit>& assmpt, vec<vec<Lit> >& models);
 
 	void		removeAggrHead	(Var x);
 	void		notifyAggrHead	(Var head);

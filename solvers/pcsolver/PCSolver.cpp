@@ -327,6 +327,12 @@ bool PCSolver::addCPAlldifferent(const vector<int>& termnames) {
 	throw idpexception("CP-support is not compiled in.\n");
 }
 
+void PCSolver::addForcedChoices(const vec<Lit>& forcedchoices){
+	if(forcedchoices.size()!=0){
+		getSolver()->addForcedChoices(forcedchoices);
+	}
+}
+
 /*
  * Returns "false" if UNSAT was already found, otherwise "true"
  */
@@ -533,25 +539,24 @@ bool PCSolver::simplify() {
 bool PCSolver::solve() {
 	vec<Lit> assmpt;
 	vec<vec<Lit> > models;
-	return solveAll(assmpt, models);
+	return solve(assmpt, models);
 }
 
 bool PCSolver::solve(vec<vec<Lit> >& models) {
 	vec<Lit> assmpt;
-	return solveAll(assmpt, models);
+	return solve(assmpt, models);
 }
 
-//Straight to solver
-bool PCSolver::solvenosearch(const vec<Lit>& assmpt) {
+//Straight to solver, search until a model is found
+bool PCSolver::findModel(const vec<Lit>& assmpt) {
+	return getSolver()->solve(assmpt);
+}
+//Straight to solver, do all propagations, but do not search
+bool PCSolver::propagate(const vec<Lit>& assmpt) {
 	return getSolver()->solve(assmpt, true);
 }
 
-//Straight to solver
-bool PCSolver::solve(const vec<Lit>& assmpt) {
-	return getSolver()->solve(assmpt);
-}
-
-bool PCSolver::solveAll(vec<Lit>& assmpt, vec<vec<Lit> >& models) {
+bool PCSolver::solve(const vec<Lit>& assmpt, vec<vec<Lit> >& models) {
 	bool solved = false;
 
 	if (modes().verbosity >= 1) {
@@ -633,7 +638,7 @@ bool PCSolver::solveAll(vec<Lit>& assmpt, vec<vec<Lit> >& models) {
  * and can be backtracked!
  */
 bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m, bool& moremodels) {
-	bool rslt = solve(assmpt);
+	bool rslt = findModel(assmpt);
 
 	if (!rslt) {
 		moremodels = false;

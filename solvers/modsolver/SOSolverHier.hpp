@@ -77,6 +77,7 @@ public:
 	bool 	simplify			();
 	bool 	solve				();
 	bool 	solve				(vec<vec<Lit> >& varmodels);
+	bool 	solve				(const vec<Lit>& assumptions, vec<vec<Lit> >& varmodels);
 
 	bool 	finishParsing		();
 

@@ -87,6 +87,7 @@ shared_ptr<SolverInterface> getData();
 %token <aggr> AGGDEFN
 %token CNF ECNF MECNF DEFPRESENT AGGPRESENT MNMZPRESENT MODDEFN CPPRESENT
 %token INTVAR SUMSTRT SUMSTRI SUMSTSIRT SUMSTSIRI COUNTSTRIT DISTINCT DELIM BINTRI BINTRT
+%token FORCECHOICE
 
 %type <integer> number posnumber
 %type <vints> ibody
@@ -156,6 +157,7 @@ cnfclause
 //---------------------------------------------
 
 ecnftheory	:	/* empty */
+			|	ecnftheory FORCECHOICE body ZERO { solver->addForcedChoices(*$3); delete $3; }
 			|	ecnftheory clause
 			|	ecnftheory rule
 			| 	ecnftheory agg
