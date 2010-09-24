@@ -373,8 +373,12 @@ void Propagator::initialize(bool& unsat, bool& sat) {
 	}
 }
 
-lbool Propagator::value(Lit l) const {
+lbool Propagator::value(const Lit& l) const {
 	return as().getSolver()->value(l);
+}
+
+lbool Propagator::propagatedValue(const Lit& l) const {
+	return as().getSolver()->propagatedValue(l);
 }
 
 /************************
@@ -581,7 +585,7 @@ void Aggrs::printAgg(aggs const * const c, bool endl) {
 	for (vwl::const_iterator i = c->getWL().begin(); i < c->getWL().end(); ++i) {
 		reportf(" ");
 		gprintLit((*i).getLit());
-		lbool value = c->getSolver()->value((*i).getLit());
+		lbool value = c->getSolver()->propagatedValue((*i).getLit());
 		reportf("(%s)", value==l_Undef?"X":value==l_True?"T":"F");
 		reportf("=%s", printWeight((*i).getWeight()).c_str());
 	}
@@ -594,7 +598,7 @@ void Aggrs::printAgg(aggs const * const c, bool endl) {
 
 void Aggrs::printAgg(const Agg& ae, bool printendline) {
 	gprintLit(ae.getHead());
-	lbool value = ae.getAggComb()->getSolver()->value(ae.getHead());
+	lbool value = ae.getAggComb()->getSolver()->propagatedValue(ae.getHead());
 	reportf("(%s)", value==l_Undef?"X":value==l_True?"T":"F");
 	paggs set = ae.getAggComb();
 	if (ae.isLower()) {

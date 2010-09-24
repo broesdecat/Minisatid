@@ -72,6 +72,7 @@ void AggSolver::notifyVarAdded(uint64_t nvars) {
 	tempwatches.resize(2 * nvars);
 	aggreason.resize(nvars, NULL);
 	network.resize(nvars);
+	assigns.resize(nvars, l_Undef);
 }
 
 ///////
@@ -93,6 +94,7 @@ void AggSolver::addPermWatch(Var v, pw w) {
 }
 
 void AggSolver::addTempWatch(const Lit& l, pw w) {
+	//reportf("Watch added: "); gprintLit(l); reportf("\n");
 	tempwatches[toInt(l)].push_back(w);
 }
 
@@ -241,8 +243,8 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 
 	// Initialize all parsed sets
 	for(map<int, ppaset>::const_iterator i=parsedsets.begin(); i!=parsedsets.end(); i++){
-		bool setnotunsat = finishSet((*i).second);
-		if (!setnotunsat){
+		bool foundunsat = finishSet((*i).second);
+		if (foundunsat){
 			if (verbosity() >= 3) {
 				reportf("Initializing aggregates finished, unsat detected.\n");
 			}
@@ -322,6 +324,7 @@ bool AggSolver::finishSet(ppaset set){
 		partaggs[(*i)->getType()].push_back(*i);
 	}
 
+	//Initialize the different sets
 	for(map<AggrType, vppagg>::const_iterator i=partaggs.begin(); !unsat && i!=partaggs.end(); i++){
 		if((*i).second.size()==0){
 			continue;
@@ -350,7 +353,7 @@ bool AggSolver::initCalcAgg(CalcAgg* ca, vppagg aggs){
 	if(sat || unsat){
 		delete ca;
 	}
-	return !unsat;
+	return unsat;
 }
 
 void AggSolver::addSet(CalcAgg* ca){
@@ -420,9 +423,9 @@ bool AggSolver::constructCardSet(ppaset set, vppagg aggs){
 			CalcAgg* ca = new CardCalc(this, set->getWL());
 			vppagg aggs2;
 			aggs2.push_back(aggs[i]);
-			unsat = !initCalcAgg(ca, aggs2);
+			unsat = initCalcAgg(ca, aggs2);
 		}
-		return !unsat;
+		return unsat;
 	}else{
 		CalcAgg* ca = new CardCalc(this, set->getWL());
 		return initCalcAgg(ca, aggs);
@@ -525,12 +528,20 @@ rClause AggSolver::propagate(const Lit& p) {
 		return nullPtrClause;
 	}
 
+	assert(assigns[var(p)]==l_Undef);
+	assigns[var(p)] = sign(p)?l_False:l_True;
+
 	rClause confl = nullPtrClause;
 
 	if (verbosity() >= 2) {
 		reportf("Aggr_propagate(");
 		gprintLit(p, l_True);
 		reportf(").\n");
+	}
+
+	if(verbosity()>=8){
+		reportf("Current effective watches BEFORE: \n");
+		printWatches(this, tempwatches);
 	}
 
 	pagg pa = headwatches[var(p)];
@@ -548,11 +559,6 @@ rClause AggSolver::propagate(const Lit& p) {
 
 	if (confl != nullPtrClause) {
 		return confl;
-	}
-
-	if(verbosity()>=8){
-		reportf("Current effective watches BEFORE: \n");
-		printWatches(this, tempwatches);
 	}
 
 	vector<pw> ws2(tempwatches[toInt(p)]); //IMPORTANT, BECAUSE WATCHES MIGHT BE ADDED AGAIN TO THE END (if no other watches are found etc)
@@ -614,6 +620,8 @@ void AggSolver::backtrack(const Lit& l) {
 	if (!isInitialized()) {
 		return;
 	}
+
+	assigns[var(l)] = l_Undef;
 
 	if (aggreason[var(l)] != NULL) {
 		delete aggreason[var(l)];

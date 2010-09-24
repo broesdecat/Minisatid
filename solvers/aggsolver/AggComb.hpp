@@ -348,7 +348,8 @@ public:
     		paggs 		asp	() 	const 	{ return agg; }
     	const aggs& 	asc	() 	const 	{ return *agg; }
 
-    		lbool 		value(Lit l) const;
+    		lbool 		value(const Lit& l) const;
+    		lbool		propagatedValue(const Lit& l) const;
 
     virtual void initialize(bool& unsat, bool& sat);
 };

@@ -103,6 +103,7 @@ bool CardPWAgg::checking(watchset w) const{
  * Removes a literal from its set and adds it to a watched set
  */
 void CardPWAgg::addToWatchedSet(watchset w, vsize setindex) {
+	//reportf("Watch initially added\n");
 	vptw& set = getSet(w);
 	vptw& watches = getWatches(w);
 	ptw watch = set[setindex];
@@ -122,6 +123,7 @@ void CardPWAgg::addWatchesToSolver(watchset w){
 void CardPWAgg::addWatchToSolver(watchset w, const vptw& set, vsize index) {
 	assert(set[index]->watch()->getIndex()==index);
 	set[index]->watch()->setInUse(true);
+	//reportf("Watch added\n");
 	as().getSolver()->addTempWatch(~set[index]->lit(), set[index]->watch());
 }
 
@@ -239,7 +241,7 @@ bool CardPWAgg::initializeNF() {
 	vptw& set = getSet(NF);
 	for (int i = 0; i < (int)set.size(); i++) {
 		const WL& wl = set[i]->wl();
-		if (Weight(nf.size()) < agg.getBound() && value(wl.getLit()) != l_False) {
+		if (Weight(nf.size()) < agg.getBound() && propagatedValue(wl.getLit()) != l_False) {
 			addToWatchedSet(NF, i);
 			i--;
 		}
@@ -252,7 +254,7 @@ bool CardPWAgg::initializeNT() {
 	vptw& set = getSet(NT);
 	for (int i = 0; i < (int)set.size(); i++) {
 		const WL& wl = set[i]->wl();
-		if (Weight(nt.size()) <= Weight(as().getWL().size()) - agg.getBound() && value(wl.getLit()) != l_False) {
+		if (Weight(nt.size()) <= Weight(as().getWL().size()) - agg.getBound() && propagatedValue(wl.getLit()) != l_False) {
 			addToWatchedSet(NT, i);
 			i--;
 		}
@@ -265,7 +267,7 @@ bool CardPWAgg::initializeNTL() {
 	vptw& set = getSet(NT);
 	for (int i = 0; i < (int)set.size(); i++) {
 		const WL& wl = set[i]->wl();
-		if (Weight(nt.size()) <= agg.getBound() && value(wl.getLit()) != l_False) {
+		if (Weight(nt.size()) <= agg.getBound() && propagatedValue(wl.getLit()) != l_False) {
 			addToWatchedSet(NT, i);
 			i--;
 		}
@@ -278,7 +280,7 @@ bool CardPWAgg::initializeNFL() {
 	vptw& set = getSet(NF);
 	for (int i = 0; i < (int)set.size(); i++) {
 		const WL& wl = set[i]->wl();
-		if (Weight(nf.size()) < Weight(as().getWL().size()) - agg.getBound() && value(wl.getLit()) != l_False) {
+		if (Weight(nf.size()) < Weight(as().getWL().size()) - agg.getBound() && propagatedValue(wl.getLit()) != l_False) {
 			addToWatchedSet(NF, i);
 			i--;
 		}
@@ -290,7 +292,7 @@ bool CardPWAgg::initializeEX(watchset w) {
 	bool found = false;
 	vptw& set = getSet(w);
 	for (int i = 0; !found && i < (int)set.size(); i++) {
-		if (value(set[i]->wl().getLit()) != l_False) {
+		if (propagatedValue(set[i]->wl().getLit()) != l_False) {
 			addToWatchedSet(w, i);
 			i--;
 			found = true;
@@ -306,7 +308,7 @@ bool CardPWAgg::replace(vsize index, watchset w) {
 
 	for (vsize i = 0; !found && i < set.size(); i++) {
 		ptw tw = set[i];
-		if (value(tw->lit()) != l_False) {
+		if (propagatedValue(tw->lit()) != l_False) {
 			watches[index]->watch()->setIndex(-1);
 			watches[index]->watch()->setWatchset(INSET);
 			watches[index]->watch()->setInUse(false);
@@ -446,6 +448,12 @@ rClause CardPWAgg::propagate(const Lit& p, Watch* watch) {
 	return confl;
 }
 
+/**
+ * When scrapping the stack, a problem arose that a literal might throw a conflict where in fact a later one was the real cause for the conflict,
+ * leading to an incomplete reason clause. So here we check which of the conflicting ones was asserted last and throw that conflict.
+ * But the problem then remains, that not all of those potential propagations and conflicts ever become watches (because the latest truth value is used)
+ * and this can only be helped by using the current truth value, which is what we will do.
+ */
 rClause CardPWAgg::propagate(const Agg& agg) {
 	if(headpropagatedhere){
 		//TODO deze check zou niet noodzakelijk mogen zijn voor de correctheid, maar is dat nu wel. Probleem is
@@ -567,4 +575,15 @@ void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
 			}
 		}
 	}
+
+	/*reportf("Aggregate explanation request: ");
+	gprintLit(ar.getLit());
+	reportf(" was derived because of ");
+	printAgg(ar.getAgg());
+	reportf(" generating clause: ");
+	for(int i=0; i<lits.size(); i++){
+		gprintLit(lits[i]);
+		reportf(" ");
+	}
+	reportf("\n");*/
 }

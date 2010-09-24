@@ -146,6 +146,8 @@ private:
 	vector<pagg>			headwatches;	//	index on VARs (heads always positive), does NOT own the pointers
 	vvpaggs					network;		// the pointer network of set var -> set
 
+	vector<lbool>			assigns;		//The truth values of literals according to whether they were propagated in the aggregate solver
+
 	//statistics
 	uint64_t propagations;
 
@@ -223,6 +225,8 @@ public:
 	rClause 			propagate				(const Lit& p);
 
 	void 				newDecisionLevel();
+
+	lbool				propagatedValue			(const Lit& l) const { return assigns[var(l)] ^ sign(l); }
 
 	//are used by agg.c, but preferably should be move into protected again
 	rClause				notifySolver(const Lit& p, Aggrs::AggReason* cr);	// Like "enqueue", but for aggregate propagations.
