@@ -267,6 +267,10 @@ public:
 	///////
 	// SEARCH
 	///////
+
+	void newDecisionLevel();
+	void backtrackDecisionLevel();
+
 	virtual bool canJustifyHead	(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const = 0;
 	// Propagate set literal
 	rClause 	propagate		(const Lit& p, pw w);
@@ -332,6 +336,9 @@ protected:
 public:
 	Propagator(paggs agg);
 	virtual ~Propagator(){};
+
+	virtual void newDecisionLevel() {};
+	virtual void backtrackDecisionLevel() {};
 
 	// Propagate set literal
 	virtual rClause 	propagate		(const Lit& p, Watch* w) = 0;

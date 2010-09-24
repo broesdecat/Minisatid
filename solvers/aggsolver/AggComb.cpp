@@ -161,6 +161,14 @@ void CalcAgg::doSetReduction() {
 	}
 }
 
+void CalcAgg::newDecisionLevel() {
+	prop->newDecisionLevel();
+}
+
+void CalcAgg::backtrackDecisionLevel() {
+	prop->backtrackDecisionLevel();
+}
+
 // Propagate set literal
 rClause CalcAgg::propagate(const Lit& p, Watch* w) {
 	return prop->propagate(p, w);

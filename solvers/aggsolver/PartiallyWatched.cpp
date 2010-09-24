@@ -152,6 +152,8 @@ PWAgg::PWAgg(paggs agg) :
 
 CardPWAgg::CardPWAgg(paggs agg) :
 	PWAgg(agg), headvalue(l_Undef), headpropagatedhere(false) {
+	startsetf.push_back(0);
+	startsett.push_back(0);
 }
 
 CardPWAgg::~CardPWAgg(){
@@ -301,12 +303,21 @@ bool CardPWAgg::initializeEX(watchset w) {
 	return found;
 }
 
+vector<int>& CardPWAgg::start(watchset w){
+	if(isF(w)){
+		return startsetf;
+	}else{
+		return startsett;
+	}
+}
+
 bool CardPWAgg::replace(vsize index, watchset w) {
 	bool found = false;
 	vptw& set = getSet(w);
 	vptw& watches = getWatches(w);
 
-	for (vsize i = 0; !found && i < set.size(); i++) {
+	vector<int>& s = start(w);
+	for (vsize i = s[s.size()-1]; !found && i < set.size(); i++) {
 		ptw tw = set[i];
 		if (propagatedValue(tw->lit()) != l_False) {
 			watches[index]->watch()->setIndex(-1);
@@ -318,6 +329,8 @@ bool CardPWAgg::replace(vsize index, watchset w) {
 			tw->watch()->setIndex(index);
 			addWatchToSolver(w, watches, index);
 			found = true;
+		}else{
+			s[s.size()-1]++;
 		}
 	}
 	return found;

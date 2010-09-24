@@ -225,6 +225,7 @@ public:
 	rClause 			propagate				(const Lit& p);
 
 	void 				newDecisionLevel();
+	void 				backtrackDecisionLevel();
 
 	lbool				propagatedValue			(const Lit& l) const { return assigns[var(l)] ^ sign(l); }
 

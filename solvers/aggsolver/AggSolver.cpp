@@ -514,9 +514,19 @@ rClause AggSolver::notifySolver(const Lit& p, AggReason* ar) {
 }
 
 void AggSolver::newDecisionLevel() {
+	for(vsize i=0; i<sets.size(); i++){
+		sets[i]->newDecisionLevel();
+	}
+
 	if(verbosity()>=6){
 		reportf("Current effective watches on new decision level: \n");
 		printWatches(this, tempwatches);
+	}
+}
+
+void AggSolver::backtrackDecisionLevel(){
+	for(vsize i=0; i<sets.size(); i++){
+		sets[i]->backtrackDecisionLevel();
 	}
 }
 

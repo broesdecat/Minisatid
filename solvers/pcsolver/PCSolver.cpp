@@ -474,6 +474,11 @@ void PCSolver::newDecisionLevel(){
 
 //TODO implementeer ze hier allemaal
 void PCSolver::backtrackDecisionLevel(int levels){
+	for(int i=0; i<levels; i++){
+		if(aggsolver){
+			getAggSolver()->backtrackDecisionLevel();
+		}
+	}
 	//reportf("Backtrack %d levels\n", levels);
 	/*for(int i=0; i<levels; i++){
 		//reportf("REMOVE DECISION LEVEL %d\n", --decisionlevels);

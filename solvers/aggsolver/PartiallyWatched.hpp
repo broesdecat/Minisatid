@@ -113,9 +113,18 @@ private:
 	lbool headvalue;
 	bool headpropagatedhere;
 
+	vector<int> startsetf, startsett; //Vector mapping decision levels to indices where to start looking for replacement watches
+
 public:
 	CardPWAgg(paggs agg);
 	virtual ~CardPWAgg();
+
+	virtual void newDecisionLevel() { startsetf.push_back(startsetf[startsetf.size()-1]); startsett.push_back(startsett[startsett.size()-1]);
+		/*reportf("SetF size %d, Skipped %d\n", setf.size(), startsetf[startsetf.size()-1]);
+		reportf("SetT size %d, Skipped %d\n", sett.size(), startsett[startsett.size()-1]);*/
+	}
+	virtual void backtrackDecisionLevel() { startsetf.pop_back(); startsett.pop_back(); }
+	vector<int>& start(watchset w);
 
 	bool initializeNF();
 	bool initializeNT();
