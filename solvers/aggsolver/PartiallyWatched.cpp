@@ -39,7 +39,7 @@ void Aggrs::printWatches(AggSolver* const solver, const vvpw& tempwatches){
 //PW as().getAgg
 ///////
 
-vptw& CardPWAgg::getSet(watchset w) {
+inline vptw& CardPWAgg::getSet(watchset w) {
 	switch (w) {
 	case NF:
 		return setf;
@@ -59,7 +59,7 @@ vptw& CardPWAgg::getSet(watchset w) {
 	}
 }
 
-vptw& CardPWAgg::getWatches(watchset w) {
+inline vptw& CardPWAgg::getWatches(watchset w) {
 	switch (w) {
 	case NF:
 		return nf;
@@ -79,7 +79,7 @@ vptw& CardPWAgg::getWatches(watchset w) {
 	}
 }
 
-bool CardPWAgg::checking(watchset w) const{
+inline bool CardPWAgg::checking(watchset w) const{
 	switch (w) {
 	case NF:
 		return headvalue!=l_False;
