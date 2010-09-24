@@ -61,7 +61,7 @@ Solver::Solver(pPCSolver s/*A*/) :
   , expensive_ccmin  (true)
   , polarity_mode    (polarity_stored)
   , verbosity        (0)
-  , random_seed      (91648253)
+  , random_seed      (s->randomize()?time(NULL):91648253)
 
     // Statistics: (formerly in 'SolverStats')
     //
@@ -950,7 +950,7 @@ lbool Solver::search(/*AB*/bool nosearch/*AE*/)
 				}
 
                 /*AB*/
-				if (verbosity >= 2) {
+				if (verbosity >= 1) {
 					solver->printChoiceMade(decisionLevel(), next);
 				}
 				/*AE*/
