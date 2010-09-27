@@ -1,0 +1,22 @@
+#!/bin/bash
+
+TYPE=release
+BITS=32
+SAT=hack
+
+if [[ $# -ge 1 ]]
+then
+	TYPE=$1
+	if [ $# -ge 2 ]
+	then
+		SAT=$2
+		if [ $# -ge 3 ]
+		then
+			BITS=$3
+		fi
+	fi
+fi
+
+rm -r *
+../../configure --enable-build=$TYPE --enable-sat=$SAT --enable-bits=$BITS
+make
