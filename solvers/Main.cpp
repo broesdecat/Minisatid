@@ -414,6 +414,8 @@ void parseCommandline(int& argc, char** argv){
            	modes.verbosity=verb;
         }else if ((value = hasPrefix(argv[i], "-remap"))){
             modes.remap = true;
+        }else if ((value = hasPrefix(argv[i], "-random"))){
+            modes.randomize = true;
         }else if ((value = hasPrefix(argv[i], "-nopw"))){
             modes.pw = false;
         }else if (strncmp(&argv[i][0], "-n",2) == 0){

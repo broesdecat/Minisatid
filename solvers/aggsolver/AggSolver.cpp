@@ -415,7 +415,8 @@ bool AggSolver::constructCardSet(ppaset set, vppagg aggs){
 	}
 
 	if(getPCSolver()->modes().pw){ //use PWatches
-		/*vppagg lower, higher;
+		/* TODO if set reuse is supported, only split into two parts
+		vppagg lower, higher;
 		for(vsize i=0; i<aggs.size(); i++){
 			if(aggs[i]->getSign()==LOWERBOUND){
 				lower.push_back(aggs[i]);
@@ -427,6 +428,8 @@ bool AggSolver::constructCardSet(ppaset set, vppagg aggs){
 		bool unsat  = initCalcAgg(ca, lower);
 		CalcAgg* ca2 = new CardCalc(this, set->getWL());
 		return !unsat || initCalcAgg(ca2, higher);*/
+
+		//Currenlty, add each aggregate as a separate constraint
 		bool unsat = false;
 		for(vsize i=0; !unsat && i<aggs.size(); i++){
 			CalcAgg* ca = new CardCalc(this, set->getWL());

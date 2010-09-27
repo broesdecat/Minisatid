@@ -940,6 +940,7 @@ void PCSolver::printChoiceMade(int level, Lit l) const {
 		reportf(": ");
 		gprintLit(l);
 		reportf(".\n");
+		//gprintLit(l); reportf(" ");
 	}
 }
 
