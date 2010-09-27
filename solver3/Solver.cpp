@@ -169,7 +169,7 @@ void Solver::addLearnedClause(Clause* c){
 	if(c->size()>1){
 		learnts.push(c);
 		attachClause(*c);
-		claBumpActivity(*c);
+		//claBumpActivity(*c);
 		if(verbosity>=3){
 			reportf("Learned clause added: ");
 			printClause(*c);
@@ -446,14 +446,14 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 		}
     	/*AE*/
 
-        if (c.learnt())
-            claBumpActivity(c);
+        /*if (c.learnt())
+            claBumpActivity(c);*/
 
         for (int j = (p == lit_Undef) ? 0 : 1; j < c.size(); j++){
             Lit q = c[j];
 
             if (!seen[var(q)] && level[var(q)] > 0){
-                varBumpActivity(var(q));
+                //varBumpActivity(var(q));
                 seen[var(q)] = 1;
                 if (level[var(q)] >= decisionLevel()){
                 	/*AB*/
@@ -879,7 +879,7 @@ lbool Solver::search(/*AB*/bool nosearch/*AE*/)
                 Clause* c = Clause_new(learnt_clause, true);
                 learnts.push(c);
                 attachClause(*c);
-                claBumpActivity(*c);
+                //claBumpActivity(*c);
                 uncheckedEnqueue(learnt_clause[0], c);
             }
 

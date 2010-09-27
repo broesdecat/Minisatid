@@ -203,7 +203,14 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	Bound boundsign,
 #endif
 
 	// These guys ought to be initially a bit more important then the rest.
-	getPCSolver()->varBumpActivity(headv);
+	// As an approximation because each literal would occur n times (TODO better approximation?), we bump n times
+	//ORIG: getPCSolver()->varBumpActivity(headv);
+	for(int i=0; i<set->getWL().size(); i++){
+		getPCSolver()->varBumpActivity(headv);
+		//for(int j=0; j<set->getWL().size(); j++){
+			getPCSolver()->varBumpActivity(var(set->getWL()[i]));
+		//}
+	}
 
 	//the head of the aggregate
 	Lit head = mkLit(headv, false);
@@ -485,8 +492,8 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 	//for Sokoban is DECREASES performance!
 	//TODO new IDEA: mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt?
 	//
-	//For magicseries, there is a sharp decrease in efficiency when using watches, reason seems to be linked with which conflict is found
-	getPCSolver()->varBumpActivity(var(p));
+	//For magicseries, there is a sharp decrease in efficiency when using watches, reason seems to be linked with the heuristic, but not only here, also when learning clauses
+	//getPCSolver()->varBumpActivity(var(p));
 
 	if (value(p) == l_False) {
 		if (verbosity() >= 2) {
@@ -614,7 +621,7 @@ rClause AggSolver::getExplanation(const Lit& p) {
 
 	//create a conflict clause and return it
 	rClause c = getPCSolver()->createClause(lits, true);
-	//getPCSolver()->addLearnedClause(c); //Adding directly as a learned clause should NOT be done: real slowdown for magicseries
+	//getPCSolver()->addLearnedClause(c); //Adding directly as a learned clause should NOT be done, only when used as direct conflict reason: real slowdown for magicseries
 
 	if (verbosity() >= 2) {
 		reportf("Implicit aggregate reason clause for ");
@@ -623,6 +630,8 @@ rClause AggSolver::getExplanation(const Lit& p) {
 		Print::printClause(c, getPCSolver());
 		reportf("\n");
 	}
+
+	//getPCSolver()->varBumpActivity(var(p));
 
 	return c;
 }

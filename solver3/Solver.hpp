@@ -317,7 +317,7 @@ inline void Solver::insertVarOrder(Var x) {
 
 inline void Solver::varDecayActivity() { var_inc *= var_decay; }
 inline void Solver::varBumpActivity(Var v) {
-    if ( (activity[v] += var_inc) > 1e100 ) {
+	if ( (activity[v] += var_inc) > 1e100 ) {
         // Rescale:
         for (int i = 0; i < nVars(); i++)
             activity[i] *= 1e-100;
