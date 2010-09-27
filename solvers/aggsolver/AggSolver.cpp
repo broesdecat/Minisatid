@@ -405,7 +405,7 @@ bool AggSolver::constructCardSet(ppaset set, vppagg aggs){
 		return constructSumSet(set, aggs);
 	}
 
-	if(true){ //use PWatches
+	if(getPCSolver()->modes().pw){ //use PWatches
 		/*vppagg lower, higher;
 		for(vsize i=0; i<aggs.size(); i++){
 			if(aggs[i]->getSign()==LOWERBOUND){
