@@ -585,10 +585,15 @@ void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
 		}
 	}
 
+	Lit comparelit = ar.getLit();
+	if(var(ar.getLit())==var(head)){
+		comparelit = ar.getPropLit();
+	}
+
 	for (vsize i = 0; i < as().getWL().size(); i++) {
 		const WL& wl = as().getWL()[i];
-		if (var(wl.getLit()) != var(ar.getLit()) && value(wl.getLit()) != l_Undef) {
-			if(assertedBefore(var(wl.getLit()), var(ar.getLit()))){
+		if (var(wl.getLit()) != var(comparelit) && value(wl.getLit()) != l_Undef) {
+			if(assertedBefore(var(wl.getLit()), var(comparelit))){
 				lits.push(value(wl.getLit())==l_True?~wl.getLit():wl.getLit());
 			}
 		}

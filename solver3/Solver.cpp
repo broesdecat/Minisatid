@@ -397,7 +397,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 
 	vector<Lit> explain;
 	if(verbosity>4){
-		reportf("START clause learning: \n");
+		reportf("Start clause learning: \n");
 		reportf("    Choices: ");
 		for(int i=0; i<trail_lim.size(); i++){
 			gprintLit(trail[trail_lim[i]]); reportf(" ");
@@ -524,16 +524,17 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
     }while (pathC > 0);
     out_learnt[0] = ~p;
 
-    if(verbosity>4){
-    	reportf("END clause learning: explanation found\n");
-    }
-
-    /*if(verbosity>=0){
+    if(verbosity>=3){
+    	reportf("FINAL learned clause");
     	for(int i=0; i<out_learnt.size(); i++){
     		gprintLit(out_learnt[i]); reportf(" ");
     	}
     	reportf("\n");
-	}*/
+	}
+
+    if(verbosity>4){
+    	reportf("End clause learning: explanation found\n");
+    }
 
     // Simplify conflict clause:
     //
