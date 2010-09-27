@@ -302,14 +302,16 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 				Aggrs::printAgg(headwatches[i]->getAggComb(), true);
 			}
 
-			reportf("   bodywatches\n");
-			for (vsize j = 0; j < permwatches[i].size(); j++) {
-				reportf("      ");
-				Aggrs::printAgg((permwatches[i][j])->getAggComb(), true);
-			}
-			for (vsize j = 0; j < tempwatches[i].size(); j++) {
-				reportf("      ");
-				Aggrs::printAgg((tempwatches[i][j])->getAggComb(), true);
+			if (verbosity() >= 6) {
+				reportf("   bodywatches\n");
+				for (vsize j = 0; j < permwatches[i].size(); j++) {
+					reportf("      ");
+					Aggrs::printAgg((permwatches[i][j])->getAggComb(), true);
+				}
+				for (vsize j = 0; j < tempwatches[i].size(); j++) {
+					reportf("      ");
+					Aggrs::printAgg((tempwatches[i][j])->getAggComb(), true);
+				}
 			}
 		}
 	}
@@ -482,7 +484,8 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 	//This strongly improves the performance of some benchmarks, e.g. FastFood. For Hanoi it has no effect
 	//for Sokoban is DECREASES performance!
 	//TODO new IDEA: mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt?
-	//WILL ALSO IMPROVE WITH WATCHES
+	//
+	//For magicseries, there is a sharp decrease in efficiency when using watches, reason seems to be linked with which conflict is found
 	getPCSolver()->varBumpActivity(var(p));
 
 	if (value(p) == l_False) {

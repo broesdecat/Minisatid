@@ -170,7 +170,7 @@ rClause FWAgg::propagate(const Lit& p, pw ws) {
 	for (int i = 0; i < as().getAgg().size() && confl == nullPtrClause; i++) {
 		const Agg& pa = *as().getAgg()[i];
 
-		if (as().getSolver()->verbosity() >= 4) {
+		if (as().getSolver()->verbosity() >= 6) {
 			reportf("Propagating into aggr: ");
 			Aggrs::printAgg(pa, true);
 		}
