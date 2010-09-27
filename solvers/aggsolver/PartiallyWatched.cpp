@@ -212,7 +212,7 @@ void CardPWAgg::initialize(bool& unsat, bool& sat) {
 
 	rClause confl = nullPtrClause;
 	if (nffailed) {
-		confl = as().getSolver()->notifySolver(~agg.getHead(), new AggReason(agg, Lit(-1), BASEDONCC, false));
+		confl = as().getSolver()->notifySolver(new AggReason(agg, Lit(-1), BASEDONCC, ~agg.getHead(), false));
 		if (confl != nullPtrClause) {
 			unsat = true;
 		}else{
@@ -221,7 +221,7 @@ void CardPWAgg::initialize(bool& unsat, bool& sat) {
 		return;
 	}
 	if (ntfailed) {
-		confl = as().getSolver()->notifySolver(agg.getHead(), new AggReason(agg, Lit(-1), BASEDONCC, false));
+		confl = as().getSolver()->notifySolver(new AggReason(agg, Lit(-1), BASEDONCC, agg.getHead(), false));
 		if (confl != nullPtrClause) {
 			unsat = true;
 			return;
@@ -403,20 +403,20 @@ rClause CardPWAgg::propagate(const Lit& p, Watch* watch) {
 				if (i == w.getIndex() && !isEX(w.getWatchset())) {
 					continue;
 				}
-				confl = as().getSolver()->notifySolver(nf[i]->lit(), new AggReason(*as().getAgg()[0], p, BASEDONCC, false));
+				confl = as().getSolver()->notifySolver(new AggReason(*as().getAgg()[0], p, BASEDONCC, nf[i]->lit(), false));
 			}
 			if (confl == nullPtrClause) {
 				for (int i = 0; confl == nullPtrClause && ((uint)i) < nfex.size(); i++) {
 					if (i == w.getIndex() && isEX(w.getWatchset())) {
 						continue;
 					}
-					confl = as().getSolver()->notifySolver(nfex[i]->lit(), new AggReason(*as().getAgg()[0], p, BASEDONCC, false));
+					confl = as().getSolver()->notifySolver(new AggReason(*as().getAgg()[0], p, BASEDONCC, nfex[i]->lit(), false));
 				}
 			}
 		} else if (isF(w.getWatchset()) && checking(NF)) {
 			//propagate head false
 			Lit l = ~as().getAgg()[0]->getHead();
-			confl = as().getSolver()->notifySolver(l, new AggReason( *as().getAgg()[0], p, BASEDONCC, false));
+			confl = as().getSolver()->notifySolver(new AggReason( *as().getAgg()[0], p, BASEDONCC, l, false));
 			if(confl==nullPtrClause){
 				headpropagatedhere = true;
 			}
@@ -426,20 +426,20 @@ rClause CardPWAgg::propagate(const Lit& p, Watch* watch) {
 				if (i == w.getIndex() && !isEX(w.getWatchset())) {
 					continue;
 				}
-				confl = as().getSolver()->notifySolver(nt[i]->lit(), new AggReason(*as().getAgg()[0], p, BASEDONCC, false));
+				confl = as().getSolver()->notifySolver(new AggReason(*as().getAgg()[0], p, BASEDONCC, nt[i]->lit(), false));
 			}
 			if (confl == nullPtrClause) {
 				for (int i = 0; confl == nullPtrClause && ((uint)i) < ntex.size(); i++) {
 					if (i == w.getIndex() && isEX(w.getWatchset())) {
 						continue;
 					}
-					confl = as().getSolver()->notifySolver(ntex[i]->lit(), new AggReason(*as().getAgg()[0], p, BASEDONCC, false));
+					confl = as().getSolver()->notifySolver(new AggReason(*as().getAgg()[0], p, BASEDONCC, ntex[i]->lit(), false));
 				}
 			}
 		} else if (!isF(w.getWatchset()) && checking(NT)) {
 			//propagate head true
 			Lit l = as().getAgg()[0]->getHead();
-			confl = as().getSolver()->notifySolver(l, new AggReason( *as().getAgg()[0], p, BASEDONCC, false));
+			confl = as().getSolver()->notifySolver(new AggReason( *as().getAgg()[0], p, BASEDONCC, l, false));
 			if(confl==nullPtrClause){
 				headpropagatedhere = true;
 			}
@@ -493,7 +493,7 @@ rClause CardPWAgg::propagate(const Agg& agg) {
 	if (checking(NFEX)) {
 		if (!initializeEX(NFEX)) {
 			for (vsize i = 0; confl == nullPtrClause && i < nf.size(); i++) {
-				confl = as().getSolver()->notifySolver(nf[i]->lit(), new AggReason(*as().getAgg()[0], headvalue==l_True?agg.getHead():~agg.getHead(), BASEDONCC, false));
+				confl = as().getSolver()->notifySolver(new AggReason(*as().getAgg()[0], headvalue==l_True?agg.getHead():~agg.getHead(), BASEDONCC, nf[i]->lit(), false));
 			}
 		}else{
 			addWatchesToSolver(NFEX);
@@ -503,7 +503,7 @@ rClause CardPWAgg::propagate(const Agg& agg) {
 	if (checking(NTEX)) {
 		if (!initializeEX(NTEX)) {
 			for (vsize i = 0; confl == nullPtrClause && i < nt.size(); i++) {
-				confl = as().getSolver()->notifySolver(nt[i]->lit(), new AggReason(*as().getAgg()[0], headvalue==l_True?agg.getHead():~agg.getHead(), BASEDONCC, false));
+				confl = as().getSolver()->notifySolver(new AggReason(*as().getAgg()[0], headvalue==l_True?agg.getHead():~agg.getHead(), BASEDONCC, nt[i]->lit(), false));
 			}
 		}else{
 			addWatchesToSolver(NTEX);

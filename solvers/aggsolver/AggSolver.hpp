@@ -230,7 +230,7 @@ public:
 	lbool				propagatedValue			(const Lit& l) const { return assigns[var(l)] ^ sign(l); }
 
 	//are used by agg.c, but preferably should be move into protected again
-	rClause				notifySolver(const Lit& p, Aggrs::AggReason* cr);	// Like "enqueue", but for aggregate propagations.
+	rClause				notifySolver(Aggrs::AggReason* cr);	// Like "enqueue", but for aggregate propagations.
 
 	//////
 	// OPTIMISATION

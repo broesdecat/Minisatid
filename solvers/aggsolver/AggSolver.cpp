@@ -475,7 +475,9 @@ bool AggSolver::constructProdSet(ppaset set, vppagg aggs){
  * @remarks: only method allowed to use the sat solver datastructures
  * @returns: non-owning pointer
  */
-rClause AggSolver::notifySolver(const Lit& p, AggReason* ar) {
+rClause AggSolver::notifySolver(AggReason* ar) {
+	const Lit& p = ar->getPropLit();
+
 	//FIXME decide on what to do with it
 	//This strongly improves the performance of some benchmarks, e.g. FastFood. For Hanoi it has no effect
 	//for Sokoban is DECREASES performance!

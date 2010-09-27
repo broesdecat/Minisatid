@@ -93,17 +93,9 @@ lbool FWAgg::initialize(const Agg& agg) {
 		//reportf("No more propagations for %d", gprintVar(var(head)));
 	}
 	if (hv == l_True) {
-		confl = as().getSolver()->notifySolver(agg.getHead(), new AggReason(
-																						agg,
-																						agg.getHead(),
-																						CPANDCC,
-																						true));
+		confl = as().getSolver()->notifySolver(new AggReason(agg, Lit(-1), CPANDCC, agg.getHead(), true));
 	} else if (hv == l_False) {
-		confl = as().getSolver()->notifySolver(~agg.getHead(), new AggReason(
-																						agg,
-																						~agg.getHead(),
-																						CPANDCC,
-																						true));
+		confl = as().getSolver()->notifySolver(new AggReason(agg, Lit(-1), CPANDCC, ~agg.getHead(), true));
 	}
 	if (confl != nullPtrClause) {
 		return l_False;
@@ -190,10 +182,7 @@ rClause FWAgg::propagate(const Lit& p, pw ws) {
 		} else { //head is not yet known, so at most the head can be propagated
 			lbool result = canPropagateHead(pa, getCC(), getCP());
 			if (result != l_Undef) {
-				rClause	cc =
-							as().getSolver()->notifySolver(
-								result == l_True ? pa.getHead() : ~pa.getHead(),
-								new AggReason(pa, result == l_True ? pa.getHead() : ~pa.getHead(), CPANDCC, true));
+				rClause	cc = as().getSolver()->notifySolver(new AggReason(pa, p, CPANDCC, result == l_True ? pa.getHead() : ~pa.getHead(), true));
 				confl = cc;
 			}
 		}
@@ -244,7 +233,7 @@ bool FWAgg::assertedBefore(const Var& l, const Var& p) const {
 }
 
 //TODO should do something of minimization
-void FWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
+/*void FWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
 	const Lit& head = ar.getAgg().getHead();
 	if(value(head)!=l_Undef && var(ar.getLit())!=var(head)){
 		if(assertedBefore(var(head), var(ar.getLit()))){
@@ -279,27 +268,34 @@ void FWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
 		}
 		reportf("\n");
 	}
-}
+}*/
 
 /**
  * Should find a set L+ such that "bigwedge{l | l in L+} implies p"
  * which is equivalent with the clause bigvee{~l|l in L+} or p
  * and this is returned as the set {~l|l in L+}
  */
-/*void FWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
+void FWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
 	//assert(ar.getAgg() == agg);
 	//assert(agg->getSet()==this);
 
-	//FIXME TODO this is incorrect: when the head was propagated, getexplanation should NOT automatically look until the END!
 	int index = -1;
-	for (int i = 0; i < getStack().size(); i++) {
-		if (getStack()[i].getLit() == ar.getLit()) {
-			index = i;
-			break;
+	if(toInt(ar.getLit())!=-1){
+		for (int i = 0; i < getStack().size(); i++) {
+			if (getStack()[i].getLit() == ar.getLit()) {
+				index = i;
+				break;
+			}
+			if(getStack()[i].getLit() == ar.getPropLit()){
+				index = i-1;
+				break;
+			}
 		}
-	}
-	if (index == -1) {
-		index = getStack().size();
+		if (index == -1) {
+			index = getStack().size();
+		}else{
+			index++; //To also include the literal which caused propagation.
+		}
 	}
 	//assert(index!=-1); //Is wrong because when a conflict is derived, an explanation is constructed before the conflicting literal is stacked.
 
@@ -366,7 +362,7 @@ void FWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
 		}
 		reportf("\n");
 	}
-}*/
+}
 
 /*****************
  * MAX AGGREGATE *
@@ -476,22 +472,12 @@ rClause MaxFWAgg::propagate(const Agg& agg, bool headtrue) {
 			for (vwl::const_reverse_iterator i = as().getWL().rbegin(); confl == nullPtrClause && i
 						< as().getWL().rend() && agg.getLowerBound() < (*i).getWeight(); i++) {
 				//because these propagations are independent of the other set literals, they can also be written as clauses
-				confl = as().getSolver()->notifySolver(
-																	~(*i).getLit(),
-																	new AggReason(
-																					agg,
-																					~(*i).getLit(),
-																					HEADONLY));
+				confl = as().getSolver()->notifySolver(new AggReason(agg, agg.getHead(), HEADONLY, ~(*i).getLit()));
 			}
 		} else if (!headtrue && agg.isUpper()) {
 			for (vwl::const_reverse_iterator i = as().getWL().rbegin(); confl == nullPtrClause && i
 						< as().getWL().rend() && agg.getUpperBound() <= (*i).getWeight(); i++) {
-				confl = as().getSolver()->notifySolver(
-																	~(*i).getLit(),
-																	new AggReason(
-																					agg,
-																					~(*i).getLit(),
-																					HEADONLY));
+				confl = as().getSolver()->notifySolver(new AggReason(agg, ~agg.getHead(), HEADONLY, ~(*i).getLit()));
 			}
 		}
 		if (confl == nullPtrClause) {
@@ -578,12 +564,7 @@ rClause MaxFWAgg::propagateAll(const Agg& agg, bool headtrue) {
 	}
 	if (exactlyoneleft) {
 		//TODO BASEDONCP is not correct enough (ONCPABOVEBOUND)
-		confl = as().getSolver()->notifySolver(
-															as().getWL()[pos].getLit(),
-															new AggReason(
-																			agg,
-																			as().getWL()[pos].getLit(),
-																			BASEDONCP));
+		confl = as().getSolver()->notifySolver(new AggReason(agg, headtrue?agg.getHead():~agg.getHead(), BASEDONCP, as().getWL()[pos].getLit()));
 	}
 	return confl;
 }
@@ -659,9 +640,9 @@ rClause SPFWAgg::propagate(const Agg& agg, bool headtrue) {
 		if (truth[u] == l_Undef) {//if already propagated as an aggregate, then those best-values have already been adapted
 			const Lit& l = as().getWL()[u].getLit();
 			if ((agg.isLower() && headtrue) || (agg.isUpper() && !headtrue)) {
-				c = as().getSolver()->notifySolver(~l, new AggReason(agg, ~l, basedon));
+				c = as().getSolver()->notifySolver(new AggReason(agg, headtrue?agg.getHead():~agg.getHead(), basedon, ~l));
 			} else {
-				c = as().getSolver()->notifySolver(l, new AggReason(agg, l, basedon));
+				c = as().getSolver()->notifySolver(new AggReason(agg, headtrue?agg.getHead():~agg.getHead(), basedon, l));
 			}
 		}
 	}

@@ -149,20 +149,18 @@ enum Expl{BASEDONCC,BASEDONCP,CPANDCC, HEADONLY};
 struct AggReason {
 private:
 	const Agg&	expr;	//non-owning pointer
-	const Lit	l;
-	//const int 	index;
+	const Lit	l, proplit; //l is the literal which caused the propagation of proplit
 	const Expl	expl;
 	const bool 	head;
 
 public:
-	AggReason(const Agg& agg, const Lit& l, Expl expl, bool head = false)
-		:expr(agg), l(l), expl(expl), head(head){
-
+	AggReason(const Agg& agg, const Lit& l, Expl expl, const Lit& proplit, bool head = false)
+		:expr(agg), l(l), proplit(proplit), expl(expl), head(head){
 	}
 
 	const Agg&	getAgg() 		const	{ return expr; }
     const Lit&	getLit() 		const	{ return l; }
-    //const int	getIndex() 		const	{ return index; }
+    const Lit&	getPropLit()	const	{ return proplit; }
     bool		isHeadReason() 	const	{ return head; }
     Expl		getExpl() 		const	{ return expl; }
 };
