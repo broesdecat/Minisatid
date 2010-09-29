@@ -42,9 +42,9 @@ Atom SolverInterface::getOrigAtom(const Var& v) const{
 		assert(atom!=contiguoustoorigatommapper.end());
 		//reportf("Retrieving literal "); gprintLit(l); reportf("mapped as %d to %d\n", (*atom).first, (*atom).second);
 		int origatom = (*atom).second;
-		return origatom;
+		return Atom(origatom);
 	}else{
-		return v+1;
+		return Atom(v+1);
 	}
 }
 

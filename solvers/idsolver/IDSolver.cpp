@@ -958,11 +958,10 @@ void IDSolver::newDecisionLevel() {
 void IDSolver::findCycleSources() {
 	clearCycleSources();
 
-	vector<Lit> ass = getPCSolver()->getRecentAssignments();
-	if (!firstsearch && prev_conflicts == getPCSolver()->getConflicts()
-				&& getPCSolver()->modes().defn_strategy == always && ass.size() > 0) {
-		for (vector<Lit>::const_iterator i = ass.begin(); i < ass.end(); i++) {
-			Lit l = *i; //l has become true, so find occurences of ~l
+	if (!firstsearch && prev_conflicts == getPCSolver()->getConflicts()	&& getPCSolver()->modes().defn_strategy == always) {
+		int recentlits = getPCSolver()->getNbOfRecentAssignments();
+		for (int i = 0; i < recentlits; i++) {
+			Lit l = getPCSolver()->getRecentAssignment(i); //l has become true, so find occurences of ~l
 
 			assert(value(~l)==l_False);
 

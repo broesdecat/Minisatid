@@ -72,7 +72,6 @@ protected:
 
 public:
 	virtual void 	getExplanation(vec<Lit>& lits, const AggReason& ar) const;
-			bool	assertedBefore(const Var& l, const Var& p) const;	//TEMPORARY!!!
 	virtual void 	backtrack	(const Watch& w);
 	virtual void 	backtrack	(const Agg& agg);
 	virtual void 	backtrack	(const Agg& agg, int stacksize);

@@ -139,7 +139,15 @@ vector<Lit> Solver::getDecisions()const {
 	return v;
 }
 
-vector<Lit> Solver::getRecentAssignments() const{
+int Solver::getNbRecentAssignments() const {
+	return trail.size()-trail_lim.last();
+}
+
+Lit Solver::getRecentAssignment(int i) const {
+	return trail[trail_lim.last()+i];
+}
+
+/*vector<Lit> Solver::getRecentAssignments() const{
 	vector<Lit> v;
 	if(trail_lim.size()==0){
 		return v;
@@ -150,7 +158,7 @@ vector<Lit> Solver::getRecentAssignments() const{
 		index++;
 	}
 	return v;
-}
+}*/
 
 void Solver::addLearnedClause(Clause* c){
 	if(c->size()>1){

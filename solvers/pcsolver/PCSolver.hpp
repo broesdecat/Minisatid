@@ -198,7 +198,9 @@ public:
 	/**
 	 * Allows to loop over all assignments made in the current decision level.
 	 */
-	vector<Lit> getRecentAssignments() const;
+	Lit 		getRecentAssignment(int i) const;
+	int 		getNbOfRecentAssignments() const;
+	//vector<Lit> getRecentAssignments() const;
 	/*
 	 * Returns the decision level at which a variable was deduced. This allows to get the variable that was propagated earliest/latest
 	 */

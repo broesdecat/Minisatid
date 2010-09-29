@@ -550,20 +550,21 @@ void CardPWAgg::backtrack(const Agg& agg) {
  * @pre: p has been assigned in the current decision level!
  */
 bool CardPWAgg::assertedBefore(const Var& l, const Var& p) const {
-	PCSolver* pcsol = as().getSolver()->getPCSolver();
+	PCSolver const * const pcsol = as().getSolver()->getPCSolver();
 
 	//Check if level is lower
 	if(pcsol->getLevel(l) < pcsol->getLevel(p)){
 		return true;
 	}
 
-	const vl& trail = pcsol->getRecentAssignments();
 	bool before = true;
-	for (vsize i = 0; i < trail.size(); i++) {
-		if (var(trail[i]) == l) { // l encountered first, so before
+	int recentlits = pcsol->getNbOfRecentAssignments();
+	for (int i = 0; i < recentlits; i++) {
+		Lit rlit = pcsol->getRecentAssignment(i);
+		if (var(rlit) == l) { // l encountered first, so before
 			break;
 		}
-		if (var(trail[i]) == p) { // p encountered first, so after
+		if (var(rlit) == p) { // p encountered first, so after
 			before = false;
 			break;
 		}

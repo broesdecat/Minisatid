@@ -436,8 +436,8 @@ void readCNFModalHierLevel(bool existential, const vector<Atom>& rigidatoms){
 		writeexists = false;
 	}
 	if(modsolver.get()==NULL){
-		initModSolver();
-		cnfcurrenthead = atoms+1;
+		initModSolver();		 
+		cnfcurrenthead = Atom(atoms+1);
 	}else{
 		modalops.push_back(cnfcurrentmodid);
 		if(writeexists){

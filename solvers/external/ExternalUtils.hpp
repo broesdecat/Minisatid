@@ -103,13 +103,10 @@ enum AggSem 	{ COMP, DEF };	// Semantics of satisfiability of the aggregate head
 
 class Atom{
 private:
-	const int atom;
+	int atom; //Important: because of mutual exclusion of const members and a clean assignment operator, i did not make this constant, but semantically it should be
 
 public:
-	Atom(int a): atom(a){ }
-	Atom(const Atom& a): atom(a.atom){ }
-
-	Atom 	operator=	(const Atom& a)	const { return Atom(a.getValue()); }
+	explicit Atom(int a): atom(a){ }
 	int		getValue	() 				const { return atom; }
 };
 

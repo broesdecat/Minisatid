@@ -123,7 +123,9 @@ public:
 	vector<Lit> getTrail			() const;
 	vector<Lit> getDecisions		() const;
 	int			decisionLevel		() const; // Gives the current decisionlevel.
-	vector<Lit> getRecentAssignments() const;
+	//vector<Lit> getRecentAssignments() const;
+	Lit 		getRecentAssignment(int i) const;
+	int 		getNbRecentAssignments() const;
 	void    	varDecayActivity	();                      // Decay all variables with the specified factor. Implemented by increasing the 'bump' value instead.
 	void     	varBumpActivity		(Var v);                 // Increase a variable with the current 'bump' value.
 	void     	claDecayActivity	();                      // Decay all clauses with the specified factor. Implemented by increasing the 'bump' value instead.
