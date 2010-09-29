@@ -537,10 +537,10 @@ void AggSolver::newDecisionLevel() {
 		sets[i]->newDecisionLevel();
 	}
 
-	if(verbosity()>=6){
+	/*if(verbosity()>=6){
 		reportf("Current effective watches on new decision level: \n");
 		printWatches(this, tempwatches);
-	}
+	}*/
 }
 
 void AggSolver::backtrackDecisionLevel(){
@@ -568,10 +568,10 @@ rClause AggSolver::propagate(const Lit& p) {
 		reportf(").\n");
 	}
 
-	if(verbosity()>=8){
+	/*if(verbosity()>=8){
 		reportf("Current effective watches BEFORE: \n");
 		printWatches(this, tempwatches);
-	}
+	}*/
 
 	pagg pa = headwatches[var(p)];
 	if (pa != NULL) {
@@ -602,10 +602,10 @@ rClause AggSolver::propagate(const Lit& p) {
 		addTempWatch(p, ws2[i]);
 	}
 
-	if(verbosity()>=8){
+	/*if(verbosity()>=8){
 		reportf("Current effective watches AFTER: \n");
 		printWatches(this, tempwatches);
-	}
+	}*/
 
 	return confl;
 }

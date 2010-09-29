@@ -283,18 +283,16 @@ void FWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
 	if(toInt(ar.getLit())!=-1){
 		for (int i = 0; i < getStack().size(); i++) {
 			if (getStack()[i].getLit() == ar.getLit()) {
-				index = i;
+				index = i++; //To also include the literal which caused propagation (otherwise would be i)
 				break;
 			}
 			if(getStack()[i].getLit() == ar.getPropLit()){
-				index = i-1;
+				index = i; //To also include the literal which caused propagation (otherwise would be i-1)
 				break;
 			}
 		}
-		if (index == -1) {
+		if (index==-1) {
 			index = getStack().size();
-		}else{
-			index++; //To also include the literal which caused propagation.
 		}
 	}
 	//assert(index!=-1); //Is wrong because when a conflict is derived, an explanation is constructed before the conflicting literal is stacked.

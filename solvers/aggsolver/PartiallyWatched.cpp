@@ -573,7 +573,7 @@ bool CardPWAgg::assertedBefore(const Var& l, const Var& p) const {
 }
 
 void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
-	if(toInt(ar.getLit())==-1){
+	if(toInt(ar.getLit())<0){	//TODO this isnt very clean: it notifies that the literal was propagated without a cause
 		return;
 	}
 	lits.push(~ar.getLit());

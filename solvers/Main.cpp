@@ -429,7 +429,7 @@ void parseCommandline(int& argc, char** argv){
 				throw idpexception(s);
             }
            	modes.verbosity=verb;
-        }else if ((value = hasPrefix(argv[i], "--remap"))){
+        }else if ((value = hasPrefix(argv[i], "--remap="))){
     		if (strcmp(value, "yes") == 0){
     			modes.remap = true;
 			}else if (strcmp(value, "no") == 0){
@@ -438,7 +438,7 @@ void parseCommandline(int& argc, char** argv){
 				char s[100]; sprintf(s, "Unknown choice %s for remap mode\n", value);
 				throw idpexception(s);
 			}
-        }else if ((value = hasPrefix(argv[i], "--disableheur"))){
+        }else if ((value = hasPrefix(argv[i], "--disableheur="))){
     		if (strcmp(value, "yes") == 0){
     			modes.disableheur = true;
 			}else if (strcmp(value, "no") == 0){
@@ -447,7 +447,7 @@ void parseCommandline(int& argc, char** argv){
 				char s[100]; sprintf(s, "Unknown choice %s for disableheur mode\n", value);
 				throw idpexception(s);
 			}
-        }else if ((value = hasPrefix(argv[i], "--random"))){
+        }else if ((value = hasPrefix(argv[i], "--random="))){
     		if (strcmp(value, "yes") == 0){
     			modes.randomize = true;
 			}else if (strcmp(value, "no") == 0){
@@ -456,7 +456,7 @@ void parseCommandline(int& argc, char** argv){
 				char s[100]; sprintf(s, "Unknown choice %s for random mode\n", value);
 				throw idpexception(s);
 			}
-        }else if ((value = hasPrefix(argv[i], "--pw"))){
+        }else if ((value = hasPrefix(argv[i], "--pw="))){
     		if (strcmp(value, "yes") == 0){
     			modes.pw = true;
 			}else if (strcmp(value, "no") == 0){
