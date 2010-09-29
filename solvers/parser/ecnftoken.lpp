@@ -11,7 +11,7 @@
 using namespace std; 
 //UP TILL HERE!
 
-#include "ecnfparser.h"
+#include "solvers/parser/ecnfparser.h"
 
 extern int lineNo;
 extern int charPos;
@@ -51,8 +51,8 @@ extern int charPos;
 
 "D"		{ADJ; /*ecnflval*/yylval.sem = DEF;  return SEMDEFN;}
 "C"		{ADJ; /*ecnflval*/yylval.sem = COMP; return SEMDEFN;}
-"L"		{ADJ; /*ecnflval*/yylval.sign = LOWERBOUND;  return SIGNDEFN;}
-"G"		{ADJ; /*ecnflval*/yylval.sign = UPPERBOUND; return SIGNDEFN;}
+"L"		{ADJ; /*ecnflval*/yylval.sign = LB;  return SIGNDEFN;}
+"G"		{ADJ; /*ecnflval*/yylval.sign = UB; return SIGNDEFN;}
 
 "e"		{ADJ; /*ecnflval*/yylval.boolean = true; return QUANTe;} //existential quantifier
 "a"		{ADJ; /*ecnflval*/yylval.boolean = false; return QUANTe;} //universal quantifier

@@ -54,6 +54,16 @@ typedef PCSolver* pPCSolver;
 class AggSolver;
 typedef AggSolver* pAggSolver;
 
+/**
+ * The different possible types of definitions.
+ * If a variable is NONDEFALL, no definition is associated with it.
+ * If a variable is NONDEFPOS, a definition is associated with it, but there is no recursion through it in the POSITIVE dependency graph
+ * 		but there might be recursion over negation (relevant for the well-founded model)
+ */
+enum DefType	{ NONDEFTYPE, DISJ, CONJ, AGGR };
+enum DefOcc 	{ NONDEFOCC, POSLOOP, MIXEDLOOP, BOTHLOOP };
+enum UFS 		{ NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK };
+
 class PropRule {
 private:
     vec<Lit> lits;
@@ -107,9 +117,12 @@ public:
 	bool    	finishECNF_DataStructures();							// Initialize the ECNF data structures. NOTE: aggregates may set the "ok" value to false!
 	/////////////////////END INITIALIZATION
 
-	int 		getNbDefinitions() 		const { return definition.size(); }
-	PropRule* 	getDefinition(Var i) 	const { return definition[i]; }
-	DefType 	getDefType(Var i) 		const { return defType[i]; }
+	int 		getNbDefinitions	() 		const { return definition.size(); }
+	PropRule* 	getDefinition		(Var i) const { return definition[i]; }
+	DefType 	getDefType			(Var i) const { return defType[i]; }
+	bool 		isConjunctive		(Var v) const;
+	bool 		isDisjunctive		(Var v) const;
+	bool		isDefinedByAggr		(Var v) const;
 
 	//False if problem unsat
 	bool 		initAfterSimplify	();
@@ -153,10 +166,8 @@ protected:
 
 	set<Var>		toremoveaggrheads; //The set of defined aggregates that are no longer defined and should be removed from IDSolver during simplification.
 
-	bool		isDefInPosGraph		(Var v) const;
 	bool		isDefined			(Var v) const;
-	bool 		isConjunctive		(Var v) const;
-	bool 		isDisjunctive		(Var v) const;
+	bool		isDefInPosGraph		(Var v) const;
 	bool		setTypeIfNoPosLoops	(Var v) const;
 
 	void 		propagateJustificationDisj(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& heads);

@@ -56,6 +56,9 @@ PCSolver::PCSolver(ECNF_mode modes) :
 			nb_models(modes.nbmodels), modelsfound(0), optim(NONE), head(-1), init(true),
 			decisionlevels(0){
 	solver = new Solver(this);
+	if(modes.disableheur){
+		solver->disableHeur();
+	}
 
 	if (modes.def) {
 		idsolver = new IDSolver(this);
@@ -260,13 +263,13 @@ bool PCSolver::addSet(int setid, const vec<Lit>& lits, const vector<Weight>& w) 
 	return getAggSolver()->addSet(setid, ll, w);
 }
 
-bool PCSolver::addAggrExpr(Lit head, int setid, Weight bound, Bound boundsign, AggrType type, HdEq defined) {
+bool PCSolver::addAggrExpr(Lit head, int setid, Weight bound, AggSign boundsign, AggType type, AggSem defined) {
 	assert(aggsolverpresent);
 
 	if (modes().verbosity >= 7) {
 		reportf("Adding aggregate with info ");
 		gprintLit(head);
-		reportf(", %d, %d, %s, %d, %s \n", setid, bound, boundsign==LOWERBOUND?"lower":"greater", type, defined==DEF?"defined":"completion");
+		reportf(", %d, %d, %s, %d, %s \n", setid, bound, boundsign==LB?"lower":"greater", type, defined==DEF?"defined":"completion");
 	}
 
 	addVar(head);
@@ -791,7 +794,7 @@ bool PCSolver::addSumMinimize(const Var head, const int setid) {
 	bool notunsat = addClause(cl);
 	if (notunsat) {
 		assert(aggsolverpresent);
-		notunsat = getAggSolver()->addMnmzSum(head, setid, LOWERBOUND);
+		notunsat = getAggSolver()->addMnmzSum(head, setid, LB);
 	}
 
 	return notunsat;

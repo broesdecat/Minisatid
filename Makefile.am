@@ -20,6 +20,7 @@ minisatid_SOURCES += solvers/modsolver/ModSolver.cpp solvers/modsolver/SOSolverH
 minisatid_SOURCES += solvers/external/ExternalInterface.cpp solvers/external/ExternalUtils.cpp 
 minisatid_SOURCES += solvers/utils/Print.cpp solvers/utils/Utils.cpp 
 minisatid_SOURCES += solvers/parser/Lparseread.cpp
+minisatid_SOURCES += solvers/parser/PBread.cpp
 minisatid_SOURCES += solvers/Unittests.cpp
 
 include_HEADERS = 
@@ -31,6 +32,7 @@ include_HEADERS += solvers/pcsolver/PCSolver.hpp solvers/pcsolver/SolverModule.h
 include_HEADERS += solvers/modsolver/ModSolver.hpp solvers/modsolver/SOSolverHier.hpp
 include_HEADERS += solvers/external/ExternalInterface.hpp solvers/external/ExternalUtils.hpp
 include_HEADERS += solvers/parser/Lparseread.hpp
+include_HEADERS += solvers/parser/PBread.hpp
 include_HEADERS += solvers/Unittests.hpp solvers/SolverI.hpp
 include_HEADERS += solvers/SATSolver.h solvers/SATUtils.h
 

@@ -63,6 +63,8 @@ bool isPositive(Lit l);
 Lit createNegativeLiteral(Var i);
 Lit createPositiveLiteral(Var i);
 
+enum Optim { MNMZ, SUBSETMNMZ, SUMMNMZ, NONE }; // Preference minimization, subset minimization, sum minimization
+
 class PCSolver: public Data{
 private:
 	//OWNING POINTER
@@ -92,7 +94,7 @@ private:
 	///////
 	// OPTIMIZATION INFORMATION
 	///////
-	MINIM		optim;
+	Optim 		optim;
 	Var 		head;
 	vec<Lit>	to_minimize;
 
@@ -132,7 +134,7 @@ public:
 	bool 		addRule			(bool conj, Lit head, const vec<Lit>& lits);
 	bool 		addSet			(int id, const vec<Lit>& lits);
 	bool 		addSet			(int id, const vec<Lit>& lits, const vector<Weight>& w);
-	bool 		addAggrExpr		(Lit head, int setid, Weight bound, Bound boundsign, AggrType type, HdEq defined);
+	bool 		addAggrExpr		(Lit head, int setid, Weight bound, AggSign boundsign, AggType type, AggSem defined);
 	bool 		addIntVar		(int groundname, int min, int max);
 	bool 		addCPBinaryRel	(Lit head, int groundname, MINISAT::EqType rel, int bound);
 	bool 		addCPBinaryRelVar	(Lit head, int groundname, MINISAT::EqType rel, int groundname2);

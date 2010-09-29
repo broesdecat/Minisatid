@@ -75,11 +75,14 @@ inline bool IDSolver::isDefInPosGraph(Var v) const {
 inline bool IDSolver::isDefined(Var v) const {
 	return defType[v] != NONDEFTYPE;
 }
-inline bool IDSolver::isConjunctive(Var v) const {
+bool IDSolver::isConjunctive(Var v) const {
 	return getDefType(v) == CONJ;
 }
-inline bool IDSolver::isDisjunctive(Var v) const {
+bool IDSolver::isDisjunctive(Var v) const {
 	return getDefType(v) == DISJ;
+}
+bool IDSolver::isDefinedByAggr(Var v) const {
+	return getDefType(v) == AGGR;
 }
 
 IDSolver::IDSolver(pPCSolver s) :
@@ -2488,6 +2491,10 @@ UFS IDSolver::visitForUFSsimple(
 
 	return STILLPOSSIBLE;
 }
+
+///////
+// PRINT INFORMATION
+///////
 
 void IDSolver::printStatistics() const {
 	reportf("cycles                : %-12" PRIu64 "\n", cycles);

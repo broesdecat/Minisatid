@@ -39,8 +39,6 @@ using namespace tr1;
 using namespace Minisat;
 #endif
 
-#define reportf(...) ( fflush(stdout), fprintf(stderr, __VA_ARGS__), fflush(stderr) )
-
 //TODO here create the mapping of grounder integers to solving integers!
 //Because grounder can leave (huge!) gaps which slow solving (certainly with arithmetic expressions).
 
@@ -133,7 +131,7 @@ public:
 	bool	addSet			(int id, const vector<Literal>& lits);
 	bool 	addSet			(int set_id, const vector<LW>& lws);
 	bool	addSet			(int id, const vector<Literal>& lits, const vector<Weight>& w);
-	bool	addAggrExpr		(Literal head, int setid, Weight bound, Bound sign, AggrType type, HdEq sem);
+	bool	addAggrExpr		(Literal head, int setid, Weight bound, AggSign sign, AggType type, AggSem sem);
 	bool	finishParsing	(); //throws UNSAT
 
     bool 	addMinimize		(const vector<Literal>& lits, bool subsetmnmz);
@@ -177,7 +175,7 @@ public:
 	bool 	addRule			(modID modid, bool conj, Literal head, vector<Literal>& lits);
 	bool 	addSet			(modID modid, int set_id, vector<LW>& lws);
 	bool 	addSet			(modID modid, int set_id, vector<Literal>& lits, vector<Weight>& w);
-	bool 	addAggrExpr		(modID modid, Literal head, int setid, Weight bound, Bound sign, AggrType type, HdEq sem);
+	bool 	addAggrExpr		(modID modid, Literal head, int setid, Weight bound, AggSign sign, AggType type, AggSem sem);
 };
 
 //Throw exceptions if the inputted literals are in the wrong format.

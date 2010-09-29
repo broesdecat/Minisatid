@@ -399,7 +399,7 @@ bool MaxCalc::canJustifyHead(
 								vec<Var>& nonjstf,
 								vec<int>& currentjust,
 								bool real) const {
-	AggrType type = agg.getAggComb()->getType();
+	AggType type = agg.getAggComb()->getType();
 	bool justified = false;
 	const vwl& wl = getWL();
 
@@ -446,7 +446,7 @@ bool SPCalc::canJustifyHead(
 								vec<Var>& nonjstf,
 								vec<int>& currentjust,
 								bool real) const {
-	AggrType type = agg.getAggComb()->getType();
+	AggType type = agg.getAggComb()->getType();
 	bool justified = false;
 	const vwl& wl = getWL();
 

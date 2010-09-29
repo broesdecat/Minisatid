@@ -103,14 +103,14 @@ public:
 class ParsedAgg{
 private:
 	Weight		bound;
-	Bound 		sign;
+	AggSign 		sign;
 	Lit			head;
-	HdEq		sem;
-	AggrType	type;
+	AggSem		sem;
+	AggType	type;
 	bool 		optim;
 
 public:
-	ParsedAgg(const Weight& bound, Bound sign, const Lit& head, HdEq sem, ppaset set, AggrType type):
+	ParsedAgg(const Weight& bound, AggSign sign, const Lit& head, AggSem sem, ppaset set, AggType type):
 			bound(bound), sign(sign), head(head), sem(sem), type(type), optim(false){
 		set->addAgg(this);
 	}
@@ -118,9 +118,9 @@ public:
 
 	const 	Lit& 	getHead() 		const 	{ return head; }
 	const 	Weight& getBound() 		const	{ return bound; }
-			Bound	getSign()		const	{ return sign; }
-			HdEq	getSem()		const	{ return sem; }
-			AggrType getType()		const	{ return type; }
+			AggSign	getSign()		const	{ return sign; }
+			AggSem	getSem()		const	{ return sem; }
+			AggType getType()		const	{ return type; }
 			void 	setOptim()				{ optim = true; }
 			bool 	isOptim()		const	{ return optim; }
 };
@@ -183,7 +183,7 @@ public:
 	 *
 	 * @pre: no weights==0 when using a product aggregate
 	 */
-	bool 				addAggrExpr				(int defn, int set_id, Weight bound, Bound boundsign, AggrType type, HdEq headeq);
+	bool 				addAggrExpr				(int defn, int set_id, Weight bound, AggSign boundsign, AggType type, AggSem headeq);
 
 	/**
 	 * Checks presence of aggregates and initializes all counters.
@@ -235,7 +235,7 @@ public:
 	//////
 	// OPTIMISATION
 	//////
-	bool 				addMnmzSum				(Var headv, int setid, Bound boundsign);
+	bool 				addMnmzSum				(Var headv, int setid, AggSign boundsign);
     bool 				invalidateSum			(vec<Lit>& invalidation, Var head);
     void 				propagateMnmz			(Var head);
 

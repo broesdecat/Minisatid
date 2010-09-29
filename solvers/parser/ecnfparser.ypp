@@ -73,9 +73,9 @@ shared_ptr<SolverInterface> getData();
     vector<LW>* vlws;
     vector<Atom>* vatoms;
     MINISAT::EqType rel;
-    AggrType aggr;
-    Bound sign;
-    HdEq sem;
+    AggType aggr;
+    AggSign sign;
+    AggSem sem;
 }
 
 %token DISJUNCTION CONJUNCTION

@@ -66,9 +66,9 @@ public:
 class Agg{
 private:
 	Weight		bound;
-	Bound 		sign;
+	AggSign 		sign;
 	Lit			head;
-	HdEq		sem;
+	AggSem		sem;
 
 	CalcAgg* 	comb;
 	int			index;
@@ -76,7 +76,7 @@ private:
 	bool		optim;
 
 public:
-	Agg(const Weight& bound, Bound sign, const Lit& head, HdEq sem, bool optim = false):
+	Agg(const Weight& bound, AggSign sign, const Lit& head, AggSem sem, bool optim = false):
 		bound(bound), sign(sign), head(head), sem(sem), comb(NULL), index(-1), optim(optim){	}
 
 	const 	Lit& 		getHead() 			const 	{ return head; }
@@ -90,12 +90,12 @@ public:
 	const 	Weight& getUpperBound()	const	{ return bound;}
 			void	setLowerBound(const Weight& w)	{ bound = w;}
 			void	setUpperBound(const Weight& w)	{ bound = w;}
-			bool 	isLower()		const			{ return sign!=UPPERBOUND; }
-			bool 	isUpper()		const			{ return sign!=LOWERBOUND; }
+			bool 	isLower()		const			{ return sign!=UB; }
+			bool 	isUpper()		const			{ return sign!=LB; }
 
 			bool 	isDefined()		const	{ return sem==DEF; }
 
-			Bound	getSign()		const	{ return sign; }
+			AggSign	getSign()		const	{ return sign; }
 
 			bool	isOptim()		const	{ return optim; }
 };
@@ -169,7 +169,7 @@ public:
 class AggT{
 public:
 	virtual const char*	getName() const = 0;
-	virtual AggrType 	getType() const = 0;
+	virtual AggType 	getType() const = 0;
 	virtual bool 		isNeutralElement	(const Weight& w) const = 0;
 	virtual bool 		isMonotone			(const Agg& agg, const WL& l) 	const = 0;
 };
@@ -177,7 +177,7 @@ public:
 class MaxAggT: virtual public AggT{
 public:
 	virtual const char* getName() const { return "MAX"; }
-	virtual AggrType 	getType() const { return MAX; }
+	virtual AggType 	getType() const { return MAX; }
 	virtual bool 		isNeutralElement	(const Weight& w) const { return false; }
 	virtual bool 		isMonotone			(const Agg& agg, const WL& l) 	const;
 };
@@ -191,7 +191,7 @@ public:
 class ProdAggT: virtual public SPAggT{
 public:
 	virtual const char* getName() const { return "PROD"; }
-	virtual AggrType 	getType() const { return PROD; }
+	virtual AggType 	getType() const { return PROD; }
 	virtual bool 		isNeutralElement(const Weight& w) const { return w==1; }
 	virtual bool 		isMonotone			(const Agg& agg, const WL& l) 	const;
 	virtual Weight		add		(const Weight& lhs, const Weight& rhs) 	const;
@@ -201,7 +201,7 @@ public:
 class SumAggT: virtual public SPAggT{
 public:
 	virtual const char* getName() const { return "SUM"; }
-	virtual AggrType 	getType() const { return SUM; }
+	virtual AggType 	getType() const { return SUM; }
 	virtual bool 		isNeutralElement(const Weight& w) const { return w==0; }
 	virtual bool 		isMonotone			(const Agg& agg, const WL& l) 	const;
 	virtual Weight		add		(const Weight& lhs, const Weight& rhs) 	const;
@@ -210,7 +210,7 @@ public:
 
 class CardAggT: virtual public SPAggT{
 public:
-	virtual AggrType	getType				() const { return CARD; }
+	virtual AggType	getType				() const { return CARD; }
 	virtual const char* getName				() const { return "CARD"; }
 	virtual bool 		isNeutralElement	(const Weight& w) 				const { return w==0; }
 	virtual bool 		isMonotone			(const Agg& agg, const WL& l) 	const { return true; }

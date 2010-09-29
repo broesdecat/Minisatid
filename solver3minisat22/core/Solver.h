@@ -82,6 +82,8 @@ public:
 	CRef		makeClause			(vec<Lit>& lits, bool b){ return ca.alloc(lits, b);	}
 	CRef	 	getClause			(int i) const { return clauses[i]; }
 	int			nbClauses			() const { return clauses.size(); }
+	void		addForcedChoices	(const vec<Lit>& fc) { reportf("Not supported by solver!\n"); exit(-1);  }
+	void		disableHeur			() { reportf("Not supported by solver!\n"); exit(-1); }
 /*AE*/
 
     // Constructor/Destructor:

@@ -212,7 +212,7 @@ void CardPWAgg::initialize(bool& unsat, bool& sat) {
 
 	rClause confl = nullPtrClause;
 	if (nffailed) {
-		confl = as().getSolver()->notifySolver(new AggReason(agg, Lit(-1), BASEDONCC, ~agg.getHead(), false));
+		confl = as().getSolver()->notifySolver(new AggReason(agg, mkLit(-1), BASEDONCC, ~agg.getHead(), false));
 		if (confl != nullPtrClause) {
 			unsat = true;
 		}else{
@@ -221,7 +221,7 @@ void CardPWAgg::initialize(bool& unsat, bool& sat) {
 		return;
 	}
 	if (ntfailed) {
-		confl = as().getSolver()->notifySolver(new AggReason(agg, Lit(-1), BASEDONCP, agg.getHead(), false));
+		confl = as().getSolver()->notifySolver(new AggReason(agg, mkLit(-1), BASEDONCP, agg.getHead(), false));
 		if (confl != nullPtrClause) {
 			unsat = true;
 			return;

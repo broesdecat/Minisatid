@@ -53,6 +53,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 Solver::Solver(pPCSolver s/*A*/) :
 	solver(s), /*A*/
 	choicestaken(0), /*A*/
+	useheur(true), /*A*/
     // Parameters: (formerly in 'SearchParams')
     var_decay(1 / 0.95), clause_decay(1 / 0.999), random_var_freq(0.02), learntsize_inc(1.1)
 
@@ -169,7 +170,9 @@ void Solver::addLearnedClause(Clause* c){
 	if(c->size()>1){
 		learnts.push(c);
 		attachClause(*c);
-		//claBumpActivity(*c);
+		if(/*AB*/useheur/*AE*/){
+			claBumpActivity(*c);
+		}
 		if(verbosity>=3){
 			reportf("Learned clause added: ");
 			printClause(*c);
@@ -446,14 +449,16 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 		}
     	/*AE*/
 
-        /*if (c.learnt())
-            claBumpActivity(c);*/
+        if (c.learnt() /*AB*/&& useheur /*AE*/)
+            claBumpActivity(c);
 
         for (int j = (p == lit_Undef) ? 0 : 1; j < c.size(); j++){
             Lit q = c[j];
 
             if (!seen[var(q)] && level[var(q)] > 0){
-                //varBumpActivity(var(q));
+            	if(/*AB*/ useheur /*AE*/){
+            		varBumpActivity(var(q));
+            	}
                 seen[var(q)] = 1;
                 if (level[var(q)] >= decisionLevel()){
                 	/*AB*/
@@ -879,7 +884,9 @@ lbool Solver::search(/*AB*/bool nosearch/*AE*/)
                 Clause* c = Clause_new(learnt_clause, true);
                 learnts.push(c);
                 attachClause(*c);
-                //claBumpActivity(*c);
+                if(/*AB*/useheur/*AE*/){
+                	claBumpActivity(*c);
+                }
                 uncheckedEnqueue(learnt_clause[0], c);
             }
 

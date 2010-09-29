@@ -39,3 +39,49 @@
 		}
 	#endif
 #endif
+
+/*IntOption::IntOption(ECNF_mode& mode, string naam, int min, int max, string description):
+		naam(naam), min(min), max(max), description(description){
+	mode.addVar(*this, naam);
+}
+
+void ECNF_mode::addVar(const IntOption& opt, string naam){
+	mapping.insert(pair<string, IntOption>(naam, opt));
+	variabelen.push_back(opt);
+}*/
+
+void ECNF_mode::printUsage(){
+	reportf("Usage: program [options] <input-file> <result-output-file>\n\n  where input may is in ECNF, LParse, PB or MECNF.\n\n");
+	reportf("Options:\n\n");
+	/*for(int i=0; i<variabelen.size(); i++){
+		variabelen[i].printHelp();
+	}*/
+	reportf("   --defsearch        Unfounded set search frequency: \"always\", \"adaptive\" or \"lazy\".\n");
+	reportf("   --defstrat         Unfounded set search strategy: \"breadth_first\" or \"depth_first\".\n");
+	reportf("   --defsem           Semantics of all definitions: \"stable\" or \"wellfounded\".\n");
+	reportf("   --n<I>             The number of models <I> to search for.\n");
+	reportf("   --verbosity=<I>    The level of output <I> to generate.\n");
+	reportf("   --rnd-freq=<D>     <D> is a double \\in [0..1].\n");
+	reportf("   --decay=<D>        <D> is a double \\in [0..1].\n");
+	reportf("   --polarity-mode    Default polarity choice of variables: \"true\", \"false\" or \"rnd\".\n");
+	reportf("   --defsearch        Unfounded set search frequency: \"always\", \"adaptive\" or \"lazy\".\n");
+	reportf("   --lparse=<B>       \"yes\" if the input is in ASP lparse format.\n");
+	reportf("   --pb=<B>           \"yes\" if the input is in PB format.\n");
+	reportf("   --remap=<B>        \"yes\" if all literals should be remapped to remove gaps in the grouding.\n");
+	reportf("   --pw=<B>           \"yes\" if watched aggregate structures should be used.\n");
+	reportf("   --randomize=<B>    \"yes\" if the SAT-solver random seed should be random.\n");
+	reportf("   --disableheur=<B>  \"yes\" if the SAT-solver's heuristic should be disabled.\n");
+	reportf("\n");
+}
+
+void ECNF_mode::parseCommandline(int& argc, char** argv){
+    /*TODO int         i, j;
+    const char* value;
+    for (i = j = 0; i < argc; i++){
+    	//read --, otherwise inputfile
+    	//read until =
+    	//read option (done by Option)
+    	if(){
+
+    	}*/
+}

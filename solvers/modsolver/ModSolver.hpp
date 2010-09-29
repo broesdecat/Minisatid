@@ -100,7 +100,7 @@ public:
 	bool 				addClause		(vec<Lit>& lits);
 	bool 				addRule			(bool conj, Lit head, vec<Lit>& lits);
 	bool 				addSet			(int setid, vec<Lit>& lits, vector<Weight>& w);
-	bool 				addAggrExpr		(Lit head, int set_id, Weight bound, Bound boundsign, AggrType type, HdEq defined);
+	bool 				addAggrExpr		(Lit head, int set_id, Weight bound, AggSign boundsign, AggType type, AggSem defined);
 	bool 				finishParsing();
 
 	//solver initialization

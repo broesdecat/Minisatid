@@ -154,7 +154,7 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 	return true;
 }
 
-bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	Bound boundsign, AggrType type, HdEq headeq) {
+bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	AggSign boundsign, AggType type, AggSem headeq) {
 	assert(type==MIN || type==MAX || type==CARD || type==SUM || type==PROD);
 
 	if (parsedsets.find(setid)==parsedsets.end()) { //Exception if set already exists
@@ -205,12 +205,14 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	Bound boundsign,
 	// These guys ought to be initially a bit more important then the rest.
 	// As an approximation because each literal would occur n times (TODO better approximation?), we bump n times
 	//ORIG: getPCSolver()->varBumpActivity(headv);
-	for(int i=0; i<set->getWL().size(); i++){
-		getPCSolver()->varBumpActivity(headv);
-		//for(int j=0; j<set->getWL().size(); j++){
-			getPCSolver()->varBumpActivity(var(set->getWL()[i]));
-		//}
-	}
+	//if(!getPCSolver()->modes().disableheur){
+		for(int i=0; i<set->getWL().size(); i++){
+			getPCSolver()->varBumpActivity(headv);
+			//for(int j=0; j<set->getWL().size(); j++){
+				getPCSolver()->varBumpActivity(var(set->getWL()[i]));
+			//}
+		}
+	//}
 
 	//the head of the aggregate
 	Lit head = mkLit(headv, false);
@@ -219,7 +221,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	Bound boundsign,
 	if (verbosity() >= 5) { //Print info on added aggregate
 		reportf("Added %s aggregate with head %d on set %d, %s %s of type ",
 				headeq == DEF?"defined":"completion", gprintVar(headv), setid,
-				boundsign==LOWERBOUND?"AGG <=":"AGG >=", printWeight(bound).c_str());
+				boundsign==LB?"AGG <=":"AGG >=", printWeight(bound).c_str());
 		switch(type){
 			case SUM: reportf("SUM"); break;
 			case CARD: reportf("CARD"); break;
@@ -328,13 +330,13 @@ bool AggSolver::finishSet(ppaset set){
 	bool unsat = false;
 
 	//Partition the aggregates according to their type
-	map<AggrType, vppagg> partaggs;
+	map<AggType, vppagg> partaggs;
 	for(vppagg::const_iterator i = set->getAgg().begin(); i<set->getAgg().end(); i++) {
 		partaggs[(*i)->getType()].push_back(*i);
 	}
 
 	//Initialize the different sets
-	for(map<AggrType, vppagg>::const_iterator i=partaggs.begin(); !unsat && i!=partaggs.end(); i++){
+	for(map<AggType, vppagg>::const_iterator i=partaggs.begin(); !unsat && i!=partaggs.end(); i++){
 		if((*i).second.size()==0){
 			continue;
 		}
@@ -382,7 +384,7 @@ bool AggSolver::constructMinSet(ppaset set, vppagg aggs){
 	vppagg aggs2;
 	for(vsize i=0; i<aggs.size(); i++){
 		ppagg agg = aggs[i];
-		Bound sign = agg->getSign()==LOWERBOUND?UPPERBOUND:LOWERBOUND;
+		AggSign sign = agg->getSign()==LB?UB:LB;
 		ppagg agg2 = new ParsedAgg(-agg->getBound(), sign, agg->getHead(), agg->getSem(), set2, agg->getType());
 		aggs2.push_back(agg2);
 	}
@@ -429,7 +431,7 @@ bool AggSolver::constructCardSet(ppaset set, vppagg aggs){
 		CalcAgg* ca2 = new CardCalc(this, set->getWL());
 		return !unsat || initCalcAgg(ca2, higher);*/
 
-		//Currenlty, add each aggregate as a separate constraint
+		//Currently, add each aggregate as a separate constraint
 		bool unsat = false;
 		for(vsize i=0; !unsat && i<aggs.size(); i++){
 			CalcAgg* ca = new CardCalc(this, set->getWL());
@@ -445,6 +447,7 @@ bool AggSolver::constructCardSet(ppaset set, vppagg aggs){
 }
 
 bool AggSolver::constructSumSet(ppaset set, vppagg aggs){
+	//TODO only weights 1 and -1 should also be rewritten as a card!
 	map<Var, bool> occurs;
 	bool tocard = true;
 	for(vsize i=0; tocard && i<set->getWL().size(); i++){
@@ -492,11 +495,12 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 
 	//FIXME decide on what to do with it
 	//This strongly improves the performance of some benchmarks, e.g. FastFood. For Hanoi it has no effect
-	//for Sokoban is DECREASES performance!
-	//TODO new IDEA: mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt?
-	//
-	//For magicseries, there is a sharp decrease in efficiency when using watches, reason seems to be linked with the heuristic, but not only here, also when learning clauses
-	//getPCSolver()->varBumpActivity(var(p));
+	//for Sokoban it DECREASES performance!
+	//TODO new IDEA: mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt of de grootte van de sets?
+	//want de grootte van de set bepaalt hoe vaak de literal zou zijn uitgeschreven in een cnf theorie
+	if(!getPCSolver()->modes().disableheur){
+		//getPCSolver()->varBumpActivity(var(p));
+	}
 
 	if (value(p) == l_False) {
 		if (verbosity() >= 2) {
@@ -634,7 +638,9 @@ rClause AggSolver::getExplanation(const Lit& p) {
 		reportf("\n");
 	}
 
-	//getPCSolver()->varBumpActivity(var(p));
+	if(!getPCSolver()->modes().disableheur){
+		getPCSolver()->varBumpActivity(var(p));
+	}
 
 	return c;
 }
@@ -775,7 +781,7 @@ bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, ve
 
 //FIXME no optimizations should take place on mnmz aggregates (partially helped by separate add method).
 //FIXME 2 more optimization should/could take place on other aggregates
-bool AggSolver::addMnmzSum(Var headv, int setid, Bound boundsign) {
+bool AggSolver::addMnmzSum(Var headv, int setid, AggSign boundsign) {
 	if (parsedsets.find(setid)==parsedsets.end()) {
 		char s[100];
 		sprintf(s, "Set nr. %d is used, but not defined yet.\n", setid);
@@ -818,7 +824,7 @@ bool AggSolver::addMnmzSum(Var headv, int setid, Bound boundsign) {
 		}
 	}
 
-	ppagg ae = new ParsedAgg(boundsign==LOWERBOUND ? max+1 : min, boundsign, head, COMP, set, SUM);
+	ppagg ae = new ParsedAgg(boundsign==LB ? max+1 : min, boundsign, head, COMP, set, SUM);
 	ae->setOptim(); //FIXME temporary solution
 
 	if (verbosity() >= 3) {

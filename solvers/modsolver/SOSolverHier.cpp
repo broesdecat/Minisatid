@@ -238,7 +238,7 @@ bool ModSolverData::addSet(modindex modid, int setid, vec<Lit>& lits, vector<Wei
 	return m->addSet(setid, lits, w);
 }
 
-bool ModSolverData::addAggrExpr(modindex modid, Lit head, int setid, Weight bound, Bound boundsign, AggrType type, HdEq defined){
+bool ModSolverData::addAggrExpr(modindex modid, Lit head, int setid, Weight bound, AggSign boundsign, AggType type, AggSem defined){
 	if(state==LOADINGHIER){
 		state = LOADINGREST;
 	}

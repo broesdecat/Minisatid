@@ -96,6 +96,7 @@ static inline double cpuTime(void) { return 0; }
 
 #include "solvers/Unittests.hpp"
 #include "solvers/parser/Lparseread.hpp"
+#include "solvers/parser/PBread.hpp"
 
 ECNF_mode modes;
 
@@ -223,8 +224,15 @@ int main(int argc, char** argv) {
 		//An outputfile is not allowed when the inputfile is piped (//TODO should add a -o argument for this)
 		res = stdout; 	//Default write to stdout
 
+		if(modes.verbosity>0){
+			reportf("============================[ Problem Statistics ]=============================\n");
+			reportf("|                                                                             |\n");
+		}
+
 		pData d;
 		if(modes.lparse){
+			modes.aggr = true;
+			modes.def = true;
 			PropositionalSolver* p = new PropositionalSolver(modes);
 			d = shared_ptr<SolverInterface>(p);
 			Read* r = new Read(p);
@@ -240,11 +248,15 @@ int main(int argc, char** argv) {
 				fb.close();
 				//TODO duplicate, buggy code with original (non lparse) parsing.
 			}
-
-			if(modes.verbosity>0){
-				reportf("============================[ Problem Statistics ]=============================\n");
-				reportf("|                                                                             |\n");
-			}
+		}else if(modes.pb){ //PB
+			modes.aggr = true;
+			modes.mnmz = true;
+			PropositionalSolver* p = new PropositionalSolver(modes);
+			d = shared_ptr<SolverInterface>(p);
+			PBRead* parser = new PBRead(p, argv[1]);
+			parser->autoLin();
+			parser->parse();
+			delete parser;
 		}else{
 			if(argc==1){ //Read from stdin
 				reportf("Reading from standard input... Use '-h' or '--help' for help.\n");
@@ -260,15 +272,15 @@ int main(int argc, char** argv) {
 				if(argc>2){
 					res = fopen(argv[2], "wb");	//TODO include in FileR object
 				}
-				if(modes.verbosity>0){
-					reportf("============================[ Problem Statistics ]=============================\n");
-					reportf("|                                                                             |\n");
-				}
 
 				/*ecnfin*/yyin = filer.getFile();
 				d = parse();
 				filer.close();
 			}
+		}
+
+		if(d.get()!=NULL && !d->finishParsing()){
+			d = shared_ptr<SolverInterface>();
 		}
 
 		if (modes.verbosity >= 1) {
@@ -338,11 +350,25 @@ void parseCommandline(int& argc, char** argv){
     int         i, j;
     const char* value;
     for (i = j = 0; i < argc; i++){
-    	if ((value = hasPrefix(argv[i], "-lparse"))){
-			modes.lparse = true;
-			modes.aggr = true;
-			modes.def = true;
-    	}else if ((value = hasPrefix(argv[i], "-polarity-mode="))){
+    	if ((value = hasPrefix(argv[i], "--lparse="))){
+    		if (strcmp(value, "yes") == 0){
+    			modes.lparse = true;
+			}else if (strcmp(value, "no") == 0){
+				modes.lparse = false;
+			}else{
+				char s[100]; sprintf(s, "Unknown choice %s for lparse mode\n", value);
+				throw idpexception(s);
+			}
+    	}else if ((value = hasPrefix(argv[i], "--pb="))){
+    		if (strcmp(value, "yes") == 0){
+    			modes.pb = true;
+			}else if (strcmp(value, "no") == 0){
+				modes.pb = false;
+			}else{
+				char s[100]; sprintf(s, "Unknown choice %s for pb mode\n", value);
+				throw idpexception(s);
+			}
+    	}else if ((value = hasPrefix(argv[i], "--polarity-mode="))){
             if (strcmp(value, "true") == 0){
                modes.polarity_mode = polarity_true;
             }else if (strcmp(value, "false") == 0){
@@ -353,7 +379,7 @@ void parseCommandline(int& argc, char** argv){
 				char s[100]; sprintf(s, "Unknown choice of polarity-mode %s\n", value);
 				throw idpexception(s);
             }
-        }else if ((value = hasPrefix(argv[i], "-defn-strategy="))){
+        }else if ((value = hasPrefix(argv[i], "--defn-strategy="))){
             if (strcmp(value, "always") == 0){
             	modes.defn_strategy = always;
             }else if (strcmp(value, "adaptive") == 0){
@@ -364,30 +390,21 @@ void parseCommandline(int& argc, char** argv){
 				char s[100]; sprintf(s, "Illegal definition strategy %s\n", value);
 				throw idpexception(s);
 			}
-        /*}else if ((value = hasPrefix(argv[i], "-defn-search="))){
-            if (strcmp(value, "include_cs") == 0)
-            	modes.defn_search = include_cs;
-            else if (strcmp(value, "stop_at_cs") == 0)
-            	modes.defn_search = stop_at_cs;
-            else{
-				char s[100]; sprintf(s, "Illegal definition search type %s\n", value);
-				throw idpexception(s);
-            }*/
-        }else if ((value = hasPrefix(argv[i], "-rnd-freq="))){
+        }else if ((value = hasPrefix(argv[i], "--rnd-freq="))){
             double rnd;
             if (sscanf(value, "%lf", &rnd) <= 0 || rnd < 0 || rnd > 1){
 				char s[100]; sprintf(s, "Illegal rnd-freq constant %s\n", value);
 				throw idpexception(s);
             }
             modes.random_var_freq = rnd;
-        }else if ((value = hasPrefix(argv[i], "-decay="))){
+        }else if ((value = hasPrefix(argv[i], "--decay="))){
             double decay;
             if (sscanf(value, "%lf", &decay) <= 0 || decay <= 0 || decay > 1){
 				char s[100]; sprintf(s, "Illegal decay constant %s\n", value);
 				throw idpexception(s);
             }
             modes.var_decay = 1 / decay;
-        }else if ((value = hasPrefix(argv[i], "-ufsalgo="))){
+        }else if ((value = hasPrefix(argv[i], "--ufsalgo="))){
 			if (strcmp(value, "depth") == 0){
 				modes.ufs_strategy = depth_first;
 			}else if(strcmp(value, "breadth") == 0){
@@ -396,7 +413,7 @@ void parseCommandline(int& argc, char** argv){
 				char s[100]; sprintf(s, "Unknown choice of unfounded set algorithm: %s\n", value);
 				throw idpexception(s);
 			}
-        }else if ((value = hasPrefix(argv[i], "-idsem="))){
+        }else if ((value = hasPrefix(argv[i], "--idsem="))){
 			if (strcmp(value, "wellf") == 0){
 				modes.sem = WELLF;
 			}else if(strcmp(value, "stable") == 0){
@@ -405,27 +422,57 @@ void parseCommandline(int& argc, char** argv){
 				char s[100]; sprintf(s, "Unknown choice of unfounded set algorithm: %s\n", value);
 				throw idpexception(s);
 			}
-        }else if ((value = hasPrefix(argv[i], "-verbosity="))){
+        }else if ((value = hasPrefix(argv[i], "--verbosity="))){
             int verb = (int)strtol(value, NULL, 10);
             if (verb == 0 && errno == EINVAL){
 				char s[100]; sprintf(s, "Illegal verbosity level %s\n", value);
 				throw idpexception(s);
             }
            	modes.verbosity=verb;
-        }else if ((value = hasPrefix(argv[i], "-remap"))){
-            modes.remap = true;
-        }else if ((value = hasPrefix(argv[i], "-random"))){
-            modes.randomize = true;
-        }else if ((value = hasPrefix(argv[i], "-nopw"))){
-            modes.pw = false;
-        }else if (strncmp(&argv[i][0], "-n",2) == 0){
+        }else if ((value = hasPrefix(argv[i], "--remap"))){
+    		if (strcmp(value, "yes") == 0){
+    			modes.remap = true;
+			}else if (strcmp(value, "no") == 0){
+				modes.remap = false;
+			}else{
+				char s[100]; sprintf(s, "Unknown choice %s for remap mode\n", value);
+				throw idpexception(s);
+			}
+        }else if ((value = hasPrefix(argv[i], "--disableheur"))){
+    		if (strcmp(value, "yes") == 0){
+    			modes.disableheur = true;
+			}else if (strcmp(value, "no") == 0){
+				modes.disableheur = false;
+			}else{
+				char s[100]; sprintf(s, "Unknown choice %s for disableheur mode\n", value);
+				throw idpexception(s);
+			}
+        }else if ((value = hasPrefix(argv[i], "--random"))){
+    		if (strcmp(value, "yes") == 0){
+    			modes.randomize = true;
+			}else if (strcmp(value, "no") == 0){
+				modes.randomize = false;
+			}else{
+				char s[100]; sprintf(s, "Unknown choice %s for random mode\n", value);
+				throw idpexception(s);
+			}
+        }else if ((value = hasPrefix(argv[i], "--pw"))){
+    		if (strcmp(value, "yes") == 0){
+    			modes.pw = true;
+			}else if (strcmp(value, "no") == 0){
+				modes.pw = false;
+			}else{
+				char s[100]; sprintf(s, "Unknown choice %s for pw mode\n", value);
+				throw idpexception(s);
+			}
+        }else if (strncmp(&argv[i][0], "--n",2) == 0){
             char* endptr;
-            modes.nbmodels = strtol(&argv[i][2], &endptr, 0);
+            modes.nbmodels = strtol(&argv[i][3], &endptr, 0);
             if (modes.nbmodels < 0 || *endptr != '\0') {
 				throw idpexception("Option `-nN': N must be a positive integer, or 0 to get all models.");
             }
-        }else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "-help") == 0 || strcmp(argv[i], "--help") == 0){
-            printUsage(argv);
+        }else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0){
+            modes.printUsage();
             exit(0);
         }else if (strncmp(argv[i], "-", 1) == 0){
 			char s[100]; sprintf(s, "Unknown flag %s\n", argv[i]);
@@ -462,7 +509,7 @@ pData parse(){
 	yydestroy();
     //There is still a memory leak of about 16 Kb in the flex scanner, which is inherent to the flex C scanner
 
-	if(unsatfound || !d->finishParsing()){ //UNSAT so empty shared pointer
+	if(unsatfound){ //UNSAT so empty shared pointer
 		return shared_ptr<SolverInterface>();
 	}
 
@@ -476,20 +523,6 @@ pData parse(){
 static void SIGINT_handler(int signum) {
     //printStats(s);
     throw idpexception("*** INTERRUPTED ***\n");
-}
-
-void printUsage(char** argv) {
-	reportf("USAGE: %s [options] <input-file> <result-output-file>\n\n  where input may be either in plain or gzipped DIMACS.\n\n", argv[0]);
-	reportf("OPTIONS:\n\n");
-	reportf("  -n<num>        = find <num> models (0=all; default 1)\n");
-	reportf("  -polarity-mode = {true,false,rnd}\n");
-	reportf("  -decay         = <num> [ 0 - 1 ]\n");
-	reportf("  -rnd-freq      = <num> [ 0 - 1 ]\n");
-	reportf("  -verbosity     = {0,1,2}\n");
-	reportf("  -defn-strategy = {always,adaptive,lazy}\n");
-	//reportf("  -defn-search   = {include_cs,stop_at_cs}\n");
-	reportf("  -maxruntime    = <num> (in seconds)\n");
-	reportf("\n");
 }
 
 void printStats(){

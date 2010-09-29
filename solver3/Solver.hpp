@@ -110,6 +110,7 @@ private:
 	pPCSolver	solver;
 	vec<Lit> 	forcedchoices;
 	int		 	choicestaken;
+	bool 		useheur;
 /*AE*/
 
 public:
@@ -134,6 +135,7 @@ public:
 	const Clause& 	getClause		(int i) const { return *clauses[i]; }
 	int			nbClauses			() const { return clauses.size(); }
 	void		addForcedChoices	(const vec<Lit>& fc) { fc.copyTo(forcedchoices); }
+	void		disableHeur			() { useheur = false; }
 	//vector<Clause*> getClausesWhichOnlyContain(const vector<Var>& vars);
 /*AE*/
 

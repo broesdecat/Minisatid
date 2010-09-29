@@ -70,17 +70,22 @@ void print(IDSolver const * const s){
 	for(int i=0; i<s->getNbDefinitions(); i++){
 		if(s->getDefinition(i)!=NULL){
 			DefType d = s->getDefType(i);
-			if(d==CONJ || d==DISJ){
-				reportf("%sRule", d==CONJ?"C":"D");
-				const PropRule& r = *s->getDefinition(i);
-				gprintLit(r.getHeadLiteral());
-				int counter = 0;
-				while(counter<r.size()){
-					gprintLit(r[counter]);
-					counter++;
-				}
-				reportf("\n");
+			if(s->isConjunctive(i)){
+				reportf("Conjunctive rule");
+			}else if(s->isDisjunctive(i)){
+				reportf("Disjunctive rule");
+			}else if(s->isDefinedByAggr(i)){
+				reportf("Aggregate rule");
 			}
+
+			const PropRule& r = *s->getDefinition(i);
+			gprintLit(r.getHeadLiteral());
+			int counter = 0;
+			while(counter<r.size()){
+				gprintLit(r[counter]);
+				counter++;
+			}
+			reportf("\n");
 		}
 	}
 }

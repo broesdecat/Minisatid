@@ -93,9 +93,9 @@ lbool FWAgg::initialize(const Agg& agg) {
 		//reportf("No more propagations for %d", gprintVar(var(head)));
 	}
 	if (hv == l_True) {
-		confl = as().getSolver()->notifySolver(new AggReason(agg, Lit(-1), CPANDCC, agg.getHead(), true));
+		confl = as().getSolver()->notifySolver(new AggReason(agg, mkLit(-1), CPANDCC, agg.getHead(), true));
 	} else if (hv == l_False) {
-		confl = as().getSolver()->notifySolver(new AggReason(agg, Lit(-1), CPANDCC, ~agg.getHead(), true));
+		confl = as().getSolver()->notifySolver(new AggReason(agg, mkLit(-1), CPANDCC, ~agg.getHead(), true));
 	}
 	if (confl != nullPtrClause) {
 		return l_False;
@@ -397,7 +397,7 @@ void MaxFWAgg::initialize(bool& unsat, bool& sat) {
 				}
 				notunsat
 							= as().getSolver()->getPCSolver()->addRule(
-																	agg->isLower() ? LOWERBOUND : UPPERBOUND,
+																	agg->isLower() ? LB : UB,
 																	agg->getHead(),
 																	clause);
 			} else {
@@ -661,7 +661,18 @@ void SumFWAgg::initialize(bool& unsat, bool& sat) {
 		return;
 	}
 
-	//Calculate the total negative weight to make all weight positive
+#ifdef INTWEIGHT
+	//Test whether the total sum of the weights is not infinity for intweights
+	Weight total(0);
+	for(vwl::const_iterator i=as().getWL().begin(); i<as().getWL().end(); i++) {
+		if(INT_MAX-total < (*i).getWeight()) {
+			throw idpexception("The total sum of weights exceeds max-int, correctness cannot be guaranteed in limited precision.\n");
+		}
+		total += abs((*i).getWeight());
+	}
+#endif
+
+	//Calculate the total negative weight to make all weights positive
 	vwl wlits2;
 	Weight totalneg(0);
 	for (vwl::const_iterator i = as().getWL().begin(); i < as().getWL().end(); i++) {
@@ -670,26 +681,19 @@ void SumFWAgg::initialize(bool& unsat, bool& sat) {
 		}
 	}
 	if (totalneg > 0) {
+		//Important: negate literals of with negative weights!
 		for (vwl::const_iterator i = as().getWL().begin(); i < as().getWL().end(); i++) {
-			wlits2.push_back(WL((*i).getLit(), abs((*i).getWeight())));
+			if((*i).getWeight()<0){
+				wlits2.push_back(WL(~(*i).getLit(), abs((*i).getWeight())));
+			}else{
+				wlits2.push_back(*i);
+			}
 		}
 		as().getSet()->setWL(wlits2);
 		for (vpagg::const_iterator i = as().getAgg().begin(); i < as().getAgg().end(); i++) {
 			addToBounds(**i, totalneg);
 		}
 	}
-
-
-#ifdef INTWEIGHT
-	//Test whether the total sum of the weights is not infinity for intweights
-	Weight total(0);
-	for(vwl::const_iterator i=as().getWL().begin(); i<as().getWL().end(); i++) {
-		if(INT_MAX-total < (*i).getWeight()) {
-			throw idpexception("The total sum of weights exceeds max-int, correctness cannot be guaranteed in limited precision.\n");
-		}
-		total += (*i).getWeight();
-	}
-#endif
 
 	FWAgg::initialize(unsat, sat);
 }
