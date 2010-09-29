@@ -638,9 +638,7 @@ rClause AggSolver::getExplanation(const Lit& p) {
 		reportf("\n");
 	}
 
-	if(!getPCSolver()->modes().disableheur){
-		getPCSolver()->varBumpActivity(var(p));
-	}
+	getPCSolver()->varBumpActivity(var(p));
 
 	return c;
 }

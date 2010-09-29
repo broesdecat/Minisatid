@@ -190,7 +190,9 @@ uint64_t PCSolver::getConflicts() const {
 }
 
 void PCSolver::varBumpActivity(Var v) {
-	getSolver()->varBumpActivity(v);
+	if(!modes().disableheur){
+		getSolver()->varBumpActivity(v);
+	}
 }
 
 /************************
