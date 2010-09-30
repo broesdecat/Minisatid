@@ -525,7 +525,15 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 		}
 		assert(aggreason[var(p)] == NULL);
 		aggreason[var(p)] = ar;
-		getPCSolver()->setTrue(p);
+
+		if(getPCSolver()->modes().propclausesaving){
+			vec<Lit> lits;
+			lits.push(p);
+			ar->getAgg().getAggComb()->getExplanation(lits, *ar);
+			ar->setClause(lits);
+		}
+
+		getPCSolver()->setTrue(p, BYAGG);
 	} else {
 		delete ar;
 	}
@@ -620,14 +628,20 @@ rClause AggSolver::getExplanation(const Lit& p) {
 	assert(aggreason[var(p)] != NULL);
 	const AggReason& ar = *aggreason[var(p)];
 
-	//get the explanation from the aggregate expression
-	vec<Lit> lits;
-	lits.push(p);
+	rClause c = nullPtrClause;
+	if(getPCSolver()->modes().propclausesaving && ar.hasClause()){
+		c = getPCSolver()->createClause(ar.getClause(), true);
+	}else{
+		//get the explanation from the aggregate expression
+		vec<Lit> lits;
+		lits.push(p);
 
-	ar.getAgg().getAggComb()->getExplanation(lits, ar);
+		ar.getAgg().getAggComb()->getExplanation(lits, ar);
 
-	//create a conflict clause and return it
-	rClause c = getPCSolver()->createClause(lits, true);
+		//create a conflict clause and return it
+		c = getPCSolver()->createClause(lits, true);
+	}
+
 	//getPCSolver()->addLearnedClause(c); //Adding directly as a learned clause should NOT be done, only when used as direct conflict reason: real slowdown for magicseries
 
 	if (verbosity() >= 2) {
@@ -638,6 +652,7 @@ rClause AggSolver::getExplanation(const Lit& p) {
 		reportf("\n");
 	}
 
+	//TODO bad performance for hampath
 	getPCSolver()->varBumpActivity(var(p));
 
 	return c;

@@ -64,6 +64,7 @@ Lit createNegativeLiteral(Var i);
 Lit createPositiveLiteral(Var i);
 
 enum Optim { MNMZ, SUBSETMNMZ, SUMMNMZ, NONE }; // Preference minimization, subset minimization, sum minimization
+enum PropBy { BYSAT, BYAGG, BYDEF, BYOPTIM, BYCP, BYMOD, NOPROP }; // Indicates by which solver a propagation was done
 
 class PCSolver: public Data{
 private:
@@ -90,6 +91,8 @@ private:
 
 	int init;
 	vector<Lit> initialprops;
+
+	vector<PropBy> propagations;
 
 	///////
 	// OPTIMIZATION INFORMATION
@@ -188,11 +191,11 @@ public:
 	lbool		value			(Lit p) const;		// The current value of a literal.
 	uint64_t	nVars			()      const;		// The current number of variables.
 
-	rClause 	createClause(vec<Lit>& lits, bool learned);
+	rClause 	createClause	(const vec<Lit>& lits, bool learned);
 	//IMPORTANT: THE FIRST LITERAL IN THE CLAUSE HAS TO BE THE ONE WHICH CAN BE PROPAGATED FROM THE REST!!!!!!!
 	void 		addLearnedClause(rClause c); //Propagate if clause is unit, return false if c is conflicting
 	void    	backtrackTo		(int level);	// Backtrack until a certain level.
-	void    	setTrue			(Lit p, rClause c = nullPtrClause);		// Enqueue a literal. Assumes value of literal is undefined
+	void    	setTrue			(Lit p, PropBy solver, rClause c = nullPtrClause);		// Enqueue a literal. Assumes value of literal is undefined
 	rClause		makeClause		(vec<Lit>& lits, bool b);
 
 	/**

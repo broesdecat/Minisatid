@@ -204,6 +204,7 @@ struct ECNF_mode {
 	bool pw;	//use partially watched agg structures or not.
 	bool randomize; // use random seed initialization for the SAT-solver
 	bool disableheur; // turn off the heuristic of the sat solver, allowing more predictable behavior
+	bool propclausesaving;
 
 	ECNF_mode() :
 		random_var_freq(0.02),
@@ -224,7 +225,8 @@ struct ECNF_mode {
 		remap(false),
 		pw(true),
 		randomize(false),
-		disableheur(false)
+		disableheur(false),
+		propclausesaving(false)
 		/*vareen(*this, "vareen", 0, 5, "Dit is een variabele")*/{
 	}
 

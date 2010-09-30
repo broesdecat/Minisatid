@@ -368,6 +368,15 @@ void parseCommandline(int& argc, char** argv){
 				char s[100]; sprintf(s, "Unknown choice %s for pb mode\n", value);
 				throw idpexception(s);
 			}
+    	}else if ((value = hasPrefix(argv[i], "--clausesaving="))){
+    		if (strcmp(value, "yes") == 0){
+    			modes.propclausesaving = true;
+			}else if (strcmp(value, "no") == 0){
+				modes.propclausesaving = false;
+			}else{
+				char s[100]; sprintf(s, "Unknown choice %s for clausesaving mode\n", value);
+				throw idpexception(s);
+			}
     	}else if ((value = hasPrefix(argv[i], "--polarity-mode="))){
             if (strcmp(value, "true") == 0){
                modes.polarity_mode = polarity_true;

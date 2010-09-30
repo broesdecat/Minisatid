@@ -106,6 +106,7 @@ void IDSolver::notifyVarAdded(int nvars) {
 	//seen2.push(0);
 
 	definition.resize(nvars, NULL);
+	reasons.resize(nvars);
 	defType.resize(nvars, NONDEFTYPE);
 	defOcc.resize(nvars, NONDEFOCC);
 	//assert(definition.size()==defType.size());
@@ -680,7 +681,7 @@ bool IDSolver::initAfterSimplify() {
 			if (isTrue(v)) {
 				return false;
 			} else if (isUnknown(v)) {
-				getPCSolver()->setTrue(createNegativeLiteral(v));
+				getPCSolver()->setTrue(createNegativeLiteral(v), BYDEF);
 			}
 
 			if (defOcc[v] == POSLOOP) {
@@ -1377,11 +1378,9 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 
 	unfoundedsets++;
 
-
 	// Create the loop formula: add the external disjuncts (first element will be filled in later).
 	vec<Lit> loopf(1);
 	addExternalDisjuncts(ufs, loopf);
-
 
 	// Check if any of the literals in the set are already true, which leads to a conflict.
 	for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
@@ -1395,6 +1394,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 				Print::printClause(c, getPCSolver());
 				reportf("].\n");
 			}
+			//reportf("Conflicting unfounded set found.\n");
 			return c;
 		}
 	}
@@ -1408,23 +1408,16 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 		}
 
 		// ~v \vee \bigvee\extdisj{L}
-		rClause confl = addLoopfClause(createNegativeLiteral(v), loopf);
-		if (confl != nullPtrClause) {
-			return confl;
-		}
+		addLoopfClause(createNegativeLiteral(v), loopf);
 
 		// \forall d \in \extdisj{L}: ~d \vee v
 		vec<Lit> binaryclause(2);
 		binaryclause[1] = createPositiveLiteral(v);
 		for (int i = 1; i < loopf.size(); ++i) {
-			rClause confl = addLoopfClause(~loopf[i], binaryclause);
-			if (confl != nullPtrClause) {
-				return confl;
-			}
+			addLoopfClause(~loopf[i], binaryclause);
 		}
 
 		loopf.shrink(2);
-
 
 		//the end loop formula just contains v
 		loopf[1] = createPositiveLiteral(v);
@@ -1433,50 +1426,70 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
 		//if (isUnknown(*tch)) { //TODO check if adding this increases/decreases performance
 		Lit l = createNegativeLiteral(*tch);
-		rClause confl = addLoopfClause(l, loopf);
+		addLoopfClause(l, loopf);
 		assert(!isUnknown(*tch));
-		if (confl != nullPtrClause) {
-			return confl;
-		}
 		//}
 	}
 
 	return nullPtrClause;
 }
 
-rClause IDSolver::addLoopfClause(Lit l, vec<Lit>& lits) {
+void IDSolver::addLoopfClause(Lit l, vec<Lit>& lits) {
 	lits[0] = l;
-	rClause c = getPCSolver()->createClause(lits, true);
-	getPCSolver()->addLearnedClause(c);
 
+	if(getPCSolver()->modes().propclausesaving){
+		reasons[var(l)].clear();
+		for(int i=0; i<lits.size(); i++){
+			reasons[var(l)].push_back(lits[i]);
+		}
+		if(value(lits[0])==l_Undef){
+			getPCSolver()->setTrue(lits[0], BYDEF);
+		}
+	}else{
+		rClause c = getPCSolver()->createClause(lits, true);
+		getPCSolver()->addLearnedClause(c);
 
-	//if unit propagation is already possible, this might not be detected on time, so help a little
-	int unknown = 0;
-	int unknindex = -1;
-	bool allfalse = true;
-	for (int i = 0; unknown < 2 && i < lits.size(); i++) {
-		if (value(lits[i]) == l_Undef) {
-			unknown++;
-			unknindex = i;
-			allfalse = false;
-		} else if (value(lits[i]) == l_True) {
-			allfalse = false;
+		//if unit propagation is already possible, this might not be detected on time, so help a little
+		//MEANING: if lits is already completely false, this clause cannot be added to the store
+		int unknown = 0;
+		int unknindex = -1;
+		bool allfalse = true;
+		for (int i = 0; unknown < 2 && i < lits.size(); i++) {
+			if (value(lits[i]) == l_Undef) {
+				unknown++;
+				unknindex = i;
+				allfalse = false;
+			} else if (value(lits[i]) == l_True) {
+				allfalse = false;
+			}
+		}
+		if (allfalse) {
+			return;
+		}
+
+		if (unknown == 1) {
+			getPCSolver()->setTrue(lits[unknindex], BYSAT, c);
+		}
+
+		if (verbosity() >= 2) {
+			reportf("Adding loop formula: [ ");
+			Print::printClause(c, getPCSolver());
+			reportf("].\n");
 		}
 	}
-	if (allfalse) {
-		return false;
-	}
-	if (unknown == 1) {
-		getPCSolver()->setTrue(lits[unknindex], c);
-	}
+}
 
-	if (verbosity() >= 2) {
-		reportf("Adding loop formula: [ ");
-		Print::printClause(c, getPCSolver());
-		reportf("].\n");
-	}
+void IDSolver::backtrack( const Lit& l){
+	reasons[var(l)].clear();
+}
 
-	return nullPtrClause;
+rClause IDSolver::getExplanation(const Lit& l){
+	assert(getPCSolver()->modes().propclausesaving);
+	vec<Lit> lits;
+	for(int i=0; i<reasons[var(l)].size(); i++){
+		lits.push(reasons[var(l)][i]);
+	}
+	return getPCSolver()->createClause(lits, true);
 }
 
 /* Precondition:  seen[i]==0 for each i.
@@ -2210,8 +2223,6 @@ void IDSolver::forwardPropagate(bool removemarks) {
 				seen[head] = 0;
 			}
 		}
-
-
 		//FIXME AGGREGATES
 	}
 }

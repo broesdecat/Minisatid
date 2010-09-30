@@ -206,6 +206,81 @@ lbool FWAgg::canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP
 	}
 }
 
+/*
+ * @pre: p has been assigned in the current decision level!
+ */
+bool FWAgg::assertedBefore(const Var& l, const Var& p) const {
+	PCSolver const * const pcsol = as().getSolver()->getPCSolver();
+
+	//Check if level is lower
+	if(pcsol->getLevel(l) < pcsol->getLevel(p)){
+		return true;
+	}
+
+	bool before = true;
+	int recentlits = pcsol->getNbOfRecentAssignments();
+	for (int i = 0; i < recentlits; i++) {
+		Lit rlit = pcsol->getRecentAssignment(i);
+		if (var(rlit) == l) { // l encountered first, so before
+			break;
+		}
+		if (var(rlit) == p) { // p encountered first, so after
+			before = false;
+			break;
+		}
+	}
+
+	return before;
+}
+
+/*void FWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
+	if(toInt(ar.getLit())<0){	//TODO this isnt very clean: it notifies that the literal was propagated without a cause
+		return;
+	}
+	lits.push(~ar.getLit());
+
+	const Lit& head = ar.getAgg().getHead();
+	if(value(head)!=l_Undef && var(ar.getLit())!=var(head)){
+		if(assertedBefore(var(head), var(ar.getLit()))){
+			lits.push(value(head)==l_True?~head:head);
+		}
+	}
+
+	Lit comparelit = ar.getLit();
+	if(var(ar.getLit())==var(head)){
+		comparelit = ar.getPropLit();
+	}
+
+	for (vsize i = 0; i < as().getWL().size(); i++) {
+		const WL& wl = as().getWL()[i];
+		if(ar.getExpl()==BASEDONCP){ //Monotone one (one in the set) propagated: take only false monotone ones
+			if(value(wl.getLit())==(ar.getAgg().isUpper()?l_True:l_False)){
+				continue;
+			}
+		}
+		if(ar.getExpl()==BASEDONCC){ //Anti-monotone one (one not in the set) propagated: take only true monotone ones
+			if(value(wl.getLit())==(ar.getAgg().isUpper()?l_False:l_True)){
+				continue;
+			}
+		}
+		if (var(wl.getLit()) != var(comparelit) && value(wl.getLit()) != l_Undef) {
+			if(assertedBefore(var(wl.getLit()), var(comparelit))){
+				lits.push(value(wl.getLit())==l_True?~wl.getLit():wl.getLit());
+			}
+		}
+	}
+
+	reportf("Aggregate explanation for ");
+	gprintLit(ar.getPropLit());
+
+	reportf(" is");
+	for (int i = 0; i < lits.size(); i++) {
+		reportf(" ");
+		gprintLit(lits[i]);
+	}
+	reportf("\n");
+}*/
+
 /**
  * Should find a set L+ such that "bigwedge{l | l in L+} implies p"
  * which is equivalent with the clause bigvee{~l|l in L+} or p
@@ -219,7 +294,7 @@ void FWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
 	if(toInt(ar.getLit())!=-1){
 		for (int i = 0; i < getStack().size(); i++) {
 			if (getStack()[i].getLit() == ar.getLit()) {
-				index = i++; //To also include the literal which caused propagation (otherwise would be i)
+				index = i+1; //To also include the literal which caused propagation (otherwise would be i)
 				break;
 			}
 			if(getStack()[i].getLit() == ar.getPropLit()){
@@ -231,7 +306,6 @@ void FWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
 			index = getStack().size();
 		}
 	}
-	//assert(index!=-1); //Is wrong because when a conflict is derived, an explanation is constructed before the conflicting literal is stacked.
 
 	const Agg& agg = ar.getAgg();
 	const Lit& head = agg.getHead();
@@ -274,20 +348,15 @@ void FWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
 	}
 
 	if (as().getSolver()->verbosity() >= 5) {
-		reportf("STACK: ");
-		for (vprop::const_iterator i = getStack().begin(); i < getStack().end(); i++) {
-			gprintLit((*i).getLit());
-			reportf(" ");
-		}
-		reportf("\n");
+//		reportf("STACK: ");
+//		for (vprop::const_iterator i = getStack().begin(); i < getStack().end(); i++) {
+//			gprintLit((*i).getLit());
+//			reportf(" ");
+//		}
+//		reportf("\n");
 
 		reportf("Aggregate explanation for ");
-		if (ar.isHeadReason()) {
-			gprintLit(head);
-		} else {
-			reportf("(index %d)", index);
-			gprintLit((*(as().getWL().begin() + index)).getLit());
-		}
+		gprintLit(ar.getPropLit());
 
 		reportf(" is");
 		for (int i = 0; i < lits.size(); i++) {

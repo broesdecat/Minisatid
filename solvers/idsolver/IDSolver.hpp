@@ -97,12 +97,15 @@ public:
 
 	/////////////////////SOLVER NECESSARY
 	void 		backtrack 				(const Lit& l);
-	rClause 	getExplanation			(const Lit& p);    // Create a clause that implicitly was the reason for p's propagation.
 	void 		notifyVarAdded			(int nvars); 		//correctly initialized TSolver datastructures when vars are added
 	rClause 	propagateDefinitions	();
 	rClause 	propagate				(const Lit&);
 
 	bool 		isWellFoundedModel		();
+
+	vector<vector<Lit> > reasons;	// Map vars to vec<Lit> which were the reason of deriving it
+	rClause 	getExplanation			(const Lit& p);    // Create a clause that implicitly was the reason for p's propagation.
+
 	/////////////////////ENDSOLVER NECESSARY
 
 	/////////////////////AGGSOLVER NECESSARY
@@ -232,7 +235,7 @@ protected:
 	bool	isJustified					(Lit x) const;
 	bool	isJustified					(Var x) const;
 	bool	propagateJustified			(Var v, Var cs, std::set<Var>& ufs);    // Auxiliary for 'unfounded(..)'. Propagate the fact that 'v' is now justified. True if 'cs' is now justified
-	rClause addLoopfClause				(Lit l, vec<Lit>& lits);
+	void	addLoopfClause				(Lit l, vec<Lit>& lits);
 
 	// Another propagation method (too expensive in practice):
 	// void     fwIndirectPropagate();
@@ -306,13 +309,13 @@ inline rClause IDSolver::propagateDefinitions(){
 	return indirectPropagate();
 }
 
-inline void IDSolver::backtrack( const Lit& l){
+/*inline void IDSolver::backtrack( const Lit& l){
 	return;
-}
+}*/
 
-inline rClause IDSolver::getExplanation(const Lit& p){
+/*inline rClause IDSolver::getExplanation(const Lit& p){
 	assert(false);
 	return nullPtrClause;
-}
+}*/
 
 #endif /* IDSOLVER_H_ */

@@ -81,7 +81,7 @@ public:
 	void     	printClause			(const CRef c) const;
 	uint64_t    nbVars				()      const;       // The current number of variables.
 	void		printStatistics		() const ;
-	CRef		makeClause			(vec<Lit>& lits, bool b){ return ca.alloc(lits, b);	}
+	CRef		makeClause			(const vec<Lit>& lits, bool b){ return ca.alloc(lits, b);	}
 	CRef	 	getClause			(int i) const { return clauses[i]; }
 	int			nbClauses			() const { return clauses.size(); }
 	void		addForcedChoices	(const vec<Lit>& fc) { reportf("Not supported by solver!\n"); exit(-1);  }

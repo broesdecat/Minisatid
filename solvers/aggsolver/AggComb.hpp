@@ -152,10 +152,12 @@ private:
 	const Lit	l, proplit; //l is the literal which caused the propagation of proplit
 	const Expl	expl;
 	const bool 	head;
+	vec<Lit> 	explanation;
+	bool 		hasclause;
 
 public:
 	AggReason(const Agg& agg, const Lit& l, Expl expl, const Lit& proplit, bool head = false)
-		:expr(agg), l(l), proplit(proplit), expl(expl), head(head){
+		:expr(agg), l(l), proplit(proplit), expl(expl), head(head), explanation(), hasclause(false){
 	}
 
 	const Agg&	getAgg() 		const	{ return expr; }
@@ -163,6 +165,12 @@ public:
     const Lit&	getPropLit()	const	{ return proplit; }
     bool		isHeadReason() 	const	{ return head; }
     Expl		getExpl() 		const	{ return expl; }
+
+    bool 		hasClause() const { return hasclause; }
+    const vec<Lit>&	getClause() const { return explanation; }
+    void		setClause(const vec<Lit>& c) {
+    	c.copyTo(explanation); hasclause = true;
+    }
 };
 
 

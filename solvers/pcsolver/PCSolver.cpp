@@ -145,7 +145,7 @@ uint64_t PCSolver::nVars() const {
 	return getSolver()->nbVars();
 }
 
-rClause PCSolver::createClause(vec<Lit>& lits, bool learned){
+rClause PCSolver::createClause(const vec<Lit>& lits, bool learned){
 	return getSolver()->makeClause(lits, learned);
 }
 
@@ -157,7 +157,11 @@ void PCSolver::backtrackTo(int level) {
 	getSolver()->cancelUntil(level);
 }
 
-void PCSolver::setTrue(Lit p, rClause c) {
+void PCSolver::setTrue(Lit p, PropBy solver, rClause c) {
+	assert(solver!=BYAGG || aggsolverpresent);
+	assert(solver!=BYDEF || idsolverpresent);
+
+	propagations[var(p)]=solver;
 	getSolver()->uncheckedEnqueue(p, c);
 }
 
@@ -225,6 +229,7 @@ void PCSolver::addVar(Var v) {
 			getAggSolver()->notifyVarAdded(nVars());
 		}
 	}
+	propagations.resize(nVars(), NOPROP);
 	getSolver()->setDecisionVar(v, true); // S.nVars()-1   or   var
 }
 
@@ -448,9 +453,20 @@ rClause PCSolver::getExplanation(Lit l) {
 		reportf("\n");
 	}
 
+	PropBy solver = propagations[var(l)];
+	assert(solver!=BYSAT && solver!=NOPROP);
+
 	rClause explan = nullPtrClause;
-	if(aggsolverpresent && explan == nullPtrClause){
-		explan = getAggSolver()->getExplanation(l);
+
+	switch(solver){
+		case BYAGG:
+			explan = getAggSolver()->getExplanation(l);
+			break;
+		case BYDEF:
+			explan = getIDSolver()->getExplanation(l);
+			break;
+		default:
+			assert(false);
 	}
 
 	assert(explan!=nullPtrClause);

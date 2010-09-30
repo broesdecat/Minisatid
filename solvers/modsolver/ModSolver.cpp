@@ -377,7 +377,7 @@ void ModSolver::propagateUp(Lit l, modindex id){
 	//TODO
 	//include reason or extend getexplanation to modal solvers (first is maybe best)
 	//save id for clause learning
-	getSolver()->setTrue(l);
+	getSolver()->setTrue(l, BYMOD);
 }
 
 /**

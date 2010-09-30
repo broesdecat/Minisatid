@@ -182,6 +182,9 @@ vector<Lit> Solver::getDecisions()const {
 }
 
 int Solver::getNbRecentAssignments() const {
+	if(trail_lim.size()==0){
+		return 0;
+	}
 	return trail.size()-trail_lim.last();
 }
 
