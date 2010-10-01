@@ -978,6 +978,7 @@ void IDSolver::findCycleSources() {
 
 			assert(value(~l)==l_False);
 
+			//TODO should check whether it is faster to use a real watched scheme here: go from justification to heads easily, so this loop only goes over literal which are really justifications
 			const vector<Var>& ds = disj_occurs[toInt(~l)];
 			for (vector<Var>::const_iterator j = ds.begin(); j < ds.end(); j++) {
 				checkJustification(*j);
@@ -1369,6 +1370,7 @@ void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf) {
 	}
 
 	for (int i = 1; i < loopf.size(); i++) {
+		//FIXME added later, should be verified
 		getPCSolver()->varBumpActivity(var(loopf[i]));
 
 		seen[var(loopf[i])] = 0;
