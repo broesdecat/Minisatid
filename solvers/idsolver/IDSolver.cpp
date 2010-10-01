@@ -647,11 +647,20 @@ bool IDSolver::initAfterSimplify() {
 
 		heads.clear();
 		jstf.clear();
-		propagateJustificationDisj(l, jstf, heads);
-		propagateJustificationAggr(l, jstf, heads);
 
+
+		propagateJustificationDisj(l, jstf, heads);
 		for (int i = 0; i < heads.size(); i++) {
 			assert(jstf[i].size()>0);
+			//reportf("Justified in initialization: "); gprintLit(heads[i]); reportf("\n");
+			changejust(var(heads[i]), jstf[i]);
+			propq.push(heads[i]);
+		}
+		heads.clear();
+		jstf.clear();
+
+		propagateJustificationAggr(l, jstf, heads);
+		for (int i = 0; i < heads.size(); i++) {
 			//reportf("Justified in initialization: "); gprintLit(heads[i]); reportf("\n");
 			changejust(var(heads[i]), jstf[i]);
 			propq.push(heads[i]);
@@ -778,7 +787,10 @@ bool IDSolver::initAfterSimplify() {
 
 #ifdef DEBUG
 	for (int i = 0; i < defdVars.size(); i++) {
-		Lit l(createPositiveLiteral(i));
+		Var var = defdVars[i];
+		assert(defType[var]!=NONDEFTYPE);
+
+		Lit l(createPositiveLiteral(var));
 		const vector<Var>& disj = disj_occurs[toInt(l)];
 		for (vector<Var>::const_iterator j = disj.begin(); j < disj.end(); j++) {
 			assert(getDefType(*j)==DISJ);
@@ -787,8 +799,7 @@ bool IDSolver::initAfterSimplify() {
 		for (vector<Var>::const_iterator j = conj.begin(); j < conj.end(); j++) {
 			assert(getDefType(*j)==CONJ);
 		}
-		assert(justification[defdVars[i]].size()>0 || defType[defdVars[i]]==CONJ
-					|| defType[defdVars[i]]==NONDEFTYPE || defOcc[defdVars[i]]==MIXEDLOOP);
+		assert(justification[var].size()>0 || defType[var]!=DISJ || defOcc[var]==MIXEDLOOP);
 	}
 #endif
 
@@ -1307,7 +1318,7 @@ bool IDSolver::propagateJustified(Var v, Var cs, std::set<Var>& ufs) {
 
 // Change sp_justification: v is now justified by j.
 void IDSolver::changejust(Var v, vec<Lit>& j) {
-	assert(j.size()>0);
+	assert(j.size()>0 || defType[v]==AGGR); //justification can be empty for aggregates
 	justification[v].clear();
 	j.copyTo(justification[v]);
 }
@@ -1627,7 +1638,7 @@ inline void IDSolver::print(const PropRule& c) const {
 bool IDSolver::isCycleFree() const {
 #ifdef DEBUG
 	for (int i = 0; i < nVars(); i++) {
-		assert(justification[i].size()>0 || defType[i]==CONJ || defType[i]==NONDEFTYPE || defOcc[i]==MIXEDLOOP);
+		assert(justification[i].size()>0 || defType[i]!=DISJ || defOcc[i]==MIXEDLOOP);
 	}
 #endif
 	if (getAggSolver() != NULL) {
