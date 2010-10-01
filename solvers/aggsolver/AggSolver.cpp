@@ -53,6 +53,7 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <limits.h>
+#include <cmath>
 
 AggSolver::AggSolver(pPCSolver s) :
 	SolverModule(s), propagations(0) {
@@ -204,7 +205,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	AggSign boundsig
 
 	// As an approximation because each literal would occur n times (TODO better approximation?), we bump n times
 	//ORIG: getPCSolver()->varBumpActivity(headv);
-	for(int i=0; i<set->getWL().size(); i++){
+	for(int i=0; i<log(set->getWL().size())+1; i++){
 		getPCSolver()->varBumpActivity(headv);
 		for(int j=0; j<set->getWL().size(); j++){
 			getPCSolver()->varBumpActivity(var(set->getWL()[i]));
@@ -636,10 +637,10 @@ rClause AggSolver::getExplanation(const Lit& p) {
 		assert(getPCSolver()->modes().aggclausesaving>0);
 		assert(ar.hasClause());
 
-		getPCSolver()->varBumpActivity(var(p));
+		/*getPCSolver()->varBumpActivity(var(p));
 		for(int i=0; i<ar.getClause().size(); i++){
 			getPCSolver()->varBumpActivity(var(ar.getClause()[i]));
-		}
+		}*/
 
 		c = getPCSolver()->createClause(ar.getClause(), true);
 	}else{
@@ -649,10 +650,10 @@ rClause AggSolver::getExplanation(const Lit& p) {
 
 		ar.getAgg().getAggComb()->getExplanation(lits, ar);
 
-		getPCSolver()->varBumpActivity(var(p));
+		/*getPCSolver()->varBumpActivity(var(p));
 		for(int i=0; i<lits.size(); i++){
 			getPCSolver()->varBumpActivity(var(lits[i]));
-		}
+		}*/
 
 		//create a conflict clause and return it
 		c = getPCSolver()->createClause(lits, true);
