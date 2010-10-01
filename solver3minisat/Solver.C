@@ -123,14 +123,6 @@ Var Solver::newVar(bool sign, bool dvar)
 //	qhead = 0;
 //}
 
-vector<Lit> Solver::getTrail()const{
-	vector<Lit> v;
-	for(int i=0; i<trail.size(); i++){
-		v.push_back(trail[i]);
-	}
-	return v;
-}
-
 vector<Lit> Solver::getDecisions()const {
 	vector<Lit> v;
 	for(int i=0; i<trail_lim.size(); i++){
@@ -138,30 +130,6 @@ vector<Lit> Solver::getDecisions()const {
 	}
 	return v;
 }
-
-int Solver::getNbRecentAssignments() const {
-	if(trail_lim.size()==0){
-		return 0;
-	}
-	return trail.size()-trail_lim.last();
-}
-
-Lit Solver::getRecentAssignment(int i) const {
-	return trail[trail_lim.last()+i];
-}
-
-/*vector<Lit> Solver::getRecentAssignments() const{
-	vector<Lit> v;
-	if(trail_lim.size()==0){
-		return v;
-	}
-	int index = trail_lim.last();
-	while(index<trail.size()){
-		v.push_back(trail[index]);
-		index++;
-	}
-	return v;
-}*/
 
 void Solver::addLearnedClause(Clause* c){
 	if(c->size()>1){

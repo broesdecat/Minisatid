@@ -201,13 +201,15 @@ public:
 	/**
 	 * Allows to loop over all assignments made in the current decision level.
 	 */
-	Lit 		getRecentAssignment(int i) const;
-	int 		getNbOfRecentAssignments() const;
+	const vec<Lit>& getTrail() const;
+	int 			getStartLastLevel() const;
+	//TOO SLOW:
+	//Lit 		getRecentAssignment(int i) const;
+	//int 		getNbOfRecentAssignments() const;
 	//vector<Lit> getRecentAssignments() const;
 	/*
 	 * Returns the decision level at which a variable was deduced. This allows to get the variable that was propagated earliest/latest
 	 */
-	vector<Lit> getTrail		() const;
 	int 		getLevel		(int var) const;
 	int			getNbDecisions	() const;
 	vector<Lit>	getDecisions	() const;

@@ -660,8 +660,10 @@ rClause AggSolver::getExplanation(const Lit& p) {
 		reportf("\n");
 	}
 
-	for(int i=0; i<ar.getAgg().getAggComb()->getWL().size(); i++){
-		getPCSolver()->varBumpActivity(var(p));
+	getPCSolver()->varBumpActivity(var(p));
+	const vector<WL>& wl = ar.getAgg().getAggComb()->getWL();
+	for(int i=0; i<wl.size(); i++){
+		getPCSolver()->varBumpActivity(var(wl[i]));
 	}
 
 	return c;

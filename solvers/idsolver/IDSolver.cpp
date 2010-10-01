@@ -971,9 +971,10 @@ void IDSolver::findCycleSources() {
 	clearCycleSources();
 
 	if (!firstsearch && prev_conflicts == getPCSolver()->getConflicts()	&& getPCSolver()->modes().defn_strategy == always) {
-		int recentlits = getPCSolver()->getNbOfRecentAssignments();
-		for (int i = 0; i < recentlits; i++) {
-			Lit l = getPCSolver()->getRecentAssignment(i); //l has become true, so find occurences of ~l
+		const vec<Lit>& trail = getPCSolver()->getTrail();
+		int recentindex = getPCSolver()->getStartLastLevel();
+		for (int i = recentindex; i < trail.size(); i++) {
+			Lit l = trail[i]; //l has become true, so find occurences of ~l
 
 			assert(value(~l)==l_False);
 
@@ -1368,6 +1369,8 @@ void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf) {
 	}
 
 	for (int i = 1; i < loopf.size(); i++) {
+		getPCSolver()->varBumpActivity(var(loopf[i]));
+
 		seen[var(loopf[i])] = 0;
 	}
 	extdisj_sizes += loopf.size() - 1;

@@ -558,9 +558,10 @@ bool CardPWAgg::assertedBefore(const Var& l, const Var& p) const {
 	}
 
 	bool before = true;
-	int recentlits = pcsol->getNbOfRecentAssignments();
-	for (int i = 0; i < recentlits; i++) {
-		Lit rlit = pcsol->getRecentAssignment(i);
+	const vec<Lit>& trail = pcsol->getTrail();
+		int recentindex = pcsol->getStartLastLevel();
+		for (int i = recentindex; i < trail.size(); i++) {
+			Lit rlit = trail[i];
 		if (var(rlit) == l) { // l encountered first, so before
 			break;
 		}

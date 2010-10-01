@@ -169,24 +169,16 @@ int PCSolver::getLevel(int var) const {
 	return getSolver()->getLevel(var);
 }
 
-Lit PCSolver::getRecentAssignment(int i) const{
-	return getSolver()->getRecentAssignment(i);
+const vec<Lit>& PCSolver::getTrail() const{
+	return getSolver()->getTrail();
 }
 
-int PCSolver::getNbOfRecentAssignments() const{
-	return getSolver()->getNbRecentAssignments();
+int PCSolver::getStartLastLevel() const{
+	return getSolver()->getStartLastLevel();
 }
-
-/*vector<Lit> PCSolver::getRecentAssignments() const {
-	return getSolver()->getRecentAssignments();
-}*/
 
 int PCSolver::getNbDecisions() const {
 	return getSolver()->decisionLevel();
-}
-
-vector<Lit> PCSolver::getTrail() const {
-	return getSolver()->getTrail();
 }
 
 vector<Lit> PCSolver::getDecisions() const {

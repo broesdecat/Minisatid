@@ -20,6 +20,7 @@
 #ifndef SATSOLVER_H_
 #define SATSOLVER_H_
 
+
 #ifdef USEMINISAT
 class Solver;
 #include "solver3minisat/Solver.h"
