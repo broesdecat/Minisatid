@@ -292,14 +292,16 @@ void FWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
 	//assert(agg->getSet()==this);
 
 	int index = -1;
+	bool includereason = false;
 	if(toInt(ar.getLit())!=-1){
 		for (int i = 0; i < getStack().size(); i++) {
 			if (getStack()[i].getLit() == ar.getLit()) {
-				index = i+1; //To also include the literal which caused propagation (otherwise would be i)
+				includereason = true; //To also include the literal which caused propagation
+				index = i;
 				break;
 			}
 			if(getStack()[i].getLit() == ar.getPropLit()){
-				index = i; //To also include the literal which caused propagation (otherwise would be i-1)
+				index = i;
 				break;
 			}
 		}
@@ -314,6 +316,11 @@ void FWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
 	if (!ar.isHeadReason() && index >= headindex[agg.getIndex()]) {
 		//the head literal is saved as it occurred in the theory, so adapt for its current truth value!
 		lits.push(as().getSolver()->isTrue(head) ? ~head : head);
+	}
+
+	// Allows for better minimization of explanation: the last literal was certainly part of the explanation, but maybe not the ones before
+	if(includereason){
+		lits.push(~ar.getLit());
 	}
 
 	//assert(ar.isHeadReason() || getPCSolver()->getLevel(ar.getLit())<=s->getStackSize());
@@ -399,11 +406,7 @@ void MaxFWAgg::initialize(bool& unsat, bool& sat) {
 						clause.push((*i).getLit());
 					}
 				}
-				notunsat
-							= as().getSolver()->getPCSolver()->addRule(
-																	agg->isLower() ? LB : UB,
-																	agg->getHead(),
-																	clause);
+				notunsat = as().getSolver()->getPCSolver()->addRule(agg->isLower() ? LB : UB,agg->getHead(),clause);
 			} else {
 				clause.push(agg->isLower() ? agg->getHead() : ~agg->getHead());
 				for (vwl::const_reverse_iterator i = as().getWL().rbegin(); i < as().getWL().rend()

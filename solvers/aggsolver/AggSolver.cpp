@@ -202,17 +202,14 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	AggSign boundsig
 	}
 #endif
 
-	// These guys ought to be initially a bit more important then the rest.
 	// As an approximation because each literal would occur n times (TODO better approximation?), we bump n times
 	//ORIG: getPCSolver()->varBumpActivity(headv);
-	//if(!getPCSolver()->modes().disableheur){
-		for(int i=0; i<set->getWL().size(); i++){
-			getPCSolver()->varBumpActivity(headv);
-			//for(int j=0; j<set->getWL().size(); j++){
-				getPCSolver()->varBumpActivity(var(set->getWL()[i]));
-			//}
+	for(int i=0; i<set->getWL().size(); i++){
+		getPCSolver()->varBumpActivity(headv);
+		for(int j=0; j<set->getWL().size(); j++){
+			getPCSolver()->varBumpActivity(var(set->getWL()[i]));
 		}
-	//}
+	}
 
 	//the head of the aggregate
 	Lit head = mkLit(headv, false);
