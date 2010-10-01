@@ -204,7 +204,8 @@ struct ECNF_mode {
 	bool pw;	//use partially watched agg structures or not.
 	bool randomize; // use random seed initialization for the SAT-solver
 	bool disableheur; // turn off the heuristic of the sat solver, allowing more predictable behavior
-	bool propclausesaving;
+	int idclausesaving; //0 = on propagation add clause to store, 1 = on propagation, generate explanation and save it, 2 = on propagation, generate reason and save it
+	int aggclausesaving; //0 = on propagation add clause to store, 1 = on propagation, generate explanation and save it, 2 = on propagation, generate reason and save it
 
 	ECNF_mode() :
 		random_var_freq(0.02),
@@ -226,7 +227,8 @@ struct ECNF_mode {
 		pw(true),
 		randomize(false),
 		disableheur(false),
-		propclausesaving(false)
+		idclausesaving(0),
+		aggclausesaving(2)
 		/*vareen(*this, "vareen", 0, 5, "Dit is een variabele")*/{
 	}
 

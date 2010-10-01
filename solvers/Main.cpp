@@ -368,15 +368,20 @@ void parseCommandline(int& argc, char** argv){
 				char s[100]; sprintf(s, "Unknown choice %s for pb mode\n", value);
 				throw idpexception(s);
 			}
-    	}else if ((value = hasPrefix(argv[i], "--clausesaving="))){
-    		if (strcmp(value, "yes") == 0){
-    			modes.propclausesaving = true;
-			}else if (strcmp(value, "no") == 0){
-				modes.propclausesaving = false;
-			}else{
-				char s[100]; sprintf(s, "Unknown choice %s for clausesaving mode\n", value);
+    	}else if ((value = hasPrefix(argv[i], "--idclausesaving="))){
+            int cs = (int)strtol(value, NULL, 10);
+            if (cs == 0 && errno == EINVAL){
+				char s[100]; sprintf(s, "Illegal idclausesaving level %s\n", value);
 				throw idpexception(s);
-			}
+            }
+           	modes.idclausesaving=cs;
+    	}else if ((value = hasPrefix(argv[i], "--aggclausesaving="))){
+            int cs = (int)strtol(value, NULL, 10);
+            if (cs == 0 && errno == EINVAL){
+				char s[100]; sprintf(s, "Illegal aggclausesaving level %s\n", value);
+				throw idpexception(s);
+            }
+           	modes.aggclausesaving=cs;
     	}else if ((value = hasPrefix(argv[i], "--polarity-mode="))){
             if (strcmp(value, "true") == 0){
                modes.polarity_mode = polarity_true;

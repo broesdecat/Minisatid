@@ -498,8 +498,13 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 	//for Sokoban it DECREASES performance!
 	//TODO new IDEA: mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt of de grootte van de sets?
 	//want de grootte van de set bepaalt hoe vaak de literal zou zijn uitgeschreven in een cnf theorie
-	if(!getPCSolver()->modes().disableheur){
-		//getPCSolver()->varBumpActivity(var(p));
+	//getPCSolver()->varBumpActivity(var(p));
+
+	if(value(p) != l_True && getPCSolver()->modes().aggclausesaving<2){
+		vec<Lit> lits;
+		lits.push(p);
+		ar->getAgg().getAggComb()->getExplanation(lits, *ar);
+		ar->setClause(lits);
 	}
 
 	if (value(p) == l_False) {
@@ -509,6 +514,9 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 			reportf(" because of the aggregate expression ");
 			Aggrs::printAgg(ar->getAgg(), true);
 		}
+		assert(getPCSolver()->modes().aggclausesaving>1 || ar->hasClause());
+		assert(aggreason[var(p)]==NULL || getPCSolver()->modes().aggclausesaving>1 || aggreason[var(p)]->hasClause());
+
 		AggReason* old_ar = aggreason[var(p)];
 		aggreason[var(p)] = ar;
 		rClause confl = getExplanation(p);
@@ -526,11 +534,9 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 		assert(aggreason[var(p)] == NULL);
 		aggreason[var(p)] = ar;
 
-		if(getPCSolver()->modes().propclausesaving){
-			vec<Lit> lits;
-			lits.push(p);
-			ar->getAgg().getAggComb()->getExplanation(lits, *ar);
-			ar->setClause(lits);
+		if(getPCSolver()->modes().aggclausesaving<1){
+			rClause c = getPCSolver()->createClause(ar->getClause(), true);
+			getPCSolver()->addLearnedClause(c);
 		}
 
 		getPCSolver()->setTrue(p, BYAGG);
@@ -629,7 +635,9 @@ rClause AggSolver::getExplanation(const Lit& p) {
 	const AggReason& ar = *aggreason[var(p)];
 
 	rClause c = nullPtrClause;
-	if(getPCSolver()->modes().propclausesaving && ar.hasClause()){
+	if(getPCSolver()->modes().aggclausesaving<2){
+		assert(getPCSolver()->modes().aggclausesaving>0);
+		assert(ar.hasClause());
 		c = getPCSolver()->createClause(ar.getClause(), true);
 	}else{
 		//get the explanation from the aggregate expression
@@ -652,8 +660,9 @@ rClause AggSolver::getExplanation(const Lit& p) {
 		reportf("\n");
 	}
 
-	//TODO bad performance for hampath
-	getPCSolver()->varBumpActivity(var(p));
+	for(int i=0; i<ar.getAgg().getAggComb()->getWL().size(); i++){
+		getPCSolver()->varBumpActivity(var(p));
+	}
 
 	return c;
 }

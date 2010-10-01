@@ -1437,7 +1437,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 void IDSolver::addLoopfClause(Lit l, vec<Lit>& lits) {
 	lits[0] = l;
 
-	if(getPCSolver()->modes().propclausesaving){
+	if(getPCSolver()->modes().idclausesaving>0){
 		reasons[var(l)].clear();
 		for(int i=0; i<lits.size(); i++){
 			reasons[var(l)].push_back(lits[i]);
@@ -1484,7 +1484,7 @@ void IDSolver::backtrack( const Lit& l){
 }
 
 rClause IDSolver::getExplanation(const Lit& l){
-	assert(getPCSolver()->modes().propclausesaving);
+	assert(getPCSolver()->modes().idclausesaving>0);
 	vec<Lit> lits;
 	for(int i=0; i<reasons[var(l)].size(); i++){
 		lits.push(reasons[var(l)][i]);
