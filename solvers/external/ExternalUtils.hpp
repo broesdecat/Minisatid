@@ -112,18 +112,17 @@ public:
 
 class Literal{
 private:
-	const int lit;
+	int lit;
 
 public:
 	//@pre: a is positive
 	Literal(int a, bool s = false): lit(s?-a:a){ assert(a>=0); }
 	Literal(Atom a, bool s = false): lit(s?-a.getValue():a.getValue()){ assert(a.getValue()>=0); }
 
-	Literal	operator=	(const Literal& l)	const { return Literal(l.getAtom(), l.getSign()); }
 	Atom 	getAtom() 						const { return Atom(lit<0?-lit:lit); }
 	bool 	getSign() 						const { return lit<0; }
-	bool 	operator== (const Literal& lit) const { return this->lit == lit.lit; }
-	bool 	operator< (const Literal& lit) 	const {	return abs(this->lit) < abs(lit.lit); }
+	bool 	operator== (const Literal& l) 	const { return lit == l.lit; }
+	bool 	operator< (const Literal& l) 	const {	return abs(lit) < abs(l.lit); }
 };
 
 // A class representing a tuple of a literal and an associated weight
