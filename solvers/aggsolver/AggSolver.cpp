@@ -635,6 +635,12 @@ rClause AggSolver::getExplanation(const Lit& p) {
 	if(getPCSolver()->modes().aggclausesaving<2){
 		assert(getPCSolver()->modes().aggclausesaving>0);
 		assert(ar.hasClause());
+
+		getPCSolver()->varBumpActivity(var(p));
+		for(int i=0; i<ar.getClause().size(); i++){
+			getPCSolver()->varBumpActivity(var(ar.getClause()[i]));
+		}
+
 		c = getPCSolver()->createClause(ar.getClause(), true);
 	}else{
 		//get the explanation from the aggregate expression
@@ -642,6 +648,11 @@ rClause AggSolver::getExplanation(const Lit& p) {
 		lits.push(p);
 
 		ar.getAgg().getAggComb()->getExplanation(lits, ar);
+
+		getPCSolver()->varBumpActivity(var(p));
+		for(int i=0; i<lits.size(); i++){
+			getPCSolver()->varBumpActivity(var(lits[i]));
+		}
 
 		//create a conflict clause and return it
 		c = getPCSolver()->createClause(lits, true);
@@ -655,12 +666,6 @@ rClause AggSolver::getExplanation(const Lit& p) {
 		reportf(" : ");
 		Print::printClause(c, getPCSolver());
 		reportf("\n");
-	}
-
-	getPCSolver()->varBumpActivity(var(p));
-	const vector<WL>& wl = ar.getAgg().getAggComb()->getWL();
-	for(int i=0; i<wl.size(); i++){
-		getPCSolver()->varBumpActivity(var(wl[i]));
 	}
 
 	return c;
