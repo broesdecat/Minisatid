@@ -129,7 +129,9 @@ bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
 		throw idpexception("Negative heads are not allowed.\n");
 	}
 
-	//FIXME TODO check that the head is not already defined!!!!!
+	if(isDefined(var(head))){
+		throw new idpexception("Multiple rules have the same head, which is not allowed!\n");
+	}
 
 	if (verbosity() >= 5) {
 		reportf("Adding %s rule, %d <- ", conj?"conjunctive":"disjunctive", gprintVar(var(head)));
@@ -171,9 +173,13 @@ bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
 bool IDSolver::finishECNF_DataStructures() {
 	notifyInitialized();
 	int nvars = nVars();
+	/* TODO CHECK REMOVALL!
 	definition.resize(nvars, NULL);
 	defType.resize(nvars, NONDEFTYPE);
-	defOcc.resize(nvars, NONDEFOCC);
+	defOcc.resize(nvars, NONDEFOCC);*/
+
+	//TODO treat definition as the datastructere holding all INPUT rules, where defdvars only contains the currently defined ones.
+	//Then a heuristic can be constructed which bump when head vars are assigned e.g.
 
 	//First, go over list of aggregate heads to remove those which are not longer defined
 	//(removing them one by one was much too expensive)
@@ -324,9 +330,8 @@ bool IDSolver::finishECNF_DataStructures() {
 						}
 					}
 
-					PropRule* r = definition[v];
+					delete definition[v];
 					definition[v] = NULL;
-					delete r;
 				}
 
 				defType[v] = NONDEFTYPE;
