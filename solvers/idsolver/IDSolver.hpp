@@ -60,7 +60,7 @@ typedef AggSolver* pAggSolver;
  * If a variable is NONDEFPOS, a definition is associated with it, but there is no recursion through it in the POSITIVE dependency graph
  * 		but there might be recursion over negation (relevant for the well-founded model)
  */
-enum DefType	{ NONDEFTYPE, DISJ, CONJ, AGGR };
+enum DefType	{ NONDEFTYPE = 0, WASDEFDISJ = 1, WASDEFCONJ = 2, WASDEFAGGR = 3, DISJ = 4, CONJ = 5, AGGR=6 };
 enum DefOcc 	{ NONDEFOCC, POSLOOP, MIXEDLOOP, BOTHLOOP };
 enum UFS 		{ NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK };
 
@@ -120,8 +120,7 @@ public:
 	bool    	finishECNF_DataStructures();							// Initialize the ECNF data structures. NOTE: aggregates may set the "ok" value to false!
 	/////////////////////END INITIALIZATION
 
-	int 		getNbDefinitions	() 		const { return definition.size(); }
-	PropRule* 	getDefinition		(Var i) const { return definition[i]; }
+	PropRule const* const	getDefinition(Var head) const { assert(definition[head]!=NULL); return definition[head]; }
 	DefType 	getDefType			(Var i) const { return defType[i]; }
 	bool 		isConjunctive		(Var v) const;
 	bool 		isDisjunctive		(Var v) const;
@@ -130,11 +129,13 @@ public:
 	//False if problem unsat
 	bool 		initAfterSimplify	();
 
-	void		printStatistics		() const ;
+	void		printStatistics		() const;
 
 	void 		newDecisionLevel();
 
 protected:
+	void			setDefinition(Var head, PropRule* r) { definition[head]=r; }
+
 	vector<PropRule*>	definition;	// If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
 	// Note that v occurs negatively if DISJ, positively if CONJ; and the reverse for the body literals.
 	// NOTE: If defType[v]==NONDEF, it may be that v is defined, but that no positive loop can exist. It SHOULD NOT be deleted then
@@ -170,6 +171,7 @@ protected:
 	set<Var>		toremoveaggrheads; //The set of defined aggregates that are no longer defined and should be removed from IDSolver during simplification.
 
 	bool		isDefined			(Var v) const;
+	bool 		originallyDefined	(Var v) const;
 	bool		isDefInPosGraph		(Var v) const;
 	bool		setTypeIfNoPosLoops	(Var v) const;
 

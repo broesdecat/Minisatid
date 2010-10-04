@@ -902,20 +902,44 @@ bool PCSolver::invalidateValue(vec<Lit>& invalidation) {
  * Returns true if an optimal model was found
  */
 bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m) {
-	bool rslt = true, hasmodels = false, optimumreached = false;
+	bool rslt = true, optimumreached = false;
+
+	//CHECKS whether first element yields a solution, otherwise previous strategy is done
+	//TODO should become dichotomic search: check half and go to interval containing solution!
+	/*if(optim==MNMZ){
+		assmpt.push(to_minimize[0]);
+		rslt = getSolver()->solve(assmpt);
+		if(!rslt){
+			getSolver()->cancelUntil(0);
+			vec<Lit> lits;
+			lits.push(~to_minimize[0]);
+			getSolver()->addClause(lits);
+			assmpt.pop();
+			rslt = true;
+		}else{
+			optimumreached = true;
+			m.clear();
+			int nvars = (int) nVars();
+			for (int i = 0; i < nvars; i++) {
+				if (value(i) == l_True) {
+					m.push(mkLit(i, false));
+				} else if (value(i) == l_False) {
+					m.push(mkLit(i, true));
+				}
+			}
+		}
+	}*/
+
 	while (!optimumreached && rslt) {
 		if (optim == SUMMNMZ) {
 			assert(aggsolverpresent);
 			//Noodzakelijk om de aanpassingen aan de bound door te propageren.
 			getAggSolver()->propagateMnmz(head);
 		}
+
 		rslt = getSolver()->solve(assmpt);
 
 		if (rslt && !optimumreached) {
-			if (!hasmodels) {
-				hasmodels = true;
-			}
-
 			m.clear();
 			int nvars = (int) nVars();
 			for (int i = 0; i < nvars; i++) {
@@ -952,7 +976,7 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m) {
 				}
 			}
 
-			if (modes().verbosity > 0) {
+			if (modes().verbosity > 1) {
 				printf("Temporary model: \n");
 				for (int i = 0; i < m.size(); i++) {
 					printf("%s%s%d", (i == 0) ? "" : " ", !sign(m[i]) ? "": "-", gprintVar(var(m[i])));

@@ -67,7 +67,7 @@ void print(IDSolver const * const s){
 		return;
 	}
 	reportf("Definitions\n");
-	for(int i=0; i<s->getNbDefinitions(); i++){
+	for(int i=0; i<s->nVars(); i++){
 		if(s->getDefinition(i)!=NULL){
 			DefType d = s->getDefType(i);
 			if(s->isConjunctive(i)){
