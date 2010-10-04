@@ -158,32 +158,7 @@ bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
 		//defOcc is initialized when finishing the datastructures
 		definition[var(head)] = r;
 
-		//create the completion
-		vec<Lit> comp;
-		comp.push(head);
-
-		for (int i = 0; i < ps.size(); i++) {
-			comp.push(ps[i]);
-		}
-
-		if (conj) {
-			for (int i = 1; i < comp.size(); i++) {
-				comp[i] = ~comp[i];
-			}
-		} else {
-			comp[0] = ~comp[0];
-		}
-
-		vec<Lit> temp; //because addclause empties temp
-		comp.copyTo(temp);
-		notunsat = getPCSolver()->addClause(temp);
-
-		for (int i = 1; notunsat && i < comp.size(); i++) {
-			vec<Lit> binclause(2);
-			binclause[0] = ~comp[0];
-			binclause[1] = ~comp[i];
-			notunsat = getPCSolver()->addClause(binclause);
-		}
+		notunsat = getPCSolver()->addEquivalence(head, ps, conj);
 	}
 	return notunsat;
 }

@@ -245,6 +245,41 @@ bool PCSolver::addClause(vec<Lit>& lits) {
 	return getSolver()->addClause(lits);
 }
 
+bool PCSolver::addEquivalence(const Lit& head, const vec<Lit>& rightlits, bool conj){
+	addVar(head);
+	addVars(rightlits);
+	bool notunsat = true;
+
+	//create the completion
+	vec<Lit> comp;
+	comp.push(head);
+
+	for (int i = 0; i < rightlits.size(); i++) {
+		comp.push(rightlits[i]);
+	}
+
+	if (conj) {
+		for (int i = 1; i < comp.size(); i++) {
+			comp[i] = ~comp[i];
+		}
+	} else {
+		comp[0] = ~comp[0];
+	}
+
+	vec<Lit> temp; //because addclause empties temp
+	comp.copyTo(temp);
+	notunsat = addClause(temp);
+
+	for (int i = 1; notunsat && i < comp.size(); i++) {
+		vec<Lit> binclause(2);
+		binclause[0] = ~comp[0];
+		binclause[1] = ~comp[i];
+		notunsat = addClause(binclause);
+	}
+
+	return notunsat;
+}
+
 bool PCSolver::addRule(bool conj, Lit head, const vec<Lit>& lits) {
 	assert(idsolverpresent);
 	addVar(head);

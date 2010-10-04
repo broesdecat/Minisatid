@@ -134,6 +134,7 @@ public:
 	Var			newVar			();
 	void		addVar			(Var v);
 	bool 		addClause		(vec<Lit>& lits);
+	bool 		addEquivalence	(const Lit& head, const vec<Lit>& rightlits, bool conj);
 	bool 		addRule			(bool conj, Lit head, const vec<Lit>& lits);
 	bool 		addSet			(int id, const vec<Lit>& lits);
 	bool 		addSet			(int id, const vec<Lit>& lits, const vector<Weight>& w);

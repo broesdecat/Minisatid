@@ -479,13 +479,13 @@ void parseCommandline(int& argc, char** argv){
 				char s[100]; sprintf(s, "Unknown choice %s for pw mode\n", value);
 				throw idpexception(s);
 			}
-        }else if (strncmp(&argv[i][0], "--n",2) == 0){
+        }else if ((value = hasPrefix(argv[i], "--n"))){
             char* endptr;
-            modes.nbmodels = strtol(&argv[i][3], &endptr, 0);
+            modes.nbmodels = strtol(value, &endptr, 0);
             if (modes.nbmodels < 0 || *endptr != '\0') {
 				throw idpexception("Option `-nN': N must be a positive integer, or 0 to get all models.");
             }
-        }else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0){
+        }else if ((value = hasPrefix(argv[i], "-h")) || (value = hasPrefix(argv[i], "--help"))){
             modes.printUsage();
             exit(0);
         }else if (strncmp(argv[i], "-", 1) == 0){

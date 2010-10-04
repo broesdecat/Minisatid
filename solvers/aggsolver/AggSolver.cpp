@@ -414,6 +414,29 @@ bool AggSolver::constructCardSet(ppaset set, vppagg aggs){
 		return constructSumSet(set, aggs);
 	}
 
+	//Card>=1 is translated away as an equivalence!
+	vppagg checkedaggs;
+	for(int i=0; i<aggs.size(); i++){
+		ppagg agg = aggs[i];
+		if(agg->getSign()==UB && agg->getBound()==1){
+			//Can be translated straight to ONE clause!
+			vec<Lit> right;
+			for(int j=0; j<set->getWL().size(); j++){
+				right.push(set->getWL()[j]);
+			}
+			if(agg->getSem()==DEF){
+				if(!getPCSolver()->addRule(false, agg->getHead(), right)){
+					return false;
+				}
+			}else if(!getPCSolver()->addEquivalence(agg->getHead(), right, false)){
+				return false;
+			}
+
+		}else{
+			checkedaggs.push_back(aggs[i]);
+		}
+	}
+
 	if(getPCSolver()->modes().pw){ //use PWatches
 		/* TODO if set reuse is supported, only split into two parts
 		vppagg lower, higher;
@@ -431,16 +454,16 @@ bool AggSolver::constructCardSet(ppaset set, vppagg aggs){
 
 		//Currently, add each aggregate as a separate constraint
 		bool unsat = false;
-		for(vsize i=0; !unsat && i<aggs.size(); i++){
+		for(vsize i=0; !unsat && i<checkedaggs.size(); i++){
 			CalcAgg* ca = new CardCalc(this, set->getWL());
 			vppagg aggs2;
-			aggs2.push_back(aggs[i]);
+			aggs2.push_back(checkedaggs[i]);
 			unsat = initCalcAgg(ca, aggs2);
 		}
 		return unsat;
 	}else{
 		CalcAgg* ca = new CardCalc(this, set->getWL());
-		return initCalcAgg(ca, aggs);
+		return initCalcAgg(ca, checkedaggs);
 	}
 }
 
