@@ -114,6 +114,7 @@ void IDSolver::notifyVarAdded(int nvars) {
 	//assert(definition.size()==defType.size());
 	disj_occurs.resize(2 * nvars); // May be tested on in findCycleSources().
 	conj_occurs.resize(2 * nvars); // Probably not needed anyway...
+	isCS.growTo(nvars, false);
 }
 
 /**
@@ -360,8 +361,6 @@ bool IDSolver::finishECNF_DataStructures() {
 		return false;
 	}
 
-	isCS.growTo(nvars, false);
-
 	if (verbosity() > 5) {
 		for (int i = 0; i < defdVars.size(); i++) {
 			if (i != 0) {
@@ -544,6 +543,12 @@ bool IDSolver::initAfterSimplify() {
 	// This is called after every simplification: maybe more literals have been asserted, so more
 	// smaller sccs/more derivations can be found.
 	// So we check whether any changes are relevant since last time.
+
+	//But it might be that we already derived that no positive loops are possible, so we can skip this:
+	if(!posloops){
+		return true;
+	}
+
 	assert(getPCSolver()->getDecisions().size()==0);
 	int currenttrailsize = getPCSolver()->getTrail().size();
 	if (currenttrailsize == previoustrailatsimp) {
@@ -718,7 +723,7 @@ bool IDSolver::initAfterSimplify() {
 	}
 
 	if (!posloops && !negloops) {
-		getPCSolver()->resetIDSolver();
+		//getPCSolver()->resetIDSolver();
 		if (verbosity() >= 1) {
 			reportf("| All recursive atoms falsified in initializations.                           |\n");
 		}
@@ -844,13 +849,26 @@ rClause IDSolver::indirectPropagate() {
 	for (int i = recentindex; i < trail.size(); i++) {
 		const Lit& l = trail[i];
 		const Var& v = var(l);
-		if(originallyDefined(v) && isPositive(l) && (defType[v]==DISJ || defType[v]==WASDEFDISJ)){
+		if(originallyDefined(v) && (defType[v]==DISJ || defType[v]==WASDEFDISJ)){
+			bool sometrue = false;
 			PCSolver* const pcsol = getPCSolver();
 			const PropRule& r = *getDefinition(v);
-			for(int j=0; j<r.size(); j++){
-				pcsol->varBumpActivity(var(r[j]));
+			/*for(int j=0; !sometrue && j<r.size(); j++){
+				if(value(var(r[j]))==l_True){
+					sometrue = true;
+				}
+			}*/
+			if(!sometrue){
+				for(int j=0; j<r.size(); j++){
+					//reportf("Bumping");
+					pcsol->varBumpActivity(var(r[j]));
+				}
 			}
 		}
+	}
+
+	if(!posloops){
+		return nullPtrClause;
 	}
 
 	findCycleSources();
@@ -936,7 +954,7 @@ void IDSolver::newDecisionLevel() {
 	//Originally checked this after indirectpropagate, which was incorrect, because only at the end of any
 	//decision level is there a guarantee of being cyclefree
 #ifdef DEBUG
-	if(!isCycleFree()) {
+	if(posloops && !isCycleFree()) {
 		reportf("NOT CYCLE FREE!");
 		exit(-1);
 	}
@@ -1475,7 +1493,9 @@ void IDSolver::addLoopfClause(Lit l, vec<Lit>& lits) {
 }
 
 void IDSolver::backtrack(const Lit& l) {
-	reasons[var(l)].clear();
+	if(posloops && getPCSolver()->modes().idclausesaving<1){
+		reasons[var(l)].clear();
+	}
 }
 
 rClause IDSolver::getExplanation(const Lit& l) {
@@ -1837,7 +1857,7 @@ bool IDSolver::isCycleFree() const {
  * this can be done by implementing wf propagation and counter methods in aggregates.
  */
 bool IDSolver::isWellFoundedModel() {
-	if (!isCycleFree()) {
+	if (posloops && !isCycleFree()) {
 		if (verbosity() > 1) {
 			reportf("A positive unfounded loop exists, so not well-founded!\n");
 		}

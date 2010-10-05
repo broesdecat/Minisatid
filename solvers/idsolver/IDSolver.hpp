@@ -307,7 +307,7 @@ inline rClause IDSolver::propagate(const Lit& p){
  * Returns non-owning pointer
  */
 inline rClause IDSolver::propagateDefinitions(){
-	if (!isInitialized() || !posloops) {return nullPtrClause;}
+	if (!isInitialized()/* || !posloops*/) {return nullPtrClause;}
 	return indirectPropagate();
 }
 

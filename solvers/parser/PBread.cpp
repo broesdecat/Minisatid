@@ -46,6 +46,7 @@
 #include "solvers/parser/PBread.hpp"
 
 #include <iostream>
+#include <algorithm>
 using namespace std;
 
 /*

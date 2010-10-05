@@ -70,10 +70,14 @@ void AggSolver::notifyVarAdded(uint64_t nvars) {
 	assert(headwatches.size() < nvars);
 	headwatches.resize(nvars, NULL);
 	permwatches.resize(nvars);
-	tempwatches.resize(2 * nvars);
-	aggreason.resize(nvars, NULL);
 	network.resize(nvars);
-	assigns.resize(nvars, l_Undef);
+
+	if(isInitialized()){
+		//only used after initialization, such that we can safely initialize them later!
+		tempwatches.resize(2 * nvars);
+		assigns.resize(nvars, l_Undef);
+		aggreason.resize(nvars, NULL);
+	}
 }
 
 ///////
@@ -204,7 +208,8 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	AggSign boundsig
 #endif
 
 	// As an approximation because each literal would occur n times (TODO better approximation?), we bump n times
-	//ORIG: getPCSolver()->varBumpActivity(headv);
+	//ORIG:
+	//getPCSolver()->varBumpActivity(headv);
 	for(int i=0; i<log(set->getWL().size())+1; i++){
 		getPCSolver()->varBumpActivity(headv);
 		for(int j=0; j<set->getWL().size(); j++){
@@ -248,6 +253,11 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		reportf("Initializing aggregates\n");
 	}
 
+	//Not use before finishparsing, so safe to initialize here!
+	tempwatches.resize(2 * nVars());
+	aggreason.resize(nVars(), NULL);
+	assigns.resize(nVars(), l_Undef);
+
 	// Initialize all parsed sets
 	for(map<int, ppaset>::const_iterator i=parsedsets.begin(); i!=parsedsets.end(); i++){
 		bool foundunsat = finishSet((*i).second);
@@ -262,20 +272,21 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	deleteList<paset>(parsedsets);
 
 	vsize max = 0, min = 0, card = 0, prod = 0, sum = 0;
-	int agg = 0, setlits = 0, nbsets = sets.size();
+	int totalagg = 0, setlits = 0, nbsets = sets.size();
 	for(vsize i=0; i<sets.size(); i++){
-		agg += sets[i]->getAgg().size();
+		int agg = sets[i]->getAgg().size();
+		totalagg += agg;
 		setlits += sets[i]->getWL().size();
 		switch(sets[i]->getType()){
-			case MIN: min++; break;
-			case MAX: max++; break;
-			case PROD: prod++; break;
-			case SUM: sum++; break;
-			case CARD: card++; break;
+			case MIN: min+=agg; break;
+			case MAX: max+=agg; break;
+			case PROD: prod+=agg; break;
+			case SUM: sum+=agg; break;
+			case CARD: card+=agg; break;
 		}
 	}
 
-	if(agg==0){
+	if(totalagg==0){
 		if(verbosity()>=3){
 			reportf("Initializing aggregates finished, no aggregates present after initialization.\n");
 		}
@@ -519,7 +530,8 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 	//for Sokoban it DECREASES performance!
 	//TODO new IDEA: mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt of de grootte van de sets?
 	//want de grootte van de set bepaalt hoe vaak de literal zou zijn uitgeschreven in een cnf theorie
-	//getPCSolver()->varBumpActivity(var(p));
+	//maar niet trager voor pakman
+	getPCSolver()->varBumpActivity(var(p));
 
 	if(value(p) != l_True && getPCSolver()->modes().aggclausesaving<2){
 		vec<Lit> lits;
@@ -568,9 +580,9 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 }
 
 void AggSolver::newDecisionLevel() {
-	for(vsize i=0; i<sets.size(); i++){
+	/*for(vsize i=0; i<sets.size(); i++){
 		sets[i]->newDecisionLevel();
-	}
+	}*/
 
 	/*if(verbosity()>=6){
 		reportf("Current effective watches on new decision level: \n");
@@ -579,9 +591,9 @@ void AggSolver::newDecisionLevel() {
 }
 
 void AggSolver::backtrackDecisionLevel(){
-	for(vsize i=0; i<sets.size(); i++){
+	/*for(vsize i=0; i<sets.size(); i++){
 		sets[i]->backtrackDecisionLevel();
-	}
+	}*/
 }
 
 /**
@@ -603,20 +615,14 @@ rClause AggSolver::propagate(const Lit& p) {
 		reportf(").\n");
 	}
 
-	/*if(verbosity()>=8){
-		reportf("Current effective watches BEFORE: \n");
-		printWatches(this, tempwatches);
-	}*/
-
 	pagg pa = headwatches[var(p)];
 	if (pa != NULL) {
 		confl = pa->getAggComb()->propagate(*pa);
 		propagations++;
 	}
 
-	vector<pw>& ws = permwatches[var(p)];
-	for (vector<pw>::const_iterator i = ws.begin(); confl == nullPtrClause && i
-			< ws.end(); i++) {
+	const vector<pw>& ws = permwatches[var(p)];
+	for (vector<pw>::const_iterator i = ws.begin(); confl == nullPtrClause && i	< ws.end(); i++) {
 		confl = (*i)->getAggComb()->propagate(p, *i);
 		propagations++;
 	}
@@ -625,22 +631,24 @@ rClause AggSolver::propagate(const Lit& p) {
 		return confl;
 	}
 
-	vector<pw> ws2(tempwatches[toInt(p)]); //IMPORTANT, BECAUSE WATCHES MIGHT BE ADDED AGAIN TO THE END (if no other watches are found etc)
-	tempwatches[toInt(p)].clear();
+	if(tempwatches[toInt(p)].size()>0){
+		vector<pw> ws2(tempwatches[toInt(p)]); //IMPORTANT, BECAUSE WATCHES MIGHT BE ADDED AGAIN TO THE END (if no other watches are found etc)
+		tempwatches[toInt(p)].clear();
 
-	vsize i = 0;
-	for (; confl == nullPtrClause && i < ws2.size(); i++) {
-		confl = ws2[i]->getAggComb()->propagate(p, ws2[i]);
-		propagations++;
-	}
-	for (; i < ws2.size(); i++){
-		addTempWatch(p, ws2[i]);
-	}
+		for (vector<pw>::const_iterator i = ws2.begin(); confl == nullPtrClause && i < ws2.end(); i++) {
+			if(confl==nullPtrClause){
+				confl = (*i)->getAggComb()->propagate(p, (*i));
+				propagations++;
+			}else{ //If conflict found, copy all remaining watches in again
+				addTempWatch(p, (*i));
+			}
+		}
 
-	/*if(verbosity()>=8){
-		reportf("Current effective watches AFTER: \n");
-		printWatches(this, tempwatches);
-	}*/
+		/*if(verbosity()>=8){
+			reportf("Current effective watches AFTER: \n");
+			printWatches(this, tempwatches);
+		}*/
+	}
 
 	return confl;
 }
@@ -660,10 +668,10 @@ rClause AggSolver::getExplanation(const Lit& p) {
 		assert(getPCSolver()->modes().aggclausesaving>0);
 		assert(ar.hasClause());
 
-		/*getPCSolver()->varBumpActivity(var(p));
+		//getPCSolver()->varBumpActivity(var(p));
 		for(int i=0; i<ar.getClause().size(); i++){
 			getPCSolver()->varBumpActivity(var(ar.getClause()[i]));
-		}*/
+		}
 
 		c = getPCSolver()->createClause(ar.getClause(), true);
 	}else{
@@ -673,10 +681,10 @@ rClause AggSolver::getExplanation(const Lit& p) {
 
 		ar.getAgg().getAggComb()->getExplanation(lits, ar);
 
-		/*getPCSolver()->varBumpActivity(var(p));
+		//getPCSolver()->varBumpActivity(var(p));
 		for(int i=0; i<lits.size(); i++){
 			getPCSolver()->varBumpActivity(var(lits[i]));
-		}*/
+		}
 
 		//create a conflict clause and return it
 		c = getPCSolver()->createClause(lits, true);
@@ -716,7 +724,7 @@ void AggSolver::backtrack(const Lit& l) {
 		pa->getAggComb()->backtrack(*pa);
 	}
 
-	vector<pw>& vcw = permwatches[var(l)];
+	const vector<pw>& vcw = permwatches[var(l)];
 	for (vector<pw>::const_iterator i = vcw.begin(); i < vcw.end(); i++) {
 		(*i)->getAggComb()->backtrack(**i);
 	}

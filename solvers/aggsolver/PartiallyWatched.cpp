@@ -316,8 +316,17 @@ bool CardPWAgg::replace(vsize index, watchset w) {
 	vptw& set = getSet(w);
 	vptw& watches = getWatches(w);
 
-	vector<int>& s = start(w);
-	for (vsize i = s[s.size()-1]; !found && i < set.size(); i++) {
+	//TODO in cases where the pw scheme is efficient, much more decisions are taken then watch propagations, so keeping a trail is inefficient
+	//because it has to be maintained for every set and for every decision level, which turned out to be very expensive. Currently it is no longer done
+/*	int declevel = as().getSolver()->getPCSolver()->getCurrentDecisionLevel();
+	vector<int>& starts = start(w);
+	if(starts.size()<declevel+1){
+		starts.resize(declevel+1, starts[starts.size()-1]);
+	}
+	assert(declevel<starts.size());
+
+	int& ss = starts[declevel];*/
+	for (vsize i = 0/*ss*/; !found && i < set.size(); i++) {
 		ptw tw = set[i];
 		if (propagatedValue(tw->lit()) != l_False) {
 			watches[index]->watch()->setIndex(-1);
@@ -329,9 +338,9 @@ bool CardPWAgg::replace(vsize index, watchset w) {
 			tw->watch()->setIndex(index);
 			addWatchToSolver(w, watches, index);
 			found = true;
-		}else{
-			s[s.size()-1]++;
-		}
+		}/*else{
+			ss++;
+		}*/
 	}
 	return found;
 }

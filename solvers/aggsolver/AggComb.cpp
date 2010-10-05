@@ -138,6 +138,7 @@ void CalcAgg::doSetReduction() {
 				Weight w = getCombinedWeight(newl.getWeight(), oldl.getWeight());
 				newset[indexinnew] = WL(oldl.getLit(), w);
 			} else { //opposite signs
+
 				WL wl = handleOccurenceOfBothSigns(oldl, newl);
 				newset[indexinnew] = WL(wl.getLit(), wl.getWeight());
 			}

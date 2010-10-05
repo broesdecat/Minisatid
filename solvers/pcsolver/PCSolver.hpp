@@ -186,7 +186,7 @@ public:
 	 * The definition is valid, so the idsolver can be removed from further propagations
 	 * TODO what if the pcsolver is reset?
 	 */
-	void 		resetIDSolver	();
+	//void 		resetIDSolver	();
 
 	lbool		value			(Var x) const;		// The current value of a variable.
 	lbool		value			(Lit p) const;		// The current value of a literal.
@@ -211,6 +211,7 @@ public:
 	/*
 	 * Returns the decision level at which a variable was deduced. This allows to get the variable that was propagated earliest/latest
 	 */
+	int			getCurrentDecisionLevel() const;
 	int 		getLevel		(int var) const;
 	int			getNbDecisions	() const;
 	vector<Lit>	getDecisions	() const;
@@ -247,6 +248,8 @@ public:
 	 * SATsolver asks this to PC such that more info (modal e.g.) can be printed.
 	 */
 	void	printChoiceMade	(int level, Lit l) const;
+
+	void 	printStatistics() const;
 
 private:
 	void addVar(Lit l) { addVar(var(l)); }

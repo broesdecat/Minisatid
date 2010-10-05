@@ -208,6 +208,7 @@ int main(int argc, char** argv) {
 #endif
 
     FILE* res = NULL;
+    pData d;
 	try{
 		parseCommandline(argc, argv);
 
@@ -229,7 +230,6 @@ int main(int argc, char** argv) {
 			reportf("|                                                                             |\n");
 		}
 
-		pData d;
 		if(modes.lparse){
 			modes.aggr = true;
 			modes.def = true;
@@ -330,6 +330,12 @@ int main(int argc, char** argv) {
 	}catch(idpexception& e){
 		reportf(e.what());
 		reportf("Program will abort.\n");
+		d->printStatistics();
+		return 1;
+	}catch(int){
+		if(d.get()!=NULL){
+			d->printStatistics();
+		}
 		return 1;
 	}
 }
