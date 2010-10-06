@@ -496,9 +496,44 @@ rClause PCSolver::getExplanation(Lit l) {
 			assert(false);
 	}
 
+	if (verbosity() >= 2) {
+		reportf("Implicit %s reason clause for ", solver==BYAGG?"aggregate":"definitional");
+		gprintLit(l, sign(l) ? l_False : l_True);
+		reportf(" : ");
+		Print::printClause(explan, this);
+		reportf("\n");
+	}
+
 	assert(explan!=nullPtrClause);
 
 	return explan;
+}
+
+/*
+ * @pre: p has been assigned in the current decision level!
+ * Returns true if l was asserted before p
+ */
+bool PCSolver::assertedBefore(const Var& l, const Var& p) const {
+	//Check if level is lower
+	if(getLevel(l) < getLevel(p)){
+		return true;
+	}
+
+	bool before = true;
+	const vec<Lit>& trail = getTrail();
+		int recentindex = getStartLastLevel();
+		for (int i = recentindex; i < trail.size(); i++) {
+			Lit rlit = trail[i];
+		if (var(rlit) == l) { // l encountered first, so before
+			break;
+		}
+		if (var(rlit) == p) { // p encountered first, so after
+			before = false;
+			break;
+		}
+	}
+
+	return before;
 }
 
 /*

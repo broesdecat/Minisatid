@@ -132,7 +132,8 @@ bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
 	}
 
 	if(isDefined(var(head))){
-		throw new idpexception("Multiple rules have the same head, which is not allowed!\n");
+		char s[100]; sprintf(s, "Multiple rules have the same head %d, which is not allowed!\n", gprintVar(var(head)));
+		throw idpexception(s);
 	}
 
 	if (verbosity() >= 5) {
@@ -1433,11 +1434,18 @@ void IDSolver::addLoopfClause(Lit l, vec<Lit>& lits) {
 	lits[0] = l;
 
 	if (getPCSolver()->modes().idclausesaving > 0) {
-		reasons[var(l)].clear();
-		for (int i = 0; i < lits.size(); i++) {
-			reasons[var(l)].push_back(lits[i]);
-		}
 		if (value(lits[0]) == l_Undef) {
+#ifdef DEBUG
+			for(int i=1; i<lits.size(); i++){
+				assert(value(lits[i])!=l_Undef);
+				assert(getPCSolver()->assertedBefore(var(lits[i]), var(l)));
+			}
+#endif
+
+			reasons[var(l)].clear();
+			for (int i = 0; i < lits.size(); i++) {
+				reasons[var(l)].push_back(lits[i]);
+			}
 			getPCSolver()->setTrue(lits[0], BYDEF);
 		}
 	} else {

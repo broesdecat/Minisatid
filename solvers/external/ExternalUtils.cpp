@@ -67,7 +67,7 @@ void ECNF_mode::printUsage(){
 	reportf("   --defsearch        Unfounded set search frequency: \"always\", \"adaptive\" or \"lazy\".\n");
 	reportf("   --lparse=<B>       \"yes\" if the input is in ASP lparse format.\n");
 	reportf("   --pb=<B>           \"yes\" if the input is in PB format.\n");
-	reportf("   --idclausesaving=<I> 0=add on propagation, 1=save on propagation, 2 = dont save.\n");
+	reportf("   --idclausesaving=<I> 0=add on propagation, 1=save on propagation.\n");
 	reportf("   --aggclausesaving=<I> 0=add on propagation, 1=save on propagation, 2 = dont save.\n");
 	reportf("   --remap=<B>        \"yes\" if all literals should be remapped to remove gaps in the grouding.\n");
 	reportf("   --pw=<B>           \"yes\" if watched aggregate structures should be used.\n");
