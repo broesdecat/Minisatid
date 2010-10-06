@@ -187,7 +187,7 @@ void CardPWAgg::initialize(bool& unsat, bool& sat) {
 		sett.push_back(new ToWatch(asp(), agg.isLower()?wl:negwl));
 	}
 
-	bool nffailed = false, ntfailed;
+	bool nffailed = false, ntfailed = false;
 	if (agg.isLower()) {
 		//Card(S)<=B
 		if (checking(NF)) {

@@ -14,7 +14,7 @@
 
 using namespace Aggrs;
 
-WL Watch::getWL() const {
+const WL& Watch::getWL() const {
 	return agg->getWL()[index];
 }
 

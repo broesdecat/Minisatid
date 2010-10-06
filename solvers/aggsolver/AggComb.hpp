@@ -141,7 +141,7 @@ public:
 	bool		isPos()			const { return pos; }
 	Occurrence 	getType()		const { return !set?HEAD:pos?POS:NEG; }
 
-	virtual WL	getWL()			const;
+	virtual const WL&	getWL()			const;
 };
 
 enum Expl{BASEDONCC,BASEDONCP,CPANDCC, HEADONLY};

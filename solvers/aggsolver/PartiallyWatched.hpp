@@ -97,9 +97,9 @@ struct ToWatch{
 		delete _watch;
 	}
 
-	const WL& wl() const { return _wl; }
-	const Lit& lit() const { return _wl.getLit(); }
-	PWatch* watch() const { return _watch; }
+	const WL& 	wl		() const { return _wl; }
+	const Lit& 	lit		() const { return _wl.getLit(); }
+	PWatch* 	watch	() const { return _watch; }
 };
 
 typedef ToWatch tw;
@@ -150,6 +150,104 @@ public:
 
 	vptw& getSet(watchset w);
 	vptw& getWatches(watchset w);
+	bool checking(watchset w) const;
+	bool isEX(watchset w) const { return w==NFEX || w==NTEX; }
+	bool isF(watchset w) const { return w==NF || w==NFEX; }
+};
+
+//BASEDONCC: propagated because of too many monotone false / am true literals
+//BASEDONCP: propagated because of too many monotone true / am false literals
+
+
+/*
+ * watchset	: the location of in which set the watch effectively resides
+ * inuse 	: whether the watch is in the watch network
+ * 		combination: if watchset==INSET, then the watch SHOULD be removed. This is checked the first time the watch is activated
+ * pos		: how the value of the weight should be treated: as IN the set, OUT the set or UNKN (depending on evaluting min or max)
+ * watchneg	: if true, the negation of the wl literal is the effective watch, otherwise the wl literal itself
+ */
+
+enum POSS {POSINSET, POSOUTSET, POSSETUNKN};
+
+class GenPWatch: public Watch{
+private:
+	watchset _w;
+	bool	_inuse;
+	WL		_wl;
+	bool	_watchneg;
+	POSS	_setpos;
+	bool	_mono;
+public:
+	GenPWatch(paggs agg, const WL& wl, bool watchneg, bool mono):
+		Watch(agg, -1, true, true),
+		_w(INSET),
+		_inuse(false),
+		_watchneg(watchneg),
+		_setpos(POSSETUNKN),
+		_mono(mono),
+		_wl(wl){
+
+	}
+
+	bool 		isMonotone	()	const 	{ return _mono; }
+	POSS		getPos		()	const	{ return _setpos; }
+	void		setPos		(POSS p)	{ _setpos = p; }
+	const WL& 	getWL		() 	const 	{ return _wl; }
+	Lit			getWatchLit	() 	const 	{ return _watchneg?~_wl.getLit():_wl; }
+	watchset 	getWatchset	() 	const 	{ return _w; }
+	bool		isInUse		() 	const 	{ return _inuse; }
+	void		setInUse	(bool used) { _inuse = used; }
+
+	void		pushIntoSet(watchset w, vsize index) { setIndex(index); _w = w; }
+	void		removedFromSet() { setIndex(-1); _w = INSET; }
+};
+
+typedef GenPWatch gpw;
+typedef gpw* pgpw;
+typedef vector<pgpw> vpgpw;
+
+
+class GenPWAgg: public PWAgg, public virtual SPAggT {
+private:
+	vpgpw nf, nfex, setf; //setf contains all monotone versions of set literals
+	vpgpw nt, ntex, sett; //sett contains all anti-monotone versions of set literals
+
+	bool headprop; // true if <head> was derived from this aggregate
+
+public:
+	GenPWAgg(paggs agg);
+	virtual ~GenPWAgg();
+
+	bool isSatisfied(const Agg& agg, Weight value){
+		return (agg.isLower() && value <= agg.getBound() ) || (agg.isUpper() && agg.getBound()<=value);
+	}
+
+	lbool isKnown(const Agg& agg, const vpgpw& set);
+
+	virtual void 		initialize			(bool& unsat, bool& sat);
+			bool initialize(const Agg& agg, watchset w);
+			bool initializeEX(const Agg& agg, watchset w);
+
+			void addToWatchedSet(watchset w, vsize index);
+			void removeWatchFromSet(watchset w);
+			void addWatchesToNetwork(watchset w);
+			/*
+			 * Removes a literal from its set and adds it to a watched set
+			 */
+			void addWatchToNetwork(watchset w, pgpw watch);
+
+	bool replace(vsize index, watchset w);
+
+	virtual rClause 	propagate			(const Lit& p, pw w);
+	virtual rClause 	propagate			(const Agg& agg);
+	virtual void 		backtrack			(const Agg& agg);
+    virtual void 		getExplanation		(vec<Lit>& lits, const AggReason& ar) const;
+
+    //@pre: p has been assigned in the current decision level!
+    		bool		assertedBefore(const Var& l, const Var& p) const;
+
+	vpgpw& getSet(watchset w);
+	vpgpw& getWatches(watchset w);
 	bool checking(watchset w) const;
 	bool isEX(watchset w) const { return w==NFEX || w==NTEX; }
 	bool isF(watchset w) const { return w==NF || w==NFEX; }
