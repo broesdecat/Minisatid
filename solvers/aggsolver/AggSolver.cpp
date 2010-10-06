@@ -692,14 +692,6 @@ rClause AggSolver::getExplanation(const Lit& p) {
 
 	//getPCSolver()->addLearnedClause(c); //Adding directly as a learned clause should NOT be done, only when used as direct conflict reason: real slowdown for magicseries
 
-	if (verbosity() >= 2) {
-		reportf("Implicit aggregate reason clause for ");
-		gprintLit(p, sign(p) ? l_False : l_True);
-		reportf(" : ");
-		Print::printClause(c, getPCSolver());
-		reportf("\n");
-	}
-
 	return c;
 }
 

@@ -174,6 +174,8 @@ public:
 	void		notifyAggrHead	(Var head);
 
 	lbool 		checkStatus		(lbool status) const; //if status==l_True, do wellfoundednesscheck in IDSolver, if not wellfounded, return l_False, otherwise status
+
+	bool 		assertedBefore(const Var& l, const Var& p) const;
 	rClause		getExplanation	(Lit l);	//NON-OWNING pointer
 
 	vector<rClause> getClausesWhichOnlyContain(const vector<Var>& vars);

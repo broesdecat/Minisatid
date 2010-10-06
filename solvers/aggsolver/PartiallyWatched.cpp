@@ -555,43 +555,16 @@ void CardPWAgg::backtrack(const Agg& agg) {
 	}
 }
 
-/*
- * @pre: p has been assigned in the current decision level!
- */
-bool CardPWAgg::assertedBefore(const Var& l, const Var& p) const {
-	PCSolver const * const pcsol = as().getSolver()->getPCSolver();
-
-	//Check if level is lower
-	if(pcsol->getLevel(l) < pcsol->getLevel(p)){
-		return true;
-	}
-
-	bool before = true;
-	const vec<Lit>& trail = pcsol->getTrail();
-		int recentindex = pcsol->getStartLastLevel();
-		for (int i = recentindex; i < trail.size(); i++) {
-			Lit rlit = trail[i];
-		if (var(rlit) == l) { // l encountered first, so before
-			break;
-		}
-		if (var(rlit) == p) { // p encountered first, so after
-			before = false;
-			break;
-		}
-	}
-
-	return before;
-}
-
 void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
 	if(toInt(ar.getLit())<0){	//TODO this isnt very clean: it notifies that the literal was propagated without a cause
 		return;
 	}
 	lits.push(~ar.getLit());
 
+	const PCSolver& pcsol = *as().getSolver()->getPCSolver();
 	const Lit& head = ar.getAgg().getHead();
 	if(value(head)!=l_Undef && var(ar.getLit())!=var(head)){
-		if(assertedBefore(var(head), var(ar.getLit()))){
+		if(pcsol.assertedBefore(var(head), var(ar.getLit()))){
 			lits.push(value(head)==l_True?~head:head);
 		}
 	}
@@ -614,7 +587,7 @@ void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
 			}
 		}
 		if (var(wl.getLit()) != var(comparelit) && value(wl.getLit()) != l_Undef) {
-			if(assertedBefore(var(wl.getLit()), var(comparelit))){
+			if(pcsol.assertedBefore(var(wl.getLit()), var(comparelit))){
 				lits.push(value(wl.getLit())==l_True?~wl.getLit():wl.getLit());
 			}
 		}
