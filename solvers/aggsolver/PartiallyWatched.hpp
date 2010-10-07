@@ -224,26 +224,23 @@ public:
 	lbool isKnown(const Agg& agg, const vpgpw& set);
 
 	virtual void 		initialize			(bool& unsat, bool& sat);
-			bool initialize(const Agg& agg, watchset w);
-			bool initializeEX(const Agg& agg, watchset w);
+	bool reconstructBasicSet(const Agg& agg, watchset w, pgpw watch = NULL);
+	vpgpw reconstructExSet(const Agg& agg, watchset w, pgpw watch = NULL);
 
-			void addToWatchedSet(watchset w, vsize index);
-			void removeWatchFromSet(watchset w);
+			void addToWatchedSet(watchset w, vsize index, POSS p);
+			void removeWatchesFromSet(watchset w);
 			void addWatchesToNetwork(watchset w);
 			/*
 			 * Removes a literal from its set and adds it to a watched set
 			 */
 			void addWatchToNetwork(watchset w, pgpw watch);
 
-	bool replace(vsize index, watchset w);
+			void replace(vsize index, watchset w);
 
 	virtual rClause 	propagate			(const Lit& p, pw w);
 	virtual rClause 	propagate			(const Agg& agg);
 	virtual void 		backtrack			(const Agg& agg);
     virtual void 		getExplanation		(vec<Lit>& lits, const AggReason& ar) const;
-
-    //@pre: p has been assigned in the current decision level!
-    		bool		assertedBefore(const Var& l, const Var& p) const;
 
 	vpgpw& getSet(watchset w);
 	vpgpw& getWatches(watchset w);

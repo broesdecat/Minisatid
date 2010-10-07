@@ -149,7 +149,7 @@ enum Expl{BASEDONCC,BASEDONCP,CPANDCC, HEADONLY};
 struct AggReason {
 private:
 	const Agg&	expr;	//non-owning pointer
-	const Lit	l, proplit; //l is the literal which caused the propagation of proplit
+	const Lit	l, proplit; //l is the literal which caused the propagation of proplit, if toInt(l)<0, then there is no cause!
 	const Expl	expl;
 	const bool 	head;
 	vec<Lit> 	explanation;
