@@ -129,7 +129,12 @@ GenPWAgg::GenPWAgg(paggs agg): PWAgg(agg){
 }
 
 GenPWAgg::~GenPWAgg(){
-	//TODO delete lists
+	deleteList<GenPWatch*>(nf);
+	deleteList<GenPWatch*>(setf);
+	deleteList<GenPWatch*>(nfex);
+	deleteList<GenPWatch*>(nt);
+	deleteList<GenPWatch*>(sett);
+	deleteList<GenPWatch*>(ntex);
 }
 
 void GenPWAgg::initialize(bool& unsat, bool& sat) {
