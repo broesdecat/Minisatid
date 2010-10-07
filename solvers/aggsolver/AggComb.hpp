@@ -208,22 +208,22 @@ public:
 
 class SumAggT: virtual public SPAggT{
 public:
-	virtual const char* getName() const { return "SUM"; }
-	virtual AggType 	getType() const { return SUM; }
-	virtual bool 		isNeutralElement(const Weight& w) const { return w==0; }
+	virtual const char* getName				() const { return "SUM"; }
+	virtual AggType 	getType				() const { return SUM; }
+	virtual bool 		isNeutralElement	(const Weight& w) const { return w==0; }
 	virtual bool 		isMonotone			(const Agg& agg, const WL& l) 	const;
-	virtual Weight		add		(const Weight& lhs, const Weight& rhs) 	const;
-	virtual Weight		remove	(const Weight& lhs, const Weight& rhs) 	const;
+	virtual Weight		add					(const Weight& lhs, const Weight& rhs) 	const;
+	virtual Weight		remove				(const Weight& lhs, const Weight& rhs) 	const;
 };
 
 class CardAggT: virtual public SPAggT{
 public:
-	virtual AggType	getType				() const { return CARD; }
+	virtual AggType	getType					() const { return CARD; }
 	virtual const char* getName				() const { return "CARD"; }
 	virtual bool 		isNeutralElement	(const Weight& w) 				const { return w==0; }
-	virtual bool 		isMonotone			(const Agg& agg, const WL& l) 	const { return true; }
-	virtual Weight		add		(const Weight& lhs, const Weight& rhs) 	const;
-	virtual Weight		remove	(const Weight& lhs, const Weight& rhs) 	const;
+	virtual bool 		isMonotone			(const Agg& agg, const WL& l) 	const { return agg.isUpper(); }
+	virtual Weight		add					(const Weight& lhs, const Weight& rhs) 	const;
+	virtual Weight		remove				(const Weight& lhs, const Weight& rhs) 	const;
 };
 
 
@@ -365,6 +365,9 @@ public:
     		lbool		propagatedValue(const Lit& l) const;
 
     virtual void initialize(bool& unsat, bool& sat);
+
+    AggSolver* getSolver();
+    rClause notifySolver(AggReason* reason);
 };
 
 void printAgg(aggs const * const c, bool printendline = false);

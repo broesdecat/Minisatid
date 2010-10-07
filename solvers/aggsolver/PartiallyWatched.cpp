@@ -25,7 +25,12 @@ void Aggrs::printWatches(AggSolver* const solver, const vvpw& tempwatches){
 		for(vsize j=0; j<tempwatches[i].size(); j++){
 			for(vsize k=0; k<tempwatches[i][j]->getAggComb()->getAgg().size(); k++){
 				PWatch* watch = dynamic_cast<PWatch*>(tempwatches[i][j]);
-				if(watch->isInUse()){
+				if(watch!=NULL && watch->isInUse()){
+					reportf("        ");
+					printAgg(*tempwatches[i][j]->getAggComb()->getAgg()[k], true);
+				}
+				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(tempwatches[i][j]);
+				if(watch2!=NULL && watch2->isInUse()){
 					reportf("        ");
 					printAgg(*tempwatches[i][j]->getAggComb()->getAgg()[k], true);
 				}

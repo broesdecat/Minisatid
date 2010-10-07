@@ -198,7 +198,7 @@ public:
 	void		setInUse	(bool used) { _inuse = used; }
 
 	void		pushIntoSet(watchset w, vsize index) { setIndex(index); _w = w; }
-	void		removedFromSet() { setIndex(-1); _w = INSET; }
+	void		removedFromSet() { setIndex(-1); _w = INSET; _setpos = POSSETUNKN; }
 };
 
 typedef GenPWatch gpw;
@@ -206,7 +206,7 @@ typedef gpw* pgpw;
 typedef vector<pgpw> vpgpw;
 
 
-class GenPWAgg: public PWAgg, public virtual SPAggT {
+class GenPWAgg: public PWAgg, public virtual CardAggT{
 private:
 	vpgpw nf, nfex, setf; //setf contains all monotone versions of set literals
 	vpgpw nt, ntex, sett; //sett contains all anti-monotone versions of set literals
@@ -223,7 +223,7 @@ public:
 
 	lbool isKnown(const Agg& agg, const vpgpw& set);
 
-	virtual void 		initialize			(bool& unsat, bool& sat);
+	virtual void initialize(bool& unsat, bool& sat);
 	bool reconstructBasicSet(const Agg& agg, watchset w, pgpw watch = NULL);
 	vpgpw reconstructExSet(const Agg& agg, watchset w, pgpw watch = NULL);
 
@@ -235,7 +235,7 @@ public:
 			 */
 			void addWatchToNetwork(watchset w, pgpw watch);
 
-			void replace(vsize index, watchset w);
+			rClause replace(vsize index, watchset w);
 
 	virtual rClause 	propagate			(const Lit& p, pw w);
 	virtual rClause 	propagate			(const Agg& agg);
@@ -246,7 +246,7 @@ public:
 	vpgpw& getWatches(watchset w);
 	bool checking(watchset w) const;
 	bool isEX(watchset w) const { return w==NFEX || w==NTEX; }
-	bool isF(watchset w) const { return w==NF || w==NFEX; }
+	bool isNonFalseCheck(watchset w) const { return w==NF || w==NFEX; }
 };
 
 void printWatches(AggSolver* const solver, const vvpw& tempwatches);

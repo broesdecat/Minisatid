@@ -330,7 +330,9 @@ int main(int argc, char** argv) {
 	}catch(idpexception& e){
 		reportf(e.what());
 		reportf("Program will abort.\n");
-		d->printStatistics();
+		if(d.get()!=NULL){
+			d->printStatistics();
+		}
 		return 1;
 	}catch(int){
 		if(d.get()!=NULL){
