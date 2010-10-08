@@ -14,7 +14,7 @@
 
 using namespace Aggrs;
 
-WL Watch::getWL() const {
+const WL& Watch::getWL() const {
 	return agg->getWL()[index];
 }
 
@@ -98,7 +98,8 @@ CardCalc::CardCalc(const paggsol& solver, const vwl& wl):
 			SPCalc(solver, wl){
 	setESV(0);
 	if(solver->getPCSolver()->modes().pw){
-		new CardPWAgg(this);
+		new GenPWAgg(this);
+		//new CardPWAgg(this);
 	}else{
 		new SumFWAgg(this);
 	}
@@ -138,6 +139,7 @@ void CalcAgg::doSetReduction() {
 				Weight w = getCombinedWeight(newl.getWeight(), oldl.getWeight());
 				newset[indexinnew] = WL(oldl.getLit(), w);
 			} else { //opposite signs
+
 				WL wl = handleOccurenceOfBothSigns(oldl, newl);
 				newset[indexinnew] = WL(wl.getLit(), wl.getWeight());
 			}
@@ -379,6 +381,14 @@ void Propagator::initialize(bool& unsat, bool& sat) {
 	for (int i = 0; i < as().getAgg().size(); i++) {
 		as().getSolver()->setHeadWatch(var(as().getAgg()[i]->getHead()), as().getAgg()[i]);
 	}
+}
+
+AggSolver* Propagator::getSolver() {
+	return agg->getSolver();
+}
+
+rClause Propagator::notifySolver(AggReason* reason){
+	return agg->getSolver()->notifySolver(reason);
 }
 
 lbool Propagator::value(const Lit& l) const {

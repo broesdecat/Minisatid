@@ -227,7 +227,7 @@ public:
 	void 				newDecisionLevel();
 	void 				backtrackDecisionLevel();
 
-	lbool				propagatedValue			(const Lit& l) const { return assigns[var(l)] ^ sign(l); }
+	lbool				propagatedValue			(const Lit& l) const { assert(isInitialized()); return assigns[var(l)] ^ sign(l); }
 
 	//are used by agg.c, but preferably should be move into protected again
 	rClause				notifySolver(Aggrs::AggReason* cr);	// Like "enqueue", but for aggregate propagations.
@@ -264,7 +264,7 @@ public:
 	void 				setHeadWatch			(Var head, Agg* agg);
 	void 				addPermWatch			(Var v, pw w);
 	void 				addTempWatch			(const Lit& l, pw w);
-	vvpw&				getTempWatches			() { return tempwatches; }
+	//vvpw&				getTempWatches			() { return tempwatches; }
 
 
 	void				printStatistics			() const ;

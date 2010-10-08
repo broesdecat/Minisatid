@@ -49,14 +49,11 @@ int PCSolver::getModPrintID() const {
 
 //Has to be value copy of modes!
 PCSolver::PCSolver(ECNF_mode modes) :
-	Data(modes), solver(NULL), idsolver(NULL), aggsolver(NULL),
-			modsolver(NULL), cpsolver(NULL), aggcreated(false),
-			idcreated(false), aggsolverpresent(false),
-			idsolverpresent(false), modsolverpresent(false),
-			nb_models(modes.nbmodels), modelsfound(0), optim(NONE), head(-1), init(true),
-			decisionlevels(0){
+	Data(modes), solver(NULL), idsolver(NULL), aggsolver(NULL), modsolver(NULL), cpsolver(NULL), aggcreated(false), idcreated(false),
+			aggsolverpresent(false), idsolverpresent(false), modsolverpresent(false), nb_models(modes.nbmodels), modelsfound(0), optim(NONE),
+			head(-1), init(true), decisionlevels(0) {
 	solver = new Solver(this);
-	if(modes.disableheur){
+	if (modes.disableheur) {
 		solver->disableHeur();
 	}
 
@@ -145,7 +142,7 @@ uint64_t PCSolver::nVars() const {
 	return getSolver()->nbVars();
 }
 
-rClause PCSolver::createClause(const vec<Lit>& lits, bool learned){
+rClause PCSolver::createClause(const vec<Lit>& lits, bool learned) {
 	return getSolver()->makeClause(lits, learned);
 }
 
@@ -161,19 +158,23 @@ void PCSolver::setTrue(Lit p, PropBy solver, rClause c) {
 	assert(solver!=BYAGG || aggsolverpresent);
 	assert(solver!=BYDEF || idsolverpresent);
 
-	propagations[var(p)]=solver;
+	propagations[var(p)] = solver;
 	getSolver()->uncheckedEnqueue(p, c);
+}
+
+int PCSolver::getCurrentDecisionLevel() const {
+	return getSolver()->decisionLevel();
 }
 
 int PCSolver::getLevel(int var) const {
 	return getSolver()->getLevel(var);
 }
 
-const vec<Lit>& PCSolver::getTrail() const{
+const vec<Lit>& PCSolver::getTrail() const {
 	return getSolver()->getTrail();
 }
 
-int PCSolver::getStartLastLevel() const{
+int PCSolver::getStartLastLevel() const {
 	return getSolver()->getStartLastLevel();
 }
 
@@ -194,7 +195,7 @@ uint64_t PCSolver::getConflicts() const {
 }
 
 void PCSolver::varBumpActivity(Var v) {
-	if(!modes().disableheur){
+	if (!modes().disableheur) {
 		getSolver()->varBumpActivity(v);
 	}
 }
@@ -221,8 +222,10 @@ void PCSolver::addVar(Var v) {
 			getAggSolver()->notifyVarAdded(nVars());
 		}
 	}
-	propagations.resize(nVars(), NOPROP);
 	getSolver()->setDecisionVar(v, true); // S.nVars()-1   or   var
+	if (!init) {
+		propagations.resize(nVars(), NOPROP);
+	}
 }
 
 void PCSolver::addVars(const vec<Lit>& a) {
@@ -245,7 +248,7 @@ bool PCSolver::addClause(vec<Lit>& lits) {
 	return getSolver()->addClause(lits);
 }
 
-bool PCSolver::addEquivalence(const Lit& head, const vec<Lit>& rightlits, bool conj){
+bool PCSolver::addEquivalence(const Lit& head, const vec<Lit>& rightlits, bool conj) {
 	addVar(head);
 	addVars(rightlits);
 	bool notunsat = true;
@@ -299,7 +302,7 @@ bool PCSolver::addSet(int setid, const vec<Lit>& lits, const vector<Weight>& w) 
 	assert(aggsolverpresent);
 	addVars(lits);
 	vector<Lit> ll;
-	for(int i=0; i<lits.size(); i++){
+	for (int i = 0; i < lits.size(); i++) {
 		ll.push_back(lits[i]);
 	}
 	return getAggSolver()->addSet(setid, ll, w);
@@ -333,38 +336,31 @@ void PCSolver::checkHead(Lit head) {
 	}
 }
 
-bool PCSolver::addCPBinaryRel(Lit head, int groundname, MINISAT::EqType rel,
-		int bound) {
+bool PCSolver::addCPBinaryRel(Lit head, int groundname, MINISAT::EqType rel, int bound) {
 	throw idpexception("CP-support is not compiled in.\n");
 }
 
-bool PCSolver::addCPBinaryRelVar(Lit head, int groundname, MINISAT::EqType rel,
-		int groundname2) {
+bool PCSolver::addCPBinaryRelVar(Lit head, int groundname, MINISAT::EqType rel, int groundname2) {
 	throw idpexception("CP-support is not compiled in.\n");
 }
 
-bool PCSolver::addCPSum(Lit head, vector<int> termnames, MINISAT::EqType rel,
-		int bound) {
+bool PCSolver::addCPSum(Lit head, vector<int> termnames, MINISAT::EqType rel, int bound) {
 	throw idpexception("CP-support is not compiled in.\n");
 }
 
-bool PCSolver::addCPSum(Lit head, vector<int> termnames, vector<int> mult,
-		MINISAT::EqType rel, int bound) {
+bool PCSolver::addCPSum(Lit head, vector<int> termnames, vector<int> mult, MINISAT::EqType rel, int bound) {
 	throw idpexception("CP-support is not compiled in.\n");
 }
 
-bool PCSolver::addCPSumVar(Lit head, vector<int> termnames,
-		MINISAT::EqType rel, int rhstermname) {
+bool PCSolver::addCPSumVar(Lit head, vector<int> termnames, MINISAT::EqType rel, int rhstermname) {
 	throw idpexception("CP-support is not compiled in.\n");
 }
 
-bool PCSolver::addCPSumVar(Lit head, vector<int> termnames, vector<int> mult,
-		MINISAT::EqType rel, int rhstermname) {
+bool PCSolver::addCPSumVar(Lit head, vector<int> termnames, vector<int> mult, MINISAT::EqType rel, int rhstermname) {
 	throw idpexception("CP-support is not compiled in.\n");
 }
 
-bool PCSolver::addCPCount(vector<int> termnames, int value,
-		MINISAT::EqType rel, int rhstermname) {
+bool PCSolver::addCPCount(vector<int> termnames, int value, MINISAT::EqType rel, int rhstermname) {
 	throw idpexception("CP-support is not compiled in.\n");
 }
 
@@ -372,8 +368,8 @@ bool PCSolver::addCPAlldifferent(const vector<int>& termnames) {
 	throw idpexception("CP-support is not compiled in.\n");
 }
 
-void PCSolver::addForcedChoices(const vec<Lit>& forcedchoices){
-	if(forcedchoices.size()!=0){
+void PCSolver::addForcedChoices(const vec<Lit>& forcedchoices) {
+	if (forcedchoices.size() != 0) {
 		getSolver()->addForcedChoices(forcedchoices);
 	}
 }
@@ -384,31 +380,41 @@ void PCSolver::addForcedChoices(const vec<Lit>& forcedchoices){
 bool PCSolver::finishParsing() {
 	init = false;
 
+	//Datastructures that are not necessary beforehand, are much cheaper to only initialize once!
+	propagations.resize(nVars(), NOPROP);
+
 	//important to call definition solver last
 	if (aggsolverpresent) {
 		bool unsat;
 		getAggSolver()->finishParsing(aggsolverpresent, unsat);
-		if(unsat){
+		if (unsat) {
 			return false;
 		}
 	}
 	if (idsolverpresent) {
-		idsolverpresent = getIDSolver()->finishECNF_DataStructures();
-		if (idsolverpresent) {
+		bool idpropagations = getIDSolver()->finishECNF_DataStructures();
+		if (idpropagations) {
+			//idsolverpresent = getIDSolver()->finishECNF_DataStructures(); //Here idsolver is deleted if no recursive pos or neg loops are possible
+			//if (idsolverpresent) {
 			if (!getIDSolver()->initAfterSimplify()) {
 				return false;
+			}
+		} else {
+			//idsolverpresent = false;
+			if (modes().verbosity > 0) {
+				reportf("|    (there will be no definitional propagations)                             |\n");
 			}
 		}
 	}
 
 	// Do all propagations that have already been done on the SAT-solver level.
-	for(vector<Lit>::const_iterator i=initialprops.begin(); i<initialprops.end(); i++){
-		if(propagate(*i) != nullPtrClause){
+	for (vector<Lit>::const_iterator i = initialprops.begin(); i < initialprops.end(); i++) {
+		if (propagate(*i) != nullPtrClause) {
 			return false;
 		}
 	}
 	initialprops.clear();
-	if(propagateAtEndOfQueue() != nullPtrClause){
+	if (propagateAtEndOfQueue() != nullPtrClause) {
 		return false;
 	}
 
@@ -418,18 +424,13 @@ bool PCSolver::finishParsing() {
 					"|    (there will be no aggregate propagations)                                |\n");
 		}
 	}
-	if (!idsolverpresent) {
-		if (modes().verbosity > 0) {
-			reportf("|    (there will be no definitional propagations)                             |\n");
-		}
-	}
 
 	//TODO later modes.mnmz, modes.cp
 
 	// Pre processing
 	/*if(aggsolverpresent){
-		getAggSolver()->findClausalPropagations();
-	}*/
+	 getAggSolver()->findClausalPropagations();
+	 }*/
 
 	return true;
 }
@@ -462,9 +463,9 @@ lbool PCSolver::checkStatus(lbool status) const {
 	return status;
 }
 
-void PCSolver::resetIDSolver() {
-	idsolverpresent = false;
-}
+/*void PCSolver::resetIDSolver() {
+ idsolverpresent = false;
+ }*/
 
 /**********************
  * AGGSOLVER SPECIFIC *
@@ -485,15 +486,15 @@ rClause PCSolver::getExplanation(Lit l) {
 
 	rClause explan = nullPtrClause;
 
-	switch(solver){
-		case BYAGG:
-			explan = getAggSolver()->getExplanation(l);
-			break;
-		case BYDEF:
-			explan = getIDSolver()->getExplanation(l);
-			break;
-		default:
-			assert(false);
+	switch (solver) {
+	case BYAGG:
+		explan = getAggSolver()->getExplanation(l);
+		break;
+	case BYDEF:
+		explan = getIDSolver()->getExplanation(l);
+		break;
+	default:
+		assert(false);
 	}
 
 	if (verbosity() >= 2) {
@@ -553,27 +554,27 @@ void PCSolver::backtrackRest(Lit l) {
 }
 
 // Called by SAT solver when new decision level is started, BEFORE choice has been made!
-void PCSolver::newDecisionLevel(){
+void PCSolver::newDecisionLevel() {
 	//reportf("ADD DECISION LEVEL %d\n", ++decisionlevels);
-	if(idsolverpresent){
+	if (idsolverpresent) {
 		getIDSolver()->newDecisionLevel();
 	}
-	if(aggsolver){
+	if (aggsolver) {
 		getAggSolver()->newDecisionLevel();
 	}
 }
 
 //TODO implementeer ze hier allemaal
-void PCSolver::backtrackDecisionLevel(int levels){
-	for(int i=0; i<levels; i++){
-		if(aggsolver){
+void PCSolver::backtrackDecisionLevel(int levels) {
+	for (int i = 0; i < levels; i++) {
+		if (aggsolver) {
 			getAggSolver()->backtrackDecisionLevel();
 		}
 	}
 	//reportf("Backtrack %d levels\n", levels);
 	/*for(int i=0; i<levels; i++){
-		//reportf("REMOVE DECISION LEVEL %d\n", --decisionlevels);
-	}*/
+	 //reportf("REMOVE DECISION LEVEL %d\n", --decisionlevels);
+	 }*/
 }
 
 /**
@@ -581,7 +582,7 @@ void PCSolver::backtrackDecisionLevel(int levels){
  */
 //FIXME: maybe let all lower ones return owning pointer, so only one reference to addlearnedclause?
 rClause PCSolver::propagate(Lit l) {
-	if(init){
+	if (init) {
 		initialprops.push_back(l);
 		return nullPtrClause;
 	}
@@ -624,7 +625,7 @@ rClause PCSolver::propagateAtEndOfQueue() {
  */
 bool PCSolver::simplify() {
 	bool simp = getSolver()->simplify();
-	if(simp && idsolverpresent){
+	if (simp && idsolverpresent) {
 		simp = getIDSolver()->initAfterSimplify();
 	}
 	return simp;
@@ -711,15 +712,19 @@ bool PCSolver::solve(const vec<Lit>& assmpt, vec<vec<Lit> >& models) {
 
 	if (modes().verbosity >= 1) {
 		reportf("===============================================================================\n");
-		getSolver()->printStatistics();
-		if (idsolverpresent) {
-			getIDSolver()->printStatistics();
-		}
-		if(aggsolverpresent){
-			getAggSolver()->printStatistics();
-		}
+		printStatistics();
 	}
 	return solved;
+}
+
+void PCSolver::printStatistics() const {
+	getSolver()->printStatistics();
+	if (idsolverpresent) {
+		getIDSolver()->printStatistics();
+	}
+	if (aggsolverpresent) {
+		getAggSolver()->printStatistics();
+	}
 }
 
 /**
@@ -754,8 +759,7 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m, bool& moremodels) {
 	}
 
 	if (nb_models != 1) {
-		printf("| %4d model%s found                                                           |\n",
-					modelsfound, modelsfound > 1 ? "s" : " ");
+		printf("| %4d model%s found                                                           |\n", modelsfound, modelsfound > 1 ? "s" : " ");
 	}
 
 	//check if more models can exist
@@ -823,25 +827,23 @@ bool PCSolver::invalidateModel(vec<Lit>& learnt) {
  * OPTIMIZATION METHODS *
  ************************/
 
-bool PCSolver::addMinimize(const vec<Lit>& lits, bool subsetmnmz){
+bool PCSolver::addMinimize(const vec<Lit>& lits, bool subsetmnmz) {
 	if (!modes().mnmz) {
-		throw idpexception(
-				"ERROR! Attempt at adding an optimization statement, though header "
-					"did not contain \"mnmz\".\n");
+		throw idpexception("ERROR! Attempt at adding an optimization statement, though header "
+			"did not contain \"mnmz\".\n");
 	}
 	if (lits.size() == 0) {
 		throw idpexception("The set of literals to be minimized is empty.\n");
 	}
 	if (optim != NONE) {
-		throw idpexception(
-				"At most one set of literals to be minimized can be given.\n");
+		throw idpexception("At most one set of literals to be minimized can be given.\n");
 	}
 
 	if (modes().verbosity >= 3) {
 		reportf("Added minimization condition: %sinimize [", subsetmnmz?"Subsetm":"M");
 		bool first = true;
-		for(int i=0; i<lits.size(); i++){
-			if(!first){
+		for (int i = 0; i < lits.size(); i++) {
+			if (!first) {
 				reportf("%s", subsetmnmz?" ":"<");
 			}
 			first = false;
@@ -866,9 +868,8 @@ bool PCSolver::addMinimize(const vec<Lit>& lits, bool subsetmnmz){
 
 bool PCSolver::addSumMinimize(const Var head, const int setid) {
 	if (!modes().mnmz) {
-		throw idpexception(
-				"ERROR! Attempt at adding an optimization statement, though header "
-					"did not contain \"mnmz\".\n");
+		throw idpexception("ERROR! Attempt at adding an optimization statement, though header "
+			"did not contain \"mnmz\".\n");
 	}
 	if (optim != NONE) {
 		throw idpexception("Only one optimization statement is allowed.\n");
@@ -911,8 +912,7 @@ bool PCSolver::invalidateValue(vec<Lit>& invalidation) {
 	bool currentoptimumfound = false;
 
 	for (int i = 0; !currentoptimumfound && i < to_minimize.size(); i++) {
-		if (!currentoptimumfound && getSolver()->model[var(to_minimize[i])]
-				== l_True) {
+		if (!currentoptimumfound && getSolver()->model[var(to_minimize[i])] == l_True) {
 			if (modes().verbosity >= 1) {
 				reportf("Current optimum is var %d\n", gprintVar(var(to_minimize[i])));
 			}
@@ -942,28 +942,28 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m) {
 	//CHECKS whether first element yields a solution, otherwise previous strategy is done
 	//TODO should become dichotomic search: check half and go to interval containing solution!
 	/*if(optim==MNMZ){
-		assmpt.push(to_minimize[0]);
-		rslt = getSolver()->solve(assmpt);
-		if(!rslt){
-			getSolver()->cancelUntil(0);
-			vec<Lit> lits;
-			lits.push(~to_minimize[0]);
-			getSolver()->addClause(lits);
-			assmpt.pop();
-			rslt = true;
-		}else{
-			optimumreached = true;
-			m.clear();
-			int nvars = (int) nVars();
-			for (int i = 0; i < nvars; i++) {
-				if (value(i) == l_True) {
-					m.push(mkLit(i, false));
-				} else if (value(i) == l_False) {
-					m.push(mkLit(i, true));
-				}
-			}
-		}
-	}*/
+	 assmpt.push(to_minimize[0]);
+	 rslt = getSolver()->solve(assmpt);
+	 if(!rslt){
+	 getSolver()->cancelUntil(0);
+	 vec<Lit> lits;
+	 lits.push(~to_minimize[0]);
+	 getSolver()->addClause(lits);
+	 assmpt.pop();
+	 rslt = true;
+	 }else{
+	 optimumreached = true;
+	 m.clear();
+	 int nvars = (int) nVars();
+	 for (int i = 0; i < nvars; i++) {
+	 if (value(i) == l_True) {
+	 m.push(mkLit(i, false));
+	 } else if (value(i) == l_False) {
+	 m.push(mkLit(i, true));
+	 }
+	 }
+	 }
+	 }*/
 
 	while (!optimumreached && rslt) {
 		if (optim == SUMMNMZ) {
@@ -1014,7 +1014,7 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m) {
 			if (modes().verbosity > 1) {
 				printf("Temporary model: \n");
 				for (int i = 0; i < m.size(); i++) {
-					printf("%s%s%d", (i == 0) ? "" : " ", !sign(m[i]) ? "": "-", gprintVar(var(m[i])));
+					printf("%s%s%d", (i == 0) ? "" : " ", !sign(m[i]) ? "" : "-", gprintVar(var(m[i])));
 				}
 				printf(" 0\n");
 			}
@@ -1059,7 +1059,7 @@ void PCSolver::printChoiceMade(int level, Lit l) const {
 	}
 }
 
-vector<rClause> PCSolver::getClausesWhichOnlyContain(const vector<Var>& vars){
-	return vector<rClause>();
+vector<rClause> PCSolver::getClausesWhichOnlyContain(const vector<Var>& vars) {
+	return vector<rClause> ();
 	//return getSolver()->getClausesWhichOnlyContain(vars);
 }

@@ -65,6 +65,8 @@ public:
 	virtual void 	setNbModels		(int nb) = 0;
 			void	setRes			(FILE* f)	{ res = f; }
 
+	virtual void 	printStatistics	() {};
+
 	virtual bool 	simplify		() = 0;
 	virtual bool 	solve			() = 0;
 	virtual bool 	solve			(vector<vector<Literal> >& models) = 0;
@@ -147,6 +149,8 @@ public:
 	bool 	addCPCount		(const vector<int>& termnames, int value, MINISAT::EqType rel, int rhstermname);
 	bool 	addCPAlldifferent(const vector<int>& termnames);
 	void	addForcedChoices(const vector<Literal> lits);
+
+	void 	printStatistics	();
 };
 
 typedef uint64_t modID;

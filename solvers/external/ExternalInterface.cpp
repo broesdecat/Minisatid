@@ -170,6 +170,10 @@ PropositionalSolver::PropositionalSolver(ECNF_mode modes)
 PropositionalSolver::~PropositionalSolver(){
 }
 
+void PropositionalSolver::printStatistics(){
+	getSolver()->printStatistics();
+}
+
 void PropositionalSolver::setNbModels(int nb){
 	getSolver()->setNbModels(nb);
 }
