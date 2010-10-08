@@ -17,29 +17,54 @@
 //    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //--------------------------------------------------------------------------------------------------
 
-#ifndef SOLVERI_H_
-#define SOLVERI_H_
+#ifndef SATUTILS_H_
+#define SATUTILS_H_
 
-#include <cstdio>
-using namespace std;
+#ifdef USEMINISAT
+#include "mtlold/Vec.h"
+#include "mtlold/Queue.h"
+#include "mtlold/Heap.h"
+#include "mtlold/Sort.h"
+#include "solver3minisat/SolverTypes.h"
+typedef Clause& pClause;
+typedef Clause* rClause;
+Lit mkLit(Var x, bool sign = false);
 
-#include "solvers/utils/Utils.hpp"
+#else
+	#ifdef USEMINISAT09Z
+	#include "mtlold/Vec.h"
+	#include "mtlold/Queue.h"
+	#include "mtlold/Heap.h"
+	#include "mtlold/Sort.h"
+	#include "solver3/SolverTypes.hpp"
+	typedef Clause& pClause;
+	typedef Clause* rClause;
+	Lit mkLit(Var x, bool sign = false);
 
-class Data{
-private:
-	ECNF_mode _modes;
-public:
-	Data(ECNF_mode modes):_modes(modes){};
-	virtual ~Data(){};
+	#else
+		#ifdef USEMINISAT22
+		#include "mtl/Vec.h"
+		#include "mtl/Queue.h"
+		#include "mtl/Heap.h"
+		#include "mtl/Sort.h"
+		#include "core/SolverTypes.h"
+		typedef Minisat::CRef pClause;
+		typedef Minisat::CRef rClause;
 
-	virtual void 	setNbModels(int nb) = 0;
+		#else
+			#include "mtlold/Vec.h"
+			#include "mtlold/Queue.h"
+			#include "mtlold/Heap.h"
+			#include "mtlold/Sort.h"
+			#include "solver3minisat/SolverTypes.h"
+			typedef Clause& pClause;
+			typedef Clause* rClause;
+			Lit mkLit(Var x, bool sign = false);
+		#endif
+	#endif
+#endif
 
-	virtual bool 	simplify() = 0;
-	virtual bool 	solve() = 0;
-	virtual bool 	finishParsing() = 0;
+extern rClause nullPtrClause;
+pClause getClauseRef(rClause rc);
 
-	int 			verbosity() const	{ return modes().verbosity; }
-	const ECNF_mode& modes()	const	{ return _modes; }
-};
-
-#endif /* SOLVERI_H_ */
+#endif// SATSOLVER_H_

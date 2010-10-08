@@ -17,29 +17,25 @@
 //    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //--------------------------------------------------------------------------------------------------
 
-#ifndef SOLVERI_H_
-#define SOLVERI_H_
+#include <cstdlib>
+#include <stdio.h>
 
-#include <cstdio>
-using namespace std;
+#include "solvers/external/ExternalUtils.hpp"
 
-#include "solvers/utils/Utils.hpp"
-
-class Data{
-private:
-	ECNF_mode _modes;
-public:
-	Data(ECNF_mode modes):_modes(modes){};
-	virtual ~Data(){};
-
-	virtual void 	setNbModels(int nb) = 0;
-
-	virtual bool 	simplify() = 0;
-	virtual bool 	solve() = 0;
-	virtual bool 	finishParsing() = 0;
-
-	int 			verbosity() const	{ return modes().verbosity; }
-	const ECNF_mode& modes()	const	{ return _modes; }
-};
-
-#endif /* SOLVERI_H_ */
+#ifdef GMPWEIGHT
+	string printWeight(const Weight& w){
+		return w.get_str();
+	}
+#else
+	#ifdef BIGINTWEIGHT
+		string printWeight(const Weight& w){
+			return bigIntegerToString(w);
+		}
+	#else //INT_WEIGHT
+		string printWeight(const Weight& w){
+			char s[15];
+			sprintf(s, "%d", w);
+			return s;
+		}
+	#endif
+#endif

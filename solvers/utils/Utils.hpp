@@ -17,29 +17,52 @@
 //    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //--------------------------------------------------------------------------------------------------
 
-#ifndef SOLVERI_H_
-#define SOLVERI_H_
+#ifndef UTILS_H_
+#define UTILS_H_
 
-#include <cstdio>
+#include <stdio.h>
+#include <stdlib.h>
+#include <vector>
+
+#include "solvers/SATUtils.h"
+#include "solvers/external/ExternalUtils.hpp"
+
+#include <tr1/memory>
+
+#ifdef USEMINISAT22
+using namespace Minisat;
+#endif
+
 using namespace std;
 
-#include "solvers/utils/Utils.hpp"
+template<class T>
+void deleteList(vector<T*> l){
+	for(class vector<T*>::iterator i=l.begin(); i<l.end(); i++){
+		if(*i!=NULL){
+			delete(*i);
+		}
+	}
+	l.clear();
+}
 
-class Data{
-private:
-	ECNF_mode _modes;
-public:
-	Data(ECNF_mode modes):_modes(modes){};
-	virtual ~Data(){};
+#define reportf(...) ( fflush(stdout), fprintf(stderr, __VA_ARGS__), fflush(stderr) )
 
-	virtual void 	setNbModels(int nb) = 0;
+inline int gprintVar(Var v){
+	return v+1;
+}
 
-	virtual bool 	simplify() = 0;
-	virtual bool 	solve() = 0;
-	virtual bool 	finishParsing() = 0;
+inline void gprintLit(const Lit& l, const lbool val){
+	reportf("%s%d:%c", (sign(l) ? "-" : ""), gprintVar(var(l)), (val == l_True ? '1' : (val == l_False ? '0' : 'X')));
+}
 
-	int 			verbosity() const	{ return modes().verbosity; }
-	const ECNF_mode& modes()	const	{ return _modes; }
-};
+inline void gprintLit(const Lit& l){
+	reportf("%s%d", (sign(l) ? "-" : ""), gprintVar(var(l)));
+}
 
-#endif /* SOLVERI_H_ */
+inline void gprintClause(const vec<Lit>& c){
+	for(int i=0; i<c.size(); i++){
+		gprintLit(c[i]); reportf(" ");
+	}
+}
+
+#endif /* UTILS_H_ */

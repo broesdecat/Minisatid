@@ -17,29 +17,37 @@
 //    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //--------------------------------------------------------------------------------------------------
 
-#ifndef SOLVERI_H_
-#define SOLVERI_H_
-
-#include <cstdio>
-using namespace std;
+#ifndef ISOLVER_HPP_
+#define ISOLVER_HPP_
 
 #include "solvers/utils/Utils.hpp"
 
-class Data{
+class PCSolver;
+
+class ISolver {
 private:
-	ECNF_mode _modes;
+	bool 			init;
+	PCSolver* 		pcsolver; //NON-OWNING pointer
+
 public:
-	Data(ECNF_mode modes):_modes(modes){};
-	virtual ~Data(){};
+	ISolver(PCSolver* s): init(false), pcsolver(s){ }
+	virtual ~ISolver(){};
 
-	virtual void 	setNbModels(int nb) = 0;
+	bool isInitialized		()	const	{ return init; }
+	void notifyInitialized	() 			{ assert(!init); init = true; }
 
-	virtual bool 	simplify() = 0;
-	virtual bool 	solve() = 0;
-	virtual bool 	finishParsing() = 0;
+	PCSolver* getPCSolver	()	const 	{ return pcsolver; }
 
-	int 			verbosity() const	{ return modes().verbosity; }
-	const ECNF_mode& modes()	const	{ return _modes; }
+	bool isTrue		(Lit l) const;
+	bool isFalse		(Lit l) const;
+	bool isUnknown	(Lit l) const;
+	bool isTrue		(Var l) const;
+	bool isFalse		(Var l) const;
+	bool isUnknown	(Var l) const;
+
+	lbool		value(Var x) const;
+	lbool		value(Lit p) const;
+	int			nVars()      const;
 };
 
-#endif /* SOLVERI_H_ */
+#endif /* ISOLVER_HPP_ */

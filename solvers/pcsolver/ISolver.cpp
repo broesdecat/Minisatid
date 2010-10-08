@@ -17,29 +17,34 @@
 //    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //--------------------------------------------------------------------------------------------------
 
-#ifndef SOLVERI_H_
-#define SOLVERI_H_
+#include "solvers/pcsolver/ISolver.hpp"
 
-#include <cstdio>
-using namespace std;
+#include "solvers/pcsolver/PCSolver.hpp"
 
-#include "solvers/utils/Utils.hpp"
-
-class Data{
-private:
-	ECNF_mode _modes;
-public:
-	Data(ECNF_mode modes):_modes(modes){};
-	virtual ~Data(){};
-
-	virtual void 	setNbModels(int nb) = 0;
-
-	virtual bool 	simplify() = 0;
-	virtual bool 	solve() = 0;
-	virtual bool 	finishParsing() = 0;
-
-	int 			verbosity() const	{ return modes().verbosity; }
-	const ECNF_mode& modes()	const	{ return _modes; }
-};
-
-#endif /* SOLVERI_H_ */
+bool ISolver::isTrue(Lit l) const {
+	return value(l) == l_True;
+}
+bool ISolver::isTrue(Var v) const {
+	return value(v) == l_True;
+}
+bool ISolver::isFalse(Lit l) const {
+	return value(l) == l_False;
+}
+bool ISolver::isFalse(Var v) const {
+	return value(v) == l_False;
+}
+bool ISolver::isUnknown(Lit l) const {
+	return value(l) == l_Undef;
+}
+bool ISolver::isUnknown(Var v) const {
+	return value(v) == l_Undef;
+}
+lbool ISolver::value(Var x) const {
+	return getPCSolver()->value(x);
+}
+lbool ISolver::value(Lit p) const {
+	return getPCSolver()->value(p);
+}
+int ISolver::nVars() const {
+	return getPCSolver()->nVars();
+}

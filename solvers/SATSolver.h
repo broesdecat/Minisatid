@@ -17,29 +17,25 @@
 //    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //--------------------------------------------------------------------------------------------------
 
-#ifndef SOLVERI_H_
-#define SOLVERI_H_
+#ifndef SATSOLVER_H_
+#define SATSOLVER_H_
 
-#include <cstdio>
-using namespace std;
+#ifdef USEMINISAT
+class Solver;
+#include "solver3minisat/Solver.h"
+#endif
+#ifdef USEMINISAT09Z
+class Solver;
+#include "solver3/Solver.hpp"
+#endif
+#ifdef USEMINISAT22
+#include "solver3minisat22/core/Solver.h"
+using namespace Minisat;
+namespace Minisat{
+	class Solver;
+}
+#endif
 
-#include "solvers/utils/Utils.hpp"
 
-class Data{
-private:
-	ECNF_mode _modes;
-public:
-	Data(ECNF_mode modes):_modes(modes){};
-	virtual ~Data(){};
 
-	virtual void 	setNbModels(int nb) = 0;
-
-	virtual bool 	simplify() = 0;
-	virtual bool 	solve() = 0;
-	virtual bool 	finishParsing() = 0;
-
-	int 			verbosity() const	{ return modes().verbosity; }
-	const ECNF_mode& modes()	const	{ return _modes; }
-};
-
-#endif /* SOLVERI_H_ */
+#endif// SATSOLVER_H_

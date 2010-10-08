@@ -1,12 +1,12 @@
 ### compilers and compile flags to use ###
 GPP=g++
-GPPFLAGS= -Imtl -Isolver3 -I. -Isolvers -Isolvers/aggs
+GPPFLAGS= -Imtl -Isolver3 -I.
 LDFLAGS=
 
 # files to use
 OBJECTS=solvers/Main.o ecnftoken.o ecnfparser.o solvers/PCSolver.o solvers/Utils.o solver3/Solver.o
-OBJECTS += solvers/IDSolver.o solvers/aggs/AggSets.o solvers/aggs/AggSolver.o solvers/aggs/AggTypes.o solvers/aggs/Agg.o solvers/ModSolver.o
-OBJECTS += solvers/SOSolverHier.o
+OBJECTS += solvers/IDSolver.o solvers/aggs/AggSets.o solvers/aggs/AggSolver.o solvers/aggs/AggTypes.o solvers/aggs/Agg.o solvers/CPSolver.o solvers/ModSolver.o
+OBJECTS += solvers/SOSolverHier.o solvers/Print.o
 
 ### make rules ###
 

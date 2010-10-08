@@ -17,29 +17,13 @@
 //    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //--------------------------------------------------------------------------------------------------
 
-#ifndef SOLVERI_H_
-#define SOLVERI_H_
+#ifndef UNITTESTS_HPP_
+#define UNITTESTS_HPP_
 
-#include <cstdio>
-using namespace std;
+#include "solvers/external/ExternalInterface.hpp"
 
-#include "solvers/utils/Utils.hpp"
+shared_ptr<SolverInterface> unittest(ECNF_mode& modes);
+shared_ptr<SolverInterface> unittest2(ECNF_mode& modes);
+shared_ptr<SolverInterface> unittest3(ECNF_mode& modes);
 
-class Data{
-private:
-	ECNF_mode _modes;
-public:
-	Data(ECNF_mode modes):_modes(modes){};
-	virtual ~Data(){};
-
-	virtual void 	setNbModels(int nb) = 0;
-
-	virtual bool 	simplify() = 0;
-	virtual bool 	solve() = 0;
-	virtual bool 	finishParsing() = 0;
-
-	int 			verbosity() const	{ return modes().verbosity; }
-	const ECNF_mode& modes()	const	{ return _modes; }
-};
-
-#endif /* SOLVERI_H_ */
+#endif /* UNITTESTS_HPP_ */

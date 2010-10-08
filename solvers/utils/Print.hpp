@@ -17,29 +17,63 @@
 //    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //--------------------------------------------------------------------------------------------------
 
-#ifndef SOLVERI_H_
-#define SOLVERI_H_
-
-#include <cstdio>
-using namespace std;
+#ifndef PRINT_HPP_
+#define PRINT_HPP_
 
 #include "solvers/utils/Utils.hpp"
 
-class Data{
-private:
-	ECNF_mode _modes;
-public:
-	Data(ECNF_mode modes):_modes(modes){};
-	virtual ~Data(){};
+//TODO should create "ForWardDeclare SAT" file
+#ifdef USEMINISAT
+class Solver;
+#endif
+#ifdef USEMINISAT09Z
+class Solver;
+#endif
+#ifdef USEMINISAT22
+using namespace Minisat;
+namespace Minisat{
+	class Solver;
+}
+#endif
 
-	virtual void 	setNbModels(int nb) = 0;
+class PCSolver;
+class AggSolver;
+class ModSolver;
+class IDSolver;
+class ModSolverData;
 
-	virtual bool 	simplify() = 0;
-	virtual bool 	solve() = 0;
-	virtual bool 	finishParsing() = 0;
+namespace Print {
 
-	int 			verbosity() const	{ return modes().verbosity; }
-	const ECNF_mode& modes()	const	{ return _modes; }
-};
+template<class S>
+void print(S const * const s);
 
-#endif /* SOLVERI_H_ */
+template<>
+void print(PCSolver const * const s);
+
+template<>
+void print(IDSolver const * const s);
+
+template<>
+void print(AggSolver const * const s);
+
+template<>
+void print(Solver const * const s);
+
+template<>
+void print(ModSolver const * const s);
+
+template<>
+void print(ModSolverData const * const s);
+
+template<class C>
+void printClause(const C& c);
+
+template<class S>
+void printClause(rClause c, S const * const s);
+
+template<>
+void printClause(rClause c, PCSolver const * const s);
+
+}
+
+#endif /* PRINT_HPP_ */

@@ -17,29 +17,37 @@
 //    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //--------------------------------------------------------------------------------------------------
 
-#ifndef SOLVERI_H_
-#define SOLVERI_H_
+#include "solvers/SATUtils.h"
 
-#include <cstdio>
-using namespace std;
+#ifdef USEMINISAT
+rClause nullPtrClause = NULL;
 
-#include "solvers/utils/Utils.hpp"
+pClause getClauseRef(rClause rc){
+	return *rc;
+}
 
-class Data{
-private:
-	ECNF_mode _modes;
-public:
-	Data(ECNF_mode modes):_modes(modes){};
-	virtual ~Data(){};
+Lit mkLit(Var x, bool sign){
+	return Lit(x, sign);
+}
+#endif
 
-	virtual void 	setNbModels(int nb) = 0;
+#ifdef USEMINISAT09Z
+rClause nullPtrClause =  NULL;
 
-	virtual bool 	simplify() = 0;
-	virtual bool 	solve() = 0;
-	virtual bool 	finishParsing() = 0;
+pClause getClauseRef(rClause rc){
+	return *rc;
+}
 
-	int 			verbosity() const	{ return modes().verbosity; }
-	const ECNF_mode& modes()	const	{ return _modes; }
-};
+Lit mkLit(Var x, bool sign){
+	return Lit(x, sign);
+}
+#endif
 
-#endif /* SOLVERI_H_ */
+#ifdef USEMINISAT22
+rClause nullPtrClause = Minisat::CRef_Undef;
+
+pClause getClauseRef(rClause rc){
+	return rc;
+}
+
+#endif
