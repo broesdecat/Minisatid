@@ -519,7 +519,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 	//for Sokoban it DECREASES performance!
 	//TODO new IDEA: mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt of de grootte van de sets?
 	//want de grootte van de set bepaalt hoe vaak de literal zou zijn uitgeschreven in een cnf theorie
-	//getPCSolver()->varBumpActivity(var(p));
+	getPCSolver()->varBumpActivity(var(p));
 
 	if(value(p) != l_True && getPCSolver()->modes().aggclausesaving<2){
 		vec<Lit> lits;
@@ -660,10 +660,10 @@ rClause AggSolver::getExplanation(const Lit& p) {
 		assert(getPCSolver()->modes().aggclausesaving>0);
 		assert(ar.hasClause());
 
-		/*getPCSolver()->varBumpActivity(var(p));
+		getPCSolver()->varBumpActivity(var(p));
 		for(int i=0; i<ar.getClause().size(); i++){
 			getPCSolver()->varBumpActivity(var(ar.getClause()[i]));
-		}*/
+		}
 
 		c = getPCSolver()->createClause(ar.getClause(), true);
 	}else{
@@ -673,10 +673,10 @@ rClause AggSolver::getExplanation(const Lit& p) {
 
 		ar.getAgg().getAggComb()->getExplanation(lits, ar);
 
-		/*getPCSolver()->varBumpActivity(var(p));
+		getPCSolver()->varBumpActivity(var(p));
 		for(int i=0; i<lits.size(); i++){
 			getPCSolver()->varBumpActivity(var(lits[i]));
-		}*/
+		}
 
 		//create a conflict clause and return it
 		c = getPCSolver()->createClause(lits, true);
