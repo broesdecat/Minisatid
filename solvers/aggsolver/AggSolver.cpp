@@ -137,6 +137,9 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 		}
 #endif
 		lw.push_back(WL(lits[i], weights[i]));
+
+		// Literals occurring in aggregates would occur much more often in clauses, so we bump them (a bit)
+		getPCSolver()->varBumpActivity(var(lits[i]));
 	}
 
 	parsedsets[setid] = new ParsedSet(setid, lw);
@@ -177,6 +180,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	AggSign boundsig
 
 	// Check whether the head occurs in the body of the set, which is no longer allowed
 	// TODO zet in file huidige invoerformaat, zodat de grounder dat kan garanderen
+	// TODO moet eigenlijk maar 1 keer gecontroleerd worden, dus later zetten
 	for(vsize i=0; i<set->getWL().size() ;i++){
 		if(var(set->getWL()[i])==headv){ //Exception if head occurs in set itself
 			char s[100];
@@ -185,15 +189,11 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	AggSign boundsig
 		}
 	}
 
-	//Check that not aggregates occur with the same heads
-	for(map<int, ppaset>::const_iterator i=parsedsets.begin(); i!=parsedsets.end(); i++){
-		for(vsize j=0; j<(*i).second->getAgg().size(); j++){
-			if(var((*i).second->getAgg()[j]->getHead())==headv){ //Exception if two agg with same head
-				char s[100];
-				sprintf(s, "At least two aggregates have the same head(%d).\n", gprintVar(headv));
-				throw idpexception(s);
-			}
-		}
+	//Check that no aggregates occur with the same heads
+	if(aggheads.find(headv)!=aggheads.end()){
+		char s[100];
+		sprintf(s, "At least two aggregates have the same head(%d).\n", gprintVar(headv));
+		throw idpexception(s);
 	}
 
 #ifdef DEBUG
@@ -210,15 +210,16 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	AggSign boundsig
 	// As an approximation because each literal would occur n times (TODO better approximation?), we bump n times
 	//ORIG:
 	//getPCSolver()->varBumpActivity(headv);
+	// As another test, we bumped each WL literal log n times, but the varbump activity proved to be extremely expensive, so this has been skipped!
 	for(int i=0; i<log(set->getWL().size())+1; i++){
 		getPCSolver()->varBumpActivity(headv);
-		for(int j=0; j<set->getWL().size(); j++){
-			getPCSolver()->varBumpActivity(var(set->getWL()[i]));
-		}
 	}
+
+	aggheads.insert(headv);
 
 	//the head of the aggregate
 	Lit head = mkLit(headv, false);
+
 	new ParsedAgg(bound, boundsign, head, headeq, parsedsets[setid], type);
 
 	if (verbosity() >= 5) { //Print info on added aggregate

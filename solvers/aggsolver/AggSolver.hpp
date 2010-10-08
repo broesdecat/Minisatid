@@ -137,6 +137,7 @@ public:
 class AggSolver: public tr1::enable_shared_from_this<AggSolver>, public SolverModule{
 private:
     map<int, ppaset>		parsedsets;
+    set<Var>				aggheads;	//A set of all heads that are already used by an aggregate.
 	vpaggs					sets;		//After initialization, all remaining sets.
 
 	vector<AggReason*>		aggreason;	// For each atom, like 'reason'.

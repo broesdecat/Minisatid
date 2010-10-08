@@ -279,6 +279,10 @@ int main(int argc, char** argv) {
 			}
 		}
 
+		if(modes.verbosity>1){
+			reportf("Plain parsing finished, starting datastructure initialization\n");
+		}
+
 		if(d.get()!=NULL && !d->finishParsing()){
 			d = shared_ptr<SolverInterface>();
 		}
