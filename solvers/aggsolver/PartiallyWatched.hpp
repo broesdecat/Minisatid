@@ -221,8 +221,7 @@ public:
 		return (agg.isLower() && value <= agg.getBound() ) || (agg.isUpper() && agg.getBound()<=value);
 	}
 
-	void 		adaptMinMax(vpgpw::const_iterator i, Weight & min, Weight & max);
-	lbool 		isKnown(const Agg& agg, const vpgpw& set, const vpgpw& set2);
+	lbool 		isKnown(watchset w, const Agg& agg, const vpgpw& set, const vpgpw& set2);
 
 	void 		initialize(bool& unsat, bool& sat);
 	rClause 	reconstructSet(const Agg& agg, watchset w, pgpw watch, bool& propagations);
