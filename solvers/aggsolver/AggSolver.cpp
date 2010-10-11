@@ -633,6 +633,12 @@ rClause AggSolver::propagate(const Lit& p) {
 	}
 
 	if(tempwatches[toInt(p)].size()>0){
+
+		if(verbosity()>=8){
+			reportf("Current effective watches BEFORE: \n");
+			printWatches(this, tempwatches);
+		}
+
 		vector<pw> ws2(tempwatches[toInt(p)]); //IMPORTANT, BECAUSE WATCHES MIGHT BE ADDED AGAIN TO THE END (if no other watches are found etc)
 		tempwatches[toInt(p)].clear();
 

@@ -170,12 +170,12 @@ enum POSS {POSINSET, POSOUTSET, POSSETUNKN};
 
 class GenPWatch: public Watch{
 private:
-	watchset _w;
-	bool	_inuse;
-	WL		_wl;
-	bool	_watchneg;
-	POSS	_setpos;
-	bool	_mono;
+			watchset _w;
+			bool	_inuse;
+	const 	WL		_wl;
+	const 	bool	_watchneg;
+			POSS	_setpos;
+	const 	bool	_mono;
 public:
 	GenPWatch(paggs agg, const WL& wl, bool watchneg, bool mono):
 		Watch(agg, -1, true, true),
