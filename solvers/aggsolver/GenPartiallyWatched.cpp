@@ -105,7 +105,7 @@ void GenPWAgg::addWatchToNetwork(pgpw watch){
 }
 
 
-GenPWAgg::GenPWAgg(paggs agg): PWAgg(agg){
+GenPWAgg::GenPWAgg(paggs agg): PWAgg(agg), headprop(false){
 }
 
 GenPWAgg::~GenPWAgg(){
@@ -257,6 +257,7 @@ rClause GenPWAgg::reconstructSet(const Agg& agg, watchset w, pgpw watch, bool& p
 			Lit prophead = isNonFalseCheck(w)?~agg.getHead():agg.getHead();
 			Lit watchlit = watch!=NULL?watch->getWatchLit():mkLit(-1);
 			propagations = true;
+			headprop = true;
 			confl = notifySolver(new AggReason(agg, watchlit, isNonFalseCheck(w)?BASEDONCC:BASEDONCP, prophead, true));
 		}
 	}else{
