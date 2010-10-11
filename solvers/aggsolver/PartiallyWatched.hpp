@@ -181,10 +181,10 @@ public:
 		Watch(agg, -1, true, true),
 		_w(INSET),
 		_inuse(false),
+		_wl(wl),
 		_watchneg(watchneg),
 		_setpos(POSSETUNKN),
-		_mono(mono),
-		_wl(wl){
+		_mono(mono){
 
 	}
 
@@ -230,7 +230,7 @@ public:
 	void 		addToWatchedSet(watchset w, vsize index, POSS p);
 	void 		removeWatchesFromSet(watchset w);
 	void 		addWatchesToNetwork(watchset w);
-	void 		addWatchToNetwork(watchset w, pgpw watch);
+	void 		addWatchToNetwork(pgpw watch);
 
 	rClause 	propagate			(const Lit& p, pw w);
 	rClause 	propagate			(const Agg& agg);

@@ -88,16 +88,18 @@ void GenPWAgg::removeWatchesFromSet(watchset w){
 
 void GenPWAgg::addWatchesToNetwork(watchset w){
 	for(vpgpw::const_iterator i=getWatches(w).begin(); i<getWatches(w).end(); i++){
-		addWatchToNetwork(w, *i);
+		addWatchToNetwork(*i);
 	}
 }
 
 /*
  * Removes a literal from its set and adds it to a watched set
  */
-void GenPWAgg::addWatchToNetwork(watchset w, pgpw watch){
-	watch->setInUse(true);
-	getSolver()->addTempWatch(watch->getWatchLit(), watch);
+void GenPWAgg::addWatchToNetwork(pgpw watch){
+	if(watch->getWatchset()!=INSET && !watch->isInUse()){
+		watch->setInUse(true);
+		getSolver()->addTempWatch(watch->getWatchLit(), watch);
+	}
 }
 
 
@@ -273,8 +275,9 @@ rClause GenPWAgg::propagate(const Lit& p, Watch* watch) {
 	GenPWatch* pw = dynamic_cast<GenPWatch*>(watch);
 	assert(pw->isInUse());
 
+	pw->setInUse(false);
+
 	if(pw->getWatchset()==INSET){
-		pw->setInUse(false);
 		assert(pw->getIndex()==-1);
 		return confl;
 	}else{
@@ -286,10 +289,15 @@ rClause GenPWAgg::propagate(const Lit& p, Watch* watch) {
 	confl = reconstructSet(*as().getAgg()[0], pw->getWatchset(), pw, propagations); //TODO multi agg
 	if(confl!=nullPtrClause && !propagations){
 		//Remove watch from the watched set
+		reportf("Removing watch from set\n");
 		vpgpw& watches = getWatches(pw->getWatchset());
 		pw->removedFromSet();
 		watches[pw->getIndex()] = watches[watches.size()-1];
 		watches.pop_back();
+	}else{
+		//add watch back to network
+		reportf("Adding watch back to set\n");
+		addWatchToNetwork(pw);
 	}
 
 	assert(pw->getWatchset()==INSET || getWatches(pw->getWatchset())[pw->getIndex()]==pw);

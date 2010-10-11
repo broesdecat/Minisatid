@@ -18,9 +18,24 @@
 
 void Aggrs::printWatches(AggSolver* const solver, const vvpw& tempwatches){
 	for(vsize i=0; i<2*solver->nVars(); i++){
-		if(tempwatches[i].size()==0){
+		bool found = false;
+		for(vsize j=0; !found && j<tempwatches[i].size(); j++){
+			for(vsize k=0; !found && k<tempwatches[i][j]->getAggComb()->getAgg().size(); k++){
+				PWatch* watch = dynamic_cast<PWatch*>(tempwatches[i][j]);
+				if(watch!=NULL && watch->isInUse()){
+					found = true;
+				}
+				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(tempwatches[i][j]);
+				if(watch2!=NULL && watch2->getWatchset()!=INSET){
+					found = true;
+				}
+			}
+		}
+
+		if(!found){
 			continue;
 		}
+
 		reportf("    Watch "); gprintLit(toLit(i)); reportf(" used by: \n");
 		for(vsize j=0; j<tempwatches[i].size(); j++){
 			for(vsize k=0; k<tempwatches[i][j]->getAggComb()->getAgg().size(); k++){
@@ -30,7 +45,7 @@ void Aggrs::printWatches(AggSolver* const solver, const vvpw& tempwatches){
 					printAgg(*tempwatches[i][j]->getAggComb()->getAgg()[k], true);
 				}
 				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(tempwatches[i][j]);
-				if(watch2!=NULL && watch2->isInUse()){
+				if(watch2!=NULL && watch2->getWatchset()!=INSET){
 					reportf("        ");
 					printAgg(*tempwatches[i][j]->getAggComb()->getAgg()[k], true);
 				}
