@@ -85,7 +85,11 @@ SPCalc::SPCalc(const paggsol& solver, const vwl& wl):
 SumCalc::SumCalc(const paggsol& solver, const vwl& wl):
 			SPCalc(solver, wl){
 	setESV(0);
-	new SumFWAgg(this);
+	if(solver->getPCSolver()->modes().pw){
+		new SumGenPWAgg(this);
+	}else{
+		new SumFWAgg(this);
+	}
 }
 
 ProdCalc::ProdCalc(const paggsol& solver, const vwl& wl):
@@ -98,8 +102,7 @@ CardCalc::CardCalc(const paggsol& solver, const vwl& wl):
 			SPCalc(solver, wl){
 	setESV(0);
 	if(solver->getPCSolver()->modes().pw){
-		new GenPWAgg(this);
-		//new CardPWAgg(this);
+		new CardGenPWAgg(this);
 	}else{
 		new SumFWAgg(this);
 	}

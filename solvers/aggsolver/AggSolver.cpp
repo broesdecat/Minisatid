@@ -495,8 +495,23 @@ bool AggSolver::constructSumSet(ppaset set, vppagg aggs){
 	if(tocard){
 		return constructCardSet(set, aggs);
 	}
-	CalcAgg* ca = new SumCalc(this, set->getWL());
-	return initCalcAgg(ca, aggs);
+
+
+	if(getPCSolver()->modes().pw){ //use PWatches
+		//TODO Currently, add each aggregate as a separate constraint
+		bool unsat = false;
+		for(vsize i=0; !unsat && i<aggs.size(); i++){
+			CalcAgg* ca = new SumCalc(this, set->getWL());
+			vppagg aggs2;
+			aggs2.push_back(aggs[i]);
+			unsat = initCalcAgg(ca, aggs2);
+		}
+		return unsat;
+	}else{
+		CalcAgg* ca = new SumCalc(this, set->getWL());
+		return initCalcAgg(ca, aggs);
+	}
+
 }
 
 bool AggSolver::constructProdSet(ppaset set, vppagg aggs){
@@ -708,6 +723,10 @@ rClause AggSolver::getExplanation(const Lit& p) {
  */
 void AggSolver::backtrack(const Lit& l) {
 	if (!isInitialized()) {
+		return;
+	}
+
+	if(assigns[var(l)]==l_Undef){ //TODO FIXME the literal was not propagated into the solver, so should not be backtracked!
 		return;
 	}
 

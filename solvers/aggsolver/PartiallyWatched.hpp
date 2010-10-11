@@ -166,15 +166,13 @@ public:
  * watchneg	: if true, the negation of the wl literal is the effective watch, otherwise the wl literal itself
  */
 
-enum POSS {POSINSET, POSOUTSET, POSSETUNKN};
-
 class GenPWatch: public Watch{
 private:
 			watchset _w;
 			bool	_inuse;
 	const 	WL		_wl;
 	const 	bool	_watchneg;
-			POSS	_setpos;
+			bool	_treatasknown;
 	const 	bool	_mono;
 public:
 	GenPWatch(paggs agg, const WL& wl, bool watchneg, bool mono):
@@ -183,14 +181,14 @@ public:
 		_inuse(false),
 		_wl(wl),
 		_watchneg(watchneg),
-		_setpos(POSSETUNKN),
+		_treatasknown(true),
 		_mono(mono){
 
 	}
 
 	bool 		isMonotone	()	const 	{ return _mono; }
-	POSS		getPos		()	const	{ return _setpos; }
-	void		setPos		(POSS p)	{ _setpos = p; }
+	void		setTreatAsKnown(bool val)	{ _treatasknown = val; }
+	bool		treatAsKnown()	const	{ return _treatasknown; }
 	const WL& 	getWL		() 	const 	{ return _wl; }
 	Lit			getWatchLit	() 	const 	{ return _watchneg?~_wl.getLit():_wl; }
 	watchset 	getWatchset	() 	const 	{ return _w; }
@@ -198,7 +196,7 @@ public:
 	void		setInUse	(bool used) { _inuse = used; }
 
 	void		pushIntoSet(watchset w, vsize index) { setIndex(index); _w = w; }
-	void		removedFromSet() { setIndex(-1); _w = INSET; _setpos = POSSETUNKN; }
+	void		removedFromSet() { setIndex(-1); _w = INSET; }
 };
 
 typedef GenPWatch gpw;
@@ -206,7 +204,7 @@ typedef gpw* pgpw;
 typedef vector<pgpw> vpgpw;
 
 
-class GenPWAgg: public PWAgg, public virtual CardAggT{
+class GenPWAgg: public PWAgg, public virtual SPAggT{
 private:
 	vpgpw nf, setf; //setf contains all monotone versions of set literals
 	vpgpw nt, sett; //sett contains all anti-monotone versions of set literals
@@ -226,7 +224,7 @@ public:
 	void 		initialize(bool& unsat, bool& sat);
 	rClause 	reconstructSet(const Agg& agg, watchset w, pgpw watch, bool& propagations);
 
-	void 		addToWatchedSet(watchset w, vsize index, POSS p);
+	void 		addToWatchedSet(watchset w, vsize index);
 	void 		removeWatchesFromSet(watchset w);
 	void 		addWatchesToNetwork(watchset w);
 	void 		addWatchToNetwork(pgpw watch);
@@ -240,6 +238,18 @@ public:
 	vpgpw& getWatches(watchset w);
 	bool checking(watchset w) const;
 	bool isNonFalseCheck(watchset w) const { return w==NF; }
+};
+
+class CardGenPWAgg: public GenPWAgg, public virtual CardAggT{
+public:
+	CardGenPWAgg(paggs agg);
+	virtual ~CardGenPWAgg(){}
+};
+
+class SumGenPWAgg: public GenPWAgg, public virtual SumAggT{
+public:
+	SumGenPWAgg(paggs agg);
+	virtual ~SumGenPWAgg(){}
 };
 
 void printWatches(AggSolver* const solver, const vvpw& tempwatches);
