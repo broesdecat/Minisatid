@@ -208,8 +208,8 @@ typedef vector<pgpw> vpgpw;
 
 class GenPWAgg: public PWAgg, public virtual CardAggT{
 private:
-	vpgpw nf, nfex, setf; //setf contains all monotone versions of set literals
-	vpgpw nt, ntex, sett; //sett contains all anti-monotone versions of set literals
+	vpgpw nf, setf; //setf contains all monotone versions of set literals
+	vpgpw nt, sett; //sett contains all anti-monotone versions of set literals
 
 	bool headprop; // true if <head> was derived from this aggregate
 
@@ -221,32 +221,26 @@ public:
 		return (agg.isLower() && value <= agg.getBound() ) || (agg.isUpper() && agg.getBound()<=value);
 	}
 
-	lbool isKnown(const Agg& agg, const vpgpw& set);
+	void 		adaptMinMax(vpgpw::const_iterator i, Weight & min, Weight & max);
+	lbool 		isKnown(const Agg& agg, const vpgpw& set, const vpgpw& set2);
 
-	virtual void initialize(bool& unsat, bool& sat);
-	bool reconstructBasicSet(const Agg& agg, watchset w, pgpw watch = NULL);
-	vpgpw reconstructExSet(const Agg& agg, watchset w, pgpw watch = NULL);
+	void 		initialize(bool& unsat, bool& sat);
+	rClause 	reconstructSet(const Agg& agg, watchset w, pgpw watch, bool& propagations);
 
-			void addToWatchedSet(watchset w, vsize index, POSS p);
-			void removeWatchesFromSet(watchset w);
-			void addWatchesToNetwork(watchset w);
-			/*
-			 * Removes a literal from its set and adds it to a watched set
-			 */
-			void addWatchToNetwork(watchset w, pgpw watch);
+	void 		addToWatchedSet(watchset w, vsize index, POSS p);
+	void 		removeWatchesFromSet(watchset w);
+	void 		addWatchesToNetwork(watchset w);
+	void 		addWatchToNetwork(watchset w, pgpw watch);
 
-			rClause replace(vsize index, watchset w);
-
-	virtual rClause 	propagate			(const Lit& p, pw w);
-	virtual rClause 	propagate			(const Agg& agg);
-	virtual void 		backtrack			(const Agg& agg);
-    virtual void 		getExplanation		(vec<Lit>& lits, const AggReason& ar) const;
+	rClause 	propagate			(const Lit& p, pw w);
+	rClause 	propagate			(const Agg& agg);
+	void 		backtrack			(const Agg& agg);
+    void 		getExplanation		(vec<Lit>& lits, const AggReason& ar) const;
 
 	vpgpw& getSet(watchset w);
 	vpgpw& getWatches(watchset w);
 	bool checking(watchset w) const;
-	bool isEX(watchset w) const { return w==NFEX || w==NTEX; }
-	bool isNonFalseCheck(watchset w) const { return w==NF || w==NFEX; }
+	bool isNonFalseCheck(watchset w) const { return w==NF; }
 };
 
 void printWatches(AggSolver* const solver, const vvpw& tempwatches);
