@@ -210,6 +210,7 @@ private:
 	vpgpw nt, sett; //sett contains all anti-monotone versions of set literals
 
 	bool headprop; // true if <head> was derived from this aggregate
+	AggSign chosensign;
 
 public:
 	GenPWAgg(paggs agg);

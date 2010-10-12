@@ -42,7 +42,7 @@ inline vpgpw& GenPWAgg::getWatches(watchset w) {
 	}
 }
 
-inline bool GenPWAgg::checking(watchset w) const{
+/*inline bool GenPWAgg::checking(watchset w) const{
 	lbool headvalue = propagatedValue(as().getAgg()[0]->getHead());
 	switch (w) {
 	case NF:
@@ -55,7 +55,7 @@ inline bool GenPWAgg::checking(watchset w) const{
 		assert(false);
 		exit(-1);
 	}
-}
+}*/
 
 
 /*
@@ -142,19 +142,17 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 	vpagg& aggs = as().getRefAgg();
 
 	//Verify all aggregates have the same sign:
-/*	sign = aggs[0]->getSign();
-	for(int i=1; i<aggs.size(); i++){
+	chosensign = aggs[0]->getSign();
+	/*for(int i=1; i<aggs.size(); i++){
 		if(sign!=aggs[i]->getSign()){
 			throw idpexception("The aggregates added to genpwagg do not consistenly have the same type!\n");
 		}
 	}*/
 
-	const Agg& agg = *aggs[0];
-
 	//Create sets and watches, initialize min/max values
 	for(vsize i=0; i<as().getWL().size(); i++){
 		const WL& wl = as().getWL()[i];
-		if(as().isMonotone(agg, wl)){
+		if(as().isMonotone(*aggs[0], wl)){
 			setf.push_back(new GenPWatch(asp(), wl, true, true));
 			sett.push_back(new GenPWatch(asp(), wl, false, true));
 		}else{
@@ -167,13 +165,15 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 
 	bool propagations = false;
 
-	rClause confl = reconstructSet(agg, NF, NULL, propagations);
-	if(confl!=nullPtrClause){ unsat = true; sat = false; return; }
-	if(propagations){ unsat = false; sat = true; return; }
+	for(int i=0; i<aggs.size(); i++){
+		rClause confl = reconstructSet(*aggs[i], NF, NULL, propagations);
+		if(confl!=nullPtrClause){ unsat = true; sat = false; return; }
+		if(propagations){ unsat = false; sat = true; return; }
 
-	confl = reconstructSet(agg, NT, NULL, propagations);
-	if(confl!=nullPtrClause){ unsat = true; sat = false; return; }
-	if(propagations){ unsat = false; sat = true; return; }
+		confl = reconstructSet(*aggs[i], NT, NULL, propagations);
+		if(confl!=nullPtrClause){ unsat = true; sat = false; return; }
+		if(propagations){ unsat = false; sat = true; return; }
+	}
 
 	//IMPORTANT: only add watches AFTER initialization, otherwise delete is not complete!
 	addWatchesToNetwork(NF);
@@ -216,6 +216,10 @@ lbool GenPWAgg::isKnown(watchset w, const Agg& agg, const vpgpw& set, const vpgp
 }
 
 rClause GenPWAgg::reconstructSet(const Agg& agg, watchset w, pgpw watch, bool& propagations){
+	if(agg.getSign()!=chosensign){
+		w = w==NF?NT:NF;
+	}
+
 	vpgpw& set = getSet(w);
 	vpgpw& watches = getWatches(w);
 
@@ -223,7 +227,13 @@ rClause GenPWAgg::reconstructSet(const Agg& agg, watchset w, pgpw watch, bool& p
 
 	rClause confl = nullPtrClause;
 
-	if(propagatedValue(agg.getHead())==l_Undef){
+	lbool headvalue = propagatedValue(agg.getHead());
+
+	if((headvalue==l_True && w==NT) || (headvalue==l_False && w==NF)){
+		return confl;
+	}
+
+	if(headvalue==l_Undef){
 		for(vsize i=0; isKnown(w, agg, set, watches)!=until && i<set.size();){
 			if(((isNonFalseCheck(w) && set[i]->isMonotone()) || (!isNonFalseCheck(w) && !set[i]->isMonotone())) && propagatedValue(set[i]->getWL())!=l_False){
 				addToWatchedSet(w, i);
@@ -303,7 +313,10 @@ rClause GenPWAgg::propagate(const Lit& p, Watch* watch) {
 	pw->setTreatAsKnown(false);
 
 	bool propagations = false;
-	confl = reconstructSet(*as().getAgg()[0], w, pw, propagations); //TODO multi agg
+	for(int i=0; confl==nullPtrClause && i<as().getAgg().size(); i++){
+		confl = reconstructSet(*as().getAgg()[i], w, pw, propagations);
+	}
+
 	if(!propagations){
 		removeFromWatchedSet(pw);
 	}else{
@@ -311,7 +324,7 @@ rClause GenPWAgg::propagate(const Lit& p, Watch* watch) {
 		pw->setTreatAsKnown(true);
 	}
 
-	addWatchesToNetwork(w);
+	addWatchesToNetwork(w);//TODO is this correct?
 
 	assert(pw->getWatchset()==INSET || getWatches(pw->getWatchset())[pw->getIndex()]==pw);
 
@@ -323,32 +336,39 @@ rClause GenPWAgg::propagate(const Agg& agg) {
 
 	//TODO FIXME: mimic headprop by verifying that the head could be propagated here!
 
-	watchset w  = NF;
+	/*watchset w  = NF;
 	if(!checking(w)){
 		w = NT;
 		assert(checking(w));
 	}
 
-	removeAllFromWatchedSet(w==NF?NT:NF);
+	removeAllFromWatchedSet(w==NF?NT:NF);*/
+
+	watchset w = propagatedValue(agg.getHead())==l_True?NF:NT;
 
 	bool propagations = false;
-	confl = reconstructSet(*as().getAgg()[0], w, NULL, propagations); //TODO multi agg
-	addWatchesToNetwork(w);
+	confl = reconstructSet(agg, w, NULL, propagations);
+	addWatchesToNetwork(w); //TODO should this happen before or after checking for conflicts?
 
 	return confl;
 }
 
 void GenPWAgg::backtrack(const Agg& agg) {
-	watchset w  = NF;
+	/*watchset w  = NF;
 	if(!checking(w)){
 		w = NT;
 		assert(checking(w));
-	}
+	}*/
 
 	bool propagations = false;
-	rClause confl = reconstructSet(*as().getAgg()[0], w, NULL, propagations); //TODO multi agg
+	rClause confl = reconstructSet(agg, NF, NULL, propagations);
 	assert(confl==nullPtrClause && !propagations);
-	addWatchesToNetwork(w);
+	addWatchesToNetwork(NF);
+
+	propagations = false;
+	confl = reconstructSet(agg, NT, NULL, propagations);
+	assert(confl==nullPtrClause && !propagations);
+	addWatchesToNetwork(NT);
 }
 
 void GenPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
