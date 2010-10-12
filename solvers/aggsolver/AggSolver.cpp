@@ -449,20 +449,20 @@ bool AggSolver::constructCardSet(ppaset set, vppagg aggs){
 		}
 	}
 
-	if(getPCSolver()->modes().pw){ //use PWatches
-		/* TODO if set reuse is supported, only split into two parts
-		vppagg lower, higher;
-		for(vsize i=0; i<aggs.size(); i++){
-			if(aggs[i]->getSign()==LOWERBOUND){
-				lower.push_back(aggs[i]);
-			}else{
-				higher.push_back(aggs[i]);
-			}
-		}
-		CalcAgg* ca = new CardCalc(this, set->getWL());
-		bool unsat  = initCalcAgg(ca, lower);
-		CalcAgg* ca2 = new CardCalc(this, set->getWL());
-		return !unsat || initCalcAgg(ca2, higher);*/
+	/*if(getPCSolver()->modes().pw){ //use PWatches
+//		 TODO if set reuse is supported, only split into two parts
+//		vppagg lower, higher;
+//		for(vsize i=0; i<aggs.size(); i++){
+//			if(aggs[i]->getSign()==LOWERBOUND){
+//				lower.push_back(aggs[i]);
+//			}else{
+//				higher.push_back(aggs[i]);
+//			}
+//		}
+//		CalcAgg* ca = new CardCalc(this, set->getWL());
+//		bool unsat  = initCalcAgg(ca, lower);
+//		CalcAgg* ca2 = new CardCalc(this, set->getWL());
+//		return !unsat || initCalcAgg(ca2, higher);
 
 		//Currently, add each aggregate as a separate constraint
 		bool unsat = false;
@@ -473,10 +473,10 @@ bool AggSolver::constructCardSet(ppaset set, vppagg aggs){
 			unsat = initCalcAgg(ca, aggs2);
 		}
 		return unsat;
-	}else{
+	}else{*/
 		CalcAgg* ca = new CardCalc(this, set->getWL());
 		return initCalcAgg(ca, checkedaggs);
-	}
+	//}
 }
 
 bool AggSolver::constructSumSet(ppaset set, vppagg aggs){
@@ -497,7 +497,7 @@ bool AggSolver::constructSumSet(ppaset set, vppagg aggs){
 	}
 
 
-	if(getPCSolver()->modes().pw){ //use PWatches
+/*	if(getPCSolver()->modes().pw){ //use PWatches
 		//TODO Currently, add each aggregate as a separate constraint
 		bool unsat = false;
 		for(vsize i=0; !unsat && i<aggs.size(); i++){
@@ -507,10 +507,10 @@ bool AggSolver::constructSumSet(ppaset set, vppagg aggs){
 			unsat = initCalcAgg(ca, aggs2);
 		}
 		return unsat;
-	}else{
+	}else{*/
 		CalcAgg* ca = new SumCalc(this, set->getWL());
 		return initCalcAgg(ca, aggs);
-	}
+	//}
 
 }
 

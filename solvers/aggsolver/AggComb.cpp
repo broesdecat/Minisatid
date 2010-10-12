@@ -125,7 +125,6 @@ void CalcAgg::doSetReduction() {
 	vwl oldset = getSet()->getWL();
 	vwl newset;
 
-
 	//Sort all wlits according to the integer representation of their literal (to get all literals next to each other)
 	std::sort(oldset.begin(), oldset.end(), compareLits);
 
@@ -142,7 +141,6 @@ void CalcAgg::doSetReduction() {
 				Weight w = getCombinedWeight(newl.getWeight(), oldl.getWeight());
 				newset[indexinnew] = WL(oldl.getLit(), w);
 			} else { //opposite signs
-
 				WL wl = handleOccurenceOfBothSigns(oldl, newl);
 				newset[indexinnew] = WL(wl.getLit(), wl.getWeight());
 			}
@@ -630,11 +628,12 @@ void Aggrs::printAgg(const Agg& ae, bool printendline) {
 	printAgg(set, false);
 	if (ae.isLower()) {
 		//reportf(" <= %s. Known values: bestcertain=%s, bestpossible=%s\n", printWeight(ae.getLowerBound()).c_str(), printWeight(set->getCC()).c_str(), printWeight(set->getCP()).c_str());
-		reportf(" <= %s.", printWeight(ae.getLowerBound()).c_str());
+		reportf(" <= %s, ", printWeight(ae.getLowerBound()).c_str());
 	} else {
 		//reportf(". Known values: bestcertain=%s, bestpossible=%s\n", printWeight(set->getCC()).c_str(), printWeight(set->getCP()).c_str());
-		reportf(".");
+		reportf(", ");
 	}
+	reportf("ESV = %d.", ae.getAggComb()->getESV());
 	if(printendline){
 		reportf("\n");
 	}

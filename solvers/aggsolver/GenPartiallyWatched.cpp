@@ -141,6 +141,12 @@ GenPWAgg::~GenPWAgg(){
 void GenPWAgg::initialize(bool& unsat, bool& sat) {
 	vpagg& aggs = as().getRefAgg();
 
+	if (aggs.size() == 0) {
+		sat = true;
+		return;
+	}
+	as().doSetReduction();
+
 	//Verify all aggregates have the same sign:
 	chosensign = aggs[0]->getSign();
 	/*for(int i=1; i<aggs.size(); i++){
@@ -165,15 +171,26 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 
 	bool propagations = false;
 
+	vpagg aggsleft;
 	for(int i=0; i<aggs.size(); i++){
+		//TODO SET REDUCTION IS NOT DONE HERE!
 		rClause confl = reconstructSet(*aggs[i], NF, NULL, propagations);
 		if(confl!=nullPtrClause){ unsat = true; sat = false; return; }
-		if(propagations){ unsat = false; sat = true; return; }
+		if(propagations){
+			continue;
+		}
 
 		confl = reconstructSet(*aggs[i], NT, NULL, propagations);
 		if(confl!=nullPtrClause){ unsat = true; sat = false; return; }
-		if(propagations){ unsat = false; sat = true; return; }
+		if(propagations){
+			continue;
+		}
+		aggsleft.push_back(aggs[i]);
 	}
+	aggs.clear();
+	aggs.insert(aggs.begin(), aggsleft.begin(), aggsleft.end());
+
+	if(aggs.size()==0){ unsat = false; sat = true; return; }
 
 	//IMPORTANT: only add watches AFTER initialization, otherwise delete is not complete!
 	addWatchesToNetwork(NF);
