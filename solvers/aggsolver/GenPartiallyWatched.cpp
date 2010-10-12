@@ -75,22 +75,37 @@ void GenPWAgg::addToWatchedSet(watchset w, vsize index){
 	watch->pushIntoSet(w, watches.size()-1);
 }
 
-void GenPWAgg::removeWatchesFromSet(watchset w){
+/**
+ * @pre: one watch should be moved from a watched set to a nonwatched set
+ */
+void GenPWAgg::removeFromWatchedSet(pgpw pw){
+	watchset w = pw->getWatchset();
+	vpgpw& set = getSet(w);
+	vpgpw& watches = getWatches(w);
+
+	if(watches.size()>1){
+		int index = pw->getIndex();
+		watches[index] = watches[watches.size()-1];
+		watches[index]->setIndex(index);
+	}
+	set.push_back(pw);
+	watches.pop_back();
+
+	pw->removedFromSet();
+}
+
+/**
+ * @pre: all watches from a watch set should be moved to the non-watched set
+ */
+void GenPWAgg::removeAllFromWatchedSet(watchset w){
 	vpgpw& set = getSet(w);
 	vpgpw& watches = getWatches(w);
 
 	for(vpgpw::const_iterator i=watches.begin(); i<watches.end(); i++){
-		//TODO origineel stond hier ook nog dat inuse false werd gezet, maar mag dit wel?
 		(*i)->removedFromSet();
 		set.push_back(*(i));
 	}
 	watches.clear();
-}
-
-void GenPWAgg::addWatchesToNetwork(watchset w){
-	for(vpgpw::const_iterator i=getWatches(w).begin(); i<getWatches(w).end(); i++){
-		addWatchToNetwork(*i);
-	}
 }
 
 /*
@@ -103,9 +118,14 @@ void GenPWAgg::addWatchToNetwork(pgpw watch){
 	}
 }
 
-
-GenPWAgg::GenPWAgg(paggs agg): PWAgg(agg), headprop(false){
+void GenPWAgg::addWatchesToNetwork(watchset w){
+	for(vpgpw::const_iterator i=getWatches(w).begin(); i<getWatches(w).end(); i++){
+		addWatchToNetwork(*i);
+	}
 }
+
+
+GenPWAgg::GenPWAgg(paggs agg): PWAgg(agg), headprop(false){}
 
 CardGenPWAgg::CardGenPWAgg(paggs agg):GenPWAgg(agg){}
 
@@ -162,65 +182,36 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 	PWAgg::initialize(unsat, sat);
 }
 
-lbool GenPWAgg::isKnown(watchset w, const Agg& agg, const vpgpw& set, const vpgpw& watches){
-	if(w==NT){
-		Weight max = as().getESV();
-		for(vpgpw::const_iterator i=set.begin(); i<set.end(); i++){
-			const WL& wl = (*i)->getWL();
-			if((*i)->isMonotone()){
-				max = add(max, wl);
+
+void GenPWAgg::adaptValue(watchset w, const vpgpw& set, Weight& val) const{
+	for(vpgpw::const_iterator i=set.begin(); i<set.end(); i++){
+		const WL& wl = (*i)->getWL();
+		bool mono = (*i)->isMonotone();
+		if((*i)->treatAsKnown()){
+			if(((w==NT && !mono) || (w==NF && mono)) && propagatedValue(wl)!=l_False){
+				val = add(val, wl);
 			}
-		}
-		for(vpgpw::const_iterator i=watches.begin(); i<watches.end(); i++){
-			const WL& wl = (*i)->getWL();
-			if(!(*i)->treatAsKnown()){
-				if((*i)->isMonotone()){
-					max = add(max, wl);
-				}
-			}else{
-				if(!(*i)->isMonotone() && propagatedValue(wl)!=l_False){
-					max = add(max, wl);
-				}
-				if((*i)->isMonotone() && propagatedValue(wl)==l_True){
-					max = add(max, wl);
-				}
+			if(((w==NT && mono) || (w==NF && !mono)) && propagatedValue(wl)==l_True){
+				val = add(val, wl);
 			}
-		}
-		//reportf("Max value is %d\n", max);
-		if(!isSatisfied(agg, max)){
-			return l_False;
 		}else{
-			return l_Undef;
+			if((w==NT && mono) || (w==NF && !mono)){
+				val = add(val, wl);
+			}
 		}
+	}
+}
+
+lbool GenPWAgg::isKnown(watchset w, const Agg& agg, const vpgpw& set, const vpgpw& watches) const{
+	Weight val = as().getESV();
+	adaptValue(w, set, val);
+	adaptValue(w, watches, val);
+	if(w==NT && !isSatisfied(agg, val)){
+		return l_False;
+	}else if(w==NF && isSatisfied(agg, val)){
+		return l_True;
 	}else{
-		Weight min = as().getESV();
-		for(vpgpw::const_iterator i=set.begin(); i<set.end(); i++){
-			const WL& wl = (*i)->getWL();
-			if(!(*i)->isMonotone()){
-				min = add(min, wl);
-			}
-		}
-		for(vpgpw::const_iterator i=watches.begin(); i<watches.end(); i++){
-			const WL& wl = (*i)->getWL();
-			if(!(*i)->treatAsKnown()){
-				if(!(*i)->isMonotone()){
-					min = add(min, wl);
-				}
-			}else{
-				if((*i)->isMonotone() && propagatedValue(wl)!=l_False){
-					min = add(min, wl);
-				}
-				if(!(*i)->isMonotone() && propagatedValue(wl)==l_True){
-					min = add(min, wl);
-				}
-			}
-		}
-		//reportf("Min value is %d\n", min);
-		if(isSatisfied(agg, min)){
-			return l_True;
-		}else{
-			return l_Undef;
-		}
+		return l_Undef;
 	}
 }
 
@@ -228,29 +219,15 @@ rClause GenPWAgg::reconstructSet(const Agg& agg, watchset w, pgpw watch, bool& p
 	vpgpw& set = getSet(w);
 	vpgpw& watches = getWatches(w);
 
-#ifdef DEBUG
-	assert(set.size()+watches.size()==as().getWL().size());
-	/*for(int i=0; i<set.size(); i++){
-		assert(set[i]->getPos()==POSSETUNKN);
-	}*/
-	for(int i=0; i<watches.size(); i++){
-		assert(watches[i]->treatAsKnown() || watches[i]==watch);
-		assert(watches[watches[i]->getIndex()]==watches[i]);
-	}
-#endif
-
 	lbool until = isNonFalseCheck(w)?l_True:l_False;
 
 	rClause confl = nullPtrClause;
 
 	if(propagatedValue(agg.getHead())==l_Undef){
-		//reportf("Constructing basic\n");
 		for(vsize i=0; isKnown(w, agg, set, watches)!=until && i<set.size();){
 			if(((isNonFalseCheck(w) && set[i]->isMonotone()) || (!isNonFalseCheck(w) && !set[i]->isMonotone())) && propagatedValue(set[i]->getWL())!=l_False){
-				//reportf("    added to posinset\n");
 				addToWatchedSet(w, i);
 			}else if(((isNonFalseCheck(w) && !set[i]->isMonotone()) || (!isNonFalseCheck(w) && set[i]->isMonotone())) && propagatedValue(set[i]->getWL())!=l_True){
-				//reportf("    added to posoutset\n");
 				addToWatchedSet(w, i);
 			}else{
 				i++; //TODO save last i to start from there i cyclic search
@@ -260,27 +237,18 @@ rClause GenPWAgg::reconstructSet(const Agg& agg, watchset w, pgpw watch, bool& p
 			Lit prophead = isNonFalseCheck(w)?~agg.getHead():agg.getHead();
 			Lit watchlit = watch!=NULL?watch->getWatchLit():mkLit(-1);
 			propagations = true;
-			//headprop = true;
 			confl = notifySolver(new AggReason(agg, watchlit, isNonFalseCheck(w)?BASEDONCC:BASEDONCP, prophead, true));
 		}
 	}else{
 		int origsize = watches.size();
-		//reportf("Constructing extension\n");
-
-		/*reportf("Before\n");
-		for(int i=0; i<watches.size(); i++){
-			reportf("watch "); gprintLit(watches[i]->getWatchLit()); reportf(" %s\n", watches[i]->getPos()==POSSETUNKN?"unknown":"not unknown");
-		}*/
 
 		for(vsize i=0; confl==nullPtrClause && i<origsize; i++){
 			watches[i]->setTreatAsKnown(false);
 
 			for(vsize j=0; isKnown(w, agg, set, watches)!=until && j<set.size();){
 				if(((isNonFalseCheck(w) && set[j]->isMonotone()) || (!isNonFalseCheck(w) && !set[j]->isMonotone())) && propagatedValue(set[j]->getWL())!=l_False){
-					//reportf("    added to posinset\n");
 					addToWatchedSet(w, j);
 				}else if(((isNonFalseCheck(w) && !set[j]->isMonotone()) || (!isNonFalseCheck(w) && set[j]->isMonotone())) && propagatedValue(set[j]->getWL())!=l_True){
-					//reportf("    added to posoutset\n");
 					addToWatchedSet(w, j);
 				}else{
 					j++;
@@ -294,26 +262,19 @@ rClause GenPWAgg::reconstructSet(const Agg& agg, watchset w, pgpw watch, bool& p
 				watches[i]->setTreatAsKnown(true);
 
 				confl = notifySolver(new AggReason(agg, watchlit, isNonFalseCheck(w)?BASEDONCC:BASEDONCP, ~watches[i]->getWatchLit(), false));
-			}else{
-				watches[i]->setTreatAsKnown(true);
 			}
 
-			/*reportf("After\n");
-			for(int i=0; i<watches.size(); i++){
-				reportf("watch "); gprintLit(watches[i]->getWatchLit());
-				reportf(" %s, ", watches[i]->getPos()==POSSETUNKN?"unknown":"not unknown");
-				reportf(" with index %d found on pos %d\n", watches[i]->getIndex(), i);
-			}*/
+			watches[i]->setTreatAsKnown(true);
 		}
 	}
 
 #ifdef DEBUG
 	assert(set.size()+watches.size()==as().getWL().size());
-	/*for(int i=0; i<set.size(); i++){
-		assert(set[i]->getPos()==POSSETUNKN);
-	}*/
+	for(int i=0; i<set.size(); i++){
+		assert(!set[i]->treatAsKnown());
+	}
 	for(int i=0; i<watches.size(); i++){
-		assert(watches[i]->treatAsKnown() || watches[i]==watch);
+		assert(watches[i]->treatAsKnown() || (watches[i]==watch && !watches[i]->treatAsKnown()));
 		assert(watches[watches[i]->getIndex()]==watches[i]);
 	}
 #endif
@@ -323,11 +284,10 @@ rClause GenPWAgg::reconstructSet(const Agg& agg, watchset w, pgpw watch, bool& p
 
 rClause GenPWAgg::propagate(const Lit& p, Watch* watch) {
 	rClause confl = nullPtrClause;
-	//if(headprop){ return confl;	}
 
 	GenPWatch* const pw = dynamic_cast<GenPWatch*>(watch);
-	assert(pw->isInUse());
 
+	assert(pw->isInUse());
 	pw->setInUse(false);
 
 	if(pw->getWatchset()==INSET){
@@ -345,22 +305,11 @@ rClause GenPWAgg::propagate(const Lit& p, Watch* watch) {
 	bool propagations = false;
 	confl = reconstructSet(*as().getAgg()[0], w, pw, propagations); //TODO multi agg
 	if(!propagations){
-		//Remove watch from the watched set
-		vpgpw& set = getSet(w);
-		vpgpw& watches = getWatches(w);
-		if(watches.size()>1){
-			//reportf("Moving: "); gprintLit(pw->getWatchLit()); reportf("\n");
-			int index = pw->getIndex();
-			watches[index] = watches[watches.size()-1];
-			watches[index]->setIndex(index);
-		}
-		pw->removedFromSet();
-		set.push_back(pw);
-		watches.pop_back();
+		removeFromWatchedSet(pw);
+	}else{
+		//add watch back to original pos unless it was removed from the watched
+		pw->setTreatAsKnown(true);
 	}
-
-	//add watch back to original pos
-	pw->setTreatAsKnown(true);
 
 	addWatchesToNetwork(w);
 
@@ -372,9 +321,7 @@ rClause GenPWAgg::propagate(const Lit& p, Watch* watch) {
 rClause GenPWAgg::propagate(const Agg& agg) {
 	rClause confl = nullPtrClause;
 
-	//IMPORTANT: necessary for correctness!
-	//if(headprop){ return confl;	}
-	//TODO FIXME: mimic by verifying that the head could be propagated here!
+	//TODO FIXME: mimic headprop by verifying that the head could be propagated here!
 
 	watchset w  = NF;
 	if(!checking(w)){
@@ -382,7 +329,7 @@ rClause GenPWAgg::propagate(const Agg& agg) {
 		assert(checking(w));
 	}
 
-	removeWatchesFromSet(w==NF?NT:NF);
+	removeAllFromWatchedSet(w==NF?NT:NF);
 
 	bool propagations = false;
 	confl = reconstructSet(*as().getAgg()[0], w, NULL, propagations); //TODO multi agg
@@ -392,8 +339,6 @@ rClause GenPWAgg::propagate(const Agg& agg) {
 }
 
 void GenPWAgg::backtrack(const Agg& agg) {
-	//headprop = false;
-
 	watchset w  = NF;
 	if(!checking(w)){
 		w = NT;

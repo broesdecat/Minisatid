@@ -181,7 +181,7 @@ public:
 		_inuse(false),
 		_wl(wl),
 		_watchneg(watchneg),
-		_treatasknown(true),
+		_treatasknown(false),
 		_mono(mono){
 
 	}
@@ -195,8 +195,8 @@ public:
 	bool		isInUse		() 	const 	{ return _inuse; }
 	void		setInUse	(bool used) { _inuse = used; }
 
-	void		pushIntoSet(watchset w, vsize index) { setIndex(index); _w = w; }
-	void		removedFromSet() { setIndex(-1); _w = INSET; }
+	void		pushIntoSet(watchset w, vsize index) { setIndex(index); _w = w; _treatasknown = true;}
+	void		removedFromSet() { setIndex(-1); _w = INSET; _treatasknown = false;}
 };
 
 typedef GenPWatch gpw;
@@ -215,17 +215,19 @@ public:
 	GenPWAgg(paggs agg);
 	virtual ~GenPWAgg();
 
-	bool isSatisfied(const Agg& agg, Weight value){
+	bool isSatisfied(const Agg& agg, const Weight& value) const{
 		return (agg.isLower() && value <= agg.getBound() ) || (agg.isUpper() && agg.getBound()<=value);
 	}
 
-	lbool 		isKnown(watchset w, const Agg& agg, const vpgpw& set, const vpgpw& set2);
+	void	 	adaptValue(watchset w, const vpgpw& set, Weight& val) const;
+	lbool 		isKnown(watchset w, const Agg& agg, const vpgpw& set, const vpgpw& set2) const;
 
 	void 		initialize(bool& unsat, bool& sat);
 	rClause 	reconstructSet(const Agg& agg, watchset w, pgpw watch, bool& propagations);
 
 	void 		addToWatchedSet(watchset w, vsize index);
-	void 		removeWatchesFromSet(watchset w);
+	void 		removeFromWatchedSet(pgpw pw);
+	void 		removeAllFromWatchedSet(watchset w);
 	void 		addWatchesToNetwork(watchset w);
 	void 		addWatchToNetwork(pgpw watch);
 
