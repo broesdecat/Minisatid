@@ -102,7 +102,8 @@ CardCalc::CardCalc(const paggsol& solver, const vwl& wl):
 			SPCalc(solver, wl){
 	setESV(0);
 	if(solver->getPCSolver()->modes().pw){
-		new CardGenPWAgg(this);
+		new CardPWAgg(this);
+		//new CardGenPWAgg(this);
 	}else{
 		new SumFWAgg(this);
 	}

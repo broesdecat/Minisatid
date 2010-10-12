@@ -449,7 +449,7 @@ bool AggSolver::constructCardSet(ppaset set, vppagg aggs){
 		}
 	}
 
-	/*if(getPCSolver()->modes().pw){ //use PWatches
+	if(getPCSolver()->modes().pw){ //use PWatches
 //		 TODO if set reuse is supported, only split into two parts
 //		vppagg lower, higher;
 //		for(vsize i=0; i<aggs.size(); i++){
@@ -473,10 +473,10 @@ bool AggSolver::constructCardSet(ppaset set, vppagg aggs){
 			unsat = initCalcAgg(ca, aggs2);
 		}
 		return unsat;
-	}else{*/
+	}else{
 		CalcAgg* ca = new CardCalc(this, set->getWL());
 		return initCalcAgg(ca, checkedaggs);
-	//}
+	}
 }
 
 bool AggSolver::constructSumSet(ppaset set, vppagg aggs){
