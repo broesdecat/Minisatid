@@ -139,7 +139,7 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 		lw.push_back(WL(lits[i], weights[i]));
 
 		// Literals occurring in aggregates would occur much more often in clauses, so we bump them (a bit)
-		getPCSolver()->varBumpActivity(var(lits[i]));
+		//getPCSolver()->varBumpActivity(var(lits[i]));
 	}
 
 	parsedsets[setid] = new ParsedSet(setid, lw);
@@ -209,11 +209,11 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	AggSign boundsig
 
 	// As an approximation because each literal would occur n times (TODO better approximation?), we bump n times
 	//ORIG:
-	//getPCSolver()->varBumpActivity(headv);
+	getPCSolver()->varBumpActivity(headv);
 	// As another test, we bumped each WL literal log n times, but the varbump activity proved to be extremely expensive, so this has been skipped!
-	for(int i=0; i<log(set->getWL().size())+1; i++){
+	/*for(int i=0; i<log(set->getWL().size())+1; i++){
 		getPCSolver()->varBumpActivity(headv);
-	}
+	}*/
 
 	aggheads.insert(headv);
 
@@ -547,7 +547,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 	//TODO new IDEA: mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt of de grootte van de sets?
 	//want de grootte van de set bepaalt hoe vaak de literal zou zijn uitgeschreven in een cnf theorie
 	//maar niet trager voor pakman
-	getPCSolver()->varBumpActivity(var(p));
+	//getPCSolver()->varBumpActivity(var(p));
 
 	if(value(p) != l_True && getPCSolver()->modes().aggclausesaving<2){
 		vec<Lit> lits;
@@ -690,10 +690,10 @@ rClause AggSolver::getExplanation(const Lit& p) {
 		assert(getPCSolver()->modes().aggclausesaving>0);
 		assert(ar.hasClause());
 
-		getPCSolver()->varBumpActivity(var(p));
-		for(int i=0; i<ar.getClause().size(); i++){
+		//getPCSolver()->varBumpActivity(var(p));
+		/*for(int i=0; i<ar.getClause().size(); i++){
 			getPCSolver()->varBumpActivity(var(ar.getClause()[i]));
-		}
+		}*/
 
 		c = getPCSolver()->createClause(ar.getClause(), true);
 	}else{
@@ -703,10 +703,10 @@ rClause AggSolver::getExplanation(const Lit& p) {
 
 		ar.getAgg().getAggComb()->getExplanation(lits, ar);
 
-		getPCSolver()->varBumpActivity(var(p));
-		for(int i=0; i<lits.size(); i++){
+		//getPCSolver()->varBumpActivity(var(p));
+		/*for(int i=0; i<lits.size(); i++){
 			getPCSolver()->varBumpActivity(var(lits[i]));
-		}
+		}*/
 
 		//create a conflict clause and return it
 		c = getPCSolver()->createClause(lits, true);
