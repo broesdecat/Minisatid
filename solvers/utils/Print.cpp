@@ -26,7 +26,7 @@
 #include "solvers/modsolver/SOSolverHier.hpp"
 #include "solvers/aggsolver/AggSolver.hpp"
 
-namespace Print {
+using namespace MinisatID;
 
 template<class S>
 void print(S const * const s){
@@ -136,6 +136,4 @@ void print(ModSolverData const * const d){
 	reportf("Printing theory\n");
 	print(d->getModSolver((modindex)0));
 	reportf("End of theory\n");
-}
-
 }

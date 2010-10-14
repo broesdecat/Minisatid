@@ -30,17 +30,17 @@
 
 #include <tr1/memory>
 
+namespace MinisatID {
+
 #ifdef USEMINISAT22
 using namespace Minisat;
 #endif
 
-typedef vector<void*>::size_type vsize;
-
-using namespace std;
+typedef std::vector<void*>::size_type vsize;
 
 template<class T>
-void deleteList(vector<T*> l){
-	for(class vector<T*>::const_iterator i=l.begin(); i!=l.end(); i++){
+void deleteList(std::vector<T*> l){
+	for(class std::vector<T*>::const_iterator i=l.begin(); i!=l.end(); i++){
 		if(*i!=NULL){
 			delete(*i);
 		}
@@ -49,16 +49,16 @@ void deleteList(vector<T*> l){
 }
 
 template<class T>
-void deleteList(vector<vector<T*> > l){
-	for(class vector<vector<T*> >::const_iterator i=l.begin(); i!=l.end(); i++){
+void deleteList(std::vector<std::vector<T*> > l){
+	for(class std::vector<std::vector<T*> >::const_iterator i=l.begin(); i!=l.end(); i++){
 		deleteList(*i);
 	}
 	l.clear();
 }
 
 template<class T, class K>
-void deleteList(map<K, T*> l){
-	for(class map<K, T*>::const_iterator i=l.begin(); i!=l.end(); i++){
+void deleteList(std::map<K, T*> l){
+	for(class std::map<K, T*>::const_iterator i=l.begin(); i!=l.end(); i++){
 		if((*i).second!=NULL){
 			delete((*i).second);
 		}
@@ -68,13 +68,13 @@ void deleteList(map<K, T*> l){
 
 /*
 template<class T>
-void deleteList(vector<T> l){
+void deleteList(std::vector<T> l){
 
 }*/
 
 /*template<class T>
-void deleteList(vector<T> l){
-	for(class vector<T>::iterator i=l.begin(); i!=l.end(); i++){
+void deleteList(std::vector<T> l){
+	for(class std::vector<T>::iterator i=l.begin(); i!=l.end(); i++){
 		deleteList(*i);
 	}
 	l.clear();
@@ -117,6 +117,8 @@ inline void gprintClause(const vec<Lit>& c){
 	for(int i=0; i<c.size(); i++){
 		gprintLit(c[i]); reportf(" ");
 	}
+}
+
 }
 
 #endif /* UTILS_H_ */

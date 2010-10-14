@@ -12,6 +12,8 @@
 
 #include "solvers/aggsolver/AggComb.hpp"
 
+namespace MinisatID {
+
 namespace Aggrs{
 	class Agg;
 	class AggSet;
@@ -33,13 +35,10 @@ namespace Aggrs{
 
 	class PropagationInfo;
 	typedef vector<PropagationInfo> vprop;
-}
 
 ///////
 // DECLARATIONS
 ///////
-namespace Aggrs{
-
 class FWAgg: public Propagator {
 protected:
 	vprop 	stack;		// Stack of propagations of this expression so far.
@@ -134,6 +133,8 @@ public:
 
 	virtual void 	initialize	(bool& unsat, bool& sat);
 };
+
+}
 
 }
 

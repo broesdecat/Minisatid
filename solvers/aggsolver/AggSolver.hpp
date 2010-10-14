@@ -44,15 +44,19 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <set>
 
 #include "solvers/pcsolver/SolverModule.hpp"
+
+namespace MinisatID {
+
+
 class PCSolver;
 typedef PCSolver* pPCSolver;
 
 class WL;
-typedef vector<WL> vwl;
+typedef std::vector<WL> vwl;
 
 namespace Aggrs{
-	typedef vector<Weight> vw;
-	typedef vector<Lit> vl;
+	typedef std::vector<Weight> vw;
+	typedef std::vector<Lit> vl;
 
 	class Agg;
 	class AggSet;
@@ -62,13 +66,13 @@ namespace Aggrs{
 	class CalcAgg;
 	typedef CalcAgg aggs;
 	typedef aggs* paggs;
-	typedef vector<paggs> vpaggs;
-	typedef vector<vpaggs> vvpaggs;
+	typedef std::vector<paggs> vpaggs;
+	typedef std::vector<vpaggs> vvpaggs;
 
 	class Watch;
 	typedef Watch* pw;
-	typedef vector<pw> vpw;
-	typedef vector<vpw> vvpw;
+	typedef std::vector<pw> vpw;
+	typedef std::vector<vpw> vvpw;
 
 	class AggReason;
 }
@@ -78,10 +82,10 @@ using namespace Aggrs;
 class ParsedSet;
 class ParsedAgg;
 typedef ParsedAgg* ppagg;
-typedef vector<ppagg> vppagg;
+typedef std::vector<ppagg> vppagg;
 typedef ParsedSet paset;
 typedef ParsedSet* ppaset;
-typedef vector<ppaset> vppaset;
+typedef std::vector<ppaset> vppaset;
 
 class ParsedSet{
 private:
@@ -90,7 +94,7 @@ private:
 	int id;
 
 public:
-	ParsedSet(int id, const vector<WL>& wl): wlits(wl){ }
+	ParsedSet(int id, const std::vector<WL>& wl): wlits(wl){ }
 	~ParsedSet() { deleteList<ParsedAgg>(aggs); }
 
 	int getID() const { return id; }
@@ -134,20 +138,20 @@ public:
  * heuristic to delay propagations.
  */
 
-class AggSolver: public tr1::enable_shared_from_this<AggSolver>, public SolverModule{
+class AggSolver: public std::tr1::enable_shared_from_this<AggSolver>, public SolverModule{
 private:
-    map<int, ppaset>		parsedsets;
-    set<Var>				aggheads;	//A set of all heads that are already used by an aggregate.
+    std::map<int, ppaset>		parsedsets;
+    std::set<Var>				aggheads;	//A set of all heads that are already used by an aggregate.
 	vpaggs					sets;		//After initialization, all remaining sets.
 
-	vector<AggReason*>		aggreason;	// For each atom, like 'reason'.
+	std::vector<AggReason*>		aggreason;	// For each atom, like 'reason'.
 
 	vvpw					tempwatches;	//NON-OWNED PARTIAL WATCHES
 	vvpw 					permwatches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
-	vector<pagg>			headwatches;	//	index on VARs (heads always positive), does NOT own the pointers
+	std::vector<pagg>			headwatches;	//	index on VARs (heads always positive), does NOT own the pointers
 	vvpaggs					network;		// the pointer network of set var -> set
 
-	vector<lbool>			assigns;		//The truth values of literals according to whether they were propagated in the aggregate solver
+	std::vector<lbool>			assigns;		//The truth values of literals according to whether they were propagated in the aggregate solver
 
 	//statistics
 	uint64_t propagations;
@@ -171,7 +175,7 @@ public:
 	 *
 	 * @remark: please ensure that all id numbers are used without gaps in the numbering.
 	 */
-	bool 				addSet					(int id, const vector<Lit>& l, const vector<Weight>& w);
+	bool 				addSet					(int id, const std::vector<Lit>& l, const std::vector<Weight>& w);
 
 	/**
 	 * Adds an aggregate of the given type with number defn for set set_id.
@@ -249,9 +253,9 @@ public:
 	void 				addExternalLiterals		(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
 
 	/**
-	 * Returns a vector containing the heads of the aggregates in which x occurs as a set literal
+	 * Returns a std::vector containing the heads of the aggregates in which x occurs as a set literal
 	 */
-	vector<Var> 		getAggHeadsWithBodyLit	(Var x);
+	std::vector<Var> 		getAggHeadsWithBodyLit	(Var x);
 
 	/**
 	 * Returns the set literals of the aggregate with the given head x.
@@ -285,5 +289,7 @@ protected:
 	bool 				constructSumSet(ppaset set, vppagg aggs);
 	bool 				constructCardSet(ppaset set, vppagg aggs);
 };
+
+}
 
 #endif /* AggSolver_H_ */

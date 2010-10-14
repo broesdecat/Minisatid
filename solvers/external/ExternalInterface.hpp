@@ -22,18 +22,15 @@
 
 #include "solvers/external/ExternalUtils.hpp"
 
-#include <map>
-#include <vector>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
-using namespace std;
 
 #include <tr1/unordered_map>
-using namespace tr1;
 
 #include "solvers/SATUtils.h"
-#include <tr1/memory>
+
+namespace MinisatID {
 
 #ifdef USEMINISAT22
 using namespace Minisat;
@@ -43,7 +40,7 @@ using namespace Minisat;
 //Because grounder can leave (huge!) gaps which slow solving (certainly with arithmetic expressions).
 
 //map is only a bit slower
-typedef unordered_map<int, int> atommap;
+typedef std::tr1::unordered_map<int, int> atommap;
 
 class SolverInterface{
 private:
@@ -69,7 +66,7 @@ public:
 
 	virtual bool 	simplify		() = 0;
 	virtual bool 	solve			() = 0;
-	virtual bool 	solve			(vector<vector<Literal> >& models) = 0;
+	virtual bool 	solve			(std::vector<std::vector<Literal> >& models) = 0;
 	virtual bool 	finishParsing	() = 0;
 
 	int 			verbosity		() const	{ return modes().verbosity; }
@@ -78,9 +75,9 @@ public:
 protected:
 	Var checkAtom(const Atom& atom);
 	Lit checkLit(const Literal& lit);
-	void checkLits(const vector<Literal>& lits, vec<Lit>& ll);
-	void checkLits(const vector<Literal>& lits, vector<Lit>& ll);
-	void checkAtoms(const vector<Atom>& lits, vector<Var>& ll);
+	void checkLits(const std::vector<Literal>& lits, vec<Lit>& ll);
+	void checkLits(const std::vector<Literal>& lits, std::vector<Lit>& ll);
+	void checkAtoms(const std::vector<Atom>& lits, std::vector<Var>& ll);
 	//void checkLits(const vector<Literal>& lits, vector<Literal>& ll);
 
 	bool	wasInput(int var) const { return var<maxnumber; }
@@ -107,10 +104,10 @@ public:
 
 	virtual bool 	simplify		() = 0;
 			bool 	solve			();
-			bool 	solve			(vector<vector<Literal> >& models);
+			bool 	solve			(std::vector<std::vector<Literal> >& models);
 	virtual bool 	finishParsing	() = 0;
 
-	void 	printModel(const vector<Literal>& model) const;
+	void 	printModel(const std::vector<Literal>& model) const;
 
 protected:
 	T* getSolver() const { return solver; }
@@ -128,27 +125,27 @@ public:
 	bool 	simplify		();
 
 	void	addVar			(Atom v);
-	bool	addClause		(vector<Literal>& lits);
-	bool	addRule			(bool conj, Literal head, const vector<Literal>& lits);
-	bool	addSet			(int id, const vector<Literal>& lits);
-	bool 	addSet			(int set_id, const vector<LW>& lws);
-	bool	addSet			(int id, const vector<Literal>& lits, const vector<Weight>& w);
+	bool	addClause		(std::vector<Literal>& lits);
+	bool	addRule			(bool conj, Literal head, const std::vector<Literal>& lits);
+	bool	addSet			(int id, const std::vector<Literal>& lits);
+	bool 	addSet			(int set_id, const std::vector<LW>& lws);
+	bool	addSet			(int id, const std::vector<Literal>& lits, const std::vector<Weight>& w);
 	bool	addAggrExpr		(Literal head, int setid, Weight bound, AggSign sign, AggType type, AggSem sem);
 	bool	finishParsing	(); //throws UNSAT
 
-    bool 	addMinimize		(const vector<Literal>& lits, bool subsetmnmz);
+    bool 	addMinimize		(const std::vector<Literal>& lits, bool subsetmnmz);
     bool 	addSumMinimize	(const Atom head, const int setid);
 
 	bool 	addIntVar		(int groundname, int min, int max);
 	bool 	addCPBinaryRel	(Literal head, int groundname, MINISAT::EqType rel, int bound);
 	bool 	addCPBinaryRelVar	(Literal head, int groundname, MINISAT::EqType rel, int groundname2);
-	bool 	addCPSum		(Literal head, const vector<int>& termnames, MINISAT::EqType rel, int bound);
-	bool 	addCPSum		(Literal head, const vector<int>& termnames, vector<int> mult, MINISAT::EqType rel, int bound);
-	bool 	addCPSumVar		(Literal head, const vector<int>& termnames, MINISAT::EqType rel, int rhstermname);
-	bool 	addCPSumVar		(Literal head, const vector<int>& termnames, vector<int> mult, MINISAT::EqType rel, int rhstermname);
-	bool 	addCPCount		(const vector<int>& termnames, int value, MINISAT::EqType rel, int rhstermname);
-	bool 	addCPAlldifferent(const vector<int>& termnames);
-	void	addForcedChoices(const vector<Literal> lits);
+	bool 	addCPSum		(Literal head, const std::vector<int>& termnames, MINISAT::EqType rel, int bound);
+	bool 	addCPSum		(Literal head, const std::vector<int>& termnames, std::vector<int> mult, MINISAT::EqType rel, int bound);
+	bool 	addCPSumVar		(Literal head, const std::vector<int>& termnames, MINISAT::EqType rel, int rhstermname);
+	bool 	addCPSumVar		(Literal head, const std::vector<int>& termnames, std::vector<int> mult, MINISAT::EqType rel, int rhstermname);
+	bool 	addCPCount		(const std::vector<int>& termnames, int value, MINISAT::EqType rel, int rhstermname);
+	bool 	addCPAlldifferent(const std::vector<int>& termnames);
+	void	addForcedChoices(const std::vector<Literal> lits);
 
 	void 	printStatistics	();
 };
@@ -171,19 +168,21 @@ public:
 
 	//Add information for hierarchy
 	bool 	addChild		(modID parent, modID child, Literal head);
-	bool	addAtoms		(modID modid, const vector<Atom>& atoms);
+	bool	addAtoms		(modID modid, const std::vector<Atom>& atoms);
 
 	//Add information for PC-Solver
 	void 	addVar			(modID modid, Atom v);
-	bool 	addClause		(modID modid, vector<Literal>& lits);
-	bool 	addRule			(modID modid, bool conj, Literal head, vector<Literal>& lits);
-	bool 	addSet			(modID modid, int set_id, vector<LW>& lws);
-	bool 	addSet			(modID modid, int set_id, vector<Literal>& lits, vector<Weight>& w);
+	bool 	addClause		(modID modid, std::vector<Literal>& lits);
+	bool 	addRule			(modID modid, bool conj, Literal head, std::vector<Literal>& lits);
+	bool 	addSet			(modID modid, int set_id, std::vector<LW>& lws);
+	bool 	addSet			(modID modid, int set_id, std::vector<Literal>& lits, std::vector<Weight>& w);
 	bool 	addAggrExpr		(modID modid, Literal head, int setid, Weight bound, AggSign sign, AggType type, AggSem sem);
 };
 
 //Throw exceptions if the inputted literals are in the wrong format.
 void checkLit(Literal lit);
-void checkLits(const vector<Literal>& lits);
+void checkLits(const std::vector<Literal>& lits);
+
+}
 
 #endif /* EXTERNALINTERFACE_HPP_ */

@@ -26,9 +26,12 @@
 #include "mtlold/Heap.h"
 #include "mtlold/Sort.h"
 #include "solver3minisat/SolverTypes.h"
-typedef Clause& pClause;
-typedef Clause* rClause;
-Lit mkLit(Var x, bool sign = false);
+
+namespace MinisatID {
+	typedef Clause& pClause;
+	typedef Clause* rClause;
+	Lit mkLit(Var x, bool sign = false);
+}
 
 #else
 	#ifdef USEMINISAT09Z
@@ -37,9 +40,12 @@ Lit mkLit(Var x, bool sign = false);
 	#include "mtlold/Heap.h"
 	#include "mtlold/Sort.h"
 	#include "solver3/SolverTypes.hpp"
-	typedef Clause& pClause;
-	typedef Clause* rClause;
-	Lit mkLit(Var x, bool sign = false);
+
+	namespace MinisatID {
+		typedef Clause& pClause;
+		typedef Clause* rClause;
+		Lit mkLit(Var x, bool sign = false);
+	}
 
 	#else
 		#ifdef USEMINISAT22
@@ -48,8 +54,11 @@ Lit mkLit(Var x, bool sign = false);
 		#include "mtl/Heap.h"
 		#include "mtl/Sort.h"
 		#include "core/SolverTypes.h"
-		typedef Minisat::CRef pClause;
-		typedef Minisat::CRef rClause;
+
+		namespace MinisatID {
+			typedef Minisat::CRef pClause;
+			typedef Minisat::CRef rClause;
+		}
 
 		#else
 			#include "mtlold/Vec.h"
@@ -57,14 +66,19 @@ Lit mkLit(Var x, bool sign = false);
 			#include "mtlold/Heap.h"
 			#include "mtlold/Sort.h"
 			#include "solver3minisat/SolverTypes.h"
-			typedef Clause& pClause;
-			typedef Clause* rClause;
-			Lit mkLit(Var x, bool sign = false);
+
+			namespace MinisatID {
+				typedef Clause& pClause;
+				typedef Clause* rClause;
+				Lit mkLit(Var x, bool sign = false);
+			}
 		#endif
 	#endif
 #endif
 
-extern rClause nullPtrClause;
-pClause getClauseRef(rClause rc);
+namespace MinisatID {
+	extern rClause nullPtrClause;
+	pClause getClauseRef(rClause rc);
+}
 
 #endif// SATSOLVER_H_

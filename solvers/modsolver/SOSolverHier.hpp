@@ -22,6 +22,9 @@
 
 #include "solvers/utils/Utils.hpp"
 #include "solvers/SolverI.hpp"
+
+namespace MinisatID {
+
 class Data;
 
 /**
@@ -100,5 +103,7 @@ private:
 	void	checkexistsModSolver(modindex modid) const;
 	bool	existsModSolver		(modindex modid) const { return modid<solvers.size() && solvers[modid]!=NULL; }
 };
+
+}
 
 #endif /* SOSOLVER_H_ */

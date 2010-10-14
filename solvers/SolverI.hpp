@@ -21,9 +21,10 @@
 #define SOLVERI_H_
 
 #include <cstdio>
-using namespace std;
 
 #include "solvers/utils/Utils.hpp"
+
+namespace MinisatID {
 
 class Data{
 private:
@@ -41,5 +42,7 @@ public:
 	int 			verbosity		() const	{ return modes().verbosity; }
 	const ECNF_mode& modes			() const	{ return _modes; }
 };
+
+}
 
 #endif /* SOLVERI_H_ */

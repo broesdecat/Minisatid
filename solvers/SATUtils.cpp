@@ -19,6 +19,8 @@
 
 #include "solvers/SATUtils.h"
 
+namespace MinisatID {
+
 #ifdef USEMINISAT
 rClause nullPtrClause = NULL;
 
@@ -51,3 +53,5 @@ pClause getClauseRef(rClause rc){
 }
 
 #endif
+
+}

@@ -55,6 +55,9 @@
 #include <limits.h>
 #include <cmath>
 
+using namespace std;
+using namespace MinisatID;
+
 AggSolver::AggSolver(pPCSolver s) :
 	SolverModule(s), propagations(0) {
 	int count = 0;

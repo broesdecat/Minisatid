@@ -96,7 +96,7 @@ public:
 	void		uncheckedEnqueue	(Lit p, Clause* from = NULL);				// Enqueue a literal. Assumes value of literal is undefined
 	int 		getLevel			(int var) const;
 	bool 		totalModelFound		();				//true if the current assignment is completely two-valued
-	vector<Lit> getDecisions		() const;
+	std::vector<Lit> getDecisions		() const;
 	int			decisionLevel		() const; // Gives the current decisionlevel.
 	const vec<Lit>& getTrail() const { return trail; }
 	int 			getStartLastLevel() const { return trail_lim.size()==0?0:trail_lim.last(); }

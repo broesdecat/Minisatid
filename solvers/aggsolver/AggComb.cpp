@@ -12,6 +12,8 @@
 #include <inttypes.h>
 #include <limits.h>
 
+using namespace std;
+using namespace MinisatID;
 using namespace Aggrs;
 
 const WL& Watch::getWL() const {

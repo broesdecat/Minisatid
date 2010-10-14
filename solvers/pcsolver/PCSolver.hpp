@@ -23,9 +23,9 @@
 #include "solvers/SolverI.hpp"
 #include "solvers/utils/Utils.hpp"
 
-using namespace std;
+namespace MinisatID {
 
-typedef vector<Lit> vlit;
+typedef std::vector<Lit> vlit;
 
 //FIXME: the parser does -1, but +1 is always printed, also when NOT going through the parser
 
@@ -90,9 +90,9 @@ private:
 	int nb_models, modelsfound;
 
 	int init;
-	vector<Lit> initialprops;
+	std::vector<Lit> initialprops;
 
-	vector<PropBy> propagations;
+	std::vector<PropBy> propagations;
 
 	///////
 	// OPTIMIZATION INFORMATION
@@ -137,17 +137,17 @@ public:
 	bool 		addEquivalence	(const Lit& head, const vec<Lit>& rightlits, bool conj);
 	bool 		addRule			(bool conj, Lit head, const vec<Lit>& lits);
 	bool 		addSet			(int id, const vec<Lit>& lits);
-	bool 		addSet			(int id, const vec<Lit>& lits, const vector<Weight>& w);
+	bool 		addSet			(int id, const vec<Lit>& lits, const std::vector<Weight>& w);
 	bool 		addAggrExpr		(Lit head, int setid, Weight bound, AggSign boundsign, AggType type, AggSem defined);
 	bool 		addIntVar		(int groundname, int min, int max);
 	bool 		addCPBinaryRel	(Lit head, int groundname, MINISAT::EqType rel, int bound);
 	bool 		addCPBinaryRelVar	(Lit head, int groundname, MINISAT::EqType rel, int groundname2);
-	bool 		addCPSum		(Lit head, vector<int> termnames, MINISAT::EqType rel, int bound);
-	bool 		addCPSum		(Lit head, vector<int> termnames, vector<int> mult, MINISAT::EqType rel, int bound);
-	bool 		addCPSumVar		(Lit head, vector<int> termnames, MINISAT::EqType rel, int rhstermname);
-	bool 		addCPSumVar		(Lit head, vector<int> termnames, vector<int> mult, MINISAT::EqType rel, int rhstermname);
-	bool 		addCPCount		(vector<int> termnames, int value, MINISAT::EqType rel, int rhstermname);
-	bool 		addCPAlldifferent(const vector<int>& termnames);
+	bool 		addCPSum		(Lit head, std::vector<int> termnames, MINISAT::EqType rel, int bound);
+	bool 		addCPSum		(Lit head, std::vector<int> termnames, std::vector<int> mult, MINISAT::EqType rel, int bound);
+	bool 		addCPSumVar		(Lit head, std::vector<int> termnames, MINISAT::EqType rel, int rhstermname);
+	bool 		addCPSumVar		(Lit head, std::vector<int> termnames, std::vector<int> mult, MINISAT::EqType rel, int rhstermname);
+	bool 		addCPCount		(std::vector<int> termnames, int value, MINISAT::EqType rel, int rhstermname);
+	bool 		addCPAlldifferent(const std::vector<int>& termnames);
 
 	void		addForcedChoices(const vec<Lit>& forcedchoices);
 
@@ -178,7 +178,7 @@ public:
 	bool 		assertedBefore(const Var& l, const Var& p) const;
 	rClause		getExplanation	(Lit l);	//NON-OWNING pointer
 
-	vector<rClause> getClausesWhichOnlyContain(const vector<Var>& vars);
+	std::vector<rClause> getClausesWhichOnlyContain(const std::vector<Var>& vars);
 
     /*
      * Solver callbacks
@@ -209,14 +209,14 @@ public:
 	//TOO SLOW:
 	//Lit 		getRecentAssignment(int i) const;
 	//int 		getNbOfRecentAssignments() const;
-	//vector<Lit> getRecentAssignments() const;
+	//std::vector<Lit> getRecentAssignments() const;
 	/*
 	 * Returns the decision level at which a variable was deduced. This allows to get the variable that was propagated earliest/latest
 	 */
 	int			getCurrentDecisionLevel() const;
 	int 		getLevel		(int var) const;
 	int			getNbDecisions	() const;
-	vector<Lit>	getDecisions	() const;
+	std::vector<Lit>	getDecisions	() const;
 	uint64_t	getConflicts	() const;
 
 	/*
@@ -259,7 +259,9 @@ private:
 	void checkHead(Lit head);
 };
 
-tr1::shared_ptr<Data> unittest(ECNF_mode& modes);
-tr1::shared_ptr<Data> unittest2(ECNF_mode& modes);
+std::tr1::shared_ptr<Data> unittest(ECNF_mode& modes);
+std::tr1::shared_ptr<Data> unittest2(ECNF_mode& modes);
+
+}
 
 #endif /* PCSOLVER_H_ */

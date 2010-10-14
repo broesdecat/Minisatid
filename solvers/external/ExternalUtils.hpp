@@ -28,7 +28,7 @@
 #include <map>
 #include <vector>
 
-using namespace std;
+namespace MinisatID {
 
 #define reportf(...) ( fflush(stdout), fprintf(stderr, __VA_ARGS__), fflush(stderr) )
 
@@ -66,7 +66,7 @@ namespace MINISAT{
 Weight negInfinity();
 Weight posInfinity();
 
-string printWeight(const Weight& w);
+std::string printWeight(const Weight& w);
 
 ///////
 // Generic system exception
@@ -74,7 +74,7 @@ string printWeight(const Weight& w);
 
 class idpexception: public std::exception{
 private:
-	string mess;
+	std::string mess;
 public:
 	idpexception(const char* m): std::exception(){
 		mess.append("Exception caught: ");
@@ -234,6 +234,8 @@ struct ECNF_mode {
 	void printUsage();
 	void parseCommandline(int& argc, char** argv);
 };
+
+}
 
 #endif /*EXTERNALUTILS_HPP_*/
 

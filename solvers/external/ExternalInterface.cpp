@@ -27,10 +27,15 @@
 #include "solvers/external/ExternalInterface.hpp"
 
 #include <cstdlib>
+#include <map>
+#include <vector>
+#include <tr1/memory>
 #include "solvers/pcsolver/PCSolver.hpp"
 #include "solvers/modsolver/SOSolverHier.hpp"
 
 #include <algorithm>
+
+using namespace MinisatID;
 
 modindex getModIndex(modID modid){
 	return (int)modid;

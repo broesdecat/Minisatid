@@ -26,6 +26,8 @@
 #include "solvers/pcsolver/PCSolver.hpp"
 #include "solvers/modsolver/SOSolverHier.hpp"
 
+using namespace MinisatID;
+
 //Important: The head variable does not occur in this theory, so should NOT automatically be
 //added as a var in it.
 /**

@@ -16,6 +16,8 @@
 #include <inttypes.h>
 #include <limits.h>
 
+using namespace std;
+using namespace MinisatID;
 
 FWAgg::FWAgg(paggs agg) :
 	Propagator(agg), currentbestcertain(0), currentbestpossible(0) {

@@ -19,13 +19,13 @@
 #ifndef PBREAD_H
 #define PBREAD_H
 
-using namespace std;
-
 #include "solvers/external/ExternalInterface.hpp"
 
-struct Factor{
-	vector<Literal> vars;
-};
+namespace MinisatID {
+	struct Factor{
+		std::vector<Literal> vars;
+	};
+}
 
 #include <iostream>
 #include <fstream>
@@ -33,18 +33,22 @@ struct Factor{
 #include <stdexcept>
 #include <vector>
 #include <cassert>
-using namespace std;
 
 #ifdef useGMP
 #include <gmpxx.h>
 
-typedef
-mpz_class IntegerType;
+namespace MinisatID {
+	typedef	mpz_class IntegerType;
+}
 #else
 #warning this IntegerType may not be suitable for some input file. Consider using GMP
-typedef
-long IntegerType;
+
+namespace MinisatID {
+	typedef long IntegerType;
+}
 #endif
+
+namespace MinisatID {
 
 class DefaultCallback {
 private:
@@ -53,7 +57,7 @@ private:
 
 	IntegerType bound;
 	bool equality;
-	vector<LW> lw;
+	std::vector<LW> lw;
 	int setid;
 	int maxvar;
 
@@ -95,7 +99,7 @@ public:
 	 * @param coeff: the coefficient of the term
 	 * @param list: list of literals which appear in the product
 	 */
-	void objectiveProduct(IntegerType coeff, vector<int> list);
+	void objectiveProduct(IntegerType coeff, std::vector<int> list);
 
 	void beginConstraint();
 
@@ -116,14 +120,14 @@ public:
 	 * @param coeff: the coefficient of the term
 	 * @param list: list of literals which appear in the product
 	 */
-	void constraintProduct(IntegerType coeff, vector<int> list);
+	void constraintProduct(IntegerType coeff, std::vector<int> list);
 
 	/**
 	 * callback called when we read the relational operator of a constraint
 	 *
 	 * @param relop: the relational oerator (>= or =)
 	 */
-	void constraintRelOp(string relop);
+	void constraintRelOp(std::string relop);
 
 	/**
 	 * callback called when we read the right term of a constraint (also
@@ -137,7 +141,7 @@ public:
 	 * add the necessary constraints to define newSymbol as equivalent
 	 * to the product (conjunction) of literals in product.
 	 */
-	void linearizeProduct(int newSymbol, vector<int> product);
+	void linearizeProduct(int newSymbol, std::vector<int> product);
 };
 
 /**
@@ -146,12 +150,12 @@ public:
  */
 class ProductStore {
 private:
-	// we represent each node of a n-ary tree by a vector<ProductNode>
+	// we represent each node of a n-ary tree by a std::vector<ProductNode>
 	struct ProductNode {
 		int lit; // ID of the literal
 		int productId; // identifier associated to the product of the
 		// literals found from the root up to this node
-		vector<ProductNode> *next; // list of next literals in a product
+		std::vector<ProductNode> *next; // list of next literals in a product
 
 		ProductNode(int l) {
 			lit = l;
@@ -163,7 +167,7 @@ private:
 		// a copy constructor and use reference counting. It's not worth it.
 	};
 
-	vector<ProductNode> root; // root of the n-ary tree
+	std::vector<ProductNode> root; // root of the n-ary tree
 	int nextSymbol; // next available variable
 
 	/**
@@ -189,22 +193,22 @@ public:
 	 * get the identifier associated to a product term (update the list
 	 * if necessary)
 	 */
-	int getProductVariable(vector<int> &list);
+	int getProductVariable(std::vector<int> &list);
 
 	void defineProductVariable(DefaultCallback &cb) {
-		vector<int> list;
+		std::vector<int> list;
 		defineProductVariableRec(cb, root, list);
 	}
 	void freeProductVariable() { freeProductVariableRec(root); }
 
 private:
-	void defineProductVariableRec(DefaultCallback &cb, vector<ProductNode> &nodes, vector<int> &list);
-	void freeProductVariableRec(vector<ProductNode> &nodes);
+	void defineProductVariableRec(DefaultCallback &cb, std::vector<ProductNode> &nodes, std::vector<int> &list);
+	void freeProductVariableRec(std::vector<ProductNode> &nodes);
 };
 
 class PBRead{
 private:
-	ifstream in; // the stream we're reading from
+	std::ifstream in; // the stream we're reading from
 	int nbVars, nbConstr; // MetaData: #Variables and #Constraints in file.
 
 	bool autoLinearize;
@@ -214,10 +218,10 @@ private:
 
 public:
 	PBRead(PropositionalSolver* solver, char *filename): cb(solver) {
-		in.open(filename, ios_base::in);
+		in.open(filename, std::ios_base::in);
 
 		if (!in.good()){
-			throw runtime_error("error opening input file");
+			throw std::runtime_error("error opening input file");
 		}
 
 		autoLinearize = false;
@@ -251,14 +255,14 @@ private:
 	 * @param list: the current list of identifiers that were read
 	 * @return true iff an identifier was correctly read
 	 */
-	bool readIdentifier(vector<int> &list);
+	bool readIdentifier(std::vector<int> &list);
 
 	/**
 	 * read a relational operator from stream and store it in s
 	 * @param s: the variable to hold the relational operator we read
 	 * @return true iff a relational operator was correctly read
 	 */
-	bool readRelOp(string &s);
+	bool readRelOp(std::string &s);
 
 	/**
 	 * read the first comment line to get the number of variables and
@@ -278,7 +282,7 @@ private:
 	 * @param coeff: the coefficient of the variable
 	 * @param list: the list of literals identifiers in the product
 	 */
-	void readTerm(IntegerType &coeff, vector<int> &list);
+	void readTerm(IntegerType &coeff, std::vector<int> &list);
 
 	/**
 	 * read the objective line (if any)
@@ -298,7 +302,9 @@ private:
 	 * passes a product term to the solver (first linearizes the product
 	 * if this is wanted)
 	 */
-	void handleProduct(bool inObjective, IntegerType coeff, vector<int> &list);
+	void handleProduct(bool inObjective, IntegerType coeff, std::vector<int> &list);
 };
+
+}
 
 #endif

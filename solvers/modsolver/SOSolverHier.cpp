@@ -23,6 +23,8 @@
 
 #include "solvers/modsolver/ModSolver.hpp"
 
+using namespace MinisatID;
+
 ModSolverData::ModSolverData(ECNF_mode modes):Data(modes), state(NEW){
 	//propagationsolver = new PCSolver(modes);
 	solvers.push_back(new ModSolver(0, -1, this));

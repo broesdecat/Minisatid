@@ -26,7 +26,7 @@
 
 #include "solvers/pcsolver/SolverModule.hpp"
 
-using namespace std;
+namespace MinisatID {
 
 class PCSolver;
 typedef PCSolver* pPCSolver;
@@ -36,15 +36,15 @@ class ModSolverData;
 class ModSolver;
 typedef ModSolver* pModSolver;
 
-typedef vector<pModSolver> vmsolvers;
+typedef std::vector<pModSolver> vmsolvers;
 typedef vmsolvers::size_type modindex;
-typedef vector<modindex> vmodindex;
+typedef std::vector<modindex> vmodindex;
 
 /**
  * Each modsolver has an id, a parent and a number of children
  * The topmost solver has no parent and id 0 and is created the moment the header is parsed
  *
- * The ids are substracted by one to get their position in the vector
+ * The ids are substracted by one to get their position in the std::vector
  *
  * parsing process:
  * read statements of the form
@@ -68,7 +68,7 @@ private:
 	bool hasparent, searching; //, startedsearch;
 
 	AV			head;
-	vector<Var>	atoms; //atoms which are rigid within this solver
+	std::vector<Var>	atoms; //atoms which are rigid within this solver
 
 	modindex 	id, parentid;
 	pPCSolver	solver;
@@ -77,13 +77,13 @@ private:
 
 	vec<Lit> 	assumptions;
 	//int			startindex;
-	vector<bool> propfromabove; //Indicates whether this literal was propagated by the parent
+	std::vector<bool> propfromabove; //Indicates whether this literal was propagated by the parent
 
 public:
 	ModSolver(modindex child, Var head, ModSolverData* mh);
 	virtual ~ModSolver();
 
-	bool 	addAtoms		(const vector<Var>& atoms);
+	bool 	addAtoms		(const std::vector<Var>& atoms);
 	void 	addChild		(modindex child);
 	void	setParent		(modindex id);
 
@@ -99,7 +99,7 @@ public:
 	void				addVar			(Var v);
 	bool 				addClause		(vec<Lit>& lits);
 	bool 				addRule			(bool conj, Lit head, vec<Lit>& lits);
-	bool 				addSet			(int setid, vec<Lit>& lits, vector<Weight>& w);
+	bool 				addSet			(int setid, vec<Lit>& lits, std::vector<Weight>& w);
 	bool 				addAggrExpr		(Lit head, int set_id, Weight bound, AggSign boundsign, AggType type, AggSem defined);
 	bool 				finishParsing();
 
@@ -164,7 +164,7 @@ public:
 	modindex 			getPrintId	()	const	{ return id+1; }
 	modindex			getParentId	()	const	{ return parentid; }
 	modindex			getParentPrintId	()	const	{ return parentid+1; }
-	const vector<Var>& 	getAtoms	()	const	{ return atoms; }
+	const std::vector<Var>& 	getAtoms	()	const	{ return atoms; }
 	const vmodindex& 	getChildren	()	const	{ return children; }
 
 	const ModSolverData& getModSolverData() const	{ return *modhier; }
@@ -184,5 +184,7 @@ private:
 	bool 				search				(const vec<Lit>&, bool search = true);
 	bool 				analyzeResult		(bool result, bool allknown, vec<Lit>& confldisj);
 };
+
+}
 
 #endif// MODSOLVER_H_

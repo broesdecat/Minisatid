@@ -19,6 +19,7 @@
 
 #include "solvers/Unittests.hpp"
 
+using namespace MinisatID;
 
 shared_ptr<SolverInterface> unittest(ECNF_mode& modes){ //unsat
 	modes.cp = true;

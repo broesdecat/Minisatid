@@ -16,6 +16,9 @@
 #include <inttypes.h>
 #include <limits.h>
 
+using namespace std;
+using namespace MinisatID;
+
 void Aggrs::printWatches(AggSolver* const solver, const vvpw& tempwatches){
 	for(vsize i=0; i<2*solver->nVars(); i++){
 		bool found = false;

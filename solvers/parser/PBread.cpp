@@ -49,6 +49,8 @@
 #include <algorithm>
 using namespace std;
 
+using namespace MinisatID;
+
 /*
  * callback called when we get the number of variables and the
  * expected number of constraints

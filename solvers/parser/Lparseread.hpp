@@ -37,25 +37,25 @@
 #ifndef READ_H
 #define READ_H
 
-using namespace std;
-
 #include "solvers/external/ExternalInterface.hpp"
+
+namespace MinisatID {
 
 struct GenRule{
 	long atleast;
-	vector<Literal> heads;
-	vector<Literal> body;
+	std::vector<Literal> heads;
+	std::vector<Literal> body;
 
-	GenRule(long atleast, vector<Literal>& heads, vector<Literal>& body):atleast(atleast), heads(heads), body(body){
+	GenRule(long atleast, std::vector<Literal>& heads, std::vector<Literal>& body):atleast(atleast), heads(heads), body(body){
 
 	}
 };
 
 struct ChoiceRule{
-	vector<Literal> heads;
-	vector<Literal> body;
+	std::vector<Literal> heads;
+	std::vector<Literal> body;
 
-	ChoiceRule(vector<Literal>& heads, vector<Literal>& body): heads(heads), body(body){
+	ChoiceRule(std::vector<Literal>& heads, std::vector<Literal>& body): heads(heads), body(body){
 
 	}
 };
@@ -64,16 +64,16 @@ class Read{
 public:
 	Read (PropositionalSolver* solver);
 	~Read ();
-	int read (istream &f);
+	int read (std::istream &f);
 
 private:
-	int readBody (istream &f, long size, bool pos, vector<Literal>& body);
-	int addBasicRule (istream &f);
-	int addConstraintRule (istream &f);
-	int addGenerateRule (istream &f);
-	int addChoiceRule (istream &f);
-	int addWeightRule (istream &f);
-	int addOptimizeRule (istream &f);
+	int readBody (std::istream &f, long size, bool pos, std::vector<Literal>& body);
+	int addBasicRule (std::istream &f);
+	int addConstraintRule (std::istream &f);
+	int addGenerateRule (std::istream &f);
+	int addChoiceRule (std::istream &f);
+	int addWeightRule (std::istream &f);
+	int addOptimizeRule (std::istream &f);
 
 	Literal makeLiteral(int n, bool sign);
 	int finishGenerateRules();
@@ -86,8 +86,10 @@ private:
 	PropositionalSolver* solver;
 	PropositionalSolver* getSolver() { return solver; }
 
-	vector<GenRule> genrules;
-	vector<ChoiceRule> choicerules;
+	std::vector<GenRule> genrules;
+	std::vector<ChoiceRule> choicerules;
 };
+
+}
 
 #endif

@@ -12,6 +12,8 @@
 
 #include <vector>
 
+namespace MinisatID {
+
 ///////
 // FORWARD DECLARATIONS + TYPEDEFS
 ///////
@@ -379,6 +381,8 @@ void printAgg(const Agg& c, bool printendline = false);
 bool 	oppositeIsJustified		(const WL& wl, vec<int>& currentjust, bool real, paggsol solver);
 bool 	isJustified				(const WL& wl, vec<int>& currentjust, bool real, paggsol solver);
 bool 	isJustified				(Var x, vec<int>& currentjust);
+
+}
 
 }
 

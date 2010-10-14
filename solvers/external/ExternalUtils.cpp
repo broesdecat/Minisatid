@@ -22,6 +22,8 @@
 
 #include "solvers/external/ExternalUtils.hpp"
 
+using namespace std;
+
 #ifdef GMPWEIGHT
 	string printWeight(const Weight& w){
 		return w.get_str();

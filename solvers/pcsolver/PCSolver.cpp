@@ -26,6 +26,9 @@
 
 #include "solvers/utils/Print.hpp"
 
+using namespace std;
+using namespace MinisatID;
+
 bool isPositive(Lit l) {
 	return !sign(l);
 }

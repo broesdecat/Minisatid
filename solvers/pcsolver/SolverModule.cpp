@@ -21,6 +21,8 @@
 
 #include "solvers/pcsolver/PCSolver.hpp"
 
+using namespace MinisatID;
+
 int SolverModule::verbosity() const	{
 	return getPCSolver()->verbosity();
 }

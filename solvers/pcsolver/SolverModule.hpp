@@ -22,6 +22,8 @@
 
 #include "solvers/utils/Utils.hpp"
 
+namespace MinisatID {
+
 class PCSolver;
 
 class SolverModule {
@@ -53,5 +55,7 @@ public:
 
 	virtual void printStatistics	() const = 0;
 };
+
+}
 
 #endif /* ISOLVER_HPP_ */

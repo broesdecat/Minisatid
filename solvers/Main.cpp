@@ -97,15 +97,17 @@ static inline double cpuTime(void) { return 0; }
 #include "solvers/Unittests.hpp"
 #include "solvers/parser/Lparseread.hpp"
 #include "solvers/parser/PBread.hpp"
-
-ECNF_mode modes;
-
 #include <tr1/memory>
 
 using namespace std::tr1;
+using namespace MinisatID;
 
-class SolverInterface;
-typedef shared_ptr<SolverInterface> pData;
+ECNF_mode modes;
+
+namespace MinisatID {
+	class SolverInterface;
+	typedef shared_ptr<SolverInterface> pData;
+}
 
 extern char * 	yytext;
 extern int 		lineNo;
@@ -129,7 +131,7 @@ static void SIGINT_handler	(int signum);
 void 		printUsage		(char** argv);
 
 void		noMoreMem(){
-	//Tries to reduce the memory of the solver by reducing the number of learned clauses
+	//Tries to reduce the memory of the solver by redustd::cing the number of learned clauses
 	//This keeps being called until enough memory is free or no more learned clauses can be/are deleted (causing abort).
 	throw idpexception("The solver ran out of memory.\n");
 //	bool reducedmem = false;
@@ -239,11 +241,11 @@ int main(int argc, char** argv) {
 
 			if(argc==1){
 				reportf("Reading from standard input... Use '-h' or '--help' for help.\n");
-				r->read(cin);
+				r->read(std::cin);
 			}else if(argc>1){
-				filebuf fb;
-				fb.open(argv[1],ios::in);
-				istream x(&fb);
+				std::filebuf fb;
+				fb.open(argv[1],std::ios::in);
+				std::istream x(&fb);
 				r->read(x);
 				fb.close();
 				//TODO duplicate, buggy code with original (non lparse) parsing.
@@ -522,7 +524,7 @@ pData parse(){
 		yyparse();
 	}catch(idpexception& e){
 		if(unsatfound){
-			cerr << "Unsat detected during parsing.\n";
+			std::cerr << "Unsat detected during parsing.\n";
 		}else{
 			char s[300];
 			sprintf(s, "Parse error: Line %d, column %d, on \"%s\": %s", lineNo, charPos, yytext, e.what());

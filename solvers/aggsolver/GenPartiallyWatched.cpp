@@ -14,6 +14,9 @@
 #include <inttypes.h>
 #include <limits.h>
 
+using namespace std;
+using namespace MinisatID;
+
 inline vpgpw& GenPWAgg::getSet(watchset w) {
 	switch (w) {
 	case NF:

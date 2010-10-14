@@ -49,6 +49,9 @@
 #include <inttypes.h>
 #include <limits.h>
 
+using namespace std;
+using namespace MinisatID;
+
 inline void IDSolver::addCycleSource(Var v) {
 	if (!isCS[v]) {
 		isCS[v] = true;

@@ -20,6 +20,7 @@
 #ifndef SATSOLVER_H_
 #define SATSOLVER_H_
 
+namespace MinisatID {
 
 #ifdef USEMINISAT
 class Solver;
@@ -37,6 +38,6 @@ namespace Minisat{
 }
 #endif
 
-
+}
 
 #endif// SATSOLVER_H_

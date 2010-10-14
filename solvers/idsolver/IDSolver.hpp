@@ -48,9 +48,11 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "solvers/utils/Utils.hpp"
 
 #include "solvers/pcsolver/SolverModule.hpp"
-typedef PCSolver* pPCSolver;
-
 #include "solvers/aggsolver/AggSolver.hpp"
+
+namespace MinisatID {
+
+typedef PCSolver* pPCSolver;
 class AggSolver;
 typedef AggSolver* pAggSolver;
 
@@ -103,7 +105,7 @@ public:
 
 	bool 		isWellFoundedModel		();
 
-	vector<vector<Lit> > reasons;	// Map vars to vec<Lit> which were the reason of deriving it
+	std::vector<std::vector<Lit> > reasons;	// std::map vars to vec<Lit> which were the reason of deriving it
 	rClause 	getExplanation			(const Lit& p);    // Create a clause that implicitly was the reason for p's propagation.
 
 	/////////////////////ENDSOLVER NECESSARY
@@ -136,12 +138,12 @@ public:
 protected:
 	void			setDefinition(Var head, PropRule* r) { definition[head]=r; }
 
-	vector<PropRule*>	definition;	// If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
+	std::vector<PropRule*>	definition;	// If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
 	// Note that v occurs negatively if DISJ, positively if CONJ; and the reverse for the body literals.
 	// NOTE: If defType[v]==NONDEF, it may be that v is defined, but that no positive loop can exist. It SHOULD NOT be deleted then
 	//		because it will be used for WELLFOUNDED model checking later on.
-	vector<DefType>	defType;	// Gives the type of definition for each VAR
-	vector<DefOcc>	defOcc;		// Gives the type of definition occurrence for each VAR
+	std::vector<DefType>	defType;	// Gives the type of definition for each VAR
+	std::vector<DefOcc>	defOcc;		// Gives the type of definition occurrence for each VAR
 
 	bool 		recagg;	//true if recursive aggregates are present
 	vec<bool>	isCS;                   // Per atom: is it a cycle source?
@@ -164,11 +166,11 @@ protected:
 
 	// ECNF_mode.def additions to Solver state:
 	//
-	vector<Var>		defdVars;	// All the vars that are the head of some kind of definition (disj, conj or aggr). Allows to iterate over all definitions.
+	std::vector<Var>		defdVars;	// All the vars that are the head of some kind of definition (disj, conj or aggr). Allows to iterate over all definitions.
 	vec<int>		scc;		// To which strongly connected component does the atom belong. Zero iff defType[v]==NONDEF.
 	bool 			posloops, negloops;
 
-	set<Var>		toremoveaggrheads; //The set of defined aggregates that are no longer defined and should be removed from IDSolver during simplification.
+	std::set<Var>		toremoveaggrheads; //The set of defined aggregates that are no longer defined and should be removed from IDSolver during simplification.
 
 	bool		isDefined			(Var v) const;
 	bool 		originallyDefined	(Var v) const;
@@ -185,8 +187,8 @@ protected:
 	bool 		findJustificationAggr(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust);
 
 	// Rules (body to head):
-	vector<vector<Var> >	disj_occurs;         // Per literal: a vector of heads of DISJ rules in which it is a body literal.
-	vector<vector<Var> >	conj_occurs;         // Per literal: a vector of heads of CONJ rules in which it is a body literal.
+	std::vector<std::vector<Var> >	disj_occurs;         // Per literal: a std::vector of heads of DISJ rules in which it is a body literal.
+	std::vector<std::vector<Var> >	conj_occurs;         // Per literal: a std::vector of heads of CONJ rules in which it is a body literal.
 
 	// Justifications:
 	vec<vec<Lit> >			justification;	// Per atom. cf_ = cycle free, sp_ = supporting.
@@ -260,22 +262,22 @@ protected:
 	 *******************************/
 
 private:
-	vector<Var> wfroot;
-	queue<Lit> wfqueue;
-	set<Var> wfmarkedAtoms;
-	vector<bool> wfisMarked;
-	vector<Var> wfrootnodes;
+	std::vector<Var> wfroot;
+	std::queue<Lit> wfqueue;
+	std::set<Var> wfmarkedAtoms;
+	std::vector<bool> wfisMarked;
+	std::vector<Var> wfrootnodes;
 	bool wffixpoint;
 
 	/*
 	 * Implementation of Tarjan's algorithm for detecting strongly connected components.
 	 */
-	void visitWF(Var i, vector<Var> &root, vector<bool> &incomp, stack<Var> &stack, vector<Var> &visited, int& counter, bool throughPositiveLit, vector<int>& rootofmixed);
+	void visitWF(Var i, std::vector<Var> &root, std::vector<bool> &incomp, std::stack<Var> &stack, std::vector<Var> &visited, int& counter, bool throughPositiveLit, std::vector<int>& rootofmixed);
 	/*
 	 * Search for mixed cycles in the justification graph of the current model.
 	 * @post For every mixed cycle in the justification graph, there is one literal of the cycle on \c _mixedCycleRoots.
 	 */
-	void findMixedCycles(vector<Var> &root, vector<int>& rootofmixed);
+	void findMixedCycles(std::vector<Var> &root, std::vector<int>& rootofmixed);
 	/*
 	 * Mark all atoms that are above the mixed cycle roots in the justification graph.
 	 */
@@ -319,5 +321,7 @@ inline rClause IDSolver::propagateDefinitions(){
 	assert(false);
 	return nullPtrClause;
 }*/
+
+}
 
 #endif /* IDSOLVER_H_ */

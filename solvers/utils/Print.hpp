@@ -22,6 +22,8 @@
 
 #include "solvers/utils/Utils.hpp"
 
+namespace MinisatID {
+
 //TODO should create "ForWardDeclare SAT" file
 #ifdef USEMINISAT
 class Solver;
@@ -73,6 +75,8 @@ void printClause(rClause c, S const * const s);
 
 template<>
 void printClause(rClause c, PCSolver const * const s);
+
+}
 
 }
 

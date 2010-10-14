@@ -12,6 +12,9 @@
 
 #include "solvers/aggsolver/AggComb.hpp"
 
+namespace MinisatID {
+
+
 class AggSolver;
 namespace Aggrs{
 	class Agg;
@@ -256,6 +259,8 @@ public:
 };
 
 void printWatches(AggSolver* const solver, const vvpw& tempwatches);
+
+}
 
 }
 

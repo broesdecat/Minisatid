@@ -22,8 +22,14 @@
 
 #include "solvers/external/ExternalInterface.hpp"
 
-shared_ptr<SolverInterface> unittest(ECNF_mode& modes);
-shared_ptr<SolverInterface> unittest2(ECNF_mode& modes);
-shared_ptr<SolverInterface> unittest3(ECNF_mode& modes);
+#include <tr1/memory>
+
+namespace MinisatID {
+
+std::tr1::shared_ptr<SolverInterface> unittest(ECNF_mode& modes);
+std::tr1::shared_ptr<SolverInterface> unittest2(ECNF_mode& modes);
+std::tr1::shared_ptr<SolverInterface> unittest3(ECNF_mode& modes);
+
+}
 
 #endif /* UNITTESTS_HPP_ */

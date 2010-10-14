@@ -19,6 +19,10 @@
 #include "solvers/utils/Utils.hpp"
 #include "solvers/external/ExternalInterface.hpp"
 
+using namespace MinisatID;
+using namespace std::tr1;
+using namespace std;
+
 //}
 
 //%code{
@@ -32,8 +36,8 @@ void yyerror(const char* msg);
 bool negatemod = false;
 int cnfcurrentmodid = 0;
 Atom cnfcurrenthead(-1);
-vector<int> modalops;
-vector<Literal> heads;
+std::vector<int> modalops;
+std::vector<MinisatID::Literal> heads;
 
 //Auxiliary variables, used while parsing.
 int lineNo = 1;
@@ -41,8 +45,8 @@ int charPos = 1;
 
 bool unsatfound = false;
 
-tr1::shared_ptr<PropositionalSolver>	solver;
-tr1::shared_ptr<ModalSolver>	modsolver;
+std::tr1::shared_ptr<MinisatID::PropositionalSolver>	solver;
+std::tr1::shared_ptr<MinisatID::ModalSolver>	modsolver;
 
 /**
  * CR-CheckResult: checks the result of passing some data to the solvers.
@@ -55,11 +59,11 @@ void initModSolver();
 
 int atoms, clauses;
 
-vector<Atom> rigidatoms; //a necessary list of accumulated rigid atoms when reading qbf format
+std::vector<MinisatID::Atom> rigidatoms; //a necessary list of accumulated rigid atoms when reading qbf format
 
 void finishCNFHeader();
-void readCNFModalHierLevel(bool existential, const vector<Atom>& rigidatoms);
-shared_ptr<SolverInterface> getData();
+void readCNFModalHierLevel(bool existential, const std::vector<MinisatID::Atom>& rigidatoms);
+std::tr1::shared_ptr<MinisatID::SolverInterface> getData();
 
 %}
 
@@ -68,14 +72,14 @@ shared_ptr<SolverInterface> getData();
 %union {
 	int integer;
     bool boolean;
-    vector<int>* vints;
-    vector<Literal>* vlits;
-    vector<LW>* vlws;
-    vector<Atom>* vatoms;
-    MINISAT::EqType rel;
-    AggType aggr;
-    AggSign sign;
-    AggSem sem;
+    std::vector<int>* vints;
+    std::vector<MinisatID::Literal>* vlits;
+    std::vector<MinisatID::LW>* vlws;
+    std::vector<MinisatID::Atom>* vatoms;
+    MinisatID::MINISAT::EqType rel;
+    MinisatID::AggType aggr;
+    MinisatID::AggSign sign;
+    MinisatID::AggSem sem;
 }
 
 %token DISJUNCTION CONJUNCTION
@@ -302,8 +306,8 @@ magg	:	AGGDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER number ZERO
 
 mset	:	SETDEFN NUMBER NUMBER body ZERO	
 				{
-					vector<Weight> weights;
-					for(vector<Literal>::size_type i=0; i<(*$4).size(); i++){
+					std::vector<MinisatID::Weight> weights;
+					for(std::vector<MinisatID::Literal>::size_type i=0; i<(*$4).size(); i++){
 						weights.push_back(1);
 					}
 					CR(modsolver->addSet($2-1, $3, *$4, weights));
@@ -324,27 +328,27 @@ mwset	:	WSETDEFN NUMBER NUMBER wbody ZERO
 //---------------------------------------------
 			
 //Clausese can be empty!
-body	:	body NUMBER { $$ = $1; $$->push_back(Literal(abs($2), $2<0));	}
-		|				{ $$ = new vector<Literal>();	}
+body	:	body NUMBER { $$ = $1; $$->push_back(MinisatID::Literal(abs($2), $2<0));	}
+		|				{ $$ = new std::vector<MinisatID::Literal>();	}
 		;
 		
 wbody	:	wbody NUMBER REL 
 				{ 
-					if($3!=MINISAT::MEQ) { 
-						throw idpexception("Weighted sets can only contain tuples with equality.\n");
+					if($3!=MinisatID::MINISAT::MEQ) { 
+						throw MinisatID::idpexception("Weighted sets can only contain tuples with equality.\n");
 					} 
 				} 
 			number	
-				{ $$ = $1; $$->push_back(LW(Literal(abs($2), $2<0), Weight($5))); }
+				{ $$ = $1; $$->push_back(MinisatID::LW(MinisatID::Literal(abs($2), $2<0), Weight($5))); }
 			
 		|	NUMBER REL 
 				{ 
-					if($2!=MINISAT::MEQ) { 
-						throw idpexception("Weighted sets can only contain tuples with equality.\n");
+					if($2!=MinisatID::MINISAT::MEQ) { 
+						throw MinisatID::idpexception("Weighted sets can only contain tuples with equality.\n");
 					} 
 				} 
 			number	
-				{ $$ = new vector<LW>(1,LW(Literal(abs($1), $1<0), Weight($4))); }
+				{ $$ = new std::vector<LW>(1,MinisatID::LW(Literal(abs($1), $1<0), Weight($4))); }
 		;
 		
 vbody	:	vbody posnumber { $$ = $1; $$->push_back(Atom(abs($2)));	}
