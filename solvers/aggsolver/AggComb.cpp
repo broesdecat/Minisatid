@@ -85,11 +85,11 @@ SPCalc::SPCalc(const paggsol& solver, const vwl& wl):
 SumCalc::SumCalc(const paggsol& solver, const vwl& wl):
 			SPCalc(solver, wl){
 	setESV(0);
-	if(solver->getPCSolver()->modes().pw){
+	/*if(solver->getPCSolver()->modes().pw){
 		new SumGenPWAgg(this);
-	}else{
+	}else{*/
 		new SumFWAgg(this);
-	}
+	//}
 }
 
 ProdCalc::ProdCalc(const paggsol& solver, const vwl& wl):
