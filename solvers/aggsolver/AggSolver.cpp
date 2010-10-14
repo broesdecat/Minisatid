@@ -162,8 +162,13 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 	return true;
 }
 
+//#include "pbsolver/PbSolver.h"
+
 bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	AggSign boundsign, AggType type, AggSem headeq) {
 	assert(type==MIN || type==MAX || type==CARD || type==SUM || type==PROD);
+
+	//Small test:
+	//PBSolver::PbSolver* pbsolver = new PBSolver::PbSolver();
 
 	if (parsedsets.find(setid)==parsedsets.end()) { //Exception if set already exists
 		char s[100];
