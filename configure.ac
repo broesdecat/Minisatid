@@ -1,4 +1,4 @@
-AC_INIT([minisatid],[3.1],[krr@cs.kuleuven.be])
+AC_INIT([minisatid],[3.2],[krr@cs.kuleuven.be])
 
 if test x"${CXXFLAGS+set}" = xset; then 
 	# the user set CXXFLAGS; don't override it. 
