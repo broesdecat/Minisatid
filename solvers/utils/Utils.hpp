@@ -32,10 +32,6 @@
 
 namespace MinisatID {
 
-#ifdef USEMINISAT22
-using namespace Minisat;
-#endif
-
 typedef std::vector<void*>::size_type vsize;
 
 template<class T>

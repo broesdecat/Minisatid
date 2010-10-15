@@ -69,8 +69,9 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 /*AB*/
 #include "solvers/utils/Utils.hpp"
 #include "solvers/pcsolver/PCSolver.hpp"
-class PCSolver;
-typedef PCSolver* pPCSolver;
+namespace MinisatID{
+	class PCSolver;
+}
 /*AE*/
 
 #if defined(__linux__)
@@ -103,11 +104,12 @@ static inline uint64_t memUsed() { return 0; }
 //=================================================================================================
 // Solver -- the main class:
 
+namespace Minisat{
 
 class Solver {
 private:
 /*AB*/
-	pPCSolver	solver;
+	MinisatID::PCSolver* solver;
 	vec<Lit> 	forcedchoices;
 	int		 	choicestaken;
 	bool 		useheur;
@@ -120,7 +122,7 @@ public:
 	void		uncheckedEnqueue	(Lit p, Clause* from = NULL);				// Enqueue a literal. Assumes value of literal is undefined
 	int 		getLevel			(int var) const;
 	bool 		totalModelFound		();				//true if the current assignment is completely two-valued
-	vector<Lit> getDecisions		() const;
+	std::vector<Lit> getDecisions		() const;
 	int			decisionLevel		() const; // Gives the current decisionlevel.
 	const vec<Lit>& getTrail() const { return trail; }
 	int 			getStartLastLevel() const { return trail_lim.size()==0?0:trail_lim.last(); }
@@ -144,7 +146,7 @@ public:
 
     // Constructor/Destructor:
     //
-    Solver(pPCSolver s /*A*/);
+    Solver(MinisatID::PCSolver*  s /*A*/);
     ~Solver();
 
     // Problem specification:
@@ -407,6 +409,7 @@ inline void Solver::printClause(const C& c) const
         printLit(c[i]);
         fprintf(stderr, " ");
     }
+}
 }
 
 //=================================================================================================

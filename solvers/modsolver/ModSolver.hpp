@@ -20,10 +20,7 @@
 #ifndef MODSOLVER_H_
 #define MODSOLVER_H_
 
-#include <set>
-
 #include "solvers/utils/Utils.hpp"
-
 #include "solvers/pcsolver/SolverModule.hpp"
 
 namespace MinisatID {
@@ -44,7 +41,7 @@ typedef std::vector<modindex> vmodindex;
  * Each modsolver has an id, a parent and a number of children
  * The topmost solver has no parent and id 0 and is created the moment the header is parsed
  *
- * The ids are substracted by one to get their position in the std::vector
+ * The ids are substracted by one to get their position in the std::std::vector
  *
  * parsing process:
  * read statements of the form

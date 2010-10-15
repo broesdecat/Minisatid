@@ -40,12 +40,15 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "mtlold/Sort.h"
 #include <cmath>
 
+#include <vector> /*A*/
+/*A*/ using namespace Minisat;
+/*A*/ using namespace MinisatID;
 
 //=================================================================================================
 // Constructor/Destructor:
 
 
-Solver::Solver(pPCSolver s/*A*/) :
+Solver::Solver(PCSolver* s/*A*/) :
 	solver(s), /*A*/
     // Parameters: (formerly in 'SearchParams')
     var_decay(1 / 0.95), clause_decay(1 / 0.999), random_var_freq(0.02)
@@ -123,8 +126,12 @@ Var Solver::newVar(bool sign, bool dvar)
 //	qhead = 0;
 //}
 
-vector<Lit> Solver::getDecisions()const {
-	vector<Lit> v;
+inline void Solver::newDecisionLevel(){
+	trail_lim.push(trail.size()); /*AB*/ solver->newDecisionLevel(); /*AE*/
+}
+
+std::vector<Lit> Solver::getDecisions()const {
+	std::vector<Lit> v;
 	for(int i=0; i<trail_lim.size(); i++){
 		v.push_back(trail[trail_lim[i]]);
 	}
@@ -327,7 +334,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 	assert(confl!=NULL);
 
 	//reportf("Conflicts: %d.\n", conflicts);
-	vector<Lit> explain;
+	std::vector<Lit> explain;
 	if(verbosity>4){
 		reportf("Choices: ");
 		for(int i=0; i<trail_lim.size(); i++){
@@ -398,7 +405,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 
         /*AB*/
         if(verbosity>4){
-        	for(vector<Lit>::const_iterator i=explain.begin(); i<explain.end(); i++){
+        	for(std::vector<Lit>::const_iterator i=explain.begin(); i<explain.end(); i++){
         		gprintLit(*i); reportf(" ");
         	}
         	reportf("\n");
@@ -418,7 +425,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
         /*AB*/
         if(verbosity>4){
 			reportf("Getting explanation for ");
-			for(vector<Lit>::iterator i=explain.begin(); i<explain.end(); i++){
+			for(std::vector<Lit>::iterator i=explain.begin(); i<explain.end(); i++){
 				if(var(*i)==var(p)){
 					explain.erase(i);
 					break;

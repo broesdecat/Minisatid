@@ -28,14 +28,15 @@
 
 using namespace std;
 using namespace MinisatID;
+using namespace Minisat;
 
-bool isPositive(Lit l) {
+bool MinisatID::isPositive(Lit l) {
 	return !sign(l);
 }
-Lit createNegativeLiteral(Var i) {
+Lit MinisatID::createNegativeLiteral(Var i) {
 	return mkLit(i, true);
 }
-Lit createPositiveLiteral(Var i) {
+Lit MinisatID::createPositiveLiteral(Var i) {
 	return mkLit(i, false);
 }
 
@@ -339,31 +340,31 @@ void PCSolver::checkHead(Lit head) {
 	}
 }
 
-bool PCSolver::addCPBinaryRel(Lit head, int groundname, MINISAT::EqType rel, int bound) {
+bool PCSolver::addCPBinaryRel(Lit head, int groundname, EqType rel, int bound) {
 	throw idpexception("CP-support is not compiled in.\n");
 }
 
-bool PCSolver::addCPBinaryRelVar(Lit head, int groundname, MINISAT::EqType rel, int groundname2) {
+bool PCSolver::addCPBinaryRelVar(Lit head, int groundname, EqType rel, int groundname2) {
 	throw idpexception("CP-support is not compiled in.\n");
 }
 
-bool PCSolver::addCPSum(Lit head, vector<int> termnames, MINISAT::EqType rel, int bound) {
+bool PCSolver::addCPSum(Lit head, vector<int> termnames, EqType rel, int bound) {
 	throw idpexception("CP-support is not compiled in.\n");
 }
 
-bool PCSolver::addCPSum(Lit head, vector<int> termnames, vector<int> mult, MINISAT::EqType rel, int bound) {
+bool PCSolver::addCPSum(Lit head, vector<int> termnames, vector<int> mult, EqType rel, int bound) {
 	throw idpexception("CP-support is not compiled in.\n");
 }
 
-bool PCSolver::addCPSumVar(Lit head, vector<int> termnames, MINISAT::EqType rel, int rhstermname) {
+bool PCSolver::addCPSumVar(Lit head, vector<int> termnames, EqType rel, int rhstermname) {
 	throw idpexception("CP-support is not compiled in.\n");
 }
 
-bool PCSolver::addCPSumVar(Lit head, vector<int> termnames, vector<int> mult, MINISAT::EqType rel, int rhstermname) {
+bool PCSolver::addCPSumVar(Lit head, vector<int> termnames, vector<int> mult, EqType rel, int rhstermname) {
 	throw idpexception("CP-support is not compiled in.\n");
 }
 
-bool PCSolver::addCPCount(vector<int> termnames, int value, MINISAT::EqType rel, int rhstermname) {
+bool PCSolver::addCPCount(vector<int> termnames, int value, EqType rel, int rhstermname) {
 	throw idpexception("CP-support is not compiled in.\n");
 }
 

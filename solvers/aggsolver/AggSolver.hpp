@@ -43,6 +43,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <map>
 #include <set>
 
+#include "solvers/utils/Utils.hpp"
 #include "solvers/pcsolver/SolverModule.hpp"
 
 namespace MinisatID {

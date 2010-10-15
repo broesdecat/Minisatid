@@ -37,7 +37,9 @@
  **************************************************************************************************/
 
 #include "solvers/idsolver/IDSolver.hpp"
-#include "solvers/utils/Utils.hpp"
+
+#include "solvers/aggsolver/AggSolver.hpp"
+
 #include "solvers/utils/Print.hpp"
 
 #include "solvers/pcsolver/PCSolver.hpp"
@@ -1099,7 +1101,7 @@ bool IDSolver::indirectPropagateNow() {
 bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 	justify_calls++;
 	vec<Var> tmpseen; // use to speed up the cleaning of data structures in "Finish"
-	Queue<Var> q;
+	queue<Var> q;
 	Var v;
 
 	markNonJustified(cs, tmpseen);
@@ -1116,11 +1118,11 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 		}
 	}
 
-	q.insert(cs);
+	q.push(cs);
 	ufs.clear();
 	ufs.insert(cs);
 	while (!csisjustified && q.size() > 0) {
-		v = q.peek();
+		v = q.front();
 		q.pop();
 		if (isJustified(v)) {
 			continue;
@@ -1226,7 +1228,7 @@ bool IDSolver::findJustificationAggr(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, v
  * @Post: v is now justified if a justification can be found based on the current seen vector
  * @Returns: true if v is now justified
  */
-bool IDSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
+bool IDSolver::directlyJustifiable(Var v, std::set<Var>& ufs, queue<Var>& q) {
 	vec<Lit> jstf;
 	vec<Var> nonjstf;
 	bool justified;
@@ -1262,7 +1264,7 @@ bool IDSolver::directlyJustifiable(Var v, std::set<Var>& ufs, Queue<Var>& q) {
 			assert(!isJustified(nonjstf[i]));
 			if (inSameSCC(nonjstf[i], v)) {
 				if (ufs.insert(nonjstf[i]).second) { //set insert returns true (in second) if the insertion worked (no duplicates)
-					q.insert(nonjstf[i]);
+					q.push(nonjstf[i]);
 				}
 			}
 		}
@@ -1522,18 +1524,18 @@ rClause IDSolver::getExplanation(const Lit& l) {
  * Postcondition: seen[i]  for exactly those i that are ancestors of cs in sp_justification. If modes.defn_search==stop_at_cs, there should not be other cycle sources then cs in the path from added literals to cs.
  */
 void IDSolver::markNonJustified(Var cs, vec<Var>& tmpseen) {
-	Queue<Var> q;
+	queue<Var> q;
 	markNonJustifiedAddParents(cs, cs, q, tmpseen);
 	// Now recursively do the same with each enqueued Var.
 	Var x;
 	while (q.size() > 0) {
-		x = q.peek();
+		x = q.front();
 		q.pop();
 		markNonJustifiedAddParents(x, cs, q, tmpseen);
 	}
 }
 
-void IDSolver::markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>& tmpseen) {
+void IDSolver::markNonJustifiedAddParents(Var x, Var cs, queue<Var> &q, vec<Var>& tmpseen) {
 	Lit poslit = createPositiveLiteral(x);
 	const vector<Var>& v = disj_occurs[toInt(poslit)];
 	for (vector<Var>::const_iterator i = v.begin(); i < v.end(); i++) {
@@ -1559,12 +1561,12 @@ void IDSolver::markNonJustifiedAddParents(Var x, Var cs, Queue<Var> &q, vec<Var>
 	}
 }
 
-inline void IDSolver::markNonJustifiedAddVar(Var v, Var cs, Queue<Var> &q, vec<Var>& tmpseen) {
+inline void IDSolver::markNonJustifiedAddVar(Var v, Var cs, queue<Var> &q, vec<Var>& tmpseen) {
 	if (inSameSCC(v, cs) && (getPCSolver()->modes().defn_search == include_cs || v == cs || !isCS[v])) {
 		if (seen[v] == 0) {
 			seen[v] = 1;
 			tmpseen.push(v);
-			q.insert(v);
+			q.push(v);
 			total_marked_size++;
 		} else {
 			seen[v]++;

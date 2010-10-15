@@ -40,6 +40,7 @@
 #include <string.h>
 #include "solvers/parser/Lparseread.hpp"
 
+using namespace std;
 using namespace MinisatID;
 
 typedef enum {

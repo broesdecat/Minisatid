@@ -32,13 +32,11 @@ namespace MinisatID {
 
 #define reportf(...) ( fflush(stdout), fprintf(stderr, __VA_ARGS__), fflush(stderr) )
 
+enum EqType{ MEQ, MNEQ, ML, MG, MGEQ, MLEQ };
+
 ///////
 // Comparison operators
 ///////
-
-namespace MINISAT{
-	enum EqType{ MEQ, MNEQ, ML, MG, MGEQ, MLEQ };
-}
 
 ///////
 // Weight declaration

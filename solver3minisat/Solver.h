@@ -50,8 +50,9 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 /*AB*/
 #include "solvers/utils/Utils.hpp"
 #include "solvers/pcsolver/PCSolver.hpp"
-class PCSolver;
-typedef PCSolver* pPCSolver;
+namespace MinisatID{
+	class PCSolver;
+}
 /*AE*/
 
 #if defined(__linux__)
@@ -81,13 +82,15 @@ static inline uint64_t memUsed(void) {
 static inline uint64_t memUsed() { return 0; }
 #endif
 
+namespace Minisat{
+
 //=================================================================================================
 // Solver -- the main class:
 
 
 class Solver {
 private:
-/*A*/	pPCSolver solver;
+/*A*/	MinisatID::PCSolver* solver;
 
 public:
 /*AB*/
@@ -119,7 +122,7 @@ public:
 
     // Constructor/Destructor:
     //
-    Solver(pPCSolver s /*A*/);
+    Solver(MinisatID::PCSolver* s /*A*/);
     ~Solver();
 
     // Problem specification:
@@ -313,7 +316,7 @@ inline void Solver::claBumpActivity (Clause& c) {
 
 inline bool     Solver::enqueue         (Lit p, Clause* from)   { return value(p) != l_Undef ? value(p) != l_False : (uncheckedEnqueue(p, from), true); }
 inline bool     Solver::locked          (const Clause& c) const { return reason[var(c[0])] == &c && value(c[0]) == l_True; }
-inline void     Solver::newDecisionLevel()                      { trail_lim.push(trail.size()); /*AB*/ solver->newDecisionLevel(); /*AE*/ }
+//inline void     Solver::newDecisionLevel()                      { trail_lim.push(trail.size()); /*AB*/ solver->newDecisionLevel(); /*AE*/ }
 
 inline int      Solver::decisionLevel ()      const   { return trail_lim.size(); }
 inline uint32_t Solver::abstractLevel (Var x) const   { return 1 << (level[x] & 31); }
@@ -388,6 +391,8 @@ inline void Solver::printStatistics() const{
 	reportf("decisions             : %-12lld   (%4.2f %% random)\n", decisions, (float)rnd_decisions*100 / (float)decisions);
 	reportf("propagations          : %-12lld\n", propagations);
     reportf("conflict literals     : %-12lld   (%4.2f %% deleted)\n", tot_literals, (max_literals - tot_literals)*100 / (double)max_literals);
+}
+
 }
 /*AE*/
 

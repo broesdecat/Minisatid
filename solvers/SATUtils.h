@@ -28,9 +28,13 @@
 #include "solver3minisat/SolverTypes.h"
 
 namespace MinisatID {
-	typedef Clause& pClause;
-	typedef Clause* rClause;
-	Lit mkLit(Var x, bool sign = false);
+	using ::vec;
+	using Minisat::l_False;
+	using Minisat::l_Undef;
+	using Minisat::l_True;
+	typedef Minisat::Clause& pClause;
+	typedef Minisat::Clause* rClause;
+	Minisat::Lit mkLit(Minisat::Var x, bool sign = false);
 }
 
 #else
@@ -42,9 +46,13 @@ namespace MinisatID {
 	#include "solver3/SolverTypes.hpp"
 
 	namespace MinisatID {
-		typedef Clause& pClause;
-		typedef Clause* rClause;
-		Lit mkLit(Var x, bool sign = false);
+		using ::vec;
+		using Minisat::l_False;
+		using Minisat::l_Undef;
+		using Minisat::l_True;
+		typedef Minisat::Clause& pClause;
+		typedef Minisat::Clause* rClause;
+		Minisat::Lit mkLit(Minisat::Var x, bool sign = false);
 	}
 
 	#else
@@ -56,8 +64,10 @@ namespace MinisatID {
 		#include "core/SolverTypes.h"
 
 		namespace MinisatID {
+			using Minisat::vec;
 			typedef Minisat::CRef pClause;
 			typedef Minisat::CRef rClause;
+			using Minisat::mkLit;
 		}
 
 		#else
@@ -68,15 +78,26 @@ namespace MinisatID {
 			#include "solver3minisat/SolverTypes.h"
 
 			namespace MinisatID {
-				typedef Clause& pClause;
-				typedef Clause* rClause;
-				Lit mkLit(Var x, bool sign = false);
+				using ::vec;
+				using Minisat::l_False;
+				using Minisat::l_Undef;
+				using Minisat::l_True;
+				typedef Minisat::Clause& pClause;
+				typedef Minisat::Clause* rClause;
+				Minisat::Lit mkLit(Minisat::Var x, bool sign = false);
 			}
 		#endif
 	#endif
 #endif
 
 namespace MinisatID {
+	using Minisat::lbool;
+	using Minisat::Var;
+	using Minisat::Lit;
+	using Minisat::var;
+	using Minisat::toLit;
+	using Minisat::toInt;
+
 	extern rClause nullPtrClause;
 	pClause getClauseRef(rClause rc);
 }

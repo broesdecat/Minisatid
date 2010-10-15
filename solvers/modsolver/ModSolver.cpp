@@ -21,11 +21,13 @@
 
 #include "solvers/utils/Utils.hpp"
 #include "solvers/utils/Print.hpp"
+#include <vector>
 #include <algorithm>
 
 #include "solvers/pcsolver/PCSolver.hpp"
 #include "solvers/modsolver/SOSolverHier.hpp"
 
+using namespace std;
 using namespace MinisatID;
 
 //Important: The head variable does not occur in this theory, so should NOT automatically be

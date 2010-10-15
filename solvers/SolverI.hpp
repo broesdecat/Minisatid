@@ -22,6 +22,7 @@
 
 #include <cstdio>
 
+#include "solvers/external/ExternalUtils.hpp"
 #include "solvers/utils/Utils.hpp"
 
 namespace MinisatID {
@@ -30,7 +31,7 @@ class Data{
 private:
 	ECNF_mode _modes;
 public:
-	Data(ECNF_mode modes):_modes(modes){};
+	Data(MinisatID::ECNF_mode modes):_modes(modes){};
 	virtual ~Data(){};
 
 	virtual void 	setNbModels		(int nb) = 0;
@@ -39,7 +40,7 @@ public:
 	virtual bool 	solve			() = 0;
 	virtual bool 	finishParsing	() = 0;
 
-	int 			verbosity		() const	{ return modes().verbosity; }
+			int 	verbosity		() const	{ return modes().verbosity; }
 	const ECNF_mode& modes			() const	{ return _modes; }
 };
 

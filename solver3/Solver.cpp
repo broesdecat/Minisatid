@@ -43,14 +43,18 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "mtlold/Sort.h"
 #include <cmath>
 
+#include <vector>
+
 #include "solvers/SATUtils.h"
 
+using namespace Minisat;
+using namespace MinisatID;
 
 //=================================================================================================
 // Constructor/Destructor:
 
 
-Solver::Solver(pPCSolver s/*A*/) :
+Solver::Solver(PCSolver* s/*A*/) :
 	solver(s), /*A*/
 	choicestaken(0), /*A*/
 	useheur(true), /*A*/
@@ -137,8 +141,8 @@ Var Solver::newVar(bool sign, bool dvar)
 //	qhead = 0;
 //}
 
-vector<Lit> Solver::getDecisions()const {
-	vector<Lit> v;
+std::vector<Lit> Solver::getDecisions()const {
+	std::vector<Lit> v;
 	for(int i=0; i<trail_lim.size(); i++){
 		v.push_back(trail[trail_lim[i]]);
 	}
@@ -181,8 +185,8 @@ bool Solver::totalModelFound(){
 	return v==var_Undef;
 }
 
-/*vector<Clause*> Solver::getClausesWhichOnlyContain(const vector<Var>& vars){
-	vector<Clause*> matches;
+/*std::vector<Clause*> Solver::getClausesWhichOnlyContain(const std::vector<Var>& vars){
+	std::vector<Clause*> matches;
 	for(int i=0; i<clauses.size(); i++){
 		bool allmatch = true;
 		for(int j=0; allmatch && j<clauses[i]->size(); j++){
@@ -377,7 +381,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 	assert(lvl==decisionLevel());
 	assert(confl!=NULL);
 
-	vector<Lit> explain;
+	std::vector<Lit> explain;
 	if(verbosity>4){
 		reportf("Start clause learning: \n");
 		reportf("    Choices: ");
@@ -463,7 +467,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
         /*AB*/
         if(verbosity>4){
         	reportf("        Still to explain: ");
-        	for(vector<Lit>::const_iterator i=explain.begin(); i<explain.end(); i++){
+        	for(std::vector<Lit>::const_iterator i=explain.begin(); i<explain.end(); i++){
         		gprintLit(*i); reportf(" ");
         	}
         	reportf("\n");
@@ -483,7 +487,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
         /*AB*/
         if(verbosity>4){
 			reportf("    Now getting explanation for ");
-			for(vector<Lit>::iterator i=explain.begin(); i<explain.end(); i++){
+			for(std::vector<Lit>::iterator i=explain.begin(); i<explain.end(); i++){
 				if(var(*i)==var(p)){
 					explain.erase(i);
 					break;

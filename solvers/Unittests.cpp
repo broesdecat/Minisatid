@@ -19,6 +19,8 @@
 
 #include "solvers/Unittests.hpp"
 
+using namespace std;
+using namespace std::tr1;
 using namespace MinisatID;
 
 shared_ptr<SolverInterface> unittest(ECNF_mode& modes){ //unsat
@@ -41,7 +43,7 @@ shared_ptr<SolverInterface> unittest(ECNF_mode& modes){ //unsat
 	vector<int> terms;
 	terms.push_back(groundone);
 	terms.push_back(groundtwo);
-	pcsolver->addCPSum(Literal(1), terms, MINISAT::MGEQ, 18);
+	pcsolver->addCPSum(Literal(1), terms, MGEQ, 18);
 
 	if(!pcsolver->finishParsing()){
 		return shared_ptr<SolverInterface>();
@@ -70,24 +72,24 @@ shared_ptr<SolverInterface> unittest2(ECNF_mode& modes){
 	}
 
 	for(int i=0; i<n; i++){
-		pcsolver->addCPCount(elemx, i, MINISAT::MEQ, elemx[i]);
+		pcsolver->addCPCount(elemx, i, MEQ, elemx[i]);
 	}
 
 	vector<Literal> lits2;
 	lits2.push_back(Literal(4));
 	pcsolver->addClause(lits2);
-	pcsolver->addCPSum(Literal(4), elemx, MINISAT::MEQ, n);
+	pcsolver->addCPSum(Literal(4), elemx, MEQ, n);
 
 	vector<Literal> lits3;
 	lits3.push_back(Literal(5));
 	pcsolver->addClause(lits3);
-	pcsolver->addCPSum(Literal(5), elemx, mult, MINISAT::MEQ, 0);
+	pcsolver->addCPSum(Literal(5), elemx, mult, MEQ, 0);
 
 	int literalcount = 6;
 	for(int i=0; i<n; i++){
 		for(int j=0; j<n; j++){
-			pcsolver->addCPBinaryRel(Literal(literalcount++), elemx[i], MINISAT::MEQ, j);
-			pcsolver->addCPBinaryRel(Literal(literalcount++), elemx[i], MINISAT::MGEQ, j);
+			pcsolver->addCPBinaryRel(Literal(literalcount++), elemx[i], MEQ, j);
+			pcsolver->addCPBinaryRel(Literal(literalcount++), elemx[i], MGEQ, j);
 		}
 	}
 
@@ -113,7 +115,7 @@ shared_ptr<SolverInterface> unittest3(ECNF_mode& modes){ //unsat
 	for(int i=0; i<elemx.size(); i++){
 		int left = c;
 		for(int j=0; j<elemx.size(); j++, c++){
-			pcsolver->addCPBinaryRelVar(Literal(c), elemx[i], MINISAT::MNEQ, elemx[j]);
+			pcsolver->addCPBinaryRelVar(Literal(c), elemx[i], MNEQ, elemx[j]);
 			if(i+j<n){
 				vector<Literal> lits;
 				lits.push_back(Literal(left));

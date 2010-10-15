@@ -32,10 +32,6 @@
 
 namespace MinisatID {
 
-#ifdef USEMINISAT22
-using namespace Minisat;
-#endif
-
 //TODO here create the mapping of grounder integers to solving integers!
 //Because grounder can leave (huge!) gaps which slow solving (certainly with arithmetic expressions).
 
@@ -137,13 +133,13 @@ public:
     bool 	addSumMinimize	(const Atom head, const int setid);
 
 	bool 	addIntVar		(int groundname, int min, int max);
-	bool 	addCPBinaryRel	(Literal head, int groundname, MINISAT::EqType rel, int bound);
-	bool 	addCPBinaryRelVar	(Literal head, int groundname, MINISAT::EqType rel, int groundname2);
-	bool 	addCPSum		(Literal head, const std::vector<int>& termnames, MINISAT::EqType rel, int bound);
-	bool 	addCPSum		(Literal head, const std::vector<int>& termnames, std::vector<int> mult, MINISAT::EqType rel, int bound);
-	bool 	addCPSumVar		(Literal head, const std::vector<int>& termnames, MINISAT::EqType rel, int rhstermname);
-	bool 	addCPSumVar		(Literal head, const std::vector<int>& termnames, std::vector<int> mult, MINISAT::EqType rel, int rhstermname);
-	bool 	addCPCount		(const std::vector<int>& termnames, int value, MINISAT::EqType rel, int rhstermname);
+	bool 	addCPBinaryRel	(Literal head, int groundname, EqType rel, int bound);
+	bool 	addCPBinaryRelVar(Literal head, int groundname, EqType rel, int groundname2);
+	bool 	addCPSum		(Literal head, const std::vector<int>& termnames, EqType rel, int bound);
+	bool 	addCPSum		(Literal head, const std::vector<int>& termnames, std::vector<int> mult, EqType rel, int bound);
+	bool 	addCPSumVar		(Literal head, const std::vector<int>& termnames, EqType rel, int rhstermname);
+	bool 	addCPSumVar		(Literal head, const std::vector<int>& termnames, std::vector<int> mult, EqType rel, int rhstermname);
+	bool 	addCPCount		(const std::vector<int>& termnames, int value, EqType rel, int rhstermname);
 	bool 	addCPAlldifferent(const std::vector<int>& termnames);
 	void	addForcedChoices(const std::vector<Literal> lits);
 

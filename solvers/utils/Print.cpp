@@ -19,6 +19,8 @@
 
 #include "solvers/utils/Print.hpp"
 
+#include <vector>
+
 #include "solvers/SATSolver.h"
 #include "solvers/pcsolver/PCSolver.hpp"
 #include "solvers/idsolver/IDSolver.hpp"
@@ -26,22 +28,26 @@
 #include "solvers/modsolver/SOSolverHier.hpp"
 #include "solvers/aggsolver/AggSolver.hpp"
 
+using namespace std;
 using namespace MinisatID;
+using namespace Print;
+using namespace Minisat;
+
 
 template<class S>
-void print(S const * const s){
+void Print::print(S const * const s){
 	reportf("Solver is present, but no printing information.\n");
 }
 
 template<>
-void print(PCSolver const * const s){
+void Print::print(PCSolver const * const s){
 	print(s->getCSolver());
 	print(s->getCAggSolver());
 	print(s->getCIDSolver());
 }
 
 template<>
-void print(AggSolver const * const p){
+void Print::print(AggSolver const * const p){
 	if(p==NULL){
 		reportf("No aggregates\n");
 		return;
@@ -51,7 +57,7 @@ void print(AggSolver const * const p){
 }
 
 template<>
-void print(Solver const * const s){
+void Print::print(Solver const * const s){
 	assert(s!=NULL);
 	reportf("Clauses\n");
 	for(int i=0; i< s->nbClauses(); i++){
@@ -61,7 +67,7 @@ void print(Solver const * const s){
 }
 
 template<>
-void print(IDSolver const * const s){
+void Print::print(IDSolver const * const s){
 	if(s==NULL){
 		reportf("No definitions\n");
 		return;
@@ -91,7 +97,7 @@ void print(IDSolver const * const s){
 }
 
 template<class C>
-inline void printClause(const C& c){
+inline void Print::printClause(const C& c){
     for (int i = 0; i < c.size(); i++){
         gprintLit(c[i]);
         fprintf(stderr, " ");
@@ -99,17 +105,17 @@ inline void printClause(const C& c){
 }
 
 template<class S>
-void printClause(rClause c, S const * const s){
+void Print::printClause(rClause c, S const * const s){
 	s->printClause(getClauseRef(c));
 }
 
 template<>
-void printClause(rClause c, PCSolver const * const s){
+void Print::printClause(rClause c, PCSolver const * const s){
 	printClause(c, s->getCSolver());
 }
 
 template<>
-void print(ModSolver const * const m){
+void Print::print(ModSolver const * const m){
 	reportf("ModSolver %zu, parent %zu", m->getPrintId(), m->getParentPrintId() );
 	if(m->hasParent()){
 		reportf(", head");
@@ -132,7 +138,7 @@ void print(ModSolver const * const m){
 }
 
 template<>
-void print(ModSolverData const * const d){
+void Print::print(ModSolverData const * const d){
 	reportf("Printing theory\n");
 	print(d->getModSolver((modindex)0));
 	reportf("End of theory\n");

@@ -25,10 +25,8 @@
 
 namespace MinisatID {
 
-class Data;
-
 /**
- * USEFUL EXTRA PROPAGATION RULES FROM PAPER An algorithm for QBF and experimental evaluation:
+ * USEFUL EXTRA PROPAGATION RULES FROM PAPER "An algorithm for QBF and experimental evaluation":
  *
  * forall reduction in qdimacs format: if a clause only contains universally quantified
  * literals, then it has to be a tautology or it is unsat (so anyway it can be dropped)
@@ -61,12 +59,12 @@ class Data;
 
 class ModSolver;
 typedef ModSolver* 			pModSolver;
-typedef vector<pModSolver> 	vmsolvers;
+typedef std::vector<pModSolver> 	vmsolvers;
 typedef vmsolvers::size_type modindex;
 
 enum modhierstate {NEW, LOADINGHIER, LOADINGREST, ALLLOADED};
 
-class ModSolverData: public Data{
+class ModSolverData: public MinisatID::Data{
 private:
 	vmsolvers 	 solvers;
 	modhierstate state;	//stores the current state of the parsing.
@@ -86,13 +84,13 @@ public:
 
 	//Add information for hierarchy
 	bool 	addChild			(modindex parent, modindex child, Lit head);
-	bool	addAtoms			(modindex modid, const vector<Var>& atoms);
+	bool	addAtoms			(modindex modid, const std::vector<Var>& atoms);
 
 	//Add information for PC-Solver
 	void 	addVar				(modindex modid, Var v);
 	bool 	addClause			(modindex modid, vec<Lit>& lits);
 	bool 	addRule				(modindex modid, bool conj, Lit head, vec<Lit>& lits);
-	bool 	addSet				(modindex modid, int set_id, vec<Lit>& lits, vector<Weight>& w);
+	bool 	addSet				(modindex modid, int set_id, vec<Lit>& lits, std::vector<Weight>& w);
 	bool 	addAggrExpr			(modindex modid, Lit head, int setid, Weight bound, AggSign boundsign, AggType type, AggSem defined);
 
 	//Get information on hierarchy

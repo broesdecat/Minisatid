@@ -76,12 +76,12 @@ extern int charPos;
 "SUMSTSIRT"	{ADJ; return SUMSTSIRT;}
 "COUNTSTRIT"	{ADJ; return COUNTSTRIT;}
 
-"="		{ADJ; /*ecnflval*/yylval.rel = MinisatID::MINISAT::MEQ; return REL;}
-">"		{ADJ; /*ecnflval*/yylval.rel = MinisatID::MINISAT::MG; return REL;}
-"<"		{ADJ; /*ecnflval*/yylval.rel = MinisatID::MINISAT::ML; return REL;}
-"~="	{ADJ; /*ecnflval*/yylval.rel = MinisatID::MINISAT::MNEQ; return REL;}
-"=<"	{ADJ; /*ecnflval*/yylval.rel = MinisatID::MINISAT::MLEQ; return REL;}
-">="	{ADJ; /*ecnflval*/yylval.rel = MinisatID::MINISAT::MGEQ; return REL;}
+"="		{ADJ; /*ecnflval*/yylval.rel = MinisatID::MEQ; return REL;}
+">"		{ADJ; /*ecnflval*/yylval.rel = MinisatID::MG; return REL;}
+"<"		{ADJ; /*ecnflval*/yylval.rel = MinisatID::ML; return REL;}
+"~="	{ADJ; /*ecnflval*/yylval.rel = MinisatID::MNEQ; return REL;}
+"=<"	{ADJ; /*ecnflval*/yylval.rel = MinisatID::MLEQ; return REL;}
+">="	{ADJ; /*ecnflval*/yylval.rel = MinisatID::MGEQ; return REL;}
 
  /* Longest match is returned -> if e.g. "20", NUMBER is returned.
     If "0", then ZERO is returned since it's the first matching rule.

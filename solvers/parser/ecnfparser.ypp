@@ -76,7 +76,7 @@ std::tr1::shared_ptr<MinisatID::SolverInterface> getData();
     std::vector<MinisatID::Literal>* vlits;
     std::vector<MinisatID::LW>* vlws;
     std::vector<MinisatID::Atom>* vatoms;
-    MinisatID::MINISAT::EqType rel;
+    MinisatID::EqType rel;
     MinisatID::AggType aggr;
     MinisatID::AggSign sign;
     MinisatID::AggSem sem;
@@ -334,7 +334,7 @@ body	:	body NUMBER { $$ = $1; $$->push_back(MinisatID::Literal(abs($2), $2<0));	
 		
 wbody	:	wbody NUMBER REL 
 				{ 
-					if($3!=MinisatID::MINISAT::MEQ) { 
+					if($3!=MinisatID::MEQ) { 
 						throw MinisatID::idpexception("Weighted sets can only contain tuples with equality.\n");
 					} 
 				} 
@@ -343,7 +343,7 @@ wbody	:	wbody NUMBER REL
 			
 		|	NUMBER REL 
 				{ 
-					if($2!=MinisatID::MINISAT::MEQ) { 
+					if($2!=MinisatID::MEQ) { 
 						throw MinisatID::idpexception("Weighted sets can only contain tuples with equality.\n");
 					} 
 				} 

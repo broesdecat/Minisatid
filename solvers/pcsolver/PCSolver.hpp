@@ -20,14 +20,16 @@
 #ifndef PCSOLVER_H_
 #define PCSOLVER_H_
 
-#include "solvers/SolverI.hpp"
 #include "solvers/utils/Utils.hpp"
+#include "solvers/SolverI.hpp"
+
+namespace Minisat{
+	class Solver;
+}
 
 namespace MinisatID {
 
 typedef std::vector<Lit> vlit;
-
-//FIXME: the parser does -1, but +1 is always printed, also when NOT going through the parser
 
 namespace CP{
 	class CPSolver;
@@ -35,25 +37,13 @@ namespace CP{
 
 using namespace CP;
 
-//TODO should create "ForWardDeclare SAT" file
-#ifdef USEMINISAT
-class Solver;
-#endif
-#ifdef USEMINISAT09Z
-class Solver;
-#endif
-#ifdef USEMINISAT22
-using namespace Minisat;
-namespace Minisat{
-	class Solver;
-}
-#endif
+class ENCF_mode;
 
 class IDSolver;
 class AggSolver;
 class ModSolver;
 
-typedef Solver* pSolver;
+typedef Minisat::Solver* pSolver;
 typedef IDSolver* pIDSolver;
 typedef CPSolver* pCPSolver;
 typedef AggSolver* pAggSolver;
@@ -109,7 +99,7 @@ private:
 	/*
 	 * Getters for solver pointers
 	 */
-	Solver * 	getSolver		() const;
+	Minisat::Solver * 	getSolver		() const;
 	IDSolver * 	getIDSolver		() const;
 	AggSolver *	getAggSolver	() const;
 	ModSolver *	getModSolver	() const;
@@ -121,7 +111,7 @@ public:
 	/*
 	 * Getters for constant solver pointers
 	 */
-	Solver	 const * getCSolver		() const;
+	Minisat::Solver	 const * getCSolver		() const;
 	IDSolver const * getCIDSolver	() const;
 	AggSolver const * getCAggSolver	() const;
 	ModSolver const * getCModSolver	() const;
@@ -129,7 +119,7 @@ public:
 	/*
 	 * INITIALIZATION
 	 */
-	void 		setModSolver	(pModSolver m);
+	void 		setModSolver	(ModSolver* m);
 	void 		setNbModels		(int nb);
 	Var			newVar			();
 	void		addVar			(Var v);
@@ -140,13 +130,13 @@ public:
 	bool 		addSet			(int id, const vec<Lit>& lits, const std::vector<Weight>& w);
 	bool 		addAggrExpr		(Lit head, int setid, Weight bound, AggSign boundsign, AggType type, AggSem defined);
 	bool 		addIntVar		(int groundname, int min, int max);
-	bool 		addCPBinaryRel	(Lit head, int groundname, MINISAT::EqType rel, int bound);
-	bool 		addCPBinaryRelVar	(Lit head, int groundname, MINISAT::EqType rel, int groundname2);
-	bool 		addCPSum		(Lit head, std::vector<int> termnames, MINISAT::EqType rel, int bound);
-	bool 		addCPSum		(Lit head, std::vector<int> termnames, std::vector<int> mult, MINISAT::EqType rel, int bound);
-	bool 		addCPSumVar		(Lit head, std::vector<int> termnames, MINISAT::EqType rel, int rhstermname);
-	bool 		addCPSumVar		(Lit head, std::vector<int> termnames, std::vector<int> mult, MINISAT::EqType rel, int rhstermname);
-	bool 		addCPCount		(std::vector<int> termnames, int value, MINISAT::EqType rel, int rhstermname);
+	bool 		addCPBinaryRel	(Lit head, int groundname, EqType rel, int bound);
+	bool 		addCPBinaryRelVar	(Lit head, int groundname, EqType rel, int groundname2);
+	bool 		addCPSum		(Lit head, std::vector<int> termnames, EqType rel, int bound);
+	bool 		addCPSum		(Lit head, std::vector<int> termnames, std::vector<int> mult, EqType rel, int bound);
+	bool 		addCPSumVar		(Lit head, std::vector<int> termnames, EqType rel, int rhstermname);
+	bool 		addCPSumVar		(Lit head, std::vector<int> termnames, std::vector<int> mult, EqType rel, int rhstermname);
+	bool 		addCPCount		(std::vector<int> termnames, int value, EqType rel, int rhstermname);
 	bool 		addCPAlldifferent(const std::vector<int>& termnames);
 
 	void		addForcedChoices(const vec<Lit>& forcedchoices);

@@ -10,8 +10,6 @@
 
 #include "solvers/utils/Utils.hpp"
 
-#include <vector>
-
 namespace MinisatID {
 
 ///////
@@ -21,16 +19,16 @@ class AggSolver;
 typedef AggSolver* paggsol;
 
 class WL;
-typedef vector<Weight> vw;
-typedef vector<Lit> vl;
-typedef vector<WL> vwl;
+typedef std::vector<Weight> vw;
+typedef std::vector<Lit> vl;
+typedef std::vector<WL> vwl;
 
 namespace Aggrs{
 	class Agg;
 	class AggSet;
 
 	typedef Agg* pagg;
-	typedef vector<Agg*> vpagg;
+	typedef std::vector<Agg*> vpagg;
 	typedef AggSet* pset;
 
 	class CalcAgg;
@@ -45,7 +43,7 @@ namespace Aggrs{
 	typedef Watch* pw;
 
 	class PropagationInfo;
-	typedef vector<PropagationInfo> vprop;
+	typedef std::vector<PropagationInfo> vprop;
 }
 
 ///////
@@ -59,10 +57,10 @@ private:
 	vwl	wlits;
 
 public:
-    AggSet(const vector<WL>& wl);
+    AggSet(const std::vector<WL>& wl);
 
     const 	vwl& 	getWL()	const						{ return wlits; }
-			void 	setWL(const vector<WL>& newset);
+			void 	setWL(const std::vector<WL>& newset);
 };
 
 class Agg{

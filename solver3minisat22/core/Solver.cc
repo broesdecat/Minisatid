@@ -42,7 +42,10 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "mtl/Sort.h"
 #include "core/Solver.h"
 
+#include <vector>
+
 using namespace Minisat;
+using namespace MinisatID;
 
 //=================================================================================================
 // Options:
@@ -67,7 +70,7 @@ static DoubleOption  opt_garbage_frac      (_cat, "gc-frac",     "The fraction o
 // Constructor/Destructor:
 
 
-Solver::Solver(pPCSolver s/*A*/) :
+Solver::Solver(PCSolver* s/*A*/) :
 	solver(s), /*A*/
     // Parameters (user settable):
     //
@@ -165,8 +168,8 @@ Var Solver::newVar(bool sign, bool dvar)
 //	qhead = 0;
 //}
 
-vector<Lit> Solver::getDecisions()const {
-	vector<Lit> v;
+std::vector<Lit> Solver::getDecisions()const {
+	std::vector<Lit> v;
 	for(int i=0; i<trail_lim.size(); i++){
 		v.push_back(trail[trail_lim[i]]);
 	}
@@ -366,7 +369,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
 	assert(confl!=CRef_Undef);
 
 	//reportf("Conflicts: %d.\n", conflicts);
-	vector<Lit> explain;
+	std::vector<Lit> explain;
 	if(verbosity>4){
 		/*reportf("Choices: ");
 		for(int i=0; i<trail_lim.size(); i++){
@@ -434,7 +437,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
         
         /*AB*/
         if(verbosity>4){
-        	for(vector<Lit>::const_iterator i=explain.begin(); i<explain.end(); i++){
+        	for(std::vector<Lit>::const_iterator i=explain.begin(); i<explain.end(); i++){
         		gprintLit(*i); reportf(" ");
         	}
         	reportf("\n");
@@ -454,7 +457,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
 		/*AB*/
 		if(verbosity>4){
 			reportf("Getting explanation for ");
-			for(vector<Lit>::iterator i=explain.begin(); i<explain.end(); i++){
+			for(std::vector<Lit>::iterator i=explain.begin(); i<explain.end(); i++){
 				if(var(*i)==var(p)){
 					explain.erase(i);
 					break;

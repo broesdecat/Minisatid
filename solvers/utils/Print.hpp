@@ -22,26 +22,16 @@
 
 #include "solvers/utils/Utils.hpp"
 
-namespace MinisatID {
-
-//TODO should create "ForWardDeclare SAT" file
-#ifdef USEMINISAT
-class Solver;
-#endif
-#ifdef USEMINISAT09Z
-class Solver;
-#endif
-#ifdef USEMINISAT22
-using namespace Minisat;
 namespace Minisat{
 	class Solver;
 }
-#endif
+
+namespace MinisatID {
 
 class PCSolver;
+class IDSolver;
 class AggSolver;
 class ModSolver;
-class IDSolver;
 class ModSolverData;
 
 namespace Print {
@@ -59,7 +49,7 @@ template<>
 void print(AggSolver const * const s);
 
 template<>
-void print(Solver const * const s);
+void print(Minisat::Solver const * const s);
 
 template<>
 void print(ModSolver const * const s);

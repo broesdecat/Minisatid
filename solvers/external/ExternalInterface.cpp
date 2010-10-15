@@ -35,6 +35,7 @@
 
 #include <algorithm>
 
+using namespace std;
 using namespace MinisatID;
 
 modindex getModIndex(modID modid){
@@ -252,31 +253,31 @@ bool PropositionalSolver::addIntVar(int groundname, int min, int max){
 	return getSolver()->addIntVar(groundname, min, max);
 }
 
-bool PropositionalSolver::addCPBinaryRel(Literal head, int groundname, MINISAT::EqType rel, int bound){
+bool PropositionalSolver::addCPBinaryRel(Literal head, int groundname, EqType rel, int bound){
 	return getSolver()->addCPBinaryRel(checkLit(head), groundname, rel, bound);
 }
 
-bool PropositionalSolver::addCPBinaryRelVar(Literal head, int groundname, MINISAT::EqType rel, int groundname2){
+bool PropositionalSolver::addCPBinaryRelVar(Literal head, int groundname, EqType rel, int groundname2){
 	return getSolver()->addCPBinaryRelVar(checkLit(head), groundname, rel, groundname2);
 }
 
-bool PropositionalSolver::addCPSum(Literal head, const vector<int>& termnames, MINISAT::EqType rel, int bound){
+bool PropositionalSolver::addCPSum(Literal head, const vector<int>& termnames, EqType rel, int bound){
 	return getSolver()->addCPSum(checkLit(head), termnames, rel, bound);
 }
 
-bool PropositionalSolver::addCPSum(Literal head, const vector<int>& termnames, vector<int> mult, MINISAT::EqType rel, int bound){
+bool PropositionalSolver::addCPSum(Literal head, const vector<int>& termnames, vector<int> mult, EqType rel, int bound){
 	return getSolver()->addCPSum(checkLit(head), termnames, mult, rel, bound);
 }
 
-bool PropositionalSolver::addCPSumVar(Literal head, const vector<int>& termnames, MINISAT::EqType rel, int rhstermname){
+bool PropositionalSolver::addCPSumVar(Literal head, const vector<int>& termnames, EqType rel, int rhstermname){
 	return getSolver()->addCPSum(checkLit(head), termnames, rel, rhstermname);
 }
 
-bool PropositionalSolver::addCPSumVar(Literal head, const vector<int>& termnames, vector<int> mult, MINISAT::EqType rel, int rhstermname){
+bool PropositionalSolver::addCPSumVar(Literal head, const vector<int>& termnames, vector<int> mult, EqType rel, int rhstermname){
 	return getSolver()->addCPSum(checkLit(head), termnames, mult, rel, rhstermname);
 }
 
-bool PropositionalSolver::addCPCount(const vector<int>& termnames, int value, MINISAT::EqType rel, int rhstermname){
+bool PropositionalSolver::addCPCount(const vector<int>& termnames, int value, EqType rel, int rhstermname){
 	return getSolver()->addCPCount(termnames, value, rel, rhstermname);
 }
 

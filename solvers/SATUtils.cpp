@@ -19,39 +19,37 @@
 
 #include "solvers/SATUtils.h"
 
-namespace MinisatID {
+using namespace MinisatID;
 
 #ifdef USEMINISAT
-rClause nullPtrClause = NULL;
+rClause MinisatID::nullPtrClause = NULL;
 
-pClause getClauseRef(rClause rc){
+pClause MinisatID::getClauseRef(rClause rc){
 	return *rc;
 }
 
-Lit mkLit(Var x, bool sign){
+Lit MinisatID::mkLit(Var x, bool sign){
 	return Lit(x, sign);
 }
 #endif
 
 #ifdef USEMINISAT09Z
-rClause nullPtrClause =  NULL;
+rClause MinisatID::nullPtrClause =  NULL;
 
-pClause getClauseRef(rClause rc){
+pClause MinisatID::getClauseRef(rClause rc){
 	return *rc;
 }
 
-Lit mkLit(Var x, bool sign){
+Lit MinisatID::mkLit(Var x, bool sign){
 	return Lit(x, sign);
 }
 #endif
 
 #ifdef USEMINISAT22
-rClause nullPtrClause = Minisat::CRef_Undef;
+rClause MinisatID::nullPtrClause = Minisat::CRef_Undef;
 
-pClause getClauseRef(rClause rc){
+pClause MinisatID::getClauseRef(rClause rc){
 	return rc;
 }
 
 #endif
-
-}

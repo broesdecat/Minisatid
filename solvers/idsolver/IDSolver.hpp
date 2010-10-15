@@ -46,15 +46,12 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <map>
 
 #include "solvers/utils/Utils.hpp"
-
 #include "solvers/pcsolver/SolverModule.hpp"
-#include "solvers/aggsolver/AggSolver.hpp"
 
 namespace MinisatID {
 
-typedef PCSolver* pPCSolver;
+class PCSolver;
 class AggSolver;
-typedef AggSolver* pAggSolver;
 
 /**
  * The different possible types of definitions.
@@ -86,16 +83,16 @@ public:
 
 class IDSolver: public SolverModule{
 private:
-	pAggSolver		aggsolver;
+	MinisatID::AggSolver*		aggsolver;
 	long			unfoundedsets;
 	int				previoustrailatsimp; //The size of the trail the previous time simplification was run.
 
 public:
-	IDSolver(pPCSolver s);
+	IDSolver(MinisatID::PCSolver* s);
 	virtual ~IDSolver();
 
-	pAggSolver	getAggSolver()const{return aggsolver;}
-	void		setAggSolver(pAggSolver a){aggsolver = a;}	//TODO call this
+	MinisatID::AggSolver*	getAggSolver()const{return aggsolver;}
+	void		setAggSolver(MinisatID::AggSolver* a){aggsolver = a;}	//TODO call this
 
 	/////////////////////SOLVER NECESSARY
 	void 		backtrack 				(const Lit& l);
@@ -233,9 +230,9 @@ protected:
 	bool	hasJustificationTarjan	(Var x, const vec<Var>& visitedandjust)			const;
 
 	void	markNonJustified   			(Var cs, vec<Var>& tmpseen);                           // Auxiliary for 'unfounded(..)'. Marks all ancestors of 'cs' in sp_justification as 'seen'.
-	void	markNonJustifiedAddVar		(Var v, Var cs, Queue<Var> &q, vec<Var>& tmpseen);
-	void	markNonJustifiedAddParents	(Var x, Var cs, Queue<Var> &q, vec<Var>& tmpseen);
-	bool	directlyJustifiable			(Var v, std::set<Var>& ufs, Queue<Var>& q);            // Auxiliary for 'unfounded(..)'. True if v can be immediately justified by one change_jstfc action.
+	void	markNonJustifiedAddVar		(Var v, Var cs, std::queue<Var> &q, vec<Var>& tmpseen);
+	void	markNonJustifiedAddParents	(Var x, Var cs, std::queue<Var> &q, vec<Var>& tmpseen);
+	bool	directlyJustifiable			(Var v, std::set<Var>& ufs, std::queue<Var>& q);            // Auxiliary for 'unfounded(..)'. True if v can be immediately justified by one change_jstfc action.
 	bool	isJustified					(Lit x) const;
 	bool	isJustified					(Var x) const;
 	bool	propagateJustified			(Var v, Var cs, std::set<Var>& ufs);    // Auxiliary for 'unfounded(..)'. Propagate the fact that 'v' is now justified. True if 'cs' is now justified
@@ -248,7 +245,7 @@ protected:
 	void visitFull(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter, bool throughPositiveLit, vec<int>& rootofmixed, vec<Var>& nodeinmixed);
 
 	// Debug:
-	void	print		(const Clause& c)	const;
+	void	print		(const rClause c)	const;
 	void	print		(const PropRule& c)		const;
 	bool	isCycleFree	() 					const;			// Verifies whether justification is indeed cycle free, not used, for debugging purposes.
 

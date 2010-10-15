@@ -49,8 +49,9 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 /*AB*/
 #include "solvers/utils/Utils.hpp"
 #include "solvers/pcsolver/PCSolver.hpp"
-class PCSolver;
-typedef PCSolver* pPCSolver;
+namespace MinisatID{
+	class PCSolver;
+}
 /*AE*/
 
 namespace Minisat {
@@ -60,7 +61,7 @@ namespace Minisat {
 
 class Solver {
 private:
-/*A*/	pPCSolver solver;
+/*A*/	MinisatID::PCSolver* solver;
 
 public:
 /*AB*/
@@ -69,7 +70,7 @@ public:
 	void		uncheckedEnqueue	(Lit p, CRef from = CRef_Undef);				// Enqueue a literal. Assumes value of literal is undefined
 	int 		getLevel			(int var) 			const;
 	bool 		totalModelFound		();				//true if the current assignment is completely two-valued
-	vector<Lit> getDecisions		() const;
+	std::vector<Lit> getDecisions		() const;
 	int			decisionLevel		()      const; // Gives the current decisionlevel.
 	const vec<Lit>& getTrail() const { return trail; }
 	int 			getStartLastLevel() const { return trail_lim.size()==0?0:trail_lim.last(); }
@@ -91,7 +92,7 @@ public:
 
     // Constructor/Destructor:
     //
-    Solver(pPCSolver s /*A*/);
+    Solver(MinisatID::PCSolver* s /*A*/);
     virtual ~Solver();
 
     // Problem specification:

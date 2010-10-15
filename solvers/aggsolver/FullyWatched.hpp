@@ -19,7 +19,7 @@ namespace Aggrs{
 	class AggSet;
 
 	typedef Agg* pagg;
-	typedef vector<Agg*> vpagg;
+	typedef std::vector<Agg*> vpagg;
 	typedef AggSet* pset;
 
 	class CalcAgg;
@@ -34,7 +34,7 @@ namespace Aggrs{
 	typedef Watch* pw;
 
 	class PropagationInfo;
-	typedef vector<PropagationInfo> vprop;
+	typedef std::vector<PropagationInfo> vprop;
 
 ///////
 // DECLARATIONS
@@ -42,11 +42,11 @@ namespace Aggrs{
 class FWAgg: public Propagator {
 protected:
 	vprop 	stack;		// Stack of propagations of this expression so far.
-	vector<lbool> truth, headvalue;
-	vector<int> headindex;
-	vector<bool> nomoreprops, optimagg;
+	std::vector<lbool> truth, headvalue;
+	std::vector<int> headindex;
+	std::vector<bool> nomoreprops, optimagg;
 
-	mutable vector<int> headproptime;
+	mutable std::vector<int> headproptime;
 
 	Weight 	currentbestcertain, currentbestpossible;
 					//current keeps the currently derived min and max bounds

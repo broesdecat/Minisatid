@@ -23,18 +23,19 @@
 #include "solvers/external/ExternalUtils.hpp"
 
 using namespace std;
+using namespace MinisatID;
 
 #ifdef GMPWEIGHT
-	string printWeight(const Weight& w){
+	string MinisatID::printWeight(const Weight& w){
 		return w.get_str();
 	}
 #else
 	#ifdef BIGINTWEIGHT
-		string printWeight(const Weight& w){
+		string MinisatID::printWeight(const Weight& w){
 			return bigIntegerToString(w);
 		}
 	#else //INT_WEIGHT
-		string printWeight(const Weight& w){
+		string MinisatID::printWeight(const Weight& w){
 			char s[15];
 			sprintf(s, "%d", w);
 			return s;

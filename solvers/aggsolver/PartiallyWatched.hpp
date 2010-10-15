@@ -21,7 +21,7 @@ namespace Aggrs{
 	class AggSet;
 
 	typedef Agg* pagg;
-	typedef vector<Agg*> vpagg;
+	typedef std::vector<Agg*> vpagg;
 	typedef AggSet* pset;
 
 	class CalcAgg;
@@ -34,11 +34,11 @@ namespace Aggrs{
 
 	class Watch;
 	typedef Watch* pw;
-	typedef vector<pw> vpw;
-	typedef vector<vpw> vvpw;
+	typedef std::vector<pw> vpw;
+	typedef std::vector<vpw> vvpw;
 
 	class PropagationInfo;
-	typedef vector<PropagationInfo> vprop;
+	typedef std::vector<PropagationInfo> vprop;
 }
 
 ///////
@@ -56,7 +56,7 @@ public:
 
 /*class CardPWAgg: public PWAgg, public virtual CardAggT {
 private:
-	vector<Lit> nf, nfex, nt, ntex;
+	std::vector<Lit> nf, nfex, nt, ntex;
 public:
 	CardPWAgg(paggs agg);
 	virtual ~CardPWAgg(){};
@@ -107,7 +107,7 @@ struct ToWatch{
 
 typedef ToWatch tw;
 typedef tw* ptw;
-typedef vector<ptw> vptw;
+typedef std::vector<ptw> vptw;
 
 class CardPWAgg: public PWAgg, public virtual CardAggT {
 private:
@@ -116,7 +116,7 @@ private:
 	lbool headvalue;
 	bool headpropagatedhere;
 
-	vector<int> startsetf, startsett; //Vector mapping decision levels to indices where to start looking for replacement watches
+	std::vector<int> startsetf, startsett; //std::vector mapping decision levels to indices where to start looking for replacement watches
 
 public:
 	CardPWAgg(paggs agg);
@@ -127,7 +127,7 @@ public:
 		//reportf("SetT size %d, Skipped %d\n", sett.size(), startsett[startsett.size()-1]);
 	}
 	virtual void backtrackDecisionLevel() { startsetf.pop_back(); startsett.pop_back(); }*/
-	vector<int>& start(watchset w);
+	std::vector<int>& start(watchset w);
 
 	bool initializeNF();
 	bool initializeNT();
@@ -204,7 +204,7 @@ public:
 
 typedef GenPWatch gpw;
 typedef gpw* pgpw;
-typedef vector<pgpw> vpgpw;
+typedef std::vector<pgpw> vpgpw;
 
 
 class GenPWAgg: public PWAgg, public virtual SPAggT{

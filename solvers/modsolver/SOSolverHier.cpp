@@ -23,6 +23,9 @@
 
 #include "solvers/modsolver/ModSolver.hpp"
 
+#include <vector>
+
+using namespace std;
 using namespace MinisatID;
 
 ModSolverData::ModSolverData(ECNF_mode modes):Data(modes), state(NEW){
