@@ -39,7 +39,14 @@ using namespace std;
 using namespace MinisatID;
 
 modindex getModIndex(modID modid){
-	return (int)modid;
+       return (int)modid;
+}
+
+SolverInterface::SolverInterface(ECNF_mode modes):
+		_modes(modes), maxnumber(0),
+		origtocontiguousatommapper(),
+		contiguoustoorigatommapper(),
+		firstmodel(true){
 }
 
 Atom SolverInterface::getOrigAtom(const Var& v) const{
@@ -53,10 +60,6 @@ Atom SolverInterface::getOrigAtom(const Var& v) const{
 		return Atom(v+1);
 	}
 }
-
-/*Literal getLiteral(Lit lit){
-	return Literal(getAtom(var(lit)), sign(lit));
-}*/
 
 Var SolverInterface::checkAtom(const Atom& atom){
 	if(atom.getValue()<1){
@@ -101,12 +104,6 @@ void SolverInterface::checkLits(const vector<Literal>& lits, vector<Lit>& ll){
 	}
 }
 
-/*void SolverInterface::checkLits(const vector<Literal>& lits, vector<Literal>& ll){
-	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); i++){
-		ll.push_back(getLiteral(checkLit(*i)));
-	}
-}*/
-
 void SolverInterface::checkAtoms(const vector<Atom>& lits, vector<Var>& ll){
 	for(vector<Atom>::const_iterator i=lits.begin(); i<lits.end(); i++){
 		ll.push_back(checkAtom(*i));
@@ -119,74 +116,113 @@ void PropositionalSolver::addForcedChoices(const vector<Literal> lits){
 	getSolver()->addForcedChoices(ll);
 }
 
-template <class T>
-bool SolverInterface2<T>::solve(){
-	vector<vector<Literal> > models;
-	return solve(models);
-}
+/*bool SolverInterface::solveprintModels(int nbmodels){
+	bool result = getSolver()->solveprintModels(nbmodels);
 
-template <class T>
-bool SolverInterface2<T>::solve(vector<vector<Literal> >& models){
-	vec<vec<Lit> > varmodels; //int-format literals, INDEXED!
-	bool result = getSolver()->solve(varmodels);
-
-	if (result) {
+	if(firstmodel && result){
 		fprintf(getRes()==NULL?stdout:getRes(), "SAT\n");
 		if(modes().verbosity>=1){
 			printf("SATISFIABLE\n");
 		}
-	}else{
+		firstmodel = false;
+	} else if(!result){
 		fprintf(getRes()==NULL?stdout:getRes(), "UNSAT\n");
 		if(modes().verbosity>=1){
 			printf("UNSATISFIABLE\n");
 		}
 	}
 
-	if(result){
-		//Translate into original vocabulary
-		for(int i=0; i<varmodels.size(); i++){
-			vector<Literal> outmodel;
-			for(int j=0; j<varmodels[i].size(); j++){
-				//TODO should move more inside
-				if(!wasInput(var(varmodels[i][j]))){ //was not part of the input
-					continue;
-				}
-				outmodel.push_back(getOrigLiteral(varmodels[i][j]));
-			}
-			sort(outmodel.begin(), outmodel.end());
-			models.push_back(outmodel);
-			printModel(outmodel);
-			//TODO at the moment, all models are calculated, afterwards they are printed.
-			//it would be nice to print them one by one when they are found
-		}
-	}
-
 	return result;
 }
 
-/***************
- * PROP SOLVER *
- ***************/
+bool SolverInterface::solvefindModels(int nbmodels, vector<vector<Literal> >& models){
+	vec<vec<Lit> > varmodels; //int-format literals, INDEXED!
+	bool result = getSolver()->solvefindModels(nbmodels, varmodels);
+
+	if(firstmodel && result){
+		fprintf(getRes()==NULL?stdout:getRes(), "SAT\n");
+		if(modes().verbosity>=1){
+			printf("SATISFIABLE\n");
+		}
+		firstmodel = false;
+	} else if(!result){
+		fprintf(getRes()==NULL?stdout:getRes(), "UNSAT\n");
+		if(modes().verbosity>=1){
+			printf("UNSATISFIABLE\n");
+		}
+	}
+
+	//Translate into original vocabulary
+	for(int i=0; i<varmodels.size(); i++){
+		vector<Literal> outmodel;
+		for(int j=0; j<varmodels[i].size(); j++){
+			if(!wasInput(var(varmodels[i][j]))){ //was not part of the input
+				continue;
+			}
+			outmodel.push_back(getOrigLiteral(varmodels[i][j]));
+		}
+		sort(outmodel.begin(), outmodel.end());
+		models.push_back(outmodel);
+	}
+
+	return result;
+
+	return getSolver()->solvefindModels(nbmodels, models);
+}*/
+
+bool SolverInterface::finishParsing(){
+	return getSolver()->finishParsing();
+}
+
+bool SolverInterface::simplify(){
+
+}
+
+void SolverInterface::solve(Solution* sol){
+
+}
+
+void SolverInterface::printModel(const vec<Lit>& model){
+	if(firstmodel){
+		fprintf(getRes()==NULL?stdout:getRes(), "SAT\n");
+		if(modes().verbosity>=1){
+			printf("SATISFIABLE\n");
+		}
+		firstmodel = false;
+	}
+
+	//Translate into original vocabulary
+	vector<Literal> outmodel;
+	for(int j=0; j<model.size(); j++){
+		if(!wasInput(var(model[j]))){ //was not part of the input
+			continue;
+		}
+		outmodel.push_back(getOrigLiteral(model[j]));
+	}
+	sort(outmodel.begin(), outmodel.end());
+	//Effectively print the model
+	bool start = true;
+	for (vector<Literal>::const_iterator i = outmodel.begin(); i < outmodel.end(); i++){
+		fprintf(getRes()==NULL?stdout:getRes(), "%s%s%d", start ? "" : " ", ((*i).getSign()) ? "-" : "", (*i).getAtom().getValue());
+		start = false;
+	}
+	fprintf(getRes()==NULL?stdout:getRes(), " 0\n");
+}
+
+///////
+// PROP SOLVER
+ ///////
 
 PropositionalSolver::PropositionalSolver(ECNF_mode modes)
-		:SolverInterface2<PCSolver>(modes, new PCSolver(modes)){
-
+		:SolverInterface(modes), solver(new PCSolver(modes)){
+	getSolver()->setParent(this);
 }
 
 PropositionalSolver::~PropositionalSolver(){
+	delete solver;
 }
 
-void PropositionalSolver::printStatistics(){
-	getSolver()->printStatistics();
-}
-
-void PropositionalSolver::setNbModels(int nb){
-	getSolver()->setNbModels(nb);
-}
-
-bool PropositionalSolver::simplify(){
-	return getSolver()->simplify();
-}
+PCSolver* PropositionalSolver::getSolver() const { return solver; }
 
 void PropositionalSolver::addVar(Atom v){
 	Var newv = checkAtom(v);
@@ -235,10 +271,6 @@ bool PropositionalSolver::addAggrExpr(Literal head, int setid, Weight bound, Agg
 	return getSolver()->addAggrExpr(checkLit(head), setid, bound, sign, type, sem);
 }
 
-bool PropositionalSolver::finishParsing	(){
-	return getSolver()->finishParsing();
-}
-
 bool PropositionalSolver::addMinimize(const vector<Literal>& lits, bool subsetmnmz){
 	vec<Lit> ll;
 	checkLits(lits, ll);
@@ -285,33 +317,23 @@ bool PropositionalSolver::addCPAlldifferent(const vector<int>& termnames){
 	return getSolver()->addCPAlldifferent(termnames);
 }
 
-template <class T>
-void SolverInterface2<T>::printModel(const vector<Literal>& model) const{
-	bool start = true;
-	for (vector<Literal>::const_iterator i = model.begin(); i < model.end(); i++){
-		//TODO check that this was not necessary?
-		//if (model[i] != l_Undef){
-			fprintf(getRes()==NULL?stdout:getRes(), "%s%s%d", start ? "" : " ", ((*i).getSign()) ? "-" : "", (*i).getAtom().getValue());
-			start = false;
-		//}
-	}
-	fprintf(getRes()==NULL?stdout:getRes(), " 0\n");
+void PropositionalSolver::printStatistics() const {
+	getSolver()->printStatistics();
 }
 
-/****************
- * MODEL SOLVER *
- ****************/
+///////
+// MODEL SOLVER
+///////
 
-ModalSolver::ModalSolver(ECNF_mode modes):SolverInterface2<ModSolverData>(modes, new ModSolverData(modes)){
-
+ModalSolver::ModalSolver(ECNF_mode modes):SolverInterface(modes), solver(new ModSolverData(modes)){
+	getSolver()->setParent(this);
 }
 
 ModalSolver::~ModalSolver(){
+	delete solver;
 }
 
-void ModalSolver::setNbModels(int nb){
-	getSolver()->setNbModels(nb);
-}
+ModSolverData* ModalSolver::getSolver() const { return solver; }
 
 void ModalSolver::addVar(modID modid, Atom v){
 	getSolver()->addVar(getModIndex(modid), checkAtom(v));
@@ -353,14 +375,6 @@ bool ModalSolver::addSet(modID modid, int id, vector<LW>& lws){
 
 bool ModalSolver::addAggrExpr(modID modid, Literal head, int setid, Weight bound, AggSign sign, AggType type, AggSem sem){
 	return getSolver()->addAggrExpr(getModIndex(modid), checkLit(head), setid, bound, sign, type, sem);
-}
-
-bool ModalSolver::finishParsing	(){
-	return getSolver()->finishParsing();
-}
-
-bool ModalSolver::simplify(){
-	return getSolver()->simplify();
 }
 
 //Add information for hierarchy

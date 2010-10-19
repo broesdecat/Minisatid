@@ -314,9 +314,8 @@ int main(int argc, char** argv) {
 		}
 
 		if(ret){
-			d->setNbModels(modes.nbmodels);
 			d->setRes(res);
-			ret = d->solve();
+			//FIXME ret = d->solveprintModels(modes.nbmodels);
 		}else{
 			//If UNSAT was detected before solving, it has to be printed separately at the moment
 			//TODO clean up code so the printing is handled cleaner.

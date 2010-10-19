@@ -58,8 +58,7 @@ namespace MinisatID {
  */
 
 class ModSolver;
-typedef ModSolver* 			pModSolver;
-typedef std::vector<pModSolver> 	vmsolvers;
+typedef std::vector<ModSolver*> 	vmsolvers;
 typedef vmsolvers::size_type modindex;
 
 enum modhierstate {NEW, LOADINGHIER, LOADINGREST, ALLLOADED};
@@ -73,12 +72,9 @@ public:
 	ModSolverData				(ECNF_mode modes);
 	virtual ~ModSolverData		();
 
-	void	setNbModels			(int nb);
-
 	bool 	simplify			();
-	bool 	solve				();
-	bool 	solve				(vec<vec<Lit> >& varmodels);
-	bool 	solve				(const vec<Lit>& assumptions, vec<vec<Lit> >& varmodels);
+
+	void 	solve(InternSol* sol);
 
 	bool 	finishParsing		();
 
@@ -94,7 +90,7 @@ public:
 	bool 	addAggrExpr			(modindex modid, Lit head, int setid, Weight bound, AggSign boundsign, AggType type, AggSem defined);
 
 	//Get information on hierarchy
-	pModSolver getModSolver		(modindex modid) const { checkexistsModSolver(modid); return solvers[modid];}
+	ModSolver* getModSolver		(modindex modid) const { checkexistsModSolver(modid); return solvers[modid];}
 
 private:
 	void	verifyHierarchy		();

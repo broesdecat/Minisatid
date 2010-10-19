@@ -21,6 +21,9 @@
 #define EXTERNALINTERFACE_HPP_
 
 #include "solvers/external/ExternalUtils.hpp"
+#include "solvers/SolverI.hpp"
+#include "solvers/pcsolver/PCSolver.hpp"
+#include "solvers/modsolver/SOSolverHier.hpp"
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -32,43 +35,43 @@
 
 namespace MinisatID {
 
-//TODO here create the mapping of grounder integers to solving integers!
-//Because grounder can leave (huge!) gaps which slow solving (certainly with arithmetic expressions).
-
 //map is only a bit slower
 typedef std::tr1::unordered_map<int, int> atommap;
+
+class Data;
 
 class SolverInterface{
 private:
 	ECNF_mode _modes;
 
-	//MAPS FROM NON-INDEXED TO INDEXED ATOMS!!!
-	int maxnumber;
+	//Maps from NON-INDEXED to INDEXED atoms!
+	int 	maxnumber;
 	atommap origtocontiguousatommapper, contiguoustoorigatommapper;
 
-	FILE* res;
+	FILE* 	res;
+
+	bool firstmodel; //True if the first model has not yet been printed
 
 public:
-	SolverInterface(ECNF_mode modes):
-		_modes(modes), maxnumber(0),
-		origtocontiguousatommapper(), contiguoustoorigatommapper(){};
-
+	SolverInterface(ECNF_mode modes);
 	virtual ~SolverInterface(){};
 
-	virtual void 	setNbModels		(int nb) = 0;
 			void	setRes			(FILE* f)	{ res = f; }
 
-	virtual void 	printStatistics	() {};
+	virtual void 	printStatistics	() const = 0;
+			void 	printModel		(const vec<Lit>& model);
 
-	virtual bool 	simplify		() = 0;
-	virtual bool 	solve			() = 0;
-	virtual bool 	solve			(std::vector<std::vector<Literal> >& models) = 0;
-	virtual bool 	finishParsing	() = 0;
+	virtual bool 	simplify		();
+	virtual void 	solve			(Solution* sol);
+	virtual bool 	finishParsing	();
 
 	int 			verbosity		() const	{ return modes().verbosity; }
-	const ECNF_mode& modes			()	const	{ return _modes; }
+	const ECNF_mode& modes			() const	{ return _modes; }
+	void			setNbModels		(int nb) 			{ _modes.nbmodels = nb; }
 
 protected:
+	virtual MinisatID::Data* getSolver() const = 0;
+
 	Var checkAtom(const Atom& atom);
 	Lit checkLit(const Literal& lit);
 	void checkLits(const std::vector<Literal>& lits, vec<Lit>& ll);
@@ -83,42 +86,14 @@ protected:
 	FILE* getRes() const { return res; }
 };
 
-template <class T>
-class SolverInterface2: public SolverInterface{
-private:
-	T* solver;
-
-public:
-	SolverInterface2(ECNF_mode modes, T* solver):
-		SolverInterface(modes),	solver(solver){};
-
-	virtual ~SolverInterface2(){
-		delete solver;
-	};
-
-	virtual void 	setNbModels(int nb) = 0;
-
-	virtual bool 	simplify		() = 0;
-			bool 	solve			();
-			bool 	solve			(std::vector<std::vector<Literal> >& models);
-	virtual bool 	finishParsing	() = 0;
-
-	void 	printModel(const std::vector<Literal>& model) const;
-
-protected:
-	T* getSolver() const { return solver; }
-};
-
 class PCSolver;
 
-class PropositionalSolver: public SolverInterface2<PCSolver>{
+class PropositionalSolver: public MinisatID::SolverInterface{
+private:
+	MinisatID::PCSolver* solver;
 public:
-	PropositionalSolver(ECNF_mode modes);
+	PropositionalSolver(MinisatID::ECNF_mode modes);
 	~PropositionalSolver();
-
-	void 	setNbModels		(int nb);
-
-	bool 	simplify		();
 
 	void	addVar			(Atom v);
 	bool	addClause		(std::vector<Literal>& lits);
@@ -127,7 +102,6 @@ public:
 	bool 	addSet			(int set_id, const std::vector<LW>& lws);
 	bool	addSet			(int id, const std::vector<Literal>& lits, const std::vector<Weight>& w);
 	bool	addAggrExpr		(Literal head, int setid, Weight bound, AggSign sign, AggType type, AggSem sem);
-	bool	finishParsing	(); //throws UNSAT
 
     bool 	addMinimize		(const std::vector<Literal>& lits, bool subsetmnmz);
     bool 	addSumMinimize	(const Atom head, const int setid);
@@ -143,24 +117,22 @@ public:
 	bool 	addCPAlldifferent(const std::vector<int>& termnames);
 	void	addForcedChoices(const std::vector<Literal> lits);
 
-	void 	printStatistics	();
+	void 	printStatistics	() const;
+
+protected:
+	virtual MinisatID::PCSolver* getSolver() const;
 };
 
 typedef uint64_t modID;
 
 class ModSolverData;
 
-class ModalSolver: public SolverInterface2<ModSolverData>{
-
+class ModalSolver: public MinisatID::SolverInterface{
+private:
+	MinisatID::ModSolverData* solver;
 public:
-	ModalSolver				(ECNF_mode modes);
+	ModalSolver				(MinisatID::ECNF_mode modes);
 	virtual ~ModalSolver	();
-
-	void	setNbModels		(int nb);
-
-	bool 	simplify		();
-
-	bool 	finishParsing	();
 
 	//Add information for hierarchy
 	bool 	addChild		(modID parent, modID child, Literal head);
@@ -173,6 +145,11 @@ public:
 	bool 	addSet			(modID modid, int set_id, std::vector<LW>& lws);
 	bool 	addSet			(modID modid, int set_id, std::vector<Literal>& lits, std::vector<Weight>& w);
 	bool 	addAggrExpr		(modID modid, Literal head, int setid, Weight bound, AggSign sign, AggType type, AggSem sem);
+
+	void 	printStatistics	() const { reportf("Statistics printing not implemented for modal solver.\n");}
+
+protected:
+	virtual MinisatID::ModSolverData* getSolver() const;
 };
 
 //Throw exceptions if the inputted literals are in the wrong format.

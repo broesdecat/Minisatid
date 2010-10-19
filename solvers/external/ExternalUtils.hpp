@@ -133,6 +133,31 @@ struct LW{
 };
 
 ///////
+// SOLUTION DATASTRUCTURE
+///////
+
+class Solution{
+private:
+	const bool printmodels, savemodels;
+	bool nomoremodels;
+	const int nbmodelstofind;
+	int nbmodelsfound;
+	std::vector<std::vector<Literal> > models;
+	const std::vector<Literal> assumptions;
+
+public:
+	Solution(bool print, bool save, int searchnb, const std::vector<Literal>& assumpts):
+			printmodels(print), savemodels(save),
+			nbmodelstofind(searchnb),
+			assumptions(assumpts){}
+	~Solution(){};
+
+	void addModel(std::vector<Literal> model) {;}
+	std::vector<std::vector<Literal> > getModels() { if(!savemodels) throw idpexception("Models were not being saved!\n");return models; }
+	int modelCount() { return nbmodelsfound; }
+};
+
+///////
 // SYSTEM OPTIONS
 ///////
 
@@ -189,8 +214,7 @@ struct ECNF_mode {
 	//rest
 	bool def, aggr, mnmz, cp; // True for those extensions that are being used.
 	DEFSEM sem;
-	int nbmodels; //Find at least this number of models. If there are less models,
-	//UNSAT will be returned (after finding the existing number)
+	int nbmodels; //Try to find at most this number of models
 	DEFFINDCS defn_strategy; // Controls which propagation strategy will be used for definitions.                         (default always)
 	DEFMARKDEPTH defn_search; // Controls which search type will be used for definitions.                                  (default include_cs)
 	DEFSEARCHSTRAT ufs_strategy; //Which algorithm to use to find unfounded sets

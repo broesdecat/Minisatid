@@ -168,7 +168,6 @@ public:
 	PCSolver const * 	getCPCSolver	()	const	{ return solver; }
 
 	bool 				solve(vec<vec<Lit> >& varmodels);
-	bool 				solve(vec<vec<Lit> >& varmodels, const vec<Lit>& assumptions);
 
 private:
 	pPCSolver 			getSolver	()	const	{ return solver; }

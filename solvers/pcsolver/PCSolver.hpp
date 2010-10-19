@@ -56,7 +56,7 @@ Lit createPositiveLiteral(Var i);
 enum Optim { MNMZ, SUBSETMNMZ, SUMMNMZ, NONE }; // Preference minimization, subset minimization, sum minimization
 enum PropBy { BYSAT, BYAGG, BYDEF, BYOPTIM, BYCP, BYMOD, NOPROP }; // Indicates by which solver a propagation was done
 
-class PCSolver: public Data{
+class PCSolver: public MinisatID::Data{
 private:
 	//OWNING POINTER
 	pSolver solver;
@@ -81,6 +81,7 @@ private:
 
 	int init;
 	std::vector<Lit> initialprops;
+	vec<Lit>	assump;
 
 	std::vector<PropBy> propagations;
 
@@ -120,7 +121,6 @@ public:
 	 * INITIALIZATION
 	 */
 	void 		setModSolver	(ModSolver* m);
-	void 		setNbModels		(int nb);
 	Var			newVar			();
 	void		addVar			(Var v);
 	bool 		addClause		(vec<Lit>& lits);
@@ -154,11 +154,12 @@ public:
 	bool    	invalidateModel	(vec<Lit>& invalidation);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
 	void 		invalidate		(vec<Lit>& invalidation);
 
-	bool 		propagate		(const vec<Lit>& assmpt);
-	bool 		findModel		(const vec<Lit>& assmpt);
-	bool 		solve			();
-	bool 		solve			(vec<vec<Lit> >& models);
-	bool 		solve			(const vec<Lit>& assmpt, vec<vec<Lit> >& models);
+	void 		setAssumptions	(const vec<Lit>& assumptions)	{ assumptions.copyTo(assump); }
+	const vec<Lit>& 	getAssumptions	()	const						{ return assump;	}
+
+	void 		solve(InternSol* sol);
+
+	bool 		findModel	(const vec<Lit>& assumps, vec<Lit>& m, bool& moremodels);
 
 	void		removeAggrHead	(Var x);
 	void		notifyAggrHead	(Var head);
@@ -230,7 +231,7 @@ public:
     bool 	addSumMinimize	(const Var head, const int setid);
     bool 	invalidateValue	(vec<Lit>& invalidation);
 	bool 	invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt);
-	bool 	findOptimal		(vec<Lit>& assumps, vec<Lit>& m);
+	bool 	findOptimal		(const vec<Lit>& assumps, vec<Lit>& m);
 
 	/*
 	 * DEBUG
@@ -247,10 +248,9 @@ private:
 	void addVar(Lit l) { addVar(var(l)); }
 	void addVars(const vec<Lit>& a);
 	void checkHead(Lit head);
-};
 
-std::tr1::shared_ptr<Data> unittest(ECNF_mode& modes);
-std::tr1::shared_ptr<Data> unittest2(ECNF_mode& modes);
+	bool solve(vec<vec<Lit> >& models, bool nosearch, int modeltofind, int& modelsfound, bool onlyprint);
+};
 
 }
 

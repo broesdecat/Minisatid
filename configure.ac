@@ -35,13 +35,13 @@ AC_TYPE_SIZE_T
 # --> set these variables instead of CXXFLAGS or LDFLAGS
 AC_SUBST([LIBS])
 
-CXXFLAGS+="-ffloat-store -Wall -Wextra -pedantic "
+CXXFLAGS+="-ffloat-store -Wall -Wextra " #TODO add -pedantic again (but currently broken by pbsolver)
 LDFLAGS+=
 
 AC_ARG_ENABLE([build],
 [  --enable-build    Turn on debugging (debug), profiling (profile), release version(release), static release version (static) or code cover building (codecover)],
 [case "${enableval}" in
-  debug)   CXXFLAGS+="-O0 -ggdb -D DEBUG -Wno-unused-parameter " LDFLAGS+="-ggdb " ;;
+  debug)   CXXFLAGS+="-O0 -ggdb -D DEBUG " LDFLAGS+="-ggdb " ;;
   profile) CXXFLAGS+="-O3 -pg -ggdb -D NDEBUG " LDFLAGS+="-ggdb " ;;
   release) CXXFLAGS+="-O3 -D NDEBUG " LDFLAGS+="" ;;
   static)  CXXFLAGS+="-O3 -D NDEBUG " LDFLAGS+="--static " ;;

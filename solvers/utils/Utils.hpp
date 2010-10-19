@@ -62,19 +62,33 @@ void deleteList(std::map<K, T*> l){
 	l.clear();
 }
 
-/*
-template<class T>
-void deleteList(std::vector<T> l){
+///////
+// SOLUTION DATASTRUCTURE
+///////
 
-}*/
+class InternSol{
+private:
+	const bool printmodels, savemodels;
+	bool nomoremodels;
+	const int nbmodelstofind;
+	int nbmodelsfound;
+	vec<vec<Lit> > models;
+	vec<Lit> assumptions;
 
-/*template<class T>
-void deleteList(std::vector<T> l){
-	for(class std::vector<T>::iterator i=l.begin(); i!=l.end(); i++){
-		deleteList(*i);
+public:
+	InternSol(bool print, bool save, int searchnb, const vec<Lit>& assumpts):
+			printmodels(print), savemodels(save),
+			nbmodelstofind(searchnb){
+		for(int i=0; i<assumpts.size(); i++){
+			assumptions.push(assumpts[i]);
+		}
 	}
-	l.clear();
-}*/
+	~InternSol(){};
+
+	void addModel(vec<Lit> model) {;}
+	const vec<vec<Lit> >& getModels() { if(!savemodels){ throw idpexception("Models were not being saved!\n");} return models; }
+	int modelCount() { return nbmodelsfound; }
+};
 
 class WL {  // Weighted literal
 private:

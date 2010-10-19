@@ -588,7 +588,7 @@ int Read::read (istream &f){
 	}
 
 	f >> i;  // zero means all
-	getSolver()->setNbModels(i);
+	solver->setNbModels(i);
 
 	if (f.fail ()){
 		cerr << "number of models expected, line " << linenumber << endl;

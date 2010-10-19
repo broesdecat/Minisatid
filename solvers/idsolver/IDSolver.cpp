@@ -1373,7 +1373,6 @@ void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf) {
 	}
 
 	for (int i = 1; i < loopf.size(); i++) {
-		//FIXME added later, should be verified
 		getPCSolver()->varBumpActivity(var(loopf[i]));
 
 		seen[var(loopf[i])] = 0;
@@ -2237,7 +2236,7 @@ void IDSolver::forwardPropagate(bool removemarks) {
 				seen[head] = 0;
 			}
 		}
-		//FIXME AGGREGATES
+		//TODO AGGREGATES
 	}
 }
 

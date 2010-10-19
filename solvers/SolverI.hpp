@@ -26,22 +26,29 @@
 #include "solvers/utils/Utils.hpp"
 
 namespace MinisatID {
+	class SolverInterface;
+}
+
+namespace MinisatID {
 
 class Data{
 private:
 	ECNF_mode _modes;
+	MinisatID::SolverInterface* parent;
 public:
 	Data(MinisatID::ECNF_mode modes):_modes(modes){};
 	virtual ~Data(){};
 
-	virtual void 	setNbModels		(int nb) = 0;
-
 	virtual bool 	simplify		() = 0;
-	virtual bool 	solve			() = 0;
 	virtual bool 	finishParsing	() = 0;
+
+	virtual void solve(InternSol* sol) = 0;
 
 			int 	verbosity		() const	{ return modes().verbosity; }
 	const ECNF_mode& modes			() const	{ return _modes; }
+
+	MinisatID::SolverInterface* getParent		() const { return parent; }
+			void 	setParent		(MinisatID::SolverInterface* inter) { parent = inter; }
 };
 
 }

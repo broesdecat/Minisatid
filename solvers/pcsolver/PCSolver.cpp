@@ -20,6 +20,7 @@
 #include "solvers/pcsolver/PCSolver.hpp"
 
 #include "solvers/SATSolver.h"
+#include "solvers/external/ExternalInterface.hpp"
 #include "solvers/idsolver/IDSolver.hpp"
 #include "solvers/aggsolver/AggSolver.hpp"
 #include "solvers/modsolver/ModSolver.hpp"
@@ -91,10 +92,6 @@ PCSolver::~PCSolver() {
 		delete aggsolver;
 	}
 	delete solver;
-}
-
-void PCSolver::setNbModels(int nb) {
-	nb_models = nb;
 }
 
 inline pSolver PCSolver::getSolver() const {
@@ -635,31 +632,47 @@ bool PCSolver::simplify() {
 	return simp;
 }
 
-//TODO all models are kept in memory until the end, even if a method is called that does not return the models
-//change the implementation to not save the models if not asked.
-bool PCSolver::solve() {
-	vec<Lit> assmpt;
+///////
+// SOLVE METHODS
+///////
+/*
+ * Possible answers:
+ * true => satisfiable, at least one model exists (INDEPENDENT of the number of models requested or found)
+ * false => unsatisfiable
+ *
+ * Possible tasks:
+ * do propagation => do not do search, do not save any model
+ * check satisfiability => save the first model
+ * find n/all models and print them => do not save models, but print them one at a time
+ * find n/all models and return them => save all models
+ * count the number of models => do not save models
+ */
+
+void PCSolver::solve(InternSol* sol){
+
+}
+/*bool PCSolver::propagate(){
+	return getSolver()->solve(getAssumptions(), true);
+}
+
+int PCSolver::countModels(){
+	int modelsfound = 0;
 	vec<vec<Lit> > models;
-	return solve(assmpt, models);
+	return solve(models, false, 0, modelsfound, true);
 }
 
-bool PCSolver::solve(vec<vec<Lit> >& models) {
-	vec<Lit> assmpt;
-	return solve(assmpt, models);
+bool PCSolver::printModels(int nbmodels){
+	int modelsfound = 0;
+	vec<vec<Lit> > models;
+	return solve(models, false, nbmodels, modelsfound, true);
 }
 
-//Straight to solver, search until a model is found
-bool PCSolver::findModel(const vec<Lit>& assmpt) {
-	return getSolver()->solve(assmpt);
-}
-//Straight to solver, do all propagations, but do not search
-bool PCSolver::propagate(const vec<Lit>& assmpt) {
-	return getSolver()->solve(assmpt, true);
-}
+bool PCSolver::findModels(int nbmodels, vec<vec<Lit> >& models){
+	int modelsfound = 0;
+	return solve(models, false, nbmodels, modelsfound, false);
+}*/
 
-bool PCSolver::solve(const vec<Lit>& assmpt, vec<vec<Lit> >& models) {
-	bool solved = false;
-
+/*bool PCSolver::solve(vec<vec<Lit> >& models, bool nosearch, int modeltofind, int& modelsfound, bool onlyprint) {
 	if (modes().verbosity >= 1) {
 		reportf("============================[ Search Statistics ]==============================\n");
 		reportf("| Conflicts |          ORIGINAL         |          LEARNT          | Progress |\n");
@@ -667,69 +680,42 @@ bool PCSolver::solve(const vec<Lit>& assmpt, vec<vec<Lit> >& models) {
 		reportf("===============================================================================\n");
 	}
 
-	modelsfound = 0;
 	bool moremodels = true;
+	modelsfound = 0;
 
-	//permanent assump = assertions: add as clause
-	for (int i = 0; i < assmpt.size(); i++) {
-		vec<Lit> ps;
-		ps.push(assmpt[i]);
-		addClause(ps);
-	}
+//TODO delete	//permanent assump = assertions: add as clause
+//	for (int i = 0; i < assmpt.size(); i++) {
+//		vec<Lit> ps;
+//		ps.push(assmpt[i]);
+//		addClause(ps);
+//	}
 
-	if (optim != NONE) {
+	while (moremodels && (nb_models == 0 || modelsfound < nb_models)) {
 		vec<Lit> model;
-		vec<Lit> assump;
-		bool found = findOptimal(assump, model);
+		bool found = false;
+		if(optim!=NONE){
+			found = findOptimal(getAssumptions(), model);
+		}else{
+			found = findNext(getAssumptions(), model, moremodels);
+		}
 
 		if (found) {
-			//put models in return models
 			models.push();
 			model.copyTo(models[models.size() - 1]);
-		}
-		solved = found;
-	} else {
-		while (moremodels && (nb_models == 0 || modelsfound < nb_models)) {
-			vec<Lit> model;
-			vec<Lit> assump;
-			bool found = findNext(assump, model, moremodels);
-
-			if (found) {
-				//put models in return models
-				models.push();
-				model.copyTo(models[models.size() - 1]);
-			}
-		}
-
-		if (modelsfound != 0 && !moremodels && nb_models != 1) {
-			printf("| There are no more models                                                    |\n");
-		}
-
-		if (modelsfound == 0) {
-			solved = false;
-		} else if (nb_models == 0 || nb_models == modelsfound) {
-			solved = true;
-		} else {
-			solved = false;
+			//getParent()->printModel(model);
 		}
 	}
 
-	if (modes().verbosity >= 1) {
+	if (verbosity()>=1) {
+		if(modelsfound != 0 && !moremodels && nb_models != 1){
+			reportf("| There are no more models                                                    |\n");
+		}
 		reportf("===============================================================================\n");
 		printStatistics();
 	}
-	return solved;
-}
 
-void PCSolver::printStatistics() const {
-	getSolver()->printStatistics();
-	if (idsolverpresent) {
-		getIDSolver()->printStatistics();
-	}
-	if (aggsolverpresent) {
-		getAggSolver()->printStatistics();
-	}
-}
+	return modelsfound>0;
+}*/
 
 /**
  * Checks satisfiability of the theory.
@@ -743,7 +729,7 @@ void PCSolver::printStatistics() const {
  * and can be backtracked!
  */
 bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m, bool& moremodels) {
-	bool rslt = findModel(assmpt);
+	bool rslt = getSolver()->solve(assmpt);
 
 	if (!rslt) {
 		moremodels = false;
@@ -940,7 +926,10 @@ bool PCSolver::invalidateValue(vec<Lit>& invalidation) {
  *
  * Returns true if an optimal model was found
  */
-bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m) {
+bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
+	vec<Lit> currentassmpt;
+	assmpt.copyTo(currentassmpt);
+
 	bool rslt = true, optimumreached = false;
 
 	//CHECKS whether first element yields a solution, otherwise previous strategy is done
@@ -976,7 +965,7 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m) {
 			getAggSolver()->propagateMnmz(head);
 		}
 
-		rslt = getSolver()->solve(assmpt);
+		rslt = getSolver()->solve(currentassmpt);
 
 		if (rslt && !optimumreached) {
 			m.clear();
@@ -995,8 +984,8 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m) {
 				optimumreached = invalidateValue(invalidation);
 				break;
 			case SUBSETMNMZ:
-				assmpt.clear();
-				optimumreached = invalidateSubset(invalidation, assmpt);
+				currentassmpt.clear();
+				optimumreached = invalidateSubset(invalidation, currentassmpt);
 				break;
 			case SUMMNMZ:
 				//FIXME the invalidation turns out to be empty
@@ -1008,7 +997,7 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m) {
 			}
 
 			if (!optimumreached) {
-				if (getSolver()->decisionLevel() != assmpt.size()) { //choices were made, so other models possible
+				if (getSolver()->decisionLevel() != currentassmpt.size()) { //choices were made, so other models possible
 					optimumreached = !invalidateModel(invalidation);
 				} else {
 					optimumreached = true;
@@ -1050,6 +1039,15 @@ bool PCSolver::findOptimal(vec<Lit>& assmpt, vec<Lit>& m) {
 	return optimumreached;
 }
 
+vector<rClause> PCSolver::getClausesWhichOnlyContain(const vector<Var>& vars) {
+	return vector<rClause> ();
+	//return getSolver()->getClausesWhichOnlyContain(vars);
+}
+
+///////
+// PRINT METHODS
+///////
+
 void PCSolver::printChoiceMade(int level, Lit l) const {
 	if (modes().verbosity >= 2) {
 		reportf("Choice literal, dl %d, ", level);
@@ -1063,7 +1061,12 @@ void PCSolver::printChoiceMade(int level, Lit l) const {
 	}
 }
 
-vector<rClause> PCSolver::getClausesWhichOnlyContain(const vector<Var>& vars) {
-	return vector<rClause> ();
-	//return getSolver()->getClausesWhichOnlyContain(vars);
+void PCSolver::printStatistics() const {
+	getSolver()->printStatistics();
+	if (idsolverpresent) {
+		getIDSolver()->printStatistics();
+	}
+	if (aggsolverpresent) {
+		getAggSolver()->printStatistics();
+	}
 }

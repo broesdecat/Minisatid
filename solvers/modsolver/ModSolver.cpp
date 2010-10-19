@@ -93,10 +93,6 @@ bool ModSolver::addAggrExpr(Lit head, int set_id, Weight bound, AggSign boundsig
 	return getSolver()->addAggrExpr(head, set_id, bound, boundsign, type, defined);
 }
 
-void ModSolver::setNbModels(int nb){
-	getSolver()->setNbModels(nb);
-}
-
 /**
  * Adds the list of variables to the rigid atoms of this ModSolver. They are automatically added
  * as variables, this is maybe not completely necessary when they are not used in the PC theory,
@@ -161,11 +157,7 @@ bool ModSolver::finishParsing(){
  * Tells the root solver to do model expansion on his theory
  */
 bool ModSolver::solve(vec<vec<Lit> >& varmodels){
-	return getSolver()->solve(varmodels);
-}
-
-bool ModSolver::solve(vec<vec<Lit> >& varmodels, const vec<Lit>& assumptions){
-return getSolver()->solve(assumptions, varmodels);
+	//TODO return getSolver()->findModels(1, varmodels);
 }
 
 /*
@@ -294,10 +286,11 @@ bool ModSolver::search(const vec<Lit>& assumpts, bool search){
 
 	bool result;
 	searching = search;
+	//FIXME getSolver()->setAssumptions(assumpts);
 	if(searching){
-		result = getSolver()->findModel(assumpts);
+		//FIXME result = getSolver()->printModels(1);
 	}else{
-		result = getSolver()->propagate(assumpts);
+		//FIXME result = getSolver()->propagate();
 	}
 	searching = false;
 	return result;

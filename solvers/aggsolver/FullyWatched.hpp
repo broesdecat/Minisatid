@@ -70,7 +70,6 @@ protected:
 	virtual rClause propagate(const Agg& agg, bool headtrue) = 0;
 
 public:
-	virtual bool 	assertedBefore(const Var& l, const Var& p) const;
 	virtual void 	getExplanation(vec<Lit>& lits, const AggReason& ar) const;
 	virtual void 	backtrack	(const Watch& w);
 	virtual void 	backtrack	(const Agg& agg);

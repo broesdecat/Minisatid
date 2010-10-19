@@ -45,30 +45,33 @@ void ModSolverData::checkexistsModSolver(modindex modid) const {
 	}
 }
 
-void ModSolverData::setNbModels(int nb){
-	solvers[0]->setNbModels(nb);
-}
-
 bool ModSolverData::simplify(){
 	assert(state==ALLLOADED);
 	return solvers[0]->simplify();
 }
 
-bool ModSolverData::solve(){
-	vec<vec<Lit> > varmodels;
+/*bool ModSolverData::propagate(){
 	assert(state==ALLLOADED);
-	return solvers[0]->solve(varmodels);
+	return solvers[0]->propagate();
 }
 
-bool ModSolverData::solve(vec<vec<Lit> >& varmodels){
+int ModSolverData::countModels(){
 	assert(state==ALLLOADED);
-	return solvers[0]->solve(varmodels);
+	return solvers[0]->countModels();
 }
 
-
-bool ModSolverData::solve(const vec<Lit>& assumptions, vec<vec<Lit> >& varmodels){
+bool ModSolverData::printModels(int nbmodels){
 	assert(state==ALLLOADED);
-	return solvers[0]->solve(varmodels, assumptions);
+	return solvers[0]->printModels(nbmodels);
+}
+
+bool ModSolverData::findModels(int nbmodels, vec<vec<Lit> >& models){
+	assert(state==ALLLOADED);
+	return solvers[0]->findModels(nbmodels, models);
+}*/
+
+void ModSolverData::solve(InternSol* sol){
+
 }
 
 bool ModSolverData::finishParsing(){
@@ -77,12 +80,12 @@ bool ModSolverData::finishParsing(){
 
 	verifyHierarchy();
 
-	/*if(!initialsolverone->solve()){
-		return false;
-	}
-	if(initialsolvertwo->solve()){
-		return true;
-	}*/
+//	if(!initialsolverone->solve()){
+//		return false;
+//	}
+//	if(initialsolvertwo->solve()){
+//		return true;
+//	}
 
 	bool result = solvers[0]->finishParsing();
 
