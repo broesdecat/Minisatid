@@ -48,6 +48,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 namespace MinisatID {
 
+//FIXME correct notion of upper and lower bound!
 
 class PCSolver;
 typedef PCSolver* pPCSolver;

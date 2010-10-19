@@ -74,7 +74,7 @@ std::tr1::shared_ptr<MinisatID::SolverInterface> getData();
     bool boolean;
     std::vector<int>* vints;
     std::vector<MinisatID::Literal>* vlits;
-    std::vector<MinisatID::LW>* vlws;
+    std::vector<MinisatID::WLtuple>* vlws;
     std::vector<MinisatID::Atom>* vatoms;
     MinisatID::EqType rel;
     MinisatID::AggType aggr;
@@ -275,10 +275,6 @@ mrest	: 	/* empty */
 			
 			
 //MODAL PART: USES INDEXES+1 AS MODAL IDs IN THE THEORY
-//FIXME: probleem gevonden: de HEAD kan niet correct aan de juiste worden toegevoegd, 
-//want de parent is nog niet gekend! => ALLE MODS MOETEN EERST IN DE THEORIE!!!
-//FIXME 2: je kan nu vars enzo toevoegen terwijl de kinderen van een mod op nog niet gekend
-//zijn, wat dus onvolledige kennis geeft!
 modhier :	MODDEFN	NUMBER NUMBER NUMBER ZERO 
 				{ 	CR(modsolver->addChild($2-1, $3-1, Literal($4))); }
 		;
@@ -339,7 +335,7 @@ wbody	:	wbody NUMBER REL
 					} 
 				} 
 			number	
-				{ $$ = $1; $$->push_back(MinisatID::LW(MinisatID::Literal(abs($2), $2<0), Weight($5))); }
+				{ $$ = $1; $$->push_back(MinisatID::WLtuple(MinisatID::Literal(abs($2), $2<0), Weight($5))); }
 			
 		|	NUMBER REL 
 				{ 
@@ -348,7 +344,7 @@ wbody	:	wbody NUMBER REL
 					} 
 				} 
 			number	
-				{ $$ = new std::vector<LW>(1,MinisatID::LW(Literal(abs($1), $1<0), Weight($4))); }
+				{ $$ = new std::vector<WLtuple>(1,MinisatID::WLtuple(Literal(abs($1), $1<0), Weight($4))); }
 		;
 		
 vbody	:	vbody posnumber { $$ = $1; $$->push_back(Atom(abs($2)));	}

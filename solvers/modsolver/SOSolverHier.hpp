@@ -58,8 +58,7 @@ namespace MinisatID {
  */
 
 class ModSolver;
-typedef std::vector<ModSolver*> 	vmsolvers;
-typedef vmsolvers::size_type modindex;
+typedef std::vector<ModSolver*> vmsolvers;
 
 enum modhierstate {NEW, LOADINGHIER, LOADINGREST, ALLLOADED};
 
@@ -79,23 +78,23 @@ public:
 	bool 	finishParsing		();
 
 	//Add information for hierarchy
-	bool 	addChild			(modindex parent, modindex child, Lit head);
-	bool	addAtoms			(modindex modid, const std::vector<Var>& atoms);
+	bool 	addChild			(vsize parent, vsize child, Lit head);
+	bool	addAtoms			(vsize modid, const std::vector<Var>& atoms);
 
 	//Add information for PC-Solver
-	void 	addVar				(modindex modid, Var v);
-	bool 	addClause			(modindex modid, vec<Lit>& lits);
-	bool 	addRule				(modindex modid, bool conj, Lit head, vec<Lit>& lits);
-	bool 	addSet				(modindex modid, int set_id, vec<Lit>& lits, std::vector<Weight>& w);
-	bool 	addAggrExpr			(modindex modid, Lit head, int setid, Weight bound, AggSign boundsign, AggType type, AggSem defined);
+	void 	addVar				(vsize modid, Var v);
+	bool 	addClause			(vsize modid, vec<Lit>& lits);
+	bool 	addRule				(vsize modid, bool conj, Lit head, vec<Lit>& lits);
+	bool 	addSet				(vsize modid, int set_id, vec<Lit>& lits, std::vector<Weight>& w);
+	bool 	addAggrExpr			(vsize modid, Lit head, int setid, Weight bound, AggSign boundsign, AggType type, AggSem defined);
 
 	//Get information on hierarchy
-	ModSolver* getModSolver		(modindex modid) const { checkexistsModSolver(modid); return solvers[modid];}
+	ModSolver* getModSolver		(vsize modid) const { checkexistsModSolver(modid); return solvers[modid];}
 
 private:
 	void	verifyHierarchy		();
-	void	checkexistsModSolver(modindex modid) const;
-	bool	existsModSolver		(modindex modid) const { return modid<solvers.size() && solvers[modid]!=NULL; }
+	void	checkexistsModSolver(vsize modid) const;
+	bool	existsModSolver		(vsize modid) const { return modid<solvers.size() && solvers[modid]!=NULL; }
 };
 
 }

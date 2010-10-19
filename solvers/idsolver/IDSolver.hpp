@@ -92,7 +92,7 @@ public:
 	virtual ~IDSolver();
 
 	MinisatID::AggSolver*	getAggSolver()const{return aggsolver;}
-	void		setAggSolver(MinisatID::AggSolver* a){aggsolver = a;}	//TODO call this
+	void		setAggSolver(MinisatID::AggSolver* a){aggsolver = a;}
 
 	/////////////////////SOLVER NECESSARY
 	void 		backtrack 				(const Lit& l);

@@ -116,9 +116,7 @@ int Read::addBasicRule (istream &f){
 		return 1;
 	}
 
-	if(!getSolver()->addRule(true, head, body)){
-		return 1;
-	}
+	basicrules.push_back(BasicRule(head, body));
 
 	return 0;
 }
@@ -167,12 +165,7 @@ int Read::addConstraintRule (istream &f){
 		return 1;
 	}
 
-	if(!getSolver()->addSet(setcount, body)){
-		return 1;
-	}
-	if(!getSolver()->addAggrExpr(head, setcount, atleast, UB, CARD, DEF)){
-		return 1;
-	}
+	cardrules.push_back(CardRule(setcount, head, body, atleast));
 	setcount++;
 
 	return 0;
@@ -339,19 +332,15 @@ int Read::addWeightRule (istream &f){
 		weights.push_back(w);
 	}
 
-	if(!getSolver()->addSet(setcount, body, weights)){
-		return 1;
-	}
-	if(!getSolver()->addAggrExpr(head, setcount, lowerbound, UB, SUM, DEF)){
-		return 1;
-	}
+	sumrules.push_back(SumRule(setcount, head, body, weights, lowerbound));
 	setcount++;
 
 	return 0;
 }
 
 int Read::addOptimizeRule (istream &f){
-	throw idpexception("Not yet implemented.");
+	//TODO implement optimize rule
+	throw idpexception("Not yet implemented.\n");
  /* long n;
   api->begin_rule (OPTIMIZERULE);
   // Optimize
@@ -405,11 +394,43 @@ int Read::addOptimizeRule (istream &f){
   return 0;
 }
 
+int Read::finishBasicRules(){
+	for(vector<BasicRule>::const_iterator i=basicrules.begin(); i<basicrules.end(); i++){
+		if(!getSolver()->addRule(true, (*i).head, (*i).body)){
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int Read::finishCardRules(){
+	for(vector<CardRule>::const_iterator i=cardrules.begin(); i<cardrules.end(); i++){
+		if(!getSolver()->addSet((*i).setcount, (*i).body)){
+			return 1;
+		}
+		if(!getSolver()->addAggrExpr((*i).head, (*i).setcount, (*i).atleast, UB, CARD, DEF)){
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int Read::finishSumRules(){
+	for(vector<SumRule>::const_iterator i=sumrules.begin(); i<sumrules.end(); i++){
+		if(!getSolver()->addSet((*i).setcount, (*i).body, (*i).weights)){
+			return 1;
+		}
+		if(!getSolver()->addAggrExpr((*i).head, (*i).setcount, (*i).atleast, UB, SUM, DEF)){
+			return 1;
+		}
+	}
+	return 0;
+}
+
 int Read::finishGenerateRules(){
 	for(vector<GenRule>::const_iterator i=genrules.begin(); i<genrules.end(); i++){
 		if((*i).body.size()!=0){
 			for(vector<Literal>::const_iterator j=(*i).heads.begin(); j<(*i).heads.end(); j++){
-				//TODO if an element is defined in multiple gen/choice rules, i think this will fail
 				int atemp = maxatomnumber++;
 				vector<Literal> tempbody((*i).body);
 				tempbody.push_back(makeLiteral(atemp, true));
@@ -595,6 +616,18 @@ int Read::read (istream &f){
 		return 1;
 	}
 
+	//TODO: if some atoms are defined multiple times, use tseitin transformation to separate them
+	idpexception("Support disable until tseitin transformation has been implemented.\n");
+
+	if(finishBasicRules()==1){
+		return 1;
+	}
+	if(finishCardRules()==1){
+		return 1;
+	}
+	if(finishSumRules()==1){
+		return 1;
+	}
 	if(finishChoiceRules()==1){
 		return 1;
 	}

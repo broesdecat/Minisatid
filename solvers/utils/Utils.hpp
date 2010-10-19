@@ -32,7 +32,102 @@
 
 namespace MinisatID {
 
+// General vector size type usable for any POINTER types!
 typedef std::vector<void*>::size_type vsize;
+
+///////
+// Internal model expansion solution datastructure
+///////
+
+class InternSol{
+private:
+	const bool 	printmodels, savemodels;
+	bool 		nomoremodels;
+	const int 	nbmodelstofind;
+	int 		nbmodelsfound;
+	vec<vec<Lit> > models;
+	vec<Lit> 	assumptions;
+
+public:
+	InternSol(bool print, bool save, int searchnb, const vec<Lit>& assumpts):
+			printmodels(print), savemodels(save),
+			nbmodelstofind(searchnb){
+		for(int i=0; i<assumpts.size(); i++){
+			assumptions.push(assumpts[i]);
+		}
+	}
+	~InternSol(){};
+
+	void 		addModel(const vec<Lit>& model) {
+		nbmodelsfound++;
+		if(getSave()){
+			models.push();
+			vec<Lit>& m = models.last();
+			for(int i=0; i<model.size(); i++){
+				m.push(model[i]);
+			}
+		}
+	}
+	int			modelCount		() { return nbmodelsfound; }
+
+	int 		getNbModelsToFind() const { return nbmodelstofind; }
+	bool 		getPrint		() const { return printmodels; }
+	bool 		getSave			() const { return savemodels; }
+	const vec<Lit>& 		getAssumptions	() { return assumptions; }
+	const vec<vec<Lit> >& 	getModels		() {
+		if(!savemodels){ throw idpexception("Models were not being saved!\n"); }
+		return models;
+	}
+};
+
+///////
+// Internal weighted literal
+///////
+
+class WL {  // Weighted literal
+private:
+	Lit lit;
+	Weight weight;
+
+public:
+    explicit WL(const Lit& l, const Weight& w) : lit(l), weight(w) {}
+
+    const Lit& 		getLit() 	const { return lit; }
+    const Weight&	getWeight() const { return weight; }
+
+    bool operator<	(const WL& p)		 const { return weight < p.weight; }
+    bool operator<	(const Weight& bound)const { return weight < bound; }
+    bool operator==	(const WL& p)		 const { return weight == p.weight && lit==p.lit; }
+
+    operator 	Lit()	const { return lit; }
+    operator Weight()	const { return weight; }
+};
+
+///////
+// Debug information
+///////
+
+inline int gprintVar(Var v){
+	return v+1;
+}
+
+inline void gprintLit(const Lit& l, const lbool val){
+	reportf("%s%d:%c", (sign(l) ? "-" : ""), gprintVar(var(l)), (val == l_True ? '1' : (val == l_False ? '0' : 'X')));
+}
+
+inline void gprintLit(const Lit& l){
+	reportf("%s%d", (sign(l) ? "-" : ""), gprintVar(var(l)));
+}
+
+inline void gprintClause(const vec<Lit>& c){
+	for(int i=0; i<c.size(); i++){
+		gprintLit(c[i]); reportf(" ");
+	}
+}
+
+///////
+// Support for deleting lists of pointer elements
+///////
 
 template<class T>
 void deleteList(std::vector<T*> l){
@@ -60,73 +155,6 @@ void deleteList(std::map<K, T*> l){
 		}
 	}
 	l.clear();
-}
-
-///////
-// SOLUTION DATASTRUCTURE
-///////
-
-class InternSol{
-private:
-	const bool printmodels, savemodels;
-	bool nomoremodels;
-	const int nbmodelstofind;
-	int nbmodelsfound;
-	vec<vec<Lit> > models;
-	vec<Lit> assumptions;
-
-public:
-	InternSol(bool print, bool save, int searchnb, const vec<Lit>& assumpts):
-			printmodels(print), savemodels(save),
-			nbmodelstofind(searchnb){
-		for(int i=0; i<assumpts.size(); i++){
-			assumptions.push(assumpts[i]);
-		}
-	}
-	~InternSol(){};
-
-	void addModel(vec<Lit> model) {;}
-	const vec<vec<Lit> >& getModels() { if(!savemodels){ throw idpexception("Models were not being saved!\n");} return models; }
-	int modelCount() { return nbmodelsfound; }
-};
-
-class WL {  // Weighted literal
-private:
-	Lit lit;
-	Weight weight;
-
-public:
-    explicit WL(const Lit& l, const Weight& w) : lit(l), weight(w) {}
-
-    const Lit& 		getLit() 	const { return lit; }
-    const Weight&	getWeight() const { return weight; }
-
-    bool operator<	(const WL& p)		 const { return weight < p.weight; }
-    bool operator<	(const Weight& bound)const { return weight < bound; }
-    bool operator==	(const WL& p)		 const { return weight == p.weight && lit==p.lit; }
-
-    operator 	Lit()	const { return lit; }
-    operator Weight()	const { return weight; }
-};
-
-#define reportf(...) ( fflush(stdout), fprintf(stderr, __VA_ARGS__), fflush(stderr) )
-
-inline int gprintVar(Var v){
-	return v+1;
-}
-
-inline void gprintLit(const Lit& l, const lbool val){
-	reportf("%s%d:%c", (sign(l) ? "-" : ""), gprintVar(var(l)), (val == l_True ? '1' : (val == l_False ? '0' : 'X')));
-}
-
-inline void gprintLit(const Lit& l){
-	reportf("%s%d", (sign(l) ? "-" : ""), gprintVar(var(l)));
-}
-
-inline void gprintClause(const vec<Lit>& c){
-	for(int i=0; i<c.size(); i++){
-		gprintLit(c[i]); reportf(" ");
-	}
 }
 
 }

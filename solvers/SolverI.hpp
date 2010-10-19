@@ -26,10 +26,8 @@
 #include "solvers/utils/Utils.hpp"
 
 namespace MinisatID {
-	class SolverInterface;
-}
 
-namespace MinisatID {
+class SolverInterface;
 
 class Data{
 private:

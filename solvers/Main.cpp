@@ -55,49 +55,22 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 **************************************************************************************************/
 
 #include <ctime>
-
 #include <cstring>
 #include <stdint.h>
 #include <errno.h>
-
 #include <iostream>
 #include <fstream>
-
 #include <signal.h>
+#include <tr1/memory>
+
+#include "solvers/external/ExternalInterface.hpp"
+#include "solvers/Unittests.hpp"
+#include "solvers/parser/Lparseread.hpp"
+#include "solvers/parser/PBread.hpp"
 
 #if defined(__linux__)
 #include <fpu_control.h>
 #endif
-
-#if defined(__linux__)
-#ifdef _MSC_VER
-#include <ctime>
-
-static inline double cpuTime(void) {
-    return (double)clock() / CLOCKS_PER_SEC;
-}
-
-#else
-#include <sys/time.h>
-#include <sys/resource.h>
-#include <unistd.h>
-
-static inline double cpuTime(void) {
-    struct rusage ru;
-    getrusage(RUSAGE_SELF, &ru);
-    return (double)ru.ru_utime.tv_sec + (double)ru.ru_utime.tv_usec / 1000000;
-}
-#endif
-#else
-static inline double cpuTime(void) { return 0; }
-#endif
-
-#include "solvers/external/ExternalInterface.hpp"
-
-#include "solvers/Unittests.hpp"
-#include "solvers/parser/Lparseread.hpp"
-#include "solvers/parser/PBread.hpp"
-#include <tr1/memory>
 
 using namespace std::tr1;
 using namespace MinisatID;
@@ -131,10 +104,10 @@ static void SIGINT_handler	(int signum);
 void 		printUsage		(char** argv);
 
 void		noMoreMem(){
-	//Tries to reduce the memory of the solver by redustd::cing the number of learned clauses
-	//This keeps being called until enough memory is free or no more learned clauses can be/are deleted (causing abort).
+	//Tries to reduce the memory of the solver by reducing the number of learned clauses
+	//This keeps being called until enough memory is free or no more learned clauses can be deleted (causing abort).
 	throw idpexception("The solver ran out of memory.\n");
-//	bool reducedmem = false;
+	bool reducedmem = false;
 //	pSolver s = wps.lock();
 //	if(s.get()!=NULL){
 //		int before = s->getNbOfLearnts();
@@ -147,12 +120,42 @@ void		noMoreMem(){
 //		}
 //	}
 //
-//	if(!reducedmem){
-//		reportf("There is no more memory to allocate, program aborting.\n");
-//		throw new idpexception();
-//	}
+	if(!reducedmem){
+		throw idpexception("The solver ran out of memory.\n");
+	}
 }
 
+void printVersion(){
+	reportf("MinisatID version 2.0.20\n");
+	reportf("Courtesy of the KRR group at K.U. Leuven, Belgium, more info available on \"http://dtai.cs.kuleuven.be/krr\".\n");
+	reportf("MinisatID is a model expansion system for propositional logic extended with aggregates "
+			"and inductive definitions. Also lparse and opb languages are supported.\n");
+}
+
+void printUsage(){
+	reportf("Usage: program [options] <input-file> <result-output-file>\n\n  where input may is in ECNF, LParse, PB or MECNF.\n\n");
+	reportf("Options:\n\n");
+	reportf("   --defsearch        Unfounded set search frequency: \"always\", \"adaptive\" or \"lazy\".\n");
+	reportf("   --defstrat         Unfounded set search strategy: \"breadth_first\" or \"depth_first\".\n");
+	reportf("   --defsem           Semantics of all definitions: \"stable\" or \"wellfounded\".\n");
+	reportf("   --n<I>             The number of models <I> to search for.\n");
+	reportf("   --verbosity=<I>    The level of output <I> to generate.\n");
+	reportf("   --rnd-freq=<D>     <D> is a double \\in [0..1].\n");
+	reportf("   --decay=<D>        <D> is a double \\in [0..1].\n");
+	reportf("   --polarity-mode    Default polarity choice of variables: \"true\", \"false\" or \"rnd\".\n");
+	reportf("   --defsearch        Unfounded set search frequency: \"always\", \"adaptive\" or \"lazy\".\n");
+	reportf("   --lparse=<B>       \"yes\" if the input is in ASP lparse format.\n");
+	reportf("   --pb=<B>           \"yes\" if the input is in PB format.\n");
+	reportf("   --idclausesaving=<I> 0=add on propagation, 1=save on propagation.\n");
+	reportf("   --aggclausesaving=<I> 0=add on propagation, 1=save on propagation, 2 = don't save.\n");
+	reportf("   --remap=<B>        \"yes\" if all literals should be remapped to remove gaps in the grounding.\n");
+	reportf("   --pw=<B>           \"yes\" if watched aggregate structures should be used.\n");
+	reportf("   --randomize=<B>    \"yes\" if the SAT-solver random seed should be random.\n");
+	reportf("   --disableheur=<B>  \"yes\" if the SAT-solver's heuristic should be disabled.\n");
+	reportf("\n");
+}
+
+//Class to manage a read-only file
 class FileR{
 private:
 	bool opened;
@@ -162,6 +165,7 @@ private:
 	FileR & operator= (const FileR &);
 
 public:
+	FileR(FILE* file): opened(false), file(file){}
 	FileR(const char* name): opened(false), file(fopen(name, "r")){
 		if(file == NULL){
 			char s[100]; sprintf(s, "`%s' is not a valid filename or not readable.\n", name);
@@ -170,24 +174,10 @@ public:
 		opened = true;
 	}
 
-	FileR(FILE* file): opened(false), file(file){}
+	~FileR(){ if(opened){ fclose(file); } }
 
-	~FileR(){
-		if(opened){
-			fclose(file);
-		}
-	}
-
-	void close(){
-		if(opened){
-			opened = false;
-			fclose(file);
-		}
-	}
-
-	FILE* getFile(){
-		return file;
-	}
+	void close(){ if(opened){ opened = false; fclose(file);	} }
+	FILE* getFile(){ return file; }
 };
 
 int main(int argc, char** argv) {
@@ -220,9 +210,7 @@ int main(int argc, char** argv) {
 		 * Third argument if provided: output file.
 		 */
 
-		//pData d = unittest(modes);
-		//pData d = unittest2(modes);
-		//pData d = unittest3(modes);
+		//Unittest injection here: pData d = unittestx(modes);
 
 		//An outputfile is not allowed when the inputfile is piped (//TODO should add a -o argument for this)
 		res = stdout; 	//Default write to stdout
@@ -498,8 +486,16 @@ void parseCommandline(int& argc, char** argv){
             if (modes.nbmodels < 0 || *endptr != '\0') {
 				throw idpexception("Option `-nN': N must be a positive integer, or 0 to get all models.");
             }
-        }else if ((value = hasPrefix(argv[i], "-h")) || (value = hasPrefix(argv[i], "--help"))){
-            modes.printUsage();
+        }/*else if ((value = hasPrefix(argv[i], "-o=")) || (value = hasPrefix(argv[i], "--outputfile="))){
+        	res = fopen(argv[2], "wb");
+        	if(res==NULL){
+        		throw idpexception("The provided outputfile \"%s\" could not be opened.\n", value);
+        	}
+    	}*/else if ((value = hasPrefix(argv[i], "-h")) || (value = hasPrefix(argv[i], "--help"))){
+            printUsage();
+            exit(0);
+        }else if ((value = hasPrefix(argv[i], "-v")) || (value = hasPrefix(argv[i], "--version"))){
+            printVersion();
             exit(0);
         }else if (strncmp(argv[i], "-", 1) == 0){
 			char s[100]; sprintf(s, "Unknown flag %s\n", argv[i]);

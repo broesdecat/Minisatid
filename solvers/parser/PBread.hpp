@@ -57,7 +57,7 @@ private:
 
 	IntegerType bound;
 	bool equality;
-	std::vector<LW> lw;
+	std::vector<WLtuple> lw;
 	int setid;
 	int maxvar;
 

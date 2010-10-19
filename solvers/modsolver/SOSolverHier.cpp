@@ -38,7 +38,7 @@ ModSolverData::~ModSolverData(){
 	deleteList<ModSolver>(solvers);
 }
 
-void ModSolverData::checkexistsModSolver(modindex modid) const {
+void ModSolverData::checkexistsModSolver(vsize modid) const {
 	if(!existsModSolver(modid)){
 		char s[100]; sprintf(s, "No modal operator with id %zu was declared! ", modid+1);
 		throw idpexception(s);
@@ -98,7 +98,7 @@ bool ModSolverData::finishParsing(){
 
 //Add information for hierarchy
 
-bool ModSolverData::addChild(modindex parent, modindex child, Lit h){
+bool ModSolverData::addChild(vsize parent, vsize child, Lit h){
 	assert(state==LOADINGHIER);
 
 	checkexistsModSolver(parent);
@@ -119,7 +119,7 @@ bool ModSolverData::addChild(modindex parent, modindex child, Lit h){
 	return true;
 }
 
-bool ModSolverData::addAtoms(modindex modid, const vector<Var>& atoms){
+bool ModSolverData::addAtoms(vsize modid, const vector<Var>& atoms){
 	assert(state==LOADINGHIER);
 
 	//allAtoms.insert(allAtoms.end(), atoms.begin(), atoms.end());
@@ -130,7 +130,7 @@ bool ModSolverData::addAtoms(modindex modid, const vector<Var>& atoms){
 
 //Add information for PC-Solver
 
-void ModSolverData::addVar(modindex modid, Var v){
+void ModSolverData::addVar(vsize modid, Var v){
 	if(state==LOADINGHIER){
 		state = LOADINGREST;
 	}
@@ -155,7 +155,7 @@ void ModSolverData::addVar(modindex modid, Var v){
  *
  * Currently done substitutions
  */
-bool ModSolverData::addClause(modindex modid, vec<Lit>& lits){
+bool ModSolverData::addClause(vsize modid, vec<Lit>& lits){
 	if(state==LOADINGHIER){
 		state = LOADINGREST;
 	}
@@ -179,7 +179,7 @@ bool ModSolverData::addClause(modindex modid, vec<Lit>& lits){
 
 	//Try to add a clause as high up in the hierarchy as possible.
 	checkexistsModSolver(modid);
-	modindex previd = modid, currentid = modid;
+	vsize previd = modid, currentid = modid;
 	pModSolver m = NULL;
 	bool negated = false;
 	while(true){
@@ -224,7 +224,7 @@ bool ModSolverData::addClause(modindex modid, vec<Lit>& lits){
 	return result;
 }
 
-bool ModSolverData::addRule(modindex modid, bool conj, Lit head, vec<Lit>& lits){
+bool ModSolverData::addRule(vsize modid, bool conj, Lit head, vec<Lit>& lits){
 	if(state==LOADINGHIER){
 		state = LOADINGREST;
 	}
@@ -235,7 +235,7 @@ bool ModSolverData::addRule(modindex modid, bool conj, Lit head, vec<Lit>& lits)
 	return m->addRule(conj, head, lits);
 }
 
-bool ModSolverData::addSet(modindex modid, int setid, vec<Lit>& lits, vector<Weight>& w){
+bool ModSolverData::addSet(vsize modid, int setid, vec<Lit>& lits, vector<Weight>& w){
 	if(state==LOADINGHIER){
 		state = LOADINGREST;
 	}
@@ -246,7 +246,7 @@ bool ModSolverData::addSet(modindex modid, int setid, vec<Lit>& lits, vector<Wei
 	return m->addSet(setid, lits, w);
 }
 
-bool ModSolverData::addAggrExpr(modindex modid, Lit head, int setid, Weight bound, AggSign boundsign, AggType type, AggSem defined){
+bool ModSolverData::addAggrExpr(vsize modid, Lit head, int setid, Weight bound, AggSign boundsign, AggType type, AggSem defined){
 	if(state==LOADINGHIER){
 		state = LOADINGREST;
 	}
@@ -274,12 +274,12 @@ bool ModSolverData::addAggrExpr(modindex modid, Lit head, int setid, Weight boun
 void ModSolverData::verifyHierarchy(){
 	assert(state = ALLLOADED);
 
-	vector<modindex> queue;
+	vector<vsize> queue;
 	vector<int> visitcount(solvers.size(), 0);
 	queue.push_back(0);
 	visitcount[0]++;
 	while(queue.size()>0){
-		modindex s = queue.back();
+		vsize s = queue.back();
 		queue.pop_back();
 		pModSolver solver = getModSolver(s);
 		for(vmodindex::const_iterator i=solver->getChildren().begin(); i<solver->getChildren().end(); i++){

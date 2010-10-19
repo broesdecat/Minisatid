@@ -41,23 +41,50 @@
 
 namespace MinisatID {
 
+struct BasicRule{
+	Literal head;
+	std::vector<Literal> body;
+
+	BasicRule(Literal head, std::vector<Literal>& body):head(head), body(body){	}
+};
+
+struct CardRule{
+	int setcount;
+	Literal head;
+	std::vector<Literal> body;
+	int atleast;
+	//Card, UB, DEF
+
+	CardRule(int setcount, Literal head, std::vector<Literal>& body, int atleast):
+			setcount(setcount), head(head), body(body), atleast(atleast){	}
+};
+
+struct SumRule{
+	int setcount;
+	Literal head;
+	std::vector<Literal> body;
+	std::vector<Weight> weights;
+	int atleast;
+	//Card, UB, DEF
+
+	SumRule(int setcount, Literal head, std::vector<Literal>& body, std::vector<Weight> weights, int atleast):
+			setcount(setcount), head(head), body(body), weights(weights), atleast(atleast){	}
+};
+
 struct GenRule{
 	long atleast;
 	std::vector<Literal> heads;
 	std::vector<Literal> body;
 
-	GenRule(long atleast, std::vector<Literal>& heads, std::vector<Literal>& body):atleast(atleast), heads(heads), body(body){
-
-	}
+	GenRule(long atleast, std::vector<Literal>& heads, std::vector<Literal>& body):
+			atleast(atleast), heads(heads), body(body){	}
 };
 
 struct ChoiceRule{
 	std::vector<Literal> heads;
 	std::vector<Literal> body;
 
-	ChoiceRule(std::vector<Literal>& heads, std::vector<Literal>& body): heads(heads), body(body){
-
-	}
+	ChoiceRule(std::vector<Literal>& heads, std::vector<Literal>& body): heads(heads), body(body){}
 };
 
 class Read{
@@ -76,6 +103,10 @@ private:
 	int addOptimizeRule (std::istream &f);
 
 	Literal makeLiteral(int n, bool sign);
+
+	int finishBasicRules();
+	int finishCardRules();
+	int finishSumRules();
 	int finishGenerateRules();
 	int finishChoiceRules();
 
@@ -86,6 +117,9 @@ private:
 	PropositionalSolver* solver;
 	PropositionalSolver* getSolver() { return solver; }
 
+	std::vector<BasicRule> basicrules;
+	std::vector<CardRule> cardrules;
+	std::vector<SumRule> sumrules;
 	std::vector<GenRule> genrules;
 	std::vector<ChoiceRule> choicerules;
 };

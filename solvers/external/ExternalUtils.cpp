@@ -25,6 +25,47 @@
 using namespace std;
 using namespace MinisatID;
 
+///////
+// Measuring cpu time
+///////
+
+//In elapsed seconds, making abstraction of other processes running on the system
+double MinisatID::cpuTime(void) {
+	return (double)clock() / CLOCKS_PER_SEC;
+}
+
+/*
+#if defined(__linux__)
+static inline int memReadStat(int field)
+{
+	int read;
+    char    name[256];
+    pid_t pid = getpid();
+    sprintf(name, "/proc/%d/statm", pid);
+    FILE*   in = fopen(name, "rb");
+    if (in == NULL) return 0;
+    int     value;
+    for (; field >= 0; field--){
+    	read = fscanf(in, "%d", &value);
+    	if(read==EOF){ break; }
+    }
+    fclose(in);
+    return value;
+}
+static inline uint64_t memUsed() { return (uint64_t)memReadStat(0) * (uint64_t)getpagesize(); }
+#elif defined(__FreeBSD__)
+static inline uint64_t memUsed(void) {
+    struct rusage ru;
+    getrusage(RUSAGE_SELF, &ru);
+    return ru.ru_maxrss*1024; }
+#else
+static inline uint64_t memUsed() { return 0; }
+#endif*/
+
+///////
+// Weight printing
+///////
+
 #ifdef GMPWEIGHT
 	string MinisatID::printWeight(const Weight& w){
 		return w.get_str();
@@ -42,51 +83,3 @@ using namespace MinisatID;
 		}
 	#endif
 #endif
-
-/*IntOption::IntOption(ECNF_mode& mode, string naam, int min, int max, string description):
-		naam(naam), min(min), max(max), description(description){
-	mode.addVar(*this, naam);
-}
-
-void ECNF_mode::addVar(const IntOption& opt, string naam){
-	mapping.insert(pair<string, IntOption>(naam, opt));
-	variabelen.push_back(opt);
-}*/
-
-void ECNF_mode::printUsage(){
-	reportf("Usage: program [options] <input-file> <result-output-file>\n\n  where input may is in ECNF, LParse, PB or MECNF.\n\n");
-	reportf("Options:\n\n");
-	/*for(int i=0; i<variabelen.size(); i++){
-		variabelen[i].printHelp();
-	}*/
-	reportf("   --defsearch        Unfounded set search frequency: \"always\", \"adaptive\" or \"lazy\".\n");
-	reportf("   --defstrat         Unfounded set search strategy: \"breadth_first\" or \"depth_first\".\n");
-	reportf("   --defsem           Semantics of all definitions: \"stable\" or \"wellfounded\".\n");
-	reportf("   --n<I>             The number of models <I> to search for.\n");
-	reportf("   --verbosity=<I>    The level of output <I> to generate.\n");
-	reportf("   --rnd-freq=<D>     <D> is a double \\in [0..1].\n");
-	reportf("   --decay=<D>        <D> is a double \\in [0..1].\n");
-	reportf("   --polarity-mode    Default polarity choice of variables: \"true\", \"false\" or \"rnd\".\n");
-	reportf("   --defsearch        Unfounded set search frequency: \"always\", \"adaptive\" or \"lazy\".\n");
-	reportf("   --lparse=<B>       \"yes\" if the input is in ASP lparse format.\n");
-	reportf("   --pb=<B>           \"yes\" if the input is in PB format.\n");
-	reportf("   --idclausesaving=<I> 0=add on propagation, 1=save on propagation.\n");
-	reportf("   --aggclausesaving=<I> 0=add on propagation, 1=save on propagation, 2 = dont save.\n");
-	reportf("   --remap=<B>        \"yes\" if all literals should be remapped to remove gaps in the grouding.\n");
-	reportf("   --pw=<B>           \"yes\" if watched aggregate structures should be used.\n");
-	reportf("   --randomize=<B>    \"yes\" if the SAT-solver random seed should be random.\n");
-	reportf("   --disableheur=<B>  \"yes\" if the SAT-solver's heuristic should be disabled.\n");
-	reportf("\n");
-}
-
-void ECNF_mode::parseCommandline(int& argc, char** argv){
-    /*TODO int         i, j;
-    const char* value;
-    for (i = j = 0; i < argc; i++){
-    	//read --, otherwise inputfile
-    	//read until =
-    	//read option (done by Option)
-    	if(){
-
-    	}*/
-}

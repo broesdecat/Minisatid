@@ -17,35 +17,21 @@
 //    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //--------------------------------------------------------------------------------------------------
 
-/*
- * ExternalInterface.cpp
- *
- *  Created on: Jul 22, 2010
- *      Author: broes
- */
-
 #include "solvers/external/ExternalInterface.hpp"
 
 #include <cstdlib>
-#include <map>
 #include <vector>
 #include <tr1/memory>
-#include "solvers/pcsolver/PCSolver.hpp"
-#include "solvers/modsolver/SOSolverHier.hpp"
-
 #include <algorithm>
 
 using namespace std;
 using namespace MinisatID;
 
-modindex getModIndex(modID modid){
-       return (int)modid;
-}
-
 SolverInterface::SolverInterface(ECNF_mode modes):
 		_modes(modes), maxnumber(0),
 		origtocontiguousatommapper(),
 		contiguoustoorigatommapper(),
+		currentsolution(NULL),
 		firstmodel(true){
 }
 
@@ -110,87 +96,48 @@ void SolverInterface::checkAtoms(const vector<Atom>& lits, vector<Var>& ll){
 	}
 }
 
+InternSol* SolverInterface::mapToInternSol(Solution* sol){
+	vec<Lit> ass;
+	checkLits(sol->getAssumptions(), ass);
+	InternSol* insol = new InternSol(sol->getPrint(), sol->getSave(), sol->getNbModelsToFind(), ass);
+	return insol;
+}
+
 void PropositionalSolver::addForcedChoices(const vector<Literal> lits){
 	vec<Lit> ll;
 	checkLits(lits, ll);
 	getSolver()->addForcedChoices(ll);
 }
 
-/*bool SolverInterface::solveprintModels(int nbmodels){
-	bool result = getSolver()->solveprintModels(nbmodels);
-
-	if(firstmodel && result){
-		fprintf(getRes()==NULL?stdout:getRes(), "SAT\n");
-		if(modes().verbosity>=1){
-			printf("SATISFIABLE\n");
-		}
-		firstmodel = false;
-	} else if(!result){
-		fprintf(getRes()==NULL?stdout:getRes(), "UNSAT\n");
-		if(modes().verbosity>=1){
-			printf("UNSATISFIABLE\n");
-		}
-	}
-
-	return result;
-}
-
-bool SolverInterface::solvefindModels(int nbmodels, vector<vector<Literal> >& models){
-	vec<vec<Lit> > varmodels; //int-format literals, INDEXED!
-	bool result = getSolver()->solvefindModels(nbmodels, varmodels);
-
-	if(firstmodel && result){
-		fprintf(getRes()==NULL?stdout:getRes(), "SAT\n");
-		if(modes().verbosity>=1){
-			printf("SATISFIABLE\n");
-		}
-		firstmodel = false;
-	} else if(!result){
-		fprintf(getRes()==NULL?stdout:getRes(), "UNSAT\n");
-		if(modes().verbosity>=1){
-			printf("UNSATISFIABLE\n");
-		}
-	}
-
-	//Translate into original vocabulary
-	for(int i=0; i<varmodels.size(); i++){
-		vector<Literal> outmodel;
-		for(int j=0; j<varmodels[i].size(); j++){
-			if(!wasInput(var(varmodels[i][j]))){ //was not part of the input
-				continue;
-			}
-			outmodel.push_back(getOrigLiteral(varmodels[i][j]));
-		}
-		sort(outmodel.begin(), outmodel.end());
-		models.push_back(outmodel);
-	}
-
-	return result;
-
-	return getSolver()->solvefindModels(nbmodels, models);
-}*/
-
 bool SolverInterface::finishParsing(){
 	return getSolver()->finishParsing();
 }
 
 bool SolverInterface::simplify(){
-
+	return getSolver()->simplify();
 }
 
 void SolverInterface::solve(Solution* sol){
+	currentsolution = sol;
 
-}
+	//Map to internal solution
+	InternSol* insol = mapToInternSol(currentsolution);
 
-void SolverInterface::printModel(const vec<Lit>& model){
-	if(firstmodel){
-		fprintf(getRes()==NULL?stdout:getRes(), "SAT\n");
+	getSolver()->solve(insol);
+
+	delete insol;
+
+	if(currentsolution->modelCount()==0){
+		fprintf(getRes()==NULL?stdout:getRes(), "UNSAT\n");
 		if(modes().verbosity>=1){
-			printf("SATISFIABLE\n");
+			printf("UNSATISFIABLE\n");
 		}
-		firstmodel = false;
 	}
 
+	currentsolution = NULL;
+}
+
+void SolverInterface::addModel(const vec<Lit>& model){
 	//Translate into original vocabulary
 	vector<Literal> outmodel;
 	for(int j=0; j<model.size(); j++){
@@ -200,13 +147,26 @@ void SolverInterface::printModel(const vec<Lit>& model){
 		outmodel.push_back(getOrigLiteral(model[j]));
 	}
 	sort(outmodel.begin(), outmodel.end());
-	//Effectively print the model
-	bool start = true;
-	for (vector<Literal>::const_iterator i = outmodel.begin(); i < outmodel.end(); i++){
-		fprintf(getRes()==NULL?stdout:getRes(), "%s%s%d", start ? "" : " ", ((*i).getSign()) ? "-" : "", (*i).getAtom().getValue());
-		start = false;
+
+	assert(currentsolution!=NULL);
+	currentsolution->addModel(outmodel);
+
+	if(currentsolution->getPrint()){
+		if(currentsolution->getModels().size()==1){	//First model found
+			fprintf(getRes()==NULL?stdout:getRes(), "SAT\n");
+			if(modes().verbosity>=1){
+				printf("SATISFIABLE\n");
+			}
+		}
+
+		//Effectively print the model
+		bool start = true;
+		for (vector<Literal>::const_iterator i = outmodel.begin(); i < outmodel.end(); i++){
+			fprintf(getRes()==NULL?stdout:getRes(), "%s%s%d", start ? "" : " ", ((*i).getSign()) ? "-" : "", (*i).getAtom().getValue());
+			start = false;
+		}
+		fprintf(getRes()==NULL?stdout:getRes(), " 0\n");
 	}
-	fprintf(getRes()==NULL?stdout:getRes(), " 0\n");
 }
 
 ///////
@@ -249,11 +209,11 @@ bool PropositionalSolver::addSet(int id, const vector<Literal>& lits){
 }
 
 //Might be implemented more efficiently in the future
-bool PropositionalSolver::addSet(int id, const vector<LW>& lws){
+bool PropositionalSolver::addSet(int id, const vector<WLtuple>& lws){
 	vector<Literal> lits;
 	vector<Weight> weights;
 
-	for(vector<LW>::const_iterator i=lws.begin(); i<lws.end(); i++){
+	for(vector<WLtuple>::const_iterator i=lws.begin(); i<lws.end(); i++){
 		lits.push_back((*i).l);
 		weights.push_back((*i).w);
 	}
@@ -335,34 +295,34 @@ ModalSolver::~ModalSolver(){
 
 ModSolverData* ModalSolver::getSolver() const { return solver; }
 
-void ModalSolver::addVar(modID modid, Atom v){
-	getSolver()->addVar(getModIndex(modid), checkAtom(v));
+void ModalSolver::addVar(vsize modid, Atom v){
+	getSolver()->addVar(modid, checkAtom(v));
 }
 
-bool ModalSolver::addClause(modID modid, vector<Literal>& lits){
+bool ModalSolver::addClause(vsize modid, vector<Literal>& lits){
 	vec<Lit> ll;
 	checkLits(lits, ll);
-	return getSolver()->addClause(getModIndex(modid), ll);
+	return getSolver()->addClause(modid, ll);
 }
 
-bool ModalSolver::addRule(modID modid, bool conj, Literal head, vector<Literal>& lits){
+bool ModalSolver::addRule(vsize modid, bool conj, Literal head, vector<Literal>& lits){
 	vec<Lit> ll;
 	checkLits(lits, ll);
-	return getSolver()->addRule(getModIndex(modid), conj, checkLit(head), ll);
+	return getSolver()->addRule(modid, conj, checkLit(head), ll);
 }
 
-bool ModalSolver::addSet(modID modid, int id, vector<Literal>& lits, vector<Weight>& w){
+bool ModalSolver::addSet(vsize modid, int id, vector<Literal>& lits, vector<Weight>& w){
 	vec<Lit> ll;
 	checkLits(lits, ll);
-	return getSolver()->addSet(getModIndex(modid), id, ll, w);
+	return getSolver()->addSet(modid, id, ll, w);
 }
 
 //Might be implemented more efficiently in the future
-bool ModalSolver::addSet(modID modid, int id, vector<LW>& lws){
+bool ModalSolver::addSet(vsize modid, int id, vector<WLtuple>& lws){
 	vector<Literal> lits;
 	vector<Weight> weights;
 
-	for(vector<LW>::const_iterator i=lws.begin(); i<lws.end(); i++){
+	for(vector<WLtuple>::const_iterator i=lws.begin(); i<lws.end(); i++){
 		lits.push_back((*i).l);
 		weights.push_back((*i).w);
 	}
@@ -370,20 +330,20 @@ bool ModalSolver::addSet(modID modid, int id, vector<LW>& lws){
 	vec<Lit> ll;
 	checkLits(lits, ll);
 
-	return addSet(getModIndex(modid), id, lits, weights);
+	return addSet(modid, id, lits, weights);
 }
 
-bool ModalSolver::addAggrExpr(modID modid, Literal head, int setid, Weight bound, AggSign sign, AggType type, AggSem sem){
-	return getSolver()->addAggrExpr(getModIndex(modid), checkLit(head), setid, bound, sign, type, sem);
+bool ModalSolver::addAggrExpr(vsize modid, Literal head, int setid, Weight bound, AggSign sign, AggType type, AggSem sem){
+	return getSolver()->addAggrExpr(modid, checkLit(head), setid, bound, sign, type, sem);
 }
 
 //Add information for hierarchy
-bool ModalSolver::addChild(modID parent, modID child, Literal head){
-	return getSolver()->addChild(getModIndex(parent), getModIndex(child), checkLit(head));
+bool ModalSolver::addChild(vsize parent, vsize child, Literal head){
+	return getSolver()->addChild(parent, child, checkLit(head));
 }
 
-bool ModalSolver::addAtoms(modID modid, const vector<Atom>& atoms){
+bool ModalSolver::addAtoms(vsize modid, const vector<Atom>& atoms){
 	vector<Var> aa;
 	checkAtoms(atoms, aa);
-	return getSolver()->addAtoms(getModIndex(modid), aa);
+	return getSolver()->addAtoms(modid, aa);
 }

@@ -182,10 +182,6 @@ bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
 bool IDSolver::finishECNF_DataStructures() {
 	notifyInitialized();
 	int nvars = nVars();
-	/* TODO CHECK REMOVALL!
-	definition.resize(nvars, NULL);
-	defType.resize(nvars, NONDEFTYPE);
-	defOcc.resize(nvars, NONDEFOCC);*/
 
 	//TODO treat definition as the datastructere holding all INPUT rules, where defdvars only contains the currently defined ones.
 	//Then a heuristic can be constructed which bump when head vars are assigned e.g.
@@ -673,9 +669,6 @@ bool IDSolver::initAfterSimplify() {
 
 				--atoms_in_pos_loops;
 			} else {
-				//FIXME is dit wel juist? want de var gaat dan geen justification gekregen hebben
-				//maar er kunnen zich ook geen unfounded loops in voordoen, enkel nog
-				//wellfoundedness problemen
 				defOcc[v] = MIXEDLOOP;
 				reducedVars.push_back(v);
 			}
@@ -983,7 +976,8 @@ void IDSolver::findCycleSources() {
 
 			assert(value(~l)==l_False);
 
-			//TODO should check whether it is faster to use a real watched scheme here: go from justification to heads easily, so this loop only goes over literal which are really justifications
+			//TODO should check whether it is faster to use a real watched scheme here: go from justification to heads easily,
+			//so this loop only goes over literal which are really justifications
 			const vector<Var>& ds = disj_occurs[toInt(~l)];
 			for (vector<Var>::const_iterator j = ds.begin(); j < ds.end(); j++) {
 				checkJustification(*j);
@@ -1827,7 +1821,8 @@ bool IDSolver::isCycleFree() const {
 						}
 					} else {
 						if (verbosity() > 2) {
-							reportf("Change aggregate output here (iscyclefree method)"); //TODO change output (and make the method used by the solver
+							reportf("Change aggregate output here (iscyclefree method)");
+							//TODO change output (and make the method used by the solver
 						}
 					}
 					printed[v] = true;
@@ -1865,7 +1860,7 @@ bool IDSolver::isCycleFree() const {
  * founded model, so the current interpretation is not a valid well-founded model.
  */
 /**
- * FIXME currently no well founded model checking over aggregates
+ * TODO currently no well founded model checking over aggregates
  * this can be done by implementing wf propagation and counter methods in aggregates.
  */
 bool IDSolver::isWellFoundedModel() {
@@ -2026,7 +2021,7 @@ void IDSolver::visitWF(Var v, vector<Var> &root, vector<bool> &incomp, stack<Var
 			}
 		}
 	} else {//head is true and DISJ or head is false and CONJ: one literal is needed for justification
-		// for DISJ, the justification is already known TODO INCORRECT!
+		// for DISJ, the justification is already known TODO INCORRECT when no pos loops possible over head!
 		// for a CONJ, randomly choose one of the false body literals. If there is no loop through it, then it is a good choice.
 		//			If there is, it will be found later if another false literal exists without a mixed loop.
 		Lit l;
@@ -2356,7 +2351,7 @@ inline bool IDSolver::hasJustificationTarjan(Var x, const vec<Var>& vis) const {
 /////////////
 //Finding unfounded checks by
 //validjust indicates both that the element is already in a justification or is in another found component (in which case it might also be false, not requiring a justification)
-//TODO werkt niet voor aggregaten
+//TODO aggregates
 UFS IDSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<Var>& stack, vec<Var>& vis, vec<
 		vec<Lit> >& network) {
 	vis[v] = visittime;

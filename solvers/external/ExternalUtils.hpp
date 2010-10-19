@@ -30,16 +30,48 @@
 
 namespace MinisatID {
 
+///////
+// Debug information
+///////
+
 #define reportf(...) ( fflush(stdout), fprintf(stderr, __VA_ARGS__), fflush(stderr) )
 
-enum EqType{ MEQ, MNEQ, ML, MG, MGEQ, MLEQ };
+///////
+// Measuring cpu time
+///////
+
+//In elapsed seconds, making abstraction of other processes running on the system
+double cpuTime(void);
+
+///////
+// Generic system exception
+///////
+
+class idpexception: public std::exception{
+private:
+	std::string mess;
+
+public:
+	idpexception(const char* m): std::exception(){
+		mess.append("Exception caught: ");
+		mess.append(m);
+	}
+
+	~idpexception() throw(){}
+
+	virtual const char* what() const throw(){
+		return mess.c_str();
+	}
+};
 
 ///////
 // Comparison operators
 ///////
 
+enum EqType{ MEQ, MNEQ, ML, MG, MGEQ, MLEQ };
+
 ///////
-// Weight declaration
+// Weight declaration and utilities
 ///////
 
 #ifdef GMP
@@ -65,35 +97,6 @@ Weight negInfinity();
 Weight posInfinity();
 
 std::string printWeight(const Weight& w);
-
-///////
-// Generic system exception
-///////
-
-class idpexception: public std::exception{
-private:
-	std::string mess;
-public:
-	idpexception(const char* m): std::exception(){
-		mess.append("Exception caught: ");
-		mess.append(m);
-	}
-
-	~idpexception() throw(){}
-
-	virtual const char* what() const throw(){
-		return mess.c_str();
-	}
-};
-
-///////
-// Aggregate information
-///////
-
-enum AggType 	{ SUM, PROD, MIN, MAX, CARD }; 	// Type of aggregate concerned
-enum AggSign 	{ UB, LB/*, BOTHBOUNDS*/ }; 	// Sign of the bound of the aggregate: the bound is an UpperBound
-												// or LowerBound for the aggregate value
-enum AggSem 	{ COMP, DEF };	// Semantics of satisfiability of the aggregate head: COMPletion or DEFinitional
 
 ///////
 // Generic atom and literal structures
@@ -124,41 +127,25 @@ public:
 };
 
 // A class representing a tuple of a literal and an associated weight
-struct LW{
+struct WLtuple{
 	const Literal l;
 	const Weight w;
 
-	LW(const Literal& l, const Weight& w): l(l), w(w){ }
-	LW operator=(const LW& lw) const { return LW(lw.l, lw.w); }
+	WLtuple(const Literal& l, const Weight& w): l(l), w(w){ }
+	WLtuple operator=(const WLtuple& lw) const { return WLtuple(lw.l, lw.w); }
 };
 
 ///////
-// SOLUTION DATASTRUCTURE
+// Aggregate information
 ///////
 
-class Solution{
-private:
-	const bool printmodels, savemodels;
-	bool nomoremodels;
-	const int nbmodelstofind;
-	int nbmodelsfound;
-	std::vector<std::vector<Literal> > models;
-	const std::vector<Literal> assumptions;
-
-public:
-	Solution(bool print, bool save, int searchnb, const std::vector<Literal>& assumpts):
-			printmodels(print), savemodels(save),
-			nbmodelstofind(searchnb),
-			assumptions(assumpts){}
-	~Solution(){};
-
-	void addModel(std::vector<Literal> model) {;}
-	std::vector<std::vector<Literal> > getModels() { if(!savemodels) throw idpexception("Models were not being saved!\n");return models; }
-	int modelCount() { return nbmodelsfound; }
-};
+enum AggType 	{ SUM, PROD, MIN, MAX, CARD }; 	// Type of aggregate concerned
+enum AggSign 	{ UB, LB/*, BOTHBOUNDS*/ }; 	// Sign of the bound of the aggregate: the bound is an UpperBound
+												// or LowerBound for the aggregate value
+enum AggSem 	{ COMP, DEF };	// Semantics of satisfiability of the aggregate head: COMPletion or DEFinitional
 
 ///////
-// SYSTEM OPTIONS
+// Definitional options
 ///////
 
 enum DEFFINDCS { always, adaptive, lazy };	// Unfounded set search frequency
@@ -167,6 +154,10 @@ enum DEFMARKDEPTH { include_cs };			// Originally also contained stop_at_cs, whi
 enum DEFSEARCHSTRAT { breadth_first, depth_first }; // Unfounded set search strategy
 enum DEFSEM { STABLE, WELLF }; 				// Definitional semantics
 
+///////
+// SAT-solver options
+///////
+
 enum POLARITY {
 	polarity_true = 0,
 	polarity_false = 1,
@@ -174,39 +165,12 @@ enum POLARITY {
 	polarity_rnd = 3
 }; // SAT-solver polarity option
 
-/*
- * Variabele - naam - mogelijke waarden - beschrijving
- *
- * mapping naam->variabele
- * lijst variabelen
- */
-
-/*struct ECNF_mode;
-
-struct IntOption{
-	const string naam;
-	const int min, max;
-	const string description;
-
-	IntOption(string naam, int min, int max, string description):naam(naam), min(min), max(max), description(description){}
-	IntOption(ECNF_mode& mode, string naam, int min, int max, string description);
-	IntOption operator=(const IntOption& opt){
-		return IntOption(opt.naam, opt.min, opt.max, opt.description);
-	}
-
-	void printHelp(){
-		reportf("    -%s=<I> %s: <I>\\in[%d, %d].\n", naam.c_str(), description.c_str(), min, max);
-	}
-};*/
+///////
+// Option datastructure
+///////
 
 // Structure containing all options used to run the solver.
 struct ECNF_mode {
-	//IntOption vareen;
-	/*map<string, IntOption> mapping;
-	vector<IntOption> variabelen;
-
-	void addVar(const IntOption& opt, string naam);*/
-
 	double random_var_freq, var_decay;
 	POLARITY polarity_mode;
 	int verbosity;
@@ -249,28 +213,10 @@ struct ECNF_mode {
 		randomize(false),
 		disableheur(false),
 		idclausesaving(0),
-		aggclausesaving(2)
-		/*vareen(*this, "vareen", 0, 5, "Dit is een variabele")*/{
+		aggclausesaving(2){
 	}
-
-	void printUsage();
-	void parseCommandline(int& argc, char** argv);
 };
 
 }
 
 #endif /*EXTERNALUTILS_HPP_*/
-
-/* does not seem to work
-std::ostream& operator<<(std::ostream& os, enum MINISAT::EqType c)
-{
-	switch(c){
-	case MINISAT::MEQ: return os << "=";
-	case MINISAT::MNEQ: return os << "~=";
-	case MINISAT::MLEQ: return os << "=<";
-	case MINISAT::MGEQ: return os << ">=";
-	case MINISAT::MG: return os << ">";
-	case MINISAT::ML: return os << "<";
-	default: return os;
-	}
-}*/
