@@ -21,14 +21,16 @@
 #define MODSOLVER_H_
 
 #include "solvers/utils/Utils.hpp"
-#include "solvers/pcsolver/SolverModule.hpp"
+#include "solvers/modules/DPLLTmodule.hpp"
 
 namespace MinisatID {
+
+class Solution;
 
 class PCSolver;
 typedef PCSolver* pPCSolver;
 
-class ModSolverData;
+class SOSolver;
 
 class ModSolver;
 typedef ModSolver* pModSolver;
@@ -60,7 +62,7 @@ struct AV{
     bool operator <  (AV p) const { return atom < p.atom;  }*/
 };
 
-class ModSolver: public SolverModule{
+class ModSolver: public DPLLTmodule{
 private:
 	bool hasparent, searching; //, startedsearch;
 
@@ -70,14 +72,14 @@ private:
 	modindex 	id, parentid;
 	pPCSolver	solver;
 	vmodindex 	children;
-	ModSolverData* modhier;	//NON-OWNED POINTER!
+	SOSolver* modhier;	//NON-OWNED POINTER!
 
 	vec<Lit> 	assumptions;
 	//int			startindex;
 	std::vector<bool> propfromabove; //Indicates whether this literal was propagated by the parent
 
 public:
-	ModSolver(modindex child, Var head, ModSolverData* mh);
+	ModSolver(modindex child, Var head, SOSolver* mh);
 	virtual ~ModSolver();
 
 	bool 	addAtoms		(const std::vector<Var>& atoms);
@@ -164,10 +166,10 @@ public:
 	const std::vector<Var>& 	getAtoms	()	const	{ return atoms; }
 	const vmodindex& 	getChildren	()	const	{ return children; }
 
-	const ModSolverData& getModSolverData() const	{ return *modhier; }
+	const SOSolver& getModSolverData() const	{ return *modhier; }
 	PCSolver const * 	getCPCSolver	()	const	{ return solver; }
 
-	bool 				solve(vec<vec<Lit> >& varmodels);
+	bool 				solve			(const vec<Lit>& assumptions, Solution* sol);
 
 private:
 	pPCSolver 			getSolver	()	const	{ return solver; }

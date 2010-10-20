@@ -10,7 +10,7 @@
 
 #include "solvers/utils/Utils.hpp"
 
-#include "solvers/aggsolver/AggComb.hpp"
+#include "solvers/modules/aggsolver/AggComb.hpp"
 
 namespace MinisatID {
 

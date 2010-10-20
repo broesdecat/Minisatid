@@ -17,38 +17,45 @@
 //    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //--------------------------------------------------------------------------------------------------
 
-#ifndef SOLVERI_H_
-#define SOLVERI_H_
+#ifndef DPLLTMODULE_HPP_
+#define DPLLTMODULE_HPP_
 
-#include <cstdio>
-
-#include "solvers/external/ExternalUtils.hpp"
 #include "solvers/utils/Utils.hpp"
 
 namespace MinisatID {
 
-class SolverInterface;
+class PCSolver;
 
-class Data{
+class DPLLTmodule {
 private:
-	ECNF_mode _modes;
-	MinisatID::SolverInterface* parent;
+	bool 			init;
+	PCSolver* 		pcsolver; //NON-OWNING pointer
+
 public:
-	Data(MinisatID::ECNF_mode modes):_modes(modes){};
-	virtual ~Data(){};
+	DPLLTmodule(PCSolver* s): init(false), pcsolver(s){ }
+	virtual ~DPLLTmodule(){};
 
-	virtual bool 	simplify		() = 0;
-	virtual bool 	finishParsing	() = 0;
+	bool isInitialized		()	const	{ return init; }
+	void notifyInitialized	() 			{ assert(!init); init = true; }
 
-	virtual bool	solve(InternSol* sol) = 0;
+	PCSolver* getPCSolver	()	const 	{ return pcsolver; }
 
-			int 	verbosity		() const	{ return modes().verbosity; }
-	const ECNF_mode& modes			() const	{ return _modes; }
+	bool isTrue		(const Lit& l) const;
+	bool isFalse	(const Lit& l) const;
+	bool isUnknown	(const Lit& l) const;
+	bool isTrue		(Var l) const;
+	bool isFalse	(Var l) const;
+	bool isUnknown	(Var l) const;
 
-	MinisatID::SolverInterface* getParent		() const { return parent; }
-			void 	setParent		(MinisatID::SolverInterface* inter) { parent = inter; }
+	int verbosity	() 		const;
+
+	lbool		value(Var x) const;
+	lbool		value(const Lit& p) const;
+	int			nVars()      const;
+
+	virtual void printStatistics	() const = 0;
 };
 
 }
 
-#endif /* SOLVERI_H_ */
+#endif /* DPLLTMODULE_HPP_ */

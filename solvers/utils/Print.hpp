@@ -32,7 +32,7 @@ class PCSolver;
 class IDSolver;
 class AggSolver;
 class ModSolver;
-class ModSolverData;
+class SOSolver;
 
 namespace Print {
 
@@ -55,7 +55,7 @@ template<>
 void print(ModSolver const * const s);
 
 template<>
-void print(ModSolverData const * const s);
+void print(SOSolver const * const s);
 
 template<class C>
 void printClause(const C& c);

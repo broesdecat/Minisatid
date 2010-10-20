@@ -45,8 +45,8 @@ int charPos = 1;
 
 bool unsatfound = false;
 
-std::tr1::shared_ptr<MinisatID::PropositionalSolver>	solver;
-std::tr1::shared_ptr<MinisatID::ModalSolver>	modsolver;
+std::tr1::shared_ptr<MinisatID::WrappedPCSolver>	solver;
+std::tr1::shared_ptr<MinisatID::WrappedSOSolver>	modsolver;
 
 /**
  * CR-CheckResult: checks the result of passing some data to the solvers.
@@ -63,7 +63,7 @@ std::vector<MinisatID::Atom> rigidatoms; //a necessary list of accumulated rigid
 
 void finishCNFHeader();
 void readCNFModalHierLevel(bool existential, const std::vector<MinisatID::Atom>& rigidatoms);
-std::tr1::shared_ptr<MinisatID::SolverInterface> getData();
+std::tr1::shared_ptr<MinisatID::WrappedLogicSolver> getData();
 
 %}
 
@@ -403,14 +403,14 @@ void CR(bool result){
 }
 
 void initSolver(){
-	solver = shared_ptr<PropositionalSolver>(new PropositionalSolver(modes));
+	solver = shared_ptr<WrappedPCSolver>(new WrappedPCSolver(modes));
 }
 
 void initModSolver(){
-	modsolver = shared_ptr<ModalSolver>(new ModalSolver(modes));
+	modsolver = shared_ptr<WrappedSOSolver>(new WrappedSOSolver(modes));
 }
 
-shared_ptr<SolverInterface> getData(){
+shared_ptr<WrappedLogicSolver> getData(){
 	if(solver.get()!=NULL){
 		return solver;
 	}else{

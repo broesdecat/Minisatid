@@ -25,7 +25,7 @@
 #include <vector>
 #include <map>
 
-#include "solvers/SATUtils.h"
+#include "solvers/satsolver/SATUtils.h"
 #include "solvers/external/ExternalUtils.hpp"
 
 #include <tr1/memory>
@@ -35,50 +35,9 @@ namespace MinisatID {
 // General vector size type usable for any POINTER types!
 typedef std::vector<void*>::size_type vsize;
 
-///////
-// Internal model expansion solution datastructure
-///////
-
-class InternSol{
-private:
-	const bool 	printmodels, savemodels;
-	bool 		nomoremodels;
-	const int 	nbmodelstofind;
-	int 		nbmodelsfound;
-	vec<vec<Lit> > models;
-	vec<Lit> 	assumptions;
-
-public:
-	InternSol(bool print, bool save, int searchnb, const vec<Lit>& assumpts):
-			printmodels(print), savemodels(save),
-			nbmodelstofind(searchnb){
-		for(int i=0; i<assumpts.size(); i++){
-			assumptions.push(assumpts[i]);
-		}
-	}
-	~InternSol(){};
-
-	void 		addModel(const vec<Lit>& model) {
-		nbmodelsfound++;
-		if(getSave()){
-			models.push();
-			vec<Lit>& m = models.last();
-			for(int i=0; i<model.size(); i++){
-				m.push(model[i]);
-			}
-		}
-	}
-	int			modelCount		() { return nbmodelsfound; }
-
-	int 		getNbModelsToFind() const { return nbmodelstofind; }
-	bool 		getPrint		() const { return printmodels; }
-	bool 		getSave			() const { return savemodels; }
-	const vec<Lit>& 		getAssumptions	() { return assumptions; }
-	const vec<vec<Lit> >& 	getModels		() {
-		if(!savemodels){ throw idpexception("Models were not being saved!\n"); }
-		return models;
-	}
-};
+bool isPositive(Lit l);
+Lit createNegativeLiteral(Var i);
+Lit createPositiveLiteral(Var i);
 
 ///////
 // Internal weighted literal

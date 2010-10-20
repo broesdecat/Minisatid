@@ -10,33 +10,27 @@ bin_PROGRAMS = minisatid
 BUILT_SOURCES = solvers/parser/ecnfparser.h
 
 minisatid_SOURCES = 
-minisatid_SOURCES += solvers/Main.cpp solvers/SATUtils.cpp
+minisatid_SOURCES += solvers/Main.cpp 
+minisatid_SOURCES += solvers/satsolver/SATUtils.cpp
 minisatid_SOURCES += solvers/parser/ecnftoken.lpp solvers/parser/ecnfparser.ypp
-minisatid_SOURCES += solvers/pcsolver/PCSolver.cpp solvers/pcsolver/SolverModule.cpp 
-minisatid_SOURCES += solvers/idsolver/IDSolver.cpp
-#minisatid_SOURCES += solvers/aggsolver/AggSets.cpp solvers/aggsolver/AggSolver.cpp solvers/aggsolver/Agg.cpp
-minisatid_SOURCES += solvers/aggsolver/AggSolver.cpp solvers/aggsolver/AggComb.cpp solvers/aggsolver/FullyWatched.cpp solvers/aggsolver/PartiallyWatched.cpp solvers/aggsolver/GenPartiallyWatched.cpp
-minisatid_SOURCES += solvers/modsolver/ModSolver.cpp solvers/modsolver/SOSolverHier.cpp
+minisatid_SOURCES += solvers/theorysolvers/PCSolver.cpp solvers/theorysolvers/SOSolver.cpp
+minisatid_SOURCES += solvers/modules/DPLLTmodule.cpp solvers/modules/IDSolver.cpp solvers/modules/AggSolver.cpp solvers/modules/ModSolver.cpp
+minisatid_SOURCES += solvers/modules/aggsolver/AggComb.cpp solvers/modules/aggsolver/FullyWatched.cpp solvers/modules/aggsolver/PartiallyWatched.cpp solvers/modules/aggsolver/GenPartiallyWatched.cpp
 minisatid_SOURCES += solvers/external/ExternalInterface.cpp solvers/external/ExternalUtils.cpp 
 minisatid_SOURCES += solvers/utils/Print.cpp solvers/utils/Utils.cpp 
-minisatid_SOURCES += solvers/parser/Lparseread.cpp
-minisatid_SOURCES += solvers/parser/PBread.cpp
-#minisatid_SOURCES += solvers/aggsolver/pbsolver/PbSolver.C
+minisatid_SOURCES += solvers/parser/Lparseread.cpp solvers/parser/PBread.cpp
 minisatid_SOURCES += solvers/Unittests.cpp
 
-include_HEADERS = 
-include_HEADERS += solvers/utils/Print.hpp solvers/utils/Utils.hpp 
-include_HEADERS += solvers/idsolver/IDSolver.hpp
-#include_HEADERS += solvers/aggsolver/Agg.hpp solvers/aggsolver/AggSolver.hpp solvers/aggsolver/AggSets.hpp solvers/aggsolver/AggSolver.hpp solvers/aggsolver/AggTypes.hpp 
-include_HEADERS += solvers/aggsolver/AggSolver.hpp solvers/aggsolver/AggComb.hpp solvers/aggsolver/FullyWatched.hpp solvers/aggsolver/PartiallyWatched.hpp
-include_HEADERS += solvers/pcsolver/PCSolver.hpp solvers/pcsolver/SolverModule.hpp 
-include_HEADERS += solvers/modsolver/ModSolver.hpp solvers/modsolver/SOSolverHier.hpp
+include_HEADERS =
+include_HEADERS += solvers/satsolver/SATSolver.h solvers/satsolver/SATUtils.h 
+include_HEADERS += solvers/modules/DPLLTmodule.hpp solvers/modules/IDSolver.hpp solvers/modules/AggSolver.hpp solvers/modules/ModSolver.hpp
+include_HEADERS += solvers/modules/aggsolver/AggComb.hpp solvers/modules/aggsolver/FullyWatched.hpp solvers/modules/aggsolver/PartiallyWatched.hpp
+include_HEADERS += solvers/theorysolvers/LogicSolver.hpp solvers/theorysolvers/PCSolver.hpp solvers/theorysolvers/SOSolver.hpp   
 include_HEADERS += solvers/external/ExternalInterface.hpp solvers/external/ExternalUtils.hpp
-include_HEADERS += solvers/parser/Lparseread.hpp
-include_HEADERS += solvers/parser/PBread.hpp
-#minisatid_SOURCES += solvers/aggsolver/pbsolver/PbSolver.h solvers/aggsolver/pbsolver/Solver.h
-include_HEADERS += solvers/Unittests.hpp solvers/SolverI.hpp
-include_HEADERS += solvers/SATSolver.h solvers/SATUtils.h
+include_HEADERS += solvers/utils/Print.hpp solvers/utils/Utils.hpp 
+include_HEADERS += solvers/parser/Lparseread.hpp solvers/parser/PBread.hpp
+include_HEADERS += solvers/Unittests.hpp 
+
 
 #PBSOLVER
 CXXFLAGS+=-D NO_GMP

@@ -44,7 +44,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <set>
 
 #include "solvers/utils/Utils.hpp"
-#include "solvers/pcsolver/SolverModule.hpp"
+#include "solvers/modules/DPLLTmodule.hpp"
 
 namespace MinisatID {
 
@@ -140,7 +140,7 @@ public:
  * heuristic to delay propagations.
  */
 
-class AggSolver: public std::tr1::enable_shared_from_this<AggSolver>, public SolverModule{
+class AggSolver: public std::tr1::enable_shared_from_this<AggSolver>, public DPLLTmodule{
 private:
     std::map<int, ppaset>		parsedsets;
     std::set<Var>				aggheads;	//A set of all heads that are already used by an aggregate.

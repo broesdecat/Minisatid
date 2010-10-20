@@ -26,20 +26,20 @@
 #include <tr1/unordered_map>
 
 #include "solvers/external/ExternalUtils.hpp"
-#include "solvers/SolverI.hpp"
-//Have to be included, otherwise this header knows nothing of the inheritance between Data and its children
-#include "solvers/pcsolver/PCSolver.hpp"
-#include "solvers/modsolver/SOSolverHier.hpp"
+#include "solvers/theorysolvers/LogicSolver.hpp"
+//Have to be included, otherwise this header knows nothing of the inheritance between LogicSolver and its children
+#include "solvers/theorysolvers/PCSolver.hpp"
+#include "solvers/theorysolvers/SOSolver.hpp"
 
-#include "solvers/SATUtils.h"
+#include "solvers/satsolver/SATUtils.h"
 
 namespace MinisatID {
 
 typedef std::tr1::unordered_map<int, int> atommap;
 
-class Data;
+class LogicSolver;
 class PCSolver;
-class ModSolverData;
+class SOSolver;
 
 ///////
 // Generic model expansion solution datastructure
@@ -67,11 +67,12 @@ public:
 			models.push_back(model);
 		}
 	}
-	int 		modelCount		() { return nbmodelsfound; }
 
-	int 		getNbModelsToFind() const { return nbmodelstofind; }
-	bool 		getPrint		() const { return printmodels; }
-	bool 		getSave			() const { return savemodels; }
+	int 		modelCount		() 			{ return nbmodelsfound; }
+	int 		getNbModelsToFind() const	{ return nbmodelstofind; }
+	bool 		getPrint		() const 	{ return printmodels; }
+	bool 		getSave			() const 	{ return savemodels; }
+
 	const std::vector<Literal>& 				getAssumptions	() { return assumptions; }
 	const std::vector<std::vector<Literal> >& 	getModels		() {
 		if(!savemodels) throw idpexception("Models were not being saved!\n");
@@ -79,31 +80,29 @@ public:
 	}
 };
 
-class SolverInterface{
+///////
+// External interfaces offered from the solvers
+///////
+
+class WrappedLogicSolver{
 private:
-	ECNF_mode _modes;
+	ECNF_mode 	_modes;
 
 	//Maps from NON-INDEXED to INDEXED atoms!
-	int 	maxnumber;
-	atommap origtocontiguousatommapper, contiguoustoorigatommapper;
+	int 		maxnumber;
+	atommap 	origtocontiguousatommapper, contiguoustoorigatommapper;
 
-	FILE* 	res;
-
-	Solution* 	currentsolution;
 	bool 		firstmodel; //True if the first model has not yet been printed
 
 public:
-	SolverInterface(ECNF_mode modes);
-	virtual ~SolverInterface(){};
-
-			void	setRes			(FILE* f)	{ res = f; }
+	WrappedLogicSolver(ECNF_mode modes);
+	virtual ~WrappedLogicSolver(){};
 
 	virtual void 	printStatistics	() const = 0;
-			void 	printModel		(const vec<Lit>& model);
 
 	virtual bool 	simplify		();
 	virtual bool 	solve			(Solution* sol);
-			void 	addModel		(const vec<Lit>& model);
+			void 	addModel		(const vec<Lit>& model, Solution* sol);
 	virtual bool 	finishParsing	();
 
 	int 			verbosity		() const	{ return modes().verbosity; }
@@ -111,7 +110,7 @@ public:
 	void			setNbModels		(int nb) 	{ _modes.nbmodels = nb; }
 
 protected:
-	virtual MinisatID::Data* getSolver() const = 0;
+	virtual MinisatID::LogicSolver* getSolver() const = 0;
 
 	Var 	checkAtom	(const Atom& atom);
 	Lit 	checkLit	(const Literal& lit);
@@ -119,22 +118,20 @@ protected:
 	void 	checkLits	(const std::vector<Literal>& lits, std::vector<Lit>& ll);
 	void 	checkAtoms	(const std::vector<Atom>& lits, std::vector<Var>& ll);
 
-	InternSol* mapToInternSol(Solution* sol);
-
 	bool	wasInput(int var) const { return var<maxnumber; }
 	Atom 	getOrigAtom		(const Var& l) const;
 	Literal getOrigLiteral	(const Lit& l) const;
 
-	FILE* 	getRes() const { return res; }
+	FILE* 	getRes() const { return getOutputFile(); }
 };
 
-class PropositionalSolver: public MinisatID::SolverInterface{
+class WrappedPCSolver: public MinisatID::WrappedLogicSolver{
 private:
 	MinisatID::PCSolver* solver;
 
 public:
-	PropositionalSolver(MinisatID::ECNF_mode modes);
-	~PropositionalSolver();
+	WrappedPCSolver(MinisatID::ECNF_mode modes);
+	~WrappedPCSolver();
 
 	void	addVar			(Atom v);
 	bool	addClause		(std::vector<Literal>& lits);
@@ -165,13 +162,13 @@ protected:
 	virtual MinisatID::PCSolver* getSolver() const;
 };
 
-class ModalSolver: public MinisatID::SolverInterface{
+class WrappedSOSolver: public MinisatID::WrappedLogicSolver{
 private:
-	MinisatID::ModSolverData* solver;
+	MinisatID::SOSolver* solver;
 
 public:
-	ModalSolver				(MinisatID::ECNF_mode modes);
-	virtual ~ModalSolver	();
+	WrappedSOSolver				(MinisatID::ECNF_mode modes);
+	virtual ~WrappedSOSolver	();
 
 	//Add information for hierarchy
 	bool 	addChild		(vsize parent, vsize child, Literal head);
@@ -188,7 +185,7 @@ public:
 	void 	printStatistics	() const { reportf("Statistics printing not implemented for modal solver.\n");}
 
 protected:
-	virtual MinisatID::ModSolverData* getSolver() const;
+	virtual MinisatID::SOSolver* getSolver() const;
 };
 
 }

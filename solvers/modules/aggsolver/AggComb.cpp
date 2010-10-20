@@ -1,10 +1,10 @@
-#include "solvers/aggsolver/AggComb.hpp"
+#include "solvers/modules/aggsolver/AggComb.hpp"
 
-#include "solvers/aggsolver/AggSolver.hpp"
-#include "solvers/aggsolver/FullyWatched.hpp"
-#include "solvers/aggsolver/PartiallyWatched.hpp"
+#include "solvers/modules/AggSolver.hpp"
+#include "solvers/modules/aggsolver/FullyWatched.hpp"
+#include "solvers/modules/aggsolver/PartiallyWatched.hpp"
 
-#include "solvers/pcsolver/PCSolver.hpp"
+#include "solvers/theorysolvers/PCSolver.hpp"
 
 #include <algorithm>
 

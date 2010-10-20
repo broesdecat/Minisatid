@@ -21,12 +21,12 @@
 
 #include <vector>
 
-#include "solvers/SATSolver.h"
-#include "solvers/pcsolver/PCSolver.hpp"
-#include "solvers/idsolver/IDSolver.hpp"
-#include "solvers/modsolver/ModSolver.hpp"
-#include "solvers/modsolver/SOSolverHier.hpp"
-#include "solvers/aggsolver/AggSolver.hpp"
+#include "solvers/satsolver/SATSolver.h"
+#include "solvers/theorysolvers/PCSolver.hpp"
+#include "solvers/modules/IDSolver.hpp"
+#include "solvers/modules/ModSolver.hpp"
+#include "solvers/theorysolvers/SOSolver.hpp"
+#include "solvers/modules/AggSolver.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -138,7 +138,7 @@ void Print::print(ModSolver const * const m){
 }
 
 template<>
-void Print::print(ModSolverData const * const d){
+void Print::print(SOSolver const * const d){
 	reportf("Printing theory\n");
 	print(d->getModSolver((modindex)0));
 	reportf("End of theory\n");

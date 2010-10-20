@@ -17,29 +17,19 @@
 //    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //--------------------------------------------------------------------------------------------------
 
-#include "solvers/pcsolver/PCSolver.hpp"
+#include "solvers/theorysolvers/PCSolver.hpp"
 
-#include "solvers/SATSolver.h"
+#include "solvers/satsolver/SATSolver.h"
 #include "solvers/external/ExternalInterface.hpp"
-#include "solvers/idsolver/IDSolver.hpp"
-#include "solvers/aggsolver/AggSolver.hpp"
-#include "solvers/modsolver/ModSolver.hpp"
+#include "solvers/modules/IDSolver.hpp"
+#include "solvers/modules/AggSolver.hpp"
+#include "solvers/modules/ModSolver.hpp"
 
 #include "solvers/utils/Print.hpp"
 
 using namespace std;
 using namespace MinisatID;
 using namespace Minisat;
-
-bool MinisatID::isPositive(Lit l) {
-	return !sign(l);
-}
-Lit MinisatID::createNegativeLiteral(Var i) {
-	return mkLit(i, true);
-}
-Lit MinisatID::createPositiveLiteral(Var i) {
-	return mkLit(i, false);
-}
 
 /******************
  * INITIALIZATION *
@@ -54,9 +44,12 @@ int PCSolver::getModPrintID() const {
 
 //Has to be value copy of modes!
 PCSolver::PCSolver(ECNF_mode modes) :
-	Data(modes), solver(NULL), idsolver(NULL), aggsolver(NULL), modsolver(NULL), cpsolver(NULL), aggcreated(false), idcreated(false),
-			aggsolverpresent(false), idsolverpresent(false), modsolverpresent(false), nb_models(modes.nbmodels), modelsfound(0), optim(NONE),
-			head(-1), init(true), decisionlevels(0) {
+		LogicSolver(modes),
+		solver(NULL), idsolver(NULL), cpsolver(NULL), aggsolver(NULL), modsolver(NULL),
+		aggcreated(false), idcreated(false),
+		aggsolverpresent(false), idsolverpresent(false), modsolverpresent(false),
+		init(true),
+		optim(NONE), head(-1){
 	solver = new Solver(this);
 	if (modes.disableheur) {
 		solver->disableHeur();
@@ -76,7 +69,7 @@ PCSolver::PCSolver(ECNF_mode modes) :
 		idsolver->setAggSolver(aggsolver);
 	}
 
-	//TODO depends on sat solver!
+	//TODO which variables to initialize depends on sat solver!
 	//solver->maxruntime = modes.maxruntime;
 	//solver->polarity_mode = modes.polarity_mode;
 	solver->random_var_freq = modes.random_var_freq;
@@ -94,54 +87,24 @@ PCSolver::~PCSolver() {
 	delete solver;
 }
 
-inline pSolver PCSolver::getSolver() const {
-	return solver;
-}
+inline pSolver 		PCSolver::getSolver() 		const { return solver; }
+inline pIDSolver 	PCSolver::getIDSolver()		const { return idsolver; }
+inline pAggSolver 	PCSolver::getAggSolver()	const { return aggsolver; }
+inline pModSolver 	PCSolver::getModSolver()	const { return modsolver; }
 
-inline pIDSolver PCSolver::getIDSolver() const {
-	return idsolver;
-}
-
-inline pAggSolver PCSolver::getAggSolver() const {
-	return aggsolver;
-}
-
-inline pModSolver PCSolver::getModSolver() const {
-	return modsolver;
-}
-
-Solver const * PCSolver::getCSolver() const {
-	return solver;
-}
-
-IDSolver const * PCSolver::getCIDSolver() const {
-	return idsolver;
-}
-
-AggSolver const * PCSolver::getCAggSolver() const {
-	return aggsolver;
-}
-
-ModSolver const * PCSolver::getCModSolver() const {
-	return modsolver;
-}
+Solver 		const * PCSolver::getCSolver() 		const { return solver; }
+IDSolver 	const * PCSolver::getCIDSolver() 	const { return idsolver; }
+AggSolver 	const * PCSolver::getCAggSolver() 	const { return aggsolver; }
+ModSolver 	const * PCSolver::getCModSolver() 	const { return modsolver; }
 
 void PCSolver::setModSolver(pModSolver m) {
 	modsolver = m;
 	modsolverpresent = true;
 }
 
-lbool PCSolver::value(Var x) const {
-	return getSolver()->value(x);
-}
-
-lbool PCSolver::value(Lit p) const {
-	return getSolver()->value(p);
-}
-
-uint64_t PCSolver::nVars() const {
-	return getSolver()->nbVars();
-}
+lbool PCSolver::value(Var x)	const { return getSolver()->value(x); }
+lbool PCSolver::value(Lit p)	const { return getSolver()->value(p); }
+uint64_t PCSolver::nVars()		const { return getSolver()->nbVars(); }
 
 rClause PCSolver::createClause(const vec<Lit>& lits, bool learned) {
 	return getSolver()->makeClause(lits, learned);
@@ -231,7 +194,6 @@ void PCSolver::addVar(Var v) {
 
 void PCSolver::addVars(const vec<Lit>& a) {
 	for (int i = 0; i < a.size(); i++) {
-		//reportf("Adding var %d\n", var(a[i]));
 		addVar(var(a[i]));
 	}
 }
@@ -395,6 +357,7 @@ bool PCSolver::finishParsing() {
 	if (idsolverpresent) {
 		bool idpropagations = getIDSolver()->finishECNF_DataStructures();
 		if (idpropagations) {
+			//FIXME test this:
 			//idsolverpresent = getIDSolver()->finishECNF_DataStructures(); //Here idsolver is deleted if no recursive pos or neg loops are possible
 			//if (idsolverpresent) {
 			if (!getIDSolver()->initAfterSimplify()) {
@@ -428,7 +391,7 @@ bool PCSolver::finishParsing() {
 
 	//TODO later modes.mnmz, modes.cp
 
-	// Pre processing
+	// TODO Pre processing
 	/*if(aggsolverpresent){
 	 getAggSolver()->findClausalPropagations();
 	 }*/
@@ -463,10 +426,6 @@ lbool PCSolver::checkStatus(lbool status) const {
 	}
 	return status;
 }
-
-/*void PCSolver::resetIDSolver() {
- idsolverpresent = false;
- }*/
 
 /**********************
  * AGGSOLVER SPECIFIC *
@@ -538,9 +497,9 @@ bool PCSolver::assertedBefore(const Var& l, const Var& p) const {
 	return before;
 }
 
-/*
- * SAT SOLVER SPECIFIC
- */
+/////
+// SAT SOLVER SPECIFIC
+///////
 
 void PCSolver::backtrackRest(Lit l) {
 	if (aggsolverpresent) {
@@ -556,7 +515,6 @@ void PCSolver::backtrackRest(Lit l) {
 
 // Called by SAT solver when new decision level is started, BEFORE choice has been made!
 void PCSolver::newDecisionLevel() {
-	//reportf("ADD DECISION LEVEL %d\n", ++decisionlevels);
 	if (idsolverpresent) {
 		getIDSolver()->newDecisionLevel();
 	}
@@ -572,23 +530,17 @@ void PCSolver::backtrackDecisionLevel(int levels) {
 			getAggSolver()->backtrackDecisionLevel();
 		}
 	}
-	//reportf("Backtrack %d levels\n", levels);
-	/*for(int i=0; i<levels; i++){
-	 //reportf("REMOVE DECISION LEVEL %d\n", --decisionlevels);
-	 }*/
 }
 
 /**
  * Returns not-owning pointer
  */
-//FIXME: maybe let all lower ones return owning pointer, so only one reference to addlearnedclause?
+//TODO: maybe let all lower ones return owning pointer, so only one reference to addlearnedclause?
 rClause PCSolver::propagate(Lit l) {
 	if (init) {
 		initialprops.push_back(l);
 		return nullPtrClause;
 	}
-
-	//reportf("PROPAGATION LEVEL %d\n", getSolver()->getLevel(var(l)));
 
 	rClause confl = nullPtrClause;
 	if (aggsolverpresent) {
@@ -635,6 +587,7 @@ bool PCSolver::simplify() {
 ///////
 // SOLVE METHODS
 ///////
+
 /*
  * Possible answers:
  * true => satisfiable, at least one model exists (INDEPENDENT of the number of models requested or found)
@@ -648,9 +601,7 @@ bool PCSolver::simplify() {
  * count the number of models => do not save models
  */
 
-bool PCSolver::solve(InternSol* sol){
-	//FIXME
-}
+
 /*bool PCSolver::propagate(){
 	return getSolver()->solve(getAssumptions(), true);
 }
@@ -670,9 +621,11 @@ bool PCSolver::printModels(int nbmodels){
 bool PCSolver::findModels(int nbmodels, vec<vec<Lit> >& models){
 	int modelsfound = 0;
 	return solve(models, false, nbmodels, modelsfound, false);
-}*/
+}
 
-/*bool PCSolver::solve(vec<vec<Lit> >& models, bool nosearch, int modeltofind, int& modelsfound, bool onlyprint) {
+bool PCSolver::solve(vec<vec<Lit> >& models, bool nosearch, int modeltofind, int& modelsfound, bool onlyprint) {*/
+
+bool PCSolver::solve(const vec<Lit>& assumptions, Solution* sol){
 	if (modes().verbosity >= 1) {
 		reportf("============================[ Search Statistics ]==============================\n");
 		reportf("| Conflicts |          ORIGINAL         |          LEARNT          | Progress |\n");
@@ -681,41 +634,29 @@ bool PCSolver::findModels(int nbmodels, vec<vec<Lit> >& models){
 	}
 
 	bool moremodels = true;
-	modelsfound = 0;
 
-//TODO delete	//permanent assump = assertions: add as clause
-//	for (int i = 0; i < assmpt.size(); i++) {
-//		vec<Lit> ps;
-//		ps.push(assmpt[i]);
-//		addClause(ps);
-//	}
-
-	while (moremodels && (nb_models == 0 || modelsfound < nb_models)) {
+	while (moremodels && (sol->modelCount() == 0 || sol->modelCount() < sol->modelCount())) {
 		vec<Lit> model;
 		bool found = false;
 		if(optim!=NONE){
-			found = findOptimal(getAssumptions(), model);
+			found = findOptimal(assumptions, model);
 		}else{
-			found = findNext(getAssumptions(), model, moremodels);
+			found = findNext(assumptions, model, moremodels);
 		}
 
 		if (found) {
-			models.push();
-			model.copyTo(models[models.size() - 1]);
-			//getParent()->printModel(model);
+			getParent()->addModel(model, sol);
 		}
 	}
 
 	if (verbosity()>=1) {
-		if(modelsfound != 0 && !moremodels && nb_models != 1){
+		if(sol->modelCount() != 0 && !moremodels && sol->modelCount() != 1){
 			reportf("| There are no more models                                                    |\n");
 		}
-		reportf("===============================================================================\n");
-		printStatistics();
 	}
 
-	return modelsfound>0;
-}*/
+	return sol->modelCount()>0;
+}
 
 /**
  * Checks satisfiability of the theory.
@@ -736,8 +677,6 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m, bool& moremodels) {
 		return false;
 	}
 
-	modelsfound++;
-
 	m.clear();
 
 	for (uint64_t i = 0; i < nVars(); i++) {
@@ -746,10 +685,6 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m, bool& moremodels) {
 		} else if (value(i) == l_False) {
 			m.push(mkLit(i, true));
 		}
-	}
-
-	if (nb_models != 1) {
-		printf("| %4d model%s found                                                           |\n", modelsfound, modelsfound > 1 ? "s" : " ");
 	}
 
 	//check if more models can exist
@@ -766,15 +701,11 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m, bool& moremodels) {
 
 void PCSolver::invalidate(vec<Lit>& invalidation) {
 	// Add negation of model as clause for next iteration.
-	//add all choice literals
+	// add all choice literals
 	vector<Lit> v = getSolver()->getDecisions();
 	for (vector<Lit>::const_iterator i = v.begin(); i < v.end(); i++) {
 		invalidation.push(~(*i));
 	}
-	//add all assumptions
-	/*for (int i = 0; i < assmpt.size(); i++){
-	 learnt.push(~assmpt[i]);
-	 }*/
 	// Remove doubles.
 	sort(invalidation);
 	Lit p = lit_Undef;
@@ -791,7 +722,7 @@ void PCSolver::invalidate(vec<Lit>& invalidation) {
  * Returns false if invalidating the model leads to UNSAT, meaning that no more models are possible. Otherwise true.
  */
 bool PCSolver::invalidateModel(vec<Lit>& learnt) {
-	//FIXME: do not backtrack to 0, but do analyzefinal on learnt to check to which level to backtrack.
+	//TODO: do not backtrack to 0, but do analyzefinal on learnt to check to which level to backtrack.
 	//for subsetminimize this is not so clear, because assumptions have to be added too, so maybe there backtrack to 0 is necessary (for unit propagation before search)
 	getSolver()->cancelUntil(0);
 
@@ -1057,7 +988,6 @@ void PCSolver::printChoiceMade(int level, Lit l) const {
 		reportf(": ");
 		gprintLit(l);
 		reportf(".\n");
-		//gprintLit(l); reportf(" ");
 	}
 }
 

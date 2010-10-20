@@ -17,15 +17,15 @@
 //    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //--------------------------------------------------------------------------------------------------
 
-#include "solvers/modsolver/ModSolver.hpp"
+#include "solvers/modules/ModSolver.hpp"
 
 #include "solvers/utils/Utils.hpp"
 #include "solvers/utils/Print.hpp"
 #include <vector>
 #include <algorithm>
 
-#include "solvers/pcsolver/PCSolver.hpp"
-#include "solvers/modsolver/SOSolverHier.hpp"
+#include "solvers/theorysolvers/PCSolver.hpp"
+#include "solvers/theorysolvers/SOSolver.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -35,8 +35,8 @@ using namespace MinisatID;
 /**
  * Constructs a ModSolver, with a given head, index and hierarchy pointer. A PCSolver is initialized.
  */
-ModSolver::ModSolver(modindex child, Var head, ModSolverData* mh):
-		SolverModule(NULL),
+ModSolver::ModSolver(modindex child, Var head, SOSolver* mh):
+		DPLLTmodule(NULL),
 		id(child), parentid(-1), hasparent(false), //, startedsearch(false), startindex(-1),
 		head(head), modhier(mh){
 	ECNF_mode modescopy(mh->modes());
@@ -156,7 +156,7 @@ bool ModSolver::finishParsing(){
 /**
  * Tells the root solver to do model expansion on his theory
  */
-bool ModSolver::solve(vec<vec<Lit> >& varmodels){
+bool ModSolver::solve(const vec<Lit>& assumptions, Solution* sol){
 	//FIXME
 	//TODO return getSolver()->findModels(1, varmodels);
 }

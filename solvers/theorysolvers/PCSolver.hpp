@@ -21,7 +21,7 @@
 #define PCSOLVER_H_
 
 #include "solvers/utils/Utils.hpp"
-#include "solvers/SolverI.hpp"
+#include "solvers/theorysolvers/LogicSolver.hpp"
 
 namespace Minisat{
 	class Solver;
@@ -49,15 +49,12 @@ typedef CPSolver* pCPSolver;
 typedef AggSolver* pAggSolver;
 typedef ModSolver* pModSolver;
 
-bool isPositive(Lit l);
-Lit createNegativeLiteral(Var i);
-Lit createPositiveLiteral(Var i);
-
 enum Optim { MNMZ, SUBSETMNMZ, SUMMNMZ, NONE }; // Preference minimization, subset minimization, sum minimization
 enum PropBy { BYSAT, BYAGG, BYDEF, BYOPTIM, BYCP, BYMOD, NOPROP }; // Indicates by which solver a propagation was done
 
-class PCSolver: public MinisatID::Data{
+class PCSolver: public MinisatID::LogicSolver{
 private:
+	// TODO make vector of available solvers, which general properties
 	//OWNING POINTER
 	pSolver solver;
 	//OWNING POINTER
@@ -69,7 +66,7 @@ private:
 	//NON-OWNING POINTER
 	pModSolver modsolver;
 	/*
-	 * Indicates whether the solver was constructed
+	 * Indicates which solvers were constructed
 	 */
 	bool aggcreated, idcreated;
 	/*
@@ -77,11 +74,8 @@ private:
 	 */
 	bool aggsolverpresent, idsolverpresent, modsolverpresent;
 
-	int nb_models, modelsfound;
-
 	int init;
 	std::vector<Lit> initialprops;
-	vec<Lit>	assump;
 
 	std::vector<PropBy> propagations;
 
@@ -97,25 +91,21 @@ private:
 	///////
 	vec<Lit> forcedchoices;
 
-	/*
-	 * Getters for solver pointers
-	 */
-	Minisat::Solver * 	getSolver		() const;
-	IDSolver * 	getIDSolver		() const;
-	AggSolver *	getAggSolver	() const;
-	ModSolver *	getModSolver	() const;
+	// Getters for solver pointers
+	Minisat::Solver * 	getSolver	() const;
+	IDSolver* 			getIDSolver	() const;
+	AggSolver*			getAggSolver() const;
+	ModSolver*			getModSolver() const;
 
 public:
 	PCSolver(ECNF_mode modes);
 	virtual ~PCSolver();
 
-	/*
-	 * Getters for constant solver pointers
-	 */
-	Minisat::Solver	 const * getCSolver		() const;
-	IDSolver const * getCIDSolver	() const;
-	AggSolver const * getCAggSolver	() const;
-	ModSolver const * getCModSolver	() const;
+	// Getters for constant solver pointers
+	Minisat::Solver	const * getCSolver		() const;
+	IDSolver 		const * getCIDSolver	() const;
+	AggSolver 		const * getCAggSolver	() const;
+	ModSolver 		const * getCModSolver	() const;
 
 	/*
 	 * INITIALIZATION
@@ -141,25 +131,23 @@ public:
 
 	void		addForcedChoices(const vec<Lit>& forcedchoices);
 
-	bool 		finishParsing	(); //throws UNSAT
+	bool 		finishParsing	();
 
+	///////
+	// Solving support
+	///////
 	void 		newDecisionLevel();
-
-	/*
-	 * SOLVING
-	 */
 	bool		randomize		() const { return modes().randomize; }
 	bool 		simplify		();
+
+	// FIXME change meaning / move to private
 	bool 		findNext		(const vec<Lit>& assumpts, vec<Lit>& model, bool& moremodels);
 	bool    	invalidateModel	(vec<Lit>& invalidation);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
 	void 		invalidate		(vec<Lit>& invalidation);
 
-	void 		setAssumptions	(const vec<Lit>& assumptions)	{ assumptions.copyTo(assump); }
-	const vec<Lit>& 	getAssumptions	()	const						{ return assump;	}
+	bool 		solve			(const vec<Lit>& assumptions, Solution* sol);
 
-	bool 		solve(InternSol* sol);
-
-	bool 		findModel	(const vec<Lit>& assumps, vec<Lit>& m, bool& moremodels);
+	bool 		findModel		(const vec<Lit>& assumps, vec<Lit>& m, bool& moremodels);
 
 	void		removeAggrHead	(Var x);
 	void		notifyAggrHead	(Var head);
@@ -171,15 +159,9 @@ public:
 
 	std::vector<rClause> getClausesWhichOnlyContain(const std::vector<Var>& vars);
 
-    /*
-     * Solver callbacks
-     */
-
-	/*
-	 * The definition is valid, so the idsolver can be removed from further propagations
-	 * TODO what if the pcsolver is reset?
-	 */
-	//void 		resetIDSolver	();
+    ///////
+	// Solver callbacks
+	///////
 
 	lbool		value			(Var x) const;		// The current value of a variable.
 	lbool		value			(Lit p) const;		// The current value of a literal.
@@ -195,7 +177,7 @@ public:
 	/**
 	 * Allows to loop over all assignments made in the current decision level.
 	 */
-	const vec<Lit>& getTrail() const;
+	const vec<Lit>& getTrail	() 		const;
 	int 			getStartLastLevel() const;
 	//TOO SLOW:
 	//Lit 		getRecentAssignment(int i) const;
@@ -204,11 +186,12 @@ public:
 	/*
 	 * Returns the decision level at which a variable was deduced. This allows to get the variable that was propagated earliest/latest
 	 */
-	int			getCurrentDecisionLevel() const;
 	int 		getLevel		(int var) const;
-	int			getNbDecisions	() const;
+	int			getNbDecisions	() 		const;
+	uint64_t	getConflicts	() 		const;
+
+	int			getCurrentDecisionLevel	() const;
 	std::vector<Lit>	getDecisions	() const;
-	uint64_t	getConflicts	() const;
 
 	/*
 	 * true if the current assignment is completely two-valued
@@ -218,7 +201,6 @@ public:
 
 	void		varBumpActivity	(Var v);
 
-	int decisionlevels;
 	void 		backtrackRest	(Lit l);
 	void 		backtrackDecisionLevel(int levels);
 	rClause 	propagate		(Lit l);
@@ -237,19 +219,14 @@ public:
 	 * DEBUG
 	 */
 	int		getModPrintID	() const;
-	/*
-	 * SATsolver asks this to PC such that more info (modal e.g.) can be printed.
-	 */
+	// SATsolver asks this to PC such that more info (modal e.g.) can be printed.
 	void	printChoiceMade	(int level, Lit l) const;
-
 	void 	printStatistics() const;
 
 private:
 	void addVar(Lit l) { addVar(var(l)); }
 	void addVars(const vec<Lit>& a);
 	void checkHead(Lit head);
-
-	bool solve(vec<vec<Lit> >& models, bool nosearch, int modeltofind, int& modelsfound, bool onlyprint);
 };
 
 }

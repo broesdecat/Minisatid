@@ -89,7 +89,7 @@ struct ChoiceRule{
 
 class Read{
 public:
-	Read (PropositionalSolver* solver);
+	Read (WrappedPCSolver* solver);
 	~Read ();
 	int read (std::istream &f);
 
@@ -114,8 +114,8 @@ private:
 	int setcount;
 	long size;
 	long linenumber;
-	PropositionalSolver* solver;
-	PropositionalSolver* getSolver() { return solver; }
+	WrappedPCSolver* solver;
+	WrappedPCSolver* getSolver() { return solver; }
 
 	std::vector<BasicRule> basicrules;
 	std::vector<CardRule> cardrules;

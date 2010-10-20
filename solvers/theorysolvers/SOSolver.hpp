@@ -21,7 +21,7 @@
 #define SOSOLVER_H_
 
 #include "solvers/utils/Utils.hpp"
-#include "solvers/SolverI.hpp"
+#include "solvers/theorysolvers/LogicSolver.hpp"
 
 namespace MinisatID {
 
@@ -62,18 +62,18 @@ typedef std::vector<ModSolver*> vmsolvers;
 
 enum modhierstate {NEW, LOADINGHIER, LOADINGREST, ALLLOADED};
 
-class ModSolverData: public MinisatID::Data{
+class SOSolver: public MinisatID::LogicSolver{
 private:
 	vmsolvers 	 solvers;
 	modhierstate state;	//stores the current state of the parsing.
 
 public:
-	ModSolverData				(ECNF_mode modes);
-	virtual ~ModSolverData		();
+	SOSolver					(ECNF_mode modes);
+	virtual ~SOSolver			();
 
 	bool 	simplify			();
 
-	bool 	solve(InternSol* sol);
+	bool 	solve				(const vec<Lit>& assumptions, Solution* sol);
 
 	bool 	finishParsing		();
 

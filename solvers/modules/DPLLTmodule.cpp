@@ -17,45 +17,40 @@
 //    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //--------------------------------------------------------------------------------------------------
 
-#ifndef ISOLVER_HPP_
-#define ISOLVER_HPP_
+#include "solvers/modules/DPLLTmodule.hpp"
 
-#include "solvers/utils/Utils.hpp"
+#include "solvers/theorysolvers/PCSolver.hpp"
 
-namespace MinisatID {
+using namespace MinisatID;
 
-class PCSolver;
-
-class SolverModule {
-private:
-	bool 			init;
-	PCSolver* 		pcsolver; //NON-OWNING pointer
-
-public:
-	SolverModule(PCSolver* s): init(false), pcsolver(s){ }
-	virtual ~SolverModule(){};
-
-	bool isInitialized		()	const	{ return init; }
-	void notifyInitialized	() 			{ assert(!init); init = true; }
-
-	PCSolver* getPCSolver	()	const 	{ return pcsolver; }
-
-	bool isTrue		(const Lit& l) const;
-	bool isFalse	(const Lit& l) const;
-	bool isUnknown	(const Lit& l) const;
-	bool isTrue		(Var l) const;
-	bool isFalse	(Var l) const;
-	bool isUnknown	(Var l) const;
-
-	int verbosity	() 		const;
-
-	lbool		value(Var x) const;
-	lbool		value(const Lit& p) const;
-	int			nVars()      const;
-
-	virtual void printStatistics	() const = 0;
-};
-
+int DPLLTmodule::verbosity() const	{
+	return getPCSolver()->verbosity();
 }
 
-#endif /* ISOLVER_HPP_ */
+bool DPLLTmodule::isTrue(const Lit& l) const {
+	return value(l) == l_True;
+}
+bool DPLLTmodule::isTrue(Var v) const {
+	return value(v) == l_True;
+}
+bool DPLLTmodule::isFalse(const Lit& l) const {
+	return value(l) == l_False;
+}
+bool DPLLTmodule::isFalse(Var v) const {
+	return value(v) == l_False;
+}
+bool DPLLTmodule::isUnknown(const Lit& l) const {
+	return value(l) == l_Undef;
+}
+bool DPLLTmodule::isUnknown(Var v) const {
+	return value(v) == l_Undef;
+}
+lbool DPLLTmodule::value(Var x) const {
+	return getPCSolver()->value(x);
+}
+lbool DPLLTmodule::value(const Lit& p) const {
+	return getPCSolver()->value(p);
+}
+int DPLLTmodule::nVars() const {
+	return getPCSolver()->nVars();
+}

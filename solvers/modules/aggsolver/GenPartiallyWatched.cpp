@@ -5,10 +5,10 @@
  *      Author: broes
  */
 
-#include "solvers/aggsolver/PartiallyWatched.hpp"
+#include "solvers/modules/aggsolver/PartiallyWatched.hpp"
 
-#include "solvers/aggsolver/AggSolver.hpp"
-#include "solvers/pcsolver/PCSolver.hpp"
+#include "solvers/modules/AggSolver.hpp"
+#include "solvers/theorysolvers/PCSolver.hpp"
 
 #include <stdint.h>
 #include <inttypes.h>

@@ -53,7 +53,7 @@ typedef enum {
   OPTIMIZERULE
 } RuleType;
 
-Read::Read (PropositionalSolver* solver): solver(solver), size(0), setcount(1), maxatomnumber(1){
+Read::Read (WrappedPCSolver* solver): solver(solver), size(0), setcount(1), maxatomnumber(1){
 }
 
 Read::~Read (){

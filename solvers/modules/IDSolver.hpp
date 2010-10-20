@@ -46,7 +46,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <map>
 
 #include "solvers/utils/Utils.hpp"
-#include "solvers/pcsolver/SolverModule.hpp"
+#include "solvers/modules/DPLLTmodule.hpp"
 
 namespace MinisatID {
 
@@ -81,7 +81,7 @@ public:
     Lit 	operator [](int i) 	const	{ return lits[i]; }
 };
 
-class IDSolver: public SolverModule{
+class IDSolver: public DPLLTmodule{
 private:
 	MinisatID::AggSolver*		aggsolver;
 	long			unfoundedsets;

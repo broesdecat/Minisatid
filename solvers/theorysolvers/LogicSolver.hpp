@@ -17,40 +17,39 @@
 //    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //--------------------------------------------------------------------------------------------------
 
-#include "solvers/pcsolver/SolverModule.hpp"
+#ifndef SOLVERI_H_
+#define SOLVERI_H_
 
-#include "solvers/pcsolver/PCSolver.hpp"
+#include <cstdio>
 
-using namespace MinisatID;
+#include "solvers/external/ExternalUtils.hpp"
+#include "solvers/utils/Utils.hpp"
 
-int SolverModule::verbosity() const	{
-	return getPCSolver()->verbosity();
+namespace MinisatID {
+
+class Solution;
+class WrappedLogicSolver;
+
+class LogicSolver{
+private:
+	ECNF_mode _modes;
+	MinisatID::WrappedLogicSolver* parent;
+public:
+	LogicSolver(MinisatID::ECNF_mode modes):_modes(modes){};
+	virtual ~LogicSolver(){};
+
+	virtual bool 	simplify		() = 0;
+	virtual bool 	finishParsing	() = 0;
+
+	virtual bool	solve(const vec<Lit>& assumptions, Solution* sol) = 0;
+
+			int 	verbosity		() const	{ return modes().verbosity; }
+	const ECNF_mode& modes			() const	{ return _modes; }
+
+	MinisatID::WrappedLogicSolver* getParent		() const { return parent; }
+			void 	setParent		(MinisatID::WrappedLogicSolver* inter) { parent = inter; }
+};
+
 }
 
-bool SolverModule::isTrue(const Lit& l) const {
-	return value(l) == l_True;
-}
-bool SolverModule::isTrue(Var v) const {
-	return value(v) == l_True;
-}
-bool SolverModule::isFalse(const Lit& l) const {
-	return value(l) == l_False;
-}
-bool SolverModule::isFalse(Var v) const {
-	return value(v) == l_False;
-}
-bool SolverModule::isUnknown(const Lit& l) const {
-	return value(l) == l_Undef;
-}
-bool SolverModule::isUnknown(Var v) const {
-	return value(v) == l_Undef;
-}
-lbool SolverModule::value(Var x) const {
-	return getPCSolver()->value(x);
-}
-lbool SolverModule::value(const Lit& p) const {
-	return getPCSolver()->value(p);
-}
-int SolverModule::nVars() const {
-	return getPCSolver()->nVars();
-}
+#endif /* SOLVERI_H_ */

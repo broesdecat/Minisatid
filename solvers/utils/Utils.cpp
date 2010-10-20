@@ -18,3 +18,15 @@
 //--------------------------------------------------------------------------------------------------
 
 #include "solvers/utils/Utils.hpp"
+
+using namespace MinisatID;
+
+bool MinisatID::isPositive(Lit l) {
+	return !sign(l);
+}
+Lit MinisatID::createNegativeLiteral(Var i) {
+	return mkLit(i, true);
+}
+Lit MinisatID::createPositiveLiteral(Var i) {
+	return mkLit(i, false);
+}

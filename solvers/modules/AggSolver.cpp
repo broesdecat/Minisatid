@@ -36,17 +36,17 @@
  OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  **************************************************************************************************/
 
-#include "solvers/aggsolver/AggSolver.hpp"
+#include "solvers/modules/AggSolver.hpp"
 
 #include "solvers/utils/Utils.hpp"
 #include "solvers/utils/Print.hpp"
 
-#include "solvers/pcsolver/PCSolver.hpp"
+#include "solvers/theorysolvers/PCSolver.hpp"
 
-#include "solvers/aggsolver/AggComb.hpp"
+#include "solvers/modules/aggsolver/AggComb.hpp"
 
-#include "solvers/aggsolver/FullyWatched.hpp"
-#include "solvers/aggsolver/PartiallyWatched.hpp"
+#include "solvers/modules/aggsolver/FullyWatched.hpp"
+#include "solvers/modules/aggsolver/PartiallyWatched.hpp"
 
 #include <algorithm>
 
@@ -59,7 +59,7 @@ using namespace std;
 using namespace MinisatID;
 
 AggSolver::AggSolver(pPCSolver s) :
-	SolverModule(s), propagations(0) {
+	DPLLTmodule(s), propagations(0) {
 	int count = 0;
 }
 

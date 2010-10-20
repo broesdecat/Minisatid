@@ -23,9 +23,9 @@ using namespace std;
 using namespace std::tr1;
 using namespace MinisatID;
 
-shared_ptr<SolverInterface> unittest(ECNF_mode& modes){ //unsat
+shared_ptr<WrappedLogicSolver> unittest(ECNF_mode& modes){ //unsat
 	modes.cp = true;
-	shared_ptr<PropositionalSolver> pcsolver = shared_ptr<PropositionalSolver>(new PropositionalSolver(modes));
+	shared_ptr<WrappedPCSolver> pcsolver = shared_ptr<WrappedPCSolver>(new WrappedPCSolver(modes));
 	vector<Literal> lits, lits2, lits3;
 	lits.push_back(Literal(1));
 	lits.push_back(Literal(2, true));
@@ -46,16 +46,16 @@ shared_ptr<SolverInterface> unittest(ECNF_mode& modes){ //unsat
 	pcsolver->addCPSum(Literal(1), terms, MGEQ, 18);
 
 	if(!pcsolver->finishParsing()){
-		return shared_ptr<SolverInterface>();
+		return shared_ptr<WrappedLogicSolver>();
 	}
 
 	return pcsolver;
 }
 
 //Magic sequence problem
-shared_ptr<SolverInterface> unittest2(ECNF_mode& modes){
+shared_ptr<WrappedLogicSolver> unittest2(ECNF_mode& modes){
 	modes.cp = true;
-	shared_ptr<PropositionalSolver> pcsolver = shared_ptr<PropositionalSolver>(new PropositionalSolver(modes));
+	shared_ptr<WrappedPCSolver> pcsolver = shared_ptr<WrappedPCSolver>(new WrappedPCSolver(modes));
 	vector<Literal> lits;
 	lits.push_back(Literal(1));
 	lits.push_back(Literal(2));
@@ -94,15 +94,15 @@ shared_ptr<SolverInterface> unittest2(ECNF_mode& modes){
 	}
 
 	if(!pcsolver->finishParsing()){
-		return shared_ptr<SolverInterface>();
+		return shared_ptr<WrappedLogicSolver>();
 	}
 
 	return pcsolver;
 }
 
-shared_ptr<SolverInterface> unittest3(ECNF_mode& modes){ //unsat
+shared_ptr<WrappedLogicSolver> unittest3(ECNF_mode& modes){ //unsat
 	modes.cp = true;
-	shared_ptr<PropositionalSolver> pcsolver = shared_ptr<PropositionalSolver>(new PropositionalSolver(modes));
+	shared_ptr<WrappedPCSolver> pcsolver = shared_ptr<WrappedPCSolver>(new WrappedPCSolver(modes));
 
 	vector<int> elemx;
 	int n = 4;
@@ -126,7 +126,7 @@ shared_ptr<SolverInterface> unittest3(ECNF_mode& modes){ //unsat
 	}
 
 	if(!pcsolver->finishParsing()){
-		return shared_ptr<SolverInterface>();
+		return shared_ptr<WrappedLogicSolver>();
 	}
 
 	return pcsolver;

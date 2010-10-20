@@ -17,64 +17,44 @@
 //    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //--------------------------------------------------------------------------------------------------
 
-#include "solvers/modsolver/SOSolverHier.hpp"
+#include "solvers/theorysolvers/SOSolver.hpp"
 #include "solvers/utils/Utils.hpp"
 #include "solvers/utils/Print.hpp"
 
-#include "solvers/modsolver/ModSolver.hpp"
+#include "solvers/modules/ModSolver.hpp"
 
 #include <vector>
 
 using namespace std;
 using namespace MinisatID;
 
-ModSolverData::ModSolverData(ECNF_mode modes):Data(modes), state(NEW){
-	//propagationsolver = new PCSolver(modes);
+SOSolver::SOSolver(ECNF_mode modes): LogicSolver(modes), state(NEW){
 	solvers.push_back(new ModSolver(0, -1, this));
 	state = LOADINGHIER;
 }
 
-ModSolverData::~ModSolverData(){
+SOSolver::~SOSolver(){
 	deleteList<ModSolver>(solvers);
 }
 
-void ModSolverData::checkexistsModSolver(vsize modid) const {
+void SOSolver::checkexistsModSolver(vsize modid) const {
 	if(!existsModSolver(modid)){
 		char s[100]; sprintf(s, "No modal operator with id %zu was declared! ", modid+1);
 		throw idpexception(s);
 	}
 }
 
-bool ModSolverData::simplify(){
+bool SOSolver::simplify(){
 	assert(state==ALLLOADED);
 	return solvers[0]->simplify();
 }
 
-/*bool ModSolverData::propagate(){
+bool SOSolver::solve(const vec<Lit>& assumptions, Solution* sol){
 	assert(state==ALLLOADED);
-	return solvers[0]->propagate();
+	return solvers[0]->solve(assumptions, sol);
 }
 
-int ModSolverData::countModels(){
-	assert(state==ALLLOADED);
-	return solvers[0]->countModels();
-}
-
-bool ModSolverData::printModels(int nbmodels){
-	assert(state==ALLLOADED);
-	return solvers[0]->printModels(nbmodels);
-}
-
-bool ModSolverData::findModels(int nbmodels, vec<vec<Lit> >& models){
-	assert(state==ALLLOADED);
-	return solvers[0]->findModels(nbmodels, models);
-}*/
-
-bool ModSolverData::solve(InternSol* sol){
-	//FIXME
-}
-
-bool ModSolverData::finishParsing(){
+bool SOSolver::finishParsing(){
 	assert(state==LOADINGREST);
 	state = ALLLOADED;
 
@@ -98,7 +78,7 @@ bool ModSolverData::finishParsing(){
 
 //Add information for hierarchy
 
-bool ModSolverData::addChild(vsize parent, vsize child, Lit h){
+bool SOSolver::addChild(vsize parent, vsize child, Lit h){
 	assert(state==LOADINGHIER);
 
 	checkexistsModSolver(parent);
@@ -119,7 +99,7 @@ bool ModSolverData::addChild(vsize parent, vsize child, Lit h){
 	return true;
 }
 
-bool ModSolverData::addAtoms(vsize modid, const vector<Var>& atoms){
+bool SOSolver::addAtoms(vsize modid, const vector<Var>& atoms){
 	assert(state==LOADINGHIER);
 
 	//allAtoms.insert(allAtoms.end(), atoms.begin(), atoms.end());
@@ -130,7 +110,7 @@ bool ModSolverData::addAtoms(vsize modid, const vector<Var>& atoms){
 
 //Add information for PC-Solver
 
-void ModSolverData::addVar(vsize modid, Var v){
+void SOSolver::addVar(vsize modid, Var v){
 	if(state==LOADINGHIER){
 		state = LOADINGREST;
 	}
@@ -155,7 +135,7 @@ void ModSolverData::addVar(vsize modid, Var v){
  *
  * Currently done substitutions
  */
-bool ModSolverData::addClause(vsize modid, vec<Lit>& lits){
+bool SOSolver::addClause(vsize modid, vec<Lit>& lits){
 	if(state==LOADINGHIER){
 		state = LOADINGREST;
 	}
@@ -224,7 +204,7 @@ bool ModSolverData::addClause(vsize modid, vec<Lit>& lits){
 	return result;
 }
 
-bool ModSolverData::addRule(vsize modid, bool conj, Lit head, vec<Lit>& lits){
+bool SOSolver::addRule(vsize modid, bool conj, Lit head, vec<Lit>& lits){
 	if(state==LOADINGHIER){
 		state = LOADINGREST;
 	}
@@ -235,7 +215,7 @@ bool ModSolverData::addRule(vsize modid, bool conj, Lit head, vec<Lit>& lits){
 	return m->addRule(conj, head, lits);
 }
 
-bool ModSolverData::addSet(vsize modid, int setid, vec<Lit>& lits, vector<Weight>& w){
+bool SOSolver::addSet(vsize modid, int setid, vec<Lit>& lits, vector<Weight>& w){
 	if(state==LOADINGHIER){
 		state = LOADINGREST;
 	}
@@ -246,7 +226,7 @@ bool ModSolverData::addSet(vsize modid, int setid, vec<Lit>& lits, vector<Weight
 	return m->addSet(setid, lits, w);
 }
 
-bool ModSolverData::addAggrExpr(vsize modid, Lit head, int setid, Weight bound, AggSign boundsign, AggType type, AggSem defined){
+bool SOSolver::addAggrExpr(vsize modid, Lit head, int setid, Weight bound, AggSign boundsign, AggType type, AggSem defined){
 	if(state==LOADINGHIER){
 		state = LOADINGREST;
 	}
@@ -270,8 +250,8 @@ bool ModSolverData::addAggrExpr(vsize modid, Lit head, int setid, Weight bound, 
  * go through the tree BREADTH-FIRST, starting from the root
  * remember whether a solver has been seen and how many times
  */
-//FIXME: should verify that any head only occurs in the theory of the parent modal solver.
-void ModSolverData::verifyHierarchy(){
+//TODO: should verify that any head only occurs in the theory of the parent modal solver.
+void SOSolver::verifyHierarchy(){
 	assert(state = ALLLOADED);
 
 	vector<vsize> queue;

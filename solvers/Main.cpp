@@ -81,8 +81,8 @@ using namespace MinisatID;
 ECNF_mode modes;
 
 namespace MinisatID {
-class SolverInterface;
-typedef shared_ptr<SolverInterface> pData;
+class WrappedLogicSolver;
+typedef shared_ptr<WrappedLogicSolver> pData;
 }
 
 extern char * yytext;
@@ -379,8 +379,8 @@ int main(int argc, char** argv) {
 		if (modes.lparse) {
 			modes.aggr = true;
 			modes.def = true;
-			PropositionalSolver* p = new PropositionalSolver(modes);
-			d = shared_ptr<SolverInterface> (p);
+			WrappedPCSolver* p = new WrappedPCSolver(modes);
+			d = shared_ptr<WrappedLogicSolver> (p);
 			Read* r = new Read(p);
 			std::filebuf buf;
 			buf.open(MinisatID::getInputFileUrl(), std::ios::in);
@@ -391,8 +391,8 @@ int main(int argc, char** argv) {
 		} else if (modes.pb) { //PB
 			modes.aggr = true;
 			modes.mnmz = true;
-			PropositionalSolver* p = new PropositionalSolver(modes);
-			d = shared_ptr<SolverInterface> (p);
+			WrappedPCSolver* p = new WrappedPCSolver(modes);
+			d = shared_ptr<WrappedLogicSolver> (p);
 			PBRead* parser = new PBRead(p, MinisatID::getInputFileUrl());
 			parser->autoLin();
 			parser->parse();
@@ -506,7 +506,7 @@ pData parse() {
 	//There is still a memory leak of about 16 Kb in the flex scanner, which is inherent to the flex C scanner
 
 	if (unsatfound) { //UNSAT so empty shared pointer
-		return shared_ptr<SolverInterface> ();
+		return shared_ptr<WrappedLogicSolver> ();
 	}
 
 	return d;

@@ -17,7 +17,7 @@
 //    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //--------------------------------------------------------------------------------------------------
 
-#include "solvers/SATUtils.h"
+#include "solvers/satsolver/SATUtils.h"
 
 using namespace MinisatID;
 

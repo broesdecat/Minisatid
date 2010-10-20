@@ -52,8 +52,8 @@ namespace MinisatID {
 
 class DefaultCallback {
 private:
-	PropositionalSolver* solver;
-	PropositionalSolver* getSolver() { return solver; }
+	WrappedPCSolver* solver;
+	WrappedPCSolver* getSolver() { return solver; }
 
 	IntegerType bound;
 	bool equality;
@@ -62,7 +62,7 @@ private:
 	int maxvar;
 
 public:
-	DefaultCallback(PropositionalSolver* solver):solver(solver), setid(0){
+	DefaultCallback(WrappedPCSolver* solver):solver(solver), setid(0){
 
 	}
 
@@ -217,7 +217,7 @@ private:
 	DefaultCallback cb;
 
 public:
-	PBRead(PropositionalSolver* solver, const char *filename): cb(solver) {
+	PBRead(WrappedPCSolver* solver, const char *filename): cb(solver) {
 		in.open(filename, std::ios_base::in);
 
 		if (!in.good()){

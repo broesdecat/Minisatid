@@ -36,15 +36,11 @@
  OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  **************************************************************************************************/
 
-#include "solvers/idsolver/IDSolver.hpp"
-
-#include "solvers/aggsolver/AggSolver.hpp"
-
+#include "solvers/modules/IDSolver.hpp"
+#include "solvers/modules/AggSolver.hpp"
 #include "solvers/utils/Print.hpp"
+#include "solvers/theorysolvers/PCSolver.hpp"
 
-#include "solvers/pcsolver/PCSolver.hpp"
-
-#include "solvers/SATUtils.h"
 #include <cmath>
 
 #include <stdint.h>
@@ -93,7 +89,7 @@ bool IDSolver::isDefinedByAggr(Var v) const {
 }
 
 IDSolver::IDSolver(pPCSolver s) :
-	SolverModule(s), aggsolver(NULL), firstsearch(true), prev_conflicts(0), unfoundedsets(0), cycle_sources(0),
+	DPLLTmodule(s), aggsolver(NULL), firstsearch(true), prev_conflicts(0), unfoundedsets(0), cycle_sources(0),
 			previoustrailatsimp(-1), justifiable_cycle_sources(0),
 			cycles(0),
 			cycle_sizes(0),
