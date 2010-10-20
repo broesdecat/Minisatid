@@ -19,6 +19,7 @@
 
 #include <cstdlib>
 #include <stdio.h>
+#include <tr1/memory>
 
 #include "solvers/external/ExternalUtils.hpp"
 
@@ -35,6 +36,7 @@ double MinisatID::cpuTime(void) {
 }
 
 /*
+ * FIXME
 #if defined(__linux__)
 static inline int memReadStat(int field)
 {
@@ -83,3 +85,62 @@ static inline uint64_t memUsed() { return 0; }
 		}
 	#endif
 #endif
+
+///////
+// Input/output file management
+///////
+
+namespace MinisatID{
+	const char *inputurl = NULL;
+	const char *outputurl = NULL;
+	std::tr1::shared_ptr<FileR> input, output;
+}
+
+void MinisatID::setInputFileUrl(const char* url){
+	assert(input.get()==NULL);
+	inputurl = url;
+}
+
+const char* MinisatID::getInputFileUrl(){
+	return inputurl;
+}
+
+FILE* MinisatID::getInputFile(){
+	if(input.get()==NULL){
+		if(inputurl==NULL){
+			input = std::tr1::shared_ptr<FileR>(new FileR(stdin));
+			reportf("Reading from standard input...\n");
+		}else{
+			input = std::tr1::shared_ptr<FileR>(new FileR(inputurl, false));
+		}
+	}
+	return input->getFile();
+}
+
+void MinisatID::setOutputFileUrl(const char* url){
+	assert(output.get()==NULL);
+	outputurl = url;
+}
+
+FILE* MinisatID::getOutputFile(){
+	if(output.get()==NULL){
+		if(outputurl==NULL){
+			output = std::tr1::shared_ptr<FileR>(new FileR(stdout));
+		}else{
+			output = std::tr1::shared_ptr<FileR>(new FileR(outputurl, true));
+		}
+	}
+	return output->getFile();
+}
+
+void MinisatID::closeInput(){
+	if(input.get()!=NULL){
+		input->close();
+	}
+}
+
+void MinisatID::closeOutput(){
+	if(output.get()!=NULL){
+		output->close();
+	}
+}

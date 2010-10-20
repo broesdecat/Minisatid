@@ -648,8 +648,8 @@ bool PCSolver::simplify() {
  * count the number of models => do not save models
  */
 
-void PCSolver::solve(InternSol* sol){
-
+bool PCSolver::solve(InternSol* sol){
+	//FIXME
 }
 /*bool PCSolver::propagate(){
 	return getSolver()->solve(getAssumptions(), true);

@@ -73,7 +73,7 @@ public:
 
 	bool 	simplify			();
 
-	void 	solve(InternSol* sol);
+	bool 	solve(InternSol* sol);
 
 	bool 	finishParsing		();
 

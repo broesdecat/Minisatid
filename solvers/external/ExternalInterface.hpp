@@ -102,7 +102,7 @@ public:
 			void 	printModel		(const vec<Lit>& model);
 
 	virtual bool 	simplify		();
-	virtual void 	solve			(Solution* sol);
+	virtual bool 	solve			(Solution* sol);
 			void 	addModel		(const vec<Lit>& model);
 	virtual bool 	finishParsing	();
 

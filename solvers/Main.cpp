@@ -57,12 +57,13 @@
 #include <ctime>
 #include <cstring>
 #include <stdint.h>
-#include <errno.h>
+#include <cerrno>
 #include <iostream>
 #include <fstream>
 #include <signal.h>
 #include <tr1/memory>
 #include <argp.h>
+#include <sstream>
 
 #include "solvers/external/ExternalInterface.hpp"
 #include "solvers/Unittests.hpp"
@@ -73,6 +74,7 @@
 #include <fpu_control.h>
 #endif
 
+using namespace std;
 using namespace std::tr1;
 using namespace MinisatID;
 
@@ -156,46 +158,6 @@ void printUsage() {
 	reportf("\n");
 }
 
-//Class to manage a read-only file
-class FileR {
-private:
-	bool opened;
-	FILE* file;
-
-	FileR(const FileR &);
-	FileR & operator=(const FileR &);
-
-public:
-	FileR(FILE* file) :
-		opened(false), file(file) {
-	}
-	FileR(const char* name) :
-		opened(false), file(fopen(name, "r")) {
-		if (file == NULL) {
-			char s[100];
-			sprintf(s, "`%s' is not a valid filename or not readable.\n", name);
-			throw idpexception(s);
-		}
-		opened = true;
-	}
-
-	~FileR() {
-		if (opened) {
-			fclose(file);
-		}
-	}
-
-	void close() {
-		if (opened) {
-			opened = false;
-			fclose(file);
-		}
-	}
-	FILE* getFile() {
-		return file;
-	}
-};
-
 const char *argp_program_version = "minisatid 2.1.20";
 const char *argp_program_bug_address = "<krr@cs.kuleuven.be>";
 
@@ -206,86 +168,166 @@ static char doc[] =
 			"and inductive definitions. Also lparse and opb languages are supported.\n";
 
 /* A description of the arguments we accept. */
-static char args_doc[] = "ARG1 ARG2";
+static char args_doc[] = "input-file output-file";
 
 /* The options we understand. */
 static struct argp_option options[] = {
-		{"models"		, 'n', "INT", 0,	"The number of models INT to search for"},
-		{"verbosity"	, 0, "VERB", 0,		"The level of output INT to generate"},
-		{"rnd-freq"		, 0, "FREQ", 0,		"The frequency FREQ (in [0..1]) with which to make a random choice"},
-		{"decay"		, 0, "DEC", 0,		"The amount of decay DEC (in [0..1]) used by the SAT-solver"},
-		{"polarity-mode", 0, "POL", 0,		"POL={\"true\", \"false\", \"rnd\"}: sets the default polarity choice of variables"},
-		{"lparse"		, 'l', 0,  0,		"Treat input as the LParse ASP ground format"},
-		{"opb"			, 'p', 0, 0,		"Treat input as the opb (Pseudo-boolean) format"},
-		{"idclausesaving", 0, "ID", 0,		"INT={0,1}: 0=add clause on propagation, 1=save clause on propagation"},
-		{"aggclausesaving", 0, "INT", 0,	"INT={0,1,2}: 0=add clause on propagation, 1=save clause on propagation, 2=save minimal reason"},
+		{"models"		, 'n', "MOD", 0,	"The number of models MOD to search for"},
+		{"verbosity"	, 1, "VERB", 0,		"The level of output VERB to generate"},
+		{"rnd-freq"		, 2, "FREQ", 0,		"The frequency FREQ (in [0..1]) with which to make a random choice"},
+		{"decay"		, 3, "DEC", 0,		"The amount of decay DEC (in [0..1]) used by the SAT-solver"},
+		{"polarity-mode", 4, "POL", 0,		"POL={\"true\", \"false\", \"rnd\"}: sets the default polarity choice of variables"},
+		{"format"		, 'f', "FORMAT",  0, "FORMAT={\"fodot\", \"lparse\", \"opb\"}: treat input propositional FO(.), as lparse ground format or as pseudo-boolean input"},
+		{"idclausesaving", 5, "ID", 0,		"INT={0,1}: 0=add clause on propagation, 1=save clause on propagation"},
+		{"aggclausesaving", 6, "INT", 0,	"INT={0,1,2}: 0=add clause on propagation, 1=save clause on propagation, 2=save minimal reason"},
 		{"remap"		, 'r', "BOOL", 0,	"BOOL={\"yes\",\"no\"}: remap literals from the input structure to a gap-less internal format"},
 		{"watchedaggr"	, 'w', "BOOL", 0,	"BOOL={\"yes\",\"no\"}: use watched-literal datastructures to handle aggregate propagation"},
-		{"randomize"	, 0, "BOOL", 0,		"BOOL={\"yes\",\"no\"}: randomly generate the SAT-solver random seed"},
-		{"disableheur"	, 0, "BOOL", 0,		"BOOL={\"yes\",\"no\"}: disable the SAT-solver's heuristic"},
-		{"defstrat "	, 0, "STRAT", 0,	"STRAT={\"breadth_first\", \"depth_first\"}: sets the unfounded-set search-strategy"},
-		{"defsearch"	, 0, "SEARCH", 0,	"SEARCH={\"always\", \"adaptive\", \"lazy\"}: sets the unfounded-set search-frequency"},
-		{"defsem"		, 0, "SEM", 0,		"SEM={\"stable\", \"wellfounded\"}: uses the chosen semantics to handle inductive definitions"},
+		{"output"		, 'o', "FILE", 0,	"The outputfile to use to write out models and results"},
+		{"randomize"	, 7, "BOOL", 0,		"BOOL={\"yes\",\"no\"}: randomly generate the SAT-solver random seed"},
+//		{"disableheur"	, 8, "BOOL", 0,		"BOOL={\"yes\",\"no\"}: disable the SAT-solver's heuristic"},
+//		{"defstrat "	, 9, "STRAT", 0,	"STRAT={\"breadth_first\", \"depth_first\"}: sets the unfounded-set search-strategy"},
+		{"defsearch"	, 10, "SEARCH", 0,	"SEARCH={\"always\", \"adaptive\", \"lazy\"}: sets the unfounded-set search-frequency"},
+		{"defsem"		, 11, "SEM", 0,		"SEM={\"stable\", \"wellfounded\"}: uses the chosen semantics to handle inductive definitions"},
 		{ 0 } }; //Required end tuple
-
-/*
-		{ "verbose", 'v', 0, 0, "Produce verbose output" },
-		{ "quiet", 'q', 0, 0,"Don't produce any output" },
-		{ "silent", 's', 0, OPTION_ALIAS },
-		{ "output", 'o', "FILE", 0,	"Output to FILE instead of standard output" },
-		{ 0 } };*/
-
-/* Used by main to communicate with parse_opt. */
-struct ECNF_mode2 {
-	double random_var_freq, var_decay;
-	POLARITY polarity_mode;
-	int verbosity;
-
-	//rest
-	int nbmodels; //Try to find at most this number of models
-	DEFSEM sem; //Definitional semantics to be used
-	DEFFINDCS defn_strategy; // Controls which propagation strategy will be used for definitions.                         (default always)
-	DEFMARKDEPTH defn_search; // Controls which search type will be used for definitions.                                  (default include_cs)
-	DEFSEARCHSTRAT ufs_strategy; //Which algorithm to use to find unfounded sets
-
-	bool lparse;
-	bool pb;
-	bool remap;  //Whether he should remap the atom values from the input to fill up gaps in the numbering
-	bool pw;	//use partially watched agg structures or not.
-	bool randomize; // use random seed initialization for the SAT-solver
-	bool disableheur; // turn off the heuristic of the sat solver, allowing more predictable behavior
-	int idclausesaving; //0 = on propagation add clause to store, 1 = on propagation, generate explanation and save it, 2 = on propagation, generate reason and save it
-	int aggclausesaving; //0 = on propagation add clause to store, 1 = on propagation, generate explanation and save it, 2 = on propagation, generate reason and save it
-	char* files[2];
-};
 
 /* Parse a single option. */
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 	/* Get the input argument from argp_parse, which we know is a pointer to our arguments structure. */
-	struct ECNF_mode2 *args = static_cast<ECNF_mode2*>(state->input);
+	struct ECNF_mode *args = static_cast<ECNF_mode*>(state->input);
+	assert(args!=NULL);
 
+	reportf("Key: %d, argument: %s\n", key, arg);
 	switch (key) {
-		/*case 'q':
-		case 's':
-			args->silent = 1;
+		case 1: // verbosity
+			if((stringstream(arg) >> modes.verbosity).fail()){
+				reportf("Illegal verbosity value %s\n", arg); argp_usage(state);
+			}
 			break;
-		case 'v':
-			args->verbose = 1;
+		case 2: // rnd-freq
+			if((stringstream(arg) >> modes.random_var_freq).fail() || modes.var_decay>1.0 || modes.var_decay<0.0){
+				reportf("Illegal rnd-freq value %s\n", arg); argp_usage(state);
+			}
 			break;
-		case 'o':
-			args->output_file = arg;
+		case 3: // decay
+			if((stringstream(arg) >> modes.var_decay).fail() || modes.var_decay>1.0 || modes.var_decay<0.0){
+				reportf("Illegal decay value %s\n", arg); argp_usage(state);
+			}
+			break;
+		case 4: // polarity
+			if(strcmp(arg, "true")){
+				modes.polarity_mode = polarity_true;
+			}else if(strcmp(arg, "false")){
+				modes.polarity_mode = polarity_false;
+			}else if(strcmp(arg, "rnd")){
+				modes.polarity_mode = polarity_rnd;
+			}else{
+				reportf("Illegal polarity value %s\n", arg); argp_usage(state);
+			}
+			break;
+		case 5: // id clausesaving
+			if((stringstream(arg) >> modes.idclausesaving).fail() || modes.aggclausesaving>1 || modes.aggclausesaving<0){
+				reportf("Illegal idclausesaving value %s\n", arg); argp_usage(state);
+			}
+			break;
+		case 6: // agg clause saving
+			if((stringstream(arg) >> modes.aggclausesaving).fail() || modes.aggclausesaving>2 || modes.aggclausesaving<0){
+				reportf("Illegal aggclausesaving value %s\n", arg); argp_usage(state);
+			}
+			break;
+		case 7: // randomize: yes/no
+			if(strcmp(arg, "no")){
+				modes.randomize = false;
+			}else if(strcmp(arg, "yes")){
+				modes.randomize = true;
+			}else{
+				reportf("Illegal randomize value %s\n", arg); argp_usage(state);
+			}
+			break;
+		case 8: // disableheur
+			throw idpexception("Option not implemented!\n");
+			break;
+		case 9: // defstrat: breadth_first/depth_first
+			throw idpexception("Option not implemented!\n");
+			/*if(strcmp(arg, "breadth_first")){
+				modes.ufs_strategy = breadth_first;
+			}else if(strcmp(arg, "depth_first")){
+				modes.ufs_strategy = depth_first;
+			}else{
+				reportf("Illegal defstrat value %s\n", arg); argp_usage(state);
+			}*/
+			break;
+		case 10: // defsearch: always/adaptive/lazy
+			if(strcmp(arg, "always")){
+				modes.defn_strategy = always;
+			}else if(strcmp(arg, "adaptive")){
+				modes.defn_strategy = adaptive;
+			}else if(strcmp(arg, "lazy")){
+				modes.defn_strategy = lazy;
+			}else{
+				reportf("Illegal defsearch value %s\n", arg); argp_usage(state);
+			}
+			break;
+		case 11: // defsem: stable/wellfounded
+			if(strcmp(arg, "stable")){
+				modes.sem = STABLE;
+			}else if(strcmp(arg, "wellfounded")){
+				modes.sem = WELLF;
+			}else{
+				reportf("Illegal defsem value %s\n", arg); argp_usage(state);
+			}
+			break;
+		case 'n': // models
+			if((stringstream(arg) >> modes.nbmodels).fail() || modes.nbmodels<0){
+				reportf("Illegal nbmodels value %s\n", arg); argp_usage(state);
+			}
+			break;
+		case 'f':
+			if(strcmp(arg, "fodot")){
+				modes.lparse = false; modes.pb = false;
+			}else if(strcmp(arg, "lparse")){
+				modes.lparse = true; modes.pb = false;
+			}else if(strcmp(arg, "opb")){
+				modes.lparse = false; modes.pb = true;
+			}else{
+				reportf("Illegal format value %s\n", arg); argp_usage(state);
+			}
+			break;
+		case 'r': // remap: yes/no
+			if(strcmp(arg, "no")){
+				modes.remap = false;
+			}else if(strcmp(arg, "yes")){
+				modes.remap = true;
+			}else{
+				reportf("Illegal remap value %s\n", arg); argp_usage(state);
+			}
+			break;
+		case 'o': // outputfile
+			MinisatID::setOutputFileUrl(arg);
+			break;
+		case 'w': // watched agg: yes/no
+			if(strcmp(arg, "no")){
+				modes.pw = false;
+			}else if(strcmp(arg, "yes")){
+				modes.pw = true;
+			}else{
+				reportf("Illegal watchedaggr value %s\n", arg); argp_usage(state);
+			}
 			break;
 		case ARGP_KEY_ARG:
-			if (state->arg_num >= 2)
-				// Too many arguments.
+			if(state->arg_num >2){ // Too many arguments.
+				reportf("Too many extra arguments\n");
 				argp_usage(state);
-			args->args[state->arg_num] = arg;
+			}
+			if(state->arg_num == 0){
+				reportf("Set inputfile url\n");
+				MinisatID::setInputFileUrl(arg);
+			}else if(state->arg_num == 1){
+				reportf("Set outputfile url\n");
+				MinisatID::setOutputFileUrl(arg);
+			}
 			break;
-		case ARGP_KEY_END:
-			if (state->arg_num < 2)
-				// Not enough arguments.
-				argp_usage(state);
-			break;*/
+		case ARGP_KEY_END: // Piping is allowed, so don't really need any files
+			break;
 		default:
 			return ARGP_ERR_UNKNOWN;
 	}
@@ -295,9 +337,13 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 /* Our argp parser. */
 static struct argp argp = { options, parse_opt, args_doc, doc };
 
-int main(int argc, char** argv) {
-	std::set_new_handler(noMoreMem);
 
+///////
+// Option datastructure
+///////
+
+int main(int argc, char** argv) {
+	//Setting system precision and signal handlers
 #if defined(__linux__)
 	fpu_control_t oldcw, newcw;
 	_FPU_GETCW(oldcw);
@@ -306,372 +352,133 @@ int main(int argc, char** argv) {
 	if (modes.verbosity >= 1)
 		reportf("WARNING: for repeatability, setting FPU to use double precision\n");
 #endif
-
-	double cpu_time = cpuTime();
-
 	signal(SIGINT, SIGINT_handler);
 #if defined(__linux__)
 	signal(SIGHUP, SIGINT_handler);
 #endif
+	//set memory handler
+	std::set_new_handler(noMoreMem);
 
-	FILE* res = NULL;
+	//set start time
+	double cpu_time = cpuTime();
+
+	//parse command-line options
+	argp_parse(&argp, argc, argv, 0, 0, &modes);
+
+	if(modes.verbosity >= 1){
+		reportf("============================[ Problem Statistics ]=============================\n");
+		reportf("| Parsing input                                                               |\n");
+	}
+
 	pData d;
-	try {
-		struct ECNF_mode2 arguments;
+	int returnvalue = 1;
+	try { // Start catching IDP exceptions
+		// Unittest injection by   pData d = unittestx(modes);
 
-		/* Default values. */
-		arguments.random_var_freq = 0.02;
-		arguments.var_decay = 1 / 0.95;
-		arguments.polarity_mode = polarity_stored;
-		arguments.verbosity = 0;
-		arguments.sem = WELLF;
-		arguments.nbmodels = 1;
-		arguments.defn_strategy = always;
-		arguments.defn_search = include_cs;
-		arguments.ufs_strategy = breadth_first;
-		arguments.lparse = false;
-		arguments.pb = false;
-		arguments.remap = false;
-		arguments.pw = true;
-		arguments.randomize = false;
-		arguments.disableheur = false;
-		arguments.idclausesaving = 0;
-		arguments.aggclausesaving = 2;
-
-		/* Parse our arguments; every option seen by parse_opt will
-		 be reflected in arguments. */
-		argp_parse(&argp, argc, argv, 0, 0, &arguments);
-
-		/*printf("ARG1 = %s\nARG2 = %s\nOUTPUT_FILE = %s\n"
-			"VERBOSE = %s\nSILENT = %s\n",
-				arguments.args[0],
-				arguments.args[1],
-				arguments.output_file,
-				arguments.verbose ? "yes" : "no",
-				arguments.silent ? "yes" : "no");*/
-		exit(0);
-		//parseCommandline(argc, argv);
-
-		/**
-		 * First argument: executable
-		 * Second argument if provided: input file.
-		 * Third argument if provided: output file.
-		 */
-
-		//Unittest injection here: pData d = unittestx(modes);
-
-		//An outputfile is not allowed when the inputfile is piped (//TODO should add a -o argument for this)
-		res = stdout; //Default write to stdout
-
-		if (modes.verbosity > 0) {
-			reportf("============================[ Problem Statistics ]=============================\n");
-			reportf("|                                                                             |\n");
-		}
-
+		//Parse input
 		if (modes.lparse) {
 			modes.aggr = true;
 			modes.def = true;
 			PropositionalSolver* p = new PropositionalSolver(modes);
 			d = shared_ptr<SolverInterface> (p);
 			Read* r = new Read(p);
-
-			if (argc == 1) {
-				reportf("Reading from standard input... Use '-h' or '--help' for help.\n");
-				r->read(std::cin);
-			} else if (argc > 1) {
-				std::filebuf fb;
-				fb.open(argv[1], std::ios::in);
-				std::istream x(&fb);
-				r->read(x);
-				fb.close();
-				//TODO duplicate, buggy code with original (non lparse) parsing.
-			}
+			std::filebuf buf;
+			buf.open(MinisatID::getInputFileUrl(), std::ios::in);
+			std::istream is(&buf);
+			r->read(is);
+			buf.close();
+			delete r;
 		} else if (modes.pb) { //PB
 			modes.aggr = true;
 			modes.mnmz = true;
 			PropositionalSolver* p = new PropositionalSolver(modes);
 			d = shared_ptr<SolverInterface> (p);
-			PBRead* parser = new PBRead(p, argv[1]);
+			PBRead* parser = new PBRead(p, MinisatID::getInputFileUrl());
 			parser->autoLin();
 			parser->parse();
 			delete parser;
 		} else {
-			if (argc == 1) { //Read from stdin
-				reportf("Reading from standard input... Use '-h' or '--help' for help.\n");
-				/*ecnfin*/
-				yyin = stdin;
-				if (modes.verbosity > 0) {
-					reportf("============================[ Problem Statistics ]=============================\n");
-					reportf("|                                                                             |\n");
-				}
-
-				d = parse();
-			} else {
-				FileR filer(argv[1]);
-				if (argc > 2) {
-					res = fopen(argv[2], "wb"); //TODO include in FileR object
-				}
-
-				/*ecnfin*/
-				yyin = filer.getFile();
-				d = parse();
-				filer.close();
-			}
+			yyin = MinisatID::getInputFile();
+			d = parse();
 		}
 
-		if (modes.verbosity > 1) {
-			reportf("Plain parsing finished, starting datastructure initialization\n");
-		}
+		MinisatID::closeInput();
 
-		if (d.get() != NULL && !d->finishParsing()) {
-			d = shared_ptr<SolverInterface> ();
-		}
+		assert(d.get()!=NULL);
 
 		if (modes.verbosity >= 1) {
-			double parse_time = cpuTime() - cpu_time;
-			reportf("| Parsing time              : %7.2f s                                       |\n", parse_time);
+			reportf("| Parsing input finished                                                      |\n");
+			reportf("| Datastructure initialization                                                |\n");
 		}
 
-		bool ret = true;
-		if (d.get() == NULL) {
-			ret = false;
-			if (modes.verbosity > 0) {
+		//Initialize datastructures
+		bool unsat = !d->finishParsing();
+
+		if (modes.verbosity >= 1) {
+			reportf("| Datastructure initialization finished                                       |\n");
+			double parse_time = cpuTime() - cpu_time;
+			reportf("| Total parsing time              : %7.2f s                                 |\n", parse_time);
+			if (unsat) {
 				reportf("===============================================================================\n"
 						"Unsatisfiable found by parsing\n");
 			}
 		}
 
-		if (ret) {
-			ret = d->simplify();
-			if (!ret) {
-				if (modes.verbosity > 0) {
+		//Simplify
+		if(!unsat){
+			unsat = !d->simplify();
+			if(unsat){
+				if (modes.verbosity >= 1) {
 					reportf("===============================================================================\n"
 							"Unsatisfiable found by unit propagation\n");
 				}
 			}
 		}
 
-		if (ret) {
-			d->setRes(res);
-			//FIXME ret = d->solveprintModels(modes.nbmodels);
-		} else {
-			//If UNSAT was detected before solving, it has to be printed separately at the moment
-			//TODO clean up code so the printing is handled cleaner.
-			if (res != NULL) {
-				fprintf(res, "UNSAT\n"), fclose(res);
+		//Solve
+		if(!unsat){
+			vector<Literal> assumpts;
+			Solution* sol = new Solution(true, false, modes.nbmodels, assumpts);
+			unsat = !d->solve(sol);
+			if (modes.verbosity >= 1) {
+				reportf("===============================================================================\n");
 			}
-			printf("UNSATISFIABLE\n");
 		}
 
-		printStats();
+		if(unsat){
+			fprintf(getOutputFile(), "UNSAT\n");
+			if(modes.verbosity >= 1){
+				reportf("UNSATISFIABLE\n");
+			}
+		}
+
+		if(modes.verbosity >= 1){
+			d->printStatistics();
+		}
+
+		MinisatID::closeOutput();
+
 		//#ifdef NDEBUG
-		//		exit(ret ? 10 : 20);     // (faster than "return", which will invoke the destructor for 'Solver')
+		//		exit(unsat ? 20 : 10);     // (faster than "return", which will invoke the destructor for 'Solver')
 		//#else
-		return ret ? 10 : 20;
+		returnvalue = unsat ? 20 : 10;
 		//#endif
 
 	} catch (idpexception& e) {
 		reportf(e.what());
 		reportf("Program will abort.\n");
-		if (d.get() != NULL) {
-			d->printStatistics();
-		}
-		return 1;
+		d->printStatistics();
 	} catch (int) {
-		if (d.get() != NULL) {
-			d->printStatistics();
-		}
-		return 1;
+		reportf("Unexpected error caught, program will abort.\n");
+		d->printStatistics();
 	}
+
+	return returnvalue;
 }
 
-/****************
- * Parsing code *
- ****************/
-
-const char* hasPrefix(const char* str, const char* prefix) {
-	int len = strlen(prefix);
-	if (strncmp(str, prefix, len) == 0)
-		return str + len;
-	else
-		return NULL;
-}
-
-void parseCommandline(int& argc, char** argv) {
-	int i, j;
-	const char* value;
-	for (i = j = 0; i < argc; i++) {
-		if ((value = hasPrefix(argv[i], "--lparse="))) {
-			if (strcmp(value, "yes") == 0) {
-				modes.lparse = true;
-			} else if (strcmp(value, "no") == 0) {
-				modes.lparse = false;
-			} else {
-				char s[100];
-				sprintf(s, "Unknown choice %s for lparse mode\n", value);
-				throw idpexception(s);
-			}
-		} else if ((value = hasPrefix(argv[i], "--pb="))) {
-			if (strcmp(value, "yes") == 0) {
-				modes.pb = true;
-			} else if (strcmp(value, "no") == 0) {
-				modes.pb = false;
-			} else {
-				char s[100];
-				sprintf(s, "Unknown choice %s for pb mode\n", value);
-				throw idpexception(s);
-			}
-		} else if ((value = hasPrefix(argv[i], "--idclausesaving="))) {
-			int cs = (int) strtol(value, NULL, 10);
-			if (cs == 0 && errno == EINVAL) {
-				char s[100];
-				sprintf(s, "Illegal idclausesaving level %s\n", value);
-				throw idpexception(s);
-			}
-			modes.idclausesaving = cs;
-		} else if ((value = hasPrefix(argv[i], "--aggclausesaving="))) {
-			int cs = (int) strtol(value, NULL, 10);
-			if (cs == 0 && errno == EINVAL) {
-				char s[100];
-				sprintf(s, "Illegal aggclausesaving level %s\n", value);
-				throw idpexception(s);
-			}
-			modes.aggclausesaving = cs;
-		} else if ((value = hasPrefix(argv[i], "--polarity-mode="))) {
-			if (strcmp(value, "true") == 0) {
-				modes.polarity_mode = polarity_true;
-			} else if (strcmp(value, "false") == 0) {
-				modes.polarity_mode = polarity_false;
-			} else if (strcmp(value, "rnd") == 0) {
-				modes.polarity_mode = polarity_rnd;
-			} else {
-				char s[100];
-				sprintf(s, "Unknown choice of polarity-mode %s\n", value);
-				throw idpexception(s);
-			}
-		} else if ((value = hasPrefix(argv[i], "--defn-strategy="))) {
-			if (strcmp(value, "always") == 0) {
-				modes.defn_strategy = always;
-			} else if (strcmp(value, "adaptive") == 0) {
-				modes.defn_strategy = adaptive;
-			} else if (strcmp(value, "lazy") == 0) {
-				modes.defn_strategy = lazy;
-			} else {
-				char s[100];
-				sprintf(s, "Illegal definition strategy %s\n", value);
-				throw idpexception(s);
-			}
-		} else if ((value = hasPrefix(argv[i], "--rnd-freq="))) {
-			double rnd;
-			if (sscanf(value, "%lf", &rnd) <= 0 || rnd < 0 || rnd > 1) {
-				char s[100];
-				sprintf(s, "Illegal rnd-freq constant %s\n", value);
-				throw idpexception(s);
-			}
-			modes.random_var_freq = rnd;
-		} else if ((value = hasPrefix(argv[i], "--decay="))) {
-			double decay;
-			if (sscanf(value, "%lf", &decay) <= 0 || decay <= 0 || decay > 1) {
-				char s[100];
-				sprintf(s, "Illegal decay constant %s\n", value);
-				throw idpexception(s);
-			}
-			modes.var_decay = 1 / decay;
-		} else if ((value = hasPrefix(argv[i], "--ufsalgo="))) {
-			if (strcmp(value, "depth") == 0) {
-				modes.ufs_strategy = depth_first;
-			} else if (strcmp(value, "breadth") == 0) {
-				modes.ufs_strategy = breadth_first;
-			} else {
-				char s[100];
-				sprintf(s, "Unknown choice of unfounded set algorithm: %s\n", value);
-				throw idpexception(s);
-			}
-		} else if ((value = hasPrefix(argv[i], "--idsem="))) {
-			if (strcmp(value, "wellf") == 0) {
-				modes.sem = WELLF;
-			} else if (strcmp(value, "stable") == 0) {
-				modes.sem = STABLE;
-			} else {
-				char s[100];
-				sprintf(s, "Unknown choice of unfounded set algorithm: %s\n", value);
-				throw idpexception(s);
-			}
-		} else if ((value = hasPrefix(argv[i], "--verbosity="))) {
-			int verb = (int) strtol(value, NULL, 10);
-			if (verb == 0 && errno == EINVAL) {
-				char s[100];
-				sprintf(s, "Illegal verbosity level %s\n", value);
-				throw idpexception(s);
-			}
-			modes.verbosity = verb;
-		} else if ((value = hasPrefix(argv[i], "--remap="))) {
-			if (strcmp(value, "yes") == 0) {
-				modes.remap = true;
-			} else if (strcmp(value, "no") == 0) {
-				modes.remap = false;
-			} else {
-				char s[100];
-				sprintf(s, "Unknown choice %s for remap mode\n", value);
-				throw idpexception(s);
-			}
-		} else if ((value = hasPrefix(argv[i], "--disableheur="))) {
-			if (strcmp(value, "yes") == 0) {
-				modes.disableheur = true;
-			} else if (strcmp(value, "no") == 0) {
-				modes.disableheur = false;
-			} else {
-				char s[100];
-				sprintf(s, "Unknown choice %s for disableheur mode\n", value);
-				throw idpexception(s);
-			}
-		} else if ((value = hasPrefix(argv[i], "--random="))) {
-			if (strcmp(value, "yes") == 0) {
-				modes.randomize = true;
-			} else if (strcmp(value, "no") == 0) {
-				modes.randomize = false;
-			} else {
-				char s[100];
-				sprintf(s, "Unknown choice %s for random mode\n", value);
-				throw idpexception(s);
-			}
-		} else if ((value = hasPrefix(argv[i], "--pw="))) {
-			if (strcmp(value, "yes") == 0) {
-				modes.pw = true;
-			} else if (strcmp(value, "no") == 0) {
-				modes.pw = false;
-			} else {
-				char s[100];
-				sprintf(s, "Unknown choice %s for pw mode\n", value);
-				throw idpexception(s);
-			}
-		} else if ((value = hasPrefix(argv[i], "--n"))) {
-			char* endptr;
-			modes.nbmodels = strtol(value, &endptr, 0);
-			if (modes.nbmodels < 0 || *endptr != '\0') {
-				throw idpexception("Option `-nN': N must be a positive integer, or 0 to get all models.");
-			}
-		}/*else if ((value = hasPrefix(argv[i], "-o=")) || (value = hasPrefix(argv[i], "--outputfile="))){
-		 res = fopen(argv[2], "wb");
-		 if(res==NULL){
-		 throw idpexception("The provided outputfile \"%s\" could not be opened.\n", value);
-		 }
-		 }*/else if ((value = hasPrefix(argv[i], "-h")) || (value = hasPrefix(argv[i], "--help"))) {
-			printUsage();
-			exit(0);
-		} else if ((value = hasPrefix(argv[i], "-v")) || (value = hasPrefix(argv[i], "--version"))) {
-			printVersion();
-			exit(0);
-		} else if (strncmp(argv[i], "-", 1) == 0) {
-			char s[100];
-			sprintf(s, "Unknown flag %s\n", argv[i]);
-			throw idpexception(s);
-		} else {
-			argv[j++] = argv[i];
-		}
-	}
-	argc = j;
-}
+///////
+// PARSE CODE
+///////
 
 /**
  * Returns a data object representing the solver configuration from the input theory.
@@ -705,15 +512,11 @@ pData parse() {
 	return d;
 }
 
-/**************************************
- * Debugging and information printing *
- **************************************/
+///////
+// Debugging - information printing
+///////
 
 static void SIGINT_handler(int signum) {
 	//printStats(s);
 	throw idpexception("*** INTERRUPTED ***\n");
-}
-
-void printStats() {
-	//repair later + add extra stats
 }

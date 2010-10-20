@@ -158,6 +158,63 @@ enum DEFSEM { STABLE, WELLF }; 				// Definitional semantics
 // SAT-solver options
 ///////
 
+// Class to manage a file
+class FileR {
+private:
+	bool opened, writeaccess, stream;
+	const char* name; // if not a stream
+	FILE* file;
+
+	FileR(const FileR &);
+	FileR & operator=(const FileR &);
+
+public:
+	FileR(FILE* file) : //for streams
+			opened(false), writeaccess(true), stream(true), file(file) {	}
+	FileR(const char* name, bool write) :
+			opened(false), writeaccess(write), stream(false), name(name), file(NULL) {
+		openFile();
+	}
+
+	~FileR() {
+		if (opened) {
+			fclose(file);
+		}
+	}
+
+	void close() {
+		if (opened) {
+			opened = false;
+			fclose(file);
+		}
+	}
+	FILE* getFile() {
+		openFile();
+		return file;
+	}
+
+private:
+	void openFile(){
+		if(!opened && !stream){
+			file = fopen(name, writeaccess?"wb":"r");
+			if (file == NULL) {
+				char s[100];
+				sprintf(s, "`%s' is not a valid filename or not readable.\n", name);
+				throw idpexception(s);
+			}
+			opened = true;
+		}
+	}
+};
+
+void setInputFileUrl(const char* url);
+const char* getInputFileUrl();
+FILE* getInputFile();
+void setOutputFileUrl(const char* url);
+FILE* getOutputFile();
+void closeInput();
+void closeOutput();
+
 enum POLARITY {
 	polarity_true = 0,
 	polarity_false = 1,
@@ -165,20 +222,15 @@ enum POLARITY {
 	polarity_rnd = 3
 }; // SAT-solver polarity option
 
-///////
-// Option datastructure
-///////
-
 // Structure containing all options used to run the solver.
 struct ECNF_mode {
+	//INPUT OPTIONS
 	double random_var_freq, var_decay;
 	POLARITY polarity_mode;
 	int verbosity;
 
-	//rest
-	bool def, aggr, mnmz, cp; // True for those extensions that are being used.
-	DEFSEM sem;
 	int nbmodels; //Try to find at most this number of models
+	DEFSEM sem; //Definitional semantics to be used
 	DEFFINDCS defn_strategy; // Controls which propagation strategy will be used for definitions.                         (default always)
 	DEFMARKDEPTH defn_search; // Controls which search type will be used for definitions.                                  (default include_cs)
 	DEFSEARCHSTRAT ufs_strategy; //Which algorithm to use to find unfounded sets
@@ -192,17 +244,17 @@ struct ECNF_mode {
 	int idclausesaving; //0 = on propagation add clause to store, 1 = on propagation, generate explanation and save it, 2 = on propagation, generate reason and save it
 	int aggclausesaving; //0 = on propagation add clause to store, 1 = on propagation, generate explanation and save it, 2 = on propagation, generate reason and save it
 
+
+	//rest
+	bool def, aggr, mnmz, cp; // True for those extensions that are being used.
+
 	ECNF_mode() :
 		random_var_freq(0.02),
 		var_decay(1 / 0.95),
 		polarity_mode(polarity_stored),
 		verbosity(0),
-		def(false),
-		aggr(false),
-		mnmz(false),
-		cp(false),
-		sem(WELLF),
 		nbmodels(1),
+		sem(WELLF),
 		defn_strategy(always),
 		defn_search(include_cs),
 		ufs_strategy(breadth_first),
@@ -213,7 +265,11 @@ struct ECNF_mode {
 		randomize(false),
 		disableheur(false),
 		idclausesaving(0),
-		aggclausesaving(2){
+		aggclausesaving(2),
+		def(false),
+		aggr(false),
+		mnmz(false),
+		cp(false){
 	}
 };
 

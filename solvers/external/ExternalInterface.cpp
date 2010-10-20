@@ -117,24 +117,17 @@ bool SolverInterface::simplify(){
 	return getSolver()->simplify();
 }
 
-void SolverInterface::solve(Solution* sol){
+bool SolverInterface::solve(Solution* sol){
 	currentsolution = sol;
 
 	//Map to internal solution
 	InternSol* insol = mapToInternSol(currentsolution);
-
-	getSolver()->solve(insol);
-
+	bool sat = getSolver()->solve(insol);
 	delete insol;
 
-	if(currentsolution->modelCount()==0){
-		fprintf(getRes()==NULL?stdout:getRes(), "UNSAT\n");
-		if(modes().verbosity>=1){
-			printf("UNSATISFIABLE\n");
-		}
-	}
-
 	currentsolution = NULL;
+
+	return sat;
 }
 
 void SolverInterface::addModel(const vec<Lit>& model){

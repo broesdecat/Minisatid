@@ -70,8 +70,8 @@ bool ModSolverData::findModels(int nbmodels, vec<vec<Lit> >& models){
 	return solvers[0]->findModels(nbmodels, models);
 }*/
 
-void ModSolverData::solve(InternSol* sol){
-
+bool ModSolverData::solve(InternSol* sol){
+	//FIXME
 }
 
 bool ModSolverData::finishParsing(){

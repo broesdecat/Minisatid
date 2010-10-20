@@ -157,6 +157,7 @@ bool ModSolver::finishParsing(){
  * Tells the root solver to do model expansion on his theory
  */
 bool ModSolver::solve(vec<vec<Lit> >& varmodels){
+	//FIXME
 	//TODO return getSolver()->findModels(1, varmodels);
 }
 

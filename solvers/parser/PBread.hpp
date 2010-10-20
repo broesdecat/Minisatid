@@ -217,7 +217,7 @@ private:
 	DefaultCallback cb;
 
 public:
-	PBRead(PropositionalSolver* solver, char *filename): cb(solver) {
+	PBRead(PropositionalSolver* solver, const char *filename): cb(solver) {
 		in.open(filename, std::ios_base::in);
 
 		if (!in.good()){

@@ -40,7 +40,7 @@ public:
 	virtual bool 	simplify		() = 0;
 	virtual bool 	finishParsing	() = 0;
 
-	virtual void solve(InternSol* sol) = 0;
+	virtual bool	solve(InternSol* sol) = 0;
 
 			int 	verbosity		() const	{ return modes().verbosity; }
 	const ECNF_mode& modes			() const	{ return _modes; }

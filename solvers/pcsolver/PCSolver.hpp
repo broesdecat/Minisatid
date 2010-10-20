@@ -157,7 +157,7 @@ public:
 	void 		setAssumptions	(const vec<Lit>& assumptions)	{ assumptions.copyTo(assump); }
 	const vec<Lit>& 	getAssumptions	()	const						{ return assump;	}
 
-	void 		solve(InternSol* sol);
+	bool 		solve(InternSol* sol);
 
 	bool 		findModel	(const vec<Lit>& assumps, vec<Lit>& m, bool& moremodels);
 
