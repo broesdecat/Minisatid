@@ -1,6 +1,8 @@
 #ifndef BASESEARCHSTATERELATIVECOMP_H_
 #define BASESEARCHSTATERELATIVECOMP_H_
 
+#include <stdio.h>
+
 #include <iostream>
 #include <math.h>
 namespace PBSolver{

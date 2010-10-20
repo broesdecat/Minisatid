@@ -148,30 +148,30 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 	parsedsets[setid] = new ParsedSet(setid, lw);
 
 	if (verbosity() >= 5) { // Print information on added set
-		reportf("Added set %d: ", setid);
+		report("Added set %d: ", setid);
 		vector<Weight>::const_iterator w = weights.begin();
 		bool begin = true;
 		for (vsize i = 0; i < lits.size(); i++, w++) {
 			if (begin) {
 				begin = false;
 			} else {
-				reportf(", ");
+				report(", ");
 			}
-			reportf("%d=%s", gprintVar(var(lits[i])), printWeight(*w).c_str());
+			report("%d=%s", gprintVar(var(lits[i])), printWeight(*w).c_str());
 		}
-		reportf("\n");
+		report("\n");
 	}
 
 	return true;
 }
 
-//#include "pbsolver/PbSolver.h"
+#include "pbsolver/PbSolver.h"
 
 bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	AggSign boundsign, AggType type, AggSem headeq) {
 	assert(type==MIN || type==MAX || type==CARD || type==SUM || type==PROD);
 
 	//Small test:
-	//PBSolver::PbSolver* pbsolver = new PBSolver::PbSolver();
+	PBSolver::PbSolver* pbsolver = new PBSolver::PbSolver();
 
 	if (parsedsets.find(setid)==parsedsets.end()) { //Exception if set already exists
 		char s[100];
@@ -208,7 +208,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	AggSign boundsig
 	if(type == CARD){ //Check if all card weights are 1
 		for(vwl::size_type i=0; i<parsedsets[setid]->getWL().size(); i++) {
 			if(parsedsets[setid]->getWL()[i].getWeight()!=1) {
-				reportf("Cardinality was loaded with wrong weights");
+				report("Cardinality was loaded with wrong weights");
 				assert(false);
 			}
 		}
@@ -231,17 +231,17 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	AggSign boundsig
 	new ParsedAgg(bound, boundsign, head, headeq, parsedsets[setid], type);
 
 	if (verbosity() >= 5) { //Print info on added aggregate
-		reportf("Added %s aggregate with head %d on set %d, %s %s of type ",
+		report("Added %s aggregate with head %d on set %d, %s %s of type ",
 				headeq == DEF?"defined":"completion", gprintVar(headv), setid,
 				boundsign==LB?"AGG <=":"AGG >=", printWeight(bound).c_str());
 		switch(type){
-			case SUM: reportf("SUM"); break;
-			case CARD: reportf("CARD"); break;
-			case MIN: reportf("MIN"); break;
-			case MAX: reportf("MAX"); break;
-			case PROD: reportf("PROD"); break;
+			case SUM: report("SUM"); break;
+			case CARD: report("CARD"); break;
+			case MIN: report("MIN"); break;
+			case MAX: report("MAX"); break;
+			case PROD: report("PROD"); break;
 		}
-		reportf(".\n");
+		report(".\n");
 	}
 
 	return true;
@@ -259,7 +259,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	}
 
 	if (verbosity() >= 3) {
-		reportf("Initializing aggregates\n");
+		report("Initializing aggregates\n");
 	}
 
 	//Not use before finishparsing, so safe to initialize here!
@@ -272,7 +272,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		bool foundunsat = finishSet((*i).second);
 		if (foundunsat){
 			if (verbosity() >= 3) {
-				reportf("Initializing aggregates finished, unsat detected.\n");
+				report("Initializing aggregates finished, unsat detected.\n");
 			}
 			unsat = true;
 			return;
@@ -297,24 +297,24 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 
 	if(totalagg==0){
 		if(verbosity()>=3){
-			reportf("Initializing aggregates finished, no aggregates present after initialization.\n");
+			report("Initializing aggregates finished, no aggregates present after initialization.\n");
 		}
 		present = false;
 		return;
 	}
 
 	if (verbosity() >= 1) {
-		reportf("| Number of minimum exprs.:     %4zu                                          |\n", min);
-		reportf("| Number of maximum exprs.:     %4zu                                          |\n", max);
-		reportf("| Number of sum exprs.:         %4zu                                          |\n", sum);
-		reportf("| Number of product exprs.:     %4zu                                          |\n", prod);
-		reportf("| Number of cardinality exprs.: %4zu                                          |\n", card);
+		report("| Number of minimum exprs.:     %4zu                                          |\n", min);
+		report("| Number of maximum exprs.:     %4zu                                          |\n", max);
+		report("| Number of sum exprs.:         %4zu                                          |\n", sum);
+		report("| Number of product exprs.:     %4zu                                          |\n", prod);
+		report("| Number of cardinality exprs.: %4zu                                          |\n", card);
 
-		reportf("| Over %4d sets, aggregate set avg. size: %7.2f lits.                      |\n",
+		report("| Over %4d sets, aggregate set avg. size: %7.2f lits.                      |\n",
 				nbsets,(double)setlits/(double)(nbsets));
 	}
 	if (verbosity() >= 3) {
-		reportf("Aggregates are present after initialization:\n");
+		report("Aggregates are present after initialization:\n");
 		for (vpaggs::const_iterator i=sets.begin(); i<sets.end(); i++) {
 			for (vpagg::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); j++) {
 				Aggrs::printAgg(**j, true);
@@ -322,21 +322,21 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		}
 
 		for (vsize i = 0; i < nVars(); i++) {
-			reportf("Watches of var %d:\n", gprintVar(i));
+			report("Watches of var %d:\n", gprintVar(i));
 			if (headwatches[i] != NULL) {
-				reportf("   headwatch\n");
-				reportf("      ");
+				report("   headwatch\n");
+				report("      ");
 				Aggrs::printAgg(headwatches[i]->getAggComb(), true);
 			}
 
 			if (verbosity() >= 6) {
-				reportf("   bodywatches\n");
+				report("   bodywatches\n");
 				for (vsize j = 0; j < permwatches[i].size(); j++) {
-					reportf("      ");
+					report("      ");
 					Aggrs::printAgg((permwatches[i][j])->getAggComb(), true);
 				}
 				for (vsize j = 0; j < tempwatches[i].size(); j++) {
-					reportf("      ");
+					report("      ");
 					Aggrs::printAgg((tempwatches[i][j])->getAggComb(), true);
 				}
 			}
@@ -566,9 +566,9 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 
 	if (value(p) == l_False) {
 		if (verbosity() >= 2) {
-			reportf("Deriving conflict in ");
+			report("Deriving conflict in ");
 			gprintLit(p, l_True);
-			reportf(" because of the aggregate expression ");
+			report(" because of the aggregate expression ");
 			Aggrs::printAgg(ar->getAgg(), true);
 		}
 		assert(getPCSolver()->modes().aggclausesaving>1 || ar->hasClause());
@@ -583,9 +583,9 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 		return confl;
 	} else if (value(p) == l_Undef) {
 		if (verbosity() >= 2) {
-			reportf("Deriving ");
+			report("Deriving ");
 			gprintLit(p, l_True);
-			reportf(" because of the aggregate expression ");
+			report(" because of the aggregate expression ");
 			Aggrs::printAgg(ar->getAgg(), true);
 		}
 		assert(aggreason[var(p)] == NULL);
@@ -609,7 +609,7 @@ void AggSolver::newDecisionLevel() {
 	}*/
 
 	if(verbosity()>=6){
-		reportf("Current effective watches on new decision level: \n");
+		report("Current effective watches on new decision level: \n");
 		printWatches(this, tempwatches);
 	}
 }
@@ -634,9 +634,9 @@ rClause AggSolver::propagate(const Lit& p) {
 	rClause confl = nullPtrClause;
 
 	if (verbosity() >= 2) {
-		reportf("Aggr_propagate(");
+		report("Aggr_propagate(");
 		gprintLit(p, l_True);
-		reportf(").\n");
+		report(").\n");
 	}
 
 	pagg pa = headwatches[var(p)];
@@ -658,7 +658,7 @@ rClause AggSolver::propagate(const Lit& p) {
 	if(tempwatches[toInt(p)].size()>0){
 
 		if(verbosity()>=8){
-			reportf("Current effective watches BEFORE: \n");
+			report("Current effective watches BEFORE: \n");
 			printWatches(this, tempwatches);
 		}
 
@@ -675,7 +675,7 @@ rClause AggSolver::propagate(const Lit& p) {
 		}
 
 		if(verbosity()>=8){
-			reportf("Current effective watches AFTER: \n");
+			report("Current effective watches AFTER: \n");
 			printWatches(this, tempwatches);
 		}
 	}
@@ -912,10 +912,10 @@ bool AggSolver::addMnmzSum(Var headv, int setid, AggSign boundsign) {
 	ae->setOptim(); //FIXME temporary solution
 
 	if (verbosity() >= 3) {
-		reportf("Added sum minimization: Minimize ");
+		report("Added sum minimization: Minimize ");
 		//TODO
 		//printAggrExpr(ae);
-		reportf("\n");
+		report("\n");
 	}
 
 	return true;
@@ -926,7 +926,7 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
 	CalcAgg* s = a->getAggComb();
 	SumFWAgg* prop = dynamic_cast<SumFWAgg*>(s->getProp());
 
-	reportf("Current optimum: %s\n", printWeight(prop->getCC()).c_str());
+	report("Current optimum: %s\n", printWeight(prop->getCC()).c_str());
 
 	if (a->isLower()) {
 		a->setLowerBound(prop->getCC() - 1);
@@ -957,7 +957,7 @@ void AggSolver::propagateMnmz(Var head) {
 ///////
 
 void AggSolver::printStatistics() const {
-	reportf("aggregate propagations: %-12" PRIu64 "\n", propagations);
+	report("aggregate propagations: %-12" PRIu64 "\n", propagations);
 }
 
 /*void AggSolver::findClausalPropagations(){

@@ -200,12 +200,12 @@ void PCSolver::addVars(const vec<Lit>& a) {
 
 bool PCSolver::addClause(vec<Lit>& lits) {
 	if (modes().verbosity >= 7) {
-		reportf("Adding clause:");
+		report("Adding clause:");
 		for (int i = 0; i < lits.size(); i++) {
-			reportf(" ");
+			report(" ");
 			gprintLit(lits[i]);
 		}
-		reportf("\n");
+		report("\n");
 	}
 	addVars(lits);
 	return getSolver()->addClause(lits);
@@ -275,9 +275,9 @@ bool PCSolver::addAggrExpr(Lit head, int setid, Weight bound, AggSign boundsign,
 	assert(aggsolverpresent);
 
 	if (modes().verbosity >= 7) {
-		reportf("Adding aggregate with info ");
+		report("Adding aggregate with info ");
 		gprintLit(head);
-		reportf(", %d, %d, %s, %d, %s \n", setid, bound, boundsign==LB?"lower":"greater", type, defined==DEF?"defined":"completion");
+		report(", %d, %d, %s, %d, %s \n", setid, bound, boundsign==LB?"lower":"greater", type, defined==DEF?"defined":"completion");
 	}
 
 	addVar(head);
@@ -366,7 +366,7 @@ bool PCSolver::finishParsing() {
 		} else {
 			//idsolverpresent = false;
 			if (modes().verbosity > 0) {
-				reportf("|    (there will be no definitional propagations)                             |\n");
+				report("|    (there will be no definitional propagations)                             |\n");
 			}
 		}
 	}
@@ -384,7 +384,7 @@ bool PCSolver::finishParsing() {
 
 	if (!aggsolverpresent) {
 		if (modes().verbosity > 0) {
-			reportf("|                                                                             |\n"
+			report("|                                                                             |\n"
 					"|    (there will be no aggregate propagations)                                |\n");
 		}
 	}
@@ -436,9 +436,9 @@ lbool PCSolver::checkStatus(lbool status) const {
  */
 rClause PCSolver::getExplanation(Lit l) {
 	if (modes().verbosity > 2) {
-		reportf("Find T-theory explanation for ");
+		report("Find T-theory explanation for ");
 		gprintLit(l);
-		reportf("\n");
+		report("\n");
 	}
 
 	PropBy solver = propagations[var(l)];
@@ -458,11 +458,11 @@ rClause PCSolver::getExplanation(Lit l) {
 	}
 
 	if (verbosity() >= 2) {
-		reportf("Implicit %s reason clause for ", solver==BYAGG?"aggregate":"definitional");
+		report("Implicit %s reason clause for ", solver==BYAGG?"aggregate":"definitional");
 		gprintLit(l, sign(l) ? l_False : l_True);
-		reportf(" : ");
+		report(" : ");
 		Print::printClause(explan, this);
-		reportf("\n");
+		report("\n");
 	}
 
 	assert(explan!=nullPtrClause);
@@ -607,10 +607,10 @@ bool PCSolver::solve(const vec<Lit>& assumptions, Solution* sol){
 	}
 
 	if (modes().verbosity >= 1) {
-		reportf("============================[ Search Statistics ]==============================\n");
-		reportf("| Conflicts |          ORIGINAL         |          LEARNT          | Progress |\n");
-		reportf("|           |    Vars  Clauses Literals |    Limit  Clauses Lit/Cl |          |\n");
-		reportf("===============================================================================\n");
+		report("============================[ Search Statistics ]==============================\n");
+		report("| Conflicts |          ORIGINAL         |          LEARNT          | Progress |\n");
+		report("|           |    Vars  Clauses Literals |    Limit  Clauses Lit/Cl |          |\n");
+		report("===============================================================================\n");
 	}
 
 	bool moremodels = true;
@@ -631,7 +631,7 @@ bool PCSolver::solve(const vec<Lit>& assumptions, Solution* sol){
 
 	if (verbosity()>=1) {
 		if(sol->modelCount() != 0 && moremodels && sol->modelCount() != 1){
-			reportf("| There are no more models                                                    |\n");
+			report("| There are no more models                                                    |\n");
 		}
 	}
 
@@ -707,9 +707,9 @@ bool PCSolver::invalidateModel(vec<Lit>& learnt) {
 	getSolver()->cancelUntil(0);
 
 	if (modes().verbosity >= 3) {
-		reportf("Adding model-invalidating clause: [ ");
+		report("Adding model-invalidating clause: [ ");
 		gprintClause(learnt);
-		reportf("]\n");
+		report("]\n");
 	}
 
 	bool result = addClause(learnt);
@@ -718,7 +718,7 @@ bool PCSolver::invalidateModel(vec<Lit>& learnt) {
 	getSolver()->claDecayActivity();
 
 	if (modes().verbosity >= 3) {
-		reportf("Model invalidated.\n");
+		report("Model invalidated.\n");
 	}
 
 	return result;
@@ -741,16 +741,16 @@ bool PCSolver::addMinimize(const vec<Lit>& lits, bool subsetmnmz) {
 	}
 
 	if (modes().verbosity >= 3) {
-		reportf("Added minimization condition: %sinimize [", subsetmnmz?"Subsetm":"M");
+		report("Added minimization condition: %sinimize [", subsetmnmz?"Subsetm":"M");
 		bool first = true;
 		for (int i = 0; i < lits.size(); i++) {
 			if (!first) {
-				reportf("%s", subsetmnmz?" ":"<");
+				report("%s", subsetmnmz?" ":"<");
 			}
 			first = false;
 			gprintLit(lits[i]);
 		}
-		reportf("]\n");
+		report("]\n");
 	}
 
 	if (subsetmnmz) {
@@ -815,7 +815,7 @@ bool PCSolver::invalidateValue(vec<Lit>& invalidation) {
 	for (int i = 0; !currentoptimumfound && i < to_minimize.size(); i++) {
 		if (!currentoptimumfound && getSolver()->model[var(to_minimize[i])] == l_True) {
 			if (modes().verbosity >= 1) {
-				reportf("Current optimum is var %d\n", gprintVar(var(to_minimize[i])));
+				report("Current optimum is var %d\n", gprintVar(var(to_minimize[i])));
 			}
 			currentoptimumfound = true;
 		}
@@ -961,13 +961,13 @@ vector<rClause> PCSolver::getClausesWhichOnlyContain(const vector<Var>& vars) {
 
 void PCSolver::printChoiceMade(int level, Lit l) const {
 	if (modes().verbosity >= 2) {
-		reportf("Choice literal, dl %d, ", level);
+		report("Choice literal, dl %d, ", level);
 		if (modsolverpresent) {
-			reportf("mod s %zu", modsolver->getPrintId());
+			report("mod s %zu", modsolver->getPrintId());
 		}
-		reportf(": ");
+		report(": ");
 		gprintLit(l);
-		reportf(".\n");
+		report(".\n");
 	}
 }
 

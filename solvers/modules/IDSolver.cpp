@@ -139,11 +139,11 @@ bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
 	}
 
 	if (verbosity() >= 5) {
-		reportf("Adding %s rule, %d <- ", conj?"conjunctive":"disjunctive", gprintVar(var(head)));
+		report("Adding %s rule, %d <- ", conj?"conjunctive":"disjunctive", gprintVar(var(head)));
 		for (int i = 0; i < ps.size(); i++) {
-			reportf("%s%d ", sign(ps[i])?"-":"",gprintVar(var(ps[i])));
+			report("%s%d ", sign(ps[i])?"-":"",gprintVar(var(ps[i])));
 		}
-		reportf("\n");
+		report("\n");
 	}
 
 	bool notunsat = true;
@@ -195,7 +195,7 @@ bool IDSolver::finishECNF_DataStructures() {
 	}
 
 	if (verbosity() >= 1) {
-		reportf("| Number of rules           : %6d                                          |\n",defdVars.size());
+		report("| Number of rules           : %6d                                          |\n",defdVars.size());
 	}
 
 	// Initialize scc of full dependency graph
@@ -214,11 +214,11 @@ bool IDSolver::finishECNF_DataStructures() {
 	}
 
 	if (verbosity() > 5) {
-		reportf("Printing sccs full graph:");
+		report("Printing sccs full graph:");
 		for (int i = 0; i < nvars; i++) {
-			reportf("SCC of %d is %d\n", gprintVar(i), gprintVar(scc[i]));
+			report("SCC of %d is %d\n", gprintVar(i), gprintVar(scc[i]));
 		}
-		reportf("Ended printing sccs. Size of roots = %d, nodes in mixed = %d.\n", rootofmixed.size(), nodeinmixed.size());
+		report("Ended printing sccs. Size of roots = %d, nodes in mixed = %d.\n", rootofmixed.size(), nodeinmixed.size());
 	}
 
 	//all var in rootofmixed are the roots of mixed loops. All other are no loops (size 1) or positive loops
@@ -239,11 +239,11 @@ bool IDSolver::finishECNF_DataStructures() {
 	}
 
 	if (verbosity() > 5) {
-		reportf("Printing sccs pos graph:");
+		report("Printing sccs pos graph:");
 		for (int i = 0; i < nvars; i++) {
-			reportf("SCC of %d is %d\n", gprintVar(i), gprintVar(scc[i]));
+			report("SCC of %d is %d\n", gprintVar(i), gprintVar(scc[i]));
 		}
-		reportf("Ended printing sccs.\n");
+		report("Ended printing sccs.\n");
 	}
 
 	// Determine which literals should no longer be considered defined (according to the scc in the positive graph) + init occurs
@@ -349,9 +349,9 @@ bool IDSolver::finishECNF_DataStructures() {
 	}
 
 	if (verbosity() >= 1) {
-		reportf("| Number of recursive atoms in positive loops : %6d                        |\n",(int)atoms_in_pos_loops);
+		report("| Number of recursive atoms in positive loops : %6d                        |\n",(int)atoms_in_pos_loops);
 		if (negloops) {
-			reportf("| Mixed loops also exist                                                      |\n");
+			report("| Mixed loops also exist                                                      |\n");
 		}
 	}
 
@@ -362,28 +362,28 @@ bool IDSolver::finishECNF_DataStructures() {
 	if (verbosity() > 5) {
 		for (int i = 0; i < defdVars.size(); i++) {
 			if (i != 0) {
-				reportf(", ");
+				report(", ");
 			}
 			Var w = defdVars[i];
 			switch (defOcc[w]) {
 				case NONDEFOCC:
-					reportf("%d=nondef", w);
+					report("%d=nondef", w);
 					break;
 				case MIXEDLOOP:
-					reportf("%d=mixed", w);
+					report("%d=mixed", w);
 					break;
 				case BOTHLOOP:
-					reportf("%d=both", w);
+					report("%d=both", w);
 					break;
 				case POSLOOP:
-					reportf("%d=pos", w);
+					report("%d=pos", w);
 					break;
 			}
 			if (i % 50 == 0) {
-				reportf("\n");
+				report("\n");
 			}
 		}
-		reportf("\n");
+		report("\n");
 	}
 
 	return true;
@@ -558,7 +558,7 @@ bool IDSolver::initAfterSimplify() {
 		assert(currenttrailsize>previoustrailatsimp);
 		previoustrailatsimp = currenttrailsize;
 		if (verbosity() >= 2) {
-			reportf("Additional ID simplification done.\n");
+			report("Additional ID simplification done.\n");
 		}
 	}
 
@@ -637,7 +637,7 @@ bool IDSolver::initAfterSimplify() {
 
 	// vars v that still have nb_body_lits_to_justify[v]>0 can never possibly become true: make them false.
 	if (verbosity() >= 2) {
-		reportf("Initialization of justification makes these atoms false: [");
+		report("Initialization of justification makes these atoms false: [");
 	}
 
 	/**
@@ -651,7 +651,7 @@ bool IDSolver::initAfterSimplify() {
 		Var v = defdVars[i];
 		if (seen[v] > 0 || isFalse(v)) {
 			if (verbosity() >= 2) {
-				reportf(" %d", gprintVar(v));
+				report(" %d", gprintVar(v));
 			}
 			if (isTrue(v)) {
 				return false;
@@ -710,7 +710,7 @@ bool IDSolver::initAfterSimplify() {
 	}
 
 	if (verbosity() >= 2) {
-		reportf(" ]\n");
+		report(" ]\n");
 	}
 
 	if (atoms_in_pos_loops == 0) {
@@ -720,35 +720,35 @@ bool IDSolver::initAfterSimplify() {
 	if (!posloops && !negloops) {
 		//getPCSolver()->resetIDSolver();
 		if (verbosity() >= 1) {
-			reportf("| All recursive atoms falsified in initializations.                           |\n");
+			report("| All recursive atoms falsified in initializations.                           |\n");
 		}
 	}
 
 	if (verbosity() > 5) {
 		for (int i = 0; i < defdVars.size(); i++) {
 			if (i != 0) {
-				reportf(", ");
+				report(", ");
 			}
 			Var w = defdVars[i];
 			switch (defOcc[w]) {
 				case NONDEFOCC:
-					reportf("%d=nondef", w);
+					report("%d=nondef", w);
 					break;
 				case MIXEDLOOP:
-					reportf("%d=mixed", w);
+					report("%d=mixed", w);
 					break;
 				case BOTHLOOP:
-					reportf("%d=both", w);
+					report("%d=both", w);
 					break;
 				case POSLOOP:
-					reportf("%d=pos", w);
+					report("%d=pos", w);
 					break;
 			}
 			if (i % 50 == 0) {
-				reportf("\n");
+				report("\n");
 			}
 		}
-		reportf("\n");
+		report("\n");
 	}
 
 #ifdef DEBUG
@@ -926,11 +926,11 @@ rClause IDSolver::indirectPropagate() {
 	rClause confl = nullPtrClause;
 	if (ufs_found) {
 		if (verbosity() >= 2) {
-			reportf("Found an unfounded set of size %d: {",(int)ufs.size());
+			report("Found an unfounded set of size %d: {",(int)ufs.size());
 			for (std::set<Var>::const_iterator it = ufs.begin(); it != ufs.end(); ++it) {
-				reportf(" %d",gprintVar(*it));
+				report(" %d",gprintVar(*it));
 			}
-			reportf(" }.\n");
+			report(" }.\n");
 		}
 		cycles++;
 		cycle_sizes += ufs.size();
@@ -950,7 +950,7 @@ void IDSolver::newDecisionLevel() {
 	//decision level is there a guarantee of being cyclefree
 #ifdef DEBUG
 	if(posloops && !isCycleFree()) {
-		reportf("NOT CYCLE FREE!");
+		report("NOT CYCLE FREE!");
 		exit(-1);
 	}
 #endif
@@ -997,11 +997,11 @@ void IDSolver::findCycleSources() {
 		}
 	}
 	if (verbosity() >= 2) {
-		reportf("Indirect propagations. Verifying %d cycle sources:",css.size());
+		report("Indirect propagations. Verifying %d cycle sources:",css.size());
 		for (int i = 0; i < css.size(); ++i) {
-			reportf(" %d", gprintVar(css[i]));
+			report(" %d", gprintVar(css[i]));
 		}
-		reportf(".\n");
+		report(".\n");
 	}
 	nb_times_findCS++;
 	cycle_sources += css.size();
@@ -1103,7 +1103,7 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 	if (verbosity() > 5) {
 		for (int i = 0; i < defdVars.size(); i++) {
 			if (isJustified(defdVars[i])) {
-				reportf("Still justified %d\n", gprintVar(defdVars[i]));
+				report("Still justified %d\n", gprintVar(defdVars[i]));
 			}
 		}
 	}
@@ -1119,7 +1119,7 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 		}
 		if (directlyJustifiable(v, ufs, q)) {
 			if (verbosity() > 5) {
-				reportf("Can directly justify %d\n", gprintVar(v));
+				report("Can directly justify %d\n", gprintVar(v));
 			}
 			if (propagateJustified(v, cs, ufs)) {
 				csisjustified = true;
@@ -1296,7 +1296,7 @@ bool IDSolver::propagateJustified(Var v, Var cs, std::set<Var>& ufs) {
 			changejust(var(heads[i]), jstf[i]);
 			justifiedq.push(var(heads[i]));
 			if (verbosity() > 5) {
-				reportf("justified %d\n", gprintVar(var(heads[i])));
+				report("justified %d\n", gprintVar(var(heads[i])));
 			}
 		}
 
@@ -1305,7 +1305,7 @@ bool IDSolver::propagateJustified(Var v, Var cs, std::set<Var>& ufs) {
 		for (int i = 0; i < heads.size(); i++) {
 			justifiedq.push(var(heads[i]));
 			if (verbosity() > 5) {
-				reportf("justified %d\n", gprintVar(var(heads[i])));
+				report("justified %d\n", gprintVar(var(heads[i])));
 			}
 		}
 	}
@@ -1398,9 +1398,9 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 			getPCSolver()->addLearnedClause(c);
 			justify_conflicts++;
 			if (verbosity() >= 2) {
-				reportf("Adding conflicting loop formula: [ ");
+				report("Adding conflicting loop formula: [ ");
 				Print::printClause(c, getPCSolver());
-				reportf("].\n");
+				report("].\n");
 			}
 			//reportf("Conflicting unfounded set found.\n");
 			return c;
@@ -1412,7 +1412,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 		//introduce a new var to represent all external disjuncts: v <=> \bigvee external disj
 		Var v = getPCSolver()->newVar();
 		if (verbosity() >= 2) {
-			reportf("Adding new variable for loop formulas: %d.\n", gprintVar(v));
+			report("Adding new variable for loop formulas: %d.\n", gprintVar(v));
 		}
 
 		// ~v \vee \bigvee\extdisj{L}
@@ -1487,9 +1487,9 @@ void IDSolver::addLoopfClause(Lit l, vec<Lit>& lits) {
 		}
 
 		if (verbosity() >= 2) {
-			reportf("Adding loop formula: [ ");
+			report("Adding loop formula: [ ");
 			Print::printClause(c, getPCSolver());
-			reportf("].\n");
+			report("].\n");
 		}
 	}
 }
@@ -1562,7 +1562,7 @@ inline void IDSolver::markNonJustifiedAddVar(Var v, Var cs, queue<Var> &q, vec<V
 		}
 
 		if (verbosity() > 5) {
-			reportf("Not justified %d, times %d\n", gprintVar(v), seen[v]);
+			report("Not justified %d, times %d\n", gprintVar(v), seen[v]);
 		}
 	}
 }
@@ -1649,22 +1649,22 @@ bool IDSolver::isCycleFree() const {
 #endif
 	if (getAggSolver() != NULL) {
 		if (verbosity() >= 2) {
-			reportf("Cycle-freeness checking is not implemented in the presence of recursive aggregates.\n");
+			report("Cycle-freeness checking is not implemented in the presence of recursive aggregates.\n");
 		}
 		return true;
 	}
 
 	if (verbosity() >= 2) {
-		reportf("Showing justification for disjunctive atoms. <<<<<<<<<<\n");
+		report("Showing justification for disjunctive atoms. <<<<<<<<<<\n");
 		for (int i = 0; i < nVars(); i++) {
 			if (isDefined(i) && getDefType(i) == DISJ && defOcc[i] != MIXEDLOOP) {
 				gprintLit(mkLit(i, false));
-				reportf("<-");
+				report("<-");
 				gprintLit(justification[i][0]);
-				reportf("; ");
+				report("; ");
 			}
 		}
-		reportf(">>>>>>>>>>\n");
+		report(">>>>>>>>>>\n");
 	}
 
 	// Verify cycles.
@@ -1768,7 +1768,7 @@ bool IDSolver::isCycleFree() const {
 
 	if (cnt_nonjustified > 0) {
 		if (verbosity() > 2) {
-			reportf("WARNING: There remain %d literals non-justified.\n",cnt_nonjustified);
+			report("WARNING: There remain %d literals non-justified.\n",cnt_nonjustified);
 		}
 
 		vec<bool> printed;
@@ -1776,7 +1776,7 @@ bool IDSolver::isCycleFree() const {
 		int i = 0;
 		while (i < nVars()) {
 			if (verbosity() > 2) {
-				reportf("Cycle:\n");
+				report("Cycle:\n");
 			}
 			for (; i < nVars() && (!isDefInPosGraph(i) || isfree[i] == 0); i++)
 				;
@@ -1789,23 +1789,23 @@ bool IDSolver::isCycleFree() const {
 					Var v = cycle[idx++];
 					if (getDefType(v) == DISJ) {
 						if (verbosity() >= 2) {
-							reportf("D %d justified by ", gprintVar(v));
+							report("D %d justified by ", gprintVar(v));
 							gprintLit(justification[v][0]);
-							reportf(".\n");
+							report(".\n");
 						}
 						if (!printed[var(justification[v][0])]) {
 							cycle.push(var(justification[v][0]));
 						}
 					} else if (getDefType(v) == CONJ) {
 						if (verbosity() > 2) {
-							reportf("C %d has", gprintVar(v));
+							report("C %d has", gprintVar(v));
 						}
 						const PropRule& c = *getDefinition(v);
 						for (int j = 0; j < c.size(); j++) {
 							Var vj = var(c[j]);
 							if (c[j] != c.getHeadLiteral() && isPositive(c[j]) && (isfree[vj] != 0 || printed[vj])) {
 								if (verbosity() > 2) {
-									reportf(" %d", gprintVar(vj));
+									report(" %d", gprintVar(vj));
 								}
 								if (!printed[vj]) {
 									cycle.push(vj);
@@ -1813,11 +1813,11 @@ bool IDSolver::isCycleFree() const {
 							}
 						}
 						if (verbosity() > 2) {
-							reportf(" in its body.\n");
+							report(" in its body.\n");
 						}
 					} else {
 						if (verbosity() > 2) {
-							reportf("Change aggregate output here (iscyclefree method)");
+							report("Change aggregate output here (iscyclefree method)");
 							//TODO change output (and make the method used by the solver
 						}
 					}
@@ -1830,7 +1830,7 @@ bool IDSolver::isCycleFree() const {
 		}
 	} else {
 		if (verbosity() > 2) {
-			reportf("OK; justification is cycle free.\n");
+			report("OK; justification is cycle free.\n");
 		}
 	}
 	return cnt_nonjustified == 0;
@@ -1862,22 +1862,22 @@ bool IDSolver::isCycleFree() const {
 bool IDSolver::isWellFoundedModel() {
 	if (posloops && !isCycleFree()) {
 		if (verbosity() > 1) {
-			reportf("A positive unfounded loop exists, so not well-founded!\n");
+			report("A positive unfounded loop exists, so not well-founded!\n");
 		}
 		return false;
 	}
 
 	if (!negloops) {
 		if (verbosity() > 1) {
-			reportf("Well-founded for positive loops, no negative loops present!\n");
+			report("Well-founded for positive loops, no negative loops present!\n");
 		}
 		return true;
 	}
 
 	if (getAggSolver() != NULL) {
 		if (verbosity() > 1) {
-			reportf("For recursive aggregates, only stable semantics are currently supported!\n");
-			reportf("Well-foundedness is not checked!\n");
+			report("For recursive aggregates, only stable semantics are currently supported!\n");
+			report("Well-foundedness is not checked!\n");
 		}
 
 		return true;
@@ -1892,16 +1892,16 @@ bool IDSolver::isWellFoundedModel() {
 	findMixedCycles(wfroot, rootofmixed);
 
 	if (verbosity() > 1) {
-		reportf("general SCCs found");
+		report("general SCCs found");
 		for (vector<int>::size_type z = 0; z < wfroot.size(); z++) {
-			reportf("%d has root %d\n", gprintVar(z), gprintVar(wfroot[z]));
+			report("%d has root %d\n", gprintVar(z), gprintVar(wfroot[z]));
 		}
-		reportf("Mixedcycles are %s present: \n", rootofmixed.empty()?"not":"possibly");
+		report("Mixedcycles are %s present: \n", rootofmixed.empty()?"not":"possibly");
 	}
 
 	if (rootofmixed.empty()) {
 		if (verbosity() > 1) {
-			reportf("The model is well-founded!\n");
+			report("The model is well-founded!\n");
 		}
 		return true;
 	}
@@ -1926,7 +1926,7 @@ bool IDSolver::isWellFoundedModel() {
 		forwardPropagate(true);
 		if (wfmarkedAtoms.empty()) {
 			if (verbosity() > 1) {
-				reportf("The model is well-founded!\n");
+				report("The model is well-founded!\n");
 			}
 			return true;
 		}
@@ -1935,7 +1935,7 @@ bool IDSolver::isWellFoundedModel() {
 		removeMarks();
 		if (wfmarkedAtoms.empty()) {
 			if (verbosity() > 1) {
-				reportf("The model is well-founded!\n");
+				report("The model is well-founded!\n");
 			}
 			return true;
 		}
@@ -1946,7 +1946,7 @@ bool IDSolver::isWellFoundedModel() {
 	}
 
 	if (verbosity() > 1) {
-		reportf("The model is not well-founded!\n");
+		report("The model is not well-founded!\n");
 	}
 
 	return false;
@@ -2502,16 +2502,16 @@ UFS IDSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<V
 ///////
 
 void IDSolver::printStatistics() const {
-reportf	("cycles                : %-12" PRIu64 "\n", cycles);
-	reportf("cycle conflicts       : %-12" PRIu64 "\n", justify_conflicts);
-	reportf("avg cycle size        : %4.2f\n", (float)cycle_sizes/cycles);
-	reportf("avg extdisj size      : %4.2f\n", (float)extdisj_sizes/cycles);
-	reportf("justify runs          : %-12" PRIu64 "   (%4.2f /cycle)\n", justify_calls, (float)justify_calls/cycles);
-	reportf("avg. justify searchsp.: %6.2f lits\n", (float)total_marked_size/justify_calls);
-	reportf("cycle sources         : %-12" PRIu64 "\n", cycle_sources);
-	reportf("                      : %4.2f found per run of findCycleSources()\n", (float)nb_times_findCS/cycle_sources);
-	reportf("                      : %4.2f removed per justify run\n", (float)cs_removed_in_justify/justify_calls);
-	reportf("                      : %4.2f treated per loop\n", (float)succesful_justify_calls/nb_times_findCS);
+report	("cycles                : %-12" PRIu64 "\n", cycles);
+	report("cycle conflicts       : %-12" PRIu64 "\n", justify_conflicts);
+	report("avg cycle size        : %4.2f\n", (float)cycle_sizes/cycles);
+	report("avg extdisj size      : %4.2f\n", (float)extdisj_sizes/cycles);
+	report("justify runs          : %-12" PRIu64 "   (%4.2f /cycle)\n", justify_calls, (float)justify_calls/cycles);
+	report("avg. justify searchsp.: %6.2f lits\n", (float)total_marked_size/justify_calls);
+	report("cycle sources         : %-12" PRIu64 "\n", cycle_sources);
+	report("                      : %4.2f found per run of findCycleSources()\n", (float)nb_times_findCS/cycle_sources);
+	report("                      : %4.2f removed per justify run\n", (float)cs_removed_in_justify/justify_calls);
+	report("                      : %4.2f treated per loop\n", (float)succesful_justify_calls/nb_times_findCS);
 }
 
 //TARJAN ALGORITHM FOR FINDING UNFOUNDED SETS IN GENERAL INDUCTIVE DEFINITIONS (NOT ONLY SINGLE CONJUNCTS). THIS DOES NOT WORK YET

@@ -129,33 +129,33 @@ void noMoreMem() {
 }
 
 void printVersion() {
-	reportf("MinisatID version 2.0.20\n");
-	reportf("Courtesy of the KRR group at K.U. Leuven, Belgium, more info available on \"http://dtai.cs.kuleuven.be/krr\".\n");
-	reportf("MinisatID is a model expansion system for propositional logic extended with aggregates "
+	report("MinisatID version 2.0.20\n");
+	report("Courtesy of the KRR group at K.U. Leuven, Belgium, more info available on \"http://dtai.cs.kuleuven.be/krr\".\n");
+	report("MinisatID is a model expansion system for propositional logic extended with aggregates "
 			"and inductive definitions. Also lparse and opb languages are supported.\n");
 }
 
 void printUsage() {
-	reportf("Usage: program [options] <input-file> <result-output-file>\n\n  where input may is in ECNF, LParse, PB or MECNF.\n\n");
-	reportf("Options:\n\n");
-	reportf("   --defsearch        Unfounded set search frequency: \"always\", \"adaptive\" or \"lazy\".\n");
-	reportf("   --defstrat         Unfounded set search strategy: \"breadth_first\" or \"depth_first\".\n");
-	reportf("   --defsem           Semantics of all definitions: \"stable\" or \"wellfounded\".\n");
-	reportf("   --n<I>             The number of models <I> to search for.\n");
-	reportf("   --verbosity=<I>    The level of output <I> to generate.\n");
-	reportf("   --rnd-freq=<D>     <D> is a double \\in [0..1].\n");
-	reportf("   --decay=<D>        <D> is a double \\in [0..1].\n");
-	reportf("   --polarity-mode    Default polarity choice of variables: \"true\", \"false\" or \"rnd\".\n");
-	reportf("   --defsearch        Unfounded set search frequency: \"always\", \"adaptive\" or \"lazy\".\n");
-	reportf("   --lparse=<B>       \"yes\" if the input is in ASP lparse format.\n");
-	reportf("   --pb=<B>           \"yes\" if the input is in PB format.\n");
-	reportf("   --idclausesaving=<I> 0=add on propagation, 1=save on propagation.\n");
-	reportf("   --aggclausesaving=<I> 0=add on propagation, 1=save on propagation, 2 = don't save.\n");
-	reportf("   --remap=<B>        \"yes\" if all literals should be remapped to remove gaps in the grounding.\n");
-	reportf("   --pw=<B>           \"yes\" if watched aggregate structures should be used.\n");
-	reportf("   --randomize=<B>    \"yes\" if the SAT-solver random seed should be random.\n");
-	reportf("   --disableheur=<B>  \"yes\" if the SAT-solver's heuristic should be disabled.\n");
-	reportf("\n");
+	report("Usage: program [options] <input-file> <result-output-file>\n\n  where input may is in ECNF, LParse, PB or MECNF.\n\n");
+	report("Options:\n\n");
+	report("   --defsearch        Unfounded set search frequency: \"always\", \"adaptive\" or \"lazy\".\n");
+	report("   --defstrat         Unfounded set search strategy: \"breadth_first\" or \"depth_first\".\n");
+	report("   --defsem           Semantics of all definitions: \"stable\" or \"wellfounded\".\n");
+	report("   --n<I>             The number of models <I> to search for.\n");
+	report("   --verbosity=<I>    The level of output <I> to generate.\n");
+	report("   --rnd-freq=<D>     <D> is a double \\in [0..1].\n");
+	report("   --decay=<D>        <D> is a double \\in [0..1].\n");
+	report("   --polarity-mode    Default polarity choice of variables: \"true\", \"false\" or \"rnd\".\n");
+	report("   --defsearch        Unfounded set search frequency: \"always\", \"adaptive\" or \"lazy\".\n");
+	report("   --lparse=<B>       \"yes\" if the input is in ASP lparse format.\n");
+	report("   --pb=<B>           \"yes\" if the input is in PB format.\n");
+	report("   --idclausesaving=<I> 0=add on propagation, 1=save on propagation.\n");
+	report("   --aggclausesaving=<I> 0=add on propagation, 1=save on propagation, 2 = don't save.\n");
+	report("   --remap=<B>        \"yes\" if all literals should be remapped to remove gaps in the grounding.\n");
+	report("   --pw=<B>           \"yes\" if watched aggregate structures should be used.\n");
+	report("   --randomize=<B>    \"yes\" if the SAT-solver random seed should be random.\n");
+	report("   --disableheur=<B>  \"yes\" if the SAT-solver's heuristic should be disabled.\n");
+	report("\n");
 }
 
 const char *argp_program_version = "minisatid 2.1.20";
@@ -196,21 +196,21 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 	struct ECNF_mode *args = static_cast<ECNF_mode*>(state->input);
 	assert(args!=NULL);
 
-	reportf("Key: %d, argument: %s\n", key, arg);
+	report("Key: %d, argument: %s\n", key, arg);
 	switch (key) {
 		case 1: // verbosity
 			if((stringstream(arg) >> modes.verbosity).fail()){
-				reportf("Illegal verbosity value %s\n", arg); argp_usage(state);
+				report("Illegal verbosity value %s\n", arg); argp_usage(state);
 			}
 			break;
 		case 2: // rnd-freq
 			if((stringstream(arg) >> modes.random_var_freq).fail() || modes.var_decay>1.0 || modes.var_decay<0.0){
-				reportf("Illegal rnd-freq value %s\n", arg); argp_usage(state);
+				report("Illegal rnd-freq value %s\n", arg); argp_usage(state);
 			}
 			break;
 		case 3: // decay
 			if((stringstream(arg) >> modes.var_decay).fail() || modes.var_decay>1.0 || modes.var_decay<0.0){
-				reportf("Illegal decay value %s\n", arg); argp_usage(state);
+				report("Illegal decay value %s\n", arg); argp_usage(state);
 			}
 			break;
 		case 4: // polarity
@@ -221,17 +221,17 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 			}else if(strcmp(arg, "rnd")){
 				modes.polarity_mode = polarity_rnd;
 			}else{
-				reportf("Illegal polarity value %s\n", arg); argp_usage(state);
+				report("Illegal polarity value %s\n", arg); argp_usage(state);
 			}
 			break;
 		case 5: // id clausesaving
 			if((stringstream(arg) >> modes.idclausesaving).fail() || modes.aggclausesaving>1 || modes.aggclausesaving<0){
-				reportf("Illegal idclausesaving value %s\n", arg); argp_usage(state);
+				report("Illegal idclausesaving value %s\n", arg); argp_usage(state);
 			}
 			break;
 		case 6: // agg clause saving
 			if((stringstream(arg) >> modes.aggclausesaving).fail() || modes.aggclausesaving>2 || modes.aggclausesaving<0){
-				reportf("Illegal aggclausesaving value %s\n", arg); argp_usage(state);
+				report("Illegal aggclausesaving value %s\n", arg); argp_usage(state);
 			}
 			break;
 		case 7: // randomize: yes/no
@@ -240,7 +240,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 			}else if(strcmp(arg, "yes")){
 				modes.randomize = true;
 			}else{
-				reportf("Illegal randomize value %s\n", arg); argp_usage(state);
+				report("Illegal randomize value %s\n", arg); argp_usage(state);
 			}
 			break;
 		case 8: // disableheur
@@ -264,7 +264,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 			}else if(strcmp(arg, "lazy")){
 				modes.defn_strategy = lazy;
 			}else{
-				reportf("Illegal defsearch value %s\n", arg); argp_usage(state);
+				report("Illegal defsearch value %s\n", arg); argp_usage(state);
 			}
 			break;
 		case 11: // defsem: stable/wellfounded
@@ -273,12 +273,12 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 			}else if(strcmp(arg, "wellfounded")){
 				modes.sem = WELLF;
 			}else{
-				reportf("Illegal defsem value %s\n", arg); argp_usage(state);
+				report("Illegal defsem value %s\n", arg); argp_usage(state);
 			}
 			break;
 		case 'n': // models
 			if((stringstream(arg) >> modes.nbmodels).fail() || modes.nbmodels<0){
-				reportf("Illegal nbmodels value %s\n", arg); argp_usage(state);
+				report("Illegal nbmodels value %s\n", arg); argp_usage(state);
 			}
 			break;
 		case 'f':
@@ -289,7 +289,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 			}else if(strcmp(arg, "opb")){
 				modes.lparse = false; modes.pb = true;
 			}else{
-				reportf("Illegal format value %s\n", arg); argp_usage(state);
+				report("Illegal format value %s\n", arg); argp_usage(state);
 			}
 			break;
 		case 'r': // remap: yes/no
@@ -298,7 +298,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 			}else if(strcmp(arg, "yes")){
 				modes.remap = true;
 			}else{
-				reportf("Illegal remap value %s\n", arg); argp_usage(state);
+				report("Illegal remap value %s\n", arg); argp_usage(state);
 			}
 			break;
 		case 'o': // outputfile
@@ -310,19 +310,19 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 			}else if(strcmp(arg, "yes")){
 				modes.pw = true;
 			}else{
-				reportf("Illegal watchedaggr value %s\n", arg); argp_usage(state);
+				report("Illegal watchedaggr value %s\n", arg); argp_usage(state);
 			}
 			break;
 		case ARGP_KEY_ARG:
 			if(state->arg_num >2){ // Too many arguments.
-				reportf("Too many extra arguments\n");
+				report("Too many extra arguments\n");
 				argp_usage(state);
 			}
 			if(state->arg_num == 0){
-				reportf("Set inputfile url\n");
+				report("Set inputfile url\n");
 				MinisatID::setInputFileUrl(arg);
 			}else if(state->arg_num == 1){
-				reportf("Set outputfile url\n");
+				report("Set outputfile url\n");
 				MinisatID::setOutputFileUrl(arg);
 			}
 			break;
@@ -350,7 +350,7 @@ int main(int argc, char** argv) {
 	newcw = (oldcw & ~_FPU_EXTENDED) | _FPU_DOUBLE;
 	_FPU_SETCW(newcw);
 	if (modes.verbosity >= 1)
-		reportf("WARNING: for repeatability, setting FPU to use double precision\n");
+		report("WARNING: for repeatability, setting FPU to use double precision\n");
 #endif
 	signal(SIGINT, SIGINT_handler);
 #if defined(__linux__)
@@ -366,8 +366,8 @@ int main(int argc, char** argv) {
 	argp_parse(&argp, argc, argv, 0, 0, &modes);
 
 	if(modes.verbosity >= 1){
-		reportf("============================[ Problem Statistics ]=============================\n");
-		reportf("| Parsing input                                                               |\n");
+		report("============================[ Problem Statistics ]=============================\n");
+		report("| Parsing input                                                               |\n");
 	}
 
 	pData d;
@@ -407,19 +407,19 @@ int main(int argc, char** argv) {
 		assert(d.get()!=NULL);
 
 		if (modes.verbosity >= 1) {
-			reportf("| Parsing input finished                                                      |\n");
-			reportf("| Datastructure initialization                                                |\n");
+			report("| Parsing input finished                                                      |\n");
+			report("| Datastructure initialization                                                |\n");
 		}
 
 		//Initialize datastructures
 		bool unsat = !d->finishParsing();
 
 		if (modes.verbosity >= 1) {
-			reportf("| Datastructure initialization finished                                       |\n");
+			report("| Datastructure initialization finished                                       |\n");
 			double parse_time = cpuTime() - cpu_time;
-			reportf("| Total parsing time              : %7.2f s                                 |\n", parse_time);
+			report("| Total parsing time              : %7.2f s                                 |\n", parse_time);
 			if (unsat) {
-				reportf("===============================================================================\n"
+				report("===============================================================================\n"
 						"Unsatisfiable found by parsing\n");
 			}
 		}
@@ -429,7 +429,7 @@ int main(int argc, char** argv) {
 			unsat = !d->simplify();
 			if(unsat){
 				if (modes.verbosity >= 1) {
-					reportf("===============================================================================\n"
+					report("===============================================================================\n"
 							"Unsatisfiable found by unit propagation\n");
 				}
 			}
@@ -441,14 +441,14 @@ int main(int argc, char** argv) {
 			Solution* sol = new Solution(true, false, true, modes.nbmodels, assumpts);
 			unsat = !d->solve(sol);
 			if (modes.verbosity >= 1) {
-				reportf("===============================================================================\n");
+				report("===============================================================================\n");
 			}
 		}
 
 		if(unsat){
 			fprintf(getOutputFile(), "UNSAT\n");
 			if(modes.verbosity >= 1){
-				reportf("UNSATISFIABLE\n");
+				report("UNSATISFIABLE\n");
 			}
 		}
 
@@ -465,11 +465,11 @@ int main(int argc, char** argv) {
 		//#endif
 
 	} catch (idpexception& e) {
-		reportf(e.what());
-		reportf("Program will abort.\n");
+		report(e.what());
+		report("Program will abort.\n");
 		d->printStatistics();
 	} catch (int) {
-		reportf("Unexpected error caught, program will abort.\n");
+		report("Unexpected error caught, program will abort.\n");
 		d->printStatistics();
 	}
 

@@ -1,6 +1,7 @@
 #ifndef Solver_h
 #define Solver_h
 
+#include "pbsolver/SolverTypes.h"
 #include "pbsolver/Main.h"
 #include "pbsolver/MiniSat.h"
 #include "pbsolver/SatELite.h"
@@ -8,6 +9,8 @@
 //=================================================================================================
 
 namespace PBSolver{
+//TODOyoav
+void reportf(const char* format, ...);      // 'printf()' replacer -- will put "c " first at each line if 'opt_satlive' is TRUE.
 struct BasicSolverStats;
 
 class Solver {

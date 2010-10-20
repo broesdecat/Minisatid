@@ -14,6 +14,7 @@ A simple Chaff-like SAT-solver with support for incremental SAT and Pseudo-boole
 
 namespace PBSolver{
 
+//TODOyoav
 struct BasicSolverStats2 {
     int64   starts, decisions, propagations, inspects, conflicts;
     BasicSolverStats2(void) : starts(0), decisions(0), propagations(0), inspects(0), conflicts(0) { }

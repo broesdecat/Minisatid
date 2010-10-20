@@ -355,12 +355,12 @@ WL ProdCalc::handleOccurenceOfBothSigns(const WL& one, const WL& two) {
 	//NOTE: om dit toe te laten, ofwel bij elke operatie op en literal al zijn voorkomens overlopen
 	//ofwel aggregaten voor doubles ondersteunen (het eerste is eigenlijk de beste oplossing)
 	//Mogelijke eenvoudige implementatie: weigts bijhouden als doubles (en al de rest als ints)
-	reportf("Product aggregates in which both the literal and its negation occur "
+	report("Product aggregates in which both the literal and its negation occur "
 		"are currently not supported. Replace ");
 	gprintLit(one.getLit());
-	reportf("or ");
+	report("or ");
 	gprintLit(two.getLit());
-	reportf("by a tseitin.\n");
+	report("by a tseitin.\n");
 	throw idpexception("Atoms in product aggregates have to be unique.\n");
 }
 
@@ -493,18 +493,18 @@ bool SPCalc::canJustifyHead(
 	}
 
 	if (getSolver()->verbosity() >= 4) {
-		reportf("Justification checked for ");
+		report("Justification checked for ");
 		printAgg(agg, true);
 
 		if (justified) {
-			reportf("justification found: ");
+			report("justification found: ");
 			for (int i = 0; i < jstf.size(); i++) {
 				gprintLit(jstf[i]);
-				reportf(" ");
+				report(" ");
 			}
-			reportf("\n");
+			report("\n");
 		} else {
-			reportf("no justification found.\n");
+			report("no justification found.\n");
 		}
 	}
 
@@ -603,41 +603,41 @@ bool Aggrs::isJustified(Var x, vec<int>& currentjust) {
 ///////
 
 void Aggrs::printAgg(aggs const * const c, bool endl) {
-	reportf("%s{", c->getName());
+	report("%s{", c->getName());
 	for (vwl::const_iterator i = c->getWL().begin(); i < c->getWL().end(); ++i) {
-		reportf(" ");
+		report(" ");
 		gprintLit((*i).getLit());
 		lbool value = c->getSolver()->propagatedValue((*i).getLit());
-		reportf("(%s)", value==l_Undef?"X":value==l_True?"T":"F");
-		reportf("=%s", printWeight((*i).getWeight()).c_str());
+		report("(%s)", value==l_Undef?"X":value==l_True?"T":"F");
+		report("=%s", printWeight((*i).getWeight()).c_str());
 	}
 	if (endl) {
-		reportf(" }\n");
+		report(" }\n");
 	} else {
-		reportf(" }");
+		report(" }");
 	}
 }
 
 void Aggrs::printAgg(const Agg& ae, bool printendline) {
 	gprintLit(ae.getHead());
 	lbool value = ae.getAggComb()->getSolver()->propagatedValue(ae.getHead());
-	reportf("(%s)", value==l_Undef?"X":value==l_True?"T":"F");
+	report("(%s)", value==l_Undef?"X":value==l_True?"T":"F");
 	paggs set = ae.getAggComb();
 	if (ae.isLower()) {
-		reportf(" <- ");
+		report(" <- ");
 	} else {
-		reportf(" <- %s <= ", printWeight(ae.getUpperBound()).c_str());
+		report(" <- %s <= ", printWeight(ae.getUpperBound()).c_str());
 	}
 	printAgg(set, false);
 	if (ae.isLower()) {
 		//reportf(" <= %s. Known values: bestcertain=%s, bestpossible=%s\n", printWeight(ae.getLowerBound()).c_str(), printWeight(set->getCC()).c_str(), printWeight(set->getCP()).c_str());
-		reportf(" <= %s, ", printWeight(ae.getLowerBound()).c_str());
+		report(" <= %s, ", printWeight(ae.getLowerBound()).c_str());
 	} else {
 		//reportf(". Known values: bestcertain=%s, bestpossible=%s\n", printWeight(set->getCC()).c_str(), printWeight(set->getCP()).c_str());
-		reportf(", ");
+		report(", ");
 	}
-	reportf("ESV = %d.", ae.getAggComb()->getESV());
+	report("ESV = %d.", ae.getAggComb()->getESV());
 	if(printendline){
-		reportf("\n");
+		report("\n");
 	}
 }

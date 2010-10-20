@@ -100,7 +100,7 @@ std::tr1::shared_ptr<MinisatID::WrappedLogicSolver> getData();
 %type <vatoms> vbody
 
 //Blijkt nog niet te werken, zal ook wel in een nieuwere versie zijn
-//%destructor { delete $$; reportf("DELETED.\n"); } vbody wbody ibody body
+//%destructor { delete $$; report("DELETED.\n"); } vbody wbody ibody body
 
 %start init
 
@@ -111,7 +111,7 @@ std::tr1::shared_ptr<MinisatID::WrappedLogicSolver> getData();
  * Decides whether to use (modal) CNF, ECNF or modal ECNF format
  */
 init	:	CNF	number number 
-				{ atoms = $2; clauses = $3; reportf("%d atoms and %d clauses present.\n", atoms, clauses);} 
+				{ atoms = $2; clauses = $3; report("%d atoms and %d clauses present.\n", atoms, clauses);} 
 			cnftheory
 		|	ECNF header {initSolver();} ecnftheory
 		|	MECNF header {initModSolver();} mecnftheory

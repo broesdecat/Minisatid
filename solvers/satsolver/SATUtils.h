@@ -63,6 +63,9 @@ namespace MinisatID {
 		#include "core/SolverTypes.h"
 
 		namespace MinisatID {
+			using Minisat::l_False;
+			using Minisat::l_Undef;
+			using Minisat::l_True;
 			using Minisat::vec;
 			typedef Minisat::CRef pClause;
 			typedef Minisat::CRef rClause;

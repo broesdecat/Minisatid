@@ -173,7 +173,7 @@ rClause FWAgg::propagate(const Lit& p, pw ws) {
 		const Agg& pa = *as().getAgg()[i];
 
 		if (as().getSolver()->verbosity() >= 6) {
-			reportf("Propagating into aggr: ");
+			report("Propagating into aggr: ");
 			Aggrs::printAgg(pa, true);
 		}
 
@@ -289,15 +289,15 @@ void FWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
 //		}
 //		reportf("\n");
 
-		reportf("Aggregate explanation for ");
+		report("Aggregate explanation for ");
 		gprintLit(ar.getPropLit());
 
-		reportf(" is");
+		report(" is");
 		for (int i = 0; i < lits.size(); i++) {
-			reportf(" ");
+			report(" ");
 			gprintLit(lits[i]);
 		}
-		reportf("\n");
+		report("\n");
 	}
 }
 

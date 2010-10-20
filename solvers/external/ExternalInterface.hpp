@@ -183,7 +183,7 @@ public:
 	bool 	addSet			(vsize modid, int set_id, std::vector<Literal>& lits, std::vector<Weight>& w);
 	bool 	addAggrExpr		(vsize modid, Literal head, int setid, Weight bound, AggSign sign, AggType type, AggSem sem);
 
-	void 	printStatistics	() const { reportf("Statistics printing not implemented for modal solver.\n");}
+	void 	printStatistics	() const { report("Statistics printing not implemented for modal solver.\n");}
 
 protected:
 	virtual MinisatID::SOSolver* getSolver() const;

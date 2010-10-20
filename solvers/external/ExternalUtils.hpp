@@ -28,19 +28,12 @@
 #include <map>
 #include <vector>
 
-namespace MinisatID {
 
 ///////
 // Debug information
 ///////
 
-#define reportf(...) ( fflush(stdout), fprintf(stderr, __VA_ARGS__), fflush(stderr) )
-
-}
-
-//TODO TODO
-TODO het problem zit in reportf!!!
-#include "pbsolver/PbSolver.h"
+#define report(...) ( fflush(stdout), fprintf(stderr, __VA_ARGS__), fflush(stderr) )
 
 namespace MinisatID {
 

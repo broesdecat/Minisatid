@@ -71,16 +71,16 @@ inline int gprintVar(Var v){
 }
 
 inline void gprintLit(const Lit& l, const lbool val){
-	reportf("%s%d:%c", (sign(l) ? "-" : ""), gprintVar(var(l)), (val == l_True ? '1' : (val == l_False ? '0' : 'X')));
+	report("%s%d:%c", (sign(l) ? "-" : ""), gprintVar(var(l)), (val == l_True ? '1' : (val == l_False ? '0' : 'X')));
 }
 
 inline void gprintLit(const Lit& l){
-	reportf("%s%d", (sign(l) ? "-" : ""), gprintVar(var(l)));
+	report("%s%d", (sign(l) ? "-" : ""), gprintVar(var(l)));
 }
 
 inline void gprintClause(const vec<Lit>& c){
 	for(int i=0; i<c.size(); i++){
-		gprintLit(c[i]); reportf(" ");
+		gprintLit(c[i]); report(" ");
 	}
 }
 

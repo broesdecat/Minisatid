@@ -39,23 +39,23 @@ void Aggrs::printWatches(AggSolver* const solver, const vvpw& tempwatches){
 			continue;
 		}
 
-		reportf("    Watch "); gprintLit(toLit(i)); reportf(" used by: \n");
+		report("    Watch "); gprintLit(toLit(i)); report(" used by: \n");
 		for(vsize j=0; j<tempwatches[i].size(); j++){
 			for(vsize k=0; k<tempwatches[i][j]->getAggComb()->getAgg().size(); k++){
 				PWatch* watch = dynamic_cast<PWatch*>(tempwatches[i][j]);
 				if(watch!=NULL && watch->isInUse()){
-					reportf("        ");
+					report("        ");
 					printAgg(*tempwatches[i][j]->getAggComb()->getAgg()[k], true);
 				}
 				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(tempwatches[i][j]);
 				if(watch2!=NULL && watch2->getWatchset()!=INSET){
-					reportf("        ");
+					report("        ");
 					printAgg(*tempwatches[i][j]->getAggComb()->getAgg()[k], true);
 				}
 			}
 		}
 	}
-	reportf("\n");
+	report("\n");
 }
 
 ///////

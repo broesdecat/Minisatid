@@ -57,7 +57,7 @@ ModSolver::~ModSolver(){
 
 void ModSolver::addVar(Var var){
 	if(getModSolverData().modes().verbosity>5){
-		reportf("Var %d added to modal solver %zu.\n", var, getPrintId());
+		report("Var %d added to modal solver %zu.\n", var, getPrintId());
 	}
 	getPCSolver()->addVar(var);
 }
@@ -190,7 +190,7 @@ bool ModSolver::simplify(){
  */
 rClause ModSolver::propagateDown(Lit l){
 	if(getModSolverData().modes().verbosity>4){
-		gprintLit(l); reportf(" propagated down into modal solver %zu.\n", getPrintId());
+		gprintLit(l); report(" propagated down into modal solver %zu.\n", getPrintId());
 	}
 
 	adaptValuesOnPropagation(l);
@@ -227,7 +227,7 @@ void ModSolver::adaptValuesOnPropagation(Lit l){
 bool ModSolver::propagateDownAtEndOfQueue(vec<Lit>& confldisj){
 	if(!isInitialized()){ return true; }
 	if(getModSolverData().modes().verbosity>4){
-		reportf("End of queue propagation down into modal solver %zu.\n", getPrintId());
+		report("End of queue propagation down into modal solver %zu.\n", getPrintId());
 	}
 
 	bool allknown = false;
@@ -250,7 +250,7 @@ bool ModSolver::propagateDownAtEndOfQueue(vec<Lit>& confldisj){
 	result = analyzeResult(result, allknown, confldisj);
 
 	if(getModSolverData().modes().verbosity>4){
-		reportf("Finished checking solver %zu: %s.\n", getPrintId(), result?"no conflict":"conflict");
+		report("Finished checking solver %zu: %s.\n", getPrintId(), result?"no conflict":"conflict");
 	}
 
 	getPCSolver()->backtrackTo(0);
@@ -383,7 +383,7 @@ void ModSolver::propagateUp(Lit l, modindex id){
  */
 void ModSolver::backtrackFromAbove(Lit l){
 	if(getModSolverData().modes().verbosity>4){
-		reportf("Backtracking "); gprintLit(l); reportf(" from above in mod %zu\n", getPrintId());
+		report("Backtracking "); gprintLit(l); report(" from above in mod %zu\n", getPrintId());
 	}
 
 	if(var(l)==getHead() && getHeadValue()!=l_Undef){
@@ -413,7 +413,7 @@ void ModSolver::backtrackFromAbove(Lit l){
 
 void ModSolver::backtrackFromSameLevel(Lit l){
 	if(getModSolverData().modes().verbosity>4){
-		reportf("Backtracking "); gprintLit(l); reportf(" from same level in mod %zu\n", getPrintId());
+		report("Backtracking "); gprintLit(l); report(" from same level in mod %zu\n", getPrintId());
 	}
 
 	/*for(vector<AV>::size_type i=0; i<atoms.size(); i++){

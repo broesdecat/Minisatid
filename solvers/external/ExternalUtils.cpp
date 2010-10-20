@@ -19,6 +19,7 @@
 
 #include <cstdlib>
 #include <stdio.h>
+#include <stdint.h>
 #include <tr1/memory>
 
 #include "solvers/external/ExternalUtils.hpp"
@@ -107,7 +108,7 @@ FILE* MinisatID::getInputFile(){
 	if(input.get()==NULL){
 		if(inputurl==NULL){
 			input = std::tr1::shared_ptr<FileR>(new FileR(stdin));
-			reportf("Reading from standard input...\n");
+			report("Reading from standard input...\n");
 		}else{
 			input = std::tr1::shared_ptr<FileR>(new FileR(inputurl, false));
 		}
