@@ -55,8 +55,7 @@ namespace MinisatID {
 		Minisat::Lit mkLit(Minisat::Var x, bool sign = false);
 	}
 
-	#else
-		#ifdef USEMINISAT22
+	#else //Minisat 2.2
 		#include "mtl/Vec.h"
 		#include "mtl/Queue.h"
 		#include "mtl/Heap.h"
@@ -69,24 +68,6 @@ namespace MinisatID {
 			typedef Minisat::CRef rClause;
 			using Minisat::mkLit;
 		}
-
-		#else
-			#include "mtlold/Vec.h"
-			#include "mtlold/Queue.h"
-			#include "mtlold/Heap.h"
-			#include "mtlold/Sort.h"
-			#include "solver3minisat/SolverTypes.h"
-
-			namespace MinisatID {
-				using ::vec;
-				using Minisat::l_False;
-				using Minisat::l_Undef;
-				using Minisat::l_True;
-				typedef Minisat::Clause& pClause;
-				typedef Minisat::Clause* rClause;
-				Minisat::Lit mkLit(Minisat::Var x, bool sign = false);
-			}
-		#endif
 	#endif
 #endif
 

@@ -675,6 +675,33 @@ void Solver::record(const vec<Lit>& clause)
 // Major methods:
 
 
+Solver::Solver(OccurMode mode, cchar* elimed_filename)
+             : ok               (true)
+             , cla_inc          (1)
+             , cla_decay        (1)
+             , n_literals       (0)
+             , var_inc          (1)
+             , var_decay        (1)
+           #ifdef VAR_ORDER_2
+             , order            (assigns, activity, lt_activity, var_inc)
+           #else
+             , order            (assigns, activity)
+           #endif
+             , watches_setup    (false)
+             , occur_mode       (mode)
+             , root_level       (0)
+             , last_simplify    (-1)
+             , fwd_subsump      (false)
+             , last_inspects    (0)
+             , unit_tmp         (1, PBSolver::lit_Undef)
+             , progress_estimate(0)
+             , verbosity(0)
+             { createTmpFiles(elimed_filename);
+            #ifndef WATCH_OPTIMIZATION
+               watches_setup = true;
+            #endif
+             }
+
 Solver::~Solver(void)
 {
     assert(iter_vecs.size() == 0); assert(iter_sets.size() == 0);

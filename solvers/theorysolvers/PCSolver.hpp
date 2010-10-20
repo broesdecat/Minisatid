@@ -136,23 +136,15 @@ public:
 	///////
 	// Solving support
 	///////
-	void 		newDecisionLevel();
 	bool		randomize		() const { return modes().randomize; }
+
+	void 		newDecisionLevel();
 	bool 		simplify		();
-
-	// FIXME change meaning / move to private
-	bool 		findNext		(const vec<Lit>& assumpts, vec<Lit>& model, bool& moremodels);
-	bool    	invalidateModel	(vec<Lit>& invalidation);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
-	void 		invalidate		(vec<Lit>& invalidation);
-
 	bool 		solve			(const vec<Lit>& assumptions, Solution* sol);
-
-	bool 		findModel		(const vec<Lit>& assumps, vec<Lit>& m, bool& moremodels);
+	lbool 		checkStatus		(lbool status) const; //if status==l_True, do wellfoundednesscheck in IDSolver, if not wellfounded, return l_False, otherwise status
 
 	void		removeAggrHead	(Var x);
 	void		notifyAggrHead	(Var head);
-
-	lbool 		checkStatus		(lbool status) const; //if status==l_True, do wellfoundednesscheck in IDSolver, if not wellfounded, return l_False, otherwise status
 
 	bool 		assertedBefore(const Var& l, const Var& p) const;
 	rClause		getExplanation	(Lit l);	//NON-OWNING pointer
@@ -179,14 +171,7 @@ public:
 	 */
 	const vec<Lit>& getTrail	() 		const;
 	int 			getStartLastLevel() const;
-	//TOO SLOW:
-	//Lit 		getRecentAssignment(int i) const;
-	//int 		getNbOfRecentAssignments() const;
-	//std::vector<Lit> getRecentAssignments() const;
-	/*
-	 * Returns the decision level at which a variable was deduced. This allows to get the variable that was propagated earliest/latest
-	 */
-	int 		getLevel		(int var) const;
+	int 		getLevel		(int var) const; // Returns the decision level at which a variable was deduced.
 	int			getNbDecisions	() 		const;
 	uint64_t	getConflicts	() 		const;
 
@@ -206,18 +191,15 @@ public:
 	rClause 	propagate		(Lit l);
 	rClause 	propagateAtEndOfQueue();
 
-	/*
-	 * OPTIMIZATION
-	 */
+	///////
+	// OPTIMIZATION
+	///////
     bool 	addMinimize		(const vec<Lit>& lits, bool subsetmnmz);
     bool 	addSumMinimize	(const Var head, const int setid);
-    bool 	invalidateValue	(vec<Lit>& invalidation);
-	bool 	invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt);
-	bool 	findOptimal		(const vec<Lit>& assumps, vec<Lit>& m);
 
-	/*
-	 * DEBUG
-	 */
+	///////
+	// DEBUG
+	///////
 	int		getModPrintID	() const;
 	// SATsolver asks this to PC such that more info (modal e.g.) can be printed.
 	void	printChoiceMade	(int level, Lit l) const;
@@ -227,6 +209,21 @@ private:
 	void addVar(Lit l) { addVar(var(l)); }
 	void addVars(const vec<Lit>& a);
 	void checkHead(Lit head);
+
+	///////
+	// SOLVING
+	///////
+	bool 		findNext		(const vec<Lit>& assumpts, vec<Lit>& model, bool& moremodels);
+	bool    	invalidateModel	(vec<Lit>& invalidation);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
+	void 		invalidate		(vec<Lit>& invalidation);
+	bool 		findModel		(const vec<Lit>& assumps, vec<Lit>& m, bool& moremodels);
+
+	///////
+	// OPTIMIZATION
+	///////
+    bool 	invalidateValue	(vec<Lit>& invalidation);
+	bool 	invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt);
+	bool 	findOptimal		(const vec<Lit>& assumps, vec<Lit>& m);
 };
 
 }

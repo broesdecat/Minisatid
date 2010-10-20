@@ -28,14 +28,10 @@ namespace MinisatID {
 class Solution;
 
 class PCSolver;
-typedef PCSolver* pPCSolver;
-
 class SOSolver;
-
 class ModSolver;
-typedef ModSolver* pModSolver;
 
-typedef std::vector<pModSolver> vmsolvers;
+typedef std::vector<ModSolver*> vmsolvers;
 typedef vmsolvers::size_type modindex;
 typedef std::vector<modindex> vmodindex;
 
@@ -56,26 +52,21 @@ struct AV{
 	lbool value;
 
 	AV(Var a): atom(a), value(l_Undef){}
-
-/*    bool operator == (AV p) const { return atom == p.atom; }
-    bool operator != (AV p) const { return atom != p.atom; }
-    bool operator <  (AV p) const { return atom < p.atom;  }*/
 };
 
 class ModSolver: public DPLLTmodule{
 private:
-	bool hasparent, searching; //, startedsearch;
+	bool 		hasparent, searching;
 
 	AV			head;
 	std::vector<Var>	atoms; //atoms which are rigid within this solver
 
 	modindex 	id, parentid;
-	pPCSolver	solver;
+	PCSolver*	solver;
 	vmodindex 	children;
-	SOSolver* modhier;	//NON-OWNED POINTER!
+	SOSolver* 	modhier;	//NON-OWNING POINTER!
 
 	vec<Lit> 	assumptions;
-	//int			startindex;
 	std::vector<bool> propfromabove; //Indicates whether this literal was propagated by the parent
 
 public:
@@ -88,12 +79,6 @@ public:
 
 	void 	setNbModels		(int nb);
 
-	/*//Solve methods
-	CCC propagate(Lit l);
-	bool 	canSearch();
-	void 	backtrack(Lit l);
-	CCC getExplanation(Lit l);*/
-
 	//data initialization
 	void				addVar			(Var v);
 	bool 				addClause		(vec<Lit>& lits);
@@ -101,10 +86,6 @@ public:
 	bool 				addSet			(int setid, vec<Lit>& lits, std::vector<Weight>& w);
 	bool 				addAggrExpr		(Lit head, int set_id, Weight bound, AggSign boundsign, AggType type, AggSem defined);
 	bool 				finishParsing();
-
-	//solver initialization
-	//Solver*	initSolver		();
-	//Solver*	initializeSolver(Theory& t);
 
 	/**
 	 * Workflow: parents propagates some literal down
@@ -166,14 +147,11 @@ public:
 	const std::vector<Var>& 	getAtoms	()	const	{ return atoms; }
 	const vmodindex& 	getChildren	()	const	{ return children; }
 
-	const SOSolver& getModSolverData() const	{ return *modhier; }
-	PCSolver const * 	getCPCSolver	()	const	{ return solver; }
+	const SOSolver& 	getModSolverData() const	{ return *modhier; }
 
 	bool 				solve			(const vec<Lit>& assumptions, Solution* sol);
 
 private:
-	pPCSolver 			getSolver	()	const	{ return solver; }
-
 	void 				addVar		(Lit l)		{ addVar(var(l)); }
 	void 				addVars		(vec<Lit>& a);
 

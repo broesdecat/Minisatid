@@ -24,6 +24,7 @@
 #include <vector>
 #include <algorithm>
 
+#include "solvers/external/ExternalInterface.hpp"
 #include "solvers/theorysolvers/PCSolver.hpp"
 #include "solvers/theorysolvers/SOSolver.hpp"
 
@@ -42,10 +43,8 @@ ModSolver::ModSolver(modindex child, Var head, SOSolver* mh):
 	ECNF_mode modescopy(mh->modes());
 	modescopy.nbmodels = 1;
 
-	solver = new PCSolver(modescopy);
-	//FIXME FIXME on purpose not using getPCSolver and solver in ISolver
-	//but should adapt code to prevent errors (getPCSolver should NOT be called!)
-	getSolver()->setModSolver(this);
+	pcsolver = new PCSolver(modescopy);
+	getPCSolver()->setModSolver(this);
 }
 
 ModSolver::~ModSolver(){
@@ -60,7 +59,7 @@ void ModSolver::addVar(Var var){
 	if(getModSolverData().modes().verbosity>5){
 		reportf("Var %d added to modal solver %zu.\n", var, getPrintId());
 	}
-	getSolver()->addVar(var);
+	getPCSolver()->addVar(var);
 }
 
 /**
@@ -74,23 +73,23 @@ void ModSolver::addVars(vec<Lit>& a){
 
 bool ModSolver::addClause(vec<Lit>& lits){
 	addVars(lits);
-	return getSolver()->addClause(lits);
+	return getPCSolver()->addClause(lits);
 }
 
 bool ModSolver::addRule(bool conj, Lit head, vec<Lit>& lits){
 	addVar(head);
 	addVars(lits);
-	return getSolver()->addRule(conj, head, lits);
+	return getPCSolver()->addRule(conj, head, lits);
 }
 
 bool ModSolver::addSet(int setid, vec<Lit>& lits, vector<Weight>& w){
 	addVars(lits);
-	return getSolver()->addSet(setid, lits, w);
+	return getPCSolver()->addSet(setid, lits, w);
 }
 
 bool ModSolver::addAggrExpr(Lit head, int set_id, Weight bound, AggSign boundsign, AggType type, AggSem defined){
 	addVar(var(head));
-	return getSolver()->addAggrExpr(head, set_id, bound, boundsign, type, defined);
+	return getPCSolver()->addAggrExpr(head, set_id, bound, boundsign, type, defined);
 }
 
 /**
@@ -138,7 +137,7 @@ void ModSolver::addChild(modindex childid){
  * Recursively notify all Solvers that parsing has finished
  */
 bool ModSolver::finishParsing(){
-	bool result = getSolver()->finishParsing();
+	bool result = getPCSolver()->finishParsing();
 
 	for(vmodindex::const_iterator i=getChildren().begin(); result && i<getChildren().end(); i++){
 		result = getModSolverData().getModSolver(*i)->finishParsing();
@@ -157,8 +156,7 @@ bool ModSolver::finishParsing(){
  * Tells the root solver to do model expansion on his theory
  */
 bool ModSolver::solve(const vec<Lit>& assumptions, Solution* sol){
-	//FIXME
-	//TODO return getSolver()->findModels(1, varmodels);
+	return getPCSolver()->solve(assumptions, sol);
 }
 
 /*
@@ -166,7 +164,7 @@ bool ModSolver::solve(const vec<Lit>& assumptions, Solution* sol){
  * Returns false if the problem is unsat (and then does not simplify other solvers).
  */
 bool ModSolver::simplify(){
-	bool result = getSolver()->simplify();
+	bool result = getPCSolver()->simplify();
 
 	for(vmodindex::const_iterator i=getChildren().begin(); result && i<getChildren().end(); i++){
 		result = getModSolverData().getModSolver(*i)->simplify();
@@ -255,7 +253,7 @@ bool ModSolver::propagateDownAtEndOfQueue(vec<Lit>& confldisj){
 		reportf("Finished checking solver %zu: %s.\n", getPrintId(), result?"no conflict":"conflict");
 	}
 
-	getSolver()->backtrackTo(0);
+	getPCSolver()->backtrackTo(0);
 
 	return result;
 }
@@ -271,15 +269,15 @@ bool ModSolver::search(const vec<Lit>& assumpts, bool search){
 	 * As this is rather tedious, we will delay it until necessary.
 	bool result = true;
 	if(startindex==-1){
-		result = getSolver()->startSearch();
+		result = getPCSolver()->startSearch();
 		startindex = 0;
 	}
 	for(; result && startindex<assumptions.size(); startindex++){
-		result = getSolver()->propagate(assumptions[startindex]);
+		result = getPCSolver()->propagate(assumptions[startindex]);
 	}
 	if(search && result){
 		searching = true;
-		result = getSolver()->continueSearch();
+		result = getPCSolver()->continueSearch();
 		searching = false;
 	}
 
@@ -287,12 +285,9 @@ bool ModSolver::search(const vec<Lit>& assumpts, bool search){
 
 	bool result;
 	searching = search;
-	//FIXME getSolver()->setAssumptions(assumpts);
-	if(searching){
-		//FIXME result = getSolver()->printModels(1);
-	}else{
-		//FIXME result = getSolver()->propagate();
-	}
+	Solution* sol = new Solution(false, false, searching, 1, vector<Literal>());
+	result = getPCSolver()->solve(assumpts, sol);
+	delete sol;
 	searching = false;
 	return result;
 }
@@ -335,8 +330,8 @@ bool ModSolver::analyzeResult(bool result, bool allknown, vec<Lit>& confldisj){
  */
 rClause ModSolver::propagate(Lit l){
 	/*if(!searching){
-		vector<Lit> v = getSolver()->getDecisions();
-		//FIXME propagate up WITH reason
+		vector<Lit> v = getPCSolver()->getDecisions();
+		//TODO propagate up WITH reason
 	}*/
 	rClause confl = nullPtrClause;
 	for(vmodindex::const_iterator i=getChildren().begin(); confl==nullPtrClause && i<getChildren().end(); i++){
@@ -360,11 +355,11 @@ rClause ModSolver::propagateAtEndOfQueue(){
 
 	rClause confl = nullPtrClause;
 	if(!noconflict){
-		confl = getSolver()->createClause(confldisj, true);
-		getSolver()->addLearnedClause(confl);
+		confl = getPCSolver()->createClause(confldisj, true);
+		getPCSolver()->addLearnedClause(confl);
 
 		if(getModSolverData().modes().verbosity>=5){
-			Print::printClause(confl, getSolver());
+			Print::printClause(confl, getPCSolver());
 		}
 	}
 	return confl;
@@ -375,7 +370,7 @@ void ModSolver::propagateUp(Lit l, modindex id){
 	//TODO
 	//include reason or extend getexplanation to modal solvers (first is maybe best)
 	//save id for clause learning
-	getSolver()->setTrue(l, BYMOD);
+	getPCSolver()->setTrue(l, BYMOD);
 }
 
 /**
@@ -399,9 +394,9 @@ void ModSolver::backtrackFromAbove(Lit l){
 			if(propfromabove[i] && var(l)==var(assumptions.last())){
 				assumptions.pop();
 				//startindex--;
-				int solverlevel = getSolver()->getLevel(var(l));
+				int solverlevel = getPCSolver()->getLevel(var(l));
 				if(solverlevel>=0){ //otherwise it was not propagated!
-					getSolver()->backtrackTo(solverlevel);
+					getPCSolver()->backtrackTo(solverlevel);
 				}
 				propfromabove[i] = false;
 				break;
@@ -435,5 +430,5 @@ void ModSolver::backtrackFromSameLevel(Lit l){
 void ModSolver::printModel(){
 	//TODO implement
 	throw idpexception("Not yet implemented");
-	//getSolver()->printModel();
+	//getPCSolver()->printModel();
 }

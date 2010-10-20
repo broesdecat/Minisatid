@@ -438,7 +438,7 @@ int main(int argc, char** argv) {
 		//Solve
 		if(!unsat){
 			vector<Literal> assumpts;
-			Solution* sol = new Solution(true, false, modes.nbmodels, assumpts);
+			Solution* sol = new Solution(true, false, true, modes.nbmodels, assumpts);
 			unsat = !d->solve(sol);
 			if (modes.verbosity >= 1) {
 				reportf("===============================================================================\n");

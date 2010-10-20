@@ -29,6 +29,8 @@ class PCSolver;
 class DPLLTmodule {
 private:
 	bool 			init;
+
+protected:
 	PCSolver* 		pcsolver; //NON-OWNING pointer
 
 public:

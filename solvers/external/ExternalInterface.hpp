@@ -47,16 +47,16 @@ class SOSolver;
 
 class Solution{
 private:
-	const bool 	printmodels, savemodels;
-	bool 		nomoremodels;
+	const bool 	printmodels, savemodels, search;
+	//bool 		nomoremodels;
 	const int 	nbmodelstofind;
 	int 		nbmodelsfound;
 	std::vector<std::vector<Literal> > 	models;
 	const std::vector<Literal> 			assumptions;
 
 public:
-	Solution(bool print, bool save, int searchnb, const std::vector<Literal>& assumpts):
-			printmodels(print), savemodels(save),
+	Solution(bool print, bool save, bool search, int searchnb, const std::vector<Literal>& assumpts):
+			printmodels(print), savemodels(save), search(search),
 			nbmodelstofind(searchnb),
 			assumptions(assumpts){}
 	~Solution(){};
@@ -72,6 +72,7 @@ public:
 	int 		getNbModelsToFind() const	{ return nbmodelstofind; }
 	bool 		getPrint		() const 	{ return printmodels; }
 	bool 		getSave			() const 	{ return savemodels; }
+	bool 		getSearch		() const 	{ return search; }
 
 	const std::vector<Literal>& 				getAssumptions	() { return assumptions; }
 	const std::vector<std::vector<Literal> >& 	getModels		() {

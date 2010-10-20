@@ -2,6 +2,7 @@ AC_INIT([minisatid],[3.2],[krr@cs.kuleuven.be])
 
 if test x"${CXXFLAGS+set}" = xset; then 
 	# the user set CXXFLAGS; don't override it. 
+	#PROBLEM: USER SET FLAGS COME FIRST => OVERRIDDEN by other choices, so user does NOT have final choice!!!
 	CXXFLAGS+=""
 else 
 	CXXFLAGS=""
@@ -31,8 +32,6 @@ AC_CHECK_HEADERS([tr1/memory])
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T
 
-# distribute additional compiler and linker flags
-# --> set these variables instead of CXXFLAGS or LDFLAGS
 AC_SUBST([LIBS])
 
 CXXFLAGS+="-ffloat-store -Wall -Wextra " #TODO add -pedantic again (but currently broken by pbsolver)

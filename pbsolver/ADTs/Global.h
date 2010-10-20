@@ -146,7 +146,7 @@ macro double drand(double& seed) {
 // Returns a random integer 0 <= x < size. Seed must never be 0.
 macro int irand(double& seed, int size) {
     return (int)(drand(seed) * size); }
-
+}
 
 //=================================================================================================
 // Time:
@@ -154,18 +154,22 @@ macro int irand(double& seed, int size) {
 
 #ifdef _MSC_VER
 #include <ctime>
+namespace PBSolver{
 macro double cpuTime(void) {
     return (double)clock() / CLOCKS_PER_SEC; }
+}
 #else
 #include <sys/time.h>
 #include <sys/resource.h>
+namespace PBSolver{
 macro double cpuTime(void) {
     struct rusage ru;
     getrusage(RUSAGE_SELF, &ru);
     return (double)ru.ru_utime.tv_sec + (double)ru.ru_utime.tv_usec / 1000000; }
+}
 #endif
 
-
+namespace PBSolver{
 //=================================================================================================
 // 'Pair':
 

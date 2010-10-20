@@ -130,7 +130,7 @@ void Print::print(ModSolver const * const m){
 		reportf("%d ", gprintVar(*i));
 	}
 	reportf("\nsubtheory\n");
-	print(m->getCPCSolver());
+	print(m->getPCSolver());
 	reportf("SubSolvers\n");
 	for(vmodindex::const_iterator i=m->getChildren().begin(); i<m->getChildren().end(); i++){
 		print(m->getModSolverData().getModSolver(*i));

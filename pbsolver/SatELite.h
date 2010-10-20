@@ -11,7 +11,9 @@ A simple Chaff-like SAT-solver with support for incremental SAT.
 
 #include "pbsolver/SolverTypes.h"
 #include "pbsolver/VarOrder.h"
+
 namespace PBSolver{
+
 struct BasicSolverStats;
 
 namespace SatELite {
@@ -380,32 +382,7 @@ struct Solver {
 
 // PUBLIC INTERFACE
 
-    Solver(OccurMode mode = occ_Permanent, cchar* elimed_filename = NULL)
-                 : ok               (true)
-                 , cla_inc          (1)
-                 , cla_decay        (1)
-                 , n_literals       (0)
-                 , var_inc          (1)
-                 , var_decay        (1)
-               #ifdef VAR_ORDER_2
-                 , order            (assigns, activity, lt_activity, var_inc)
-               #else
-                 , order            (assigns, activity)
-               #endif
-                 , watches_setup    (false)
-                 , occur_mode       (mode)
-                 , root_level       (0)
-                 , last_simplify    (-1)
-                 , fwd_subsump      (false)
-                 , last_inspects    (0)
-                 , unit_tmp         (1, lit_Undef)
-                 , progress_estimate(0)
-                 , verbosity(0)
-                 { createTmpFiles(elimed_filename);
-                #ifndef WATCH_OPTIMIZATION
-                   watches_setup = true;
-                #endif
-                 }
+    Solver(OccurMode mode = occ_Permanent, cchar* elimed_filename = NULL);
    ~Solver(void);
 
     // Helpers: (semi-internal)

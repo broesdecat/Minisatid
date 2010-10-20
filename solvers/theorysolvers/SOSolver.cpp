@@ -160,7 +160,7 @@ bool SOSolver::addClause(vsize modid, vec<Lit>& lits){
 	//Try to add a clause as high up in the hierarchy as possible.
 	checkexistsModSolver(modid);
 	vsize previd = modid, currentid = modid;
-	pModSolver m = NULL;
+	ModSolver* m = NULL;
 	bool negated = false;
 	while(true){
 		m = getModSolver(currentid);
@@ -211,7 +211,7 @@ bool SOSolver::addRule(vsize modid, bool conj, Lit head, vec<Lit>& lits){
 	assert(state==LOADINGREST);
 
 	checkexistsModSolver(modid);
-	pModSolver m = getModSolver(modid);
+	ModSolver* m = getModSolver(modid);
 	return m->addRule(conj, head, lits);
 }
 
@@ -222,7 +222,7 @@ bool SOSolver::addSet(vsize modid, int setid, vec<Lit>& lits, vector<Weight>& w)
 	assert(state==LOADINGREST);
 
 	checkexistsModSolver(modid);
-	pModSolver m = getModSolver(modid);
+	ModSolver* m = getModSolver(modid);
 	return m->addSet(setid, lits, w);
 }
 
@@ -236,7 +236,7 @@ bool SOSolver::addAggrExpr(vsize modid, Lit head, int setid, Weight bound, AggSi
 		throw idpexception("Negative heads are not allowed for aggregate expressions!\n");
 	}
 	checkexistsModSolver(modid);
-	pModSolver m = getModSolver(modid);
+	ModSolver* m = getModSolver(modid);
 	return m->addAggrExpr(head, setid, bound, boundsign, type, defined);
 }
 
@@ -261,7 +261,7 @@ void SOSolver::verifyHierarchy(){
 	while(queue.size()>0){
 		vsize s = queue.back();
 		queue.pop_back();
-		pModSolver solver = getModSolver(s);
+		ModSolver* solver = getModSolver(s);
 		for(vmodindex::const_iterator i=solver->getChildren().begin(); i<solver->getChildren().end(); i++){
 			if(visitcount[*i]==0){
 				queue.push_back(*i);

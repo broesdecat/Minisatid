@@ -36,6 +36,14 @@ namespace MinisatID {
 
 #define reportf(...) ( fflush(stdout), fprintf(stderr, __VA_ARGS__), fflush(stderr) )
 
+}
+
+//TODO TODO
+TODO het problem zit in reportf!!!
+#include "pbsolver/PbSolver.h"
+
+namespace MinisatID {
+
 ///////
 // Measuring cpu time
 ///////
@@ -70,28 +78,40 @@ public:
 
 enum EqType{ MEQ, MNEQ, ML, MG, MGEQ, MLEQ };
 
+}
+
 ///////
 // Weight declaration and utilities
 ///////
 
 #ifdef GMP
-	#define GMPWEIGHT
 	#include "gmpxx.h"
+
+	namespace MinisatID {
+	#define GMPWEIGHT
 	typedef mpz_class Weight;
 	//MEDIUM SPEED, NEED LIB INSTALLED, MUCH FASTER THAN BIGINT FOR ARBITRARY PREC, OVERFLOW SUPPORT
+	}
 #else
 #ifdef BIGINT
-	#define BIGINTWEIGHT
 	#include "BigInteger.hh"
 	#include "BigIntegerUtils.hh"
+
+	namespace MinisatID {
+	#define BIGINTWEIGHT
 	typedef BigInteger Weight;
 	//SLOWEST, NO LIB NEEDED, OVERFLOW SUPPORT
+	}
 #else
+	namespace MinisatID {
 	#define INTWEIGHT
 	typedef int Weight;
 	//FASTEST, NO OVERFLOW SUPPORT
+	}
 #endif
 #endif
+
+namespace MinisatID {
 
 Weight negInfinity();
 Weight posInfinity();

@@ -601,31 +601,11 @@ bool PCSolver::simplify() {
  * count the number of models => do not save models
  */
 
-
-/*bool PCSolver::propagate(){
-	return getSolver()->solve(getAssumptions(), true);
-}
-
-int PCSolver::countModels(){
-	int modelsfound = 0;
-	vec<vec<Lit> > models;
-	return solve(models, false, 0, modelsfound, true);
-}
-
-bool PCSolver::printModels(int nbmodels){
-	int modelsfound = 0;
-	vec<vec<Lit> > models;
-	return solve(models, false, nbmodels, modelsfound, true);
-}
-
-bool PCSolver::findModels(int nbmodels, vec<vec<Lit> >& models){
-	int modelsfound = 0;
-	return solve(models, false, nbmodels, modelsfound, false);
-}
-
-bool PCSolver::solve(vec<vec<Lit> >& models, bool nosearch, int modeltofind, int& modelsfound, bool onlyprint) {*/
-
 bool PCSolver::solve(const vec<Lit>& assumptions, Solution* sol){
+	if(!sol->getSearch()){
+		return getSolver()->solve(assumptions, true);
+	}
+
 	if (modes().verbosity >= 1) {
 		reportf("============================[ Search Statistics ]==============================\n");
 		reportf("| Conflicts |          ORIGINAL         |          LEARNT          | Progress |\n");
@@ -650,7 +630,7 @@ bool PCSolver::solve(const vec<Lit>& assumptions, Solution* sol){
 	}
 
 	if (verbosity()>=1) {
-		if(sol->modelCount() != 0 && !moremodels && sol->modelCount() != 1){
+		if(sol->modelCount() != 0 && moremodels && sol->modelCount() != 1){
 			reportf("| There are no more models                                                    |\n");
 		}
 	}

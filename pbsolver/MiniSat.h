@@ -13,6 +13,7 @@ A simple Chaff-like SAT-solver with support for incremental SAT and Pseudo-boole
 #include "pbsolver/VarOrder.h"
 
 namespace PBSolver{
+
 struct BasicSolverStats2 {
     int64   starts, decisions, propagations, inspects, conflicts;
     BasicSolverStats2(void) : starts(0), decisions(0), propagations(0), inspects(0), conflicts(0) { }
@@ -156,21 +157,7 @@ private:
     int     decisionLevel(void) const { return trail_lim.size(); }
 
 public:
-    Solver(void) : cla_inc          (1)
-                 , cla_decay        (1)
-                 , var_inc          (1)
-                 , var_decay        (1)
-                 , order            (assigns, activity)
-                 , ok               (true)
-                 , last_simplify    (-1)
-                 , qhead            (0)
-                 , progress_estimate(0)
-                 , verbosity(0)
-                 {
-                     vec<Lit> dummy(2,lit_Undef);
-                     void*   mem = xmalloc<char>(sizeof(Clause) + sizeof(uint)*2);
-                     tmp_binary  = new (mem) Clause(false,dummy);
-                 }
+    Solver(void);
 
    ~Solver(void) {
        for (int i = 0; i < learnts.size(); i++) remove(learnts[i], true);
