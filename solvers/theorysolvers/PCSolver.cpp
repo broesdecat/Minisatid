@@ -631,6 +631,10 @@ bool PCSolver::simplify() {
  */
 
 bool PCSolver::solve(const vec<Lit>& assumptions, Solution* sol){
+	if(optim!=NONE && sol->getNbModelsToFind()!=1){
+		throw idpexception("Finding multiple models can currently not be combined with optimization.\n");
+	}
+
 	if(!sol->getSearch()){
 		return getSolver()->solve(assumptions, true);
 	}
