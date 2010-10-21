@@ -1,6 +1,7 @@
 #building with mingw by CXX=pathnaarg++vanmingw
 
-AM_CPPFLAGS = -I$(srcdir)/solver3minisat22/
+AM_CXXFLAGS = @AC_CXXFLAGS@ -I$(srcdir)/solver3minisat22/ 
+AM_LDFLAGS = @AC_LDFLAGS@ 
 
 YFLAGS = -d 
 LFLAGS = #TODO prefix blijkt niet te werken, dus code herschreven om maar 1 parser te ondersteunen
@@ -33,7 +34,7 @@ include_HEADERS += solvers/Unittests.hpp
 
 
 #PBSOLVER
-CXXFLAGS+=-D NO_GMP
+AM_CXXFLAGS+=-D NO_GMP
 include_HEADERS += pbsolver/Main.h
 include_HEADERS += pbsolver/Debug.h pbsolver/DebugSolver.h pbsolver/MiniSat.h pbsolver/PbParser.h 
 include_HEADERS += pbsolver/PbSolver.h pbsolver/SatELite.h pbsolver/Solver.h pbsolver/SolverTypes.h pbsolver/VarOrder.h
@@ -55,7 +56,7 @@ minisatid_SOURCES += pbsolver/pbbase/src/BNB_Comp_Cost.cpp pbsolver/pbbase/src/B
 minisatid_SOURCES += pbsolver/pbbase/src/GenralBaseFunctions.cpp pbsolver/pbbase/src/MiniSatOrig.cpp pbsolver/pbbase/src/RelativeBaseSearch.cpp 
 minisatid_SOURCES += pbsolver/pbbase/src/SearchMetaData.cpp pbsolver/pbbase/src/THeapComp.cpp pbsolver/pbbase/src/THeap.cpp
 
-CXXFLAGS += -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS
+AM_CXXFLAGS += -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS
 
 #MINISAT 2.07 09z
 
@@ -63,7 +64,7 @@ if USEMINISAT09Z
 minisatid_SOURCES += solver3/Solver.cpp 
 include_HEADERS += solver3/Solver.hpp solver3/SolverTypes.hpp
 include_HEADERS += mtlold/Vec.h mtlold/Queue.h mtlold/Alg.h mtlold/Heap.h mtlold/Map.h mtlold/Sort.h
-CXXFLAGS+=-DUSEMINISAT09Z
+AM_CXXFLAGS+=-DUSEMINISAT09Z
 endif
 
 #MINISAT 2.2
@@ -76,7 +77,7 @@ include_HEADERS += solver3minisat22/mtl/IntTypes.h solver3minisat22/mtl/Alg.h so
 include_HEADERS += solver3minisat22/mtl/Queue.h solver3minisat22/mtl/Heap.h solver3minisat22/mtl/Sort.h solver3minisat22/mtl/XAlloc.h
 include_HEADERS += solver3minisat22/utils/ParseUtils.h solver3minisat22/utils/Options.h
 include_HEADERS += solver3minisat22/zconf.h solver3minisat22/zlib.h
-CXXFLAGS+=-DUSEMINISAT22
+AM_CXXFLAGS+=-DUSEMINISAT22
 endif
 
 #MINISAT 2.07
@@ -85,7 +86,7 @@ if USEMINISAT
 minisatid_SOURCES += solver3minisat/Solver.C
 include_HEADERS += solver3minisat/Solver.h solver3minisat/SolverTypes.h
 include_HEADERS += mtlold/Vec.h mtlold/Queue.h mtlold/Alg.h mtlold/Heap.h mtlold/Map.h mtlold/Sort.h
-CXXFLAGS+=-DUSEMINISAT
+AM_CXXFLAGS+=-DUSEMINISAT
 endif
 
 dist_doc_DATA = README

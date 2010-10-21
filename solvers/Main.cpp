@@ -213,11 +213,11 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 			}
 			break;
 		case 4: // polarity
-			if(strcmp(arg, "true")){
+			if(strcmp(arg, "true")==0){
 				modes.polarity_mode = polarity_true;
-			}else if(strcmp(arg, "false")){
+			}else if(strcmp(arg, "false")==0){
 				modes.polarity_mode = polarity_false;
-			}else if(strcmp(arg, "rnd")){
+			}else if(strcmp(arg, "rnd")==0){
 				modes.polarity_mode = polarity_rnd;
 			}else{
 				report("Illegal polarity value %s\n", arg); argp_usage(state);
@@ -234,9 +234,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 			}
 			break;
 		case 7: // randomize: yes/no
-			if(strcmp(arg, "no")){
+			if(strcmp(arg, "no")==0){
 				modes.randomize = false;
-			}else if(strcmp(arg, "yes")){
+			}else if(strcmp(arg, "yes")==0){
 				modes.randomize = true;
 			}else{
 				report("Illegal randomize value %s\n", arg); argp_usage(state);
@@ -256,20 +256,20 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 			}*/
 			break;
 		case 10: // defsearch: always/adaptive/lazy
-			if(strcmp(arg, "always")){
+			if(strcmp(arg, "always")==0){
 				modes.defn_strategy = always;
 			}else if(strcmp(arg, "adaptive")){
 				modes.defn_strategy = adaptive;
-			}else if(strcmp(arg, "lazy")){
+			}else if(strcmp(arg, "lazy")==0){
 				modes.defn_strategy = lazy;
 			}else{
 				report("Illegal defsearch value %s\n", arg); argp_usage(state);
 			}
 			break;
 		case 11: // defsem: stable/wellfounded
-			if(strcmp(arg, "stable")){
+			if(strcmp(arg, "stable")==0){
 				modes.sem = STABLE;
-			}else if(strcmp(arg, "wellfounded")){
+			}else if(strcmp(arg, "wellfounded")==0){
 				modes.sem = WELLF;
 			}else{
 				report("Illegal defsem value %s\n", arg); argp_usage(state);
@@ -281,20 +281,20 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 			}
 			break;
 		case 'f':
-			if(strcmp(arg, "fodot")){
+			if(strcmp(arg, "fodot")==0){
 				modes.lparse = false; modes.pb = false;
-			}else if(strcmp(arg, "lparse")){
+			}else if(strcmp(arg, "lparse")==0){
 				modes.lparse = true; modes.pb = false;
-			}else if(strcmp(arg, "opb")){
+			}else if(strcmp(arg, "opb")==0){
 				modes.lparse = false; modes.pb = true;
 			}else{
 				report("Illegal format value %s\n", arg); argp_usage(state);
 			}
 			break;
 		case 'r': // remap: yes/no
-			if(strcmp(arg, "no")){
+			if(strcmp(arg, "no")==0){
 				modes.remap = false;
-			}else if(strcmp(arg, "yes")){
+			}else if(strcmp(arg, "yes")==0){
 				modes.remap = true;
 			}else{
 				report("Illegal remap value %s\n", arg); argp_usage(state);
@@ -304,9 +304,10 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 			MinisatID::setOutputFileUrl(arg);
 			break;
 		case 'w': // watched agg: yes/no
-			if(strcmp(arg, "no")){
+			report("ARG: %s", arg);
+			if(strcmp(arg, "no")==0){
 				modes.pw = false;
-			}else if(strcmp(arg, "yes")){
+			}else if(strcmp(arg, "yes")==0){
 				modes.pw = true;
 			}else{
 				report("Illegal watchedaggr value %s\n", arg); argp_usage(state);
@@ -465,7 +466,7 @@ int main(int argc, char** argv) {
 		returnvalue = unsat ? 20 : 10;
 		//#endif
 
-	} catch (idpexception& e) {
+	} catch (const MinisatID::idpexception& e) {
 		report(e.what());
 		report("Program will abort.\n");
 		d->printStatistics();
@@ -491,10 +492,11 @@ pData parse() {
 	try {
 		/*ecnfparse();*/
 		yyparse();
-	} catch (idpexception& e) {
+	} catch (const MinisatID::idpexception& e) {
 		if (unsatfound) {
 			std::cerr << "Unsat detected during parsing.\n";
 		} else {
+			//TODO this can also be caugt when the sigint handler has received an interrupt, should differentiate
 			char s[300];
 			sprintf(s, "Parse error: Line %d, column %d, on \"%s\": %s", lineNo, charPos, yytext, e.what());
 			throw idpexception(s);
@@ -518,6 +520,5 @@ pData parse() {
 ///////
 
 static void SIGINT_handler(int signum) {
-	//printStats(s);
-	throw idpexception("*** INTERRUPTED ***\n");
+	throw idpexception("Execution interrupted!\n");
 }

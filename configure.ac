@@ -1,13 +1,9 @@
 AC_INIT([minisatid],[3.2],[krr@cs.kuleuven.be])
 
-if test x"${CXXFLAGS+set}" = xset; then 
-	# the user set CXXFLAGS; don't override it. 
-	#PROBLEM: USER SET FLAGS COME FIRST => OVERRIDDEN by other choices, so user does NOT have final choice!!!
-	CXXFLAGS+=""
-else 
-	CXXFLAGS=""
+#this is not an ideal solution, but it overrides the default cxxflags, so those set later are not invalid
+if test -z $CXXFLAGS; then
+    CXXFLAGS=" "
 fi
-
 AC_PROG_CXX
 AC_DECL_YYTEXT
 #AC_PROG_LEX
@@ -34,19 +30,21 @@ AC_TYPE_SIZE_T
 
 AC_SUBST([LIBS])
 
-CXXFLAGS+="-ffloat-store -Wall -Wextra " #TODO add -pedantic again (but currently broken by pbsolver)
-LDFLAGS+=
+AC_CXXFLAGS = " "
+AC_LDFLAGS = " "
+
+AC_CXXFLAGS+="-ffloat-store -Wall -Wextra " #TODO add -pedantic again (but currently broken by pbsolver)
 
 AC_ARG_ENABLE([build],
 [  --enable-build    Turn on debugging (debug), profiling (profile), release version(release), static release version (static) or code cover building (codecover)],
 [case "${enableval}" in
-  debug)   CXXFLAGS+="-O0 -ggdb -D DEBUG " LDFLAGS+="-ggdb " ;;
-  profile) CXXFLAGS+="-O3 -pg -ggdb -D NDEBUG " LDFLAGS+="-ggdb " ;;
-  release) CXXFLAGS+="-O3 -D NDEBUG " LDFLAGS+="" ;;
-  static)  CXXFLAGS+="-O3 -D NDEBUG " LDFLAGS+="--static " ;;
-  codecover) CXXFLAGS+="-O0 -fprofile-arcs -ftest-coverage -ggdb -D DEBUG " LDFLAGS+="-ggdb " ;;
+  debug)   AC_CXXFLAGS+="-O0 -ggdb -D DEBUG " 		AC_LDFLAGS+="-ggdb " ;;
+  profile) AC_CXXFLAGS+="-O3 -pg -ggdb -D NDEBUG " 	AC_LDFLAGS+="-ggdb " ;;
+  release) AC_CXXFLAGS+="-O3 -D NDEBUG " 			AC_LDFLAGS+="" ;;
+  static)  AC_CXXFLAGS+="-O3 -D NDEBUG " 			AC_LDFLAGS+="--static " ;;
+  codecover) AC_CXXFLAGS+="-O0 -fprofile-arcs -ftest-coverage -ggdb -D DEBUG " AC_LDFLAGS+="-ggdb " ;;
   *) AC_MSG_ERROR([bad value ${enableval} for --enable-build]) ;;
-esac],[CXXFLAGS+="-DNDEBUG $SD_CXXFLAGS -O3 " LDFLAGS+="$SD_LDFLAGS "])
+esac],[		AC_CXXFLAGS+="-DNDEBUG $SD_CXXFLAGS -O3 " AC_LDFLAGS+="$SD_LDFLAGS "])
 
 AC_ARG_ENABLE([sat],
 [  --enable-sat    Use minisat 2.0b(old), minisat 09z(hack) or minisat 2.2(new)],
@@ -73,12 +71,14 @@ AM_CONDITIONAL([USEMINISAT22],[test x$newm = xtrue])
 AC_ARG_ENABLE([bits],
 [  --enable-bits    Turn on 32/64 bit compiling],
 [case "${enableval}" in
-	32) CXXFLAGS+=" -m32 " ;;
-	64) CXXFLAGS+=" -m64 ";;
+	32) AC_CXXFLAGS+=" -m32 " ;;
+	64) AC_CXXFLAGS+=" -m64 ";;
 	*) AC_MSG_ERROR([bad value ${enableval} for --enable-bits]) ;;
 esac],[])
 
 # Export flags
+AC_SUBST(AC_CXXFLAGS)
+AC_SUBST(AC_LDFLAGS)
 
 # files to generate via autotools (.am or .in source files)
 AC_CONFIG_FILES([Makefile])
