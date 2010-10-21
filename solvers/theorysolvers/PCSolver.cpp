@@ -615,7 +615,7 @@ bool PCSolver::solve(const vec<Lit>& assumptions, Solution* sol){
 
 	bool moremodels = true;
 
-	while (moremodels && (sol->modelCount() == 0 || sol->modelCount() < sol->modelCount())) {
+	while (moremodels && (sol->getNbModelsFound() == 0 || sol->getNbModelsFound() < sol->getNbModelsFound())) {
 		vec<Lit> model;
 		bool found = false;
 		if(optim!=NONE){
@@ -630,12 +630,12 @@ bool PCSolver::solve(const vec<Lit>& assumptions, Solution* sol){
 	}
 
 	if (verbosity()>=1) {
-		if(sol->modelCount() != 0 && moremodels && sol->modelCount() != 1){
+		if(sol->getNbModelsFound() != 0 && !moremodels && sol->getNbModelsToFind() != 1){
 			report("| There are no more models                                                    |\n");
 		}
 	}
 
-	return sol->modelCount()>0;
+	return sol->getNbModelsFound()>0;
 }
 
 /**

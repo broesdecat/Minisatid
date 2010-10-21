@@ -129,9 +129,9 @@ public:
 inline int   toInt  (lbool l) { return l.value; }
 inline lbool toLbool(int   v) { return lbool((uint8_t)v);  }
 
-const lbool l_True  = toLbool( 1);
-const lbool l_False = toLbool(-1);
-const lbool l_Undef = toLbool( 0);
+const lbool l_True  = toLbool((uint8_t)0);
+const lbool l_False = toLbool((uint8_t)1);
+const lbool l_Undef = toLbool((uint8_t)2);
 /*A*///But still this conflicts with other programs defining the same, so we don't do this
 /*#define l_True  (lbool((uint8_t)0)) // gcc does not do constant propagation if these are real constants.
 #define l_False (lbool((uint8_t)1))

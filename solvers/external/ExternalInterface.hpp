@@ -57,7 +57,7 @@ private:
 public:
 	Solution(bool print, bool save, bool search, int searchnb, const std::vector<Literal>& assumpts):
 			printmodels(print), savemodels(save), search(search),
-			nbmodelstofind(searchnb),
+			nbmodelstofind(searchnb), nbmodelsfound(0),
 			assumptions(assumpts){}
 	~Solution(){};
 
@@ -68,13 +68,17 @@ public:
 		}
 	}
 
-	int 		modelCount		() 			{ return nbmodelsfound; }
+	int 		getNbModelsFound		() 			{ return nbmodelsfound; }
 	int 		getNbModelsToFind() const	{ return nbmodelstofind; }
 	bool 		getPrint		() const 	{ return printmodels; }
 	bool 		getSave			() const 	{ return savemodels; }
 	bool 		getSearch		() const 	{ return search; }
 
 	const std::vector<Literal>& 				getAssumptions	() { return assumptions; }
+
+	/**
+	 * IMPORTANT: only allowed when the models are being saved!
+	 */
 	const std::vector<std::vector<Literal> >& 	getModels		() {
 		if(!savemodels) throw idpexception("Models were not being saved!\n");
 		return models;

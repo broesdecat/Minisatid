@@ -196,7 +196,6 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 	struct ECNF_mode *args = static_cast<ECNF_mode*>(state->input);
 	assert(args!=NULL);
 
-	report("Key: %d, argument: %s\n", key, arg);
 	switch (key) {
 		case 1: // verbosity
 			if((stringstream(arg) >> modes.verbosity).fail()){
@@ -225,7 +224,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 			}
 			break;
 		case 5: // id clausesaving
-			if((stringstream(arg) >> modes.idclausesaving).fail() || modes.aggclausesaving>1 || modes.aggclausesaving<0){
+			if((stringstream(arg) >> modes.idclausesaving).fail() || modes.idclausesaving>1 || modes.idclausesaving<0){
 				report("Illegal idclausesaving value %s\n", arg); argp_usage(state);
 			}
 			break;
@@ -244,10 +243,10 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 			}
 			break;
 		case 8: // disableheur
-			throw idpexception("Option not implemented!\n");
+			assert(false);
 			break;
 		case 9: // defstrat: breadth_first/depth_first
-			throw idpexception("Option not implemented!\n");
+			assert(false);
 			/*if(strcmp(arg, "breadth_first")){
 				modes.ufs_strategy = breadth_first;
 			}else if(strcmp(arg, "depth_first")){
@@ -319,10 +318,8 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 				argp_usage(state);
 			}
 			if(state->arg_num == 0){
-				report("Set inputfile url\n");
 				MinisatID::setInputFileUrl(arg);
 			}else if(state->arg_num == 1){
-				report("Set outputfile url\n");
 				MinisatID::setOutputFileUrl(arg);
 			}
 			break;
@@ -440,6 +437,7 @@ int main(int argc, char** argv) {
 			vector<Literal> assumpts;
 			Solution* sol = new Solution(true, false, true, modes.nbmodels, assumpts);
 			unsat = !d->solve(sol);
+			delete sol;
 			if (modes.verbosity >= 1) {
 				report("===============================================================================\n");
 			}

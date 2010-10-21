@@ -132,7 +132,7 @@ void WrappedLogicSolver::addModel(const vec<Lit>& model, Solution* sol){
 	sol->addModel(outmodel);
 
 	if(sol->getPrint()){
-		if(sol->getModels().size()==1){	//First model found
+		if(sol->getNbModelsFound()==1){	//First model found
 			fprintf(getRes()==NULL?stdout:getRes(), "SAT\n");
 			if(modes().verbosity>=1){
 				printf("SATISFIABLE\n");
@@ -141,7 +141,7 @@ void WrappedLogicSolver::addModel(const vec<Lit>& model, Solution* sol){
 
 		if(verbosity()>=1){
 			report("| %4d model%s found                                                           |\n",
-					sol->modelCount(), sol->modelCount() > 1 ? "s" : " ");
+					sol->getNbModelsFound(), sol->getNbModelsFound() > 1 ? "s" : " ");
 		}
 
 		//Effectively print the model
