@@ -1,15 +1,15 @@
 //--------------------------------------------------------------------------------------------------
 //    Copyright (c) 2009-2010, Broes De Cat, K.U.Leuven, Belgium
-//    
+//
 //    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 //    associated documentation files (the "Software"), to deal in the Software without restriction,
 //    including without limitation the rights to use, copy, modify, merge, publish, distribute,
 //    sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 //    furnished to do so, subject to the following conditions:
-//    
+//
 //    The above copyright notice and this permission notice shall be included in all copies or
 //    substantial portions of the Software.
-//    
+//
 //    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
 //    NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
 //    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
@@ -102,7 +102,6 @@ void AggSolver::addPermWatch(Var v, pw w) {
 }
 
 void AggSolver::addTempWatch(const Lit& l, pw w) {
-	//reportf("Watch added: "); gprintLit(l); reportf("\n");
 	tempwatches[toInt(l)].push_back(w);
 }
 
@@ -114,7 +113,6 @@ inline pagg AggSolver::getAggWithHead(Var v) const {
 ///////
 // MAIN OPERATIONS
 ///////
-
 
 bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>& weights) {
 	assert(lits.size()==weights.size());
@@ -165,13 +163,13 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 	return true;
 }
 
-#include "pbsolver/PbSolver.h"
+//#include "pbsolver/PbSolver.h"
 
 bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	AggSign boundsign, AggType type, AggSem headeq) {
 	assert(type==MIN || type==MAX || type==CARD || type==SUM || type==PROD);
 
-	//Small test:
-	PBSolver::PbSolver* pbsolver = new PBSolver::PbSolver();
+	//Small injection test:
+	//PBSolver::PbSolver* pbsolver = new PBSolver::PbSolver();
 
 	if (parsedsets.find(setid)==parsedsets.end()) { //Exception if set already exists
 		char s[100];
@@ -228,20 +226,11 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound,	AggSign boundsig
 	//the head of the aggregate
 	Lit head = mkLit(headv, false);
 
-	new ParsedAgg(bound, boundsign, head, headeq, parsedsets[setid], type);
+	ppagg agg = new ParsedAgg(bound, boundsign, head, headeq, parsedsets[setid], type);
 
 	if (verbosity() >= 5) { //Print info on added aggregate
-		report("Added %s aggregate with head %d on set %d, %s %s of type ",
-				headeq == DEF?"defined":"completion", gprintVar(headv), setid,
-				boundsign==LB?"AGG <=":"AGG >=", printWeight(bound).c_str());
-		switch(type){
-			case SUM: report("SUM"); break;
-			case CARD: report("CARD"); break;
-			case MIN: report("MIN"); break;
-			case MAX: report("MAX"); break;
-			case PROD: report("PROD"); break;
-		}
-		report(".\n");
+		print(agg);
+		report("\n");
 	}
 
 	return true;
@@ -313,6 +302,8 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		report("| Over %4d sets, aggregate set avg. size: %7.2f lits.                      |\n",
 				nbsets,(double)setlits/(double)(nbsets));
 	}
+
+
 	if (verbosity() >= 3) {
 		report("Aggregates are present after initialization:\n");
 		for (vpaggs::const_iterator i=sets.begin(); i<sets.end(); i++) {
@@ -720,7 +711,9 @@ rClause AggSolver::getExplanation(const Lit& p) {
 		c = getPCSolver()->createClause(lits, true);
 	}
 
-	//getPCSolver()->addLearnedClause(c); //Adding directly as a learned clause should NOT be done, only when used as direct conflict reason: real slowdown for magicseries
+	//getPCSolver()->addLearnedClause(c);
+	//Adding directly as a learned clause should NOT be done,
+	//only when used as direct conflict reason: real slowdown for magicseries
 
 	return c;
 }
@@ -734,7 +727,7 @@ void AggSolver::backtrack(const Lit& l) {
 		return;
 	}
 
-	if(assigns[var(l)]==l_Undef){ //TODO FIXME the literal was not propagated into the solver, so should not be backtracked!
+	if(assigns[var(l)]==l_Undef){ //TODO the literal was not propagated into the solver, so should not be backtracked!
 		return;
 	}
 
@@ -772,12 +765,15 @@ void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& l
 	for (vwl::const_iterator i = comb->getWL().begin(); i < comb->getWL().end(); ++i) {
 		Lit l = (*i).getLit();
 		if (comb->isMonotone(agg, *i) && ufs.find(var(l)) == ufs.end()
-				&& seen[var(l)] != (isPositive(l) ? 2 : 1) && isFalse(l)) { //TODO deze laatste voorwaarde is een HACK: eigenlijk moeten de voorwaarden zo zijn, dat enkel relevant literals worden toegevoegd, maar momenteel worden er ook literals toegevoegd die nooit in een justification zullen zitten
+				&& seen[var(l)] != (isPositive(l) ? 2 : 1) && isFalse(l)) {
+					//TODO deze laatste voorwaarde is een HACK: eigenlijk moeten de voorwaarden zo zijn,
+					//dat enkel relevant literals worden toegevoegd, maar momenteel worden er ook literals
+					//toegevoegd die nooit in een justification zullen zitten
 			assert(isFalse(l));
 			loopf.push(l);
 			seen[var(l)] = isPositive(l) ? 2 : 1;
 		}
-		//TODO en neem er zoveel monotone niet zodat ze met de ufs erbij het agg nog true kunnen maken, maar zonder niet
+		//FIXME en neem er zoveel monotone niet zodat ze met de ufs erbij het agg nog true kunnen maken, maar zonder niet
 	}
 }
 
@@ -815,14 +811,12 @@ void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& 
 				continue;
 			}
 
-			//WRONG WRONG
+			//INCORRECT attempt
 			//If not monotone, then the head can never become true by w
 			//if(!expr->isMonotone((*(set->getWLBegin()+(*i).getIndex())))){
 			//	reportf(" => occurence is not monotone in agg %d \n", gprintVar(var(expr->getHead())));
 			//	continue;
 			//}
-
-			//reportf("=> checking agg %d \n", gprintVar(var(expr->getHead())));
 
 			Var head = var(expr.getHead());
 			if (currentjust[head] > 0) { //only check its body for justification when it has not yet been derived
@@ -864,7 +858,7 @@ bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, ve
 ///////
 
 //FIXME no optimizations should take place on mnmz aggregates (partially helped by separate add method).
-//FIXME 2 more optimization should/could take place on other aggregates
+//TODO 2 more optimization should/could take place on other aggregates
 bool AggSolver::addMnmzSum(Var headv, int setid, AggSign boundsign) {
 	if (parsedsets.find(setid)==parsedsets.end()) {
 		char s[100];
@@ -909,12 +903,11 @@ bool AggSolver::addMnmzSum(Var headv, int setid, AggSign boundsign) {
 	}
 
 	ppagg ae = new ParsedAgg(boundsign==LB ? max+1 : min, boundsign, head, COMP, set, SUM);
-	ae->setOptim(); //FIXME temporary solution
+	ae->setOptim(); //TODO temporary solution
 
 	if (verbosity() >= 3) {
 		report("Added sum minimization: Minimize ");
-		//TODO
-		//printAggrExpr(ae);
+		print(ae);
 		report("\n");
 	}
 
@@ -938,13 +931,14 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
 		return true;
 	}
 
+	//TODO: should call standard getexplanation here!
 	prop->getMinimExplan(*a, invalidation);
 
 	return false;
 }
 
 /**
- * FIXME: not really beautiful solution, maybe it can be fixed with ASSUMPTIONS?
+ * TODO: not really beautiful solution, maybe it can be fixed with ASSUMPTIONS?
  * This method has to be called after every temporary solution has been found to force the propagation of
  * the newly adapted bound.
  */
@@ -958,6 +952,22 @@ void AggSolver::propagateMnmz(Var head) {
 
 void AggSolver::printStatistics() const {
 	report("aggregate propagations: %-12" PRIu64 "\n", propagations);
+}
+
+void AggSolver::print(ppagg agg) const{
+	report("Added %s aggregate with head %d on set %d, %s %s of type ",
+			agg->getSem() == DEF?"defined":"completion",
+			gprintVar(var(agg->getHead())),
+			agg->getSetID(),
+			agg->getSign()==LB?"AGG <=":"AGG >=",
+			printWeight(agg->getBound()).c_str());
+	switch(agg->getType()){
+		case SUM: report("SUM"); break;
+		case CARD: report("CARD"); break;
+		case MIN: report("MIN"); break;
+		case MAX: report("MAX"); break;
+		case PROD: report("PROD"); break;
+	}
 }
 
 /*void AggSolver::findClausalPropagations(){

@@ -1,15 +1,15 @@
 //--------------------------------------------------------------------------------------------------
 //    Copyright (c) 2009-2010, Broes De Cat, K.U.Leuven, Belgium
-//    
+//
 //    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 //    associated documentation files (the "Software"), to deal in the Software without restriction,
 //    including without limitation the rights to use, copy, modify, merge, publish, distribute,
 //    sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
 //    furnished to do so, subject to the following conditions:
-//    
+//
 //    The above copyright notice and this permission notice shall be included in all copies or
 //    substantial portions of the Software.
-//    
+//
 //    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
 //    NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
 //    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
@@ -357,14 +357,10 @@ bool PCSolver::finishParsing() {
 	if (idsolverpresent) {
 		bool idpropagations = getIDSolver()->finishECNF_DataStructures();
 		if (idpropagations) {
-			//FIXME test this:
-			//idsolverpresent = getIDSolver()->finishECNF_DataStructures(); //Here idsolver is deleted if no recursive pos or neg loops are possible
-			//if (idsolverpresent) {
 			if (!getIDSolver()->initAfterSimplify()) {
 				return false;
 			}
 		} else {
-			//idsolverpresent = false;
 			if (modes().verbosity > 0) {
 				report("|    (there will be no definitional propagations)                             |\n");
 			}
@@ -833,7 +829,7 @@ bool PCSolver::invalidateValue(vec<Lit>& invalidation) {
 
 /*
  * If the optimum possible value is reached, the model is not invalidated. Otherwise, unsat has to be found first, so it is invalidated.
- * FIXME: add code that allows to reset the solver when the optimal value has been found, to search for more models with the same optimal value.
+ * TODO: add code that allows to reset the solver when the optimal value has been found, to search for more models with the same optimal value.
  *
  * Returns true if an optimal model was found
  */
