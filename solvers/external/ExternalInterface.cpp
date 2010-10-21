@@ -159,8 +159,7 @@ void WrappedLogicSolver::addModel(const vec<Lit>& model, Solution* sol){
  ///////
 
 WrappedPCSolver::WrappedPCSolver(ECNF_mode modes)
-		:WrappedLogicSolver(modes), solver(new PCSolver(modes)){
-	getSolver()->setParent(this);
+		:WrappedLogicSolver(modes), solver(new PCSolver(modes, this)){
 }
 
 WrappedPCSolver::~WrappedPCSolver(){
@@ -169,10 +168,10 @@ WrappedPCSolver::~WrappedPCSolver(){
 
 PCSolver* WrappedPCSolver::getSolver() const { return solver; }
 
-void WrappedPCSolver::addVar(Atom v){
+/*void WrappedPCSolver::addVar(Atom v){
 	Var newv = checkAtom(v);
 	getSolver()->addVar(newv);
-}
+}*/
 
 bool WrappedPCSolver::addClause(vector<Literal>& lits){
 	vec<Lit> ll;
@@ -270,8 +269,8 @@ void WrappedPCSolver::printStatistics() const {
 // MODEL SOLVER
 ///////
 
-WrappedSOSolver::WrappedSOSolver(ECNF_mode modes):WrappedLogicSolver(modes), solver(new SOSolver(modes)){
-	getSolver()->setParent(this);
+WrappedSOSolver::WrappedSOSolver(ECNF_mode modes):
+		WrappedLogicSolver(modes), solver(new SOSolver(modes, this)){
 }
 
 WrappedSOSolver::~WrappedSOSolver(){
@@ -280,9 +279,9 @@ WrappedSOSolver::~WrappedSOSolver(){
 
 SOSolver* WrappedSOSolver::getSolver() const { return solver; }
 
-void WrappedSOSolver::addVar(vsize modid, Atom v){
+/*void WrappedSOSolver::addVar(vsize modid, Atom v){
 	getSolver()->addVar(modid, checkAtom(v));
-}
+}*/
 
 bool WrappedSOSolver::addClause(vsize modid, vector<Literal>& lits){
 	vec<Lit> ll;

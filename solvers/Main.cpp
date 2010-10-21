@@ -401,7 +401,8 @@ int main(int argc, char** argv) {
 
 		MinisatID::closeInput();
 
-		assert(d.get()!=NULL);
+		//d is initialized unless unsat was already detected
+		bool unsat = d.get()==NULL;
 
 		if (modes.verbosity >= 1) {
 			report("| Parsing input finished                                                      |\n");
@@ -409,7 +410,9 @@ int main(int argc, char** argv) {
 		}
 
 		//Initialize datastructures
-		bool unsat = !d->finishParsing();
+		if(!unsat){
+			unsat = !d->finishParsing();
+		}
 
 		if (modes.verbosity >= 1) {
 			report("| Datastructure initialization finished                                       |\n");

@@ -33,9 +33,10 @@ class WrappedLogicSolver;
 class LogicSolver{
 private:
 	ECNF_mode _modes;
-	MinisatID::WrappedLogicSolver* parent;
+	MinisatID::WrappedLogicSolver* _parent;
 public:
-	LogicSolver(MinisatID::ECNF_mode modes):_modes(modes){};
+	LogicSolver(MinisatID::ECNF_mode modes, MinisatID::WrappedLogicSolver* inter)
+			:_modes(modes), _parent(inter){};
 	virtual ~LogicSolver(){};
 
 	virtual bool 	simplify		() = 0;
@@ -46,8 +47,7 @@ public:
 			int 	verbosity		() const	{ return modes().verbosity; }
 	const ECNF_mode& modes			() const	{ return _modes; }
 
-	MinisatID::WrappedLogicSolver* getParent		() const { return parent; }
-			void 	setParent		(MinisatID::WrappedLogicSolver* inter) { parent = inter; }
+	MinisatID::WrappedLogicSolver* getParent		() const { return _parent; }
 };
 
 }

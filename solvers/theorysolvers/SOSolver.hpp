@@ -68,7 +68,7 @@ private:
 	modhierstate state;	//stores the current state of the parsing.
 
 public:
-	SOSolver					(ECNF_mode modes);
+	SOSolver					(ECNF_mode modes, MinisatID::WrappedLogicSolver* inter);
 	virtual ~SOSolver			();
 
 	bool 	simplify			();

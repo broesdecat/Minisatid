@@ -43,8 +43,8 @@ int PCSolver::getModPrintID() const {
 }
 
 //Has to be value copy of modes!
-PCSolver::PCSolver(ECNF_mode modes) :
-		LogicSolver(modes),
+PCSolver::PCSolver(ECNF_mode modes, MinisatID::WrappedLogicSolver* inter) :
+		LogicSolver(modes, inter),
 		solver(NULL), idsolver(NULL), cpsolver(NULL), aggsolver(NULL), modsolver(NULL),
 		aggcreated(false), idcreated(false),
 		aggsolverpresent(false), idsolverpresent(false), modsolverpresent(false),
@@ -518,7 +518,7 @@ void PCSolver::newDecisionLevel() {
 	if (idsolverpresent) {
 		getIDSolver()->newDecisionLevel();
 	}
-	if (aggsolver) {
+	if (aggsolverpresent) {
 		getAggSolver()->newDecisionLevel();
 	}
 }
@@ -526,7 +526,7 @@ void PCSolver::newDecisionLevel() {
 //TODO implementeer ze hier allemaal
 void PCSolver::backtrackDecisionLevel(int levels) {
 	for (int i = 0; i < levels; i++) {
-		if (aggsolver) {
+		if (aggsolverpresent) {
 			getAggSolver()->backtrackDecisionLevel();
 		}
 	}
@@ -615,7 +615,7 @@ bool PCSolver::solve(const vec<Lit>& assumptions, Solution* sol){
 
 	bool moremodels = true;
 
-	while (moremodels && (sol->getNbModelsFound() == 0 || sol->getNbModelsFound() < sol->getNbModelsFound())) {
+	while (moremodels && (sol->getNbModelsToFind() == 0 || sol->getNbModelsFound() < sol->getNbModelsToFind())) {
 		vec<Lit> model;
 		bool found = false;
 		if(optim!=NONE){

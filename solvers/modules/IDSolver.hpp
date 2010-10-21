@@ -121,6 +121,8 @@ public:
 
 	PropRule const* const	getDefinition(Var head) const { assert(definition[head]!=NULL); return definition[head]; }
 	DefType 	getDefType			(Var i) const { return defType[i]; }
+	bool		isDefined			(Var v) const; //Whether the variable is currently the head of any definition
+	bool 		originallyDefined	(Var v) const; //Whether the variable has been the head of a definition at any point during execution
 	bool 		isConjunctive		(Var v) const;
 	bool 		isDisjunctive		(Var v) const;
 	bool		isDefinedByAggr		(Var v) const;
@@ -169,8 +171,6 @@ protected:
 
 	std::set<Var>		toremoveaggrheads; //The set of defined aggregates that are no longer defined and should be removed from IDSolver during simplification.
 
-	bool		isDefined			(Var v) const;
-	bool 		originallyDefined	(Var v) const;
 	bool		isDefInPosGraph		(Var v) const;
 	bool		setTypeIfNoPosLoops	(Var v) const;
 

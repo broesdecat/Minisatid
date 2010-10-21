@@ -72,10 +72,10 @@ inline bool IDSolver::inSameSCC(Var x, Var y) const {
 inline bool IDSolver::isDefInPosGraph(Var v) const {
 	return defOcc[v] == POSLOOP || defOcc[v] == BOTHLOOP;
 }
-inline bool IDSolver::isDefined(Var v) const {
+bool IDSolver::isDefined(Var v) const {
 	return defType[v]>3;
 }
-inline bool IDSolver::originallyDefined(Var v) const {
+bool IDSolver::originallyDefined(Var v) const {
 	return defType[v]>0;
 }
 bool IDSolver::isConjunctive(Var v) const {

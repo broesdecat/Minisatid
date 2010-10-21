@@ -138,7 +138,7 @@ public:
 	WrappedPCSolver(MinisatID::ECNF_mode modes);
 	~WrappedPCSolver();
 
-	void	addVar			(Atom v);
+	//void	addVar			(Atom v);
 	bool	addClause		(std::vector<Literal>& lits);
 	bool	addRule			(bool conj, Literal head, const std::vector<Literal>& lits);
 	bool	addSet			(int id, const std::vector<Literal>& lits);
@@ -180,7 +180,7 @@ public:
 	bool	addAtoms		(vsize modid, const std::vector<Atom>& atoms);
 
 	//Add information for PC-Solver
-	void 	addVar			(vsize modid, Atom v);
+	//void 	addVar			(vsize modid, Atom v);
 	bool 	addClause		(vsize modid, std::vector<Literal>& lits);
 	bool 	addRule			(vsize modid, bool conj, Literal head, std::vector<Literal>& lits);
 	bool 	addSet			(vsize modid, int set_id, std::vector<WLtuple>& lws);

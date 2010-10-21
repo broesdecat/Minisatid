@@ -98,7 +98,7 @@ private:
 	ModSolver*			getModSolver() const;
 
 public:
-	PCSolver(ECNF_mode modes);
+	PCSolver(ECNF_mode modes, MinisatID::WrappedLogicSolver* inter);
 	virtual ~PCSolver();
 
 	// Getters for constant solver pointers

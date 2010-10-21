@@ -74,7 +74,7 @@ void Print::print(IDSolver const * const s){
 	}
 	report("Definitions\n");
 	for(int i=0; i<s->nVars(); i++){
-		if(s->getDefinition(i)!=NULL){
+		if(s->isDefined(i)){
 			DefType d = s->getDefType(i);
 			if(s->isConjunctive(i)){
 				report("Conjunctive rule");

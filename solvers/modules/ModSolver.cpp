@@ -43,7 +43,7 @@ ModSolver::ModSolver(modindex child, Var head, SOSolver* mh):
 	ECNF_mode modescopy(mh->modes());
 	modescopy.nbmodels = 1;
 
-	pcsolver = new PCSolver(modescopy);
+	pcsolver = new PCSolver(modescopy, mh->getParent());
 	getPCSolver()->setModSolver(this);
 }
 
