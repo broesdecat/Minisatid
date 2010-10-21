@@ -257,6 +257,7 @@ struct ECNF_mode {
 	int idclausesaving; //0 = on propagation add clause to store, 1 = on propagation, generate explanation and save it, 2 = on propagation, generate reason and save it
 	int aggclausesaving; //0 = on propagation add clause to store, 1 = on propagation, generate explanation and save it, 2 = on propagation, generate reason and save it
 
+	bool printcnfgraph;
 
 	//rest
 	bool def, aggr, mnmz, cp; // True for those extensions that are being used.
@@ -279,6 +280,7 @@ struct ECNF_mode {
 		disableheur(false),
 		idclausesaving(0),
 		aggclausesaving(2),
+		printcnfgraph(false),
 		def(false),
 		aggr(false),
 		mnmz(false),

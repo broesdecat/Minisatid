@@ -114,6 +114,7 @@ public:
 	int			nbClauses			() const { return clauses.size(); }
 	void		addForcedChoices	(const vec<Lit>& fc) { fc.copyTo(forcedchoices); }
 	void		disableHeur			() { useheur = false; }
+	bool     	isDecisionVar(Var v) const { return decision_var[v]; }
 	//vector<Clause*> getClausesWhichOnlyContain(const vector<Var>& vars);
 /*AE*/
 

@@ -90,6 +90,7 @@ public:
 	int			nbClauses			() const { return clauses.size(); }
 	void		addForcedChoices	(const vec<Lit>& fc) { reportf("Not supported by solver!\n"); exit(-1);  }
 	void		disableHeur			() { reportf("Not supported by solver!\n"); exit(-1); }
+	bool     	isDecisionVar(Var v) const { return decision[v]; }
 /*AE*/
 
     // Constructor/Destructor:

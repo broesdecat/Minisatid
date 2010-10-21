@@ -135,29 +135,6 @@ void printVersion() {
 			"and inductive definitions. Also lparse and opb languages are supported.\n");
 }
 
-void printUsage() {
-	report("Usage: program [options] <input-file> <result-output-file>\n\n  where input may is in ECNF, LParse, PB or MECNF.\n\n");
-	report("Options:\n\n");
-	report("   --defsearch        Unfounded set search frequency: \"always\", \"adaptive\" or \"lazy\".\n");
-	report("   --defstrat         Unfounded set search strategy: \"breadth_first\" or \"depth_first\".\n");
-	report("   --defsem           Semantics of all definitions: \"stable\" or \"wellfounded\".\n");
-	report("   --n<I>             The number of models <I> to search for.\n");
-	report("   --verbosity=<I>    The level of output <I> to generate.\n");
-	report("   --rnd-freq=<D>     <D> is a double \\in [0..1].\n");
-	report("   --decay=<D>        <D> is a double \\in [0..1].\n");
-	report("   --polarity-mode    Default polarity choice of variables: \"true\", \"false\" or \"rnd\".\n");
-	report("   --defsearch        Unfounded set search frequency: \"always\", \"adaptive\" or \"lazy\".\n");
-	report("   --lparse=<B>       \"yes\" if the input is in ASP lparse format.\n");
-	report("   --pb=<B>           \"yes\" if the input is in PB format.\n");
-	report("   --idclausesaving=<I> 0=add on propagation, 1=save on propagation.\n");
-	report("   --aggclausesaving=<I> 0=add on propagation, 1=save on propagation, 2 = don't save.\n");
-	report("   --remap=<B>        \"yes\" if all literals should be remapped to remove gaps in the grounding.\n");
-	report("   --pw=<B>           \"yes\" if watched aggregate structures should be used.\n");
-	report("   --randomize=<B>    \"yes\" if the SAT-solver random seed should be random.\n");
-	report("   --disableheur=<B>  \"yes\" if the SAT-solver's heuristic should be disabled.\n");
-	report("\n");
-}
-
 const char *argp_program_version = "minisatid 2.1.20";
 const char *argp_program_bug_address = "<krr@cs.kuleuven.be>";
 
@@ -188,6 +165,7 @@ static struct argp_option options[] = {
 //		{"defstrat "	, 9, "STRAT", 0,	"STRAT={\"breadth_first\", \"depth_first\"}: sets the unfounded-set search-strategy"},
 		{"defsearch"	, 10, "SEARCH", 0,	"SEARCH={\"always\", \"adaptive\", \"lazy\"}: sets the unfounded-set search-frequency"},
 		{"defsem"		, 11, "SEM", 0,		"SEM={\"stable\", \"wellfounded\"}: uses the chosen semantics to handle inductive definitions"},
+		{"ecnfgraph"	, 12, "BOOL", 0,	"BOOL={\"yes\",\"no\"}: generate .dot ecnf graph representation"},
 		{ 0 } }; //Required end tuple
 
 /* Parse a single option. */
@@ -273,6 +251,15 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 				modes.sem = WELLF;
 			}else{
 				report("Illegal defsem value %s\n", arg); argp_usage(state);
+			}
+			break;
+		case 12: // ecnfgraph: yes/no
+			if(strcmp(arg, "no")==0){
+				modes.printcnfgraph = false;
+			}else if(strcmp(arg, "yes")==0){
+				modes.printcnfgraph = true;
+			}else{
+				report("Illegal printcnfgraph value %s\n", arg); argp_usage(state);
 			}
 			break;
 		case 'n': // models

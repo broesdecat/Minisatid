@@ -75,6 +75,10 @@ PCSolver::PCSolver(ECNF_mode modes, MinisatID::WrappedLogicSolver* inter) :
 	solver->random_var_freq = modes.random_var_freq;
 	solver->verbosity = modes.verbosity;
 	solver->var_decay = modes.var_decay;
+
+	if(modes.printcnfgraph){
+		reportf("graph ecnftheory {\n");
+	}
 }
 
 PCSolver::~PCSolver() {
@@ -164,9 +168,9 @@ void PCSolver::varBumpActivity(Var v) {
 	}
 }
 
-/************************
- * EXTENDING THE THEORY *
- ************************/
+///////
+// INITIALIZING THE THEORY // TODO should add STATE concept to solver for correctness
+////////
 
 Var PCSolver::newVar() {
 	assert(!init);
@@ -186,7 +190,9 @@ void PCSolver::addVar(Var v) {
 			getAggSolver()->notifyVarAdded(nVars());
 		}
 	}
-	getSolver()->setDecisionVar(v, true); // S.nVars()-1   or   var
+
+	getSolver()->setDecisionVar(v, true);
+
 	if (!init) {
 		propagations.resize(nVars(), NOPROP);
 	}
@@ -208,6 +214,17 @@ bool PCSolver::addClause(vec<Lit>& lits) {
 		report("\n");
 	}
 	addVars(lits);
+
+	if(modes().printcnfgraph){
+		for(int i=0; i<lits.size(); i++){
+			if(i>0){
+				report(" -- ");
+			}
+			report("%d", gprintVar(var(lits[i])));
+		}
+		report("[color=blue];\n");
+	}
+
 	return getSolver()->addClause(lits);
 }
 
@@ -258,6 +275,7 @@ bool PCSolver::addSet(int setid, const vec<Lit>& lits) {
 	addVars(lits);
 	vector<Weight> w;
 	w.resize(lits.size(), 1);
+
 	return addSet(setid, lits, w);
 }
 
@@ -268,6 +286,17 @@ bool PCSolver::addSet(int setid, const vec<Lit>& lits, const vector<Weight>& w) 
 	for (int i = 0; i < lits.size(); i++) {
 		ll.push_back(lits[i]);
 	}
+
+	if(modes().printcnfgraph){
+		for(int i=0; i<lits.size(); i++){
+			if(i>0){
+				report(" -- ");
+			}
+			report("%d", gprintVar(var(lits[i])));
+		}
+		report("[color=green];\n");
+	}
+
 	return getAggSolver()->addSet(setid, ll, w);
 }
 
@@ -391,6 +420,10 @@ bool PCSolver::finishParsing() {
 	/*if(aggsolverpresent){
 	 getAggSolver()->findClausalPropagations();
 	 }*/
+
+	if(modes().printcnfgraph){
+		report("}\n");
+	}
 
 	return true;
 }
