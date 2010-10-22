@@ -546,7 +546,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 	//TODO new IDEA: mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt of de grootte van de sets?
 	//want de grootte van de set bepaalt hoe vaak de literal zou zijn uitgeschreven in een cnf theorie
 	//maar niet trager voor pakman
-	//getPCSolver()->varBumpActivity(var(p));
+	getPCSolver()->varBumpActivity(var(p));
 
 	if(value(p) != l_True && getPCSolver()->modes().aggclausesaving<2){
 		vec<Lit> lits;
@@ -587,7 +587,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 			getPCSolver()->addLearnedClause(c);
 		}
 
-		getPCSolver()->setTrue(p, BYAGG);
+		getPCSolver()->setTrue(p, this);
 	} else {
 		delete ar;
 	}
@@ -605,7 +605,7 @@ void AggSolver::newDecisionLevel() {
 	}
 }
 
-void AggSolver::backtrackDecisionLevel(){
+void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel){
 	/*for(vsize i=0; i<sets.size(); i++){
 		sets[i]->backtrackDecisionLevel();
 	}*/

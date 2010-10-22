@@ -254,7 +254,7 @@ void Solver::cancelUntil(int level) {
         /*AB*/
         int levels = trail_lim.size() - level;
         trail_lim.shrink(levels);
-        solver->backtrackDecisionLevel(levels);
+        solver->backtrackDecisionLevel(levels, decisionLevel());
         /*AE*/
     } }
 

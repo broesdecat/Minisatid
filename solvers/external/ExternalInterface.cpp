@@ -102,7 +102,9 @@ void WrappedPCSolver::addForcedChoices(const vector<Literal> lits){
 }
 
 bool WrappedLogicSolver::finishParsing(){
-	return getSolver()->finishParsing();
+	bool present = true, unsat = false;
+	getSolver()->finishParsing(present, unsat);
+	return !unsat;
 }
 
 bool WrappedLogicSolver::simplify(){

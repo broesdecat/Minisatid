@@ -65,6 +65,8 @@
 #include <argp.h>
 #include <sstream>
 
+#include <setjmp.h>
+
 #include "solvers/external/ExternalInterface.hpp"
 #include "solvers/Unittests.hpp"
 #include "solvers/parser/Lparseread.hpp"
@@ -103,30 +105,11 @@ void parseCommandline(int& argc, char** argv);
 pData parse();
 
 void printStats();
-static void SIGINT_handler(int signum);
-void printUsage(char** argv);
 
-void noMoreMem() {
-	//Tries to reduce the memory of the solver by reducing the number of learned clauses
-	//This keeps being called until enough memory is free or no more learned clauses can be deleted (causing abort).
-	throw idpexception("The solver ran out of memory.\n");
-	bool reducedmem = false;
-	//	pSolver s = wps.lock();
-	//	if(s.get()!=NULL){
-	//		int before = s->getNbOfLearnts();
-	//		if(before > 0){
-	//			s->reduceDB();
-	//			int after = s->getNbOfLearnts();
-	//			if(after<before){
-	//				reducedmem = true;
-	//			}
-	//		}
-	//	}
-	//
-	if (!reducedmem) {
-		throw idpexception("The solver ran out of memory.\n");
-	}
-}
+jmp_buf main_loop;
+static void noMoreMem();
+volatile sig_atomic_t mem;
+static void SIGINT_handler(int signum);
 
 void printVersion() {
 	report("MinisatID version 2.0.20\n");
@@ -291,7 +274,6 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 			MinisatID::setOutputFileUrl(arg);
 			break;
 		case 'w': // watched agg: yes/no
-			report("ARG: %s", arg);
 			if(strcmp(arg, "no")==0){
 				modes.pw = false;
 			}else if(strcmp(arg, "yes")==0){
@@ -322,10 +304,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 /* Our argp parser. */
 static struct argp argp = { options, parse_opt, args_doc, doc };
 
-
-///////
-// Option datastructure
-///////
+int doModelGeneration(pData& d, double cpu_time);
 
 int main(int argc, char** argv) {
 	//Setting system precision and signal handlers
@@ -358,111 +337,130 @@ int main(int argc, char** argv) {
 	pData d;
 	int returnvalue = 1;
 	try { // Start catching IDP exceptions
-		// Unittest injection by   pData d = unittestx(modes);
 
-		//Parse input
-		if (modes.lparse) {
-			modes.aggr = true;
-			modes.def = true;
-			WrappedPCSolver* p = new WrappedPCSolver(modes);
-			d = shared_ptr<WrappedLogicSolver> (p);
-			Read* r = new Read(p);
-			std::filebuf buf;
-			buf.open(MinisatID::getInputFileUrl(), std::ios::in);
-			std::istream is(&buf);
-			r->read(is);
-			buf.close();
-			delete r;
-		} else if (modes.pb) { //PB
-			modes.aggr = true;
-			modes.mnmz = true;
-			WrappedPCSolver* p = new WrappedPCSolver(modes);
-			d = shared_ptr<WrappedLogicSolver> (p);
-			PBRead* parser = new PBRead(p, MinisatID::getInputFileUrl());
-			parser->autoLin();
-			parser->parse();
-			delete parser;
-		} else {
-			yyin = MinisatID::getInputFile();
-			d = parse();
+		//IMPORTANT: because signals are handled asynchronously, a special mechanism is needed to recover from them (exception throwing does not work)
+		//setjmp maintains a jump point to which any stack can jump back, re-executing this statement with different return value,
+		//so if this happens, we jump out
+		if(setjmp(main_loop)){
+			char s[100];
+			sprintf(s, "Signal handled: %s\n", mem==1?"out of memory":"execution interrupted");
+			throw idpexception(s);
 		}
-
-		MinisatID::closeInput();
-
-		//d is initialized unless unsat was already detected
-		bool unsat = d.get()==NULL;
-
-		if (modes.verbosity >= 1) {
-			report("| Parsing input finished                                                      |\n");
-			report("| Datastructure initialization                                                |\n");
-		}
-
-		//Initialize datastructures
-		if(!unsat){
-			unsat = !d->finishParsing();
-		}
-
-		if (modes.verbosity >= 1) {
-			report("| Datastructure initialization finished                                       |\n");
-			double parse_time = cpuTime() - cpu_time;
-			report("| Total parsing time              : %7.2f s                                 |\n", parse_time);
-			if (unsat) {
-				report("===============================================================================\n"
-						"Unsatisfiable found by parsing\n");
-			}
-		}
-
-		//Simplify
-		if(!unsat){
-			unsat = !d->simplify();
-			if(unsat){
-				if (modes.verbosity >= 1) {
-					report("===============================================================================\n"
-							"Unsatisfiable found by unit propagation\n");
-				}
-			}
-		}
-
-		//Solve
-		if(!unsat){
-			vector<Literal> assumpts;
-			Solution* sol = new Solution(true, false, true, modes.nbmodels, assumpts);
-			unsat = !d->solve(sol);
-			delete sol;
-			if (modes.verbosity >= 1) {
-				report("===============================================================================\n");
-			}
-		}
-
-		if(unsat){
-			fprintf(getOutputFile(), "UNSAT\n");
-			if(modes.verbosity >= 1){
-				report("UNSATISFIABLE\n");
-			}
-		}
-
-		if(modes.verbosity >= 1){
-			d->printStatistics();
-		}
-
-		MinisatID::closeOutput();
-
-		//#ifdef NDEBUG
-		//		exit(unsat ? 20 : 10);     // (faster than "return", which will invoke the destructor for 'Solver')
-		//#else
-		returnvalue = unsat ? 20 : 10;
-		//#endif
-
-	} catch (const MinisatID::idpexception& e) {
+		returnvalue = doModelGeneration(d, cpu_time);
+		#ifdef NDEBUG
+			exit(returnvalue);     // (faster than "return", which will invoke the destructor for 'Solver')
+		#endif
+	} catch (const idpexception& e) { //exceptions from some places, like the siginthandler and the no more memory are NOT caught for some reason?
 		report(e.what());
 		report("Program will abort.\n");
-		d->printStatistics();
-	} catch (int) {
+		if(d.get()!=NULL){
+			d->printStatistics();
+		}
+	} catch (...) {
 		report("Unexpected error caught, program will abort.\n");
-		d->printStatistics();
+		if(d.get()!=NULL){
+			d->printStatistics();
+		}
 	}
 
 	return returnvalue;
+}
+
+///////
+// DEFAULT SOLVING ALGORITHM
+///////
+
+int doModelGeneration(pData& d, double cpu_time){
+	// Unittest injection by   pData d = unittestx(modes);
+
+	//Parse input
+	if (modes.lparse) {
+		modes.aggr = true;
+		modes.def = true;
+		WrappedPCSolver* p = new WrappedPCSolver(modes);
+		d = shared_ptr<WrappedLogicSolver> (p);
+		Read* r = new Read(p);
+		std::filebuf buf;
+		buf.open(MinisatID::getInputFileUrl(), std::ios::in);
+		std::istream is(&buf);
+		r->read(is);
+		buf.close();
+		delete r;
+	} else if (modes.pb) { //PB
+		modes.aggr = true;
+		modes.mnmz = true;
+		WrappedPCSolver* p = new WrappedPCSolver(modes);
+		d = shared_ptr<WrappedLogicSolver> (p);
+		PBRead* parser = new PBRead(p, MinisatID::getInputFileUrl());
+		parser->autoLin();
+		parser->parse();
+		delete parser;
+	} else {
+		yyin = MinisatID::getInputFile();
+		d = parse();
+	}
+
+	MinisatID::closeInput();
+
+	//d is initialized unless unsat was already detected
+	bool unsat = d.get()==NULL;
+
+	if (modes.verbosity >= 1) {
+		report("| Parsing input finished                                                      |\n");
+		report("| Datastructure initialization                                                |\n");
+	}
+
+	//Initialize datastructures
+	if(!unsat){
+		unsat = !d->finishParsing();
+	}
+
+	if (modes.verbosity >= 1) {
+		report("| Datastructure initialization finished                                       |\n");
+		double parse_time = cpuTime() - cpu_time;
+		report("| Total parsing time              : %7.2f s                                 |\n", parse_time);
+		if (unsat) {
+			report("===============================================================================\n"
+					"Unsatisfiable found by parsing\n");
+		}
+	}
+
+	//Simplify
+	if(!unsat){
+		unsat = !d->simplify();
+		if(unsat){
+			if (modes.verbosity >= 1) {
+				report("===============================================================================\n"
+						"Unsatisfiable found by unit propagation\n");
+			}
+		}
+	}
+
+	//Solve
+	if(!unsat){
+		vector<Literal> assumpts;
+		Solution* sol = new Solution(true, false, true, modes.nbmodels, assumpts);
+		unsat = !d->solve(sol);
+		delete sol;
+		if (modes.verbosity >= 1) {
+			report("===============================================================================\n");
+		}
+	}
+
+	if(unsat){
+		fprintf(getOutputFile(), "UNSAT\n");
+		if(modes.verbosity >= 1){
+			report("UNSATISFIABLE\n");
+		}
+	}
+
+	if(modes.verbosity >= 1){
+		d->printStatistics();
+	}
+
+	MinisatID::closeOutput();
+
+	return unsat ? 20 : 10;
 }
 
 ///////
@@ -506,6 +504,29 @@ pData parse() {
 // Debugging - information printing
 ///////
 
+static void noMoreMem() {
+	//Tries to reduce the memory of the solver by reducing the number of learned clauses
+	//This keeps being called until enough memory is free or no more learned clauses can be deleted (causing abort).
+	bool reducedmem = false;
+	//	pSolver s = wps.lock();
+	//	if(s.get()!=NULL){
+	//		int before = s->getNbOfLearnts();
+	//		if(before > 0){
+	//			s->reduceDB();
+	//			int after = s->getNbOfLearnts();
+	//			if(after<before){
+	//				reducedmem = true;
+	//			}
+	//		}
+	//	}
+	//
+	if (!reducedmem) {
+		mem=1;
+		longjmp (main_loop, 1);
+	}
+}
+
 static void SIGINT_handler(int signum) {
-	throw idpexception("Execution interrupted!\n");
+	mem=0;
+	longjmp (main_loop, 1);
 }

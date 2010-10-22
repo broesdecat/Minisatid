@@ -42,20 +42,46 @@ public:
 
 	PCSolver* getPCSolver	()	const 	{ return pcsolver; }
 
-	bool isTrue		(const Lit& l) const;
-	bool isFalse	(const Lit& l) const;
-	bool isUnknown	(const Lit& l) const;
-	bool isTrue		(Var l) const;
-	bool isFalse	(Var l) const;
-	bool isUnknown	(Var l) const;
+	///////
+	// DPLL-T methods
+	///////
 
-	int verbosity	() 		const;
+	virtual void 	notifyVarAdded			(uint64_t nvars) = 0;
+	virtual void 	finishParsing		 	(bool& present, bool& unsat) = 0;
+	virtual bool 	simplify		() = 0; //False if problem unsat
+	virtual rClause propagate				(const Lit& l) = 0;
+	virtual rClause propagateAtEndOfQueue	() = 0;
+	virtual void 	backtrack				(const Lit& l) = 0;
+	virtual void 	newDecisionLevel		() = 0;
+	virtual void 	backtrackDecisionLevels	(int nblevels, int untillevel) = 0;
 
-	lbool		value(Var x) const;
-	lbool		value(const Lit& p) const;
-	int			nVars()      const;
+	/*
+	 * Returns the explanation for the deduction of p from an aggregate expression.
+	 * This method constructs, from the AggReason stored for it, a "reason clause" usable in clause learning.
+	 * @post the first element in the reason clause will be the literal itself (invariant by minisat!)
+	 * @post the clause is added to the sat solver
+	 * @returns NON-OWNING pointer
+	 */
+	virtual rClause getExplanation			(const Lit& l) = 0;
 
-	virtual void printStatistics	() const = 0;
+	virtual void 	printStatistics			() const = 0;
+
+	///////
+	// Convenience methods (based on getPCSolver)
+	///////
+
+	int 	verbosity	() 				const;
+
+	lbool	value		(Var x) 		const;
+	lbool	value		(const Lit& p) const;
+	int		nVars		()      		const;
+
+	bool 	isTrue		(const Lit& l) const;
+	bool 	isFalse		(const Lit& l) const;
+	bool 	isUnknown	(const Lit& l) const;
+	bool 	isTrue		(Var l) 		const;
+	bool 	isFalse		(Var l) 		const;
+	bool 	isUnknown	(Var l) 		const;
 };
 
 }

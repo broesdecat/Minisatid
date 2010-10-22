@@ -104,7 +104,7 @@ IDSolver::~IDSolver() {
 	deleteList<PropRule> (definition);
 }
 
-void IDSolver::notifyVarAdded(int nvars) {
+void IDSolver::notifyVarAdded(uint64_t nvars) {
 	seen.growTo(nvars, 0);
 	//seen2.push(0);
 
@@ -175,8 +175,10 @@ bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
  *
  * @PRE: aggregates have to have been finished
  */
-bool IDSolver::finishECNF_DataStructures() {
+void IDSolver::finishParsing(bool& present, bool& unsat) {
 	notifyInitialized();
+	present = true;
+	unsat = false;
 	int nvars = nVars();
 
 	//TODO treat definition as the datastructere holding all INPUT rules, where defdvars only contains the currently defined ones.
@@ -356,7 +358,8 @@ bool IDSolver::finishECNF_DataStructures() {
 	}
 
 	if (!negloops && !posloops) {
-		return false;
+		present = false;
+		return;
 	}
 
 	if (verbosity() > 5) {
@@ -385,8 +388,6 @@ bool IDSolver::finishECNF_DataStructures() {
 		}
 		report("\n");
 	}
-
-	return true;
 }
 
 /**
@@ -537,7 +538,7 @@ void IDSolver::visit(Var i, vec<Var> &root, vec<bool> &incomp, vec<Var> &stack, 
 }
 
 //@pre: conflicts are empty
-bool IDSolver::initAfterSimplify() {
+bool IDSolver::simplify() {
 	// This is called after every simplification: maybe more literals have been asserted, so more
 	// smaller sccs/more derivations can be found.
 	// So we check whether any changes are relevant since last time.
@@ -656,7 +657,7 @@ bool IDSolver::initAfterSimplify() {
 			if (isTrue(v)) {
 				return false;
 			} else if (isUnknown(v)) {
-				getPCSolver()->setTrue(createNegativeLiteral(v), BYDEF);
+				getPCSolver()->setTrue(createNegativeLiteral(v), this);
 			}
 
 			if (defOcc[v] == POSLOOP) {
@@ -833,8 +834,8 @@ void IDSolver::propagateJustificationAggr(Lit l, vec<vec<Lit> >& jstf, vec<Lit>&
  |
  |	Returns non-owning pointer
  |________________________________________________________________________________________________@*/
-rClause IDSolver::indirectPropagate() {
-	if (!indirectPropagateNow()) {
+rClause IDSolver::propagateAtEndOfQueue() {
+	if (!isInitialized() || !indirectPropagateNow()) {
 		return nullPtrClause;
 	}
 
@@ -1458,7 +1459,7 @@ void IDSolver::addLoopfClause(Lit l, vec<Lit>& lits) {
 			for (int i = 0; i < lits.size(); i++) {
 				reasons[var(l)].push_back(lits[i]);
 			}
-			getPCSolver()->setTrue(lits[0], BYDEF);
+			getPCSolver()->setTrue(lits[0], this);
 		}
 	} else {
 		rClause c = getPCSolver()->createClause(lits, true);
@@ -1483,7 +1484,7 @@ void IDSolver::addLoopfClause(Lit l, vec<Lit>& lits) {
 		}
 
 		if (unknown == 1) {
-			getPCSolver()->setTrue(lits[unknindex], BYSAT, c);
+			getPCSolver()->setTrue(lits[unknindex], NULL, c);
 		}
 
 		if (verbosity() >= 2) {
