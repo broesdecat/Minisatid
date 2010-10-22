@@ -61,7 +61,7 @@ public:
 	bool createdhere; //Indicates which solvers were constructed here and should be deleted later on by the pcsolver
 	bool present; //Indicates whether the solver should be integrated into the search
 
-	DPLLTSolver(DPLLTmodule* module, bool createdhere): module(module), createdhere(createdhere){}
+	DPLLTSolver(DPLLTmodule* module, bool createdhere): module(module), createdhere(createdhere), present(true){}
 	~DPLLTSolver();
 
 	DPLLTmodule* get() const { return module; }

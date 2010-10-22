@@ -94,9 +94,9 @@ void PCSolver::setModSolver(pModSolver m) {
 	solvers.insert(solvers.begin(), modsolver);
 }
 
-IDSolver* PCSolver::getIDSolver() const { return idsolver->present?dynamic_cast<IDSolver*>(idsolver->get()):NULL; }
-AggSolver* PCSolver::getAggSolver() const { return aggsolver->present?dynamic_cast<AggSolver*>(aggsolver->get()):NULL; }
-ModSolver* PCSolver::getModSolver() const { return modsolver->present?dynamic_cast<ModSolver*>(modsolver->get()):NULL; }
+IDSolver* PCSolver::getIDSolver() const { return (idsolver==NULL || !idsolver->present)?NULL:dynamic_cast<IDSolver*>(idsolver->get()); }
+AggSolver* PCSolver::getAggSolver() const { return (aggsolver==NULL || !aggsolver->present)?NULL:dynamic_cast<AggSolver*>(aggsolver->get()); }
+ModSolver* PCSolver::getModSolver() const { return (modsolver==NULL || !modsolver->present)?NULL:dynamic_cast<ModSolver*>(modsolver->get()); }
 
 lbool PCSolver::value(Var x)	const { return getSolver()->value(x); }
 lbool PCSolver::value(Lit p)	const { return getSolver()->value(p); }
@@ -174,6 +174,9 @@ void PCSolver::addVar(Var v) {
 		getSolver()->newVar(true, false);
 
 		for(lsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
+			if((*i)->get()==getModSolver()){ //TODO very ugly hack, because skewed relation PCSolver - Modsolver (not really dpplt module, should change this!
+				continue;
+			}
 			if((*i)->present){
 				(*i)->get()->notifyVarAdded(nVars());
 			}
@@ -252,14 +255,14 @@ bool PCSolver::addEquivalence(const Lit& head, const vec<Lit>& rightlits, bool c
 }
 
 bool PCSolver::addRule(bool conj, Lit head, const vec<Lit>& lits) {
-	assert(idsolverpresent);
+	assert(getIDSolver()!=NULL);
 	addVar(head);
 	addVars(lits);
 	return getIDSolver()->addRule(conj, head, lits);
 }
 
 bool PCSolver::addSet(int setid, const vec<Lit>& lits) {
-	assert(aggsolverpresent);
+	assert(getAggSolver()!=NULL);
 	addVars(lits);
 	vector<Weight> w;
 	w.resize(lits.size(), 1);
@@ -268,7 +271,7 @@ bool PCSolver::addSet(int setid, const vec<Lit>& lits) {
 }
 
 bool PCSolver::addSet(int setid, const vec<Lit>& lits, const vector<Weight>& w) {
-	assert(aggsolverpresent);
+	assert(getAggSolver()!=NULL);
 	addVars(lits);
 	vector<Lit> ll;
 	for (int i = 0; i < lits.size(); i++) {
@@ -288,7 +291,7 @@ bool PCSolver::addSet(int setid, const vec<Lit>& lits, const vector<Weight>& w) 
 }
 
 bool PCSolver::addAggrExpr(Lit head, int setid, Weight bound, AggSign boundsign, AggType type, AggSem defined) {
-	assert(aggsolverpresent);
+	assert(getAggSolver()!=NULL);
 
 	if (modes().verbosity >= 7) {
 		report("Adding aggregate with info ");
@@ -367,6 +370,9 @@ void PCSolver::finishParsing(bool& present, bool& unsat) {
 	//important to call definition solver last
 
 	for(lsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
+		if((*i)->get()==getModSolver()){ //TODO very ugly hack, because skewed relation PCSolver - Modsolver (not really dpplt module, should change this!
+			continue;
+		}
 		if((*i)->present){
 			(*i)->get()->finishParsing((*i)->present, unsat);
 		}
@@ -498,6 +504,9 @@ void PCSolver::backtrackRest(Lit l) {
 // Called by SAT solver when new decision level is started, BEFORE choice has been made!
 void PCSolver::newDecisionLevel() {
 	for(lsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
+		if((*i)->get()==getModSolver()){ //TODO very ugly hack, because skewed relation PCSolver - Modsolver (not really dpplt module, should change this!
+			continue;
+		}
 		if((*i)->present){
 			(*i)->get()->newDecisionLevel();
 		}
@@ -507,6 +516,9 @@ void PCSolver::newDecisionLevel() {
 //TODO implementeer ze hier allemaal
 void PCSolver::backtrackDecisionLevel(int levels, int untillevel) {
 	for(lsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
+		if((*i)->get()==getModSolver()){ //TODO very ugly hack, because skewed relation PCSolver - Modsolver (not really dpplt module, should change this!
+			continue;
+		}
 		if((*i)->present){
 			(*i)->get()->backtrackDecisionLevels(levels, untillevel);
 		}
@@ -555,6 +567,9 @@ rClause PCSolver::propagateAtEndOfQueue() {
 bool PCSolver::simplify() {
 	bool simp = getSolver()->simplify();
 	for(lsolvers::const_iterator i=solvers.begin(); simp && i<solvers.end(); i++){
+		if((*i)->get()==getModSolver()){ //TODO very ugly hack, because skewed relation PCSolver - Modsolver (not really dpplt module, should change this!
+			continue;
+		}
 		if((*i)->present){
 			simp = (*i)->get()->simplify();
 		}
@@ -765,7 +780,7 @@ bool PCSolver::addSumMinimize(const Var head, const int setid) {
 	cl.push(mkLit(head, false));
 	bool notunsat = addClause(cl);
 	if (notunsat) {
-		assert(aggsolverpresent);
+		assert(getAggSolver()!=NULL);
 		notunsat = getAggSolver()->addMnmzSum(head, setid, LB);
 	}
 
@@ -853,7 +868,7 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
 
 	while (!optimumreached && rslt) {
 		if (optim == SUMMNMZ) {
-			assert(aggsolverpresent);
+			assert(getAggSolver()!=NULL);
 			//Noodzakelijk om de aanpassingen aan de bound door te propageren.
 			getAggSolver()->propagateMnmz(head);
 		}
@@ -957,6 +972,9 @@ void PCSolver::printChoiceMade(int level, Lit l) const {
 void PCSolver::printStatistics() const {
 	getSolver()->printStatistics();
 	for(lsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
+		if((*i)->get()==getModSolver()){ //TODO very ugly hack, because skewed relation PCSolver - Modsolver (not really dpplt module, should change this!
+			continue;
+		}
 		if((*i)->present){
 			(*i)->get()->printStatistics();
 		}
