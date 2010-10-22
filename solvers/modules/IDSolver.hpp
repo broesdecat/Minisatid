@@ -108,6 +108,9 @@ public:
 
 	virtual void 	printStatistics			() const;
 
+	virtual const char* getName() { return "definitional"; }
+	virtual void print();
+
 	bool 		isWellFoundedModel		();
 
 	/////////////////////ENDSOLVER NECESSARY

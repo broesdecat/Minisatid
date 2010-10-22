@@ -86,9 +86,9 @@ public:
 	bool 				addSet			(int setid, vec<Lit>& lits, std::vector<Weight>& w);
 	bool 				addAggrExpr		(Lit head, int set_id, Weight bound, AggSign boundsign, AggType type, AggSem defined);
 
-	virtual void 		notifyVarAdded			(uint64_t nvars) { /*TODO implement?*/ }
-	virtual void 		finishParsing		 	(bool& present, bool& unsat);
-	virtual bool 		simplify		(); //False if problem unsat
+	virtual void 		notifyVarAdded	(uint64_t nvars) { /*Is NOT DOWN!*/}
+	virtual void 		finishParsing	(bool& present, bool& unsat){};
+	virtual bool 		simplify		()	{ return true;};
 	/**
 	 * Propagation coming from the sat-solver: should propagate it through all modal solvers.
 	 * Should NOT be called from other sources than the SAT-solver.
@@ -100,7 +100,10 @@ public:
 	virtual void 		backtrackDecisionLevels	(int nblevels, int untillevel){};
 	virtual rClause 	getExplanation			(const Lit& l) { return nullPtrClause; /*TODO NOT IMPLEMENTED*/ };
 
-	virtual void 		printStatistics			() const {};
+	virtual void 		printStatistics			() const { /*Do NOT print lower ones here*/};
+
+	virtual const char* getName() { return "modal operator"; }
+	virtual void print();
 
 	/**
 	 * Workflow: parents propagates some literal down
@@ -121,6 +124,8 @@ public:
 	 */
 	void 				printModel();
 
+	void 				finishParsingDown(bool& present, bool& unsat);
+
 	/**
 	 * Propagation coming from the parent solver: propagate it through the tree, until a conflict is found.
 	 * SHOULD also return unit propagated implied rigid atoms.
@@ -133,6 +138,8 @@ public:
 	 * to ask an explanation later on.
 	 */
 	void 				propagateUp(Lit l, modindex id);
+
+	bool 				simplifyDown();
 
 	void 				backtrackFromAbove(Lit l);
 

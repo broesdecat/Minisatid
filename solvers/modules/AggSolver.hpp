@@ -232,6 +232,9 @@ public:
 
 	virtual void 	printStatistics			() const;
 
+	virtual const char* getName() { return "aggregate"; }
+	virtual void print();
+
 	//are used by agg.c, but preferably should be move into protected again
 	rClause				notifySolver(Aggrs::AggReason* cr);	// Like "enqueue", but for aggregate propagations.
 

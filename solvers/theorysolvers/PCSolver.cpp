@@ -158,7 +158,7 @@ void PCSolver::varBumpActivity(Var v) {
 }
 
 ///////
-// INITIALIZING THE THEORY // TODO should add STATE concept to solver for correctness
+// INITIALIZING THE THEORY // Add STATE concept to solver to check for correctness
 ////////
 
 Var PCSolver::newVar() {
@@ -174,9 +174,6 @@ void PCSolver::addVar(Var v) {
 		getSolver()->newVar(true, false);
 
 		for(lsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
-			if((*i)->get()==getModSolver()){ //TODO very ugly hack, because skewed relation PCSolver - Modsolver (not really dpplt module, should change this!
-				continue;
-			}
 			if((*i)->present){
 				(*i)->get()->notifyVarAdded(nVars());
 			}
@@ -370,9 +367,6 @@ void PCSolver::finishParsing(bool& present, bool& unsat) {
 	//important to call definition solver last
 
 	for(lsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
-		if((*i)->get()==getModSolver()){ //TODO very ugly hack, because skewed relation PCSolver - Modsolver (not really dpplt module, should change this!
-			continue;
-		}
 		if((*i)->present){
 			(*i)->get()->finishParsing((*i)->present, unsat);
 		}
@@ -380,7 +374,7 @@ void PCSolver::finishParsing(bool& present, bool& unsat) {
 			unsat = true; return;
 		} else {
 			if (modes().verbosity > 0) {
-				report("|    (there will be no propagations on solver)                             |\n"); //TODO solvername
+				report("|    (there will be no propagations on %s module)                             |\n", (*i)->get()->getName());
 			}
 		}
 	}
@@ -397,9 +391,7 @@ void PCSolver::finishParsing(bool& present, bool& unsat) {
 		unsat = true; return;
 	}
 
-	//TODO later modes.mnmz, modes.cp
-
-	// TODO Pre processing
+	// Aggregate pre processing idea
 	/*if(aggsolverpresent){
 	 getAggSolver()->findClausalPropagations();
 	 }*/
@@ -452,7 +444,7 @@ rClause PCSolver::getExplanation(Lit l) {
 	assert(explan!=nullPtrClause);
 
 	if (verbosity() >= 2) {
-		report("Implicit %s reason clause from a dpllt module "); //TODO print out solver name
+		report("Implicit %s reason clause from the %s module ", solver->getName());
 		gprintLit(l, sign(l) ? l_False : l_True);
 		report(" : ");
 		Print::printClause(explan, this);
@@ -504,21 +496,14 @@ void PCSolver::backtrackRest(Lit l) {
 // Called by SAT solver when new decision level is started, BEFORE choice has been made!
 void PCSolver::newDecisionLevel() {
 	for(lsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
-		if((*i)->get()==getModSolver()){ //TODO very ugly hack, because skewed relation PCSolver - Modsolver (not really dpplt module, should change this!
-			continue;
-		}
 		if((*i)->present){
 			(*i)->get()->newDecisionLevel();
 		}
 	}
 }
 
-//TODO implementeer ze hier allemaal
 void PCSolver::backtrackDecisionLevel(int levels, int untillevel) {
 	for(lsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
-		if((*i)->get()==getModSolver()){ //TODO very ugly hack, because skewed relation PCSolver - Modsolver (not really dpplt module, should change this!
-			continue;
-		}
 		if((*i)->present){
 			(*i)->get()->backtrackDecisionLevels(levels, untillevel);
 		}
@@ -528,7 +513,6 @@ void PCSolver::backtrackDecisionLevel(int levels, int untillevel) {
 /**
  * Returns not-owning pointer
  */
-//TODO: maybe let all lower ones return owning pointer, so only one reference to addlearnedclause?
 rClause PCSolver::propagate(Lit l) {
 	if (init) {
 		initialprops.push_back(l);
@@ -567,9 +551,6 @@ rClause PCSolver::propagateAtEndOfQueue() {
 bool PCSolver::simplify() {
 	bool simp = getSolver()->simplify();
 	for(lsolvers::const_iterator i=solvers.begin(); simp && i<solvers.end(); i++){
-		if((*i)->get()==getModSolver()){ //TODO very ugly hack, because skewed relation PCSolver - Modsolver (not really dpplt module, should change this!
-			continue;
-		}
 		if((*i)->present){
 			simp = (*i)->get()->simplify();
 		}
@@ -841,7 +822,7 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
 	bool rslt = true, optimumreached = false;
 
 	//CHECKS whether first element yields a solution, otherwise previous strategy is done
-	//TODO should become dichotomic search: check half and go to interval containing solution!
+	//should IMPLEMENT dichotomic search in the end: check half and go to interval containing solution!
 	/*if(optim==MNMZ){
 	 assmpt.push(to_minimize[0]);
 	 rslt = getSolver()->solve(assmpt);
@@ -925,25 +906,6 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
 		}
 	}
 
-	//TODO move to upper layer to allow translation to correct format
-	/*
-	 if(!hasmodels){
-	 assert(!optimumreached);
-	 fprintf(res==NULL?stdout:res, " UNSAT\n");
-	 printf("UNSATISFIABLE\n");
-	 }else{
-	 assert(optimumreached);
-	 fprintf(res==NULL?stdout:res, " SAT\n");
-	 printf("SATISFIABLE\n");
-	 int nvars = (int)nVars();
-	 for (int i = 0; i < nvars; i++){
-	 fprintf(res==NULL?stdout:res, "%s%s%d", (i == 0) ? "" : " ", !sign(m[i]) ? "" : "-", i + 1);
-	 }
-	 fprintf(res==NULL?stdout:res, " 0\n");
-
-	 modelsfound++;
-	 }*/
-
 	return optimumreached;
 }
 
@@ -972,9 +934,6 @@ void PCSolver::printChoiceMade(int level, Lit l) const {
 void PCSolver::printStatistics() const {
 	getSolver()->printStatistics();
 	for(lsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
-		if((*i)->get()==getModSolver()){ //TODO very ugly hack, because skewed relation PCSolver - Modsolver (not really dpplt module, should change this!
-			continue;
-		}
 		if((*i)->present){
 			(*i)->get()->printStatistics();
 		}

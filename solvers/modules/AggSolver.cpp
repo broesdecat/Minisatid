@@ -536,6 +536,8 @@ bool AggSolver::constructProdSet(ppaset set, vppagg aggs){
  * @pre: literal p can be derived to be true because of the given aggregate reason
  * @remarks: only method allowed to use the sat solver datastructures
  * @returns: non-owning pointer
+ *
+ * INVARIANT: or the provided reason is deleted or it is IN the reason datastructure on return
  */
 rClause AggSolver::notifySolver(AggReason* ar) {
 	const Lit& p = ar->getPropLit();
@@ -553,6 +555,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 		lits.push(p);
 		ar->getAgg().getAggComb()->getExplanation(lits, *ar);
 		ar->setClause(lits);
+		//FIXME why not return here or something and what with conflicts?
 	}
 
 	if (value(p) == l_False) {
@@ -567,7 +570,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 
 		AggReason* old_ar = aggreason[var(p)];
 		aggreason[var(p)] = ar;
-		rClause confl = getExplanation(p);
+		rClause confl = getExplanation(p);	//Reason manipulation because getexplanation uses that reason!
 		aggreason[var(p)] = old_ar;
 		delete ar;	// Have to delete before addLearnedClause, as internally it might lead to backtrack and removing the reason
 		getPCSolver()->addLearnedClause(confl);
@@ -952,6 +955,10 @@ void AggSolver::propagateMnmz(Var head) {
 
 void AggSolver::printStatistics() const {
 	report("aggregate propagations: %-12" PRIu64 "\n", propagations);
+}
+
+void AggSolver::print(){
+	Print::print(this);
 }
 
 void AggSolver::print(ppagg agg) const{

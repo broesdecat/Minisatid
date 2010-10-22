@@ -136,14 +136,14 @@ void ModSolver::addChild(modindex childid){
 /**
  * Recursively notify all Solvers that parsing has finished
  */
-void ModSolver::finishParsing(bool& present, bool& unsat){
+void ModSolver::finishParsingDown(bool& present, bool& unsat){
 	getPCSolver()->finishParsing(present, unsat);
 
 	assert(present);
 
 	for(vmodindex::const_iterator i=getChildren().begin(); !unsat && i<getChildren().end(); i++){
 		bool childpresent = true;
-		getModSolverData().getModSolver(*i)->finishParsing(childpresent, unsat);
+		getModSolverData().getModSolver(*i)->finishParsingDown(childpresent, unsat);
 		//TODO handle !present
 		//TODO handle unsat => might make this solver !present
 	}
@@ -166,7 +166,7 @@ bool ModSolver::solve(const vec<Lit>& assumptions, Solution* sol){
  * Simplifies PC solver and afterwards simplifies lower modal operators.
  * Returns false if the problem is unsat (and then does not simplify other solvers).
  */
-bool ModSolver::simplify(){
+bool ModSolver::simplifyDown(){
 	bool result = getPCSolver()->simplify();
 
 	for(vmodindex::const_iterator i=getChildren().begin(); result && i<getChildren().end(); i++){
@@ -428,6 +428,10 @@ void ModSolver::backtrack(const Lit& l){
 	for(vmodindex::const_iterator j=getChildren().begin(); j<getChildren().end(); j++){
 		getModSolverData().getModSolver((*j))->backtrackFromAbove(l);
 	}
+}
+
+void ModSolver::print(){
+	Print::print(this);
 }
 
 void ModSolver::printModel(){
