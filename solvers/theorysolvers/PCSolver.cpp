@@ -217,11 +217,10 @@ bool PCSolver::addClause(vec<Lit>& lits) {
 
 	if(modes().printcnfgraph){
 		for(int i=0; i<lits.size(); i++){
-			if(i>0){
-				report(" -- ");
-			}
+			if(i>0){ report(" -- "); }
 			report("%d", gprintVar(var(lits[i])));
 		}
+		if(lits.size()>1){ report(" -- %d ", gprintVar(var(lits[0]))); }
 		report("[color=blue];\n");
 	}
 
@@ -289,11 +288,10 @@ bool PCSolver::addSet(int setid, const vec<Lit>& lits, const vector<Weight>& w) 
 
 	if(modes().printcnfgraph){
 		for(int i=0; i<lits.size(); i++){
-			if(i>0){
-				report(" -- ");
-			}
+			if(i>0){ report(" -- "); }
 			report("%d", gprintVar(var(lits[i])));
 		}
+		if(lits.size()>1){ report(" -- %d ", gprintVar(var(lits[0]))); }
 		report("[color=green];\n");
 	}
 
