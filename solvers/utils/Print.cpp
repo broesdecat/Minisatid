@@ -42,8 +42,9 @@ void Print::print(S const * const s){
 template<>
 void Print::print(PCSolver const * const s){
 	print(s->getCSolver());
-	print(s->getCAggSolver());
-	print(s->getCIDSolver());
+	for(vector<DPLLTSolver*>::const_iterator i=s->getSolversBegin(); i<s->getSolversEnd(); i++){
+		print((*i)->get());
+	}
 }
 
 template<>

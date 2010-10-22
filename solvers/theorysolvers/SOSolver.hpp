@@ -75,7 +75,7 @@ public:
 
 	bool 	solve				(const vec<Lit>& assumptions, Solution* sol);
 
-	bool 	finishParsing		();
+	void 	finishParsing		(bool& present, bool& unsat);
 
 	//Add information for hierarchy
 	bool 	addChild			(vsize parent, vsize child, Lit head);

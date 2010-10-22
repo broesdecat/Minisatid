@@ -136,16 +136,19 @@ void ModSolver::addChild(modindex childid){
 /**
  * Recursively notify all Solvers that parsing has finished
  */
-bool ModSolver::finishParsing(){
-	bool result = getPCSolver()->finishParsing();
+void ModSolver::finishParsing(bool& present, bool& unsat){
+	getPCSolver()->finishParsing(present, unsat);
 
-	for(vmodindex::const_iterator i=getChildren().begin(); result && i<getChildren().end(); i++){
-		result = getModSolverData().getModSolver(*i)->finishParsing();
+	assert(present);
+
+	for(vmodindex::const_iterator i=getChildren().begin(); !unsat && i<getChildren().end(); i++){
+		bool childpresent = true;
+		getModSolverData().getModSolver(*i)->finishParsing(childpresent, unsat);
+		//TODO handle !present
+		//TODO handle unsat => might make this solver !present
 	}
 
 	notifyInitialized();
-
-	return result;
 }
 
 /*****************
@@ -328,7 +331,7 @@ bool ModSolver::analyzeResult(bool result, bool allknown, vec<Lit>& confldisj){
 /**
  * Returns non-owning pointer
  */
-rClause ModSolver::propagate(Lit l){
+rClause ModSolver::propagate(const Lit& l){
 	/*if(!searching){
 		vector<Lit> v = getPCSolver()->getDecisions();
 		//TODO propagate up WITH reason
@@ -370,7 +373,7 @@ void ModSolver::propagateUp(Lit l, modindex id){
 	//TODO
 	//include reason or extend getexplanation to modal solvers (first is maybe best)
 	//save id for clause learning
-	getPCSolver()->setTrue(l, BYMOD);
+	getPCSolver()->setTrue(l, this);
 }
 
 /**
@@ -411,7 +414,7 @@ void ModSolver::backtrackFromAbove(Lit l){
 	}
 }
 
-void ModSolver::backtrackFromSameLevel(Lit l){
+void ModSolver::backtrack(const Lit& l){
 	if(getModSolverData().modes().verbosity>4){
 		report("Backtracking "); gprintLit(l); report(" from same level in mod %zu\n", getPrintId());
 	}

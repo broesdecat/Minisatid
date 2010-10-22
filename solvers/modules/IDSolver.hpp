@@ -83,27 +83,32 @@ public:
 
 class IDSolver: public DPLLTmodule{
 private:
-	MinisatID::AggSolver*		aggsolver;
-	long			unfoundedsets;
-	int				previoustrailatsimp; //The size of the trail the previous time simplification was run.
+	MinisatID::AggSolver*			aggsolver;
+	long							unfoundedsets;
+	int								previoustrailatsimp; //The size of the trail the previous time simplification was run.
+	std::vector<std::vector<Lit> > 	reasons;	// std::map vars to vec<Lit> which were the reason of deriving it
 
 public:
 	IDSolver(MinisatID::PCSolver* s);
 	virtual ~IDSolver();
 
 	MinisatID::AggSolver*	getAggSolver()const{return aggsolver;}
-	void		setAggSolver(MinisatID::AggSolver* a){aggsolver = a;}
+	void					setAggSolver(MinisatID::AggSolver* a){aggsolver = a;}
 
 	/////////////////////SOLVER NECESSARY
-	void 		backtrack 				(const Lit& l);
-	void 		notifyVarAdded			(int nvars); 		//correctly initialized TSolver datastructures when vars are added
-	rClause 	propagateDefinitions	();
-	rClause 	propagate				(const Lit&);
+	virtual void 	notifyVarAdded			(uint64_t nvars);
+	virtual void 	finishParsing		 	(bool& present, bool& unsat);
+	virtual bool 	simplify		(); //False if problem unsat
+	virtual rClause propagate				(const Lit& l){ return nullPtrClause; };
+	virtual rClause propagateAtEndOfQueue	();
+	virtual void 	backtrack				(const Lit& l);
+	virtual void 	newDecisionLevel		();
+	virtual void 	backtrackDecisionLevels	(int nblevels, int untillevel){};
+	virtual rClause getExplanation			(const Lit& l);
+
+	virtual void 	printStatistics			() const;
 
 	bool 		isWellFoundedModel		();
-
-	std::vector<std::vector<Lit> > reasons;	// std::map vars to vec<Lit> which were the reason of deriving it
-	rClause 	getExplanation			(const Lit& p);    // Create a clause that implicitly was the reason for p's propagation.
 
 	/////////////////////ENDSOLVER NECESSARY
 
@@ -116,7 +121,6 @@ public:
 
 	/////////////////////INITIALIZATION
 	bool    	addRule      			(bool conj, Lit head, const vec<Lit>& ps);	// Add a rule to the solver.
-	bool    	finishECNF_DataStructures();							// Initialize the ECNF data structures. NOTE: aggregates may set the "ok" value to false!
 	/////////////////////END INITIALIZATION
 
 	PropRule const* const	getDefinition(Var head) const { assert(definition[head]!=NULL); return definition[head]; }
@@ -127,14 +131,7 @@ public:
 	bool 		isDisjunctive		(Var v) const;
 	bool		isDefinedByAggr		(Var v) const;
 
-	//False if problem unsat
-	bool 		initAfterSimplify	();
-
-	void		printStatistics		() const;
-
-	void 		newDecisionLevel();
-
-protected:
+private:
 	void			setDefinition(Var head, PropRule* r) { definition[head]=r; }
 
 	std::vector<PropRule*>	definition;	// If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
@@ -258,7 +255,6 @@ protected:
 	 * WELL FOUNDED MODEL CHECKING *
 	 *******************************/
 
-private:
 	std::vector<Var> wfroot;
 	std::queue<Lit> wfqueue;
 	std::set<Var> wfmarkedAtoms;
@@ -288,36 +284,6 @@ private:
 	void overestimateCounters();
 	void removeMarks();
 };
-
-/**
- * All these methods are used to allow branch prediction in SATsolver methods and to minimize the number of
- * subsequent calls
- */
-
-/**
- * Returns non-owning pointer
- */
-inline rClause IDSolver::propagate(const Lit& p){
-	return nullPtrClause;
-}
-
-//only call this when the whole queue has been propagated
-/**
- * Returns non-owning pointer
- */
-inline rClause IDSolver::propagateDefinitions(){
-	if (!isInitialized()/* || !posloops*/) {return nullPtrClause;}
-	return indirectPropagate();
-}
-
-/*inline void IDSolver::backtrack( const Lit& l){
-	return;
-}*/
-
-/*inline rClause IDSolver::getExplanation(const Lit& p){
-	assert(false);
-	return nullPtrClause;
-}*/
 
 }
 

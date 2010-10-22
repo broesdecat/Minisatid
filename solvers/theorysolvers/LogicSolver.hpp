@@ -39,8 +39,8 @@ public:
 			:_modes(modes), _parent(inter){};
 	virtual ~LogicSolver(){};
 
-	virtual bool 	simplify		() = 0;
-	virtual bool 	finishParsing	() = 0;
+	virtual bool 	simplify() = 0;
+	virtual void 	finishParsing	(bool& present, bool& unsat) = 0;
 
 	virtual bool	solve(const vec<Lit>& assumptions, Solution* sol) = 0;
 

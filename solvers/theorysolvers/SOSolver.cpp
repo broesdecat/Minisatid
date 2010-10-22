@@ -55,7 +55,7 @@ bool SOSolver::solve(const vec<Lit>& assumptions, Solution* sol){
 	return solvers[0]->solve(assumptions, sol);
 }
 
-bool SOSolver::finishParsing(){
+void SOSolver::finishParsing(bool& present, bool& unsat){
 	assert(state==LOADINGREST);
 	state = ALLLOADED;
 
@@ -68,13 +68,11 @@ bool SOSolver::finishParsing(){
 //		return true;
 //	}
 
-	bool result = solvers[0]->finishParsing();
+	solvers[0]->finishParsing(present, unsat);
 
 	if(modes().verbosity>=2){
 		Print::print(this);
 	}
-
-	return result;
 }
 
 //Add information for hierarchy

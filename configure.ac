@@ -33,7 +33,7 @@ AC_SUBST([LIBS])
 AC_CXXFLAGS = " "
 AC_LDFLAGS = " "
 
-AC_CXXFLAGS+="-ffloat-store -Wall -Wextra " #TODO add -pedantic again (but currently broken by pbsolver)
+AC_CXXFLAGS+="-ffloat-store -Wall -Wextra -Wno-unused-parameter " #TODO add -pedantic again (but currently broken by pbsolver)
 
 AC_ARG_ENABLE([build],
 [  --enable-build    Turn on debugging (debug), profiling (profile), release version(release), static release version (static) or code cover building (codecover)],

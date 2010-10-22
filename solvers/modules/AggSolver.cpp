@@ -587,7 +587,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 			getPCSolver()->addLearnedClause(c);
 		}
 
-		getPCSolver()->setTrue(p, BYAGG);
+		getPCSolver()->setTrue(p, this);
 	} else {
 		delete ar;
 	}
@@ -605,7 +605,7 @@ void AggSolver::newDecisionLevel() {
 	}
 }
 
-void AggSolver::backtrackDecisionLevel(){
+void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel){
 	/*for(vsize i=0; i<sets.size(); i++){
 		sets[i]->backtrackDecisionLevel();
 	}*/

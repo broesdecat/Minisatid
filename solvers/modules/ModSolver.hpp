@@ -85,7 +85,22 @@ public:
 	bool 				addRule			(bool conj, Lit head, vec<Lit>& lits);
 	bool 				addSet			(int setid, vec<Lit>& lits, std::vector<Weight>& w);
 	bool 				addAggrExpr		(Lit head, int set_id, Weight bound, AggSign boundsign, AggType type, AggSem defined);
-	bool 				finishParsing();
+
+	virtual void 		notifyVarAdded			(uint64_t nvars) { /*TODO implement?*/ }
+	virtual void 		finishParsing		 	(bool& present, bool& unsat);
+	virtual bool 		simplify		(); //False if problem unsat
+	/**
+	 * Propagation coming from the sat-solver: should propagate it through all modal solvers.
+	 * Should NOT be called from other sources than the SAT-solver.
+	 */
+	virtual rClause 	propagate				(const Lit& l);
+	virtual rClause 	propagateAtEndOfQueue	();
+	virtual void 		backtrack				(const Lit& l);
+	virtual void 		newDecisionLevel		(){};
+	virtual void 		backtrackDecisionLevels	(int nblevels, int untillevel){};
+	virtual rClause 	getExplanation			(const Lit& l) { return nullPtrClause; /*TODO NOT IMPLEMENTED*/ };
+
+	virtual void 		printStatistics			() const {};
 
 	/**
 	 * Workflow: parents propagates some literal down
@@ -105,7 +120,6 @@ public:
 	 * The model of a theory is the interpretation of all atoms decided by the root SAT solver.
 	 */
 	void 				printModel();
-	void				printStatistics		() const {};
 
 	/**
 	 * Propagation coming from the parent solver: propagate it through the tree, until a conflict is found.
@@ -114,28 +128,13 @@ public:
 	rClause 			propagateDown(Lit l);
 	bool	 			propagateDownAtEndOfQueue(vec<Lit>& confldisj);
 	/**
-	 * Propagation coming from the sat-solver: should propagate it through all modal solvers.
-	 *
-	 * Should NOT be called from other sources than the SAT-solver.
-	 */
-	rClause 			propagate(Lit l);
-	rClause 			propagateAtEndOfQueue();
-	/**
 	 * Same as enqueue or notifyofpropagation: add it to the sat-solver queue, but remember why it was
 	 * propagated. Id indicates from which modal solver the propagation came.
 	 * to ask an explanation later on.
 	 */
 	void 				propagateUp(Lit l, modindex id);
 
-	bool 				simplify();
-
 	void 				backtrackFromAbove(Lit l);
-	void 				backtrackFromSameLevel(Lit l);
-
-	/**
-	 * This will be difficult to implement?
-	 */
-	rClause 			getExplanation(Lit l);
 
 	bool				hasParent	()	const 	{ return hasparent; }
 	Var 				getHead		()	const 	{ assert(hasparent); return head.atom; }

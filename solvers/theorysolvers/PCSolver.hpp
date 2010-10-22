@@ -42,6 +42,7 @@ class ENCF_mode;
 class IDSolver;
 class AggSolver;
 class ModSolver;
+class DPLLTmodule;
 
 typedef Minisat::Solver* pSolver;
 typedef IDSolver* pIDSolver;
@@ -50,34 +51,43 @@ typedef AggSolver* pAggSolver;
 typedef ModSolver* pModSolver;
 
 enum Optim { MNMZ, SUBSETMNMZ, SUMMNMZ, NONE }; // Preference minimization, subset minimization, sum minimization
-enum PropBy { BYSAT, BYAGG, BYDEF, BYOPTIM, BYCP, BYMOD, NOPROP }; // Indicates by which solver a propagation was done
+
+class DPLLTSolver{
+private:
+	DPLLTSolver(DPLLTSolver&){}
+	DPLLTSolver& operator=(DPLLTSolver& m) { return m; }
+public:
+	DPLLTmodule* module;
+	bool createdhere; //Indicates which solvers were constructed here and should be deleted later on by the pcsolver
+	bool present; //Indicates whether the solver should be integrated into the search
+
+	DPLLTSolver(DPLLTmodule* module, bool createdhere): module(module), createdhere(createdhere){}
+	~DPLLTSolver();
+
+	DPLLTmodule* get() const { return module; }
+};
+
+typedef std::vector<DPLLTSolver*> lsolvers;
 
 class PCSolver: public MinisatID::LogicSolver{
 private:
-	// TODO make vector of available solvers, which general properties
 	//OWNING POINTER
-	pSolver solver;
-	//OWNING POINTER
-	pIDSolver idsolver;
-	//OWNING POINTER
-	pCPSolver cpsolver;
-	//OWNING POINTER
-	pAggSolver aggsolver;
-	//NON-OWNING POINTER
-	pModSolver modsolver;
-	/*
-	 * Indicates which solvers were constructed
-	 */
-	bool aggcreated, idcreated;
-	/*
-	 * Indicates whether the solver should be integrated into the search
-	 */
-	bool aggsolverpresent, idsolverpresent, modsolverpresent;
+	pSolver satsolver;
+
+	// IMPORTANT: implicit invariant that IDsolver is always last in the list!
+	lsolvers solvers;
+	DPLLTSolver* idsolver;
+	DPLLTSolver* aggsolver;
+	DPLLTSolver* modsolver;
+
+	IDSolver* getIDSolver() const;
+	AggSolver* getAggSolver() const;
+	ModSolver* getModSolver() const;
 
 	int init;
 	std::vector<Lit> initialprops;
 
-	std::vector<PropBy> propagations;
+	std::vector<DPLLTmodule*> propagations;
 
 	///////
 	// OPTIMIZATION INFORMATION
@@ -92,20 +102,16 @@ private:
 	vec<Lit> forcedchoices;
 
 	// Getters for solver pointers
-	Minisat::Solver * 	getSolver	() const;
-	IDSolver* 			getIDSolver	() const;
-	AggSolver*			getAggSolver() const;
-	ModSolver*			getModSolver() const;
+	Minisat::Solver * 	getSolver	() const { return satsolver; }
 
 public:
 	PCSolver(ECNF_mode modes, MinisatID::WrappedLogicSolver* inter);
 	virtual ~PCSolver();
 
 	// Getters for constant solver pointers
-	Minisat::Solver	const * getCSolver		() const;
-	IDSolver 		const * getCIDSolver	() const;
-	AggSolver 		const * getCAggSolver	() const;
-	ModSolver 		const * getCModSolver	() const;
+	Minisat::Solver const * const getCSolver	() const { return satsolver; }
+	lsolvers::const_iterator getSolversBegin() const { return solvers.begin(); }
+	lsolvers::const_iterator getSolversEnd() const { return solvers.end(); }
 
 	/*
 	 * INITIALIZATION
@@ -131,7 +137,7 @@ public:
 
 	void		addForcedChoices(const vec<Lit>& forcedchoices);
 
-	bool 		finishParsing	();
+	void 		finishParsing	(bool& present, bool& unsat);
 
 	///////
 	// Solving support
@@ -139,7 +145,7 @@ public:
 	bool		randomize		() const { return modes().randomize; }
 
 	void 		newDecisionLevel();
-	bool 		simplify		();
+	bool 		simplify();
 	bool 		solve			(const vec<Lit>& assumptions, Solution* sol);
 	lbool 		checkStatus		(lbool status) const; //if status==l_True, do wellfoundednesscheck in IDSolver, if not wellfounded, return l_False, otherwise status
 
@@ -163,7 +169,7 @@ public:
 	//IMPORTANT: THE FIRST LITERAL IN THE CLAUSE HAS TO BE THE ONE WHICH CAN BE PROPAGATED FROM THE REST!!!!!!!
 	void 		addLearnedClause(rClause c); //Propagate if clause is unit, return false if c is conflicting
 	void    	backtrackTo		(int level);	// Backtrack until a certain level.
-	void    	setTrue			(Lit p, PropBy solver, rClause c = nullPtrClause);		// Enqueue a literal. Assumes value of literal is undefined
+	void    	setTrue			(Lit p, DPLLTmodule* solver, rClause c = nullPtrClause);		// Enqueue a literal. Assumes value of literal is undefined
 	rClause		makeClause		(vec<Lit>& lits, bool b);
 
 	/**
@@ -187,7 +193,7 @@ public:
 	void		varBumpActivity	(Var v);
 
 	void 		backtrackRest	(Lit l);
-	void 		backtrackDecisionLevel(int levels);
+	void 		backtrackDecisionLevel(int levels, int untillevel);
 	rClause 	propagate		(Lit l);
 	rClause 	propagateAtEndOfQueue();
 

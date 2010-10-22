@@ -142,7 +142,7 @@ public:
  * heuristic to delay propagations.
  */
 
-class AggSolver: public std::tr1::enable_shared_from_this<AggSolver>, public DPLLTmodule{
+class AggSolver: public DPLLTmodule{
 private:
     std::map<int, ppaset>		parsedsets;
     std::set<Var>				aggheads;	//A set of all heads that are already used by an aggregate.
@@ -194,12 +194,6 @@ public:
 	 */
 	bool 				addAggrExpr				(int defn, int set_id, Weight bound, AggSign boundsign, AggType type, AggSem headeq);
 
-	/**
-	 * Checks presence of aggregates and initializes all counters.
-	 * UNSAT is set to true if unsat is detected
-	 * PRESENT is set to true if aggregate propagations should be done
-	 */
-	void 				finishParsing		 	(bool& present, bool& unsat); //throws UNSAT
 	void 				findClausalPropagations	();
 	void 				removeHeadWatch			(Var x);
 
@@ -207,15 +201,20 @@ public:
 	// SEARCH
 	//////
 
-	/*
-	 * Returns the explanation for the deduction of p from an aggregate expression.
-	 * This method constructs, from the AggReason stored for it, a "reason clause" usable in clause learning.
-	 * @post the first element in the reason clause will be the literal itself (invariant by minisat!)
-	 * @post the clause is added to the sat solver
-	 * @returns NON-OWNING pointer
+	virtual void 	notifyVarAdded			(uint64_t nvars);
+
+	/**
+	 * Checks presence of aggregates and initializes all counters.
+	 * UNSAT is set to true if unsat is detected
+	 * PRESENT is set to true if aggregate propagations should be done
 	 */
-	rClause 			getExplanation			(const Lit& p);
-	void 				notifyVarAdded			(uint64_t nvars); 		//correctly initialize AMNSolver datastructures when vars are added
+	virtual void 	finishParsing		 	(bool& present, bool& unsat);
+	virtual bool 	simplify		() { return true; }; //False if problem unsat
+	/**
+	 * Goes through all watches and propagates the fact that p was set true.
+	 */
+	virtual rClause propagate				(const Lit& l);
+	virtual rClause propagateAtEndOfQueue	() { return nullPtrClause; };
 
 	/**
 	 * Correct the min and max values of the aggregates in which l was propagated and delete any aggregate reasons
@@ -226,20 +225,17 @@ public:
 	 *
 	 * @PRE: backtracking is in anti-chronologous order and all literals are visited!
 	 */
-	void 				backtrack				(const Lit& l);
+	virtual void 	backtrack				(const Lit& l);
+	virtual void 	newDecisionLevel		();
+	virtual void 	backtrackDecisionLevels	(int nblevels, int untillevel);
+	virtual rClause getExplanation			(const Lit& l);
 
-	/**
-	 * Goes through all watches and propagates the fact that p was set true.
-	 */
-	rClause 			propagate				(const Lit& p);
-
-	void 				newDecisionLevel();
-	void 				backtrackDecisionLevel();
-
-	lbool				propagatedValue			(const Lit& l) const { assert(isInitialized()); return assigns[var(l)] ^ sign(l); }
+	virtual void 	printStatistics			() const;
 
 	//are used by agg.c, but preferably should be move into protected again
 	rClause				notifySolver(Aggrs::AggReason* cr);	// Like "enqueue", but for aggregate propagations.
+
+	lbool				propagatedValue			(const Lit& l) const { assert(isInitialized()); return assigns[var(l)] ^ sign(l); }
 
 	//////
 	// OPTIMISATION
@@ -275,9 +271,7 @@ public:
 	void 				addTempWatch			(const Lit& l, pw w);
 	//vvpw&				getTempWatches			() { return tempwatches; }
 
-
 	void 				print(ppagg agg) const;
-	void				printStatistics			() const ;
 
 	void				addSet					(CalcAgg* ca);
 
