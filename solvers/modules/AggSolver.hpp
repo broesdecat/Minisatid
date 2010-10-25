@@ -144,21 +144,21 @@ public:
 
 class AggSolver: public DPLLTmodule{
 private:
-    std::map<int, ppaset>		parsedsets;
-    std::set<Var>				aggheads;	//A set of all heads that are already used by an aggregate.
+    std::map<int, ppaset>	parsedsets;
+    std::set<Var>			aggheads;	//A set of all heads that are already used by an aggregate.
 	vpaggs					sets;		//After initialization, all remaining sets.
 
-	std::vector<AggReason*>		aggreason;	// For each atom, like 'reason'.
+	std::vector<AggReason*>	aggreason;	// For each atom, like 'reason'.
 
 	vvpw					tempwatches;	//NON-OWNED PARTIAL WATCHES
 	vvpw 					permwatches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
-	std::vector<pagg>			headwatches;	//	index on VARs (heads always positive), does NOT own the pointers
+	std::vector<pagg>		headwatches;	//	index on VARs (heads always positive), does NOT own the pointers
 	vvpaggs					network;		// the pointer network of set var -> set
 
-	std::vector<lbool>			assigns;		//The truth values of literals according to whether they were propagated in the aggregate solver
+	std::vector<lbool>		assigns;		//The truth values of literals according to whether they were propagated in the aggregate solver
 
 	//statistics
-	uint64_t propagations;
+	uint64_t propagations; //Number of propagations into aggregate sets made
 
 public:
 	AggSolver(pPCSolver s);
@@ -195,6 +195,7 @@ public:
 	bool 				addAggrExpr				(int defn, int set_id, Weight bound, AggSign boundsign, AggType type, AggSem headeq);
 
 	void 				findClausalPropagations	();
+
 	void 				removeHeadWatch			(Var x);
 
 	//////
@@ -209,7 +210,7 @@ public:
 	 * PRESENT is set to true if aggregate propagations should be done
 	 */
 	virtual void 	finishParsing		 	(bool& present, bool& unsat);
-	virtual bool 	simplify		() { return true; }; //False if problem unsat
+	virtual bool 	simplify				() { return true; }; //False if problem unsat
 	/**
 	 * Goes through all watches and propagates the fact that p was set true.
 	 */
@@ -255,7 +256,7 @@ public:
 	/**
 	 * Returns a std::vector containing the heads of the aggregates in which x occurs as a set literal
 	 */
-	std::vector<Var> 		getAggHeadsWithBodyLit	(Var x);
+	std::vector<Var> 	getAggHeadsWithBodyLit	(Var x);
 
 	/**
 	 * Returns the set literals of the aggregate with the given head x.
@@ -269,7 +270,6 @@ public:
 	void 				setHeadWatch			(Var head, Agg* agg);
 	void 				addPermWatch			(Var v, pw w);
 	void 				addTempWatch			(const Lit& l, pw w);
-	//vvpw&				getTempWatches			() { return tempwatches; }
 
 	void 				print(ppagg agg) const;
 
@@ -279,14 +279,13 @@ protected:
 	// Returns the aggregate in which the given variable is the head.
     pagg 				getAggWithHead			(Var v) const;
 
-    // Throws UNSAT
 	bool				finishSet				(ppaset set);
-	bool 				initCalcAgg(CalcAgg* ca, vppagg aggs);	//gets OWNING pointer to ca
-	bool 				constructMaxSet(ppaset set, vppagg aggs);
-	bool 				constructMinSet(ppaset set, vppagg aggs);
-	bool 				constructProdSet(ppaset set, vppagg aggs);
-	bool 				constructSumSet(ppaset set, vppagg aggs);
-	bool 				constructCardSet(ppaset set, vppagg aggs);
+	bool 				initCalcAgg				(CalcAgg* ca, vppagg aggs);	//gets OWNING pointer to ca
+	bool 				constructMaxSet			(ppaset set, vppagg aggs);
+	bool 				constructMinSet			(ppaset set, vppagg aggs);
+	bool 				constructProdSet		(ppaset set, vppagg aggs);
+	bool 				constructSumSet			(ppaset set, vppagg aggs);
+	bool 				constructCardSet		(ppaset set, vppagg aggs);
 };
 
 }
