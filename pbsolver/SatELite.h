@@ -1,6 +1,6 @@
 /**************************************************************************************************
 
-Solver.h -- (C) Niklas Een, Niklas Sï¿½rensson, 2004
+Solver.h -- (C) Niklas Een, Niklas Sörensson, 2004
 
 A simple Chaff-like SAT-solver with support for incremental SAT.
 
@@ -9,13 +9,11 @@ A simple Chaff-like SAT-solver with support for incremental SAT.
 #ifndef SatELite_h
 #define SatELite_h
 
-#include "pbsolver/SolverTypes.h"
-#include "pbsolver/VarOrder.h"
+#include "SolverTypes.h"
+#include "VarOrder.h"
 
-namespace PBSolver{
-
-struct BasicSolverStats;
-
+namespace MiniSatPP {
+	
 namespace SatELite {
 
 extern bool opt_confl_1sub  ;
@@ -228,11 +226,8 @@ macro int find(const vec<T>& ws, const T& elem) {   // 'find' has pre-condition 
 //=================================================================================================
 // Solver -- the main class:
 
-struct BasicSolverStats3 {
-    int64   starts, decisions, propagations, inspects, conflicts;
-    BasicSolverStats3(void) : starts(0), decisions(0), propagations(0), inspects(0), conflicts(0) { }
-};
-struct SolverStats : public BasicSolverStats3 {
+
+struct SolverStats : public BasicSolverStats {
     int64   reduceDBs;
     SolverStats(void) : reduceDBs(0) {}
 };
@@ -373,8 +368,8 @@ struct Solver {
     bool    locked       (Clause c) { return reason[var(c[0])] == c; }
     int     decisionLevel(void) { return trail_lim.size(); }
 
-    void    watch        (Clause c, Lit p);
-    void    unwatch      (Clause c, Lit p);
+    void    watch        (Clause c, Lit p) { watches[index(p)].push(c); }
+    void    unwatch      (Clause c, Lit p) { remove(watches[index(p)], c); }
 
     int     allocClauseId(bool learnt);
     void    freeClauseId (int id, bool learnt);
@@ -382,7 +377,32 @@ struct Solver {
 
 // PUBLIC INTERFACE
 
-    Solver(OccurMode mode = occ_Permanent, cchar* elimed_filename = NULL);
+    Solver(OccurMode mode = occ_Permanent, cchar* elimed_filename = NULL)
+                 : ok               (true)
+                 , cla_inc          (1)
+                 , cla_decay        (1)
+                 , n_literals       (0)
+                 , var_inc          (1)
+                 , var_decay        (1)
+               #ifdef VAR_ORDER_2
+                 , order            (assigns, activity, lt_activity, var_inc)
+               #else
+                 , order            (assigns, activity)
+               #endif
+                 , watches_setup    (false)
+                 , occur_mode       (mode)
+                 , root_level       (0)
+                 , last_simplify    (-1)
+                 , fwd_subsump      (false)
+                 , last_inspects    (0)
+                 , unit_tmp         (1, lit_Undef)
+                 , progress_estimate(0)
+                 , verbosity(0)
+                 { createTmpFiles(elimed_filename);
+                #ifndef WATCH_OPTIMIZATION
+                   watches_setup = true;
+                #endif
+                 }
    ~Solver(void);
 
     // Helpers: (semi-internal)
@@ -499,5 +519,6 @@ macro void dump(Solver& S, vec<Lit>& c, bool newline = true, FILE* out = stdout)
 
 //=================================================================================================
 }
+
 }
 #endif

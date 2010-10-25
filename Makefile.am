@@ -1,6 +1,6 @@
 #building with mingw by CXX=pathnaarg++vanmingw
 
-AM_CXXFLAGS = @AC_CXXFLAGS@ -I$(srcdir)/solver3minisat22/ 
+AM_CXXFLAGS = @AC_CXXFLAGS@ -I$(srcdir)/solver3minisat22/ -I$(srcdir)/pbsolver/ -I$(srcdir)/pbsolver/ADTs/ -I$(srcdir)/pbsolver/pbbase/h/ -I$(srcdir)/pbsolver/pbbase/src/
 AM_LDFLAGS = @AC_LDFLAGS@ 
 
 YFLAGS = -d 
@@ -34,7 +34,6 @@ include_HEADERS += solvers/Unittests.hpp
 
 
 #PBSOLVER
-AM_CXXFLAGS+=-D NO_GMP
 include_HEADERS += pbsolver/Main.h pbsolver/Hardware.h 
 include_HEADERS += pbsolver/Debug.h pbsolver/DebugSolver.h pbsolver/MiniSat.h pbsolver/PbParser.h 
 include_HEADERS += pbsolver/PbSolver.h pbsolver/SatELite.h pbsolver/Solver.h pbsolver/SolverTypes.h pbsolver/VarOrder.h
@@ -46,7 +45,6 @@ include_HEADERS += pbsolver/pbbase/h/BNB_SOD_Carry_Cost.h pbsolver/pbbase/h/Forw
 include_HEADERS += pbsolver/pbbase/h/MiniSatOrig.h pbsolver/pbbase/h/RelativeBaseSearch.h pbsolver/pbbase/h/SearchMetaData.h 
 include_HEADERS += pbsolver/pbbase/h/THeapComp.h pbsolver/pbbase/h/THeap.h
 
-minisatid_SOURCES += solvers/modules/aggsolver/Test.cpp 
 #minisatid_SOURCES += pbsolver/Main.C
 #minisatid_SOURCES += pbsolver/Debug.C pbsolver/Hardware_adders.C pbsolver/Hardware_clausify.C 
 #minisatid_SOURCES += pbsolver/Hardware_sorters.C pbsolver/MiniSat.C pbsolver/PbParser.C

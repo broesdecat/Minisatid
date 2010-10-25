@@ -1,12 +1,12 @@
-#include "pbsolver/PbParser.h"
-#include "pbsolver/ADTs/File.h"
+#include "PbParser.h"
+#include "File.h"
 
-using namespace PBSolver;
 
 //=================================================================================================
 // Parser buffers (streams):
 
-namespace PBSolver{
+namespace MiniSatPP {
+
 class FileBuffer {
     File    in;
     int     next;
@@ -33,6 +33,7 @@ public:
     int  operator *  () { return (ptr >= last) ? EOF : *ptr; }
     void operator ++ () { if (*ptr == '\n') line++; ++ptr; }
 };
+
 
 
 //=================================================================================================
@@ -246,6 +247,7 @@ bool parseConstrs(B& in, S& solver)
     return true;
 }
 
+
 //=================================================================================================
 // Main parser functions:
 
@@ -269,38 +271,33 @@ static bool parse_PB(B& in, S& solver, bool abort_on_error)
     }
 
 }
-}
 
 // PB parser functions: Returns TRUE if successful, FALSE if conflict detected during parsing.
 // If 'abort_on_error' is false, a 'cchar*' error message may be thrown.
 //
-void PBSolver::parse_PB_file(cchar* filename, PbSolver& solver, bool abort_on_error) {
+void parse_PB_file(cchar* filename, PbSolver& solver, bool abort_on_error) {
     FileBuffer buf(filename);
     parse_PB(buf, solver, abort_on_error); }
 
-void PBSolver::parse_PB(cchar* text, PbSolver& solver, bool abort_on_error) {
+void parse_PB(cchar* text, PbSolver& solver, bool abort_on_error) {
     StringBuffer buf(text);
     parse_PB(buf, solver, abort_on_error); }
 
 
-namespace PBSolver{
 // yay prototypes
 template<class B, class S>
 bool parseList(B& in, S& solver);
 
 template<class B, class S>
 void parseListExpr(B& in, S& solver, vec<Lit>& out_ps, vec<Int>& out_Cs, vec<char>& tmp);
-}
 
-void PBSolver::parse_natlist_file(cchar* filename, PbSolver& solver,bool abort_on_error) {
+void parse_natlist_file(cchar* filename, PbSolver& solver,bool abort_on_error) {
     FileBuffer buf(filename);
     parseList(buf, solver); }
 
 
 
 //*********************************************************
-
-namespace PBSolver{
 
 template<class B, class S>
 bool parseList(B& in, S& solver)
@@ -377,7 +374,7 @@ void parseListExpr(B& in, S& solver, vec<Lit>& out_ps, vec<Int>& out_Cs, vec<cha
     if (!done) throw xstrdup("Premature end of input!");
 }
 
-
+}
 
 
 //=================================================================================================
@@ -387,6 +384,8 @@ void parseListExpr(B& in, S& solver, vec<Lit>& out_ps, vec<Int>& out_Cs, vec<cha
 #if 0
 #include "Debug.h"
 #include "Map.h"
+
+namespace MiniSatPP {
 #define Solver DummySolver
 
 struct DummySolver {
@@ -416,5 +415,5 @@ void test(void)
     debug_names = &solver.index2name;
     parseFile_PB("test.pb", solver, true);
 }
-#endif
 }
+#endif

@@ -1,9 +1,10 @@
 #ifndef DebugSolver_h
 #define DebugSolver_h
 
+namespace MiniSatPP {
 //=================================================================================================
 
-namespace PBSolver{
+
 struct DebugSolver {
     int     c;
     DebugSolver() : c(0) {}
@@ -13,7 +14,8 @@ struct DebugSolver {
 };
 
 #define Solver DebugSolver
-}
+
 
 //=================================================================================================
+}
 #endif

@@ -3,11 +3,9 @@
 #include <cstring>
 #include <cstdio>
 
-#include "pbsolver/ADTs/Global.h"
-
-using namespace PBSolver;
-
-char* PBSolver::vnsprintf(const char* format, va_list args)
+namespace MiniSatPP {
+	
+char* vnsprintf(const char* format, va_list args)
 {
     static FILE* dummy = fopen("/dev/null", "wb");
     unsigned     chars_written;
@@ -29,7 +27,7 @@ char* PBSolver::vnsprintf(const char* format, va_list args)
 }
 
 
-char* PBSolver::nsprintf(const char* format, ...)
+char* nsprintf(const char* format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -40,13 +38,11 @@ char* PBSolver::nsprintf(const char* format, ...)
 
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-namespace PBSolver{
 macro bool hasChar(cchar* text, int chr) {
     while (*text != 0) if (*text++ == chr) return true;
     return false; }
-}
 
-void PBSolver::splitString(cchar* text, cchar* seps, vec<char*>& out)
+void splitString(cchar* text, cchar* seps, vec<char*>& out)
 {
     while (hasChar(seps, *text)) text++;
     if (*text == 0) return;
@@ -60,4 +56,5 @@ void PBSolver::splitString(cchar* text, cchar* seps, vec<char*>& out)
         }else
             text++;
     }
+}
 }

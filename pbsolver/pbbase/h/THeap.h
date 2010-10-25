@@ -2,8 +2,10 @@
 #define THEAP_H_
 
 #include <vector>
-#include "pbsolver/pbbase/h/BaseSearchState.h"
-namespace PBSolver{
+#include "../h/BaseSearchState.h"
+
+namespace MiniSatPP {
+	
 typedef struct BaseSearchState* bss;
 
 class THeap {
@@ -24,6 +26,8 @@ class THeap {
     std::vector<bss> heap;
   	void siftUp(int index);
 	void siftDown(int index);
-};       
-}
+};  
+
+}     
+
 #endif /*THEAP_H_*/

@@ -1,6 +1,6 @@
 /**************************************************************************************************
 
-SolverTypes.h -- (C) Niklas Een, Niklas Sï¿½rensson, 2004
+SolverTypes.h -- (C) Niklas Een, Niklas Sörensson, 2004
 
 Contains the solver specific types: Var, Lit, Clause
 
@@ -10,9 +10,10 @@ Contains the solver specific types: Var, Lit, Clause
 #ifndef SolverTypes_h
 #define SolverTypes_h
 
-#include "pbsolver/ADTs/Int.h"
+#include "Int.h"
 
-namespace PBSolver{
+namespace MiniSatPP {
+	
 //=================================================================================================
 // Variables, literals:
 
@@ -22,6 +23,7 @@ namespace PBSolver{
 
 typedef int Var;
 #define var_Undef (-1)
+
 
 class Lit {
     int     x;
@@ -63,7 +65,6 @@ struct BasicSolverStats {
     BasicSolverStats(void) : starts(0), decisions(0), propagations(0), inspects(0), conflicts(0) { }
 };
 
-void reportf(const char* format, ...);      // 'printf()' replacer -- will put "c " first at each line if 'opt_satlive' is TRUE.
-}
 //=================================================================================================
+}
 #endif

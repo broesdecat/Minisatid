@@ -1,12 +1,12 @@
 #ifndef PbSolver_h
 #define PbSolver_h
 
-#include "pbsolver/Solver.h"
-#include "pbsolver/ADTs/Map.h"
-#include "pbsolver/ADTs/StackAlloc.h"
+#include "Solver.h"
+#include "Map.h"
+#include "StackAlloc.h"
 
+namespace MiniSatPP {
 
-namespace PBSolver{
 void printBasesAndTerminate();
 SearchMetaData* searchForBase(vec<Int>& inCoeffs, vec<int>& outputBase);
 
@@ -122,11 +122,14 @@ public:
     bool    okay(void) { return ok; }
 
     enum solve_Command { sc_Minimize, sc_FirstSolution, sc_AllSolutions };
-    void    solve(solve_Command cmd,bool skipSolving);    // Returns best/first solution found or Int_MAX if UNSAT.
+    void solve(solve_Command cmd,bool skipSolving);    // Returns best/first solution found or Int_MAX if UNSAT.
+    void toCNF(int firstLit,std::vector<std::vector<int> >& cnf);    
     
     			
 };
-}
+
 
 //=================================================================================================
+
+}
 #endif

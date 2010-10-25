@@ -1,7 +1,7 @@
-#include "pbsolver/Hardware.h"
+#include "Hardware.h"
 
-using namespace PBSolver;
-
+namespace MiniSatPP {
+	
 struct Clausifier
 {
     Solver&      s;
@@ -292,7 +292,7 @@ Lit Clausifier::basicClausify(Formula f)
 }
 
 
-void PBSolver::clausify(Solver& s, const vec<Formula>& fs, vec<Lit>& out)
+void clausify(Solver& s, const vec<Formula>& fs, vec<Lit>& out)
 {
     Clausifier c(s);
 
@@ -308,10 +308,12 @@ void PBSolver::clausify(Solver& s, const vec<Formula>& fs, vec<Lit>& out)
 }
 
 
-void PBSolver::clausify(Solver& s, const vec<Formula>& fs)
+void clausify(Solver& s, const vec<Formula>& fs)
 {
     vec<Lit>  out;
     clausify(s, fs, out);
     for (int i = 0; i < out.size(); i++)
         s.addUnit(out[i]);
+}
+
 }

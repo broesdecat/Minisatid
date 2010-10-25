@@ -1,14 +1,12 @@
-#include "pbsolver/ADTs/FEnv.h"
+#include "FEnv.h"
 
-using namespace PBSolver;
-
-namespace PBSolver{
+namespace MiniSatPP {
+	
 namespace FEnv {
     vec<NodeData>       nodes;
     Map<NodeData, int>  uniqueness_table;
 
     vec<int>            stack;
-}
 }
 
 
@@ -58,3 +56,4 @@ bool eval(Formula f, AMap<char>& values, CMap<char>& memo)
 bool eval(Formula f, AMap<char>& values) {
     CMap<char> memo(-1);;
     return eval(f, values, memo); }
+}

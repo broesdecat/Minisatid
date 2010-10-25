@@ -1,12 +1,11 @@
 #ifndef VecMaps_h
 #define VecMaps_h
 
-#include "pbsolver/ADTs/Global.h"
-
-namespace PBSolver{
+namespace MiniSatPP {
 //=================================================================================================
 
 // TODO: Adapt constructors of 'BitMap' and 'DeckMap' to those of VecMap.
+
 
 class BitMap {
     vec<unsigned>   v;
@@ -89,6 +88,7 @@ public:
 
     void clear(void) { pos.clear(); neg.clear(); }
 };
+
 //=================================================================================================
 }
 #endif

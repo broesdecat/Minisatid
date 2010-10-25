@@ -1,6 +1,6 @@
-#include "pbsolver/ADTs/File.h"
+#include "File.h"
 
-using namespace PBSolver;
+namespace MiniSatPP {
 
 void File::open(int file_descr, FileMode m, bool own)
 {
@@ -87,7 +87,7 @@ int64 File::tell(void)
 void putUInt(File& out, uint64 val)
 {
     if (val < 0x20000000){
-        PBSolver::uint    v = (PBSolver::uint)val;
+        uint    v = (uint)val;
         if (v < 0x80)
             out.putChar(v);
         else{
@@ -119,9 +119,9 @@ void putUInt(File& out, uint64 val)
 
 uint64 getUInt(File& in)    // Returns 0 at end-of-file.
 {
-	PBSolver::uint byte0, byte1, byte2, byte3, byte4, byte5, byte6, byte7;
+    uint byte0, byte1, byte2, byte3, byte4, byte5, byte6, byte7;
     byte0 = in.getChar();
-    if (byte0 == (PBSolver::uint)EOF) return 0;
+    if (byte0 == (uint)EOF) return 0;
     if (!(byte0 & 0x80))
         return byte0;
     else{
@@ -152,4 +152,6 @@ uint64 getUInt(File& in)    // Returns 0 at end-of-file.
         }
         assert(false);
     }
+}
+
 }

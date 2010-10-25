@@ -12,7 +12,7 @@ Template based sorting routines: sort, sortUnique (remove duplicates). Can be ap
 #define Sort_h
 
 //#include <cstdlib>
-namespace PBSolver{
+namespace MiniSatPP {
 
 //=================================================================================================
 
@@ -128,6 +128,7 @@ template <class T, class LessThan> void sortUnique(vec<T>& v, LessThan lt) {
 template <class T> void sortUnique(vec<T>& v) {
     sortUnique(v, LessThan_default<T>()); }
 
-}
+
 //=================================================================================================
+}
 #endif

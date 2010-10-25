@@ -1,9 +1,11 @@
 #ifndef StackAlloc_h
 #define StackAlloc_h
 
+namespace MiniSatPP {
+	
 //=================================================================================================
 
-namespace PBSolver{
+
 template<class T>
 struct Allocator {
     virtual T* alloc(int nwords) = 0;
@@ -63,7 +65,8 @@ void StackAlloc<T,cap,lim>::freeAll(void)
     for (ptr = prev; ptr != NULL;)
         tmp = ptr->prev, delete ptr, ptr = tmp;
 }
-}
+
 
 //=================================================================================================
+}
 #endif

@@ -1,9 +1,9 @@
-#include "pbsolver/MiniSat.h"
-#include "pbsolver/Main.h"
-#include "pbsolver/ADTs/Sort.h"
+#include "MiniSat.h"
+#include "Sort.h"
 #include <cmath>
 
-namespace PBSolver{
+namespace MiniSatPP {
+	
 namespace MiniSat {
 //=================================================================================================
 // Debug:
@@ -30,26 +30,6 @@ void removeWatch(vec<LitClauseUnion>& ws, LitClauseUnion elem)
     for (; j < ws.size()-1; j++) ws[j] = ws[j+1];
     ws.pop();
 }
-
-LitClauseUnion makeLit    (Lit l)      { return LitClauseUnion((void*)(( ((intp)PBSolver::index(l))<<1) + 1)); }
-LitClauseUnion makeClause (Clause* c)  { assert(((intp)c & 1) == 0); return LitClauseUnion((void*)c); }
-
-
-Solver::Solver(void) : cla_inc          (1)
-                , cla_decay        (1)
-                , var_inc          (1)
-                , var_decay        (1)
-                , order            (assigns, activity)
-                , ok               (true)
-                , last_simplify    (-1)
-                , qhead            (0)
-                , progress_estimate(0)
-                , verbosity(0)
-                {
-                    vec<Lit> dummy(2, PBSolver::lit_Undef);
-                    void*   mem = xmalloc<char>(sizeof(Clause) + sizeof(uint)*2);
-                    tmp_binary  = new (mem) Clause(false,dummy);
-                }
 
 
 //=================================================================================================
@@ -802,5 +782,24 @@ void Solver::exportClauses(cchar* filename)
     fclose(out);
 }
 
+void Solver::toCNF(int firstLit,std::vector<std::vector<int> >& cnf){
+	assert(decisionLevel() == 0);
+    // Export CNF:
+    for (int i = 0; i < assigns.size(); i++){
+        if (value(i) != l_Undef && level[i] == 0 && reason[i].isNull()) {
+        	cnf.push_back(std::vector<int>());
+        	cnf.back().push_back((value(i) == l_True) ? i+1+firstLit : -(i+1+firstLit));
+        }
+    }
+    for (int i = 0; i < clauses.size(); i++){
+        Clause& c = *clauses[i];
+        cnf.push_back(std::vector<int>());
+        for (int j = 0; j < c.size(); j++) {
+        	   cnf.back().push_back(sign(c[j])? - (var(c[j])+1+firstLit) : var(c[j])+1+firstLit);
+        }
+    }
+}
+
+}
+
 }// end namespace MiniSat
-}// end namespace PBSolver

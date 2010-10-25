@@ -1,19 +1,18 @@
-#include "pbsolver/Debug.h"
+#include "Debug.h"
 
-using namespace PBSolver;
-
-namespace PBSolver{
+namespace MiniSatPP {
+	
 vec<cchar*>* debug_names = NULL;
-}
+
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-void PBSolver::dump(Int num) {
+void dump(Int num) {
     if      (num == Int_MIN) reportf("-oo");
     else if (num == Int_MAX) reportf("+oo");
     else                     { char* tmp = toString(num); reportf("%s", tmp); xfree(tmp); } }
 
 
-void PBSolver::dump(Lit p) {
+void dump(Lit p) {
     if (debug_names == NULL)
         reportf("%sx%d", sign(p)?"~":"", var(p));
     else{
@@ -25,7 +24,7 @@ void PBSolver::dump(Lit p) {
 }
 
 
-void PBSolver::dump(Formula f) {
+void dump(Formula f) {
     if (Atom_p(f))
         reportf("%sv%d", sign(f)?"~":"", index(f));
     else
@@ -33,7 +32,7 @@ void PBSolver::dump(Formula f) {
 }
 
 
-void PBSolver::dump(const vec<Lit>& ps, const vec<Int>& Cs)
+void dump(const vec<Lit>& ps, const vec<Int>& Cs)
 {
     assert(ps.size() == Cs.size());
     for (int i = 0; i < ps.size(); i++){
@@ -44,7 +43,7 @@ void PBSolver::dump(const vec<Lit>& ps, const vec<Int>& Cs)
     }
 }
 
-void PBSolver::dump(const vec<Formula>& ps, const vec<Int>& Cs)
+void dump(const vec<Formula>& ps, const vec<Int>& Cs)
 {
     assert(ps.size() == Cs.size());
     for (int i = 0; i < ps.size(); i++){
@@ -56,7 +55,7 @@ void PBSolver::dump(const vec<Formula>& ps, const vec<Int>& Cs)
 }
 
 
-void PBSolver::dump(const vec<Lit>& ps, const vec<Int>& Cs, const vec<int>& assigns)
+void dump(const vec<Lit>& ps, const vec<Int>& Cs, const vec<int>& assigns)
 {
     assert(ps.size() == Cs.size());
     for (int i = 0; i < ps.size(); i++){
@@ -74,7 +73,7 @@ void PBSolver::dump(const vec<Lit>& ps, const vec<Int>& Cs, const vec<int>& assi
 }
 
 
-void PBSolver::dump(const Linear& pb)
+void dump(const Linear& pb)
 {
     for (int i = 0; i < pb.size; i++){
         dump(pb(i));
@@ -86,7 +85,7 @@ void PBSolver::dump(const Linear& pb)
 }
 
 
-void PBSolver::dump(const Linear& pb, const vec<int>& assigns)
+void dump(const Linear& pb, const vec<int>& assigns)
 {
     for (int i = 0; i < pb.size; i++){
         dump(pb(i));
@@ -101,4 +100,6 @@ void PBSolver::dump(const Linear& pb, const vec<int>& assigns)
         if (i+1 < pb.size) reportf("  ");
     }
     reportf("in ["); dump(pb.lo); reportf(","); dump(pb.hi); reportf("]");
+}
+
 }

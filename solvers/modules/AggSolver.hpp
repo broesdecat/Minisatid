@@ -102,7 +102,7 @@ public:
 	int getID() const { return id; }
 
     const vwl& getWL() const { return wlits; }
-    const vppagg& getAgg() const { return aggs; }
+    vppagg& getAgg() { return aggs; }
     void addAgg(ppagg agg){ aggs.push_back(agg); }
 };
 

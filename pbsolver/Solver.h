@@ -1,20 +1,15 @@
 #ifndef Solver_h
 #define Solver_h
 
-#include "pbsolver/SolverTypes.h"
-#include "pbsolver/Main.h"
-#include "pbsolver/MiniSat.h"
-#include "pbsolver/SatELite.h"
+#include "MiniSat.h"
+#include "SatELite.h"
+#include "Main.h"
 
+namespace MiniSatPP {
 //=================================================================================================
 
-namespace PBSolver{
-
-void reportf(const char* format, ...);      // 'printf()' replacer -- will put "c " first at each line if 'opt_satlive' is TRUE.
-struct BasicSolverStats;
-
 class Solver {
-    MiniSat::Solver*   minisat;
+    MiniSat ::Solver*   minisat;
     SatELite::Solver*   satelite;
 public:
     bool&             ok_ref     () { return (minisat != NULL) ? minisat->ok      : satelite->ok     ; }
@@ -51,11 +46,20 @@ public:
             if (opt_verbosity >= 1) reportf("=================================[SATELITE+]==================================\n");
             satelite->simplifyDB(true);
         } }
+        
+     void toCNF(int firstLit,std::vector<std::vector<int> >& cnf)    {
+        if (minisat != NULL){
+            minisat->simplifyDB();
+            minisat->toCNF(firstLit,cnf);
+        }
+        else reportf("CNF export to vector<vector<int> > is unsported for satlite");
+    } 
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
     Solver(bool use_minisat) : minisat(use_minisat ? new MiniSat::Solver : NULL), satelite(use_minisat ? NULL : new SatELite::Solver) {}
 };
-}
+
 
 //=================================================================================================
+}
 #endif

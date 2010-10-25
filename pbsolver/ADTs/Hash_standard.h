@@ -1,7 +1,8 @@
 #ifndef Hash_standard_h
 #define Hash_standard_h
 
-namespace PBSolver{
+
+namespace MiniSatPP {
 //=================================================================================================
 // Some Primes...
 
@@ -76,7 +77,7 @@ DefineHash(ulong , return (uint)key;)
 DefineHash(int64 , return (uint)(((uint64)key >> 32) ^ key);)
 DefineHash(uint64, return (uint)(((uint64)key >> 32) ^ key);)
 
-}
-//=================================================================================================
 
+//=================================================================================================
+}
 #endif

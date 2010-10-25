@@ -1,8 +1,0 @@
-Changes I made to get it into the project
-
-put ALL files into the namespace PBSolver
-changes all includes into their absolute path, adding pbsolver/ as root
-added includes to Global.h to several files
-added includes to Main.h to several files
-moved 2 methods from Minisat.h to Minisat.C
-commented the specialization of Hash in FEnv and commented the test() method in Minisat.C

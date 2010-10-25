@@ -1,6 +1,7 @@
 #ifndef FORWARDSEARCH_H_
 #define FORWARDSEARCH_H_
-namespace PBSolver{
+
+namespace MiniSatPP {
 /**
  * @pre 
  * 			 	for all i ws[i][0]>ws[i+1][0] and ws[i][0]>0 ws[i][1]>0 

@@ -2,21 +2,21 @@
 #include <vector>
 #include <map>
 #include <iostream>
-#include "pbsolver/pbbase/h/SearchMetaData.h"
-#include "pbsolver/pbbase/h/THeapComp.h"
-#include "pbsolver/pbbase/h/BaseSearchStateRelativeComp.h"
-#include "pbsolver/pbbase/h/GenralBaseFunctions.h"
-#include "pbsolver/pbbase/h/RelativeBaseSearch.h"
+#include "../h/SearchMetaData.h"
+#include "../h/THeapComp.h"
+#include "../h/BaseSearchStateRelativeComp.h"
+#include "../h/GenralBaseFunctions.h"
+#include "../h/RelativeBaseSearch.h"
 
-using namespace PBSolver;
-namespace PBSolver{
+namespace MiniSatPP {
+	
 #define length(a) ( sizeof ( a ) / sizeof ( *a ) )
 #define betterThenBest(a,b) relComp(a->hCnfSize,a->carryCost,b->cnfSize,b->carryCost)
 
 static inline void createChild(bssr father,register unsigned int msb,register unsigned int wights[][2],unsigned int sum[],unsigned long long& cnfSizeOfBestFound,unsigned long long& carryOfBestFound,  
 							   bssr* bestStateFound,THeapComp& que,SearchMetaData& md,std::vector<bssr>& old,std::map<unsigned int,bssr>& homomorphism,bool abstraction);
 
-static inline unsigned long long calcCarryCost(vector<unsigned long long> &carry) {
+static inline unsigned long long calcCarryCost(std::vector<unsigned long long> &carry) {
 	unsigned long long cuerntChainLegth = 0;
 	unsigned long long carryCost = 0;
 	for(unsigned int i=0;i<carry.size();i++){
@@ -29,7 +29,6 @@ static inline unsigned long long calcCarryCost(vector<unsigned long long> &carry
 	}
 	return 	carryCost;
 }
-}
 
 
 /**
@@ -40,7 +39,7 @@ static inline unsigned long long calcCarryCost(vector<unsigned long long> &carry
 	 *  			ws[i][1] = number of weight i in constraint
 	 * @return	SearchMetaData*  
 */ 
-SearchMetaData* PBSolver::bnb_Relative_search(unsigned int weights[][2],int length,std::vector<unsigned int>& primes,unsigned int cutoff,bool nonPrimePossible,bool abstraction){
+SearchMetaData* bnb_Relative_search(unsigned int weights[][2],int length,std::vector<unsigned int>& primes,unsigned int cutoff,bool nonPrimePossible,bool abstraction){
 		SearchMetaData*  md = new SearchMetaData(lg2(weights[0][0]),cutoff,weights[0][0],length,"BNB_relative_comp"); //preperations
 		THeapComp que;
 		unsigned long long carryOfBestFound,cnfSizeOfBestFound;
@@ -56,7 +55,7 @@ SearchMetaData* PBSolver::bnb_Relative_search(unsigned int weights[][2],int leng
 		bssr startState= new BaseSearchStateRelativeComp(0,length,1,0,0,0,0,0);
 		bssr bestStateFound(0);
 		que.offer(startState);
-		vector<unsigned long long> carry;
+		std::vector<unsigned long long> carry;
 		carryVecEval(weights, md->base,length,carry);
 		carryOfBestFound = calcCarryCost(carry);
 		//std::cout<<"empty base: cnfSize="<<temp<<", carryCost="<<0<<"\n";
@@ -109,7 +108,7 @@ SearchMetaData* PBSolver::bnb_Relative_search(unsigned int weights[][2],int leng
 
 
 
-static inline void PBSolver::createChild(bssr father,register unsigned int msb,register unsigned int wights[][2],unsigned int sum[],unsigned long long& cnfSizeOfBestFound,unsigned long long& carryOfBestFound,
+static inline void createChild(bssr father,register unsigned int msb,register unsigned int wights[][2],unsigned int sum[],unsigned long long& cnfSizeOfBestFound,unsigned long long& carryOfBestFound,
 					           bssr* bestStateFound,THeapComp& que,SearchMetaData& md,std::vector<bssr>& old,std::map<unsigned int,bssr>& homomorphism,bool abstraction) {
 	md.basesEvaluated++;
 	register unsigned long long childCost = father->carryins; 
@@ -186,4 +185,17 @@ l1:	unsigned long long ttt = childCost/msb;
 					carryOfBestFound= cc;
 				}
 	}
+}
+	
+int mainRel(int argc, char **argv) {
+	unsigned int ws[][2] = {{1000000,100},{777777,100},{640487,100},{47360,100},{10127,100},
+			{9873,100},{8153,100},{7543,100},{6937,100},{5342,100},{4283,100},
+				{3761,100},{2344,100},{231,100},{123,12}};
+	std::vector<unsigned int> pri;
+  	loadPrimes("P1.TXT",pri,ws[0][0],1000000);
+	SearchMetaData* md = bnb_Relative_search(ws,length(ws),pri,1000000,false,true);
+	md->print();
+	delete md;
+	return 0;  
+}
 }

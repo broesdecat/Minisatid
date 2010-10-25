@@ -1,10 +1,11 @@
-#include "pbsolver/MiniSat.h"
-#include "pbsolver/ADTs/Sort.h"
-#include "pbsolver/Debug.h"
+#include "MiniSat.h"
+#include "Sort.h"
+#include "Debug.h"
 
+namespace MiniSatPP {
+	
 extern int verbosity;
 
-using namespace PBSolver;
 
 //=================================================================================================
 // Interface required by parser:
@@ -489,7 +490,48 @@ Int evalGoal(Linear& goal, vec<lbool>& model)
     return sum;
 }
 
+void PbSolver::toCNF(int firstLit,std::vector<std::vector<int> >& cnf){
+	if (!ok) return;
 
+    // Convert constraints:
+    pb_n_vars = nVars();
+    pb_n_constrs = constrs.size();
+    if (opt_verbosity >= 1) reportf("Converting %d PB-constraints to clauses...\n", constrs.size());
+    propagate();
+    status = "search"; 
+    if (!convertPbs(true)){ assert(!ok); return; }
+
+    // Freeze goal function variables (for SatELite):
+    if (goal != NULL){
+        for (int i = 0; i < goal->size; i++)
+            sat_solver.freeze(var((*goal)[i]));
+    }
+
+    // Solver (optimize):
+    sat_solver.setVerbosity(opt_verbosity);
+
+    vec<Lit> goal_ps; if (goal != NULL){ for (int i = 0; i < goal->size; i++) goal_ps.push((*goal)[i]); }
+    vec<Int> goal_Cs; if (goal != NULL){ for (int i = 0; i < goal->size; i++) goal_Cs.push((*goal)(i)); }
+    assert(best_goalvalue == Int_MAX);
+
+    if (opt_polarity_sug != 0){
+        for (int i = 0; i < goal_Cs.size(); i++)
+            sat_solver.suggestPolarity(var(goal_ps[i]), ((goal_Cs[i]*opt_polarity_sug > 0 && !sign(goal_ps[i])) || (goal_Cs[i]*opt_polarity_sug < 0 && sign(goal_ps[i]))) ? l_False : l_True);
+    }
+
+    if (opt_convert_goal != ct_Undef)
+        opt_convert = opt_convert_goal;
+    opt_sort_thres *= opt_goal_bias;
+
+    if (opt_goal != Int_MAX)
+        addConstr(goal_ps, goal_Cs, opt_goal, -1,false),
+        convertPbs(false);
+
+    status = "export";
+    sat_solver.toCNF(firstLit,cnf);
+
+} 
+ 
 void PbSolver::solve(solve_Command cmd,bool skipSolving)
 {
     if (!ok) return;
@@ -599,4 +641,6 @@ void PbSolver::solve(solve_Command cmd,bool skipSolving)
             xfree(tmp);
         }
     }
+}
+
 }

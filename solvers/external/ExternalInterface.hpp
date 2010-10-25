@@ -114,6 +114,8 @@ public:
 	const ECNF_mode& modes			() const	{ return _modes; }
 	void			setNbModels		(int nb) 	{ _modes.nbmodels = nb; }
 
+	int				getMaxNumberUsed()	const { return maxnumber; }
+
 protected:
 	virtual MinisatID::LogicSolver* getSolver() const = 0;
 

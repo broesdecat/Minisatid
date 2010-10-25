@@ -5,9 +5,8 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
-#include "pbsolver/ADTs/Global.h"
-
-namespace PBSolver{
+namespace MiniSatPP {
+	
 #define lseek64 lseek   // }- (disable explicit 64-bit support for FreeBSD...)
 #define open64  ::open  // }
 
@@ -130,6 +129,8 @@ macro int64  decode64(uint64 val)           { return ((val & 1) == 0) ? (int64)(
 macro void   putInt  (File& out, int64 val) { putUInt(out, encode64(val)); }
 macro uint64 getInt  (File& in)             { return decode64(getUInt(in)); }
 
-}
+
 //=================================================================================================
+
+}
 #endif

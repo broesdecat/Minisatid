@@ -5,7 +5,8 @@
 #include <time.h>
 #include <vector>
 #include <string>
-namespace PBSolver{
+
+namespace MiniSatPP {
 class SearchMetaData {
 	
   public:
@@ -35,7 +36,8 @@ class SearchMetaData {
 	
   private: 
   	struct timeval startVal;
-};
+};       
+
 }
 
 #endif /*SEARCHMETADATA_H_*/

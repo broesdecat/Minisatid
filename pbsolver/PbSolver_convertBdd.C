@@ -1,12 +1,11 @@
-#include "pbsolver/PbSolver.h"
-#include "pbsolver/ADTs/FEnv.h"
-#include "pbsolver/Debug.h"
+#include "PbSolver.h"
+#include "FEnv.h"
+#include "Debug.h"
 
-using namespace PBSolver;
-
+namespace MiniSatPP {
 //=================================================================================================
 
-namespace PBSolver{
+
 static
 //Formula buildBDD(const Linear& c, int size, int lower_limit, int upper_limit, int material_left, Map<Pair<int,Int>,Formula>& memo, int max_cost)
 Formula buildBDD(const Linear& c, int size, Int sum, Int material_left, Map<Pair<int,Int>,Formula>& memo, int max_cost)
@@ -40,6 +39,7 @@ Formula buildBDD(const Linear& c, int size, Int sum, Int material_left, Map<Pair
     return ret;
 }
 
+
 // New school: Use the new 'ITE' construction of the formula environment 'FEnv'.
 //
 Formula convertToBdd(const Linear& c, int max_cost)
@@ -61,4 +61,5 @@ Formula convertToBdd(const Linear& c, int max_cost)
     }
     return ret;
 }
+ 
 }

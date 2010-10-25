@@ -2,9 +2,8 @@
 #define VecAlloc_h
 
 #include <typeinfo>
-#include "pbsolver/ADTs/Global.h"
 
-namespace PBSolver{
+namespace MiniSatPP {
 //=================================================================================================
 
 template <class T, int chunk_size = 100>
@@ -70,7 +69,7 @@ public:
         ((Slot*)ptr)->next = recycle;
         recycle = (Slot*)ptr; }
 };
-}
-//=================================================================================================
 
+//=================================================================================================
+}
 #endif

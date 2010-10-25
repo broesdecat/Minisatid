@@ -1,9 +1,9 @@
-#include "pbsolver/pbbase/h/SearchMetaData.h"
+#include "../h/SearchMetaData.h"
 #include <iostream>
 #include <math.h>
 
-using namespace PBSolver;
-namespace PBSolver{
+namespace MiniSatPP {
+	
 SearchMetaData::SearchMetaData(int size,unsigned int primesCutOf_,unsigned int mxcoff,int len,std::string algt) :
 		 base(size,2),carry(size,0),inputs(size,0),emptyBaseNOI(0),cost(0),inputCountCost(0),carryOnlyCost(0),compCost(0),basesEvaluated(0),runTime(0),
 		 insertedToQue(0),nodesExpended(0),fEnvSize(0),primesCutOf(primesCutOf_), 
@@ -30,4 +30,6 @@ void SearchMetaData::print() {
 			" ,nodesExpended= "<<nodesExpended<<" ,primesCutOf= "<<primesCutOf<<"\n";
 }
 
+
+ 
 }

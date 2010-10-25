@@ -1,9 +1,8 @@
-#include "pbsolver/PbSolver.h"
-#include "pbsolver/Hardware.h"
+#include "PbSolver.h"
+#include "Hardware.h"
 
-using namespace PBSolver;
-
-namespace PBSolver{
+namespace MiniSatPP {
+	
 // Write 'd' in binary, then substitute 0 with '_0_', 1 with 'f'. This is the resulting 'out' vector.
 //
 static inline void bitAdder(Int d, Formula f, vec<Formula>& out)
@@ -69,12 +68,15 @@ void linearAddition(const Linear& l, vec<Formula>& out)
         lte(sum,inp,out);
     }
 }
-}
 
+}
 //-------------------------------------------------------------------------------------------------
 // (old)
 
 #if 0
+
+namespace MiniSatPP {
+	
 bool PbSolver::convertPbs(void)
 {
     vec<Formula> fs;
@@ -103,7 +105,7 @@ bool PbSolver::convertPbs(void)
 }
 
 
-static void PBSolver::linearAddition(const Linear& l, vec<Formula>& out)
+static void linearAddition(const Linear& l, vec<Formula>& out)
 {
     vec<Formula> sum;
     vec<Formula> x, y;
@@ -129,4 +131,7 @@ static void PBSolver::linearAddition(const Linear& l, vec<Formula>& out)
         lte(sum,x,out);
     }
 }
+
+}
+
 #endif

@@ -1,9 +1,8 @@
 #ifndef __HEAP__
 #define __HEAP__
 
-#include "pbsolver/ADTs/Global.h"
-
-namespace PBSolver{
+namespace MiniSatPP {
+	
 static inline int left (int i)  { return i * 2; }
 static inline int right(int i)  { return i * 2 + 1; }
 static inline int parent(int i) { return i / 2; }
@@ -78,5 +77,7 @@ class Heap {
          heapProperty(left(i)) && heapProperty(right(i)));
     }
 };
+
 }
+
 #endif

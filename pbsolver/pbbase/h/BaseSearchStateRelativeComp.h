@@ -1,11 +1,10 @@
 #ifndef BASESEARCHSTATERELATIVECOMP_H_
 #define BASESEARCHSTATERELATIVECOMP_H_
 
-#include <stdio.h>
-
 #include <iostream>
 #include <math.h>
-namespace PBSolver{
+
+namespace MiniSatPP {
 #define gamma  0.134380000001 // 0.129030517578
  
 #define beta 0.350030517578// 0.100030517578 
@@ -49,6 +48,6 @@ inline bool relComp(unsigned long long a,unsigned long long b, unsigned long lon
 	//return (1-beta)*pow(a*ratio(b,a),alpa)+ (beta)*pow(b*ratio(a,b),alpa) < (1-beta)*pow(c*ratio(d,c),alpa)+ (beta)*pow(d*ratio(c,d),alpa);
 	//return a<c;
 }
-}
 
+}
 #endif /*BASESEARCHSTATERELATIVECOMP_H_*/

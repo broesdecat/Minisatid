@@ -1,6 +1,6 @@
 /**************************************************************************************************
 
-Solver.h -- (C) Niklas Een, Niklas Sï¿½rensson, 2005
+Solver.h -- (C) Niklas Een, Niklas Sörensson, 2005
 
 A simple Chaff-like SAT-solver with support for incremental SAT and Pseudo-boolean constraints.
 
@@ -9,12 +9,14 @@ A simple Chaff-like SAT-solver with support for incremental SAT and Pseudo-boole
 #ifndef MiniSat_h
 #define MiniSat_h
 
-#include "pbsolver/SolverTypes.h"
-#include "pbsolver/VarOrder.h"
+#include "SolverTypes.h"
+#include "VarOrder.h"
+#include <vector>
 
-namespace PBSolver{
+namespace MiniSatPP {
+	
+namespace MiniSat {
 
-namespace MiniSat{
 //=================================================================================================
 // Clause -- a simple class for representing a clause
 
@@ -55,8 +57,8 @@ public:
     bool        operator==(LitClauseUnion c) const { return data == c.data; }
     bool        operator!=(LitClauseUnion c) const { return data != c.data; }
 };
-LitClauseUnion makeLit    (Lit l);
-LitClauseUnion makeClause (Clause* c);
+inline LitClauseUnion makeLit    (Lit l)      { return LitClauseUnion((void*)(( ((intp)index(l))<<1) + 1)); }
+inline LitClauseUnion makeClause (Clause* c)  { assert(((intp)c & 1) == 0); return LitClauseUnion((void*)c); }
 
 
 //=================================================================================================
@@ -152,7 +154,21 @@ private:
     int     decisionLevel(void) const { return trail_lim.size(); }
 
 public:
-    Solver(void);
+    Solver(void) : cla_inc          (1)
+                 , cla_decay        (1)
+                 , var_inc          (1)
+                 , var_decay        (1)
+                 , order            (assigns, activity)
+                 , ok               (true)
+                 , last_simplify    (-1)
+                 , qhead            (0)
+                 , progress_estimate(0)
+                 , verbosity(0)
+                 {
+                     vec<Lit> dummy(2,lit_Undef);
+                     void*   mem = xmalloc<char>(sizeof(Clause) + sizeof(uint)*2);
+                     tmp_binary  = new (mem) Clause(false,dummy);
+                 }
 
    ~Solver(void) {
        for (int i = 0; i < learnts.size(); i++) remove(learnts[i], true);
@@ -180,7 +196,10 @@ public:
     bool    addClause(const vec<Lit>& ps) { if (ok){ Clause* c; ok = newClause(ps, false, c); if (c != NULL) clauses.push(c); } return ok; }
     // -- debug:
     void    exportClauses(cchar* filename);
-
+    
+    //export: 
+	void toCNF(int firstLit,std::vector<std::vector<int> >& cnf);
+	
     // Solving:
     //
     bool    okay(void) { return ok; }

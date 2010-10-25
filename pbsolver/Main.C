@@ -14,14 +14,16 @@ Read a DIMACS file and apply the SAT-solver to it.
 #include <vector>
 #include <map>
 #include <iostream>
-#include "pbsolver/MiniSat.h"
-#include "pbsolver/PbSolver.h"
-#include "pbsolver/PbParser.h"
-#include "pbsolver/pbbase/h/SearchMetaData.h"
+#include "MiniSat.h"
+#include "PbSolver.h"
+#include "PbParser.h"
+#include "pbbase/h/SearchMetaData.h"
+#include "Hardware.h"
+#include "Debug.h"
 
-using namespace PBSolver;
 
-namespace PBSolver{
+namespace MiniSatPP {
+	
 //=================================================================================================
 // Command line options:
 
@@ -44,14 +46,16 @@ Command  opt_command       = cmd_Minimize;
 bool     opt_branch_pbvars = false;
 int      opt_polarity_sug  = 1;
 
-BaseT    opt_base             = base_Comp;
-int      opt_max_generator    = 10000;
-bool     opt_non_prime        = true;
-bool     opt_only_base        = false; // web interface mode -- v0 is implied
-bool     opt_skip_sat         = false; // skip SAT solving, just report UNSAT
-bool     opt_dump             = false; // just dump optimal base problems
-bool     opt_natlist          = false; // read list of naturals instead of opb
-bool     opt_abstract         = true; // use the abstraction for the base serach algritem (optimalty proven for SOD only!) 
+BaseT       opt_base             = base_oddEven;
+int         opt_max_generator    = 10000;
+bool        opt_non_prime        = false;
+bool        opt_only_base        = false; // web interface mode -- v0 is implied
+bool        opt_skip_sat         = false; // skip SAT solving, just report UNSAT
+bool        opt_dump             = false; // just dump optimal base problems
+bool    	opt_natlist          = false; // read list of naturals instead of opb
+bool        opt_abstract         = false; // use the abstraction for the base serach algritem (optimalty proven for SOD only!)
+SortEncding opt_sorting_network_encoding = oddEvenEncoding;
+bool 	    opt_use_shortCuts   = false; 
 
 bool     opt_star_in_input   = false; // original MiniSAT+ expects "true"
 
@@ -98,11 +102,17 @@ cchar* doc =
     "  -bf           Use DFS based search algorithm with sum of digits cost function to find base for sorters.\n"
     "  -ba0          Use Brench and bound best first search algorithm with sum of digits cost function to find base for sorters.\n"
     "  -ba1          Use Brench and bound best first search algorithm with sum carry cost function to find base for sorters.\n"
-    "  -ba2          Use Brench and bound best first search algorithm with sum comperators cost function to find base for sorters.\n"
+    "  -ba2          Use Brench and bound best first search algorithm with sum aproximate comperators cost function to find base for sorters.\n"
+    "  -boe          Use Brench and bound best first search algorithm with sum odd even comperator cost function to find base for sorters.\n"
     "  -br           Use Brench and bound best first search algorithm with relative base comperator to find base for sorters.\n"
+    "  -bb           Use the binary base for encoding the sorters.\n"
     "  -max-base=<num>  Use 'num' as max prime factor in base generator. [def: %d]\n"
     "  -non-prime    Allow non-primes in base generators. (default: primes only)\n"
     "  -abs          Allow abstarction of the base search space (optimalty proven for Sum of digits cost function only!).\n"
+    "  -nabs         Dont allow abstarction of the base search space (optimalty proven for Sum of digits cost function only!).\n"
+    "  -eoe         Use Odd even sorting network encoding.\n"
+    "  -esa         Use Sort add sorting network encoding.\n"
+    "  -scut / -nscut   Enable/diable redundent shortcut clouses to incress sorting network propogation (incress cnf size!).\n"
     "\n"
     "  -1 -first     Don\'t minimize, just give first solution found\n"
     "  -A -all       Don\'t minimize, give all solutions\n"
@@ -181,11 +191,21 @@ void parseOptions(int argc, char** argv)
             else if (oneof(arg, "ba0"       )) opt_base      = base_SOD;
             else if (oneof(arg, "ba1"       )) opt_base      = base_Carry;
             else if (oneof(arg, "ba2"       )) opt_base      = base_Comp;
+            else if (oneof(arg, "boe"       )) opt_base      = base_oddEven;
             else if (oneof(arg, "br"        )) opt_base      = base_Rel;
+            else if (oneof(arg, "bb"        )) opt_base      = base_Bin;            
             else if (oneof(arg, "non-prime" )) opt_non_prime = true;
             else if (oneof(arg, "only-base" )) opt_only_base = true;
             else if (oneof(arg, "skip-sat"  )) opt_skip_sat  = true;
-            else if (oneof(arg, "abs"       )) opt_abstract  = true;
+            else if (oneof(arg, "eoe"       )) opt_sorting_network_encoding  = oddEvenEncoding;
+            else if (oneof(arg, "esa"       )) opt_sorting_network_encoding  = unarySortAddEncoding;
+            
+            else if (strncmp(arg, "-abs",4)==0)   opt_abstract  = true;
+            else if (strncmp(arg, "-nabs",5)==0)  opt_abstract  = false; 
+            else if (strncmp(arg, "-scut",5)==0)  opt_use_shortCuts  = true;
+            else if (strncmp(arg, "-nscut",6)==0) opt_use_shortCuts  = false;
+    
+      
             else if (oneof(arg, "dump" )) {
                 opt_dump  = true;
                 opt_only_base = true; // implied
@@ -337,7 +357,7 @@ static void SIGINT_handler(int signum) {
 
 
 SearchMetaData* createDummyData(double cpuT) {
-	SearchMetaData* dummyData = new SearchMetaData(0,opt_max_generator+1,0,0,"");
+	SearchMetaData* dummyData = new SearchMetaData(0,opt_max_generator,0,0,"");
     dummyData->cost = -1LL;
     dummyData->inputCountCost = -1LL;
     dummyData->basesEvaluated = -1L;
@@ -351,6 +371,8 @@ SearchMetaData* createDummyData(double cpuT) {
     else if (opt_base == base_SOD) dummyData->algType = "BNB_cost_sumOfDigits";
     else if (opt_base == base_Carry) dummyData->algType = "BNB_cost_carry";
     else if (opt_base == base_Comp) dummyData->algType = "BNB_cost_comp";
+    else if (opt_base == base_oddEven) dummyData->algType = "BNB_oddEven_comp";
+    else if (opt_base == base_oddEven) dummyData->algType = "BinaryBase";
     else dummyData->algType = "UNKNOWN";
     return dummyData;
 }
@@ -524,81 +546,6 @@ PbSolver::solve_Command convert(Command cmd) {
 
 //=================================================================================================
 
-//
-//int main(int argc, char** argv)
-//{
-//    /*DEBUG*/if (argc > 1 && (strcmp(argv[1], "-debug") == 0 || strcmp(argv[1], "--debug") == 0)){ void test(); test(); exit(0); }
-//    try {
-//  		gettimeofday(&startVal, NULL);
-//	    parseOptions(argc, argv);
-//	    pb_solver = new PbSolver(); // (must be constructed AFTER parsing commandline options -- constructor uses 'opt_solver' to determinte which SAT solver to use)
-//	    signal(SIGINT , SIGINT_handler);
-//	    signal(SIGTERM, SIGTERM_handler);
-//	    // Set command from 'PBSATISFIABILITYONLY':
-//	    char* value = getenv("PBSATISFIABILITYONLY");
-//	    if (value != NULL && atoi(value) == 1)
-//	        reportf("Setting switch '-first' from environment variable 'PBSATISFIABILITYONLY'.\n"),
-//	        opt_command = cmd_FirstSolution;
-//        if (opt_natlist) { // Input is list of integers
-//            parse_natlist_file(opt_input, *pb_solver);
-//            opt_convert = ct_Sorters;
-//            pb_solver->solve(convert(opt_command),true);
-//            if (opt_base_result_file != NULL) {
-//                double cpuT = cpuTime1();
-//                printBaseOutPut(cpuT,false,false,false);
-//            }
-//        } else { // Input is opb file
-//    	    if (opt_verbosity >= 1) reportf("Parsing PB file...\n");
-//            parse_PB_file(opt_input, *pb_solver);
-//            pb_solver->solve(convert(opt_command),false);
-//
-//            if (pb_solver->goal == NULL && pb_solver->best_goalvalue != Int_MAX)
-//                opt_command = cmd_FirstSolution;    // (otherwise output will be wrong)
-//            if (!pb_solver->okay())
-//	            opt_command = cmd_Minimize;         // (HACK: Get "UNSATISFIABLE" as output)
-//
-//            // <<== write result to file 'opt_result'
-//
-//            if (opt_command == cmd_Minimize)
-//                outputResult(*pb_solver);
-//            else if (opt_command == cmd_FirstSolution)
-//	            outputResult(*pb_solver, false);
-//            double cpuT = cpuTime1();
-//            if (opt_verbosity >= 1) {
-//                reportf("_______________________________________________________________________________\n\n");
-//                printStats(pb_solver->stats, cpuT/1000.0);
-//                reportf("_______________________________________________________________________________\n");
-//            }
-//            bool isSat = (pb_solver->best_goalvalue != Int_MAX);
-//            if (opt_huge_base_file!=NULL) printHugeOutPut(cpuT,isSat,false,false);
-//            else if (opt_base_result_file!=NULL) printBaseOutPut(cpuT,isSat,false,false);
-//            exit(pb_solver->best_goalvalue == Int_MAX ? 20 : (pb_solver->goal == NULL || opt_command == cmd_FirstSolution) ? 10 : 30);    // (faster than "return", which will invoke the destructor for 'PbSolver')
-//        }
-//  }
-//  catch (Exception_IntOverflow &e) {
-//		std::cout << "exception caught: " << e.where << std::endl;
-//		pb_solver->status = e.where;
-//		reportf("\n");
-//		double cpuT =cpuTime1();
-//		if (baseMetaData.size() == 0) {
-//	        	// exception, and we did not even finish base search at least once!
-//	        	// => create a dummy entry before printing
-//	        	SearchMetaData* dummyData = createDummyData(cpuT);
-//	        	baseMetaData.push_back(dummyData);
-//	    }
-//		if (opt_huge_base_file!=NULL)  printHugeOutPut(cpuT,false,false,true);
-//		else if (opt_base_result_file!=NULL) printBaseOutPut(cpuT,false,false,true);
-//		exit(-1);
-//  }
-//  return 0;
-//}
-
-
-
-//=================================================================================================
-#include "Hardware.h"
-#include "Debug.h"
-/*
 #define N 10
 
 void test(void)
@@ -620,5 +567,86 @@ void test(void)
 
     S.setVerbosity(1);
     printf(S.solve() ? "SAT\n" : "UNSAT\n");
-}*/
 }
+
+int run(int argc, char** argv) {
+	/*DEBUG*/if (argc > 1 && (strcmp(argv[1], "-debug") == 0 || strcmp(argv[1], "--debug") == 0)){ void test(); test(); exit(0); }
+    try {
+  		gettimeofday(&startVal, NULL);    
+	    parseOptions(argc, argv);
+	    pb_solver = new PbSolver(); // (must be constructed AFTER parsing commandline options -- constructor uses 'opt_solver' to determinte which SAT solver to use)
+	    signal(SIGINT , SIGINT_handler);
+	    signal(SIGTERM, SIGTERM_handler);
+	    // Set command from 'PBSATISFIABILITYONLY':
+	    char* value = getenv("PBSATISFIABILITYONLY");
+	    if (value != NULL && atoi(value) == 1)
+	        reportf("Setting switch '-first' from environment variable 'PBSATISFIABILITYONLY'.\n"),
+	        opt_command = cmd_FirstSolution;
+        if (opt_natlist) { // Input is list of integers
+            parse_natlist_file(opt_input, *pb_solver);
+            opt_convert = ct_Sorters;
+            pb_solver->solve(convert(opt_command),true);
+            if (opt_base_result_file != NULL) {
+                double cpuT = cpuTime1();
+                printBaseOutPut(cpuT,false,false,false);
+            }
+        } else { // Input is opb file
+    	    if (opt_verbosity >= 1) reportf("Parsing PB file...\n");
+            parse_PB_file(opt_input, *pb_solver);
+            pb_solver->solve(convert(opt_command),false);
+	
+            if (pb_solver->goal == NULL && pb_solver->best_goalvalue != Int_MAX)
+                opt_command = cmd_FirstSolution;    // (otherwise output will be wrong)
+            if (!pb_solver->okay())
+	            opt_command = cmd_Minimize;         // (HACK: Get "UNSATISFIABLE" as output)
+	
+            // <<== write result to file 'opt_result'
+	
+            if (opt_command == cmd_Minimize)
+                outputResult(*pb_solver);
+            else if (opt_command == cmd_FirstSolution)
+	            outputResult(*pb_solver, false);
+            double cpuT = cpuTime1();
+            if (opt_verbosity >= 1) {
+                reportf("_______________________________________________________________________________\n\n");
+                printStats(pb_solver->stats, cpuT/1000.0);
+                reportf("_______________________________________________________________________________\n");
+            }
+            bool isSat = (pb_solver->best_goalvalue != Int_MAX);
+            if (opt_huge_base_file!=NULL) printHugeOutPut(cpuT,isSat,false,false);
+            else if (opt_base_result_file!=NULL) printBaseOutPut(cpuT,isSat,false,false);
+            exit(pb_solver->best_goalvalue == Int_MAX ? 20 : (pb_solver->goal == NULL || opt_command == cmd_FirstSolution) ? 10 : 30);    // (faster than "return", which will invoke the destructor for 'PbSolver')
+        }
+  }
+  catch (Exception_IntOverflow &e) {
+		std::cout << "exception caught: " << e.where << std::endl;
+		pb_solver->status = e.where;
+		reportf("\n");
+		double cpuT =cpuTime1();
+		if (baseMetaData.size() == 0) {
+	        	// exception, and we did not even finish base search at least once!
+	        	// => create a dummy entry before printing
+	        	SearchMetaData* dummyData = createDummyData(cpuT);
+	        	baseMetaData.push_back(dummyData);
+	    }
+		if (opt_huge_base_file!=NULL)  printHugeOutPut(cpuT,false,false,true); 
+		else if (opt_base_result_file!=NULL) printBaseOutPut(cpuT,false,false,true);
+		exit(-1);
+  }
+  return 0;
+}
+
+
+}
+
+
+//=================================================================================================
+
+
+int main(int argc, char** argv)
+{
+	return MiniSatPP::run(argc,argv);
+}
+
+
+

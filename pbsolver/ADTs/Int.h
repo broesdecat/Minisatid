@@ -1,11 +1,11 @@
 #ifndef Int_h
 #define Int_h
 
-#include "pbsolver/ADTs/Global.h"
+#include "Global.h"
 
 //=================================================================================================
 
-namespace PBSolver{
+namespace MiniSatPP{
 struct Exception_IntOverflow {
     char* where;
     Exception_IntOverflow(char* w) : where(w) {}    // (takes ownership of string)
@@ -18,7 +18,7 @@ struct Exception_IntOverflow {
 // Fake bignums using 'int64':
 //=================================================================================================
 
-namespace PBSolver{
+namespace MiniSatPP{
 #define Int_Max__   9223372036854775807LL
 #define Int_Min__   (-Int_Max__)
 #define Int_Undef__ (-Int_Max__ - 1LL)
@@ -82,7 +82,7 @@ public:
 //=================================================================================================
 
 #include "gmp.h"
-namespace PBSolver{
+namespace MiniSatPP{
 //=================================================================================================
 
 

@@ -1,9 +1,9 @@
-#include "pbsolver/Hardware.h"
-#include "pbsolver/Debug.h"
+#include "Hardware.h"
+#include "Debug.h"
 
-using namespace PBSolver;
-
-int PBSolver::estimatedAdderCost(const Linear& c)
+namespace MiniSatPP {
+	
+int estimatedAdderCost(const Linear& c)
 {
     // (sorry about strange implementation -- copy/paste programming)
     vec<Int>    Cs(c.size);
@@ -27,7 +27,7 @@ int PBSolver::estimatedAdderCost(const Linear& c)
 }
 
 
-void PBSolver::rippleAdder(const vec<Formula>& xs, const vec<Formula>& ys, vec<Formula>& out)
+void rippleAdder(const vec<Formula>& xs, const vec<Formula>& ys, vec<Formula>& out)
 {
     Formula c = _0_;
     out.clear();
@@ -56,7 +56,7 @@ void PBSolver::rippleAdder(const vec<Formula>& xs, const vec<Formula>& ys, vec<F
 |    "overflow" bit, so "out.size() <= bits + 1".
 |________________________________________________________________________________________________@*/
 
-void PBSolver::addPb(const vec<Formula>& ps, const vec<Int>& Cs_, vec<Formula>& out, int bits)
+void addPb(const vec<Formula>& ps, const vec<Int>& Cs_, vec<Formula>& out, int bits)
 {
     assert(ps.size() == Cs_.size());
     vec<vec<Formula> >  pools;
@@ -125,4 +125,5 @@ void PBSolver::addPb(const vec<Formula>& ps, const vec<Int>& Cs_, vec<Formula>& 
         printf("\n");
     }
     #endif
+}
 }

@@ -1,6 +1,6 @@
 /**************************************************************************************************
 
-VarOrder.h -- (C) Niklas Een, Niklas Sï¿½rensson, 2004
+VarOrder.h -- (C) Niklas Een, Niklas Sörensson, 2004
 
 ADT for maintaining the variable ordering. It will keep a list of all decision
 variables sorted on the current activity.
@@ -10,9 +10,10 @@ variables sorted on the current activity.
 #ifndef VarOrder_h
 #define VarOrder_h
 
-#include "pbsolver/SolverTypes.h"
-#include "pbsolver/ADTs/Heap.h"
-namespace PBSolver{
+#include "SolverTypes.h"
+#include "Heap.h"
+
+namespace MiniSatPP {
 //=================================================================================================
 
 
@@ -83,6 +84,7 @@ Var VarOrder::select(double random_var_freq)
 
     return var_Undef;
 }
-}
+
 //=================================================================================================
+}
 #endif

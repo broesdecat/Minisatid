@@ -2,8 +2,10 @@
 #define THEAPCOMP_H_
 
 #include <vector>
-#include "pbsolver/pbbase/h/BaseSearchStateRelativeComp.h"
-namespace PBSolver{
+#include "../h/BaseSearchStateRelativeComp.h"
+
+namespace MiniSatPP {
+	
 typedef struct BaseSearchStateRelativeComp* bssr;
 
 class THeapComp {
@@ -24,6 +26,8 @@ class THeapComp {
     std::vector<bssr> heap;
   	void siftUp(int index);
 	void siftDown(int index);
-};       
-}
+};
+
+}       
+
 #endif /*THEAPCOMP_H_*/

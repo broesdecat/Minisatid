@@ -1,14 +1,14 @@
 #include <cstdio>
 #include <vector>
 #include <map>
-#include "pbsolver/pbbase/h/SearchMetaData.h"
-#include "pbsolver/pbbase/h/THeap.h"
-#include "pbsolver/pbbase/h/BaseSearchState.h"
-#include "pbsolver/pbbase/h/GenralBaseFunctions.h"
-#include "pbsolver/pbbase/h/BNB_SOD_Carry_Cost.h"
+#include "../h/SearchMetaData.h"
+#include "../h/THeap.h"
+#include "../h/BaseSearchState.h"
+#include "../h/GenralBaseFunctions.h"
+#include "../h/BNB_SOD_Carry_Cost.h"
 
-using namespace PBSolver;
-namespace PBSolver{
+namespace MiniSatPP {
+	
 #define length(a) ( sizeof ( a ) / sizeof ( *a ) )
 
 static inline void createChild(struct BaseSearchState* father,register unsigned int msb,register unsigned int wights[][2],unsigned int sum[],unsigned long long* bestFound,
@@ -150,4 +150,5 @@ int mainBNB_SOD_Carry_Cost_search(int argc, char **argv) {
 	delete md;
 	return 0;  
 }
+
 }

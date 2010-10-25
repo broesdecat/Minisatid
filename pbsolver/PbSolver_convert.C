@@ -1,12 +1,11 @@
-#include "pbsolver/PbSolver.h"
-#include "pbsolver/Hardware.h"
+#include "PbSolver.h"
+#include "Hardware.h"
 
 // for _exit(...)
 #include <unistd.h>
 
-using namespace PBSolver;
-
-namespace PBSolver{
+namespace MiniSatPP {
+	
 //-------------------------------------------------------------------------------------------------
 void    linearAddition (const Linear& c, vec<Formula>& out);        // From: PbSolver_convertAdd.C
 Formula buildConstraint(const Linear& c, int max_cost = INT_MAX);   // From: PbSolver_convertSort.C
@@ -14,8 +13,7 @@ Formula convertToBdd   (const Linear& c, int max_cost = INT_MAX);   // From: PbS
 //-------------------------------------------------------------------------------------------------
 
 // prototype
-void printBasesAndTerminate();
-}
+void printBasesAndTerminate(int noc);
 
 bool PbSolver::convertPbs(bool first_call)
 {
@@ -62,32 +60,34 @@ bool PbSolver::convertPbs(bool first_call)
         if (!ok) return false;
     }
 
-    if (opt_dump) {
-        _exit(0);
-    }
-    if (opt_only_base) {
-        printBasesAndTerminate();
-    }
-    if (opt_skip_sat && !opt_natlist && (opt_base_result_file != NULL)) {
-        double cpuT = cpuTime();
-        bool isSat = false; // whatever
-        printBaseOutPut(cpuT,isSat,false,false);
-        _exit(0);
-    }
-
     constrs.clear();
     mem.clear();
 	
 	formulaSize = converted_constrs.size();
 	
     clausify(sat_solver, converted_constrs);
+    
+    if (opt_dump) {
+        _exit(0);
+    }
+    if (opt_only_base) {
+        printBasesAndTerminate(sat_solver.numOfClouses());
+    }
+    if (opt_skip_sat && !opt_natlist && (opt_base_result_file != NULL)) {
+        double cpuT = cpuTime();
+        bool isSat = false; // whatever
+        numOfClouses = sat_solver.numOfClouses();
+        printBaseOutPut(cpuT,isSat,false,false);
+        _exit(0);
+    }
+    
 
     return ok;
 }
 
 // for the web interface:
 // print base info and then terminate immediately
-void PBSolver::printBasesAndTerminate() {
+void printBasesAndTerminate(int noc) {
     while(!baseMetaData.empty()) {
         printf("Base: ");
         SearchMetaData &md = (*baseMetaData.back());
@@ -97,11 +97,18 @@ void PBSolver::printBasesAndTerminate() {
             if (i != size-1) printf(",");
             else printf("; ");
         }
-        printf("# Candidates: %d; ", (int) md.basesEvaluated);
+        printf("# Candidates: %ld; ", md.basesEvaluated);
         double searchMillis = md.runTime/1000.0;
-        printf("Search Time: %.3f ms\n", searchMillis);
+        printf("Search Time: %.3f ms\n", searchMillis); 
         delete baseMetaData.back();
         baseMetaData.pop_back();
     }
+    if (noc > 0) {
+        // nasty hack to not print number of clauses for
+        // optimal base problems (which are not converted to SAT)
+        printf("Number of clauses: %d \n ", noc);
+    }
     exit(0);
+}
+
 }

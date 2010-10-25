@@ -1,9 +1,10 @@
 #include <vector>
-#include "pbsolver/pbbase/h/BaseSearchState.h"
-#include "pbsolver/pbbase/h/THeap.h"
+#include "../h/BaseSearchState.h"
+#include "../h/THeap.h"
 
-using namespace PBSolver;
-namespace PBSolver{
+
+namespace MiniSatPP {
+	
 typedef struct BaseSearchState* bss;
 
 	THeap::THeap() {}

@@ -10,7 +10,8 @@ datum types, (plus default constructor unless null value is passed to constructo
 #include "VecAlloc.h"
 #include "Hash_standard.h"
 
-namespace PBSolver{
+
+namespace MiniSatPP {
 //=================================================================================================
 // Map implementation:
 
@@ -229,7 +230,7 @@ public:
 
 };
 
-}
-//=================================================================================================
 
+//=================================================================================================
+}
 #endif

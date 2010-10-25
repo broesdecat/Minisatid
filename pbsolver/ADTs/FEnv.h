@@ -7,7 +7,7 @@
 #include "VecMaps.h"
 
 
-namespace PBSolver{
+namespace MiniSatPP{
 
 #define ENV FEnv
 #define FML Formula

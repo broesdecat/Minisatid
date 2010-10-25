@@ -1,7 +1,7 @@
 #ifndef BASESEARCHSTATE_H_
 #define BASESEARCHSTATE_H_
 
-namespace PBSolver{
+namespace MiniSatPP {
 struct BaseSearchState {
     BaseSearchState* parent;
     int index;

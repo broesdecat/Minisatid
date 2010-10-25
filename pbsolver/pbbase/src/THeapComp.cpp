@@ -1,9 +1,10 @@
 #include <vector>
-#include "pbsolver/pbbase/h/BaseSearchStateRelativeComp.h"
-#include "pbsolver/pbbase/h/THeapComp.h"
+#include "../h/BaseSearchStateRelativeComp.h"
+#include "../h/THeapComp.h"
 
-using namespace PBSolver;
-namespace PBSolver{
+
+namespace MiniSatPP {
+	
 typedef struct BaseSearchStateRelativeComp* bssr;
 
 #define smallerThen(x,y) relComp(x->hCnfSize,x->carryCost,y->hCnfSize,y->carryCost)
@@ -95,4 +96,3 @@ typedef struct BaseSearchStateRelativeComp* bssr;
 	}
 	
 }
-	

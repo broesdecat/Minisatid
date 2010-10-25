@@ -1,14 +1,14 @@
 #ifndef Main_h
 #define Main_h
 
-#include "pbsolver/ADTs/Int.h"
-#include "pbsolver/pbbase/h/SearchMetaData.h"
+#include "Int.h"
+#include "pbbase/h/SearchMetaData.h"
 #include <vector>
 #include <map>
 
 //=================================================================================================
 
-namespace PBSolver{
+namespace MiniSatPP {
 
 enum SolverT  { st_MiniSat, st_SatELite };
 enum ConvertT { ct_Sorters, ct_Adders, ct_BDDs, ct_Mixed, ct_Undef };
@@ -17,7 +17,10 @@ enum Command  { cmd_Minimize, cmd_FirstSolution, cmd_AllSolutions };
 
 // if we use sorters (i.e., if ct_Sorters or ct_Mixed are in use),
 // how should we determine the base to use?
-enum BaseT { base_M,base_Forward, base_SOD, base_Carry, base_Comp, base_Rel };
+enum BaseT { base_M,base_Forward, base_SOD, base_Carry, base_Comp, base_Rel,base_oddEven, base_Bin };
+
+enum SortEncding { unarySortAddEncoding, oddEvenEncoding };
+
 
 // -- output options:
 extern bool     opt_satlive;
@@ -48,6 +51,8 @@ extern bool  opt_only_base; // web interface: only print optimal base(s), do not
 extern bool  opt_skip_sat;  // no SAT solving. just say UNSAT
 extern bool  opt_dump; // just dump optimal base problems
 extern bool  opt_natlist; // read list of naturals instead of opb
+extern SortEncding   opt_sorting_network_encoding;
+extern bool   opt_use_shortCuts;
 
 // -- require '*' between coeff and var (as MiniSAT+ did in 2005)?
 //    current OPB files do not have this any more.
@@ -72,6 +77,8 @@ extern std::map<
 
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+void reportf(const char* format, ...);      // 'printf()' replacer -- will put "c " first at each line if 'opt_satlive' is TRUE.
+
 void printHugeOutPut(double cpuTime,bool isSat,bool timeout,bool exception);
 void printBaseOutPut(double cpuTime,bool isSat,bool timeout,bool exception);
 
@@ -79,5 +86,6 @@ SearchMetaData* createDummyData(double cpuT);
 
 //=================================================================================================
 }
+
 
 #endif

@@ -1,11 +1,11 @@
 #include <cstdio>
 #include <vector>
-#include "pbsolver/pbbase/h/SearchMetaData.h"
-#include "pbsolver/pbbase/h/GenralBaseFunctions.h"
-#include "pbsolver/pbbase/h/ForwardSearch.h"
+#include "../h/SearchMetaData.h"
+#include "../h/GenralBaseFunctions.h"
+#include "../h/ForwardSearch.h"
 
-using namespace PBSolver;
-namespace PBSolver{
+namespace MiniSatPP {
+	
 #define length(a) ( sizeof ( a ) / sizeof ( *a ) )
 
 struct sData{
@@ -15,7 +15,7 @@ struct sData{
        unsigned int baseMul;
 };
    
-static unsigned long findOpt(unsigned int wights[][2],struct sData data,vector<int> &lastBase,SearchMetaData &md,unsigned long minNumOfBits,unsigned int sum[],std::vector<unsigned int>& primes);
+static unsigned long findOpt(unsigned int wights[][2],struct sData data,std::vector<int> &lastBase,SearchMetaData &md,unsigned long minNumOfBits,unsigned int sum[],std::vector<unsigned int>& primes);
 
 /**
 	 * @pre 
@@ -32,13 +32,13 @@ SearchMetaData* findBaseFWD(unsigned int weights[][2],int length,std::vector<uns
 		for(int i=0;i<length;i++)
 			sum[i+1]=sum[i]+weights[i][1];
 		struct sData data={length,0,0,1};
-		vector<int> tempBase;
+		std::vector<int> tempBase;
 		md->basesEvaluated++;
 		md->finalize(findOpt(weights,data,tempBase,(*md),inputCountEval(weights, md->base,length),sum,primes)); 
 		return md;
 }
 	
-	static unsigned long findOpt(unsigned int wights[][2],struct sData data,vector<int> &lastBase,
+	static unsigned long findOpt(unsigned int wights[][2],struct sData data,std::vector<int> &lastBase,
 						       SearchMetaData &md, unsigned long minNumOfBits,unsigned int sum[],std::vector<unsigned int>& primes){
 			md.nodesExpended++;
 			register unsigned int  bm =  data.baseMul;

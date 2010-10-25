@@ -1,18 +1,17 @@
 /**************************************************************************************************
 
-Solver.C -- (C) Niklas Een, Niklas Sï¿½rensson, 2004
+Solver.C -- (C) Niklas Een, Niklas Sörensson, 2004
 
 A simple Chaff-like SAT-solver with support for incremental SAT.
 
 **************************************************************************************************/
 
-#include "pbsolver/SatELite.h"
-#include "pbsolver/Main.h"
-#include "pbsolver/ADTs/Sort.h"
+#include "SatELite.h"
+#include "Sort.h"
 #include <cmath>
 
-using namespace PBSolver;
-namespace PBSolver {
+namespace MiniSatPP {
+	
 namespace SatELite {
 
 //#################################################################################################
@@ -163,7 +162,7 @@ FILE* createTmpFile(cchar* prefix, cchar* mode, char*& out_name)
 // If 'exact' is set, 'prefix' is the full name returned by 'createTmpFile()'.
 void deleteTmpFile(cchar* prefix, bool exact)
 {
-    PBSolver::uint    len = strlen(prefix);
+    uint    len = strlen(prefix);
     for (int i = 0; i < tmp_files.size();){
         if (!exact && (strlen(tmp_files[i]) == len + 6 && strncmp(tmp_files[i], prefix, len) == 0)
         ||   exact && (strcmp(tmp_files[i], prefix) == 0))
@@ -245,8 +244,6 @@ macro void yfree(void* ptr)
 //=================================================================================================
 // Solver methods operating on clauses:
 
-void    Solver::watch	(Clause c, Lit p) { watches[index(p)].push(c); }
-void    Solver::unwatch	(Clause c, Lit p) { remove(watches[index(p)], c); }
 
 // Will allocate space in 'constrs' or 'learnts' and return the position to put new clause at.
 int Solver::allocClauseId(bool learnt)
@@ -675,33 +672,6 @@ void Solver::record(const vec<Lit>& clause)
 // Major methods:
 
 
-Solver::Solver(OccurMode mode, cchar* elimed_filename)
-             : ok               (true)
-             , cla_inc          (1)
-             , cla_decay        (1)
-             , n_literals       (0)
-             , var_inc          (1)
-             , var_decay        (1)
-           #ifdef VAR_ORDER_2
-             , order            (assigns, activity, lt_activity, var_inc)
-           #else
-             , order            (assigns, activity)
-           #endif
-             , watches_setup    (false)
-             , occur_mode       (mode)
-             , root_level       (0)
-             , last_simplify    (-1)
-             , fwd_subsump      (false)
-             , last_inspects    (0)
-             , unit_tmp         (1, PBSolver::lit_Undef)
-             , progress_estimate(0)
-             , verbosity(0)
-             { createTmpFiles(elimed_filename);
-            #ifndef WATCH_OPTIMIZATION
-               watches_setup = true;
-            #endif
-             }
-
 Solver::~Solver(void)
 {
     assert(iter_vecs.size() == 0); assert(iter_sets.size() == 0);
@@ -738,7 +708,7 @@ void Solver::analyze(Clause confl, vec<Lit>& out_learnt, int& out_btlevel)
     // Generate conflict clause:
     //
 #if 1
-// Niklas Sï¿½rensson's version
+// Niklas Sörensson's version
     // Generate conflict clause:
     //
     out_learnt.push();      // (leave room for the asserting literal)
@@ -1109,7 +1079,7 @@ Clause Solver::propagate(void)
 #endif
 
 #if 1
-// Borrowed from Niklas Sï¿½rensson -- uses "unsafe" type casts to achieve maximum performance
+// Borrowed from Niklas Sörensson -- uses "unsafe" type casts to achieve maximum performance
 Clause Solver::propagate(void)
 {
     if (decisionLevel() == 0 && occur_mode != occ_Off){
@@ -1860,12 +1830,12 @@ void Solver::simplifyBySubsumption(bool with_var_elim)
                     ol_seen[index(c[j])] = 1;
 
                     vec<Clause>& n_occs = occur[index(~c[j])];
-                    for (int k = 0; k < n_occs.size(); k++)     // <<= Bï¿½ttra pï¿½. Behï¿½ver bara kolla 'n_occs[k]' mot 'c'
+                    for (int k = 0; k < n_occs.size(); k++)     // <<= Bättra på. Behöver bara kolla 'n_occs[k]' mot 'c'
                         if (n_occs[k] != c && n_occs[k].size() <= c.size() && selfSubset(n_occs[k].abst(), c.abst()) && selfSubset(n_occs[k], c, seen_tmp))
                             s1.add(n_occs[k]);
 
                     vec<Clause>& p_occs = occur[index(c[j])];
-                    for (int k = 0; k < p_occs.size(); k++)     // <<= Bï¿½ttra pï¿½. Behï¿½ver bara kolla 'p_occs[k]' mot 'c'
+                    for (int k = 0; k < p_occs.size(); k++)     // <<= Bättra på. Behöver bara kolla 'p_occs[k]' mot 'c'
                         if (subset(p_occs[k].abst(), c.abst()))
                             s0.add(p_occs[k]);
                 }
@@ -2211,7 +2181,7 @@ bool Solver::findDef(Lit x, vec<Clause>& poss, vec<Clause>& negs, Clause out_def
   4  5 3                 -3 6 7
                          -3 -6 -7
 
-3 -> ~4       == { ~3, ~4 }   (ger ~4, ~5 + ev mer som superset; negera detta och lï¿½gg till 3:an)
+3 -> ~4       == { ~3, ~4 }   (ger ~4, ~5 + ev mer som superset; negera detta och lägg till 3:an)
 3 -> ~5       == { ~3, ~5 }
 
 ~4 & ~5 -> 3  == { 4, 5, 3 }
@@ -2693,7 +2663,7 @@ void Solver::clauseReduction(void)
                 }
             }
 
-            // (kolla att seen[] ï¿½r nollad korrekt hï¿½r)
+            // (kolla att seen[] är nollad korrekt här)
 
             /**/if (learnt.size() < c.size()){
                 putchar('*'); fflush(stdout);
@@ -2737,4 +2707,4 @@ void Solver::clauseReduction(void)
 //#################################################################################################
 
 }// end namespace SatELite
-}// end namespace PBSolver
+}

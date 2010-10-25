@@ -48,7 +48,7 @@
 #include "solvers/modules/aggsolver/FullyWatched.hpp"
 #include "solvers/modules/aggsolver/PartiallyWatched.hpp"
 
-//#include "pbsolver/PbSolver.h"
+#include "pbsolver/PbSolver.h"
 
 #include <algorithm>
 
@@ -234,12 +234,12 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, AggSign boundsig
 	return true;
 }
 
-/*struct PBAgg{
-	vector<PBSolver::Lit> literals;
-	vector<PBSolver::Int> weights;
+struct PBAgg{
+	MiniSatPP::vec<MiniSatPP::Lit> literals;
+	MiniSatPP::vec<MiniSatPP::Int> weights;
 	Weight bound;
 	bool sign;
-};*/
+};
 
 void AggSolver::finishParsing(bool& present, bool& unsat) {
 	notifyInitialized();
@@ -265,12 +265,12 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 
 	//Rewrite all sum and card constraint into CNF using PBSOLVER
 	if(false){
-/*		int sumaggs = 0;
+		int sumaggs = 0;
 		int maxvar = 1;
 		vector<PBAgg> pbaggs;
 		for (map<int, ppaset>::const_iterator i = parsedsets.begin(); i != parsedsets.end(); i++) {
 			vppagg remaining;
-			for(int j=0; i<(*i).second->getAgg().begin(); j++){
+			for(int j=0; j<(*i).second->getAgg().size(); j++){
 				ppagg agg = (*i).second->getAgg()[j];
 				if(!agg->isOptim() && (agg->getType()==SUM || agg->getType()==CARD)){
 					PBAgg pbagg;
@@ -281,8 +281,8 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 					}
 					pbagg.bound = agg->getBound();
 					for(vwl::const_iterator k=(*i).second->getWL().begin(); k<(*i).second->getWL().end(); k++){
-						pbagg.literals.push_back((*k).getLit());
-						pbagg.weights.push_back((*k).getWeight());
+						pbagg.literals.push(MiniSatPP::Lit(toInt((*k).getLit())));
+						pbagg.weights.push(MiniSatPP::Int((int)((*k).getWeight())));
 					}
 				}else{
 					remaining.push_back(agg);
@@ -291,14 +291,15 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 			(*i).second->getAgg().clear();
 			(*i).second->getAgg().insert((*i).second->getAgg().begin(), remaining.begin(), remaining.end());
 		}
-		PBSolver::PbSolver* pbsolver = new PBSolver::PbSolver();
+		MiniSatPP::PbSolver* pbsolver = new MiniSatPP::PbSolver();
 		pbsolver->allocConstrs(maxvar, sumaggs);
 		for(vector<PBAgg>::const_iterator i=pbaggs.begin(); i<pbaggs.end(); i++){
 			pbsolver->addConstr((*i).literals, (*i).weights, (*i).bound, (*i).sign, false);
 		}
-*/
+
 		//get CNF out of the pseudoboolean matrix
-		//pbsolver->
+		vector<vector<int> > pbencodings;
+		pbsolver->toCNF(nVars(), pbencodings);
 	}
 
 	for (map<int, ppaset>::const_iterator i = parsedsets.begin(); i != parsedsets.end(); i++) {

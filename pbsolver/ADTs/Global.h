@@ -1,6 +1,6 @@
 /**************************************************************************************************
 
-Global.h -- (C) Niklas Een, Niklas Sï¿½rensson, 2004
+Global.h -- (C) Niklas Een, Niklas Sörensson, 2004
 
 Contains types, macros, and inline functions generally useful in a C++ program. 
 
@@ -19,7 +19,8 @@ Contains types, macros, and inline functions generally useful in a C++ program.
 #include <cfloat>
 #include <new>
 
-namespace PBSolver{
+namespace MiniSatPP {
+	
 //=================================================================================================
 // Basic Types & Minor Things:
 
@@ -147,20 +148,21 @@ macro double drand(double& seed) {
 macro int irand(double& seed, int size) {
     return (int)(drand(seed) * size); }
 
+
 //=================================================================================================
 // Time:
-
+}
 
 #ifdef _MSC_VER
 #include <ctime>
-namespace PBSolver{
+namespace MiniSatPP {
 macro double cpuTime(void) {
     return (double)clock() / CLOCKS_PER_SEC; }
 }
 #else
 #include <sys/time.h>
 #include <sys/resource.h>
-namespace PBSolver{
+namespace MiniSatPP {
 macro double cpuTime(void) {
     struct rusage ru;
     getrusage(RUSAGE_SELF, &ru);
@@ -168,6 +170,7 @@ macro double cpuTime(void) {
 }
 #endif
 
+namespace MiniSatPP {
 //=================================================================================================
 // 'Pair':
 
