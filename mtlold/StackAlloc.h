@@ -1,5 +1,7 @@
-#ifndef StackAlloc_h
-#define StackAlloc_h
+#ifndef MTLOLDStackAlloc_h
+#define MTLOLDStackAlloc_h
+
+namespace Minisat{
 
 //=================================================================================================
 
@@ -64,6 +66,6 @@ void StackAlloc<T,cap,lim>::freeAll(void)
         tmp = ptr->prev, delete ptr, ptr = tmp;
 }
 
-
+}
 //=================================================================================================
 #endif

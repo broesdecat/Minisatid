@@ -9,12 +9,12 @@
 //=================================================================================================
 
 namespace PBSolver{
-//TODOyoav
+
 void reportf(const char* format, ...);      // 'printf()' replacer -- will put "c " first at each line if 'opt_satlive' is TRUE.
 struct BasicSolverStats;
 
 class Solver {
-    MiniSat ::Solver*   minisat;
+    MiniSat::Solver*   minisat;
     SatELite::Solver*   satelite;
 public:
     bool&             ok_ref     () { return (minisat != NULL) ? minisat->ok      : satelite->ok     ; }

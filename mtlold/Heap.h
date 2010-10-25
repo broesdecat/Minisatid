@@ -36,15 +36,15 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
-#ifndef Heap_h
-#define Heap_h
+#ifndef MTLOLDHeap_h
+#define MTLOLDHeap_h
 
-#include "Vec.h"
+#include "mtlold/Vec.h"
 
 //=================================================================================================
 // A heap implementation with support for decrease/increase key.
 
-
+namespace Minisat{
 template<class Comp>
 class Heap {
     Comp     lt;
@@ -184,7 +184,7 @@ class Heap {
 	int getMIN() {return heap[0];}
 	int getSEC() {return heap[1];}
 };
-
+}
 
 //=================================================================================================
 #endif

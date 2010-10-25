@@ -16,7 +16,7 @@
 //    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
 //    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //--------------------------------------------------------------------------------------------------
-
+namespace Minisat{
 template<class V, class T>
 static inline void remove(V& ts, const T& t);
 
@@ -174,3 +174,4 @@ class vec {
 };
 
 
+}

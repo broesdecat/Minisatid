@@ -2502,6 +2502,10 @@ UFS IDSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<V
 // PRINT INFORMATION
 ///////
 
+void IDSolver::print(){
+	Print::print(this);
+}
+
 void IDSolver::printStatistics() const {
 report	("cycles                : %-12" PRIu64 "\n", cycles);
 	report("cycle conflicts       : %-12" PRIu64 "\n", justify_conflicts);

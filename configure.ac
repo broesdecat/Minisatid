@@ -8,8 +8,7 @@ AC_PROG_CXX
 AC_DECL_YYTEXT
 #AC_PROG_LEX
 AC_PROG_YACC
-AM_INIT_AUTOMAKE([foreign subdir-objects])  #-ffloat-store OTHER parameters like pedantic, seem no to work here, I set them in debug CXXflags!
-#AM_SILENT_RULES([yes]) from 1.11 on
+AM_INIT_AUTOMAKE([foreign subdir-objects]) #silent-rules FROM VERSION 1.11 #-ffloat-store OTHER parameters like pedantic, seem no to work here, I set them in debug CXXflags!
 AC_LANG([C++])
 
 #check for the necessary headers

@@ -18,7 +18,6 @@
 //--------------------------------------------------------------------------------------------------
 
 #include "solvers/modules/DPLLTmodule.hpp"
-
 #include "solvers/theorysolvers/PCSolver.hpp"
 
 using namespace MinisatID;

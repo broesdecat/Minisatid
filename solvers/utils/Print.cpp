@@ -34,16 +34,16 @@ using namespace Print;
 using namespace Minisat;
 
 
-template<class S>
+/*template<class S>
 void Print::print(S const * const s){
 	report("Solver is present, but no printing information.\n");
-}
+}*/
 
 template<>
 void Print::print(PCSolver const * const s){
 	print(s->getCSolver());
 	for(vector<DPLLTSolver*>::const_iterator i=s->getSolversBegin(); i<s->getSolversEnd(); i++){
-		print((*i)->get());
+		(*i)->get()->print();
 	}
 }
 
@@ -130,8 +130,8 @@ void Print::print(ModSolver const * const m){
 	for(vector<Var>::const_iterator i=m->getAtoms().begin(); i<m->getAtoms().end(); i++){
 		report("%d ", gprintVar(*i));
 	}
-	report("\nsubtheory\n");
-	print(m->getPCSolver());
+	/*report("\nsubtheory\n");
+	print(m->getPCSolver());*/
 	report("SubSolvers\n");
 	for(vmodindex::const_iterator i=m->getChildren().begin(); i<m->getChildren().end(); i++){
 		print(m->getModSolverData().getModSolver(*i));

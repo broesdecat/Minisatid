@@ -14,13 +14,7 @@ A simple Chaff-like SAT-solver with support for incremental SAT and Pseudo-boole
 
 namespace PBSolver{
 
-//TODOyoav
-struct BasicSolverStats2 {
-    int64   starts, decisions, propagations, inspects, conflicts;
-    BasicSolverStats2(void) : starts(0), decisions(0), propagations(0), inspects(0), conflicts(0) { }
-};
-namespace MiniSat {
-
+namespace MiniSat{
 //=================================================================================================
 // Clause -- a simple class for representing a clause
 
@@ -69,7 +63,7 @@ LitClauseUnion makeClause (Clause* c);
 // Solver -- the main class:
 
 
-struct SolverStats : public BasicSolverStats2 {
+struct SolverStats : public BasicSolverStats {
     int64   clauses, clauses_literals, learnts, learnts_literals, max_literals, tot_literals;
     SolverStats(void) : clauses(0), clauses_literals(0), learnts(0), learnts_literals(0), max_literals(0), tot_literals(0) {}
 };

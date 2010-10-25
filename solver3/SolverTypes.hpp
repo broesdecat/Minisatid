@@ -56,8 +56,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 **************************************************************************************************/
 
 
-#ifndef SolverTypes_h
-#define SolverTypes_h
+#ifndef SOLVER3HACKSolverTypes_h
+#define SOLVER3HACKSolverTypes_h
 
 #include <cassert>
 #include <stdint.h>

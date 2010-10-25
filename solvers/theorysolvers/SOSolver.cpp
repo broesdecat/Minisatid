@@ -47,7 +47,7 @@ void SOSolver::checkexistsModSolver(vsize modid) const {
 
 bool SOSolver::simplify(){
 	assert(state==ALLLOADED);
-	return solvers[0]->simplify();
+	return solvers[0]->simplifyDown();
 }
 
 bool SOSolver::solve(const vec<Lit>& assumptions, Solution* sol){
@@ -68,7 +68,7 @@ void SOSolver::finishParsing(bool& present, bool& unsat){
 //		return true;
 //	}
 
-	solvers[0]->finishParsing(present, unsat);
+	solvers[0]->finishParsingDown(present, unsat);
 
 	if(modes().verbosity>=2){
 		Print::print(this);

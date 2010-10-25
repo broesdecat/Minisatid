@@ -94,9 +94,9 @@ void PCSolver::setModSolver(pModSolver m) {
 	solvers.insert(solvers.begin(), modsolver);
 }
 
-IDSolver* PCSolver::getIDSolver() const { return idsolver->present?dynamic_cast<IDSolver*>(idsolver->get()):NULL; }
-AggSolver* PCSolver::getAggSolver() const { return aggsolver->present?dynamic_cast<AggSolver*>(aggsolver->get()):NULL; }
-ModSolver* PCSolver::getModSolver() const { return modsolver->present?dynamic_cast<ModSolver*>(modsolver->get()):NULL; }
+IDSolver* PCSolver::getIDSolver() const { return (idsolver==NULL || !idsolver->present)?NULL:dynamic_cast<IDSolver*>(idsolver->get()); }
+AggSolver* PCSolver::getAggSolver() const { return (aggsolver==NULL || !aggsolver->present)?NULL:dynamic_cast<AggSolver*>(aggsolver->get()); }
+ModSolver* PCSolver::getModSolver() const { return (modsolver==NULL || !modsolver->present)?NULL:dynamic_cast<ModSolver*>(modsolver->get()); }
 
 lbool PCSolver::value(Var x)	const { return getSolver()->value(x); }
 lbool PCSolver::value(Lit p)	const { return getSolver()->value(p); }
@@ -158,7 +158,7 @@ void PCSolver::varBumpActivity(Var v) {
 }
 
 ///////
-// INITIALIZING THE THEORY // TODO should add STATE concept to solver for correctness
+// INITIALIZING THE THEORY // Add STATE concept to solver to check for correctness
 ////////
 
 Var PCSolver::newVar() {
@@ -252,14 +252,14 @@ bool PCSolver::addEquivalence(const Lit& head, const vec<Lit>& rightlits, bool c
 }
 
 bool PCSolver::addRule(bool conj, Lit head, const vec<Lit>& lits) {
-	assert(idsolverpresent);
+	assert(getIDSolver()!=NULL);
 	addVar(head);
 	addVars(lits);
 	return getIDSolver()->addRule(conj, head, lits);
 }
 
 bool PCSolver::addSet(int setid, const vec<Lit>& lits) {
-	assert(aggsolverpresent);
+	assert(getAggSolver()!=NULL);
 	addVars(lits);
 	vector<Weight> w;
 	w.resize(lits.size(), 1);
@@ -268,7 +268,7 @@ bool PCSolver::addSet(int setid, const vec<Lit>& lits) {
 }
 
 bool PCSolver::addSet(int setid, const vec<Lit>& lits, const vector<Weight>& w) {
-	assert(aggsolverpresent);
+	assert(getAggSolver()!=NULL);
 	addVars(lits);
 	vector<Lit> ll;
 	for (int i = 0; i < lits.size(); i++) {
@@ -288,7 +288,7 @@ bool PCSolver::addSet(int setid, const vec<Lit>& lits, const vector<Weight>& w) 
 }
 
 bool PCSolver::addAggrExpr(Lit head, int setid, Weight bound, AggSign boundsign, AggType type, AggSem defined) {
-	assert(aggsolverpresent);
+	assert(getAggSolver()!=NULL);
 
 	if (modes().verbosity >= 7) {
 		report("Adding aggregate with info ");
@@ -374,7 +374,7 @@ void PCSolver::finishParsing(bool& present, bool& unsat) {
 			unsat = true; return;
 		} else {
 			if (modes().verbosity > 0) {
-				report("|    (there will be no propagations on solver)                             |\n"); //TODO solvername
+				report("|    (there will be no propagations on %s module)                             |\n", (*i)->get()->getName());
 			}
 		}
 	}
@@ -391,9 +391,7 @@ void PCSolver::finishParsing(bool& present, bool& unsat) {
 		unsat = true; return;
 	}
 
-	//TODO later modes.mnmz, modes.cp
-
-	// TODO Pre processing
+	// Aggregate pre processing idea
 	/*if(aggsolverpresent){
 	 getAggSolver()->findClausalPropagations();
 	 }*/
@@ -446,7 +444,7 @@ rClause PCSolver::getExplanation(Lit l) {
 	assert(explan!=nullPtrClause);
 
 	if (verbosity() >= 2) {
-		report("Implicit %s reason clause from a dpllt module "); //TODO print out solver name
+		report("Implicit %s reason clause from the %s module ", solver->getName());
 		gprintLit(l, sign(l) ? l_False : l_True);
 		report(" : ");
 		Print::printClause(explan, this);
@@ -504,7 +502,6 @@ void PCSolver::newDecisionLevel() {
 	}
 }
 
-//TODO implementeer ze hier allemaal
 void PCSolver::backtrackDecisionLevel(int levels, int untillevel) {
 	for(lsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
 		if((*i)->present){
@@ -516,7 +513,6 @@ void PCSolver::backtrackDecisionLevel(int levels, int untillevel) {
 /**
  * Returns not-owning pointer
  */
-//TODO: maybe let all lower ones return owning pointer, so only one reference to addlearnedclause?
 rClause PCSolver::propagate(Lit l) {
 	if (init) {
 		initialprops.push_back(l);
@@ -580,6 +576,10 @@ bool PCSolver::simplify() {
  */
 
 bool PCSolver::solve(const vec<Lit>& assumptions, Solution* sol){
+	if(optim!=NONE && sol->getNbModelsToFind()!=1){
+		throw idpexception("Finding multiple models can currently not be combined with optimization.\n");
+	}
+
 	if(!sol->getSearch()){
 		return getSolver()->solve(assumptions, true);
 	}
@@ -761,7 +761,7 @@ bool PCSolver::addSumMinimize(const Var head, const int setid) {
 	cl.push(mkLit(head, false));
 	bool notunsat = addClause(cl);
 	if (notunsat) {
-		assert(aggsolverpresent);
+		assert(getAggSolver()!=NULL);
 		notunsat = getAggSolver()->addMnmzSum(head, setid, LB);
 	}
 
@@ -822,7 +822,7 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
 	bool rslt = true, optimumreached = false;
 
 	//CHECKS whether first element yields a solution, otherwise previous strategy is done
-	//TODO should become dichotomic search: check half and go to interval containing solution!
+	//should IMPLEMENT dichotomic search in the end: check half and go to interval containing solution!
 	/*if(optim==MNMZ){
 	 assmpt.push(to_minimize[0]);
 	 rslt = getSolver()->solve(assmpt);
@@ -849,7 +849,7 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
 
 	while (!optimumreached && rslt) {
 		if (optim == SUMMNMZ) {
-			assert(aggsolverpresent);
+			assert(getAggSolver()!=NULL);
 			//Noodzakelijk om de aanpassingen aan de bound door te propageren.
 			getAggSolver()->propagateMnmz(head);
 		}
@@ -905,25 +905,6 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
 			optimumreached = true;
 		}
 	}
-
-	//TODO move to upper layer to allow translation to correct format
-	/*
-	 if(!hasmodels){
-	 assert(!optimumreached);
-	 fprintf(res==NULL?stdout:res, " UNSAT\n");
-	 printf("UNSATISFIABLE\n");
-	 }else{
-	 assert(optimumreached);
-	 fprintf(res==NULL?stdout:res, " SAT\n");
-	 printf("SATISFIABLE\n");
-	 int nvars = (int)nVars();
-	 for (int i = 0; i < nvars; i++){
-	 fprintf(res==NULL?stdout:res, "%s%s%d", (i == 0) ? "" : " ", !sign(m[i]) ? "" : "-", i + 1);
-	 }
-	 fprintf(res==NULL?stdout:res, " 0\n");
-
-	 modelsfound++;
-	 }*/
 
 	return optimumreached;
 }

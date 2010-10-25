@@ -66,6 +66,10 @@ public:
 
 	virtual void 	printStatistics			() const = 0;
 
+	virtual const char* getName() = 0;
+
+	virtual void print() = 0;
+
 	///////
 	// Convenience methods (based on getPCSolver)
 	///////

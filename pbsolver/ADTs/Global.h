@@ -146,7 +146,6 @@ macro double drand(double& seed) {
 // Returns a random integer 0 <= x < size. Seed must never be 0.
 macro int irand(double& seed, int size) {
     return (int)(drand(seed) * size); }
-}
 
 //=================================================================================================
 // Time:
@@ -169,7 +168,6 @@ macro double cpuTime(void) {
 }
 #endif
 
-namespace PBSolver{
 //=================================================================================================
 // 'Pair':
 

@@ -1,5 +1,8 @@
 #ifndef __HEAP__
 #define __HEAP__
+
+#include "pbsolver/ADTs/Global.h"
+
 namespace PBSolver{
 static inline int left (int i)  { return i * 2; }
 static inline int right(int i)  { return i * 2 + 1; }

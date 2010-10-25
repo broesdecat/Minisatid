@@ -36,8 +36,8 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
-#ifndef Solver_h
-#define Solver_h
+#ifndef SOLVER3Solver_h
+#define SOLVER3Solver_h
 
 #include <cstdio>
 

@@ -36,10 +36,12 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
-#ifndef Sort_h
-#define Sort_h
+#ifndef MTLOLDSort_h
+#define MTLOLDSort_h
 
-#include "Vec.h"
+#include "mtlold/Vec.h"
+
+namespace Minisat{
 
 //=================================================================================================
 // Some sorting algorithms for vec's
@@ -107,6 +109,6 @@ template <class T, class LessThan> void sort(vec<T>& v, LessThan lt) {
 template <class T> void sort(vec<T>& v) {
     sort(v, LessThan_default<T>()); }
 
-
+}
 //=================================================================================================
 #endif

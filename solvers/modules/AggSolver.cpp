@@ -48,6 +48,8 @@
 #include "solvers/modules/aggsolver/FullyWatched.hpp"
 #include "solvers/modules/aggsolver/PartiallyWatched.hpp"
 
+//#include "pbsolver/PbSolver.h"
+
 #include <algorithm>
 
 #include <stdint.h>
@@ -164,8 +166,6 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 	return true;
 }
 
-//#include "pbsolver/PbSolver.h"
-
 bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, AggSign boundsign, AggType type, AggSem headeq) {
 	assert(type==MIN || type==MAX || type==CARD || type==SUM || type==PROD);
 
@@ -234,12 +234,12 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, AggSign boundsig
 	return true;
 }
 
-struct PBAgg{
-	vector<Lit> literals;
-	vector<Weight> weights;
+/*struct PBAgg{
+	vector<PBSolver::Lit> literals;
+	vector<PBSolver::Int> weights;
 	Weight bound;
 	bool sign;
-};
+};*/
 
 void AggSolver::finishParsing(bool& present, bool& unsat) {
 	notifyInitialized();
@@ -265,47 +265,40 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 
 	//Rewrite all sum and card constraint into CNF using PBSOLVER
 	if(false){
-		int sumaggs = 0;
+/*		int sumaggs = 0;
 		int maxvar = 1;
-		PBAgg goal;
-		bool hasoptim = false;
 		vector<PBAgg> pbaggs;
 		for (map<int, ppaset>::const_iterator i = parsedsets.begin(); i != parsedsets.end(); i++) {
 			vppagg remaining;
-			for(int j=0; i<(*i).second->aggs.begin(); j++){
-				ppagg agg = (*i).second->aggs[j];
-				if(agg->getType()==SUM || agg->getType()==CARD){
+			for(int j=0; i<(*i).second->getAgg().begin(); j++){
+				ppagg agg = (*i).second->getAgg()[j];
+				if(!agg->isOptim() && (agg->getType()==SUM || agg->getType()==CARD)){
 					PBAgg pbagg;
-					pbagg.disequality = true;
+					if(agg->getSign()==LB){
+						pbagg.sign = -2;
+					}else{
+						pbagg.sign = 2;
+					}
 					pbagg.bound = agg->getBound();
 					for(vwl::const_iterator k=(*i).second->getWL().begin(); k<(*i).second->getWL().end(); k++){
 						pbagg.literals.push_back((*k).getLit());
 						pbagg.weights.push_back((*k).getWeight());
 					}
-					if(agg->isOptim()){
-						hastoptim = true;
-						goal = pbagg;
-					}else{
-						pbaggs.push_back(pbagg);
-					}
-					//TODO delete from original aggs
 				}else{
 					remaining.push_back(agg);
 				}
 			}
-			(*i).second->aggs.clear();
-			(*i).second->aggs.insert((*i).second->aggs.begin(), remaining.begin(), remaining.end());
+			(*i).second->getAgg().clear();
+			(*i).second->getAgg().insert((*i).second->getAgg().begin(), remaining.begin(), remaining.end());
 		}
 		PBSolver::PbSolver* pbsolver = new PBSolver::PbSolver();
 		pbsolver->allocConstrs(maxvar, sumaggs);
-		if(hasoptim){
-			pbsolver->addGoal(goal.literals, goal.weights);
-		}
-		pbsolver->addGoal();
 		for(vector<PBAgg>::const_iterator i=pbaggs.begin(); i<pbaggs.end(); i++){
 			pbsolver->addConstr((*i).literals, (*i).weights, (*i).bound, (*i).sign, false);
 		}
-
+*/
+		//get CNF out of the pseudoboolean matrix
+		//pbsolver->
 	}
 
 	for (map<int, ppaset>::const_iterator i = parsedsets.begin(); i != parsedsets.end(); i++) {
@@ -459,7 +452,7 @@ bool AggSolver::constructMinSet(ppaset set, vppagg aggs) {
 	}
 
 	bool unsat = constructMaxSet(set2, aggs2);
-	deleteList<ParsedAgg*>(aggs2);
+	deleteList<ParsedAgg>(aggs2);
 	delete set2;
 
 	return unsat;
@@ -594,6 +587,8 @@ bool AggSolver::constructProdSet(ppaset set, vppagg aggs) {
  * @pre: literal p can be derived to be true because of the given aggregate reason
  * @remarks: only method allowed to use the sat solver datastructures
  * @returns: non-owning pointer
+ *
+ * INVARIANT: or the provided reason is deleted or it is IN the reason datastructure on return
  */
 rClause AggSolver::notifySolver(AggReason* ar) {
 	const Lit& p = ar->getPropLit();
@@ -611,6 +606,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 		lits.push(p);
 		ar->getAgg().getAggComb()->getExplanation(lits, *ar);
 		ar->setClause(lits);
+		//FIXME why not return here or something and what with conflicts?
 	}
 
 	if (value(p) == l_False) {
@@ -625,7 +621,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 
 		AggReason* old_ar = aggreason[var(p)];
 		aggreason[var(p)] = ar;
-		rClause confl = getExplanation(p);
+		rClause confl = getExplanation(p);	//Reason manipulation because getexplanation uses that reason!
 		aggreason[var(p)] = old_ar;
 		delete ar; // Have to delete before addLearnedClause, as internally it might lead to backtrack and removing the reason
 		getPCSolver()->addLearnedClause(confl);
@@ -993,7 +989,11 @@ void AggSolver::printStatistics() const {
 	report("aggregate propagations: %-12" PRIu64 "\n", propagations);
 }
 
-void AggSolver::print(ppagg agg) const {
+void AggSolver::print(){
+	Print::print(this);
+}
+
+void AggSolver::print(ppagg agg) const{
 	report("Added %s aggregate with head %d on set %d, %s %s of type ",
 			agg->getSem() == DEF?"defined":"completion",
 			gprintVar(var(agg->getHead())),

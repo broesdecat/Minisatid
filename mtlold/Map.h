@@ -36,12 +36,14 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
-#ifndef Map_h
-#define Map_h
+#ifndef MTLOLDMap_h
+#define MTLOLDMap_h
 
 #include <stdint.h>
 
-#include "Vec.h"
+#include "mtlold/Vec.h"
+
+namespace Minisat{
 
 //=================================================================================================
 // Default hash/equals functions
@@ -133,5 +135,6 @@ class Map {
         table = NULL;
     }
 };
+}
 
 #endif

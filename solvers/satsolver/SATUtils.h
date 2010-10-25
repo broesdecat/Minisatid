@@ -28,10 +28,6 @@
 #include "solver3minisat/SolverTypes.h"
 
 namespace MinisatID {
-	using ::vec;
-	using Minisat::l_False;
-	using Minisat::l_Undef;
-	using Minisat::l_True;
 	typedef Minisat::Clause& pClause;
 	typedef Minisat::Clause* rClause;
 	Minisat::Lit mkLit(Minisat::Var x, bool sign = false);
@@ -46,10 +42,6 @@ namespace MinisatID {
 	#include "solver3/SolverTypes.hpp"
 
 	namespace MinisatID {
-		using ::vec;
-		using Minisat::l_False;
-		using Minisat::l_Undef;
-		using Minisat::l_True;
 		typedef Minisat::Clause& pClause;
 		typedef Minisat::Clause* rClause;
 		Minisat::Lit mkLit(Minisat::Var x, bool sign = false);
@@ -63,10 +55,6 @@ namespace MinisatID {
 		#include "core/SolverTypes.h"
 
 		namespace MinisatID {
-			using Minisat::l_False;
-			using Minisat::l_Undef;
-			using Minisat::l_True;
-			using Minisat::vec;
 			typedef Minisat::CRef pClause;
 			typedef Minisat::CRef rClause;
 			using Minisat::mkLit;
@@ -75,6 +63,10 @@ namespace MinisatID {
 #endif
 
 namespace MinisatID {
+	using Minisat::vec;
+	using Minisat::l_False;
+	using Minisat::l_Undef;
+	using Minisat::l_True;
 	using Minisat::lbool;
 	using Minisat::Var;
 	using Minisat::Lit;

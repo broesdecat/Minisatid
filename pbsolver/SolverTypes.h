@@ -23,7 +23,6 @@ namespace PBSolver{
 typedef int Var;
 #define var_Undef (-1)
 
-
 class Lit {
     int     x;
 public:
