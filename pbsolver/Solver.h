@@ -47,10 +47,10 @@ public:
             satelite->simplifyDB(true);
         } }
         
-     void toCNF(int firstLit,std::vector<std::vector<int> >& cnf)    {
+     void toCNF(std::vector<std::vector<int> >& cnf)    {
         if (minisat != NULL){
             minisat->simplifyDB();
-            minisat->toCNF(firstLit,cnf);
+            minisat->toCNF(cnf);
         }
         else reportf("CNF export to vector<vector<int> > is unsported for satlite");
     } 

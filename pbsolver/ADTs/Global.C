@@ -2,6 +2,7 @@
 #include <cstdarg>
 #include <cstring>
 #include <cstdio>
+#include "Global.h"
 
 namespace MiniSatPP {
 	

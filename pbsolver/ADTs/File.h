@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
-
+#include "Int.h"
 namespace MiniSatPP {
 	
 #define lseek64 lseek   // }- (disable explicit 64-bit support for FreeBSD...)

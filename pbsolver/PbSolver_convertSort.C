@@ -297,7 +297,7 @@ Formula buildConstraint(const Linear& c, int max_cost)
     for (int j = 0; j < c.size; j++)
         ps.push(lit2fml(c[j])),
         Cs.push(c(j));
-
+	
     vec<int> base;
   
     SearchMetaData* data = searchForBase(Cs, base);
@@ -305,10 +305,50 @@ Formula buildConstraint(const Linear& c, int max_cost)
     if (opt_dump) { // don't spend time on building unneeded formulae
         return _undef_;
     }
-
+    Int lo = c.lo;
+    Int hi = c.hi;
+	if (opt_tare & (lo == hi | lo == Int_MIN | hi == Int_MAX)) { 
+		Int toNormlize;
+		Int toAdd;
+		if (lo == Int_MIN) toNormlize = hi;
+		else                 toNormlize = lo;
+		Int temp = 1;
+		int i;
+		for(i=0;temp<toNormlize && i<base.size();i++) temp *= base[i];
+		if (temp < toNormlize) {
+			i=2;
+			while (temp*i < toNormlize) i++;
+			temp*=i;
+		}
+		else {
+			i--;
+			Int bmi;
+			if (i==-1) bmi=1;
+			else       bmi = temp / base[i];   
+			while(temp-bmi>=toNormlize) temp-=bmi;
+			assert(temp > toNormlize);
+		}
+		toAdd = temp-toNormlize;
+		if (toAdd>0) {
+			ps.push(_1_);
+			Cs.push(toAdd);
+			if (lo != Int_MIN) lo=lo+toAdd;
+			if (hi != Int_MAX) hi=hi+toAdd;
+		}
+	}
     Formula ret;
     try {
-        ret = buildConstraint(ps, Cs, base, c.lo, c.hi, max_cost);
+    	if (opt_verbosity >= 1) {
+	    	if (c.lo != Int_MIN) {
+	    		printf("orignal   lo:%5d     \n", (int)toint(c.lo));
+	    		printf("normlized hi:%5d     \n", (int)toint(hi));
+	    	}
+	    	if  (hi != Int_MAX) {
+	    		printf("orignal   hi:%5d     \n", (int)toint(c.hi));
+	    		printf("normlized lo:%5d     \n", (int)toint(lo));
+	    	}
+    	}
+        ret = buildConstraint(ps, Cs, base, lo, hi, max_cost);
     }catch (Exception_TooBig){
         FEnv::pop();
         return _undef_;
@@ -317,7 +357,7 @@ Formula buildConstraint(const Linear& c, int max_cost)
 	if (data!=0) data->fEnvSize = FEnv::topSize();
 	
     if (opt_verbosity >= 1){
-        printf("Sorter-cost:%5d     ", FEnv::topSize());
+        printf("FEnv.topSize:%5d     ", FEnv::topSize());
         printf("Base:"); for (int i = 0; i < base.size(); i++) printf(" %d", base[i]); printf("\n");
     }
     FEnv::keep();

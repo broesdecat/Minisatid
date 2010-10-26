@@ -54,8 +54,11 @@ bool        opt_skip_sat         = false; // skip SAT solving, just report UNSAT
 bool        opt_dump             = false; // just dump optimal base problems
 bool    	opt_natlist          = false; // read list of naturals instead of opb
 bool        opt_abstract         = false; // use the abstraction for the base serach algritem (optimalty proven for SOD only!)
+bool        opt_tare             = false;
+bool 	    opt_use_shortCuts    = false;
+
 SortEncding opt_sorting_network_encoding = oddEvenEncoding;
-bool 	    opt_use_shortCuts   = false; 
+ 
 
 bool     opt_star_in_input   = false; // original MiniSAT+ expects "true"
 
@@ -113,6 +116,7 @@ cchar* doc =
     "  -eoe         Use Odd even sorting network encoding.\n"
     "  -esa         Use Sort add sorting network encoding.\n"
     "  -scut / -nscut   Enable/diable redundent shortcut clouses to incress sorting network propogation (incress cnf size!).\n"
+    "  -tare / -ntare Enable/dsiable tare of the rhs (represented in minmum number of bits in the choosen bits).\n"
     "\n"
     "  -1 -first     Don\'t minimize, just give first solution found\n"
     "  -A -all       Don\'t minimize, give all solutions\n"
@@ -199,11 +203,12 @@ void parseOptions(int argc, char** argv)
             else if (oneof(arg, "skip-sat"  )) opt_skip_sat  = true;
             else if (oneof(arg, "eoe"       )) opt_sorting_network_encoding  = oddEvenEncoding;
             else if (oneof(arg, "esa"       )) opt_sorting_network_encoding  = unarySortAddEncoding;
-            
-            else if (strncmp(arg, "-abs",4)==0)   opt_abstract  = true;
-            else if (strncmp(arg, "-nabs",5)==0)  opt_abstract  = false; 
-            else if (strncmp(arg, "-scut",5)==0)  opt_use_shortCuts  = true;
-            else if (strncmp(arg, "-nscut",6)==0) opt_use_shortCuts  = false;
+            else if (oneof(arg, "abs"))   opt_abstract  = true;
+			else if (oneof(arg, "nabs"))  opt_abstract  = false; 
+            else if (oneof(arg, "scut"))  opt_use_shortCuts  = true;
+            else if (oneof(arg, "nscut")) opt_use_shortCuts  = false;
+            else if (oneof(arg, "tare"))  opt_tare   = true;
+            else if (oneof(arg, "ntare")) opt_tare   = false;
     
       
             else if (oneof(arg, "dump" )) {
@@ -636,6 +641,35 @@ int run(int argc, char** argv) {
   return 0;
 }
 
+int test1() {
+	 pb_solver = new PbSolver();
+	 vec<Lit> ps;
+	 vec<Int> Cs;
+	 Int rhs=4;
+	 int ineq = 1;
+	 ps.push(Lit(0));
+	 ps.push(Lit(1));
+	 ps.push(Lit(2));
+	 Cs.push(2);
+	 Cs.push(3);
+	 Cs.push(6);
+	 pb_solver->addConstr(ps,Cs,rhs,ineq,false);
+	 ps.clear();
+	 Cs.clear();
+	 ps.push(Lit(2));
+	 Cs.push(1);
+	 rhs=0;
+	 ineq = -1;
+	 pb_solver->addConstr(ps,Cs,rhs,ineq,false);
+	 std::vector<std::vector<int> > cnf;
+	 pb_solver->toCNF(cnf);
+	 for (int i=0;i<cnf.size();i++) {
+	 	for(int j=0;j<cnf[i].size();j++) {
+	 		std::cout<<cnf[i][j]<<" ";
+	 	}	
+	 	std::cout<<"\n";
+	 }
+}
 
 }
 
@@ -643,10 +677,11 @@ int run(int argc, char** argv) {
 //=================================================================================================
 
 
-int main(int argc, char** argv)
+/*int main(int argc, char** argv)
 {
-	return MiniSatPP::run(argc,argv);
-}
+	//return MiniSatPP::run(argc,argv);
+	MiniSatPP::test1();
+}*/
 
 
 

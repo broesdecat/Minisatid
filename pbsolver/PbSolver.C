@@ -49,7 +49,13 @@ bool PbSolver::addConstr(const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, int in
     //**/debug_names = &index2name;
     //**/static cchar* ineq_name[5] = { "<", "<=" ,"==", ">=", ">" };
     //**/reportf("CONSTR: "); dump(ps, Cs, assigns); reportf(" %s ", ineq_name[ineq+2]); dump(rhs); reportf("\n");
-
+	for (int i=0;i<ps.size();i++){
+		while (var(ps[i]) >= sat_solver.nVars()) {
+			sat_solver.newVar();
+			n_occurs  .push(0);
+        	n_occurs  .push(0);
+		}
+	}
     vec<Lit>    norm_ps;
     vec<Int>    norm_Cs;
     Int         norm_rhs;
@@ -78,7 +84,7 @@ bool PbSolver::addConstr(const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, int in
         if (ineq == 2)
             ++norm_rhs;
             
-        else if (normalizePb(norm_ps, norm_Cs, norm_rhs,skipNorm))
+        if (normalizePb(norm_ps, norm_Cs, norm_rhs,skipNorm))
             storePb(norm_ps, norm_Cs, norm_rhs, Int_MAX); //**/reportf("STORED: "), dump(constrs.last()), reportf("\n");
          	
     }
@@ -490,13 +496,14 @@ Int evalGoal(Linear& goal, vec<lbool>& model)
     return sum;
 }
 
-void PbSolver::toCNF(int firstLit,std::vector<std::vector<int> >& cnf){
+void PbSolver::toCNF(std::vector<std::vector<int> >& cnf){
 	if (!ok) return;
 
     // Convert constraints:
     pb_n_vars = nVars();
     pb_n_constrs = constrs.size();
     if (opt_verbosity >= 1) reportf("Converting %d PB-constraints to clauses...\n", constrs.size());
+  
     propagate();
     status = "search"; 
     if (!convertPbs(true)){ assert(!ok); return; }
@@ -528,7 +535,7 @@ void PbSolver::toCNF(int firstLit,std::vector<std::vector<int> >& cnf){
         convertPbs(false);
 
     status = "export";
-    sat_solver.toCNF(firstLit,cnf);
+    sat_solver.toCNF(cnf);
 
 } 
  

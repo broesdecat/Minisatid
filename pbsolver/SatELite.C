@@ -8,6 +8,7 @@ A simple Chaff-like SAT-solver with support for incremental SAT.
 
 #include "SatELite.h"
 #include "Sort.h"
+#include "Main.h"
 #include <cmath>
 
 namespace MiniSatPP {

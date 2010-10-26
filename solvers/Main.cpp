@@ -142,6 +142,7 @@ static struct argp_option options[] = {
 		{"aggclausesaving", 6, "INT", 0,	"INT={0,1,2}: 0=add clause on propagation, 1=save clause on propagation, 2=save minimal reason", 2},
 		{"remap"		, 'r', "BOOL", 0,	"BOOL={\"yes\",\"no\"}: remap literals from the input structure to a gap-less internal format",1},
 		{"watchedaggr"	, 'w', "BOOL", 0,	"BOOL={\"yes\",\"no\"}: use watched-literal datastructures to handle aggregate propagation",2},
+		{"pbsolver"		, 14, "BOOL", 0,	"BOOL={\"yes\",\"no\"}: use SAT-encoding via pbsolver to handle sum/card aggregate expressions",2},
 		{"output"		, 'o', "FILE", 0,	"The outputfile to use to write out models and results",1},
 		{"randomize"	, 7, "BOOL", 0,		"BOOL={\"yes\",\"no\"}: randomly generate the SAT-solver random seed,4"},
 //		{"disableheur"	, 8, "BOOL", 0,		"BOOL={\"yes\",\"no\"}: disable the SAT-solver's heuristic"},
@@ -272,6 +273,15 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 			break;
 		case 'o': // outputfile
 			MinisatID::setOutputFileUrl(arg);
+			break;
+		case 14: // pbsolver: yes/no
+			if(strcmp(arg, "no")==0){
+				modes.pbsolver = false;
+			}else if(strcmp(arg, "yes")==0){
+				modes.pbsolver = true;
+			}else{
+				report("Illegal pbsolver value %s\n", arg); argp_usage(state);
+			}
 			break;
 		case 'w': // watched agg: yes/no
 			if(strcmp(arg, "no")==0){

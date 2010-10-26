@@ -2,6 +2,7 @@
 #define VecAlloc_h
 
 #include <typeinfo>
+#include "Global.h"
 
 namespace MiniSatPP {
 //=================================================================================================

@@ -170,6 +170,7 @@ Var PCSolver::newVar() {
 
 void PCSolver::addVar(Var v) {
 	assert(v>-1);
+
 	while (v >= nVars()) {
 		getSolver()->newVar(true, false);
 
@@ -369,6 +370,9 @@ void PCSolver::finishParsing(bool& present, bool& unsat) {
 	for(lsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
 		if((*i)->present){
 			(*i)->get()->finishParsing((*i)->present, unsat);
+			if(unsat){
+				return;
+			}
 		}
 		if ((*i)->present && !(*i)->get()->simplify()) {
 			unsat = true; return;

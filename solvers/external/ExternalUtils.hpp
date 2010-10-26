@@ -248,10 +248,11 @@ struct ECNF_mode {
 	DEFMARKDEPTH defn_search; // Controls which search type will be used for definitions.                                  (default include_cs)
 	DEFSEARCHSTRAT ufs_strategy; //Which algorithm to use to find unfounded sets
 
-	bool lparse;
-	bool pb;
-	bool remap;  //Whether he should remap the atom values from the input to fill up gaps in the numbering
+	bool lparse; //input is in lparse format
+	bool pb; 	//input is in pb format
+	bool remap; //Whether he should remap the atom values from the input to fill up gaps in the numbering
 	bool pw;	//use partially watched agg structures or not.
+	bool pbsolver;	//use pbsolver for sum/card expressions.
 	bool randomize; // use random seed initialization for the SAT-solver
 	bool disableheur; // turn off the heuristic of the sat solver, allowing more predictable behavior
 	int idclausesaving; //0 = on propagation add clause to store, 1 = on propagation, generate explanation and save it, 2 = on propagation, generate reason and save it
@@ -275,6 +276,7 @@ struct ECNF_mode {
 		lparse(false),
 		pb(false),
 		remap(false),
+		pbsolver(false),
 		pw(true),
 		randomize(false),
 		disableheur(false),

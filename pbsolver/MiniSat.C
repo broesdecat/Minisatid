@@ -1,6 +1,7 @@
 #include "MiniSat.h"
 #include "Sort.h"
 #include <cmath>
+#include "Main.h"
 
 namespace MiniSatPP {
 	
@@ -123,7 +124,7 @@ bool Solver::newClause(const vec<Lit>& ps_, bool learnt, Clause*& out_clause)
 
 void Solver::remove(Clause* c, bool just_dealloc)
 {
-    if (!just_dealloc)
+    if (!just_dealloc) { 
         if (c->size() == 2){
             removeWatch(watches[index(~(*c)[0])], makeLit((*c)[1]));
             removeWatch(watches[index(~(*c)[1])], makeLit((*c)[0]));
@@ -131,6 +132,7 @@ void Solver::remove(Clause* c, bool just_dealloc)
             removeWatch(watches[index(~(*c)[0])], makeClause(c));
             removeWatch(watches[index(~(*c)[1])], makeClause(c));
         }
+    }       
 
     if (c->learnt()){
         stats.learnts--;
@@ -782,20 +784,20 @@ void Solver::exportClauses(cchar* filename)
     fclose(out);
 }
 
-void Solver::toCNF(int firstLit,std::vector<std::vector<int> >& cnf){
+void Solver::toCNF(std::vector<std::vector<int> >& cnf){
 	assert(decisionLevel() == 0);
     // Export CNF:
     for (int i = 0; i < assigns.size(); i++){
         if (value(i) != l_Undef && level[i] == 0 && reason[i].isNull()) {
         	cnf.push_back(std::vector<int>());
-        	cnf.back().push_back((value(i) == l_True) ? i+1+firstLit : -(i+1+firstLit));
+        	cnf.back().push_back((value(i) == l_True) ? i : -(i));
         }
     }
     for (int i = 0; i < clauses.size(); i++){
         Clause& c = *clauses[i];
         cnf.push_back(std::vector<int>());
         for (int j = 0; j < c.size(); j++) {
-        	   cnf.back().push_back(sign(c[j])? - (var(c[j])+1+firstLit) : var(c[j])+1+firstLit);
+        	   cnf.back().push_back(sign(c[j])? - (var(c[j])) : var(c[j]));
         }
     }
 }

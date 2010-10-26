@@ -198,7 +198,7 @@ public:
     void    exportClauses(cchar* filename);
     
     //export: 
-	void toCNF(int firstLit,std::vector<std::vector<int> >& cnf);
+	void toCNF(std::vector<std::vector<int> >& cnf);
 	
     // Solving:
     //

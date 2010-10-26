@@ -70,23 +70,22 @@ static void oddEvenMerge(vec<Formula>& fs, int begin, int end) {
     }
 }
 
-static void totlizerMerge(vec<Formula>& fs, int begin, int end) {
-    assert(end - begin > 1);
-    if (end - begin == 2)
-        cmp2(fs,begin);
+static void totlizerMerge(vec<Formula>& toMerge, int begin, int end) {
+	assert(end - begin > 1);
+	if (end - begin == 2)
+        cmp2(toMerge,begin);
     else {
-        int          mid = (end - begin) / 2;
-        vec<Formula> tmp;
-        for (int i = 0; i < end - begin; i++)
-            tmp.push(fs[begin+i]);
-        unriffle(tmp);
-        oddEvenMerge(tmp,0,mid);
-        oddEvenMerge(tmp,mid,tmp.size());
-        riffle(tmp);
-        for (int i = 1; i < tmp.size() - 1; i += 2)
-            cmp2(tmp,i);
-        for (int i = 0; i < tmp.size(); i++)
-            fs[i + begin] = tmp[i];
+		vec<Formula> merged;
+		merged.growTo(end-begin,_0_);
+		int mid = (end-begin)/2;
+		for(int i=0;i<mid;i++) merged[i] = toMerge[begin+i] || toMerge[begin+mid+i];
+		for(int i=0;i<mid;i++) { 
+			for(int j=0;j<mid;j++) {
+				Formula temp = toMerge[begin+i] && toMerge[begin+mid+j];
+				merged[i+j+1]= merged[i+j+1] || temp;		
+			}
+		}  
+		for(int i=0;i<merged.size();i++) toMerge[begin+i] = merged[i];
     }
 }
 
@@ -110,7 +109,7 @@ void oddEvenSort(vec<Formula>& fs) {
 
 
 static inline void  mergeNetwork(vec<Formula>& toMerge,int begin,int end,vec<Formula>& propgationShortCuts){
-	if (end-begin<=8)
+	if (end-begin<=0)
 		totlizerMerge(toMerge, begin, end);
 	else 	
 		oddEvenMerge(toMerge, begin, end);

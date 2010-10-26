@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <math.h>
+#include <stdio.h>
 
 namespace MiniSatPP {
 #define gamma  0.134380000001 // 0.129030517578

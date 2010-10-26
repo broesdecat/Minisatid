@@ -51,8 +51,10 @@ extern bool  opt_only_base; // web interface: only print optimal base(s), do not
 extern bool  opt_skip_sat;  // no SAT solving. just say UNSAT
 extern bool  opt_dump; // just dump optimal base problems
 extern bool  opt_natlist; // read list of naturals instead of opb
+extern bool  opt_tare;
+extern bool  opt_use_shortCuts;
 extern SortEncding   opt_sorting_network_encoding;
-extern bool   opt_use_shortCuts;
+
 
 // -- require '*' between coeff and var (as MiniSAT+ did in 2005)?
 //    current OPB files do not have this any more.
