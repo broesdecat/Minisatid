@@ -345,6 +345,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		MiniSatPP::opt_convert_weak = false;
 		MiniSatPP::opt_convert = MiniSatPP::ct_Sorters;
 		pbsolver->allocConstrs(maxvar, sumaggs);
+		MiniSatPP::toint((*i)->bound);
 		for(vector<PBAgg*>::const_iterator i=pbaggs.begin(); !unsat && i<pbaggs.end(); i++){
 			report("Adding constraint to pbsolver: ");
 			unsat = !pbsolver->addConstr((*i)->literals, (*i)->weights, (*i)->bound, (*i)->sign, false);
