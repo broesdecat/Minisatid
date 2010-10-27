@@ -115,6 +115,7 @@ cchar* doc =
     "  -nabs         Dont allow abstarction of the base search space (optimalty proven for Sum of digits cost function only!).\n"
     "  -eoe         Use Odd even sorting network encoding.\n"
     "  -esa         Use Sort add sorting network encoding.\n"
+    "  -epw         Use Pair wise sorting network encoding.\n"
     "  -scut / -nscut   Enable/diable redundent shortcut clouses to incress sorting network propogation (incress cnf size!).\n"
     "  -tare / -ntare Enable/dsiable tare of the rhs (represented in minmum number of bits in the choosen bits).\n"
     "\n"
@@ -203,6 +204,7 @@ void parseOptions(int argc, char** argv)
             else if (oneof(arg, "skip-sat"  )) opt_skip_sat  = true;
             else if (oneof(arg, "eoe"       )) opt_sorting_network_encoding  = oddEvenEncoding;
             else if (oneof(arg, "esa"       )) opt_sorting_network_encoding  = unarySortAddEncoding;
+            else if (oneof(arg, "epw"       )) opt_sorting_network_encoding  = pairwiseSortEncoding;
             else if (oneof(arg, "abs"))   opt_abstract  = true;
 			else if (oneof(arg, "nabs"))  opt_abstract  = false; 
             else if (oneof(arg, "scut"))  opt_use_shortCuts  = true;
@@ -661,15 +663,35 @@ int test1() {
 	 rhs=0;
 	 ineq = -1;
 	 pb_solver->addConstr(ps,Cs,rhs,ineq,false);
-	 std::vector<std::vector<int> > cnf;
+	 std::vector<std::vector<Lit> > cnf;
 	 pb_solver->toCNF(cnf);
 	 for (int i=0;i<cnf.size();i++) {
-	 	for(int j=0;j<cnf[i].size();j++) {
-	 		std::cout<<cnf[i][j]<<" ";
-	 	}	
+	 	for(int j=0;j<cnf[i].size();j++) std::cout<<(sign(cnf[i][j])? "-": "")<< var(cnf[i][j])<<" ";
 	 	std::cout<<"\n";
 	 }
 }
+
+/*void debug1(){
+	vec<Formula> fs;
+	pb_solver = new PbSolver();
+	pb_solver->sat_solver.newVar();
+	pb_solver->n_occurs  .push(0);
+    pb_solver->n_occurs  .push(0);
+    pb_solver->sat_solver.newVar();
+	pb_solver->n_occurs  .push(0);
+    pb_solver->n_occurs  .push(0);
+	fs.push(Lit(0) & Lit(1));
+	clausify(pb_solver->sat_solver, fs);
+	std::vector<std::vector<Lit> > cnf;
+	pb_solver->toCNF(cnf);
+	for (int i=0;i<cnf.size();i++) {
+	 	for(int j=0;j<cnf[i].size();j++) {
+	 		std::cout<<(sign(cnf[i][j])? "-": "")<< var(cnf[i][j])<<" ";
+	 	}	
+	 	std::cout<<"\n";
+	}
+}
+*/
 
 }
 
@@ -681,6 +703,8 @@ int test1() {
 {
 	//return MiniSatPP::run(argc,argv);
 	MiniSatPP::test1();
+	//MiniSatPP::debug1();
+	
 }*/
 
 

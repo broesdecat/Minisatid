@@ -19,7 +19,7 @@ enum Command  { cmd_Minimize, cmd_FirstSolution, cmd_AllSolutions };
 // how should we determine the base to use?
 enum BaseT { base_M,base_Forward, base_SOD, base_Carry, base_Comp, base_Rel,base_oddEven, base_Bin };
 
-enum SortEncding { unarySortAddEncoding, oddEvenEncoding };
+enum SortEncding { unarySortAddEncoding, oddEvenEncoding, pairwiseSortEncoding};
 
 
 // -- output options:

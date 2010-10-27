@@ -69,7 +69,10 @@ void buildSorter(vec<Formula>& ps, vec<int>& Cs, vec<Formula>& out_sorter)
     for (int i = 0; i < ps.size(); i++)
         for (int j = 0; j < Cs[i]; j++)
             out_sorter.push(ps[i]);
-    oddEvenSort(out_sorter); // (overwrites inputs)
+    if (opt_sorting_network_encoding==pairwiseSortEncoding)
+    	pw_sort(out_sorter);
+    else
+    	oddEvenSort(out_sorter); // (overwrites inputs)
 }
 
 static
@@ -341,11 +344,11 @@ Formula buildConstraint(const Linear& c, int max_cost)
     	if (opt_verbosity >= 1) {
 	    	if (c.lo != Int_MIN) {
 	    		printf("orignal   lo:%5d     \n", (int)toint(c.lo));
-	    		printf("normlized hi:%5d     \n", (int)toint(hi));
+	    		printf("normlized lo:%5d     \n", (int)toint(lo));
 	    	}
 	    	if  (hi != Int_MAX) {
 	    		printf("orignal   hi:%5d     \n", (int)toint(c.hi));
-	    		printf("normlized lo:%5d     \n", (int)toint(lo));
+				printf("normlized hi:%5d     \n", (int)toint(hi));
 	    	}
     	}
         ret = buildConstraint(ps, Cs, base, lo, hi, max_cost);

@@ -20,6 +20,12 @@ class TypedSet{
 private:
 	Weight esv;
 	vwl wl;
+
+	//set -> aggs
+	//propagator
+	//esv
+	//
+
 public:
 
 	Weight getESV() const { return esv; }

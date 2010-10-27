@@ -4,7 +4,7 @@ namespace MiniSatPP {
 	
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-macro Formula operator && (Formula f, Formula g)
+/*macro Formula operator && (Formula f, Formula g)
 {
     if      (f == _0_ || g == _0_) return _0_;
     else if (f == _1_)             return g;
@@ -17,7 +17,7 @@ macro Formula operator && (Formula f, Formula g)
 }
 
 macro Formula operator || (Formula f, Formula g) {
-    return ~(~f && ~g); }
+    return ~(~f && ~g); }*/
 
 //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -25,13 +25,21 @@ macro Formula operator || (Formula f, Formula g) {
 static inline void cmp2(vec<Formula>& fs, int begin) {
     Formula a     = fs[begin];
     Formula b     = fs[begin + 1];
-#if 1
+//#if 1
     fs[begin]     = a | b;
     fs[begin + 1] = a & b;
-#else
+/*#else
     fs[begin]     = a || b;
     fs[begin + 1] = a && b;
-#endif
+#endif*/
+}
+
+//@pre j>i
+static inline void cmp2(vec<Formula>& fs, int i,int j) {
+    Formula a     = fs[i];
+    Formula b     = fs[j];
+    fs[i] = a | b;
+    fs[j] = a & b;
 }
 
 static void riffle(vec<Formula>& fs) {
@@ -78,15 +86,57 @@ static void totlizerMerge(vec<Formula>& toMerge, int begin, int end) {
 		vec<Formula> merged;
 		merged.growTo(end-begin,_0_);
 		int mid = (end-begin)/2;
-		for(int i=0;i<mid;i++) merged[i] = toMerge[begin+i] || toMerge[begin+mid+i];
-		for(int i=0;i<mid;i++) { 
-			for(int j=0;j<mid;j++) {
-				Formula temp = toMerge[begin+i] && toMerge[begin+mid+j];
-				merged[i+j+1]= merged[i+j+1] || temp;		
-			}
-		}  
+		for(int i=0;i<mid;i++) merged[i] = toMerge[begin+i] | toMerge[begin+mid+i];
+		for(int i=0;i<mid;i++) 
+			for(int j=0;j<mid;j++) 
+				merged[i+j+1] |= toMerge[begin+i] & toMerge[begin+mid+j];		
 		for(int i=0;i<merged.size();i++) toMerge[begin+i] = merged[i];
     }
+}
+
+	static inline void split(vec<Formula>& toSplit,int n, int startPos) {
+		for(int i1=startPos, i2=0; i2<n/2; i2++, i1++) {
+			int j = i1 + n/2;
+			cmp2(toSplit,i1,j);
+		}
+	}
+
+
+	static inline void combine(vec<Formula>& toMerge,int n, int startPos, int m) {
+		for(int i1=startPos + m, i2=1; i2 < n/2; i1+= 2*m, i2++) {
+			int j = i1 + m;
+			cmp2(toMerge,i1,j);
+		}
+	}
+
+	/*
+	 * n - the size of the merger input (output) size of the network
+	 * startPos - the index of the first input wire within the complete merger network
+	   m - the jump size: comparators would be set between the ith and (i+m)th wires.
+	 */
+	 static  void pw_merge(vec<Formula>& toMerge,int n, int startPos, int m) {
+		if (n == 1) return;
+		else {
+			pw_merge(toMerge,n/2, startPos, 2*m);
+			pw_merge(toMerge,n/2, startPos + m, 2*m);
+			combine(toMerge,n, startPos, m);
+		}
+	}
+
+
+	static  void pw_sort(vec<Formula>& toSort,int n,int startPos) {
+			if (n == 1) return;
+			else {
+				split(toSort,n, startPos); 
+				pw_sort(toSort,n/2, startPos);
+				pw_sort(toSort,n/2, startPos+n/2);
+				pw_merge(toSort,n, startPos, 1);
+			}
+	}
+	
+	
+void pw_sort(vec<Formula>& fs) {
+			pw_sort(fs,fs.size(), 0);
 }
 
 static inline void add(vec<Formula>& Xs,vec<Formula>& Ys) {
@@ -109,12 +159,12 @@ void oddEvenSort(vec<Formula>& fs) {
 
 
 static inline void  mergeNetwork(vec<Formula>& toMerge,int begin,int end,vec<Formula>& propgationShortCuts){
-	if (end-begin<=0)
+	if (end-begin<=8)
 		totlizerMerge(toMerge, begin, end);
 	else 	
 		oddEvenMerge(toMerge, begin, end);
 	for (int i=0;i<end-begin;i++) 
-		propgationShortCuts[i]=propgationShortCuts[i] || toMerge[i+begin];
+		propgationShortCuts[i] |= toMerge[i+begin];
 }
 
 
@@ -168,12 +218,12 @@ static inline void mergeGroups(vec<vec<Formula> >& Groups,int GroupSize, vec<For
         	mergeNetwork(merged,j,j+2*i,propgationShortCuts);
 }
 
-static void overwrite(vec<Formula>& me,vec<Formula>& with){
+static inline void overwrite(vec<Formula>& me,vec<Formula>& with){
 	for(int i=0;i<me.size();i++) me[i]= with[i];
 }
    
-static void addShortCuts(vec<Formula>& from,vec<Formula>& to){
-		    for (int j=0;j<from.size();j++) to[j]=to[j] || from[j];
+static inline void addShortCuts(vec<Formula>& from,vec<Formula>& to){
+		    for (int j=0;j<from.size();j++) to[j] |= from[j];
 }
 		    
 void unarySortAdd(vec<Formula>& Xs,vec<Formula>& Ys,vec<Formula>& out_sorter,bool useShortCuts){

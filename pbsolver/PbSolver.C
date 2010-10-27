@@ -496,7 +496,7 @@ Int evalGoal(Linear& goal, vec<lbool>& model)
     return sum;
 }
 
-void PbSolver::toCNF(std::vector<std::vector<int> >& cnf){
+void PbSolver::toCNF(std::vector<std::vector<Lit> >& cnf){
 	if (!ok) return;
 
     // Convert constraints:

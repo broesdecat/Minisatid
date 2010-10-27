@@ -47,7 +47,7 @@ public:
             satelite->simplifyDB(true);
         } }
         
-     void toCNF(std::vector<std::vector<int> >& cnf)    {
+    void toCNF(std::vector<std::vector<Lit> >& cnf)    {
         if (minisat != NULL){
             minisat->simplifyDB();
             minisat->toCNF(cnf);
