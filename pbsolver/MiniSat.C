@@ -789,9 +789,9 @@ void Solver::toCNF(std::vector<std::vector<Lit> >& cnf){
 	assert(decisionLevel() == 0);
     // Export CNF:
     for (int i = 0; i < assigns.size(); i++){
-        if (value(i) != l_Undef && level[i] == 0 && reason[i].isNull()) {
+        if (value(i) != l_Undef && level[i] == 0) {
         	cnf.push_back(std::vector<Lit>());
-        	Lit t = Lit(i,!(value(i) == l_True));
+        	Lit t = Lit(i,value(i) == l_False);
         	cnf.back().push_back(t);        	
         }
     }
