@@ -46,6 +46,12 @@ void PbSolver::addGoal(const vec<Lit>& ps, const vec<Int>& Cs)
 
 bool PbSolver::addConstr(const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, int ineq, bool skipNorm)
 {
+	reportf("Adding constraint to pbsolver: ");
+	for(int j=0; j<ps.size(); j++){
+		reportf("%s%d=%d ", sign(ps[j])?"-":"", var(ps[j])+1, toint(Cs[j]));				
+	}
+	reportf(" with bound %d and sign %d\n", toint(rhs), ineq);
+
     //**/debug_names = &index2name;
     //**/static cchar* ineq_name[5] = { "<", "<=" ,"==", ">=", ">" };
     //**/reportf("CONSTR: "); dump(ps, Cs, assigns); reportf(" %s ", ineq_name[ineq+2]); dump(rhs); reportf("\n");

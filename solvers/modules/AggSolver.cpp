@@ -325,13 +325,17 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 					}
 					pbaggeq.literals.push(MiniSatPP::Lit(var(agg->getHead()), true));
 					pbaggineq.literals.push(MiniSatPP::Lit(var(agg->getHead()), false));
+					Weight eqval, ineqval;
 					if(agg->getSign()==LB){
-						pbaggeq.weights.push(MiniSatPP::Int(-abs(agg->getBound())-abs(max)-1));
-						pbaggineq.weights.push(MiniSatPP::Int(abs(agg->getBound())+abs(max)+1));
+						eqval = -abs(agg->getBound())-abs(max)-1;
+						ineqval = abs(agg->getBound())+abs(max)+1;
 					}else{
-						pbaggeq.weights.push(MiniSatPP::Int(abs(agg->getBound())+abs(min)+1));
-						pbaggineq.weights.push(MiniSatPP::Int(-abs(agg->getBound())-abs(max)-1));
+						eqval = abs(agg->getBound())+abs(min)+1;
+						ineqval = -abs(agg->getBound())-abs(max)-1;
 					}
+					report("Eqval=%d, ineqval=%d, maxvar=%d\n", eqval, ineqval, maxvar);
+					pbaggeq.weights.push(MiniSatPP::Int(eqval));
+					pbaggineq.weights.push(MiniSatPP::Int(ineqval));
 				}else{
 					remaining.push_back(agg);
 				}
@@ -343,10 +347,9 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		MiniSatPP::PbSolver* pbsolver = new MiniSatPP::PbSolver();
 		MiniSatPP::opt_verbosity = verbosity();
 		MiniSatPP::opt_convert_weak = false;
-		MiniSatPP::opt_convert = MiniSatPP::ct_Sorters;
+		MiniSatPP::opt_convert = MiniSatPP::ct_BDDs;
 		pbsolver->allocConstrs(maxvar, sumaggs);
 		for(vector<PBAgg*>::const_iterator i=pbaggs.begin(); !unsat && i<pbaggs.end(); i++){
-			report("Adding constraint to pbsolver: ");
 			unsat = !pbsolver->addConstr((*i)->literals, (*i)->weights, (*i)->bound, (*i)->sign, false);
 		}
 		deleteList<PBAgg>(pbaggs);
@@ -365,7 +368,8 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		for(vector<vector<MiniSatPP::Lit> >::const_iterator i=pbencodings.begin(); i<pbencodings.end(); i++){
 			vec<Lit> lits;
 			for(vector<MiniSatPP::Lit>::const_iterator j=(*i).begin(); j<(*i).end(); j++){
-				lits.push(mkLit(MiniSatPP::var(*j), MiniSatPP::sign(*j)));
+				Var v = MiniSatPP::var(*j) + (MiniSatPP::var(*j)>maxvar?maxnumber-maxvar:0);
+				lits.push(mkLit(v, MiniSatPP::sign(*j)));
 			}
 			getPCSolver()->addClause(lits);
 		}
