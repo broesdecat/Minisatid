@@ -274,7 +274,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 			for(int j=0; j<(*i).second->getAgg().size(); j++){
 				ppagg agg = (*i).second->getAgg()[j];
 				if(!agg->isOptim() && (agg->getType()==SUM || agg->getType()==CARD)){
-					PBAgg* ppbaggeq = new PBAgg();
+					/*PBAgg* ppbaggeq = new PBAgg();
 					pbaggs.push_back(ppbaggeq);
 					PBAgg& pbaggeq = *ppbaggeq;
 					if(agg->getSign()==LB){
@@ -289,8 +289,8 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 							maxvar = var((*k).getLit());
 						}
 						pbaggeq.weights.push(MiniSatPP::Int((int)((*k).getWeight())));
-					}
-					/*PBAgg* ppbaggeq = new PBAgg();
+					}*/
+					PBAgg* ppbaggeq = new PBAgg();
 					PBAgg* ppbaggineq = new PBAgg();
 					pbaggs.push_back(ppbaggeq);
 					pbaggs.push_back(ppbaggineq);
@@ -333,9 +333,9 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 						eqval = abs(agg->getBound())+abs(min)+1;
 						ineqval = -abs(agg->getBound())-abs(max)-1;
 					}
-					report("Eqval=%d, ineqval=%d, maxvar=%d\n", eqval, ineqval, maxvar);
+					//report("Eqval=%d, ineqval=%d, maxvar=%d\n", eqval, ineqval, maxvar);
 					pbaggeq.weights.push(MiniSatPP::Int(eqval));
-					pbaggineq.weights.push(MiniSatPP::Int(ineqval));*/
+					pbaggineq.weights.push(MiniSatPP::Int(ineqval));
 				}else{
 					remaining.push_back(agg);
 				}
@@ -347,8 +347,9 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		MiniSatPP::PbSolver* pbsolver = new MiniSatPP::PbSolver();
 		MiniSatPP::opt_verbosity = verbosity();
 		MiniSatPP::opt_convert_weak = false;
-		MiniSatPP::opt_convert = MiniSatPP::ct_BDDs;
+		MiniSatPP::opt_convert = MiniSatPP::ct_Sorters;
 		pbsolver->allocConstrs(maxvar, sumaggs);
+
 		for(vector<PBAgg*>::const_iterator i=pbaggs.begin(); !unsat && i<pbaggs.end(); i++){
 			unsat = !pbsolver->addConstr((*i)->literals, (*i)->weights, (*i)->bound, (*i)->sign, false);
 		}
