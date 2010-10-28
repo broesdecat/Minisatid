@@ -773,7 +773,7 @@ void Solver::exportClauses(cchar* filename)
 
     // Export CNF:
     for (int i = 0; i < assigns.size(); i++)
-        if (value(i) != l_Undef && level[i] == 0 && reason[i].isNull())
+        if (value(i) != l_Undef && level[i] == 0)
             fprintf(out, "%d 0\n", (value(i) == l_True) ? i+1 : -(i+1));
 
     for (int i = 0; i < clauses.size(); i++){
@@ -791,7 +791,7 @@ void Solver::toCNF(std::vector<std::vector<Lit> >& cnf){
     for (int i = 0; i < assigns.size(); i++){
         if (value(i) != l_Undef && level[i] == 0) {
         	cnf.push_back(std::vector<Lit>());
-        	Lit t = Lit(i,value(i) == l_False);
+        	Lit t = Lit(i,!(value(i) == l_True));
         	cnf.back().push_back(t);        	
         }
     }

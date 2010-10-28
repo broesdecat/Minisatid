@@ -346,9 +346,9 @@ Formula buildConstraint(const Linear& c, int max_cost)
 	    		printf("orignal   lo:%5d     \n", (int)toint(c.lo));
 	    		printf("normlized lo:%5d     \n", (int)toint(lo));
 	    	}
-	    	if  (hi != Int_MAX) {
+	    	if  (c.hi != Int_MAX) {
 	    		printf("orignal   hi:%5d     \n", (int)toint(c.hi));
-				printf("normlized hi:%5d     \n", (int)toint(hi));
+	    		printf("normlized hi:%5d     \n", (int)toint(hi));
 	    	}
     	}
         ret = buildConstraint(ps, Cs, base, lo, hi, max_cost);

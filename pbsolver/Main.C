@@ -57,6 +57,8 @@ bool        opt_abstract         = false; // use the abstraction for the base se
 bool        opt_tare             = false;
 bool 	    opt_use_shortCuts    = false;
 
+bool 		opt_validateResoult  = false;
+
 SortEncding opt_sorting_network_encoding = oddEvenEncoding;
  
 
@@ -125,6 +127,8 @@ cchar* doc =
     "\n"
     "  -p -pbvars    Restrict decision heuristic of SAT to original PB variables.\n"
     "  -ps{+,-,0}    Polarity suggestion in SAT towards/away from goal (or neutral).\n"
+    "\n"
+    "  -val validate the corctnes of the found model\n"
     "\n"
     "Input options:\n"
     "  -o -old-star  Require '*' between coefficient and variable. (default: false)\n"
@@ -211,6 +215,8 @@ void parseOptions(int argc, char** argv)
             else if (oneof(arg, "nscut")) opt_use_shortCuts  = false;
             else if (oneof(arg, "tare"))  opt_tare   = true;
             else if (oneof(arg, "ntare")) opt_tare   = false;
+            
+            else if (oneof(arg, "val"))   opt_validateResoult = true;
     
       
             else if (oneof(arg, "dump" )) {
@@ -460,7 +466,12 @@ void printBaseOutPut(double cpuTime,bool isSat,bool timeout,bool exception){
 	  		file << md.inputs[i];
 	  		if (i!=size-1) file<<",";
 	  	}
-	  	file<<";"<<md.emptyBaseNOI<<";"<<md.numOfCoffes<<";"<<numOfDecisions<<"\n";  
+	  	file<<";"<<md.emptyBaseNOI<<";"<<md.numOfCoffes<<";"<<numOfDecisions;
+	  	file<<";"<<opt_abstract<<";"<<opt_tare<<";"<<opt_use_shortCuts<<";"<<opt_convert_weak<<";";
+	  	if  (opt_sorting_network_encoding = oddEvenEncoding)      file<<"oddEvenEncoding";
+        else if  (opt_sorting_network_encoding = oddEvenEncoding) file<<"pairwiseSortEncoding";
+        else                                                      file<<"unarySortAddEncoding";	  		
+	  	file<<"\n";   
 	  	delete baseMetaData.back();
 	  	baseMetaData.pop_back();
 	}
@@ -531,8 +542,13 @@ void printHugeOutPut(double cpuTime,bool isSat,bool timeout,bool exception){
 	  		file << md.inputs[i];
 	  		if (i!=size-1) file<<",";
 	  	}
-	  	file<<";"<<md.emptyBaseNOI<<";"<<md.numOfCoffes<<";"<<numOfDecisions<<"\n"; 
-	  	delete baseMetaData.back();
+	  	file<<";"<<md.emptyBaseNOI<<";"<<md.numOfCoffes<<";"<<numOfDecisions;
+	  	file<<";"<<opt_abstract<<";"<<opt_tare<<";"<<opt_use_shortCuts<<";"<<opt_convert_weak<<";";
+	  	if  (opt_sorting_network_encoding = oddEvenEncoding)      file<<"oddEvenEncoding";
+        else if  (opt_sorting_network_encoding = oddEvenEncoding) file<<"pairwiseSortEncoding";
+        else                                                      file<<"unarySortAddEncoding";	  		
+	  	file<<"\n"; 
+	  	delete baseMetaData.back(); 
 	  	baseMetaData.pop_back();
 	}
     if (!first) {
@@ -620,6 +636,10 @@ int run(int argc, char** argv) {
                 reportf("_______________________________________________________________________________\n");
             }
             bool isSat = (pb_solver->best_goalvalue != Int_MAX);
+            if (opt_validateResoult) {
+            	if (isSat &&!pb_solver->validateResoult()) printf("Error resoult dose not solve the benchmarc!\n");
+            	pb_solver->cleanPBC();
+            }
             if (opt_huge_base_file!=NULL) printHugeOutPut(cpuT,isSat,false,false);
             else if (opt_base_result_file!=NULL) printBaseOutPut(cpuT,isSat,false,false);
             exit(pb_solver->best_goalvalue == Int_MAX ? 20 : (pb_solver->goal == NULL || opt_command == cmd_FirstSolution) ? 10 : 30);    // (faster than "return", which will invoke the destructor for 'PbSolver')
@@ -644,25 +664,83 @@ int run(int argc, char** argv) {
 }
 
 int test1() {
+	 opt_convert_weak = false;
+	 opt_convert = ct_Sorters;
+	 
 	 pb_solver = new PbSolver();
 	 vec<Lit> ps;
 	 vec<Int> Cs;
-	 Int rhs=4;
-	 int ineq = 1;
-	 ps.push(Lit(0));
+	 		
+	 Int rhs=4;  //x1 + 2 x2 + 3 x3 + 4 x4 + 5 x5 -20 not x6 <= 4
+	 int ineq = -1;
 	 ps.push(Lit(1));
 	 ps.push(Lit(2));
+	 ps.push(Lit(3));
+	 ps.push(Lit(4));
+	 ps.push(Lit(5));
+	 ps.push(Lit(6,true));
+	 Cs.push(1);
 	 Cs.push(2);
 	 Cs.push(3);
-	 Cs.push(6);
+	 Cs.push(4);
+	 Cs.push(5);
+	 Cs.push(-20);
 	 pb_solver->addConstr(ps,Cs,rhs,ineq,false);
-	 ps.clear();
+	 
+	 ps.clear();  //x1 + 2 x2 + 3 x3 + 4 x4 + 5 x5 +20 x6 > 4
 	 Cs.clear();
+	 ps.push(Lit(1));
 	 ps.push(Lit(2));
+	 ps.push(Lit(3));
+	 ps.push(Lit(4));
+	 ps.push(Lit(5));
+	 ps.push(Lit(6));
 	 Cs.push(1);
-	 rhs=0;
-	 ineq = -1;
+	 Cs.push(2);
+	 Cs.push(3);
+	 Cs.push(4);
+	 Cs.push(5);
+	 Cs.push(20);
+	 rhs=4;
+	 ineq = 2;
 	 pb_solver->addConstr(ps,Cs,rhs,ineq,false);
+	 
+	 ps.clear(); //x1 + 2 x2 + 3 x3 + 4 x4 + 5 x5 +5 not x7 >= 4
+	 Cs.clear();
+	 ps.push(Lit(1));
+	 ps.push(Lit(2));
+	 ps.push(Lit(3));
+	 ps.push(Lit(4));
+	 ps.push(Lit(5));
+	 ps.push(Lit(7,true));
+	 Cs.push(1);
+	 Cs.push(2);
+	 Cs.push(3);
+	 Cs.push(4);
+	 Cs.push(5);
+	 Cs.push(5);
+	 rhs=1;
+	 ineq = 1;
+	 pb_solver->addConstr(ps,Cs,rhs,ineq,false);
+	 
+	 ps.clear(); //x1 + 2 x2 + 3 x3 + 4 x4 + 5 x5 -20 x7 < 4
+	 Cs.clear();
+	 ps.push(Lit(1));
+	 ps.push(Lit(2));
+	 ps.push(Lit(3));
+	 ps.push(Lit(4));
+	 ps.push(Lit(5));
+	 ps.push(Lit(7));
+	 Cs.push(1);
+	 Cs.push(2);
+	 Cs.push(3);
+	 Cs.push(4);
+	 Cs.push(5);
+	 Cs.push(-20);
+	 rhs=4;
+	 ineq = -2;
+	 pb_solver->addConstr(ps,Cs,rhs,ineq,false);
+	 
 	 std::vector<std::vector<Lit> > cnf;
 	 pb_solver->toCNF(cnf);
 	 for (int i=0;i<cnf.size();i++) {

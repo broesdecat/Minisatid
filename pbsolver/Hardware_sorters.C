@@ -136,7 +136,11 @@ static void totlizerMerge(vec<Formula>& toMerge, int begin, int end) {
 	
 	
 void pw_sort(vec<Formula>& fs) {
-			pw_sort(fs,fs.size(), 0);
+		int orig_sz = fs.size();
+    	int sz; for (sz = 1; sz < fs.size(); sz *= 2);
+    	fs.growTo(sz,_0_);
+		pw_sort(fs,sz, 0);
+		fs.shrink(sz - orig_sz);
 }
 
 static inline void add(vec<Formula>& Xs,vec<Formula>& Ys) {
@@ -201,7 +205,8 @@ static inline void splitToGroups(vec<Formula>& Xs,int subS,vec<vec<Formula> >& S
 }
 
 static inline void sortGroups(vec<vec<Formula> >& SubXs,vec<Formula>& propgationShortCuts){
-	for (int i=0;i<SubXs.size();i++) sortNetwork(SubXs[i],propgationShortCuts);
+	//assumes first group is already sorted
+	for (int i=1;i<SubXs.size();i++) sortNetwork(SubXs[i],propgationShortCuts);
 }
 
 static inline void mergeGroups(vec<vec<Formula> >& Groups,int GroupSize, vec<Formula>& merged,vec<Formula>& propgationShortCuts) {
@@ -225,7 +230,7 @@ static inline void overwrite(vec<Formula>& me,vec<Formula>& with){
 static inline void addShortCuts(vec<Formula>& from,vec<Formula>& to){
 		    for (int j=0;j<from.size();j++) to[j] |= from[j];
 }
-		    
+	
 void unarySortAdd(vec<Formula>& Xs,vec<Formula>& Ys,vec<Formula>& out_sorter,bool useShortCuts){
  	vec<Formula> propgationShortCuts;
 	int XsLen = Xs.size();
@@ -255,10 +260,10 @@ void unarySortAdd(vec<Formula>& Xs,vec<Formula>& Ys,vec<Formula>& out_sorter,boo
 		}
 		else {
 		    vec<vec<Formula> > SubXs;
-		    splitToGroups(Xs, Ysize, SubXs);
-		    sortGroups(SubXs,propgationShortCuts); 
 		    SubXs.push();
 		    add(Ys,SubXs.last());
+		    splitToGroups(Xs, Ysize, SubXs);
+		    sortGroups(SubXs,propgationShortCuts); 
 		    mergeGroups(SubXs, Ysize, out_sorter,propgationShortCuts);
 		}
 		out_sorter.shrink(out_sorter.size() - XsLen-YsLen);

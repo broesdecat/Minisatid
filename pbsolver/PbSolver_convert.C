@@ -60,8 +60,7 @@ bool PbSolver::convertPbs(bool first_call)
         if (!ok) return false;
     }
 
-    constrs.clear();
-    mem.clear();
+    if (!opt_validateResoult) cleanPBC();
 	
 	formulaSize = converted_constrs.size();
 	

@@ -261,7 +261,7 @@ public:
     // Vector interface:
   #ifdef DEBUG
     const T& operator [] (int index) const  { assert((uint)index < (uint)sz); return data[index]; }
-    T&       operator [] (int index)        { assert((uint)index < (uint)sz); return data[index]; }
+    T&       operator [] (int index)        { assert((uint)index < (uint)sz); return data[index]; } 
   #else
     const T& operator [] (int index) const  { return data[index]; }
     T&       operator [] (int index)        { return data[index]; }

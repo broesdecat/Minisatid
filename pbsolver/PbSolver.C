@@ -1,6 +1,7 @@
 #include "MiniSat.h"
 #include "Sort.h"
 #include "Debug.h"
+#include <iostream>
 
 namespace MiniSatPP {
 	
@@ -48,9 +49,10 @@ bool PbSolver::addConstr(const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, int in
 {
 	reportf("Adding constraint to pbsolver: ");
 	for(int j=0; j<ps.size(); j++){
-		reportf("%s%d=%d ", sign(ps[j])?"-":"", var(ps[j])+1, toint(Cs[j]));				
+		reportf("%s%d=%d ", sign(ps[j])?"-":"", var(ps[j])+1, toint(Cs[j]));
 	}
 	reportf(" with bound %d and sign %d\n", toint(rhs), ineq);
+
 
     //**/debug_names = &index2name;
     //**/static cchar* ineq_name[5] = { "<", "<=" ,"==", ">=", ">" };
@@ -243,6 +245,40 @@ void PbSolver::storePb(const vec<Lit>& ps, const vec<Int>& Cs, Int lo, Int hi)
         n_occurs[index(ps[i])]++;
     constrs.push(new (mem.alloc(sizeof(Linear) + ps.size()*(sizeof(Lit) + sizeof(Int)))) Linear(ps, Cs, lo, hi));
     //**/reportf("STORED: "), dump(constrs.last()), reportf("\n");
+}
+
+void PbSolver::cleanPBC(){
+		constrs.clear();
+		mem.clear();
+}
+
+bool PbSolver::validateResoult(){    
+ 	 if (opt_verbosity >= 1) std::cout<<"starting validation number of cons="<<constrs.size()<<"\n";
+ 	for (int i = 0; i < constrs.size(); i++){
+        if (constrs[i] == NULL) continue;
+        Linear& c = *constrs[i];
+        Int sum = 0;
+    	for (int i = 0; i < c.size; i++){
+	        if (( sign(c[i]) && !best_model[var(c[i])])
+	        ||  (!sign(c[i]) &&  best_model[var(c[i])] )
+	        )
+	            sum += c(i);
+	    }
+	    if (opt_verbosity >= 1) {
+		  	std::cout<<"sum="<<(int)toint(sum);
+		  	if (c.lo!=Int_MIN) {
+		  		std::cout<<" ,c.lo="<<(int)toint(c.lo);
+		  		if (sum < c.lo) return false;
+		  	}
+		  	if (c.hi != Int_MAX) {
+		  		std::cout<<" ,c.hi="<<(int)toint(c.hi);
+		  		if (sum>c.hi) return false;
+		  	}
+		  	std::cout<<"\n";
+	    }	
+ 	}
+	if (opt_verbosity >= 1) std::cout<<"end validation all is good!"<<"\n";
+	return true;
 }
 
 

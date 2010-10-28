@@ -41,6 +41,7 @@ extern Int      opt_goal;
 extern Command  opt_command;
 extern bool     opt_branch_pbvars;
 extern int      opt_polarity_sug;
+extern bool     opt_validateResoult;
 
 // -- sorter encoding options
 extern BaseT opt_base;
