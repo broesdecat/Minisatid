@@ -90,4 +90,4 @@ include_HEADERS += mtlold/Vec.h mtlold/Queue.h mtlold/Alg.h mtlold/Heap.h mtlold
 AM_CXXFLAGS+=-DUSEMINISAT
 endif
 
-dist_doc_DATA = README
+dist_doc_DATA = README P1.TXT
