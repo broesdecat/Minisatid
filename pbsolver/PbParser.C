@@ -239,7 +239,7 @@ bool parseConstrs(B& in, S& solver)
         if (!skipText(in, ";")) throw xstrdup("Expecting ';' after constraint.");
         skipEndOfLine(in);
 
-        if (!solver.addConstr(ps, Cs, rhs, ineq))
+        if (!solver.addConstr(ps, Cs, rhs, ineq,false))
             return false;
         ps.clear();
         Cs.clear();
@@ -341,7 +341,7 @@ bool parseList(B& in, S& solver)
     // setting it to a value > 1 /should/ make sure that normalization
     // does not do its thing
     Int RHS_CONST = Int(2147483647);
-    solver.addConstr(ps, Cs, RHS_CONST, 1);
+    solver.addConstr(ps, Cs, RHS_CONST, 1,true);
     return true;
 }
 

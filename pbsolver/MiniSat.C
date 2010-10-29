@@ -14,8 +14,8 @@ namespace MiniSat {
 // For derivation output (verbosity level 2)
 #define L_IND    "%-*d"
 #define L_ind    decisionLevel()*3+3,decisionLevel()
-#define L_LIT    "%sx%d"
-#define L_lit(p) sign(p)?"~":"", var(p)
+#define L_LIT    "%s%d"
+#define L_lit(p) sign(p)?"-":"", var(p)
 
 // Just like 'assert()' but expression will be evaluated in the release version as well.
 inline void check(bool expr) { assert(expr); }
@@ -42,6 +42,7 @@ void removeWatch(vec<LitClauseUnion>& ws, LitClauseUnion elem)
 //
 bool Solver::newClause(const vec<Lit>& ps_, bool learnt, Clause*& out_clause)
 {
+	//printf("\nClause ");
     //for (int i = 0; i < ps_.size(); i++)
     //    printf(L_LIT" ", L_lit(ps_[i]));
     //printf("\n");
@@ -798,7 +799,9 @@ void Solver::toCNF(std::vector<std::vector<Lit> >& cnf){
     for (int i = 0; i < clauses.size(); i++){
         Clause& c = *clauses[i];
         cnf.push_back(std::vector<Lit>());
-        for (int j = 0; j < c.size(); j++) cnf.back().push_back(c[j]);
+        for (int j = 0; j < c.size(); j++){
+        	cnf.back().push_back(c[j]);
+        }
     }
 }
 

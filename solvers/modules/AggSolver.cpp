@@ -235,7 +235,6 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, AggSign boundsig
 }
 
 struct PBAgg{
-	MiniSatPP::Lit head;
 	MiniSatPP::vec<MiniSatPP::Lit> literals;
 	MiniSatPP::vec<MiniSatPP::Int> weights;
 	Weight bound;
@@ -251,27 +250,6 @@ void Aggrs::transformSumsToCNF(bool& unsat, map<int, ppaset>& parsedsets, PCSolv
 		for(int j=0; j<(*i).second->getAgg().size(); j++){
 			ppagg agg = (*i).second->getAgg()[j];
 			if(!agg->isOptim() && (agg->getType()==SUM || agg->getType()==CARD) && !agg->getSem()==DEF){
-				/*PBAgg* ppbaggeq = new PBAgg();
-				pbaggs.push_back(ppbaggeq);
-				PBAgg& pbaggeq = *ppbaggeq;
-				if(agg->getSign()==LB){
-					pbaggeq.sign = -1;
-				}else{
-					pbaggeq.sign = 1;
-				}
-				pbaggeq.bound = agg->getBound();
-				Weight min = 0, max = 0;
-				for(vwl::const_iterator k=(*i).second->getWL().begin(); k<(*i).second->getWL().end(); k++){
-					pbaggeq.literals.push(MiniSatPP::Lit(var((*k).getLit()), sign((*k).getLit())));
-					if(var((*k).getLit())>maxvar){
-						maxvar = var((*k).getLit());
-					}
-					pbaggeq.weights.push(MiniSatPP::Int((int)((*k).getWeight())));
-				}
-				if(var(agg->getHead())>maxvar){
-					maxvar = var(agg->getHead());
-				}
-				pbaggeq.head = MiniSatPP::Lit(var(agg->getHead()), sign(agg->getHead()));*/
 				PBAgg* ppbaggeq = new PBAgg();
 				PBAgg* ppbaggineq = new PBAgg();
 				pbaggs.push_back(ppbaggeq);
@@ -330,13 +308,14 @@ void Aggrs::transformSumsToCNF(bool& unsat, map<int, ppaset>& parsedsets, PCSolv
 	MiniSatPP::opt_verbosity = pcsolver->modes().verbosity;
 	MiniSatPP::opt_abstract = true; //Should be true
 	MiniSatPP::opt_tare = true; //Experimentally set to true
+	report("%s\n",pcsolver->modes().primesfile);
 	MiniSatPP::opt_primes_file = pcsolver->modes().primesfile;
 	MiniSatPP::opt_convert_weak = false;
 	MiniSatPP::opt_convert = MiniSatPP::ct_Mixed;
 	pbsolver->allocConstrs(maxvar, sumaggs);
 
 	for(vector<PBAgg*>::const_iterator i=pbaggs.begin(); !unsat && i<pbaggs.end(); i++){
-		unsat = !pbsolver->addConstr((*i)->literals, (*i)->weights, (*i)->bound, (*i)->sign, (*i)->head);
+		unsat = !pbsolver->addConstr((*i)->literals, (*i)->weights, (*i)->bound, (*i)->sign, false);
 	}
 	deleteList<PBAgg>(pbaggs);
 

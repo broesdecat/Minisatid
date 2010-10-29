@@ -288,11 +288,11 @@ a4
 */
 
 // yay prototype
-SearchMetaData* searchForBase(vec<Int>& inCoeffs, vec<int>& outputBase,PrimesLoader& pl);
+SearchMetaData* searchForBase(vec<Int>& inCoeffs, vec<int>& outputBase);
 
 // Will return '_undef_' if 'cost_limit' is exceeded.
 //
-Formula buildConstraint(const Linear& c,PrimesLoader& pl, int max_cost)
+Formula buildConstraint(const Linear& c, int max_cost)
 {
     vec<Formula>    ps;
     vec<Int>        Cs;
@@ -303,7 +303,7 @@ Formula buildConstraint(const Linear& c,PrimesLoader& pl, int max_cost)
 	
     vec<int> base;
   
-    SearchMetaData* data = searchForBase(Cs, base, pl);
+    SearchMetaData* data = searchForBase(Cs, base);
     FEnv::push();
     if (opt_dump) { // don't spend time on building unneeded formulae
         return _undef_;
@@ -395,7 +395,7 @@ static void dump(std::map<unsigned int,unsigned int>& multiSet) {
 /**
  * Probably one of the more interesting functions.
  */
-SearchMetaData* searchForBase(vec<Int>& inCoeffs, vec<int>& outputBase,PrimesLoader& pl) {
+SearchMetaData* searchForBase(vec<Int>& inCoeffs, vec<int>& outputBase) {
   std::map<unsigned int,unsigned int> multiSet;
   vecToMultiSet(inCoeffs,multiSet);
   if (opt_dump) {
@@ -405,8 +405,8 @@ SearchMetaData* searchForBase(vec<Int>& inCoeffs, vec<int>& outputBase,PrimesLoa
   unsigned int weights[multiSet.size()][2];
   coeffsToDescendingWeights(multiSet, weights);
   SearchMetaData* data = 0;
-  unsigned int cutof = pl.loadPrimes(weights[0][0],opt_max_generator);
-  std::vector<unsigned int>& pri = pl.primeVector();
+  std::vector<unsigned int> pri;
+  unsigned int cutof = loadPrimes(opt_primes_file,pri,weights[0][0],opt_max_generator);
   if      (opt_base == base_Forward) data = findBaseFWD(weights, multiSet.size(), pri,cutof);
   else if (opt_base == base_SOD)     data = bnb_SOD_Carry_Cost_search(weights, multiSet.size(),pri,cutof,false,true,true); 
   else if (opt_base == base_Carry)   data = bnb_SOD_Carry_Cost_search(weights, multiSet.size(), pri,cutof,opt_non_prime,opt_abstract); 
