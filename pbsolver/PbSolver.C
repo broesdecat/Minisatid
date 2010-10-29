@@ -45,7 +45,7 @@ void PbSolver::addGoal(const vec<Lit>& ps, const vec<Int>& Cs)
     goal = new (xmalloc<char>(sizeof(Linear) + ps.size()*(sizeof(Lit) + sizeof(Int)))) Linear(ps, Cs, Int_MIN, Int_MAX);
 }
 
-bool PbSolver::addConstrInner(const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, int ineq,Formula thisForm)
+bool PbSolver::addConstr(const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, int ineq,Formula thisForm)
 {
     //**/debug_names = &index2name;
     //**/static cchar* ineq_name[5] = { "<", "<=" ,"==", ">=", ">" };
@@ -104,11 +104,11 @@ bool    PbSolver::addConstr(const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, int
         	n_occurs  .push(0);
         	index2name.push();
 	}
-	return addConstrInner(ps,Cs,rhs,ineq,lit2fml(iffLit));
+	return addConstr(ps,Cs,rhs,ineq,lit2fml(iffLit));
 }
 
 bool    PbSolver::addConstr(const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, int ineq) {
-	return addConstrInner(ps,Cs,rhs,ineq,_1_);
+	return addConstr(ps,Cs,rhs,ineq,_1_);
 }
 
 
@@ -555,7 +555,7 @@ bool PbSolver::rewriteAlmostClauses()
             for (int j = 0; j < n; j++)
                 ps.push(c[j]),
                 Cs.push(c(j));
-            if (!addConstrInner(ps, Cs, c.lo ,1, iffThisForm[i])){
+            if (!addConstr(ps, Cs, c.lo, iffThisForm[i])){
                 reportf("\n");
                 return false; }
             
@@ -627,7 +627,7 @@ void PbSolver::toCNF(std::vector<std::vector<Lit> >& cnf){
     opt_sort_thres *= opt_goal_bias;
 
     if (opt_goal != Int_MAX)
-        addConstrInner(goal_ps, goal_Cs, opt_goal, -1,_1_),
+        addConstr(goal_ps, goal_Cs, opt_goal, -1,false),
         convertPbs(false);
 
     status = "export";
@@ -670,7 +670,7 @@ void PbSolver::solve(solve_Command cmd,bool skipSolving)
     opt_sort_thres *= opt_goal_bias;
 
     if (opt_goal != Int_MAX)
-        addConstrInner(goal_ps, goal_Cs, opt_goal, -1,_1_),
+        addConstr(goal_ps, goal_Cs, opt_goal, -1,false),
         convertPbs(false);
 
     if (opt_cnf != NULL)
@@ -722,7 +722,7 @@ void PbSolver::solve(solve_Command cmd,bool skipSolving)
                 char* tmp = toString(best_goalvalue);
                 reportf("\bFound solution: %s\b\n", tmp);
                 xfree(tmp); }
-            if (!addConstrInner(goal_ps, goal_Cs, best_goalvalue, -2,_1_))
+            if (!addConstr(goal_ps, goal_Cs, best_goalvalue, -2,false))
                 break;
             convertPbs(false);
         }

@@ -81,7 +81,7 @@ protected:
     void    findIntervals();
     bool    rewriteAlmostClauses();
     bool    convertPbs(bool first_call);   // Called from 'solve()' to convert PB constraints to clauses.
-    bool    addConstrInner(const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, int ineq,Formula thisForm);
+    bool    addConstr(const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, int ineq,Formula thisForm);
 
 public:
     PbSolver()  : sat_solver(opt_solver == st_MiniSat)
