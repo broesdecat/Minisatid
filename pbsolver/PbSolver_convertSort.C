@@ -407,7 +407,6 @@ SearchMetaData* searchForBase(vec<Int>& inCoeffs, vec<int>& outputBase) {
   SearchMetaData* data = 0;
   std::vector<unsigned int> pri;
   unsigned int cutof = loadPrimes(opt_primes_file,pri,weights[0][0],opt_max_generator);
-  printf("\n");
   if      (opt_base == base_Forward) data = findBaseFWD(weights, multiSet.size(), pri,cutof);
   else if (opt_base == base_SOD)     data = bnb_SOD_Carry_Cost_search(weights, multiSet.size(),pri,cutof,false,true,true); 
   else if (opt_base == base_Carry)   data = bnb_SOD_Carry_Cost_search(weights, multiSet.size(), pri,cutof,opt_non_prime,opt_abstract); 

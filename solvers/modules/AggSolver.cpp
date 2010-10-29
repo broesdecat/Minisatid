@@ -241,6 +241,106 @@ struct PBAgg{
 	int sign;
 };
 
+void AggSolver::transformSumsToCNF(bool& unsat){
+	int sumaggs = 0;
+	int maxvar = 1;
+	vector<PBAgg*> pbaggs;
+	for (map<int, ppaset>::const_iterator i = parsedsets.begin(); i != parsedsets.end(); i++) {
+		vppagg remaining;
+		for(int j=0; j<(*i).second->getAgg().size(); j++){
+			ppagg agg = (*i).second->getAgg()[j];
+			if(!agg->isOptim() && (agg->getType()==SUM || agg->getType()==CARD) && !agg->getSem()==DEF){
+				PBAgg* ppbaggeq = new PBAgg();
+				PBAgg* ppbaggineq = new PBAgg();
+				pbaggs.push_back(ppbaggeq);
+				pbaggs.push_back(ppbaggineq);
+				PBAgg& pbaggeq = *ppbaggeq;
+				PBAgg& pbaggineq = *ppbaggineq;
+				if(agg->getSign()==LB){
+					pbaggeq.sign = -1;
+					pbaggineq.sign = 2;
+				}else{
+					pbaggeq.sign = 1;
+					pbaggineq.sign = -2;
+				}
+				pbaggeq.bound = agg->getBound();
+				pbaggineq.bound = agg->getBound();
+				Weight min = 0, max = 0;
+				for(vwl::const_iterator k=(*i).second->getWL().begin(); k<(*i).second->getWL().end(); k++){
+					pbaggeq.literals.push(MiniSatPP::Lit(var((*k).getLit()), sign((*k).getLit())));
+					pbaggineq.literals.push(MiniSatPP::Lit(var((*k).getLit()), sign((*k).getLit())));
+					if(var((*k).getLit())>maxvar){
+						maxvar = var((*k).getLit());
+					}
+					if((*k).getWeight()<0){
+						min += (*k).getWeight();
+					}else{
+						max += (*k).getWeight();
+					}
+					pbaggeq.weights.push(MiniSatPP::Int((int)((*k).getWeight())));
+					pbaggineq.weights.push(MiniSatPP::Int((int)((*k).getWeight())));
+				}
+				if(var(agg->getHead())>maxvar){
+					maxvar = var(agg->getHead());
+				}
+				pbaggeq.literals.push(MiniSatPP::Lit(var(agg->getHead()), true));
+				pbaggineq.literals.push(MiniSatPP::Lit(var(agg->getHead()), false));
+				Weight eqval, ineqval;
+				if(agg->getSign()==LB){
+					eqval = -abs(agg->getBound())-abs(max)-1;
+					ineqval = abs(agg->getBound())+abs(min)+1;
+				}else{
+					eqval = abs(agg->getBound())+abs(min)+1;
+					ineqval = -abs(agg->getBound())-abs(max)-1;
+				}
+				//report("Eqval=%d, ineqval=%d, maxvar=%d\n", eqval, ineqval, maxvar);
+				pbaggeq.weights.push(MiniSatPP::Int(eqval));
+				pbaggineq.weights.push(MiniSatPP::Int(ineqval));
+			}else{
+				remaining.push_back(agg);
+			}
+		}
+		(*i).second->getAgg().clear();
+		(*i).second->getAgg().insert((*i).second->getAgg().begin(), remaining.begin(), remaining.end());
+	}
+
+	MiniSatPP::PbSolver* pbsolver = new MiniSatPP::PbSolver();
+	MiniSatPP::opt_verbosity = verbosity();
+	MiniSatPP::opt_abstract = true; //Should be true
+	MiniSatPP::opt_tare = true; //Experimentally set to true
+	report("%s\n",getPCSolver()->modes().primesfile);
+	MiniSatPP::opt_primes_file = getPCSolver()->modes().primesfile;
+	MiniSatPP::opt_convert_weak = false;
+	MiniSatPP::opt_convert = MiniSatPP::ct_Mixed;
+	pbsolver->allocConstrs(maxvar, sumaggs);
+
+	for(vector<PBAgg*>::const_iterator i=pbaggs.begin(); !unsat && i<pbaggs.end(); i++){
+		unsat = !pbsolver->addConstr((*i)->literals, (*i)->weights, (*i)->bound, (*i)->sign, false);
+	}
+	deleteList<PBAgg>(pbaggs);
+
+	if(unsat){
+		return;
+	}
+
+	//get CNF out of the pseudoboolean matrix
+	vector<vector<MiniSatPP::Lit> > pbencodings;
+	pbsolver->toCNF(pbencodings);
+	delete pbsolver;
+
+	//Any literal that is larger than maxvar will have been newly introduced, so should be mapped to nVars()+lit
+	//add the CNF to the solver
+	int maxnumber = nVars();
+	for(vector<vector<MiniSatPP::Lit> >::const_iterator i=pbencodings.begin(); i<pbencodings.end(); i++){
+		vec<Lit> lits;
+		for(vector<MiniSatPP::Lit>::const_iterator j=(*i).begin(); j<(*i).end(); j++){
+			Var v = MiniSatPP::var(*j) + (MiniSatPP::var(*j)>maxvar?maxnumber-maxvar:0);
+			lits.push(mkLit(v, MiniSatPP::sign(*j)));
+		}
+		getPCSolver()->addClause(lits);
+	}
+}
+
 void AggSolver::finishParsing(bool& present, bool& unsat) {
 	notifyInitialized();
 
@@ -266,114 +366,8 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	//Rewrite all sum and card constraint into CNF using PBSOLVER
 	//TODO transformSumCardToCNF
 	if(getPCSolver()->modes().pbsolver){
-		int sumaggs = 0;
-		int maxvar = 1;
-		vector<PBAgg*> pbaggs;
-		for (map<int, ppaset>::const_iterator i = parsedsets.begin(); i != parsedsets.end(); i++) {
-			vppagg remaining;
-			for(int j=0; j<(*i).second->getAgg().size(); j++){
-				ppagg agg = (*i).second->getAgg()[j];
-				if(!agg->isOptim() && (agg->getType()==SUM || agg->getType()==CARD)){
-					/*PBAgg* ppbaggeq = new PBAgg();
-					pbaggs.push_back(ppbaggeq);
-					PBAgg& pbaggeq = *ppbaggeq;
-					if(agg->getSign()==LB){
-						pbaggeq.sign = -1;
-					}else{
-						pbaggeq.sign = 1;
-					}
-					pbaggeq.bound = agg->getBound();
-					for(vwl::const_iterator k=(*i).second->getWL().begin(); k<(*i).second->getWL().end(); k++){
-						pbaggeq.literals.push(MiniSatPP::Lit(var((*k).getLit()), sign((*k).getLit())));
-						if(var((*k).getLit())>maxvar){
-							maxvar = var((*k).getLit());
-						}
-						pbaggeq.weights.push(MiniSatPP::Int((int)((*k).getWeight())));
-					}*/
-					PBAgg* ppbaggeq = new PBAgg();
-					PBAgg* ppbaggineq = new PBAgg();
-					pbaggs.push_back(ppbaggeq);
-					pbaggs.push_back(ppbaggineq);
-					PBAgg& pbaggeq = *ppbaggeq;
-					PBAgg& pbaggineq = *ppbaggineq;
-					if(agg->getSign()==LB){
-						pbaggeq.sign = -1;
-						pbaggineq.sign = 2;
-					}else{
-						pbaggeq.sign = 1;
-						pbaggineq.sign = -2;
-					}
-					pbaggeq.bound = agg->getBound();
-					pbaggineq.bound = agg->getBound();
-					Weight min = 0, max = 0;
-					for(vwl::const_iterator k=(*i).second->getWL().begin(); k<(*i).second->getWL().end(); k++){
-						pbaggeq.literals.push(MiniSatPP::Lit(var((*k).getLit()), sign((*k).getLit())));
-						pbaggineq.literals.push(MiniSatPP::Lit(var((*k).getLit()), sign((*k).getLit())));
-						if(var((*k).getLit())>maxvar){
-							maxvar = var((*k).getLit());
-						}
-						if((*k).getWeight()<0){
-							min += (*k).getWeight();
-						}else{
-							max += (*k).getWeight();
-						}
-						pbaggeq.weights.push(MiniSatPP::Int((int)((*k).getWeight())));
-						pbaggineq.weights.push(MiniSatPP::Int((int)((*k).getWeight())));
-					}
-					if(var(agg->getHead())>maxvar){
-						maxvar = var(agg->getHead());
-					}
-					pbaggeq.literals.push(MiniSatPP::Lit(var(agg->getHead()), true));
-					pbaggineq.literals.push(MiniSatPP::Lit(var(agg->getHead()), false));
-					Weight eqval, ineqval;
-					if(agg->getSign()==LB){
-						eqval = -abs(agg->getBound())-abs(max)-1;
-						ineqval = abs(agg->getBound())+abs(max)+1;
-					}else{
-						eqval = abs(agg->getBound())+abs(min)+1;
-						ineqval = -abs(agg->getBound())-abs(max)-1;
-					}
-					//report("Eqval=%d, ineqval=%d, maxvar=%d\n", eqval, ineqval, maxvar);
-					pbaggeq.weights.push(MiniSatPP::Int(eqval));
-					pbaggineq.weights.push(MiniSatPP::Int(ineqval));
-				}else{
-					remaining.push_back(agg);
-				}
-			}
-			(*i).second->getAgg().clear();
-			(*i).second->getAgg().insert((*i).second->getAgg().begin(), remaining.begin(), remaining.end());
-		}
-
-		MiniSatPP::PbSolver* pbsolver = new MiniSatPP::PbSolver();
-		MiniSatPP::opt_verbosity = verbosity();
-		MiniSatPP::opt_convert_weak = false;
-		MiniSatPP::opt_convert = MiniSatPP::ct_Sorters;
-		pbsolver->allocConstrs(maxvar, sumaggs);
-
-		for(vector<PBAgg*>::const_iterator i=pbaggs.begin(); !unsat && i<pbaggs.end(); i++){
-			unsat = !pbsolver->addConstr((*i)->literals, (*i)->weights, (*i)->bound, (*i)->sign, false);
-		}
-		deleteList<PBAgg>(pbaggs);
-
-		if(unsat){
-			return;
-		}
-
-		//get CNF out of the pseudoboolean matrix
-		vector<vector<MiniSatPP::Lit> > pbencodings;
-		pbsolver->toCNF(pbencodings);
-
-		//Any literal that is larger than maxvar will have been newly introduced, so should be mapped to nVars()+lit
-		//add the CNF to the solver
-		int maxnumber = nVars();
-		for(vector<vector<MiniSatPP::Lit> >::const_iterator i=pbencodings.begin(); i<pbencodings.end(); i++){
-			vec<Lit> lits;
-			for(vector<MiniSatPP::Lit>::const_iterator j=(*i).begin(); j<(*i).end(); j++){
-				Var v = MiniSatPP::var(*j) + (MiniSatPP::var(*j)>maxvar?maxnumber-maxvar:0);
-				lits.push(mkLit(v, MiniSatPP::sign(*j)));
-			}
-			getPCSolver()->addClause(lits);
-		}
+		transformSumsToCNF(unsat);
+		if(unsat){ return; }
 	}
 
 	for (map<int, ppaset>::const_iterator i = parsedsets.begin(); i != parsedsets.end(); i++) {
@@ -527,7 +521,6 @@ bool AggSolver::constructMinSet(ppaset set, vppagg aggs) {
 	}
 
 	bool unsat = constructMaxSet(set2, aggs2);
-	deleteList<ParsedAgg>(aggs2);
 	delete set2;
 
 	return unsat;

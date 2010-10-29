@@ -209,6 +209,7 @@ public:
 	 * UNSAT is set to true if unsat is detected
 	 * PRESENT is set to true if aggregate propagations should be done
 	 */
+			void 	transformSumsToCNF		(bool& unsat);
 	virtual void 	finishParsing		 	(bool& present, bool& unsat);
 	virtual bool 	simplify				() { return true; }; //False if problem unsat
 	/**

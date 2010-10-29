@@ -150,6 +150,7 @@ static struct argp_option options[] = {
 		{"defsearch"	, 10, "SEARCH", 0,	"SEARCH={\"always\", \"adaptive\", \"lazy\"}: sets the unfounded-set search-frequency",3},
 		{"defsem"		, 11, "SEM", 0,		"SEM={\"stable\", \"wellfounded\"}: uses the chosen semantics to handle inductive definitions",3},
 		{"ecnfgraph"	, 12, "BOOL", 0,	"BOOL={\"yes\",\"no\"}: generate .dot ecnf graph representation",3},
+		{"primesfile"	, 15, "FILE", 0,	"Use FILE as the container of the list of primes to use for searching optimal aggregate bases",2},
 		{ 0,0,0,0,0,0 } }; //Required end tuple
 
 /* Parse a single option. */
@@ -274,6 +275,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 		case 'o': // outputfile
 			MinisatID::setOutputFileUrl(arg);
 			break;
+		case 15: // primes files
+			modes.primesfile = arg;
+			break;
 		case 14: // pbsolver: yes/no
 			if(strcmp(arg, "no")==0){
 				modes.pbsolver = false;
@@ -304,6 +308,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 			}
 			break;
 		case ARGP_KEY_END: // Piping is allowed, so don't really need any files
+			if(modes.primesfile==NULL && modes.pbsolver){
+				throw idpexception("The primesfiles has to be provided when the pbsolver will be used\n");
+			}
 			break;
 		default:
 			return ARGP_ERR_UNKNOWN;

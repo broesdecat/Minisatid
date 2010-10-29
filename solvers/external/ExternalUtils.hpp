@@ -256,9 +256,12 @@ struct ECNF_mode {
 	bool randomize; // use random seed initialization for the SAT-solver
 	bool disableheur; // turn off the heuristic of the sat solver, allowing more predictable behavior
 	int idclausesaving; //0 = on propagation add clause to store, 1 = on propagation, generate explanation and save it, 2 = on propagation, generate reason and save it
+	bool onlyoneunfclause;
 	int aggclausesaving; //0 = on propagation add clause to store, 1 = on propagation, generate explanation and save it, 2 = on propagation, generate reason and save it
 
 	bool printcnfgraph;
+
+	char* primesfile; //The location of a version of the files with 1 million primes for fast
 
 	//rest
 	bool def, aggr, mnmz, cp; // True for those extensions that are being used.
@@ -276,13 +279,15 @@ struct ECNF_mode {
 		lparse(false),
 		pb(false),
 		remap(false),
-		pbsolver(false),
 		pw(true),
+		pbsolver(false),
 		randomize(false),
 		disableheur(false),
 		idclausesaving(0),
+		onlyoneunfclause(false),
 		aggclausesaving(2),
 		printcnfgraph(false),
+		primesfile(NULL),
 		def(false),
 		aggr(false),
 		mnmz(false),

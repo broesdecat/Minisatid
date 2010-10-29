@@ -1408,36 +1408,43 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 		}
 	}
 
-	// No conflict: then enqueue all facts and their loop formulas.
-	if (loopf.size() >= 5) {
-		//introduce a new var to represent all external disjuncts: v <=> \bigvee external disj
-		Var v = getPCSolver()->newVar();
-		if (verbosity() >= 2) {
-			report("Adding new variable for loop formulas: %d.\n", gprintVar(v));
-		}
-
-		// ~v \vee \bigvee\extdisj{L}
-		addLoopfClause(createNegativeLiteral(v), loopf);
-
-		// \forall d \in \extdisj{L}: ~d \vee v
-		vec<Lit> binaryclause(2);
-		binaryclause[1] = createPositiveLiteral(v);
-		for (int i = 1; i < loopf.size(); ++i) {
-			addLoopfClause(~loopf[i], binaryclause);
-		}
-
-		loopf.shrink(2);
-
-		//the end loop formula just contains v
-		loopf[1] = createPositiveLiteral(v);
-	}
-
-	for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
-		//if (isUnknown(*tch)) { //TODO check if adding this increases/decreases performance
-		Lit l = createNegativeLiteral(*tch);
+	//Clasp only adds one asserting clause, assuming the other ones will be propagated.
+	if(getPCSolver()->modes().onlyoneunfclause){
+		Lit l = createNegativeLiteral(*ufs.begin());
 		addLoopfClause(l, loopf);
 		assert(!isUnknown(*tch));
-		//}
+	}else{
+		// No conflict: then enqueue all facts and their loop formulas.
+		if (loopf.size() >= 5) {
+			//introduce a new var to represent all external disjuncts: v <=> \bigvee external disj
+			Var v = getPCSolver()->newVar();
+			if (verbosity() >= 2) {
+				report("Adding new variable for loop formulas: %d.\n", gprintVar(v));
+			}
+
+			// ~v \vee \bigvee\extdisj{L}
+			addLoopfClause(createNegativeLiteral(v), loopf);
+
+			// \forall d \in \extdisj{L}: ~d \vee v
+			vec<Lit> binaryclause(2);
+			binaryclause[1] = createPositiveLiteral(v);
+			for (int i = 1; i < loopf.size(); ++i) {
+				addLoopfClause(~loopf[i], binaryclause);
+			}
+
+			loopf.shrink(2);
+
+			//the end loop formula just contains v
+			loopf[1] = createPositiveLiteral(v);
+		}
+
+		for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
+			//if (isUnknown(*tch)) { //TODO check if adding this increases/decreases performance
+			Lit l = createNegativeLiteral(*tch);
+			addLoopfClause(l, loopf);
+			assert(!isUnknown(*tch));
+			//}
+		}
 	}
 
 	return nullPtrClause;
