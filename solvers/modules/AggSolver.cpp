@@ -251,7 +251,7 @@ void Aggrs::transformSumsToCNF(bool& unsat, map<int, ppaset>& parsedsets, PCSolv
 		for(int j=0; j<(*i).second->getAgg().size(); j++){
 			ppagg agg = (*i).second->getAgg()[j];
 			if(!agg->isOptim() && (agg->getType()==SUM || agg->getType()==CARD) && !agg->getSem()==DEF){
-				/*PBAgg* ppbaggeq = new PBAgg();
+				PBAgg* ppbaggeq = new PBAgg();
 				pbaggs.push_back(ppbaggeq);
 				PBAgg& pbaggeq = *ppbaggeq;
 				if(agg->getSign()==LB){
@@ -271,8 +271,8 @@ void Aggrs::transformSumsToCNF(bool& unsat, map<int, ppaset>& parsedsets, PCSolv
 				if(var(agg->getHead())>maxvar){
 					maxvar = var(agg->getHead());
 				}
-				pbaggeq.head = MiniSatPP::Lit(var(agg->getHead()), sign(agg->getHead()));*/
-				PBAgg* ppbaggeq = new PBAgg();
+				pbaggeq.head = MiniSatPP::Lit(var(agg->getHead()), sign(agg->getHead()));
+				/*PBAgg* ppbaggeq = new PBAgg();
 				PBAgg* ppbaggineq = new PBAgg();
 				pbaggs.push_back(ppbaggeq);
 				pbaggs.push_back(ppbaggineq);
@@ -317,7 +317,7 @@ void Aggrs::transformSumsToCNF(bool& unsat, map<int, ppaset>& parsedsets, PCSolv
 				}
 				//report("Eqval=%d, ineqval=%d, maxvar=%d\n", eqval, ineqval, maxvar);
 				pbaggeq.weights.push(MiniSatPP::Int(eqval));
-				pbaggineq.weights.push(MiniSatPP::Int(ineqval));
+				pbaggineq.weights.push(MiniSatPP::Int(ineqval));*/
 			}else{
 				remaining.push_back(agg);
 			}
@@ -336,6 +336,7 @@ void Aggrs::transformSumsToCNF(bool& unsat, map<int, ppaset>& parsedsets, PCSolv
 	pbsolver->allocConstrs(maxvar, sumaggs);
 
 	for(vector<PBAgg*>::const_iterator i=pbaggs.begin(); !unsat && i<pbaggs.end(); i++){
+//		unsat = !pbsolver->addConstr((*i)->literals, (*i)->weights, (*i)->bound, (*i)->sign);
 		unsat = !pbsolver->addConstr((*i)->literals, (*i)->weights, (*i)->bound, (*i)->sign, (*i)->head);
 	}
 	deleteList<PBAgg>(pbaggs);
