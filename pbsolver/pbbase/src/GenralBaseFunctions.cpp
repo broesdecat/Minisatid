@@ -1,5 +1,6 @@
 #include <vector>
-#include <fstream>
+
+
 #include "../h/GenralBaseFunctions.h"
 
 
@@ -209,20 +210,54 @@ unsigned long long oddEvenCountEval(std::vector<int> &base,unsigned int i, unsig
 }
 
 
+PrimesLoader::PrimesLoader(char* primes_file_name) : 
+	primesFile(primes_file_name, std::fstream::in) {
+		unsigned int temp[]  = { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97 };
+		for (int i=0;i< sizeof ( temp ) / sizeof ( *temp );i++) backUpPrimes.push_back(temp[i]); 
+		if (primesFile.is_open()) {
+			if (primesFile.eof()) {
+				primesFile.close();    //file is empty
+				lastRead = 0; //last inedx used from back up prime array
+			}
+			else 
+				primesFile>>lastRead; //readFirstPrime 
+		}
+		primes.push_back(2);                           //load first prime to vector	
+	};
+	
+PrimesLoader::~PrimesLoader(){if (primesFile.is_open()) primesFile.close(); }
 
-unsigned int loadPrimes(char* primes_file_name,std::vector<unsigned int>& pri,unsigned int maxW,unsigned int cutOF) {
-	std::fstream file(primes_file_name, std::fstream::in);
-	unsigned int p;
-	unsigned int max = 15485863;
-	if (maxW<max) max = maxW;
-	if (cutOF<max) max = cutOF;
-	while(true) { 
-		file >> p;
-		if(p>max) break;
-		pri.push_back(p);
+/**
+ * @return the new cutoff for the search = min(cutOF,maxPrimeAvilvabeToLoader) 
+ */
+unsigned int PrimesLoader::loadPrimes(unsigned int maxW,unsigned int cutOF) {
+	unsigned int max = maxW < cutOF ? maxW : cutOF ;
+	if (primes.back()<max) { //more primes neaded to be loaded
+		if (primesFile.is_open() && lastRead<max) { 
+			while (!primesFile.eof() & lastRead<max) {
+				primesFile >> lastRead; 
+				primes.push_back(lastRead);
+			}
+			if (primesFile.eof()) {
+				primesFile.close();
+				lastRead = 0;
+			}
+		}
+		if (!primesFile.is_open() & lastRead<backUpPrimes.size() && backUpPrimes[lastRead]<max) {
+			while(lastRead<backUpPrimes.size() && backUpPrimes[lastRead]<=max)  {
+				if (primes.back() < backUpPrimes[lastRead]) primes.push_back(backUpPrimes[lastRead]);
+				lastRead++;
+			}
+			if (lastRead==backUpPrimes.size()) backUpPrimes.clear();
+		}
 	}
-	file.close();
-	if    (cutOF>15485863) return 15485863;
-	else  return cutOF;
+	if    (cutOF>primes.back()) return primes.back();
+	else  					    return cutOF;
 }
+
+std::vector<unsigned int>& PrimesLoader::primeVector() {return primes;}
+
+
+
+
 }

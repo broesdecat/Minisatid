@@ -141,9 +141,9 @@ int mainA2(int argc, char **argv) {
 	unsigned int ws[][2] = {{1000000,100},{777777,100},{640487,100},{47360,100},{10127,100},
 			{9873,100},{8153,100},{7543,100},{6937,100},{5342,100},{4283,100},
 				{3761,100},{2344,100},{231,100},{123,12}};
-	std::vector<unsigned int> pri;
-  	loadPrimes("P1.TXT",pri,ws[0][0],1000000);
-	SearchMetaData* md = bnb_Comp_Cost_search(ws,length(ws),pri,1000000,false,true);
+    PrimesLoader pl("P1.TXT");
+    unsigned int cufOff = pl.loadPrimes(ws[0][0],1000000);				
+	SearchMetaData* md = bnb_Comp_Cost_search(ws,length(ws),pl.primeVector(),cufOff,false,true);
 	md->print();
 	delete md;
 	return 0; 

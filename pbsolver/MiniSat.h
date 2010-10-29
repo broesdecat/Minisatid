@@ -1,6 +1,6 @@
 /**************************************************************************************************
 
-Solver.h -- (C) Niklas Een, Niklas Sï¿½rensson, 2005
+Solver.h -- (C) Niklas Een, Niklas Sörensson, 2005
 
 A simple Chaff-like SAT-solver with support for incremental SAT and Pseudo-boolean constraints.
 
@@ -186,7 +186,9 @@ public:
     // Statistics: (read-only member variable)
     //
     SolverStats stats;
-    int		numOfClouses (void)  {  return clauses.size()+ learnts.size(); }
+    int		numOfClouses (void)  {  
+    	return clauses.size()+ learnts.size(); 
+    }
 
     // Problem specification:
     //

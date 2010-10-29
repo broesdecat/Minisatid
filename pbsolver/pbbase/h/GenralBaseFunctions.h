@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <cmath>
+#include <fstream>
 
 
 
@@ -30,7 +31,22 @@ void carryVecEval(std::vector<int> &base,unsigned int i, unsigned int ws[][2],un
 void inputVecEval(unsigned int ws[][2], std::vector<int> &base,int wsLength,std::vector<unsigned long long> &input);
 void inputVecEval(std::vector<int> &base,unsigned int i, unsigned int ws[][2],unsigned long mul,unsigned long long ca,int lr,std::vector<unsigned long long> &input);
 
-unsigned int loadPrimes(char* primes_file_name,std::vector<unsigned int>& pri,unsigned int maxW,unsigned int cutOF);
+
+class PrimesLoader {
+	
+ public:
+	PrimesLoader(char* primes_file_name); 
+	virtual ~PrimesLoader();
+	unsigned int loadPrimes(unsigned int maxW,unsigned int cutOF);
+	std::vector<unsigned int>& primeVector();
+
+ private:
+    std::vector<unsigned int> backUpPrimes;
+    std::vector<unsigned int> primes;
+	std::fstream primesFile;
+	unsigned int lastRead;
+	 
+};  
 
 
 inline unsigned int lg2(register unsigned int v) {
@@ -45,17 +61,6 @@ inline unsigned long long nlg2n2(register unsigned long long v) {
 
 
 inline unsigned long long oddEvenCount(register unsigned long long v) {
-		         /*if      (v<=1) return   0;
-		         else if (v==2) return   1;
-		         else if (v<=4) return   5;
-				 else if (v<=8) return   19;
-				 else if (v<=16) return  63;
-				 else if (v<=32) return  191;
-				 else if (v<=64) return  543;
-				 else if (v<=128) return 1471;
-				 else if (v<=256) return 3839;
-				 else if (v<=512) return 9727;
-				 else return nlg2n2(v);*/
 				 if (v<=512) return oddEvenCostF[v];
 				 else        return nlg2n2(v);
 }

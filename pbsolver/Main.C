@@ -53,7 +53,7 @@ bool        opt_only_base        = false; // web interface mode -- v0 is implied
 bool        opt_skip_sat         = false; // skip SAT solving, just report UNSAT
 bool        opt_dump             = false; // just dump optimal base problems
 bool    	opt_natlist          = false; // read list of naturals instead of opb
-bool        opt_abstract         = false; // use the abstraction for the base serach algritem (optimalty proven for SOD only!)
+bool        opt_abstract         = true; // use the abstraction for the base serach algritem (optimalty proven for SOD only!)
 bool        opt_tare             = false;
 bool 	    opt_use_shortCuts    = false;
 
@@ -668,43 +668,42 @@ int test1() {
 	 opt_convert = ct_Sorters;
 	 
 	 pb_solver = new PbSolver();
-	 pb_solver->allocConstrs(8, 4);
 	 vec<Lit> ps;
 	 vec<Int> Cs;
 	 		
-	 Int rhs=-1;  //x1 + 2 x2 + 3 x3 + 4 x4 + 5 x5 -20 not x6 <= 4
-	 int ineq = 1;
-	 ps.push(Lit(2));
-	 ps.push(Lit(3));
-	 ps.push(Lit(4));
-	 ps.push(Lit(5));
-	 ps.push(Lit(6));
-	 ps.push(Lit(7));
-	 Cs.push(1);
-	 Cs.push(2);
-	 Cs.push(3);
-	 Cs.push(4);
-	 Cs.push(5);
-	 Cs.push(-5);
-	 pb_solver->addConstr(ps,Cs,rhs,ineq,false);
-	 
-/*	 ps.clear();  //x1 + 2 x2 + 3 x3 + 4 x4 + 5 x5 +20 x6 > 4
-	 Cs.clear();
+	 Int rhs=4;  //x1 + 2 x2 + 3 x3 + 4 x4 + 5 x5 -20 not x6 <= 4
+	 int ineq = -1;
 	 ps.push(Lit(1));
 	 ps.push(Lit(2));
 	 ps.push(Lit(3));
 	 ps.push(Lit(4));
 	 ps.push(Lit(5));
-	 ps.push(Lit(6, false));
+	 ps.push(Lit(6,true));
 	 Cs.push(1);
 	 Cs.push(2);
 	 Cs.push(3);
 	 Cs.push(4);
 	 Cs.push(5);
 	 Cs.push(-20);
+	 pb_solver->addConstr(ps,Cs,rhs,ineq);
+	 
+	 ps.clear();  //x1 + 2 x2 + 3 x3 + 4 x4 + 5 x5 +20 x6 > 4
+	 Cs.clear();
+	 ps.push(Lit(1));
+	 ps.push(Lit(2));
+	 ps.push(Lit(3));
+	 ps.push(Lit(4));
+	 ps.push(Lit(5));
+	 ps.push(Lit(6));
+	 Cs.push(1);
+	 Cs.push(2);
+	 Cs.push(3);
+	 Cs.push(4);
+	 Cs.push(5);
+	 Cs.push(20);
 	 rhs=4;
-	 ineq = -2;
-	 pb_solver->addConstr(ps,Cs,rhs,ineq,false);
+	 ineq = 2;
+	 pb_solver->addConstr(ps,Cs,rhs,ineq);
 	 
 	 ps.clear(); //x1 + 2 x2 + 3 x3 + 4 x4 + 5 x5 +5 not x7 >= 4
 	 Cs.clear();
@@ -719,10 +718,10 @@ int test1() {
 	 Cs.push(3);
 	 Cs.push(4);
 	 Cs.push(5);
-	 Cs.push(-20);
-	 rhs=4;
-	 ineq = -1;
-	 pb_solver->addConstr(ps,Cs,rhs,ineq,false);
+	 Cs.push(5);
+	 rhs=1;
+	 ineq = 1;
+	 pb_solver->addConstr(ps,Cs,rhs,ineq);
 	 
 	 ps.clear(); //x1 + 2 x2 + 3 x3 + 4 x4 + 5 x5 -20 x7 < 4
 	 Cs.clear();
@@ -731,18 +730,17 @@ int test1() {
 	 ps.push(Lit(3));
 	 ps.push(Lit(4));
 	 ps.push(Lit(5));
-	 ps.push(Lit(7, false));
+	 ps.push(Lit(7));
 	 Cs.push(1);
 	 Cs.push(2);
 	 Cs.push(3);
 	 Cs.push(4);
 	 Cs.push(5);
-	 Cs.push(20);
+	 Cs.push(-20);
 	 rhs=4;
-	 ineq = 2;
-	 pb_solver->addConstr(ps,Cs,rhs,ineq,false);*/
-	// opt_command = cmd_AllSolutions;
-	 //pb_solver->solve(convert(opt_command),false);
+	 ineq = -2;
+	 pb_solver->addConstr(ps,Cs,rhs,ineq);
+	 
 	 std::vector<std::vector<Lit> > cnf;
 	 pb_solver->toCNF(cnf);
 	 for (int i=0;i<cnf.size();i++) {
@@ -777,15 +775,15 @@ int test1() {
 
 
 //=================================================================================================
+/*
 
-
-/*int main(int argc, char** argv)
+int main(int argc, char** argv)
 {
-	//return MiniSatPP::run(argc,argv);
-	MiniSatPP::test1();
+	return MiniSatPP::run(argc,argv);
+	//MiniSatPP::test1();
 	//MiniSatPP::debug1();
 	
-}*/
+}
 
-
+*/
 

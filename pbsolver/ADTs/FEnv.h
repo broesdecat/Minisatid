@@ -256,6 +256,8 @@ macro Formula operator ^ (Formula f, Formula g)
     return Bin_newS(op_Equiv, unsign(f), unsign(g), sign(f) == sign(g));
 }
 
+macro Formula         iff (Formula f, Formula g)  {return (f & g) | (~f & ~g);}
+
 macro Formula operator &= (Formula& f, Formula g) { return f = f & g; }
 macro Formula operator |= (Formula& f, Formula g) { return f = f | g; }
 macro Formula operator ^= (Formula& f, Formula g) { return f = f ^ g; }

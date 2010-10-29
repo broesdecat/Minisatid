@@ -8,7 +8,7 @@ namespace MiniSatPP {
 	
 //-------------------------------------------------------------------------------------------------
 void    linearAddition (const Linear& c, vec<Formula>& out);        // From: PbSolver_convertAdd.C
-Formula buildConstraint(const Linear& c, int max_cost = INT_MAX);   // From: PbSolver_convertSort.C
+Formula buildConstraint(const Linear& c, PrimesLoader& pl, int max_cost = INT_MAX);   // From: PbSolver_convertSort.C
 Formula convertToBdd   (const Linear& c, int max_cost = INT_MAX);   // From: PbSolver_convertBdd.C
 //-------------------------------------------------------------------------------------------------
 
@@ -25,38 +25,53 @@ bool PbSolver::convertPbs(bool first_call)
             ok = false;
             return false; }
     }
+    
+    for (int i=0;i<iffTrivConstrsForm.size();i++)
+    	converted_constrs.push(iffTrivConstrsForm[i]);
 
     for (int i = 0; i < constrs.size(); i++){
         if (constrs[i] == NULL) continue;
         Linear& c   = *constrs[i]; assert(c.lo != Int_MIN || c.hi != Int_MAX);
-
+		Formula      result = _undef_;
+		vec<Formula> resultList;
+		
         if (opt_verbosity >= 1)
             /**/reportf("---[%4d]---> ", constrs.size() - 1 - i);
 
         if (opt_convert == ct_Sorters) {
-            if (opt_dump) { // no formulae built
-                buildConstraint(c);
-            } else {
-                converted_constrs.push(buildConstraint(c));
-            }
+            if (opt_dump)  // no formulae built
+                buildConstraint(c,primesLoader);
+            else 
+            	result = buildConstraint(c,primesLoader);
         }
-        else if (opt_convert == ct_Adders)
-            linearAddition(c, converted_constrs);
-        else if (opt_convert == ct_BDDs)
-            converted_constrs.push(convertToBdd(c));
+        else if (opt_convert == ct_Adders) {
+            linearAddition(c, resultList);
+        }
+        else if (opt_convert == ct_BDDs) 
+        	result = convertToBdd(c);
         else if (opt_convert == ct_Mixed){
             int adder_cost = estimatedAdderCost(c);
             //**/printf("estimatedAdderCost: %d\n", estimatedAdderCost(c));
-            Formula result = convertToBdd(c, (int)(adder_cost * opt_bdd_thres));
+            result = convertToBdd(c, (int)(adder_cost * opt_bdd_thres));
             if (result == _undef_)
-                result = buildConstraint(c, (int)(adder_cost * opt_sort_thres));
+                result = buildConstraint(c,primesLoader, (int)(adder_cost * opt_sort_thres));
             if (result == _undef_)
-                linearAddition(c, converted_constrs);
-            else
-                converted_constrs.push(result);
-        }else
+                linearAddition(c, resultList);
+        }
+        else
             assert(false);
-
+        
+        if (result!=_undef_){
+        	assert(resultList.size()==0);
+        	resultList.push(result);
+        }
+        for (int j=0;j<resultList.size();j++) {
+        	result = resultList[j];    
+			if (iffThisForm[i]==_1_)
+	            converted_constrs.push(result);
+	        else
+	        	converted_constrs.push(iff(result & iffConstrsForm[i],iffThisForm[i]));
+        }
         if (!ok) return false;
     }
 
