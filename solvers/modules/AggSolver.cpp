@@ -36,19 +36,19 @@
  OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  **************************************************************************************************/
 
-#include "solvers/modules/AggSolver.hpp"
+#include "modules/AggSolver.hpp"
 
-#include "solvers/utils/Utils.hpp"
-#include "solvers/utils/Print.hpp"
+#include "utils/Utils.hpp"
+#include "utils/Print.hpp"
 
-#include "solvers/theorysolvers/PCSolver.hpp"
+#include "theorysolvers/PCSolver.hpp"
 
-#include "solvers/modules/aggsolver/AggComb.hpp"
+#include "modules/aggsolver/AggComb.hpp"
 
-#include "solvers/modules/aggsolver/FullyWatched.hpp"
-#include "solvers/modules/aggsolver/PartiallyWatched.hpp"
+#include "modules/aggsolver/FullyWatched.hpp"
+#include "modules/aggsolver/PartiallyWatched.hpp"
 
-#include "pbsolver/PbSolver.h"
+#include "PbSolver.h"
 
 #include <algorithm>
 
@@ -241,7 +241,7 @@ struct PBAgg{
 	int sign;
 };
 
-void AggSolver::transformSumsToCNF(bool& unsat){
+void Aggrs::transformSumsToCNF(bool& unsat, map<int, ppaset>& parsedsets, PCSolver* pcsolver){
 	int sumaggs = 0;
 	int maxvar = 1;
 	vector<PBAgg*> pbaggs;
@@ -305,11 +305,11 @@ void AggSolver::transformSumsToCNF(bool& unsat){
 	}
 
 	MiniSatPP::PbSolver* pbsolver = new MiniSatPP::PbSolver();
-	MiniSatPP::opt_verbosity = verbosity();
+	MiniSatPP::opt_verbosity = pcsolver->modes().verbosity;
 	MiniSatPP::opt_abstract = true; //Should be true
 	MiniSatPP::opt_tare = true; //Experimentally set to true
-	report("%s\n",getPCSolver()->modes().primesfile);
-	MiniSatPP::opt_primes_file = getPCSolver()->modes().primesfile;
+	report("%s\n",pcsolver->modes().primesfile);
+	MiniSatPP::opt_primes_file = pcsolver->modes().primesfile;
 	MiniSatPP::opt_convert_weak = false;
 	MiniSatPP::opt_convert = MiniSatPP::ct_Mixed;
 	pbsolver->allocConstrs(maxvar, sumaggs);
@@ -330,14 +330,14 @@ void AggSolver::transformSumsToCNF(bool& unsat){
 
 	//Any literal that is larger than maxvar will have been newly introduced, so should be mapped to nVars()+lit
 	//add the CNF to the solver
-	int maxnumber = nVars();
+	int maxnumber = pcsolver->nVars();
 	for(vector<vector<MiniSatPP::Lit> >::const_iterator i=pbencodings.begin(); i<pbencodings.end(); i++){
 		vec<Lit> lits;
 		for(vector<MiniSatPP::Lit>::const_iterator j=(*i).begin(); j<(*i).end(); j++){
 			Var v = MiniSatPP::var(*j) + (MiniSatPP::var(*j)>maxvar?maxnumber-maxvar:0);
 			lits.push(mkLit(v, MiniSatPP::sign(*j)));
 		}
-		getPCSolver()->addClause(lits);
+		pcsolver->addClause(lits);
 	}
 }
 
@@ -366,7 +366,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	//Rewrite all sum and card constraint into CNF using PBSOLVER
 	//TODO transformSumCardToCNF
 	if(getPCSolver()->modes().pbsolver){
-		transformSumsToCNF(unsat);
+		transformSumsToCNF(unsat, parsedsets, getPCSolver());
 		if(unsat){ return; }
 	}
 

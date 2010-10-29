@@ -77,61 +77,63 @@ namespace Aggrs{
 	typedef std::vector<vpw> vvpw;
 
 	class AggReason;
+
+	class ParsedSet;
+	class ParsedAgg;
+	typedef ParsedAgg* ppagg;
+	typedef std::vector<ppagg> vppagg;
+	typedef ParsedSet paset;
+	typedef ParsedSet* ppaset;
+	typedef std::vector<ppaset> vppaset;
+
+	class ParsedSet{
+	private:
+		vwl	wlits;
+		vppagg aggs;	//OWNS the pointers
+		int id;
+
+	public:
+		ParsedSet(int id, const std::vector<WL>& wl): wlits(wl){ }
+		~ParsedSet() { deleteList<ParsedAgg>(aggs); }
+
+		int getID() const { return id; }
+
+	    const vwl& getWL() const { return wlits; }
+	    vppagg& getAgg() { return aggs; }
+	    void addAgg(ppagg agg){ aggs.push_back(agg); }
+	};
+
+	class ParsedAgg{
+	private:
+		Weight		bound;
+		AggSign 	sign;
+		Lit			head;
+		AggSem		sem;
+		AggType		type;
+		bool 		optim;
+		int			setid;
+
+	public:
+		ParsedAgg(const Weight& bound, AggSign sign, const Lit& head, AggSem sem, ppaset set, AggType type):
+				bound(bound), sign(sign), head(head), sem(sem), type(type), optim(false), setid(set->getID()){
+			set->addAgg(this);
+		}
+		~ParsedAgg(){ }
+
+		const 	Lit& 	getHead() 		const 	{ return head; }
+		const 	Weight& getBound() 		const	{ return bound; }
+				AggSign	getSign()		const	{ return sign; }
+				AggSem	getSem()		const	{ return sem; }
+				AggType getType()		const	{ return type; }
+				void 	setOptim()				{ optim = true; }
+				bool 	isOptim()		const	{ return optim; }
+				int		getSetID()		const	{ return setid; }
+	};
+
+	void 	transformSumsToCNF		(bool& unsat, std::map<int, ppaset>& parsedsets, MinisatID::PCSolver* pcsolver);
 }
 
 using namespace Aggrs;
-
-class ParsedSet;
-class ParsedAgg;
-typedef ParsedAgg* ppagg;
-typedef std::vector<ppagg> vppagg;
-typedef ParsedSet paset;
-typedef ParsedSet* ppaset;
-typedef std::vector<ppaset> vppaset;
-
-class ParsedSet{
-private:
-	vwl	wlits;
-	vppagg aggs;	//OWNS the pointers
-	int id;
-
-public:
-	ParsedSet(int id, const std::vector<WL>& wl): wlits(wl){ }
-	~ParsedSet() { deleteList<ParsedAgg>(aggs); }
-
-	int getID() const { return id; }
-
-    const vwl& getWL() const { return wlits; }
-    vppagg& getAgg() { return aggs; }
-    void addAgg(ppagg agg){ aggs.push_back(agg); }
-};
-
-class ParsedAgg{
-private:
-	Weight		bound;
-	AggSign 	sign;
-	Lit			head;
-	AggSem		sem;
-	AggType		type;
-	bool 		optim;
-	int			setid;
-
-public:
-	ParsedAgg(const Weight& bound, AggSign sign, const Lit& head, AggSem sem, ppaset set, AggType type):
-			bound(bound), sign(sign), head(head), sem(sem), type(type), optim(false), setid(set->getID()){
-		set->addAgg(this);
-	}
-	~ParsedAgg(){ }
-
-	const 	Lit& 	getHead() 		const 	{ return head; }
-	const 	Weight& getBound() 		const	{ return bound; }
-			AggSign	getSign()		const	{ return sign; }
-			AggSem	getSem()		const	{ return sem; }
-			AggType getType()		const	{ return type; }
-			void 	setOptim()				{ optim = true; }
-			bool 	isOptim()		const	{ return optim; }
-			int		getSetID()		const	{ return setid; }
-};
 
 /*
  * CLAUSE LEARNING INVARIANT:
@@ -209,7 +211,6 @@ public:
 	 * UNSAT is set to true if unsat is detected
 	 * PRESENT is set to true if aggregate propagations should be done
 	 */
-			void 	transformSumsToCNF		(bool& unsat);
 	virtual void 	finishParsing		 	(bool& present, bool& unsat);
 	virtual bool 	simplify				() { return true; }; //False if problem unsat
 	/**

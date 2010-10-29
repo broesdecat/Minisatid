@@ -1,12 +1,15 @@
 #building with mingw by CXX=pathnaarg++vanmingw
 
-AM_CXXFLAGS = @AC_CXXFLAGS@ -I$(srcdir)/solver3minisat22/ -I$(srcdir)/pbsolver/ -I$(srcdir)/pbsolver/ADTs/ -I$(srcdir)/pbsolver/pbbase/h/ -I$(srcdir)/pbsolver/pbbase/src/
+AM_CXXFLAGS = @AC_CXXFLAGS@ -I$(srcdir)/solver3minisat22/ -I$(srcdir)/solvers/ -I$(srcdir)/pbsolver/ -I$(srcdir)/pbsolver/ADTs/ -I$(srcdir)/pbsolver/pbbase/h/ -I$(srcdir)/pbsolver/pbbase/src/
 AM_LDFLAGS = @AC_LDFLAGS@ 
 
 YFLAGS = -d 
 LFLAGS = #TODO prefix blijkt niet te werken, dus code herschreven om maar 1 parser te ondersteunen
 
 bin_PROGRAMS = minisatid
+
+minisatiddir = $(builddir)
+minisatid_DATA = P1.TXT
 
 BUILT_SOURCES = solvers/parser/ecnfparser.h
 
@@ -69,7 +72,7 @@ AM_CXXFLAGS+=-DUSEMINISAT09Z
 endif
 
 #MINISAT 2.2
-#De -I zorgt ervoor dat ze geladen worden tijdens compileren, de volledige url zorgt ervoor dat ze in de distributie worden gestoken
+# Include zowel in de CXXFLAGS als in de includeheader: de -I zorgt ervoor dat ze geladen worden tijdens compileren zonder alle paden te moeten aanpassen, de volledige url zorgt ervoor dat ze in de distributie worden gestoken
 
 if USEMINISAT22
 minisatid_SOURCES += solver3minisat22/core/Solver.cc
@@ -90,4 +93,4 @@ include_HEADERS += mtlold/Vec.h mtlold/Queue.h mtlold/Alg.h mtlold/Heap.h mtlold
 AM_CXXFLAGS+=-DUSEMINISAT
 endif
 
-dist_doc_DATA = README P1.TXT
+dist_doc_DATA = README

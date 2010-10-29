@@ -53,8 +53,8 @@ bool        opt_only_base        = false; // web interface mode -- v0 is implied
 bool        opt_skip_sat         = false; // skip SAT solving, just report UNSAT
 bool        opt_dump             = false; // just dump optimal base problems
 bool    	opt_natlist          = false; // read list of naturals instead of opb
-bool        opt_abstract         = true; // use the abstraction for the base serach algritem (optimalty proven for SOD only!)
-bool        opt_tare             = true;
+bool        opt_abstract         = false; // use the abstraction for the base serach algritem (optimalty proven for SOD only!)
+bool        opt_tare             = false;
 bool 	    opt_use_shortCuts    = false;
 
 bool 		opt_validateResoult  = false;

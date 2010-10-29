@@ -319,7 +319,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 }
 
 /* Our argp parser. */
-static struct argp argp = { options, parse_opt, args_doc, doc };
+static struct argp argp = { options, parse_opt, args_doc, doc, NULL, NULL, NULL };
 
 int doModelGeneration(pData& d, double cpu_time);
 

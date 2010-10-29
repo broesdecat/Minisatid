@@ -1412,7 +1412,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	if(getPCSolver()->modes().onlyoneunfclause){
 		Lit l = createNegativeLiteral(*ufs.begin());
 		addLoopfClause(l, loopf);
-		assert(!isUnknown(*tch));
+		assert(!isUnknown(l));
 	}else{
 		// No conflict: then enqueue all facts and their loop formulas.
 		if (loopf.size() >= 5) {
@@ -1442,7 +1442,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 			//if (isUnknown(*tch)) { //TODO check if adding this increases/decreases performance
 			Lit l = createNegativeLiteral(*tch);
 			addLoopfClause(l, loopf);
-			assert(!isUnknown(*tch));
+			assert(!isUnknown(l));
 			//}
 		}
 	}
