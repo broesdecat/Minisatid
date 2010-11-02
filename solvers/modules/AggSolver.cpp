@@ -320,13 +320,17 @@ void Aggrs::transformSumsToCNF(bool& unsat, map<int, ppaset>& parsedsets, PCSolv
 	deleteList<PBAgg>(pbaggs);
 
 	if(unsat){
+		delete pbsolver;
 		return;
 	}
 
 	//get CNF out of the pseudoboolean matrix
 	vector<vector<MiniSatPP::Lit> > pbencodings;
-	pbsolver->toCNF(pbencodings);
+	unsat = !pbsolver->toCNF(pbencodings);
 	delete pbsolver;
+	if(unsat){
+		return;
+	}
 
 	//Any literal that is larger than maxvar will have been newly introduced, so should be mapped to nVars()+lit
 	//add the CNF to the solver

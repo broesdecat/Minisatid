@@ -564,9 +564,9 @@ static Int evalGoal(Linear& goal, vec<lbool>& model) {
 	return sum;
 }
 
-void PbSolver::toCNF(std::vector<std::vector<Lit> >& cnf) {
+bool PbSolver::toCNF(std::vector<std::vector<Lit> >& cnf) {
 	if (!ok)
-		return;
+		return ok;
 
 	// Convert constraints:
 	pb_n_vars = nVars();
@@ -578,7 +578,7 @@ void PbSolver::toCNF(std::vector<std::vector<Lit> >& cnf) {
 	status = "search";
 	if (!convertPbs(true)) {
 		assert(!ok);
-		return;
+		return ok;
 	}
 
 	// Freeze goal function variables (for SatELite):
@@ -617,7 +617,7 @@ void PbSolver::toCNF(std::vector<std::vector<Lit> >& cnf) {
 
 	status = "export";
 	sat_solver.toCNF(cnf);
-
+	return true;
 }
 
 void PbSolver::solve(solve_Command cmd, bool skipSolving) {

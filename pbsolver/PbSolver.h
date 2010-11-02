@@ -123,7 +123,7 @@ public:
 
     enum solve_Command { sc_Minimize, sc_FirstSolution, sc_AllSolutions };
     void solve(solve_Command cmd,bool skipSolving);    // Returns best/first solution found or Int_MAX if UNSAT.
-    void toCNF(std::vector<std::vector<Lit> >& cnf);
+    bool toCNF(std::vector<std::vector<Lit> >& cnf);
     bool validateResoult();  
     void cleanPBC();  
     
