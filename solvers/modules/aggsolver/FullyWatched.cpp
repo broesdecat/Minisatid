@@ -19,8 +19,8 @@
 using namespace std;
 using namespace MinisatID;
 
-FWAgg::FWAgg(paggs agg) :
-	Propagator(agg), currentbestcertain(0), currentbestpossible(0) {
+FWAgg::FWAgg(TypedSet* set) :
+	Propagator(set), currentbestcertain(0), currentbestpossible(0) {
 
 }
 

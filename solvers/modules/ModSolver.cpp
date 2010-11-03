@@ -414,21 +414,22 @@ void ModSolver::backtrackFromAbove(Lit l){
 	}
 }
 
-void ModSolver::backtrack(const Lit& l){
+/*void ModSolver::backtrack(const Lit& l){
+	//FIXME FIXME Should be implemented otherwise
 	if(getModSolverData().modes().verbosity>4){
 		report("Backtracking "); gprintLit(l); report(" from same level in mod %zu\n", getPrintId());
 	}
 
-	/*for(vector<AV>::size_type i=0; i<atoms.size(); i++){
-		if(atoms[i].atom==var(l)){
-			assert(false);
-		}
-	}*/
+	//for(vector<AV>::size_type i=0; i<atoms.size(); i++){
+	//	if(atoms[i].atom==var(l)){
+	//		assert(false);
+	//	}
+	//}
 
 	for(vmodindex::const_iterator j=getChildren().begin(); j<getChildren().end(); j++){
 		getModSolverData().getModSolver((*j))->backtrackFromAbove(l);
 	}
-}
+}*/
 
 void ModSolver::print(){
 	Print::print(this);

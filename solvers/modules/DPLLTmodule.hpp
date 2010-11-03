@@ -51,7 +51,7 @@ public:
 	virtual bool 	simplify		() = 0; //False if problem unsat
 	virtual rClause propagate				(const Lit& l) = 0;
 	virtual rClause propagateAtEndOfQueue	() = 0;
-	virtual void 	backtrack				(const Lit& l) = 0;
+	//virtual void 	backtrack				(const Lit& l) = 0;
 	virtual void 	newDecisionLevel		() = 0;
 	virtual void 	backtrackDecisionLevels	(int nblevels, int untillevel) = 0;
 

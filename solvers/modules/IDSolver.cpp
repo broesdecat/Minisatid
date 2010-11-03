@@ -1502,11 +1502,11 @@ void IDSolver::addLoopfClause(Lit l, vec<Lit>& lits) {
 	}
 }
 
-void IDSolver::backtrack(const Lit& l) {
+/*void IDSolver::backtrack(const Lit& l) {
 	if(posloops && getPCSolver()->modes().idclausesaving<1){
 		reasons[var(l)].clear();
 	}
-}
+}*/
 
 rClause IDSolver::getExplanation(const Lit& l) {
 	assert(getPCSolver()->modes().idclausesaving>0);

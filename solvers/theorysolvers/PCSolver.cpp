@@ -448,7 +448,7 @@ rClause PCSolver::getExplanation(Lit l) {
 	assert(explan!=nullPtrClause);
 
 	if (verbosity() >= 2) {
-		report("Implicit %s reason clause from the %s module ", solver->getName());
+		report("Implicit reason clause from the %s module ", solver->getName());
 		gprintLit(l, sign(l) ? l_False : l_True);
 		report(" : ");
 		Print::printClause(explan, this);
@@ -490,11 +490,11 @@ bool PCSolver::assertedBefore(const Var& l, const Var& p) const {
 ///////
 
 void PCSolver::backtrackRest(Lit l) {
-	for(lsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
+/*	for(lsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
 		if((*i)->present){
 			(*i)->get()->backtrack(l);
 		}
-	}
+	}*/
 }
 
 // Called by SAT solver when new decision level is started, BEFORE choice has been made!

@@ -101,7 +101,7 @@ public:
 	virtual bool 	simplify		(); //False if problem unsat
 	virtual rClause propagate				(const Lit& l){ return nullPtrClause; };
 	virtual rClause propagateAtEndOfQueue	();
-	virtual void 	backtrack				(const Lit& l);
+	//virtual void 	backtrack				(const Lit& l);
 	virtual void 	newDecisionLevel		();
 	virtual void 	backtrackDecisionLevels	(int nblevels, int untillevel){};
 	virtual rClause getExplanation			(const Lit& l);

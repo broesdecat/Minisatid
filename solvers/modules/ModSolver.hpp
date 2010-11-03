@@ -95,7 +95,7 @@ public:
 	 */
 	virtual rClause 	propagate				(const Lit& l);
 	virtual rClause 	propagateAtEndOfQueue	();
-	virtual void 		backtrack				(const Lit& l);
+	//virtual void 		backtrack				(const Lit& l);
 	virtual void 		newDecisionLevel		(){};
 	virtual void 		backtrackDecisionLevels	(int nblevels, int untillevel){};
 	virtual rClause 	getExplanation			(const Lit& l) { return nullPtrClause; /*TODO NOT IMPLEMENTED*/ };

@@ -57,83 +57,20 @@ class WL;
 typedef std::vector<WL> vwl;
 
 namespace Aggrs{
-	typedef std::vector<Weight> vw;
-	typedef std::vector<Lit> vl;
-
 	class Agg;
-	class AggSet;
-	typedef Agg* pagg;
-	typedef AggSet* pset;
-
-	class CalcAgg;
-	typedef CalcAgg aggs;
-	typedef aggs* paggs;
-	typedef std::vector<paggs> vpaggs;
-	typedef std::vector<vpaggs> vvpaggs;
-
+	class TypedSet;
 	class Watch;
-	typedef Watch* pw;
-	typedef std::vector<pw> vpw;
-	typedef std::vector<vpw> vvpw;
-
 	class AggReason;
-
-	class ParsedSet;
-	class ParsedAgg;
-	typedef ParsedAgg* ppagg;
-	typedef std::vector<ppagg> vppagg;
-	typedef ParsedSet paset;
-	typedef ParsedSet* ppaset;
-	typedef std::vector<ppaset> vppaset;
-
-	class ParsedSet{
-	private:
-		vwl	wlits;
-		vppagg aggs;	//OWNS the pointers
-		int id;
-
-	public:
-		ParsedSet(int id, const std::vector<WL>& wl): wlits(wl){ }
-		~ParsedSet() { deleteList<ParsedAgg>(aggs); }
-
-		int getID() const { return id; }
-
-	    const vwl& getWL() const { return wlits; }
-	    vppagg& getAgg() { return aggs; }
-	    void addAgg(ppagg agg){ aggs.push_back(agg); }
-	};
-
-	class ParsedAgg{
-	private:
-		Weight		bound;
-		AggSign 	sign;
-		Lit			head;
-		AggSem		sem;
-		AggType		type;
-		bool 		optim;
-		int			setid;
-
-	public:
-		ParsedAgg(const Weight& bound, AggSign sign, const Lit& head, AggSem sem, ppaset set, AggType type):
-				bound(bound), sign(sign), head(head), sem(sem), type(type), optim(false), setid(set->getID()){
-			set->addAgg(this);
-		}
-		~ParsedAgg(){ }
-
-		const 	Lit& 	getHead() 		const 	{ return head; }
-		const 	Weight& getBound() 		const	{ return bound; }
-				AggSign	getSign()		const	{ return sign; }
-				AggSem	getSem()		const	{ return sem; }
-				AggType getType()		const	{ return type; }
-				void 	setOptim()				{ optim = true; }
-				bool 	isOptim()		const	{ return optim; }
-				int		getSetID()		const	{ return setid; }
-	};
-
-	void 	transformSumsToCNF		(bool& unsat, std::map<int, ppaset>& parsedsets, MinisatID::PCSolver* pcsolver);
 }
 
-using namespace Aggrs;
+typedef std::vector<Weight> vw;
+typedef std::vector<Lit> vl;
+typedef std::map<int, Aggrs::TypedSet*> mips;
+typedef std::vector<Aggrs::Agg*> vpagg;
+typedef std::vector<Aggrs::TypedSet*> vps;
+typedef std::vector<vps> vvps;
+typedef std::vector<Aggrs::Watch*> vpw;
+typedef std::vector<vpw> vvpw;
 
 /*
  * CLAUSE LEARNING INVARIANT:
@@ -146,16 +83,15 @@ using namespace Aggrs;
 
 class AggSolver: public DPLLTmodule{
 private:
-    std::map<int, ppaset>	parsedsets;
+    mips					sets;
     std::set<Var>			aggheads;	//A set of all heads that are already used by an aggregate.
-	vpaggs					sets;		//After initialization, all remaining sets.
 
-	std::vector<AggReason*>	aggreason;	// For each atom, like 'reason'.
+	std::vector<Aggrs::AggReason*>	aggreason;	// For each atom, like 'reason'.
 
 	vvpw					tempwatches;	//NON-OWNED PARTIAL WATCHES
 	vvpw 					permwatches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
-	std::vector<pagg>		headwatches;	//	index on VARs (heads always positive), does NOT own the pointers
-	vvpaggs					network;		// the pointer network of set var -> set
+	std::vector<Aggrs::Agg*>	headwatches;	//	index on VARs (heads always positive), does NOT own the pointers
+	vvps					network;		// the pointer network of set var -> set
 
 	std::vector<lbool>		assigns;		//The truth values of literals according to whether they were propagated in the aggregate solver
 
@@ -219,16 +155,6 @@ public:
 	virtual rClause propagate				(const Lit& l);
 	virtual rClause propagateAtEndOfQueue	() { return nullPtrClause; };
 
-	/**
-	 * Correct the min and max values of the aggregates in which l was propagated and delete any aggregate reasons
-	 * present.
-	 *
-	 * @optimization possible: for each decision level, put the current values on a stack. Instead of recalculating it
-	 * for each literal, pop the values once for each decision level
-	 *
-	 * @PRE: backtracking is in anti-chronologous order and all literals are visited!
-	 */
-	virtual void 	backtrack				(const Lit& l);
 	virtual void 	newDecisionLevel		();
 	virtual void 	backtrackDecisionLevels	(int nblevels, int untillevel);
 	virtual rClause getExplanation			(const Lit& l);
@@ -272,25 +198,23 @@ public:
 	///////
 	// Watched literal sets
 	///////
-	void 				setHeadWatch			(Var head, Agg* agg);
-	void 				addPermWatch			(Var v, pw w);
-	void 				addTempWatch			(const Lit& l, pw w);
-
-	void 				print(ppagg agg) const;
-
-	void				addSet					(CalcAgg* ca);
+	void 				setHeadWatch			(Var head, Aggrs::Agg* agg);
+	void 				addPermWatch			(Var v, Aggrs::Watch* w);
+	void 				addTempWatch			(const Lit& l, Aggrs::Watch* w);
 
 protected:
 	// Returns the aggregate in which the given variable is the head.
-    pagg 				getAggWithHead			(Var v) const;
+	Aggrs::Agg* 		getAggWithHead			(Var v) const;
 
-	bool				finishSet				(ppaset set);
-	bool 				initCalcAgg				(CalcAgg* ca, vppagg aggs);	//gets OWNING pointer to ca
-	bool 				constructMaxSet			(ppaset set, vppagg aggs);
-	bool 				constructMinSet			(ppaset set, vppagg aggs);
-	bool 				constructProdSet		(ppaset set, vppagg aggs);
-	bool 				constructSumSet			(ppaset set, vppagg aggs);
-	bool 				constructCardSet		(ppaset set, vppagg aggs);
+	bool				finishSet				(Aggrs::TypedSet* set);
+	bool 				initCalcAgg				(Aggrs::TypedSet* ca);
+	bool 				constructMaxSet			(Aggrs::TypedSet* set);
+	bool 				constructMinSet			(Aggrs::TypedSet* set);
+	bool 				constructProdSet		(Aggrs::TypedSet* set);
+	bool 				constructSumSet			(Aggrs::TypedSet* set);
+	bool 				constructCardSet		(Aggrs::TypedSet* set);
+
+	void 				print(Aggrs::Agg* agg) const;
 };
 
 }
