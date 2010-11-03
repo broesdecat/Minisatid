@@ -14,7 +14,7 @@ using namespace MinisatID;
 typedef numeric_limits<int> intlim;
 
 bool MaxProp::isMonotone(const Agg& agg, const WL& l) const {
-	return (agg.isLower() && l.getWeight() <= agg.getLowerBound()) || (agg.isUpper());
+	return (agg.isLower() && l.getWeight() <= agg.getBound()) || (agg.isUpper());
 }
 
 bool SumProp::isMonotone(const Agg& agg, const WL& l) const {

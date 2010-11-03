@@ -308,7 +308,6 @@ void Aggrs::transformSumsToCNF(bool& unsat, map<int, ppaset>& parsedsets, PCSolv
 	MiniSatPP::opt_verbosity = pcsolver->modes().verbosity;
 	MiniSatPP::opt_abstract = true; //Should be true
 	MiniSatPP::opt_tare = true; //Experimentally set to true
-	report("%s\n",pcsolver->modes().primesfile);
 	MiniSatPP::opt_primes_file = pcsolver->modes().primesfile;
 	MiniSatPP::opt_convert_weak = false;
 	MiniSatPP::opt_convert = MiniSatPP::ct_Mixed;
