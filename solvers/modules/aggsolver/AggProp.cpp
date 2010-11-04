@@ -7,18 +7,22 @@
 
 #include <limits>
 #include "solvers/modules/aggsolver/AggProp.hpp"
+#include "solvers/modules/aggsolver/AggComb.hpp"
 #include "solvers/modules/AggSolver.hpp"
+#include "solvers/theorysolvers/PCSolver.hpp"
+#include "PbSolver.h"
 
 using namespace std;
+using namespace std::tr1;
 using namespace MinisatID;
-using namespace Aggrs;
+using namespace MinisatID::Aggrs;
 
 typedef numeric_limits<int> intlim;
 
-AggProp* AggProp::max = new MaxProp();
-AggProp* AggProp::sum = new SumProp();
-AggProp* AggProp::card = new CardProp();
-AggProp* AggProp::prod = new ProdProp();
+shared_ptr<AggProp> AggProp::max = shared_ptr<AggProp>(new MaxProp());
+shared_ptr<AggProp> AggProp::sum = shared_ptr<AggProp>(new SumProp());
+shared_ptr<AggProp> AggProp::card = shared_ptr<AggProp>(new CardProp());
+shared_ptr<AggProp> AggProp::prod = shared_ptr<AggProp>(new ProdProp());
 
 bool MaxProp::isMonotone(const Agg& agg, const WL& l) const {
 	return (agg.isLower() && l.getWeight() <= agg.getBound()) || (agg.isUpper());
@@ -201,21 +205,24 @@ WL ProdProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* 
 // TypedSet
 ///////
 
-/*void TypedSet::initialize(bool& unsat, bool& sat) { TODO
+/*
+ * Initialize the datastructures. If it's neither sat nor unsat and it is defined, notify the pcsolver of this
+ */
+void TypedSet::initialize(bool& unsat, bool& sat) {
 	prop->initialize(unsat, sat);
+
 	if(!sat && !unsat){
-		getSolver()->addSet(this);
-		for(int i=0; i<getAgg().size(); i++){
+		for(vsize i=0; i<getAgg().size(); i++){
 			if(getAgg()[i]->isDefined()){
-				getSolver()->getPCSolver()->notifyAggrHead(var(getAgg()[i]->getHead()));
+				getSolver()->notifyDefinedHead(var(getAgg()[i]->getHead()));
 			}
 		}
 	}
-}*/
+}
 
 // Final initialization call!
 void Propagator::initialize(bool& unsat, bool& sat) {
-	for (int i = 0; i < getSet().getAgg().size(); i++) {
+	for (vsize i=0; i<getSet().getAgg().size(); i++) {
 		getSolver()->setHeadWatch(var(getSet().getAgg()[i]->getHead()), getSet().getAgg()[i]);
 	}
 }
@@ -242,6 +249,10 @@ lbool Propagator::value(const Lit& l) const {
 
 bool Aggrs::compareWLByLits(const WL& one, const WL& two) {
 	return var(one.getLit()) < var(two.getLit());
+}
+
+bool Aggrs::compareWLByWeights(const WL& one, const WL& two) {
+	return one.getWeight() < two.getWeight();
 }
 
 vector<TypedSet*> Aggrs::transformSetReduction(TypedSet* const set){
@@ -285,16 +296,28 @@ vector<TypedSet*> Aggrs::transformSetReduction(TypedSet* const set){
 	if (setisreduced) {
 		set->setWL(newset2);
 	}
+
+	vector<TypedSet*> sets;
+	sets.push_back(set);
+	return sets;
 }
 
-void Aggrs::transformSumsToCNF(bool& unsat, std::vector<TypedSet*> sets, MinisatID::PCSolver* pcsolver){
-/*	int sumaggs = 0;
+//Temporary structure to create pseudo booleans
+struct PBAgg{
+	MiniSatPP::vec<MiniSatPP::Lit> literals;
+	MiniSatPP::vec<MiniSatPP::Int> weights;
+	Weight bound;
+	int sign;
+};
+
+void Aggrs::transformSumsToCNF(bool& unsat, vps sets, MinisatID::PCSolver* pcsolver){
+	int sumaggs = 0;
 	int maxvar = 1;
 	vector<PBAgg*> pbaggs;
-	for (map<int, TypedSet*>::const_iterator i = parsedsets.begin(); i != parsedsets.end(); i++) {
+	for (vps::const_iterator i = sets.begin(); i != sets.end(); i++) {
 		vpagg remaining;
-		for(int j=0; j<(*i).second->getAgg().size(); j++){
-			Agg* agg = (*i).second->getAgg()[j];
+		for(vsize j=0; j<(*i)->getAgg().size(); j++){
+			Agg* agg = (*i)->getAgg()[j];
 			if(!agg->isOptim() && (agg->getType()==SUM || agg->getType()==CARD) && !agg->getSem()==DEF){
 				PBAgg* ppbaggeq = new PBAgg();
 				PBAgg* ppbaggineq = new PBAgg();
@@ -312,7 +335,7 @@ void Aggrs::transformSumsToCNF(bool& unsat, std::vector<TypedSet*> sets, Minisat
 				pbaggeq.bound = agg->getBound();
 				pbaggineq.bound = agg->getBound();
 				Weight min = 0, max = 0;
-				for(vwl::const_iterator k=(*i).second->getWL().begin(); k<(*i).second->getWL().end(); k++){
+				for(vwl::const_iterator k=(*i)->getWL().begin(); k<(*i)->getWL().end(); k++){
 					pbaggeq.literals.push(MiniSatPP::Lit(var((*k).getLit()), sign((*k).getLit())));
 					pbaggineq.literals.push(MiniSatPP::Lit(var((*k).getLit()), sign((*k).getLit())));
 					if(var((*k).getLit())>maxvar){
@@ -339,15 +362,14 @@ void Aggrs::transformSumsToCNF(bool& unsat, std::vector<TypedSet*> sets, Minisat
 					eqval = abs(agg->getBound())+abs(min)+1;
 					ineqval = -abs(agg->getBound())-abs(max)-1;
 				}
-				//report("Eqval=%d, ineqval=%d, maxvar=%d\n", eqval, ineqval, maxvar);
 				pbaggeq.weights.push(MiniSatPP::Int(eqval));
 				pbaggineq.weights.push(MiniSatPP::Int(ineqval));
 			}else{
 				remaining.push_back(agg);
 			}
 		}
-		(*i).second->getAgg().clear();
-		(*i).second->getAgg().insert((*i).second->getAgg().begin(), remaining.begin(), remaining.end());
+		(*i)->getAgg().clear();
+		(*i)->getAgg().insert((*i)->getAgg().begin(), remaining.begin(), remaining.end());
 	}
 
 	MiniSatPP::PbSolver* pbsolver = new MiniSatPP::PbSolver();
@@ -387,5 +409,171 @@ void Aggrs::transformSumsToCNF(bool& unsat, std::vector<TypedSet*> sets, Minisat
 			lits.push(mkLit(v, MiniSatPP::sign(*j)));
 		}
 		pcsolver->addClause(lits);
-	}*/
+	}
 }
+
+/************************
+ * RECURSIVE AGGREGATES *
+ ************************/
+
+bool MaxProp::canJustifyHead(
+								const Agg& agg,
+								vec<Lit>& jstf,
+								vec<Var>& nonjstf,
+								vec<int>& currentjust,
+								bool real) const {
+	TypedSet* set = agg.getSet();
+	bool justified = false;
+	const vwl& wl = set->getWL();
+
+	if (agg.isLower()) {
+		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight()	> agg.getBound(); i++) {
+			if (oppositeIsJustified(*i, currentjust, real, set->getSolver())) {
+				jstf.push(~(*i).getLit()); //push negative literal, because it should become false
+			} else if (real || currentjust[var((*i).getLit())] != 0) {
+				nonjstf.push(var((*i).getLit()));
+			}
+		}
+		if (nonjstf.size() == 0) {
+			justified = true;
+		}
+	} else {
+		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight()	>= agg.getBound(); i++) {
+			if (isJustified(*i, currentjust, real, set->getSolver())) {
+				jstf.push((*i).getLit());
+				justified = true;
+			} else if (real || currentjust[var((*i).getLit())] != 0) {
+				nonjstf.push(var((*i).getLit()));
+			}
+		}
+	}
+	if (!justified) {
+		jstf.clear();
+	}
+
+	return justified;
+}
+
+/**
+ * AGG <= B: v is justified if one literal below/eq the bound is THAT IS NOT THE HEAD
+ * 					if so, change the justification to the literal
+ * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
+ * A <= AGG: v is justified if the negation of all literals below the bound are. The emptyset is always a solution,
+ * 			 so no conclusions have to be drawn from the literals above/eq the bound
+ * 					if so, change the justification to the negation of all those below the bound literals
+ * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
+ */
+bool SPProp::canJustifyHead(
+								const Agg& agg,
+								vec<Lit>& jstf,
+								vec<Var>& nonjstf,
+								vec<int>& currentjust,
+								bool real) const {
+	TypedSet* set = agg.getSet();
+	const AggProp& type = agg.getSet()->getType();
+	bool justified = false;
+	const vwl& wl = set->getWL();
+
+	if (agg.isLower()) {
+		Weight bestpossible = type.getBestPossible(set);
+		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
+			if (oppositeIsJustified(*i, currentjust, real, set->getSolver())) {
+				jstf.push(~(*i).getLit());
+				bestpossible = type.remove(bestpossible, (*i).getWeight());
+				if (bestpossible <= agg.getBound()) {
+					justified = true;
+				}
+			} else if (real || currentjust[var((*i).getLit())] != 0) {
+				nonjstf.push(var((*i).getLit()));
+			}
+		}
+	} else {
+		Weight bestcertain = set->getESV();
+		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
+			if (isJustified(*i, currentjust, real, set->getSolver())) {
+				jstf.push((*i).getLit());
+				bestcertain = type.add(bestcertain, (*i).getWeight());
+				if (bestcertain >= agg.getBound()) {
+					justified = true;
+				}
+			} else if (real || currentjust[var((*i).getLit())] != 0) {
+				nonjstf.push(var((*i).getLit()));
+			}
+		}
+	}
+
+	if (set->getSolver()->verbosity() >= 4) {
+		report("Justification checked for ");
+		printAgg(agg, true);
+
+		if (justified) {
+			report("justification found: ");
+			for (int i = 0; i < jstf.size(); i++) {
+				gprintLit(jstf[i]);
+				report(" ");
+			}
+			report("\n");
+		} else {
+			report("no justification found.\n");
+		}
+	}
+
+	return justified;
+}
+
+/*bool SPAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
+	//OTHER IMPLEMENTATION (probably buggy)
+	pSet s = getSet();
+
+	Weight current = 0;
+	if(isLower()){
+		current = s->getBestPossible();
+	}else{
+		current = s->getEmptySetValue();
+	}
+
+	bool justified = false;
+	if(aggValueImpliesHead(current)){
+		justified = true;
+	}
+
+	for (lwlv::const_iterator i = s->getWLBegin(); !justified && i < s->getWLEnd(); ++i) {
+		if(isMonotone(*i) && s->isJustified(*i, currentjust, real)){
+			if(isLower()){
+				jstf.push(~(*i).getLit());
+				current = this->remove(current, (*i).getWeight());
+			}else{
+				//if(s->isJustified(*i, currentjust, real)){
+				jstf.push((*i).getLit());
+				current = this->add(current, (*i).getWeight());
+			}
+
+			if (aggValueImpliesHead(current)){
+				justified = true;
+			}
+		}else if(real ||currentjust[var((*i).getLit())]!=0){
+			nonjstf.push(var((*i).getLit()));
+		}
+	}
+
+	if (!justified) {
+		jstf.clear();
+	}
+
+	if(s->getSolver()->getPCSolver()->modes().verbosity >=4){
+		reportf("Justification checked for ");
+		printAggrExpr(this);
+
+		if(justified){
+			reportf("justification found: ");
+			for(int i=0; i<jstf.size(); i++){
+				gprintLit(jstf[i]); reportf(" ");
+			}
+			reportf("\n");
+		}else{
+			reportf("no justification found.\n");
+		}
+	}
+
+	return justified;
+}*/

@@ -10,6 +10,7 @@
 
 #include "solvers/utils/Utils.hpp"
 #include <vector>
+#include <tr1/memory>
 
 namespace MinisatID{
 
@@ -62,12 +63,15 @@ public:
 
 class AggProp{
 private:
-	static AggProp *max, *prod, *card, *sum;
+	static std::tr1::shared_ptr<AggProp> max;
+	static std::tr1::shared_ptr<AggProp> prod;
+	static std::tr1::shared_ptr<AggProp> card;
+	static std::tr1::shared_ptr<AggProp> sum;
 public:
-	static AggProp const * const getMax() { return max; }
-	static AggProp const * const getProd() { return prod; }
-	static AggProp const * const getCard() { return card; }
-	static AggProp const * const getSum() { return sum; }
+	static AggProp const * const getMax() { return max.get(); }
+	static AggProp const * const getProd() { return prod.get(); }
+	static AggProp const * const getCard() { return card.get(); }
+	static AggProp const * const getSum() { return sum.get(); }
 
 	virtual const char*	getName					() 										const = 0;
 	virtual AggType 	getType					() 										const = 0;
@@ -79,6 +83,7 @@ public:
 
 	virtual Weight		add						(const Weight& lhs, const Weight& rhs) 	const = 0;
 	virtual Weight		remove					(const Weight& lhs, const Weight& rhs) 	const = 0;
+	virtual bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) 	const = 0;
 };
 
 class MaxProp: public AggProp{
@@ -92,9 +97,15 @@ public:
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const { assert(false); return 0; }
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const { assert(false); return 0; }
+	bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) 	const;
 };
 
-class ProdProp: public AggProp{
+class SPProp: public AggProp{
+public:
+	bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) 	const;
+};
+
+class ProdProp: public SPProp{
 public:
 	const char* getName					() 										const { return "PROD"; }
 	AggType 	getType					() 										const { return PROD; }
@@ -107,7 +118,7 @@ public:
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
 };
 
-class SumProp: public AggProp{
+class SumProp: public SPProp{
 public:
 	const char* getName					() 										const { return "SUM"; }
 	AggType 	getType					() 										const { return SUM; }
@@ -131,6 +142,20 @@ public:
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
 };
 
+//Compare WLs by their literals, placing same literals next to each other
+bool compareWLByLits(const WL& one, const WL& two);
+//Compare WLs by their weights
+bool compareWLByWeights(const WL& one, const WL& two);
+
+/**
+ * Checks whether the same literal occurs multiple times in the set
+ * If this is the case, all identical literals are combined into one.
+ *
+ * @post: the literals are sorted according to weight again
+ */
+std::vector<TypedSet*> transformSetReduction(TypedSet* const set);
+void transformSumsToCNF(bool& unsat, std::vector<TypedSet*> sets, MinisatID::PCSolver* pcsolver);
+
 class AggSet{
 private:
 	vwl	wlits;
@@ -151,8 +176,9 @@ public:
 	virtual ~Propagator(){};
 
 	virtual void 		initialize(bool& unsat, bool& sat);
-	virtual rClause 	propagate		(const Lit& p, Watch* w) = 0;
-	virtual rClause 	propagate		(const Agg& agg) = 0;
+	virtual rClause 	propagate		(const Lit& p, Watch* w, int level) = 0;
+	virtual rClause 	propagate		(const Agg& agg, int level) = 0;
+	virtual rClause		propagateAtEndOfQueue(int level) = 0;
 	virtual void		backtrack		(int nblevels, int untillevel) = 0;
     virtual void 		getExplanation	(vec<Lit>& lits, const AggReason& ar) = 0;
 
@@ -173,7 +199,7 @@ protected:
 	Weight 	esv;
 	vwl 	wl;
 
-	AggProp* 	type; //does NOT own pointer TODO pointer is not destructed!
+	AggProp* 	type;
 
 	std::vector<Agg*> 	aggregates;	//OWNS the pointers
 	AggSolver*			aggsolver;	//does NOT own this pointer
@@ -192,7 +218,7 @@ public:
 
 	AggSolver * const getSolver		()			const			{ return aggsolver; }
 	const vwl&		getWL			()			const 			{ return wl; }
-	void			setWL(const vwl& wl2)			 			{ wl=wl2; } //TODO SORT?
+	void			setWL(const vwl& wl2)			 			{ wl=wl2; sort(wl.begin(), wl.end(), compareWLByWeights);} //FIXME SORT?
 
 	std::vector<Agg*>& getAgg		()	 						{ return aggregates; }
 	void 			addAgg			(Agg* aggr) 				{ 	aggregates.push_back(aggr); }
@@ -207,10 +233,11 @@ public:
 	Propagator*		getProp			() 			const 			{ return prop; }
 
 
-	void 			initialize		(bool& unsat, bool& sat)	{ getProp()->initialize(unsat, sat); }
+	void 			initialize		(bool& unsat, bool& sat);
 	void			backtrack		(int nblevels, int untillevel) { getProp()->backtrack(nblevels, untillevel); }
-	rClause 		propagate		(const Lit& p, Watch* w) 	{ return getProp()->propagate(p, w); }
-	rClause 		propagate		(const Agg& agg) 			{ return getProp()->propagate(agg); }
+	rClause 		propagate		(const Lit& p, Watch* w, int level) 	{ return getProp()->propagate(p, w, level); }
+	rClause 		propagate		(const Agg& agg, int level) 			{ return getProp()->propagate(agg, level); }
+	rClause			propagateAtEndOfQueue(int level) 						{ return getProp()->propagateAtEndOfQueue(level); }
 	void 			getExplanation	(vec<Lit>& lits, const AggReason& ar) const { getProp()->getExplanation(lits, ar); }
 
 	//	virtual bool canJustifyHead	(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const = 0;
@@ -221,18 +248,6 @@ public:
 
 	Weight				getBestPossible() { return getType().getBestPossible(this);}
 };
-
-//Compare WLs by their literals, placing same literals next to each other
-bool compareWLByLits(const WL& one, const WL& two);
-
-/**
- * Checks whether the same literal occurs multiple times in the set
- * If this is the case, all identical literals are combined into one.
- *
- * @post: the literals are sorted according to weight again
- */
-std::vector<TypedSet*> transformSetReduction(TypedSet* const set);
-void transformSumsToCNF(bool& unsat, std::vector<TypedSet*> sets, MinisatID::PCSolver* pcsolver);
 
 }
 }

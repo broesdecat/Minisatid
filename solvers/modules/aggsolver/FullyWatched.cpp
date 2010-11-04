@@ -24,7 +24,7 @@ typedef Agg* pagg;
 typedef Watch* pw;
 
 FWAgg::FWAgg(TypedSet* set) :
-	Propagator(set), currentbestcertain(0), currentbestpossible(0) {
+	Propagator(set) {
 
 }
 
@@ -33,20 +33,17 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 		sat = true;
 		return;
 	}
-	//TODO set reduction was here!
-	truth.resize(getSet().getWL().size(), l_Undef);
+	//truth.resize(getSet().getWL().size(), l_Undef);
 
 	setCP(getSet().getBestPossible());
 	setCC(getSet().getESV());
 
-	int startsize = getSet().getAgg().size();
-	headvalue.resize(startsize, l_Undef);
-	headindex.resize(startsize, -1);
-	nomoreprops.resize(startsize, false);
-	optimagg.resize(startsize, false);
-	headproptime.resize(startsize, -1);
+	//int startsize = getSet().getAgg().size();
+	//headindex.resize(startsize, -1);
+	//nomoreprops.resize(startsize, false);
+	//headproptime.resize(startsize, -1);
 
-	int i = 0, j = 0;
+	vsize i = 0, j = 0;
 	for (; !unsat && i < getSet().getAgg().size(); i++) {
 		pagg agg = getSet().getAgg()[i];
 		lbool result = initialize(*agg);
@@ -65,14 +62,12 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 		}
 	}
 	getSet().getAgg().resize(j);
-	headvalue.resize(j, l_Undef);
-	headindex.resize(j, -1);
-	nomoreprops.resize(j, false);
-	optimagg.resize(j, false);
-	headproptime.clear(); //if it has been propagated before, it has been dropped
-	headproptime.resize(j, -1);
+	//headindex.resize(j, -1);
+	//nomoreprops.resize(j, false);
+	//headproptime.clear(); //if it has been propagated before, it has been dropped
+	//headproptime.resize(j, -1);
 
-	for (int j = 0; j < getSet().getWL().size(); j++) {
+	for (vsize j = 0; j < getSet().getWL().size(); j++) {
 		const Lit& l = getSet().getWL()[j].getLit();
 		Var v = var(l);
 		getSet().getSolver()->addPermWatch(v, new Watch(getSetp(), j, true, sign(l) ? false : true));
@@ -94,14 +89,14 @@ lbool FWAgg::initialize(const Agg& agg) {
 
 	lbool hv = canPropagateHead(agg, getCC(), getCP());
 	bool alwaystrue = false;
-	if (hv != l_Undef && !optimagg[agg.getIndex()]) {
+	if (hv != l_Undef && !agg.isOptim()) {
 		alwaystrue = true;
 		//reportf("No more propagations for %d", gprintVar(var(head)));
 	}
 	if (hv == l_True) {
-		confl = getSet().getSolver()->notifySolver(new AggReason(agg, mkLit(-1), CPANDCC, agg.getHead(), true));
+		confl = getSet().getSolver()->notifySolver(new AggReason(agg, CPANDCC, agg.getHead(), true));
 	} else if (hv == l_False) {
-		confl = getSet().getSolver()->notifySolver(new AggReason(agg, mkLit(-1), CPANDCC, ~agg.getHead(), true));
+		confl = getSet().getSolver()->notifySolver(new AggReason(agg, CPANDCC, ~agg.getHead(), true));
 	}
 	if (confl != nullPtrClause) {
 		return l_False;
@@ -110,103 +105,93 @@ lbool FWAgg::initialize(const Agg& agg) {
 	return alwaystrue ? l_True : l_Undef;
 }
 
-/*void FWAgg::backtrack(const Agg& agg, int stacksize) {
-	if (headproptime[agg.getIndex()]!=-1 && headproptime[agg.getIndex()] > stacksize) {
-		headproptime[agg.getIndex()] = -1;
-	}
-}
-
-void FWAgg::backtrack(const Agg& agg) {
-	if (nomoreprops[agg.getIndex()]) {
-		return;
-	}
-
-	headvalue[agg.getIndex()] = l_Undef;
-	headindex[agg.getIndex()] = -1;
-}*/
-
-//FIXME PROBABLY INCORRECT
 void FWAgg::backtrack(int nblevels, int untillevel){
-/*	if (getStack().size() == 0 || var(getStack().back().getLit()) != var(getSet().getWL()[w.getIndex()].getLit())) {
-		return; //Only backtrack if it was effectively propagated
+	while(getTrail().back().level>untillevel){
+		getTrail().pop_back();
 	}
-	const PropagationInfo& pi = stack.back();
-	stack.pop_back();
-
-	assert(pi.getType() != HEAD && var(pi.getLit()) == var(getSet().getWL()[w.getIndex()].getLit()));
-
-	truth[w.getIndex()] = l_Undef;
-	setCC(pi.getPC());
-	setCP(pi.getPP());
-
-	int s = stack.size();
-	for (vpagg::const_iterator i = getSet().getAgg().begin(); i < getSet().getAgg().end(); i++) {
-		backtrack(**i, s);
-	}*/
 }
 
 /**
  * Returns non-owning pointer
  */
-rClause FWAgg::propagate(const Agg& agg) {
-	if (nomoreprops[agg.getIndex()] || headproptime[agg.getIndex()]!=-1) {
-		return nullPtrClause;
+rClause FWAgg::propagate(const Agg& agg, int level) {
+	//if (nomoreprops[agg.getIndex()] || headproptime[agg.getIndex()]!=-1) {
+	//	return nullPtrClause;
+	//}
+
+	if(getTrail().back().level<level){
+		getTrail().push_back(FWTrail(level, getTrail().back().CBC, getTrail().back().CBP));
 	}
 
 	lbool headtrue = getSet().getSolver()->value(agg.getHead());
-	headvalue[agg.getIndex()] = headtrue;
-	headindex[agg.getIndex()] = getStack().size();
-	rClause confl = propagate(agg, headtrue == l_True);
-	return confl;
+	getTrail().back().props.push_back(PropagationInfo(value(agg.getHead())==l_True?agg.getHead():~agg.getHead(), 0, HEAD));
+	getTrail().back().headindex.push_back(agg.getIndex());
+	getTrail().back().headtime.push_back(getTrail().back().props.size());
+	return nullPtrClause;
 }
 
-rClause FWAgg::propagate(const Lit& p, pw ws) {
-	Occurrence tp;
-	if (ws->getType() == POS) {
-		tp = sign(p) ? NEG : POS;
-	} else {
-		tp = sign(p) ? POS : NEG;
+rClause FWAgg::propagate(const Lit& p, pw ws, int level) {
+	if(getTrail().back().level<level){
+		getTrail().push_back(FWTrail(level, getTrail().back().CBC, getTrail().back().CBP));
 	}
 
-	const WL& wl = getSet().getWL()[ws->getIndex()];
-	stack.push_back(PropagationInfo(p, wl.getWeight(), tp));
-	truth[ws->getIndex()] = tp == POS ? l_True : l_False;
-	tp == POS ? addToCertainSet(wl) : removeFromPossibleSet(wl);
+	getTrail().back().props.push_back(PropagationInfo(p, 0, HEAD));
 
+	return nullPtrClause;
+}
+
+rClause FWAgg::propagateAtEndOfQueue(int level){
 	rClause confl = nullPtrClause;
-	for (int i = 0; i < getSet().getAgg().size() && confl == nullPtrClause; i++) {
+	if(getTrail().back().level!=level){
+		return confl;
+	}
+
+	for(vprop::iterator i=getTrail().back().props.begin(); i<getTrail().back().props.end(); i++){
+		if((*i).getType()!=HEAD){
+			WL wl((*i).getLit(), (*i).getWeight());
+			(*i).getType() == POS ? addToCertainSet(wl) : removeFromPossibleSet(wl);
+		}
+	}
+
+	for(vsize i=0; confl==nullPtrClause && i<getTrail().back().headindex.size(); i++){
+		lbool headval = getSolver()->value(getSet().getAgg()[getTrail().back().headindex[i]]->getHead());
+		assert(headval!=l_Undef);
+		confl = propagate(*getSet().getAgg()[getTrail().back().headindex[i]], headval==l_True);
+	}
+
+	for (vsize i = 0; confl == nullPtrClause && i<getSet().getAgg().size(); i++) {
 		const Agg& pa = *getSet().getAgg()[i];
 
-		if (getSet().getSolver()->verbosity() >= 6) {
+/*		if (getSet().getSolver()->verbosity() >= 6) {
 			report("Propagating into aggr: ");
 			Aggrs::printAgg(pa, true);
-		}
+		}*/
 
-		lbool hv = headvalue[pa.getIndex()];
+		lbool hv = getSolver()->value(pa.getHead());
 		if (hv != l_Undef) { //head is already known
 			assert(canPropagateHead(pa, getCC(), getCP()) != (hv == l_True ? l_False : l_True)); //A conflicting propagation is not possible if we have complete propagation
 			confl = propagate(pa, hv == l_True);
 		} else { //head is not yet known, so at most the head can be propagated
 			lbool result = canPropagateHead(pa, getCC(), getCP());
 			if (result != l_Undef) {
-				rClause	cc = getSet().getSolver()->notifySolver(new AggReason(pa, p, CPANDCC, result == l_True ? pa.getHead() : ~pa.getHead(), true));
-				confl = cc;
+				confl = getSet().getSolver()->notifySolver(new AggReason(pa, CPANDCC, result == l_True ? pa.getHead() : ~pa.getHead(), true));
 			}
 		}
 	}
+
 	return confl;
 }
 
 lbool FWAgg::canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP) const {
-	if (nomoreprops[agg.getIndex()] || headproptime[agg.getIndex()]!=-1) {
-		return headvalue[agg.getIndex()];
-	}
+	//if (nomoreprops[agg.getIndex()] || headproptime[agg.getIndex()]!=-1) {
+	//	return headvalue[agg.getIndex()];
+	//}
 
 	if ((agg.isLower() && CC > agg.getBound()) || (agg.isUpper() && CP < agg.getBound())) {
-		headproptime[agg.getIndex()] = getStack().size();
+		//headproptime[agg.getIndex()] = getStack().size();
 		return l_False;
 	} else if ((agg.isLower() && CP <= agg.getBound()) || (agg.isUpper() && CC>= agg.getBound())) {
-		headproptime[agg.getIndex()] = getStack().size();
+		//headproptime[agg.getIndex()] = getStack().size();
 		return l_True;
 	} else {
 		return l_Undef;
@@ -222,87 +207,51 @@ void FWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	//assert(ar.getAgg() == agg);
 	//assert(agg->getSet()==this);
 
-	int index = -1;
-	bool includereason = false;
-	if(toInt(ar.getLit())!=-1){
-		for (int i = 0; i < getStack().size(); i++) {
-			if (getStack()[i].getLit() == ar.getLit()) {
-				includereason = true; //To also include the literal which caused propagation
-				index = i;
-				break;
-			}
-			if(getStack()[i].getLit() == ar.getPropLit()){
-				index = i;
-				break;
-			}
-		}
-		if (index==-1) {
-			index = getStack().size();
-		}
-	}
-
 	const Agg& agg = ar.getAgg();
 	const Lit& head = agg.getHead();
-
-	if (!ar.isHeadReason() && index >= headindex[agg.getIndex()]) {
-		//the head literal is saved as it occurred in the theory, so adapt for its current truth value!
-		lits.push(getSet().getSolver()->isTrue(head) ? ~head : head);
-	}
-
-	// Allows for better minimization of explanation: the last literal was certainly part of the explanation, but maybe not the ones before
-	if(includereason){
-		lits.push(~ar.getLit());
-	}
-
-	//assert(ar.isHeadReason() || getPCSolver()->getLevel(ar.getLit())<=s->getStackSize());
 
 	//	This is correct, but not minimal enough. We expect to be able to do better
 	//	for(lprop::const_iterator i=s->getStackBegin(); counter<ar.getIndex() && i<s->getStackEnd(); i++,counter++){
 	//		lits.push(~(*i).getLit());
 	//	}
 
-	int counter = 0;
 	if (ar.getExpl() != HEADONLY) {
-		for (vprop::const_iterator i = getStack().begin(); counter < index && i < getStack().end(); i++, counter++) {
-			//for(lprop::const_iterator i=s->getStackBegin(); var(ar.getLit())!=var((*i).getLit()) && i<s->getStackEnd(); i++){
-			switch (ar.getExpl()) {
-			case BASEDONCC:
-				if ((*i).getType() == POS) {
-					lits.push(~(*i).getLit());
+		bool foundlit = false; //True if the propagated or the reason lit have been found
+		for(vector<FWTrail>::const_iterator a=getTrail().begin(); !foundlit && a<getTrail().end(); a++){
+			for (vprop::const_iterator i = (*a).props.begin(); !foundlit && i < (*a).props.end(); i++) {
+				if((*i).getType() == HEAD){
+					if(var((*i).getLit())!=var(agg.getHead())){
+						lits.push(~(*i).getLit());
+					}else{
+						//If other head than the relevant one is encountered, ignore it
+						continue;
+					}
 				}
-				break;
-			case BASEDONCP:
-				if ((*i).getType() == NEG) {
-					lits.push(~(*i).getLit());
+				if((*i).getLit() == ar.getPropLit()){
+					foundlit = true;
+					break;
 				}
-				break;
-			case CPANDCC:
-				lits.push(~(*i).getLit());
-				break;
-			default:
-				assert(false);
-				break;
+
+				switch (ar.getExpl()) {
+				case BASEDONCC:
+					if ((*i).getType() == POS) {
+						lits.push(~(*i).getLit());
+					}
+					break;
+				case BASEDONCP:
+					if ((*i).getType() == NEG) {
+						lits.push(~(*i).getLit());
+					}
+					break;
+				case CPANDCC:
+					lits.push(~(*i).getLit());
+					break;
+				default:
+					assert(false);
+					break;
+				}
 			}
 		}
-	}
-
-	if (getSet().getSolver()->verbosity() >= 5) {
-//		reportf("STACK: ");
-//		for (vprop::const_iterator i = getStack().begin(); i < getStack().end(); i++) {
-//			gprintLit((*i).getLit());
-//			reportf(" ");
-//		}
-//		reportf("\n");
-
-		report("Aggregate explanation for ");
-		gprintLit(ar.getPropLit());
-
-		report(" is");
-		for (int i = 0; i < lits.size(); i++) {
-			report(" ");
-			gprintLit(lits[i]);
-		}
-		report("\n");
 	}
 }
 
@@ -318,7 +267,7 @@ void MaxFWAgg::initialize(bool& unsat, bool& sat) {
 	if (getSet().getAgg().size() == 1) { //Simple heuristic to choose for encoding as SAT
 		//SAT encoding, not used yet
 		bool notunsat = true;
-		for (int i = 0; notunsat && i < getSet().getAgg().size(); i++) {
+		for (vsize i = 0; notunsat && i < getSet().getAgg().size(); i++) {
 			/*
 			 * For a maximum: if lower,  head <=> conj of negation of all literals with weight higher than bound
 			 * 				  if higher, head <=> disj of all literals with weight higher/eq than bound
@@ -377,8 +326,8 @@ void MaxFWAgg::addToCertainSet(const WL& l) {
 void MaxFWAgg::removeFromPossibleSet(const WL& l) {
 	if (l.getWeight() == getCP()) {
 		bool found = false;
-		for (int i = 0; i < getSet().getWL().size(); i++) {
-			if (truth[i] != l_False) {
+		for (vsize i=0; i<getSet().getWL().size(); i++) {
+			if (getSolver()->value(getSet().getWL()[i].getLit()) != l_False) {
 				setCP(getSet().getWL()[i].getWeight());
 				found = true;
 			}
@@ -399,7 +348,7 @@ void MaxFWAgg::removeFromPossibleSet(const WL& l) {
  * Returns non-owning pointer
  */
 rClause MaxFWAgg::propagate(const Agg& agg, bool headtrue) {
-	if(nomoreprops[agg.getIndex()] || headproptime[agg.getIndex()]!=-1){ return nullPtrClause; }
+	//if(nomoreprops[agg.getIndex()] || headproptime[agg.getIndex()]!=-1){ return nullPtrClause; }
 
 	if (false) { //ULTIMATE propagation
 		//return maxultimatepropagation(agg, headtrue);
@@ -410,12 +359,12 @@ rClause MaxFWAgg::propagate(const Agg& agg, bool headtrue) {
 			for (vwl::const_reverse_iterator i = getSet().getWL().rbegin(); confl == nullPtrClause && i
 						< getSet().getWL().rend() && agg.getBound() < (*i).getWeight(); i++) {
 				//because these propagations are independent of the other set literals, they can also be written as clauses
-				confl = getSet().getSolver()->notifySolver(new AggReason(agg, agg.getHead(), HEADONLY, ~(*i).getLit()));
+				confl = getSet().getSolver()->notifySolver(new AggReason(agg, HEADONLY, ~(*i).getLit()));
 			}
 		} else if (!headtrue && agg.isUpper()) {
 			for (vwl::const_reverse_iterator i = getSet().getWL().rbegin(); confl == nullPtrClause && i
 						< getSet().getWL().rend() && agg.getBound() <= (*i).getWeight(); i++) {
-				confl = getSet().getSolver()->notifySolver(new AggReason(agg, ~agg.getHead(), HEADONLY, ~(*i).getLit()));
+				confl = getSet().getSolver()->notifySolver(new AggReason(agg, HEADONLY, ~(*i).getLit()));
 			}
 		}
 		if (confl == nullPtrClause) {
@@ -440,7 +389,7 @@ rClause MaxFWAgg::propagate(const Agg& agg, bool headtrue) {
 rClause MaxFWAgg::propagateAll(const Agg& agg, bool headtrue) {
 	rClause confl = nullPtrClause;
 
-	if(nomoreprops[agg.getIndex()] || headproptime[agg.getIndex()]!=-1){ return confl; }
+//	if(nomoreprops[agg.getIndex()] || headproptime[agg.getIndex()]!=-1){ return confl; }
 
 	if ((agg.isLower() && headtrue) || (agg.isUpper() && !headtrue)) {
 		return confl;
@@ -448,24 +397,24 @@ rClause MaxFWAgg::propagateAll(const Agg& agg, bool headtrue) {
 
 	int pos = -1;
 	bool exactlyoneleft = true;
-	for (int i = 0; exactlyoneleft && i < getSet().getWL().size(); i++) {
+	for (vsize i=0; exactlyoneleft && i<getSet().getWL().size(); i++) {
 		const WL& wl = getSet().getWL()[i];
 		if ((agg.isUpper() && headtrue && wl.getWeight() >= agg.getBound()) || (agg.isLower()
 					&& !headtrue && wl.getWeight() > agg.getBound())) {
-			if (truth[i] == l_Undef) {
+			if (getSolver()->value(wl.getLit()) == l_Undef) {
 				if (pos != -1) {
 					exactlyoneleft = false;
 				} else {
 					pos = i;
 				}
-			} else if (truth[i] == l_True) {
+			} else if (getSolver()->value(wl.getLit()) == l_True) {
 				exactlyoneleft = false;
 			}
 		}
 	}
 	if (exactlyoneleft) {
 		//TODO BASEDONCP is not correct enough (ONCPABOVEBOUND)
-		confl = getSet().getSolver()->notifySolver(new AggReason(agg, headtrue?agg.getHead():~agg.getHead(), BASEDONCP, getSet().getWL()[pos].getLit()));
+		confl = getSet().getSolver()->notifySolver(new AggReason(agg, BASEDONCP, getSet().getWL()[pos].getLit()));
 	}
 	return confl;
 }
@@ -483,9 +432,9 @@ void SPFWAgg::removeFromPossibleSet(const WL& l) {
 }
 
 rClause SPFWAgg::propagate(const Agg& agg, bool headtrue) {
-	if (nomoreprops[agg.getIndex()] || headproptime[agg.getIndex()]!=-1) {
-		return nullPtrClause;
-	}
+	//if (nomoreprops[agg.getIndex()] || headproptime[agg.getIndex()]!=-1) {
+	//	return nullPtrClause;
+	//}
 
 	rClause c = nullPtrClause;
 	Weight weightbound(0);
@@ -537,13 +486,13 @@ rClause SPFWAgg::propagate(const Agg& agg, bool headtrue) {
 		start++;
 	}
 
-	for (int u = start; c == nullPtrClause && u < getSet().getWL().size(); u++) {
-		if (truth[u] == l_Undef) {//if already propagated as an aggregate, then those best-values have already been adapted
-			const Lit& l = getSet().getWL()[u].getLit();
+	for (vsize u = start; c == nullPtrClause && u < getSet().getWL().size(); u++) {
+		const Lit& l = getSet().getWL()[u].getLit();
+		if (getSolver()->value(l) == l_Undef) {//if already propagated as an aggregate, then those best-values have already been adapted
 			if ((agg.isLower() && headtrue) || (agg.isUpper() && !headtrue)) {
-				c = getSet().getSolver()->notifySolver(new AggReason(agg, headtrue?agg.getHead():~agg.getHead(), basedon, ~l));
+				c = getSet().getSolver()->notifySolver(new AggReason(agg, basedon, ~l));
 			} else {
-				c = getSet().getSolver()->notifySolver(new AggReason(agg, headtrue?agg.getHead():~agg.getHead(), basedon, l));
+				c = getSet().getSolver()->notifySolver(new AggReason(agg, basedon, l));
 			}
 		}
 	}
@@ -610,29 +559,31 @@ void SumFWAgg::getMinimExplan(const Agg& agg, vec<Lit>& lits) {
 		explained = true;
 	}
 
-	for (vprop::const_iterator i = getStack().begin(); !explained && i < getStack().end(); i++) {
-		bool push = false;
-		if ((*i).getType() == POS) { //means that the literal in the set became true
-			certainsum += (*i).getWeight();
+	for(vector<FWTrail>::const_iterator a=getTrail().begin(); !explained && a<getTrail().end(); a++){
+		for (vprop::const_iterator i = (*a).props.begin(); !explained && i < (*a).props.end(); i++) {
+			bool push = false;
+			if ((*i).getType() == POS) { //means that the literal in the set became true
+				certainsum += (*i).getWeight();
 
-			if (agg.isLower()) {
-				push = true;
-				if (agg.getBound() < certainsum) {
-					explained = true;
+				if (agg.isLower()) {
+					push = true;
+					if (agg.getBound() < certainsum) {
+						explained = true;
+					}
 				}
-			}
-		} else if ((*i).getType() == NEG) { //the literal in the set became false
-			possiblesum -= (*i).getWeight();
+			} else if ((*i).getType() == NEG) { //the literal in the set became false
+				possiblesum -= (*i).getWeight();
 
-			if (agg.isUpper()) {
-				push = true;
-				if (possiblesum < agg.getBound()) {
-					explained = true;
+				if (agg.isUpper()) {
+					push = true;
+					if (possiblesum < agg.getBound()) {
+						explained = true;
+					}
 				}
+			} //Else ==HEAD: ignore
+			if (push) {
+				lits.push(~(*i).getLit());
 			}
-		}
-		if (push) {
-			lits.push(~(*i).getLit());
 		}
 	}
 

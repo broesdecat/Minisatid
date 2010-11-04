@@ -93,14 +93,18 @@ private:
 	std::vector<Aggrs::Agg*>	headwatches;	//	index on VARs (heads always positive), does NOT own the pointers
 	vvps					network;		// the pointer network of set var -> set
 
-	std::vector<lbool>		assigns;		//The truth values of literals according to whether they were propagated in the aggregate solver
-
 	//statistics
 	uint64_t propagations; //Number of propagations into aggregate sets made
+
+	//new trail datastructure
+	std::vector<std::vector<Aggrs::TypedSet*> > 	trail;
 
 public:
 	AggSolver(pPCSolver s);
 	virtual ~AggSolver();
+
+	//Returns the current decision level //TODO assert //FIXME check for off-by-one errors
+	int 				getLevel				() 		const { return trail.size(); }
 
 	//////
 	// INITIALIZATION
@@ -134,40 +138,39 @@ public:
 
 	void 				findClausalPropagations	();
 
+	void 				notifyDefinedHead		(Var head);
+
 	void 				removeHeadWatch			(Var x);
 
 	//////
 	// SEARCH
 	//////
 
-	virtual void 	notifyVarAdded			(uint64_t nvars);
+	virtual void 		notifyVarAdded			(uint64_t nvars);
 
 	/**
 	 * Checks presence of aggregates and initializes all counters.
 	 * UNSAT is set to true if unsat is detected
 	 * PRESENT is set to true if aggregate propagations should be done
 	 */
-	virtual void 	finishParsing		 	(bool& present, bool& unsat);
-	virtual bool 	simplify				() { return true; }; //False if problem unsat
+	virtual void 		finishParsing		 	(bool& present, bool& unsat);
+	virtual bool 		simplify				() { return true; }; //False if problem unsat
 	/**
 	 * Goes through all watches and propagates the fact that p was set true.
 	 */
-	virtual rClause propagate				(const Lit& l);
-	virtual rClause propagateAtEndOfQueue	() { return nullPtrClause; };
+	virtual rClause 	propagate				(const Lit& l);
+	virtual rClause	 	propagateAtEndOfQueue	();
 
-	virtual void 	newDecisionLevel		();
-	virtual void 	backtrackDecisionLevels	(int nblevels, int untillevel);
-	virtual rClause getExplanation			(const Lit& l);
+	virtual void 		newDecisionLevel		();
+	virtual void 		backtrackDecisionLevels	(int nblevels, int untillevel);
+	virtual rClause 	getExplanation			(const Lit& l);
 
-	virtual void 	printStatistics			() const;
-
-	virtual const char* getName() { return "aggregate"; }
-	virtual void print();
+	virtual const char* getName					() { return "aggregate"; }
+	virtual void 		print					();
+	virtual void 		printStatistics			() const;
 
 	//are used by agg.c, but preferably should be move into protected again
 	rClause				notifySolver(Aggrs::AggReason* cr);	// Like "enqueue", but for aggregate propagations.
-
-	lbool				propagatedValue			(const Lit& l) const { assert(isInitialized()); return assigns[var(l)] ^ sign(l); }
 
 	//////
 	// OPTIMISATION

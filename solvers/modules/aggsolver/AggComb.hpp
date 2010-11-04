@@ -66,19 +66,18 @@ enum Expl{BASEDONCC,BASEDONCP,CPANDCC, HEADONLY};
 class AggReason {
 private:
 	const Agg&	expr;
-	const Lit	l, proplit; //l is the literal which caused the propagation of proplit, if toInt(l)<0, then there is no cause!
+	const Lit	proplit;
 	const Expl	expl;
 	const bool 	head;
 	vec<Lit> 	explanation;
 	bool 		hasclause;
 
 public:
-	AggReason(const Agg& agg, const Lit& l, Expl expl, const Lit& proplit, bool head = false)
-		:expr(agg), l(l), proplit(proplit), expl(expl), head(head), explanation(), hasclause(false){
+	AggReason(const Agg& agg, Expl expl, const Lit& proplit, bool head = false)
+		:expr(agg), proplit(proplit), expl(expl), head(head), explanation(), hasclause(false){
 	}
 
 	const Agg&	getAgg() 		const	{ return expr; }
-    const Lit&	getLit() 		const	{ return l; }
     const Lit&	getPropLit()	const	{ return proplit; }
     bool		isHeadReason() 	const	{ return head; }
     Expl		getExpl() 		const	{ return expl; }

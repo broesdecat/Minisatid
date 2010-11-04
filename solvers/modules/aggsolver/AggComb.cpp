@@ -59,7 +59,7 @@ void Aggrs::printAgg(const TypedSet& c, bool endl) {
 	for (vwl::const_iterator i = c.getWL().begin(); i < c.getWL().end(); ++i) {
 		report(" ");
 		gprintLit((*i).getLit());
-		lbool value = c.getSolver()->propagatedValue((*i).getLit());
+		lbool value = c.getSolver()->value((*i).getLit());
 		report("(%s)", value==l_Undef?"X":value==l_True?"T":"F");
 		report("=%s", printWeight((*i).getWeight()).c_str());
 	}
@@ -72,7 +72,7 @@ void Aggrs::printAgg(const TypedSet& c, bool endl) {
 
 void Aggrs::printAgg(const Agg& ae, bool printendline) {
 	gprintLit(ae.getHead());
-	lbool value = ae.getSet()->getSolver()->propagatedValue(ae.getHead());
+	lbool value = ae.getSet()->getSolver()->value(ae.getHead());
 	report("(%s)", value==l_Undef?"X":value==l_True?"T":"F");
 	TypedSet* set = ae.getSet();
 	if (ae.isLower()) {

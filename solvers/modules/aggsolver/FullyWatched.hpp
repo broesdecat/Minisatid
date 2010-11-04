@@ -22,51 +22,63 @@ typedef std::vector<PropagationInfo> vprop;
 ///////
 // DECLARATIONS
 ///////
+struct FWTrail{
+	int level;
+	Weight CBC, CBP;
+	vprop props;
+	std::vector<int> headindex; //The index of the aggregate of which the head was propagated
+	std::vector<int> headtime; //The propindex of the propagated head
+
+	FWTrail(int level, const Weight& CBC, const Weight& CBP): level(level), CBC(CBC), CBP(CBP){}
+};
+
 class FWAgg: public Propagator {
 protected:
-	vprop				stack;		// Stack of propagations of this expression so far.
-	std::vector<lbool> truth, headvalue;
-	std::vector<int> headindex;
-	std::vector<bool> nomoreprops, optimagg;
+	/*
+	 * Smart trail system:
+	 * keep a datastructure with: currentBC, currentBP, decisionlevel and stack of propagations
+	 */
+	std::vector<FWTrail> trail;
 
-	mutable std::vector<int> headproptime;
-
-	Weight 	currentbestcertain, currentbestpossible;
-					//current keeps the currently derived min and max bounds
+	//std::vector<int> headindex;
+	//std::vector<bool> nomoreprops;
+	//mutable std::vector<int> headproptime;
 
 protected:
-	virtual lbool 	initialize(const Agg& agg);
+	virtual lbool 	initialize				(const Agg& agg);
 
     /**
      * Updates the values of the aggregate and then returns whether the head can be directly propagated from the body
      */
-    virtual lbool 	canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP) const;
+    virtual lbool 	canPropagateHead		(const Agg& agg, const Weight& CC, const Weight& CP) const;
 
-    virtual rClause propagate(const Agg& agg, bool headtrue) = 0;
+    virtual rClause propagate				(const Agg& agg, bool headtrue) = 0;
 
-    virtual void 	addToCertainSet(const WL& l) 			= 0;
-	virtual void 	removeFromPossibleSet(const WL& l)		= 0;
+    virtual void 	addToCertainSet			(const WL& l) 			= 0;
+	virtual void 	removeFromPossibleSet	(const WL& l)		= 0;
 
 	///////
 	// GETTERS - SETTERS
 	///////
-	const Weight& 	getCP	() 					const 	{ return currentbestpossible; }
-	void 			setCP	(const Weight& w) 			{ currentbestpossible = w; }
-	const Weight& 	getCC	() 					const 	{ return currentbestcertain; }
-	void 			setCC	(const Weight& w) 			{ currentbestcertain = w; }
+	void 			setCP					(const Weight& w) 			{ trail.back().CBP = w; }
+	void 			setCC					(const Weight& w) 			{ trail.back().CBC = w; }
 
-	const vprop&	getStack() 					const 	{ return stack; }
+	std::vector<FWTrail>&	getTrail		() 					 		{ return trail; }
 
 public:
 	FWAgg(TypedSet* set);
 	virtual ~FWAgg(){};
 
-	virtual void 	initialize(bool& unsat, bool& sat);
-	virtual rClause propagate	(const Lit& p, Watch* ws);
+	virtual void 	initialize				(bool& unsat, bool& sat);
+	virtual rClause propagate				(const Lit& p, Watch* ws, int level);
 // TODO dit is lelijk, maar het verplicht om eerst de root propagate op te roepen en daarna pas de lagere, maar er zullen wel betere manieren zijn.
-	virtual rClause propagate(const Agg& agg);
-	virtual void 	backtrack(int nblevels, int untillevel);
-	virtual void 	getExplanation(vec<Lit>& lits, const AggReason& ar);
+	virtual rClause propagate				(const Agg& agg, int level);
+	virtual rClause	propagateAtEndOfQueue	(int level);
+	virtual void 	backtrack				(int nblevels, int untillevel);
+	virtual void 	getExplanation			(vec<Lit>& lits, const AggReason& ar);
+
+	const Weight& 	getCP					() 					const 	{ return trail.back().CBP; }
+	const Weight& 	getCC					() 					const 	{ return trail.back().CBC; }
 };
 
 class SPFWAgg: public  FWAgg {
@@ -74,11 +86,11 @@ public:
 	SPFWAgg(TypedSet* agg);
 	virtual ~SPFWAgg(){};
 
-protected:
-	virtual void 	addToCertainSet				(const WL& l);
-	virtual void 	removeFromPossibleSet		(const WL& l);
+	virtual rClause propagate				(const Agg& agg, bool headtrue);
 
-	virtual rClause propagate	(const Agg& agg, bool headtrue);
+protected:
+	virtual void 	addToCertainSet			(const WL& l);
+	virtual void 	removeFromPossibleSet	(const WL& l);
 };
 
 class SumFWAgg: public  SPFWAgg {
@@ -86,10 +98,10 @@ public:
 	SumFWAgg(TypedSet* agg);
 	virtual ~SumFWAgg(){};
 
-	virtual void 	initialize	(bool& unsat, bool& sat);
+	virtual void 	initialize				(bool& unsat, bool& sat);
 
-			void	getMinimExplan		(const Agg& agg, vec<Lit>& lits);
-			void 	addToBounds			(Agg& agg, const Weight& w);
+			void	getMinimExplan			(const Agg& agg, vec<Lit>& lits);
+			void 	addToBounds				(Agg& agg, const Weight& w);
 };
 
 class ProdFWAgg: public  SPFWAgg {
@@ -97,7 +109,7 @@ public:
 	ProdFWAgg(TypedSet* agg);
 	virtual ~ProdFWAgg(){};
 
-	virtual void 	initialize	(bool& unsat, bool& sat);
+	virtual void 	initialize				(bool& unsat, bool& sat);
 };
 
 class MaxFWAgg: public  FWAgg {
@@ -105,14 +117,14 @@ public:
 	MaxFWAgg(TypedSet* agg);
 	virtual ~MaxFWAgg(){};
 
-	virtual void 	initialize	(bool& unsat, bool& sat);
+	virtual void 	initialize				(bool& unsat, bool& sat);
 
 protected:
-	virtual void 	addToCertainSet				(const WL& l);
-	virtual void 	removeFromPossibleSet		(const WL& l);
+	virtual void 	addToCertainSet			(const WL& l);
+	virtual void 	removeFromPossibleSet	(const WL& l);
 
-	virtual rClause propagate	(const Agg& agg, bool headtrue);
-	virtual rClause propagateAll(const Agg& agg, bool headtrue);
+	virtual rClause propagate				(const Agg& agg, bool headtrue);
+	virtual rClause propagateAll			(const Agg& agg, bool headtrue);
 };
 
 }

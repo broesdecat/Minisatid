@@ -48,8 +48,6 @@
 #include "modules/aggsolver/FullyWatched.hpp"
 #include "modules/aggsolver/PartiallyWatched.hpp"
 
-#include "PbSolver.h"
-
 #include <algorithm>
 
 #include <stdint.h>
@@ -63,7 +61,6 @@ using namespace Aggrs;
 
 AggSolver::AggSolver(pPCSolver s) :
 	DPLLTmodule(s), propagations(0) {
-	int count = 0;
 }
 
 AggSolver::~AggSolver() {
@@ -81,9 +78,12 @@ void AggSolver::notifyVarAdded(uint64_t nvars) {
 	if (isInitialized()) {
 		//only used after initialization, such that we can safely initialize them later!
 		tempwatches.resize(2 * nvars);
-		assigns.resize(nvars, l_Undef);
 		aggreason.resize(nvars, NULL);
 	}
+}
+
+void AggSolver::notifyDefinedHead(Var head){
+	getPCSolver()->notifyAggrHead(head);
 }
 
 ///////
@@ -118,7 +118,7 @@ inline Agg* AggSolver::getAggWithHead(Var v) const {
 ///////
 
 bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>& weights) {
-/*	assert(lits.size()==weights.size());
+	assert(lits.size()==weights.size());
 
 	if (lits.size() == 0) {
 		char s[100];
@@ -165,11 +165,11 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 		report("\n");
 	}
 
-	return true;*/
+	return true;
 }
 
 bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, AggSign boundsign, AggType type, AggSem headeq) {
-/*	assert(type==MIN || type==MAX || type==CARD || type==SUM || type==PROD);
+	assert(type==MIN || type==MAX || type==CARD || type==SUM || type==PROD);
 
 	if (sets.find(setid) == sets.end()) { //Exception if set already exists
 		char s[100];
@@ -233,15 +233,8 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, AggSign boundsig
 		report("\n");
 	}
 
-	return true;*/
+	return true;
 }
-
-struct PBAgg{
-	MiniSatPP::vec<MiniSatPP::Lit> literals;
-	MiniSatPP::vec<MiniSatPP::Int> weights;
-	Weight bound;
-	int sign;
-};
 
 void AggSolver::finishParsing(bool& present, bool& unsat) {
 /*	notifyInitialized();
@@ -273,7 +266,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	}
 
 	for (map<int, TypedSet*>::const_iterator i = sets.begin(); i != sets.end(); i++) {
-		bool foundunsat = finishSet((*i).second);
+		bool foundunsat = finishSet((*i).second); //FIXME add set reduction somewhere!
 		if (foundunsat) {
 			if (verbosity() >= 3) {
 				report("Initializing aggregates finished, unsat detected.\n");
@@ -342,18 +335,18 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 			if (headwatches[i] != NULL) {
 				report("   headwatch\n");
 				report("      ");
-				Aggrs::printAgg(headwatches[i]->getAggComb(), true);
+				Aggrs::printAgg(headwatches[i]->getSet(), true);
 			}
 
 			if (verbosity() >= 6) {
 				report("   bodywatches\n");
 				for (vsize j = 0; j < permwatches[i].size(); j++) {
 					report("      ");
-					Aggrs::printAgg((permwatches[i][j])->getAggComb(), true);
+					Aggrs::printAgg((permwatches[i][j])->getSet(), true);
 				}
 				for (vsize j = 0; j < tempwatches[i].size(); j++) {
 					report("      ");
-					Aggrs::printAgg((tempwatches[i][j])->getAggComb(), true);
+					Aggrs::printAgg((tempwatches[i][j])->getSet(), true);
 				}
 			}
 		}
@@ -561,7 +554,7 @@ bool AggSolver::constructProdSet(TypedSet* set) {
  * INVARIANT: or the provided reason is deleted or it is IN the reason datastructure on return
  */
 rClause AggSolver::notifySolver(AggReason* ar) {
-/*	const Lit& p = ar->getPropLit();
+	const Lit& p = ar->getPropLit();
 
 	//FIXME decide on what to do with it
 	//This strongly improves the performance of some benchmarks, e.g. FastFood. For Hanoi it has no effect
@@ -574,7 +567,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 	if (value(p) != l_True && getPCSolver()->modes().aggclausesaving < 2) {
 		vec<Lit> lits;
 		lits.push(p);
-		ar->getAgg().getAggComb()->getExplanation(lits, *ar);
+		ar->getAgg().getSet()->getExplanation(lits, *ar);
 		ar->setClause(lits);
 		//FIXME why not return here or something and what with conflicts?
 	}
@@ -620,7 +613,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 	} else {
 		delete ar;
 	}
-	return nullPtrClause;*/
+	return nullPtrClause;
 }
 
 void AggSolver::newDecisionLevel() {
@@ -628,21 +621,24 @@ void AggSolver::newDecisionLevel() {
 		report("Current effective watches on new decision level: \n");
 		//TODO printWatches(this, tempwatches);
 	}
+	trail.push_back(vector<TypedSet*>());
 }
 
 void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel) {
+	for(int i=trail.size()-1; i>untillevel; i++){
+		for(vector<TypedSet*>::iterator j=trail[i].begin(); j<trail[i].end(); j++){
+			(*j)->backtrack(nblevels, untillevel);
+		}
+	}
 }
 
 /**
  * Returns non-owning pointer
  */
 rClause AggSolver::propagate(const Lit& p) {
-/*	if (!isInitialized()) {
+	if (!isInitialized()) {
 		return nullPtrClause;
 	}
-
-	assert(assigns[var(p)]==l_Undef);
-	assigns[var(p)] = sign(p) ? l_False : l_True;
 
 	rClause confl = nullPtrClause;
 
@@ -652,13 +648,13 @@ rClause AggSolver::propagate(const Lit& p) {
 
 	Agg* pa = headwatches[var(p)];
 	if (pa != NULL) {
-		confl = pa->getAggComb()->propagate(*pa);
+		confl = pa->getSet()->propagate(*pa, getLevel());
 		propagations++;
 	}
 
 	const vector<Watch*>& ws = permwatches[var(p)];
 	for (vector<Watch*>::const_iterator i = ws.begin(); confl == nullPtrClause && i < ws.end(); i++) {
-		confl = (*i)->getAggComb()->propagate(p, *i);
+		confl = (*i)->getSet()->propagate(p, *i, getLevel());
 		propagations++;
 	}
 
@@ -667,18 +663,12 @@ rClause AggSolver::propagate(const Lit& p) {
 	}
 
 	if (tempwatches[toInt(p)].size() > 0) {
-
-		if (verbosity() >= 8) {
-			report("Current effective watches BEFORE: \n");
-			printWatches(this, tempwatches);
-		}
-
 		vector<Watch*> ws2(tempwatches[toInt(p)]); //IMPORTANT, BECAUSE WATCHES MIGHT BE ADDED AGAIN TO THE END (if no other watches are found etc)
 		tempwatches[toInt(p)].clear();
 
 		for (vector<Watch*>::const_iterator i = ws2.begin(); confl == nullPtrClause && i < ws2.end(); i++) {
 			if (confl == nullPtrClause) {
-				confl = (*i)->getAggComb()->propagate(p, (*i));
+				confl = (*i)->getSet()->propagate(p, (*i), getLevel());
 				propagations++;
 			} else { //If conflict found, copy all remaining watches in again
 				addTempWatch(p, (*i));
@@ -687,11 +677,17 @@ rClause AggSolver::propagate(const Lit& p) {
 
 		if (verbosity() >= 8) {
 			report("Current effective watches AFTER: \n");
-			printWatches(this, tempwatches);
+	//TODO		printWatches(this, tempwatches);
 		}
 	}
 
-	return confl;*/
+	return confl;
+}
+
+rClause	AggSolver::propagateAtEndOfQueue(){
+	for(vector<TypedSet*>::const_iterator i=trail.back().begin(); i<trail.back().end(); i++){
+		(*i)->propagateAtEndOfQueue(getLevel());
+	}
 }
 
 /**
@@ -701,7 +697,7 @@ rClause AggSolver::propagate(const Lit& p) {
  * Important: verify that the clause is never constructed in and added to a different SAT-solvers!
  */
 rClause AggSolver::getExplanation(const Lit& p) {
-/*	assert(aggreason[var(p)] != NULL);
+	assert(aggreason[var(p)] != NULL);
 	const AggReason& ar = *aggreason[var(p)];
 
 	//getPCSolver()->varBumpActivity(var(p));
@@ -711,7 +707,6 @@ rClause AggSolver::getExplanation(const Lit& p) {
 		assert(getPCSolver()->modes().aggclausesaving>0);
 		assert(ar.hasClause());
 
-
 		//for(int i=0; i<ar.getClause().size(); i++){
 		// getPCSolver()->varBumpActivity(var(ar.getClause()[i]));
 		// }
@@ -720,7 +715,7 @@ rClause AggSolver::getExplanation(const Lit& p) {
 	} else {
 		vec<Lit> lits;
 		lits.push(p);
-		ar.getAgg().getAggComb()->getExplanation(lits, ar);
+		ar.getAgg().getSet()->getExplanation(lits, ar);
 
 		//for(int i=0; i<lits.size(); i++){
 		// getPCSolver()->varBumpActivity(var(lits[i]));
@@ -734,34 +729,8 @@ rClause AggSolver::getExplanation(const Lit& p) {
 	//Adding directly as a learned clause should NOT be done,
 	//only when used as direct conflict reason: real slowdown for magicseries
 
-	return c;*/
+	return c;
 }
-
-/**
- * Not viable to backtrack a certain number of literals, unless also tracking whether a literal was propagated in
- * which solvers when a conflict occurred
- */
-/*FIXME TO BE REMOVEDvoid AggSolver::backtrack(const Lit& l) {
-	if (!isInitialized()) {
-		return;
-	}
-
-	if (assigns[var(l)] == l_Undef) { //TODO the literal was not propagated into the solver, so should not be backtracked!
-		return;
-	}
-
-	assigns[var(l)] = l_Undef;
-
-	Agg* pa = headwatches[var(l)];
-	if (pa != NULL) {
-		pa->getAggComb()->backtrack(*pa);
-	}
-
-	const vector<Watch*>& vcw = permwatches[var(l)];
-	for (vector<Watch*>::const_iterator i = vcw.begin(); i < vcw.end(); i++) {
-		(*i)->getAggComb()->backtrack(**i);
-	}
-}*/
 
 ///////
 // RECURSIVE AGGREGATES
@@ -773,12 +742,12 @@ rClause AggSolver::getExplanation(const Lit& p) {
  * 		- might help to make the expression true (monotone literals!) (to make it a more relevant learned clause
  */
 void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) {
-/*	const Agg& agg = *getAggWithHead(v);
-	TypedSet* comb = agg.getSet();
+	const Agg& agg = *getAggWithHead(v);
+	TypedSet* set = agg.getSet();
 
-	for (vwl::const_iterator i = comb->getWL().begin(); i < comb->getWL().end(); ++i) {
+	for (vwl::const_iterator i = set->getWL().begin(); i < set->getWL().end(); ++i) {
 		Lit l = (*i).getLit();
-		if (comb->isMonotone(agg, *i) && ufs.find(var(l)) == ufs.end() && seen[var(l)] != (isPositive(l) ? 2 : 1) && isFalse(l)) {
+		if (set->getType().isMonotone(agg, *i) && ufs.find(var(l)) == ufs.end() && seen[var(l)] != (isPositive(l) ? 2 : 1) && isFalse(l)) {
 			//TODO deze laatste voorwaarde is een HACK: eigenlijk moeten de voorwaarden zo zijn,
 			//dat enkel relevant literals worden toegevoegd, maar momenteel worden er ook literals
 			//toegevoegd die nooit in een justification zullen zitten
@@ -787,7 +756,7 @@ void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& l
 			seen[var(l)] = isPositive(l) ? 2 : 1;
 		}
 		//TODO: optimize this: neem er zoveel monotone niet zodat ze met de ufs erbij het agg nog true kunnen maken, maar zonder niet
-	}*/
+	}
 }
 
 vector<Var> AggSolver::getAggHeadsWithBodyLit(Var x) {
@@ -801,11 +770,11 @@ vector<Var> AggSolver::getAggHeadsWithBodyLit(Var x) {
 }
 
 vwl::const_iterator AggSolver::getAggLiteralsBegin(Var x) const {
-	//return getAggWithHead(x)->getAggComb()->getWL().begin();
+	//return getAggWithHead(x)->getSet()->getWL().begin();
 }
 
 vwl::const_iterator AggSolver::getAggLiteralsEnd(Var x) const {
-	//return getAggWithHead(x)->getAggComb()->getWL().end();
+	//return getAggWithHead(x)->getSet()->getWL().end();
 }
 
 /**
@@ -815,7 +784,7 @@ vwl::const_iterator AggSolver::getAggLiteralsEnd(Var x) const {
  * @post: any new derived heads are in heads, with its respective justification in jstf
  */
 void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& heads, vec<Var>& currentjust) {
-/*	for (vps::const_iterator i = network[var(w)].begin(); i < network[var(w)].end(); i++) {
+	for (vps::const_iterator i = network[var(w)].begin(); i < network[var(w)].end(); i++) {
 		TypedSet* s = (*i);
 		for (vpagg::const_iterator j = s->getAgg().begin(); j < s->getAgg().end(); j++) {
 			const Agg& expr = *(*j);
@@ -827,7 +796,7 @@ void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& 
 			if (currentjust[head] > 0) { //only check its body for justification when it has not yet been derived
 				vec<Lit> jstf;
 				vec<Var> nonjstf;
-				if (s->canJustifyHead(expr, jstf, nonjstf, currentjust, false)) {
+				if (s->getType().canJustifyHead(expr, jstf, nonjstf, currentjust, false)) {
 					currentjust[head] = 0;
 					heads.push(mkLit(head, false));
 					jstfs.push();
@@ -835,17 +804,17 @@ void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& 
 				}
 			}
 		}
-	}*/
+	}
 }
 
 /**
  * The given head is not false. So it has a (possibly looping) justification. Find this justification
  */
 void AggSolver::findJustificationAggr(Var head, vec<Lit>& outjstf) {
-	/*vec<Var> nonjstf;
+	vec<Var> nonjstf;
 	vec<int> currentjust;
 	const Agg& agg = *getAggWithHead(head);
-	agg.getAggComb()->canJustifyHead(agg, outjstf, nonjstf, currentjust, true);*/
+	agg.getSet()->getType().canJustifyHead(agg, outjstf, nonjstf, currentjust, true);
 }
 
 /**
@@ -854,8 +823,8 @@ void AggSolver::findJustificationAggr(Var head, vec<Lit>& outjstf) {
  * all body literals of v that are not justified.
  */
 bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust) {
-	/*const Agg& agg = *getAggWithHead(v);
-	return agg.getAggComb()->canJustifyHead(agg, jstf, nonjstf, currentjust, false);*/
+	const Agg& agg = *getAggWithHead(v);
+	return agg.getSet()->getType().canJustifyHead(agg, jstf, nonjstf, currentjust, false);
 }
 
 ///////
@@ -921,8 +890,8 @@ bool AggSolver::addMnmzSum(Var headv, int setid, AggSign boundsign) {
 }
 
 bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
-	/*Agg* a = headwatches[head];
-	TypedSet* s = a->getAggComb();
+	Agg* a = headwatches[head];
+	TypedSet* s = a->getSet();
 	SumFWAgg* prop = dynamic_cast<SumFWAgg*> (s->getProp());
 
 	report("Current optimum: %s\n", printWeight(prop->getCC()).c_str());
@@ -940,7 +909,7 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
 	//TODO: should call standard getexplanation here!
 	prop->getMinimExplan(*a, invalidation);
 
-	return false;*/
+	return false;
 }
 
 /**
@@ -949,7 +918,7 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
  * the newly adapted bound.
  */
 void AggSolver::propagateMnmz(Var head) {
-	//dynamic_cast<SumFWAgg*> (headwatches[head]->getAggComb()->getProp())->propagate(*headwatches[head], true);
+	dynamic_cast<SumFWAgg*>(headwatches[head]->getSet()->getProp())->propagate(*headwatches[head], true);
 }
 
 ///////
