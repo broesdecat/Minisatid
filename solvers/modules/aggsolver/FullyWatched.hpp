@@ -17,12 +17,14 @@ namespace MinisatID {
 
 namespace Aggrs{
 
+typedef std::vector<PropagationInfo> vprop;
+
 ///////
 // DECLARATIONS
 ///////
 class FWAgg: public Propagator {
 protected:
-	std::vector<PropagationInfo> 	stack;		// Stack of propagations of this expression so far.
+	vprop				stack;		// Stack of propagations of this expression so far.
 	std::vector<lbool> truth, headvalue;
 	std::vector<int> headindex;
 	std::vector<bool> nomoreprops, optimagg;
@@ -53,20 +55,18 @@ protected:
 	const Weight& 	getCC	() 					const 	{ return currentbestcertain; }
 	void 			setCC	(const Weight& w) 			{ currentbestcertain = w; }
 
-	const std::vector<PropagationInfo>&	getStack() 					const 	{ return stack; }
+	const vprop&	getStack() 					const 	{ return stack; }
 
 public:
 	FWAgg(TypedSet* set);
 	virtual ~FWAgg(){};
 
 	virtual void 	initialize(bool& unsat, bool& sat);
-
 	virtual rClause propagate	(const Lit& p, Watch* ws);
-
 // TODO dit is lelijk, maar het verplicht om eerst de root propagate op te roepen en daarna pas de lagere, maar er zullen wel betere manieren zijn.
 	virtual rClause propagate(const Agg& agg);
-
-	virtual void 	getExplanation(vec<Lit>& lits, const AggReason& ar) const;
+	virtual void 	backtrack(int nblevels, int untillevel);
+	virtual void 	getExplanation(vec<Lit>& lits, const AggReason& ar);
 };
 
 class SPFWAgg: public  FWAgg {

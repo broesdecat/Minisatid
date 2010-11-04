@@ -55,7 +55,7 @@ bool Aggrs::isJustified(Var x, vec<int>& currentjust) {
 ///////
 
 void Aggrs::printAgg(const TypedSet& c, bool endl) {
-	report("%s{", c.getType()->getName());
+	report("%s{", c.getType().getName());
 	for (vwl::const_iterator i = c.getWL().begin(); i < c.getWL().end(); ++i) {
 		report(" ");
 		gprintLit((*i).getLit());

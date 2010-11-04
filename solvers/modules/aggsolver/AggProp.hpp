@@ -15,11 +15,15 @@ namespace MinisatID{
 
 class WL;
 typedef std::vector<WL> vwl;
+
+class PCSolver;
 class AggSolver;
 
 namespace Aggrs{
 
 class TypedSet;
+class Watch;
+class AggReason;
 
 class Agg{
 private:
@@ -71,7 +75,10 @@ public:
 	virtual bool 		isMonotone				(const Agg& agg, const WL& l) 			const = 0;
 	virtual Weight 		getBestPossible			(TypedSet* set) 						const = 0;
 	virtual Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const = 0;
-	virtual WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) = 0;
+	virtual WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const = 0;
+
+	virtual Weight		add						(const Weight& lhs, const Weight& rhs) 	const = 0;
+	virtual Weight		remove					(const Weight& lhs, const Weight& rhs) 	const = 0;
 };
 
 class MaxProp: public AggProp{
@@ -82,16 +89,12 @@ public:
 	bool 		isMonotone				(const Agg& agg, const WL& l) 			const;
 	Weight 		getBestPossible			(TypedSet* set) 						const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
-	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set);
+	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
+	Weight		add						(const Weight& lhs, const Weight& rhs) 	const { assert(false); return 0; }
+	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const { assert(false); return 0; }
 };
 
-class SPProp: public AggProp{
-public:
-	virtual Weight	add					(const Weight& lhs, const Weight& rhs) 	const = 0;
-	virtual Weight	remove				(const Weight& lhs, const Weight& rhs) 	const = 0;
-};
-
-class ProdProp: public SPProp{
+class ProdProp: public AggProp{
 public:
 	const char* getName					() 										const { return "PROD"; }
 	AggType 	getType					() 										const { return PROD; }
@@ -101,10 +104,10 @@ public:
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const;
 	Weight 		getBestPossible			(TypedSet* set) 						const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
-	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set);
+	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
 };
 
-class SumProp: public SPProp{
+class SumProp: public AggProp{
 public:
 	const char* getName					() 										const { return "SUM"; }
 	AggType 	getType					() 										const { return SUM; }
@@ -114,7 +117,7 @@ public:
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const;
 	Weight 		getBestPossible			(TypedSet* set) 						const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
-	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set);
+	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
 };
 
 class CardProp: public SumProp{
@@ -125,7 +128,7 @@ public:
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const;
 	Weight 		getBestPossible			(TypedSet* set) 						const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
-	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set);
+	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
 };
 
 class AggSet{
@@ -144,22 +147,25 @@ class Propagator {
 protected:
 	TypedSet* set; //Non-owning
 public:
-	Propagator(TypedSet* set);
+	Propagator(TypedSet* set):set(set){}
 	virtual ~Propagator(){};
 
-	// Propagate set literal
+	virtual void 		initialize(bool& unsat, bool& sat);
 	virtual rClause 	propagate		(const Lit& p, Watch* w) = 0;
-	// Propagate head
 	virtual rClause 	propagate		(const Agg& agg) = 0;
-
-    virtual void 		getExplanation	(vec<Lit>& lits, const AggReason& ar) 	const = 0;
-
-    virtual void 		initialize(bool& unsat, bool& sat);
+	virtual void		backtrack		(int nblevels, int untillevel) = 0;
+    virtual void 		getExplanation	(vec<Lit>& lits, const AggReason& ar) = 0;
 
     TypedSet&			getSet() { return *set; }
-    AggSolver* 			getSolver();
+    TypedSet*			getSetp() const { return set; }
+
+    ///////
+    // HELP METHODS
+    ///////
+
+    AggSolver* 			getSolver	() const;
     rClause 			notifySolver(AggReason* reason);
-    lbool 				value(const Lit& l) const;
+    lbool 				value		(const Lit& l) const;
 };
 
 class TypedSet{
@@ -188,13 +194,13 @@ public:
 	const vwl&		getWL			()			const 			{ return wl; }
 	void			setWL(const vwl& wl2)			 			{ wl=wl2; } //TODO SORT?
 
-	const std::vector<Agg*>& getAgg	()		 	const			{ return aggregates; }
-	void 			addAgg			(Agg* aggr) { 	aggregates.push_back(aggr); }
+	std::vector<Agg*>& getAgg		()	 						{ return aggregates; }
+	void 			addAgg			(Agg* aggr) 				{ 	aggregates.push_back(aggr); }
 
 	const Weight& 	getESV			() 			const 			{ return esv; }
 	void 			setESV			(const Weight& w)			{ esv = w; }
 
-	AggProp*	 	getType			() 			const 			{ return type; }
+	const AggProp&	getType			() 			const 			{ assert(type!=NULL); return *type; }
 	void 			setType			(AggProp* w)				{ type = w; }
 
 	void 			setProp			(Propagator* p) 			{ prop = p; }
@@ -202,11 +208,18 @@ public:
 
 
 	void 			initialize		(bool& unsat, bool& sat)	{ getProp()->initialize(unsat, sat); }
+	void			backtrack		(int nblevels, int untillevel) { getProp()->backtrack(nblevels, untillevel); }
 	rClause 		propagate		(const Lit& p, Watch* w) 	{ return getProp()->propagate(p, w); }
 	rClause 		propagate		(const Agg& agg) 			{ return getProp()->propagate(agg); }
 	void 			getExplanation	(vec<Lit>& lits, const AggReason& ar) const { getProp()->getExplanation(lits, ar); }
 
 	//	virtual bool canJustifyHead	(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const = 0;
+
+	///////
+	// HELP METHODS
+	///////
+
+	Weight				getBestPossible() { return getType().getBestPossible(this);}
 };
 
 //Compare WLs by their literals, placing same literals next to each other

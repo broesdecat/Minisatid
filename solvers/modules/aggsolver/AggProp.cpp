@@ -7,9 +7,11 @@
 
 #include <limits>
 #include "solvers/modules/aggsolver/AggProp.hpp"
+#include "solvers/modules/AggSolver.hpp"
 
 using namespace std;
 using namespace MinisatID;
+using namespace Aggrs;
 
 typedef numeric_limits<int> intlim;
 
@@ -58,7 +60,7 @@ Weight SumProp::getCombinedWeight(const Weight& one, const Weight& two) const {
 	return this->add(one, two);
 }
 
-WL SumProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) {
+WL SumProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const {
 	if (one.getWeight() < two.getWeight()) {
 		set->setESV(set->getESV() + one.getWeight());
 		return WL(two.getLit(), this->remove(two.getWeight(), one.getWeight()));
@@ -99,7 +101,7 @@ Weight CardProp::getCombinedWeight(const Weight& one, const Weight& two) const {
 	return this->add(one, two);
 }
 
-WL CardProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) {
+WL CardProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const {
 	if (one.getWeight() < two.getWeight()) {
 		set->setESV(set->getESV() + one.getWeight());
 		return WL(two.getLit(), this->remove(two.getWeight(), one.getWeight()));
@@ -121,7 +123,7 @@ Weight MaxProp::getCombinedWeight(const Weight& first, const Weight& second) con
 	return first > second ? first : second;
 }
 
-WL MaxProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) {
+WL MaxProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const {
 	if (one.getWeight() > two.getWeight()) {
 		if (set->getESV() < two.getWeight()) {
 			set->setESV(two.getWeight());
@@ -182,7 +184,7 @@ Weight ProdProp::getCombinedWeight(const Weight& one, const Weight& two) const {
 	return this->add(one, two);
 }
 
-WL ProdProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) {
+WL ProdProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const {
 	//NOTE: om dit toe te laten, ofwel bij elke operatie op en literal al zijn voorkomens overlopen
 	//ofwel aggregaten voor doubles ondersteunen (het eerste is eigenlijk de beste oplossing)
 	//Mogelijke eenvoudige implementatie: weigts bijhouden als doubles (en al de rest als ints)
@@ -199,8 +201,8 @@ WL ProdProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* 
 // TypedSet
 ///////
 
-void CalcAgg::initialize(bool& unsat, bool& sat) {
-	/*prop->initialize(unsat, sat); TODO
+/*void TypedSet::initialize(bool& unsat, bool& sat) { TODO
+	prop->initialize(unsat, sat);
 	if(!sat && !unsat){
 		getSolver()->addSet(this);
 		for(int i=0; i<getAgg().size(); i++){
@@ -208,8 +210,8 @@ void CalcAgg::initialize(bool& unsat, bool& sat) {
 				getSolver()->getPCSolver()->notifyAggrHead(var(getAgg()[i]->getHead()));
 			}
 		}
-	}*/
-}
+	}
+}*/
 
 // Final initialization call!
 void Propagator::initialize(bool& unsat, bool& sat) {
@@ -222,8 +224,8 @@ void Propagator::initialize(bool& unsat, bool& sat) {
 // HELP METHODS
 ///////
 
-AggSolver* Propagator::getSolver() {
-	return getSet().getSolver();
+AggSolver* Propagator::getSolver() const {
+	return getSetp()->getSolver();
 }
 
 rClause Propagator::notifySolver(AggReason* reason){
@@ -243,13 +245,11 @@ bool Aggrs::compareWLByLits(const WL& one, const WL& two) {
 }
 
 vector<TypedSet*> Aggrs::transformSetReduction(TypedSet* const set){
-	assert(set->getType()!=NULL);
-
 	vwl oldset = set->getWL();
 	vwl newset;
 
 	//Sort all wlits according to the integer representation of their literal (to get all literals next to each other)
-	std::sort(oldset.begin(), oldset.end(), compareLits);
+	std::sort(oldset.begin(), oldset.end(), compareWLByLits);
 
 	int indexinnew = 0;
 	newset.push_back(oldset[indexinnew]);
@@ -261,10 +261,10 @@ vector<TypedSet*> Aggrs::transformSetReduction(TypedSet* const set){
 		if (var(oldl.getLit()) == var(newl.getLit())) { //same variable
 			setisreduced = true;
 			if (oldl.getLit() == newl.getLit()) { //same literal, keep combined weight
-				Weight w = set->getType()->getCombinedWeight(newl.getWeight(), oldl.getWeight());
+				Weight w = set->getType().getCombinedWeight(newl.getWeight(), oldl.getWeight());
 				newset[indexinnew] = WL(oldl.getLit(), w);
 			} else { //opposite signs
-				WL wl = set->getType()->handleOccurenceOfBothSigns(oldl, newl);
+				WL wl = set->getType().handleOccurenceOfBothSigns(oldl, newl, set);
 				newset[indexinnew] = WL(wl.getLit(), wl.getWeight());
 			}
 		} else {
@@ -275,7 +275,7 @@ vector<TypedSet*> Aggrs::transformSetReduction(TypedSet* const set){
 
 	vwl newset2;
 	for (vwl::size_type i = 0; i < newset.size(); i++) {
-		if (!isNeutralElement(newset[i].getWeight())) {
+		if (!set->getType().isNeutralElement(newset[i].getWeight())) {
 			newset2.push_back(newset[i]);
 		} else {
 			setisreduced = true;
@@ -287,7 +287,7 @@ vector<TypedSet*> Aggrs::transformSetReduction(TypedSet* const set){
 	}
 }
 
-void Aggrs::transformSumsToCNF(bool& unsat, map<int, TypedSet*>& parsedsets, PCSolver* pcsolver){
+void Aggrs::transformSumsToCNF(bool& unsat, std::vector<TypedSet*> sets, MinisatID::PCSolver* pcsolver){
 /*	int sumaggs = 0;
 	int maxvar = 1;
 	vector<PBAgg*> pbaggs;
