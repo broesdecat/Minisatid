@@ -59,8 +59,8 @@ using namespace MinisatID;
  */
 void DefaultCallback::metaData(int nbvar, int nbconstr) {
 	maxvar = nbvar;
-	cout << "[nbvar=" << nbvar << "]" << endl;
-	cout << "[nbconstr=" << nbconstr << "]" << endl;
+	//cout << "[nbvar=" << nbvar << "]" << endl;
+	//cout << "[nbconstr=" << nbconstr << "]" << endl;
 }
 
 /**
@@ -69,7 +69,7 @@ void DefaultCallback::metaData(int nbvar, int nbconstr) {
 void DefaultCallback::beginObjective() {
 	report("Not yet supported");
 	exit(1);
-	cout << "objective:  ";
+	//cout << "objective:  ";
 }
 
 /**
@@ -77,7 +77,7 @@ void DefaultCallback::beginObjective() {
  */
 void DefaultCallback::endObjective() {
 	//TODO
-	cout << endl;
+	//cout << endl;
 }
 
 /**
@@ -88,7 +88,7 @@ void DefaultCallback::endObjective() {
  */
 void DefaultCallback::objectiveTerm(IntegerType coeff, int idVar) {
 	//TODO
-	cout << "[" << showpos << coeff << noshowpos << " x" << idVar << "] ";
+	//cout << "[" << showpos << coeff << noshowpos << " x" << idVar << "] ";
 }
 
 /**
@@ -100,18 +100,18 @@ void DefaultCallback::objectiveTerm(IntegerType coeff, int idVar) {
  */
 void DefaultCallback::objectiveProduct(IntegerType coeff, vector<int> list) {
 	//TODO
-	cout << "[" << showpos << coeff << noshowpos << " ";
+	/*cout << "[" << showpos << coeff << noshowpos << " ";
 	for (int i = 0; i < list.size(); ++i) {
 		if (list[i] < 0)
 			cout << "~x" << -list[i] << ' ';
 		else
 			cout << "x" << list[i] << ' ';
 	}
-	cout << "] ";
+	cout << "] ";*/
 }
 
 void DefaultCallback::beginConstraint() {
-	cout << "constraint: ";
+	//cout << "constraint: ";
 }
 
 void DefaultCallback::endConstraint() {
@@ -137,7 +137,7 @@ void DefaultCallback::endConstraint() {
 		getSolver()->addClause(lits);
 	}
 
-	cout << endl;
+	//cout << endl;
 }
 
 /**
@@ -148,7 +148,7 @@ void DefaultCallback::endConstraint() {
  */
 void DefaultCallback::constraintTerm(IntegerType coeff, int idVar) {
 	lw.push_back(WLtuple(Literal(abs(idVar), idVar<0), coeff));
-	cout << "[" << showpos << coeff << noshowpos << " x" << idVar << "] ";
+	//cout << "[" << showpos << coeff << noshowpos << " x" << idVar << "] ";
 }
 
 /**
@@ -160,14 +160,14 @@ void DefaultCallback::constraintTerm(IntegerType coeff, int idVar) {
  */
 void DefaultCallback::constraintProduct(IntegerType coeff, vector<int> list) {
 	assert(false);
-	cout << "[" << showpos << coeff << noshowpos << " ";
+	/*cout << "[" << showpos << coeff << noshowpos << " ";
 	for (int i = 0; i < list.size(); ++i) {
 		if (list[i] < 0)
 			cout << "~x" << -list[i] << ' ';
 		else
 			cout << "x" << list[i] << ' ';
 	}
-	cout << "] ";
+	cout << "] ";*/
 }
 
 /**
@@ -181,7 +181,7 @@ void DefaultCallback::constraintRelOp(string relop) {
 	}else{
 		equality = false;
 	}
-	cout << "[" << relop << "] ";
+	//cout << "[" << relop << "] ";
 }
 
 /**
@@ -192,7 +192,7 @@ void DefaultCallback::constraintRelOp(string relop) {
  */
 void DefaultCallback::constraintRightTerm(IntegerType val) {
 	bound = val;
-	cout << "[" << val << "]";
+	//cout << "[" << val << "]";
 }
 
 /**
@@ -647,8 +647,10 @@ void PBRead::parse() {
 	}
 
 	//Small check on the number of constraints
-	if (nbConstraintsRead != nbConstr)
-		throw idpexception("number of constraints read is different from metadata.\n");
+	if (nbConstraintsRead != nbConstr){
+		char s[100]; sprintf(s, "number of constraints read is different from metadata: %d aot %d.\n", nbConstraintsRead, nbConstr);
+		throw idpexception(s);
+	}
 
 	if (autoLinearize) {
 		store.defineProductVariable(cb);
