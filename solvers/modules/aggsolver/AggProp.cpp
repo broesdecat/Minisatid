@@ -255,7 +255,8 @@ bool Aggrs::compareWLByWeights(const WL& one, const WL& two) {
 	return one.getWeight() < two.getWeight();
 }
 
-vector<TypedSet*> Aggrs::transformSetReduction(TypedSet* const set){
+//@pre: has been split
+bool Aggrs::transformSetReduction(TypedSet* set, vps& sets){
 	vwl oldset = set->getWL();
 	vwl newset;
 
@@ -285,9 +286,13 @@ vector<TypedSet*> Aggrs::transformSetReduction(TypedSet* const set){
 	}
 
 	vwl newset2;
+	bool canbecard = true;
 	for (vwl::size_type i = 0; i < newset.size(); i++) {
 		if (!set->getType().isNeutralElement(newset[i].getWeight())) {
 			newset2.push_back(newset[i]);
+			if(newset[i].getWeight()!=1){
+				canbecard = false;
+			}
 		} else {
 			setisreduced = true;
 		}
@@ -297,9 +302,136 @@ vector<TypedSet*> Aggrs::transformSetReduction(TypedSet* const set){
 		set->setWL(newset2);
 	}
 
-	vector<TypedSet*> sets;
-	sets.push_back(set);
-	return sets;
+	//Correct the aggregate types!
+	if(canbecard){
+		for(vpagg::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); i++){
+			if((*i)->getType()==SUM){
+				(*i)->setType(CARD);
+			}
+		}
+	}else{
+		for(vpagg::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); i++){
+			if((*i)->getType()==CARD){
+				(*i)->setType(SUM);
+			}
+		}
+	}
+
+	return true;
+}
+
+//FIXME increase performance by treating transformation on a set to set basis?
+
+bool Aggrs::transformOneToOneSetToAggMapping(TypedSet* set, vps& sets){
+	vpagg aggs = set->getAgg();
+
+	set->getAgg().clear();
+	set->addAgg(aggs[0]);
+
+	for (vpagg::const_iterator i = aggs.begin()++; i < aggs.end(); i++) {
+		TypedSet* newset = new TypedSet(set->getSolver(), set->getSetID());
+		newset->addAgg(*i);
+		newset->setWL(set->getWL());
+		sets.push_back(newset);
+	}
+	return true;
+}
+
+bool Aggrs::transformOneToOneSetToSignMapping(TypedSet* setone, vps& sets){
+	vpagg aggs = setone->getAgg();
+	setone->getAgg().clear();
+	setone->addAgg(aggs[0]);
+
+	TypedSet* settwo = new TypedSet(setone->getSolver(), setone->getSetID());
+	settwo->setWL(setone->getWL());
+
+	for (vpagg::const_iterator i = aggs.begin()++; i < aggs.end(); i++) {
+		if((*i)->getSign()==setone->getAgg()[0]->getSign()){
+			setone->addAgg(*i);
+		}else{
+			settwo->addAgg(*i);
+		}
+	}
+
+	if(settwo->getAgg().size()>0){
+		sets.push_back(settwo);
+	}else{
+		delete settwo;
+	}
+	return true;
+}
+
+bool Aggrs::transformTypePartition(TypedSet* set, vps& sets){
+	//Partition the aggregates according to their type
+	map<AggType, vpagg> partaggs;
+	for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
+		partaggs[(*i)->getType()].push_back(*i);
+	}
+
+	set->setAgg((*partaggs.begin()).second);
+	for(map<AggType, vpagg>::const_iterator i=partaggs.begin()++; i!=partaggs.end(); i++){
+		TypedSet* newset = new TypedSet(set->getSolver(), set->getSetID());
+		newset->setAgg((*i).second);
+		newset->setWL(set->getWL());
+		sets.push_back(newset);
+	}
+	return true;
+}
+
+//@pre Has to be split
+bool Aggrs::transformVerifyWeights(TypedSet* set, vps& sets){
+	switch(set->getAgg()[0]->getType()){
+		case PROD:
+			for (vsize i = 0; i < set->getWL().size(); i++) {
+				if (set->getWL()[i] < 1) { //Exception if product contains negative/zero weights
+					char s[200];
+					sprintf(s, "Error: Set nr. %d contains a 0 (zero) or negative weight %s, which cannot "
+						"be used in combination with a product aggregate\n", set->getSetID(), printWeight(set->getWL()[i]).c_str());
+					throw idpexception(s);
+				}
+			}
+			break;
+	}
+	return true;
+}
+
+//@pre Has to be split
+bool Aggrs::transformAddTypes(TypedSet* set, vps& sets){
+	switch(set->getAgg()[0]->getType()){
+		case MAX:
+			set->setType(AggProp::getMax());
+			break;
+		case SUM:
+			set->setType(AggProp::getSum());
+			break;
+		case CARD:
+			set->setType(AggProp::getCard());
+			break;
+		case PROD:
+			set->setType(AggProp::getProd());
+			break;
+		default:
+			assert(false);
+	}
+	return true;
+}
+
+bool Aggrs::transformMinToMax(TypedSet* set, vps& sets){
+	if(set->getAgg()[0]->getType()==MIN){
+		//Transform Min into Max set: invert all weights
+		vwl wl;
+		for(vsize i = 0; i < set->getWL().size(); i++) {
+			wl.push_back(WL(set->getWL()[i], -set->getWL()[i]));
+		}
+		set->setWL(wl);
+
+		//Invert the bound of all the aggregates involved
+		for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
+			(*i)->setSign((*i)->getSign() == LB ? UB : LB);
+			(*i)->setBound(-(*i)->getBound());
+		}
+	}
+	return true;
 }
 
 //Temporary structure to create pseudo booleans
@@ -310,7 +442,7 @@ struct PBAgg{
 	int sign;
 };
 
-void Aggrs::transformSumsToCNF(bool& unsat, vps sets, MinisatID::PCSolver* pcsolver){
+bool Aggrs::transformSumsToCNF(vps& sets, MinisatID::PCSolver* pcsolver){
 	int sumaggs = 0;
 	int maxvar = 1;
 	vector<PBAgg*> pbaggs;
@@ -381,6 +513,7 @@ void Aggrs::transformSumsToCNF(bool& unsat, vps sets, MinisatID::PCSolver* pcsol
 	MiniSatPP::opt_convert = MiniSatPP::ct_Mixed;
 	pbsolver->allocConstrs(maxvar, sumaggs);
 
+	bool unsat = false;
 	for(vector<PBAgg*>::const_iterator i=pbaggs.begin(); !unsat && i<pbaggs.end(); i++){
 		unsat = !pbsolver->addConstr((*i)->literals, (*i)->weights, (*i)->bound, (*i)->sign, false);
 	}
@@ -388,7 +521,7 @@ void Aggrs::transformSumsToCNF(bool& unsat, vps sets, MinisatID::PCSolver* pcsol
 
 	if(unsat){
 		delete pbsolver;
-		return;
+		return false;
 	}
 
 	//get CNF out of the pseudoboolean matrix
@@ -396,7 +529,7 @@ void Aggrs::transformSumsToCNF(bool& unsat, vps sets, MinisatID::PCSolver* pcsol
 	unsat = !pbsolver->toCNF(pbencodings);
 	delete pbsolver;
 	if(unsat){
-		return;
+		return false;
 	}
 
 	//Any literal that is larger than maxvar will have been newly introduced, so should be mapped to nVars()+lit
@@ -410,6 +543,8 @@ void Aggrs::transformSumsToCNF(bool& unsat, vps sets, MinisatID::PCSolver* pcsol
 		}
 		pcsolver->addClause(lits);
 	}
+
+	return true;
 }
 
 /************************

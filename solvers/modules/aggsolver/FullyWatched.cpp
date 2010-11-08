@@ -204,9 +204,6 @@ lbool FWAgg::canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP
  * and this is returned as the set {~l|l in L+}
  */
 void FWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
-	//assert(ar.getAgg() == agg);
-	//assert(agg->getSet()==this);
-
 	const Agg& agg = ar.getAgg();
 	const Lit& head = agg.getHead();
 
@@ -254,6 +251,48 @@ void FWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 		}
 	}
 }
+
+/*void SumFWAgg::getExplan(const Agg& agg, vec<Lit>& lits) {
+	Weight certainsum = getSet().getESV();
+	Weight possiblesum = getSet().getBestPossible();
+
+	bool explained = false;
+	if ((agg.isLower() && certainsum > agg.getBound()) || (agg.isUpper() && certainsum
+				>= agg.getBound()) || (agg.isLower() && possiblesum <= agg.getBound())
+				|| (agg.isUpper() && possiblesum < agg.getBound())) {
+		explained = true;
+	}
+
+	for(vector<FWTrail>::const_iterator a=getTrail().begin(); !explained && a<getTrail().end(); a++){
+		for (vprop::const_iterator i = (*a).props.begin(); !explained && i < (*a).props.end(); i++) {
+			bool push = false;
+			if ((*i).getType() == POS) { //means that the literal in the set became true
+				certainsum += (*i).getWeight();
+
+				if (agg.isLower()) {
+					push = true;
+					if (agg.getBound() < certainsum) {
+						explained = true;
+					}
+				}
+			} else if ((*i).getType() == NEG) { //the literal in the set became false
+				possiblesum -= (*i).getWeight();
+
+				if (agg.isUpper()) {
+					push = true;
+					if (possiblesum < agg.getBound()) {
+						explained = true;
+					}
+				}
+			} //Else ==HEAD: ignore
+			if (push) {
+				lits.push(~(*i).getLit());
+			}
+		}
+	}
+
+	assert(explained);
+}*/
 
 /*****************
  * MAX AGGREGATE *
@@ -541,60 +580,11 @@ void SumFWAgg::initialize(bool& unsat, bool& sat) {
 		}
 		getSet().setWL(wlits2);
 		for (vpagg::const_iterator i = getSet().getAgg().begin(); i < getSet().getAgg().end(); i++) {
-			addToBounds(**i, totalneg);
+			(*i)->setBound(getSet().getType().add((*i)->getBound(), totalneg));
 		}
 	}
 
 	FWAgg::initialize(unsat, sat);
-}
-
-void SumFWAgg::getMinimExplan(const Agg& agg, vec<Lit>& lits) {
-	Weight certainsum = getSet().getESV();
-	Weight possiblesum = getSet().getBestPossible();
-
-	bool explained = false;
-	if ((agg.isLower() && certainsum > agg.getBound()) || (agg.isUpper() && certainsum
-				>= agg.getBound()) || (agg.isLower() && possiblesum <= agg.getBound())
-				|| (agg.isUpper() && possiblesum < agg.getBound())) {
-		explained = true;
-	}
-
-	for(vector<FWTrail>::const_iterator a=getTrail().begin(); !explained && a<getTrail().end(); a++){
-		for (vprop::const_iterator i = (*a).props.begin(); !explained && i < (*a).props.end(); i++) {
-			bool push = false;
-			if ((*i).getType() == POS) { //means that the literal in the set became true
-				certainsum += (*i).getWeight();
-
-				if (agg.isLower()) {
-					push = true;
-					if (agg.getBound() < certainsum) {
-						explained = true;
-					}
-				}
-			} else if ((*i).getType() == NEG) { //the literal in the set became false
-				possiblesum -= (*i).getWeight();
-
-				if (agg.isUpper()) {
-					push = true;
-					if (possiblesum < agg.getBound()) {
-						explained = true;
-					}
-				}
-			} //Else ==HEAD: ignore
-			if (push) {
-				lits.push(~(*i).getLit());
-			}
-		}
-	}
-
-	assert(explained);
-}
-void SumFWAgg::addToBounds(Agg& agg, const Weight& w) {
-	if (agg.isLower()) {
-		agg.setBound(getSet().getType().add(agg.getBound(), w));
-	} else {
-		agg.setBound(getSet().getType().add(agg.getBound(), w));
-	}
 }
 
 ProdFWAgg::ProdFWAgg(TypedSet* set) :

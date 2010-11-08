@@ -83,7 +83,8 @@ typedef std::vector<vpw> vvpw;
 
 class AggSolver: public DPLLTmodule{
 private:
-    mips					sets;
+	mips 					_parsedSets;
+    vps						_sets;
     std::set<Var>			aggheads;	//A set of all heads that are already used by an aggregate.
 
 	std::vector<Aggrs::AggReason*>	aggreason;	// For each atom, like 'reason'.
@@ -206,16 +207,13 @@ public:
 	void 				addTempWatch			(const Lit& l, Aggrs::Watch* w);
 
 protected:
+	mips&				parsedSets				() { return _parsedSets; }
+	vps&				sets					() { return _sets; }
+
 	// Returns the aggregate in which the given variable is the head.
 	Aggrs::Agg* 		getAggWithHead			(Var v) const;
 
 	bool				finishSet				(Aggrs::TypedSet* set);
-	bool 				initCalcAgg				(Aggrs::TypedSet* ca);
-	bool 				constructMaxSet			(Aggrs::TypedSet* set);
-	bool 				constructMinSet			(Aggrs::TypedSet* set);
-	bool 				constructProdSet		(Aggrs::TypedSet* set);
-	bool 				constructSumSet			(Aggrs::TypedSet* set);
-	bool 				constructCardSet		(Aggrs::TypedSet* set);
 
 	void 				print(Aggrs::Agg* agg) const;
 };

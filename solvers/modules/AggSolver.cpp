@@ -64,7 +64,7 @@ AggSolver::AggSolver(pPCSolver s) :
 }
 
 AggSolver::~AggSolver() {
-	deleteList<TypedSet> (sets);
+	deleteList<TypedSet> (_sets);
 	deleteList<AggReason> (aggreason);
 	deleteList<Watch> (permwatches);
 }
@@ -126,7 +126,7 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 		throw idpexception(s);
 	}
 
-	if (sets.find(setid) != sets.end()) {
+	if (parsedSets().find(setid) != parsedSets().end()) {
 		char s[100];
 		sprintf(s, "Set nr. %d is defined more than once.\n", setid);
 		throw idpexception(s);
@@ -148,7 +148,7 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 
 	TypedSet* set = new TypedSet(this, setid);
 	set->setWL(lw);
-	sets[setid] = set;
+	parsedSets()[setid] = set;
 
 	if (verbosity() >= 5) { // Print information on added set
 		report("Added set %d: ", setid);
@@ -171,7 +171,7 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, AggSign boundsign, AggType type, AggSem headeq) {
 	assert(type==MIN || type==MAX || type==CARD || type==SUM || type==PROD);
 
-	if (sets.find(setid) == sets.end()) { //Exception if set already exists
+	if (parsedSets().find(setid) == parsedSets().end()) { //Exception if does not already exist
 		char s[100];
 		sprintf(s, "Set nr. %d is used, but not defined yet.\n", setid);
 		throw idpexception(s);
@@ -182,7 +182,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, AggSign boundsig
 		throw idpexception(s);
 	}
 
-	TypedSet* set = sets[setid];
+	TypedSet* set = parsedSets()[setid];
 
 	// Check whether the head occurs in the body of the set, which is no longer allowed
 	// TODO zet in file huidige invoerformaat, zodat de grounder dat kan garanderen
@@ -204,8 +204,8 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, AggSign boundsig
 
 #ifdef DEBUG
 	if(type == CARD) { //Check if all card weights are 1
-		for(vwl::size_type i=0; i<sets[setid]->getWL().size(); i++) {
-			if(sets[setid]->getWL()[i].getWeight()!=1) {
+		for(vwl::size_type i=0; i<parsedSets()[setid]->getWL().size(); i++) {
+			if(parsedSets()[setid]->getWL()[i].getWeight()!=1) {
 				report("Cardinality was loaded with wrong weights");
 				assert(false);
 			}
@@ -220,6 +220,8 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, AggSign boundsig
 	//for(int i=0; i<log(set->getWL().size())+1; i++){
 	//	getPCSolver()->varBumpActivity(headv);
 	//}
+
+	//TODO test whether bumping the higher weights more would help?
 
 	aggheads.insert(headv);
 
@@ -237,12 +239,12 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, AggSign boundsig
 }
 
 void AggSolver::finishParsing(bool& present, bool& unsat) {
-/*	notifyInitialized();
+	notifyInitialized();
 
 	unsat = false;
 	present = true;
 
-	if (sets.size() == 0) {
+	if (parsedSets().size() == 0) {
 		present = false;
 		return;
 	}
@@ -254,52 +256,69 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	//Not used before finishparsing, so safe to initialize here!
 	tempwatches.resize(2 * nVars());
 	aggreason.resize(nVars(), NULL);
-	assigns.resize(nVars(), l_Undef);
 
-	// Initialize all parsedsets into sets
+	for(mips::const_iterator i=parsedSets().begin(); i!=parsedSets().end(); i++){
+		sets().push_back((*i).second);
+	}
+
+	// Initialization of all sets
 
 	//Rewrite all sum and card constraint into CNF using PBSOLVER
-	//TODO transformSumCardToCNF
-	if(getPCSolver()->modes().pbsolver){
-		transformSumsToCNF(unsat, sets, getPCSolver());
-		if(unsat){ return; }
+	if(getPCSolver()->modes().pbsolver && !unsat){
+		unsat = !transformSumsToCNF(sets(), getPCSolver());
 	}
 
-	for (map<int, TypedSet*>::const_iterator i = sets.begin(); i != sets.end(); i++) {
-		bool foundunsat = finishSet((*i).second); //FIXME add set reduction somewhere!
-		if (foundunsat) {
-			if (verbosity() >= 3) {
-				report("Initializing aggregates finished, unsat detected.\n");
+	//Finish the sets: add all body literals to the network
+	vps remainingsets;
+	vps satsets;
+	for (vps::const_iterator i=sets().begin(); !unsat && i!=sets().end(); i++) {
+		TypedSet* set = *i;
+
+		unsat = unsat || !transformTypePartition(set, sets());
+		unsat = unsat || !transformMinToMax(set, sets());
+		unsat = unsat || !transformAddTypes(set, sets());
+		unsat = unsat || !transformVerifyWeights(set, sets());
+		unsat = unsat || !transformSetReduction(set, sets());
+		if(getPCSolver()->modes().pw){ //use PWatches
+			unsat = unsat || !transformOneToOneSetToAggMapping(set, sets());
+		}
+
+		bool sat = false;
+		if(!unsat){
+			set->initialize(unsat, sat);
+		}
+
+		if(!unsat && !sat){
+			for (vsize i = 0; i < set->getWL().size(); i++) {
+				network[var(set->getWL()[i])].push_back(set);
 			}
-			unsat = true;
-			return;
+		}
+
+		if(sat){
+			satsets.push_back(set);
+		}else{
+			remainingsets.push_back(set);
 		}
 	}
+	sets().clear();
+	copy(remainingsets.begin(), remainingsets.end(), sets().begin());
+	deleteList<TypedSet>(satsets);
 
-	//Gather all available information
-	vsize max = 0, min = 0, card = 0, prod = 0, sum = 0;
-	int totalagg = 0, setlits = 0, nbsets = sets.size();
-	for (vsize i = 0; i < sets.size(); i++) {
-		int agg = sets[i]->getAgg().size();
-		totalagg += agg;
-		setlits += sets[i]->getWL().size();
-		switch (sets[i]->getType()) {
-		case MIN:
-			min += agg;
-			break;
-		case MAX:
-			max += agg;
-			break;
-		case PROD:
-			prod += agg;
-			break;
-		case SUM:
-			sum += agg;
-			break;
-		case CARD:
-			card += agg;
-			break;
+	if(unsat){
+		if (verbosity() >= 3) {
+			report("Initializing aggregates finished, unsat detected.\n");
 		}
+		return;
+	}
+
+	//Gather available information
+	map<AggType, int> nbaggs;
+	int totalagg = 0, setlits = 0;
+	for (vsize i = 0; i < sets().size(); i++) {
+		int agg = sets()[i]->getAgg().size();
+		totalagg += agg;
+		setlits += sets()[i]->getWL().size();
+		nbaggs[sets()[i]->getType().getType()]+=agg; //Defaults to 0 if new: http://forums.whirlpool.net.au/archive/1286863
 	}
 
 	if (totalagg == 0) {
@@ -312,19 +331,19 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 
 	//Print lots of information
 	if (verbosity() >= 1) {
-		report("| Number of minimum exprs.:     %4zu                                          |\n", min);
-		report("| Number of maximum exprs.:     %4zu                                          |\n", max);
-		report("| Number of sum exprs.:         %4zu                                          |\n", sum);
-		report("| Number of product exprs.:     %4zu                                          |\n", prod);
-		report("| Number of cardinality exprs.: %4zu                                          |\n", card);
+		report("| Number of minimum exprs.:     %4zu                                          |\n", nbaggs[MIN]);
+		report("| Number of maximum exprs.:     %4zu                                          |\n", nbaggs[MAX]);
+		report("| Number of sum exprs.:         %4zu                                          |\n", nbaggs[SUM]);
+		report("| Number of product exprs.:     %4zu                                          |\n", nbaggs[PROD]);
+		report("| Number of cardinality exprs.: %4zu                                          |\n", nbaggs[CARD]);
 
 		report("| Over %4d sets, aggregate set avg. size: %7.2f lits.                      |\n",
-				nbsets,(double)setlits/(double)(nbsets));
+				sets().size(),(double)setlits/(double)(sets().size()));
 	}
 
 	if (verbosity() >= 3) {
 		report("Aggregates are present after initialization:\n");
-		for (mips::const_iterator i = sets.begin(); i < sets.end(); i++) {
+		for (vps::const_iterator i = sets().begin(); i < sets().end(); i++) {
 			for (vpagg::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); j++) {
 				Aggrs::printAgg(**j, true);
 			}
@@ -335,212 +354,22 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 			if (headwatches[i] != NULL) {
 				report("   headwatch\n");
 				report("      ");
-				Aggrs::printAgg(headwatches[i]->getSet(), true);
+				Aggrs::printAgg(*headwatches[i]->getSet(), true);
 			}
 
 			if (verbosity() >= 6) {
 				report("   bodywatches\n");
 				for (vsize j = 0; j < permwatches[i].size(); j++) {
 					report("      ");
-					Aggrs::printAgg((permwatches[i][j])->getSet(), true);
+					Aggrs::printAgg(*(permwatches[i][j])->getSet(), true);
 				}
 				for (vsize j = 0; j < tempwatches[i].size(); j++) {
 					report("      ");
-					Aggrs::printAgg((tempwatches[i][j])->getSet(), true);
+					Aggrs::printAgg(*(tempwatches[i][j])->getSet(), true);
 				}
 			}
 		}
-	}*/
-}
-
-bool AggSolver::finishSet(TypedSet* set) {
-/*	bool unsat = false;
-
-	//Partition the aggregates according to their type
-	map<AggType, vpagg> partaggs;
-	for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
-		partaggs[(*i)->getType()].push_back(*i);
 	}
-
-	//Initialize the different sets
-	for (map<AggType, vpagg>::const_iterator i = partaggs.begin(); !unsat && i != partaggs.end(); i++) {
-		assert((*i).second.size()!=0);
-
-		switch ((*i).first) {
-		case MIN: unsat = constructMinSet(set, (*i).second); break;
-		case MAX: unsat = constructMaxSet(set, (*i).second); break;
-		case CARD: unsat = constructCardSet(set, (*i).second); break;
-		case SUM: unsat = constructSumSet(set, (*i).second); break;
-		case PROD: unsat = constructProdSet(set, (*i).second); break;
-		}
-	}
-
-	return unsat;*/
-}
-
-//gets OWNING pointer to ca
-bool AggSolver::initCalcAgg(TypedSet* ca) {
-/*	for (vsize i = 0; i < aggs.size(); i++) {
-		ca->addAgg(new Agg(aggs[i]->getBound(), aggs[i]->getSign(), aggs[i]->getHead(), aggs[i]->getSem(), aggs[i]->isOptim()));
-	}
-
-	bool unsat = false, sat = false;
-	ca->initialize(unsat, sat);
-	if (sat || unsat) {
-		delete ca;
-	}
-	return unsat;*/
-}
-
-/*void AggSolver::addSet(TypedSet* ca) {
-	sets.push_back(ca);
-	//Initialize network of body literals:
-	for (vsize i = 0; i < ca->getWL().size(); i++) {
-		network[var(ca->getWL()[i])].push_back(ca);
-	}
-}*/
-
-bool AggSolver::constructMinSet(TypedSet* set) {
-/*	//Transform Min into Max set: invert all weights
-	vwl wl;
-	for (vsize i = 0; i < set->getWL().size(); i++) {
-		wl.push_back(WL(set->getWL()[i], -set->getWL()[i]));
-	}
-	TypedSet* set2 = new ParsedSet(set->getID(), wl);
-
-	//Invert the bound of all the aggregates involved
-	vpagg aggs2;
-	for (vpagg::const_iterator i = aggs.begin(); i < aggs.end(); i++) {
-		AggSign sign = (*i)->getSign() == LB ? UB : LB;
-		aggs2.push_back(new ParsedAgg(-(*i)->getBound(), sign, (*i)->getHead(), (*i)->getSem(), set2, (*i)->getType()));
-	}
-
-	bool unsat = constructMaxSet(set2, aggs2);
-	delete set2;
-
-	return unsat;*/
-}
-
-bool AggSolver::constructMaxSet(TypedSet* set) {
-/*	TypedSet* ca = new MaxCalc(this, set->getWL());
-	return initCalcAgg(ca, aggs);*/
-}
-
-bool AggSolver::constructCardSet(TypedSet* set) {
-/*	map<Var, bool> occurs;
-	bool tosum = false;
-	for (vsize i = 0; !tosum && i < set->getWL().size(); i++) {
-		if (set->getWL()[i] != 1) {
-			tosum = true;
-		} else if (occurs.find(var(set->getWL()[i])) != occurs.end()) {
-			tosum = true;
-		} else {
-			occurs[var(set->getWL()[i])] = true;
-		}
-	}
-	if (tosum) {
-		return constructSumSet(set, aggs);
-	}
-
-	//Card>=1 is translated away as an equivalence!
-	vpagg checkedaggs;
-	for (int i = 0; i < aggs.size(); i++) {
-		Agg* agg = aggs[i];
-		if (agg->getSign() == UB && agg->getBound() == 1) {
-			//Can be translated straight to ONE clause!
-			vec<Lit> right;
-			for (int j = 0; j < set->getWL().size(); j++) {
-				right.push(set->getWL()[j]);
-			}
-			if (agg->getSem() == DEF) {
-				if (!getPCSolver()->addRule(false, agg->getHead(), right)) {
-					return false;
-				}
-			} else if (!getPCSolver()->addEquivalence(agg->getHead(), right, false)) {
-				return false;
-			}
-
-		} else {
-			checkedaggs.push_back(aggs[i]);
-		}
-	}
-
-	if (getPCSolver()->modes().pw) { //use PWatches
-	//		 TODO if set reuse is supported, only split into two parts
-	//		vpagg lower, higher;
-	//		for(vsize i=0; i<aggs.size(); i++){
-	//			if(aggs[i]->getSign()==LOWERBOUND){
-	//				lower.push_back(aggs[i]);
-	//			}else{
-	//				higher.push_back(aggs[i]);
-	//			}
-	//		}
-	//		TypedSet* ca = new CardCalc(this, set->getWL());
-	//		bool unsat  = initCalcAgg(ca, lower);
-	//		TypedSet* ca2 = new CardCalc(this, set->getWL());
-	//		return !unsat || initCalcAgg(ca2, higher);
-
-		//Currently, add each aggregate as a separate constraint
-		bool unsat = false;
-		for (vsize i = 0; !unsat && i < checkedaggs.size(); i++) {
-			TypedSet* ca = new CardCalc(this, set->getWL());
-			vpagg aggs2;
-			aggs2.push_back(checkedaggs[i]);
-			unsat = initCalcAgg(ca, aggs2);
-		}
-		return unsat;
-	} else {
-		TypedSet* ca = new CardCalc(this, set->getWL());
-		return initCalcAgg(ca, checkedaggs);
-	}*/
-}
-
-bool AggSolver::constructSumSet(TypedSet* set) {
-/*	//TODO only weights 1 and -1 should also be rewritten as a card!
-	map<Var, bool> occurs;
-	bool tocard = true;
-	for (vsize i = 0; tocard && i < set->getWL().size(); i++) {
-		if (set->getWL()[i] != 1) {
-			tocard = false;
-		} else if (occurs.find(var(set->getWL()[i])) != occurs.end()) {
-			tocard = false;
-		} else {
-			occurs[var(set->getWL()[i])] = true;
-		}
-	}
-	if (tocard) {
-		return constructCardSet(set, aggs);
-	}
-
-	if(getPCSolver()->modes().pw){ //use PWatches
-		//TODO Currently, add each aggregate as a separate constraint
-		bool unsat = false;
-		for(vsize i=0; !unsat && i<aggs.size(); i++){
-			TypedSet* ca = new SumCalc(this, set->getWL());
-			vpagg aggs2;
-			aggs2.push_back(aggs[i]);
-			unsat = initCalcAgg(ca, aggs2);
-		}
-		return unsat;
-	}else{
-		TypedSet* ca = new SumCalc(this, set->getWL());
-		return initCalcAgg(ca, aggs);
-	}*/
-
-}
-
-bool AggSolver::constructProdSet(TypedSet* set) {
-	/*for (vsize i = 0; i < set->getWL().size(); i++) {
-		if (set->getWL()[i] < 1) { //Exception if product contains negative/zero weights
-			char s[200];
-			sprintf(s, "Error: Set nr. %d contains a 0 (zero) or negative weight %s, which cannot "
-				"be used in combination with a product aggregate\n", set->getID(), printWeight(set->getWL()[i]).c_str());
-			throw idpexception(s);
-		}
-	}
-
-	TypedSet* ca = new ProdCalc(this, set->getWL());
-	return initCalcAgg(ca, aggs);*/
 }
 
 /**
@@ -619,7 +448,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 void AggSolver::newDecisionLevel() {
 	if (verbosity() >= 6) {
 		report("Current effective watches on new decision level: \n");
-		//TODO printWatches(this, tempwatches);
+		//FIXME when partial watches code has been changed printWatches(this, tempwatches);
 	}
 	trail.push_back(vector<TypedSet*>());
 }
@@ -677,7 +506,7 @@ rClause AggSolver::propagate(const Lit& p) {
 
 		if (verbosity() >= 8) {
 			report("Current effective watches AFTER: \n");
-	//TODO		printWatches(this, tempwatches);
+			//FIXME when partial watches code has been changed printWatches(this, tempwatches);
 		}
 	}
 
@@ -832,9 +661,8 @@ bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, ve
 ///////
 
 //FIXME no optimizations should take place on mnmz aggregates (partially helped by separate add method).
-//TODO 2 more optimization should/could take place on other aggregates
 bool AggSolver::addMnmzSum(Var headv, int setid, AggSign boundsign) {
-	if (sets.find(setid) == sets.end()) {
+	if (parsedSets().find(setid) == parsedSets().end()) {
 		char s[100];
 		sprintf(s, "Set nr. %d is used, but not defined yet.\n", setid);
 		throw idpexception(s);
@@ -842,7 +670,7 @@ bool AggSolver::addMnmzSum(Var headv, int setid, AggSign boundsign) {
 
 	assert(headv>=0);
 
-	TypedSet* set = sets[setid];
+	TypedSet* set = parsedSets()[setid];
 
 	// Check whether the head occurs in the body of the set, which is no longer allowed
 	for (vsize i = 0; i < set->getWL().size(); i++) {
@@ -854,7 +682,7 @@ bool AggSolver::addMnmzSum(Var headv, int setid, AggSign boundsign) {
 	}
 
 	//Check that not aggregates occur with the same heads
-	for (map<int, TypedSet*>::const_iterator i = sets.begin(); i != sets.end(); i++) {
+	for (map<int, TypedSet*>::const_iterator i = parsedSets().begin(); i != parsedSets().end(); i++) {
 		for (vsize j = 0; j < (*i).second->getAgg().size(); j++) {
 			if (var((*i).second->getAgg()[j]->getHead()) == headv) { //Exception if two agg with same head
 				char s[100];
@@ -878,7 +706,7 @@ bool AggSolver::addMnmzSum(Var headv, int setid, AggSign boundsign) {
 
 	Agg* ae = new Agg(boundsign == LB ? max + 1 : min, boundsign, head, COMP, SUM);
 	set->addAgg(ae);
-	ae->setOptim(); //TODO temporary solution
+	ae->setOptim();
 
 	if (verbosity() >= 3) {
 		report("Added sum minimization: Minimize ");
@@ -896,18 +724,14 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
 
 	report("Current optimum: %s\n", printWeight(prop->getCC()).c_str());
 
-	if (a->isLower()) {
-		a->setBound(prop->getCC() - 1);
-	} else if (a->isUpper()) {
-		a->setBound(prop->getCC() - 1);
-	}
+	a->setBound(prop->getCC() - 1);
 
 	if (s->getBestPossible() == prop->getCC()) {
 		return true;
 	}
 
-	//TODO: should call standard getexplanation here!
-	prop->getMinimExplan(*a, invalidation);
+	AggReason ar(*a, CPANDCC, createNegativeLiteral(head), true);
+	prop->getExplanation(invalidation, ar);
 
 	return false;
 }

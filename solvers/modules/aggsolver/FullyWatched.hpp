@@ -99,9 +99,6 @@ public:
 	virtual ~SumFWAgg(){};
 
 	virtual void 	initialize				(bool& unsat, bool& sat);
-
-			void	getMinimExplan			(const Agg& agg, vec<Lit>& lits);
-			void 	addToBounds				(Agg& agg, const Weight& w);
 };
 
 class ProdFWAgg: public  SPFWAgg {

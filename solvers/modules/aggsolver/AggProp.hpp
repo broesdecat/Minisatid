@@ -23,6 +23,9 @@ class AggSolver;
 namespace Aggrs{
 
 class TypedSet;
+typedef std::map<int, Aggrs::TypedSet*> mips;
+typedef std::vector<Aggrs::TypedSet*> vps;
+
 class Watch;
 class AggReason;
 
@@ -57,9 +60,12 @@ public:
 	void 		setIndex	(int ind) 					{ index = ind; }
 	void 		setSetID	(int id)					{ setid = id; }
 	void		setBound	(const Weight& w)			{ bound = w;}
+	void		setSign		(AggSign s)					{ sign = s;}
+	void		setType		(AggType s)					{ type = s;}
 	void		setOptim	()							{ optim = true; }
 	void		setTypedSet	(TypedSet* s)				{ set = set; }
 };
+typedef std::vector<Agg*> vpagg;
 
 class AggProp{
 private:
@@ -153,8 +159,16 @@ bool compareWLByWeights(const WL& one, const WL& two);
  *
  * @post: the literals are sorted according to weight again
  */
-std::vector<TypedSet*> transformSetReduction(TypedSet* const set);
-void transformSumsToCNF(bool& unsat, std::vector<TypedSet*> sets, MinisatID::PCSolver* pcsolver);
+bool transformSetReduction(TypedSet* set, vps& sets);
+bool transformTypePartition(TypedSet* set, vps& sets);
+bool transformAddTypes(TypedSet* set, vps& sets);
+bool transformMinToMax(TypedSet* set, vps& sets);
+bool transformVerifyWeights(TypedSet* set, vps& sets);
+bool transformOneToOneSetToAggMapping(TypedSet* set, vps& sets);
+bool transformOneToOneSetToSignMapping(TypedSet* set, vps& sets);
+
+bool transformSumsToCNF(vps& sets, MinisatID::PCSolver* pcsolver);
+
 
 class AggSet{
 private:
@@ -199,9 +213,9 @@ protected:
 	Weight 	esv;
 	vwl 	wl;
 
-	AggProp* 	type;
+	AggProp const * 	type;
 
-	std::vector<Agg*> 	aggregates;	//OWNS the pointers
+	vpagg			 	aggregates;	//OWNS the pointers
 	AggSolver*			aggsolver;	//does NOT own this pointer
 	Propagator* 		prop;		//OWNS pointer
 
@@ -218,16 +232,17 @@ public:
 
 	AggSolver * const getSolver		()			const			{ return aggsolver; }
 	const vwl&		getWL			()			const 			{ return wl; }
-	void			setWL(const vwl& wl2)			 			{ wl=wl2; sort(wl.begin(), wl.end(), compareWLByWeights);} //FIXME SORT?
+	void			setWL			(const vwl& wl2)			{ wl=wl2; sort(wl.begin(), wl.end(), compareWLByWeights);} //FIXME SORT?
 
 	std::vector<Agg*>& getAgg		()	 						{ return aggregates; }
-	void 			addAgg			(Agg* aggr) 				{ 	aggregates.push_back(aggr); }
+	void			setAgg			(const vpagg& aggs)			{ aggregates=aggs; }
+	void 			addAgg			(Agg* aggr) 				{ aggregates.push_back(aggr); }
 
 	const Weight& 	getESV			() 			const 			{ return esv; }
 	void 			setESV			(const Weight& w)			{ esv = w; }
 
 	const AggProp&	getType			() 			const 			{ assert(type!=NULL); return *type; }
-	void 			setType			(AggProp* w)				{ type = w; }
+	void 			setType			(AggProp const * const w)	{ type = w; }
 
 	void 			setProp			(Propagator* p) 			{ prop = p; }
 	Propagator*		getProp			() 			const 			{ return prop; }
