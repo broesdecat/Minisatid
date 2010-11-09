@@ -29,6 +29,8 @@ typedef std::vector<Aggrs::TypedSet*> vps;
 class Watch;
 class AggReason;
 
+class Propagator;
+
 class Agg{
 private:
 	TypedSet*	set;
@@ -63,7 +65,7 @@ public:
 	void		setSign		(AggSign s)					{ sign = s;}
 	void		setType		(AggType s)					{ type = s;}
 	void		setOptim	()							{ optim = true; }
-	void		setTypedSet	(TypedSet* s)				{ set = set; }
+	void		setTypedSet	(TypedSet* s)				{ set = s; }
 };
 typedef std::vector<Agg*> vpagg;
 
@@ -90,6 +92,8 @@ public:
 	virtual Weight		add						(const Weight& lhs, const Weight& rhs) 	const = 0;
 	virtual Weight		remove					(const Weight& lhs, const Weight& rhs) 	const = 0;
 	virtual bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) 	const = 0;
+
+	virtual Propagator*	createPropagator		(TypedSet* set, bool pw) const = 0;
 };
 
 class MaxProp: public AggProp{
@@ -104,6 +108,7 @@ public:
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const { assert(false); return 0; }
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const { assert(false); return 0; }
 	bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) 	const;
+	Propagator*	createPropagator		(TypedSet* set, bool pw) const;
 };
 
 class SPProp: public AggProp{
@@ -122,6 +127,7 @@ public:
 	Weight 		getBestPossible			(TypedSet* set) 						const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
+	Propagator*	createPropagator		(TypedSet* set, bool pw) const;
 };
 
 class SumProp: public SPProp{
@@ -135,6 +141,7 @@ public:
 	Weight 		getBestPossible			(TypedSet* set) 						const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
+	Propagator*	createPropagator		(TypedSet* set, bool pw) const;
 };
 
 class CardProp: public SumProp{
@@ -168,19 +175,6 @@ bool transformOneToOneSetToAggMapping(TypedSet* set, vps& sets);
 bool transformOneToOneSetToSignMapping(TypedSet* set, vps& sets);
 
 bool transformSumsToCNF(vps& sets, MinisatID::PCSolver* pcsolver);
-
-
-class AggSet{
-private:
-	vwl	wlits;
-	std::vector<Agg*> aggs;
-
-public:
-    AggSet(const std::vector<WL>& wl);
-
-    const 	vwl& 	getWL()	const						{ return wlits; }
-			void 	setWL(const std::vector<WL>& newset);
-};
 
 class Propagator {
 protected:
@@ -222,7 +216,7 @@ protected:
 	int setid;
 
 public:
-	TypedSet(AggSolver* solver, int setid): aggsolver(solver), setid(setid){}
+	TypedSet(AggSolver* solver, int setid): aggsolver(solver), setid(setid), esv(0){}
 	virtual ~TypedSet(){
 		deleteList<Agg>(aggregates);
 		delete prop;
@@ -234,9 +228,9 @@ public:
 	const vwl&		getWL			()			const 			{ return wl; }
 	void			setWL			(const vwl& wl2)			{ wl=wl2; sort(wl.begin(), wl.end(), compareWLByWeights);} //FIXME SORT?
 
-	std::vector<Agg*>& getAgg		()	 						{ return aggregates; }
-	void			setAgg			(const vpagg& aggs)			{ aggregates=aggs; }
-	void 			addAgg			(Agg* aggr) 				{ aggregates.push_back(aggr); }
+	const std::vector<Agg*>& getAgg	()	 						{ return aggregates; }
+	void			replaceAgg		(const vpagg& repl)			;
+	void 			addAgg			(Agg* aggr) 				;
 
 	const Weight& 	getESV			() 			const 			{ return esv; }
 	void 			setESV			(const Weight& w)			{ esv = w; }

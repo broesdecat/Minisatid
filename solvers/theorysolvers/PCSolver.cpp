@@ -376,7 +376,7 @@ void PCSolver::finishParsing(bool& present, bool& unsat) {
 		}
 		if ((*i)->present && !(*i)->get()->simplify()) {
 			unsat = true; return;
-		} else {
+		} else if(!(*i)->present){
 			if (modes().verbosity > 0) {
 				report("|    (there will be no propagations on %s module)                             |\n", (*i)->get()->getName());
 			}
@@ -536,6 +536,8 @@ rClause PCSolver::propagate(Lit l) {
  * Returns not-owning pointer
  */
 rClause PCSolver::propagateAtEndOfQueue() {
+	if(init){ return nullPtrClause;	}
+
 	rClause confl = nullPtrClause;
 	for(lsolvers::const_iterator i=solvers.begin(); confl==nullPtrClause && i<solvers.end(); i++){
 		if((*i)->present){

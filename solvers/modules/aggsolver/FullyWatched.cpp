@@ -35,6 +35,7 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 	}
 	//truth.resize(getSet().getWL().size(), l_Undef);
 
+	trail.push_back(FWTrail(0, 0, 0));
 	setCP(getSet().getBestPossible());
 	setCC(getSet().getESV());
 
@@ -43,8 +44,8 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 	//nomoreprops.resize(startsize, false);
 	//headproptime.resize(startsize, -1);
 
-	vsize i = 0, j = 0;
-	for (; !unsat && i < getSet().getAgg().size(); i++) {
+	vpagg remainingaggs;
+	for (vsize i = 0; !unsat && i < getSet().getAgg().size(); i++) {
 		pagg agg = getSet().getAgg()[i];
 		lbool result = initialize(*agg);
 		if (result == l_True && !agg->isDefined()) {
@@ -57,11 +58,10 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 			unsat = true; //UNSAT because always false
 			return;
 		} else {
-			agg->setIndex(j);
-			getSet().getAgg()[j++] = agg;
+			remainingaggs.push_back(agg);
 		}
 	}
-	getSet().getAgg().resize(j);
+	getSet().replaceAgg(remainingaggs);
 	//headindex.resize(j, -1);
 	//nomoreprops.resize(j, false);
 	//headproptime.clear(); //if it has been propagated before, it has been dropped

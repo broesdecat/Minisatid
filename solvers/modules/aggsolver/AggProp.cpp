@@ -12,6 +12,10 @@
 #include "solvers/theorysolvers/PCSolver.hpp"
 #include "PbSolver.h"
 
+#include "solvers/modules/aggsolver/FullyWatched.hpp"
+
+#include <assert.h>
+
 using namespace std;
 using namespace std::tr1;
 using namespace MinisatID;
@@ -19,10 +23,10 @@ using namespace MinisatID::Aggrs;
 
 typedef numeric_limits<int> intlim;
 
-shared_ptr<AggProp> AggProp::max = shared_ptr<AggProp>(new MaxProp());
-shared_ptr<AggProp> AggProp::sum = shared_ptr<AggProp>(new SumProp());
-shared_ptr<AggProp> AggProp::card = shared_ptr<AggProp>(new CardProp());
-shared_ptr<AggProp> AggProp::prod = shared_ptr<AggProp>(new ProdProp());
+shared_ptr<AggProp> AggProp::max = shared_ptr<AggProp> (new MaxProp());
+shared_ptr<AggProp> AggProp::sum = shared_ptr<AggProp> (new SumProp());
+shared_ptr<AggProp> AggProp::card = shared_ptr<AggProp> (new CardProp());
+shared_ptr<AggProp> AggProp::prod = shared_ptr<AggProp> (new ProdProp());
 
 bool MaxProp::isMonotone(const Agg& agg, const WL& l) const {
 	return (agg.isLower() && l.getWeight() <= agg.getBound()) || (agg.isUpper());
@@ -39,9 +43,9 @@ bool ProdProp::isMonotone(const Agg& agg, const WL& l) const {
 
 Weight SumProp::add(const Weight& lhs, const Weight& rhs) const {
 #ifdef INTWEIGHT
-	if(lhs>0 && rhs > 0 && intlim::max()-lhs < rhs) {
+	if (lhs > 0 && rhs > 0 && intlim::max() - lhs < rhs) {
 		return intlim::max();
-	} else if(lhs<0 && rhs<0 && intlim::min()-lhs>rhs) {
+	} else if (lhs < 0 && rhs < 0 && intlim::min() - lhs > rhs) {
 		return intlim::min();
 	}
 #endif
@@ -88,9 +92,9 @@ Weight CardProp::getBestPossible(TypedSet* set) const {
 
 Weight CardProp::add(const Weight& lhs, const Weight& rhs) const {
 #ifdef INTWEIGHT
-	if(lhs>0 && rhs > 0 && intlim::max()-lhs < rhs) {
+	if (lhs > 0 && rhs > 0 && intlim::max() - lhs < rhs) {
 		return intlim::max();
-	} else if(lhs<0 && rhs<0 && intlim::min()-lhs>rhs) {
+	} else if (lhs < 0 && rhs < 0 && intlim::min() - lhs > rhs) {
 		return intlim::min();
 	}
 #endif
@@ -157,16 +161,16 @@ Weight ProdProp::add(const Weight& lhs, const Weight& rhs) const {
 #ifdef INTWEIGHT
 	bool sign = false;
 	Weight l = lhs, r = rhs;
-	if(l<0) {
-		l= -l;
+	if (l < 0) {
+		l = -l;
 		sign = true;
 	}
-	if(r<0) {
+	if (r < 0) {
 		r = -r;
 		sign = !sign;
 	}
-	if(intlim::max()/l < r) {
-		return sign?intlim::min():intlim::max();
+	if (intlim::max() / l < r) {
+		return sign ? intlim::min() : intlim::max();
 	}
 #endif
 	return lhs * rhs;
@@ -193,7 +197,7 @@ WL ProdProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* 
 	//ofwel aggregaten voor doubles ondersteunen (het eerste is eigenlijk de beste oplossing)
 	//Mogelijke eenvoudige implementatie: weigts bijhouden als doubles (en al de rest als ints)
 	report("Product aggregates in which both the literal and its negation occur "
-		"are currently not supported. Replace ");
+			"are currently not supported. Replace ");
 	gprintLit(one.getLit());
 	report("or ");
 	gprintLit(two.getLit());
@@ -205,15 +209,45 @@ WL ProdProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* 
 // TypedSet
 ///////
 
+Propagator*	MaxProp::createPropagator(TypedSet* set, bool pw) const{
+	return new MaxFWAgg(set);
+}
+
+Propagator*	SumProp::createPropagator(TypedSet* set, bool pw) const{
+	return new SumFWAgg(set);
+}
+
+Propagator*	ProdProp::createPropagator(TypedSet* set, bool pw) const{
+	return new ProdFWAgg(set);
+}
+
+void TypedSet::addAgg(Agg* aggr){
+	aggregates.push_back(aggr);
+	aggr->setTypedSet(this);
+	aggr->setIndex(aggregates.size()-1);
+}
+
+void TypedSet::replaceAgg(const vpagg& repl){
+	for(vsize i=0; i<aggregates.size(); i++){
+		aggregates[i]->setTypedSet(NULL);
+		aggregates[i]->setIndex(-1);
+	}
+	aggregates.clear();
+	for(vsize i=0; i<repl.size(); i++){
+		addAgg(repl[i]);
+	}
+}
+
 /*
  * Initialize the datastructures. If it's neither sat nor unsat and it is defined, notify the pcsolver of this
  */
 void TypedSet::initialize(bool& unsat, bool& sat) {
+	setProp(getType().createPropagator(this, this->getSolver()->getPCSolver()->modes().pw));
 	prop->initialize(unsat, sat);
 
-	if(!sat && !unsat){
-		for(vsize i=0; i<getAgg().size(); i++){
-			if(getAgg()[i]->isDefined()){
+	if (!sat && !unsat) {
+		for (vsize i = 0; i < getAgg().size(); i++) {
+			if (getAgg()[i]->isDefined()) {
 				getSolver()->notifyDefinedHead(var(getAgg()[i]->getHead()));
 			}
 		}
@@ -222,7 +256,7 @@ void TypedSet::initialize(bool& unsat, bool& sat) {
 
 // Final initialization call!
 void Propagator::initialize(bool& unsat, bool& sat) {
-	for (vsize i=0; i<getSet().getAgg().size(); i++) {
+	for (vsize i = 0; i < getSet().getAgg().size(); i++) {
 		getSolver()->setHeadWatch(var(getSet().getAgg()[i]->getHead()), getSet().getAgg()[i]);
 	}
 }
@@ -235,7 +269,7 @@ AggSolver* Propagator::getSolver() const {
 	return getSetp()->getSolver();
 }
 
-rClause Propagator::notifySolver(AggReason* reason){
+rClause Propagator::notifySolver(AggReason* reason) {
 	return getSolver()->notifySolver(reason);
 }
 
@@ -256,7 +290,7 @@ bool Aggrs::compareWLByWeights(const WL& one, const WL& two) {
 }
 
 //@pre: has been split
-bool Aggrs::transformSetReduction(TypedSet* set, vps& sets){
+bool Aggrs::transformSetReduction(TypedSet* set, vps& sets) {
 	vwl oldset = set->getWL();
 	vwl newset;
 
@@ -290,7 +324,7 @@ bool Aggrs::transformSetReduction(TypedSet* set, vps& sets){
 	for (vwl::size_type i = 0; i < newset.size(); i++) {
 		if (!set->getType().isNeutralElement(newset[i].getWeight())) {
 			newset2.push_back(newset[i]);
-			if(newset[i].getWeight()!=1){
+			if (newset[i].getWeight() != 1) {
 				canbecard = false;
 			}
 		} else {
@@ -303,15 +337,15 @@ bool Aggrs::transformSetReduction(TypedSet* set, vps& sets){
 	}
 
 	//Correct the aggregate types!
-	if(canbecard){
-		for(vpagg::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); i++){
-			if((*i)->getType()==SUM){
+	if (canbecard) {
+		for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
+			if ((*i)->getType() == SUM) {
 				(*i)->setType(CARD);
 			}
 		}
-	}else{
-		for(vpagg::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); i++){
-			if((*i)->getType()==CARD){
+	} else {
+		for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
+			if ((*i)->getType() == CARD) {
 				(*i)->setType(SUM);
 			}
 		}
@@ -322,56 +356,62 @@ bool Aggrs::transformSetReduction(TypedSet* set, vps& sets){
 
 //FIXME increase performance by treating transformation on a set to set basis?
 
-bool Aggrs::transformOneToOneSetToAggMapping(TypedSet* set, vps& sets){
+bool Aggrs::transformOneToOneSetToAggMapping(TypedSet* set, vps& sets) {
 	vpagg aggs = set->getAgg();
 
-	set->getAgg().clear();
-	set->addAgg(aggs[0]);
+	vpagg newaggs;
+	newaggs.push_back(aggs[0]);
+	set->replaceAgg(newaggs);
 
-	for (vpagg::const_iterator i = aggs.begin()++; i < aggs.end(); i++) {
+	for (vpagg::const_iterator i = ++aggs.begin(); i < aggs.end(); i++) {
 		TypedSet* newset = new TypedSet(set->getSolver(), set->getSetID());
 		newset->addAgg(*i);
 		newset->setWL(set->getWL());
 		sets.push_back(newset);
 	}
+
 	return true;
 }
 
-bool Aggrs::transformOneToOneSetToSignMapping(TypedSet* setone, vps& sets){
+bool Aggrs::transformOneToOneSetToSignMapping(TypedSet* setone, vps& sets) {
 	vpagg aggs = setone->getAgg();
-	setone->getAgg().clear();
-	setone->addAgg(aggs[0]);
+
+	vpagg newaggs;
+	newaggs.push_back(aggs[0]);
+	setone->replaceAgg(newaggs);
 
 	TypedSet* settwo = new TypedSet(setone->getSolver(), setone->getSetID());
 	settwo->setWL(setone->getWL());
 
-	for (vpagg::const_iterator i = aggs.begin()++; i < aggs.end(); i++) {
-		if((*i)->getSign()==setone->getAgg()[0]->getSign()){
+	for (vpagg::const_iterator i = ++aggs.begin(); i < aggs.end(); i++) {
+		if ((*i)->getSign() == setone->getAgg()[0]->getSign()) {
 			setone->addAgg(*i);
-		}else{
+		} else {
 			settwo->addAgg(*i);
 		}
 	}
 
-	if(settwo->getAgg().size()>0){
+	if (settwo->getAgg().size() > 0) {
 		sets.push_back(settwo);
-	}else{
+	} else {
 		delete settwo;
 	}
 	return true;
 }
 
-bool Aggrs::transformTypePartition(TypedSet* set, vps& sets){
+//@pre: at least one aggregate present
+bool Aggrs::transformTypePartition(TypedSet* set, vps& sets) {
+	assert(set->getAgg().size() > 0);
 	//Partition the aggregates according to their type
 	map<AggType, vpagg> partaggs;
 	for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
 		partaggs[(*i)->getType()].push_back(*i);
 	}
 
-	set->setAgg((*partaggs.begin()).second);
-	for(map<AggType, vpagg>::const_iterator i=partaggs.begin()++; i!=partaggs.end(); i++){
+	set->replaceAgg((*partaggs.begin()).second);
+	for (map<AggType, vpagg>::const_iterator i = ++partaggs.begin(); i != partaggs.end(); i++) {
 		TypedSet* newset = new TypedSet(set->getSolver(), set->getSetID());
-		newset->setAgg((*i).second);
+		newset->replaceAgg((*i).second);
 		newset->setWL(set->getWL());
 		sets.push_back(newset);
 	}
@@ -379,14 +419,15 @@ bool Aggrs::transformTypePartition(TypedSet* set, vps& sets){
 }
 
 //@pre Has to be split
-bool Aggrs::transformVerifyWeights(TypedSet* set, vps& sets){
-	switch(set->getAgg()[0]->getType()){
+bool Aggrs::transformVerifyWeights(TypedSet* set, vps& sets) {
+	switch (set->getAgg()[0]->getType()) {
 		case PROD:
 			for (vsize i = 0; i < set->getWL().size(); i++) {
 				if (set->getWL()[i] < 1) { //Exception if product contains negative/zero weights
 					char s[200];
 					sprintf(s, "Error: Set nr. %d contains a 0 (zero) or negative weight %s, which cannot "
-						"be used in combination with a product aggregate\n", set->getSetID(), printWeight(set->getWL()[i]).c_str());
+						"be used in combination with a product aggregate\n", set->getSetID(), printWeight(
+							set->getWL()[i]).c_str());
 					throw idpexception(s);
 				}
 			}
@@ -396,8 +437,8 @@ bool Aggrs::transformVerifyWeights(TypedSet* set, vps& sets){
 }
 
 //@pre Has to be split
-bool Aggrs::transformAddTypes(TypedSet* set, vps& sets){
-	switch(set->getAgg()[0]->getType()){
+bool Aggrs::transformAddTypes(TypedSet* set, vps& sets) {
+	switch (set->getAgg()[0]->getType()) {
 		case MAX:
 			set->setType(AggProp::getMax());
 			break;
@@ -416,11 +457,11 @@ bool Aggrs::transformAddTypes(TypedSet* set, vps& sets){
 	return true;
 }
 
-bool Aggrs::transformMinToMax(TypedSet* set, vps& sets){
-	if(set->getAgg()[0]->getType()==MIN){
+bool Aggrs::transformMinToMax(TypedSet* set, vps& sets) {
+	if (set->getAgg()[0]->getType() == MIN) {
 		//Transform Min into Max set: invert all weights
 		vwl wl;
-		for(vsize i = 0; i < set->getWL().size(); i++) {
+		for (vsize i = 0; i < set->getWL().size(); i++) {
 			wl.push_back(WL(set->getWL()[i], -set->getWL()[i]));
 		}
 		set->setWL(wl);
@@ -435,73 +476,72 @@ bool Aggrs::transformMinToMax(TypedSet* set, vps& sets){
 }
 
 //Temporary structure to create pseudo booleans
-struct PBAgg{
+struct PBAgg {
 	MiniSatPP::vec<MiniSatPP::Lit> literals;
 	MiniSatPP::vec<MiniSatPP::Int> weights;
 	Weight bound;
 	int sign;
 };
 
-bool Aggrs::transformSumsToCNF(vps& sets, MinisatID::PCSolver* pcsolver){
+bool Aggrs::transformSumsToCNF(vps& sets, MinisatID::PCSolver* pcsolver) {
 	int sumaggs = 0;
 	int maxvar = 1;
 	vector<PBAgg*> pbaggs;
 	for (vps::const_iterator i = sets.begin(); i != sets.end(); i++) {
 		vpagg remaining;
-		for(vsize j=0; j<(*i)->getAgg().size(); j++){
+		for (vsize j = 0; j < (*i)->getAgg().size(); j++) {
 			Agg* agg = (*i)->getAgg()[j];
-			if(!agg->isOptim() && (agg->getType()==SUM || agg->getType()==CARD) && !agg->getSem()==DEF){
+			if (!agg->isOptim() && (agg->getType() == SUM || agg->getType() == CARD) && !agg->getSem() == DEF) {
 				PBAgg* ppbaggeq = new PBAgg();
 				PBAgg* ppbaggineq = new PBAgg();
 				pbaggs.push_back(ppbaggeq);
 				pbaggs.push_back(ppbaggineq);
 				PBAgg& pbaggeq = *ppbaggeq;
 				PBAgg& pbaggineq = *ppbaggineq;
-				if(agg->getSign()==LB){
+				if (agg->getSign() == LB) {
 					pbaggeq.sign = -1;
 					pbaggineq.sign = 2;
-				}else{
+				} else {
 					pbaggeq.sign = 1;
 					pbaggineq.sign = -2;
 				}
 				pbaggeq.bound = agg->getBound();
 				pbaggineq.bound = agg->getBound();
 				Weight min = 0, max = 0;
-				for(vwl::const_iterator k=(*i)->getWL().begin(); k<(*i)->getWL().end(); k++){
+				for (vwl::const_iterator k = (*i)->getWL().begin(); k < (*i)->getWL().end(); k++) {
 					pbaggeq.literals.push(MiniSatPP::Lit(var((*k).getLit()), sign((*k).getLit())));
 					pbaggineq.literals.push(MiniSatPP::Lit(var((*k).getLit()), sign((*k).getLit())));
-					if(var((*k).getLit())>maxvar){
+					if (var((*k).getLit()) > maxvar) {
 						maxvar = var((*k).getLit());
 					}
-					if((*k).getWeight()<0){
+					if ((*k).getWeight() < 0) {
 						min += (*k).getWeight();
-					}else{
+					} else {
 						max += (*k).getWeight();
 					}
-					pbaggeq.weights.push(MiniSatPP::Int((int)((*k).getWeight())));
-					pbaggineq.weights.push(MiniSatPP::Int((int)((*k).getWeight())));
+					pbaggeq.weights.push(MiniSatPP::Int((int) ((*k).getWeight())));
+					pbaggineq.weights.push(MiniSatPP::Int((int) ((*k).getWeight())));
 				}
-				if(var(agg->getHead())>maxvar){
+				if (var(agg->getHead()) > maxvar) {
 					maxvar = var(agg->getHead());
 				}
 				pbaggeq.literals.push(MiniSatPP::Lit(var(agg->getHead()), true));
 				pbaggineq.literals.push(MiniSatPP::Lit(var(agg->getHead()), false));
 				Weight eqval, ineqval;
-				if(agg->getSign()==LB){
-					eqval = -abs(agg->getBound())-abs(max)-1;
-					ineqval = abs(agg->getBound())+abs(min)+1;
-				}else{
-					eqval = abs(agg->getBound())+abs(min)+1;
-					ineqval = -abs(agg->getBound())-abs(max)-1;
+				if (agg->getSign() == LB) {
+					eqval = -abs(agg->getBound()) - abs(max) - 1;
+					ineqval = abs(agg->getBound()) + abs(min) + 1;
+				} else {
+					eqval = abs(agg->getBound()) + abs(min) + 1;
+					ineqval = -abs(agg->getBound()) - abs(max) - 1;
 				}
 				pbaggeq.weights.push(MiniSatPP::Int(eqval));
 				pbaggineq.weights.push(MiniSatPP::Int(ineqval));
-			}else{
+			} else {
 				remaining.push_back(agg);
 			}
 		}
-		(*i)->getAgg().clear();
-		(*i)->getAgg().insert((*i)->getAgg().begin(), remaining.begin(), remaining.end());
+		(*i)->replaceAgg(remaining);
 	}
 
 	MiniSatPP::PbSolver* pbsolver = new MiniSatPP::PbSolver();
@@ -514,12 +554,12 @@ bool Aggrs::transformSumsToCNF(vps& sets, MinisatID::PCSolver* pcsolver){
 	pbsolver->allocConstrs(maxvar, sumaggs);
 
 	bool unsat = false;
-	for(vector<PBAgg*>::const_iterator i=pbaggs.begin(); !unsat && i<pbaggs.end(); i++){
+	for (vector<PBAgg*>::const_iterator i = pbaggs.begin(); !unsat && i < pbaggs.end(); i++) {
 		unsat = !pbsolver->addConstr((*i)->literals, (*i)->weights, (*i)->bound, (*i)->sign, false);
 	}
-	deleteList<PBAgg>(pbaggs);
+	deleteList<PBAgg> (pbaggs);
 
-	if(unsat){
+	if (unsat) {
 		delete pbsolver;
 		return false;
 	}
@@ -528,17 +568,17 @@ bool Aggrs::transformSumsToCNF(vps& sets, MinisatID::PCSolver* pcsolver){
 	vector<vector<MiniSatPP::Lit> > pbencodings;
 	unsat = !pbsolver->toCNF(pbencodings);
 	delete pbsolver;
-	if(unsat){
+	if (unsat) {
 		return false;
 	}
 
 	//Any literal that is larger than maxvar will have been newly introduced, so should be mapped to nVars()+lit
 	//add the CNF to the solver
 	int maxnumber = pcsolver->nVars();
-	for(vector<vector<MiniSatPP::Lit> >::const_iterator i=pbencodings.begin(); i<pbencodings.end(); i++){
+	for (vector<vector<MiniSatPP::Lit> >::const_iterator i = pbencodings.begin(); i < pbencodings.end(); i++) {
 		vec<Lit> lits;
-		for(vector<MiniSatPP::Lit>::const_iterator j=(*i).begin(); j<(*i).end(); j++){
-			Var v = MiniSatPP::var(*j) + (MiniSatPP::var(*j)>maxvar?maxnumber-maxvar:0);
+		for (vector<MiniSatPP::Lit>::const_iterator j = (*i).begin(); j < (*i).end(); j++) {
+			Var v = MiniSatPP::var(*j) + (MiniSatPP::var(*j) > maxvar ? maxnumber - maxvar : 0);
 			lits.push(mkLit(v, MiniSatPP::sign(*j)));
 		}
 		pcsolver->addClause(lits);
@@ -551,18 +591,13 @@ bool Aggrs::transformSumsToCNF(vps& sets, MinisatID::PCSolver* pcsolver){
  * RECURSIVE AGGREGATES *
  ************************/
 
-bool MaxProp::canJustifyHead(
-								const Agg& agg,
-								vec<Lit>& jstf,
-								vec<Var>& nonjstf,
-								vec<int>& currentjust,
-								bool real) const {
+bool MaxProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
 	TypedSet* set = agg.getSet();
 	bool justified = false;
 	const vwl& wl = set->getWL();
 
 	if (agg.isLower()) {
-		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight()	> agg.getBound(); i++) {
+		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() > agg.getBound(); i++) {
 			if (oppositeIsJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push(~(*i).getLit()); //push negative literal, because it should become false
 			} else if (real || currentjust[var((*i).getLit())] != 0) {
@@ -573,7 +608,7 @@ bool MaxProp::canJustifyHead(
 			justified = true;
 		}
 	} else {
-		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight()	>= agg.getBound(); i++) {
+		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() >= agg.getBound(); i++) {
 			if (isJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push((*i).getLit());
 				justified = true;
@@ -598,12 +633,7 @@ bool MaxProp::canJustifyHead(
  * 					if so, change the justification to the negation of all those below the bound literals
  * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
  */
-bool SPProp::canJustifyHead(
-								const Agg& agg,
-								vec<Lit>& jstf,
-								vec<Var>& nonjstf,
-								vec<int>& currentjust,
-								bool real) const {
+bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
 	TypedSet* set = agg.getSet();
 	const AggProp& type = agg.getSet()->getType();
 	bool justified = false;
@@ -657,58 +687,58 @@ bool SPProp::canJustifyHead(
 }
 
 /*bool SPAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
-	//OTHER IMPLEMENTATION (probably buggy)
-	pSet s = getSet();
+ //OTHER IMPLEMENTATION (probably buggy)
+ pSet s = getSet();
 
-	Weight current = 0;
-	if(isLower()){
-		current = s->getBestPossible();
-	}else{
-		current = s->getEmptySetValue();
-	}
+ Weight current = 0;
+ if(isLower()){
+ current = s->getBestPossible();
+ }else{
+ current = s->getEmptySetValue();
+ }
 
-	bool justified = false;
-	if(aggValueImpliesHead(current)){
-		justified = true;
-	}
+ bool justified = false;
+ if(aggValueImpliesHead(current)){
+ justified = true;
+ }
 
-	for (lwlv::const_iterator i = s->getWLBegin(); !justified && i < s->getWLEnd(); ++i) {
-		if(isMonotone(*i) && s->isJustified(*i, currentjust, real)){
-			if(isLower()){
-				jstf.push(~(*i).getLit());
-				current = this->remove(current, (*i).getWeight());
-			}else{
-				//if(s->isJustified(*i, currentjust, real)){
-				jstf.push((*i).getLit());
-				current = this->add(current, (*i).getWeight());
-			}
+ for (lwlv::const_iterator i = s->getWLBegin(); !justified && i < s->getWLEnd(); ++i) {
+ if(isMonotone(*i) && s->isJustified(*i, currentjust, real)){
+ if(isLower()){
+ jstf.push(~(*i).getLit());
+ current = this->remove(current, (*i).getWeight());
+ }else{
+ //if(s->isJustified(*i, currentjust, real)){
+ jstf.push((*i).getLit());
+ current = this->add(current, (*i).getWeight());
+ }
 
-			if (aggValueImpliesHead(current)){
-				justified = true;
-			}
-		}else if(real ||currentjust[var((*i).getLit())]!=0){
-			nonjstf.push(var((*i).getLit()));
-		}
-	}
+ if (aggValueImpliesHead(current)){
+ justified = true;
+ }
+ }else if(real ||currentjust[var((*i).getLit())]!=0){
+ nonjstf.push(var((*i).getLit()));
+ }
+ }
 
-	if (!justified) {
-		jstf.clear();
-	}
+ if (!justified) {
+ jstf.clear();
+ }
 
-	if(s->getSolver()->getPCSolver()->modes().verbosity >=4){
-		reportf("Justification checked for ");
-		printAggrExpr(this);
+ if(s->getSolver()->getPCSolver()->modes().verbosity >=4){
+ reportf("Justification checked for ");
+ printAggrExpr(this);
 
-		if(justified){
-			reportf("justification found: ");
-			for(int i=0; i<jstf.size(); i++){
-				gprintLit(jstf[i]); reportf(" ");
-			}
-			reportf("\n");
-		}else{
-			reportf("no justification found.\n");
-		}
-	}
+ if(justified){
+ reportf("justification found: ");
+ for(int i=0; i<jstf.size(); i++){
+ gprintLit(jstf[i]); reportf(" ");
+ }
+ reportf("\n");
+ }else{
+ reportf("no justification found.\n");
+ }
+ }
 
-	return justified;
-}*/
+ return justified;
+ }*/

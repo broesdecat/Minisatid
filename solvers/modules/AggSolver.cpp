@@ -229,6 +229,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, AggSign boundsig
 	Lit head = mkLit(headv, false);
 
 	Agg* agg = new Agg(bound, boundsign, head, headeq, type);
+	set->addAgg(agg);
 
 	if (verbosity() >= 5) { //Print info on added aggregate
 		print(agg);
@@ -271,8 +272,13 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	//Finish the sets: add all body literals to the network
 	vps remainingsets;
 	vps satsets;
-	for (vps::const_iterator i=sets().begin(); !unsat && i!=sets().end(); i++) {
-		TypedSet* set = *i;
+	for (vsize i=0; !unsat && i<sets().size(); i++) {
+		TypedSet* set = sets()[i];
+
+		if(set->getAgg().size()==0){
+			satsets.push_back(set);
+			continue;
+		}
 
 		unsat = unsat || !transformTypePartition(set, sets());
 		unsat = unsat || !transformMinToMax(set, sets());
@@ -301,7 +307,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		}
 	}
 	sets().clear();
-	copy(remainingsets.begin(), remainingsets.end(), sets().begin());
+	sets().insert(sets().begin(), remainingsets.begin(), remainingsets.end());
 	deleteList<TypedSet>(satsets);
 
 	if(unsat){
@@ -370,6 +376,9 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 			}
 		}
 	}
+
+	//Push initial level (root, before any decisions).
+	trail.push_back(vector<TypedSet*>());
 }
 
 /**
@@ -454,10 +463,11 @@ void AggSolver::newDecisionLevel() {
 }
 
 void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel) {
-	for(int i=trail.size()-1; i>untillevel; i++){
-		for(vector<TypedSet*>::iterator j=trail[i].begin(); j<trail[i].end(); j++){
+	while(trail.size()>untillevel+1){
+		for(vector<TypedSet*>::iterator j=trail.back().begin(); j<trail.back().end(); j++){
 			(*j)->backtrack(nblevels, untillevel);
 		}
+		trail.pop_back();
 	}
 }
 
@@ -468,6 +478,8 @@ rClause AggSolver::propagate(const Lit& p) {
 	if (!isInitialized()) {
 		return nullPtrClause;
 	}
+
+	//FIXME FIXME add used watches to trail!
 
 	rClause confl = nullPtrClause;
 

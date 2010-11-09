@@ -55,7 +55,6 @@ bool Aggrs::isJustified(Var x, vec<int>& currentjust) {
 ///////
 
 void Aggrs::printAgg(const TypedSet& c, bool endl) {
-	report("%s{", c.getType().getName());
 	for (vwl::const_iterator i = c.getWL().begin(); i < c.getWL().end(); ++i) {
 		report(" ");
 		gprintLit((*i).getLit());
@@ -80,6 +79,7 @@ void Aggrs::printAgg(const Agg& ae, bool printendline) {
 	} else {
 		report(" <- %s <= ", printWeight(ae.getBound()).c_str());
 	}
+	report("%s{", ae.getType()==MAX?"MAX":ae.getType()==MIN?"MIN":ae.getType()==SUM?"SUM":ae.getType()==CARD?"CARD":"PROD");
 	printAgg(*set, false);
 	if (ae.isLower()) {
 		//reportf(" <= %s. Known values: bestcertain=%s, bestpossible=%s\n", printWeight(ae.getLowerBound()).c_str(), printWeight(set->getCC()).c_str(), printWeight(set->getCP()).c_str());
