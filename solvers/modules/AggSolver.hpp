@@ -206,6 +206,8 @@ public:
 	void 				addPermWatch			(Var v, Aggrs::Watch* w);
 	void 				addTempWatch			(const Lit& l, Aggrs::Watch* w);
 
+	void				addToTrail				(Aggrs::TypedSet* set) { trail.back().push_back(set); }
+
 protected:
 	mips&				parsedSets				() { return _parsedSets; }
 	vps&				sets					() { return _sets; }

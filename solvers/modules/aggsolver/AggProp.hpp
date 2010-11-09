@@ -10,6 +10,7 @@
 
 #include "solvers/utils/Utils.hpp"
 #include <vector>
+#include <algorithm>
 #include <tr1/memory>
 
 namespace MinisatID{

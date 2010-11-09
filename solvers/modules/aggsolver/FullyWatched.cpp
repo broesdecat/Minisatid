@@ -121,6 +121,7 @@ rClause FWAgg::propagate(const Agg& agg, int level) {
 
 	if(getTrail().back().level<level){
 		getTrail().push_back(FWTrail(level, getTrail().back().CBC, getTrail().back().CBP));
+		getSolver()->addToTrail(getSetp());
 	}
 
 	lbool headtrue = getSet().getSolver()->value(agg.getHead());
