@@ -479,8 +479,6 @@ rClause AggSolver::propagate(const Lit& p) {
 		return nullPtrClause;
 	}
 
-	//FIXME FIXME add used watches to trail!
-
 	rClause confl = nullPtrClause;
 
 	if (verbosity() >= 2) {
@@ -526,9 +524,11 @@ rClause AggSolver::propagate(const Lit& p) {
 }
 
 rClause	AggSolver::propagateAtEndOfQueue(){
-	for(vector<TypedSet*>::const_iterator i=trail.back().begin(); i<trail.back().end(); i++){
-		(*i)->propagateAtEndOfQueue(getLevel());
+	rClause confl = nullPtrClause;
+	for(vector<TypedSet*>::const_iterator i=trail.back().begin(); confl==nullPtrClause && i<trail.back().end(); i++){
+		confl = (*i)->propagateAtEndOfQueue(getLevel());
 	}
+	return confl;
 }
 
 /**
@@ -611,11 +611,11 @@ vector<Var> AggSolver::getAggHeadsWithBodyLit(Var x) {
 }
 
 vwl::const_iterator AggSolver::getAggLiteralsBegin(Var x) const {
-	//return getAggWithHead(x)->getSet()->getWL().begin();
+	return getAggWithHead(x)->getSet()->getWL().begin();
 }
 
 vwl::const_iterator AggSolver::getAggLiteralsEnd(Var x) const {
-	//return getAggWithHead(x)->getSet()->getWL().end();
+	return getAggWithHead(x)->getSet()->getWL().end();
 }
 
 /**

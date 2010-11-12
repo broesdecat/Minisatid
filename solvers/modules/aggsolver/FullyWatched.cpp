@@ -134,9 +134,10 @@ rClause FWAgg::propagate(const Agg& agg, int level) {
 rClause FWAgg::propagate(const Lit& p, pw ws, int level) {
 	if(getTrail().back().level<level){
 		getTrail().push_back(FWTrail(level, getTrail().back().CBC, getTrail().back().CBP));
+		getSolver()->addToTrail(getSetp());
 	}
 
-	getTrail().back().props.push_back(PropagationInfo(p, 0, HEAD));
+	getTrail().back().props.push_back(PropagationInfo(p, ws->getWL().getWeight(), ws->getType()));
 
 	return nullPtrClause;
 }
@@ -153,6 +154,8 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 			(*i).getType() == POS ? addToCertainSet(wl) : removeFromPossibleSet(wl);
 		}
 	}
+
+	report("Current values: CC=%d and CP=%d\n", getTrail().back().CBC, getTrail().back().CBP);
 
 	for(vsize i=0; confl==nullPtrClause && i<getTrail().back().headindex.size(); i++){
 		lbool headval = getSolver()->value(getSet().getAgg()[getTrail().back().headindex[i]]->getHead());
