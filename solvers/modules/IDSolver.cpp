@@ -1409,6 +1409,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	}
 
 	//Clasp only adds one asserting clause, assuming the other ones will be propagated.
+	//FIXME check if correct for nested loops!
 	if(getPCSolver()->modes().onlyoneunfclause){
 		Lit l = createNegativeLiteral(*ufs.begin());
 		addLoopfClause(l, loopf);
