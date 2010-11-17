@@ -88,16 +88,17 @@ lbool FWAgg::initialize(const Agg& agg) {
 		return l_Undef;
 	}
 
-	lbool hv = canPropagateHead(agg, getCC(), getCP());
+	Expl basedon;
+	lbool hv = canPropagateHead(agg, getCC(), getCP(), basedon);
 	bool alwaystrue = false;
 	if (hv != l_Undef && !optimagg[agg.getIndex()]) {
 		alwaystrue = true;
 		//reportf("No more propagations for %d", gprintVar(var(head)));
 	}
 	if (hv == l_True) {
-		confl = as().getSolver()->notifySolver(new AggReason(agg, mkLit(-1), CPANDCC, agg.getHead(), true));
+		confl = as().getSolver()->notifySolver(new AggReason(agg, mkLit(-1), basedon, agg.getHead(), true));
 	} else if (hv == l_False) {
-		confl = as().getSolver()->notifySolver(new AggReason(agg, mkLit(-1), CPANDCC, ~agg.getHead(), true));
+		confl = as().getSolver()->notifySolver(new AggReason(agg, mkLit(-1), basedon, ~agg.getHead(), true));
 	}
 	if (confl != nullPtrClause) {
 		return l_False;
@@ -179,12 +180,14 @@ rClause FWAgg::propagate(const Lit& p, pw ws) {
 
 		lbool hv = headvalue[pa.getIndex()];
 		if (hv != l_Undef) { //head is already known
-			assert(canPropagateHead(pa, getCC(), getCP()) != (hv == l_True ? l_False : l_True)); //A conflicting propagation is not possible if we have complete propagation
+			Expl basedon;
+			assert(canPropagateHead(pa, getCC(), getCP(), basedon) != (hv == l_True ? l_False : l_True)); //A conflicting propagation is not possible if we have complete propagation
 			confl = propagate(pa, hv == l_True);
 		} else { //head is not yet known, so at most the head can be propagated
-			lbool result = canPropagateHead(pa, getCC(), getCP());
+			Expl basedon;
+			lbool result = canPropagateHead(pa, getCC(), getCP(), basedon);
 			if (result != l_Undef) {
-				rClause	cc = as().getSolver()->notifySolver(new AggReason(pa, p, CPANDCC, result == l_True ? pa.getHead() : ~pa.getHead(), true));
+				rClause	cc = as().getSolver()->notifySolver(new AggReason(pa, p, basedon, result == l_True ? pa.getHead() : ~pa.getHead(), true));
 				confl = cc;
 			}
 		}
@@ -192,9 +195,15 @@ rClause FWAgg::propagate(const Lit& p, pw ws) {
 	return confl;
 }
 
-lbool FWAgg::canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP) const {
+lbool FWAgg::canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP, Expl& basedon) const {
 	if (nomoreprops[agg.getIndex()] || headproptime[agg.getIndex()]!=-1) {
 		return headvalue[agg.getIndex()];
+	}
+
+	if((agg.isLower() && CC > agg.getLowerBound()) || (agg.isUpper() && CC>= agg.getUpperBound())){
+		basedon = BASEDONCC;
+	}else if((agg.isUpper() && CP < agg.getUpperBound()) || (agg.isLower() && CP <= agg.getLowerBound())){
+		basedon = BASEDONCP;
 	}
 
 	if ((agg.isLower() && CC > agg.getLowerBound()) || (agg.isUpper() && CP < agg.getUpperBound())) {
@@ -208,96 +217,182 @@ lbool FWAgg::canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP
 	}
 }
 
+///**
+// * Should find a set L+ such that "bigwedge{l | l in L+} implies p"
+// * which is equivalent with the clause bigvee{~l|l in L+} or p
+// * and this is returned as the set {~l|l in L+}
+// */
+//void FWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
+//	//assert(ar.getAgg() == agg);
+//	//assert(agg->getSet()==this);
+//
+//	int index = -1;
+//	bool includereason = false;
+//	if(toInt(ar.getLit())!=-1){
+//		for (int i = 0; i < getStack().size(); i++) {
+//			if (getStack()[i].getLit() == ar.getLit()) {
+//				includereason = true; //To also include the literal which caused propagation
+//				index = i;
+//				break;
+//			}
+//			if(getStack()[i].getLit() == ar.getPropLit()){
+//				index = i;
+//				break;
+//			}
+//		}
+//		if (index==-1) {
+//			index = getStack().size();
+//		}
+//	}
+//
+//	const Agg& agg = ar.getAgg();
+//	const Lit& head = agg.getHead();
+//
+//	if (!ar.isHeadReason() && index >= headindex[agg.getIndex()]) {
+//		//the head literal is saved as it occurred in the theory, so adapt for its current truth value!
+//		lits.push(as().getSolver()->isTrue(head) ? ~head : head);
+//	}
+//
+//	// Allows for better minimization of explanation: the last literal was certainly part of the explanation, but maybe not the ones before
+//	if(includereason){
+//		lits.push(~ar.getLit());
+//	}
+//
+//	//assert(ar.isHeadReason() || getPCSolver()->getLevel(ar.getLit())<=s->getStackSize());
+//
+//	//	This is correct, but not minimal enough. We expect to be able to do better
+//	//	for(lprop::const_iterator i=s->getStackBegin(); counter<ar.getIndex() && i<s->getStackEnd(); i++,counter++){
+//	//		lits.push(~(*i).getLit());
+//	//	}
+//
+//	int counter = 0;
+//	if (ar.getExpl() != HEADONLY) {
+//		for (vprop::const_iterator i = getStack().begin(); counter < index && i < getStack().end(); i++, counter++) {
+//			//for(lprop::const_iterator i=s->getStackBegin(); var(ar.getLit())!=var((*i).getLit()) && i<s->getStackEnd(); i++){
+//			switch (ar.getExpl()) {
+//			case BASEDONCC:
+//				if ((*i).getType() == POS) {
+//					lits.push(~(*i).getLit());
+//				}
+//				break;
+//			case BASEDONCP:
+//				if ((*i).getType() == NEG) {
+//					lits.push(~(*i).getLit());
+//				}
+//				break;
+//			default:
+//				assert(false);
+//				break;
+//			}
+//		}
+//	}
+//
+//	if (as().getSolver()->verbosity() >= 5) {
+////		reportf("STACK: ");
+////		for (vprop::const_iterator i = getStack().begin(); i < getStack().end(); i++) {
+////			gprintLit((*i).getLit());
+////			reportf(" ");
+////		}
+////		reportf("\n");
+//
+//		report("Aggregate explanation for ");
+//		gprintLit(ar.getPropLit());
+//
+//		report(" is");
+//		for (int i = 0; i < lits.size(); i++) {
+//			report(" ");
+//			gprintLit(lits[i]);
+//		}
+//		report("\n");
+//	}
+//}
+
+bool isSatisfied(bool headtrue, const Weight& current, bool cc, bool lower, const Weight& bound){
+	if(headtrue && lower){
+		return (cc && current >= bound) || (!cc && current < bound);
+	}else if(headtrue && !lower){
+		return (cc && current <= bound) || (!cc && current > bound);
+	}else if(!headtrue && lower){
+		return (cc && current < bound) || (!cc && current >= bound);
+	}else if(!headtrue && !lower){
+		return (cc && current > bound) || (!cc && current <= bound);
+	}
+	assert(false);
+	return false;
+}
+
 /**
  * Should find a set L+ such that "bigwedge{l | l in L+} implies p"
  * which is equivalent with the clause bigvee{~l|l in L+} or p
  * and this is returned as the set {~l|l in L+}
  */
-void FWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
-	//assert(ar.getAgg() == agg);
-	//assert(agg->getSet()==this);
-
-	int index = -1;
-	bool includereason = false;
-	if(toInt(ar.getLit())!=-1){
-		for (int i = 0; i < getStack().size(); i++) {
-			if (getStack()[i].getLit() == ar.getLit()) {
-				includereason = true; //To also include the literal which caused propagation
-				index = i;
-				break;
-			}
-			if(getStack()[i].getLit() == ar.getPropLit()){
-				index = i;
-				break;
-			}
-		}
-		if (index==-1) {
-			index = getStack().size();
-		}
-	}
-
+void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
 	const Agg& agg = ar.getAgg();
 	const Lit& head = agg.getHead();
 
-	if (!ar.isHeadReason() && index >= headindex[agg.getIndex()]) {
-		//the head literal is saved as it occurred in the theory, so adapt for its current truth value!
-		lits.push(as().getSolver()->isTrue(head) ? ~head : head);
-	}
+	Weight cc = as().getESV(), cp = as().getBestPossible();
 
-	// Allows for better minimization of explanation: the last literal was certainly part of the explanation, but maybe not the ones before
-	if(includereason){
-		lits.push(~ar.getLit());
-	}
-
-	//assert(ar.isHeadReason() || getPCSolver()->getLevel(ar.getLit())<=s->getStackSize());
-
-	//	This is correct, but not minimal enough. We expect to be able to do better
-	//	for(lprop::const_iterator i=s->getStackBegin(); counter<ar.getIndex() && i<s->getStackEnd(); i++,counter++){
-	//		lits.push(~(*i).getLit());
-	//	}
-
+	vector<WL> reasons;
 	int counter = 0;
-	if (ar.getExpl() != HEADONLY) {
-		for (vprop::const_iterator i = getStack().begin(); counter < index && i < getStack().end(); i++, counter++) {
-			//for(lprop::const_iterator i=s->getStackBegin(); var(ar.getLit())!=var((*i).getLit()) && i<s->getStackEnd(); i++){
-			switch (ar.getExpl()) {
-			case BASEDONCC:
-				if ((*i).getType() == POS) {
-					lits.push(~(*i).getLit());
-				}
-				break;
-			case BASEDONCP:
-				if ((*i).getType() == NEG) {
-					lits.push(~(*i).getLit());
-				}
-				break;
-			case CPANDCC:
-				lits.push(~(*i).getLit());
-				break;
-			default:
-				assert(false);
-				break;
+	bool satisfied = false;
+	for (vprop::const_iterator i = getStack().begin(); !satisfied && i < getStack().end(); i++, counter++) {
+		if((*i).getLit() == ar.getPropLit()){
+			break;
+		}
+
+		if(headindex[agg.getIndex()]<counter){
+			lits.push(as().getSolver()->isTrue(head) ? ~head : head);
+		}
+
+		switch (ar.getExpl()) {
+		case BASEDONCC:
+			if ((*i).getType() == POS) {
+				cc = add(cc, (*i).getWeight());
+				reasons.push_back((*i).getWL());
+				//lits.push(~(*i).getLit());
+				satisfied = isSatisfied(value(head)==l_True, cc, true, agg.isLower(), agg.getBound());
 			}
+			break;
+		case BASEDONCP:
+			if ((*i).getType() == NEG) {
+				cp = remove(cp, (*i).getWeight());
+				reasons.push_back((*i).getWL());
+				//lits.push(~(*i).getLit());
+				satisfied = isSatisfied(value(head)==l_True, cp, false, agg.isLower(), agg.getBound());
+			}
+			break;
+		case HEADONLY:
+			break;
+		default:
+			assert(false);
+			break;
+		}
+
+		if ((*i).getLit() == ar.getLit()) {
+			break;
 		}
 	}
 
-	if (as().getSolver()->verbosity() >= 5) {
-//		reportf("STACK: ");
-//		for (vprop::const_iterator i = getStack().begin(); i < getStack().end(); i++) {
-//			gprintLit((*i).getLit());
-//			reportf(" ");
-//		}
-//		reportf("\n");
+	for(vector<WL>::const_iterator i=reasons.begin(); i<reasons.end(); i++){
+		lits.push(~(*i).getLit());
+	}
 
-		report("Aggregate explanation for ");
-		gprintLit(ar.getPropLit());
+	//TODO subsetminimize
+}
 
-		report(" is");
-		for (int i = 0; i < lits.size(); i++) {
-			report(" ");
-			gprintLit(lits[i]);
-		}
-		report("\n");
+/**
+ * Should find a set L+ such that "bigwedge{l | l in L+} implies p"
+ * which is equivalent with the clause bigvee{~l|l in L+} or p
+ * and this is returned as the set {~l|l in L+}
+ */
+void MaxFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
+	const Agg& agg = ar.getAgg();
+	const Lit& head = agg.getHead();
+
+	if (!ar.isHeadReason()) {
+		lits.push(as().getSolver()->isTrue(head) ? ~head : head);
+	}else{
+		lits.push(~ar.getLit());
 	}
 }
 
@@ -311,7 +406,6 @@ MaxFWAgg::MaxFWAgg(paggs agg) :
 
 void MaxFWAgg::initialize(bool& unsat, bool& sat) {
 	if (as().getAgg().size() == 1) { //Simple heuristic to choose for encoding as SAT
-		//SAT encoding, not used yet
 		bool notunsat = true;
 		for (int i = 0; notunsat && i < as().getAgg().size(); i++) {
 			/*
@@ -485,7 +579,7 @@ rClause SPFWAgg::propagate(const Agg& agg, bool headtrue) {
 	rClause c = nullPtrClause;
 	Weight weightbound(0);
 
-	Expl basedon = CPANDCC;
+	Expl basedon;
 	//determine the lower bound of which weight literals to consider
 	if (headtrue) {
 		if (agg.isLower()) {

@@ -60,7 +60,7 @@ public:
     /**
      * Updates the values of the aggregate and then returns whether the head can be directly propagated from the body
      */
-    virtual lbool 	canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP) const;
+    virtual lbool 	canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP, Expl& basedon) const;
 
 	virtual rClause propagate	(const Lit& p, pw ws);
 
@@ -70,7 +70,7 @@ protected:
 	virtual rClause propagate(const Agg& agg, bool headtrue) = 0;
 
 public:
-	virtual void 	getExplanation(vec<Lit>& lits, const AggReason& ar) const;
+	virtual void 	getExplanation(vec<Lit>& lits, const AggReason& ar) const = 0;
 	virtual void 	backtrack	(const Watch& w);
 	virtual void 	backtrack	(const Agg& agg);
 	virtual void 	backtrack	(const Agg& agg, int stacksize);
@@ -98,6 +98,8 @@ public:
 	virtual void 	removeFromPossibleSet		(const WL& l);
 
 	virtual rClause propagate	(const Agg& agg, bool headtrue);
+
+	virtual void 	getExplanation(vec<Lit>& lits, const AggReason& ar) const;
 };
 
 class SumFWAgg: public  SPFWAgg, virtual public SumAggT{
@@ -131,6 +133,8 @@ public:
 	virtual rClause propagateAll(const Agg& agg, bool headtrue);
 
 	virtual void 	initialize	(bool& unsat, bool& sat);
+
+	virtual void 	getExplanation(vec<Lit>& lits, const AggReason& ar) const;
 };
 
 }

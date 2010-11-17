@@ -116,6 +116,7 @@ public:
 
     const Lit& 			getLit()	const { return wl.getLit(); }
     const Weight&		getWeight()	const { return wl.getWeight(); }
+    const WL& 			getWL()		const { return wl; }
     const Occurrence& 	getType() 	const { return type; }
     const Weight& 		getPC()		const { return prevcertain; }
     const Weight& 		getPP()		const { return prevpossible; }
@@ -144,7 +145,7 @@ public:
 	virtual const WL&	getWL()			const;
 };
 
-enum Expl{BASEDONCC,BASEDONCP,CPANDCC, HEADONLY};
+enum Expl{BASEDONCC,BASEDONCP,HEADONLY};
 
 struct AggReason {
 private:

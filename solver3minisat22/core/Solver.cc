@@ -975,10 +975,11 @@ lbool Solver::solve_(/*AB*/bool nosearch/*AE*/)
 {
 	/*AB*/
 	//Minisat2.0 heuristics: -no-luby -rinc=1.5 -phase-saving=0 -rnd-freq=0.02
-	phase_saving = 0;
+	/*phase_saving = 0;
 	restart_inc = 1.5;
 	luby_restart = false;
 	random_var_freq = 0.02;
+	reportf("Made adaptations\n");*/
 	/*AE*/
 
     model.clear();

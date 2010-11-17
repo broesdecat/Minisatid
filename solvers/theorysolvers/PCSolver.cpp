@@ -376,7 +376,7 @@ void PCSolver::finishParsing(bool& present, bool& unsat) {
 		}
 		if ((*i)->present && !(*i)->get()->simplify()) {
 			unsat = true; return;
-		} else {
+		} else if(!(*i)->present) {
 			if (modes().verbosity > 0) {
 				report("|    (there will be no propagations on %s module)                             |\n", (*i)->get()->getName());
 			}
@@ -448,7 +448,7 @@ rClause PCSolver::getExplanation(Lit l) {
 	assert(explan!=nullPtrClause);
 
 	if (verbosity() >= 2) {
-		report("Implicit %s reason clause from the %s module ", solver->getName());
+		report("Implicit reason clause from the %s module ", solver->getName());
 		gprintLit(l, sign(l) ? l_False : l_True);
 		report(" : ");
 		Print::printClause(explan, this);
