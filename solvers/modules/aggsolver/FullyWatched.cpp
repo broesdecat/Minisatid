@@ -378,6 +378,37 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
 	}
 
 	//TODO subsetminimize
+	if(ar.getExpl()==BASEDONCC){
+		bool changes = true;
+		while(changes){
+			changes = false;
+			for(vector<WL>::iterator i=reasons.begin(); i<reasons.end(); i++){
+				Weight temp = cc;
+				cc = remove(cc, (*i).getWeight());
+				if(isSatisfied(value(head)==l_True, cc, true, agg.isLower(), agg.getBound())){
+					reasons.erase(i);
+					changes = true;
+				}else{
+					cc = temp;
+				}
+			}
+		}
+	}else if(ar.getExpl()==BASEDONCP){
+		bool changes = true;
+		while(changes){
+			changes = false;
+			for(vector<WL>::iterator i=reasons.begin(); i<reasons.end(); i++){
+				Weight temp = cp;
+				cp = add(cc, (*i).getWeight());
+				if(isSatisfied(value(head)==l_True, cp, false, agg.isLower(), agg.getBound())){
+					reasons.erase(i);
+					changes = true;
+				}else{
+					cp = temp;
+				}
+			}
+		}
+	}
 }
 
 /**
