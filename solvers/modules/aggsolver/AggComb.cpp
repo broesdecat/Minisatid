@@ -387,7 +387,7 @@ void Propagator::initialize(bool& unsat, bool& sat) {
 	}
 }
 
-AggSolver* Propagator::getSolver() {
+AggSolver* Propagator::getSolver() const{
 	return agg->getSolver();
 }
 

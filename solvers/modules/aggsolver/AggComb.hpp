@@ -151,20 +151,21 @@ struct AggReason {
 private:
 	const Agg&	expr;	//non-owning pointer
 	const Lit	l, proplit; //l is the literal which caused the propagation of proplit, if toInt(l)<0, then there is no cause!
+	const Weight propweight;
 	const Expl	expl;
-	const bool 	head;
 	vec<Lit> 	explanation;
 	bool 		hasclause;
 
 public:
-	AggReason(const Agg& agg, const Lit& l, Expl expl, const Lit& proplit, bool head = false)
-		:expr(agg), l(l), proplit(proplit), expl(expl), head(head), explanation(), hasclause(false){
+	AggReason(const Agg& agg, const Lit& l, Expl expl, const Lit& proplit, const Weight& propweight)
+		:expr(agg), l(l), proplit(proplit), propweight(propweight), expl(expl), explanation(), hasclause(false){
 	}
 
 	const Agg&	getAgg() 		const	{ return expr; }
     const Lit&	getLit() 		const	{ return l; }
     const Lit&	getPropLit()	const	{ return proplit; }
-    bool		isHeadReason() 	const	{ return head; }
+    const Weight&	getPropWeight()	const	{ return propweight; }
+    bool		isHeadReason() 	const	{ return var(expr.getHead())==var(proplit); }
     Expl		getExpl() 		const	{ return expl; }
 
     bool 		hasClause() const { return hasclause; }
@@ -367,7 +368,7 @@ public:
 
     virtual void initialize(bool& unsat, bool& sat);
 
-    AggSolver* getSolver();
+    AggSolver* getSolver() const;
     rClause notifySolver(AggReason* reason);
 };
 

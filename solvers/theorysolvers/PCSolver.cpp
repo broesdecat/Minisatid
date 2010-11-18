@@ -442,7 +442,7 @@ rClause PCSolver::getExplanation(Lit l) {
 	}
 
 	DPLLTmodule* solver = propagations[var(l)];
-	assert(solver!=NULL);
+	assert(solver!=NULL); //If this happens, there is usually an error in the generated explanations!
 
 	rClause explan = solver->getExplanation(l);
 	assert(explan!=nullPtrClause);
