@@ -44,7 +44,7 @@ private:
 			TypedSet* 	set;
 			int 	index;
 	const 	bool 	setlit;	//true if set literal, false if agg head
-	const 	bool 	pos; 	//true if the literal occurs in the set, false if its negation is in the set
+	const 	bool 	pos; 	//if true, the positive literal is in the set, otherwise the negation
 public:
 	Watch(TypedSet* set, int index, bool setlit, bool pos):
 		set(set), index(index), setlit(setlit), pos(pos){}
@@ -55,8 +55,7 @@ public:
 	int 		getIndex() 		const { return index; }
 	void		setIndex(int i) 	  { index = i; }
 	bool 		isSetLit() 		const { return setlit; }
-	bool		isPos()			const { return pos; }
-	Occurrence 	getType()		const { return !set?HEAD:pos?POS:NEG; }
+	Occurrence 	getType(bool neg)	const { return !setlit?HEAD:((!neg && pos) || (neg && !pos))?POS:NEG; }
 
 	virtual const WL&	getWL()			const; //TODO unclear semantics
 };

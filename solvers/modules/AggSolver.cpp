@@ -240,13 +240,12 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, AggSign boundsig
 }
 
 void AggSolver::finishParsing(bool& present, bool& unsat) {
-	notifyInitialized();
-
 	unsat = false;
 	present = true;
 
 	if (parsedSets().size() == 0) {
 		present = false;
+		notifyInitialized();
 		return;
 	}
 
@@ -314,6 +313,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		if (verbosity() >= 3) {
 			report("Initializing aggregates finished, unsat detected.\n");
 		}
+		notifyInitialized();
 		return;
 	}
 
@@ -332,6 +332,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 			report("Initializing aggregates finished, no aggregates present after initialization.\n");
 		}
 		present = false;
+		notifyInitialized();
 		return;
 	}
 
@@ -379,6 +380,10 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 
 	//Push initial level (root, before any decisions).
 	trail.push_back(vector<TypedSet*>());
+	for(int i=0; i<sets().size(); i++){
+		trail.back().push_back(sets()[i]);
+	}
+	notifyInitialized();
 }
 
 /**
@@ -455,6 +460,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 }
 
 void AggSolver::newDecisionLevel() {
+	report("New decision level\n");
 	if (verbosity() >= 6) {
 		report("Current effective watches on new decision level: \n");
 		//FIXME when partial watches code has been changed printWatches(this, tempwatches);
@@ -464,6 +470,7 @@ void AggSolver::newDecisionLevel() {
 
 void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel) {
 	while(trail.size()>untillevel+1){
+		report("Backtrack decision level\n");
 		for(vector<TypedSet*>::iterator j=trail.back().begin(); j<trail.back().end(); j++){
 			(*j)->backtrack(nblevels, untillevel);
 		}
@@ -524,6 +531,10 @@ rClause AggSolver::propagate(const Lit& p) {
 }
 
 rClause	AggSolver::propagateAtEndOfQueue(){
+	if (!isInitialized()) {
+		return nullPtrClause;
+	}
+
 	rClause confl = nullPtrClause;
 	for(vector<TypedSet*>::const_iterator i=trail.back().begin(); confl==nullPtrClause && i<trail.back().end(); i++){
 		confl = (*i)->propagateAtEndOfQueue(getLevel());

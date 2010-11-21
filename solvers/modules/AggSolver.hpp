@@ -104,8 +104,8 @@ public:
 	AggSolver(pPCSolver s);
 	virtual ~AggSolver();
 
-	//Returns the current decision level //TODO assert //FIXME check for off-by-one errors
-	int 				getLevel				() 		const { return trail.size(); }
+	//Returns the current decision level
+	int 				getLevel				() 		const { return trail.size()-1; }
 
 	//////
 	// INITIALIZATION

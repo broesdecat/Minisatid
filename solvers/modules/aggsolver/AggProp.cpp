@@ -151,25 +151,26 @@ WL MaxProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* s
 
 Weight ProdProp::getBestPossible(TypedSet* set) const {
 	Weight max = set->getESV();
-	for (vwl::const_iterator j = set->getWL().begin(); j < set->getWL().end(); j++) {
+	for(vwl::const_iterator j = set->getWL().begin(); j<set->getWL().end(); j++){
 		max = this->add(max, (*j).getWeight());
 	}
 	return max;
 }
 
 Weight ProdProp::add(const Weight& lhs, const Weight& rhs) const {
+	assert(lhs!=0 && rhs!=0);
 #ifdef INTWEIGHT
 	bool sign = false;
 	Weight l = lhs, r = rhs;
-	if (l < 0) {
+	if(l<0){
 		l = -l;
 		sign = true;
 	}
-	if (r < 0) {
+	if(r<0){
 		r = -r;
 		sign = !sign;
 	}
-	if (intlim::max() / l < r) {
+	if(intlim::max()/l < r){
 		return sign ? intlim::min() : intlim::max();
 	}
 #endif
@@ -437,19 +438,24 @@ bool Aggrs::transformVerifyWeights(TypedSet* set, vps& sets) {
 }
 
 //@pre Has to be split
+//Adds the type objects and correct esv to the sets
 bool Aggrs::transformAddTypes(TypedSet* set, vps& sets) {
 	switch (set->getAgg()[0]->getType()) {
 		case MAX:
 			set->setType(AggProp::getMax());
+			set->setESV(intlim::min());
 			break;
 		case SUM:
 			set->setType(AggProp::getSum());
+			set->setESV(0);
 			break;
 		case CARD:
 			set->setType(AggProp::getCard());
+			set->setESV(0);
 			break;
 		case PROD:
 			set->setType(AggProp::getProd());
+			set->setESV(1);
 			break;
 		default:
 			assert(false);
@@ -471,6 +477,7 @@ bool Aggrs::transformMinToMax(TypedSet* set, vps& sets) {
 			(*i)->setSign((*i)->getSign() == LB ? UB : LB);
 			(*i)->setBound(-(*i)->getBound());
 		}
+		set->getAgg()[0]->setType(MAX);
 	}
 	return true;
 }

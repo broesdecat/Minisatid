@@ -23,13 +23,13 @@ typedef std::vector<PropagationInfo> vprop;
 // DECLARATIONS
 ///////
 struct FWTrail{
-	int level;
+	int level, start; //Start is the propagation info from which the next propagatatend should start (first one not seen)
 	Weight CBC, CBP;
 	vprop props;
 	std::vector<int> headindex; //The index of the aggregate of which the head was propagated
 	std::vector<int> headtime; //The propindex of the propagated head
 
-	FWTrail(int level, const Weight& CBC, const Weight& CBP): level(level), CBC(CBC), CBP(CBP){}
+	FWTrail(int level, const Weight& CBC, const Weight& CBP): level(level), CBC(CBC), CBP(CBP), start(0){}
 };
 
 class FWAgg: public Propagator {
@@ -54,8 +54,8 @@ protected:
 
     virtual rClause propagate				(const Agg& agg, bool headtrue) = 0;
 
-    virtual void 	addToCertainSet			(const WL& l) 			= 0;
-	virtual void 	removeFromPossibleSet	(const WL& l)		= 0;
+    virtual void 	addToCertainSet			(const WL& l) = 0;
+	virtual void 	removeFromPossibleSet	(const WL& l) = 0;
 
 	///////
 	// GETTERS - SETTERS
@@ -75,7 +75,7 @@ public:
 	virtual rClause propagate				(const Agg& agg, int level);
 	virtual rClause	propagateAtEndOfQueue	(int level);
 	virtual void 	backtrack				(int nblevels, int untillevel);
-	virtual void 	getExplanation			(vec<Lit>& lits, const AggReason& ar);
+	virtual void 	getExplanation			(vec<Lit>& lits, const AggReason& ar) = 0;
 
 	const Weight& 	getCP					() 					const 	{ return trail.back().CBP; }
 	const Weight& 	getCC					() 					const 	{ return trail.back().CBC; }
@@ -87,6 +87,7 @@ public:
 	virtual ~SPFWAgg(){};
 
 	virtual rClause propagate				(const Agg& agg, bool headtrue);
+	virtual void 	getExplanation			(vec<Lit>& lits, const AggReason& ar);
 
 protected:
 	virtual void 	addToCertainSet			(const WL& l);
@@ -115,6 +116,7 @@ public:
 	virtual ~MaxFWAgg(){};
 
 	virtual void 	initialize				(bool& unsat, bool& sat);
+	virtual void 	getExplanation			(vec<Lit>& lits, const AggReason& ar);
 
 protected:
 	virtual void 	addToCertainSet			(const WL& l);
