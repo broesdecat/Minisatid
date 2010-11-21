@@ -223,19 +223,21 @@ Propagator*	ProdProp::createPropagator(TypedSet* set, bool pw) const{
 }
 
 void TypedSet::addAgg(Agg* aggr){
+	assert(aggr!=NULL);
 	aggregates.push_back(aggr);
 	aggr->setTypedSet(this);
 	aggr->setIndex(aggregates.size()-1);
 }
 
 void TypedSet::replaceAgg(const vpagg& repl){
-	for(vsize i=0; i<aggregates.size(); i++){
-		aggregates[i]->setTypedSet(NULL);
-		aggregates[i]->setIndex(-1);
+	for(vector<Agg*>::const_iterator i=aggregates.begin(); i<aggregates.end(); i++){
+		//FIXME it all goes wrong here when adding this (for correctness)
+		//(*i)->setTypedSet(NULL);
+		(*i)->setIndex(-1);
 	}
 	aggregates.clear();
-	for(vsize i=0; i<repl.size(); i++){
-		addAgg(repl[i]);
+	for(vector<Agg*>::const_iterator i=repl.begin(); i<repl.end(); i++){
+		addAgg((*i));
 	}
 }
 

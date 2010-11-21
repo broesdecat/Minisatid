@@ -58,6 +58,7 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 			unsat = true; //UNSAT because always false
 			return;
 		} else {
+			assert(agg!=NULL);
 			remainingaggs.push_back(agg);
 		}
 	}
@@ -94,9 +95,9 @@ lbool FWAgg::initialize(const Agg& agg) {
 		//reportf("No more propagations for %d", gprintVar(var(head)));
 	}
 	if (hv == l_True) {
-		confl = getSet().getSolver()->notifySolver(new AggReason(agg, CPANDCC, agg.getHead(), true));
+		confl = getSet().getSolver()->notifySolver(new AggReason(agg, CPANDCC, agg.getHead(), 0, true));
 	} else if (hv == l_False) {
-		confl = getSet().getSolver()->notifySolver(new AggReason(agg, CPANDCC, ~agg.getHead(), true));
+		confl = getSet().getSolver()->notifySolver(new AggReason(agg, CPANDCC, ~agg.getHead(), 0, true));
 	}
 	if (confl != nullPtrClause) {
 		return l_False;
@@ -184,10 +185,10 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 			if(result==l_Undef){
 				confl = propagate(pa, hv == l_True);
 			}else if(hv!=result){
-				confl = getSet().getSolver()->notifySolver(new AggReason(pa, CPANDCC, result == l_True ? pa.getHead() : ~pa.getHead(), true));
+				confl = getSet().getSolver()->notifySolver(new AggReason(pa, CPANDCC, result == l_True ? pa.getHead() : ~pa.getHead(), 0, true));
 			}
 		}else if(result!=l_Undef){
-			confl = getSet().getSolver()->notifySolver(new AggReason(pa, CPANDCC, result == l_True ? pa.getHead() : ~pa.getHead(), true));
+			confl = getSet().getSolver()->notifySolver(new AggReason(pa, CPANDCC, result == l_True ? pa.getHead() : ~pa.getHead(), 0, true));
 		}
 	}
 
@@ -215,7 +216,166 @@ lbool FWAgg::canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP
  * which is equivalent with the clause bigvee{~l|l in L+} or p
  * and this is returned as the set {~l|l in L+}
  */
+inline bool isSatisfied(bool headtrue, const Weight& current, bool cc, bool lower, const Weight& bound) {
+	if(headtrue && lower){
+		return (cc && current <= bound) || (!cc && current>bound);
+	}else if(headtrue && !lower){
+		return (cc && current >= bound) || (!cc && current<bound);
+	}else if(!headtrue && lower){
+		return (!cc && current > bound) || (cc && current<=bound);
+	}else if(!headtrue && !lower){
+		return (!cc && current < bound) || (cc && current>=bound);
+	}
+	assert(false);
+	return false;
+}
 
+void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
+	const Agg& agg = ar.getAgg();
+	const Lit& head = agg.getHead();
+
+	//VERY IMPORTANT for conflicts over the head!!!!!
+	bool headtrue = value(head)==l_True;
+	if(ar.isHeadReason()){
+		headtrue = ar.getPropLit()==head;
+	}
+
+	bool mono = (ar.getExpl()==BASEDONCC && !headtrue) ||
+				(ar.getExpl()==BASEDONCP && headtrue);
+	bool inset = ar.getExpl()==BASEDONCP;
+
+	Weight min, max;
+	if(agg.isUpper()){
+		min = getSetp()->getESV(); max = getSetp()->getType().getBestPossible(getSetp());
+	}else{
+		min = getSetp()->getType().getBestPossible(getSetp()); max = getSetp()->getESV();
+	}
+
+	if(!ar.isHeadReason()){
+		if(mono){
+			min = getSetp()->getType().add(min, ar.getPropWeight());
+			max = getSetp()->getType().remove(max, ar.getPropWeight());
+		}else{
+			min = getSetp()->getType().remove(min, ar.getPropWeight());
+			max = getSetp()->getType().add(max, ar.getPropWeight());
+		}
+		lits.push(headtrue?~head:head);
+	}
+
+	//check monotone that are false when monotone became true, a-m became false or head became false
+	bool checkmonofalse = (ar.isHeadReason() && !headtrue) || (!ar.isHeadReason() && ((mono && inset) || (!mono && !inset)));
+
+	bool satisfied = false;
+	vector<WL> reasons;
+	if(checkmonofalse){
+		satisfied = isSatisfied(headtrue, max, false, agg.isLower(), agg.getBound());
+		for(vector<FWTrail>::const_iterator a=getTrail().begin(); !satisfied && a<getTrail().end(); a++){
+        	for (vprop::const_iterator i = (*a).props.begin(); !satisfied && i < (*a).props.end(); i++) {
+				bool monolit = getSetp()->getType().isMonotone(agg, (*i).getWL());
+				if((monolit && (*i).getType()==NEG) || (!monolit && (*i).getType()==POS)){
+					reasons.push_back((*i).getWL());
+					if(monolit){
+						max = getSetp()->getType().remove(max, (*i).getWeight());
+					}else{
+						max = getSetp()->getType().add(max, (*i).getWeight());
+					}
+					satisfied = isSatisfied(headtrue, max, false, agg.isLower(), agg.getBound());
+				}
+        	}
+		}
+	}else{
+		satisfied = isSatisfied(headtrue, min, true, agg.isLower(), agg.getBound());
+		for(vector<FWTrail>::const_iterator a=getTrail().begin(); !satisfied && a<getTrail().end(); a++){
+        	for (vprop::const_iterator i = (*a).props.begin(); !satisfied && i < (*a).props.end(); i++) {
+				bool monolit = getSetp()->getType().isMonotone(agg, (*i).getWL());
+				if((monolit && (*i).getType()==POS) || (!monolit && (*i).getType()==NEG)){
+					reasons.push_back((*i).getWL());
+					if(monolit){
+						min = getSetp()->getType().add(min, (*i).getWeight());
+					}else{
+						min = getSetp()->getType().remove(min, (*i).getWeight());
+					}
+					satisfied = isSatisfied(headtrue, min, true, agg.isLower(), agg.getBound());
+				}
+        	}
+		}
+	}
+
+	assert(satisfied);
+
+	//Subsetminimization
+	/*bool changes = true;
+	int startsize = reasons.size();
+	if(checkmonofalse){
+		while(changes){
+			changes = false;
+			for(vector<WL>::iterator i=reasons.begin(); i<reasons.end(); i++){
+				Weight temp = max;
+
+				bool monolit = isMonotone(agg, *i);
+				if(monolit){
+					max = add(max, (*i).getWeight());
+				}else{
+					max = remove(max, (*i).getWeight());
+				}
+
+				if(isSatisfied(headtrue, max, false, agg.isLower(), agg.getBound())){
+					reasons.erase(i);
+					changes = true;
+				}else{
+					max = temp;
+				}
+			}
+		}
+	}else{
+		while(changes){
+			changes = false;
+			for(vector<WL>::iterator i=reasons.begin(); i<reasons.end(); i++){
+				Weight temp = min;
+
+				bool monolit = isMonotone(agg, *i);
+				if(monolit){
+					min = remove(min, (*i).getWeight());
+				}else{
+					min = add(min, (*i).getWeight());
+				}
+
+				if(isSatisfied(value(head)==l_True, min, true, agg.isLower(), agg.getBound())){
+					reasons.erase(i);
+					changes = true;
+				}else{
+					min = temp;
+				}
+			}
+		}
+	}*/
+
+	for(vector<WL>::const_iterator i=reasons.begin(); i<reasons.end(); i++){
+		lits.push(~(*i).getLit());
+	}
+}
+
+/**
+ * Should find a set L+ such that "bigwedge{l | l in L+} implies p"
+ * which is equivalent with the clause bigvee{~l|l in L+} or p
+ * and this is returned as the set {~l|l in L+}
+ */
+void MaxFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
+	const Agg& agg = ar.getAgg();
+	const Lit& head = agg.getHead();
+
+	if (!ar.isHeadReason()) {
+		lits.push(getSolver()->isTrue(head) ? ~head : head);
+	}else{
+		//FIXME
+		//lits.push(~ar.getLit());
+		for(vector<FWTrail>::const_iterator a=getTrail().begin(); a<getTrail().end(); a++){
+        	for (vprop::const_iterator i = (*a).props.begin(); i < (*a).props.end(); i++) {
+        		lits.push(~(*i).getLit());
+        	}
+		}
+	}
+}
 
 /*****************
  * MAX AGGREGATE *
@@ -321,12 +481,12 @@ rClause MaxFWAgg::propagate(const Agg& agg, bool headtrue) {
 			for (vwl::const_reverse_iterator i = getSet().getWL().rbegin(); confl == nullPtrClause && i
 						< getSet().getWL().rend() && agg.getBound() < (*i).getWeight(); i++) {
 				//because these propagations are independent of the other set literals, they can also be written as clauses
-				confl = getSet().getSolver()->notifySolver(new AggReason(agg, HEADONLY, ~(*i).getLit()));
+				confl = getSet().getSolver()->notifySolver(new AggReason(agg, HEADONLY, ~(*i).getLit(), (*i).getWeight()));
 			}
 		} else if (!headtrue && agg.isUpper()) {
 			for (vwl::const_reverse_iterator i = getSet().getWL().rbegin(); confl == nullPtrClause && i
 						< getSet().getWL().rend() && agg.getBound() <= (*i).getWeight(); i++) {
-				confl = getSet().getSolver()->notifySolver(new AggReason(agg, HEADONLY, ~(*i).getLit()));
+				confl = getSet().getSolver()->notifySolver(new AggReason(agg, HEADONLY, ~(*i).getLit(), (*i).getWeight()));
 			}
 		}
 		if (confl == nullPtrClause) {
@@ -376,7 +536,7 @@ rClause MaxFWAgg::propagateAll(const Agg& agg, bool headtrue) {
 	}
 	if (exactlyoneleft) {
 		//TODO BASEDONCP is not correct enough (ONCPABOVEBOUND)
-		confl = getSet().getSolver()->notifySolver(new AggReason(agg, BASEDONCP, getSet().getWL()[pos].getLit()));
+		confl = getSet().getSolver()->notifySolver(new AggReason(agg, BASEDONCP, getSet().getWL()[pos].getLit(), getSet().getWL()[pos].getWeight()));
 	}
 	return confl;
 }
@@ -452,9 +612,9 @@ rClause SPFWAgg::propagate(const Agg& agg, bool headtrue) {
 		const Lit& l = getSet().getWL()[u].getLit();
 		if (getSolver()->value(l) == l_Undef) {//if already propagated as an aggregate, then those best-values have already been adapted
 			if ((agg.isLower() && headtrue) || (agg.isUpper() && !headtrue)) {
-				c = getSet().getSolver()->notifySolver(new AggReason(agg, basedon, ~l));
+				c = getSet().getSolver()->notifySolver(new AggReason(agg, basedon, ~l, getSet().getWL()[u].getWeight()));
 			} else {
-				c = getSet().getSolver()->notifySolver(new AggReason(agg, basedon, l));
+				c = getSet().getSolver()->notifySolver(new AggReason(agg, basedon, l, getSet().getWL()[u].getWeight()));
 			}
 		}
 	}

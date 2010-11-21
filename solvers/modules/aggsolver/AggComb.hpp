@@ -36,6 +36,7 @@ public:
     const Lit& 			getLit()	const { return wl.getLit(); }
     const Weight&		getWeight()	const { return wl.getWeight(); }
     const Occurrence& 	getType() 	const { return type; }
+    const WL& 			getWL()		const { return wl; }
 };
 
 
@@ -65,19 +66,21 @@ enum Expl{BASEDONCC,BASEDONCP,CPANDCC, HEADONLY};
 class AggReason {
 private:
 	const Agg&	expr;
-	const Lit	proplit;
+	const Lit 	proplit;
+	const Weight propweight;
 	const Expl	expl;
 	const bool 	head;
 	vec<Lit> 	explanation;
 	bool 		hasclause;
 
 public:
-	AggReason(const Agg& agg, Expl expl, const Lit& proplit, bool head = false)
-		:expr(agg), proplit(proplit), expl(expl), head(head), explanation(), hasclause(false){
+	AggReason(const Agg& agg, Expl expl, const Lit& proplit, const Weight& propweight, bool head = false)
+		:expr(agg), proplit(proplit), propweight(propweight), expl(expl), head(head), explanation(), hasclause(false){
 	}
 
 	const Agg&	getAgg() 		const	{ return expr; }
     const Lit&	getPropLit()	const	{ return proplit; }
+    const Weight&	getPropWeight()	const	{ return propweight; }
     bool		isHeadReason() 	const	{ return head; }
     Expl		getExpl() 		const	{ return expl; }
 
