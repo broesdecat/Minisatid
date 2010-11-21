@@ -50,7 +50,7 @@ protected:
     /**
      * Updates the values of the aggregate and then returns whether the head can be directly propagated from the body
      */
-    virtual lbool 	canPropagateHead		(const Agg& agg, const Weight& CC, const Weight& CP) const;
+    virtual lbool 	canPropagateHead		(const Agg& agg, const Weight& CC, const Weight& CP, Expl& basedon) const;
 
     virtual rClause propagate				(const Agg& agg, bool headtrue) = 0;
 

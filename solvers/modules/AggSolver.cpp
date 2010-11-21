@@ -460,7 +460,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 }
 
 void AggSolver::newDecisionLevel() {
-	report("New decision level\n");
+	//report("New decision level\n");
 	if (verbosity() >= 6) {
 		report("Current effective watches on new decision level: \n");
 		//FIXME when partial watches code has been changed printWatches(this, tempwatches);
@@ -470,7 +470,7 @@ void AggSolver::newDecisionLevel() {
 
 void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel) {
 	while(trail.size()>untillevel+1){
-		report("Backtrack decision level\n");
+		//report("Backtrack decision level\n");
 		for(vector<TypedSet*>::iterator j=trail.back().begin(); j<trail.back().end(); j++){
 			(*j)->backtrack(nblevels, untillevel);
 		}
@@ -753,7 +753,7 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
 		return true;
 	}
 
-	AggReason ar(*a, CPANDCC, createNegativeLiteral(head), true);
+	AggReason ar(*a, BASEDONCC, createNegativeLiteral(head), true);
 	prop->getExplanation(invalidation, ar);
 
 	return false;

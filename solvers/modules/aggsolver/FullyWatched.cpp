@@ -88,16 +88,17 @@ lbool FWAgg::initialize(const Agg& agg) {
 		return l_Undef;
 	}
 
-	lbool hv = canPropagateHead(agg, getCC(), getCP());
+	Expl basedon;
+	lbool hv = canPropagateHead(agg, getCC(), getCP(), basedon);
 	bool alwaystrue = false;
 	if (hv != l_Undef && !agg.isOptim()) {
 		alwaystrue = true;
 		//reportf("No more propagations for %d", gprintVar(var(head)));
 	}
 	if (hv == l_True) {
-		confl = getSet().getSolver()->notifySolver(new AggReason(agg, CPANDCC, agg.getHead(), 0, true));
+		confl = getSet().getSolver()->notifySolver(new AggReason(agg, basedon, agg.getHead(), 0, true));
 	} else if (hv == l_False) {
-		confl = getSet().getSolver()->notifySolver(new AggReason(agg, CPANDCC, ~agg.getHead(), 0, true));
+		confl = getSet().getSolver()->notifySolver(new AggReason(agg, basedon, ~agg.getHead(), 0, true));
 	}
 	if (confl != nullPtrClause) {
 		return l_False;
@@ -108,7 +109,7 @@ lbool FWAgg::initialize(const Agg& agg) {
 
 void FWAgg::backtrack(int nblevels, int untillevel){
 	while(getTrail().back().level>untillevel){
-		report("Backtrack trail of FW\n");
+		//report("Backtrack trail of FW\n");
 		getTrail().pop_back();
 	}
 }
@@ -122,7 +123,7 @@ rClause FWAgg::propagate(const Agg& agg, int level) {
 	//}
 
 	if(getTrail().back().level<level){
-		report("Added trail level, trail level %d, current level %d\n", getTrail().back().level, level);
+		//report("Added trail level, trail level %d, current level %d\n", getTrail().back().level, level);
 		getTrail().push_back(FWTrail(level, getTrail().back().CBC, getTrail().back().CBP));
 		getSolver()->addToTrail(getSetp());
 	}
@@ -136,7 +137,7 @@ rClause FWAgg::propagate(const Agg& agg, int level) {
 
 rClause FWAgg::propagate(const Lit& p, pw ws, int level) {
 	if(getTrail().back().level<level){
-		report("Added trail level, trail level %d, current level %d\n", getTrail().back().level, level);
+		//report("Added trail level, trail level %d, current level %d\n", getTrail().back().level, level);
 		getTrail().push_back(FWTrail(level, getTrail().back().CBC, getTrail().back().CBP));
 		getSolver()->addToTrail(getSetp());
 	}
@@ -147,7 +148,7 @@ rClause FWAgg::propagate(const Lit& p, pw ws, int level) {
 }
 
 rClause FWAgg::propagateAtEndOfQueue(int level){
-	report("Propagate at end\n");
+	//report("Propagate at end\n");
 	rClause confl = nullPtrClause;
 	if(getTrail().back().level!=level){
 		return confl;
@@ -157,13 +158,13 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 		const PropagationInfo& p = getTrail().back().props[i];
 		if(p.getType()!=HEAD){
 			WL wl(p.getLit(), p.getWeight());
-			report("Type = %s\n", p.getType()==POS?"pos":"neg");
+			//report("Type = %s\n", p.getType()==POS?"pos":"neg");
 			p.getType() == POS ? addToCertainSet(wl) : removeFromPossibleSet(wl);
 		}
 	}
 	getTrail().back().start = getTrail().back().props.size();
 
-	report("Current values: CC=%d and CP=%d\n", getTrail().back().CBC, getTrail().back().CBP);
+	//report("Current values: CC=%d and CP=%d\n", getTrail().back().CBC, getTrail().back().CBP);
 
 	for(vsize i=0; confl==nullPtrClause && i<getTrail().back().headindex.size(); i++){
 		lbool headval = getSolver()->value(getSet().getAgg()[getTrail().back().headindex[i]]->getHead());
@@ -180,25 +181,32 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 		}
 
 		lbool hv = getSolver()->value(pa.getHead());
-		lbool result = canPropagateHead(pa, getCC(), getCP());
+		Expl basedon;
+		lbool result = canPropagateHead(pa, getCC(), getCP(), basedon);
 		if(hv!=l_Undef){
 			if(result==l_Undef){
 				confl = propagate(pa, hv == l_True);
 			}else if(hv!=result){
-				confl = getSet().getSolver()->notifySolver(new AggReason(pa, CPANDCC, result == l_True ? pa.getHead() : ~pa.getHead(), 0, true));
+				confl = getSet().getSolver()->notifySolver(new AggReason(pa, basedon, result == l_True ? pa.getHead() : ~pa.getHead(), 0, true));
 			}
 		}else if(result!=l_Undef){
-			confl = getSet().getSolver()->notifySolver(new AggReason(pa, CPANDCC, result == l_True ? pa.getHead() : ~pa.getHead(), 0, true));
+			confl = getSet().getSolver()->notifySolver(new AggReason(pa, basedon, result == l_True ? pa.getHead() : ~pa.getHead(), 0, true));
 		}
 	}
 
 	return confl;
 }
 
-lbool FWAgg::canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP) const {
+lbool FWAgg::canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP, Expl& basedon) const {
 	//if (nomoreprops[agg.getIndex()] || headproptime[agg.getIndex()]!=-1) {
 	//	return headvalue[agg.getIndex()];
 	//}
+
+	if((agg.isLower() && CC > agg.getBound()) || (agg.isUpper() && CC>= agg.getBound())){
+		basedon = BASEDONCC;
+	}else if((agg.isUpper() && CP < agg.getBound()) || (agg.isLower() && CP <= agg.getBound())){
+		basedon = BASEDONCP;
+	}
 
 	if ((agg.isLower() && CC > agg.getBound()) || (agg.isUpper() && CP < agg.getBound())) {
 		//headproptime[agg.getIndex()] = getStack().size();
@@ -561,7 +569,7 @@ rClause SPFWAgg::propagate(const Agg& agg, bool headtrue) {
 	rClause c = nullPtrClause;
 	Weight weightbound(0);
 
-	Expl basedon = CPANDCC;
+	Expl basedon;
 	//determine the lower bound of which weight literals to consider
 	if (headtrue) {
 		if (agg.isLower()) {

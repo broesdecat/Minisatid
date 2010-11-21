@@ -61,7 +61,7 @@ public:
 	virtual const WL&	getWL()			const; //TODO unclear semantics
 };
 
-enum Expl{BASEDONCC,BASEDONCP,CPANDCC, HEADONLY};
+enum Expl{BASEDONCC,BASEDONCP,HEADONLY};
 
 class AggReason {
 private:
