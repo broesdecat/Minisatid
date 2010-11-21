@@ -174,6 +174,7 @@ bool transformMinToMax(TypedSet* set, vps& sets);
 bool transformVerifyWeights(TypedSet* set, vps& sets);
 bool transformOneToOneSetToAggMapping(TypedSet* set, vps& sets);
 bool transformOneToOneSetToSignMapping(TypedSet* set, vps& sets);
+bool transformCardGeqOneToEquiv(TypedSet* set, vps& sets);
 
 bool transformSumsToCNF(vps& sets, MinisatID::PCSolver* pcsolver);
 

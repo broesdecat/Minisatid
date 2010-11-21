@@ -323,13 +323,9 @@ bool Aggrs::transformSetReduction(TypedSet* set, vps& sets) {
 	}
 
 	vwl newset2;
-	bool canbecard = true;
 	for (vwl::size_type i = 0; i < newset.size(); i++) {
 		if (!set->getType().isNeutralElement(newset[i].getWeight())) {
 			newset2.push_back(newset[i]);
-			if (newset[i].getWeight() != 1) {
-				canbecard = false;
-			}
 		} else {
 			setisreduced = true;
 		}
@@ -339,14 +335,24 @@ bool Aggrs::transformSetReduction(TypedSet* set, vps& sets) {
 		set->setWL(newset2);
 	}
 
+	bool canbecard = true;
+	for (vwl::size_type i = 0; canbecard && i < set->getWL().size(); i++) {
+		report("%d\n", set->getWL()[i].getWeight());
+		if (set->getWL()[i].getWeight() != 1) {
+			canbecard = false;
+		}
+	}
+
 	//Correct the aggregate types!
 	if (canbecard) {
+		set->setType(AggProp::getCard());
 		for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
 			if ((*i)->getType() == SUM) {
 				(*i)->setType(CARD);
 			}
 		}
 	} else {
+		set->setType(AggProp::getSum());
 		for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
 			if ((*i)->getType() == CARD) {
 				(*i)->setType(SUM);
@@ -480,6 +486,32 @@ bool Aggrs::transformMinToMax(TypedSet* set, vps& sets) {
 			(*i)->setBound(-(*i)->getBound());
 		}
 		set->getAgg()[0]->setType(MAX);
+	}
+	return true;
+}
+
+bool Aggrs::transformCardGeqOneToEquiv(TypedSet* set, vps& sets){
+	if (set->getAgg()[0]->getType() == CARD) {
+		vpagg remaggs;
+		for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
+			if((*i)->getBound()/*-set->getESV()*/==1 && (*i)->isUpper()){
+				//Can be translated straight to ONE clause!
+				vec<Lit> right;
+				for (int j = 0; j < set->getWL().size(); j++) {
+					right.push(set->getWL()[j]);
+				}
+				if ((*i)->getSem() == DEF) {
+					if (!set->getSolver()->getPCSolver()->addRule(false, (*i)->getHead(), right)) {
+						return false;
+					}
+				} else if (!set->getSolver()->getPCSolver()->addEquivalence((*i)->getHead(), right, false)) {
+					return false;
+				}
+			}else{
+				remaggs.push_back(*i);
+			}
+		}
+		set->replaceAgg(remaggs);
 	}
 	return true;
 }
