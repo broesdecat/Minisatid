@@ -279,6 +279,9 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 			continue;
 		}
 
+		/*for(int i=0; i<set->getAgg().size(); i++){
+			assert(set->getAgg()[i]!=NULL);
+		}*/
 		unsat = unsat || !transformTypePartition(set, sets());
 		unsat = unsat || !transformMinToMax(set, sets());
 		unsat = unsat || !transformAddTypes(set, sets());
@@ -309,6 +312,15 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	sets().clear();
 	sets().insert(sets().begin(), remainingsets.begin(), remainingsets.end());
 	deleteList<TypedSet>(satsets);
+
+#ifdef DEBUG
+	for(int j=0; j<sets().size(); j++){
+		for (vpagg::const_iterator i = sets()[j]->getAgg().begin(); i<sets()[j]->getAgg().end(); i++) {
+			assert(sets()[j]==(*i)->getSet());
+			assert((*i)->getSet()->getAgg()[(*i)->getIndex()]==(*i));
+		}
+	}
+#endif
 
 	if(unsat){
 		if (verbosity() >= 3) {
@@ -384,6 +396,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	for(int i=0; i<sets().size(); i++){
 		trail.back().push_back(sets()[i]);
 	}
+
 	notifyInitialized();
 }
 

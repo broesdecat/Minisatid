@@ -1,6 +1,6 @@
 /**************************************************************************************************
 
-Global.h -- (C) Niklas Een, Niklas Sörensson, 2004
+Global.h -- (C) Niklas Een, Niklas Sï¿½rensson, 2004
 
 Contains types, macros, and inline functions generally useful in a C++ program. 
 
@@ -61,6 +61,7 @@ template<class T> macro T max(T x, T y) { return (x > y) ? x : y; }
 
 template <bool> struct STATIC_ASSERTION_FAILURE;
 template <> struct STATIC_ASSERTION_FAILURE<true>{};
+template <> struct STATIC_ASSERTION_FAILURE<false>{};
 #define TEMPLATE_FAIL STATIC_ASSERTION_FAILURE<false>()
 
 #define PANIC(msg) assert((fprintf(stderr, "%s\n", msg), fflush(stderr), false))

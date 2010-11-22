@@ -109,9 +109,9 @@ public:
 	virtual ~PCSolver();
 
 	// Getters for constant solver pointers
-	Minisat::Solver const * const getCSolver	() const { return satsolver; }
-	lsolvers::const_iterator getSolversBegin() const { return solvers.begin(); }
-	lsolvers::const_iterator getSolversEnd() const { return solvers.end(); }
+	Minisat::Solver const *		getCSolver	() const { return satsolver; }
+	lsolvers::const_iterator	getSolversBegin() const { return solvers.begin(); }
+	lsolvers::const_iterator	getSolversEnd() const { return solvers.end(); }
 
 	/*
 	 * INITIALIZATION

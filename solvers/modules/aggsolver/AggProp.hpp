@@ -40,18 +40,17 @@ private:
 	Lit			head;
 	AggSem		sem;
 	int			index;
-	int 		setid;
 	AggType		type;
 	bool		optim;
 
 public:
 	Agg(const Weight& bound, AggSign sign, const Lit& head, AggSem sem, AggType type, bool optim = false):
-		bound(bound), sign(sign), head(head), sem(sem), index(-1), type(type), optim(optim){	}
+		set(NULL), bound(bound), sign(sign), head(head), sem(sem), index(-1), type(type), optim(optim){	}
 
 	TypedSet*	getSet		()					const	{ return set; }
 	const Lit& 	getHead		() 					const 	{ return head; }
 	int			getIndex	()					const	{ return index; }
-	int			getSetID	()					const	{ return setid; }
+	int			getSetID	()					const	;
 	const Weight& getBound	() 					const	{ return bound; }
 	bool 		isLower		()					const	{ return sign!=UB; }
 	bool 		isUpper		()					const	{ return sign!=LB; }
@@ -61,12 +60,11 @@ public:
 	AggType		getType		()					const	{ return type; }
 	bool		isOptim		()					const	{ return optim; }
 	void 		setIndex	(int ind) 					{ index = ind; }
-	void 		setSetID	(int id)					{ setid = id; }
 	void		setBound	(const Weight& w)			{ bound = w;}
-	void		setSign		(AggSign s)					{ sign = s;}
-	void		setType		(AggType s)					{ type = s;}
+	void		setSign		(const AggSign& s)			{ sign = s;}
+	void		setType		(const AggType& s)			{ type = s;}
 	void		setOptim	()							{ optim = true; }
-	void		setTypedSet	(TypedSet* s)				{ set = s; }
+	void		setTypedSet	(TypedSet * const s)		{ set = s; }
 };
 typedef std::vector<Agg*> vpagg;
 
@@ -77,10 +75,10 @@ private:
 	static std::tr1::shared_ptr<AggProp> card;
 	static std::tr1::shared_ptr<AggProp> sum;
 public:
-	static AggProp const * const getMax() { return max.get(); }
-	static AggProp const * const getProd() { return prod.get(); }
-	static AggProp const * const getCard() { return card.get(); }
-	static AggProp const * const getSum() { return sum.get(); }
+	static AggProp const * getMax() { return max.get(); }
+	static AggProp const * getProd() { return prod.get(); }
+	static AggProp const * getCard() { return card.get(); }
+	static AggProp const * getSum() { return sum.get(); }
 
 	virtual const char*	getName					() 										const = 0;
 	virtual AggType 	getType					() 										const = 0;
@@ -218,7 +216,7 @@ protected:
 	int setid;
 
 public:
-	TypedSet(AggSolver* solver, int setid): aggsolver(solver), setid(setid), esv(0){}
+	TypedSet(AggSolver* solver, int setid): esv(0), type(NULL), aggsolver(solver), prop(NULL), setid(setid){}
 	virtual ~TypedSet(){
 		deleteList<Agg>(aggregates);
 		delete prop;
@@ -226,11 +224,12 @@ public:
 
 	int				getSetID		() 			const 			{ return setid; }
 
-	AggSolver * const getSolver		()			const			{ return aggsolver; }
+	AggSolver *		getSolver		()			const			{ return aggsolver; }
 	const vwl&		getWL			()			const 			{ return wl; }
 	void			setWL			(const vwl& wl2)			{ wl=wl2; sort(wl.begin(), wl.end(), compareWLByWeights);} //FIXME SORT?
 
-	const std::vector<Agg*>& getAgg	()	 						{ return aggregates; }
+	const std::vector<Agg*>& getAgg		()	 						{ return aggregates; }
+	std::vector<Agg*>& getAggNonConst	()	 						{ return aggregates; }
 	void			replaceAgg		(const vpagg& repl)			;
 	void 			addAgg			(Agg* aggr) 				;
 

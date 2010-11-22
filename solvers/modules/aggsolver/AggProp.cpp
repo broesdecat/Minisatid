@@ -222,6 +222,13 @@ Propagator*	ProdProp::createPropagator(TypedSet* set, bool pw) const{
 	return new ProdFWAgg(set);
 }
 
+
+
+int Agg::getSetID() const	{
+	return set==NULL?-1:set->getSetID();
+}
+
+
 void TypedSet::addAgg(Agg* aggr){
 	assert(aggr!=NULL);
 	aggregates.push_back(aggr);
@@ -230,9 +237,8 @@ void TypedSet::addAgg(Agg* aggr){
 }
 
 void TypedSet::replaceAgg(const vpagg& repl){
-	for(vector<Agg*>::const_iterator i=aggregates.begin(); i<aggregates.end(); i++){
-		//FIXME it all goes wrong here when adding this (for correctness)
-		//(*i)->setTypedSet(NULL);
+	for(vpagg::const_iterator i=aggregates.begin(); i<aggregates.end(); i++){
+		(*i)->setTypedSet(NULL);
 		(*i)->setIndex(-1);
 	}
 	aggregates.clear();
@@ -323,9 +329,13 @@ bool Aggrs::transformSetReduction(TypedSet* set, vps& sets) {
 	}
 
 	vwl newset2;
+	bool canbecard = true;
 	for (vwl::size_type i = 0; i < newset.size(); i++) {
 		if (!set->getType().isNeutralElement(newset[i].getWeight())) {
 			newset2.push_back(newset[i]);
+			if (newset[i].getWeight() != 1) {
+				canbecard = false;
+			}
 		} else {
 			setisreduced = true;
 		}
@@ -335,27 +345,23 @@ bool Aggrs::transformSetReduction(TypedSet* set, vps& sets) {
 		set->setWL(newset2);
 	}
 
-	bool canbecard = true;
-	for (vwl::size_type i = 0; canbecard && i < set->getWL().size(); i++) {
-		report("%d\n", set->getWL()[i].getWeight());
-		if (set->getWL()[i].getWeight() != 1) {
-			canbecard = false;
-		}
-	}
-
 	//Correct the aggregate types!
 	if (canbecard) {
-		set->setType(AggProp::getCard());
-		for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
-			if ((*i)->getType() == SUM) {
-				(*i)->setType(CARD);
+		if(set->getType().getType()==SUM){
+			set->setType(AggProp::getCard());
+			for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
+				if ((*i)->getType() == SUM) {
+					(*i)->setType(CARD);
+				}
 			}
 		}
 	} else {
-		set->setType(AggProp::getSum());
-		for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
-			if ((*i)->getType() == CARD) {
-				(*i)->setType(SUM);
+		if(set->getType().getType()==CARD){
+			set->setType(AggProp::getSum());
+			for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
+				if ((*i)->getType() == CARD) {
+					(*i)->setType(SUM);
+				}
 			}
 		}
 	}
@@ -417,8 +423,10 @@ bool Aggrs::transformTypePartition(TypedSet* set, vps& sets) {
 		partaggs[(*i)->getType()].push_back(*i);
 	}
 
-	set->replaceAgg((*partaggs.begin()).second);
-	for (map<AggType, vpagg>::const_iterator i = ++partaggs.begin(); i != partaggs.end(); i++) {
+	map<AggType, vpagg>::const_iterator i = partaggs.begin();
+	set->replaceAgg((*i).second);
+	i++;
+	for (; i != partaggs.end(); i++) {
 		TypedSet* newset = new TypedSet(set->getSolver(), set->getSetID());
 		newset->replaceAgg((*i).second);
 		newset->setWL(set->getWL());
@@ -429,18 +437,16 @@ bool Aggrs::transformTypePartition(TypedSet* set, vps& sets) {
 
 //@pre Has to be split
 bool Aggrs::transformVerifyWeights(TypedSet* set, vps& sets) {
-	switch (set->getAgg()[0]->getType()) {
-		case PROD:
-			for (vsize i = 0; i < set->getWL().size(); i++) {
-				if (set->getWL()[i] < 1) { //Exception if product contains negative/zero weights
-					char s[200];
-					sprintf(s, "Error: Set nr. %d contains a 0 (zero) or negative weight %s, which cannot "
-						"be used in combination with a product aggregate\n", set->getSetID(), printWeight(
-							set->getWL()[i]).c_str());
-					throw idpexception(s);
-				}
+	if (set->getAgg()[0]->getType() == PROD) {
+		for (vsize i = 0; i < set->getWL().size(); i++) {
+			if (set->getWL()[i] < 1) { //Exception if product contains negative/zero weights
+				char s[200];
+				sprintf(s, "Error: Set nr. %d contains a 0 (zero) or negative weight %s, which cannot "
+					"be used in combination with a product aggregate\n", set->getSetID(), printWeight(
+						set->getWL()[i]).c_str());
+				throw idpexception(s);
 			}
-			break;
+		}
 	}
 	return true;
 }
@@ -494,10 +500,10 @@ bool Aggrs::transformCardGeqOneToEquiv(TypedSet* set, vps& sets){
 	if (set->getAgg()[0]->getType() == CARD) {
 		vpagg remaggs;
 		for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
-			if((*i)->getBound()/*-set->getESV()*/==1 && (*i)->isUpper()){
+			if((*i)->getBound()-set->getESV()==1 && (*i)->isUpper()){
 				//Can be translated straight to ONE clause!
 				vec<Lit> right;
-				for (int j = 0; j < set->getWL().size(); j++) {
+				for (vsize j = 0; j < set->getWL().size(); j++) {
 					right.push(set->getWL()[j]);
 				}
 				if ((*i)->getSem() == DEF) {

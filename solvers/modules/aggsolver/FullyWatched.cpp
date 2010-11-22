@@ -39,34 +39,24 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 	setCP(getSet().getBestPossible());
 	setCC(getSet().getESV());
 
-	//int startsize = getSet().getAgg().size();
-	//headindex.resize(startsize, -1);
-	//nomoreprops.resize(startsize, false);
-	//headproptime.resize(startsize, -1);
-
-	vpagg remainingaggs;
-	for (vsize i = 0; !unsat && i < getSet().getAgg().size(); i++) {
-		pagg agg = getSet().getAgg()[i];
+	int counter = 0;
+	for (vpagg::iterator i = getSet().getAggNonConst().begin(); !unsat && i < getSet().getAggNonConst().end();) {
+		pagg agg = (*i);
 		lbool result = initialize(*agg);
 		if (result == l_True && !agg->isDefined()) {
 			//If after initialization, the head will have a fixed value, then this is
 			//independent of any further propagations within that aggregate.
 			//BUT ONLY if it is not defined (or at a later stage, if it cannot be in any loop)
 			getSet().getSolver()->removeHeadWatch(var(agg->getHead()));
-			delete agg;
+			i = getSet().getAggNonConst().erase(i);
+			continue;
 		} else if (result == l_False) {
 			unsat = true; //UNSAT because always false
 			return;
-		} else {
-			assert(agg!=NULL);
-			remainingaggs.push_back(agg);
 		}
+		agg->setIndex(counter++);
+		i++;
 	}
-	getSet().replaceAgg(remainingaggs);
-	//headindex.resize(j, -1);
-	//nomoreprops.resize(j, false);
-	//headproptime.clear(); //if it has been propagated before, it has been dropped
-	//headproptime.resize(j, -1);
 
 	for (vsize j = 0; j < getSet().getWL().size(); j++) {
 		const Lit& l = getSet().getWL()[j].getLit();
@@ -132,6 +122,7 @@ rClause FWAgg::propagate(const Agg& agg, int level) {
 	getTrail().back().props.push_back(PropagationInfo(value(agg.getHead())==l_True?agg.getHead():~agg.getHead(), 0, HEAD));
 	getTrail().back().headindex.push_back(agg.getIndex());
 	getTrail().back().headtime.push_back(getTrail().back().props.size());
+
 	return nullPtrClause;
 }
 
@@ -150,6 +141,7 @@ rClause FWAgg::propagate(const Lit& p, pw ws, int level) {
 rClause FWAgg::propagateAtEndOfQueue(int level){
 	//report("Propagate at end\n");
 	rClause confl = nullPtrClause;
+
 	if(getTrail().back().level!=level){
 		return confl;
 	}
@@ -166,14 +158,16 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 
 	//report("Current values: CC=%d and CP=%d\n", getTrail().back().CBC, getTrail().back().CBP);
 
-	for(vsize i=0; confl==nullPtrClause && i<getTrail().back().headindex.size(); i++){
-		lbool headval = getSolver()->value(getSet().getAgg()[getTrail().back().headindex[i]]->getHead());
+	for(vector<int>::const_iterator i=getTrail().back().headindex.begin(); confl==nullPtrClause && i<getTrail().back().headindex.end(); i++){
+		pagg agg = getSet().getAgg()[*i];
+		assert(agg->getSet()->getAgg()[agg->getIndex()]==agg && *i == agg->getIndex());
+		lbool headval = getSolver()->value(agg->getHead());
 		assert(headval!=l_Undef);
-		confl = propagate(*getSet().getAgg()[getTrail().back().headindex[i]], headval==l_True);
+		confl = propagate(*agg, headval==l_True);
 	}
 
-	for (vsize i = 0; confl == nullPtrClause && i<getSet().getAgg().size(); i++) {
-		const Agg& pa = *getSet().getAgg()[i];
+	for (vpagg::const_iterator i = getSet().getAgg().begin(); confl == nullPtrClause && i<getSet().getAgg().end(); i++) {
+		const Agg& pa = **i;
 
 		if (getSet().getSolver()->verbosity() >= 6) {
 			report("Propagating into aggr: ");
