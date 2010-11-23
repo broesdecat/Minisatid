@@ -88,15 +88,16 @@ bool IDSolver::isDefinedByAggr(Var v) const {
 	return getDefType(v) == AGGR;
 }
 
-IDSolver::IDSolver(pPCSolver s) :
-	DPLLTmodule(s), aggsolver(NULL), firstsearch(true), prev_conflicts(0), unfoundedsets(0), cycle_sources(0),
-			previoustrailatsimp(-1), justifiable_cycle_sources(0),
-			cycles(0),
-			cycle_sizes(0),
-			justify_conflicts(0), // ecnf_mode.def
-			nb_times_findCS(0), justify_calls(0), cs_removed_in_justify(0), succesful_justify_calls(0),
-			extdisj_sizes(0), total_marked_size(0), posloops(true), negloops(true), adaption_total(0),
-			adaption_current(0) {
+IDSolver::IDSolver(pPCSolver s, DEFSEM sem) :
+		DPLLTmodule(s), sem(sem),
+		aggsolver(NULL), firstsearch(true), prev_conflicts(0), unfoundedsets(0), cycle_sources(0),
+		previoustrailatsimp(-1), justifiable_cycle_sources(0),
+		cycles(0),
+		cycle_sizes(0),
+		justify_conflicts(0), // ecnf_mode.def
+		nb_times_findCS(0), justify_calls(0), cs_removed_in_justify(0), succesful_justify_calls(0),
+		extdisj_sizes(0), total_marked_size(0), posloops(true), negloops(true), adaption_total(0),
+		adaption_current(0) {
 }
 
 IDSolver::~IDSolver() {
@@ -357,7 +358,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 		}
 	}
 
-	if (!negloops && !posloops) {
+	if (!posloops && (!negloops || getSemantics()==STABLE)) {
 		present = false;
 		return;
 	}
@@ -1859,6 +1860,10 @@ bool IDSolver::isCycleFree() const {
  * this can be done by implementing wf propagation and counter methods in aggregates.
  */
 bool IDSolver::isWellFoundedModel() {
+	if(getSemantics()!=WELLF){
+		throw idpexception("Should not be checking for well-founded model, because mode is stable semantics!\n");
+	}
+
 	if (posloops && !isCycleFree()) {
 		if (verbosity() > 1) {
 			report("A positive unfounded loop exists, so not well-founded!\n");

@@ -496,36 +496,44 @@ bool Aggrs::transformMinToMax(TypedSet* set, vps& sets) {
 	return true;
 }
 
+/**
+ * Rewrites cards as sets of clauses iff:
+ * 	bound-esv == 0 && upper => head is always true
+ * 	bound-esv == 1 && upper => write out equivalence if not too large
+ * 								if large, only write out if head already true
+ * 	TODO others?
+ */
 bool Aggrs::transformCardGeqOneToEquiv(TypedSet* set, vps& sets){
+	bool unsat = false;
 	if (set->getAgg()[0]->getType() == CARD) {
 		vpagg remaggs;
-		for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
+		for (vpagg::const_iterator i = set->getAgg().begin(); !unsat && i < set->getAgg().end(); i++) {
 			if((*i)->getBound()-set->getESV()==0 && (*i)->isUpper()){
 				vec<Lit> lits;
-				lits.push((*i)->getHead());
-				if(!set->getSolver()->getPCSolver()->addClause(lits)){
-					return false;
+				bool unsat = false;
+				if ((*i)->getSem() == DEF) {
+					unsat = !set->getSolver()->getPCSolver()->addRule(true, (*i)->getHead(), lits);
+				}else{
+					lits.push((*i)->getHead());
+					unsat = !set->getSolver()->getPCSolver()->addClause(lits);
 				}
 			} else if((*i)->getBound()-set->getESV()==1 && (*i)->isUpper()){
-				//Can be translated straight to ONE clause!
 				vec<Lit> right;
 				for (vsize j = 0; j < set->getWL().size(); j++) {
 					right.push(set->getWL()[j]);
 				}
 				if ((*i)->getSem() == DEF) {
-					if (!set->getSolver()->getPCSolver()->addRule(false, (*i)->getHead(), right)) {
-						return false;
-					}
-				} else if (!set->getSolver()->getPCSolver()->addEquivalence((*i)->getHead(), right, false)) {
-					return false;
+					unsat = !set->getSolver()->getPCSolver()->addRule(false, (*i)->getHead(), right);
+				} else{
+					unsat = !set->getSolver()->getPCSolver()->addEquivalence((*i)->getHead(), right, false);
 				}
-			}else{
+			} else{
 				remaggs.push_back(*i);
 			}
 		}
 		set->replaceAgg(remaggs);
 	}
-	return true;
+	return !unsat;
 }
 
 //Temporary structure to create pseudo booleans

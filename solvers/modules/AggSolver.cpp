@@ -287,8 +287,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		unsat = unsat || !transformAddTypes(set, sets());
 		unsat = unsat || !transformVerifyWeights(set, sets());
 		unsat = unsat || !transformSetReduction(set, sets());
-		//This somestimes slows down the calculations!, e.g. SATCardMagic.mx
-		//unsat = unsat || !transformCardGeqOneToEquiv(set, sets());
+		unsat = unsat || !transformCardGeqOneToEquiv(set, sets());
 		if(getPCSolver()->modes().pw){ //use PWatches
 			unsat = unsat || !transformOneToOneSetToAggMapping(set, sets());
 		}

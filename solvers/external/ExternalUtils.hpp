@@ -272,7 +272,7 @@ struct ECNF_mode {
 		polarity_mode(polarity_stored),
 		verbosity(0),
 		nbmodels(1),
-		sem(WELLF),
+		sem(STABLE),
 		defn_strategy(always),
 		defn_search(include_cs),
 		ufs_strategy(breadth_first),

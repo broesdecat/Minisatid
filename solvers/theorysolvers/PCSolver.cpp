@@ -65,7 +65,7 @@ PCSolver::PCSolver(ECNF_mode modes, MinisatID::WrappedLogicSolver* inter) :
 	}
 
 	if (modes.def) {
-		idsolver = new DPLLTSolver(new IDSolver(this), true);
+		idsolver = new DPLLTSolver(new IDSolver(this, modes.sem), true);
 		solvers.push_back(idsolver);
 		if (getAggSolver() != NULL) {
 			getIDSolver()->setAggSolver(getAggSolver());

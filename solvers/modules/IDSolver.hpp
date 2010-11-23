@@ -83,13 +83,14 @@ public:
 
 class IDSolver: public DPLLTmodule{
 private:
+	DEFSEM							sem;
 	MinisatID::AggSolver*			aggsolver;
 	long							unfoundedsets;
 	int								previoustrailatsimp; //The size of the trail the previous time simplification was run.
 	std::vector<std::vector<Lit> > 	reasons;	// std::map vars to vec<Lit> which were the reason of deriving it
 
 public:
-	IDSolver(MinisatID::PCSolver* s);
+	IDSolver(MinisatID::PCSolver* s, DEFSEM sem);
 	virtual ~IDSolver();
 
 	MinisatID::AggSolver*	getAggSolver()const{return aggsolver;}
@@ -112,6 +113,8 @@ public:
 	virtual void print();
 
 	bool 		isWellFoundedModel		();
+
+	DEFSEM		getSemantics				() const { return sem; }
 
 	/////////////////////ENDSOLVER NECESSARY
 
