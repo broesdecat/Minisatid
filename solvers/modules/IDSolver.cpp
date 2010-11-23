@@ -827,7 +827,8 @@ rClause IDSolver::propagateAtEndOfQueue() {
 	}
 
 	//Testing new heuristic!
-	const vec<Lit>& trail = getPCSolver()->getTrail();
+	//FIXME: Too slow!
+	/*const vec<Lit>& trail = getPCSolver()->getTrail();
 	int recentindex = getPCSolver()->getStartLastLevel();
 	for (int i = recentindex; i < trail.size(); i++) {
 		const Lit& l = trail[i];
@@ -836,11 +837,11 @@ rClause IDSolver::propagateAtEndOfQueue() {
 			bool sometrue = false;
 			PCSolver* const pcsol = getPCSolver();
 			const PropRule& r = *getDefinition(v);
-			/*for(int j=0; !sometrue && j<r.size(); j++){
-				if(value(var(r[j]))==l_True){
-					sometrue = true;
-				}
-			}*/
+			//for(int j=0; !sometrue && j<r.size(); j++){
+			//	if(value(var(r[j]))==l_True){
+			//		sometrue = true;
+			//	}
+			//}
 			if(!sometrue){
 				for(int j=0; j<r.size(); j++){
 					//reportf("Bumping");
@@ -848,7 +849,7 @@ rClause IDSolver::propagateAtEndOfQueue() {
 				}
 			}
 		}
-	}
+	}*/
 
 	if(!posloops){
 		return nullPtrClause;
@@ -1351,7 +1352,8 @@ void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf) {
 	}
 
 	for (int i = 1; i < loopf.size(); i++) {
-		getPCSolver()->varBumpActivity(var(loopf[i]));
+		//FIXME too slow!
+		//getPCSolver()->varBumpActivity(var(loopf[i]));
 
 		seen[var(loopf[i])] = 0;
 	}

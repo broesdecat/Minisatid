@@ -400,7 +400,9 @@ int doModelGeneration(pData& d, double cpu_time){
 		std::filebuf buf;
 		buf.open(MinisatID::getInputFileUrl(), std::ios::in);
 		std::istream is(&buf);
-		r->read(is);
+		if(r->read(is)!=0){
+			throw idpexception("Error in lparse parsing!\n");
+		}
 		buf.close();
 		delete r;
 	} else if (modes.pb) { //PB

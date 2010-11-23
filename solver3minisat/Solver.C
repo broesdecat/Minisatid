@@ -450,6 +450,20 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
     }while (pathC > 0);
     out_learnt[0] = ~p;
 
+    if(deleteImplicitClause){
+    	delete confl;
+    	deleteImplicitClause = false;
+    }
+
+    if(verbosity>4) {
+    	reportf("Final explanation is ");
+        for (int i = 0; i < out_learnt.size(); i++){
+            printLit(out_learnt[i]);
+            reportf(" ");
+        }
+    	reportf("\n");
+    }
+
     // Simplify conflict clause:
     //
     int i, j;

@@ -529,6 +529,12 @@ rClause PCSolver::propagate(Lit l) {
 			confl = (*i)->get()->propagate(l);
 		}
 	}
+
+	//FIXME test: proof that sometimes (conn dom set a bit, but not the main problem), propagating agg as fast as possible helps!
+	/*if(confl==nullPtrClause){
+		confl = getAggSolver()->propagateAtEndOfQueue();
+	}*/
+
 	return confl;
 }
 
