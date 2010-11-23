@@ -542,10 +542,10 @@ rClause PCSolver::propagateAtEndOfQueue() {
 	for(lsolvers::const_iterator i=solvers.begin(); confl==nullPtrClause && i<solvers.end(); i++){
 		if((*i)->present){
 			//IMPORTANT: if any solver has made propagations, we go back to unit propagation first!
-			Lit lastbefore = getSolver()->getTrail().last();
+			int sizebefore = getSolver()->getTrail().size();
 			confl = (*i)->get()->propagateAtEndOfQueue();
-			Lit lastafter = getSolver()->getTrail().last();
-			if(lastbefore!=lastafter){
+			int sizeafter = getSolver()->getTrail().size();
+			if(sizebefore<sizeafter){
 				return confl;
 			}
 		}
