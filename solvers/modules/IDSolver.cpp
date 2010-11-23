@@ -215,13 +215,13 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 		}
 	}
 
-	if (verbosity() > 5) {
+	/*if (verbosity() > 9) {
 		report("Printing sccs full graph:");
 		for (int i = 0; i < nvars; i++) {
 			report("SCC of %d is %d\n", gprintVar(i), gprintVar(scc[i]));
 		}
 		report("Ended printing sccs. Size of roots = %d, nodes in mixed = %d.\n", rootofmixed.size(), nodeinmixed.size());
-	}
+	}*/
 
 	//all var in rootofmixed are the roots of mixed loops. All other are no loops (size 1) or positive loops
 
@@ -240,7 +240,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 		}
 	}
 
-	if (verbosity() > 5) {
+	if (verbosity() > 9) {
 		report("Printing sccs pos graph:");
 		for (int i = 0; i < nvars; i++) {
 			report("SCC of %d is %d\n", gprintVar(i), gprintVar(scc[i]));
@@ -816,24 +816,10 @@ void IDSolver::propagateJustificationAggr(Lit l, vec<vec<Lit> >& jstf, vec<Lit>&
 	getAggSolver()->propagateJustifications(l, jstf, heads, seen);
 }
 
-/*_________________________________________________________________________________________________
- |
- |  indirectPropagate : [void]  ->  [CCC]
- |
- |  Description:
- |    If there is an unfounded set w.r.t. current assignment, this method will find one. There
- |    are then two possible results:
- |    - Making all unfounded set atoms false would result in a conflict. There will be no new
- |      elements on the propagation queue, and the conflicting loop formula is added to the theory
- |      and returned.
- |    - For each atom of the unfounded set a loop formula is added to the theory, and used as
- |      reason clause for making the atom false. Thus the propagation queue is not empty. NULL is
- |      returned.
- |    Otherwise, the justification and the watches will be adjusted and 'aligned', such that the
- |    justification is loop-free.
- |
- |	Returns non-owning pointer
- |________________________________________________________________________________________________@*/
+/*
+ * IMPORTANT: should ONLY be called after all possible other propagations have been done:
+ * the state has to be stable for both aggregate and unit propagations
+ */
 rClause IDSolver::propagateAtEndOfQueue() {
 	if (!isInitialized() || !indirectPropagateNow()) {
 		return nullPtrClause;
@@ -1101,7 +1087,7 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 	seen[cs] = 1; //no valid justification can be created just from looking at the body literals
 	tmpseen.push(cs);
 
-	if (verbosity() > 5) {
+	if (verbosity() > 9) {
 		for (int i = 0; i < defdVars.size(); i++) {
 			if (isJustified(defdVars[i])) {
 				report("Still justified %d\n", gprintVar(defdVars[i]));
@@ -1569,7 +1555,7 @@ inline void IDSolver::markNonJustifiedAddVar(Var v, Var cs, queue<Var> &q, vec<V
 			seen[v]++;
 		}
 
-		if (verbosity() > 5) {
+		if (verbosity() > 9) {
 			report("Not justified %d, times %d\n", gprintVar(v), seen[v]);
 		}
 	}
@@ -1640,10 +1626,15 @@ void IDSolver::removeAggrHead(Var head) {
 // a variable is a literal shifted one to the right
 
 inline void IDSolver::print(const PropRule& c) const {
+	report("Rule ");
+	Lit head = createPositiveLiteral(c.head);
+	gprintLit(head, value(head));
+	report(" <- ");
 	for (int i = 0; i < c.size(); i++) {
-		gprintLit(c[i]);
+		gprintLit(c[i], value(c[i]));
 		fprintf(stderr, " ");
 	}
+	report("\n");
 }
 
 /**

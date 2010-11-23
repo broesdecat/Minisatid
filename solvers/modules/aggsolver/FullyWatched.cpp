@@ -355,6 +355,16 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	for(vector<WL>::const_iterator i=reasons.begin(); i<reasons.end(); i++){
 		lits.push(~(*i).getLit());
 	}
+
+	if(getSolver()->verbosity()>=5){
+		report("Explanation for ");
+		printAgg(agg, false);
+		report("is\n");
+		for(int i=0; i<lits.size(); i++){
+			report(" "); gprintLit(lits[i]);
+		}
+		report("\n");
+	}
 }
 
 /**
