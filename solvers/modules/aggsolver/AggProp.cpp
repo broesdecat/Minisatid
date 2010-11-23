@@ -500,7 +500,13 @@ bool Aggrs::transformCardGeqOneToEquiv(TypedSet* set, vps& sets){
 	if (set->getAgg()[0]->getType() == CARD) {
 		vpagg remaggs;
 		for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
-			if((*i)->getBound()-set->getESV()==1 && (*i)->isUpper()){
+			if((*i)->getBound()-set->getESV()==0 && (*i)->isUpper()){
+				vec<Lit> lits;
+				lits.push((*i)->getHead());
+				if(!set->getSolver()->getPCSolver()->addClause(lits)){
+					return false;
+				}
+			} else if((*i)->getBound()-set->getESV()==1 && (*i)->isUpper()){
 				//Can be translated straight to ONE clause!
 				vec<Lit> right;
 				for (vsize j = 0; j < set->getWL().size(); j++) {
