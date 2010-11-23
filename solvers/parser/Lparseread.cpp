@@ -57,6 +57,11 @@ Read::Read (WrappedPCSolver* solver): solver(solver), size(0), setcount(1), maxa
 }
 
 Read::~Read (){
+	deleteList<BasicRule>(basicrules);
+	deleteList<SumRule>(sumrules);
+	deleteList<CardRule>(cardrules);
+	deleteList<ChoiceRule>(choicerules);
+	deleteList<GenRule>(genrules);
 }
 
 Literal Read::makeLiteral(int n, bool sign = false){
@@ -116,7 +121,7 @@ int Read::addBasicRule (istream &f){
 		return 1;
 	}
 
-	basicrules.push_back(BasicRule(head, body));
+	basicrules.push_back(new BasicRule(head, body));
 
 	return 0;
 }
@@ -165,7 +170,7 @@ int Read::addConstraintRule (istream &f){
 		return 1;
 	}
 
-	cardrules.push_back(CardRule(setcount, head, body, atleast));
+	cardrules.push_back(new CardRule(setcount, head, body, atleast));
 	setcount++;
 
 	return 0;
@@ -214,7 +219,7 @@ int Read::addGenerateRule (istream &f){
 		return 1;
 	}
 
-	genrules.push_back(GenRule(atleast, heads, body));
+	genrules.push_back(new GenRule(atleast, heads, body));
 
 	return 0;
 }
@@ -266,7 +271,7 @@ int Read::addChoiceRule (istream &f){
 		return 1;
 	}
 
-	choicerules.push_back(ChoiceRule(heads, body));
+	choicerules.push_back(new ChoiceRule(heads, body));
 
 	return 0;
 }
@@ -301,6 +306,7 @@ int Read::addWeightRule (istream &f){
 
 	// Negative body size
 	f >> n;
+
 	if (!f.good () || n < 0 || n > bodysize){
 		cerr << "negative body size, line " << linenumber << endl;
 		return 1;
@@ -332,7 +338,7 @@ int Read::addWeightRule (istream &f){
 		weights.push_back(w);
 	}
 
-	sumrules.push_back(SumRule(setcount, head, body, weights, lowerbound));
+	sumrules.push_back(new SumRule(setcount, head, body, weights, lowerbound));
 	setcount++;
 
 	return 0;
@@ -395,8 +401,8 @@ int Read::addOptimizeRule (istream &f){
 }
 
 int Read::finishBasicRules(){
-	for(vector<BasicRule>::const_iterator i=basicrules.begin(); i<basicrules.end(); i++){
-		if(!getSolver()->addRule(true, (*i).head, (*i).body)){
+	for(vector<BasicRule*>::const_iterator i=basicrules.begin(); i<basicrules.end(); i++){
+		if(!getSolver()->addRule((*i)->conj, (*i)->head, (*i)->body)){
 			return 1;
 		}
 	}
@@ -404,11 +410,11 @@ int Read::finishBasicRules(){
 }
 
 int Read::finishCardRules(){
-	for(vector<CardRule>::const_iterator i=cardrules.begin(); i<cardrules.end(); i++){
-		if(!getSolver()->addSet((*i).setcount, (*i).body)){
+	for(vector<CardRule*>::const_iterator i=cardrules.begin(); i<cardrules.end(); i++){
+		if(!getSolver()->addSet((*i)->setcount, (*i)->body)){
 			return 1;
 		}
-		if(!getSolver()->addAggrExpr((*i).head, (*i).setcount, (*i).atleast, UB, CARD, DEF)){
+		if(!getSolver()->addAggrExpr((*i)->head, (*i)->setcount, (*i)->atleast, UB, CARD, DEF)){
 			return 1;
 		}
 	}
@@ -416,11 +422,11 @@ int Read::finishCardRules(){
 }
 
 int Read::finishSumRules(){
-	for(vector<SumRule>::const_iterator i=sumrules.begin(); i<sumrules.end(); i++){
-		if(!getSolver()->addSet((*i).setcount, (*i).body, (*i).weights)){
+	for(vector<SumRule*>::const_iterator i=sumrules.begin(); i<sumrules.end(); i++){
+		if(!getSolver()->addSet((*i)->setcount, (*i)->body, (*i)->weights)){
 			return 1;
 		}
-		if(!getSolver()->addAggrExpr((*i).head, (*i).setcount, (*i).atleast, UB, SUM, DEF)){
+		if(!getSolver()->addAggrExpr((*i)->head, (*i)->setcount, (*i)->atleast, UB, SUM, DEF)){
 			return 1;
 		}
 	}
@@ -428,11 +434,11 @@ int Read::finishSumRules(){
 }
 
 int Read::finishGenerateRules(){
-	for(vector<GenRule>::const_iterator i=genrules.begin(); i<genrules.end(); i++){
-		if((*i).body.size()!=0){
-			for(vector<Literal>::const_iterator j=(*i).heads.begin(); j<(*i).heads.end(); j++){
+	for(vector<GenRule*>::const_iterator i=genrules.begin(); i<genrules.end(); i++){
+		if((*i)->body.size()!=0){
+			for(vector<Literal>::const_iterator j=(*i)->heads.begin(); j<(*i)->heads.end(); j++){
 				int atemp = maxatomnumber++;
-				vector<Literal> tempbody((*i).body);
+				vector<Literal> tempbody((*i)->body);
 				tempbody.push_back(makeLiteral(atemp, true));
 				if(!getSolver()->addRule(true, *j, tempbody)){
 					return 1;
@@ -445,14 +451,14 @@ int Read::finishGenerateRules(){
 			}
 		}
 
-		if(!getSolver()->addSet(setcount, (*i).heads)){
+		if(!getSolver()->addSet(setcount, (*i)->heads)){
 			return 1;
 		}
 		int atemp = maxatomnumber++;
-		if(!getSolver()->addAggrExpr(Literal(atemp), setcount, (*i).atleast, LB, CARD, DEF)){
+		if(!getSolver()->addAggrExpr(Literal(atemp), setcount, (*i)->atleast, LB, CARD, DEF)){
 			return 1;
 		}
-		if(!getSolver()->addRule(true, Literal(atemp), (*i).body)){
+		if(!getSolver()->addRule(true, Literal(atemp), (*i)->body)){
 			return 1;
 		}
 		setcount++;
@@ -464,12 +470,12 @@ int Read::finishGenerateRules(){
 
 int Read::finishChoiceRules(){
 	for(int i=0; i<choicerules.size(); i++){
-		if(choicerules[i].body.size()==0){
+		if(choicerules[i]->body.size()==0){
 			continue;
 		}
-		for(vector<Literal>::const_iterator j=choicerules[i].heads.begin(); j<choicerules[i].heads.end(); j++){
+		for(vector<Literal>::const_iterator j=choicerules[i]->heads.begin(); j<choicerules[i]->heads.end(); j++){
 			int atemp = maxatomnumber++;
-			vector<Literal> tempbody(choicerules[i].body);
+			vector<Literal> tempbody(choicerules[i]->body);
 			tempbody.push_back(makeLiteral(atemp, true));
 			if(!getSolver()->addRule(true, *j, tempbody)){
 				return 1;
@@ -616,8 +622,62 @@ int Read::read (istream &f){
 		return 1;
 	}
 
-	//TODO: if some atoms are defined multiple times, use tseitin transformation to separate them
-	idpexception("Support disable until tseitin transformation has been implemented.\n");
+	//Check whether there are multiple occurences and rewrite them using tseitin!
+	std::map<Literal, std::vector<BasicRule*> > headtorules;
+	for(vector<BasicRule*>::const_iterator i=basicrules.begin(); i<basicrules.end(); i++){
+		if(headtorules.find((*i)->head)==headtorules.end()){
+			headtorules.insert(pair<Literal, std::vector<BasicRule*> >((*i)->head, std::vector<BasicRule*>()));
+		}
+		(*headtorules.find((*i)->head)).second.push_back(*i);
+	}
+	for(vector<CardRule*>::const_iterator i=cardrules.begin(); i<cardrules.end(); i++){
+		if(headtorules.find((*i)->head)==headtorules.end()){
+			headtorules.insert(pair<Literal, std::vector<BasicRule*> >((*i)->head, std::vector<BasicRule*>()));
+		}
+		(*headtorules.find((*i)->head)).second.push_back(*i);
+	}
+	for(vector<SumRule*>::const_iterator i=sumrules.begin(); i<sumrules.end(); i++){
+		if(headtorules.find((*i)->head)==headtorules.end()){
+			headtorules.insert(pair<Literal, std::vector<BasicRule*> >((*i)->head, std::vector<BasicRule*>()));
+		}
+		(*headtorules.find((*i)->head)).second.push_back(*i);
+	}
+	for(vector<GenRule*>::const_iterator i=genrules.begin(); i<genrules.end(); i++){
+		for(vector<Literal>::const_iterator j=(*i)->heads.begin(); j<(*i)->heads.end(); j++){
+			if(headtorules.find(*j)==headtorules.end()){
+				headtorules.insert(pair<Literal, std::vector<BasicRule*> >(*j, std::vector<BasicRule*>()));
+				(*headtorules.find(*j)).second.push_back(NULL);
+			}else{
+				cerr << "A head was shared by a gen/choice rule and another rule. No idea about semantics!\n";
+			}
+		}
+	}
+	for(vector<ChoiceRule*>::const_iterator i=choicerules.begin(); i<choicerules.end(); i++){
+		for(vector<Literal>::const_iterator j=(*i)->heads.begin(); j<(*i)->heads.end(); j++){
+			if(headtorules.find(*j)==headtorules.end()){
+				headtorules.insert(pair<Literal, std::vector<BasicRule*> >(*j, std::vector<BasicRule*>()));
+				(*headtorules.find(*j)).second.push_back(NULL);
+			}else{
+				cerr << "A head was shared by a gen/choice rule and another rule. No idea about semantics!\n";
+			}
+		}
+	}
+
+	for(map<Literal, vector<BasicRule*> >::const_iterator i=headtorules.begin(); i!=headtorules.end(); i++){
+		if((*i).second.size()<2){
+			continue;
+		}
+
+		Literal orighead = (*i).first;
+		vector<Literal> newheads;
+		for(vector<BasicRule*>::const_iterator j=(*i).second.begin(); j<(*i).second.end(); j++){
+			assert((*j) != NULL);
+			Literal newhead = Literal(++maxatomnumber);
+			newheads.push_back(newhead);
+			(*j)->head = newhead;
+		}
+		basicrules.push_back(new BasicRule(orighead, newheads, false));
+	}
 
 	if(finishBasicRules()==1){
 		return 1;

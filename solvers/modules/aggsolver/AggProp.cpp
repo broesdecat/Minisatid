@@ -545,6 +545,7 @@ struct PBAgg {
 };
 
 bool Aggrs::transformSumsToCNF(vps& sets, MinisatID::PCSolver* pcsolver) {
+	//FIXME error in pbsolver
 	int sumaggs = 0;
 	int maxvar = 1;
 	vector<PBAgg*> pbaggs;

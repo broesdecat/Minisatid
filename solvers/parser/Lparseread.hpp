@@ -44,31 +44,27 @@ namespace MinisatID {
 struct BasicRule{
 	Literal head;
 	std::vector<Literal> body;
+	bool conj;
 
-	BasicRule(Literal head, std::vector<Literal>& body):head(head), body(body){	}
+	BasicRule(Literal head, std::vector<Literal>& body, bool conj = true):head(head), body(body), conj(conj){	}
 };
-
-struct CardRule{
+struct CardRule: public BasicRule{
 	int setcount;
-	Literal head;
-	std::vector<Literal> body;
 	int atleast;
 	//Card, UB, DEF
 
 	CardRule(int setcount, Literal head, std::vector<Literal>& body, int atleast):
-			setcount(setcount), head(head), body(body), atleast(atleast){	}
+			BasicRule(head, body), setcount(setcount), atleast(atleast){	}
 };
 
-struct SumRule{
+struct SumRule: public BasicRule{
 	int setcount;
-	Literal head;
-	std::vector<Literal> body;
 	std::vector<Weight> weights;
 	int atleast;
 	//Card, UB, DEF
 
 	SumRule(int setcount, Literal head, std::vector<Literal>& body, std::vector<Weight> weights, int atleast):
-			setcount(setcount), head(head), body(body), weights(weights), atleast(atleast){	}
+		BasicRule(head, body), setcount(setcount), weights(weights), atleast(atleast){	}
 };
 
 struct GenRule{
@@ -117,11 +113,11 @@ private:
 	WrappedPCSolver* solver;
 	WrappedPCSolver* getSolver() { return solver; }
 
-	std::vector<BasicRule> basicrules;
-	std::vector<CardRule> cardrules;
-	std::vector<SumRule> sumrules;
-	std::vector<GenRule> genrules;
-	std::vector<ChoiceRule> choicerules;
+	std::vector<BasicRule*> basicrules;
+	std::vector<CardRule*> cardrules;
+	std::vector<SumRule*> sumrules;
+	std::vector<GenRule*> genrules;
+	std::vector<ChoiceRule*> choicerules;
 };
 
 }

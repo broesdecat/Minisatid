@@ -266,6 +266,12 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	//Rewrite all sum and card constraint into CNF using PBSOLVER
 	if(getPCSolver()->modes().pbsolver && !unsat){
 		unsat = !transformSumsToCNF(sets(), getPCSolver());
+		if (verbosity() >= 3) {
+			report("Initializing aggregates finished, all converted into CNF.\n");
+		}
+		//FIXME: problems when there are also recursive aggregates!
+		notifyInitialized();
+		return;
 	}
 
 	//Finish the sets: add all body literals to the network
