@@ -118,8 +118,8 @@ rClause FWAgg::propagate(const Agg& agg, int level) {
 		getSolver()->addToTrail(getSetp());
 	}
 
-	lbool headtrue = getSet().getSolver()->value(agg.getHead());
-	getTrail().back().props.push_back(PropagationInfo(value(agg.getHead())==l_True?agg.getHead():~agg.getHead(), 0, HEAD));
+	lbool headtrue = getSolver()->value(agg.getHead());
+	getTrail().back().props.push_back(PropagationInfo(getSolver()->value(agg.getHead())==l_True?agg.getHead():~agg.getHead(), 0, HEAD));
 	getTrail().back().headindex.push_back(agg.getIndex());
 	getTrail().back().headtime.push_back(getTrail().back().props.size());
 
@@ -166,18 +166,24 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 		confl = propagate(*agg, headval==l_True);
 	}
 
-	for (vpagg::const_iterator i = getSet().getAgg().begin(); confl == nullPtrClause && i<getSet().getAgg().end(); i++) {
-		const Agg& pa = **i;
-
+/* DOES NOT HOLD, because intermediate propagations can happen without aborting propagation
+TODO might abort propagation of next aggregates to first do unit propagation
 #ifdef DEBUG
+	for (vpagg::const_iterator i = getSet().getAgg().begin(); confl == nullPtrClause && i<getSet().getAgg().end(); i++){
+		const Agg& pa = **i;
 		bool allknown = true;
 		for(int i=0; i<getSet().getWL().size(); i++){
-			if(getSet().getSolver()->value(getSet().getWL()[i].getLit())==l_Undef){
+			if(value(getSet().getWL()[i].getLit())==l_Undef){
 				allknown = false;
 			}
 		}
 		assert(!allknown || getCC()==getCP());
+	}
 #endif
+*/
+
+	for (vpagg::const_iterator i = getSet().getAgg().begin(); confl == nullPtrClause && i<getSet().getAgg().end(); i++){
+		const Agg& pa = **i;
 
 		if (getSet().getSolver()->verbosity() >= 6) {
 			report("Propagating into aggr: ");
@@ -248,7 +254,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	const Lit& head = agg.getHead();
 
 	//VERY IMPORTANT for conflicts over the head!!!!!
-	bool headtrue = value(head)==l_True;
+	bool headtrue = getSolver()->value(head)==l_True;
 	if(ar.isHeadReason()){
 		headtrue = ar.getPropLit()==head;
 	}
@@ -353,7 +359,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 					min = getSetp()->getType().add(min, (*i).getWeight());
 				}
 
-				if(isSatisfied(value(head)==l_True, min, true, agg.isLower(), agg.getBound())){
+				if(isSatisfied(headtrue, min, true, agg.isLower(), agg.getBound())){
 					reasons.erase(i);
 					changes = true;
 				}else{
@@ -558,7 +564,6 @@ rClause MaxFWAgg::propagateAll(const Agg& agg, bool headtrue) {
 		}
 	}
 	if (exactlyoneleft) {
-		//TODO BASEDONCP is not correct enough (ONCPABOVEBOUND)
 		confl = getSet().getSolver()->notifySolver(new AggReason(agg, BASEDONCP, getSet().getWL()[pos].getLit(), getSet().getWL()[pos].getWeight()));
 	}
 	return confl;
@@ -634,8 +639,18 @@ rClause SPFWAgg::propagate(const Agg& agg, bool headtrue) {
 	for (vsize u = start; c == nullPtrClause && u < getSet().getWL().size(); u++) {
 		const Lit& l = getSet().getWL()[u].getLit();
 		//TODO precondition?
+		bool propagate = getSolver()->value(l)==l_Undef;
+		if(!propagate && getSolver()->getPCSolver()->getLevel(var(l))==getSolver()->getPCSolver()->getCurrentDecisionLevel()){
+			bool found = false;
+			for(vprop::const_iterator i=getTrail().back().props.begin(); !found && i<getTrail().back().props.end(); i++){
+				if(var(l)==var((*i).getLit())){
+					found = true;
+				}
+			}
+			propagate = !found;
+		}
 		//Only propagate those that are not already known in the aggregate solver!
-		if (getSolver()->value(l) == l_Undef) {
+		if (propagate) {
 			if ((agg.isLower() && headtrue) || (agg.isUpper() && !headtrue)) {
 				c = getSet().getSolver()->notifySolver(new AggReason(agg, basedon, ~l, getSet().getWL()[u].getWeight()));
 			} else {
