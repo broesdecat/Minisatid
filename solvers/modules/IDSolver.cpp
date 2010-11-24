@@ -1403,8 +1403,9 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 		addLoopfClause(l, loopf);
 		assert(!isUnknown(l));
 	}else{
+		//report("loopf = %d, ufs = %d\n", loopf.size(), ufs.size());
 		// No conflict: then enqueue all facts and their loop formulas.
-		if (loopf.size() >= 5) {
+		if (loopf.size()*ufs.size()>=500) {
 			//introduce a new var to represent all external disjuncts: v <=> \bigvee external disj
 			Var v = getPCSolver()->newVar();
 			if (verbosity() >= 2) {

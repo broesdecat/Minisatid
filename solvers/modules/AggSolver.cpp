@@ -143,6 +143,7 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 		lw.push_back(WL(lits[i], weights[i]));
 
 		// Literals occurring in aggregates would occur much more often in clauses, so we bump them (a bit)
+		//does not seem to work
 		//getPCSolver()->varBumpActivity(var(lits[i]));
 	}
 
