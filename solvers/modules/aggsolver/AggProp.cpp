@@ -509,13 +509,18 @@ bool Aggrs::transformCardGeqOneToEquiv(TypedSet* set, vps& sets){
 		vpagg remaggs;
 		for (vpagg::const_iterator i = set->getAgg().begin(); !unsat && i < set->getAgg().end(); i++) {
 			if((*i)->getBound()-set->getESV()==0 && (*i)->isUpper()){
-				vec<Lit> lits;
-				bool unsat = false;
-				if ((*i)->getSem() == DEF) {
-					unsat = !set->getSolver()->getPCSolver()->addRule(true, (*i)->getHead(), lits);
+				lbool headvalue = set->getSolver()->value((*i)->getHead());
+				if(headvalue==l_False){
+					unsat = true;
 				}else{
-					lits.push((*i)->getHead());
-					unsat = !set->getSolver()->getPCSolver()->addClause(lits);
+					if ((*i)->getSem() == DEF) {
+						vec<Lit> lits;
+						unsat = unsat || !set->getSolver()->getPCSolver()->addRule(true, (*i)->getHead(), lits);
+					}else{
+						if(headvalue==l_Undef){
+							set->getSolver()->getPCSolver()->setTrue((*i)->getHead(), set->getSolver());
+						}
+					}
 				}
 			} else if((*i)->getBound()-set->getESV()==1 && (*i)->isUpper()){
 				vec<Lit> right;

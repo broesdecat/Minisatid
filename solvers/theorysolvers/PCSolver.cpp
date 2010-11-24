@@ -530,6 +530,11 @@ rClause PCSolver::propagate(Lit l) {
 		}
 	}
 
+	//TODO preconditions of propagateatend!
+/*	if(confl==nullPtrClause && aggsolver->present){
+		confl = getAggSolver()->propagateAtEndOfQueue();
+	}*/
+
 	return confl;
 }
 
@@ -540,6 +545,9 @@ rClause PCSolver::propagateAtEndOfQueue() {
 	if(init){ return nullPtrClause;	}
 
 	rClause confl = nullPtrClause;
+	/*if(idsolver->present){
+		confl = getIDSolver()->propagateAtEndOfQueue();
+	}*/
 	for(lsolvers::const_iterator i=solvers.begin(); confl==nullPtrClause && i<solvers.end(); i++){
 		if((*i)->present){
 			//IMPORTANT: if any solver has made propagations, we go back to unit propagation first!

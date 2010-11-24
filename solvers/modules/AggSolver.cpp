@@ -426,8 +426,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 	//TODO new IDEA: mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt of de grootte van de sets?
 	//want de grootte van de set bepaalt hoe vaak de literal zou zijn uitgeschreven in een cnf theorie
 	//maar niet trager voor pakman
-	//Positive for weight bounded sets
-	getPCSolver()->varBumpActivity(var(p));
+	//getPCSolver()->varBumpActivity(var(p));
 
 	if (value(p) != l_True && getPCSolver()->modes().aggclausesaving < 2) {
 		vec<Lit> lits;
