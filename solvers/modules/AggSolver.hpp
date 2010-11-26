@@ -217,8 +217,12 @@ protected:
 
 	bool				finishSet				(Aggrs::TypedSet* set);
 
-	void 				print(Aggrs::Agg* agg) const;
 };
+
+namespace Aggrs{
+	void print(const TypedSet& agg);
+	void print(const Agg& agg);
+}
 
 }
 

@@ -26,6 +26,14 @@ namespace Minisat{
 	class Solver;
 }
 
+/**
+ * Verbosity rules:
+ * level 0: no output
+ * level 1: statistics information
+ * level 2: initialization information + ?
+ * ... FIXME
+ */
+
 namespace MinisatID {
 
 class PCSolver;

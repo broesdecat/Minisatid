@@ -62,8 +62,9 @@
 #include <fstream>
 #include <signal.h>
 #include <tr1/memory>
-#include <argp.h>
 #include <sstream>
+
+#include <tclap/CmdLine.h>
 
 #include <setjmp.h>
 
@@ -111,51 +112,12 @@ static void noMoreMem();
 volatile sig_atomic_t mem;
 static void SIGINT_handler(int signum);
 
-void printVersion() {
-	report("MinisatID version 2.0.20\n");
-	report("Courtesy of the KRR group at K.U. Leuven, Belgium, more info available on \"http://dtai.cs.kuleuven.be/krr\".\n");
-	report("MinisatID is a model expansion system for propositional logic extended with aggregates "
-			"and inductive definitions. Also lparse and opb languages are supported.\n");
-}
-
-const char *argp_program_version = "minisatid 2.1.20";
-const char *argp_program_bug_address = "<krr@cs.kuleuven.be>";
-
-/* Program documentation. */
-static char doc[] =
-		"Courtesy of the KRR group at K.U. Leuven, Belgium, more info available on \"http://dtai.cs.kuleuven.be/krr\".\n"
-			"MinisatID is a model expansion system for propositional logic extended with aggregates "
-			"and inductive definitions. Also lparse and opb languages are supported.\n";
-
-/* A description of the arguments we accept. */
-static char args_doc[] = "input-file output-file";
-
-/* The options we understand. */
-static struct argp_option options[] = {
-		{"models"		, 'n', "MOD", 0,	"The number of models MOD to search for", 4},
-		{"verbosity"	, 1, "VERB", 0,		"The level of output VERB to generate", 4},
-		{"rnd-freq"		, 2, "FREQ", 0,		"The frequency FREQ (in [0..1]) with which to make a random choice", 4},
-		{"decay"		, 3, "DEC", 0,		"The amount of decay DEC (in [0..1]) used by the SAT-solver", 4},
-		{"polarity-mode", 4, "POL", 0,		"POL={\"true\", \"false\", \"rnd\"}: sets the default polarity choice of variables", 4},
-		{"format"		, 'f', "FORMAT",  0, "FORMAT={\"fodot\", \"lparse\", \"opb\"}: treat input propositional FO(.), as lparse ground format or as pseudo-boolean input", 1},
-		{"idclausesaving", 5, "ID", 0,		"INT={0,1}: 0=add clause on propagation, 1=save clause on propagation", 2},
-		{"aggclausesaving", 6, "INT", 0,	"INT={0,1,2}: 0=add clause on propagation, 1=save clause on propagation, 2=save minimal reason", 2},
-		{"remap"		, 'r', "BOOL", 0,	"BOOL={\"yes\",\"no\"}: remap literals from the input structure to a gap-less internal format",1},
-		{"watchedaggr"	, 'w', "BOOL", 0,	"BOOL={\"yes\",\"no\"}: use watched-literal datastructures to handle aggregate propagation",2},
-		{"pbsolver"		, 14, "BOOL", 0,	"BOOL={\"yes\",\"no\"}: use SAT-encoding via pbsolver to handle sum/card aggregate expressions",2},
-		{"output"		, 'o', "FILE", 0,	"The outputfile to use to write out models and results",1},
-		{"randomize"	, 7, "BOOL", 0,		"BOOL={\"yes\",\"no\"}: randomly generate the SAT-solver random seed,4"},
-//		{"disableheur"	, 8, "BOOL", 0,		"BOOL={\"yes\",\"no\"}: disable the SAT-solver's heuristic"},
-//		{"defstrat "	, 9, "STRAT", 0,	"STRAT={\"breadth_first\", \"depth_first\"}: sets the unfounded-set search-strategy"},
-		{"defsearch"	, 10, "SEARCH", 0,	"SEARCH={\"always\", \"adaptive\", \"lazy\"}: sets the unfounded-set search-frequency",3},
-		{"defsem"		, 11, "SEM", 0,		"SEM={\"stable\", \"wellfounded\"}: uses the chosen semantics to handle inductive definitions",3},
-		{"ecnfgraph"	, 12, "BOOL", 0,	"BOOL={\"yes\",\"no\"}: generate .dot ecnf graph representation",3},
-		{"primesfile"	, 15, "FILE", 0,	"Use FILE as the container of the list of primes to use for searching optimal aggregate bases",2},
-		{ 0,0,0,0,0,0 } }; //Required end tuple
-
-/* Parse a single option. */
+string minisatinfo =
+	"Courtesy of the KRR group at K.U. Leuven, Belgium, more info available on \"http://dtai.cs.kuleuven.be/krr\".\n"
+	"MinisatID is a model expansion system for propositional logic extended with aggregates "
+	"and inductive definitions. Also lparse and opb languages are supported.\n";
+/*
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
-	/* Get the input argument from argp_parse, which we know is a pointer to our arguments structure. */
 	struct ECNF_mode *args = static_cast<ECNF_mode*>(state->input);
 	assert(args!=NULL);
 
@@ -210,13 +172,13 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 			break;
 		case 9: // defstrat: breadth_first/depth_first
 			assert(false);
-			/*if(strcmp(arg, "breadth_first")){
-				modes.ufs_strategy = breadth_first;
-			}else if(strcmp(arg, "depth_first")){
-				modes.ufs_strategy = depth_first;
-			}else{
-				reportf("Illegal defstrat value %s\n", arg); argp_usage(state);
-			}*/
+//			if(strcmp(arg, "breadth_first")){
+//				modes.ufs_strategy = breadth_first;
+//			}else if(strcmp(arg, "depth_first")){
+//				modes.ufs_strategy = depth_first;
+//			}else{
+//				reportf("Illegal defstrat value %s\n", arg); argp_usage(state);
+//			}
 			break;
 		case 10: // defsearch: always/adaptive/lazy
 			if(strcmp(arg, "always")==0){
@@ -316,10 +278,88 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 			return ARGP_ERR_UNKNOWN;
 	}
 	return 0;
-}
+}*/
 
-/* Our argp parser. */
-static struct argp argp = { options, parse_opt, args_doc, doc, NULL, NULL, NULL };
+void parseOptions(int argc, char** argv){
+	try {
+		TCLAP::CmdLine cmd("minisatid", ' ', "2.1.21");
+
+		vector<string> allowedformat;
+		allowedformat.push_back("fodot");
+		allowedformat.push_back("asp");
+		allowedformat.push_back("opb");
+		TCLAP::ValuesConstraint<string> allowedFormats( allowedformat );
+		TCLAP::ValueArg<std::string> formatarg("f","format","The format of the input theory", false,"fodot",&allowedFormats, cmd);
+		TCLAP::ValueArg<int> modelarg("n","nbmodels","The number of models to search for", false,1,"int", cmd);
+		TCLAP::ValueArg<int> verbosityarg("","verbosity","The level of output to generate", false,0,"int", cmd);
+		TCLAP::ValueArg<double> rndfreqarg("","rnd-freq","The frequency with which to make a random choice (between 0 and 1)", false,0.02,"double", cmd);
+		TCLAP::ValueArg<double> decayarg("","decay","The decay of variable activities within the SAT-solver (between 0 and 1)", false,0.02,"double", cmd);
+		vector<string> allowedpol;
+		allowedpol.push_back("true");
+		allowedpol.push_back("false");
+		allowedpol.push_back("rnd");
+		TCLAP::ValuesConstraint<string> allowedpols( allowedpol );
+		TCLAP::ValueArg<std::string> polarityarg("","polarity-mode","The default truth value choice of variables", false,"false",&allowedpols, cmd);
+		vector<int> adllowidsaving;
+		adllowidsaving.push_back(0);
+		adllowidsaving.push_back(1);
+		TCLAP::ValuesConstraint<int> adllowidsavings( adllowidsaving );
+		TCLAP::ValueArg<int> idsavingarg("","idsaving","How to handle propagation reasons within ID solver: 0=add clause on propagation, 1=save clause on propagation", false,0,&adllowidsavings, cmd);
+		vector<int> adllowaggsaving;
+		adllowaggsaving.push_back(0);
+		adllowaggsaving.push_back(1);
+		adllowaggsaving.push_back(2);
+		TCLAP::ValuesConstraint<int> adllowaggsavings( adllowaggsaving );
+		TCLAP::ValueArg<int> aggsavingarg("","aggsaving","How to handle propagation reasons within Agg solver: add to theory on propagation (0), save clause on propagation (1), save reason on propagation (2)", false,2,&adllowaggsavings, cmd);
+		vector<string> yesnoval;
+		yesnoval.push_back("yes");
+		yesnoval.push_back("no");
+		TCLAP::ValuesConstraint<string> yesnovals( yesnoval );
+		TCLAP::ValueArg<string> remaparg("r","remap","Remap | don't remap literals from the input structure to a contiguous internal representation", false, "yes", &yesnovals, cmd);
+		TCLAP::ValueArg<string> watcharg("w","watchedagg","Use | don't use watched-literal datastructures to handle aggregate propagation", false, "no", &yesnovals, cmd);
+		TCLAP::ValueArg<string> pbsolverarg("","pbsolver","Use | don't use translation of pseud-boolean constraints to SAT", false, "no", &yesnovals, cmd);
+		TCLAP::ValueArg<string> ecnfgrapharg("","ecnfgraph","Generate | don't generate .dot ecnf graph representation", false, "no", &yesnovals, cmd);
+
+		TCLAP::ValueArg<std::string> outputfilearg("o","outputfile","The outputfile to use to write out models", false, "","string", cmd);
+		TCLAP::ValueArg<std::string> primesfilearg("","primesfile","File containing a list of prime numbers to use for finding optimal bases. Has to be provided if using pbsolver.", false, "","string", cmd);
+
+		vector<string> defsearchval;
+		yesnoval.push_back("always");
+		yesnoval.push_back("adaptive");
+		yesnoval.push_back("lazy");
+		TCLAP::ValuesConstraint<string> defsearchvals( defsearchval );
+		TCLAP::ValueArg<string> defsearcharg("","defsearch","sets the unfounded-set search-frequency", false, "always", &defsearchvals, cmd);
+
+		vector<string> defsemval;
+		defsemval.push_back("stable");
+		defsemval.push_back("wellfounded");
+		TCLAP::ValuesConstraint<string> defsemvals( defsemval );
+		TCLAP::ValueArg<string> defsemarg("","defsem","uses the chosen semantics to handle inductive definitions", false, "stable", &defsemvals, cmd);
+
+		cmd.parse(argc, argv);
+
+		/*if(outputfilearg.isSet()){
+			outputfile = outputfilearg.getValue();
+			outputpresent = true;
+		}
+		if(transfilearg.isSet()){
+			transfile = transfilearg.getValue();
+			transpresent = true;
+		}
+		if(inputfilearg.isSet()){
+			inputfile = inputfilearg.getValue();
+			inputpresent = true;
+		}
+		if(formatarg.getValue().compare("asp")==0){
+			tofodot = false;
+		}else{
+			tofodot = true;
+		}*/
+	} catch (TCLAP::ArgException &e){
+		std::cerr << "error: " << e.error() << " for arg " << e.argId() << std::endl;
+		exit(1);
+	}
+}
 
 int doModelGeneration(pData& d, double cpu_time);
 
@@ -344,7 +384,7 @@ int main(int argc, char** argv) {
 	double cpu_time = cpuTime();
 
 	//parse command-line options
-	argp_parse(&argp, argc, argv, 0, 0, &modes);
+	parseOptions(argc, argv);
 
 	if(modes.verbosity >= 1){
 		report("============================[ Problem Statistics ]=============================\n");

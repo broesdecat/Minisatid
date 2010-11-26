@@ -1,15 +1,17 @@
-#building with mingw by CXX=pathnaarg++vanmingw
+SUBDIRS = tclap
 
 AM_CXXFLAGS = @AC_CXXFLAGS@ -I$(srcdir)/solver3minisat22/ -I$(srcdir)/solvers/ -I$(srcdir)/pbsolver/ -I$(srcdir)/pbsolver/ADTs/ -I$(srcdir)/pbsolver/pbbase/h/ -I$(srcdir)/pbsolver/pbbase/src/
-AM_LDFLAGS = @AC_LDFLAGS@ 
+AM_LDFLAGS = @AC_LDFLAGS@  -Itclap/
 
 YFLAGS = -d 
-LFLAGS = #TODO prefix blijkt niet te werken, dus code herschreven om maar 1 parser te ondersteunen
+LFLAGS = 
 
 bin_PROGRAMS = minisatid
 
 minisatiddir = $(builddir)
 minisatid_DATA = P1.TXT
+
+include_HEADERS = tclap/CmdLine.h
 
 BUILT_SOURCES = solvers/parser/ecnfparser.h
 

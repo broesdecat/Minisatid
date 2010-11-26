@@ -27,6 +27,9 @@ AC_CHECK_HEADERS([tr1/memory])
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T
 
+# distribute additional compiler and linker flags
+AC_SUBST([AC_CXXFLAGS])
+AC_SUBST([AC_LDFLAGS])
 AC_SUBST([LIBS])
 
 AC_CXXFLAGS = " "
@@ -83,12 +86,8 @@ AC_ARG_ENABLE([gmp],
 	*) AC_MSG_ERROR([bad value ${enableval} for --enable-gmp]) ;;
 esac],[ AC_CXXFLAGS+=" -D NO_GMP " ])
 
-# Export flags
-AC_SUBST(AC_CXXFLAGS)
-AC_SUBST(AC_LDFLAGS)
-
 # files to generate via autotools (.am or .in source files)
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile tclap/Makefile])
 
 # generate the final Makefile etc.
 AC_OUTPUT

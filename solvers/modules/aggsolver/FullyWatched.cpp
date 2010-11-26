@@ -323,7 +323,8 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	assert(satisfied);
 
 	//Subsetminimization
-	bool changes = true;
+	//Mainly slowdown for weight bounded set
+/*	bool changes = true;
 	int startsize = reasons.size();
 	if(checkmonofalse){
 		while(changes){
@@ -367,7 +368,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 				}
 			}
 		}
-	}
+	}*/
 
 	for(vector<WL>::const_iterator i=reasons.begin(); i<reasons.end(); i++){
 		lits.push(~(*i).getLit());

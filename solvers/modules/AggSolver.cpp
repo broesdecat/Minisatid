@@ -74,12 +74,8 @@ void AggSolver::notifyVarAdded(uint64_t nvars) {
 	headwatches.resize(nvars, NULL);
 	permwatches.resize(nvars);
 	network.resize(nvars);
-
-	if (isInitialized()) {
-		//only used after initialization, such that we can safely initialize them later!
-		tempwatches.resize(2 * nvars);
-		aggreason.resize(nvars, NULL);
-	}
+	tempwatches.resize(2 * nvars);
+	aggreason.resize(nvars, NULL);
 }
 
 void AggSolver::notifyDefinedHead(Var head){
@@ -135,35 +131,22 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 	vector<WL> lw;
 	for (vsize i = 0; i < lits.size(); i++) {
 #ifdef INTWEIGHT
-		if (weights[i] == INT_MAX || weights[i] == INT_MIN) {
-			throw idpexception("Weights equal to or larger than the largest integer number "
-				"are not allowed in limited precision.\n");
+		if(weights[i] == INT_MAX || weights[i] == INT_MIN){
+			throw idpexception(
+					"Weights equal to or larger than the largest integer number "
+					"are not allowed in limited precision.\n");
 		}
 #endif
 		lw.push_back(WL(lits[i], weights[i]));
-
-		// Literals occurring in aggregates would occur much more often in clauses, so we bump them (a bit)
-		//does not seem to work
-		//getPCSolver()->varBumpActivity(var(lits[i]));
 	}
 
 	TypedSet* set = new TypedSet(this, setid);
 	set->setWL(lw);
 	parsedSets()[setid] = set;
 
-	if (verbosity() >= 5) { // Print information on added set
-		report("Added set %d: ", setid);
-		vector<Weight>::const_iterator w = weights.begin();
-		bool begin = true;
-		for (vsize i = 0; i < lits.size(); i++, w++) {
-			if (begin) {
-				begin = false;
-			} else {
-				report(", ");
-			}
-			report("%d=%s", gprintVar(var(lits[i])), printWeight(*w).c_str());
-		}
-		report("\n");
+	if (verbosity() >= 5) {
+		report("Added ");
+		Aggrs::print(*set);
 	}
 
 	return true;
@@ -233,7 +216,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, AggSign boundsig
 	set->addAgg(agg);
 
 	if (verbosity() >= 5) { //Print info on added aggregate
-		print(agg);
+		Aggrs::print(*agg);
 		report("\n");
 	}
 
@@ -426,6 +409,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 	//TODO new IDEA: mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt of de grootte van de sets?
 	//want de grootte van de set bepaalt hoe vaak de literal zou zijn uitgeschreven in een cnf theorie
 	//maar niet trager voor pakman
+	//Large loss for weight bound dom set and conn dom set
 	getPCSolver()->varBumpActivity(var(p));
 
 	if (value(p) != l_True && getPCSolver()->modes().aggclausesaving < 2) {
@@ -754,7 +738,7 @@ bool AggSolver::addMnmzSum(Var headv, int setid, AggSign boundsign) {
 
 	if (verbosity() >= 3) {
 		report("Added sum minimization: Minimize ");
-		print(ae);
+		Aggrs::print(*ae);
 		report("\n");
 	}
 
@@ -801,14 +785,29 @@ void AggSolver::print(){
 	Print::print(this);
 }
 
-void AggSolver::print(Agg* agg) const{
+void Aggrs::print(const TypedSet& set){
+	report("set %d = { ", set.getSetID());
+	bool begin = true;
+	for (vector<WL>::const_iterator i = set.getWL().begin(); i < set.getWL().end(); i++) {
+		if (begin) {
+			begin = false;
+		} else {
+			report(", ");
+		}
+		report("%d=%s", gprintVar(var((*i).getLit())), printWeight((*i).getWeight()).c_str());
+	}
+	report("}\n");
+}
+
+void Aggrs::print(const Agg& agg){
 	report("Added %s aggregate with head %d on set %d, %s %s of type ",
-			agg->getSem() == DEF?"defined":"completion",
-			gprintVar(var(agg->getHead())),
-			agg->getSetID(),
-			agg->getSign()==LB?"AGG <=":"AGG >=",
-			printWeight(agg->getBound()).c_str());
-	switch (agg->getType()) {
+			agg.getSem() == DEF?"defined":"completion",
+			gprintVar(var(agg.getHead())),
+			agg.getSetID(),
+			agg.getSign()==LB?"AGG <=":"AGG >=",
+			printWeight(agg.getBound()).c_str());
+
+	switch (agg.getType()) {
 	case SUM:
 		report("SUM");
 		break;
