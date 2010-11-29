@@ -369,8 +369,6 @@ bool Aggrs::transformSetReduction(TypedSet* set, vps& sets) {
 	return true;
 }
 
-//FIXME increase performance by treating transformation on a set to set basis?
-
 bool Aggrs::transformOneToOneSetToAggMapping(TypedSet* set, vps& sets) {
 	vpagg aggs = set->getAgg();
 
@@ -550,7 +548,6 @@ struct PBAgg {
 };
 
 bool Aggrs::transformSumsToCNF(vps& sets, PCSolver* pcsolver) {
-	//FIXME error in pbsolver
 	int sumaggs = 0;
 	int maxvar = 1;
 	vector<PBAgg*> pbaggs;

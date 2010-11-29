@@ -71,7 +71,7 @@ AggSolver::~AggSolver() {
 
 void AggSolver::notifyVarAdded(uint64_t nvars) {
 	assert(headwatches.size() < nvars);
-	headwatches.resize(nvars, NULL);
+	headwatches.resize(nvars, vector<Agg*>());
 	permwatches.resize(nvars);
 	network.resize(nvars);
 	tempwatches.resize(2 * nvars);
@@ -86,13 +86,18 @@ void AggSolver::notifyDefinedHead(Var head){
 // WATCH MANIPULATION
 ///////
 
-void AggSolver::setHeadWatch(Var head, Agg* agg) {
-	headwatches[head] = agg;
+void AggSolver::addHeadWatch(Var head, Agg* agg) {
+	headwatches[head].push_back(agg);
 }
 
-void AggSolver::removeHeadWatch(Var x) {
+void AggSolver::removeAggHeadWatch(Var x, Agg* agg) {
 	//delete headwatches[x];
-	headwatches[x] = NULL;
+	for(vector<Agg*>::iterator i=headwatches[x].begin(); i<headwatches[x].end(); i++){
+		if((*i)==agg){
+			headwatches[x].erase(i);
+			break;
+		}
+	}
 	getPCSolver()->removeAggrHead(x);
 }
 
@@ -104,7 +109,7 @@ void AggSolver::addTempWatch(const Lit& l, Watch* w) {
 	tempwatches[toInt(l)].push_back(w);
 }
 
-inline Agg* AggSolver::getAggWithHead(Var v) const {
+inline const vector<Agg*>& AggSolver::getAggsWithHead(Var v) const {
 	assert(headwatches[v] != NULL);
 	return headwatches[v];
 }
@@ -179,12 +184,13 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, AggSign boundsig
 		}
 	}
 
+	//TODO remove if multiple aggs on the same head are allowed
 	//Check that no aggregates occur with the same heads
-	if (aggheads.find(headv) != aggheads.end()) {
-		char s[100];
-		sprintf(s, "At least two aggregates have the same head(%d).\n", gprintVar(headv));
-		throw idpexception(s);
-	}
+	//if (aggheads.find(headv) != aggheads.end()) {
+	//	char s[100];
+	//	sprintf(s, "At least two aggregates have the same head(%d).\n", gprintVar(headv));
+	//	throw idpexception(s);
+	//}
 
 #ifdef DEBUG
 	if(type == CARD) { //Check if all card weights are 1
@@ -207,7 +213,8 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, AggSign boundsig
 
 	//TODO test whether bumping the higher weights more would help?
 
-	aggheads.insert(headv);
+	//TODO remove if multiple aggs on the same head are allowed
+	//aggheads.insert(headv);
 
 	//the head of the aggregate
 	Lit head = mkLit(headv, false);
@@ -359,27 +366,6 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 				Aggrs::printAgg(**j, true);
 			}
 		}
-
-		for (vsize i = 0; i < nVars(); i++) {
-			report("Watches of var %d:\n", gprintVar(i));
-			if (headwatches[i] != NULL) {
-				report("   headwatch\n");
-				report("      ");
-				Aggrs::printAgg(*headwatches[i]->getSet(), true);
-			}
-
-			if (verbosity() >= 6) {
-				report("   bodywatches\n");
-				for (vsize j = 0; j < permwatches[i].size(); j++) {
-					report("      ");
-					Aggrs::printAgg(*(permwatches[i][j])->getSet(), true);
-				}
-				for (vsize j = 0; j < tempwatches[i].size(); j++) {
-					report("      ");
-					Aggrs::printAgg(*(tempwatches[i][j])->getSet(), true);
-				}
-			}
-		}
 	}
 
 	//Push initial level (root, before any decisions).
@@ -498,11 +484,11 @@ rClause AggSolver::propagate(const Lit& p) {
 		report("Aggr_propagate("); gprintLit(p, l_True); report(").\n");
 	}
 
-	Agg* pa = headwatches[var(p)];
-	if (pa != NULL) {
-		confl = pa->getSet()->propagate(*pa, getLevel());
+	for(vpagg::const_iterator i=getAggsWithHead(var(p)).begin(); i<getAggsWithHead(var(p)).end(); i++){
+		confl = (*i)->getSet()->propagate(**i, getLevel());
 		propagations++;
 	}
+
 
 	const vector<Watch*>& ws = permwatches[var(p)];
 	for (vector<Watch*>::const_iterator i = ws.begin(); confl == nullPtrClause && i < ws.end(); i++) {

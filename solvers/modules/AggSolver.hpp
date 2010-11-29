@@ -87,13 +87,14 @@ class AggSolver: public DPLLTmodule{
 private:
 	mips 					_parsedSets;
     vps						_sets;
-    std::set<Var>			aggheads;	//A set of all heads that are already used by an aggregate.
+    //TODO remove if non-unique heads are allowed
+    //std::set<Var>			aggheads;	//A set of all heads that are already used by an aggregate.
 
 	std::vector<Aggrs::AggReason*>	aggreason;	// For each atom, like 'reason'.
 
 	vvpw					tempwatches;	//NON-OWNED PARTIAL WATCHES
 	vvpw 					permwatches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
-	std::vector<Aggrs::Agg*>	headwatches;	//	index on VARs (heads always positive), does NOT own the pointers
+	std::vector<std::vector<Aggrs::Agg*> >	headwatches;	//	index on VARs (heads always positive), does NOT own the pointers
 	vvps					network;		// the pointer network of set var -> set
 
 	//statistics
@@ -143,7 +144,7 @@ public:
 
 	void 				notifyDefinedHead		(Var head);
 
-	void 				removeHeadWatch			(Var x);
+	void 				removeAggHeadWatch		(Var x, Aggrs::Agg*);
 
 	//////
 	// SEARCH
@@ -204,7 +205,7 @@ public:
 	///////
 	// Watched literal sets
 	///////
-	void 				setHeadWatch			(Var head, Aggrs::Agg* agg);
+	void 				addHeadWatch			(Var head, Aggrs::Agg* agg);
 	void 				addPermWatch			(Var v, Aggrs::Watch* w);
 	void 				addTempWatch			(const Lit& l, Aggrs::Watch* w);
 
@@ -215,7 +216,7 @@ protected:
 	vps&				sets					() { return _sets; }
 
 	// Returns the aggregate in which the given variable is the head.
-	Aggrs::Agg* 		getAggWithHead			(Var v) const;
+	const std::vector<Aggrs::Agg*>& 		getAggsWithHead			(Var v) const;
 
 	bool				finishSet				(Aggrs::TypedSet* set);
 
