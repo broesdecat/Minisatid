@@ -73,6 +73,7 @@ public:
 
 class IDSolver: public DPLLTmodule{
 private:
+	int 							recagg; //The number of recursive aggregates present
 	DEFSEM							sem;
 	MinisatID::AggSolver*			aggsolver;
 	long							unfoundedsets;
@@ -87,49 +88,49 @@ public:
 	void					setAggSolver(MinisatID::AggSolver* a){aggsolver = a;}
 
 	/////////////////////SOLVER NECESSARY
-	virtual void 	notifyVarAdded			(uint64_t nvars);
-	virtual void 	finishParsing		 	(bool& present, bool& unsat);
-	virtual bool 	simplify		(); //False if problem unsat
-	virtual rClause propagate				(const Lit& l){ return nullPtrClause; };
-	virtual rClause propagateAtEndOfQueue	();
-	//virtual void 	backtrack				(const Lit& l);
-	virtual void 	newDecisionLevel		();
-	virtual void 	backtrackDecisionLevels	(int nblevels, int untillevel){};
-	virtual rClause getExplanation			(const Lit& l);
+	virtual void 			notifyVarAdded			(uint64_t nvars);
+	virtual void 			finishParsing		 	(bool& present, bool& unsat);
+	virtual bool 			simplify				(); //False if problem unsat
+	virtual rClause 		propagate				(const Lit& l){ return nullPtrClause; };
+	virtual rClause 		propagateAtEndOfQueue	();
+	//virtual void 			backtrack				(const Lit& l);
+	virtual void 			newDecisionLevel		();
+	virtual void 			backtrackDecisionLevels	(int nblevels, int untillevel){};
+	virtual rClause 		getExplanation			(const Lit& l);
 
-	virtual void 	printStatistics			() const;
+	virtual void 			printStatistics			() const;
 
-	virtual const char* getName() { return "definitional"; }
-	virtual void print();
+	virtual const char* 	getName					() { return "definitional"; }
+	virtual void 			print					();
 
-	bool 		checkStatus();
-	bool 		isWellFoundedModel		();
+	bool 					checkStatus				();
+	bool 					isWellFoundedModel		();
 
-	DEFSEM		getSemantics				() const { return sem; }
+	DEFSEM					getSemantics			() const { return sem; }
 
 	/////////////////////ENDSOLVER NECESSARY
 
 	/////////////////////AGGSOLVER NECESSARY
-	const vec<Lit>&	getCFJustificationAggr	(Var v) const;
-	void 			cycleSourceAggr			(Var v, vec<Lit>& nj);
-	void 			notifyAggrHead			(Var head);
-	void 			removeAggrHead			(Var head);
+	const vec<Lit>&			getCFJustificationAggr	(Var v) const;
+	void 					cycleSourceAggr			(Var v, vec<Lit>& nj);
+	void 					notifyAggrHead			(Var head);
+	void 					removeAggrHead			(Var head);
 	/////////////////////END AGGSOLVER NECESSARY
 
 	/////////////////////INITIALIZATION
-	bool    	addRule      			(bool conj, Lit head, const vec<Lit>& ps);	// Add a rule to the solver.
+	bool    				addRule      			(bool conj, Lit head, const vec<Lit>& ps);	// Add a rule to the solver.
 	/////////////////////END INITIALIZATION
 
-	PropRule const* const	getDefinition(Var head) const { assert(definition[head]!=NULL); return definition[head]; }
-	DefType 	getDefType			(Var i) const { return defType[i]; }
-	bool		isDefined			(Var v) const; //Whether the variable is currently the head of any definition
-	bool 		originallyDefined	(Var v) const; //Whether the variable has been the head of a definition at any point during execution
-	bool 		isConjunctive		(Var v) const;
-	bool 		isDisjunctive		(Var v) const;
-	bool		isDefinedByAggr		(Var v) const;
+	PropRule const* const	getDefinition			(Var head) const { assert(definition[head]!=NULL); return definition[head]; }
+	DefType 				getDefType				(Var i) const { return defType[i]; }
+	bool					isDefined				(Var v) const; //Whether the variable is currently the head of any definition
+	bool 					originallyDefined		(Var v) const; //Whether the variable has been the head of a definition at any point during execution
+	bool 					isConjunctive			(Var v) const;
+	bool 					isDisjunctive			(Var v) const;
+	bool					isDefinedByAggr			(Var v) const;
 
 private:
-	void			setDefinition(Var head, PropRule* r) { definition[head]=r; }
+	void					setDefinition			(Var head, PropRule* r) { definition[head]=r; }
 
 	std::vector<PropRule*>	definition;	// If defType[v]==DISJ or CONJ, definition[v] is the 'long clause' of the completion of v's rule.
 	// Note that v occurs negatively if DISJ, positively if CONJ; and the reverse for the body literals.
@@ -138,7 +139,6 @@ private:
 	std::vector<DefType>	defType;	// Gives the type of definition for each VAR
 	std::vector<DefOcc>	defOcc;		// Gives the type of definition occurrence for each VAR
 
-	bool 		recagg;	//true if recursive aggregates are present
 	vec<bool>	isCS;                   // Per atom: is it a cycle source?
 	vec<int>	seen, seen2;
 

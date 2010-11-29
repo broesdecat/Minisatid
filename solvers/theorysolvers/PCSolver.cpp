@@ -411,7 +411,7 @@ lbool PCSolver::checkStatus(lbool status) const {
 		return status;
 	}
 
-	if (getIDSolver()->checkStatus()) {
+	if (!getIDSolver()->checkStatus()) {
 		return l_False;
 	}
 	return status;

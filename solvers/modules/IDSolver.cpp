@@ -89,7 +89,7 @@ bool IDSolver::isDefinedByAggr(Var v) const {
 }
 
 IDSolver::IDSolver(pPCSolver s) :
-		DPLLTmodule(s), sem(s->modes().defsem),
+		DPLLTmodule(s), recagg(0), sem(s->modes().defsem),
 		aggsolver(NULL), firstsearch(true), prev_conflicts(0), unfoundedsets(0), cycle_sources(0),
 		previoustrailatsimp(-1), justifiable_cycle_sources(0),
 		cycles(0),
@@ -194,6 +194,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 			defdVars[i] = defdVars[defdVars.size() - 1];
 			defdVars.pop_back();
 			i--;
+			recagg--;
 		}
 	}
 
@@ -1612,6 +1613,7 @@ void IDSolver::cycleSourceAggr(Var v, vec<Lit>& just) {
 }
 
 void IDSolver::notifyAggrHead(Var head) {
+	recagg++;
 	assert(!isDefined(head) && !isInitialized());
 	defType[head] = AGGR;
 	defOcc[head] = NONDEFOCC;
@@ -1889,7 +1891,7 @@ bool IDSolver::isWellFoundedModel() {
 		return true;
 	}
 
-	if (getAggSolver() != NULL) {
+	if (recagg>0) {
 		if (verbosity() > 1) {
 			report("For recursive aggregates, only stable semantics are currently supported!\n");
 			report("Well-foundedness is not checked!\n");
