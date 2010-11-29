@@ -27,6 +27,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <string>
 
 
 ///////
@@ -70,6 +71,16 @@ public:
 ///////
 
 enum EqType{ MEQ, MNEQ, ML, MG, MGEQ, MLEQ };
+
+///////
+// Aggregate specification operators
+///////
+
+enum AggType 	{ SUM, PROD, MIN, MAX, CARD }; 	// Type of aggregate concerned
+//FIXME correct notion of upper and lower bound!
+enum AggSign 	{ UB, LB/*, BOTHBOUNDS*/ }; 	// Sign of the bound of the aggregate: the bound is an UpperBound
+												// or LowerBound for the aggregate value
+enum AggSem 	{ COMP, DEF };	// Semantics of satisfiability of the aggregate head: COMPletion or DEFinitional
 
 }
 
@@ -148,29 +159,6 @@ struct WLtuple{
 	WLtuple operator=(const WLtuple& lw) const { return WLtuple(lw.l, lw.w); }
 };
 
-///////
-// Aggregate information
-///////
-
-enum AggType 	{ SUM, PROD, MIN, MAX, CARD }; 	// Type of aggregate concerned
-enum AggSign 	{ UB, LB/*, BOTHBOUNDS*/ }; 	// Sign of the bound of the aggregate: the bound is an UpperBound
-												// or LowerBound for the aggregate value
-enum AggSem 	{ COMP, DEF };	// Semantics of satisfiability of the aggregate head: COMPletion or DEFinitional
-
-///////
-// Definitional options
-///////
-
-enum DEFFINDCS { always, adaptive, lazy };	// Unfounded set search frequency
-enum DEFMARKDEPTH { include_cs };			// Originally also contained stop_at_cs, which is no longer correct
-											// when a guaranteed cycle-free justification is used!
-enum DEFSEARCHSTRAT { breadth_first, depth_first }; // Unfounded set search strategy
-enum DEFSEM { STABLE, WELLF }; 				// Definitional semantics
-
-///////
-// SAT-solver options
-///////
-
 // Class to manage a file
 class FileR {
 private:
@@ -228,71 +216,46 @@ FILE* getOutputFile();
 void closeInput();
 void closeOutput();
 
-enum POLARITY {
-	polarity_true = 0,
-	polarity_false = 1,
-	polarity_stored = 2,
-	polarity_rnd = 3
-}; // SAT-solver polarity option
+///////
+// Definitional options
+///////
 
-// Structure containing all options used to run the solver.
-struct ECNF_mode {
-	//INPUT OPTIONS
-	double random_var_freq, var_decay;
-	POLARITY polarity_mode;
+enum DEFFINDCS { always, adaptive, lazy };	// Unfounded set search frequency
+enum DEFMARKDEPTH { include_cs };			// Originally also contained stop_at_cs, which is no longer correct
+											// when a guaranteed cycle-free justification is used!
+enum DEFSEARCHSTRAT { breadth_first, depth_first }; // Unfounded set search strategy
+enum DEFSEM { STABLE, WELLF }; 				// Definitional semantics
+
+/**
+ * The different possible types of definitions.
+ * If a variable is NONDEFALL, no definition is associated with it.
+ * If a variable is NONDEFPOS, a definition is associated with it, but there is no recursion through it in the POSITIVE dependency graph
+ * 		but there might be recursion over negation (relevant for the well-founded model)
+ */
+enum DefType	{ NONDEFTYPE = 0, WASDEFDISJ = 1, WASDEFCONJ = 2, WASDEFAGGR = 3, DISJ = 4, CONJ = 5, AGGR=6 };
+enum DefOcc 	{ NONDEFOCC, POSLOOP, MIXEDLOOP, BOTHLOOP };
+enum UFS 		{ NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK };
+
+enum POLARITY	{ POL_TRUE, POL_FALSE, POL_RAND, POL_USER };
+
+// Structure containing general options for the solvers
+class SolverOption {
+public:
 	int verbosity;
-
 	int nbmodels; //Try to find at most this number of models
-	DEFSEM sem; //Definitional semantics to be used
-	DEFFINDCS defn_strategy; // Controls which propagation strategy will be used for definitions.                         (default always)
-	DEFMARKDEPTH defn_search; // Controls which search type will be used for definitions.                                  (default include_cs)
-	DEFSEARCHSTRAT ufs_strategy; //Which algorithm to use to find unfounded sets
-
-	bool lparse; //input is in lparse format
-	bool pb; 	//input is in pb format
-	bool remap; //Whether he should remap the atom values from the input to fill up gaps in the numbering
-	bool pw;	//use partially watched agg structures or not.
-	bool pbsolver;	//use pbsolver for sum/card expressions.
-	bool randomize; // use random seed initialization for the SAT-solver
-	bool disableheur; // turn off the heuristic of the sat solver, allowing more predictable behavior
-	int idclausesaving; //0 = on propagation add clause to store, 1 = on propagation, generate explanation and save it, 2 = on propagation, generate reason and save it
-	bool onlyoneunfclause;
-	int aggclausesaving; //0 = on propagation add clause to store, 1 = on propagation, generate explanation and save it, 2 = on propagation, generate reason and save it
-
 	bool printcnfgraph;
-
-	char* primesfile; //The location of a version of the files with 1 million primes for fast
-
-	//rest
-	bool def, aggr, mnmz, cp; // True for those extensions that are being used.
-
-	ECNF_mode() :
-		random_var_freq(0.02),
-		var_decay(1 / 0.95),
-		polarity_mode(polarity_stored),
-		verbosity(0),
-		nbmodels(1),
-		sem(STABLE),
-		defn_strategy(always),
-		defn_search(include_cs),
-		ufs_strategy(breadth_first),
-		lparse(false),
-		pb(false),
-		remap(false),
-		pw(true),
-		pbsolver(false),
-		randomize(false),
-		disableheur(false),
-		idclausesaving(0),
-		onlyoneunfclause(false),
-		aggclausesaving(2),
-		printcnfgraph(false),
-		primesfile(NULL),
-		def(false),
-		aggr(false),
-		mnmz(false),
-		cp(false){
-	}
+	DEFSEM defsem;
+	DEFSEARCHSTRAT ufs_strategy;
+	DEFFINDCS defn_strategy;
+	DEFMARKDEPTH defn_search;
+	int idclausesaving, aggclausesaving;
+	bool selectOneFromUFS;
+	bool pbsolver;
+	bool watchedagg;
+	std::string primesfile;
+	bool remap;
+	double rand_var_freq, var_decay;
+	POLARITY polarity;
 };
 
 }

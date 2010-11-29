@@ -26,9 +26,9 @@
 
 namespace MinisatID {
 
-std::tr1::shared_ptr<WrappedLogicSolver> unittest(ECNF_mode& modes);
-std::tr1::shared_ptr<WrappedLogicSolver> unittest2(ECNF_mode& modes);
-std::tr1::shared_ptr<WrappedLogicSolver> unittest3(ECNF_mode& modes);
+std::tr1::shared_ptr<WrappedLogicSolver> unittest(SolverOption& modes);
+std::tr1::shared_ptr<WrappedLogicSolver> unittest2(SolverOption& modes);
+std::tr1::shared_ptr<WrappedLogicSolver> unittest3(SolverOption& modes);
 
 }
 

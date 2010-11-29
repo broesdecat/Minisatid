@@ -27,7 +27,7 @@
 using namespace std;
 using namespace MinisatID;
 
-WrappedLogicSolver::WrappedLogicSolver(ECNF_mode modes):
+WrappedLogicSolver::WrappedLogicSolver(const SolverOption& modes):
 		_modes(modes), maxnumber(0),
 		origtocontiguousatommapper(),
 		contiguoustoorigatommapper(),
@@ -160,7 +160,7 @@ void WrappedLogicSolver::addModel(const vec<Lit>& model, Solution* sol){
 // PROP SOLVER
  ///////
 
-WrappedPCSolver::WrappedPCSolver(ECNF_mode modes)
+WrappedPCSolver::WrappedPCSolver(const SolverOption& modes)
 		:WrappedLogicSolver(modes), solver(new PCSolver(modes, this)){
 }
 
@@ -271,7 +271,7 @@ void WrappedPCSolver::printStatistics() const {
 // MODEL SOLVER
 ///////
 
-WrappedSOSolver::WrappedSOSolver(ECNF_mode modes):
+WrappedSOSolver::WrappedSOSolver(const SolverOption& modes):
 		WrappedLogicSolver(modes), solver(new SOSolver(modes, this)){
 }
 

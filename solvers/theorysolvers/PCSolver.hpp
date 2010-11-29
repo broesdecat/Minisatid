@@ -37,7 +37,7 @@ namespace CP{
 
 using namespace CP;
 
-class ENCF_mode;
+class SolverOption;
 
 class IDSolver;
 class AggSolver;
@@ -105,7 +105,7 @@ private:
 	Minisat::Solver * 	getSolver	() const { return satsolver; }
 
 public:
-	PCSolver(ECNF_mode modes, MinisatID::WrappedLogicSolver* inter);
+	PCSolver(SolverOption modes, MinisatID::WrappedLogicSolver* inter);
 	virtual ~PCSolver();
 
 	// Getters for constant solver pointers
@@ -142,8 +142,6 @@ public:
 	///////
 	// Solving support
 	///////
-	bool		randomize		() const { return modes().randomize; }
-
 	void 		newDecisionLevel();
 	bool 		simplify();
 	bool 		solve			(const vec<Lit>& assumptions, Solution* sol);

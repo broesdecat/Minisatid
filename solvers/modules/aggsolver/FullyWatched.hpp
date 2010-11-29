@@ -29,7 +29,7 @@ struct FWTrail{
 	std::vector<int> headindex; //The index of the aggregate of which the head was propagated
 	std::vector<int> headtime; //The propindex of the propagated head
 
-	FWTrail(int level, const Weight& CBC, const Weight& CBP): level(level), CBC(CBC), CBP(CBP), start(0){}
+	FWTrail(int level, const Weight& CBC, const Weight& CBP): level(level), start(0), CBC(CBC), CBP(CBP){}
 };
 
 class FWAgg: public Propagator {

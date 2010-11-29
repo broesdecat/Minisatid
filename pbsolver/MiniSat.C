@@ -82,7 +82,7 @@ bool Solver::newClause(const vec<Lit>& ps_, bool learnt, Clause*& out_clause)
         // Allocate clause:
         assert(sizeof(Lit)   == sizeof(unsigned));
         assert(sizeof(float) == sizeof(unsigned));
-        void*   mem = xmalloc<char>(sizeof(Clause) + sizeof(unsigned)*(ps.size() + (int)learnt));
+        void*   mem = xmalloc<char>(sizeof(Clause) + sizeof(unsigned)*((ps.size()-1) + (int)learnt));
         Clause* c   = new (mem) Clause(learnt,ps);
 
         // For learnt clauses only:

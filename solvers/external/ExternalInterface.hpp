@@ -91,7 +91,7 @@ public:
 
 class WrappedLogicSolver{
 private:
-	ECNF_mode 	_modes;
+	SolverOption	_modes;
 
 	//Maps from NON-INDEXED to INDEXED atoms!
 	int 		maxnumber;
@@ -100,7 +100,7 @@ private:
 	bool 		firstmodel; //True if the first model has not yet been printed
 
 public:
-	WrappedLogicSolver(ECNF_mode modes);
+	WrappedLogicSolver(const SolverOption& modes);
 	virtual ~WrappedLogicSolver(){};
 
 	virtual void 	printStatistics	() const = 0;
@@ -111,7 +111,7 @@ public:
 	virtual bool 	finishParsing	();
 
 	int 			verbosity		() const	{ return modes().verbosity; }
-	const ECNF_mode& modes			() const	{ return _modes; }
+	const SolverOption& modes		() const	{ return _modes; }
 	void			setNbModels		(int nb) 	{ _modes.nbmodels = nb; }
 
 	int				getMaxNumberUsed()	const { return maxnumber; }
@@ -137,7 +137,7 @@ private:
 	MinisatID::PCSolver* solver;
 
 public:
-	WrappedPCSolver(MinisatID::ECNF_mode modes);
+	WrappedPCSolver(const SolverOption& modes);
 	~WrappedPCSolver();
 
 	//void	addVar			(Atom v);
@@ -174,7 +174,7 @@ private:
 	MinisatID::SOSolver* solver;
 
 public:
-	WrappedSOSolver				(MinisatID::ECNF_mode modes);
+	WrappedSOSolver				(const SolverOption& modes);
 	virtual ~WrappedSOSolver	();
 
 	//Add information for hierarchy

@@ -17,7 +17,7 @@ SearchMetaData::SearchMetaData(int size,unsigned int primesCutOf_,unsigned int m
 
 SearchMetaData::~SearchMetaData() {}
 
-void SearchMetaData::finalize(unsigned long long cost_) {
+void SearchMetaData::finalize(uint64 cost_) {
   struct timeval endVal;
   gettimeofday(&endVal, NULL); 
   cost = cost_;

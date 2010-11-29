@@ -40,7 +40,7 @@ ModSolver::ModSolver(modindex child, Var head, SOSolver* mh):
 		DPLLTmodule(NULL),
 		id(child), parentid(-1), hasparent(false), //, startedsearch(false), startindex(-1),
 		head(head), modhier(mh){
-	ECNF_mode modescopy(mh->modes());
+	SolverOption modescopy(mh->modes());
 	modescopy.nbmodels = 1;
 
 	pcsolver = new PCSolver(modescopy, mh->getParent());

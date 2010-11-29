@@ -28,7 +28,7 @@
 using namespace std;
 using namespace MinisatID;
 
-SOSolver::SOSolver(ECNF_mode modes, MinisatID::WrappedLogicSolver* inter)
+SOSolver::SOSolver(SolverOption modes, MinisatID::WrappedLogicSolver* inter)
 		: LogicSolver(modes, inter), state(NEW){
 	solvers.push_back(new ModSolver(0, -1, this));
 	state = LOADINGHIER;

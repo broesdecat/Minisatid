@@ -104,13 +104,15 @@ const char* MinisatID::getInputFileUrl(){
 	return inputurl;
 }
 
+//fixme CHECK FILE EXISTENCE
+
 FILE* MinisatID::getInputFile(){
 	if(input.get()==NULL){
-		if(inputurl==NULL){
+		if(getInputFileUrl()==NULL){
 			input = std::tr1::shared_ptr<FileR>(new FileR(stdin));
 			report("Reading from standard input...\n");
 		}else{
-			input = std::tr1::shared_ptr<FileR>(new FileR(inputurl, false));
+			input = std::tr1::shared_ptr<FileR>(new FileR(getInputFileUrl(), false));
 		}
 	}
 	return input->getFile();

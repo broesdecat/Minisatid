@@ -68,7 +68,7 @@ char*    opt_input  		  = NULL;
 char*    opt_result 		  = NULL;
 char*    opt_base_result_file = NULL;
 char*    opt_huge_base_file   = NULL;
-char*    opt_primes_file      = "P1.TXT";
+const char*    opt_primes_file      = "P1.TXT";
 
 unsigned int    max_number = 0;
 

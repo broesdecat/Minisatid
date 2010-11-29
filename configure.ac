@@ -35,7 +35,10 @@ AC_SUBST([LIBS])
 AC_CXXFLAGS = " "
 AC_LDFLAGS = " "
 
-AC_CXXFLAGS+="-ffloat-store -Wall -Wextra -Wno-unused-parameter " #TODO add -pedantic again (but currently broken by pbsolver)
+AC_CXXFLAGS+="-ansi -ffloat-store -Wall -Wextra -Wno-unused-parameter " 
+#should use -Wno-vla to allow variable sized arrays, which pbsolver has
+#its too difficult too remove them there and only remaining issue with pedantic
+#but our gcc doesnt support them yet
 
 AC_ARG_ENABLE([build],
 [  --enable-build    Turn on debugging (debug), profiling (profile), release version(release), static release version (static) or code cover building (codecover)],

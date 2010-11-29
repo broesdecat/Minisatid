@@ -402,9 +402,10 @@ SearchMetaData* searchForBase(vec<Int>& inCoeffs, vec<int>& outputBase) {
     dump(multiSet);
     return createDummyData(0.0);
   }
+  SearchMetaData* data = 0;
   unsigned int weights[multiSet.size()][2];
   coeffsToDescendingWeights(multiSet, weights);
-  SearchMetaData* data = 0;
+
   std::vector<unsigned int> pri;
   unsigned int cutof = loadPrimes(opt_primes_file,pri,weights[0][0],opt_max_generator);
   if      (opt_base == base_Forward) data = findBaseFWD(weights, multiSet.size(), pri,cutof);

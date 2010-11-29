@@ -11,13 +11,11 @@ bin_PROGRAMS = minisatid
 minisatiddir = $(builddir)
 minisatid_DATA = P1.TXT
 
-include_HEADERS = tclap/CmdLine.h
-
 BUILT_SOURCES = solvers/parser/ecnfparser.h
 
 minisatid_SOURCES = 
 minisatid_SOURCES += solvers/Main.cpp 
-minisatid_SOURCES += solvers/satsolver/SATUtils.cpp
+minisatid_SOURCES += solvers/satsolver/SATSolver.cpp solvers/satsolver/SATUtils.cpp
 minisatid_SOURCES += solvers/parser/ecnftoken.lpp solvers/parser/ecnfparser.ypp
 minisatid_SOURCES += solvers/theorysolvers/PCSolver.cpp solvers/theorysolvers/SOSolver.cpp
 minisatid_SOURCES += solvers/modules/DPLLTmodule.cpp solvers/modules/IDSolver.cpp solvers/modules/AggSolver.cpp solvers/modules/ModSolver.cpp
@@ -25,10 +23,10 @@ minisatid_SOURCES += solvers/modules/aggsolver/AggComb.cpp solvers/modules/aggso
 minisatid_SOURCES += solvers/modules/aggsolver/AggProp.cpp
 minisatid_SOURCES += solvers/external/ExternalInterface.cpp solvers/external/ExternalUtils.cpp 
 minisatid_SOURCES += solvers/utils/Print.cpp solvers/utils/Utils.cpp 
-minisatid_SOURCES += solvers/parser/Lparseread.cpp solvers/parser/PBread.cpp
+minisatid_SOURCES += solvers/parser/Lparseread.cpp solvers/parser/PBread.cpp solvers/parser/ParseOptions.cpp
 minisatid_SOURCES += solvers/Unittests.cpp
 
-include_HEADERS =
+include_HEADERS = 
 include_HEADERS += solvers/satsolver/SATSolver.h solvers/satsolver/SATUtils.h 
 include_HEADERS += solvers/modules/DPLLTmodule.hpp solvers/modules/IDSolver.hpp solvers/modules/AggSolver.hpp solvers/modules/ModSolver.hpp
 include_HEADERS += solvers/modules/aggsolver/AggComb.hpp solvers/modules/aggsolver/FullyWatched.hpp solvers/modules/aggsolver/PartiallyWatched.hpp
@@ -36,7 +34,7 @@ include_HEADERS += solvers/modules/aggsolver/AggProp.hpp
 include_HEADERS += solvers/theorysolvers/LogicSolver.hpp solvers/theorysolvers/PCSolver.hpp solvers/theorysolvers/SOSolver.hpp   
 include_HEADERS += solvers/external/ExternalInterface.hpp solvers/external/ExternalUtils.hpp
 include_HEADERS += solvers/utils/Print.hpp solvers/utils/Utils.hpp 
-include_HEADERS += solvers/parser/Lparseread.hpp solvers/parser/PBread.hpp
+include_HEADERS += solvers/parser/Lparseread.hpp solvers/parser/PBread.hpp solvers/parser/ParseOptions.hpp tclap/CmdLine.h
 include_HEADERS += solvers/Unittests.hpp 
 
 

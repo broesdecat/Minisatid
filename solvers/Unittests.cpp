@@ -23,8 +23,7 @@ using namespace std;
 using namespace std::tr1;
 using namespace MinisatID;
 
-shared_ptr<WrappedLogicSolver> unittest(ECNF_mode& modes){ //unsat
-	modes.cp = true;
+shared_ptr<WrappedLogicSolver> unittest(SolverOption& modes){ //unsat
 	shared_ptr<WrappedPCSolver> pcsolver = shared_ptr<WrappedPCSolver>(new WrappedPCSolver(modes));
 	vector<Literal> lits, lits2, lits3;
 	lits.push_back(Literal(1));
@@ -53,8 +52,7 @@ shared_ptr<WrappedLogicSolver> unittest(ECNF_mode& modes){ //unsat
 }
 
 //Magic sequence problem
-shared_ptr<WrappedLogicSolver> unittest2(ECNF_mode& modes){
-	modes.cp = true;
+shared_ptr<WrappedLogicSolver> unittest2(SolverOption& modes){
 	shared_ptr<WrappedPCSolver> pcsolver = shared_ptr<WrappedPCSolver>(new WrappedPCSolver(modes));
 	vector<Literal> lits;
 	lits.push_back(Literal(1));
@@ -100,8 +98,7 @@ shared_ptr<WrappedLogicSolver> unittest2(ECNF_mode& modes){
 	return pcsolver;
 }
 
-shared_ptr<WrappedLogicSolver> unittest3(ECNF_mode& modes){ //unsat
-	modes.cp = true;
+shared_ptr<WrappedLogicSolver> unittest3(SolverOption& modes){ //unsat
 	shared_ptr<WrappedPCSolver> pcsolver = shared_ptr<WrappedPCSolver>(new WrappedPCSolver(modes));
 
 	vector<int> elemx;

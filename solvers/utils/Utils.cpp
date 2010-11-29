@@ -18,7 +18,9 @@
 //--------------------------------------------------------------------------------------------------
 
 #include "solvers/utils/Utils.hpp"
+#include <string>
 
+using namespace std;
 using namespace MinisatID;
 
 bool MinisatID::isPositive(Lit l) {

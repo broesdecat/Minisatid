@@ -53,16 +53,6 @@ namespace MinisatID {
 class PCSolver;
 class AggSolver;
 
-/**
- * The different possible types of definitions.
- * If a variable is NONDEFALL, no definition is associated with it.
- * If a variable is NONDEFPOS, a definition is associated with it, but there is no recursion through it in the POSITIVE dependency graph
- * 		but there might be recursion over negation (relevant for the well-founded model)
- */
-enum DefType	{ NONDEFTYPE = 0, WASDEFDISJ = 1, WASDEFCONJ = 2, WASDEFAGGR = 3, DISJ = 4, CONJ = 5, AGGR=6 };
-enum DefOcc 	{ NONDEFOCC, POSLOOP, MIXEDLOOP, BOTHLOOP };
-enum UFS 		{ NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK };
-
 class PropRule {
 private:
     vec<Lit> lits;
@@ -90,7 +80,7 @@ private:
 	std::vector<std::vector<Lit> > 	reasons;	// std::map vars to vec<Lit> which were the reason of deriving it
 
 public:
-	IDSolver(MinisatID::PCSolver* s, DEFSEM sem);
+	IDSolver(MinisatID::PCSolver* s);
 	virtual ~IDSolver();
 
 	MinisatID::AggSolver*	getAggSolver()const{return aggsolver;}
@@ -112,6 +102,7 @@ public:
 	virtual const char* getName() { return "definitional"; }
 	virtual void print();
 
+	bool 		checkStatus();
 	bool 		isWellFoundedModel		();
 
 	DEFSEM		getSemantics				() const { return sem; }

@@ -66,7 +66,7 @@ extern char*    opt_input;
 extern char*    opt_result;
 extern char*    opt_base_result_file;
 extern char*    opt_huge_base_file;
-extern char*    opt_primes_file;
+extern const char*    opt_primes_file;
 
 extern unsigned int    max_number;
 

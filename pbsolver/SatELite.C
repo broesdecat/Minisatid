@@ -1,6 +1,6 @@
 /**************************************************************************************************
 
-Solver.C -- (C) Niklas Een, Niklas Sörensson, 2004
+Solver.C -- (C) Niklas Een, Niklas Sï¿½rensson, 2004
 
 A simple Chaff-like SAT-solver with support for incremental SAT.
 
@@ -286,15 +286,15 @@ Clause Solver::allocClause(const vec<Lit>& ps, bool learnt, Clause overwrite)
     assert(sizeof(Lit)   == sizeof(uint));
     assert(sizeof(float) == sizeof(uint));
     int       id  = overwrite.null() ? allocClauseId(learnt) : overwrite.id();
-    void*     mem = overwrite.null() ? ymalloc<char>(sizeof(Clause_t) + sizeof(uint)*(ps.size() + (int)learnt)) : (void*)overwrite.ptr();
+    void*     mem = overwrite.null() ? ymalloc<char>(sizeof(Clause_t) + sizeof(uint)*((ps.size()-1) + (int)learnt)) : (void*)overwrite.ptr();
     Clause_t* c   = new (mem) Clause_t;
 
     c->id_         = id;
-    c->abst_       = 0;
-    c->size_learnt = (int)learnt | (ps.size() << 1);
+    c->U.A.abst_       = 0;
+    c->U.A.size_learnt = (int)learnt | (ps.size() << 1);
     for (int i = 0; i < ps.size(); i++){
         c->data[i] = ps[i];
-        c->abst_  |= abstLit(ps[i]);
+        c->U.A.	abst_  |= abstLit(ps[i]);
     }
     if (learnt) Clause(c).activity() = 0.0;
 
@@ -709,7 +709,7 @@ void Solver::analyze(Clause confl, vec<Lit>& out_learnt, int& out_btlevel)
     // Generate conflict clause:
     //
 #if 1
-// Niklas Sörensson's version
+// Niklas Sï¿½rensson's version
     // Generate conflict clause:
     //
     out_learnt.push();      // (leave room for the asserting literal)
@@ -1080,7 +1080,7 @@ Clause Solver::propagate(void)
 #endif
 
 #if 1
-// Borrowed from Niklas Sörensson -- uses "unsafe" type casts to achieve maximum performance
+// Borrowed from Niklas Sï¿½rensson -- uses "unsafe" type casts to achieve maximum performance
 Clause Solver::propagate(void)
 {
     if (decisionLevel() == 0 && occur_mode != occ_Off){
@@ -1831,12 +1831,12 @@ void Solver::simplifyBySubsumption(bool with_var_elim)
                     ol_seen[index(c[j])] = 1;
 
                     vec<Clause>& n_occs = occur[index(~c[j])];
-                    for (int k = 0; k < n_occs.size(); k++)     // <<= Bättra på. Behöver bara kolla 'n_occs[k]' mot 'c'
+                    for (int k = 0; k < n_occs.size(); k++)     // <<= Bï¿½ttra pï¿½. Behï¿½ver bara kolla 'n_occs[k]' mot 'c'
                         if (n_occs[k] != c && n_occs[k].size() <= c.size() && selfSubset(n_occs[k].abst(), c.abst()) && selfSubset(n_occs[k], c, seen_tmp))
                             s1.add(n_occs[k]);
 
                     vec<Clause>& p_occs = occur[index(c[j])];
-                    for (int k = 0; k < p_occs.size(); k++)     // <<= Bättra på. Behöver bara kolla 'p_occs[k]' mot 'c'
+                    for (int k = 0; k < p_occs.size(); k++)     // <<= Bï¿½ttra pï¿½. Behï¿½ver bara kolla 'p_occs[k]' mot 'c'
                         if (subset(p_occs[k].abst(), c.abst()))
                             s0.add(p_occs[k]);
                 }
@@ -2182,7 +2182,7 @@ bool Solver::findDef(Lit x, vec<Clause>& poss, vec<Clause>& negs, Clause out_def
   4  5 3                 -3 6 7
                          -3 -6 -7
 
-3 -> ~4       == { ~3, ~4 }   (ger ~4, ~5 + ev mer som superset; negera detta och lägg till 3:an)
+3 -> ~4       == { ~3, ~4 }   (ger ~4, ~5 + ev mer som superset; negera detta och lï¿½gg till 3:an)
 3 -> ~5       == { ~3, ~5 }
 
 ~4 & ~5 -> 3  == { 4, 5, 3 }
@@ -2664,7 +2664,7 @@ void Solver::clauseReduction(void)
                 }
             }
 
-            // (kolla att seen[] är nollad korrekt här)
+            // (kolla att seen[] ï¿½r nollad korrekt hï¿½r)
 
             /**/if (learnt.size() < c.size()){
                 putchar('*'); fflush(stdout);

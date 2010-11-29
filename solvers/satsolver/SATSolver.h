@@ -34,4 +34,9 @@ namespace Minisat {
 	class Solver;
 }
 
+namespace MinisatID{
+	class PCSolver;
+	Minisat::Solver* createSolver(MinisatID::PCSolver*);
+}
+
 #endif// SATSOLVER_H_

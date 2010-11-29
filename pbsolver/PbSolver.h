@@ -20,7 +20,7 @@ public:
     int     size;       // Terms in constraint.
     Int     lo, hi;     // Sum should be in interval [lo,hi] (inclusive).
 private:
-    char    data[0];    // (must be last element of the struct)
+    char    data[1];    // (must be last element of the struct)
 public:
     // NOTE: Cannot be used by normal 'new' operator!
     Linear(const vec<Lit>& ps, const vec<Int>& Cs, Int low, Int high) {

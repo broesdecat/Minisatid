@@ -88,8 +88,8 @@ bool IDSolver::isDefinedByAggr(Var v) const {
 	return getDefType(v) == AGGR;
 }
 
-IDSolver::IDSolver(pPCSolver s, DEFSEM sem) :
-		DPLLTmodule(s), sem(sem),
+IDSolver::IDSolver(pPCSolver s) :
+		DPLLTmodule(s), sem(s->modes().defsem),
 		aggsolver(NULL), firstsearch(true), prev_conflicts(0), unfoundedsets(0), cycle_sources(0),
 		previoustrailatsimp(-1), justifiable_cycle_sources(0),
 		cycles(0),
@@ -1398,11 +1398,12 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	}
 
 	//Clasp only adds one asserting clause, assuming the other ones will be propagated.
-	if(getPCSolver()->modes().onlyoneunfclause){
-		Lit l = createNegativeLiteral(*ufs.begin());
-		addLoopfClause(l, loopf);
-		assert(!isUnknown(l));
-	}else{
+	//TODO should check correctness, might miss cycle sources???
+	//if(getPCSolver()->modes().selectOneFromUFS){
+	//	Lit l = createNegativeLiteral(*ufs.begin());
+	//	addLoopfClause(l, loopf);
+	//	assert(!isUnknown(l));
+	//}else{
 		//report("loopf = %d, ufs = %d\n", loopf.size(), ufs.size());
 		// No conflict: then enqueue all facts and their loop formulas.
 		if (loopf.size()*ufs.size()>=500) {
@@ -1435,7 +1436,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 			assert(!isUnknown(l));
 			//}
 		}
-	}
+	//}
 
 	return nullPtrClause;
 }
@@ -1837,6 +1838,13 @@ bool IDSolver::isCycleFree() const {
 		}
 	}
 	return cnt_nonjustified == 0;
+}
+
+bool IDSolver::checkStatus(){
+	if(getSemantics()==WELLF){
+		return isWellFoundedModel();
+	}
+	return true;
 }
 
 /****************************

@@ -23,7 +23,7 @@ namespace MiniSat {
 
 class Clause {
     uint    size_learnt;
-    Lit     data[0];
+    Lit     data[1];
 public:
     // NOTE: Cannot be used by normal 'new' operator!
     Clause(bool learnt, const vec<Lit>& ps) {

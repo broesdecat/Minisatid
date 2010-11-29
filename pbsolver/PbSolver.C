@@ -35,7 +35,7 @@ void PbSolver::addGoal(const vec<Lit>& ps, const vec<Int>& Cs) {
 	/**/debug_names = &index2name;
 	//**/reportf("MIN: "); dump(ps, Cs); reportf("\n");
 
-	goal = new (xmalloc<char> (sizeof(Linear) + ps.size() * (sizeof(Lit) + sizeof(Int)))) Linear(ps, Cs, Int_MIN, Int_MAX);
+	goal = new (xmalloc<char> (sizeof(Linear) + (ps.size()-1) * (sizeof(Lit) + sizeof(Int)))) Linear(ps, Cs, Int_MIN, Int_MAX);
 }
 
 bool PbSolver::addConstr(const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, int ineq, bool skipNorm) {
@@ -237,7 +237,7 @@ void PbSolver::storePb(const vec<Lit>& ps, const vec<Int>& Cs, Int lo, Int hi) {
 	assert(ps.size() == Cs.size());
 	for (int i = 0; i < ps.size(); i++)
 		n_occurs[index(ps[i])]++;
-	constrs.push(new (mem.alloc(sizeof(Linear) + ps.size() * (sizeof(Lit) + sizeof(Int)))) Linear(ps, Cs, lo, hi));
+	constrs.push(new (mem.alloc(sizeof(Linear) + (ps.size()-1) * (sizeof(Lit) + sizeof(Int)))) Linear(ps, Cs, lo, hi));
 	//**/reportf("STORED: "), dump(constrs.last()), reportf("\n");
 }
 

@@ -34,7 +34,7 @@ SearchMetaData* findBaseFWD(unsigned int weights[][2],int length,std::vector<uns
 		struct sData data={length,0,0,1};
 		std::vector<int> tempBase;
 		md->basesEvaluated++;
-		md->finalize(findOpt(weights,data,tempBase,(*md),inputCountEval(weights, md->base,length),sum,primes)); 
+		md->finalize(findOpt(weights,data,tempBase,(*md),inputCountEval(weights, md->base,length),sum,primes));
 		return md;
 }
 	

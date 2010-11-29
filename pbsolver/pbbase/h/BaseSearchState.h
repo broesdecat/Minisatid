@@ -1,15 +1,17 @@
 #ifndef BASESEARCHSTATE_H_
 #define BASESEARCHSTATE_H_
 
+#include "Global.h"
+
 namespace MiniSatPP {
 struct BaseSearchState {
     BaseSearchState* parent;
     int index;
 	int lastRelevent;
 	unsigned int baseMul;
-	unsigned long long cost;
-	unsigned long long hCost;
-	unsigned long long carryins;
+	uint64 cost;
+	uint64 hCost;
+	uint64 carryins;
 	BaseSearchState(BaseSearchState* parent_, int lastRelevent_ ,unsigned int baseMul_,
 					unsigned long cost_,unsigned long hCost_,
 					unsigned long carryins_) : 

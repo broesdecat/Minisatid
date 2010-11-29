@@ -255,6 +255,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		}
 		//FIXME: problems when there are also recursive aggregates!
 		notifyInitialized();
+		present = false;
 		return;
 	}
 
@@ -278,7 +279,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		unsat = unsat || !transformVerifyWeights(set, sets());
 		unsat = unsat || !transformSetReduction(set, sets());
 		unsat = unsat || !transformCardGeqOneToEquiv(set, sets());
-		if(getPCSolver()->modes().pw){ //use PWatches
+		if(getPCSolver()->modes().watchedagg){ //use PWatches
 			unsat = unsat || !transformOneToOneSetToAggMapping(set, sets());
 		}
 

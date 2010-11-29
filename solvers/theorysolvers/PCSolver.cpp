@@ -49,35 +49,21 @@ DPLLTSolver::~DPLLTSolver() {
 }
 
 //Has to be value copy of modes!
-PCSolver::PCSolver(ECNF_mode modes, MinisatID::WrappedLogicSolver* inter) :
+PCSolver::PCSolver(SolverOption modes, MinisatID::WrappedLogicSolver* inter) :
 		LogicSolver(modes, inter),
 		satsolver(NULL), idsolver(NULL), aggsolver(NULL), modsolver(NULL),
 		init(true),
 		optim(NONE), head(-1){
-	satsolver = new Solver(this);
-	if (modes.disableheur) {
-		satsolver->disableHeur();
-	}
+	satsolver = createSolver(this);
 
-	if (modes.aggr) {
-		aggsolver  = new DPLLTSolver(new AggSolver(this), true);
-		solvers.push_back(aggsolver);
-	}
+	aggsolver  = new DPLLTSolver(new AggSolver(this), true);
+	solvers.push_back(aggsolver);
 
-	if (modes.def) {
-		idsolver = new DPLLTSolver(new IDSolver(this, modes.sem), true);
-		solvers.push_back(idsolver);
-		if (getAggSolver() != NULL) {
-			getIDSolver()->setAggSolver(getAggSolver());
-		}
+	idsolver = new DPLLTSolver(new IDSolver(this), true);
+	solvers.push_back(idsolver);
+	if (getAggSolver() != NULL) {
+		getIDSolver()->setAggSolver(getAggSolver());
 	}
-
-	//TODO which variables to initialize depends on sat solver!
-	//solver->maxruntime = modes.maxruntime;
-	//solver->polarity_mode = modes.polarity_mode;
-	satsolver->random_var_freq = modes.random_var_freq;
-	satsolver->verbosity = modes.verbosity;
-	satsolver->var_decay = modes.var_decay;
 
 	if(modes.printcnfgraph){
 		reportf("graph ecnftheory {\n");
@@ -152,9 +138,7 @@ uint64_t PCSolver::getConflicts() const {
 }
 
 void PCSolver::varBumpActivity(Var v) {
-	if (!modes().disableheur) {
-		getSolver()->varBumpActivity(v);
-	}
+	getSolver()->varBumpActivity(v);
 }
 
 ///////
@@ -427,7 +411,7 @@ lbool PCSolver::checkStatus(lbool status) const {
 		return status;
 	}
 
-	if (modes().sem == WELLF && !getIDSolver()->isWellFoundedModel()) {
+	if (getIDSolver()->checkStatus()) {
 		return l_False;
 	}
 	return status;
@@ -728,10 +712,6 @@ bool PCSolver::invalidateModel(vec<Lit>& learnt) {
  ************************/
 
 bool PCSolver::addMinimize(const vec<Lit>& lits, bool subsetmnmz) {
-	if (!modes().mnmz) {
-		throw idpexception("ERROR! Attempt at adding an optimization statement, though header "
-			"did not contain \"mnmz\".\n");
-	}
 	if (lits.size() == 0) {
 		throw idpexception("The set of literals to be minimized is empty.\n");
 	}
@@ -767,10 +747,6 @@ bool PCSolver::addMinimize(const vec<Lit>& lits, bool subsetmnmz) {
 }
 
 bool PCSolver::addSumMinimize(const Var head, const int setid) {
-	if (!modes().mnmz) {
-		throw idpexception("ERROR! Attempt at adding an optimization statement, though header "
-			"did not contain \"mnmz\".\n");
-	}
 	if (optim != NONE) {
 		throw idpexception("Only one optimization statement is allowed.\n");
 	}

@@ -24,6 +24,9 @@
 #include <stdlib.h>
 #include <vector>
 #include <map>
+#include <string>
+
+#include <tclap/CmdLine.h>
 
 #include "solvers/satsolver/SATUtils.h"
 #include "solvers/external/ExternalUtils.hpp"

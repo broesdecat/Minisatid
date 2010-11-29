@@ -27,7 +27,7 @@ using namespace std;
 
 //%code{
 	
-extern ECNF_mode modes;
+extern SolverOption modes;
 extern int 		yylex(void);
 extern char * 	yytext;
 
@@ -118,10 +118,10 @@ init	:	CNF	number number
 		;
 
 header	: 	/*empty*/
-		| 	header DEFPRESENT	{ modes.def = true;}
-		| 	header CPPRESENT	{ modes.cp = true;}
-		| 	header AGGPRESENT	{ modes.aggr = true; }
-		| 	header MNMZPRESENT	{ modes.mnmz = true; }
+		| 	header DEFPRESENT	
+		| 	header CPPRESENT	
+		| 	header AGGPRESENT	
+		| 	header MNMZPRESENT	
 		;
 		
 //---------------------------------------------		

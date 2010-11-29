@@ -15,7 +15,7 @@ typedef struct BaseSearchStateRelativeComp* bssr;
 	THeapComp::~ THeapComp() {
 		for (unsigned int i=0;i<heap.size();i++)
 			delete heap[i];
-	};
+	}
 
 	bool THeapComp::offer(bssr element) {
 		heap.push_back(element);

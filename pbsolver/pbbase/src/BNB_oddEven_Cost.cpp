@@ -11,7 +11,7 @@ namespace MiniSatPP {
 	
 #define length(a) ( sizeof ( a ) / sizeof ( *a ) )
 
-static inline void createChild(struct BaseSearchState* father,register unsigned int msb,register unsigned int wights[][2],unsigned int sum[],unsigned long long* bestFound,
+static inline void createChild(struct BaseSearchState* father,register unsigned int msb,register unsigned int wights[][2],unsigned int sum[],uint64* bestFound,
 							   struct BaseSearchState** bestStateFound,THeap& que,SearchMetaData& md,std::vector<bss>& old,std::map<unsigned int,bss>& homomorphism,bool abstraction);
 
 /**
@@ -28,7 +28,7 @@ SearchMetaData* bnb_oddEven_Cost_search(unsigned int weights[][2],int length,std
 		std::map<unsigned int,bss> homomorphism;
 		unsigned int sum[length+1];
 		sum[0] = 0;
-		unsigned long long temp=0;
+		uint64 temp=0;
 		for(int i=0;i<length;i++) {
 			sum[i+1]=sum[i]+weights[i][1];	
 			temp+=weights[i][0]*weights[i][1];
@@ -37,7 +37,7 @@ SearchMetaData* bnb_oddEven_Cost_search(unsigned int weights[][2],int length,std
 		BaseSearchState* startState=new BaseSearchState(0,length,1,0,0,0);
 		BaseSearchState* bestStateFound(0);
 		que.offer(startState);
-		unsigned long long bestFound = oddEvenCountEval(weights, md->base,length);
+		uint64 bestFound = oddEvenCountEval(weights, md->base,length);
 		if (bestFound>temp) { // relaxs betwin The empty base and the Binary base
 			bestFound =temp;
 			bestStateFound = startState;
@@ -70,12 +70,12 @@ SearchMetaData* bnb_oddEven_Cost_search(unsigned int weights[][2],int length,std
 
 
 
-static inline void createChild(struct BaseSearchState* father,register unsigned int msb,register unsigned int wights[][2],unsigned int sum[],unsigned long long* bestFound,
+static inline void createChild(struct BaseSearchState* father,register unsigned int msb,register unsigned int wights[][2],unsigned int sum[],uint64* bestFound,
 					           struct BaseSearchState** bestStateFound,THeap& que,SearchMetaData& md,std::vector<bss>& old,std::map<unsigned int,bss>& homomorphism,bool abstraction) {
 	md.basesEvaluated++;
-	register unsigned long long childCost = father->carryins; 
-	register unsigned long long childCarryins = 0; 
-	register unsigned long long childCutCost = 0; 
+	register uint64 childCost = father->carryins;
+	register uint64 childCarryins = 0;
+	register uint64 childCutCost = 0;
 	register int childLastRelevent = 0; 
 	register unsigned int bm = father->baseMul;
 	for(int i=0;i<father->lastRelevent;i++) {
@@ -103,7 +103,7 @@ l1: childCarryins += childCost/msb;
 				return;
 		default:
 				childCost = oddEvenCount(childCost)+father->cost;
-				register unsigned long long h = oddEvenCount(childCarryins)+childCost;//+sum[childLastRelevent];
+				register uint64 h = oddEvenCount(childCarryins)+childCost;//+sum[childLastRelevent];
 				if (h>=*bestFound) return;
 				childCutCost = oddEvenCount(childCutCost + childCarryins)+childCost;
 				bss temp;
