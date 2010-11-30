@@ -86,7 +86,8 @@ public:
 	bool 				addClause		(vec<Lit>& lits);
 	bool 				addRule			(bool conj, Lit head, vec<Lit>& lits);
 	bool 				addSet			(int setid, vec<Lit>& lits, std::vector<Weight>& w);
-	bool 				addAggrExpr		(Lit head, int set_id, Weight bound, AggSign boundsign, AggType type, AggSem defined);
+	bool 				addAggrExprBB	(Lit head, int set_id, const Weight& lb, const Weight& ub, AggType type, AggSem defined);
+	bool 				addAggrExpr	(Lit head, int set_id, const Weight& bound, AggSign boundsign, AggType type, AggSem defined);
 
 	virtual void 		notifyVarAdded	(uint64_t nvars) { /*Is NOT DOWN!*/}
 	virtual void 		finishParsing	(bool& present, bool& unsat){};

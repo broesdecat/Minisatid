@@ -272,7 +272,24 @@ bool PCSolver::addSet(int setid, const vec<Lit>& lits, const vector<Weight>& w) 
 	return getAggSolver()->addSet(setid, ll, w);
 }
 
-bool PCSolver::addAggrExpr(Lit head, int setid, Weight bound, AggSign boundsign, AggType type, AggSem defined) {
+bool PCSolver::addAggrExprBB(Lit head, int setid, const Weight& lb, const Weight& ub, AggType type, AggSem defined) {
+	assert(getAggSolver()!=NULL);
+
+	if (modes().verbosity >= 7) {
+		report("Adding aggregate with info ");
+		gprintLit(head);
+		report(" over set %d, %d =< value =< %d, %d, %s \n", setid, lb, ub, type, defined==DEF?"defined":"completion");
+	}
+
+	addVar(head);
+
+	if (sign(head)) {
+		throw idpexception("Negative heads are not allowed.\n");
+	}
+	return getAggSolver()->addAggrExprBB(var(head), setid, lb, ub, type, defined);
+}
+
+bool PCSolver::addAggrExpr(Lit head, int setid, const Weight& bound, AggSign boundsign, AggType type, AggSem defined) {
 	assert(getAggSolver()!=NULL);
 
 	if (modes().verbosity >= 7) {

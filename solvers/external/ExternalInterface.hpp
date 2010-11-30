@@ -146,7 +146,8 @@ public:
 	bool	addSet			(int id, const std::vector<Literal>& lits);
 	bool 	addSet			(int set_id, const std::vector<WLtuple>& lws);
 	bool	addSet			(int id, const std::vector<Literal>& lits, const std::vector<Weight>& w);
-	bool	addAggrExpr		(Literal head, int setid, Weight bound, AggSign sign, AggType type, AggSem sem);
+	bool	addAggrExprBB		(Literal head, int setid, const Weight& lb, const Weight& ub, AggType type, AggSem sem);
+	bool	addAggrExpr		(Literal head, int setid, const Weight& bound, AggSign sign, AggType type, AggSem sem);
 
     bool 	addMinimize		(const std::vector<Literal>& lits, bool subsetmnmz);
     bool 	addSumMinimize	(const Atom head, const int setid);
@@ -187,7 +188,8 @@ public:
 	bool 	addRule			(vsize modid, bool conj, Literal head, std::vector<Literal>& lits);
 	bool 	addSet			(vsize modid, int set_id, std::vector<WLtuple>& lws);
 	bool 	addSet			(vsize modid, int set_id, std::vector<Literal>& lits, std::vector<Weight>& w);
-	bool 	addAggrExpr		(vsize modid, Literal head, int setid, Weight bound, AggSign sign, AggType type, AggSem sem);
+	bool 	addAggrExprBB	(vsize modid, Literal head, int setid, const Weight& lb, const Weight& ub, AggType type, AggSem sem);
+	bool 	addAggrExpr	(vsize modid, Literal head, int setid, const Weight& bound, AggSign sign, AggType type, AggSem sem);
 
 	void 	printStatistics	() const { report("Statistics printing not implemented for modal solver.\n");}
 

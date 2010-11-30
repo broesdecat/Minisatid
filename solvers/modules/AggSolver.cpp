@@ -154,9 +154,18 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 	return true;
 }
 
-bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, AggSign boundsign, AggType type, AggSem headeq) {
-	assert(type==MIN || type==MAX || type==CARD || type==SUM || type==PROD);
+bool AggSolver::addAggrExprBB(Var headv, int setid, const Weight& lb, const Weight& ub, AggType type, AggSem headeq) {
+	AggBound b(lb, ub);
+	throw idpexception("Not yet implemented\n");
+	return addAggrExpr(headv, setid, b, type, headeq);
+}
 
+bool AggSolver::addAggrExpr(Var headv, int setid, const Weight& bound, AggSign boundsign, AggType type, AggSem headeq) {
+	AggBound b(boundsign==AGGSIGN_LB, bound);
+	return addAggrExpr(headv, setid, b, type, headeq);
+}
+
+bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType type, AggSem headeq){
 	if (parsedSets().find(setid) == parsedSets().end()) { //Exception if does not already exist
 		char s[100];
 		sprintf(s, "Set nr. %d is used, but not defined yet.\n", setid);
@@ -215,7 +224,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, AggSign boundsig
 	Lit head = mkLit(headv, false);
 
 	Agg* agg = new Agg(head, headeq, type);
-	agg->setBound(AggBound(boundsign==AGGSIGN_LB, bound));
+	agg->setBound(bound);
 	set->addAgg(agg);
 
 	if (verbosity() >= 5) { //Print info on added aggregate

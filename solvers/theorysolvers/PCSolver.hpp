@@ -124,7 +124,8 @@ public:
 	bool 		addRule			(bool conj, Lit head, const vec<Lit>& lits);
 	bool 		addSet			(int id, const vec<Lit>& lits);
 	bool 		addSet			(int id, const vec<Lit>& lits, const std::vector<Weight>& w);
-	bool 		addAggrExpr		(Lit head, int setid, Weight bound, AggSign boundsign, AggType type, AggSem defined);
+	bool 		addAggrExprBB	(Lit head, int setid, const Weight& lb, const Weight& ub, AggType type, AggSem defined);
+	bool 		addAggrExpr	(Lit head, int setid, const Weight& bound, AggSign boundsign, AggType type, AggSem defined);
 	bool 		addIntVar		(int groundname, int min, int max);
 	bool 		addCPBinaryRel	(Lit head, int groundname, EqType rel, int bound);
 	bool 		addCPBinaryRelVar	(Lit head, int groundname, EqType rel, int groundname2);

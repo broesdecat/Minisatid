@@ -63,6 +63,7 @@ namespace Aggrs{
 	class TypedSet;
 	class Watch;
 	class AggReason;
+	struct AggBound;
 }
 
 typedef std::vector<Weight> vw;
@@ -137,7 +138,8 @@ public:
 	 *
 	 * @pre: no weights==0 when using a product aggregate
 	 */
-	bool 				addAggrExpr				(int defn, int set_id, Weight bound, AggSign boundsign, AggType type, AggSem headeq);
+	bool 				addAggrExprBB				(Var headv, int setid, const Weight& lb, const Weight& ub, AggType type, AggSem headeq);
+	bool 				addAggrExpr				(int defn, int set_id, const Weight& bound, AggSign boundsign, AggType type, AggSem headeq);
 
 	void 				findClausalPropagations	();
 
@@ -218,6 +220,8 @@ protected:
 	Aggrs::Agg* 		getAggWithHead			(Var v) const;
 
 	bool				finishSet				(Aggrs::TypedSet* set);
+
+	bool 				addAggrExpr				(Var headv, int setid, const Aggrs::AggBound& bound, AggType type, AggSem headeq);
 
 };
 

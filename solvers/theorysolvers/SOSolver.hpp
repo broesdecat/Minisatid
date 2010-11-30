@@ -86,7 +86,8 @@ public:
 	bool 	addClause			(vsize modid, vec<Lit>& lits);
 	bool 	addRule				(vsize modid, bool conj, Lit head, vec<Lit>& lits);
 	bool 	addSet				(vsize modid, int set_id, vec<Lit>& lits, std::vector<Weight>& w);
-	bool 	addAggrExpr			(vsize modid, Lit head, int setid, Weight bound, AggSign boundsign, AggType type, AggSem defined);
+	bool 	addAggrExprBB		(vsize modid, Lit head, int set_id, const Weight& lb, const Weight& ub, AggType type, AggSem defined);
+	bool 	addAggrExpr		(vsize modid, Lit head, int set_id, const Weight& bound, AggSign boundsign, AggType type, AggSem defined);
 
 	//Get information on hierarchy
 	ModSolver* getModSolver		(vsize modid) const { checkexistsModSolver(modid); return solvers[modid];}
