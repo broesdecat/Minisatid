@@ -1,14 +1,8 @@
-/*
- * FullyWatched.cpp
- *
- *  Created on: Sep 14, 2010
- *      Author: broes
- */
+#include "modules/aggsolver/FullyWatched.hpp"
 
-#include "solvers/modules/aggsolver/FullyWatched.hpp"
-
-#include "solvers/modules/AggSolver.hpp"
-#include "solvers/theorysolvers/PCSolver.hpp"
+#include "modules/aggsolver/AggPrint.hpp"
+#include "modules/AggSolver.hpp"
+#include "theorysolvers/PCSolver.hpp"
 
 #include <algorithm>
 
@@ -187,7 +181,7 @@ TODO might abort propagation of next aggregates to first do unit propagation
 
 		if (getSet().getSolver()->verbosity() >= 6) {
 			report("Propagating into aggr: ");
-			Aggrs::printAgg(pa, false);
+			Aggrs::print(pa, false);
 			report(", CC = %d, CP = %d\n", getCC(), getCP());
 		}
 
@@ -213,16 +207,16 @@ lbool FWAgg::canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP
 	//	return headvalue[agg.getIndex()];
 	//}
 
-	if((agg.isLower() && CC > agg.getBound()) || (agg.isUpper() && CC>= agg.getBound())){
+	if((agg.hasLB() && CC > agg.getSoloBound()) || (agg.hasUB() && CC>= agg.getSoloBound())){
 		basedon = BASEDONCC;
-	}else if((agg.isUpper() && CP < agg.getBound()) || (agg.isLower() && CP <= agg.getBound())){
+	}else if((agg.hasUB() && CP < agg.getSoloBound()) || (agg.hasLB() && CP <= agg.getSoloBound())){
 		basedon = BASEDONCP;
 	}
 
-	if ((agg.isLower() && CC > agg.getBound()) || (agg.isUpper() && CP < agg.getBound())) {
+	if ((agg.hasLB() && CC > agg.getSoloBound()) || (agg.hasUB() && CP < agg.getSoloBound())) {
 		//headproptime[agg.getIndex()] = getStack().size();
 		return l_False;
-	} else if ((agg.isLower() && CP <= agg.getBound()) || (agg.isUpper() && CC>= agg.getBound())) {
+	} else if ((agg.hasLB() && CP <= agg.getSoloBound()) || (agg.hasUB() && CC>= agg.getSoloBound())) {
 		//headproptime[agg.getIndex()] = getStack().size();
 		return l_True;
 	} else {
@@ -264,7 +258,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	bool inset = ar.getExpl()==BASEDONCP;
 
 	Weight min, max;
-	if(agg.isUpper()){
+	if(agg.hasUB()){
 		min = getSetp()->getESV(); max = getSetp()->getType().getBestPossible(getSetp());
 	}else{
 		min = getSetp()->getType().getBestPossible(getSetp()); max = getSetp()->getESV();
@@ -287,10 +281,10 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	bool satisfied = false;
 	vector<WL> reasons;
 	if(checkmonofalse){
-		satisfied = isSatisfied(headtrue, max, false, agg.isLower(), agg.getBound());
+		satisfied = isSatisfied(headtrue, max, false, agg.hasLB(), agg.getSoloBound());
 		for(vector<FWTrail>::const_iterator a=getTrail().begin(); !satisfied && a<getTrail().end(); a++){
         	for (vprop::const_iterator i = (*a).props.begin(); !satisfied && i < (*a).props.end(); i++) {
-				bool monolit = getSetp()->getType().isMonotone(agg, (*i).getWL());
+				bool monolit = getSetp()->getType().isMonotone(agg, (*i).getWL(), agg.hasLB());
 				if((monolit && (*i).getType()==NEG) || (!monolit && (*i).getType()==POS)){
 					reasons.push_back((*i).getWL());
 					if(monolit){
@@ -298,15 +292,15 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 					}else{
 						max = getSetp()->getType().add(max, (*i).getWeight());
 					}
-					satisfied = isSatisfied(headtrue, max, false, agg.isLower(), agg.getBound());
+					satisfied = isSatisfied(headtrue, max, false, agg.hasLB(), agg.getSoloBound());
 				}
         	}
 		}
 	}else{
-		satisfied = isSatisfied(headtrue, min, true, agg.isLower(), agg.getBound());
+		satisfied = isSatisfied(headtrue, min, true, agg.hasLB(), agg.getSoloBound());
 		for(vector<FWTrail>::const_iterator a=getTrail().begin(); !satisfied && a<getTrail().end(); a++){
         	for (vprop::const_iterator i = (*a).props.begin(); !satisfied && i < (*a).props.end(); i++) {
-				bool monolit = getSetp()->getType().isMonotone(agg, (*i).getWL());
+				bool monolit = getSetp()->getType().isMonotone(agg, (*i).getWL(), agg.hasLB());
 				if((monolit && (*i).getType()==POS) || (!monolit && (*i).getType()==NEG)){
 					reasons.push_back((*i).getWL());
 					if(monolit){
@@ -314,7 +308,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 					}else{
 						min = getSetp()->getType().remove(min, (*i).getWeight());
 					}
-					satisfied = isSatisfied(headtrue, min, true, agg.isLower(), agg.getBound());
+					satisfied = isSatisfied(headtrue, min, true, agg.hasLB(), agg.getSoloBound());
 				}
         	}
 		}
@@ -339,7 +333,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 					max = getSetp()->getType().remove(max, (*i).getWeight());
 				}
 
-				if(isSatisfied(headtrue, max, false, agg.isLower(), agg.getBound())){
+				if(isSatisfied(headtrue, max, false, agg.hasLB(), agg.getSoloBound())){
 					reasons.erase(i);
 					changes = true;
 				}else{
@@ -360,7 +354,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 					min = getSetp()->getType().add(min, (*i).getWeight());
 				}
 
-				if(isSatisfied(headtrue, min, true, agg.isLower(), agg.getBound())){
+				if(isSatisfied(headtrue, min, true, agg.hasLB(), agg.getSoloBound())){
 					reasons.erase(i);
 					changes = true;
 				}else{
@@ -376,7 +370,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 
 	if(getSolver()->verbosity()>=5){
 		report("Explanation for ");
-		printAgg(agg, false);
+		print(agg, false);
 		report("is\n");
 		for(int i=0; i<lits.size(); i++){
 			report(" "); gprintLit(lits[i]);
@@ -416,57 +410,7 @@ MaxFWAgg::MaxFWAgg(TypedSet* set) :
 }
 
 void MaxFWAgg::initialize(bool& unsat, bool& sat) {
-	if (getSet().getAgg().size() == 1) { //Simple heuristic to choose for encoding as SAT
-		//SAT encoding, not used yet
-		bool notunsat = true;
-		for (vsize i = 0; notunsat && i < getSet().getAgg().size(); i++) {
-			/*
-			 * For a maximum: if lower,  head <=> conj of negation of all literals with weight higher than bound
-			 * 				  if higher, head <=> disj of all literals with weight higher/eq than bound
-			 */
-			vec<Lit> clause;
-			const pagg agg = getSet().getAgg()[i];
-			if (agg->isDefined()) {
-				for (vwl::const_reverse_iterator i = getSet().getWL().rbegin(); i < getSet().getWL().rend()
-							&& (*i).getWeight() >= agg->getBound(); i++) {
-					if (agg->isLower() && (*i).getWeight() == agg->getBound()) {
-						break;
-					}
-					if (agg->isLower()) {
-						clause.push(~(*i).getLit());
-					} else {
-						clause.push((*i).getLit());
-					}
-				}
-				notunsat = getSet().getSolver()->getPCSolver()->addRule(agg->isLower() ? LB : UB,agg->getHead(),clause);
-			} else {
-				clause.push(agg->isLower() ? agg->getHead() : ~agg->getHead());
-				for (vwl::const_reverse_iterator i = getSet().getWL().rbegin(); i < getSet().getWL().rend()
-							&& (*i).getWeight() >= agg->getBound(); i++) {
-					if (agg->isLower() && (*i).getWeight() == agg->getBound()) {
-						break;
-					}
-					clause.push((*i).getLit());
-				}
-				notunsat = getSet().getSolver()->getPCSolver()->addClause(clause);
-				for (vwl::const_reverse_iterator i = getSet().getWL().rbegin(); notunsat && i < getSet().getWL().rend()
-							&& (*i).getWeight() >= agg->getBound(); i++) {
-					if (agg->getBound() && (*i).getWeight() == agg->getBound()) {
-						break;
-					}
-					clause.clear();
-					clause.push(agg->isLower() ? ~agg->getHead() : agg->getHead());
-					clause.push(~(*i).getLit());
-					notunsat = getSet().getSolver()->getPCSolver()->addClause(clause);
-				}
-			}
-		}
-		unsat = !notunsat;
-		sat = true;
-		return;
-	} else {
-		FWAgg::initialize(unsat, sat);
-	}
+	FWAgg::initialize(unsat, sat);
 }
 
 void MaxFWAgg::addToCertainSet(const WL& l) {
@@ -507,15 +451,15 @@ rClause MaxFWAgg::propagate(const Agg& agg, bool headtrue) {
 		return NULL;
 	} else {
 		rClause confl = nullPtrClause;
-		if (headtrue && agg.isLower()) {
+		if (headtrue && agg.hasLB()) {
 			for (vwl::const_reverse_iterator i = getSet().getWL().rbegin(); confl == nullPtrClause && i
-						< getSet().getWL().rend() && agg.getBound() < (*i).getWeight(); i++) {
+						< getSet().getWL().rend() && agg.getSoloBound() < (*i).getWeight(); i++) {
 				//because these propagations are independent of the other set literals, they can also be written as clauses
 				confl = getSet().getSolver()->notifySolver(new AggReason(agg, HEADONLY, ~(*i).getLit(), (*i).getWeight()));
 			}
-		} else if (!headtrue && agg.isUpper()) {
+		} else if (!headtrue && agg.hasUB()) {
 			for (vwl::const_reverse_iterator i = getSet().getWL().rbegin(); confl == nullPtrClause && i
-						< getSet().getWL().rend() && agg.getBound() <= (*i).getWeight(); i++) {
+						< getSet().getWL().rend() && agg.getSoloBound() <= (*i).getWeight(); i++) {
 				confl = getSet().getSolver()->notifySolver(new AggReason(agg, HEADONLY, ~(*i).getLit(), (*i).getWeight()));
 			}
 		}
@@ -543,7 +487,7 @@ rClause MaxFWAgg::propagateAll(const Agg& agg, bool headtrue) {
 
 //	if(nomoreprops[agg.getIndex()] || headproptime[agg.getIndex()]!=-1){ return confl; }
 
-	if ((agg.isLower() && headtrue) || (agg.isUpper() && !headtrue)) {
+	if ((agg.hasLB() && headtrue) || (agg.hasUB() && !headtrue)) {
 		return confl;
 	}
 
@@ -551,8 +495,8 @@ rClause MaxFWAgg::propagateAll(const Agg& agg, bool headtrue) {
 	bool exactlyoneleft = true;
 	for (vsize i=0; exactlyoneleft && i<getSet().getWL().size(); i++) {
 		const WL& wl = getSet().getWL()[i];
-		if ((agg.isUpper() && headtrue && wl.getWeight() >= agg.getBound()) || (agg.isLower()
-					&& !headtrue && wl.getWeight() > agg.getBound())) {
+		if ((agg.hasUB() && headtrue && wl.getWeight() >= agg.getSoloBound()) || (agg.hasLB()
+					&& !headtrue && wl.getWeight() > agg.getSoloBound())) {
 			if (getSolver()->value(wl.getLit()) == l_Undef) {
 				if (pos != -1) {
 					exactlyoneleft = false;
@@ -593,28 +537,28 @@ rClause SPFWAgg::propagate(const Agg& agg, bool headtrue) {
 	Expl basedon;
 	//determine the lower bound of which weight literals to consider
 	if (headtrue) {
-		if (agg.isLower()) {
+		if (agg.hasLB()) {
 			basedon = BASEDONCC;
-			weightbound = getSet().getType().remove(agg.getBound(), getCC());
+			weightbound = getSet().getType().remove(agg.getSoloBound(), getCC());
 			//+1 because larger and not eq
-			if (getSet().getType().add(weightbound, getCC()) == agg.getBound()) {
+			if (getSet().getType().add(weightbound, getCC()) == agg.getSoloBound()) {
 				weightbound += 1;
 			}
 		} else {
 			basedon = BASEDONCP;
-			weightbound = getSet().getType().remove(getCP(), agg.getBound());
+			weightbound = getSet().getType().remove(getCP(), agg.getSoloBound());
 			//+1 because larger and not eq
-			if (getSet().getType().add(weightbound, agg.getBound()) == getCP()) {
+			if (getSet().getType().add(weightbound, agg.getSoloBound()) == getCP()) {
 				weightbound += 1;
 			}
 		}
 	} else {
-		if (agg.isLower()) {
+		if (agg.hasLB()) {
 			basedon = BASEDONCP;
-			weightbound = getSet().getType().remove(getCP(), agg.getBound());
+			weightbound = getSet().getType().remove(getCP(), agg.getSoloBound());
 		} else {
 			basedon = BASEDONCC;
-			weightbound = getSet().getType().remove(agg.getBound(), getCC());
+			weightbound = getSet().getType().remove(agg.getSoloBound(), getCC());
 		}
 	}
 
@@ -652,7 +596,7 @@ rClause SPFWAgg::propagate(const Agg& agg, bool headtrue) {
 		}
 		//Only propagate those that are not already known in the aggregate solver!
 		if (propagate) {
-			if ((agg.isLower() && headtrue) || (agg.isUpper() && !headtrue)) {
+			if ((agg.hasLB() && headtrue) || (agg.hasUB() && !headtrue)) {
 				c = getSet().getSolver()->notifySolver(new AggReason(agg, basedon, ~l, getSet().getWL()[u].getWeight()));
 			} else {
 				c = getSet().getSolver()->notifySolver(new AggReason(agg, basedon, l, getSet().getWL()[u].getWeight()));
@@ -704,7 +648,7 @@ void SumFWAgg::initialize(bool& unsat, bool& sat) {
 		}
 		getSet().setWL(wlits2);
 		for (vpagg::const_iterator i = getSet().getAgg().begin(); i < getSet().getAgg().end(); i++) {
-			(*i)->setBound(getSet().getType().add((*i)->getBound(), totalneg));
+			(*i)->setSoloBound(getSet().getType().add((*i)->getSoloBound(), totalneg));
 		}
 	}
 

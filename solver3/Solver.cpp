@@ -64,7 +64,7 @@ Solver::Solver(PCSolver* s/*A*/) :
   , expensive_ccmin  (true)
   , polarity_mode    (polarity_stored)
   , verbosity        (0)
-  , random_seed      (s->randomize()?time(NULL):91648253)
+  , random_seed      (91648253)
 
     // Statistics: (formerly in 'SolverStats')
     //

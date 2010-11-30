@@ -32,3 +32,11 @@ Lit MinisatID::createNegativeLiteral(Var i) {
 Lit MinisatID::createPositiveLiteral(Var i) {
 	return mkLit(i, false);
 }
+
+bool MinisatID::compareWLByLits(const WL& one, const WL& two) {
+	return var(one.getLit()) < var(two.getLit());
+}
+
+bool MinisatID::compareWLByWeights(const WL& one, const WL& two) {
+	return one.getWeight() < two.getWeight();
+}

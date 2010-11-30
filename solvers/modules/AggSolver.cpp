@@ -43,7 +43,9 @@
 
 #include "theorysolvers/PCSolver.hpp"
 
-#include "modules/aggsolver/AggComb.hpp"
+#include "modules/aggsolver/AggPrint.hpp"
+#include "modules/aggsolver/AggUtils.hpp"
+#include "modules/aggsolver/AggTransform.hpp"
 
 #include "modules/aggsolver/FullyWatched.hpp"
 #include "modules/aggsolver/PartiallyWatched.hpp"
@@ -212,7 +214,8 @@ bool AggSolver::addAggrExpr(Var headv, int setid, Weight bound, AggSign boundsig
 	//the head of the aggregate
 	Lit head = mkLit(headv, false);
 
-	Agg* agg = new Agg(bound, boundsign, head, headeq, type);
+	Agg* agg = new Agg(head, headeq, type);
+	agg->setBound(AggBound(boundsign==AGGSIGN_LB, bound));
 	set->addAgg(agg);
 
 	if (verbosity() >= 5) { //Print info on added aggregate
@@ -270,13 +273,11 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 			continue;
 		}
 
-		/*for(int i=0; i<set->getAgg().size(); i++){
-			assert(set->getAgg()[i]!=NULL);
-		}*/
 		unsat = unsat || !transformTypePartition(set, sets());
 		unsat = unsat || !transformMinToMax(set, sets());
 		unsat = unsat || !transformAddTypes(set, sets());
 		unsat = unsat || !transformVerifyWeights(set, sets());
+		unsat = unsat || !transformMaxToSAT(set, sets());
 		unsat = unsat || !transformSetReduction(set, sets());
 		unsat = unsat || !transformCardGeqOneToEquiv(set, sets());
 		if(getPCSolver()->modes().watchedagg){ //use PWatches
@@ -305,9 +306,9 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	deleteList<TypedSet>(satsets);
 
 #ifdef DEBUG
-	for(int j=0; j<sets().size(); j++){
-		for (vpagg::const_iterator i = sets()[j]->getAgg().begin(); i<sets()[j]->getAgg().end(); i++) {
-			assert(sets()[j]==(*i)->getSet());
+	for(vps::const_iterator j=sets().begin(); j<sets().end(); j++){
+		for (vpagg::const_iterator i = (*j)->getAgg().begin(); i<(*j)->getAgg().end(); i++) {
+			assert((*j)==(*i)->getSet());
 			assert((*i)->getSet()->getAgg()[(*i)->getIndex()]==(*i));
 		}
 	}
@@ -356,7 +357,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		report("Aggregates are present after initialization:\n");
 		for (vps::const_iterator i = sets().begin(); i < sets().end(); i++) {
 			for (vpagg::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); j++) {
-				Aggrs::printAgg(**j, true);
+				Aggrs::print(**j, true);
 			}
 		}
 
@@ -365,18 +366,18 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 			if (headwatches[i] != NULL) {
 				report("   headwatch\n");
 				report("      ");
-				Aggrs::printAgg(*headwatches[i]->getSet(), true);
+				Aggrs::print(*headwatches[i]->getSet(), true);
 			}
 
 			if (verbosity() >= 6) {
 				report("   bodywatches\n");
 				for (vsize j = 0; j < permwatches[i].size(); j++) {
 					report("      ");
-					Aggrs::printAgg(*(permwatches[i][j])->getSet(), true);
+					Aggrs::print(*(permwatches[i][j])->getSet(), true);
 				}
 				for (vsize j = 0; j < tempwatches[i].size(); j++) {
 					report("      ");
-					Aggrs::printAgg(*(tempwatches[i][j])->getSet(), true);
+					Aggrs::print(*(tempwatches[i][j])->getSet(), true);
 				}
 			}
 		}
@@ -426,7 +427,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 			report("Deriving conflict in ");
 			gprintLit(p, l_True);
 			report(" because of the aggregate expression ");
-			Aggrs::printAgg(ar->getAgg(), true);
+			Aggrs::print(ar->getAgg(), true);
 		}
 		assert(getPCSolver()->modes().aggclausesaving>1 || ar->hasClause());
 		assert(aggreason[var(p)]==NULL || getPCSolver()->modes().aggclausesaving>1 || aggreason[var(p)]->hasClause());
@@ -443,7 +444,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 			report("Deriving ");
 			gprintLit(p, l_True);
 			report(" because of the aggregate expression ");
-			Aggrs::printAgg(ar->getAgg(), true);
+			Aggrs::print(ar->getAgg(), true);
 		}
 
 		//Keeping a reason longer than necessary is not a problem => if after backtracking still unknown, then no getexplanation, if it becomes known,
@@ -605,7 +606,7 @@ void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& l
 
 	for (vwl::const_iterator i = set->getWL().begin(); i < set->getWL().end(); ++i) {
 		Lit l = (*i).getLit();
-		if (set->getType().isMonotone(agg, *i) && ufs.find(var(l)) == ufs.end() && seen[var(l)] != (isPositive(l) ? 2 : 1) && isFalse(l)) {
+		if (set->getType().isMonotone(agg, *i, agg.hasLB()) && ufs.find(var(l)) == ufs.end() && seen[var(l)] != (isPositive(l) ? 2 : 1) && isFalse(l)) {
 			//TODO deze laatste voorwaarde is een HACK: eigenlijk moeten de voorwaarden zo zijn,
 			//dat enkel relevant literals worden toegevoegd, maar momenteel worden er ook literals
 			//toegevoegd die nooit in een justification zullen zitten
@@ -697,6 +698,8 @@ bool AggSolver::addMnmzSum(Var headv, int setid, AggSign boundsign) {
 		throw idpexception(s);
 	}
 
+	//FIXME check AGGSIGN_BOTH not allowed
+
 	assert(headv>=0);
 
 	TypedSet* set = parsedSets()[setid];
@@ -733,12 +736,13 @@ bool AggSolver::addMnmzSum(Var headv, int setid, AggSign boundsign) {
 		}
 	}
 
-	Agg* ae = new Agg(boundsign == LB ? max + 1 : min, boundsign, head, COMP, SUM);
-	set->addAgg(ae);
+	Agg* ae = new Agg(head, COMP, SUM);
+	ae->setBound(AggBound(boundsign==AGGSIGN_LB, boundsign==AGGSIGN_LB?max+1:min));
 	ae->setOptim();
+	set->addAgg(ae);
 
 	if (verbosity() >= 3) {
-		report("Added sum minimization: Minimize ");
+		report("Added sum optimization: Optimize ");
 		Aggrs::print(*ae);
 		report("\n");
 	}
@@ -753,7 +757,7 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
 
 	report("Current optimum: %s\n", printWeight(prop->getCC()).c_str());
 
-	a->setBound(prop->getCC() - 1);
+	a->setBound(AggBound(a->hasLB(), prop->getCC() - 1));
 
 	if (s->getBestPossible() == prop->getCC()) {
 		return true;
@@ -784,47 +788,6 @@ void AggSolver::printStatistics() const {
 
 void AggSolver::print(){
 	Print::print(this);
-}
-
-void Aggrs::print(const TypedSet& set){
-	report("set %d = { ", set.getSetID());
-	bool begin = true;
-	for (vector<WL>::const_iterator i = set.getWL().begin(); i < set.getWL().end(); i++) {
-		if (begin) {
-			begin = false;
-		} else {
-			report(", ");
-		}
-		report("%d=%s", gprintVar(var((*i).getLit())), printWeight((*i).getWeight()).c_str());
-	}
-	report("}\n");
-}
-
-void Aggrs::print(const Agg& agg){
-	report("Added %s aggregate with head %d on set %d, %s %s of type ",
-			agg.getSem() == DEF?"defined":"completion",
-			gprintVar(var(agg.getHead())),
-			agg.getSetID(),
-			agg.getSign()==LB?"AGG <=":"AGG >=",
-			printWeight(agg.getBound()).c_str());
-
-	switch (agg.getType()) {
-	case SUM:
-		report("SUM");
-		break;
-	case CARD:
-		report("CARD");
-		break;
-	case MIN:
-		report("MIN");
-		break;
-	case MAX:
-		report("MAX");
-		break;
-	case PROD:
-		report("PROD");
-		break;
-	}
 }
 
 /*void AggSolver::findClausalPropagations(){

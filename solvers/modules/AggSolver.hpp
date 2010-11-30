@@ -221,11 +221,6 @@ protected:
 
 };
 
-namespace Aggrs{
-	void print(const TypedSet& agg);
-	void print(const Agg& agg);
-}
-
 }
 
 #endif /* AggSolver_H_ */

@@ -1,14 +1,7 @@
-/*
- * AggComb.hpp
- *
- *  Created on: Aug 26, 2010
- *      Author: broes
- */
-
 #ifndef AGGCOMB_HPP_
 #define AGGCOMB_HPP_
 
-#include "solvers/utils/Utils.hpp"
+#include "utils/Utils.hpp"
 #include <vector>
 
 namespace MinisatID{
@@ -42,7 +35,7 @@ public:
 
 class Watch{
 private:
-			TypedSet* 	set;
+	TypedSet* 		set;
 			int 	index;
 	const 	bool 	setlit;	//true if set literal, false if agg head
 	const 	bool 	pos; 	//if true, the positive literal is in the set, otherwise the negation
@@ -50,15 +43,15 @@ public:
 	Watch(TypedSet* set, int index, bool setlit, bool pos):
 		set(set), index(index), setlit(setlit), pos(pos){}
 
-	virtual 	~Watch(){}
+	virtual ~Watch(){}
 
-	TypedSet*	getSet()	 	const { return set; }
-	int 		getIndex() 		const { return index; }
-	void		setIndex(int i) 	  { index = i; }
-	bool 		isSetLit() 		const { return setlit; }
-	Occurrence 	getType(bool neg)	const { return !setlit?HEAD:((!neg && pos) || (neg && !pos))?POS:NEG; }
+	TypedSet*		getSet		()	 		const 	{ return set; }
+	int 			getIndex	() 			const 	{ return index; }
+	void			setIndex	(int i) 	  		{ index = i; }
+	bool 			isSetLit	() 			const 	{ return setlit; }
+	Occurrence 		getType		(bool neg)	const 	{ return !setlit?HEAD:((!neg && pos) || (neg && !pos))?POS:NEG; }
 
-	virtual const WL&	getWL()			const; //TODO unclear semantics
+	virtual const WL&	getWL	()			const; //TODO unclear semantics
 };
 
 enum Expl{BASEDONCC,BASEDONCP,HEADONLY};
@@ -78,19 +71,16 @@ public:
 		:expr(agg), proplit(proplit), propweight(propweight), expl(expl), head(head), explanation(), hasclause(false){
 	}
 
-	const Agg&	getAgg() 		const	{ return expr; }
-    const Lit&	getPropLit()	const	{ return proplit; }
+	const Agg&	getAgg			() 	const	{ return expr; }
+    const Lit&	getPropLit		()	const	{ return proplit; }
     const Weight&	getPropWeight()	const	{ return propweight; }
-    bool		isHeadReason() 	const	{ return head; }
-    Expl		getExpl() 		const	{ return expl; }
+    bool		isHeadReason	() 	const	{ return head; }
+    Expl		getExpl			()	const	{ return expl; }
 
-    bool 		hasClause() 	const { return hasclause; }
-    const vec<Lit>&	getClause() const { return explanation; }
-    void		setClause(const Minisat::vec<Lit>& c) {	c.copyTo(explanation); hasclause = true; }
+    bool 		hasClause		()	const	{ return hasclause; }
+    const vec<Lit>&	getClause	()	const	{ return explanation; }
+    void		setClause		(const Minisat::vec<Lit>& c) {	c.copyTo(explanation); hasclause = true; }
 };
-
-void printAgg(const TypedSet&, bool printendline = false);
-void printAgg(const Agg& c, bool printendline = false);
 
 ///////
 // ID support

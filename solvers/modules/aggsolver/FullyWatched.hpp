@@ -8,10 +8,10 @@
 #ifndef FULLYWATCHED_HPP_
 #define FULLYWATCHED_HPP_
 
-#include "solvers/utils/Utils.hpp"
+#include "utils/Utils.hpp"
 
-#include "solvers/modules/aggsolver/AggComb.hpp"
-#include "solvers/modules/aggsolver/AggProp.hpp"
+#include "modules/aggsolver/AggUtils.hpp"
+#include "modules/aggsolver/AggProp.hpp"
 
 namespace MinisatID {
 

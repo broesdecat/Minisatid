@@ -170,13 +170,11 @@ int main(int argc, char** argv) {
 		if(d.get()!=NULL){
 			d->printStatistics();
 		}
-		returnvalue = 1;
 	} catch (...) {
 		report("Unexpected error caught, program will abort.\n");
 		if(d.get()!=NULL){
 			d->printStatistics();
 		}
-		returnvalue = 1;
 	}
 
 	return returnvalue;
@@ -253,7 +251,7 @@ int doModelGeneration(pData& d, double cpu_time){
 	//Solve
 	if(!unsat){
 		vector<Literal> assumpts;
-		Solution* sol = new Solution(true, false, true, modes.nbmodels, assumpts);
+		Solution* sol = new Solution(modes.verbosity>0, false, true, modes.nbmodels, assumpts);
 		unsat = !d->solve(sol);
 		delete sol;
 		if (modes.verbosity >= 1) {

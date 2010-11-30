@@ -85,7 +85,7 @@ TCLAP::ValueArg<std::string> 	formatarg("f","format",
 TCLAP::ValueArg<int> 			modelarg("n","nbmodels",
 		"The number of models to search for", false,1,"int", cmd);
 TCLAP::ValueArg<int> 			verbosityarg("","verbosity",
-		"The level of output to generate", false,0,"int", cmd);
+		"The level of output to generate", false,1,"int", cmd);
 TCLAP::ValueArg<string> 		ecnfgrapharg("","ecnfgraph",
 		"Generate | don't generate .dot ecnf graph representation", false, "no", &getYesNoConstraint(), cmd);
 TCLAP::UnlabeledValueArg<string> inputfilearg("inputfile",

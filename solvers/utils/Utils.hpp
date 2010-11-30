@@ -65,6 +65,11 @@ public:
     operator Weight()	const { return weight; }
 };
 
+//Compare WLs by their literals, placing same literals next to each other
+bool compareWLByLits(const WL& one, const WL& two);
+//Compare WLs by their weights
+bool compareWLByWeights(const WL& one, const WL& two);
+
 ///////
 // Debug information
 ///////

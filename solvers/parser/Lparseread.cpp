@@ -53,7 +53,7 @@ typedef enum {
   OPTIMIZERULE
 } RuleType;
 
-Read::Read (WrappedPCSolver* solver): solver(solver), size(0), setcount(1), maxatomnumber(1){
+Read::Read (WrappedPCSolver* solver): maxatomnumber(1), setcount(1), size(0), solver(solver) {
 }
 
 Read::~Read (){
@@ -414,7 +414,7 @@ int Read::finishCardRules(){
 		if(!getSolver()->addSet((*i)->setcount, (*i)->body)){
 			return 1;
 		}
-		if(!getSolver()->addAggrExpr((*i)->head, (*i)->setcount, (*i)->atleast, UB, CARD, DEF)){
+		if(!getSolver()->addAggrExpr((*i)->head, (*i)->setcount, (*i)->atleast, AGGSIGN_UB, CARD, DEF)){
 			return 1;
 		}
 	}
@@ -426,7 +426,7 @@ int Read::finishSumRules(){
 		if(!getSolver()->addSet((*i)->setcount, (*i)->body, (*i)->weights)){
 			return 1;
 		}
-		if(!getSolver()->addAggrExpr((*i)->head, (*i)->setcount, (*i)->atleast, UB, SUM, DEF)){
+		if(!getSolver()->addAggrExpr((*i)->head, (*i)->setcount, (*i)->atleast, AGGSIGN_UB, SUM, DEF)){
 			return 1;
 		}
 	}
@@ -455,7 +455,7 @@ int Read::finishGenerateRules(){
 			return 1;
 		}
 		int atemp = maxatomnumber++;
-		if(!getSolver()->addAggrExpr(Literal(atemp), setcount, (*i)->atleast, LB, CARD, DEF)){
+		if(!getSolver()->addAggrExpr(Literal(atemp), setcount, (*i)->atleast, AGGSIGN_LB, CARD, DEF)){
 			return 1;
 		}
 		if(!getSolver()->addRule(true, Literal(atemp), (*i)->body)){
@@ -469,13 +469,13 @@ int Read::finishGenerateRules(){
 }
 
 int Read::finishChoiceRules(){
-	for(int i=0; i<choicerules.size(); i++){
-		if(choicerules[i]->body.size()==0){
+	for(vector<ChoiceRule*>::const_iterator i=choicerules.begin(); i<choicerules.end(); i++){
+		if((*i)->body.size()==0){
 			continue;
 		}
-		for(vector<Literal>::const_iterator j=choicerules[i]->heads.begin(); j<choicerules[i]->heads.end(); j++){
+		for(vector<Literal>::const_iterator j=(*i)->heads.begin(); j<(*i)->heads.end(); j++){
 			int atemp = maxatomnumber++;
-			vector<Literal> tempbody(choicerules[i]->body);
+			vector<Literal> tempbody((*i)->body);
 			tempbody.push_back(makeLiteral(atemp, true));
 			if(!getSolver()->addRule(true, *j, tempbody)){
 				return 1;

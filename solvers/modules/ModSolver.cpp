@@ -38,8 +38,10 @@ using namespace MinisatID;
  */
 ModSolver::ModSolver(modindex child, Var head, SOSolver* mh):
 		DPLLTmodule(NULL),
-		id(child), parentid(-1), hasparent(false), //, startedsearch(false), startindex(-1),
-		head(head), modhier(mh){
+		hasparent(false), searching(false),
+		head(head),
+		id(child), parentid(-1), //, startedsearch(false), startindex(-1),
+		modhier(mh){
 	SolverOption modescopy(mh->modes());
 	modescopy.nbmodels = 1;
 

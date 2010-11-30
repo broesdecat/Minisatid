@@ -121,17 +121,17 @@ void DefaultCallback::endConstraint() {
 	int newvar = ++maxvar;
 	vector<Literal> lits;
 	if(equality){
-		getSolver()->addAggrExpr(newvar, setid, bound, LB, SUM, COMP);
+		getSolver()->addAggrExpr(newvar, setid, bound, AGGSIGN_LB, SUM, COMP);
 		lits.clear();
 		lits.push_back(Literal(newvar));
 		getSolver()->addClause(lits);
 		newvar = ++maxvar;
-		getSolver()->addAggrExpr(newvar, setid, bound, UB, SUM, COMP);
+		getSolver()->addAggrExpr(newvar, setid, bound, AGGSIGN_UB, SUM, COMP);
 		lits.clear();
 		lits.push_back(Literal(newvar));
 		getSolver()->addClause(lits);
 	}else{
-		getSolver()->addAggrExpr(newvar, setid, bound, UB, SUM, COMP);
+		getSolver()->addAggrExpr(newvar, setid, bound, AGGSIGN_UB, SUM, COMP);
 		lits.clear();
 		lits.push_back(Literal(newvar));
 		getSolver()->addClause(lits);
@@ -207,12 +207,12 @@ void DefaultCallback::linearizeProduct(int newSymbol, vector<int> product) {
 	r = 1;
 	beginConstraint();
 	constraintTerm(1, newSymbol);
-	for (int i = 0; i < product.size(); ++i)
-		if (product[i] > 0) {
-			constraintTerm(-1, product[i]);
+	for (vector<int>::const_iterator i =product.begin(); i < product.end(); ++i)
+		if (*i > 0) {
+			constraintTerm(-1, *i);
 			r -= 1;
 		} else
-			constraintTerm(1, -product[i]);
+			constraintTerm(1, -(*i));
 	constraintRelOp(">=");
 	constraintRightTerm(r);
 	endConstraint();
@@ -242,11 +242,11 @@ void DefaultCallback::linearizeProduct(int newSymbol, vector<int> product) {
 	r = 0;
 	beginConstraint();
 	constraintTerm(-(int) product.size(), newSymbol);
-	for (int i = 0; i < product.size(); ++i)
-		if (product[i] > 0)
-			constraintTerm(1, product[i]);
+	for (vector<int>::const_iterator i =product.begin(); i < product.end(); ++i)
+		if (*i > 0)
+			constraintTerm(1, *i);
 		else {
-			constraintTerm(-1, -product[i]);
+			constraintTerm(-1, -(*i));
 			r -= 1;
 		}
 	constraintRelOp(">=");
@@ -267,16 +267,17 @@ int ProductStore::getProductVariable(vector<int> &list) {
 	sort(list.begin(), list.end());
 
 	// is this a known product ?
-	for (int i = 0; i < list.size(); ++i) {
+	for (vector<int>::const_iterator i =list.begin(); i < list.end(); ++i){
 		assert(p!=NULL);
 
 		// look for list[i] in *p
-		pos = lower_bound(p->begin(), p->end(), list[i], ProductNodeLessLit());
-		if (pos == p->end() || (*pos).lit != list[i])
-			pos = p->insert(pos, ProductNode(list[i])); // insert at the right place
+		pos = lower_bound(p->begin(), p->end(), *i, ProductNodeLessLit());
+		if (pos == p->end() || (*pos).lit != *i)
+			pos = p->insert(pos, ProductNode(*i)); // insert at the right place
 
-		if (i != list.size() - 1 && (*pos).next == NULL)
+		if(i+1 != list.end() && (*pos).next == NULL){
 			(*pos).next = new vector<ProductNode> ;
+		}
 
 		p = (*pos).next;
 	}
@@ -292,13 +293,13 @@ int ProductStore::getProductVariable(vector<int> &list) {
  *
  */
 void ProductStore::defineProductVariableRec(DefaultCallback &cb, vector<ProductNode> &nodes, vector<int> &list) {
-	for (int i = 0; i < nodes.size(); ++i) {
-		list.push_back(nodes[i].lit);
-		if (nodes[i].productId)
-			cb.linearizeProduct(nodes[i].productId, list);
+	for (vector<ProductNode>::const_iterator i = nodes.begin(); i < nodes.end(); ++i) {
+		list.push_back((*i).lit);
+		if ((*i).productId)
+			cb.linearizeProduct((*i).productId, list);
 
-		if (nodes[i].next)
-			defineProductVariableRec(cb, *nodes[i].next, list);
+		if ((*i).next)
+			defineProductVariableRec(cb, *(*i).next, list);
 
 		list.pop_back();
 	}
@@ -309,10 +310,10 @@ void ProductStore::defineProductVariableRec(DefaultCallback &cb, vector<ProductN
  *
  */
 void ProductStore::freeProductVariableRec(vector<ProductNode> &nodes) {
-	for (int i = 0; i < nodes.size(); ++i) {
-		if (nodes[i].next) {
-			freeProductVariableRec(*nodes[i].next);
-			delete nodes[i].next;
+	for (vector<ProductNode>::const_iterator i = nodes.begin(); i < nodes.end(); ++i) {
+		if ((*i).next) {
+			freeProductVariableRec(*(*i).next);
+			delete (*i).next;
 		}
 	}
 
@@ -485,7 +486,6 @@ void PBRead::skipComments() {
  * @param list: the list of literals identifiers in the product
  */
 void PBRead::readTerm(IntegerType &coeff, vector<int> &list) {
-	char c;
 	list.clear();
 	in >> coeff;
 	skipSpaces();

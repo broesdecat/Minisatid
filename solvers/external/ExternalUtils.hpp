@@ -78,8 +78,7 @@ enum EqType{ MEQ, MNEQ, ML, MG, MGEQ, MLEQ };
 
 enum AggType 	{ SUM, PROD, MIN, MAX, CARD }; 	// Type of aggregate concerned
 //FIXME correct notion of upper and lower bound!
-enum AggSign 	{ UB, LB/*, BOTHBOUNDS*/ }; 	// Sign of the bound of the aggregate: the bound is an UpperBound
-												// or LowerBound for the aggregate value
+enum AggSign 	{ AGGSIGN_NONE, AGGSIGN_UB, AGGSIGN_LB, AGGSIGN_BOTH}; 	// Sign of the bound of the aggregate
 enum AggSem 	{ COMP, DEF };	// Semantics of satisfiability of the aggregate head: COMPletion or DEFinitional
 
 }
