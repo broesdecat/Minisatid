@@ -47,6 +47,8 @@ ModSolver::ModSolver(modindex child, Var head, SOSolver* mh):
 
 	pcsolver = new PCSolver(modescopy, mh->getParent());
 	getPCSolver()->setModSolver(this);
+
+	trail.push_back(vector<Lit>());
 }
 
 ModSolver::~ModSolver(){
@@ -144,8 +146,8 @@ void ModSolver::finishParsingDown(bool& present, bool& unsat){
 	assert(present);
 
 	for(vmodindex::const_iterator i=getChildren().begin(); !unsat && i<getChildren().end(); i++){
-		bool childpresent = true;
-		getModSolverData().getModSolver(*i)->finishParsingDown(childpresent, unsat);
+		bool childpresent = true, childunsat = false;
+		getModSolverData().getModSolver(*i)->finishParsingDown(childpresent, childunsat);
 		//TODO handle !present
 		//TODO handle unsat => might make this solver !present
 	}
@@ -185,6 +187,10 @@ bool ModSolver::simplifyDown(){
 	}
 
 	return result;
+}
+
+void ModSolver::newDecisionLevel(){
+	trail.push_back(vector<Lit>());
 }
 
 /**
@@ -246,7 +252,7 @@ bool ModSolver::propagateDownAtEndOfQueue(vec<Lit>& confldisj){
 	}
 	*/
 
-	if(assumptions.size()==getAtoms().size() && (!hasparent || getHeadValue()!=l_Undef)){
+	if((vsize)assumptions.size()==getAtoms().size() && (!hasparent || getHeadValue()!=l_Undef)){
 		allknown = true;
 	}
 
@@ -339,6 +345,7 @@ rClause ModSolver::propagate(const Lit& l){
 		//TODO propagate up WITH reason
 	}*/
 	rClause confl = nullPtrClause;
+	trail.back().push_back(l);
 	for(vmodindex::const_iterator i=getChildren().begin(); confl==nullPtrClause && i<getChildren().end(); i++){
 		confl = getModSolverData().getModSolver(*i)->propagateDown(l);
 	}
@@ -416,22 +423,16 @@ void ModSolver::backtrackFromAbove(Lit l){
 	}
 }
 
-/*void ModSolver::backtrack(const Lit& l){
-	//FIXME FIXME Should be implemented otherwise
-	if(getModSolverData().modes().verbosity>4){
-		report("Backtracking "); gprintLit(l); report(" from same level in mod %zu\n", getPrintId());
+void ModSolver::backtrackDecisionLevels(int nblevels, int untillevel){
+	while(trail.size()>((vsize)(untillevel+1))){
+		for(vector<Lit>::const_iterator i=trail.back().begin(); i<trail.back().end(); i++){
+			for(vmodindex::const_iterator j=getChildren().begin(); j<getChildren().end(); j++){
+				getModSolverData().getModSolver((*j))->backtrackFromAbove(*i);
+			}
+		}
+		trail.pop_back();
 	}
-
-	//for(vector<AV>::size_type i=0; i<atoms.size(); i++){
-	//	if(atoms[i].atom==var(l)){
-	//		assert(false);
-	//	}
-	//}
-
-	for(vmodindex::const_iterator j=getChildren().begin(); j<getChildren().end(); j++){
-		getModSolverData().getModSolver((*j))->backtrackFromAbove(l);
-	}
-}*/
+}
 
 void ModSolver::print(){
 	Print::print(this);

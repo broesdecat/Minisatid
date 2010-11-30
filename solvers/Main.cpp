@@ -266,7 +266,7 @@ int doModelGeneration(pData& d, double cpu_time){
 		}
 	}
 
-	if(modes.verbosity >= 1){
+	if(!unsat && modes.verbosity >= 1){
 		d->printStatistics();
 	}
 

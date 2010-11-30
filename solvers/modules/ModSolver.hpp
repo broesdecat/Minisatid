@@ -69,6 +69,8 @@ private:
 	vec<Lit> 	assumptions;
 	std::vector<bool> propfromabove; //Indicates whether this literal was propagated by the parent
 
+	std::vector<std::vector<Lit> > trail; //Trail of propagations, necessary because backtrack is still by literal
+
 public:
 	ModSolver(modindex child, Var head, SOSolver* mh);
 	virtual ~ModSolver();
@@ -95,9 +97,8 @@ public:
 	 */
 	virtual rClause 	propagate				(const Lit& l);
 	virtual rClause 	propagateAtEndOfQueue	();
-	//virtual void 		backtrack				(const Lit& l);
-	virtual void 		newDecisionLevel		(){};
-	virtual void 		backtrackDecisionLevels	(int nblevels, int untillevel){};
+	virtual void 		newDecisionLevel		();
+	virtual void 		backtrackDecisionLevels	(int nblevels, int untillevel);
 	virtual rClause 	getExplanation			(const Lit& l) { return nullPtrClause; /*TODO NOT IMPLEMENTED*/ };
 
 	virtual void 		printStatistics			() const { /*Do NOT print lower ones here*/};
