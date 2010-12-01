@@ -71,11 +71,11 @@ DefineHash(uint  , return (uint)key;)
 DefineHash(long  , return (uint)(((ulong)key >> 32) ^ key);)
 DefineHash(ulong , return (uint)(((ulong)key >> 32) ^ key);)
 #else
+DefineHash(int64 , return (uint)(((uint64)key >> 32) ^ key);)
+DefineHash(uint64, return (uint)(((uint64)key >> 32) ^ key);)
 DefineHash(long  , return (uint)key;)
 DefineHash(ulong , return (uint)key;)
 #endif
-DefineHash(int64 , return (uint)(((uint64)key >> 32) ^ key);)
-DefineHash(uint64, return (uint)(((uint64)key >> 32) ^ key);)
 
 
 //=================================================================================================

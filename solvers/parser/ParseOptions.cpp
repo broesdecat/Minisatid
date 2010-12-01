@@ -207,6 +207,7 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	}
 	modes.rand_var_freq = rndfreqarg.getValue();
 	modes.polarity = getChosenPolarity();
+	modes.bumpaggonnotify = true; //TODO option?
 
 	return true;
 }

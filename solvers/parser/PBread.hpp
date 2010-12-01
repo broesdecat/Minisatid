@@ -34,7 +34,7 @@ namespace MinisatID {
 #include <vector>
 #include <cassert>
 
-#ifdef useGMP
+#ifdef GMP
 #include <gmpxx.h>
 
 namespace MinisatID {

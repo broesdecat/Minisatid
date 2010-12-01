@@ -137,7 +137,7 @@ bool Aggrs::transformVerifyWeights(TypedSet* set, vps& sets) {
 			if (set->getWL()[i] < 1) { //Exception if product contains negative/zero weights
 				char s[200];
 				sprintf(s, "Error: Set nr. %d contains a 0 (zero) or negative weight %s, which cannot "
-					"be used in combination with a product aggregate\n", set->getSetID(), printWeight(
+					"be used in combination with a product aggregate\n", set->getSetID(), toString(
 						set->getWL()[i]).c_str());
 				throw idpexception(s);
 			}
@@ -177,7 +177,7 @@ bool Aggrs::transformMinToMax(TypedSet* set, vps& sets) {
 		//Transform Min into Max set: invert all weights
 		vwl wl;
 		for (vsize i = 0; i < set->getWL().size(); i++) {
-			wl.push_back(WL(set->getWL()[i], -set->getWL()[i]));
+			wl.push_back(WL(set->getWL()[i], -set->getWL()[i].getWeight()));
 		}
 		set->setWL(wl);
 
@@ -214,7 +214,6 @@ bool Aggrs::transformMaxToSAT(TypedSet* set, vps& sets){
 
 	//FIXME NEW BOUNDS
 	//FIXME MAKE BENCHMARKS WITH EMPTY SETS (OR EMPTY AFTER REDUCTION)
-	//FIXME switch upper and lower bounds
 	const Agg& agg = *set->getAgg()[0];
 	bool ub = agg.hasUB();
 	const Weight& bound = ub?agg.getBound().ub:agg.getBound().lb;
@@ -243,7 +242,7 @@ bool Aggrs::transformMaxToSAT(TypedSet* set, vps& sets){
 		notunsat = set->getSolver()->getPCSolver()->addClause(clause);
 		for (vwl::const_reverse_iterator i = set->getWL().rbegin(); notunsat && i < set->getWL().rend()
 					&& (*i).getWeight() >= bound; i++) {
-			if (bound && (*i).getWeight() == bound) {
+			if (ub && (*i).getWeight() == bound) {
 				break;
 			}
 			clause.clear();
@@ -268,7 +267,7 @@ bool Aggrs::transformCardGeqOneToEquiv(TypedSet* set, vps& sets){
 	if (set->getAgg()[0]->getType() == CARD) {
 		vpagg remaggs;
 		for (vpagg::const_iterator i = set->getAgg().begin(); !unsat && i < set->getAgg().end(); i++) {
-			if((*i)->hasLB() && !(*i->hasUB())){
+			if((*i)->hasLB() && !(*i)->hasUB()){
 				const Weight& bound = (*i)->getBound().lb;
 				if(bound-set->getESV()==0){
 					lbool headvalue = set->getSolver()->value((*i)->getHead());
@@ -314,7 +313,7 @@ struct PBAgg {
 	int sign;
 };
 
-//FIXME double bounds should be rewritten first
+//TODO allow complete translation into sat? => double bounds, defined aggregates, optimization
 bool Aggrs::transformSumsToCNF(vps& sets, PCSolver* pcsolver) {
 	int sumaggs = 0;
 	int maxvar = 1;
@@ -323,59 +322,63 @@ bool Aggrs::transformSumsToCNF(vps& sets, PCSolver* pcsolver) {
 		vpagg remaining;
 		for (vsize j = 0; j < (*i)->getAgg().size(); j++) {
 			Agg* agg = (*i)->getAgg()[j];
-			assert(!agg->hasLB() || !agg->hasUB());
-			if (!agg->isOptim() && (agg->getType() == SUM || agg->getType() == CARD) && !agg->getSem() == DEF) {
-				PBAgg* ppbaggeq = new PBAgg();
-				PBAgg* ppbaggineq = new PBAgg();
-				pbaggs.push_back(ppbaggeq);
-				pbaggs.push_back(ppbaggineq);
-				PBAgg& pbaggeq = *ppbaggeq;
-				PBAgg& pbaggineq = *ppbaggineq;
-				Weight bound;
-				if (agg->hasUB()) {
-					pbaggeq.sign = -1;
-					pbaggineq.sign = 2;
-					bound = agg->getBound().ub;
-				} else {
-					pbaggeq.sign = 1;
-					pbaggineq.sign = -2;
-					bound = agg->getBound().lb;
-				}
-				pbaggeq.bound = bound;
-				pbaggineq.bound = bound;
-				Weight min = 0, max = 0;
-				for (vwl::const_iterator k = (*i)->getWL().begin(); k < (*i)->getWL().end(); k++) {
-					pbaggeq.literals.push(MiniSatPP::Lit(var((*k).getLit()), sign((*k).getLit())));
-					pbaggineq.literals.push(MiniSatPP::Lit(var((*k).getLit()), sign((*k).getLit())));
-					if (var((*k).getLit()) > maxvar) {
-						maxvar = var((*k).getLit());
-					}
-					if ((*k).getWeight() < 0) {
-						min += (*k).getWeight();
-					} else {
-						max += (*k).getWeight();
-					}
-					pbaggeq.weights.push(MiniSatPP::Int((int) ((*k).getWeight())));
-					pbaggineq.weights.push(MiniSatPP::Int((int) ((*k).getWeight())));
-				}
-				if (var(agg->getHead()) > maxvar) {
-					maxvar = var(agg->getHead());
-				}
-				pbaggeq.literals.push(MiniSatPP::Lit(var(agg->getHead()), true));
-				pbaggineq.literals.push(MiniSatPP::Lit(var(agg->getHead()), false));
-				Weight eqval, ineqval;
-				if (agg->hasUB()) {
-					eqval = -abs(bound) - abs(max) - 1;
-					ineqval = abs(bound) + abs(min) + 1;
-				} else {
-					eqval = abs(bound) + abs(min) + 1;
-					ineqval = -abs(bound) - abs(max) - 1;
-				}
-				pbaggeq.weights.push(MiniSatPP::Int(eqval));
-				pbaggineq.weights.push(MiniSatPP::Int(ineqval));
-			} else {
+
+			if((agg->hasLB() && agg->hasUB())
+					|| agg->isOptim()
+					|| (agg->getType()!=SUM && agg->getType()!=CARD)
+					|| agg->getSem() == DEF){
 				remaining.push_back(agg);
+				continue;
 			}
+
+			PBAgg* ppbaggeq = new PBAgg();
+			PBAgg* ppbaggineq = new PBAgg();
+			pbaggs.push_back(ppbaggeq);
+			pbaggs.push_back(ppbaggineq);
+			PBAgg& pbaggeq = *ppbaggeq;
+			PBAgg& pbaggineq = *ppbaggineq;
+			Weight bound;
+			if (agg->hasUB()) {
+				pbaggeq.sign = -1;
+				pbaggineq.sign = 2;
+				bound = agg->getBound().ub;
+			} else {
+				pbaggeq.sign = 1;
+				pbaggineq.sign = -2;
+				bound = agg->getBound().lb;
+			}
+			pbaggeq.bound = bound;
+			pbaggineq.bound = bound;
+			Weight min = 0, max = 0;
+			for (vwl::const_iterator k = (*i)->getWL().begin(); k < (*i)->getWL().end(); k++) {
+				pbaggeq.literals.push(MiniSatPP::Lit(var((*k).getLit()), sign((*k).getLit())));
+				pbaggineq.literals.push(MiniSatPP::Lit(var((*k).getLit()), sign((*k).getLit())));
+				if (var((*k).getLit()) > maxvar) {
+					maxvar = var((*k).getLit());
+				}
+				if ((*k).getWeight() < 0) {
+					min += (*k).getWeight();
+				} else {
+					max += (*k).getWeight();
+				}
+				pbaggeq.weights.push((*k).getWeight());
+				pbaggineq.weights.push((*k).getWeight());
+			}
+			if (var(agg->getHead()) > maxvar) {
+				maxvar = var(agg->getHead());
+			}
+			pbaggeq.literals.push(MiniSatPP::Lit(var(agg->getHead()), true));
+			pbaggineq.literals.push(MiniSatPP::Lit(var(agg->getHead()), false));
+			Weight eqval, ineqval;
+			if (agg->hasUB()) {
+				eqval = -abs(bound) - abs(max) - 1;
+				ineqval = abs(bound) + abs(min) + 1;
+			} else {
+				eqval = abs(bound) + abs(min) + 1;
+				ineqval = -abs(bound) - abs(max) - 1;
+			}
+			pbaggeq.weights.push(eqval);
+			pbaggineq.weights.push(ineqval);
 		}
 		(*i)->replaceAgg(remaining);
 	}

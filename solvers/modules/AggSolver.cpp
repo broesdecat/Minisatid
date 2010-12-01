@@ -179,9 +179,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType
 
 	TypedSet* set = parsedSets()[setid];
 
-	// Check whether the head occurs in the body of the set, which is no longer allowed
-	// TODO zet in file huidige invoerformaat, zodat de grounder dat kan garanderen
-	// TODO moet eigenlijk maar 1 keer gecontroleerd worden, dus later zetten
+	// Check whether the head occurs in the body of the set, which is not allowed
 	for (vsize i = 0; i < set->getWL().size(); i++) {
 		if (var(set->getWL()[i]) == headv) { //Exception if head occurs in set itself
 			char s[100];
@@ -196,6 +194,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType
 		sprintf(s, "At least two aggregates have the same head(%d).\n", gprintVar(headv));
 		throw idpexception(s);
 	}
+	aggheads.insert(headv);
 
 #ifdef DEBUG
 	if(type == CARD) { //Check if all card weights are 1
@@ -208,17 +207,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType
 	}
 #endif
 
-	// As an approximation because each literal would occur n times (TODO better approximation?), we bump n times
-	//ORIG:
 	getPCSolver()->varBumpActivity(headv);
-	// As another test, we bumped each WL literal log n times, but the varbump activity proved to be extremely expensive, so this has been skipped!
-	//for(int i=0; i<log(set->getWL().size())+1; i++){
-	//	getPCSolver()->varBumpActivity(headv);
-	//}
-
-	//TODO test whether bumping the higher weights more would help?
-
-	aggheads.insert(headv);
 
 	//the head of the aggregate
 	Lit head = mkLit(headv, false);
@@ -241,7 +230,6 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 
 	if (parsedSets().size() == 0) {
 		present = false;
-		notifyInitialized();
 		return;
 	}
 
@@ -259,16 +247,9 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 
 	// Initialization of all sets
 
-	//Rewrite all sum and card constraint into CNF using PBSOLVER
+	//Rewrite completion sum and card constraints into CNF using PBSOLVER
 	if(getPCSolver()->modes().pbsolver && !unsat){
 		unsat = !transformSumsToCNF(sets(), getPCSolver());
-		if (verbosity() >= 3) {
-			report("Initializing aggregates finished, all converted into CNF.\n");
-		}
-		//FIXME: problems when there are also recursive aggregates!
-		notifyInitialized();
-		present = false;
-		return;
 	}
 
 	//Finish the sets: add all body literals to the network
@@ -327,18 +308,17 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		if (verbosity() >= 3) {
 			report("Initializing aggregates finished, unsat detected.\n");
 		}
-		notifyInitialized();
 		return;
 	}
 
 	//Gather available information
 	map<AggType, int> nbaggs;
 	int totalagg = 0, setlits = 0;
-	for (vsize i = 0; i < sets().size(); i++) {
-		int agg = sets()[i]->getAgg().size();
+	for (vps::const_iterator i = sets().begin(); i < sets().end(); i++) {
+		int agg = (*i)->getAgg().size();
 		totalagg += agg;
-		setlits += sets()[i]->getWL().size();
-		nbaggs[sets()[i]->getType().getType()]+=agg; //Defaults to 0 if new: http://forums.whirlpool.net.au/archive/1286863
+		setlits += (*i)->getWL().size();
+		nbaggs[(*i)->getType().getType()]+=agg; //Defaults to 0 if new: http://forums.whirlpool.net.au/archive/1286863
 	}
 
 	if (totalagg == 0) {
@@ -346,19 +326,25 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 			report("Initializing aggregates finished, no aggregates present after initialization.\n");
 		}
 		present = false;
-		notifyInitialized();
 		return;
+	}
+
+	//Push initial level (root, before any decisions).
+	trail.push_back(vector<TypedSet*>());
+	//Add all sets to initial level, so they are certainly propagated at the start
+	for(vps::const_iterator i=sets().begin(); i<sets().end(); i++){
+		trail.back().push_back(*i);
 	}
 
 	//Print lots of information
 	if (verbosity() >= 1) {
-		report("| Number of minimum exprs.:     %4zu                                          |\n", nbaggs[MIN]);
-		report("| Number of maximum exprs.:     %4zu                                          |\n", nbaggs[MAX]);
-		report("| Number of sum exprs.:         %4zu                                          |\n", nbaggs[SUM]);
-		report("| Number of product exprs.:     %4zu                                          |\n", nbaggs[PROD]);
-		report("| Number of cardinality exprs.: %4zu                                          |\n", nbaggs[CARD]);
+		report("| Number of minimum exprs.:     %4d                                          |\n", nbaggs[MIN]);
+		report("| Number of maximum exprs.:     %4d                                          |\n", nbaggs[MAX]);
+		report("| Number of sum exprs.:         %4d                                          |\n", nbaggs[SUM]);
+		report("| Number of product exprs.:     %4d                                          |\n", nbaggs[PROD]);
+		report("| Number of cardinality exprs.: %4d                                          |\n", nbaggs[CARD]);
 
-		report("| Over %4d sets, aggregate set avg. size: %7.2f lits.                      |\n",
+		report("| Over %4zu sets, aggregate set avg. size: %7.2f lits.                      |\n",
 				sets().size(),(double)setlits/(double)(sets().size()));
 	}
 
@@ -369,36 +355,36 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 				Aggrs::print(**j, true);
 			}
 		}
+	}
 
-		for (vsize i = 0; i < nVars(); i++) {
-			report("Watches of var %d:\n", gprintVar(i));
-			if (headwatches[i] != NULL) {
-				report("   headwatch\n");
-				report("      ");
-				Aggrs::print(*headwatches[i]->getSet(), true);
+	if (verbosity() >= 8) {
+		for(vpagg::const_iterator i=headwatches.begin(); i<headwatches.end(); i++){
+			if ((*i) != NULL) {
+				report("Headwatch of var %d: ", gprintVar(var((*i)->getHead())));
+				Aggrs::print(*(*i)->getSet(), true);
 			}
-
-			if (verbosity() >= 6) {
-				report("   bodywatches\n");
-				for (vsize j = 0; j < permwatches[i].size(); j++) {
+		}
+		Var v = 0;
+		for(vvpw::const_iterator i=permwatches.begin(); i<permwatches.end(); i++, v++){
+			if((*i).size()>0){
+				report("Bodywatches of var %d: ", gprintVar(v));
+				for (vsize j = 0; j < (*i).size(); j++) {
 					report("      ");
-					Aggrs::print(*(permwatches[i][j])->getSet(), true);
+					Aggrs::print(*((*i)[j])->getSet(), true);
 				}
-				for (vsize j = 0; j < tempwatches[i].size(); j++) {
+			}
+		}
+		v = 0;
+		for(vvpw::const_iterator i=tempwatches.begin(); i<tempwatches.end(); i++, v++){
+			if((*i).size()>0){
+				report("Bodywatches of var %d: ", gprintVar(v));
+				for (vsize j = 0; j < (*i).size(); j++) {
 					report("      ");
-					Aggrs::print(*(tempwatches[i][j])->getSet(), true);
+					Aggrs::print(*((*i)[j])->getSet(), true);
 				}
 			}
 		}
 	}
-
-	//Push initial level (root, before any decisions).
-	trail.push_back(vector<TypedSet*>());
-	for(int i=0; i<sets().size(); i++){
-		trail.back().push_back(sets()[i]);
-	}
-
-	notifyInitialized();
 }
 
 /**
@@ -414,21 +400,17 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 rClause AggSolver::notifySolver(AggReason* ar) {
 	const Lit& p = ar->getPropLit();
 
-	//FIXME decide on what to do with it
-	//This strongly improves the performance of some benchmarks, e.g. FastFood. For Hanoi it has no effect
-	//for Sokoban it DECREASES performance!
-	//TODO new IDEA: mss nog meer afhankelijk van het AANTAL sets waar het in voorkomt of de grootte van de sets?
-	//want de grootte van de set bepaalt hoe vaak de literal zou zijn uitgeschreven in een cnf theorie
-	//maar niet trager voor pakman
-	//Large loss for weight bound dom set and conn dom set
-	getPCSolver()->varBumpActivity(var(p));
+	if(modes().bumpaggonnotify){
+		//Decreases sokoban, performance, increases fastfood
+		getPCSolver()->varBumpActivity(var(p));
+	}
 
+	//If a propagation will be done or conflict (not already true), then add the learned clause first
 	if (value(p) != l_True && getPCSolver()->modes().aggclausesaving < 2) {
 		vec<Lit> lits;
 		lits.push(p);
 		ar->getAgg().getSet()->getExplanation(lits, *ar);
 		ar->setClause(lits);
-		//FIXME why not return here or something and what with conflicts?
 	}
 
 	if (value(p) == l_False) {
@@ -476,17 +458,11 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 }
 
 void AggSolver::newDecisionLevel() {
-	//report("New decision level\n");
-	if (verbosity() >= 6) {
-		report("Current effective watches on new decision level: \n");
-		//FIXME when partial watches code has been changed printWatches(this, tempwatches);
-	}
 	trail.push_back(vector<TypedSet*>());
 }
 
 void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel) {
-	while(trail.size()>untillevel+1){
-		//report("Backtrack decision level\n");
+	while(trail.size()>(vsize)(untillevel+1)){
 		for(vector<TypedSet*>::iterator j=trail.back().begin(); j<trail.back().end(); j++){
 			(*j)->backtrack(nblevels, untillevel);
 		}
@@ -538,8 +514,8 @@ rClause AggSolver::propagate(const Lit& p) {
 		}
 
 		if (verbosity() >= 8) {
-			report("Current effective watches AFTER: \n");
-			//FIXME when partial watches code has been changed printWatches(this, tempwatches);
+			//report("Current effective watches AFTER: \n");
+			//TODO when partial watches code has been changed printWatches(this, tempwatches);
 		}
 	}
 
@@ -568,16 +544,10 @@ rClause AggSolver::getExplanation(const Lit& p) {
 	assert(aggreason[var(p)] != NULL);
 	const AggReason& ar = *aggreason[var(p)];
 
-	//getPCSolver()->varBumpActivity(var(p));
-
 	rClause c = nullPtrClause;
 	if (getPCSolver()->modes().aggclausesaving < 2) {
 		assert(getPCSolver()->modes().aggclausesaving>0);
 		assert(ar.hasClause());
-
-		//for(int i=0; i<ar.getClause().size(); i++){
-		// getPCSolver()->varBumpActivity(var(ar.getClause()[i]));
-		// }
 
 		c = getPCSolver()->createClause(ar.getClause(), true);
 	} else {
@@ -585,17 +555,11 @@ rClause AggSolver::getExplanation(const Lit& p) {
 		lits.push(p);
 		ar.getAgg().getSet()->getExplanation(lits, ar);
 
-		//for(int i=0; i<lits.size(); i++){
-		// getPCSolver()->varBumpActivity(var(lits[i]));
-		// }
-
 		//create a conflict clause and return it
 		c = getPCSolver()->createClause(lits, true);
 	}
 
-	//getPCSolver()->addLearnedClause(c);
-	//Adding directly as a learned clause should NOT be done,
-	//only when used as direct conflict reason: real slowdown for magicseries
+	//do not add each clause to SAT-solver: real slowdown for e.g. magicseries
 
 	return c;
 }
@@ -654,33 +618,19 @@ vwl::const_iterator AggSolver::getAggLiteralsEnd(Var x) const {
  */
 void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& heads, vec<Var>& currentjust) {
 	for (vps::const_iterator i = network[var(w)].begin(); i < network[var(w)].end(); i++) {
-		TypedSet* s = (*i);
-		for (vpagg::const_iterator j = s->getAgg().begin(); j < s->getAgg().end(); j++) {
-			const Agg& expr = *(*j);
-			if (isFalse(expr.getHead())) {
+		TypedSet* set = (*i);
+		for (vpagg::const_iterator j = set->getAgg().begin(); j < set->getAgg().end(); j++) {
+			const Agg& agg = *(*j);
+			if (isFalse(agg.getHead())) {
 				continue;
 			}
 
-			Var head = var(expr.getHead());
+			Var head = var(agg.getHead());
 			if (currentjust[head] > 0) { //only check its body for justification when it has not yet been derived
 				vec<Lit> jstf;
 				vec<Var> nonjstf;
-				if (s->getType().canJustifyHead(expr, jstf, nonjstf, currentjust, false)) {
-					/*TODO if (set->getSolver()->verbosity() >= 4) {
-						report("Justification checked for ");
-						print(agg, true);
 
-						if (justified) {
-							report("justification found: ");
-							for (int i = 0; i < jstf.size(); i++) {
-								gprintLit(jstf[i]);
-								report(" ");
-							}
-							report("\n");
-						} else {
-							report("no justification found.\n");
-						}
-					}*/
+				if (set->getType().canJustifyHead(agg, jstf, nonjstf, currentjust, false)) {
 					currentjust[head] = 0;
 					heads.push(mkLit(head, false));
 					jstfs.push();
@@ -776,7 +726,7 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
 	TypedSet* s = a->getSet();
 	SumFWAgg* prop = dynamic_cast<SumFWAgg*> (s->getProp());
 
-	report("Current optimum: %s\n", printWeight(prop->getCC()).c_str());
+	report("Current optimum: %s\n", toString(prop->getCC()).c_str());
 
 	a->setBound(AggBound(a->hasLB(), prop->getCC() - 1));
 

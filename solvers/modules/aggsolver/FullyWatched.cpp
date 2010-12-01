@@ -182,7 +182,7 @@ TODO might abort propagation of next aggregates to first do unit propagation
 		if (getSet().getSolver()->verbosity() >= 6) {
 			report("Propagating into aggr: ");
 			Aggrs::print(pa, false);
-			report(", CC = %d, CP = %d\n", getCC(), getCP());
+			report(", CC = %s, CP = %s\n", toString(getCC()).c_str(), toString(getCP()).c_str());
 		}
 
 		lbool hv = getSolver()->value(pa.getHead());

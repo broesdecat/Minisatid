@@ -16,7 +16,7 @@ void Aggrs::print(const TypedSet& c, bool endl) {
 		gprintLit((*i).getLit());
 		lbool value = c.getSolver()->value((*i).getLit());
 		report("(%s)", value==l_Undef?"X":value==l_True?"T":"F");
-		report("=%s", printWeight((*i).getWeight()).c_str());
+		report("=%s", toString((*i).getWeight()).c_str());
 	}
 	if (endl) {
 		report(" }\n");
@@ -33,16 +33,16 @@ void Aggrs::print(const Agg& ae, bool endl) {
 	if (ae.hasUB()) {
 		report(" <- ");
 	} else {
-		report(" <- %s <= ", printWeight(ae.getBound().lb).c_str());
+		report(" <- %s <= ", toString(ae.getBound().lb).c_str());
 	}
 	report("%s{", ae.getType()==MAX?"MAX":ae.getType()==MIN?"MIN":ae.getType()==SUM?"SUM":ae.getType()==CARD?"CARD":"PROD");
 	print(*set, false);
 	if (ae.hasUB()) {
-		report(" <= %s, ", printWeight(ae.getBound().ub).c_str());
+		report(" <= %s, ", toString(ae.getBound().ub).c_str());
 	} else {
 		report(", ");
 	}
-	report("ESV = %d.", ae.getSet()->getESV());
+	report("ESV = %d.", toString(set->getESV()).c_str());
 	if(endl){
 		report("\n");
 	}

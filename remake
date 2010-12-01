@@ -3,6 +3,7 @@
 TYPE=release
 BITS=32
 SAT=hack
+GMP=no
 
 if [[ $# -ge 1 ]]
 then
@@ -13,10 +14,14 @@ then
 		if [ $# -ge 3 ]
 		then
 			BITS=$3
+			if [ $# -ge 4 ]
+			then
+				GMP=$4
+			fi
 		fi
 	fi
 fi
 
 rm -r *
-../../configure --enable-build=$TYPE --enable-sat=$SAT --enable-bits=$BITS
+../../configure --enable-build=$TYPE --enable-sat=$SAT --enable-bits=$BITS --enable-gmp=$GMP --enable-silent-rules
 make

@@ -68,16 +68,16 @@ double MinisatID::cpuTime(void) {
 ///////
 
 #ifdef GMPWEIGHT
-	string MinisatID::printWeight(const Weight& w){
+	string MinisatID::toString(const Weight& w){
 		return w.get_str();
 	}
 #else
 	#ifdef BIGINTWEIGHT
-		string MinisatID::printWeight(const Weight& w){
+		string MinisatID::toString(const Weight& w){
 			return bigIntegerToString(w);
 		}
 	#else //INT_WEIGHT
-		string MinisatID::printWeight(const Weight& w){
+		string MinisatID::toString(const Weight& w){
 			char s[15];
 			sprintf(s, "%d", w);
 			return s;

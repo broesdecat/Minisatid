@@ -85,7 +85,7 @@ AC_ARG_ENABLE([gmp],
 [  --enable-gmp    Turn on support for arbitrary size integer values],
 [case "${enableval}" in
 	no) AC_CXXFLAGS+=" -D NO_GMP " ;;
-	yes) AC_CXXFLAGS+=" ";;
+	yes) AC_CXXFLAGS+=" -D GMP " AC_LDFLAGS+=" -lgmp -lgmpxx ";;
 	*) AC_MSG_ERROR([bad value ${enableval} for --enable-gmp]) ;;
 esac],[ AC_CXXFLAGS+=" -D NO_GMP " ])
 

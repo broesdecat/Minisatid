@@ -177,7 +177,6 @@ bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
  * @PRE: aggregates have to have been finished
  */
 void IDSolver::finishParsing(bool& present, bool& unsat) {
-	notifyInitialized();
 	present = true;
 	unsat = false;
 	int nvars = nVars();

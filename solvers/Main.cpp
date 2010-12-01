@@ -165,7 +165,7 @@ int main(int argc, char** argv) {
 		exit(returnvalue);     // (faster than "return", which will invoke the destructor for 'Solver')
 #endif
 	} catch (const idpexception& e) {
-		report(e.what());
+		report("%s", e.what());
 		report("Program will abort.\n");
 		if(d.get()!=NULL){
 			d->printStatistics();

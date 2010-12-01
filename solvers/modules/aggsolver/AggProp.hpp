@@ -193,7 +193,7 @@ public:
 
 	AggSolver *		getSolver		()			const			{ return aggsolver; }
 	const vwl&		getWL			()			const 			{ return wl; }
-	void			setWL			(const vwl& wl2)			{ wl=wl2; sort(wl.begin(), wl.end(), compareWLByWeights);} //FIXME SORT?
+	void			setWL			(const vwl& wl2)			{ wl=wl2; sort(wl.begin(), wl.end(), compareWLByWeights);}
 
 	const std::vector<Agg*>& getAgg		()	 						{ return aggregates; }
 	std::vector<Agg*>& getAggNonConst	()	 						{ return aggregates; }

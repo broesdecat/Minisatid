@@ -28,32 +28,43 @@ class PCSolver;
 
 class DPLLTmodule {
 private:
-	bool 			init;
+	bool init;
 
 protected:
-	PCSolver* 		pcsolver; //NON-OWNING pointer
+	PCSolver* pcsolver; //NON-OWNING pointer
 
 public:
-	DPLLTmodule(PCSolver* s): init(false), pcsolver(s){ }
-	virtual ~DPLLTmodule(){};
+	DPLLTmodule(PCSolver* s) :
+		init(false), pcsolver(s) {
+	}
+	virtual ~DPLLTmodule() {
+	}
+	;
 
-	bool isInitialized		()	const	{ return init; }
-	void notifyInitialized	() 			{ assert(!init); init = true; }
+	bool isInitialized() const {
+		return init;
+	}
+	void notifyInitialized() {
+		assert(!init);
+		init = true;
+	}
 
-	PCSolver* getPCSolver	()	const 	{ return pcsolver; }
+	PCSolver* getPCSolver() const {
+		return pcsolver;
+	}
 
 	///////
 	// DPLL-T methods
 	///////
 
-	virtual void 	notifyVarAdded			(uint64_t nvars) = 0;
-	virtual void 	finishParsing		 	(bool& present, bool& unsat) = 0;
-	virtual bool 	simplify		() = 0; //False if problem unsat
-	virtual rClause propagate				(const Lit& l) = 0;
-	virtual rClause propagateAtEndOfQueue	() = 0;
+	virtual void notifyVarAdded(uint64_t nvars) = 0;
+	virtual void finishParsing(bool& present, bool& unsat) = 0;
+	virtual bool simplify() = 0; //False if problem unsat
+	virtual rClause propagate(const Lit& l) = 0;
+	virtual rClause propagateAtEndOfQueue() = 0;
 	//virtual void 	backtrack				(const Lit& l) = 0;
-	virtual void 	newDecisionLevel		() = 0;
-	virtual void 	backtrackDecisionLevels	(int nblevels, int untillevel) = 0;
+	virtual void newDecisionLevel() = 0;
+	virtual void backtrackDecisionLevels(int nblevels, int untillevel) = 0;
 
 	/*
 	 * Returns the explanation for the deduction of p from an aggregate expression.
@@ -62,9 +73,9 @@ public:
 	 * @post the clause is added to the sat solver
 	 * @returns NON-OWNING pointer
 	 */
-	virtual rClause getExplanation			(const Lit& l) = 0;
+	virtual rClause getExplanation(const Lit& l) = 0;
 
-	virtual void 	printStatistics			() const = 0;
+	virtual void printStatistics() const = 0;
 
 	virtual const char* getName() = 0;
 
@@ -74,18 +85,19 @@ public:
 	// Convenience methods (based on getPCSolver)
 	///////
 
-	int 	verbosity	() 				const;
+	int verbosity() const;
+	const SolverOption& modes() const;
 
-	lbool	value		(Var x) 		const;
-	lbool	value		(const Lit& p) const;
-	int		nVars		()      		const;
+	lbool value(Var x) const;
+	lbool value(const Lit& p) const;
+	int nVars() const;
 
-	bool 	isTrue		(const Lit& l) const;
-	bool 	isFalse		(const Lit& l) const;
-	bool 	isUnknown	(const Lit& l) const;
-	bool 	isTrue		(Var l) 		const;
-	bool 	isFalse		(Var l) 		const;
-	bool 	isUnknown	(Var l) 		const;
+	bool isTrue(const Lit& l) const;
+	bool isFalse(const Lit& l) const;
+	bool isUnknown(const Lit& l) const;
+	bool isTrue(Var l) const;
+	bool isFalse(Var l) const;
+	bool isUnknown(Var l) const;
 };
 
 }

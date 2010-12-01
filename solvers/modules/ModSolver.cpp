@@ -156,8 +156,6 @@ void ModSolver::finishParsingDown(bool& present, bool& unsat){
 		//TODO handle !present
 		//TODO handle unsat => might make this solver !present
 	}
-
-	notifyInitialized();
 }
 
 /*****************

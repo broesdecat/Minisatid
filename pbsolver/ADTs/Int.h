@@ -82,6 +82,7 @@ public:
 //=================================================================================================
 
 #include "gmp.h"
+#include "gmpxx.h"
 namespace MiniSatPP{
 //=================================================================================================
 
@@ -113,6 +114,11 @@ public:
     Int(int x) {
         data = xmalloc<mpz_t>(1); assert(((intp)data & 1) == 0);
         mpz_init_set_si(*data, x);
+    }
+
+    Int(const mpz_class& d){
+    	data = xmalloc<mpz_t>(1); assert(((intp)data & 1) == 0);
+    	mpz_add(*data, d.get_mpz_t(), *data);
     }
 
     Int(const Int& src) {

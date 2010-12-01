@@ -119,7 +119,7 @@ namespace MinisatID {
 Weight negInfinity();
 Weight posInfinity();
 
-std::string printWeight(const Weight& w);
+std::string toString(const Weight& w);
 
 ///////
 // Generic atom and literal structures
@@ -255,6 +255,7 @@ public:
 	bool remap;
 	double rand_var_freq, var_decay;
 	POLARITY polarity;
+	bool bumpaggonnotify;
 };
 
 }

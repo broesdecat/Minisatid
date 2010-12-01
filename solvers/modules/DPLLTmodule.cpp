@@ -26,6 +26,10 @@ int DPLLTmodule::verbosity() const	{
 	return getPCSolver()->verbosity();
 }
 
+const SolverOption& DPLLTmodule::modes() const{
+	return getPCSolver()->modes();
+}
+
 bool DPLLTmodule::isTrue(const Lit& l) const {
 	return value(l) == l_True;
 }

@@ -1,6 +1,6 @@
 SUBDIRS = tclap
 
-AM_CXXFLAGS = @AC_CXXFLAGS@ -I$(srcdir)/solver3minisat22/ -I$(srcdir)/solvers/ -I$(srcdir)/pbsolver/ -I$(srcdir)/pbsolver/ADTs/ -I$(srcdir)/pbsolver/pbbase/h/ -I$(srcdir)/pbsolver/pbbase/src/
+AM_CXXFLAGS = @AC_CXXFLAGS@  -I$(srcdir)/solvers/
 AM_LDFLAGS = @AC_LDFLAGS@  -Itclap/
 
 YFLAGS = -d 
@@ -61,9 +61,10 @@ minisatid_SOURCES += pbsolver/pbbase/src/GenralBaseFunctions.cpp pbsolver/pbbase
 minisatid_SOURCES += pbsolver/pbbase/src/SearchMetaData.cpp pbsolver/pbbase/src/THeapComp.cpp pbsolver/pbbase/src/THeap.cpp
 
 AM_CXXFLAGS += -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS
+AM_CXXFLAGS += -I$(srcdir)/pbsolver/ -I$(srcdir)/pbsolver/ADTs/ -I$(srcdir)/pbsolver/pbbase/h/ -I$(srcdir)/pbsolver/pbbase/src/
+
 
 #MINISAT 2.07 09z
-
 if USEMINISAT09Z
 minisatid_SOURCES += solver3/Solver.cpp 
 include_HEADERS += solver3/Solver.hpp solver3/SolverTypes.hpp
@@ -71,9 +72,8 @@ include_HEADERS += mtlold/Vec.h mtlold/Queue.h mtlold/Alg.h mtlold/Heap.h mtlold
 AM_CXXFLAGS+=-DUSEMINISAT09Z
 endif
 
-#MINISAT 2.2
-# Include zowel in de CXXFLAGS als in de includeheader: de -I zorgt ervoor dat ze geladen worden tijdens compileren zonder alle paden te moeten aanpassen, de volledige url zorgt ervoor dat ze in de distributie worden gestoken
 
+#MINISAT 2.2
 if USEMINISAT22
 minisatid_SOURCES += solver3minisat22/core/Solver.cc
 include_HEADERS += solver3minisat22/core/Solver.h solver3minisat22/core/SolverTypes.h
@@ -81,11 +81,10 @@ include_HEADERS += solver3minisat22/mtl/IntTypes.h solver3minisat22/mtl/Alg.h so
 include_HEADERS += solver3minisat22/mtl/Queue.h solver3minisat22/mtl/Heap.h solver3minisat22/mtl/Sort.h solver3minisat22/mtl/XAlloc.h
 include_HEADERS += solver3minisat22/utils/ParseUtils.h solver3minisat22/utils/Options.h
 include_HEADERS += solver3minisat22/zconf.h solver3minisat22/zlib.h
-AM_CXXFLAGS+=-DUSEMINISAT22
+AM_CXXFLAGS+=-DUSEMINISAT22 -I$(srcdir)/solver3minisat22/
 endif
 
 #MINISAT 2.07
-
 if USEMINISAT
 minisatid_SOURCES += solver3minisat/Solver.C
 include_HEADERS += solver3minisat/Solver.h solver3minisat/SolverTypes.h

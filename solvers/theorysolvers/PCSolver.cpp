@@ -278,7 +278,7 @@ bool PCSolver::addAggrExprBB(Lit head, int setid, const Weight& lb, const Weight
 	if (modes().verbosity >= 7) {
 		report("Adding aggregate with info ");
 		gprintLit(head);
-		report(" over set %d, %d =< value =< %d, %d, %s \n", setid, lb, ub, type, defined==DEF?"defined":"completion");
+		report(" over set %d, %s =< value =< %s, %d, %s \n", setid, toString(lb).c_str(), toString(ub).c_str(), type, defined==DEF?"defined":"completion");
 	}
 
 	addVar(head);
@@ -295,7 +295,7 @@ bool PCSolver::addAggrExpr(Lit head, int setid, const Weight& bound, AggSign bou
 	if (modes().verbosity >= 7) {
 		report("Adding aggregate with info ");
 		gprintLit(head);
-		report(", %d, %d, %s, %d, %s \n", setid, bound, boundsign==AGGSIGN_UB?"lower":"greater", type, defined==DEF?"defined":"completion");
+		report(", %d, %s, %s, %d, %s \n", setid, toString(bound).c_str(), boundsign==AGGSIGN_UB?"lower":"greater", type, defined==DEF?"defined":"completion");
 	}
 
 	addVar(head);
@@ -371,6 +371,7 @@ void PCSolver::finishParsing(bool& present, bool& unsat) {
 	for(lsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
 		if((*i)->present){
 			(*i)->get()->finishParsing((*i)->present, unsat);
+			(*i)->get()->notifyInitialized();
 			if(unsat){
 				return;
 			}
@@ -935,10 +936,10 @@ vector<rClause> PCSolver::getClausesWhichOnlyContain(const vector<Var>& vars) {
 void PCSolver::printChoiceMade(int level, Lit l) const {
 	if (modes().verbosity >= 2) {
 		report("Choice literal, dl %d, ", level);
-		int modid = getModPrintID();
-		if(modid!=-1){
-			report("mod s %zu", modid);
+		if(modsolver->present){
+			report("mod s %zu", getModSolver()->getPrintId());
 		}
+
 		report(": ");
 		gprintLit(l);
 		report(".\n");

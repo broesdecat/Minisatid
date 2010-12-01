@@ -50,29 +50,29 @@ struct BasicRule{
 };
 struct CardRule: public BasicRule{
 	int setcount;
-	int atleast;
+	const Weight& atleast;
 	//Card, UB, DEF
 
-	CardRule(int setcount, Literal head, std::vector<Literal>& body, int atleast):
+	CardRule(int setcount, Literal head, std::vector<Literal>& body, const Weight& atleast):
 			BasicRule(head, body), setcount(setcount), atleast(atleast){	}
 };
 
 struct SumRule: public BasicRule{
 	int setcount;
 	std::vector<Weight> weights;
-	int atleast;
+	const Weight& atleast;
 	//Card, UB, DEF
 
-	SumRule(int setcount, Literal head, std::vector<Literal>& body, std::vector<Weight> weights, int atleast):
+	SumRule(int setcount, Literal head, std::vector<Literal>& body, std::vector<Weight> weights, const Weight& atleast):
 		BasicRule(head, body), setcount(setcount), weights(weights), atleast(atleast){	}
 };
 
 struct GenRule{
-	long atleast;
+	const Weight& atleast;
 	std::vector<Literal> heads;
 	std::vector<Literal> body;
 
-	GenRule(long atleast, std::vector<Literal>& heads, std::vector<Literal>& body):
+	GenRule(const Weight& atleast, std::vector<Literal>& heads, std::vector<Literal>& body):
 			atleast(atleast), heads(heads), body(body){	}
 };
 
@@ -118,6 +118,11 @@ private:
 	std::vector<SumRule*> sumrules;
 	std::vector<GenRule*> genrules;
 	std::vector<ChoiceRule*> choicerules;
+
+	bool optim;
+	int optimsetcount;
+	std::vector<Literal> optimbody;
+	std::vector<Weight> optimweights;
 };
 
 }
