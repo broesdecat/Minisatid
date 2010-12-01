@@ -828,7 +828,7 @@ rClause IDSolver::propagateAtEndOfQueue() {
 
 	//Testing new heuristic!
 	//FIXME: Too slow!
-	/*const vec<Lit>& trail = getPCSolver()->getTrail();
+	const vec<Lit>& trail = getPCSolver()->getTrail();
 	int recentindex = getPCSolver()->getStartLastLevel();
 	for (int i = recentindex; i < trail.size(); i++) {
 		const Lit& l = trail[i];
@@ -849,7 +849,7 @@ rClause IDSolver::propagateAtEndOfQueue() {
 				}
 			}
 		}
-	}*/
+	}
 
 	if(!posloops){
 		return nullPtrClause;
