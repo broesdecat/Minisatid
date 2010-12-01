@@ -378,7 +378,7 @@ void PCSolver::finishParsing(bool& present, bool& unsat) {
 		}
 		if ((*i)->present && !(*i)->get()->simplify()) {
 			unsat = true; return;
-		} else if(!(*i)->present){
+		} else if(!(*i)->present) {
 			if (modes().verbosity > 0) {
 				report("|    (there will be no propagations on %s module)                             |\n", (*i)->get()->getName());
 			}
@@ -444,7 +444,7 @@ rClause PCSolver::getExplanation(Lit l) {
 	}
 
 	DPLLTmodule* solver = propagations[var(l)];
-	assert(solver!=NULL);
+	assert(solver!=NULL); //If this happens, there is usually an error in the generated explanations!
 
 	rClause explan = solver->getExplanation(l);
 	assert(explan!=nullPtrClause);
