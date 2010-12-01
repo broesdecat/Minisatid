@@ -87,7 +87,10 @@ extern int charPos;
     If "0", then ZERO is returned since it's the first matching rule.
   */
 "0"			{ADJ; /*ecnflval*/yylval.integer = 0; return ZERO;}
--?[0-9]+	{ADJ; /*ecnflval*/yylval.integer = atoi(yytext); return NUMBER;}
+-?[0-9]+	{ADJ;
+			char *res = new char[strlen(yytext) + 1];
+			strcpy(res, yytext); 
+			/*ecnflval*/yylval.string = res; return NUMBER;}
 
 <*>.		{/* Anything else: parse error */
 				char s[100];

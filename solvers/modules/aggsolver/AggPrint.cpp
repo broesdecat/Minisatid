@@ -42,7 +42,8 @@ void Aggrs::print(const Agg& ae, bool endl) {
 	} else {
 		report(", ");
 	}
-	report("ESV = %d.", toString(set->getESV()).c_str());
+	report("ESV = %s.", toString(set->getESV()).c_str());
+	report("}");
 	if(endl){
 		report("\n");
 	}

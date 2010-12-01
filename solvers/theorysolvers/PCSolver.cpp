@@ -607,7 +607,7 @@ bool PCSolver::solve(const vec<Lit>& assumptions, Solution* sol){
 		return getSolver()->solve(assumptions, true);
 	}
 
-	if (modes().verbosity >= 1) {
+	if (modes().verbosity >= 2) {
 		report("============================[ Search Statistics ]==============================\n");
 		report("| Conflicts |          ORIGINAL         |          LEARNT          | Progress |\n");
 		report("|           |    Vars  Clauses Literals |    Limit  Clauses Lit/Cl |          |\n");
@@ -936,7 +936,7 @@ vector<rClause> PCSolver::getClausesWhichOnlyContain(const vector<Var>& vars) {
 void PCSolver::printChoiceMade(int level, Lit l) const {
 	if (modes().verbosity >= 2) {
 		report("Choice literal, dl %d, ", level);
-		if(modsolver->present){
+		if(getModSolver()!=NULL){
 			report("mod s %zu", getModSolver()->getPrintId());
 		}
 

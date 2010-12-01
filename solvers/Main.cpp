@@ -217,8 +217,7 @@ int doModelGeneration(pData& d, double cpu_time){
 	//d is initialized unless unsat was already detected
 	bool unsat = d.get()==NULL;
 
-	if (modes.verbosity >= 1) {
-		report("| Parsing input finished                                                      |\n");
+	if (modes.verbosity >= 2) {
 		report("| Datastructure initialization                                                |\n");
 	}
 
@@ -227,29 +226,39 @@ int doModelGeneration(pData& d, double cpu_time){
 		unsat = !d->finishParsing();
 	}
 
-	if (modes.verbosity >= 1) {
+	if (modes.verbosity >= 2) {
 		report("| Datastructure initialization finished                                       |\n");
 		double parse_time = cpuTime() - cpu_time;
 		report("| Total parsing time              : %7.2f s                                 |\n", parse_time);
-		if (unsat) {
-			report("===============================================================================\n"
-					"Unsatisfiable found by parsing\n");
+	}
+
+	if(modes.verbosity >= 1){
+		report("===============================================================================\n");
+		if (modes.verbosity >= 2) {
+			if (unsat) {
+				report("| Unsatisfiable found by parsing                                              |\n");
+			}
 		}
 	}
 
 	//Simplify
 	if(!unsat){
 		unsat = !d->simplify();
-		if(unsat){
-			if (modes.verbosity >= 1) {
-				report("===============================================================================\n"
-						"Unsatisfiable found by unit propagation\n");
+		if (modes.verbosity >= 1) {
+			report("===============================================================================\n");
+			if (modes.verbosity >= 2) {
+				if (unsat) {
+					report("| Unsatisfiable found by unit propagation                                     |\n");
+				}
 			}
 		}
 	}
 
 	//Solve
 	if(!unsat){
+		if (modes.verbosity >= 1) {
+			report("| Solving                                                                     |\n");
+		}
 		vector<Literal> assumpts;
 		Solution* sol = new Solution(modes.verbosity>0, false, true, modes.nbmodels, assumpts);
 		unsat = !d->solve(sol);

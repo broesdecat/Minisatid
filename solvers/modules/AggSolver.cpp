@@ -148,7 +148,7 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 
 	if (verbosity() >= 5) {
 		report("Added ");
-		Aggrs::print(*set);
+		Aggrs::print(*set, true);
 	}
 
 	return true;
