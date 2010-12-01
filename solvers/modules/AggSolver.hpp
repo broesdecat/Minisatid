@@ -180,7 +180,7 @@ public:
 	//////
 	// OPTIMISATION
 	//////
-	bool 				addMnmzSum				(Var headv, int setid, AggSign boundsign);
+	bool 				addMnmzSum				(Var headv, int setid);
     bool 				invalidateSum			(vec<Lit>& invalidation, Var head);
     void 				propagateMnmz			(Var head);
 

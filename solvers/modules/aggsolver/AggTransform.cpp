@@ -184,9 +184,9 @@ bool Aggrs::transformMinToMax(TypedSet* set, vps& sets) {
 		//Invert the bound of all the aggregates involved
 		for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
 			AggBound bound = (*i)->getBound();
-			Weight temp = bound.lb;
-			bound.lb = -bound.ub;
-			bound.ub = -temp;
+			Weight temp = bound.ub;
+			bound.ub = -bound.lb;
+			bound.lb = -temp;
 			if(bound.sign==AGGSIGN_LB){
 				bound.sign = AGGSIGN_UB;
 			}else if(bound.sign==AGGSIGN_UB){
@@ -211,37 +211,43 @@ bool Aggrs::transformMaxToSAT(TypedSet* set, vps& sets){
 	 * 				  if higher, head <=> disj of all literals with weight higher/eq than bound
 	 */
 	vec<Lit> clause;
-	const Agg* agg = set->getAgg()[0];
-	if (agg->isDefined()) {
+
+	//FIXME NEW BOUNDS
+	//FIXME MAKE BENCHMARKS WITH EMPTY SETS (OR EMPTY AFTER REDUCTION)
+	//FIXME switch upper and lower bounds
+	const Agg& agg = *set->getAgg()[0];
+	bool ub = agg.hasUB();
+	const Weight& bound = ub?agg.getBound().ub:agg.getBound().lb;
+	if (agg.isDefined()) {
 		for (vwl::const_reverse_iterator i = set->getWL().rbegin(); i < set->getWL().rend()
-					&& (*i).getWeight() >= agg->getSoloBound(); i++) {
-			if (agg->hasLB() && (*i).getWeight() == agg->getSoloBound()) {
+					&& (*i).getWeight() >= bound; i++) {
+			if (ub && (*i).getWeight() == bound) {
 				break;
 			}
-			if (agg->hasLB()) {
+			if (ub) {
 				clause.push(~(*i).getLit());
 			} else {
 				clause.push((*i).getLit());
 			}
 		}
-		notunsat = set->getSolver()->getPCSolver()->addRule(agg->hasLB(),agg->getHead(),clause);
+		notunsat = set->getSolver()->getPCSolver()->addRule(ub,agg.getHead(),clause);
 	} else {
-		clause.push(agg->hasLB() ? agg->getHead() : ~agg->getHead());
+		clause.push(ub? agg.getHead():~agg.getHead());
 		for (vwl::const_reverse_iterator i = set->getWL().rbegin(); i < set->getWL().rend()
-					&& (*i).getWeight() >= agg->getSoloBound(); i++) {
-			if (agg->hasLB() && (*i).getWeight() == agg->getSoloBound()) {
+					&& (*i).getWeight() >= bound; i++) {
+			if (ub && (*i).getWeight() == bound) {
 				break;
 			}
 			clause.push((*i).getLit());
 		}
 		notunsat = set->getSolver()->getPCSolver()->addClause(clause);
 		for (vwl::const_reverse_iterator i = set->getWL().rbegin(); notunsat && i < set->getWL().rend()
-					&& (*i).getWeight() >= agg->getSoloBound(); i++) {
-			if (agg->getSoloBound() && (*i).getWeight() == agg->getSoloBound()) {
+					&& (*i).getWeight() >= bound; i++) {
+			if (bound && (*i).getWeight() == bound) {
 				break;
 			}
 			clause.clear();
-			clause.push(agg->hasLB() ? ~agg->getHead() : agg->getHead());
+			clause.push(ub?~agg.getHead():agg.getHead());
 			clause.push(~(*i).getLit());
 			notunsat = set->getSolver()->getPCSolver()->addClause(clause);
 		}
@@ -262,8 +268,8 @@ bool Aggrs::transformCardGeqOneToEquiv(TypedSet* set, vps& sets){
 	if (set->getAgg()[0]->getType() == CARD) {
 		vpagg remaggs;
 		for (vpagg::const_iterator i = set->getAgg().begin(); !unsat && i < set->getAgg().end(); i++) {
-			if(((*i)->hasUB())){
-				const Weight& bound = (*i)->getSoloBound();
+			if((*i)->hasLB() && !(*i->hasUB())){
+				const Weight& bound = (*i)->getBound().lb;
 				if(bound-set->getESV()==0){
 					lbool headvalue = set->getSolver()->value((*i)->getHead());
 					if(headvalue==l_False){
@@ -308,8 +314,8 @@ struct PBAgg {
 	int sign;
 };
 
+//FIXME double bounds should be rewritten first
 bool Aggrs::transformSumsToCNF(vps& sets, PCSolver* pcsolver) {
-	//FIXME error in pbsolver
 	int sumaggs = 0;
 	int maxvar = 1;
 	vector<PBAgg*> pbaggs;
@@ -317,6 +323,7 @@ bool Aggrs::transformSumsToCNF(vps& sets, PCSolver* pcsolver) {
 		vpagg remaining;
 		for (vsize j = 0; j < (*i)->getAgg().size(); j++) {
 			Agg* agg = (*i)->getAgg()[j];
+			assert(!agg->hasLB() || !agg->hasUB());
 			if (!agg->isOptim() && (agg->getType() == SUM || agg->getType() == CARD) && !agg->getSem() == DEF) {
 				PBAgg* ppbaggeq = new PBAgg();
 				PBAgg* ppbaggineq = new PBAgg();
@@ -325,14 +332,14 @@ bool Aggrs::transformSumsToCNF(vps& sets, PCSolver* pcsolver) {
 				PBAgg& pbaggeq = *ppbaggeq;
 				PBAgg& pbaggineq = *ppbaggineq;
 				Weight bound;
-				if (agg->hasLB()) {
+				if (agg->hasUB()) {
 					pbaggeq.sign = -1;
 					pbaggineq.sign = 2;
-					bound = agg->getBound().lb;
+					bound = agg->getBound().ub;
 				} else {
 					pbaggeq.sign = 1;
 					pbaggineq.sign = -2;
-					bound = agg->getBound().ub;
+					bound = agg->getBound().lb;
 				}
 				pbaggeq.bound = bound;
 				pbaggineq.bound = bound;
@@ -357,7 +364,7 @@ bool Aggrs::transformSumsToCNF(vps& sets, PCSolver* pcsolver) {
 				pbaggeq.literals.push(MiniSatPP::Lit(var(agg->getHead()), true));
 				pbaggineq.literals.push(MiniSatPP::Lit(var(agg->getHead()), false));
 				Weight eqval, ineqval;
-				if (agg->hasLB()) {
+				if (agg->hasUB()) {
 					eqval = -abs(bound) - abs(max) - 1;
 					ineqval = abs(bound) + abs(min) + 1;
 				} else {

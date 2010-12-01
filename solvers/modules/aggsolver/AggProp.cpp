@@ -25,7 +25,7 @@ shared_ptr<AggProp> AggProp::card = shared_ptr<AggProp> (new CardProp());
 shared_ptr<AggProp> AggProp::prod = shared_ptr<AggProp> (new ProdProp());
 
 bool MaxProp::isMonotone(const Agg& agg, const WL& l, bool lower) const {
-	const Weight& w = lower?agg.getBound().lb:agg.getBound().ub;
+	const Weight& w = lower?agg.getBound().ub:agg.getBound().lb;
 	return (lower && l.getWeight() <= w) || (!lower);
 }
 
@@ -229,11 +229,12 @@ AggSolver*	Propagator::getSolver() const {
 
 bool MaxProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
 	TypedSet* set = agg.getSet();
-	bool justified = false;
+	bool justified = true;
 	const vwl& wl = set->getWL();
 
-	if (agg.hasLB()) {
-		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() > agg.getSoloBound(); i++) {
+	if (justified && agg.hasUB()) {
+		justified = false;
+		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() > agg.getBound().ub; i++) {
 			if (oppositeIsJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push(~(*i).getLit()); //push negative literal, because it should become false
 			} else if (real || currentjust[var((*i).getLit())] != 0) {
@@ -243,8 +244,11 @@ bool MaxProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, 
 		if (nonjstf.size() == 0) {
 			justified = true;
 		}
-	} else {
-		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() >= agg.getSoloBound(); i++) {
+	}
+
+	if(justified && agg.hasLB()){
+		justified = false;
+		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() >= agg.getBound().lb; i++) {
 			if (isJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push((*i).getLit());
 				justified = true;
@@ -253,6 +257,7 @@ bool MaxProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, 
 			}
 		}
 	}
+
 	if (!justified) {
 		jstf.clear();
 	}
@@ -272,29 +277,32 @@ bool MaxProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, 
 bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
 	TypedSet* set = agg.getSet();
 	const AggProp& type = agg.getSet()->getType();
-	bool justified = false;
+	bool justified = true;
 	const vwl& wl = set->getWL();
 
-	if (agg.hasLB()) {
+	if (justified && agg.hasUB()) {
+		justified = false;
 		Weight bestpossible = type.getBestPossible(set);
 		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
 			if (oppositeIsJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push(~(*i).getLit());
 				bestpossible = type.remove(bestpossible, (*i).getWeight());
-				if (bestpossible <= agg.getSoloBound()) {
+				if (bestpossible <= agg.getBound().ub) {
 					justified = true;
 				}
 			} else if (real || currentjust[var((*i).getLit())] != 0) {
 				nonjstf.push(var((*i).getLit()));
 			}
 		}
-	} else {
+	}
+	if(justified && agg.hasLB()){
+		justified = false;
 		Weight bestcertain = set->getESV();
 		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
 			if (isJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push((*i).getLit());
 				bestcertain = type.add(bestcertain, (*i).getWeight());
-				if (bestcertain >= agg.getSoloBound()) {
+				if (bestcertain >= agg.getBound().lb) {
 					justified = true;
 				}
 			} else if (real || currentjust[var((*i).getLit())] != 0) {
@@ -303,20 +311,8 @@ bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, v
 		}
 	}
 
-	if (set->getSolver()->verbosity() >= 4) {
-		report("Justification checked for ");
-		print(agg, true);
-
-		if (justified) {
-			report("justification found: ");
-			for (int i = 0; i < jstf.size(); i++) {
-				gprintLit(jstf[i]);
-				report(" ");
-			}
-			report("\n");
-		} else {
-			report("no justification found.\n");
-		}
+	if (!justified) {
+		jstf.clear();
 	}
 
 	return justified;

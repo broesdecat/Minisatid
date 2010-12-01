@@ -295,7 +295,7 @@ bool PCSolver::addAggrExpr(Lit head, int setid, const Weight& bound, AggSign bou
 	if (modes().verbosity >= 7) {
 		report("Adding aggregate with info ");
 		gprintLit(head);
-		report(", %d, %d, %s, %d, %s \n", setid, bound, boundsign==AGGSIGN_LB?"lower":"greater", type, defined==DEF?"defined":"completion");
+		report(", %d, %d, %s, %d, %s \n", setid, bound, boundsign==AGGSIGN_UB?"lower":"greater", type, defined==DEF?"defined":"completion");
 	}
 
 	addVar(head);
@@ -776,7 +776,7 @@ bool PCSolver::addSumMinimize(const Var head, const int setid) {
 	bool notunsat = addClause(cl);
 	if (notunsat) {
 		assert(getAggSolver()!=NULL);
-		notunsat = getAggSolver()->addMnmzSum(head, setid, AGGSIGN_LB);
+		notunsat = getAggSolver()->addMnmzSum(head, setid);
 	}
 
 	return notunsat;

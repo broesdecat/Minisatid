@@ -51,8 +51,8 @@ extern int charPos;
 
 "D"		{ADJ; /*ecnflval*/yylval.sem = MinisatID::DEF;  return SEMDEFN;}
 "C"		{ADJ; /*ecnflval*/yylval.sem = MinisatID::COMP; return SEMDEFN;}
-"L"		{ADJ; /*ecnflval*/yylval.sign = MinisatID::AGGSIGN_LB;  return SIGNDEFN;}
-"G"		{ADJ; /*ecnflval*/yylval.sign = MinisatID::AGGSIGN_UB; return SIGNDEFN;}
+"L"		{ADJ; /*ecnflval*/yylval.sign = MinisatID::AGGSIGN_UB;  return SIGNDEFN;}
+"G"		{ADJ; /*ecnflval*/yylval.sign = MinisatID::AGGSIGN_LB; return SIGNDEFN;}
 
 "e"		{ADJ; /*ecnflval*/yylval.boolean = true; return QUANTe;} //existential quantifier
 "a"		{ADJ; /*ecnflval*/yylval.boolean = false; return QUANTe;} //universal quantifier

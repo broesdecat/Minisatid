@@ -30,15 +30,15 @@ void Aggrs::print(const Agg& ae, bool endl) {
 	lbool value = ae.getSet()->getSolver()->value(ae.getHead());
 	report("(%s)", value==l_Undef?"X":value==l_True?"T":"F");
 	TypedSet* set = ae.getSet();
-	if (ae.hasLB()) {
+	if (ae.hasUB()) {
 		report(" <- ");
 	} else {
-		report(" <- %s <= ", printWeight(ae.getBound().ub).c_str());
+		report(" <- %s <= ", printWeight(ae.getBound().lb).c_str());
 	}
 	report("%s{", ae.getType()==MAX?"MAX":ae.getType()==MIN?"MIN":ae.getType()==SUM?"SUM":ae.getType()==CARD?"CARD":"PROD");
 	print(*set, false);
-	if (ae.hasLB()) {
-		report(" <= %s, ", printWeight(ae.getBound().lb).c_str());
+	if (ae.hasUB()) {
+		report(" <= %s, ", printWeight(ae.getBound().ub).c_str());
 	} else {
 		report(", ");
 	}

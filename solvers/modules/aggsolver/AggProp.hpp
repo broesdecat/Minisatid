@@ -30,7 +30,7 @@ struct AggBound{
 	AggSign sign;
 
 	AggBound():lb(0), ub(0), sign(AGGSIGN_NONE){}
-	AggBound(bool lower, const Weight& b):lb(lower?b:0), ub(!lower?b:0), sign(lower?AGGSIGN_LB:AGGSIGN_UB){}
+	AggBound(bool lb, const Weight& b):lb(lb?b:0), ub(!lb?b:0), sign(lb?AGGSIGN_LB:AGGSIGN_UB){}
 	AggBound(const Weight& lb, const Weight& ub):lb(lb), ub(ub), sign(AGGSIGN_BOTH){}
 };
 
@@ -51,19 +51,17 @@ public:
 	TypedSet*	getSet		()					const	{ return set; }
 	const Lit& 	getHead		() 					const 	{ return head; }
 	int			getIndex	()					const	{ return index; }
-	const Weight&	getSoloBound()				const	{ assert(bound.sign!=AGGSIGN_BOTH);
-															return bound.sign==AGGSIGN_LB?bound.lb:bound.ub; }
-	void		setSoloBound(const Weight& w)			{ assert(bound.sign!=AGGSIGN_BOTH);
-															bound.sign==AGGSIGN_LB?bound.lb=w:bound.ub=w; }
+
 	const AggBound&	getBound()					const	{ return bound; }
-	bool		hasLB		()					const	{ return bound.sign!=AGGSIGN_UB; }
+	void		setBound	(AggBound b)				{ bound = b; }
 	bool		hasUB		()					const	{ return bound.sign!=AGGSIGN_LB; }
+	bool		hasLB		()					const	{ return bound.sign!=AGGSIGN_UB; }
+
 	bool 		isDefined	()					const	{ return sem==DEF; }
 	AggSem		getSem		()					const	{ return sem; }
 	AggType		getType		()					const	{ return type; }
 	bool		isOptim		()					const	{ return optim; }
 	void 		setIndex	(int ind) 					{ index = ind; }
-	void		setBound	(AggBound b)				{ bound = b; }
 	void		setType		(const AggType& s)			{ type = s;}
 	void		setOptim	()							{ optim = true; }
 	void		setTypedSet	(TypedSet * const s)		{ set = s; }

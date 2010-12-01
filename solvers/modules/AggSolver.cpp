@@ -613,9 +613,10 @@ void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& l
 	const Agg& agg = *getAggWithHead(v);
 	TypedSet* set = agg.getSet();
 
+	//FIXME handle double bounds
 	for (vwl::const_iterator i = set->getWL().begin(); i < set->getWL().end(); ++i) {
 		Lit l = (*i).getLit();
-		if (set->getType().isMonotone(agg, *i, agg.hasLB()) && ufs.find(var(l)) == ufs.end() && seen[var(l)] != (isPositive(l) ? 2 : 1) && isFalse(l)) {
+		if (set->getType().isMonotone(agg, *i, agg.hasUB()) && ufs.find(var(l)) == ufs.end() && seen[var(l)] != (isPositive(l) ? 2 : 1) && isFalse(l)) {
 			//TODO deze laatste voorwaarde is een HACK: eigenlijk moeten de voorwaarden zo zijn,
 			//dat enkel relevant literals worden toegevoegd, maar momenteel worden er ook literals
 			//toegevoegd die nooit in een justification zullen zitten
@@ -665,6 +666,21 @@ void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& 
 				vec<Lit> jstf;
 				vec<Var> nonjstf;
 				if (s->getType().canJustifyHead(expr, jstf, nonjstf, currentjust, false)) {
+					/*TODO if (set->getSolver()->verbosity() >= 4) {
+						report("Justification checked for ");
+						print(agg, true);
+
+						if (justified) {
+							report("justification found: ");
+							for (int i = 0; i < jstf.size(); i++) {
+								gprintLit(jstf[i]);
+								report(" ");
+							}
+							report("\n");
+						} else {
+							report("no justification found.\n");
+						}
+					}*/
 					currentjust[head] = 0;
 					heads.push(mkLit(head, false));
 					jstfs.push();
@@ -700,14 +716,12 @@ bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, ve
 ///////
 
 //FIXME no optimizations should take place on mnmz aggregates (partially helped by separate add method).
-bool AggSolver::addMnmzSum(Var headv, int setid, AggSign boundsign) {
+bool AggSolver::addMnmzSum(Var headv, int setid) {
 	if (parsedSets().find(setid) == parsedSets().end()) {
 		char s[100];
 		sprintf(s, "Set nr. %d is used, but not defined yet.\n", setid);
 		throw idpexception(s);
 	}
-
-	//FIXME check AGGSIGN_BOTH not allowed
 
 	assert(headv>=0);
 
@@ -736,17 +750,15 @@ bool AggSolver::addMnmzSum(Var headv, int setid, AggSign boundsign) {
 	//the head of the aggregate
 	Lit head = mkLit(headv, false);
 
-	Weight max = 0, min = 0;
+	Weight max = 0;
 	for (vwl::const_iterator i = set->getWL().begin(); i < set->getWL().end(); i++) {
 		if ((*i).getWeight() > 0) {
 			max += (*i).getWeight();
-		} else {
-			min += (*i).getWeight();
 		}
 	}
 
 	Agg* ae = new Agg(head, COMP, SUM);
-	ae->setBound(AggBound(boundsign==AGGSIGN_LB, boundsign==AGGSIGN_LB?max+1:min));
+	ae->setBound(AggBound(AGGSIGN_LB, max+1));
 	ae->setOptim();
 	set->addAgg(ae);
 
