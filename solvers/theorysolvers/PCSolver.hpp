@@ -154,8 +154,6 @@ public:
 	bool 		assertedBefore(const Var& l, const Var& p) const;
 	rClause		getExplanation	(Lit l);	//NON-OWNING pointer
 
-	std::vector<rClause> getClausesWhichOnlyContain(const std::vector<Var>& vars);
-
     ///////
 	// Solver callbacks
 	///////

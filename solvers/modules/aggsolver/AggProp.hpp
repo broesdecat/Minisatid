@@ -50,6 +50,7 @@ public:
 
 	TypedSet*	getSet		()					const	{ return set; }
 	const Lit& 	getHead		() 					const 	{ return head; }
+	void	 	setHead		(const Lit& l)			 	{ head = l; }
 	int			getIndex	()					const	{ return index; }
 
 	const AggBound&	getBound()					const	{ return bound; }
@@ -83,7 +84,7 @@ public:
 	virtual const char*	getName					() 										const = 0;
 	virtual AggType 	getType					() 										const = 0;
 	virtual bool 		isNeutralElement		(const Weight& w)						const = 0;
-	virtual bool 		isMonotone				(const Agg& agg, const WL& l, bool lower)	const = 0;
+	virtual bool 		isMonotone				(const Agg& agg, const WL& l, bool ub)	const = 0;
 	virtual Weight 		getBestPossible			(TypedSet* set) 						const = 0;
 	virtual Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const = 0;
 	virtual WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const = 0;
@@ -100,7 +101,7 @@ public:
 	const char* getName					() 										const { return "MAX"; }
 	AggType 	getType					() 										const { return MAX; }
 	bool 		isNeutralElement		(const Weight& w) 						const { return false; }
-	bool 		isMonotone				(const Agg& agg, const WL& l, bool lower)	const;
+	bool 		isMonotone				(const Agg& agg, const WL& l, bool ub)	const;
 	Weight 		getBestPossible			(TypedSet* set) 						const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
@@ -120,7 +121,7 @@ public:
 	const char* getName					() 										const { return "PROD"; }
 	AggType 	getType					() 										const { return PROD; }
 	bool 		isNeutralElement		(const Weight& w) 						const { return w==1; }
-	bool 		isMonotone				(const Agg& agg, const WL& l, bool lower)	const;
+	bool 		isMonotone				(const Agg& agg, const WL& l, bool ub)	const;
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const;
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const;
 	Weight 		getBestPossible			(TypedSet* set) 						const;
@@ -134,7 +135,7 @@ public:
 	const char* getName					() 										const { return "SUM"; }
 	AggType 	getType					() 										const { return SUM; }
 	bool 		isNeutralElement		(const Weight& w) 						const { return w==0; }
-	bool 		isMonotone				(const Agg& agg, const WL& l, bool lower)	const;
+	bool 		isMonotone				(const Agg& agg, const WL& l, bool ub)	const;
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const;
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const;
 	Weight 		getBestPossible			(TypedSet* set) 						const;
@@ -158,7 +159,7 @@ public:
 
 	virtual void 		initialize(bool& unsat, bool& sat);
 	virtual rClause 	propagate		(const Lit& p, Watch* w, int level) = 0;
-	virtual rClause 	propagate		(const Agg& agg, int level) = 0;
+	virtual rClause 	propagate		(int level, const Agg& agg) = 0;
 	virtual rClause		propagateAtEndOfQueue(int level) = 0;
 	virtual void		backtrack		(int nblevels, int untillevel) = 0;
     virtual void 		getExplanation	(vec<Lit>& lits, const AggReason& ar) = 0;
@@ -213,7 +214,7 @@ public:
 	void 			initialize		(bool& unsat, bool& sat);
 	void			backtrack		(int nblevels, int untillevel) 			{ getProp()->backtrack(nblevels, untillevel); }
 	rClause 		propagate		(const Lit& p, Watch* w, int level) 	{ return getProp()->propagate(p, w, level); }
-	rClause 		propagate		(const Agg& agg, int level) 			{ return getProp()->propagate(agg, level); }
+	rClause 		propagate		(const Agg& agg, int level) 			{ return getProp()->propagate(level, agg); }
 	rClause			propagateAtEndOfQueue(int level) 						{ return getProp()->propagateAtEndOfQueue(level); }
 	void 			getExplanation	(vec<Lit>& lits, const AggReason& ar) const { getProp()->getExplanation(lits, ar); }
 

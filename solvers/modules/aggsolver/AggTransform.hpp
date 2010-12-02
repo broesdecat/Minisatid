@@ -23,6 +23,7 @@ bool transformTypePartition(TypedSet* set, vps& sets);
 bool transformAddTypes(TypedSet* set, vps& sets);
 bool transformMinToMax(TypedSet* set, vps& sets);
 bool transformMaxToSAT(TypedSet* set, vps& sets);
+bool transformSplitAggregate(TypedSet* set, vps& sets);
 bool transformVerifyWeights(TypedSet* set, vps& sets);
 bool transformOneToOneSetToAggMapping(TypedSet* set, vps& sets);
 bool transformCardGeqOneToEquiv(TypedSet* set, vps& sets);

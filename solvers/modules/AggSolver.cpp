@@ -156,7 +156,6 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 
 bool AggSolver::addAggrExprBB(Var headv, int setid, const Weight& lb, const Weight& ub, AggType type, AggSem headeq) {
 	AggBound b(lb, ub);
-	throw idpexception("Not yet implemented\n");
 	return addAggrExpr(headv, setid, b, type, headeq);
 }
 
@@ -216,7 +215,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType
 	agg->setBound(bound);
 	set->addAgg(agg);
 
-	if (verbosity() >= 5) { //Print info on added aggregate
+	if (verbosity() >= 4) { //Print info on added aggregate
 		Aggrs::print(*agg);
 		report("\n");
 	}
@@ -267,6 +266,10 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		unsat = unsat || !transformMinToMax(set, sets());
 		unsat = unsat || !transformAddTypes(set, sets());
 		unsat = unsat || !transformVerifyWeights(set, sets());
+
+		//TODO temporary
+		unsat = unsat || !transformSplitAggregate(set, sets());
+
 		unsat = unsat || !transformMaxToSAT(set, sets());
 		unsat = unsat || !transformSetReduction(set, sets());
 		unsat = unsat || !transformCardGeqOneToEquiv(set, sets());
@@ -480,7 +483,7 @@ rClause AggSolver::propagate(const Lit& p) {
 
 	rClause confl = nullPtrClause;
 
-	if (verbosity() >= 2) {
+	if (verbosity() >= 4) {
 		report("Aggr_propagate("); gprintLit(p, l_True); report(").\n");
 	}
 
@@ -571,24 +574,32 @@ rClause AggSolver::getExplanation(const Lit& p) {
 /**
  * For an aggregate expression defined by v, add all set literals to loopf that
  * 		- have not been added already(seen[A]==1 for A, seen[A]==2 for ~A)
- * 		- might help to make the expression true (monotone literals!) (to make it a more relevant learned clause
+ * 		- might help to make the expression true (monotone literals!) (to make it a more relevant learned clause)
+ * Currently CONSIDERABLE overapproximation: take all known false literals which are set literal or its negation,
+ * do not occur in ufs and have not been seen yet.
+ * Probably NEVER usable external clause!
+ * TODO: optimize: add monotone literals until the aggregate can become true
  */
 void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) {
 	const Agg& agg = *getAggWithHead(v);
 	TypedSet* set = agg.getSet();
 
-	//FIXME handle double bounds
 	for (vwl::const_iterator i = set->getWL().begin(); i < set->getWL().end(); ++i) {
 		Lit l = (*i).getLit();
-		if (set->getType().isMonotone(agg, *i, agg.hasUB()) && ufs.find(var(l)) == ufs.end() && seen[var(l)] != (isPositive(l) ? 2 : 1) && isFalse(l)) {
-			//TODO deze laatste voorwaarde is een HACK: eigenlijk moeten de voorwaarden zo zijn,
-			//dat enkel relevant literals worden toegevoegd, maar momenteel worden er ook literals
-			//toegevoegd die nooit in een justification zullen zitten
-			assert(isFalse(l));
-			loopf.push(l);
-			seen[var(l)] = isPositive(l) ? 2 : 1;
+		if(ufs.find(var(l)) != ufs.end() || seen[var(l)] == (isPositive(l) ? 2 : 1)){
+			continue;
 		}
-		//TODO: optimize this: neem er zoveel monotone niet zodat ze met de ufs erbij het agg nog true kunnen maken, maar zonder niet
+
+		if(isTrue(l)){
+			l = ~l;
+		}
+
+		if(!isFalse(l)){
+			continue;
+		}
+
+		loopf.push(l);
+		seen[var(l)] = isPositive(l) ? 2 : 1;
 	}
 }
 
@@ -665,7 +676,7 @@ bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, ve
 // OPTIMIZATION
 ///////
 
-//FIXME no optimizations should take place on mnmz aggregates (partially helped by separate add method).
+//TODO do not treat optimization aggregates like normal ones!
 bool AggSolver::addMnmzSum(Var headv, int setid) {
 	if (parsedSets().find(setid) == parsedSets().end()) {
 		char s[100];
@@ -746,7 +757,8 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
  * the newly adapted bound.
  */
 void AggSolver::propagateMnmz(Var head) {
-	dynamic_cast<SumFWAgg*>(headwatches[head]->getSet()->getProp())->propagate(*headwatches[head], true);
+	int level = getPCSolver()->getCurrentDecisionLevel();
+	dynamic_cast<SumFWAgg*>(headwatches[head]->getSet()->getProp())->propagate(level, *headwatches[head]);
 }
 
 ///////

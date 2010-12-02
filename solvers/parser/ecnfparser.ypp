@@ -194,6 +194,11 @@ rule	:	SEMDEFN NUMBER body ZERO
 				{ 	CR(solver->addRule(!$1, cLiteral($2), *$3)); delete $3; }
 		;
 
+// type head setid lbound ubound 0 => default definitional		
+agg		:	AGGDEFN NUMBER NUMBER weight weight ZERO	
+				{ 	CR(solver->addAggrExprBB(cLiteral($2), cID($3), cWeight($4), cWeight($5), $1, DEF)); }
+		;
+
 // type sem sign head setid bound 0
 agg		:	AGGDEFN SEMDEFN SIGNDEFN NUMBER NUMBER weight ZERO	
 				{	CR(solver->addAggrExpr(cLiteral($4), cID($5), cWeight($6), $3, $1, $2)); }

@@ -16,10 +16,6 @@ using namespace std;
 using namespace MinisatID;
 using namespace Aggrs;
 
-const WL& Watch::getWL() const {
-	return getSet()->getWL()[index];
-}
-
 /**
  * Important: to justify a head, often several body literals have to become FALSE
  * For such literals, they have to be justified if they are NEGATIVE

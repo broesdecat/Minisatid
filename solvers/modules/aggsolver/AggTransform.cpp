@@ -199,9 +199,37 @@ bool Aggrs::transformMinToMax(TypedSet* set, vps& sets) {
 	return true;
 }
 
+//Split aggregates with 2 bounds into separate parts
+bool Aggrs::transformSplitAggregate(TypedSet* set, vps& sets){
+	bool notunsat = true;
+	PCSolver* pcsol = set->getSolver()->getPCSolver();
+	for(vsize i = 0; i<set->getAgg().size(); i++){
+		Agg& agg = *set->getAggNonConst()[i];
+		if(agg.hasUB() && agg.hasLB()){
+			Lit orighead = agg.getHead();
+			Lit headone = createPositiveLiteral(pcsol->newVar()), headtwo = createPositiveLiteral(pcsol->newVar());
+			agg.setHead(headone);
+			Agg* two = new Agg(headtwo, agg.getSem(), agg.getType(), false);
+			AggBound boundone(true, agg.getBound().lb), boundtwo(false, agg.getBound().ub);
+			agg.setBound(boundone);
+			two->setBound(boundtwo);
+			set->addAgg(two);
+			vec<Lit> lits;
+			lits.push(headone);
+			lits.push(headtwo);
+			notunsat = notunsat && pcsol->addEquivalence(orighead, lits, true);
+			pcsol->varBumpActivity(var(orighead));
+		}
+	}
+	return notunsat;
+}
+
 //After type setting and transforming to max
 bool Aggrs::transformMaxToSAT(TypedSet* set, vps& sets){
-	if (set->getType().getType()!=MAX || set->getAgg().size() != 1) { //Simple heuristic to choose for encoding as SAT
+	//Simple heuristic to choose for encoding as SAT
+	if (set->getType().getType()!=MAX
+			|| set->getAgg().size() != 1
+			|| (set->getAgg()[0]->hasLB() && set->getAgg()[0]->hasUB())) {
 		return true;
 	}
 	bool notunsat = true;
@@ -212,8 +240,6 @@ bool Aggrs::transformMaxToSAT(TypedSet* set, vps& sets){
 	 */
 	vec<Lit> clause;
 
-	//FIXME NEW BOUNDS
-	//FIXME MAKE BENCHMARKS WITH EMPTY SETS (OR EMPTY AFTER REDUCTION)
 	const Agg& agg = *set->getAgg()[0];
 	bool ub = agg.hasUB();
 	const Weight& bound = ub?agg.getBound().ub:agg.getBound().lb;

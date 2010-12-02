@@ -24,18 +24,18 @@ shared_ptr<AggProp> AggProp::sum = shared_ptr<AggProp> (new SumProp());
 shared_ptr<AggProp> AggProp::card = shared_ptr<AggProp> (new CardProp());
 shared_ptr<AggProp> AggProp::prod = shared_ptr<AggProp> (new ProdProp());
 
-bool MaxProp::isMonotone(const Agg& agg, const WL& l, bool lower) const {
-	const Weight& w = lower?agg.getBound().ub:agg.getBound().lb;
-	return (lower && l.getWeight() <= w) || (!lower);
+bool MaxProp::isMonotone(const Agg& agg, const WL& l, bool ub) const {
+	const Weight& w = ub?agg.getBound().ub:agg.getBound().lb;
+	return (ub && l.getWeight() <= w) || (!ub);
 }
 
-bool SumProp::isMonotone(const Agg& agg, const WL& l, bool lower) const {
-	return (lower && l.getWeight() < 0) || (!lower && l.getWeight() > 0);
+bool SumProp::isMonotone(const Agg& agg, const WL& l, bool ub) const {
+	return (ub && l.getWeight() < 0) || (!ub && l.getWeight() > 0);
 }
 
-bool ProdProp::isMonotone(const Agg& agg, const WL& l, bool lower) const {
+bool ProdProp::isMonotone(const Agg& agg, const WL& l, bool ub) const {
 	assert(l.getWeight() == 0 || l.getWeight() >= 1);
-	return !lower;
+	return !ub;
 }
 
 Weight SumProp::add(const Weight& lhs, const Weight& rhs) const {

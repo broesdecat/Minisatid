@@ -322,7 +322,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
     Lit p     = lit_Undef;
 
     /*AB VERY IMPORTANT*/
-	int lvl = 0;
+/*	int lvl = 0;
 	for (int i = 0; i < confl->size(); i++){
 		int litlevel = level[var(confl->operator [](i))];
 		if (litlevel > lvl){
@@ -331,7 +331,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 	}
 	cancelUntil(lvl);
 	assert(lvl==decisionLevel());
-	assert(confl!=NULL);
+	assert(confl!=NULL);*/
 
 	//reportf("Conflicts: %d.\n", conflicts);
 	std::vector<Lit> explain;
@@ -888,6 +888,11 @@ bool Solver::solve(const vec<Lit>& assumps /*AB*/, bool nosearch /*AE*/)
     double  nof_conflicts = restart_first;
     double  nof_learnts   = nClauses() * learntsize_factor;
     lbool   status        = l_Undef;
+
+    report("Activities: ");
+    for(int i=0; i<order_heap.size(); i++){
+    	report("%d ", order_heap[i]);
+    }
 
     // Search:
     while (status == l_Undef){

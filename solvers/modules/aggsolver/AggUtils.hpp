@@ -36,25 +36,21 @@ public:
 class Watch{
 private:
 	TypedSet* 		set;
-			int 	index;
-	const 	bool 	setlit;	//true if set literal, false if agg head
-	const 	bool 	pos; 	//if true, the positive literal is in the set, otherwise the negation
+	const 	WL&		wl;	//the literal as it occurs in the set
 public:
-	Watch(TypedSet* set, int index, bool setlit, bool pos):
-		set(set), index(index), setlit(setlit), pos(pos){}
+	Watch(TypedSet* set, const WL& wl):
+		set(set), wl(wl){}
 
 	virtual ~Watch(){}
 
 	TypedSet*		getSet		()	 		const 	{ return set; }
-	int 			getIndex	() 			const 	{ return index; }
-	void			setIndex	(int i) 	  		{ index = i; }
-	bool 			isSetLit	() 			const 	{ return setlit; }
-	Occurrence 		getType		(bool neg)	const 	{ return !setlit?HEAD:((!neg && pos) || (neg && !pos))?POS:NEG; }
+	//Return POS if the literal in the set was provided, otherwise neg
+	Occurrence 		getType		(const Lit& p)	const 	{ return p==wl.getLit()?POS:NEG; }
 
-	virtual const WL&	getWL	()			const; //TODO unclear semantics
+	virtual const WL&	getWL	()			const	{ return wl; }
 };
 
-enum Expl{BASEDONCC,BASEDONCP,HEADONLY, BASEDONBOTH};
+enum Expl{BASEDONCC,BASEDONCP,HEADONLY,BASEDONBOTH};
 
 class AggReason {
 private:

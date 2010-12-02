@@ -108,6 +108,8 @@ TCLAP::ValueArg<string> 		bumpaggonnotifyarg("","bumpagg",
 		"Bump | don't bump variable activity on aggregate propagation", false, "yes", &getYesNoConstraint(), cmd);
 TCLAP::ValueArg<string> 		bumpidonstartarg("","bumpid",
 		"Bump | don't bump variable activity on ID initialization", false, "yes", &getYesNoConstraint(), cmd);
+TCLAP::ValueArg<string> 		subsetminimizeexplanationarg("","minimexplan",
+		"Minimize | don't minimize explanations", false, "no", &getYesNoConstraint(), cmd);
 TCLAP::ValueArg<string> 		watcharg("w","watchedagg",
 		"Use | don't use watched-literal datastructures to handle aggregate propagation", false, "no", &getYesNoConstraint(), cmd);
 TCLAP::ValueArg<string> 		pbsolverarg("",
@@ -213,6 +215,7 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	modes.polarity = getChosenPolarity();
 	modes.bumpaggonnotify = parseYesNo(bumpaggonnotifyarg.getValue());
 	modes.bumpidonstart = parseYesNo(bumpidonstartarg.getValue());
+	modes.subsetminimizeexplanation = parseYesNo(subsetminimizeexplanationarg.getValue());
 
 	return true;
 }

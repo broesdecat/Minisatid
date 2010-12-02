@@ -145,6 +145,7 @@ void PCSolver::varBumpActivity(Var v) {
 // INITIALIZING THE THEORY // Add STATE concept to solver to check for correctness
 ////////
 
+//FIXME: calling this from inside is not allowed during parsing: it break the theory that's being read!
 Var PCSolver::newVar() {
 	assert(!init);
 	Var v = nVars();
@@ -275,7 +276,7 @@ bool PCSolver::addSet(int setid, const vec<Lit>& lits, const vector<Weight>& w) 
 bool PCSolver::addAggrExprBB(Lit head, int setid, const Weight& lb, const Weight& ub, AggType type, AggSem defined) {
 	assert(getAggSolver()!=NULL);
 
-	if (modes().verbosity >= 7) {
+	if (modes().verbosity >= 4) {
 		report("Adding aggregate with info ");
 		gprintLit(head);
 		report(" over set %d, %s =< value =< %s, %d, %s \n", setid, toString(lb).c_str(), toString(ub).c_str(), type, defined==DEF?"defined":"completion");
@@ -292,7 +293,7 @@ bool PCSolver::addAggrExprBB(Lit head, int setid, const Weight& lb, const Weight
 bool PCSolver::addAggrExpr(Lit head, int setid, const Weight& bound, AggSign boundsign, AggType type, AggSem defined) {
 	assert(getAggSolver()!=NULL);
 
-	if (modes().verbosity >= 7) {
+	if (modes().verbosity >= 4) {
 		report("Adding aggregate with info ");
 		gprintLit(head);
 		report(", %d, %s, %s, %d, %s \n", setid, toString(bound).c_str(), boundsign==AGGSIGN_UB?"lower":"greater", type, defined==DEF?"defined":"completion");
@@ -532,11 +533,6 @@ rClause PCSolver::propagate(Lit l) {
 		}
 	}
 
-	//TODO preconditions of propagateatend!
-/*	if(confl==nullPtrClause && aggsolver->present){
-		confl = getAggSolver()->propagateAtEndOfQueue();
-	}*/
-
 	return confl;
 }
 
@@ -547,9 +543,6 @@ rClause PCSolver::propagateAtEndOfQueue() {
 	if(init){ return nullPtrClause;	}
 
 	rClause confl = nullPtrClause;
-	/*if(idsolver->present){
-		confl = getIDSolver()->propagateAtEndOfQueue();
-	}*/
 	for(lsolvers::const_iterator i=solvers.begin(); confl==nullPtrClause && i<solvers.end(); i++){
 		if((*i)->present){
 			//IMPORTANT: if any solver has made propagations, we go back to unit propagation first!
@@ -908,7 +901,7 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
 				}
 			}
 
-			if (modes().verbosity > 1) {
+			if (modes().verbosity > 3) {
 				printf("Temporary model: \n");
 				for (int i = 0; i < m.size(); i++) {
 					printf("%s%s%d", (i == 0) ? "" : " ", !sign(m[i]) ? "" : "-", gprintVar(var(m[i])));
@@ -922,11 +915,6 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
 	}
 
 	return optimumreached;
-}
-
-vector<rClause> PCSolver::getClausesWhichOnlyContain(const vector<Var>& vars) {
-	return vector<rClause> ();
-	//return getSolver()->getClausesWhichOnlyContain(vars);
 }
 
 ///////

@@ -22,6 +22,7 @@ typedef std::vector<PropagationInfo> vprop;
 ///////
 // DECLARATIONS
 ///////
+
 struct FWTrail{
 	int level, start; //Start is the propagation info from which the next propagatatend should start (first one not seen)
 	Weight CBC, CBP;
@@ -52,7 +53,7 @@ protected:
      */
     virtual lbool 	canPropagateHead		(const Agg& agg, const Weight& CC, const Weight& CP, Expl& basedon) const;
 
-    virtual rClause propagate				(const Agg& agg, bool headtrue) = 0;
+    virtual rClause propagateSpecificAtEnd	(const Agg& agg, bool headtrue) = 0;
 
     virtual void 	addToCertainSet			(const WL& l) = 0;
 	virtual void 	removeFromPossibleSet	(const WL& l) = 0;
@@ -71,8 +72,7 @@ public:
 
 	virtual void 	initialize				(bool& unsat, bool& sat);
 	virtual rClause propagate				(const Lit& p, Watch* ws, int level);
-// TODO dit is lelijk, maar het verplicht om eerst de root propagate op te roepen en daarna pas de lagere, maar er zullen wel betere manieren zijn.
-	virtual rClause propagate				(const Agg& agg, int level);
+	virtual rClause propagate				(int level, const Agg& agg);
 	virtual rClause	propagateAtEndOfQueue	(int level);
 	virtual void 	backtrack				(int nblevels, int untillevel);
 	virtual void 	getExplanation			(vec<Lit>& lits, const AggReason& ar) = 0;
@@ -86,10 +86,10 @@ public:
 	SPFWAgg(TypedSet* agg);
 	virtual ~SPFWAgg(){};
 
-	virtual rClause propagate				(const Agg& agg, bool headtrue);
 	virtual void 	getExplanation			(vec<Lit>& lits, const AggReason& ar);
 
 protected:
+	virtual rClause propagateSpecificAtEnd	(const Agg& agg, bool headtrue);
 	virtual void 	addToCertainSet			(const WL& l);
 	virtual void 	removeFromPossibleSet	(const WL& l);
 };
@@ -122,7 +122,7 @@ protected:
 	virtual void 	addToCertainSet			(const WL& l);
 	virtual void 	removeFromPossibleSet	(const WL& l);
 
-	virtual rClause propagate				(const Agg& agg, bool headtrue);
+	virtual rClause propagateSpecificAtEnd				(const Agg& agg, bool headtrue);
 	virtual rClause propagateAll			(const Agg& agg, bool headtrue);
 };
 
