@@ -138,7 +138,6 @@ public:
 	 *
 	 * @pre: no weights==0 when using a product aggregate
 	 */
-	bool 				addAggrExprBB				(Var headv, int setid, const Weight& lb, const Weight& ub, AggType type, AggSem headeq);
 	bool 				addAggrExpr				(int defn, int set_id, const Weight& bound, AggSign boundsign, AggType type, AggSem headeq);
 
 	void 				findClausalPropagations	();

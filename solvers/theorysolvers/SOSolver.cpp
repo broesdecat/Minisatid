@@ -224,19 +224,6 @@ bool SOSolver::addSet(vsize modid, int setid, vec<Lit>& lits, vector<Weight>& w)
 	ModSolver* m = getModSolver(modid);
 	return m->addSet(setid, lits, w);
 }
-bool SOSolver::addAggrExprBB(vsize modid, Lit head, int setid, const Weight& lb, const Weight& ub, AggType type, AggSem defined){
-	if(state==LOADINGHIER){
-		state = LOADINGREST;
-	}
-	assert(state==LOADINGREST);
-
-	if(sign(head)){
-		throw idpexception("Negative heads are not allowed for aggregate expressions!\n");
-	}
-	checkexistsModSolver(modid);
-	ModSolver* m = getModSolver(modid);
-	return m->addAggrExprBB(head, setid, lb, ub, type, defined);
-}
 
 bool SOSolver::addAggrExpr(vsize modid, Lit head, int setid, const Weight& bound, AggSign boundsign, AggType type, AggSem defined){
 	if(state==LOADINGHIER){

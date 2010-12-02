@@ -209,35 +209,22 @@ lbool FWAgg::canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP
 
 	lbool result = l_Undef;
 
-	if(agg.hasUB() && agg.hasLB()){
-		if(CC > agg.getBound().lb){
+	//add if derived: headproptime[agg.getIndex()] = getStack().size();
+	if(agg.hasUB()){
+		if(CC > agg.getBound()){
 			basedon = BASEDONCC;
 			result = l_False;
-		}else if(CP < agg.getBound().ub){
+		}else if(CP <= agg.getBound()){
 			basedon = BASEDONCP;
-			result = l_False;
-		}else if(CC >= agg.getBound().ub && CP <= agg.getBound().lb){
-			basedon = BASEDONBOTH;
 			result = l_True;
 		}
 	}else{
-		//add if derived: headproptime[agg.getIndex()] = getStack().size();
-		if(agg.hasUB()){
-			if(CC > agg.getBound().ub){
-				basedon = BASEDONCC;
-				result = l_False;
-			}else if(CP <= agg.getBound().ub){
-				basedon = BASEDONCP;
-				result = l_True;
-			}
-		}else{
-			if(CC>= agg.getBound().lb){
-				basedon = BASEDONCC;
-				result = l_True;
-			}else if(CP < agg.getBound().lb){
-				basedon = BASEDONCP;
-				result = l_False;
-			}
+		if(CC>= agg.getBound()){
+			basedon = BASEDONCC;
+			result = l_True;
+		}else if(CP < agg.getBound()){
+			basedon = BASEDONCP;
+			result = l_False;
 		}
 	}
 
@@ -298,9 +285,8 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	//check monotone that are false when monotone became true, a-m became false or head became false
 	bool checkmonofalse = (ar.isHeadReason() && !headtrue) || (!ar.isHeadReason() && ((mono && inset) || (!mono && !inset)));
 
-	//FIXME solve for two bounds and based on both
 	bool ub = agg.hasUB();
-	const Weight& bound = ub?agg.getBound().ub:agg.getBound().lb;
+	const Weight& bound = ub?agg.getBound():agg.getBound();
 	bool satisfied = false;
 	vector<WL> reasons;
 	if(checkmonofalse){
@@ -356,7 +342,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 						max = getSetp()->getType().remove(max, (*i).getWeight());
 					}
 
-					if(isSatisfied(headtrue, max, false, agg.hasUB(), agg.hasLB()?agg.getBound().lb:agg.getBound().ub)){
+					if(isSatisfied(headtrue, max, false, agg.hasUB(), agg.getBound())){
 						reasons.erase(i);
 						changes = true;
 					}else{
@@ -377,7 +363,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 						min = getSetp()->getType().add(min, (*i).getWeight());
 					}
 
-					if(isSatisfied(headtrue, min, true, agg.hasUB(), agg.hasLB()?agg.getBound().lb:agg.getBound().ub)){
+					if(isSatisfied(headtrue, min, true, agg.hasUB(), agg.getBound())){
 						reasons.erase(i);
 						changes = true;
 					}else{
@@ -451,12 +437,12 @@ rClause MaxFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 	rClause confl = nullPtrClause;
 	if (headtrue && agg.hasUB()) {
 		for (vwl::const_reverse_iterator i = getSet().getWL().rbegin(); confl == nullPtrClause && i
-					< getSet().getWL().rend() && agg.getBound().ub < (*i).getWeight(); i++) {
+					< getSet().getWL().rend() && agg.getBound() < (*i).getWeight(); i++) {
 			confl = getSet().getSolver()->notifySolver(new AggReason(agg, HEADONLY, ~(*i).getLit(), (*i).getWeight()));
 		}
 	} else if (!headtrue && agg.hasLB()) {
 		for (vwl::const_reverse_iterator i = getSet().getWL().rbegin(); confl == nullPtrClause && i
-					< getSet().getWL().rend() && agg.getBound().lb <= (*i).getWeight(); i++) {
+					< getSet().getWL().rend() && agg.getBound() <= (*i).getWeight(); i++) {
 			confl = getSet().getSolver()->notifySolver(new AggReason(agg, HEADONLY, ~(*i).getLit(), (*i).getWeight()));
 		}
 	}
@@ -493,15 +479,15 @@ rClause MaxFWAgg::propagateAll(const Agg& agg, bool headtrue) {
 	for (vwl::const_iterator i=getSet().getWL().begin(); found<2 && i<getSet().getWL().end(); i++) {
 		const WL& wl = (*i);
 		if(headtrue){
-			if(agg.hasLB() && wl.getWeight() < agg.getBound().lb){
+			if(agg.hasLB() && wl.getWeight() < agg.getBound()){
 				continue;
 			}
-			if(agg.hasUB() && wl.getWeight() > agg.getBound().ub){
+			if(agg.hasUB() && wl.getWeight() > agg.getBound()){
 				continue;
 			}
 		}else{ //headfalse
-			if((!agg.hasLB() || wl.getWeight() >= agg.getBound().lb) &&
-				(!agg.hasUB() || wl.getWeight() <= agg.getBound().ub)){
+			if((!agg.hasLB() || wl.getWeight() >= agg.getBound()) &&
+				(!agg.hasUB() || wl.getWeight() <= agg.getBound())){
 				continue;
 			}
 		}
@@ -525,20 +511,8 @@ void MaxFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	const Agg& agg = ar.getAgg();
 	const Lit& head = agg.getHead();
 
-	//FIXME double bounds
-	/*
-	 * headexplan and headtrue: all larger than ub false, one larger or eq true
-	 * headexplan and headfalse: one larger than ub true or all between bounds false
-	 *
-	 * setexplan and headtrue: if between bounds: all others between bounds and head
-	 * 							if above bounds or below bounds: only head
-	 * setexplan and headfalse: if above bounds: one between and head
-	 * 							if below: no propagation
-	 * 							if between: all above and head
-	 */
-
 	bool search = true, one, inset = false;
-	Weight bound = agg.hasLB()?agg.getBound().lb:agg.getBound().ub;
+	Weight bound = agg.hasLB()?agg.getBound():agg.getBound();
 	if(!ar.isHeadReason()){
 		lits.push(getSolver()->isTrue(head) ? ~head : head);
 		if(getSolver()->isTrue(head)){
@@ -634,9 +608,8 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 	vwl::const_iterator from = wls.end();
 	Weight weightbound;
 
-	//FIXME solve for double bounds
 	bool ub = agg.hasUB();
-	const Weight& bound = ub?agg.getBound().ub:agg.getBound().lb;
+	const Weight& bound = ub?agg.getBound():agg.getBound();
 	Expl basedon;
 	//determine the lower bound of which weight literals to consider
 	const AggProp& type = getSet().getType();
@@ -744,10 +717,8 @@ void SumFWAgg::initialize(bool& unsat, bool& sat) {
 		}
 		getSet().setWL(wlits2);
 		for (vpagg::const_iterator i = getSet().getAgg().begin(); i < getSet().getAgg().end(); i++) {
-			AggBound b = (*i)->getBound();
-			b.ub = getSet().getType().add(b.ub, totalneg);
-			b.lb = getSet().getType().add(b.lb, totalneg);
-			(*i)->setBound(b);
+			Weight b = getSet().getType().add((*i)->getBound(), totalneg);
+			(*i)->setBound(AggBound((*i)->getSign(), b));
 		}
 	}
 

@@ -91,11 +91,6 @@ bool ModSolver::addSet(int setid, vec<Lit>& lits, vector<Weight>& w){
 	return getPCSolver()->addSet(setid, lits, w);
 }
 
-bool ModSolver::addAggrExprBB(Lit head, int setid, const Weight& lb, const Weight& ub, AggType type, AggSem defined){
-	addVar(var(head));
-	return getPCSolver()->addAggrExprBB(head, setid, lb, ub, type, defined);
-}
-
 bool ModSolver::addAggrExpr(Lit head, int setid, const Weight& bound, AggSign boundsign, AggType type, AggSem defined){
 	addVar(var(head));
 	return getPCSolver()->addAggrExpr(head, setid, bound, boundsign, type, defined);

@@ -213,10 +213,6 @@ bool WrappedPCSolver::addSet(int id, const vector<Literal>& lits, const vector<W
 	return getSolver()->addSet(id, ll, w);
 }
 
-bool WrappedPCSolver::addAggrExprBB(Literal head, int setid, const Weight& lb, const Weight& ub, AggType type, AggSem sem){
-	return getSolver()->addAggrExprBB(checkLit(head), setid, lb, ub, type, sem);
-}
-
 bool WrappedPCSolver::addAggrExpr(Literal head, int setid, const Weight& bound, AggSign sign, AggType type, AggSem sem){
 	return getSolver()->addAggrExpr(checkLit(head), setid, bound, sign, type, sem);
 }
@@ -321,10 +317,6 @@ bool WrappedSOSolver::addSet(vsize modid, int id, vector<WLtuple>& lws){
 	checkLits(lits, ll);
 
 	return addSet(modid, id, lits, weights);
-}
-
-bool WrappedSOSolver::addAggrExprBB(vsize modid, Literal head, int setid, const Weight& lb, const Weight& ub, AggType type, AggSem sem){
-	return getSolver()->addAggrExprBB(modid, checkLit(head), setid, lb, ub, type, sem);
 }
 
 bool WrappedSOSolver::addAggrExpr(vsize modid, Literal head, int setid, const Weight& bound, AggSign sign, AggType type, AggSem sem){

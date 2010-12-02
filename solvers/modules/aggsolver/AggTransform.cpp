@@ -183,53 +183,20 @@ bool Aggrs::transformMinToMax(TypedSet* set, vps& sets) {
 
 		//Invert the bound of all the aggregates involved
 		for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
-			AggBound bound = (*i)->getBound();
-			Weight temp = bound.ub;
-			bound.ub = -bound.lb;
-			bound.lb = -temp;
-			if(bound.sign==AGGSIGN_LB){
-				bound.sign = AGGSIGN_UB;
-			}else if(bound.sign==AGGSIGN_UB){
-				bound.sign = AGGSIGN_LB;
-			}
-			(*i)->setBound(bound);
+			Weight bound = -(*i)->getBound();
+			AggSign sign = AGGSIGN_LB?AGGSIGN_UB:AGGSIGN_LB;
+			(*i)->setBound(AggBound(sign, bound));
 		}
 		set->getAgg()[0]->setType(MAX);
 	}
 	return true;
 }
 
-//Split aggregates with 2 bounds into separate parts
-bool Aggrs::transformSplitAggregate(TypedSet* set, vps& sets){
-	bool notunsat = true;
-	PCSolver* pcsol = set->getSolver()->getPCSolver();
-	for(vsize i = 0; i<set->getAgg().size(); i++){
-		Agg& agg = *set->getAggNonConst()[i];
-		if(agg.hasUB() && agg.hasLB()){
-			Lit orighead = agg.getHead();
-			Lit headone = createPositiveLiteral(pcsol->newVar()), headtwo = createPositiveLiteral(pcsol->newVar());
-			agg.setHead(headone);
-			Agg* two = new Agg(headtwo, agg.getSem(), agg.getType(), false);
-			AggBound boundone(true, agg.getBound().lb), boundtwo(false, agg.getBound().ub);
-			agg.setBound(boundone);
-			two->setBound(boundtwo);
-			set->addAgg(two);
-			vec<Lit> lits;
-			lits.push(headone);
-			lits.push(headtwo);
-			notunsat = notunsat && pcsol->addEquivalence(orighead, lits, true);
-			pcsol->varBumpActivity(var(orighead));
-		}
-	}
-	return notunsat;
-}
-
 //After type setting and transforming to max
 bool Aggrs::transformMaxToSAT(TypedSet* set, vps& sets){
 	//Simple heuristic to choose for encoding as SAT
 	if (set->getType().getType()!=MAX
-			|| set->getAgg().size() != 1
-			|| (set->getAgg()[0]->hasLB() && set->getAgg()[0]->hasUB())) {
+			|| set->getAgg().size() != 1) {
 		return true;
 	}
 	bool notunsat = true;
@@ -242,7 +209,7 @@ bool Aggrs::transformMaxToSAT(TypedSet* set, vps& sets){
 
 	const Agg& agg = *set->getAgg()[0];
 	bool ub = agg.hasUB();
-	const Weight& bound = ub?agg.getBound().ub:agg.getBound().lb;
+	const Weight& bound = ub?agg.getBound():agg.getBound();
 	if (agg.isDefined()) {
 		for (vwl::const_reverse_iterator i = set->getWL().rbegin(); i < set->getWL().rend()
 					&& (*i).getWeight() >= bound; i++) {
@@ -293,8 +260,8 @@ bool Aggrs::transformCardGeqOneToEquiv(TypedSet* set, vps& sets){
 	if (set->getAgg()[0]->getType() == CARD) {
 		vpagg remaggs;
 		for (vpagg::const_iterator i = set->getAgg().begin(); !unsat && i < set->getAgg().end(); i++) {
-			if((*i)->hasLB() && !(*i)->hasUB()){
-				const Weight& bound = (*i)->getBound().lb;
+			if((*i)->hasLB()){
+				const Weight& bound = (*i)->getBound();
 				if(bound-set->getESV()==0){
 					lbool headvalue = set->getSolver()->value((*i)->getHead());
 					if(headvalue==l_False){
@@ -349,8 +316,7 @@ bool Aggrs::transformSumsToCNF(vps& sets, PCSolver* pcsolver) {
 		for (vsize j = 0; j < (*i)->getAgg().size(); j++) {
 			Agg* agg = (*i)->getAgg()[j];
 
-			if((agg->hasLB() && agg->hasUB())
-					|| agg->isOptim()
+			if(agg->isOptim()
 					|| (agg->getType()!=SUM && agg->getType()!=CARD)
 					|| agg->getSem() == DEF){
 				remaining.push_back(agg);
@@ -363,15 +329,13 @@ bool Aggrs::transformSumsToCNF(vps& sets, PCSolver* pcsolver) {
 			pbaggs.push_back(ppbaggineq);
 			PBAgg& pbaggeq = *ppbaggeq;
 			PBAgg& pbaggineq = *ppbaggineq;
-			Weight bound;
+			Weight bound = agg->getBound();
 			if (agg->hasUB()) {
 				pbaggeq.sign = -1;
 				pbaggineq.sign = 2;
-				bound = agg->getBound().ub;
 			} else {
 				pbaggeq.sign = 1;
 				pbaggineq.sign = -2;
-				bound = agg->getBound().lb;
 			}
 			pbaggeq.bound = bound;
 			pbaggineq.bound = bound;

@@ -154,13 +154,8 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 	return true;
 }
 
-bool AggSolver::addAggrExprBB(Var headv, int setid, const Weight& lb, const Weight& ub, AggType type, AggSem headeq) {
-	AggBound b(lb, ub);
-	return addAggrExpr(headv, setid, b, type, headeq);
-}
-
 bool AggSolver::addAggrExpr(Var headv, int setid, const Weight& bound, AggSign boundsign, AggType type, AggSem headeq) {
-	AggBound b(boundsign==AGGSIGN_LB, bound);
+	AggBound b(AGGSIGN_LB, bound);
 	return addAggrExpr(headv, setid, b, type, headeq);
 }
 
@@ -211,8 +206,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType
 	//the head of the aggregate
 	Lit head = mkLit(headv, false);
 
-	Agg* agg = new Agg(head, headeq, type);
-	agg->setBound(bound);
+	Agg* agg = new Agg(head, AggBound(bound),headeq, type);
 	set->addAgg(agg);
 
 	if (verbosity() >= 4) { //Print info on added aggregate
@@ -266,10 +260,6 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		unsat = unsat || !transformMinToMax(set, sets());
 		unsat = unsat || !transformAddTypes(set, sets());
 		unsat = unsat || !transformVerifyWeights(set, sets());
-
-		//TODO temporary
-		unsat = unsat || !transformSplitAggregate(set, sets());
-
 		unsat = unsat || !transformMaxToSAT(set, sets());
 		unsat = unsat || !transformSetReduction(set, sets());
 		unsat = unsat || !transformCardGeqOneToEquiv(set, sets());
@@ -718,8 +708,7 @@ bool AggSolver::addMnmzSum(Var headv, int setid) {
 		}
 	}
 
-	Agg* ae = new Agg(head, COMP, SUM);
-	ae->setBound(AggBound(AGGSIGN_LB, max+1));
+	Agg* ae = new Agg(head, AggBound(AGGSIGN_LB, max+1), COMP, SUM);
 	ae->setOptim();
 	set->addAgg(ae);
 
@@ -739,7 +728,7 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
 
 	report("Current optimum: %s\n", toString(prop->getCC()).c_str());
 
-	a->setBound(AggBound(a->hasLB(), prop->getCC() - 1));
+	a->setBound(AggBound(a->getSign(), prop->getCC() - 1));
 
 	if (s->getBestPossible() == prop->getCC()) {
 		return true;

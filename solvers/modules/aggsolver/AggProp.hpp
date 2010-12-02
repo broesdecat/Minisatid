@@ -26,12 +26,10 @@ class AggReason;
 class Propagator;
 
 struct AggBound{
-	Weight lb, ub;
+	Weight bound;
 	AggSign sign;
 
-	AggBound():lb(0), ub(0), sign(AGGSIGN_NONE){}
-	AggBound(bool lb, const Weight& b):lb(lb?b:0), ub(!lb?b:0), sign(lb?AGGSIGN_LB:AGGSIGN_UB){}
-	AggBound(const Weight& lb, const Weight& ub):lb(lb), ub(ub), sign(AGGSIGN_BOTH){}
+	AggBound(AggSign sign, const Weight& b):bound(b), sign(sign){}
 };
 
 class Agg{
@@ -45,18 +43,19 @@ private:
 	bool		optim;
 
 public:
-	Agg(const Lit& head, AggSem sem, AggType type, bool optim = false):
-		set(NULL), head(head), sem(sem), index(-1), type(type), optim(optim){	}
+	Agg(const Lit& head, AggBound b, AggSem sem, AggType type, bool optim = false):
+		set(NULL), bound(b), head(head), sem(sem), index(-1), type(type), optim(optim){	}
 
 	TypedSet*	getSet		()					const	{ return set; }
 	const Lit& 	getHead		() 					const 	{ return head; }
 	void	 	setHead		(const Lit& l)			 	{ head = l; }
 	int			getIndex	()					const	{ return index; }
 
-	const AggBound&	getBound()					const	{ return bound; }
+	const Weight&	getBound()					const	{ return bound.bound; }
 	void		setBound	(AggBound b)				{ bound = b; }
 	bool		hasUB		()					const	{ return bound.sign!=AGGSIGN_LB; }
 	bool		hasLB		()					const	{ return bound.sign!=AGGSIGN_UB; }
+	AggSign		getSign		()					const	{ return bound.sign; }
 
 	bool 		isDefined	()					const	{ return sem==DEF; }
 	AggSem		getSem		()					const	{ return sem; }

@@ -33,12 +33,12 @@ void Aggrs::print(const Agg& ae, bool endl) {
 	if (ae.hasUB()) {
 		report(" <- ");
 	} else {
-		report(" <- %s <= ", toString(ae.getBound().lb).c_str());
+		report(" <- %s <= ", toString(ae.getBound()).c_str());
 	}
 	report("%s{", ae.getType()==MAX?"MAX":ae.getType()==MIN?"MIN":ae.getType()==SUM?"SUM":ae.getType()==CARD?"CARD":"PROD");
 	print(*set, false);
 	if (ae.hasUB()) {
-		report(" <= %s, ", toString(ae.getBound().ub).c_str());
+		report(" <= %s, ", toString(ae.getBound()).c_str());
 	} else {
 		report(", ");
 	}

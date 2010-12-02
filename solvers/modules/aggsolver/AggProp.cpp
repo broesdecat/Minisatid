@@ -25,7 +25,7 @@ shared_ptr<AggProp> AggProp::card = shared_ptr<AggProp> (new CardProp());
 shared_ptr<AggProp> AggProp::prod = shared_ptr<AggProp> (new ProdProp());
 
 bool MaxProp::isMonotone(const Agg& agg, const WL& l, bool ub) const {
-	const Weight& w = ub?agg.getBound().ub:agg.getBound().lb;
+	const Weight& w = ub?agg.getBound():agg.getBound();
 	return (ub && l.getWeight() <= w) || (!ub);
 }
 
@@ -234,7 +234,7 @@ bool MaxProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, 
 
 	if (justified && agg.hasUB()) {
 		justified = false;
-		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() > agg.getBound().ub; i++) {
+		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() > agg.getBound(); i++) {
 			if (oppositeIsJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push(~(*i).getLit()); //push negative literal, because it should become false
 			} else if (real || currentjust[var((*i).getLit())] != 0) {
@@ -248,7 +248,7 @@ bool MaxProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, 
 
 	if(justified && agg.hasLB()){
 		justified = false;
-		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() >= agg.getBound().lb; i++) {
+		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() >= agg.getBound(); i++) {
 			if (isJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push((*i).getLit());
 				justified = true;
@@ -287,7 +287,7 @@ bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, v
 			if (oppositeIsJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push(~(*i).getLit());
 				bestpossible = type.remove(bestpossible, (*i).getWeight());
-				if (bestpossible <= agg.getBound().ub) {
+				if (bestpossible <= agg.getBound()) {
 					justified = true;
 				}
 			} else if (real || currentjust[var((*i).getLit())] != 0) {
@@ -302,7 +302,7 @@ bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, v
 			if (isJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push((*i).getLit());
 				bestcertain = type.add(bestcertain, (*i).getWeight());
-				if (bestcertain >= agg.getBound().lb) {
+				if (bestcertain >= agg.getBound()) {
 					justified = true;
 				}
 			} else if (real || currentjust[var((*i).getLit())] != 0) {

@@ -889,6 +889,8 @@ bool Solver::solve(const vec<Lit>& assumps /*AB*/, bool nosearch /*AE*/)
     double  nof_learnts   = nClauses() * learntsize_factor;
     lbool   status        = l_Undef;
 
+
+
     report("Activities: ");
     for(int i=0; i<order_heap.size(); i++){
     	report("%d ", order_heap[i]);
