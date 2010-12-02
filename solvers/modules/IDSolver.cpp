@@ -90,13 +90,12 @@ bool IDSolver::isDefinedByAggr(Var v) const {
 
 IDSolver::IDSolver(pPCSolver s) :
 		DPLLTmodule(s), recagg(0), sem(s->modes().defsem),
-		aggsolver(NULL), firstsearch(true), prev_conflicts(0), unfoundedsets(0), cycle_sources(0),
-		previoustrailatsimp(-1), justifiable_cycle_sources(0),
-		cycles(0),
-		cycle_sizes(0),
-		justify_conflicts(0), // ecnf_mode.def
+		aggsolver(NULL), unfoundedsets(0), previoustrailatsimp(-1),
+		firstsearch(true), prev_conflicts(0),
+		cycle_sources(0), justifiable_cycle_sources(0), cycles(0), cycle_sizes(0), justify_conflicts(0),
 		nb_times_findCS(0), justify_calls(0), cs_removed_in_justify(0), succesful_justify_calls(0),
-		extdisj_sizes(0), total_marked_size(0), posloops(true), negloops(true), adaption_total(0),
+		extdisj_sizes(0), total_marked_size(0), atoms_in_pos_loops(0),
+		posloops(true), negloops(true), adaption_total(0),
 		adaption_current(0) {
 }
 
@@ -186,7 +185,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 
 	//First, go over list of aggregate heads to remove those which are not longer defined
 	//(removing them one by one was much too expensive)
-	for (int i = 0; i < defdVars.size(); i++) {
+	for (vsize i = 0; i < defdVars.size(); i++) {
 		if (toremoveaggrheads.find(defdVars[i]) != toremoveaggrheads.end()) {
 			defType[defdVars[i]] = WASDEFAGGR;
 			defOcc[defdVars[i]] = NONDEFOCC;
@@ -198,7 +197,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	}
 
 	if (verbosity() >= 1) {
-		report("| Number of rules           : %6d                                          |\n",defdVars.size());
+		report("| Number of rules           : %6zu                                          |\n",defdVars.size());
 	}
 
 	// Initialize scc of full dependency graph
@@ -210,19 +209,11 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	vec<Var> nodeinmixed;
 	int counter = 1;
 
-	for (int i = 0; i < defdVars.size(); i++) {
-		if (visited[defdVars[i]] == 0) {
-			visitFull(defdVars[i], scc, incomp, stack, visited, counter, true, rootofmixed, nodeinmixed);
+	for (vector<Var>::const_iterator i = defdVars.begin(); i < defdVars.end(); i++) {
+		if (visited[(*i)] == 0) {
+			visitFull((*i), scc, incomp, stack, visited, counter, true, rootofmixed, nodeinmixed);
 		}
 	}
-
-	/*if (verbosity() > 9) {
-		report("Printing sccs full graph:");
-		for (int i = 0; i < nvars; i++) {
-			report("SCC of %d is %d\n", gprintVar(i), gprintVar(scc[i]));
-		}
-		report("Ended printing sccs. Size of roots = %d, nodes in mixed = %d.\n", rootofmixed.size(), nodeinmixed.size());
-	}*/
 
 	//all var in rootofmixed are the roots of mixed loops. All other are no loops (size 1) or positive loops
 
@@ -243,8 +234,11 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 
 	if (verbosity() > 9) {
 		report("Printing sccs pos graph:");
-		for (int i = 0; i < nvars; i++) {
-			report("SCC of %d is %d\n", gprintVar(i), gprintVar(scc[i]));
+		for (int i = 0; i < scc.size(); i++) {
+			if(i%8==0){
+				report("\n");
+			}
+			report("SCC of %d is %d, ", gprintVar(i), gprintVar(scc[i]));
 		}
 		report("Ended printing sccs.\n");
 	}
@@ -256,8 +250,8 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 
 	Lit l;
 	vector<Var> reducedVars;
-	for (int i = 0; i < defdVars.size(); ++i) {
-		Var v = defdVars[i];
+	for (vector<int>::const_iterator i = defdVars.begin(); i < defdVars.end(); ++i) {
+		Var v = (*i);
 		bool isdefd = false;
 		switch (getDefType(v)) {
 			case DISJ: {
@@ -363,31 +357,17 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 		return;
 	}
 
-	if (verbosity() > 5) {
-		for (int i = 0; i < defdVars.size(); i++) {
-			if (i != 0) {
-				report(", ");
-			}
-			Var w = defdVars[i];
-			switch (defOcc[w]) {
-				case NONDEFOCC:
-					report("%d=nondef", w);
-					break;
-				case MIXEDLOOP:
-					report("%d=mixed", w);
-					break;
-				case BOTHLOOP:
-					report("%d=both", w);
-					break;
-				case POSLOOP:
-					report("%d=pos", w);
-					break;
-			}
-			if (i % 50 == 0) {
-				report("\n");
+	//This heuristic on its own solves hamiltonian path!
+	if(modes().bumpidonstart){
+		for (vector<Var>::const_iterator i = defdVars.begin(); i < defdVars.end(); i++) {
+			const Var& v = *i;
+			if(originallyDefined(v) && (defType[v]==DISJ || defType[v]==WASDEFDISJ)){
+				const PropRule& r = *getDefinition(v);
+				for(int j=0; j<r.size(); j++){
+					getPCSolver()->varBumpActivity(var(r[j]));
+				}
 			}
 		}
-		report("\n");
 	}
 }
 
@@ -572,8 +552,8 @@ bool IDSolver::simplify() {
 
 	// initialize nb_body_lits_to_justify
 	vec<Var> usedseen;
-	for (int i = 0; i < defdVars.size(); i++) {
-		Var v = defdVars[i];
+	for (vector<int>::const_iterator i = defdVars.begin(); i < defdVars.end(); i++) {
+		Var v = (*i);
 		if (isFalse(v)) {
 			continue;
 		}
@@ -649,8 +629,8 @@ bool IDSolver::simplify() {
 	 */
 	vector<Var> reducedVars;
 	bool aggpresent = false;
-	for (int i = 0; i < defdVars.size(); i++) {
-		Var v = defdVars[i];
+	for (vector<int>::const_iterator i = defdVars.begin(); i < defdVars.end(); i++) {
+		Var v = (*i);
 		if (seen[v] > 0 || isFalse(v)) {
 			if (verbosity() >= 2) {
 				report(" %d", gprintVar(v));
@@ -685,8 +665,8 @@ bool IDSolver::simplify() {
 	conj_occurs.clear();
 	disj_occurs.resize(2 * nVars());
 	conj_occurs.resize(2 * nVars());
-	for (int i = 0; i < defdVars.size(); ++i) {
-		Var v = defdVars[i];
+	for (vector<int>::const_iterator i = defdVars.begin(); i < defdVars.end(); ++i) {
+		Var v = (*i);
 		if (getDefType(v) == CONJ || getDefType(v) == DISJ) {
 			const PropRule& dfn = *getDefinition(v);
 			for (int j = 0; j < dfn.size(); ++j) {
@@ -727,11 +707,14 @@ bool IDSolver::simplify() {
 	}
 
 	if (verbosity() > 5) {
-		for (int i = 0; i < defdVars.size(); i++) {
-			if (i != 0) {
+		int count = 0;
+		report("Occurence types of defined variables: \n");
+		for (vector<int>::const_iterator i = defdVars.begin(); i < defdVars.end(); i++, count++) {
+			if (count>0) {
 				report(", ");
 			}
-			Var w = defdVars[i];
+
+			Var w = (*i);
 			switch (defOcc[w]) {
 				case NONDEFOCC:
 					report("%d=nondef", w);
@@ -746,7 +729,7 @@ bool IDSolver::simplify() {
 					report("%d=pos", w);
 					break;
 			}
-			if (i % 50 == 0) {
+			if (count % 50 == 0) {
 				report("\n");
 			}
 		}
@@ -825,31 +808,20 @@ rClause IDSolver::propagateAtEndOfQueue() {
 	if (!isInitialized() || !indirectPropagateNow()) {
 		return nullPtrClause;
 	}
-
+/*
 	//Testing new heuristic!
 	//FIXME: Too slow!
 	const vec<Lit>& trail = getPCSolver()->getTrail();
 	int recentindex = getPCSolver()->getStartLastLevel();
 	for (int i = recentindex; i < trail.size(); i++) {
-		const Lit& l = trail[i];
-		const Var& v = var(l);
+		const Var& v = var(trail[i]);
 		if(originallyDefined(v) && (defType[v]==DISJ || defType[v]==WASDEFDISJ)){
-			bool sometrue = false;
-			PCSolver* const pcsol = getPCSolver();
 			const PropRule& r = *getDefinition(v);
-			//for(int j=0; !sometrue && j<r.size(); j++){
-			//	if(value(var(r[j]))==l_True){
-			//		sometrue = true;
-			//	}
-			//}
-			if(!sometrue){
-				for(int j=0; j<r.size(); j++){
-					//reportf("Bumping");
-					pcsol->varBumpActivity(var(r[j]));
-				}
+			for(int j=0; j<r.size(); j++){
+				getPCSolver()->varBumpActivity(var(r[j]));
 			}
 		}
-	}
+	}*/
 
 	if(!posloops){
 		return nullPtrClause;
@@ -979,9 +951,9 @@ void IDSolver::findCycleSources() {
 		// NOTE: with a clever trail system, we could even after conflicts avoid having to look at all rules.
 		firstsearch = false;
 		prev_conflicts = getPCSolver()->getConflicts();
-		for (int i = 0; i < defdVars.size(); i++) {
-			if (defType[defdVars[i]] == DISJ || defType[defdVars[i]] == AGGR) {
-				checkJustification(defdVars[i]);
+		for (vector<Var>::const_iterator i = defdVars.begin(); i < defdVars.end(); i++) {
+			if (defType[*i] == DISJ || defType[*i] == AGGR) {
+				checkJustification(*i);
 			}
 		}
 	}
@@ -1012,6 +984,8 @@ void IDSolver::checkJustification(Var head) {
 	}
 
 	//Incorrect to prune out heads in which Lit is not the justification
+
+	getPCSolver()->varBumpActivity(head);
 
 	vec<Lit> jstf;
 	bool external = true;
@@ -1090,9 +1064,9 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 	tmpseen.push(cs);
 
 	if (verbosity() > 9) {
-		for (int i = 0; i < defdVars.size(); i++) {
-			if (isJustified(defdVars[i])) {
-				report("Still justified %d\n", gprintVar(defdVars[i]));
+		for (vector<Var>::const_iterator i = defdVars.begin(); i < defdVars.end(); i++) {
+			if (isJustified(*i)) {
+				report("Still justified %d\n", gprintVar(*i));
 			}
 		}
 	}
@@ -1502,8 +1476,8 @@ void IDSolver::addLoopfClause(Lit l, vec<Lit>& lits) {
 rClause IDSolver::getExplanation(const Lit& l) {
 	assert(getPCSolver()->modes().idclausesaving>0);
 	vec<Lit> lits;
-	for (int i = 0; i < reasons[var(l)].size(); i++) {
-		lits.push(reasons[var(l)][i]);
+	for (vector<Lit>::const_iterator i = reasons[var(l)].begin(); i < reasons[var(l)].end(); i++) {
+		lits.push(*i);
 	}
 	return getPCSolver()->createClause(lits, true);
 }
@@ -1715,7 +1689,7 @@ bool IDSolver::isCycleFree() const {
 		return true;
 	}
 
-	int idx = 0;
+	uint idx = 0;
 	while (cnt_nonjustified > 0 && idx < justified.size()) {
 		Lit l = justified[idx++];
 
@@ -1979,8 +1953,8 @@ void IDSolver::findMixedCycles(vector<Var> &root, vector<int>& rootofmixed) {
 	vector<int> visited(nVars(), 0); // =0 represents not visited; >0 corresponds to visited through a positive body literal, <0 through a negative body literal
 	int counter = 1;
 
-	for (int i = 0; i < defdVars.size(); i++) {
-		Var v = defdVars[i];
+	for (vector<Var>::const_iterator i = defdVars.begin(); i < defdVars.end(); i++) {
+		Var v = *i;
 		if (visited[v] == 0) {
 			visitWF(v, root, incomp, stack, visited, counter, true, rootofmixed);
 		}

@@ -104,8 +104,10 @@ TCLAP::ValueArg<int> 			aggsavingarg("","aggsaving",
 		"How to handle propagation reasons within Agg solver: add to theory on propagation (0), save clause on propagation (1), save reason on propagation (2)", false,2,&aggsavingconstr, cmd);
 TCLAP::ValueArg<string> 		remaparg("r","remap",
 		"Remap | don't remap literals from the input structure to a contiguous internal representation", false, "yes", &getYesNoConstraint(), cmd);
-TCLAP::ValueArg<string> 		bumpaggonnotify("b","bump",
+TCLAP::ValueArg<string> 		bumpaggonnotifyarg("","bumpagg",
 		"Bump | don't bump variable activity on aggregate propagation", false, "yes", &getYesNoConstraint(), cmd);
+TCLAP::ValueArg<string> 		bumpidonstartarg("","bumpid",
+		"Bump | don't bump variable activity on ID initialization", false, "yes", &getYesNoConstraint(), cmd);
 TCLAP::ValueArg<string> 		watcharg("w","watchedagg",
 		"Use | don't use watched-literal datastructures to handle aggregate propagation", false, "no", &getYesNoConstraint(), cmd);
 TCLAP::ValueArg<string> 		pbsolverarg("",
@@ -209,7 +211,8 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	}
 	modes.rand_var_freq = rndfreqarg.getValue();
 	modes.polarity = getChosenPolarity();
-	modes.bumpaggonnotify = parseYesNo(bumpaggonnotify.getValue());
+	modes.bumpaggonnotify = parseYesNo(bumpaggonnotifyarg.getValue());
+	modes.bumpidonstart = parseYesNo(bumpidonstartarg.getValue());
 
 	return true;
 }

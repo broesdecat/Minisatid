@@ -121,7 +121,7 @@ public:
 	bool    				addRule      			(bool conj, Lit head, const vec<Lit>& ps);	// Add a rule to the solver.
 	/////////////////////END INITIALIZATION
 
-	PropRule const* const	getDefinition			(Var head) const { assert(definition[head]!=NULL); return definition[head]; }
+	PropRule const* 		getDefinition			(Var head) const { assert(definition[head]!=NULL); return definition[head]; }
 	DefType 				getDefType				(Var i) const { return defType[i]; }
 	bool					isDefined				(Var v) const; //Whether the variable is currently the head of any definition
 	bool 					originallyDefined		(Var v) const; //Whether the variable has been the head of a definition at any point during execution
