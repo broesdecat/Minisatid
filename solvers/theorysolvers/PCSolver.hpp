@@ -101,6 +101,9 @@ private:
 	///////
 	vec<Lit> forcedchoices;
 
+
+	std::vector<int>	counts; //Number of occurences of each variable in the theory
+
 	// Getters for solver pointers
 	Minisat::Solver * 	getSolver	() const { return satsolver; }
 
@@ -150,8 +153,10 @@ public:
 	void		removeAggrHead	(Var x);
 	void		notifyAggrHead	(Var head);
 
-	bool 		assertedBefore(const Var& l, const Var& p) const;
+	bool 		assertedBefore	(const Var& l, const Var& p) const;
 	rClause		getExplanation	(Lit l);	//NON-OWNING pointer
+
+	int			getCount		(Var v)	const { return counts[v]; }
 
     ///////
 	// Solver callbacks

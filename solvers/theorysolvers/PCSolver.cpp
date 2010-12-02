@@ -158,6 +158,7 @@ void PCSolver::addVar(Var v) {
 
 	while (v >= nVars()) {
 		getSolver()->newVar(true, false);
+		counts.resize(nVars(), 0);
 
 		for(lsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
 			if((*i)->present){
@@ -167,6 +168,7 @@ void PCSolver::addVar(Var v) {
 	}
 
 	getSolver()->setDecisionVar(v, true);
+	counts[v]++;
 
 	if (!init) {
 		propagations.resize(nVars(), NULL);
