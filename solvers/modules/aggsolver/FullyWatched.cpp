@@ -148,13 +148,19 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 
 	assert(fwobj.level==level && fwobj.start!=fwobj.props.size());
 
-	bool changedset = false;
+	bool changedcp = false;
+	bool changedcc = false;
 	for(uint i=fwobj.start; i<fwobj.props.size(); i++){
 		const PropagationInfo& p = fwobj.props[i];
 		if(p.getType()!=HEAD){
 			WL wl(p.getLit(), p.getWeight());
-			p.getType()==POS ? addToCertainSet(wl) : removeFromPossibleSet(wl);
-			changedset = true;
+			if(p.getType()==POS){
+				addToCertainSet(wl);
+				changedcc = true;
+			}else{
+				removeFromPossibleSet(wl);
+				changedcp = true;
+			}
 		}
 	}
 	fwobj.start = fwobj.props.size();
@@ -167,7 +173,7 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 		confl = propagateSpecificAtEnd(*agg, headval==l_True);
 	}
 
-	if(changedset){
+	if(changedcc || changedcc){
 		for (vpagg::const_iterator i = getSet().getAgg().begin(); confl == nullPtrClause && i<getSet().getAgg().end(); i++){
 			const Agg& pa = **i;
 
@@ -178,6 +184,23 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 			}
 
 			lbool hv = value(pa.getHead());
+
+			//FIXME dansmee problem should not occur when not using asapaggprop?
+
+			//FIXME ugly
+			if(hv==l_True && pa.getSign()==AGGSIGN_LB && !changedcp){
+				continue;
+			}
+			if(hv==l_True && pa.getSign()==AGGSIGN_UB && !changedcc){
+				continue;
+			}
+			if(hv==l_False && pa.getSign()==AGGSIGN_LB && !changedcc){
+				continue;
+			}
+			if(hv==l_False && pa.getSign()==AGGSIGN_UB && !changedcp){
+				continue;
+			}
+
 			Expl basedon = HEADONLY;
 			lbool result = canPropagateHead(pa, getCC(), getCP(), basedon);
 			if(hv!=l_Undef){
@@ -645,10 +668,16 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 		return c;
 	}
 
+	/**
+	 * The lower bound indicates from which bound all literals should be propagate that are not yet known to the aggregate solver
+	 * All literals known to the sat solver are certainly sa
+	 */
 	for (vwl::const_iterator u = from; c == nullPtrClause && u < wls.end(); u++) {
 		const Lit& l = (*u).getLit();
-		//TODO precondition?
-		bool propagate = value(l)==l_Undef;
+
+		//IMPORTANT: HAS TO BE SOLVER VALUE!
+		bool propagate = getSolver()->value(l)==l_Undef; //propagate if the solver does not yet know it
+
 		if(!propagate && getSolver()->getPCSolver()->getLevel(var(l))==getSolver()->getPCSolver()->getCurrentDecisionLevel()){
 			bool found = false;
 			for(vprop::const_iterator i=getTrail().back()->props.begin(); !found && i<getTrail().back()->props.end(); i++){
@@ -658,6 +687,7 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 			}
 			propagate = !found;
 		}
+
 		//Only propagate those that are not already known in the aggregate solver!
 		if (propagate) {
 			if ((agg.hasUB() && headtrue) || (!agg.hasUB() && !headtrue)) {
@@ -667,6 +697,20 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 			}
 		}
 	}
+
+	//FIXME the looping over the trail is TOO slow! compared to old card
+	//FIXME but bigger problem is that he keeps on deriving the same propagations!
+	//=> add a check that does not do propagations if the derived weight bound is the same
+	//=> add a check that if only cp or cc is adapted, only aggs with such bound are checked!
+
+#ifdef DEBUG
+	for (vwl::const_iterator u = wls.begin(); u < wls.end(); u++) {
+		if((*u).getWeight()>=weightbound){
+			assert(getSolver()->value((*u).getLit())!=l_Undef);
+		}
+	}
+#endif
+
 	return c;
 }
 
