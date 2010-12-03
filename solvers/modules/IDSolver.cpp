@@ -1380,7 +1380,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	//}else{
 		//report("loopf = %d, ufs = %d\n", loopf.size(), ufs.size());
 		// No conflict: then enqueue all facts and their loop formulas.
-		if (loopf.size()*ufs.size()>=500) {
+		if(loopf.size()*ufs.size()>modes().ufsvarintrothreshold){
 			//introduce a new var to represent all external disjuncts: v <=> \bigvee external disj
 			Var v = getPCSolver()->newVar();
 			if (verbosity() >= 2) {
@@ -1850,12 +1850,14 @@ bool IDSolver::isWellFoundedModel() {
 		throw idpexception("Should not be checking for well-founded model, because mode is stable semantics!\n");
 	}
 
+#ifdef DEBUG
 	if (posloops && !isCycleFree()) {
 		if (verbosity() > 1) {
 			report("A positive unfounded loop exists, so not well-founded!\n");
 		}
 		return false;
 	}
+#endif
 
 	if (!negloops) {
 		if (verbosity() > 1) {

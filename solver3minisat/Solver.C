@@ -885,22 +885,26 @@ bool Solver::solve(const vec<Lit>& assumps /*AB*/, bool nosearch /*AE*/)
 
     assumps.copyTo(assumptions);
 
-    if(nVars()>0){
+   /*if(nVars()>0){
         int total = 0;
+        reportf("Counts: ");
         for(int i=0; i<nVars(); i++){
-        	total += solver->getCount(i);
+        	int c = solver->getCount(i);
+        	//reportf("%d=%d ", i, c);
+        	total += c;
         }
+        reportf("\n");
         int upper = (2.0/3.0) * total/nVars(), lower = (1.0/3.0) * total/nVars();
         for(int i=0; i<nVars(); i++){
         	int count = solver->getCount(i);
         	if(count>=upper){
-        		order_heap.increase(i);
+        		varBumpActivity(i);
         	}
         	if(count>=lower){
-        		order_heap.increase(i);
+        		varBumpActivity(i);
         	}
         }
-    }
+    }*/
 
     double  nof_conflicts = restart_first;
     double  nof_learnts   = nClauses() * learntsize_factor;

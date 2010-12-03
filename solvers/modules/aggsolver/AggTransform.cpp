@@ -184,7 +184,7 @@ bool Aggrs::transformMinToMax(TypedSet* set, vps& sets) {
 		//Invert the bound of all the aggregates involved
 		for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
 			Weight bound = -(*i)->getBound();
-			AggSign sign = AGGSIGN_LB?AGGSIGN_UB:AGGSIGN_LB;
+			AggSign sign = (*i)->getSign()==AGGSIGN_LB?AGGSIGN_UB:AGGSIGN_LB;
 			(*i)->setBound(AggBound(sign, bound));
 		}
 		set->getAgg()[0]->setType(MAX);
@@ -195,8 +195,7 @@ bool Aggrs::transformMinToMax(TypedSet* set, vps& sets) {
 //After type setting and transforming to max
 bool Aggrs::transformMaxToSAT(TypedSet* set, vps& sets){
 	//Simple heuristic to choose for encoding as SAT
-	if (set->getType().getType()!=MAX
-			|| set->getAgg().size() != 1) {
+	if (set->getType().getType()!=MAX || set->getAgg().size() != 1) {
 		return true;
 	}
 	bool notunsat = true;
@@ -209,7 +208,7 @@ bool Aggrs::transformMaxToSAT(TypedSet* set, vps& sets){
 
 	const Agg& agg = *set->getAgg()[0];
 	bool ub = agg.hasUB();
-	const Weight& bound = ub?agg.getBound():agg.getBound();
+	const Weight& bound = agg.getBound();
 	if (agg.isDefined()) {
 		for (vwl::const_reverse_iterator i = set->getWL().rbegin(); i < set->getWL().rend()
 					&& (*i).getWeight() >= bound; i++) {

@@ -18,9 +18,12 @@ using namespace MinisatID;
 SolverOption modes; //Used by parser, initialized before parsing!
 
 string programInfo =
-	"Minisat-ID is courtesy of the KRR group at K.U. Leuven, Belgium, more info available on \"http://dtai.cs.kuleuven.be/krr\".\n"
-	"MinisatID is a model expansion system for propositional logic extended with aggregates "
-	"and inductive definitions. Also lparse and opb languages are supported.\n";
+	"MinisatID is a model generator for propositional logic extended with aggregates "
+	"and inductive definitions. Also lparse and opb languages are supported.\n"
+	"MinisatID is part of the IDP system, a knowledge base system using extended first-order logic "
+	"and supports among others state-of-the-art model expansion inference.\n"
+	"MinisatID is the courtesy of the Knowledge Representation and Reasoning (KRR) group at the Katholic University of Leuven in"
+	"Belgium. More information on the systems and the research are available on \"http://dtai.cs.kuleuven.be/krr\".\n";
 string programVersion = "2.1.21";
 TCLAP::CmdLine cmd = TCLAP::CmdLine(programInfo, '=', programVersion); //second arg is delimiter: -option<delim>value
 
@@ -89,7 +92,7 @@ TCLAP::ValueArg<int> 			verbosityarg("","verbosity",
 TCLAP::ValueArg<string> 		ecnfgrapharg("","ecnfgraph",
 		"Generate | don't generate .dot ecnf graph representation", false, "no", &getYesNoConstraint(), cmd);
 TCLAP::UnlabeledValueArg<string> inputfilearg("inputfile",
-		"The inputfile with a logical theory. Standard in is used if no provided.", false, "", "string", cmd);
+		"The file which contains the input theory. If not provided, the standard-in stream is assumed as input.", false, "", "string", cmd);
 TCLAP::ValueArg<std::string> 	outputfilearg("o","outputfile",
 		"The outputfile to use to write out models", false, "","string", cmd);
 TCLAP::ValueArg<double> 		rndfreqarg("","rnd-freq",
@@ -110,6 +113,8 @@ TCLAP::ValueArg<string> 		bumpidonstartarg("","bumpid",
 		"Bump | don't bump variable activity on ID initialization", false, "yes", &getYesNoConstraint(), cmd);
 TCLAP::ValueArg<string> 		subsetminimizeexplanationarg("","minimexplan",
 		"Minimize | don't minimize explanations", false, "no", &getYesNoConstraint(), cmd);
+TCLAP::ValueArg<long>	 		ufsvarintrothresholdarg("","ufsvarintro",
+		"Threshold (compared with ufssize*loopfsize) above which an extra variable is introduced when unfounded sets are found", false, 500, "long", cmd);
 TCLAP::ValueArg<string> 		watcharg("w","watchedagg",
 		"Use | don't use watched-literal datastructures to handle aggregate propagation", false, "no", &getYesNoConstraint(), cmd);
 TCLAP::ValueArg<string> 		pbsolverarg("",
@@ -216,6 +221,8 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	modes.bumpaggonnotify = parseYesNo(bumpaggonnotifyarg.getValue());
 	modes.bumpidonstart = parseYesNo(bumpidonstartarg.getValue());
 	modes.subsetminimizeexplanation = parseYesNo(subsetminimizeexplanationarg.getValue());
+
+	modes.ufsvarintrothreshold = ufsvarintrothresholdarg.getValue();
 
 	return true;
 }

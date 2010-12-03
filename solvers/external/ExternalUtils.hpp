@@ -256,6 +256,7 @@ public:
 	double rand_var_freq, var_decay;
 	POLARITY polarity;
 	bool bumpaggonnotify, bumpidonstart, subsetminimizeexplanation;
+	long ufsvarintrothreshold;
 };
 
 }

@@ -155,7 +155,7 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 }
 
 bool AggSolver::addAggrExpr(Var headv, int setid, const Weight& bound, AggSign boundsign, AggType type, AggSem headeq) {
-	AggBound b(AGGSIGN_LB, bound);
+	AggBound b(boundsign, bound);
 	return addAggrExpr(headv, setid, b, type, headeq);
 }
 
