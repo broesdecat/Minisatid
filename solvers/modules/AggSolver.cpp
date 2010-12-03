@@ -527,14 +527,14 @@ rClause	AggSolver::propagateAtEndOfQueue(){
 	rClause confl = nullPtrClause;
 
 	if(!modes().asapaggprop){
-		noprops = true;
+		//noprops = true;
 		for(vector<TypedSet*>::const_iterator i=proptrail.begin();/*+propstart; noprops && */confl==nullPtrClause && i<proptrail.end(); i++){
 			confl = (*i)->propagateAtEndOfQueue(getLevel());
-			propstart++;
+			//propstart++;
 		}
 		//if(confl!=nullPtrClause/* || noprops*/){
 			proptrail.clear();
-			propstart = 0;
+			//propstart = 0;
 		//}
 	}
 

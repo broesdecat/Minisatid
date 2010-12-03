@@ -188,7 +188,7 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 			//FIXME dansmee problem should not occur when not using asapaggprop?
 
 			//FIXME ugly
-			if(hv==l_True && pa.getSign()==AGGSIGN_LB && !changedcp){
+			/*if(hv==l_True && pa.getSign()==AGGSIGN_LB && !changedcp){
 				continue;
 			}
 			if(hv==l_True && pa.getSign()==AGGSIGN_UB && !changedcc){
@@ -199,7 +199,7 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 			}
 			if(hv==l_False && pa.getSign()==AGGSIGN_UB && !changedcp){
 				continue;
-			}
+			}*/
 
 			Expl basedon = HEADONLY;
 			lbool result = canPropagateHead(pa, getCC(), getCP(), basedon);
@@ -675,8 +675,7 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 	for (vwl::const_iterator u = from; c == nullPtrClause && u < wls.end(); u++) {
 		const Lit& l = (*u).getLit();
 
-		//IMPORTANT: HAS TO BE SOLVER VALUE!
-		bool propagate = getSolver()->value(l)==l_Undef; //propagate if the solver does not yet know it
+		bool propagate = value(l)==l_Undef;
 
 		if(!propagate && getSolver()->getPCSolver()->getLevel(var(l))==getSolver()->getPCSolver()->getCurrentDecisionLevel()){
 			bool found = false;
