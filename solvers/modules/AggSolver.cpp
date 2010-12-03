@@ -553,7 +553,6 @@ rClause AggSolver::getExplanation(const Lit& p) {
 
 	rClause c = nullPtrClause;
 	if (getPCSolver()->modes().aggclausesaving < 2) {
-		assert(getPCSolver()->modes().aggclausesaving>0);
 		assert(ar.hasClause());
 
 		c = getPCSolver()->createClause(ar.getClause(), true);
