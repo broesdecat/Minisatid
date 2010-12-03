@@ -255,7 +255,7 @@ public:
 	bool remap;
 	double rand_var_freq, var_decay;
 	POLARITY polarity;
-	bool bumpaggonnotify, bumpidonstart, subsetminimizeexplanation;
+	bool bumpaggonnotify, bumpidonstart, subsetminimizeexplanation, asapaggprop;
 	long ufsvarintrothreshold;
 };
 

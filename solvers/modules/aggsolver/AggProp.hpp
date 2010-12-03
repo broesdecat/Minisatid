@@ -152,13 +152,15 @@ public:
 class Propagator {
 protected:
 	TypedSet* set; //Non-owning
+	const vec<char>& assigns;
+	AggSolver* const aggsolver;
 public:
-	Propagator(TypedSet* set):set(set){}
+	Propagator(TypedSet* set);
 	virtual ~Propagator(){};
 
 	virtual void 		initialize(bool& unsat, bool& sat);
 	virtual rClause 	propagate		(const Lit& p, Watch* w, int level) = 0;
-	virtual rClause 	propagate		(int level, const Agg& agg) = 0;
+	virtual rClause 	propagate		(int level, const Agg& agg, bool headtrue) = 0;
 	virtual rClause		propagateAtEndOfQueue(int level) = 0;
 	virtual void		backtrack		(int nblevels, int untillevel) = 0;
     virtual void 		getExplanation	(vec<Lit>& lits, const AggReason& ar) = 0;
@@ -166,7 +168,8 @@ public:
     TypedSet&			getSet() { return *set; }
     TypedSet*			getSetp() const { return set; }
 
-    AggSolver*			getSolver() const;
+    AggSolver*			getSolver() const { return aggsolver; }
+	lbool				value(Lit l) const { return Minisat::toLbool(assigns[var(l)]); }
 };
 
 class TypedSet{
@@ -213,7 +216,7 @@ public:
 	void 			initialize		(bool& unsat, bool& sat);
 	void			backtrack		(int nblevels, int untillevel) 			{ getProp()->backtrack(nblevels, untillevel); }
 	rClause 		propagate		(const Lit& p, Watch* w, int level) 	{ return getProp()->propagate(p, w, level); }
-	rClause 		propagate		(const Agg& agg, int level) 			{ return getProp()->propagate(level, agg); }
+	rClause 		propagate		(const Agg& agg, int level, bool headtrue)	{ return getProp()->propagate(level, agg, headtrue); }
 	rClause			propagateAtEndOfQueue(int level) 						{ return getProp()->propagateAtEndOfQueue(level); }
 	void 			getExplanation	(vec<Lit>& lits, const AggReason& ar) const { getProp()->getExplanation(lits, ar); }
 

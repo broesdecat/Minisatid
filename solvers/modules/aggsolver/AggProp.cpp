@@ -212,15 +212,15 @@ void TypedSet::initialize(bool& unsat, bool& sat) {
 	}
 }
 
+Propagator::Propagator(TypedSet* set):set(set), assigns(set->getSolver()->getPCSolver()->getAssigns()), aggsolver(set->getSolver()){
+
+}
+
 // Final initialization call!
 void Propagator::initialize(bool& unsat, bool& sat) {
 	for (vsize i = 0; i < getSet().getAgg().size(); i++) {
 		getSolver()->setHeadWatch(var(getSet().getAgg()[i]->getHead()), getSet().getAgg()[i]);
 	}
-}
-
-AggSolver*	Propagator::getSolver() const {
-	return set->getSolver();
 }
 
 /************************

@@ -101,14 +101,17 @@ private:
 	uint64_t propagations; //Number of propagations into aggregate sets made
 
 	//new trail datastructure
-	std::vector<std::vector<Aggrs::TypedSet*> > 	trail;
+	std::vector<std::vector<Aggrs::TypedSet*> > 	backtrail;
+	std::vector<Aggrs::TypedSet*> 					proptrail;
+	int 											propstart;
+	bool 											noprops;
 
 public:
 	AggSolver(pPCSolver s);
 	virtual ~AggSolver();
 
 	//Returns the current decision level
-	int 				getLevel				() 		const { return trail.size()-1; }
+	int 				getLevel				() 		const { return backtrail.size()-1; }
 
 	//////
 	// INITIALIZATION
@@ -209,7 +212,8 @@ public:
 	void 				addPermWatch			(Var v, Aggrs::Watch* w);
 	void 				addTempWatch			(const Lit& l, Aggrs::Watch* w);
 
-	void				addToTrail				(Aggrs::TypedSet* set) { trail.back().push_back(set); }
+	void				addToPropTrail				(Aggrs::TypedSet* set) { proptrail.push_back(set); }
+	void				addToBackTrail				(Aggrs::TypedSet* set) { backtrail.back().push_back(set); }
 
 protected:
 	mips&				parsedSets				() { return _parsedSets; }

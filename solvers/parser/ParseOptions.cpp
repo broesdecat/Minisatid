@@ -113,6 +113,8 @@ TCLAP::ValueArg<string> 		bumpidonstartarg("","bumpid",
 		"Bump | don't bump variable activity on ID initialization", false, "yes", &getYesNoConstraint(), cmd);
 TCLAP::ValueArg<string> 		subsetminimizeexplanationarg("","minimexplan",
 		"Minimize | don't minimize explanations", false, "no", &getYesNoConstraint(), cmd);
+TCLAP::ValueArg<string> 		asapaggproparg("","asapaggprop",
+		"Propagate aggregates as fast as possible", false, "no", &getYesNoConstraint(), cmd);
 TCLAP::ValueArg<long>	 		ufsvarintrothresholdarg("","ufsvarintro",
 		"Threshold (compared with ufssize*loopfsize) above which an extra variable is introduced when unfounded sets are found", false, 500, "long", cmd);
 TCLAP::ValueArg<string> 		watcharg("w","watchedagg",
@@ -221,6 +223,7 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	modes.bumpaggonnotify = parseYesNo(bumpaggonnotifyarg.getValue());
 	modes.bumpidonstart = parseYesNo(bumpidonstartarg.getValue());
 	modes.subsetminimizeexplanation = parseYesNo(subsetminimizeexplanationarg.getValue());
+	modes.asapaggprop = parseYesNo(asapaggproparg.getValue());
 
 	modes.ufsvarintrothreshold = ufsvarintrothresholdarg.getValue();
 

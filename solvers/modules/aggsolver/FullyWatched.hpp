@@ -23,7 +23,8 @@ typedef std::vector<PropagationInfo> vprop;
 // DECLARATIONS
 ///////
 
-struct FWTrail{
+class FWTrail{
+public:
 	int level, start; //Start is the propagation info from which the next propagatatend should start (first one not seen)
 	Weight CBC, CBP;
 	vprop props;
@@ -33,13 +34,15 @@ struct FWTrail{
 	FWTrail(int level, const Weight& CBC, const Weight& CBP): level(level), start(0), CBC(CBC), CBP(CBP){}
 };
 
+lbool 	canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP, Expl& basedon);
+
 class FWAgg: public Propagator {
 protected:
 	/*
 	 * Smart trail system:
 	 * keep a datastructure with: currentBC, currentBP, decisionlevel and stack of propagations
 	 */
-	std::vector<FWTrail> trail;
+	std::vector<FWTrail*> trail;
 
 	//std::vector<int> headindex;
 	//std::vector<bool> nomoreprops;
@@ -47,11 +50,6 @@ protected:
 
 protected:
 	virtual lbool 	initialize				(const Agg& agg);
-
-    /**
-     * Updates the values of the aggregate and then returns whether the head can be directly propagated from the body
-     */
-    virtual lbool 	canPropagateHead		(const Agg& agg, const Weight& CC, const Weight& CP, Expl& basedon) const;
 
     virtual rClause propagateSpecificAtEnd	(const Agg& agg, bool headtrue) = 0;
 
@@ -61,24 +59,24 @@ protected:
 	///////
 	// GETTERS - SETTERS
 	///////
-	void 			setCP					(const Weight& w) 			{ trail.back().CBP = w; }
-	void 			setCC					(const Weight& w) 			{ trail.back().CBC = w; }
+	void 			setCP					(const Weight& w) 			{ trail.back()->CBP = w; }
+	void 			setCC					(const Weight& w) 			{ trail.back()->CBC = w; }
 
-	std::vector<FWTrail>&	getTrail		() 					 		{ return trail; }
+	std::vector<FWTrail*>&	getTrail		() 					 		{ return trail; }
 
 public:
 	FWAgg(TypedSet* set);
 	virtual ~FWAgg(){};
 
 	virtual void 	initialize				(bool& unsat, bool& sat);
-	virtual rClause propagate				(const Lit& p, Watch* ws, int level);
-	virtual rClause propagate				(int level, const Agg& agg);
-	virtual rClause	propagateAtEndOfQueue	(int level);
-	virtual void 	backtrack				(int nblevels, int untillevel);
+	rClause 		propagate				(const Lit& p, Watch* ws, int level);
+	rClause 		propagate				(int level, const Agg& agg, bool headtrue);
+	rClause			propagateAtEndOfQueue	(int level);
+	void		 	backtrack				(int nblevels, int untillevel);
 	virtual void 	getExplanation			(vec<Lit>& lits, const AggReason& ar) = 0;
 
-	const Weight& 	getCP					() 					const 	{ return trail.back().CBP; }
-	const Weight& 	getCC					() 					const 	{ return trail.back().CBC; }
+	const Weight& 	getCP					() 					const 	{ return trail.back()->CBP; }
+	const Weight& 	getCC					() 					const 	{ return trail.back()->CBC; }
 };
 
 class SPFWAgg: public  FWAgg {

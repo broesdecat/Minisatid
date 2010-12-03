@@ -18,42 +18,5 @@
 //--------------------------------------------------------------------------------------------------
 
 #include "solvers/modules/DPLLTmodule.hpp"
-#include "solvers/theorysolvers/PCSolver.hpp"
 
 using namespace MinisatID;
-
-int DPLLTmodule::verbosity() const	{
-	return getPCSolver()->verbosity();
-}
-
-const SolverOption& DPLLTmodule::modes() const{
-	return getPCSolver()->modes();
-}
-
-bool DPLLTmodule::isTrue(const Lit& l) const {
-	return value(l) == l_True;
-}
-bool DPLLTmodule::isTrue(Var v) const {
-	return value(v) == l_True;
-}
-bool DPLLTmodule::isFalse(const Lit& l) const {
-	return value(l) == l_False;
-}
-bool DPLLTmodule::isFalse(Var v) const {
-	return value(v) == l_False;
-}
-bool DPLLTmodule::isUnknown(const Lit& l) const {
-	return value(l) == l_Undef;
-}
-bool DPLLTmodule::isUnknown(Var v) const {
-	return value(v) == l_Undef;
-}
-lbool DPLLTmodule::value(Var x) const {
-	return getPCSolver()->value(x);
-}
-lbool DPLLTmodule::value(const Lit& p) const {
-	return getPCSolver()->value(p);
-}
-int DPLLTmodule::nVars() const {
-	return getPCSolver()->nVars();
-}

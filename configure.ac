@@ -49,7 +49,7 @@ AC_ARG_ENABLE([build],
   static)  AC_CXXFLAGS+="-O3 -D NDEBUG " 			AC_LDFLAGS+="-static " ;;
   codecover) AC_CXXFLAGS+="-O0 -fprofile-arcs -ftest-coverage -ggdb -D DEBUG " AC_LDFLAGS+="-ggdb " ;;
   *) AC_MSG_ERROR([bad value ${enableval} for --enable-build]) ;;
-esac],[		AC_CXXFLAGS+="-DNDEBUG $SD_CXXFLAGS -O3 " AC_LDFLAGS+="$SD_LDFLAGS "])
+esac],[		AC_CXXFLAGS+="-DNDEBUG -O3 " AC_LDFLAGS+=" "])
 
 AC_ARG_ENABLE([sat],
 [  --enable-sat    Use minisat 2.0b(old), minisat 09z(hack) or minisat 2.2(new)],

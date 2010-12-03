@@ -181,6 +181,7 @@ public:
 	int 		getLevel		(int var) const; // Returns the decision level at which a variable was deduced.
 	int			getNbDecisions	() 		const;
 	uint64_t	getConflicts	() 		const;
+	const vec<char>& getAssigns	()		const;
 
 	int			getCurrentDecisionLevel	() const;
 	std::vector<Lit>	getDecisions	() const;

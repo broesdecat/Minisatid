@@ -259,19 +259,22 @@ bool Aggrs::transformCardGeqOneToEquiv(TypedSet* set, vps& sets){
 	if (set->getAgg()[0]->getType() == CARD) {
 		vpagg remaggs;
 		for (vpagg::const_iterator i = set->getAgg().begin(); !unsat && i < set->getAgg().end(); i++) {
-			if((*i)->hasLB()){
-				const Weight& bound = (*i)->getBound();
+			const Agg& agg = *(*i);
+			if(agg.hasLB()){
+				const Weight& bound = agg.getBound();
 				if(bound-set->getESV()==0){
-					lbool headvalue = set->getSolver()->value((*i)->getHead());
+					lbool headvalue = set->getSolver()->value(agg.getHead());
 					if(headvalue==l_False){
 						unsat = true;
 					}else{
-						if ((*i)->getSem() == DEF) {
+						if (agg.getSem() == DEF) {
 							vec<Lit> lits;
-							unsat = unsat || !set->getSolver()->getPCSolver()->addRule(true, (*i)->getHead(), lits);
+							unsat = unsat || !set->getSolver()->getPCSolver()->addRule(true, agg.getHead(), lits);
 						}else{
 							if(headvalue==l_Undef){
-								set->getSolver()->getPCSolver()->setTrue((*i)->getHead(), set->getSolver());
+								if(set->getSolver()->notifySolver(new AggReason(agg, HEADONLY, agg.getHead(), 0, true))!=nullPtrClause){
+									unsat = true;
+								}
 							}
 						}
 					}
@@ -280,10 +283,10 @@ bool Aggrs::transformCardGeqOneToEquiv(TypedSet* set, vps& sets){
 					for (vsize j = 0; j < set->getWL().size(); j++) {
 						right.push(set->getWL()[j]);
 					}
-					if ((*i)->getSem() == DEF) {
-						unsat = !set->getSolver()->getPCSolver()->addRule(false, (*i)->getHead(), right);
+					if (agg.getSem() == DEF) {
+						unsat = !set->getSolver()->getPCSolver()->addRule(false, agg.getHead(), right);
 					} else{
-						unsat = !set->getSolver()->getPCSolver()->addEquivalence((*i)->getHead(), right, false);
+						unsat = !set->getSolver()->getPCSolver()->addEquivalence(agg.getHead(), right, false);
 					}
 				}else{
 					remaggs.push_back(*i);

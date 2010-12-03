@@ -21,10 +21,9 @@
 #define DPLLTMODULE_HPP_
 
 #include "solvers/utils/Utils.hpp"
+#include "solvers/theorysolvers/PCSolver.hpp"
 
 namespace MinisatID {
-
-class PCSolver;
 
 class DPLLTmodule {
 private:
@@ -41,17 +40,13 @@ public:
 	}
 	;
 
-	bool isInitialized() const {
-		return init;
-	}
+	bool isInitialized() const { return init; }
 	void notifyInitialized() {
 		assert(!init);
 		init = true;
 	}
 
-	PCSolver* getPCSolver() const {
-		return pcsolver;
-	}
+	PCSolver* getPCSolver() const { return pcsolver; }
 
 	///////
 	// DPLL-T methods
@@ -85,19 +80,18 @@ public:
 	// Convenience methods (based on getPCSolver)
 	///////
 
-	int verbosity() const;
-	const SolverOption& modes() const;
+	int 				verbosity() 			const { return getPCSolver()->verbosity(); }
+	const SolverOption& modes	() 				const { return getPCSolver()->modes(); }
 
-	lbool value(Var x) const;
-	lbool value(const Lit& p) const;
-	int nVars() const;
-
-	bool isTrue(const Lit& l) const;
-	bool isFalse(const Lit& l) const;
-	bool isUnknown(const Lit& l) const;
-	bool isTrue(Var l) const;
-	bool isFalse(Var l) const;
-	bool isUnknown(Var l) const;
+	bool 			isTrue		(const Lit& l) 	const { return value(l) == l_True; }
+	bool 			isTrue		(Var v) 		const { return value(v) == l_True; }
+	bool 			isFalse		(const Lit& l) 	const { return value(l) == l_False; }
+	bool 			isFalse		(Var v) 		const {	return value(v) == l_False; }
+	bool 			isUnknown	(const Lit& l) 	const { return value(l) == l_Undef; }
+	bool 			isUnknown	(Var v) 		const { return value(v) == l_Undef; }
+	lbool 			value		(Var x) 		const { return getPCSolver()->value(x); }
+	lbool 			value		(const Lit& p) 	const { return getPCSolver()->value(p); }
+	int 			nVars		() 				const {	return getPCSolver()->nVars();	}
 };
 
 }

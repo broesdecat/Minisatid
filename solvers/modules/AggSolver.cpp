@@ -323,11 +323,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	}
 
 	//Push initial level (root, before any decisions).
-	trail.push_back(vector<TypedSet*>());
-	//Add all sets to initial level, so they are certainly propagated at the start
-	for(vps::const_iterator i=sets().begin(); i<sets().end(); i++){
-		trail.back().push_back(*i);
-	}
+	backtrail.push_back(vector<TypedSet*>());
 
 	//Print lots of information
 	if (verbosity() >= 1) {
@@ -424,6 +420,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 		getPCSolver()->addLearnedClause(confl);
 		return confl;
 	} else if (value(p) == l_Undef) {
+		noprops = false;
 		if (verbosity() >= 2) {
 			report("Deriving ");
 			gprintLit(p, l_True);
@@ -451,16 +448,20 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 }
 
 void AggSolver::newDecisionLevel() {
-	trail.push_back(vector<TypedSet*>());
+	propstart = 0;
+	proptrail.clear();
+	backtrail.push_back(vector<TypedSet*>());
 }
 
 void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel) {
-	while(trail.size()>(vsize)(untillevel+1)){
-		for(vector<TypedSet*>::iterator j=trail.back().begin(); j<trail.back().end(); j++){
+	while(backtrail.size()>(vsize)(untillevel+1)){
+		for(vector<TypedSet*>::iterator j=backtrail.back().begin(); j<backtrail.back().end(); j++){
 			(*j)->backtrack(nblevels, untillevel);
 		}
-		trail.pop_back();
+		backtrail.pop_back();
 	}
+	proptrail.clear();
+	propstart = 0;
 }
 
 /**
@@ -479,7 +480,7 @@ rClause AggSolver::propagate(const Lit& p) {
 
 	Agg* pa = headwatches[var(p)];
 	if (pa != NULL) {
-		confl = pa->getSet()->propagate(*pa, getLevel());
+		confl = pa->getSet()->propagate(*pa, getLevel(), !sign(p));
 		propagations++;
 	}
 
@@ -489,11 +490,7 @@ rClause AggSolver::propagate(const Lit& p) {
 		propagations++;
 	}
 
-	if (confl != nullPtrClause) {
-		return confl;
-	}
-
-	if (tempwatches[toInt(p)].size() > 0) {
+	if (confl==nullPtrClause && tempwatches[toInt(p)].size() > 0) {
 		vector<Watch*> ws2(tempwatches[toInt(p)]); //IMPORTANT, BECAUSE WATCHES MIGHT BE ADDED AGAIN TO THE END (if no other watches are found etc)
 		tempwatches[toInt(p)].clear();
 
@@ -512,6 +509,13 @@ rClause AggSolver::propagate(const Lit& p) {
 		}
 	}
 
+	if(modes().asapaggprop){
+		for(vector<TypedSet*>::const_iterator i=proptrail.begin(); confl==nullPtrClause && i<proptrail.end(); i++){
+			confl = (*i)->propagateAtEndOfQueue(getLevel());
+		}
+		proptrail.clear();
+	}
+
 	return confl;
 }
 
@@ -521,9 +525,19 @@ rClause	AggSolver::propagateAtEndOfQueue(){
 	}
 
 	rClause confl = nullPtrClause;
-	for(vector<TypedSet*>::const_iterator i=trail.back().begin(); confl==nullPtrClause && i<trail.back().end(); i++){
-		confl = (*i)->propagateAtEndOfQueue(getLevel());
+
+	if(!modes().asapaggprop){
+		noprops = true;
+		for(vector<TypedSet*>::const_iterator i=proptrail.begin();/*+propstart; noprops && */confl==nullPtrClause && i<proptrail.end(); i++){
+			confl = (*i)->propagateAtEndOfQueue(getLevel());
+			propstart++;
+		}
+		//if(confl!=nullPtrClause/* || noprops*/){
+			proptrail.clear();
+			propstart = 0;
+		//}
 	}
+
 	return confl;
 }
 
@@ -747,7 +761,7 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
  */
 void AggSolver::propagateMnmz(Var head) {
 	int level = getPCSolver()->getCurrentDecisionLevel();
-	dynamic_cast<SumFWAgg*>(headwatches[head]->getSet()->getProp())->propagate(level, *headwatches[head]);
+	dynamic_cast<SumFWAgg*>(headwatches[head]->getSet()->getProp())->propagate(level, *headwatches[head], true);
 }
 
 ///////
