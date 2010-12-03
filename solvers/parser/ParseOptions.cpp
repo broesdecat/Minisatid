@@ -44,7 +44,8 @@ vector<string> polarvals;
 vector<string>& initPolarVals(){
 	polarvals.push_back("true");
 	polarvals.push_back("false");
-	polarvals.push_back("rnd");
+	polarvals.push_back("rand");
+	polarvals.push_back("user");
 	return polarvals;
 }
 vector<int> aggsavingvals;
@@ -99,8 +100,8 @@ TCLAP::ValueArg<double> 		rndfreqarg("","rnd-freq",
 		"The frequency with which to make a random choice (between 0 and 1)", false,0.02,"double", cmd);
 TCLAP::ValueArg<double> 		decayarg("","decay",
 		"The decay of variable activities within the SAT-solver (between 0 and 1)", false,0.02,"double", cmd);
-TCLAP::ValuesConstraint<string> polarconstr(polarvals);
-TCLAP::ValueArg<std::string> 	polarityarg("","polarity-mode",
+TCLAP::ValuesConstraint<string> polarconstr(initPolarVals());
+TCLAP::ValueArg<std::string> 	polarityarg("","polarity",
 		"The default truth value choice of variables", false,"false",&polarconstr, cmd);
 TCLAP::ValuesConstraint<int> 	aggsavingconstr(initAggSavingVals());
 TCLAP::ValueArg<int> 			aggsavingarg("","aggsaving",
@@ -138,8 +139,10 @@ POLARITY getChosenPolarity(){
 		return POL_TRUE;
 	}else if(polarityarg.getValue().compare("false")==0){
 		return POL_FALSE;
-	}else{
+	}else if(polarityarg.getValue().compare("rand")==0){
 		return POL_RAND;
+	}else{
+		return POL_USER;
 	}
 }
 DEFFINDCS getChosenCSStrategy(){

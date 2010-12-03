@@ -235,7 +235,12 @@ enum DefType	{ NONDEFTYPE = 0, WASDEFDISJ = 1, WASDEFCONJ = 2, WASDEFAGGR = 3, D
 enum DefOcc 	{ NONDEFOCC, POSLOOP, MIXEDLOOP, BOTHLOOP };
 enum UFS 		{ NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK };
 
-enum POLARITY	{ POL_TRUE, POL_FALSE, POL_RAND, POL_USER };
+enum POLARITY {
+	POL_TRUE = 0,
+	POL_FALSE = 1,
+	POL_USER = 2,
+	POL_RAND = 3
+}; // SAT-solver polarity option
 
 // Structure containing general options for the solvers
 class SolverOption {
