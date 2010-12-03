@@ -102,7 +102,7 @@ TCLAP::ValueArg<double> 		decayarg("","decay",
 		"The decay of variable activities within the SAT-solver (between 0 and 1)", false,0.02,"double", cmd);
 TCLAP::ValuesConstraint<string> polarconstr(initPolarVals());
 TCLAP::ValueArg<std::string> 	polarityarg("","polarity",
-		"The default truth value choice of variables", false,"false",&polarconstr, cmd);
+		"The default truth value choice of variables", false,"user",&polarconstr, cmd);
 TCLAP::ValuesConstraint<int> 	aggsavingconstr(initAggSavingVals());
 TCLAP::ValueArg<int> 			aggsavingarg("","aggsaving",
 		"How to handle propagation reasons within Agg solver: add to theory on propagation (0), save clause on propagation (1), save reason on propagation (2)", false,2,&aggsavingconstr, cmd);
