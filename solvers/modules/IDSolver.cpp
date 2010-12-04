@@ -178,6 +178,12 @@ bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
 void IDSolver::finishParsing(bool& present, bool& unsat) {
 	present = true;
 	unsat = false;
+
+	if(modes().defsem==DEF_COMP){
+		present = false;
+		return;
+	}
+
 	int nvars = nVars();
 
 	//TODO treat definition as the datastructere holding all INPUT rules, where defdvars only contains the currently defined ones.
@@ -352,7 +358,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 		}
 	}
 
-	if (!posloops && (!negloops || getSemantics()==STABLE)) {
+	if (!posloops && (!negloops || getSemantics()==DEF_STABLE)) {
 		present = false;
 		return;
 	}
@@ -1816,7 +1822,7 @@ bool IDSolver::isCycleFree() const {
 }
 
 bool IDSolver::checkStatus(){
-	if(getSemantics()==WELLF){
+	if(getSemantics()==DEF_WELLF){
 		return isWellFoundedModel();
 	}
 	return true;
@@ -1846,7 +1852,7 @@ bool IDSolver::checkStatus(){
  * this can be done by implementing wf propagation and counter methods in aggregates.
  */
 bool IDSolver::isWellFoundedModel() {
-	if(getSemantics()!=WELLF){
+	if(getSemantics()!=DEF_WELLF){
 		throw idpexception("Should not be checking for well-founded model, because mode is stable semantics!\n");
 	}
 

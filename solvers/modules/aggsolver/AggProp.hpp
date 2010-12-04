@@ -152,7 +152,6 @@ public:
 class Propagator {
 protected:
 	TypedSet* set; //Non-owning
-	const vec<char>& assigns;
 	AggSolver* const aggsolver;
 public:
 	Propagator(TypedSet* set);
@@ -169,7 +168,7 @@ public:
     TypedSet*			getSetp() const { return set; }
 
     AggSolver*			getSolver() const { return aggsolver; }
-	lbool				value(Lit l) const { return Minisat::toLbool(assigns[var(l)]); }
+	lbool				value(Lit l) const;
 };
 
 class TypedSet{

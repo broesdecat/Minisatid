@@ -223,7 +223,7 @@ enum DEFFINDCS { always, adaptive, lazy };	// Unfounded set search frequency
 enum DEFMARKDEPTH { include_cs };			// Originally also contained stop_at_cs, which is no longer correct
 											// when a guaranteed cycle-free justification is used!
 enum DEFSEARCHSTRAT { breadth_first, depth_first }; // Unfounded set search strategy
-enum DEFSEM { STABLE, WELLF }; 				// Definitional semantics
+enum DEFSEM { DEF_STABLE, DEF_WELLF, DEF_COMP }; 				// Definitional semantics
 
 /**
  * The different possible types of definitions.

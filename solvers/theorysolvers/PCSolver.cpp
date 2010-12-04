@@ -117,10 +117,6 @@ const vec<Lit>& PCSolver::getTrail() const {
 	return getSolver()->getTrail();
 }
 
-const vec<char>& PCSolver::getAssigns() const {
-	return getSolver()->getAssigns();
-}
-
 int PCSolver::getStartLastLevel() const {
 	return getSolver()->getStartLastLevel();
 }

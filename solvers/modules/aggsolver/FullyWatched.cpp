@@ -491,7 +491,7 @@ rClause MaxFWAgg::propagateAll(const Agg& agg, bool headtrue) {
 		return confl;
 	}
 
-	Lit l(0);
+	Lit l = mkLit(0);
 	Weight w(0);
 	int found = 0;
 	for (vwl::const_iterator i=getSet().getWL().begin(); found<2 && i<getSet().getWL().end(); i++) {

@@ -73,6 +73,7 @@ public:
 	int 		getLevel			(int var) 			const;
 	bool 		totalModelFound		();				//true if the current assignment is completely two-valued
 	std::vector<Lit> getDecisions		() const;
+	const vec<lbool>& getAssigns() const { return assigns; }
 	int			decisionLevel		()      const; // Gives the current decisionlevel.
 	const vec<Lit>& getTrail() const { return trail; }
 	int 			getStartLastLevel() const { return trail_lim.size()==0?0:trail_lim.last(); }

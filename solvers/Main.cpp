@@ -255,6 +255,7 @@ int doModelGeneration(pData& d, double cpu_time){
 	}
 
 	//Solve
+	bool earlyunsat = unsat;
 	if(!unsat){
 		if (modes.verbosity >= 1) {
 			report("| Solving                                                                     |\n");
@@ -275,7 +276,7 @@ int doModelGeneration(pData& d, double cpu_time){
 		}
 	}
 
-	if(!unsat && modes.verbosity >= 1){
+	if(!earlyunsat && modes.verbosity >= 1){
 		d->printStatistics();
 	}
 

@@ -66,6 +66,7 @@ vector<string> defsemvals;
 vector<string>& initDefSemVals(){
 	defsemvals.push_back("stable");
 	defsemvals.push_back("wellfounded");
+	defsemvals.push_back("completion");
 	return defsemvals;
 }
 vector<int> idsavingvals;
@@ -156,9 +157,11 @@ DEFFINDCS getChosenCSStrategy(){
 }
 DEFSEM getChosenSemantics(){
 	if(defsemarg.getValue().compare("stable")==0){
-		return STABLE;
+		return DEF_STABLE;
+	}else if(defsemarg.getValue().compare("wellfounded")==0){
+		return DEF_WELLF;
 	}else{
-		return WELLF;
+		return DEF_COMP;
 	}
 }
 
