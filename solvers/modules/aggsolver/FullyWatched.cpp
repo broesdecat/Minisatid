@@ -173,7 +173,7 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 		confl = propagateSpecificAtEnd(*agg, headval==l_True);
 	}
 
-	if(changedcc || changedcc){
+	if(changedcc || changedcp){
 		for (vpagg::const_iterator i = getSet().getAgg().begin(); confl == nullPtrClause && i<getSet().getAgg().end(); i++){
 			const Agg& pa = **i;
 
@@ -188,7 +188,7 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 			//FIXME dansmee problem should not occur when not using asapaggprop?
 
 			//FIXME ugly
-			/*if(hv==l_True && pa.getSign()==AGGSIGN_LB && !changedcp){
+			if(hv==l_True && pa.getSign()==AGGSIGN_LB && !changedcp){
 				continue;
 			}
 			if(hv==l_True && pa.getSign()==AGGSIGN_UB && !changedcc){
@@ -199,7 +199,7 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 			}
 			if(hv==l_False && pa.getSign()==AGGSIGN_UB && !changedcp){
 				continue;
-			}*/
+			}
 
 			Expl basedon = HEADONLY;
 			lbool result = canPropagateHead(pa, getCC(), getCP(), basedon);

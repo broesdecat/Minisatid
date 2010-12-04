@@ -346,7 +346,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		}
 	}
 
-	if (verbosity() >= 8) {
+	if (verbosity() >= 20) {
 		for(vpagg::const_iterator i=headwatches.begin(); i<headwatches.end(); i++){
 			if ((*i) != NULL) {
 				report("Headwatch of var %d: ", gprintVar(var((*i)->getHead())));

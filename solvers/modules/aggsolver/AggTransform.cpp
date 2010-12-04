@@ -27,7 +27,7 @@ bool Aggrs::transformSetReduction(TypedSet* set, vps& sets) {
 	vwl newset;
 
 	//Sort all wlits according to the integer representation of their literal (to get all literals next to each other)
-	std::sort(oldset.begin(), oldset.end(), compareWLByLits);
+	std::stable_sort(oldset.begin(), oldset.end(), compareWLByLits);
 
 	int indexinnew = 0;
 	newset.push_back(oldset[indexinnew]);

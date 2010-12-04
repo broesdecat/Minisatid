@@ -99,7 +99,7 @@ TCLAP::ValueArg<std::string> 	outputfilearg("o","outputfile",
 TCLAP::ValueArg<double> 		rndfreqarg("","rnd-freq",
 		"The frequency with which to make a random choice (between 0 and 1)", false,0.02,"double", cmd);
 TCLAP::ValueArg<double> 		decayarg("","decay",
-		"The decay of variable activities within the SAT-solver (between 0 and 1)", false,0.02,"double", cmd);
+		"The decay of variable activities within the SAT-solver (larger than or equal to 0)", false,1/0.95,"double", cmd);
 TCLAP::ValuesConstraint<string> polarconstr(initPolarVals());
 TCLAP::ValueArg<std::string> 	polarityarg("","polarity",
 		"The default truth value choice of variables", false,"user",&polarconstr, cmd);
@@ -212,8 +212,8 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	modes.defsem = getChosenSemantics();
 	modes.defn_search = include_cs;
 	modes.selectOneFromUFS = false;
-	if(decayarg.getValue()<0.0 || decayarg.getValue()>1.0){
-		report("The value for decay should be between 0 and 1.\n");
+	if(decayarg.getValue()<0.0){
+		report("The value for decay should be larger than 0.\n");
 		return false;
 	}
 	modes.var_decay = decayarg.getValue();
