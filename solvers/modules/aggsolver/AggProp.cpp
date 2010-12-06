@@ -231,7 +231,7 @@ lbool Propagator::value(Lit l) const {
  * RECURSIVE AGGREGATES *
  ************************/
 
-bool MaxProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
+bool MaxProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) const {
 	TypedSet* set = agg.getSet();
 	bool justified = true;
 	const vwl& wl = set->getWL();
@@ -278,7 +278,7 @@ bool MaxProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, 
  * 					if so, change the justification to the negation of all those below the bound literals
  * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
  */
-bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
+bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) const {
 	TypedSet* set = agg.getSet();
 	const AggProp& type = agg.getSet()->getType();
 	bool justified = true;

@@ -1,7 +1,7 @@
 SUBDIRS = tclap
 
 AM_CXXFLAGS = @AC_CXXFLAGS@  -I$(srcdir)/solvers/
-AM_LDFLAGS = @AC_LDFLAGS@  -Itclap/
+AM_LDFLAGS = @AC_LDFLAGS@  -ltcmalloc -Itclap/
 
 YFLAGS = -d 
 LFLAGS = 
@@ -22,7 +22,7 @@ minisatid_SOURCES += solvers/modules/DPLLTmodule.cpp solvers/modules/IDSolver.cp
 minisatid_SOURCES += solvers/modules/aggsolver/AggTransform.cpp solvers/modules/aggsolver/AggUtils.cpp solvers/modules/aggsolver/AggPrint.cpp solvers/modules/aggsolver/FullyWatched.cpp solvers/modules/aggsolver/PartiallyWatched.cpp solvers/modules/aggsolver/GenPartiallyWatched.cpp
 minisatid_SOURCES += solvers/modules/aggsolver/AggProp.cpp
 minisatid_SOURCES += solvers/external/ExternalInterface.cpp solvers/external/ExternalUtils.cpp 
-minisatid_SOURCES += solvers/utils/Print.cpp solvers/utils/Utils.cpp 
+minisatid_SOURCES += solvers/utils/Print.cpp solvers/utils/Utils.cpp solvers/utils/PrintMessage.cpp 
 minisatid_SOURCES += solvers/parser/Lparseread.cpp solvers/parser/PBread.cpp solvers/parser/ParseOptions.cpp
 minisatid_SOURCES += solvers/Unittests.cpp
 
@@ -33,7 +33,7 @@ include_HEADERS += solvers/modules/aggsolver/AggTransform.hpp solvers/modules/ag
 include_HEADERS += solvers/modules/aggsolver/AggProp.hpp
 include_HEADERS += solvers/theorysolvers/LogicSolver.hpp solvers/theorysolvers/PCSolver.hpp solvers/theorysolvers/SOSolver.hpp   
 include_HEADERS += solvers/external/ExternalInterface.hpp solvers/external/ExternalUtils.hpp
-include_HEADERS += solvers/utils/Print.hpp solvers/utils/Utils.hpp 
+include_HEADERS += solvers/utils/Print.hpp solvers/utils/Utils.hpp solvers/utils/PrintMessage.hpp
 include_HEADERS += solvers/parser/Lparseread.hpp solvers/parser/PBread.hpp solvers/parser/ParseOptions.hpp tclap/CmdLine.h
 include_HEADERS += solvers/Unittests.hpp 
 

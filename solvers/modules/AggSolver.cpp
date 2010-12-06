@@ -583,7 +583,7 @@ rClause AggSolver::getExplanation(const Lit& p) {
  * Probably NEVER usable external clause!
  * TODO: optimize: add monotone literals until the aggregate can become true
  */
-void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen) {
+void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, VarToJustif& seen) {
 	const Agg& agg = *getAggWithHead(v);
 	TypedSet* set = agg.getSet();
 
@@ -630,7 +630,7 @@ vwl::const_iterator AggSolver::getAggLiteralsEnd(Var x) const {
  *
  * @post: any new derived heads are in heads, with its respective justification in jstf
  */
-void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& heads, vec<Var>& currentjust) {
+void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& heads, VarToJustif& currentjust) {
 	for (vps::const_iterator i = network[var(w)].begin(); i < network[var(w)].end(); i++) {
 		TypedSet* set = (*i);
 		for (vpagg::const_iterator j = set->getAgg().begin(); j < set->getAgg().end(); j++) {
@@ -660,7 +660,7 @@ void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& 
  */
 void AggSolver::findJustificationAggr(Var head, vec<Lit>& outjstf) {
 	vec<Var> nonjstf;
-	vec<int> currentjust;
+	VarToJustif currentjust;
 	const Agg& agg = *getAggWithHead(head);
 	agg.getSet()->getType().canJustifyHead(agg, outjstf, nonjstf, currentjust, true);
 }
@@ -670,7 +670,7 @@ void AggSolver::findJustificationAggr(Var head, vec<Lit>& outjstf) {
  * contain its justification and true will be returned. Otherwise, false will be returned and nonjstf will contain
  * all body literals of v that are not justified.
  */
-bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust) {
+bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust) {
 	const Agg& agg = *getAggWithHead(v);
 	return agg.getSet()->getType().canJustifyHead(agg, jstf, nonjstf, currentjust, false);
 }

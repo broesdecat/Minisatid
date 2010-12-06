@@ -1,10 +1,11 @@
 #ifndef AGGPROP_HPP_
 #define AGGPROP_HPP_
 
-#include "utils/Utils.hpp"
 #include <vector>
 #include <algorithm>
 #include <tr1/memory>
+
+#include "modules/aggsolver/AggUtils.hpp"
 
 namespace MinisatID{
 
@@ -90,7 +91,7 @@ public:
 
 	virtual Weight		add						(const Weight& lhs, const Weight& rhs) 	const = 0;
 	virtual Weight		remove					(const Weight& lhs, const Weight& rhs) 	const = 0;
-	virtual bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) 	const = 0;
+	virtual bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const = 0;
 
 	virtual Propagator*	createPropagator		(TypedSet* set, bool pw) const = 0;
 };
@@ -106,13 +107,13 @@ public:
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const { assert(false); return 0; }
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const { assert(false); return 0; }
-	bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) 	const;
+	bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const;
 	Propagator*	createPropagator		(TypedSet* set, bool pw) const;
 };
 
 class SPProp: public AggProp{
 public:
-	bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) 	const;
+	bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const;
 };
 
 class ProdProp: public SPProp{

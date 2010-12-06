@@ -22,7 +22,7 @@ using namespace Aggrs;
  *
  * Also, if a literal has to become FALSE, its INVERSION should be added to the justification!
  */
-bool Aggrs::oppositeIsJustified(const WL& l, vec<int>& currentjust, bool real, AggSolver const * const solver) {
+bool Aggrs::oppositeIsJustified(const WL& l, VarToJustif& currentjust, bool real, AggSolver const * const solver) {
 	if (real) {
 		return solver->value(l.getLit()) != l_True;
 	} else {
@@ -30,7 +30,7 @@ bool Aggrs::oppositeIsJustified(const WL& l, vec<int>& currentjust, bool real, A
 	}
 }
 
-bool Aggrs::isJustified(const WL& l, vec<int>& currentjust, bool real, AggSolver const * const solver) {
+bool Aggrs::isJustified(const WL& l, VarToJustif& currentjust, bool real, AggSolver const * const solver) {
 	if (real) {
 		return solver->value(l.getLit()) != l_False;
 	} else {
@@ -38,6 +38,6 @@ bool Aggrs::isJustified(const WL& l, vec<int>& currentjust, bool real, AggSolver
 	}
 }
 
-bool Aggrs::isJustified(Var x, vec<int>& currentjust) {
+bool Aggrs::isJustified(Var x, VarToJustif& currentjust) {
 	return currentjust[x] == 0;
 }

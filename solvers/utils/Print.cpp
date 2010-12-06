@@ -86,7 +86,7 @@ void Print::print(IDSolver const * const s){
 			}
 
 			const PropRule& r = *s->getDefinition(i);
-			gprintLit(r.getHeadLiteral());
+			gprintLit(r.getHead());
 			int counter = 0;
 			while(counter<r.size()){
 				gprintLit(r[counter]);

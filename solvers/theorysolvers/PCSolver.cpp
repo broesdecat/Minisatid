@@ -133,10 +133,6 @@ bool PCSolver::totalModelFound() {
 	return getSolver()->totalModelFound();
 }
 
-uint64_t PCSolver::getConflicts() const {
-	return getSolver()->conflicts;
-}
-
 void PCSolver::varBumpActivity(Var v) {
 	getSolver()->varBumpActivity(v);
 }

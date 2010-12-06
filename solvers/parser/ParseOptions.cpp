@@ -179,6 +179,8 @@ INPUTFORMAT MinisatID::getChosenFormat(){
 	}
 }
 
+//FIXME correctly handle default parameters, certainly for the different minisat versions
+
 //Return false if parsing failed
 bool MinisatID::parseOptions(int argc, char** argv){
 	try {
@@ -213,6 +215,7 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	modes.verbosity = verbosityarg.getValue();
 	modes.nbmodels = modelarg.getValue();
 	modes.defsem = getChosenSemantics();
+	modes.ufs_strategy = breadth_first;
 	modes.defn_search = include_cs;
 	modes.selectOneFromUFS = false;
 	if(decayarg.getValue()<0.0){

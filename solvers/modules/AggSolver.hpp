@@ -43,8 +43,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <map>
 #include <set>
 
-#include "solvers/utils/Utils.hpp"
-#include "solvers/modules/DPLLTmodule.hpp"
+#include "modules/aggsolver/AggUtils.hpp"
+#include "modules/DPLLTmodule.hpp"
 
 namespace MinisatID {
 
@@ -189,10 +189,10 @@ public:
 	//////
 	// RECURSIVE AGGREGATES
 	//////
-	void 				propagateJustifications	(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& v, vec<int> &nb_body_lits_to_justify);
+	void 				propagateJustifications	(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& v, VarToJustif &nb_body_lits_to_justify);
 	void 				findJustificationAggr	(Var head, vec<Lit>& jstf);
-	bool 				directlyJustifiable		(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, vec<Var>& currentjust);
-	void 				addExternalLiterals		(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, vec<int>& seen);
+	bool 				directlyJustifiable		(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust);
+	void 				addExternalLiterals		(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, VarToJustif& seen);
 
 	/**
 	 * Returns a std::vector containing the heads of the aggregates in which x occurs as a set literal

@@ -73,6 +73,8 @@
 #include "solvers/parser/Lparseread.hpp"
 #include "solvers/parser/PBread.hpp"
 
+#include "solvers/utils/PrintMessage.hpp"
+
 #if defined(__linux__)
 #include <fpu_control.h>
 #endif
@@ -80,6 +82,7 @@
 using namespace std;
 using namespace std::tr1;
 using namespace MinisatID;
+using namespace MinisatID::Print;
 
 namespace MinisatID {
 	class WrappedLogicSolver;
@@ -123,9 +126,7 @@ int main(int argc, char** argv) {
 	fpu_control_t oldcw, newcw;
 	_FPU_GETCW(oldcw);
 	newcw = (oldcw & ~_FPU_EXTENDED) | _FPU_DOUBLE;
-	_FPU_SETCW(newcw);
-	if (modes.verbosity >= 1)
-		report("WARNING: for repeatability, setting FPU to use double precision\n");
+	_FPU_SETCW(newcw); // double precision for repeatability
 #endif
 	signal(SIGINT, SIGINT_handler);
 #if defined(__linux__)
@@ -142,10 +143,7 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	if(modes.verbosity >= 1){
-		report("============================[ Problem Statistics ]=============================\n");
-		report("| Parsing input                                                               |\n");
-	}
+	printMainStart(modes.verbosity);
 
 	pData d;
 	int returnvalue = 1;
@@ -156,7 +154,7 @@ int main(int argc, char** argv) {
 		//so if this happens, we jump out
 		if(setjmp(main_loop)){
 			char s[100];
-			sprintf(s, "Signal handled: %s\n", mem==1?"out of memory":"execution interrupted");
+			sprintf(s, "Signal handled: %s", mem==1?"out of memory":"execution interrupted");
 			throw idpexception(s);
 		}
 		returnvalue = doModelGeneration(d, cpu_time);
@@ -165,13 +163,12 @@ int main(int argc, char** argv) {
 		exit(returnvalue);     // (faster than "return", which will invoke the destructor for 'Solver')
 #endif
 	} catch (const idpexception& e) {
-		report("%s", e.what());
-		report("Program will abort.\n");
+		printExceptionCaught(e, modes.verbosity);
 		if(d.get()!=NULL){
 			d->printStatistics();
 		}
 	} catch (...) {
-		report("Unexpected error caught, program will abort.\n");
+		printUnexpectedError(modes.verbosity);
 		if(d.get()!=NULL){
 			d->printStatistics();
 		}
@@ -193,7 +190,7 @@ int doModelGeneration(pData& d, double cpu_time){
 			buf.open(MinisatID::getInputFileUrl(), std::ios::in);
 			std::istream is(&buf);
 			if(r->read(is)!=0){
-				throw idpexception("Error in lparse parsing!\n");
+				throw idpexception("Error in lparse parsing!");
 			}
 			buf.close();
 			delete r;
@@ -217,9 +214,7 @@ int doModelGeneration(pData& d, double cpu_time){
 	//d is initialized unless unsat was already detected
 	bool unsat = d.get()==NULL;
 
-	if (modes.verbosity >= 2) {
-		report("| Datastructure initialization                                                |\n");
-	}
+	printDataInitStart(modes.verbosity);
 
 	//Initialize datastructures
 	if(!unsat){
