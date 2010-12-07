@@ -44,6 +44,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <queue>
 #include <vector>
 #include <map>
+#include <tr1/unordered_map>
 
 #include "utils/Utils.hpp"
 #include "modules/DPLLTmodule.hpp"
@@ -91,20 +92,20 @@ public:
 		delete _definition;
 	}
 
-	std::vector<Lit>& 	reason(){ return _reason; }
-	PropRule* 			definition(){ return _definition; }
-	DefType& 			type(){ return _type; }
-	DefOcc& 			occ(){ return _occ; }
-	bool &				isCS(){ return _isCS; }
-	int &				scc(){ return _scc; }
-	vec<Lit>& 			justification(){ return _justification; }
+	std::vector<Lit>& 		reason(){ return _reason; }
+	PropRule* 				definition(){ return _definition; }
+	DefType& 				type(){ return _type; }
+	DefOcc& 				occ(){ return _occ; }
+	bool &					isCS(){ return _isCS; }
+	int &					scc(){ return _scc; }
+	vec<Lit>& 				justification(){ return _justification; }
 
-	const std::vector<Lit>& 	reason()const { return _reason; }
+	const std::vector<Lit>& reason()const { return _reason; }
 	const DefType& 			type()const { return _type; }
 	const DefOcc& 			occ()const { return _occ; }
-	bool				isCS()const { return _isCS; }
-	int			scc()const { return _scc; }
-	const vec<Lit>& 			justification()const { return _justification; }
+	bool					isCS()const { return _isCS; }
+	int						scc()const { return _scc; }
+	const vec<Lit>& 		justification()const { return _justification; }
 };
 
 class IDSolver: public DPLLTmodule{
@@ -112,6 +113,8 @@ private:
 	std::vector<DefinedVar*> definitions; //Maps all variables to NULL or a defined variable
 
 	std::vector<std::vector<Var> > 	_disj_occurs, _conj_occurs;
+	//std::map<Var, std::vector<Var> > 	_disj_occurs, _conj_occurs;
+	//std::tr1::unordered_map<Var, std::vector<Var> > 	_disj_occurs, _conj_occurs;
 
 	VarToJustif				seen;
 
@@ -210,16 +213,25 @@ private:
 	vec<Lit>& 			justification(Var v){ return getDefVar(v)->justification(); }
 
 	const std::vector<Lit>& 	reason		(Var v)const { return getDefVar(v)->reason(); }
-	const DefType& 			type		(Var v)const { return getDefVar(v)->type(); }
-	const DefOcc& 			occ			(Var v)const { return getDefVar(v)->occ(); }
+	const DefType& 		type		(Var v)const { return getDefVar(v)->type(); }
+	const DefOcc& 		occ			(Var v)const { return getDefVar(v)->occ(); }
 	bool 				isCS		(Var v)const { return getDefVar(v)->isCS(); }
 	int 				scc			(Var v)const { return getDefVar(v)->scc(); }
-	const vec<Lit>& 			justification(Var v)const { return getDefVar(v)->justification(); }
+	const vec<Lit>& 	justification(Var v)const { return getDefVar(v)->justification(); }
 
-	std::vector<Var>&	disj_occurs	(Lit l) { return _disj_occurs[toInt(l)]; }
-	std::vector<Var>&	conj_occurs	(Lit l) { return _conj_occurs[toInt(l)]; }
+	bool				hasdisj_occurs(Lit l) const { return _disj_occurs[toInt(l)].size()>0; }
+	bool				hasconj_occurs(Lit l) const { return _conj_occurs[toInt(l)].size()>0; }
 	const std::vector<Var>&	disj_occurs	(Lit l) const { return _disj_occurs[toInt(l)]; }
 	const std::vector<Var>&	conj_occurs	(Lit l) const { return _conj_occurs[toInt(l)]; }
+	void				addDisjOccurs(Lit l, Var v) { _disj_occurs[toInt(l)].push_back(v); }
+	void				addConjOccurs(Lit l, Var v) { _conj_occurs[toInt(l)].push_back(v); }
+	std::vector<Var>&	disj_occurs	(Lit l) { return _disj_occurs[toInt(l)]; }
+	std::vector<Var>&	conj_occurs	(Lit l) { return _conj_occurs[toInt(l)]; }
+
+//	bool				hasdisj_occurs(Lit l) const { return _disj_occurs.find(toInt(l))!=_disj_occurs.end() && (*_disj_occurs.find(toInt(l))).second.size()>0; }
+//	bool				hasconj_occurs(Lit l) const { return _conj_occurs.find(toInt(l))!=_conj_occurs.end() && (*_conj_occurs.find(toInt(l))).second.size()>0; }
+//	const std::vector<Var>&	disj_occurs	(Lit l) const { return (*_disj_occurs.find(toInt(l))).second; }
+//	const std::vector<Var>&	conj_occurs	(Lit l) const { return (*_conj_occurs.find(toInt(l))).second; }
 
 	bool		saveReasons() const { return modes().idclausesaving>0; }
 

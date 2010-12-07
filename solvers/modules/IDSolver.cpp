@@ -174,12 +174,13 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 
 	int nvars = nVars();
 
-	//TODO treat definition as the datastructere holding all INPUT rules, where defdvars only contains the currently defined ones.
 	//Then a heuristic can be constructed which bump when head vars are assigned e.g.
 
-	//First, go over list of aggregate heads to remove those which are not longer defined
-	//(removing them one by one was much too expensive)
+	//Set all occurences to NONDEFOCC, which as only increased by initialization if necessary, all remaining nondefocc in the end are not in any loop.
+	//Also go over list of aggregate heads to remove those which are not longer defined (removing them one by one was much too expensive)
 	for (vsize i = 0; i < defdVars.size(); i++) {
+		occ(defdVars[i]) = NONDEFOCC;
+
 		if (toremoveaggrheads.find(defdVars[i]) != toremoveaggrheads.end()) {
 			type(defdVars[i]) = WASDEFAGGR;
 			occ(defdVars[i]) = NONDEFOCC;
@@ -251,7 +252,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 				for (int j = 0; j < dfn.size(); ++j) {
 					l = dfn[j];
 					if (l != dfn.getHead()) { //don't look for a justification that is the head literal itself
-						disj_occurs(l).push_back(v);
+						addDisjOccurs(l, v);
 					}
 					if (isPositive(l) && inSameSCC(v, var(l))) {
 						isdefd = true;
@@ -264,7 +265,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 				for (int j = 0; j < dfn.size(); ++j) {
 					l = dfn[j];
 					if (l != dfn.getHead()) { //don't look for a justification that is the head literal itself
-						conj_occurs(l).push_back(v);
+						addConjOccurs(l, v);
 					}
 					if (isPositive(l) && inSameSCC(v, var(l))) {
 						isdefd = true;
@@ -297,13 +298,12 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 				//assumes any literal only occurs once!
 				if (type(v) == AGGR) {
 					if (getAggSolver() != NULL) {
-						for (vwl::const_iterator j = getAggSolver()->getAggLiteralsBegin(v); !isdefd && j
-								< getAggSolver()->getAggLiteralsEnd(v); ++j) {
+						for (vwl::const_iterator j = getAggSolver()->getAggLiteralsBegin(v); !isdefd && j< getAggSolver()->getAggLiteralsEnd(v); ++j) {
 							l = (*j).getLit();
-							if (disj_occurs(l).size() > 0 && disj_occurs(l).back() == v) {
+							if(hasdisj_occurs(l) && disj_occurs(l).back() == v){
 								disj_occurs(l).pop_back();
 							}
-							if (conj_occurs(l).size() > 0 && conj_occurs(l).back() == v) {
+							if(hasconj_occurs(l) && conj_occurs(l).back() == v){
 								conj_occurs(l).pop_back();
 							}
 						}
@@ -312,10 +312,10 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 					const PropRule& dfn = *getDefinition(v);
 					for (int j = 0; j < dfn.size(); ++j) {
 						l = dfn[j];
-						if (disj_occurs(l).size() > 0 && disj_occurs(l).back() == v) {
+						if(hasdisj_occurs(l) && disj_occurs(l).back() == v){
 							disj_occurs(l).pop_back();
 						}
-						if (conj_occurs(l).size() > 0 && conj_occurs(l).back() == v) {
+						if(hasconj_occurs(l) && conj_occurs(l).back() == v){
 							conj_occurs(l).pop_back();
 						}
 					}
@@ -567,12 +567,10 @@ bool IDSolver::simplify() {
 		Lit l = createNegativeLiteral(i);
 		if (!isFalse(l)) {
 			propq.push(l); // First negative literals are added that are not already false
-			//reportf("Justified in initialization: "); gprintLit(l); reportf("\n");
 		}
 		l = createPositiveLiteral(i);
 		if (!isDefInPosGraph(i) && !isFalse(l)) {
 			propq.push(l); // Then all non-false non-defined positive literals.
-			//reportf("Justified in initialization: "); gprintLit(l); reportf("\n");
 		}
 	}
 
@@ -590,7 +588,6 @@ bool IDSolver::simplify() {
 		propagateJustificationDisj(l, jstf, heads);
 		for (int i = 0; i < heads.size(); i++) {
 			assert(jstf[i].size()>0);
-			//reportf("Justified in initialization: "); gprintLit(heads[i]); reportf("\n");
 			changejust(var(heads[i]), jstf[i]);
 			propq.push(heads[i]);
 		}
@@ -599,7 +596,6 @@ bool IDSolver::simplify() {
 
 		propagateJustificationAggr(l, jstf, heads);
 		for (int i = 0; i < heads.size(); i++) {
-			//reportf("Justified in initialization: "); gprintLit(heads[i]); reportf("\n");
 			changejust(var(heads[i]), jstf[i]);
 			propq.push(heads[i]);
 		}
@@ -751,30 +747,33 @@ bool IDSolver::simplify() {
  * Adapt nb_body... when some element has been justified
  */
 void IDSolver::propagateJustificationDisj(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& heads) {
-	const vector<Var>& disj = disj_occurs(l);
-	for (vector<Var>::const_iterator i = disj.begin(); i < disj.end(); i++) {
-		const Var& v = *i;
-		if (isFalse(v) || seen[v] == 0) {
-			continue;
+	if(hasdisj_occurs(l)){
+		const vector<Var>& disj = disj_occurs(l);
+		for (vector<Var>::const_iterator i = disj.begin(); i < disj.end(); i++) {
+			const Var& v = *i;
+			if (isFalse(v) || seen[v] == 0) {
+				continue;
+			}
+			seen[v] = 0;
+			heads.push(createPositiveLiteral(v));
+			jstf.push();
+			jstf.last().push(l);
 		}
-		seen[v] = 0;
-		heads.push(createPositiveLiteral(v));
-		jstf.push();
-		jstf.last().push(l);
 	}
 }
 
 void IDSolver::propagateJustificationConj(Lit l, vec<Lit>& heads) {
-	const vector<Var>& ll = conj_occurs(l);
-	for (vector<Var>::const_iterator i = ll.begin(); i < ll.end(); i++) {
-		const Var& v = *i;
-		if (isFalse(v) || seen[v] == 0) {
-			continue;
-		}
-		seen[v]--;
-		if (seen[v] == 0) {
-			heads.push(createPositiveLiteral(v));
-			//reportf("Justified in initialization: "); gprintLit(createPositiveLiteral(v)); reportf("\n");
+	if(hasconj_occurs(l)){
+		const vector<Var>& ll = conj_occurs(l);
+		for (vector<Var>::const_iterator i = ll.begin(); i < ll.end(); i++) {
+			const Var& v = *i;
+			if (isFalse(v) || seen[v] == 0) {
+				continue;
+			}
+			seen[v]--;
+			if (seen[v] == 0) {
+				heads.push(createPositiveLiteral(v));
+			}
 		}
 	}
 }
@@ -1483,15 +1482,19 @@ void IDSolver::markNonJustified(Var cs, vec<Var>& tmpseen) {
 
 void IDSolver::markNonJustifiedAddParents(Var x, Var cs, queue<Var> &q, vec<Var>& tmpseen) {
 	Lit poslit = createPositiveLiteral(x);
-	const vector<Var>& v = disj_occurs(poslit);
-	for (vector<Var>::const_iterator i = v.begin(); i < v.end(); i++) {
-		if (isDefInPosGraph(*i) && var(justification(*i)[0]) == x) {
-			markNonJustifiedAddVar(*i, cs, q, tmpseen);
+	if(hasdisj_occurs(poslit)){
+		const vector<Var>& v = disj_occurs(poslit);
+		for (vector<Var>::const_iterator i = v.begin(); i < v.end(); i++) {
+			if (isDefInPosGraph(*i) && var(justification(*i)[0]) == x) {
+				markNonJustifiedAddVar(*i, cs, q, tmpseen);
+			}
 		}
 	}
-	const vector<Var>& w = conj_occurs(poslit);
-	for (vector<Var>::const_iterator i = w.begin(); i < w.end(); i++) {
-		markNonJustifiedAddVar(*i, cs, q, tmpseen);
+	if(hasconj_occurs(poslit)){
+		const vector<Var>& w = conj_occurs(poslit);
+		for (vector<Var>::const_iterator i = w.begin(); i < w.end(); i++) {
+			markNonJustifiedAddVar(*i, cs, q, tmpseen);
+		}
 	}
 	if (getAggSolver() != NULL) {
 		vector<Var> heads = getAggSolver()->getAggHeadsWithBodyLit(x);
@@ -1674,11 +1677,8 @@ bool IDSolver::isCycleFree() const {
 
 	uint idx = 0;
 	while (cnt_nonjustified > 0 && idx < justified.size()) {
-		Lit l = justified[idx++];
+		const Lit& l = justified[idx++];
 
-		// Occurrences as justifying literal.
-		const vector<Var>& ds = disj_occurs(l);
-		const vector<Var>& cs = conj_occurs(l);
 		/*
 		 vec<Var> as;
 		 if(getAggSolver()!=NULL){
@@ -1686,27 +1686,36 @@ bool IDSolver::isCycleFree() const {
 		 }
 		 */
 
-		for (vector<Var>::const_iterator i = ds.begin(); i < ds.end(); ++i) {
-			Var d = *i;
-			assert(type(d)==DISJ && (!isDefInPosGraph(*i) || justification(d).size()==1));
-			if (isfree[d] > 0 && justification(d)[0] == l) {
-				assert(isfree[d]==1);
-				isfree[d] = 0;
-				justified.push_back(mkLit(d, false));
-				--cnt_nonjustified;
-			}
-		}
-		for (vector<Var>::const_iterator i = cs.begin(); i < cs.end(); ++i) {
-			Var c = *i;
-			assert(type(c)==CONJ);
-			if (isfree[c] > 0) {
-				isfree[c]--;
-				if (isfree[c] == 0) {
-					justified.push_back(mkLit(c, false));
+		//occ as disjunctively justifying literal
+		if(hasdisj_occurs(l)){
+			const vector<Var>& ds = disj_occurs(l);
+			for (vector<Var>::const_iterator i = ds.begin(); i < ds.end(); ++i) {
+				Var d = *i;
+				assert(type(d)==DISJ && (!isDefInPosGraph(*i) || justification(d).size()==1));
+				if (isfree[d] > 0 && justification(d)[0] == l) {
+					assert(isfree[d]==1);
+					isfree[d] = 0;
+					justified.push_back(mkLit(d, false));
 					--cnt_nonjustified;
 				}
 			}
 		}
+
+		if(hasconj_occurs(l)){
+			const vector<Var>& cs = conj_occurs(l);
+			for (vector<Var>::const_iterator i = cs.begin(); i < cs.end(); ++i) {
+				Var c = *i;
+				assert(type(c)==CONJ);
+				if (isfree[c] > 0) {
+					isfree[c]--;
+					if (isfree[c] == 0) {
+						justified.push_back(mkLit(c, false));
+						--cnt_nonjustified;
+					}
+				}
+			}
+		}
+
 		/*
 		 for (int i=0;i<as.size();++i) {
 		 Var d = as[i];
@@ -2077,28 +2086,33 @@ void IDSolver::markUpward() {
 		Lit l = wfqueue.front();
 		wfqueue.pop();
 
-		for (vector<Var>::const_iterator i = conj_occurs(l).begin(); i < conj_occurs(l).end(); i++) {
-			mark(*i);
+		if(hasconj_occurs(l)){
+			for (vector<Var>::const_iterator i = conj_occurs(l).begin(); i < conj_occurs(l).end(); i++) {
+				mark(*i);
+			}
 		}
-		for (vector<Var>::const_iterator i = conj_occurs(~l).begin(); i < conj_occurs(~l).end(); i++) {
-			mark(*i);
+		if(hasconj_occurs(~l)){
+			for (vector<Var>::const_iterator i = conj_occurs(~l).begin(); i < conj_occurs(~l).end(); i++) {
+				mark(*i);
+			}
 		}
+
 
 		//false DISJ with -l in body, true DISJ with l as just
-		for (vector<Var>::const_iterator i = disj_occurs(l).begin(); i < disj_occurs(l).end(); i++) {
-			//Var head = *i;
-			//if ((isTrue(head) && justification[head][0] == l) || isFalse(head)) {
+		if(hasdisj_occurs(l)){
+			for (vector<Var>::const_iterator i = disj_occurs(l).begin(); i < disj_occurs(l).end(); i++) {
 				mark(*i);
-			//}
-		}
-		for (vector<Var>::const_iterator i = disj_occurs(~l).begin(); i < disj_occurs(~l).end(); i++) {
-			//Var head = *i;
-			//if ((isTrue(head) && justification[head][0] == ~l) || isFalse(head)) {
-				mark(*i);
-			//}
+			}
 		}
 
-		/*if(aggsolver!=NULL){
+		if(hasdisj_occurs(~l)){
+			for (vector<Var>::const_iterator i = disj_occurs(~l).begin(); i < disj_occurs(~l).end(); i++) {
+				mark(*i);
+			}
+		}
+
+
+		/*TODO? if(aggsolver!=NULL){
 		 vec<Lit> heads;
 		 aggsolver->getHeadsOfAggrInWhichOccurs(var(l), heads);
 		 for(int i=0; i<heads.size(); i++){
@@ -2167,41 +2181,51 @@ void IDSolver::forwardPropagate(bool removemarks) {
 
 		//Literal l has become true, so for all rules with body literal l and marked head,
 		//if DISJ, then head will be true, so add true head to queue and set counter to 0
-		for (vector<Var>::const_iterator i = disj_occurs(l).begin(); i < disj_occurs(l).end(); i++) {
-			Var head = *i;
-			if (wfisMarked[head]) {
-				wfqueue.push(createPositiveLiteral(head));
-				seen[head] = 0;
+		if(hasdisj_occurs(l)){
+			for (vector<Var>::const_iterator i = disj_occurs(l).begin(); i < disj_occurs(l).end(); i++) {
+				Var head = *i;
+				if (wfisMarked[head]) {
+					wfqueue.push(createPositiveLiteral(head));
+					seen[head] = 0;
+				}
 			}
 		}
 
-		//if CONJ and counter gets 0, then head will be true, so add true head to queue
-		for (vector<Var>::const_iterator i = conj_occurs(l).begin(); i < conj_occurs(l).end(); i++) {
-			Var head = *i;
-			if (wfisMarked[head] && --seen[head] == 0) {
-				wfqueue.push(createPositiveLiteral(head));
+		if(hasconj_occurs(l)){
+			//if CONJ and counter gets 0, then head will be true, so add true head to queue
+			for (vector<Var>::const_iterator i = conj_occurs(l).begin(); i < conj_occurs(l).end(); i++) {
+				Var head = *i;
+				if (wfisMarked[head] && --seen[head] == 0) {
+					wfqueue.push(createPositiveLiteral(head));
+				}
 			}
 		}
+
 
 		l = ~l;
 
 		//Literal l has become false, so for all rules with body literal l and marked head,
 		//if DISJ and counter gets 0, then head will be false, so add false head to queue
-		for (vector<Var>::const_iterator i = disj_occurs(l).begin(); i < disj_occurs(l).end(); i++) {
-			Var head = *i;
-			if (wfisMarked[head] && --seen[head] == 0) {
-				wfqueue.push(createNegativeLiteral(head));
+		if(hasdisj_occurs(l)){
+			for (vector<Var>::const_iterator i = disj_occurs(l).begin(); i < disj_occurs(l).end(); i++) {
+				Var head = *i;
+				if (wfisMarked[head] && --seen[head] == 0) {
+					wfqueue.push(createNegativeLiteral(head));
+				}
 			}
 		}
 
 		//if CONJ, then head will be false, so add false head to queue and set counter to 0
-		for (vector<Var>::const_iterator i = conj_occurs(l).begin(); i < conj_occurs(l).end(); i++) {
-			Var head = *i;
-			if (wfisMarked[head]) {
-				wfqueue.push(createNegativeLiteral(head));
-				seen[head] = 0;
+		if(hasconj_occurs(l)){
+			for (vector<Var>::const_iterator i = conj_occurs(l).begin(); i < conj_occurs(l).end(); i++) {
+				Var head = *i;
+				if (wfisMarked[head]) {
+					wfqueue.push(createNegativeLiteral(head));
+					seen[head] = 0;
+				}
 			}
 		}
+
 		//TODO AGGREGATES
 	}
 }
