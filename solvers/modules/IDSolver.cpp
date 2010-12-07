@@ -66,11 +66,11 @@ inline bool IDSolver::canBecomeTrue(Lit l) const {
 	return value(l) != l_False;
 }
 inline bool IDSolver::inSameSCC(Var x, Var y) const {
-	return !isDefined(x) || !isDefined(y) || ( scc(x) == scc(y) && scc(x) != -1 );
+	return hasDefVar(x) && hasDefVar(y) && scc(x) == scc(y) && scc(x) != -1;
 } //-1 indicates not defined
 
 inline bool IDSolver::isDefInPosGraph(Var v) const {
-	return isDefined(v) && (occ(v) == POSLOOP || occ(v) == BOTHLOOP);
+	return hasDefVar(v) && (occ(v) == POSLOOP || occ(v) == BOTHLOOP);
 }
 bool IDSolver::isDefined(Var v) const {
 	return hasDefVar(v) && type(v)>3;
