@@ -254,28 +254,36 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 				assert(false);
 		}
 
+		bool addtonetwork = false;
 		if (isdefd) { //might be in pos loop
 			atoms_in_pos_loops++;
 			occ(v) = occ(v) == MIXEDLOOP ? BOTHLOOP : POSLOOP;
+			addtonetwork = true;
+		} else { //can never be in posloop
+			if (occ(v) == NONDEFOCC) { //will not occur in a loop
+				removeDefinition(v);
+			} else if (occ(v) == MIXEDLOOP) { //might occur in a mixed loop
+				addtonetwork = true;
+			}
+		}
+
+		if(addtonetwork){
 			reducedVars.push_back(v);
 
+			//IMPORTANT: also add mixed loop rules to the network for checking well-founded model
+			//could be moved to different datastructure to speed up
 			if(t==DISJ || t==CONJ){
-				const PropRule& dfn = *definition(v);
 				for (vl::const_iterator j = definition(v)->begin(); j < definition(v)->end(); j++) {
 					l = *j;
-					assert(var(l)!=var(dfn.getHead()));
+					if(l==definition(v)->getHead()){
+						continue;
+					}
 					if (t==DISJ) {
 						addDisjOccurs(l, v);
 					}else if(t==CONJ){
 						addConjOccurs(l, v);
 					}
 				}
-			}
-		} else { //can never be in posloop
-			if (occ(v) == NONDEFOCC) { //will not occur in a loop
-				removeDefinition(v);
-			} else if (occ(v) == MIXEDLOOP) { //might occur in a mixed loop
-				reducedVars.push_back(v);
 			}
 		}
 	}
@@ -589,6 +597,11 @@ bool IDSolver::simplify() {
 	defdVars.insert(defdVars.begin(), reducedVars.begin(), reducedVars.end());
 
 	//reconstruct the disj and conj occurs with the reduced number of definitions
+	//FIXME rather costly?
+	_disj_occurs.clear();
+	_conj_occurs.clear();
+	_disj_occurs.resize(2*nVars());
+	_conj_occurs.resize(2*nVars());
 	for (vector<int>::const_iterator i = defdVars.begin(); i < defdVars.end(); ++i) {
 		Var v = (*i);
 		if (type(v) == CONJ || type(v) == DISJ) {
@@ -1792,10 +1805,10 @@ bool IDSolver::isWellFoundedModel() {
 	}
 
 	// Initialize scc of full dependency graph
+	//FIXME also here use reduce memory overhead by only using it for defined variables!
 	wfroot.resize(nVars(), -1);
 	vector<Var> rootofmixed;
 	wfisMarked.resize(nVars(), false);
-	//seen is used as justification counters, expected to be a vec of 0 of size nvars
 
 	findMixedCycles(wfroot, rootofmixed);
 
@@ -1804,7 +1817,7 @@ bool IDSolver::isWellFoundedModel() {
 		for (vector<int>::size_type z = 0; z < wfroot.size(); z++) {
 			report("%d has root %d\n", gprintVar(z), gprintVar(wfroot[z]));
 		}
-		report("Mixedcycles are %s present: \n", rootofmixed.empty()?"not":"possibly");
+		report("Mixedcycles are %s present.\n", rootofmixed.empty()?"not":"possibly");
 	}
 
 	if (rootofmixed.empty()) {
@@ -2012,25 +2025,25 @@ void IDSolver::markUpward() {
 		wfqueue.pop();
 
 		if(hasconj_occurs(l)){
-			for (vector<Var>::const_iterator i = conj_occurs(l).begin(); i < conj_occurs(l).end(); i++) {
+			for (vv::const_iterator i = conj_occurs(l).begin(); i < conj_occurs(l).end(); i++) {
 				mark(*i);
 			}
 		}
-		if(hasconj_occurs(~l)){
-			for (vector<Var>::const_iterator i = conj_occurs(~l).begin(); i < conj_occurs(~l).end(); i++) {
-				mark(*i);
-			}
-		}
-
-
 		if(hasdisj_occurs(l)){
-			for (vector<Var>::const_iterator i = disj_occurs(l).begin(); i < disj_occurs(l).end(); i++) {
+			for (vv::const_iterator i = disj_occurs(l).begin(); i < disj_occurs(l).end(); i++) {
 				mark(*i);
 			}
 		}
 
-		if(hasdisj_occurs(~l)){
-			for (vector<Var>::const_iterator i = disj_occurs(~l).begin(); i < disj_occurs(~l).end(); i++) {
+		l = ~l;
+
+		if(hasconj_occurs(l)){
+			for (vv::const_iterator i = conj_occurs(l).begin(); i < conj_occurs(l).end(); i++) {
+				mark(*i);
+			}
+		}
+		if(hasdisj_occurs(l)){
+			for (vv::const_iterator i = disj_occurs(l).begin(); i < disj_occurs(l).end(); i++) {
 				mark(*i);
 			}
 		}

@@ -703,11 +703,13 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 	//=> add a check that if only cp or cc is adapted, only aggs with such bound are checked!
 
 #ifdef DEBUG
-	for (vwl::const_iterator u = wls.begin(); u < wls.end(); u++) {
-		if((*u).getWeight()>=weightbound){
-			assert(getSolver()->value((*u).getLit())!=l_Undef);
+	bool allknown = true;
+	for (vwl::const_iterator u = wls.begin(); allknown && u < wls.end(); u++) {
+		if((*u).getWeight()>=weightbound && getSolver()->value((*u).getLit())==l_Undef){
+			allknown = false;
 		}
 	}
+	assert(c!=nullPtrClause || allknown);
 #endif
 
 	return c;

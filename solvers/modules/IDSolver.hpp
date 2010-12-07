@@ -209,7 +209,7 @@ private:
 
 	//FIXME semantics
 	bool 				isDefined			(Var v) const {	return hasDefVar(v); }
-	bool 				isDefInPosGraph		(Var v) const {	return hasDefVar(v) && occ(v)!=POSLOOP; }
+	bool 				isDefInPosGraph		(Var v) const {	return hasDefVar(v) && occ(v)!=MIXEDLOOP; }
 	bool 				originallyDefined	(Var v) const { return hasDefVar(v); }
 
 	bool 				isConjunctive		(Var v)	const {	return type(v) == CONJ; }
@@ -238,10 +238,8 @@ private:
 	bool				hasconj_occurs(Lit l) const { return _conj_occurs[toInt(l)].size()>0; }
 	const std::vector<Var>&	disj_occurs	(Lit l) const { return _disj_occurs[toInt(l)]; }
 	const std::vector<Var>&	conj_occurs	(Lit l) const { return _conj_occurs[toInt(l)]; }
-	void				addDisjOccurs(Lit l, Var v) { _disj_occurs[toInt(l)].push_back(v); assert(type(v)==DISJ); }
-	void				addConjOccurs(Lit l, Var v) { _conj_occurs[toInt(l)].push_back(v); assert(type(v)==CONJ); }
-	void				popDisjOccurs(Lit l) { _disj_occurs[toInt(l)].pop_back(); }
-	void				popConjOccurs(Lit l) { _conj_occurs[toInt(l)].pop_back(); }
+	void				addDisjOccurs(Lit l, Var v) { assert(((long)_disj_occurs.size())>toInt(l)); _disj_occurs[toInt(l)].push_back(v); assert(type(v)==DISJ); }
+	void				addConjOccurs(Lit l, Var v) { assert(((long)_conj_occurs.size())>toInt(l)); _conj_occurs[toInt(l)].push_back(v); assert(type(v)==CONJ); }
 	//std::vector<Var>&	disj_occurs	(Lit l) { return _disj_occurs[toInt(l)]; }
 	//std::vector<Var>&	conj_occurs	(Lit l) { return _conj_occurs[toInt(l)]; }
 
@@ -252,7 +250,7 @@ private:
 
 	void		createDefinition(Var head, PropRule* r, DefType type) { defdVars.push_back(head);
 																		definitions[head] = new DefinedVar(r, type);}
-	void		removeDefinition(Var head) { delete definitions[head]; assert(definitions[head]==NULL);}
+	void		removeDefinition(Var head) { delete definitions[head]; definitions[head]=NULL; }
 
 	bool		setTypeIfNoPosLoops	(Var v) const;
 
