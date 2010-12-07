@@ -51,16 +51,27 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 namespace MinisatID {
 
+typedef std::vector<Lit> vl;
 typedef std::vector<Var> vv;
 typedef std::vector<int> VarToJustif; //Maps variables to their current state in the justification algorithm
 
 class PCSolver;
 class AggSolver;
 
+/**
+ * The different possible types of definitions.
+ * If a variable is NONDEFALL, no definition is associated with it.
+ * If a variable is NONDEFPOS, a definition is associated with it, but there is no recursion through it in the POSITIVE dependency graph
+ * 		but there might be recursion over negation (relevant for the well-founded model)
+ */
+enum DefType	{ DISJ, CONJ, AGGR };
+enum DefOcc 	{ NONDEFOCC, POSLOOP, MIXEDLOOP, BOTHLOOP };
+enum UFS 		{ NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK };
+
 class PropRule {
 private:
 	const Var head;
-    std::vector<Lit> lits;
+	vl lits;
 
 public:
     PropRule(Lit head, const vec<Lit>& ps): head(var(head)){
@@ -72,19 +83,19 @@ public:
     int 	size() 				const	{ return lits.size(); }
     Lit 	getHead() 			const	{ return mkLit(head, false); }
     Lit 	operator [](int i) 	const	{ return lits[i]; }
+    vl::const_iterator begin()	const 	{ return lits.begin(); }
+    vl::const_iterator end()	const 	{ return lits.end(); }
 };
 
 class DefinedVar{
 private:
 	std::vector<Lit> 	_reason;
-	PropRule* 			_definition;
+	PropRule* 			_definition;	//Can be NULL if aggregate
 	DefType 			_type;
 	DefOcc 				_occ;
-	bool 				_isCS;
-	int 				_scc;
-	std::vector<Var> 	_disjpos, _disjneg;
-	std::vector<Var> 	_conjpos, _conjneg;
-	vec<Lit> 			_justification;
+	bool 				_isCS;			//Currently considered cycle source
+	int 				_scc;			//To which SCC it belongs
+	vec<Lit> 			_justification;	//Its current justification
 
 public:
 	DefinedVar(PropRule* rule, DefType type): _definition(rule), _type(type), _occ(BOTHLOOP), _isCS(false), _scc(-1){}
@@ -192,20 +203,24 @@ public:
 	bool    				addRule      			(bool conj, Lit head, const vec<Lit>& ps);	// Add a rule to the solver.
 	/////////////////////END INITIALIZATION
 
-	PropRule const* 		getDefinition			(Var v) const { assert(hasDefVar(v)); return definition(v); }
-	DefType 				getDefType				(Var v) const { assert(hasDefVar(v)); return type(v); }
-	bool					isDefined				(Var v) const; //Whether the variable is currently the head of any definition
-	bool 					originallyDefined		(Var v) const; //Whether the variable has been the head of a definition at any point during execution
-	bool 					isConjunctive			(Var v) const;
-	bool 					isDisjunctive			(Var v) const;
-	bool					isDefinedByAggr			(Var v) const;
-
 private:
 	DefinedVar* 		getDefVar(Var v) const { return definitions[v]; }
 	bool 				hasDefVar(Var v) const { return getDefVar(v)!=NULL; }
 
+	//FIXME semantics
+	bool 				isDefined			(Var v) const {	return hasDefVar(v); }
+	bool 				isDefInPosGraph		(Var v) const {	return hasDefVar(v) && occ(v)!=POSLOOP; }
+	bool 				originallyDefined	(Var v) const { return hasDefVar(v); }
+
+	bool 				isConjunctive		(Var v)	const {	return type(v) == CONJ; }
+	bool 				isDisjunctive		(Var v) const {	return type(v) == DISJ;	}
+	bool 				isDefinedByAggr		(Var v) const {	return type(v) == AGGR;	}
+
+	bool 				canBecomeTrue		(Lit l) const { return value(l) != l_False; }
+	bool 				inSameSCC			(Var x, Var y) const { return isDefined(x) && isDefined(y) && scc(x) == scc(y); }
+
 	std::vector<Lit>& 	reason		(Var v){ return getDefVar(v)->reason(); }
-	PropRule* 			definition	(Var v) const { return getDefVar(v)->definition(); }
+	PropRule const*		definition	(Var v) const { assert(hasDefVar(v)); return getDefVar(v)->definition(); }
 	DefType& 			type		(Var v){ return getDefVar(v)->type(); }
 	DefOcc& 			occ			(Var v){ return getDefVar(v)->occ(); }
 	bool &				isCS		(Var v){ return getDefVar(v)->isCS(); }
@@ -223,22 +238,22 @@ private:
 	bool				hasconj_occurs(Lit l) const { return _conj_occurs[toInt(l)].size()>0; }
 	const std::vector<Var>&	disj_occurs	(Lit l) const { return _disj_occurs[toInt(l)]; }
 	const std::vector<Var>&	conj_occurs	(Lit l) const { return _conj_occurs[toInt(l)]; }
-	void				addDisjOccurs(Lit l, Var v) { _disj_occurs[toInt(l)].push_back(v); }
-	void				addConjOccurs(Lit l, Var v) { _conj_occurs[toInt(l)].push_back(v); }
-	std::vector<Var>&	disj_occurs	(Lit l) { return _disj_occurs[toInt(l)]; }
-	std::vector<Var>&	conj_occurs	(Lit l) { return _conj_occurs[toInt(l)]; }
+	void				addDisjOccurs(Lit l, Var v) { _disj_occurs[toInt(l)].push_back(v); assert(type(v)==DISJ); }
+	void				addConjOccurs(Lit l, Var v) { _conj_occurs[toInt(l)].push_back(v); assert(type(v)==CONJ); }
+	void				popDisjOccurs(Lit l) { _disj_occurs[toInt(l)].pop_back(); }
+	void				popConjOccurs(Lit l) { _conj_occurs[toInt(l)].pop_back(); }
+	//std::vector<Var>&	disj_occurs	(Lit l) { return _disj_occurs[toInt(l)]; }
+	//std::vector<Var>&	conj_occurs	(Lit l) { return _conj_occurs[toInt(l)]; }
 
 //	bool				hasdisj_occurs(Lit l) const { return _disj_occurs.find(toInt(l))!=_disj_occurs.end() && (*_disj_occurs.find(toInt(l))).second.size()>0; }
 //	bool				hasconj_occurs(Lit l) const { return _conj_occurs.find(toInt(l))!=_conj_occurs.end() && (*_conj_occurs.find(toInt(l))).second.size()>0; }
 //	const std::vector<Var>&	disj_occurs	(Lit l) const { return (*_disj_occurs.find(toInt(l))).second; }
 //	const std::vector<Var>&	conj_occurs	(Lit l) const { return (*_conj_occurs.find(toInt(l))).second; }
 
-	bool		saveReasons() const { return modes().idclausesaving>0; }
-
 	void		createDefinition(Var head, PropRule* r, DefType type) { defdVars.push_back(head);
 																		definitions[head] = new DefinedVar(r, type);}
+	void		removeDefinition(Var head) { delete definitions[head]; assert(definitions[head]==NULL);}
 
-	bool		isDefInPosGraph		(Var v) const;
 	bool		setTypeIfNoPosLoops	(Var v) const;
 
 	void 		propagateJustificationDisj(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& heads);
@@ -303,9 +318,6 @@ private:
 	bool	isCycleFree	() 					const;			// Verifies whether justification is indeed cycle free, not used, for debugging purposes.
 
 	void	addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf);
-
-	inline bool canBecomeTrue			(Lit l) const;
-	inline bool inSameSCC				(Var x, Var y) const;
 
 	/*******************************
 	 * WELL FOUNDED MODEL CHECKING *

@@ -225,16 +225,6 @@ enum DEFMARKDEPTH { include_cs };			// Originally also contained stop_at_cs, whi
 enum DEFSEARCHSTRAT { breadth_first, depth_first }; // Unfounded set search strategy
 enum DEFSEM { DEF_STABLE, DEF_WELLF, DEF_COMP }; 				// Definitional semantics
 
-/**
- * The different possible types of definitions.
- * If a variable is NONDEFALL, no definition is associated with it.
- * If a variable is NONDEFPOS, a definition is associated with it, but there is no recursion through it in the POSITIVE dependency graph
- * 		but there might be recursion over negation (relevant for the well-founded model)
- */
-enum DefType	{ NONDEFTYPE = 0, WASDEFDISJ = 1, WASDEFCONJ = 2, WASDEFAGGR = 3, DISJ = 4, CONJ = 5, AGGR=6 };
-enum DefOcc 	{ NONDEFOCC, POSLOOP, MIXEDLOOP, BOTHLOOP };
-enum UFS 		{ NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK };
-
 enum POLARITY {
 	POL_TRUE = 0,
 	POL_FALSE = 1,

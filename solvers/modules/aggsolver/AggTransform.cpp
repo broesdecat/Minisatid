@@ -210,8 +210,7 @@ bool Aggrs::transformMaxToSAT(TypedSet* set, vps& sets){
 	bool ub = agg.hasUB();
 	const Weight& bound = agg.getBound();
 	if (agg.isDefined()) {
-		for (vwl::const_reverse_iterator i = set->getWL().rbegin(); i < set->getWL().rend()
-					&& (*i).getWeight() >= bound; i++) {
+		for (vwl::const_reverse_iterator i = set->getWL().rbegin(); i < set->getWL().rend()	&& (*i).getWeight() >= bound; i++) {
 			if (ub && (*i).getWeight() == bound) {
 				break;
 			}
@@ -224,8 +223,7 @@ bool Aggrs::transformMaxToSAT(TypedSet* set, vps& sets){
 		notunsat = set->getSolver()->getPCSolver()->addRule(ub,agg.getHead(),clause);
 	} else {
 		clause.push(ub? agg.getHead():~agg.getHead());
-		for (vwl::const_reverse_iterator i = set->getWL().rbegin(); i < set->getWL().rend()
-					&& (*i).getWeight() >= bound; i++) {
+		for (vwl::const_reverse_iterator i = set->getWL().rbegin(); i < set->getWL().rend()	&& (*i).getWeight() >= bound; i++) {
 			if (ub && (*i).getWeight() == bound) {
 				break;
 			}

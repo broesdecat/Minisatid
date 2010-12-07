@@ -75,25 +75,25 @@ void Print::print(IDSolver const * const s){
 	}
 	report("Definitions\n");
 	for(int i=0; i<s->nVars(); i++){
-		if(s->isDefined(i)){
-			DefType d = s->getDefType(i);
+		//if(s->isDefined(i)){
+			/*DefType d = s->getDefType(i);
 			if(s->isConjunctive(i)){
 				report("Conjunctive rule");
 			}else if(s->isDisjunctive(i)){
 				report("Disjunctive rule");
 			}else if(s->isDefinedByAggr(i)){
 				report("Aggregate rule");
-			}
+			}*/
 
-			const PropRule& r = *s->getDefinition(i);
+			/*FIXME const PropRule& r = *s->getDefinition(i);
 			gprintLit(r.getHead());
 			int counter = 0;
 			while(counter<r.size()){
 				gprintLit(r[counter]);
 				counter++;
 			}
-			report("\n");
-		}
+			report("\n");*/
+		//}
 	}
 }
 

@@ -1,7 +1,7 @@
 SUBDIRS = tclap
 
 AM_CXXFLAGS = @AC_CXXFLAGS@  -I$(srcdir)/solvers/
-AM_LDFLAGS = @AC_LDFLAGS@  -ltcmalloc -Itclap/
+AM_LDFLAGS = @AC_LDFLAGS@  -ltcmalloc -lprofiler -Itclap/
 
 YFLAGS = -d 
 LFLAGS = 
