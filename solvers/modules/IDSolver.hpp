@@ -207,10 +207,8 @@ private:
 	DefinedVar* 		getDefVar(Var v) const { return definitions[v]; }
 	bool 				hasDefVar(Var v) const { return getDefVar(v)!=NULL; }
 
-	//FIXME semantics
 	bool 				isDefined			(Var v) const {	return hasDefVar(v); }
 	bool 				isDefInPosGraph		(Var v) const {	return hasDefVar(v) && occ(v)!=MIXEDLOOP; }
-	bool 				originallyDefined	(Var v) const { return hasDefVar(v); }
 
 	bool 				isConjunctive		(Var v)	const {	return type(v) == CONJ; }
 	bool 				isDisjunctive		(Var v) const {	return type(v) == DISJ;	}

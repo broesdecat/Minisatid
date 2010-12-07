@@ -313,7 +313,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	if(modes().bumpidonstart){
 		for (vector<Var>::const_iterator i = defdVars.begin(); i < defdVars.end(); i++) {
 			const Var& v = *i;
-			if(originallyDefined(v) && type(v)==DISJ){
+			if(isDefined(v) && type(v)==DISJ){
 				const PropRule& r = *definition(v);
 				for(int j=0; j<r.size(); j++){
 					getPCSolver()->varBumpActivity(var(r[j]));
@@ -1249,9 +1249,6 @@ void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf) {
 	}
 
 	for (int i = 1; i < loopf.size(); i++) {
-		//FIXME too slow!
-		//getPCSolver()->varBumpActivity(var(loopf[i]));
-
 		seen[var(loopf[i])] = 0;
 	}
 	extdisj_sizes += loopf.size() - 1;
@@ -1299,7 +1296,6 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	//	addLoopfClause(l, loopf);
 	//	assert(!isUnknown(l));
 	//}else{
-		//report("loopf = %d, ufs = %d\n", loopf.size(), ufs.size());
 		// No conflict: then enqueue all facts and their loop formulas.
 		if((long)(loopf.size()*ufs.size())>modes().ufsvarintrothreshold){
 			//introduce a new var to represent all external disjuncts: v <=> \bigvee external disj
@@ -1325,11 +1321,9 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 		}
 
 		for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
-			//if (isUnknown(*tch)) { //TODO check if adding this increases/decreases performance
 			Lit l = createNegativeLiteral(*tch);
 			addLoopfClause(l, loopf);
 			assert(!isUnknown(l));
-			//}
 		}
 	//}
 
