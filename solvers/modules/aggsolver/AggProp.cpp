@@ -9,6 +9,7 @@
 #include "PbSolver.h"
 
 #include "modules/aggsolver/FullyWatched.hpp"
+#include "modules/aggsolver/PartiallyWatched.hpp"
 
 #include <assert.h>
 
@@ -171,6 +172,9 @@ Propagator*	MaxProp::createPropagator(TypedSet* set, bool pw) const{
 }
 
 Propagator*	SumProp::createPropagator(TypedSet* set, bool pw) const{
+	if(pw && getType()==CARD){
+		return new CardPWAgg(set);
+	}
 	return new SumFWAgg(set);
 }
 

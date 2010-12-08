@@ -73,7 +73,7 @@
 #include "solvers/parser/Lparseread.hpp"
 #include "solvers/parser/PBread.hpp"
 
-#include "solvers/utils/PrintMessage.hpp"
+//#include "solvers/utils/PrintMessage.hpp"
 
 #if defined(__linux__)
 #include <fpu_control.h>
@@ -82,7 +82,7 @@
 using namespace std;
 using namespace std::tr1;
 using namespace MinisatID;
-using namespace MinisatID::Print;
+//using namespace MinisatID::Print;
 
 namespace MinisatID {
 	class WrappedLogicSolver;
@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	printMainStart(modes.verbosity);
+	//printMainStart(modes.verbosity);
 
 	pData d;
 	int returnvalue = 1;
@@ -163,12 +163,12 @@ int main(int argc, char** argv) {
 		exit(returnvalue);     // (faster than "return", which will invoke the destructor for 'Solver')
 #endif
 	} catch (const idpexception& e) {
-		printExceptionCaught(e, modes.verbosity);
+		//printExceptionCaught(e, modes.verbosity);
 		if(d.get()!=NULL){
 			d->printStatistics();
 		}
 	} catch (...) {
-		printUnexpectedError(modes.verbosity);
+		//printUnexpectedError(modes.verbosity);
 		if(d.get()!=NULL){
 			d->printStatistics();
 		}
@@ -214,7 +214,7 @@ int doModelGeneration(pData& d, double cpu_time){
 	//d is initialized unless unsat was already detected
 	bool unsat = d.get()==NULL;
 
-	printDataInitStart(modes.verbosity);
+	//printDataInitStart(modes.verbosity);
 
 	//Initialize datastructures
 	if(!unsat){
