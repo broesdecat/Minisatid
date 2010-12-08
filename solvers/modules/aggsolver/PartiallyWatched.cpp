@@ -119,7 +119,6 @@ inline bool CardPWAgg::checking(WATCHSET w) const{
  * Removes a literal from its set and adds it to a watched set
  */
 void CardPWAgg::addToWatchedSet(WATCHSET w, vsize setindex) {
-	//reportf("Watch initially added\n");
 	vptw& set = getSet(w);
 	vptw& watches = getWatches(w);
 	ptw watch = set[setindex];
@@ -139,7 +138,6 @@ void CardPWAgg::addWatchesToSolver(WATCHSET w){
 void CardPWAgg::addWatchToSolver(WATCHSET w, const vptw& set, vsize index) {
 	assert(set[index]->getIndex()==index);
 	set[index]->setInUse(true);
-	//reportf("Watch added\n");
 	getSolver()->addTempWatch(~set[index]->getLit(), set[index]);
 }
 
@@ -167,7 +165,7 @@ PWAgg::PWAgg(TypedSet* set) :
 }
 
 CardPWAgg::CardPWAgg(TypedSet* set) :
-	PWAgg(set), headvalue(l_Undef), headpropagatedhere(false) {
+	PWAgg(set), headvalue(l_Undef), headpropagatedhere(-1) {
 	startsetf.push_back(0);
 	startsett.push_back(0);
 }
@@ -183,17 +181,9 @@ CardPWAgg::~CardPWAgg(){
 
 void CardPWAgg::initialize(bool& unsat, bool& sat) {
 	// All that we can't handle at the moment is transformed into a fixed watch sum aggregate.
-	if (getSetp()->getAgg().size() != 1) {
-		SumFWAgg* s = new SumFWAgg(getSetp());
-		s->initialize(unsat, sat);
-		//reportf("Fully watched propagator used\n");
-		return; //FIXME current propagator cannot be deleted!
-	}
+	assert(getSetp()->getAgg().size()==1);
 
 	const Agg& agg = *getSetp()->getAgg()[0];
-
-	//reportf("Partial watched propagator used\n");
-
 
 	//Create sets and watches
 	for(vsize i=0; i<getSetp()->getWL().size(); i++){
@@ -332,16 +322,6 @@ bool CardPWAgg::replace(vsize index, WATCHSET w) {
 	vptw& set = getSet(w);
 	vptw& watches = getWatches(w);
 
-	//TODO in cases where the pw scheme is efficient, much more decisions are taken then watch propagations, so keeping a trail is inefficient
-	//because it has to be maintained for every set and for every decision level, which turned out to be very expensive. Currently it is no longer done
-/*	int declevel = getSolver()->getPCSolver()->getCurrentDecisionLevel();
-	vector<int>& starts = start(w);
-	if(starts.size()<declevel+1){
-		starts.resize(declevel+1, starts[starts.size()-1]);
-	}
-	assert(declevel<starts.size());
-
-	int& ss = starts[declevel];*/
 	for (vsize i = 0/*ss*/; !found && i < set.size(); i++) {
 		ptw tw = set[i];
 		if (propagatedValue(tw->getLit()) != l_False) {
@@ -354,9 +334,7 @@ bool CardPWAgg::replace(vsize index, WATCHSET w) {
 			tw->setIndex(index);
 			addWatchToSolver(w, watches, index);
 			found = true;
-		}/*else{
-			ss++;
-		}*/
+		}
 	}
 	return found;
 }
@@ -443,7 +421,7 @@ rClause CardPWAgg::propagate(const Lit& p, Watch* watch, int level) {
 			Lit l = ~getSetp()->getAgg()[0]->getHead();
 			confl = getSolver()->notifySolver(new AggReason( *getSetp()->getAgg()[0], BASEDONCC, l, false));
 			if(confl==nullPtrClause){
-				headpropagatedhere = true;
+				headpropagatedhere = level;
 			}
 		} else if (checking(NTEX)) {
 			// propagate all others in NF and propagate NFex
@@ -466,7 +444,7 @@ rClause CardPWAgg::propagate(const Lit& p, Watch* watch, int level) {
 			Lit l = getSetp()->getAgg()[0]->getHead();
 			confl = getSolver()->notifySolver(new AggReason( *getSetp()->getAgg()[0], BASEDONCP, l, false));
 			if(confl==nullPtrClause){
-				headpropagatedhere = true;
+				headpropagatedhere = level;
 			}
 		}
 	}
@@ -493,7 +471,7 @@ rClause CardPWAgg::propagate(const Lit& p, Watch* watch, int level) {
  * and this can only be helped by using the current truth value, which is what we will do.
  */
 rClause CardPWAgg::propagate(int level, const Agg& agg, bool headtrue) {
-	if(headpropagatedhere){
+	if(headpropagatedhere!=-1){
 		//TODO deze check zou niet noodzakelijk mogen zijn voor de correctheid, maar is dat nu wel. Probleem is
 		//dat hij soms bij head propageren geen extension vindt en dan alles propageert, maar eigenlijk
 		//hoeft dat niet als een volledig true conflict set gevonden kan worden
@@ -537,56 +515,49 @@ rClause CardPWAgg::propagate(int level, const Agg& agg, bool headtrue) {
 	return confl;
 }
 
-void CardPWAgg::backtrack(int nblevels, int untillevel /*const Agg& agg*/) {
-	headpropagatedhere = false;
-
-	if (checking(NFEX)) {
-		removeWatches(NFEX);
-	}
-
-	if (checking(NTEX)) {
-		removeWatches(NTEX);
-	}
-
-	headvalue = l_Undef;
-
-	if(checking(NF)){
-		if(agg.hasUB()){
-			initializeNFL();
-		}else{
-			initializeNF();
+void CardPWAgg::backtrack(int nblevels, int untillevel) {
+	if(headpropagatedhere>untillevel){
+		if (checking(NFEX)) {
+			removeWatches(NFEX);
 		}
-		addWatchesToSolver(NF);
-	}
 
-	if(checking(NT)){
-		if(agg.hasUB()){
-			initializeNTL();
-		}else{
-			initializeNT();
+		if (checking(NTEX)) {
+			removeWatches(NTEX);
 		}
-		addWatchesToSolver(NT);
+
+		headvalue = l_Undef;
+
+		Agg& agg = *getSetp()->getAgg()[0];
+		if(checking(NF)){
+			if(agg.hasUB()){
+				initializeNFL();
+			}else{
+				initializeNF();
+			}
+			addWatchesToSolver(NF);
+		}
+
+		if(checking(NT)){
+			if(agg.hasUB()){
+				initializeNTL();
+			}else{
+				initializeNT();
+			}
+			addWatchesToSolver(NT);
+		}
 	}
 }
 
 void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
-/*	if(toInt(ar.getLit())<0){	//TODO this isnt very clean: it notifies that the literal was propagated without a cause
-		return;
-	}
-	lits.push(~ar.getLit());
-
 	const PCSolver& pcsol = *getSolver()->getPCSolver();
 	const Lit& head = ar.getAgg().getHead();
-	if(value(head)!=l_Undef && var(ar.getLit())!=var(head)){
-		if(pcsol.assertedBefore(var(head), var(ar.getLit()))){
+	if(value(head)!=l_Undef && var(ar.getPropLit())!=var(head)){
+		if(pcsol.assertedBefore(var(head), var(ar.getPropLit()))){
 			lits.push(value(head)==l_True?~head:head);
 		}
 	}
 
-	Lit comparelit = ar.getLit();
-	if(var(ar.getLit())==var(head)){
-		comparelit = ar.getPropLit();
-	}
+	Lit comparelit = ar.getPropLit();
 
 	for (vsize i = 0; i < getSetp()->getWL().size(); i++) {
 		const WL& wl = getSetp()->getWL()[i];
@@ -605,5 +576,5 @@ void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 				lits.push(value(wl.getLit())==l_True?~wl.getLit():wl.getLit());
 			}
 		}
-	}*/
+	}
 }

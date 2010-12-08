@@ -75,7 +75,7 @@ private:
 	vptw nf, nfex, setf; //setf contains all monotone versions of set literals
 	vptw nt, ntex, sett; //sett contains all anti-monotone versions of set literals
 	lbool headvalue;
-	bool headpropagatedhere;
+	int headpropagatedhere;
 
 	std::vector<int> startsetf, startsett; //std::vector mapping decision levels to indices where to start looking for replacement watches
 

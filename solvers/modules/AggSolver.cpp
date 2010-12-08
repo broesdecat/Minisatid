@@ -267,6 +267,8 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 			unsat = unsat || !transformOneToOneSetToAggMapping(set, sets());
 		}
 
+		//TODO create propagators here
+
 		bool sat = false;
 		if(!unsat){
 			set->initialize(unsat, sat);
