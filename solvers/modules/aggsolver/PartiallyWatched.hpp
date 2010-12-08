@@ -39,7 +39,7 @@ private:
 	mutable bool	inuse;
 	int 			index;
 public:
-	PWatch(TypedSet* set, int index, WATCHSET w): Watch(set, set->getWL()[index]), w(w), inuse(false), index(index){
+	PWatch(TypedSet* set, const WL& wl, int index, WATCHSET w): Watch(set, wl), w(w), inuse(false), index(index){
 
 	}
 
@@ -92,7 +92,6 @@ public:
 	virtual void 		initialize			(bool& unsat, bool& sat);
 
 private:
-	std::vector<int>& start(WATCHSET w);
 
 	bool initializeNF();
 	bool initializeNT();
@@ -151,7 +150,7 @@ public:
 	void		setTreatAsKnown(bool val)	{ _treatasknown = val; }
 	bool		treatAsKnown()	const	{ return _treatasknown; }
 	const WL& 	getWL		() 	const 	{ return _wl; }
-	Lit			getWatchLit	() 	const 	{ return _watchneg?~_wl.getLit():_wl; }
+	Lit			getWatchLit	() 	const 	{ return _watchneg?~_wl.getLit():_wl.getLit(); }
 	WATCHSET 	getWatchset	() 	const 	{ return _w; }
 	bool		isInUse		() 	const 	{ return _inuse; }
 	void		setInUse	(bool used) { _inuse = used; }

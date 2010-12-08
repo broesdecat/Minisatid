@@ -152,7 +152,7 @@ Var PCSolver::newVar() {
 void PCSolver::addVar(Var v) {
 	assert(v>-1);
 
-	while (v >= nVars()) {
+	while (((uint64_t) v) >= nVars()) {
 		getSolver()->newVar(true, false);
 		counts.resize(nVars(), 0);
 

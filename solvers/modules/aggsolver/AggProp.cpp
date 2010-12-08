@@ -196,7 +196,7 @@ void TypedSet::replaceAgg(const vpagg& repl){
 	}
 	aggregates.clear();
 	for(vector<Agg*>::const_iterator i=repl.begin(); i<repl.end(); i++){
-		addAgg((*i));
+		addAgg(*i);
 	}
 }
 
@@ -228,7 +228,7 @@ void Propagator::initialize(bool& unsat, bool& sat) {
 }
 
 lbool Propagator::value(Lit l) const {
-	getSolver()->value(l);
+	return getSolver()->value(l);
 }
 
 /************************

@@ -189,8 +189,8 @@ void CardPWAgg::initialize(bool& unsat, bool& sat) {
 	for(vsize i=0; i<getSetp()->getWL().size(); i++){
 		const WL& wl = getSetp()->getWL()[i];
 		const WL& negwl = WL(~wl.getLit(), wl.getWeight());
-		setf.push_back(new PWatch(getSetp(), agg.hasUB()?negwl:wl, INSET));
-		sett.push_back(new PWatch(getSetp(), agg.hasUB()?wl:negwl, INSET));
+		setf.push_back(new PWatch(getSetp(), agg.hasUB()?negwl:wl, i, INSET));
+		sett.push_back(new PWatch(getSetp(), agg.hasUB()?wl:negwl, i, INSET));
 	}
 
 	bool nffailed = false, ntfailed = false;
@@ -307,14 +307,6 @@ bool CardPWAgg::initializeEX(WATCHSET w) {
 		}
 	}
 	return found;
-}
-
-vector<int>& CardPWAgg::start(WATCHSET w){
-	if(isF(w)){
-		return startsetf;
-	}else{
-		return startsett;
-	}
 }
 
 bool CardPWAgg::replace(vsize index, WATCHSET w) {

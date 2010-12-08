@@ -175,7 +175,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType
 
 	// Check whether the head occurs in the body of the set, which is not allowed
 	for (vsize i = 0; i < set->getWL().size(); i++) {
-		if (var(set->getWL()[i]) == headv) { //Exception if head occurs in set itself
+		if (var(set->getWL()[i].getLit()) == headv) { //Exception if head occurs in set itself
 			char s[100];
 			sprintf(s, "Set nr. %d contains a literal of atom %d, the head of an aggregate, which is not allowed.\n", setid, gprintVar(headv));
 			throw idpexception(s);
@@ -256,31 +256,28 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 			continue;
 		}
 
-		unsat = unsat || !transformTypePartition(set, sets());
-		unsat = unsat || !transformMinToMax(set, sets());
-		unsat = unsat || !transformAddTypes(set, sets());
-		unsat = unsat || !transformVerifyWeights(set, sets());
-		unsat = unsat || !transformMaxToSAT(set, sets());
-		unsat = unsat || !transformSetReduction(set, sets());
-		unsat = unsat || !transformCardGeqOneToEquiv(set, sets());
-		if(getPCSolver()->modes().watchedagg){ //use PWatches
-			unsat = unsat || !transformOneToOneSetToAggMapping(set, sets());
-		}
+		bool setsat = false;
+		doTransformations(this, set, sets(), unsat, setsat);
 
 		//TODO create propagators here
 
-		bool sat = false;
-		if(!unsat){
-			set->initialize(unsat, sat);
+#ifdef DEBUG
+		if(modes().watchedagg && !setsat){
+			assert(set->getAgg().size()==1);
+		}
+#endif
+
+		if(!unsat && !setsat){
+			set->initialize(unsat, setsat);
 		}
 
-		if(!unsat && !sat){
+		if(!unsat && !setsat){
 			for (vsize i = 0; i < set->getWL().size(); i++) {
-				network[var(set->getWL()[i])].push_back(set);
+				network[var(set->getWL()[i].getLit())].push_back(set);
 			}
 		}
 
-		if(sat){
+		if(setsat){
 			satsets.push_back(set);
 		}else{
 			remainingsets.push_back(set);
@@ -695,7 +692,7 @@ bool AggSolver::addMnmzSum(Var headv, int setid) {
 
 	// Check whether the head occurs in the body of the set, which is no longer allowed
 	for (vsize i = 0; i < set->getWL().size(); i++) {
-		if (var(set->getWL()[i]) == headv) { //Exception if head occurs in set itself
+		if (var(set->getWL()[i].getLit()) == headv) { //Exception if head occurs in set itself
 			char s[100];
 			sprintf(s, "Set nr. %d contains a literal of atom %d, the head of an aggregate, which is not allowed.\n", setid, gprintVar(headv));
 			throw idpexception(s);

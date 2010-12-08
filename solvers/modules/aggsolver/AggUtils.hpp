@@ -40,7 +40,7 @@ public:
 class Watch{
 private:
 	TypedSet* 		set;
-	const 	WL&		wl;	//the literal as it occurs in the set
+	const 	WL		wl;	//the literal as it occurs in the set
 public:
 	Watch(TypedSet* set, const WL& wl):
 		set(set), wl(wl){}

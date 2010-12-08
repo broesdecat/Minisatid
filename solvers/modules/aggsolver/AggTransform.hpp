@@ -6,6 +6,7 @@
 namespace MinisatID{
 
 class PCSolver;
+class AggSolver;
 
 namespace Aggrs{
 
@@ -18,14 +19,53 @@ typedef std::vector<Aggrs::TypedSet*> vps;
  *
  * @post: the literals are sorted according to weight again
  */
-bool transformSetReduction(TypedSet* set, vps& sets);
-bool transformTypePartition(TypedSet* set, vps& sets);
-bool transformAddTypes(TypedSet* set, vps& sets);
-bool transformMinToMax(TypedSet* set, vps& sets);
-bool transformMaxToSAT(TypedSet* set, vps& sets);
-bool transformVerifyWeights(TypedSet* set, vps& sets);
-bool transformOneToOneSetToAggMapping(TypedSet* set, vps& sets);
-bool transformCardGeqOneToEquiv(TypedSet* set, vps& sets);
+
+void doTransformations(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat);
+
+class AggTransform{
+public:
+	virtual void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const = 0;
+};
+
+class SetReduce : public AggTransform{
+public:
+	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
+};
+
+class PartitionIntoTypes : public AggTransform{
+public:
+	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
+};
+
+class AddTypes : public AggTransform{
+public:
+	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
+};
+
+class MinToMax : public AggTransform{
+public:
+	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
+};
+
+class MaxToSAT : public AggTransform{
+public:
+	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
+};
+
+class VerifyWeights : public AggTransform{
+public:
+	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
+};
+
+class CardToEquiv : public AggTransform{
+public:
+	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
+};
+
+class MapToSetOneToOneWithAgg : public AggTransform{
+public:
+	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
+};
 
 bool transformSumsToCNF(vps& sets, MinisatID::PCSolver* pcsolver);
 

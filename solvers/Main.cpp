@@ -163,6 +163,7 @@ int main(int argc, char** argv) {
 		exit(returnvalue);     // (faster than "return", which will invoke the destructor for 'Solver')
 #endif
 	} catch (const idpexception& e) {
+		report("Temp Error\n");
 		//printExceptionCaught(e, modes.verbosity);
 		if(d.get()!=NULL){
 			d->printStatistics();
@@ -194,7 +195,8 @@ int doModelGeneration(pData& d, double cpu_time){
 			}
 			buf.close();
 			delete r;
-			break;}
+			break;
+		}
 		case FORMAT_OPB:{
 			WrappedPCSolver* p = new WrappedPCSolver(modes);
 			d = shared_ptr<WrappedLogicSolver> (p);
@@ -202,11 +204,13 @@ int doModelGeneration(pData& d, double cpu_time){
 			parser->autoLin();
 			parser->parse();
 			delete parser;
-			break;}
+			break;
+		}
 		case FORMAT_FODOT:{
 			yyin = MinisatID::getInputFile();
 			d = parse();
-			break;}
+			break;
+		}
 	}
 
 	MinisatID::closeInput();

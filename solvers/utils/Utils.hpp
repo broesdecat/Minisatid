@@ -60,9 +60,6 @@ public:
     bool operator<	(const WL& p)		 const { return weight < p.weight; }
     bool operator<	(const Weight& bound)const { return weight < bound; }
     bool operator==	(const WL& p)		 const { return weight == p.weight && lit==p.lit; }
-
-    operator 	Lit()	const { return lit; }
-    operator Weight()	const { return weight; }
 };
 
 //Compare WLs by their literals, placing same literals next to each other

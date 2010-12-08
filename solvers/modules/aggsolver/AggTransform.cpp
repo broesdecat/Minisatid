@@ -1,5 +1,6 @@
 #include "AggTransform.hpp"
 
+#include <vector>
 #include <limits>
 
 #include "modules/aggsolver/AggProp.hpp"
@@ -21,8 +22,37 @@ typedef numeric_limits<int> intlim;
 // TRANSFORMATIONS
 ///////
 
+class Transfo{
+public:
+	std::vector<AggTransform*> t;
+
+	Transfo(){
+		t.push_back(new PartitionIntoTypes());
+		t.push_back(new MinToMax());
+		t.push_back(new AddTypes());
+		t.push_back(new VerifyWeights());
+		t.push_back(new MaxToSAT());
+		t.push_back(new SetReduce());
+		t.push_back(new CardToEquiv());
+		t.push_back(new MapToSetOneToOneWithAgg());
+	}
+	~Transfo(){
+		deleteList<AggTransform>(t);
+	}
+};
+
+Transfo transfo;
+
+void Aggrs::doTransformations(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat){
+	unsat = false;
+	sat = false;
+	for(vector<AggTransform*>::const_iterator i=transfo.t.begin(); !sat && !unsat && i<transfo.t.end(); i++) {
+		(*i)->transform(solver, set, sets, unsat, sat);
+	}
+}
+
 //@pre: has been split
-bool Aggrs::transformSetReduction(TypedSet* set, vps& sets) {
+void SetReduce::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
 	vwl oldset = set->getWL();
 	vwl newset;
 
@@ -88,12 +118,16 @@ bool Aggrs::transformSetReduction(TypedSet* set, vps& sets) {
 			}
 		}
 	}
-
-	return true;
 }
 
-bool Aggrs::transformOneToOneSetToAggMapping(TypedSet* set, vps& sets) {
+void MapToSetOneToOneWithAgg::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
+	//Only if using pwatches
+	if(!solver->getPCSolver()->modes().watchedagg || set->getAgg().size()==1){
+		return;
+	}
+
 	vpagg aggs = set->getAgg();
+	assert(aggs.size()>0);
 
 	vpagg newaggs;
 	newaggs.push_back(aggs[0]);
@@ -103,14 +137,14 @@ bool Aggrs::transformOneToOneSetToAggMapping(TypedSet* set, vps& sets) {
 		TypedSet* newset = new TypedSet(set->getSolver(), set->getSetID());
 		newset->addAgg(*i);
 		newset->setWL(set->getWL());
+		assert(newset->getAgg().size()==1);
 		sets.push_back(newset);
 	}
-
-	return true;
+	assert(set->getAgg().size()==1);
 }
 
 //@pre: at least one aggregate present
-bool Aggrs::transformTypePartition(TypedSet* set, vps& sets) {
+void PartitionIntoTypes::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
 	assert(set->getAgg().size() > 0);
 	//Partition the aggregates according to their type
 	map<AggType, vpagg> partaggs;
@@ -127,28 +161,26 @@ bool Aggrs::transformTypePartition(TypedSet* set, vps& sets) {
 		newset->setWL(set->getWL());
 		sets.push_back(newset);
 	}
-	return true;
 }
 
 //@pre Has to be split
-bool Aggrs::transformVerifyWeights(TypedSet* set, vps& sets) {
+void VerifyWeights::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
 	if (set->getAgg()[0]->getType() == PROD) {
 		for (vsize i = 0; i < set->getWL().size(); i++) {
 			if (set->getWL()[i] < 1) { //Exception if product contains negative/zero weights
 				char s[200];
 				sprintf(s, "Error: Set nr. %d contains a 0 (zero) or negative weight %s, which cannot "
 					"be used in combination with a product aggregate\n", set->getSetID(), toString(
-						set->getWL()[i]).c_str());
+						set->getWL()[i].getWeight()).c_str());
 				throw idpexception(s);
 			}
 		}
 	}
-	return true;
 }
 
 //@pre Has to be split
 //Adds the type objects and correct esv to the sets
-bool Aggrs::transformAddTypes(TypedSet* set, vps& sets) {
+void AddTypes::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
 	switch (set->getAgg()[0]->getType()) {
 		case MAX:
 			set->setType(AggProp::getMax());
@@ -169,15 +201,14 @@ bool Aggrs::transformAddTypes(TypedSet* set, vps& sets) {
 		default:
 			assert(false);
 	}
-	return true;
 }
 
-bool Aggrs::transformMinToMax(TypedSet* set, vps& sets) {
+void MinToMax::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
 	if (set->getAgg()[0]->getType() == MIN) {
 		//Transform Min into Max set: invert all weights
 		vwl wl;
 		for (vsize i = 0; i < set->getWL().size(); i++) {
-			wl.push_back(WL(set->getWL()[i], -set->getWL()[i].getWeight()));
+			wl.push_back(WL(set->getWL()[i].getLit(), -set->getWL()[i].getWeight()));
 		}
 		set->setWL(wl);
 
@@ -189,14 +220,13 @@ bool Aggrs::transformMinToMax(TypedSet* set, vps& sets) {
 		}
 		set->getAgg()[0]->setType(MAX);
 	}
-	return true;
 }
 
 //After type setting and transforming to max
-bool Aggrs::transformMaxToSAT(TypedSet* set, vps& sets){
+void MaxToSAT::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
 	//Simple heuristic to choose for encoding as SAT
 	if (set->getType().getType()!=MAX || set->getAgg().size() != 1) {
-		return true;
+		return;
 	}
 	bool notunsat = true;
 	assert( set->getAgg().size()==1);
@@ -242,7 +272,12 @@ bool Aggrs::transformMaxToSAT(TypedSet* set, vps& sets){
 		}
 	}
 	set->replaceAgg(vector<Agg*>());
-	return notunsat;
+
+	if(notunsat){
+		sat = true; //Encoding succeeded, so aggregate itself can be dropped.
+	}else{
+		unsat = true;
+	}
 }
 
 /**
@@ -252,8 +287,8 @@ bool Aggrs::transformMaxToSAT(TypedSet* set, vps& sets){
  * 								if large, only write out if head already true
  * 	TODO others?
  */
-bool Aggrs::transformCardGeqOneToEquiv(TypedSet* set, vps& sets){
-	bool unsat = false;
+void CardToEquiv::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
+	assert(!unsat);
 	if (set->getAgg()[0]->getType() == CARD) {
 		vpagg remaggs;
 		for (vpagg::const_iterator i = set->getAgg().begin(); !unsat && i < set->getAgg().end(); i++) {
@@ -279,7 +314,7 @@ bool Aggrs::transformCardGeqOneToEquiv(TypedSet* set, vps& sets){
 				} else if(bound-set->getESV()==1){
 					vec<Lit> right;
 					for (vsize j = 0; j < set->getWL().size(); j++) {
-						right.push(set->getWL()[j]);
+						right.push(set->getWL()[j].getLit());
 					}
 					if (agg.getSem() == DEF) {
 						unsat = !set->getSolver()->getPCSolver()->addRule(false, agg.getHead(), right);
@@ -295,7 +330,10 @@ bool Aggrs::transformCardGeqOneToEquiv(TypedSet* set, vps& sets){
 		}
 		set->replaceAgg(remaggs);
 	}
-	return !unsat;
+
+	if(!unsat && set->getAgg().size()==0){
+		sat = true;
+	}
 }
 
 //Temporary structure to create pseudo booleans
@@ -416,7 +454,7 @@ bool Aggrs::transformSumsToCNF(vps& sets, PCSolver* pcsolver) {
 	return true;
 }
 
-//bool Aggrs::transformOneToOneSetToSignMapping(TypedSet* setone, vps& sets) {
+//bool Aggrs::transformOneToOneSetToSignMapping(AggSolver* solver, TypedSet* setone, vps& sets) {
 //	vpagg aggs = setone->getAgg();
 //
 //	vpagg newaggs;
