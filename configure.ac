@@ -91,7 +91,7 @@ AC_ARG_ENABLE([gmp],
 esac],[ AC_CXXFLAGS+=" -D NO_GMP " ])
 
 # files to generate via autotools (.am or .in source files)
-AC_CONFIG_FILES([Makefile tclap/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile src/tclap/Makefile])
 
 # generate the final Makefile etc.
 AC_OUTPUT
