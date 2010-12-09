@@ -31,7 +31,7 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 
 	trail.push_back(new FWTrail(0, 0, 0));
 	setCP(getSet().getBestPossible());
-	setCC(getSet().getESV());
+	setCC(getSet().getKnownBound());
 
 	int counter = 0;
 	for (vpagg::iterator i = getSet().getAggNonConst().begin(); !unsat && i < getSet().getAggNonConst().end();) {
@@ -283,9 +283,9 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 
 	Weight min, max;
 	if(!agg.hasUB()){
-		min = getSetp()->getESV(); max = getSet().getType().getBestPossible(getSetp());
+		min = getSetp()->getKnownBound(); max = getSet().getType().getBestPossible(getSetp());
 	}else{
-		min = getSet().getType().getBestPossible(getSetp()); max = getSetp()->getESV();
+		min = getSet().getType().getBestPossible(getSetp()); max = getSetp()->getKnownBound();
 	}
 
 	if(!ar.isHeadReason()){
@@ -435,7 +435,7 @@ void MaxFWAgg::removeFromPossibleSet(const WL& l) {
 			}
 		}
 		if (!found) {
-			setCP(set.getESV());
+			setCP(set.getKnownBound());
 		}
 	}
 }

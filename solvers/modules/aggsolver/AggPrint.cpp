@@ -31,9 +31,9 @@ void Aggrs::print(const Agg& ae, bool endl) {
 	report("(%s)", value==l_Undef?"X":value==l_True?"T":"F");
 	TypedSet* set = ae.getSet();
 	if (ae.hasUB()) {
-		report(" <- ");
+		report(" %s ", ae.isDefined()?"<-":"<=>");
 	} else {
-		report(" <- %s <= ", toString(ae.getBound()).c_str());
+		report(" %s %s <= ", ae.isDefined()?"<-":"<=>", toString(ae.getBound()).c_str());
 	}
 	report("%s{", ae.getType()==MAX?"MAX":ae.getType()==MIN?"MIN":ae.getType()==SUM?"SUM":ae.getType()==CARD?"CARD":"PROD");
 	print(*set, false);
@@ -42,7 +42,7 @@ void Aggrs::print(const Agg& ae, bool endl) {
 	} else {
 		report(", ");
 	}
-	report("ESV = %s.", toString(set->getESV()).c_str());
+	report("ESV = %s.", toString(set->getKnownBound()).c_str());
 	report("}");
 	if(endl){
 		report("\n");

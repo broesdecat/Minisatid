@@ -1,7 +1,6 @@
 #include "AggTransform.hpp"
 
 #include <vector>
-#include <limits>
 
 #include "modules/aggsolver/AggProp.hpp"
 #include "modules/aggsolver/AggPrint.hpp"
@@ -15,8 +14,6 @@ using namespace std;
 using namespace tr1;
 using namespace MinisatID;
 using namespace Aggrs;
-
-typedef numeric_limits<int> intlim;
 
 ///////
 // TRANSFORMATIONS
@@ -134,9 +131,8 @@ void MapToSetOneToOneWithAgg::transform(AggSolver* solver, TypedSet* set, vps& s
 	set->replaceAgg(newaggs);
 
 	for (vpagg::const_iterator i = ++aggs.begin(); i < aggs.end(); i++) {
-		TypedSet* newset = new TypedSet(set->getSolver(), set->getSetID());
+		TypedSet* newset = new TypedSet(*set);
 		newset->addAgg(*i);
-		newset->setWL(set->getWL());
 		assert(newset->getAgg().size()==1);
 		sets.push_back(newset);
 	}
@@ -181,26 +177,28 @@ void VerifyWeights::transform(AggSolver* solver, TypedSet* set, vps& sets, bool&
 //@pre Has to be split
 //Adds the type objects and correct esv to the sets
 void AddTypes::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
+	if(set->getTypep()!=NULL){
+		//TODO check assertions
+		//FIXME is because there is something wrong in the order (with initializing KB and types)
+		return;
+	}
 	switch (set->getAgg()[0]->getType()) {
 		case MAX:
 			set->setType(AggProp::getMax());
-			set->setESV(intlim::min());
 			break;
 		case SUM:
 			set->setType(AggProp::getSum());
-			set->setESV(0);
 			break;
 		case CARD:
 			set->setType(AggProp::getCard());
-			set->setESV(0);
 			break;
 		case PROD:
 			set->setType(AggProp::getProd());
-			set->setESV(1);
 			break;
 		default:
 			assert(false);
 	}
+	set->setKnownBound(set->getType().getESV());
 }
 
 void MinToMax::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
@@ -294,8 +292,8 @@ void CardToEquiv::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& u
 		for (vpagg::const_iterator i = set->getAgg().begin(); !unsat && i < set->getAgg().end(); i++) {
 			const Agg& agg = *(*i);
 			if(agg.hasLB()){
-				const Weight& bound = agg.getBound();
-				if(bound-set->getESV()==0){
+				const Weight& bound = agg.getBound()-set->getKnownBound();
+				if(bound==0){
 					lbool headvalue = set->getSolver()->value(agg.getHead());
 					if(headvalue==l_False){
 						unsat = true;
@@ -311,7 +309,7 @@ void CardToEquiv::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& u
 							}
 						}
 					}
-				} else if(bound-set->getESV()==1){
+				} else if(bound==1){
 					vec<Lit> right;
 					for (vsize j = 0; j < set->getWL().size(); j++) {
 						right.push(set->getWL()[j].getLit());

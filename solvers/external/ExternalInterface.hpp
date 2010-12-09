@@ -25,13 +25,15 @@
 #include <stdio.h>
 #include <tr1/unordered_map>
 
-#include "solvers/external/ExternalUtils.hpp"
-#include "solvers/theorysolvers/LogicSolver.hpp"
+#include "external/ExternalUtils.hpp"
+#include "theorysolvers/LogicSolver.hpp"
 //Have to be included, otherwise this header knows nothing of the inheritance between LogicSolver and its children
-#include "solvers/theorysolvers/PCSolver.hpp"
-#include "solvers/theorysolvers/SOSolver.hpp"
+#include "theorysolvers/PCSolver.hpp"
+#include "theorysolvers/SOSolver.hpp"
 
-#include "solvers/satsolver/SATUtils.h"
+#include "parser/ResourceManager.hpp"
+
+#include "satsolver/SATUtils.h"
 
 namespace MinisatID {
 

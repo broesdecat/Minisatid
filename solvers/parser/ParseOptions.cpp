@@ -5,12 +5,13 @@
  *      Author: broes
  */
 
-#include "solvers/parser/ParseOptions.hpp"
+#include "parser/ParseOptions.hpp"
 
 #include <vector>
 #include <string>
 #include <tclap/CmdLine.h>
-#include "solvers/external/ExternalUtils.hpp"
+#include "external/ExternalUtils.hpp"
+#include "parser/ResourceManager.hpp"
 
 using namespace std;
 using namespace MinisatID;

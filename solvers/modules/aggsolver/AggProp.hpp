@@ -53,6 +53,7 @@ public:
 	int			getIndex	()					const	{ return index; }
 
 	const Weight&	getBound()					const	{ return bound.bound; }
+	const Weight	getCertainBound()					const;
 	void		setBound	(AggBound b)				{ bound = b; }
 	bool		hasUB		()					const	{ return bound.sign!=AGGSIGN_LB; }
 	bool		hasLB		()					const	{ return bound.sign!=AGGSIGN_UB; }
@@ -82,6 +83,7 @@ public:
 	static AggProp const * getSum() { return sum.get(); }
 
 	virtual const char*	getName					() 										const = 0;
+	virtual	Weight 		getESV					()										const = 0;
 	virtual AggType 	getType					() 										const = 0;
 	virtual bool 		isNeutralElement		(const Weight& w)						const = 0;
 	virtual bool 		isMonotone				(const Agg& agg, const WL& l, bool ub)	const = 0;
@@ -99,6 +101,7 @@ public:
 class MaxProp: public AggProp{
 public:
 	const char* getName					() 										const { return "MAX"; }
+	Weight 		getESV					()										const { return negInfinity(); }
 	AggType 	getType					() 										const { return MAX; }
 	bool 		isNeutralElement		(const Weight& w) 						const { return false; }
 	bool 		isMonotone				(const Agg& agg, const WL& l, bool ub)	const;
@@ -119,6 +122,7 @@ public:
 class ProdProp: public SPProp{
 public:
 	const char* getName					() 										const { return "PROD"; }
+	Weight 		getESV					()										const { return Weight(1); }
 	AggType 	getType					() 										const { return PROD; }
 	bool 		isNeutralElement		(const Weight& w) 						const { return w==1; }
 	bool 		isMonotone				(const Agg& agg, const WL& l, bool ub)	const;
@@ -133,6 +137,7 @@ public:
 class SumProp: public SPProp{
 public:
 	const char* getName					() 										const { return "SUM"; }
+	Weight 		getESV					()										const { return Weight(0); }
 	AggType 	getType					() 										const { return SUM; }
 	bool 		isNeutralElement		(const Weight& w) 						const { return w==0; }
 	bool 		isMonotone				(const Agg& agg, const WL& l, bool ub)	const;
@@ -174,7 +179,7 @@ public:
 
 class TypedSet{
 protected:
-	Weight 				esv;
+	Weight 				kb; //kb is "known bound", the value of the set reduced empty set
 	vwl 				wl;
 
 	AggProp const * 	type;
@@ -186,7 +191,14 @@ protected:
 	int 				setid;
 
 public:
-	TypedSet(AggSolver* solver, int setid): esv(0), type(NULL), aggsolver(solver), prop(NULL), setid(setid){}
+	TypedSet(AggSolver* solver, int setid): type(NULL), aggsolver(solver), prop(NULL), setid(setid){}
+	TypedSet(const TypedSet& set):
+			kb(set.getKnownBound()),
+			wl(set.getWL()),
+			type(set.getTypep()),
+			aggsolver(set.getSolver()),
+			prop(NULL),
+			setid(set.getSetID()){}
 	virtual ~TypedSet(){
 		deleteList<Agg>(aggregates);
 		delete prop;
@@ -203,10 +215,11 @@ public:
 	void			replaceAgg		(const vpagg& repl)			;
 	void 			addAgg			(Agg* aggr) 				;
 
-	const Weight& 	getESV			() 			const 			{ return esv; }
-	void 			setESV			(const Weight& w)			{ esv = w; }
+	const Weight&	getKnownBound	()			const			{ return kb; }
+	void 			setKnownBound	(const Weight& w)			{ kb = w; }
 
 	const AggProp&	getType			() 			const 			{ assert(type!=NULL); return *type; }
+	AggProp const *		getTypep		() 			const 			{ return type; }
 	void 			setType			(AggProp const * const w)	{ type = w; }
 
 	void 			setProp			(Propagator* p) 			{ prop = p; }

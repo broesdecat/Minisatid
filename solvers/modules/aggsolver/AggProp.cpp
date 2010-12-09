@@ -20,6 +20,10 @@ using namespace Aggrs;
 
 typedef numeric_limits<int> intlim;
 
+const Weight	Agg::getCertainBound() const {
+	return bound.bound-getSet()->getKnownBound();
+}
+
 shared_ptr<AggProp> AggProp::max = shared_ptr<AggProp> (new MaxProp());
 shared_ptr<AggProp> AggProp::sum = shared_ptr<AggProp> (new SumProp());
 shared_ptr<AggProp> AggProp::card = shared_ptr<AggProp> (new CardProp());
@@ -55,7 +59,7 @@ Weight SumProp::remove(const Weight& lhs, const Weight& rhs) const {
 }
 
 Weight SumProp::getBestPossible(TypedSet* set) const {
-	Weight max = set->getESV();
+	Weight max = set->getKnownBound();
 	for (vwl::const_iterator j = set->getWL().begin(); j < set->getWL().end(); j++) {
 		max = this->add(max, (*j).getWeight());
 	}
@@ -68,10 +72,10 @@ Weight SumProp::getCombinedWeight(const Weight& one, const Weight& two) const {
 
 WL SumProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const {
 	if (one.getWeight() < two.getWeight()) {
-		set->setESV(set->getESV() + one.getWeight());
+		set->setKnownBound(set->getKnownBound() + one.getWeight());
 		return WL(two.getLit(), this->remove(two.getWeight(), one.getWeight()));
 	} else {
-		set->setESV(set->getESV() + two.getWeight());
+		set->setKnownBound(set->getKnownBound() + two.getWeight());
 		return WL(one.getLit(), this->remove(one.getWeight(), two.getWeight()));
 	}
 }
@@ -90,13 +94,13 @@ Weight MaxProp::getCombinedWeight(const Weight& first, const Weight& second) con
 
 WL MaxProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const {
 	if (one.getWeight() > two.getWeight()) {
-		if (set->getESV() < two.getWeight()) {
-			set->setESV(two.getWeight());
+		if (set->getKnownBound() < two.getWeight()) {
+			set->setKnownBound(two.getWeight());
 		}
 		return one;
 	} else {
-		if (set->getESV() < one.getWeight()) {
-			set->setESV(one.getWeight());
+		if (set->getKnownBound() < one.getWeight()) {
+			set->setKnownBound(one.getWeight());
 		}
 		return two;
 	}
@@ -107,7 +111,7 @@ WL MaxProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* s
 ///////
 
 Weight ProdProp::getBestPossible(TypedSet* set) const {
-	Weight max = set->getESV();
+	Weight max = set->getKnownBound();
 	for(vwl::const_iterator j = set->getWL().begin(); j<set->getWL().end(); j++){
 		max = this->add(max, (*j).getWeight());
 	}
@@ -305,7 +309,7 @@ bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, V
 	}
 	if(justified && agg.hasLB()){
 		justified = false;
-		Weight bestcertain = set->getESV();
+		Weight bestcertain = set->getKnownBound();
 		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
 			if (isJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push((*i).getLit());

@@ -38,6 +38,7 @@ public:
 
 
 class Watch{
+	//FIXME make this propagator instead of typedSet
 private:
 	TypedSet* 		set;
 	const 	WL		wl;	//the literal as it occurs in the set

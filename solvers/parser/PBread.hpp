@@ -208,7 +208,7 @@ private:
 
 class PBRead{
 private:
-	std::ifstream in; // the stream we're reading from
+	std::istream& in; // the stream we're reading from
 	int nbVars, nbConstr; // MetaData: #Variables and #Constraints in file.
 
 	bool autoLinearize;
@@ -217,13 +217,7 @@ private:
 	DefaultCallback cb;
 
 public:
-	PBRead(WrappedPCSolver* solver, const char *filename): cb(solver) {
-		in.open(filename, std::ios_base::in);
-
-		if (!in.good()){
-			throw std::runtime_error("error opening input file");
-		}
-
+	PBRead(WrappedPCSolver* solver, std::istream &stream): in(stream), cb(solver) {
 		autoLinearize = false;
 
 		nbVars = 0;

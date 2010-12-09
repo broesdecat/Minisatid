@@ -75,7 +75,8 @@ private:
 	vptw nf, nfex, setf; //setf contains all monotone versions of set literals
 	vptw nt, ntex, sett; //sett contains all anti-monotone versions of set literals
 	lbool headvalue;
-	int headpropagatedhere;
+	int headproplevel;
+	bool headpropagatedhere;
 
 	std::vector<int> startsetf, startsett; //std::vector mapping decision levels to indices where to start looking for replacement watches
 
@@ -177,7 +178,7 @@ public:
 	virtual ~GenPWAgg();
 
 	bool isSatisfied(const Agg& agg, const Weight& value) const{
-		return (agg.hasUB() && value <= agg.getBound() ) || (agg.hasLB() && agg.getBound()<=value);
+		return (agg.hasUB() && value <= agg.getCertainBound() ) || (agg.hasLB() && agg.getCertainBound()<=value);
 	}
 
 	void	 	adaptValue(WATCHSET w, const vpgpw& set, Weight& val) const;

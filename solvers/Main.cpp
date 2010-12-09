@@ -64,14 +64,15 @@
 #include <tr1/memory>
 #include <sstream>
 
-#include "solvers/parser/ParseOptions.hpp"
+#include "parser/ParseOptions.hpp"
 
 #include <setjmp.h>
 
-#include "solvers/external/ExternalInterface.hpp"
-#include "solvers/Unittests.hpp"
-#include "solvers/parser/Lparseread.hpp"
-#include "solvers/parser/PBread.hpp"
+#include "external/ExternalInterface.hpp"
+#include "Unittests.hpp"
+#include "parser/ResourceManager.hpp"
+#include "parser/Lparseread.hpp"
+#include "parser/PBread.hpp"
 
 //#include "solvers/utils/PrintMessage.hpp"
 
@@ -163,7 +164,7 @@ int main(int argc, char** argv) {
 		exit(returnvalue);     // (faster than "return", which will invoke the destructor for 'Solver')
 #endif
 	} catch (const idpexception& e) {
-		report("Temp Error\n");
+		report("%s\nProgram aborting...\n", e.what());
 		//printExceptionCaught(e, modes.verbosity);
 		if(d.get()!=NULL){
 			d->printStatistics();
@@ -187,20 +188,20 @@ int doModelGeneration(pData& d, double cpu_time){
 			WrappedPCSolver* p = new WrappedPCSolver(modes);
 			d = shared_ptr<WrappedLogicSolver> (p);
 			Read* r = new Read(p);
-			std::filebuf buf;
-			buf.open(MinisatID::getInputFileUrl(), std::ios::in);
-			std::istream is(&buf);
+			std::istream is(getInputBuffer());
 			if(r->read(is)!=0){
-				throw idpexception("Error in lparse parsing!");
+				throw idpexception("Undefined error in asp parsing!\n");
 			}
-			buf.close();
+			closeInput();
 			delete r;
 			break;
 		}
 		case FORMAT_OPB:{
 			WrappedPCSolver* p = new WrappedPCSolver(modes);
 			d = shared_ptr<WrappedLogicSolver> (p);
-			PBRead* parser = new PBRead(p, MinisatID::getInputFileUrl());
+			std::istream is(getInputBuffer());
+			PBRead* parser = new PBRead(p, is);
+			closeInput();
 			parser->autoLin();
 			parser->parse();
 			delete parser;

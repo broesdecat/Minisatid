@@ -20,11 +20,9 @@
 #ifndef EXTERNALUTILS_HPP_
 #define EXTERNALUTILS_HPP_
 
-#include <stdlib.h>
 #include <string>
 #include <assert.h>
 
-#include <iostream>
 #include <map>
 #include <vector>
 #include <string>
@@ -93,25 +91,13 @@ enum AggSem 	{ COMP, DEF };	// Semantics of satisfiability of the aggregate head
 	namespace MinisatID {
 	#define GMPWEIGHT
 	typedef mpz_class Weight;
-	//MEDIUM SPEED, NEED LIB INSTALLED, MUCH FASTER THAN BIGINT FOR ARBITRARY PREC, OVERFLOW SUPPORT
-	}
-#else
-#ifdef BIGINT
-	#include "BigInteger.hh"
-	#include "BigIntegerUtils.hh"
-
-	namespace MinisatID {
-	#define BIGINTWEIGHT
-	typedef BigInteger Weight;
-	//SLOWEST, NO LIB NEEDED, OVERFLOW SUPPORT
 	}
 #else
 	namespace MinisatID {
 	#define INTWEIGHT
 	typedef int Weight;
-	//FASTEST, NO OVERFLOW SUPPORT
+	//FAST, NO OVERFLOW SUPPORT
 	}
-#endif
 #endif
 
 namespace MinisatID {
@@ -157,63 +143,6 @@ struct WLtuple{
 	WLtuple(const Literal& l, const Weight& w): l(l), w(w){ }
 	WLtuple operator=(const WLtuple& lw) const { return WLtuple(lw.l, lw.w); }
 };
-
-// Class to manage a file
-class FileR {
-private:
-	bool opened, writeaccess, stream;
-	const char* name; // if not a stream
-	FILE* file;
-
-	FileR(const FileR &);
-	FileR & operator=(const FileR &);
-
-public:
-	FileR(FILE* file) : //for streams
-			opened(false), writeaccess(true), stream(true), file(file) {	}
-	FileR(const char* name, bool write) :
-			opened(false), writeaccess(write), stream(false), name(name), file(NULL) {
-		openFile();
-	}
-
-	~FileR() {
-		if (opened) {
-			fclose(file);
-		}
-	}
-
-	void close() {
-		if (opened) {
-			opened = false;
-			fclose(file);
-		}
-	}
-	FILE* getFile() {
-		openFile();
-		return file;
-	}
-
-private:
-	void openFile(){
-		if(!opened && !stream){
-			file = fopen(name, writeaccess?"wb":"r");
-			if (file == NULL) {
-				char s[100];
-				sprintf(s, "`%s' is not a valid filename or not readable.\n", name);
-				throw idpexception(s);
-			}
-			opened = true;
-		}
-	}
-};
-
-void setInputFileUrl(const char* url);
-const char* getInputFileUrl();
-FILE* getInputFile();
-void setOutputFileUrl(const char* url);
-FILE* getOutputFile();
-void closeInput();
-void closeOutput();
 
 ///////
 // Definitional options

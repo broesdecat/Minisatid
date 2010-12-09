@@ -23,7 +23,7 @@ minisatid_SOURCES += solvers/modules/aggsolver/AggTransform.cpp solvers/modules/
 minisatid_SOURCES += solvers/modules/aggsolver/AggProp.cpp
 minisatid_SOURCES += solvers/external/ExternalInterface.cpp solvers/external/ExternalUtils.cpp 
 minisatid_SOURCES += solvers/utils/Print.cpp solvers/utils/Utils.cpp # solvers/utils/PrintMessage.cpp 
-minisatid_SOURCES += solvers/parser/Lparseread.cpp solvers/parser/PBread.cpp solvers/parser/ParseOptions.cpp
+minisatid_SOURCES += solvers/parser/ResourceManager.cpp solvers/parser/Lparseread.cpp solvers/parser/PBread.cpp solvers/parser/ParseOptions.cpp
 minisatid_SOURCES += solvers/Unittests.cpp
 
 include_HEADERS = 
@@ -34,7 +34,7 @@ include_HEADERS += solvers/modules/aggsolver/AggProp.hpp
 include_HEADERS += solvers/theorysolvers/LogicSolver.hpp solvers/theorysolvers/PCSolver.hpp solvers/theorysolvers/SOSolver.hpp   
 include_HEADERS += solvers/external/ExternalInterface.hpp solvers/external/ExternalUtils.hpp
 include_HEADERS += solvers/utils/Print.hpp solvers/utils/Utils.hpp # solvers/utils/PrintMessage.hpp
-include_HEADERS += solvers/parser/Lparseread.hpp solvers/parser/PBread.hpp solvers/parser/ParseOptions.hpp tclap/CmdLine.h
+include_HEADERS += solvers/parser/ResourceManager.hpp solvers/parser/Lparseread.hpp solvers/parser/PBread.hpp solvers/parser/ParseOptions.hpp tclap/CmdLine.h
 include_HEADERS += solvers/Unittests.hpp 
 
 

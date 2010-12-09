@@ -165,7 +165,7 @@ PWAgg::PWAgg(TypedSet* set) :
 }
 
 CardPWAgg::CardPWAgg(TypedSet* set) :
-	PWAgg(set), headvalue(l_Undef), headpropagatedhere(-1) {
+	PWAgg(set), headvalue(l_Undef), headproplevel(-1), headpropagatedhere(false) {
 	startsetf.push_back(0);
 	startsett.push_back(0);
 }
@@ -249,12 +249,12 @@ bool CardPWAgg::initializeNF() {
 	vptw& set = getSet(NF);
 	for (int i = 0; i < (int)set.size(); i++) {
 		const WL& wl = set[i]->getWL();
-		if (Weight(nf.size()) < agg.getBound() && propagatedValue(wl.getLit()) != l_False) {
+		if (Weight(nf.size()) < agg.getCertainBound() && propagatedValue(wl.getLit()) != l_False) {
 			addToWatchedSet(NF, i);
 			i--;
 		}
 	}
-	return Weight(nf.size()) >= agg.getBound();
+	return Weight(nf.size()) >= agg.getCertainBound();
 }
 
 bool CardPWAgg::initializeNT() {
@@ -262,12 +262,12 @@ bool CardPWAgg::initializeNT() {
 	vptw& set = getSet(NT);
 	for (int i = 0; i < (int)set.size(); i++) {
 		const WL& wl = set[i]->getWL();
-		if (Weight(nt.size()) <= Weight(getSetp()->getWL().size()) - agg.getBound() && propagatedValue(wl.getLit()) != l_False) {
+		if (Weight(nt.size()) <= Weight(getSetp()->getWL().size()) - agg.getCertainBound() && propagatedValue(wl.getLit()) != l_False) {
 			addToWatchedSet(NT, i);
 			i--;
 		}
 	}
-	return Weight(nt.size()) > Weight(getSetp()->getWL().size()) - agg.getBound();
+	return Weight(nt.size()) > Weight(getSetp()->getWL().size()) - agg.getCertainBound();
 }
 
 bool CardPWAgg::initializeNTL() {
@@ -275,12 +275,12 @@ bool CardPWAgg::initializeNTL() {
 	vptw& set = getSet(NT);
 	for (int i = 0; i < (int)set.size(); i++) {
 		const WL& wl = set[i]->getWL();
-		if (Weight(nt.size()) <= agg.getBound() && propagatedValue(wl.getLit()) != l_False) {
+		if (Weight(nt.size()) <= agg.getCertainBound() && propagatedValue(wl.getLit()) != l_False) {
 			addToWatchedSet(NT, i);
 			i--;
 		}
 	}
-	return Weight(nt.size()) > agg.getBound();
+	return Weight(nt.size()) > agg.getCertainBound();
 }
 
 bool CardPWAgg::initializeNFL() {
@@ -288,12 +288,12 @@ bool CardPWAgg::initializeNFL() {
 	vptw& set = getSet(NF);
 	for (int i = 0; i < (int)set.size(); i++) {
 		const WL& wl = set[i]->getWL();
-		if (Weight(nf.size()) < Weight(getSetp()->getWL().size()) - agg.getBound() && propagatedValue(wl.getLit()) != l_False) {
+		if (Weight(nf.size()) < Weight(getSetp()->getWL().size()) - agg.getCertainBound() && propagatedValue(wl.getLit()) != l_False) {
 			addToWatchedSet(NF, i);
 			i--;
 		}
 	}
-	return Weight(nf.size()) >= Weight(getSetp()->getWL().size()) - agg.getBound();
+	return Weight(nf.size()) >= Weight(getSetp()->getWL().size()) - agg.getCertainBound();
 }
 
 bool CardPWAgg::initializeEX(WATCHSET w) {
@@ -413,7 +413,7 @@ rClause CardPWAgg::propagate(const Lit& p, Watch* watch, int level) {
 			Lit l = ~getSetp()->getAgg()[0]->getHead();
 			confl = getSolver()->notifySolver(new AggReason( *getSetp()->getAgg()[0], BASEDONCC, l, false));
 			if(confl==nullPtrClause){
-				headpropagatedhere = level;
+				headpropagatedhere = true;
 			}
 		} else if (checking(NTEX)) {
 			// propagate all others in NF and propagate NFex
@@ -436,7 +436,7 @@ rClause CardPWAgg::propagate(const Lit& p, Watch* watch, int level) {
 			Lit l = getSetp()->getAgg()[0]->getHead();
 			confl = getSolver()->notifySolver(new AggReason( *getSetp()->getAgg()[0], BASEDONCP, l, false));
 			if(confl==nullPtrClause){
-				headpropagatedhere = level;
+				headpropagatedhere = true;
 			}
 		}
 	}
@@ -463,18 +463,22 @@ rClause CardPWAgg::propagate(const Lit& p, Watch* watch, int level) {
  * and this can only be helped by using the current truth value, which is what we will do.
  */
 rClause CardPWAgg::propagate(int level, const Agg& agg, bool headtrue) {
-	if(headpropagatedhere!=-1){
+	if(headpropagatedhere){
 		//TODO deze check zou niet noodzakelijk mogen zijn voor de correctheid, maar is dat nu wel. Probleem is
 		//dat hij soms bij head propageren geen extension vindt en dan alles propageert, maar eigenlijk
 		//hoeft dat niet als een volledig true conflict set gevonden kan worden
 		return nullPtrClause;
 	}
 
+	assert(headvalue==l_Undef);
+	assert(nfex.size() == 0 && ntex.size() == 0);
+
 	headvalue = value(agg.getHead());
+	headproplevel = level;
+
+	getSolver()->addToBackTrail(getSetp());
 
 	rClause confl = nullPtrClause;
-
-	assert(nfex.size() == 0 && ntex.size() == 0);
 
 	if(!checking(NF)){
 		removeWatches(NF);
@@ -508,7 +512,10 @@ rClause CardPWAgg::propagate(int level, const Agg& agg, bool headtrue) {
 }
 
 void CardPWAgg::backtrack(int nblevels, int untillevel) {
-	if(headpropagatedhere>untillevel){
+	if(headproplevel>untillevel){
+		headpropagatedhere = false;
+		headproplevel = -1;
+
 		if (checking(NFEX)) {
 			removeWatches(NFEX);
 		}
@@ -541,6 +548,7 @@ void CardPWAgg::backtrack(int nblevels, int untillevel) {
 }
 
 void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
+	//FIXME INCORRECT!
 	const PCSolver& pcsol = *getSolver()->getPCSolver();
 	const Lit& head = ar.getAgg().getHead();
 	if(value(head)!=l_Undef && var(ar.getPropLit())!=var(head)){
@@ -553,7 +561,7 @@ void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 
 	for (vsize i = 0; i < getSetp()->getWL().size(); i++) {
 		const WL& wl = getSetp()->getWL()[i];
-		if(ar.getExpl()==BASEDONCC){ //Monotone one (one in the set) propagated: take only false monotone ones
+/*		if(ar.getExpl()==BASEDONCC){ //Monotone one (one in the set) propagated: take only false monotone ones
 			if(value(wl.getLit())==(ar.getAgg().hasLB()?l_True:l_False)){
 				continue;
 			}
@@ -562,7 +570,7 @@ void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 			if(value(wl.getLit())==(ar.getAgg().hasLB()?l_False:l_True)){
 				continue;
 			}
-		}
+		}*/
 		if (var(wl.getLit()) != var(comparelit) && value(wl.getLit()) != l_Undef) {
 			if(pcsol.assertedBefore(var(wl.getLit()), var(comparelit))){
 				lits.push(value(wl.getLit())==l_True?~wl.getLit():wl.getLit());

@@ -21,11 +21,14 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <tr1/memory>
+#include <limits>
 
 #include "solvers/external/ExternalUtils.hpp"
 
 using namespace std;
 using namespace MinisatID;
+
+typedef numeric_limits<int> intlim;
 
 ///////
 // Measuring cpu time and memory management
@@ -71,77 +74,17 @@ double MinisatID::cpuTime(void) {
 	string MinisatID::toString(const Weight& w){
 		return w.get_str();
 	}
-#else
-	#ifdef BIGINTWEIGHT
-		string MinisatID::toString(const Weight& w){
-			return bigIntegerToString(w);
-		}
-	#else //INT_WEIGHT
-		string MinisatID::toString(const Weight& w){
-			char s[15];
-			sprintf(s, "%d", w);
-			return s;
-		}
-	#endif
+	//FIXME posinf and neginf
+#else //INT_WEIGHT
+	string MinisatID::toString(const Weight& w){
+		char s[15];
+		sprintf(s, "%d", w);
+		return s;
+	}
+	Weight MinisatID::negInfinity(){
+		return intlim::min();
+	}
+	Weight MinisatID::posInfinity(){
+		return intlim::max();
+	}
 #endif
-
-///////
-// Input/output file management
-///////
-
-namespace MinisatID{
-	const char *inputurl = NULL;
-	const char *outputurl = NULL;
-	std::tr1::shared_ptr<FileR> input, output;
-}
-
-void MinisatID::setInputFileUrl(const char* url){
-	assert(input.get()==NULL);
-	inputurl = url;
-}
-
-const char* MinisatID::getInputFileUrl(){
-	return inputurl;
-}
-
-//fixme CHECK FILE EXISTENCE
-
-FILE* MinisatID::getInputFile(){
-	if(input.get()==NULL){
-		if(getInputFileUrl()==NULL){
-			input = std::tr1::shared_ptr<FileR>(new FileR(stdin));
-			report("Reading from standard input...\n");
-		}else{
-			input = std::tr1::shared_ptr<FileR>(new FileR(getInputFileUrl(), false));
-		}
-	}
-	return input->getFile();
-}
-
-void MinisatID::setOutputFileUrl(const char* url){
-	assert(output.get()==NULL);
-	outputurl = url;
-}
-
-FILE* MinisatID::getOutputFile(){
-	if(output.get()==NULL){
-		if(outputurl==NULL){
-			output = std::tr1::shared_ptr<FileR>(new FileR(stdout));
-		}else{
-			output = std::tr1::shared_ptr<FileR>(new FileR(outputurl, true));
-		}
-	}
-	return output->getFile();
-}
-
-void MinisatID::closeInput(){
-	if(input.get()!=NULL){
-		input->close();
-	}
-}
-
-void MinisatID::closeOutput(){
-	if(output.get()!=NULL){
-		output->close();
-	}
-}
