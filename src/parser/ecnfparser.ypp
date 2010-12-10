@@ -504,7 +504,7 @@ Weight cWeight(const char* c){
 	    	continue;
 	    }
 #ifdef INTWEIGHT
-		if(INT_MAX/10 < w){
+		if(posInfinity()/10 < w){
 			throw idpexception("Weight exceeds the maximum supported value. Consider using GMP.\n");
 		}
 #endif
