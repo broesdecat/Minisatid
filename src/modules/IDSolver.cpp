@@ -43,9 +43,7 @@
 
 #include <cmath>
 
-#include <stdint.h>
-#include <inttypes.h>
-#include <limits.h>
+#include "utils/IntTypes.h"
 
 using namespace std;
 using namespace MinisatID;

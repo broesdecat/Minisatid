@@ -52,9 +52,7 @@
 
 #include <algorithm>
 
-#include <stdint.h>
-#include <inttypes.h>
-#include <limits.h>
+#include "utils/IntTypes.h"
 #include <cmath>
 
 using namespace std;
