@@ -36,8 +36,8 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
-#ifndef Minisat_IntTypes_h
-#define Minisat_IntTypes_h
+#ifndef MinisatID_IntTypes_h
+#define MinisatID_IntTypes_h
 
 #ifdef __sun
     // Not sure if there are newer versions that support C99 headers. The
@@ -48,12 +48,6 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #   include <sys/int_limits.h>
 
 #else
-#ifndef __STDC_LIMIT_MACROS
-#define __STDC_LIMIT_MACROS
-#endif
-#ifndef __STDC_FORMAT_MACROS
-#define __STDC_FORMAT_MACROS
-#endif
 #   include <stdint.h>
 #   include <inttypes.h>
 
@@ -63,4 +57,4 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 //=================================================================================================
 
-#endif
+#endif //MinisatID_IntTypes_h

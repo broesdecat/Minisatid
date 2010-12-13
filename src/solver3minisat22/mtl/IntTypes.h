@@ -48,9 +48,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #   include <sys/int_limits.h>
 
 #else
-
-#   include <stdint.h>
-#   include <inttypes.h>
+#include <stdint.h>
+#include <inttypes.h>
 
 #endif
 

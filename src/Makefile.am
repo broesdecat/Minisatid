@@ -62,6 +62,8 @@ include_HEADERS += 	solver3minisat22/core/Solver.h solver3minisat22/core/SolverT
 					solver3minisat22/utils/ParseUtils.h solver3minisat22/utils/Options.h\
 					solver3minisat22/zconf.h solver3minisat22/zlib.h
 AM_CXXFLAGS+= -D USEMINISAT22 -I$(srcdir)/solver3minisat22/
+#ESSENTIAL FOR INTTYPES USAGE 
+AM_CXXFLAGS+= -D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS 
 endif
 
 #MINISAT 2.07

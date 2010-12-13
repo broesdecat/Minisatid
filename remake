@@ -1,6 +1,7 @@
 #!/bin/bash
 
 cd ../../
+aclocal
 autoreconf
 libtoolize --force
 automake --add-missing
