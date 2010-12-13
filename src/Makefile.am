@@ -32,7 +32,7 @@ include_HEADERS += modules/aggsolver/AggTransform.hpp modules/aggsolver/AggUtils
 include_HEADERS += modules/aggsolver/AggProp.hpp
 include_HEADERS += theorysolvers/LogicSolver.hpp theorysolvers/PCSolver.hpp theorysolvers/SOSolver.hpp   
 include_HEADERS += external/ExternalInterface.hpp external/ExternalUtils.hpp
-include_HEADERS += utils/Print.hpp utils/Utils.hpp utils/PrintMessage.hpp
+include_HEADERS += utils/Print.hpp utils/Utils.hpp utils/PrintMessage.hpp utils/IntTypes.h
 include_HEADERS += parser/ResourceManager.hpp parser/Lparseread.hpp parser/PBread.hpp parser/ParseOptions.hpp tclap/CmdLine.h
 include_HEADERS += Unittests.hpp 
 
