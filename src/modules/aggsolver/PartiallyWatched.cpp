@@ -12,7 +12,7 @@ using namespace std;
 using namespace MinisatID;
 using namespace Aggrs;
 
-void Aggrs::printWatches(AggSolver* const solver, const vvpw& tempwatches){
+void Aggrs::printWatches(int verbosity, AggSolver* const solver, const vvpw& tempwatches){
 	for(vsize i=0; i<2*solver->nVars(); i++){
 		bool found = false;
 		for(vsize j=0; !found && j<tempwatches[i].size(); j++){
@@ -38,12 +38,12 @@ void Aggrs::printWatches(AggSolver* const solver, const vvpw& tempwatches){
 				PWatch* watch = dynamic_cast<PWatch*>(tempwatches[i][j]);
 				if(watch!=NULL && watch->isInUse()){
 					report("        ");
-					print(*tempwatches[i][j]->getSet()->getAgg()[k], true);
+					print(verbosity, *tempwatches[i][j]->getSet()->getAgg()[k], true);
 				}
 				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(tempwatches[i][j]);
 				if(watch2!=NULL && watch2->getWatchset()!=INSET){
 					report("        ");
-					print(*tempwatches[i][j]->getSet()->getAgg()[k], true);
+					print(verbosity, *tempwatches[i][j]->getSet()->getAgg()[k], true);
 				}
 			}
 		}
@@ -576,5 +576,17 @@ void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 				lits.push(value(wl.getLit())==l_True?~wl.getLit():wl.getLit());
 			}
 		}
+	}
+
+	if(getSolver()->verbosity()>=1 && ar.isHeadReason()){
+		report("Explanation for deriving ");
+		gprintLit(ar.getPropLit()); report(" ");
+		print(getSolver()->verbosity(), ar.getAgg(), false);
+		print(10, *getSetp(), false);
+		report(" is ");
+		for(int i=0; i<lits.size(); i++){
+			report(" "); gprintLit(lits[i]);
+		}
+		report("\n");
 	}
 }

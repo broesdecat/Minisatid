@@ -216,7 +216,7 @@ public:
 	virtual ~SumGenPWAgg(){}
 };
 
-void printWatches(AggSolver* const solver, const vvpw& tempwatches);
+void printWatches(int verbosity, AggSolver* const solver, const vvpw& tempwatches);
 
 }
 

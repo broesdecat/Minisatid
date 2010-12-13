@@ -215,8 +215,9 @@ void MinToMax::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsa
 			Weight bound = -(*i)->getBound();
 			AggSign sign = (*i)->getSign()==AGGSIGN_LB?AGGSIGN_UB:AGGSIGN_LB;
 			(*i)->setBound(AggBound(sign, bound));
+			assert((*i)->getType()==MIN);
+			(*i)->setType(MAX);
 		}
-		set->getAgg()[0]->setType(MAX);
 	}
 }
 

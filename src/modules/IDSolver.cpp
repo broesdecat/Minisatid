@@ -864,8 +864,10 @@ void IDSolver::findCycleSources() {
 
 			if (getAggSolver() != NULL) {
 				vector<Var> heads = getAggSolver()->getAggHeadsWithBodyLit(var(~l));
-				for (vector<Var>::size_type j = 0; j < heads.size(); j++) {
-					checkJustification(heads[j]);
+				for (vv::const_iterator j = heads.begin(); j < heads.end(); j++) {
+					if(hasDefVar(*j)){
+						checkJustification(*j);
+					}
 				}
 			}
 		}

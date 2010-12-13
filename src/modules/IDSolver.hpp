@@ -204,7 +204,7 @@ public:
 	/////////////////////END INITIALIZATION
 
 private:
-	DefinedVar* 		getDefVar(Var v) const { return definitions[v]; }
+	DefinedVar* 		getDefVar(Var v) const { assert(definitions.size()>v); return definitions[v]; }
 	bool 				hasDefVar(Var v) const { return getDefVar(v)!=NULL; }
 
 	bool 				isDefined			(Var v) const {	return hasDefVar(v); }
@@ -217,13 +217,13 @@ private:
 	bool 				canBecomeTrue		(Lit l) const { return value(l) != l_False; }
 	bool 				inSameSCC			(Var x, Var y) const { return isDefined(x) && isDefined(y) && scc(x) == scc(y); }
 
-	std::vector<Lit>& 	reason		(Var v){ return getDefVar(v)->reason(); }
+	std::vector<Lit>& 	reason		(Var v){ assert(hasDefVar(v)); return getDefVar(v)->reason(); }
 	PropRule const*		definition	(Var v) const { assert(hasDefVar(v)); return getDefVar(v)->definition(); }
-	DefType& 			type		(Var v){ return getDefVar(v)->type(); }
-	DefOcc& 			occ			(Var v){ return getDefVar(v)->occ(); }
-	bool &				isCS		(Var v){ return getDefVar(v)->isCS(); }
-	int &				scc			(Var v){ return getDefVar(v)->scc(); }
-	vec<Lit>& 			justification(Var v){ return getDefVar(v)->justification(); }
+	DefType& 			type		(Var v){ assert(hasDefVar(v)); return getDefVar(v)->type(); }
+	DefOcc& 			occ			(Var v){ assert(hasDefVar(v)); return getDefVar(v)->occ(); }
+	bool &				isCS		(Var v){ assert(hasDefVar(v)); return getDefVar(v)->isCS(); }
+	int &				scc			(Var v){ assert(hasDefVar(v)); return getDefVar(v)->scc(); }
+	vec<Lit>& 			justification(Var v){ assert(hasDefVar(v)); return getDefVar(v)->justification(); }
 
 	const std::vector<Lit>& 	reason		(Var v)const { return getDefVar(v)->reason(); }
 	const DefType& 		type		(Var v)const { return getDefVar(v)->type(); }

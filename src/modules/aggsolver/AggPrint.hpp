@@ -6,8 +6,14 @@ namespace Aggrs{
 class TypedSet;
 class Agg;
 
-void print(const TypedSet&, bool endl = false);
-void print(const Agg& c, bool endl = false);
+void setAdded();
+void aggrAdded();
+void litPropagated();
+void explanationGenerated();
+void sets();
+
+void print(int verbosity, const TypedSet&, bool endl = false);
+void print(int verbosity, const Agg& c, bool endl = false);
 
 }
 }

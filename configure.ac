@@ -6,10 +6,11 @@ if test -z $CXXFLAGS; then
 fi
 AC_PROG_CXX
 #LT_INIT([static]) #version 1.11, generate lt_main.sh by libtoolize
+AC_DISABLE_SHARED
 AC_PROG_LIBTOOL
+
 AC_DECL_YYTEXT
 AC_PROG_YACC
-AC_PROG_LIBTOOL
 AC_LANG([C++])
 AM_INIT_AUTOMAKE([foreign subdir-objects -Wall]) #silent-rules FROM VERSION 1.11 #-ffloat-store OTHER parameters like pedantic, seem no to work here, I set them in debug CXXflags!
 

@@ -146,7 +146,7 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 
 	if (verbosity() >= 5) {
 		report("Added ");
-		Aggrs::print(*set, true);
+		Aggrs::print(verbosity(), *set, true);
 	}
 
 	return true;
@@ -208,7 +208,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType
 	set->addAgg(agg);
 
 	if (verbosity() >= 4) { //Print info on added aggregate
-		Aggrs::print(*agg);
+		Aggrs::print(verbosity(), *agg);
 		report("\n");
 	}
 
@@ -258,12 +258,6 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		doTransformations(this, set, sets(), unsat, setsat);
 
 		//TODO create propagators here
-
-#ifdef DEBUG
-		if(modes().watchedagg && !setsat){
-			assert(set->getAgg().size()==1);
-		}
-#endif
 
 		if(!unsat && !setsat){
 			set->initialize(unsat, setsat);
@@ -338,7 +332,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		report("Aggregates are present after initialization:\n");
 		for (vps::const_iterator i = sets().begin(); i < sets().end(); i++) {
 			for (vpagg::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); j++) {
-				Aggrs::print(**j, true);
+				Aggrs::print(verbosity(), **j, true);
 			}
 		}
 	}
@@ -347,7 +341,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		for(vpagg::const_iterator i=headwatches.begin(); i<headwatches.end(); i++){
 			if ((*i) != NULL) {
 				report("Headwatch of var %d: ", gprintVar(var((*i)->getHead())));
-				Aggrs::print(*(*i)->getSet(), true);
+				Aggrs::print(verbosity(), *(*i)->getSet(), true);
 			}
 		}
 		Var v = 0;
@@ -356,7 +350,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 				report("Bodywatches of var %d: ", gprintVar(v));
 				for (vsize j = 0; j < (*i).size(); j++) {
 					report("      ");
-					Aggrs::print(*((*i)[j])->getSet(), true);
+					Aggrs::print(verbosity(), *((*i)[j])->getSet(), true);
 				}
 			}
 		}
@@ -366,7 +360,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 				report("Bodywatches of var %d: ", gprintVar(v));
 				for (vsize j = 0; j < (*i).size(); j++) {
 					report("      ");
-					Aggrs::print(*((*i)[j])->getSet(), true);
+					Aggrs::print(verbosity(), *((*i)[j])->getSet(), true);
 				}
 			}
 		}
@@ -404,7 +398,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 			report("Deriving conflict in ");
 			gprintLit(p, l_True);
 			report(" because of the aggregate expression ");
-			Aggrs::print(ar->getAgg(), true);
+			Aggrs::print(verbosity(), ar->getAgg(), true);
 		}
 		assert(getPCSolver()->modes().aggclausesaving>1 || ar->hasClause());
 		assert(aggreason[var(p)]==NULL || getPCSolver()->modes().aggclausesaving>1 || aggreason[var(p)]->hasClause());
@@ -422,7 +416,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 			report("Deriving ");
 			gprintLit(p, l_True);
 			report(" because of the aggregate expression ");
-			Aggrs::print(ar->getAgg(), true);
+			Aggrs::print(verbosity(), ar->getAgg(), true);
 		}
 
 		//Keeping a reason longer than necessary is not a problem => if after backtracking still unknown, then no getexplanation, if it becomes known,
@@ -724,7 +718,7 @@ bool AggSolver::addMnmzSum(Var headv, int setid) {
 
 	if (verbosity() >= 3) {
 		report("Added sum optimization: Optimize ");
-		Aggrs::print(*ae);
+		Aggrs::print(verbosity(), *ae);
 		report("\n");
 	}
 

@@ -179,7 +179,7 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 
 			if (getSolver()->verbosity() >= 6) {
 				report("Propagating into aggr: ");
-				Aggrs::print(pa, false);
+				Aggrs::print(getSolver()->verbosity(), pa, false);
 				report(", CC = %s, CP = %s\n", toString(getCC()).c_str(), toString(getCP()).c_str());
 			}
 
@@ -397,7 +397,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 
 	if(getSolver()->verbosity()>=5){
 		report("Explanation for ");
-		print(agg, false);
+		print(getSolver()->verbosity(), agg, false);
 		report("is\n");
 		for(int i=0; i<lits.size(); i++){
 			report(" "); gprintLit(lits[i]);
