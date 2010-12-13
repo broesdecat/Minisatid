@@ -5,7 +5,8 @@ if test -z $CXXFLAGS; then
     CXXFLAGS=" "
 fi
 AC_PROG_CXX
-LT_INIT([static])
+#LT_INIT([static]) #version 1.11, generate lt_main.sh by libtoolize
+AC_PROG_LIBTOOL
 AC_DECL_YYTEXT
 AC_PROG_YACC
 AC_PROG_LIBTOOL

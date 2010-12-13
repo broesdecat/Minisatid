@@ -1,6 +1,6 @@
 SUBDIRS = tclap pbsolver
 
-AM_CXXFLAGS = @AC_CXXFLAGS@ -D __STDC_FORMAT_MACROS
+AM_CXXFLAGS = @AC_CXXFLAGS@
 AM_LDFLAGS = @AC_LDFLAGS@ -I src/tclap/ #-ltcmalloc -lprofiler
 
 AM_YFLAGS = -d 
