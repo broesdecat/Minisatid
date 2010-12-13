@@ -32,6 +32,7 @@
 // Debug information
 ///////
 
+//FIXME move to print headers
 #define report(...) ( fflush(stdout), fprintf(stderr, __VA_ARGS__), fflush(stderr) )
 
 namespace MinisatID {

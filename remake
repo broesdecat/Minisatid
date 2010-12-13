@@ -1,5 +1,11 @@
 #!/bin/bash
 
+cd ../../
+autoreconf
+libtoolize --force
+automake --add-missing
+cd -
+
 TYPE=release
 BITS=32
 SAT=hack

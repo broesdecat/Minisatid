@@ -218,61 +218,36 @@ int doModelGeneration(pData& d, double cpu_time){
 	//d is initialized unless unsat was already detected
 	bool unsat = d.get()==NULL;
 
-	printDataInitStart(modes.verbosity);
+	printInitDataStart(modes.verbosity);
 
 	//Initialize datastructures
 	if(!unsat){
 		unsat = !d->finishParsing();
 	}
 
-	if (modes.verbosity >= 2) {
-		report("| Datastructure initialization finished                                       |\n");
-		double parse_time = cpuTime() - cpu_time;
-		report("| Total parsing time              : %7.2f s                                 |\n", parse_time);
-	}
-
-	if(modes.verbosity >= 1){
-		report("===============================================================================\n");
-		if (modes.verbosity >= 2) {
-			if (unsat) {
-				report("| Unsatisfiable found by parsing                                              |\n");
-			}
-		}
-	}
+	printInitDataEnd(modes.verbosity, cpuTime()-cpu_time, unsat);
 
 	//Simplify
 	if(!unsat){
+		printSimpStart(modes.verbosity);
 		unsat = !d->simplify();
-		if (modes.verbosity >= 1) {
-			report("===============================================================================\n");
-			if (modes.verbosity >= 2) {
-				if (unsat) {
-					report("| Unsatisfiable found by unit propagation                                     |\n");
-				}
-			}
-		}
+		printSimpEnd(modes.verbosity, unsat);
 	}
 
 	//Solve
 	bool earlyunsat = unsat;
 	if(!unsat){
-		if (modes.verbosity >= 1) {
-			report("| Solving                                                                     |\n");
-		}
+		printSolveStart(modes.verbosity);
 		vector<Literal> assumpts;
-		Solution* sol = new Solution(modes.verbosity>0, false, true, modes.nbmodels, assumpts);
+		Solution* sol = new Solution(true, false, true, modes.nbmodels, assumpts);
 		unsat = !d->solve(sol);
 		delete sol;
-		if (modes.verbosity >= 1) {
-			report("===============================================================================\n");
-		}
+		printSolveEnd(modes.verbosity);
 	}
 
 	if(unsat){
 		fprintf(getOutputFile(), "UNSAT\n");
-		if(modes.verbosity >= 1){
-			report("UNSATISFIABLE\n");
-		}
+		printUnsat(modes.verbosity);
 	}
 
 	if(!earlyunsat && modes.verbosity >= 1){

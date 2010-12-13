@@ -2429,8 +2429,9 @@ void IDSolver::print(){
 	Print::print(this);
 }
 
+
 void IDSolver::printStatistics() const {
-	report	("cycles                : %-12" PRIu64 "\n", cycles);
+	report("cycles                : %-12" PRIu64 "\n", cycles);
 	report("cycle conflicts       : %-12" PRIu64 "\n", justify_conflicts);
 	report("avg cycle size        : %4.2f\n", (float)cycle_sizes/cycles);
 	report("avg extdisj size      : %4.2f\n", (float)extdisj_sizes/cycles);

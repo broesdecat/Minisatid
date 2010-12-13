@@ -5,12 +5,13 @@ if test -z $CXXFLAGS; then
     CXXFLAGS=" "
 fi
 AC_PROG_CXX
+#LT_INIT([static]) #version 1.11, generate lt_main.sh by libtoolize
+AC_PROG_LIBTOOL
 AC_DECL_YYTEXT
-#AC_PROG_LEX
 AC_PROG_YACC
-#AC_PROG_LIBTOOL
-AM_INIT_AUTOMAKE([foreign subdir-objects ]) #silent-rules FROM VERSION 1.11 #-ffloat-store OTHER parameters like pedantic, seem no to work here, I set them in debug CXXflags!
+AC_PROG_LIBTOOL
 AC_LANG([C++])
+AM_INIT_AUTOMAKE([foreign subdir-objects -Wall]) #silent-rules FROM VERSION 1.11 #-ffloat-store OTHER parameters like pedantic, seem no to work here, I set them in debug CXXflags!
 
 #check for the necessary headers
 AC_HEADER_STDC
@@ -20,9 +21,12 @@ AC_CHECK_HEADERS([set])
 AC_CHECK_HEADERS([map])
 AC_CHECK_HEADERS([cstdlib])
 AC_CHECK_HEADERS([limits])
-AC_CHECK_HEADERS([assert])
+AC_CHECK_HEADERS([assert.h])
 AC_CHECK_HEADERS([cmath])
+AC_CHECK_HEADERS([inttypes.h])
+AC_CHECK_HEADERS([stdint.h])
 AC_CHECK_HEADERS([iostream])
+AC_CHECK_HEADERS([fstream])
 AC_CHECK_HEADERS([tr1/memory])
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -33,8 +37,8 @@ AC_SUBST([AC_CXXFLAGS])
 AC_SUBST([AC_LDFLAGS])
 AC_SUBST([LIBS])
 
-AC_CXXFLAGS = " "
-AC_LDFLAGS = " "
+AC_CXXFLAGS=" "
+AC_LDFLAGS=" "
 
 AC_CXXFLAGS+="-ansi -ffloat-store -Wall -Wextra -Wno-unused-parameter " 
 #should use -Wno-vla to allow variable sized arrays, which pbsolver has
@@ -91,7 +95,7 @@ AC_ARG_ENABLE([gmp],
 esac],[ AC_CXXFLAGS+=" -D NO_GMP " ])
 
 # files to generate via autotools (.am or .in source files)
-AC_CONFIG_FILES([Makefile src/Makefile src/tclap/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile src/tclap/Makefile src/pbsolver/Makefile])
 
 # generate the final Makefile etc.
 AC_OUTPUT
