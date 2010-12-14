@@ -292,36 +292,32 @@ void CardToEquiv::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& u
 		vpagg remaggs;
 		for (vpagg::const_iterator i = set->getAgg().begin(); !unsat && i < set->getAgg().end(); i++) {
 			const Agg& agg = *(*i);
-			if(agg.hasLB()){
-				const Weight& bound = agg.getBound()-set->getKnownBound();
-				if(bound==0){
-					lbool headvalue = set->getSolver()->value(agg.getHead());
-					if(headvalue==l_False){
-						unsat = true;
+			const Weight& bound = agg.getBound()-set->getKnownBound();
+			if(agg.hasLB() && bound==0){
+				lbool headvalue = set->getSolver()->value(agg.getHead());
+				if(headvalue==l_False){
+					unsat = true;
+				}else{
+					if (agg.getSem() == DEF) {
+						vec<Lit> lits;
+						unsat = unsat || !set->getSolver()->getPCSolver()->addRule(true, agg.getHead(), lits);
 					}else{
-						if (agg.getSem() == DEF) {
-							vec<Lit> lits;
-							unsat = unsat || !set->getSolver()->getPCSolver()->addRule(true, agg.getHead(), lits);
-						}else{
-							if(headvalue==l_Undef){
-								if(set->getSolver()->notifySolver(new AggReason(agg, HEADONLY, agg.getHead(), 0, true))!=nullPtrClause){
-									unsat = true;
-								}
+						if(headvalue==l_Undef){
+							if(set->getSolver()->notifySolver(new AggReason(agg, HEADONLY, agg.getHead(), 0, true))!=nullPtrClause){
+								unsat = true;
 							}
 						}
 					}
-				} else if(bound==1){
-					vec<Lit> right;
-					for (vsize j = 0; j < set->getWL().size(); j++) {
-						right.push(set->getWL()[j].getLit());
-					}
-					if (agg.getSem() == DEF) {
-						unsat = !set->getSolver()->getPCSolver()->addRule(false, agg.getHead(), right);
-					} else{
-						unsat = !set->getSolver()->getPCSolver()->addEquivalence(agg.getHead(), right, false);
-					}
-				}else{
-					remaggs.push_back(*i);
+				}
+			}else if(agg.hasLB() && bound==1){
+				vec<Lit> right;
+				for (vsize j = 0; j < set->getWL().size(); j++) {
+					right.push(set->getWL()[j].getLit());
+				}
+				if (agg.getSem() == DEF) {
+					unsat = !set->getSolver()->getPCSolver()->addRule(false, agg.getHead(), right);
+				} else{
+					unsat = !set->getSolver()->getPCSolver()->addEquivalence(agg.getHead(), right, false);
 				}
 			}else{
 				remaggs.push_back(*i);

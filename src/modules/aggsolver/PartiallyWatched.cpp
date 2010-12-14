@@ -249,7 +249,7 @@ bool CardPWAgg::initializeNF() {
 	vptw& set = getSet(NF);
 	for (int i = 0; i < (int)set.size(); i++) {
 		const WL& wl = set[i]->getWL();
-		if (Weight(nf.size()) < agg.getCertainBound() && propagatedValue(wl.getLit()) != l_False) {
+		if (Weight(nf.size()) < agg.getCertainBound() && value(wl.getLit()) != l_False) {
 			addToWatchedSet(NF, i);
 			i--;
 		}
@@ -262,7 +262,7 @@ bool CardPWAgg::initializeNT() {
 	vptw& set = getSet(NT);
 	for (int i = 0; i < (int)set.size(); i++) {
 		const WL& wl = set[i]->getWL();
-		if (Weight(nt.size()) <= Weight(getSetp()->getWL().size()) - agg.getCertainBound() && propagatedValue(wl.getLit()) != l_False) {
+		if (Weight(nt.size()) <= Weight(getSetp()->getWL().size()) - agg.getCertainBound() && value(wl.getLit()) != l_False) {
 			addToWatchedSet(NT, i);
 			i--;
 		}
@@ -275,7 +275,7 @@ bool CardPWAgg::initializeNTL() {
 	vptw& set = getSet(NT);
 	for (int i = 0; i < (int)set.size(); i++) {
 		const WL& wl = set[i]->getWL();
-		if (Weight(nt.size()) <= agg.getCertainBound() && propagatedValue(wl.getLit()) != l_False) {
+		if (Weight(nt.size()) <= agg.getCertainBound() && value(wl.getLit()) != l_False) {
 			addToWatchedSet(NT, i);
 			i--;
 		}
@@ -288,7 +288,7 @@ bool CardPWAgg::initializeNFL() {
 	vptw& set = getSet(NF);
 	for (int i = 0; i < (int)set.size(); i++) {
 		const WL& wl = set[i]->getWL();
-		if (Weight(nf.size()) < Weight(getSetp()->getWL().size()) - agg.getCertainBound() && propagatedValue(wl.getLit()) != l_False) {
+		if (Weight(nf.size()) < Weight(getSetp()->getWL().size()) - agg.getCertainBound() && value(wl.getLit()) != l_False) {
 			addToWatchedSet(NF, i);
 			i--;
 		}
@@ -300,7 +300,7 @@ bool CardPWAgg::initializeEX(WATCHSET w) {
 	bool found = false;
 	vptw& set = getSet(w);
 	for (int i = 0; !found && i < (int)set.size(); i++) {
-		if (propagatedValue(set[i]->getLit()) != l_False) {
+		if (value(set[i]->getLit()) != l_False) {
 			addToWatchedSet(w, i);
 			i--;
 			found = true;
@@ -309,14 +309,18 @@ bool CardPWAgg::initializeEX(WATCHSET w) {
 	return found;
 }
 
-bool CardPWAgg::replace(vsize index, WATCHSET w) {
+bool CardPWAgg::replace(vsize index, WATCHSET w, const Lit& p) {
 	bool found = false;
 	vptw& set = getSet(w);
 	vptw& watches = getWatches(w);
 
 	for (vsize i = 0/*ss*/; !found && i < set.size(); i++) {
 		ptw tw = set[i];
-		if (propagatedValue(tw->getLit()) != l_False) {
+		lbool val = l_Undef;
+		if(getSolver()->getPCSolver()->assertedBefore(var(tw->getLit()), var(p))){
+			val = value(tw->getLit());
+		}
+		if (val != l_False) {
 			watches[index]->setIndex(-1);
 			watches[index]->setWatchset(INSET);
 			watches[index]->setInUse(false);
@@ -378,22 +382,57 @@ rClause CardPWAgg::propagate(const Lit& p, Watch* watch, int level) {
 	bool found = true;
 	if (isF(w.getWatchset())) {
 		if (!isEX(w.getWatchset())) { //non-ex
-			found = replace(w.getIndex(), NF);
+			found = replace(w.getIndex(), NF, p);
 		} else if (isEX(w.getWatchset())) { //nf ex
-			found = replace(w.getIndex(), NFEX);
+			found = replace(w.getIndex(), NFEX, p);
 		}
 	} else {
 		if (!isEX(w.getWatchset())) { //non-ex
-			found = replace(w.getIndex(), NT);
+			found = replace(w.getIndex(), NT, p);
 		} else if (isEX(w.getWatchset())) { //nf ex
-			found = replace(w.getIndex(), NTEX);
+			found = replace(w.getIndex(), NTEX, p);
 		}
 	}
 
+	//IMPORTANT: propagation as a leftover from not being able to replace is DANGEROUS:
+	//if instead of the propagated values, the current sat solver truth values are used,
+	//difficult to trace bugs are created.
 	if (!found) {
 		if (checking(NFEX)) {
+			//FIXME if propagating extension, check first whether the original non-extended watched set is still
+			//a valid set (might not be the case any more. It not, propagate ~p
+
 			// propagate all others in NF and propagate NFex
 			//TODO if i would here add also an assertion that i>=0, then it would be completely safe comparisons (except for the size)
+#ifdef DEBUG
+			int nbtrue = 0, nbfalse = 0, nbunkn = 0;
+			for(int i=0; i<getSetp()->getWL().size(); i++){
+				lbool val = getSolver()->value(getSetp()->getWL()[i].getLit());
+				if(val==l_True){
+					nbtrue++;
+				}else if(val==l_False){
+					nbfalse++;
+				}else{
+					nbunkn++;
+				}
+			}
+			const Agg& agg = *pw->getSet()->getAgg()[0];
+			report("true=%d, false=%d, wl=%d, bound=%d\n", nbtrue, nbfalse, getSetp()->getWL().size(), agg.getCertainBound());
+			if(getSolver()->value(agg.getHead())==l_True){
+				if(agg.hasLB()){
+					if(nbfalse!=getSetp()->getWL().size()-agg.getCertainBound()){
+						print(10, agg, true);
+					}
+					assert(nbfalse==getSetp()->getWL().size()-agg.getCertainBound());
+				}else{
+					if(nbtrue==agg.getCertainBound()){
+						print(10, agg, true);
+					}
+					assert(nbtrue==agg.getCertainBound());
+				}
+			}
+#endif
+
 			for (int i = 0; confl == nullPtrClause && ((uint)i) < nf.size(); i++) {
 				if (i == w.getIndex() && !isEX(w.getWatchset())) {
 					continue;
@@ -411,7 +450,7 @@ rClause CardPWAgg::propagate(const Lit& p, Watch* watch, int level) {
 		} else if (isF(w.getWatchset()) && checking(NF)) {
 			//propagate head false
 			Lit l = ~getSetp()->getAgg()[0]->getHead();
-			confl = getSolver()->notifySolver(new AggReason( *getSetp()->getAgg()[0], BASEDONCC, l, false));
+			confl = getSolver()->notifySolver(new AggReason( *getSetp()->getAgg()[0], BASEDONCC, l, true));
 			if(confl==nullPtrClause){
 				headpropagatedhere = true;
 			}
@@ -434,7 +473,7 @@ rClause CardPWAgg::propagate(const Lit& p, Watch* watch, int level) {
 		} else if (!isF(w.getWatchset()) && checking(NT)) {
 			//propagate head true
 			Lit l = getSetp()->getAgg()[0]->getHead();
-			confl = getSolver()->notifySolver(new AggReason( *getSetp()->getAgg()[0], BASEDONCP, l, false));
+			confl = getSolver()->notifySolver(new AggReason( *getSetp()->getAgg()[0], BASEDONCP, l, true));
 			if(confl==nullPtrClause){
 				headpropagatedhere = true;
 			}
@@ -548,7 +587,6 @@ void CardPWAgg::backtrack(int nblevels, int untillevel) {
 }
 
 void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
-	//FIXME INCORRECT!
 	const PCSolver& pcsol = *getSolver()->getPCSolver();
 	const Lit& head = ar.getAgg().getHead();
 	if(value(head)!=l_Undef && var(ar.getPropLit())!=var(head)){
@@ -578,7 +616,7 @@ void CardPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 		}
 	}
 
-	if(getSolver()->verbosity()>=1 && ar.isHeadReason()){
+	if(getSolver()->verbosity()>=10){
 		report("Explanation for deriving ");
 		gprintLit(ar.getPropLit()); report(" ");
 		print(getSolver()->verbosity(), ar.getAgg(), false);

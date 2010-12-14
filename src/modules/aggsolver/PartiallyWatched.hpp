@@ -65,9 +65,6 @@ public:
 	virtual ~PWAgg(){};
 
 	virtual void 	backtrack		(const Watch& w) {}
-
-	//FIXME incorrect?
-	lbool 	propagatedValue(const Lit& l) { return value(l); }
 };
 
 class CardPWAgg: public PWAgg{
@@ -106,7 +103,7 @@ private:
 	void addToWatchedSet(WATCHSET w, vsize setindex);
 	void removeWatches(WATCHSET w);
 
-	bool replace(vsize index, WATCHSET w);
+	bool replace(vsize index, WATCHSET w, const Lit& p);
 
 	vptw& getSet(WATCHSET w);
 	vptw& getWatches(WATCHSET w);
