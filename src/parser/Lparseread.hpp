@@ -107,6 +107,7 @@ private:
 	int finishChoiceRules();
 
 	int maxatomnumber;
+	int getNextNumber() { return ++ maxatomnumber;}
 	int setcount;
 	long size;
 	long linenumber;

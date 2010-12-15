@@ -434,7 +434,7 @@ int Read::finishGenerateRules() {
 	for (vector<GenRule*>::const_iterator i = genrules.begin(); i < genrules.end(); i++) {
 		if ((*i)->body.size() != 0) {
 			for (vector<Literal>::const_iterator j = (*i)->heads.begin(); j < (*i)->heads.end(); j++) {
-				int atemp = maxatomnumber++;
+				int atemp = getNextNumber();
 				vector<Literal> tempbody((*i)->body);
 				tempbody.push_back(makeLiteral(atemp, true));
 				if (!getSolver()->addRule(true, *j, tempbody)) {
@@ -451,7 +451,7 @@ int Read::finishGenerateRules() {
 		if (!getSolver()->addSet(setcount, (*i)->heads)) {
 			return 1;
 		}
-		int atemp = maxatomnumber++;
+		int atemp = getNextNumber();
 		if (!getSolver()->addAggrExpr(Literal(atemp), setcount, (*i)->atleast, AGGSIGN_LB, CARD, DEF)) {
 			return 1;
 		}
@@ -471,7 +471,7 @@ int Read::finishChoiceRules() {
 			continue;
 		}
 		for (vector<Literal>::const_iterator j = (*i)->heads.begin(); j < (*i)->heads.end(); j++) {
-			int atemp = maxatomnumber++;
+			int atemp = getNextNumber();
 			vector<Literal> tempbody((*i)->body);
 			tempbody.push_back(makeLiteral(atemp, true));
 			if (!getSolver()->addRule(true, *j, tempbody)) {
@@ -643,7 +643,7 @@ int Read::read(istream &f) {
 				headtorules.insert(pair<Literal, std::vector<BasicRule*> > (*j, std::vector<BasicRule*>()));
 				(*headtorules.find(*j)).second.push_back(NULL);
 			} else {
-				cerr << "A head was shared by a gen/choice rule and another rule. No idea about semantics!\n";
+				throw idpexception("A head was shared by a gen/choice rule and another rule. No idea about semantics!\n");
 			}
 		}
 	}
@@ -653,7 +653,7 @@ int Read::read(istream &f) {
 				headtorules.insert(pair<Literal, std::vector<BasicRule*> > (*j, std::vector<BasicRule*>()));
 				(*headtorules.find(*j)).second.push_back(NULL);
 			} else {
-				cerr << "A head was shared by a gen/choice rule and another rule. No idea about semantics!\n";
+				throw idpexception("A head was shared by a gen/choice rule and another rule. No idea about semantics!\n");
 			}
 		}
 	}
@@ -667,14 +667,12 @@ int Read::read(istream &f) {
 		vector<Literal> newheads;
 		for (vector<BasicRule*>::const_iterator j = (*i).second.begin(); j < (*i).second.end(); j++) {
 			assert((*j) != NULL);
-			Literal newhead = Literal(++maxatomnumber);
+			Literal newhead = Literal(getNextNumber());
 			newheads.push_back(newhead);
 			(*j)->head = newhead;
 		}
 		basicrules.push_back(new BasicRule(orighead, newheads, false));
 	}
-
-	cerr <<"Added TSEITINS\n";
 
 	if (finishBasicRules() == 1) {
 		return 1;
@@ -694,7 +692,7 @@ int Read::read(istream &f) {
 
 	if(optim){
 		vector<Literal> optimheadclause;
-		Literal optimhead = Literal(++maxatomnumber);
+		Literal optimhead = Literal(getNextNumber());
 		optimheadclause.push_back(optimhead);
 		getSolver()->addClause(optimheadclause);
 		getSolver()->addSet(optimsetcount, optimbody, optimweights);
