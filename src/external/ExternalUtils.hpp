@@ -103,9 +103,6 @@ enum AggSem 	{ COMP, DEF };	// Semantics of satisfiability of the aggregate head
 
 namespace MinisatID {
 
-Weight negInfinity();
-Weight posInfinity();
-
 std::string toString(const Weight& w);
 
 ///////
@@ -162,7 +159,7 @@ enum POLARITY {
 	POL_RAND
 }; // SAT-solver polarity option
 
-enum INPUTFORMAT {FORMAT_FODOT, FORMAT_ASP, FORMAT_OPB};
+enum INPUTFORMAT {FORMAT_FODOT = 5, FORMAT_ASP = 10, FORMAT_OPB = 20};
 
 // Structure containing general options for the solvers
 class SolverOption {
@@ -185,6 +182,8 @@ public:
 	POLARITY polarity;
 	bool bumpaggonnotify, bumpidonstart, subsetminimizeexplanation, asapaggprop;
 	long ufsvarintrothreshold;
+
+	void print();
 };
 
 }

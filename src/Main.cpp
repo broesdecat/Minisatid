@@ -185,7 +185,6 @@ int doModelGeneration(pData& d, double cpu_time){
 	switch(modes.format){
 		case FORMAT_ASP:{
 			WrappedPCSolver* p = new WrappedPCSolver(modes);
-			d = shared_ptr<WrappedLogicSolver> (p);
 			Read* r = new Read(p);
 			std::istream is(getInputBuffer());
 			if(r->read(is)!=0){
@@ -193,17 +192,19 @@ int doModelGeneration(pData& d, double cpu_time){
 			}
 			closeInput();
 			delete r;
+			d = shared_ptr<WrappedLogicSolver> (p); //Only set d if successfully parsed
 			break;
 		}
 		case FORMAT_OPB:{
 			WrappedPCSolver* p = new WrappedPCSolver(modes);
-			d = shared_ptr<WrappedLogicSolver> (p);
+
 			std::istream is(getInputBuffer());
 			PBRead* parser = new PBRead(p, is);
 			closeInput();
 			parser->autoLin();
 			parser->parse();
 			delete parser;
+			d = shared_ptr<WrappedLogicSolver> (p); //Only set d if successfully parsed
 			break;
 		}
 		case FORMAT_FODOT:{

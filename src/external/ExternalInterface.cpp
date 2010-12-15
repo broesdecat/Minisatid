@@ -24,6 +24,8 @@
 #include <tr1/memory>
 #include <algorithm>
 
+#include "parser/ResourceManager.hpp"
+
 using namespace std;
 using namespace MinisatID;
 
@@ -71,6 +73,10 @@ Var WrappedLogicSolver::checkAtom(const Atom& atom){
 Literal WrappedLogicSolver::getOrigLiteral(const Lit& l) const{
 	assert(var(l)>-1);
 	return Literal(getOrigAtom(var(l)), sign(l));
+}
+
+FILE* WrappedLogicSolver::getRes() const {
+	return getOutputFile();
 }
 
 Lit WrappedLogicSolver::checkLit(const Literal& lit){

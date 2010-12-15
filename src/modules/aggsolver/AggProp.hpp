@@ -83,7 +83,6 @@ public:
 	static AggProp const * getSum() { return sum.get(); }
 
 	virtual const char*	getName					() 										const = 0;
-	virtual	Weight 		getESV					()										const = 0;
 	virtual AggType 	getType					() 										const = 0;
 	virtual bool 		isNeutralElement		(const Weight& w)						const = 0;
 	virtual bool 		isMonotone				(const Agg& agg, const WL& l, bool ub)	const = 0;
@@ -101,7 +100,6 @@ public:
 class MaxProp: public AggProp{
 public:
 	const char* getName					() 										const { return "MAX"; }
-	Weight 		getESV					()										const { return negInfinity(); }
 	AggType 	getType					() 										const { return MAX; }
 	bool 		isNeutralElement		(const Weight& w) 						const { return false; }
 	bool 		isMonotone				(const Agg& agg, const WL& l, bool ub)	const;
@@ -122,7 +120,6 @@ public:
 class ProdProp: public SPProp{
 public:
 	const char* getName					() 										const { return "PROD"; }
-	Weight 		getESV					()										const { return Weight(1); }
 	AggType 	getType					() 										const { return PROD; }
 	bool 		isNeutralElement		(const Weight& w) 						const { return w==1; }
 	bool 		isMonotone				(const Agg& agg, const WL& l, bool ub)	const;
@@ -137,7 +134,6 @@ public:
 class SumProp: public SPProp{
 public:
 	const char* getName					() 										const { return "SUM"; }
-	Weight 		getESV					()										const { return Weight(0); }
 	AggType 	getType					() 										const { return SUM; }
 	bool 		isNeutralElement		(const Weight& w) 						const { return w==0; }
 	bool 		isMonotone				(const Agg& agg, const WL& l, bool ub)	const;

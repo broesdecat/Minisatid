@@ -19,9 +19,13 @@
 #include "utils/Utils.hpp"
 #include "external/ExternalInterface.hpp"
 
+#include <limits>
+
 using namespace MinisatID;
 using namespace std::tr1;
 using namespace std;
+
+typedef numeric_limits<int> intlim;
 
 //}
 
@@ -504,7 +508,7 @@ Weight cWeight(const char* c){
 	    	continue;
 	    }
 #ifdef INTWEIGHT
-		if(posInfinity()/10 < w){
+		if(intlim::max()/10 < w){
 			throw idpexception("Weight exceeds the maximum supported value. Consider using GMP.\n");
 		}
 #endif

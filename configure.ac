@@ -1,4 +1,4 @@
-AC_INIT([minisatid],[3.2],[krr@cs.kuleuven.be])
+AC_INIT([minisatid],[2.2.0],[krr@cs.kuleuven.be])
 
 #this is not an ideal solution, but it overrides the default cxxflags, so those set later are not invalid
 if test -z $CXXFLAGS; then

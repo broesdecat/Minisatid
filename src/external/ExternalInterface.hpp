@@ -31,8 +31,6 @@
 #include "theorysolvers/PCSolver.hpp"
 #include "theorysolvers/SOSolver.hpp"
 
-#include "parser/ResourceManager.hpp"
-
 namespace MinisatID {
 
 typedef std::tr1::unordered_map<int, int> atommap;
@@ -129,7 +127,7 @@ protected:
 	Atom 	getOrigAtom		(const Var& l) const;
 	Literal getOrigLiteral	(const Lit& l) const;
 
-	FILE* 	getRes() const { return getOutputFile(); }
+	FILE* 	getRes() const;
 };
 
 class WrappedPCSolver: public MinisatID::WrappedLogicSolver{

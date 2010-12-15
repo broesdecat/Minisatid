@@ -23,6 +23,8 @@
 #include <tr1/memory>
 #include <limits>
 
+#include <iostream>
+
 #include "external/ExternalUtils.hpp"
 
 using namespace std;
@@ -74,17 +76,35 @@ double MinisatID::cpuTime(void) {
 	string MinisatID::toString(const Weight& w){
 		return w.get_str();
 	}
-	//FIXME posinf and neginf
 #else //INT_WEIGHT
 	string MinisatID::toString(const Weight& w){
 		char s[15];
 		sprintf(s, "%d", w);
 		return s;
 	}
-	Weight MinisatID::negInfinity(){
-		return intlim::min();
-	}
-	Weight MinisatID::posInfinity(){
-		return intlim::max();
-	}
 #endif
+
+void SolverOption::print(){
+	cerr << "format: " <<format <<endl;
+	cerr << "verbosity: " <<verbosity <<endl;
+	cerr << "nbmodels: " <<nbmodels <<endl;
+	cerr << "printcnfgraph: " <<printcnfgraph <<endl;
+	cerr << "defsem: " <<defsem <<endl;
+	cerr << "ufs_strategy: " <<ufs_strategy <<endl;
+	cerr << "defn_strategy: " <<defn_strategy <<endl;
+	cerr << "defn_search: " <<defn_search <<endl;
+	cerr << "aggclausesaving: " <<aggclausesaving <<endl;
+	cerr << "selectOneFromUFS: " <<selectOneFromUFS <<endl;
+	cerr << "pbsolver: " <<pbsolver <<endl;
+	cerr << "watchedagg: " <<watchedagg <<endl;
+	cerr << "primesfile: " <<primesfile <<endl;
+	cerr << "remap: " <<remap <<endl;
+	cerr << "rand_var_freq: " <<rand_var_freq <<endl;
+	cerr << "var_decay: " <<var_decay <<endl;
+	cerr << "polarity: " <<polarity <<endl;
+	cerr << "bumpaggonnotify: " <<bumpaggonnotify <<endl;
+	cerr << "bumpidonstart: " <<bumpidonstart <<endl;
+	cerr << "subsetminimizeexplanation: " <<subsetminimizeexplanation <<endl;
+	cerr << "asapaggprop: " <<asapaggprop <<endl;
+	cerr << "ufsvarintrothreshold: " <<ufsvarintrothreshold <<endl;
+}

@@ -7,12 +7,14 @@ function makeone {
 	../configure --enable-build=static --enable-bits=32 --enable-sat=$1 --enable-gmp=$2
 	if [[ $? -ne 0 ]]
 	then
+		rm -r testbuild
 		echo "Failed $1 $2"
 		return 1
 	fi
 	make
 	if [[ $? -ne 0 ]]
 	then
+		rm -r testbuild
 		echo "Failed $1 $2"
 		return 1
 	fi

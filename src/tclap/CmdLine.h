@@ -177,7 +177,7 @@ private:
 		 */
 		bool _helpAndVersion;
 
-	public:
+public:
 
 		/**
 		 * Command line constructor. Defines how the arguments will be

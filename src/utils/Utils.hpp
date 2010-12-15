@@ -26,8 +26,6 @@
 #include <map>
 #include <string>
 
-#include <tclap/CmdLine.h>
-
 #include "satsolver/SATUtils.hpp"
 #include "external/ExternalUtils.hpp"
 

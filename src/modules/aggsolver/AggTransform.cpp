@@ -10,10 +10,14 @@
 
 #include "PbSolver.h"
 
+#include <limits>
+
 using namespace std;
 using namespace tr1;
 using namespace MinisatID;
 using namespace Aggrs;
+
+typedef numeric_limits<int> intlim;
 
 ///////
 // TRANSFORMATIONS
@@ -183,22 +187,41 @@ void AddTypes::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsa
 		return;
 	}
 	switch (set->getAgg()[0]->getType()) {
-		case MAX:
+		case MAX:{
 			set->setType(AggProp::getMax());
+#ifdef INTWEIGHT
+			set->setKnownBound(intlim::min());
+#else
+			Weight bound = Weight(0);
+			for(vpagg::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); i++){
+				if(bound>=(*i)->getBound()){
+					bound = (*i)->getBound()-1;
+				}
+			}
+			for(vwl::const_iterator i=set->getWL().begin(); i<set->getWL().end(); i++){
+				if(bound>=(*i).getWeight()){
+					bound = (*i).getWeight()-1;
+				}
+			}
+			set->setKnownBound(bound);
+#endif
 			break;
+		}
 		case SUM:
 			set->setType(AggProp::getSum());
+			set->setKnownBound(0);
 			break;
 		case CARD:
 			set->setType(AggProp::getCard());
+			set->setKnownBound(0);
 			break;
 		case PROD:
 			set->setType(AggProp::getProd());
+			set->setKnownBound(1);
 			break;
 		default:
 			assert(false);
 	}
-	set->setKnownBound(set->getType().getESV());
 }
 
 void MinToMax::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {

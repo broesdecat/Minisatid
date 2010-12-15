@@ -22,6 +22,8 @@ pbsolver_include_HEADERS = Main.h Hardware.h \
 				ADTs/FEnv.h ADTs/File.h ADTs/Global.h ADTs/Hash_standard.h\
 				ADTs/Heap.h ADTs/Int.h ADTs/Map.h ADTs/Sort.h ADTs/StackAlloc.h \
 				ADTs/VecAlloc.h ADTs/VecMaps.h\
-				pbbase/h/BaseSearchState.h pbbase/h/BaseSearchStateRelativeComp.h pbbase/h/BNB_Comp_Cost.h pbbase/h/BNB_oddEven_Cost.h\
+				pbbase/h/BaseSearchState.h pbbase/h/BaseSearchStateRelativeComp.h \
+				pbbase/h/BNB_Comp_Cost.h pbbase/h/BNB_oddEven_Cost.h\
 				pbbase/h/BNB_SOD_Carry_Cost.h pbbase/h/ForwardSearch.h pbbase/h/GenralBaseFunctions.h \
-				pbbase/h/MiniSatOrig.h pbbase/h/RelativeBaseSearch.h pbbase/h/SearchMetaData.h
+				pbbase/h/MiniSatOrig.h pbbase/h/RelativeBaseSearch.h pbbase/h/SearchMetaData.h\
+				pbbase/h/THeap.h pbbase/h/THeapComp.h

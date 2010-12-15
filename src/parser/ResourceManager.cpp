@@ -68,38 +68,39 @@ std::streambuf* StdMan::getBuffer() {
 ///////
 
 namespace MinisatID {
-const char *inputurl = NULL;
-const char *outputurl = NULL;
+string inputurl = "";
+string outputurl = "";
 std::tr1::shared_ptr<ResMan> input, output;
 }
 
-void MinisatID::setInputFileUrl(const char* url) {
+void MinisatID::setInputFileUrl(string url) {
 	assert(input.get()==NULL);
 	inputurl = url;
 }
 
-void MinisatID::setOutputFileUrl(const char* url) {
+void MinisatID::setOutputFileUrl(string url) {
 	assert(output.get()==NULL);
 	outputurl = url;
 }
 
 void createInput() {
 	if (input.get() == NULL) {
-		if (inputurl == NULL) {
+		if (inputurl == "") {
 			input = std::tr1::shared_ptr<ResMan>(new StdMan(true));
 			report("Reading from standard input...\n");
 		} else {
-			input = std::tr1::shared_ptr<ResMan>(new FileMan(inputurl, false));
+			cerr <<inputurl <<endl;
+			input = std::tr1::shared_ptr<ResMan>(new FileMan(inputurl.c_str(), false));
 		}
 	}
 }
 
 void createOutput() {
 	if (output.get() == NULL) {
-		if (outputurl == NULL) {
+		if (outputurl == "") {
 			output = std::tr1::shared_ptr<ResMan>(new StdMan(false));
 		} else {
-			output = std::tr1::shared_ptr<ResMan>(new FileMan(outputurl, true));
+			output = std::tr1::shared_ptr<ResMan>(new FileMan(outputurl.c_str(), true));
 		}
 	}
 }

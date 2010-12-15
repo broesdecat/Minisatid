@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <string>
 
 namespace MinisatID{
 
@@ -64,8 +65,8 @@ public:
 	std::streambuf* getBuffer();
 };
 
-void setInputFileUrl(const char* url);
-void setOutputFileUrl(const char* url);
+void setInputFileUrl(std::string url);
+void setOutputFileUrl(std::string url);
 FILE* getInputFile();
 std::streambuf* getInputBuffer();
 FILE* getOutputFile();

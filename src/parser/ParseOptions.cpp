@@ -9,6 +9,8 @@
 
 #include <vector>
 #include <string>
+#include <iostream>
+
 #include <tclap/CmdLine.h>
 #include "satsolver/SATUtils.hpp"
 #include "external/ExternalUtils.hpp"
@@ -21,16 +23,18 @@ using namespace MinisatID;
 SolverOption modes; //Used by parser, initialized before parsing!
 
 string programInfo =
-	"MinisatID is a model generator for propositional logic extended with aggregates "
-	"and inductive definitions. Also lparse and opb languages are supported.\n"
-	"MinisatID is part of the IDP system, a knowledge base system using extended first-order logic "
-	"and supports among others state-of-the-art model expansion inference.\n"
-	"MinisatID is the courtesy of the Knowledge Representation and Reasoning (KRR) group at the K.U. Leuven in"
-	"Belgium. More information on the systems and the research are available on \"http://dtai.cs.kuleuven.be/krr\".\n";
-string programVersion = "2.1.21";
+	"MinisatID is a model generator for the language ECNF, an extension of CNF with aggregates and "
+	"inductive definitions. Other input formats supported are the propositional fragment "
+	"of the LParse ASP language and the OPB standard for pseudo-boolean problems.\n"
+	"MinisatID is part of the IDP system, a knowledge base system based on the language FO(.). IDP supports "
+	"among others state-of-the-art model expansion inference.\n"
+	"MinisatID is the courtesy of the Knowledge Representation and Reasoning (KRR) group at the K.U. Leuven, "
+	"Belgium and is maintained by Broes De Cat. More information on the systems and the research can be found "
+	"on \"http://dtai.cs.kuleuven.be/krr\".\n";
+string programVersion = "2.2.0";
 
 struct Opt{
-	virtual ~Opt(){};
+	virtual ~Opt(){}
 	virtual void parse() = 0;
 };
 
@@ -39,9 +43,9 @@ struct NoValsOption: public Opt{
 	const string shortopt;
 	const string longopt;
 	const string mess;
-	const T& defaultval;
-	T& modesarg;
+	const T defaultval;
 	TCLAP::ValueArg<T>* arg;
+	T& modesarg;
 
 	NoValsOption(const string &s, const string &l, const string &m, const T& def, const string& type, T& modesarg, TCLAP::CmdLine& cmd):
 		shortopt(s), longopt(l), mess(m), defaultval(def), modesarg(modesarg){
@@ -54,6 +58,7 @@ struct NoValsOption: public Opt{
 	}
 
 	void parse(){
+		//cerr <<longopt <<" " <<arg->getValue() <<endl;
 		modesarg = arg->getValue();
 	}
 };
@@ -63,7 +68,7 @@ struct Option: public Opt{
 	const string shortopt;
 	const string longopt;
 	const string mess;
-	const T& defaultval;
+	const T defaultval;
 	const vector<T> vals;
 	const vector<pair<T2, string> > desc; //<tclapvalue, valuedescription>
 	TCLAP::ValuesConstraint<T2>* formatsconstr;
@@ -83,15 +88,15 @@ struct Option: public Opt{
 		assert(desc.size()>0 && vals.size()==desc.size());
 		T2 tclapdefault = desc[0].first;
 		bool found = false;
-		ss <<mess <<":";
+		ss <<mess <<":" <<endl;
 		for(typename vector<T>::size_type i=0; i<vals.size(); i++){
-			ss <<"<" <<desc[i].first <<"|" <<desc[i].second <<">";
+			ss <<"\t<" <<desc[i].first <<"|" <<desc[i].second <<">";
 			if(vals[i]==defaultval){
 				tclapdefault = desc[i].first;
 				ss <<"*";
 				found = true;
 			}
-			ss <<",";
+			ss <<endl;
 		}
 		assert(found);
 
@@ -104,19 +109,29 @@ struct Option: public Opt{
 	}
 
 	void parse(){
-
+		//cerr <<longopt <<" " <<arg->getValue() <<endl;
+		bool found = false;
+		uint i=0;
+		for(; i<desc.size(); i++){
+			if(desc[i].first==arg->getValue()){
+				found = true;
+				break;
+			}
+		}
+		assert(found);
+		modesarg = vals[i];
 	}
 };
 
 //Return false if parsing failed
 bool MinisatID::parseOptions(int argc, char** argv){
-	string outputfile, inputfile;
+	string outputfile;
 
 	vector<Opt*> options;
 
 	vector<bool> yesnovals; //Maintain this order in desc vectors!
-	yesnovals.push_back("true");
-	yesnovals.push_back("false");
+	yesnovals.push_back(true);
+	yesnovals.push_back(false);
 
 	vector<INPUTFORMAT> formatvals;
 	vector<pair<string, string> > formatdesc;
@@ -125,8 +140,8 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	formatvals.push_back(FORMAT_OPB); formatdesc.push_back(pair<string, string>("opb", "open pseudo-boolean"));
 
 	vector<pair<string, string> > ecnfgraphdesc;
-	formatdesc.push_back(pair<string, string>("yes", "Generate"));
-	formatdesc.push_back(pair<string, string>("no", "Don't generate"));
+	ecnfgraphdesc.push_back(pair<string, string>("yes", "Generate"));
+	ecnfgraphdesc.push_back(pair<string, string>("no", "Don't generate"));
 	vector<pair<string, string> > remapdesc;
 	remapdesc.push_back(pair<string, string>("yes", "Remap"));
 	remapdesc.push_back(pair<string, string>("no", "Don't remap"));
@@ -172,9 +187,9 @@ bool MinisatID::parseOptions(int argc, char** argv){
 
 	vector<DEFSEM> defsemvals;
 	vector<pair<string, string> > defsemdesc;
-	defsemvals.push_back(DEF_STABLE); defsemdesc.push_back(pair<string, string>("wellf", "Well-founded semantics"));
+	defsemvals.push_back(DEF_WELLF); defsemdesc.push_back(pair<string, string>("wellf", "Well-founded semantics"));
 	defsemvals.push_back(DEF_STABLE); defsemdesc.push_back(pair<string, string>("stable", "Stable semantics"));
-	defsemvals.push_back(DEF_STABLE); defsemdesc.push_back(pair<string, string>("comp", "Completion semantics"));
+	defsemvals.push_back(DEF_COMP); defsemdesc.push_back(pair<string, string>("comp", "Completion semantics"));
 
 	vector<int> idsavingvals;
 	vector<pair<int, string> > idsavingdesc;
@@ -183,23 +198,23 @@ bool MinisatID::parseOptions(int argc, char** argv){
 
 	TCLAP::CmdLine cmd = TCLAP::CmdLine(programInfo, '=', programVersion); //second arg is delimiter: -option<delim>value
 
-	TCLAP::UnlabeledValueArg<string> inputfilearg("inputfile", "The file which contains the input theory. If not provided, the standard-in stream is assumed as input.", false, "", "string", cmd);
+	TCLAP::UnlabeledValueArg<string> inputfilearg("inputfile", "The file which contains the input theory. If not provided, the standard-in stream is assumed as input.", false, "", "inputfile", cmd);
 
-	options.push_back(new NoValsOption<int>("n","nbmodels", "The number of models to search for", 1,"int", modes.nbmodels, cmd));
-	options.push_back(new NoValsOption<int>("","verbosity", "The level of output to generate", 1,"int", modes.verbosity, cmd));
-	options.push_back(new NoValsOption<long>("","ufsvarintro","Threshold (compared with ufssize*loopfsize) above which an extra variable is introduced when unfounded sets are found", 500,"long", modes.ufsvarintrothreshold, cmd));
-	options.push_back(new NoValsOption<double>("","rnd-freq","The frequency with which to make a random choice (between 0 and 1)", getDefaultRandfreq(),"double", modes.rand_var_freq, cmd));
-	options.push_back(new NoValsOption<double>("","decay","The decay of variable activities within the SAT-solver (larger than or equal to 0)", getDefaultDecay(),"double", modes.var_decay, cmd));
-	options.push_back(new NoValsOption<string>("o","outputfile","The outputfile to use to write out models", "","string", outputfile, cmd));
-	options.push_back(new NoValsOption<string>("","primesfile","File containing a list of prime numbers to use for finding optimal bases. Has to be provided if using pbsolver.", "","string", modes.primesfile, cmd));
+	options.push_back(new NoValsOption<int>("n","nbmodels", "The number of models to search for.", 1,"int", modes.nbmodels, cmd));
+	options.push_back(new NoValsOption<int>("","verbosity", "The level of output to generate.", 1,"int", modes.verbosity, cmd));
+	options.push_back(new NoValsOption<long>("","ufsvarintro","Threshold (compared with ufssize*loopfsize) above which an extra variable is introduced when an unfounded set is found.", 500,"long", modes.ufsvarintrothreshold, cmd));
+	options.push_back(new NoValsOption<double>("","rnd-freq","The frequency with which to make a random choice (between 0 and 1).", getDefaultRandfreq(),"double", modes.rand_var_freq, cmd));
+	options.push_back(new NoValsOption<double>("","decay","The decay of variable activities within the SAT-solver (larger than or equal to 0).", getDefaultDecay(),"double", modes.var_decay, cmd));
+	options.push_back(new NoValsOption<string>("o","outputfile","The outputfile to use to write out models.", "","file", outputfile, cmd));
+	options.push_back(new NoValsOption<string>("","primesfile","File containing a list of prime numbers to use for finding optimal bases. Has to be provided if using pbsolver.", "","file", modes.primesfile, cmd));
 	options.push_back(new Option<INPUTFORMAT, string>("f", "format", "The format of the input theory", FORMAT_FODOT, formatvals, formatdesc, modes.format, cmd));
-	options.push_back(new Option<bool, string>("", "ecnfgraph", "Choose whether to generate a .dot graph representation of the ecnf.", "no", yesnovals, ecnfgraphdesc, modes.printcnfgraph, cmd));
-	options.push_back(new Option<bool, string>("r", "remap", "Choose whether to remap literals from the input structure to a contiguous internal representation.", "yes", yesnovals, remapdesc, modes.remap, cmd));
-	options.push_back(new Option<bool, string>("","bumpagg","Choose whether to bump variable activity on aggregate propagation", "yes", yesnovals, bumpaggonnotifydesc, modes.bumpaggonnotify, cmd));
-	options.push_back(new Option<bool, string>("","bumpid", "Choose whether to bump variable activity on ID initialization", "yes", yesnovals, bumpidonstartdesc, modes.bumpidonstart, cmd));
-	options.push_back(new Option<bool, string>("","minimexplan", "Choose whether to minimize aggregate explanations", "no", yesnovals, subsetminimdesc, modes.subsetminimizeexplanation, cmd));
-	options.push_back(new Option<bool, string>("","asapaggprop", "Choose whether to propagate aggregates as fast as possible", "no", yesnovals, asapaggpropdesc, modes.asapaggprop, cmd));
-	options.push_back(new Option<bool, string>("","pbsolver","Choose whether to translate pseud-boolean constraints to SAT", "no", yesnovals, pbsolverdesc, modes.pbsolver, cmd));
+	options.push_back(new Option<bool, string>("", "ecnfgraph", "Choose whether to generate a .dot graph representation of the ecnf", false, yesnovals, ecnfgraphdesc, modes.printcnfgraph, cmd));
+	options.push_back(new Option<bool, string>("r", "remap", "Choose whether to remap literals from the input structure to a contiguous internal representation", true, yesnovals, remapdesc, modes.remap, cmd));
+	options.push_back(new Option<bool, string>("","bumpagg","Choose whether to bump variable activity on aggregate propagation", true, yesnovals, bumpaggonnotifydesc, modes.bumpaggonnotify, cmd));
+	options.push_back(new Option<bool, string>("","bumpid", "Choose whether to bump variable activity on ID initialization", true, yesnovals, bumpidonstartdesc, modes.bumpidonstart, cmd));
+	options.push_back(new Option<bool, string>("","minimexplan", "Choose whether to minimize aggregate explanations", false, yesnovals, subsetminimdesc, modes.subsetminimizeexplanation, cmd));
+	options.push_back(new Option<bool, string>("","asapaggprop", "Choose whether to propagate aggregates as fast as possible", false, yesnovals, asapaggpropdesc, modes.asapaggprop, cmd));
+	options.push_back(new Option<bool, string>("","pbsolver","Choose whether to translate pseudo-boolean constraints to SAT", false, yesnovals, pbsolverdesc, modes.pbsolver, cmd));
 #ifndef USEMINISAT22
 	options.push_back(new Option<POLARITY, string>("","polarity", "The default truth value choice of variables", getDefaultPolarity(), polvals, poldesc, modes.polarity, cmd));
 #endif
@@ -222,6 +237,10 @@ bool MinisatID::parseOptions(int argc, char** argv){
 		return false;
 	}
 
+	for(vector<Opt*>::const_iterator i=options.begin(); i<options.end(); i++){
+		(*i)->parse();
+	}
+
 	if(modes.var_decay<0.0){
 		report("The value for decay should be larger than 0.\n");
 		return false;
@@ -232,10 +251,10 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	}
 
 	if(inputfilearg.isSet()){
-		setInputFileUrl(inputfilearg.getValue().c_str());
+		setInputFileUrl(inputfilearg.getValue());
 	}
 	if(outputfile.compare("")!=0){
-		setOutputFileUrl(outputfile.c_str());
+		setOutputFileUrl(outputfile);
 	}
 
 	if(modes.pbsolver && modes.primesfile.compare("")==0){
@@ -244,6 +263,9 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	}
 
 	deleteList<Opt>(options);
+
+	//cerr <<inputfilearg.getValue() <<endl;
+	//modes.print();
 
 	return true;
 }

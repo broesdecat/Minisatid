@@ -4,7 +4,10 @@ AM_CXXFLAGS = @AC_CXXFLAGS@
 AM_LDFLAGS = @AC_LDFLAGS@ -I src/tclap/ #-ltcmalloc -lprofiler
 
 AM_YFLAGS = -d 
-AM_LFLAGS = 
+AM_LFLAGS =
+
+#ESSENTIAL FOR INTTYPES USAGE 
+AM_CXXFLAGS+= -D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS
 
 bin_PROGRAMS = minisatid
 
@@ -33,7 +36,8 @@ include_HEADERS += modules/aggsolver/AggProp.hpp
 include_HEADERS += theorysolvers/LogicSolver.hpp theorysolvers/PCSolver.hpp theorysolvers/SOSolver.hpp   
 include_HEADERS += external/ExternalInterface.hpp external/ExternalUtils.hpp
 include_HEADERS += utils/Print.hpp utils/Utils.hpp utils/PrintMessage.hpp utils/IntTypes.h
-include_HEADERS += parser/ResourceManager.hpp parser/Lparseread.hpp parser/PBread.hpp parser/ParseOptions.hpp tclap/CmdLine.h
+include_HEADERS += parser/ResourceManager.hpp parser/Lparseread.hpp parser/PBread.hpp parser/ParseOptions.hpp 
+include_HEADERS += tclap/CmdLine.h
 include_HEADERS += Unittests.hpp 
 
 
@@ -62,8 +66,7 @@ include_HEADERS += 	solver3minisat22/core/Solver.h solver3minisat22/core/SolverT
 					solver3minisat22/utils/ParseUtils.h solver3minisat22/utils/Options.h\
 					solver3minisat22/zconf.h solver3minisat22/zlib.h
 AM_CXXFLAGS+= -D USEMINISAT22 -I$(srcdir)/solver3minisat22/
-#ESSENTIAL FOR INTTYPES USAGE 
-AM_CXXFLAGS+= -D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS 
+#necessary if not used by minisatid itself! AM_CXXFLAGS+= -D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS 
 endif
 
 #MINISAT 2.07
