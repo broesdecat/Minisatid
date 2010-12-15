@@ -54,6 +54,41 @@ struct AV{
 	AV(Var a): atom(a), value(l_Undef){}
 };
 
+/**
+ * BASIC MODAL SOLVER ALGORITHM:
+ * each model solver MS has a pcsolver PS at same level and a number of modal solver at the next lower level MSC (MS Children)
+ *
+ * MS:finishparsingdown
+ * 		-> PC:finishparsing
+ * 		-> MCS:finishparsingdown
+ * MS:finishparsing: noop <= ONLY CALLED FROM PS
+ *
+ * MS:simplifydown
+ * 		-> PC:simplify
+ * 		-> MCS:simplifydown
+ * MS:simplify: noop  <= ONLY CALLED FROM PS
+ *
+ * MS:propdown
+ * 		store in assumptions, remember it came from above
+ *
+ * MS:propdownatend
+ * 		-> PC:search providing assumptions
+ * 		-> PC:backtrackTo(0)
+ *
+ * MS:propagate <= ONLY CALLED FROM PS
+ * 		-> add to trail
+ * 		-> MCS:propagatedown
+ *
+ * MS:propagateatend <= ONLY CALLED FROM PS
+ * 		-> MCS:propagatedownatend
+ *
+ * MS:backtrackDecisionLevels <= ONLY CALLED FROM PS
+ * 		-> remove from trail
+ * 		-> MCS:backtrackFromAbove
+ *
+ * MS:backtrackdown
+ */
+
 class ModSolver: public DPLLTmodule{
 private:
 	bool 		hasparent, searching;
@@ -75,37 +110,48 @@ public:
 	ModSolver(modindex child, Var head, SOSolver* mh);
 	virtual ~ModSolver();
 
-	bool 	addAtoms		(const std::vector<Var>& atoms);
-	void 	addChild		(modindex child);
-	void	setParent		(modindex id);
+	bool 				addAtoms		(const std::vector<Var>& atoms);
+	void 				addChild		(modindex child);
+	void				setParent		(modindex id);
 
-	void 	setNbModels		(int nb);
+	void 				setNbModels		(int nb);
 
 	//data initialization
 	void				addVar			(Var v);
 	bool 				addClause		(vec<Lit>& lits);
 	bool 				addRule			(bool conj, Lit head, vec<Lit>& lits);
 	bool 				addSet			(int setid, vec<Lit>& lits, std::vector<Weight>& w);
-	bool 				addAggrExpr	(Lit head, int set_id, const Weight& bound, AggSign boundsign, AggType type, AggSem defined);
+	bool 				addAggrExpr		(Lit head, int set_id, const Weight& bound, AggSign boundsign, AggType type, AggSem defined);
 
-	virtual void 		notifyVarAdded	(uint64_t nvars) { /*Is NOT DOWN!*/}
-	virtual void 		finishParsing	(bool& present, bool& unsat){};
-	virtual bool 		simplify		()	{ return true;};
+	void 				notifyVarAdded	(uint64_t nvars) { /*Is NOT DOWN!*/}
+
+	void 				finishParsing	(bool& present, bool& unsat){};
+	void 				finishParsingDown(bool& present, bool& unsat);
+
+	bool 				simplify		()	{ return true;};
+	bool 				simplifyDown	();
+
+
+	void 				newDecisionLevel();
+
+	rClause 			getExplanation	(const Lit& l) { return nullPtrClause; /*TODO NOT IMPLEMENTED*/ };
+
 	/**
-	 * Propagation coming from the sat-solver: should propagate it through all modal solvers.
-	 * Should NOT be called from other sources than the SAT-solver.
+	 * Propagation coming from the parent solver: propagate it through the tree, until a conflict is found.
+	 * SHOULD also return unit propagated implied rigid atoms.
 	 */
-	virtual rClause 	propagate				(const Lit& l);
-	virtual rClause 	propagateAtEndOfQueue	();
-	virtual void 		newDecisionLevel		();
-	virtual void 		backtrackDecisionLevels	(int nblevels, int untillevel);
-	virtual rClause 	getExplanation			(const Lit& l) { return nullPtrClause; /*TODO NOT IMPLEMENTED*/ };
+	rClause 			propagateDown	(Lit l);
+	bool	 			propagateDownAtEndOfQueue(vec<Lit>& confldisj);
+	rClause 			propagate		(const Lit& l);
+	rClause 			propagateAtEndOfQueue();
 
-	virtual void 		printStatistics			() const { /*Do NOT print lower ones here*/};
+	void 				backtrackDecisionLevels	(int nblevels, int untillevel);
+	void 				backtrackFromAbove(Lit l);
 
-	virtual const char* getName() { return "modal operator"; }
-	virtual void print();
+	bool 				solve			(const vec<Lit>& assumptions, Solution* sol);
 
+
+	//PRINTING
 	/**
 	 * Workflow: parents propagates some literal down
 	 * if not all rigid atoms or head known:
@@ -123,49 +169,31 @@ public:
 	 *
 	 * The model of a theory is the interpretation of all atoms decided by the root SAT solver.
 	 */
-	void 				printModel();
+	void 				printModel		();
+	void 				print			();
+	void 				printStatistics	() const 	{ /*Do NOT print lower ones here*/};
 
-	void 				finishParsingDown(bool& present, bool& unsat);
-
-	/**
-	 * Propagation coming from the parent solver: propagate it through the tree, until a conflict is found.
-	 * SHOULD also return unit propagated implied rigid atoms.
-	 */
-	rClause 			propagateDown(Lit l);
-	bool	 			propagateDownAtEndOfQueue(vec<Lit>& confldisj);
-	/**
-	 * Same as enqueue or notifyofpropagation: add it to the sat-solver queue, but remember why it was
-	 * propagated. Id indicates from which modal solver the propagation came.
-	 * to ask an explanation later on.
-	 */
-	void 				propagateUp(Lit l, modindex id);
-
-	bool 				simplifyDown();
-
-	void 				backtrackFromAbove(Lit l);
-
-	bool				hasParent	()	const 	{ return hasparent; }
-	Var 				getHead		()	const 	{ assert(hasparent); return head.atom; }
-	lbool 				getHeadValue()	const	{ assert(hasparent); return head.value; }
-	modindex 			getId		()	const	{ return id; }
-	modindex 			getPrintId	()	const	{ return id+1; }
-	modindex			getParentId	()	const	{ return parentid; }
-	modindex			getParentPrintId	()	const	{ return parentid+1; }
-	const std::vector<Var>& 	getAtoms	()	const	{ return atoms; }
-	const vmodindex& 	getChildren	()	const	{ return children; }
-
-	const SOSolver& 	getModSolverData() const	{ return *modhier; }
-
-	bool 				solve			(const vec<Lit>& assumptions, Solution* sol);
+	//GETTERS
+	const char* 		getName			()	const	{ return "modal operator"; }
+	bool				hasParent		()	const 	{ return hasparent; }
+	Var 				getHead			()	const 	{ assert(hasparent); return head.atom; }
+	lbool 				getHeadValue	()	const	{ assert(hasparent); return head.value; }
+	modindex 			getId			()	const	{ return id; }
+	modindex 			getPrintId		()	const	{ return id+1; }
+	modindex			getParentId		()	const	{ return parentid; }
+	modindex			getParentPrintId()	const	{ return parentid+1; }
+	const std::vector<Var>& getAtoms	()	const	{ return atoms; }
+	const vmodindex& 	getChildren		()	const	{ return children; }
+	const SOSolver& 	getModSolverData()	const	{ return *modhier; }
 
 private:
-	void 				addVar		(Lit l)		{ addVar(var(l)); }
-	void 				addVars		(vec<Lit>& a);
+	void 				addVar			(Lit l)		{ addVar(var(l)); }
+	void 				addVars			(vec<Lit>& a);
 
 	void				adaptValuesOnPropagation(Lit l);
-	void 				doUnitPropagation	(const vec<Lit>&);
-	bool 				search				(const vec<Lit>&, bool search = true);
-	bool 				analyzeResult		(bool result, bool allknown, vec<Lit>& confldisj);
+	void 				doUnitPropagation(const vec<Lit>&);
+	bool 				search			(const vec<Lit>&, bool search = true);
+	bool 				analyzeResult	(bool result, bool allknown, vec<Lit>& confldisj);
 };
 
 }

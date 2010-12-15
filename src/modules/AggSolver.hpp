@@ -172,7 +172,7 @@ public:
 	virtual void 		backtrackDecisionLevels	(int nblevels, int untillevel);
 	virtual rClause 	getExplanation			(const Lit& l);
 
-	virtual const char* getName					() { return "aggregate"; }
+	virtual const char* getName					() const { return "aggregate"; }
 	virtual void 		print					();
 	virtual void 		printStatistics			() const;
 

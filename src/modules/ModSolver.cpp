@@ -192,6 +192,85 @@ void ModSolver::newDecisionLevel(){
 	trail.push_back(vector<Lit>());
 }
 
+void ModSolver::doUnitPropagation(const vec<Lit>& assumpts){
+
+}
+
+bool ModSolver::search(const vec<Lit>& assumpts, bool search){
+	/*
+	 * In the end, we would want to propagate level by level, without having to restart the whole process
+	 * every time. This requires a startsearch and continuesearch procedure in the SAT-solver
+	 * As this is rather tedious, we will delay it until necessary.
+	bool result = true;
+	if(startindex==-1){
+		result = getPCSolver()->startSearch();
+		startindex = 0;
+	}
+	for(; result && startindex<assumptions.size(); startindex++){
+		result = getPCSolver()->propagate(assumptions[startindex]);
+	}
+	if(search && result){
+		searching = true;
+		result = getPCSolver()->continueSearch();
+		searching = false;
+	}
+
+	return result;*/
+
+	bool result;
+	searching = search;
+	Solution* sol = new Solution(false, false, searching, 1, vector<Literal>());
+	result = getPCSolver()->solve(assumpts, sol);
+	delete sol;
+	searching = false;
+	return result;
+}
+
+/**
+ * Returns non-owning pointer
+ */
+rClause ModSolver::propagate(const Lit& l){
+	/*if(!searching){
+		vector<Lit> v = getPCSolver()->getDecisions();
+		//TODO propagate up WITH reason
+	}*/
+	if(getModSolverData().modes().verbosity>4){
+		report("Propagated "); gprintLit(l); report(" from PC in mod %zu\n", getPrintId());
+	}
+
+	rClause confl = nullPtrClause;
+	trail.back().push_back(l);
+	for(vmodindex::const_iterator i=getChildren().begin(); confl==nullPtrClause && i<getChildren().end(); i++){
+		confl = getModSolverData().getModSolver(*i)->propagateDown(l);
+	}
+	return confl;
+}
+
+//In future, we might want to delay effectively propagating and searching in subfolders to the point where the
+//queue is empty, so we will need a propagateDown and a propagateDownEndOfQueue
+/**
+ * Returns non-owning pointer
+ */
+rClause ModSolver::propagateAtEndOfQueue(){
+	bool noconflict = true;
+	vec<Lit> confldisj;
+	for(vmodindex::const_iterator i=getChildren().begin(); noconflict && i<getChildren().end(); i++){
+		assert(confldisj.size()==0);
+		noconflict = getModSolverData().getModSolver(*i)->propagateDownAtEndOfQueue(confldisj);
+	}
+
+	rClause confl = nullPtrClause;
+	if(!noconflict){
+		confl = getPCSolver()->createClause(confldisj, true);
+		getPCSolver()->addLearnedClause(confl);
+
+		if(getModSolverData().modes().verbosity>=5){
+			Print::printClause(confl, getPCSolver());
+		}
+	}
+	return confl;
+}
+
 /**
  * Propagates l to be true from the parent modal solver.
  * As long as the PC-solver is still propagating, this solver should not do anything more than store
@@ -268,120 +347,20 @@ bool ModSolver::propagateDownAtEndOfQueue(vec<Lit>& confldisj){
 	return result;
 }
 
-void ModSolver::doUnitPropagation(const vec<Lit>& assumpts){
-
-}
-
-bool ModSolver::search(const vec<Lit>& assumpts, bool search){
-	/*
-	 * In the end, we would want to propagate level by level, without having to restart the whole process
-	 * every time. This requires a startsearch and continuesearch procedure in the SAT-solver
-	 * As this is rather tedious, we will delay it until necessary.
-	bool result = true;
-	if(startindex==-1){
-		result = getPCSolver()->startSearch();
-		startindex = 0;
-	}
-	for(; result && startindex<assumptions.size(); startindex++){
-		result = getPCSolver()->propagate(assumptions[startindex]);
-	}
-	if(search && result){
-		searching = true;
-		result = getPCSolver()->continueSearch();
-		searching = false;
+void ModSolver::backtrackDecisionLevels(int nblevels, int untillevel){
+	if(getModSolverData().modes().verbosity>4){
+		report("Backtracking from PC in mod %zu to level %d\n", getPrintId(), untillevel);
 	}
 
-	return result;*/
-
-	bool result;
-	searching = search;
-	Solution* sol = new Solution(false, false, searching, 1, vector<Literal>());
-	result = getPCSolver()->solve(assumpts, sol);
-	delete sol;
-	searching = false;
-	return result;
-}
-
-/**
- * Important, returns a clause constructed to be added to the PARENT solver: the vars are NOT necessarily
- * decision vars in this PC solver
- * Returns true if no conflict ensues
- */
-bool ModSolver::analyzeResult(bool result, bool allknown, vec<Lit>& confldisj){
-	bool conflict = false;
-	//if no model found and should be sat or if model found, should be unsat and all values are known
-	if(getHeadValue()==l_True && !result){
-		conflict = true;
-	}
-	if(getHeadValue()==l_False && result && allknown){
-		conflict = true;
-	}
-
-	if(conflict){ //conflict between head and body
-		//TODO can the clause learning be improved?
-		assert(confldisj.size()==0);
-		if(getHeadValue()!=l_Undef){
-			confldisj.push(mkLit(getHead(), getHeadValue()==l_True));
-		}
-		//TODO order of lits in conflict depends on order of assumptions and on order of propagations by parent
-		for(int i=0; i<assumptions.size(); i++){
-			if(propfromabove[i]){
-				confldisj.push(~assumptions[i]);
+	while(trail.size()>((vsize)(untillevel+1))){
+		//IMPORTANT: backtrack in REVERSE trail order! from latest to earliest!
+		for(vector<Lit>::const_reverse_iterator i=trail.back().rbegin(); i<trail.back().rend(); i++){
+			for(vmodindex::const_iterator j=getChildren().begin(); j<getChildren().end(); j++){
+				getModSolverData().getModSolver((*j))->backtrackFromAbove(*i);
 			}
 		}
-		assert(confldisj.size()>0);
+		trail.pop_back();
 	}
-
-	return !confldisj;
-}
-
-/**
- * Returns non-owning pointer
- */
-rClause ModSolver::propagate(const Lit& l){
-	/*if(!searching){
-		vector<Lit> v = getPCSolver()->getDecisions();
-		//TODO propagate up WITH reason
-	}*/
-	rClause confl = nullPtrClause;
-	trail.back().push_back(l);
-	for(vmodindex::const_iterator i=getChildren().begin(); confl==nullPtrClause && i<getChildren().end(); i++){
-		confl = getModSolverData().getModSolver(*i)->propagateDown(l);
-	}
-	return confl;
-}
-
-//In future, we might want to delay effectively propagating and searching in subfolders to the point where the
-//queue is empty, so we will need a propagateDown and a propagateDownEndOfQueue
-/**
- * Returns non-owning pointer
- */
-rClause ModSolver::propagateAtEndOfQueue(){
-	bool noconflict = true;
-	vec<Lit> confldisj;
-	for(vmodindex::const_iterator i=getChildren().begin(); noconflict && i<getChildren().end(); i++){
-		assert(confldisj.size()==0);
-		noconflict = getModSolverData().getModSolver(*i)->propagateDownAtEndOfQueue(confldisj);
-	}
-
-	rClause confl = nullPtrClause;
-	if(!noconflict){
-		confl = getPCSolver()->createClause(confldisj, true);
-		getPCSolver()->addLearnedClause(confl);
-
-		if(getModSolverData().modes().verbosity>=5){
-			Print::printClause(confl, getPCSolver());
-		}
-	}
-	return confl;
-}
-
-void ModSolver::propagateUp(Lit l, modindex id){
-	assert(false);
-	//TODO
-	//include reason or extend getexplanation to modal solvers (first is maybe best)
-	//save id for clause learning
-	getPCSolver()->setTrue(l, this);
 }
 
 /**
@@ -422,15 +401,37 @@ void ModSolver::backtrackFromAbove(Lit l){
 	}
 }
 
-void ModSolver::backtrackDecisionLevels(int nblevels, int untillevel){
-	while(trail.size()>((vsize)(untillevel+1))){
-		for(vector<Lit>::const_iterator i=trail.back().begin(); i<trail.back().end(); i++){
-			for(vmodindex::const_iterator j=getChildren().begin(); j<getChildren().end(); j++){
-				getModSolverData().getModSolver((*j))->backtrackFromAbove(*i);
+/**
+ * Important, returns a clause constructed to be added to the PARENT solver: the vars are NOT necessarily
+ * decision vars in this PC solver
+ * Returns true if no conflict ensues
+ */
+bool ModSolver::analyzeResult(bool result, bool allknown, vec<Lit>& confldisj){
+	bool conflict = false;
+	//if no model found and should be sat or if model found, should be unsat and all values are known
+	if(getHeadValue()==l_True && !result){
+		conflict = true;
+	}
+	if(getHeadValue()==l_False && result && allknown){
+		conflict = true;
+	}
+
+	if(conflict){ //conflict between head and body
+		//TODO can the clause learning be improved?
+		assert(confldisj.size()==0);
+		if(getHeadValue()!=l_Undef){
+			confldisj.push(mkLit(getHead(), getHeadValue()==l_True));
+		}
+		//TODO order of lits in conflict depends on order of assumptions and on order of propagations by parent
+		for(int i=0; i<assumptions.size(); i++){
+			if(propfromabove[i]){
+				confldisj.push(~assumptions[i]);
 			}
 		}
-		trail.pop_back();
+		assert(confldisj.size()>0);
 	}
+
+	return !confldisj;
 }
 
 void ModSolver::print(){
