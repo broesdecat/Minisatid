@@ -41,9 +41,9 @@ private:
 public:
 	FileMan(const char* name, bool write) : open(false), write(write), name(name), fileptr(NULL) { }
 
-	~FileMan() {	close(); }
+	~FileMan() { close(); }
 
-	void close() ;
+	void close();
 	FILE* getFile();
 	std::streambuf* getBuffer();
 };

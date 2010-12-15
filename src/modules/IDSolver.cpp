@@ -98,6 +98,14 @@ void IDSolver::notifyVarAdded(uint64_t nvars) {
  * If only one body literal, the clause is always made conjunctive (for algorithmic correctness later on), semantics are the same.
  */
 bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
+	if (verbosity() >= 5) {
+		report("Adding %s rule, %d <- ", conj?"conjunctive":"disjunctive", gprintVar(var(head)));
+		for (int i = 0; i < ps.size(); i++) {
+			report("%s%d ", sign(ps[i])?"-":"",gprintVar(var(ps[i])));
+		}
+		report("\n");
+	}
+
 	if (!isPositive(head)) {
 		throw idpexception("Negative heads are not allowed.\n");
 	}
@@ -105,14 +113,6 @@ bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
 	if(isDefined(var(head))){
 		char s[100]; sprintf(s, "Multiple rules have the same head %d, which is not allowed!\n", gprintVar(var(head)));
 		throw idpexception(s);
-	}
-
-	if (verbosity() >= 5) {
-		report("Adding %s rule, %d <- ", conj?"conjunctive":"disjunctive", gprintVar(var(head)));
-		for (int i = 0; i < ps.size(); i++) {
-			report("%s%d ", sign(ps[i])?"-":"",gprintVar(var(ps[i])));
-		}
-		report("\n");
 	}
 
 	bool notunsat = true;

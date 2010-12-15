@@ -617,7 +617,7 @@ int Read::read(istream &f) {
 		return 1;
 	}
 
-	//Check whether there are multiple occurences and rewrite them using tseitin!
+	//Check whether there are multiple occurrences and rewrite them using tseitin!
 	std::map<Literal, std::vector<BasicRule*> > headtorules;
 	for (vector<BasicRule*>::const_iterator i = basicrules.begin(); i < basicrules.end(); i++) {
 		if (headtorules.find((*i)->head) == headtorules.end()) {
@@ -673,6 +673,8 @@ int Read::read(istream &f) {
 		}
 		basicrules.push_back(new BasicRule(orighead, newheads, false));
 	}
+
+	cerr <<"Added TSEITINS\n";
 
 	if (finishBasicRules() == 1) {
 		return 1;

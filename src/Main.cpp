@@ -197,12 +197,11 @@ int doModelGeneration(pData& d, double cpu_time){
 		}
 		case FORMAT_OPB:{
 			WrappedPCSolver* p = new WrappedPCSolver(modes);
-
 			std::istream is(getInputBuffer());
 			PBRead* parser = new PBRead(p, is);
-			closeInput();
 			parser->autoLin();
 			parser->parse();
+			closeInput();
 			delete parser;
 			d = shared_ptr<WrappedLogicSolver> (p); //Only set d if successfully parsed
 			break;

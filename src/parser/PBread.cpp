@@ -131,7 +131,7 @@ void DefaultCallback::endConstraint() {
 		lits.push_back(Literal(newvar));
 		getSolver()->addClause(lits);
 	}else{
-		getSolver()->addAggrExpr(newvar, setid, bound, AGGSIGN_UB, SUM, COMP);
+		getSolver()->addAggrExpr(newvar, setid, bound, AGGSIGN_LB, SUM, COMP);
 		lits.clear();
 		lits.push_back(Literal(newvar));
 		getSolver()->addClause(lits);

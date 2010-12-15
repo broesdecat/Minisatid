@@ -37,7 +37,8 @@ std::streambuf* FileMan::getBuffer() {
 	assert(!open || fileptr==NULL);
 	if (!open) {
 		open = true;
-		if (!filebuf.open(name, write ? std::ios::out : std::ios::in)) {
+		filebuf.open(name, write ? std::ios::out : std::ios::in);
+		if (!filebuf.is_open()) {
 			char s[100];
 			sprintf(s, "`%s' is not a valid filename or not readable.\n", name);
 			throw idpexception(s);
@@ -89,7 +90,6 @@ void createInput() {
 			input = std::tr1::shared_ptr<ResMan>(new StdMan(true));
 			report("Reading from standard input...\n");
 		} else {
-			cerr <<inputurl <<endl;
 			input = std::tr1::shared_ptr<ResMan>(new FileMan(inputurl.c_str(), false));
 		}
 	}
