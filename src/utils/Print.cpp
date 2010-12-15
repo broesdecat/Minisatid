@@ -21,7 +21,7 @@
 
 #include <vector>
 
-#include "satsolver/SATSolver.h"
+#include "satsolver/SATSolver.hpp"
 #include "theorysolvers/PCSolver.hpp"
 #include "modules/IDSolver.hpp"
 #include "modules/ModSolver.hpp"

@@ -176,9 +176,14 @@ Propagator*	MaxProp::createPropagator(TypedSet* set, bool pw) const{
 }
 
 Propagator*	SumProp::createPropagator(TypedSet* set, bool pw) const{
-	if(pw && getType()==CARD){
-		return new CardPWAgg(set);
-	}
+	//if(pw && getType()==CARD){
+		//FIXME: CURRENTLY WORKS INCORRECTLY:
+		//one issue with propagated value instead of value
+		//one issue with multiple watches becoming false
+		//...
+		//recommendation: scrap
+		//return new CardPWAgg(set);
+	//}
 	return new SumFWAgg(set);
 }
 

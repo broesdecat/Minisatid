@@ -156,15 +156,18 @@ enum DEFSEARCHSTRAT { breadth_first, depth_first }; // Unfounded set search stra
 enum DEFSEM { DEF_STABLE, DEF_WELLF, DEF_COMP }; 				// Definitional semantics
 
 enum POLARITY {
-	POL_TRUE = 0,
-	POL_FALSE = 1,
-	POL_USER = 2,
-	POL_RAND = 3
+	POL_TRUE,
+	POL_FALSE,
+	POL_STORED,
+	POL_RAND
 }; // SAT-solver polarity option
+
+enum INPUTFORMAT {FORMAT_FODOT, FORMAT_ASP, FORMAT_OPB};
 
 // Structure containing general options for the solvers
 class SolverOption {
 public:
+	INPUTFORMAT format;
 	int verbosity;
 	int nbmodels; //Try to find at most this number of models
 	bool printcnfgraph;

@@ -20,6 +20,8 @@
 #ifndef SATUTILS_H_
 #define SATUTILS_H_
 
+#include "external/ExternalUtils.hpp"
+
 #ifdef USEMINISAT
 #include "mtlold/Vec.h"
 #include "mtlold/Queue.h"
@@ -76,6 +78,12 @@ namespace MinisatID {
 
 	extern rClause nullPtrClause;
 	pClause getClauseRef(rClause rc);
+
+	double getDefaultDecay();
+	double getDefaultRandfreq();
+#ifndef USEMINISAT22
+	POLARITY getDefaultPolarity();
+#endif
 }
 
 #endif// SATSOLVER_H_

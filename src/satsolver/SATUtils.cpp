@@ -17,7 +17,7 @@
 //    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //--------------------------------------------------------------------------------------------------
 
-#include "satsolver/SATUtils.h"
+#include "satsolver/SATUtils.hpp"
 
 using namespace MinisatID;
 
@@ -31,6 +31,16 @@ pClause MinisatID::getClauseRef(rClause rc){
 Lit MinisatID::mkLit(Var x, bool sign){
 	return Lit(x, sign);
 }
+
+double MinisatID::getDefaultDecay(){
+	return 1/0.95;
+}
+double MinisatID::getDefaultRandfreq(){
+	return 0.02;
+}
+POLARITY MinisatID::getDefaultPolarity(){
+	return POL_STORED;
+}
 #endif
 
 #ifdef USEMINISAT09Z
@@ -43,6 +53,16 @@ pClause MinisatID::getClauseRef(rClause rc){
 Lit MinisatID::mkLit(Var x, bool sign){
 	return Lit(x, sign);
 }
+
+double MinisatID::getDefaultDecay(){
+	return 1/0.95;
+}
+double MinisatID::getDefaultRandfreq(){
+	return 0.02;
+}
+POLARITY MinisatID::getDefaultPolarity(){
+	return POL_STORED;
+}
 #endif
 
 #ifdef USEMINISAT22
@@ -52,4 +72,10 @@ pClause MinisatID::getClauseRef(rClause rc){
 	return rc;
 }
 
+double MinisatID::getDefaultDecay(){
+	return 0.95;
+}
+double MinisatID::getDefaultRandfreq(){
+	return 0;
+}
 #endif

@@ -19,8 +19,9 @@
 
 #include "theorysolvers/PCSolver.hpp"
 
-#include "satsolver/SATSolver.h"
 #include "external/ExternalInterface.hpp"
+
+#include "satsolver/SATSolver.hpp"
 #include "modules/IDSolver.hpp"
 #include "modules/AggSolver.hpp"
 #include "modules/ModSolver.hpp"

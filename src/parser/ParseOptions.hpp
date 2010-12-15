@@ -8,12 +8,10 @@
 #ifndef PARSEOPTIONS_HPP_
 #define PARSEOPTIONS_HPP_
 
+#include "external/ExternalUtils.hpp"
 
 namespace MinisatID{
 	bool parseOptions(int argc, char** argv);
-
-	enum INPUTFORMAT {FORMAT_FODOT, FORMAT_ASP, FORMAT_OPB};
-	INPUTFORMAT getChosenFormat();
 }
 
 #endif /* PARSEOPTIONS_HPP_ */

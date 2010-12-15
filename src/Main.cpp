@@ -182,7 +182,7 @@ int doModelGeneration(pData& d, double cpu_time){
 	// Unittest injection possible by: pData d = unittestx();
 
 	//Parse input
-	switch(getChosenFormat()){
+	switch(modes.format){
 		case FORMAT_ASP:{
 			WrappedPCSolver* p = new WrappedPCSolver(modes);
 			d = shared_ptr<WrappedLogicSolver> (p);

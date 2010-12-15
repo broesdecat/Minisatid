@@ -26,7 +26,7 @@ minisatid_SOURCES += parser/ResourceManager.cpp parser/Lparseread.cpp parser/PBr
 minisatid_SOURCES += Unittests.cpp
 
 include_HEADERS = 
-include_HEADERS += satsolver/SATSolver.h satsolver/SATUtils.h 
+include_HEADERS += satsolver/SATSolver.hpp satsolver/SATUtils.hpp 
 include_HEADERS += modules/DPLLTmodule.hpp modules/IDSolver.hpp modules/AggSolver.hpp modules/ModSolver.hpp
 include_HEADERS += modules/aggsolver/AggTransform.hpp modules/aggsolver/AggUtils.hpp modules/aggsolver/AggPrint.hpp modules/aggsolver/FullyWatched.hpp modules/aggsolver/PartiallyWatched.hpp
 include_HEADERS += modules/aggsolver/AggProp.hpp

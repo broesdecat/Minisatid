@@ -28,7 +28,7 @@
 
 #include <tclap/CmdLine.h>
 
-#include "satsolver/SATUtils.h"
+#include "satsolver/SATUtils.hpp"
 #include "external/ExternalUtils.hpp"
 
 #include <tr1/memory>

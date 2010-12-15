@@ -404,7 +404,7 @@ rClause CardPWAgg::propagate(const Lit& p, Watch* watch, int level) {
 
 			// propagate all others in NF and propagate NFex
 			//TODO if i would here add also an assertion that i>=0, then it would be completely safe comparisons (except for the size)
-#ifdef DEBUG
+/*#ifdef DEBUG INCORRECT ASSERTION
 			int nbtrue = 0, nbfalse = 0, nbunkn = 0;
 			for(int i=0; i<getSetp()->getWL().size(); i++){
 				lbool val = getSolver()->value(getSetp()->getWL()[i].getLit());
@@ -431,7 +431,7 @@ rClause CardPWAgg::propagate(const Lit& p, Watch* watch, int level) {
 					assert(nbtrue==agg.getCertainBound());
 				}
 			}
-#endif
+#endif*/
 
 			for (int i = 0; confl == nullPtrClause && ((uint)i) < nf.size(); i++) {
 				if (i == w.getIndex() && !isEX(w.getWatchset())) {

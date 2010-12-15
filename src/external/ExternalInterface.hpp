@@ -33,8 +33,6 @@
 
 #include "parser/ResourceManager.hpp"
 
-#include "satsolver/SATUtils.h"
-
 namespace MinisatID {
 
 typedef std::tr1::unordered_map<int, int> atommap;
