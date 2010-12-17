@@ -64,7 +64,7 @@ DefineHash(char  , return (uint)key;)
 DefineHash(signed char , return (uint)key;)
 DefineHash(unsigned char , return (uint)key;)
 DefineHash(short , return (uint)key;)
-DefineHash(ushort, return (uint)key;)
+//DefineHash(ushort, return (uint)key;)
 DefineHash(int   , return (uint)key;)
 DefineHash(uint  , return (uint)key;)
 #ifdef LP64

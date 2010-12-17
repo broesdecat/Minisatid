@@ -139,26 +139,10 @@ void BcnfWriter::addClause(vec<Lit>& c)
 static vec<FILE*>  tmp_fps;
 static vec<cchar*> tmp_files;
 
-
-// 'out_name' should NOT be freed by caller.
-FILE* createTmpFile(cchar* prefix, cchar* mode, char*& out_name)
-{
-    char*   name = xmalloc<char>(strlen(prefix) + 6 + 1);
-    strcpy(name, prefix);
-    strcat(name, "XXXXXX");
-
-    int fd = mkstemp(name);
-    if (fd == -1){
-        fprintf(stderr, "ERROR! Could not create temporary file with prefix: %s\n", prefix);
-        exit(1); }
-    FILE* fp = fdopen(fd, mode); assert(fp != NULL);
-
-    tmp_fps  .push(fp);
-    tmp_files.push(name);
-    if (&out_name != NULL) out_name = name;
-    return fp;
+FILE* createTmpFile(cchar* prefix, cchar* mode, char*& out_name){
+	assert(false);
+	exit(-1);
 }
-
 
 // If 'exact' is set, 'prefix' is the full name returned by 'createTmpFile()'.
 void deleteTmpFile(cchar* prefix, bool exact)

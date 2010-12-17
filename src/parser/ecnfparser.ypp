@@ -97,7 +97,8 @@ int cID(const char* c);
 %token SETDEFN WSETDEFN  
 %token <integer> ZERO
 %token <string> NUMBER
-%token <sem> SEMDEFN <sign> SIGNDEFN QUANTe
+%token <sem> SEMDEFN 
+%token <sign> SIGNDEFN QUANTe
 %token <rel> REL
 %token <aggr> AGGDEFN
 %token CNF ECNF MECNF DEFPRESENT AGGPRESENT MNMZPRESENT MODDEFN CPPRESENT

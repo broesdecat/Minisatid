@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include <tr1/memory>
 #include <limits>
+#include <ctime>
 
 #include <iostream>
 

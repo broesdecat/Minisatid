@@ -13,6 +13,7 @@ Contains types, macros, and inline functions generally useful in a C++ program.
 #include <cassert>
 #include <cstdio>
 #include <stdarg.h>
+#include <stdint.h>
 #include <cstdlib>
 #include <cstring>
 #include <climits>
@@ -33,7 +34,7 @@ typedef UINT_PTR           uintp;
 #define I64_fmt "I64d"
 #else
 typedef int64_t				int64;
-typedef u_int64_t			uint64;
+typedef uint64_t			uint64;
 typedef __PTRDIFF_TYPE__   intp;
 typedef unsigned __PTRDIFF_TYPE__ uintp;
 #define I64_fmt "lld"
@@ -154,7 +155,7 @@ macro int irand(double& seed, int size) {
 // Time:
 }
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #include <ctime>
 namespace MiniSatPP {
 macro double cpuTime(void) {

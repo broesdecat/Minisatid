@@ -8,7 +8,7 @@ Read a DIMACS file and apply the SAT-solver to it.
 
 
 #include <cstdarg>
-#include <unistd.h>
+#include <stdlib.h>
 #include <signal.h>
 #include <fstream>
 #include <vector>
@@ -364,7 +364,7 @@ static void SIGINT_handler(int signum) {
     reportf("\n");
     reportf("*** INTERRUPTED ***\n");
     SatELite::deleteTmpFiles();
-    _exit(0); }     // (using 'exit()' rather than '_exit()' sometimes causes the solver to hang (why?))
+    _Exit(0); }     // (using 'exit()' rather than '_Exit()' sometimes causes the solver to hang (why?))
 
 // yay prototype
 
@@ -406,7 +406,7 @@ static void SIGTERM_handler(int signum) {
 	else if (opt_base_result_file!=NULL) printBaseOutPut(cpuT,false,true,false);
     // end base stuff
     SatELite::deleteTmpFiles();
-    _exit(pb_solver->best_goalvalue == Int_MAX ? 0 : 10); 
+    _Exit(pb_solver->best_goalvalue == Int_MAX ? 0 : 10); 
 }
 
 

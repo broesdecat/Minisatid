@@ -31,6 +31,8 @@
 
 #include <tr1/memory>
 
+typedef unsigned int uint;
+
 namespace MinisatID {
 
 // General vector size type usable for any POINTER types!
