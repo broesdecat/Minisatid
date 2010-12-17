@@ -26,7 +26,7 @@
 #include <map>
 #include <vector>
 #include <string>
-
+#include <cstdlib> //abs
 
 ///////
 // Debug information
