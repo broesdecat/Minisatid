@@ -1,4 +1,4 @@
-SUBDIRS = tclap pbsolver
+SUBDIRS = tclap pbsolver external mtlold solver3 solver3minisat solver3minisat22 satsolver parser modules theorysolvers utils
 
 AM_CXXFLAGS = @AC_CXXFLAGS@
 AM_LDFLAGS = @AC_LDFLAGS@ -I src/tclap/ #-ltcmalloc -lprofiler
@@ -13,7 +13,7 @@ bin_PROGRAMS = minisatid
 
 BUILT_SOURCES = parser/ecnfparser.h
 
-minisatid_LDADD = -L$(abs_builddir)/pbsolver -lpbsolver-1.0
+minisatid_LDADD = -L$(builddir)/pbsolver -lpbsolver-1.0
 
 minisatid_SOURCES = 
 minisatid_SOURCES += Main.cpp 

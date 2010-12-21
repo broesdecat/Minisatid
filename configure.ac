@@ -96,7 +96,7 @@ AC_ARG_ENABLE([gmp],
 esac],[ AC_CXXFLAGS+=" -D NO_GMP " ])
 
 # files to generate via autotools (.am or .in source files)
-AC_CONFIG_FILES([Makefile src/Makefile src/tclap/Makefile src/pbsolver/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile src/tclap/Makefile src/pbsolver/Makefile src/satsolver/Makefile src/parser/Makefile src/modules/Makefile src/theorysolvers/Makefile src/solver3/Makefile src/solver3minisat/Makefile src/solver3minisat22/Makefile src/utils/Makefile src/external/Makefile src/mtlold/Makefile src/modules/aggsolver/Makefile])
 
 # generate the final Makefile etc.
 AC_OUTPUT
