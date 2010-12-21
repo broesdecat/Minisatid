@@ -177,7 +177,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	}
 
 	if (verbosity() >= 1) {
-		report("| Number of rules           : %6zu                                          |\n",defdVars.size());
+		report("> Number of rules : %6zu.\n",defdVars.size());
 	}
 
 	// Initialize scc of full dependency graph
@@ -296,9 +296,9 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	}
 
 	if (verbosity() >= 1) {
-		report("| Number of recursive atoms in positive loops : %6d                        |\n",(int)atoms_in_pos_loops);
+		report("> Number of recursive atoms in positive loops : %6d.\n",(int)atoms_in_pos_loops);
 		if (negloops) {
-			report("| Mixed loops also exist                                                      |\n");
+			report("> Mixed loops also exist.\n");
 		}
 	}
 
@@ -637,7 +637,7 @@ bool IDSolver::simplify() {
 
 	if (!posloops && !negloops) {
 		if (verbosity() >= 1) {
-			report("| All recursive atoms falsified in initializations.                           |\n");
+			report("> All recursive atoms falsified in initializations.\n");
 		}
 	}
 

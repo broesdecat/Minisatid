@@ -363,7 +363,7 @@ void PCSolver::finishParsing(bool& present, bool& unsat) {
 			unsat = true; return;
 		} else if(!(*i)->present) {
 			if (modes().verbosity > 0) {
-				report("|    (there will be no propagations on %s module)                             |\n", (*i)->get()->getName());
+				report(">    (there will be no propagations on %s module)\n", (*i)->get()->getName());
 			}
 		}
 	}
@@ -607,7 +607,7 @@ bool PCSolver::solve(const vec<Lit>& assumptions, Solution* sol){
 
 	if (verbosity()>=1) {
 		if(sol->getNbModelsFound() != 0 && !moremodels && sol->getNbModelsToFind() != 1){
-			report("| There are no more models                                                    |\n");
+			report("> There are no more models.\n");
 		}
 	}
 

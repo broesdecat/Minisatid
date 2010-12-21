@@ -126,79 +126,78 @@ private:
 
 class GenPWatch: public Watch{
 private:
-			WATCHSET _w;
+			bool	_inset;
 			bool	_inuse;
 	const 	WL		_wl;
 	const 	bool	_watchneg;
-			bool	_treatasknown;
-	const 	bool	_mono;
+			int 	_index;
 public:
-	GenPWatch(TypedSet* set, const WL& wl, bool watchneg, bool mono):
+	GenPWatch(TypedSet* set, const WL& wl, bool watchneg):
 		Watch(set, wl),
-		_w(INSET),
+		_inset(true),
 		_inuse(false),
 		_wl(wl),
 		_watchneg(watchneg),
-		_treatasknown(false),
-		_mono(mono){
-
+		_index(-1){
 	}
 
-	bool 		isMonotone	()	const 	{ return _mono; }
-	void		setTreatAsKnown(bool val)	{ _treatasknown = val; }
-	bool		treatAsKnown()	const	{ return _treatasknown; }
+	int getIndex() const { return _index; }
+	void setIndex(int c) { _index = c; }
+
+	bool 		isMonotone	()	const 	{ return _watchneg; }
 	const WL& 	getWL		() 	const 	{ return _wl; }
 	Lit			getWatchLit	() 	const 	{ return _watchneg?~_wl.getLit():_wl.getLit(); }
-	WATCHSET 	getWatchset	() 	const 	{ return _w; }
 	bool		isInUse		() 	const 	{ return _inuse; }
 	void		setInUse	(bool used) { _inuse = used; }
+	bool		isWatched	()	const	{ return !_inset; }
 
-	void		pushIntoSet(WATCHSET w, vsize index) { /*setIndex(index);*/ _w = w; _treatasknown = true;}
-	void		removedFromSet() { /*setIndex(-1);*/ _w = INSET; _treatasknown = false;}
+	void		pushIntoSet(vsize index) { /*setIndex(index);*/ _inset=false; }
+	void		removedFromSet() { /*setIndex(-1);*/ _inset = true; }
 };
 
-typedef GenPWatch gpw;
-typedef gpw* pgpw;
-typedef std::vector<pgpw> vpgpw;
-
+typedef GenPWatch* pgpw;
+typedef std::vector<GenPWatch*> vpgpw;
 
 class GenPWAgg: public PWAgg{
 private:
-	vpgpw nf, setf; //setf contains all monotone versions of set literals
-	vpgpw nt, sett; //sett contains all anti-monotone versions of set literals
-
-	bool headprop; // true if <head> was derived from this aggregate
-	AggSign chosensign;
+	vpgpw ws, nws;
+	Weight genmin, genmax; //min and max values on the empty interpretation
 
 public:
 	GenPWAgg(TypedSet* set);
 	virtual ~GenPWAgg();
 
-	bool isSatisfied(const Agg& agg, const Weight& value) const{
-		return (agg.hasUB() && value <= agg.getCertainBound() ) || (agg.hasLB() && agg.getCertainBound()<=value);
+	bool isSatisfied(const Agg& agg, const Weight& min, const Weight& max) const{
+		if(agg.hasUB()){
+			return min<=agg.getCertainBound();
+		}else{ //LB
+			return max>=agg.getCertainBound();
+		}
 	}
 
-	void	 	adaptValue(WATCHSET w, const vpgpw& set, Weight& val) const;
-	lbool 		isKnown(WATCHSET w, const Agg& agg, const vpgpw& set, const vpgpw& set2) const;
+	void 		addValue(const Weight& weight, bool inset, Weight& min, Weight& max) const;
+	void 		removeValue(const Weight& weight, bool inset, Weight& min, Weight& max) const;
 
-	void 		initialize(bool& unsat, bool& sat);
-	rClause 	reconstructSet(const Agg& agg, WATCHSET w, pgpw watch, bool& propagations);
+	rClause 	reconstructSet(pgpw watch, bool& propagations);
+	rClause 	reconstructSet(const Agg& agg, pgpw watch, bool& propagations);
 
-	void 		addToWatchedSet(WATCHSET w, vsize index);
+	rClause 	checkPropagation(bool& propagations);
+
+	void 		addToWatchedSet(vsize index);
 	void 		removeFromWatchedSet(pgpw pw);
-	void 		removeAllFromWatchedSet(WATCHSET w);
-	void 		addWatchesToNetwork(WATCHSET w);
+	void 		removeAllFromWatchedSet();
+	void 		addWatchesToNetwork();
 	void 		addWatchToNetwork(pgpw watch);
 
-	rClause 	propagate			(const Lit& p, pw w);
-	rClause 	propagate			(const Agg& agg);
-	void 		backtrack			(const Agg& agg);
-    void 		getExplanation		(vec<Lit>& lits, const AggReason& ar) const;
+	void 		initialize		(bool& unsat, bool& sat);
+	rClause 	propagate		(const Lit& p, Watch* w, int level);
+	rClause 	propagate		(int level, const Agg& agg, bool headtrue);
+	rClause		propagateAtEndOfQueue(int level);
+	void		backtrack		(int nblevels, int untillevel){};
+    void 		getExplanation	(vec<Lit>& lits, const AggReason& ar);
 
-	vpgpw& getSet(WATCHSET w);
-	vpgpw& getWatches(WATCHSET w);
-	bool checking(WATCHSET w) const;
-	bool isNonFalseCheck(WATCHSET w) const { return w==NF; }
+	vpgpw& 		getNWS() { return nws; }
+	vpgpw& 		getWS() { return ws; }
 };
 
 class CardGenPWAgg: public GenPWAgg{

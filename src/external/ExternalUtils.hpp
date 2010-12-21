@@ -90,18 +90,155 @@ enum AggSem 	{ COMP, DEF };	// Semantics of satisfiability of the aggregate head
 	#include "gmpxx.h"
 
 	namespace MinisatID {
-	#define GMPWEIGHT
-	typedef mpz_class Weight;
+	class Weight{
+	private:
+		mpz_class w;
+		bool inf, pos;
+	public:
+		Weight(): w(0), inf(false), pos(false){}
+		Weight(int i): w(i), inf(false), pos(false){}
+		Weight(long i): w(i), inf(false), pos(false){}
+		Weight(mpz_class w): w(w), inf(false), pos(false){}
+		Weight(bool posinf): w(0), inf(true), pos(posinf){}
+
+		operator const mpz_class&() const { assert(!inf); return w; }
+
+		std::string get_str() const{
+			if(!inf){
+				return w.get_str();
+			}else{
+				return pos?"+inf":"-inf";
+			}
+		}
+
+		friend std::ostream& operator<<(std::ostream& output, const Weight& p);
+		friend std::istream& operator>>(std::istream& input, Weight& obj);
+
+		const Weight operator-() const {
+			Weight w2(*this);
+			w2.w = -w2.w;
+			w2.pos=!w2.pos;
+			return w2;
+		}
+
+		const Weight operator-(const Weight &other) const {
+			return Weight(*this) -= other;
+		}
+
+		const Weight operator+(const Weight &other) const {
+			return Weight(*this) += other;
+		}
+
+		const Weight operator*(const Weight &other) const {
+			return Weight(*this) *= other;
+		}
+
+		const Weight operator/(const Weight &other) const {
+			return Weight(*this) /= other;
+		}
+
+		Weight& operator+=(const Weight &rhs) {
+			if(rhs.inf || inf){
+				assert(!rhs.inf || !inf);
+				w=0;
+				pos = inf?pos:rhs.pos;
+				inf = true;
+			}else{
+				w += rhs.w;
+			}
+			return *this;
+		}
+
+		Weight& operator-=(const Weight &rhs) {
+			if(rhs.inf || inf){
+				assert(!rhs.inf || !inf);
+				w=0;
+				pos = inf?pos:!rhs.pos;
+				inf = true;
+			}else{
+				w -= rhs.w;
+			}
+			return *this;
+		}
+
+		Weight& operator*=(const Weight &rhs) {
+			if(rhs.inf || inf){
+				assert(!rhs.inf || !inf);
+				w=0;
+				pos = inf?pos:rhs.pos;
+				inf = true;
+			}else{
+				w *= rhs.w;
+			}
+			return *this;
+		}
+
+		Weight& operator/=(const Weight &rhs) {
+			if(rhs.inf || inf){
+				assert(!rhs.inf || !inf);
+				if(inf){
+					if(rhs.w<0){
+						pos = !pos;
+					}
+				}else{
+					w = 0;
+					inf = false;
+				}
+			}else{
+				w /= rhs.w;
+			}
+			return *this;
+		}
+
+		bool operator==(const Weight& weight) const{
+			return w==weight.w && inf==weight.inf && pos==weight.pos;
+		}
+
+		bool operator!=(const Weight& weight) const{
+			return !(*this==weight);
+		}
+
+		bool operator<(const Weight& weight) const {
+			if(!inf && !weight.inf){
+				return w < weight.w;
+			}else if(inf){
+				if(weight.inf){
+					return false;
+				}else{
+					return !pos;
+				}
+			}else{//only weight is inf
+				return weight.pos;
+			}
+		}
+
+		bool operator<=(const Weight& weight) const{
+			return *this==weight || *this<weight;
+		}
+
+		bool operator>(const Weight& weight) const{
+			return !(*this<=weight);
+		}
+
+		bool operator>=(const Weight& weight) const{
+			return !(*this<weight);
+		}
+	};
+	Weight abs(const Weight& w);
+	std::ostream& operator<<(std::ostream& output, const Weight& p);
+	std::istream& operator>>(std::istream& input, Weight& obj);
 	}
 #else
 	namespace MinisatID {
-	#define INTWEIGHT
-	typedef int Weight;
+	#define NOARBITPREC
+	typedef long Weight;
 	//FAST, NO OVERFLOW SUPPORT
 	}
 #endif
 
 namespace MinisatID {
+Weight posInfinity();
+Weight negInfinity();
 
 std::string toString(const Weight& w);
 
@@ -159,7 +296,7 @@ enum POLARITY {
 	POL_RAND
 }; // SAT-solver polarity option
 
-enum INPUTFORMAT {FORMAT_FODOT = 5, FORMAT_ASP = 10, FORMAT_OPB = 20};
+enum INPUTFORMAT {FORMAT_FODOT, FORMAT_ASP, FORMAT_OPB};
 
 // Structure containing general options for the solvers
 class SolverOption {
@@ -182,6 +319,8 @@ public:
 	POLARITY polarity;
 	bool bumpaggonnotify, bumpidonstart, subsetminimizeexplanation, asapaggprop;
 	long ufsvarintrothreshold;
+
+	SolverOption();
 
 	void print();
 };

@@ -26,6 +26,7 @@
 #include <iostream>
 
 #include "external/ExternalUtils.hpp"
+#include "satsolver/SATUtils.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -69,10 +70,30 @@ double MinisatID::cpuTime(void) {
 #endif
 
 ///////
-// Weight printing
+// Weight management
 ///////
 
-#ifdef GMPWEIGHT
+#ifdef GMP
+ostream& MinisatID::operator<<(ostream& output, const Weight& p) {
+	output << p.get_str();
+	return output;
+}
+
+istream& MinisatID::operator>>(istream& input, Weight& obj) {
+	long n;
+	input >> n;
+	obj.w = n;
+	return input;
+}
+Weight MinisatID::abs(const Weight& w) { return w<0?-w:w; }
+Weight MinisatID::posInfinity() { return Weight(true); }
+Weight MinisatID::negInfinity() { return Weight(false); }
+#else
+Weight MinisatID::posInfinity() { return intlim::max(); }
+Weight MinisatID::negInfinity() { return intlim::min(); }
+#endif
+
+#ifdef GMP
 	string MinisatID::toString(const Weight& w){
 		return w.get_str();
 	}
@@ -83,6 +104,35 @@ double MinisatID::cpuTime(void) {
 		return s;
 	}
 #endif
+
+///////
+// Options for the solvers and their defaults!
+///////
+
+SolverOption::SolverOption():
+	format(FORMAT_FODOT),
+	verbosity(1),
+	nbmodels(1),
+	printcnfgraph(false),
+	defsem(DEF_WELLF),
+	ufs_strategy(breadth_first),
+	defn_strategy(always),
+	defn_search(include_cs),
+	idclausesaving(0),
+	aggclausesaving(2),
+	selectOneFromUFS(false),
+	pbsolver(false),
+	watchedagg(false),
+	primesfile(""),
+	remap(true),
+	rand_var_freq(getDefaultRandfreq()),
+	var_decay(getDefaultDecay()),
+	polarity(getDefaultPolarity()),
+	bumpaggonnotify(true),
+	bumpidonstart(false),
+	subsetminimizeexplanation(false),
+	asapaggprop(false),
+	ufsvarintrothreshold(500){}
 
 void SolverOption::print(){
 	cerr << "format: " <<format <<endl;

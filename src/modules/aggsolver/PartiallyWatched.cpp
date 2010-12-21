@@ -22,7 +22,7 @@ void Aggrs::printWatches(int verbosity, AggSolver* const solver, const vvpw& tem
 					found = true;
 				}
 				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(tempwatches[i][j]);
-				if(watch2!=NULL && watch2->getWatchset()!=INSET){
+				if(watch2!=NULL && watch2->isWatched()){
 					found = true;
 				}
 			}
@@ -41,7 +41,7 @@ void Aggrs::printWatches(int verbosity, AggSolver* const solver, const vvpw& tem
 					print(verbosity, *tempwatches[i][j]->getSet()->getAgg()[k], true);
 				}
 				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(tempwatches[i][j]);
-				if(watch2!=NULL && watch2->getWatchset()!=INSET){
+				if(watch2!=NULL && watch2->isWatched()){
 					report("        ");
 					print(verbosity, *tempwatches[i][j]->getSet()->getAgg()[k], true);
 				}
@@ -249,12 +249,12 @@ bool CardPWAgg::initializeNF() {
 	vptw& set = getSet(NF);
 	for (int i = 0; i < (int)set.size(); i++) {
 		const WL& wl = set[i]->getWL();
-		if (Weight(nf.size()) < agg.getCertainBound() && value(wl.getLit()) != l_False) {
+		if (Weight((int)nf.size()) < agg.getCertainBound() && value(wl.getLit()) != l_False) {
 			addToWatchedSet(NF, i);
 			i--;
 		}
 	}
-	return Weight(nf.size()) >= agg.getCertainBound();
+	return Weight((int)nf.size()) >= agg.getCertainBound();
 }
 
 bool CardPWAgg::initializeNT() {
@@ -262,12 +262,12 @@ bool CardPWAgg::initializeNT() {
 	vptw& set = getSet(NT);
 	for (int i = 0; i < (int)set.size(); i++) {
 		const WL& wl = set[i]->getWL();
-		if (Weight(nt.size()) <= Weight(getSetp()->getWL().size()) - agg.getCertainBound() && value(wl.getLit()) != l_False) {
+		if (Weight((int)nt.size()) <= Weight((int)getSetp()->getWL().size()) - agg.getCertainBound() && value(wl.getLit()) != l_False) {
 			addToWatchedSet(NT, i);
 			i--;
 		}
 	}
-	return Weight(nt.size()) > Weight(getSetp()->getWL().size()) - agg.getCertainBound();
+	return Weight((int)nt.size()) > Weight((int)getSetp()->getWL().size()) - agg.getCertainBound();
 }
 
 bool CardPWAgg::initializeNTL() {
@@ -275,12 +275,12 @@ bool CardPWAgg::initializeNTL() {
 	vptw& set = getSet(NT);
 	for (int i = 0; i < (int)set.size(); i++) {
 		const WL& wl = set[i]->getWL();
-		if (Weight(nt.size()) <= agg.getCertainBound() && value(wl.getLit()) != l_False) {
+		if (Weight((int)nt.size()) <= agg.getCertainBound() && value(wl.getLit()) != l_False) {
 			addToWatchedSet(NT, i);
 			i--;
 		}
 	}
-	return Weight(nt.size()) > agg.getCertainBound();
+	return Weight((int)nt.size()) > agg.getCertainBound();
 }
 
 bool CardPWAgg::initializeNFL() {
@@ -288,12 +288,12 @@ bool CardPWAgg::initializeNFL() {
 	vptw& set = getSet(NF);
 	for (int i = 0; i < (int)set.size(); i++) {
 		const WL& wl = set[i]->getWL();
-		if (Weight(nf.size()) < Weight(getSetp()->getWL().size()) - agg.getCertainBound() && value(wl.getLit()) != l_False) {
+		if (Weight((int)nf.size()) < Weight((int)getSetp()->getWL().size()) - agg.getCertainBound() && value(wl.getLit()) != l_False) {
 			addToWatchedSet(NF, i);
 			i--;
 		}
 	}
-	return Weight(nf.size()) >= Weight(getSetp()->getWL().size()) - agg.getCertainBound();
+	return Weight((int)nf.size()) >= Weight((int)getSetp()->getWL().size()) - agg.getCertainBound();
 }
 
 bool CardPWAgg::initializeEX(WATCHSET w) {

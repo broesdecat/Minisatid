@@ -165,7 +165,7 @@ int Read::addConstraintRule(istream &f) {
 		return 1;
 	}
 
-	cardrules.push_back(new CardRule(setcount, head, body, atleast));
+	cardrules.push_back(new CardRule(setcount, head, body, Weight(atleast)));
 	setcount++;
 
 	return 0;

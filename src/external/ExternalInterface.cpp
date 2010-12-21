@@ -148,7 +148,7 @@ void WrappedLogicSolver::addModel(const vec<Lit>& model, Solution* sol){
 		}
 
 		if(verbosity()>=1){
-			report("| %4d model%s found                                                           |\n",
+			report("> %4d model%s found\n",
 					sol->getNbModelsFound(), sol->getNbModelsFound() > 1 ? "s" : " ");
 		}
 

@@ -56,14 +56,13 @@ void Aggrs::print(int verbosity, const Agg& ae, bool endl) {
 	if (ae.hasUB()) {
 		report(" %s ", ae.isDefined()?"<-":"<=>");
 	} else {
-		report(" %s %s <= ", ae.isDefined()?"<-":"<=>", toString(ae.getBound()).c_str());
+		report(" %s %s <= ", ae.isDefined()?"<-":"<=>", toString(ae.getCertainBound()).c_str());
 	}
 	report("%s{", ae.getType()==MAX?"MAX":ae.getType()==MIN?"MIN":ae.getType()==SUM?"SUM":ae.getType()==CARD?"CARD":"PROD");
 	print(verbosity, *set, false);
-	report(", ESV = %s", toString(set->getKnownBound()).c_str());
 	report("}");
 	if (ae.hasUB()) {
-		report(" <= %s", toString(ae.getBound()).c_str());
+		report(" <= %s", toString(ae.getCertainBound()).c_str());
 	}
 	report(".");
 	if(endl){

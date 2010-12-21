@@ -1,5 +1,3 @@
-#include <limits>
-
 #include "modules/aggsolver/AggProp.hpp"
 #include "modules/aggsolver/AggPrint.hpp"
 #include "modules/aggsolver/AggUtils.hpp"
@@ -18,8 +16,6 @@ using namespace tr1;
 using namespace MinisatID;
 using namespace Aggrs;
 
-typedef numeric_limits<int> intlim;
-
 const Weight	Agg::getCertainBound() const {
 	return bound.bound-getSet()->getKnownBound();
 }
@@ -29,26 +25,26 @@ shared_ptr<AggProp> AggProp::sum = shared_ptr<AggProp> (new SumProp());
 shared_ptr<AggProp> AggProp::card = shared_ptr<AggProp> (new CardProp());
 shared_ptr<AggProp> AggProp::prod = shared_ptr<AggProp> (new ProdProp());
 
-bool MaxProp::isMonotone(const Agg& agg, const WL& l, bool ub) const {
-	const Weight& w = ub?agg.getBound():agg.getBound();
-	return (ub && l.getWeight() <= w) || (!ub);
+bool MaxProp::isMonotone(const Agg& agg, const WL& l) const {
+	const Weight& w = agg.getCertainBound();
+	return (agg.hasUB() && l.getWeight() <= w) || (!agg.hasUB());
 }
 
-bool SumProp::isMonotone(const Agg& agg, const WL& l, bool ub) const {
-	return (ub && l.getWeight() < 0) || (!ub && l.getWeight() > 0);
+bool SumProp::isMonotone(const Agg& agg, const WL& l) const {
+	return (agg.hasUB() && l.getWeight() < 0) || (!agg.hasUB() && l.getWeight() > 0);
 }
 
-bool ProdProp::isMonotone(const Agg& agg, const WL& l, bool ub) const {
+bool ProdProp::isMonotone(const Agg& agg, const WL& l) const {
 	assert(l.getWeight() == 0 || l.getWeight() >= 1);
-	return !ub;
+	return !agg.hasUB();
 }
 
 Weight SumProp::add(const Weight& lhs, const Weight& rhs) const {
-#ifdef INTWEIGHT
-	if (lhs > 0 && rhs > 0 && intlim::max() - lhs < rhs) {
-		return intlim::max();
-	} else if (lhs < 0 && rhs < 0 && intlim::min() - lhs > rhs) {
-		return intlim::min();
+#ifdef NOARBITPREC
+	if (lhs > 0 && rhs > 0 && posInfinity() - lhs < rhs) {
+		return posInfinity();
+	} else if (lhs < 0 && rhs < 0 && negInfinity() - lhs > rhs) {
+		return negInfinity();
 	}
 #endif
 	return lhs + rhs;
@@ -59,7 +55,7 @@ Weight SumProp::remove(const Weight& lhs, const Weight& rhs) const {
 }
 
 Weight SumProp::getBestPossible(TypedSet* set) const {
-	Weight max = set->getKnownBound();
+	Weight max = set->getType().getESV();
 	for (vwl::const_iterator j = set->getWL().begin(); j < set->getWL().end(); j++) {
 		max = this->add(max, (*j).getWeight());
 	}
@@ -111,7 +107,7 @@ WL MaxProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* s
 ///////
 
 Weight ProdProp::getBestPossible(TypedSet* set) const {
-	Weight max = set->getKnownBound();
+	Weight max = set->getType().getESV();
 	for(vwl::const_iterator j = set->getWL().begin(); j<set->getWL().end(); j++){
 		max = this->add(max, (*j).getWeight());
 	}
@@ -120,7 +116,7 @@ Weight ProdProp::getBestPossible(TypedSet* set) const {
 
 Weight ProdProp::add(const Weight& lhs, const Weight& rhs) const {
 	assert(lhs!=0 && rhs!=0);
-#ifdef INTWEIGHT
+#ifdef NOARBITPREC
 	bool sign = false;
 	Weight l = lhs, r = rhs;
 	if(l<0){
@@ -131,8 +127,8 @@ Weight ProdProp::add(const Weight& lhs, const Weight& rhs) const {
 		r = -r;
 		sign = !sign;
 	}
-	if(intlim::max()/l < r){
-		return sign ? intlim::min() : intlim::max();
+	if(posInfinity()/l < r){
+		return sign ? negInfinity() : posInfinity();
 	}
 #endif
 	return lhs * rhs;
@@ -176,6 +172,13 @@ Propagator*	MaxProp::createPropagator(TypedSet* set, bool pw) const{
 }
 
 Propagator*	SumProp::createPropagator(TypedSet* set, bool pw) const{
+	if(pw){
+		if(getType()==CARD){
+			return new CardGenPWAgg(set);
+		}else{
+			return new SumGenPWAgg(set);
+		}
+	}
 	//if(pw && getType()==CARD){
 		//FIXME: CURRENTLY WORKS INCORRECTLY:
 		//one issue with propagated value instead of value
@@ -188,6 +191,9 @@ Propagator*	SumProp::createPropagator(TypedSet* set, bool pw) const{
 }
 
 Propagator*	ProdProp::createPropagator(TypedSet* set, bool pw) const{
+	if(pw){
+		return new GenPWAgg(set);
+	}
 	return new ProdFWAgg(set);
 }
 
@@ -251,7 +257,7 @@ bool MaxProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, 
 
 	if (justified && agg.hasUB()) {
 		justified = false;
-		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() > agg.getBound(); i++) {
+		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() > agg.getCertainBound(); i++) {
 			if (oppositeIsJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push(~(*i).getLit()); //push negative literal, because it should become false
 			} else if (real || currentjust[var((*i).getLit())] != 0) {
@@ -265,7 +271,7 @@ bool MaxProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, 
 
 	if(justified && agg.hasLB()){
 		justified = false;
-		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() >= agg.getBound(); i++) {
+		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() >= agg.getCertainBound(); i++) {
 			if (isJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push((*i).getLit());
 				justified = true;
@@ -304,7 +310,7 @@ bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, V
 			if (oppositeIsJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push(~(*i).getLit());
 				bestpossible = type.remove(bestpossible, (*i).getWeight());
-				if (bestpossible <= agg.getBound()) {
+				if (bestpossible <= agg.getCertainBound()) {
 					justified = true;
 				}
 			} else if (real || currentjust[var((*i).getLit())] != 0) {
@@ -314,12 +320,12 @@ bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, V
 	}
 	if(justified && agg.hasLB()){
 		justified = false;
-		Weight bestcertain = set->getKnownBound();
+		Weight bestcertain = set->getType().getESV();
 		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
 			if (isJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push((*i).getLit());
 				bestcertain = type.add(bestcertain, (*i).getWeight());
-				if (bestcertain >= agg.getBound()) {
+				if (bestcertain >= agg.getCertainBound()) {
 					justified = true;
 				}
 			} else if (real || currentjust[var((*i).getLit())] != 0) {

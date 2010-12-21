@@ -130,8 +130,8 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 
 	vector<WL> lw;
 	for (vsize i = 0; i < lits.size(); i++) {
-#ifdef INTWEIGHT
-		if(weights[i] == INT_MAX || weights[i] == INT_MIN){
+#ifdef NOARBITPREC
+		if(weights[i] == posInfinity() || weights[i] == negInfinity()){
 			throw idpexception(
 					"Weights equal to or larger than the largest integer number "
 					"are not allowed in limited precision.\n");
@@ -318,13 +318,15 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 
 	//Print lots of information
 	if (verbosity() >= 1) {
-		report("| Number of minimum exprs.:     %4d                                          |\n", nbaggs[MIN]);
-		report("| Number of maximum exprs.:     %4d                                          |\n", nbaggs[MAX]);
-		report("| Number of sum exprs.:         %4d                                          |\n", nbaggs[SUM]);
-		report("| Number of product exprs.:     %4d                                          |\n", nbaggs[PROD]);
-		report("| Number of cardinality exprs.: %4d                                          |\n", nbaggs[CARD]);
+		report("> Number of aggregates: %d aggregates over %4zu sets.\n", totalagg, sets().size());
+	}else if (verbosity() >= 2) {
+		report("> Number of minimum exprs.:     %4d.\n", nbaggs[MIN]);
+		report("> Number of maximum exprs.:     %4d.\n", nbaggs[MAX]);
+		report("> Number of sum exprs.:         %4d.\n", nbaggs[SUM]);
+		report("> Number of product exprs.:     %4d.\n", nbaggs[PROD]);
+		report("> Number of cardinality exprs.: %4d.\n", nbaggs[CARD]);
 
-		report("| Over %4zu sets, aggregate set avg. size: %7.2f lits.                      |\n",
+		report("> Over %4zu sets, aggregate set avg. size: %7.2f lits.\n",
 				sets().size(),(double)setlits/(double)(sets().size()));
 	}
 

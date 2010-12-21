@@ -12,7 +12,6 @@
 #include <iostream>
 
 #include <tclap/CmdLine.h>
-#include "satsolver/SATUtils.hpp"
 #include "external/ExternalUtils.hpp"
 #include "parser/ResourceManager.hpp"
 #include "utils/Utils.hpp"
@@ -50,8 +49,8 @@ struct NoValsOption: public Opt{
 	TCLAP::ValueArg<T>* arg;
 	T& modesarg;
 
-	NoValsOption(const string &s, const string &l, const string &m, const T& def, const string& type, T& modesarg, TCLAP::CmdLine& cmd):
-		shortopt(s), longopt(l), mess(m), defaultval(def), modesarg(modesarg){
+	NoValsOption(const string &s, const string &l, const string& type, T& modesarg, TCLAP::CmdLine& cmd, const string &m):
+		shortopt(s), longopt(l), mess(m), defaultval(modesarg), modesarg(modesarg){
 
 		arg = new TCLAP::ValueArg<T>(shortopt,longopt, mess, false, defaultval, type, cmd);
 	};
@@ -78,8 +77,8 @@ struct Option: public Opt{
 	TCLAP::ValueArg<T2>* arg;
 	T& modesarg;
 
-	Option(const string &s, const string &l, const string &m, const T& def, const vector<T>& vals, const vector<pair<T2, string> >& desc, T& modesarg, TCLAP::CmdLine& cmd):
-		shortopt(s), longopt(l), mess(m), defaultval(def), vals(vals), desc(desc), modesarg(modesarg){
+	Option(const string &s, const string &l, const vector<T>& vals, const vector<pair<T2, string> >& desc, T& modesarg, TCLAP::CmdLine& cmd, const string &m):
+		shortopt(s), longopt(l), mess(m), defaultval(modesarg), vals(vals), desc(desc), modesarg(modesarg){
 		vector<T2> constrvals;
 		for(typename vector<pair<T2, string> >::const_iterator i=desc.begin(); i<desc.end(); i++){
 			constrvals.push_back((*i).first);
@@ -128,7 +127,7 @@ struct Option: public Opt{
 
 //Return false if parsing failed
 bool MinisatID::parseOptions(int argc, char** argv){
-	string outputfile;
+	string outputfile = "";
 
 	vector<Opt*> options;
 
@@ -169,6 +168,10 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	pbsolverdesc.push_back(pair<string, string>("yes", "Use pbsolver"));
 	pbsolverdesc.push_back(pair<string, string>("no", "Don't use pbsolver"));
 
+	vector<pair<string, string> > watcheddesc;
+	watcheddesc.push_back(pair<string, string>("yes", "Use smart watches"));
+	watcheddesc.push_back(pair<string, string>("no", "Use full watches"));
+
 	vector<POLARITY> polvals;
 	vector<pair<string, string> > poldesc;
 	polvals.push_back(POL_TRUE); poldesc.push_back(pair<string, string>("true", "true-first"));
@@ -203,35 +206,50 @@ bool MinisatID::parseOptions(int argc, char** argv){
 
 	TCLAP::UnlabeledValueArg<string> inputfilearg("inputfile", "The file which contains the input theory. If not provided, the standard-in stream is assumed as input.", false, "", "inputfile", cmd);
 
-	options.push_back(new NoValsOption<int>("n","nbmodels", "The number of models to search for.", 1,"int", modes.nbmodels, cmd));
-	options.push_back(new NoValsOption<int>("","verbosity", "The level of output to generate.", 1,"int", modes.verbosity, cmd));
-	options.push_back(new NoValsOption<long>("","ufsvarintro","Threshold (compared with ufssize*loopfsize) above which an extra variable is introduced when an unfounded set is found.", 500,"long", modes.ufsvarintrothreshold, cmd));
-	options.push_back(new NoValsOption<double>("","rnd-freq","The frequency with which to make a random choice (between 0 and 1).", getDefaultRandfreq(),"double", modes.rand_var_freq, cmd));
-	options.push_back(new NoValsOption<double>("","decay","The decay of variable activities within the SAT-solver (larger than or equal to 0).", getDefaultDecay(),"double", modes.var_decay, cmd));
-	options.push_back(new NoValsOption<string>("o","outputfile","The outputfile to use to write out models.", "","file", outputfile, cmd));
-	options.push_back(new NoValsOption<string>("","primesfile","File containing a list of prime numbers to use for finding optimal bases. Has to be provided if using pbsolver.", "","file", modes.primesfile, cmd));
-	options.push_back(new Option<INPUTFORMAT, string>("f", "format", "The format of the input theory", FORMAT_FODOT, formatvals, formatdesc, modes.format, cmd));
-	options.push_back(new Option<bool, string>("", "ecnfgraph", "Choose whether to generate a .dot graph representation of the ecnf", false, yesnovals, ecnfgraphdesc, modes.printcnfgraph, cmd));
-	options.push_back(new Option<bool, string>("r", "remap", "Choose whether to remap literals from the input structure to a contiguous internal representation", true, yesnovals, remapdesc, modes.remap, cmd));
-	options.push_back(new Option<bool, string>("","bumpagg","Choose whether to bump variable activity on aggregate propagation", true, yesnovals, bumpaggonnotifydesc, modes.bumpaggonnotify, cmd));
-	options.push_back(new Option<bool, string>("","bumpid", "Choose whether to bump variable activity on ID initialization", true, yesnovals, bumpidonstartdesc, modes.bumpidonstart, cmd));
-	options.push_back(new Option<bool, string>("","minimexplan", "Choose whether to minimize aggregate explanations", false, yesnovals, subsetminimdesc, modes.subsetminimizeexplanation, cmd));
-	options.push_back(new Option<bool, string>("","asapaggprop", "Choose whether to propagate aggregates as fast as possible", false, yesnovals, asapaggpropdesc, modes.asapaggprop, cmd));
-	options.push_back(new Option<bool, string>("","pbsolver","Choose whether to translate pseudo-boolean constraints to SAT", false, yesnovals, pbsolverdesc, modes.pbsolver, cmd));
+	options.push_back(new NoValsOption<int>		("n","nbmodels", 	"int",
+			modes.nbmodels, cmd, "The number of models to search for."));
+	options.push_back(new NoValsOption<int>		("","verbosity", 	"int",
+			modes.verbosity, cmd, "The level of output to generate."));
+	options.push_back(new NoValsOption<long>	("","ufsvarintro", 	"long",
+			modes.ufsvarintrothreshold, cmd,"Threshold (compared with ufssize*loopfsize) above which an extra variable is introduced when an unfounded set is found."));
+	options.push_back(new NoValsOption<double>	("","rnd-freq", 	"double",
+			modes.rand_var_freq, cmd,"The frequency with which to make a random choice (between 0 and 1)."));
+	options.push_back(new NoValsOption<double>	("","decay", 		"double",
+			modes.var_decay, cmd, "The decay of variable activities within the SAT-solver (larger than or equal to 0)."));
+	options.push_back(new NoValsOption<string>	("o","outputfile", 	"file",
+			outputfile, cmd,"The outputfile to use to write out models."));
+	options.push_back(new NoValsOption<string>	("","primesfile", 	"file",
+			modes.primesfile, cmd,"File containing a list of prime numbers to use for finding optimal bases. Has to be provided if using pbsolver."));
+	options.push_back(new Option<INPUTFORMAT, string>("f", "format", formatvals, formatdesc,
+			modes.format, cmd, "The format of the input theory"));
+	options.push_back(new Option<bool, string>	("", "ecnfgraph", 	yesnovals, ecnfgraphdesc,
+			modes.printcnfgraph, cmd, "Choose whether to generate a .dot graph representation of the ecnf"));
+	options.push_back(new Option<bool, string>	("r", "remap", 		yesnovals, remapdesc,
+			modes.remap, cmd, "Choose whether to remap literals from the input structure to a contiguous internal representation"));
+	options.push_back(new Option<bool, string>	("","bumpagg", 		yesnovals, bumpaggonnotifydesc,
+			modes.bumpaggonnotify, cmd,"Choose whether to bump variable activity on aggregate propagation"));
+	options.push_back(new Option<bool, string>	("","bumpid", 		yesnovals, bumpidonstartdesc,
+			modes.bumpidonstart, cmd, "Choose whether to bump variable activity on ID initialization"));
+	options.push_back(new Option<bool, string>	("","minimexplan", 	yesnovals, subsetminimdesc,
+			modes.subsetminimizeexplanation, cmd, "Choose whether to minimize aggregate explanations"));
+	options.push_back(new Option<bool, string>	("","asapaggprop", 	yesnovals, asapaggpropdesc,
+			modes.asapaggprop, cmd, "Choose whether to propagate aggregates as fast as possible"));
+	options.push_back(new Option<bool, string>	("","pbsolver", 	yesnovals, pbsolverdesc,
+			modes.pbsolver, cmd,"Choose whether to translate pseudo-boolean constraints to SAT"));
+	options.push_back(new Option<bool, string>	("w","watchedagg", 	yesnovals, watcheddesc,
+			modes.watchedagg, cmd, "Choose whether to use watched-literal datastructures to handle aggregate propagation"));
 #ifndef USEMINISAT22
-	options.push_back(new Option<POLARITY, string>("","polarity", "The default truth value choice of variables", getDefaultPolarity(), polvals, poldesc, modes.polarity, cmd));
+	options.push_back(new Option<POLARITY, string>("","polarity", 	polvals, poldesc,
+			modes.polarity, cmd, "The default truth value choice of variables"));
 #endif
-	options.push_back(new Option<int, int>("","aggsaving", "How to handle propagation reasons within Agg solver", 2, aggsavingvals, aggsavingdesc, modes.aggclausesaving, cmd));
-	options.push_back(new Option<DEFFINDCS, string>("","defsearch","Choose the unfounded-set search-frequency", always, defsearchvals, defsearchdesc, modes.defn_strategy, cmd));
-	options.push_back(new Option<DEFSEM, string>("","defsem","Choose the semantics of the inductive definitions", DEF_WELLF, defsemvals, defsemdesc, modes.defsem, cmd));
-	options.push_back(new Option<int, int>("","idsaving", "Choose how to handle propagation reasons within ID solver", 0, idsavingvals, idsavingdesc, modes.idclausesaving, cmd));
-
-	modes.ufs_strategy = breadth_first;
-	modes.defn_search = include_cs;
-	modes.selectOneFromUFS = false;
-	modes.watchedagg = false;
-	//TCLAP::ValueArg<string> 		watcharg("w","watchedagg",
-	//		"Use | don't use watched-literal datastructures to handle aggregate propagation", false, "no", &getYesNoConstraint(), cmd);
+	options.push_back(new Option<int, int>("","aggsaving", 			aggsavingvals, aggsavingdesc,
+			modes.aggclausesaving, cmd, "How to handle propagation reasons for aggregates"));
+	options.push_back(new Option<DEFFINDCS, string>("","defsearch", defsearchvals, defsearchdesc,
+			modes.defn_strategy, cmd,"Choose the unfounded-set search-frequency"));
+	options.push_back(new Option<DEFSEM, string>("","defsem", 		defsemvals, defsemdesc,
+			modes.defsem, cmd,"Choose the semantics of the inductive definitions"));
+	options.push_back(new Option<int, int>("","idsaving", 			idsavingvals, idsavingdesc,
+			modes.idclausesaving, cmd, "Choose how to handle propagation reasons for inductive definitions"));
 
 	try {
 		cmd.parse(argc, argv);
