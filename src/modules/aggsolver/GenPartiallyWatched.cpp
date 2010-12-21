@@ -12,6 +12,36 @@ using namespace std;
 using namespace MinisatID;
 using namespace MinisatID::Aggrs;
 
+void Aggrs::printWatches(int verbosity, AggSolver* const solver, const vvpw& tempwatches){
+	for(vsize i=0; i<2*solver->nVars(); i++){
+		bool found = false;
+		for(vsize j=0; !found && j<tempwatches[i].size(); j++){
+			for(vsize k=0; !found && k<tempwatches[i][j]->getSet()->getAgg().size(); k++){
+				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(tempwatches[i][j]);
+				if(watch2!=NULL && watch2->isWatched()){
+					found = true;
+				}
+			}
+		}
+
+		if(!found){
+			continue;
+		}
+
+		report("    Watch "); gprintLit(toLit(i)); report(" used by: \n");
+		for(vsize j=0; j<tempwatches[i].size(); j++){
+			for(vsize k=0; k<tempwatches[i][j]->getSet()->getAgg().size(); k++){
+				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(tempwatches[i][j]);
+				if(watch2!=NULL && watch2->isWatched()){
+					report("        ");
+					print(verbosity, *tempwatches[i][j]->getSet()->getAgg()[k], true);
+				}
+			}
+		}
+	}
+	report("\n");
+}
+
 /*
  * index is the index in the original set, from which it should be removed
  * w indicates the set to which it should be added
@@ -81,6 +111,7 @@ void GenPWAgg::addWatchesToNetwork(){
  * Set has at least one aggregate
  * All aggregates have the same sign and implication instead of equivalence, head can be negative!
  */
+PWAgg::PWAgg				(TypedSet* set): Propagator(set) {}
 GenPWAgg::GenPWAgg			(TypedSet* set): PWAgg(set), genmin(Weight(0)), genmax(Weight(0)){}
 CardGenPWAgg::CardGenPWAgg	(TypedSet* set):GenPWAgg(set){}
 SumGenPWAgg::SumGenPWAgg	(TypedSet* set):GenPWAgg(set){}
@@ -104,11 +135,16 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 	//Create sets and watches, initialize min/max values
 	genmin = set.getType().getESV();
 	genmax = set.getType().getESV();
+	Weight temp(0);
 	for(vsize i=0; i<wls.size(); i++){
 		const WL& wl = wls[i];
 		bool mono = set.getType().isMonotone(*aggs[0], wl);
 		nws.push_back(new GenPWatch(setp, wl, mono));
-		addValue(wl.getWeight(), mono, genmin, genmax);
+		if(wl.getWeight()<0){
+			genmin = set.getType().add(genmin, wl.getWeight());
+		}else{
+			genmax = set.getType().add(genmax, wl.getWeight());
+		}
 	}
 
 	//FIXME add propagation HEAD2 => HEAD: VERY USEFUL PROBABLY
@@ -238,7 +274,7 @@ rClause GenPWAgg::reconstructSet(pgpw watch, bool& propagations){
 		const WL& wl = (*i)->getWL();
 		lbool val = value(wl.getLit());
 		if(val==l_Undef){ //Only have to check propagation for those watches which are unknown
-			if(largest->getWL().getWeight() < wl.getWeight()){
+			if(largest==NULL || largest->getWL().getWeight() < wl.getWeight()){
 				largest = (*i);
 			}
 		}
@@ -265,7 +301,7 @@ rClause GenPWAgg::reconstructSet(pgpw watch, bool& propagations){
 		}
 
 		if(val!=l_False){ //Add to watches
-			if(largest->getWL().getWeight() < wl.getWeight()){
+			if(largest==NULL || largest->getWL().getWeight() < wl.getWeight()){
 				largest = getNWS()[i];
 			}
 			addToWatchedSet(i);

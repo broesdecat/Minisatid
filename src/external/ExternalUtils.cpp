@@ -31,7 +31,7 @@
 using namespace std;
 using namespace MinisatID;
 
-typedef numeric_limits<int> intlim;
+typedef numeric_limits<long> lim;
 
 ///////
 // Measuring cpu time and memory management
@@ -89,8 +89,8 @@ Weight MinisatID::abs(const Weight& w) { return w<0?-w:w; }
 Weight MinisatID::posInfinity() { return Weight(true); }
 Weight MinisatID::negInfinity() { return Weight(false); }
 #else
-Weight MinisatID::posInfinity() { return intlim::max(); }
-Weight MinisatID::negInfinity() { return intlim::min(); }
+Weight MinisatID::posInfinity() { return lim::max(); }
+Weight MinisatID::negInfinity() { return lim::min(); }
 #endif
 
 #ifdef GMP

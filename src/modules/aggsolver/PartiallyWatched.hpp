@@ -31,85 +31,12 @@ namespace Aggrs{
 ///////
 namespace Aggrs{
 
-enum WATCHSET { NF, NFEX, NT, NTEX, INSET };
-
-class PWatch: public Watch{
-private:
-	mutable WATCHSET w;
-	mutable bool	inuse;
-	int 			index;
-public:
-	PWatch(TypedSet* set, const WL& wl, int index, WATCHSET w): Watch(set, wl), w(w), inuse(false), index(index){
-
-	}
-
-	int getIndex() const { return index; }
-	void setIndex(int c) { index = c; }
-
-	WATCHSET getWatchset() const { return w; }
-	void	setWatchset(WATCHSET w2) const { w = w2; }
-	bool	isInUse() const { return inuse; }
-	void	setInUse(bool used) const { inuse = used; }
-
-	const Lit& getLit() const { return getWL().getLit(); }
-	const Weight& getWeight() const { return getWL().getWeight(); }
-};
-
-typedef PWatch tw;
-typedef tw* ptw;
-typedef std::vector<ptw> vptw;
-
 class PWAgg: public Propagator {
 public:
 	PWAgg(TypedSet* set);
 	virtual ~PWAgg(){};
 
 	virtual void 	backtrack		(const Watch& w) {}
-};
-
-class CardPWAgg: public PWAgg{
-private:
-	vptw nf, nfex, setf; //setf contains all monotone versions of set literals
-	vptw nt, ntex, sett; //sett contains all anti-monotone versions of set literals
-	lbool headvalue;
-	int headproplevel;
-	bool headpropagatedhere;
-
-	std::vector<int> startsetf, startsett; //std::vector mapping decision levels to indices where to start looking for replacement watches
-
-public:
-	CardPWAgg(TypedSet* agg);
-	virtual ~CardPWAgg();
-
-	virtual rClause 	propagate		(const Lit& p, Watch* w, int level);
-	virtual rClause 	propagate		(int level, const Agg& agg, bool headtrue);
-	virtual rClause		propagateAtEndOfQueue(int level){ return nullPtrClause; };
-	virtual void		backtrack		(int nblevels, int untillevel);
-    virtual void 		getExplanation	(vec<Lit>& lits, const AggReason& ar);
-
-	virtual void 		initialize			(bool& unsat, bool& sat);
-
-private:
-
-	bool initializeNF();
-	bool initializeNT();
-	bool initializeNFL();
-	bool initializeNTL();
-	bool initializeEX(WATCHSET w);
-
-	void addWatchesToSolver(WATCHSET w);
-	void addWatchToSolver(WATCHSET w, const vptw& set, vsize index);
-
-	void addToWatchedSet(WATCHSET w, vsize setindex);
-	void removeWatches(WATCHSET w);
-
-	bool replace(vsize index, WATCHSET w, const Lit& p);
-
-	vptw& getSet(WATCHSET w);
-	vptw& getWatches(WATCHSET w);
-	bool checking(WATCHSET w) const;
-	bool isEX(WATCHSET w) const { return w==NFEX || w==NTEX; }
-	bool isF(WATCHSET w) const { return w==NF || w==NFEX; }
 };
 
 //BASEDONCC: propagated because of too many monotone false / am true literals

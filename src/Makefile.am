@@ -22,7 +22,7 @@ minisatid_SOURCES = \
 		theorysolvers/PCSolver.cpp theorysolvers/SOSolver.cpp\
 		modules/DPLLTmodule.cpp modules/IDSolver.cpp modules/AggSolver.cpp modules/ModSolver.cpp\
 		modules/aggsolver/AggTransform.cpp modules/aggsolver/AggUtils.cpp modules/aggsolver/AggPrint.cpp\
-		modules/aggsolver/FullyWatched.cpp modules/aggsolver/PartiallyWatched.cpp\
+		modules/aggsolver/FullyWatched.cpp\
 		modules/aggsolver/GenPartiallyWatched.cpp\
 		modules/aggsolver/AggProp.cpp\
 		external/ExternalInterface.cpp external/ExternalUtils.cpp\
@@ -30,7 +30,7 @@ minisatid_SOURCES = \
 		parser/ResourceManager.cpp parser/Lparseread.cpp parser/PBread.cpp parser/ParseOptions.cpp\
 		Unittests.cpp
 
-include_HEADERS = \ 
+include_HEADERS = \
 		satsolver/SATSolver.hpp satsolver/SATUtils.hpp\
 		modules/DPLLTmodule.hpp modules/IDSolver.hpp modules/AggSolver.hpp modules/ModSolver.hpp\
 		modules/aggsolver/AggTransform.hpp modules/aggsolver/AggUtils.hpp\
@@ -40,7 +40,7 @@ include_HEADERS = \
 		theorysolvers/LogicSolver.hpp theorysolvers/PCSolver.hpp theorysolvers/SOSolver.hpp\
 		external/ExternalInterface.hpp external/ExternalUtils.hpp\
 		utils/Print.hpp utils/Utils.hpp utils/PrintMessage.hpp utils/IntTypes.h\
-		parser/ResourceManager.hpp parser/Lparseread.hpp parser/PBread.hpp\ 
+		parser/ResourceManager.hpp parser/Lparseread.hpp parser/PBread.hpp\
 		parser/ParseOptions.hpp\
 		tclap/CmdLine.h\
 		Unittests.hpp

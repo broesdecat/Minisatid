@@ -150,13 +150,17 @@ void MapToSetOneToOneWithAggImpl::transform(AggSolver* solver, TypedSet* set, vp
 
 	assert(set->getAgg().size()==1);
 
+	if(set->getAgg()[0]->getSem()==IMPLICATION){ //FIXME add to other transformations!
+		return;
+	}
+
 	const Agg& agg = *set->getAgg()[0];
 	Agg *one, *two;
-	one = new Agg(~agg.getHead(), AggBound(agg.getSign(), agg.getBound()), agg.getSem(), agg.getType(), agg.isOptim());
+	one = new Agg(~agg.getHead(), AggBound(agg.getSign(), agg.getBound()), IMPLICATION, agg.getType(), agg.isOptim());
 
 	Weight weighttwo = agg.getSign()==AGGSIGN_LB?agg.getBound()-1:agg.getBound()+1;
 	AggSign signtwo = agg.getSign()==AGGSIGN_LB?AGGSIGN_UB:AGGSIGN_LB;
-	two = new Agg(agg.getHead(), AggBound(signtwo, weighttwo), agg.getSem(), agg.getType(), agg.isOptim());
+	two = new Agg(agg.getHead(), AggBound(signtwo, weighttwo), IMPLICATION, agg.getType(), agg.isOptim());
 
 	delete set->getAgg()[0];
 
