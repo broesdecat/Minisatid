@@ -106,6 +106,10 @@ private:
 	int 											propstart;
 	bool 											noprops;
 
+	std::vector<int>								mapdecleveltotrail;
+	std::vector<Lit>								fulltrail;
+	std::vector<lbool>								propagated;
+
 public:
 	AggSolver(pPCSolver s);
 	virtual ~AggSolver();
@@ -214,6 +218,16 @@ public:
 
 	void				addToPropTrail				(Aggrs::TypedSet* set) { proptrail.push_back(set); }
 	void				addToBackTrail				(Aggrs::TypedSet* set) { backtrail.back().push_back(set); }
+
+	lbool				propagatedValue			(const Lit& l) {
+		assert(value(l)!=l_Undef || propagated[var(l)]==l_Undef);
+		if(sign(l)){
+			lbool v = propagated[var(l)];
+			return v==l_Undef?l_Undef:v==l_True?l_False:l_True;
+		}else{
+			return propagated[var(l)];
+		}
+	}
 
 protected:
 	mips&				parsedSets				() { return _parsedSets; }

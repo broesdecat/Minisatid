@@ -175,7 +175,8 @@ public:
     TypedSet*			getSetp()	const 	{ return set; }
 
     AggSolver*			getSolver() const { return aggsolver; }
-	lbool				value(Lit l) const;
+	lbool				value(const Lit& l) const;
+	lbool				propagatedValue(const Lit& l) const;
 };
 
 class TypedSet{

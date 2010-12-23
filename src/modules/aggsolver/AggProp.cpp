@@ -242,8 +242,12 @@ void Propagator::initialize(bool& unsat, bool& sat) {
 	}
 }
 
-lbool Propagator::value(Lit l) const {
+lbool Propagator::value(const Lit& l) const {
 	return getSolver()->value(l);
+}
+
+lbool Propagator::propagatedValue(const Lit& l) const {
+	return getSolver()->propagatedValue(l);
 }
 
 /************************

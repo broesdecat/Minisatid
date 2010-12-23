@@ -606,8 +606,11 @@ bool PCSolver::solve(const vec<Lit>& assumptions, Solution* sol){
 	}
 
 	if (verbosity()>=1) {
-		if(sol->getNbModelsFound() != 0 && !moremodels && sol->getNbModelsToFind() != 1){
-			report("> There are no more models.\n");
+		report("> Found %d models, ", sol->getNbModelsFound());
+		if(!moremodels){
+			report("no more models exist.\n");
+		}else{
+			report("searched for %d models.\n", sol->getNbModelsToFind());
 		}
 	}
 

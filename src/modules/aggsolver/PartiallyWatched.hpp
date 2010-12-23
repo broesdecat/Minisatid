@@ -19,8 +19,8 @@ namespace Aggrs{
 
 	class Watch;
 	typedef Watch* pw;
-	typedef std::vector<pw> vpw;
-	typedef std::vector<vpw> vvpw;
+	typedef std::vector<Watch*> vpw;
+	typedef std::vector<std::vector<Watch*> > vvpw;
 
 	class PropagationInfo;
 	typedef std::vector<PropagationInfo> vprop;
@@ -78,8 +78,8 @@ public:
 	void		setInUse	(bool used) { _inuse = used; }
 	bool		isWatched	()	const	{ return !_inset; }
 
-	void		pushIntoSet(vsize index) { /*setIndex(index);*/ _inset=false; }
-	void		removedFromSet() { /*setIndex(-1);*/ _inset = true; }
+	void		pushIntoSet(vsize index) { setIndex(index); _inset=false; }
+	void		removedFromSet() { setIndex(-1); _inset = true; }
 };
 
 typedef GenPWatch* pgpw;
@@ -96,9 +96,9 @@ public:
 
 	bool isSatisfied(const Agg& agg, const Weight& min, const Weight& max) const{
 		if(agg.hasUB()){
-			return min<=agg.getCertainBound();
+			return max<=agg.getCertainBound();
 		}else{ //LB
-			return max>=agg.getCertainBound();
+			return min>=agg.getCertainBound();
 		}
 	}
 
@@ -112,7 +112,6 @@ public:
 
 	void 		addToWatchedSet(vsize index);
 	void 		removeFromWatchedSet(pgpw pw);
-	void 		removeAllFromWatchedSet();
 	void 		addWatchesToNetwork();
 	void 		addWatchToNetwork(pgpw watch);
 
@@ -138,8 +137,6 @@ public:
 	SumGenPWAgg(TypedSet* set);
 	virtual ~SumGenPWAgg(){}
 };
-
-void printWatches(int verbosity, AggSolver* const solver, const vvpw& tempwatches);
 
 }
 

@@ -142,6 +142,7 @@ void MapToSetOneToOneWithAgg::transform(AggSolver* solver, TypedSet* set, vps& s
 	assert(set->getAgg().size()==1);
 }
 
+//FIXME a new set goes through the transformations again, an adapted one does not (might yield improvement?)
 void MapToSetOneToOneWithAggImpl::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
 	//Only if using pwatches
 	if(!solver->getPCSolver()->modes().watchedagg){
@@ -198,7 +199,7 @@ bool compareAggBounds(Agg* lhs, Agg* rhs){
 }
 
 void AddHeadImplications::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
-	if(set->getAgg().size()>1){
+	if(set->getAgg().size()>1 && set->getAgg()[0]->getSem()!=IMPLICATION){
 		vpagg lbaggs, ubaggs;
 		for(vpagg::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); i++){
 			if((*i)->hasLB()){
@@ -312,7 +313,7 @@ void MinToMax::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsa
 //After type setting and transforming to max
 void MaxToSAT::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
 	//Simple heuristic to choose for encoding as SAT
-	if (set->getType().getType()!=MAX || set->getAgg().size() != 1) {
+	if (set->getType().getType()!=MAX || set->getAgg().size() != 1 || set->getAgg()[0]->getSem()==IMPLICATION) {
 		return;
 	}
 	bool notunsat = true;
@@ -376,7 +377,7 @@ void MaxToSAT::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsa
  */
 void CardToEquiv::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
 	assert(!unsat);
-	if (set->getAgg()[0]->getType() == CARD) {
+	if (set->getAgg()[0]->getType() == CARD && set->getAgg()[0]->getSem()!=IMPLICATION) {
 		vpagg remaggs;
 		for (vpagg::const_iterator i = set->getAgg().begin(); !unsat && i < set->getAgg().end(); i++) {
 			const Agg& agg = *(*i);
@@ -439,7 +440,7 @@ bool Aggrs::transformSumsToCNF(vps& sets, PCSolver* pcsolver) {
 
 			if(agg->isOptim()
 					|| (agg->getType()!=SUM && agg->getType()!=CARD)
-					|| agg->getSem() == DEF){
+					|| agg->getSem() != COMP){
 				remaining.push_back(agg);
 				continue;
 			}
