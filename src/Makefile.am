@@ -15,31 +15,35 @@ BUILT_SOURCES = parser/ecnfparser.h
 
 minisatid_LDADD = -L$(builddir)/pbsolver -lpbsolver-1.0
 
-minisatid_SOURCES = 
-minisatid_SOURCES += Main.cpp 
-minisatid_SOURCES += satsolver/SATSolver.cpp satsolver/SATUtils.cpp
-minisatid_SOURCES += parser/ecnftoken.lpp parser/ecnfparser.ypp
-minisatid_SOURCES += theorysolvers/PCSolver.cpp theorysolvers/SOSolver.cpp
-minisatid_SOURCES += modules/DPLLTmodule.cpp modules/IDSolver.cpp modules/AggSolver.cpp modules/ModSolver.cpp
-minisatid_SOURCES += modules/aggsolver/AggTransform.cpp modules/aggsolver/AggUtils.cpp modules/aggsolver/AggPrint.cpp modules/aggsolver/FullyWatched.cpp modules/aggsolver/PartiallyWatched.cpp modules/aggsolver/GenPartiallyWatched.cpp
-minisatid_SOURCES += modules/aggsolver/AggProp.cpp
-minisatid_SOURCES += external/ExternalInterface.cpp external/ExternalUtils.cpp 
-minisatid_SOURCES += utils/Print.cpp utils/Utils.cpp utils/PrintMessage.cpp 
-minisatid_SOURCES += parser/ResourceManager.cpp parser/Lparseread.cpp parser/PBread.cpp parser/ParseOptions.cpp
-minisatid_SOURCES += Unittests.cpp
+minisatid_SOURCES = \
+		Main.cpp \
+		satsolver/SATSolver.cpp satsolver/SATUtils.cpp\
+		parser/ecnftoken.lpp parser/ecnfparser.ypp\
+		theorysolvers/PCSolver.cpp theorysolvers/SOSolver.cpp\
+		modules/DPLLTmodule.cpp modules/IDSolver.cpp modules/AggSolver.cpp modules/ModSolver.cpp\
+		modules/aggsolver/AggTransform.cpp modules/aggsolver/AggUtils.cpp modules/aggsolver/AggPrint.cpp\
+		modules/aggsolver/FullyWatched.cpp\
+		modules/aggsolver/GenPartiallyWatched.cpp\
+		modules/aggsolver/AggProp.cpp\
+		external/ExternalInterface.cpp external/ExternalUtils.cpp\
+		utils/Print.cpp utils/Utils.cpp utils/PrintMessage.cpp \
+		parser/ResourceManager.cpp parser/Lparseread.cpp parser/PBread.cpp parser/ParseOptions.cpp\
+		Unittests.cpp
 
-include_HEADERS = 
-include_HEADERS += satsolver/SATSolver.hpp satsolver/SATUtils.hpp 
-include_HEADERS += modules/DPLLTmodule.hpp modules/IDSolver.hpp modules/AggSolver.hpp modules/ModSolver.hpp
-include_HEADERS += modules/aggsolver/AggTransform.hpp modules/aggsolver/AggUtils.hpp modules/aggsolver/AggPrint.hpp modules/aggsolver/FullyWatched.hpp modules/aggsolver/PartiallyWatched.hpp
-include_HEADERS += modules/aggsolver/AggProp.hpp
-include_HEADERS += theorysolvers/LogicSolver.hpp theorysolvers/PCSolver.hpp theorysolvers/SOSolver.hpp   
-include_HEADERS += external/ExternalInterface.hpp external/ExternalUtils.hpp
-include_HEADERS += utils/Print.hpp utils/Utils.hpp utils/PrintMessage.hpp utils/IntTypes.h
-include_HEADERS += parser/ResourceManager.hpp parser/Lparseread.hpp parser/PBread.hpp parser/ParseOptions.hpp 
-include_HEADERS += tclap/CmdLine.h
-include_HEADERS += Unittests.hpp 
-
+include_HEADERS = \
+		satsolver/SATSolver.hpp satsolver/SATUtils.hpp\
+		modules/DPLLTmodule.hpp modules/IDSolver.hpp modules/AggSolver.hpp modules/ModSolver.hpp\
+		modules/aggsolver/AggTransform.hpp modules/aggsolver/AggUtils.hpp\
+		modules/aggsolver/AggPrint.hpp modules/aggsolver/FullyWatched.hpp\
+		modules/aggsolver/PartiallyWatched.hpp\
+		modules/aggsolver/AggProp.hpp\
+		theorysolvers/LogicSolver.hpp theorysolvers/PCSolver.hpp theorysolvers/SOSolver.hpp\
+		external/ExternalInterface.hpp external/ExternalUtils.hpp\
+		utils/Print.hpp utils/Utils.hpp utils/PrintMessage.hpp utils/IntTypes.h\
+		parser/ResourceManager.hpp parser/Lparseread.hpp parser/PBread.hpp\
+		parser/ParseOptions.hpp\
+		tclap/CmdLine.h\
+		Unittests.hpp
 
 #PBSOLVER
 include_HEADERS += pbsolver/PbSolver.h

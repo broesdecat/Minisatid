@@ -1,6 +1,7 @@
 #include "modules/aggsolver/AggPrint.hpp"
 
 #include "modules/aggsolver/AggProp.hpp"
+#include "modules/aggsolver/PartiallyWatched.hpp"
 #include "modules/AggSolver.hpp"
 
 using namespace MinisatID;
@@ -23,6 +24,40 @@ void Aggrs::explanationGenerated(){
 
 void Aggrs::sets(){
 
+}
+
+void Aggrs::printWatches(int verbosity, AggSolver* const solver, const std::vector<std::vector<Watch*> >& tempwatches){
+	if(verbosity<8){
+		return;
+	}
+	report("Current effective watches: \n");
+	for(vsize i=0; i<2*solver->nVars(); i++){
+		bool found = false;
+		for(vsize j=0; !found && j<tempwatches[i].size(); j++){
+			for(vsize k=0; !found && k<tempwatches[i][j]->getSet()->getAgg().size(); k++){
+				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(tempwatches[i][j]);
+				if(watch2!=NULL && watch2->isWatched()){
+					found = true;
+				}
+			}
+		}
+
+		if(!found){
+			continue;
+		}
+
+		report("    Watch "); gprintLit(toLit(i)); report(" used by: \n");
+		for(vsize j=0; j<tempwatches[i].size(); j++){
+			for(vsize k=0; k<tempwatches[i][j]->getSet()->getAgg().size(); k++){
+				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(tempwatches[i][j]);
+				if(watch2!=NULL && watch2->isWatched()){
+					report("        ");
+					print(verbosity, *tempwatches[i][j]->getSet()->getAgg()[k], true);
+				}
+			}
+		}
+	}
+	report("\n");
 }
 
 void Aggrs::print(int verbosity, const TypedSet& c, bool endl) {
@@ -51,19 +86,27 @@ void Aggrs::print(int verbosity, const TypedSet& c, bool endl) {
 void Aggrs::print(int verbosity, const Agg& ae, bool endl) {
 	gprintLit(ae.getHead());
 	lbool value = ae.getSet()->getSolver()->value(ae.getHead());
-	report("(%s)", value==l_Undef?"X":value==l_True?"T":"F");
+	report("(%s)" , value==l_Undef?"X":value==l_True?"T":"F");
 	TypedSet* set = ae.getSet();
-	if (ae.hasUB()) {
-		report(" %s ", ae.isDefined()?"<-":"<=>");
-	} else {
-		report(" %s %s <= ", ae.isDefined()?"<-":"<=>", toString(ae.getBound()).c_str());
+	switch(ae.getSem()){
+		case DEF:
+			report("%s ", "<-");
+			break;
+		case COMP:
+			report("%s ", "<=>");
+			break;
+		case IMPLICATION:
+			report("%s ", "|");
+			break;
+	}
+	if (ae.hasLB()) {
+		report("%s <= ", toString(ae.getCertainBound()).c_str());
 	}
 	report("%s{", ae.getType()==MAX?"MAX":ae.getType()==MIN?"MIN":ae.getType()==SUM?"SUM":ae.getType()==CARD?"CARD":"PROD");
 	print(verbosity, *set, false);
-	report(", ESV = %s", toString(set->getKnownBound()).c_str());
 	report("}");
 	if (ae.hasUB()) {
-		report(" <= %s", toString(ae.getBound()).c_str());
+		report(" <= %s", toString(ae.getCertainBound()).c_str());
 	}
 	report(".");
 	if(endl){

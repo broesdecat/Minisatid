@@ -57,12 +57,22 @@ public:
 	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
 };
 
+class AddHeadImplications : public AggTransform{
+public:
+	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
+};
+
 class CardToEquiv : public AggTransform{
 public:
 	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
 };
 
 class MapToSetOneToOneWithAgg : public AggTransform{
+public:
+	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
+};
+
+class MapToSetOneToOneWithAggImpl : public AggTransform{
 public:
 	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
 };

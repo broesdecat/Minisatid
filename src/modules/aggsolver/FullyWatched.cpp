@@ -31,7 +31,7 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 
 	trail.push_back(new FWTrail(0, 0, 0));
 	setCP(getSet().getBestPossible());
-	setCC(getSet().getKnownBound());
+	setCC(getSet().getType().getESV());
 
 	int counter = 0;
 	for (vpagg::iterator i = getSet().getAggNonConst().begin(); !unsat && i < getSet().getAggNonConst().end();) {
@@ -226,7 +226,7 @@ lbool Aggrs::canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP
 	lbool result = l_Undef;
 
 	//add if derived: headproptime[agg.getIndex()] = getStack().size();
-	const Weight& b = agg.getBound();
+	const Weight& b = agg.getCertainBound();
 	if(agg.hasUB()){
 		if(CC > b){
 			basedon = BASEDONCC;
@@ -283,9 +283,9 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 
 	Weight min, max;
 	if(!agg.hasUB()){
-		min = getSetp()->getKnownBound(); max = getSet().getType().getBestPossible(getSetp());
+		min = getSetp()->getType().getESV(); max = getSet().getType().getBestPossible(getSetp());
 	}else{
-		min = getSet().getType().getBestPossible(getSetp()); max = getSetp()->getKnownBound();
+		min = getSet().getType().getBestPossible(getSetp()); max = getSetp()->getType().getESV();
 	}
 
 	if(!ar.isHeadReason()){
@@ -303,14 +303,14 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	bool checkmonofalse = (ar.isHeadReason() && !headtrue) || (!ar.isHeadReason() && ((mono && inset) || (!mono && !inset)));
 
 	bool ub = agg.hasUB();
-	const Weight& bound = ub?agg.getBound():agg.getBound();
+	const Weight& bound = agg.getCertainBound();
 	bool satisfied = false;
 	vector<WL> reasons;
 	if(checkmonofalse){
 		satisfied = isSatisfied(headtrue, max, false, ub, bound);
 		for(vector<FWTrail*>::const_iterator a=getTrail().begin(); !satisfied && a<getTrail().end(); a++){
         	for (vprop::const_iterator i = (*a)->props.begin(); !satisfied && i < (*a)->props.end(); i++) {
-				bool monolit = getSet().getType().isMonotone(agg, (*i).getWL(), agg.hasUB());
+				bool monolit = getSet().getType().isMonotone(agg, (*i).getWL());
 				if((monolit && (*i).getType()==NEG) || (!monolit && (*i).getType()==POS)){
 					reasons.push_back((*i).getWL());
 					if(monolit){
@@ -326,7 +326,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 		satisfied = isSatisfied(headtrue, min, true, ub, bound);
 		for(vector<FWTrail*>::const_iterator a=getTrail().begin(); !satisfied && a<getTrail().end(); a++){
         	for (vprop::const_iterator i = (*a)->props.begin(); !satisfied && i < (*a)->props.end(); i++) {
-				bool monolit = getSet().getType().isMonotone(agg, (*i).getWL(), agg.hasUB());
+				bool monolit = getSet().getType().isMonotone(agg, (*i).getWL());
 				if((monolit && (*i).getType()==POS) || (!monolit && (*i).getType()==NEG)){
 					reasons.push_back((*i).getWL());
 					if(monolit){
@@ -352,14 +352,14 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 				for(vector<WL>::iterator i=reasons.begin(); i<reasons.end(); i++){
 					Weight temp = max;
 
-					bool monolit = getSet().getType().isMonotone(agg, *i, agg.hasUB());
+					bool monolit = getSet().getType().isMonotone(agg, *i);
 					if(monolit){
 						max = getSet().getType().add(max, (*i).getWeight());
 					}else{
 						max = getSet().getType().remove(max, (*i).getWeight());
 					}
 
-					if(isSatisfied(headtrue, max, false, agg.hasUB(), agg.getBound())){
+					if(isSatisfied(headtrue, max, false, agg.hasUB(), agg.getCertainBound())){
 						reasons.erase(i);
 						changes = true;
 					}else{
@@ -373,14 +373,14 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 				for(vector<WL>::iterator i=reasons.begin(); i<reasons.end(); i++){
 					Weight temp = min;
 
-					bool monolit = getSet().getType().isMonotone(agg, *i, agg.hasUB());
+					bool monolit = getSet().getType().isMonotone(agg, *i);
 					if(monolit){
 						min = getSet().getType().remove(min, (*i).getWeight());
 					}else{
 						min = getSet().getType().add(min, (*i).getWeight());
 					}
 
-					if(isSatisfied(headtrue, min, true, agg.hasUB(), agg.getBound())){
+					if(isSatisfied(headtrue, min, true, agg.hasUB(), agg.getCertainBound())){
 						reasons.erase(i);
 						changes = true;
 					}else{
@@ -435,7 +435,7 @@ void MaxFWAgg::removeFromPossibleSet(const WL& l) {
 			}
 		}
 		if (!found) {
-			setCP(set.getKnownBound());
+			setCP(set.getType().getESV());
 		}
 	}
 }
@@ -455,12 +455,12 @@ rClause MaxFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 	rClause confl = nullPtrClause;
 	if (headtrue && agg.hasUB()) {
 		for (vwl::const_reverse_iterator i = getSet().getWL().rbegin(); confl == nullPtrClause && i
-					< getSet().getWL().rend() && agg.getBound() < (*i).getWeight(); i++) {
+					< getSet().getWL().rend() && agg.getCertainBound() < (*i).getWeight(); i++) {
 			confl = getSolver()->notifySolver(new AggReason(agg, HEADONLY, ~(*i).getLit(), (*i).getWeight()));
 		}
 	} else if (!headtrue && agg.hasLB()) {
 		for (vwl::const_reverse_iterator i = getSet().getWL().rbegin(); confl == nullPtrClause && i
-					< getSet().getWL().rend() && agg.getBound() <= (*i).getWeight(); i++) {
+					< getSet().getWL().rend() && agg.getCertainBound() <= (*i).getWeight(); i++) {
 			confl = getSolver()->notifySolver(new AggReason(agg, HEADONLY, ~(*i).getLit(), (*i).getWeight()));
 		}
 	}
@@ -497,15 +497,15 @@ rClause MaxFWAgg::propagateAll(const Agg& agg, bool headtrue) {
 	for (vwl::const_iterator i=getSet().getWL().begin(); found<2 && i<getSet().getWL().end(); i++) {
 		const WL& wl = (*i);
 		if(headtrue){
-			if(agg.hasLB() && wl.getWeight() < agg.getBound()){
+			if(agg.hasLB() && wl.getWeight() < agg.getCertainBound()){
 				continue;
 			}
-			if(agg.hasUB() && wl.getWeight() > agg.getBound()){
+			if(agg.hasUB() && wl.getWeight() > agg.getCertainBound()){
 				continue;
 			}
 		}else{ //headfalse
-			if((!agg.hasLB() || wl.getWeight() >= agg.getBound()) &&
-				(!agg.hasUB() || wl.getWeight() <= agg.getBound())){
+			if((!agg.hasLB() || wl.getWeight() >= agg.getCertainBound()) &&
+				(!agg.hasUB() || wl.getWeight() <= agg.getCertainBound())){
 				continue;
 			}
 		}
@@ -530,7 +530,7 @@ void MaxFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	const Lit& head = agg.getHead();
 
 	bool search = true, one, inset = false;
-	Weight bound = agg.hasLB()?agg.getBound():agg.getBound();
+	Weight bound = agg.getCertainBound();
 	if(!ar.isHeadReason()){
 		lits.push(value(head)==l_True ? ~head : head);
 		if(value(head)==l_True){
@@ -627,7 +627,7 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 	Weight weightbound;
 
 	bool ub = agg.hasUB();
-	const Weight& bound = ub?agg.getBound():agg.getBound();
+	const Weight& bound = agg.getCertainBound();
 	Expl basedon;
 	//determine the lower bound of which weight literals to consider
 	const AggProp& type = getSet().getType();
@@ -657,8 +657,8 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 		}
 	}
 
-#ifdef INTWEIGHT
-	if(weightbound == INT_MAX || weightbound == INT_MIN) {
+#ifdef NOARBITPREC
+	if(weightbound == posInfinity() || weightbound == negInfinity()) {
 		return c;
 	}
 #endif
@@ -727,7 +727,7 @@ void SumFWAgg::initialize(bool& unsat, bool& sat) {
 		return;
 	}
 
-#ifdef INTWEIGHT
+#ifdef NOARBITPREC
 	//Test whether the total sum of the weights is not infinity for intweights
 	Weight total(0);
 	for(vwl::const_iterator i=getSet().getWL().begin(); i<getSet().getWL().end(); i++) {
@@ -757,7 +757,7 @@ void SumFWAgg::initialize(bool& unsat, bool& sat) {
 		}
 		getSet().setWL(wlits2);
 		for (vpagg::const_iterator i = getSet().getAgg().begin(); i < getSet().getAgg().end(); i++) {
-			Weight b = getSet().getType().add((*i)->getBound(), totalneg);
+			Weight b = getSet().getType().add((*i)->getCertainBound(), totalneg);
 			(*i)->setBound(AggBound((*i)->getSign(), b));
 		}
 	}
@@ -775,11 +775,11 @@ void ProdFWAgg::initialize(bool& unsat, bool& sat) {
 		sat = true;
 		return;
 	}
-#ifdef INTWEIGHT
+#ifdef NOARBITPREC
 	//Test whether the total product of the weights is not infinity for intweights
 	Weight total(1);
 	for(vwl::const_iterator i=getSet().getWL().begin(); i<getSet().getWL().end(); i++) {
-		if(INT_MAX/total < (*i).getWeight()) {
+		if(posInfinity()/total < (*i).getWeight()) {
 			throw idpexception("The total product of weights exceeds max-int, correctness cannot be guaranteed in limited precision.\n");
 		}
 		total *= (*i).getWeight();

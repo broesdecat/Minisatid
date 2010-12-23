@@ -81,9 +81,7 @@ namespace MinisatID {
 
 	double getDefaultDecay();
 	double getDefaultRandfreq();
-#ifndef USEMINISAT22
 	POLARITY getDefaultPolarity();
-#endif
 }
 
 #endif// SATSOLVER_H_

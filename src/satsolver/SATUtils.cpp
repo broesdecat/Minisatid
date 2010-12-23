@@ -78,4 +78,8 @@ double MinisatID::getDefaultDecay(){
 double MinisatID::getDefaultRandfreq(){
 	return 0;
 }
+//IRRELEVANT, will not be used
+POLARITY MinisatID::getDefaultPolarity(){
+	return POL_TRUE;
+}
 #endif

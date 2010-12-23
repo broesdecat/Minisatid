@@ -46,6 +46,7 @@
 #include "parser/PBread.hpp"
 
 #include <iostream>
+#include <stdlib.h>
 #include <algorithm>
 using namespace std;
 
@@ -145,7 +146,7 @@ void DefaultCallback::endConstraint() {
  * @param idVar: the numerical identifier of the variable
  */
 void DefaultCallback::constraintTerm(IntegerType coeff, int idVar) {
-	lw.push_back(WLtuple(Literal(abs(idVar), idVar<0), coeff));
+	lw.push_back(WLtuple(Literal(::abs(idVar), idVar<0), coeff));
 	//cout << "[" << showpos << coeff << noshowpos << " x" << idVar << "] ";
 }
 

@@ -1,6 +1,7 @@
 #include "AggTransform.hpp"
 
 #include <vector>
+#include <algorithm>
 
 #include "modules/aggsolver/AggProp.hpp"
 #include "modules/aggsolver/AggPrint.hpp"
@@ -10,14 +11,10 @@
 
 #include "PbSolver.h"
 
-#include <limits>
-
 using namespace std;
 using namespace tr1;
 using namespace MinisatID;
 using namespace Aggrs;
-
-typedef numeric_limits<int> intlim;
 
 ///////
 // TRANSFORMATIONS
@@ -35,7 +32,9 @@ public:
 		t.push_back(new MaxToSAT());
 		t.push_back(new SetReduce());
 		t.push_back(new CardToEquiv());
+		t.push_back(new AddHeadImplications());
 		t.push_back(new MapToSetOneToOneWithAgg());
+		t.push_back(new MapToSetOneToOneWithAggImpl());
 	}
 	~Transfo(){
 		deleteList<AggTransform>(t);
@@ -143,6 +142,38 @@ void MapToSetOneToOneWithAgg::transform(AggSolver* solver, TypedSet* set, vps& s
 	assert(set->getAgg().size()==1);
 }
 
+//FIXME a new set goes through the transformations again, an adapted one does not (might yield improvement?)
+void MapToSetOneToOneWithAggImpl::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
+	//Only if using pwatches
+	if(!solver->getPCSolver()->modes().watchedagg){
+		return;
+	}
+
+	assert(set->getAgg().size()==1);
+
+	if(set->getAgg()[0]->getSem()==IMPLICATION){ //FIXME add to other transformations!
+		return;
+	}
+
+	const Agg& agg = *set->getAgg()[0];
+	Agg *one, *two;
+	one = new Agg(~agg.getHead(), AggBound(agg.getSign(), agg.getBound()), IMPLICATION, agg.getType(), agg.isOptim());
+
+	Weight weighttwo = agg.getSign()==AGGSIGN_LB?agg.getBound()-1:agg.getBound()+1;
+	AggSign signtwo = agg.getSign()==AGGSIGN_LB?AGGSIGN_UB:AGGSIGN_LB;
+	two = new Agg(agg.getHead(), AggBound(signtwo, weighttwo), IMPLICATION, agg.getType(), agg.isOptim());
+
+	delete set->getAgg()[0];
+
+	vpagg newaggs;
+	newaggs.push_back(one);
+	set->replaceAgg(newaggs);
+
+	TypedSet* newset = new TypedSet(*set);
+	newset->addAgg(two);
+	sets.push_back(newset);
+}
+
 //@pre: at least one aggregate present
 void PartitionIntoTypes::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
 	assert(set->getAgg().size() > 0);
@@ -160,6 +191,60 @@ void PartitionIntoTypes::transform(AggSolver* solver, TypedSet* set, vps& sets, 
 		newset->replaceAgg((*i).second);
 		newset->setWL(set->getWL());
 		sets.push_back(newset);
+	}
+}
+
+bool compareAggBounds(Agg* lhs, Agg* rhs){
+	return lhs->getCertainBound() < rhs->getCertainBound();
+}
+
+void AddHeadImplications::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
+	if(set->getAgg().size()>1 && set->getAgg()[0]->getSem()!=IMPLICATION){
+		vpagg lbaggs, ubaggs;
+		for(vpagg::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); i++){
+			if((*i)->hasLB()){
+				lbaggs.push_back(*i);
+			}else{
+				ubaggs.push_back(*i);
+			}
+		}
+		if(lbaggs.size()>1){
+			sort(lbaggs.begin(),lbaggs.end(), compareAggBounds);
+			Agg* first = *lbaggs.begin();
+			for(vpagg::const_iterator i=lbaggs.begin()+1; i<lbaggs.end(); i++){
+				Agg* second = *i;
+				vec<Lit> lits;
+				lits.push(first->getHead());
+				lits.push(~second->getHead());
+				solver->getPCSolver()->addClause(lits);
+				if(first->getCertainBound()==second->getCertainBound()){
+					vec<Lit> lits2;
+					lits2.push(~first->getHead());
+					lits2.push(second->getHead());
+					solver->getPCSolver()->addClause(lits2);
+				}
+				first = second;
+			}
+		}
+		if(ubaggs.size()>1){
+			sort(ubaggs.begin(),ubaggs.end(), compareAggBounds);
+			reverse(ubaggs.begin(), ubaggs.end());
+			Agg* first = *ubaggs.begin();
+			for(vpagg::const_iterator i=ubaggs.begin()+1; i<ubaggs.end(); i++){
+				Agg* second = *i;
+				vec<Lit> lits;
+				lits.push(first->getHead());
+				lits.push(~second->getHead());
+				solver->getPCSolver()->addClause(lits);
+				if(first->getCertainBound()==second->getCertainBound()){
+					vec<Lit> lits2;
+					lits2.push(~first->getHead());
+					lits2.push(second->getHead());
+					solver->getPCSolver()->addClause(lits2);
+				}
+				first = second;
+			}
+		}
 	}
 }
 
@@ -187,41 +272,22 @@ void AddTypes::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsa
 		return;
 	}
 	switch (set->getAgg()[0]->getType()) {
-		case MAX:{
+		case MAX:
 			set->setType(AggProp::getMax());
-#ifdef INTWEIGHT
-			set->setKnownBound(intlim::min());
-#else
-			Weight bound = Weight(0);
-			for(vpagg::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); i++){
-				if(bound>=(*i)->getBound()){
-					bound = (*i)->getBound()-1;
-				}
-			}
-			for(vwl::const_iterator i=set->getWL().begin(); i<set->getWL().end(); i++){
-				if(bound>=(*i).getWeight()){
-					bound = (*i).getWeight()-1;
-				}
-			}
-			set->setKnownBound(bound);
-#endif
 			break;
-		}
 		case SUM:
 			set->setType(AggProp::getSum());
-			set->setKnownBound(0);
 			break;
 		case CARD:
 			set->setType(AggProp::getCard());
-			set->setKnownBound(0);
 			break;
 		case PROD:
 			set->setType(AggProp::getProd());
-			set->setKnownBound(1);
 			break;
 		default:
 			assert(false);
 	}
+	set->setKnownBound(0);
 }
 
 void MinToMax::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
@@ -247,7 +313,7 @@ void MinToMax::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsa
 //After type setting and transforming to max
 void MaxToSAT::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
 	//Simple heuristic to choose for encoding as SAT
-	if (set->getType().getType()!=MAX || set->getAgg().size() != 1) {
+	if (set->getType().getType()!=MAX || set->getAgg().size() != 1 || set->getAgg()[0]->getSem()==IMPLICATION) {
 		return;
 	}
 	bool notunsat = true;
@@ -311,11 +377,11 @@ void MaxToSAT::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsa
  */
 void CardToEquiv::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
 	assert(!unsat);
-	if (set->getAgg()[0]->getType() == CARD) {
+	if (set->getAgg()[0]->getType() == CARD && set->getAgg()[0]->getSem()!=IMPLICATION) {
 		vpagg remaggs;
 		for (vpagg::const_iterator i = set->getAgg().begin(); !unsat && i < set->getAgg().end(); i++) {
 			const Agg& agg = *(*i);
-			const Weight& bound = agg.getBound()-set->getKnownBound();
+			const Weight& bound = agg.getCertainBound();
 			if(agg.hasLB() && bound==0){
 				lbool headvalue = set->getSolver()->value(agg.getHead());
 				if(headvalue==l_False){
@@ -374,7 +440,7 @@ bool Aggrs::transformSumsToCNF(vps& sets, PCSolver* pcsolver) {
 
 			if(agg->isOptim()
 					|| (agg->getType()!=SUM && agg->getType()!=CARD)
-					|| agg->getSem() == DEF){
+					|| agg->getSem() != COMP){
 				remaining.push_back(agg);
 				continue;
 			}
@@ -407,8 +473,8 @@ bool Aggrs::transformSumsToCNF(vps& sets, PCSolver* pcsolver) {
 				} else {
 					max += (*k).getWeight();
 				}
-				pbaggeq.weights.push((*k).getWeight());
-				pbaggineq.weights.push((*k).getWeight());
+				pbaggeq.weights.push(MiniSatPP::Int((*k).getWeight()));
+				pbaggineq.weights.push(MiniSatPP::Int((*k).getWeight()));
 			}
 			if (var(agg->getHead()) > maxvar) {
 				maxvar = var(agg->getHead());
@@ -423,8 +489,8 @@ bool Aggrs::transformSumsToCNF(vps& sets, PCSolver* pcsolver) {
 				eqval = abs(bound) + abs(min) + 1;
 				ineqval = -abs(bound) - abs(max) - 1;
 			}
-			pbaggeq.weights.push(eqval);
-			pbaggineq.weights.push(ineqval);
+			pbaggeq.weights.push(MiniSatPP::Int(eqval));
+			pbaggineq.weights.push(MiniSatPP::Int(ineqval));
 		}
 		(*i)->replaceAgg(remaining);
 	}
@@ -440,7 +506,7 @@ bool Aggrs::transformSumsToCNF(vps& sets, PCSolver* pcsolver) {
 
 	bool unsat = false;
 	for (vector<PBAgg*>::const_iterator i = pbaggs.begin(); !unsat && i < pbaggs.end(); i++) {
-		unsat = !pbsolver->addConstr((*i)->literals, (*i)->weights, (*i)->bound, (*i)->sign, false);
+		unsat = !pbsolver->addConstr((*i)->literals, (*i)->weights, MiniSatPP::Int((*i)->bound), (*i)->sign, false);
 	}
 	deleteList<PBAgg> (pbaggs);
 

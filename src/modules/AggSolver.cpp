@@ -76,6 +76,7 @@ void AggSolver::notifyVarAdded(uint64_t nvars) {
 	network.resize(nvars);
 	tempwatches.resize(2 * nvars);
 	aggreason.resize(nvars, NULL);
+	propagated.resize(nvars, l_Undef);
 }
 
 void AggSolver::notifyDefinedHead(Var head){
@@ -130,8 +131,8 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 
 	vector<WL> lw;
 	for (vsize i = 0; i < lits.size(); i++) {
-#ifdef INTWEIGHT
-		if(weights[i] == INT_MAX || weights[i] == INT_MIN){
+#ifdef NOARBITPREC
+		if(weights[i] == posInfinity() || weights[i] == negInfinity()){
 			throw idpexception(
 					"Weights equal to or larger than the largest integer number "
 					"are not allowed in limited precision.\n");
@@ -315,16 +316,19 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 
 	//Push initial level (root, before any decisions).
 	backtrail.push_back(vector<TypedSet*>());
+	mapdecleveltotrail.push_back(fulltrail.size());
 
 	//Print lots of information
 	if (verbosity() >= 1) {
-		report("| Number of minimum exprs.:     %4d                                          |\n", nbaggs[MIN]);
-		report("| Number of maximum exprs.:     %4d                                          |\n", nbaggs[MAX]);
-		report("| Number of sum exprs.:         %4d                                          |\n", nbaggs[SUM]);
-		report("| Number of product exprs.:     %4d                                          |\n", nbaggs[PROD]);
-		report("| Number of cardinality exprs.: %4d                                          |\n", nbaggs[CARD]);
+		report("> Number of aggregates: %d aggregates over %4zu sets.\n", totalagg, sets().size());
+	}else if (verbosity() >= 2) {
+		report("> Number of minimum exprs.:     %4d.\n", nbaggs[MIN]);
+		report("> Number of maximum exprs.:     %4d.\n", nbaggs[MAX]);
+		report("> Number of sum exprs.:         %4d.\n", nbaggs[SUM]);
+		report("> Number of product exprs.:     %4d.\n", nbaggs[PROD]);
+		report("> Number of cardinality exprs.: %4d.\n", nbaggs[CARD]);
 
-		report("| Over %4zu sets, aggregate set avg. size: %7.2f lits.                      |\n",
+		report("> Over %4zu sets, aggregate set avg. size: %7.2f lits.\n",
 				sets().size(),(double)setlits/(double)(sets().size()));
 	}
 
@@ -337,6 +341,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		}
 	}
 
+	printWatches(verbosity(), this, tempwatches);
 	if (verbosity() >= 20) {
 		for(vpagg::const_iterator i=headwatches.begin(); i<headwatches.end(); i++){
 			if ((*i) != NULL) {
@@ -439,6 +444,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 }
 
 void AggSolver::newDecisionLevel() {
+	mapdecleveltotrail.push_back(fulltrail.size());
 	propstart = 0;
 	proptrail.clear();
 	backtrail.push_back(vector<TypedSet*>());
@@ -453,6 +459,33 @@ void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel) {
 	}
 	proptrail.clear();
 	propstart = 0;
+
+	/*report("Levels: ");
+	for(int i=0; i<mapdecleveltotrail.size(); i++){
+		report("%d ", mapdecleveltotrail[i]);
+	}
+	report("\n");
+	report("Trail real:");
+	for(int i=0; i<getPCSolver()->getTrail().size(); i++){
+		gprintLit(getPCSolver()->getTrail()[i]);
+	}
+	report("\n");
+	report("Trail agg: ");
+	for(int i=0; i<fulltrail.size(); i++){
+		gprintLit(fulltrail[i]);
+	}
+	report("\n");
+
+	for(int i=0; i<propagated.size(); i++){
+		report("%d(%s)", gprintVar(i), value(i)==l_True?"T":value(i)==l_False?"F":"X");
+		report("%d(%s)", gprintVar(i), propagated[i]==l_True?"T":propagated[i]==l_False?"F":"X");
+	}*/
+
+	for(int i=mapdecleveltotrail[untillevel+1]; i<fulltrail.size(); i++){
+		propagated[var(fulltrail[i])]=l_Undef;
+	}
+	fulltrail.resize(mapdecleveltotrail[untillevel+1]);
+	mapdecleveltotrail.resize(untillevel+1);
 }
 
 /**
@@ -462,6 +495,9 @@ rClause AggSolver::propagate(const Lit& p) {
 	if (!isInitialized()) {
 		return nullPtrClause;
 	}
+
+	fulltrail.push_back(p);
+	propagated[var(p)]=sign(p)?l_False:l_True;
 
 	rClause confl = nullPtrClause;
 
@@ -473,6 +509,8 @@ rClause AggSolver::propagate(const Lit& p) {
 	if (pa != NULL) {
 		confl = pa->getSet()->propagate(*pa, getLevel(), !sign(p));
 		propagations++;
+
+		printWatches(verbosity(), this, tempwatches);
 	}
 
 	const vector<Watch*>& ws = permwatches[var(p)];
@@ -494,10 +532,7 @@ rClause AggSolver::propagate(const Lit& p) {
 			}
 		}
 
-		if (verbosity() >= 8) {
-			//report("Current effective watches AFTER: \n");
-			//TODO when partial watches code has been changed printWatches(this, tempwatches);
-		}
+		printWatches(verbosity(), this, tempwatches);
 	}
 
 	if(modes().asapaggprop){
