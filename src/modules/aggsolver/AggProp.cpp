@@ -10,7 +10,6 @@
 #include <assert.h>
 
 using namespace std;
-using namespace tr1;
 using namespace MinisatID;
 using namespace Aggrs;
 

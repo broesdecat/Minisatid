@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <algorithm>
-#include <tr1/memory>
 
 #include "modules/aggsolver/AggUtils.hpp"
 
@@ -72,10 +71,10 @@ typedef std::vector<Agg*> vpagg;
 
 class AggProp{
 private:
-	static std::tr1::shared_ptr<AggProp> max;
-	static std::tr1::shared_ptr<AggProp> prod;
-	static std::tr1::shared_ptr<AggProp> card;
-	static std::tr1::shared_ptr<AggProp> sum;
+	static std::shared_ptr<AggProp> max;
+	static std::shared_ptr<AggProp> prod;
+	static std::shared_ptr<AggProp> card;
+	static std::shared_ptr<AggProp> sum;
 public:
 	static AggProp const * getMax() { return max.get(); }
 	static AggProp const * getProd() { return prod.get(); }

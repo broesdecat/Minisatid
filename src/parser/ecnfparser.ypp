@@ -22,7 +22,6 @@
 #include <limits>
 
 using namespace MinisatID;
-using namespace std::tr1;
 using namespace std;
 
 typedef numeric_limits<int> intlim;
@@ -49,8 +48,8 @@ int charPos = 1;
 
 bool unsatfound = false;
 
-std::tr1::shared_ptr<MinisatID::WrappedPCSolver>	solver;
-std::tr1::shared_ptr<MinisatID::WrappedSOSolver>	modsolver;
+std::shared_ptr<MinisatID::WrappedPCSolver>	solver;
+std::shared_ptr<MinisatID::WrappedSOSolver>	modsolver;
 
 /**
  * CR-CheckResult: checks the result of passing some data to the solvers.
@@ -67,7 +66,7 @@ std::vector<MinisatID::Atom> rigidatoms; //a necessary list of accumulated rigid
 
 void finishCNFHeader();
 void readCNFModalHierLevel(bool existential, const std::vector<MinisatID::Atom>& rigidatoms);
-std::tr1::shared_ptr<MinisatID::WrappedLogicSolver> getData();
+shared_ptr<MinisatID::WrappedLogicSolver> getData();
 
 MinisatID::Atom cAtom(const char* c);
 MinisatID::Literal cLiteral(const char* c);
@@ -410,14 +409,14 @@ void CR(bool result){
 }
 
 void initSolver(){
-	solver = shared_ptr<WrappedPCSolver>(new WrappedPCSolver(modes));
+	solver = std::shared_ptr<WrappedPCSolver>(new WrappedPCSolver(modes));
 }
 
 void initModSolver(){
-	modsolver = shared_ptr<WrappedSOSolver>(new WrappedSOSolver(modes));
+	modsolver = std::shared_ptr<WrappedSOSolver>(new WrappedSOSolver(modes));
 }
 
-shared_ptr<WrappedLogicSolver> getData(){
+std::shared_ptr<WrappedLogicSolver> getData(){
 	if(solver.get()!=NULL){
 		return solver;
 	}else{

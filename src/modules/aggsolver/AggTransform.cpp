@@ -63,7 +63,7 @@ void SetReduce::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& uns
 	newset.push_back(oldset[indexinnew]);
 
 	bool setisreduced = false;
-	for (vwl::size_type i = 1; i < oldset.size(); i++) {
+	for (auto i = 1; i < oldset.size(); i++) {
 		WL oldl = newset[indexinnew];
 		WL newl = oldset[i];
 		if (var(oldl.getLit()) == var(newl.getLit())) { //same variable
@@ -142,7 +142,8 @@ void MapToSetOneToOneWithAgg::transform(AggSolver* solver, TypedSet* set, vps& s
 	assert(set->getAgg().size()==1);
 }
 
-//FIXME a new set goes through the transformations again, an adapted one does not (might yield improvement?)
+//TODO a new set goes through the transformations again, an adapted one does not (might yield improvement?)
+//Or add a vector new sets that should not be transformed any more
 void MapToSetOneToOneWithAggImpl::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
 	//Only if using pwatches
 	if(!solver->getPCSolver()->modes().watchedagg){
@@ -152,6 +153,10 @@ void MapToSetOneToOneWithAggImpl::transform(AggSolver* solver, TypedSet* set, vp
 	assert(set->getAgg().size()==1);
 
 	if(set->getAgg()[0]->getSem()==IMPLICATION){ //FIXME add to other transformations!
+		return;
+	}
+
+	if(set->getAgg()[0]->getType()==MAX){
 		return;
 	}
 
@@ -179,7 +184,7 @@ void PartitionIntoTypes::transform(AggSolver* solver, TypedSet* set, vps& sets, 
 	assert(set->getAgg().size() > 0);
 	//Partition the aggregates according to their type
 	map<AggType, vpagg> partaggs;
-	for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
+	for (auto i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
 		partaggs[(*i)->getType()].push_back(*i);
 	}
 

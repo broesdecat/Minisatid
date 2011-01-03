@@ -1,6 +1,6 @@
 SUBDIRS = tclap pbsolver external mtlold solver3 solver3minisat solver3minisat22 satsolver parser modules theorysolvers utils
 
-AM_CXXFLAGS = @AC_CXXFLAGS@
+AM_CXXFLAGS = @AC_CXXFLAGS@ -std=gnu++0x
 AM_LDFLAGS = @AC_LDFLAGS@ -I src/tclap/ #-ltcmalloc -lprofiler
 
 AM_YFLAGS = -d 

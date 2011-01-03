@@ -22,13 +22,11 @@
 
 #include "external/ExternalInterface.hpp"
 
-#include <tr1/memory>
-
 namespace MinisatID {
 
-std::tr1::shared_ptr<WrappedLogicSolver> unittest(SolverOption& modes);
-std::tr1::shared_ptr<WrappedLogicSolver> unittest2(SolverOption& modes);
-std::tr1::shared_ptr<WrappedLogicSolver> unittest3(SolverOption& modes);
+std::shared_ptr<WrappedLogicSolver> unittest(SolverOption& modes);
+std::shared_ptr<WrappedLogicSolver> unittest2(SolverOption& modes);
+std::shared_ptr<WrappedLogicSolver> unittest3(SolverOption& modes);
 
 }
 

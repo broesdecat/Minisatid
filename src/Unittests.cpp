@@ -20,7 +20,6 @@
 #include "Unittests.hpp"
 
 using namespace std;
-using namespace std::tr1;
 using namespace MinisatID;
 
 shared_ptr<WrappedLogicSolver> unittest(SolverOption& modes){ //unsat

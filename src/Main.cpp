@@ -61,7 +61,6 @@
 #include <iostream>
 #include <fstream>
 #include <signal.h>
-#include <tr1/memory>
 #include <sstream>
 
 #include "parser/ParseOptions.hpp"
@@ -81,13 +80,12 @@
 #endif
 
 using namespace std;
-using namespace std::tr1;
 using namespace MinisatID;
 using namespace MinisatID::Print;
 
 namespace MinisatID {
 	class WrappedLogicSolver;
-	typedef shared_ptr<WrappedLogicSolver> pData;
+	typedef std::shared_ptr<WrappedLogicSolver> pData;
 }
 
 extern char * yytext;
