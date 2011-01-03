@@ -202,12 +202,13 @@ void TypedSet::addAgg(Agg* aggr){
 }
 
 void TypedSet::replaceAgg(const vpagg& repl){
-	for(vpagg::const_iterator i=aggregates.begin(); i<aggregates.end(); i++){
+	for(auto i=aggregates.begin(); i<aggregates.end(); i++){
 		(*i)->setTypedSet(NULL);
 		(*i)->setIndex(-1);
+		//FIXME delete those agg?
 	}
 	aggregates.clear();
-	for(vector<Agg*>::const_iterator i=repl.begin(); i<repl.end(); i++){
+	for(auto i=repl.begin(); i<repl.end(); i++){
 		addAgg(*i);
 	}
 }
@@ -220,14 +221,16 @@ void TypedSet::initialize(bool& unsat, bool& sat, vps& sets) {
 		(*i)->transform(getSolver(), this, sets, unsat, sat);
 	}
 
+	if(sat || unsat){ return; }
+
 	setProp(getType().createPropagator(this, this->getSolver()->getPCSolver()->modes().watchedagg));
 	prop->initialize(unsat, sat);
 
-	if (!sat && !unsat) {
-		for (vsize i = 0; i < getAgg().size(); i++) {
-			if (getAgg()[i]->isDefined()) {
-				getSolver()->notifyDefinedHead(var(getAgg()[i]->getHead()));
-			}
+	if(sat || unsat){ return; }
+
+	for (vsize i = 0; i < getAgg().size(); i++) {
+		if (getAgg()[i]->isDefined()) {
+			getSolver()->notifyDefinedHead(var(getAgg()[i]->getHead()));
 		}
 	}
 }

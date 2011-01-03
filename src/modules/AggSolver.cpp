@@ -107,11 +107,6 @@ void AggSolver::addTempWatch(const Lit& l, Watch* w) {
 	tempwatches[toInt(l)].push_back(w);
 }
 
-inline Agg* AggSolver::getAggWithHead(Var v) const {
-	assert(headwatches[toInt(createNegativeLiteral(v))] != NULL);
-	return headwatches[toInt(createNegativeLiteral(v))];
-}
-
 ///////
 // MAIN OPERATIONS
 ///////
@@ -598,6 +593,30 @@ rClause AggSolver::getExplanation(const Lit& p) {
 // RECURSIVE AGGREGATES
 ///////
 
+Agg* AggSolver::getAggDefiningHead(Var v) const {
+	Agg* agg = headwatches[toInt(createNegativeLiteral(v))];
+	assert(agg!=NULL && agg->isDefined());
+	return agg;
+}
+
+vector<Var> AggSolver::getAggHeadsWithBodyLit(Var x) const{
+	vector<Var> heads;
+	for (vps::const_iterator i = network[x].begin(); i < network[x].end(); i++) {
+		for (vpagg::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); j++) {
+			heads.push_back(var((*j)->getHead()));
+		}
+	}
+	return heads;
+}
+
+vwl::const_iterator AggSolver::getAggLiteralsBegin(Var x) const {
+	return getAggDefiningHead(x)->getSet()->getWL().begin();
+}
+
+vwl::const_iterator AggSolver::getAggLiteralsEnd(Var x) const {
+	return getAggDefiningHead(x)->getSet()->getWL().end();
+}
+
 /**
  * For an aggregate expression defined by v, add all set literals to loopf that
  * 		- have not been added already(seen[A]==1 for A, seen[A]==2 for ~A)
@@ -608,8 +627,7 @@ rClause AggSolver::getExplanation(const Lit& p) {
  * TODO: optimize: add monotone literals until the aggregate can become true
  */
 void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, VarToJustif& seen) {
-	const Agg& agg = *getAggWithHead(v);
-	TypedSet* set = agg.getSet();
+	TypedSet* set = getAggDefiningHead(v)->getSet();
 
 	for (vwl::const_iterator i = set->getWL().begin(); i < set->getWL().end(); ++i) {
 		Lit l = (*i).getLit();
@@ -630,24 +648,6 @@ void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& l
 	}
 }
 
-vector<Var> AggSolver::getAggHeadsWithBodyLit(Var x) {
-	vector<Var> heads;
-	for (vps::const_iterator i = network[x].begin(); i < network[x].end(); i++) {
-		for (vpagg::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); j++) {
-			heads.push_back(var((*j)->getHead()));
-		}
-	}
-	return heads;
-}
-
-vwl::const_iterator AggSolver::getAggLiteralsBegin(Var x) const {
-	return getAggWithHead(x)->getSet()->getWL().begin();
-}
-
-vwl::const_iterator AggSolver::getAggLiteralsEnd(Var x) const {
-	return getAggWithHead(x)->getSet()->getWL().end();
-}
-
 /**
  * Propagates the fact that w has been justified and use the info on other earlier justifications to derive other
  * heads.
@@ -659,7 +659,12 @@ void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& 
 		TypedSet* set = (*i);
 		for (vpagg::const_iterator j = set->getAgg().begin(); j < set->getAgg().end(); j++) {
 			const Agg& agg = *(*j);
-			if (isFalse(agg.getHead())) {
+			if (!agg.isDefined() || isFalse(agg.getHead())) {
+				continue;
+			}
+
+			//FIXME HACK HACK!
+			if(agg.getSem()==IMPLICATION && !sign(agg.getHead())){
 				continue;
 			}
 
@@ -685,7 +690,7 @@ void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& 
 void AggSolver::findJustificationAggr(Var head, vec<Lit>& outjstf) {
 	vec<Var> nonjstf;
 	VarToJustif currentjust;
-	const Agg& agg = *getAggWithHead(head);
+	const Agg& agg = *getAggDefiningHead(head);
 	agg.getSet()->getType().canJustifyHead(agg, outjstf, nonjstf, currentjust, true);
 }
 
@@ -695,7 +700,7 @@ void AggSolver::findJustificationAggr(Var head, vec<Lit>& outjstf) {
  * all body literals of v that are not justified.
  */
 bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust) {
-	const Agg& agg = *getAggWithHead(v);
+	const Agg& agg = *getAggDefiningHead(v);
 	return agg.getSet()->getType().canJustifyHead(agg, jstf, nonjstf, currentjust, false);
 }
 

@@ -198,19 +198,15 @@ public:
 	bool 				directlyJustifiable		(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust);
 	void 				addExternalLiterals		(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, VarToJustif& seen);
 
-	/**
-	 * Returns a std::vector containing the heads of the aggregates in which x occurs as a set literal
-	 */
-	std::vector<Var> 	getAggHeadsWithBodyLit	(Var x);
+	//Returns a std::vector containing the heads of the aggregates in which x occurs as a set literal
+	std::vector<Var> 	getAggHeadsWithBodyLit	(Var x) const;
 
-	/**
-	 * Returns the set literals of the aggregate with the given head x.
-	 */
+	//Returns the set literals of the aggregate with the given head x.
 	vwl::const_iterator getAggLiteralsBegin		(Var x) const;
 	vwl::const_iterator getAggLiteralsEnd		(Var x) const;
 
 	///////
-	// Watched literal sets
+	// WATCHES
 	///////
 	void 				setHeadWatch			(Lit head, Aggrs::Agg* agg);
 	void 				addPermWatch			(Var v, Aggrs::Watch* w);
@@ -233,8 +229,11 @@ protected:
 	mips&				parsedSets				() { return _parsedSets; }
 	vps&				sets					() { return _sets; }
 
+	///////
+	// IDSOLVER
+	///////
 	// Returns the aggregate in which the given variable is the head.
-	Aggrs::Agg* 		getAggWithHead			(Var v) const;
+	Aggrs::Agg* 		getAggDefiningHead		(Var v) const;
 
 	bool				finishSet				(Aggrs::TypedSet* set);
 
