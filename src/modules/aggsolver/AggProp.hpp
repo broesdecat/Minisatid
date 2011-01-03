@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "modules/aggsolver/AggUtils.hpp"
+#include "modules/aggsolver/AggTransform.hpp"
 
 namespace MinisatID{
 
@@ -52,7 +53,7 @@ public:
 	int			getIndex	()					const	{ return index; }
 
 	const Weight&	getBound()					const	{ return bound.bound; }
-	const Weight	getCertainBound()					const;
+	Weight	getCertainBound()					const;
 	void		setBound	(AggBound b)				{ bound = b; }
 	bool		hasUB		()					const	{ return bound.sign!=AGGSIGN_LB; }
 	bool		hasLB		()					const	{ return bound.sign!=AGGSIGN_UB; }
@@ -190,16 +191,18 @@ protected:
 	Propagator* 		prop;		//OWNS pointer
 
 	int 				setid;
+	std::vector<Aggrs::AggTransform*> transformations;
 
 public:
-	TypedSet(AggSolver* solver, int setid): kb(Weight(0)), type(NULL), aggsolver(solver), prop(NULL), setid(setid){}
+	TypedSet(AggSolver* solver, int setid): kb(Weight(0)), type(NULL), aggsolver(solver), prop(NULL), setid(setid), transformations(Aggrs::getTransformations()){}
 	TypedSet(const TypedSet& set):
 			kb(set.getKnownBound()),
 			wl(set.getWL()),
 			type(set.getTypep()),
 			aggsolver(set.getSolver()),
 			prop(NULL),
-			setid(set.getSetID()){}
+			setid(set.getSetID()),
+			transformations(set.getTransformations()){}
 	virtual ~TypedSet(){
 		deleteList<Agg>(aggregates);
 		delete prop;
@@ -228,8 +231,9 @@ public:
 	void 			setProp			(Propagator* p) 			{ prop = p; }
 	Propagator*		getProp			() 			const 			{ return prop; }
 
+	const std::vector<AggTransform*>& getTransformations() const { return transformations; }
 
-	void 			initialize		(bool& unsat, bool& sat);
+	void 			initialize		(bool& unsat, bool& sat, vps& sets);
 	void			backtrack		(int nblevels, int untillevel) 			{ getProp()->backtrack(nblevels, untillevel); }
 	rClause 		propagate		(const Lit& p, Watch* w, int level) 	{ return getProp()->propagate(p, w, level); }
 	rClause 		propagate		(const Agg& agg, int level, bool headtrue)	{ return getProp()->propagate(level, agg, headtrue); }

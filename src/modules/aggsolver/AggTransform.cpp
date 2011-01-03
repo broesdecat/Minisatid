@@ -43,13 +43,17 @@ public:
 
 Transfo transfo;
 
-void Aggrs::doTransformations(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat){
+const vector<AggTransform*>& Aggrs::getTransformations(){
+	return transfo.t;
+}
+
+/*void Aggrs::doTransformations(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat){
 	unsat = false;
 	sat = false;
 	for(vector<AggTransform*>::const_iterator i=transfo.t.begin(); !sat && !unsat && i<transfo.t.end(); i++) {
 		(*i)->transform(solver, set, sets, unsat, sat);
 	}
-}
+}*/
 
 //@pre: has been split
 void SetReduce::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {

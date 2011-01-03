@@ -258,12 +258,8 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		}
 
 		bool setsat = false;
-		doTransformations(this, set, sets(), unsat, setsat);
-
-		//TODO create propagators here
-
 		if(!unsat && !setsat){
-			set->initialize(unsat, setsat);
+			set->initialize(unsat, setsat, sets());
 		}
 
 		if(!unsat && !setsat){

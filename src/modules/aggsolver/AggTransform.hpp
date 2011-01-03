@@ -20,7 +20,9 @@ typedef std::vector<Aggrs::TypedSet*> vps;
  * @post: the literals are sorted according to weight again
  */
 
-void doTransformations(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat);
+class AggTransform;
+const std::vector<AggTransform*>& getTransformations();
+//void doTransformations(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat);
 
 class AggTransform{
 public:

@@ -13,7 +13,7 @@ using namespace std;
 using namespace MinisatID;
 using namespace Aggrs;
 
-const Weight	Agg::getCertainBound() const {
+Weight	Agg::getCertainBound() const {
 	return bound.bound-getSet()->getKnownBound();
 }
 
@@ -215,7 +215,11 @@ void TypedSet::replaceAgg(const vpagg& repl){
 /*
  * Initialize the datastructures. If it's neither sat nor unsat and it is defined, notify the pcsolver of this
  */
-void TypedSet::initialize(bool& unsat, bool& sat) {
+void TypedSet::initialize(bool& unsat, bool& sat, vps& sets) {
+	for(auto i=getTransformations().begin(); !sat && !unsat && i<getTransformations().end(); i++) {
+		(*i)->transform(getSolver(), this, sets, unsat, sat);
+	}
+
 	setProp(getType().createPropagator(this, this->getSolver()->getPCSolver()->modes().watchedagg));
 	prop->initialize(unsat, sat);
 
