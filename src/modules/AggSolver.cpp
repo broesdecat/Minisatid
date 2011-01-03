@@ -70,8 +70,8 @@ AggSolver::~AggSolver() {
 }
 
 void AggSolver::notifyVarAdded(uint64_t nvars) {
-	assert(headwatches.size() < nvars);
-	headwatches.resize(nvars, NULL);
+	assert(headwatches.size() < 2*nvars);
+	headwatches.resize(2*nvars, NULL);
 	permwatches.resize(nvars);
 	network.resize(nvars);
 	tempwatches.resize(2 * nvars);
@@ -87,14 +87,16 @@ void AggSolver::notifyDefinedHead(Var head){
 // WATCH MANIPULATION
 ///////
 
-void AggSolver::setHeadWatch(Var head, Agg* agg) {
-	headwatches[head] = agg;
+void AggSolver::setHeadWatch(Lit head, Agg* agg) {
+	assert(headwatches[toInt(head)]==NULL);
+	headwatches[toInt(head)] = agg;
 }
 
-void AggSolver::removeHeadWatch(Var x) {
+void AggSolver::removeHeadWatch(Var head) {
 	//delete headwatches[x];
-	headwatches[x] = NULL;
-	getPCSolver()->removeAggrHead(x);
+	headwatches[toInt(createNegativeLiteral(head))] = NULL;
+	headwatches[toInt(createPositiveLiteral(head))] = NULL;
+	getPCSolver()->removeAggrHead(head);
 }
 
 void AggSolver::addPermWatch(Var v, Watch* w) {
@@ -106,8 +108,8 @@ void AggSolver::addTempWatch(const Lit& l, Watch* w) {
 }
 
 inline Agg* AggSolver::getAggWithHead(Var v) const {
-	assert(headwatches[v] != NULL);
-	return headwatches[v];
+	assert(headwatches[toInt(createNegativeLiteral(v))] != NULL);
+	return headwatches[toInt(createNegativeLiteral(v))];
 }
 
 ///////
@@ -319,7 +321,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	mapdecleveltotrail.push_back(fulltrail.size());
 
 	//Print lots of information
-	if (verbosity() >= 1) {
+	if (verbosity() == 1) {
 		report("> Number of aggregates: %d aggregates over %4zu sets.\n", totalagg, sets().size());
 	}else if (verbosity() >= 2) {
 		report("> Number of minimum exprs.:     %4d.\n", nbaggs[MIN]);
@@ -505,7 +507,7 @@ rClause AggSolver::propagate(const Lit& p) {
 		report("Aggr_propagate("); gprintLit(p, l_True); report(").\n");
 	}
 
-	Agg* pa = headwatches[var(p)];
+	Agg* pa = headwatches[toInt(p)];
 	if (pa != NULL) {
 		confl = pa->getSet()->propagate(*pa, getLevel(), !sign(p));
 		propagations++;
@@ -761,7 +763,7 @@ bool AggSolver::addMnmzSum(Var headv, int setid) {
 }
 
 bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
-	Agg* a = headwatches[head];
+	Agg* a = headwatches[toInt(createNegativeLiteral(head))];
 	TypedSet* s = a->getSet();
 	SumFWAgg* prop = dynamic_cast<SumFWAgg*> (s->getProp());
 
@@ -786,7 +788,7 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
  */
 void AggSolver::propagateMnmz(Var head) {
 	int level = getPCSolver()->getCurrentDecisionLevel();
-	dynamic_cast<SumFWAgg*>(headwatches[head]->getSet()->getProp())->propagate(level, *headwatches[head], true);
+	dynamic_cast<SumFWAgg*>(headwatches[toInt(createNegativeLiteral(head))]->getSet()->getProp())->propagate(level, *headwatches[toInt(createNegativeLiteral(head))], true);
 }
 
 ///////

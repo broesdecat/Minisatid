@@ -27,7 +27,7 @@ void Aggrs::sets(){
 }
 
 void Aggrs::printWatches(int verbosity, AggSolver* const solver, const std::vector<std::vector<Watch*> >& tempwatches){
-	if(verbosity<8){
+	if(verbosity<10){
 		return;
 	}
 	report("Current effective watches: \n");

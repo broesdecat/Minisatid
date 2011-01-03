@@ -94,7 +94,7 @@ private:
 
 	vvpw					tempwatches;	//NON-OWNED PARTIAL WATCHES
 	vvpw 					permwatches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
-	std::vector<Aggrs::Agg*>	headwatches;	//	index on VARs (heads always positive), does NOT own the pointers
+	std::vector<Aggrs::Agg*>	headwatches;	//	index on LITERALS, does NOT own the pointers
 	vvps					network;		// the pointer network of set var -> set
 
 	//statistics
@@ -212,7 +212,7 @@ public:
 	///////
 	// Watched literal sets
 	///////
-	void 				setHeadWatch			(Var head, Aggrs::Agg* agg);
+	void 				setHeadWatch			(Lit head, Aggrs::Agg* agg);
 	void 				addPermWatch			(Var v, Aggrs::Watch* w);
 	void 				addTempWatch			(const Lit& l, Aggrs::Watch* w);
 

@@ -270,6 +270,7 @@ rClause GenPWAgg::reconstructSet(pgpw watch, bool& propagations){
 	}
 
 	//Add watches until satisfied
+	//gprintLit((**getSet().getAgg().begin()).getHead()); report(" %d, %d\n", min, max);
 	for(int i=0;
 			!isSatisfied(**getSet().getAgg().begin(), min, max) &&
 			!isSatisfied(**getSet().getAgg().begin(), knownmin, knownmax) &&
@@ -290,6 +291,7 @@ rClause GenPWAgg::reconstructSet(pgpw watch, bool& propagations){
 			addToWatchedSet(i);
 			i--;
 		}
+		//gprintLit((**getSet().getAgg().begin()).getHead()); report(" %d, %d\n", min, max);
 	}
 
 	//if head was unknown before method start, at most head can have been propagated
@@ -298,7 +300,12 @@ rClause GenPWAgg::reconstructSet(pgpw watch, bool& propagations){
 		return confl;
 	}
 	//If certainly satisfied, do not have to add more watches
-	if(isSatisfied(**getSet().getAgg().begin(), knownmin, knownmax)){
+/*	if(isSatisfied(**getSet().getAgg().begin(), knownmin, knownmax)){
+		propagations = true;
+		return confl;
+	}*/
+	//TODO previous seems to be an incorrect overapproximation?
+	if(largest==NULL){
 		propagations = true;
 		return confl;
 	}

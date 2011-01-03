@@ -108,7 +108,7 @@ public:
 	Weight 		getBestPossible			(TypedSet* set) 						const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
-	Weight		add						(const Weight& lhs, const Weight& rhs) 	const { assert(false); return 0; }
+	Weight		add						(const Weight& lhs, const Weight& rhs) 	const { return lhs>rhs?lhs:rhs; }
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const { assert(false); return 0; }
 	bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const;
 	Propagator*	createPropagator		(TypedSet* set, bool pw) const;

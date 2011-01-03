@@ -4,8 +4,6 @@
 #include "modules/AggSolver.hpp"
 #include "theorysolvers/PCSolver.hpp"
 
-#include "PbSolver.h"
-
 #include "modules/aggsolver/FullyWatched.hpp"
 #include "modules/aggsolver/PartiallyWatched.hpp"
 
@@ -238,7 +236,12 @@ Propagator::Propagator(TypedSet* set):set(set), aggsolver(set->getSolver()){
 // Final initialization call!
 void Propagator::initialize(bool& unsat, bool& sat) {
 	for (vsize i = 0; i < getSet().getAgg().size(); i++) {
-		getSolver()->setHeadWatch(var(getSet().getAgg()[i]->getHead()), getSet().getAgg()[i]);
+		if(getSet().getAgg()[i]->getSem()==IMPLICATION){
+			getSolver()->setHeadWatch(~getSet().getAgg()[i]->getHead(), getSet().getAgg()[i]);
+		}else{
+			getSolver()->setHeadWatch(getSet().getAgg()[i]->getHead(), getSet().getAgg()[i]);
+			getSolver()->setHeadWatch(~getSet().getAgg()[i]->getHead(), getSet().getAgg()[i]);
+		}
 	}
 }
 
