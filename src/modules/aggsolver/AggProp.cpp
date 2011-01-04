@@ -133,6 +133,7 @@ Weight ProdProp::add(const Weight& lhs, const Weight& rhs) const {
 
 Weight ProdProp::remove(const Weight& lhs, const Weight& rhs) const {
 	Weight w = 0;
+	assert(rhs!=0);
 	if (rhs != 0) {
 		w = lhs / rhs;
 		if (w == 1 && lhs > rhs) {
@@ -165,30 +166,24 @@ WL ProdProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* 
 ///////
 
 Propagator*	MaxProp::createPropagator(TypedSet* set, bool pw) const{
+	//FIXME watched?
 	return new MaxFWAgg(set);
 }
 
 Propagator*	SumProp::createPropagator(TypedSet* set, bool pw) const{
-	if(pw){
+	//Extremely ugly!
+	if(pw && !set->getAgg()[0]->isDefined()){
 		if(getType()==CARD){
 			return new CardGenPWAgg(set);
 		}else{
 			return new SumGenPWAgg(set);
 		}
 	}
-	//if(pw && getType()==CARD){
-		//FIXME: CURRENTLY WORKS INCORRECTLY:
-		//one issue with propagated value instead of value
-		//one issue with multiple watches becoming false
-		//...
-		//recommendation: scrap
-		//return new CardPWAgg(set);
-	//}
 	return new SumFWAgg(set);
 }
 
 Propagator*	ProdProp::createPropagator(TypedSet* set, bool pw) const{
-	if(pw){
+	if(pw && !set->getAgg()[0]->isDefined()){
 		return new GenPWAgg(set);
 	}
 	return new ProdFWAgg(set);
@@ -217,8 +212,10 @@ void TypedSet::replaceAgg(const vpagg& repl){
  * Initialize the datastructures. If it's neither sat nor unsat and it is defined, notify the pcsolver of this
  */
 void TypedSet::initialize(bool& unsat, bool& sat, vps& sets) {
-	for(auto i=getTransformations().begin(); !sat && !unsat && i<getTransformations().end(); i++) {
-		(*i)->transform(getSolver(), this, sets, unsat, sat);
+	for(auto i=transformations.begin(); !sat && !unsat && i<transformations.end(); i++) {
+		AggTransform* transfo = *i;
+		transformations.erase(i); i--;
+		transfo->transform(getSolver(), this, sets, unsat, sat);
 	}
 
 	if(sat || unsat){ return; }
@@ -228,7 +225,7 @@ void TypedSet::initialize(bool& unsat, bool& sat, vps& sets) {
 
 	if(sat || unsat){ return; }
 
-	for (vsize i = 0; i < getAgg().size(); i++) {
+	for (auto i = 0; i < getAgg().size(); i++) {
 		if (getAgg()[i]->isDefined()) {
 			getSolver()->notifyDefinedHead(var(getAgg()[i]->getHead()));
 		}
@@ -241,12 +238,12 @@ Propagator::Propagator(TypedSet* set):set(set), aggsolver(set->getSolver()){
 
 // Final initialization call!
 void Propagator::initialize(bool& unsat, bool& sat) {
-	for (vsize i = 0; i < getSet().getAgg().size(); i++) {
-		if(getSet().getAgg()[i]->getSem()==IMPLICATION){
-			getSolver()->setHeadWatch(~getSet().getAgg()[i]->getHead(), getSet().getAgg()[i]);
+	for (auto i = getSet().getAgg().begin(); i < getSet().getAgg().end(); i++) {
+		if((*i)->getSem()==IMPLICATION){
+			getSolver()->setHeadWatch(~(*i)->getHead(), (*i));
 		}else{
-			getSolver()->setHeadWatch(getSet().getAgg()[i]->getHead(), getSet().getAgg()[i]);
-			getSolver()->setHeadWatch(~getSet().getAgg()[i]->getHead(), getSet().getAgg()[i]);
+			getSolver()->setHeadWatch((*i)->getHead(), (*i));
+			getSolver()->setHeadWatch(~(*i)->getHead(), (*i));
 		}
 	}
 }

@@ -76,7 +76,7 @@ void Aggrs::print(int verbosity, const TypedSet& c, bool endl) {
 			report("(%s)", value==l_Undef?"X":value==l_True?"T":"F");
 			report("=%s", toString((*i).getWeight()).c_str());
 		}
-		report(" }");
+		report(" }, KB=%s", toString(c.getKnownBound()).c_str());
 	}
 	if (endl) {
 		report("\n");

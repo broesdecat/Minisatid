@@ -246,13 +246,8 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	vps satsets;
 	for (vsize i=0; !unsat && i<sets().size(); i++) {
 		TypedSet* set = sets()[i];
-
-		if(set->getAgg().size()==0){
-			satsets.push_back(set);
-			continue;
-		}
-
 		bool setsat = false;
+
 		if(!unsat && !setsat){
 			set->initialize(unsat, setsat, sets());
 		}
@@ -266,6 +261,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		if(setsat){
 			satsets.push_back(set);
 		}else{
+			assert(set->getAgg().size()>0);
 			remainingsets.push_back(set);
 		}
 	}

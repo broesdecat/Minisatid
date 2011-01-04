@@ -146,8 +146,6 @@ void MapToSetOneToOneWithAgg::transform(AggSolver* solver, TypedSet* set, vps& s
 	assert(set->getAgg().size()==1);
 }
 
-//TODO a new set goes through the transformations again, an adapted one does not (might yield improvement?)
-//Or add a vector new sets that should not be transformed any more
 void MapToSetOneToOneWithAggImpl::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
 	//Only if using pwatches
 	if(!solver->getPCSolver()->modes().watchedagg){
@@ -160,7 +158,8 @@ void MapToSetOneToOneWithAggImpl::transform(AggSolver* solver, TypedSet* set, vp
 		return;
 	}
 
-	if(set->getAgg()[0]->getType()==MAX){
+	//FIXME temporaries!
+	if(set->getAgg()[0]->getType()==MAX || set->getAgg()[0]->isDefined()){
 		return;
 	}
 
@@ -183,9 +182,11 @@ void MapToSetOneToOneWithAggImpl::transform(AggSolver* solver, TypedSet* set, vp
 	sets.push_back(newset);
 }
 
-//@pre: at least one aggregate present
 void PartitionIntoTypes::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
-	assert(set->getAgg().size() > 0);
+	if(set->getAgg().size()==0){
+		sat = true;
+		return;
+	}
 	//Partition the aggregates according to their type
 	map<AggType, vpagg> partaggs;
 	for (auto i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
@@ -196,7 +197,8 @@ void PartitionIntoTypes::transform(AggSolver* solver, TypedSet* set, vps& sets, 
 	set->replaceAgg((*i).second);
 	i++;
 	for (; i != partaggs.end(); i++) {
-		TypedSet* newset = new TypedSet(set->getSolver(), set->getSetID());
+		TypedSet* newset = new TypedSet(*set);
+		assert((*i).second.size()>0);
 		newset->replaceAgg((*i).second);
 		newset->setWL(set->getWL());
 		sets.push_back(newset);
@@ -275,11 +277,6 @@ void VerifyWeights::transform(AggSolver* solver, TypedSet* set, vps& sets, bool&
 //@pre Has to be split
 //Adds the type objects and correct esv to the sets
 void AddTypes::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
-	if(set->getTypep()!=NULL){
-		//TODO check assertions
-		//FIXME is because there is something wrong in the order (with initializing KB and types)
-		return;
-	}
 	switch (set->getAgg()[0]->getType()) {
 		case MAX:
 			set->setType(AggProp::getMax());
@@ -296,7 +293,6 @@ void AddTypes::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsa
 		default:
 			assert(false);
 	}
-	set->setKnownBound(0);
 }
 
 void MinToMax::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
@@ -382,7 +378,7 @@ void MaxToSAT::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsa
  * 	bound-esv == 0 && upper => head is always true
  * 	bound-esv == 1 && upper => write out equivalence if not too large
  * 								if large, only write out if head already true
- * 	TODO others?
+ * 	FUTURE others?
  */
 void CardToEquiv::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
 	assert(!unsat);
@@ -437,7 +433,7 @@ struct PBAgg {
 	int sign;
 };
 
-//TODO allow complete translation into sat? => double bounds, defined aggregates, optimization
+//FUTURE allow complete translation into sat? => double bounds, defined aggregates, optimization
 bool Aggrs::transformSumsToCNF(vps& sets, PCSolver* pcsolver) {
 	int sumaggs = 0;
 	int maxvar = 1;

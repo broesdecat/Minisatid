@@ -116,6 +116,28 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 	rClause confl = reconstructSet(NULL, propagations);
 	if(confl!=nullPtrClause){ unsat = true; sat = false; return; }
 
+	//Check if can propagate head
+	lbool hv = l_Undef;
+	const Agg& agg = *aggs[0];
+	const Weight& b = agg.getCertainBound();
+	if(agg.hasUB()){
+		if(genmin > b){
+			hv = l_False;
+		}else if(genmax <= b){
+			hv = l_True;
+		}
+	}else{
+		if(genmin>= b){
+			hv = l_True;
+		}else if(genmax < b){
+			hv = l_False;
+		}
+	}
+	if (hv != l_Undef && !agg.isOptim()) {
+		sat = true;	return;
+	}
+
+
 	addWatchesToNetwork(); //Add set watches
 	PWAgg::initialize(unsat, sat); //Add head watches
 }
@@ -205,12 +227,8 @@ rClause GenPWAgg::checkPropagation(bool& propagations){
 	}
 
 	//Check head propagation
-	//If agg is true, then propagate ~head (head of THIS aggregate, not the original one)
 	//If agg is false, propagate head
-	if((agg.hasLB() && agg.getCertainBound()<=min) || (agg.hasUB() && max<=agg.getCertainBound())){
-		propagations = true;
-		confl = getSet().getSolver()->notifySolver(new AggReason(agg, basedon, ~agg.getHead(), Weight(0), true));
-	}else if((agg.hasLB() && max<agg.getCertainBound()) || (agg.hasUB() && agg.getCertainBound()<min)){
+	if((agg.hasLB() && max<agg.getCertainBound()) || (agg.hasUB() && agg.getCertainBound()<min)){
 		propagations = true;
 		confl = getSet().getSolver()->notifySolver(new AggReason(agg, basedon, agg.getHead(), Weight(0), true));
 	}
@@ -310,7 +328,6 @@ rClause GenPWAgg::reconstructSet(pgpw watch, bool& propagations){
 		return confl;
 	}
 
-
 	//Leave out largest and do the same
 	assert(largest!=NULL);
 	removeValue(largest->getWL().getWeight(), largest->isMonotone(), min, max);
@@ -399,20 +416,31 @@ rClause	GenPWAgg::propagateAtEndOfQueue(int level){
 void GenPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	const PCSolver& pcsol = *getSolver()->getPCSolver();
 	const Lit& head = ar.getAgg().getHead();
+	const Lit& comparelit = ar.getPropLit();
 	if(propagatedValue(head)!=l_Undef && var(ar.getPropLit())!=var(head)){
-		if(pcsol.assertedBefore(var(head), var(ar.getPropLit()))){
+		//FIXME problem in assertedbefore if the negation of the propagation is already on the stack (only looks to vars)
+		if(value(comparelit)==l_False || pcsol.assertedBefore(var(head), var(ar.getPropLit()))){
 			lits.push(propagatedValue(head)==l_True?~head:head);
 		}
 	}
 
-	Lit comparelit = ar.getPropLit();
-
 	for (vsize i = 0; i < getSet().getWL().size(); i++) {
 		const WL& wl = getSet().getWL()[i];
 		if (var(wl.getLit()) != var(comparelit) && propagatedValue(wl.getLit()) != l_Undef) {
-			if(pcsol.assertedBefore(var(wl.getLit()), var(comparelit))){
+			if(value(comparelit)==l_False || pcsol.assertedBefore(var(wl.getLit()), var(comparelit))){
 				lits.push(propagatedValue(wl.getLit())==l_True?~wl.getLit():wl.getLit());
 			}
 		}
+	}
+
+	if(getSolver()->verbosity()>=5){
+		report("Explanation for deriving "); gprintLit(ar.getPropLit());
+		report(" in expression ");
+		print(getSolver()->verbosity(), ar.getAgg(), false);
+		report(" is ");
+		for(int i=0; i<lits.size(); i++){
+			report(" "); gprintLit(lits[i]);
+		}
+		report("\n");
 	}
 }

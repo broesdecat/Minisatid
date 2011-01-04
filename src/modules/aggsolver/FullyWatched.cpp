@@ -24,10 +24,8 @@ FWAgg::FWAgg(TypedSet* set) :
 
 void FWAgg::initialize(bool& unsat, bool& sat) {
 	if (getSet().getAgg().size() == 0) {
-		sat = true;
-		return;
+		sat = true;	return;
 	}
-	//truth.resize(getSet().getWL().size(), l_Undef);
 
 	trail.push_back(new FWTrail(0, 0, 0));
 	setCP(getSet().getBestPossible());
@@ -50,6 +48,10 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 		}
 		agg->setIndex(counter++);
 		i++;
+	}
+
+	if(getSet().getAgg().size()==0){
+		sat = true; return;
 	}
 
 	for (vwl::const_iterator j = getSet().getWL().begin(); j < getSet().getWL().end(); j++) {
