@@ -317,13 +317,8 @@ rClause GenPWAgg::reconstructSet(pgpw watch, bool& propagations){
 	if(headval==l_Undef){
 		return confl;
 	}
-	//If certainly satisfied, do not have to add more watches
-/*	if(isSatisfied(**getSet().getAgg().begin(), knownmin, knownmax)){
-		propagations = true;
-		return confl;
-	}*/
-	//TODO previous seems to be an incorrect overapproximation?
-	if(largest==NULL){
+	//If certainly satisfied, do not have to add more watches, but do not delete the current ones!
+	if(isSatisfied(**getSet().getAgg().begin(), knownmin, knownmax)){
 		propagations = true;
 		return confl;
 	}
@@ -353,10 +348,6 @@ rClause GenPWAgg::reconstructSet(pgpw watch, bool& propagations){
 			addToWatchedSet(i);
 			i--;
 		}
-	}
-
-	if(!isSatisfied(**getSet().getAgg().begin(), min, max)){
-		propagations = true;
 	}
 
 	return confl;

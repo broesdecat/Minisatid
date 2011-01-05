@@ -1,0 +1,31 @@
+#!/bin/bash
+cinclude2dot --include=/usr/include/c++/4.2/,\
+/usr/include/c++/4.2/tr1/,\
+/usr/include/,\
+/usr/include/sys/,\
+/usr/include/malloc/,\
+/home/broes/documents/oursoftware/minisat/src/mtlold/,\
+/home/broes/documents/oursoftware/minisat/src/pbsolver/,\
+/home/broes/documents/oursoftware/minisat/src/pbsolver/ADTs,\
+/home/broes/documents/oursoftware/minisat/src/pbsolver/pbbase,\
+/home/broes/documents/oursoftware/minisat/src/solvers/,\
+/home/broes/documents/oursoftware/minisat/src/solvers/modules/,\
+/home/broes/documents/oursoftware/minisat/src/solvers/modules/aggsolver/,\
+/home/broes/documents/oursoftware/minisat/src/solvers/external/,\
+/home/broes/documents/oursoftware/minisat/src/solvers/theorysolvers/,\
+/home/broes/documents/oursoftware/minisat/src/solvers/parser/,\
+/home/broes/documents/oursoftware/minisat/src/solvers/utils/\
+/home/broes/documents/oursoftware/minisat/src/solvers/satsolver/\
+/home/broes/documents/oursoftware/minisat/src/solver3,\
+/home/broes/documents/oursoftware/minisat/src/solver3minisat,\
+/home/broes/documents/oursoftware/minisat/src/solver3minisat22,\
+/home/broes/documents/oursoftware/minisat/src/solver3minisat22/core,\
+/home/broes/documents/oursoftware/minisat/src/solver3minisat22/mtl,\
+/home/broes/documents/oursoftware/minisat/src/solver3minisat22/utils,\
+/home/broes/documents/oursoftware/minisat/src/solver3minisat22/simp,\
+/home/broes/documents/oursoftware/minisat/src/\
+--src=modules \
+--groups >/tmp/source.dot
+
+neato -Tps -Gepsilon=0.0001 -Gstart=rand /tmp/source.dot >/tmp/source.ps
+evince /tmp/source.ps
