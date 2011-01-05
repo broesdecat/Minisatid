@@ -2,6 +2,8 @@ AM_CXXFLAGS = @AC_CXXFLAGS@ -I$(srcdir)/ADTs/ -I$(srcdir)/ -I$(srcdir)/pbbase/h/
 AM_LDFLAGS = @AC_LDFLAGS@
 
 lib_LTLIBRARIES = libpbsolver-1.0.la
+libpbsolver_1_0_la_LDFLAGS = -version-info 1:2:0
+pbsolver_includedir = $(includedir)/pbsolver-1.0
 
 libpbsolver_1_0_la_SOURCES = Main.C \
 				Debug.C Hardware_adders.C Hardware_clausify.C \
@@ -11,12 +13,8 @@ libpbsolver_1_0_la_SOURCES = Main.C \
 				ADTs/FEnv.C ADTs/File.C ADTs/Global.C pbbase/src/ForwardSearch.cpp\
 				pbbase/src/BNB_oddEven_Cost.cpp pbbase/src/BNB_Comp_Cost.cpp pbbase/src/BNB_SOD_Carry_Cost.cpp  \
 				pbbase/src/GenralBaseFunctions.cpp pbbase/src/MiniSatOrig.cpp pbbase/src/RelativeBaseSearch.cpp\
-				pbbase/src/SearchMetaData.cpp pbbase/src/THeapComp.cpp pbbase/src/THeap.cpp
-
-libpbsolver_1_0_la_LDFLAGS = -version-info 1:2:0
-
-pbsolver_includedir = $(includedir)/pbsolver-1.0
-pbsolver_include_HEADERS = Main.h Hardware.h \
+				pbbase/src/SearchMetaData.cpp pbbase/src/THeapComp.cpp pbbase/src/THeap.cpp\
+				Main.h Hardware.h \
 				Debug.h DebugSolver.h MiniSat.h PbParser.h \
 				PbSolver.h SatELite.h Solver.h SolverTypes.h VarOrder.h\
 				ADTs/FEnv.h ADTs/File.h ADTs/Global.h ADTs/Hash_standard.h\
@@ -27,3 +25,5 @@ pbsolver_include_HEADERS = Main.h Hardware.h \
 				pbbase/h/BNB_SOD_Carry_Cost.h pbbase/h/ForwardSearch.h pbbase/h/GenralBaseFunctions.h \
 				pbbase/h/MiniSatOrig.h pbbase/h/RelativeBaseSearch.h pbbase/h/SearchMetaData.h\
 				pbbase/h/THeap.h pbbase/h/THeapComp.h
+				
+pbsolver_include_HEADERS = PbSolver.h

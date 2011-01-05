@@ -1,7 +1,7 @@
 
 libtclapincludedir = $(includedir)/tclap
 
-libtclapinclude_HEADERS = \
+noinst_HEADERS = \
 			 CmdLineInterface.h \
 			 ArgException.h \
 			 CmdLine.h \

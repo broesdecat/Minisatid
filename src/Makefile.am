@@ -28,9 +28,7 @@ minisatid_SOURCES = \
 		external/ExternalInterface.cpp external/ExternalUtils.cpp\
 		utils/Print.cpp utils/Utils.cpp utils/PrintMessage.cpp \
 		parser/ResourceManager.cpp parser/Lparseread.cpp parser/PBread.cpp parser/ParseOptions.cpp\
-		Unittests.cpp
-
-include_HEADERS = \
+		Unittests.cpp\
 		satsolver/SATSolver.hpp satsolver/SATUtils.hpp\
 		modules/DPLLTmodule.hpp modules/IDSolver.hpp modules/AggSolver.hpp modules/ModSolver.hpp\
 		modules/aggsolver/AggTransform.hpp modules/aggsolver/AggUtils.hpp\
@@ -46,37 +44,40 @@ include_HEADERS = \
 		Unittests.hpp
 
 #PBSOLVER
-include_HEADERS += pbsolver/PbSolver.h
+minisatid_SOURCES += pbsolver/PbSolver.h
 AM_CXXFLAGS += -I$(srcdir)/pbsolver/ -I$(srcdir)/pbsolver/pbbase/h/ -I$(srcdir)/pbsolver/ADTs/
 
 
 #MINISAT 2.07 09z
 if USEMINISAT09Z
-minisatid_SOURCES += solver3/Solver.cpp 
-include_HEADERS += solver3/Solver.hpp solver3/SolverTypes.hpp
-include_HEADERS += mtlold/Vec.h mtlold/Queue.h mtlold/Alg.h mtlold/Heap.h mtlold/Map.h mtlold/Sort.h
+minisatid_SOURCES +=\
+		solver3/Solver.cpp\
+		solver3/Solver.hpp solver3/SolverTypes.hpp\
+		mtlold/Vec.h mtlold/Queue.h mtlold/Alg.h mtlold/Heap.h mtlold/Map.h mtlold/Sort.h
 AM_CXXFLAGS+= -D USEMINISAT09Z
 endif
 
 
 #MINISAT 2.2
 if USEMINISAT22
-minisatid_SOURCES += solver3minisat22/core/Solver.cc
-include_HEADERS += 	solver3minisat22/core/Solver.h solver3minisat22/core/SolverTypes.h \
-					solver3minisat22/mtl/IntTypes.h solver3minisat22/mtl/Alg.h solver3minisat22/mtl/Vec.h\
-					solver3minisat22/mtl/Map.h solver3minisat22/mtl/Alloc.h\
-					solver3minisat22/mtl/Queue.h solver3minisat22/mtl/Heap.h\
-					solver3minisat22/mtl/Sort.h solver3minisat22/mtl/XAlloc.h\
-					solver3minisat22/utils/ParseUtils.h solver3minisat22/utils/Options.h\
-					solver3minisat22/zconf.h solver3minisat22/zlib.h
+minisatid_SOURCES +=\
+		solver3minisat22/core/Solver.cc\
+		solver3minisat22/core/Solver.h solver3minisat22/core/SolverTypes.h \
+		solver3minisat22/mtl/IntTypes.h solver3minisat22/mtl/Alg.h solver3minisat22/mtl/Vec.h\
+		solver3minisat22/mtl/Map.h solver3minisat22/mtl/Alloc.h\
+		solver3minisat22/mtl/Queue.h solver3minisat22/mtl/Heap.h\
+		solver3minisat22/mtl/Sort.h solver3minisat22/mtl/XAlloc.h\
+		solver3minisat22/utils/ParseUtils.h solver3minisat22/utils/Options.h\
+		solver3minisat22/zconf.h solver3minisat22/zlib.h
 AM_CXXFLAGS+= -D USEMINISAT22 -I$(srcdir)/solver3minisat22/
 #necessary if not used by minisatid itself! AM_CXXFLAGS+= -D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS 
 endif
 
 #MINISAT 2.07
 if USEMINISAT
-minisatid_SOURCES += solver3minisat/Solver.C
-include_HEADERS += solver3minisat/Solver.h solver3minisat/SolverTypes.h
-include_HEADERS += mtlold/Vec.h mtlold/Queue.h mtlold/Alg.h mtlold/Heap.h mtlold/Map.h mtlold/Sort.h
+minisatid_SOURCES +=\
+		solver3minisat/Solver.C\
+		solver3minisat/Solver.h solver3minisat/SolverTypes.h\
+		mtlold/Vec.h mtlold/Queue.h mtlold/Alg.h mtlold/Heap.h mtlold/Map.h mtlold/Sort.h
 AM_CXXFLAGS+= -D USEMINISAT
 endif
