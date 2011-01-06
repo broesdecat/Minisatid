@@ -8,6 +8,7 @@
 #include "modules/aggsolver/AggUtils.hpp"
 #include "modules/AggSolver.hpp"
 #include "theorysolvers/PCSolver.hpp"
+#include "modules/aggsolver/PartiallyWatched.hpp"
 
 #include "PbSolver.h"
 
@@ -33,7 +34,6 @@ public:
 		t.push_back(new SetReduce());
 		t.push_back(new CardToEquiv());
 		t.push_back(new AddHeadImplications());
-		t.push_back(new TurnIntoImplications());
 		t.push_back(new MapToSetWithSameAggSign());
 	}
 	~Transfo(){
@@ -146,32 +146,8 @@ void MapToSetOneToOneWithAgg::transform(AggSolver* solver, TypedSet* set, vps& s
 	assert(set->getAgg().size()==1);
 }
 
-void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* setone, vps& sets, bool& unsat, bool& sat) const {
-	vpagg aggs = setone->getAgg();
-	vpagg newaggs;
-	newaggs.push_back(aggs[0]);
-	setone->replaceAgg(newaggs);
-
-	TypedSet* settwo = new TypedSet(*setone);
-
-	for (vpagg::const_iterator i = ++aggs.begin(); i < aggs.end(); i++) {
-		if ((*i)->getSign() == setone->getAgg()[0]->getSign()) {
-			setone->addAgg(*i);
-		} else {
-			settwo->addAgg(*i);
-		}
-	}
-
-	if (settwo->getAgg().size() > 0) {
-		sets.push_back(settwo);
-	} else {
-		delete settwo;
-	}
-}
-
-void TurnIntoImplications::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
-	//Only if using pwatches
-	if(!solver->getPCSolver()->modes().watchedagg){
+void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
+	if(!solver->modes().watchedagg){
 		return;
 	}
 
@@ -182,7 +158,8 @@ void TurnIntoImplications::transform(AggSolver* solver, TypedSet* set, vps& sets
 		return;
 	}
 
-	vpagg newaggs, del;
+	//create implication aggs
+	vpagg implaggs, del;
 	for(auto i=set->getAgg().begin(); i<set->getAgg().end(); i++){
 		const Agg& agg = *(*i);
 		Agg *one, *two;
@@ -191,11 +168,55 @@ void TurnIntoImplications::transform(AggSolver* solver, TypedSet* set, vps& sets
 		one = new Agg(~agg.getHead(), AggBound(agg.getSign(), agg.getBound()), IMPLICATION, agg.getType(), agg.isOptim());
 		two = new Agg(agg.getHead(), AggBound(signtwo, weighttwo), IMPLICATION, agg.getType(), agg.isOptim());
 
-		newaggs.push_back(one);
-		newaggs.push_back(two);
+		implaggs.push_back(one);
+		implaggs.push_back(two);
 		del.push_back(*i);
 	}
-	set->replaceAgg(newaggs, del);
+
+	//separate in both signs
+	vpagg signoneaggs, signtwoaggs;
+	signoneaggs.push_back(implaggs[0]);
+	for (vpagg::const_iterator i = ++implaggs.begin(); i < implaggs.end(); i++) {
+		if ((*i)->getSign() == implaggs[0]->getSign()) {
+			signoneaggs.push_back(*i);
+		} else {
+			signtwoaggs.push_back(*i);
+		}
+	}
+
+	//for each, generate watches and count ratio
+	TypedSet* signoneset = new TypedSet(*set);
+	signoneset->replaceAgg(signoneaggs);
+	GenPWAgg* propone = new GenPWAgg(signoneset);
+	signoneset->setProp(propone);
+	double ratioone = propone->testGenWatchCount();
+
+	double ratiotwo = 0;
+	TypedSet* signtwoset = NULL;
+	if(signtwoaggs.size()>0){
+		signtwoset = new TypedSet(*set);
+		signtwoset->replaceAgg(signtwoaggs);
+		GenPWAgg* proptwo = new GenPWAgg(signtwoset);
+		signtwoset->setProp(proptwo);
+		ratiotwo = proptwo->testGenWatchCount();
+	}
+
+	if(ratioone*0.5+ratiotwo*0.5<0.6){
+		if(signtwoset!=NULL){
+			vpagg empty;
+			signtwoset->replaceAgg(empty); //FIXME should add check that aggregate is indeed still referring to that set
+		}
+		set->replaceAgg(signtwoaggs, del);
+		
+		delete propone;
+		signoneset->setProp(NULL);
+		sets.push_back(signoneset);
+	}else{
+		delete signoneset;
+	}
+	if(signtwoset!=NULL){
+		delete signtwoset;
+	}
 }
 
 void PartitionIntoTypes::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {

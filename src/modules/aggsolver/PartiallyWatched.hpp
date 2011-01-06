@@ -106,10 +106,11 @@ public:
 	void 		addValue(const Weight& weight, bool inset, Weight& min, Weight& max) const;
 	void 		removeValue(const Weight& weight, bool inset, Weight& min, Weight& max) const;
 
-	rClause 	reconstructSet(pgpw watch, bool& propagations);
-	rClause 	reconstructSet(const Agg& agg, pgpw watch, bool& propagations);
+	rClause 	reconstructSet(pgpw watch, bool& propagations, Agg const * propagg);
+	void 		genWatches(int& i, const Agg& agg, Weight& min, Weight& max, Weight& knownmin, Weight& knownmax, GenPWatch*& largest);
 
-	rClause 	checkPropagation(bool& propagations);
+	rClause 	checkPropagation(bool& propagations, Agg const * agg);
+	rClause 	checkOneAggPropagation(bool& propagations, const Agg& agg, const Weight& min, const Weight& max);
 
 	void 		addToWatchedSet(vsize index);
 	void 		removeFromWatchedSet(pgpw pw);
@@ -125,6 +126,8 @@ public:
 
 	vpgpw& 		getNWS() { return nws; }
 	vpgpw& 		getWS() { return ws; }
+
+	double 		testGenWatchCount();
 };
 
 class CardGenPWAgg: public GenPWAgg{

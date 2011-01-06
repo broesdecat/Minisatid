@@ -172,7 +172,7 @@ Propagator*	MaxProp::createPropagator(TypedSet* set, bool pw) const{
 
 Propagator*	SumProp::createPropagator(TypedSet* set, bool pw) const{
 	//Extremely ugly!
-	if(pw && !set->getAgg()[0]->isDefined()){
+	if(pw && !set->getAgg()[0]->isDefined() && set->getAgg()[0]->getSem()==IMPLICATION){
 		if(getType()==CARD){
 			return new CardGenPWAgg(set);
 		}else{
@@ -183,7 +183,7 @@ Propagator*	SumProp::createPropagator(TypedSet* set, bool pw) const{
 }
 
 Propagator*	ProdProp::createPropagator(TypedSet* set, bool pw) const{
-	if(pw && !set->getAgg()[0]->isDefined()){
+	if(pw && !set->getAgg()[0]->isDefined() && set->getAgg()[0]->getSem()==IMPLICATION){
 		return new GenPWAgg(set);
 	}
 	return new ProdFWAgg(set);
