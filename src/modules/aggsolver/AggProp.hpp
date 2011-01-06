@@ -214,7 +214,7 @@ public:
 	const vwl&		getWL			()			const 			{ return wl; }
 	void			setWL			(const vwl& wl2)			{ wl=wl2; stable_sort(wl.begin(), wl.end(), compareWLByWeights);}
 
-	const std::vector<Agg*>& getAgg		()	 						{ return aggregates; }
+	const std::vector<Agg*>& getAgg		()	const					{ return aggregates; }
 	std::vector<Agg*>& getAggNonConst	()	 						{ return aggregates; }
 	void			replaceAgg		(const vpagg& repl)			;
 	void 			addAgg			(Agg* aggr) 				;
