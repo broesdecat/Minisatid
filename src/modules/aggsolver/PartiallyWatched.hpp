@@ -89,6 +89,7 @@ class GenPWAgg: public PWAgg{
 private:
 	vpgpw ws, nws;
 	Weight genmin, genmax; //min and max values on the empty interpretation
+	Agg const * worstagg;
 
 public:
 	GenPWAgg(TypedSet* set);

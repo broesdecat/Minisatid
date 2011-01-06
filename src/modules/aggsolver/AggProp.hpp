@@ -216,8 +216,9 @@ public:
 
 	const std::vector<Agg*>& getAgg		()	const					{ return aggregates; }
 	std::vector<Agg*>& getAggNonConst	()	 						{ return aggregates; }
-	void			replaceAgg		(const vpagg& repl)			;
-	void 			addAgg			(Agg* aggr) 				;
+	void			replaceAgg		(const vpagg& repl);
+	void			replaceAgg		(const vpagg& repl, const vpagg& del);
+	void 			addAgg			(Agg* aggr);
 
 	const Weight&	getKnownBound	()			const			{ return kb; }
 	void 			setKnownBound	(const Weight& w)			{ kb = w; }

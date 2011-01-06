@@ -261,7 +261,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		if(setsat){
 			satsets.push_back(set);
 		}else{
-			assert(set->getAgg().size()>0);
+			assert(unsat || set->getAgg().size()>0);
 			remainingsets.push_back(set);
 		}
 	}

@@ -74,7 +74,12 @@ public:
 	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
 };
 
-class MapToSetOneToOneWithAggImpl : public AggTransform{
+class MapToSetWithSameAggSign : public AggTransform{
+public:
+	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
+};
+
+class TurnIntoImplications : public AggTransform{
 public:
 	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
 };
@@ -85,6 +90,3 @@ bool transformSumsToCNF(vps& sets, MinisatID::PCSolver* pcsolver);
 }
 
 #endif /* AGGTRANSFORM_HPP_ */
-
-
-//bool transformOneToOneSetToSignMapping(TypedSet* set, vps& sets);

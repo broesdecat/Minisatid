@@ -33,8 +33,8 @@ public:
 		t.push_back(new SetReduce());
 		t.push_back(new CardToEquiv());
 		t.push_back(new AddHeadImplications());
-		t.push_back(new MapToSetOneToOneWithAgg());
-		t.push_back(new MapToSetOneToOneWithAggImpl());
+		t.push_back(new TurnIntoImplications());
+		t.push_back(new MapToSetWithSameAggSign());
 	}
 	~Transfo(){
 		deleteList<AggTransform>(t);
@@ -146,40 +146,56 @@ void MapToSetOneToOneWithAgg::transform(AggSolver* solver, TypedSet* set, vps& s
 	assert(set->getAgg().size()==1);
 }
 
-void MapToSetOneToOneWithAggImpl::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
+void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* setone, vps& sets, bool& unsat, bool& sat) const {
+	vpagg aggs = setone->getAgg();
+	vpagg newaggs;
+	newaggs.push_back(aggs[0]);
+	setone->replaceAgg(newaggs);
+
+	TypedSet* settwo = new TypedSet(*setone);
+
+	for (vpagg::const_iterator i = ++aggs.begin(); i < aggs.end(); i++) {
+		if ((*i)->getSign() == setone->getAgg()[0]->getSign()) {
+			setone->addAgg(*i);
+		} else {
+			settwo->addAgg(*i);
+		}
+	}
+
+	if (settwo->getAgg().size() > 0) {
+		sets.push_back(settwo);
+	} else {
+		delete settwo;
+	}
+}
+
+void TurnIntoImplications::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
 	//Only if using pwatches
 	if(!solver->getPCSolver()->modes().watchedagg){
 		return;
 	}
 
-	assert(set->getAgg().size()==1);
+	assert(set->getAgg()[0]->getSem()!=IMPLICATION); //FIXME add to other transformations!
 
-	if(set->getAgg()[0]->getSem()==IMPLICATION){ //FIXME add to other transformations!
-		return;
-	}
-
-	//FIXME temporaries!
+	//FIXME temporary!
 	if(set->getAgg()[0]->getType()==MAX || set->getAgg()[0]->isDefined()){
 		return;
 	}
 
-	const Agg& agg = *set->getAgg()[0];
-	Agg *one, *two;
-	one = new Agg(~agg.getHead(), AggBound(agg.getSign(), agg.getBound()), IMPLICATION, agg.getType(), agg.isOptim());
+	vpagg newaggs, del;
+	for(auto i=set->getAgg().begin(); i<set->getAgg().end(); i++){
+		const Agg& agg = *(*i);
+		Agg *one, *two;
+		Weight weighttwo = agg.getSign()==AGGSIGN_LB?agg.getBound()-1:agg.getBound()+1;
+		AggSign signtwo = agg.getSign()==AGGSIGN_LB?AGGSIGN_UB:AGGSIGN_LB;
+		one = new Agg(~agg.getHead(), AggBound(agg.getSign(), agg.getBound()), IMPLICATION, agg.getType(), agg.isOptim());
+		two = new Agg(agg.getHead(), AggBound(signtwo, weighttwo), IMPLICATION, agg.getType(), agg.isOptim());
 
-	Weight weighttwo = agg.getSign()==AGGSIGN_LB?agg.getBound()-1:agg.getBound()+1;
-	AggSign signtwo = agg.getSign()==AGGSIGN_LB?AGGSIGN_UB:AGGSIGN_LB;
-	two = new Agg(agg.getHead(), AggBound(signtwo, weighttwo), IMPLICATION, agg.getType(), agg.isOptim());
-
-	delete set->getAgg()[0];
-
-	vpagg newaggs;
-	newaggs.push_back(one);
-	set->replaceAgg(newaggs);
-
-	TypedSet* newset = new TypedSet(*set);
-	newset->addAgg(two);
-	sets.push_back(newset);
+		newaggs.push_back(one);
+		newaggs.push_back(two);
+		del.push_back(*i);
+	}
+	set->replaceAgg(newaggs, del);
 }
 
 void PartitionIntoTypes::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
@@ -542,29 +558,3 @@ bool Aggrs::transformSumsToCNF(vps& sets, PCSolver* pcsolver) {
 
 	return true;
 }
-
-//bool Aggrs::transformOneToOneSetToSignMapping(AggSolver* solver, TypedSet* setone, vps& sets) {
-//	vpagg aggs = setone->getAgg();
-//
-//	vpagg newaggs;
-//	newaggs.push_back(aggs[0]);
-//	setone->replaceAgg(newaggs);
-//
-//	TypedSet* settwo = new TypedSet(setone->getSolver(), setone->getSetID());
-//	settwo->setWL(setone->getWL());
-//
-//	for (vpagg::const_iterator i = ++aggs.begin(); i < aggs.end(); i++) {
-//		if ((*i)->getSign() == setone->getAgg()[0]->getSign()) {
-//			setone->addAgg(*i);
-//		} else {
-//			settwo->addAgg(*i);
-//		}
-//	}
-//
-//	if (settwo->getAgg().size() > 0) {
-//		sets.push_back(settwo);
-//	} else {
-//		delete settwo;
-//	}
-//	return true;
-//}

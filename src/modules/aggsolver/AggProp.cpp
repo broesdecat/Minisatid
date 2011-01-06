@@ -133,7 +133,7 @@ Weight ProdProp::add(const Weight& lhs, const Weight& rhs) const {
 
 Weight ProdProp::remove(const Weight& lhs, const Weight& rhs) const {
 	Weight w = 0;
-	assert(rhs!=0);
+	assert(rhs!=0); //FIXME should prevent this from happening
 	if (rhs != 0) {
 		w = lhs / rhs;
 		if (w == 1 && lhs > rhs) {
@@ -200,11 +200,17 @@ void TypedSet::replaceAgg(const vpagg& repl){
 	for(auto i=aggregates.begin(); i<aggregates.end(); i++){
 		(*i)->setTypedSet(NULL);
 		(*i)->setIndex(-1);
-		//FIXME delete those agg?
 	}
 	aggregates.clear();
 	for(auto i=repl.begin(); i<repl.end(); i++){
 		addAgg(*i);
+	}
+}
+
+void TypedSet::replaceAgg(const vpagg& repl, const vpagg& del){
+	replaceAgg(repl);
+	for(auto i=del.begin(); i<del.end(); i++){
+		delete *i;
 	}
 }
 
