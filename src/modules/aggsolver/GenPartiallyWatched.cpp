@@ -107,7 +107,6 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 	genmin = set.getType().getESV();
 	genmax = set.getType().getESV();
 	const vwl& wls = set.getWL();
-	Weight temp(0);
 	for(vsize i=0; i<wls.size(); i++){
 		const WL& wl = wls[i];
 		bool mono = set.getType().isMonotone(**set.getAgg().begin(), wl);
@@ -318,7 +317,7 @@ rClause GenPWAgg::reconstructSet(pgpw watch, bool& propagations, Agg const * pro
 	}
 
 	//Add watches until satisfied
-	int i = 0;
+	vsize i = 0;
 	genWatches(i, agg, min, max, knownmin, knownmax, largest);
 
 	//if head was unknown before method start, at most head can have been propagated
@@ -342,7 +341,7 @@ rClause GenPWAgg::reconstructSet(pgpw watch, bool& propagations, Agg const * pro
 	return confl;
 }
 
-void GenPWAgg::genWatches(int& i, const Agg& agg, Weight& min, Weight& max, Weight& knownmin, Weight& knownmax, GenPWatch*& largest){
+void GenPWAgg::genWatches(vsize& i, const Agg& agg, Weight& min, Weight& max, Weight& knownmin, Weight& knownmax, GenPWatch*& largest){
 	for(;!isSatisfied(agg, min, max) && !isSatisfied(agg, knownmin, knownmax) && i<getNWS().size(); i++){
 		WL wl = getNWS()[i]->getWL();
 		lbool val = value(wl.getLit());
@@ -409,6 +408,18 @@ rClause	GenPWAgg::propagateAtEndOfQueue(int level){
 	return confl;
 }
 
+struct WLI: public WL{
+	int time;
+	bool inset;
+
+	WLI(): WL(createPositiveLiteral(1), Weight(0)), time(0), inset(false){}
+	WLI(const WL& wl, int time, bool inset): WL(wl), time(time), inset(inset){}
+};
+
+bool compareWLIearlier(const WLI& one, const WLI& two){
+	return one.time < two.time;
+}
+
 void GenPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	const PCSolver& pcsol = *getSolver()->getPCSolver();
 	const Lit& head = ar.getAgg().getHead();
@@ -421,16 +432,39 @@ void GenPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 		lits.push(headval==l_True?~head:head);
 	}
 
-	for (vsize i = 0; i < getSet().getWL().size(); i++) {
-		const WL& wl = getSet().getWL()[i];
+	vector<WLI> wlis;
+	for(auto i=getWS().begin(); i<getWS().end(); i++){
+		lbool val = value((*i)->getWatchLit());
+		if(val==l_True){
+			wlis.push_back(WLI((*i)->getWL(), getSolver()->getTime((*i)->getWL().getLit()), (*i)->getWatchLit()==(*i)->getWL().getLit()));
+		}
+	}
+	for(auto i=getNWS().begin(); i<getNWS().end(); i++){
+		lbool val = value((*i)->getWatchLit());
+		if(val==l_True){
+			wlis.push_back(WLI((*i)->getWL(), getSolver()->getTime((*i)->getWL().getLit()), (*i)->getWatchLit()==(*i)->getWL().getLit()));
+		}
+	}
+
+	//Follow propagation order
+	sort(wlis.begin(), wlis.end(), compareWLIearlier);
+
+	Weight min=genmin, max=genmax;
+	//Calc min and max
+	for(auto i=wlis.begin(); !isSatisfied(ar.getAgg(), min, max) && i<wlis.end(); i++){
+		const WLI& wl = *i;
+		if(var(wl.getLit())==var(comparelit)){
+			continue;
+		}
 		lbool val = value(wl.getLit());
-		if(var(wl.getLit())!=var(comparelit) && val!=l_Undef &&
-				(conflictclause || pcsol.assertedBefore(var(wl.getLit()), var(comparelit)))){
+
+		addValue(wl.getWeight(), wl.inset, min, max);
+		if(conflictclause || pcsol.assertedBefore(var(wl.getLit()), var(comparelit))){
 			lits.push(val==l_True?~wl.getLit():wl.getLit());
 		}
 	}
 
-	if(getSolver()->verbosity()>=5){
+	if(getSolver()->verbosity()>=3){
 		report("Explanation for deriving "); gprintLit(ar.getPropLit());
 		report(" in expression ");
 		print(getSolver()->verbosity(), ar.getAgg(), false);
@@ -450,7 +484,6 @@ double GenPWAgg::testGenWatchCount() {
 	genmin = set.getType().getESV();
 	genmax = set.getType().getESV();
 	const vwl& wls = set.getWL();
-	Weight temp(0);
 	for(vsize i=0; i<wls.size(); i++){
 		const WL& wl = wls[i];
 		bool mono = set.getType().isMonotone(**set.getAgg().begin(), wl);
@@ -505,7 +538,7 @@ double GenPWAgg::testGenWatchCount() {
 		}
 	}
 
-	int i = 0;
+	vsize i = 0;
 	for(;!isSatisfied(agg, min, max) && !isSatisfied(agg, knownmin, knownmax) && i<getNWS().size(); i++){
 		WL wl = getNWS()[i]->getWL();
 		lbool val = value(wl.getLit());
@@ -527,7 +560,7 @@ double GenPWAgg::testGenWatchCount() {
 
 	//if head was unknown before method start, at most head can have been propagated
 	//so do not have to find second supporting ws
-	if(!oneagg || value(agg.getHead())!=l_Undef || (largest!=NULL && !isSatisfied(agg, knownmin, knownmax))){
+	if((!oneagg || value(agg.getHead())!=l_Undef) && (largest!=NULL && !isSatisfied(agg, knownmin, knownmax))){
 		removeValue(largest->getWL().getWeight(), largest->isMonotone(), min, max);
 
 		//Again until satisfied IMPORTANT: continue from previous index!

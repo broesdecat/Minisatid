@@ -201,19 +201,19 @@ void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& s
 		ratiotwo = proptwo->testGenWatchCount();
 	}
 
-	if(ratioone*0.5+ratiotwo*0.5<0.6){
+	//if(ratioone*0.5+ratiotwo*0.5<1){
 		if(signtwoset!=NULL){
 			vpagg empty;
-			signtwoset->replaceAgg(empty); //FIXME should add check that aggregate is indeed still referring to that set
+			signtwoset->replaceAgg(empty);
 		}
 		set->replaceAgg(signtwoaggs, del);
 		
 		delete propone;
 		signoneset->setProp(NULL);
 		sets.push_back(signoneset);
-	}else{
+	/*}else{
 		delete signoneset;
-	}
+	}*/
 	if(signtwoset!=NULL){
 		delete signtwoset;
 	}

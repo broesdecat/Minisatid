@@ -196,6 +196,7 @@ void TypedSet::addAgg(Agg* aggr){
 	aggr->setIndex(aggregates.size()-1);
 }
 
+//FIXME should add check that aggregate is indeed still referring to that set
 void TypedSet::replaceAgg(const vpagg& repl){
 	for(auto i=aggregates.begin(); i<aggregates.end(); i++){
 		(*i)->setTypedSet(NULL);
@@ -231,9 +232,9 @@ void TypedSet::initialize(bool& unsat, bool& sat, vps& sets) {
 
 	if(sat || unsat){ return; }
 
-	for (auto i = 0; i < getAgg().size(); i++) {
-		if (getAgg()[i]->isDefined()) {
-			getSolver()->notifyDefinedHead(var(getAgg()[i]->getHead()));
+	for (auto i = getAgg().begin(); i < getAgg().end(); i++) {
+		if ((*i)->isDefined()) {
+			getSolver()->notifyDefinedHead(var((*i)->getHead()));
 		}
 	}
 }

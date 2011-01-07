@@ -84,6 +84,13 @@ typedef std::vector<vpw> vvpw;
  * heuristic to delay propagations.
  */
 
+struct LI{
+	lbool v;
+	int i;
+	LI():v(l_Undef), i(0){}
+	LI(lbool v, int i): v(v), i(i){}
+};
+
 class AggSolver: public DPLLTmodule{
 private:
 	mips 					_parsedSets;
@@ -107,8 +114,9 @@ private:
 	bool 											noprops;
 
 	std::vector<int>								mapdecleveltotrail;
+	int 											index;
 	std::vector<Lit>								fulltrail;
-	std::vector<lbool>								propagated;
+	std::vector<LI>									propagated;
 
 public:
 	AggSolver(pPCSolver s);
@@ -212,16 +220,18 @@ public:
 	void 				addPermWatch			(Var v, Aggrs::Watch* w);
 	void 				addTempWatch			(const Lit& l, Aggrs::Watch* w);
 
-	void				addToPropTrail				(Aggrs::TypedSet* set) { proptrail.push_back(set); }
-	void				addToBackTrail				(Aggrs::TypedSet* set) { backtrail.back().push_back(set); }
+	void				addToPropTrail			(Aggrs::TypedSet* set) { proptrail.push_back(set); }
+	void				addToBackTrail			(Aggrs::TypedSet* set) { backtrail.back().push_back(set); }
+
+	int					getTime					(Lit l)	{ return propagated[var(l)].i; }
 
 	lbool				propagatedValue			(const Lit& l) {
-		assert(value(l)!=l_Undef || propagated[var(l)]==l_Undef);
+		assert(value(l)!=l_Undef || propagated[var(l)].v==l_Undef);
 		if(sign(l)){
-			lbool v = propagated[var(l)];
+			lbool v = propagated[var(l)].v;
 			return v==l_Undef?l_Undef:v==l_True?l_False:l_True;
 		}else{
-			return propagated[var(l)];
+			return propagated[var(l)].v;
 		}
 	}
 

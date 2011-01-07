@@ -397,7 +397,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 		lits.push(~(*i).getLit());
 	}
 
-	if(getSolver()->verbosity()>=5){
+	if(getSolver()->verbosity()>=3){
 		report("Explanation for ");
 		print(getSolver()->verbosity(), agg, false);
 		report("is\n");

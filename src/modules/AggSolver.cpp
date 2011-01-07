@@ -60,7 +60,7 @@ using namespace MinisatID;
 using namespace Aggrs;
 
 AggSolver::AggSolver(pPCSolver s) :
-	DPLLTmodule(s), propagations(0) {
+	DPLLTmodule(s), propagations(0), index(1) {
 }
 
 AggSolver::~AggSolver() {
@@ -76,7 +76,7 @@ void AggSolver::notifyVarAdded(uint64_t nvars) {
 	network.resize(nvars);
 	tempwatches.resize(2 * nvars);
 	aggreason.resize(nvars, NULL);
-	propagated.resize(nvars, l_Undef);
+	propagated.resize(nvars, LI(l_Undef, 0));
 }
 
 void AggSolver::notifyDefinedHead(Var head){
@@ -471,10 +471,15 @@ void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel) {
 	}*/
 
 	for(int i=mapdecleveltotrail[untillevel+1]; i<fulltrail.size(); i++){
-		propagated[var(fulltrail[i])]=l_Undef;
+		propagated[var(fulltrail[i])]=LI(l_Undef, 0);
 	}
 	fulltrail.resize(mapdecleveltotrail[untillevel+1]);
 	mapdecleveltotrail.resize(untillevel+1);
+	if(fulltrail.size()==0){
+		index = 1;
+	}else{
+		index = getTime(fulltrail.back());
+	}
 }
 
 /**
@@ -486,7 +491,7 @@ rClause AggSolver::propagate(const Lit& p) {
 	}
 
 	fulltrail.push_back(p);
-	propagated[var(p)]=sign(p)?l_False:l_True;
+	propagated[var(p)]=LI(sign(p)?l_False:l_True, index++);
 
 	rClause confl = nullPtrClause;
 
