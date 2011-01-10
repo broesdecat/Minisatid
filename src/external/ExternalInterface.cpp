@@ -33,6 +33,7 @@ WrappedLogicSolver::WrappedLogicSolver(const SolverOption& modes):
 		_modes(modes), maxnumber(0),
 		origtocontiguousatommapper(),
 		contiguoustoorigatommapper(),
+		_translator(NULL),
 		firstmodel(true){
 }
 
@@ -75,8 +76,8 @@ Literal WrappedLogicSolver::getOrigLiteral(const Lit& l) const{
 	return Literal(getOrigAtom(var(l)), sign(l));
 }
 
-FILE* WrappedLogicSolver::getRes() const {
-	return getOutputFile();
+std::streambuf* WrappedLogicSolver::getRes() const {
+	return getOutputBuffer();
 }
 
 Lit WrappedLogicSolver::checkLit(const Literal& lit){
@@ -140,10 +141,14 @@ void WrappedLogicSolver::addModel(const vec<Lit>& model, Solution* sol){
 	sol->addModel(outmodel);
 
 	if(sol->getPrint()){
+		std::ostream output(getRes());
 		if(sol->getNbModelsFound()==1){	//First model found
-			fprintf(getRes()==NULL?stdout:getRes(), "SAT\n");
+			output << "SAT\n";
 			if(modes().verbosity>=1){
-				printf("SATISFIABLE\n");
+				report("SATISFIABLE\n");
+			}
+			if(hasTranslator()){
+				getTranslator()->printHeader(output);
 			}
 		}
 
@@ -153,12 +158,21 @@ void WrappedLogicSolver::addModel(const vec<Lit>& model, Solution* sol){
 		}
 
 		//Effectively print the model
-		bool start = true;
-		for (vector<Literal>::const_iterator i = outmodel.begin(); i < outmodel.end(); i++){
-			fprintf(getRes()==NULL?stdout:getRes(), "%s%s%d", start ? "" : " ", ((*i).getSign()) ? "-" : "", (*i).getAtom().getValue());
-			start = false;
+		if(hasTranslator()){
+			vector<int> intmodel;
+			for(auto i=outmodel.begin(); i<outmodel.end(); i++){
+				int atom = (*i).getAtom().getValue();
+				intmodel.push_back((*i).getSign()?-atom:atom);
+			}
+			getTranslator()->printModel(output, intmodel);
+		}else{
+			bool start = true;
+			for (vector<Literal>::const_iterator i = outmodel.begin(); i < outmodel.end(); i++){
+				output <<(start ? "" : " ") <<(((*i).getSign()) ? "-" : "") <<(*i).getAtom().getValue();
+				start = false;
+			}
+			output << " 0\n";
 		}
-		fprintf(getRes()==NULL?stdout:getRes(), " 0\n");
 	}
 }
 

@@ -40,6 +40,8 @@
 #include <string.h>
 #include "parser/Lparseread.hpp"
 
+#include "external/Translator.hpp"
+
 using namespace std;
 using namespace MinisatID;
 
@@ -48,7 +50,9 @@ typedef enum {
 } RuleType;
 
 Read::Read(WrappedPCSolver* solver) :
-	maxatomnumber(1), setcount(1), size(0), solver(solver), optim(false) {
+	maxatomnumber(1), setcount(1), size(0), solver(solver), optim(false),
+	translator(new LParseTranslator()){
+	solver->setTranslator(translator);
 }
 
 Read::~Read() {
@@ -532,7 +536,7 @@ int Read::read(istream &f) {
 			return 1;
 		}
 	}
-	// Read atom names (are currently completely ignored)
+	// Read atom names
 	const int len = 1024;
 	char s[len];
 	long i;
@@ -549,12 +553,12 @@ int Read::read(istream &f) {
 			cerr << "atom name too long or end of file, line " << linenumber << endl;
 			return 1;
 		}
-		//		Atom *a = getAtom (i);
-		//		if (*s){
-		//			api->set_name (a, s+1);
-		//		}else{
-		//			api->set_name (a, 0);
-		//		}
+		if(*s){
+			translator->addTuple(i, s+1);
+		}else{
+			translator->addTuple(i, "");
+		}
+
 		f >> i;
 		f.getline(s, len);
 		linenumber++;

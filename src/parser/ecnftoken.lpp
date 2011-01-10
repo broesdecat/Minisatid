@@ -49,19 +49,19 @@ extern int charPos;
 "Min"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::MIN; return AGGDEFN;}
 "Max"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::MAX; return AGGDEFN;}
 
-"Mod"	{ADJ; return MODDEFN;}
+^"Mod"	{ADJ; return MODDEFN;}
 
 "D"		{ADJ; /*ecnflval*/yylval.sem = MinisatID::DEF;  return SEMDEFN;}
 "C"		{ADJ; /*ecnflval*/yylval.sem = MinisatID::COMP; return SEMDEFN;}
-"L"		{ADJ; /*ecnflval*/yylval.sign = MinisatID::AGGSIGN_UB;  return SIGNDEFN;}
+"L"		{ADJ; /*ecnflval*/yylval.sign = MinisatID::AGGSIGN_UB; return SIGNDEFN;}
 "G"		{ADJ; /*ecnflval*/yylval.sign = MinisatID::AGGSIGN_LB; return SIGNDEFN;}
 
-"e"		{ADJ; /*ecnflval*/yylval.boolean = true; return QUANTe;} //existential quantifier
-"a"		{ADJ; /*ecnflval*/yylval.boolean = false; return QUANTe;} //universal quantifier
+^"e"	{ADJ; /*ecnflval*/yylval.boolean = true; return QUANTe;} //existential quantifier
+^"a"	{ADJ; /*ecnflval*/yylval.boolean = false; return QUANTe;} //universal quantifier
 
-"Mnmz"		{ADJ; return SUBSETMINDEFN;}
-"Mnmt"     	{ADJ; return MNMZDEFN;}
-"SumMnmz"	{ADJ; return SUMMINDEFN;}
+^"Mnmz"		{ADJ; return SUBSETMINDEFN;}
+^"Mnmt"     {ADJ; return MNMZDEFN;}
+^"SumMnmz"	{ADJ; return SUMMINDEFN;}
 
 " "		{ADJ; /* disregard whitespaces */}
 "\t"	{ADJ; /*                       */}
@@ -69,14 +69,14 @@ extern int charPos;
 
 "|"	{ADJ; return DELIM;}
 
-"INTVAR"	{ADJ; return INTVAR;}
-"BINTRI"	{ADJ; return BINTRI;}
-"BINTRT"	{ADJ; return BINTRT;}
-"SUMSTRI"	{ADJ; return SUMSTRI;}
-"SUMSTRT"	{ADJ; return SUMSTRT;}
-"SUMSTSIRI"	{ADJ; return SUMSTSIRI;}
-"SUMSTSIRT"	{ADJ; return SUMSTSIRT;}
-"COUNTSTRIT"	{ADJ; return COUNTSTRIT;}
+^"INTVAR"	{ADJ; return INTVAR;}
+^"BINTRI"	{ADJ; return BINTRI;}
+^"BINTRT"	{ADJ; return BINTRT;}
+^"SUMSTRI"	{ADJ; return SUMSTRI;}
+^"SUMSTRT"	{ADJ; return SUMSTRT;}
+^"SUMSTSIRI"	{ADJ; return SUMSTSIRI;}
+^"SUMSTSIRT"	{ADJ; return SUMSTSIRT;}
+^"COUNTSTRIT"	{ADJ; return COUNTSTRIT;}
 
 "="		{ADJ; /*ecnflval*/yylval.rel = MinisatID::MEQ; return REL;}
 ">"		{ADJ; /*ecnflval*/yylval.rel = MinisatID::MG; return REL;}
@@ -85,14 +85,25 @@ extern int charPos;
 "=<"	{ADJ; /*ecnflval*/yylval.rel = MinisatID::MLEQ; return REL;}
 ">="	{ADJ; /*ecnflval*/yylval.rel = MinisatID::MGEQ; return REL;}
 
+^"translation"	{ ADJ; return TRANSHEADER;		}
+^"type"			{ ADJ; return TYPE;				}
+^"show pred"	{ ADJ; return SHOWPRED;			}
+^"pred"			{ ADJ; return PRED;				}
+^"show func"	{ ADJ; return SHOWFUNC;			}
+^"func"			{ ADJ; return FUNC;				}
+^"true"			{ ADJ; return TRUE;				}
+^"arbitrary"	{ ADJ; return ARBIT;			}
+_*[A-Za-z][a-zA-Z0-9_]*	{ ADJ;
+						/*ecnflval*/yylval.str = new string(yytext);
+						return IDENTIFIER; }
+":"				{ ADJ; return *yytext; }
+
  /* Longest match is returned -> if e.g. "20", NUMBER is returned.
-    If "0", then ZERO is returned since it's the first matching rule.
-  */
+	If "0", then ZERO is returned since it's the first matching rule.
+ */
 "0"			{ADJ; /*ecnflval*/yylval.integer = 0; return ZERO;}
 -?[0-9]+	{ADJ;
-			char *res = new char[strlen(yytext) + 1];
-			strcpy(res, yytext); 
-			/*ecnflval*/yylval.string = res; return NUMBER;}
+			/*ecnflval*/yylval.str = new string(yytext); return NUMBER;}
 
 <*>.		{/* Anything else: parse error */
 				char s[100];

@@ -26,6 +26,8 @@
 #include <tr1/unordered_map>
 
 #include "external/ExternalUtils.hpp"
+#include "external/Translator.hpp"
+
 #include "theorysolvers/LogicSolver.hpp"
 //Have to be included, otherwise this header knows nothing of the inheritance between LogicSolver and its children
 #include "theorysolvers/PCSolver.hpp"
@@ -95,11 +97,15 @@ private:
 	int 		maxnumber;
 	atommap 	origtocontiguousatommapper, contiguoustoorigatommapper;
 
+	Translator* _translator;
+
 	bool 		firstmodel; //True if the first model has not yet been printed
 
 public:
 	WrappedLogicSolver(const SolverOption& modes);
-	virtual ~WrappedLogicSolver(){};
+	virtual ~WrappedLogicSolver(){
+		delete _translator;
+	};
 
 	virtual void 	printStatistics	() const = 0;
 
@@ -111,6 +117,9 @@ public:
 	int 			verbosity		() const	{ return modes().verbosity; }
 	const SolverOption& modes		() const	{ return _modes; }
 	void			setNbModels		(int nb) 	{ _modes.nbmodels = nb; }
+	bool			hasTranslator	() const { return _translator!=NULL; }
+	Translator*		getTranslator	() const { return _translator; }
+	void			setTranslator	(Translator* translator) { _translator = translator; }
 
 	int				getMaxNumberUsed()	const { return maxnumber; }
 
@@ -127,7 +136,7 @@ protected:
 	Atom 	getOrigAtom		(const Var& l) const;
 	Literal getOrigLiteral	(const Lit& l) const;
 
-	FILE* 	getRes() const;
+	std::streambuf* 	getRes() const;
 };
 
 class WrappedPCSolver: public MinisatID::WrappedLogicSolver{

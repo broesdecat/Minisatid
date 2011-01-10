@@ -41,6 +41,7 @@ minisatid_SOURCES = \
 		parser/ResourceManager.hpp parser/Lparseread.hpp parser/PBread.hpp\
 		parser/ParseOptions.hpp\
 		tclap/CmdLine.h\
+		external/Translator.hpp external/Translator.cpp\
 		Unittests.hpp
 
 #PBSOLVER

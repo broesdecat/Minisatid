@@ -41,6 +41,8 @@
 
 namespace MinisatID {
 
+class LParseTranslator;
+
 struct BasicRule{
 	Literal head;
 	std::vector<Literal> body;
@@ -50,7 +52,7 @@ struct BasicRule{
 };
 struct CardRule: public BasicRule{
 	int setcount;
-	const Weight& atleast;
+	Weight atleast;
 	//Card, UB, DEF
 
 	CardRule(int setcount, Literal head, std::vector<Literal>& body, const Weight& atleast):
@@ -60,7 +62,7 @@ struct CardRule: public BasicRule{
 struct SumRule: public BasicRule{
 	int setcount;
 	std::vector<Weight> weights;
-	const Weight& atleast;
+	Weight atleast;
 	//Card, UB, DEF
 
 	SumRule(int setcount, Literal head, std::vector<Literal>& body, std::vector<Weight> weights, const Weight& atleast):
@@ -68,7 +70,7 @@ struct SumRule: public BasicRule{
 };
 
 struct GenRule{
-	const Weight& atleast;
+	Weight atleast;
 	std::vector<Literal> heads;
 	std::vector<Literal> body;
 
@@ -124,6 +126,8 @@ private:
 	int optimsetcount;
 	std::vector<Literal> optimbody;
 	std::vector<Weight> optimweights;
+
+	MinisatID::LParseTranslator* translator;
 };
 
 }
