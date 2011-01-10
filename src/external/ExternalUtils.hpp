@@ -268,6 +268,7 @@ public:
 	bool 	getSign() 						const { return lit<0; }
 	bool 	operator== (const Literal& l) 	const { return lit == l.lit; }
 	bool 	operator< (const Literal& l) 	const {	return abs(lit) < abs(l.lit); }
+	Literal operator~()						const { return Literal(getAtom(), lit>0?true:false); }
 };
 
 // A class representing a tuple of a literal and an associated weight

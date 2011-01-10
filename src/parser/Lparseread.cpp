@@ -46,7 +46,7 @@ using namespace std;
 using namespace MinisatID;
 
 typedef enum {
-	ENDRULE, BASICRULE, CONSTRAINTRULE, CHOICERULE, GENERATERULE, WEIGHTRULE, OPTIMIZERULE
+	ENDRULE = 0, BASICRULE = 1, CONSTRAINTRULE = 2, CHOICERULE = 3, GENERATERULE = 4, WEIGHTRULE = 5, OPTIMIZERULE = 6
 } RuleType;
 
 Read::Read(WrappedPCSolver* solver) :
@@ -67,6 +67,7 @@ Literal Read::makeLiteral(int n, bool sign = false) {
 	if (maxatomnumber < n) {
 		maxatomnumber = n;
 	}
+	getSolver()->addVar(Atom(n));
 	return Literal(n, sign);
 }
 
@@ -456,10 +457,10 @@ int Read::finishGenerateRules() {
 			return 1;
 		}
 		int atemp = getNextNumber();
-		if (!getSolver()->addAggrExpr(Literal(atemp), setcount, (*i)->atleast, AGGSIGN_LB, CARD, DEF)) {
+		if (!getSolver()->addAggrExpr(makeLiteral(atemp), setcount, (*i)->atleast, AGGSIGN_LB, CARD, DEF)) {
 			return 1;
 		}
-		if (!getSolver()->addRule(true, Literal(atemp), (*i)->body)) {
+		if (!getSolver()->addRule(true, makeLiteral(atemp), (*i)->body)) {
 			return 1;
 		}
 		setcount++;
@@ -469,12 +470,23 @@ int Read::finishGenerateRules() {
 
 }
 
+/*
+ * {A, B, C} <- D, not E
+ * A => D & not E
+ * B => D & not E
+ * C => D & not E
+ *
+ * D & not E <=> T
+ * A => T
+ * B => T
+ * C => T
+ */
 int Read::finishChoiceRules() {
 	for (vector<ChoiceRule*>::const_iterator i = choicerules.begin(); i < choicerules.end(); i++) {
 		if ((*i)->body.size() == 0) {
 			continue;
 		}
-		for (vector<Literal>::const_iterator j = (*i)->heads.begin(); j < (*i)->heads.end(); j++) {
+		/*for (vector<Literal>::const_iterator j = (*i)->heads.begin(); j < (*i)->heads.end(); j++) {
 			int atemp = getNextNumber();
 			vector<Literal> tempbody((*i)->body);
 			tempbody.push_back(makeLiteral(atemp, true));
@@ -484,6 +496,23 @@ int Read::finishChoiceRules() {
 			tempbody.clear();
 			tempbody.push_back(Literal((*j).getAtom(), true));
 			if (!getSolver()->addRule(true, makeLiteral(atemp), tempbody)) {
+				return 1;
+			}
+		}*/
+		//FIXME attempted repair (maybe wrong semantics!):
+		//FIXME certainly another error: all atoms not occurring as head should be made FALSE!
+		int atemp = getNextNumber();
+		vector<Literal> rhsbody((*i)->body);
+		if (!getSolver()->addEquivalence(makeLiteral(atemp), rhsbody, true)) {
+			return 1;
+		}
+
+		vector<Literal> clause;
+		clause.push_back(makeLiteral(1, false));
+		clause.push_back(makeLiteral(atemp));
+		for (auto j = (*i)->heads.begin(); j < (*i)->heads.end(); j++) {
+			clause[0]=~(*j);
+			if (!getSolver()->addClause(clause)) {
 				return 1;
 			}
 		}
@@ -671,7 +700,7 @@ int Read::read(istream &f) {
 		vector<Literal> newheads;
 		for (vector<BasicRule*>::const_iterator j = (*i).second.begin(); j < (*i).second.end(); j++) {
 			assert((*j) != NULL);
-			Literal newhead = Literal(getNextNumber());
+			Literal newhead = makeLiteral(getNextNumber());
 			newheads.push_back(newhead);
 			(*j)->head = newhead;
 		}
@@ -696,7 +725,7 @@ int Read::read(istream &f) {
 
 	if(optim){
 		vector<Literal> optimheadclause;
-		Literal optimhead = Literal(getNextNumber());
+		Literal optimhead = makeLiteral(getNextNumber());
 		optimheadclause.push_back(optimhead);
 		getSolver()->addClause(optimheadclause);
 		getSolver()->addSet(optimsetcount, optimbody, optimweights);

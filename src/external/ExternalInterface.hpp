@@ -147,8 +147,9 @@ public:
 	WrappedPCSolver(const SolverOption& modes);
 	~WrappedPCSolver();
 
-	//void	addVar			(Atom v);
+	void	addVar			(Atom v);
 	bool	addClause		(std::vector<Literal>& lits);
+	bool 	addEquivalence	(const Literal& head, const std::vector<Literal>& rightlits, bool conj);
 	bool	addRule			(bool conj, Literal head, const std::vector<Literal>& lits);
 	bool	addSet			(int id, const std::vector<Literal>& lits);
 	bool 	addSet			(int set_id, const std::vector<WLtuple>& lws);

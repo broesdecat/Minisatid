@@ -190,15 +190,22 @@ WrappedPCSolver::~WrappedPCSolver(){
 
 PCSolver* WrappedPCSolver::getSolver() const { return solver; }
 
-/*void WrappedPCSolver::addVar(Atom v){
+void WrappedPCSolver::addVar(Atom v){
 	Var newv = checkAtom(v);
 	getSolver()->addVar(newv);
-}*/
+}
 
 bool WrappedPCSolver::addClause(vector<Literal>& lits){
 	vec<Lit> ll;
 	checkLits(lits, ll);
 	return getSolver()->addClause(ll);
+}
+
+bool WrappedPCSolver::addEquivalence(const Literal& head, const vector<Literal>& body, bool conj){
+	Lit h = checkLit(head);
+	vec<Lit> b;
+	checkLits(body, b);
+	return getSolver()->addEquivalence(h, b, conj);
 }
 
 bool WrappedPCSolver::addRule(bool conj, Literal head, const vector<Literal>& lits){
