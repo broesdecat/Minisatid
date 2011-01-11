@@ -648,7 +648,7 @@ void Solver::uncheckedEnqueue(Lit p, Clause* from)
     trail.push(p);
     /*AB*/
     if(verbosity>=5){
-    	reportf("Enqueued "); gprintLit(p); reportf(" in mod %d\n", solver->getModPrintID());
+    	solver->printEnqueued(p);
     }
     /*AE*/
 }
@@ -671,16 +671,6 @@ Clause* Solver::propagate()
     int     num_props = 0;
 
     while (qhead < trail.size()){
-    	/*AB*/
-    	if(verbosity>10){
-    		reportf("Trail, mod %d: ", solver->getModPrintID());
-    		for(int i=0; i<trail.size(); i++){
-    			gprintLit(trail[i]); reportf(" ");
-    		}
-    		reportf(".\n");
-    	}
-    	/*AE*/
-
         Lit            p   = trail[qhead++];     // 'p' is enqueued fact to propagate.
         vec<Clause*>&  ws  = watches[toInt(p)];
         Clause         **i, **j, **end;

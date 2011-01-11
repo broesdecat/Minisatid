@@ -19,6 +19,8 @@
 
 #include "theorysolvers/PCSolver.hpp"
 
+#include <iostream>
+
 #include "external/ExternalInterface.hpp"
 
 #include "satsolver/SATSolver.hpp"
@@ -35,13 +37,6 @@ using namespace Minisat;
 /******************
  * INITIALIZATION *
  ******************/
-
-int PCSolver::getModPrintID() const {
-	if (getModSolver() != NULL) {
-		return (int) getModSolver()->getPrintId();
-	}
-	return -1;
-}
 
 DPLLTSolver::~DPLLTSolver() {
 	if(createdhere){
@@ -786,7 +781,10 @@ bool PCSolver::invalidateValue(vec<Lit>& invalidation) {
 	for (int i = 0; !currentoptimumfound && i < to_minimize.size(); i++) {
 		if (!currentoptimumfound && getSolver()->model[var(to_minimize[i])] == l_True) {
 			if (modes().verbosity >= 1) {
-				report("Current optimum is var %d\n", gprintVar(var(to_minimize[i])));
+				report("Current optimum found for: ");
+				getParent()->getTranslator()->printLiteral(cerr, getParent()->getOrigLiteral(to_minimize[i]));
+				report("\n");
+				//report("Current optimum is var %d\n", gprintVar(var(to_minimize[i])));
 			}
 			currentoptimumfound = true;
 		}
@@ -906,12 +904,22 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
 // PRINT METHODS
 ///////
 
+void PCSolver::printModID() const {
+	if(getModSolver()!=NULL){
+		report("mod s %zu", getModSolver()->getPrintId());
+	}
+}
+
+void PCSolver::printEnqueued(const Lit& p) const{
+	report("Enqueued "); gprintLit(p); report(" in ");
+	printModID();
+	reportf("\n");
+}
+
 void PCSolver::printChoiceMade(int level, Lit l) const {
 	if (modes().verbosity >= 2) {
 		report("Choice literal, dl %d, ", level);
-		if(getModSolver()!=NULL){
-			report("mod s %zu", getModSolver()->getPrintId());
-		}
+		printModID();
 
 		report(": ");
 		gprintLit(l);

@@ -615,7 +615,7 @@ void Solver::uncheckedEnqueue(Lit p, CRef from)
     trail.push_(p);
     /*AB*/
     if(verbosity>=5){
-    	reportf("Enqueued "); gprintLit(p); reportf(" in mod %d\n", solver->getModPrintID());
+    	solver->printEnqueued(p);
     }
     /*AE*/
 }
@@ -639,17 +639,7 @@ CRef Solver::propagate()
     watches.cleanAll();
 
     while (qhead < trail.size()){
-    	/*AB*/
-    	if(verbosity>10){
-    		reportf("Trail, mod %d: ", solver->getModPrintID());
-    		for(int i=0; i<trail.size(); i++){
-    			gprintLit(trail[i]); reportf(" ");
-    		}
-    		reportf(".\n");
-    	}
-    	/*AE*/
-
-        Lit            p   = trail[qhead++];     // 'p' is enqueued fact to propagate.
+    	Lit            p   = trail[qhead++];     // 'p' is enqueued fact to propagate.
         vec<Watcher>&  ws  = watches[p];
         Watcher        *i, *j, *end;
         num_props++;
@@ -994,6 +984,10 @@ lbool Solver::solve_(/*AB*/bool nosearch/*AE*/)
     lbool   status            = l_Undef;
 
     /*AB*/
+    if (verbosity >= 1){
+    	reportf("> Conflicts |          ORIGINAL         |          LEARNT          | Progress\n");
+		reportf(">           |    Vars  Clauses Literals |    Limit  Clauses Lit/Cl |         \n");
+    }
     /*if (verbosity >= 1){
         printf("============================[ Search Statistics ]==============================\n");
         printf("| Conflicts |          ORIGINAL         |          LEARNT          | Progress |\n");

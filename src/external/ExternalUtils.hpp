@@ -253,6 +253,9 @@ private:
 public:
 	explicit Atom(int a): atom(a){ }
 	int		getValue	() 				const { return atom; }
+
+	bool operator==	(const Atom& a) const { return atom==a.atom; }
+	bool operator<	(const Atom& a) const { return atom<a.atom; }
 };
 
 class Literal{
@@ -265,7 +268,7 @@ public:
 	Literal(Atom a, bool s = false): lit(s?-a.getValue():a.getValue()){ assert(a.getValue()>=0); }
 
 	Atom 	getAtom() 						const { return Atom(lit<0?-lit:lit); }
-	bool 	getSign() 						const { return lit<0; }
+	bool 	hasSign() 						const { return lit<0; }
 	bool 	operator== (const Literal& l) 	const { return lit == l.lit; }
 	bool 	operator< (const Literal& l) 	const {	return abs(lit) < abs(l.lit); }
 	Literal operator~()						const { return Literal(getAtom(), lit>0?true:false); }

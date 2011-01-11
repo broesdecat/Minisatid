@@ -50,8 +50,8 @@ int charPos = 1;
 
 bool unsatfound = false;
 
-std::shared_ptr<MinisatID::WrappedPCSolver>	solver;
-std::shared_ptr<MinisatID::WrappedSOSolver>	modsolver;
+pwps	solver;
+pwsos	modsolver;
 
 MinisatID::FODOTTranslator* translator;
 
@@ -70,7 +70,7 @@ std::vector<MinisatID::Atom> rigidatoms; //a necessary list of accumulated rigid
 
 void finishCNFHeader();
 void readCNFModalHierLevel(bool existential, const std::vector<MinisatID::Atom>& rigidatoms);
-shared_ptr<MinisatID::WrappedLogicSolver> getData();
+pwls getData();
 
 MinisatID::Atom cAtom(string* c);
 MinisatID::Literal cLiteral(string* c);
@@ -550,14 +550,14 @@ void CR(bool result){
 }
 
 void initSolver(){
-	solver = std::shared_ptr<WrappedPCSolver>(new WrappedPCSolver(modes));
+	solver = pwps(new WrappedPCSolver(modes));
 }
 
 void initModSolver(){
-	modsolver = std::shared_ptr<WrappedSOSolver>(new WrappedSOSolver(modes));
+	modsolver = pwsos(new WrappedSOSolver(modes));
 }
 
-std::shared_ptr<WrappedLogicSolver> getData(){
+pwls getData(){
 	if(solver.get()!=NULL){
 		return solver;
 	}else{

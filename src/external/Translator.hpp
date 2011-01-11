@@ -13,6 +13,8 @@
 #include <map>
 #include <ostream>
 
+#include "external/ExternalUtils.hpp"
+
 namespace MinisatID {
 
 enum MODE { TRANS_ARBIT, TRANS_TRUE, TRANS_MODEL };
@@ -23,13 +25,14 @@ public:
 	Translator();
 	virtual ~Translator(){}
 
+	virtual void printLiteral(std::ostream& output, const Literal& lit) const = 0;
 	virtual void printModel(std::ostream& output, const std::vector<int>& model) = 0;
 	virtual void printHeader(std::ostream& output) = 0;
 };
 
 class FODOTTranslator: public Translator{
 private:
-	bool tofodot;
+	bool tofodot; //FIXME add to options
 
 	// Look-up tables
 	std::map<std::string,int>	type_lookup;
@@ -45,12 +48,12 @@ private:
 	std::vector<bool>	isfunc;
 
 	// output
-	modelvec trueout, arbitout, modelout, truemodelcombinedout;
+	modelvec trueout, arbitout, truemodelcombinedout;
 
 	std::vector<std::string> arbitatoms;
 
 	// counters
-	int modelcounter;
+	mutable int modelcounter;
 	int largestnottseitinatom;
 
 public:
@@ -62,16 +65,17 @@ public:
 	void addType(std::string name, const std::vector<std::string>& inter);
 	void addPred(std::string name, int num, const std::vector<std::string>& ptypes, bool f);
 
+	void printLiteral(std::ostream& output, const Literal& lit) const;
 	void printModel(std::ostream& output, const std::vector<int>& model);
 	void printHeader(std::ostream& output);
 
 private:
-	std::string getPredName(int predn);
-	void printTuple(const std::vector<std::string>& tuple, std::ostream& output);
+	std::string getPredName(int predn) const;
+	void printTuple(const std::vector<std::string>& tuple, std::ostream& output) const;
 	void printPredicate(int n, const modelvec& model, MODE mode, std::ostream& output);
 	void printFunction(int n, const modelvec& model, std::ostream& output);
 	void printInterpr(const modelvec& model, MODE mode, std::ostream& output);
-	bool deriveStringFromAtomNumber(int atom, int& currpred, std::vector<std::string>& arg);
+	bool deriveStringFromAtomNumber(int atom, uint& currpred, std::vector<std::string>& arg) const;
 };
 
 class LParseTranslator: public Translator {
@@ -84,6 +88,7 @@ public:
 
 	void addTuple(int lit, std::string name);
 
+	void printLiteral(std::ostream& output, const Literal& lit) const;
 	void printModel(std::ostream& output, const std::vector<int>& model);
 	void printHeader(std::ostream& output);
 };

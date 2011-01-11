@@ -206,8 +206,9 @@ public:
 	///////
 	// DEBUG
 	///////
-	int		getModPrintID	() const;
 	// SATsolver asks this to PC such that more info (modal e.g.) can be printed.
+	void	printModID() const;
+	void 	printEnqueued(const Lit& p) const;
 	void	printChoiceMade	(int level, Lit l) const;
 	void 	printStatistics() const;
 

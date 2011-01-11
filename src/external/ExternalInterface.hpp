@@ -33,7 +33,24 @@
 #include "theorysolvers/PCSolver.hpp"
 #include "theorysolvers/SOSolver.hpp"
 
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
+#include <tr1/memory>
+#endif
+
 namespace MinisatID {
+
+class WrappedLogicSolver;
+class WrappedSOSolver;
+class WrappedPCSolver;
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+	typedef std::shared_ptr<WrappedLogicSolver> pwls;
+	typedef std::shared_ptr<WrappedSOSolver> pwsos;
+	typedef std::shared_ptr<WrappedPCSolver> pwps;
+#else
+	typedef std::tr1::shared_ptr<WrappedLogicSolver> pwls;
+	typedef std::tr1::shared_ptr<WrappedSOSolver> pwsos;
+	typedef std::tr1::shared_ptr<WrappedPCSolver> pwps;
+#endif
 
 typedef std::tr1::unordered_map<int, int> atommap;
 
@@ -122,6 +139,7 @@ public:
 	void			setTranslator	(Translator* translator) { _translator = translator; }
 
 	int				getMaxNumberUsed()	const { return maxnumber; }
+	Literal 		getOrigLiteral	(const Lit& l) const;
 
 protected:
 	virtual MinisatID::LogicSolver* getSolver() const = 0;
@@ -134,7 +152,6 @@ protected:
 
 	bool	wasInput(int var) const { return var<maxnumber; }
 	Atom 	getOrigAtom		(const Var& l) const;
-	Literal getOrigLiteral	(const Lit& l) const;
 
 	std::streambuf* 	getRes() const;
 };

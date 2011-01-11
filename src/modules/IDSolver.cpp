@@ -359,7 +359,7 @@ void IDSolver::visitFull(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &vi
 			break;
 		}
 		case AGGR: {
-			for (auto j = getAggSolver()->getAggLiteralsBegin(i); j<getAggSolver()->getAggLiteralsEnd(i); ++j) {
+			for (vwl::const_iterator j = getAggSolver()->getAggLiteralsBegin(i); j<getAggSolver()->getAggLiteralsEnd(i); ++j) {
 				Var w = var((*j).getLit());
 				if (!isDefined(w)) {
 					continue;
@@ -436,7 +436,7 @@ void IDSolver::visit(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visite
 		case AGGR: {
 			//TODO this can be optimized by using another method which only returns literals possibly in the
 			//positive dependency graph.
-			for (auto j = getAggSolver()->getAggLiteralsBegin(i); j<getAggSolver()->getAggLiteralsEnd(i); ++j) {
+			for (vwl::const_iterator j = getAggSolver()->getAggLiteralsBegin(i); j<getAggSolver()->getAggLiteralsEnd(i); ++j) {
 				Var w = var((*j).getLit());
 				if (!isDefined(w)) {
 					continue;
@@ -862,7 +862,7 @@ void IDSolver::findCycleSources() {
 
 			if (getAggSolver() != NULL) {
 				vector<Var> heads = getAggSolver()->getAggHeadsWithBodyLit(var(~l));
-				for (auto j = heads.begin(); j < heads.end(); j++) {
+				for (vv::const_iterator j = heads.begin(); j < heads.end(); j++) {
 					if(hasDefVar(*j)){
 						checkJustification(*j);
 					}

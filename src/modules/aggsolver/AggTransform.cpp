@@ -67,7 +67,7 @@ void SetReduce::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& uns
 	newset.push_back(oldset[indexinnew]);
 
 	bool setisreduced = false;
-	for (auto i = 1; i < oldset.size(); i++) {
+	for (vsize i = 1; i < oldset.size(); i++) {
 		WL oldl = newset[indexinnew];
 		WL newl = oldset[i];
 		if (var(oldl.getLit()) == var(newl.getLit())) { //same variable
@@ -160,7 +160,7 @@ void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& s
 
 	//create implication aggs
 	vpagg implaggs, del;
-	for(auto i=set->getAgg().begin(); i<set->getAgg().end(); i++){
+	for(vpagg::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); i++){
 		const Agg& agg = *(*i);
 		Agg *one, *two;
 		Weight weighttwo = agg.getSign()==AGGSIGN_LB?agg.getBound()-1:agg.getBound()+1;
@@ -201,6 +201,7 @@ void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& s
 		ratiotwo = proptwo->testGenWatchCount();
 	}
 
+	//FIXME add heuristic
 	//if(ratioone*0.5+ratiotwo*0.5<1){
 		if(signtwoset!=NULL){
 			vpagg empty;
@@ -226,7 +227,7 @@ void PartitionIntoTypes::transform(AggSolver* solver, TypedSet* set, vps& sets, 
 	}
 	//Partition the aggregates according to their type
 	map<AggType, vpagg> partaggs;
-	for (auto i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
+	for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
 		partaggs[(*i)->getType()].push_back(*i);
 	}
 

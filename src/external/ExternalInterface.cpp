@@ -81,7 +81,7 @@ std::streambuf* WrappedLogicSolver::getRes() const {
 }
 
 Lit WrappedLogicSolver::checkLit(const Literal& lit){
-	return mkLit(checkAtom(lit.getAtom()), lit.getSign());
+	return mkLit(checkAtom(lit.getAtom()), lit.hasSign());
 }
 
 void WrappedLogicSolver::checkLits(const vector<Literal>& lits, vec<Lit>& ll){
@@ -160,15 +160,15 @@ void WrappedLogicSolver::addModel(const vec<Lit>& model, Solution* sol){
 		//Effectively print the model
 		if(hasTranslator()){
 			vector<int> intmodel;
-			for(auto i=outmodel.begin(); i<outmodel.end(); i++){
+			for(vector<Literal>::const_iterator i=outmodel.begin(); i<outmodel.end(); i++){
 				int atom = (*i).getAtom().getValue();
-				intmodel.push_back((*i).getSign()?-atom:atom);
+				intmodel.push_back((*i).hasSign()?-atom:atom);
 			}
 			getTranslator()->printModel(output, intmodel);
 		}else{
 			bool start = true;
 			for (vector<Literal>::const_iterator i = outmodel.begin(); i < outmodel.end(); i++){
-				output <<(start ? "" : " ") <<(((*i).getSign()) ? "-" : "") <<(*i).getAtom().getValue();
+				output <<(start ? "" : " ") <<(((*i).hasSign()) ? "-" : "") <<(*i).getAtom().getValue();
 				start = false;
 			}
 			output << " 0\n";

@@ -17,6 +17,13 @@ class AggSolver;
 
 namespace Aggrs{
 
+class AggProp;
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+	typedef std::shared_ptr<AggProp> paggprop;
+#else
+	typedef std::tr1::shared_ptr<AggProp> paggprop;
+#endif
+
 class TypedSet;
 typedef std::map<int, Aggrs::TypedSet*> mips;
 typedef std::vector<Aggrs::TypedSet*> vps;
@@ -72,10 +79,10 @@ typedef std::vector<Agg*> vpagg;
 
 class AggProp{
 private:
-	static std::shared_ptr<AggProp> max;
-	static std::shared_ptr<AggProp> prod;
-	static std::shared_ptr<AggProp> card;
-	static std::shared_ptr<AggProp> sum;
+	static paggprop max;
+	static paggprop prod;
+	static paggprop card;
+	static paggprop sum;
 public:
 	static AggProp const * getMax() { return max.get(); }
 	static AggProp const * getProd() { return prod.get(); }

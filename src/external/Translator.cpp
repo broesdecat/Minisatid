@@ -56,7 +56,7 @@ void FODOTTranslator::addPred(string name, int num, const vector<string>& ptypes
 	//cout <<"Predicate/func "  <<*name <<", low=" <<(*num) <<", high=" <<(*num + s -1) <<endl;
 }
 
-string FODOTTranslator::getPredName(int predn){
+string FODOTTranslator::getPredName(int predn) const{
 	string name = predicates[predn];
 	if(!tofodot){
 		char first = tolower(name[0]);
@@ -66,7 +66,7 @@ string FODOTTranslator::getPredName(int predn){
 	return name;
 }
 
-void FODOTTranslator::printTuple(const vector<string>& tuple, ostream& output){
+void FODOTTranslator::printTuple(const vector<string>& tuple, ostream& output) const{
 	bool begin = true;
 	for(vector<string>::const_iterator k =tuple.begin(); k < tuple.end(); k++) {
 		if(!begin){
@@ -185,33 +185,59 @@ void FODOTTranslator::printInterpr(const modelvec& model, MODE mode, ostream& ou
 	}
 }
 
-void FODOTTranslator::printModel(std::ostream& output, const vector<int>& model){
+//IMPORTANT: non-incremental (slow), so do not use for printing a full model!
+void FODOTTranslator::printLiteral(std::ostream& output, const Literal& lit) const {
+	uint pred = 0;
+	vector<string> args;
+	deriveStringFromAtomNumber(lit.getAtom().getValue(), pred, args);
+
+	if(isfunc[pred]) {
+		output <<(lit.hasSign()?"~":"");
+		bool begin = true;
+		if(args.size()>1){
+			output << "(";
+		}
+		for(uint k=0; k<args.size()-1; k++) {
+			if(!begin){
+				output << ",";
+			}
+			begin = false;
+			output << args[k];
+		}
+		if(args.size()>1){
+			output << ")";
+		}
+		output <<args.back()<<"\n";
+	} else {
+		output <<(lit.hasSign()?"~":"") << getPredName(pred) << "(";
+		printTuple(args, output);
+		output <<")\n";
+	}
+}
+
+void FODOTTranslator::printModel(std::ostream& output, const vector<int>& model) {
 	if(tofodot){
 		output << "=== Model " << ++modelcounter << " ===\n";
 	}
 
 	// set initial values
-	int	currpred = 0;
+	uint currpred = 0;
 
-	modelvec tempmodel, temptruemodelcombined;
-	tempmodel = modelout;
-	temptruemodelcombined = truemodelcombinedout;
+	modelvec temptruemodelcombined = truemodelcombinedout;
 
 	// read and translate the model
-	int curr;
 	bool endmodel = false;
-	for(auto i=model.begin(); i<model.end(); i++){
-		curr = *i;
-		if(curr==0 || endmodel){ //end of model found
+	for(vector<int>::const_iterator i=model.begin(); i<model.end(); i++){
+		int lit = *i;
+		if(lit==0 || endmodel){ //end of model found
 			break;
-		}else if(curr<0){
+		}else if(lit<0){
 			continue;
-		}else if(curr > largestnottseitinatom){
+		}else if(lit > largestnottseitinatom){
 			endmodel = true;
 		}else{
 			vector<string> arg;
-			if(deriveStringFromAtomNumber(curr, currpred, arg)){
-				modelout[currpred].push_back(arg);
+			if(deriveStringFromAtomNumber(lit, currpred, arg)){
 				truemodelcombinedout[currpred].push_back(arg);
 			}
 		}
@@ -227,7 +253,7 @@ void FODOTTranslator::printModel(std::ostream& output, const vector<int>& model)
  * @pre: atom is NOT larger than the largest relevant (not tseitin) number.
  * @pre: atom is positive
  */
-bool FODOTTranslator::deriveStringFromAtomNumber(int atom, int& currpred, vector<string>& arg){
+bool FODOTTranslator::deriveStringFromAtomNumber(int atom, uint& currpred, vector<string>& arg) const{
 	//output <<"Translating " <<atom <<endl;
 	while(atom > highestvalue[currpred]) {
 		currpred++;
@@ -250,17 +276,16 @@ bool FODOTTranslator::deriveStringFromAtomNumber(int atom, int& currpred, vector
 	return true;
 }
 
-void FODOTTranslator::printHeader(ostream& output) {
+void FODOTTranslator::printHeader(ostream& output){
 	largestnottseitinatom = highestvalue[predicates.size()-1];
 	trueout = modelvec(predicates.size());
 	arbitout = modelvec(predicates.size());
-	modelout = modelvec(predicates.size());
 	truemodelcombinedout = modelvec(predicates.size());
 
 	if(predicates.empty()) return;
 
 	// set initial values
-	int	currpred = 0;
+	uint	currpred = 0;
 
 	// read and translate the model
 	int curr;
@@ -309,19 +334,29 @@ void FODOTTranslator::printHeader(ostream& output) {
 	}
 }
 
-void LParseTranslator::addTuple(int lit, std::string name) { lit2name[lit]=name; }
+void LParseTranslator::addTuple(int lit, std::string name) {
+	lit2name[lit]=name;
+}
 
-void LParseTranslator::printModel(std::ostream& output, const std::vector<int>& model){
-	for(auto i=model.begin(); i<model.end(); i++){
+void LParseTranslator::printModel(std::ostream& output, const std::vector<int>& model) {
+	for(vector<int>::const_iterator i=model.begin(); i<model.end(); i++){
 		if((*i)>0){
-			auto it = lit2name.find(*i);
+			map<int, string>::const_iterator it = lit2name.find(*i);
 			if(it!=lit2name.end()){
-				output <<lit2name[(*i)] <<"\n";
+				output <<(*it).second <<" ";
 			}
 		}
 	}
+	output <<"\n";
 }
 
-void LParseTranslator::printHeader(std::ostream& output){
+void LParseTranslator::printLiteral(std::ostream& output, const Literal& lit) const {
+	map<int, string>::const_iterator it = lit2name.find(lit.getAtom().getValue());
+	if(it!=lit2name.end()){
+		output <<(lit.hasSign()?"~":"") <<(*it).second <<"\n";
+	}
+}
+
+void LParseTranslator::printHeader(std::ostream& output) {
 
 }

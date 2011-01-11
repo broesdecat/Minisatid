@@ -80,12 +80,14 @@
 #endif
 
 using namespace std;
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
+using namespace std::tr1;
+#endif
 using namespace MinisatID;
 using namespace MinisatID::Print;
 
 namespace MinisatID {
-	class WrappedLogicSolver;
-	typedef std::shared_ptr<WrappedLogicSolver> pData;
+	typedef pwls pData;
 }
 
 extern char * yytext;
@@ -185,7 +187,7 @@ int doModelGeneration(pData& d, double cpu_time){
 			WrappedPCSolver* p = new WrappedPCSolver(modes);
 			Read* r = new Read(p);
 			std::istream is(getInputBuffer());
-			if(r->read(is)!=0){
+			if(!r->read(is)){
 				throw idpexception("Undefined error in asp parsing!\n");
 			}
 			closeInput();

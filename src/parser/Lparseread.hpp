@@ -41,6 +41,7 @@
 
 namespace MinisatID {
 
+class WrappedLogicSolver;
 class LParseTranslator;
 
 struct BasicRule{
@@ -63,19 +64,10 @@ struct SumRule: public BasicRule{
 	int setcount;
 	std::vector<Weight> weights;
 	Weight atleast;
-	//Card, UB, DEF
+	//Sum, UB, DEF
 
 	SumRule(int setcount, Literal head, std::vector<Literal>& body, std::vector<Weight> weights, const Weight& atleast):
 		BasicRule(head, body), setcount(setcount), weights(weights), atleast(atleast){	}
-};
-
-struct GenRule{
-	Weight atleast;
-	std::vector<Literal> heads;
-	std::vector<Literal> body;
-
-	GenRule(const Weight& atleast, std::vector<Literal>& heads, std::vector<Literal>& body):
-			atleast(atleast), heads(heads), body(body){	}
 };
 
 struct ChoiceRule{
@@ -86,41 +78,19 @@ struct ChoiceRule{
 };
 
 class Read{
-public:
-	Read (WrappedPCSolver* solver);
-	~Read ();
-	int read (std::istream &f);
-
 private:
-	int readBody (std::istream &f, long size, bool pos, std::vector<Literal>& body);
-	int addBasicRule (std::istream &f);
-	int addConstraintRule (std::istream &f);
-	int addGenerateRule (std::istream &f);
-	int addChoiceRule (std::istream &f);
-	int addWeightRule (std::istream &f);
-	int addOptimizeRule (std::istream &f);
-
-	Literal makeLiteral(int n, bool sign);
-
-	int finishBasicRules();
-	int finishCardRules();
-	int finishSumRules();
-	int finishGenerateRules();
-	int finishChoiceRules();
-
 	int maxatomnumber;
-	int getNextNumber() { return ++ maxatomnumber;}
 	int setcount;
 	long size;
 	long linenumber;
-	WrappedPCSolver* solver;
-	WrappedPCSolver* getSolver() { return solver; }
+	MinisatID::WrappedPCSolver* solver;
 
 	std::vector<BasicRule*> basicrules;
 	std::vector<CardRule*> cardrules;
 	std::vector<SumRule*> sumrules;
-	std::vector<GenRule*> genrules;
 	std::vector<ChoiceRule*> choicerules;
+
+	std::map<Atom, bool> defatoms;
 
 	bool optim;
 	int optimsetcount;
@@ -128,6 +98,38 @@ private:
 	std::vector<Weight> optimweights;
 
 	MinisatID::LParseTranslator* translator;
+
+public:
+	Read (WrappedPCSolver* solver);
+	~Read ();
+	bool read (std::istream &f);
+
+private:
+	bool readBody			(std::istream &f, long size, bool pos, std::vector<Literal>& body);
+	bool readFullBody		(std::istream &f, std::vector<Literal>& body);
+	bool readWeights		(std::istream &f, std::vector<Weight>& body, int bodysize);
+	bool parseBasicRule		(std::istream &f);
+	bool parseConstraintRule(std::istream &f);
+	bool parseChoiceRule	(std::istream &f);
+	bool parseWeightRule	(std::istream &f);
+	bool parseOptimizeRule	(std::istream &f);
+
+	Atom makeNewDefAtom		();
+	Atom makeNewNonDefAtom	();
+	Atom makeDefAtom 		(int n);
+	Atom makeNonDefAtom		(int n);
+	Literal makeDefLiteral	(int n, bool sign);
+	Literal makeNonDefLiteral(int n, bool sign);
+
+	bool addBasicRules		();
+	bool addCardRules		();
+	bool addSumRules		();
+	bool addChoiceRules		();
+	bool addOptimStatement	();
+	bool tseitinizeHeads	();
+	void addRuleToHead(std::map<Atom, std::vector<BasicRule*> >& headtorules, BasicRule* rule, Atom head);
+
+	MinisatID::WrappedPCSolver* getSolver() { return solver; }
 };
 
 }

@@ -97,6 +97,7 @@ _*[A-Za-z][a-zA-Z0-9_]*	{ ADJ;
 						/*ecnflval*/yylval.str = new string(yytext);
 						return IDENTIFIER; }
 ":"				{ ADJ; return *yytext; }
+"/"				{ ADJ; return *yytext; }
 
  /* Longest match is returned -> if e.g. "20", NUMBER is returned.
 	If "0", then ZERO is returned since it's the first matching rule.
