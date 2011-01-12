@@ -24,90 +24,98 @@ extern int charPos;
 /*seems to be necessary to avoid windows problem with fileno function?*/
 %option never-interactive 
 
-%x TRANSLATION_MODUS
+%s theory
+%s trans
+
+ID			_*[A-Za-z][a-zA-Z0-9_]*
+INT			-?[0-9]+
+WHITESPACE	[\t\r ]*
+
 %%
 
-^"c grounder error".*	{ throw MinisatID::idpexception("There was a grounding error, so no solving is possible.\n");}
-^"c ".*		{/* disregard comments */}
+<*>^"c grounder error".*	{ throw MinisatID::idpexception("There was a grounding error, so no solving is possible.\n");}
 
-^"p "	{ADJ; }
-"cnf"	{ADJ; return CNF;}
-"ecnf"	{ADJ; return ECNF;}
-"mecnf"	{ADJ; return MECNF;}
-"def" 	{ADJ; return DEFPRESENT;}
-"aggr" 	{ADJ; return AGGPRESENT;}
-"mnmz" 	{ADJ; return MNMZPRESENT;}
-"cp" 	{ADJ; return CPPRESENT;}
 
-"forcesearch" { ADJ; return FORCECHOICE; }
+<*>^"p "			{ADJ; BEGIN(theory);}
+<*>^"translation"	{ADJ; BEGIN(trans); return TRANSHEADER;}
 
-"WSet"	{ADJ; return WSETDEFN;}
-"Set"	{ADJ; return SETDEFN;}
-"Card"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::CARD; return AGGDEFN;}
-"Sum"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::SUM; return AGGDEFN;}
-"Prod"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::PROD; return AGGDEFN;}
-"Min"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::MIN; return AGGDEFN;}
-"Max"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::MAX; return AGGDEFN;}
+<theory,INITIAL>^"c ".*	{/* disregard comments */}
 
-^"Mod"	{ADJ; return MODDEFN;}
+<theory>"cnf"	{ADJ; return CNF;}
+<theory>"ecnf"	{ADJ; return ECNF;}
+<theory>"mecnf"	{ADJ; return MECNF;}
+<theory>"def" 	{ADJ; return DEFPRESENT;}
+<theory>"aggr" 	{ADJ; return AGGPRESENT;}
+<theory>"mnmz" 	{ADJ; return MNMZPRESENT;}
+<theory>"cp" 	{ADJ; return CPPRESENT;}
 
-"D"		{ADJ; /*ecnflval*/yylval.sem = MinisatID::DEF;  return SEMDEFN;}
-"C"		{ADJ; /*ecnflval*/yylval.sem = MinisatID::COMP; return SEMDEFN;}
-"L"		{ADJ; /*ecnflval*/yylval.sign = MinisatID::AGGSIGN_UB; return SIGNDEFN;}
-"G"		{ADJ; /*ecnflval*/yylval.sign = MinisatID::AGGSIGN_LB; return SIGNDEFN;}
+<theory>"forcesearch" { ADJ; return FORCECHOICE; }
 
-^"e"	{ADJ; /*ecnflval*/yylval.boolean = true; return QUANTe;} //existential quantifier
-^"a"	{ADJ; /*ecnflval*/yylval.boolean = false; return QUANTe;} //universal quantifier
+<theory>^"WSet"	{ADJ; return WSETDEFN;}
+<theory>^"Set"	{ADJ; return SETDEFN;}
+<theory>^"Card"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::CARD; return AGGDEFN;}
+<theory>^"Sum"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::SUM; return AGGDEFN;}
+<theory>^"Prod"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::PROD; return AGGDEFN;}
+<theory>^"Min"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::MIN; return AGGDEFN;}
+<theory>^"Max"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::MAX; return AGGDEFN;}
 
-^"Mnmz"		{ADJ; return SUBSETMINDEFN;}
-^"Mnmt"     {ADJ; return MNMZDEFN;}
-^"SumMnmz"	{ADJ; return SUMMINDEFN;}
+<theory>^"Mod"	{ADJ; return MODDEFN;}
 
-" "		{ADJ; /* disregard whitespaces */}
-"\t"	{ADJ; /*                       */}
-"\n"	{charPos = 1; lineNo++; /*     */}
+<theory>"D"	{ADJ; /*ecnflval*/yylval.sem = MinisatID::DEF;  return SEMDEFN;}
+<theory>"C"	{ADJ; /*ecnflval*/yylval.sem = MinisatID::COMP; return SEMDEFN;}
+<theory>"L"	{ADJ; /*ecnflval*/yylval.sign = MinisatID::AGGSIGN_UB;  return SIGNDEFN;}
+<theory>"G"	{ADJ; /*ecnflval*/yylval.sign = MinisatID::AGGSIGN_LB; return SIGNDEFN;}
 
-"|"	{ADJ; return DELIM;}
+<theory>^"e"	{ADJ; /*ecnflval*/yylval.boolean = true; return QUANTe;} //existential quantifier
+<theory>^"a"	{ADJ; /*ecnflval*/yylval.boolean = false; return QUANTe;} //universal quantifier
 
-^"INTVAR"	{ADJ; return INTVAR;}
-^"BINTRI"	{ADJ; return BINTRI;}
-^"BINTRT"	{ADJ; return BINTRT;}
-^"SUMSTRI"	{ADJ; return SUMSTRI;}
-^"SUMSTRT"	{ADJ; return SUMSTRT;}
-^"SUMSTSIRI"	{ADJ; return SUMSTSIRI;}
-^"SUMSTSIRT"	{ADJ; return SUMSTSIRT;}
-^"COUNTSTRIT"	{ADJ; return COUNTSTRIT;}
+<theory>^"Mnmz"	{ADJ; return SUBSETMINDEFN;}
+<theory>^"Mnmt"    {ADJ; return MNMZDEFN;}
+<theory>^"SumMnmz"	{ADJ; return SUMMINDEFN;}
 
-"="		{ADJ; /*ecnflval*/yylval.rel = MinisatID::MEQ; return REL;}
-">"		{ADJ; /*ecnflval*/yylval.rel = MinisatID::MG; return REL;}
-"<"		{ADJ; /*ecnflval*/yylval.rel = MinisatID::ML; return REL;}
-"~="	{ADJ; /*ecnflval*/yylval.rel = MinisatID::MNEQ; return REL;}
-"=<"	{ADJ; /*ecnflval*/yylval.rel = MinisatID::MLEQ; return REL;}
-">="	{ADJ; /*ecnflval*/yylval.rel = MinisatID::MGEQ; return REL;}
+<theory>" "		{ADJ; /* disregard whitespaces */}
+<theory>"\t"	{ADJ; /*                       */}
+<theory>"\n"	{charPos = 1; lineNo++; /*     */}
 
-^"translation"	{ ADJ; return TRANSHEADER;		}
-^"type"			{ ADJ; return TYPE;				}
-^"show pred"	{ ADJ; return SHOWPRED;			}
-^"pred"			{ ADJ; return PRED;				}
-^"show func"	{ ADJ; return SHOWFUNC;			}
-^"func"			{ ADJ; return FUNC;				}
-^"true"			{ ADJ; return TRUE;				}
-^"arbitrary"	{ ADJ; return ARBIT;			}
-_*[A-Za-z][a-zA-Z0-9_]*	{ ADJ;
-						/*ecnflval*/yylval.str = new string(yytext);
-						return IDENTIFIER; }
-":"				{ ADJ; return *yytext; }
-"/"				{ ADJ; return *yytext; }
+<theory>"|"		{ADJ; return DELIM;}
+
+<theory>^"INTVAR"	{ADJ; return INTVAR;}
+<theory>^"BINTRI"	{ADJ; return BINTRI;}
+<theory>^"BINTRT"	{ADJ; return BINTRT;}
+<theory>^"SUMSTRI"	{ADJ; return SUMSTRI;}
+<theory>^"SUMSTRT"	{ADJ; return SUMSTRT;}
+<theory>^"SUMSTSIRI"	{ADJ; return SUMSTSIRI;}
+<theory>^"SUMSTSIRT"	{ADJ; return SUMSTSIRT;}
+<theory>^"COUNTSTRIT"	{ADJ; return COUNTSTRIT;}
+
+<theory>"="		{ADJ; /*ecnflval*/yylval.rel = MinisatID::MEQ; return REL;}
+<theory>">"		{ADJ; /*ecnflval*/yylval.rel = MinisatID::MG; return REL;}
+<theory>"<"		{ADJ; /*ecnflval*/yylval.rel = MinisatID::ML; return REL;}
+<theory>"~="	{ADJ; /*ecnflval*/yylval.rel = MinisatID::MNEQ; return REL;}
+<theory>"=<"	{ADJ; /*ecnflval*/yylval.rel = MinisatID::MLEQ; return REL;}
+<theory>">="	{ADJ; /*ecnflval*/yylval.rel = MinisatID::MGEQ; return REL;}
 
  /* Longest match is returned -> if e.g. "20", NUMBER is returned.
-	If "0", then ZERO is returned since it's the first matching rule.
- */
-"0"			{ADJ; /*ecnflval*/yylval.integer = 0; return ZERO;}
--?[0-9]+	{ADJ;
-			/*ecnflval*/yylval.str = new string(yytext); return NUMBER;}
+    If "0", then ZERO is returned since it's the first matching rule.
+  */
+<theory>"0"			{ADJ; /*ecnflval*/yylval.integer = 0; return ZERO;}
+<theory>-?[0-9]+	{ADJ; yylval.str = new string(yytext); return NUMBER;}
+			
+<trans>^"type"			{ return TYPE;				}
+<trans>^"show pred"		{ return SHOWPRED;			}
+<trans>^"pred"			{ return PRED;				}
+<trans>^"show func"		{ return SHOWFUNC;			}
+<trans>^"func"			{ return FUNC;				}
+<trans>^"true"			{ return TRUE;				}
+<trans>^"arbitrary"		{ return ARBIT;				}
+<trans>{ID}				{ yylval.str = new string(yytext);	return T_ID;	}
+<trans>{INT}			{ yylval.integer = atoi(yytext); 	return T_NUM;		}
+<trans>{WHITESPACE}   	{                      		}
+<trans>.				{ return *yytext;			}
+<trans>\n             	{							}
 
-<*>.		{/* Anything else: parse error */
-				char s[100];
-				sprintf(s, "Encountered unexpected character '%s'.\n", yytext);
-				throw MinisatID::idpexception(s);
-			}
+<theory,INITIAL>.	{/* Anything else: parse error */
+						char s[100];
+						sprintf(s, "Encountered unexpected character '%s'.\n", yytext);
+						throw MinisatID::idpexception(s);
+					}

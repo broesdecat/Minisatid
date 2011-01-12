@@ -577,13 +577,6 @@ bool PCSolver::solve(const vec<Lit>& assumptions, Solution* sol){
 		return getSolver()->solve(assumptions, true);
 	}
 
-	if (modes().verbosity >= 2) {
-		report("============================[ Search Statistics ]==============================\n");
-		report("| Conflicts |          ORIGINAL         |          LEARNT          | Progress |\n");
-		report("|           |    Vars  Clauses Literals |    Limit  Clauses Lit/Cl |          |\n");
-		report("===============================================================================\n");
-	}
-
 	bool moremodels = true;
 
 	while (moremodels && (sol->getNbModelsToFind() == 0 || sol->getNbModelsFound() < sol->getNbModelsToFind())) {
@@ -591,6 +584,9 @@ bool PCSolver::solve(const vec<Lit>& assumptions, Solution* sol){
 		bool found = false;
 		if(optim!=NONE){
 			found = findOptimal(assumptions, model);
+			if(!found){
+				moremodels = false;
+			}
 		}else{
 			found = findNext(assumptions, model, moremodels);
 		}
@@ -810,7 +806,7 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
 	vec<Lit> currentassmpt;
 	assmpt.copyTo(currentassmpt);
 
-	bool rslt = true, optimumreached = false;
+	bool modelfound = false, unsatreached = false;
 
 	//CHECKS whether first element yields a solution, otherwise previous strategy is done
 	//should IMPLEMENT dichotomic search in the end: check half and go to interval containing solution!
@@ -838,16 +834,21 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
 	 }
 	 }*/
 
-	while (!optimumreached && rslt) {
+	while (!unsatreached) {
 		if (optim == SUMMNMZ) {
 			assert(getAggSolver()!=NULL);
 			//Noodzakelijk om de aanpassingen aan de bound door te propageren.
 			getAggSolver()->propagateMnmz(head);
 		}
 
-		rslt = getSolver()->solve(currentassmpt);
-
-		if (rslt && !optimumreached) {
+		bool sat = getSolver()->solve(currentassmpt);
+		if(!sat){
+			unsatreached = true;
+			break;
+		}
+		if (sat) {
+			modelfound = true;
+			//Store current model in m before invalidating the solver
 			m.clear();
 			int nvars = (int) nVars();
 			for (int i = 0; i < nvars; i++) {
@@ -858,29 +859,30 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
 				}
 			}
 
+			//invalidate the solver
 			vec<Lit> invalidation;
 			switch (optim) {
 			case MNMZ:
-				optimumreached = invalidateValue(invalidation);
+				unsatreached = invalidateValue(invalidation);
 				break;
 			case SUBSETMNMZ:
 				currentassmpt.clear();
-				optimumreached = invalidateSubset(invalidation, currentassmpt);
+				unsatreached = invalidateSubset(invalidation, currentassmpt);
 				break;
 			case SUMMNMZ:
 				//FIXME the invalidation turns out to be empty
-				optimumreached = getAggSolver()->invalidateSum(invalidation, head);
+				unsatreached = getAggSolver()->invalidateSum(invalidation, head);
 				break;
 			case NONE:
 				assert(false);
 				break;
 			}
 
-			if (!optimumreached) {
+			if (!unsatreached) {
 				if (getSolver()->decisionLevel() != currentassmpt.size()) { //choices were made, so other models possible
-					optimumreached = !invalidateModel(invalidation);
+					unsatreached = !invalidateModel(invalidation);
 				} else {
-					optimumreached = true;
+					unsatreached = true;
 				}
 			}
 
@@ -891,13 +893,10 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
 				}
 				printf(" 0\n");
 			}
-
-		} else if (!rslt) {
-			optimumreached = true;
 		}
 	}
 
-	return optimumreached;
+	return modelfound && unsatreached;
 }
 
 ///////

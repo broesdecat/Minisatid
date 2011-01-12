@@ -151,7 +151,8 @@ void parsepred(std::string* name, int num, std::vector<std::string>* ptypes, boo
 %token ARBIT
 
 /** Other Terminals **/
-%token <str> IDENTIFIER
+%token <str> T_ID
+%token <integer> T_NUM
 
 /** Non-terminals with semantic value **/
 %type <str>	identifier
@@ -436,16 +437,16 @@ predlist	: /* empty */
 			| predlist pred
 			;
 
-pred		: SHOWPRED number identifier ':' idlist	{ parsepred($3,$2,$5,false); delete($3); delete($5);	}
-			| PRED number identifier ':' idlist		{ delete($3); delete($5);								}
+pred		: SHOWPRED T_NUM identifier ':' idlist	{ parsepred($3,$2,$5,false); delete($3); delete($5);	}
+			| PRED T_NUM identifier ':' idlist		{ delete($3); delete($5);								}
 			;
 
 funclist	: /* empty */
 			| funclist func
 			;
 
-func		: SHOWFUNC number identifier ':' idlist	{ parsepred($3,$2,$5,true); delete($3); delete($5); 	}
-			| FUNC number identifier ':' idlist { delete($3); delete($5); }
+func		: SHOWFUNC T_NUM identifier ':' idlist	{ parsepred($3,$2,$5,true); delete($3); delete($5); 	}
+			| FUNC T_NUM identifier ':' idlist { delete($3); delete($5); }
 			;
 
 truelist	: TRUE ':' numlist	{ parsetruelist($3); delete($3); }
@@ -455,9 +456,9 @@ arbitlist	: ARBIT ':' numlist	{ parsearbitlist($3); delete($3); }
 			;
 
 idnlist		: idnlist identifier	{ $1->push_back(*$2); $$ = $1; delete($2); }
-			| idnlist number		{ $1->push_back(itos($2)); $$ = $1; }
+			| idnlist T_NUM			{ $1->push_back(itos($2)); $$ = $1; }
 			| identifier			{ $$ = new vector<string>(1,(*$1)); delete($1);	}
-			| number				{ $$ = new vector<string>(1,itos($1)); }
+			| T_NUM					{ $$ = new vector<string>(1,itos($1)); }
 			;
 
 idlist		: /* empty */		{ $$ = new vector<string>(0); }
@@ -465,19 +466,19 @@ idlist		: /* empty */		{ $$ = new vector<string>(0); }
 			;
 
 numlist		: /* empty */		{ $$ = new vector<int>(0); }
-			| numlist number	{ $1->push_back($2); $$ = $1; }
-			| numlist identifier '/' number		{ $$ = $1; }
-			| numlist identifier '/' number ':' { $$ = $1; }
+			| numlist T_NUM		{ $1->push_back($2); $$ = $1; }
+			| numlist identifier '/' T_NUM		{ $$ = $1; }
+			| numlist identifier '/' T_NUM ':' { $$ = $1; }
 			;
 
-identifier	: IDENTIFIER	{ $$ = $1;	}
+identifier	: T_ID	{ $$ = $1;	}
 			;		
 
 //---------------------------------------------		
 // GENERAL RULES
 //---------------------------------------------
 			
-//Clausese can be empty!
+//Clauses can be empty!
 body	:	body NUMBER { $$ = $1; $$->push_back(cLiteral($2));	delete($2); }
 		|				{ $$ = new std::vector<MinisatID::Literal>();	}
 		;
