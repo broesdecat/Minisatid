@@ -984,10 +984,6 @@ lbool Solver::solve_(/*AB*/bool nosearch/*AE*/)
     lbool   status            = l_Undef;
 
     /*AB*/
-    if (verbosity >= 1){
-    	reportf("> Conflicts |          ORIGINAL         |          LEARNT          | Progress\n");
-		reportf(">           |    Vars  Clauses Literals |    Limit  Clauses Lit/Cl |         \n");
-    }
     /*if (verbosity >= 1){
         printf("============================[ Search Statistics ]==============================\n");
         printf("| Conflicts |          ORIGINAL         |          LEARNT          | Progress |\n");

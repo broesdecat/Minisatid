@@ -51,6 +51,7 @@ struct BasicRule{
 
 	BasicRule(Literal head, std::vector<Literal>& body, bool conj = true):head(head), body(body), conj(conj){	}
 };
+
 struct CardRule: public BasicRule{
 	int setcount;
 	Weight atleast;
@@ -74,11 +75,12 @@ struct ChoiceRule{
 	std::vector<Literal> heads;
 	std::vector<Literal> body;
 
-	ChoiceRule(std::vector<Literal>& heads, std::vector<Literal>& body): heads(heads), body(body){}
+	ChoiceRule(std::vector<Literal>& heads, std::vector<Literal>& body):heads(heads), body(body){	}
 };
 
 class Read{
 private:
+	bool endedparsing;
 	int maxatomnumber;
 	int setcount;
 	long size;
@@ -114,17 +116,13 @@ private:
 	bool parseWeightRule	(std::istream &f);
 	bool parseOptimizeRule	(std::istream &f);
 
-	Atom makeNewDefAtom		();
-	Atom makeNewNonDefAtom	();
-	Atom makeDefAtom 		(int n);
-	Atom makeNonDefAtom		(int n);
-	Literal makeDefLiteral	(int n, bool sign);
-	Literal makeNonDefLiteral(int n, bool sign);
+	Atom makeNewAtom		();
+	Atom makeParsedAtom		(int n);
+	Atom makeAtom			(int n);
 
 	bool addBasicRules		();
 	bool addCardRules		();
 	bool addSumRules		();
-	bool addChoiceRules		();
 	bool addOptimStatement	();
 	bool tseitinizeHeads	();
 	void addRuleToHead(std::map<Atom, std::vector<BasicRule*> >& headtorules, BasicRule* rule, Atom head);

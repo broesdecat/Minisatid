@@ -181,6 +181,8 @@ int main(int argc, char** argv) {
 int doModelGeneration(pData& d, double cpu_time){
 	// Unittest injection possible by: pData d = unittestx();
 
+	bool unsat = false;
+
 	//Parse input
 	switch(modes.format){
 		case FORMAT_ASP:{
@@ -188,11 +190,12 @@ int doModelGeneration(pData& d, double cpu_time){
 			Read* r = new Read(p);
 			std::istream is(getInputBuffer());
 			if(!r->read(is)){
-				throw idpexception("Undefined error in asp parsing!\n");
+				unsat = true;
+			}else{
+				d = shared_ptr<WrappedLogicSolver> (p); //Only set d if successfully parsed
 			}
 			closeInput();
 			delete r;
-			d = shared_ptr<WrappedLogicSolver> (p); //Only set d if successfully parsed
 			break;
 		}
 		case FORMAT_OPB:{
@@ -216,7 +219,7 @@ int doModelGeneration(pData& d, double cpu_time){
 	MinisatID::closeInput();
 
 	//d is initialized unless unsat was already detected
-	bool unsat = d.get()==NULL;
+	unsat = unsat || d.get()==NULL;
 
 	printInitDataStart(modes.verbosity);
 

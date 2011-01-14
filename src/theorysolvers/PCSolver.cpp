@@ -579,6 +579,11 @@ bool PCSolver::solve(const vec<Lit>& assumptions, Solution* sol){
 
 	bool moremodels = true;
 
+	if(verbosity()>=1){
+		reportf("> Conflicts |          ORIGINAL         |          LEARNT          | Progress\n");
+		reportf(">           |    Vars  Clauses Literals |    Limit  Clauses Lit/Cl |         \n");
+	}
+
 	while (moremodels && (sol->getNbModelsToFind() == 0 || sol->getNbModelsFound() < sol->getNbModelsToFind())) {
 		vec<Lit> model;
 		bool found = false;

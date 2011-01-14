@@ -51,6 +51,7 @@ typedef enum {
 } RuleType;
 
 Read::Read(WrappedPCSolver* solver) :
+		endedparsing(false),
 		maxatomnumber(1), setcount(1), size(0),
 		solver(solver), optim(false),
 		translator(new LParseTranslator()){
@@ -64,22 +65,19 @@ Read::~Read() {
 	deleteList<ChoiceRule>	(choicerules);
 }
 
-Atom Read::makeDefAtom(int n){
-	Atom atom = makeNonDefAtom(n);
+Atom Read::makeParsedAtom(int n){
+	Atom atom = makeAtom(n);
 	pair<Atom, bool> p(atom,true);
 	defatoms.insert(p);
 	return atom;
 }
 
-Atom Read::makeNewDefAtom(){
-	return makeDefAtom(++maxatomnumber);
+Atom Read::makeNewAtom(){
+	assert(endedparsing);
+	return makeAtom(++maxatomnumber);
 }
 
-Atom Read::makeNewNonDefAtom(){
-	return makeNonDefAtom(++maxatomnumber);
-}
-
-Atom Read::makeNonDefAtom(int n){
+Atom Read::makeAtom(int n){
 	if (maxatomnumber < n) {
 		maxatomnumber = n;
 	}
@@ -87,24 +85,16 @@ Atom Read::makeNonDefAtom(int n){
 	return Atom(n);
 }
 
-//Everything that occurs natively in the theory should be treated as defined
-Literal Read::makeDefLiteral(int n, bool sign = false){
-	return Literal(makeDefAtom(n), sign);
-}
-
-Literal Read::makeNonDefLiteral(int n, bool sign = false){
-	return Literal(makeNonDefAtom(n), sign);
-}
-
 bool Read::readBody(istream &f, long size, bool pos, vector<Literal>& body) {
 	long n;
 	for (long i = 0; i < size; i++) {
 		f >> n;
 		if (!f.good() || n < 1) {
-			cerr << "atom out of bounds, line " << linenumber << endl;
-			return false;
+			char s[100];
+			sprintf(s, "atom out of bounds, line %ld\n", linenumber);
+			throw idpexception(s);
 		}
-		body.push_back(makeDefLiteral(n, !pos));
+		body.push_back(Literal(makeParsedAtom(n), !pos));
 	}
 	return true;
 }
@@ -113,15 +103,17 @@ bool Read::readFullBody(istream &f, vector<Literal>& body){
 	long n;
 	f >> n; // total body size
 	if (!f.good() || n < 0) {
-		cerr << "total body size, line " << linenumber << endl;
-		return false;
+		char s[100];
+		sprintf(s, "total body size, line %ld\n", linenumber);
+		throw idpexception(s);
 	}
 	long bodysize = n;
 
 	f >> n; // size of negative body
 	if (!f.good() || n < 0 || n > bodysize) {
-		cerr << "negative body size, line " << linenumber << endl;
-		return false;
+		char s[100];
+		sprintf(s, "negative body size, line %ld\n", linenumber);
+		throw idpexception(s);
 	}
 	long negbodysize = n;
 
@@ -142,8 +134,9 @@ bool Read::readWeights(std::istream &f, std::vector<Weight>& weights, int bodysi
 			return false;
 		}
 		if ((w>0 && posInfinity()-w<sum) || (w<0 && negInfinity()-w>sum)) {
-			cerr << "sum of weights in weight rule too large or too small," << " line " << linenumber << endl;
-			return false;
+			char s[100];
+			sprintf(s, "sum of weights in weight rule too large or too small, line %ld\n", linenumber);
+			throw idpexception(s);
 		}
 		sum += w;
 		weights.push_back(w);
@@ -155,10 +148,11 @@ bool Read::parseBasicRule(istream &f) {
 	long n;
 	f >> n; // rule head
 	if (!f.good() || n < 1) {
-		cerr << "head atom out of bounds, line " << linenumber << endl;
-		return false;
+		char s[100];
+		sprintf(s, "head atom out of bounds, line %ld\n", linenumber);
+		throw idpexception(s);
 	}
-	Atom head = makeDefAtom(n);
+	Atom head = makeParsedAtom(n);
 
 	vector<Literal> body;
 	if(!readFullBody(f, body)){
@@ -173,22 +167,25 @@ bool Read::parseConstraintRule(istream &f) {
 	long n;
 	f >> n; // rule head
 	if (!f.good() || n < 1) {
-		cerr << "head atom out of bounds, line " << linenumber << endl;
-		return false;
+		char s[100];
+		sprintf(s, "head atom out of bounds, line %ld\n", linenumber);
+		throw idpexception(s);
 	}
-	Atom head = makeDefAtom(n);
+	Atom head = makeParsedAtom(n);
 
 	f >> n; // total body size
 	if (!f.good() || n < 0) {
-		cerr << "total body size, line " << linenumber << endl;
-		return false;
+		char s[100];
+		sprintf(s, "total body size, line %ld\n", linenumber);
+		throw idpexception(s);
 	}
 	long bodysize = n;
 
 	f >> n; // size of negative body
 	if (!f.good() || n < 0 || n > bodysize) {
-		cerr << "negative body size, line " << linenumber << endl;
-		return false;
+		char s[100];
+		sprintf(s, "negative body size, line %ld\n", linenumber);
+		throw idpexception(s);
 	}
 	long negbodysize = n;
 
@@ -215,8 +212,9 @@ bool Read::parseChoiceRule(istream &f) {
 
 	f >> n; // number of heads
 	if (!f.good() || n < 1) {
-		cerr << "head size less than one, line " << linenumber << endl;
-		return false;
+		char s[100];
+		sprintf(s, "head size less than one, line %ld\n", linenumber);
+		throw idpexception(s);
 	}
 	long headssize = n;
 
@@ -224,10 +222,11 @@ bool Read::parseChoiceRule(istream &f) {
 	for (long i = 0; i < headssize; i++) {
 		f >> n;
 		if (!f.good() || n < 1) {
-			cerr << "atom out of bounds, line " << linenumber << endl;
-			return false;
+			char s[100];
+			sprintf(s, "atom out of bounds, line %ld\n", linenumber);
+			throw idpexception(s);
 		}
-		heads.push_back(makeDefLiteral(n));
+		heads.push_back(Literal(makeParsedAtom(n)));
 	}
 
 	vector<Literal> body;
@@ -243,10 +242,11 @@ bool Read::parseWeightRule(istream &f) {
 	long n;
 	f >> n; // number of heads
 	if (!f.good() || n < 1) {
-		cerr << "head atom out of bounds, line " << linenumber << endl;
-		return false;
+		char s[100];
+		sprintf(s, "head atom out of bounds, line %ld\n", linenumber);
+		throw idpexception(s);
 	}
-	Atom head = makeDefAtom(n);
+	Atom head = makeParsedAtom(n);
 
 	Weight lowerbound;
 	f >> lowerbound; // lower bound of the sum
@@ -274,8 +274,9 @@ bool Read::parseOptimizeRule(istream &f) {
 	if (!f.good())
 		return false;
 	if(n!=0){
-		cerr << "maximize statements are no longer accepted, line" << linenumber << endl;
-		return false;
+		char s[100];
+		sprintf(s, "maximize statements are no longer accepted, line %ld\n", linenumber);
+		throw idpexception(s);
 	}
 
 	vector<Literal> body;
@@ -329,28 +330,6 @@ bool Read::addSumRules() {
 	return true;
 }
 
-bool Read::addChoiceRules() {
-	for (vector<ChoiceRule*>::const_iterator i = choicerules.begin(); i < choicerules.end(); i++) {
-		vector<Literal> tempbody;
-		tempbody.push_back(Literal(1)); //reserve space for the extra choice literal
-		tempbody.insert(tempbody.end(), (*i)->body.begin(), (*i)->body.end());
-		for (vector<Literal>::const_iterator j = (*i)->heads.begin(); j < (*i)->heads.end(); j++) {
-			const Literal& head = *j;
-			tempbody[0] = Literal(makeNewNonDefAtom());
-			if(!getSolver()->addRule(true, head, tempbody)){
-				return false;
-			}
-			//To guarantee #model equivalence:
-			vector<Literal> lits;
-			lits.push_back(head);
-			if(!getSolver()->addEquivalence(tempbody[0], lits, true)){
-				return false;
-			}
-		}
-	}
-	return true;
-}
-
 void Read::addRuleToHead(map<Atom, vector<BasicRule*> >& headtorules, BasicRule* rule, Atom head){
 	if (headtorules.find(head) == headtorules.end()) {
 		headtorules.insert(pair<Atom, vector<BasicRule*> > (head, std::vector<BasicRule*>()));
@@ -359,6 +338,25 @@ void Read::addRuleToHead(map<Atom, vector<BasicRule*> >& headtorules, BasicRule*
 }
 
 bool Read::tseitinizeHeads(){
+	// Transform away all choicerules
+	for (vector<ChoiceRule*>::const_iterator i = choicerules.begin(); i < choicerules.end(); i++) {
+		vector<Literal> tempbody;
+		tempbody.push_back(Literal(1)); //reserve space for the extra choice literal
+		tempbody.insert(tempbody.end(), (*i)->body.begin(), (*i)->body.end());
+		for (vector<Literal>::const_iterator j = (*i)->heads.begin(); j < (*i)->heads.end(); j++) {
+			const Literal& head = *j;
+			tempbody[0] = Literal(makeNewAtom());
+			basicrules.push_back(new BasicRule(head, tempbody));
+
+			//To guarantee #model equivalence:
+			vector<Literal> lits;
+			lits.push_back(head);
+			if(!getSolver()->addEquivalence(tempbody[0], lits, true)){
+				return false;
+			}
+		}
+	}
+
 	//Check whether there are multiple occurrences and rewrite them using tseitin!
 	map<Atom, vector<BasicRule*> > headtorules;
 	for (vector<BasicRule*>::const_iterator i = basicrules.begin(); i < basicrules.end(); i++) {
@@ -370,11 +368,6 @@ bool Read::tseitinizeHeads(){
 	for (vector<SumRule*>::const_iterator i = sumrules.begin(); i < sumrules.end(); i++) {
 		addRuleToHead(headtorules, *i, (*i)->head.getAtom());
 	}
-	for (vector<ChoiceRule*>::const_iterator i = choicerules.begin(); i < choicerules.end(); i++) {
-		for (vector<Literal>::const_iterator j = (*i)->heads.begin(); j < (*i)->heads.end(); j++) {
-			addRuleToHead(headtorules, NULL, (*j).getAtom()); //NULL used as a placeholder, so it can be checked later too
-		}
-	}
 
 	//Tseitinize
 	for (map<Atom, vector<BasicRule*> >::const_iterator i = headtorules.begin(); i != headtorules.end(); i++) {
@@ -384,11 +377,7 @@ bool Read::tseitinizeHeads(){
 
 		vector<Literal> newheads;
 		for (vector<BasicRule*>::const_iterator j = (*i).second.begin(); j < (*i).second.end(); j++) {
-			if((*j)==NULL){ //a choice rule shares a head with another rule
-				cerr <<"A head was shared by a choice rule and another rule. No idea about semantics!\n";
-				return false;
-			}
-			Literal newhead = Literal(makeNewDefAtom());
+			Literal newhead = Literal(makeNewAtom());
 			newheads.push_back(newhead);
 			(*j)->head = newhead;
 		}
@@ -413,7 +402,7 @@ bool Read::tseitinizeHeads(){
 bool Read::addOptimStatement(){
 	if(optim){
 		vector<Literal> optimheadclause;
-		Literal optimhead = Literal(makeNewNonDefAtom());
+		Literal optimhead = Literal(makeNewAtom());
 		optimheadclause.push_back(optimhead);
 		if(!getSolver()->addClause(optimheadclause)){
 			return false;
@@ -437,6 +426,7 @@ bool Read::read(istream &f) {
 		switch (type) {
 		case ENDRULE:
 			stop = true;
+			endedparsing = true;
 			break;
 		case BASICRULE:
 			error = !parseBasicRule(f);
@@ -448,8 +438,9 @@ bool Read::read(istream &f) {
 			error = !parseChoiceRule(f);
 			break;
 		case GENERATERULE:
-			cerr << "As, according to the lparse manual, \"generate rules cause semantical troubles\", we do not support them." <<endl;
-			return false;
+			char s[100];
+			sprintf(s, "As, according to the lparse manual, \"generate rules cause semantical troubles\", we do not support them.\n");
+			throw idpexception(s);
 			break;
 		case WEIGHTRULE:
 			error = !parseWeightRule(f);
@@ -472,8 +463,9 @@ bool Read::read(istream &f) {
 	// Read atom names: lines ATOM NAME
 	f.getline(s, len); // Get newline
 	if (!f.good()) {
-		cerr << "expected atom names to begin on new line, line " << linenumber << endl;
-		return false;
+		char s[100];
+		sprintf(s, "expected atom names to begin on new line %ld\n", linenumber);
+		throw idpexception(s);
 	}
 
 	while(true){ //read until atom 0 read
@@ -485,8 +477,9 @@ bool Read::read(istream &f) {
 		}
 
 		if (!f.good()) {
-			cerr << "atom name too long or end of file, line " << linenumber << endl;
-			return false;
+			char s[100];
+			sprintf(s, "atom name too long or end of file, line %ld\n", linenumber);
+			throw idpexception(s);
 		}
 
 		if(*s){
@@ -501,8 +494,9 @@ bool Read::read(istream &f) {
 	// listnegatoms are atoms that should all be false
 	f.getline(s, len); //should be B+
 	if (!f.good() || strcmp(s, "B+")!=0) {
-		cerr << "B+ expected, line " << linenumber << endl;
-		return false;
+		char s[100];
+		sprintf(s, "B+ expected, line %ld\n", linenumber);
+		throw idpexception(s);
 	}
 	linenumber++;
 	while (true) {
@@ -513,12 +507,13 @@ bool Read::read(istream &f) {
 		}
 
 		if (!f.good() || i < 1) {
-			cerr << "B+ atom out of bounds, line " << linenumber << endl;
-			return false;
+			char s[100];
+			sprintf(s, "B+ atom out of bounds, line %ld\n", linenumber);
+			throw idpexception(s);
 		}
 
 		vector<Literal> lits;
-		lits.push_back(makeDefLiteral(i));
+		lits.push_back(Literal(makeParsedAtom(i)));
 		if (!getSolver()->addClause(lits)) {
 			return false;
 		}
@@ -526,8 +521,9 @@ bool Read::read(istream &f) {
 	f.getline(s, len); // Read rest of last line (get newline);
 	f.getline(s, len); //should be B-
 	if (!f.good() || strcmp(s, "B-")!=0) {
-		cerr << "B- expected, line " << linenumber << endl;
-		return false;
+		char s[100];
+		sprintf(s, "B- expected, line %ld\n", linenumber);
+		throw idpexception(s);
 	}
 	linenumber++;
 	while (true) {
@@ -537,12 +533,13 @@ bool Read::read(istream &f) {
 			break;
 		}
 		if (!f.good() || i < 1) {
-			cerr << "B- atom out of bounds, line " << linenumber << endl;
-			return false;
+			char s[100];
+			sprintf(s, "B- atom out of bounds, line %ld\n", linenumber);
+			throw idpexception(s);
 		}
 
 		vector<Literal> lits;
-		lits.push_back(makeDefLiteral(i, true));
+		lits.push_back(Literal(makeParsedAtom(i), true));
 		if (!getSolver()->addClause(lits)) {
 			return false;
 		}
@@ -552,8 +549,9 @@ bool Read::read(istream &f) {
 	solver->setNbModels(i);
 
 	if (f.fail()) {
-		cerr << "number of models expected, line " << linenumber << endl;
-		return false;
+		char s[100];
+		sprintf(s, "number of models expected, line %ld\n", linenumber);
+		throw idpexception(s);
 	}
 
 	error = !tseitinizeHeads();
@@ -563,8 +561,6 @@ bool Read::read(istream &f) {
 	error = !addCardRules();
 	if(error) { return false; }
 	error = !addSumRules();
-	if(error) { return false; }
-	error = !addChoiceRules();
 	if(error) { return false; }
 	error = !addOptimStatement();
 	if(error) { return false; }

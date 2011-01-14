@@ -1,1 +1,1 @@
-SUBDIRS = src tclap
+SUBDIRS = tclap perftools src
