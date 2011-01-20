@@ -103,6 +103,14 @@ public:
 		}
 	}
 
+	bool isFalsified(const Agg& agg, const Weight& min, const Weight& max) const{
+		if(agg.hasUB()){
+			return min>agg.getCertainBound();
+		}else{ //LB
+			return max<agg.getCertainBound();
+		}
+	}
+
 	void 		addValue(const Weight& weight, bool inset, Weight& min, Weight& max) const;
 	void 		removeValue(const Weight& weight, bool inset, Weight& min, Weight& max) const;
 

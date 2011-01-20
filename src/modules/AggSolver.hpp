@@ -223,17 +223,9 @@ public:
 	void				addToPropTrail			(Aggrs::TypedSet* set) { proptrail.push_back(set); }
 	void				addToBackTrail			(Aggrs::TypedSet* set) { backtrail.back().push_back(set); }
 
-	int					getTime					(Lit l)	{ return propagated[var(l)].i; }
+	int					getTime					(Lit l) const;
 
-	lbool				propagatedValue			(const Lit& l) {
-		assert(value(l)!=l_Undef || propagated[var(l)].v==l_Undef);
-		if(sign(l)){
-			lbool v = propagated[var(l)].v;
-			return v==l_Undef?l_Undef:v==l_True?l_False:l_True;
-		}else{
-			return propagated[var(l)].v;
-		}
-	}
+	lbool				propagatedValue			(const Lit& l) const;
 
 protected:
 	mips&				parsedSets				() { return _parsedSets; }

@@ -435,7 +435,7 @@ void CardToEquiv::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& u
 						unsat = unsat || !set->getSolver()->getPCSolver()->addRule(true, agg.getHead(), lits);
 					}else{
 						if(headvalue==l_Undef){
-							if(set->getSolver()->notifySolver(new AggReason(agg, HEADONLY, agg.getHead(), 0, true))!=nullPtrClause){
+							if(set->getSolver()->notifySolver(new HeadReason(agg, HEADONLY, agg.getHead()))!=nullPtrClause){
 								unsat = true;
 							}
 						}

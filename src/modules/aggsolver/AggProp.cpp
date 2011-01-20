@@ -242,6 +242,21 @@ void TypedSet::initialize(bool& unsat, bool& sat, vps& sets) {
 	}
 }
 
+void TypedSet::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
+	getProp()->getExplanation(lits, ar);
+
+	if(getSolver()->verbosity()>=3){
+		report("Explanation for deriving "); gprintLit(ar.getPropLit());
+		report(" in expression ");
+		print(getSolver()->verbosity(), ar.getAgg(), false);
+		report(" is ");
+		for(int i=0; i<lits.size(); i++){
+			report(" "); gprintLit(lits[i]);
+		}
+		report("\n");
+	}
+}
+
 Propagator::Propagator(TypedSet* set):set(set), aggsolver(set->getSolver()){
 
 }

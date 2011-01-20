@@ -614,7 +614,7 @@ void Solver::uncheckedEnqueue(Lit p, CRef from)
     vardata[var(p)] = mkVarData(from, decisionLevel());
     trail.push_(p);
     /*AB*/
-    if(verbosity>=5){
+    if(verbosity>=3){
     	solver->printEnqueued(p);
     }
     /*AE*/

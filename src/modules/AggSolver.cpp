@@ -107,6 +107,28 @@ void AggSolver::addTempWatch(const Lit& l, Watch* w) {
 	tempwatches[toInt(l)].push_back(w);
 }
 
+int AggSolver::getTime(Lit l) const {
+	int time = 0;
+	if(propagated[var(l)].v!=l_Undef){
+		time = propagated[var(l)].i;
+	}else{
+		if(value(l)!=l_Undef){
+			time = index;
+		}
+	}
+	return time;
+}
+
+lbool AggSolver::propagatedValue(const Lit& l) const {
+	assert(value(l)!=l_Undef || propagated[var(l)].v==l_Undef);
+	if(sign(l)){
+		lbool v = propagated[var(l)].v;
+		return v==l_Undef?l_Undef:v==l_True?l_False:l_True;
+	}else{
+		return propagated[var(l)].v;
+	}
+}
+
 ///////
 // MAIN OPERATIONS
 ///////
@@ -777,7 +799,7 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
 		return true;
 	}
 
-	AggReason ar(*a, BASEDONCC, createNegativeLiteral(head), true);
+	HeadReason ar(*a, BASEDONCC, createNegativeLiteral(head));
 	prop->getExplanation(invalidation, ar);
 
 	return false;
