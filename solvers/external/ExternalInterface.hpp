@@ -60,7 +60,7 @@ private:
 public:
 	SolverInterface(ECNF_mode modes):
 		_modes(modes), maxnumber(0),
-		origtocontiguousatommapper(), contiguoustoorigatommapper(){};
+		origtocontiguousatommapper(), contiguoustoorigatommapper(), res(NULL){};
 
 	virtual ~SolverInterface(){};
 
