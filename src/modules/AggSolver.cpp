@@ -60,7 +60,7 @@ using namespace MinisatID;
 using namespace Aggrs;
 
 AggSolver::AggSolver(pPCSolver s) :
-	DPLLTmodule(s), propagations(0), index(1) {
+	DPLLTmodule(s), propagations(0), index(1), propindex(0) {
 }
 
 AggSolver::~AggSolver() {
@@ -471,37 +471,70 @@ void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel) {
 	proptrail.clear();
 	propstart = 0;
 
-	/*report("Levels: ");
-	for(int i=0; i<mapdecleveltotrail.size(); i++){
-		report("%d ", mapdecleveltotrail[i]);
-	}
-	report("\n");
-	report("Trail real:");
-	for(int i=0; i<getPCSolver()->getTrail().size(); i++){
-		gprintLit(getPCSolver()->getTrail()[i]);
-	}
-	report("\n");
-	report("Trail agg: ");
-	for(int i=0; i<fulltrail.size(); i++){
-		gprintLit(fulltrail[i]);
-	}
-	report("\n");
-
-	for(int i=0; i<propagated.size(); i++){
-		report("%d(%s)", gprintVar(i), value(i)==l_True?"T":value(i)==l_False?"F":"X");
-		report("%d(%s)", gprintVar(i), propagated[i]==l_True?"T":propagated[i]==l_False?"F":"X");
-	}*/
-
-	for(int i=mapdecleveltotrail[untillevel+1]; i<fulltrail.size(); i++){
+	for(vsize i=mapdecleveltotrail[untillevel+1]; i<fulltrail.size(); i++){
 		propagated[var(fulltrail[i])]=LI(l_Undef, 0);
 	}
 	fulltrail.resize(mapdecleveltotrail[untillevel+1]);
+	propindex = fulltrail.size()-1;
 	mapdecleveltotrail.resize(untillevel+1);
 	if(fulltrail.size()==0){
 		index = 1;
 	}else{
 		index = getTime(fulltrail.back());
 	}
+}
+
+rClause AggSolver::doProp(){
+	rClause confl = nullPtrClause;
+	for(; confl==nullPtrClause && propindex<fulltrail.size();){
+		//TODO remove the adaptation of values from here to propatend if !asapaggprop
+		//and do propagation after changing the values
+		const Lit& p = fulltrail[propindex++];
+		propagated[var(p)]=LI(sign(p)?l_False:l_True, index++);
+
+		if (verbosity() >= 4) {
+			report("Aggr_propagate("); gprintLit(p, l_True); report(").\n");
+		}
+
+		Agg* pa = headwatches[toInt(p)];
+		if (pa != NULL) {
+			confl = pa->getSet()->propagate(*pa, getLevel(), !sign(p));
+			propagations++;
+
+			printWatches(verbosity(), this, tempwatches);
+		}
+
+		const vector<Watch*>& ws = permwatches[var(p)];
+		for (vector<Watch*>::const_iterator i = ws.begin(); confl == nullPtrClause && i < ws.end(); i++) {
+			confl = (*i)->getSet()->propagate(p, *i, getLevel());
+			propagations++;
+		}
+
+		if (confl==nullPtrClause && tempwatches[toInt(p)].size() > 0) {
+			vector<Watch*> ws2(tempwatches[toInt(p)]); //IMPORTANT, BECAUSE WATCHES MIGHT BE ADDED AGAIN TO THE END (if no other watches are found etc)
+			tempwatches[toInt(p)].clear();
+
+			for (vector<Watch*>::const_iterator i = ws2.begin(); confl == nullPtrClause && i < ws2.end(); i++) {
+				if (confl == nullPtrClause) {
+					confl = (*i)->getSet()->propagate(p, (*i), getLevel());
+					propagations++;
+				} else { //If conflict found, copy all remaining watches in again
+					addTempWatch(p, (*i));
+				}
+			}
+
+			printWatches(verbosity(), this, tempwatches);
+		}
+
+		if(modes().asapaggprop){
+			for(vector<TypedSet*>::const_iterator i=proptrail.begin(); confl==nullPtrClause && i<proptrail.end(); i++){
+				confl = (*i)->propagateAtEndOfQueue(getLevel());
+			}
+			proptrail.clear();
+		}
+	}
+
+	return confl;
 }
 
 /**
@@ -513,49 +546,10 @@ rClause AggSolver::propagate(const Lit& p) {
 	}
 
 	fulltrail.push_back(p);
-	propagated[var(p)]=LI(sign(p)?l_False:l_True, index++);
 
 	rClause confl = nullPtrClause;
-
-	if (verbosity() >= 4) {
-		report("Aggr_propagate("); gprintLit(p, l_True); report(").\n");
-	}
-
-	Agg* pa = headwatches[toInt(p)];
-	if (pa != NULL) {
-		confl = pa->getSet()->propagate(*pa, getLevel(), !sign(p));
-		propagations++;
-
-		printWatches(verbosity(), this, tempwatches);
-	}
-
-	const vector<Watch*>& ws = permwatches[var(p)];
-	for (vector<Watch*>::const_iterator i = ws.begin(); confl == nullPtrClause && i < ws.end(); i++) {
-		confl = (*i)->getSet()->propagate(p, *i, getLevel());
-		propagations++;
-	}
-
-	if (confl==nullPtrClause && tempwatches[toInt(p)].size() > 0) {
-		vector<Watch*> ws2(tempwatches[toInt(p)]); //IMPORTANT, BECAUSE WATCHES MIGHT BE ADDED AGAIN TO THE END (if no other watches are found etc)
-		tempwatches[toInt(p)].clear();
-
-		for (vector<Watch*>::const_iterator i = ws2.begin(); confl == nullPtrClause && i < ws2.end(); i++) {
-			if (confl == nullPtrClause) {
-				confl = (*i)->getSet()->propagate(p, (*i), getLevel());
-				propagations++;
-			} else { //If conflict found, copy all remaining watches in again
-				addTempWatch(p, (*i));
-			}
-		}
-
-		printWatches(verbosity(), this, tempwatches);
-	}
-
 	if(modes().asapaggprop){
-		for(vector<TypedSet*>::const_iterator i=proptrail.begin(); confl==nullPtrClause && i<proptrail.end(); i++){
-			confl = (*i)->propagateAtEndOfQueue(getLevel());
-		}
-		proptrail.clear();
+		confl = doProp();
 	}
 
 	return confl;
@@ -567,17 +561,12 @@ rClause	AggSolver::propagateAtEndOfQueue(){
 	}
 
 	rClause confl = nullPtrClause;
-
 	if(!modes().asapaggprop){
-		//noprops = true;
-		for(vector<TypedSet*>::const_iterator i=proptrail.begin();/*+propstart; noprops && */confl==nullPtrClause && i<proptrail.end(); i++){
+		confl = doProp();
+		for(vector<TypedSet*>::const_iterator i=proptrail.begin(); confl==nullPtrClause && i<proptrail.end(); i++){
 			confl = (*i)->propagateAtEndOfQueue(getLevel());
-			//propstart++;
 		}
-		//if(confl!=nullPtrClause/* || noprops*/){
-			proptrail.clear();
-			//propstart = 0;
-		//}
+		proptrail.clear();
 	}
 
 	return confl;

@@ -416,19 +416,19 @@ struct WLI: public WL{
 	WLI(const WL& wl, int time, bool inset): WL(wl), time(time), inset(inset){}
 };
 
-/*bool compareWLIearlier(const WLI& one, const WLI& two){
+bool compareWLIearlier(const WLI& one, const WLI& two){
 	return one.time < two.time;
-}*/
+}
 
-const PCSolver* pcsolver;
+/*const PCSolver* pcsolver;
 
 bool compareWLIearlier(const WLI& one, const WLI& two){
 	return pcsolver->assertedBefore(var(one.getLit()), var(two.getLit()));
-}
+}*/
 
 void GenPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	const PCSolver& pcsol = *getSolver()->getPCSolver();
-	pcsolver = getSolver()->getPCSolver();
+	//pcsolver = getSolver()->getPCSolver();
 	const Lit& head = ar.getAgg().getHead();
 	const Lit& proplit = ar.getPropLit();
 	bool conflictclause = value(ar.getPropLit())==l_False;

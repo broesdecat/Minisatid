@@ -114,7 +114,8 @@ private:
 	bool 											noprops;
 
 	std::vector<int>								mapdecleveltotrail;
-	int 											index;
+	int 											index; //fulltrail index?
+	uint												propindex;
 	std::vector<Lit>								fulltrail;
 	std::vector<LI>									propagated;
 
@@ -154,11 +155,8 @@ public:
 	 * @pre: no weights==0 when using a product aggregate
 	 */
 	bool 				addAggrExpr				(int defn, int set_id, const Weight& bound, AggSign boundsign, AggType type, AggSem headeq);
-
 	void 				findClausalPropagations	();
-
 	void 				notifyDefinedHead		(Var head);
-
 	void 				removeHeadWatch			(Var x);
 
 	//////
@@ -179,6 +177,7 @@ public:
 	 */
 	virtual rClause 	propagate				(const Lit& l);
 	virtual rClause	 	propagateAtEndOfQueue	();
+			rClause 	doProp					();
 
 	virtual void 		newDecisionLevel		();
 	virtual void 		backtrackDecisionLevels	(int nblevels, int untillevel);
