@@ -12,7 +12,9 @@
 *Makefile.in
 aclocal.m4
 autom4te.cache/*
+*/autom4te.cache/*
 builds/*
+*/builds/*
 configure
 depcomp
 install-sh
