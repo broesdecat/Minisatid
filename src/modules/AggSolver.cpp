@@ -475,7 +475,7 @@ void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel) {
 		propagated[var(fulltrail[i])]=LI(l_Undef, 0);
 	}
 	fulltrail.resize(mapdecleveltotrail[untillevel+1]);
-	propindex = fulltrail.size()-1;
+	propindex = fulltrail.size();
 	mapdecleveltotrail.resize(untillevel+1);
 	if(fulltrail.size()==0){
 		index = 1;
@@ -486,6 +486,7 @@ void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel) {
 
 rClause AggSolver::doProp(){
 	rClause confl = nullPtrClause;
+
 	for(; confl==nullPtrClause && propindex<fulltrail.size();){
 		//TODO remove the adaptation of values from here to propatend if !asapaggprop
 		//and do propagation after changing the values
@@ -533,6 +534,7 @@ rClause AggSolver::doProp(){
 			proptrail.clear();
 		}
 	}
+	assert(confl!=nullPtrClause || propindex==fulltrail.size());
 
 	return confl;
 }
