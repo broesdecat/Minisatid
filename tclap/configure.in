@@ -16,12 +16,12 @@ AM_CONDITIONAL([HAVE_GNU_COMPILERS], [test x$ac_cv_cxx_compiler_gnu = xyes])
 
 AC_OUTPUT([ Makefile \
 	   tclap.pc
-           examples/Makefile \
 		   include/Makefile \
 		   include/tclap/Makefile \
 		   config/Makefile], \
 		   [chmod a+x $ac_top_srcdir/tests/*.sh])
 
+#          examples/Makefile
 #		   docs/Makefile
 #		   docs/Doxyfile
 #		   msc/Makefile
