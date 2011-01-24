@@ -32,7 +32,7 @@ public:
 
 class FODOTTranslator: public Translator{
 private:
-	bool tofodot; //FIXME add to options
+	bool tofodot;
 
 	// Look-up tables
 	std::map<std::string,int>	type_lookup;

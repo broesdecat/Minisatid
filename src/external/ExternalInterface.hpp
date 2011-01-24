@@ -121,7 +121,9 @@ private:
 public:
 	WrappedLogicSolver(const SolverOption& modes);
 	virtual ~WrappedLogicSolver(){
-		delete _translator;
+		if(_translator!=NULL){
+			delete _translator;
+		}
 	};
 
 	virtual void 	printStatistics	() const = 0;

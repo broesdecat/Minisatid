@@ -416,14 +416,23 @@ mwset	:	WSETDEFN NUMBER NUMBER wbody ZERO
 translation	: /* empty */
 			|	TRANSHEADER  
 				{ 
-					translator = new FODOTTranslator(true);
-					if(modsolver.get()!=NULL){
-						modsolver->setTranslator(translator);
-					}else{
-						solver->setTranslator(translator);
+					//FIXME bit of a hack: if no translation is necessary,
+					//the translator is loaded fully, but not attached to the solver and we delete it in the end
+					translator = new FODOTTranslator(modes.transformat);
+					if(modes.transformat!=TRANS_PLAIN){
+						if(modsolver.get()!=NULL){
+							modsolver->setTranslator(translator);
+						}else{
+							solver->setTranslator(translator);
+						}
 					}
 				}
 				typelist predlist funclist truelist arbitlist
+				{
+					if(modes.transformat==TRANS_PLAIN){
+						delete translator;
+					}
+				}
 			;
 			
 typelist	: /* empty */

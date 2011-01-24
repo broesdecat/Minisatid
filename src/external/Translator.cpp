@@ -27,7 +27,7 @@ using namespace MinisatID;
 
 Translator::Translator(){}
 
-FODOTTranslator::FODOTTranslator(bool fodot): Translator(), tofodot(fodot), modelcounter(0) {
+FODOTTranslator::FODOTTranslator(bool fodot): Translator(), tofodot(fodot==TRANS_FODOT), modelcounter(0) {
 
 }
 
@@ -96,7 +96,7 @@ void FODOTTranslator::printPredicate(int n, const modelvec& model, MODE mode, os
 					}
 				}else{
 					if(model[n].size()!=0){ //Only print if true!
-						output << getPredName(n) <<".\n";
+						output << getPredName(n) <<". ";
 					}
 				}
 			}
@@ -114,7 +114,7 @@ void FODOTTranslator::printPredicate(int n, const modelvec& model, MODE mode, os
 		if(!tofodot){
 			output << getPredName(n) << "(";
 			printTuple(*m, output);
-			output <<").\n";
+			output <<"). ";
 		}else{
 			if(tupleseen){
 				output << "; ";
@@ -160,13 +160,13 @@ void FODOTTranslator::printFunction(int n, const modelvec& model, ostream& outpu
 	}else{
 		if(predtypes[n].size() == 1) {
 			assert(model[n].size()!=0);
-			output << getPredName(n) <<"(" << model[n][0][0] <<").\n";
+			output << getPredName(n) <<"(" << model[n][0][0] <<"). ";
 		}
 		else {
 			for(vector<vector<string> >::const_iterator m = model[n].begin(); m < model[n].end(); ++m) {
 				output << getPredName(n) <<"(";
 				printTuple(*m, output);
-				output <<").\n";
+				output <<"). ";
 			}
 		}
 	}

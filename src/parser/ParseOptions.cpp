@@ -60,7 +60,6 @@ struct NoValsOption: public Opt{
 	}
 
 	void parse(){
-		//cerr <<longopt <<" " <<arg->getValue() <<endl;
 		modesarg = arg->getValue();
 	}
 };
@@ -140,6 +139,12 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	formatvals.push_back(FORMAT_FODOT); formatdesc.push_back(pair<string, string>("fodot", "propositional FO(.)"));
 	formatvals.push_back(FORMAT_ASP); formatdesc.push_back(pair<string, string>("asp", "propositional LParse ASP"));
 	formatvals.push_back(FORMAT_OPB); formatdesc.push_back(pair<string, string>("opb", "open pseudo-boolean"));
+
+	vector<OUTPUTFORMAT> transvals;
+	vector<pair<string, string> > transdesc;
+	transvals.push_back(TRANS_FODOT); transdesc.push_back(pair<string, string>("fodot", "Translate model into FO(.) structure"));
+	transvals.push_back(TRANS_ASP); transdesc.push_back(pair<string, string>("asp", "Translate model into ASP facts."));
+	transvals.push_back(TRANS_PLAIN); transdesc.push_back(pair<string, string>("plain", "Return model in integer format."));
 
 	vector<pair<string, string> > ecnfgraphdesc;
 	ecnfgraphdesc.push_back(pair<string, string>("yes", "Generate"));
@@ -222,6 +227,8 @@ bool MinisatID::parseOptions(int argc, char** argv){
 			modes.primesfile, cmd,"File containing a list of prime numbers to use for finding optimal bases. Has to be provided if using pbsolver."));
 	options.push_back(new Option<INPUTFORMAT, string>("f", "format", formatvals, formatdesc,
 			modes.format, cmd, "The format of the input theory"));
+	options.push_back(new Option<OUTPUTFORMAT, string>("", "outputformat", transvals, transdesc,
+			modes.transformat, cmd, "The requested output format (only relevant if translation information is provided)."));
 	options.push_back(new Option<bool, string>	("", "ecnfgraph", 	yesnovals, ecnfgraphdesc,
 			modes.printcnfgraph, cmd, "Choose whether to generate a .dot graph representation of the ecnf"));
 	options.push_back(new Option<bool, string>	("r", "remap", 		yesnovals, remapdesc,
@@ -284,9 +291,6 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	}
 
 	deleteList<Opt>(options);
-
-	//cerr <<inputfilearg.getValue() <<endl;
-	//modes.print();
 
 	return true;
 }

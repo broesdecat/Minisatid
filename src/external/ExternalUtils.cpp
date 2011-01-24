@@ -112,6 +112,7 @@ Weight MinisatID::negInfinity() { return lim::min(); }
 
 SolverOption::SolverOption():
 	format(FORMAT_FODOT),
+	transformat(TRANS_FODOT),
 	verbosity(1),
 	nbmodels(1),
 	printcnfgraph(false),

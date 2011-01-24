@@ -301,11 +301,13 @@ enum POLARITY {
 }; // SAT-solver polarity option
 
 enum INPUTFORMAT {FORMAT_FODOT, FORMAT_ASP, FORMAT_OPB};
+enum OUTPUTFORMAT { TRANS_FODOT, TRANS_ASP, TRANS_PLAIN };
 
 // Structure containing general options for the solvers
 class SolverOption {
 public:
 	INPUTFORMAT format;
+	OUTPUTFORMAT transformat;
 	int verbosity;
 	int nbmodels; //Try to find at most this number of models
 	bool printcnfgraph;
