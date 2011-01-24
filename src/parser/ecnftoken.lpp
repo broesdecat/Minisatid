@@ -1,0 +1,121 @@
+%{
+/* C++ declarations: */
+#include <iostream>
+
+/*
+ * Temporarily, until new bison is available
+ * SHOULD BE REMOVED THEN
+ */
+#include <vector>
+#include "utils/Utils.hpp"
+using namespace std; 
+//UP TILL HERE!
+
+#include "parser/ecnfparser.h"
+
+extern int lineNo;
+extern int charPos;
+
+#define ADJ (charPos += yyleng)
+%}
+
+/* lex definitions: */
+%option noyywrap
+/*seems to be necessary to avoid windows problem with fileno function?*/
+%option never-interactive 
+
+%s theory
+%s trans
+
+ID			_*[A-Za-z][a-zA-Z0-9_]*
+INT			-?[0-9]+
+WHITESPACE	[\t\r ]*
+
+%%
+
+<*>^"c grounder error".*	{ throw MinisatID::idpexception("There was a grounding error, so no solving is possible.\n");}
+
+
+<*>^"p "			{ADJ; BEGIN(theory);}
+<*>^"translation"	{ADJ; BEGIN(trans); return TRANSHEADER;}
+
+<theory,INITIAL>^"c ".*	{/* disregard comments */}
+
+<theory>"cnf"	{ADJ; return CNF;}
+<theory>"ecnf"	{ADJ; return ECNF;}
+<theory>"mecnf"	{ADJ; return MECNF;}
+<theory>"def" 	{ADJ; return DEFPRESENT;}
+<theory>"aggr" 	{ADJ; return AGGPRESENT;}
+<theory>"mnmz" 	{ADJ; return MNMZPRESENT;}
+<theory>"cp" 	{ADJ; return CPPRESENT;}
+
+<theory>"forcesearch" { ADJ; return FORCECHOICE; }
+
+<theory>^"WSet"	{ADJ; return WSETDEFN;}
+<theory>^"Set"	{ADJ; return SETDEFN;}
+<theory>^"Card"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::CARD; return AGGDEFN;}
+<theory>^"Sum"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::SUM; return AGGDEFN;}
+<theory>^"Prod"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::PROD; return AGGDEFN;}
+<theory>^"Min"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::MIN; return AGGDEFN;}
+<theory>^"Max"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::MAX; return AGGDEFN;}
+
+<theory>^"Mod"	{ADJ; return MODDEFN;}
+
+<theory>"D"	{ADJ; /*ecnflval*/yylval.sem = MinisatID::DEF;  return SEMDEFN;}
+<theory>"C"	{ADJ; /*ecnflval*/yylval.sem = MinisatID::COMP; return SEMDEFN;}
+<theory>"L"	{ADJ; /*ecnflval*/yylval.sign = MinisatID::AGGSIGN_UB;  return SIGNDEFN;}
+<theory>"G"	{ADJ; /*ecnflval*/yylval.sign = MinisatID::AGGSIGN_LB; return SIGNDEFN;}
+
+<theory>^"e"	{ADJ; /*ecnflval*/yylval.boolean = true; return QUANTe;} //existential quantifier
+<theory>^"a"	{ADJ; /*ecnflval*/yylval.boolean = false; return QUANTe;} //universal quantifier
+
+<theory>^"Mnmz"	{ADJ; return SUBSETMINDEFN;}
+<theory>^"Mnmt"    {ADJ; return MNMZDEFN;}
+<theory>^"SumMnmz"	{ADJ; return SUMMINDEFN;}
+
+<theory>" "		{ADJ; /* disregard whitespaces */}
+<theory>"\t"	{ADJ; /*                       */}
+<theory>"\n"	{charPos = 1; lineNo++; /*     */}
+
+<theory>"|"		{ADJ; return DELIM;}
+
+<theory>^"INTVAR"	{ADJ; return INTVAR;}
+<theory>^"BINTRI"	{ADJ; return BINTRI;}
+<theory>^"BINTRT"	{ADJ; return BINTRT;}
+<theory>^"SUMSTRI"	{ADJ; return SUMSTRI;}
+<theory>^"SUMSTRT"	{ADJ; return SUMSTRT;}
+<theory>^"SUMSTSIRI"	{ADJ; return SUMSTSIRI;}
+<theory>^"SUMSTSIRT"	{ADJ; return SUMSTSIRT;}
+<theory>^"COUNTSTRIT"	{ADJ; return COUNTSTRIT;}
+
+<theory>"="		{ADJ; /*ecnflval*/yylval.rel = MinisatID::MEQ; return REL;}
+<theory>">"		{ADJ; /*ecnflval*/yylval.rel = MinisatID::MG; return REL;}
+<theory>"<"		{ADJ; /*ecnflval*/yylval.rel = MinisatID::ML; return REL;}
+<theory>"~="	{ADJ; /*ecnflval*/yylval.rel = MinisatID::MNEQ; return REL;}
+<theory>"=<"	{ADJ; /*ecnflval*/yylval.rel = MinisatID::MLEQ; return REL;}
+<theory>">="	{ADJ; /*ecnflval*/yylval.rel = MinisatID::MGEQ; return REL;}
+
+ /* Longest match is returned -> if e.g. "20", NUMBER is returned.
+    If "0", then ZERO is returned since it's the first matching rule.
+  */
+<theory>"0"			{ADJ; /*ecnflval*/yylval.integer = 0; return ZERO;}
+<theory>-?[0-9]+	{ADJ; yylval.str = new string(yytext); return NUMBER;}
+			
+<trans>^"type"			{ return TYPE;				}
+<trans>^"show pred"		{ return SHOWPRED;			}
+<trans>^"pred"			{ return PRED;				}
+<trans>^"show func"		{ return SHOWFUNC;			}
+<trans>^"func"			{ return FUNC;				}
+<trans>^"true"			{ return TRUE;				}
+<trans>^"arbitrary"		{ return ARBIT;				}
+<trans>{ID}				{ yylval.str = new string(yytext);	return T_ID;	}
+<trans>{INT}			{ yylval.integer = atoi(yytext); 	return T_NUM;		}
+<trans>{WHITESPACE}   	{                      		}
+<trans>.				{ return *yytext;			}
+<trans>\n             	{							}
+
+<theory,INITIAL>.	{/* Anything else: parse error */
+						char s[100];
+						sprintf(s, "Encountered unexpected character '%s'.\n", yytext);
+						throw MinisatID::idpexception(s);
+					}

@@ -1,0 +1,16 @@
+#!/bin/bash
+mkdir builds
+cd builds
+mkdir default profile debug release codecover staticrelease
+cd default
+../../configure 
+cd ../profile
+../../configure --enable-build=profile
+cd ../debug
+../../configure --enable-build=debug
+cd ../release
+../../configure --enable-build=release
+cd ../staticrelease
+../../configure --enable-build=static
+cd ../codecover
+../../configure --enable-build=codecover

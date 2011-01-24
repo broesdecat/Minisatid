@@ -1,0 +1,40 @@
+<formula>	::= <comment>* "ecnf" <header>* <ecnftheory>*
+
+<header>	::= "def"|"aggr"|"mnmz"|<comment>*
+		
+<comment>	::= "c " <char>* <EOL>
+
+<ecnftheory>::=<comment>|<clause>|<rule>|<agg>|<set>|<wset>|<mnmz>|<subsetmnmz>|<summnmz>
+			
+<clause>	::=	<body> <zero>
+<rule>		::=	<defsem> <var> <body> <zero>
+<agg>		::=	<aggtype> <aggsem> <var> <setid> <comparison> <integer> <zero>
+<set>		::=	"Set" <setid> <body> <zero>
+<wset>		::=	"WSet" <setid> <wbody> <zero>
+<mnmz>		::=	"Mnmt" <body> <zero>				
+<subsetmnmz>::= "Mnmz" <body> <zero> 				
+<summnmz> 	::=	"SumMnmz" <var> <setid> <zero>
+
+<defsem>	::= "D"|"C"
+<aggsem>	::= "Sum"|"Min"|"Max"|"Prod"|"Card"
+
+<body>		::=	<lit>*
+<wbody>		::=	<number>+ "=" <integer>	
+		
+<comparison>::=">="|"=<"
+		
+<var>		::=<number>
+<lit>		::=<number>|-<number>
+<setid>		::=<integer>
+
+<integer>	::=-?<zero>|-?<number>
+<zero>		::="0"
+<number>	::=[1-9][0-9]*
+
+TODO whitespace overal toegelaten
+
+CNF
+QBF
+MECNF
+LPARSE
+OPB
