@@ -420,8 +420,8 @@ bool Read::addOptimStatement(){
 bool Read::read(istream &f) {
 	// Read rules.
 	int type;
-	bool stop = false, error = false;
-	for (linenumber = 1; !stop && !error; linenumber++) {
+	bool stop = false, unsat = false;
+	for (linenumber = 1; !stop && !unsat; linenumber++) {
 		f >> type; // Rule Type
 		switch (type) {
 		case ENDRULE:
@@ -429,31 +429,32 @@ bool Read::read(istream &f) {
 			endedparsing = true;
 			break;
 		case BASICRULE:
-			error = !parseBasicRule(f);
+			unsat = !parseBasicRule(f);
 			break;
 		case CONSTRAINTRULE:
-			error = !parseConstraintRule(f);
+			unsat = !parseConstraintRule(f);
 			break;
 		case CHOICERULE:
-			error = !parseChoiceRule(f);
+			unsat = !parseChoiceRule(f);
 			break;
-		case GENERATERULE:
+		case GENERATERULE:{
 			char s[100];
 			sprintf(s, "As, according to the lparse manual, \"generate rules cause semantical troubles\", we do not support them.\n");
 			throw idpexception(s);
 			break;
+		}
 		case WEIGHTRULE:
-			error = !parseWeightRule(f);
+			unsat = !parseWeightRule(f);
 			break;
 		case OPTIMIZERULE:
-			error = !parseOptimizeRule(f);
+			unsat = !parseOptimizeRule(f);
 			break;
-		default:
-			error = true;
+		default:{
+			char s[100];
+			sprintf(s, "Unsupported rule type: %d.\n", type);
+			throw idpexception(s);
 		}
-	}
-	if(error){
-		return false;
+		}
 	}
 
 	const int len = 1024;
@@ -554,16 +555,16 @@ bool Read::read(istream &f) {
 		throw idpexception(s);
 	}
 
-	error = !tseitinizeHeads();
-	if(error) { return false; }
-	error = !addBasicRules();
-	if(error) { return false; }
-	error = !addCardRules();
-	if(error) { return false; }
-	error = !addSumRules();
-	if(error) { return false; }
-	error = !addOptimStatement();
-	if(error) { return false; }
+	unsat = !tseitinizeHeads();
+	if(unsat) { return false; }
+	unsat = !addBasicRules();
+	if(unsat) { return false; }
+	unsat = !addCardRules();
+	if(unsat) { return false; }
+	unsat = !addSumRules();
+	if(unsat) { return false; }
+	unsat = !addOptimStatement();
+	if(unsat) { return false; }
 
 	return true;
 }

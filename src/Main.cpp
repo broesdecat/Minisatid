@@ -148,6 +148,7 @@ int main(int argc, char** argv) {
 
 	pData d;
 	int returnvalue = 1;
+	bool error = false;
 	try { // Start catching IDP exceptions
 
 		//IMPORTANT: because signals are handled asynchronously, a special mechanism is needed to recover from them (exception throwing does not work)
@@ -164,11 +165,13 @@ int main(int argc, char** argv) {
 		exit(returnvalue);     // (faster than "return", which will invoke the destructor for 'Solver')
 #endif
 	} catch (const idpexception& e) {
+		error = true;
 		printExceptionCaught(e, modes.verbosity);
 		if(d.get()!=NULL){
 			d->printStatistics();
 		}
 	} catch (...) {
+		error = true;
 		printUnexpectedError(modes.verbosity);
 		if(d.get()!=NULL){
 			d->printStatistics();
@@ -256,8 +259,6 @@ int doModelGeneration(pData& d, double cpu_time){
 	if(!earlyunsat && modes.verbosity >= 1){
 		d->printStatistics();
 	}
-
-	MinisatID::closeOutput();
 
 	return unsat ? 20 : 10;
 }

@@ -19,10 +19,11 @@ AC_OUTPUT([ Makefile \
            examples/Makefile \
 		   include/Makefile \
 		   include/tclap/Makefile \
-		   config/Makefile \
-		   docs/Makefile \
-		   docs/Doxyfile  \
-		   msc/Makefile  \
-		   msc/examples/Makefile  \
-		   tests/Makefile], \
+		   config/Makefile], \
 		   [chmod a+x $ac_top_srcdir/tests/*.sh])
+
+#		   docs/Makefile
+#		   docs/Doxyfile
+#		   msc/Makefile
+#		   msc/examples/Makefile
+#		   tests/Makefile
