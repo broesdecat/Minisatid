@@ -22,5 +22,6 @@ missing
 ylwrap
 *.autotools*
 *.settings/*
-*config.*
+*/config.*
+config.*
 *ltmain.sh
