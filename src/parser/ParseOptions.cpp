@@ -23,17 +23,17 @@ SolverOption modes; //Used by parser, initialized before parsing!
 
 string programInfo =
 	"MinisatID is a model generator for the language ECNF, an extension of CNF with aggregates expressions"
-	"(sum, cardinality, min, max and product) and inductive definitions.\n"
+	"(sum, cardinality, min, max, product) and inductive definitions.\n"
 	"Several other well-known input formats are also supported:\n"
 	"\t - ground LParse, used within the domain of answer-set programming.\n"
-	"\t - QBF, used within the domain of quantified boolean formula reasoning.\n"
+	"\t - QBF, used within the domain of quantified boolean formula reasoning (experimental support!).\n"
 	"\t - OPB, used within the domain of pseudo-boolean constraint solving.\n\n"
-	"MinisatID is part of the IDP system, a knowledge base system based on the language FO(.). IDP supports "
-	"among others state-of-the-art model expansion inference.\n\n"
+	"MinisatID is part of the IDP system, a knowledge base system based on the FO(.) language. IDP supports, "
+	"among others, state-of-the-art model expansion inference.\n\n"
 	"MinisatID is the courtesy of the Knowledge Representation and Reasoning (KRR) group at the K.U. Leuven, "
 	"Belgium and is maintained by Broes De Cat. More information on the systems and the research can be found "
 	"on \"http://dtai.cs.kuleuven.be/krr\".\n";
-string programVersion = "2.2.0";
+string programVersion = "2.3.0";
 
 struct Opt{
 	virtual ~Opt(){}
