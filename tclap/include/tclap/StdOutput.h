@@ -42,8 +42,14 @@ namespace TCLAP {
  */
 class StdOutput : public CmdLineOutput
 {
+	private:
+		int _linesize;
 
 	public:
+
+		StdOutput():CmdLineOutput(), _linesize(85){
+
+		}
 
 		/**
 		 * Prints the usage to stdout.  Can be overridden to 
@@ -181,10 +187,10 @@ StdOutput::_shortUsage( CmdLineInterface& _cmd,
 
 	// if the program name is too long, then adjust the second line offset 
 	int secondLineOffset = static_cast<int>(progName.length()) + 2;
-	if ( secondLineOffset > 75/2 )
-		secondLineOffset = static_cast<int>(75/2);
+	if ( secondLineOffset > _linesize/2 )
+		secondLineOffset = static_cast<int>(_linesize/2);
 
-	spacePrint( os, s, 75, 3, secondLineOffset );
+	spacePrint( os, s, _linesize, 3, secondLineOffset );
 }
 
 inline void 
@@ -203,11 +209,11 @@ StdOutput::_longUsage( CmdLineInterface& _cmd,
 				  it != xorList[i].end(); 
 				  it++ )
 				{
-					spacePrint( os, (*it)->longID(), 75, 3, 3 );
-					spacePrint( os, (*it)->getDescription(), 75, 5, 0 );
+					spacePrint( os, (*it)->longID(), _linesize, 3, 3 );
+					spacePrint( os, (*it)->getDescription(), _linesize, 5, 0 );
 
 					if ( it+1 != xorList[i].end() )
-						spacePrint(os, "-- OR --", 75, 9, 0);
+						spacePrint(os, "-- OR --", _linesize, 9, 0);
 				}
 			os << std::endl << std::endl;
 		}
@@ -216,14 +222,14 @@ StdOutput::_longUsage( CmdLineInterface& _cmd,
 	for (ArgListIterator it = argList.begin(); it != argList.end(); it++)
 		if ( !xorHandler.contains( (*it) ) )
 			{
-				spacePrint( os, (*it)->longID(), 75, 3, 3 ); 
-				spacePrint( os, (*it)->getDescription(), 75, 5, 0 ); 
+				spacePrint( os, (*it)->longID(), _linesize, 3, 3 );
+				spacePrint( os, (*it)->getDescription(), _linesize, 5, 0 );
 				os << std::endl;
 			}
 
 	os << std::endl;
 
-	spacePrint( os, message, 75, 3, 0 );
+	spacePrint( os, message, _linesize, 3, 0 );
 }
 
 inline void StdOutput::spacePrint( std::ostream& os, 
@@ -260,9 +266,15 @@ inline void StdOutput::spacePrint( std::ostream& os,
 						stringLen = allowedLen;
 
 					// check for newlines
-					for ( int i = 0; i < stringLen; i++ )
-						if ( s[start+i] == '\n' )
-							stringLen = i+1;
+					bool newlineread = false;
+					for ( int i = 0; i < stringLen; i++ ){
+						if ( s[start+i] == '\n' ){
+							stringLen = i;
+							newlineread = true;
+							break;
+						}
+					}
+
 
 					// print the indent	
 					for ( int i = 0; i < indentSpaces; i++ )
@@ -278,6 +290,10 @@ inline void StdOutput::spacePrint( std::ostream& os,
 						}
 
 					os << s.substr(start,stringLen) << std::endl;
+
+					if(newlineread){
+						stringLen++;
+					}
 
 					// so we don't start a line with a space
 					while ( s[stringLen+start] == ' ' && start < len )

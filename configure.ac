@@ -49,10 +49,10 @@ AC_CXXFLAGS+="-ansi -ffloat-store -Wall -Wextra -Wno-unused-parameter "
 AC_ARG_ENABLE([build],
 [  --enable-build    Turn on debugging (debug), profiling (profile), release version(release), static release version (static) or code cover building (codecover)],
 [case "${enableval}" in
-  debug)   AC_CXXFLAGS+="-O0 -ggdb -D DEBUG " 		AC_LDFLAGS+="-ggdb " ;;
-  profile) AC_CXXFLAGS+="-O3 -pg -ggdb -D NDEBUG " 	AC_LDFLAGS+="-ggdb " ;;
-  release) AC_CXXFLAGS+="-O3 -D NDEBUG " 			AC_LDFLAGS+="" ;;
-  static)  AC_CXXFLAGS+="-O3 -D NDEBUG " 			AC_LDFLAGS+="-all-static " ;;
+  debug)   AC_CXXFLAGS+="-O0 -ggdb -D DEBUG " 		AC_LDFLAGS+=" -ggdb " ;;
+  profile) AC_CXXFLAGS+="-O3 -pg -ggdb -D NDEBUG " 	AC_LDFLAGS+=" -ggdb " ;;
+  release) AC_CXXFLAGS+="-O3 -D NDEBUG " 			AC_LDFLAGS+=" " ;;
+  static)  AC_CXXFLAGS+="-O3 -D NDEBUG " 			AC_LDFLAGS+=" -static " ;;
   codecover) AC_CXXFLAGS+="-O0 -fprofile-arcs -ftest-coverage -ggdb -D DEBUG " AC_LDFLAGS+="-ggdb " ;;
   *) AC_MSG_ERROR([bad value ${enableval} for --enable-build]) ;;
 esac],[		AC_CXXFLAGS+="-DNDEBUG -O3 " AC_LDFLAGS+=" "])
@@ -100,7 +100,7 @@ AC_CONFIG_SUBDIRS([tclap perftools])
 AC_CONFIG_FILES([Makefile src/Makefile src/pbsolver/Makefile\
 	src/satsolver/Makefile src/parser/Makefile src/modules/Makefile src/theorysolvers/Makefile\
 	src/solver3/Makefile src/solver3minisat/Makefile src/solver3minisat22/Makefile src/utils/Makefile\
-	src/external/Makefile src/mtlold/Makefile src/modules/aggsolver/Makefile])
+	src/external/Makefile src/mtlold/Makefile src/modules/aggsolver/Makefile doc/Makefile ])
 
 # generate the final Makefile etc.
 AC_OUTPUT

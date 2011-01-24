@@ -143,8 +143,8 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	vector<OUTPUTFORMAT> transvals;
 	vector<pair<string, string> > transdesc;
 	transvals.push_back(TRANS_FODOT); transdesc.push_back(pair<string, string>("fodot", "Translate model into FO(.) structure"));
-	transvals.push_back(TRANS_ASP); transdesc.push_back(pair<string, string>("asp", "Translate model into ASP facts."));
-	transvals.push_back(TRANS_PLAIN); transdesc.push_back(pair<string, string>("plain", "Return model in integer format."));
+	transvals.push_back(TRANS_ASP); transdesc.push_back(pair<string, string>("asp", "Translate model into ASP facts"));
+	transvals.push_back(TRANS_PLAIN); transdesc.push_back(pair<string, string>("plain", "Return model in integer format"));
 
 	vector<pair<string, string> > ecnfgraphdesc;
 	ecnfgraphdesc.push_back(pair<string, string>("yes", "Generate"));
