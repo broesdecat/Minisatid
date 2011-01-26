@@ -80,12 +80,14 @@
 #endif
 
 using namespace std;
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
+using namespace std::tr1;
+#endif
 using namespace MinisatID;
 using namespace MinisatID::Print;
 
 namespace MinisatID {
-	class WrappedLogicSolver;
-	typedef std::shared_ptr<WrappedLogicSolver> pData;
+	typedef pwls pData;
 }
 
 extern char * yytext;
@@ -146,6 +148,7 @@ int main(int argc, char** argv) {
 
 	pData d;
 	int returnvalue = 1;
+	bool error = false;
 	try { // Start catching IDP exceptions
 
 		//IMPORTANT: because signals are handled asynchronously, a special mechanism is needed to recover from them (exception throwing does not work)
@@ -162,11 +165,13 @@ int main(int argc, char** argv) {
 		exit(returnvalue);     // (faster than "return", which will invoke the destructor for 'Solver')
 #endif
 	} catch (const idpexception& e) {
+		error = true;
 		printExceptionCaught(e, modes.verbosity);
 		if(d.get()!=NULL){
 			d->printStatistics();
 		}
 	} catch (...) {
+		error = true;
 		printUnexpectedError(modes.verbosity);
 		if(d.get()!=NULL){
 			d->printStatistics();
@@ -179,18 +184,21 @@ int main(int argc, char** argv) {
 int doModelGeneration(pData& d, double cpu_time){
 	// Unittest injection possible by: pData d = unittestx();
 
+	bool unsat = false;
+
 	//Parse input
 	switch(modes.format){
 		case FORMAT_ASP:{
 			WrappedPCSolver* p = new WrappedPCSolver(modes);
 			Read* r = new Read(p);
 			std::istream is(getInputBuffer());
-			if(r->read(is)!=0){
-				throw idpexception("Undefined error in asp parsing!\n");
+			if(!r->read(is)){
+				unsat = true;
+			}else{
+				d = shared_ptr<WrappedLogicSolver> (p); //Only set d if successfully parsed
 			}
 			closeInput();
 			delete r;
-			d = shared_ptr<WrappedLogicSolver> (p); //Only set d if successfully parsed
 			break;
 		}
 		case FORMAT_OPB:{
@@ -214,7 +222,7 @@ int doModelGeneration(pData& d, double cpu_time){
 	MinisatID::closeInput();
 
 	//d is initialized unless unsat was already detected
-	bool unsat = d.get()==NULL;
+	unsat = unsat || d.get()==NULL;
 
 	printInitDataStart(modes.verbosity);
 
@@ -251,8 +259,6 @@ int doModelGeneration(pData& d, double cpu_time){
 	if(!earlyunsat && modes.verbosity >= 1){
 		d->printStatistics();
 	}
-
-	MinisatID::closeOutput();
 
 	return unsat ? 20 : 10;
 }

@@ -910,6 +910,13 @@ bool Solver::solve(const vec<Lit>& assumps /*AB*/, bool nosearch /*AE*/)
     double  nof_learnts   = nClauses() * learntsize_factor;
     lbool   status        = l_Undef;
 
+    /*AB*/
+    if (verbosity >= 1){
+    	reportf("> Conflicts |          ORIGINAL         |          LEARNT          | Progress\n");
+		reportf(">           |    Vars  Clauses Literals |    Limit  Clauses Lit/Cl |         \n");
+    }
+    /*AE*/
+
     // Search:
     while (status == l_Undef){
         if (verbosity >= 1)

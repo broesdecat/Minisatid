@@ -59,28 +59,60 @@ enum Expl{BASEDONCC,BASEDONCP,HEADONLY};
 
 class AggReason {
 private:
-	const Agg&	expr;
-	const Lit 	proplit;
-	const Weight propweight;
 	const Expl	expl;
-	const bool 	head;
 	vec<Lit> 	explanation;
 	bool 		hasclause;
 
 public:
-	AggReason(const Agg& agg, Expl expl, const Lit& proplit, const Weight& propweight, bool head = false)
-		:expr(agg), proplit(proplit), propweight(propweight), expl(expl), head(head), explanation(), hasclause(false){
-	}
+	AggReason(Expl expl) :expl(expl), explanation(), hasclause(false){ }
+	virtual ~AggReason() {}
 
-	const Agg&	getAgg			() 	const	{ return expr; }
-    const Lit&	getPropLit		()	const	{ return proplit; }
-    const Weight&	getPropWeight()	const	{ return propweight; }
-    bool		isHeadReason	() 	const	{ return head; }
-    Expl		getExpl			()	const	{ return expl; }
+	virtual const Agg&	getAgg			() 	const = 0;
+	virtual Lit			getPropLit		()	const = 0;
+	virtual Weight		getPropWeight	()	const = 0;
+	virtual bool		isHeadReason	() 	const = 0;
+	virtual bool		isInSet			()	const = 0;
+
+	Expl		getExpl			()	const { return expl; }
 
     bool 		hasClause		()	const	{ return hasclause; }
     const vec<Lit>&	getClause	()	const	{ return explanation; }
     void		setClause		(const Minisat::vec<Lit>& c) {	c.copyTo(explanation); hasclause = true; }
+};
+
+class HeadReason: public AggReason {
+private:
+	const Agg&	expr;
+	const Lit 	proplit;
+
+public:
+	HeadReason(const Agg& agg, Expl expl, const Lit& proplit)
+		:AggReason(expl), expr(agg), proplit(proplit){
+	}
+
+	const Agg&		getAgg			() 	const	{ return expr; }
+    Lit				getPropLit		()	const	{ return proplit; }
+    Weight			getPropWeight	()	const	{ assert(false); return Weight(-1); }
+    bool			isHeadReason	() 	const	{ return true; }
+    bool			isInSet			()	const	{ assert(false); return false; }
+};
+
+class SetLitReason: public AggReason{
+private:
+	const Agg&	expr;
+	const Lit& l;
+	const Weight& w;
+	bool inset;
+
+public:
+	SetLitReason(const Agg& agg, const Lit& setlit, const Weight& setweight, Expl expl, bool inset)
+		: AggReason(expl), expr(agg), l(setlit), w(setweight), inset(inset){ }
+
+	const Agg&		getAgg			() 	const	{ return expr; }
+    Lit				getPropLit		()	const	{ return inset?l:~l; }
+    Weight			getPropWeight	()	const	{ return w; }
+    bool			isHeadReason	() 	const	{ return false; }
+    bool			isInSet			()	const	{ return inset; }
 };
 
 ///////

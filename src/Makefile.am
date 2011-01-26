@@ -1,7 +1,7 @@
-SUBDIRS = tclap pbsolver external mtlold solver3 solver3minisat solver3minisat22 satsolver parser modules theorysolvers utils
+SUBDIRS = pbsolver external mtlold solver3 solver3minisat solver3minisat22 satsolver parser modules theorysolvers utils
 
-AM_CXXFLAGS = @AC_CXXFLAGS@ -std=gnu++0x
-AM_LDFLAGS = @AC_LDFLAGS@ -I src/tclap/ #-ltcmalloc -lprofiler
+AM_CXXFLAGS = @AC_CXXFLAGS@ -I $(top_srcdir)/tclap/include/ #-std=gnu++0x 
+AM_LDFLAGS = @AC_LDFLAGS@ -pthread  -L$(top_builddir)/perftools/ -ltcmalloc_minimal # -lprofiler
 
 AM_YFLAGS = -d 
 AM_LFLAGS =
@@ -41,6 +41,7 @@ minisatid_SOURCES = \
 		parser/ResourceManager.hpp parser/Lparseread.hpp parser/PBread.hpp\
 		parser/ParseOptions.hpp\
 		tclap/CmdLine.h\
+		external/Translator.hpp external/Translator.cpp\
 		Unittests.hpp
 
 #PBSOLVER

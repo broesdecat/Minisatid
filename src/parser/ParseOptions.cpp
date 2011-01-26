@@ -23,17 +23,17 @@ SolverOption modes; //Used by parser, initialized before parsing!
 
 string programInfo =
 	"MinisatID is a model generator for the language ECNF, an extension of CNF with aggregates expressions"
-	"(sum, cardinality, min, max and product) and inductive definitions.\n"
+	"(sum, cardinality, min, max, product) and inductive definitions.\n"
 	"Several other well-known input formats are also supported:\n"
 	"\t - ground LParse, used within the domain of answer-set programming.\n"
-	"\t - QBF, used within the domain of quantified boolean formula reasoning.\n"
+	"\t - QBF, used within the domain of quantified boolean formula reasoning (experimental support!).\n"
 	"\t - OPB, used within the domain of pseudo-boolean constraint solving.\n\n"
-	"MinisatID is part of the IDP system, a knowledge base system based on the language FO(.). IDP supports "
-	"among others state-of-the-art model expansion inference.\n\n"
+	"MinisatID is part of the IDP system, a knowledge base system based on the FO(.) language. IDP supports, "
+	"among others, state-of-the-art model expansion inference.\n\n"
 	"MinisatID is the courtesy of the Knowledge Representation and Reasoning (KRR) group at the K.U. Leuven, "
 	"Belgium and is maintained by Broes De Cat. More information on the systems and the research can be found "
 	"on \"http://dtai.cs.kuleuven.be/krr\".\n";
-string programVersion = "2.2.0";
+string programVersion = "2.3.0";
 
 struct Opt{
 	virtual ~Opt(){}
@@ -60,7 +60,6 @@ struct NoValsOption: public Opt{
 	}
 
 	void parse(){
-		//cerr <<longopt <<" " <<arg->getValue() <<endl;
 		modesarg = arg->getValue();
 	}
 };
@@ -140,6 +139,12 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	formatvals.push_back(FORMAT_FODOT); formatdesc.push_back(pair<string, string>("fodot", "propositional FO(.)"));
 	formatvals.push_back(FORMAT_ASP); formatdesc.push_back(pair<string, string>("asp", "propositional LParse ASP"));
 	formatvals.push_back(FORMAT_OPB); formatdesc.push_back(pair<string, string>("opb", "open pseudo-boolean"));
+
+	vector<OUTPUTFORMAT> transvals;
+	vector<pair<string, string> > transdesc;
+	transvals.push_back(TRANS_FODOT); transdesc.push_back(pair<string, string>("fodot", "Translate model into FO(.) structure"));
+	transvals.push_back(TRANS_ASP); transdesc.push_back(pair<string, string>("asp", "Translate model into ASP facts."));
+	transvals.push_back(TRANS_PLAIN); transdesc.push_back(pair<string, string>("plain", "Return model in integer format."));
 
 	vector<pair<string, string> > ecnfgraphdesc;
 	ecnfgraphdesc.push_back(pair<string, string>("yes", "Generate"));
@@ -222,6 +227,8 @@ bool MinisatID::parseOptions(int argc, char** argv){
 			modes.primesfile, cmd,"File containing a list of prime numbers to use for finding optimal bases. Has to be provided if using pbsolver."));
 	options.push_back(new Option<INPUTFORMAT, string>("f", "format", formatvals, formatdesc,
 			modes.format, cmd, "The format of the input theory"));
+	options.push_back(new Option<OUTPUTFORMAT, string>("", "outputformat", transvals, transdesc,
+			modes.transformat, cmd, "The requested output format (only relevant if translation information is provided)."));
 	options.push_back(new Option<bool, string>	("", "ecnfgraph", 	yesnovals, ecnfgraphdesc,
 			modes.printcnfgraph, cmd, "Choose whether to generate a .dot graph representation of the ecnf"));
 	options.push_back(new Option<bool, string>	("r", "remap", 		yesnovals, remapdesc,
@@ -284,9 +291,6 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	}
 
 	deleteList<Opt>(options);
-
-	//cerr <<inputfilearg.getValue() <<endl;
-	//modes.print();
 
 	return true;
 }

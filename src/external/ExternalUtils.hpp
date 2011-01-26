@@ -253,6 +253,9 @@ private:
 public:
 	explicit Atom(int a): atom(a){ }
 	int		getValue	() 				const { return atom; }
+
+	bool operator==	(const Atom& a) const { return atom==a.atom; }
+	bool operator<	(const Atom& a) const { return atom<a.atom; }
 };
 
 class Literal{
@@ -265,9 +268,10 @@ public:
 	Literal(Atom a, bool s = false): lit(s?-a.getValue():a.getValue()){ assert(a.getValue()>=0); }
 
 	Atom 	getAtom() 						const { return Atom(lit<0?-lit:lit); }
-	bool 	getSign() 						const { return lit<0; }
+	bool 	hasSign() 						const { return lit<0; }
 	bool 	operator== (const Literal& l) 	const { return lit == l.lit; }
 	bool 	operator< (const Literal& l) 	const {	return abs(lit) < abs(l.lit); }
+	Literal operator~()						const { return Literal(getAtom(), lit>0?true:false); }
 };
 
 // A class representing a tuple of a literal and an associated weight
@@ -297,11 +301,13 @@ enum POLARITY {
 }; // SAT-solver polarity option
 
 enum INPUTFORMAT {FORMAT_FODOT, FORMAT_ASP, FORMAT_OPB};
+enum OUTPUTFORMAT { TRANS_FODOT, TRANS_ASP, TRANS_PLAIN };
 
 // Structure containing general options for the solvers
 class SolverOption {
 public:
 	INPUTFORMAT format;
+	OUTPUTFORMAT transformat;
 	int verbosity;
 	int nbmodels; //Try to find at most this number of models
 	bool printcnfgraph;

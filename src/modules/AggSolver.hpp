@@ -84,6 +84,13 @@ typedef std::vector<vpw> vvpw;
  * heuristic to delay propagations.
  */
 
+struct LI{
+	lbool v;
+	int i;
+	LI():v(l_Undef), i(0){}
+	LI(lbool v, int i): v(v), i(i){}
+};
+
 class AggSolver: public DPLLTmodule{
 private:
 	mips 					_parsedSets;
@@ -107,8 +114,10 @@ private:
 	bool 											noprops;
 
 	std::vector<int>								mapdecleveltotrail;
+	int 											index; //fulltrail index?
+	uint												propindex;
 	std::vector<Lit>								fulltrail;
-	std::vector<lbool>								propagated;
+	std::vector<LI>									propagated;
 
 public:
 	AggSolver(pPCSolver s);
@@ -146,11 +155,8 @@ public:
 	 * @pre: no weights==0 when using a product aggregate
 	 */
 	bool 				addAggrExpr				(int defn, int set_id, const Weight& bound, AggSign boundsign, AggType type, AggSem headeq);
-
 	void 				findClausalPropagations	();
-
 	void 				notifyDefinedHead		(Var head);
-
 	void 				removeHeadWatch			(Var x);
 
 	//////
@@ -171,6 +177,7 @@ public:
 	 */
 	virtual rClause 	propagate				(const Lit& l);
 	virtual rClause	 	propagateAtEndOfQueue	();
+			rClause 	doProp					();
 
 	virtual void 		newDecisionLevel		();
 	virtual void 		backtrackDecisionLevels	(int nblevels, int untillevel);
@@ -212,18 +219,12 @@ public:
 	void 				addPermWatch			(Var v, Aggrs::Watch* w);
 	void 				addTempWatch			(const Lit& l, Aggrs::Watch* w);
 
-	void				addToPropTrail				(Aggrs::TypedSet* set) { proptrail.push_back(set); }
-	void				addToBackTrail				(Aggrs::TypedSet* set) { backtrail.back().push_back(set); }
+	void				addToPropTrail			(Aggrs::TypedSet* set) { proptrail.push_back(set); }
+	void				addToBackTrail			(Aggrs::TypedSet* set) { backtrail.back().push_back(set); }
 
-	lbool				propagatedValue			(const Lit& l) {
-		assert(value(l)!=l_Undef || propagated[var(l)]==l_Undef);
-		if(sign(l)){
-			lbool v = propagated[var(l)];
-			return v==l_Undef?l_Undef:v==l_True?l_False:l_True;
-		}else{
-			return propagated[var(l)];
-		}
-	}
+	int					getTime					(Lit l) const;
+
+	lbool				propagatedValue			(const Lit& l) const;
 
 protected:
 	mips&				parsedSets				() { return _parsedSets; }

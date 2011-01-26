@@ -33,6 +33,7 @@ WrappedLogicSolver::WrappedLogicSolver(const SolverOption& modes):
 		_modes(modes), maxnumber(0),
 		origtocontiguousatommapper(),
 		contiguoustoorigatommapper(),
+		_translator(NULL),
 		firstmodel(true){
 }
 
@@ -75,12 +76,12 @@ Literal WrappedLogicSolver::getOrigLiteral(const Lit& l) const{
 	return Literal(getOrigAtom(var(l)), sign(l));
 }
 
-FILE* WrappedLogicSolver::getRes() const {
-	return getOutputFile();
+std::streambuf* WrappedLogicSolver::getRes() const {
+	return getOutputBuffer();
 }
 
 Lit WrappedLogicSolver::checkLit(const Literal& lit){
-	return mkLit(checkAtom(lit.getAtom()), lit.getSign());
+	return mkLit(checkAtom(lit.getAtom()), lit.hasSign());
 }
 
 void WrappedLogicSolver::checkLits(const vector<Literal>& lits, vec<Lit>& ll){
@@ -140,10 +141,14 @@ void WrappedLogicSolver::addModel(const vec<Lit>& model, Solution* sol){
 	sol->addModel(outmodel);
 
 	if(sol->getPrint()){
+		std::ostream output(getRes());
 		if(sol->getNbModelsFound()==1){	//First model found
-			fprintf(getRes()==NULL?stdout:getRes(), "SAT\n");
+			output << "SAT\n";
 			if(modes().verbosity>=1){
-				printf("SATISFIABLE\n");
+				report("SATISFIABLE\n");
+			}
+			if(hasTranslator()){
+				getTranslator()->printHeader(output);
 			}
 		}
 
@@ -153,12 +158,21 @@ void WrappedLogicSolver::addModel(const vec<Lit>& model, Solution* sol){
 		}
 
 		//Effectively print the model
-		bool start = true;
-		for (vector<Literal>::const_iterator i = outmodel.begin(); i < outmodel.end(); i++){
-			fprintf(getRes()==NULL?stdout:getRes(), "%s%s%d", start ? "" : " ", ((*i).getSign()) ? "-" : "", (*i).getAtom().getValue());
-			start = false;
+		if(hasTranslator()){
+			vector<int> intmodel;
+			for(vector<Literal>::const_iterator i=outmodel.begin(); i<outmodel.end(); i++){
+				int atom = (*i).getAtom().getValue();
+				intmodel.push_back((*i).hasSign()?-atom:atom);
+			}
+			getTranslator()->printModel(output, intmodel);
+		}else{
+			bool start = true;
+			for (vector<Literal>::const_iterator i = outmodel.begin(); i < outmodel.end(); i++){
+				output <<(start ? "" : " ") <<(((*i).hasSign()) ? "-" : "") <<(*i).getAtom().getValue();
+				start = false;
+			}
+			output << " 0\n";
 		}
-		fprintf(getRes()==NULL?stdout:getRes(), " 0\n");
 	}
 }
 
@@ -176,15 +190,22 @@ WrappedPCSolver::~WrappedPCSolver(){
 
 PCSolver* WrappedPCSolver::getSolver() const { return solver; }
 
-/*void WrappedPCSolver::addVar(Atom v){
+void WrappedPCSolver::addVar(Atom v){
 	Var newv = checkAtom(v);
 	getSolver()->addVar(newv);
-}*/
+}
 
 bool WrappedPCSolver::addClause(vector<Literal>& lits){
 	vec<Lit> ll;
 	checkLits(lits, ll);
 	return getSolver()->addClause(ll);
+}
+
+bool WrappedPCSolver::addEquivalence(const Literal& head, const vector<Literal>& body, bool conj){
+	Lit h = checkLit(head);
+	vec<Lit> b;
+	checkLits(body, b);
+	return getSolver()->addEquivalence(h, b, conj);
 }
 
 bool WrappedPCSolver::addRule(bool conj, Literal head, const vector<Literal>& lits){

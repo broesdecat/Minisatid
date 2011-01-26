@@ -26,12 +26,31 @@
 #include <tr1/unordered_map>
 
 #include "external/ExternalUtils.hpp"
+#include "external/Translator.hpp"
+
 #include "theorysolvers/LogicSolver.hpp"
 //Have to be included, otherwise this header knows nothing of the inheritance between LogicSolver and its children
 #include "theorysolvers/PCSolver.hpp"
 #include "theorysolvers/SOSolver.hpp"
 
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
+#include <tr1/memory>
+#endif
+
 namespace MinisatID {
+
+class WrappedLogicSolver;
+class WrappedSOSolver;
+class WrappedPCSolver;
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+	typedef std::shared_ptr<WrappedLogicSolver> pwls;
+	typedef std::shared_ptr<WrappedSOSolver> pwsos;
+	typedef std::shared_ptr<WrappedPCSolver> pwps;
+#else
+	typedef std::tr1::shared_ptr<WrappedLogicSolver> pwls;
+	typedef std::tr1::shared_ptr<WrappedSOSolver> pwsos;
+	typedef std::tr1::shared_ptr<WrappedPCSolver> pwps;
+#endif
 
 typedef std::tr1::unordered_map<int, int> atommap;
 
@@ -95,11 +114,17 @@ private:
 	int 		maxnumber;
 	atommap 	origtocontiguousatommapper, contiguoustoorigatommapper;
 
+	Translator* _translator;
+
 	bool 		firstmodel; //True if the first model has not yet been printed
 
 public:
 	WrappedLogicSolver(const SolverOption& modes);
-	virtual ~WrappedLogicSolver(){};
+	virtual ~WrappedLogicSolver(){
+		if(_translator!=NULL){
+			delete _translator;
+		}
+	};
 
 	virtual void 	printStatistics	() const = 0;
 
@@ -111,8 +136,12 @@ public:
 	int 			verbosity		() const	{ return modes().verbosity; }
 	const SolverOption& modes		() const	{ return _modes; }
 	void			setNbModels		(int nb) 	{ _modes.nbmodels = nb; }
+	bool			hasTranslator	() const { return _translator!=NULL; }
+	Translator*		getTranslator	() const { return _translator; }
+	void			setTranslator	(Translator* translator) { _translator = translator; }
 
 	int				getMaxNumberUsed()	const { return maxnumber; }
+	Literal 		getOrigLiteral	(const Lit& l) const;
 
 protected:
 	virtual MinisatID::LogicSolver* getSolver() const = 0;
@@ -125,9 +154,8 @@ protected:
 
 	bool	wasInput(int var) const { return var<maxnumber; }
 	Atom 	getOrigAtom		(const Var& l) const;
-	Literal getOrigLiteral	(const Lit& l) const;
 
-	FILE* 	getRes() const;
+	std::streambuf* 	getRes() const;
 };
 
 class WrappedPCSolver: public MinisatID::WrappedLogicSolver{
@@ -138,8 +166,9 @@ public:
 	WrappedPCSolver(const SolverOption& modes);
 	~WrappedPCSolver();
 
-	//void	addVar			(Atom v);
+	void	addVar			(Atom v);
 	bool	addClause		(std::vector<Literal>& lits);
+	bool 	addEquivalence	(const Literal& head, const std::vector<Literal>& rightlits, bool conj);
 	bool	addRule			(bool conj, Literal head, const std::vector<Literal>& lits);
 	bool	addSet			(int id, const std::vector<Literal>& lits);
 	bool 	addSet			(int set_id, const std::vector<WLtuple>& lws);

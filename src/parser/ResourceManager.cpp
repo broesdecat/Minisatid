@@ -69,9 +69,9 @@ std::streambuf* StdMan::getBuffer() {
 ///////
 
 namespace MinisatID {
-string inputurl = "";
-string outputurl = "";
-std::tr1::shared_ptr<ResMan> input, output;
+	string inputurl = "";
+	string outputurl = "";
+	std::tr1::shared_ptr<ResMan> input, output;
 }
 
 void MinisatID::setInputFileUrl(string url) {

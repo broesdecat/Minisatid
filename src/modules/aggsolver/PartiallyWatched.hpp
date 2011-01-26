@@ -103,11 +103,19 @@ public:
 		}
 	}
 
+	bool isFalsified(const Agg& agg, const Weight& min, const Weight& max) const{
+		if(agg.hasUB()){
+			return min>agg.getCertainBound();
+		}else{ //LB
+			return max<agg.getCertainBound();
+		}
+	}
+
 	void 		addValue(const Weight& weight, bool inset, Weight& min, Weight& max) const;
 	void 		removeValue(const Weight& weight, bool inset, Weight& min, Weight& max) const;
 
 	rClause 	reconstructSet(pgpw watch, bool& propagations, Agg const * propagg);
-	void 		genWatches(int& i, const Agg& agg, Weight& min, Weight& max, Weight& knownmin, Weight& knownmax, GenPWatch*& largest);
+	void 		genWatches(vsize& i, const Agg& agg, Weight& min, Weight& max, Weight& knownmin, Weight& knownmax, GenPWatch*& largest);
 
 	rClause 	checkPropagation(bool& propagations, Agg const * agg);
 	rClause 	checkOneAggPropagation(bool& propagations, const Agg& agg, const Weight& min, const Weight& max);

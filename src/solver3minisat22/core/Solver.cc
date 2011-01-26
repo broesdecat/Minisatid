@@ -614,8 +614,8 @@ void Solver::uncheckedEnqueue(Lit p, CRef from)
     vardata[var(p)] = mkVarData(from, decisionLevel());
     trail.push_(p);
     /*AB*/
-    if(verbosity>=5){
-    	reportf("Enqueued "); gprintLit(p); reportf(" in mod %d\n", solver->getModPrintID());
+    if(verbosity>=3){
+    	solver->printEnqueued(p);
     }
     /*AE*/
 }
@@ -639,17 +639,7 @@ CRef Solver::propagate()
     watches.cleanAll();
 
     while (qhead < trail.size()){
-    	/*AB*/
-    	if(verbosity>10){
-    		reportf("Trail, mod %d: ", solver->getModPrintID());
-    		for(int i=0; i<trail.size(); i++){
-    			gprintLit(trail[i]); reportf(" ");
-    		}
-    		reportf(".\n");
-    	}
-    	/*AE*/
-
-        Lit            p   = trail[qhead++];     // 'p' is enqueued fact to propagate.
+    	Lit            p   = trail[qhead++];     // 'p' is enqueued fact to propagate.
         vec<Watcher>&  ws  = watches[p];
         Watcher        *i, *j, *end;
         num_props++;
@@ -858,7 +848,7 @@ lbool Solver::search(int nof_conflicts/*AB*/, bool nosearch/*AE*/)
                 max_learnts             *= learntsize_inc;
 
                 if (verbosity >= 1)
-                    printf("| %9d | %7d %8d %8d | %8d %8d %6.0f | %6.3f %% |\n", 
+                    reportf("| %9d | %7d %8d %8d | %8d %8d %6.0f | %6.3f %% |\n",
                            (int)conflicts, 
                            (int)dec_vars - (trail_lim.size() == 0 ? trail.size() : trail_lim[0]), nClauses(), (int)clauses_literals, 
                            (int)max_learnts, nLearnts(), (double)learnts_literals/nLearnts(), progressEstimate()*100);
@@ -1168,7 +1158,7 @@ void Solver::garbageCollect()
 
     relocAll(to);
     if (verbosity >= 2)
-        printf("|  Garbage collection:   %12d bytes => %12d bytes             |\n", 
+    	reportf("|  Garbage collection:   %12d bytes => %12d bytes             |\n",
                ca.size()*ClauseAllocator::Unit_Size, to.size()*ClauseAllocator::Unit_Size);
     to.moveTo(ca);
 }

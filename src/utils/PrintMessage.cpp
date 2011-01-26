@@ -53,10 +53,10 @@ void Print::printUnsat(int v){
 }
 
 void Print::printExceptionCaught(const idpexception& e, int v) {
-	report("> %s\n", e.what());
-	report("> Program will abort.\n");
+	report(">>> %s", e.what());
+	report(">>> Program will abort.\n");
 }
 
 void Print::printUnexpectedError(int v) {
-	report("> Unexpected error caught, program will abort.\n");
+	report(">>> Unexpected error caught, program will abort.\n");
 }

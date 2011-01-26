@@ -38,666 +38,533 @@
 #include <float.h>
 #include <limits.h>
 #include <string.h>
+
 #include "parser/Lparseread.hpp"
+#include "external/Translator.hpp"
 
 using namespace std;
 using namespace MinisatID;
 
 typedef enum {
-	ENDRULE, BASICRULE, CONSTRAINTRULE, CHOICERULE, GENERATERULE, WEIGHTRULE, OPTIMIZERULE
+	ENDRULE = 0, BASICRULE = 1, CONSTRAINTRULE = 2, CHOICERULE = 3,
+	GENERATERULE = 4, WEIGHTRULE = 5, OPTIMIZERULE = 6
 } RuleType;
 
 Read::Read(WrappedPCSolver* solver) :
-	maxatomnumber(1), setcount(1), size(0), solver(solver), optim(false) {
+		endedparsing(false),
+		maxatomnumber(1), setcount(1), size(0),
+		solver(solver), optim(false),
+		translator(new LParseTranslator()){
+	solver->setTranslator(translator);
 }
 
 Read::~Read() {
-	deleteList<BasicRule> (basicrules);
-	deleteList<SumRule> (sumrules);
-	deleteList<CardRule> (cardrules);
-	deleteList<ChoiceRule> (choicerules);
-	deleteList<GenRule> (genrules);
+	deleteList<BasicRule>	(basicrules);
+	deleteList<SumRule>		(sumrules);
+	deleteList<CardRule>	(cardrules);
+	deleteList<ChoiceRule>	(choicerules);
 }
 
-Literal Read::makeLiteral(int n, bool sign = false) {
+Atom Read::makeParsedAtom(int n){
+	Atom atom = makeAtom(n);
+	pair<Atom, bool> p(atom,true);
+	defatoms.insert(p);
+	return atom;
+}
+
+Atom Read::makeNewAtom(){
+	assert(endedparsing);
+	return makeAtom(++maxatomnumber);
+}
+
+Atom Read::makeAtom(int n){
 	if (maxatomnumber < n) {
 		maxatomnumber = n;
 	}
-	return Literal(n, sign);
+	getSolver()->addVar(Atom(n));
+	return Atom(n);
 }
 
-int Read::readBody(istream &f, long size, bool pos, vector<Literal>& body) {
+bool Read::readBody(istream &f, long size, bool pos, vector<Literal>& body) {
 	long n;
 	for (long i = 0; i < size; i++) {
 		f >> n;
 		if (!f.good() || n < 1) {
-			cerr << "atom out of bounds, line " << linenumber << endl;
-			return 1;
+			char s[100];
+			sprintf(s, "atom out of bounds, line %ld\n", linenumber);
+			throw idpexception(s);
 		}
-		body.push_back(makeLiteral(n, !pos));
+		body.push_back(Literal(makeParsedAtom(n), !pos));
 	}
-	return 0;
+	return true;
 }
 
-int Read::addBasicRule(istream &f) {
+bool Read::readFullBody(istream &f, vector<Literal>& body){
 	long n;
-
-	// Rule head
-	f >> n;
-	if (!f.good() || n < 1) {
-		cerr << "head atom out of bounds, line " << linenumber << endl;
-		return 1;
-	}
-	Atom head(n);
-
-	// Body
-	f >> n;
+	f >> n; // total body size
 	if (!f.good() || n < 0) {
-		cerr << "total body size, line " << linenumber << endl;
-		return 1;
+		char s[100];
+		sprintf(s, "total body size, line %ld\n", linenumber);
+		throw idpexception(s);
 	}
 	long bodysize = n;
-	vector<Literal> body;
 
-	// Negative body size
-	f >> n;
+	f >> n; // size of negative body
 	if (!f.good() || n < 0 || n > bodysize) {
-		cerr << "negative body size, line " << linenumber << endl;
-		return 1;
+		char s[100];
+		sprintf(s, "negative body size, line %ld\n", linenumber);
+		throw idpexception(s);
 	}
 	long negbodysize = n;
 
-	// Negative body
-	if (readBody(f, negbodysize, false, body)) {
-		return 1;
+	if (!readBody(f, negbodysize, false, body)) { // Negative body: negated literals
+		return false;
 	}
-	// Positive body
-	if (readBody(f, bodysize - negbodysize, true, body)) {
-		return 1;
+	if (!readBody(f, bodysize - negbodysize, true, body)) { // Positive body
+		return false;
 	}
-
-	basicrules.push_back(new BasicRule(head, body));
-
-	return 0;
+	return true;
 }
 
-int Read::addConstraintRule(istream &f) {
-	long n;
-
-	// Rule head
-	f >> n;
-	if (!f.good() || n < 1) {
-		cerr << "head atom out of bounds, line " << linenumber << endl;
-		return 1;
-	}
-	Atom head(n);
-
-	// Body
-	f >> n;
-	if (!f.good() || n < 0) {
-		cerr << "total body size, line " << linenumber << endl;
-		return 1;
-	}
-	long bodysize = n;
-	vector<Literal> body;
-
-	// Negative body size
-	f >> n;
-	if (!f.good() || n < 0 || n > bodysize) {
-		cerr << "negative body size, line " << linenumber << endl;
-		return 1;
-	}
-	long negbodysize = n;
-
-	// Choose
-	f >> n;
-	if (!f.good() || n < 0 || n > bodysize) {
-		return 1;
-	}
-	long atleast = n;
-
-	// Negative body
-	if (readBody(f, negbodysize, false, body)) {
-		return 1;
-	}
-	// Positive body
-	if (readBody(f, bodysize - negbodysize, true, body)) {
-		return 1;
-	}
-
-	cardrules.push_back(new CardRule(setcount, head, body, Weight(atleast)));
-	setcount++;
-
-	return 0;
-}
-
-int Read::addGenerateRule(istream &f) {
-	long n;
-
-	// Heads
-	f >> n;
-	if (!f.good() || n < 2) {
-		cerr << "head size less than two, line " << linenumber << endl;
-		return 1;
-	}
-	long headssize = n;
-
-	// choose
-	f >> n;
-	if (!f.good() || n <= 0 || n > headssize - 1) {
-		cerr << "choose out of bounds, line " << linenumber << endl;
-		return 1;
-	}
-	long atleast = n;
-
-	vector<Literal> heads;
-	for (long i = 0; i < headssize; i++) {
-		f >> n;
-		if (!f.good() || n < 1) {
-			cerr << "atom out of bounds, line " << linenumber << endl;
-			return 1;
-		}
-		heads.push_back(makeLiteral(n));
-	}
-
-	// Body
-	f >> n;
-	if (!f.good() || n < 0) {
-		cerr << "total body size, line " << linenumber << endl;
-		return 1;
-	}
-	long bodysize = n;
-	vector<Literal> body;
-
-	if (readBody(f, bodysize, true, body)) {
-		return 1;
-	}
-
-	genrules.push_back(new GenRule(atleast, heads, body));
-
-	return 0;
-}
-
-int Read::addChoiceRule(istream &f) {
-	long n;
-
-	// Heads
-	f >> n;
-	if (!f.good() || n < 1) {
-		cerr << "head size less than one, line " << linenumber << endl;
-		return 1;
-	}
-	long headssize = n;
-
-	vector<Literal> heads;
-	for (long i = 0; i < headssize; i++) {
-		f >> n;
-		if (!f.good() || n < 1) {
-			cerr << "atom out of bounds, line " << linenumber << endl;
-			return 1;
-		}
-		heads.push_back(makeLiteral(n));
-	}
-
-	// Body
-	f >> n;
-	if (!f.good() || n < 0) {
-		cerr << "total body size, line " << linenumber << endl;
-		return 1;
-	}
-	long bodysize = n;
-	vector<Literal> body;
-
-	// Negative body size
-	f >> n;
-	if (!f.good() || n < 0 || n > bodysize) {
-		cerr << "negative body size, line " << linenumber << endl;
-		return 1;
-	}
-	long negbodysize = n;
-
-	// Negative body
-	if (readBody(f, negbodysize, false, body)) {
-		return 1;
-	}
-	// Positive body
-	if (readBody(f, bodysize - negbodysize, true, body)) {
-		return 1;
-	}
-
-	choicerules.push_back(new ChoiceRule(heads, body));
-
-	return 0;
-}
-
-int Read::addWeightRule(istream &f) {
-	long n;
-
-	// Rule head
-	f >> n;
-	if (!f.good() || n < 1) {
-		cerr << "head atom out of bounds, line " << linenumber << endl;
-		return 1;
-	}
-	Atom head(n);
-
-	Weight lowerbound;
-
-	// Atleast
-	f >> lowerbound;
-	if (!f.good()) {
-		return 1;
-	}
-
-	// Body
-	f >> n;
-	if (!f.good() || n < 0) {
-		cerr << "total body size, line " << linenumber << endl;
-		return 1;
-	}
-	long bodysize = n;
-	vector<Literal> body;
-
-	// Negative body size
-	f >> n;
-
-	if (!f.good() || n < 0 || n > bodysize) {
-		cerr << "negative body size, line " << linenumber << endl;
-		return 1;
-	}
-	long negbodysize = n;
-
-	// Negative body
-	if (readBody(f, negbodysize, false, body)) {
-		return 1;
-	}
-	// Positive body
-	if (readBody(f, bodysize - negbodysize, true, body)) {
-		return 1;
-	}
-
-	vector<Weight> weights;
+bool Read::readWeights(std::istream &f, std::vector<Weight>& weights, int bodysize){
 	Weight sum = 0, w = 0;
 	for (long i = 0; i < bodysize; i++) {
 		f >> w;
 		if (!f.good()) {
-			return 1;
+			return false;
 		}
-		if (sum + w < sum) {
-			cerr << "sum of weights in weight rule too large," << " line " << linenumber << endl;
-			return 1;
+		if ((w>0 && posInfinity()-w<sum) || (w<0 && negInfinity()-w>sum)) {
+			char s[100];
+			sprintf(s, "sum of weights in weight rule too large or too small, line %ld\n", linenumber);
+			throw idpexception(s);
 		}
 		sum += w;
 		weights.push_back(w);
 	}
-
-	sumrules.push_back(new SumRule(setcount, head, body, weights, lowerbound));
-	setcount++;
-
-	return 0;
+	return true;
 }
 
-int Read::addOptimizeRule(istream &f) {
+bool Read::parseBasicRule(istream &f) {
 	long n;
-	f >> n;
-	if (!f.good())
-		return 1;
-	if(n){
-		cerr << "maximize statements are no longer accepted, line" << linenumber << endl;
-		return 1;
+	f >> n; // rule head
+	if (!f.good() || n < 1) {
+		char s[100];
+		sprintf(s, "head atom out of bounds, line %ld\n", linenumber);
+		throw idpexception(s);
+	}
+	Atom head = makeParsedAtom(n);
+
+	vector<Literal> body;
+	if(!readFullBody(f, body)){
+		return false;
 	}
 
-	// Body
-	f >> n;
+	basicrules.push_back(new BasicRule(head, body));
+	return true;
+}
+
+bool Read::parseConstraintRule(istream &f) {
+	long n;
+	f >> n; // rule head
+	if (!f.good() || n < 1) {
+		char s[100];
+		sprintf(s, "head atom out of bounds, line %ld\n", linenumber);
+		throw idpexception(s);
+	}
+	Atom head = makeParsedAtom(n);
+
+	f >> n; // total body size
 	if (!f.good() || n < 0) {
-		cerr << "total body size, line " << linenumber << endl;
-		return 1;
+		char s[100];
+		sprintf(s, "total body size, line %ld\n", linenumber);
+		throw idpexception(s);
 	}
 	long bodysize = n;
-	vector<Literal> body;
 
-	// Negative body size
-	f >> n;
+	f >> n; // size of negative body
 	if (!f.good() || n < 0 || n > bodysize) {
-		cerr << "negative body size, line " << linenumber << endl;
-		return 1;
+		char s[100];
+		sprintf(s, "negative body size, line %ld\n", linenumber);
+		throw idpexception(s);
 	}
 	long negbodysize = n;
 
-	// Negative body
-	if (readBody(f, negbodysize, false, body)) {
-		return 1;
+	f >> n; //at least n body atoms have to be true
+	if (!f.good() || n < 0 || n > bodysize) {
+		return false;
 	}
-	// Positive body
-	if (readBody(f, bodysize - negbodysize, true, body)) {
-		return 1;
+	long atleast = n;
+
+	vector<Literal> body;
+	if (!readBody(f, negbodysize, false, body)) { // Negative body: negated literals
+		return false;
+	}
+	if (!readBody(f, bodysize - negbodysize, true, body)) { // Positive body
+		return false;
+	}
+
+	cardrules.push_back(new CardRule(setcount++, head, body, Weight(atleast)));
+	return true;
+}
+
+bool Read::parseChoiceRule(istream &f) {
+	long n;
+
+	f >> n; // number of heads
+	if (!f.good() || n < 1) {
+		char s[100];
+		sprintf(s, "head size less than one, line %ld\n", linenumber);
+		throw idpexception(s);
+	}
+	long headssize = n;
+
+	vector<Literal> heads;
+	for (long i = 0; i < headssize; i++) {
+		f >> n;
+		if (!f.good() || n < 1) {
+			char s[100];
+			sprintf(s, "atom out of bounds, line %ld\n", linenumber);
+			throw idpexception(s);
+		}
+		heads.push_back(Literal(makeParsedAtom(n)));
+	}
+
+	vector<Literal> body;
+	if(!readFullBody(f, body)){
+		return false;
+	}
+
+	choicerules.push_back(new ChoiceRule(heads, body));
+	return true;
+}
+
+bool Read::parseWeightRule(istream &f) {
+	long n;
+	f >> n; // number of heads
+	if (!f.good() || n < 1) {
+		char s[100];
+		sprintf(s, "head atom out of bounds, line %ld\n", linenumber);
+		throw idpexception(s);
+	}
+	Atom head = makeParsedAtom(n);
+
+	Weight lowerbound;
+	f >> lowerbound; // lower bound of the sum
+	if (!f.good()) {
+		return false;
+	}
+
+	vector<Literal> body;
+	if(!readFullBody(f, body)){
+		return false;
+	}
+
+	vector<Weight> weights;
+	if(!readWeights(f, weights, body.size())){
+		return false;
+	}
+
+	sumrules.push_back(new SumRule(setcount++, head, body, weights, lowerbound));
+	return true;
+}
+
+bool Read::parseOptimizeRule(istream &f) {
+	long n;
+	f >> n; // formerly choice between min or max, only 0 (minimize) still accepted
+	if (!f.good())
+		return false;
+	if(n!=0){
+		char s[100];
+		sprintf(s, "maximize statements are no longer accepted, line %ld\n", linenumber);
+		throw idpexception(s);
+	}
+
+	vector<Literal> body;
+	if(!readFullBody(f, body)){
+		return false;
 	}
 
 	//Weights
 	vector<Weight> weights;
-	Weight sum = 0, w = 0;
-	for (long i = 0; i < bodysize; i++) {
-		f >> w;
-		if (!f.good()) {
-			return 1;
-		}
-		if (sum + w < sum) {
-			cerr << "sum of weights in weight rule too large," << " line " << linenumber << endl;
-			return 1;
-		}
-		sum += w;
-		weights.push_back(w);
+	if(!readWeights(f, weights, body.size())){
+		return false;
 	}
 
 	optim = true;
 	optimbody = body;
 	optimweights = weights;
-	optimsetcount = setcount;
-	setcount++;
-	return 0;
+	optimsetcount = setcount++;
+	return true;
 }
 
-int Read::finishBasicRules() {
+bool Read::addBasicRules() {
 	for (vector<BasicRule*>::const_iterator i = basicrules.begin(); i < basicrules.end(); i++) {
 		if (!getSolver()->addRule((*i)->conj, (*i)->head, (*i)->body)) {
-			return 1;
+			return false;
 		}
 	}
-	return 0;
+	return true;
 }
 
-int Read::finishCardRules() {
+bool Read::addCardRules() {
 	for (vector<CardRule*>::const_iterator i = cardrules.begin(); i < cardrules.end(); i++) {
 		if (!getSolver()->addSet((*i)->setcount, (*i)->body)) {
-			return 1;
+			return false;
 		}
-		if (!getSolver()->addAggrExpr((*i)->head, (*i)->setcount, (*i)->atleast, AGGSIGN_UB, CARD, DEF)) {
-			return 1;
+		if (!getSolver()->addAggrExpr((*i)->head, (*i)->setcount, (*i)->atleast, AGGSIGN_LB, CARD, DEF)) {
+			return false;
 		}
 	}
-	return 0;
+	return true;
 }
 
-int Read::finishSumRules() {
+bool Read::addSumRules() {
 	for (vector<SumRule*>::const_iterator i = sumrules.begin(); i < sumrules.end(); i++) {
 		if (!getSolver()->addSet((*i)->setcount, (*i)->body, (*i)->weights)) {
-			return 1;
+			return false;
 		}
-		if (!getSolver()->addAggrExpr((*i)->head, (*i)->setcount, (*i)->atleast, AGGSIGN_UB, SUM, DEF)) {
-			return 1;
+		if (!getSolver()->addAggrExpr((*i)->head, (*i)->setcount, (*i)->atleast, AGGSIGN_LB, SUM, DEF)) {
+			return false;
 		}
 	}
-	return 0;
+	return true;
 }
 
-int Read::finishGenerateRules() {
-	for (vector<GenRule*>::const_iterator i = genrules.begin(); i < genrules.end(); i++) {
-		if ((*i)->body.size() != 0) {
-			for (vector<Literal>::const_iterator j = (*i)->heads.begin(); j < (*i)->heads.end(); j++) {
-				int atemp = getNextNumber();
-				vector<Literal> tempbody((*i)->body);
-				tempbody.push_back(makeLiteral(atemp, true));
-				if (!getSolver()->addRule(true, *j, tempbody)) {
-					return 1;
-				}
-				tempbody.clear();
-				tempbody.push_back(Literal((*j).getAtom(), true));
-				if (!getSolver()->addRule(true, makeLiteral(atemp), tempbody)) {
-					return 1;
-				}
-			}
-		}
-
-		if (!getSolver()->addSet(setcount, (*i)->heads)) {
-			return 1;
-		}
-		int atemp = getNextNumber();
-		if (!getSolver()->addAggrExpr(Literal(atemp), setcount, (*i)->atleast, AGGSIGN_LB, CARD, DEF)) {
-			return 1;
-		}
-		if (!getSolver()->addRule(true, Literal(atemp), (*i)->body)) {
-			return 1;
-		}
-		setcount++;
+void Read::addRuleToHead(map<Atom, vector<BasicRule*> >& headtorules, BasicRule* rule, Atom head){
+	if (headtorules.find(head) == headtorules.end()) {
+		headtorules.insert(pair<Atom, vector<BasicRule*> > (head, std::vector<BasicRule*>()));
 	}
-
-	return 0;
-
+	(*headtorules.find(head)).second.push_back(rule);
 }
 
-int Read::finishChoiceRules() {
+bool Read::tseitinizeHeads(){
+	// Transform away all choicerules
 	for (vector<ChoiceRule*>::const_iterator i = choicerules.begin(); i < choicerules.end(); i++) {
-		if ((*i)->body.size() == 0) {
-			continue;
-		}
+		vector<Literal> tempbody;
+		tempbody.push_back(Literal(1)); //reserve space for the extra choice literal
+		tempbody.insert(tempbody.end(), (*i)->body.begin(), (*i)->body.end());
 		for (vector<Literal>::const_iterator j = (*i)->heads.begin(); j < (*i)->heads.end(); j++) {
-			int atemp = getNextNumber();
-			vector<Literal> tempbody((*i)->body);
-			tempbody.push_back(makeLiteral(atemp, true));
-			if (!getSolver()->addRule(true, *j, tempbody)) {
-				return 1;
-			}
-			tempbody.clear();
-			tempbody.push_back(Literal((*j).getAtom(), true));
-			if (!getSolver()->addRule(true, makeLiteral(atemp), tempbody)) {
-				return 1;
+			const Literal& head = *j;
+			tempbody[0] = Literal(makeNewAtom());
+			basicrules.push_back(new BasicRule(head, tempbody));
+
+			//To guarantee #model equivalence:
+			vector<Literal> lits;
+			lits.push_back(head);
+			if(!getSolver()->addEquivalence(tempbody[0], lits, true)){
+				return false;
 			}
 		}
-	}
-	return 0;
-}
-
-int Read::read(istream &f) {
-	// Read rules.
-	int type;
-	bool stop = false;
-	for (linenumber = 1; !stop; linenumber++) {
-		// Rule Type
-		f >> type;
-		switch (type) {
-		case ENDRULE:
-			stop = true;
-			break;
-		case BASICRULE:
-			if (addBasicRule(f)) {
-				return 1;
-			}
-			break;
-		case CONSTRAINTRULE:
-			if (addConstraintRule(f)) {
-				return 1;
-			}
-			break;
-		case CHOICERULE:
-			if (addChoiceRule(f)) {
-				return 1;
-			}
-			break;
-		case GENERATERULE:
-			if (addGenerateRule(f)) {
-				return 1;
-			}
-			break;
-		case WEIGHTRULE:
-			if (addWeightRule(f)) {
-				return 1;
-			}
-			break;
-		case OPTIMIZERULE:
-			if (addOptimizeRule(f)) {
-				return 1;
-			}
-			break;
-		default:
-			return 1;
-		}
-	}
-	// Read atom names (are currently completely ignored)
-	const int len = 1024;
-	char s[len];
-	long i;
-	f.getline(s, len); // Get newline
-	if (!f.good()) {
-		cerr << "expected atom names to begin on new line, line " << linenumber << endl;
-		return 1;
-	}
-	f >> i;
-	f.getline(s, len);
-	linenumber++;
-	while (i) {
-		if (!f.good()) {
-			cerr << "atom name too long or end of file, line " << linenumber << endl;
-			return 1;
-		}
-		//		Atom *a = getAtom (i);
-		//		if (*s){
-		//			api->set_name (a, s+1);
-		//		}else{
-		//			api->set_name (a, 0);
-		//		}
-		f >> i;
-		f.getline(s, len);
-		linenumber++;
-	}
-
-	// Read compute-statement
-	f.getline(s, len);
-	if (!f.good() || strcmp(s, "B+")) {
-		cerr << "B+ expected, line " << linenumber << endl;
-		return 1;
-	}
-	linenumber++;
-	f >> i;
-	linenumber++;
-	while (i) {
-		if (!f.good() || i < 1) {
-			cerr << "B+ atom out of bounds, line " << linenumber << endl;
-			return 1;
-		}
-
-		vector<Literal> lits;
-		lits.push_back(makeLiteral(i));
-		if (!getSolver()->addClause(lits)) {
-			return 1;
-		}
-
-		f >> i;
-		linenumber++;
-	}
-	f.getline(s, len); // Get newline.
-	f.getline(s, len);
-	if (!f.good() || strcmp(s, "B-")) {
-		cerr << "B- expected, line " << linenumber << endl;
-		return 1;
-	}
-	linenumber++;
-	f >> i;
-	linenumber++;
-	while (i) {
-		if (!f.good() || i < 1) {
-			cerr << "B- atom out of bounds, line " << linenumber << endl;
-			return 1;
-		}
-
-		vector<Literal> lits;
-		lits.push_back(makeLiteral(i, true));
-		if (!getSolver()->addClause(lits)) {
-			return 1;
-		}
-
-		f >> i;
-		linenumber++;
-	}
-
-	f >> i; // zero means all
-	solver->setNbModels(i);
-
-	if (f.fail()) {
-		cerr << "number of models expected, line " << linenumber << endl;
-		return 1;
 	}
 
 	//Check whether there are multiple occurrences and rewrite them using tseitin!
-	std::map<Literal, std::vector<BasicRule*> > headtorules;
+	map<Atom, vector<BasicRule*> > headtorules;
 	for (vector<BasicRule*>::const_iterator i = basicrules.begin(); i < basicrules.end(); i++) {
-		if (headtorules.find((*i)->head) == headtorules.end()) {
-			headtorules.insert(pair<Literal, std::vector<BasicRule*> > ((*i)->head, std::vector<BasicRule*>()));
-		}
-		(*headtorules.find((*i)->head)).second.push_back(*i);
+		addRuleToHead(headtorules, *i, (*i)->head.getAtom());
 	}
 	for (vector<CardRule*>::const_iterator i = cardrules.begin(); i < cardrules.end(); i++) {
-		if (headtorules.find((*i)->head) == headtorules.end()) {
-			headtorules.insert(pair<Literal, std::vector<BasicRule*> > ((*i)->head, std::vector<BasicRule*>()));
-		}
-		(*headtorules.find((*i)->head)).second.push_back(*i);
+		addRuleToHead(headtorules, *i, (*i)->head.getAtom());
 	}
 	for (vector<SumRule*>::const_iterator i = sumrules.begin(); i < sumrules.end(); i++) {
-		if (headtorules.find((*i)->head) == headtorules.end()) {
-			headtorules.insert(pair<Literal, std::vector<BasicRule*> > ((*i)->head, std::vector<BasicRule*>()));
-		}
-		(*headtorules.find((*i)->head)).second.push_back(*i);
-	}
-	for (vector<GenRule*>::const_iterator i = genrules.begin(); i < genrules.end(); i++) {
-		for (vector<Literal>::const_iterator j = (*i)->heads.begin(); j < (*i)->heads.end(); j++) {
-			if (headtorules.find(*j) == headtorules.end()) {
-				headtorules.insert(pair<Literal, std::vector<BasicRule*> > (*j, std::vector<BasicRule*>()));
-				(*headtorules.find(*j)).second.push_back(NULL);
-			} else {
-				throw idpexception("A head was shared by a gen/choice rule and another rule. No idea about semantics!\n");
-			}
-		}
-	}
-	for (vector<ChoiceRule*>::const_iterator i = choicerules.begin(); i < choicerules.end(); i++) {
-		for (vector<Literal>::const_iterator j = (*i)->heads.begin(); j < (*i)->heads.end(); j++) {
-			if (headtorules.find(*j) == headtorules.end()) {
-				headtorules.insert(pair<Literal, std::vector<BasicRule*> > (*j, std::vector<BasicRule*>()));
-				(*headtorules.find(*j)).second.push_back(NULL);
-			} else {
-				throw idpexception("A head was shared by a gen/choice rule and another rule. No idea about semantics!\n");
-			}
-		}
+		addRuleToHead(headtorules, *i, (*i)->head.getAtom());
 	}
 
-	for (map<Literal, vector<BasicRule*> >::const_iterator i = headtorules.begin(); i != headtorules.end(); i++) {
-		if ((*i).second.size() < 2) {
+	//Tseitinize
+	for (map<Atom, vector<BasicRule*> >::const_iterator i = headtorules.begin(); i != headtorules.end(); i++) {
+		if ((*i).second.size() < 2) { //No multiple heads
 			continue;
 		}
 
-		Literal orighead = (*i).first;
 		vector<Literal> newheads;
 		for (vector<BasicRule*>::const_iterator j = (*i).second.begin(); j < (*i).second.end(); j++) {
-			assert((*j) != NULL);
-			Literal newhead = Literal(getNextNumber());
+			Literal newhead = Literal(makeNewAtom());
 			newheads.push_back(newhead);
 			(*j)->head = newhead;
 		}
-		basicrules.push_back(new BasicRule(orighead, newheads, false));
+		basicrules.push_back(new BasicRule(Literal((*i).first), newheads, false));
 	}
 
-	if (finishBasicRules() == 1) {
-		return 1;
+	//Make all literals which are defined but do not occur in the theory false
+	for(map<Atom, bool>::const_iterator i=defatoms.begin(); i!=defatoms.end(); i++){
+		assert((*i).second);
+		map<Atom, vector<BasicRule*> >::const_iterator it = headtorules.find((*i).first);
+		if(it==headtorules.end() || (*it).second.size()==0){
+			vector<Literal> lits;
+			lits.push_back(Literal((*i).first, true));
+			if(!getSolver()->addClause(lits)){
+				return false;
+			}
+		}
 	}
-	if (finishCardRules() == 1) {
-		return 1;
-	}
-	if (finishSumRules() == 1) {
-		return 1;
-	}
-	if (finishChoiceRules() == 1) {
-		return 1;
-	}
-	if (finishGenerateRules() == 1) {
-		return 1;
-	}
+	return true;
+}
 
+bool Read::addOptimStatement(){
 	if(optim){
 		vector<Literal> optimheadclause;
-		Literal optimhead = Literal(getNextNumber());
+		Literal optimhead = Literal(makeNewAtom());
 		optimheadclause.push_back(optimhead);
-		getSolver()->addClause(optimheadclause);
-		getSolver()->addSet(optimsetcount, optimbody, optimweights);
-		getSolver()->addSumMinimize(optimhead.getAtom(), optimsetcount);
+		if(!getSolver()->addClause(optimheadclause)){
+			return false;
+		}
+		if(!getSolver()->addSet(optimsetcount, optimbody, optimweights)){
+			return false;
+		}
+		if(!getSolver()->addSumMinimize(optimhead.getAtom(), optimsetcount)){
+			return false;
+		}
+	}
+	return true;
+}
+
+bool Read::read(istream &f) {
+	// Read rules.
+	int type;
+	bool stop = false, unsat = false;
+	for (linenumber = 1; !stop && !unsat; linenumber++) {
+		f >> type; // Rule Type
+		switch (type) {
+		case ENDRULE:
+			stop = true;
+			endedparsing = true;
+			break;
+		case BASICRULE:
+			unsat = !parseBasicRule(f);
+			break;
+		case CONSTRAINTRULE:
+			unsat = !parseConstraintRule(f);
+			break;
+		case CHOICERULE:
+			unsat = !parseChoiceRule(f);
+			break;
+		case GENERATERULE:{
+			char s[100];
+			sprintf(s, "As, according to the lparse manual, \"generate rules cause semantical troubles\", we do not support them.\n");
+			throw idpexception(s);
+			break;
+		}
+		case WEIGHTRULE:
+			unsat = !parseWeightRule(f);
+			break;
+		case OPTIMIZERULE:
+			unsat = !parseOptimizeRule(f);
+			break;
+		default:{
+			char s[100];
+			sprintf(s, "Unsupported rule type: %d.\n", type);
+			throw idpexception(s);
+		}
+		}
 	}
 
-	return 0;
+	const int len = 1024;
+	char s[len];
+	long i;
+
+	// Read atom names: lines ATOM NAME
+	f.getline(s, len); // Get newline
+	if (!f.good()) {
+		char s[100];
+		sprintf(s, "expected atom names to begin on new line %ld\n", linenumber);
+		throw idpexception(s);
+	}
+
+	while(true){ //read until atom 0 read
+		f >> i; //ATOM
+		f.getline(s, len); //NAME
+		linenumber++;
+		if(i==0){
+			break;
+		}
+
+		if (!f.good()) {
+			char s[100];
+			sprintf(s, "atom name too long or end of file, line %ld\n", linenumber);
+			throw idpexception(s);
+		}
+
+		if(*s){
+			translator->addTuple(i, s+1);
+		}else{
+			translator->addTuple(i, "");
+		}
+	}
+
+	// Read compute-statement: B+ listposatoms 0 B- listnegatoms 0
+	// listpostatoms are atoms that should all be true
+	// listnegatoms are atoms that should all be false
+	f.getline(s, len); //should be B+
+	if (!f.good() || strcmp(s, "B+")!=0) {
+		char s[100];
+		sprintf(s, "B+ expected, line %ld\n", linenumber);
+		throw idpexception(s);
+	}
+	linenumber++;
+	while (true) {
+		f >> i;
+		linenumber++;
+		if(i==0){
+			break;
+		}
+
+		if (!f.good() || i < 1) {
+			char s[100];
+			sprintf(s, "B+ atom out of bounds, line %ld\n", linenumber);
+			throw idpexception(s);
+		}
+
+		vector<Literal> lits;
+		lits.push_back(Literal(makeParsedAtom(i)));
+		if (!getSolver()->addClause(lits)) {
+			return false;
+		}
+	}
+	f.getline(s, len); // Read rest of last line (get newline);
+	f.getline(s, len); //should be B-
+	if (!f.good() || strcmp(s, "B-")!=0) {
+		char s[100];
+		sprintf(s, "B- expected, line %ld\n", linenumber);
+		throw idpexception(s);
+	}
+	linenumber++;
+	while (true) {
+		f >> i;
+		linenumber++;
+		if(i==0){
+			break;
+		}
+		if (!f.good() || i < 1) {
+			char s[100];
+			sprintf(s, "B- atom out of bounds, line %ld\n", linenumber);
+			throw idpexception(s);
+		}
+
+		vector<Literal> lits;
+		lits.push_back(Literal(makeParsedAtom(i), true));
+		if (!getSolver()->addClause(lits)) {
+			return false;
+		}
+	}
+
+	f >> i; // nb of models, zero means all
+	solver->setNbModels(i);
+
+	if (f.fail()) {
+		char s[100];
+		sprintf(s, "number of models expected, line %ld\n", linenumber);
+		throw idpexception(s);
+	}
+
+	unsat = !tseitinizeHeads();
+	if(unsat) { return false; }
+	unsat = !addBasicRules();
+	if(unsat) { return false; }
+	unsat = !addCardRules();
+	if(unsat) { return false; }
+	unsat = !addSumRules();
+	if(unsat) { return false; }
+	unsat = !addOptimStatement();
+	if(unsat) { return false; }
+
+	return true;
 }

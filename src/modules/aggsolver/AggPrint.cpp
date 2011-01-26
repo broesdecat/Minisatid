@@ -61,7 +61,7 @@ void Aggrs::printWatches(int verbosity, AggSolver* const solver, const std::vect
 }
 
 void Aggrs::print(int verbosity, const TypedSet& c, bool endl) {
-	if(verbosity<8){
+	if(verbosity<3){
 		report("set %d", c.getSetID());
 	}else{
 		report("set %d = { ", c.getSetID());

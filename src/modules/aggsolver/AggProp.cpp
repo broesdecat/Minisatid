@@ -10,6 +10,9 @@
 #include <assert.h>
 
 using namespace std;
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
+using namespace std::tr1;
+#endif
 using namespace MinisatID;
 using namespace Aggrs;
 
@@ -17,10 +20,10 @@ Weight	Agg::getCertainBound() const {
 	return bound.bound-getSet()->getKnownBound();
 }
 
-shared_ptr<AggProp> AggProp::max = shared_ptr<AggProp> (new MaxProp());
-shared_ptr<AggProp> AggProp::sum = shared_ptr<AggProp> (new SumProp());
-shared_ptr<AggProp> AggProp::card = shared_ptr<AggProp> (new CardProp());
-shared_ptr<AggProp> AggProp::prod = shared_ptr<AggProp> (new ProdProp());
+paggprop AggProp::max = paggprop (new MaxProp());
+paggprop AggProp::sum = paggprop (new SumProp());
+paggprop AggProp::card = paggprop (new CardProp());
+paggprop AggProp::prod = paggprop (new ProdProp());
 
 bool MaxProp::isMonotone(const Agg& agg, const WL& l) const {
 	const Weight& w = agg.getCertainBound();
@@ -196,20 +199,21 @@ void TypedSet::addAgg(Agg* aggr){
 	aggr->setIndex(aggregates.size()-1);
 }
 
+//FIXME should add check that aggregate is indeed still referring to that set
 void TypedSet::replaceAgg(const vpagg& repl){
-	for(auto i=aggregates.begin(); i<aggregates.end(); i++){
+	for(vpagg::const_iterator i=aggregates.begin(); i<aggregates.end(); i++){
 		(*i)->setTypedSet(NULL);
 		(*i)->setIndex(-1);
 	}
 	aggregates.clear();
-	for(auto i=repl.begin(); i<repl.end(); i++){
+	for(vpagg::const_iterator i=repl.begin(); i<repl.end(); i++){
 		addAgg(*i);
 	}
 }
 
 void TypedSet::replaceAgg(const vpagg& repl, const vpagg& del){
 	replaceAgg(repl);
-	for(auto i=del.begin(); i<del.end(); i++){
+	for(vpagg::const_iterator i=del.begin(); i<del.end(); i++){
 		delete *i;
 	}
 }
@@ -218,7 +222,7 @@ void TypedSet::replaceAgg(const vpagg& repl, const vpagg& del){
  * Initialize the datastructures. If it's neither sat nor unsat and it is defined, notify the pcsolver of this
  */
 void TypedSet::initialize(bool& unsat, bool& sat, vps& sets) {
-	for(auto i=transformations.begin(); !sat && !unsat && i<transformations.end(); i++) {
+	for(vector<AggTransform*>::iterator i=transformations.begin(); !sat && !unsat && i<transformations.end(); i++) {
 		AggTransform* transfo = *i;
 		transformations.erase(i); i--;
 		transfo->transform(getSolver(), this, sets, unsat, sat);
@@ -231,10 +235,25 @@ void TypedSet::initialize(bool& unsat, bool& sat, vps& sets) {
 
 	if(sat || unsat){ return; }
 
-	for (auto i = 0; i < getAgg().size(); i++) {
-		if (getAgg()[i]->isDefined()) {
-			getSolver()->notifyDefinedHead(var(getAgg()[i]->getHead()));
+	for (vpagg::const_iterator i = getAgg().begin(); i < getAgg().end(); i++) {
+		if ((*i)->isDefined()) {
+			getSolver()->notifyDefinedHead(var((*i)->getHead()));
 		}
+	}
+}
+
+void TypedSet::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
+	getProp()->getExplanation(lits, ar);
+
+	if(getSolver()->verbosity()>=3){
+		report("Explanation for deriving "); gprintLit(ar.getPropLit());
+		report(" in expression ");
+		print(getSolver()->verbosity(), ar.getAgg(), false);
+		report(" is ");
+		for(int i=0; i<lits.size(); i++){
+			report(" "); gprintLit(lits[i]);
+		}
+		report("\n");
 	}
 }
 
@@ -244,7 +263,7 @@ Propagator::Propagator(TypedSet* set):set(set), aggsolver(set->getSolver()){
 
 // Final initialization call!
 void Propagator::initialize(bool& unsat, bool& sat) {
-	for (auto i = getSet().getAgg().begin(); i < getSet().getAgg().end(); i++) {
+	for (vpagg::const_iterator i = getSet().getAgg().begin(); i < getSet().getAgg().end(); i++) {
 		if((*i)->getSem()==IMPLICATION){
 			getSolver()->setHeadWatch(~(*i)->getHead(), (*i));
 		}else{
