@@ -42,7 +42,7 @@ Var SmartRemapper::getVar(const Atom& atom){
 		origtocontiguousatommapper.insert(pair<int, int>(atom.getValue(), maxnumber));
 		contiguoustoorigatommapper.insert(pair<int, int>(maxnumber, atom.getValue()));
 		v = maxnumber++;
-		report("Mapped %d to %d\n", atom.getValue(), v);
+		//report("Mapped %d to %d\n", atom.getValue(), v);
 	}else{
 		v = (*i).second;
 	}
@@ -53,7 +53,7 @@ Literal SmartRemapper::getLiteral(const Lit& lit){
 	atommap::const_iterator atom = contiguoustoorigatommapper.find(var(lit));
 	assert(atom!=contiguoustoorigatommapper.end());
 	int origatom = (*atom).second;
-	report("Retrieved %d from %d\n", var(lit), origatom);
+	//report("Retrieved %d from %d\n", var(lit), origatom);
 	return Literal(origatom, sign(lit));
 }
 

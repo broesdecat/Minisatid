@@ -102,7 +102,7 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 	}
 #endif
 
-	//Calculate min and max values over empty interpretation
+	//Calculate min and max values over CURRENT!!!!!!! interpretation
 	//Create sets and watches, initialize min/max values
 	genmin = set.getType().getESV();
 	genmax = set.getType().getESV();
@@ -110,11 +110,23 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 	for(vsize i=0; i<wls.size(); i++){
 		const WL& wl = wls[i];
 		bool mono = set.getType().isMonotone(**set.getAgg().begin(), wl);
-		nws.push_back(new GenPWatch(getSetp(), wl, mono));
-		if(wl.getWeight()<0){
-			genmin = set.getType().add(genmin, wl.getWeight());
+
+		//FIXME, have to evaluate over CURRENT evaluation, as this is also done by the generation of watches (otherwise inconsistency!)
+		lbool val = getSolver()->value(wl.getLit());
+		if(val!=l_Undef){
+			if(val==l_True){
+				genmin = set.getType().add(genmin, wl.getWeight());
+				genmax = set.getType().add(genmax, wl.getWeight());
+			}else{
+				//ignore
+			}
 		}else{
-			genmax = set.getType().add(genmax, wl.getWeight());
+			nws.push_back(new GenPWatch(getSetp(), wl, mono));
+			if(wl.getWeight()<0){
+				genmin = set.getType().add(genmin, wl.getWeight());
+			}else{
+				genmax = set.getType().add(genmax, wl.getWeight());
+			}
 		}
 	}
 

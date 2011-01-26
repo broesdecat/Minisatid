@@ -159,7 +159,7 @@ bool Read::parseBasicRule(istream &f) {
 		return false;
 	}
 
-	basicrules.push_back(new BasicRule(head, body));
+	basicrules.push_back(new BasicRule(Literal(head), body));
 	return true;
 }
 
@@ -203,7 +203,7 @@ bool Read::parseConstraintRule(istream &f) {
 		return false;
 	}
 
-	cardrules.push_back(new CardRule(setcount++, head, body, Weight(atleast)));
+	cardrules.push_back(new CardRule(setcount++, Literal(head), body, Weight(atleast)));
 	return true;
 }
 
@@ -264,7 +264,7 @@ bool Read::parseWeightRule(istream &f) {
 		return false;
 	}
 
-	sumrules.push_back(new SumRule(setcount++, head, body, weights, lowerbound));
+	sumrules.push_back(new SumRule(setcount++, Literal(head), body, weights, lowerbound));
 	return true;
 }
 
