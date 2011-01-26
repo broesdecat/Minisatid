@@ -20,7 +20,7 @@
 #ifndef SATUTILS_H_
 #define SATUTILS_H_
 
-#include "external/ExternalUtils.hpp"
+#include "GeneralUtils.hpp"
 
 #ifdef USEMINISAT
 #include "mtlold/Vec.h"

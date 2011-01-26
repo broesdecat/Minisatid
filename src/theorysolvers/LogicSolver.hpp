@@ -22,20 +22,19 @@
 
 #include <cstdio>
 
-#include "external/ExternalUtils.hpp"
 #include "utils/Utils.hpp"
 
 namespace MinisatID {
 
 class Solution;
-class WrappedLogicSolver;
+class WLSImpl;
 
 class LogicSolver{
 private:
 	SolverOption _modes;
-	MinisatID::WrappedLogicSolver* _parent;
+	MinisatID::WLSImpl* _parent;
 public:
-	LogicSolver(MinisatID::SolverOption modes, MinisatID::WrappedLogicSolver* inter)
+	LogicSolver(MinisatID::SolverOption modes, MinisatID::WLSImpl* inter)
 			:_modes(modes), _parent(inter){};
 	virtual ~LogicSolver(){};
 
@@ -47,7 +46,9 @@ public:
 			int 	verbosity		() const	{ return modes().verbosity; }
 	const SolverOption& modes		() const	{ return _modes; }
 
-	MinisatID::WrappedLogicSolver* getParent		() const { return _parent; }
+	MinisatID::WLSImpl* getParent	() const { return _parent; }
+
+	virtual void 	printStatistics	() const = 0;
 };
 
 }

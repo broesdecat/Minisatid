@@ -27,6 +27,23 @@ using namespace MinisatID;
 
 Translator::Translator(){}
 
+void Translator::printLiteral(std::ostream& output, const Literal& lit) const{
+	output <<(lit.hasSign()?"-":"") <<lit.getAtom().getValue() <<"\n";
+}
+
+void Translator::printModel(std::ostream& output, const std::vector<Literal>& model){
+	bool start = true;
+	for (vector<Literal>::const_iterator i = model.begin(); i < model.end(); i++){
+		output <<(start ? "" : " ") <<(((*i).hasSign()) ? "-" : "") <<(*i).getAtom().getValue();
+		start = false;
+	}
+	output << " 0\n";
+}
+
+void Translator::printHeader(std::ostream& output){
+	//Noop
+}
+
 FODOTTranslator::FODOTTranslator(bool fodot): Translator(), tofodot(fodot==TRANS_FODOT), modelcounter(0) {
 
 }
@@ -215,7 +232,7 @@ void FODOTTranslator::printLiteral(std::ostream& output, const Literal& lit) con
 	}
 }
 
-void FODOTTranslator::printModel(std::ostream& output, const vector<int>& model) {
+void FODOTTranslator::printModel(std::ostream& output, const vector<Literal>& model) {
 	if(tofodot){
 		output << "=== Model " << ++modelcounter << " ===\n";
 	}
@@ -227,8 +244,8 @@ void FODOTTranslator::printModel(std::ostream& output, const vector<int>& model)
 
 	// read and translate the model
 	bool endmodel = false;
-	for(vector<int>::const_iterator i=model.begin(); i<model.end(); i++){
-		int lit = *i;
+	for(vector<Literal>::const_iterator i=model.begin(); i<model.end(); i++){
+		int lit = (*i).getValue();
 		if(lit==0 || endmodel){ //end of model found
 			break;
 		}else if(lit<0){
@@ -334,14 +351,14 @@ void FODOTTranslator::printHeader(ostream& output){
 	}
 }
 
-void LParseTranslator::addTuple(int lit, std::string name) {
-	lit2name[lit]=name;
+void LParseTranslator::addTuple(Atom atom, std::string name) {
+	lit2name[atom]=name;
 }
 
-void LParseTranslator::printModel(std::ostream& output, const std::vector<int>& model) {
-	for(vector<int>::const_iterator i=model.begin(); i<model.end(); i++){
-		if((*i)>0){
-			map<int, string>::const_iterator it = lit2name.find(*i);
+void LParseTranslator::printModel(std::ostream& output, const std::vector<Literal>& model) {
+	for(vector<Literal>::const_iterator i=model.begin(); i<model.end(); i++){
+		if(!(*i).hasSign()){ //Do not print false literals
+			map<Atom, string>::const_iterator it = lit2name.find((*i).getAtom());
 			if(it!=lit2name.end()){
 				output <<(*it).second <<" ";
 			}
@@ -351,7 +368,7 @@ void LParseTranslator::printModel(std::ostream& output, const std::vector<int>& 
 }
 
 void LParseTranslator::printLiteral(std::ostream& output, const Literal& lit) const {
-	map<int, string>::const_iterator it = lit2name.find(lit.getAtom().getValue());
+	map<Atom, string>::const_iterator it = lit2name.find(lit.getAtom());
 	if(it!=lit2name.end()){
 		output <<(lit.hasSign()?"~":"") <<(*it).second <<"\n";
 	}

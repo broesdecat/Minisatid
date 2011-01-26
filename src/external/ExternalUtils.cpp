@@ -110,31 +110,40 @@ Weight MinisatID::negInfinity() { return lim::min(); }
 // Options for the solvers and their defaults!
 ///////
 
+#ifndef DATADIR
+#warning No data directory defined, assuming build directory
+#define DATADIR "."
+#endif
+
 SolverOption::SolverOption():
-	format(FORMAT_FODOT),
-	transformat(TRANS_FODOT),
-	verbosity(1),
-	nbmodels(1),
-	printcnfgraph(false),
-	defsem(DEF_WELLF),
-	ufs_strategy(breadth_first),
-	defn_strategy(always),
-	defn_search(include_cs),
-	idclausesaving(0),
-	aggclausesaving(2),
-	selectOneFromUFS(false),
-	pbsolver(false),
-	watchedagg(false),
-	primesfile(""),
-	remap(true),
-	rand_var_freq(getDefaultRandfreq()),
-	var_decay(getDefaultDecay()),
-	polarity(getDefaultPolarity()),
-	bumpaggonnotify(true),
-	bumpidonstart(false),
-	subsetminimizeexplanation(false),
-	asapaggprop(false),
-	ufsvarintrothreshold(500){}
+		format(FORMAT_FODOT),
+		transformat(TRANS_FODOT),
+		verbosity(1),
+		nbmodels(1),
+		printcnfgraph(false),
+		defsem(DEF_WELLF),
+		ufs_strategy(breadth_first),
+		defn_strategy(always),
+		defn_search(include_cs),
+		idclausesaving(0),
+		aggclausesaving(2),
+		selectOneFromUFS(false),
+		pbsolver(false),
+		watchedagg(false),
+		primesfile(""),
+		remap(true),
+		rand_var_freq(getDefaultRandfreq()),
+		var_decay(getDefaultDecay()),
+		polarity(getDefaultPolarity()),
+		bumpaggonnotify(true),
+		bumpidonstart(false),
+		subsetminimizeexplanation(false),
+		asapaggprop(false),
+		ufsvarintrothreshold(500){
+	char s[300];
+	sprintf(s, "%s/P1.TXT", DATADIR);
+	primesfile = s; //FIXME do check on file existence?
+}
 
 void SolverOption::print(){
 	cerr << "format: " <<format <<endl;

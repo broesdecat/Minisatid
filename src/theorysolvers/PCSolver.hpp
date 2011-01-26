@@ -108,7 +108,7 @@ private:
 	Minisat::Solver * 	getSolver	() const { return satsolver; }
 
 public:
-	PCSolver(SolverOption modes, MinisatID::WrappedLogicSolver* inter);
+	PCSolver(SolverOption modes, MinisatID::WLSImpl* inter);
 	virtual ~PCSolver();
 
 	// Getters for constant solver pointers

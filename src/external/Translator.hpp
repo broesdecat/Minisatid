@@ -21,13 +21,14 @@ enum MODE { TRANS_ARBIT, TRANS_TRUE, TRANS_MODEL };
 typedef std::vector<std::vector<std::vector<std::string> > > modelvec;
 
 class Translator {
+
 public:
 	Translator();
 	virtual ~Translator(){}
 
-	virtual void printLiteral(std::ostream& output, const Literal& lit) const = 0;
-	virtual void printModel(std::ostream& output, const std::vector<int>& model) = 0;
-	virtual void printHeader(std::ostream& output) = 0;
+	virtual void	printLiteral(std::ostream& output, const MinisatID::Literal& lit) const;
+	virtual void	printModel	(std::ostream& output, const std::vector<Literal>& model);
+	virtual void	printHeader	(std::ostream& output);
 };
 
 class FODOTTranslator: public Translator{
@@ -65,8 +66,8 @@ public:
 	void addType(std::string name, const std::vector<std::string>& inter);
 	void addPred(std::string name, int num, const std::vector<std::string>& ptypes, bool f);
 
-	void printLiteral(std::ostream& output, const Literal& lit) const;
-	void printModel(std::ostream& output, const std::vector<int>& model);
+	void printLiteral(std::ostream& output, const MinisatID::Literal& lit) const;
+	void printModel(std::ostream& output, const std::vector<Literal>& model);
 	void printHeader(std::ostream& output);
 
 private:
@@ -80,16 +81,16 @@ private:
 
 class LParseTranslator: public Translator {
 private:
-	std::map<int,std::string>	lit2name;
+	std::map<Atom,std::string>	lit2name;
 
 public:
 	LParseTranslator():Translator(){}
 	virtual ~LParseTranslator(){}
 
-	void addTuple(int lit, std::string name);
+	void addTuple(Atom lit, std::string name);
 
-	void printLiteral(std::ostream& output, const Literal& lit) const;
-	void printModel(std::ostream& output, const std::vector<int>& model);
+	void printLiteral(std::ostream& output, const MinisatID::Literal& lit) const;
+	void printModel(std::ostream& output, const std::vector<Literal>& model);
 	void printHeader(std::ostream& output);
 };
 

@@ -95,6 +95,16 @@ AC_ARG_ENABLE([gmp],
 	*) AC_MSG_ERROR([bad value ${enableval} for --enable-gmp]) ;;
 esac],[ AC_CXXFLAGS+=" -D NO_GMP " ])
 
+AC_ARG_ENABLE([perftools],
+[  --enable-perftools=false    Use the google perftools library for memory allocation],
+[case "${enableval}" in
+	no) perftools=false ;;
+	yes) perftools=true ;;
+	*) AC_MSG_ERROR([bad value ${enableval} for --enable-perftools]) ;;
+esac],[ perftools=false ])
+
+AM_CONDITIONAL([USEPERFTOOLS],[test x$perftools = xtrue])
+
 # files to generate via autotools (.am or .in source files)
 AC_CONFIG_SUBDIRS([tclap perftools])
 AC_CONFIG_FILES([Makefile src/Makefile src/pbsolver/Makefile\

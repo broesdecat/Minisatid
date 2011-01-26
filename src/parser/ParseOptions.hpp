@@ -8,8 +8,6 @@
 #ifndef PARSEOPTIONS_HPP_
 #define PARSEOPTIONS_HPP_
 
-#include "external/ExternalUtils.hpp"
-
 namespace MinisatID{
 	bool parseOptions(int argc, char** argv);
 }

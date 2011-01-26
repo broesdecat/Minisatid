@@ -68,28 +68,28 @@ private:
 	modhierstate state;	//stores the current state of the parsing.
 
 public:
-	SOSolver					(SolverOption modes, MinisatID::WrappedLogicSolver* inter);
-	virtual ~SOSolver			();
+	SOSolver				(SolverOption modes, MinisatID::WLSImpl* inter);
+	virtual ~SOSolver		();
 
-	bool 	simplify			();
-
-	bool 	solve				(const vec<Lit>& assumptions, Solution* sol);
-
-	void 	finishParsing		(bool& present, bool& unsat);
+	void 	finishParsing	(bool& present, bool& unsat);
+	bool 	simplify		();
+	bool 	solve			(const vec<Lit>& assumptions, Solution* sol);
 
 	//Add information for hierarchy
-	bool 	addChild			(vsize parent, vsize child, Lit head);
-	bool	addAtoms			(vsize modid, const std::vector<Var>& atoms);
+	bool 	addChild		(vsize parent, vsize child, Lit head);
+	bool	addAtoms		(vsize modid, const std::vector<Var>& atoms);
 
 	//Add information for PC-Solver
-	void 	addVar				(vsize modid, Var v);
-	bool 	addClause			(vsize modid, vec<Lit>& lits);
-	bool 	addRule				(vsize modid, bool conj, Lit head, vec<Lit>& lits);
-	bool 	addSet				(vsize modid, int set_id, vec<Lit>& lits, std::vector<Weight>& w);
+	void 	addVar			(vsize modid, Var v);
+	bool 	addClause		(vsize modid, vec<Lit>& lits);
+	bool 	addRule			(vsize modid, bool conj, Lit head, vec<Lit>& lits);
+	bool 	addSet			(vsize modid, int set_id, vec<Lit>& lits, std::vector<Weight>& w);
 	bool 	addAggrExpr		(vsize modid, Lit head, int set_id, const Weight& bound, AggSign boundsign, AggType type, AggSem defined);
 
 	//Get information on hierarchy
-	ModSolver* getModSolver		(vsize modid) const { checkexistsModSolver(modid); return solvers[modid];}
+	ModSolver* getModSolver	(vsize modid) const { checkexistsModSolver(modid); return solvers[modid];}
+
+	void 	printStatistics	() const { report("Statistics printing not implemented for modal solver.\n");}
 
 private:
 	void	verifyHierarchy		();

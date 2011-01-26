@@ -6,15 +6,14 @@
  */
 
 #include "parser/ParseOptions.hpp"
+#include "GeneralUtils.hpp"
 
 #include <vector>
 #include <string>
 #include <iostream>
 
 #include <tclap/CmdLine.h>
-#include "external/ExternalUtils.hpp"
 #include "parser/ResourceManager.hpp"
-#include "utils/Utils.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -223,8 +222,6 @@ bool MinisatID::parseOptions(int argc, char** argv){
 			modes.var_decay, cmd, "The decay of variable activities within the SAT-solver (larger than or equal to 0)."));
 	options.push_back(new NoValsOption<string>	("o","outputfile", 	"file",
 			outputfile, cmd,"The outputfile to use to write out models."));
-	options.push_back(new NoValsOption<string>	("","primesfile", 	"file",
-			modes.primesfile, cmd,"File containing a list of prime numbers to use for finding optimal bases. Has to be provided if using pbsolver."));
 	options.push_back(new Option<INPUTFORMAT, string>("f", "format", formatvals, formatdesc,
 			modes.format, cmd, "The format of the input theory"));
 	options.push_back(new Option<OUTPUTFORMAT, string>("", "outputformat", transvals, transdesc,
@@ -283,11 +280,6 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	}
 	if(outputfile.compare("")!=0){
 		setOutputFileUrl(outputfile);
-	}
-
-	if(modes.pbsolver && modes.primesfile.compare("")==0){
-		report("When using the pbsolver, a file containing prime numbers has to be supplied with \"--primesfile\"!\n");
-		return false;
 	}
 
 	deleteList<Opt>(options);

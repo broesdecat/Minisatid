@@ -1,24 +1,5 @@
-//--------------------------------------------------------------------------------------------------
-//    Copyright (c) 2009-2010, Broes De Cat, K.U.Leuven, Belgium
-//    
-//    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-//    associated documentation files (the "Software"), to deal in the Software without restriction,
-//    including without limitation the rights to use, copy, modify, merge, publish, distribute,
-//    sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
-//    furnished to do so, subject to the following conditions:
-//    
-//    The above copyright notice and this permission notice shall be included in all copies or
-//    substantial portions of the Software.
-//    
-//    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-//    NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-//    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-//    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-//    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//--------------------------------------------------------------------------------------------------
-
-#ifndef EXTERNALINTERFACE_HPP_
-#define EXTERNALINTERFACE_HPP_
+#ifndef INTERFACEIMPL_HPP_
+#define INTERFACEIMPL_HPP_
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -32,47 +13,98 @@
 #include "theorysolvers/PCSolver.hpp"
 #include "theorysolvers/SOSolver.hpp"
 
-#include "external/InterfaceImpl.hpp"
-
 namespace MinisatID {
 
 class Translator;
+class LogicSolver;
+class PCSolver;
+class SOSolver;
 
 ///////
 // External interfaces offered from the solvers
 ///////
 
-class WrappedLogicSolver{
-public:
-	//Print statistics of the performed search
-	void 	printStatistics	() const;
+enum SolverState { INIT, PARSED, SIMPLIFIED, SOLVED};
 
-	//Initialize the datastructures after the full theory has been parsed
-	bool 	finishParsing	();
+typedef std::tr1::unordered_map<int, int> atommap;
 
-	//Simplify the logical theory. Automatically initializes the datastructures
-	bool 	simplify		();
-
-	//Do model expansion, given the options in the solution datastructure.
-	//Automatically initializes the datastructures and simplifies the theory
-	bool 	solve			(Solution* sol);
-
-	void	setTranslator	(Translator* translator);
-
+class Remapper{
 protected:
-	WrappedLogicSolver			();
-	virtual ~WrappedLogicSolver	();
+	int 	maxnumber;
 
-	virtual MinisatID::WLSImpl* getImpl() const = 0;
+public:
+	Remapper(): maxnumber(0){}
+
+	virtual Var		getVar		(const Atom& atom);
+	//virtual Atom	getAtom		(const Var& var);
+	//virtual Lit	getLit		(const Literal& literal);
+	virtual Literal	getLiteral	(const Lit& lit);
+	bool			wasInput(int var)	const { return var<maxnumber; }
 };
 
-class WrappedPCSolver: public MinisatID::WrappedLogicSolver{
+class SmartRemapper: public Remapper{
 private:
-	MinisatID::WPCLSImpl* _impl;
+	//Maps from NON-INDEXED to INDEXED atoms!
+	atommap 	origtocontiguousatommapper, contiguoustoorigatommapper;
 
 public:
-	WrappedPCSolver(const SolverOption& modes);
-	~WrappedPCSolver();
+	Var		getVar		(const Atom& atom);
+	//Atom	getAtom		(const Var& var);
+	//Lit	getLit		(const Literal& literal);
+	Literal	getLiteral	(const Lit& lit);
+
+};
+
+class WLSImpl{
+private:
+	SolverState 	_state;
+	SolverOption	_modes;
+
+	Remapper*		_remapper;
+	Translator*		_translator;
+
+	bool 		firstmodel; //True if the first model has not yet been printed
+
+public:
+	WLSImpl				(const SolverOption& modes);
+	virtual ~WLSImpl	();
+
+	void 	printStatistics	() const;
+
+	bool 	finishParsing	();
+	bool 	simplify		();
+	bool 	solve			(Solution* sol);
+
+	void 	addModel		(const vec<Lit>& model, Solution* sol);
+
+	const SolverOption& modes		()	const	{ return _modes; }
+	int 	verbosity		()	const	{ return modes().verbosity; }
+
+	void	setTranslator	(Translator* translator);
+	void 	printLiteral	(std::ostream& stream, const Lit& l) const;
+
+protected:
+	virtual MinisatID::LogicSolver* getSolver() const = 0;
+
+	Var 	checkAtom	(const Atom& atom);
+	Lit 	checkLit	(const Literal& lit);
+	void 	checkLits	(const std::vector<Literal>& lits, vec<Lit>& ll);
+	void 	checkLits	(const std::vector<Literal>& lits, std::vector<Lit>& ll);
+	void 	checkAtoms	(const std::vector<Atom>& atoms, std::vector<Var>& ll);
+
+	std::streambuf* 	getRes() const;
+
+	Remapper*	getRemapper		()	const { return _remapper; }
+	Translator*	getTranslator	()	const { return _translator; }
+};
+
+class WPCLSImpl: public MinisatID::WLSImpl{
+private:
+	MinisatID::PCSolver* solver;
+
+public:
+	WPCLSImpl(const SolverOption& modes);
+	~WPCLSImpl();
 
 	void	addVar			(Atom v);
 	bool	addClause		(std::vector<Literal>& lits);
@@ -99,16 +131,16 @@ public:
 	void	addForcedChoices(const std::vector<Literal> lits);
 
 protected:
-	MinisatID::WPCLSImpl* getImpl() const { return _impl; }
+	virtual MinisatID::PCSolver* getSolver() const;
 };
 
-class WrappedSOSolver: public MinisatID::WrappedLogicSolver{
+class WSOLSImpl: public MinisatID::WLSImpl{
 private:
-	MinisatID::WSOLSImpl* _impl;
+	MinisatID::SOSolver* solver;
 
 public:
-	WrappedSOSolver				(const SolverOption& modes);
-	virtual ~WrappedSOSolver	();
+	WSOLSImpl			(const SolverOption& modes);
+	virtual ~WSOLSImpl	();
 
 	//Add information for hierarchy
 	bool 	addChild	(vsize parent, vsize child, Literal head);
@@ -117,15 +149,15 @@ public:
 	//Add information for PC-Solver
 	void 	addVar		(vsize modid, Atom v);
 	bool 	addClause	(vsize modid, std::vector<Literal>& lits);
-	bool 	addRule		(vsize modid, bool conj, Atom head, std::vector<Literal>& lits);
+	bool 	addRule		(vsize modid, bool conj, Literal head, std::vector<Literal>& lits);
 	bool 	addSet		(vsize modid, int set_id, std::vector<WLtuple>& lws);
 	bool 	addSet		(vsize modid, int set_id, std::vector<Literal>& lits, std::vector<Weight>& w);
 	bool 	addAggrExpr	(vsize modid, Literal head, int setid, const Weight& bound, AggSign sign, AggType type, AggSem sem);
 
 protected:
-	MinisatID::WSOLSImpl* getImpl() const { return _impl; }
+	virtual MinisatID::SOSolver* getSolver() const;
 };
 
 }
 
-#endif /* EXTERNALINTERFACE_HPP_ */
+#endif /* INTERFACEIMPL_HPP_ */

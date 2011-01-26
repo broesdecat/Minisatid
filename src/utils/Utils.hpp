@@ -27,7 +27,7 @@
 #include <string>
 
 #include "satsolver/SATUtils.hpp"
-#include "external/ExternalUtils.hpp"
+#include "GeneralUtils.hpp"
 
 #include <tr1/memory>
 
@@ -87,38 +87,6 @@ inline void gprintClause(const vec<Lit>& c){
 	for(int i=0; i<c.size(); i++){
 		gprintLit(c[i]); report(" ");
 	}
-}
-
-///////
-// Support for deleting lists of pointer elements
-///////
-
-template<class T>
-void deleteList(std::vector<T*> l){
-	for(class std::vector<T*>::const_iterator i=l.begin(); i!=l.end(); i++){
-		if(*i!=NULL){
-			delete(*i);
-		}
-	}
-	l.clear();
-}
-
-template<class T>
-void deleteList(std::vector<std::vector<T*> > l){
-	for(class std::vector<std::vector<T*> >::const_iterator i=l.begin(); i!=l.end(); i++){
-		deleteList(*i);
-	}
-	l.clear();
-}
-
-template<class T, class K>
-void deleteList(std::map<K, T*> l){
-	for(class std::map<K, T*>::const_iterator i=l.begin(); i!=l.end(); i++){
-		if((*i).second!=NULL){
-			delete((*i).second);
-		}
-	}
-	l.clear();
 }
 
 }

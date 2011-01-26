@@ -1,7 +1,7 @@
 SUBDIRS = pbsolver external mtlold solver3 solver3minisat solver3minisat22 satsolver parser modules theorysolvers utils
 
 AM_CXXFLAGS = @AC_CXXFLAGS@ -I $(srcdir)/../tclap/include/ #-std=gnu++0x 
-AM_LDFLAGS = @AC_LDFLAGS@ -pthread  # -lprofiler
+AM_LDFLAGS = @AC_LDFLAGS@ -pthread
 
 AM_YFLAGS = -d 
 AM_LFLAGS =
@@ -13,7 +13,11 @@ bin_PROGRAMS = minisatid
 
 BUILT_SOURCES = parser/ecnfparser.h
 
-minisatid_LDADD = -L$(builddir)/pbsolver -lpbsolver-1.0 -L$(builddir)/../perftools/ -ltcmalloc_minimal
+minisatid_LDADD = -L$(builddir)/pbsolver -lpbsolver-1.0
+
+if USEPERFTOOLS
+minisatid_LDADD += -L$(builddir)/../perftools/ -ltcmalloc_minimal # -lprofiler
+endif
 
 minisatid_SOURCES = \
 		Main.cpp \
@@ -41,12 +45,15 @@ minisatid_SOURCES = \
 		parser/ResourceManager.hpp parser/Lparseread.hpp parser/PBread.hpp\
 		parser/ParseOptions.hpp\
 		external/Translator.hpp external/Translator.cpp\
+		external/InterfaceImpl.hpp external/InterfaceImpl.cpp\
+		GeneralUtils.hpp\
 		Unittests.hpp
 
 #PBSOLVER
 minisatid_SOURCES += pbsolver/PbSolver.h
-AM_CXXFLAGS += -I$(srcdir)/pbsolver/ -I$(srcdir)/pbsolver/pbbase/h/ -I$(srcdir)/pbsolver/ADTs/
-
+AM_CXXFLAGS += -I$(srcdir)/pbsolver/ -I$(srcdir)/pbsolver/pbbase/h/ -I$(srcdir)/pbsolver/ADTs/ -DDATADIR=\"$(datadir)\"
+data_pbdir = $(datadir)
+data_pb_DATA = P1.TXT
 
 #MINISAT 2.07 09z
 if USEMINISAT09Z

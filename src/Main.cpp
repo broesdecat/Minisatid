@@ -113,7 +113,7 @@ static void noMoreMem();
 volatile sig_atomic_t mem;
 static void SIGINT_handler(int signum);
 
-int doModelGeneration(pData& d, double cpu_time);
+int doModelGeneration(pData& d);
 
 extern SolverOption modes;
 
@@ -136,9 +136,6 @@ int main(int argc, char** argv) {
 	//set memory handler
 	std::set_new_handler(noMoreMem);
 
-	//set start time
-	double cpu_time = cpuTime();
-
 	//parse command-line options
 	if(!parseOptions(argc, argv)){
 		return 1;
@@ -159,7 +156,7 @@ int main(int argc, char** argv) {
 			sprintf(s, "Signal handled: %s", mem==1?"out of memory":"execution interrupted");
 			throw idpexception(s);
 		}
-		returnvalue = doModelGeneration(d, cpu_time);
+		returnvalue = doModelGeneration(d);
 
 #ifdef NDEBUG
 		exit(returnvalue);     // (faster than "return", which will invoke the destructor for 'Solver')
@@ -167,6 +164,12 @@ int main(int argc, char** argv) {
 	} catch (const idpexception& e) {
 		error = true;
 		printExceptionCaught(e, modes.verbosity);
+		if(d.get()!=NULL){
+			d->printStatistics();
+		}
+	} catch (const std::exception& e) {
+		error = true;
+		report("%s",e.what());
 		if(d.get()!=NULL){
 			d->printStatistics();
 		}
@@ -181,7 +184,7 @@ int main(int argc, char** argv) {
 	return returnvalue;
 }
 
-int doModelGeneration(pData& d, double cpu_time){
+int doModelGeneration(pData& d){
 	// Unittest injection possible by: pData d = unittestx();
 
 	bool unsat = false;
@@ -224,31 +227,23 @@ int doModelGeneration(pData& d, double cpu_time){
 	//d is initialized unless unsat was already detected
 	unsat = unsat || d.get()==NULL;
 
-	printInitDataStart(modes.verbosity);
-
 	//Initialize datastructures
 	if(!unsat){
 		unsat = !d->finishParsing();
 	}
 
-	printInitDataEnd(modes.verbosity, cpuTime()-cpu_time, unsat);
-
 	//Simplify
 	if(!unsat){
-		printSimpStart(modes.verbosity);
 		unsat = !d->simplify();
-		printSimpEnd(modes.verbosity, unsat);
 	}
 
 	//Solve
 	bool earlyunsat = unsat;
 	if(!unsat){
-		printSolveStart(modes.verbosity);
 		vector<Literal> assumpts;
 		Solution* sol = new Solution(true, false, true, modes.nbmodels, assumpts);
 		unsat = !d->solve(sol);
 		delete sol;
-		printSolveEnd(modes.verbosity);
 	}
 
 	if(unsat){

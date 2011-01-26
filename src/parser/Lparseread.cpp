@@ -484,9 +484,9 @@ bool Read::read(istream &f) {
 		}
 
 		if(*s){
-			translator->addTuple(i, s+1);
+			translator->addTuple(Atom(i), s+1);
 		}else{
-			translator->addTuple(i, "");
+			translator->addTuple(Atom(i), "");
 		}
 	}
 
@@ -547,7 +547,7 @@ bool Read::read(istream &f) {
 	}
 
 	f >> i; // nb of models, zero means all
-	solver->setNbModels(i);
+	//FIXME is it safe to always ignore the number of models?
 
 	if (f.fail()) {
 		char s[100];

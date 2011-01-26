@@ -1,7 +1,7 @@
 #include "parser/ResourceManager.hpp"
+#include "GeneralUtils.hpp"
 
 #include <tr1/memory>
-#include "external/ExternalUtils.hpp"
 
 using namespace std;
 using namespace std::tr1;

@@ -21,7 +21,7 @@
 
 #include <iostream>
 
-#include "external/ExternalInterface.hpp"
+#include "external/InterfaceImpl.hpp"
 
 #include "satsolver/SATSolver.hpp"
 #include "modules/IDSolver.hpp"
@@ -45,7 +45,7 @@ DPLLTSolver::~DPLLTSolver() {
 }
 
 //Has to be value copy of modes!
-PCSolver::PCSolver(SolverOption modes, MinisatID::WrappedLogicSolver* inter) :
+PCSolver::PCSolver(SolverOption modes, MinisatID::WLSImpl* inter) :
 		LogicSolver(modes, inter),
 		satsolver(NULL), idsolver(NULL), aggsolver(NULL), modsolver(NULL),
 		init(true),
@@ -783,7 +783,7 @@ bool PCSolver::invalidateValue(vec<Lit>& invalidation) {
 		if (!currentoptimumfound && getSolver()->model[var(to_minimize[i])] == l_True) {
 			if (modes().verbosity >= 1) {
 				report("Current optimum found for: ");
-				getParent()->getTranslator()->printLiteral(cerr, getParent()->getOrigLiteral(to_minimize[i]));
+				getParent()->printLiteral(cerr, to_minimize[i]);
 				report("\n");
 				//report("Current optimum is var %d\n", gprintVar(var(to_minimize[i])));
 			}
