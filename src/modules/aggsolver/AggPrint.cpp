@@ -53,6 +53,7 @@ void Aggrs::printWatches(int verbosity, AggSolver* const solver, const std::vect
 				if(watch2!=NULL && watch2->isWatched()){
 					report("        ");
 					print(verbosity, *tempwatches[i][j]->getSet()->getAgg()[k], true);
+					break;
 				}
 			}
 		}
@@ -61,7 +62,7 @@ void Aggrs::printWatches(int verbosity, AggSolver* const solver, const std::vect
 }
 
 void Aggrs::print(int verbosity, const TypedSet& c, bool endl) {
-	if(verbosity<3){
+	if(verbosity<7){
 		report("set %d", c.getSetID());
 	}else{
 		report("set %d = { ", c.getSetID());

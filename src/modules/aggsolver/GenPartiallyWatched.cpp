@@ -111,22 +111,24 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 		const WL& wl = wls[i];
 		bool mono = set.getType().isMonotone(**set.getAgg().begin(), wl);
 
-		//FIXME, have to evaluate over CURRENT evaluation, as this is also done by the generation of watches (otherwise inconsistency!)
-		lbool val = getSolver()->value(wl.getLit());
-		if(val!=l_Undef){
-			if(val==l_True){
-				genmin = set.getType().add(genmin, wl.getWeight());
-				genmax = set.getType().add(genmax, wl.getWeight());
-			}else{
-				//ignore
-			}
+		nws.push_back(new GenPWatch(getSetp(), wl, mono));
+		if(wl.getWeight()<0){
+			genmin = set.getType().add(genmin, wl.getWeight());
 		}else{
-			nws.push_back(new GenPWatch(getSetp(), wl, mono));
-			if(wl.getWeight()<0){
-				genmin = set.getType().add(genmin, wl.getWeight());
-			}else{
-				genmax = set.getType().add(genmax, wl.getWeight());
-			}
+			genmax = set.getType().add(genmax, wl.getWeight());
+		}
+	}
+
+	Weight currentmin = genmin, currentmax = genmax;
+	for(vsize i=0; i<wls.size(); i++){
+		const WL& wl = wls[i];
+		//FIXME, CHECK CORRECTNESS
+		//have to evaluate over CURRENT evaluation, as this is also done by the generation of watches (otherwise inconsistency!)
+		lbool val = getSolver()->value(wl.getLit());
+		if(val==l_True){
+			currentmin = set.getType().add(currentmin, wl.getWeight());
+		}else if(val==l_False){
+			currentmax = set.getType().remove(currentmax, wl.getWeight());
 		}
 	}
 
@@ -136,7 +138,7 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 	for(vpagg::const_iterator i=set.getAgg().begin(); confl==nullPtrClause && i<set.getAgg().end(); i++){
 		if(value((*i)->getHead())==l_True){ //noop
 			del.push_back(*i);
-		}else if(isSatisfied(**i, genmin, genmax)){
+		}else if(isSatisfied(**i, currentmin, currentmax)){
 			//propagate head
 			confl = set.getSolver()->notifySolver(new HeadReason(**i, BASEDONCC, ~(*i)->getHead()));
 			del.push_back(*i);
@@ -156,7 +158,7 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 	for(vpagg::const_iterator i=set.getAgg().begin(); i<set.getAgg().end(); i++){
 		if((*i)->hasLB() && worstagg->getCertainBound()<(*i)->getCertainBound()){
 			worstagg = *i;
-		}else if((*i)->hasUB() && worstagg->getCertainBound()<(*i)->getCertainBound()){
+		}else if((*i)->hasUB() && worstagg->getCertainBound()>(*i)->getCertainBound()){
 			worstagg = *i;
 		}
 	}
@@ -290,12 +292,43 @@ rClause GenPWAgg::reconstructSet(pgpw watch, bool& propagations, Agg const * pro
 	bool oneagg = getSet().getAgg().size()==1;
 	const Agg& agg = *worstagg;
 
+	//FIXME HACK: watch all at all times
+	/*for(int i=0 ;i<getNWS().size(); i++){
+		addToWatchedSet(i);
+		i--;
+	}*/
+
 	if(oneagg && value(agg.getHead())==l_True){
 		propagations = true;
 		return confl;
 	}
 
 	confl = checkPropagation(propagations, propagg);
+
+	//FIXME watch at least one unknown one: correction also watch its negation then!
+/*	bool someunknown = false;
+	for(vpgpw::const_iterator i=getWS().begin(); !someunknown && i<getWS().end(); i++){
+		const WL& wl = (*i)->getWL();
+		lbool val = value(wl.getLit());
+		someunknown = val==l_Undef;
+	}
+	if(!someunknown){
+		bool found = false;
+		for(int i=0; i<getNWS().size(); i++){
+			const WL& wl = getNWS()[i]->getWL();
+			lbool val = value(wl.getLit());
+			if(val==l_Undef){
+				addToWatchedSet(i);
+				found = true;
+				break;
+			}
+		}
+		if(!found){
+			propagations = true;
+		}
+	}
+	return confl;*/
+	//END HACK 2
 
 	if(confl!=nullPtrClause){
 		propagations = true;

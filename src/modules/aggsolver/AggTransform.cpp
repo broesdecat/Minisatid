@@ -34,6 +34,7 @@ public:
 		t.push_back(new SetReduce());
 		t.push_back(new CardToEquiv());
 		t.push_back(new AddHeadImplications());
+		//t.push_back(new MapToSetOneToOneWithAgg());
 		t.push_back(new MapToSetWithSameAggSign());
 	}
 	~Transfo(){

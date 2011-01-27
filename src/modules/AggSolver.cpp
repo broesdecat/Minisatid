@@ -568,6 +568,7 @@ rClause	AggSolver::propagateAtEndOfQueue(){
 		for(vector<TypedSet*>::const_iterator i=proptrail.begin(); confl==nullPtrClause && i<proptrail.end(); i++){
 			confl = (*i)->propagateAtEndOfQueue(getLevel());
 		}
+		printWatches(verbosity(), this, tempwatches);
 		proptrail.clear();
 	}
 
