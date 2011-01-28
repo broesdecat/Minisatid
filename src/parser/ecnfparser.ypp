@@ -542,7 +542,7 @@ weight	:	NUMBER	{ $$ = $1; }
 %%
 
 int yywrap() {
-	cerr << "End of file reached before it was expected... bailing out.\n" << endl;
+	cerr << "End of file reached before it was expected... bailing out.\n";
 	return 1;
 }
 

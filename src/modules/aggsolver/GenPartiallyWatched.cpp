@@ -136,9 +136,9 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 	rClause confl = nullPtrClause;
 	vpagg rem, del;
 	for(vpagg::const_iterator i=set.getAgg().begin(); confl==nullPtrClause && i<set.getAgg().end(); i++){
-		if(value((*i)->getHead())==l_True){ //noop
+		if(value((*i)->getHead())==l_True && !(*i)->isOptim()){
 			del.push_back(*i);
-		}else if(isSatisfied(**i, currentmin, currentmax)){
+		}else if(isSatisfied(**i, currentmin, currentmax) && !(*i)->isOptim()){
 			//propagate head
 			confl = set.getSolver()->notifySolver(new HeadReason(**i, BASEDONCC, ~(*i)->getHead()));
 			del.push_back(*i);
@@ -212,6 +212,30 @@ void GenPWAgg::removeValue(const Weight& weight, bool inset, Weight& min, Weight
 	}else{ //!pos && !inset
 		min = getSet().getType().add(min, weight);
 	}
+}
+
+Weight GenPWAgg::getValue() const{
+	Weight min = genmin;
+	Weight max = genmax;
+
+	for(vpgpw::const_iterator i=getWS().begin(); i<getWS().end(); i++){
+		const WL& wl = (*i)->getWL();
+		lbool val = value(wl.getLit());
+		if(val!=l_Undef){
+			addValue(wl.getWeight(), val==l_True, min, max);
+		}
+	}
+
+	for(vpgpw::const_iterator i=getNWS().begin(); i<getNWS().end(); i++){
+		const WL& wl = (*i)->getWL();
+		lbool val = value(wl.getLit());
+		if(val!=l_Undef){
+			addValue(wl.getWeight(), val==l_True, min, max);
+		}
+	}
+
+	assert(min==max);
+	return min;
 }
 
 rClause GenPWAgg::checkPropagation(bool& propagations, Agg const * agg){

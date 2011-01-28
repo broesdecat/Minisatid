@@ -184,6 +184,8 @@ public:
     AggSolver*			getSolver() const { return aggsolver; }
 	lbool				value(const Lit& l) const;
 	lbool				propagatedValue(const Lit& l) const;
+
+	virtual Weight		getValue() const = 0; //Return current aggregate value (only if two-valued!)
 };
 
 class TypedSet{

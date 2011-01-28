@@ -219,6 +219,7 @@ public:
 	void 				addPermWatch			(Var v, Aggrs::Watch* w);
 	void 				addTempWatch			(const Lit& l, Aggrs::Watch* w);
 
+	const std::vector<Aggrs::TypedSet*>&	getPropTrail	() const { return proptrail; }
 	void				addToPropTrail			(Aggrs::TypedSet* set) { proptrail.push_back(set); }
 	void				addToBackTrail			(Aggrs::TypedSet* set) { backtrail.back().push_back(set); }
 

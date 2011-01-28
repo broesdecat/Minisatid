@@ -277,7 +277,7 @@ pData parse() {
 		yyparse();
 	} catch (const MinisatID::idpexception& e) {
 		if (unsatfound) {
-			std::cerr << "Unsat detected during parsing.\n";
+			clog << "Unsat detected during parsing.\n";
 		} else {
 			//TODO this can also be caught when the sigint handler has received an interrupt, should differentiate
 			char s[300];

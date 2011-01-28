@@ -161,8 +161,17 @@ void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& s
 
 	//create implication aggs
 	vpagg implaggs, del;
+	Agg* optim = NULL;
 	for(vpagg::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); i++){
 		const Agg& agg = *(*i);
+
+		if(agg.isOptim()){
+			assert(optim==NULL);
+			optim = *i;
+			break;
+		}
+		assert(!agg.isOptim());
+
 		Agg *one, *two;
 		Weight weighttwo = agg.getSign()==AGGSIGN_LB?agg.getBound()-1:agg.getBound()+1;
 		AggSign signtwo = agg.getSign()==AGGSIGN_LB?AGGSIGN_UB:AGGSIGN_LB;
@@ -172,6 +181,11 @@ void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& s
 		implaggs.push_back(one);
 		implaggs.push_back(two);
 		del.push_back(*i);
+	}
+
+	if(optim!=NULL){
+		implaggs.push_back(new Agg(~optim->getHead(), AggBound(optim->getSign(), optim->getBound()), IMPLICATION, optim->getType(), optim->isOptim()));
+		del.push_back(optim);
 	}
 
 	//separate in both signs

@@ -765,7 +765,7 @@ bool AggSolver::addMnmzSum(Var headv, int setid) {
 		}
 	}
 
-	Agg* ae = new Agg(head, AggBound(AGGSIGN_LB, max+1), COMP, SUM);
+	Agg* ae = new Agg(head, AggBound(AGGSIGN_UB, max+1), COMP, SUM);
 	ae->setOptim();
 	set->addAgg(ae);
 
@@ -779,15 +779,16 @@ bool AggSolver::addMnmzSum(Var headv, int setid) {
 }
 
 bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
-	Agg* a = headwatches[toInt(createNegativeLiteral(head))];
+	Agg* a = headwatches[toInt(createPositiveLiteral(head))];
 	TypedSet* s = a->getSet();
-	SumFWAgg* prop = dynamic_cast<SumFWAgg*> (s->getProp());
+	Propagator* prop = s->getProp();
+	Weight value = prop->getValue();
 
-	report("Current optimum: %s\n", toString(prop->getCC()).c_str());
+	report("Current optimum: %s\n", toString(value).c_str());
 
-	a->setBound(AggBound(a->getSign(), prop->getCC() - 1));
+	a->setBound(AggBound(a->getSign(), value - 1));
 
-	if (s->getBestPossible() == prop->getCC()) {
+	if (s->getBestPossible() == value) {
 		return true;
 	}
 
@@ -804,7 +805,9 @@ bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
  */
 void AggSolver::propagateMnmz(Var head) {
 	int level = getPCSolver()->getCurrentDecisionLevel();
-	dynamic_cast<SumFWAgg*>(headwatches[toInt(createNegativeLiteral(head))]->getSet()->getProp())->propagate(level, *headwatches[toInt(createNegativeLiteral(head))], true);
+	Agg* agg = headwatches[toInt(createPositiveLiteral(head))];
+	TypedSet* set = agg->getSet();
+	set->getProp()->propagate(level, *agg, true);
 }
 
 ///////

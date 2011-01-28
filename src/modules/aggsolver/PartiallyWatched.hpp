@@ -111,8 +111,9 @@ public:
 		}
 	}
 
-	void 		addValue(const Weight& weight, bool inset, Weight& min, Weight& max) const;
-	void 		removeValue(const Weight& weight, bool inset, Weight& min, Weight& max) const;
+	void 		addValue	(const Weight& weight, bool inset, Weight& min, Weight& max) const;
+	void 		removeValue	(const Weight& weight, bool inset, Weight& min, Weight& max) const;
+	Weight		getValue	()	const;
 
 	rClause 	reconstructSet(pgpw watch, bool& propagations, Agg const * propagg);
 	void 		genWatches(vsize& i, const Agg& agg, Weight& min, Weight& max, Weight& knownmin, Weight& knownmax, GenPWatch*& largest);
@@ -132,6 +133,8 @@ public:
 	void		backtrack		(int nblevels, int untillevel){};
     void 		getExplanation	(vec<Lit>& lits, const AggReason& ar);
 
+    const vpgpw&	getNWS() const { return nws; }
+    const vpgpw&	getWS() const { return ws; }
 	vpgpw& 		getNWS() { return nws; }
 	vpgpw& 		getWS() { return ws; }
 

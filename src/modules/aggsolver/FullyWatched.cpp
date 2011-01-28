@@ -98,6 +98,7 @@ void FWAgg::backtrack(int nblevels, int untillevel){
 		//report("Backtrack trail of FW\n");
 		delete getTrail().back();
 		getTrail().pop_back();
+		getTrail().back()->start = getTrail().back()->props.size();
 	}
 }
 
@@ -137,6 +138,16 @@ rClause FWAgg::propagate(const Lit& p, pw ws, int level) {
 	if(fwobj->start == fwobj->props.size()){
 		getSolver()->addToPropTrail(getSetp());
 	}
+
+#ifdef DEBUG
+	bool found = false;
+	for(vector<TypedSet*>::const_iterator i=getSolver()->getPropTrail().begin(); !found && i<getSolver()->getPropTrail().end(); i++){
+		if(getSetp()==*i){
+			found = true;
+		}
+	}
+	assert(found);
+#endif
 
 	fwobj->props.push_back(PropagationInfo(p, ws->getWL().getWeight(), ws->getType(p)));
 

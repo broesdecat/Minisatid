@@ -75,8 +75,10 @@ public:
 	void		 	backtrack				(int nblevels, int untillevel);
 	virtual void 	getExplanation			(vec<Lit>& lits, const AggReason& ar) = 0;
 
-	const Weight& 	getCP					() 					const 	{ return trail.back()->CBP; }
-	const Weight& 	getCC					() 					const 	{ return trail.back()->CBC; }
+	const Weight& 	getCP					()	const 	{ return trail.back()->CBP; }
+	const Weight& 	getCC					()	const 	{ return trail.back()->CBC; }
+
+	Weight			getValue				()	const	{ return getCC(); }
 };
 
 class SPFWAgg: public  FWAgg {
