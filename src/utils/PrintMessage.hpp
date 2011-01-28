@@ -1,8 +1,9 @@
 #ifndef PRINTMESSAGE_HPP_
 #define PRINTMESSAGE_HPP_
 
+#include <exception>
+
 namespace MinisatID{
-class idpexception;
 
 namespace Print{
 	void printMainStart(int v);
@@ -19,7 +20,7 @@ namespace Print{
 
 	void printUnsat(int v);
 
-	void printExceptionCaught(const idpexception& e, int v);
+	void printExceptionCaught(const std::exception& e, int v);
 	void printUnexpectedError(int v);
 }
 

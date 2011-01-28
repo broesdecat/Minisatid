@@ -267,11 +267,11 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	}
 
 	if(modes.var_decay<0.0){
-		report("The value for decay should be larger than 0.\n");
+		cerr <<"The value for decay should be larger than 0.\n";
 		return false;
 	}
 	if(modes.rand_var_freq<0.0 || modes.rand_var_freq>1.0){
-		report("The value for rnd-freq should be between 0 and 1.\n");
+		cerr <<"The value for rnd-freq should be between 0 and 1.\n";
 		return false;
 	}
 

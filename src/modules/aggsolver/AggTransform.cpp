@@ -203,7 +203,7 @@ void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& s
 	}
 
 	//FIXME add heuristic
-	//if(ratioone*0.5+ratiotwo*0.5<1){
+	if(ratioone*0.5+ratiotwo*0.5<0.75){
 		if(signtwoset!=NULL){
 			vpagg empty;
 			signtwoset->replaceAgg(empty);
@@ -213,9 +213,9 @@ void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& s
 		delete propone;
 		signoneset->setProp(NULL);
 		sets.push_back(signoneset);
-	/*}else{
+	}else{
 		delete signoneset;
-	}*/
+	}
 	if(signtwoset!=NULL){
 		delete signtwoset;
 	}

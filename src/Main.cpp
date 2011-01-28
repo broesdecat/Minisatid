@@ -111,7 +111,12 @@ void printStats();
 jmp_buf main_loop;
 static void noMoreMem();
 volatile sig_atomic_t mem;
+static void SIGABRT_handler(int signum);
+static void SIGFPE_handler(int signum);
+static void SIGSEGV_handler(int signum);
+static void SIGTERM_handler(int signum);
 static void SIGINT_handler(int signum);
+
 
 int doModelGeneration(pData& d);
 
@@ -129,6 +134,11 @@ int main(int argc, char** argv) {
 	newcw = (oldcw & ~_FPU_EXTENDED) | _FPU_DOUBLE;
 	_FPU_SETCW(newcw); // double precision for repeatability
 #endif
+
+	signal(SIGABRT, SIGABRT_handler);
+	signal(SIGFPE, SIGFPE_handler);
+	signal(SIGTERM, SIGTERM_handler);
+	signal(SIGSEGV, SIGSEGV_handler);
 	signal(SIGINT, SIGINT_handler);
 #if defined(__linux__)
 	signal(SIGHUP, SIGINT_handler);
@@ -145,7 +155,6 @@ int main(int argc, char** argv) {
 
 	pData d;
 	int returnvalue = 1;
-	bool error = false;
 	try { // Start catching IDP exceptions
 
 		//IMPORTANT: because signals are handled asynchronously, a special mechanism is needed to recover from them (exception throwing does not work)
@@ -161,24 +170,18 @@ int main(int argc, char** argv) {
 #ifdef NDEBUG
 		exit(returnvalue);     // (faster than "return", which will invoke the destructor for 'Solver')
 #endif
-	} catch (const idpexception& e) {
-		error = true;
+	} catch (const exception& e) {
 		printExceptionCaught(e, modes.verbosity);
 		if(d.get()!=NULL){
 			d->printStatistics();
 		}
-	} catch (const std::exception& e) {
-		error = true;
-		report("%s",e.what());
-		if(d.get()!=NULL){
-			d->printStatistics();
-		}
+		exit(1);
 	} catch (...) {
-		error = true;
 		printUnexpectedError(modes.verbosity);
 		if(d.get()!=NULL){
 			d->printStatistics();
 		}
+		exit(1);
 	}
 
 	return returnvalue;
@@ -310,6 +313,26 @@ static void noMoreMem() {
 	}
 }
 
+static void SIGABRT_handler(int signum) {
+	report("Abort received\n");
+	mem=0;
+	longjmp (main_loop, 1);
+}
+static void SIGFPE_handler(int signum) {
+	report("FPE error\n");
+	mem=0;
+	longjmp (main_loop, 1);
+}
+static void SIGTERM_handler(int signum) {
+	report("Terminate received\n");
+	mem=0;
+	longjmp (main_loop, 1);
+}
+static void SIGSEGV_handler(int signum) {
+	report("Segmentation fault received\n");
+	mem=0;
+	longjmp (main_loop, 1);
+}
 static void SIGINT_handler(int signum) {
 	mem=0;
 	longjmp (main_loop, 1);

@@ -75,6 +75,7 @@ public:
 	bool 	simplify		();
 	bool 	solve			(Solution* sol);
 
+	void 	printModel		(const vec<Lit>& model);
 	void 	addModel		(const vec<Lit>& model, Solution* sol);
 
 	const SolverOption& modes		()	const	{ return _modes; }

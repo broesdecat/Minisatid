@@ -25,9 +25,9 @@
 using namespace std;
 using namespace MinisatID;
 
-Translator::Translator(){}
+Translator::Translator(): modelcounter(0){}
 
-void Translator::printLiteral(std::ostream& output, const Literal& lit) const{
+void Translator::printLiteral(std::ostream& output, const Literal& lit){
 	output <<(lit.hasSign()?"-":"") <<lit.getAtom().getValue() <<"\n";
 }
 
@@ -38,18 +38,65 @@ void Translator::printModel(std::ostream& output, const std::vector<Literal>& mo
 		start = false;
 	}
 	output << " 0\n";
+	output.flush();
 }
 
 void Translator::printHeader(std::ostream& output){
 	//Noop
 }
 
-FODOTTranslator::FODOTTranslator(bool fodot): Translator(), tofodot(fodot==TRANS_FODOT), modelcounter(0) {
+FODOTTranslator::FODOTTranslator(bool fodot): Translator(),
+		tofodot(fodot==TRANS_FODOT), finisheddata(false) {
 
 }
 
 FODOTTranslator::~FODOTTranslator() {
 
+}
+
+void FODOTTranslator::finishParsing(){
+	finisheddata = true;
+
+	largestnottseitinatom = highestvalue[predicates.size()-1];
+	trueout = modelvec(predicates.size());
+	arbitout = modelvec(predicates.size());
+	truemodelcombinedout = modelvec(predicates.size());
+
+	if(predicates.empty()) return;
+
+	// set initial values
+	uint	currpred = 0;
+
+	// read and translate the model
+	int curr;
+	for(vector<int>::const_iterator m=truelist.begin(); m<truelist.end(); m++) {
+		curr = *m;
+		if(curr > largestnottseitinatom){
+			return;
+		}else{
+			vector<string> arg;
+			if(deriveStringFromAtomNumber(curr, currpred, arg)){
+				trueout[currpred].push_back(arg);
+				truemodelcombinedout[currpred].push_back(arg);
+			}
+		}
+	}
+
+	// set initial values
+	currpred = 0;
+
+	// read and translate the model
+	for(vector<int>::const_iterator m=arbitlist.begin(); m<arbitlist.end(); m++) {
+		curr = *m;
+		if(curr > largestnottseitinatom){
+			return;
+		}else{
+			vector<string> arg;
+			if(deriveStringFromAtomNumber(curr, currpred, arg)){
+				arbitout[currpred].push_back(arg);
+			}
+		}
+	}
 }
 
 void FODOTTranslator::addType(string name, const vector<string>& inter){
@@ -203,7 +250,11 @@ void FODOTTranslator::printInterpr(const modelvec& model, MODE mode, ostream& ou
 }
 
 //IMPORTANT: non-incremental (slow), so do not use for printing a full model!
-void FODOTTranslator::printLiteral(std::ostream& output, const Literal& lit) const {
+void FODOTTranslator::printLiteral(std::ostream& output, const Literal& lit) {
+	if(!finisheddata){
+		finishParsing();
+	}
+
 	uint pred = 0;
 	vector<string> args;
 	deriveStringFromAtomNumber(lit.getAtom().getValue(), pred, args);
@@ -233,9 +284,11 @@ void FODOTTranslator::printLiteral(std::ostream& output, const Literal& lit) con
 }
 
 void FODOTTranslator::printModel(std::ostream& output, const vector<Literal>& model) {
-	if(tofodot){
-		output << "=== Model " << ++modelcounter << " ===\n";
+	if(!finisheddata){
+		finishParsing();
 	}
+
+	clog << "=== Model " << ++modelcounter << " ===\n";
 
 	// set initial values
 	uint currpred = 0;
@@ -255,12 +308,13 @@ void FODOTTranslator::printModel(std::ostream& output, const vector<Literal>& mo
 		}else{
 			vector<string> arg;
 			if(deriveStringFromAtomNumber(lit, currpred, arg)){
-				truemodelcombinedout[currpred].push_back(arg);
+				temptruemodelcombined[currpred].push_back(arg);
 			}
 		}
 	}
-	printInterpr(truemodelcombinedout, TRANS_MODEL, output);
+	printInterpr(temptruemodelcombined, TRANS_MODEL, output);
 	output <<"\n";
+	output.flush();
 }
 
 
@@ -294,45 +348,8 @@ bool FODOTTranslator::deriveStringFromAtomNumber(int atom, uint& currpred, vecto
 }
 
 void FODOTTranslator::printHeader(ostream& output){
-	largestnottseitinatom = highestvalue[predicates.size()-1];
-	trueout = modelvec(predicates.size());
-	arbitout = modelvec(predicates.size());
-	truemodelcombinedout = modelvec(predicates.size());
-
-	if(predicates.empty()) return;
-
-	// set initial values
-	uint	currpred = 0;
-
-	// read and translate the model
-	int curr;
-	for(vector<int>::const_iterator m=truelist.begin(); m<truelist.end(); m++) {
-		curr = *m;
-		if(curr > largestnottseitinatom){
-			return;
-		}else{
-			vector<string> arg;
-			if(deriveStringFromAtomNumber(curr, currpred, arg)){
-				trueout[currpred].push_back(arg);
-				truemodelcombinedout[currpred].push_back(arg);
-			}
-		}
-	}
-
-	// set initial values
-	currpred = 0;
-
-	// read and translate the model
-	for(vector<int>::const_iterator m=arbitlist.begin(); m<arbitlist.end(); m++) {
-		curr = *m;
-		if(curr > largestnottseitinatom){
-			return;
-		}else{
-			vector<string> arg;
-			if(deriveStringFromAtomNumber(curr, currpred, arg)){
-				arbitout[currpred].push_back(arg);
-			}
-		}
+	if(!finisheddata){
+		finishParsing();
 	}
 
 	if(predicates.empty()) return;
@@ -356,6 +373,7 @@ void LParseTranslator::addTuple(Atom atom, std::string name) {
 }
 
 void LParseTranslator::printModel(std::ostream& output, const std::vector<Literal>& model) {
+	clog << "=== Model " << ++modelcounter << " ===\n";
 	for(vector<Literal>::const_iterator i=model.begin(); i<model.end(); i++){
 		if(!(*i).hasSign()){ //Do not print false literals
 			map<Atom, string>::const_iterator it = lit2name.find((*i).getAtom());
@@ -365,9 +383,10 @@ void LParseTranslator::printModel(std::ostream& output, const std::vector<Litera
 		}
 	}
 	output <<"\n";
+	output.flush();
 }
 
-void LParseTranslator::printLiteral(std::ostream& output, const Literal& lit) const {
+void LParseTranslator::printLiteral(std::ostream& output, const Literal& lit) {
 	map<Atom, string>::const_iterator it = lit2name.find(lit.getAtom());
 	if(it!=lit2name.end()){
 		output <<(lit.hasSign()?"~":"") <<(*it).second <<"\n";

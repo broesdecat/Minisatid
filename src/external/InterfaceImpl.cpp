@@ -177,6 +177,22 @@ bool WLSImpl::solve(Solution* sol){
 	return sat;
 }
 
+void WLSImpl::printModel(const vec<Lit>& model){
+	//Translate into original vocabulary
+	vector<Literal> outmodel;
+	for(int j=0; j<model.size(); j++){
+		if(!getRemapper()->wasInput(var(model[j]))){ //was not part of the input
+			continue;
+		}
+		outmodel.push_back(getRemapper()->getLiteral(model[j]));
+	}
+	sort(outmodel.begin(), outmodel.end());
+
+	std::ostream output(getRes());
+	//Effectively print the model
+	getTranslator()->printModel(output, outmodel);
+}
+
 void WLSImpl::addModel(const vec<Lit>& model, Solution* sol){
 	//Translate into original vocabulary
 	vector<Literal> outmodel;
@@ -188,13 +204,13 @@ void WLSImpl::addModel(const vec<Lit>& model, Solution* sol){
 	}
 	sort(outmodel.begin(), outmodel.end());
 
-	if(verbosity()>=5){
+/*	if(verbosity()>=5){
 		report("Trimmed, remapped model: ");
 		for(vector<Literal>::const_iterator i=outmodel.begin(); i<outmodel.end(); i++){
 			report("%d ", (*i).getValue());
 		}
 		report("\n");
-	}
+	}*/
 
 	assert(sol!=NULL);
 	sol->addModel(outmodel);
@@ -204,14 +220,13 @@ void WLSImpl::addModel(const vec<Lit>& model, Solution* sol){
 		if(sol->getNbModelsFound()==1){	//First model found
 			output << "SAT\n";
 			if(modes().verbosity>=1){
-				report("SATISFIABLE\n");
+				clog <<"SATISFIABLE\n";
 			}
 			getTranslator()->printHeader(output);
 		}
 
 		if(verbosity()>=1){
-			report("> %4d model%s found\n",
-					sol->getNbModelsFound(), sol->getNbModelsFound() > 1 ? "s" : " ");
+			clog <<"> " <<sol->getNbModelsFound() <<" model" <<(sol->getNbModelsFound()>1?"s":"") <<" found\n";
 		}
 
 		//Effectively print the model

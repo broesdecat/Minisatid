@@ -1,5 +1,6 @@
 #include <vector>
 #include <fstream>
+#include <iostream>
 #include "../h/GenralBaseFunctions.h"
 
 
@@ -212,6 +213,10 @@ uint64 oddEvenCountEval(std::vector<int> &base,unsigned int i, unsigned int ws[]
 
 unsigned int loadPrimes(const char* primes_file_name,std::vector<unsigned int>& pri,unsigned int maxW,unsigned int cutOF) {
 	std::fstream file(primes_file_name, std::fstream::in);
+	if(file.fail()){
+		std::cerr << "Error: File containing primes could not be read, aborting program!" <<std::endl;
+		exit(1);
+	}
 	unsigned int p;
 	unsigned int max = 15485863;
 	if (maxW<max) max = maxW;

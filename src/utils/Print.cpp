@@ -20,6 +20,7 @@
 #include "utils/Print.hpp"
 
 #include <vector>
+#include "iostream"
 
 #include "satsolver/SATSolver.hpp"
 #include "theorysolvers/PCSolver.hpp"
@@ -36,7 +37,7 @@ using namespace Minisat;
 
 /*template<class S>
 void Print::print(S const * const s){
-	report("Solver is present, but no printing information.\n");
+	clog <<"Solver is present, but no printing information.\n");
 }*/
 
 template<>
@@ -50,39 +51,39 @@ void Print::print(PCSolver const * const s){
 template<>
 void Print::print(AggSolver const * const p){
 	if(p==NULL){
-		report("No aggregates\n");
+		clog <<"No aggregates\n";
 		return;
 	}
-	report("Aggregates\n");
+	clog <<"Aggregates\n";
 	//TODO
 }
 
 template<>
 void Print::print(Solver const * const s){
 	assert(s!=NULL);
-	report("Clauses\n");
+	clog <<"Clauses\n";
 	for(int i=0; i< s->nbClauses(); i++){
 		s->printClause(s->getClause(i));
-		report("\n");
+		clog <<"\n";
 	}
 }
 
 template<>
 void Print::print(IDSolver const * const s){
 	if(s==NULL){
-		report("No definitions\n");
+		clog <<"No definitions\n";
 		return;
 	}
-	report("Definitions\n");
+	clog <<"Definitions\n";
 	for(int i=0; i<s->nVars(); i++){
 		//if(s->isDefined(i)){
 			/*DefType d = s->getDefType(i);
 			if(s->isConjunctive(i)){
-				report("Conjunctive rule");
+				clog <<"Conjunctive rule");
 			}else if(s->isDisjunctive(i)){
-				report("Disjunctive rule");
+				clog <<"Disjunctive rule");
 			}else if(s->isDefinedByAggr(i)){
-				report("Aggregate rule");
+				clog <<"Aggregate rule");
 			}*/
 
 			/*FIXME const PropRule& r = *s->getDefinition(i);
@@ -92,7 +93,7 @@ void Print::print(IDSolver const * const s){
 				gprintLit(r[counter]);
 				counter++;
 			}
-			report("\n");*/
+			clog <<"\n");*/
 		//}
 	}
 }
@@ -117,22 +118,22 @@ void Print::printClause(rClause c, PCSolver const * const s){
 
 template<>
 void Print::print(ModSolver const * const m){
-	report("ModSolver %zu, parent %zu", m->getPrintId(), m->getParentPrintId() );
+	clog <<"ModSolver " <<m->getPrintId() <<" parent " <<m->getParentPrintId();
 	if(m->hasParent()){
-		report(", head");
+		clog <<", head";
 		gprintLit(mkLit(m->getHead()), m->getHeadValue());
 	}
-	report(", children ");
+	clog <<", children ";
 	for(vmodindex::const_iterator i=m->getChildren().begin(); i<m->getChildren().end(); i++){
-		report("%zu ", *i);
+		clog <<*i;
 	}
-	report("\nModal atoms ");
+	clog <<"\nModal atoms ";
 	for(vector<Var>::const_iterator i=m->getAtoms().begin(); i<m->getAtoms().end(); i++){
-		report("%d ", gprintVar(*i));
+		clog <<gprintVar(*i);
 	}
-	/*report("\nsubtheory\n");
+	/*clog <<"\nsubtheory\n");
 	print(m->getPCSolver());*/
-	report("SubSolvers\n");
+	clog <<"SubSolvers\n";
 	for(vmodindex::const_iterator i=m->getChildren().begin(); i<m->getChildren().end(); i++){
 		print(m->getModSolverData().getModSolver(*i));
 	}
@@ -140,7 +141,7 @@ void Print::print(ModSolver const * const m){
 
 template<>
 void Print::print(SOSolver const * const d){
-	report("Printing theory\n");
+	clog <<"Printing theory\n";
 	print(d->getModSolver((modindex)0));
-	report("End of theory\n");
+	clog <<"End of theory\n";
 }

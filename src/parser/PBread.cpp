@@ -68,7 +68,7 @@ void DefaultCallback::metaData(int nbvar, int nbconstr) {
  * callback called before we read the objective function
  */
 void DefaultCallback::beginObjective() {
-	report("Not yet supported");
+	cerr <<"Not yet supported\n";
 	exit(1);
 	//cout << "objective:  ";
 }

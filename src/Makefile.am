@@ -53,7 +53,7 @@ minisatid_SOURCES = \
 minisatid_SOURCES += pbsolver/PbSolver.h
 AM_CXXFLAGS += -I$(srcdir)/pbsolver/ -I$(srcdir)/pbsolver/pbbase/h/ -I$(srcdir)/pbsolver/ADTs/ -DDATADIR=\"$(datadir)\"
 data_pbdir = $(datadir)
-data_pb_DATA = P1.TXT
+dist_data_pb_DATA = P1.TXT
 
 #MINISAT 2.07 09z
 if USEMINISAT09Z

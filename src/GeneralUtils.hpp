@@ -6,6 +6,7 @@
 #include <exception>
 #include <string>
 #include <assert.h>
+#include <iostream>
 
 //FIXME move to print headers
 #define report(...) ( fflush(stdout), fprintf(stderr, __VA_ARGS__), fflush(stderr) )

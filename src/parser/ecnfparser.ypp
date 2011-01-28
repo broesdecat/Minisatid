@@ -88,7 +88,7 @@ pwls getData();
 
 MinisatID::Atom cAtom(string* c);
 MinisatID::Literal cLiteral(string* c);
-MinisatID::Weight cWeight(const char* c);
+MinisatID::Weight cWeight(string* s);
 int cID(string* c);
 
 // Convert integer to string
@@ -148,7 +148,7 @@ void parsepred(std::string* name, int num, std::vector<std::string>* ptypes, boo
 %token FORCECHOICE
 
 %type <integer> number
-%type <cstr> weight
+%type <str> weight
 %type <vints> ibody
 %type <vlits> body
 %type <vlws> wbody
@@ -266,7 +266,7 @@ rule	:	SEMDEFN NUMBER body ZERO
 // type sem sign head setid bound 0
 agg		:	AGGDEFN SEMDEFN SIGNDEFN NUMBER NUMBER weight ZERO	
 				{	CR(solver->addAggrExpr(cLiteral($4), cID($5), cWeight($6), $3, $1, $2)); 
-					delete $4; delete $5;
+					delete $4; delete $5; delete $6;
 				}
 		;
 
@@ -400,7 +400,7 @@ mrule	:	SEMDEFN NUMBER NUMBER body ZERO
 
 magg	:	AGGDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER weight ZERO	
 				{ 	CR(modsolver->addAggrExpr(cID($2)-1, cLiteral($5), cID($6), cWeight($7), $4, $1, $3));
-					delete($2); delete($5); delete($6); 
+					delete($2); delete($5); delete($6); delete $7;
 				}
 		;
 
@@ -513,7 +513,7 @@ wbody	:	wbody NUMBER REL
 					} 
 				} 
 			weight	
-				{ $$ = $1; $$->push_back(MinisatID::WLtuple(cLiteral($2), cWeight($5))); delete($2); }
+				{ $$ = $1; $$->push_back(MinisatID::WLtuple(cLiteral($2), cWeight($5))); delete($2);  delete $5;}
 			
 		|	NUMBER REL 
 				{ 
@@ -522,7 +522,7 @@ wbody	:	wbody NUMBER REL
 					} 
 				} 
 			weight	
-				{ $$ = new std::vector<WLtuple>(1,MinisatID::WLtuple(cLiteral($1), cWeight($4))); delete($1);}
+				{ $$ = new std::vector<WLtuple>(1,MinisatID::WLtuple(cLiteral($1), cWeight($4))); delete($1); delete $4;}
 		;
 		
 vbody	:	vbody NUMBER 	{ $$ = $1; $$->push_back(cAtom($2)); delete($2);	}
@@ -536,8 +536,8 @@ ibody 	: 	ibody number	{ $$ = $1; $$->push_back($2);	}
 number	:	NUMBER	{ $$ = atoi((*$1).c_str()); delete($1); }
 		|	ZERO	{ $$ = 0; }
 		
-weight	:	NUMBER	{ $$ = (*$1).c_str(); delete($1);}
-		|	ZERO	{ $$ = "0"; }
+weight	:	NUMBER	{ $$ = $1; }
+		|	ZERO	{ $$ = new string("0"); }
 
 %%
 
@@ -663,7 +663,8 @@ Literal cLiteral(string* c){
 	return Literal(abs(i), i<0);
 }
 
-Weight cWeight(const char* c){
+Weight cWeight(string* s){
+	const char* c = s->c_str();
 	Weight w(0);
 	bool begin = true, negate = false;
 	for(int i = 0; c[i] != '\0'; i++) {

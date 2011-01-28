@@ -175,22 +175,22 @@ void PCSolver::addVars(const vec<Lit>& a) {
 
 bool PCSolver::addClause(vec<Lit>& lits) {
 	if (modes().verbosity >= 7) {
-		report("Adding clause:");
+		clog <<"Adding clause:";
 		for (int i = 0; i < lits.size(); i++) {
-			report(" ");
+			clog <<" ";
 			gprintLit(lits[i]);
 		}
-		report("\n");
+		clog <<"\n";
 	}
 	addVars(lits);
 
 	if(modes().printcnfgraph){
 		for(int i=0; i<lits.size(); i++){
-			if(i>0){ report(" -- "); }
-			report("%d", gprintVar(var(lits[i])));
+			if(i>0){ clog <<" -- "; }
+			clog <<gprintVar(var(lits[i]));
 		}
-		if(lits.size()>1){ report(" -- %d ", gprintVar(var(lits[0]))); }
-		report("[color=blue];\n");
+		if(lits.size()>1){ clog <<" -- " <<gprintVar(var(lits[0])) <<" "; }
+		clog <<"[color=blue];\n";
 	}
 
 	return getSolver()->addClause(lits);
@@ -257,11 +257,11 @@ bool PCSolver::addSet(int setid, const vec<Lit>& lits, const vector<Weight>& w) 
 
 	if(modes().printcnfgraph){
 		for(int i=0; i<lits.size(); i++){
-			if(i>0){ report(" -- "); }
-			report("%d", gprintVar(var(lits[i])));
+			if(i>0){ clog <<" -- "; }
+			clog <<gprintVar(var(lits[i]));
 		}
-		if(lits.size()>1){ report(" -- %d ", gprintVar(var(lits[0]))); }
-		report("[color=green];\n");
+		if(lits.size()>1){ clog <<" -- " <<gprintVar(var(lits[0])) <<" "; }
+		clog <<"[color=green];\n";
 	}
 
 	return getAggSolver()->addSet(setid, ll, w);
@@ -271,9 +271,10 @@ bool PCSolver::addAggrExpr(Lit head, int setid, const Weight& bound, AggSign bou
 	assert(getAggSolver()!=NULL);
 
 	if (modes().verbosity >= 4) {
-		report("Adding aggregate with info ");
+		clog <<"Adding aggregate with info ";
 		gprintLit(head);
-		report(", %d, %s, %s, %d, %s \n", setid, toString(bound).c_str(), boundsign==AGGSIGN_UB?"lower":"greater", type, defined==DEF?"defined":"completion");
+		clog 	<<setid <<", " <<toString(bound).c_str() <<", "  <<(boundsign==AGGSIGN_UB?"lower":"greater")
+				<<", " <<type <<(defined==DEF?"defined":"completion") <<"\n";
 	}
 
 	addVar(head);
@@ -358,7 +359,7 @@ void PCSolver::finishParsing(bool& present, bool& unsat) {
 			unsat = true; return;
 		} else if(!(*i)->present) {
 			if (modes().verbosity > 0) {
-				report(">    (there will be no propagations on %s module)\n", (*i)->get()->getName());
+				clog <<">    (there will be no propagations on " <<(*i)->get()->getName() <<" module)\n";
 			}
 		}
 	}
@@ -381,7 +382,7 @@ void PCSolver::finishParsing(bool& present, bool& unsat) {
 	 }*/
 
 	if(modes().printcnfgraph){
-		report("}\n");
+		clog <<"}\n";
 	}
 }
 
@@ -418,7 +419,7 @@ lbool PCSolver::checkStatus(lbool status) const {
  */
 rClause PCSolver::getExplanation(Lit l) {
 	if (modes().verbosity > 2) {
-		report("Find T-theory explanation for "); gprintLit(l); report("\n");
+		clog <<"Find T-theory explanation for "; gprintLit(l); clog <<"\n";
 	}
 
 	DPLLTmodule* solver = propagations[var(l)];
@@ -428,11 +429,11 @@ rClause PCSolver::getExplanation(Lit l) {
 	assert(explan!=nullPtrClause);
 
 	if (verbosity() >= 2) {
-		report("Implicit reason clause from the %s module ", solver->getName());
+		clog <<"Implicit reason clause from the " <<solver->getName() <<" module ";
 		gprintLit(l, sign(l) ? l_False : l_True);
-		report(" : ");
+		clog <<" : ";
 		Print::printClause(explan, this);
-		report("\n");
+		clog <<"\n";
 	}
 
 	return explan;
@@ -602,11 +603,11 @@ bool PCSolver::solve(const vec<Lit>& assumptions, Solution* sol){
 	}
 
 	if (verbosity()>=1) {
-		report("> Found %d models, ", sol->getNbModelsFound());
+		clog <<"> Found " <<sol->getNbModelsFound() <<" models, ";
 		if(!moremodels){
-			report("no more models exist.\n");
+			clog <<"no more models exist.\n";
 		}else{
-			report("searched for %d models.\n", sol->getNbModelsToFind());
+			clog <<"searched for " <<sol->getNbModelsToFind() <<" models.\n";
 		}
 	}
 
@@ -682,9 +683,9 @@ bool PCSolver::invalidateModel(vec<Lit>& learnt) {
 	getSolver()->cancelUntil(0);
 
 	if (modes().verbosity >= 3) {
-		report("Adding model-invalidating clause: [ ");
+		clog <<"Adding model-invalidating clause: [ ";
 		gprintClause(learnt);
-		report("]\n");
+		clog <<"]\n";
 	}
 
 	bool result = addClause(learnt);
@@ -693,7 +694,7 @@ bool PCSolver::invalidateModel(vec<Lit>& learnt) {
 	getSolver()->claDecayActivity();
 
 	if (modes().verbosity >= 3) {
-		report("Model invalidated.\n");
+		clog <<"Model invalidated.\n";
 	}
 
 	return result;
@@ -712,16 +713,16 @@ bool PCSolver::addMinimize(const vec<Lit>& lits, bool subsetmnmz) {
 	}
 
 	if (modes().verbosity >= 3) {
-		report("Added minimization condition: %sinimize [", subsetmnmz?"Subsetm":"M");
+		clog <<"Added minimization condition: %sinimize [" <<(subsetmnmz?"Subsetm":"M");
 		bool first = true;
 		for (int i = 0; i < lits.size(); i++) {
 			if (!first) {
-				report("%s", subsetmnmz?" ":"<");
+				clog <<(subsetmnmz?" ":"<");
 			}
 			first = false;
 			gprintLit(lits[i]);
 		}
-		report("]\n");
+		clog <<"]\n";
 	}
 
 	if (subsetmnmz) {
@@ -782,10 +783,10 @@ bool PCSolver::invalidateValue(vec<Lit>& invalidation) {
 	for (int i = 0; !currentoptimumfound && i < to_minimize.size(); i++) {
 		if (!currentoptimumfound && getSolver()->model[var(to_minimize[i])] == l_True) {
 			if (modes().verbosity >= 1) {
-				report("Current optimum found for: ");
+				clog <<"Current optimum found for: ";
 				getParent()->printLiteral(cerr, to_minimize[i]);
-				report("\n");
-				//report("Current optimum is var %d\n", gprintVar(var(to_minimize[i])));
+				clog <<"\n";
+				//clog <<"Current optimum is var %d\n", gprintVar(var(to_minimize[i])));
 			}
 			currentoptimumfound = true;
 		}
@@ -891,13 +892,7 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
 				}
 			}
 
-			if (modes().verbosity > 3) {
-				printf("Temporary model: \n");
-				for (int i = 0; i < m.size(); i++) {
-					printf("%s%s%d", (i == 0) ? "" : " ", !sign(m[i]) ? "" : "-", gprintVar(var(m[i])));
-				}
-				printf(" 0\n");
-			}
+			getParent()->printModel(m);
 		}
 	}
 
@@ -910,24 +905,24 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
 
 void PCSolver::printModID() const {
 	if(getModSolver()!=NULL){
-		report("mod s %zu", getModSolver()->getPrintId());
+		clog <<"mod s " <<getModSolver()->getPrintId();
 	}
 }
 
 void PCSolver::printEnqueued(const Lit& p) const{
-	report("Enqueued "); gprintLit(p); report(" in ");
+	clog <<"Enqueued "; gprintLit(p); clog <<" in ";
 	printModID();
 	reportf("\n");
 }
 
 void PCSolver::printChoiceMade(int level, Lit l) const {
 	if (modes().verbosity >= 2) {
-		report("Choice literal, dl %d, ", level);
+		clog <<"Choice literal, dl " <<level <<", ";
 		printModID();
 
-		report(": ");
+		clog <<": ";
 		gprintLit(l);
-		report(".\n");
+		clog <<".\n";
 	}
 }
 

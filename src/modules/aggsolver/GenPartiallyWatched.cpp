@@ -170,7 +170,7 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 	addWatchesToNetwork(); //Add set watches
 	PWAgg::initialize(unsat, sat); //Add head watches
 
-	if(getSolver()->verbosity()>=2){
+	if(getSolver()->verbosity()>=1){
 		report("> Set %d: watch ratio of %f\n", getSet().getSetID(), ((double)getWS().size())/(getWS().size()+getNWS().size()));
 	}
 }
@@ -292,7 +292,7 @@ rClause GenPWAgg::reconstructSet(pgpw watch, bool& propagations, Agg const * pro
 	bool oneagg = getSet().getAgg().size()==1;
 	const Agg& agg = *worstagg;
 
-	//FIXME HACK: watch all at all times
+	//possible HACK: watch all at all times
 	/*for(int i=0 ;i<getNWS().size(); i++){
 		addToWatchedSet(i);
 		i--;
@@ -304,31 +304,6 @@ rClause GenPWAgg::reconstructSet(pgpw watch, bool& propagations, Agg const * pro
 	}
 
 	confl = checkPropagation(propagations, propagg);
-
-	//FIXME watch at least one unknown one: correction also watch its negation then!
-/*	bool someunknown = false;
-	for(vpgpw::const_iterator i=getWS().begin(); !someunknown && i<getWS().end(); i++){
-		const WL& wl = (*i)->getWL();
-		lbool val = value(wl.getLit());
-		someunknown = val==l_Undef;
-	}
-	if(!someunknown){
-		bool found = false;
-		for(int i=0; i<getNWS().size(); i++){
-			const WL& wl = getNWS()[i]->getWL();
-			lbool val = value(wl.getLit());
-			if(val==l_Undef){
-				addToWatchedSet(i);
-				found = true;
-				break;
-			}
-		}
-		if(!found){
-			propagations = true;
-		}
-	}
-	return confl;*/
-	//END HACK 2
 
 	if(confl!=nullPtrClause){
 		propagations = true;
@@ -465,12 +440,6 @@ bool compareWLIearlier(const WLI& one, const WLI& two){
 	return one.time < two.time;
 }
 
-/*const PCSolver* pcsolver;
-
-bool compareWLIearlier(const WLI& one, const WLI& two){
-	return pcsolver->assertedBefore(var(one.getLit()), var(two.getLit()));
-}*/
-
 void GenPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	const PCSolver& pcsol = *getSolver()->getPCSolver();
 	//pcsolver = getSolver()->getPCSolver();
@@ -503,11 +472,6 @@ void GenPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	}
 
 	//Follow propagation order
-	/*report("Ordering: ");
-	for(vector<WLI>::const_iterator i=wlis.begin(); i<wlis.end(); i++){
-		gprintLit((*i).getLit()); report("(%d) ", (*i).time);
-	}
-	report("\n");*/
 	sort(wlis.begin(), wlis.end(), compareWLIearlier);
 
 	Weight min=genmin, max=genmax;
@@ -555,7 +519,7 @@ double GenPWAgg::testGenWatchCount() {
 	for(vpagg::const_iterator i=set.getAgg().begin(); i<set.getAgg().end(); i++){
 		if((*i)->hasLB() && worstagg->getCertainBound()<(*i)->getCertainBound()){
 			worstagg = *i;
-		}else if((*i)->hasUB() && worstagg->getCertainBound()<(*i)->getCertainBound()){
+		}else if((*i)->hasUB() && worstagg->getCertainBound()>(*i)->getCertainBound()){
 			worstagg = *i;
 		}
 	}

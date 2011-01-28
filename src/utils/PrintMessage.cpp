@@ -1,46 +1,48 @@
 #include "utils/PrintMessage.hpp"
 #include "utils/Utils.hpp"
+#include <iostream>
 
+using namespace std;
 using namespace MinisatID;
 using namespace MinisatID::Print;
 
 void Print::printMainStart(int v) {
 	if (v >= 1) {
-		report(">>> [ Problem Stats ]\n");
-		report("> Parsing input.\n");
+		clog <<">>> [ Problem Stats ]\n";
+		clog <<"> Parsing input.\n";
 	}
 }
 
 void Print::printInitDataStart(int v) {
 	if (v >= 1) {
-		report("> Datastructure initialization.\n");
+		clog <<"> Datastructure initialization.\n";
 	}
 }
 
 void Print::printInitDataEnd(int v, double parsetime, bool unsat) {
 	if (v >= 1) {
-		report("> Datastructure initialization finished.\n");
-		report("> Total parsing time : %7.2f s.\n", parsetime);
+		clog <<"> Datastructure initialization finished.\n";
+		clog <<"> Total parsing time : " << parsetime <<" s.\n";
 	}
 	if (v >= 1 && unsat) {
-		report("> Unsatisfiable found by parsing.\n");
+		clog <<"> Unsatisfiable found by parsing.\n";
 	}
 }
 
 void Print::printSimpStart(int v) {
 	if (v >= 1) {
-		report(">>> [ Simplifying ]\n");
+		clog <<">>> [ Simplifying ]\n";
 	}
 }
 void Print::printSimpEnd(int v, bool unsat) {
 	if (v >= 1 && unsat) {
-		report("> Unsatisfiable found by unit propagation.\n");
+		clog <<"> Unsatisfiable found by unit propagation.\n";
 	}
 }
 
 void Print::printSolveStart(int v) {
 	if (v >= 1) {
-		report(">>> [ Solving ]\n");
+		clog <<">>> [ Solving ]\n";
 	}
 }
 void Print::printSolveEnd(int v) {
@@ -48,15 +50,15 @@ void Print::printSolveEnd(int v) {
 
 void Print::printUnsat(int v){
 	if(v >= 1){
-		report("> UNSATISFIABLE\n");
+		clog <<"> UNSATISFIABLE\n";
 	}
 }
 
-void Print::printExceptionCaught(const idpexception& e, int v) {
-	report(">>> %s", e.what());
-	report(">>> Program will abort.\n");
+void Print::printExceptionCaught(const exception& e, int v) {
+	cerr<<">>> " <<e.what() <<"\n";
+	cerr <<">>> Program will abort.\n";
 }
 
 void Print::printUnexpectedError(int v) {
-	report(">>> Unexpected error caught, program will abort.\n");
+	cerr <<">>> Unexpected error caught, program will abort.\n";
 }

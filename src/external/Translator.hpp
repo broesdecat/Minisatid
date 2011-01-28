@@ -21,12 +21,15 @@ enum MODE { TRANS_ARBIT, TRANS_TRUE, TRANS_MODEL };
 typedef std::vector<std::vector<std::vector<std::string> > > modelvec;
 
 class Translator {
+protected:
+	// counters
+	mutable int modelcounter;
 
 public:
 	Translator();
 	virtual ~Translator(){}
 
-	virtual void	printLiteral(std::ostream& output, const MinisatID::Literal& lit) const;
+	virtual void	printLiteral(std::ostream& output, const MinisatID::Literal& lit);
 	virtual void	printModel	(std::ostream& output, const std::vector<Literal>& model);
 	virtual void	printHeader	(std::ostream& output);
 };
@@ -34,6 +37,7 @@ public:
 class FODOTTranslator: public Translator{
 private:
 	bool tofodot;
+	bool finisheddata; //true if the datastructures have been initialized after parsing
 
 	// Look-up tables
 	std::map<std::string,int>	type_lookup;
@@ -53,8 +57,6 @@ private:
 
 	std::vector<std::string> arbitatoms;
 
-	// counters
-	mutable int modelcounter;
 	int largestnottseitinatom;
 
 public:
@@ -66,11 +68,12 @@ public:
 	void addType(std::string name, const std::vector<std::string>& inter);
 	void addPred(std::string name, int num, const std::vector<std::string>& ptypes, bool f);
 
-	void printLiteral(std::ostream& output, const MinisatID::Literal& lit) const;
+	void printLiteral(std::ostream& output, const MinisatID::Literal& lit);
 	void printModel(std::ostream& output, const std::vector<Literal>& model);
 	void printHeader(std::ostream& output);
 
 private:
+	void finishParsing();
 	std::string getPredName(int predn) const;
 	void printTuple(const std::vector<std::string>& tuple, std::ostream& output) const;
 	void printPredicate(int n, const modelvec& model, MODE mode, std::ostream& output);
@@ -89,7 +92,7 @@ public:
 
 	void addTuple(Atom lit, std::string name);
 
-	void printLiteral(std::ostream& output, const MinisatID::Literal& lit) const;
+	void printLiteral(std::ostream& output, const MinisatID::Literal& lit);
 	void printModel(std::ostream& output, const std::vector<Literal>& model);
 	void printHeader(std::ostream& output);
 };
