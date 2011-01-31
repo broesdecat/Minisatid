@@ -139,8 +139,11 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 		if(value((*i)->getHead())==l_True && !(*i)->isOptim()){
 			del.push_back(*i);
 		}else if(isSatisfied(**i, currentmin, currentmax) && !(*i)->isOptim()){
-			//propagate head
 			confl = set.getSolver()->notifySolver(new HeadReason(**i, BASEDONCC, ~(*i)->getHead()));
+			del.push_back(*i);
+		}else if(isFalsified(**i, currentmin, currentmax) && !(*i)->isOptim()){
+			//propagate head false
+			confl = set.getSolver()->notifySolver(new HeadReason(**i, BASEDONCC, (*i)->getHead()));
 			del.push_back(*i);
 		}else{
 			rem.push_back(*i);
@@ -169,10 +172,6 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 
 	addWatchesToNetwork(); //Add set watches
 	PWAgg::initialize(unsat, sat); //Add head watches
-
-	if(getSolver()->verbosity()>=1){
-		report("> Set %d: watch ratio of %f\n", getSet().getSetID(), ((double)getWS().size())/(getWS().size()+getNWS().size()));
-	}
 }
 
 /**
@@ -322,6 +321,9 @@ rClause GenPWAgg::reconstructSet(pgpw watch, bool& propagations, Agg const * pro
 		i--;
 	}*/
 
+	//possible HACK: always keep watch
+	//propagations = true;
+
 	if(oneagg && value(agg.getHead())==l_True){
 		propagations = true;
 		return confl;
@@ -404,10 +406,15 @@ void GenPWAgg::genWatches(vsize& i, const Agg& agg, Weight& min, Weight& max, We
 			i--;
 		}
 	}
+	assert(isSatisfied(agg, min, max) || isSatisfied(agg, knownmin, knownmax));
 }
 
 rClause GenPWAgg::propagate(const Lit& p, Watch* watch, int level) {
 	rClause confl = nullPtrClause;
+
+	/*if(watch->getSet()->getSetID()==97){
+		report("Here");
+	}*/
 
 	GenPWatch* const pw = dynamic_cast<GenPWatch*>(watch);
 	assert(pw->isInUse());
@@ -416,6 +423,13 @@ rClause GenPWAgg::propagate(const Lit& p, Watch* watch, int level) {
 
 	if(!pw->isWatched()){
 		assert(pw->getIndex()==-1);
+		if(pw->getSet()->getSetID()==97){
+			report("Watching: ");
+			for(vpgpw::const_iterator i=getWS().begin(); i<getWS().end(); i++){
+				gprintLit((*i)->getWatchLit()); report(" ");
+			}
+			report("\n");
+		}
 		return confl;
 	}
 
@@ -424,8 +438,9 @@ rClause GenPWAgg::propagate(const Lit& p, Watch* watch, int level) {
 	bool propagations = false;
 	confl = reconstructSet(pw, propagations, NULL);
 
+	//FIXME: there seems to be a problem with deletion! (deleting incorrect ones?)
 	if(!propagations && confl==nullPtrClause){
-		removeFromWatchedSet(pw);
+		//removeFromWatchedSet(pw);
 	}else{
 		addWatchToNetwork(pw);
 	}
@@ -433,6 +448,15 @@ rClause GenPWAgg::propagate(const Lit& p, Watch* watch, int level) {
 	addWatchesToNetwork();
 
 	assert(!pw->isWatched() || getWS()[pw->getIndex()]==pw);
+
+	/*if(pw->getSet()->getSetID()==97){
+		report("Watching: ");
+		for(vpgpw::const_iterator i=getWS().begin(); i<getWS().end(); i++){
+			assert((*i)->isInUse());
+			gprintLit((*i)->getWatchLit(), value((*i)->getWatchLit())); report(" ");
+		}
+		report("\n");
+	}*/
 
 	return confl;
 }
@@ -449,6 +473,9 @@ rClause GenPWAgg::propagate(int level, const Agg& agg, bool headtrue) {
 
 rClause	GenPWAgg::propagateAtEndOfQueue(int level){
 	rClause confl = nullPtrClause;
+
+	//FIXME wat moet hier staan?
+
 	return confl;
 }
 
@@ -625,6 +652,10 @@ double GenPWAgg::testGenWatchCount() {
 				i--;
 			}
 		}
+	}
+
+	if(getSolver()->verbosity()>=1){
+		report("> Set %d: watch ratio of %f\n", getSet().getSetID(), ((double)ws.size())/(ws.size()+nws.size()));
 	}
 
 	return ((double)ws.size())/(ws.size()+nws.size());

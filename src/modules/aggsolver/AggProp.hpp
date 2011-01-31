@@ -163,7 +163,7 @@ public:
 };
 
 class Propagator {
-protected:
+private:
 	TypedSet* set; //Non-owning
 	AggSolver* const aggsolver;
 public:

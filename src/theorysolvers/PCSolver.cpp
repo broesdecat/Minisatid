@@ -404,12 +404,14 @@ void PCSolver::notifyAggrHead(Var x) {
 
 //if status==l_True, do wellfoundednesscheck in IDSolver, if not wellfounded, return l_False, otherwise status
 lbool PCSolver::checkStatus(lbool status) const {
-	if (getIDSolver()==NULL || status != l_True) {
-		return status;
-	}
+	if(status==l_True){ //Model found, check model:
+		if(getIDSolver()!=NULL && !getIDSolver()->checkStatus()){
+			return l_False;
+		}
 
-	if (!getIDSolver()->checkStatus()) {
-		return l_False;
+		if(getAggSolver()!=NULL && !getAggSolver()->checkStatus()){
+			return l_False;
+		}
 	}
 	return status;
 }

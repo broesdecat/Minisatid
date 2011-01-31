@@ -187,6 +187,8 @@ public:
 	virtual void 		print					();
 	virtual void 		printStatistics			() const;
 
+	virtual bool 		checkStatus				();
+
 	//are used by agg.c, but preferably should be move into protected again
 	rClause				notifySolver(Aggrs::AggReason* cr);	// Like "enqueue", but for aggregate propagations.
 

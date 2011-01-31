@@ -70,6 +70,8 @@ public:
 	 */
 	virtual rClause getExplanation(const Lit& l) = 0;
 
+	virtual bool 	checkStatus() { return true; }
+
 	virtual void printStatistics() const = 0;
 
 	virtual const char* getName() const = 0;

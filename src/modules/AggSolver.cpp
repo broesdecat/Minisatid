@@ -41,6 +41,8 @@
 #include "utils/Utils.hpp"
 #include "utils/Print.hpp"
 
+#include "modules/aggsolver/AggPrint.hpp"
+
 #include "theorysolvers/PCSolver.hpp"
 
 #include "modules/aggsolver/AggPrint.hpp"
@@ -484,6 +486,17 @@ void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel) {
 	}
 }
 
+bool AggSolver::checkStatus(){
+	if(verbosity()>=3){
+		for(vps::const_iterator i=sets().begin(); i<sets().end(); i++){
+			for(vpagg::const_iterator j=(*i)->getAgg().begin(); j<(*i)->getAgg().end(); j++){
+				Aggrs::print(10, **j, true);
+			}
+		}
+	}
+	return true;
+}
+
 rClause AggSolver::doProp(){
 	rClause confl = nullPtrClause;
 
@@ -493,9 +506,13 @@ rClause AggSolver::doProp(){
 		const Lit& p = fulltrail[propindex++];
 		propagated[var(p)]=LI(sign(p)?l_False:l_True, index++);
 
-		if (verbosity() >= 4) {
+		if (verbosity() >= 3) {
 			report("Aggr_propagate("); gprintLit(p, l_True); report(").\n");
 		}
+
+/*		if(var(p)==544){
+			report("Here");
+		}*/
 
 		Agg* pa = headwatches[toInt(p)];
 		if (pa != NULL) {
@@ -515,7 +532,7 @@ rClause AggSolver::doProp(){
 			vector<Watch*> ws2(tempwatches[toInt(p)]); //IMPORTANT, BECAUSE WATCHES MIGHT BE ADDED AGAIN TO THE END (if no other watches are found etc)
 			tempwatches[toInt(p)].clear();
 
-			for (vector<Watch*>::const_iterator i = ws2.begin(); confl == nullPtrClause && i < ws2.end(); i++) {
+			for (vector<Watch*>::const_iterator i = ws2.begin(); i < ws2.end(); i++) {
 				if (confl == nullPtrClause) {
 					confl = (*i)->getSet()->propagate(p, (*i), getLevel());
 					propagations++;
