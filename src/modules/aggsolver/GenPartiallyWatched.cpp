@@ -37,6 +37,9 @@ void GenPWAgg::addToWatchedSet(vsize index){
 	//Add to WS
 	watches.push_back(watch);
 	watch->addToWS(watches.size()-1);
+
+	//Add to watches to be added to network
+	_newwatches.push_back(watch);
 }
 
 /**
@@ -68,10 +71,12 @@ void GenPWAgg::addWatchToNetwork(pgpw watch){
 	}
 }
 
+//In init, not immediately adding watches!
 void GenPWAgg::addWatchesToNetwork(){
-	for(vpgpw::const_iterator i=getWS().begin(); i<getWS().end(); i++){
+	for(vpgpw::const_iterator i=_newwatches.begin(); i<_newwatches.end(); i++){
 		addWatchToNetwork(*i);
 	}
+	_newwatches.clear();
 }
 
 /**
@@ -123,10 +128,9 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 	}
 
 	Weight currentmin = genmin, currentmax = genmax;
+	//have to evaluate over CURRENT evaluation (not propvalue), as this is also done by the generation of watches (otherwise inconsistency!)
 	for(vsize i=0; i<wls.size(); i++){
 		const WL& wl = wls[i];
-		//FIXME, CHECK CORRECTNESS
-		//have to evaluate over CURRENT evaluation, as this is also done by the generation of watches (otherwise inconsistency!)
 		lbool val = getSolver()->value(wl.getLit());
 		if(val==l_True){
 			currentmin = set.getType().add(currentmin, wl.getWeight());
@@ -439,20 +443,15 @@ rClause GenPWAgg::propagate(const Lit& p, Watch* watch, int level) {
 	bool propagations = false;
 	confl = reconstructSet(pw, propagations, NULL);
 
-	//FIXME propagation is not often enough true: commenting removeFrom.. helped, but this is because the watch is added again to the network by addWatches...
-	//Debug by breakpoint before removeFrom...
-	if(!propagations && confl==nullPtrClause){
-		//It can be safely removed as a watch, so we also remove it from WS
+	if(!propagations && confl==nullPtrClause){ //It can be safely removed as a watch, so we also remove it from WS
 		removeFromWatchedSet(pw);
-	}else{
-		//Otherwise, we add it again to the network
+	}else{ //Otherwise, we add it again to the network
 		addWatchToNetwork(pw);
 	}
 
-	addWatchesToNetwork(); //Add all watches to the network again TODO should only be the new ones
+	addWatchesToNetwork();
 
 	assert(!pw->isInWS() || getWS()[pw->getIndex()]==pw);
-
 	return confl;
 }
 
@@ -646,7 +645,7 @@ double GenPWAgg::testGenWatchCount() {
 		}
 	}
 
-	if(getSolver()->verbosity()>=1){
+	if(getSolver()->verbosity()>=2){
 		report("> Set %d: watch ratio of %f\n", getSet().getSetID(), ((double)ws.size())/(ws.size()+nws.size()));
 	}
 

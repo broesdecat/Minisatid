@@ -87,7 +87,7 @@ typedef std::vector<GenPWatch*> vpgpw;
 
 class GenPWAgg: public PWAgg{
 private:
-	vpgpw ws, nws;
+	vpgpw ws, nws, _newwatches;
 	Weight genmin, genmax; //min and max values on the empty interpretation
 	Agg const * worstagg;
 
