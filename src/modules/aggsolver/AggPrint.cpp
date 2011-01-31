@@ -36,7 +36,7 @@ void Aggrs::printWatches(int verbosity, AggSolver* const solver, const std::vect
 		for(vsize j=0; !found && j<tempwatches[i].size(); j++){
 			for(vsize k=0; !found && k<tempwatches[i][j]->getSet()->getAgg().size(); k++){
 				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(tempwatches[i][j]);
-				if(watch2!=NULL && watch2->isWatched()){
+				if(watch2!=NULL && watch2->isInWS()){
 					found = true;
 				}
 			}
@@ -50,7 +50,7 @@ void Aggrs::printWatches(int verbosity, AggSolver* const solver, const std::vect
 		for(vsize j=0; j<tempwatches[i].size(); j++){
 			for(vsize k=0; k<tempwatches[i][j]->getSet()->getAgg().size(); k++){
 				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(tempwatches[i][j]);
-				if(watch2!=NULL && watch2->isWatched()){
+				if(watch2!=NULL && watch2->isInWS()){
 					report("        ");
 					print(verbosity, *tempwatches[i][j]->getSet()->getAgg()[k], true);
 					break;

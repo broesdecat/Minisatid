@@ -21,24 +21,26 @@ using namespace MinisatID::Aggrs;
  */
 
 /*
- * index is the index in the original set, from which it should be removed
- * w indicates the set to which it should be added
+ * Moves NWS[index] to (new) end of WS
  */
 void GenPWAgg::addToWatchedSet(vsize index){
 	vpgpw& set = getNWS();
 	vpgpw& watches = getWS();
 	pgpw watch = set[index];
-	watches.push_back(watch);
+
+	//Remove from NWS
 	if(set.size()>1){
 		set[index] = set[set.size()-1];
 	}
 	set.pop_back();
 
-	watch->pushIntoSet(watches.size()-1);
+	//Add to WS
+	watches.push_back(watch);
+	watch->addToWS(watches.size()-1);
 }
 
 /**
- * @pre: one watch should be moved from a watched set to a nonwatched set
+ * Moves the watch pw from WS to NWS
  */
 void GenPWAgg::removeFromWatchedSet(pgpw pw){
 	vpgpw& set = getNWS();
@@ -49,18 +51,19 @@ void GenPWAgg::removeFromWatchedSet(pgpw pw){
 		watches[index] = watches[watches.size()-1];
 		watches[index]->setIndex(index);
 	}
-	set.push_back(pw);
 	watches.pop_back();
 
-	pw->removedFromSet();
+	set.push_back(pw);
+	pw->notifyRemovedFromWS();
 }
 
 /*
- * Removes a literal from its set and adds it to a watched set
+ * Add to pointer network
  */
 void GenPWAgg::addWatchToNetwork(pgpw watch){
-	if(watch->isWatched() && !watch->isInUse()){
-		watch->setInUse(true);
+	assert(watch->isInWS());
+	if(!watch->isInNetwork()){
+		watch->addToNetwork(true);
 		getSolver()->addTempWatch(watch->getWatchLit(), watch);
 	}
 }
@@ -406,76 +409,65 @@ void GenPWAgg::genWatches(vsize& i, const Agg& agg, Weight& min, Weight& max, We
 			i--;
 		}
 	}
-	assert(isSatisfied(agg, min, max) || isSatisfied(agg, knownmin, knownmax));
+
+#ifdef DEBUG
+	if(!isSatisfied(agg, min, max) && !isSatisfied(agg, knownmin, knownmax)){
+		for(int j=0; j<getNWS().size(); j++){
+			assert(value(getNWS()[j]->getWatchLit())==l_False);
+		}
+	}
+#endif
 }
 
 rClause GenPWAgg::propagate(const Lit& p, Watch* watch, int level) {
 	rClause confl = nullPtrClause;
 
-	/*if(watch->getSet()->getSetID()==97){
-		report("Here");
-	}*/
-
 	GenPWatch* const pw = dynamic_cast<GenPWatch*>(watch);
-	assert(pw->isInUse());
 
-	pw->setInUse(false);
+	//Watch has to be in network to cause propagation. Before calling this method, it is removed from the network, so
+	//we also remove it here
+	assert(pw->isInNetwork());
+	pw->addToNetwork(false);
 
-	if(!pw->isWatched()){
-		assert(pw->getIndex()==-1);
-		if(pw->getSet()->getSetID()==97){
-			report("Watching: ");
-			for(vpgpw::const_iterator i=getWS().begin(); i<getWS().end(); i++){
-				gprintLit((*i)->getWatchLit()); report(" ");
-			}
-			report("\n");
-		}
+	if(!pw->isInWS()){ //If the watch is in NWS, it should not have been watched any more, so we can just return
+		assert(pw->getIndex()==-1); //Check it really thinks its not in the set
 		return confl;
 	}
 
-	assert(pw->getIndex()!=-1);
+	assert(pw->getIndex()!=-1 && getWS()[pw->getIndex()]==pw); //Check it has a correct idea where it is in WS
 
 	bool propagations = false;
 	confl = reconstructSet(pw, propagations, NULL);
 
-	//FIXME: there seems to be a problem with deletion! (deleting incorrect ones?)
+	//FIXME propagation is not often enough true: commenting removeFrom.. helped, but this is because the watch is added again to the network by addWatches...
+	//Debug by breakpoint before removeFrom...
 	if(!propagations && confl==nullPtrClause){
-		//removeFromWatchedSet(pw);
+		//It can be safely removed as a watch, so we also remove it from WS
+		removeFromWatchedSet(pw);
 	}else{
+		//Otherwise, we add it again to the network
 		addWatchToNetwork(pw);
 	}
 
-	addWatchesToNetwork();
+	addWatchesToNetwork(); //Add all watches to the network again TODO should only be the new ones
 
-	assert(!pw->isWatched() || getWS()[pw->getIndex()]==pw);
-
-	/*if(pw->getSet()->getSetID()==97){
-		report("Watching: ");
-		for(vpgpw::const_iterator i=getWS().begin(); i<getWS().end(); i++){
-			assert((*i)->isInUse());
-			gprintLit((*i)->getWatchLit(), value((*i)->getWatchLit())); report(" ");
-		}
-		report("\n");
-	}*/
+	assert(!pw->isInWS() || getWS()[pw->getIndex()]==pw);
 
 	return confl;
 }
 
 rClause GenPWAgg::propagate(int level, const Agg& agg, bool headtrue) {
-	rClause confl = nullPtrClause;
-
 	bool propagations = false;
-	confl = reconstructSet(NULL, propagations, &agg);
+	rClause confl = reconstructSet(NULL, propagations, &agg);
 	addWatchesToNetwork();
-
 	return confl;
 }
 
+/**
+ * NOOP, all propagation is done in propagate
+ */
 rClause	GenPWAgg::propagateAtEndOfQueue(int level){
 	rClause confl = nullPtrClause;
-
-	//FIXME wat moet hier staan?
-
 	return confl;
 }
 

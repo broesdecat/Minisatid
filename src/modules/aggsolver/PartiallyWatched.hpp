@@ -53,16 +53,16 @@ public:
 
 class GenPWatch: public Watch{
 private:
-			bool	_inset;
-			bool	_inuse;
+			bool	_innws; //True if it is in NWS, false if it is in WS
+			bool	_innet; //True if it is in the watch network
 	const 	WL		_wl;
 	const 	bool	_watchneg;
-			int 	_index;
+			int 	_index; //-1 if _innws
 public:
 	GenPWatch(TypedSet* set, const WL& wl, bool watchneg):
 		Watch(set, wl),
-		_inset(true),
-		_inuse(false),
+		_innws(true),
+		_innet(false),
 		_wl(wl),
 		_watchneg(watchneg),
 		_index(-1){
@@ -74,12 +74,12 @@ public:
 	bool 		isMonotone	()	const 	{ return _watchneg; }
 	const WL& 	getWL		() 	const 	{ return _wl; }
 	Lit			getWatchLit	() 	const 	{ return _watchneg?~_wl.getLit():_wl.getLit(); }
-	bool		isInUse		() 	const 	{ return _inuse; }
-	void		setInUse	(bool used) { _inuse = used; }
-	bool		isWatched	()	const	{ return !_inset; }
+	bool		isInNetwork		() 	const 	{ return _innet; }
+	void		addToNetwork	(bool used) { _innet = used; }
 
-	void		pushIntoSet(vsize index) { setIndex(index); _inset=false; }
-	void		removedFromSet() { setIndex(-1); _inset = true; }
+	bool		isInWS	()	const	{ return !_innws; }
+	void		addToWS(vsize index) { setIndex(index); _innws=false; }
+	void		notifyRemovedFromWS() { setIndex(-1); _innws = true; }
 };
 
 typedef GenPWatch* pgpw;
