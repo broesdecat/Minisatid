@@ -1,4 +1,4 @@
-#------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 # Copyright (c) 2009, 2010, 2011, Broes De Cat, K.U. Leuven, Belgium
 #
 # This file is part of MinisatID.
@@ -15,6 +15,10 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with MinisatID. If not, see <http://www.gnu.org/licenses/>.
-#------------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
 
-SUBDIRS = lib src doc
+SUBDIRS = tclap
+
+if USEPERFTOOLS
+SUBDIRS += perftools
+endif

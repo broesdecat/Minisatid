@@ -1,58 +1,40 @@
-//--------------------------------------------------------------------------------------------------
-//    Copyright (c) 2009-2010, Broes De Cat, K.U.Leuven, Belgium
-//    
-//    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-//    associated documentation files (the "Software"), to deal in the Software without restriction,
-//    including without limitation the rights to use, copy, modify, merge, publish, distribute,
-//    sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
-//    furnished to do so, subject to the following conditions:
-//    
-//    The above copyright notice and this permission notice shall be included in all copies or
-//    substantial portions of the Software.
-//    
-//    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-//    NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-//    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-//    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-//    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//--------------------------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+// Copyright (c) 2009, 2010, 2011, Broes De Cat, K.U. Leuven, Belgium
+//
+// This file is part of MinisatID.
+//
+// MinisatID is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MinisatID is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with MinisatID. If not, see <http://www.gnu.org/licenses/>.
+//------------------------------------------------------------------------------
 
-/************************************************************************************
- Copyright (c) 2006-2009, Maarten Mariën
+//------------------------------------------------------------------------------
+// Copyright (c) 2006-2009, Maarten Mariën
 
- Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
- associated documentation files (the "Software"), to deal in the Software without restriction,
- including without limitation the rights to use, copy, modify, merge, publish, distribute,
- sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
+// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+// associated documentation files (the "Software"), to deal in the Software without restriction,
+// including without limitation the rights to use, copy, modify, merge, publish, distribute,
+// sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
 
- The above copyright notice and this permission notice shall be included in all copies or
- substantial portions of the Software.
+// The above copyright notice and this permission notice shall be included in all copies or
+// substantial portions of the Software.
 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
- NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
- DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
- OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- **************************************************************************************************/
-/****************************************************************************************[Main.c]
- MiniSat -- Copyright (c) 2003-2006, Niklas Een, Niklas Sorensson
-
- Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
- associated documentation files (the "Software"), to deal in the Software without restriction,
- including without limitation the rights to use, copy, modify, merge, publish, distribute,
- sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
-
- The above copyright notice and this permission notice shall be included in all copies or
- substantial portions of the Software.
-
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
- NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
- DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
- OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- **************************************************************************************************/
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+// NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+// NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+// OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+//------------------------------------------------------------------------------
 
 #include <ctime>
 #include <cstring>
@@ -90,20 +72,18 @@ namespace MinisatID {
 	typedef pwls pData;
 }
 
-extern char * yytext;
-extern int lineNo;
-extern int charPos;
-extern pData getData();
+extern char* 	yytext;
+extern int 		lineNo;
+extern int 		charPos;
+extern pData 	getData();
 
-//extern FILE*	ecnfin;
-//extern int	ecnfparse	();
-extern FILE* yyin;
-extern int yyparse();
-extern void yydestroy();
-extern void yyinit();
-extern bool unsatfound;
+extern FILE* 	yyin;
+extern int 		yyparse();
+extern void 	yydestroy();
+extern void 	yyinit();
+extern bool 	unsatfound;
 
-const char* hasPrefix(const char* str, const char* prefix);
+const char* 	hasPrefix(const char* str, const char* prefix);
 pData parse();
 
 void printStats();
@@ -171,13 +151,13 @@ int main(int argc, char** argv) {
 		exit(returnvalue);     // (faster than "return", which will invoke the destructor for 'Solver')
 #endif
 	} catch (const exception& e) {
-		printExceptionCaught(e, modes.verbosity);
+		printExceptionCaught(cerr, e);
 		if(d.get()!=NULL){
 			d->printStatistics();
 		}
 		exit(1);
 	} catch (...) {
-		printUnexpectedError(modes.verbosity);
+		printUnexpectedError(cerr);
 		if(d.get()!=NULL){
 			d->printStatistics();
 		}
@@ -249,11 +229,6 @@ int doModelGeneration(pData& d){
 		delete sol;
 	}
 
-	if(unsat){
-		fprintf(getOutputFile(), "UNSAT\n");
-		printUnsat(modes.verbosity);
-	}
-
 	if(!earlyunsat && modes.verbosity >= 1){
 		d->printStatistics();
 	}
@@ -277,12 +252,10 @@ pData parse() {
 		yyparse();
 	} catch (const MinisatID::idpexception& e) {
 		if (unsatfound) {
-			clog << "Unsat detected during parsing.\n";
+			printUnsatFoundDuringParsing(clog, modes.verbosity);
 		} else {
 			//TODO this can also be caught when the sigint handler has received an interrupt, should differentiate
-			char s[300];
-			sprintf(s, "Parse error: Line %d, column %d, on \"%s\": %s", lineNo, charPos, yytext, e.what());
-			throw idpexception(s);
+			throw idpexception(getParseError(e, lineNo, charPos, yytext));
 		}
 	}
 

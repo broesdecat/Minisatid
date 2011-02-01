@@ -1,3 +1,22 @@
+//------------------------------------------------------------------------------
+// Copyright (c) 2009, 2010, 2011, Broes De Cat, K.U. Leuven, Belgium
+//
+// This file is part of MinisatID.
+//
+// MinisatID is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MinisatID is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with MinisatID. If not, see <http://www.gnu.org/licenses/>.
+//------------------------------------------------------------------------------
+
 #ifndef GENERALUTILS_HPP_
 #define GENERALUTILS_HPP_
 
@@ -7,6 +26,7 @@
 #include <string>
 #include <assert.h>
 #include <iostream>
+#include <fstream>
 
 //FIXME move to print headers
 #define report(...) ( fflush(stdout), fprintf(stderr, __VA_ARGS__), fflush(stderr) )
@@ -28,8 +48,8 @@ namespace MinisatID {
 		std::string mess;
 
 	public:
+		idpexception(std::string m): std::exception(), mess(m){		}
 		idpexception(const char* m): std::exception(){
-			//mess.append("Exception caught: ");
 			mess.append(m);
 		}
 
@@ -240,29 +260,30 @@ namespace MinisatID {
 	// Structure containing general options for the solvers
 	class SolverOption {
 	public:
-		INPUTFORMAT format;
-		OUTPUTFORMAT transformat;
-		int verbosity;
-		int nbmodels; //Try to find at most this number of models
-		bool printcnfgraph;
-		DEFSEM defsem;
-		DEFSEARCHSTRAT ufs_strategy;
-		DEFFINDCS defn_strategy;
-		DEFMARKDEPTH defn_search;
-		int idclausesaving, aggclausesaving;
-		bool selectOneFromUFS;
-		bool pbsolver;
-		bool watchedagg;
-		std::string primesfile;
-		bool remap;
-		double rand_var_freq, var_decay;
-		POLARITY polarity;
-		bool bumpaggonnotify, bumpidonstart, subsetminimizeexplanation, asapaggprop;
-		long ufsvarintrothreshold;
+		INPUTFORMAT 	format;
+		OUTPUTFORMAT 	transformat;
+		int 			verbosity;
+		int 			nbmodels;
+		bool 			printcnfgraph;
+		DEFSEM 			defsem;
+		DEFSEARCHSTRAT 	ufs_strategy;
+		DEFFINDCS 		defn_strategy;
+		DEFMARKDEPTH 	defn_search;
+		int 			idclausesaving, aggclausesaving;
+		bool 			selectOneFromUFS;
+		bool 			pbsolver;
+		bool 			watchedagg;
+		std::string 	primesfile;
+		bool 			remap;
+		double 			rand_var_freq, var_decay;
+		POLARITY 		polarity;
+		bool 			bumpaggonnotify, bumpidonstart;
+		bool			subsetminimizeexplanation, asapaggprop;
+		long 			ufsvarintrothreshold;
 
 		SolverOption();
 
-		void print();
+		void print(std::ostream& stream);
 	};
 
 	///////
@@ -295,6 +316,16 @@ namespace MinisatID {
 			}
 		}
 		l.clear();
+	}
+
+	template<class T>
+	bool fileIsReadable(T* filename) { //quick and dirty
+		std::ifstream f(filename, std::ios::in);
+		bool exists = f.is_open();
+		if(exists){
+			f.close();
+		}
+		return exists;
 	}
 
 }

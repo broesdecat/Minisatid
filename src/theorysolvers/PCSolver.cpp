@@ -591,7 +591,7 @@ bool PCSolver::solve(const vec<Lit>& assumptions, Solution* sol){
 		vec<Lit> model;
 		bool found = false;
 		if(optim!=NONE){
-			found = findOptimal(assumptions, model);
+			found = findOptimal(assumptions, model, sol);
 			if(!found){
 				moremodels = false;
 			}
@@ -810,7 +810,7 @@ bool PCSolver::invalidateValue(vec<Lit>& invalidation) {
  *
  * Returns true if an optimal model was found
  */
-bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
+bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m, Solution* sol) {
 	vec<Lit> currentassmpt;
 	assmpt.copyTo(currentassmpt);
 
@@ -894,7 +894,7 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
 				}
 			}
 
-			getParent()->printModel(m);
+			getParent()->addModel(m, sol);
 		}
 	}
 

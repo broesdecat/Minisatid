@@ -230,7 +230,7 @@ private:
 	///////
     bool 	invalidateValue	(vec<Lit>& invalidation);
 	bool 	invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt);
-	bool 	findOptimal		(const vec<Lit>& assumps, vec<Lit>& m);
+	bool 	findOptimal		(const vec<Lit>& assumps, vec<Lit>& m, Solution* sol);
 };
 
 }

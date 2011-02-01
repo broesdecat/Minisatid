@@ -1,4 +1,23 @@
-AC_INIT([minisatid],[2.2.0],[krr@cs.kuleuven.be])
+#------------------------------------------------------------------------------
+# Copyright (c) 2009, 2010, 2011, Broes De Cat, K.U. Leuven, Belgium
+#
+# This file is part of MinisatID.
+#
+# MinisatID is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# MinisatID is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with MinisatID. If not, see <http://www.gnu.org/licenses/>.
+#------------------------------------------------------------------------------
+
+AC_INIT([minisatid],[2.4.0],[krr@cs.kuleuven.be])
 
 #this is not an ideal solution, but it overrides the default cxxflags, so those set later are not invalid
 if test -z $CXXFLAGS; then
@@ -106,8 +125,8 @@ esac],[ perftools=false ])
 AM_CONDITIONAL([USEPERFTOOLS],[test x$perftools = xtrue])
 
 # files to generate via autotools (.am or .in source files)
-AC_CONFIG_SUBDIRS([tclap perftools])
-AC_CONFIG_FILES([Makefile src/Makefile src/pbsolver/Makefile\
+AC_CONFIG_SUBDIRS([lib/tclap lib/perftools])
+AC_CONFIG_FILES([Makefile lib/Makefile src/Makefile src/pbsolver/Makefile\
 	src/satsolver/Makefile src/parser/Makefile src/modules/Makefile src/theorysolvers/Makefile\
 	src/solver3/Makefile src/solver3minisat/Makefile src/solver3minisat22/Makefile src/utils/Makefile\
 	src/external/Makefile src/mtlold/Makefile src/modules/aggsolver/Makefile doc/Makefile ])

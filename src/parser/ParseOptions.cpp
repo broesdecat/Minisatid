@@ -15,24 +15,13 @@
 #include <tclap/CmdLine.h>
 #include "parser/ResourceManager.hpp"
 
+#include "utils/PrintMessage.hpp"
+
 using namespace std;
 using namespace MinisatID;
+using namespace MinisatID::Print;
 
 SolverOption modes; //Used by parser, initialized before parsing!
-
-string programInfo =
-	"MinisatID is a model generator for the language ECNF, an extension of CNF with aggregates expressions"
-	"(sum, cardinality, min, max, product) and inductive definitions.\n"
-	"Several other well-known input formats are also supported:\n"
-	"\t - ground LParse, used within the domain of answer-set programming.\n"
-	"\t - QBF, used within the domain of quantified boolean formula reasoning (experimental support!).\n"
-	"\t - OPB, used within the domain of pseudo-boolean constraint solving.\n\n"
-	"MinisatID is part of the IDP system, a knowledge base system based on the FO(.) language. IDP supports, "
-	"among others, state-of-the-art model expansion inference.\n\n"
-	"MinisatID is the courtesy of the Knowledge Representation and Reasoning (KRR) group at the K.U. Leuven, "
-	"Belgium and is maintained by Broes De Cat. More information on the systems and the research can be found "
-	"on \"http://dtai.cs.kuleuven.be/krr\".\n";
-string programVersion = "2.3.0";
 
 struct Opt{
 	virtual ~Opt(){}
@@ -206,7 +195,7 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	idsavingvals.push_back(0); idsavingdesc.push_back(pair<int, string>(0, "add clause on propagation"));
 	idsavingvals.push_back(1); idsavingdesc.push_back(pair<int, string>(1, "save clause on propagation"));
 
-	TCLAP::CmdLine cmd = TCLAP::CmdLine(programInfo, '=', programVersion); //second arg is delimiter: -option<delim>value
+	TCLAP::CmdLine cmd = TCLAP::CmdLine(getProgramInfo(), '=', getProgramVersion()); //second arg is delimiter: -option<delim>value
 
 	TCLAP::UnlabeledValueArg<string> inputfilearg("inputfile", "The file which contains the input theory. If not provided, the standard-in stream is assumed as input.", false, "", "inputfile", cmd);
 

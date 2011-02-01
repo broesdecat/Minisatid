@@ -1,6 +1,25 @@
+#------------------------------------------------------------------------------
+# Copyright (c) 2009, 2010, 2011, Broes De Cat, K.U. Leuven, Belgium
+#
+# This file is part of MinisatID.
+#
+# MinisatID is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# MinisatID is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with MinisatID. If not, see <http://www.gnu.org/licenses/>.
+#------------------------------------------------------------------------------
+
 SUBDIRS = pbsolver external mtlold solver3 solver3minisat solver3minisat22 satsolver parser modules theorysolvers utils
 
-AM_CXXFLAGS = @AC_CXXFLAGS@ -I $(srcdir)/../tclap/include/ #-std=gnu++0x 
+AM_CXXFLAGS = @AC_CXXFLAGS@ -I $(srcdir)/../lib/tclap/include/ #-std=gnu++0x 
 AM_LDFLAGS = @AC_LDFLAGS@ -pthread
 
 AM_YFLAGS = -d 
@@ -16,7 +35,7 @@ BUILT_SOURCES = parser/ecnfparser.h
 minisatid_LDADD = -L$(builddir)/pbsolver -lpbsolver-1.0
 
 if USEPERFTOOLS
-minisatid_LDADD += -L$(builddir)/../perftools/ -ltcmalloc_minimal # -lprofiler
+minisatid_LDADD += -L$(builddir)/../lib/perftools/ -ltcmalloc_minimal # -lprofiler
 endif
 
 minisatid_SOURCES = \
@@ -46,14 +65,14 @@ minisatid_SOURCES = \
 		parser/ParseOptions.hpp\
 		external/Translator.hpp external/Translator.cpp\
 		external/InterfaceImpl.hpp external/InterfaceImpl.cpp\
-		GeneralUtils.hpp\
+		GeneralUtils.hpp GeneralUtils.cpp\
 		Unittests.hpp
 
 #PBSOLVER
 minisatid_SOURCES += pbsolver/PbSolver.h
 AM_CXXFLAGS += -I$(srcdir)/pbsolver/ -I$(srcdir)/pbsolver/pbbase/h/ -I$(srcdir)/pbsolver/ADTs/ -DDATADIR=\"$(datadir)\"
 data_pbdir = $(datadir)
-dist_data_pb_DATA = P1.TXT
+dist_data_pb_DATA = pbsolver/P1.TXT
 
 #MINISAT 2.07 09z
 if USEMINISAT09Z

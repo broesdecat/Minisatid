@@ -1,6 +1,23 @@
-#include "external/InterfaceImpl.hpp"
+//------------------------------------------------------------------------------
+// Copyright (c) 2009, 2010, 2011, Broes De Cat, K.U. Leuven, Belgium
+//
+// This file is part of MinisatID.
+//
+// MinisatID is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MinisatID is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with MinisatID. If not, see <http://www.gnu.org/licenses/>.
+//------------------------------------------------------------------------------
 
-#include "external/Translator.hpp"
+#include "external/InterfaceImpl.hpp"
 
 #include <cstdlib>
 #include <vector>
@@ -9,6 +26,7 @@
 
 #include "parser/ResourceManager.hpp"
 #include "utils/PrintMessage.hpp"
+#include "external/Translator.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -20,7 +38,7 @@ using namespace MinisatID::Print;
 
 Var Remapper::getVar(const Atom& atom){
 	if(atom.getValue()<1){
-		throw idpexception("Variables can only be numbered starting from 1.\n");
+		throw idpexception(getMinimalVarNumbering());
 	}
 	if(atom.getValue()>maxnumber){
 		maxnumber = atom.getValue();
@@ -34,15 +52,15 @@ Literal Remapper::getLiteral(const Lit& lit){
 
 Var SmartRemapper::getVar(const Atom& atom){
 	if(atom.getValue()<1){
-		throw idpexception("Variables can only be numbered starting from 1.\n");
+		throw idpexception(getMinimalVarNumbering());
 	}
+
 	atommap::const_iterator i = origtocontiguousatommapper.find(atom.getValue());
 	Var v = 0;
 	if(i==origtocontiguousatommapper.end()){
 		origtocontiguousatommapper.insert(pair<int, int>(atom.getValue(), maxnumber));
 		contiguoustoorigatommapper.insert(pair<int, int>(maxnumber, atom.getValue()));
 		v = maxnumber++;
-		//report("Mapped %d to %d\n", atom.getValue(), v);
 	}else{
 		v = (*i).second;
 	}
@@ -53,19 +71,18 @@ Literal SmartRemapper::getLiteral(const Lit& lit){
 	atommap::const_iterator atom = contiguoustoorigatommapper.find(var(lit));
 	assert(atom!=contiguoustoorigatommapper.end());
 	int origatom = (*atom).second;
-	//report("Retrieved %d from %d\n", var(lit), origatom);
 	return Literal(origatom, sign(lit));
 }
 
 ///////
-// IMPL
+// PIMPL of External Interfaces
 ///////
 
 WLSImpl::WLSImpl(const SolverOption& modes):
 		_state(INIT), _modes(modes),
 		_remapper(modes.remap?new SmartRemapper():new Remapper()),
-		_translator(new Translator()), //Load with default translator
-		firstmodel(true){
+		_translator(new Translator()) //Default translator is alwasy loaded
+		{
 }
 
 WLSImpl::~WLSImpl(){
@@ -149,7 +166,7 @@ bool WLSImpl::simplify(){
 
 bool WLSImpl::solve(Solution* sol){
 	bool unsat = false;
-	//Adding safety for interface users
+
 	if(!unsat && _state==INIT){
 		unsat = !finishParsing();
 	}
@@ -161,82 +178,67 @@ bool WLSImpl::solve(Solution* sol){
 	}
 
 	assert(_state==SIMPLIFIED);
-	printSolveStart(modes().verbosity);
+	printSolveStart(verbosity());
 
 	// Map to internal repr for assumptions
 	vec<Lit> assumptions;
 	checkLits(sol->getAssumptions(), assumptions);
 	bool sat = getSolver()->solve(assumptions, sol);
 
+	if(sol->getPrint() && sol->getNbModelsFound()==0){
+		std::ostream output(getRes());
+		printUnSatisfiable(output);
+		printUnSatisfiable(clog, verbosity());
+	}
+
 	if(sol->getSearch()){
 		_state = SOLVED;
 	}
 
-	printSolveEnd(modes().verbosity);
+	printSolveEnd(verbosity());
 
 	return sat;
 }
 
-void WLSImpl::printModel(const vec<Lit>& model){
-	//Translate into original vocabulary
+//Translate into original vocabulary
+vector<Literal> WLSImpl::getBackMappedModel(const vec<Lit>& model) const{
 	vector<Literal> outmodel;
 	for(int j=0; j<model.size(); j++){
-		if(!getRemapper()->wasInput(var(model[j]))){ //was not part of the input
+		if(!getRemapper()->wasInput(var(model[j]))){ //drop all literals that were not part of the input
 			continue;
 		}
 		outmodel.push_back(getRemapper()->getLiteral(model[j]));
 	}
 	sort(outmodel.begin(), outmodel.end());
-
-	std::ostream output(getRes());
-	//Effectively print the model
-	getTranslator()->printModel(output, outmodel);
+	return outmodel;
 }
 
 void WLSImpl::addModel(const vec<Lit>& model, Solution* sol){
 	//Translate into original vocabulary
-	vector<Literal> outmodel;
-	for(int j=0; j<model.size(); j++){
-		if(!getRemapper()->wasInput(var(model[j]))){ //was not part of the input
-			continue;
-		}
-		outmodel.push_back(getRemapper()->getLiteral(model[j]));
-	}
-	sort(outmodel.begin(), outmodel.end());
+	vector<Literal> outmodel(getBackMappedModel(model));
 
-/*	if(verbosity()>=5){
-		report("Trimmed, remapped model: ");
-		for(vector<Literal>::const_iterator i=outmodel.begin(); i<outmodel.end(); i++){
-			report("%d ", (*i).getValue());
-		}
-		report("\n");
-	}*/
-
+	//Add to solution
 	assert(sol!=NULL);
 	sol->addModel(outmodel);
 
+	//Print if requested
 	if(sol->getPrint()){
 		std::ostream output(getRes());
-		if(sol->getNbModelsFound()==1){	//First model found
-			output << "SAT\n";
-			if(modes().verbosity>=1){
-				clog <<"SATISFIABLE\n";
-			}
+
+		if(sol->getNbModelsFound()==1){
+			printSatisfiable(output);
+			printSatisfiable(clog, verbosity());
 			getTranslator()->printHeader(output);
 		}
 
-		if(verbosity()>=1){
-			clog <<"> " <<sol->getNbModelsFound() <<" model" <<(sol->getNbModelsFound()>1?"s":"") <<" found\n";
-		}
-
-		//Effectively print the model
+		printNbModels(clog, verbosity(), sol->getNbModelsFound());
 		getTranslator()->printModel(output, outmodel);
 	}
 }
 
 ///////
-// PROP SOLVER
- ///////
+// PROP SOLVER PIMPL
+///////
 
 WPCLSImpl::WPCLSImpl(const SolverOption& modes)
 		:WLSImpl(modes), solver(new PCSolver(modes, this)){
@@ -245,8 +247,6 @@ WPCLSImpl::WPCLSImpl(const SolverOption& modes)
 WPCLSImpl::~WPCLSImpl(){
 	delete solver;
 }
-
-PCSolver* WPCLSImpl::getSolver() const { return solver; }
 
 void WPCLSImpl::addVar(Atom v){
 	Var newv = checkAtom(v);
@@ -359,8 +359,6 @@ WSOLSImpl::WSOLSImpl(const SolverOption& modes):
 WSOLSImpl::~WSOLSImpl(){
 	delete solver;
 }
-
-SOSolver* WSOLSImpl::getSolver() const { return solver; }
 
 void WSOLSImpl::addVar(vsize modid, Atom v){
 	getSolver()->addVar(modid, checkAtom(v));

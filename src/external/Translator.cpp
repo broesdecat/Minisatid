@@ -1,9 +1,21 @@
-/*
- * FODOTTranslator.cpp
- *
- *  Created on: Jan 10, 2011
- *      Author: broes
- */
+//------------------------------------------------------------------------------
+// Copyright (c) 2009, 2010, 2011, Broes De Cat, K.U. Leuven, Belgium
+//
+// This file is part of MinisatID.
+//
+// MinisatID is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MinisatID is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with MinisatID. If not, see <http://www.gnu.org/licenses/>.
+//------------------------------------------------------------------------------
 
 #include "external/Translator.hpp"
 
@@ -18,9 +30,6 @@
 #include <string>
 #include <iostream>
 #include <algorithm>
-
-#include <cstring>
-#include <cctype>
 
 using namespace std;
 using namespace MinisatID;
@@ -117,7 +126,6 @@ void FODOTTranslator::addPred(string name, int num, const vector<string>& ptypes
 	predtypes.push_back(pti);
 	lowestvalue.push_back(num);
 	highestvalue.push_back(num + s - 1);
-	//cout <<"Predicate/func "  <<*name <<", low=" <<(*num) <<", high=" <<(*num + s -1) <<endl;
 }
 
 string FODOTTranslator::getPredName(int predn) const{
@@ -141,31 +149,27 @@ void FODOTTranslator::printTuple(const vector<string>& tuple, ostream& output) c
 	}
 }
 
-void FODOTTranslator::printPredicate(int n, const modelvec& model, MODE mode, ostream& output){
+void FODOTTranslator::printPredicate(int n, const modelvec& model, ostream& output) const{
 	if(predtypes[n].size()==0){
-		if(mode != TRANS_ARBIT){
-			bool found = false;
-			for(vector<string>::const_iterator i=arbitatoms.begin(); !found && i<arbitatoms.end(); i++){
-				if((*i).compare(predicates[n])==0){
-					found = true;
-				}
+		bool found = false;
+		for(vector<string>::const_iterator i=arbitatoms.begin(); !found && i<arbitatoms.end(); i++){
+			if((*i).compare(predicates[n])==0){
+				found = true;
 			}
-			if(!found){
-				if(tofodot){
-					output << getPredName(n);
-					if(model[n].size()==0){
-						output << " = false\n";
-					}else{
-						output << " = true\n";
-					}
+		}
+		if(!found){
+			if(tofodot){
+				output << getPredName(n);
+				if(model[n].size()==0){
+					output << " = false\n";
 				}else{
-					if(model[n].size()!=0){ //Only print if true!
-						output << getPredName(n) <<". ";
-					}
+					output << " = true\n";
+				}
+			}else{
+				if(model[n].size()!=0){ //Only print if true!
+					output << getPredName(n) <<". ";
 				}
 			}
-		}else{
-			arbitatoms.push_back(getPredName(n));
 		}
 		return;
 	}
@@ -192,7 +196,7 @@ void FODOTTranslator::printPredicate(int n, const modelvec& model, MODE mode, os
 	}
 }
 
-void FODOTTranslator::printFunction(int n, const modelvec& model, ostream& output){
+void FODOTTranslator::printFunction(int n, const modelvec& model, ostream& output) const{
 	if(tofodot){
 		output << getPredName(n) <<" = ";
 		if(predtypes[n].size() == 1) {
@@ -236,15 +240,12 @@ void FODOTTranslator::printFunction(int n, const modelvec& model, ostream& outpu
 	}
 }
 
-void FODOTTranslator::printInterpr(const modelvec& model, MODE mode, ostream& output) {
+void FODOTTranslator::printInterpr(const modelvec& model, ostream& output) const{
 	for(vector<string>::size_type n = 0; n < predicates.size(); ++n) {
-		if(mode!=TRANS_MODEL && model[n].size()==0){
-			continue;
-		}
 		if(isfunc[n]) {
 			printFunction(n, model, output);
 		} else {
-			printPredicate(n, model, mode, output);
+			printPredicate(n, model, output);
 		}
 	}
 }
@@ -288,8 +289,6 @@ void FODOTTranslator::printModel(std::ostream& output, const vector<Literal>& mo
 		finishParsing();
 	}
 
-	clog << "=== Model " << ++modelcounter << " ===\n";
-
 	// set initial values
 	uint currpred = 0;
 
@@ -312,7 +311,7 @@ void FODOTTranslator::printModel(std::ostream& output, const vector<Literal>& mo
 			}
 		}
 	}
-	printInterpr(temptruemodelcombined, TRANS_MODEL, output);
+	printInterpr(temptruemodelcombined, output);
 	output <<"\n";
 	output.flush();
 }
@@ -354,9 +353,9 @@ void FODOTTranslator::printHeader(ostream& output){
 
 	if(predicates.empty()) return;
 
-	if(tofodot){
+/*	if(tofodot){
 		if(truelist.size()>0){
-				output << "=== Certainly true atoms (also added to each model) ===\n";
+			output << "=== Certainly true atoms (also added to each model) ===\n";
 			printInterpr(trueout, TRANS_TRUE, output);
 			output <<"\n";
 		}
@@ -365,7 +364,7 @@ void FODOTTranslator::printHeader(ostream& output){
 			printInterpr(arbitout, TRANS_ARBIT, output);
 			output <<"\n";
 		}
-	}
+	}*/
 }
 
 void LParseTranslator::addTuple(Atom atom, std::string name) {
@@ -373,7 +372,6 @@ void LParseTranslator::addTuple(Atom atom, std::string name) {
 }
 
 void LParseTranslator::printModel(std::ostream& output, const std::vector<Literal>& model) {
-	clog << "=== Model " << ++modelcounter << " ===\n";
 	for(vector<Literal>::const_iterator i=model.begin(); i<model.end(); i++){
 		if(!(*i).hasSign()){ //Do not print false literals
 			map<Atom, string>::const_iterator it = lit2name.find((*i).getAtom());

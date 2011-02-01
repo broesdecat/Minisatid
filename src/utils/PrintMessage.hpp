@@ -1,11 +1,35 @@
+//------------------------------------------------------------------------------
+// Copyright (c) 2009, 2010, 2011, Broes De Cat, K.U. Leuven, Belgium
+//
+// This file is part of MinisatID.
+//
+// MinisatID is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MinisatID is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with MinisatID. If not, see <http://www.gnu.org/licenses/>.
+//------------------------------------------------------------------------------
+
 #ifndef PRINTMESSAGE_HPP_
 #define PRINTMESSAGE_HPP_
 
 #include <exception>
+#include <iostream>
+#include <sstream>
 
 namespace MinisatID{
 
 namespace Print{
+	std::string getProgramVersion();
+	std::string getProgramInfo();
+
 	void printMainStart(int v);
 	void printMainEnd(int v);
 
@@ -20,8 +44,53 @@ namespace Print{
 
 	void printUnsat(int v);
 
-	void printExceptionCaught(const std::exception& e, int v);
-	void printUnexpectedError(int v);
+	template<class T, class T2>
+	void printExceptionCaught(T2& stream, const T& e){
+		stream<<">>> " <<e.what();
+		stream<<">>> Program will abort.\n";
+	}
+
+	template<class T>
+	std::string getParseError(const T& e, int linepos, int charpos, const char* yytext){
+		std::stringstream ss;
+		ss<<"Parse error: Line " <<linepos <<", column " <<charpos <<", on \"" <<yytext <<"\": " << e.what();
+		return ss.str();
+	}
+
+	template<class T>
+	void printUnexpectedError(T& stream){
+		stream <<">>> Unexpected error caught, program will abort.\n";
+	}
+
+	void printPrimesFileNotReadable(std::ostream& stream, const char* file);
+
+	std::string getMinimalVarNumbering();
+
+	template<class T>
+	void printSatisfiable(T& stream, int verbosity = 1000){
+		if(verbosity>=1){
+			stream <<"SATISFIABLE\n";
+		}
+	}
+
+	template<class T>
+	void printUnSatisfiable(T& stream, int verbosity = 1000){
+		if(verbosity>=1){
+			stream <<"UNSATISFIABLE\n";
+		}
+	}
+
+	template<class T>
+	void printNbModels(T& stream, int found, int verbosity = 1000){
+		if(verbosity>=1){
+			stream <<"> " <<found <<" model" <<(found>1?"s":"") <<" found\n";
+		}
+	}
+
+	template<class T>
+	void printUnsatFoundDuringParsing(T& stream, int verbosity = 1000){
+		stream << "Unsat detected during parsing.\n";
+	}
 }
 
 }
