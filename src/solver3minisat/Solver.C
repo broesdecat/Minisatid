@@ -972,7 +972,9 @@ void Solver::verifyModel()
 
     assert(!failed);
 
-    reportf("Verified %d original clauses.\n", clauses.size());
+    if(verbosity>3){
+    	reportf("Verified %d original clauses.\n", clauses.size());
+    }
 }
 
 

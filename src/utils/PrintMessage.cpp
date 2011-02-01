@@ -55,7 +55,7 @@ void Print::printUnsat(int v){
 }
 
 void Print::printExceptionCaught(const exception& e, int v) {
-	cerr<<">>> " <<e.what() <<"\n";
+	cerr<<">>> " <<e.what();
 	cerr <<">>> Program will abort.\n";
 }
 
