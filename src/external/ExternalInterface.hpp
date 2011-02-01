@@ -34,9 +34,21 @@
 
 #include "external/InterfaceImpl.hpp"
 
+#ifndef __GXX_EXPERIMENTAL_CXX0X__
+#include <tr1/memory>
+#endif
+
 namespace MinisatID {
 
 class Translator;
+
+class WrappedLogicSolver;
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+typedef std::shared_ptr<WrappedLogicSolver> pwls;
+#else
+typedef std::tr1::shared_ptr<WrappedLogicSolver> pwls;
+#endif
 
 ///////
 // External interfaces offered from the solvers

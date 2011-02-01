@@ -17,7 +17,7 @@
 # along with MinisatID. If not, see <http://www.gnu.org/licenses/>.
 #------------------------------------------------------------------------------
 
-SUBDIRS = pbsolver external mtlold solver3 solver3minisat solver3minisat22 satsolver parser modules theorysolvers utils
+SUBDIRS = pbsolver parser
 
 AM_CXXFLAGS = @AC_CXXFLAGS@ -I $(srcdir)/../lib/tclap/include/ #-std=gnu++0x 
 AM_LDFLAGS = @AC_LDFLAGS@ -pthread
@@ -40,33 +40,36 @@ endif
 
 minisatid_SOURCES = \
 		Main.cpp \
-		satsolver/SATSolver.cpp satsolver/SATUtils.cpp\
-		parser/ecnftoken.lpp parser/ecnfparser.ypp\
-		theorysolvers/PCSolver.cpp theorysolvers/SOSolver.cpp\
-		modules/DPLLTmodule.cpp modules/IDSolver.cpp modules/AggSolver.cpp modules/ModSolver.cpp\
-		modules/aggsolver/AggTransform.cpp modules/aggsolver/AggUtils.cpp modules/aggsolver/AggPrint.cpp\
-		modules/aggsolver/FullyWatched.cpp\
-		modules/aggsolver/GenPartiallyWatched.cpp\
-		modules/aggsolver/AggProp.cpp\
-		external/ExternalInterface.cpp external/ExternalUtils.cpp\
-		utils/Print.cpp utils/Utils.cpp utils/PrintMessage.cpp \
-		parser/ResourceManager.cpp parser/Lparseread.cpp parser/PBread.cpp parser/ParseOptions.cpp\
-		Unittests.cpp\
-		satsolver/SATSolver.hpp satsolver/SATUtils.hpp\
-		modules/DPLLTmodule.hpp modules/IDSolver.hpp modules/AggSolver.hpp modules/ModSolver.hpp\
-		modules/aggsolver/AggTransform.hpp modules/aggsolver/AggUtils.hpp\
-		modules/aggsolver/AggPrint.hpp modules/aggsolver/FullyWatched.hpp\
-		modules/aggsolver/PartiallyWatched.hpp\
-		modules/aggsolver/AggProp.hpp\
-		theorysolvers/LogicSolver.hpp theorysolvers/PCSolver.hpp theorysolvers/SOSolver.hpp\
-		external/ExternalInterface.hpp external/ExternalUtils.hpp\
-		utils/Print.hpp utils/Utils.hpp utils/PrintMessage.hpp utils/IntTypes.h\
-		parser/ResourceManager.hpp parser/Lparseread.hpp parser/PBread.hpp\
-		parser/ParseOptions.hpp\
-		external/Translator.hpp external/Translator.cpp\
-		external/InterfaceImpl.hpp external/InterfaceImpl.cpp\
-		GeneralUtils.hpp GeneralUtils.cpp\
-		Unittests.hpp
+		parser/ecnftoken.lpp 				parser/ecnfparser.ypp\		
+		satsolver/SATSolver.hpp				satsolver/SATSolver.cpp\ 
+		satsolver/SATUtils.hpp				satsolver/SATUtils.cpp\
+		modules/DPLLTmodule.hpp 			modules/DPLLTmodule.cpp\ 
+		modules/ModSolver.hpp	 			modules/ModSolver.cpp\
+		modules/IDSolver.hpp 				modules/IDSolver.cpp\
+		modules/AggSolver.hpp 				modules/AggSolver.cpp\
+		modules/aggsolver/AggTransform.hpp 	modules/aggsolver/AggTransform.cpp\
+		modules/aggsolver/AggUtils.hpp 		modules/aggsolver/AggUtils.cpp\
+		modules/aggsolver/AggPrint.hpp 		modules/aggsolver/AggPrint.cpp\
+		modules/aggsolver/FullyWatched.hpp 	modules/aggsolver/FullyWatched.cpp\
+		modules/aggsolver/PartiallyWatched.hpp modules/aggsolver/GenPartiallyWatched.cpp\
+		modules/aggsolver/AggProp.hpp 		modules/aggsolver/AggProp.cpp\		
+		theorysolvers/LogicSolver.hpp\
+		theorysolvers/PCSolver.hpp 			theorysolvers/PCSolver.cpp\
+		theorysolvers/SOSolver.hpp 			theorysolvers/SOSolver.cpp\
+		utils/IntTypes.h\		
+		utils/Print.hpp 					utils/Print.cpp\
+		utils/Utils.hpp 					utils/Utils.cpp\
+		utils/PrintMessage.hpp 				utils/PrintMessage.cpp\		
+		parser/ResourceManager.hpp 			parser/ResourceManager.cpp\
+		parser/Lparseread.hpp 				parser/Lparseread.cpp\
+		parser/PBread.hpp 					parser/PBread.cpp\
+		parser/ParseOptions.hpp 			parser/ParseOptions.cpp\		
+		external/ExternalInterface.hpp 		external/ExternalUtils.cpp\
+		external/ExternalUtils.hpp 			external/ExternalUtils.cpp\
+		external/Translator.hpp 			external/Translator.cpp\
+		external/InterfaceImpl.hpp 			external/InterfaceImpl.cpp\
+		GeneralUtils.hpp 					GeneralUtils.cpp\
+		Unittests.hpp 						Unittests.cpp
 
 #PBSOLVER
 minisatid_SOURCES += pbsolver/PbSolver.h

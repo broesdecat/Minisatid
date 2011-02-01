@@ -68,14 +68,10 @@ using namespace std::tr1;
 using namespace MinisatID;
 using namespace MinisatID::Print;
 
-namespace MinisatID {
-	typedef pwls pData;
-}
-
 extern char* 	yytext;
 extern int 		lineNo;
 extern int 		charPos;
-extern pData 	getData();
+extern pwls 	getData();
 
 extern FILE* 	yyin;
 extern int 		yyparse();
@@ -84,7 +80,7 @@ extern void 	yyinit();
 extern bool 	unsatfound;
 
 const char* 	hasPrefix(const char* str, const char* prefix);
-pData parse();
+pwls parse();
 
 void printStats();
 
@@ -98,7 +94,7 @@ static void SIGTERM_handler(int signum);
 static void SIGINT_handler(int signum);
 
 
-int doModelGeneration(pData& d);
+int doModelGeneration(pwls& d);
 
 extern SolverOption modes;
 
@@ -133,7 +129,7 @@ int main(int argc, char** argv) {
 
 	printMainStart(modes.verbosity);
 
-	pData d;
+	pwls d;
 	int returnvalue = 1;
 	try { // Start catching IDP exceptions
 
@@ -153,13 +149,13 @@ int main(int argc, char** argv) {
 	} catch (const exception& e) {
 		printExceptionCaught(cerr, e);
 		if(d.get()!=NULL){
-			d->printStatistics();
+			printStatistics(d);
 		}
 		exit(1);
 	} catch (...) {
 		printUnexpectedError(cerr);
 		if(d.get()!=NULL){
-			d->printStatistics();
+			printStatistics(d);
 		}
 		exit(1);
 	}
@@ -167,8 +163,8 @@ int main(int argc, char** argv) {
 	return returnvalue;
 }
 
-int doModelGeneration(pData& d){
-	// Unittest injection possible by: pData d = unittestx();
+int doModelGeneration(pwls& d){
+	// Unittest injection possible by: pwls d = unittestx();
 
 	bool unsat = false;
 
@@ -229,8 +225,8 @@ int doModelGeneration(pData& d){
 		delete sol;
 	}
 
-	if(!earlyunsat && modes.verbosity >= 1){
-		d->printStatistics();
+	if(!earlyunsat){
+		printStatistics(d, modes.verbosity);
 	}
 
 	return unsat ? 20 : 10;
@@ -244,7 +240,7 @@ int doModelGeneration(pData& d){
  * Returns a data object representing the solver configuration from the input theory.
  * If the input theory was already found to be unsatisfiable, an empty shared pointer is returned.
  */
-pData parse() {
+pwls parse() {
 	yyinit();
 
 	try {
@@ -259,7 +255,7 @@ pData parse() {
 		}
 	}
 
-	pData d = getData();
+	pwls d = getData();
 
 	yydestroy();
 	//There is still a memory leak of about 16 Kb in the flex scanner, which is inherent to the flex C scanner

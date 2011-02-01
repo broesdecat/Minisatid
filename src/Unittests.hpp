@@ -22,17 +22,7 @@
 
 #include "external/ExternalInterface.hpp"
 
-#ifndef __GXX_EXPERIMENTAL_CXX0X__
-#include <tr1/memory>
-#endif
-
 namespace MinisatID {
-
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-typedef std::shared_ptr<WrappedLogicSolver> pwls;
-#else
-typedef std::tr1::shared_ptr<WrappedLogicSolver> pwls;
-#endif
 
 pwls unittest(SolverOption& modes);
 pwls unittest2(SolverOption& modes);

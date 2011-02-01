@@ -29,17 +29,12 @@ using namespace std;
 typedef numeric_limits<int> intlim;
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
-       typedef std::shared_ptr<WrappedLogicSolver> pwls;
-       typedef std::shared_ptr<WrappedSOSolver> pwsos;
-       typedef std::shared_ptr<WrappedPCSolver> pwps;
+   typedef std::shared_ptr<WrappedSOSolver> pwsos;
+   typedef std::shared_ptr<WrappedPCSolver> pwps;
 #else
-       typedef std::tr1::shared_ptr<WrappedLogicSolver> pwls;
-       typedef std::tr1::shared_ptr<WrappedSOSolver> pwsos;
-       typedef std::tr1::shared_ptr<WrappedPCSolver> pwps;
-#endif
-
-#ifndef __GXX_EXPERIMENTAL_CXX0X__
-#include <tr1/memory>
+	#include <tr1/memory>
+   typedef std::tr1::shared_ptr<WrappedSOSolver> pwsos;
+   typedef std::tr1::shared_ptr<WrappedPCSolver> pwps;
 #endif
 
 //}

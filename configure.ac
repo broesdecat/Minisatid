@@ -126,10 +126,12 @@ AM_CONDITIONAL([USEPERFTOOLS],[test x$perftools = xtrue])
 
 # files to generate via autotools (.am or .in source files)
 AC_CONFIG_SUBDIRS([lib/tclap lib/perftools])
-AC_CONFIG_FILES([Makefile lib/Makefile src/Makefile src/pbsolver/Makefile\
-	src/satsolver/Makefile src/parser/Makefile src/modules/Makefile src/theorysolvers/Makefile\
-	src/solver3/Makefile src/solver3minisat/Makefile src/solver3minisat22/Makefile src/utils/Makefile\
-	src/external/Makefile src/mtlold/Makefile src/modules/aggsolver/Makefile doc/Makefile ])
+AC_CONFIG_FILES([Makefile 
+	lib/Makefile 
+	src/Makefile 
+	src/parser/Makefile 
+	src/pbsolver/Makefile 
+	doc/Makefile ])
 
 # generate the final Makefile etc.
 AC_OUTPUT
