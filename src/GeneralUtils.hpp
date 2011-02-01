@@ -29,7 +29,7 @@ namespace MinisatID {
 
 	public:
 		idpexception(const char* m): std::exception(){
-			mess.append("Exception caught: ");
+			//mess.append("Exception caught: ");
 			mess.append(m);
 		}
 

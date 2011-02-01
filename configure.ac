@@ -41,7 +41,7 @@ AC_SUBST([LIBS])
 AC_CXXFLAGS=" "
 AC_LDFLAGS=" "
 
-AC_CXXFLAGS+="-ansi -ffloat-store -Wall -Wextra -Wno-unused-parameter " 
+AC_CXXFLAGS+="-ffloat-store -Wall -Wextra -Wno-unused-parameter "
 #should use -Wno-vla to allow variable sized arrays, which pbsolver has
 #its too difficult too remove them there and only remaining issue with pedantic
 #but our gcc doesnt support them yet
@@ -55,7 +55,7 @@ AC_ARG_ENABLE([build],
   static)  AC_CXXFLAGS+="-O3 -D NDEBUG " 			AC_LDFLAGS+=" -static " ;;
   codecover) AC_CXXFLAGS+="-O0 -fprofile-arcs -ftest-coverage -ggdb -D DEBUG " AC_LDFLAGS+="-ggdb " ;;
   *) AC_MSG_ERROR([bad value ${enableval} for --enable-build]) ;;
-esac],[		AC_CXXFLAGS+="-DNDEBUG -O3 " AC_LDFLAGS+=" "])
+esac],[		AC_CXXFLAGS+="-O3 -D NDEBUG " 			AC_LDFLAGS+=" "])
 
 AC_ARG_ENABLE([sat],
 [  --enable-sat    Use minisat 2.0b(old), minisat 09z(hack) or minisat 2.2(new)],
@@ -73,7 +73,7 @@ AC_ARG_ENABLE([sat],
   		 newm=true
 		;;
   *) AC_MSG_ERROR([bad value ${enableval} for --enable-sat]) ;;
-esac],[oldm=true])
+esac],[newm=true])
 
 AM_CONDITIONAL([USEMINISAT],[test x$oldm = xtrue])
 AM_CONDITIONAL([USEMINISAT09Z],[test x$hackm = xtrue])
