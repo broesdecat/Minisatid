@@ -324,7 +324,6 @@ void FODOTTranslator::printModel(std::ostream& output, const vector<Literal>& mo
  * @pre: atom is positive
  */
 bool FODOTTranslator::deriveStringFromAtomNumber(int atom, uint& currpred, vector<string>& arg) const{
-	//output <<"Translating " <<atom <<endl;
 	while(atom > highestvalue[currpred]) {
 		currpred++;
 	}
