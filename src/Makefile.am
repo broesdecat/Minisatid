@@ -20,7 +20,6 @@
 SUBDIRS = parser
 
 LIBSDIR = $(srcdir)/../lib/
-LIBBDIR = $(builddir)/../lib/
 
 AM_CXXFLAGS = @AC_CXXFLAGS@ -I $(LIBSDIR)/tclap/include/ #-std=gnu++0x 
 AM_LDFLAGS = @AC_LDFLAGS@ -pthread
@@ -35,10 +34,10 @@ bin_PROGRAMS = minisatid
 
 BUILT_SOURCES = parser/ecnfparser.h
 
-minisatid_LDADD = -L$(libdir) -lpbsolver-1.0 # do not forget ldconfig after installing ;)
+minisatid_LDADD = ../lib/pbsolver/libpbsolver-1.0.la # do not forget ldconfig after installing ;)
 
 if USEPERFTOOLS
-minisatid_LDADD += -L$(libdir) -ltcmalloc_minimal # -lprofiler
+minisatid_LDADD += ../lib/perftools/libtcmalloc_minimal.a # -lprofiler
 endif
 
 minisatid_SOURCES = \
