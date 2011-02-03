@@ -185,12 +185,6 @@ bool WLSImpl::solve(Solution* sol){
 	checkLits(sol->getAssumptions(), assumptions);
 	bool sat = getSolver()->solve(assumptions, sol);
 
-	if(sol->getPrint() && sol->getNbModelsFound()==0){
-		std::ostream output(getRes());
-		printUnSatisfiable(output);
-		printUnSatisfiable(clog, verbosity());
-	}
-
 	if(sol->getSearch()){
 		_state = SOLVED;
 	}
@@ -231,7 +225,7 @@ void WLSImpl::addModel(const vec<Lit>& model, Solution* sol){
 			getTranslator()->printHeader(output);
 		}
 
-		printNbModels(clog, verbosity(), sol->getNbModelsFound());
+		printNbModels(clog, sol->getNbModelsFound(), verbosity());
 		getTranslator()->printModel(output, outmodel);
 	}
 }

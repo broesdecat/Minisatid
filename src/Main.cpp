@@ -225,6 +225,12 @@ int doModelGeneration(pwls& d){
 		delete sol;
 	}
 
+	if(unsat){
+		std::ostream output(getOutputBuffer());
+		printUnSatisfiable(output);
+		printUnSatisfiable(clog, modes.verbosity);
+	}
+
 	if(!earlyunsat){
 		printStatistics(d, modes.verbosity);
 	}
