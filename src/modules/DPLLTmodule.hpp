@@ -76,7 +76,7 @@ public:
 
 	virtual const char* getName() const = 0;
 
-	virtual void print() = 0;
+	virtual void print() const = 0;
 
 	///////
 	// Convenience methods (based on getPCSolver)

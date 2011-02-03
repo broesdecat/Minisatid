@@ -170,7 +170,7 @@ public:
 	 * The model of a theory is the interpretation of all atoms decided by the root SAT solver.
 	 */
 	void 				printModel		();
-	void 				print			();
+	void 				print			() const;
 	void 				printStatistics	() const 	{ /*Do NOT print lower ones here*/};
 
 	//GETTERS

@@ -24,6 +24,8 @@
 #include <iostream>
 #include <sstream>
 
+#include "utils/Utils.hpp"
+
 namespace MinisatID{
 
 namespace Print{
@@ -55,13 +57,6 @@ namespace Print{
 		std::stringstream ss;
 		ss<<"Parse error: Line " <<linepos <<", column " <<charpos <<", on \"" <<yytext <<"\": " << e.what();
 		return ss.str();
-	}
-
-	template<class T>
-	void printStatistics(T obj, int v = 1000){
-		if(v>=1){
-			obj->printStatistics();
-		}
 	}
 
 	template<class T>
@@ -97,28 +92,6 @@ namespace Print{
 	template<class T>
 	void printUnsatFoundDuringParsing(T& stream, int verbosity = 1000){
 		stream << "Unsat detected during parsing.\n";
-	}
-
-	template<class T>
-	int getPrintableVar(T v){
-		return v+1;
-	}
-
-	template<class T>
-	void print(const T& lit, const lbool val){
-		std::clog <<(sign(lit)?"-":"") <<getPrintableVar(var(lit)) <<":" <<(val==l_True?'1':(val==l_False?'0':'X'));
-	}
-
-	template<class T>
-	void print(const T& lit){
-		std::clog <<(sign(lit)?"-":"") <<getPrintableVar(var(lit));
-	}
-
-	template<class T>
-	void printClause(const T& c){
-		for(int i=0; i<c.size(); i++){
-			printLit(c[i]); std::clog <<" ";
-		}
 	}
 }
 

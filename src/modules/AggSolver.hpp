@@ -184,7 +184,7 @@ public:
 	virtual rClause 	getExplanation			(const Lit& l);
 
 	virtual const char* getName					() const { return "aggregate"; }
-	virtual void 		print					();
+	virtual void 		print					() const;
 	virtual void 		printStatistics			() const;
 
 	virtual bool 		checkStatus				();

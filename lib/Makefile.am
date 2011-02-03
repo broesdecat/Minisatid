@@ -17,7 +17,7 @@
 # along with MinisatID. If not, see <http://www.gnu.org/licenses/>.
 #-----------------------------------------------------------------------------
 
-SUBDIRS = tclap
+SUBDIRS = tclap pbsolver
 
 if USEPERFTOOLS
 SUBDIRS += perftools

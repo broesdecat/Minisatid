@@ -46,6 +46,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 using namespace Minisat;
 using namespace MinisatID;
+using namespace MinisatID::Print;
 
 //=================================================================================================
 // Options:
@@ -373,20 +374,20 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
 	if(verbosity>4){
 		/*reportf("Choices: ");
 		for(int i=0; i<trail_lim.size(); i++){
-			gprintLit(trail[trail_lim[i]]); reportf(" ");
+			print(trail[trail_lim[i]]); reportf(" ");
 		}
 		reportf("\n");
 		reportf("Trail: \n");
 		for(int i=0; i<trail_lim.size()-1; i++){
 			reportf("Level: ");
 			for(int j=trail_lim[i]; j<trail_lim[i+1]; j++){
-				gprintLit(trail[j]); reportf(" ");
+				print(trail[j]); reportf(" ");
 			}
 			reportf("\n");
 		}
 		reportf("Level: ");
 		for(int j=trail_lim[trail_lim.size()-1]; j<trail.size(); j++){
-			gprintLit(trail[j]); reportf(" ");
+			print(trail[j]); reportf(" ");
 		}
 		reportf("\n");*/
 	}
@@ -410,7 +411,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
 			reportf("\n");
 			reportf("Current learned clause: ");
 			for (int i = 1; i < out_learnt.size(); i++) {
-				gprintLit(out_learnt[i]);
+				print(out_learnt[i]);
 				reportf(" ");
 			}
 			reportf("\n");
@@ -438,7 +439,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
         /*AB*/
         if(verbosity>4){
         	for(std::vector<Lit>::const_iterator i=explain.begin(); i<explain.end(); i++){
-        		gprintLit(*i); reportf(" ");
+        		print(*i); reportf(" ");
         	}
         	reportf("\n");
 		}
@@ -463,7 +464,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
 					break;
 				}
 			}
-			gprintLit(p);
+			print(p);
 			reportf("\n");
 		}
 

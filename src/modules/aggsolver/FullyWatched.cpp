@@ -79,7 +79,7 @@ lbool FWAgg::initialize(const Agg& agg) {
 	bool alwaystrue = false;
 	if (hv != l_Undef && !agg.isOptim()) {
 		alwaystrue = true;
-		//reportf("No more propagations for %d", gprintVar(var(head)));
+		//reportf("No more propagations for %d", getPrintableVar(var(head)));
 	}
 	if (hv == l_True) {
 		confl = getSolver()->notifySolver(new HeadReason(agg, basedon, agg.getHead()));

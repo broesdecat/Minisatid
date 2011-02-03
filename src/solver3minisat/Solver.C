@@ -43,6 +43,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <vector> /*A*/
 /*A*/ using namespace Minisat;
 /*A*/ using namespace MinisatID;
+/*A*/ using namespace MinisatID::Print;
 
 //=================================================================================================
 // Constructor/Destructor:
@@ -338,20 +339,20 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 	if(verbosity>4){
 		reportf("Choices: ");
 		for(int i=0; i<trail_lim.size(); i++){
-			gprintLit(trail[trail_lim[i]]); reportf(" ");
+			print(trail[trail_lim[i]]); reportf(" ");
 		}
 		reportf("\n");
 		reportf("Trail: \n");
 		for(int i=0; i<trail_lim.size()-1; i++){
 			reportf("Level: ");
 			for(int j=trail_lim[i]; j<trail_lim[i+1]; j++){
-				gprintLit(trail[j]); reportf(" ");
+				print(trail[j]); reportf(" ");
 			}
 			reportf("\n");
 		}
 		reportf("Level: ");
 		for(int j=trail_lim[trail_lim.size()-1]; j<trail.size(); j++){
-			gprintLit(trail[j]); reportf(" ");
+			print(trail[j]); reportf(" ");
 		}
 		reportf("\n");
 	}
@@ -406,7 +407,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
         /*AB*/
         if(verbosity>4){
         	for(std::vector<Lit>::const_iterator i=explain.begin(); i<explain.end(); i++){
-        		gprintLit(*i); reportf(" ");
+        		print(*i); reportf(" ");
         	}
         	reportf("\n");
 		}

@@ -17,9 +17,12 @@
 # along with MinisatID. If not, see <http://www.gnu.org/licenses/>.
 #------------------------------------------------------------------------------
 
-SUBDIRS = pbsolver parser
+SUBDIRS = parser
 
-AM_CXXFLAGS = @AC_CXXFLAGS@ -I $(srcdir)/../lib/tclap/include/ #-std=gnu++0x 
+LIBSDIR = $(srcdir)/../lib/
+LIBBDIR = $(builddir)/../lib/
+
+AM_CXXFLAGS = @AC_CXXFLAGS@ -I $(LIBSDIR)/tclap/include/ #-std=gnu++0x 
 AM_LDFLAGS = @AC_LDFLAGS@ -pthread
 
 AM_YFLAGS = -d 
@@ -32,18 +35,18 @@ bin_PROGRAMS = minisatid
 
 BUILT_SOURCES = parser/ecnfparser.h
 
-minisatid_LDADD = -L$(builddir)/pbsolver -lpbsolver-1.0
+minisatid_LDADD = -L$(libdir) -lpbsolver-1.0 # do not forget ldconfig after installing ;)
 
 if USEPERFTOOLS
-minisatid_LDADD += -L$(builddir)/../lib/perftools/ -ltcmalloc_minimal # -lprofiler
+minisatid_LDADD += -L$(libdir) -ltcmalloc_minimal # -lprofiler
 endif
 
 minisatid_SOURCES = \
 		Main.cpp \
-		parser/ecnftoken.lpp 				parser/ecnfparser.ypp\		
-		satsolver/SATSolver.hpp				satsolver/SATSolver.cpp\ 
+		parser/ecnftoken.lpp 				parser/ecnfparser.ypp\
+		satsolver/SATSolver.hpp				satsolver/SATSolver.cpp\
 		satsolver/SATUtils.hpp				satsolver/SATUtils.cpp\
-		modules/DPLLTmodule.hpp 			modules/DPLLTmodule.cpp\ 
+		modules/DPLLTmodule.hpp 			modules/DPLLTmodule.cpp\
 		modules/ModSolver.hpp	 			modules/ModSolver.cpp\
 		modules/IDSolver.hpp 				modules/IDSolver.cpp\
 		modules/AggSolver.hpp 				modules/AggSolver.cpp\
@@ -52,30 +55,27 @@ minisatid_SOURCES = \
 		modules/aggsolver/AggPrint.hpp 		modules/aggsolver/AggPrint.cpp\
 		modules/aggsolver/FullyWatched.hpp 	modules/aggsolver/FullyWatched.cpp\
 		modules/aggsolver/PartiallyWatched.hpp modules/aggsolver/GenPartiallyWatched.cpp\
-		modules/aggsolver/AggProp.hpp 		modules/aggsolver/AggProp.cpp\		
+		modules/aggsolver/AggProp.hpp 		modules/aggsolver/AggProp.cpp\
 		theorysolvers/LogicSolver.hpp\
 		theorysolvers/PCSolver.hpp 			theorysolvers/PCSolver.cpp\
 		theorysolvers/SOSolver.hpp 			theorysolvers/SOSolver.cpp\
-		utils/IntTypes.h\		
+		utils/IntTypes.h\
 		utils/Print.hpp 					utils/Print.cpp\
 		utils/Utils.hpp 					utils/Utils.cpp\
-		utils/PrintMessage.hpp 				utils/PrintMessage.cpp\		
+		utils/PrintMessage.hpp 				utils/PrintMessage.cpp\
 		parser/ResourceManager.hpp 			parser/ResourceManager.cpp\
 		parser/Lparseread.hpp 				parser/Lparseread.cpp\
 		parser/PBread.hpp 					parser/PBread.cpp\
-		parser/ParseOptions.hpp 			parser/ParseOptions.cpp\		
-		external/ExternalInterface.hpp 		external/ExternalUtils.cpp\
+		parser/ParseOptions.hpp 			parser/ParseOptions.cpp\
+		external/ExternalInterface.hpp 		external/ExternalInterface.cpp\
 		external/ExternalUtils.hpp 			external/ExternalUtils.cpp\
 		external/Translator.hpp 			external/Translator.cpp\
 		external/InterfaceImpl.hpp 			external/InterfaceImpl.cpp\
 		GeneralUtils.hpp 					GeneralUtils.cpp\
 		Unittests.hpp 						Unittests.cpp
 
-#PBSOLVER
-minisatid_SOURCES += pbsolver/PbSolver.h
-AM_CXXFLAGS += -I$(srcdir)/pbsolver/ -I$(srcdir)/pbsolver/pbbase/h/ -I$(srcdir)/pbsolver/ADTs/ -DDATADIR=\"$(datadir)\"
-data_pbdir = $(datadir)
-dist_data_pb_DATA = pbsolver/P1.TXT
+#PBSOLVER		
+AM_CXXFLAGS += -I $(LIBSDIR)/pbsolver/ -I $(LIBSDIR)/pbsolver/pbbase/h/ -I $(LIBSDIR)/pbsolver/ADTs/ -DDATADIR=\"$(datadir)\"
 
 #MINISAT 2.07 09z
 if USEMINISAT09Z

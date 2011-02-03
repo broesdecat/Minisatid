@@ -28,8 +28,11 @@
 #include "theorysolvers/PCSolver.hpp"
 #include "theorysolvers/SOSolver.hpp"
 
+#include "utils/Print.hpp"
+
 using namespace std;
 using namespace MinisatID;
+using namespace MinisatID::Print;
 
 //Important: The head variable does not occur in this theory, so should NOT automatically be
 //added as a var in it.
@@ -235,7 +238,7 @@ rClause ModSolver::propagate(const Lit& l){
 		//TODO propagate up WITH reason
 	}*/
 	if(getModSolverData().modes().verbosity>4){
-		report("Propagated "); gprintLit(l); report(" from PC in mod %zu\n", getPrintId());
+		report("Propagated "); Print::print(l); report(" from PC in mod %zu\n", getPrintId());
 	}
 
 	rClause confl = nullPtrClause;
@@ -265,7 +268,7 @@ rClause ModSolver::propagateAtEndOfQueue(){
 		getPCSolver()->addLearnedClause(confl);
 
 		if(getModSolverData().modes().verbosity>=5){
-			Print::printClause(confl, getPCSolver());
+			Print::print(confl, getPCSolver());
 		}
 	}
 	return confl;
@@ -279,7 +282,7 @@ rClause ModSolver::propagateAtEndOfQueue(){
  */
 rClause ModSolver::propagateDown(Lit l){
 	if(getModSolverData().modes().verbosity>4){
-		gprintLit(l); report(" propagated down into modal solver %zu.\n", getPrintId());
+		Print::print(l); report(" propagated down into modal solver %zu.\n", getPrintId());
 	}
 
 	adaptValuesOnPropagation(l);
@@ -373,7 +376,7 @@ void ModSolver::backtrackDecisionLevels(int nblevels, int untillevel){
  */
 void ModSolver::backtrackFromAbove(Lit l){
 	if(getModSolverData().modes().verbosity>4){
-		report("Backtracking "); gprintLit(l); report(" from above in mod %zu\n", getPrintId());
+		report("Backtracking "); Print::print(l); report(" from above in mod %zu\n", getPrintId());
 	}
 
 	if(var(l)==getHead() && getHeadValue()!=l_Undef){
@@ -434,7 +437,7 @@ bool ModSolver::analyzeResult(bool result, bool allknown, vec<Lit>& confldisj){
 	return !confldisj;
 }
 
-void ModSolver::print(){
+void ModSolver::print() const{
 	Print::print(this);
 }
 

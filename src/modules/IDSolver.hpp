@@ -183,7 +183,7 @@ public:
 	virtual void 			printStatistics			() const;
 
 	virtual const char* 	getName					() const { return "definitional"; }
-	virtual void 			print					();
+	virtual void 			print					() const;
 
 	bool 					checkStatus				();
 	bool 					isWellFoundedModel		();

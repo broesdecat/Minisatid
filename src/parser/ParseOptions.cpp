@@ -15,7 +15,7 @@
 #include <tclap/CmdLine.h>
 #include "parser/ResourceManager.hpp"
 
-#include "utils/PrintMessage.hpp"
+#include "utils/Print.hpp"
 
 using namespace std;
 using namespace MinisatID;

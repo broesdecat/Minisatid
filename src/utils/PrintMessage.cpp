@@ -96,4 +96,3 @@ void Print::printPrimesFileNotReadable(ostream& stream, const char* file){
 std::string Print::getMinimalVarNumbering(){
 	return "Variables can only be numbered starting from 1.\n";
 }
-

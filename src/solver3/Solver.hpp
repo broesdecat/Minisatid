@@ -68,6 +68,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 /*AB*/
 #include "utils/Utils.hpp"
+#include "utils/Print.hpp"
 #include "theorysolvers/PCSolver.hpp"
 namespace MinisatID{
 	class PCSolver;

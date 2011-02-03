@@ -7,6 +7,8 @@
 #include "modules/aggsolver/FullyWatched.hpp"
 #include "modules/aggsolver/PartiallyWatched.hpp"
 
+#include "utils/Print.hpp"
+
 #include <assert.h>
 
 using namespace std;
@@ -14,6 +16,7 @@ using namespace std;
 using namespace std::tr1;
 #endif
 using namespace MinisatID;
+using namespace MinisatID::Print;
 using namespace Aggrs;
 
 Weight	Agg::getCertainBound() const {
@@ -157,9 +160,9 @@ WL ProdProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* 
 	//Mogelijke eenvoudige implementatie: weigts bijhouden als doubles (en al de rest als ints)
 	report("Product aggregates in which both the literal and its negation occur "
 			"are currently not supported. Replace ");
-	gprintLit(one.getLit());
+	Print::print(one.getLit());
 	report("or ");
-	gprintLit(two.getLit());
+	Print::print(two.getLit());
 	report("by a tseitin.\n");
 	throw idpexception("Atoms in product aggregates have to be unique.\n");
 }
@@ -246,12 +249,12 @@ void TypedSet::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
 	getProp()->getExplanation(lits, ar);
 
 	if(getSolver()->verbosity()>=3){
-		report("Explanation for deriving "); gprintLit(ar.getPropLit());
+		report("Explanation for deriving "); Print::print(ar.getPropLit());
 		report(" in expression ");
 		print(getSolver()->verbosity(), ar.getAgg(), false);
 		report(" is ");
 		for(int i=0; i<lits.size(); i++){
-			report(" "); gprintLit(lits[i]);
+			report(" "); Print::print(lits[i]);
 		}
 		report("\n");
 	}
@@ -422,7 +425,7 @@ bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, V
  if(justified){
  reportf("justification found: ");
  for(int i=0; i<jstf.size(); i++){
- gprintLit(jstf[i]); reportf(" ");
+ print(jstf[i]); reportf(" ");
  }
  reportf("\n");
  }else{

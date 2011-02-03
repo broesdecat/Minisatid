@@ -55,7 +55,7 @@
 #include "parser/Lparseread.hpp"
 #include "parser/PBread.hpp"
 
-#include "utils/PrintMessage.hpp"
+#include "utils/Print.hpp"
 
 #if defined(__linux__)
 #include <fpu_control.h>

@@ -21,6 +21,7 @@
 #define PRINT_HPP_
 
 #include "utils/Utils.hpp"
+#include "utils/PrintMessage.hpp"
 
 namespace Minisat{
 	class Solver;
@@ -36,43 +37,28 @@ namespace Minisat{
 
 namespace MinisatID {
 
-class PCSolver;
-class IDSolver;
-class AggSolver;
-class ModSolver;
-class SOSolver;
-
 namespace Print {
 
+int getPrintableVar(Var v);
+
+template<class T>
+void print(const T& lit, const lbool val);
+
 template<class S>
-void print(S const * const s);
-
-template<>
-void print(PCSolver const * const s);
-
-template<>
-void print(IDSolver const * const s);
-
-template<>
-void print(AggSolver const * const s);
-
-template<>
-void print(Minisat::Solver const * const s);
-
-template<>
-void print(ModSolver const * const s);
-
-template<>
-void print(SOSolver const * const s);
+void print(S * const s);
 
 template<class C>
-void printClause(const C& c);
+void print(const C& c);
 
 template<class S>
-void printClause(rClause c, S const * const s);
+void print(rClause c, S * const s);
 
-template<>
-void printClause(rClause c, PCSolver const * const s);
+template<class T>
+void printStatistics(T obj, int v = 1000){
+	if(v>=1){
+		obj->printStatistics();
+	}
+}
 
 }
 

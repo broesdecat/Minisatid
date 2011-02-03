@@ -52,6 +52,8 @@
 #include "modules/aggsolver/FullyWatched.hpp"
 #include "modules/aggsolver/PartiallyWatched.hpp"
 
+#include "utils/Print.hpp"
+
 #include <algorithm>
 
 #include "utils/IntTypes.h"
@@ -59,6 +61,7 @@
 
 using namespace std;
 using namespace MinisatID;
+using namespace MinisatID::Print;
 using namespace Aggrs;
 
 AggSolver::AggSolver(pPCSolver s) :
@@ -197,7 +200,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType
 	for (vsize i = 0; i < set->getWL().size(); i++) {
 		if (var(set->getWL()[i].getLit()) == headv) { //Exception if head occurs in set itself
 			char s[100];
-			sprintf(s, "Set nr. %d contains a literal of atom %d, the head of an aggregate, which is not allowed.\n", setid, gprintVar(headv));
+			sprintf(s, "Set nr. %d contains a literal of atom %d, the head of an aggregate, which is not allowed.\n", setid, getPrintableVar(headv));
 			throw idpexception(s);
 		}
 	}
@@ -205,7 +208,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType
 	//Check that no aggregates occur with the same heads
 	if (aggheads.find(headv) != aggheads.end()) {
 		char s[100];
-		sprintf(s, "At least two aggregates have the same head(%d).\n", gprintVar(headv));
+		sprintf(s, "At least two aggregates have the same head(%d).\n", getPrintableVar(headv));
 		throw idpexception(s);
 	}
 	aggheads.insert(headv);
@@ -358,14 +361,14 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	if (verbosity() >= 20) {
 		for(vpagg::const_iterator i=headwatches.begin(); i<headwatches.end(); i++){
 			if ((*i) != NULL) {
-				report("Headwatch of var %d: ", gprintVar(var((*i)->getHead())));
+				report("Headwatch of var %d: ", getPrintableVar(var((*i)->getHead())));
 				Aggrs::print(verbosity(), *(*i)->getSet(), true);
 			}
 		}
 		Var v = 0;
 		for(vvpw::const_iterator i=permwatches.begin(); i<permwatches.end(); i++, v++){
 			if((*i).size()>0){
-				report("Bodywatches of var %d: ", gprintVar(v));
+				report("Bodywatches of var %d: ", getPrintableVar(v));
 				for (vsize j = 0; j < (*i).size(); j++) {
 					report("      ");
 					Aggrs::print(verbosity(), *((*i)[j])->getSet(), true);
@@ -375,7 +378,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		v = 0;
 		for(vvpw::const_iterator i=tempwatches.begin(); i<tempwatches.end(); i++, v++){
 			if((*i).size()>0){
-				report("Bodywatches of var %d: ", gprintVar(v));
+				report("Bodywatches of var %d: ", getPrintableVar(v));
 				for (vsize j = 0; j < (*i).size(); j++) {
 					report("      ");
 					Aggrs::print(verbosity(), *((*i)[j])->getSet(), true);
@@ -414,7 +417,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 	if (value(p) == l_False) {
 		if (verbosity() >= 2) {
 			report("Deriving conflict in ");
-			gprintLit(p, l_True);
+			Print::print(p, l_True);
 			report(" because of the aggregate expression ");
 			Aggrs::print(verbosity(), ar->getAgg(), true);
 		}
@@ -432,7 +435,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 		noprops = false;
 		if (verbosity() >= 2) {
 			report("Deriving ");
-			gprintLit(p, l_True);
+			Print::print(p, l_True);
 			report(" because of the aggregate expression ");
 			Aggrs::print(verbosity(), ar->getAgg(), true);
 		}
@@ -507,7 +510,7 @@ rClause AggSolver::doProp(){
 		propagated[var(p)]=LI(sign(p)?l_False:l_True, index++);
 
 		if (verbosity() >= 3) {
-			report("Aggr_propagate("); gprintLit(p, l_True); report(").\n");
+			report("Aggr_propagate("); Print::print(p, l_True); report(").\n");
 		}
 
 /*		if(var(p)==544){
@@ -756,7 +759,7 @@ bool AggSolver::addMnmzSum(Var headv, int setid) {
 	for (vsize i = 0; i < set->getWL().size(); i++) {
 		if (var(set->getWL()[i].getLit()) == headv) { //Exception if head occurs in set itself
 			char s[100];
-			sprintf(s, "Set nr. %d contains a literal of atom %d, the head of an aggregate, which is not allowed.\n", setid, gprintVar(headv));
+			sprintf(s, "Set nr. %d contains a literal of atom %d, the head of an aggregate, which is not allowed.\n", setid, getPrintableVar(headv));
 			throw idpexception(s);
 		}
 	}
@@ -766,7 +769,7 @@ bool AggSolver::addMnmzSum(Var headv, int setid) {
 		for (vsize j = 0; j < (*i).second->getAgg().size(); j++) {
 			if (var((*i).second->getAgg()[j]->getHead()) == headv) { //Exception if two agg with same head
 				char s[100];
-				sprintf(s, "At least two aggregates have the same head(%d).\n", gprintVar(headv));
+				sprintf(s, "At least two aggregates have the same head(%d).\n", getPrintableVar(headv));
 				throw idpexception(s);
 			}
 		}
@@ -835,7 +838,7 @@ void AggSolver::printStatistics() const {
 	report("aggregate propagations: %-12" PRIu64 "\n", propagations);
 }
 
-void AggSolver::print(){
+void AggSolver::print() const{
 	Print::print(this);
 }
 

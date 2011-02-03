@@ -32,6 +32,7 @@
 
 using namespace std;
 using namespace MinisatID;
+using namespace MinisatID::Print;
 using namespace Minisat;
 
 /******************
@@ -178,7 +179,7 @@ bool PCSolver::addClause(vec<Lit>& lits) {
 		clog <<"Adding clause:";
 		for (int i = 0; i < lits.size(); i++) {
 			clog <<" ";
-			gprintLit(lits[i]);
+			print(lits[i]);
 		}
 		clog <<"\n";
 	}
@@ -187,9 +188,9 @@ bool PCSolver::addClause(vec<Lit>& lits) {
 	if(modes().printcnfgraph){
 		for(int i=0; i<lits.size(); i++){
 			if(i>0){ clog <<" -- "; }
-			clog <<gprintVar(var(lits[i]));
+			clog <<getPrintableVar(var(lits[i]));
 		}
-		if(lits.size()>1){ clog <<" -- " <<gprintVar(var(lits[0])) <<" "; }
+		if(lits.size()>1){ clog <<" -- " <<getPrintableVar(var(lits[0])) <<" "; }
 		clog <<"[color=blue];\n";
 	}
 
@@ -258,9 +259,9 @@ bool PCSolver::addSet(int setid, const vec<Lit>& lits, const vector<Weight>& w) 
 	if(modes().printcnfgraph){
 		for(int i=0; i<lits.size(); i++){
 			if(i>0){ clog <<" -- "; }
-			clog <<gprintVar(var(lits[i]));
+			clog <<getPrintableVar(var(lits[i]));
 		}
-		if(lits.size()>1){ clog <<" -- " <<gprintVar(var(lits[0])) <<" "; }
+		if(lits.size()>1){ clog <<" -- " <<getPrintableVar(var(lits[0])) <<" "; }
 		clog <<"[color=green];\n";
 	}
 
@@ -272,7 +273,7 @@ bool PCSolver::addAggrExpr(Lit head, int setid, const Weight& bound, AggSign bou
 
 	if (modes().verbosity >= 4) {
 		clog <<"Adding aggregate with info ";
-		gprintLit(head);
+		print(head);
 		clog 	<<setid <<", " <<toString(bound).c_str() <<", "  <<(boundsign==AGGSIGN_UB?"lower":"greater")
 				<<", " <<type <<(defined==DEF?"defined":"completion") <<"\n";
 	}
@@ -421,7 +422,7 @@ lbool PCSolver::checkStatus(lbool status) const {
  */
 rClause PCSolver::getExplanation(Lit l) {
 	if (modes().verbosity > 2) {
-		clog <<"Find T-theory explanation for "; gprintLit(l); clog <<"\n";
+		clog <<"Find T-theory explanation for "; print(l); clog <<"\n";
 	}
 
 	DPLLTmodule* solver = propagations[var(l)];
@@ -432,9 +433,9 @@ rClause PCSolver::getExplanation(Lit l) {
 
 	if (verbosity() >= 2) {
 		clog <<"Implicit reason clause from the " <<solver->getName() <<" module ";
-		gprintLit(l, sign(l) ? l_False : l_True);
+		print(l, sign(l) ? l_False : l_True);
 		clog <<" : ";
-		Print::printClause(explan, this);
+		Print::print(explan, this);
 		clog <<"\n";
 	}
 
@@ -686,7 +687,7 @@ bool PCSolver::invalidateModel(vec<Lit>& learnt) {
 
 	if (modes().verbosity >= 3) {
 		clog <<"Adding model-invalidating clause: [ ";
-		gprintClause(learnt);
+		print(learnt);
 		clog <<"]\n";
 	}
 
@@ -722,7 +723,7 @@ bool PCSolver::addMinimize(const vec<Lit>& lits, bool subsetmnmz) {
 				clog <<(subsetmnmz?" ":"<");
 			}
 			first = false;
-			gprintLit(lits[i]);
+			print(lits[i]);
 		}
 		clog <<"]\n";
 	}
@@ -788,7 +789,7 @@ bool PCSolver::invalidateValue(vec<Lit>& invalidation) {
 				clog <<"Current optimum found for: ";
 				getParent()->printLiteral(cerr, to_minimize[i]);
 				clog <<"\n";
-				//clog <<"Current optimum is var %d\n", gprintVar(var(to_minimize[i])));
+				//clog <<"Current optimum is var %d\n", getPrintableVar(var(to_minimize[i])));
 			}
 			currentoptimumfound = true;
 		}
@@ -912,7 +913,7 @@ void PCSolver::printModID() const {
 }
 
 void PCSolver::printEnqueued(const Lit& p) const{
-	clog <<"Enqueued "; gprintLit(p); clog <<" in ";
+	clog <<"Enqueued "; print(p); clog <<" in ";
 	printModID();
 	reportf("\n");
 }
@@ -923,7 +924,7 @@ void PCSolver::printChoiceMade(int level, Lit l) const {
 		printModID();
 
 		clog <<": ";
-		gprintLit(l);
+		print(l);
 		clog <<".\n";
 	}
 }

@@ -25,13 +25,13 @@ if test -z $CXXFLAGS; then
 fi
 AC_PROG_CXX
 #LT_INIT([static]) #version 1.11, generate lt_main.sh by libtoolize
-AC_DISABLE_SHARED
+#AC_DISABLE_SHARED
 AC_PROG_LIBTOOL
 
 AC_DECL_YYTEXT
 AC_PROG_YACC
 AC_LANG([C++])
-AM_INIT_AUTOMAKE([foreign subdir-objects -Wall]) #silent-rules FROM VERSION 1.11 #-ffloat-store OTHER parameters like pedantic, seem no to work here, I set them in debug CXXflags!
+AM_INIT_AUTOMAKE([1.9 tar-pax foreign subdir-objects -Wall]) #silent-rules FROM VERSION 1.11 #-ffloat-store OTHER parameters like pedantic, seem no to work here, I set them in debug CXXflags!
 
 #check for the necessary headers
 AC_HEADER_STDC
@@ -127,10 +127,10 @@ AM_CONDITIONAL([USEPERFTOOLS],[test x$perftools = xtrue])
 # files to generate via autotools (.am or .in source files)
 AC_CONFIG_SUBDIRS([lib/tclap lib/perftools])
 AC_CONFIG_FILES([Makefile 
-	lib/Makefile 
+	lib/Makefile
+	lib/pbsolver/Makefile 
 	src/Makefile 
 	src/parser/Makefile 
-	src/pbsolver/Makefile 
 	doc/Makefile ])
 
 # generate the final Makefile etc.

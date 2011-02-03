@@ -31,7 +31,7 @@
 
 #include "external/ExternalUtils.hpp"
 #include "satsolver/SATUtils.hpp"
-#include "utils/PrintMessage.hpp"
+#include "utils/Print.hpp"
 
 using namespace std;
 using namespace MinisatID;

@@ -25,7 +25,7 @@
 #include <algorithm>
 
 #include "parser/ResourceManager.hpp"
-#include "utils/PrintMessage.hpp"
+#include "utils/Print.hpp"
 #include "external/Translator.hpp"
 
 using namespace std;

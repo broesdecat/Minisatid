@@ -4,7 +4,10 @@
 #include "modules/aggsolver/PartiallyWatched.hpp"
 #include "modules/AggSolver.hpp"
 
+#include "utils/Print.hpp"
+
 using namespace MinisatID;
+using namespace MinisatID::Print;
 
 void Aggrs::setAdded(){
 
@@ -46,7 +49,7 @@ void Aggrs::printWatches(int verbosity, AggSolver* const solver, const std::vect
 			continue;
 		}
 
-		report("    Watch "); gprintLit(toLit(i)); report(" used by: \n");
+		report("    Watch "); Print::print(toLit(i)); report(" used by: \n");
 		for(vsize j=0; j<tempwatches[i].size(); j++){
 			for(vsize k=0; k<tempwatches[i][j]->getSet()->getAgg().size(); k++){
 				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(tempwatches[i][j]);
@@ -72,7 +75,7 @@ void Aggrs::print(int verbosity, const TypedSet& c, bool endl) {
 				report(", ");
 			}
 			begin = false;
-			gprintLit((*i).getLit());
+			Print::print((*i).getLit());
 			lbool value = c.getSolver()->value((*i).getLit());
 			report("(%s)", value==l_Undef?"X":value==l_True?"T":"F");
 			report("=%s", toString((*i).getWeight()).c_str());
@@ -85,7 +88,7 @@ void Aggrs::print(int verbosity, const TypedSet& c, bool endl) {
 }
 
 void Aggrs::print(int verbosity, const Agg& ae, bool endl) {
-	gprintLit(ae.getHead());
+	Print::print(ae.getHead());
 	lbool value = ae.getSet()->getSolver()->value(ae.getHead());
 	report("(%s)" , value==l_Undef?"X":value==l_True?"T":"F");
 	TypedSet* set = ae.getSet();
