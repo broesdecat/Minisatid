@@ -338,7 +338,13 @@ bool FODOTTranslator::deriveStringFromAtomNumber(int atom, uint& currpred, vecto
 	for(int n = predtypes[currpred].size() - 1; n >= 0 ; n--) {
 		int cs = types[predtypes[currpred][n]].size();
 		int carg = valueleft % cs;
-		arg.push_back(types[predtypes[currpred][n]][carg]);
+		string domelem = types[predtypes[currpred][n]][carg];
+		if(!tofodot){
+			char first = tolower(domelem[0]);
+			domelem = domelem.substr(1);
+			domelem.insert(domelem.begin(), first);
+		}
+		arg.push_back(domelem);
 		valueleft = (valueleft - carg) / cs;
 	}
 	std::reverse(arg.begin(), arg.end());
