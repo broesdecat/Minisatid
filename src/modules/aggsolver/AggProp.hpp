@@ -96,9 +96,12 @@ public:
 	virtual const char*	getName					() 										const = 0;
 	virtual AggType 	getType					() 										const = 0;
 	virtual bool 		isNeutralElement		(const Weight& w)						const = 0;
-	virtual Weight 		getESV					()										const = 0;
 	virtual bool 		isMonotone				(const Agg& agg, const WL& l)			const = 0;
-	virtual Weight 		getBestPossible			(TypedSet* set) 						const = 0;
+
+	//TODO expensive and in fact static: create variables and calc only once!
+	//Calculate best and worst possible values for the EMPTY interpretation, independent of aggregate signs!
+	virtual Weight		getMinPossible			(const TypedSet& set)					const = 0;
+	virtual Weight		getMaxPossible			(const TypedSet& set)					const = 0;
 	virtual Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const = 0;
 	virtual WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const = 0;
 
@@ -106,7 +109,10 @@ public:
 	virtual Weight		remove					(const Weight& lhs, const Weight& rhs) 	const = 0;
 	virtual bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const = 0;
 
-	virtual Propagator*	createPropagator		(TypedSet* set, bool pw) const = 0;
+	virtual Propagator*	createPropagator		(TypedSet* set, bool pw) 				const = 0;
+
+protected:
+	virtual Weight 		getESV					()										const = 0;
 };
 
 class MaxProp: public AggProp{
@@ -114,15 +120,18 @@ public:
 	const char* getName					() 										const { return "MAX"; }
 	AggType 	getType					() 										const { return MAX; }
 	bool 		isNeutralElement		(const Weight& w) 						const { return false; }
-	Weight 		getESV					()										const { return negInfinity(); }
 	bool 		isMonotone				(const Agg& agg, const WL& l)			const;
-	Weight 		getBestPossible			(TypedSet* set) 						const;
+	Weight		getMinPossible			(const TypedSet& set)					const;
+	Weight		getMaxPossible			(const TypedSet& set)					const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const { return lhs>rhs?lhs:rhs; }
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const { assert(false); return 0; }
 	bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const;
 	Propagator*	createPropagator		(TypedSet* set, bool pw) const;
+
+protected:
+	Weight 		getESV					()										const { return negInfinity(); }
 };
 
 class SPProp: public AggProp{
@@ -135,14 +144,17 @@ public:
 	const char* getName					() 										const { return "PROD"; }
 	AggType 	getType					() 										const { return PROD; }
 	bool 		isNeutralElement		(const Weight& w) 						const { return w==1; }
-	Weight 		getESV					()										const { return Weight(1); }
 	bool 		isMonotone				(const Agg& agg, const WL& l)			const;
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const;
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const;
-	Weight 		getBestPossible			(TypedSet* set) 						const;
+	Weight		getMinPossible			(const TypedSet& set)					const;
+	Weight		getMaxPossible			(const TypedSet& set)					const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
 	Propagator*	createPropagator		(TypedSet* set, bool pw) const;
+
+protected:
+	Weight 		getESV					()										const { return Weight(1); }
 };
 
 class SumProp: public SPProp{
@@ -150,14 +162,17 @@ public:
 	const char* getName					() 										const { return "SUM"; }
 	AggType 	getType					() 										const { return SUM; }
 	bool 		isNeutralElement		(const Weight& w) 						const { return w==0; }
-	Weight 		getESV					()										const { return Weight(0); }
 	bool 		isMonotone				(const Agg& agg, const WL& l)			const;
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const;
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const;
-	Weight 		getBestPossible			(TypedSet* set) 						const;
+	Weight		getMinPossible			(const TypedSet& set)					const;
+	Weight		getMaxPossible			(const TypedSet& set)					const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
 	Propagator*	createPropagator		(TypedSet* set, bool pw) const;
+
+protected:
+	Weight 		getESV					()										const { return Weight(0); }
 };
 
 class CardProp: public SumProp{
@@ -190,6 +205,22 @@ public:
 	lbool				propagatedValue(const Lit& l) const;
 
 	virtual Weight		getValue() const = 0; //Return current aggregate value (only if two-valued!)
+
+	bool isSatisfied(const Agg& agg, const Weight& min, const Weight& max) const{
+		if(agg.hasUB()){
+			return max<=agg.getCertainBound();
+		}else{ //LB
+			return min>=agg.getCertainBound();
+		}
+	}
+
+	bool isFalsified(const Agg& agg, const Weight& min, const Weight& max) const{
+		if(agg.hasUB()){
+			return min>agg.getCertainBound();
+		}else{ //LB
+			return max<agg.getCertainBound();
+		}
+	}
 };
 
 class TypedSet{
@@ -257,8 +288,6 @@ public:
 	///////
 	// HELP METHODS
 	///////
-
-	Weight				getBestPossible() { return getType().getBestPossible(this);}
 };
 
 }

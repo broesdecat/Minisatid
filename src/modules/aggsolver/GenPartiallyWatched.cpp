@@ -114,21 +114,15 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 	}
 #endif
 
-	//Calculate min and max values over CURRENT!!!!!!! interpretation
 	//Create sets and watches, initialize min/max values
-	genmin = set.getType().getESV();
-	genmax = set.getType().getESV();
+	genmin = set.getType().getMinPossible(set);
+	genmax = set.getType().getMaxPossible(set);
 	const vwl& wls = set.getWL();
 	for(vsize i=0; i<wls.size(); i++){
 		const WL& wl = wls[i];
 		bool mono = set.getType().isMonotone(**set.getAgg().begin(), wl);
 
 		nws.push_back(new GenPWatch(getSetp(), wl, mono));
-		if(wl.getWeight()<0){
-			genmin = set.getType().add(genmin, wl.getWeight());
-		}else{
-			genmax = set.getType().add(genmax, wl.getWeight());
-		}
 	}
 
 	Weight currentmin = genmin, currentmax = genmax;
@@ -546,18 +540,13 @@ double GenPWAgg::testGenWatchCount() {
 
 	//Calculate min and max values over empty interpretation
 	//Create sets and watches, initialize min/max values
-	genmin = set.getType().getESV();
-	genmax = set.getType().getESV();
+	genmin = set.getType().getMinPossible(set);
+	genmax = set.getType().getMaxPossible(set);
 	const vwl& wls = set.getWL();
 	for(vsize i=0; i<wls.size(); i++){
 		const WL& wl = wls[i];
 		bool mono = set.getType().isMonotone(**set.getAgg().begin(), wl);
 		nws.push_back(new GenPWatch(getSetp(), wl, mono));
-		if(wl.getWeight()<0){
-			genmin = set.getType().add(genmin, wl.getWeight());
-		}else{
-			genmax = set.getType().add(genmax, wl.getWeight());
-		}
 	}
 
 	//Calculate reference aggregate (the one which will lead to the most watches

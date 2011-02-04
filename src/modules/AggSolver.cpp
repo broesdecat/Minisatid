@@ -801,12 +801,7 @@ bool AggSolver::addMnmz(Var headv, int setid, AggType type) {
 		break;
 	}
 
-	Weight max = prop->getESV();
-	for (vwl::const_iterator i = set->getWL().begin(); i < set->getWL().end(); i++) {
-		if ((*i).getWeight() > 0) {
-			max = prop->add(max, (*i).getWeight());
-		}
-	}
+	Weight max = prop->getMaxPossible(*set);
 
 	Agg* ae = new Agg(head, AggBound(AGGSIGN_UB, max+1), COMP, type);
 	ae->setOptim();
@@ -831,7 +826,7 @@ bool AggSolver::invalidateAgg(vec<Lit>& invalidation, Var head) {
 
 	a->setBound(AggBound(a->getSign(), value - 1));
 
-	if (s->getBestPossible() == value) {
+	if (s->getType().getMinPossible(*s) == value) {
 		return true;
 	}
 

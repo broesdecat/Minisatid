@@ -57,10 +57,22 @@ Weight SumProp::remove(const Weight& lhs, const Weight& rhs) const {
 	return lhs - rhs;
 }
 
-Weight SumProp::getBestPossible(TypedSet* set) const {
-	Weight max = set->getType().getESV();
-	for (vwl::const_iterator j = set->getWL().begin(); j < set->getWL().end(); j++) {
-		max = this->add(max, (*j).getWeight());
+Weight SumProp::getMinPossible(const TypedSet& set) const{
+	Weight min = getESV();
+	for (vwl::const_iterator j = set.getWL().begin(); j < set.getWL().end(); j++) {
+		if((*j).getWeight() < 0){
+			min = this->add(min, (*j).getWeight());
+		}
+	}
+	return min;
+}
+
+Weight SumProp::getMaxPossible(const TypedSet& set) const {
+	Weight max = getESV();
+	for (vwl::const_iterator j = set.getWL().begin(); j < set.getWL().end(); j++) {
+		if((*j).getWeight() > 0){
+			max = this->add(max, (*j).getWeight());
+		}
 	}
 	return max;
 }
@@ -83,8 +95,16 @@ WL SumProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* s
 // MAX Prop
 ///////
 
-Weight MaxProp::getBestPossible(TypedSet* set) const {
-	return set->getWL().back().getWeight();
+Weight MaxProp::getMinPossible(const TypedSet&) const{
+	return getESV();
+}
+
+Weight MaxProp::getMaxPossible(const TypedSet& set) const {
+	Weight max = getESV();
+	for(vwl::const_iterator j = set.getWL().begin(); j<set.getWL().end(); j++){
+		max = this->add(max, (*j).getWeight());
+	}
+	return max;
 }
 
 Weight MaxProp::getCombinedWeight(const Weight& first, const Weight& second) const {
@@ -109,10 +129,17 @@ WL MaxProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* s
 // PROD Prop
 ///////
 
-Weight ProdProp::getBestPossible(TypedSet* set) const {
-	Weight max = set->getType().getESV();
-	for(vwl::const_iterator j = set->getWL().begin(); j<set->getWL().end(); j++){
-		max = this->add(max, (*j).getWeight());
+//TODO INVARIANT: only positive weights in prodagg
+Weight ProdProp::getMinPossible(const TypedSet&) const{
+	return getESV();
+}
+
+Weight ProdProp::getMaxPossible(const TypedSet& set) const {
+	Weight max = getESV();
+	for(vwl::const_iterator j = set.getWL().begin(); j<set.getWL().end(); j++){
+		if((*j).getWeight() > 0){
+			max = this->add(max, (*j).getWeight());
+		}
 	}
 	return max;
 }
@@ -343,7 +370,7 @@ bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, V
 
 	if (justified && agg.hasUB()) {
 		justified = false;
-		Weight bestpossible = type.getBestPossible(set);
+		Weight bestpossible = type.getMaxPossible(*set);
 		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
 			if (oppositeIsJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push(~(*i).getLit());
@@ -358,7 +385,7 @@ bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, V
 	}
 	if(justified && agg.hasLB()){
 		justified = false;
-		Weight bestcertain = set->getType().getESV();
+		Weight bestcertain = set->getType().getMinPossible(*set);
 		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
 			if (isJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push((*i).getLit());

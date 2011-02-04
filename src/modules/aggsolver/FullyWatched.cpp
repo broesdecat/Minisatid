@@ -28,8 +28,8 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 	}
 
 	trail.push_back(new FWTrail(0, 0, 0));
-	setCP(getSet().getBestPossible());
-	setCC(getSet().getType().getESV());
+	setCP(getSet().getType().getMaxPossible(getSet()));
+	setCC(getSet().getType().getMinPossible(getSet()));
 
 	int counter = 0;
 	for (vpagg::iterator i = getSet().getAggNonConst().begin(); !unsat && i < getSet().getAggNonConst().end();) {
@@ -266,28 +266,15 @@ lbool Aggrs::canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP
  * which is equivalent with the clause bigvee{~l|l in L+} or p
  * and this is returned as the set {~l|l in L+}
  */
-
-inline bool isSatisfied(bool headtrue, const Weight& current, bool cc, bool ub, const Weight& bound) {
-	if(headtrue && ub){
-		return (cc && current <= bound) || (!cc && current>bound);
-	}else if(headtrue && !ub){
-		return (cc && current >= bound) || (!cc && current<bound);
-	}else if(!headtrue && ub){
-		return (!cc && current > bound) || (cc && current<=bound);
-	}else if(!headtrue && !ub){
-		return (!cc && current < bound) || (cc && current>=bound);
-	}
-	assert(false);
-	return false;
-}
-
 void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	const Agg& agg = ar.getAgg();
 	const Lit& head = agg.getHead();
 
-	bool headtrue = value(head)==l_True;
+	bool headtrue = false;
 	if(ar.isHeadReason()){
 		headtrue = ar.getPropLit()==head;
+	}else{
+		headtrue = value(head)==l_True;
 	}
 
 	bool mono = (ar.getExpl()==BASEDONCC && !headtrue) ||
@@ -295,11 +282,14 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	bool inset = ar.getExpl()==BASEDONCP;
 
 	Weight min, max;
-	if(!agg.hasUB()){
-		min = getSetp()->getType().getESV(); max = getSet().getType().getBestPossible(getSetp());
+	if(agg.hasUB()){
+		min = getSet().getType().getMinPossible(getSet());
+		max = getSet().getType().getMaxPossible(getSet());
 	}else{
-		min = getSet().getType().getBestPossible(getSetp()); max = getSetp()->getType().getESV();
+		min = getSet().getType().getMaxPossible(getSet());
+		max = getSet().getType().getMinPossible(getSet());
 	}
+
 
 	if(!ar.isHeadReason()){
 		if(mono){
@@ -315,14 +305,16 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	//check monotone that are false when monotone became true, a-m became false or head became false
 	bool checkmonofalse = (ar.isHeadReason() && !headtrue) || (!ar.isHeadReason() && ((mono && inset) || (!mono && !inset)));
 
-	bool ub = agg.hasUB();
-	const Weight& bound = agg.getCertainBound();
-	bool satisfied = false;
+	bool stop = false;
 	vector<WL> reasons;
 	if(checkmonofalse){
-		satisfied = isSatisfied(headtrue, max, false, ub, bound);
-		for(vector<FWTrail*>::const_iterator a=getTrail().begin(); !satisfied && a<getTrail().end(); a++){
-        	for (vprop::const_iterator i = (*a)->props.begin(); !satisfied && i < (*a)->props.end(); i++) {
+		if(headtrue){
+			stop = isSatisfied(agg, min, max);
+		}else{
+			stop = isFalsified(agg, min, max);
+		}
+		for(vector<FWTrail*>::const_iterator a=getTrail().begin(); !stop && a<getTrail().end(); a++){
+        	for (vprop::const_iterator i = (*a)->props.begin(); !stop && i < (*a)->props.end(); i++) {
 				bool monolit = getSet().getType().isMonotone(agg, (*i).getWL());
 				if((monolit && (*i).getType()==NEG) || (!monolit && (*i).getType()==POS)){
 					reasons.push_back((*i).getWL());
@@ -331,14 +323,23 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 					}else{
 						max = getSet().getType().add(max, (*i).getWeight());
 					}
-					satisfied = isSatisfied(headtrue, max, false, ub, bound);
+
+					if(headtrue){
+						stop = isSatisfied(agg, min, max);
+					}else{
+						stop = isFalsified(agg, min, max);
+					}
 				}
         	}
 		}
 	}else{
-		satisfied = isSatisfied(headtrue, min, true, ub, bound);
-		for(vector<FWTrail*>::const_iterator a=getTrail().begin(); !satisfied && a<getTrail().end(); a++){
-        	for (vprop::const_iterator i = (*a)->props.begin(); !satisfied && i < (*a)->props.end(); i++) {
+		if(headtrue){
+			stop = isSatisfied(agg, min, max);
+		}else{
+			stop = isFalsified(agg, min, max);
+		}
+		for(vector<FWTrail*>::const_iterator a=getTrail().begin(); !stop && a<getTrail().end(); a++){
+        	for (vprop::const_iterator i = (*a)->props.begin(); !stop && i < (*a)->props.end(); i++) {
 				bool monolit = getSet().getType().isMonotone(agg, (*i).getWL());
 				if((monolit && (*i).getType()==POS) || (!monolit && (*i).getType()==NEG)){
 					reasons.push_back((*i).getWL());
@@ -347,13 +348,17 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 					}else{
 						min = getSet().getType().remove(min, (*i).getWeight());
 					}
-					satisfied = isSatisfied(headtrue, min, true, ub, bound);
+					if(headtrue){
+						stop = isSatisfied(agg, min, max);
+					}else{
+						stop = isFalsified(agg, min, max);
+					}
 				}
         	}
 		}
 	}
 
-	assert(satisfied);
+	assert(stop);
 
 	//Subsetminimization
 	//Slowdown for weight bounded set
@@ -372,7 +377,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 						max = getSet().getType().remove(max, (*i).getWeight());
 					}
 
-					if(isSatisfied(headtrue, max, false, agg.hasUB(), agg.getCertainBound())){
+					if((headtrue && isSatisfied(agg, min, max)) || (!headtrue && isFalsified(agg, min, max))){
 						reasons.erase(i);
 						changes = true;
 					}else{
@@ -393,7 +398,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 						min = getSet().getType().add(min, (*i).getWeight());
 					}
 
-					if(isSatisfied(headtrue, min, true, agg.hasUB(), agg.getCertainBound())){
+					if((headtrue && isSatisfied(agg, min, max)) || (!headtrue && isFalsified(agg, min, max))){
 						reasons.erase(i);
 						changes = true;
 					}else{
@@ -431,14 +436,14 @@ void MaxFWAgg::removeFromPossibleSet(const WL& l) {
 	TypedSet& set = getSet();
 	if (l.getWeight() == getCP()) {
 		bool found = false;
-		for (vsize i=0; i<set.getWL().size(); i++) {
+		for (vsize i=0; i<set.getWL().size(); i++) { //INVARIANT: sorted
 			if (value(set.getWL()[i].getLit()) != l_False) {
 				setCP(set.getWL()[i].getWeight());
 				found = true;
 			}
 		}
-		if (!found) {
-			setCP(set.getType().getESV());
+		if (!found) { //All literals false: current best is minimal value
+			setCP(set.getType().getMinPossible(set));
 		}
 	}
 }
