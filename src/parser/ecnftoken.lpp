@@ -53,11 +53,11 @@ WHITESPACE	[\t\r ]*
 
 <theory>^"WSet"	{ADJ; return WSETDEFN;}
 <theory>^"Set"	{ADJ; return SETDEFN;}
-<theory>^"Card"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::CARD; return AGGDEFN;}
-<theory>^"Sum"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::SUM; return AGGDEFN;}
-<theory>^"Prod"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::PROD; return AGGDEFN;}
-<theory>^"Min"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::MIN; return AGGDEFN;}
-<theory>^"Max"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::MAX; return AGGDEFN;}
+<theory>"Card"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::CARD; return AGGDEFN;}
+<theory>"Sum"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::SUM; return AGGDEFN;}
+<theory>"Prod"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::PROD; return AGGDEFN;}
+<theory>"Min"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::MIN; return AGGDEFN;}
+<theory>"Max"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::MAX; return AGGDEFN;}
 
 <theory>^"Mod"	{ADJ; return MODDEFN;}
 
@@ -69,9 +69,9 @@ WHITESPACE	[\t\r ]*
 <theory>^"e"	{ADJ; /*ecnflval*/yylval.boolean = true; return QUANTe;} //existential quantifier
 <theory>^"a"	{ADJ; /*ecnflval*/yylval.boolean = false; return QUANTe;} //universal quantifier
 
-<theory>^"Mnmz"	{ADJ; return SUBSETMINDEFN;}
-<theory>^"Mnmt"    {ADJ; return MNMZDEFN;}
-<theory>^"SumMnmz"	{ADJ; return SUMMINDEFN;}
+<theory>^"Mnmsubset"	{ADJ; return SUBSETMINDEFN;}
+<theory>^"Mnmlist"		{ADJ; return MNMZDEFN;}
+<theory>^"Mnmagg"		{ADJ; return AGGMINDEFN;}
 
 <theory>" "		{ADJ; /* disregard whitespaces */}
 <theory>"\t"	{ADJ; /*                       */}

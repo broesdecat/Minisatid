@@ -375,6 +375,13 @@ void MaxToSAT::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsa
 	if (set->getType().getType()!=MAX || set->getAgg().size() != 1 || set->getAgg()[0]->getSem()==IMPLICATION) {
 		return;
 	}
+
+	for(vpagg::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); i++){
+		if((*i)->isOptim()){
+			return;
+		}
+	}
+
 	bool notunsat = true;
 	assert( set->getAgg().size()==1);
 	/*

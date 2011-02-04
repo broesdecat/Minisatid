@@ -410,7 +410,7 @@ bool Read::addOptimStatement(){
 		if(!getSolver()->addSet(optimsetcount, optimbody, optimweights)){
 			return false;
 		}
-		if(!getSolver()->addSumMinimize(optimhead.getAtom(), optimsetcount)){
+		if(!getSolver()->addMinimize(optimhead.getAtom(), optimsetcount, SUM)){
 			return false;
 		}
 	}

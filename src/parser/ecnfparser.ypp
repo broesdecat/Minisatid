@@ -130,7 +130,7 @@ void parsepred(std::string* name, int num, std::vector<std::string>* ptypes, boo
 }
 
 %token DISJUNCTION CONJUNCTION
-%token SUBSETMINDEFN MNMZDEFN SUMMINDEFN
+%token SUBSETMINDEFN MNMZDEFN AGGMINDEFN
 %token SETDEFN WSETDEFN  
 %token <integer> ZERO
 %token <str> NUMBER
@@ -246,7 +246,7 @@ ecnftheory	:	/* empty */
 			
 mnmz	:	MNMZDEFN body ZERO				{ CR(solver->addMinimize(*$2, false)); delete $2;}
 subsetmnmz: SUBSETMINDEFN body ZERO 		{ CR(solver->addMinimize(*$2, true)); delete $2;}
-summnmz :	SUMMINDEFN NUMBER NUMBER ZERO	{ CR(solver->addSumMinimize(cAtom($2), cID($3))); delete $2; delete $3;}
+summnmz :	AGGMINDEFN AGGDEFN NUMBER NUMBER ZERO	{ CR(solver->addMinimize(cAtom($3), cID($4), $2)); delete $3; delete $4;}
 		
 clause	:	body ZERO	
 				{ 	CR(solver->addClause(*$1)); delete $1; }

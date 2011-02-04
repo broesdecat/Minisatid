@@ -50,7 +50,7 @@ typedef CPSolver* pCPSolver;
 typedef AggSolver* pAggSolver;
 typedef ModSolver* pModSolver;
 
-enum Optim { MNMZ, SUBSETMNMZ, SUMMNMZ, NONE }; // Preference minimization, subset minimization, sum minimization
+enum Optim { MNMZ, SUBSETMNMZ, AGGMNMZ, NONE }; // Preference minimization, subset minimization, sum minimization
 
 class DPLLTSolver{
 private:
@@ -201,7 +201,7 @@ public:
 	// OPTIMIZATION
 	///////
     bool 	addMinimize		(const vec<Lit>& lits, bool subsetmnmz);
-    bool 	addSumMinimize	(const Var head, const int setid);
+    bool 	addMinimize		(const Var head, const int setid, AggType agg);
 
 	///////
 	// DEBUG

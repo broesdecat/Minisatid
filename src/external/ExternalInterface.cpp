@@ -101,8 +101,8 @@ bool WrappedPCSolver::addMinimize(const vector<Literal>& lits, bool subsetmnmz){
 	return getImpl()->addMinimize(lits, subsetmnmz);
 }
 
-bool WrappedPCSolver::addSumMinimize(const Atom head, const int setid){
-	return getImpl()->addSumMinimize(head, setid);
+bool WrappedPCSolver::addMinimize(const Atom head, const int setid, AggType type){
+	return getImpl()->addMinimize(head, setid, type);
 }
 
 bool WrappedPCSolver::addIntVar(int groundname, int min, int max){

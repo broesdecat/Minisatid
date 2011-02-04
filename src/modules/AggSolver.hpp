@@ -195,8 +195,8 @@ public:
 	//////
 	// OPTIMISATION
 	//////
-	bool 				addMnmzSum				(Var headv, int setid);
-    bool 				invalidateSum			(vec<Lit>& invalidation, Var head);
+	bool 				addMnmz					(Var headv, int setid, AggType type);
+    bool 				invalidateAgg			(vec<Lit>& invalidation, Var head);
     void 				propagateMnmz			(Var head);
 
 	//////

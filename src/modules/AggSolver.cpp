@@ -297,12 +297,15 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	deleteList<TypedSet>(satsets);
 
 #ifdef DEBUG
+	//Check each aggregate knows it index in the set
 	for(vps::const_iterator j=sets().begin(); j<sets().end(); j++){
 		for (vpagg::const_iterator i = (*j)->getAgg().begin(); i<(*j)->getAgg().end(); i++) {
 			assert((*j)==(*i)->getSet());
 			assert((*i)->getSet()->getAgg()[(*i)->getIndex()]==(*i));
 		}
 	}
+
+	//TODO check all watches are correct
 #endif
 
 	if(unsat){
@@ -744,7 +747,7 @@ bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, Va
 ///////
 
 //TODO do not treat optimization aggregates like normal ones!
-bool AggSolver::addMnmzSum(Var headv, int setid) {
+bool AggSolver::addMnmz(Var headv, int setid, AggType type) {
 	if (parsedSets().find(setid) == parsedSets().end()) {
 		char s[100];
 		sprintf(s, "Set nr. %d is used, but not defined yet.\n", setid);
@@ -778,19 +781,39 @@ bool AggSolver::addMnmzSum(Var headv, int setid) {
 	//the head of the aggregate
 	Lit head = mkLit(headv, false);
 
-	Weight max = 0;
+	const AggProp* prop = NULL;
+	switch(type){
+	case MAX:
+		prop = AggProp::getMax();
+		break;
+	case MIN:
+		//FIXME, need a minimum propagator for this (transformation into maximum not allowed for optimization purposes)
+		throw idpexception("Minimization of a minimum aggregate is currently not supported.\n");
+		break;
+	case PROD:
+		prop = AggProp::getProd();
+		break;
+	case SUM:
+		prop = AggProp::getSum();
+		break;
+	case CARD:
+		prop = AggProp::getCard();
+		break;
+	}
+
+	Weight max = prop->getESV();
 	for (vwl::const_iterator i = set->getWL().begin(); i < set->getWL().end(); i++) {
 		if ((*i).getWeight() > 0) {
-			max += (*i).getWeight();
+			max = prop->add(max, (*i).getWeight());
 		}
 	}
 
-	Agg* ae = new Agg(head, AggBound(AGGSIGN_UB, max+1), COMP, SUM);
+	Agg* ae = new Agg(head, AggBound(AGGSIGN_UB, max+1), COMP, type);
 	ae->setOptim();
 	set->addAgg(ae);
 
 	if (verbosity() >= 3) {
-		report("Added sum optimization: Optimize ");
+		report("Added aggregate optimization: Optimize ");
 		Aggrs::print(verbosity(), *ae);
 		report("\n");
 	}
@@ -798,7 +821,7 @@ bool AggSolver::addMnmzSum(Var headv, int setid) {
 	return true;
 }
 
-bool AggSolver::invalidateSum(vec<Lit>& invalidation, Var head) {
+bool AggSolver::invalidateAgg(vec<Lit>& invalidation, Var head) {
 	Agg* a = headwatches[toInt(createPositiveLiteral(head))];
 	TypedSet* s = a->getSet();
 	Propagator* prop = s->getProp();

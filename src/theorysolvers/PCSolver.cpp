@@ -742,20 +742,20 @@ bool PCSolver::addMinimize(const vec<Lit>& lits, bool subsetmnmz) {
 	return true;
 }
 
-bool PCSolver::addSumMinimize(const Var head, const int setid) {
+bool PCSolver::addMinimize(const Var head, const int setid, AggType agg) {
 	if (optim != NONE) {
 		throw idpexception("Only one optimization statement is allowed.\n");
 	}
 
 	addVar(head);
-	optim = SUMMNMZ;
+	optim = AGGMNMZ;
 	this->head = head;
 	vec<Lit> cl;
 	cl.push(mkLit(head, false));
 	bool notunsat = addClause(cl);
 	if (notunsat) {
 		assert(getAggSolver()!=NULL);
-		notunsat = getAggSolver()->addMnmzSum(head, setid);
+		notunsat = getAggSolver()->addMnmz(head, setid, agg);
 	}
 
 	return notunsat;
@@ -844,7 +844,7 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m, Solution* sol) {
 	 }*/
 
 	while (!unsatreached) {
-		if (optim == SUMMNMZ) {
+		if (optim == AGGMNMZ) {
 			assert(getAggSolver()!=NULL);
 			//Noodzakelijk om de aanpassingen aan de bound door te propageren.
 			getAggSolver()->propagateMnmz(head);
@@ -878,9 +878,9 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m, Solution* sol) {
 				currentassmpt.clear();
 				unsatreached = invalidateSubset(invalidation, currentassmpt);
 				break;
-			case SUMMNMZ:
+			case AGGMNMZ:
 				//FIXME the invalidation turns out to be empty
-				unsatreached = getAggSolver()->invalidateSum(invalidation, head);
+				unsatreached = getAggSolver()->invalidateAgg(invalidation, head);
 				break;
 			case NONE:
 				assert(false);

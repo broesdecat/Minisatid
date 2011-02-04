@@ -302,8 +302,8 @@ bool WPCLSImpl::addMinimize(const vector<Literal>& lits, bool subsetmnmz){
 	return getSolver()->addMinimize(ll, subsetmnmz);
 }
 
-bool WPCLSImpl::addSumMinimize(const Atom head, const int setid){
-    return getSolver()->addSumMinimize(checkAtom(head), setid);
+bool WPCLSImpl::addMinimize(const Atom head, const int setid, AggType type){
+    return getSolver()->addMinimize(checkAtom(head), setid, type);
 }
 
 bool WPCLSImpl::addIntVar(int groundname, int min, int max){

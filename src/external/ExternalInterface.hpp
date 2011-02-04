@@ -96,7 +96,7 @@ public:
 	bool	addAggrExpr		(Literal head, int setid, const Weight& bound, AggSign sign, AggType type, AggSem sem);
 
     bool 	addMinimize		(const std::vector<Literal>& lits, bool subsetmnmz);
-    bool 	addSumMinimize	(const Atom head, const int setid);
+    bool 	addMinimize		(const Atom head, const int setid, AggType type);
 
 	bool 	addIntVar		(int groundname, int min, int max);
 	bool 	addCPBinaryRel	(Literal head, int groundname, EqType rel, int bound);
