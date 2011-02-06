@@ -28,17 +28,17 @@ paggprop AggProp::sum = paggprop (new SumProp());
 paggprop AggProp::card = paggprop (new CardProp());
 paggprop AggProp::prod = paggprop (new ProdProp());
 
-bool MaxProp::isMonotone(const Agg& agg, const WL& l) const {
-	const Weight& w = agg.getCertainBound();
-	return (agg.hasUB() && l.getWeight() <= w) || (!agg.hasUB());
+bool MaxProp::isMonotone(const Agg& agg, const Weight& w) const {
+	const Weight& w2 = agg.getCertainBound();
+	return (agg.hasUB() && w <= w) || (!agg.hasUB());
 }
 
-bool SumProp::isMonotone(const Agg& agg, const WL& l) const {
-	return (agg.hasUB() && l.getWeight() < 0) || (!agg.hasUB() && l.getWeight() > 0);
+bool SumProp::isMonotone(const Agg& agg, const Weight& w) const {
+	return (agg.hasUB() && w < 0) || (!agg.hasUB() && w > 0);
 }
 
-bool ProdProp::isMonotone(const Agg& agg, const WL& l) const {
-	assert(l.getWeight() == 0 || l.getWeight() >= 1);
+bool ProdProp::isMonotone(const Agg& agg, const Weight& w) const {
+	assert(w == 0 || w >= 1);
 	return !agg.hasUB();
 }
 
@@ -309,6 +309,44 @@ lbool Propagator::value(const Lit& l) const {
 
 lbool Propagator::propagatedValue(const Lit& l) const {
 	return getSolver()->propagatedValue(l);
+}
+
+/**
+ * IMPORTANT: not usable for types without remove!
+ * if addtoset: weight should be considered as the weight of a literal being added to the set (from unknown)
+ * 		if weight is pos: min will increase, so add to min
+ * 		if weight is neg: max will decrease, so add to max
+ * if !addtoset: consider weight as weight of the literal being removed from the set (from unknown)
+ * 		if weight is pos: max will decrease, so remove from max
+ * 		if weight is neg: min will increase, so remove from min
+ */
+void Propagator::addValue(const Weight& weight, bool addtoset, Weight& min, Weight& max) const{
+	bool pos = weight>=0;
+	if(pos && addtoset){
+		min = getSet().getType().add(min, weight);
+	}else if(pos && !addtoset){
+		max = getSet().getType().remove(max, weight);
+	}else if(!pos && addtoset){
+		max = getSet().getType().add(max, weight);
+	}else{ //!pos && !addtoset
+		min = getSet().getType().remove(min, weight);
+	}
+}
+
+/**
+ * if
+ */
+void Propagator::removeValue(const Weight& weight, bool wasinset, Weight& min, Weight& max) const{
+	bool pos = weight>=0;
+	if(pos && wasinset){
+		min = getSet().getType().remove(min, weight);
+	}else if(pos && !wasinset){
+		max = getSet().getType().add(max, weight);
+	}else if(!pos && wasinset){
+		max = getSet().getType().remove(max, weight);
+	}else{ //!pos && !wasinset
+		min = getSet().getType().add(min, weight);
+	}
 }
 
 /************************

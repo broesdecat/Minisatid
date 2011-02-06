@@ -95,8 +95,6 @@ public:
 	GenPWAgg(TypedSet* set);
 	virtual ~GenPWAgg();
 
-	void 		addValue	(const Weight& weight, bool inset, Weight& min, Weight& max) const;
-	void 		removeValue	(const Weight& weight, bool inset, Weight& min, Weight& max) const;
 	Weight		getValue	()	const;
 
 	rClause 	reconstructSet(pgpw watch, bool& propagations, Agg const * propagg);

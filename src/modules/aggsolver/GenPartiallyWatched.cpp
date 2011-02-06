@@ -120,7 +120,7 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 	const vwl& wls = set.getWL();
 	for(vsize i=0; i<wls.size(); i++){
 		const WL& wl = wls[i];
-		bool mono = set.getType().isMonotone(**set.getAgg().begin(), wl);
+		bool mono = set.getType().isMonotone(**set.getAgg().begin(), wl.getWeight());
 
 		nws.push_back(new GenPWatch(getSetp(), wl, mono));
 	}
@@ -177,45 +177,6 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 
 	addWatchesToNetwork(); //Add set watches
 	PWAgg::initialize(unsat, sat); //Add head watches
-}
-
-/**
- * maintaining min/max:
- * init calc: min=getESV, max=getESV
- * init min/max
- * min = sum of all neg weights
- * max = sum of all pos weights
- *
- * mo and true: min+=weight
- * am and true: max+=weight
- * mo and false: max-=weight
- * am and false: min-=weight
- */
-void GenPWAgg::addValue(const Weight& weight, bool inset, Weight& min, Weight& max) const{
-	bool pos = weight>=0;
-	if(pos && inset){
-		min = getSet().getType().add(min, weight);
-	}else if(pos && !inset){
-		max = getSet().getType().remove(max, weight);
-	}else if(!pos && inset){
-		max = getSet().getType().add(max, weight);
-	}else{ //!pos && !inset
-		min = getSet().getType().remove(min, weight);
-	}
-}
-
-//It was unknown, so inset is true if
-void GenPWAgg::removeValue(const Weight& weight, bool inset, Weight& min, Weight& max) const{
-	bool pos = weight>=0;
-	if(pos && inset){
-		min = getSet().getType().remove(min, weight);
-	}else if(pos && !inset){
-		max = getSet().getType().add(max, weight);
-	}else if(!pos && inset){
-		max = getSet().getType().remove(max, weight);
-	}else{ //!pos && !inset
-		min = getSet().getType().add(min, weight);
-	}
 }
 
 Weight GenPWAgg::getValue() const{
@@ -545,7 +506,7 @@ double GenPWAgg::testGenWatchCount() {
 	const vwl& wls = set.getWL();
 	for(vsize i=0; i<wls.size(); i++){
 		const WL& wl = wls[i];
-		bool mono = set.getType().isMonotone(**set.getAgg().begin(), wl);
+		bool mono = set.getType().isMonotone(**set.getAgg().begin(), wl.getWeight());
 		nws.push_back(new GenPWatch(getSetp(), wl, mono));
 	}
 

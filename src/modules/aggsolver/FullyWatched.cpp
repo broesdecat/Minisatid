@@ -265,96 +265,80 @@ lbool Aggrs::canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP
  * Should find a set L+ such that "bigwedge{l | l in L+} implies p"
  * which is equivalent with the clause bigvee{~l|l in L+} or p
  * and this is returned as the set {~l|l in L+}
+ *
+ * !headreason && headtrue: CASE 1
+ * 		add ~head
+ * 		if proplit mono: remove from set
+ * 			else add to set
+ * 		while not falsified, add to values: inset if become true, remove if became false
+ * 			add to reason if !inset && mono || inset && am
+ *
+ * !headreason && headfalse: CASE 2
+ * 		add head
+ * 		if proplit mono: add to set
+ * 			else remove from set
+ * 		while not satisfied,
+ * 			add to set if become true, remove if became false
+ * 			add lit to reason if mono && true || am && false
+ *
+ * headreason && explain headtrue:
+ * 		CASE 1 without adding head
+ *
+ * headreason && explain headfalse:
+ * 		CASE 2 without adding head
  */
 void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	const Agg& agg = ar.getAgg();
 	const Lit& head = agg.getHead();
 
-	bool headtrue = false;
+	bool caseone = false;
 	if(ar.isHeadReason()){
-		headtrue = ar.getPropLit()==head;
+		caseone = head!=ar.getPropLit();
 	}else{
-		headtrue = value(head)==l_True;
+		caseone = value(head)==l_True;
 	}
-
-	bool mono = (ar.getExpl()==BASEDONCC && !headtrue) ||
-				(ar.getExpl()==BASEDONCP && headtrue);
-	bool inset = ar.getExpl()==BASEDONCP;
 
 	Weight min, max;
-	if(agg.hasUB()){
-		min = getSet().getType().getMinPossible(getSet());
-		max = getSet().getType().getMaxPossible(getSet());
-	}else{
-		min = getSet().getType().getMaxPossible(getSet());
-		max = getSet().getType().getMinPossible(getSet());
-	}
-
+	min = getSet().getType().getMinPossible(getSet());
+	max = getSet().getType().getMaxPossible(getSet());
 
 	if(!ar.isHeadReason()){
-		if(mono){
-			min = getSet().getType().add(min, ar.getPropWeight());
-			max = getSet().getType().remove(max, ar.getPropWeight());
-		}else{
-			min = getSet().getType().remove(min, ar.getPropWeight());
-			max = getSet().getType().add(max, ar.getPropWeight());
-		}
-		lits.push(headtrue?~head:head);
+		addValue(ar.getPropWeight(), !ar.isInSet(), min, max);
+		lits.push(value(head)==l_True?~head:head);
 	}
-
-	//check monotone that are false when monotone became true, a-m became false or head became false
-	bool checkmonofalse = (ar.isHeadReason() && !headtrue) || (!ar.isHeadReason() && ((mono && inset) || (!mono && !inset)));
 
 	bool stop = false;
 	vector<WL> reasons;
-	if(checkmonofalse){
-		if(headtrue){
-			stop = isSatisfied(agg, min, max);
-		}else{
-			stop = isFalsified(agg, min, max);
-		}
-		for(vector<FWTrail*>::const_iterator a=getTrail().begin(); !stop && a<getTrail().end(); a++){
-        	for (vprop::const_iterator i = (*a)->props.begin(); !stop && i < (*a)->props.end(); i++) {
-				bool monolit = getSet().getType().isMonotone(agg, (*i).getWL());
-				if((monolit && (*i).getType()==NEG) || (!monolit && (*i).getType()==POS)){
-					reasons.push_back((*i).getWL());
-					if(monolit){
-						max = getSet().getType().remove(max, (*i).getWeight());
-					}else{
-						max = getSet().getType().add(max, (*i).getWeight());
-					}
-
-					if(headtrue){
-						stop = isSatisfied(agg, min, max);
-					}else{
-						stop = isFalsified(agg, min, max);
-					}
-				}
-        	}
-		}
+	if(caseone){
+		stop = isFalsified(agg, min, max);
 	}else{
-		if(headtrue){
-			stop = isSatisfied(agg, min, max);
-		}else{
-			stop = isFalsified(agg, min, max);
-		}
-		for(vector<FWTrail*>::const_iterator a=getTrail().begin(); !stop && a<getTrail().end(); a++){
-        	for (vprop::const_iterator i = (*a)->props.begin(); !stop && i < (*a)->props.end(); i++) {
-				bool monolit = getSet().getType().isMonotone(agg, (*i).getWL());
-				if((monolit && (*i).getType()==POS) || (!monolit && (*i).getType()==NEG)){
-					reasons.push_back((*i).getWL());
-					if(monolit){
-						min = getSet().getType().add(min, (*i).getWeight());
-					}else{
-						min = getSet().getType().remove(min, (*i).getWeight());
-					}
-					if(headtrue){
-						stop = isSatisfied(agg, min, max);
-					}else{
-						stop = isFalsified(agg, min, max);
-					}
+		stop = isSatisfied(agg, min, max);
+	}
+	for(vector<FWTrail*>::const_iterator a=getTrail().begin(); !stop && a<getTrail().end(); a++){
+		for (vprop::const_iterator i = (*a)->props.begin(); !stop && i < (*a)->props.end(); i++) {
+			if((*i).getType()==HEAD){
+				continue;
+			}
+
+			bool inset = (*i).getType()==POS;
+			addValue((*i).getWeight(), inset, min, max);
+			bool monoweight = getSet().getType().isMonotone(agg, (*i).getWeight());
+			bool monolit = monoweight?inset:!inset;
+			bool add = false;
+			if(caseone && !monolit){
+				add = true;
+			}else if(!caseone && monolit){
+				add = true;
+			}
+			if(add){
+				reasons.push_back((*i).getWL());
+
+				if(caseone){
+					stop = isFalsified(agg, min, max);
+				}else{
+					stop = isSatisfied(agg, min, max);
 				}
-        	}
+			}
 		}
 	}
 
@@ -363,7 +347,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	//Subsetminimization
 	//Slowdown for weight bounded set
 	if(getSolver()->modes().subsetminimizeexplanation){
-		bool changes = true;
+		/*bool changes = true;
 		if(checkmonofalse){
 			while(changes){
 				changes = false;
@@ -385,28 +369,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 					}
 				}
 			}
-		}else{
-			while(changes){
-				changes = false;
-				for(vector<WL>::iterator i=reasons.begin(); i<reasons.end(); i++){
-					Weight temp = min;
-
-					bool monolit = getSet().getType().isMonotone(agg, *i);
-					if(monolit){
-						min = getSet().getType().remove(min, (*i).getWeight());
-					}else{
-						min = getSet().getType().add(min, (*i).getWeight());
-					}
-
-					if((headtrue && isSatisfied(agg, min, max)) || (!headtrue && isFalsified(agg, min, max))){
-						reasons.erase(i);
-						changes = true;
-					}else{
-						min = temp;
-					}
-				}
-			}
-		}
+		}*/
 	}
 
 	for(vector<WL>::const_iterator i=reasons.begin(); i<reasons.end(); i++){

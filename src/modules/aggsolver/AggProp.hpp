@@ -96,7 +96,7 @@ public:
 	virtual const char*	getName					() 										const = 0;
 	virtual AggType 	getType					() 										const = 0;
 	virtual bool 		isNeutralElement		(const Weight& w)						const = 0;
-	virtual bool 		isMonotone				(const Agg& agg, const WL& l)			const = 0;
+	virtual bool 		isMonotone				(const Agg& agg, const Weight& w)			const = 0;
 
 	//TODO expensive and in fact static: create variables and calc only once!
 	//Calculate best and worst possible values for the EMPTY interpretation, independent of aggregate signs!
@@ -120,7 +120,7 @@ public:
 	const char* getName					() 										const { return "MAX"; }
 	AggType 	getType					() 										const { return MAX; }
 	bool 		isNeutralElement		(const Weight& w) 						const { return false; }
-	bool 		isMonotone				(const Agg& agg, const WL& l)			const;
+	bool 		isMonotone				(const Agg& agg, const Weight& w)		const;
 	Weight		getMinPossible			(const TypedSet& set)					const;
 	Weight		getMaxPossible			(const TypedSet& set)					const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
@@ -144,7 +144,7 @@ public:
 	const char* getName					() 										const { return "PROD"; }
 	AggType 	getType					() 										const { return PROD; }
 	bool 		isNeutralElement		(const Weight& w) 						const { return w==1; }
-	bool 		isMonotone				(const Agg& agg, const WL& l)			const;
+	bool 		isMonotone				(const Agg& agg, const Weight& w)		const;
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const;
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const;
 	Weight		getMinPossible			(const TypedSet& set)					const;
@@ -162,7 +162,7 @@ public:
 	const char* getName					() 										const { return "SUM"; }
 	AggType 	getType					() 										const { return SUM; }
 	bool 		isNeutralElement		(const Weight& w) 						const { return w==0; }
-	bool 		isMonotone				(const Agg& agg, const WL& l)			const;
+	bool 		isMonotone				(const Agg& agg, const Weight& w)		const;
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const;
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const;
 	Weight		getMinPossible			(const TypedSet& set)					const;
@@ -204,6 +204,8 @@ public:
 	lbool				value(const Lit& l) const;
 	lbool				propagatedValue(const Lit& l) const;
 
+	void 				addValue	(const Weight& weight, bool addtoset, Weight& min, Weight& max) const;
+	void 				removeValue	(const Weight& weight, bool wasinset, Weight& min, Weight& max) const;
 	virtual Weight		getValue() const = 0; //Return current aggregate value (only if two-valued!)
 
 	bool isSatisfied(const Agg& agg, const Weight& min, const Weight& max) const{
