@@ -49,6 +49,7 @@ class FODOTTranslator: public Translator{
 private:
 	bool tofodot;
 	bool finisheddata; //true if the datastructures have been initialized after parsing
+	bool emptytrans; //true as long as no predicate has been added to the translator
 
 	int largestnottseitinatom;
 

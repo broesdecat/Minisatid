@@ -55,7 +55,7 @@ void Translator::printHeader(std::ostream& output){
 }
 
 FODOTTranslator::FODOTTranslator(bool fodot): Translator(),
-		tofodot(fodot==TRANS_FODOT), finisheddata(false) {
+		tofodot(fodot==TRANS_FODOT), finisheddata(false), emptytrans(true) {
 
 }
 
@@ -65,6 +65,10 @@ FODOTTranslator::~FODOTTranslator() {
 
 void FODOTTranslator::finishParsing(){
 	finisheddata = true;
+
+	if(emptytrans){
+		return;
+	}
 
 	largestnottseitinatom = highestvalue[predicates.size()-1];
 	trueout = modelvec(predicates.size());
@@ -126,6 +130,7 @@ void FODOTTranslator::addPred(string name, int num, const vector<string>& ptypes
 	predtypes.push_back(pti);
 	lowestvalue.push_back(num);
 	highestvalue.push_back(num + s - 1);
+	emptytrans = false;
 }
 
 string FODOTTranslator::getPredName(int predn) const{
@@ -256,6 +261,10 @@ void FODOTTranslator::printLiteral(std::ostream& output, const Literal& lit) {
 		finishParsing();
 	}
 
+	if(emptytrans){
+		return;
+	}
+
 	uint pred = 0;
 	vector<string> args;
 	deriveStringFromAtomNumber(lit.getAtom().getValue(), pred, args);
@@ -287,6 +296,10 @@ void FODOTTranslator::printLiteral(std::ostream& output, const Literal& lit) {
 void FODOTTranslator::printModel(std::ostream& output, const vector<Literal>& model) {
 	if(!finisheddata){
 		finishParsing();
+	}
+
+	if(emptytrans){
+		return;
 	}
 
 	// set initial values
@@ -356,7 +369,9 @@ void FODOTTranslator::printHeader(ostream& output){
 		finishParsing();
 	}
 
-	if(predicates.empty()) return;
+	if(emptytrans){
+		return;
+	}
 
 /*	if(tofodot){
 		if(truelist.size()>0){
