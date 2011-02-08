@@ -596,12 +596,14 @@ bool PCSolver::solve(const vec<Lit>& assumptions, Solution* sol){
 			if(!found){
 				moremodels = false;
 			}
+			if(found){
+				getParent()->modelWasOptimal();
+			}
 		}else{
 			found = findNext(assumptions, model, moremodels);
-		}
-
-		if (found) {
-			getParent()->addModel(model, sol);
+			if (found) {
+				getParent()->addModel(model, sol);
+			}
 		}
 	}
 
@@ -609,7 +611,7 @@ bool PCSolver::solve(const vec<Lit>& assumptions, Solution* sol){
 		clog <<"> Found " <<sol->getNbModelsFound() <<" models, ";
 		if(!moremodels){
 			clog <<"no more models exist.\n";
-		}else{
+		}else if(optim==NONE){
 			clog <<"searched for " <<sol->getNbModelsToFind() <<" models.\n";
 		}
 	}
@@ -818,29 +820,30 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m, Solution* sol) {
 
 	//CHECKS whether first element yields a solution, otherwise previous strategy is done
 	//should IMPLEMENT dichotomic search in the end: check half and go to interval containing solution!
-	/*if(optim==MNMZ){
-	 assmpt.push(to_minimize[0]);
-	 rslt = getSolver()->solve(assmpt);
-	 if(!rslt){
-	 getSolver()->cancelUntil(0);
-	 vec<Lit> lits;
-	 lits.push(~to_minimize[0]);
-	 getSolver()->addClause(lits);
-	 assmpt.pop();
-	 rslt = true;
-	 }else{
-	 optimumreached = true;
-	 m.clear();
-	 int nvars = (int) nVars();
-	 for (int i = 0; i < nvars; i++) {
-	 if (value(i) == l_True) {
-	 m.push(mkLit(i, false));
-	 } else if (value(i) == l_False) {
-	 m.push(mkLit(i, true));
-	 }
-	 }
-	 }
-	 }*/
+	/*
+	if(optim==MNMZ){
+		assmpt.push(to_minimize[0]);
+		rslt = getSolver()->solve(assmpt);
+		if(!rslt){
+			getSolver()->cancelUntil(0);
+			vec<Lit> lits;
+			lits.push(~to_minimize[0]);
+			getSolver()->addClause(lits);
+			assmpt.pop();
+			rslt = true;
+		}else{
+			optimumreached = true;
+			m.clear();
+			int nvars = (int) nVars();
+			for (int i = 0; i < nvars; i++) {
+				if (value(i) == l_True) {
+					m.push(mkLit(i, false));
+				} else if (value(i) == l_False) {
+					m.push(mkLit(i, true));
+				}
+			}
+		}
+	}*/
 
 	while (!unsatreached) {
 		if (optim == AGGMNMZ) {
@@ -894,7 +897,7 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m, Solution* sol) {
 				}
 			}
 
-			getParent()->addModel(m, sol, true, unsatreached && modelfound);
+			getParent()->addModel(m, sol);
 		}
 	}
 

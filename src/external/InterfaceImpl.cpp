@@ -79,6 +79,7 @@ Literal SmartRemapper::getLiteral(const Lit& lit){
 ///////
 
 WLSImpl::WLSImpl(const SolverOption& modes):
+		_optimization(false),
 		_state(INIT), _modes(modes),
 		_remapper(modes.remap?new SmartRemapper():new Remapper()),
 		_translator(new Translator()) //Default translator is alwasy loaded
@@ -189,6 +190,12 @@ bool WLSImpl::solve(Solution* sol){
 		_state = SOLVED;
 	}
 
+	if(modes().aspcomp3type!=ASPCOMP3_NOCOMP && !hasOptimization()){
+		std::ostream output(getRes());
+		printSatisfiable(output, modes().aspcomp3type);
+		printSatisfiable(clog, modes().aspcomp3type, modes().verbosity);
+	}
+
 	printSolveEnd(verbosity());
 
 	return sat;
@@ -207,7 +214,7 @@ vector<Literal> WLSImpl::getBackMappedModel(const vec<Lit>& model) const{
 	return outmodel;
 }
 
-void WLSImpl::addModel(const vec<Lit>& model, Solution* sol, bool optimizing, bool optimal){
+void WLSImpl::addModel(const vec<Lit>& model, Solution* sol){
 	//Translate into original vocabulary
 	vector<Literal> outmodel(getBackMappedModel(model));
 
@@ -220,20 +227,23 @@ void WLSImpl::addModel(const vec<Lit>& model, Solution* sol, bool optimizing, bo
 		std::ostream output(getRes());
 
 		if(sol->getNbModelsFound()==1){
-			if(modes().aspcomp3type==ASPCOMP3_NOCOMP){
+			if(modes().aspcomp3type==ASPCOMP3_NOCOMP && !hasOptimization()){
 				printSatisfiable(output, modes().aspcomp3type);
 				printSatisfiable(clog, modes().aspcomp3type, modes().verbosity);
 			}
 			getTranslator()->printHeader(output);
 		}
-		if(!optimizing){
+		if(!hasOptimization()){
 			printNbModels(clog, sol->getNbModelsFound(), verbosity());
 		}
 		getTranslator()->printModel(output, outmodel);
-		if(optimal){
-			printOptimalModelFound(output, modes().aspcomp3type);
-		}
 	}
+}
+
+void WLSImpl::modelWasOptimal(){
+	assert(hasOptimization());
+	std::ostream output(getRes());
+	printOptimalModelFound(output, modes().aspcomp3type);
 }
 
 ///////
@@ -305,10 +315,12 @@ bool WPCLSImpl::addAggrExpr(Literal head, int setid, const Weight& bound, AggSig
 bool WPCLSImpl::addMinimize(const vector<Literal>& lits, bool subsetmnmz){
 	vec<Lit> ll;
 	checkLits(lits, ll);
+	setOptimization(true);
 	return getSolver()->addMinimize(ll, subsetmnmz);
 }
 
 bool WPCLSImpl::addMinimize(const Atom head, const int setid, AggType type){
+	setOptimization(true);
     return getSolver()->addMinimize(checkAtom(head), setid, type);
 }
 

@@ -229,9 +229,6 @@ int doModelGeneration(pwls& d){
 	if(unsat){
 		printUnSatisfiable(output, modes.aspcomp3type);
 		printUnSatisfiable(clog, modes.aspcomp3type, modes.verbosity);
-	}else if(modes.aspcomp3type!=ASPCOMP3_NOCOMP){
-		printSatisfiable(output, modes.aspcomp3type);
-		printSatisfiable(clog, modes.aspcomp3type, modes.verbosity);
 	}
 
 	if(!earlyunsat){

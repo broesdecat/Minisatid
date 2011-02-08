@@ -71,6 +71,7 @@ public:
 
 class WLSImpl{
 private:
+	bool 			_optimization;
 	SolverState 	_state;
 	SolverOption	_modes;
 
@@ -84,7 +85,8 @@ public:
 	bool 	finishParsing	();
 	bool 	simplify		();
 	bool 	solve			(Solution* sol);
-	void 	addModel		(const vec<Lit>& model, Solution* sol, bool optimizing=false, bool optimal=false);
+	void 	addModel		(const vec<Lit>& model, Solution* sol);
+	void	modelWasOptimal	();
 
 	void	setTranslator	(Translator* translator);
 
@@ -94,6 +96,9 @@ public:
 	void 	printLiteral	(std::ostream& stream, const Lit& l) const;
 
 protected:
+	bool 	hasOptimization	() const { return _optimization; }
+	void	setOptimization	(bool opt) { _optimization = opt; }
+
 	virtual MinisatID::LogicSolver* getSolver() const = 0;
 
 	Var 	checkAtom		(const Atom& atom);

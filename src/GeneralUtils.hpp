@@ -282,7 +282,6 @@ namespace MinisatID {
 		bool 			bumpaggonnotify, bumpidonstart;
 		bool			subsetminimizeexplanation, asapaggprop;
 		long 			ufsvarintrothreshold;
-
 		ASPCOMP3TYPE	aspcomp3type;
 
 		SolverOption();
