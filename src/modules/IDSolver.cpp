@@ -833,7 +833,7 @@ void IDSolver::newDecisionLevel() {
 	//Originally checked this after indirectpropagate, which was incorrect, because only at the end of any
 	//decision level is there a guarantee of being cyclefree
 #ifdef DEBUG
-	if(posloops && !isCycleFree()) {
+	if(posloops && modes().defn_strategy != adaptive && !isCycleFree()) {
 		report("NOT CYCLE FREE!");
 		exit(-1);
 	}

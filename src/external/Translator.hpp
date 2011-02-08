@@ -72,7 +72,7 @@ private:
 	std::vector<std::string> 	arbitatoms;
 
 public:
-			FODOTTranslator	(bool fodot);
+			FODOTTranslator	(OUTPUTFORMAT fodot);
 	virtual ~FODOTTranslator();
 
 	void	setTruelist		(const std::vector<int>& vi) { truelist = vi;}

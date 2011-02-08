@@ -207,7 +207,7 @@ vector<Literal> WLSImpl::getBackMappedModel(const vec<Lit>& model) const{
 	return outmodel;
 }
 
-void WLSImpl::addModel(const vec<Lit>& model, Solution* sol){
+void WLSImpl::addModel(const vec<Lit>& model, Solution* sol, bool optimizing, bool optimal){
 	//Translate into original vocabulary
 	vector<Literal> outmodel(getBackMappedModel(model));
 
@@ -220,13 +220,19 @@ void WLSImpl::addModel(const vec<Lit>& model, Solution* sol){
 		std::ostream output(getRes());
 
 		if(sol->getNbModelsFound()==1){
-			printSatisfiable(output);
-			printSatisfiable(clog, verbosity());
+			if(modes().aspcomp3type==ASPCOMP3_NOCOMP){
+				printSatisfiable(output, modes().aspcomp3type);
+				printSatisfiable(clog, modes().aspcomp3type, modes().verbosity);
+			}
 			getTranslator()->printHeader(output);
 		}
-
-		printNbModels(clog, sol->getNbModelsFound(), verbosity());
+		if(!optimizing){
+			printNbModels(clog, sol->getNbModelsFound(), verbosity());
+		}
 		getTranslator()->printModel(output, outmodel);
+		if(optimal){
+			printOptimalModelFound(output, modes().aspcomp3type);
+		}
 	}
 }
 

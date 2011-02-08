@@ -54,9 +54,10 @@ void Translator::printHeader(std::ostream& output){
 	//Noop
 }
 
-FODOTTranslator::FODOTTranslator(bool fodot): Translator(),
+FODOTTranslator::FODOTTranslator(OUTPUTFORMAT fodot): Translator(),
+		//ASP output if TRANS_ASP or TRANS_ASPCOMP3, fodottrans is not used if TRANS_PLAIN
 		tofodot(fodot==TRANS_FODOT), finisheddata(false), emptytrans(true) {
-
+	assert(fodot!=TRANS_PLAIN);
 }
 
 FODOTTranslator::~FODOTTranslator() {

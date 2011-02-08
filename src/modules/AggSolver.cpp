@@ -822,7 +822,9 @@ bool AggSolver::invalidateAgg(vec<Lit>& invalidation, Var head) {
 	Propagator* prop = s->getProp();
 	Weight value = prop->getValue();
 
-	report("Current optimum: %s\n", toString(value).c_str());
+	if(modes().verbosity){
+		clog <<"Current optimum: " <<toString(value).c_str() <<"\n";
+	}
 
 	a->setBound(AggBound(a->getSign(), value - 1));
 

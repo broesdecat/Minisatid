@@ -2,6 +2,7 @@
 #define AGGPRINT_HPP_
 
 #include <vector>
+#include "utils/Print.hpp"
 
 namespace MinisatID {
 class AggSolver;

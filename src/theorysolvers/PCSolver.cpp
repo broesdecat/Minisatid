@@ -789,7 +789,6 @@ bool PCSolver::invalidateValue(vec<Lit>& invalidation) {
 				clog <<"Current optimum found for: ";
 				getParent()->printLiteral(cerr, to_minimize[i]);
 				clog <<"\n";
-				//clog <<"Current optimum is var %d\n", getPrintableVar(var(to_minimize[i])));
 			}
 			currentoptimumfound = true;
 		}
@@ -895,7 +894,7 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m, Solution* sol) {
 				}
 			}
 
-			getParent()->addModel(m, sol);
+			getParent()->addModel(m, sol, true, unsatreached && modelfound);
 		}
 	}
 

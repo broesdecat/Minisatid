@@ -364,7 +364,7 @@ void GenPWAgg::genWatches(vsize& i, const Agg& agg, Weight& min, Weight& max, We
 			addValue(wl.getWeight(), val==l_True, knownmin, knownmax);
 		}
 
-		if(val!=l_False){ //Add to watches
+		if(val!=l_True){ //Add to watches
 			if(largest==NULL || largest->getWL().getWeight() < wl.getWeight()){
 				largest = getNWS()[i];
 			}
@@ -443,7 +443,7 @@ bool compareWLIearlier(const WLI& one, const WLI& two){
 
 void GenPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	const PCSolver& pcsol = *getSolver()->getPCSolver();
-	//pcsolver = getSolver()->getPCSolver();
+
 	const Lit& head = ar.getAgg().getHead();
 	const Lit& proplit = ar.getPropLit();
 	bool conflictclause = value(ar.getPropLit())==l_False;

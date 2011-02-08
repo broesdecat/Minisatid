@@ -100,8 +100,8 @@ public:
 class SetLitReason: public AggReason{
 private:
 	const Agg&	expr;
-	const Lit& l;
-	const Weight& w;
+	const Lit l;
+	const Weight w;
 	bool inset;
 
 public:

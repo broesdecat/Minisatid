@@ -151,13 +151,13 @@ int main(int argc, char** argv) {
 		if(d.get()!=NULL){
 			printStatistics(d);
 		}
-		exit(1);
+		_exit(1);
 	} catch (...) {
 		printUnexpectedError(cerr);
 		if(d.get()!=NULL){
 			printStatistics(d);
 		}
-		exit(1);
+		_exit(1);
 	}
 
 	return returnvalue;
@@ -225,10 +225,13 @@ int doModelGeneration(pwls& d){
 		delete sol;
 	}
 
+	std::ostream output(getOutputBuffer());
 	if(unsat){
-		std::ostream output(getOutputBuffer());
-		printUnSatisfiable(output);
-		printUnSatisfiable(clog, modes.verbosity);
+		printUnSatisfiable(output, modes.aspcomp3type);
+		printUnSatisfiable(clog, modes.aspcomp3type, modes.verbosity);
+	}else if(modes.aspcomp3type!=ASPCOMP3_NOCOMP){
+		printSatisfiable(output, modes.aspcomp3type);
+		printSatisfiable(clog, modes.aspcomp3type, modes.verbosity);
 	}
 
 	if(!earlyunsat){

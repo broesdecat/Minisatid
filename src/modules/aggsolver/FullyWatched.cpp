@@ -12,6 +12,7 @@
 
 using namespace std;
 using namespace MinisatID;
+using namespace MinisatID::Print;
 using namespace Aggrs;
 
 typedef Agg* pagg;
@@ -140,6 +141,15 @@ rClause FWAgg::propagate(const Lit& p, pw ws, int level) {
 	}
 
 #ifdef DEBUG
+	assert(ws->getSet()==getSetp());
+	bool foundlit = false;
+	for(vwl::const_iterator i=getSet().getWL().begin(); i<getSet().getWL().end() ; i++){
+		if(var((*i).getLit())==var(p)){
+			foundlit = true;
+		}
+	}
+	assert(foundlit);
+
 	bool found = false;
 	for(vector<TypedSet*>::const_iterator i=getSolver()->getPropTrail().begin(); !found && i<getSolver()->getPropTrail().end(); i++){
 		if(getSetp()==*i){
@@ -316,7 +326,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	}
 	for(vector<FWTrail*>::const_iterator a=getTrail().begin(); !stop && a<getTrail().end(); a++){
 		for (vprop::const_iterator i = (*a)->props.begin(); !stop && i < (*a)->props.end(); i++) {
-			if((*i).getType()==HEAD){
+			if((*i).getType()==HEAD || var((*i).getLit())==var(ar.getPropLit())){
 				continue;
 			}
 
@@ -506,7 +516,7 @@ void MaxFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 		lits.push(value(head)==l_True ? ~head : head);
 		if(value(head)==l_True){
 			if(agg.hasLB()){
-				//all others larger or eq to bound
+				//all OTHERS larger or eq to bound
 				one = false;
 			}else{//UB
 				search = false;
@@ -515,7 +525,7 @@ void MaxFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 			if(agg.hasLB()){
 				search = false;
 			}else{//UB
-				//all others larger than bound
+				//all OTHERS larger than bound
 				one = false;
 				bound+=1;
 			}
@@ -547,6 +557,9 @@ void MaxFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 		bool found = false;
 		for(vector<FWTrail*>::const_iterator a=getTrail().begin(); !found && a<getTrail().end(); a++){
         	for (vprop::const_iterator i = (*a)->props.begin(); !found && i < (*a)->props.end(); i++) {
+        		if((*i).getType()==HEAD || var((*i).getLit())==var(ar.getPropLit())){
+        			continue;
+        		}
         		if((*i).getWeight()<bound){
         			continue;
         		}

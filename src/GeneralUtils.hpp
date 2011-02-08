@@ -254,8 +254,10 @@ namespace MinisatID {
 		POL_RAND
 	}; // SAT-solver polarity option
 
-	enum INPUTFORMAT {FORMAT_FODOT, FORMAT_ASP, FORMAT_OPB};
-	enum OUTPUTFORMAT { TRANS_FODOT, TRANS_ASP, TRANS_PLAIN };
+	enum INPUTFORMAT 	{ FORMAT_FODOT, FORMAT_ASP, FORMAT_OPB};
+	enum OUTPUTFORMAT 	{ TRANS_FODOT, TRANS_ASP, TRANS_PLAIN };
+
+	enum ASPCOMP3TYPE 	{ ASPCOMP3_NOCOMP, ASPCOMP3_SEARCH, ASPCOMP3_QUERY};
 
 	// Structure containing general options for the solvers
 	class SolverOption {
@@ -280,6 +282,8 @@ namespace MinisatID {
 		bool 			bumpaggonnotify, bumpidonstart;
 		bool			subsetminimizeexplanation, asapaggprop;
 		long 			ufsvarintrothreshold;
+
+		ASPCOMP3TYPE	aspcomp3type;
 
 		SolverOption();
 

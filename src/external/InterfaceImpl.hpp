@@ -84,7 +84,7 @@ public:
 	bool 	finishParsing	();
 	bool 	simplify		();
 	bool 	solve			(Solution* sol);
-	void 	addModel		(const vec<Lit>& model, Solution* sol);
+	void 	addModel		(const vec<Lit>& model, Solution* sol, bool optimizing=false, bool optimal=false);
 
 	void	setTranslator	(Translator* translator);
 

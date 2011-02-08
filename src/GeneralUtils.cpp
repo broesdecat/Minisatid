@@ -117,7 +117,8 @@ SolverOption::SolverOption():
 		bumpidonstart(false),
 		subsetminimizeexplanation(false),
 		asapaggprop(false),
-		ufsvarintrothreshold(500){
+		ufsvarintrothreshold(500),
+		aspcomp3type(ASPCOMP3_NOCOMP){
 
 	//Set primesfile location
 	char s[300];
