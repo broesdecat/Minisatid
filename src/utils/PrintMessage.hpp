@@ -66,8 +66,8 @@ namespace Print{
 
 	template<class T, class T2>
 	void printPrimesFileNotReadable(T& stream, const T2& file){
-		stream << "The file containing a list of primes could not be found or is not readable. Please put it in \""
-				<<file <<"\" or recompile.\n";
+		stream <<"The file containing the list of primes could not be found in " <<file <<" .\n";
+		stream <<"Please place the file there, add a (different) --primesfiles commandline argument or recompile/reinstall.\n";
 	}
 
 	std::string getMinimalVarNumbering();

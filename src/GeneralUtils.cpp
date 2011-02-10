@@ -127,7 +127,7 @@ SolverOption::SolverOption():
 bool SolverOption::verifyOptions() const{
 	string s(getPrimesFile());
 	//Check primesfile location
-	if(!fileIsReadable(s.c_str())){
+	if(pbsolver && !fileIsReadable(s.c_str())){
 		printPrimesFileNotReadable(clog, s);
 		return false;
 	}
