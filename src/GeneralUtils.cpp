@@ -119,21 +119,26 @@ SolverOption::SolverOption():
 		asapaggprop(false),
 		ufsvarintrothreshold(500),
 		aspcomp3type(ASPCOMP3_NOCOMP){
-
-	//Set primesfile location
-	char s[300];
-	sprintf(s, "%s/P1.TXT", DATADIR);
-	primesfile = s;
-
-	//Check primesfile location
-	if(!fileIsReadable(s)){
-		stringstream str;
-		printPrimesFileNotReadable(str, s);
-		throw idpexception(str.str());
-	}
+	stringstream str;
+	str <<DATADIR <<"/P1.TXT";
+	primesfile = str.str();
 }
 
-void SolverOption::print(std::ostream& so){
+bool SolverOption::verifyOptions() const{
+	string s(getPrimesFile());
+	//Check primesfile location
+	if(!fileIsReadable(s.c_str())){
+		printPrimesFileNotReadable(clog, s);
+		return false;
+	}
+	return true;
+}
+
+string SolverOption::getPrimesFile() const{
+	return primesfile;
+}
+
+void SolverOption::print(std::ostream& so) const{
 	so << "format: " 			<<format <<"\n";
 	so << "verbosity: "			<<verbosity <<"\n";
 	so << "nbmodels: " 			<<nbmodels <<"\n";
@@ -146,7 +151,7 @@ void SolverOption::print(std::ostream& so){
 	so << "selectOneFromUFS: " 	<<selectOneFromUFS <<"\n";
 	so << "pbsolver: " 			<<pbsolver <<"\n";
 	so << "watchedagg: " 		<<watchedagg <<"\n";
-	so << "primesfile: " 		<<primesfile <<"\n";
+	so << "primesfile: " 		<<getPrimesFile() <<"\n";
 	so << "remap: " 			<<remap <<"\n";
 	so << "rand_var_freq: " 	<<rand_var_freq <<"\n";
 	so << "var_decay: " 		<<var_decay <<"\n";

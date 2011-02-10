@@ -261,6 +261,7 @@ namespace MinisatID {
 
 	// Structure containing general options for the solvers
 	class SolverOption {
+			//FIXME prevent unauthorised access by getters and setters (e.g. primesfile should NEVER be accessed directly
 	public:
 		INPUTFORMAT 	format;
 		OUTPUTFORMAT 	transformat;
@@ -286,7 +287,9 @@ namespace MinisatID {
 
 		SolverOption();
 
-		void print(std::ostream& stream);
+		bool 		verifyOptions() const;
+		std::string	getPrimesFile() const;
+		void 		print(std::ostream& stream) const;
 	};
 
 	///////

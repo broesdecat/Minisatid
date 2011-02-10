@@ -565,7 +565,7 @@ bool Aggrs::transformSumsToCNF(vps& sets, PCSolver* pcsolver) {
 	MiniSatPP::opt_verbosity = pcsolver->verbosity()-1; //Gives a bit too much output on 1
 	MiniSatPP::opt_abstract = true; //Should be true
 	MiniSatPP::opt_tare = true; //Experimentally set to true
-	MiniSatPP::opt_primes_file = pcsolver->modes().primesfile.c_str();
+	MiniSatPP::opt_primes_file = pcsolver->modes().getPrimesFile().c_str();
 	MiniSatPP::opt_convert_weak = false;
 	MiniSatPP::opt_convert = MiniSatPP::ct_Mixed;
 	pbsolver->allocConstrs(maxvar, sumaggs);

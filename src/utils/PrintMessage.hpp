@@ -64,7 +64,11 @@ namespace Print{
 		stream <<">>> Unexpected error caught, program will abort.\n";
 	}
 
-	void printPrimesFileNotReadable(std::ostream& stream, const char* file);
+	template<class T, class T2>
+	void printPrimesFileNotReadable(T& stream, const T2& file){
+		stream << "The file containing a list of primes could not be found or is not readable. Please put it in \""
+				<<file <<"\" or recompile.\n";
+	}
 
 	std::string getMinimalVarNumbering();
 
