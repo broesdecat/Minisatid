@@ -37,7 +37,7 @@ BUILT_SOURCES = parser/ecnfparser.h
 minisatid_LDADD = ../lib/pbsolver/libpbsolver-1.0.la # do not forget ldconfig after installing ;)
 
 if USEPERFTOOLS
-minisatid_LDADD += ../lib/perftools/libtcmalloc_minimal.a # -lprofiler
+minisatid_LDADD += ../lib/perftools/.libs/libtcmalloc.la ../lib/perftools/.libs/libprofiler.la
 endif
 
 minisatid_SOURCES = \

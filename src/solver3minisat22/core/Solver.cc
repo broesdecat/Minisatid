@@ -371,26 +371,6 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
 
 	//reportf("Conflicts: %d.\n", conflicts);
 	std::vector<Lit> explain;
-	if(verbosity>4){
-		/*reportf("Choices: ");
-		for(int i=0; i<trail_lim.size(); i++){
-			print(trail[trail_lim[i]]); reportf(" ");
-		}
-		reportf("\n");
-		reportf("Trail: \n");
-		for(int i=0; i<trail_lim.size()-1; i++){
-			reportf("Level: ");
-			for(int j=trail_lim[i]; j<trail_lim[i+1]; j++){
-				print(trail[j]); reportf(" ");
-			}
-			reportf("\n");
-		}
-		reportf("Level: ");
-		for(int j=trail_lim[trail_lim.size()-1]; j<trail.size(); j++){
-			print(trail[j]); reportf(" ");
-		}
-		reportf("\n");*/
-	}
 	/*AE*/
 
     // Generate conflict clause:
