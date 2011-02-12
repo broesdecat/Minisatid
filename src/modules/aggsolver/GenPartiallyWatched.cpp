@@ -118,8 +118,8 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 	genmin = set.getType().getMinPossible(set);
 	genmax = set.getType().getMaxPossible(set);
 	const vwl& wls = set.getWL();
-	for(vsize i=0; i<wls.size(); i++){
-		const WL& wl = wls[i];
+	for(vwl::const_reverse_iterator i=wls.rbegin(); i<wls.rend(); i++){
+		const WL& wl = *i;
 		bool mono = set.getType().isMonotone(**set.getAgg().begin(), wl.getWeight());
 
 		nws.push_back(new GenPWatch(getSetp(), wl, mono));
@@ -203,7 +203,7 @@ Weight GenPWAgg::getValue() const{
 	return min;
 }
 
-rClause GenPWAgg::checkPropagation(bool& propagations, Agg const * agg){
+rClause GenPWAgg::checkPropagation(bool& propagations, Agg const * aggofprophead){
 	Weight min = genmin;
 	Weight max = genmax;
 
@@ -224,11 +224,62 @@ rClause GenPWAgg::checkPropagation(bool& propagations, Agg const * agg){
 	}
 
 	rClause confl = nullPtrClause;
-	if(agg!=NULL){
-		confl = checkOneAggPropagation(propagations, *agg, min, max);
+	if(aggofprophead!=NULL){
+		confl = checkOneAggPropagation(propagations, *aggofprophead, min, max);
 	}else{
+		Agg* strongestagg = NULL;
+
 		for(vpagg::const_iterator i=getSet().getAgg().begin(); confl==nullPtrClause && i<getSet().getAgg().end(); i++){
 			confl = checkOneAggPropagation(propagations, **i, min, max);
+			bool headfalse = value((*i)->getHead())==l_False;
+			if(headfalse){
+				/*const Agg& agg = **i;
+				WL lowerbound(mkLit(1), Weight(0));
+				if(agg.hasLB()){
+					lowerbound = WL(mkLit(1), getSet().getType().remove(max, agg.getCertainBound()));
+				}else{
+					lowerbound = WL(mkLit(1), getSet().getType().remove(agg.getCertainBound(), min));
+				}
+				vwl::const_iterator i = upper_bound(getSet().getWL().begin(), getSet().getWL().end(), lowerbound, compareWLByWeights);
+				for(; confl==nullPtrClause && i<getSet().getWL().end(); i++){ //INVARIANT: sorted WL
+					if(value((*i).getLit())==l_Undef){
+						propagations = true;
+						if (agg.hasLB()) {
+							confl = getSet().getSolver()->notifySolver(new SetLitReason(agg, (*i).getLit(), (*i).getWeight(), agg.hasLB()?BASEDONCP:BASEDONCC, true));
+						}else{
+							confl = getSet().getSolver()->notifySolver(new SetLitReason(agg, (*i).getLit(), (*i).getWeight(), agg.hasLB()?BASEDONCP:BASEDONCC, false));
+						}
+					}
+				}*/
+				bool add = false;
+				if(strongestagg==NULL){
+					strongestagg = *i;
+				}else if(strongestagg->hasLB() && strongestagg->getCertainBound()<(*i)->getCertainBound()){
+					strongestagg = *i;
+				}else if(strongestagg->hasUB() && strongestagg->getCertainBound()>(*i)->getCertainBound()){
+					strongestagg = *i;
+				}
+			}
+		}
+		if(confl==nullPtrClause && strongestagg!=NULL){
+			const Agg& agg = *strongestagg;
+			WL lowerbound(mkLit(1), Weight(0));
+			if(agg.hasLB()){
+				lowerbound = WL(mkLit(1), getSet().getType().remove(max, agg.getCertainBound()));
+			}else{
+				lowerbound = WL(mkLit(1), getSet().getType().remove(agg.getCertainBound(), min));
+			}
+			vwl::const_iterator i = upper_bound(getSet().getWL().begin(), getSet().getWL().end(), lowerbound, compareWLByWeights);
+			for(; confl==nullPtrClause && i<getSet().getWL().end(); i++){ //INVARIANT: sorted WL
+				if(value((*i).getLit())==l_Undef){
+					propagations = true;
+					if (agg.hasLB()) {
+						confl = getSet().getSolver()->notifySolver(new SetLitReason(agg, (*i).getLit(), (*i).getWeight(), agg.hasLB()?BASEDONCP:BASEDONCC, true));
+					}else{
+						confl = getSet().getSolver()->notifySolver(new SetLitReason(agg, (*i).getLit(), (*i).getWeight(), agg.hasLB()?BASEDONCP:BASEDONCC, false));
+					}
+				}
+			}
 		}
 	}
 
@@ -238,24 +289,6 @@ rClause GenPWAgg::checkPropagation(bool& propagations, Agg const * agg){
 rClause GenPWAgg::checkOneAggPropagation(bool& propagations, const Agg& agg, const Weight& min, const Weight& max){
 	rClause confl = nullPtrClause;
 	Expl basedon = agg.hasLB()?BASEDONCP:BASEDONCC;
-	if(value(agg.getHead())==l_False){
-		Weight lowerbound;
-		if(agg.hasLB()){
-			lowerbound = getSet().getType().remove(max, agg.getCertainBound());
-		}else{
-			lowerbound = getSet().getType().remove(agg.getCertainBound(), min);
-		}
-		for(vwl::const_iterator i=getSet().getWL().begin(); confl==nullPtrClause && i<getSet().getWL().end(); i++){
-			if((*i).getWeight()>lowerbound && value((*i).getLit())==l_Undef){
-				propagations = true;
-				if (agg.hasLB()) {
-					confl = getSet().getSolver()->notifySolver(new SetLitReason(agg, (*i).getLit(), (*i).getWeight(), basedon, true));
-				}else{
-					confl = getSet().getSolver()->notifySolver(new SetLitReason(agg, (*i).getLit(), (*i).getWeight(), basedon, false));
-				}
-			}
-		}
-	}
 
 	//Check head propagation
 	//If agg is false, propagate head
