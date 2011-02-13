@@ -27,20 +27,21 @@ using namespace MinisatID::Aggrs;
 /*
  * Moves NWS[index] to (new) end of WS
  */
-void GenPWAgg::addToWatchedSet(vsize index){
+void GenPWAgg::addToWatchedSet(GenPWatch* watch){
 	vpgpw& set = getNWS();
 	vpgpw& watches = getWS();
-	pgpw watch = set[index];
 
 	//Remove from NWS
 	if(set.size()>1){
+		vsize index = watch->getIndex();
 		set[index] = set[set.size()-1];
+		set[index]->setIndex(index);
 	}
 	set.pop_back();
 
 	//Add to WS
 	watches.push_back(watch);
-	watch->addToWS(watches.size()-1);
+	watch->moveToWSPos(watches.size()-1);
 
 	//Add to watches to be added to network
 	_newwatches.push_back(watch);
@@ -61,7 +62,7 @@ void GenPWAgg::removeFromWatchedSet(pgpw pw){
 	watches.pop_back();
 
 	set.push_back(pw);
-	pw->notifyRemovedFromWS();
+	pw->moveToNWSPos(set.size()-1);
 }
 
 /*
@@ -122,7 +123,7 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 		const WL& wl = *i;
 		bool mono = set.getType().isMonotone(**set.getAgg().begin(), wl.getWeight());
 
-		nws.push_back(new GenPWatch(getSetp(), wl, mono));
+		nws.push_back(new GenPWatch(getSetp(), wl, mono, nws.size()));
 	}
 
 	Weight currentmin = genmin, currentmax = genmax;
@@ -203,26 +204,8 @@ Weight GenPWAgg::getValue() const{
 	return min;
 }
 
-rClause GenPWAgg::checkPropagation(bool& propagations, Agg const * aggofprophead){
-	Weight min = genmin;
-	Weight max = genmax;
-
-	for(vpgpw::const_iterator i=getWS().begin(); i<getWS().end(); i++){
-		const WL& wl = (*i)->getWL();
-		lbool val = value(wl.getLit());
-		if(val!=l_Undef){
-			addValue(wl.getWeight(), val==l_True, min, max);
-		}
-	}
-
-	for(vpgpw::const_iterator i=getNWS().begin(); i<getNWS().end(); i++){
-		const WL& wl = (*i)->getWL();
-		lbool val = value(wl.getLit());
-		if(val!=l_Undef){
-			addValue(wl.getWeight(), val==l_True, min, max);
-		}
-	}
-
+//@pre: min and max are the bounds considering all known literals
+rClause GenPWAgg::checkPropagation(bool& propagations, Weight& min, Weight& max, Agg const * aggofprophead){
 	rClause confl = nullPtrClause;
 	if(aggofprophead!=NULL){
 		confl = checkOneAggPropagation(propagations, *aggofprophead, min, max);
@@ -233,7 +216,6 @@ rClause GenPWAgg::checkPropagation(bool& propagations, Agg const * aggofprophead
 			confl = checkOneAggPropagation(propagations, **i, min, max);
 			bool headfalse = value((*i)->getHead())==l_False;
 			if(headfalse){
-				bool add = false;
 				if(strongestagg==NULL){
 					strongestagg = *i;
 				}else if(strongestagg->hasLB() && strongestagg->getCertainBound()<(*i)->getCertainBound()){
@@ -281,6 +263,25 @@ rClause GenPWAgg::checkOneAggPropagation(bool& propagations, const Agg& agg, con
 	return confl;
 }
 
+void GenPWAgg::calculateBoundsOfWatches(Weight& min, Weight& max, Weight& knownmin, Weight& knownmax, GenPWatch* largest){
+	//Calc min and max and largest considering optimal choices for the watched literals
+	for(vpgpw::const_iterator i=getWS().begin(); i<getWS().end(); i++){
+		const WL& wl = (*i)->getWL();
+		lbool val = value(wl.getLit());
+		if(val==l_Undef){ //Only have to check propagation for those watches which are unknown
+			if(largest==NULL || largest->getWL().getWeight() < wl.getWeight()){
+				largest = (*i);
+			}
+		}
+
+		bool inset = val==l_True || (val==l_Undef && (*i)->isMonotone());
+		addValue(wl.getWeight(), inset, min, max);
+		if(val!=l_Undef){
+			addValue(wl.getWeight(), val==l_True, knownmin, knownmax);
+		}
+	}
+}
+
 /**
  * do propagation, both body and heads:
  * 		calc full min and max
@@ -310,45 +311,25 @@ rClause GenPWAgg::reconstructSet(pgpw watch, bool& propagations, Agg const * pro
 		return confl;
 	}
 
-	//FIXME do one propagateatend and NO propagate, same code?
-
-	//FIXME should only check once per propagateatend instead of on every propagation?
-	confl = checkPropagation(propagations, propagg);
-
-	if(confl!=nullPtrClause){
-		propagations = true;
-		return confl;
-	}
-
 	Weight min = genmin, knownmin = genmin;
 	Weight max = genmax, knownmax = genmax;
 	pgpw largest = NULL;
 
-	bool falsewatches = false;
-
-	//Calc min and max and largest considering optimal choices for the watched literals
-	for(vpgpw::const_iterator i=getWS().begin(); i<getWS().end(); i++){
-		const WL& wl = (*i)->getWL();
-		lbool val = value(wl.getLit());
-		if(val==l_Undef){ //Only have to check propagation for those watches which are unknown
-			if(largest==NULL || largest->getWL().getWeight() < wl.getWeight()){
-				largest = (*i);
-			}
-		}
-
-		bool inset = val==l_True || (val==l_Undef && (*i)->isMonotone());
-		addValue(wl.getWeight(), inset, min, max);
-		if(val!=l_Undef){
-			addValue(wl.getWeight(), val==l_True, knownmin, knownmax);
-			if(value((*i)->getWatchLit())==l_False){
-				falsewatches = true;
-			}
-		}
-	}
+	calculateBoundsOfWatches(min, max, knownmin, knownmax, largest);
 
 	//Add watches until satisfied
 	vsize i = 0;
-	genWatches(i, agg, min, max, knownmin, knownmax, largest);
+	vector<GenPWatch*> watchestoadd;
+	genWatches(i, agg, min, max, knownmin, knownmax, largest, watchestoadd);
+	if(!isSatisfied(agg, min, max)){
+		//Certainly head propagation, no more watches to be found or added
+		return checkPropagation(propagations, knownmin, knownmax, propagg);
+	}else{
+		for(vector<GenPWatch*>::const_iterator i=watchestoadd.begin(); i<watchestoadd.end(); i++){
+			addToWatchedSet(*i);
+		}
+		watchestoadd.clear();
+	}
 
 	//if head was unknown before method start, at most head can have been propagated
 	//so do not have to find second supporting ws
@@ -366,12 +347,26 @@ rClause GenPWAgg::reconstructSet(pgpw watch, bool& propagations, Agg const * pro
 	removeValue(largest->getWL().getWeight(), largest->isMonotone(), min, max);
 
 	//Again until satisfied IMPORTANT: continue from previous index!
-	genWatches(i, agg, min, max, knownmin, knownmax, largest);
+	genWatches(i, agg, min, max, knownmin, knownmax, largest, watchestoadd);
+	if(!isSatisfied(agg, min, max)){
+		watchestoadd.clear();
+		//Propagation necessary
+		confl = checkPropagation(propagations, knownmin, knownmax, propagg);
+		if(confl!=nullPtrClause){
+			propagations = true;
+			return confl;
+		}
+		genWatches(i, agg, min, max, knownmin, knownmax, largest, watchestoadd);
+	}
+	for(vector<GenPWatch*>::const_iterator i=watchestoadd.begin(); i<watchestoadd.end(); i++){
+		addToWatchedSet(*i);
+	}
+	watchestoadd.clear();
 
 	return confl;
 }
 
-void GenPWAgg::genWatches(vsize& i, const Agg& agg, Weight& min, Weight& max, Weight& knownmin, Weight& knownmax, GenPWatch*& largest){
+void GenPWAgg::genWatches(vsize& i, const Agg& agg, Weight& min, Weight& max, Weight& knownmin, Weight& knownmax, GenPWatch*& largest, vector<GenPWatch*>& watchestoadd){
 	for(;!isSatisfied(agg, min, max) && !isSatisfied(agg, knownmin, knownmax) && i<getNWS().size(); i++){
 		WL wl = getNWS()[i]->getWL();
 		lbool val = value(wl.getLit());
@@ -386,18 +381,9 @@ void GenPWAgg::genWatches(vsize& i, const Agg& agg, Weight& min, Weight& max, We
 			if(largest==NULL || largest->getWL().getWeight() < wl.getWeight()){
 				largest = getNWS()[i];
 			}
-			addToWatchedSet(i);
-			i--;
+			watchestoadd.push_back(getNWS()[i]);
 		}
 	}
-
-#ifdef DEBUG
-	if(!isSatisfied(agg, min, max) && !isSatisfied(agg, knownmin, knownmax)){
-		for(int j=0; j<getNWS().size(); j++){
-			assert(value(getNWS()[j]->getWatchLit())==l_False);
-		}
-	}
-#endif
 }
 
 rClause GenPWAgg::propagate(const Lit& p, Watch* watch, int level) {
@@ -411,11 +397,11 @@ rClause GenPWAgg::propagate(const Lit& p, Watch* watch, int level) {
 	pw->addToNetwork(false);
 
 	if(!pw->isInWS()){ //If the watch is in NWS, it should not have been watched any more, so we can just return
-		assert(pw->getIndex()==-1); //Check it really thinks its not in the set
+		assert(getNWS()[pw->getIndex()]==pw); //Check it has a correct idea where it is in WS
 		return confl;
 	}
 
-	assert(pw->getIndex()!=-1 && getWS()[pw->getIndex()]==pw); //Check it has a correct idea where it is in WS
+	assert(getWS()[pw->getIndex()]==pw); //Check it has a correct idea where it is in WS
 
 	bool propagations = false;
 	confl = reconstructSet(pw, propagations, NULL);
@@ -525,7 +511,7 @@ double GenPWAgg::testGenWatchCount() {
 	for(vsize i=0; i<wls.size(); i++){
 		const WL& wl = wls[i];
 		bool mono = set.getType().isMonotone(**set.getAgg().begin(), wl.getWeight());
-		nws.push_back(new GenPWatch(getSetp(), wl, mono));
+		nws.push_back(new GenPWatch(getSetp(), wl, mono, nws.size()));
 	}
 
 	//Calculate reference aggregate (the one which will lead to the most watches
@@ -586,7 +572,7 @@ double GenPWAgg::testGenWatchCount() {
 			if(largest==NULL || largest->getWL().getWeight() < wl.getWeight()){
 				largest = getNWS()[i];
 			}
-			addToWatchedSet(i);
+			addToWatchedSet(getNWS()[i]);
 			i--;
 		}
 	}
@@ -611,7 +597,7 @@ double GenPWAgg::testGenWatchCount() {
 				if(largest->getWL().getWeight() < wl.getWeight()){
 					largest = getNWS()[i];
 				}
-				addToWatchedSet(i);
+				addToWatchedSet(getNWS()[i]);
 				i--;
 			}
 		}

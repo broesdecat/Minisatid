@@ -56,6 +56,7 @@ IDSolver::IDSolver(pPCSolver s) :
 		sem(s->modes().defsem), recagg(0), aggsolver(NULL),
 		previoustrailatsimp(-1),
 		posloops(true), negloops(true),
+		simplified(false),
 		backtracked(true),
 		adaption_total(0), adaption_current(0),
 		atoms_in_pos_loops(0),
@@ -469,11 +470,7 @@ void IDSolver::visit(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visite
 	}
 }
 
-//@pre: conflicts are empty
-//This is called after every simplification, which happens on solver restarts
-//Simplifying the definition again is only relevant if more literals are currently asserted on the base level,
-//which we check by storing the previous number of stored literals in previoustrailatsimp and comparing with the current trail
-bool IDSolver::simplify() {
+bool IDSolver::simplifyGraph(){
 	//Maybe already derived that no positive loops are possible: so skip simplification
 	if(!posloops){
 		return true;
@@ -674,6 +671,20 @@ bool IDSolver::simplify() {
 #endif
 
 	return true;
+}
+
+//@pre: conflicts are empty
+//This is called after every simplification, which happens on solver restarts
+//Simplifying the definition again is only relevant if more literals are currently asserted on the base level,
+//which we check by storing the previous number of stored literals in previoustrailatsimp and comparing with the current trail
+bool IDSolver::simplify() {
+	//Originally, simplifygraph was called here every time, but it proved to be very expensive and have few uses, to is only called once any more.
+	bool notunsat = true;
+	if(!simplified){
+		notunsat = simplifyGraph();
+		simplified = true;
+	}
+	return notunsat;
 }
 
 /**

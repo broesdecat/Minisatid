@@ -413,6 +413,10 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 	}
 
 	if (value(p) == l_False) {
+		if(modes().bumpaggonnotify){ //seems to be better here, untested!
+			//Decreases sokoban, performance, increases fastfood
+			getPCSolver()->varBumpActivity(var(p));
+		}
 		if (verbosity() >= 2) {
 			report("Deriving conflict in ");
 			Print::print(p, l_True);
@@ -430,7 +434,6 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 		getPCSolver()->addLearnedClause(confl);
 		return confl;
 	} else if (value(p) == l_Undef) {
-
 		if(modes().bumpaggonnotify){ //seems to be better here, untested!
 			//Decreases sokoban, performance, increases fastfood
 			getPCSolver()->varBumpActivity(var(p));

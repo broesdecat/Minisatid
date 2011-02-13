@@ -59,13 +59,13 @@ private:
 	const 	bool	_watchneg;
 			int 	_index; //-1 if _innws
 public:
-	GenPWatch(TypedSet* set, const WL& wl, bool watchneg):
+	GenPWatch(TypedSet* set, const WL& wl, bool watchneg, vsize index):
 		Watch(set, wl),
 		_innws(true),
 		_innet(false),
 		_wl(wl),
 		_watchneg(watchneg),
-		_index(-1){
+		_index(index){
 	}
 
 	int getIndex() const { return _index; }
@@ -78,8 +78,8 @@ public:
 	void		addToNetwork	(bool used) { _innet = used; }
 
 	bool		isInWS	()	const	{ return !_innws; }
-	void		addToWS(vsize index) { setIndex(index); _innws=false; }
-	void		notifyRemovedFromWS() { setIndex(-1); _innws = true; }
+	void		moveToWSPos(vsize index) { setIndex(index); _innws=false; }
+	void		moveToNWSPos(vsize index) { setIndex(index); _innws = true; }
 };
 
 typedef GenPWatch* pgpw;
@@ -97,13 +97,15 @@ public:
 
 	Weight		getValue	()	const;
 
-	rClause 	reconstructSet(pgpw watch, bool& propagations, Agg const * propagg);
-	void 		genWatches(vsize& i, const Agg& agg, Weight& min, Weight& max, Weight& knownmin, Weight& knownmax, GenPWatch*& largest);
+	void		calculateBoundsOfWatches(Weight& min, Weight& max, Weight& knownmin, Weight& knownmax, GenPWatch* largest);
 
-	rClause 	checkPropagation(bool& propagations, Agg const * agg);
+	rClause 	reconstructSet(pgpw watch, bool& propagations, Agg const * propagg);
+	void 		genWatches(vsize& i, const Agg& agg, Weight& min, Weight& max, Weight& knownmin, Weight& knownmax, GenPWatch*& largest, std::vector<GenPWatch*>& watchestoadd);
+
+	rClause 	checkPropagation(bool& propagations, Weight& min, Weight& max, Agg const * agg);
 	rClause 	checkOneAggPropagation(bool& propagations, const Agg& agg, const Weight& min, const Weight& max);
 
-	void 		addToWatchedSet(vsize index);
+	void 		addToWatchedSet(GenPWatch* watch);
 	void 		removeFromWatchedSet(pgpw pw);
 	void 		addWatchesToNetwork();
 	void 		addWatchToNetwork(pgpw watch);
