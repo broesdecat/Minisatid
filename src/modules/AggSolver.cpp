@@ -404,11 +404,6 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 rClause AggSolver::notifySolver(AggReason* ar) {
 	const Lit& p = ar->getPropLit();
 
-	if(modes().bumpaggonnotify){
-		//Decreases sokoban, performance, increases fastfood
-		getPCSolver()->varBumpActivity(var(p));
-	}
-
 	//If a propagation will be done or conflict (not already true), then add the learned clause first
 	if (value(p) != l_True && getPCSolver()->modes().aggclausesaving < 2) {
 		vec<Lit> lits;
@@ -435,6 +430,12 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 		getPCSolver()->addLearnedClause(confl);
 		return confl;
 	} else if (value(p) == l_Undef) {
+
+		if(modes().bumpaggonnotify){ //seems to be better here, untested!
+			//Decreases sokoban, performance, increases fastfood
+			getPCSolver()->varBumpActivity(var(p));
+		}
+
 		noprops = false;
 		if (verbosity() >= 2) {
 			report("Deriving ");

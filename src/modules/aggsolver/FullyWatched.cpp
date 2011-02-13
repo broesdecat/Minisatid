@@ -197,6 +197,7 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 	}
 
 	if(changedcc || changedcp){
+		//FIXME find aggregate with most stringent bound and only propagate that one!
 		for (vpagg::const_iterator i = getSet().getAgg().begin(); confl == nullPtrClause && i<getSet().getAgg().end(); i++){
 			const Agg& pa = **i;
 

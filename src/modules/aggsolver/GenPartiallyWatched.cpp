@@ -233,24 +233,6 @@ rClause GenPWAgg::checkPropagation(bool& propagations, Agg const * aggofprophead
 			confl = checkOneAggPropagation(propagations, **i, min, max);
 			bool headfalse = value((*i)->getHead())==l_False;
 			if(headfalse){
-				/*const Agg& agg = **i;
-				WL lowerbound(mkLit(1), Weight(0));
-				if(agg.hasLB()){
-					lowerbound = WL(mkLit(1), getSet().getType().remove(max, agg.getCertainBound()));
-				}else{
-					lowerbound = WL(mkLit(1), getSet().getType().remove(agg.getCertainBound(), min));
-				}
-				vwl::const_iterator i = upper_bound(getSet().getWL().begin(), getSet().getWL().end(), lowerbound, compareWLByWeights);
-				for(; confl==nullPtrClause && i<getSet().getWL().end(); i++){ //INVARIANT: sorted WL
-					if(value((*i).getLit())==l_Undef){
-						propagations = true;
-						if (agg.hasLB()) {
-							confl = getSet().getSolver()->notifySolver(new SetLitReason(agg, (*i).getLit(), (*i).getWeight(), agg.hasLB()?BASEDONCP:BASEDONCC, true));
-						}else{
-							confl = getSet().getSolver()->notifySolver(new SetLitReason(agg, (*i).getLit(), (*i).getWeight(), agg.hasLB()?BASEDONCP:BASEDONCC, false));
-						}
-					}
-				}*/
 				bool add = false;
 				if(strongestagg==NULL){
 					strongestagg = *i;
@@ -328,6 +310,9 @@ rClause GenPWAgg::reconstructSet(pgpw watch, bool& propagations, Agg const * pro
 		return confl;
 	}
 
+	//FIXME do one propagateatend and NO propagate, same code?
+
+	//FIXME should only check once per propagateatend instead of on every propagation?
 	confl = checkPropagation(propagations, propagg);
 
 	if(confl!=nullPtrClause){
