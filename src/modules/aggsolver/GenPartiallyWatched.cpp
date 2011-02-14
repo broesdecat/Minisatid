@@ -24,45 +24,46 @@ using namespace MinisatID::Aggrs;
  * FIXME maximum aggregate
  */
 
-/*
- * Moves NWS[index] to (new) end of WS
- */
-void GenPWAgg::addToWatchedSet(GenPWatch* watch){
-	vpgpw& set = getNWS();
-	vpgpw& watches = getWS();
+PWAgg::PWAgg				(TypedSet* set): Propagator(set) {}
+GenPWAgg::GenPWAgg			(TypedSet* set): PWAgg(set), emptyinterpretbounds(Weight(0), Weight(0)){}
+CardGenPWAgg::CardGenPWAgg	(TypedSet* set):GenPWAgg(set){}
+SumGenPWAgg::SumGenPWAgg	(TypedSet* set):GenPWAgg(set){}
 
-	//Remove from NWS
-	if(set.size()>1){
+GenPWAgg::~GenPWAgg(){
+	deleteList<GenPWatch>(ws);
+	deleteList<GenPWatch>(nws);
+}
+
+void GenPWAgg::moveFromNWSToWS(GenPWatch* watch){
+	vpgpw& nonwatched = getNWS();
+	vpgpw& watched = getWS();
+
+	if(nonwatched.size()>1){
 		vsize index = watch->getIndex();
-		set[index] = set[set.size()-1];
-		set[index]->setIndex(index);
+		nonwatched[index] = nonwatched[nonwatched.size()-1];
+		nonwatched[index]->setIndex(index);
 	}
-	set.pop_back();
+	nonwatched.pop_back();
 
-	//Add to WS
-	watches.push_back(watch);
-	watch->moveToWSPos(watches.size()-1);
+	watched.push_back(watch);
+	watch->moveToWSPos(watched.size()-1);
 
-	//Add to watches to be added to network
 	getStagedWatches().push_back(watch);
 }
 
-/**
- * Moves the watch pw from WS to NWS
- */
-void GenPWAgg::removeFromWatchedSet(pgpw pw){
-	vpgpw& set = getNWS();
-	vpgpw& watches = getWS();
+void GenPWAgg::moveFromWSToNWS(pgpw pw){
+	vpgpw& nonwatched = getNWS();
+	vpgpw& watched = getWS();
 
-	if(watches.size()>1){
+	if(watched.size()>1){
 		int index = pw->getIndex();
-		watches[index] = watches[watches.size()-1];
-		watches[index]->setIndex(index);
+		watched[index] = watched[watched.size()-1];
+		watched[index]->setIndex(index);
 	}
-	watches.pop_back();
+	watched.pop_back();
 
-	set.push_back(pw);
-	pw->moveToNWSPos(set.size()-1);
+	nonwatched.push_back(pw);
+	pw->moveToNWSPos(nonwatched.size()-1);
 }
 
 void GenPWAgg::addWatchToNetwork(pgpw watch){
@@ -82,26 +83,12 @@ void GenPWAgg::addWatchesToNetwork(){
 }
 
 /**
- * Set has at least one aggregate
- * All aggregates have the same sign and implication instead of equivalence, head can be negative!
- */
-PWAgg::PWAgg				(TypedSet* set): Propagator(set) {}
-GenPWAgg::GenPWAgg			(TypedSet* set): PWAgg(set), emptyinterpretbounds(Weight(0), Weight(0)){}
-CardGenPWAgg::CardGenPWAgg	(TypedSet* set):GenPWAgg(set){}
-SumGenPWAgg::SumGenPWAgg	(TypedSet* set):GenPWAgg(set){}
-
-GenPWAgg::~GenPWAgg(){
-	deleteList<GenPWatch>(ws);
-	deleteList<GenPWatch>(nws);
-}
-
-/**
+ * @pre All aggregates have the same sign and implication instead of equivalence, head can be negative!
  * initialize NWS: make a watch for each set literal, watch the negation of the set literal if its monotone
  *					then reconstruct the set for the aggregate with the lowest bound!
  */
 void GenPWAgg::initialize(bool& unsat, bool& sat) {
 	TypedSet& set = getSet();
-
 	assert(set.getAgg().size()>0);
 
 #ifdef DEBUG
@@ -112,18 +99,16 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 	}
 #endif
 
-	//Create sets and watches, initialize min/max values
+	//Initialization
 	emptyinterpretbounds = minmaxBounds(set.getType().getMinPossible(set), set.getType().getMaxPossible(set));
 	const vwl& wls = set.getWL();
 	for(vwl::const_reverse_iterator i=wls.rbegin(); i<wls.rend(); i++){
 		const WL& wl = *i;
 		bool mono = set.getType().isMonotone(**set.getAgg().begin(), wl.getWeight());
-
 		nws.push_back(new GenPWatch(getSetp(), wl, mono, nws.size()));
 	}
 
 	minmaxBounds pessbounds(emptyinterpretbounds);
-	//have to evaluate over CURRENT evaluation (not propvalue), as this is also done by the generation of watches (otherwise inconsistency!)
 	for(vsize i=0; i<wls.size(); i++){
 		const WL& wl = wls[i];
 		lbool val = getSolver()->value(wl.getLit());
@@ -140,10 +125,10 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 	for(vpagg::const_iterator i=set.getAgg().begin(); confl==nullPtrClause && i<set.getAgg().end(); i++){
 		if(value((*i)->getHead())==l_True && !(*i)->isOptim()){
 			del.push_back(*i);
-		}else if(isSatisfied(**i, pessbounds.min, pessbounds.max) && !(*i)->isOptim()){
+		}else if(isSatisfied(**i, pessbounds) && !(*i)->isOptim()){
 			confl = set.getSolver()->notifySolver(new HeadReason(**i, BASEDONCC, ~(*i)->getHead()));
 			del.push_back(*i);
-		}else if(isFalsified(**i, pessbounds.min, pessbounds.max) && !(*i)->isOptim()){
+		}else if(isFalsified(**i, pessbounds) && !(*i)->isOptim()){
 			//propagate head false
 			confl = set.getSolver()->notifySolver(new HeadReason(**i, BASEDONCC, (*i)->getHead()));
 			del.push_back(*i);
@@ -216,7 +201,7 @@ Agg* getAggWithMostStringentBound(const GenPWAgg& prop){
 	return strongestagg;
 }
 
-//@pre: min and max are the bounds considering all known literals
+//@pre: min and max are the bounds considering the truth! of all known literals
 rClause GenPWAgg::checkPropagation(bool& propagations, minmaxBounds& pessbounds, Agg const * aggofprophead){
 	rClause confl = nullPtrClause;
 	Agg const * aggp = NULL;
@@ -330,7 +315,7 @@ rClause GenPWAgg::reconstructSet(pgpw watch, bool& propagations, Agg const * pro
 		return checkPropagation(propagations, bounds.pess, propagg);
 	}else{
 		for(vector<GenPWatch*>::const_iterator i=watchestoadd.begin(); i<watchestoadd.end(); i++){
-			addToWatchedSet(*i);
+			moveFromNWSToWS(*i);
 		}
 		watchestoadd.clear();
 	}
@@ -363,7 +348,7 @@ rClause GenPWAgg::reconstructSet(pgpw watch, bool& propagations, Agg const * pro
 		genWatches(i, agg, bounds, largest, watchestoadd);
 	}
 	for(vector<GenPWatch*>::const_iterator i=watchestoadd.begin(); i<watchestoadd.end(); i++){
-		addToWatchedSet(*i);
+		moveFromNWSToWS(*i);
 	}
 	watchestoadd.clear();
 
@@ -386,7 +371,7 @@ void GenPWAgg::genWatches(vsize& i, const Agg& agg, minmaxOptimAndPessBounds& bo
 			if(largest==NULL || largest->getWL().getWeight() < wl.getWeight()){
 				largest = watch;
 			}
-			addToWatchedSet(watch);
+			moveFromNWSToWS(watch);
 		}
 	}
 }
@@ -412,7 +397,7 @@ rClause GenPWAgg::propagate(const Lit& p, Watch* watch, int level) {
 	confl = reconstructSet(pw, propagations, NULL);
 
 	if(!propagations && confl==nullPtrClause){ //It can be safely removed as a watch, so we also remove it from WS
-		removeFromWatchedSet(pw);
+		moveFromWSToNWS(pw);
 	}else{ //Otherwise, we add it again to the network
 		addWatchToNetwork(pw);
 	}
@@ -484,7 +469,7 @@ void GenPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	//Follow propagation order
 	sort(wlis.begin(), wlis.end(), compareWLIearlier);
 
-	minmaxBounds pessbounds(emptyinterpretbounds);
+	minmaxBounds pessbounds(getEmptyInterpretationBounds());
 	if(!ar.isHeadReason()){ //Change value according to propagating negation of proplit
 		addValue(getSet().getType(), ar.getPropWeight(), !ar.isInSet(), pessbounds);
 	}
@@ -575,7 +560,7 @@ double GenPWAgg::testGenWatchCount() {
 			if(largest==NULL || largest->getWL().getWeight() < wl.getWeight()){
 				largest = getNWS()[i];
 			}
-			addToWatchedSet(getNWS()[i]);
+			moveFromNWSToWS(getNWS()[i]);
 			i--;
 		}
 	}
@@ -600,7 +585,7 @@ double GenPWAgg::testGenWatchCount() {
 				if(largest->getWL().getWeight() < wl.getWeight()){
 					largest = getNWS()[i];
 				}
-				addToWatchedSet(getNWS()[i]);
+				moveFromNWSToWS(getNWS()[i]);
 				i--;
 			}
 		}

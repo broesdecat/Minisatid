@@ -135,8 +135,8 @@ private:
 	rClause checkPropagation(bool& propagations, minmaxBounds& pessbounds, Agg const * agg);
 	rClause checkOneAggPropagation(bool& propagations, const Agg& agg, const minmaxBounds& pessbounds);
 
-	void 	addToWatchedSet(GenPWatch* watch);
-	void 	removeFromWatchedSet(pgpw pw);
+	void 	moveFromNWSToWS(GenPWatch* watch);
+	void 	moveFromWSToNWS(pgpw pw);
 	void 	addWatchesToNetwork();
 	void 	addWatchToNetwork(pgpw watch);
 };

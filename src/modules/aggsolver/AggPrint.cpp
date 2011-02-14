@@ -56,7 +56,6 @@ void Aggrs::printWatches(int verbosity, AggSolver const * const solver, const st
 				if(watch2!=NULL && watch2->isInWS()){
 					report("        ");
 					print(verbosity, *tempwatches[i][j]->getSet()->getAgg()[k], true);
-					break;
 				}
 			}
 		}
