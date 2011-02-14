@@ -1,41 +1,4 @@
-//--------------------------------------------------------------------------------------------------
-//    Copyright (c) 2009-2010, Broes De Cat, K.U.Leuven, Belgium
-//
-//    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-//    associated documentation files (the "Software"), to deal in the Software without restriction,
-//    including without limitation the rights to use, copy, modify, merge, publish, distribute,
-//    sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
-//    furnished to do so, subject to the following conditions:
-//
-//    The above copyright notice and this permission notice shall be included in all copies or
-//    substantial portions of the Software.
-//
-//    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-//    NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-//    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-//    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-//    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//--------------------------------------------------------------------------------------------------
-
-/************************************************************************************
-Copyright (c) 2006-2009, Maarten Mariën
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-associated documentation files (the "Software"), to deal in the Software without restriction,
-including without limitation the rights to use, copy, modify, merge, publish, distribute,
-sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or
-substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-**************************************************************************************************/
-
+//LICENSEPLACEHOLDER
 #ifndef AggSolver_H_
 #define AggSolver_H_
 
@@ -64,16 +27,15 @@ namespace Aggrs{
 	class Watch;
 	class AggReason;
 	struct AggBound;
+
+	typedef std::map<int, Aggrs::TypedSet*> mips;
+	typedef std::vector<Aggrs::Agg*> vpagg;
+	typedef std::vector<Aggrs::TypedSet*> setlist;
+	typedef std::vector<Aggrs::Watch*> watchlist;
 }
 
 typedef std::vector<Weight> vw;
 typedef std::vector<Lit> vl;
-typedef std::map<int, Aggrs::TypedSet*> mips;
-typedef std::vector<Aggrs::Agg*> vpagg;
-typedef std::vector<Aggrs::TypedSet*> vps;
-typedef std::vector<vps> vvps;
-typedef std::vector<Aggrs::Watch*> vpw;
-typedef std::vector<vpw> vvpw;
 
 /*
  * CLAUSE LEARNING INVARIANT:
@@ -92,43 +54,37 @@ struct LI{
 };
 
 class AggSolver: public DPLLTmodule{
+	//TODO pimpl
 private:
-	mips 					_parsedSets;
-    vps						_sets;
-    std::set<Var>			aggheads;	//A set of all heads that are already used by an aggregate.
+	Aggrs::mips 	parsedSets;
+	std::set<Var>	heads;
 
-	std::vector<Aggrs::AggReason*>	aggreason;	// For each atom, like 'reason'.
+	Aggrs::setlist	sets;
+	std::vector<Aggrs::AggReason*>	reasons; //Map var to reason
 
-	vvpw					tempwatches;	//NON-OWNED PARTIAL WATCHES
-	vvpw 					permwatches;	// Aggr_watches[v] is a list of sets in which VAR v occurs (each AggrWatch says: which set, what type of occurrence).
-	std::vector<Aggrs::Agg*>	headwatches;	//	index on LITERALS, does NOT own the pointers
-	vvps					network;		// the pointer network of set var -> set
+	std::vector<Aggrs::watchlist>	lit2dynamicwatchlist;	// map lit to watches
+	std::vector<Aggrs::watchlist>	lit2staticwatchlist;	// map lit to watches
+	std::vector<Aggrs::Agg*>		lit2headwatchlist;	// map lit to watches
+	std::vector<Aggrs::setlist>		var2setlist;		// the pointer network of set var -> set
 
 	//statistics
-	uint64_t propagations; //Number of propagations into aggregate sets made
+	uint64_t propagations;
 
 	//new trail datastructure
-	std::vector<std::vector<Aggrs::TypedSet*> > 	backtrail;
-	std::vector<Aggrs::TypedSet*> 					proptrail;
-	int 											propstart;
-	bool 											noprops;
+	std::vector<Aggrs::setlist > 	setsbacktracktrail;
+	Aggrs::setlist 					setspropagatetrail;
 
 	std::vector<int>								mapdecleveltotrail;
 	int 											index; //fulltrail index?
-	uint												propindex;
-	std::vector<Lit>								fulltrail;
+	uint											propindex;
+	std::vector<Lit>								littrail;
 	std::vector<LI>									propagated;
 
 public:
 	AggSolver(pPCSolver s);
 	virtual ~AggSolver();
 
-	//Returns the current decision level
-	int 				getLevel				() 		const { return backtrail.size()-1; }
-
-	//////
 	// INITIALIZATION
-	//////
 
 	/**
 	 * Adds the set with the given id to the solver and sets its literals and its weights.
@@ -136,107 +92,79 @@ public:
 	 * @pre: no set with the same id has already been added
 	 * @pre: negative weights are not allowed
 	 * @pre: empty sets are not allowed
-	 *
-	 * @post: the literal set is sorted according to increasing weight.
-	 *
-	 * @remark: please ensure that all id numbers are used without gaps in the numbering.
 	 */
-	bool 				addSet					(int id, const std::vector<Lit>& l, const std::vector<Weight>& w);
+	bool addSet(int id, const std::vector<Lit>& l, const std::vector<Weight>& w);
 
 	/**
-	 * Adds an aggregate of the given type with number defn for set set_id.
-	 * If lower, then AGGRvalue <= bound
-	 * else 		  bound <= AGGRvalue
-	 *
-	 * Notifies the id solver that a new aggregate has been added
-	 *
-	 * Also adds a watch for each atom occurring in body or head. Watches are added by ATOM, not by LITERAL
-	 *
 	 * @pre: no weights==0 when using a product aggregate
 	 */
-	bool 				addAggrExpr				(int defn, int set_id, const Weight& bound, AggSign boundsign, AggType type, AggSem headeq);
-	void 				findClausalPropagations	();
-	void 				notifyDefinedHead		(Var head);
-	void 				removeHeadWatch			(Var x);
+	bool addAggrExpr(int defn, int set_id, const Weight& bound, AggSign boundsign, AggType type, AggSem headeq);
 
-	//////
+	bool addMnmz(Var headv, int setid, AggType type);
+
 	// SEARCH
-	//////
-
-	virtual void 		notifyVarAdded			(uint64_t nvars);
+	void notifyVarAdded(uint64_t nvars);
 
 	/**
 	 * Checks presence of aggregates and initializes all counters.
 	 * UNSAT is set to true if unsat is detected
 	 * PRESENT is set to true if aggregate propagations should be done
 	 */
-	virtual void 		finishParsing		 	(bool& present, bool& unsat);
-	virtual bool 		simplify				() { return true; }; //False if problem unsat
+	void 		finishParsing		 	(bool& present, bool& unsat);
+
+	bool 		simplify				() { return true; }; //False if problem unsat
+
 	/**
 	 * Goes through all watches and propagates the fact that p was set true.
 	 */
-	virtual rClause 	propagate				(const Lit& l);
-	virtual rClause	 	propagateAtEndOfQueue	();
-			rClause 	doProp					();
+	rClause 	propagate				(const Lit& l);
+	rClause	 	propagateAtEndOfQueue	();
 
-	virtual void 		newDecisionLevel		();
-	virtual void 		backtrackDecisionLevels	(int nblevels, int untillevel);
-	virtual rClause 	getExplanation			(const Lit& l);
+	void 		newDecisionLevel		();
+	void 		backtrackDecisionLevels	(int nblevels, int untillevel);
+	rClause 	getExplanation			(const Lit& l);
 
-	virtual const char* getName					() const { return "aggregate"; }
-	virtual void 		print					() const;
-	virtual void 		printStatistics			() const;
+	// INFORMATION
 
-	virtual bool 		checkStatus				();
+	const char* getName					() const { return "aggregate"; }
+	void 		print					() const;
+	void 		printStatistics			() const;
 
-	//are used by agg.c, but preferably should be move into protected again
-	rClause				notifySolver(Aggrs::AggReason* cr);	// Like "enqueue", but for aggregate propagations.
+	// VERIFICATION
 
-	//////
+	bool 		checkStatus				();
+
 	// OPTIMISATION
-	//////
-	bool 				addMnmz					(Var headv, int setid, AggType type);
     bool 				invalidateAgg			(vec<Lit>& invalidation, Var head);
     void 				propagateMnmz			(Var head);
 
-	//////
 	// RECURSIVE AGGREGATES
-	//////
-	void 				propagateJustifications	(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& v, VarToJustif &nb_body_lits_to_justify);
-	void 				findJustificationAggr	(Var head, vec<Lit>& jstf);
-	bool 				directlyJustifiable		(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust);
-	void 				addExternalLiterals		(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, VarToJustif& seen);
+	void 				propagateJustifications		(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& v, VarToJustif &nb_body_lits_to_justify);
+	void 				findJustificationAggr		(Var head, vec<Lit>& jstf);
+	bool 				directlyJustifiable			(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust);
+	void 				addExternalLiterals			(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, VarToJustif& seen);
+	std::vector<Var> 	getAggHeadsWithBodyLit		(Var x) const;
+	vwl::const_iterator getSetLitsOfAggWithHeadBegin(Var x) const;
+	vwl::const_iterator getSetLitsOfAggWithHeadEnd	(Var x) const;
 
-	//Returns a std::vector containing the heads of the aggregates in which x occurs as a set literal
-	std::vector<Var> 	getAggHeadsWithBodyLit	(Var x) const;
-
-	//Returns the set literals of the aggregate with the given head x.
-	vwl::const_iterator getAggLiteralsBegin		(Var x) const;
-	vwl::const_iterator getAggLiteralsEnd		(Var x) const;
-
-	///////
-	// WATCHES
-	///////
-	void 				setHeadWatch			(Lit head, Aggrs::Agg* agg);
-	void 				addPermWatch			(Var v, Aggrs::Watch* w);
-	void 				addTempWatch			(const Lit& l, Aggrs::Watch* w);
-
-	const std::vector<Aggrs::TypedSet*>&	getPropTrail	() const { return proptrail; }
-	void				addToPropTrail			(Aggrs::TypedSet* set) { proptrail.push_back(set); }
-	void				addToBackTrail			(Aggrs::TypedSet* set) { backtrail.back().push_back(set); }
-
-	int					getTime					(Lit l) const;
-
-	lbool				propagatedValue			(const Lit& l) const;
+	//INTERNAL (TODO into pimpl)
+	rClause		notifySolver(Aggrs::AggReason* cr);
+	rClause 	doProp					();
+	void 		findClausalPropagations();
+	void 		notifyDefinedHead(Var head);
+	void 		removeHeadWatch(Var x);
+	void 		setHeadWatch			(Lit head, Aggrs::Agg* agg);
+	void 		addStaticWatch			(Var v, Aggrs::Watch* w);
+	void 		addDynamicWatch			(const Lit& l, Aggrs::Watch* w);
+	const std::vector<Aggrs::TypedSet*>&	getPropTrail	() const { return setspropagatetrail; }
+	void		addToPropTrail			(Aggrs::TypedSet* set) { setspropagatetrail.push_back(set); }
+	void		addToBackTrail			(Aggrs::TypedSet* set) { setsbacktracktrail.back().push_back(set); }
+	void		addRootLevel			();
+	int			getTime					(Lit l) const;
 
 protected:
-	mips&				parsedSets				() { return _parsedSets; }
-	vps&				sets					() { return _sets; }
+	int 				getCurrentDecisionLevel	() 		const { return setsbacktracktrail.size()-1; }
 
-	///////
-	// IDSOLVER
-	///////
-	// Returns the aggregate in which the given variable is the head.
 	Aggrs::Agg* 		getAggDefiningHead		(Var v) const;
 
 	bool				finishSet				(Aggrs::TypedSet* set);
@@ -244,6 +172,10 @@ protected:
 	bool 				addAggrExpr				(Var headv, int setid, const Aggrs::AggBound& bound, AggType type, AggSem headeq);
 
 };
+
+namespace Aggrs{
+	void printNumberOfAggregates(int nbsets, int nbagg, int nbsetlits, std::map<MinisatID::AggType, int>& nbaggs, int verbosity = 1000);
+}
 
 }
 

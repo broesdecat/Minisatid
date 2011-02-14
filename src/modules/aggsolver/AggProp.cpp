@@ -194,6 +194,82 @@ WL ProdProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* 
 	throw idpexception("Atoms in product aggregates have to be unique.\n");
 }
 
+//AGGREGATES
+
+bool Aggrs::isSatisfied(const Agg& agg, const Weight& min, const Weight& max){
+	if(agg.hasUB()){
+		return max<=agg.getCertainBound();
+	}else{ //LB
+		return min>=agg.getCertainBound();
+	}
+}
+
+bool Aggrs::isSatisfied(const Agg& agg, const minmaxBounds& bounds){
+	if(agg.hasUB()){
+		return bounds.max<=agg.getCertainBound();
+	}else{ //LB
+		return bounds.min>=agg.getCertainBound();
+	}
+}
+
+bool Aggrs::isFalsified(const Agg& agg, const Weight& min, const Weight& max){
+	if(agg.hasUB()){
+		return min>agg.getCertainBound();
+	}else{ //LB
+		return max<agg.getCertainBound();
+	}
+}
+
+bool Aggrs::isFalsified(const Agg& agg, const minmaxBounds& bounds){
+	if(agg.hasUB()){
+		return bounds.min>agg.getCertainBound();
+	}else{ //LB
+		return bounds.max<agg.getCertainBound();
+	}
+}
+
+/**
+ * IMPORTANT: not usable for types without remove!
+ * if addtoset: weight should be considered as the weight of a literal being added to the set (from unknown)
+ * 		if weight is pos: min will increase, so add to min
+ * 		if weight is neg: max will decrease, so add to max
+ * if !addtoset: consider weight as weight of the literal being removed from the set (from unknown)
+ * 		if weight is pos: max will decrease, so remove from max
+ * 		if weight is neg: min will increase, so remove from min
+ */
+void Aggrs::addValue(const AggProp& type, const Weight& weight, bool addtoset, minmaxBounds& bounds){
+	addValue(type, weight, addtoset, bounds.min, bounds.max);
+}
+void Aggrs::addValue(const AggProp& type, const Weight& weight, bool addtoset, Weight& min, Weight& max){
+	bool pos = weight>=0;
+	if(pos && addtoset){
+		min = type.add(min, weight);
+	}else if(pos && !addtoset){
+		max = type.remove(max, weight);
+	}else if(!pos && addtoset){
+		max = type.add(max, weight);
+	}else{ //!pos && !addtoset
+		min = type.remove(min, weight);
+	}
+}
+
+void Aggrs::removeValue(const AggProp& type, const Weight& weight, bool wasinset, minmaxBounds& bounds) {
+	removeValue(type, weight, wasinset, bounds.min, bounds.max);
+}
+
+void Aggrs::removeValue(const AggProp& type, const Weight& weight, bool wasinset, Weight& min, Weight& max) {
+	bool pos = weight>=0;
+	if(pos && wasinset){
+		min = type.remove(min, weight);
+	}else if(pos && !wasinset){
+		max = type.add(max, weight);
+	}else if(!pos && wasinset){
+		max = type.remove(max, weight);
+	}else{ //!pos && !wasinset
+		min = type.add(min, weight);
+	}
+}
+
 ///////
 // TypedSet
 ///////
@@ -305,48 +381,6 @@ void Propagator::initialize(bool& unsat, bool& sat) {
 
 lbool Propagator::value(const Lit& l) const {
 	return getSolver()->value(l);
-}
-
-lbool Propagator::propagatedValue(const Lit& l) const {
-	return getSolver()->propagatedValue(l);
-}
-
-/**
- * IMPORTANT: not usable for types without remove!
- * if addtoset: weight should be considered as the weight of a literal being added to the set (from unknown)
- * 		if weight is pos: min will increase, so add to min
- * 		if weight is neg: max will decrease, so add to max
- * if !addtoset: consider weight as weight of the literal being removed from the set (from unknown)
- * 		if weight is pos: max will decrease, so remove from max
- * 		if weight is neg: min will increase, so remove from min
- */
-void Propagator::addValue(const Weight& weight, bool addtoset, Weight& min, Weight& max) const{
-	bool pos = weight>=0;
-	if(pos && addtoset){
-		min = getSet().getType().add(min, weight);
-	}else if(pos && !addtoset){
-		max = getSet().getType().remove(max, weight);
-	}else if(!pos && addtoset){
-		max = getSet().getType().add(max, weight);
-	}else{ //!pos && !addtoset
-		min = getSet().getType().remove(min, weight);
-	}
-}
-
-/**
- * if
- */
-void Propagator::removeValue(const Weight& weight, bool wasinset, Weight& min, Weight& max) const{
-	bool pos = weight>=0;
-	if(pos && wasinset){
-		min = getSet().getType().remove(min, weight);
-	}else if(pos && !wasinset){
-		max = getSet().getType().add(max, weight);
-	}else if(!pos && wasinset){
-		max = getSet().getType().remove(max, weight);
-	}else{ //!pos && !wasinset
-		min = getSet().getType().add(min, weight);
-	}
 }
 
 /************************

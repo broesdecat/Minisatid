@@ -244,7 +244,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 				break;
 			case AGGR: {
 				if (getAggSolver() != NULL) {
-					for (vwl::const_iterator j = getAggSolver()->getAggLiteralsBegin(v); !isdefd && j< getAggSolver()->getAggLiteralsEnd(v); ++j) {
+					for (vwl::const_iterator j = getAggSolver()->getSetLitsOfAggWithHeadBegin(v); !isdefd && j< getAggSolver()->getSetLitsOfAggWithHeadEnd(v); ++j) {
 						if (inSameSCC(v, var((*j).getLit()))) { // NOTE: disregard sign here: set literals can occur both pos and neg in justifications.
 							isdefd = true;
 						}
@@ -363,7 +363,7 @@ void IDSolver::visitFull(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &vi
 			break;
 		}
 		case AGGR: {
-			for (vwl::const_iterator j = getAggSolver()->getAggLiteralsBegin(i); j<getAggSolver()->getAggLiteralsEnd(i); ++j) {
+			for (vwl::const_iterator j = getAggSolver()->getSetLitsOfAggWithHeadBegin(i); j<getAggSolver()->getSetLitsOfAggWithHeadEnd(i); ++j) {
 				Var w = var((*j).getLit());
 				if (!isDefined(w)) {
 					continue;
@@ -440,7 +440,7 @@ void IDSolver::visit(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visite
 		case AGGR: {
 			//TODO this can be optimized by using another method which only returns literals possibly in the
 			//positive dependency graph.
-			for (vwl::const_iterator j = getAggSolver()->getAggLiteralsBegin(i); j<getAggSolver()->getAggLiteralsEnd(i); ++j) {
+			for (vwl::const_iterator j = getAggSolver()->getSetLitsOfAggWithHeadBegin(i); j<getAggSolver()->getSetLitsOfAggWithHeadEnd(i); ++j) {
 				Var w = var((*j).getLit());
 				if (!isDefined(w)) {
 					continue;

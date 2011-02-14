@@ -44,7 +44,7 @@ void GenPWAgg::addToWatchedSet(GenPWatch* watch){
 	watch->moveToWSPos(watches.size()-1);
 
 	//Add to watches to be added to network
-	_newwatches.push_back(watch);
+	getStagedWatches().push_back(watch);
 }
 
 /**
@@ -65,23 +65,20 @@ void GenPWAgg::removeFromWatchedSet(pgpw pw){
 	pw->moveToNWSPos(set.size()-1);
 }
 
-/*
- * Add to pointer network
- */
 void GenPWAgg::addWatchToNetwork(pgpw watch){
 	assert(watch->isInWS());
 	if(!watch->isInNetwork()){
 		watch->addToNetwork(true);
-		getSolver()->addTempWatch(watch->getWatchLit(), watch);
+		getSolver()->addDynamicWatch(watch->getWatchLit(), watch);
 	}
 }
 
 //In init, not immediately adding watches!
 void GenPWAgg::addWatchesToNetwork(){
-	for(vpgpw::const_iterator i=_newwatches.begin(); i<_newwatches.end(); i++){
+	for(vpgpw::const_iterator i=getStagedWatches().begin(); i<getStagedWatches().end(); i++){
 		addWatchToNetwork(*i);
 	}
-	_newwatches.clear();
+	getStagedWatches().clear();
 }
 
 /**
@@ -89,7 +86,7 @@ void GenPWAgg::addWatchesToNetwork(){
  * All aggregates have the same sign and implication instead of equivalence, head can be negative!
  */
 PWAgg::PWAgg				(TypedSet* set): Propagator(set) {}
-GenPWAgg::GenPWAgg			(TypedSet* set): PWAgg(set), genmin(Weight(0)), genmax(Weight(0)){}
+GenPWAgg::GenPWAgg			(TypedSet* set): PWAgg(set), emptyinterpretbounds(Weight(0), Weight(0)){}
 CardGenPWAgg::CardGenPWAgg	(TypedSet* set):GenPWAgg(set){}
 SumGenPWAgg::SumGenPWAgg	(TypedSet* set):GenPWAgg(set){}
 
@@ -116,8 +113,7 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 #endif
 
 	//Create sets and watches, initialize min/max values
-	genmin = set.getType().getMinPossible(set);
-	genmax = set.getType().getMaxPossible(set);
+	emptyinterpretbounds = minmaxBounds(set.getType().getMinPossible(set), set.getType().getMaxPossible(set));
 	const vwl& wls = set.getWL();
 	for(vwl::const_reverse_iterator i=wls.rbegin(); i<wls.rend(); i++){
 		const WL& wl = *i;
@@ -126,15 +122,15 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 		nws.push_back(new GenPWatch(getSetp(), wl, mono, nws.size()));
 	}
 
-	Weight currentmin = genmin, currentmax = genmax;
+	minmaxBounds pessbounds(emptyinterpretbounds);
 	//have to evaluate over CURRENT evaluation (not propvalue), as this is also done by the generation of watches (otherwise inconsistency!)
 	for(vsize i=0; i<wls.size(); i++){
 		const WL& wl = wls[i];
 		lbool val = getSolver()->value(wl.getLit());
 		if(val==l_True){
-			currentmin = set.getType().add(currentmin, wl.getWeight());
+			pessbounds.min = set.getType().add(pessbounds.min, wl.getWeight());
 		}else if(val==l_False){
-			currentmax = set.getType().remove(currentmax, wl.getWeight());
+			pessbounds.max = set.getType().remove(pessbounds.max, wl.getWeight());
 		}
 	}
 
@@ -144,10 +140,10 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 	for(vpagg::const_iterator i=set.getAgg().begin(); confl==nullPtrClause && i<set.getAgg().end(); i++){
 		if(value((*i)->getHead())==l_True && !(*i)->isOptim()){
 			del.push_back(*i);
-		}else if(isSatisfied(**i, currentmin, currentmax) && !(*i)->isOptim()){
+		}else if(isSatisfied(**i, pessbounds.min, pessbounds.max) && !(*i)->isOptim()){
 			confl = set.getSolver()->notifySolver(new HeadReason(**i, BASEDONCC, ~(*i)->getHead()));
 			del.push_back(*i);
-		}else if(isFalsified(**i, currentmin, currentmax) && !(*i)->isOptim()){
+		}else if(isFalsified(**i, pessbounds.min, pessbounds.max) && !(*i)->isOptim()){
 			//propagate head false
 			confl = set.getSolver()->notifySolver(new HeadReason(**i, BASEDONCC, (*i)->getHead()));
 			del.push_back(*i);
@@ -181,14 +177,13 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 }
 
 Weight GenPWAgg::getValue() const{
-	Weight min = genmin;
-	Weight max = genmax;
+	minmaxBounds bounds(emptyinterpretbounds);
 
 	for(vpgpw::const_iterator i=getWS().begin(); i<getWS().end(); i++){
 		const WL& wl = (*i)->getWL();
 		lbool val = value(wl.getLit());
 		if(val!=l_Undef){
-			addValue(wl.getWeight(), val==l_True, min, max);
+			addValue(getSet().getType(), wl.getWeight(), val==l_True, bounds);
 		}
 	}
 
@@ -196,52 +191,62 @@ Weight GenPWAgg::getValue() const{
 		const WL& wl = (*i)->getWL();
 		lbool val = value(wl.getLit());
 		if(val!=l_Undef){
-			addValue(wl.getWeight(), val==l_True, min, max);
+			addValue(getSet().getType(), wl.getWeight(), val==l_True, bounds);
 		}
 	}
 
-	assert(min==max);
-	return min;
+	assert(bounds.min==bounds.max);
+	return bounds.min;
+}
+
+Agg* getAggWithMostStringentBound(const GenPWAgg& prop){
+	Agg* strongestagg = NULL;
+	for(vpagg::const_iterator i=prop.getSet().getAgg().begin(); i<prop.getSet().getAgg().end(); i++){
+		bool headfalse = prop.value((*i)->getHead())==l_False;
+		if(headfalse){
+			if(strongestagg==NULL){
+				strongestagg = *i;
+			}else if(strongestagg->hasLB() && strongestagg->getCertainBound()<(*i)->getCertainBound()){
+				strongestagg = *i;
+			}else if(strongestagg->hasUB() && strongestagg->getCertainBound()>(*i)->getCertainBound()){
+				strongestagg = *i;
+			}
+		}
+	}
+	return strongestagg;
 }
 
 //@pre: min and max are the bounds considering all known literals
-rClause GenPWAgg::checkPropagation(bool& propagations, Weight& min, Weight& max, Agg const * aggofprophead){
+rClause GenPWAgg::checkPropagation(bool& propagations, minmaxBounds& pessbounds, Agg const * aggofprophead){
 	rClause confl = nullPtrClause;
-	if(aggofprophead!=NULL){
-		confl = checkOneAggPropagation(propagations, *aggofprophead, min, max);
-	}else{
-		Agg* strongestagg = NULL;
+	Agg const * aggp = NULL;
 
+	if(aggofprophead!=NULL){
+		confl = checkOneAggPropagation(propagations, *aggofprophead, pessbounds);
+		aggp = aggofprophead;
+	}else{
 		for(vpagg::const_iterator i=getSet().getAgg().begin(); confl==nullPtrClause && i<getSet().getAgg().end(); i++){
-			confl = checkOneAggPropagation(propagations, **i, min, max);
-			bool headfalse = value((*i)->getHead())==l_False;
-			if(headfalse){
-				if(strongestagg==NULL){
-					strongestagg = *i;
-				}else if(strongestagg->hasLB() && strongestagg->getCertainBound()<(*i)->getCertainBound()){
-					strongestagg = *i;
-				}else if(strongestagg->hasUB() && strongestagg->getCertainBound()>(*i)->getCertainBound()){
-					strongestagg = *i;
-				}
-			}
+			confl = checkOneAggPropagation(propagations, **i, pessbounds);
 		}
-		if(confl==nullPtrClause && strongestagg!=NULL){
-			const Agg& agg = *strongestagg;
-			WL lowerbound(mkLit(1), Weight(0));
-			if(agg.hasLB()){
-				lowerbound = WL(mkLit(1), getSet().getType().remove(max, agg.getCertainBound()));
-			}else{
-				lowerbound = WL(mkLit(1), getSet().getType().remove(agg.getCertainBound(), min));
-			}
-			vwl::const_iterator i = upper_bound(getSet().getWL().begin(), getSet().getWL().end(), lowerbound, compareWLByWeights);
-			for(; confl==nullPtrClause && i<getSet().getWL().end(); i++){ //INVARIANT: sorted WL
-				if(value((*i).getLit())==l_Undef){
-					propagations = true;
-					if (agg.hasLB()) {
-						confl = getSet().getSolver()->notifySolver(new SetLitReason(agg, (*i).getLit(), (*i).getWeight(), agg.hasLB()?BASEDONCP:BASEDONCC, true));
-					}else{
-						confl = getSet().getSolver()->notifySolver(new SetLitReason(agg, (*i).getLit(), (*i).getWeight(), agg.hasLB()?BASEDONCP:BASEDONCC, false));
-					}
+		aggp = getAggWithMostStringentBound(*this);
+	}
+
+	if(confl==nullPtrClause && aggp!=NULL){
+		const Agg& agg = *aggp;
+		WL lowerbound(mkLit(1), Weight(0));
+		if(agg.hasLB()){
+			lowerbound = WL(mkLit(1), getSet().getType().remove(pessbounds.max, agg.getCertainBound()));
+		}else{
+			lowerbound = WL(mkLit(1), getSet().getType().remove(agg.getCertainBound(), pessbounds.min));
+		}
+		vwl::const_iterator i = upper_bound(getSet().getWL().begin(), getSet().getWL().end(), lowerbound, compareWLByWeights);
+		for(; confl==nullPtrClause && i<getSet().getWL().end(); i++){ //INVARIANT: sorted WL
+			if(value((*i).getLit())==l_Undef){
+				propagations = true;
+				if (agg.hasLB()) {
+					confl = getSolver()->notifySolver(new SetLitReason(agg, (*i).getLit(), (*i).getWeight(), agg.hasLB()?BASEDONCP:BASEDONCC, true));
+				}else{
+					confl = getSolver()->notifySolver(new SetLitReason(agg, (*i).getLit(), (*i).getWeight(), agg.hasLB()?BASEDONCP:BASEDONCC, false));
 				}
 			}
 		}
@@ -250,20 +255,20 @@ rClause GenPWAgg::checkPropagation(bool& propagations, Weight& min, Weight& max,
 	return confl;
 }
 
-rClause GenPWAgg::checkOneAggPropagation(bool& propagations, const Agg& agg, const Weight& min, const Weight& max){
+rClause GenPWAgg::checkOneAggPropagation(bool& propagations, const Agg& agg, const minmaxBounds& pessbounds){
 	rClause confl = nullPtrClause;
 	Expl basedon = agg.hasLB()?BASEDONCP:BASEDONCC;
 
 	//Check head propagation
 	//If agg is false, propagate head
-	if((agg.hasLB() && max<agg.getCertainBound()) || (agg.hasUB() && agg.getCertainBound()<min)){
+	if((agg.hasLB() && pessbounds.max<agg.getCertainBound()) || (agg.hasUB() && agg.getCertainBound()<pessbounds.min)){
 		propagations = true;
-		confl = getSet().getSolver()->notifySolver(new HeadReason(agg, basedon, agg.getHead()));
+		confl = getSolver()->notifySolver(new HeadReason(agg, basedon, agg.getHead()));
 	}
 	return confl;
 }
 
-void GenPWAgg::calculateBoundsOfWatches(Weight& min, Weight& max, Weight& knownmin, Weight& knownmax, GenPWatch* largest){
+void GenPWAgg::calculateBoundsOfWatches(minmaxOptimAndPessBounds& bounds, GenPWatch*& largest){
 	//Calc min and max and largest considering optimal choices for the watched literals
 	for(vpgpw::const_iterator i=getWS().begin(); i<getWS().end(); i++){
 		const WL& wl = (*i)->getWL();
@@ -275,9 +280,9 @@ void GenPWAgg::calculateBoundsOfWatches(Weight& min, Weight& max, Weight& knownm
 		}
 
 		bool inset = val==l_True || (val==l_Undef && (*i)->isMonotone());
-		addValue(wl.getWeight(), inset, min, max);
+		addValue(getSet().getType(), wl.getWeight(), inset, bounds.optim);
 		if(val!=l_Undef){
-			addValue(wl.getWeight(), val==l_True, knownmin, knownmax);
+			addValue(getSet().getType(), wl.getWeight(), val==l_True, bounds.pess);
 		}
 	}
 }
@@ -295,7 +300,7 @@ rClause GenPWAgg::reconstructSet(pgpw watch, bool& propagations, Agg const * pro
 	rClause confl = nullPtrClause;
 
 	bool oneagg = getSet().getAgg().size()==1;
-	const Agg& agg = *worstagg;
+	const Agg& agg = *getWorstAgg();
 
 	//possible HACK: watch all at all times
 	/*for(int i=0 ;i<getNWS().size(); i++){
@@ -311,19 +316,18 @@ rClause GenPWAgg::reconstructSet(pgpw watch, bool& propagations, Agg const * pro
 		return confl;
 	}
 
-	Weight min = genmin, knownmin = genmin;
-	Weight max = genmax, knownmax = genmax;
+	minmaxOptimAndPessBounds bounds(getEmptyInterpretationBounds());
 	pgpw largest = NULL;
 
-	calculateBoundsOfWatches(min, max, knownmin, knownmax, largest);
+	calculateBoundsOfWatches(bounds, largest);
 
 	//Add watches until satisfied
 	vsize i = 0;
 	vector<GenPWatch*> watchestoadd;
-	genWatches(i, agg, min, max, knownmin, knownmax, largest, watchestoadd);
-	if(!isSatisfied(agg, min, max)){
+	genWatches(i, agg, bounds, largest, watchestoadd);
+	if(!isSatisfied(agg, bounds.optim)){
 		//Certainly head propagation, no more watches to be found or added
-		return checkPropagation(propagations, knownmin, knownmax, propagg);
+		return checkPropagation(propagations, bounds.pess, propagg);
 	}else{
 		for(vector<GenPWatch*>::const_iterator i=watchestoadd.begin(); i<watchestoadd.end(); i++){
 			addToWatchedSet(*i);
@@ -337,26 +341,26 @@ rClause GenPWAgg::reconstructSet(pgpw watch, bool& propagations, Agg const * pro
 		return confl;
 	}
 	//If certainly satisfied, do not have to add more watches, but do not delete the current ones!
-	if(largest==NULL || isSatisfied(agg, knownmin, knownmax)){
+	if(largest==NULL || isSatisfied(agg, bounds.pess)){
 		propagations = true;
 		return confl;
 	}
 
 	//Leave out largest and do the same
 	assert(largest!=NULL);
-	removeValue(largest->getWL().getWeight(), largest->isMonotone(), min, max);
+	removeValue(getSet().getType(), largest->getWL().getWeight(), largest->isMonotone(), bounds.optim);
 
 	//Again until satisfied IMPORTANT: continue from previous index!
-	genWatches(i, agg, min, max, knownmin, knownmax, largest, watchestoadd);
-	if(!isSatisfied(agg, min, max)){
+	genWatches(i, agg, bounds, largest, watchestoadd);
+	if(!isSatisfied(agg, bounds.optim)){
 		watchestoadd.clear();
 		//Propagation necessary
-		confl = checkPropagation(propagations, knownmin, knownmax, propagg);
+		confl = checkPropagation(propagations, bounds.pess, propagg);
 		if(confl!=nullPtrClause){
 			propagations = true;
 			return confl;
 		}
-		genWatches(i, agg, min, max, knownmin, knownmax, largest, watchestoadd);
+		genWatches(i, agg, bounds, largest, watchestoadd);
 	}
 	for(vector<GenPWatch*>::const_iterator i=watchestoadd.begin(); i<watchestoadd.end(); i++){
 		addToWatchedSet(*i);
@@ -366,22 +370,23 @@ rClause GenPWAgg::reconstructSet(pgpw watch, bool& propagations, Agg const * pro
 	return confl;
 }
 
-void GenPWAgg::genWatches(vsize& i, const Agg& agg, Weight& min, Weight& max, Weight& knownmin, Weight& knownmax, GenPWatch*& largest, vector<GenPWatch*>& watchestoadd){
-	for(;!isSatisfied(agg, min, max) && !isSatisfied(agg, knownmin, knownmax) && i<getNWS().size(); i++){
-		WL wl = getNWS()[i]->getWL();
+void GenPWAgg::genWatches(vsize& i, const Agg& agg, minmaxOptimAndPessBounds& bounds, GenPWatch*& largest, vector<GenPWatch*>& watchestoadd){
+	for(;!isSatisfied(agg, bounds.optim) && !isSatisfied(agg, bounds.pess) && i<getNWS().size(); i++){
+		GenPWatch* watch = getNWS()[i];
+		WL wl = watch->getWL();
 		lbool val = value(wl.getLit());
 
-		bool inset = val==l_True || (val==l_Undef && getNWS()[i]->isMonotone());
-		addValue(wl.getWeight(), inset, min, max);
+		bool inset = val==l_True || (val==l_Undef && watch->isMonotone());
+		addValue(getSet().getType(), wl.getWeight(), inset, bounds.optim);
 		if(val!=l_Undef){
-			addValue(wl.getWeight(), val==l_True, knownmin, knownmax);
+			addValue(getSet().getType(), wl.getWeight(), val==l_True, bounds.pess);
 		}
 
 		if(val!=l_True){ //Add to watches
 			if(largest==NULL || largest->getWL().getWeight() < wl.getWeight()){
-				largest = getNWS()[i];
+				largest = watch;
 			}
-			watchestoadd.push_back(getNWS()[i]);
+			addToWatchedSet(watch);
 		}
 	}
 }
@@ -479,13 +484,13 @@ void GenPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	//Follow propagation order
 	sort(wlis.begin(), wlis.end(), compareWLIearlier);
 
-	Weight min=genmin, max=genmax;
+	minmaxBounds pessbounds(emptyinterpretbounds);
 	if(!ar.isHeadReason()){ //Change value according to propagating negation of proplit
-		addValue(ar.getPropWeight(), !ar.isInSet(), min, max);
+		addValue(getSet().getType(), ar.getPropWeight(), !ar.isInSet(), pessbounds);
 	}
 
 	//Calc min and max
-	for(vector<WLI>::const_iterator i=wlis.begin(); !isFalsified(ar.getAgg(), min, max) && i<wlis.end(); i++){
+	for(vector<WLI>::const_iterator i=wlis.begin(); !isFalsified(ar.getAgg(), pessbounds) && i<wlis.end(); i++){
 		const WLI& wl = *i;
 		if(var(wl.getLit())==var(proplit)){
 			continue;
@@ -493,11 +498,11 @@ void GenPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 		lbool val = value(wl.getLit());
 
 		if(conflictclause || pcsol.assertedBefore(var(wl.getLit()), var(proplit))){
-			addValue(wl.getWeight(), wl.inset, min, max); //TODO addvalue was incorectly out of the if, but none of the fast tests detected this!
+			addValue(getSet().getType(), wl.getWeight(), wl.inset, pessbounds); //TODO addvalue was incorectly out of the if, but none of the fast tests detected this!
 			lits.push(val==l_True?~wl.getLit():wl.getLit());
 		}
 	}
-	assert(isFalsified(ar.getAgg(), min, max));
+	assert(isFalsified(ar.getAgg(), pessbounds));
 }
 
 double GenPWAgg::testGenWatchCount() {
@@ -505,8 +510,7 @@ double GenPWAgg::testGenWatchCount() {
 
 	//Calculate min and max values over empty interpretation
 	//Create sets and watches, initialize min/max values
-	genmin = set.getType().getMinPossible(set);
-	genmax = set.getType().getMaxPossible(set);
+	emptyinterpretbounds = minmaxBounds(set.getType().getMinPossible(set), set.getType().getMaxPossible(set));
 	const vwl& wls = set.getWL();
 	for(vsize i=0; i<wls.size(); i++){
 		const WL& wl = wls[i];
@@ -531,8 +535,7 @@ double GenPWAgg::testGenWatchCount() {
 		return 0;
 	}
 
-	Weight min = genmin, knownmin = genmin;
-	Weight max = genmax, knownmax = genmax;
+	minmaxOptimAndPessBounds bounds(emptyinterpretbounds);
 	pgpw largest = NULL;
 
 	bool falsewatches = false;
@@ -548,9 +551,9 @@ double GenPWAgg::testGenWatchCount() {
 		}
 
 		bool inset = val==l_True || (val==l_Undef && (*i)->isMonotone());
-		addValue(wl.getWeight(), inset, min, max);
+		addValue(getSet().getType(), wl.getWeight(), inset, bounds.optim);
 		if(val!=l_Undef){
-			addValue(wl.getWeight(), val==l_True, knownmin, knownmax);
+			addValue(getSet().getType(), wl.getWeight(), val==l_True, bounds.pess);
 			if(value((*i)->getWatchLit())==l_False){
 				falsewatches = true;
 			}
@@ -558,14 +561,14 @@ double GenPWAgg::testGenWatchCount() {
 	}
 
 	vsize i = 0;
-	for(;!isSatisfied(agg, min, max) && !isSatisfied(agg, knownmin, knownmax) && i<getNWS().size(); i++){
+	for(;!isSatisfied(agg, bounds.optim) && !isSatisfied(agg, bounds.pess) && i<getNWS().size(); i++){
 		WL wl = getNWS()[i]->getWL();
 		lbool val = value(wl.getLit());
 
 		bool inset = val==l_True || (val==l_Undef && getNWS()[i]->isMonotone());
-		addValue(wl.getWeight(), inset, min, max);
+		addValue(getSet().getType(), wl.getWeight(), inset, bounds.optim);
 		if(val!=l_Undef){
-			addValue(wl.getWeight(), val==l_True, knownmin, knownmax);
+			addValue(getSet().getType(), wl.getWeight(), val==l_True, bounds.pess);
 		}
 
 		if(val!=l_False){ //Add to watches
@@ -579,18 +582,18 @@ double GenPWAgg::testGenWatchCount() {
 
 	//if head was unknown before method start, at most head can have been propagated
 	//so do not have to find second supporting ws
-	if((!oneagg || value(agg.getHead())!=l_Undef) && (largest!=NULL && !isSatisfied(agg, knownmin, knownmax))){
-		removeValue(largest->getWL().getWeight(), largest->isMonotone(), min, max);
+	if((!oneagg || value(agg.getHead())!=l_Undef) && (largest!=NULL && !isSatisfied(agg, bounds.pess))){
+		removeValue(getSet().getType(), largest->getWL().getWeight(), largest->isMonotone(), bounds.optim);
 
 		//Again until satisfied IMPORTANT: continue from previous index!
-		for(; !isSatisfied(agg, min, max) &&	!isSatisfied(agg, knownmin, knownmax) && i<getNWS().size(); i++){
+		for(; !isSatisfied(agg, bounds.optim) && !isSatisfied(agg, bounds.pess) && i<getNWS().size(); i++){
 			WL wl = getNWS()[i]->getWL();
 			lbool val = value(wl.getLit());
 
 			bool inset = val==l_True || (val==l_Undef && getNWS()[i]->isMonotone());
-			addValue(wl.getWeight(), inset, min, max);
+			addValue(getSet().getType(), wl.getWeight(), inset, bounds.optim);
 			if(val!=l_Undef){
-				addValue(wl.getWeight(), val==l_True, knownmin, knownmax);
+				addValue(getSet().getType(), wl.getWeight(), val==l_True, bounds.pess);
 			}
 
 			if(val!=l_False){ //Add to watches

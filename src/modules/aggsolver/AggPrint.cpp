@@ -29,7 +29,7 @@ void Aggrs::sets(){
 
 }
 
-void Aggrs::printWatches(int verbosity, AggSolver* const solver, const std::vector<std::vector<Watch*> >& tempwatches){
+void Aggrs::printWatches(int verbosity, AggSolver const * const solver, const std::vector<std::vector<Watch*> >& tempwatches){
 	if(verbosity<10){
 		return;
 	}

@@ -85,10 +85,18 @@ public:
 typedef GenPWatch* pgpw;
 typedef std::vector<GenPWatch*> vpgpw;
 
+struct minmaxOptimAndPessBounds{
+	minmaxBounds optim, pess;
+
+	minmaxOptimAndPessBounds(const minmaxBounds& bounds): optim(bounds),pess(bounds){}
+	minmaxOptimAndPessBounds(const Weight& optimmin, const Weight& optimmax,
+							const Weight& pessmin, const Weight& pessmax):optim(optimmin, optimmax),pess(pessmin, pessmax){}
+};
+
 class GenPWAgg: public PWAgg{
 private:
 	vpgpw ws, nws, _newwatches;
-	Weight genmin, genmax; //min and max values on the empty interpretation
+	minmaxBounds emptyinterpretbounds;
 	Agg const * worstagg;
 
 public:
@@ -97,19 +105,6 @@ public:
 
 	Weight		getValue	()	const;
 
-	void		calculateBoundsOfWatches(Weight& min, Weight& max, Weight& knownmin, Weight& knownmax, GenPWatch* largest);
-
-	rClause 	reconstructSet(pgpw watch, bool& propagations, Agg const * propagg);
-	void 		genWatches(vsize& i, const Agg& agg, Weight& min, Weight& max, Weight& knownmin, Weight& knownmax, GenPWatch*& largest, std::vector<GenPWatch*>& watchestoadd);
-
-	rClause 	checkPropagation(bool& propagations, Weight& min, Weight& max, Agg const * agg);
-	rClause 	checkOneAggPropagation(bool& propagations, const Agg& agg, const Weight& min, const Weight& max);
-
-	void 		addToWatchedSet(GenPWatch* watch);
-	void 		removeFromWatchedSet(pgpw pw);
-	void 		addWatchesToNetwork();
-	void 		addWatchToNetwork(pgpw watch);
-
 	void 		initialize		(bool& unsat, bool& sat);
 	rClause 	propagate		(const Lit& p, Watch* w, int level);
 	rClause 	propagate		(int level, const Agg& agg, bool headtrue);
@@ -117,12 +112,33 @@ public:
 	void		backtrack		(int nblevels, int untillevel){};
     void 		getExplanation	(vec<Lit>& lits, const AggReason& ar);
 
-    const vpgpw&	getNWS() const { return nws; }
-    const vpgpw&	getWS() const { return ws; }
-	vpgpw& 		getNWS() { return nws; }
-	vpgpw& 		getWS() { return ws; }
-
 	double 		testGenWatchCount();
+
+private:
+	const vpgpw&	getNWS() const 	{ return nws; }
+	const vpgpw&	getWS() const 	{ return ws; }
+	vpgpw& 			getNWS() 		{ return nws; }
+	vpgpw& 			getWS() 		{ return ws; }
+	const vpgpw& 	getStagedWatches() const	{ return _newwatches; }
+	vpgpw& 			getStagedWatches() 			{ return _newwatches; }
+
+	Agg const* 	getWorstAgg() { return worstagg; }
+
+	minmaxBounds getEmptyInterpretationBounds() const { return emptyinterpretbounds; }
+	void		setEmptyInterpretationBounds(minmaxBounds bounds) { emptyinterpretbounds = bounds; }
+
+	void	calculateBoundsOfWatches(minmaxOptimAndPessBounds& bounds, GenPWatch*& largest);
+
+	rClause reconstructSet(pgpw watch, bool& propagations, Agg const * propagg);
+	void 	genWatches(vsize& i, const Agg& agg, minmaxOptimAndPessBounds& bounds, GenPWatch*& largest, std::vector<GenPWatch*>& watchestoadd);
+
+	rClause checkPropagation(bool& propagations, minmaxBounds& pessbounds, Agg const * agg);
+	rClause checkOneAggPropagation(bool& propagations, const Agg& agg, const minmaxBounds& pessbounds);
+
+	void 	addToWatchedSet(GenPWatch* watch);
+	void 	removeFromWatchedSet(pgpw pw);
+	void 	addWatchesToNetwork();
+	void 	addWatchToNetwork(pgpw watch);
 };
 
 class CardGenPWAgg: public GenPWAgg{

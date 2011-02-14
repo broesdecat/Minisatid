@@ -181,6 +181,22 @@ public:
 	AggType		getType					() 										const { return CARD; }
 };
 
+struct minmaxBounds{
+	Weight min;
+	Weight max;
+
+	minmaxBounds(const Weight& min, const Weight& max):min(min),max(max){}
+};
+
+bool isSatisfied(const Agg& agg, const Weight& min, const Weight& max);
+bool isSatisfied(const Agg& agg, const minmaxBounds& bounds);
+bool isFalsified(const Agg& agg, const Weight& min, const Weight& max);
+bool isFalsified(const Agg& agg, const minmaxBounds& bounds);
+void addValue		(const AggProp& type, const Weight& weight, bool addtoset, minmaxBounds& bounds);
+void addValue		(const AggProp& type, const Weight& weight, bool wasinset, Weight& min, Weight& max);
+void removeValue	(const AggProp& type, const Weight& weight, bool addtoset, minmaxBounds& bounds);
+void removeValue	(const AggProp& type, const Weight& weight, bool wasinset, Weight& min, Weight& max);
+
 class Propagator {
 private:
 	TypedSet* set; //Non-owning
@@ -202,27 +218,8 @@ public:
 
     AggSolver*			getSolver() const { return aggsolver; }
 	lbool				value(const Lit& l) const;
-	lbool				propagatedValue(const Lit& l) const;
 
-	void 				addValue	(const Weight& weight, bool addtoset, Weight& min, Weight& max) const;
-	void 				removeValue	(const Weight& weight, bool wasinset, Weight& min, Weight& max) const;
 	virtual Weight		getValue() const = 0; //Return current aggregate value (only if two-valued!)
-
-	bool isSatisfied(const Agg& agg, const Weight& min, const Weight& max) const{
-		if(agg.hasUB()){
-			return max<=agg.getCertainBound();
-		}else{ //LB
-			return min>=agg.getCertainBound();
-		}
-	}
-
-	bool isFalsified(const Agg& agg, const Weight& min, const Weight& max) const{
-		if(agg.hasUB()){
-			return min>agg.getCertainBound();
-		}else{ //LB
-			return max<agg.getCertainBound();
-		}
-	}
 };
 
 class TypedSet{

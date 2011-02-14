@@ -1,41 +1,4 @@
-//--------------------------------------------------------------------------------------------------
-//    Copyright (c) 2009-2010, Broes De Cat, K.U.Leuven, Belgium
-//
-//    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-//    associated documentation files (the "Software"), to deal in the Software without restriction,
-//    including without limitation the rights to use, copy, modify, merge, publish, distribute,
-//    sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
-//    furnished to do so, subject to the following conditions:
-//
-//    The above copyright notice and this permission notice shall be included in all copies or
-//    substantial portions of the Software.
-//
-//    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-//    NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-//    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-//    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-//    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//--------------------------------------------------------------------------------------------------
-
-/************************************************************************************
- Copyright (c) 2006-2009, Maarten Mariën
-
- Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
- associated documentation files (the "Software"), to deal in the Software without restriction,
- including without limitation the rights to use, copy, modify, merge, publish, distribute,
- sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
-
- The above copyright notice and this permission notice shall be included in all copies or
- substantial portions of the Software.
-
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
- NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
- DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
- OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- **************************************************************************************************/
-
+//LICENSEPLACEHOLDER
 #include "modules/AggSolver.hpp"
 
 #include "utils/Utils.hpp"
@@ -61,7 +24,7 @@
 
 using namespace std;
 using namespace MinisatID;
-using namespace MinisatID::Print;
+using namespace Print;
 using namespace Aggrs;
 
 AggSolver::AggSolver(pPCSolver s) :
@@ -69,18 +32,18 @@ AggSolver::AggSolver(pPCSolver s) :
 }
 
 AggSolver::~AggSolver() {
-	deleteList<TypedSet> (_sets);
-	deleteList<AggReason> (aggreason);
-	deleteList<Watch> (permwatches);
+	deleteList<TypedSet> (sets);
+	deleteList<AggReason> (reasons);
+	deleteList<Watch> (lit2staticwatchlist);
 }
 
 void AggSolver::notifyVarAdded(uint64_t nvars) {
-	assert(headwatches.size() < 2*nvars);
-	headwatches.resize(2*nvars, NULL);
-	permwatches.resize(nvars);
-	network.resize(nvars);
-	tempwatches.resize(2 * nvars);
-	aggreason.resize(nvars, NULL);
+	assert(lit2headwatchlist.size() < 2*nvars);
+	lit2headwatchlist.resize(2*nvars, NULL);
+	lit2staticwatchlist.resize(nvars);
+	var2setlist.resize(nvars);
+	lit2dynamicwatchlist.resize(2 * nvars);
+	reasons.resize(nvars, NULL);
 	propagated.resize(nvars, LI(l_Undef, 0));
 }
 
@@ -93,23 +56,23 @@ void AggSolver::notifyDefinedHead(Var head){
 ///////
 
 void AggSolver::setHeadWatch(Lit head, Agg* agg) {
-	assert(headwatches[toInt(head)]==NULL);
-	headwatches[toInt(head)] = agg;
+	assert(lit2headwatchlist[toInt(head)]==NULL);
+	lit2headwatchlist[toInt(head)] = agg;
 }
 
 void AggSolver::removeHeadWatch(Var head) {
 	//delete headwatches[x];
-	headwatches[toInt(createNegativeLiteral(head))] = NULL;
-	headwatches[toInt(createPositiveLiteral(head))] = NULL;
+	lit2headwatchlist[toInt(createNegativeLiteral(head))] = NULL;
+	lit2headwatchlist[toInt(createPositiveLiteral(head))] = NULL;
 	getPCSolver()->removeAggrHead(head);
 }
 
-void AggSolver::addPermWatch(Var v, Watch* w) {
-	permwatches[v].push_back(w);
+void AggSolver::addStaticWatch(Var v, Watch* w) {
+	lit2staticwatchlist[v].push_back(w);
 }
 
-void AggSolver::addTempWatch(const Lit& l, Watch* w) {
-	tempwatches[toInt(l)].push_back(w);
+void AggSolver::addDynamicWatch(const Lit& l, Watch* w) {
+	lit2dynamicwatchlist[toInt(l)].push_back(w);
 }
 
 int AggSolver::getTime(Lit l) const {
@@ -124,14 +87,9 @@ int AggSolver::getTime(Lit l) const {
 	return time;
 }
 
-lbool AggSolver::propagatedValue(const Lit& l) const {
-	assert(value(l)!=l_Undef || propagated[var(l)].v==l_Undef);
-	if(sign(l)){
-		lbool v = propagated[var(l)].v;
-		return v==l_Undef?l_Undef:v==l_True?l_False:l_True;
-	}else{
-		return propagated[var(l)].v;
-	}
+void AggSolver::addRootLevel(){
+	setsbacktracktrail.push_back(vector<TypedSet*>());
+	mapdecleveltotrail.push_back(littrail.size());
 }
 
 ///////
@@ -147,7 +105,7 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 		throw idpexception(s);
 	}
 
-	if (parsedSets().find(setid) != parsedSets().end()) {
+	if (parsedSets.find(setid) != parsedSets.end()) {
 		char s[100];
 		sprintf(s, "Set nr. %d is defined more than once.\n", setid);
 		throw idpexception(s);
@@ -167,7 +125,7 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 
 	TypedSet* set = new TypedSet(this, setid);
 	set->setWL(lw);
-	parsedSets()[setid] = set;
+	parsedSets[setid] = set;
 
 	if (verbosity() >= 5) {
 		report("Added ");
@@ -183,7 +141,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, const Weight& bound, AggSign b
 }
 
 bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType type, AggSem headeq){
-	if (parsedSets().find(setid) == parsedSets().end()) { //Exception if does not already exist
+	if (parsedSets.find(setid) == parsedSets.end()) { //Exception if does not already exist
 		char s[100];
 		sprintf(s, "Set nr. %d is used, but not defined yet.\n", setid);
 		throw idpexception(s);
@@ -194,7 +152,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType
 		throw idpexception(s);
 	}
 
-	TypedSet* set = parsedSets()[setid];
+	TypedSet* set = parsedSets[setid];
 
 	// Check whether the head occurs in the body of the set, which is not allowed
 	for (vsize i = 0; i < set->getWL().size(); i++) {
@@ -206,17 +164,17 @@ bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType
 	}
 
 	//Check that no aggregates occur with the same heads
-	if (aggheads.find(headv) != aggheads.end()) {
+	if (heads.find(headv) != heads.end()) {
 		char s[100];
 		sprintf(s, "At least two aggregates have the same head(%d).\n", getPrintableVar(headv));
 		throw idpexception(s);
 	}
-	aggheads.insert(headv);
+	heads.insert(headv);
 
 #ifdef DEBUG
 	if(type == CARD) { //Check if all card weights are 1
-		for(vwl::size_type i=0; i<parsedSets()[setid]->getWL().size(); i++) {
-			if(parsedSets()[setid]->getWL()[i].getWeight()!=1) {
+		for(vwl::size_type i=0; i<parsedSets[setid]->getWL().size(); i++) {
+			if(parsedSets[setid]->getWL()[i].getWeight()!=1) {
 				report("Cardinality was loaded with wrong weights");
 				assert(false);
 			}
@@ -244,7 +202,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	unsat = false;
 	present = true;
 
-	if (parsedSets().size() == 0) {
+	if (parsedSets.size() == 0) {
 		present = false;
 		return;
 	}
@@ -254,34 +212,34 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	}
 
 	//Not used before finishparsing, so safe to initialize here!
-	tempwatches.resize(2 * nVars());
-	aggreason.resize(nVars(), NULL);
+	lit2dynamicwatchlist.resize(2 * nVars());
+	reasons.resize(nVars(), NULL);
 
-	for(mips::const_iterator i=parsedSets().begin(); i!=parsedSets().end(); i++){
-		sets().push_back((*i).second);
+	for(mips::const_iterator i=parsedSets.begin(); i!=parsedSets.end(); i++){
+		sets.push_back((*i).second);
 	}
 
 	// Initialization of all sets
 
 	//Rewrite completion sum and card constraints into CNF using PBSOLVER
 	if(getPCSolver()->modes().pbsolver && !unsat){
-		unsat = !transformSumsToCNF(sets(), getPCSolver());
+		unsat = !transformSumsToCNF(sets, getPCSolver());
 	}
 
 	//Finish the sets: add all body literals to the network
 	vps remainingsets;
 	vps satsets;
-	for (vsize i=0; !unsat && i<sets().size(); i++) {
-		TypedSet* set = sets()[i];
+	for (vsize i=0; !unsat && i<sets.size(); i++) {
+		TypedSet* set = sets[i];
 		bool setsat = false;
 
 		if(!unsat && !setsat){
-			set->initialize(unsat, setsat, sets());
+			set->initialize(unsat, setsat, sets);
 		}
 
 		if(!unsat && !setsat){
 			for (vsize i = 0; i < set->getWL().size(); i++) {
-				network[var(set->getWL()[i].getLit())].push_back(set);
+				var2setlist[var(set->getWL()[i].getLit())].push_back(set);
 			}
 		}
 
@@ -292,13 +250,13 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 			remainingsets.push_back(set);
 		}
 	}
-	sets().clear();
-	sets().insert(sets().begin(), remainingsets.begin(), remainingsets.end());
+	sets.clear();
+	sets.insert(sets.begin(), remainingsets.begin(), remainingsets.end());
 	deleteList<TypedSet>(satsets);
 
 #ifdef DEBUG
 	//Check each aggregate knows it index in the set
-	for(vps::const_iterator j=sets().begin(); j<sets().end(); j++){
+	for(vps::const_iterator j=sets.begin(); j<sets.end(); j++){
 		for (vpagg::const_iterator i = (*j)->getAgg().begin(); i<(*j)->getAgg().end(); i++) {
 			assert((*j)==(*i)->getSet());
 			assert((*i)->getSet()->getAgg()[(*i)->getIndex()]==(*i));
@@ -318,7 +276,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	//Gather available information
 	map<AggType, int> nbaggs;
 	int totalagg = 0, setlits = 0;
-	for (vps::const_iterator i = sets().begin(); i < sets().end(); i++) {
+	for (vps::const_iterator i = sets.begin(); i < sets.end(); i++) {
 		int agg = (*i)->getAgg().size();
 		totalagg += agg;
 		setlits += (*i)->getWL().size();
@@ -334,13 +292,17 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	}
 
 	//Push initial level (root, before any decisions).
-	backtrail.push_back(vector<TypedSet*>());
-	mapdecleveltotrail.push_back(fulltrail.size());
+	addRootLevel();
 
+	printNumberOfAggregates(sets.size(), totalagg, setlits, nbaggs, verbosity());
+	print();
+}
+
+void Aggrs::printNumberOfAggregates(int nbsets, int nbagg, int nbsetlits, map<AggType, int>& nbaggs, int verbosity){
 	//Print lots of information
-	if (verbosity() == 1) {
-		report("> Number of aggregates: %d aggregates over %4zu sets.\n", totalagg, sets().size());
-	}else if (verbosity() >= 2) {
+	if (verbosity == 1) {
+		report("> Number of aggregates: %d aggregates over %4zu sets.\n", nbagg, nbsets);
+	}else if (verbosity >= 2) {
 		report("> Number of minimum exprs.:     %4d.\n", nbaggs[MIN]);
 		report("> Number of maximum exprs.:     %4d.\n", nbaggs[MAX]);
 		report("> Number of sum exprs.:         %4d.\n", nbaggs[SUM]);
@@ -348,46 +310,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		report("> Number of cardinality exprs.: %4d.\n", nbaggs[CARD]);
 
 		report("> Over %4zu sets, aggregate set avg. size: %7.2f lits.\n",
-				sets().size(),(double)setlits/(double)(sets().size()));
-	}
-
-	if (verbosity() >= 3) {
-		report("Aggregates are present after initialization:\n");
-		for (vps::const_iterator i = sets().begin(); i < sets().end(); i++) {
-			for (vpagg::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); j++) {
-				Aggrs::print(verbosity(), **j, true);
-			}
-		}
-	}
-
-	printWatches(verbosity(), this, tempwatches);
-	if (verbosity() >= 20) {
-		for(vpagg::const_iterator i=headwatches.begin(); i<headwatches.end(); i++){
-			if ((*i) != NULL) {
-				report("Headwatch of var %d: ", getPrintableVar(var((*i)->getHead())));
-				Aggrs::print(verbosity(), *(*i)->getSet(), true);
-			}
-		}
-		Var v = 0;
-		for(vvpw::const_iterator i=permwatches.begin(); i<permwatches.end(); i++, v++){
-			if((*i).size()>0){
-				report("Bodywatches of var %d: ", getPrintableVar(v));
-				for (vsize j = 0; j < (*i).size(); j++) {
-					report("      ");
-					Aggrs::print(verbosity(), *((*i)[j])->getSet(), true);
-				}
-			}
-		}
-		v = 0;
-		for(vvpw::const_iterator i=tempwatches.begin(); i<tempwatches.end(); i++, v++){
-			if((*i).size()>0){
-				report("Bodywatches of var %d: ", getPrintableVar(v));
-				for (vsize j = 0; j < (*i).size(); j++) {
-					report("      ");
-					Aggrs::print(verbosity(), *((*i)[j])->getSet(), true);
-				}
-			}
-		}
+				nbsets,(double)nbsetlits/(double)(nbsets));
 	}
 }
 
@@ -424,12 +347,12 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 			Aggrs::print(verbosity(), ar->getAgg(), true);
 		}
 		assert(getPCSolver()->modes().aggclausesaving>1 || ar->hasClause());
-		assert(aggreason[var(p)]==NULL || getPCSolver()->modes().aggclausesaving>1 || aggreason[var(p)]->hasClause());
+		assert(reasons[var(p)]==NULL || getPCSolver()->modes().aggclausesaving>1 || reasons[var(p)]->hasClause());
 
-		AggReason* old_ar = aggreason[var(p)];
-		aggreason[var(p)] = ar;
+		AggReason* old_ar = reasons[var(p)];
+		reasons[var(p)] = ar;
 		rClause confl = getExplanation(p);	//Reason manipulation because getexplanation uses that reason!
-		aggreason[var(p)] = old_ar;
+		reasons[var(p)] = old_ar;
 		delete ar; // Have to delete before addLearnedClause, as internally it might lead to backtrack and removing the reason
 		getPCSolver()->addLearnedClause(confl);
 		return confl;
@@ -438,8 +361,6 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 			//Decreases sokoban, performance, increases fastfood
 			getPCSolver()->varBumpActivity(var(p));
 		}
-
-		noprops = false;
 		if (verbosity() >= 2) {
 			report("Deriving ");
 			Print::print(p, l_True);
@@ -449,10 +370,10 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 
 		//Keeping a reason longer than necessary is not a problem => if after backtracking still unknown, then no getexplanation, if it becomes known,
 		//either this is overwritten or the propagation stems from another module, which will be asked for the explanation
-		if(aggreason[var(p)] != NULL){
-			delete aggreason[var(p)];
+		if(reasons[var(p)] != NULL){
+			delete reasons[var(p)];
 		}
-		aggreason[var(p)] = ar;
+		reasons[var(p)] = ar;
 
 		if (getPCSolver()->modes().aggclausesaving < 1) {
 			rClause c = getPCSolver()->createClause(ar->getClause(), true);
@@ -467,38 +388,36 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 }
 
 void AggSolver::newDecisionLevel() {
-	mapdecleveltotrail.push_back(fulltrail.size());
-	propstart = 0;
-	proptrail.clear();
-	backtrail.push_back(vector<TypedSet*>());
+	mapdecleveltotrail.push_back(littrail.size());
+	setspropagatetrail.clear();
+	setsbacktracktrail.push_back(vector<TypedSet*>());
 }
 
 void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel) {
-	while(backtrail.size()>(vsize)(untillevel+1)){
-		for(vector<TypedSet*>::iterator j=backtrail.back().begin(); j<backtrail.back().end(); j++){
+	while(setsbacktracktrail.size()>(vsize)(untillevel+1)){
+		for(vector<TypedSet*>::iterator j=setsbacktracktrail.back().begin(); j<setsbacktracktrail.back().end(); j++){
 			(*j)->backtrack(nblevels, untillevel);
 		}
-		backtrail.pop_back();
+		setsbacktracktrail.pop_back();
 	}
-	proptrail.clear();
-	propstart = 0;
+	setspropagatetrail.clear();
 
-	for(vsize i=mapdecleveltotrail[untillevel+1]; i<fulltrail.size(); i++){
-		propagated[var(fulltrail[i])]=LI(l_Undef, 0);
+	for(vsize i=mapdecleveltotrail[untillevel+1]; i<littrail.size(); i++){
+		propagated[var(littrail[i])]=LI(l_Undef, 0);
 	}
-	fulltrail.resize(mapdecleveltotrail[untillevel+1]);
-	propindex = fulltrail.size();
+	littrail.resize(mapdecleveltotrail[untillevel+1]);
+	propindex = littrail.size();
 	mapdecleveltotrail.resize(untillevel+1);
-	if(fulltrail.size()==0){
+	if(littrail.size()==0){
 		index = 1;
 	}else{
-		index = getTime(fulltrail.back());
+		index = getTime(littrail.back());
 	}
 }
 
 bool AggSolver::checkStatus(){
 	if(verbosity()>=3){
-		for(vps::const_iterator i=sets().begin(); i<sets().end(); i++){
+		for(vps::const_iterator i=sets.begin(); i<sets.end(); i++){
 			for(vpagg::const_iterator j=(*i)->getAgg().begin(); j<(*i)->getAgg().end(); j++){
 				Aggrs::print(10, **j, true);
 			}
@@ -510,58 +429,52 @@ bool AggSolver::checkStatus(){
 rClause AggSolver::doProp(){
 	rClause confl = nullPtrClause;
 
-	for(; confl==nullPtrClause && propindex<fulltrail.size();){
-		//TODO remove the adaptation of values from here to propatend if !asapaggprop
-		//and do propagation after changing the values
-		const Lit& p = fulltrail[propindex++];
+	for(; confl==nullPtrClause && propindex<littrail.size();){
+		const Lit& p = littrail[propindex++];
 		propagated[var(p)]=LI(sign(p)?l_False:l_True, index++);
 
 		if (verbosity() >= 3) {
 			report("Aggr_propagate("); Print::print(p, l_True); report(").\n");
 		}
 
-/*		if(var(p)==544){
-			report("Here");
-		}*/
-
-		Agg* pa = headwatches[toInt(p)];
+		Agg* pa = lit2headwatchlist[toInt(p)];
 		if (pa != NULL) {
-			confl = pa->getSet()->propagate(*pa, getLevel(), !sign(p));
+			confl = pa->getSet()->propagate(*pa, getCurrentDecisionLevel(), !sign(p));
 			propagations++;
 
-			printWatches(verbosity(), this, tempwatches);
+			printWatches(verbosity(), this, lit2dynamicwatchlist);
 		}
 
-		const vector<Watch*>& ws = permwatches[var(p)];
+		const vector<Watch*>& ws = lit2staticwatchlist[var(p)];
 		for (vector<Watch*>::const_iterator i = ws.begin(); confl == nullPtrClause && i < ws.end(); i++) {
-			confl = (*i)->getSet()->propagate(p, *i, getLevel());
+			confl = (*i)->getSet()->propagate(p, *i, getCurrentDecisionLevel());
 			propagations++;
 		}
 
-		if (confl==nullPtrClause && tempwatches[toInt(p)].size() > 0) {
-			vector<Watch*> ws2(tempwatches[toInt(p)]); //IMPORTANT, BECAUSE WATCHES MIGHT BE ADDED AGAIN TO THE END (if no other watches are found etc)
-			tempwatches[toInt(p)].clear();
+		if (confl==nullPtrClause && lit2dynamicwatchlist[toInt(p)].size() > 0) {
+			vector<Watch*> ws2(lit2dynamicwatchlist[toInt(p)]); //IMPORTANT copy: watches might be added again if no replacements are found
+			lit2dynamicwatchlist[toInt(p)].clear();
 
 			for (vector<Watch*>::const_iterator i = ws2.begin(); i < ws2.end(); i++) {
 				if (confl == nullPtrClause) {
-					confl = (*i)->getSet()->propagate(p, (*i), getLevel());
+					confl = (*i)->getSet()->propagate(p, (*i), getCurrentDecisionLevel());
 					propagations++;
 				} else { //If conflict found, copy all remaining watches in again
-					addTempWatch(p, (*i));
+					addDynamicWatch(p, (*i));
 				}
 			}
 
-			printWatches(verbosity(), this, tempwatches);
+			printWatches(verbosity(), this, lit2dynamicwatchlist);
 		}
 
 		if(modes().asapaggprop){
-			for(vector<TypedSet*>::const_iterator i=proptrail.begin(); confl==nullPtrClause && i<proptrail.end(); i++){
-				confl = (*i)->propagateAtEndOfQueue(getLevel());
+			for(vector<TypedSet*>::const_iterator i=setspropagatetrail.begin(); confl==nullPtrClause && i<setspropagatetrail.end(); i++){
+				confl = (*i)->propagateAtEndOfQueue(getCurrentDecisionLevel());
 			}
-			proptrail.clear();
+			setspropagatetrail.clear();
 		}
 	}
-	assert(confl!=nullPtrClause || propindex==fulltrail.size());
+	assert(confl!=nullPtrClause || propindex==littrail.size());
 
 	return confl;
 }
@@ -570,13 +483,13 @@ rClause AggSolver::doProp(){
  * Returns non-owning pointer
  */
 rClause AggSolver::propagate(const Lit& p) {
+	rClause confl = nullPtrClause;
 	if (!isInitialized()) {
-		return nullPtrClause;
+		return confl;
 	}
 
-	fulltrail.push_back(p);
+	littrail.push_back(p);
 
-	rClause confl = nullPtrClause;
 	if(modes().asapaggprop){
 		confl = doProp();
 	}
@@ -584,19 +497,24 @@ rClause AggSolver::propagate(const Lit& p) {
 	return confl;
 }
 
+/**
+ * Returns non-owning pointer
+ */
 rClause	AggSolver::propagateAtEndOfQueue(){
+	rClause confl = nullPtrClause;
 	if (!isInitialized()) {
-		return nullPtrClause;
+		return confl;
 	}
 
-	rClause confl = nullPtrClause;
 	if(!modes().asapaggprop){
-		confl = doProp();
-		for(vector<TypedSet*>::const_iterator i=proptrail.begin(); confl==nullPtrClause && i<proptrail.end(); i++){
-			confl = (*i)->propagateAtEndOfQueue(getLevel());
+		confl = doProp(); //FIXME initial opb propagation not done?
+
+		for(vector<TypedSet*>::const_iterator i=setspropagatetrail.begin(); confl==nullPtrClause && i<setspropagatetrail.end(); i++){
+			confl = (*i)->propagateAtEndOfQueue(getCurrentDecisionLevel());
 		}
-		printWatches(verbosity(), this, tempwatches);
-		proptrail.clear();
+
+		printWatches(verbosity(), this, lit2dynamicwatchlist);
+		setspropagatetrail.clear();
 	}
 
 	return confl;
@@ -609,8 +527,8 @@ rClause	AggSolver::propagateAtEndOfQueue(){
  * Important: verify that the clause is never constructed in and added to a different SAT-solvers!
  */
 rClause AggSolver::getExplanation(const Lit& p) {
-	assert(aggreason[var(p)] != NULL);
-	const AggReason& ar = *aggreason[var(p)];
+	assert(reasons[var(p)] != NULL);
+	const AggReason& ar = *reasons[var(p)];
 
 	rClause c = nullPtrClause;
 	if (getPCSolver()->modes().aggclausesaving < 2) {
@@ -636,14 +554,14 @@ rClause AggSolver::getExplanation(const Lit& p) {
 ///////
 
 Agg* AggSolver::getAggDefiningHead(Var v) const {
-	Agg* agg = headwatches[toInt(createNegativeLiteral(v))];
+	Agg* agg = lit2headwatchlist[toInt(createNegativeLiteral(v))];
 	assert(agg!=NULL && agg->isDefined());
 	return agg;
 }
 
 vector<Var> AggSolver::getAggHeadsWithBodyLit(Var x) const{
 	vector<Var> heads;
-	for (vps::const_iterator i = network[x].begin(); i < network[x].end(); i++) {
+	for (vps::const_iterator i = var2setlist[x].begin(); i < var2setlist[x].end(); i++) {
 		for (vpagg::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); j++) {
 			heads.push_back(var((*j)->getHead()));
 		}
@@ -651,11 +569,11 @@ vector<Var> AggSolver::getAggHeadsWithBodyLit(Var x) const{
 	return heads;
 }
 
-vwl::const_iterator AggSolver::getAggLiteralsBegin(Var x) const {
+vwl::const_iterator AggSolver::getSetLitsOfAggWithHeadBegin(Var x) const {
 	return getAggDefiningHead(x)->getSet()->getWL().begin();
 }
 
-vwl::const_iterator AggSolver::getAggLiteralsEnd(Var x) const {
+vwl::const_iterator AggSolver::getSetLitsOfAggWithHeadEnd(Var x) const {
 	return getAggDefiningHead(x)->getSet()->getWL().end();
 }
 
@@ -697,7 +615,7 @@ void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& l
  * @post: any new derived heads are in heads, with its respective justification in jstf
  */
 void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& heads, VarToJustif& currentjust) {
-	for (vps::const_iterator i = network[var(w)].begin(); i < network[var(w)].end(); i++) {
+	for (vps::const_iterator i = var2setlist[var(w)].begin(); i < var2setlist[var(w)].end(); i++) {
 		TypedSet* set = (*i);
 		for (vpagg::const_iterator j = set->getAgg().begin(); j < set->getAgg().end(); j++) {
 			const Agg& agg = *(*j);
@@ -752,7 +670,7 @@ bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, Va
 
 //TODO do not treat optimization aggregates like normal ones!
 bool AggSolver::addMnmz(Var headv, int setid, AggType type) {
-	if (parsedSets().find(setid) == parsedSets().end()) {
+	if (parsedSets.find(setid) == parsedSets.end()) {
 		char s[100];
 		sprintf(s, "Set nr. %d is used, but not defined yet.\n", setid);
 		throw idpexception(s);
@@ -760,7 +678,7 @@ bool AggSolver::addMnmz(Var headv, int setid, AggType type) {
 
 	assert(headv>=0);
 
-	TypedSet* set = parsedSets()[setid];
+	TypedSet* set = parsedSets[setid];
 
 	// Check whether the head occurs in the body of the set, which is no longer allowed
 	for (vsize i = 0; i < set->getWL().size(); i++) {
@@ -772,7 +690,7 @@ bool AggSolver::addMnmz(Var headv, int setid, AggType type) {
 	}
 
 	//Check that not aggregates occur with the same heads
-	for (map<int, TypedSet*>::const_iterator i = parsedSets().begin(); i != parsedSets().end(); i++) {
+	for (map<int, TypedSet*>::const_iterator i = parsedSets.begin(); i != parsedSets.end(); i++) {
 		for (vsize j = 0; j < (*i).second->getAgg().size(); j++) {
 			if (var((*i).second->getAgg()[j]->getHead()) == headv) { //Exception if two agg with same head
 				char s[100];
@@ -821,7 +739,7 @@ bool AggSolver::addMnmz(Var headv, int setid, AggType type) {
 }
 
 bool AggSolver::invalidateAgg(vec<Lit>& invalidation, Var head) {
-	Agg* a = headwatches[toInt(createPositiveLiteral(head))];
+	Agg* a = lit2headwatchlist[toInt(createPositiveLiteral(head))];
 	TypedSet* s = a->getSet();
 	Propagator* prop = s->getProp();
 	Weight value = prop->getValue();
@@ -849,7 +767,7 @@ bool AggSolver::invalidateAgg(vec<Lit>& invalidation, Var head) {
  */
 void AggSolver::propagateMnmz(Var head) {
 	int level = getPCSolver()->getCurrentDecisionLevel();
-	Agg* agg = headwatches[toInt(createPositiveLiteral(head))];
+	Agg* agg = lit2headwatchlist[toInt(createPositiveLiteral(head))];
 	TypedSet* set = agg->getSet();
 	set->getProp()->propagate(level, *agg, true);
 }
@@ -863,7 +781,51 @@ void AggSolver::printStatistics() const {
 }
 
 void AggSolver::print() const{
-	Print::print(this);
+	if (verbosity() >= 3) {
+		report("Aggregates are present after initialization:\n");
+		for (vps::const_iterator i = sets.begin(); i < sets.end(); i++) {
+			for (vpagg::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); j++) {
+				Aggrs::print(verbosity(), **j, true);
+			}
+		}
+	}
+
+	printWatches(verbosity(), this, lit2dynamicwatchlist);
+	if (verbosity() >= 10) {
+		for(vpagg::const_iterator i=lit2headwatchlist.begin(); i<lit2headwatchlist.end(); i++){
+			if ((*i) != NULL) {
+				report("Headwatch of var %d: ", getPrintableVar(var((*i)->getHead())));
+				Aggrs::print(verbosity(), *(*i)->getSet(), true);
+			}
+		}
+		Var v = 0;
+		for(vvpw::const_iterator i=lit2staticwatchlist.begin(); i<lit2staticwatchlist.end(); i++, v++){
+			if((*i).size()>0){
+				Lit l = mkLit(v/2, v%2==1);
+				clog <<"Bodywatches of var ";
+				Print::print(l);
+				clog <<": ";
+				for (vsize j = 0; j < (*i).size(); j++) {
+					report("      ");
+					Aggrs::print(verbosity(), *((*i)[j])->getSet(), true);
+				}
+			}
+		}
+		v = 0;
+		for(vvpw::const_iterator i=lit2dynamicwatchlist.begin(); i<lit2dynamicwatchlist.end(); i++, v++){
+			if((*i).size()>0){
+				Lit l = mkLit(v/2, v%2==1);
+				clog <<"Bodywatches of var ";
+				Print::print(l);
+				clog <<": ";
+				for (vsize j = 0; j < (*i).size(); j++) {
+					report("      ");
+					Aggrs::print(verbosity(), *((*i)[j])->getSet(), true);
+				}
+			}
+		}
+	}
+	//TODO move to Print::print(this);
 }
 
 /*void AggSolver::findClausalPropagations(){

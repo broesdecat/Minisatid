@@ -58,7 +58,7 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 	for (vwl::const_iterator j = getSet().getWL().begin(); j < getSet().getWL().end(); j++) {
 		const Lit& l = (*j).getLit();
 		Var v = var(l);
-		getSolver()->addPermWatch(v, new Watch(getSetp(), *j));
+		getSolver()->addStaticWatch(v, new Watch(getSetp(), *j));
 	}
 
 	Propagator::initialize(unsat, sat);
@@ -314,7 +314,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	max = getSet().getType().getMaxPossible(getSet());
 
 	if(!ar.isHeadReason()){
-		addValue(ar.getPropWeight(), !ar.isInSet(), min, max);
+		addValue(getSet().getType(), ar.getPropWeight(), !ar.isInSet(), min, max);
 		lits.push(value(head)==l_True?~head:head);
 	}
 
@@ -332,7 +332,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 			}
 
 			bool inset = (*i).getType()==POS;
-			addValue((*i).getWeight(), inset, min, max);
+			addValue(getSet().getType(), (*i).getWeight(), inset, min, max);
 			bool monoweight = getSet().getType().isMonotone(agg, (*i).getWeight());
 			bool monolit = monoweight?inset:!inset;
 			bool add = false;

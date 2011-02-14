@@ -18,7 +18,7 @@ void litPropagated();
 void explanationGenerated();
 void sets();
 
-void printWatches(int verbosity, AggSolver* const solver, const std::vector<std::vector<Watch*> >& tempwatches);
+void printWatches(int verbosity, AggSolver const * const solver, const std::vector<std::vector<Watch*> >& tempwatches);
 
 void print(int verbosity, const TypedSet&, bool endl = false);
 void print(int verbosity, const Agg& c, bool endl = false);
