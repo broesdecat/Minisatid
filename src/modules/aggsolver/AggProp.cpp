@@ -185,12 +185,7 @@ WL ProdProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* 
 	//NOTE: om dit toe te laten, ofwel bij elke operatie op en literal al zijn voorkomens overlopen
 	//ofwel aggregaten voor doubles ondersteunen (het eerste is eigenlijk de beste oplossing)
 	//Mogelijke eenvoudige implementatie: weigts bijhouden als doubles (en al de rest als ints)
-	report("Product aggregates in which both the literal and its negation occur "
-			"are currently not supported. Replace ");
-	Print::print(one.getLit());
-	report("or ");
-	Print::print(two.getLit());
-	report("by a tseitin.\n");
+	NoSupportForBothSignInProductAgg(cerr, one.getLit(), two.getLit());
 	throw idpexception("Atoms in product aggregates have to be unique.\n");
 }
 
@@ -336,7 +331,7 @@ void TypedSet::initialize(bool& unsat, bool& sat, vps& sets) {
 
 	if(sat || unsat){ return; }
 
-	setProp(getType().createPropagator(this, this->getSolver()->getPCSolver()->modes().watchedagg));
+	setProp(getType().createPropagator(this, this->getSolver()->getPCSolver().modes().watchedagg));
 	prop->initialize(unsat, sat);
 
 	if(sat || unsat){ return; }
@@ -381,6 +376,19 @@ void Propagator::initialize(bool& unsat, bool& sat) {
 
 lbool Propagator::value(const Lit& l) const {
 	return getSolver()->value(l);
+}
+
+Weight Propagator::getValue() const {
+	Weight total = getSet().getType().getESV();
+	for(vwl::const_iterator i=getSet().getWL().begin(); i<getSet().getWL().end(); i++){
+		lbool val = value((*i).getLit());
+		assert(val!=l_Undef);
+
+		if(val==l_True){
+			total = getSet().getType().add(total, (*i).getWeight());
+		}
+	}
+	return total;
 }
 
 /************************

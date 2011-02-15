@@ -1,22 +1,4 @@
-//--------------------------------------------------------------------------------------------------
-//    Copyright (c) 2009-2010, Broes De Cat, K.U.Leuven, Belgium
-//    
-//    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-//    associated documentation files (the "Software"), to deal in the Software without restriction,
-//    including without limitation the rights to use, copy, modify, merge, publish, distribute,
-//    sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
-//    furnished to do so, subject to the following conditions:
-//    
-//    The above copyright notice and this permission notice shall be included in all copies or
-//    substantial portions of the Software.
-//    
-//    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-//    NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-//    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-//    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-//    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//--------------------------------------------------------------------------------------------------
-
+//LICENSEPLACEHOLDER
 #ifndef PCSOLVER_H_
 #define PCSOLVER_H_
 
@@ -29,14 +11,6 @@ namespace Minisat{
 
 namespace MinisatID {
 
-typedef std::vector<Lit> vlit;
-
-namespace CP{
-	class CPSolver;
-}
-
-using namespace CP;
-
 class SolverOption;
 
 class IDSolver;
@@ -46,11 +20,27 @@ class DPLLTmodule;
 
 typedef Minisat::Solver* pSolver;
 typedef IDSolver* pIDSolver;
-typedef CPSolver* pCPSolver;
 typedef AggSolver* pAggSolver;
 typedef ModSolver* pModSolver;
 
 enum Optim { MNMZ, SUBSETMNMZ, AGGMNMZ, NONE }; // Preference minimization, subset minimization, sum minimization
+
+class PCLogger{
+private:
+	std::vector<int> occurrences;
+	int propagations;
+
+public:
+	PCLogger();
+
+	void addPropagation() { propagations++; }
+	int getNbPropagations() const { return propagations; }
+	void addCount(Var v);
+	int getCount(Var v) const;
+
+};
+
+class PCSolver;
 
 class DPLLTSolver{
 private:
@@ -67,7 +57,7 @@ public:
 	DPLLTmodule* get() const { return module; }
 };
 
-typedef std::vector<DPLLTSolver*> lsolvers;
+typedef std::vector<DPLLTSolver*> solverlist;
 
 class PCSolver: public MinisatID::LogicSolver{
 private:
@@ -75,7 +65,7 @@ private:
 	pSolver satsolver;
 
 	// IMPORTANT: implicit invariant that IDsolver is always last in the list!
-	lsolvers solvers;
+	solverlist solvers;
 	DPLLTSolver* idsolver;
 	DPLLTSolver* aggsolver;
 	DPLLTSolver* modsolver;
@@ -85,46 +75,38 @@ private:
 	ModSolver* getModSolver() const;
 
 	int init;
-	std::vector<Lit> initialprops;
 
 	std::vector<DPLLTmodule*> propagations;
 
-	///////
 	// OPTIMIZATION INFORMATION
-	///////
 	Optim 		optim;
 	Var 		head;
 	vec<Lit>	to_minimize;
 
-	///////
 	// FORCED CHOICES TO MAKE DURING SEARCH
-	///////
 	vec<Lit> forcedchoices;
 
+	//Logging
+	PCLogger* logger;
 
-	std::vector<int>	counts; //Number of occurences of each variable in the theory
-
-	// Getters for solver pointers
 	Minisat::Solver * 	getSolver	() const { return satsolver; }
 
 public:
 	PCSolver(SolverOption modes, MinisatID::WLSImpl* inter);
 	virtual ~PCSolver();
 
-	// Getters for constant solver pointers
-	Minisat::Solver const *		getCSolver	() const { return satsolver; }
-	lsolvers::const_iterator	getSolversBegin() const { return solvers.begin(); }
-	lsolvers::const_iterator	getSolversEnd() const { return solvers.end(); }
+	solverlist::const_iterator	getSolversBegin() const { return solvers.begin(); }
+	solverlist::const_iterator	getSolversEnd() const { return solvers.end(); }
 
-	/*
-	 * INITIALIZATION
-	 */
+	// INIT
 	void 		setModSolver	(ModSolver* m);
+
 	Var			newVar			();
 	void		addVar			(Var v);
 	bool 		addClause		(vec<Lit>& lits);
 	bool 		addEquivalence	(const Lit& head, const vec<Lit>& rightlits, bool conj);
 	bool 		addRule			(bool conj, Lit head, const vec<Lit>& lits);
+	bool 		addRuleToID		(int defid, bool conj, Lit head, const vec<Lit>& lits);
 	bool 		addSet			(int id, const vec<Lit>& lits);
 	bool 		addSet			(int id, const vec<Lit>& lits, const std::vector<Weight>& w);
 	bool 		addAggrExpr	(Lit head, int setid, const Weight& bound, AggSign boundsign, AggType type, AggSem defined);
@@ -140,12 +122,12 @@ public:
 
 	void		addForcedChoices(const vec<Lit>& forcedchoices);
 
-	void 		finishParsing	(bool& present, bool& unsat);
+    bool 		addMinimize		(const vec<Lit>& lits, bool subsetmnmz);
+    bool 		addMinimize		(const Var head, const int setid, AggType agg);
 
-	///////
 	// Solving support
-	///////
 	void 		newDecisionLevel();
+	void 		finishParsing	(bool& present, bool& unsat);
 	bool 		simplify();
 	bool 		solve			(const vec<Lit>& assumptions, Solution* sol);
 	lbool 		checkStatus		(lbool status) const; //if status==l_True, do wellfoundednesscheck in IDSolver, if not wellfounded, return l_False, otherwise status
@@ -156,39 +138,27 @@ public:
 	bool 		assertedBefore	(const Var& l, const Var& p) const;
 	rClause		getExplanation	(Lit l);	//NON-OWNING pointer
 
-	int			getCount		(Var v)	const { return counts[v]; }
 
-    ///////
-	// Solver callbacks
-	///////
-
+    // Solver callbacks
 	lbool		value			(Var x) const;		// The current value of a variable.
 	lbool		value			(Lit p) const;		// The current value of a literal.
 	uint64_t	nVars			()      const;		// The current number of variables.
 
 	rClause 	createClause	(const vec<Lit>& lits, bool learned);
-	//IMPORTANT: THE FIRST LITERAL IN THE CLAUSE HAS TO BE THE ONE WHICH CAN BE PROPAGATED FROM THE REST!!!!!!!
+	//IMPORTANT: The first literal in the clause is the one which can be propagated at moment of derivation!
 	void 		addLearnedClause(rClause c); //Propagate if clause is unit, return false if c is conflicting
 	void    	backtrackTo		(int level);	// Backtrack until a certain level.
 	void    	setTrue			(Lit p, DPLLTmodule* solver, rClause c = nullPtrClause);		// Enqueue a literal. Assumes value of literal is undefined
-	rClause		makeClause		(vec<Lit>& lits, bool b);
 
-	/**
-	 * Allows to loop over all assignments made in the current decision level.
-	 */
 	const vec<Lit>& getTrail	() 		const;
-	int 			getStartLastLevel() const;
+	int 		getStartLastLevel() 	const;
 	int 		getLevel		(int var) const; // Returns the decision level at which a variable was deduced.
 	int			getNbDecisions	() 		const;
 
 	int			getCurrentDecisionLevel	() const;
-	std::vector<Lit>	getDecisions	() const;
+	std::vector<Lit>	getDecisions() 	const;
 
-	/*
-	 * true if the current assignment is completely two-valued
-	 * Cannot be const!
-	 */
-	bool 		totalModelFound	();
+	bool 		totalModelFound	(); //cannot be const!
 
 	void		varBumpActivity	(Var v);
 
@@ -197,37 +167,28 @@ public:
 	rClause 	propagate		(Lit l);
 	rClause 	propagateAtEndOfQueue();
 
-	///////
-	// OPTIMIZATION
-	///////
-    bool 	addMinimize		(const vec<Lit>& lits, bool subsetmnmz);
-    bool 	addMinimize		(const Var head, const int setid, AggType agg);
-
-	///////
 	// DEBUG
-	///////
-	// SATsolver asks this to PC such that more info (modal e.g.) can be printed.
-	void	printModID() const;
+	void	printModID() const; // SATsolver asks this to PC such that more info (modal e.g.) can be printed.
 	void 	printEnqueued(const Lit& p) const;
 	void	printChoiceMade	(int level, Lit l) const;
 	void 	printStatistics() const;
+	void	print() const;
+	void	print(rClause clause) const;
+
+	const PCLogger& getLogger() const { return *logger; }
 
 private:
 	void addVar(Lit l) { addVar(var(l)); }
 	void addVars(const vec<Lit>& a);
 	void checkHead(Lit head);
 
-	///////
 	// SOLVING
-	///////
 	bool 		findNext		(const vec<Lit>& assumpts, vec<Lit>& model, bool& moremodels);
 	bool    	invalidateModel	(vec<Lit>& invalidation);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
 	void 		invalidate		(vec<Lit>& invalidation);
 	bool 		findModel		(const vec<Lit>& assumps, vec<Lit>& m, bool& moremodels);
 
-	///////
 	// OPTIMIZATION
-	///////
     bool 	invalidateValue	(vec<Lit>& invalidation);
 	bool 	invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt);
 	bool 	findOptimal		(const vec<Lit>& assumps, vec<Lit>& m, Solution* sol);

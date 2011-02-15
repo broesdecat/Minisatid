@@ -27,7 +27,7 @@ using namespace MinisatID;
 using namespace Print;
 using namespace Aggrs;
 
-AggSolver::AggSolver(pPCSolver s) :
+AggSolver::AggSolver(PCSolver* s) :
 	DPLLTmodule(s), propagations(0), index(1), propindex(0) {
 }
 
@@ -48,7 +48,7 @@ void AggSolver::notifyVarAdded(uint64_t nvars) {
 }
 
 void AggSolver::notifyDefinedHead(Var head){
-	getPCSolver()->notifyAggrHead(head);
+	getPCSolver().notifyAggrHead(head);
 }
 
 ///////
@@ -64,7 +64,7 @@ void AggSolver::removeHeadWatch(Var head) {
 	//delete headwatches[x];
 	lit2headwatchlist[toInt(createNegativeLiteral(head))] = NULL;
 	lit2headwatchlist[toInt(createPositiveLiteral(head))] = NULL;
-	getPCSolver()->removeAggrHead(head);
+	getPCSolver().removeAggrHead(head);
 }
 
 void AggSolver::addStaticWatch(Var v, Watch* w) {
@@ -182,7 +182,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType
 	}
 #endif
 
-	getPCSolver()->varBumpActivity(headv);
+	getPCSolver().varBumpActivity(headv);
 
 	//the head of the aggregate
 	Lit head = mkLit(headv, false);
@@ -222,7 +222,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	// Initialization of all sets
 
 	//Rewrite completion sum and card constraints into CNF using PBSOLVER
-	if(getPCSolver()->modes().pbsolver && !unsat){
+	if(getPCSolver().modes().pbsolver && !unsat){
 		unsat = !transformSumsToCNF(sets, getPCSolver());
 	}
 
@@ -298,22 +298,6 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	print();
 }
 
-void Aggrs::printNumberOfAggregates(int nbsets, int nbagg, int nbsetlits, map<AggType, int>& nbaggs, int verbosity){
-	//Print lots of information
-	if (verbosity == 1) {
-		report("> Number of aggregates: %d aggregates over %4zu sets.\n", nbagg, nbsets);
-	}else if (verbosity >= 2) {
-		report("> Number of minimum exprs.:     %4d.\n", nbaggs[MIN]);
-		report("> Number of maximum exprs.:     %4d.\n", nbaggs[MAX]);
-		report("> Number of sum exprs.:         %4d.\n", nbaggs[SUM]);
-		report("> Number of product exprs.:     %4d.\n", nbaggs[PROD]);
-		report("> Number of cardinality exprs.: %4d.\n", nbaggs[CARD]);
-
-		report("> Over %4zu sets, aggregate set avg. size: %7.2f lits.\n",
-				nbsets,(double)nbsetlits/(double)(nbsets));
-	}
-}
-
 /**
  * The method propagates the fact that p has been derived to the SAT solver. If a conflict occurs,
  * a conflict clause is returned. Otherwise, the value is set to true in the sat solver.
@@ -328,7 +312,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 	const Lit& p = ar->getPropLit();
 
 	//If a propagation will be done or conflict (not already true), then add the learned clause first
-	if (value(p) != l_True && getPCSolver()->modes().aggclausesaving < 2) {
+	if (value(p) != l_True && getPCSolver().modes().aggclausesaving < 2) {
 		vec<Lit> lits;
 		lits.push(p);
 		ar->getAgg().getSet()->getExplanation(lits, *ar);
@@ -338,7 +322,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 	if (value(p) == l_False) {
 		if(modes().bumpaggonnotify){ //seems to be better here, untested!
 			//Decreases sokoban, performance, increases fastfood
-			getPCSolver()->varBumpActivity(var(p));
+			getPCSolver().varBumpActivity(var(p));
 		}
 		if (verbosity() >= 2) {
 			report("Deriving conflict in ");
@@ -346,20 +330,20 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 			report(" because of the aggregate expression ");
 			Aggrs::print(verbosity(), ar->getAgg(), true);
 		}
-		assert(getPCSolver()->modes().aggclausesaving>1 || ar->hasClause());
-		assert(reasons[var(p)]==NULL || getPCSolver()->modes().aggclausesaving>1 || reasons[var(p)]->hasClause());
+		assert(getPCSolver().modes().aggclausesaving>1 || ar->hasClause());
+		assert(reasons[var(p)]==NULL || getPCSolver().modes().aggclausesaving>1 || reasons[var(p)]->hasClause());
 
 		AggReason* old_ar = reasons[var(p)];
 		reasons[var(p)] = ar;
 		rClause confl = getExplanation(p);	//Reason manipulation because getexplanation uses that reason!
 		reasons[var(p)] = old_ar;
 		delete ar; // Have to delete before addLearnedClause, as internally it might lead to backtrack and removing the reason
-		getPCSolver()->addLearnedClause(confl);
+		getPCSolver().addLearnedClause(confl);
 		return confl;
 	} else if (value(p) == l_Undef) {
 		if(modes().bumpaggonnotify){ //seems to be better here, untested!
 			//Decreases sokoban, performance, increases fastfood
-			getPCSolver()->varBumpActivity(var(p));
+			getPCSolver().varBumpActivity(var(p));
 		}
 		if (verbosity() >= 2) {
 			report("Deriving ");
@@ -375,12 +359,12 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 		}
 		reasons[var(p)] = ar;
 
-		if (getPCSolver()->modes().aggclausesaving < 1) {
-			rClause c = getPCSolver()->createClause(ar->getClause(), true);
-			getPCSolver()->addLearnedClause(c);
+		if (getPCSolver().modes().aggclausesaving < 1) {
+			rClause c = getPCSolver().createClause(ar->getClause(), true);
+			getPCSolver().addLearnedClause(c);
 		}
 
-		getPCSolver()->setTrue(p, this);
+		getPCSolver().setTrue(p, this);
 	} else {
 		delete ar;
 	}
@@ -416,17 +400,13 @@ void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel) {
 }
 
 bool AggSolver::checkStatus(){
-	if(verbosity()>=3){
-		for(vps::const_iterator i=sets.begin(); i<sets.end(); i++){
-			for(agglist::const_iterator j=(*i)->getAgg().begin(); j<(*i)->getAgg().end(); j++){
-				Aggrs::print(10, **j, true);
-			}
-		}
-	}
 #ifdef DEBUG
 	for(setlist::const_iterator i=sets.begin(); i<sets.end(); i++){
 		Weight w = (*i)->getProp()->getValue();
 		for(agglist::const_iterator j=(*i)->getAgg().begin(); j<(*i)->getAgg().end(); j++){
+			if(verbosity()>=3){
+				Aggrs::print(10, **j, true);
+			}
 			lbool headval = value((*j)->getHead());
 			if((*j)->getSem()==IMPLICATION){
 				assert((headval==l_True && isFalsified(**j, w, w)) || (headval==l_False && isSatisfied(**j, w, w)));
@@ -544,17 +524,17 @@ rClause AggSolver::getExplanation(const Lit& p) {
 	const AggReason& ar = *reasons[var(p)];
 
 	rClause c = nullPtrClause;
-	if (getPCSolver()->modes().aggclausesaving < 2) {
+	if (getPCSolver().modes().aggclausesaving < 2) {
 		assert(ar.hasClause());
 
-		c = getPCSolver()->createClause(ar.getClause(), true);
+		c = getPCSolver().createClause(ar.getClause(), true);
 	} else {
 		vec<Lit> lits;
 		lits.push(p);
 		ar.getAgg().getSet()->getExplanation(lits, ar);
 
 		//create a conflict clause and return it
-		c = getPCSolver()->createClause(lits, true);
+		c = getPCSolver().createClause(lits, true);
 	}
 
 	//do not add each clause to SAT-solver: real slowdown for e.g. magicseries
@@ -779,7 +759,7 @@ bool AggSolver::invalidateAgg(vec<Lit>& invalidation, Var head) {
  * the newly adapted bound.
  */
 void AggSolver::propagateMnmz(Var head) {
-	int level = getPCSolver()->getCurrentDecisionLevel();
+	int level = getPCSolver().getCurrentDecisionLevel();
 	Agg* agg = lit2headwatchlist[toInt(createPositiveLiteral(head))];
 	TypedSet* set = agg->getSet();
 	set->getProp()->propagate(level, *agg, true);
@@ -790,12 +770,27 @@ void AggSolver::propagateMnmz(Var head) {
 ///////
 
 void AggSolver::printStatistics() const {
-	report("aggregate propagations: %-12" PRIu64 "\n", propagations);
+	clog <<"> Aggregate propagations: " <<propagations <<"\n";
+}
+
+void Aggrs::printNumberOfAggregates(int nbsets, int nbagg, int nbsetlits, map<AggType, int>& nbaggs, int verbosity){
+	//Print lots of information
+	if (verbosity == 1) {
+		clog <<"> Number of aggregates: " <<nbagg <<" aggregates over " <<nbsets <<" sets.\n";
+	}else if (verbosity >= 2) {
+		clog <<"> Number of minimum exprs.:     " <<nbaggs[MIN] <<".\n";
+		clog <<"> Number of maximum exprs.:     " <<nbaggs[MAX] <<".\n";
+		clog <<"> Number of sum exprs.:         " <<nbaggs[SUM] <<".\n";
+		clog <<"> Number of product exprs.:     " <<nbaggs[PROD] <<".\n";
+		clog <<"> Number of cardinality exprs.: " <<nbaggs[CARD] <<".\n";
+
+		clog <<"> Over " <<nbsets <<" sets, aggregate set avg. size: " <<(double)nbsetlits/(double)(nbsets) <<" lits.\n";
+	}
 }
 
 void AggSolver::print() const{
 	if (verbosity() >= 3) {
-		report("Aggregates are present after initialization:\n");
+		clog <<"Aggregates are present after initialization:\n";
 		for (vps::const_iterator i = sets.begin(); i < sets.end(); i++) {
 			for (agglist::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); j++) {
 				Aggrs::print(verbosity(), **j, true);
@@ -807,7 +802,7 @@ void AggSolver::print() const{
 	if (verbosity() >= 10) {
 		for(agglist::const_iterator i=lit2headwatchlist.begin(); i<lit2headwatchlist.end(); i++){
 			if ((*i) != NULL) {
-				report("Headwatch of var %d: ", getPrintableVar(var((*i)->getHead())));
+				clog <<"Headwatch of var " <<getPrintableVar(var((*i)->getHead())) <<": ";
 				Aggrs::print(verbosity(), *(*i)->getSet(), true);
 			}
 		}
@@ -819,7 +814,7 @@ void AggSolver::print() const{
 				Print::print(l);
 				clog <<": ";
 				for (vsize j = 0; j < (*i).size(); j++) {
-					report("      ");
+					clog <<"      ";
 					Aggrs::print(verbosity(), *((*i)[j])->getSet(), true);
 				}
 			}
@@ -832,7 +827,7 @@ void AggSolver::print() const{
 				Print::print(l);
 				clog <<": ";
 				for (vsize j = 0; j < (*i).size(); j++) {
-					report("      ");
+					clog <<"      ";
 					Aggrs::print(verbosity(), *((*i)[j])->getSet(), true);
 				}
 			}
@@ -848,28 +843,28 @@ void AggSolver::print() const{
  for(lwlv::const_iterator j=aggrminsets[i]->getWLBegin(); j<aggrminsets[i]->getWLEnd(); j++){
  set.push_back(var((*j).getLit()));
  }
- counter += getPCSolver()->getClausesWhichOnlyContain(set).size();
+ counter += getPCSolver().getClausesWhichOnlyContain(set).size();
  }
  for(vsize i=0; i<aggrprodsets.size(); i++){
  vector<Var> set;
  for(lwlv::const_iterator j=aggrprodsets[i]->getWLBegin(); j<aggrprodsets[i]->getWLEnd(); j++){
  set.push_back(var((*j).getLit()));
  }
- counter += getPCSolver()->getClausesWhichOnlyContain(set).size();
+ counter += getPCSolver().getClausesWhichOnlyContain(set).size();
  }
  for(vsize i=0; i<aggrsumsets.size(); i++){
  vector<Var> set;
  for(lwlv::const_iterator j=aggrsumsets[i]->getWLBegin(); j<aggrsumsets[i]->getWLEnd(); j++){
  set.push_back(var((*j).getLit()));
  }
- counter += getPCSolver()->getClausesWhichOnlyContain(set).size();
+ counter += getPCSolver().getClausesWhichOnlyContain(set).size();
  }
  for(vsize i=0; i<aggrmaxsets.size(); i++){
  vector<Var> set;
  for(lwlv::const_iterator j=aggrmaxsets[i]->getWLBegin(); j<aggrmaxsets[i]->getWLEnd(); j++){
  set.push_back(var((*j).getLit()));
  }
- counter += getPCSolver()->getClausesWhichOnlyContain(set).size();
+ counter += getPCSolver().getClausesWhichOnlyContain(set).size();
  }
  reportf("Relevant clauses: %d.\n", counter);
  }*/

@@ -111,7 +111,6 @@ public:
 
 	virtual Propagator*	createPropagator		(TypedSet* set, bool pw) 				const = 0;
 
-protected:
 	virtual Weight 		getESV					()										const = 0;
 };
 
@@ -130,7 +129,6 @@ public:
 	bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const;
 	Propagator*	createPropagator		(TypedSet* set, bool pw) const;
 
-protected:
 	Weight 		getESV					()										const { return negInfinity(); }
 };
 
@@ -153,7 +151,6 @@ public:
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
 	Propagator*	createPropagator		(TypedSet* set, bool pw) const;
 
-protected:
 	Weight 		getESV					()										const { return Weight(1); }
 };
 
@@ -171,7 +168,6 @@ public:
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
 	Propagator*	createPropagator		(TypedSet* set, bool pw) const;
 
-protected:
 	Weight 		getESV					()										const { return Weight(0); }
 };
 
@@ -219,7 +215,8 @@ public:
     AggSolver*			getSolver() const { return aggsolver; }
 	lbool				value(const Lit& l) const;
 
-	virtual Weight		getValue() const = 0; //Return current aggregate value (only if two-valued!)
+	//Assert: only call if model is two-valued!
+	virtual Weight		getValue() const;
 };
 
 class TypedSet{

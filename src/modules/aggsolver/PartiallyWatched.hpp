@@ -103,8 +103,6 @@ public:
 	GenPWAgg(TypedSet* set);
 	virtual ~GenPWAgg();
 
-	Weight		getValue	()	const;
-
 	void 		initialize		(bool& unsat, bool& sat);
 	rClause 	propagate		(const Lit& p, Watch* w, int level);
 	rClause 	propagate		(int level, const Agg& agg, bool headtrue);

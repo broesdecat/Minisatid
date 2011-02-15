@@ -16,7 +16,6 @@ namespace MinisatID {
 ///////
 
 class PCSolver;
-typedef PCSolver* pPCSolver;
 
 class WL;
 typedef std::vector<WL> vwl;
@@ -59,7 +58,7 @@ private:
 	Aggrs::mips 	parsedSets;
 	std::set<Var>	heads;
 
-	Aggrs::setlist	sets;
+	Aggrs::setlist	sets;//LICENSEPLACEHOLDER
 	std::vector<Aggrs::AggReason*>	reasons; //Map var to reason
 
 	std::vector<Aggrs::watchlist>	lit2dynamicwatchlist;	// map lit to watches
@@ -81,7 +80,7 @@ private:
 	std::vector<LI>									propagated;
 
 public:
-	AggSolver(pPCSolver s);
+	AggSolver(PCSolver* s);
 	virtual ~AggSolver();
 
 	// INITIALIZATION

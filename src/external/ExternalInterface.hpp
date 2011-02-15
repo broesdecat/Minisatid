@@ -1,22 +1,4 @@
-//------------------------------------------------------------------------------
-// Copyright (c) 2009, 2010, 2011, Broes De Cat, K.U. Leuven, Belgium
-//
-// This file is part of MinisatID.
-//
-// MinisatID is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// MinisatID is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with MinisatID. If not, see <http://www.gnu.org/licenses/>.
-//------------------------------------------------------------------------------
-
+//LICENSEPLACEHOLDER
 #ifndef EXTERNALINTERFACE_HPP_
 #define EXTERNALINTERFACE_HPP_
 
@@ -27,8 +9,8 @@
 
 #include "external/ExternalUtils.hpp"
 
+//IMPORTANT: Need all headers defining an inheritance tree to be able to use their inheritance
 #include "theorysolvers/LogicSolver.hpp"
-//Have to be included, otherwise this header knows nothing of the inheritance between LogicSolver and its children
 #include "theorysolvers/PCSolver.hpp"
 #include "theorysolvers/SOSolver.hpp"
 
@@ -39,9 +21,7 @@
 #endif
 
 namespace MinisatID {
-
 class Translator;
-
 class WrappedLogicSolver;
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
@@ -50,26 +30,21 @@ typedef std::shared_ptr<WrappedLogicSolver> pwls;
 typedef std::tr1::shared_ptr<WrappedLogicSolver> pwls;
 #endif
 
-///////
-// External interfaces offered from the solvers
-///////
-
 class WrappedLogicSolver{
 public:
-	//Print statistics of the performed search
 	void 	printStatistics	() const;
 
-	//Initialize the datastructures after the full theory has been parsed
+	//Initialize the datastructures after the full theory has been parsed.
 	bool 	finishParsing	();
 
-	//Simplify the logical theory. Automatically initializes the datastructures
+	//Simplify the logical theory. Automatically initializes the datastructures.
 	bool 	simplify		();
 
 	//Do model expansion, given the options in the solution datastructure.
-	//Automatically initializes the datastructures and simplifies the theory
+	//Automatically initializes the datastructures and simplifies the theory.
 	bool 	solve			(Solution* sol);
 
-	void	setTranslator	(Translator* translator);
+	void	setTranslator	(Translator& translator);
 
 protected:
 	WrappedLogicSolver			();
@@ -80,19 +55,25 @@ protected:
 
 class WrappedPCSolver: public MinisatID::WrappedLogicSolver{
 private:
-	MinisatID::WPCLSImpl* _impl;
+	MinisatID::WPCLSImpl* impl;
 
 public:
 	WrappedPCSolver(const SolverOption& modes);
 	~WrappedPCSolver();
 
 	void	addVar			(Atom v);
+
 	bool	addClause		(std::vector<Literal>& lits);
 	bool 	addEquivalence	(const Literal& head, const std::vector<Literal>& rightlits, bool conj);
-	bool	addRule			(bool conj, Literal head, const std::vector<Literal>& lits);
-	bool	addSet			(int id, const std::vector<Literal>& lits);
-	bool 	addSet			(int set_id, const std::vector<WLtuple>& lws);
-	bool	addSet			(int id, const std::vector<Literal>& lits, const std::vector<Weight>& w);
+
+	bool	addConjRule		(Atom head, const std::vector<Literal>& lits);
+	bool	addDisjRule		(Atom head, const std::vector<Literal>& lits);
+	bool	addConjRuleToID (int defid, Atom head, const std::vector<Literal>& lits);
+	bool	addDisjRuleToID (int defid, Atom head, const std::vector<Literal>& lits);
+
+	bool	addSet			(int setid, const std::vector<Literal>& lits);
+	bool 	addSet			(int setid, const std::vector<WLtuple>& lws);
+	bool	addSet			(int setid, const std::vector<Literal>& lits, const std::vector<Weight>& w);
 	bool	addAggrExpr		(Literal head, int setid, const Weight& bound, AggSign sign, AggType type, AggSem sem);
 
     bool 	addMinimize		(const std::vector<Literal>& lits, bool subsetmnmz);
@@ -111,9 +92,10 @@ public:
 	void	addForcedChoices(const std::vector<Literal> lits);
 
 protected:
-	MinisatID::WPCLSImpl* getImpl() const { return _impl; }
+	MinisatID::WPCLSImpl* getImpl() const { return impl; }
 };
 
+//Second order logic solver
 class WrappedSOSolver: public MinisatID::WrappedLogicSolver{
 private:
 	MinisatID::WSOLSImpl* _impl;
@@ -122,17 +104,16 @@ public:
 	WrappedSOSolver				(const SolverOption& modes);
 	virtual ~WrappedSOSolver	();
 
-	//Add information for hierarchy
-	bool 	addChild	(vsize parent, vsize child, Literal head);
-	bool	addAtoms	(vsize modid, const std::vector<Atom>& atoms);
+	bool 	addSubTheory	(int parent, Literal head, int child);
+	bool	addRigidAtoms	(int modid, const std::vector<Atom>& atoms);
 
-	//Add information for PC-Solver
-	void 	addVar		(vsize modid, Atom v);
-	bool 	addClause	(vsize modid, std::vector<Literal>& lits);
-	bool 	addRule		(vsize modid, bool conj, Atom head, std::vector<Literal>& lits);
-	bool 	addSet		(vsize modid, int set_id, std::vector<WLtuple>& lws);
-	bool 	addSet		(vsize modid, int set_id, std::vector<Literal>& lits, std::vector<Weight>& w);
-	bool 	addAggrExpr	(vsize modid, Literal head, int setid, const Weight& bound, AggSign sign, AggType type, AggSem sem);
+	void 	addVar		(int modid, Atom v);
+	bool 	addClause	(int modid, std::vector<Literal>& lits);
+	bool 	addConjRule	(int modid, Atom head, std::vector<Literal>& lits);
+	bool 	addDisjRule	(int modid, Atom head, std::vector<Literal>& lits);
+	bool 	addSet		(int modid, int setid, std::vector<WLtuple>& lws);
+	bool 	addSet		(int modid, int setid, std::vector<Literal>& lits, std::vector<Weight>& w);
+	bool 	addAggrExpr	(int modid, Literal head, int setid, const Weight& bound, AggSign sign, AggType type, AggSem sem);
 
 protected:
 	MinisatID::WSOLSImpl* getImpl() const { return _impl; }

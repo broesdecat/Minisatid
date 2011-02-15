@@ -50,12 +50,11 @@ typedef enum {
 	GENERATERULE = 4, WEIGHTRULE = 5, OPTIMIZERULE = 6
 } RuleType;
 
-Read::Read(WrappedPCSolver* solver) :
+Read::Read(WrappedPCSolver* solver, LParseTranslator& trans) :
 		endedparsing(false),
 		maxatomnumber(1), setcount(1), size(0),
 		solver(solver), optim(false),
-		translator(new LParseTranslator()){
-	solver->setTranslator(translator);
+		translator(trans){
 }
 
 Read::~Read() {
@@ -299,7 +298,13 @@ bool Read::parseOptimizeRule(istream &f) {
 
 bool Read::addBasicRules() {
 	for (vector<BasicRule*>::const_iterator i = basicrules.begin(); i < basicrules.end(); i++) {
-		if (!getSolver()->addRule((*i)->conj, (*i)->head, (*i)->body)) {
+		bool unsat = false;
+		if((*i)->conj){
+			unsat = !getSolver()->addConjRule((*i)->head.getAtom(), (*i)->body);
+		}else{
+			unsat = !getSolver()->addDisjRule((*i)->head.getAtom(), (*i)->body);
+		}
+		if (unsat) {
 			return false;
 		}
 	}
@@ -484,9 +489,9 @@ bool Read::read(istream &f) {
 		}
 
 		if(*s){
-			translator->addTuple(Atom(i), s+1);
+			translator.addTuple(Atom(i), s+1);
 		}else{
-			translator->addTuple(Atom(i), "");
+			translator.addTuple(Atom(i), "");
 		}
 	}
 

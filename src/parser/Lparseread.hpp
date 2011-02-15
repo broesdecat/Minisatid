@@ -99,10 +99,10 @@ private:
 	std::vector<Literal> optimbody;
 	std::vector<Weight> optimweights;
 
-	MinisatID::LParseTranslator* translator;
+	MinisatID::LParseTranslator& translator;
 
 public:
-	Read (WrappedPCSolver* solver);
+	Read (WrappedPCSolver* solver, LParseTranslator& trans);
 	~Read ();
 	bool read (std::istream &f);
 

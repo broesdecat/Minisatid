@@ -163,29 +163,6 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 	PWAgg::initialize(unsat, sat); //Add head watches
 }
 
-Weight GenPWAgg::getValue() const{
-	minmaxBounds bounds(emptyinterpretbounds);
-
-	for(genwatchlist::const_iterator i=getWS().begin(); i<getWS().end(); i++){
-		const WL& wl = (*i)->getWL();
-		lbool val = value(wl.getLit());
-		if(val!=l_Undef){
-			addValue(getSet().getType(), wl.getWeight(), val==l_True, bounds);
-		}
-	}
-
-	for(genwatchlist::const_iterator i=getNWS().begin(); i<getNWS().end(); i++){
-		const WL& wl = (*i)->getWL();
-		lbool val = value(wl.getLit());
-		if(val!=l_Undef){
-			addValue(getSet().getType(), wl.getWeight(), val==l_True, bounds);
-		}
-	}
-
-	assert(bounds.min==bounds.max);
-	return bounds.min;
-}
-
 Agg* getAggWithMostStringentBound(const GenPWAgg& prop){
 	Agg* strongestagg = NULL;
 	for(agglist::const_iterator i=prop.getSet().getAgg().begin(); i<prop.getSet().getAgg().end(); i++){
@@ -474,7 +451,7 @@ bool compareWLIearlier(const WLI& one, const WLI& two){
 }
 
 void GenPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
-	const PCSolver& pcsol = *getSolver()->getPCSolver();
+	const PCSolver& pcsol = getSolver()->getPCSolver();
 
 	const Lit& head = ar.getAgg().getHead();
 	const Lit& proplit = ar.getPropLit();
@@ -629,9 +606,6 @@ double GenPWAgg::testGenWatchCount() {
 		}
 	}
 
-	if(getSolver()->verbosity()>=2){
-		report("> Set %d: watch ratio of %f\n", getSet().getSetID(), ((double)ws.size())/(ws.size()+nws.size()));
-	}
-
-	return ((double)ws.size())/(ws.size()+nws.size());
+	double ratio = ((double)ws.size())/(ws.size()+nws.size());
+	Print::printSetWatchRatio(clog, getSet().getSetID(), ratio, getSolver()->verbosity());
 }

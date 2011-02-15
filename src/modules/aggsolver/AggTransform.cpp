@@ -127,7 +127,7 @@ void SetReduce::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& uns
 
 void MapToSetOneToOneWithAgg::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
 	//Only if using pwatches
-	if(!solver->getPCSolver()->modes().watchedagg || set->getAgg().size()==1){
+	if(!solver->getPCSolver().modes().watchedagg || set->getAgg().size()==1){
 		return;
 	}
 
@@ -281,12 +281,12 @@ void AddHeadImplications::transform(AggSolver* solver, TypedSet* set, vps& sets,
 				vec<Lit> lits;
 				lits.push(first->getHead());
 				lits.push(~second->getHead());
-				solver->getPCSolver()->addClause(lits);
+				solver->getPCSolver().addClause(lits);
 				if(first->getCertainBound()==second->getCertainBound()){
 					vec<Lit> lits2;
 					lits2.push(~first->getHead());
 					lits2.push(second->getHead());
-					solver->getPCSolver()->addClause(lits2);
+					solver->getPCSolver().addClause(lits2);
 				}
 				first = second;
 			}
@@ -300,12 +300,12 @@ void AddHeadImplications::transform(AggSolver* solver, TypedSet* set, vps& sets,
 				vec<Lit> lits;
 				lits.push(first->getHead());
 				lits.push(~second->getHead());
-				solver->getPCSolver()->addClause(lits);
+				solver->getPCSolver().addClause(lits);
 				if(first->getCertainBound()==second->getCertainBound()){
 					vec<Lit> lits2;
 					lits2.push(~first->getHead());
 					lits2.push(second->getHead());
-					solver->getPCSolver()->addClause(lits2);
+					solver->getPCSolver().addClause(lits2);
 				}
 				first = second;
 			}
@@ -404,7 +404,7 @@ void MaxToSAT::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsa
 				clause.push((*i).getLit());
 			}
 		}
-		notunsat = set->getSolver()->getPCSolver()->addRule(ub,agg.getHead(),clause);
+		notunsat = set->getSolver()->getPCSolver().addRule(ub,agg.getHead(),clause);
 	} else {
 		clause.push(ub? agg.getHead():~agg.getHead());
 		for (vwl::const_reverse_iterator i = set->getWL().rbegin(); i < set->getWL().rend()	&& (*i).getWeight() >= bound; i++) {
@@ -413,7 +413,7 @@ void MaxToSAT::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsa
 			}
 			clause.push((*i).getLit());
 		}
-		notunsat = set->getSolver()->getPCSolver()->addClause(clause);
+		notunsat = set->getSolver()->getPCSolver().addClause(clause);
 		for (vwl::const_reverse_iterator i = set->getWL().rbegin(); notunsat && i < set->getWL().rend()
 					&& (*i).getWeight() >= bound; i++) {
 			if (ub && (*i).getWeight() == bound) {
@@ -422,7 +422,7 @@ void MaxToSAT::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsa
 			clause.clear();
 			clause.push(ub?~agg.getHead():agg.getHead());
 			clause.push(~(*i).getLit());
-			notunsat = set->getSolver()->getPCSolver()->addClause(clause);
+			notunsat = set->getSolver()->getPCSolver().addClause(clause);
 		}
 	}
 	set->replaceAgg(vector<Agg*>());
@@ -455,7 +455,7 @@ void CardToEquiv::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& u
 				}else{
 					if (agg.getSem() == DEF) {
 						vec<Lit> lits;
-						unsat = unsat || !set->getSolver()->getPCSolver()->addRule(true, agg.getHead(), lits);
+						unsat = unsat || !set->getSolver()->getPCSolver().addRule(true, agg.getHead(), lits);
 					}else{
 						if(headvalue==l_Undef){
 							if(set->getSolver()->notifySolver(new HeadReason(agg, HEADONLY, agg.getHead()))!=nullPtrClause){
@@ -470,9 +470,9 @@ void CardToEquiv::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& u
 					right.push(set->getWL()[j].getLit());
 				}
 				if (agg.getSem() == DEF) {
-					unsat = !set->getSolver()->getPCSolver()->addRule(false, agg.getHead(), right);
+					unsat = !set->getSolver()->getPCSolver().addRule(false, agg.getHead(), right);
 				} else{
-					unsat = !set->getSolver()->getPCSolver()->addEquivalence(agg.getHead(), right, false);
+					unsat = !set->getSolver()->getPCSolver().addEquivalence(agg.getHead(), right, false);
 				}
 			}else{
 				remaggs.push_back(*i);
@@ -495,7 +495,7 @@ struct PBAgg {
 };
 
 //FUTURE allow complete translation into sat? => double bounds, defined aggregates, optimization
-bool Aggrs::transformSumsToCNF(vps& sets, PCSolver* pcsolver) {
+bool Aggrs::transformSumsToCNF(vps& sets, PCSolver& pcsolver) {
 	int sumaggs = 0;
 	int maxvar = 1;
 	vector<PBAgg*> pbaggs;
@@ -562,10 +562,10 @@ bool Aggrs::transformSumsToCNF(vps& sets, PCSolver* pcsolver) {
 	}
 
 	MiniSatPP::PbSolver* pbsolver = new MiniSatPP::PbSolver();
-	MiniSatPP::opt_verbosity = pcsolver->verbosity()-1; //Gives a bit too much output on 1
+	MiniSatPP::opt_verbosity = pcsolver.verbosity()-1; //Gives a bit too much output on 1
 	MiniSatPP::opt_abstract = true; //Should be true
 	MiniSatPP::opt_tare = true; //Experimentally set to true
-	MiniSatPP::opt_primes_file = pcsolver->modes().getPrimesFile().c_str();
+	MiniSatPP::opt_primes_file = pcsolver.modes().getPrimesFile().c_str();
 	MiniSatPP::opt_convert_weak = false;
 	MiniSatPP::opt_convert = MiniSatPP::ct_Mixed;
 	pbsolver->allocConstrs(maxvar, sumaggs);
@@ -591,14 +591,14 @@ bool Aggrs::transformSumsToCNF(vps& sets, PCSolver* pcsolver) {
 
 	//Any literal that is larger than maxvar will have been newly introduced, so should be mapped to nVars()+lit
 	//add the CNF to the solver
-	int maxnumber = pcsolver->nVars();
+	int maxnumber = pcsolver.nVars();
 	for (vector<vector<MiniSatPP::Lit> >::const_iterator i = pbencodings.begin(); i < pbencodings.end(); i++) {
 		vec<Lit> lits;
 		for (vector<MiniSatPP::Lit>::const_iterator j = (*i).begin(); j < (*i).end(); j++) {
 			Var v = MiniSatPP::var(*j) + (MiniSatPP::var(*j) > maxvar ? maxnumber - maxvar : 0);
 			lits.push(mkLit(v, MiniSatPP::sign(*j)));
 		}
-		pcsolver->addClause(lits);
+		pcsolver.addClause(lits);
 	}
 
 	return true;

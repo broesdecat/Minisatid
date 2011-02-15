@@ -91,7 +91,7 @@ struct AV{
 
 class ModSolver: public DPLLTmodule{
 private:
-	bool 		hasparent, searching;
+	bool 		init, hasparent, searching;
 
 	AV			head;
 	std::vector<Var>	atoms; //atoms which are rigid within this solver
@@ -125,7 +125,7 @@ public:
 
 	void 				notifyVarAdded	(uint64_t nvars) { /*Is NOT DOWN!*/}
 
-	void 				finishParsing	(bool& present, bool& unsat){};
+	void 				finishParsing	(bool& present, bool& unsat){ init = true; }
 	void 				finishParsingDown(bool& present, bool& unsat);
 
 	bool 				simplify		()	{ return true;};

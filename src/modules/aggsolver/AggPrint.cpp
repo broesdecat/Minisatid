@@ -6,6 +6,7 @@
 
 #include "utils/Print.hpp"
 
+using namespace std;
 using namespace MinisatID;
 using namespace MinisatID::Print;
 
@@ -33,7 +34,7 @@ void Aggrs::printWatches(int verbosity, AggSolver const * const solver, const st
 	if(verbosity<10){
 		return;
 	}
-	report("Current effective watches: \n");
+	clog <<"Current effective watches: \n";
 	for(vsize i=0; i<2*solver->nVars(); i++){
 		bool found = false;
 		for(vsize j=0; !found && j<tempwatches[i].size(); j++){
@@ -49,70 +50,75 @@ void Aggrs::printWatches(int verbosity, AggSolver const * const solver, const st
 			continue;
 		}
 
-		report("    Watch "); Print::print(toLit(i)); report(" used by: \n");
+		clog<<"    Watch "; Print::print(toLit(i)); clog<<" used by: \n";
 		for(vsize j=0; j<tempwatches[i].size(); j++){
 			for(vsize k=0; k<tempwatches[i][j]->getSet()->getAgg().size(); k++){
 				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(tempwatches[i][j]);
 				if(watch2!=NULL && watch2->isInWS()){
-					report("        ");
+					clog<<"        ";
 					print(verbosity, *tempwatches[i][j]->getSet()->getAgg()[k], true);
 				}
 			}
 		}
 	}
-	report("\n");
+	clog <<"\n";
+}
+
+template<class T>
+void printValue(T& output, lbool value){
+	output <<"(" <<(value==l_Undef?"X":value==l_True?"T":"F") <<")";
 }
 
 void Aggrs::print(int verbosity, const TypedSet& c, bool endl) {
 	if(verbosity<7){
-		report("set %d", c.getSetID());
+		clog <<"set " <<c.getSetID();
 	}else{
-		report("set %d = { ", c.getSetID());
+		clog <<"set " <<c.getSetID() <<" = {";
 		bool begin = true;
 		for (vwl::const_iterator i = c.getWL().begin(); i < c.getWL().end(); ++i) {
 			if(!begin){
-				report(", ");
+				clog <<", ";
 			}
 			begin = false;
 			Print::print((*i).getLit());
 			lbool value = c.getSolver()->value((*i).getLit());
-			report("(%s)", value==l_Undef?"X":value==l_True?"T":"F");
-			report("=%s", toString((*i).getWeight()).c_str());
+			printValue(clog, value);
+			clog <<"=" <<(*i).getWeight();
 		}
-		report(" }, KB=%s", toString(c.getKnownBound()).c_str());
+		clog <<" }, KB=" <<c.getKnownBound();
 	}
 	if (endl) {
-		report("\n");
+		clog <<"\n";
 	}
 }
 
 void Aggrs::print(int verbosity, const Agg& ae, bool endl) {
 	Print::print(ae.getHead());
 	lbool value = ae.getSet()->getSolver()->value(ae.getHead());
-	report("(%s)" , value==l_Undef?"X":value==l_True?"T":"F");
+	printValue(clog, value);
 	TypedSet* set = ae.getSet();
 	switch(ae.getSem()){
 		case DEF:
-			report("%s ", "<-");
+			clog <<"<- ";
 			break;
 		case COMP:
-			report("%s ", "<=>");
+			clog <<"<=> ";
 			break;
 		case IMPLICATION:
-			report("%s ", "|");
+			clog <<"| ";
 			break;
 	}
 	if (ae.hasLB()) {
-		report("%s <= ", toString(ae.getCertainBound()).c_str());
+		clog <<ae.getCertainBound() <<" <= ";
 	}
-	report("%s{", ae.getType()==MAX?"MAX":ae.getType()==MIN?"MIN":ae.getType()==SUM?"SUM":ae.getType()==CARD?"CARD":"PROD");
+	clog <<(ae.getType()==MAX?"MAX":ae.getType()==MIN?"MIN":ae.getType()==SUM?"SUM":ae.getType()==CARD?"CARD":"PROD") <<"{";
 	print(verbosity, *set, false);
-	report("}");
+	clog <<"}";
 	if (ae.hasUB()) {
-		report(" <= %s", toString(ae.getCertainBound()).c_str());
+		clog <<" <= " <<ae.getCertainBound();
 	}
-	report(".");
+	clog <<".";
 	if(endl){
-		report("\n");
+		clog <<"\n";
 	}
 }

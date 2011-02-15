@@ -202,9 +202,9 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 			const Agg& pa = **i;
 
 			if (getSolver()->verbosity() >= 6) {
-				report("Propagating into aggr: ");
+				clog <<"Propagating into aggr: ";
 				Aggrs::print(getSolver()->verbosity(), pa, false);
-				report(", CC = %s, CP = %s\n", toString(getCC()).c_str(), toString(getCP()).c_str());
+				clog <<", CC = " <<getCC() <<", CP = " <<getCP() <<"\n";
 			}
 
 			lbool hv = value(pa.getHead());
@@ -662,7 +662,7 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 
 		bool propagate = value(l)==l_Undef;
 
-		if(!propagate && getSolver()->getPCSolver()->getLevel(var(l))==getSolver()->getPCSolver()->getCurrentDecisionLevel()){
+		if(!propagate && getSolver()->getPCSolver().getLevel(var(l))==getSolver()->getPCSolver().getCurrentDecisionLevel()){
 			bool found = false;
 			for(vprop::const_iterator i=getTrail().back()->props.begin(); !found && i<getTrail().back()->props.end(); i++){
 				if(var(l)==var((*i).getLit())){

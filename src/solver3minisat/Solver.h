@@ -1,22 +1,4 @@
-//--------------------------------------------------------------------------------------------------
-//    Copyright (c) 2009-2010, Broes De Cat, K.U.Leuven, Belgium
-//    
-//    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-//    associated documentation files (the "Software"), to deal in the Software without restriction,
-//    including without limitation the rights to use, copy, modify, merge, publish, distribute,
-//    sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
-//    furnished to do so, subject to the following conditions:
-//    
-//    The above copyright notice and this permission notice shall be included in all copies or
-//    substantial portions of the Software.
-//    
-//    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-//    NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-//    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-//    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-//    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//--------------------------------------------------------------------------------------------------
-
+//LICENSEPLACEHOLDER
 /****************************************************************************************[Solver.h]
 MiniSat -- Copyright (c) 2003-2006, Niklas Een, Niklas Sorensson
 
@@ -66,7 +48,7 @@ namespace Minisat{
 
 class Solver {
 private:
-/*A*/	MinisatID::PCSolver* solver;
+/*A*/	MinisatID::PCSolver& solver;
 
 public:
 /*AB*/
@@ -99,7 +81,7 @@ public:
 
     // Constructor/Destructor:
     //
-    Solver(MinisatID::PCSolver* s /*A*/);
+    Solver(MinisatID::PCSolver& s /*A*/);
     ~Solver();
 
     // Problem specification:
@@ -293,7 +275,7 @@ inline void Solver::claBumpActivity (Clause& c) {
 
 inline bool     Solver::enqueue         (Lit p, Clause* from)   { return value(p) != l_Undef ? value(p) != l_False : (uncheckedEnqueue(p, from), true); }
 inline bool     Solver::locked          (const Clause& c) const { return reason[var(c[0])] == &c && value(c[0]) == l_True; }
-//inline void     Solver::newDecisionLevel()                      { trail_lim.push(trail.size()); /*AB*/ solver->newDecisionLevel(); /*AE*/ }
+//inline void     Solver::newDecisionLevel()                      { trail_lim.push(trail.size()); /*AB*/ solver.newDecisionLevel(); /*AE*/ }
 
 inline int      Solver::decisionLevel ()      const   { return trail_lim.size(); }
 inline uint32_t Solver::abstractLevel (Var x) const   { return 1 << (level[x] & 31); }

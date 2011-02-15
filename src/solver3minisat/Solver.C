@@ -1,22 +1,4 @@
-//--------------------------------------------------------------------------------------------------
-//    Copyright (c) 2009-2010, Broes De Cat, K.U.Leuven, Belgium
-//    
-//    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-//    associated documentation files (the "Software"), to deal in the Software without restriction,
-//    including without limitation the rights to use, copy, modify, merge, publish, distribute,
-//    sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
-//    furnished to do so, subject to the following conditions:
-//    
-//    The above copyright notice and this permission notice shall be included in all copies or
-//    substantial portions of the Software.
-//    
-//    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-//    NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-//    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-//    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-//    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//--------------------------------------------------------------------------------------------------
-
+//LICENSEPLACEHOLDER
 /****************************************************************************************[Solver.C]
 MiniSat -- Copyright (c) 2003-2006, Niklas Een, Niklas Sorensson
 
@@ -49,7 +31,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 // Constructor/Destructor:
 
 
-Solver::Solver(PCSolver* s/*A*/) :
+Solver::Solver(PCSolver& s/*A*/) :
 	solver(s), /*A*/
     // Parameters: (formerly in 'SearchParams')
     var_decay(1 / 0.95), clause_decay(1 / 0.999), random_var_freq(0.02)
@@ -128,7 +110,7 @@ Var Solver::newVar(bool sign, bool dvar)
 //}
 
 inline void Solver::newDecisionLevel(){
-	trail_lim.push(trail.size()); /*AB*/ solver->newDecisionLevel(); /*AE*/
+	trail_lim.push(trail.size()); /*AB*/ solver.newDecisionLevel(); /*AE*/
 }
 
 std::vector<Lit> Solver::getDecisions()const {
@@ -248,14 +230,14 @@ void Solver::cancelUntil(int level) {
             Var     x  = var(trail[c]);
             assigns[x] = toInt(l_Undef);
             insertVarOrder(x);
-            /*A*/solver->backtrackRest(trail[c]);
+            /*A*/solver.backtrackRest(trail[c]);
         }
         qhead = trail_lim[level];
         trail.shrink(trail.size() - trail_lim[level]);
         /*AB*/
         int levels = trail_lim.size() - level;
         trail_lim.shrink(levels);
-        solver->backtrackDecisionLevel(levels, decisionLevel());
+        solver.backtrackDecisionLevel(levels, decisionLevel());
         /*AE*/
     } }
 
@@ -437,7 +419,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 		}
 
         if(confl==NULL && pathC>1){
-			confl = solver->getExplanation(p);
+			confl = solver.getExplanation(p);
 			deleteImplicitClause = true;
         }
         if(verbosity>4 && confl!=NULL) {
@@ -653,10 +635,10 @@ Clause* Solver::propagate()
         //Important: standard propagate returns a conflict clause that ALREADY exists in the clause store
         //so these functions should return POINTERS OWNED BY SOMEONE ELSE
 		if(confl==NULL){
-			confl = solver->propagate(p);
+			confl = solver.propagate(p);
 		}
 		if(qhead==trail.size() && confl==NULL){
-        	confl = solver->propagateAtEndOfQueue();
+        	confl = solver.propagateAtEndOfQueue();
 		}
 		if(confl!=NULL){
 			qhead = trail.size();
@@ -808,7 +790,7 @@ lbool Solver::search(int nof_conflicts, int nof_learnts, /*AB*/bool nosearch/*AB
                 return l_Undef; }
 
             // Simplify the set of problem clauses:
-            if (decisionLevel() == 0 && /*AB*/ !solver->simplify() /*AE*/)
+            if (decisionLevel() == 0 && /*AB*/ !solver.simplify() /*AE*/)
                 return l_False;
 
             if (nof_learnts >= 0 && learnts.size()-nAssigns() >= nof_learnts)
@@ -848,7 +830,7 @@ lbool Solver::search(int nof_conflicts, int nof_learnts, /*AB*/bool nosearch/*AB
 
                 /*AB*/
 				if (verbosity >= 2) {
-					solver->printChoiceMade(decisionLevel(), next);
+					solver.printChoiceMade(decisionLevel(), next);
 				}
 				/*AE*/
             }
@@ -890,14 +872,14 @@ bool Solver::solve(const vec<Lit>& assumps /*AB*/, bool nosearch /*AE*/)
         int total = 0;
         reportf("Counts: ");
         for(int i=0; i<nVars(); i++){
-        	int c = solver->getCount(i);
+        	int c = solver.getCount(i);
         	//reportf("%d=%d ", i, c);
         	total += c;
         }
         reportf("\n");
         int upper = (2.0/3.0) * total/nVars(), lower = (1.0/3.0) * total/nVars();
         for(int i=0; i<nVars(); i++){
-        	int count = solver->getCount(i);
+        	int count = solver.getCount(i);
         	if(count>=upper){
         		varBumpActivity(i);
         	}
@@ -924,7 +906,7 @@ bool Solver::solve(const vec<Lit>& assumps /*AB*/, bool nosearch /*AE*/)
             reportf("| %9d | %7d %8d %8d | %8d %8d %6.0f | %6.3f %% |\n", (int)conflicts, order_heap.size(), nClauses(), (int)clauses_literals, (int)nof_learnts, nLearnts(), (double)learnts_literals/nLearnts(), progress_estimate*100), fflush(stdout);
         status = search((int)nof_conflicts, (int)nof_learnts, /*AB*/nosearch/*AE*/);
 		/*AB*/
-		status = solver->checkStatus(status);
+		status = solver.checkStatus(status);
 		if(nosearch){
 			return status==l_True;
 		}
