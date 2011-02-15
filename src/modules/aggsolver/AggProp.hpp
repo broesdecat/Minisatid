@@ -79,7 +79,7 @@ public:
 	void		setOptim	()							{ optim = true; }
 	void		setTypedSet	(TypedSet * const s)		{ set = s; }
 };
-typedef std::vector<Agg*> vpagg;
+typedef std::vector<Agg*> agglist;
 
 class AggProp{
 private:
@@ -229,7 +229,7 @@ protected:
 
 	AggProp const * 	type;
 
-	vpagg			 	aggregates;	//OWNS the pointers
+	agglist			 	aggregates;	//OWNS the pointers
 	AggSolver*			aggsolver;	//does NOT own this pointer
 	Propagator* 		prop;		//OWNS pointer
 
@@ -259,8 +259,8 @@ public:
 
 	const std::vector<Agg*>& getAgg		()	const					{ return aggregates; }
 	std::vector<Agg*>& getAggNonConst	()	 						{ return aggregates; }
-	void			replaceAgg		(const vpagg& repl);
-	void			replaceAgg		(const vpagg& repl, const vpagg& del);
+	void			replaceAgg		(const agglist& repl);
+	void			replaceAgg		(const agglist& repl, const agglist& del);
 	void 			addAgg			(Agg* aggr);
 
 	const Weight&	getKnownBound	()			const			{ return kb; }

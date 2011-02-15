@@ -29,7 +29,7 @@ namespace Aggrs{
 	struct AggBound;
 
 	typedef std::map<int, Aggrs::TypedSet*> mips;
-	typedef std::vector<Aggrs::Agg*> vpagg;
+	typedef std::vector<Aggrs::Agg*> agglist;
 	typedef std::vector<Aggrs::TypedSet*> setlist;
 	typedef std::vector<Aggrs::Watch*> watchlist;
 }

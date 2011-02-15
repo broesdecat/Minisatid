@@ -257,7 +257,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 #ifdef DEBUG
 	//Check each aggregate knows it index in the set
 	for(vps::const_iterator j=sets.begin(); j<sets.end(); j++){
-		for (vpagg::const_iterator i = (*j)->getAgg().begin(); i<(*j)->getAgg().end(); i++) {
+		for (agglist::const_iterator i = (*j)->getAgg().begin(); i<(*j)->getAgg().end(); i++) {
 			assert((*j)==(*i)->getSet());
 			assert((*i)->getSet()->getAgg()[(*i)->getIndex()]==(*i));
 		}
@@ -418,11 +418,24 @@ void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel) {
 bool AggSolver::checkStatus(){
 	if(verbosity()>=3){
 		for(vps::const_iterator i=sets.begin(); i<sets.end(); i++){
-			for(vpagg::const_iterator j=(*i)->getAgg().begin(); j<(*i)->getAgg().end(); j++){
+			for(agglist::const_iterator j=(*i)->getAgg().begin(); j<(*i)->getAgg().end(); j++){
 				Aggrs::print(10, **j, true);
 			}
 		}
 	}
+#ifdef DEBUG
+	for(setlist::const_iterator i=sets.begin(); i<sets.end(); i++){
+		Weight w = (*i)->getProp()->getValue();
+		for(agglist::const_iterator j=(*i)->getAgg().begin(); j<(*i)->getAgg().end(); j++){
+			lbool headval = value((*j)->getHead());
+			if((*j)->getSem()==IMPLICATION){
+				assert((headval==l_True && isFalsified(**j, w, w)) || (headval==l_False && isSatisfied(**j, w, w)));
+			}else{
+				assert((headval==l_False && isFalsified(**j, w, w)) || (headval==l_True && isSatisfied(**j, w, w)));
+			}
+		}
+	}
+#endif
 	return true;
 }
 
@@ -562,7 +575,7 @@ Agg* AggSolver::getAggDefiningHead(Var v) const {
 vector<Var> AggSolver::getAggHeadsWithBodyLit(Var x) const{
 	vector<Var> heads;
 	for (vps::const_iterator i = var2setlist[x].begin(); i < var2setlist[x].end(); i++) {
-		for (vpagg::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); j++) {
+		for (agglist::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); j++) {
 			heads.push_back(var((*j)->getHead()));
 		}
 	}
@@ -617,7 +630,7 @@ void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& l
 void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& heads, VarToJustif& currentjust) {
 	for (vps::const_iterator i = var2setlist[var(w)].begin(); i < var2setlist[var(w)].end(); i++) {
 		TypedSet* set = (*i);
-		for (vpagg::const_iterator j = set->getAgg().begin(); j < set->getAgg().end(); j++) {
+		for (agglist::const_iterator j = set->getAgg().begin(); j < set->getAgg().end(); j++) {
 			const Agg& agg = *(*j);
 			if (!agg.isDefined() || isFalse(agg.getHead())) {
 				continue;
@@ -784,7 +797,7 @@ void AggSolver::print() const{
 	if (verbosity() >= 3) {
 		report("Aggregates are present after initialization:\n");
 		for (vps::const_iterator i = sets.begin(); i < sets.end(); i++) {
-			for (vpagg::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); j++) {
+			for (agglist::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); j++) {
 				Aggrs::print(verbosity(), **j, true);
 			}
 		}
@@ -792,7 +805,7 @@ void AggSolver::print() const{
 
 	printWatches(verbosity(), this, lit2dynamicwatchlist);
 	if (verbosity() >= 10) {
-		for(vpagg::const_iterator i=lit2headwatchlist.begin(); i<lit2headwatchlist.end(); i++){
+		for(agglist::const_iterator i=lit2headwatchlist.begin(); i<lit2headwatchlist.end(); i++){
 			if ((*i) != NULL) {
 				report("Headwatch of var %d: ", getPrintableVar(var((*i)->getHead())));
 				Aggrs::print(verbosity(), *(*i)->getSet(), true);

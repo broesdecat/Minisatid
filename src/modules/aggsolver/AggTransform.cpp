@@ -107,7 +107,7 @@ void SetReduce::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& uns
 	if (canbecard) {
 		if(set->getType().getType()==SUM){
 			set->setType(AggProp::getCard());
-			for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
+			for (agglist::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
 				if ((*i)->getType() == SUM) {
 					(*i)->setType(CARD);
 				}
@@ -116,7 +116,7 @@ void SetReduce::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& uns
 	} else {
 		if(set->getType().getType()==CARD){
 			set->setType(AggProp::getSum());
-			for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
+			for (agglist::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
 				if ((*i)->getType() == CARD) {
 					(*i)->setType(SUM);
 				}
@@ -131,14 +131,14 @@ void MapToSetOneToOneWithAgg::transform(AggSolver* solver, TypedSet* set, vps& s
 		return;
 	}
 
-	vpagg aggs = set->getAgg();
+	agglist aggs = set->getAgg();
 	assert(aggs.size()>0);
 
-	vpagg newaggs;
+	agglist newaggs;
 	newaggs.push_back(aggs[0]);
 	set->replaceAgg(newaggs);
 
-	for (vpagg::const_iterator i = ++aggs.begin(); i < aggs.end(); i++) {
+	for (agglist::const_iterator i = ++aggs.begin(); i < aggs.end(); i++) {
 		TypedSet* newset = new TypedSet(*set);
 		newset->addAgg(*i);
 		assert(newset->getAgg().size()==1);
@@ -160,9 +160,9 @@ void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& s
 	}
 
 	//create implication aggs
-	vpagg implaggs, del;
+	agglist implaggs, del;
 	Agg* optim = NULL;
-	for(vpagg::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); i++){
+	for(agglist::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); i++){
 		const Agg& agg = *(*i);
 
 		if(agg.isOptim()){
@@ -189,9 +189,9 @@ void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& s
 	}
 
 	//separate in both signs
-	vpagg signoneaggs, signtwoaggs;
+	agglist signoneaggs, signtwoaggs;
 	signoneaggs.push_back(implaggs[0]);
-	for (vpagg::const_iterator i = ++implaggs.begin(); i < implaggs.end(); i++) {
+	for (agglist::const_iterator i = ++implaggs.begin(); i < implaggs.end(); i++) {
 		if ((*i)->getSign() == implaggs[0]->getSign()) {
 			signoneaggs.push_back(*i);
 		} else {
@@ -220,7 +220,7 @@ void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& s
 	double ratio = ratioone*0.5+ratiotwo*0.5;
 	if(ratio<=1){
 		if(signtwoset!=NULL){
-			vpagg empty;
+			agglist empty;
 			signtwoset->replaceAgg(empty);
 		}
 		set->replaceAgg(signtwoaggs, del);
@@ -242,12 +242,12 @@ void PartitionIntoTypes::transform(AggSolver* solver, TypedSet* set, vps& sets, 
 		return;
 	}
 	//Partition the aggregates according to their type
-	map<AggType, vpagg> partaggs;
-	for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
+	map<AggType, agglist> partaggs;
+	for (agglist::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
 		partaggs[(*i)->getType()].push_back(*i);
 	}
 
-	map<AggType, vpagg>::const_iterator i = partaggs.begin();
+	map<AggType, agglist>::const_iterator i = partaggs.begin();
 	set->replaceAgg((*i).second);
 	i++;
 	for (; i != partaggs.end(); i++) {
@@ -265,8 +265,8 @@ bool compareAggBounds(Agg* lhs, Agg* rhs){
 
 void AddHeadImplications::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
 	if(set->getAgg().size()>1 && set->getAgg()[0]->getSem()!=IMPLICATION){
-		vpagg lbaggs, ubaggs;
-		for(vpagg::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); i++){
+		agglist lbaggs, ubaggs;
+		for(agglist::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); i++){
 			if((*i)->hasLB()){
 				lbaggs.push_back(*i);
 			}else{
@@ -276,7 +276,7 @@ void AddHeadImplications::transform(AggSolver* solver, TypedSet* set, vps& sets,
 		if(lbaggs.size()>1){
 			sort(lbaggs.begin(),lbaggs.end(), compareAggBounds);
 			Agg* first = *lbaggs.begin();
-			for(vpagg::const_iterator i=lbaggs.begin()+1; i<lbaggs.end(); i++){
+			for(agglist::const_iterator i=lbaggs.begin()+1; i<lbaggs.end(); i++){
 				Agg* second = *i;
 				vec<Lit> lits;
 				lits.push(first->getHead());
@@ -295,7 +295,7 @@ void AddHeadImplications::transform(AggSolver* solver, TypedSet* set, vps& sets,
 			sort(ubaggs.begin(),ubaggs.end(), compareAggBounds);
 			reverse(ubaggs.begin(), ubaggs.end());
 			Agg* first = *ubaggs.begin();
-			for(vpagg::const_iterator i=ubaggs.begin()+1; i<ubaggs.end(); i++){
+			for(agglist::const_iterator i=ubaggs.begin()+1; i<ubaggs.end(); i++){
 				Agg* second = *i;
 				vec<Lit> lits;
 				lits.push(first->getHead());
@@ -359,7 +359,7 @@ void MinToMax::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsa
 		set->setWL(wl);
 
 		//Invert the bound of all the aggregates involved
-		for (vpagg::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
+		for (agglist::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); i++) {
 			Weight bound = -(*i)->getBound();
 			AggSign sign = (*i)->getSign()==AGGSIGN_LB?AGGSIGN_UB:AGGSIGN_LB;
 			(*i)->setBound(AggBound(sign, bound));
@@ -376,7 +376,7 @@ void MaxToSAT::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsa
 		return;
 	}
 
-	for(vpagg::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); i++){
+	for(agglist::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); i++){
 		if((*i)->isOptim()){
 			return;
 		}
@@ -444,8 +444,8 @@ void MaxToSAT::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsa
 void CardToEquiv::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
 	assert(!unsat);
 	if (set->getAgg()[0]->getType() == CARD && set->getAgg()[0]->getSem()!=IMPLICATION) {
-		vpagg remaggs;
-		for (vpagg::const_iterator i = set->getAgg().begin(); !unsat && i < set->getAgg().end(); i++) {
+		agglist remaggs;
+		for (agglist::const_iterator i = set->getAgg().begin(); !unsat && i < set->getAgg().end(); i++) {
 			const Agg& agg = *(*i);
 			const Weight& bound = agg.getCertainBound();
 			if(agg.hasLB() && bound==0){
@@ -500,7 +500,7 @@ bool Aggrs::transformSumsToCNF(vps& sets, PCSolver* pcsolver) {
 	int maxvar = 1;
 	vector<PBAgg*> pbaggs;
 	for (vps::const_iterator i = sets.begin(); i != sets.end(); i++) {
-		vpagg remaining;
+		agglist remaining;
 		for (vsize j = 0; j < (*i)->getAgg().size(); j++) {
 			Agg* agg = (*i)->getAgg()[j];
 

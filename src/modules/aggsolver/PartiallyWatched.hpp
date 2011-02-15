@@ -10,7 +10,7 @@ class AggSolver;
 namespace Aggrs{
 	class Agg;
 	typedef Agg* pagg;
-	typedef std::vector<Agg*> vpagg;
+	typedef std::vector<Agg*> agglist;
 	class TypedSet;
 
 	class Propagator;
@@ -83,7 +83,7 @@ public:
 };
 
 typedef GenPWatch* pgpw;
-typedef std::vector<GenPWatch*> vpgpw;
+typedef std::vector<GenPWatch*> genwatchlist;
 
 struct minmaxOptimAndPessBounds{
 	minmaxBounds optim, pess;
@@ -95,7 +95,7 @@ struct minmaxOptimAndPessBounds{
 
 class GenPWAgg: public PWAgg{
 private:
-	vpgpw ws, nws, _newwatches;
+	genwatchlist ws, nws, _newwatches;
 	minmaxBounds emptyinterpretbounds;
 	Agg const * worstagg;
 
@@ -115,12 +115,12 @@ public:
 	double 		testGenWatchCount();
 
 private:
-	const vpgpw&	getNWS() const 	{ return nws; }
-	const vpgpw&	getWS() const 	{ return ws; }
-	vpgpw& 			getNWS() 		{ return nws; }
-	vpgpw& 			getWS() 		{ return ws; }
-	const vpgpw& 	getStagedWatches() const	{ return _newwatches; }
-	vpgpw& 			getStagedWatches() 			{ return _newwatches; }
+	const genwatchlist&	getNWS() const 	{ return nws; }
+	const genwatchlist&	getWS() const 	{ return ws; }
+	genwatchlist& 			getNWS() 		{ return nws; }
+	genwatchlist& 			getWS() 		{ return ws; }
+	const genwatchlist& 	getStagedWatches() const	{ return _newwatches; }
+	genwatchlist& 			getStagedWatches() 			{ return _newwatches; }
 
 	Agg const* 	getWorstAgg() { return worstagg; }
 

@@ -306,20 +306,20 @@ void TypedSet::addAgg(Agg* aggr){
 }
 
 //FIXME should add check that aggregate is indeed still referring to that set
-void TypedSet::replaceAgg(const vpagg& repl){
-	for(vpagg::const_iterator i=aggregates.begin(); i<aggregates.end(); i++){
+void TypedSet::replaceAgg(const agglist& repl){
+	for(agglist::const_iterator i=aggregates.begin(); i<aggregates.end(); i++){
 		(*i)->setTypedSet(NULL);
 		(*i)->setIndex(-1);
 	}
 	aggregates.clear();
-	for(vpagg::const_iterator i=repl.begin(); i<repl.end(); i++){
+	for(agglist::const_iterator i=repl.begin(); i<repl.end(); i++){
 		addAgg(*i);
 	}
 }
 
-void TypedSet::replaceAgg(const vpagg& repl, const vpagg& del){
+void TypedSet::replaceAgg(const agglist& repl, const agglist& del){
 	replaceAgg(repl);
-	for(vpagg::const_iterator i=del.begin(); i<del.end(); i++){
+	for(agglist::const_iterator i=del.begin(); i<del.end(); i++){
 		delete *i;
 	}
 }
@@ -341,7 +341,7 @@ void TypedSet::initialize(bool& unsat, bool& sat, vps& sets) {
 
 	if(sat || unsat){ return; }
 
-	for (vpagg::const_iterator i = getAgg().begin(); i < getAgg().end(); i++) {
+	for (agglist::const_iterator i = getAgg().begin(); i < getAgg().end(); i++) {
 		if ((*i)->isDefined()) {
 			getSolver()->notifyDefinedHead(var((*i)->getHead()));
 		}
@@ -369,7 +369,7 @@ Propagator::Propagator(TypedSet* set):set(set), aggsolver(set->getSolver()){
 
 // Final initialization call!
 void Propagator::initialize(bool& unsat, bool& sat) {
-	for (vpagg::const_iterator i = getSet().getAgg().begin(); i < getSet().getAgg().end(); i++) {
+	for (agglist::const_iterator i = getSet().getAgg().begin(); i < getSet().getAgg().end(); i++) {
 		if((*i)->getSem()==IMPLICATION){
 			getSolver()->setHeadWatch(~(*i)->getHead(), (*i));
 		}else{

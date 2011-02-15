@@ -33,7 +33,7 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 	setCC(getSet().getType().getMinPossible(getSet()));
 
 	int counter = 0;
-	for (vpagg::iterator i = getSet().getAggNonConst().begin(); !unsat && i < getSet().getAggNonConst().end();) {
+	for (agglist::iterator i = getSet().getAggNonConst().begin(); !unsat && i < getSet().getAggNonConst().end();) {
 		pagg agg = (*i);
 		lbool result = initialize(*agg);
 		if (result == l_True && !agg->isDefined()) {
@@ -198,7 +198,7 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 
 	if(changedcc || changedcp){
 		//FIXME find aggregate with most stringent bound and only propagate that one!
-		for (vpagg::const_iterator i = getSet().getAgg().begin(); confl == nullPtrClause && i<getSet().getAgg().end(); i++){
+		for (agglist::const_iterator i = getSet().getAgg().begin(); confl == nullPtrClause && i<getSet().getAgg().end(); i++){
 			const Agg& pa = **i;
 
 			if (getSolver()->verbosity() >= 6) {
@@ -741,7 +741,7 @@ void SumFWAgg::initialize(bool& unsat, bool& sat) {
 			}
 		}
 		getSet().setWL(wlits2);
-		for (vpagg::const_iterator i = getSet().getAgg().begin(); i < getSet().getAgg().end(); i++) {
+		for (agglist::const_iterator i = getSet().getAgg().begin(); i < getSet().getAgg().end(); i++) {
 			Weight b = getSet().getType().add((*i)->getCertainBound(), totalneg);
 			(*i)->setBound(AggBound((*i)->getSign(), b));
 		}
