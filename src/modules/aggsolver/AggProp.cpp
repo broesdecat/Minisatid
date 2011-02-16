@@ -185,13 +185,84 @@ WL ProdProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* 
 	//NOTE: om dit toe te laten, ofwel bij elke operatie op en literal al zijn voorkomens overlopen
 	//ofwel aggregaten voor doubles ondersteunen (het eerste is eigenlijk de beste oplossing)
 	//Mogelijke eenvoudige implementatie: weigts bijhouden als doubles (en al de rest als ints)
-	report("Product aggregates in which both the literal and its negation occur "
-			"are currently not supported. Replace ");
-	Print::print(one.getLit());
-	report("or ");
-	Print::print(two.getLit());
-	report("by a tseitin.\n");
+	NoSupportForBothSignInProductAgg(cerr, one.getLit(), two.getLit());
 	throw idpexception("Atoms in product aggregates have to be unique.\n");
+}
+
+//AGGREGATES
+
+bool Aggrs::isSatisfied(const Agg& agg, const Weight& min, const Weight& max){
+	if(agg.hasUB()){
+		return max<=agg.getCertainBound();
+	}else{ //LB
+		return min>=agg.getCertainBound();
+	}
+}
+
+bool Aggrs::isSatisfied(const Agg& agg, const minmaxBounds& bounds){
+	if(agg.hasUB()){
+		return bounds.max<=agg.getCertainBound();
+	}else{ //LB
+		return bounds.min>=agg.getCertainBound();
+	}
+}
+
+bool Aggrs::isFalsified(const Agg& agg, const Weight& min, const Weight& max){
+	if(agg.hasUB()){
+		return min>agg.getCertainBound();
+	}else{ //LB
+		return max<agg.getCertainBound();
+	}
+}
+
+bool Aggrs::isFalsified(const Agg& agg, const minmaxBounds& bounds){
+	if(agg.hasUB()){
+		return bounds.min>agg.getCertainBound();
+	}else{ //LB
+		return bounds.max<agg.getCertainBound();
+	}
+}
+
+/**
+ * IMPORTANT: not usable for types without remove!
+ * if addtoset: weight should be considered as the weight of a literal being added to the set (from unknown)
+ * 		if weight is pos: min will increase, so add to min
+ * 		if weight is neg: max will decrease, so add to max
+ * if !addtoset: consider weight as weight of the literal being removed from the set (from unknown)
+ * 		if weight is pos: max will decrease, so remove from max
+ * 		if weight is neg: min will increase, so remove from min
+ */
+void Aggrs::addValue(const AggProp& type, const Weight& weight, bool addtoset, minmaxBounds& bounds){
+	addValue(type, weight, addtoset, bounds.min, bounds.max);
+}
+void Aggrs::addValue(const AggProp& type, const Weight& weight, bool addtoset, Weight& min, Weight& max){
+	bool pos = weight>=0;
+	if(pos && addtoset){
+		min = type.add(min, weight);
+	}else if(pos && !addtoset){
+		max = type.remove(max, weight);
+	}else if(!pos && addtoset){
+		max = type.add(max, weight);
+	}else{ //!pos && !addtoset
+		min = type.remove(min, weight);
+	}
+}
+
+void Aggrs::removeValue(const AggProp& type, const Weight& weight, bool wasinset, minmaxBounds& bounds) {
+	removeValue(type, weight, wasinset, bounds.min, bounds.max);
+}
+
+void Aggrs::removeValue(const AggProp& type, const Weight& weight, bool wasinset, Weight& min, Weight& max) {
+	bool pos = weight>=0;
+	if(pos && wasinset){
+		min = type.remove(min, weight);
+	}else if(pos && !wasinset){
+		max = type.add(max, weight);
+	}else if(!pos && wasinset){
+		max = type.remove(max, weight);
+	}else{ //!pos && !wasinset
+		min = type.add(min, weight);
+	}
 }
 
 ///////
@@ -230,20 +301,20 @@ void TypedSet::addAgg(Agg* aggr){
 }
 
 //FIXME should add check that aggregate is indeed still referring to that set
-void TypedSet::replaceAgg(const vpagg& repl){
-	for(vpagg::const_iterator i=aggregates.begin(); i<aggregates.end(); i++){
+void TypedSet::replaceAgg(const agglist& repl){
+	for(agglist::const_iterator i=aggregates.begin(); i<aggregates.end(); i++){
 		(*i)->setTypedSet(NULL);
 		(*i)->setIndex(-1);
 	}
 	aggregates.clear();
-	for(vpagg::const_iterator i=repl.begin(); i<repl.end(); i++){
+	for(agglist::const_iterator i=repl.begin(); i<repl.end(); i++){
 		addAgg(*i);
 	}
 }
 
-void TypedSet::replaceAgg(const vpagg& repl, const vpagg& del){
+void TypedSet::replaceAgg(const agglist& repl, const agglist& del){
 	replaceAgg(repl);
-	for(vpagg::const_iterator i=del.begin(); i<del.end(); i++){
+	for(agglist::const_iterator i=del.begin(); i<del.end(); i++){
 		delete *i;
 	}
 }
@@ -260,12 +331,12 @@ void TypedSet::initialize(bool& unsat, bool& sat, vps& sets) {
 
 	if(sat || unsat){ return; }
 
-	setProp(getType().createPropagator(this, this->getSolver()->getPCSolver()->modes().watchedagg));
+	setProp(getType().createPropagator(this, this->getSolver()->getPCSolver().modes().watchedagg));
 	prop->initialize(unsat, sat);
 
 	if(sat || unsat){ return; }
 
-	for (vpagg::const_iterator i = getAgg().begin(); i < getAgg().end(); i++) {
+	for (agglist::const_iterator i = getAgg().begin(); i < getAgg().end(); i++) {
 		if ((*i)->isDefined()) {
 			getSolver()->notifyDefinedHead(var((*i)->getHead()));
 		}
@@ -293,7 +364,7 @@ Propagator::Propagator(TypedSet* set):set(set), aggsolver(set->getSolver()){
 
 // Final initialization call!
 void Propagator::initialize(bool& unsat, bool& sat) {
-	for (vpagg::const_iterator i = getSet().getAgg().begin(); i < getSet().getAgg().end(); i++) {
+	for (agglist::const_iterator i = getSet().getAgg().begin(); i < getSet().getAgg().end(); i++) {
 		if((*i)->getSem()==IMPLICATION){
 			getSolver()->setHeadWatch(~(*i)->getHead(), (*i));
 		}else{
@@ -307,46 +378,17 @@ lbool Propagator::value(const Lit& l) const {
 	return getSolver()->value(l);
 }
 
-lbool Propagator::propagatedValue(const Lit& l) const {
-	return getSolver()->propagatedValue(l);
-}
+Weight Propagator::getValue() const {
+	Weight total = getSet().getType().getESV();
+	for(vwl::const_iterator i=getSet().getWL().begin(); i<getSet().getWL().end(); i++){
+		lbool val = value((*i).getLit());
+		assert(val!=l_Undef);
 
-/**
- * IMPORTANT: not usable for types without remove!
- * if addtoset: weight should be considered as the weight of a literal being added to the set (from unknown)
- * 		if weight is pos: min will increase, so add to min
- * 		if weight is neg: max will decrease, so add to max
- * if !addtoset: consider weight as weight of the literal being removed from the set (from unknown)
- * 		if weight is pos: max will decrease, so remove from max
- * 		if weight is neg: min will increase, so remove from min
- */
-void Propagator::addValue(const Weight& weight, bool addtoset, Weight& min, Weight& max) const{
-	bool pos = weight>=0;
-	if(pos && addtoset){
-		min = getSet().getType().add(min, weight);
-	}else if(pos && !addtoset){
-		max = getSet().getType().remove(max, weight);
-	}else if(!pos && addtoset){
-		max = getSet().getType().add(max, weight);
-	}else{ //!pos && !addtoset
-		min = getSet().getType().remove(min, weight);
+		if(val==l_True){
+			total = getSet().getType().add(total, (*i).getWeight());
+		}
 	}
-}
-
-/**
- * if
- */
-void Propagator::removeValue(const Weight& weight, bool wasinset, Weight& min, Weight& max) const{
-	bool pos = weight>=0;
-	if(pos && wasinset){
-		min = getSet().getType().remove(min, weight);
-	}else if(pos && !wasinset){
-		max = getSet().getType().add(max, weight);
-	}else if(!pos && wasinset){
-		max = getSet().getType().remove(max, weight);
-	}else{ //!pos && !wasinset
-		min = getSet().getType().add(min, weight);
-	}
+	return total;
 }
 
 /************************

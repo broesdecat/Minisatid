@@ -1,22 +1,4 @@
-//------------------------------------------------------------------------------
-// Copyright (c) 2009, 2010, 2011, Broes De Cat, K.U. Leuven, Belgium
-//
-// This file is part of MinisatID.
-//
-// MinisatID is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// MinisatID is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with MinisatID. If not, see <http://www.gnu.org/licenses/>.
-//------------------------------------------------------------------------------
-
+//LICENSEPLACEHOLDER
 #include "utils/Print.hpp"
 
 #include <vector>
@@ -65,6 +47,16 @@ void print(const Minisat::vec<Minisat::Lit>& v){
 }
 
 template<>
+void print(Solver * const s){
+	assert(s!=NULL);
+	clog <<"Clauses\n";
+	for(int i=0; i< s->nbClauses(); i++){
+		s->printClause(s->getClause(i));
+		clog <<"\n";
+	}
+}
+
+template<>
 void print(Solver const * const s){
 	assert(s!=NULL);
 	clog <<"Clauses\n";
@@ -76,10 +68,7 @@ void print(Solver const * const s){
 
 template<>
 void print(PCSolver * const s){
-	print(s->getCSolver());
-	for(vector<DPLLTSolver*>::const_iterator i=s->getSolversBegin(); i<s->getSolversEnd(); i++){
-		(*i)->get()->print();
-	}
+	s->print();
 }
 
 template<>
@@ -184,13 +173,13 @@ void print(SOSolver const * const d){
 
 
 template<class S>
-void print(rClause c, S * const s){
-	s->printClause(getClauseRef(c));
+void print(rClause c, const S& s){
+	s.printClause(getClauseRef(c));
 }
 
 template<>
-void print(rClause c, PCSolver * const s){
-	print(c, s->getCSolver());
+void print(rClause c, const PCSolver& s){
+	s.print(c);
 }
 
 }

@@ -1,0 +1,24 @@
+#!/bin/bash
+#input: folder to start in
+#Go over all files and replace the following macros
+
+#C/c++/java comment style
+STARTCOMM="/*\r"
+COPYRIGHT=" * Copyright 2007-2011 Katholieke Universiteit Leuven\r"
+LINE=" *\r"
+LICENSE=" * Use of this software is governed by the GNU LGPLv3.0 license\r"
+WRITTEN=" * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement\r"
+ADDRESS=" * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium\r"
+ENDCOMM=" */\r\r"
+
+FULLLICENSE="$STARTCOMM$COPYRIGHT$LINE$LICENSE$LINE$WRITTEN$ADDRESS$ENDCOMM"
+
+ESCAPEDLICENSE=$(echo "$FULLLICENSE" | sed 's/\//\\&/g')
+
+MACRO="//LICENSEPLACEHOLDER"
+ESCAPEDMACRO=$(echo "$MACRO" | sed 's/\(\/\|\\\|&\)/\\&/g')
+
+for a in `grep -lr "$MACRO" $1`
+do
+	sed -i "s/$ESCAPEDMACRO/$ESCAPEDLICENSE/g" $a
+done

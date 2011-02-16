@@ -217,6 +217,8 @@ bool MinisatID::parseOptions(int argc, char** argv){
 			modes.var_decay, cmd, "The decay of variable activities within the SAT-solver (larger than or equal to 0)."));
 	options.push_back(new NoValsOption<string>	("o","outputfile", 	"file",
 			outputfile, cmd,"The outputfile to use to write out models."));
+    options.push_back(new NoValsOption<string>	("","primesfile",	"file",
+			 modes.primesfile, cmd,"File containing a list of prime numbers to use for finding optimal bases. Has to be provided if using pbsolver."));
 	options.push_back(new Option<INPUTFORMAT, string>("f", "format", formatvals, formatdesc,
 			modes.format, cmd, "The format of the input theory"));
 	options.push_back(new Option<OUTPUTFORMAT, string>("", "outputformat", transvals, transdesc,
@@ -280,6 +282,10 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	}
 
 	deleteList<Opt>(options);
+
+	if(!modes.verifyOptions()){
+		return false;
+	}
 
 	return true;
 }

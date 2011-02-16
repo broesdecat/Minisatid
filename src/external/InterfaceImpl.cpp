@@ -79,26 +79,27 @@ Literal SmartRemapper::getLiteral(const Lit& lit){
 ///////
 
 WLSImpl::WLSImpl(const SolverOption& modes):
-		_optimization(false),
-		_state(INIT), _modes(modes),
-		_remapper(modes.remap?new SmartRemapper():new Remapper()),
-		_translator(new Translator()) //Default translator is alwasy loaded
+		optimization(false),
+		state(INIT), _modes(modes),
+		remapper(modes.remap?new SmartRemapper():new Remapper()),
+		owntranslator(new Translator()),
+		translator(*owntranslator) //Default translator is alwasy loaded
 		{
 }
 
 WLSImpl::~WLSImpl(){
-	if(_translator!=NULL){
-		delete _translator;
+	if(owntranslator!=NULL){
+		delete owntranslator;
 	}
-	delete _remapper;
+	delete remapper;
 }
 
-void WLSImpl::setTranslator(Translator* translator){
-	_translator = translator;
+void WLSImpl::setTranslator(Translator& translator){
+	translator = translator;
 }
 
 void WLSImpl::printLiteral(std::ostream& output, const Lit& l) const{
-	getTranslator()->printLiteral(output, getRemapper()->getLiteral(l));
+	getTranslator().printLiteral(output, getRemapper()->getLiteral(l));
 }
 
 void WLSImpl::printStatistics() const {
@@ -147,7 +148,7 @@ bool WLSImpl::finishParsing(){
 	bool present = true, unsat = false;
 	double cpu_time = cpuTime(); //Start time
 	getSolver()->finishParsing(present, unsat);
-	_state = PARSED;
+	state = PARSED;
 
 	printInitDataEnd(modes().verbosity, cpuTime()-cpu_time, unsat);
 
@@ -158,7 +159,7 @@ bool WLSImpl::simplify(){
 	printSimpStart(modes().verbosity);
 
 	bool unsat = !getSolver()->simplify();
-	_state = SIMPLIFIED;
+	state = SIMPLIFIED;
 
 	printSimpEnd(modes().verbosity, unsat);
 
@@ -168,17 +169,17 @@ bool WLSImpl::simplify(){
 bool WLSImpl::solve(Solution* sol){
 	bool unsat = false;
 
-	if(!unsat && _state==INIT){
+	if(!unsat && state==INIT){
 		unsat = !finishParsing();
 	}
-	if(!unsat && _state==PARSED){
+	if(!unsat && state==PARSED){
 		unsat = !simplify();
 	}
 	if(unsat){
 		return false;
 	}
 
-	assert(_state==SIMPLIFIED);
+	assert(state==SIMPLIFIED);
 	printSolveStart(verbosity());
 
 	// Map to internal repr for assumptions
@@ -187,7 +188,7 @@ bool WLSImpl::solve(Solution* sol){
 	bool sat = getSolver()->solve(assumptions, sol);
 
 	if(sol->getSearch()){
-		_state = SOLVED;
+		state = SOLVED;
 	}
 
 	if(modes().aspcomp3type!=ASPCOMP3_NOCOMP && !hasOptimization()){
@@ -231,12 +232,12 @@ void WLSImpl::addModel(const vec<Lit>& model, Solution* sol){
 				printSatisfiable(output, modes().aspcomp3type);
 				printSatisfiable(clog, modes().aspcomp3type, modes().verbosity);
 			}
-			getTranslator()->printHeader(output);
+			getTranslator().printHeader(output);
 		}
 		if(!hasOptimization()){
 			printNbModels(clog, sol->getNbModelsFound(), verbosity());
 		}
-		getTranslator()->printModel(output, outmodel);
+		getTranslator().printModel(output, outmodel);
 	}
 }
 
@@ -281,6 +282,13 @@ bool WPCLSImpl::addRule(bool conj, Literal head, const vector<Literal>& lits){
 	vec<Lit> ll;
 	checkLits(lits, ll);
 	return getSolver()->addRule(conj, newhead, ll);
+}
+
+bool WPCLSImpl::addRuleToID(int defid, bool conj, Literal head, const vector<Literal>& lits){
+	Lit newhead = checkLit(head);
+	vec<Lit> ll;
+	checkLits(lits, ll);
+	return getSolver()->addRuleToID(defid, conj, newhead, ll);
 }
 
 bool WPCLSImpl::addSet(int id, const vector<Literal>& lits){

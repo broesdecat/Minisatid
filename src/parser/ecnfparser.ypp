@@ -42,6 +42,7 @@ typedef numeric_limits<int> intlim;
 //%code{
 	
 extern SolverOption modes;
+extern FODOTTranslator*	fodottrans;
 extern int 		yylex(void);
 extern char * 	yytext;
 
@@ -61,8 +62,6 @@ bool unsatfound = false;
 
 pwps	solver;
 pwsos	modsolver;
-
-MinisatID::FODOTTranslator* translator;
 
 /**
  * CR-CheckResult: checks the result of passing some data to the solvers.
@@ -252,8 +251,13 @@ clause	:	body ZERO
 				{ 	CR(solver->addClause(*$1)); delete $1; }
 		;
 
-rule	:	SEMDEFN NUMBER body ZERO  
-				{ 	CR(solver->addRule(!$1, cLiteral($2), *$3)); 
+rule	:	SEMDEFN NUMBER body ZERO
+				{ 	
+					if($1==COMP){ //hack, to be fixed
+						CR(solver->addConjRule(cAtom($2), *$3));
+					}else{
+						CR(solver->addDisjRule(cAtom($2), *$3));
+					}					 
 					delete $2; delete $3;
 				}
 		;
@@ -367,17 +371,17 @@ mrest	: 	/* empty */
 			
 //MODAL PART: USES INDEXES+1 AS MODAL IDs IN THE THEORY
 modhier :	MODDEFN	NUMBER NUMBER NUMBER ZERO 
-				{ 	CR(modsolver->addChild(cID($2)-1, cID($3)-1, cLiteral($4)));
+				{ 	CR(modsolver->addSubTheory(cID($2)-1, cLiteral($4), cID($3)-1));
 					delete $2; delete $3; delete $4; 
 				}
 		;
 
-matomset:	QUANTe NUMBER vbody ZERO 
+matomset:	QUANTe NUMBER vbody ZERO
 				{ 
 					if(!$1){
 						throw idpexception("Forall quantifiers are not part of the chosen input format.\n");
 					}
-					CR(modsolver->addAtoms(cID($2)-1, *$3)); delete $2; delete $3;
+					CR(modsolver->addRigidAtoms(cID($2)-1, *$3)); delete $2; delete $3;
 				}
 		;
 
@@ -388,8 +392,13 @@ mclause	:	NUMBER body ZERO
 		;
 
 mrule	:	SEMDEFN NUMBER NUMBER body ZERO  
-				{ 	CR(modsolver->addRule(cID($2)-1, !$1, cAtom($3), *$4)); 
-					delete($2); delete($3); delete $4;
+				{ 	
+					if($1==COMP){ //hack, to be fixed
+						CR(modsolver->addConjRule(cID($2)-1, cAtom($3), *$4));
+					}else{
+						CR(modsolver->addDisjRule(cID($2)-1, cAtom($3), *$4));
+					}					 
+					delete $2; delete $3; delete $4;
 				}
 		;
 
@@ -423,23 +432,14 @@ mwset	:	WSETDEFN NUMBER NUMBER wbody ZERO
 
 
 translation	: /* empty */
-			|	TRANSHEADER  
-				{ 
-					//FIXME bit of a hack: if no translation is necessary,
-					//the translator is loaded fully, but not attached to the solver and we delete it in the end
-					translator = new FODOTTranslator(modes.transformat);
-					if(modes.transformat!=TRANS_PLAIN){
+			|	TRANSHEADER typelist predlist funclist truelist arbitlist
+				{					
+					if(fodottrans!=NULL){
 						if(modsolver.get()!=NULL){
-							modsolver->setTranslator(translator);
+							modsolver->setTranslator(*fodottrans);
 						}else{
-							solver->setTranslator(translator);
+							solver->setTranslator(*fodottrans);
 						}
-					}
-				}
-				typelist predlist funclist truelist arbitlist
-				{
-					if(modes.transformat==TRANS_PLAIN){
-						delete translator;
 					}
 				}
 			;
@@ -612,8 +612,8 @@ void readCNFModalHierLevel(bool existential, const vector<Atom>& rigidatoms){
 			heads.push_back(Literal(cnfcurrenthead, true));
 		}
 		cnfcurrentmodid++;
-		CR(modsolver->addChild(cnfcurrentmodid-1, cnfcurrentmodid, Literal(cnfcurrenthead)));
-		modsolver->addAtoms(cnfcurrentmodid, rigidatoms);
+		CR(modsolver->addSubTheory(cnfcurrentmodid-1, Literal(cnfcurrenthead), cnfcurrentmodid));
+		modsolver->addRigidAtoms(cnfcurrentmodid, rigidatoms);
 		if(rigidatoms.size()==0){
 			throw idpexception("List of rigid atoms is empty.\n");
 		}
@@ -681,19 +681,18 @@ Weight cWeight(string* s){
 	return w;
 }
 
-//TODO destructors?
 void parsetruelist(vector<int>* vi) {
-	translator->setTruelist(*vi);
+	fodottrans->setTruelist(*vi);
 }
 
 void parsearbitlist(vector<int>* vi) {
-	translator->setArbitlist(*vi);
+	fodottrans->setArbitlist(*vi);
 }
 
 void parsetype(string* name, vector<string>* inter) {
-	translator->addType(*name, *inter);
+	fodottrans->addType(*name, *inter);
 }
 
 void parsepred(string* name, int num, vector<string>* ptypes, bool f) {
-	translator->addPred(*name, num, *ptypes, f);
+	fodottrans->addPred(*name, num, *ptypes, f);
 }

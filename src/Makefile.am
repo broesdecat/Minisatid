@@ -67,7 +67,7 @@ minisatid_SOURCES = \
 		parser/PBread.hpp 					parser/PBread.cpp\
 		parser/ParseOptions.hpp 			parser/ParseOptions.cpp\
 		external/ExternalInterface.hpp 		external/ExternalInterface.cpp\
-		external/ExternalUtils.hpp 			external/ExternalUtils.cpp\
+		external/ExternalUtils.hpp\
 		external/Translator.hpp 			external/Translator.cpp\
 		external/InterfaceImpl.hpp 			external/InterfaceImpl.cpp\
 		GeneralUtils.hpp 					GeneralUtils.cpp\

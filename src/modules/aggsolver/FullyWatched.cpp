@@ -33,7 +33,7 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 	setCC(getSet().getType().getMinPossible(getSet()));
 
 	int counter = 0;
-	for (vpagg::iterator i = getSet().getAggNonConst().begin(); !unsat && i < getSet().getAggNonConst().end();) {
+	for (agglist::iterator i = getSet().getAggNonConst().begin(); !unsat && i < getSet().getAggNonConst().end();) {
 		pagg agg = (*i);
 		lbool result = initialize(*agg);
 		if (result == l_True && !agg->isDefined()) {
@@ -58,7 +58,7 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 	for (vwl::const_iterator j = getSet().getWL().begin(); j < getSet().getWL().end(); j++) {
 		const Lit& l = (*j).getLit();
 		Var v = var(l);
-		getSolver()->addPermWatch(v, new Watch(getSetp(), *j));
+		getSolver()->addStaticWatch(v, new Watch(getSetp(), *j));
 	}
 
 	Propagator::initialize(unsat, sat);
@@ -197,13 +197,14 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 	}
 
 	if(changedcc || changedcp){
-		for (vpagg::const_iterator i = getSet().getAgg().begin(); confl == nullPtrClause && i<getSet().getAgg().end(); i++){
+		//FIXME find aggregate with most stringent bound and only propagate that one!
+		for (agglist::const_iterator i = getSet().getAgg().begin(); confl == nullPtrClause && i<getSet().getAgg().end(); i++){
 			const Agg& pa = **i;
 
 			if (getSolver()->verbosity() >= 6) {
-				report("Propagating into aggr: ");
+				clog <<"Propagating into aggr: ";
 				Aggrs::print(getSolver()->verbosity(), pa, false);
-				report(", CC = %s, CP = %s\n", toString(getCC()).c_str(), toString(getCP()).c_str());
+				clog <<", CC = " <<getCC() <<", CP = " <<getCP() <<"\n";
 			}
 
 			lbool hv = value(pa.getHead());
@@ -313,7 +314,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	max = getSet().getType().getMaxPossible(getSet());
 
 	if(!ar.isHeadReason()){
-		addValue(ar.getPropWeight(), !ar.isInSet(), min, max);
+		addValue(getSet().getType(), ar.getPropWeight(), !ar.isInSet(), min, max);
 		lits.push(value(head)==l_True?~head:head);
 	}
 
@@ -331,7 +332,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 			}
 
 			bool inset = (*i).getType()==POS;
-			addValue((*i).getWeight(), inset, min, max);
+			addValue(getSet().getType(), (*i).getWeight(), inset, min, max);
 			bool monoweight = getSet().getType().isMonotone(agg, (*i).getWeight());
 			bool monolit = monoweight?inset:!inset;
 			bool add = false;
@@ -661,7 +662,7 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 
 		bool propagate = value(l)==l_Undef;
 
-		if(!propagate && getSolver()->getPCSolver()->getLevel(var(l))==getSolver()->getPCSolver()->getCurrentDecisionLevel()){
+		if(!propagate && getSolver()->getPCSolver().getLevel(var(l))==getSolver()->getPCSolver().getCurrentDecisionLevel()){
 			bool found = false;
 			for(vprop::const_iterator i=getTrail().back()->props.begin(); !found && i<getTrail().back()->props.end(); i++){
 				if(var(l)==var((*i).getLit())){
@@ -740,7 +741,7 @@ void SumFWAgg::initialize(bool& unsat, bool& sat) {
 			}
 		}
 		getSet().setWL(wlits2);
-		for (vpagg::const_iterator i = getSet().getAgg().begin(); i < getSet().getAgg().end(); i++) {
+		for (agglist::const_iterator i = getSet().getAgg().begin(); i < getSet().getAgg().end(); i++) {
 			Weight b = getSet().getType().add((*i)->getCertainBound(), totalneg);
 			(*i)->setBound(AggBound((*i)->getSign(), b));
 		}

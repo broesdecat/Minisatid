@@ -1,22 +1,4 @@
-//--------------------------------------------------------------------------------------------------
-//    Copyright (c) 2009-2010, Broes De Cat, K.U.Leuven, Belgium
-//
-//    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-//    associated documentation files (the "Software"), to deal in the Software without restriction,
-//    including without limitation the rights to use, copy, modify, merge, publish, distribute,
-//    sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
-//    furnished to do so, subject to the following conditions:
-//
-//    The above copyright notice and this permission notice shall be included in all copies or
-//    substantial portions of the Software.
-//
-//    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-//    NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-//    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-//    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-//    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//--------------------------------------------------------------------------------------------------
-
+//LICENSEPLACEHOLDER
 #include "theorysolvers/PCSolver.hpp"
 
 #include <iostream>
@@ -35,9 +17,21 @@ using namespace MinisatID;
 using namespace MinisatID::Print;
 using namespace Minisat;
 
-/******************
- * INITIALIZATION *
- ******************/
+
+PCLogger::PCLogger(): propagations(0){
+}
+
+void PCLogger::addCount(Var v) {
+	if((v+1)>occurrences.size()){
+		occurrences.resize(v+1, 0);
+	}
+	occurrences[v]++;
+}
+
+int PCLogger::getCount(Var v) const {
+	return v>occurrences.size()?0:occurrences.at(v);
+}
+
 
 DPLLTSolver::~DPLLTSolver() {
 	if(createdhere){
@@ -50,8 +44,9 @@ PCSolver::PCSolver(SolverOption modes, MinisatID::WLSImpl* inter) :
 		LogicSolver(modes, inter),
 		satsolver(NULL), idsolver(NULL), aggsolver(NULL), modsolver(NULL),
 		init(true),
-		optim(NONE), head(-1){
-	satsolver = createSolver(this);
+		optim(NONE), head(-1),
+		logger(new PCLogger()){
+	satsolver = createSolver(*this);
 
 	aggsolver  = new DPLLTSolver(new AggSolver(this), true);
 	solvers.push_back(aggsolver);
@@ -70,6 +65,7 @@ PCSolver::PCSolver(SolverOption modes, MinisatID::WLSImpl* inter) :
 PCSolver::~PCSolver() {
 	deleteList<DPLLTSolver>(solvers);
 	delete satsolver;
+	delete logger;
 }
 
 void PCSolver::setModSolver(pModSolver m) {
@@ -151,9 +147,7 @@ void PCSolver::addVar(Var v) {
 
 	while (((uint64_t) v) >= nVars()) {
 		getSolver()->newVar(true, false);
-		counts.resize(nVars(), 0);
-
-		for(lsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
+		for(solverlist::const_iterator i=solvers.begin(); i<solvers.end(); i++){
 			if((*i)->present){
 				(*i)->get()->notifyVarAdded(nVars());
 			}
@@ -161,7 +155,7 @@ void PCSolver::addVar(Var v) {
 	}
 
 	getSolver()->setDecisionVar(v, true);
-	counts[v]++;
+	logger->addCount(v);
 
 	if (!init) {
 		propagations.resize(nVars(), NULL);
@@ -178,8 +172,7 @@ bool PCSolver::addClause(vec<Lit>& lits) {
 	if (modes().verbosity >= 7) {
 		clog <<"Adding clause:";
 		for (int i = 0; i < lits.size(); i++) {
-			clog <<" ";
-			print(lits[i]);
+			clog <<" " <<lits[i];
 		}
 		clog <<"\n";
 	}
@@ -239,6 +232,11 @@ bool PCSolver::addRule(bool conj, Lit head, const vec<Lit>& lits) {
 	return getIDSolver()->addRule(conj, head, lits);
 }
 
+bool PCSolver::addRuleToID(int defid, bool conj, Lit head, const vec<Lit>& lits){
+#warning No multi definition support yet
+	throw idpexception("No support yet for adding multiple separate definitions.");
+}
+
 bool PCSolver::addSet(int setid, const vec<Lit>& lits) {
 	assert(getAggSolver()!=NULL);
 	addVars(lits);
@@ -272,8 +270,7 @@ bool PCSolver::addAggrExpr(Lit head, int setid, const Weight& bound, AggSign bou
 	assert(getAggSolver()!=NULL);
 
 	if (modes().verbosity >= 4) {
-		clog <<"Adding aggregate with info ";
-		print(head);
+		clog <<"Adding aggregate with info " <<head;
 		clog 	<<setid <<", " <<toString(bound).c_str() <<", "  <<(boundsign==AGGSIGN_UB?"lower":"greater")
 				<<", " <<type <<(defined==DEF?"defined":"completion") <<"\n";
 	}
@@ -339,16 +336,13 @@ void PCSolver::addForcedChoices(const vec<Lit>& forcedchoices) {
  * Returns "false" if UNSAT was already found, otherwise "true"
  */
 void PCSolver::finishParsing(bool& present, bool& unsat) {
-	init = false;
 	present = true;
 	unsat = false;
 
-	//Datastructures that are not necessary beforehand, are much cheaper to only initialize once!
-	propagations.resize(nVars(), NULL);
+	propagations.resize(nVars(), NULL); //Lazy init
 
-	//important to call definition solver last
-
-	for(lsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
+	//Reason for this comment?important to call definition solver last?
+	for(solverlist::const_iterator i=solvers.begin(); i<solvers.end(); i++){
 		if((*i)->present){
 			(*i)->get()->finishParsing((*i)->present, unsat);
 			(*i)->get()->notifyInitialized();
@@ -366,12 +360,14 @@ void PCSolver::finishParsing(bool& present, bool& unsat) {
 	}
 
 	// Do all propagations that have already been done on the SAT-solver level.
-	for (vector<Lit>::const_iterator i = initialprops.begin(); i < initialprops.end(); i++) {
-		if (propagate(*i) != nullPtrClause) {
+	init = false;
+	const vec<Lit>& trail = getTrail();
+	int trailsize = trail.size();
+	for (int i=0; i < trailsize; i++) {
+		if (propagate(trail[i]) != nullPtrClause) {
 			unsat = true; return;
 		}
 	}
-	initialprops.clear();
 
 	if (propagateAtEndOfQueue() != nullPtrClause) {
 		unsat = true; return;
@@ -422,7 +418,7 @@ lbool PCSolver::checkStatus(lbool status) const {
  */
 rClause PCSolver::getExplanation(Lit l) {
 	if (modes().verbosity > 2) {
-		clog <<"Find T-theory explanation for "; print(l); clog <<"\n";
+		clog <<"Find T-theory explanation for " <<l <<"\n";
 	}
 
 	DPLLTmodule* solver = propagations[var(l)];
@@ -433,9 +429,9 @@ rClause PCSolver::getExplanation(Lit l) {
 
 	if (verbosity() >= 2) {
 		clog <<"Implicit reason clause from the " <<solver->getName() <<" module ";
-		print(l, sign(l) ? l_False : l_True);
+		Print::print(l, sign(l) ? l_False : l_True);
 		clog <<" : ";
-		Print::print(explan, this);
+		Print::print(explan, *this);
 		clog <<"\n";
 	}
 
@@ -474,7 +470,7 @@ bool PCSolver::assertedBefore(const Var& l, const Var& p) const {
 ///////
 
 void PCSolver::backtrackRest(Lit l) {
-/*	for(lsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
+/*	for(solverlist::const_iterator i=solvers.begin(); i<solvers.end(); i++){
 		if((*i)->present){
 			(*i)->get()->backtrack(l);
 		}
@@ -483,7 +479,7 @@ void PCSolver::backtrackRest(Lit l) {
 
 // Called by SAT solver when new decision level is started, BEFORE choice has been made!
 void PCSolver::newDecisionLevel() {
-	for(lsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
+	for(solverlist::const_iterator i=solvers.begin(); i<solvers.end(); i++){
 		if((*i)->present){
 			(*i)->get()->newDecisionLevel();
 		}
@@ -491,7 +487,7 @@ void PCSolver::newDecisionLevel() {
 }
 
 void PCSolver::backtrackDecisionLevel(int levels, int untillevel) {
-	for(lsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
+	for(solverlist::const_iterator i=solvers.begin(); i<solvers.end(); i++){
 		if((*i)->present){
 			(*i)->get()->backtrackDecisionLevels(levels, untillevel);
 		}
@@ -502,13 +498,10 @@ void PCSolver::backtrackDecisionLevel(int levels, int untillevel) {
  * Returns not-owning pointer
  */
 rClause PCSolver::propagate(Lit l) {
-	if (init) {
-		initialprops.push_back(l);
-		return nullPtrClause;
-	}
+	if (init) {	return nullPtrClause; }
 
 	rClause confl = nullPtrClause;
-	for(lsolvers::const_iterator i=solvers.begin(); confl==nullPtrClause && i<solvers.end(); i++){
+	for(solverlist::const_iterator i=solvers.begin(); confl==nullPtrClause && i<solvers.end(); i++){
 		if((*i)->present){
 			confl = (*i)->get()->propagate(l);
 		}
@@ -524,7 +517,7 @@ rClause PCSolver::propagateAtEndOfQueue() {
 	if(init){ return nullPtrClause;	}
 
 	rClause confl = nullPtrClause;
-	for(lsolvers::const_iterator i=solvers.begin(); confl==nullPtrClause && i<solvers.end(); i++){
+	for(solverlist::const_iterator i=solvers.begin(); confl==nullPtrClause && i<solvers.end(); i++){
 		if((*i)->present){
 			//IMPORTANT: if any solver has made propagations, we go back to unit propagation first!
 			int sizebefore = getSolver()->getTrail().size();
@@ -547,7 +540,7 @@ rClause PCSolver::propagateAtEndOfQueue() {
  */
 bool PCSolver::simplify() {
 	bool simp = getSolver()->simplify();
-	for(lsolvers::const_iterator i=solvers.begin(); simp && i<solvers.end(); i++){
+	for(solverlist::const_iterator i=solvers.begin(); simp && i<solvers.end(); i++){
 		if((*i)->present){
 			simp = (*i)->get()->simplify();
 		}
@@ -689,7 +682,7 @@ bool PCSolver::invalidateModel(vec<Lit>& learnt) {
 
 	if (modes().verbosity >= 3) {
 		clog <<"Adding model-invalidating clause: [ ";
-		print(learnt);
+		Print::print(learnt);
 		clog <<"]\n";
 	}
 
@@ -725,7 +718,7 @@ bool PCSolver::addMinimize(const vec<Lit>& lits, bool subsetmnmz) {
 				clog <<(subsetmnmz?" ":"<");
 			}
 			first = false;
-			print(lits[i]);
+			clog <<lits[i];
 		}
 		clog <<"]\n";
 	}
@@ -915,7 +908,7 @@ void PCSolver::printModID() const {
 }
 
 void PCSolver::printEnqueued(const Lit& p) const{
-	clog <<"Enqueued "; print(p); clog <<" in ";
+	clog <<"Enqueued " <<p <<" in ";
 	printModID();
 	reportf("\n");
 }
@@ -925,17 +918,26 @@ void PCSolver::printChoiceMade(int level, Lit l) const {
 		clog <<"Choice literal, dl " <<level <<", ";
 		printModID();
 
-		clog <<": ";
-		print(l);
-		clog <<".\n";
+		clog <<": " <<l <<".\n";
 	}
 }
 
 void PCSolver::printStatistics() const {
 	getSolver()->printStatistics();
-	for(lsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
+	for(solverlist::const_iterator i=solvers.begin(); i<solvers.end(); i++){
 		if((*i)->present){
 			(*i)->get()->printStatistics();
 		}
 	}
+}
+
+void PCSolver::print() const{
+	Print::print(getSolver());
+	for(vector<DPLLTSolver*>::const_iterator i=solvers.begin(); i<solvers.end(); i++){
+		(*i)->get()->print();
+	}
+}
+
+void PCSolver::print(rClause clause) const {
+	getSolver()->printClause(getClauseRef(clause));
 }

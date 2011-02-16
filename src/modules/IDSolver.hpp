@@ -139,6 +139,7 @@ private:
 	bool 					posloops, negloops;
 	std::vector<Var>		defdVars;	// All the vars that are the head of some kind of definition (disj, conj or aggr). Allows to iterate over all definitions.
 
+	bool					simplified;
 	bool					backtracked;	//True if the solver has backtracked between now and the previous search for cycle sources. Is true at the start
 
 	std::set<Var>			toremoveaggrheads; //The set of defined aggregates that are no longer defined and should be removed from IDSolver during simplification.
@@ -204,8 +205,10 @@ public:
 	/////////////////////END INITIALIZATION
 
 private:
-	DefinedVar* 		getDefVar(Var v) const { assert(definitions.size()>v); return definitions[v]; }
-	bool 				hasDefVar(Var v) const { return getDefVar(v)!=NULL; }
+	bool 				simplifyGraph		(); //False if problem unsat
+
+	DefinedVar* 		getDefVar			(Var v) const { assert(definitions.size()>v); return definitions[v]; }
+	bool 				hasDefVar			(Var v) const { return getDefVar(v)!=NULL; }
 
 	bool 				isDefined			(Var v) const {	return hasDefVar(v); }
 	bool 				isDefInPosGraph		(Var v) const {	return hasDefVar(v) && occ(v)!=MIXEDLOOP; }

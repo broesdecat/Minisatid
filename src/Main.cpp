@@ -50,6 +50,7 @@
 #include <setjmp.h>
 
 #include "external/ExternalInterface.hpp"
+#include "external/Translator.hpp"
 #include "Unittests.hpp"
 #include "parser/ResourceManager.hpp"
 #include "parser/Lparseread.hpp"
@@ -97,6 +98,7 @@ static void SIGINT_handler(int signum);
 int doModelGeneration(pwls& d);
 
 extern SolverOption modes;
+FODOTTranslator* fodottrans;
 
 ///////
 // MAIN METHOD
@@ -152,13 +154,13 @@ int main(int argc, char** argv) {
 			printStatistics(d);
 		}
 		_exit(1);
-	} catch (...) {
+	}/* catch (...) {
 		printUnexpectedError(cerr);
 		if(d.get()!=NULL){
 			printStatistics(d);
 		}
 		_exit(1);
-	}
+	}*/
 
 	return returnvalue;
 }
@@ -168,11 +170,16 @@ int doModelGeneration(pwls& d){
 
 	bool unsat = false;
 
+	Translator* trans = NULL;
+
 	//Parse input
 	switch(modes.format){
 		case FORMAT_ASP:{
 			WrappedPCSolver* p = new WrappedPCSolver(modes);
-			Read* r = new Read(p);
+			trans = new LParseTranslator();
+			LParseTranslator& lptrans = *dynamic_cast<LParseTranslator*>(trans);
+			p->setTranslator(lptrans);
+			Read* r = new Read(p, lptrans);
 			std::istream is(getInputBuffer());
 			if(!r->read(is)){
 				unsat = true;
@@ -195,6 +202,10 @@ int doModelGeneration(pwls& d){
 			break;
 		}
 		case FORMAT_FODOT:{
+			if(modes.transformat!=TRANS_PLAIN){
+				fodottrans = new FODOTTranslator(modes.transformat);
+				trans = fodottrans;
+			}
 			yyin = MinisatID::getInputFile();
 			d = parse();
 			break;
@@ -233,6 +244,10 @@ int doModelGeneration(pwls& d){
 
 	if(!earlyunsat){
 		printStatistics(d, modes.verbosity);
+	}
+
+	if(trans!=NULL){
+		delete trans;
 	}
 
 	return unsat ? 20 : 10;
@@ -289,26 +304,27 @@ static void noMoreMem() {
 }
 
 static void SIGABRT_handler(int signum) {
-	report("Abort received\n");
+	cerr <<">>>Abort signal received\n";
 	mem=0;
 	longjmp (main_loop, 1);
 }
 static void SIGFPE_handler(int signum) {
-	report("FPE error\n");
+	cerr <<">>> Floating point error signal received\n";
 	mem=0;
 	longjmp (main_loop, 1);
 }
 static void SIGTERM_handler(int signum) {
-	report("Terminate received\n");
+	cerr <<">>>Terminate signal received\n";
 	mem=0;
 	longjmp (main_loop, 1);
 }
 static void SIGSEGV_handler(int signum) {
-	report("Segmentation fault received\n");
+	cerr <<">>>Segmentation fault signal received\n";
 	mem=0;
 	longjmp (main_loop, 1);
 }
 static void SIGINT_handler(int signum) {
+	cerr <<">>>Integer error code signal received\n";
 	mem=0;
 	longjmp (main_loop, 1);
 }

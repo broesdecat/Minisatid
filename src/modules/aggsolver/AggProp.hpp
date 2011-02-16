@@ -79,7 +79,7 @@ public:
 	void		setOptim	()							{ optim = true; }
 	void		setTypedSet	(TypedSet * const s)		{ set = s; }
 };
-typedef std::vector<Agg*> vpagg;
+typedef std::vector<Agg*> agglist;
 
 class AggProp{
 private:
@@ -111,7 +111,6 @@ public:
 
 	virtual Propagator*	createPropagator		(TypedSet* set, bool pw) 				const = 0;
 
-protected:
 	virtual Weight 		getESV					()										const = 0;
 };
 
@@ -130,7 +129,6 @@ public:
 	bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const;
 	Propagator*	createPropagator		(TypedSet* set, bool pw) const;
 
-protected:
 	Weight 		getESV					()										const { return negInfinity(); }
 };
 
@@ -153,7 +151,6 @@ public:
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
 	Propagator*	createPropagator		(TypedSet* set, bool pw) const;
 
-protected:
 	Weight 		getESV					()										const { return Weight(1); }
 };
 
@@ -171,7 +168,6 @@ public:
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
 	Propagator*	createPropagator		(TypedSet* set, bool pw) const;
 
-protected:
 	Weight 		getESV					()										const { return Weight(0); }
 };
 
@@ -180,6 +176,22 @@ public:
 	const char* getName					() 										const { return "CARD"; }
 	AggType		getType					() 										const { return CARD; }
 };
+
+struct minmaxBounds{
+	Weight min;
+	Weight max;
+
+	minmaxBounds(const Weight& min, const Weight& max):min(min),max(max){}
+};
+
+bool isSatisfied(const Agg& agg, const Weight& min, const Weight& max);
+bool isSatisfied(const Agg& agg, const minmaxBounds& bounds);
+bool isFalsified(const Agg& agg, const Weight& min, const Weight& max);
+bool isFalsified(const Agg& agg, const minmaxBounds& bounds);
+void addValue		(const AggProp& type, const Weight& weight, bool addtoset, minmaxBounds& bounds);
+void addValue		(const AggProp& type, const Weight& weight, bool wasinset, Weight& min, Weight& max);
+void removeValue	(const AggProp& type, const Weight& weight, bool addtoset, minmaxBounds& bounds);
+void removeValue	(const AggProp& type, const Weight& weight, bool wasinset, Weight& min, Weight& max);
 
 class Propagator {
 private:
@@ -202,27 +214,9 @@ public:
 
     AggSolver*			getSolver() const { return aggsolver; }
 	lbool				value(const Lit& l) const;
-	lbool				propagatedValue(const Lit& l) const;
 
-	void 				addValue	(const Weight& weight, bool addtoset, Weight& min, Weight& max) const;
-	void 				removeValue	(const Weight& weight, bool wasinset, Weight& min, Weight& max) const;
-	virtual Weight		getValue() const = 0; //Return current aggregate value (only if two-valued!)
-
-	bool isSatisfied(const Agg& agg, const Weight& min, const Weight& max) const{
-		if(agg.hasUB()){
-			return max<=agg.getCertainBound();
-		}else{ //LB
-			return min>=agg.getCertainBound();
-		}
-	}
-
-	bool isFalsified(const Agg& agg, const Weight& min, const Weight& max) const{
-		if(agg.hasUB()){
-			return min>agg.getCertainBound();
-		}else{ //LB
-			return max<agg.getCertainBound();
-		}
-	}
+	//Assert: only call if model is two-valued!
+	virtual Weight		getValue() const;
 };
 
 class TypedSet{
@@ -232,7 +226,7 @@ protected:
 
 	AggProp const * 	type;
 
-	vpagg			 	aggregates;	//OWNS the pointers
+	agglist			 	aggregates;	//OWNS the pointers
 	AggSolver*			aggsolver;	//does NOT own this pointer
 	Propagator* 		prop;		//OWNS pointer
 
@@ -262,8 +256,8 @@ public:
 
 	const std::vector<Agg*>& getAgg		()	const					{ return aggregates; }
 	std::vector<Agg*>& getAggNonConst	()	 						{ return aggregates; }
-	void			replaceAgg		(const vpagg& repl);
-	void			replaceAgg		(const vpagg& repl, const vpagg& del);
+	void			replaceAgg		(const agglist& repl);
+	void			replaceAgg		(const agglist& repl, const agglist& del);
 	void 			addAgg			(Agg* aggr);
 
 	const Weight&	getKnownBound	()			const			{ return kb; }

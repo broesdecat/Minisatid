@@ -71,12 +71,13 @@ public:
 
 class WLSImpl{
 private:
-	bool 			_optimization;
-	SolverState 	_state;
+	bool 			optimization;
+	SolverState 	state;
 	SolverOption	_modes;
 
-	Remapper*		_remapper;
-	Translator*		_translator;
+	Remapper*		remapper;
+	Translator*		owntranslator;
+	Translator&		translator;
 
 public:
 			WLSImpl			(const SolverOption& modes);
@@ -88,7 +89,7 @@ public:
 	void 	addModel		(const vec<Lit>& model, Solution* sol);
 	void	modelWasOptimal	();
 
-	void	setTranslator	(Translator* translator);
+	void	setTranslator	(Translator& translator);
 
 	const SolverOption& modes()	const	{ return _modes; }
 	int 	verbosity		()	const	{ return modes().verbosity; }
@@ -96,8 +97,8 @@ public:
 	void 	printLiteral	(std::ostream& stream, const Lit& l) const;
 
 protected:
-	bool 	hasOptimization	() const { return _optimization; }
-	void	setOptimization	(bool opt) { _optimization = opt; }
+	bool 	hasOptimization	() const { return optimization; }
+	void	setOptimization	(bool opt) { optimization = opt; }
 
 	virtual MinisatID::LogicSolver* getSolver() const = 0;
 
@@ -109,8 +110,8 @@ protected:
 
 	std::streambuf* getRes	() const;
 
-	Remapper*		getRemapper		()	const { return _remapper; }
-	Translator*		getTranslator	()	const { return _translator; }
+	Remapper*		getRemapper		()	const { return remapper; }
+	Translator&		getTranslator	()	const { return translator; }
 
 	std::vector<Literal> getBackMappedModel	(const vec<Lit>& model) const;
 };
@@ -127,6 +128,7 @@ public:
 	bool	addClause		(std::vector<Literal>& lits);
 	bool 	addEquivalence	(const Literal& head, const std::vector<Literal>& rightlits, bool conj);
 	bool	addRule			(bool conj, Literal head, const std::vector<Literal>& lits);
+	bool	addRuleToID		(int defid, bool conj, Literal head, const std::vector<Literal>& lits);
 	bool	addSet			(int id, const std::vector<Literal>& lits);
 	bool 	addSet			(int set_id, const std::vector<WLtuple>& lws);
 	bool	addSet			(int id, const std::vector<Literal>& lits, const std::vector<Weight>& w);

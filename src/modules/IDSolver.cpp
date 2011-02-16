@@ -1,41 +1,4 @@
-//--------------------------------------------------------------------------------------------------
-//    Copyright (c) 2009-2010, Broes De Cat, K.U.Leuven, Belgium
-//    
-//    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-//    associated documentation files (the "Software"), to deal in the Software without restriction,
-//    including without limitation the rights to use, copy, modify, merge, publish, distribute,
-//    sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
-//    furnished to do so, subject to the following conditions:
-//    
-//    The above copyright notice and this permission notice shall be included in all copies or
-//    substantial portions of the Software.
-//    
-//    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-//    NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-//    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-//    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-//    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//--------------------------------------------------------------------------------------------------
-
-/************************************************************************************
- Copyright (c) 2006-2009, Maarten Mariën
-
- Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
- associated documentation files (the "Software"), to deal in the Software without restriction,
- including without limitation the rights to use, copy, modify, merge, publish, distribute,
- sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
-
- The above copyright notice and this permission notice shall be included in all copies or
- substantial portions of the Software.
-
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
- NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
- DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
- OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- **************************************************************************************************/
-
+//LICENSEPLACEHOLDER
 #include "modules/IDSolver.hpp"
 #include "modules/AggSolver.hpp"
 #include "utils/Print.hpp"
@@ -51,11 +14,12 @@ using namespace std;
 using namespace MinisatID;
 using namespace MinisatID::Print;
 
-IDSolver::IDSolver(pPCSolver s) :
+IDSolver::IDSolver(PCSolver* s):
 		DPLLTmodule(s),
-		sem(s->modes().defsem), recagg(0), aggsolver(NULL),
+		sem(getPCSolver().modes().defsem), recagg(0), aggsolver(NULL),
 		previoustrailatsimp(-1),
 		posloops(true), negloops(true),
+		simplified(false),
 		backtracked(true),
 		adaption_total(0), adaption_current(0),
 		atoms_in_pos_loops(0),
@@ -124,7 +88,7 @@ bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
 		Lit h = conj ? head : ~head; //empty set conj = true, empty set disj = false
 		vec<Lit> v;
 		v.push(h);
-		notunsat = getPCSolver()->addClause(v);
+		notunsat = getPCSolver().addClause(v);
 	} else {
 		//rules with only one body atom have to be treated as conjunctive
 		conj = conj || ps.size() == 1;
@@ -132,7 +96,7 @@ bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
 		PropRule* r = new PropRule(head, ps);
 		createDefinition(var(head), r, conj?CONJ:DISJ);
 
-		notunsat = getPCSolver()->addEquivalence(head, ps, conj);
+		notunsat = getPCSolver().addEquivalence(head, ps, conj);
 	}
 	return notunsat;
 }
@@ -243,7 +207,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 				break;
 			case AGGR: {
 				if (getAggSolver() != NULL) {
-					for (vwl::const_iterator j = getAggSolver()->getAggLiteralsBegin(v); !isdefd && j< getAggSolver()->getAggLiteralsEnd(v); ++j) {
+					for (vwl::const_iterator j = getAggSolver()->getSetLitsOfAggWithHeadBegin(v); !isdefd && j< getAggSolver()->getSetLitsOfAggWithHeadEnd(v); ++j) {
 						if (inSameSCC(v, var((*j).getLit()))) { // NOTE: disregard sign here: set literals can occur both pos and neg in justifications.
 							isdefd = true;
 						}
@@ -317,7 +281,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 			if(isDefined(v) && type(v)==DISJ){
 				const PropRule& r = *definition(v);
 				for(int j=0; j<r.size(); j++){
-					getPCSolver()->varBumpActivity(var(r[j]));
+					getPCSolver().varBumpActivity(var(r[j]));
 				}
 			}
 		}
@@ -362,7 +326,7 @@ void IDSolver::visitFull(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &vi
 			break;
 		}
 		case AGGR: {
-			for (vwl::const_iterator j = getAggSolver()->getAggLiteralsBegin(i); j<getAggSolver()->getAggLiteralsEnd(i); ++j) {
+			for (vwl::const_iterator j = getAggSolver()->getSetLitsOfAggWithHeadBegin(i); j<getAggSolver()->getSetLitsOfAggWithHeadEnd(i); ++j) {
 				Var w = var((*j).getLit());
 				if (!isDefined(w)) {
 					continue;
@@ -439,7 +403,7 @@ void IDSolver::visit(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visite
 		case AGGR: {
 			//TODO this can be optimized by using another method which only returns literals possibly in the
 			//positive dependency graph.
-			for (vwl::const_iterator j = getAggSolver()->getAggLiteralsBegin(i); j<getAggSolver()->getAggLiteralsEnd(i); ++j) {
+			for (vwl::const_iterator j = getAggSolver()->getSetLitsOfAggWithHeadBegin(i); j<getAggSolver()->getSetLitsOfAggWithHeadEnd(i); ++j) {
 				Var w = var((*j).getLit());
 				if (!isDefined(w)) {
 					continue;
@@ -469,18 +433,14 @@ void IDSolver::visit(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visite
 	}
 }
 
-//@pre: conflicts are empty
-//This is called after every simplification, which happens on solver restarts
-//Simplifying the definition again is only relevant if more literals are currently asserted on the base level,
-//which we check by storing the previous number of stored literals in previoustrailatsimp and comparing with the current trail
-bool IDSolver::simplify() {
+bool IDSolver::simplifyGraph(){
 	//Maybe already derived that no positive loops are possible: so skip simplification
 	if(!posloops){
 		return true;
 	}
 
-	assert(getPCSolver()->getDecisions().size()==0);
-	int currenttrailsize = getPCSolver()->getTrail().size();
+	assert(getPCSolver().getDecisions().size()==0);
+	int currenttrailsize = getPCSolver().getTrail().size();
 	if (currenttrailsize == previoustrailatsimp) {
 		return true;
 	} else { //Not same base assertions, so simplify again
@@ -575,7 +535,7 @@ bool IDSolver::simplify() {
 			if (isTrue(v)) {
 				return false;
 			} else if (isUnknown(v)) {
-				getPCSolver()->setTrue(createNegativeLiteral(v), this);
+				getPCSolver().setTrue(createNegativeLiteral(v), this);
 			}
 
 			if (occ(v) == POSLOOP) {
@@ -676,6 +636,20 @@ bool IDSolver::simplify() {
 	return true;
 }
 
+//@pre: conflicts are empty
+//This is called after every simplification, which happens on solver restarts
+//Simplifying the definition again is only relevant if more literals are currently asserted on the base level,
+//which we check by storing the previous number of stored literals in previoustrailatsimp and comparing with the current trail
+bool IDSolver::simplify() {
+	//Originally, simplifygraph was called here every time, but it proved to be very expensive and have few uses, to is only called once any more.
+	bool notunsat = true;
+	if(!simplified){
+		notunsat = simplifyGraph();
+		simplified = true;
+	}
+	return notunsat;
+}
+
 /**
  * propagate the fact that w has been justified.
  *
@@ -733,14 +707,14 @@ rClause IDSolver::propagateAtEndOfQueue() {
 /*
 	//Testing new heuristic!
 	//FIXME: Too slow!
-	const vec<Lit>& trail = getPCSolver()->getTrail();
-	int recentindex = getPCSolver()->getStartLastLevel();
+	const vec<Lit>& trail = getPCSolver().getTrail();
+	int recentindex = getPCSolver().getStartLastLevel();
 	for (int i = recentindex; i < trail.size(); i++) {
 		const Var& v = var(trail[i]);
 		if(originallyDefined(v) && (type(v)==DISJ)){
 			const PropRule& r = *definition(v);
 			for(int j=0; j<r.size(); j++){
-				getPCSolver()->varBumpActivity(var(r[j]));
+				getPCSolver().varBumpActivity(var(r[j]));
 			}
 		}
 	}*/
@@ -760,7 +734,7 @@ rClause IDSolver::propagateAtEndOfQueue() {
 	int j = 0;
 	uint64_t old_justify_calls = justify_calls;
 
-	if (getPCSolver()->modes().ufs_strategy == breadth_first) {
+	if (getPCSolver().modes().ufs_strategy == breadth_first) {
 		for (vv::const_iterator j = css.begin(); !ufs_found && j < css.end(); j++) {
 			if (isCS(*j)) {
 				ufs_found = unfounded(*j, ufs);
@@ -818,7 +792,7 @@ rClause IDSolver::propagateAtEndOfQueue() {
 		}
 		cycles++;
 		cycle_sizes += ufs.size();
-		if (getPCSolver()->modes().defn_strategy == adaptive) {
+		if (getPCSolver().modes().defn_strategy == adaptive) {
 			adaption_current++; // This way we make sure that if adaption_current > adaption_total, this decision level had indirect propagations.
 		}
 		confl = assertUnfoundedSet(ufs);
@@ -848,9 +822,9 @@ void IDSolver::newDecisionLevel() {
 void IDSolver::findCycleSources() {
 	clearCycleSources();
 
-	if (!backtracked && getPCSolver()->modes().defn_strategy == always) {
-		const vec<Lit>& trail = getPCSolver()->getTrail();
-		int recentindex = getPCSolver()->getStartLastLevel();
+	if (!backtracked && getPCSolver().modes().defn_strategy == always) {
+		const vec<Lit>& trail = getPCSolver().getTrail();
+		int recentindex = getPCSolver().getStartLastLevel();
 		for (int i = recentindex; i < trail.size(); i++) {
 			Lit l = trail[i]; //l has become true, so find occurences of ~l
 
@@ -909,7 +883,7 @@ void IDSolver::checkJustification(Var head) {
 
 	//Incorrect to prune out heads in which Lit is not the justification
 
-	getPCSolver()->varBumpActivity(head);
+	getPCSolver().varBumpActivity(head);
 
 	vec<Lit> jstf;
 	bool external = true;
@@ -958,11 +932,11 @@ void IDSolver::findJustificationDisj(Var v, vec<Lit>& jstf) {
 bool IDSolver::indirectPropagateNow() {
 	bool propagate = true;
 	// if not always and state is three-valued.
-	if (getPCSolver()->modes().defn_strategy != always && !getPCSolver()->totalModelFound()) {
-		if (getPCSolver()->modes().defn_strategy == lazy) {
+	if (getPCSolver().modes().defn_strategy != always && !getPCSolver().totalModelFound()) {
+		if (getPCSolver().modes().defn_strategy == lazy) {
 			propagate = false;
 		}
-		if (getPCSolver()->modes().defn_strategy == adaptive && adaption_current < adaption_total) {
+		if (getPCSolver().modes().defn_strategy == adaptive && adaption_current < adaption_total) {
 			adaption_current++;
 			propagate = false;
 		}
@@ -1277,8 +1251,8 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); tch++) {
 		if (isTrue(*tch)) {
 			loopf[0] = createNegativeLiteral(*tch); //negate the head to create a clause
-			rClause c = getPCSolver()->createClause(loopf, true);
-			getPCSolver()->addLearnedClause(c);
+			rClause c = getPCSolver().createClause(loopf, true);
+			getPCSolver().addLearnedClause(c);
 			justify_conflicts++;
 			if (verbosity() >= 2) {
 				report("Adding conflicting loop formula: [ ");
@@ -1292,7 +1266,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 
 	//Clasp only adds one asserting clause, assuming the other ones will be propagated.
 	//TODO should check correctness, might miss cycle sources???
-	//if(getPCSolver()->modes().selectOneFromUFS){
+	//if(getPCSolver().modes().selectOneFromUFS){
 	//	Lit l = createNegativeLiteral(*ufs.begin());
 	//	addLoopfClause(l, loopf);
 	//	assert(!isUnknown(l));
@@ -1300,7 +1274,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 		// No conflict: then enqueue all facts and their loop formulas.
 		if((long)(loopf.size()*ufs.size())>modes().ufsvarintrothreshold){
 			//introduce a new var to represent all external disjuncts: v <=> \bigvee external disj
-			Var v = getPCSolver()->newVar();
+			Var v = getPCSolver().newVar();
 			if (verbosity() >= 2) {
 				report("Adding new variable for loop formulas: %d.\n", getPrintableVar(v));
 			}
@@ -1334,12 +1308,12 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 void IDSolver::addLoopfClause(Lit l, vec<Lit>& lits) {
 	lits[0] = l;
 
-	if (getPCSolver()->modes().idclausesaving > 0) {
+	if (getPCSolver().modes().idclausesaving > 0) {
 		if (value(lits[0]) == l_Undef) {
 #ifdef DEBUG
 			for(int i=1; i<lits.size(); i++){
 				assert(value(lits[i])!=l_Undef);
-				assert(getPCSolver()->assertedBefore(var(lits[i]), var(l)));
+				assert(getPCSolver().assertedBefore(var(lits[i]), var(l)));
 			}
 #endif
 
@@ -1347,11 +1321,11 @@ void IDSolver::addLoopfClause(Lit l, vec<Lit>& lits) {
 			for (int i = 0; i < lits.size(); i++) {
 				reason(var(l)).push_back(lits[i]);
 			}
-			getPCSolver()->setTrue(lits[0], this);
+			getPCSolver().setTrue(lits[0], this);
 		}
 	} else {
-		rClause c = getPCSolver()->createClause(lits, true);
-		getPCSolver()->addLearnedClause(c);
+		rClause c = getPCSolver().createClause(lits, true);
+		getPCSolver().addLearnedClause(c);
 
 		//if unit propagation is already possible, this might not be detected on time, so help a little
 		//MEANING: if lits is already completely false, this clause cannot be added to the store
@@ -1372,7 +1346,7 @@ void IDSolver::addLoopfClause(Lit l, vec<Lit>& lits) {
 		}
 
 		if (unknown == 1) {
-			getPCSolver()->setTrue(lits[unknindex], NULL, c);
+			getPCSolver().setTrue(lits[unknindex], NULL, c);
 		}
 
 		if (verbosity() >= 2) {
@@ -1384,18 +1358,18 @@ void IDSolver::addLoopfClause(Lit l, vec<Lit>& lits) {
 }
 
 /*void IDSolver::backtrack(const Lit& l) {
-	if(posloops && getPCSolver()->modes().idclausesaving<1){
+	if(posloops && getPCSolver().modes().idclausesaving<1){
 		reasons[var(l)].clear();
 	}
 }*/
 
 rClause IDSolver::getExplanation(const Lit& l) {
-	assert(getPCSolver()->modes().idclausesaving>0);
+	assert(getPCSolver().modes().idclausesaving>0);
 	vec<Lit> lits;
 	for (vector<Lit>::const_iterator i = reason(var(l)).begin(); i < reason(var(l)).end(); i++) {
 		lits.push(*i);
 	}
-	return getPCSolver()->createClause(lits, true);
+	return getPCSolver().createClause(lits, true);
 }
 
 /* Precondition:  seen[i]==0 for each i.
@@ -1444,7 +1418,7 @@ void IDSolver::markNonJustifiedAddParents(Var x, Var cs, queue<Var> &q, vec<Var>
 }
 
 inline void IDSolver::markNonJustifiedAddVar(Var v, Var cs, queue<Var> &q, vec<Var>& tmpseen) {
-	if (inSameSCC(v, cs) && (getPCSolver()->modes().defn_search == include_cs || v == cs || !isCS(v))) {
+	if (inSameSCC(v, cs) && (getPCSolver().modes().defn_search == include_cs || v == cs || !isCS(v))) {
 		if (seen[v] == 0) {
 			seen[v] = 1;
 			tmpseen.push(v);
@@ -1464,7 +1438,7 @@ inline void IDSolver::markNonJustifiedAddVar(Var v, Var cs, queue<Var> &q, vec<V
  * Propagates the changes from supporting to cycle free
  */
 inline void IDSolver::apply_changes() {
-	if (getPCSolver()->modes().defn_strategy == adaptive) {
+	if (getPCSolver().modes().defn_strategy == adaptive) {
 		if (adaption_current == adaption_total) {
 			adaption_total++; // Next time, skip one decision level extra.
 		} else {
