@@ -53,7 +53,7 @@ double MinisatID::cpuTime(void) {
 ///////
 
 #ifdef GMP
-	ostream& MinisatID::operator<<(ostream& output, const Weight& p) {
+	ostream& Print::operator<<(ostream& output, const Weight& p) {
 		output << p.get_str();
 		return output;
 	}

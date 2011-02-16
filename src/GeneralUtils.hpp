@@ -82,6 +82,8 @@ namespace MinisatID {
 
 		operator const mpz_class&() const { assert(!inf); return w; }
 
+		friend std::istream& operator>>(std::istream& input, Weight& obj);
+
 		std::string get_str() const{
 			if(!inf){
 				return w.get_str();
@@ -89,9 +91,6 @@ namespace MinisatID {
 				return pos?"+inf":"-inf";
 			}
 		}
-
-		friend std::ostream& operator<<(std::ostream& output, const Weight& p);
-		friend std::istream& operator>>(std::istream& input, Weight& obj);
 
 		const Weight operator-() const {
 			Weight w2(*this);
@@ -204,8 +203,10 @@ namespace MinisatID {
 		}
 	};
 	Weight abs(const Weight& w);
-	std::ostream& operator<<(std::ostream& output, const Weight& p);
 	std::istream& operator>>(std::istream& input, Weight& obj);
+	namespace Print{
+		std::ostream& operator<<(std::ostream& output, const Weight& p);
+	}
 	}
 #else
 	namespace MinisatID {

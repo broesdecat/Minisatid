@@ -608,4 +608,5 @@ double GenPWAgg::testGenWatchCount() {
 
 	double ratio = ((double)ws.size())/(ws.size()+nws.size());
 	Print::printSetWatchRatio(clog, getSet().getSetID(), ratio, getSolver()->verbosity());
+	return ratio;
 }
