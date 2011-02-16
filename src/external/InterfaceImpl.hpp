@@ -1,22 +1,4 @@
-//------------------------------------------------------------------------------
-// Copyright (c) 2009, 2010, 2011, Broes De Cat, K.U. Leuven, Belgium
-//
-// This file is part of MinisatID.
-//
-// MinisatID is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// MinisatID is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-// GNU Lesser General Public License for more details.
-//
-// You should have received a copy of the GNU Lesser General Public License
-// along with MinisatID. If not, see <http://www.gnu.org/licenses/>.
-//------------------------------------------------------------------------------
-
+//LICENSEPLACEHOLDER
 #ifndef INTERFACEIMPL_HPP_
 #define INTERFACEIMPL_HPP_
 
@@ -77,7 +59,7 @@ private:
 
 	Remapper*		remapper;
 	Translator*		owntranslator;
-	Translator&		translator;
+	Translator*		translator;
 
 public:
 			WLSImpl			(const SolverOption& modes);
@@ -89,7 +71,7 @@ public:
 	void 	addModel		(const vec<Lit>& model, Solution* sol);
 	void	modelWasOptimal	();
 
-	void	setTranslator	(Translator& translator);
+	void	setTranslator	(Translator* translator);
 
 	const SolverOption& modes()	const	{ return _modes; }
 	int 	verbosity		()	const	{ return modes().verbosity; }
@@ -111,7 +93,7 @@ protected:
 	std::streambuf* getRes	() const;
 
 	Remapper*		getRemapper		()	const { return remapper; }
-	Translator&		getTranslator	()	const { return translator; }
+	Translator&		getTranslator	()	const { return *translator; }
 
 	std::vector<Literal> getBackMappedModel	(const vec<Lit>& model) const;
 };

@@ -44,7 +44,7 @@ public:
 	//Automatically initializes the datastructures and simplifies the theory.
 	bool 	solve			(Solution* sol);
 
-	void	setTranslator	(Translator& translator);
+	void	setTranslator	(Translator* translator);
 
 protected:
 	WrappedLogicSolver			();

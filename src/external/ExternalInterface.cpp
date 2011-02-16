@@ -11,7 +11,7 @@ WrappedLogicSolver::WrappedLogicSolver(){}
 WrappedLogicSolver::~WrappedLogicSolver(){
 }
 
-void WrappedLogicSolver::setTranslator(Translator& translator){
+void WrappedLogicSolver::setTranslator(Translator* translator){
 	getImpl()->setTranslator(translator);
 }
 

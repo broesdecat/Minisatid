@@ -1,3 +1,4 @@
+//LICENSEPLACEHOLDER
 //%require "2.4.2"
 
 //does not seem to have the same effect as adding it to the makefile
@@ -436,9 +437,9 @@ translation	: /* empty */
 				{					
 					if(fodottrans!=NULL){
 						if(modsolver.get()!=NULL){
-							modsolver->setTranslator(*fodottrans);
+							modsolver->setTranslator(fodottrans);
 						}else{
-							solver->setTranslator(*fodottrans);
+							solver->setTranslator(fodottrans);
 						}
 					}
 				}
