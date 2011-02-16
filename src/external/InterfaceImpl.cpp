@@ -173,7 +173,7 @@ bool WLSImpl::solve(Solution* sol){
 		state = SOLVED;
 	}
 
-	if(modes().aspcomp3type!=ASPCOMP3_NOCOMP && !hasOptimization()){
+	if(sat && modes().aspcomp3type!=ASPCOMP3_NOCOMP && !hasOptimization()){ //If comp, print it AFTER models
 		std::ostream output(getRes());
 		printSatisfiable(output, modes().aspcomp3type);
 		printSatisfiable(clog, modes().aspcomp3type, modes().verbosity);
@@ -210,7 +210,7 @@ void WLSImpl::addModel(const vec<Lit>& model, Solution* sol){
 		std::ostream output(getRes());
 
 		if(sol->getNbModelsFound()==1){
-			if(modes().aspcomp3type==ASPCOMP3_NOCOMP && !hasOptimization()){
+			if(modes().aspcomp3type==ASPCOMP3_NOCOMP && !hasOptimization()){ //IF nocomp, print it before models
 				printSatisfiable(output, modes().aspcomp3type);
 				printSatisfiable(clog, modes().aspcomp3type, modes().verbosity);
 			}
