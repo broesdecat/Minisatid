@@ -1,5 +1,9 @@
-# Copyright 2007-2011 Katholieke Universiteit Leuven# Use of this software is governed by the GNU LGPLv3.0 license# Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement# Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+# Copyright 2007-2011 Katholieke Universiteit Leuven
+# Use of this software is governed by the GNU LGPLv3.0 license
+# Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+# Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
 AC_INIT([minisatid],[2.4.0],[krr@cs.kuleuven.be])
+AC_CONFIG_HEADERS([config.h])
 
 #this is not an ideal solution, but it overrides the default cxxflags, so those set later are not invalid
 if test -z $CXXFLAGS; then
@@ -25,22 +29,13 @@ DX_INIT_DOXYGEN(minisatid, doxygen.cfg, doc)
 
 AM_INIT_AUTOMAKE([1.9 tar-pax foreign subdir-objects -Wall]) #silent-rules FROM VERSION 1.11 OTHER parameters like pedantic, seem no to work here, I set them in debug CXXflags!
 
-
 #check for the necessary headers
 AC_HEADER_STDC
-AC_CHECK_HEADERS([string])
-AC_CHECK_HEADERS([vector])
-AC_CHECK_HEADERS([set])
-AC_CHECK_HEADERS([map])
-AC_CHECK_HEADERS([cstdlib])
-AC_CHECK_HEADERS([limits])
-AC_CHECK_HEADERS([assert.h])
-AC_CHECK_HEADERS([cmath])
-AC_CHECK_HEADERS([inttypes.h])
-AC_CHECK_HEADERS([stdint.h])
-AC_CHECK_HEADERS([iostream])
-AC_CHECK_HEADERS([fstream])
-AC_CHECK_HEADERS([tr1/memory])
+AC_CHECK_HEADERS([algorithm \
+	assert.h cassert cerrno cstdio cstdlib cstring ctime exception float.h \
+	fstream gmpxx.h inttypes.h iomanip iostream limits limits.h list map queue \
+	set setjmp.h signal.h sstream stack stdexcept stdint.h stdio.h stdlib.h string \
+	tr1/memory tr1/unordered_map vector])
 AC_TYPE_SIZE_T
 
 # distribute additional compiler and linker flags

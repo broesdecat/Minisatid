@@ -6,4 +6,4 @@ include aminclude.am
 
 MOSTLYCLEANFILES = $(DX_CLEANFILES)
 
-EXTRA_DIST = $(DX_CONFIG) doc/html
+EXTRA_DIST = $(DX_CONFIG)

@@ -369,27 +369,7 @@ rClause GenPWAgg::reconstructSet(pgpw watch, bool& propagations, Agg const * pro
 }
 
 void GenPWAgg::genWatches(vsize& i, const Agg& agg, minmaxOptimAndPessBounds& bounds, GenPWatch*& largest, vector<GenPWatch*>& watchestoadd){
-	for(;!isSatisfied(agg, bounds.optim) && !isSatisfied(agg, bounds.pess) && i<getNWS().size(); i++){
-		GenPWatch* watch = getNWS()[i];
-		WL wl = watch->getWL();
-		lbool val = value(wl.getLit());
-
-		bool inset = val==l_True || (val==l_Undef && watch->isMonotone());
-		addValue(getSet().getType(), wl.getWeight(), inset, bounds.optim);
-		if(val!=l_Undef){
-			addValue(getSet().getType(), wl.getWeight(), val==l_True, bounds.pess);
-		}
-
-		if(val!=l_True){ //Add to watches
-			if(largest==NULL || largest->getWL().getWeight() < wl.getWeight()){
-				largest = watch;
-			}
-			moveFromNWSToWS(watch);
-			i--;
-		}
-	}
-	assert(!isSatisfied(agg, bounds.pess) || isSatisfied(agg, bounds.optim));
-	assert(isSatisfied(agg, bounds.optim) || i>=getNWS().size());
+	for(;!isSatisfied(agg, bounds.optim) && !isSatisfied(agg, bounds.pess) && i<getNWS().size(); i++){		GenPWatch* watch = getNWS()[i];		WL wl = watch->getWL();		lbool val = value(wl.getLit());		bool inset = val==l_True || (val==l_Undef && watch->isMonotone());		addValue(getSet().getType(), wl.getWeight(), inset, bounds.optim);		if(val!=l_Undef){			addValue(getSet().getType(), wl.getWeight(), val==l_True, bounds.pess);		}		if((watch->isMonotone() && val!=l_False) || (!watch->isMonotone() && val!=l_True)){			if(largest==NULL || largest->getWL().getWeight() < wl.getWeight()){				largest = watch;			}			moveFromNWSToWS(watch);			i--;		}	}	assert(!isSatisfied(agg, bounds.pess) || isSatisfied(agg, bounds.optim));	assert(isSatisfied(agg, bounds.optim) || i>=getNWS().size());
 }
 
 rClause GenPWAgg::propagate(const Lit& p, Watch* watch, int level) {
