@@ -1,3 +1,4 @@
+//LICENSEPLACEHOLDER
 #include "modules/aggsolver/AggProp.hpp"
 #include "modules/aggsolver/AggPrint.hpp"
 #include "modules/aggsolver/AggUtils.hpp"

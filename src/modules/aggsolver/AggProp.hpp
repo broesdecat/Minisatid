@@ -1,3 +1,4 @@
+//LICENSEPLACEHOLDER
 #ifndef AGGPROP_HPP_
 #define AGGPROP_HPP_
 

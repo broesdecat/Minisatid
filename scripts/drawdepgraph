@@ -1,3 +1,4 @@
+#LICENSEPLACEHOLDER
 #!/bin/bash
 cinclude2dot --include=/usr/include/c++/4.2/,\
 /usr/include/c++/4.2/tr1/,\

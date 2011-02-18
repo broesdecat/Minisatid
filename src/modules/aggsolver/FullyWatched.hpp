@@ -1,10 +1,4 @@
-/*
- * FullyWatched.hpp
- *
- *  Created on: Sep 14, 2010
- *      Author: broes
- */
-
+//LICENSEPLACEHOLDER
 #ifndef FULLYWATCHED_HPP_
 #define FULLYWATCHED_HPP_
 

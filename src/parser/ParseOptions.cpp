@@ -1,10 +1,4 @@
-/*
- * ParseOptions.cpp
- *
- *  Created on: Nov 29, 2010
- *      Author: broes
- */
-
+//LICENSEPLACEHOLDER
 #include "parser/ParseOptions.hpp"
 #include "GeneralUtils.hpp"
 

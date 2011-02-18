@@ -1,3 +1,4 @@
+//LICENSEPLACEHOLDER
 #include "parser/ResourceManager.hpp"
 #include "GeneralUtils.hpp"
 

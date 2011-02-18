@@ -1,3 +1,4 @@
+#LICENSEPLACEHOLDER
 Using lcov:
 
 build with CXX flags "-fprofile-arcs -ftest-coverage"

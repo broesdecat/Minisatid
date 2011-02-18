@@ -1,10 +1,4 @@
-/*
- * ParseOptions.hpp
- *
- *  Created on: Nov 29, 2010
- *      Author: broes
- */
-
+//LICENSEPLACEHOLDER
 #ifndef PARSEOPTIONS_HPP_
 #define PARSEOPTIONS_HPP_
 

@@ -1,3 +1,4 @@
+#LICENSEPLACEHOLDER
 <formula>	::= <comment>* "ecnf" <header>* <ecnftheory>*
 
 <header>	::= "def"|"aggr"|"mnmz"|<comment>*

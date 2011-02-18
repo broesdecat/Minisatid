@@ -15,7 +15,7 @@ namespace Minisat{
  * level 0: no output
  * level 1: statistics information
  * level 2: initialization information + ?
- * ... FIXME
+ * FIXME
  */
 
 namespace MinisatID {

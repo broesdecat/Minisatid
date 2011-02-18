@@ -1,3 +1,4 @@
+//LICENSEPLACEHOLDER
 #include "AggTransform.hpp"
 
 #include <vector>

@@ -1,3 +1,4 @@
+//LICENSEPLACEHOLDER
 #ifndef AGGCOMB_HPP_
 #define AGGCOMB_HPP_
 
