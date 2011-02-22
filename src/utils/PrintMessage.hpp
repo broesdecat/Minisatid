@@ -55,31 +55,21 @@ namespace Print{
 	std::string getMinimalVarNumbering();
 
 	template<class T>
-	void printSatisfiable(T& stream, ASPCOMP3TYPE type, int verbosity = 1000){
+	void printSatisfiable(T& stream, int verbosity = 1000){
 		if(verbosity>=1){
-			if(type==ASPCOMP3_NOCOMP){
-				stream <<"SATISFIABLE\n";
-			}else if(type==ASPCOMP3_SEARCH){
-				stream <<"ANSWER SET FOUND\n";
-			}
+			stream <<"SATISFIABLE\n";
 		}
 	}
 
 	template<class T>
-	void printUnSatisfiable(T& stream, ASPCOMP3TYPE type, int verbosity = 1000){
+	void printUnSatisfiable(T& stream, int verbosity = 1000){
 		if(verbosity>=1){
-			if(type==ASPCOMP3_QUERY){
-				stream <<"INCONSISTENT\n";
-			}else if(type==ASPCOMP3_SEARCH){
-				stream <<"NO ANSWER SET FOUND\n";
-			}else{
-				stream <<"UNSATISFIABLE\n";
-			}
+			stream <<"UNSATISFIABLE\n";
 		}
 	}
 
 	template<class T>
-	void printOptimalModelFound(T& stream, ASPCOMP3TYPE type, int verbosity = 1000){
+	void printOptimalModelFound(T& stream, int verbosity = 1000){
 		if(verbosity>=1){
 			stream<<"OPTIMUM FOUND\n";
 		}

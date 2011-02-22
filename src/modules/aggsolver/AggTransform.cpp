@@ -49,14 +49,6 @@ const vector<AggTransform*>& Aggrs::getTransformations(){
 	return transfo.t;
 }
 
-/*void Aggrs::doTransformations(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat){
-	unsat = false;
-	sat = false;
-	for(vector<AggTransform*>::const_iterator i=transfo.t.begin(); !sat && !unsat && i<transfo.t.end(); i++) {
-		(*i)->transform(solver, set, sets, unsat, sat);
-	}
-}*/
-
 //@pre: has been split
 void SetReduce::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
 	vwl oldset = set->getWL();
@@ -127,8 +119,7 @@ void SetReduce::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& uns
 }
 
 void MapToSetOneToOneWithAgg::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
-	//Only if using pwatches
-	if(!solver->getPCSolver().modes().watchedagg || set->getAgg().size()==1){
+	if(!set->isUsingWatches() || set->getAgg().size()==1){
 		return;
 	}
 
@@ -148,17 +139,12 @@ void MapToSetOneToOneWithAgg::transform(AggSolver* solver, TypedSet* set, vps& s
 	assert(set->getAgg().size()==1);
 }
 
-void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
-	if(!solver->modes().watchedagg){
+void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {	bool watchable = true;	for(vector<Agg*>::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); i++){		if((*i)->getType()==MAX || (*i)->isDefined()){			watchable = false;		}	}	if(!watchable){		set->setUsingWatches(false);	}
+	if(!set->isUsingWatches()){
 		return;
 	}
 
 	assert(set->getAgg()[0]->getSem()!=IMPLICATION); //FIXME add to other transformations!
-
-	//FIXME temporary!
-	if(set->getAgg()[0]->getType()==MAX || set->getAgg()[0]->isDefined()){
-		return;
-	}
 
 	//create implication aggs
 	agglist implaggs, del;
@@ -217,9 +203,8 @@ void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& s
 		ratiotwo = proptwo->testGenWatchCount();
 	}
 
-	//FIXME add heuristic
 	double ratio = ratioone*0.5+ratiotwo*0.5;
-	if(ratio<=1){
+	if(ratio<=solver->modes().watchesratio){
 		if(signtwoset!=NULL){
 			agglist empty;
 			signtwoset->replaceAgg(empty);
@@ -229,7 +214,7 @@ void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& s
 		delete propone;
 		signoneset->setProp(NULL);
 		sets.push_back(signoneset);
-	}else{
+	}else{		set->setUsingWatches(false);
 		delete signoneset;
 	}
 	if(signtwoset!=NULL){

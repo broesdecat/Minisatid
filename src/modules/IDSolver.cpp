@@ -883,7 +883,7 @@ void IDSolver::checkJustification(Var head) {
 
 	//Incorrect to prune out heads in which Lit is not the justification
 
-	getPCSolver().varBumpActivity(head);
+	//FIXME option? getPCSolver().varBumpActivity(head);
 
 	vec<Lit> jstf;
 	bool external = true;

@@ -313,10 +313,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 
 	//If a propagation will be done or conflict (not already true), then add the learned clause first
 	if (value(p) != l_True && getPCSolver().modes().aggclausesaving < 2) {
-		vec<Lit> lits;
-		lits.push(p);
-		ar->getAgg().getSet()->getExplanation(lits, *ar);
-		ar->setClause(lits);
+		ar->getAgg().getSet()->addExplanation(*ar);
 	}
 
 	if (value(p) == l_False) {
@@ -513,7 +510,7 @@ rClause	AggSolver::propagateAtEndOfQueue(){
  */
 rClause AggSolver::getExplanation(const Lit& p) {
 	assert(reasons[var(p)] != NULL);
-	const AggReason& ar = *reasons[var(p)];
+	AggReason& ar = *reasons[var(p)];
 
 	rClause c = nullPtrClause;
 	if (getPCSolver().modes().aggclausesaving < 2) {
@@ -521,12 +518,8 @@ rClause AggSolver::getExplanation(const Lit& p) {
 
 		c = getPCSolver().createClause(ar.getClause(), true);
 	} else {
-		vec<Lit> lits;
-		lits.push(p);
-		ar.getAgg().getSet()->getExplanation(lits, ar);
-
-		//create a conflict clause and return it
-		c = getPCSolver().createClause(lits, true);
+		ar.getAgg().getSet()->addExplanation(ar);
+		c = getPCSolver().createClause(ar.getClause(), true);
 	}
 
 	//do not add each clause to SAT-solver: real slowdown for e.g. magicseries

@@ -87,9 +87,7 @@ SolverOption::SolverOption():
 		defn_search(include_cs),
 		idclausesaving(0),
 		aggclausesaving(2),
-		selectOneFromUFS(false),
-		pbsolver(false),
-		watchedagg(false),
+		pbsolver(false),		watchesratio(0.75),
 		primesfile(""),
 		remap(true),
 		rand_var_freq(getDefaultRandfreq()),
@@ -99,8 +97,7 @@ SolverOption::SolverOption():
 		bumpidonstart(false),
 		subsetminimizeexplanation(false),
 		asapaggprop(false),
-		ufsvarintrothreshold(500),
-		aspcomp3type(ASPCOMP3_NOCOMP){
+		ufsvarintrothreshold(500){
 	stringstream str;
 	str <<DATADIR <<"/P1.TXT";
 	primesfile = str.str();
@@ -108,11 +105,10 @@ SolverOption::SolverOption():
 
 bool SolverOption::verifyOptions() const{
 	string s(getPrimesFile());
-	//Check primesfile location
 	if(pbsolver && !fileIsReadable(s.c_str())){
 		printPrimesFileNotReadable(clog, s);
 		return false;
-	}
+	}	if(var_decay<0.0){		cerr <<"The value for decay should be positive.\n";		return false;	}	if(rand_var_freq<0.0 || rand_var_freq>1.0){		cerr <<"The value for rnd-freq should be between 0 and 1.\n";		return false;	}
 	return true;
 }
 
@@ -130,9 +126,7 @@ void SolverOption::print(std::ostream& so) const{
 	so << "defn_strategy: " 	<<defn_strategy <<"\n";
 	so << "defn_search: " 		<<defn_search <<"\n";
 	so << "aggclausesaving: " 	<<aggclausesaving <<"\n";
-	so << "selectOneFromUFS: " 	<<selectOneFromUFS <<"\n";
-	so << "pbsolver: " 			<<pbsolver <<"\n";
-	so << "watchedagg: " 		<<watchedagg <<"\n";
+	so << "pbsolver: " 			<<pbsolver <<"\n";	so << "watchedratio: " 		<<watchesratio <<"\n";
 	so << "primesfile: " 		<<getPrimesFile() <<"\n";
 	so << "remap: " 			<<remap <<"\n";
 	so << "rand_var_freq: " 	<<rand_var_freq <<"\n";

@@ -10,21 +10,13 @@
 #include <iostream>
 #include <fstream>
 
-//FIXME move to print headers
 #define report(...) ( fflush(stdout), fprintf(stderr, __VA_ARGS__), fflush(stderr) )
 
 namespace MinisatID {
-	///////
-	// Measuring cpu time
-	///////
-
 	//In elapsed seconds, making abstraction of other processes running on the system
 	double cpuTime(void);
 
-	///////
-	// Generic system exception
-	///////
-
+	// Generic exception
 	class idpexception: public std::exception{
 	private:
 		std::string mess;
@@ -43,9 +35,7 @@ namespace MinisatID {
 	};
 }
 
-///////
 // Weight declaration and utilities
-///////
 
 #ifdef GMP
 	#include "gmpxx.h"
@@ -205,30 +195,20 @@ namespace MinisatID {
 
 	std::string toString(const Weight& w);
 
-	///////
-	// Comparison operators
-	///////
-
+	// Comparison operator
 	enum EqType{ MEQ, MNEQ, ML, MG, MGEQ, MLEQ };
 
-	///////
 	// Aggregate specification operators
-	///////
-
 	enum AggType 	{ SUM, PROD, MIN, MAX, CARD }; 	// Type of aggregate concerned
-	//FIXME correct notion of upper and lower bound!
 	enum AggSign 	{ AGGSIGN_UB, AGGSIGN_LB}; 	// Sign of the bound of the aggregate
 	enum AggSem 	{ COMP, DEF, IMPLICATION };	// Semantics of satisfiability of the aggregate head: COMPletion or DEFinitional
 
-	///////
 	// Definitional options
-	///////
-
 	enum DEFFINDCS { always, adaptive, lazy };	// Unfounded set search frequency
 	enum DEFMARKDEPTH { include_cs };			// Originally also contained stop_at_cs, which is no longer correct
 												// when a guaranteed cycle-free justification is used!
 	enum DEFSEARCHSTRAT { breadth_first, depth_first }; // Unfounded set search strategy
-	enum DEFSEM { DEF_STABLE, DEF_WELLF, DEF_COMP }; 				// Definitional semantics
+	enum DEFSEM { DEF_STABLE, DEF_WELLF, DEF_COMP }; 	// Definitional semantics
 
 	enum POLARITY {
 		POL_TRUE,
@@ -239,8 +219,6 @@ namespace MinisatID {
 
 	enum INPUTFORMAT 	{ FORMAT_FODOT, FORMAT_ASP, FORMAT_OPB};
 	enum OUTPUTFORMAT 	{ TRANS_FODOT, TRANS_ASP, TRANS_PLAIN };
-
-	enum ASPCOMP3TYPE 	{ ASPCOMP3_NOCOMP, ASPCOMP3_SEARCH, ASPCOMP3_QUERY};
 
 	// Structure containing general options for the solvers
 	class SolverOption {
@@ -257,16 +235,13 @@ namespace MinisatID {
 		DEFMARKDEPTH 	defn_search;
 		int 			idclausesaving, aggclausesaving;
 		bool 			selectOneFromUFS;
-		bool 			pbsolver;
-		bool 			watchedagg;
+		bool 			pbsolver;		double			watchesratio;
 		std::string 	primesfile;
-		bool 			remap;
-		double 			rand_var_freq, var_decay;
+		bool 			remap;		double 			rand_var_freq, var_decay;
 		POLARITY 		polarity;
 		bool 			bumpaggonnotify, bumpidonstart;
 		bool			subsetminimizeexplanation, asapaggprop;
 		long 			ufsvarintrothreshold;
-		ASPCOMP3TYPE	aspcomp3type;
 
 		SolverOption();
 
@@ -275,10 +250,7 @@ namespace MinisatID {
 		void 		print(std::ostream& stream) const;
 	};
 
-	///////
 	// Support for deleting lists of pointer elements
-	///////
-
 	template<class T>
 	void deleteList(std::vector<T*> l){
 		for(class std::vector<T*>::const_iterator i=l.begin(); i!=l.end(); i++){

@@ -201,8 +201,8 @@ int doModelGeneration(pwls& d){
 
 	std::ostream output(getOutputBuffer());
 	if(unsat){
-		printUnSatisfiable(output, modes.aspcomp3type);
-		printUnSatisfiable(clog, modes.aspcomp3type, modes.verbosity);
+		printUnSatisfiable(output);
+		printUnSatisfiable(clog, modes.verbosity);
 	}
 
 	if(!earlyunsat){

@@ -77,7 +77,7 @@ public:
 	Expl		getExpl			()	const { return expl; }
 
     bool 		hasClause		()	const	{ return hasclause; }
-    const vec<Lit>&	getClause	()	const	{ return explanation; }
+    const vec<Lit>&	getClause	()	const	{ assert(hasClause()); return explanation; }
     void		setClause		(const Minisat::vec<Lit>& c) {	c.copyTo(explanation); hasclause = true; }
 };
 

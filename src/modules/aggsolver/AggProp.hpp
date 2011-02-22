@@ -110,7 +110,7 @@ public:
 	virtual Weight		remove					(const Weight& lhs, const Weight& rhs) 	const = 0;
 	virtual bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const = 0;
 
-	virtual Propagator*	createPropagator		(TypedSet* set, bool pw) 				const = 0;
+	virtual Propagator*	createPropagator		(TypedSet* set) 				const = 0;
 
 	virtual Weight 		getESV					()										const = 0;
 };
@@ -128,7 +128,7 @@ public:
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const { return lhs>rhs?lhs:rhs; }
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const { assert(false); return 0; }
 	bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const;
-	Propagator*	createPropagator		(TypedSet* set, bool pw) const;
+	Propagator*	createPropagator		(TypedSet* set) const;
 
 	Weight 		getESV					()										const { return negInfinity(); }
 };
@@ -150,7 +150,7 @@ public:
 	Weight		getMaxPossible			(const TypedSet& set)					const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
-	Propagator*	createPropagator		(TypedSet* set, bool pw) const;
+	Propagator*	createPropagator		(TypedSet* set) const;
 
 	Weight 		getESV					()										const { return Weight(1); }
 };
@@ -167,7 +167,7 @@ public:
 	Weight		getMaxPossible			(const TypedSet& set)					const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
-	Propagator*	createPropagator		(TypedSet* set, bool pw) const;
+	Propagator*	createPropagator		(TypedSet* set) const;
 
 	Weight 		getESV					()										const { return Weight(0); }
 };
@@ -232,7 +232,7 @@ protected:
 	Propagator* 		prop;		//OWNS pointer
 
 	int 				setid;
-	std::vector<Aggrs::AggTransform*> transformations;
+	std::vector<Aggrs::AggTransform*> transformations;	bool				usingwatches;
 
 public:
 	TypedSet(AggSolver* solver, int setid): kb(Weight(0)), type(NULL), aggsolver(solver), prop(NULL), setid(setid), transformations(Aggrs::getTransformations()){}
@@ -243,7 +243,7 @@ public:
 			aggsolver(set.getSolver()),
 			prop(NULL),
 			setid(set.getSetID()),
-			transformations(set.getTransformations()){}
+			transformations(set.getTransformations()),			usingwatches(true){}
 	virtual ~TypedSet(){
 		deleteList<Agg>(aggregates);
 		delete prop;
@@ -259,7 +259,7 @@ public:
 	std::vector<Agg*>& getAggNonConst	()	 						{ return aggregates; }
 	void			replaceAgg		(const agglist& repl);
 	void			replaceAgg		(const agglist& repl, const agglist& del);
-	void 			addAgg			(Agg* aggr);
+	void 			addAgg			(Agg* aggr);	bool			isUsingWatches() const { return usingwatches; }	void			setUsingWatches(bool use) { usingwatches = use; }
 
 	const Weight&	getKnownBound	()			const			{ return kb; }
 	void 			setKnownBound	(const Weight& w)			{ kb = w; }
@@ -280,7 +280,7 @@ public:
 	rClause 		propagate		(const Lit& p, Watch* w, int level) 	{ return getProp()->propagate(p, w, level); }
 	rClause 		propagate		(const Agg& agg, int level, bool headtrue)	{ return getProp()->propagate(level, agg, headtrue); }
 	rClause			propagateAtEndOfQueue(int level) 						{ return getProp()->propagateAtEndOfQueue(level); }
-	void 			getExplanation	(vec<Lit>& lits, const AggReason& ar) const;
+	void 			addExplanation	(AggReason& ar) const;
 
 	///////
 	// HELP METHODS

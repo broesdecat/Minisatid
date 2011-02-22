@@ -122,12 +122,6 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	formatvals.push_back(FORMAT_ASP); formatdesc.push_back(pair<string, string>("asp", "propositional LParse ASP"));
 	formatvals.push_back(FORMAT_OPB); formatdesc.push_back(pair<string, string>("opb", "open pseudo-boolean"));
 
-	vector<ASPCOMP3TYPE> aspcomp3vals;
-	vector<pair<string, string> > aspcomp3desc;
-	aspcomp3vals.push_back(ASPCOMP3_NOCOMP); aspcomp3desc.push_back(pair<string, string>("nocomp", "Not a competition version."));
-	aspcomp3vals.push_back(ASPCOMP3_SEARCH); aspcomp3desc.push_back(pair<string, string>("search", "Search or optimize problems of asp comp3."));
-	aspcomp3vals.push_back(ASPCOMP3_QUERY); aspcomp3desc.push_back(pair<string, string>("query", "Query problem of asp comp3."));
-
 	vector<OUTPUTFORMAT> transvals;
 	vector<pair<string, string> > transdesc;
 	transvals.push_back(TRANS_FODOT); transdesc.push_back(pair<string, string>("fodot", "Translate model into FO(.) structure"));
@@ -217,8 +211,6 @@ bool MinisatID::parseOptions(int argc, char** argv){
 			modes.format, cmd, "The format of the input theory"));
 	options.push_back(new Option<OUTPUTFORMAT, string>("", "outputformat", transvals, transdesc,
 			modes.transformat, cmd, "The requested output format (only relevant if translation information is provided)."));
-	options.push_back(new Option<ASPCOMP3TYPE, string>("", "aspcomp3", aspcomp3vals, aspcomp3desc,
-				modes.aspcomp3type, cmd, "ASP COMP 3 problem type"));
 	options.push_back(new Option<bool, string>	("", "ecnfgraph", 	yesnovals, ecnfgraphdesc,
 			modes.printcnfgraph, cmd, "Choose whether to generate a .dot graph representation of the ecnf"));
 	options.push_back(new Option<bool, string>	("r", "remap", 		yesnovals, remapdesc,
@@ -232,9 +224,7 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	options.push_back(new Option<bool, string>	("","asapaggprop", 	yesnovals, asapaggpropdesc,
 			modes.asapaggprop, cmd, "Choose whether to propagate aggregates as fast as possible"));
 	options.push_back(new Option<bool, string>	("","pbsolver", 	yesnovals, pbsolverdesc,
-			modes.pbsolver, cmd,"Choose whether to translate pseudo-boolean constraints to SAT"));
-	options.push_back(new Option<bool, string>	("w","watchedagg", 	yesnovals, watcheddesc,
-			modes.watchedagg, cmd, "Choose whether to use watched-literal datastructures to handle aggregate propagation"));
+			modes.pbsolver, cmd,"Choose whether to translate pseudo-boolean constraints to SAT"));	options.push_back(new NoValsOption<double>	("","watch-ratio", 	"double",			modes.watchesratio, cmd,"The ratio of watches to set literals under which the watched algorithm is used."));
 #ifndef USEMINISAT22
 	options.push_back(new Option<POLARITY, string>("","polarity", 	polvals, poldesc,
 			modes.polarity, cmd, "The default truth value choice of variables"));
@@ -257,15 +247,6 @@ bool MinisatID::parseOptions(int argc, char** argv){
 
 	for(vector<Opt*>::const_iterator i=options.begin(); i<options.end(); i++){
 		(*i)->parse();
-	}
-
-	if(modes.var_decay<0.0){
-		cerr <<"The value for decay should be larger than 0.\n";
-		return false;
-	}
-	if(modes.rand_var_freq<0.0 || modes.rand_var_freq>1.0){
-		cerr <<"The value for rnd-freq should be between 0 and 1.\n";
-		return false;
 	}
 
 	if(inputfilearg.isSet()){

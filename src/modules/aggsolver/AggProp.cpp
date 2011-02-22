@@ -266,32 +266,17 @@ void Aggrs::removeValue(const AggProp& type, const Weight& weight, bool wasinset
 	}
 }
 
-///////
 // TypedSet
-///////
 
-Propagator*	MaxProp::createPropagator(TypedSet* set, bool pw) const{
+Propagator*	MaxProp::createPropagator(TypedSet* set) const{
 	//FIXME watched?
 	return new MaxFWAgg(set);
 }
 
-Propagator*	SumProp::createPropagator(TypedSet* set, bool pw) const{
-	//Extremely ugly!
-	if(pw && !set->getAgg()[0]->isDefined() && set->getAgg()[0]->getSem()==IMPLICATION){
-		if(getType()==CARD){
-			return new CardGenPWAgg(set);
-		}else{
-			return new SumGenPWAgg(set);
-		}
-	}
-	return new SumFWAgg(set);
+Propagator*	SumProp::createPropagator(TypedSet* set) const{	if(set->isUsingWatches()){		return new GenPWAgg(set);	}else{		return new SumFWAgg(set);	}
 }
 
-Propagator*	ProdProp::createPropagator(TypedSet* set, bool pw) const{
-	if(pw && !set->getAgg()[0]->isDefined() && set->getAgg()[0]->getSem()==IMPLICATION){
-		return new GenPWAgg(set);
-	}
-	return new ProdFWAgg(set);
+Propagator*	ProdProp::createPropagator(TypedSet* set) const{	if(set->isUsingWatches()){		return new GenPWAgg(set);	}else{		return new ProdFWAgg(set);	}
 }
 
 void TypedSet::addAgg(Agg* aggr){
@@ -301,7 +286,7 @@ void TypedSet::addAgg(Agg* aggr){
 	aggr->setIndex(aggregates.size()-1);
 }
 
-//FIXME should add check that aggregate is indeed still referring to that set
+//FIXME add check that aggregate is indeed still referring to that set
 void TypedSet::replaceAgg(const agglist& repl){
 	for(agglist::const_iterator i=aggregates.begin(); i<aggregates.end(); i++){
 		(*i)->setTypedSet(NULL);
@@ -332,7 +317,7 @@ void TypedSet::initialize(bool& unsat, bool& sat, vps& sets) {
 
 	if(sat || unsat){ return; }
 
-	setProp(getType().createPropagator(this, this->getSolver()->getPCSolver().modes().watchedagg));
+	setProp(getType().createPropagator(this));
 	prop->initialize(unsat, sat);
 
 	if(sat || unsat){ return; }
@@ -344,19 +329,9 @@ void TypedSet::initialize(bool& unsat, bool& sat, vps& sets) {
 	}
 }
 
-void TypedSet::getExplanation(vec<Lit>& lits, const AggReason& ar) const {
-	getProp()->getExplanation(lits, ar);
-
-	if(getSolver()->verbosity()>=3){
-		report("Explanation for deriving "); Print::print(ar.getPropLit());
-		report(" in expression ");
-		print(getSolver()->verbosity(), ar.getAgg(), false);
-		report(" is ");
-		for(int i=0; i<lits.size(); i++){
-			report(" "); Print::print(lits[i]);
-		}
-		report("\n");
-	}
+void TypedSet::addExplanation(AggReason& ar) const {	vec<Lit> lits;	lits.push(ar.getPropLit());
+	getProp()->getExplanation(lits, ar);	ar.setClause(lits);
+	if(getSolver()->verbosity()>=3){		clog <<"Explanation for deriving " <<ar.getPropLit();		clog <<" in expression ";		print(getSolver()->verbosity(), ar.getAgg(), false);		clog <<" is ";		for(int i=0; i<lits.size(); i++){			clog <<" " <<lits[i];		}		clog <<"\n";	}
 }
 
 Propagator::Propagator(TypedSet* set):set(set), aggsolver(set->getSolver()){
