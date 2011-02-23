@@ -95,7 +95,7 @@ namespace Print{
 	}
 	template<class T>
 	void printSetWatchRatio(T& stream, int setid, double ratio, int verbosity = 1000){
-		if(verbosity>=2){
+		if(verbosity>=4){
 			stream <<"> Set " <<setid <<": watch ratio of " <<ratio <<"\n";
 		}
 	}

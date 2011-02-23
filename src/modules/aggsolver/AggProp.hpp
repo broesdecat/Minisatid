@@ -235,7 +235,7 @@ protected:
 	std::vector<Aggrs::AggTransform*> transformations;	bool				usingwatches;
 
 public:
-	TypedSet(AggSolver* solver, int setid): kb(Weight(0)), type(NULL), aggsolver(solver), prop(NULL), setid(setid), transformations(Aggrs::getTransformations()){}
+	TypedSet(AggSolver* solver, int setid):			kb(Weight(0)),			type(NULL),			aggsolver(solver),			prop(NULL),			setid(setid),			transformations(Aggrs::getTransformations()),			usingwatches(true){}
 	TypedSet(const TypedSet& set):
 			kb(set.getKnownBound()),
 			wl(set.getWL()),
@@ -243,7 +243,7 @@ public:
 			aggsolver(set.getSolver()),
 			prop(NULL),
 			setid(set.getSetID()),
-			transformations(set.getTransformations()),			usingwatches(true){}
+			transformations(set.getTransformations()),			usingwatches(set.isUsingWatches()){	}
 	virtual ~TypedSet(){
 		deleteList<Agg>(aggregates);
 		delete prop;

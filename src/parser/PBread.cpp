@@ -43,25 +43,17 @@ using namespace MinisatID;
  */
 void DefaultCallback::metaData(int nbvar, int nbconstr) {
 	maxvar = nbvar;
-	//cout << "[nbvar=" << nbvar << "]" << endl;
-	//cout << "[nbconstr=" << nbconstr << "]" << endl;
 }
 
 /**
  * callback called before we read the objective function
  */
-void DefaultCallback::beginObjective() {
-	cerr <<"Not yet supported\n";
-	exit(1);
-	//cout << "objective:  ";
-}
+void DefaultCallback::beginObjective() {}
 
 /**
  * callback called after we've read the objective function
  */
-void DefaultCallback::endObjective() {
-	//TODO
-	//cout << endl;
+void DefaultCallback::endObjective() {	setid++;	getSolver()->addSet(setid, lw);	lw.clear();	int newvar = ++maxvar;	getSolver()->addMinimize(Atom(newvar), setid, SUM);
 }
 
 /**
@@ -71,8 +63,7 @@ void DefaultCallback::endObjective() {
  * @param idVar: the numerical identifier of the variable
  */
 void DefaultCallback::objectiveTerm(IntegerType coeff, int idVar) {
-	//TODO
-	//cout << "[" << showpos << coeff << noshowpos << " x" << idVar << "] ";
+	lw.push_back(WLtuple(Literal(::abs(idVar), idVar<0), coeff));
 }
 
 /**
@@ -82,16 +73,7 @@ void DefaultCallback::objectiveTerm(IntegerType coeff, int idVar) {
  * @param coeff: the coefficient of the term
  * @param list: list of literals which appear in the product
  */
-void DefaultCallback::objectiveProduct(IntegerType coeff, vector<int> list) {
-	//TODO
-	/*cout << "[" << showpos << coeff << noshowpos << " ";
-	for (int i = 0; i < list.size(); ++i) {
-		if (list[i] < 0)
-			cout << "~x" << -list[i] << ' ';
-		else
-			cout << "x" << list[i] << ' ';
-	}
-	cout << "] ";*/
+void DefaultCallback::objectiveProduct(IntegerType coeff, vector<int> list) {	cerr <<"Leaving out linearization of opb constraints is not supported!\n";	assert(false);	exit(1);
 }
 
 void DefaultCallback::beginConstraint() {
@@ -130,7 +112,6 @@ void DefaultCallback::endConstraint() {
  */
 void DefaultCallback::constraintTerm(IntegerType coeff, int idVar) {
 	lw.push_back(WLtuple(Literal(::abs(idVar), idVar<0), coeff));
-	//cout << "[" << showpos << coeff << noshowpos << " x" << idVar << "] ";
 }
 
 /**
@@ -141,15 +122,7 @@ void DefaultCallback::constraintTerm(IntegerType coeff, int idVar) {
  * @param list: list of literals which appear in the product
  */
 void DefaultCallback::constraintProduct(IntegerType coeff, vector<int> list) {
-	assert(false);
-	/*cout << "[" << showpos << coeff << noshowpos << " ";
-	for (int i = 0; i < list.size(); ++i) {
-		if (list[i] < 0)
-			cout << "~x" << -list[i] << ' ';
-		else
-			cout << "x" << list[i] << ' ';
-	}
-	cout << "] ";*/
+	cerr <<"Leaving out linearization of opb constraints is not supported!\n";	assert(false);	exit(1);
 }
 
 /**
@@ -163,7 +136,6 @@ void DefaultCallback::constraintRelOp(string relop) {
 	}else{
 		equality = false;
 	}
-	//cout << "[" << relop << "] ";
 }
 
 /**
@@ -174,7 +146,6 @@ void DefaultCallback::constraintRelOp(string relop) {
  */
 void DefaultCallback::constraintRightTerm(IntegerType val) {
 	bound = val;
-	//cout << "[" << val << "]";
 }
 
 /**

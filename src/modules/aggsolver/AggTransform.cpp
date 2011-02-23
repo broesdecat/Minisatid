@@ -207,13 +207,8 @@ void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& s
 	if(ratio<=solver->modes().watchesratio){
 		if(signtwoset!=NULL){
 			agglist empty;
-			signtwoset->replaceAgg(empty);
-		}
-		set->replaceAgg(signtwoaggs, del);
-		
-		delete propone;
-		signoneset->setProp(NULL);
-		sets.push_back(signoneset);
+			signtwoset->replaceAgg(empty);			set->replaceAgg(signtwoaggs, del);			delete propone;			signoneset->setProp(NULL);			sets.push_back(signoneset);
+		}else{			agglist empty;			signoneset->replaceAgg(empty);			set->replaceAgg(signoneaggs, del);			delete signoneset;		}
 	}else{		set->setUsingWatches(false);
 		delete signoneset;
 	}

@@ -14,13 +14,6 @@ using namespace MinisatID;
 using namespace MinisatID::Aggrs;
 
 /**
- * TODO: method to test-generate the watches without side effects (const), so a heuristic can be made on the number of watches
- * TODO explanation that searches until satisfied
- * 		beste implementatie: propagatedvalue houdt niet alleen een literal maar ook een volgnummer bij (gemakkelijk want is voor alle literals)
- * 		op die manier heel makkelijk checken of propagatedbefore
- *
- * 		voor until-satisfied, code gebruiken uit reconstructset
- * TODO do not go over all aggregates if one head was propagated
  * TODO sorted aggr? //TODO 2 remember optim!
  * FIXME maximum aggregate
  */

@@ -127,9 +127,9 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 	set->setWL(lw);
 	parsedSets[setid] = set;
 
-	if (verbosity() >= 5) {
+	if (verbosity() >= 2) {
 		report("Added ");
-		Aggrs::print(verbosity(), *set, true);
+		Aggrs::print(10000, *set, true);
 	}
 
 	return true;
@@ -190,7 +190,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType
 	Agg* agg = new Agg(head, AggBound(bound),headeq, type);
 	set->addAgg(agg);
 
-	if (verbosity() >= 4) { //Print info on added aggregate
+	if (verbosity() >= 2) { //Print info on added aggregate
 		Aggrs::print(verbosity(), *agg);
 		report("\n");
 	}

@@ -169,7 +169,7 @@ void PCSolver::addVars(const vec<Lit>& a) {
 }
 
 bool PCSolver::addClause(vec<Lit>& lits) {
-	if (modes().verbosity >= 7) {
+	if (modes().verbosity >= 2) {
 		clog <<"Adding clause:";
 		for (int i = 0; i < lits.size(); i++) {
 			clog <<" " <<lits[i];
@@ -228,7 +228,7 @@ bool PCSolver::addEquivalence(const Lit& head, const vec<Lit>& rightlits, bool c
 bool PCSolver::addRule(bool conj, Lit head, const vec<Lit>& lits) {
 	assert(getIDSolver()!=NULL);
 	addVar(head);
-	addVars(lits);
+	addVars(lits);	if (verbosity() >= 2) {		report("Adding %s rule, %d <- ", conj?"conjunctive":"disjunctive", getPrintableVar(var(head)));		for (int i = 0; i < lits.size(); i++) {			report("%s%d ", sign(lits[i])?"-":"",getPrintableVar(var(lits[i])));		}		report("\n");	}
 	return getIDSolver()->addRule(conj, head, lits);
 }
 
@@ -268,15 +268,7 @@ bool PCSolver::addSet(int setid, const vec<Lit>& lits, const vector<Weight>& w) 
 
 bool PCSolver::addAggrExpr(Lit head, int setid, const Weight& bound, AggSign boundsign, AggType type, AggSem defined) {
 	assert(getAggSolver()!=NULL);
-
-	if (modes().verbosity >= 4) {
-		clog <<"Adding aggregate with info " <<head;
-		clog 	<<setid <<", " <<toString(bound).c_str() <<", "  <<(boundsign==AGGSIGN_UB?"lower":"greater")
-				<<", " <<type <<(defined==DEF?"defined":"completion") <<"\n";
-	}
-
 	addVar(head);
-
 	if (sign(head)) {
 		throw idpexception("Negative heads are not allowed.\n");
 	}
