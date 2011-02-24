@@ -58,7 +58,7 @@ private:
 	Aggrs::mips 	parsedSets;
 	std::set<Var>	heads;
 
-	Aggrs::setlist	sets;/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+	Aggrs::setlist	sets;
 	std::vector<Aggrs::AggReason*>	reasons; //Map var to reason
 
 	std::vector<Aggrs::watchlist>	lit2dynamicwatchlist;	// map lit to watches
@@ -161,14 +161,14 @@ public:
 	void		addRootLevel			();
 	int			getTime					(Lit l) const;
 
-protected:
-	int 				getCurrentDecisionLevel	() 		const { return setsbacktracktrail.size()-1; }
+protected:	void 		adaptToNVars			(uint64_t nvars);
+	int 		getCurrentDecisionLevel	() 		const { return setsbacktracktrail.size()-1; }
 
-	Aggrs::Agg* 		getAggDefiningHead		(Var v) const;
+	Aggrs::Agg* getAggDefiningHead		(Var v) const;
 
-	bool				finishSet				(Aggrs::TypedSet* set);
+	bool		finishSet				(Aggrs::TypedSet* set);
 
-	bool 				addAggrExpr				(Var headv, int setid, const Aggrs::AggBound& bound, AggType type, AggSem headeq);
+	bool 		addAggrExpr				(Var headv, int setid, const Aggrs::AggBound& bound, AggType type, AggSem headeq);
 
 };
 

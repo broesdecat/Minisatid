@@ -44,14 +44,10 @@ inline void IDSolver::clearCycleSources() {
 		isCS(*i) = false;
 	}
 	css.clear();
-}
+}void IDSolver::adaptToNVars(uint64_t nvars){	seen.resize(nvars, 0);	_disj_occurs.resize(nvars*2);	_conj_occurs.resize(nvars*2);}
 
-void IDSolver::notifyVarAdded(uint64_t nvars) {
-	definitions.resize(nvars, NULL);
-	seen.resize(nvars, 0);
-
-	_disj_occurs.resize(nvars*2);
-	_conj_occurs.resize(nvars*2);
+void IDSolver::notifyVarAdded(uint64_t nvars) {	definitions.resize(nvars, NULL);
+	if(!isParsing()){		adaptToNVars(nvars);	}
 }
 
 /**
@@ -64,7 +60,7 @@ void IDSolver::notifyVarAdded(uint64_t nvars) {
  *
  * If only one body literal, the clause is always made conjunctive (for algorithmic correctness later on), semantics are the same.
  */
-bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
+bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {	assert(!isInitialized()); //Rules might be added before initialization is done (FIXME in fact before finishparsing here has been called, so should correct it)
 	if (!isPositive(head)) {
 		throw idpexception("Negative heads are not allowed.\n");
 	}
@@ -98,7 +94,7 @@ bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
  *
  * @PRE: aggregates have to have been finished
  */
-void IDSolver::finishParsing(bool& present, bool& unsat) {
+void IDSolver::finishParsing(bool& present, bool& unsat) {	assert(isInitializing());
 	present = true;
 	unsat = false;
 
@@ -107,7 +103,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 		return;
 	}
 
-	int nvars = nVars();
+	int nvars = nVars();	//LAZY initialization	adaptToNVars(nvars);
 
 	for (vsize i = 0; i < defdVars.size(); i++) {
 		assert(isDefined(defdVars[i]));

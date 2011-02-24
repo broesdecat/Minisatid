@@ -43,7 +43,7 @@ DPLLTSolver::~DPLLTSolver() {
 PCSolver::PCSolver(SolverOption modes, MinisatID::WLSImpl* inter) :
 		LogicSolver(modes, inter),
 		satsolver(NULL), idsolver(NULL), aggsolver(NULL), modsolver(NULL),
-		init(true),
+		initialized(false),
 		optim(NONE), head(-1),
 		logger(new PCLogger()){
 	satsolver = createSolver(*this);
@@ -53,9 +53,6 @@ PCSolver::PCSolver(SolverOption modes, MinisatID::WLSImpl* inter) :
 
 	idsolver = new DPLLTSolver(new IDSolver(this), true);
 	solvers.push_back(idsolver);
-	if (getAggSolver() != NULL) {
-		getIDSolver()->setAggSolver(getAggSolver());
-	}
 
 	if(modes.printcnfgraph){
 		reportf("graph ecnftheory {\n");
@@ -134,9 +131,9 @@ void PCSolver::varBumpActivity(Var v) {
 // INITIALIZING THE THEORY // Add STATE concept to solver to check for correctness
 ////////
 
-//FIXME: calling this from inside is not allowed during parsing: it break the theory that's being read!
+//FIXME: calling this from inside is not allowed during parsing: it breaks the theory that's being read!
 Var PCSolver::newVar() {
-	assert(!init);
+	assert(initialized);
 	Var v = nVars();
 	addVar(v);
 	return v;
@@ -157,7 +154,7 @@ void PCSolver::addVar(Var v) {
 	getSolver()->setDecisionVar(v, true);
 	logger->addCount(v);
 
-	if (!init) {
+	if (initialized) {
 		propagations.resize(nVars(), NULL);
 	}
 }
@@ -331,9 +328,9 @@ void PCSolver::finishParsing(bool& present, bool& unsat) {
 	present = true;
 	unsat = false;
 
-	propagations.resize(nVars(), NULL); //Lazy init
+	propagations.resize(nVars(), NULL); //Lazy init	//Notify parsing is over	for(solverlist::const_iterator i=solvers.begin(); i<solvers.end(); i++){		if((*i)->present){			(*i)->get()->notifyParsed();		}	}
 
-	//Reason for this comment?important to call definition solver last?
+	//IMPORTANT Call definition solvers last for recursive aggregates and rules might be added by other solvers!	//Finish all solvers
 	for(solverlist::const_iterator i=solvers.begin(); i<solvers.end(); i++){
 		if((*i)->present){
 			(*i)->get()->finishParsing((*i)->present, unsat);
@@ -342,21 +339,12 @@ void PCSolver::finishParsing(bool& present, bool& unsat) {
 				return;
 			}
 		}
-		if ((*i)->present && !(*i)->get()->simplify()) {
-			unsat = true; return;
-		} else if(!(*i)->present) {
-			if (modes().verbosity > 0) {
-				clog <<">    (there will be no propagations on " <<(*i)->get()->getName() <<" module)\n";
-			}
-		}
-	}
+	}	//Propagate all non-propagated literals	for(solverlist::const_iterator i=solvers.begin(); i<solvers.end(); i++){		if ((*i)->present && !(*i)->get()->simplify()) {			unsat = true; return;		} else if(!(*i)->present) {			if (modes().verbosity > 0) {				clog <<">    (there will be no propagations on " <<(*i)->get()->getName() <<" module)\n";			}		}	}
 
 	// Do all propagations that have already been done on the SAT-solver level.
-	init = false;
-	const vec<Lit>& trail = getTrail();
-	int trailsize = trail.size();
-	for (int i=0; i < trailsize; i++) {
-		if (propagate(trail[i]) != nullPtrClause) {
+	initialized = true;
+	for (vector<Lit>::const_iterator i=initialprops.begin(); i < initialprops.end(); i++) {
+		if (propagate(*i) != nullPtrClause) {
 			unsat = true; return;
 		}
 	}
@@ -375,9 +363,7 @@ void PCSolver::finishParsing(bool& present, bool& unsat) {
 	}
 }
 
-/*********************
- * IDSOLVER SPECIFIC *
- *********************/
+// IDSOLVER SPECIFIC
 
 void PCSolver::removeAggrHead(Var x) {
 	if (getIDSolver()!=NULL) {
@@ -457,9 +443,7 @@ bool PCSolver::assertedBefore(const Var& l, const Var& p) const {
 	return before;
 }
 
-/////
 // SAT SOLVER SPECIFIC
-///////
 
 void PCSolver::backtrackRest(Lit l) {
 /*	for(solverlist::const_iterator i=solvers.begin(); i<solvers.end(); i++){
@@ -490,7 +474,7 @@ void PCSolver::backtrackDecisionLevel(int levels, int untillevel) {
  * Returns not-owning pointer
  */
 rClause PCSolver::propagate(Lit l) {
-	if (init) {	return nullPtrClause; }
+	if (!initialized) {		initialprops.push_back(l);		return nullPtrClause;	}
 
 	rClause confl = nullPtrClause;
 	for(solverlist::const_iterator i=solvers.begin(); confl==nullPtrClause && i<solvers.end(); i++){
@@ -506,7 +490,7 @@ rClause PCSolver::propagate(Lit l) {
  * Returns not-owning pointer
  */
 rClause PCSolver::propagateAtEndOfQueue() {
-	if(init){ return nullPtrClause;	}
+	if(!initialized){ return nullPtrClause;	}
 
 	rClause confl = nullPtrClause;
 	for(solverlist::const_iterator i=solvers.begin(); confl==nullPtrClause && i<solvers.end(); i++){

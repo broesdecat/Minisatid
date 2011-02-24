@@ -131,8 +131,7 @@ public:
 	IDSolver(MinisatID::PCSolver* s);
 	virtual ~IDSolver();
 
-	MinisatID::AggSolver*	getAggSolver()const{return aggsolver;}
-	void					setAggSolver(MinisatID::AggSolver* a){aggsolver = a;}
+	MinisatID::AggSolver*	getAggSolver()const{ return getPCSolver().getAggSolver();}
 
 	/////////////////////SOLVER NECESSARY
 	virtual void 			notifyVarAdded			(uint64_t nvars);
@@ -168,7 +167,7 @@ public:
 	bool    				addRule      			(bool conj, Lit head, const vec<Lit>& ps);	// Add a rule to the solver.
 	/////////////////////END INITIALIZATION
 
-private:
+private:	void 				adaptToNVars		(uint64_t nvars);
 	bool 				simplifyGraph		(); //False if problem unsat
 
 	DefinedVar* 		getDefVar			(Var v) const { assert(definitions.size()>v); return definitions[v]; }

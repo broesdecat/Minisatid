@@ -6,34 +6,27 @@
 #include "theorysolvers/PCSolver.hpp"
 
 namespace MinisatID {
-
+enum State { PARSING, INITIALIZING, INITIALIZED };
 class DPLLTmodule {
 private:
-	bool init;
+	State init;
 
 protected:
 	PCSolver* pcsolver;
 
 public:
 	DPLLTmodule(PCSolver* s) :
-		init(false), pcsolver(s) {
+		init(PARSING), pcsolver(s) {
 	}
-	virtual ~DPLLTmodule() {
-	}
-	;
-
-	bool isInitialized() const { return init; }
-	void notifyInitialized() {
-		assert(!init);
-		init = true;
-	}
+	virtual ~DPLLTmodule() {	}
+	bool isParsing			() const { return init==PARSING; }	bool isInitializing 	() const { return init==INITIALIZING; }
+	bool isInitialized		() const { return init==INITIALIZED; }	void notifyParsed		() { assert(isParsing()); init = INITIALIZING; }
+	void notifyInitialized	() { assert(isInitializing()); init = INITIALIZED; }
 
 	const PCSolver& getPCSolver() const { return *pcsolver; }
 	PCSolver& getPCSolver() { return *pcsolver; }
 
-	///////
 	// DPLL-T methods
-	///////
 
 	virtual void notifyVarAdded(uint64_t nvars) = 0;
 	virtual void finishParsing(bool& present, bool& unsat) = 0;
@@ -61,9 +54,7 @@ public:
 
 	virtual void print() const = 0;
 
-	///////
 	// Convenience methods (based on getPCSolver)
-	///////
 
 	int 				verbosity() 			const { return getPCSolver().verbosity(); }
 	const SolverOption& modes	() 				const { return getPCSolver().modes(); }

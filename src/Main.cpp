@@ -63,9 +63,7 @@ int doModelGeneration(pwls& d);
 extern SolverOption modes;
 FODOTTranslator* fodottrans;
 
-///////
 // MAIN METHOD
-///////
 
 int main(int argc, char** argv) {
 	//Setting system precision and signal handlers

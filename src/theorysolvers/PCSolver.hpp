@@ -71,10 +71,9 @@ private:
 	DPLLTSolver* modsolver;
 
 	IDSolver* getIDSolver() const;
-	AggSolver* getAggSolver() const;
 	ModSolver* getModSolver() const;
 
-	int init;
+	bool initialized;	std::vector<Lit>		initialprops;
 
 	std::vector<DPLLTmodule*> propagations;
 
@@ -96,7 +95,7 @@ public:
 	virtual ~PCSolver();
 
 	solverlist::const_iterator	getSolversBegin() const { return solvers.begin(); }
-	solverlist::const_iterator	getSolversEnd() const { return solvers.end(); }
+	solverlist::const_iterator	getSolversEnd() const { return solvers.end(); }	AggSolver* getAggSolver() const;
 
 	// INIT
 	void 		setModSolver	(ModSolver* m);

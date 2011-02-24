@@ -29,9 +29,7 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 		sat = true;	return;
 	}
 
-	trail.push_back(new FWTrail(0, 0, 0));
-	setCP(getSet().getType().getMaxPossible(getSet()));
-	setCC(getSet().getType().getMinPossible(getSet()));
+	trail.push_back(new FWTrail(0, getSet().getType().getMinPossible(getSet()), getSet().getType().getMaxPossible(getSet())));
 
 	int counter = 0;
 	for (agglist::iterator i = getSet().getAggNonConst().begin(); !unsat && i < getSet().getAggNonConst().end();) {
@@ -181,9 +179,7 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 			if(p.getType()==POS){
 				addToCertainSet(wl);
 				changedcc = true;
-			}else{
-				removeFromPossibleSet(wl);
-				changedcp = true;
+			}else{				removeFromPossibleSet(wl);				changedcp = true;
 			}
 		}
 	}
