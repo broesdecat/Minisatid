@@ -174,7 +174,7 @@ private:	void 				adaptToNVars		(uint64_t nvars);
 	bool 				hasDefVar			(Var v) const { return getDefVar(v)!=NULL; }
 
 	bool 				isDefined			(Var v) const {	return hasDefVar(v); }
-	bool 				isDefInPosGraph		(Var v) const {	return hasDefVar(v) && occ(v)!=MIXEDLOOP; }
+	bool 				isDefInPosGraph		(Var v) const {	return hasDefVar(v) && (occ(v)==POSLOOP || occ(v)==BOTHLOOP); }
 
 	bool 				isConjunctive		(Var v)	const {	return type(v) == CONJ; }
 	bool 				isDisjunctive		(Var v) const {	return type(v) == DISJ;	}

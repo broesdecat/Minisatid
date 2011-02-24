@@ -426,7 +426,7 @@ bool IDSolver::simplifyGraph(){
 	if(!posloops){
 		return true;
 	}
-
+	//If calling multiple times, but was to costly so removed from the algorithm
 	assert(getPCSolver().getDecisions().size()==0);
 	int currenttrailsize = getPCSolver().getTrail().size();
 	if (currenttrailsize == previoustrailatsimp) {
@@ -469,21 +469,16 @@ bool IDSolver::simplifyGraph(){
 			propq.push(l); // First negative literals are added that are not already false
 		}
 		l = createPositiveLiteral(i);
-		if (!isDefInPosGraph(i) && !isFalse(l)) {
+		if (!isDefInPosGraph(i) && !isFalse(l)) {			seen[var(l)] = 0; //Mixed loop is justified, so seen is 0 (otherwise might find the same literal multiple times)
 			propq.push(l); // Then all non-false non-defined positive literals.
 		}
 	}
 
 	// propagate safeness to defined literals until fixpoint.
 	// While we do this, we build the initial justification.
-	vec<Lit> heads;
-	vec<vec<Lit> > jstf;
 	while (propq.size() > 0) {
-		Lit l = propq.last(); //only heads are added to the queue
-		propq.pop();
-
-		heads.clear();
-		jstf.clear();
+		Lit l = propq.last(); //only heads are added to the queue		assert(sign(l) || seen[var(l)]==0);
+		propq.pop();		vec<Lit> heads;		vec<vec<Lit> > jstf;
 
 		propagateJustificationDisj(l, jstf, heads);
 		for (int i = 0; i < heads.size(); i++) {
@@ -498,7 +493,7 @@ bool IDSolver::simplifyGraph(){
 		for (int i = 0; i < heads.size(); i++) {
 			changejust(var(heads[i]), jstf[i]);
 			propq.push(heads[i]);
-		}
+		}		heads.clear();		jstf.clear();
 
 		propagateJustificationConj(l, propq);
 	}
@@ -588,8 +583,7 @@ bool IDSolver::simplifyGraph(){
 		if (verbosity() >= 1) {
 			report("> All recursive atoms falsified in initializations.\n");
 		}
-	}
-
+	}	if(posloops && modes().defn_strategy != adaptive && !isCycleFree()) {		throw idpexception("Positive justification graph is not cycle free!\n");	}
 #ifdef DEBUG
 	for (vv::const_iterator i = defdVars.begin(); i < defdVars.end(); i++) {
 		Var var = *i;
@@ -792,14 +786,7 @@ rClause IDSolver::propagateAtEndOfQueue() {
 }
 
 void IDSolver::newDecisionLevel() {
-	//Originally checked this after indirectpropagate, which was incorrect, because only at the end of any
-	//decision level is there a guarantee of being cyclefree
-#ifdef DEBUG
-	if(posloops && modes().defn_strategy != adaptive && !isCycleFree()) {
-		report("NOT CYCLE FREE!");
-		exit(-1);
-	}
-#endif
+	if(posloops && modes().defn_strategy != adaptive && !isCycleFree()) {		throw idpexception("Positive justification graph is not cycle free!\n");	}
 }
 
 /**
@@ -1500,7 +1487,7 @@ inline void IDSolver::print(const PropRule& c) const {
 /**
  * For debugging purposes, checks for POSITIVE LOOPS.
  */
-bool IDSolver::isCycleFree() const {
+bool IDSolver::isCycleFree() const {	if(!modes().checkcyclefreeness){		return true;	}
 #ifdef DEBUG
 	for (int i = 0; i < nVars(); i++) {
 		assert(!isDefined(i) || justification(i).size()>0 || type(i)!=DISJ || occ(i)==MIXEDLOOP);
