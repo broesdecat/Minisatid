@@ -127,7 +127,7 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	transvals.push_back(TRANS_FODOT); transdesc.push_back(pair<string, string>("fodot", "Translate model into FO(.) structure"));
 	transvals.push_back(TRANS_ASP); transdesc.push_back(pair<string, string>("asp", "Translate model into ASP facts"));
 	transvals.push_back(TRANS_PLAIN); transdesc.push_back(pair<string, string>("plain", "Return model in integer format"));
-
+	vector<pair<string, string> > checkcyclesdesc;	checkcyclesdesc.push_back(pair<string, string>("yes", "Check"));	checkcyclesdesc.push_back(pair<string, string>("no", "Don't check"));
 	vector<pair<string, string> > ecnfgraphdesc;
 	ecnfgraphdesc.push_back(pair<string, string>("yes", "Generate"));
 	ecnfgraphdesc.push_back(pair<string, string>("no", "Don't generate"));
@@ -212,7 +212,7 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	options.push_back(new Option<OUTPUTFORMAT, string>("", "outputformat", transvals, transdesc,
 			modes.transformat, cmd, "The requested output format (only relevant if translation information is provided)."));
 	options.push_back(new Option<bool, string>	("", "ecnfgraph", 	yesnovals, ecnfgraphdesc,
-			modes.printcnfgraph, cmd, "Choose whether to generate a .dot graph representation of the ecnf"));
+			modes.printcnfgraph, cmd, "Choose whether to generate a .dot graph representation of the ecnf"));	options.push_back(new Option<bool, string>	("", "cyclefreeness-check", yesnovals, checkcyclesdesc,			modes.checkcyclefreeness, cmd, "Check the correctness of the inductive definition algorithm."));
 	options.push_back(new Option<bool, string>	("r", "remap", 		yesnovals, remapdesc,
 			modes.remap, cmd, "Choose whether to remap literals from the input structure to a contiguous internal representation"));
 	options.push_back(new Option<bool, string>	("","bumpagg", 		yesnovals, bumpaggonnotifydesc,

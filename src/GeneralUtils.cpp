@@ -84,7 +84,7 @@ SolverOption::SolverOption():
 		defsem(DEF_WELLF),
 		ufs_strategy(breadth_first),
 		defn_strategy(always),
-		defn_search(include_cs),
+		defn_search(include_cs),		checkcyclefreeness(false),
 		idclausesaving(0),
 		aggclausesaving(2),
 		pbsolver(false),		watchesratio(0.75),
@@ -124,7 +124,7 @@ void SolverOption::print(std::ostream& so) const{
 	so << "defsem: " 			<<defsem <<"\n";
 	so << "ufs_strategy: "		<<ufs_strategy <<"\n";
 	so << "defn_strategy: " 	<<defn_strategy <<"\n";
-	so << "defn_search: " 		<<defn_search <<"\n";
+	so << "defn_search: " 		<<defn_search <<"\n";	so << "checking cycles: "	<<checkcyclefreeness <<"\n";
 	so << "aggclausesaving: " 	<<aggclausesaving <<"\n";
 	so << "pbsolver: " 			<<pbsolver <<"\n";	so << "watchedratio: " 		<<watchesratio <<"\n";
 	so << "primesfile: " 		<<getPrimesFile() <<"\n";

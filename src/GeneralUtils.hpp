@@ -232,7 +232,7 @@ namespace MinisatID {
 		DEFSEM 			defsem;
 		DEFSEARCHSTRAT 	ufs_strategy;
 		DEFFINDCS 		defn_strategy;
-		DEFMARKDEPTH 	defn_search;
+		DEFMARKDEPTH 	defn_search;		bool			checkcyclefreeness;
 		int 			idclausesaving, aggclausesaving;
 		bool 			selectOneFromUFS;
 		bool 			pbsolver;		double			watchesratio;
