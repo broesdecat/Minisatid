@@ -66,7 +66,7 @@ void AggSolver::addDynamicWatch(const Lit& l, Watch* w) {	assert(!isParsing());
 	lit2dynamicwatchlist[toInt(l)].push_back(w);
 }
 
-int AggSolver::getTime(Lit l) const {	assert(isInitialized());
+int AggSolver::getTime(Lit l) const {	assert(!isParsing());
 	int time = 0;
 	if(propagated[var(l)].v!=l_Undef){
 		time = propagated[var(l)].i;
@@ -198,7 +198,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {	assert(isInitializi
 		report("Initializing aggregates\n");
 	}
 
-	//IMPORTANT: LAZY initialization!	cerr <<"Finished parsing, done with" <<nVars() <<"vars.";	adaptToNVars(nVars());
+	//IMPORTANT: LAZY initialization!	adaptToNVars(nVars());
 
 	for(mips::const_iterator i=parsedSets.begin(); i!=parsedSets.end(); i++){
 		sets.push_back((*i).second);
