@@ -76,7 +76,7 @@ public:
 	const SolverOption& modes()	const	{ return _modes; }
 	int 	verbosity		()	const	{ return modes().verbosity; }
 	void 	printStatistics	() const;
-	void 	printLiteral	(std::ostream& stream, const Lit& l) const;
+	void 	printLiteral	(std::ostream& stream, const Lit& l) const;	void 	printCurrentOptimum(const Weight& value) const;
 
 protected:
 	bool 	hasOptimization	() const { return optimization; }

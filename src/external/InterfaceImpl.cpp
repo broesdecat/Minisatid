@@ -82,7 +82,7 @@ void WLSImpl::setTranslator(Translator* trans){
 
 void WLSImpl::printLiteral(std::ostream& output, const Lit& l) const{
 	getTranslator().printLiteral(output, getRemapper()->getLiteral(l));
-}
+}void WLSImpl::printCurrentOptimum(const Weight& value) const{	ostream output(getRes());	getTranslator().printCurrentOptimum(output, value);}
 
 void WLSImpl::printStatistics() const {
 	getSolver()->printStatistics();

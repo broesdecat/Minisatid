@@ -916,4 +916,4 @@ void PCSolver::print() const{
 
 void PCSolver::print(rClause clause) const {
 	getSolver()->printClause(getClauseRef(clause));
-}
+}void PCSolver::printCurrentOptimum(const Weight& value) const{	getParent()->printCurrentOptimum(value);}

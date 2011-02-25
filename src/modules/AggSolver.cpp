@@ -701,9 +701,8 @@ bool AggSolver::invalidateAgg(vec<Lit>& invalidation, Var head) {	assert(isInit
 	TypedSet* s = a->getSet();
 	Propagator* prop = s->getProp();
 	Weight value = prop->getValue();
-
-	if(modes().verbosity){
-		clog <<"Current optimum: " <<toString(value).c_str() <<"\n";
+	getPCSolver().printCurrentOptimum(value);
+	if(modes().verbosity>=1){		clog <<"Current optimal value " <<value <<"\n";
 	}
 
 	a->setBound(AggBound(a->getSign(), value - 1));

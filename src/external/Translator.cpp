@@ -20,7 +20,7 @@ Translator::Translator(): modelcounter(0){}
 
 void Translator::printLiteral(std::ostream& output, const Literal& lit){
 	output <<(lit.hasSign()?"-":"") <<lit.getAtom().getValue() <<"\n";
-}
+}void Translator::printCurrentOptimum(std::ostream& output, const Weight& value){}
 
 void Translator::printModel(std::ostream& output, const std::vector<Literal>& model){
 	bool start = true;
@@ -380,8 +380,7 @@ void LParseTranslator::printLiteral(std::ostream& output, const Literal& lit) {
 		output <<(lit.hasSign()?"~":"") <<(*it).second <<"\n";
 	}
 }
-
 void LParseTranslator::printHeader(std::ostream& output) {
 
 }
-void OPBTranslator::addTuple(Atom atom, std::string name) {	lit2name[atom]=name;}void OPBTranslator::printModel(std::ostream& output, const std::vector<Literal>& model) {	for(vector<Literal>::const_iterator i=model.begin(); i<model.end(); i++){		if(!(*i).hasSign()){ //Do not print false literals			map<Atom, string>::const_iterator it = lit2name.find((*i).getAtom());			if(it!=lit2name.end()){				output <<(*it).second <<" ";			}		}	}	output <<"\n";	output.flush();}void OPBTranslator::printLiteral(std::ostream& output, const Literal& lit) {	map<Atom, string>::const_iterator it = lit2name.find(lit.getAtom());	if(it!=lit2name.end()){		output <<(lit.hasSign()?"~":"") <<(*it).second <<"\n";	}}void OPBTranslator::printHeader(std::ostream& output) {}
+void OPBTranslator::addTuple(Atom atom, std::string name) {	lit2name[atom]=name;}void OPBTranslator::printModel(std::ostream& output, const std::vector<Literal>& model) {	output <<"v ";	for(vector<Literal>::const_iterator i=model.begin(); i<model.end(); i++){		if(!(*i).hasSign()){ //Do not print false literals			map<Atom, string>::const_iterator it = lit2name.find((*i).getAtom());			if(it!=lit2name.end()){				output <<(*it).second <<" ";			}		}	}	output <<"\n";	output.flush();}void OPBTranslator::printLiteral(std::ostream& output, const Literal& lit) {}void OPBTranslator::printCurrentOptimum(std::ostream& output, const Weight& value){	output <<"o" <<value <<"\n";}void OPBTranslator::printHeader(std::ostream& output) {}

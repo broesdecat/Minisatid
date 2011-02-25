@@ -164,7 +164,7 @@ public:
 	void 		backtrackRest	(Lit l);
 	void 		backtrackDecisionLevel(int levels, int untillevel);
 	rClause 	propagate		(Lit l);
-	rClause 	propagateAtEndOfQueue();
+	rClause 	propagateAtEndOfQueue();	void 	printCurrentOptimum(const Weight& value) const;
 
 	// DEBUG
 	void	printModID() const; // SATsolver asks this to PC such that more info (modal e.g.) can be printed.
