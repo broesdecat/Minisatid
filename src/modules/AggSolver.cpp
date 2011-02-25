@@ -520,11 +520,10 @@ Agg* AggSolver::getAggDefiningHead(Var v) const {	assert(isInitialized());
 	return agg;
 }
 
-vector<Var> AggSolver::getAggHeadsWithBodyLit(Var x) const{	assert(isInitialized());
+vector<Var> AggSolver::getDefAggHeadsWithBodyLit(Var x) const{	assert(isInitialized());
 	vector<Var> heads;
 	for (vps::const_iterator i = var2setlist[x].begin(); i < var2setlist[x].end(); i++) {
-		for (agglist::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); j++) {
-			heads.push_back(var((*j)->getHead()));
+		for (agglist::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); j++) {			if((*j)->isDefined()){				heads.push_back(var((*j)->getHead()));			}
 		}
 	}
 	return heads;

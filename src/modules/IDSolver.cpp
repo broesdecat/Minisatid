@@ -16,7 +16,7 @@ using namespace MinisatID::Print;
 
 IDSolver::IDSolver(PCSolver* s):
 		DPLLTmodule(s),
-		sem(getPCSolver().modes().defsem), recagg(0), aggsolver(NULL),
+		sem(getPCSolver().modes().defsem), recagg(0),
 		previoustrailatsimp(-1),
 		posloops(true), negloops(true),
 		simplified(false),
@@ -507,8 +507,7 @@ bool IDSolver::simplifyGraph(){
 	 * justified). Otherwise, it is checked (overestimation) whether a negative loop might be possible.
 	 * If this is not the case, the definition is removed from the data structures.
 	 */
-	vector<Var> reducedVars;
-	bool aggpresent = false;
+	vector<Var> reducedVars;	int remrecagg = 0;
 	for (vector<int>::const_iterator i = defdVars.begin(); i < defdVars.end(); i++) {
 		Var v = (*i);
 		if (seen[v] > 0 || isFalse(v)) {
@@ -526,15 +525,14 @@ bool IDSolver::simplifyGraph(){
 				--atoms_in_pos_loops;
 			} else {
 				occ(v) = MIXEDLOOP;
-				reducedVars.push_back(v);
+				reducedVars.push_back(v);				if (type(v) == AGGR) {					remrecagg++;				}
 			}
 		} else {
-			reducedVars.push_back(v);
-			if (!aggpresent && type(v) == AGGR) {
-				aggpresent = true;
+			reducedVars.push_back(v);			if (type(v) == AGGR) {
+				remrecagg++;
 			}
 		}
-	}
+	}	assert(remrecagg<=recagg);	recagg = remrecagg;
 	defdVars.clear();
 	defdVars.insert(defdVars.begin(), reducedVars.begin(), reducedVars.end());
 
@@ -559,10 +557,6 @@ bool IDSolver::simplifyGraph(){
 				}
 			}
 		}
-	}
-
-	if (!aggpresent && getAggSolver() != NULL) {
-		aggsolver = NULL;
 	}
 
 	//Reset the elements in "seen" that were changed
@@ -813,7 +807,7 @@ void IDSolver::findCycleSources() {
 			}
 
 			if (getAggSolver() != NULL) {
-				vector<Var> heads = getAggSolver()->getAggHeadsWithBodyLit(var(~l));
+				vector<Var> heads = getAggSolver()->getDefAggHeadsWithBodyLit(var(~l));
 				for (vv::const_iterator j = heads.begin(); j < heads.end(); j++) {
 					if(hasDefVar(*j)){
 						checkJustification(*j);
@@ -1379,7 +1373,7 @@ void IDSolver::markNonJustifiedAddParents(Var x, Var cs, queue<Var> &q, vec<Var>
 		}
 	}
 	if (getAggSolver() != NULL) {
-		vector<Var> heads = getAggSolver()->getAggHeadsWithBodyLit(x);
+		vector<Var> heads = getAggSolver()->getDefAggHeadsWithBodyLit(x);
 		for (vector<Var>::size_type i = 0; i < heads.size(); i++) {
 			vec<Lit>& jstfc = justification(heads[i]);
 			for (int k = 0; k < jstfc.size(); k++) {

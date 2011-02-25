@@ -82,7 +82,7 @@ public:
 
 	void 	addModel			(std::vector<Literal> model) {
 		nbmodelsfound++;
-		if(getSave()){
+		if(getSave()){			models.reserve(models.size()+1);
 			models.push_back(model);
 		}
 	}

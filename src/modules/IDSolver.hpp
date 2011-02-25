@@ -38,7 +38,7 @@ private:
 	vl lits;
 
 public:
-    PropRule(Lit head, const vec<Lit>& ps): head(var(head)){
+    PropRule(Lit head, const vec<Lit>& ps): head(var(head)){    	lits.reserve(ps.size());
     	for(int i=0; i<ps.size(); i++){
     		lits.push_back(ps[i]);
     	}
@@ -96,7 +96,6 @@ private:
 	DEFSEM					sem;
 
 	int 					recagg; 	//The number of recursive aggregates present, if 0 after initialization, no aggsolver linking will be used.
-	MinisatID::AggSolver*	aggsolver;
 
 	int						previoustrailatsimp; //The size of the trail the previous time simplification was run.
 
@@ -131,7 +130,7 @@ public:
 	IDSolver(MinisatID::PCSolver* s);
 	virtual ~IDSolver();
 
-	MinisatID::AggSolver*	getAggSolver()const{ return getPCSolver().getAggSolver();}
+	MinisatID::AggSolver*	getAggSolver()const{ return recagg==0?NULL:getPCSolver().getAggSolver();}
 
 	/////////////////////SOLVER NECESSARY
 	virtual void 			notifyVarAdded			(uint64_t nvars);

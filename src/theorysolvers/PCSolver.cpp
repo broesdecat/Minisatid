@@ -246,7 +246,7 @@ bool PCSolver::addSet(int setid, const vec<Lit>& lits) {
 bool PCSolver::addSet(int setid, const vec<Lit>& lits, const vector<Weight>& w) {
 	assert(getAggSolver()!=NULL);
 	addVars(lits);
-	vector<Lit> ll;
+	vector<Lit> ll;	ll.reserve(lits.size());
 	for (int i = 0; i < lits.size(); i++) {
 		ll.push_back(lits[i]);
 	}

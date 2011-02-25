@@ -106,13 +106,13 @@ void WLSImpl::checkLits(const vector<Literal>& lits, vec<Lit>& ll){
 	}
 }
 
-void WLSImpl::checkLits(const vector<Literal>& lits, vector<Lit>& ll){
+void WLSImpl::checkLits(const vector<Literal>& lits, vector<Lit>& ll){	ll.reserve(lits.size());
 	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); i++){
 		ll.push_back(checkLit(*i));
 	}
 }
 
-void WLSImpl::checkAtoms(const vector<Atom>& atoms, vector<Var>& ll){
+void WLSImpl::checkAtoms(const vector<Atom>& atoms, vector<Var>& ll){	ll.reserve(atoms.size());
 	for(vector<Atom>::const_iterator i=atoms.begin(); i<atoms.end(); i++){
 		ll.push_back(checkAtom(*i));
 	}
@@ -275,8 +275,8 @@ bool WPCLSImpl::addSet(int id, const vector<Literal>& lits){
 
 //Might be implemented more efficiently in the future
 bool WPCLSImpl::addSet(int id, const vector<WLtuple>& lws){
-	vector<Literal> lits;
-	vector<Weight> weights;
+	vector<Literal> lits;	lits.reserve(lws.size());
+	vector<Weight> weights;	weights.reserve(lws.size());
 
 	for(vector<WLtuple>::const_iterator i=lws.begin(); i<lws.end(); i++){
 		lits.push_back((*i).l);
@@ -380,8 +380,8 @@ bool WSOLSImpl::addSet(vsize modid, int id, vector<Literal>& lits, vector<Weight
 
 //Might be implemented more efficiently in the future
 bool WSOLSImpl::addSet(vsize modid, int id, vector<WLtuple>& lws){
-	vector<Literal> lits;
-	vector<Weight> weights;
+	vector<Literal> lits;	lits.reserve(lws.size());
+	vector<Weight> weights;	weights.reserve(lws.size());
 
 	for(vector<WLtuple>::const_iterator i=lws.begin(); i<lws.end(); i++){
 		lits.push_back((*i).l);

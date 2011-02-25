@@ -142,7 +142,7 @@ public:
 	void 				findJustificationAggr		(Var head, vec<Lit>& jstf);
 	bool 				directlyJustifiable			(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust);
 	void 				addExternalLiterals			(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, VarToJustif& seen);
-	std::vector<Var> 	getAggHeadsWithBodyLit		(Var x) const;
+	std::vector<Var> 	getDefAggHeadsWithBodyLit		(Var x) const;
 	vwl::const_iterator getSetLitsOfAggWithHeadBegin(Var x) const;
 	vwl::const_iterator getSetLitsOfAggWithHeadEnd	(Var x) const;
 
