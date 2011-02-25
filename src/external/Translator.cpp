@@ -355,19 +355,6 @@ void FODOTTranslator::printHeader(ostream& output){
 	if(emptytrans){
 		return;
 	}
-
-/*	if(tofodot){
-		if(truelist.size()>0){
-			output << "=== Certainly true atoms (also added to each model) ===\n";
-			printInterpr(trueout, TRANS_TRUE, output);
-			output <<"\n";
-		}
-		if(arbitlist.size()>0){
-			output << "=== Atoms with arbitrary truth value (not shown in models!) ===\n";
-			printInterpr(arbitout, TRANS_ARBIT, output);
-			output <<"\n";
-		}
-	}*/
 }
 
 void LParseTranslator::addTuple(Atom atom, std::string name) {
@@ -397,3 +384,4 @@ void LParseTranslator::printLiteral(std::ostream& output, const Literal& lit) {
 void LParseTranslator::printHeader(std::ostream& output) {
 
 }
+void OPBTranslator::addTuple(Atom atom, std::string name) {	lit2name[atom]=name;}void OPBTranslator::printModel(std::ostream& output, const std::vector<Literal>& model) {	for(vector<Literal>::const_iterator i=model.begin(); i<model.end(); i++){		if(!(*i).hasSign()){ //Do not print false literals			map<Atom, string>::const_iterator it = lit2name.find((*i).getAtom());			if(it!=lit2name.end()){				output <<(*it).second <<" ";			}		}	}	output <<"\n";	output.flush();}void OPBTranslator::printLiteral(std::ostream& output, const Literal& lit) {	map<Atom, string>::const_iterator it = lit2name.find(lit.getAtom());	if(it!=lit2name.end()){		output <<(lit.hasSign()?"~":"") <<(*it).second <<"\n";	}}void OPBTranslator::printHeader(std::ostream& output) {}

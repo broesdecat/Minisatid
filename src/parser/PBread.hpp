@@ -2,7 +2,7 @@
 #ifndef PBREAD_H
 #define PBREAD_H
 
-#include "external/ExternalInterface.hpp"
+#include "external/ExternalInterface.hpp"#include "external/Translator.hpp"
 
 namespace MinisatID {
 	struct Factor{
@@ -36,7 +36,7 @@ namespace MinisatID {
 class DefaultCallback {
 private:
 	WrappedPCSolver* solver;
-	WrappedPCSolver* getSolver() { return solver; }
+	WrappedPCSolver* getSolver() { return solver; }	Literal 		createLiteralFromOPBVar(int var);
 
 	IntegerType bound;
 	bool equality;
@@ -190,7 +190,7 @@ private:
 };
 
 class PBRead{
-private:
+private:	OPBTranslator* trans;
 	std::istream& in; // the stream we're reading from
 	int nbVars, nbConstr; // MetaData: #Variables and #Constraints in file.
 
@@ -200,7 +200,7 @@ private:
 	DefaultCallback cb;
 
 public:
-	PBRead(WrappedPCSolver* solver, std::istream &stream): in(stream), cb(solver) {
+	PBRead(WrappedPCSolver* solver, OPBTranslator* trans, std::istream &stream):			trans(trans), in(stream), cb(solver) {
 		autoLinearize = false;
 
 		nbVars = 0;
@@ -216,7 +216,7 @@ public:
 	void parse();
 	void autoLin() { autoLinearize = true; }
 
-private:
+private:	OPBTranslator&	getTranslator() { return *trans; }
 	char get	() 			{ return in.get(); }
 	void putback(char c)	{ in.putback(c); }
 	bool eof	()			{ return !in.good(); }

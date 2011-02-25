@@ -139,7 +139,7 @@ int doModelGeneration(pwls& d){
 			WrappedPCSolver* p = new WrappedPCSolver(modes);
 			LParseTranslator* lptrans = new LParseTranslator();
 			trans = lptrans;
-			p->setTranslator(lptrans);
+			p->setTranslator(trans);
 			Read* r = new Read(p, lptrans);
 			std::istream is(getInputBuffer());
 			if(!r->read(is)){
@@ -153,8 +153,8 @@ int doModelGeneration(pwls& d){
 		}
 		case FORMAT_OPB:{
 			WrappedPCSolver* p = new WrappedPCSolver(modes);
-			std::istream is(getInputBuffer());
-			PBRead* parser = new PBRead(p, is);
+			std::istream is(getInputBuffer());			OPBTranslator* opbtrans = new OPBTranslator();			trans = opbtrans;			p->setTranslator(trans);
+			PBRead* parser = new PBRead(p, opbtrans, is);
 			parser->autoLin();
 			parser->parse();
 			closeInput();

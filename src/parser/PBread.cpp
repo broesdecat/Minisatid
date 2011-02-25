@@ -27,7 +27,7 @@
 // version 2.9.4
 
 #include "parser/PBread.hpp"
-
+#include <sstream>
 #include <iostream>
 #include <stdlib.h>
 #include <algorithm>
@@ -63,7 +63,7 @@ void DefaultCallback::endObjective() {	setid++;	getSolver()->addSet(setid, lw)
  * @param idVar: the numerical identifier of the variable
  */
 void DefaultCallback::objectiveTerm(IntegerType coeff, int idVar) {
-	lw.push_back(WLtuple(Literal(::abs(idVar), idVar<0), coeff));
+	lw.push_back(WLtuple(createLiteralFromOPBVar(idVar), coeff));
 }
 
 /**
@@ -102,7 +102,7 @@ void DefaultCallback::endConstraint() {
 		lits.push_back(Literal(newvar));
 		getSolver()->addClause(lits);
 	}
-}
+}Literal DefaultCallback::createLiteralFromOPBVar(int var){	return Literal(::abs(var), var<0);}
 
 /**
  * callback called when we read a term of a constraint
@@ -110,8 +110,7 @@ void DefaultCallback::endConstraint() {
  * @param coeff: the coefficient of the term
  * @param idVar: the numerical identifier of the variable
  */
-void DefaultCallback::constraintTerm(IntegerType coeff, int idVar) {
-	lw.push_back(WLtuple(Literal(::abs(idVar), idVar<0), coeff));
+void DefaultCallback::constraintTerm(IntegerType coeff, int idVar) {	lw.push_back(WLtuple(createLiteralFromOPBVar(idVar), coeff));
 }
 
 /**
@@ -317,13 +316,12 @@ bool PBRead::readIdentifier(vector<int> &list) {
 
 	//Small check on the coefficient ID to make sure everything is ok
 	if (varID > nbVars)
-		throw runtime_error("variable identifier larger than "
-			"#variables in metadata.");
+		throw runtime_error("variable identifier larger than #variables in metadata.");
 
 	if (negated)
 		varID = -varID;
 
-	list.push_back(varID);
+	list.push_back(varID);	stringstream ss;	ss <<"x" <<::abs(varID);	getTranslator().addTuple(Atom(::abs(varID)), ss.str());
 
 	return true;
 }

@@ -84,12 +84,12 @@ public:
 			LParseTranslator():Translator(){}
 	virtual ~LParseTranslator(){}
 
-	void 	addTuple		(Atom lit, std::string name);
+	void 	addTuple		(Atom atom, std::string name);
 
 	void 	printLiteral	(std::ostream& output, const MinisatID::Literal& lit);
 	void 	printModel		(std::ostream& output, const std::vector<Literal>& model);
 	void 	printHeader		(std::ostream& output);
-};
+};class OPBTranslator: public Translator {private:	std::map<Atom,std::string>	lit2name;public:			OPBTranslator():Translator(){}	virtual ~OPBTranslator(){}	void 	addTuple		(Atom atom, std::string name);	void 	printLiteral	(std::ostream& output, const MinisatID::Literal& lit);	void 	printModel		(std::ostream& output, const std::vector<Literal>& model);	void 	printHeader		(std::ostream& output);};
 
 }
 
