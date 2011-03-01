@@ -53,49 +53,27 @@ struct WLtuple{
 
 	WLtuple(const Literal& l, const Weight& w): l(l), w(w){ }
 	WLtuple operator=(const WLtuple& lw) const { return WLtuple(lw.l, lw.w); }
-};
-
-///////
-// Generic model expansion solution datastructure
-///////
+};typedef std::vector<Literal> literallist;typedef std::vector<std::vector<Literal> > modellist;enum ModelSaved { MODEL_NONE, MODEL_SAVED, MODEL_SAVING };
 
 class Solution{
-private:
-	const bool 							printmodels, savemodels, search;
-	const int 							nbmodelstofind;
-	int 								nbmodelsfound;
-	std::vector<std::vector<Literal> > 	models; //IMPORTANT: for optimization problem, models will contain a series of increasingly better models
-	const std::vector<Literal> 			assumptions;
+private:	const ModelExpandOptions options;
+	int 		nbmodels;	literallist	temporarymodel;
+	modellist	models; //IMPORTANT: for optimization problem, models will contain a series of increasingly better models	literallist assumptions;	bool		optimalmodelfound;	ModelSaved modelsave; //CRITICAL SECTION SUPPORT
 
 public:
-	Solution(bool print, bool save, bool search, int searchnb, const std::vector<Literal>& assumpts):
-			printmodels(print), savemodels(save), search(search),
-			nbmodelstofind(searchnb), nbmodelsfound(0),
-			assumptions(assumpts){}
+	Solution(ModelExpandOptions options):
+			options(options),			nbmodels(0),			optimalmodelfound(false),			modelsave(MODEL_NONE){}
 	~Solution(){};
 
-	int 	getNbModelsFound	() const	{ return nbmodelsfound; }
-	int 	getNbModelsToFind	() const	{ return nbmodelstofind; }
-	bool 	getPrint			() const 	{ return printmodels; }
-	bool 	getSave				() const 	{ return savemodels; }
-	bool 	getSearch			() const 	{ return search; }
+	int 	getNbModelsFound	() const	{ return nbmodels; }
+	int 	getNbModelsToFind	() const	{ return options.nbmodelstofind; }
+	PrintModel 	getPrintOption	() const 	{ return options.printmodels; }
+	SaveModel 	getSaveOption	() const 	{ return options.savemodels; }
+	Inference 	getInferenceOption	() const 	{ return options.search; }	const ModelExpandOptions& getOptions() const { return options; }	const modellist& 	getModels() { return models; } //IMPORTANT: no use calling it when models are not being saved.	const literallist& getAssumptions	() { return assumptions; }
 
-	void 	addModel			(std::vector<Literal> model) {
-		nbmodelsfound++;
-		if(getSave()){			models.reserve(models.size()+1);
-			models.push_back(model);
-		}
-	}
-
-	const std::vector<Literal>& getAssumptions	() { return assumptions; }
-
-	/**
-	 * IMPORTANT: only allowed when the models are being saved!
-	 */
-	const std::vector<std::vector<Literal> >& 	getModels		() {
-		if(!savemodels) throw idpexception("Models were not being saved!\n");
-		return models;
-	}
+	void 	addModel(literallist model, bool currentlybest) {		if(modelsave==MODEL_NONE || (modelsave==MODEL_SAVED && getSaveOption()==SAVE_ALL)){			nbmodels++;		}else if(modelsave==MODEL_SAVING){ //Error in saving previous model, so abort			throw idpexception("Previous model failed to save, cannot guarantee correctness.\n");		}
+		if(getSaveOption()==SAVE_BEST){			if(modelsave!=MODEL_NONE){				temporarymodel = models.back();			}		}		modelsave = MODEL_SAVING;		models.push_back(model);		modelsave = MODEL_SAVED;
+	}	const literallist& getBestModelFound() const{		assert(modelsave!=MODEL_NONE);		if(modelsave==MODEL_SAVED){			return models.back();		}else{			return temporarymodel;		}	}	bool	hasOptimalModel			() const	{ return optimalmodelfound; }	void	notifyOptimalModelFound	()			{ optimalmodelfound = true;	}
 };
 
 }

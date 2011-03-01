@@ -35,9 +35,8 @@ void Translator::printModel(std::ostream& output, const std::vector<Literal>& mo
 void Translator::printHeader(std::ostream& output){
 	//Noop
 }
-
+
 FODOTTranslator::FODOTTranslator(OUTPUTFORMAT fodot): Translator(),
-		//ASP output if TRANS_ASP or TRANS_ASPCOMP3, fodottrans is not used if TRANS_PLAIN
 		tofodot(fodot==TRANS_FODOT), finisheddata(false), emptytrans(true) {
 	assert(fodot!=TRANS_PLAIN);
 }
@@ -46,24 +45,17 @@ FODOTTranslator::~FODOTTranslator() {
 
 }
 
-void FODOTTranslator::finishParsing(){
+void FODOTTranslator::finishParsing(ostream& output){
 	finisheddata = true;
 
-	if(emptytrans){
+	if(emptytrans || predicates.size()){
 		return;
 	}
 
-	largestnottseitinatom = highestvalue[predicates.size()-1];
-	trueout = modelvec(predicates.size());
-	arbitout = modelvec(predicates.size());
-	truemodelcombinedout = modelvec(predicates.size());
-
-	if(predicates.empty()) return;
-
+	largestnottseitinatom = highestvalue[predicates.size()-1];	for(vector<string>::const_iterator i=predicates.begin(); i<predicates.end(); i++){		arbitout.push_back(SymbolInterpr(*i));		truemodelcombinedout.push_back(SymbolInterpr(*i));	}
 	// set initial values
-	uint	currpred = 0;
-
-	// read and translate the model
+	uint currpred = 0;
+	// parse the certainly true atoms
 	int curr;
 	for(vector<int>::const_iterator m=truelist.begin(); m<truelist.end(); m++) {
 		curr = *m;
@@ -72,8 +64,7 @@ void FODOTTranslator::finishParsing(){
 		}else{
 			vector<string> arg;
 			if(deriveStringFromAtomNumber(curr, currpred, arg)){
-				trueout[currpred].push_back(arg);
-				truemodelcombinedout[currpred].push_back(arg);
+				truemodelcombinedout[currpred].tuples.push_back(TupleInterpr(FIXED_TRUE, arg));
 			}
 		}
 	}
@@ -81,7 +72,7 @@ void FODOTTranslator::finishParsing(){
 	// set initial values
 	currpred = 0;
 
-	// read and translate the model
+	// parse and print the arbitrary literals
 	for(vector<int>::const_iterator m=arbitlist.begin(); m<arbitlist.end(); m++) {
 		curr = *m;
 		if(curr > largestnottseitinatom){
@@ -89,10 +80,10 @@ void FODOTTranslator::finishParsing(){
 		}else{
 			vector<string> arg;
 			if(deriveStringFromAtomNumber(curr, currpred, arg)){
-				arbitout[currpred].push_back(arg);
+				arbitout[currpred].tuples.push_back(TupleInterpr(FIXED_ARBIT, arg));
 			}
 		}
-	}
+	}	output <<"Arbitrary truth values: \n";	printInterpr(arbitout, output, PRINT_ARBIT);
 }
 
 void FODOTTranslator::addType(string name, const vector<string>& inter){
@@ -137,7 +128,7 @@ void FODOTTranslator::printTuple(const vector<string>& tuple, ostream& output) c
 	}
 }
 
-void FODOTTranslator::printPredicate(int n, const modelvec& model, ostream& output) const{
+void FODOTTranslator::printPredicate(int n, const modelvec& model, ostream& output, PRINTCHOICE print) const{
 	if(predtypes[n].size()==0){
 		bool found = false;
 		for(vector<string>::const_iterator i=arbitatoms.begin(); !found && i<arbitatoms.end(); i++){
@@ -184,7 +175,7 @@ void FODOTTranslator::printPredicate(int n, const modelvec& model, ostream& outp
 	}
 }
 
-void FODOTTranslator::printFunction(int n, const modelvec& model, ostream& output) const{
+void FODOTTranslator::printFunction(int n, const modelvec& model, ostream& output, PRINTCHOICE print) const{
 	if(tofodot){
 		output << getPredName(n) <<" = ";
 		if(predtypes[n].size() == 1) {
@@ -228,17 +219,17 @@ void FODOTTranslator::printFunction(int n, const modelvec& model, ostream& outpu
 	}
 }
 
-void FODOTTranslator::printInterpr(const modelvec& model, ostream& output) const{
+void FODOTTranslator::printInterpr(const modelvec& model, ostream& output, PRINTCHOICE printfixed) const{
 	for(vector<string>::size_type n = 0; n < predicates.size(); ++n) {
 		if(isfunc[n]) {
-			printFunction(n, model, output);
+			printFunction(n, model, output, printfixed);
 		} else {
-			printPredicate(n, model, output);
+			printPredicate(n, model, output, printfixed);
 		}
 	}
 }
 
-//IMPORTANT: non-incremental (slow), so do not use for printing a full model!
+//IMPORTANT: non-incremental (slow), so do not use for printing a full model!//FIXME arbitrary?
 void FODOTTranslator::printLiteral(std::ostream& output, const Literal& lit) {
 	if(!finisheddata){
 		finishParsing();
@@ -307,7 +298,7 @@ void FODOTTranslator::printModel(std::ostream& output, const vector<Literal>& mo
 			}
 		}
 	}
-	printInterpr(temptruemodelcombined, output);
+	printInterpr(temptruemodelcombined, output, PRINT_FIXED);
 	output <<"\n";
 	output.flush();
 }
@@ -383,4 +374,4 @@ void LParseTranslator::printLiteral(std::ostream& output, const Literal& lit) {
 void LParseTranslator::printHeader(std::ostream& output) {
 
 }
-void OPBTranslator::addTuple(Atom atom, std::string name) {	lit2name[atom]=name;}void OPBTranslator::printModel(std::ostream& output, const std::vector<Literal>& model) {	output <<"v ";	for(vector<Literal>::const_iterator i=model.begin(); i<model.end(); i++){		if(!(*i).hasSign()){ //Do not print false literals			map<Atom, string>::const_iterator it = lit2name.find((*i).getAtom());			if(it!=lit2name.end()){				output <<(*it).second <<" ";			}		}	}	output <<"\n";	output.flush();}void OPBTranslator::printLiteral(std::ostream& output, const Literal& lit) {}void OPBTranslator::printCurrentOptimum(std::ostream& output, const Weight& value){	output <<"o" <<value <<"\n";}void OPBTranslator::printHeader(std::ostream& output) {}
+void OPBTranslator::addTuple(Atom atom, std::string name) {	lit2name[atom]=name;}void OPBTranslator::printModel(std::ostream& output, const std::vector<Literal>& model) {	output <<"v ";	for(vector<Literal>::const_iterator i=model.begin(); i<model.end(); i++){		map<Atom, string>::const_iterator it = lit2name.find((*i).getAtom());		if(it!=lit2name.end()){			if((*i).hasSign()){				output <<"-";			}			output <<(*it).second <<" ";		}	}	output <<"\n";	output.flush();}void OPBTranslator::printLiteral(std::ostream& output, const Literal& lit) {}void OPBTranslator::printCurrentOptimum(std::ostream& output, const Weight& value){	output <<"o " <<value <<"\n";}void OPBTranslator::printHeader(std::ostream& output) {}

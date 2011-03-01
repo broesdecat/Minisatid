@@ -10,7 +10,7 @@
 using namespace std;
 using namespace MinisatID;
 
-SOSolver::SOSolver(SolverOption modes, MinisatID::WLSImpl* inter)
+SOSolver::SOSolver(SolverOption modes, MinisatID::WLSImpl& inter)
 		: LogicSolver(modes, inter), state(NEW){
 	solvers.push_back(new ModSolver(0, -1, this));
 	state = LOADINGHIER;
@@ -32,9 +32,9 @@ bool SOSolver::simplify(){
 	return solvers[0]->simplifyDown();
 }
 
-bool SOSolver::solve(const vec<Lit>& assumptions, Solution* sol){
+bool SOSolver::solve(const vec<Lit>& assumptions, const ModelExpandOptions& options){
 	assert(state==ALLLOADED);
-	return solvers[0]->solve(assumptions, sol);
+	return solvers[0]->solve(assumptions, options);
 }
 
 void SOSolver::finishParsing(bool& present, bool& unsat){

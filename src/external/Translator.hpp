@@ -10,8 +10,8 @@
 #include "external/ExternalUtils.hpp"
 
 namespace MinisatID {
-
-typedef std::vector<std::vector<std::vector<std::string> > > modelvec;
+enum FIXEDVAL { FIXED_TRUE, FIXED_ARBIT, FIXED_FALSE };enum PRINTCHOICE { PRINT_FIXED, PRINT_ARBIT };struct TupleInterpr{	FIXEDVAL value;	std::vector<std::string> arguments;	TupleInterpr(FIXEDVAL value, const std::vector<std::string>& arg): value(value), arguments(arg){}};struct SymbolInterpr{	std::string predname;	std::vector<TupleInterpr> tuples;	SymbolInterpr(std::string predname): predname(predname){}};
+typedef std::vector<SymbolInterpr> modelvec;
 
 class Translator {
 protected:
@@ -67,12 +67,11 @@ public:
 	void 	printHeader			(std::ostream& output);
 
 private:
-	void 	finishParsing	();
+	void 	finishParsing	(std::ostream& output);
 	std::string getPredName	(int predn) const;
 	void 	printTuple		(const std::vector<std::string>& tuple, std::ostream& output) 	const;
-	void 	printPredicate	(int n, const modelvec& model, std::ostream& output) 			const;
-	void 	printFunction	(int n, const modelvec& model, std::ostream& output) 			const;
-	void 	printInterpr	(const modelvec& model, std::ostream& output)			 		const;
+	void 	printPredicate	(int n, const modelvec& model, std::ostream& output, PRINTCHOICE print)	const;
+	void 	printFunction	(int n, const modelvec& model, std::ostream& output, PRINTCHOICE print)	const;	void 	printInterpr	(const modelvec& model, std::ostream& output, PRINTCHOICE print)	const;
 	bool 	deriveStringFromAtomNumber(int atom, uint& currpred, std::vector<std::string>& arg) const;
 };
 

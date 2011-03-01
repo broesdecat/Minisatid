@@ -56,12 +56,10 @@ Literal SmartRemapper::getLiteral(const Lit& lit){
 	return Literal(origatom, sign(lit));
 }
 
-///////
 // PIMPL of External Interfaces
-///////
 
 WLSImpl::WLSImpl(const SolverOption& modes):
-		optimization(false),
+		optimization(false),		printedbestmodel(false),
 		state(INIT), _modes(modes),
 		remapper(modes.remap?new SmartRemapper():new Remapper()),
 		owntranslator(new Translator()),
@@ -78,11 +76,11 @@ WLSImpl::~WLSImpl(){
 
 void WLSImpl::setTranslator(Translator* trans){
 	translator = trans;
-}
+}Translator& WLSImpl::getTranslator() {	return *translator;}
 
 void WLSImpl::printLiteral(std::ostream& output, const Lit& l) const{
 	getTranslator().printLiteral(output, getRemapper()->getLiteral(l));
-}void WLSImpl::printCurrentOptimum(const Weight& value) const{	ostream output(getRes());	getTranslator().printCurrentOptimum(output, value);}
+}void WLSImpl::printCurrentOptimum(const Weight& value) const{	ostream output(getRes());	getTranslator().printCurrentOptimum(output, value);}void WLSImpl::notifyTimeout(){	//if optimization and best model has not been printed, print it now	if(hasOptimization() && getSolution().getNbModelsFound()>0 && !printedbestmodel){		ostream output(getRes());		getTranslator().printModel(output, getSolution().getBestModelFound());		printedbestmodel = true;	}}
 
 void WLSImpl::printStatistics() const {
 	getSolver()->printStatistics();
@@ -127,8 +125,7 @@ void WPCLSImpl::addForcedChoices(const vector<Literal> lits){
 bool WLSImpl::finishParsing(){
 	printInitDataStart(modes().verbosity);
 
-	bool present = true, unsat = false;
-	double cpu_time = cpuTime(); //Start time
+	double cpu_time = cpuTime(); //Start time	bool present = true, unsat = false;
 	getSolver()->finishParsing(present, unsat);
 	state = PARSED;
 
@@ -149,33 +146,16 @@ bool WLSImpl::simplify(){
 }
 
 bool WLSImpl::solve(Solution* sol){
-	bool unsat = false;
+	bool unsat = false;	setSolution(sol);
 
 	if(!unsat && state==INIT){
 		unsat = !finishParsing();
 	}
 	if(!unsat && state==PARSED){
 		unsat = !simplify();
-	}
-	if(unsat){
-		return false;
-	}
+	}	if(!unsat){		assert(state==SIMPLIFIED);		printSolveStart(verbosity());		vec<Lit> assumptions;		checkLits(getSolution().getAssumptions(), assumptions);		unsat = !getSolver()->solve(assumptions, getSolution().getOptions());		if(getSolution().getInferenceOption()==MODELEXPAND){			state = SOLVED;			if(hasOptimization() && getSolution().getPrintOption()==PRINT_BEST && getNbModelsFound()>0){				std::ostream output(getRes());				if(getSolution().hasOptimalModel()){					printOptimalModelFound(output, modes().format);				}				getTranslator().printModel(output, getSolution().getBestModelFound());				printedbestmodel = true;			}		}		printSolveEnd(verbosity());	}	if(unsat){		std::ostream output(getRes());		printUnSatisfiable(output, modes().format);		printUnSatisfiable(clog, modes().format, modes().verbosity);	}	setSolution(NULL);
 
-	assert(state==SIMPLIFIED);
-	printSolveStart(verbosity());
-
-	// Map to internal repr for assumptions
-	vec<Lit> assumptions;
-	checkLits(sol->getAssumptions(), assumptions);
-	bool sat = getSolver()->solve(assumptions, sol);
-
-	if(sol->getSearch()){
-		state = SOLVED;
-	}
-
-	printSolveEnd(verbosity());
-
-	return sat;
+	return !unsat;
 }
 
 //Translate into original vocabulary
@@ -191,44 +171,30 @@ vector<Literal> WLSImpl::getBackMappedModel(const vec<Lit>& model) const{
 	return outmodel;
 }
 
-void WLSImpl::addModel(const vec<Lit>& model, Solution* sol){
-	//Translate into original vocabulary
+void WLSImpl::addModel(const vec<Lit>& model){
 	vector<Literal> outmodel(getBackMappedModel(model));
 
-	//Add to solution
-	assert(sol!=NULL);
-	sol->addModel(outmodel);
+	getSolution().addModel(outmodel, hasOptimization());	cerr <<"Added model" <<"\n";
 
-	//Print if requested
-	if(sol->getPrint()){
+	if(getSolution().getPrintOption()==PRINT_ALL){
 		std::ostream output(getRes());
-
-		if(sol->getNbModelsFound()==1){
-			if(!hasOptimization()){ //IF nocomp, print it before models
-				printSatisfiable(output);
-				printSatisfiable(clog, modes().verbosity);
+		if(getNbModelsFound()==1){
+			if(!hasOptimization()){
+				printSatisfiable(output, modes().format);
+				printSatisfiable(clog, modes().format, modes().verbosity);
 			}
 			getTranslator().printHeader(output);
 		}
 		if(!hasOptimization()){
-			printNbModels(clog, sol->getNbModelsFound(), verbosity());
-		}
-		getTranslator().printModel(output, outmodel);
+			printNbModels(clog, getNbModelsFound(), verbosity());
+		}		getTranslator().printModel(output, outmodel);
 	}
-}
+}void WLSImpl::notifyOptimalModelFound(){	assert(hasOptimization());	getSolution().notifyOptimalModelFound();}
 
-void WLSImpl::modelWasOptimal(){
-	assert(hasOptimization());
-	std::ostream output(getRes());
-	printOptimalModelFound(output);
-}
-
-///////
 // PROP SOLVER PIMPL
-///////
 
 WPCLSImpl::WPCLSImpl(const SolverOption& modes)
-		:WLSImpl(modes), solver(new PCSolver(modes, this)){
+		:WLSImpl(modes), solver(new PCSolver(modes, *this)){
 }
 
 WPCLSImpl::~WPCLSImpl(){
@@ -344,12 +310,10 @@ bool WPCLSImpl::addCPAlldifferent(const vector<int>& termnames){
 	return getSolver()->addCPAlldifferent(termnames);
 }
 
-///////
-// MODEL SOLVER
-///////
+// MODAL SOLVER
 
 WSOLSImpl::WSOLSImpl(const SolverOption& modes):
-		WLSImpl(modes), solver(new SOSolver(modes, this)){
+		WLSImpl(modes), solver(new SOSolver(modes, *this)){
 }
 
 WSOLSImpl::~WSOLSImpl(){

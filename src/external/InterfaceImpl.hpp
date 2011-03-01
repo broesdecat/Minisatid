@@ -53,13 +53,13 @@ public:
 
 class WLSImpl{
 private:
-	bool 			optimization;
+	bool 			optimization;	bool			printedbestmodel;
 	SolverState 	state;
 	SolverOption	_modes;
 
 	Remapper*		remapper;
 	Translator*		owntranslator;
-	Translator*		translator;
+	Translator*		translator;	Solution*		solution; //Non-owning pointer
 
 public:
 			WLSImpl			(const SolverOption& modes);
@@ -68,15 +68,14 @@ public:
 	bool 	finishParsing	();
 	bool 	simplify		();
 	bool 	solve			(Solution* sol);
-	void 	addModel		(const vec<Lit>& model, Solution* sol);
-	void	modelWasOptimal	();
-
-	void	setTranslator	(Translator* translator);
+	void 	addModel		(const vec<Lit>& model);	void	notifyOptimalModelFound();	int		getNbModelsFound() const { return solution->getNbModelsFound(); }
+	Translator& getTranslator();
+	void	setTranslator	(Translator* translator);	const Solution& getSolution	()		const 	{ assert(solution!=NULL); return *solution; }	Solution& 		getSolution	() 				{ assert(solution!=NULL); return *solution; }	void			setSolution	(Solution* sol) { solution = sol; } //Can be NULL
 
 	const SolverOption& modes()	const	{ return _modes; }
 	int 	verbosity		()	const	{ return modes().verbosity; }
 	void 	printStatistics	() const;
-	void 	printLiteral	(std::ostream& stream, const Lit& l) const;	void 	printCurrentOptimum(const Weight& value) const;
+	void 	printLiteral	(std::ostream& stream, const Lit& l) const;	void 	printCurrentOptimum(const Weight& value) const;	void	notifyTimeout	();
 
 protected:
 	bool 	hasOptimization	() const { return optimization; }

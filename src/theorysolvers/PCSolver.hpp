@@ -91,7 +91,7 @@ private:
 	Minisat::Solver * 	getSolver	() const { return satsolver; }
 
 public:
-	PCSolver(SolverOption modes, MinisatID::WLSImpl* inter);
+	PCSolver(SolverOption modes, MinisatID::WLSImpl& inter);
 	virtual ~PCSolver();
 
 	solverlist::const_iterator	getSolversBegin() const { return solvers.begin(); }
@@ -128,7 +128,7 @@ public:
 	void 		newDecisionLevel();
 	void 		finishParsing	(bool& present, bool& unsat);
 	bool 		simplify();
-	bool 		solve			(const vec<Lit>& assumptions, Solution* sol);
+	bool 		solve			(const vec<Lit>& assumptions, const ModelExpandOptions& options);
 	lbool 		checkStatus		(lbool status) const; //if status==l_True, do wellfoundednesscheck in IDSolver, if not wellfounded, return l_False, otherwise status
 
 	void		removeAggrHead	(Var x);
@@ -190,7 +190,7 @@ private:
 	// OPTIMIZATION
     bool 	invalidateValue	(vec<Lit>& invalidation);
 	bool 	invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt);
-	bool 	findOptimal		(const vec<Lit>& assumps, vec<Lit>& m, Solution* sol);
+	bool 	findOptimal		(const vec<Lit>& assumps, vec<Lit>& m);
 };
 
 }

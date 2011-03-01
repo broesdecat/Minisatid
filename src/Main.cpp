@@ -50,7 +50,7 @@ void printStats();
 
 jmp_buf main_loop;
 static void noMoreMem();
-volatile sig_atomic_t mem;
+volatile sig_atomic_t abortcode;	//0 error encountered	//1 memory overflow but could not decrease it	//2 sigterm (probably timeout) and did a clean kill so just exit program cleanly
 static void SIGABRT_handler(int signum);
 static void SIGFPE_handler(int signum);
 static void SIGSEGV_handler(int signum);
@@ -61,7 +61,7 @@ static void SIGINT_handler(int signum);
 int doModelGeneration(pwls& d);
 
 extern SolverOption modes;
-FODOTTranslator* fodottrans;
+FODOTTranslator* fodottrans;Solution* sol = NULL;Translator* trans = NULL;
 
 // MAIN METHOD
 
@@ -98,13 +98,9 @@ int main(int argc, char** argv) {
 
 		//IMPORTANT: because signals are handled asynchronously, a special mechanism is needed to recover from them (exception throwing does not work)
 		//setjmp maintains a jump point to which any stack can jump back, re-executing this statement with different return value,
-		//so if this happens, we jump out
-		if(setjmp(main_loop)){
-			char s[100];
-			sprintf(s, "Signal handled: %s", mem==1?"out of memory":"execution interrupted");
-			throw idpexception(s);
-		}
-		returnvalue = doModelGeneration(d);
+		//so if this happens, we jump out		bool stoprunning = false;
+		if(setjmp(main_loop)){			switch(abortcode){			case 0:				throw idpexception("Signal handled: execution interrupted\n");				break;			case 1:				throw idpexception("Signal handled: out of memory");				break;			case 2:				stoprunning = true;				if(d.get()!=NULL){					d->notifyTimeout();				}				break;			default:				assert(false);				break;			}
+		}		if(!stoprunning){			returnvalue = doModelGeneration(d);		}
 
 #ifdef NDEBUG
 		exit(returnvalue);     // (faster than "return", which will invoke the destructor for 'Solver')
@@ -115,108 +111,34 @@ int main(int argc, char** argv) {
 			printStatistics(d);
 		}
 		_exit(1);
-	}/* catch (...) {
-		printUnexpectedError(cerr);
-		if(d.get()!=NULL){
-			printStatistics(d);
-		}
-		_exit(1);
-	}*/
+	}	if(trans!=NULL){		delete trans;	}	if(sol!=NULL){		delete sol;	}
 
 	return returnvalue;
-}
+}bool initializeAndParseASP(pwls& d){	bool unsat = false;	WrappedPCSolver* p = new WrappedPCSolver(modes);	d = shared_ptr<WrappedLogicSolver>(p);	LParseTranslator* lptrans = new LParseTranslator();	trans = lptrans;	p->setTranslator(trans);	Read* r = new Read(p, lptrans);	std::istream is(getInputBuffer());	if(!r->read(is)){		unsat = true;	}	delete r;	closeInput();	return unsat;}bool initializeAndParseOPB(pwls& d){	bool unsat = false;	WrappedPCSolver* p = new WrappedPCSolver(modes);	d = shared_ptr<WrappedLogicSolver>(p); //Only set d if successfully parsed	OPBTranslator* opbtrans = new OPBTranslator();	trans = opbtrans;	p->setTranslator(trans);	std::istream is(getInputBuffer());	PBRead* parser = new PBRead(p, opbtrans, is);	parser->autoLin();	parser->parse();	closeInput();	delete parser;	return unsat;}bool initializeAndParseFODOT(pwls& d){	if(modes.transformat!=TRANS_PLAIN){		fodottrans = new FODOTTranslator(modes.transformat);		trans = fodottrans;	}	yyin = getInputFile();	d = parse();	closeInput();	return d.get()==NULL;}
 
 int doModelGeneration(pwls& d){
-	// Unittest injection possible by: pwls d = unittestx();
+	// Unittest injection possible here by: pwls d = unittestx();
 
 	bool unsat = false;
-
-	Translator* trans = NULL;
-
-	//Parse input
 	switch(modes.format){
-		case FORMAT_ASP:{
-			WrappedPCSolver* p = new WrappedPCSolver(modes);
-			LParseTranslator* lptrans = new LParseTranslator();
-			trans = lptrans;
-			p->setTranslator(trans);
-			Read* r = new Read(p, lptrans);
-			std::istream is(getInputBuffer());
-			if(!r->read(is)){
-				unsat = true;
-			}else{
-				d = shared_ptr<WrappedLogicSolver> (p); //Only set d if successfully parsed
-			}
-			closeInput();
-			delete r;
+		case FORMAT_ASP:
+			unsat = initializeAndParseASP(d);
 			break;
-		}
-		case FORMAT_OPB:{
-			WrappedPCSolver* p = new WrappedPCSolver(modes);
-			std::istream is(getInputBuffer());			OPBTranslator* opbtrans = new OPBTranslator();			trans = opbtrans;			p->setTranslator(trans);
-			PBRead* parser = new PBRead(p, opbtrans, is);
-			parser->autoLin();
-			parser->parse();
-			closeInput();
-			delete parser;
-			d = shared_ptr<WrappedLogicSolver> (p); //Only set d if successfully parsed
+		case FORMAT_OPB:
+			unsat = initializeAndParseOPB(d);
 			break;
-		}
 		case FORMAT_FODOT:{
-			if(modes.transformat!=TRANS_PLAIN){
-				fodottrans = new FODOTTranslator(modes.transformat);
-				trans = fodottrans;
-			}
-			yyin = MinisatID::getInputFile();
-			d = parse();
+			unsat = initializeAndParseFODOT(d);
 			break;
 		}
-	}
+	}	if(unsat){		ostream output(getOutputBuffer());		printUnSatisfiable(output, modes.format);		printUnSatisfiable(clog, modes.format, modes.verbosity);	}
 
-	MinisatID::closeInput();
-
-	//d is initialized unless unsat was already detected
-	unsat = unsat || d.get()==NULL;
-
-	//Initialize datastructures
-	if(!unsat){
-		unsat = !d->finishParsing();
-	}
-
-	//Simplify
-	if(!unsat){
-		unsat = !d->simplify();
-	}
-
-	//Solve
-	bool earlyunsat = unsat;
-	if(!unsat){
-		vector<Literal> assumpts;
-		Solution* sol = new Solution(true, false, true, modes.nbmodels, assumpts);
-		unsat = !d->solve(sol);
-		delete sol;
-	}
-
-	std::ostream output(getOutputBuffer());
-	if(unsat){
-		printUnSatisfiable(output);
-		printUnSatisfiable(clog, modes.verbosity);
-	}
-
-	if(!earlyunsat){
-		printStatistics(d, modes.verbosity);
-	}
-
-	if(trans!=NULL){
-		delete trans;
+	if(!unsat){		ModelExpandOptions options;		options.printmodels	= PRINT_ALL;		options.savemodels = SAVE_NONE;		options.search = MODELEXPAND;		options.nbmodelstofind = modes.nbmodels;		sol = new Solution(options);
+		unsat = !d->solve(sol);		printStatistics(d, modes.verbosity);
 	}
 
 	return unsat ? 20 : 10;
 }
-
-///////
-// PARSE CODE
-///////
 
 /**
  * Returns a data object representing the solver configuration from the input theory.
@@ -226,7 +148,6 @@ pwls parse() {
 	yyinit();
 
 	try {
-		/*ecnfparse();*/
 		yyparse();
 	} catch (const MinisatID::idpexception& e) {
 		if (unsatfound) {
@@ -239,19 +160,16 @@ pwls parse() {
 
 	pwls d = getData();
 
-	yydestroy();
-	//There is still a memory leak of about 16 Kb in the flex scanner, which is inherent to the flex C scanner
+	yydestroy(); //There is still a memory leak of about 16 Kb in the flex scanner, which is inherent to the flex C (not C++) scanner
 
-	if (unsatfound) { //UNSAT so empty shared pointer
-		return shared_ptr<WrappedLogicSolver> ();
+	if (unsatfound) {
+		d = shared_ptr<WrappedLogicSolver> ();
 	}
 
 	return d;
 }
 
-///////
 // Debugging - information printing
-///////
 
 static void noMoreMem() {
 	//Tries to reduce the memory of the solver by reducing the number of learned clauses
@@ -259,33 +177,31 @@ static void noMoreMem() {
 	bool reducedmem = false;
 	//TODO try to reduce solver clause base
 	if (!reducedmem) {
-		mem=1;
+		abortcode=1; //memory overflow
 		longjmp (main_loop, 1);
 	}
 }
 
 static void SIGABRT_handler(int signum) {
 	cerr <<">>>Abort signal received\n";
-	mem=0;
+	abortcode=0;
 	longjmp (main_loop, 1);
 }
 static void SIGFPE_handler(int signum) {
 	cerr <<">>> Floating point error signal received\n";
-	mem=0;
+	abortcode=0;
 	longjmp (main_loop, 1);
 }
-static void SIGTERM_handler(int signum) {
-	cerr <<">>>Terminate signal received\n";
-	mem=0;
+static void SIGTERM_handler(int signum) {	//TODO there are (border) cases in which this can go wrong!	if(sol!=NULL && trans!=NULL && sol->getPrintOption()==PRINT_BEST && sol->getNbModelsFound()>0){		std::ostream output(getOutputBuffer());		trans->printModel(output, sol->getBestModelFound());		abortcode=2; //cleanly exiting	}else{		cerr <<">>>Terminate signal received\n";		abortcode=0;	}
 	longjmp (main_loop, 1);
 }
 static void SIGSEGV_handler(int signum) {
 	cerr <<">>>Segmentation fault signal received\n";
-	mem=0;
+	abortcode=0;
 	longjmp (main_loop, 1);
 }
 static void SIGINT_handler(int signum) {
 	cerr <<">>>Integer error code signal received\n";
-	mem=0;
+	abortcode=0;
 	longjmp (main_loop, 1);
 }

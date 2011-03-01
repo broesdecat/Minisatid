@@ -14,21 +14,21 @@ class WLSImpl;
 class LogicSolver{
 private:
 	SolverOption _modes;
-	MinisatID::WLSImpl* _parent;
+	MinisatID::WLSImpl& parent;
 public:
-	LogicSolver(MinisatID::SolverOption modes, MinisatID::WLSImpl* inter)
-			:_modes(modes), _parent(inter){};
+	LogicSolver(MinisatID::SolverOption modes, MinisatID::WLSImpl& inter)
+			:_modes(modes), parent(inter){};
 	virtual ~LogicSolver(){};
 
 	virtual bool 	simplify() = 0;
 	virtual void 	finishParsing	(bool& present, bool& unsat) = 0;
 
-	virtual bool	solve(const vec<Lit>& assumptions, Solution* sol) = 0;
+	virtual bool	solve(const vec<Lit>& assumptions, const ModelExpandOptions& options) = 0;
 
 			int 	verbosity		() const	{ return modes().verbosity; }
 	const SolverOption& modes		() const	{ return _modes; }
 
-	MinisatID::WLSImpl* getParent	() const { return _parent; }
+	const MinisatID::WLSImpl& getParent	() const { return parent; }	MinisatID::WLSImpl& getParent	() { return parent; }
 
 	virtual void 	printStatistics	() const = 0;
 };

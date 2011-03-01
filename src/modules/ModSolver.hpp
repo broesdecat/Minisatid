@@ -3,7 +3,7 @@
 #define MODSOLVER_H_
 
 #include "utils/Utils.hpp"
-#include "modules/DPLLTmodule.hpp"
+#include "modules/DPLLTmodule.hpp"#include "external/InterfaceImpl.hpp"
 
 namespace MinisatID {
 
@@ -71,7 +71,7 @@ struct AV{
  * MS:backtrackdown
  */
 
-class ModSolver: public DPLLTmodule{
+class ModSolver: public DPLLTmodule, public MinisatID::WLSImpl{
 private:
 	bool 		init, hasparent, searching;
 
@@ -116,7 +116,7 @@ public:
 
 	void 				newDecisionLevel();
 
-	rClause 			getExplanation	(const Lit& l) { return nullPtrClause; /*TODO NOT IMPLEMENTED*/ };
+	rClause 			getExplanation	(const Lit& l) { assert(false); return nullPtrClause; /*TODO NOT IMPLEMENTED*/ };
 
 	/**
 	 * Propagation coming from the parent solver: propagate it through the tree, until a conflict is found.
@@ -130,7 +130,7 @@ public:
 	void 				backtrackDecisionLevels	(int nblevels, int untillevel);
 	void 				backtrackFromAbove(Lit l);
 
-	bool 				solve			(const vec<Lit>& assumptions, Solution* sol);
+	bool 				solve			(const vec<Lit>& assumptions, const ModelExpandOptions& options);
 
 
 	//PRINTING
@@ -166,7 +166,7 @@ public:
 	modindex			getParentPrintId()	const	{ return parentid+1; }
 	const std::vector<Var>& getAtoms	()	const	{ return atoms; }
 	const vmodindex& 	getChildren		()	const	{ return children; }
-	const SOSolver& 	getModSolverData()	const	{ return *modhier; }
+	const SOSolver& 	getModSolverData()	const	{ return *modhier; }	MinisatID::LogicSolver*	getSolver() const { return solver; }
 
 private:
 	void 				addVar			(Lit l)		{ addVar(var(l)); }

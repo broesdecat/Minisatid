@@ -32,7 +32,7 @@ typedef std::tr1::shared_ptr<WrappedLogicSolver> pwls;
 
 class WrappedLogicSolver{
 public:
-	void 	printStatistics	() const;
+	void 	printStatistics	()	const;	void	notifyTimeout	()	const;
 
 	//Initialize the datastructures after the full theory has been parsed.
 	bool 	finishParsing	();
@@ -43,7 +43,7 @@ public:
 	//Do model expansion, given the options in the solution datastructure.
 	//Automatically initializes the datastructures and simplifies the theory.
 	bool 	solve			(Solution* sol);
-
+	Translator& getTranslator();
 	void	setTranslator	(Translator* translator);
 
 protected:

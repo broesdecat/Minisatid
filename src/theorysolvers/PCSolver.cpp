@@ -40,7 +40,7 @@ DPLLTSolver::~DPLLTSolver() {
 }
 
 //Has to be value copy of modes!
-PCSolver::PCSolver(SolverOption modes, MinisatID::WLSImpl* inter) :
+PCSolver::PCSolver(SolverOption modes, MinisatID::WLSImpl& inter) :
 		LogicSolver(modes, inter),
 		satsolver(NULL), idsolver(NULL), aggsolver(NULL), modsolver(NULL),
 		initialized(false),
@@ -127,11 +127,9 @@ void PCSolver::varBumpActivity(Var v) {
 	getSolver()->varBumpActivity(v);
 }
 
-///////
-// INITIALIZING THE THEORY // Add STATE concept to solver to check for correctness
-////////
+// INITIALIZING THE THEORY // TODO Add STATE concept to solver to check for correctness
 
-//FIXME: calling this from inside is not allowed during parsing: it breaks the theory that's being read!
+//IMPORTANT: calling this from inside is not allowed during parsing: it breaks the theory that's being read!
 Var PCSolver::newVar() {
 	assert(initialized);
 	Var v = nVars();
@@ -541,12 +539,12 @@ bool PCSolver::simplify() {
  * count the number of models => do not save models
  */
 
-bool PCSolver::solve(const vec<Lit>& assumptions, Solution* sol){
-	if(optim!=NONE && sol->getNbModelsToFind()!=1){
+bool PCSolver::solve(const vec<Lit>& assumptions, const ModelExpandOptions& options){
+	if(optim!=NONE && options.nbmodelstofind!=1){
 		throw idpexception("Finding multiple models can currently not be combined with optimization.\n");
 	}
 
-	if(!sol->getSearch()){
+	if(options.search==PROPAGATE){ //Only do unit propagation
 		return getSolver()->solve(assumptions, true);
 	}
 
@@ -557,35 +555,32 @@ bool PCSolver::solve(const vec<Lit>& assumptions, Solution* sol){
 		reportf(">           |    Vars  Clauses Literals |    Limit  Clauses Lit/Cl |         \n");
 	}
 
-	while (moremodels && (sol->getNbModelsToFind() == 0 || sol->getNbModelsFound() < sol->getNbModelsToFind())) {
+	while (moremodels && (options.nbmodelstofind == 0 || getParent().getNbModelsFound() < options.nbmodelstofind)) {
 		vec<Lit> model;
 		bool found = false;
 		if(optim!=NONE){
-			found = findOptimal(assumptions, model, sol);
+			found = findOptimal(assumptions, model);
 			if(!found){
 				moremodels = false;
-			}
-			if(found){
-				getParent()->modelWasOptimal();
 			}
 		}else{
 			found = findNext(assumptions, model, moremodels);
 			if (found) {
-				getParent()->addModel(model, sol);
+				getParent().addModel(model);
 			}
 		}
 	}
 
 	if (verbosity()>=1) {
-		clog <<"> Found " <<sol->getNbModelsFound() <<" models, ";
+		clog <<"> Found " <<getParent().getNbModelsFound() <<" models, ";
 		if(!moremodels){
 			clog <<"no more models exist.\n";
 		}else if(optim==NONE){
-			clog <<"searched for " <<sol->getNbModelsToFind() <<" models.\n";
+			clog <<"searched for " <<options.nbmodelstofind <<" models.\n";
 		}
 	}
 
-	return sol->getNbModelsFound()>0;
+	return getParent().getNbModelsFound()>0;
 }
 
 /**
@@ -758,7 +753,7 @@ bool PCSolver::invalidateValue(vec<Lit>& invalidation) {
 		if (!currentoptimumfound && getSolver()->model[var(to_minimize[i])] == l_True) {
 			if (modes().verbosity >= 1) {
 				clog <<"Current optimum found for: ";
-				getParent()->printLiteral(cerr, to_minimize[i]);
+				getParent().printLiteral(cerr, to_minimize[i]);
 				clog <<"\n";
 			}
 			currentoptimumfound = true;
@@ -781,7 +776,7 @@ bool PCSolver::invalidateValue(vec<Lit>& invalidation) {
  *
  * Returns true if an optimal model was found
  */
-bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m, Solution* sol) {
+bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
 	vec<Lit> currentassmpt;
 	assmpt.copyTo(currentassmpt);
 
@@ -850,7 +845,6 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m, Solution* sol) {
 				unsatreached = invalidateSubset(invalidation, currentassmpt);
 				break;
 			case AGGMNMZ:
-				//FIXME the invalidation turns out to be empty
 				unsatreached = getAggSolver()->invalidateAgg(invalidation, head);
 				break;
 			case NONE:
@@ -866,9 +860,9 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m, Solution* sol) {
 				}
 			}
 
-			getParent()->addModel(m, sol);
+			getParent().addModel(m);
 		}
-	}
+	}	if(unsatreached && modelfound){		getParent().notifyOptimalModelFound();	}
 
 	return modelfound && unsatreached;
 }
@@ -916,4 +910,4 @@ void PCSolver::print() const{
 
 void PCSolver::print(rClause clause) const {
 	getSolver()->printClause(getClauseRef(clause));
-}void PCSolver::printCurrentOptimum(const Weight& value) const{	getParent()->printCurrentOptimum(value);}
+}void PCSolver::printCurrentOptimum(const Weight& value) const{	getParent().printCurrentOptimum(value);}

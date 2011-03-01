@@ -55,23 +55,20 @@ namespace Print{
 	std::string getMinimalVarNumbering();
 
 	template<class T>
-	void printSatisfiable(T& stream, int verbosity = 1000){
-		if(verbosity>=1){
-			stream <<"SATISFIABLE\n";
+	void printSatisfiable(T& stream, INPUTFORMAT format, int verbosity = 1000){
+		if(verbosity>=1){			if(format==FORMAT_OPB){				stream<<"s SATISFIABLE\n";			}else{				stream<<"SATISFIABLE\n";			}
 		}
 	}
 
 	template<class T>
-	void printUnSatisfiable(T& stream, int verbosity = 1000){
-		if(verbosity>=1){
-			stream <<"UNSATISFIABLE\n";
+	void printUnSatisfiable(T& stream, INPUTFORMAT format, int verbosity = 1000){
+		if(verbosity>=1){			if(format==FORMAT_OPB){				stream<<"s UNSATISFIABLE\n";			}else{				stream<<"UNSATISFIABLE\n";			}
 		}
 	}
 
 	template<class T>
-	void printOptimalModelFound(T& stream, int verbosity = 1000){
-		if(verbosity>=1){
-			stream<<"OPTIMUM FOUND\n";
+	void printOptimalModelFound(T& stream, INPUTFORMAT format, int verbosity = 1000){
+		if(verbosity>=1){			if(format==FORMAT_OPB){				stream<<"s OPTIMUM FOUND\n";			}else{				stream<<"OPTIMUM FOUND\n";			}
 		}
 	}
 

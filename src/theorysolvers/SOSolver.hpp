@@ -50,12 +50,12 @@ private:
 	modhierstate state;	//stores the current state of the parsing.
 
 public:
-	SOSolver				(SolverOption modes, MinisatID::WLSImpl* inter);
+	SOSolver				(SolverOption modes, MinisatID::WLSImpl& inter);
 	virtual ~SOSolver		();
 
 	void 	finishParsing	(bool& present, bool& unsat);
 	bool 	simplify		();
-	bool 	solve			(const vec<Lit>& assumptions, Solution* sol);
+	bool 	solve			(const vec<Lit>& assumptions, const ModelExpandOptions& options);
 
 	//Add information for hierarchy
 	bool 	addChild		(vsize parent, vsize child, Lit head);

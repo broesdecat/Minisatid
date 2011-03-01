@@ -13,11 +13,11 @@ WrappedLogicSolver::~WrappedLogicSolver(){
 
 void WrappedLogicSolver::setTranslator(Translator* translator){
 	getImpl()->setTranslator(translator);
-}
+}Translator& WrappedLogicSolver::getTranslator() {	return getImpl()->getTranslator();}
 
 void WrappedPCSolver::addForcedChoices(const vector<Literal> lits){
 	getImpl()->addForcedChoices(lits);
-}
+}void WrappedLogicSolver::notifyTimeout() const {	getImpl()->notifyTimeout();}
 
 void WrappedLogicSolver::printStatistics() const {
 	getImpl()->printStatistics();

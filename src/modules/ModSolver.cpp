@@ -22,8 +22,7 @@ using namespace MinisatID::Print;
  * Constructs a ModSolver, with a given head, index and hierarchy pointer. A PCSolver is initialized.
  */
 ModSolver::ModSolver(modindex child, Var head, SOSolver* mh):
-		DPLLTmodule(NULL),
-		init(false), hasparent(false), searching(false),
+		DPLLTmodule(NULL), WLSImpl(mh->modes()),		init(false), hasparent(false), searching(false),
 		head(head),
 		id(child), parentid(-1), //, startedsearch(false), startindex(-1),
 		solver(NULL),
@@ -31,7 +30,7 @@ ModSolver::ModSolver(modindex child, Var head, SOSolver* mh):
 	SolverOption modescopy(mh->modes());
 	modescopy.nbmodels = 1;
 
-	pcsolver = new PCSolver(modescopy, mh->getParent());
+	pcsolver = new PCSolver(modescopy, *this);
 	getPCSolver().setModSolver(this);
 
 	trail.push_back(vector<Lit>());
@@ -146,8 +145,8 @@ void ModSolver::finishParsingDown(bool& present, bool& unsat){
 /**
  * Tells the root solver to do model expansion on his theory
  */
-bool ModSolver::solve(const vec<Lit>& assumptions, Solution* sol){
-	return getPCSolver().solve(assumptions, sol);
+bool ModSolver::solve(const vec<Lit>& assumptions, const ModelExpandOptions& options){
+	return getPCSolver().solve(assumptions, options);
 }
 
 /*
@@ -203,10 +202,8 @@ bool ModSolver::search(const vec<Lit>& assumpts, bool search){
 	return result;*/
 
 	bool result;
-	searching = search;
-	Solution* sol = new Solution(false, false, searching, 1, vector<Literal>());
-	result = getPCSolver().solve(assumpts, sol);
-	delete sol;
+	searching = search;	ModelExpandOptions options;	options.printmodels = PRINT_NONE;	options.savemodels = SAVE_NONE;	options.search = MODELEXPAND;	options.nbmodelstofind = 1;
+	result = getPCSolver().solve(assumpts, options);
 	searching = false;
 	return result;
 }
