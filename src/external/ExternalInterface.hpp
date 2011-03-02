@@ -12,16 +12,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <tr1/unordered_map>
 
 #include "external/ExternalUtils.hpp"
-
-//IMPORTANT: Need all headers defining an inheritance tree to be able to use their inheritance
-#include "theorysolvers/LogicSolver.hpp"
-#include "theorysolvers/PCSolver.hpp"
-#include "theorysolvers/SOSolver.hpp"
-
-#include "external/InterfaceImpl.hpp"
 
 #ifndef __GXX_EXPERIMENTAL_CXX0X__
 #include <tr1/memory>
@@ -29,6 +21,11 @@
 
 namespace MinisatID {
 class Translator;
+
+class WLSImpl;
+class WPCLSImpl;
+class WSOLSImpl;
+
 class WrappedLogicSolver;
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
@@ -56,12 +53,12 @@ protected:
 	WrappedLogicSolver			();
 	virtual ~WrappedLogicSolver	();
 
-	virtual MinisatID::WLSImpl* getImpl() const = 0;
+	virtual WLSImpl* getImpl() const = 0;
 };
 
 class WrappedPCSolver: public MinisatID::WrappedLogicSolver{
 private:
-	MinisatID::WPCLSImpl* impl;
+	WPCLSImpl* impl;
 
 public:
 	WrappedPCSolver(const SolverOption& modes);
@@ -98,13 +95,14 @@ public:
 	void	addForcedChoices(const std::vector<Literal> lits);
 
 protected:
-	MinisatID::WPCLSImpl* getImpl() const { return impl; }
+	WLSImpl* getImpl() const;
+	WPCLSImpl* getPCImpl() const;
 };
 
 //Second order logic solver
 class WrappedSOSolver: public MinisatID::WrappedLogicSolver{
 private:
-	MinisatID::WSOLSImpl* _impl;
+	WSOLSImpl* _impl;
 
 public:
 	WrappedSOSolver				(const SolverOption& modes);
@@ -122,7 +120,8 @@ public:
 	bool 	addAggrExpr	(int modid, Literal head, int setid, const Weight& bound, AggSign sign, AggType type, AggSem sem);
 
 protected:
-	MinisatID::WSOLSImpl* getImpl() const { return _impl; }
+	WLSImpl* getImpl() const;
+	WSOLSImpl* getSOImpl() const;
 };
 
 }

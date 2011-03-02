@@ -16,9 +16,11 @@
 
 #include "external/ExternalUtils.hpp"
 
+//IMPORTANT: Need all headers defining an inheritance tree to be able to use their inheritance
 #include "theorysolvers/LogicSolver.hpp"
-#include "theorysolvers/PCSolver.hpp" //IMPORTANT include to show inheritance tree
+#include "theorysolvers/PCSolver.hpp"
 #include "theorysolvers/SOSolver.hpp"
+
 
 namespace MinisatID {
 
@@ -27,9 +29,7 @@ class LogicSolver;
 class PCSolver;
 class SOSolver;
 
-///////
 // External interfaces offered from the solvers
-///////
 
 enum SolverState { INIT, PARSED, SIMPLIFIED, SOLVED};
 

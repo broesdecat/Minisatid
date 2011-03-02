@@ -188,7 +188,7 @@ void parsepred(std::string* name, int num, std::vector<std::string>* ptypes, boo
  * Decides whether to use (modal) CNF, ECNF or modal ECNF format
  */
 init	:	CNF	number number 
-				{ atoms = $2; clauses = $3; report("%d atoms and %d clauses present.\n", atoms, clauses);} 
+				{ atoms = $2; clauses = $3; } 
 			cnftheory
 		|	ECNF header {initSolver();} ecnftheory translation
 		|	MECNF header {initModSolver();} mecnftheory translation

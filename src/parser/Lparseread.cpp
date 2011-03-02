@@ -31,6 +31,7 @@
 
 #include "parser/Lparseread.hpp"
 #include "external/Translator.hpp"
+#include "GeneralUtils.hpp"
 
 using namespace std;
 using namespace MinisatID;

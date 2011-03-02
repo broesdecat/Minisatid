@@ -30,10 +30,6 @@ Translator& WrappedLogicSolver::getTranslator() {
 	return getImpl()->getTranslator();
 }
 
-void WrappedPCSolver::addForcedChoices(const vector<Literal> lits){
-	getImpl()->addForcedChoices(lits);
-}
-
 void WrappedLogicSolver::notifyTimeout() const {
 	getImpl()->notifyTimeout();
 }
@@ -57,91 +53,103 @@ WrappedPCSolver::~WrappedPCSolver(){
 }
 
 void WrappedPCSolver::addVar(Atom v){
-	getImpl()->addVar(v);
+	getPCImpl()->addVar(v);
 }
 
 bool WrappedPCSolver::addClause(vector<Literal>& lits){
-	return getImpl()->addClause(lits);
+	return getPCImpl()->addClause(lits);
 }
 
 bool WrappedPCSolver::addEquivalence(const Literal& head, const vector<Literal>& body, bool conj){
-	return getImpl()->addEquivalence(head, body, conj);
+	return getPCImpl()->addEquivalence(head, body, conj);
 }
 
 bool WrappedPCSolver::addConjRule(Atom head, const vector<Literal>& lits){
-	return getImpl()->addRule(true, Literal(head, false), lits);
+	return getPCImpl()->addRule(true, Literal(head, false), lits);
 }
 
 bool WrappedPCSolver::addDisjRule(Atom head, const vector<Literal>& lits){
-	return getImpl()->addRule(false, Literal(head, false), lits);
+	return getPCImpl()->addRule(false, Literal(head, false), lits);
 }
 
 bool WrappedPCSolver::addConjRuleToID(int defid, Atom head, const vector<Literal>& lits){
-	return getImpl()->addRuleToID(defid, true, Literal(head, false), lits);
+	return getPCImpl()->addRuleToID(defid, true, Literal(head, false), lits);
 }
 
 bool WrappedPCSolver::addDisjRuleToID(int defid, Atom head, const vector<Literal>& lits){
-	return getImpl()->addRuleToID(defid, false, Literal(head, false), lits);
+	return getPCImpl()->addRuleToID(defid, false, Literal(head, false), lits);
 }
 
 bool WrappedPCSolver::addSet(int id, const vector<Literal>& lits){
-	return getImpl()->addSet(id, lits);
+	return getPCImpl()->addSet(id, lits);
 }
 
 bool WrappedPCSolver::addSet(int id, const vector<WLtuple>& lws){
-	return getImpl()->addSet(id, lws);
+	return getPCImpl()->addSet(id, lws);
 }
 
 bool WrappedPCSolver::addSet(int id, const vector<Literal>& lits, const vector<Weight>& w){
-	return getImpl()->addSet(id, lits, w);
+	return getPCImpl()->addSet(id, lits, w);
 }
 
 bool WrappedPCSolver::addAggrExpr(Literal head, int setid, const Weight& bound, AggSign sign, AggType type, AggSem sem){
-	return getImpl()->addAggrExpr(head, setid, bound, sign, type, sem);
+	return getPCImpl()->addAggrExpr(head, setid, bound, sign, type, sem);
 }
 
 bool WrappedPCSolver::addMinimize(const vector<Literal>& lits, bool subsetmnmz){
-	return getImpl()->addMinimize(lits, subsetmnmz);
+	return getPCImpl()->addMinimize(lits, subsetmnmz);
 }
 
 bool WrappedPCSolver::addMinimize(const Atom head, const int setid, AggType type){
-	return getImpl()->addMinimize(head, setid, type);
+	return getPCImpl()->addMinimize(head, setid, type);
 }
 
 bool WrappedPCSolver::addIntVar(int groundname, int min, int max){
-	return getImpl()->addIntVar(groundname, min, max);
+	return getPCImpl()->addIntVar(groundname, min, max);
 }
 
 bool WrappedPCSolver::addCPBinaryRel(Literal head, int groundname, EqType rel, int bound){
-	return getImpl()->addCPBinaryRel(head, groundname, rel, bound);
+	return getPCImpl()->addCPBinaryRel(head, groundname, rel, bound);
 }
 
 bool WrappedPCSolver::addCPBinaryRelVar(Literal head, int groundname, EqType rel, int groundname2){
-	return getImpl()->addCPBinaryRelVar(head, groundname, rel, groundname2);
+	return getPCImpl()->addCPBinaryRelVar(head, groundname, rel, groundname2);
 }
 
 bool WrappedPCSolver::addCPSum(Literal head, const vector<int>& termnames, EqType rel, int bound){
-	return getImpl()->addCPSum(head, termnames, rel, bound);
+	return getPCImpl()->addCPSum(head, termnames, rel, bound);
 }
 
 bool WrappedPCSolver::addCPSum(Literal head, const vector<int>& termnames, vector<int> mult, EqType rel, int bound){
-	return getImpl()->addCPSum(head, termnames, mult, rel, bound);
+	return getPCImpl()->addCPSum(head, termnames, mult, rel, bound);
 }
 
 bool WrappedPCSolver::addCPSumVar(Literal head, const vector<int>& termnames, EqType rel, int rhstermname){
-	return getImpl()->addCPSumVar(head, termnames, rel, rhstermname);
+	return getPCImpl()->addCPSumVar(head, termnames, rel, rhstermname);
 }
 
 bool WrappedPCSolver::addCPSumVar(Literal head, const vector<int>& termnames, vector<int> mult, EqType rel, int rhstermname){
-	return getImpl()->addCPSumVar(head, termnames, mult, rel, rhstermname);
+	return getPCImpl()->addCPSumVar(head, termnames, mult, rel, rhstermname);
 }
 
 bool WrappedPCSolver::addCPCount(const vector<int>& termnames, int value, EqType rel, int rhstermname){
-	return getImpl()->addCPCount(termnames, value, rel, rhstermname);
+	return getPCImpl()->addCPCount(termnames, value, rel, rhstermname);
 }
 
 bool WrappedPCSolver::addCPAlldifferent(const vector<int>& termnames){
-	return getImpl()->addCPAlldifferent(termnames);
+	return getPCImpl()->addCPAlldifferent(termnames);
+}
+
+void WrappedPCSolver::addForcedChoices(const vector<Literal> lits){
+	getPCImpl()->addForcedChoices(lits);
+}
+
+WLSImpl* WrappedPCSolver::getImpl() const {
+	return impl;
+}
+
+WPCLSImpl* WrappedPCSolver::getPCImpl() const {
+	return impl;
 }
 
 // MODAL SOLVER
@@ -154,40 +162,48 @@ WrappedSOSolver::~WrappedSOSolver(){
 	delete _impl;
 }
 
+WLSImpl* WrappedSOSolver::getImpl() const {
+	return _impl;
+}
+
+WSOLSImpl* WrappedSOSolver::getSOImpl() const {
+	return _impl;
+}
+
 void WrappedSOSolver::addVar(int modid, Atom v){
-	getImpl()->addVar(modid, v);
+	getSOImpl()->addVar(modid, v);
 }
 
 bool WrappedSOSolver::addClause(int modid, vector<Literal>& lits){
-	return getImpl()->addClause(modid, lits);
+	return getSOImpl()->addClause(modid, lits);
 }
 
 bool WrappedSOSolver::addConjRule(int modid, Atom head, vector<Literal>& lits){
-	return getImpl()->addRule(modid, true, Literal(head, false), lits);
+	return getSOImpl()->addRule(modid, true, Literal(head, false), lits);
 }
 
 bool WrappedSOSolver::addDisjRule(int modid, Atom head, vector<Literal>& lits){
-	return getImpl()->addRule(modid, false, Literal(head, false), lits);
+	return getSOImpl()->addRule(modid, false, Literal(head, false), lits);
 }
 
 bool WrappedSOSolver::addSet(int modid, int id, vector<Literal>& lits, vector<Weight>& w){
-	return getImpl()->addSet(modid, id, lits, w);
+	return getSOImpl()->addSet(modid, id, lits, w);
 }
 
 //Might be implemented more efficiently in the future
 bool WrappedSOSolver::addSet(int modid, int id, vector<WLtuple>& lws){
-	return getImpl()->addSet(modid, id, lws);
+	return getSOImpl()->addSet(modid, id, lws);
 }
 
 bool WrappedSOSolver::addAggrExpr(int modid, Literal head, int setid, const Weight& bound, AggSign sign, AggType type, AggSem sem){
-	return getImpl()->addAggrExpr(modid, head, setid, bound, sign, type, sem);
+	return getSOImpl()->addAggrExpr(modid, head, setid, bound, sign, type, sem);
 }
 
 //Add information for hierarchy
 bool WrappedSOSolver::addSubTheory(int parent, Literal head, int child){
-	return getImpl()->addChild(parent, child, head);
+	return getSOImpl()->addChild(parent, child, head);
 }
 
 bool WrappedSOSolver::addRigidAtoms(int modid, const vector<Atom>& atoms){
-	return getImpl()->addAtoms(modid, atoms);
+	return getSOImpl()->addAtoms(modid, atoms);
 }
