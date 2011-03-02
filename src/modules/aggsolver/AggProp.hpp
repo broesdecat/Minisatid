@@ -1,4 +1,11 @@
-/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #ifndef AGGPROP_HPP_
 #define AGGPROP_HPP_
 
@@ -232,10 +239,19 @@ protected:
 	Propagator* 		prop;		//OWNS pointer
 
 	int 				setid;
-	std::vector<Aggrs::AggTransform*> transformations;	bool				usingwatches;
+	std::vector<Aggrs::AggTransform*> transformations;
+
+	bool				usingwatches;
 
 public:
-	TypedSet(AggSolver* solver, int setid):			kb(Weight(0)),			type(NULL),			aggsolver(solver),			prop(NULL),			setid(setid),			transformations(Aggrs::getTransformations()),			usingwatches(true){}
+	TypedSet(AggSolver* solver, int setid):
+			kb(Weight(0)),
+			type(NULL),
+			aggsolver(solver),
+			prop(NULL),
+			setid(setid),
+			transformations(Aggrs::getTransformations()),
+			usingwatches(true){}
 	TypedSet(const TypedSet& set):
 			kb(set.getKnownBound()),
 			wl(set.getWL()),
@@ -243,7 +259,9 @@ public:
 			aggsolver(set.getSolver()),
 			prop(NULL),
 			setid(set.getSetID()),
-			transformations(set.getTransformations()),			usingwatches(set.isUsingWatches()){	}
+			transformations(set.getTransformations()),
+			usingwatches(set.isUsingWatches()){
+	}
 	virtual ~TypedSet(){
 		deleteList<Agg>(aggregates);
 		delete prop;
@@ -259,7 +277,10 @@ public:
 	std::vector<Agg*>& getAggNonConst	()	 						{ return aggregates; }
 	void			replaceAgg		(const agglist& repl);
 	void			replaceAgg		(const agglist& repl, const agglist& del);
-	void 			addAgg			(Agg* aggr);	bool			isUsingWatches() const { return usingwatches; }	void			setUsingWatches(bool use) { usingwatches = use; }
+	void 			addAgg			(Agg* aggr);
+
+	bool			isUsingWatches() const { return usingwatches; }
+	void			setUsingWatches(bool use) { usingwatches = use; }
 
 	const Weight&	getKnownBound	()			const			{ return kb; }
 	void 			setKnownBound	(const Weight& w)			{ kb = w; }

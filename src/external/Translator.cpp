@@ -1,4 +1,11 @@
-/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #include "external/Translator.hpp"
 
 #include <string>
@@ -13,6 +20,8 @@
 #include <iostream>
 #include <algorithm>
 
+#include <GeneralUtils.hpp>
+
 using namespace std;
 using namespace MinisatID;
 
@@ -20,7 +29,11 @@ Translator::Translator(): modelcounter(0){}
 
 void Translator::printLiteral(std::ostream& output, const Literal& lit){
 	output <<(lit.hasSign()?"-":"") <<lit.getAtom().getValue() <<"\n";
-}void Translator::printCurrentOptimum(std::ostream& output, const Weight& value){}
+}
+
+void Translator::printCurrentOptimum(std::ostream& output, const Weight& value){
+
+}
 
 void Translator::printModel(std::ostream& output, const std::vector<Literal>& model){
 	bool start = true;
@@ -35,24 +48,48 @@ void Translator::printModel(std::ostream& output, const std::vector<Literal>& mo
 void Translator::printHeader(std::ostream& output){
 	//Noop
 }
-
+
+
 FODOTTranslator::FODOTTranslator(OUTPUTFORMAT fodot): Translator(),
 		tofodot(fodot==TRANS_FODOT), finisheddata(false), emptytrans(true) {
 	assert(fodot!=TRANS_PLAIN);
 }
 
 FODOTTranslator::~FODOTTranslator() {
+	deleteList<Type>(types);
+	deleteList<Symbol>(symbols);
+}
 
+void FODOTTranslator::addType(string name, const vector<string>& inter){
+	types.insert(pair<string,Type*>(name, new Type(name, inter)));
+}
+
+void FODOTTranslator::addPred(string name, int startingnumber, const vector<string>& typenames, bool isfunction){
+	vector<Type*> argtypes;
+	int joinsize = 1;
+	for(vector<string>::const_iterator i = typenames.begin(); i < typenames.end(); i++) {
+		argtypes.push_back(types.at(*i));
+		joinsize *= argtypes.back()->domainelements.size();
+	}
+
+	symbols.push_back(new Symbol(name, startingnumber, startingnumber+joinsize-1, argtypes, isfunction));
+	emptytrans = false;
 }
 
 void FODOTTranslator::finishParsing(ostream& output){
 	finisheddata = true;
 
-	if(emptytrans || predicates.size()){
+	if(emptytrans){
 		return;
 	}
 
-	largestnottseitinatom = highestvalue[predicates.size()-1];	for(vector<string>::const_iterator i=predicates.begin(); i<predicates.end(); i++){		arbitout.push_back(SymbolInterpr(*i));		truemodelcombinedout.push_back(SymbolInterpr(*i));	}
+	largestnottseitinatom = symbols.back()->endnumber;
+
+	for(vector<Symbol*>::const_iterator i=symbols.begin(); i<symbols.end(); i++){
+		arbitout.push_back(SymbolInterpr(*i));
+		truemodelcombinedout.push_back(SymbolInterpr(*i));
+	}
+
 	// set initial values
 	uint currpred = 0;
 	// parse the certainly true atoms
@@ -83,43 +120,14 @@ void FODOTTranslator::finishParsing(ostream& output){
 				arbitout[currpred].tuples.push_back(TupleInterpr(FIXED_ARBIT, arg));
 			}
 		}
-	}	output <<"Arbitrary truth values: \n";	printInterpr(arbitout, output, PRINT_ARBIT);
-}
-
-void FODOTTranslator::addType(string name, const vector<string>& inter){
-	type_lookup[name] = types.size();
-	types.push_back(inter);
-}
-
-void FODOTTranslator::addPred(string name, int num, const vector<string>& ptypes, bool f){
-	predicates.push_back(name);
-	isfunc.push_back(f);
-	int s = 1;
-	vector<int> pti;
-	for(vector<string>::const_iterator n = ptypes.begin(); n < ptypes.end(); n++) {
-		int t = type_lookup[*n];
-		pti.push_back(t);
-		s = s * types[t].size();
 	}
-	predtypes.push_back(pti);
-	lowestvalue.push_back(num);
-	highestvalue.push_back(num + s - 1);
-	emptytrans = false;
-}
-
-string FODOTTranslator::getPredName(int predn) const{
-	string name = predicates[predn];
-	if(!tofodot){
-		char first = tolower(name[0]);
-		name = name.substr(1);
-		name.insert(name.begin(), first);
-	}
-	return name;
+	output <<"Arbitrary truth values: \n";
+	printInterpr(arbitout, output, PRINT_ARBIT);
 }
 
 void FODOTTranslator::printTuple(const vector<string>& tuple, ostream& output) const{
 	bool begin = true;
-	for(vector<string>::const_iterator k =tuple.begin(); k < tuple.end(); k++) {
+	for(vector<string>::const_iterator k = tuple.begin(); k < tuple.end(); k++) {
 		if(!begin){
 			output << ",";
 		}
@@ -128,72 +136,64 @@ void FODOTTranslator::printTuple(const vector<string>& tuple, ostream& output) c
 	}
 }
 
-void FODOTTranslator::printPredicate(int n, const modelvec& model, ostream& output, PRINTCHOICE print) const{
-	if(predtypes[n].size()==0){
-		bool found = false;
-		for(vector<string>::const_iterator i=arbitatoms.begin(); !found && i<arbitatoms.end(); i++){
-			if((*i).compare(predicates[n])==0){
-				found = true;
-			}
-		}
-		if(!found){
-			if(tofodot){
-				output << getPredName(n);
-				if(model[n].size()==0){
-					output << " = false\n";
-				}else{
-					output << " = true\n";
-				}
-			}else{
-				if(model[n].size()!=0){ //Only print if true!
-					output << getPredName(n) <<". ";
-				}
-			}
-		}
-		return;
-	}
+void FODOTTranslator::printPredicate(const SymbolInterpr& pred, ostream& output, PRINTCHOICE print) const {
+	assert(!pred.symbol->isfunction);
 
-	if(tofodot){
-		output << getPredName(n) << " = { ";
-	}
-	bool tupleseen = false;
-	for(vector<vector<string> >::const_iterator m = model[n].begin(); m < model[n].end(); ++m) {
-		if(!tofodot){
-			output << getPredName(n) << "(";
-			printTuple(*m, output);
-			output <<"). ";
-		}else{
-			if(tupleseen){
-				output << "; ";
+	if(pred.symbol->types.size()==0){
+		assert(pred.tuples.size()==1);
+
+		FIXEDVAL atomval = pred.tuples.back().value;
+		if(print==PRINT_ARBIT && atomval==FIXED_ARBIT){
+			output <<pred.symbol->name <<"\n";
+		}else if(print!=PRINT_ARBIT && atomval!=FIXED_ARBIT){
+			output <<pred.symbol->name;
+			if(tofodot){
+				output << " = true\n";
+			}else{
+				output <<". ";
 			}
-			printTuple(*m, output);
-			tupleseen = true;
 		}
-	}
-	if(tofodot){
-		output << " }\n";
+	}else{
+		if(tofodot){
+			output << pred.symbol->name << " = { ";
+		}
+		bool tupleseen = false;
+		for(vector<TupleInterpr>::const_iterator m = pred.tuples.begin(); m < pred.tuples.end(); ++m) {
+			if(!tofodot){
+				output << pred.symbol->name << "(";
+				printTuple((*m).arguments, output);
+				output <<"). ";
+			}else{
+				if(tupleseen){
+					output << "; ";
+				}
+				printTuple((*m).arguments, output);
+				tupleseen = true;
+			}
+		}
+		if(tofodot){
+			output << " }\n";
+		}
 	}
 }
 
-void FODOTTranslator::printFunction(int n, const modelvec& model, ostream& output, PRINTCHOICE print) const{
+void FODOTTranslator::printFunction(const SymbolInterpr& func, ostream& output, PRINTCHOICE print) const{
 	if(tofodot){
-		output << getPredName(n) <<" = ";
-		if(predtypes[n].size() == 1) {
-			assert(model[n].size()!=0);
-			output << model[n][0][0];
-			output <<endl;
-		}
-		else {
-			int ts = predtypes[n].size();
+		output <<func.symbol->name <<" = ";
+		if(func.symbol->types.size() == 1) {
+			assert(func.tuples.size()==1);
+			output << func.tuples.back().arguments[0] <<"\n";
+		} else {
+			int ts = func.symbol->types.size();
 			output <<" { ";
 			bool tupleseen = false;
-			for(vector<vector<string> >::const_iterator m = model[n].begin(); m < model[n].end(); m++) {
+			for(vector<TupleInterpr>::const_iterator m = func.tuples.begin(); m < func.tuples.end(); m++) {
 				if(tupleseen){
 					output << "; ";
 				}
 				bool begin = true;
 				int count = 0;
-				for(vector<string>::const_iterator k = (*m).begin(); k < (*m).end(); k++, count++) {
+				for(vector<string>::const_iterator k = (*m).arguments.begin(); k < (*m).arguments.end(); k++, count++) {
 					if(!begin){
 						output << (count==ts-1?"->":",");
 					}
@@ -205,14 +205,14 @@ void FODOTTranslator::printFunction(int n, const modelvec& model, ostream& outpu
 			output << " }\n";
 		}
 	}else{
-		if(predtypes[n].size() == 1) {
-			assert(model[n].size()!=0);
-			output << getPredName(n) <<"(" << model[n][0][0] <<"). ";
+		if(func.symbol->types.size() == 1) {
+			assert(func.tuples.size()!=0);
+			output << func.symbol->name <<"(" << func.tuples[0].arguments[0] <<"). ";
 		}
 		else {
-			for(vector<vector<string> >::const_iterator m = model[n].begin(); m < model[n].end(); ++m) {
-				output << getPredName(n) <<"(";
-				printTuple(*m, output);
+			for(vector<TupleInterpr>::const_iterator m = func.tuples.begin(); m < func.tuples.end(); ++m) {
+				output << func.symbol->name <<"(";
+				printTuple((*m).arguments, output);
 				output <<"). ";
 			}
 		}
@@ -220,19 +220,22 @@ void FODOTTranslator::printFunction(int n, const modelvec& model, ostream& outpu
 }
 
 void FODOTTranslator::printInterpr(const modelvec& model, ostream& output, PRINTCHOICE printfixed) const{
-	for(vector<string>::size_type n = 0; n < predicates.size(); ++n) {
-		if(isfunc[n]) {
-			printFunction(n, model, output, printfixed);
+	for(vector<SymbolInterpr>::const_iterator n = model.begin(); n < model.end(); ++n) {
+		if((*n).tuples.size()==0){ //None were loaded, so a pred which is either fully arbit or fully in find
+			continue;
+		}
+		if((*n).symbol->isfunction) {
+			printFunction(*n, output, printfixed);
 		} else {
-			printPredicate(n, model, output, printfixed);
+			printPredicate(*n, output, printfixed);
 		}
 	}
 }
 
-//IMPORTANT: non-incremental (slow), so do not use for printing a full model!//FIXME arbitrary?
+//IMPORTANT: non-incremental (slow), so do not use for printing a full model!
 void FODOTTranslator::printLiteral(std::ostream& output, const Literal& lit) {
 	if(!finisheddata){
-		finishParsing();
+		finishParsing(output);
 	}
 
 	if(emptytrans){
@@ -243,7 +246,7 @@ void FODOTTranslator::printLiteral(std::ostream& output, const Literal& lit) {
 	vector<string> args;
 	deriveStringFromAtomNumber(lit.getAtom().getValue(), pred, args);
 
-	if(isfunc[pred]) {
+	if(symbols[pred]->isfunction) {
 		output <<(lit.hasSign()?"~":"");
 		bool begin = true;
 		if(args.size()>1){
@@ -261,7 +264,7 @@ void FODOTTranslator::printLiteral(std::ostream& output, const Literal& lit) {
 		}
 		output <<args.back()<<"\n";
 	} else {
-		output <<(lit.hasSign()?"~":"") << getPredName(pred) << "(";
+		output <<(lit.hasSign()?"~":"") << symbols[pred]->name << "(";
 		printTuple(args, output);
 		output <<")\n";
 	}
@@ -269,7 +272,7 @@ void FODOTTranslator::printLiteral(std::ostream& output, const Literal& lit) {
 
 void FODOTTranslator::printModel(std::ostream& output, const vector<Literal>& model) {
 	if(!finisheddata){
-		finishParsing();
+		finishParsing(output);
 	}
 
 	if(emptytrans){
@@ -287,14 +290,14 @@ void FODOTTranslator::printModel(std::ostream& output, const vector<Literal>& mo
 		int lit = (*i).getValue();
 		if(lit==0 || endmodel){ //end of model found
 			break;
-		}else if(lit<0){
+		}else if(lit<0){ //Only print true literals
 			continue;
 		}else if(lit > largestnottseitinatom){
 			endmodel = true;
 		}else{
 			vector<string> arg;
 			if(deriveStringFromAtomNumber(lit, currpred, arg)){
-				temptruemodelcombined[currpred].push_back(arg);
+				temptruemodelcombined[currpred].tuples.push_back(TupleInterpr(FIXED_TRUE, arg));
 			}
 		}
 	}
@@ -311,20 +314,20 @@ void FODOTTranslator::printModel(std::ostream& output, const vector<Literal>& mo
  * @pre: atom is positive
  */
 bool FODOTTranslator::deriveStringFromAtomNumber(int atom, uint& currpred, vector<string>& arg) const{
-	while(atom > highestvalue[currpred]) {
+	while(atom > symbols[currpred]->endnumber) {
 		currpred++;
 	}
-	if(atom < lowestvalue[currpred]){
+	if(atom < symbols[currpred]->startnumber){
 		return false;
 	}
 
 	int valueleft = atom;
-	assert(currpred < predicates.size());
-	valueleft = atom - lowestvalue[currpred];
-	for(int n = predtypes[currpred].size() - 1; n >= 0 ; n--) {
-		int cs = types[predtypes[currpred][n]].size();
+	assert(currpred < symbols.size());
+	valueleft = atom-symbols[currpred]->startnumber;
+	for(vector<Type*>::const_reverse_iterator n=symbols[currpred]->types.rbegin(); n < symbols[currpred]->types.rend(); n++) {
+		int cs = (*n)->domainelements.size();
 		int carg = valueleft % cs;
-		string domelem = types[predtypes[currpred][n]][carg];
+		string domelem = (*n)->domainelements[carg];
 		if(!tofodot){
 			char first = tolower(domelem[0]);
 			domelem = domelem.substr(1);
@@ -340,13 +343,15 @@ bool FODOTTranslator::deriveStringFromAtomNumber(int atom, uint& currpred, vecto
 
 void FODOTTranslator::printHeader(ostream& output){
 	if(!finisheddata){
-		finishParsing();
+		finishParsing(output);
 	}
 
 	if(emptytrans){
 		return;
 	}
 }
+
+
 
 void LParseTranslator::addTuple(Atom atom, std::string name) {
 	lit2name[atom]=name;
@@ -374,4 +379,34 @@ void LParseTranslator::printLiteral(std::ostream& output, const Literal& lit) {
 void LParseTranslator::printHeader(std::ostream& output) {
 
 }
-void OPBTranslator::addTuple(Atom atom, std::string name) {	lit2name[atom]=name;}void OPBTranslator::printModel(std::ostream& output, const std::vector<Literal>& model) {	output <<"v ";	for(vector<Literal>::const_iterator i=model.begin(); i<model.end(); i++){		map<Atom, string>::const_iterator it = lit2name.find((*i).getAtom());		if(it!=lit2name.end()){			if((*i).hasSign()){				output <<"-";			}			output <<(*it).second <<" ";		}	}	output <<"\n";	output.flush();}void OPBTranslator::printLiteral(std::ostream& output, const Literal& lit) {}void OPBTranslator::printCurrentOptimum(std::ostream& output, const Weight& value){	output <<"o " <<value <<"\n";}void OPBTranslator::printHeader(std::ostream& output) {}
+
+void OPBTranslator::addTuple(Atom atom, std::string name) {
+	lit2name[atom]=name;
+}
+
+void OPBTranslator::printModel(std::ostream& output, const std::vector<Literal>& model) {
+	output <<"v ";
+	for(vector<Literal>::const_iterator i=model.begin(); i<model.end(); i++){
+		map<Atom, string>::const_iterator it = lit2name.find((*i).getAtom());
+		if(it!=lit2name.end()){
+			if((*i).hasSign()){
+				output <<"-";
+			}
+			output <<(*it).second <<" ";
+		}
+	}
+	output <<"\n";
+	output.flush();
+}
+
+void OPBTranslator::printLiteral(std::ostream& output, const Literal& lit) {
+
+}
+
+void OPBTranslator::printCurrentOptimum(std::ostream& output, const Weight& value){
+	output <<"o " <<value <<"\n";
+}
+
+void OPBTranslator::printHeader(std::ostream& output) {
+
+}

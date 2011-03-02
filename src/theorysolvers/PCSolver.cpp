@@ -1,4 +1,11 @@
-/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #include "theorysolvers/PCSolver.hpp"
 
 #include <iostream>
@@ -223,13 +230,21 @@ bool PCSolver::addEquivalence(const Lit& head, const vec<Lit>& rightlits, bool c
 bool PCSolver::addRule(bool conj, Lit head, const vec<Lit>& lits) {
 	assert(getIDSolver()!=NULL);
 	addVar(head);
-	addVars(lits);	if (verbosity() >= 2) {		report("Adding %s rule, %d <- ", conj?"conjunctive":"disjunctive", getPrintableVar(var(head)));		for (int i = 0; i < lits.size(); i++) {			report("%s%d ", sign(lits[i])?"-":"",getPrintableVar(var(lits[i])));		}		report("\n");	}
+	addVars(lits);
+
+	if (verbosity() >= 2) {
+		report("Adding %s rule, %d <- ", conj?"conjunctive":"disjunctive", getPrintableVar(var(head)));
+		for (int i = 0; i < lits.size(); i++) {
+			report("%s%d ", sign(lits[i])?"-":"",getPrintableVar(var(lits[i])));
+		}
+		report("\n");
+	}
 	return getIDSolver()->addRule(conj, head, lits);
 }
 
 bool PCSolver::addRuleToID(int defid, bool conj, Lit head, const vec<Lit>& lits){
 #warning No multi definition support yet
-	throw idpexception("No support yet for adding multiple separate definitions.");
+	throw idpexception(">> No support yet for adding multiple separate definitions.");
 }
 
 bool PCSolver::addSet(int setid, const vec<Lit>& lits) {
@@ -244,7 +259,8 @@ bool PCSolver::addSet(int setid, const vec<Lit>& lits) {
 bool PCSolver::addSet(int setid, const vec<Lit>& lits, const vector<Weight>& w) {
 	assert(getAggSolver()!=NULL);
 	addVars(lits);
-	vector<Lit> ll;	ll.reserve(lits.size());
+	vector<Lit> ll;
+	ll.reserve(lits.size());
 	for (int i = 0; i < lits.size(); i++) {
 		ll.push_back(lits[i]);
 	}
@@ -265,52 +281,52 @@ bool PCSolver::addAggrExpr(Lit head, int setid, const Weight& bound, AggSign bou
 	assert(getAggSolver()!=NULL);
 	addVar(head);
 	if (sign(head)) {
-		throw idpexception("Negative heads are not allowed.\n");
+		throw idpexception(">> Negative heads are not allowed.\n");
 	}
 	return getAggSolver()->addAggrExpr(var(head), setid, bound, boundsign, type, defined);
 }
 
 bool PCSolver::addIntVar(int groundname, int min, int max) {
-	throw idpexception("CP-support is not compiled in.\n");
+	throw idpexception(">> CP-support is not compiled in.\n");
 }
 
 void PCSolver::checkHead(Lit head) {
 	addVar(head);
 	if (sign(head)) {
-		throw idpexception("Negative heads are not allowed.\n");
+		throw idpexception(">> Negative heads are not allowed.\n");
 	}
 }
 
 bool PCSolver::addCPBinaryRel(Lit head, int groundname, EqType rel, int bound) {
-	throw idpexception("CP-support is not compiled in.\n");
+	throw idpexception(">> CP-support is not compiled in.\n");
 }
 
 bool PCSolver::addCPBinaryRelVar(Lit head, int groundname, EqType rel, int groundname2) {
-	throw idpexception("CP-support is not compiled in.\n");
+	throw idpexception(">> CP-support is not compiled in.\n");
 }
 
 bool PCSolver::addCPSum(Lit head, vector<int> termnames, EqType rel, int bound) {
-	throw idpexception("CP-support is not compiled in.\n");
+	throw idpexception(">> CP-support is not compiled in.\n");
 }
 
 bool PCSolver::addCPSum(Lit head, vector<int> termnames, vector<int> mult, EqType rel, int bound) {
-	throw idpexception("CP-support is not compiled in.\n");
+	throw idpexception(">> CP-support is not compiled in.\n");
 }
 
 bool PCSolver::addCPSumVar(Lit head, vector<int> termnames, EqType rel, int rhstermname) {
-	throw idpexception("CP-support is not compiled in.\n");
+	throw idpexception(">> CP-support is not compiled in.\n");
 }
 
 bool PCSolver::addCPSumVar(Lit head, vector<int> termnames, vector<int> mult, EqType rel, int rhstermname) {
-	throw idpexception("CP-support is not compiled in.\n");
+	throw idpexception(">> CP-support is not compiled in.\n");
 }
 
 bool PCSolver::addCPCount(vector<int> termnames, int value, EqType rel, int rhstermname) {
-	throw idpexception("CP-support is not compiled in.\n");
+	throw idpexception(">> CP-support is not compiled in.\n");
 }
 
 bool PCSolver::addCPAlldifferent(const vector<int>& termnames) {
-	throw idpexception("CP-support is not compiled in.\n");
+	throw idpexception(">> CP-support is not compiled in.\n");
 }
 
 void PCSolver::addForcedChoices(const vec<Lit>& forcedchoices) {
@@ -326,9 +342,17 @@ void PCSolver::finishParsing(bool& present, bool& unsat) {
 	present = true;
 	unsat = false;
 
-	propagations.resize(nVars(), NULL); //Lazy init	//Notify parsing is over	for(solverlist::const_iterator i=solvers.begin(); i<solvers.end(); i++){		if((*i)->present){			(*i)->get()->notifyParsed();		}	}
+	propagations.resize(nVars(), NULL); //Lazy init
 
-	//IMPORTANT Call definition solvers last for recursive aggregates and rules might be added by other solvers!	//Finish all solvers
+	//Notify parsing is over
+	for(solverlist::const_iterator i=solvers.begin(); i<solvers.end(); i++){
+		if((*i)->present){
+			(*i)->get()->notifyParsed();
+		}
+	}
+
+	//IMPORTANT Call definition solvers last for recursive aggregates and rules might be added by other solvers!
+	//Finish all solvers
 	for(solverlist::const_iterator i=solvers.begin(); i<solvers.end(); i++){
 		if((*i)->present){
 			(*i)->get()->finishParsing((*i)->present, unsat);
@@ -337,7 +361,19 @@ void PCSolver::finishParsing(bool& present, bool& unsat) {
 				return;
 			}
 		}
-	}	//Propagate all non-propagated literals	for(solverlist::const_iterator i=solvers.begin(); i<solvers.end(); i++){		if ((*i)->present && !(*i)->get()->simplify()) {			unsat = true; return;		} else if(!(*i)->present) {			if (modes().verbosity > 0) {				clog <<">    (there will be no propagations on " <<(*i)->get()->getName() <<" module)\n";			}		}	}
+	}
+
+	//Propagate all non-propagated literals
+
+	for(solverlist::const_iterator i=solvers.begin(); i<solvers.end(); i++){
+		if ((*i)->present && !(*i)->get()->simplify()) {
+			unsat = true; return;
+		} else if(!(*i)->present) {
+			if (modes().verbosity > 0) {
+				clog <<">    (there will be no propagations on " <<(*i)->get()->getName() <<" module)\n";
+			}
+		}
+	}
 
 	// Do all propagations that have already been done on the SAT-solver level.
 	initialized = true;
@@ -472,7 +508,10 @@ void PCSolver::backtrackDecisionLevel(int levels, int untillevel) {
  * Returns not-owning pointer
  */
 rClause PCSolver::propagate(Lit l) {
-	if (!initialized) {		initialprops.push_back(l);		return nullPtrClause;	}
+	if (!initialized) {
+		initialprops.push_back(l);
+		return nullPtrClause;
+	}
 
 	rClause confl = nullPtrClause;
 	for(solverlist::const_iterator i=solvers.begin(); confl==nullPtrClause && i<solvers.end(); i++){
@@ -572,11 +611,8 @@ bool PCSolver::solve(const vec<Lit>& assumptions, const ModelExpandOptions& opti
 	}
 
 	if (verbosity()>=1) {
-		clog <<"> Found " <<getParent().getNbModelsFound() <<" models, ";
-		if(!moremodels){
-			clog <<"no more models exist.\n";
-		}else if(optim==NONE){
-			clog <<"searched for " <<options.nbmodelstofind <<" models.\n";
+		if(!moremodels && optim==NONE){
+			clog <<"No more models exist.\n";
 		}
 	}
 
@@ -710,7 +746,7 @@ bool PCSolver::addMinimize(const vec<Lit>& lits, bool subsetmnmz) {
 
 bool PCSolver::addMinimize(const Var head, const int setid, AggType agg) {
 	if (optim != NONE) {
-		throw idpexception("Only one optimization statement is allowed.\n");
+		throw idpexception(">> Only one optimization statement is allowed.\n");
 	}
 
 	addVar(head);
@@ -752,7 +788,7 @@ bool PCSolver::invalidateValue(vec<Lit>& invalidation) {
 	for (int i = 0; !currentoptimumfound && i < to_minimize.size(); i++) {
 		if (!currentoptimumfound && getSolver()->model[var(to_minimize[i])] == l_True) {
 			if (modes().verbosity >= 1) {
-				clog <<"Current optimum found for: ";
+				clog <<"> Current optimum found for: ";
 				getParent().printLiteral(cerr, to_minimize[i]);
 				clog <<"\n";
 			}
@@ -862,14 +898,16 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
 
 			getParent().addModel(m);
 		}
-	}	if(unsatreached && modelfound){		getParent().notifyOptimalModelFound();	}
+	}
+
+	if(unsatreached && modelfound){
+		getParent().notifyOptimalModelFound();
+	}
 
 	return modelfound && unsatreached;
 }
 
-///////
 // PRINT METHODS
-///////
 
 void PCSolver::printModID() const {
 	if(getModSolver()!=NULL){
@@ -878,14 +916,14 @@ void PCSolver::printModID() const {
 }
 
 void PCSolver::printEnqueued(const Lit& p) const{
-	clog <<"Enqueued " <<p <<" in ";
+	clog <<"> Enqueued " <<p <<" in ";
 	printModID();
 	reportf("\n");
 }
 
 void PCSolver::printChoiceMade(int level, Lit l) const {
 	if (modes().verbosity >= 2) {
-		clog <<"Choice literal, dl " <<level <<", ";
+		clog <<"> Choice literal, dl " <<level <<", ";
 		printModID();
 
 		clog <<": " <<l <<".\n";
@@ -910,4 +948,8 @@ void PCSolver::print() const{
 
 void PCSolver::print(rClause clause) const {
 	getSolver()->printClause(getClauseRef(clause));
-}void PCSolver::printCurrentOptimum(const Weight& value) const{	getParent().printCurrentOptimum(value);}
+}
+
+void PCSolver::printCurrentOptimum(const Weight& value) const{
+	getParent().printCurrentOptimum(value);
+}

@@ -1,4 +1,11 @@
-/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #include "external/ExternalInterface.hpp"
 #include "external/InterfaceImpl.hpp"
 #include "external/Translator.hpp"
@@ -13,22 +20,26 @@ WrappedLogicSolver::~WrappedLogicSolver(){
 
 void WrappedLogicSolver::setTranslator(Translator* translator){
 	getImpl()->setTranslator(translator);
-}Translator& WrappedLogicSolver::getTranslator() {	return getImpl()->getTranslator();}
+}
+
+bool WrappedLogicSolver::hasOptimization() const {
+	return getImpl()->hasOptimization();
+}
+
+Translator& WrappedLogicSolver::getTranslator() {
+	return getImpl()->getTranslator();
+}
 
 void WrappedPCSolver::addForcedChoices(const vector<Literal> lits){
 	getImpl()->addForcedChoices(lits);
-}void WrappedLogicSolver::notifyTimeout() const {	getImpl()->notifyTimeout();}
+}
+
+void WrappedLogicSolver::notifyTimeout() const {
+	getImpl()->notifyTimeout();
+}
 
 void WrappedLogicSolver::printStatistics() const {
 	getImpl()->printStatistics();
-}
-
-bool WrappedLogicSolver::finishParsing(){
-	return getImpl()->finishParsing();
-}
-
-bool WrappedLogicSolver::simplify(){
-	return getImpl()->simplify();
 }
 
 bool WrappedLogicSolver::solve(Solution* sol){

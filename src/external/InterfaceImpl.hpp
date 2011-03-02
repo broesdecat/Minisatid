@@ -1,4 +1,11 @@
-/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #ifndef INTERFACEIMPL_HPP_
 #define INTERFACEIMPL_HPP_
 
@@ -53,32 +60,46 @@ public:
 
 class WLSImpl{
 private:
-	bool 			optimization;	bool			printedbestmodel;
+	bool 			optimization;
+	bool			printedbestmodel;
 	SolverState 	state;
 	SolverOption	_modes;
 
 	Remapper*		remapper;
 	Translator*		owntranslator;
-	Translator*		translator;	Solution*		solution; //Non-owning pointer
+	Translator*		translator;
+
+	Solution*		solution; //Non-owning pointer
 
 public:
 			WLSImpl			(const SolverOption& modes);
 	virtual ~WLSImpl		();
 
-	bool 	finishParsing	();
-	bool 	simplify		();
+	bool 	hasOptimization	() const { return optimization; }
 	bool 	solve			(Solution* sol);
-	void 	addModel		(const vec<Lit>& model);	void	notifyOptimalModelFound();	int		getNbModelsFound() const { return solution->getNbModelsFound(); }
-	Translator& getTranslator();
-	void	setTranslator	(Translator* translator);	const Solution& getSolution	()		const 	{ assert(solution!=NULL); return *solution; }	Solution& 		getSolution	() 				{ assert(solution!=NULL); return *solution; }	void			setSolution	(Solution* sol) { solution = sol; } //Can be NULL
+	void 	addModel		(const vec<Lit>& model);
+	void	notifyOptimalModelFound();
+
+	int		getNbModelsFound() const { return solution->getNbModelsFound(); }
+
+	Translator& getTranslator();
+	void	setTranslator	(Translator* translator);
+
+	const Solution& getSolution	()		const 	{ assert(solution!=NULL); return *solution; }
+	Solution& 		getSolution	() 				{ assert(solution!=NULL); return *solution; }
+	void			setSolution	(Solution* sol) { solution = sol; } //Can be NULL
 
 	const SolverOption& modes()	const	{ return _modes; }
 	int 	verbosity		()	const	{ return modes().verbosity; }
 	void 	printStatistics	() const;
-	void 	printLiteral	(std::ostream& stream, const Lit& l) const;	void 	printCurrentOptimum(const Weight& value) const;	void	notifyTimeout	();
+	void 	printLiteral	(std::ostream& stream, const Lit& l) const;
+	void 	printCurrentOptimum(const Weight& value) const;
+
+	void	notifyTimeout	();
 
 protected:
-	bool 	hasOptimization	() const { return optimization; }
+	bool 	finishParsing	();
+	bool 	simplify		();
 	void	setOptimization	(bool opt) { optimization = opt; }
 
 	virtual MinisatID::LogicSolver* getSolver() const = 0;

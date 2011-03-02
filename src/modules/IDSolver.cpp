@@ -1,4 +1,11 @@
-/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #include "modules/IDSolver.hpp"
 #include "modules/AggSolver.hpp"
 #include "utils/Print.hpp"
@@ -44,10 +51,19 @@ inline void IDSolver::clearCycleSources() {
 		isCS(*i) = false;
 	}
 	css.clear();
-}void IDSolver::adaptToNVars(uint64_t nvars){	seen.resize(nvars, 0);	_disj_occurs.resize(nvars*2);	_conj_occurs.resize(nvars*2);}
+}
 
-void IDSolver::notifyVarAdded(uint64_t nvars) {	definitions.resize(nvars, NULL);
-	if(!isParsing()){		adaptToNVars(nvars);	}
+void IDSolver::adaptToNVars(uint64_t nvars){
+	seen.resize(nvars, 0);
+	_disj_occurs.resize(nvars*2);
+	_conj_occurs.resize(nvars*2);
+}
+
+void IDSolver::notifyVarAdded(uint64_t nvars) {
+	definitions.resize(nvars, NULL);
+	if(!isParsing()){
+		adaptToNVars(nvars);
+	}
 }
 
 /**
@@ -60,7 +76,8 @@ void IDSolver::notifyVarAdded(uint64_t nvars) {	definitions.resize(nvars, NULL)
  *
  * If only one body literal, the clause is always made conjunctive (for algorithmic correctness later on), semantics are the same.
  */
-bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {	assert(!isInitialized()); //Rules might be added before initialization is done (FIXME in fact before finishparsing here has been called, so should correct it)
+bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
+	assert(!isInitialized()); //Rules might be added before initialization is done (FIXME in fact before finishparsing here has been called, so should correct it)
 	if (!isPositive(head)) {
 		throw idpexception("Negative heads are not allowed.\n");
 	}
@@ -94,7 +111,8 @@ bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {	assert(!isIni
  *
  * @PRE: aggregates have to have been finished
  */
-void IDSolver::finishParsing(bool& present, bool& unsat) {	assert(isInitializing());
+void IDSolver::finishParsing(bool& present, bool& unsat) {
+	assert(isInitializing());
 	present = true;
 	unsat = false;
 
@@ -103,7 +121,10 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {	assert(isInitializin
 		return;
 	}
 
-	int nvars = nVars();	//LAZY initialization	adaptToNVars(nvars);
+	int nvars = nVars();
+
+	//LAZY initialization
+	adaptToNVars(nvars);
 
 	for (vsize i = 0; i < defdVars.size(); i++) {
 		assert(isDefined(defdVars[i]));
@@ -426,7 +447,8 @@ bool IDSolver::simplifyGraph(){
 	if(!posloops){
 		return true;
 	}
-	//If calling multiple times, but was to costly so removed from the algorithm
+
+	//If calling multiple times, but was to costly so removed from the algorithm
 	assert(getPCSolver().getDecisions().size()==0);
 	int currenttrailsize = getPCSolver().getTrail().size();
 	if (currenttrailsize == previoustrailatsimp) {
@@ -469,7 +491,8 @@ bool IDSolver::simplifyGraph(){
 			propq.push(l); // First negative literals are added that are not already false
 		}
 		l = createPositiveLiteral(i);
-		if (!isDefInPosGraph(i) && !isFalse(l)) {			seen[var(l)] = 0; //Mixed loop is justified, so seen is 0 (otherwise might find the same literal multiple times)
+		if (!isDefInPosGraph(i) && !isFalse(l)) {
+			seen[var(l)] = 0; //Mixed loop is justified, so seen is 0 (otherwise might find the same literal multiple times)
 			propq.push(l); // Then all non-false non-defined positive literals.
 		}
 	}
@@ -477,8 +500,12 @@ bool IDSolver::simplifyGraph(){
 	// propagate safeness to defined literals until fixpoint.
 	// While we do this, we build the initial justification.
 	while (propq.size() > 0) {
-		Lit l = propq.last(); //only heads are added to the queue		assert(sign(l) || seen[var(l)]==0);
-		propq.pop();		vec<Lit> heads;		vec<vec<Lit> > jstf;
+		Lit l = propq.last(); //only heads are added to the queue
+		assert(sign(l) || seen[var(l)]==0);
+		propq.pop();
+
+		vec<Lit> heads;
+		vec<vec<Lit> > jstf;
 
 		propagateJustificationDisj(l, jstf, heads);
 		for (int i = 0; i < heads.size(); i++) {
@@ -493,7 +520,9 @@ bool IDSolver::simplifyGraph(){
 		for (int i = 0; i < heads.size(); i++) {
 			changejust(var(heads[i]), jstf[i]);
 			propq.push(heads[i]);
-		}		heads.clear();		jstf.clear();
+		}
+		heads.clear();
+		jstf.clear();
 
 		propagateJustificationConj(l, propq);
 	}
@@ -507,7 +536,8 @@ bool IDSolver::simplifyGraph(){
 	 * justified). Otherwise, it is checked (overestimation) whether a negative loop might be possible.
 	 * If this is not the case, the definition is removed from the data structures.
 	 */
-	vector<Var> reducedVars;	int remrecagg = 0;
+	vector<Var> reducedVars;
+	int remrecagg = 0;
 	for (vector<int>::const_iterator i = defdVars.begin(); i < defdVars.end(); i++) {
 		Var v = (*i);
 		if (seen[v] > 0 || isFalse(v)) {
@@ -525,14 +555,20 @@ bool IDSolver::simplifyGraph(){
 				--atoms_in_pos_loops;
 			} else {
 				occ(v) = MIXEDLOOP;
-				reducedVars.push_back(v);				if (type(v) == AGGR) {					remrecagg++;				}
+				reducedVars.push_back(v);
+				if (type(v) == AGGR) {
+					remrecagg++;
+				}
 			}
 		} else {
-			reducedVars.push_back(v);			if (type(v) == AGGR) {
+			reducedVars.push_back(v);
+			if (type(v) == AGGR) {
 				remrecagg++;
 			}
 		}
-	}	assert(remrecagg<=recagg);	recagg = remrecagg;
+	}
+	assert(remrecagg<=recagg);
+	recagg = remrecagg;
 	defdVars.clear();
 	defdVars.insert(defdVars.begin(), reducedVars.begin(), reducedVars.end());
 
@@ -577,7 +613,11 @@ bool IDSolver::simplifyGraph(){
 		if (verbosity() >= 1) {
 			report("> All recursive atoms falsified in initializations.\n");
 		}
-	}	if(posloops && modes().defn_strategy != adaptive && !isCycleFree()) {		throw idpexception("Positive justification graph is not cycle free!\n");	}
+	}
+
+	if(posloops && modes().defn_strategy != adaptive && !isCycleFree()) {
+		throw idpexception("Positive justification graph is not cycle free!\n");
+	}
 #ifdef DEBUG
 	for (vv::const_iterator i = defdVars.begin(); i < defdVars.end(); i++) {
 		Var var = *i;
@@ -780,7 +820,9 @@ rClause IDSolver::propagateAtEndOfQueue() {
 }
 
 void IDSolver::newDecisionLevel() {
-	if(posloops && modes().defn_strategy != adaptive && !isCycleFree()) {		throw idpexception("Positive justification graph is not cycle free!\n");	}
+	if(posloops && modes().defn_strategy != adaptive && !isCycleFree()) {
+		throw idpexception("Positive justification graph is not cycle free!\n");
+	}
 }
 
 /**
@@ -1481,7 +1523,10 @@ inline void IDSolver::print(const PropRule& c) const {
 /**
  * For debugging purposes, checks for POSITIVE LOOPS.
  */
-bool IDSolver::isCycleFree() const {	if(!modes().checkcyclefreeness){		return true;	}
+bool IDSolver::isCycleFree() const {
+	if(!modes().checkcyclefreeness){
+		return true;
+	}
 #ifdef DEBUG
 	for (int i = 0; i < nVars(); i++) {
 		assert(!isDefined(i) || justification(i).size()>0 || type(i)!=DISJ || occ(i)==MIXEDLOOP);

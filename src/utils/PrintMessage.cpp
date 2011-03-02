@@ -1,4 +1,11 @@
-/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #include "utils/PrintMessage.hpp"
 
 #include "utils/Utils.hpp"
@@ -9,7 +16,7 @@ using namespace MinisatID;
 using namespace MinisatID::Print;
 
 string Print::getProgramVersion(){
-	return "2.4.0";
+	return "2.4.2";
 }
 
 string Print::getProgramInfo(){
@@ -41,6 +48,10 @@ void Print::printInitDataStart(int v) {
 	}
 }
 
+void Print::printStartStatistics(){
+	clog <<">>> [Statistics]\n";
+}
+
 void Print::printInitDataEnd(int v, double parsetime, bool unsat) {
 	if (v >= 1) {
 		clog <<"> Datastructure initialization finished.\n";
@@ -56,9 +67,12 @@ void Print::printSimpStart(int v) {
 		clog <<">>> [ Simplifying ]\n";
 	}
 }
-void Print::printSimpEnd(int v, bool unsat) {
-	if (v >= 1 && unsat) {
-		clog <<"> Unsatisfiable found by unit propagation.\n";
+void Print::printSimpEnd(int v, double parsetime, bool unsat) {
+	if (v >= 1) {
+		clog <<"> Total simplification time : " << parsetime <<" s.\n";
+		if(unsat){
+			clog <<"> Unsatisfiable found by unit propagation.\n";
+		}
 	}
 }
 
@@ -67,9 +81,12 @@ void Print::printSolveStart(int v) {
 		clog <<">>> [ Solving ]\n";
 	}
 }
-void Print::printSolveEnd(int v) {
+void Print::printSolveEnd(int v, double parsetime) {
+	if (v >= 1) {
+		clog <<"> Total solving time : " << parsetime <<" s.\n";
+	}
 }
 
 std::string Print::getMinimalVarNumbering(){
-	return "Variables can only be numbered starting from 1.\n";
+	return ">> Variables can only be numbered starting from 1.\n";
 }

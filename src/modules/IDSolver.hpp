@@ -1,4 +1,11 @@
-/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #ifndef IDSOLVER_H_
 #define IDSOLVER_H_
 
@@ -38,7 +45,8 @@ private:
 	vl lits;
 
 public:
-    PropRule(Lit head, const vec<Lit>& ps): head(var(head)){    	lits.reserve(ps.size());
+    PropRule(Lit head, const vec<Lit>& ps): head(var(head)){
+    	lits.reserve(ps.size());
     	for(int i=0; i<ps.size(); i++){
     		lits.push_back(ps[i]);
     	}
@@ -166,7 +174,8 @@ public:
 	bool    				addRule      			(bool conj, Lit head, const vec<Lit>& ps);	// Add a rule to the solver.
 	/////////////////////END INITIALIZATION
 
-private:	void 				adaptToNVars		(uint64_t nvars);
+private:
+	void 				adaptToNVars		(uint64_t nvars);
 	bool 				simplifyGraph		(); //False if problem unsat
 
 	DefinedVar* 		getDefVar			(Var v) const { assert(definitions.size()>v); return definitions[v]; }

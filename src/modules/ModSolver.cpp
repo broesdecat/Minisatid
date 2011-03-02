@@ -1,4 +1,11 @@
-/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #include "modules/ModSolver.hpp"
 
 #include "utils/Utils.hpp"
@@ -22,7 +29,8 @@ using namespace MinisatID::Print;
  * Constructs a ModSolver, with a given head, index and hierarchy pointer. A PCSolver is initialized.
  */
 ModSolver::ModSolver(modindex child, Var head, SOSolver* mh):
-		DPLLTmodule(NULL), WLSImpl(mh->modes()),		init(false), hasparent(false), searching(false),
+		DPLLTmodule(NULL), WLSImpl(mh->modes()),
+		init(false), hasparent(false), searching(false),
 		head(head),
 		id(child), parentid(-1), //, startedsearch(false), startindex(-1),
 		solver(NULL),
@@ -202,7 +210,12 @@ bool ModSolver::search(const vec<Lit>& assumpts, bool search){
 	return result;*/
 
 	bool result;
-	searching = search;	ModelExpandOptions options;	options.printmodels = PRINT_NONE;	options.savemodels = SAVE_NONE;	options.search = MODELEXPAND;	options.nbmodelstofind = 1;
+	searching = search;
+	ModelExpandOptions options;
+	options.printmodels = PRINT_NONE;
+	options.savemodels = SAVE_NONE;
+	options.search = MODELEXPAND;
+	options.nbmodelstofind = 1;
 	result = getPCSolver().solve(assumpts, options);
 	searching = false;
 	return result;
@@ -422,6 +435,6 @@ void ModSolver::print() const{
 
 void ModSolver::printModel(){
 	//TODO implement
-	throw idpexception("Not yet implemented");
+	throw idpexception(">> Not yet implemented");
 	//getPCSolver().printModel();
 }

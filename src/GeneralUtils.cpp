@@ -1,4 +1,11 @@
-/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #include "GeneralUtils.hpp"
 
 #include <cstdlib>
@@ -84,10 +91,12 @@ SolverOption::SolverOption():
 		defsem(DEF_WELLF),
 		ufs_strategy(breadth_first),
 		defn_strategy(always),
-		defn_search(include_cs),		checkcyclefreeness(false),
+		defn_search(include_cs),
+		checkcyclefreeness(false),
 		idclausesaving(0),
 		aggclausesaving(2),
-		pbsolver(false),		watchesratio(0.75),
+		pbsolver(false),
+		watchesratio(0.75),
 		primesfile(""),
 		remap(true),
 		rand_var_freq(getDefaultRandfreq()),
@@ -108,7 +117,15 @@ bool SolverOption::verifyOptions() const{
 	if(pbsolver && !fileIsReadable(s.c_str())){
 		printPrimesFileNotReadable(clog, s);
 		return false;
-	}	if(var_decay<0.0){		cerr <<"The value for decay should be positive.\n";		return false;	}	if(rand_var_freq<0.0 || rand_var_freq>1.0){		cerr <<"The value for rnd-freq should be between 0 and 1.\n";		return false;	}
+	}
+	if(var_decay<0.0){
+		cerr <<"The value for decay should be positive.\n";
+		return false;
+	}
+	if(rand_var_freq<0.0 || rand_var_freq>1.0){
+		cerr <<"The value for rnd-freq should be between 0 and 1.\n";
+		return false;
+	}
 	return true;
 }
 
@@ -124,9 +141,11 @@ void SolverOption::print(std::ostream& so) const{
 	so << "defsem: " 			<<defsem <<"\n";
 	so << "ufs_strategy: "		<<ufs_strategy <<"\n";
 	so << "defn_strategy: " 	<<defn_strategy <<"\n";
-	so << "defn_search: " 		<<defn_search <<"\n";	so << "checking cycles: "	<<checkcyclefreeness <<"\n";
+	so << "defn_search: " 		<<defn_search <<"\n";
+	so << "checking cycles: "	<<checkcyclefreeness <<"\n";
 	so << "aggclausesaving: " 	<<aggclausesaving <<"\n";
-	so << "pbsolver: " 			<<pbsolver <<"\n";	so << "watchedratio: " 		<<watchesratio <<"\n";
+	so << "pbsolver: " 			<<pbsolver <<"\n";
+	so << "watchedratio: " 		<<watchesratio <<"\n";
 	so << "primesfile: " 		<<getPrimesFile() <<"\n";
 	so << "remap: " 			<<remap <<"\n";
 	so << "rand_var_freq: " 	<<rand_var_freq <<"\n";

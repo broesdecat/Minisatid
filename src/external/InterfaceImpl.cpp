@@ -1,4 +1,11 @@
-/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #include "external/InterfaceImpl.hpp"
 
 #include <cstdlib>
@@ -59,7 +66,8 @@ Literal SmartRemapper::getLiteral(const Lit& lit){
 // PIMPL of External Interfaces
 
 WLSImpl::WLSImpl(const SolverOption& modes):
-		optimization(false),		printedbestmodel(false),
+		optimization(false),
+		printedbestmodel(false),
 		state(INIT), _modes(modes),
 		remapper(modes.remap?new SmartRemapper():new Remapper()),
 		owntranslator(new Translator()),
@@ -76,14 +84,24 @@ WLSImpl::~WLSImpl(){
 
 void WLSImpl::setTranslator(Translator* trans){
 	translator = trans;
-}Translator& WLSImpl::getTranslator() {	return *translator;}
+}
+
+Translator& WLSImpl::getTranslator() {
+	return *translator;
+}
+
+void WLSImpl::printStatistics() const {
+	printStartStatistics();
+	getSolver()->printStatistics();
+}
 
 void WLSImpl::printLiteral(std::ostream& output, const Lit& l) const{
 	getTranslator().printLiteral(output, getRemapper()->getLiteral(l));
-}void WLSImpl::printCurrentOptimum(const Weight& value) const{	ostream output(getRes());	getTranslator().printCurrentOptimum(output, value);}void WLSImpl::notifyTimeout(){	//if optimization and best model has not been printed, print it now	if(hasOptimization() && getSolution().getNbModelsFound()>0 && !printedbestmodel){		ostream output(getRes());		getTranslator().printModel(output, getSolution().getBestModelFound());		printedbestmodel = true;	}}
+}
 
-void WLSImpl::printStatistics() const {
-	getSolver()->printStatistics();
+void WLSImpl::printCurrentOptimum(const Weight& value) const{
+	ostream output(getRes());
+	getTranslator().printCurrentOptimum(output, value);
 }
 
 std::streambuf* WLSImpl::getRes() const {
@@ -104,13 +122,15 @@ void WLSImpl::checkLits(const vector<Literal>& lits, vec<Lit>& ll){
 	}
 }
 
-void WLSImpl::checkLits(const vector<Literal>& lits, vector<Lit>& ll){	ll.reserve(lits.size());
+void WLSImpl::checkLits(const vector<Literal>& lits, vector<Lit>& ll){
+	ll.reserve(lits.size());
 	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); i++){
 		ll.push_back(checkLit(*i));
 	}
 }
 
-void WLSImpl::checkAtoms(const vector<Atom>& atoms, vector<Var>& ll){	ll.reserve(atoms.size());
+void WLSImpl::checkAtoms(const vector<Atom>& atoms, vector<Var>& ll){
+	ll.reserve(atoms.size());
 	for(vector<Atom>::const_iterator i=atoms.begin(); i<atoms.end(); i++){
 		ll.push_back(checkAtom(*i));
 	}
@@ -123,39 +143,125 @@ void WPCLSImpl::addForcedChoices(const vector<Literal> lits){
 }
 
 bool WLSImpl::finishParsing(){
-	printInitDataStart(modes().verbosity);
+	double cpu_time = cpuTime();
+	printInitDataStart(verbosity());
 
-	double cpu_time = cpuTime(); //Start time	bool present = true, unsat = false;
+	bool present = true, unsat = false;
 	getSolver()->finishParsing(present, unsat);
 	state = PARSED;
 
-	printInitDataEnd(modes().verbosity, cpuTime()-cpu_time, unsat);
+	printInitDataEnd(verbosity(), cpuTime()-cpu_time, unsat);
 
 	return !unsat;
 }
 
 bool WLSImpl::simplify(){
-	printSimpStart(modes().verbosity);
-
+	double cpu_time = cpuTime();
+	printSimpStart(verbosity());
 	bool unsat = !getSolver()->simplify();
 	state = SIMPLIFIED;
 
-	printSimpEnd(modes().verbosity, unsat);
+	printSimpEnd(verbosity(), cpuTime()-cpu_time, unsat);
 
 	return !unsat;
 }
 
+/*
+ * Solution options:
+ * 		PRINT_NONE: never print any models
+ * 		PRINT_BEST: after solving an optimization problem, only print the optimum model or the best model when notifyTimeout is called
+ * 			when not an optimization problem, comes down to print all
+ * 		PRINT_ALL: print every model when adding it to the solution
+ *
+ * 		MODELEXAND: search for a solution
+ * 		PROPAGATE: only do unit propagation (and print nothing, not even when a model is found)
+ */
 bool WLSImpl::solve(Solution* sol){
-	bool unsat = false;	setSolution(sol);
+	bool unsat = false;
+	setSolution(sol);
 
 	if(!unsat && state==INIT){
 		unsat = !finishParsing();
 	}
 	if(!unsat && state==PARSED){
 		unsat = !simplify();
-	}	if(!unsat){		assert(state==SIMPLIFIED);		printSolveStart(verbosity());		vec<Lit> assumptions;		checkLits(getSolution().getAssumptions(), assumptions);		unsat = !getSolver()->solve(assumptions, getSolution().getOptions());		if(getSolution().getInferenceOption()==MODELEXPAND){			state = SOLVED;			if(hasOptimization() && getSolution().getPrintOption()==PRINT_BEST && getNbModelsFound()>0){				std::ostream output(getRes());				if(getSolution().hasOptimalModel()){					printOptimalModelFound(output, modes().format);				}				getTranslator().printModel(output, getSolution().getBestModelFound());				printedbestmodel = true;			}		}		printSolveEnd(verbosity());	}	if(unsat){		std::ostream output(getRes());		printUnSatisfiable(output, modes().format);		printUnSatisfiable(clog, modes().format, modes().verbosity);	}	setSolution(NULL);
+	}
+
+	if(!unsat){
+		assert(state==SIMPLIFIED);
+
+		double cpu_time = cpuTime();
+		printSolveStart(verbosity());
+
+		vec<Lit> assumptions;
+		checkLits(getSolution().getAssumptions(), assumptions);
+
+		unsat = !getSolver()->solve(assumptions, getSolution().getOptions());
+
+		if(getSolution().getInferenceOption()==MODELEXPAND){
+			state = SOLVED;
+			if(hasOptimization() && getSolution().getPrintOption()==PRINT_BEST && !unsat){
+				assert(getNbModelsFound()>0);
+
+				std::ostream output(getRes());
+				if(getSolution().hasOptimalModel()){
+					printOptimalModelFound(output, modes().format);
+				}
+				getTranslator().printModel(output, getSolution().getBestModelFound());
+				printedbestmodel = true;
+			}
+		}
+
+		printSolveEnd(verbosity(), cpuTime()-cpu_time);
+	}
+
+	if(unsat){
+		std::ostream output(getRes());
+		printUnSatisfiable(output, modes().format);
+		printUnSatisfiable(clog, modes().format, modes().verbosity);
+	}
+
+	setSolution(NULL);
 
 	return !unsat;
+}
+
+void WLSImpl::notifyTimeout(){
+	//if optimization and best model has not been printed, print it now
+	if(hasOptimization() && getSolution().getPrintOption()==PRINT_BEST && getSolution().getNbModelsFound()>0 && !printedbestmodel){
+		ostream output(getRes());
+		if(getSolution().hasOptimalModel()){
+			printOptimalModelFound(output, modes().format);
+		}
+		getTranslator().printModel(output, getSolution().getBestModelFound());
+		printedbestmodel = true;
+	}
+}
+
+void WLSImpl::addModel(const vec<Lit>& model){
+	vector<Literal> outmodel(getBackMappedModel(model));
+
+	getSolution().addModel(outmodel, hasOptimization());
+
+	if(getSolution().getPrintOption()==PRINT_ALL || (!hasOptimization() && getSolution().getPrintOption()==PRINT_BEST)){
+		std::ostream output(getRes());
+		if(getNbModelsFound()==1){
+			if(!hasOptimization()){
+				printSatisfiable(output, modes().format);
+				printSatisfiable(clog, modes().format, modes().verbosity);
+			}
+			getTranslator().printHeader(output);
+		}
+		if(!hasOptimization()){
+			printNbModels(clog, getNbModelsFound(), verbosity());
+		}
+		getTranslator().printModel(output, outmodel);
+	}
+}
+
+void WLSImpl::notifyOptimalModelFound(){
+	assert(hasOptimization());
+	getSolution().notifyOptimalModelFound();
 }
 
 //Translate into original vocabulary
@@ -170,26 +276,6 @@ vector<Literal> WLSImpl::getBackMappedModel(const vec<Lit>& model) const{
 	sort(outmodel.begin(), outmodel.end());
 	return outmodel;
 }
-
-void WLSImpl::addModel(const vec<Lit>& model){
-	vector<Literal> outmodel(getBackMappedModel(model));
-
-	getSolution().addModel(outmodel, hasOptimization());	cerr <<"Added model" <<"\n";
-
-	if(getSolution().getPrintOption()==PRINT_ALL){
-		std::ostream output(getRes());
-		if(getNbModelsFound()==1){
-			if(!hasOptimization()){
-				printSatisfiable(output, modes().format);
-				printSatisfiable(clog, modes().format, modes().verbosity);
-			}
-			getTranslator().printHeader(output);
-		}
-		if(!hasOptimization()){
-			printNbModels(clog, getNbModelsFound(), verbosity());
-		}		getTranslator().printModel(output, outmodel);
-	}
-}void WLSImpl::notifyOptimalModelFound(){	assert(hasOptimization());	getSolution().notifyOptimalModelFound();}
 
 // PROP SOLVER PIMPL
 
@@ -241,8 +327,10 @@ bool WPCLSImpl::addSet(int id, const vector<Literal>& lits){
 
 //Might be implemented more efficiently in the future
 bool WPCLSImpl::addSet(int id, const vector<WLtuple>& lws){
-	vector<Literal> lits;	lits.reserve(lws.size());
-	vector<Weight> weights;	weights.reserve(lws.size());
+	vector<Literal> lits;
+	lits.reserve(lws.size());
+	vector<Weight> weights;
+	weights.reserve(lws.size());
 
 	for(vector<WLtuple>::const_iterator i=lws.begin(); i<lws.end(); i++){
 		lits.push_back((*i).l);
@@ -344,8 +432,10 @@ bool WSOLSImpl::addSet(vsize modid, int id, vector<Literal>& lits, vector<Weight
 
 //Might be implemented more efficiently in the future
 bool WSOLSImpl::addSet(vsize modid, int id, vector<WLtuple>& lws){
-	vector<Literal> lits;	lits.reserve(lws.size());
-	vector<Weight> weights;	weights.reserve(lws.size());
+	vector<Literal> lits;
+	lits.reserve(lws.size());
+	vector<Weight> weights;
+	weights.reserve(lws.size());
 
 	for(vector<WLtuple>::const_iterator i=lws.begin(); i<lws.end(); i++){
 		lits.push_back((*i).l);

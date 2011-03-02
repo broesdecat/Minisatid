@@ -1,4 +1,11 @@
-/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #include "parser/ResourceManager.hpp"
 #include "GeneralUtils.hpp"
 
@@ -27,7 +34,7 @@ FILE* FileMan::getFile() {
 		fileptr = fopen(name, write ? "wb" : "r");
 		if (fileptr == NULL) {
 			char s[100];
-			sprintf(s, "`%s' is not a valid filename or not readable.\n", name);
+			sprintf(s, ">> `%s' is not a valid filename or not readable.\n", name);
 			throw idpexception(s);
 		}
 	}
@@ -41,7 +48,7 @@ std::streambuf* FileMan::getBuffer() {
 		filebuf.open(name, write ? std::ios::out : std::ios::in);
 		if (!filebuf.is_open()) {
 			char s[100];
-			sprintf(s, "`%s' is not a valid filename or not readable.\n", name);
+			sprintf(s, ">> `%s' is not a valid filename or not readable.\n", name);
 			throw idpexception(s);
 		}
 	}

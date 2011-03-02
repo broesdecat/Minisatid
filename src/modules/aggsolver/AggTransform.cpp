@@ -1,4 +1,11 @@
-/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #include "AggTransform.hpp"
 
 #include <vector>
@@ -139,7 +146,16 @@ void MapToSetOneToOneWithAgg::transform(AggSolver* solver, TypedSet* set, vps& s
 	assert(set->getAgg().size()==1);
 }
 
-void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {	bool watchable = true;	for(vector<Agg*>::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); i++){		if((*i)->getType()==MAX || (*i)->isDefined()){			watchable = false;		}	}	if(!watchable){		set->setUsingWatches(false);	}
+void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
+	bool watchable = true;
+	for(vector<Agg*>::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); i++){
+		if((*i)->getType()==MAX || (*i)->isDefined()){
+			watchable = false;
+		}
+	}
+	if(!watchable){
+		set->setUsingWatches(false);
+	}
 	if(!set->isUsingWatches()){
 		return;
 	}
@@ -207,9 +223,19 @@ void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& s
 	if(ratio<=solver->modes().watchesratio){
 		if(signtwoset!=NULL){
 			agglist empty;
-			signtwoset->replaceAgg(empty);			set->replaceAgg(signtwoaggs, del);			delete propone;			signoneset->setProp(NULL);			sets.push_back(signoneset);
-		}else{			agglist empty;			signoneset->replaceAgg(empty);			set->replaceAgg(signoneaggs, del);			delete signoneset;		}
-	}else{		set->setUsingWatches(false);
+			signtwoset->replaceAgg(empty);
+			set->replaceAgg(signtwoaggs, del);
+			delete propone;
+			signoneset->setProp(NULL);
+			sets.push_back(signoneset);
+		}else{
+			agglist empty;
+			signoneset->replaceAgg(empty);
+			set->replaceAgg(signoneaggs, del);
+			delete signoneset;
+		}
+	}else{
+		set->setUsingWatches(false);
 		delete signoneset;
 	}
 	if(signtwoset!=NULL){

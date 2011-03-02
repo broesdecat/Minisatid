@@ -1,4 +1,11 @@
-/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #include "modules/aggsolver/AggProp.hpp"
 #include "modules/aggsolver/AggPrint.hpp"
 #include "modules/aggsolver/AggUtils.hpp"
@@ -273,10 +280,20 @@ Propagator*	MaxProp::createPropagator(TypedSet* set) const{
 	return new MaxFWAgg(set);
 }
 
-Propagator*	SumProp::createPropagator(TypedSet* set) const{	if(set->isUsingWatches()){		return new GenPWAgg(set);	}else{		return new SumFWAgg(set);	}
+Propagator*	SumProp::createPropagator(TypedSet* set) const{
+	if(set->isUsingWatches()){
+		return new GenPWAgg(set);
+	}else{
+		return new SumFWAgg(set);
+	}
 }
 
-Propagator*	ProdProp::createPropagator(TypedSet* set) const{	if(set->isUsingWatches()){		return new GenPWAgg(set);	}else{		return new ProdFWAgg(set);	}
+Propagator*	ProdProp::createPropagator(TypedSet* set) const{
+	if(set->isUsingWatches()){
+		return new GenPWAgg(set);
+	}else{
+		return new ProdFWAgg(set);
+	}
 }
 
 void TypedSet::addAgg(Agg* aggr){
@@ -329,9 +346,22 @@ void TypedSet::initialize(bool& unsat, bool& sat, vps& sets) {
 	}
 }
 
-void TypedSet::addExplanation(AggReason& ar) const {	vec<Lit> lits;	lits.push(ar.getPropLit());
-	getProp()->getExplanation(lits, ar);	ar.setClause(lits);
-	if(getSolver()->verbosity()>=3){		clog <<"Explanation for deriving " <<ar.getPropLit();		clog <<" in expression ";		print(getSolver()->verbosity(), ar.getAgg(), false);		clog <<" is ";		for(int i=0; i<lits.size(); i++){			clog <<" " <<lits[i];		}		clog <<"\n";	}
+void TypedSet::addExplanation(AggReason& ar) const {
+	vec<Lit> lits;
+	lits.push(ar.getPropLit());
+	getProp()->getExplanation(lits, ar);
+	ar.setClause(lits);
+
+	if(getSolver()->verbosity()>=3){
+		clog <<"Explanation for deriving " <<ar.getPropLit();
+		clog <<" in expression ";
+		print(getSolver()->verbosity(), ar.getAgg(), false);
+		clog <<" is ";
+		for(int i=0; i<lits.size(); i++){
+			clog <<" " <<lits[i];
+		}
+		clog <<"\n";
+	}
 }
 
 Propagator::Propagator(TypedSet* set):set(set), aggsolver(set->getSolver()){

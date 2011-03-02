@@ -1,4 +1,11 @@
-/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #ifndef EXTERNALUTILS_HPP_
 #define EXTERNALUTILS_HPP_
 
@@ -8,14 +15,266 @@
 #include <vector>
 #include <string>
 #include <cstdlib>
+#include <assert.h>
 
-#include "GeneralUtils.hpp"
+// Weight declaration and utilities
+
+#ifdef GMP
+	#include "gmpxx.h"
+
+	namespace MinisatID {
+	class Weight{
+	private:
+		mpz_class w;
+		bool inf, pos;
+	public:
+		Weight(): w(0), inf(false), pos(false){}
+		Weight(int i): w(i), inf(false), pos(false){}
+		Weight(long i): w(i), inf(false), pos(false){}
+		Weight(mpz_class w): w(w), inf(false), pos(false){}
+		Weight(bool posinf): w(0), inf(true), pos(posinf){}
+
+		operator const mpz_class&() const { assert(!inf); return w; }
+
+		friend std::istream& operator>>(std::istream& input, Weight& obj);
+
+		std::string get_str() const{
+			if(!inf){
+				return w.get_str();
+			}else{
+				return pos?"+inf":"-inf";
+			}
+		}
+
+		const Weight operator-() const {
+			Weight w2(*this);
+			w2.w = -w2.w;
+			w2.pos=!w2.pos;
+			return w2;
+		}
+
+		const Weight operator-(const Weight &other) const {
+			return Weight(*this) -= other;
+		}
+
+		const Weight operator+(const Weight &other) const {
+			return Weight(*this) += other;
+		}
+
+		const Weight operator*(const Weight &other) const {
+			return Weight(*this) *= other;
+		}
+
+		const Weight operator/(const Weight &other) const {
+			return Weight(*this) /= other;
+		}
+
+		Weight& operator+=(const Weight &rhs) {
+			if(rhs.inf || inf){
+				assert(!rhs.inf || !inf);
+				w=0;
+				pos = inf?pos:rhs.pos;
+				inf = true;
+			}else{
+				w += rhs.w;
+			}
+			return *this;
+		}
+
+		Weight& operator-=(const Weight &rhs) {
+			if(rhs.inf || inf){
+				assert(!rhs.inf || !inf);
+				w=0;
+				pos = inf?pos:!rhs.pos;
+				inf = true;
+			}else{
+				w -= rhs.w;
+			}
+			return *this;
+		}
+
+		Weight& operator*=(const Weight &rhs) {
+			if(rhs.inf || inf){
+				assert(!rhs.inf || !inf);
+				w=0;
+				pos = inf?pos:rhs.pos;
+				inf = true;
+			}else{
+				w *= rhs.w;
+			}
+			return *this;
+		}
+
+		Weight& operator/=(const Weight &rhs) {
+			if(rhs.inf || inf){
+				assert(!rhs.inf || !inf);
+				if(inf){
+					if(rhs.w<0){
+						pos = !pos;
+					}
+				}else{
+					w = 0;
+					inf = false;
+				}
+			}else{
+				w /= rhs.w;
+			}
+			return *this;
+		}
+
+		bool operator==(const Weight& weight) const{
+			return w==weight.w && inf==weight.inf && pos==weight.pos;
+		}
+
+		bool operator!=(const Weight& weight) const{
+			return !(*this==weight);
+		}
+
+		bool operator<(const Weight& weight) const {
+			if(!inf && !weight.inf){
+				return w < weight.w;
+			}else if(inf){
+				if(weight.inf){
+					return false;
+				}else{
+					return !pos;
+				}
+			}else{//only weight is inf
+				return weight.pos;
+			}
+		}
+
+		bool operator<=(const Weight& weight) const{
+			return *this==weight || *this<weight;
+		}
+
+		bool operator>(const Weight& weight) const{
+			return !(*this<=weight);
+		}
+
+		bool operator>=(const Weight& weight) const{
+			return !(*this<weight);
+		}
+	};
+	Weight abs(const Weight& w);
+	std::istream& operator>>(std::istream& input, Weight& obj);
+	namespace Print{
+		std::ostream& operator<<(std::ostream& output, const Weight& p);
+	}
+	}
+#else
+	namespace MinisatID {
+	#define NOARBITPREC
+	typedef long Weight;
+	//FAST, NO OVERFLOW SUPPORT
+	}
+#endif
+
 
 namespace MinisatID {
 
-///////
-// Generic atom and literal structures
-///////
+	// Generic exception
+	class idpexception: public std::exception{
+	private:
+		std::string mess;
+
+	public:
+		idpexception(std::string m): std::exception(), mess(m){		}
+		idpexception(const char* m): std::exception(){
+			mess.append(m);
+		}
+
+		~idpexception() throw(){}
+
+		virtual const char* what() const throw(){
+			return mess.c_str();
+		}
+	};
+
+	Weight posInfinity();
+	Weight negInfinity();
+
+	std::string toString(const Weight& w);
+
+	// Comparison operator
+	enum EqType{ MEQ, MNEQ, ML, MG, MGEQ, MLEQ };
+
+	// Aggregate specification operators
+	enum AggType 	{ SUM, PROD, MIN, MAX, CARD }; 	// Type of aggregate concerned
+	enum AggSign 	{ AGGSIGN_UB, AGGSIGN_LB}; 	// Sign of the bound of the aggregate
+	enum AggSem 	{ COMP, DEF, IMPLICATION };	// Semantics of satisfiability of the aggregate head: COMPletion or DEFinitional
+
+	// Definitional options
+	enum DEFFINDCS { always, adaptive, lazy };	// Unfounded set search frequency
+	enum DEFMARKDEPTH { include_cs };			// Originally also contained stop_at_cs, which is no longer correct
+												// when a guaranteed cycle-free justification is used!
+	enum DEFSEARCHSTRAT { breadth_first, depth_first }; // Unfounded set search strategy
+	enum DEFSEM { DEF_STABLE, DEF_WELLF, DEF_COMP }; 	// Definitional semantics
+
+	enum POLARITY {
+		POL_TRUE,
+		POL_FALSE,
+		POL_STORED,
+		POL_RAND
+	}; // SAT-solver polarity option
+
+	enum INPUTFORMAT 	{ FORMAT_FODOT, FORMAT_ASP, FORMAT_OPB};
+	enum OUTPUTFORMAT 	{ TRANS_FODOT, TRANS_ASP, TRANS_PLAIN };
+
+	// Structure containing general options for the solvers
+	class SolverOption {
+			//TODO prevent unauthorised access by getters and setters (e.g. primesfile should NEVER be accessed directly
+	public:
+		INPUTFORMAT 	format;
+		OUTPUTFORMAT 	transformat;
+		int 			verbosity;
+		int 			nbmodels;
+		bool 			printcnfgraph;
+		DEFSEM 			defsem;
+		DEFSEARCHSTRAT 	ufs_strategy;
+		DEFFINDCS 		defn_strategy;
+		DEFMARKDEPTH 	defn_search;
+		bool			checkcyclefreeness;
+		int 			idclausesaving, aggclausesaving;
+		bool 			selectOneFromUFS;
+		bool 			pbsolver;
+		double			watchesratio;
+		std::string 	primesfile;
+		bool 			remap;
+		double 			rand_var_freq, var_decay;
+		POLARITY 		polarity;
+		bool 			bumpaggonnotify, bumpidonstart;
+		bool			subsetminimizeexplanation, asapaggprop;
+		long 			ufsvarintrothreshold;
+
+		SolverOption();
+
+		bool 		verifyOptions() const;
+		std::string	getPrimesFile() const;
+		void print(std::ostream& stream) const;
+	};
+
+	enum PrintModel	{PRINT_ALL, PRINT_BEST, PRINT_NONE};
+	enum SaveModel	{SAVE_ALL, SAVE_BEST, SAVE_NONE};
+	enum Inference	{PROPAGATE, MODELEXPAND };
+
+	class ModelExpandOptions{
+	public:
+		PrintModel		printmodels;
+		SaveModel		savemodels;
+		Inference		search;
+		int 			nbmodelstofind;
+
+		ModelExpandOptions():
+				printmodels(PRINT_ALL), savemodels(SAVE_ALL), search(MODELEXPAND),
+				nbmodelstofind(0)
+			{}
+	};
+}
+
+namespace MinisatID {
+
+// Generic atom and literal structurese
 
 class Atom{
 private:
@@ -53,27 +312,72 @@ struct WLtuple{
 
 	WLtuple(const Literal& l, const Weight& w): l(l), w(w){ }
 	WLtuple operator=(const WLtuple& lw) const { return WLtuple(lw.l, lw.w); }
-};typedef std::vector<Literal> literallist;typedef std::vector<std::vector<Literal> > modellist;enum ModelSaved { MODEL_NONE, MODEL_SAVED, MODEL_SAVING };
+};
+
+typedef std::vector<Literal> literallist;
+typedef std::vector<std::vector<Literal> > modellist;
+
+enum ModelSaved { MODEL_NONE, MODEL_SAVED, MODEL_SAVING };
 
 class Solution{
-private:	const ModelExpandOptions options;
-	int 		nbmodels;	literallist	temporarymodel;
-	modellist	models; //IMPORTANT: for optimization problem, models will contain a series of increasingly better models	literallist assumptions;	bool		optimalmodelfound;	ModelSaved modelsave; //CRITICAL SECTION SUPPORT
+private:
+	const ModelExpandOptions options;
+	int 		nbmodelsfound;
+	literallist	temporarymodel;
+	modellist	models; //IMPORTANT: for optimization problem, models will contain a series of increasingly better models
+
+	literallist assumptions;
+
+	bool		optimalmodelfound;
+
+	ModelSaved modelsave; //CRITICAL SECTION SUPPORT
 
 public:
 	Solution(ModelExpandOptions options):
-			options(options),			nbmodels(0),			optimalmodelfound(false),			modelsave(MODEL_NONE){}
+			options(options),
+			nbmodelsfound(0),
+			optimalmodelfound(false),
+			modelsave(MODEL_NONE){}
 	~Solution(){};
 
-	int 	getNbModelsFound	() const	{ return nbmodels; }
+	int 	getNbModelsFound	() const	{ return nbmodelsfound; }
 	int 	getNbModelsToFind	() const	{ return options.nbmodelstofind; }
 	PrintModel 	getPrintOption	() const 	{ return options.printmodels; }
 	SaveModel 	getSaveOption	() const 	{ return options.savemodels; }
-	Inference 	getInferenceOption	() const 	{ return options.search; }	const ModelExpandOptions& getOptions() const { return options; }	const modellist& 	getModels() { return models; } //IMPORTANT: no use calling it when models are not being saved.	const literallist& getAssumptions	() { return assumptions; }
+	Inference 	getInferenceOption	() const 	{ return options.search; }
+	const ModelExpandOptions& getOptions() const { return options; }
+	const modellist& 	getModels() { return models; } //IMPORTANT: no use calling it when models are not being saved.
 
-	void 	addModel(literallist model, bool currentlybest) {		if(modelsave==MODEL_NONE || (modelsave==MODEL_SAVED && getSaveOption()==SAVE_ALL)){			nbmodels++;		}else if(modelsave==MODEL_SAVING){ //Error in saving previous model, so abort			throw idpexception("Previous model failed to save, cannot guarantee correctness.\n");		}
-		if(getSaveOption()==SAVE_BEST){			if(modelsave!=MODEL_NONE){				temporarymodel = models.back();			}		}		modelsave = MODEL_SAVING;		models.push_back(model);		modelsave = MODEL_SAVED;
-	}	const literallist& getBestModelFound() const{		assert(modelsave!=MODEL_NONE);		if(modelsave==MODEL_SAVED){			return models.back();		}else{			return temporarymodel;		}	}	bool	hasOptimalModel			() const	{ return optimalmodelfound; }	void	notifyOptimalModelFound	()			{ optimalmodelfound = true;	}
+	const literallist& getAssumptions	() { return assumptions; }
+
+	void 	addModel(literallist model, bool currentlybest) {
+		nbmodelsfound++;
+		if(modelsave==MODEL_SAVING){ //Error in saving previous model, so abort
+			throw idpexception(">> Previous model failed to save, cannot guarantee correctness.\n");
+		}
+		if(getSaveOption()==SAVE_BEST){
+			if(modelsave!=MODEL_NONE){
+				temporarymodel = models.back();
+				models.pop_back();
+				assert(models.empty());
+			}
+		}
+		modelsave = MODEL_SAVING;
+		models.push_back(model);
+		modelsave = MODEL_SAVED;
+	}
+
+	const literallist& getBestModelFound() const{
+		assert(modelsave!=MODEL_NONE);
+		if(modelsave==MODEL_SAVED){
+			return models.back();
+		}else{
+			return temporarymodel;
+		}
+	}
+
+	bool	hasOptimalModel			() const	{ return optimalmodelfound; }
+	void	notifyOptimalModelFound	()			{ optimalmodelfound = true;	}
 };
 
 }

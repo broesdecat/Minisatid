@@ -1,4 +1,11 @@
-/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #include "Unittests.hpp"
 
 using namespace std;
@@ -28,10 +35,6 @@ shared_ptr<WrappedLogicSolver> unittest(SolverOption& modes){ //unsat
 	terms.push_back(groundone);
 	terms.push_back(groundtwo);
 	pcsolver->addCPSum(Literal(1), terms, MGEQ, 18);
-
-	if(!pcsolver->finishParsing()){
-		return shared_ptr<WrappedLogicSolver>();
-	}
 
 	return pcsolver;
 }
@@ -76,10 +79,6 @@ shared_ptr<WrappedLogicSolver> unittest2(SolverOption& modes){
 		}
 	}
 
-	if(!pcsolver->finishParsing()){
-		return shared_ptr<WrappedLogicSolver>();
-	}
-
 	return pcsolver;
 }
 
@@ -105,10 +104,6 @@ shared_ptr<WrappedLogicSolver> unittest3(SolverOption& modes){ //unsat
 				pcsolver->addClause(lits);
 			}
 		}
-	}
-
-	if(!pcsolver->finishParsing()){
-		return shared_ptr<WrappedLogicSolver>();
 	}
 
 	return pcsolver;

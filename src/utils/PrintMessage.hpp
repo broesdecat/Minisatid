@@ -1,4 +1,11 @@
-/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #ifndef PRINTMESSAGE_HPP_
 #define PRINTMESSAGE_HPP_
 
@@ -21,10 +28,12 @@ namespace Print{
 	void printInitDataEnd(int v, double parsetime, bool unsat);
 
 	void printSimpStart(int v);
-	void printSimpEnd(int v, bool unsat);
+	void printSimpEnd(int v, double parsetime, bool unsat);
 
 	void printSolveStart(int v);
-	void printSolveEnd(int v);
+	void printSolveEnd(int v, double parsetime);
+
+	void printStartStatistics();
 
 	void printUnsat(int v);
 
@@ -37,7 +46,7 @@ namespace Print{
 	template<class T>
 	std::string getParseError(const T& e, int linepos, int charpos, const char* yytext){
 		std::stringstream ss;
-		ss<<"Parse error: Line " <<linepos <<", column " <<charpos <<", on \"" <<yytext <<"\": " << e.what();
+		ss<<">> Parse error: Line " <<linepos <<", column " <<charpos <<", on \"" <<yytext <<"\": " << e.what();
 		return ss.str();
 	}
 
@@ -48,27 +57,42 @@ namespace Print{
 
 	template<class T, class T2>
 	void printPrimesFileNotReadable(T& stream, const T2& file){
-		stream <<"The file containing the list of primes could not be found in " <<file <<" .\n";
-		stream <<"Please place the file there, add a (different) --primesfiles commandline argument or recompile/reinstall.\n";
+		stream <<">> The file containing the list of primes could not be found in " <<file <<" .\n";
+		stream <<">> Please place the file there, add a (different) --primesfiles commandline argument or recompile/reinstall.\n";
 	}
 
 	std::string getMinimalVarNumbering();
 
 	template<class T>
 	void printSatisfiable(T& stream, INPUTFORMAT format, int verbosity = 1000){
-		if(verbosity>=1){			if(format==FORMAT_OPB){				stream<<"s SATISFIABLE\n";			}else{				stream<<"SATISFIABLE\n";			}
+		if(verbosity>=1){
+			if(format==FORMAT_OPB){
+				stream<<"s SATISFIABLE\n";
+			}else{
+				stream<<"SATISFIABLE\n";
+			}
 		}
 	}
 
 	template<class T>
 	void printUnSatisfiable(T& stream, INPUTFORMAT format, int verbosity = 1000){
-		if(verbosity>=1){			if(format==FORMAT_OPB){				stream<<"s UNSATISFIABLE\n";			}else{				stream<<"UNSATISFIABLE\n";			}
+		if(verbosity>=1){
+			if(format==FORMAT_OPB){
+				stream<<"s UNSATISFIABLE\n";
+			}else{
+				stream<<"UNSATISFIABLE\n";
+			}
 		}
 	}
 
 	template<class T>
 	void printOptimalModelFound(T& stream, INPUTFORMAT format, int verbosity = 1000){
-		if(verbosity>=1){			if(format==FORMAT_OPB){				stream<<"s OPTIMUM FOUND\n";			}else{				stream<<"OPTIMUM FOUND\n";			}
+		if(verbosity>=1){
+			if(format==FORMAT_OPB){
+				stream<<"s OPTIMUM FOUND\n";
+			}else{
+				stream<<"OPTIMUM FOUND\n";
+			}
 		}
 	}
 
@@ -88,7 +112,7 @@ namespace Print{
 
 	template<class T>
 	void printUnsatFoundDuringParsing(T& stream, int verbosity = 1000){
-		stream << "Unsat detected during parsing.\n";
+		stream << "> Unsat detected during parsing.\n";
 	}
 	template<class T>
 	void printSetWatchRatio(T& stream, int setid, double ratio, int verbosity = 1000){

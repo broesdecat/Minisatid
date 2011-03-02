@@ -1,4 +1,11 @@
-/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #include "theorysolvers/SOSolver.hpp"
 #include "utils/Utils.hpp"
 #include "utils/Print.hpp"
@@ -22,7 +29,7 @@ SOSolver::~SOSolver(){
 
 void SOSolver::checkexistsModSolver(vsize modid) const {
 	if(!existsModSolver(modid)){
-		char s[100]; sprintf(s, "No modal operator with id %zu was declared! ", modid+1);
+		char s[100]; sprintf(s, ">> No modal operator with id %zu was declared! ", modid+1);
 		throw idpexception(s);
 	}
 }
@@ -64,11 +71,11 @@ bool SOSolver::addChild(vsize parent, vsize child, Lit h){
 
 	checkexistsModSolver(parent);
 	if(existsModSolver(child)){
-		char s[100]; sprintf(s, "Modal operator with id %zu was already defined!\n", child+1);
+		char s[100]; sprintf(s, ">> Modal operator with id %zu was already defined!\n", child+1);
 		throw idpexception(s);
 	}
 	if(sign(h)){
-		char s[100]; sprintf(s, "Modal operator %zu has a negative head.\n", child+1);
+		char s[100]; sprintf(s, ">> Modal operator %zu has a negative head.\n", child+1);
 		throw idpexception(s);
 	}
 	if(solvers.size()<child+1){
@@ -214,7 +221,7 @@ bool SOSolver::addAggrExpr(vsize modid, Lit head, int setid, const Weight& bound
 	assert(state==LOADINGREST);
 
 	if(sign(head)){
-		throw idpexception("Negative heads are not allowed for aggregate expressions!\n");
+		throw idpexception(">> Negative heads are not allowed for aggregate expressions!\n");
 	}
 	checkexistsModSolver(modid);
 	ModSolver* m = getModSolver(modid);
@@ -253,7 +260,7 @@ void SOSolver::verifyHierarchy(){
 	for(vmsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
 		if(visitcount[(*i)->getId()]!=1 && *i!=NULL){
 			char s[200];
-			sprintf(s, "The hierarchy of modal solvers does not form a tree. "
+			sprintf(s, ">> The hierarchy of modal solvers does not form a tree. "
 					"The Solver with id %zu is %s. \n",
 						(*i)->getPrintId(),
 						visitcount[(*i)->getId()]==0?"not referenced":"referenced multiple times");

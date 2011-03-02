@@ -1,4 +1,11 @@
-/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #ifndef DPLLTMODULE_HPP_
 #define DPLLTMODULE_HPP_
 
@@ -6,7 +13,8 @@
 #include "theorysolvers/PCSolver.hpp"
 
 namespace MinisatID {
-enum State { PARSING, INITIALIZING, INITIALIZED };
+
+enum State { PARSING, INITIALIZING, INITIALIZED };
 class DPLLTmodule {
 private:
 	State init;
@@ -19,8 +27,11 @@ public:
 		init(PARSING), pcsolver(s) {
 	}
 	virtual ~DPLLTmodule() {	}
-	bool isParsing			() const { return init==PARSING; }	bool isInitializing 	() const { return init==INITIALIZING; }
-	bool isInitialized		() const { return init==INITIALIZED; }	void notifyParsed		() { assert(isParsing()); init = INITIALIZING; }
+
+	bool isParsing			() const { return init==PARSING; }
+	bool isInitializing 	() const { return init==INITIALIZING; }
+	bool isInitialized		() const { return init==INITIALIZED; }
+	void notifyParsed		() { assert(isParsing()); init = INITIALIZING; }
 	void notifyInitialized	() { assert(isInitializing()); init = INITIALIZED; }
 
 	const PCSolver& getPCSolver() const { return *pcsolver; }

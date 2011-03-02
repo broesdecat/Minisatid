@@ -1,4 +1,11 @@
-/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 /*=============================================================================
  * parser for pseudo-Boolean instances
  *
@@ -27,7 +34,8 @@
 // version 2.9.4
 
 #include "parser/PBread.hpp"
-#include <sstream>
+
+#include <sstream>
 #include <iostream>
 #include <stdlib.h>
 #include <algorithm>
@@ -48,12 +56,19 @@ void DefaultCallback::metaData(int nbvar, int nbconstr) {
 /**
  * callback called before we read the objective function
  */
-void DefaultCallback::beginObjective() {}
+void DefaultCallback::beginObjective() {
+
+}
 
 /**
  * callback called after we've read the objective function
  */
-void DefaultCallback::endObjective() {	setid++;	getSolver()->addSet(setid, lw);	lw.clear();	int newvar = ++maxvar;	getSolver()->addMinimize(Atom(newvar), setid, SUM);
+void DefaultCallback::endObjective() {
+	setid++;
+	getSolver()->addSet(setid, lw);
+	lw.clear();
+	int newvar = ++maxvar;
+	getSolver()->addMinimize(Atom(newvar), setid, SUM);
 }
 
 /**
@@ -73,7 +88,10 @@ void DefaultCallback::objectiveTerm(IntegerType coeff, int idVar) {
  * @param coeff: the coefficient of the term
  * @param list: list of literals which appear in the product
  */
-void DefaultCallback::objectiveProduct(IntegerType coeff, vector<int> list) {	cerr <<"Leaving out linearization of opb constraints is not supported!\n";	assert(false);	exit(1);
+void DefaultCallback::objectiveProduct(IntegerType coeff, vector<int> list) {
+	cerr <<"Leaving out linearization of opb constraints is not supported!\n";
+	assert(false);
+	exit(1);
 }
 
 void DefaultCallback::beginConstraint() {
@@ -102,7 +120,11 @@ void DefaultCallback::endConstraint() {
 		lits.push_back(Literal(newvar));
 		getSolver()->addClause(lits);
 	}
-}Literal DefaultCallback::createLiteralFromOPBVar(int var){	return Literal(::abs(var), var<0);}
+}
+
+Literal DefaultCallback::createLiteralFromOPBVar(int var){
+	return Literal(::abs(var), var<0);
+}
 
 /**
  * callback called when we read a term of a constraint
@@ -110,7 +132,8 @@ void DefaultCallback::endConstraint() {
  * @param coeff: the coefficient of the term
  * @param idVar: the numerical identifier of the variable
  */
-void DefaultCallback::constraintTerm(IntegerType coeff, int idVar) {	lw.push_back(WLtuple(createLiteralFromOPBVar(idVar), coeff));
+void DefaultCallback::constraintTerm(IntegerType coeff, int idVar) {
+	lw.push_back(WLtuple(createLiteralFromOPBVar(idVar), coeff));
 }
 
 /**
@@ -121,7 +144,9 @@ void DefaultCallback::constraintTerm(IntegerType coeff, int idVar) {	lw.push_ba
  * @param list: list of literals which appear in the product
  */
 void DefaultCallback::constraintProduct(IntegerType coeff, vector<int> list) {
-	cerr <<"Leaving out linearization of opb constraints is not supported!\n";	assert(false);	exit(1);
+	cerr <<"Leaving out linearization of opb constraints is not supported!\n";
+	assert(false);
+	exit(1);
 }
 
 /**
@@ -321,7 +346,11 @@ bool PBRead::readIdentifier(vector<int> &list) {
 	if (negated)
 		varID = -varID;
 
-	list.push_back(varID);	stringstream ss;	ss <<"x" <<::abs(varID);	getTranslator().addTuple(Atom(::abs(varID)), ss.str());
+	list.push_back(varID);
+
+	stringstream ss;
+	ss <<"x" <<::abs(varID);
+	getTranslator().addTuple(Atom(::abs(varID)), ss.str());
 
 	return true;
 }

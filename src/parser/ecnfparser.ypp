@@ -1,4 +1,11 @@
-/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 //%require "2.4.2"
 
 //does not seem to have the same effect as adding it to the makefile
@@ -682,18 +689,18 @@ Weight cWeight(string* s){
 	return w;
 }
 
-void parsetruelist(vector<int>* vi) {
-	fodottrans->setTruelist(*vi);
+void parsetruelist(vector<int>* literalnumbers) {
+	fodottrans->setTruelist(*literalnumbers);
 }
 
-void parsearbitlist(vector<int>* vi) {
-	fodottrans->setArbitlist(*vi);
+void parsearbitlist(vector<int>* literalnumbers) {
+	fodottrans->setArbitlist(*literalnumbers);
 }
 
 void parsetype(string* name, vector<string>* inter) {
 	fodottrans->addType(*name, *inter);
 }
 
-void parsepred(string* name, int num, vector<string>* ptypes, bool f) {
-	fodottrans->addPred(*name, num, *ptypes, f);
+void parsepred(string* name, int startingnumber, vector<string>* argtypes, bool isfunction) {
+	fodottrans->addPred(*name, startingnumber, *argtypes, isfunction);
 }

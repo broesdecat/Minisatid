@@ -1,4 +1,11 @@
-/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #include "parser/ParseOptions.hpp"
 #include "GeneralUtils.hpp"
 
@@ -127,7 +134,10 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	transvals.push_back(TRANS_FODOT); transdesc.push_back(pair<string, string>("fodot", "Translate model into FO(.) structure"));
 	transvals.push_back(TRANS_ASP); transdesc.push_back(pair<string, string>("asp", "Translate model into ASP facts"));
 	transvals.push_back(TRANS_PLAIN); transdesc.push_back(pair<string, string>("plain", "Return model in integer format"));
-	vector<pair<string, string> > checkcyclesdesc;	checkcyclesdesc.push_back(pair<string, string>("yes", "Check"));	checkcyclesdesc.push_back(pair<string, string>("no", "Don't check"));
+
+	vector<pair<string, string> > checkcyclesdesc;
+	checkcyclesdesc.push_back(pair<string, string>("yes", "Check"));
+	checkcyclesdesc.push_back(pair<string, string>("no", "Don't check"));
 	vector<pair<string, string> > ecnfgraphdesc;
 	ecnfgraphdesc.push_back(pair<string, string>("yes", "Generate"));
 	ecnfgraphdesc.push_back(pair<string, string>("no", "Don't generate"));
@@ -212,7 +222,9 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	options.push_back(new Option<OUTPUTFORMAT, string>("", "outputformat", transvals, transdesc,
 			modes.transformat, cmd, "The requested output format (only relevant if translation information is provided)."));
 	options.push_back(new Option<bool, string>	("", "ecnfgraph", 	yesnovals, ecnfgraphdesc,
-			modes.printcnfgraph, cmd, "Choose whether to generate a .dot graph representation of the ecnf"));	options.push_back(new Option<bool, string>	("", "cyclefreeness-check", yesnovals, checkcyclesdesc,			modes.checkcyclefreeness, cmd, "Check the correctness of the inductive definition algorithm."));
+			modes.printcnfgraph, cmd, "Choose whether to generate a .dot graph representation of the ecnf"));
+	options.push_back(new Option<bool, string>	("", "cyclefreeness-check", yesnovals, checkcyclesdesc,
+			modes.checkcyclefreeness, cmd, "Check the correctness of the inductive definition algorithm."));
 	options.push_back(new Option<bool, string>	("r", "remap", 		yesnovals, remapdesc,
 			modes.remap, cmd, "Choose whether to remap literals from the input structure to a contiguous internal representation"));
 	options.push_back(new Option<bool, string>	("","bumpagg", 		yesnovals, bumpaggonnotifydesc,
@@ -224,7 +236,9 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	options.push_back(new Option<bool, string>	("","asapaggprop", 	yesnovals, asapaggpropdesc,
 			modes.asapaggprop, cmd, "Choose whether to propagate aggregates as fast as possible"));
 	options.push_back(new Option<bool, string>	("","pbsolver", 	yesnovals, pbsolverdesc,
-			modes.pbsolver, cmd,"Choose whether to translate pseudo-boolean constraints to SAT"));	options.push_back(new NoValsOption<double>	("","watch-ratio", 	"double",			modes.watchesratio, cmd,"The ratio of watches to set literals under which the watched algorithm is used."));
+			modes.pbsolver, cmd,"Choose whether to translate pseudo-boolean constraints to SAT"));
+	options.push_back(new NoValsOption<double>	("","watch-ratio", 	"double",
+			modes.watchesratio, cmd,"The ratio of watches to set literals under which the watched algorithm is used."));
 #ifndef USEMINISAT22
 	options.push_back(new Option<POLARITY, string>("","polarity", 	polvals, poldesc,
 			modes.polarity, cmd, "The default truth value choice of variables"));

@@ -1,4 +1,11 @@
-/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #ifndef EXTERNALINTERFACE_HPP_
 #define EXTERNALINTERFACE_HPP_
 
@@ -32,18 +39,17 @@ typedef std::tr1::shared_ptr<WrappedLogicSolver> pwls;
 
 class WrappedLogicSolver{
 public:
-	void 	printStatistics	()	const;	void	notifyTimeout	()	const;
+	void 	printStatistics	()	const;
 
-	//Initialize the datastructures after the full theory has been parsed.
-	bool 	finishParsing	();
-
-	//Simplify the logical theory. Automatically initializes the datastructures.
-	bool 	simplify		();
+	void	notifyTimeout	()	const;
 
 	//Do model expansion, given the options in the solution datastructure.
 	//Automatically initializes the datastructures and simplifies the theory.
 	bool 	solve			(Solution* sol);
-	Translator& getTranslator();
+
+	bool 	hasOptimization	() const;
+
+	Translator& getTranslator();
 	void	setTranslator	(Translator* translator);
 
 protected:

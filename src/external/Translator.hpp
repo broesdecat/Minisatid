@@ -1,4 +1,11 @@
-/* * Copyright 2007-2011 Katholieke Universiteit Leuven * * Use of this software is governed by the GNU LGPLv3.0 license * * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium */
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #ifndef TRANSLATOR_HPP_
 #define TRANSLATOR_HPP_
 
@@ -10,7 +17,40 @@
 #include "external/ExternalUtils.hpp"
 
 namespace MinisatID {
-enum FIXEDVAL { FIXED_TRUE, FIXED_ARBIT, FIXED_FALSE };enum PRINTCHOICE { PRINT_FIXED, PRINT_ARBIT };struct TupleInterpr{	FIXEDVAL value;	std::vector<std::string> arguments;	TupleInterpr(FIXEDVAL value, const std::vector<std::string>& arg): value(value), arguments(arg){}};struct SymbolInterpr{	std::string predname;	std::vector<TupleInterpr> tuples;	SymbolInterpr(std::string predname): predname(predname){}};
+
+enum FIXEDVAL { FIXED_TRUE, FIXED_ARBIT, FIXED_FALSE };
+enum PRINTCHOICE { PRINT_FIXED, PRINT_ARBIT };
+
+struct TupleInterpr{
+	FIXEDVAL value;
+	std::vector<std::string> arguments;
+
+	TupleInterpr(FIXEDVAL value, const std::vector<std::string>& arg): value(value), arguments(arg){}
+};
+
+struct Type{
+	std::string name;
+	std::vector<std::string> domainelements;
+
+	Type(std::string name, std::vector<std::string> domainelements): name(name), domainelements(domainelements){}
+};
+
+struct Symbol{
+	std::string name;
+	int startnumber, endnumber;
+	std::vector<Type*> types;
+	bool isfunction;
+
+	Symbol(std::string name, int startnumber, int endnumber, std::vector<Type*> types, bool isfunction):
+		name(name), startnumber(startnumber), endnumber(endnumber), types(types), isfunction(isfunction){}
+};
+
+struct SymbolInterpr{
+	Symbol* symbol;
+	std::vector<TupleInterpr> tuples;
+
+	SymbolInterpr(Symbol* symbol): symbol(symbol){}
+};
 typedef std::vector<SymbolInterpr> modelvec;
 
 class Translator {
@@ -23,7 +63,8 @@ public:
 	virtual ~Translator(){}
 
 	virtual void	printLiteral		(std::ostream& output, const MinisatID::Literal& lit);
-	virtual void	printModel			(std::ostream& output, const std::vector<Literal>& model);	virtual void 	printCurrentOptimum	(std::ostream& output, const Weight& value);
+	virtual void	printModel			(std::ostream& output, const std::vector<Literal>& model);
+	virtual void 	printCurrentOptimum	(std::ostream& output, const Weight& value);
 	virtual void	printHeader			(std::ostream& output);
 };
 
@@ -36,22 +77,13 @@ private:
 	int largestnottseitinatom;
 
 	// output
-	modelvec trueout, arbitout, truemodelcombinedout;
+	modelvec arbitout, truemodelcombinedout;
 
-	// Look-up tables
-	std::map<std::string,int>	type_lookup;
+	std::map<std::string,Type*>	types;
+	std::vector<Symbol*>		symbols;
 
-	// data structures
-	std::vector<std::vector<std::string> >	types;
-	std::vector<std::vector<int> >	predtypes;
-	std::vector<std::string>	predicates;
-	std::vector<int>			lowestvalue;
-	std::vector<int>			highestvalue;
 	std::vector<int>			truelist;
 	std::vector<int>			arbitlist;
-	std::vector<bool>			isfunc;
-
-	std::vector<std::string> 	arbitatoms;
 
 public:
 			FODOTTranslator	(OUTPUTFORMAT fodot);
@@ -70,8 +102,9 @@ private:
 	void 	finishParsing	(std::ostream& output);
 	std::string getPredName	(int predn) const;
 	void 	printTuple		(const std::vector<std::string>& tuple, std::ostream& output) 	const;
-	void 	printPredicate	(int n, const modelvec& model, std::ostream& output, PRINTCHOICE print)	const;
-	void 	printFunction	(int n, const modelvec& model, std::ostream& output, PRINTCHOICE print)	const;	void 	printInterpr	(const modelvec& model, std::ostream& output, PRINTCHOICE print)	const;
+	void 	printPredicate	(const SymbolInterpr& pred, std::ostream& output, PRINTCHOICE print)	const;
+	void 	printFunction	(const SymbolInterpr& pred, std::ostream& output, PRINTCHOICE print)	const;
+	void 	printInterpr	(const modelvec& model, std::ostream& output, PRINTCHOICE print)	const;
 	bool 	deriveStringFromAtomNumber(int atom, uint& currpred, std::vector<std::string>& arg) const;
 };
 
@@ -88,7 +121,23 @@ public:
 	void 	printLiteral	(std::ostream& output, const MinisatID::Literal& lit);
 	void 	printModel		(std::ostream& output, const std::vector<Literal>& model);
 	void 	printHeader		(std::ostream& output);
-};class OPBTranslator: public Translator {private:	std::map<Atom,std::string>	lit2name;public:			OPBTranslator():Translator(){}	virtual ~OPBTranslator(){}	void 	addTuple		(Atom atom, std::string name);	void 	printLiteral		(std::ostream& output, const MinisatID::Literal& lit);	void 	printModel			(std::ostream& output, const std::vector<Literal>& model);	void 	printCurrentOptimum	(std::ostream& output, const Weight& value);	void 	printHeader			(std::ostream& output);};
+};
+
+class OPBTranslator: public Translator {
+private:
+	std::map<Atom,std::string>	lit2name;
+
+public:
+			OPBTranslator():Translator(){}
+	virtual ~OPBTranslator(){}
+
+	void 	addTuple		(Atom atom, std::string name);
+
+	void 	printLiteral		(std::ostream& output, const MinisatID::Literal& lit);
+	void 	printModel			(std::ostream& output, const std::vector<Literal>& model);
+	void 	printCurrentOptimum	(std::ostream& output, const Weight& value);
+	void 	printHeader			(std::ostream& output);
+};
 
 }
 
