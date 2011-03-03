@@ -6,8 +6,8 @@ SUBDIRS = parser
 
 LIBSDIR = $(srcdir)/../lib/
 
-AM_CXXFLAGS = @AC_CXXFLAGS@ -I $(LIBSDIR)/tclap/include/ #-std=gnu++0x 
-AM_LDFLAGS = @AC_LDFLAGS@ -pthread
+AM_CXXFLAGS = @AC_CXXFLAGS@ -D VERSION=\"$(MINISATID_VERSION)\" -I $(LIBSDIR)/tclap/include/ #-std=gnu++0x 
+AM_LDFLAGS = @AC_LDFLAGS@
 
 AM_YFLAGS = -d 
 AM_LFLAGS =
@@ -16,8 +16,8 @@ AM_LFLAGS =
 AM_CXXFLAGS+= -D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS
 
 lib_LTLIBRARIES = libminisatid-2.0.la
-libminisatid_2_0_la_LDFLAGS = -version-info 1:2:0
-minisatid_includedir = $(includedir)/minisatid-2.0
+libminisatid_2_0_la_LDFLAGS = -version-info 1:0:0
+minisatid_includedir = $(includedir)/minisatid-2.0/external
 
 libminisatid_2_0_la_LIBADD = ../lib/pbsolver/libpbsolver-1.0.la # do not forget ldconfig after installing ;)
 
@@ -104,3 +104,7 @@ libminisatid_2_0_la_SOURCES +=\
 		mtlold/Vec.h mtlold/Queue.h mtlold/Alg.h mtlold/Heap.h mtlold/Map.h mtlold/Sort.h
 AM_CXXFLAGS+= -D USEMINISAT
 endif
+
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = minisatid-2.0.pc
+EXTRA_DIST = minisatid-2.0.pc.in

@@ -2,15 +2,15 @@
 ## In general, the safest way to proceed is to run ./autogen.sh
 
 # make sure we're interpreted by some minimal autoconf
-AC_PREREQ(2.57)
+AC_PREREQ(2.61)
 
-AC_INIT(google-perftools, 1.6, opensource@google.com)
+AC_INIT([google-perftools],[1.6],[opensource@google.com])
 # The argument here is just something that should be in the current directory
 # (for sanity checking)
 AC_CONFIG_SRCDIR(README)
 AC_CANONICAL_HOST
 AM_INIT_AUTOMAKE([dist-zip])
-AM_CONFIG_HEADER(src/config.h)
+AC_CONFIG_HEADERS([src/config.h])
 
 # Export the version information (for tc_version and friends)
 TC_VERSION_MAJOR=`expr "$PACKAGE_VERSION" : '\([[0-9]]*\)'`
@@ -168,12 +168,9 @@ esac
 # If AtomicWord != Atomic32, we need to define two versions of all the
 # atomicops functions.  If they're the same, we want to define only one.
 AC_MSG_CHECKING([if int32_t is the same type as intptr_t])
-AC_TRY_COMPILE([#include <stdint.h>],
-	       [int32_t v1 = 0; intptr_t v2 = 0; return (&v1 - &v2)],
-               [AC_DEFINE(INT32_EQUALS_INTPTR, 1,
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <stdint.h>]], [[int32_t v1 = 0; intptr_t v2 = 0; return (&v1 - &v2)]])],[AC_DEFINE(INT32_EQUALS_INTPTR, 1,
                           Define to 1 if int32_t is equivalent to intptr_t)
-                AC_MSG_RESULT([yes])],
-               [AC_MSG_RESULT([no])])
+                AC_MSG_RESULT([yes])],[AC_MSG_RESULT([no])])
 
 # We want to access the "PC" (Program Counter) register from a struct
 # ucontext.  Every system has its own way of doing that.  We try all the

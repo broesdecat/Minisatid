@@ -1,7 +1,8 @@
-AC_INIT(Makefile.am)
-#AC_PREREQ(2.50)
+AC_INIT
+AC_CONFIG_SRCDIR([Makefile.am])
+#AC_PREREQ(2.61)
 AC_CONFIG_AUX_DIR(config)
-AM_CONFIG_HEADER(config/config.h)
+AC_CONFIG_HEADERS([config/config.h])
 AM_INIT_AUTOMAKE(tclap,1.2.0)
 AC_PROG_CXX
 AC_CXX_HAVE_SSTREAM
@@ -14,12 +15,14 @@ BB_ENABLE_DOXYGEN
 
 AM_CONDITIONAL([HAVE_GNU_COMPILERS], [test x$ac_cv_cxx_compiler_gnu = xyes])
 
-AC_OUTPUT([ Makefile \
+AC_CONFIG_FILES([ Makefile \
 	   tclap.pc
 		   include/Makefile \
 		   include/tclap/Makefile \
-		   config/Makefile], \
-		   [chmod a+x $ac_top_srcdir/tests/*.sh])
+		   config/Makefile])
+AC_CONFIG_COMMANDS([default],[\
+		   chmod a+x $ac_top_srcdir/tests/*.sh],[])
+AC_OUTPUT
 
 #          examples/Makefile
 #		   docs/Makefile

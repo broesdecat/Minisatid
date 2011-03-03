@@ -21,9 +21,11 @@
 #include <algorithm>
 
 #include <GeneralUtils.hpp>
+#include <utils/Print.hpp>
 
 using namespace std;
 using namespace MinisatID;
+using namespace MinisatID::Print;
 
 Translator::Translator(): modelcounter(0){}
 

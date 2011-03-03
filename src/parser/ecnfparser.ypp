@@ -690,17 +690,25 @@ Weight cWeight(string* s){
 }
 
 void parsetruelist(vector<int>* literalnumbers) {
-	fodottrans->setTruelist(*literalnumbers);
+	if(fodottrans!=NULL){
+		fodottrans->setTruelist(*literalnumbers);
+	}
 }
 
 void parsearbitlist(vector<int>* literalnumbers) {
-	fodottrans->setArbitlist(*literalnumbers);
+	if(fodottrans!=NULL){
+		fodottrans->setArbitlist(*literalnumbers);
+	}
 }
 
 void parsetype(string* name, vector<string>* inter) {
-	fodottrans->addType(*name, *inter);
+	if(fodottrans!=NULL){
+		fodottrans->addType(*name, *inter);
+	}
 }
 
 void parsepred(string* name, int startingnumber, vector<string>* argtypes, bool isfunction) {
-	fodottrans->addPred(*name, startingnumber, *argtypes, isfunction);
+	if(fodottrans!=NULL){
+		fodottrans->addPred(*name, startingnumber, *argtypes, isfunction);
+	}
 }

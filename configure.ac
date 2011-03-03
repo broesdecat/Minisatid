@@ -2,8 +2,9 @@
 # Use of this software is governed by the GNU LGPLv3.0 license
 # Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
 # Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
-AC_INIT([minisatid],[2.4.0],[krr@cs.kuleuven.be])
+AC_INIT([minisatid],[m4_esyscmd([./m4/version.m4 | tr -d '\n'])],[krr@cs.kuleuven.be])
 AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_MACRO_DIR([m4])
 
 #this is not an ideal solution, but it overrides the default cxxflags, so those set later are not invalid
 if test -z $CXXFLAGS; then
@@ -12,7 +13,7 @@ fi
 AC_PROG_CXX
 AC_PROG_LIBTOOL
 
-AC_DECL_YYTEXT
+AC_PROG_LEX
 AC_PROG_YACC
 AC_LANG([C++])
 
@@ -31,8 +32,8 @@ AM_INIT_AUTOMAKE([1.9 tar-pax foreign subdir-objects -Wall]) #silent-rules FROM 
 
 #check for the necessary headers
 AC_HEADER_STDC
-AC_CHECK_HEADERS([algorithm \
-	assert.h cassert cerrno cstdio cstdlib cstring ctime exception float.h \
+AC_CHECK_HEADERS([\
+	algorithm assert.h cassert cerrno cstdio cstdlib cstring ctime exception float.h \
 	fstream gmpxx.h inttypes.h iomanip iostream limits limits.h list map queue \
 	set setjmp.h signal.h sstream stack stdexcept stdint.h stdio.h stdlib.h string \
 	tr1/memory tr1/unordered_map vector])
@@ -42,7 +43,9 @@ AC_TYPE_SIZE_T
 AC_SUBST([AC_CXXFLAGS])
 AC_SUBST([AC_LDFLAGS])
 AC_SUBST([LIBS])
+AC_SUBST([MINISATID_VERSION])
 
+MINISATID_VERSION=m4_esyscmd([./m4/version.m4 | tr -d '\n'])
 AC_CXXFLAGS=" "
 AC_LDFLAGS=" "
 
@@ -111,11 +114,6 @@ esac],[ perftools=false ])
 AM_CONDITIONAL([USEPERFTOOLS],[test x$perftools = xtrue])
 
 AC_CONFIG_SUBDIRS([lib/tclap lib/perftools])
-AC_CONFIG_FILES([Makefile 
-	lib/Makefile
-	lib/pbsolver/Makefile 
-	src/Makefile 
-	src/parser/Makefile
-])
+AC_CONFIG_FILES([Makefile lib/Makefile lib/pbsolver/Makefile src/Makefile src/parser/Makefile src/minisatid-2.0.pc])
 
 AC_OUTPUT

@@ -16,7 +16,7 @@ using namespace MinisatID;
 using namespace MinisatID::Print;
 
 string Print::getProgramVersion(){
-	return "2.4.2";
+	return VERSION;
 }
 
 string Print::getProgramInfo(){

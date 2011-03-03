@@ -2422,16 +2422,16 @@ void IDSolver::print() const{
 
 
 void IDSolver::printStatistics() const {
-	report("cycles                : %-12" PRIu64 "\n", cycles);
-	report("cycle conflicts       : %-12" PRIu64 "\n", justify_conflicts);
-	report("avg cycle size        : %4.2f\n", (float)cycle_sizes/cycles);
-	report("avg extdisj size      : %4.2f\n", (float)extdisj_sizes/cycles);
-	report("justify runs          : %-12" PRIu64 "   (%4.2f /cycle)\n", justify_calls, (float)justify_calls/cycles);
-	report("avg. justify searchsp.: %6.2f lits\n", (float)total_marked_size/justify_calls);
-	report("cycle sources         : %-12" PRIu64 "\n", cycle_sources);
-	report("                      : %4.2f found per run of findCycleSources()\n", (float)nb_times_findCS/cycle_sources);
-	report("                      : %4.2f removed per justify run\n", (float)cs_removed_in_justify/justify_calls);
-	report("                      : %4.2f treated per loop\n", (float)succesful_justify_calls/nb_times_findCS);
+	report("> cycles                : %-12" PRIu64 "\n", cycles);
+	report("> cycle conflicts       : %-12" PRIu64 "\n", justify_conflicts);
+	report("> avg cycle size        : %4.2f\n", (float)cycle_sizes/cycles);
+	report("> avg extdisj size      : %4.2f\n", (float)extdisj_sizes/cycles);
+	report("> justify runs          : %-12" PRIu64 "   (%4.2f /cycle)\n", justify_calls, (float)justify_calls/cycles);
+	report("> avg. justify searchsp.: %6.2f lits\n", (float)total_marked_size/justify_calls);
+	report("> cycle sources         : %-12" PRIu64 "\n", cycle_sources);
+	report(">                       : %4.2f found per run of findCycleSources()\n", (float)nb_times_findCS/cycle_sources);
+	report(">                       : %4.2f removed per justify run\n", (float)cs_removed_in_justify/justify_calls);
+	report(">                       : %4.2f treated per loop\n", (float)succesful_justify_calls/nb_times_findCS);
 }
 
 //TARJAN ALGORITHM FOR FINDING UNFOUNDED SETS IN GENERAL INDUCTIVE DEFINITIONS (NOT ONLY SINGLE CONJUNCTS). THIS DOES NOT WORK YET

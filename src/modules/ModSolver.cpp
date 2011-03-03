@@ -435,6 +435,5 @@ void ModSolver::print() const{
 
 void ModSolver::printModel(){
 	//TODO implement
-	throw idpexception(">> Not yet implemented");
 	//getPCSolver().printModel();
 }
