@@ -110,6 +110,7 @@ void FODOTTranslator::finishParsing(ostream& output){
 	currpred = 0;
 
 	// parse and print the arbitrary literals
+	bool hasarbitraries = false;
 	for(vector<int>::const_iterator m=arbitlist.begin(); m<arbitlist.end(); m++) {
 		curr = *m;
 		if(curr > largestnottseitinatom){
@@ -118,11 +119,15 @@ void FODOTTranslator::finishParsing(ostream& output){
 			vector<string> arg;
 			if(deriveStringFromAtomNumber(curr, currpred, arg)){
 				arbitout[currpred].tuples.push_back(TupleInterpr(FIXED_ARBIT, arg));
+				hasarbitraries = true;
 			}
 		}
 	}
-	output <<"Arbitrary truth values: \n";
-	printInterpr(arbitout, output, PRINT_ARBIT);
+	if(hasarbitraries){
+		output <<"Arbitrary truth values:{ \n";
+		printInterpr(arbitout, output, PRINT_ARBIT);
+		output <<"}\n";
+	}
 }
 
 void FODOTTranslator::printTuple(const vector<string>& tuple, ostream& output) const{

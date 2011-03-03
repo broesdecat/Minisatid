@@ -17,6 +17,8 @@
 #include <cstdlib>
 #include <assert.h>
 
+typedef unsigned int uint;
+
 // Weight declaration and utilities
 
 #ifdef GMP
