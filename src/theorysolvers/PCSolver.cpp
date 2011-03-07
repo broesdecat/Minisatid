@@ -610,10 +610,8 @@ bool PCSolver::solve(const vec<Lit>& assumptions, const ModelExpandOptions& opti
 		}
 	}
 
-	if (verbosity()>=1) {
-		if(!moremodels && optim==NONE){
-			clog <<"No more models exist.\n";
-		}
+	if(!moremodels && optim==NONE){
+		printNoMoreModels(clog, verbosity());
 	}
 
 	return getParent().getNbModelsFound()>0;

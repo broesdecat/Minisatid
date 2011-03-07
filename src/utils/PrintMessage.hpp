@@ -97,6 +97,13 @@ namespace Print{
 	}
 
 	template<class T>
+	void printNoMoreModels(T& stream, int verbosity = 1000){
+		if (verbosity >= 1) {
+			stream <<"> No more models exist.\n";
+		}
+	}
+
+	template<class T>
 	void printModuleNotPresent(T& stream, std::string name, int verbosity = 1000){
 		if (verbosity > 0) {
 			stream <<">    (there will be no propagations on " <<name <<" module)\n";

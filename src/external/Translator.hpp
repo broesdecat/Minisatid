@@ -84,6 +84,7 @@ private:
 
 	std::vector<int>			truelist;
 	std::vector<int>			arbitlist;
+	std::map<Symbol*,bool>		symbolasarbitatomlist;
 
 public:
 			FODOTTranslator	(OUTPUTFORMAT fodot);

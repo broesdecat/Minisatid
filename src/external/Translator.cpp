@@ -90,6 +90,7 @@ void FODOTTranslator::finishParsing(ostream& output){
 	for(vector<Symbol*>::const_iterator i=symbols.begin(); i<symbols.end(); i++){
 		arbitout.push_back(SymbolInterpr(*i));
 		truemodelcombinedout.push_back(SymbolInterpr(*i));
+		symbolasarbitatomlist[*i]=false;
 	}
 
 	// set initial values
@@ -113,6 +114,7 @@ void FODOTTranslator::finishParsing(ostream& output){
 
 	// parse and print the arbitrary literals
 	bool hasarbitraries = false;
+	double nbofmodels = 0;
 	for(vector<int>::const_iterator m=arbitlist.begin(); m<arbitlist.end(); m++) {
 		curr = *m;
 		if(curr > largestnottseitinatom){
@@ -121,14 +123,21 @@ void FODOTTranslator::finishParsing(ostream& output){
 			vector<string> arg;
 			if(deriveStringFromAtomNumber(curr, currpred, arg)){
 				arbitout[currpred].tuples.push_back(TupleInterpr(FIXED_ARBIT, arg));
+				nbofmodels++;
 				hasarbitraries = true;
+				if(arbitout[currpred].symbol->types.size()==0){ //atom
+					symbolasarbitatomlist[symbols[currpred]] = true;
+				}
 			}
 		}
 	}
 	if(hasarbitraries){
-		output <<"Arbitrary truth values:{ \n";
-		printInterpr(arbitout, output, PRINT_ARBIT);
-		output <<"}\n";
+		if(tofodot){
+			output <<"Arbitrary truth values (representing 2^" <<nbofmodels <<" interpretations):\n";
+			printInterpr(arbitout, output, PRINT_ARBIT);
+		}else{
+			clog <<"Arbitrary truth values represent 2^" <<nbofmodels <<" interpretations.\n";
+		}
 	}
 }
 
@@ -146,18 +155,22 @@ void FODOTTranslator::printTuple(const vector<string>& tuple, ostream& output) c
 void FODOTTranslator::printPredicate(const SymbolInterpr& pred, ostream& output, PRINTCHOICE print) const {
 	assert(!pred.symbol->isfunction);
 
-	if(pred.symbol->types.size()==0){
-		assert(pred.tuples.size()==1);
-
-		FIXEDVAL atomval = pred.tuples.back().value;
-		if(print==PRINT_ARBIT && atomval==FIXED_ARBIT){
+	if(pred.symbol->types.size()==0){ //ATOM
+		bool arbitrary = symbolasarbitatomlist.at(pred.symbol);
+		if(print==PRINT_ARBIT && arbitrary){
 			output <<pred.symbol->name <<"\n";
-		}else if(print!=PRINT_ARBIT && atomval!=FIXED_ARBIT){
-			output <<pred.symbol->name;
+		}else if(print!=PRINT_ARBIT && !arbitrary){
+
+			bool atomtrue = pred.tuples.size()!=0;
 			if(tofodot){
-				output << " = true\n";
-			}else{
-				output <<". ";
+				output <<pred.symbol->name;
+				if(!atomtrue){
+					output << " = false\n";
+				}else{ //True
+					output << " = true\n";
+				}
+			}else if(atomtrue){ //asp && true
+				output <<pred.symbol->name <<". ";
 			}
 		}
 	}else{
@@ -228,15 +241,16 @@ void FODOTTranslator::printFunction(const SymbolInterpr& func, ostream& output, 
 
 void FODOTTranslator::printInterpr(const modelvec& model, ostream& output, PRINTCHOICE printfixed) const{
 	for(vector<SymbolInterpr>::const_iterator n = model.begin(); n < model.end(); ++n) {
-		if((*n).tuples.size()==0){ //None were loaded, so a pred which is either fully arbit or fully in find
-			continue;
-		}
 		if((*n).symbol->isfunction) {
 			printFunction(*n, output, printfixed);
 		} else {
 			printPredicate(*n, output, printfixed);
 		}
 	}
+	if(!tofodot){
+		output <<"\n";
+	}
+	output.flush();
 }
 
 //IMPORTANT: non-incremental (slow), so do not use for printing a full model!
@@ -308,9 +322,10 @@ void FODOTTranslator::printModel(std::ostream& output, const vector<Literal>& mo
 			}
 		}
 	}
+	if(tofodot){
+		output <<"Model:\n";
+	}
 	printInterpr(temptruemodelcombined, output, PRINT_FIXED);
-	output <<"\n";
-	output.flush();
 }
 
 
