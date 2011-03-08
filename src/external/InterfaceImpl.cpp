@@ -217,8 +217,14 @@ bool WLSImpl::solve(Solution* sol){
 
 	if(unsat){
 		std::ostream output(getRes());
-		printUnSatisfiable(output, modes().format);
-		printUnSatisfiable(clog, modes().format, modes().verbosity);
+		printUnSatisfiable(output, modes().format, modes().transformat);
+		printUnSatisfiable(clog, modes().format, modes().transformat, modes().verbosity);
+	}else{
+		if(!hasOptimization() && modes().transformat==TRANS_ASP){
+			std::ostream output(getRes());
+			printSatisfiable(output, modes().format, modes().transformat);
+			printSatisfiable(clog, modes().format, modes().transformat, modes().verbosity);
+		}
 	}
 
 	setSolution(NULL);
@@ -246,9 +252,9 @@ void WLSImpl::addModel(const vec<Lit>& model){
 	if(getSolution().getPrintOption()==PRINT_ALL || (!hasOptimization() && getSolution().getPrintOption()==PRINT_BEST)){
 		std::ostream output(getRes());
 		if(getNbModelsFound()==1){
-			if(!hasOptimization()){
-				printSatisfiable(output, modes().format);
-				printSatisfiable(clog, modes().format, modes().verbosity);
+			if(!hasOptimization() && modes().transformat!=TRANS_ASP){
+				printSatisfiable(output, modes().format, modes().transformat);
+				printSatisfiable(clog, modes().format, modes().transformat, modes().verbosity);
 			}
 			getTranslator().printHeader(output);
 		}

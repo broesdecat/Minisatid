@@ -64,10 +64,12 @@ namespace Print{
 	std::string getMinimalVarNumbering();
 
 	template<class T>
-	void printSatisfiable(T& stream, INPUTFORMAT format, int verbosity = 1000){
+	void printSatisfiable(T& stream, INPUTFORMAT inputformat, OUTPUTFORMAT outputformat, int verbosity = 1000){
 		if(verbosity>=1){
-			if(format==FORMAT_OPB){
+			if(inputformat==FORMAT_OPB){
 				stream<<"s SATISFIABLE\n";
+			}else if(outputformat==TRANS_ASP){
+				stream <<"ANSWER SET FOUND\n";
 			}else{
 				stream<<"SATISFIABLE\n";
 			}
@@ -75,10 +77,12 @@ namespace Print{
 	}
 
 	template<class T>
-	void printUnSatisfiable(T& stream, INPUTFORMAT format, int verbosity = 1000){
+	void printUnSatisfiable(T& stream, INPUTFORMAT inputformat, OUTPUTFORMAT outputformat, int verbosity = 1000){
 		if(verbosity>=1){
-			if(format==FORMAT_OPB){
+			if(inputformat==FORMAT_OPB){
 				stream<<"s UNSATISFIABLE\n";
+			}else if(outputformat==TRANS_ASP){
+				stream <<"INCONSISTENT\n";
 			}else{
 				stream<<"UNSATISFIABLE\n";
 			}
