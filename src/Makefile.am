@@ -84,15 +84,15 @@ endif
 #MINISAT 2.2
 if USEMINISAT22
 libminisatid_2_0_la_SOURCES +=\
-		solver3minisat22/core/Solver.cc\
-		solver3minisat22/core/Solver.h solver3minisat22/core/SolverTypes.h \
-		solver3minisat22/mtl/IntTypes.h solver3minisat22/mtl/Alg.h solver3minisat22/mtl/Vec.h\
-		solver3minisat22/mtl/Map.h solver3minisat22/mtl/Alloc.h\
-		solver3minisat22/mtl/Queue.h solver3minisat22/mtl/Heap.h\
-		solver3minisat22/mtl/Sort.h solver3minisat22/mtl/XAlloc.h\
-		solver3minisat22/utils/ParseUtils.h solver3minisat22/utils/Options.h\
-		solver3minisat22/zconf.h solver3minisat22/zlib.h
-AM_CXXFLAGS+= -D USEMINISAT22 -I$(srcdir)/solver3minisat22/
+		satsolver/minisat22/minisat/core/Solver.cc\
+		satsolver/minisat22/minisat/core/Solver.h satsolver/minisat22/minisat/core/SolverTypes.h \
+		satsolver/minisat22/minisat/mtl/IntTypes.h satsolver/minisat22/minisat/mtl/Alg.h satsolver/minisat22/minisat/mtl/Vec.h\
+		satsolver/minisat22/minisat/mtl/Map.h satsolver/minisat22/minisat/mtl/Alloc.h\
+		satsolver/minisat22/minisat/mtl/Queue.h satsolver/minisat22/minisat/mtl/Heap.h\
+		satsolver/minisat22/minisat/mtl/Sort.h satsolver/minisat22/minisat/mtl/XAlloc.h\
+		satsolver/minisat22/minisat/utils/ParseUtils.h satsolver/minisat22/minisat/utils/Options.h\
+		satsolver/minisat22/minisat/zconf.h satsolver/minisat22/minisat/zlib.h
+AM_CXXFLAGS+= -D USEMINISAT22 -I$(srcdir)/satsolver/minisat22/ -I$(srcdir)/satsolver/minisat22/minisat
 #necessary if not used by minisatid itself! AM_CXXFLAGS+= -D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS 
 endif
 
