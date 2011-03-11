@@ -111,7 +111,7 @@ if USEMINISAT
 libminisatid_2_0_la_SOURCES +=\
 		satsolver/minisat2-14/Solver.C\
 		satsolver/minisat2-14/Solver.h satsolver/minisat2-14/SolverTypes.h\
-		satsolver/minisat2-14/Vec.h satsolver/minisat2-14/Queue.h satsolver/minisat2-14/Alg.h\
-		satsolver/minisat2-14/Heap.h satsolver/minisat2-14/Map.h satsolver/minisat2-14/Sort.h
+		satsolver/minisat2-14/mtl/Vec.h satsolver/minisat2-14/mtl/Queue.h satsolver/minisat2-14/mtl/Alg.h\
+		satsolver/minisat2-14/mtl/Heap.h satsolver/minisat2-14/mtl/Map.h satsolver/minisat2-14/mtl/Sort.h
 AM_CXXFLAGS += -D USEMINISAT
 endif
