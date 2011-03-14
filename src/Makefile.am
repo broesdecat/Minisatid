@@ -19,6 +19,10 @@ lib_LTLIBRARIES = libminisatid-2.0.la
 libminisatid_2_0_la_LDFLAGS = -version-info 1:0:0
 minisatid_includedir = $(includedir)/minisatid-2.0/external
 
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = minisatid-2.0.pc
+EXTRA_DIST = minisatid-2.0.pc.in
+
 libminisatid_2_0_la_LIBADD = ../lib/pbsolver/libpbsolver-1.0.la # do not forget ldconfig after installing ;)
 
 if USEPERFTOOLS
@@ -75,6 +79,7 @@ AM_CXXFLAGS += -I $(LIBSDIR)/pbsolver/ -I $(LIBSDIR)/pbsolver/pbbase/h/ -I $(LIB
 
 #MINISAT 2.07 09z
 if USEMINISAT09Z
+#m09zdir=satsolver/minisat2-14-hack2009
 libminisatid_2_0_la_SOURCES +=\
 		satsolver/minisat2-14-hack2009/Solver.cpp\
 		satsolver/minisat2-14-hack2009/Solver.hpp satsolver/minisat2-14-hack2009/SolverTypes.hpp\
@@ -86,29 +91,28 @@ endif
 
 #MINISAT 2.2
 if USEMINISAT22
+#m22dir=satsolver/minisat2-2/minisat
 libminisatid_2_0_la_SOURCES +=\
-		solver3minisat22/core/Solver.cc\
-		solver3minisat22/core/Solver.h solver3minisat22/core/SolverTypes.h \
-		solver3minisat22/mtl/IntTypes.h solver3minisat22/mtl/Alg.h solver3minisat22/mtl/Vec.h\
-		solver3minisat22/mtl/Map.h solver3minisat22/mtl/Alloc.h\
-		solver3minisat22/mtl/Queue.h solver3minisat22/mtl/Heap.h\
-		solver3minisat22/mtl/Sort.h solver3minisat22/mtl/XAlloc.h\
-		solver3minisat22/utils/ParseUtils.h solver3minisat22/utils/Options.h\
-		solver3minisat22/zconf.h solver3minisat22/zlib.h
-AM_CXXFLAGS+= -D USEMINISAT22 -I$(srcdir)/solver3minisat22/
-#necessary if not used by minisatid itself! AM_CXXFLAGS+= -D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS 
+		satsolver/minisat2-2/minisat/core/Solver.cc\
+		satsolver/minisat2-2/minisat/core/Solver.h satsolver/minisat2-2/minisat/core/SolverTypes.h \
+		satsolver/minisat2-2/minisat/mtl/IntTypes.h satsolver/minisat2-2/minisat/mtl/Alg.h satsolver/minisat2-2/minisat/mtl/Vec.h\
+		satsolver/minisat2-2/minisat/mtl/Map.h satsolver/minisat2-2/minisat/mtl/Alloc.h\
+		satsolver/minisat2-2/minisat/mtl/Queue.h satsolver/minisat2-2/minisat/mtl/Heap.h\
+		satsolver/minisat2-2/minisat/mtl/Sort.h satsolver/minisat2-2/minisat/mtl/XAlloc.h\
+		satsolver/minisat2-2/minisat/utils/ParseUtils.h satsolver/minisat2-2/minisat/utils/Options.h\
+		satsolver/minisat2-2/minisat/zconf.h satsolver/minisat2-2/minisat/zlib.h
+AM_CXXFLAGS+= -D USEMINISAT22 -I$(srcdir)/satsolver/minisat2-2/minisat -I$(srcdir)/satsolver/minisat2-2/
+#add if not added by minisatid itself! AM_CXXFLAGS+= -D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS
+EXTRA_DIST += satsolver/minisat2-2/README satsolver/minisat2-2/LICENSE satsolver/minisat2-2/doc
 endif
 
 #MINISAT 2.07
 if USEMINISAT
+#m214dir=satsolver/minisat2-14
 libminisatid_2_0_la_SOURCES +=\
-		satsolver/minisat2-14/Solver.cpp\
-		satsolver/minisat2-14/Solver.hpp satsolver/minisat2-14/SolverTypes.hp\
+		satsolver/minisat2-14/Solver.C\
+		satsolver/minisat2-14/Solver.h satsolver/minisat2-14/SolverTypes.h\
 		satsolver/minisat2-14/mtl/Vec.h satsolver/minisat2-14/mtl/Queue.h satsolver/minisat2-14/mtl/Alg.h\
 		satsolver/minisat2-14/mtl/Heap.h satsolver/minisat2-14/mtl/Map.h satsolver/minisat2-14/mtl/Sort.h
-AM_CXXFLAGS += -D USEMINISAT -I$(srcdir)/satsolver/minisat2-14/
+AM_CXXFLAGS += -D USEMINISAT
 endif
-
-pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = minisatid-2.0.pc
-EXTRA_DIST = minisatid-2.0.pc.in

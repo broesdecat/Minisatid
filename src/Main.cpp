@@ -236,8 +236,8 @@ int doModelGeneration(pwls& d){
 
 	if(unsat){
 		ostream output(getOutputBuffer());
-		printUnSatisfiable(output, modes.format);
-		printUnSatisfiable(clog, modes.format, modes.verbosity);
+		printUnSatisfiable(output, modes.format, modes.transformat);
+		printUnSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);
 	}else{ //Solve
 		ModelExpandOptions options;
 		if(modes.format==FORMAT_OPB && d->hasOptimization()){

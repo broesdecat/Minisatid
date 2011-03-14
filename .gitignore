@@ -16,6 +16,10 @@ autom4te.cache/*
 builds/*
 */builds/*
 configure
+config.guess
+config.sub
+compile
+*~
 depcomp
 install-sh
 missing
@@ -23,3 +27,4 @@ ylwrap
 *.autotools*
 *.settings/*
 *ltmain.sh
+*.*~

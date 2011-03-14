@@ -2,7 +2,7 @@
 # Use of this software is governed by the GNU LGPLv3.0 license
 # Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
 # Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
-AC_INIT([minisatid],[m4_esyscmd([./m4/version.m4 | tr -d '\n'])],[krr@cs.kuleuven.be])
+AC_INIT([minisatid],[m4_esyscmd([./m4/version.m4])],[krr@cs.kuleuven.be])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -104,7 +104,7 @@ AC_ARG_ENABLE([gmp],
 esac],[ AC_CXXFLAGS+=" -D NO_GMP " ])
 
 AC_ARG_ENABLE([perftools],
-[  --enable-perftools=false    Use the google perftools library for memory allocation],
+[  --enable-perftools=false    Use the google perftools library for memory allocation (does not work for each OS, please consult "http://code.google.com/p/google-perftools/"],
 [case "${enableval}" in
 	no) perftools=false ;;
 	yes) perftools=true ;;
