@@ -178,8 +178,8 @@ void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& s
 		Agg *one, *two;
 		Weight weighttwo = agg.getSign()==AGGSIGN_LB?agg.getBound()-1:agg.getBound()+1;
 		AggSign signtwo = agg.getSign()==AGGSIGN_LB?AGGSIGN_UB:AGGSIGN_LB;
-		one = new Agg(~agg.getHead(), AggBound(agg.getSign(), agg.getBound()), IMPLICATION, agg.getType(), agg.isOptim());
-		two = new Agg(agg.getHead(), AggBound(signtwo, weighttwo), IMPLICATION, agg.getType(), agg.isOptim());
+		one = new Agg(~agg.getHead(), AggBound(agg.getSign(), agg.getBound()), IMPLICATION, 0, agg.getType(), agg.isOptim());
+		two = new Agg(agg.getHead(), AggBound(signtwo, weighttwo), IMPLICATION, 0, agg.getType(), agg.isOptim());
 
 		implaggs.push_back(one);
 		implaggs.push_back(two);
@@ -187,7 +187,7 @@ void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& s
 	}
 
 	if(optim!=NULL){
-		implaggs.push_back(new Agg(~optim->getHead(), AggBound(optim->getSign(), optim->getBound()), IMPLICATION, optim->getType(), optim->isOptim()));
+		implaggs.push_back(new Agg(~optim->getHead(), AggBound(optim->getSign(), optim->getBound()), IMPLICATION, 0, optim->getType(), optim->isOptim()));
 		del.push_back(optim);
 	}
 
@@ -285,15 +285,15 @@ void AddHeadImplications::transform(AggSolver* solver, TypedSet* set, vps& sets,
 			Agg* first = *lbaggs.begin();
 			for(agglist::const_iterator i=lbaggs.begin()+1; i<lbaggs.end(); i++){
 				Agg* second = *i;
-				vec<Lit> lits;
-				lits.push(first->getHead());
-				lits.push(~second->getHead());
-				solver->getPCSolver().addClause(lits);
+				InnerDisjunction disj;
+				disj.literals.push(first->getHead());
+				disj.literals.push(~second->getHead());
+				solver->getPCSolver().add(disj);
 				if(first->getCertainBound()==second->getCertainBound()){
-					vec<Lit> lits2;
-					lits2.push(~first->getHead());
-					lits2.push(second->getHead());
-					solver->getPCSolver().addClause(lits2);
+					InnerDisjunction disj2;
+					disj2.literals.push(~first->getHead());
+					disj2.literals.push(second->getHead());
+					solver->getPCSolver().add(disj2);
 				}
 				first = second;
 			}
@@ -304,15 +304,15 @@ void AddHeadImplications::transform(AggSolver* solver, TypedSet* set, vps& sets,
 			Agg* first = *ubaggs.begin();
 			for(agglist::const_iterator i=ubaggs.begin()+1; i<ubaggs.end(); i++){
 				Agg* second = *i;
-				vec<Lit> lits;
-				lits.push(first->getHead());
-				lits.push(~second->getHead());
-				solver->getPCSolver().addClause(lits);
+				InnerDisjunction disj;
+				disj.literals.push(first->getHead());
+				disj.literals.push(~second->getHead());
+				solver->getPCSolver().add(disj);
 				if(first->getCertainBound()==second->getCertainBound()){
-					vec<Lit> lits2;
-					lits2.push(~first->getHead());
-					lits2.push(second->getHead());
-					solver->getPCSolver().addClause(lits2);
+					InnerDisjunction disj2;
+					disj2.literals.push(~first->getHead());
+					disj2.literals.push(second->getHead());
+					solver->getPCSolver().add(disj2);
 				}
 				first = second;
 			}
@@ -395,41 +395,45 @@ void MaxToSAT::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsa
 	 * For a maximum: if lower,  head <=> conj of negation of all literals with weight higher than bound
 	 * 				  if higher, head <=> disj of all literals with weight higher/eq than bound
 	 */
-	vec<Lit> clause;
-
 	const Agg& agg = *set->getAgg()[0];
 	bool ub = agg.hasUB();
 	const Weight& bound = agg.getBound();
 	if (agg.isDefined()) {
+		InnerRule rule;
+		rule.definitionID = agg.getDefID();
+		rule.head = var(agg.getHead());
+		rule.conjunctive = ub;
 		for (vwl::const_reverse_iterator i = set->getWL().rbegin(); i < set->getWL().rend()	&& (*i).getWeight() >= bound; i++) {
 			if (ub && (*i).getWeight() == bound) {
 				break;
 			}
 			if (ub) {
-				clause.push(~(*i).getLit());
+				rule.body.push(~(*i).getLit());
 			} else {
-				clause.push((*i).getLit());
+				rule.body.push((*i).getLit());
 			}
 		}
-		notunsat = set->getSolver()->getPCSolver().addRule(ub,agg.getHead(),clause);
+
+		notunsat = set->getSolver()->getPCSolver().add(rule);
 	} else {
-		clause.push(ub? agg.getHead():~agg.getHead());
+		InnerDisjunction clause;
+		clause.literals.push(ub? agg.getHead():~agg.getHead());
 		for (vwl::const_reverse_iterator i = set->getWL().rbegin(); i < set->getWL().rend()	&& (*i).getWeight() >= bound; i++) {
 			if (ub && (*i).getWeight() == bound) {
 				break;
 			}
-			clause.push((*i).getLit());
+			clause.literals.push((*i).getLit());
 		}
-		notunsat = set->getSolver()->getPCSolver().addClause(clause);
+		notunsat = set->getSolver()->getPCSolver().add(clause);
 		for (vwl::const_reverse_iterator i = set->getWL().rbegin(); notunsat && i < set->getWL().rend()
 					&& (*i).getWeight() >= bound; i++) {
 			if (ub && (*i).getWeight() == bound) {
 				break;
 			}
-			clause.clear();
-			clause.push(ub?~agg.getHead():agg.getHead());
-			clause.push(~(*i).getLit());
-			notunsat = set->getSolver()->getPCSolver().addClause(clause);
+			clause.literals.clear();
+			clause.literals.push(ub?~agg.getHead():agg.getHead());
+			clause.literals.push(~(*i).getLit());
+			notunsat = set->getSolver()->getPCSolver().add(clause);
 		}
 	}
 	set->replaceAgg(vector<Agg*>());
@@ -461,8 +465,11 @@ void CardToEquiv::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& u
 					unsat = true;
 				}else{
 					if (agg.getSem() == DEF) {
-						vec<Lit> lits;
-						unsat = unsat || !set->getSolver()->getPCSolver().addRule(true, agg.getHead(), lits);
+						InnerRule rule;
+						rule.definitionID = agg.getDefID();
+						rule.head = var(agg.getHead());
+						rule.conjunctive = true;
+						unsat = unsat || !set->getSolver()->getPCSolver().add(rule);
 					}else{
 						if(headvalue==l_Undef){
 							if(set->getSolver()->notifySolver(new HeadReason(agg, HEADONLY, agg.getHead()))!=nullPtrClause){
@@ -472,14 +479,23 @@ void CardToEquiv::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& u
 					}
 				}
 			}else if(agg.hasLB() && bound==1){
-				vec<Lit> right;
-				for (vsize j = 0; j < set->getWL().size(); j++) {
-					right.push(set->getWL()[j].getLit());
-				}
 				if (agg.getSem() == DEF) {
-					unsat = !set->getSolver()->getPCSolver().addRule(false, agg.getHead(), right);
+					InnerRule rule;
+					rule.definitionID = agg.getDefID();
+					rule.head = var(agg.getHead());
+					rule.conjunctive = true;
+					for (vsize j = 0; j < set->getWL().size(); j++) {
+						rule.body.push(set->getWL()[j].getLit());
+					}
+					unsat = !set->getSolver()->getPCSolver().add(rule);
 				} else{
-					unsat = !set->getSolver()->getPCSolver().addEquivalence(agg.getHead(), right, false);
+					InnerEquivalence eq;
+					eq.head = agg.getHead();
+					eq.conjunctive = false;
+					for (vsize j = 0; j < set->getWL().size(); j++) {
+						eq.literals.push(set->getWL()[j].getLit());
+					}
+					unsat = !set->getSolver()->getPCSolver().add(eq);
 				}
 			}else{
 				remaggs.push_back(*i);
@@ -600,12 +616,12 @@ bool Aggrs::transformSumsToCNF(vps& sets, PCSolver& pcsolver) {
 	//add the CNF to the solver
 	int maxnumber = pcsolver.nVars();
 	for (vector<vector<MiniSatPP::Lit> >::const_iterator i = pbencodings.begin(); i < pbencodings.end(); i++) {
-		vec<Lit> lits;
+		InnerDisjunction clause;
 		for (vector<MiniSatPP::Lit>::const_iterator j = (*i).begin(); j < (*i).end(); j++) {
 			Var v = MiniSatPP::var(*j) + (MiniSatPP::var(*j) > maxvar ? maxnumber - maxvar : 0);
-			lits.push(mkLit(v, MiniSatPP::sign(*j)));
+			clause.literals.push(mkLit(v, MiniSatPP::sign(*j)));
 		}
-		pcsolver.addClause(lits);
+		pcsolver.add(clause);
 	}
 
 	return true;

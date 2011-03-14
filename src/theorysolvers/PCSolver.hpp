@@ -9,8 +9,10 @@
 #ifndef PCSOLVER_H_
 #define PCSOLVER_H_
 
+#include <map>
 #include "utils/Utils.hpp"
 #include "theorysolvers/LogicSolver.hpp"
+#include "utils/ECNFPrinter.hpp"
 
 namespace Minisat{
 	class Solver;
@@ -49,22 +51,27 @@ public:
 
 class PCSolver;
 
+typedef int defID;
+
 class DPLLTSolver{
 private:
-	DPLLTSolver(DPLLTSolver&){}
-	DPLLTSolver& operator=(DPLLTSolver& m) { return m; }
-public:
 	DPLLTmodule* module;
-	bool createdhere; //Indicates which solvers were constructed here and should be deleted later on by the pcsolver
+	const bool createdhere;
+
+	DPLLTSolver(DPLLTSolver&);
+	DPLLTSolver& operator=(DPLLTSolver& m);
+
+public:
 	bool present; //Indicates whether the solver should be integrated into the search
 
-	DPLLTSolver(DPLLTmodule* module, bool createdhere): module(module), createdhere(createdhere), present(true){}
+	DPLLTSolver(DPLLTmodule* module, bool createdhere): module(module), createdhere(createdhere), present(true){ assert(module!=NULL);}
 	~DPLLTSolver();
 
 	DPLLTmodule* get() const { return module; }
 };
 
 typedef std::vector<DPLLTSolver*> solverlist;
+enum TheoryState {THEORY_PARSING, THEORY_INITIALIZED, THEORY_INITIALIZING};
 
 class PCSolver: public MinisatID::LogicSolver{
 private:
@@ -73,14 +80,11 @@ private:
 
 	// IMPORTANT: implicit invariant that IDsolver is always last in the list!
 	solverlist solvers;
-	DPLLTSolver* idsolver;
+	std::map<defID, DPLLTSolver*> idsolvers;
 	DPLLTSolver* aggsolver;
 	DPLLTSolver* modsolver;
 
-	IDSolver* getIDSolver() const;
-	ModSolver* getModSolver() const;
-
-	bool initialized;
+	TheoryState state;
 	std::vector<Lit>		initialprops;
 
 	std::vector<DPLLTmodule*> propagations;
@@ -95,31 +99,43 @@ private:
 
 	//Logging
 	PCLogger* logger;
+	ECNFPrinter* ecnfprinter;
 
 	Minisat::Solver * 	getSolver	() const { return satsolver; }
+
+	bool hasIDSolver(defID id) const;
+	bool hasAggSolver() const;
+	bool hasModSolver() const;
+	bool hasPresentIDSolver(defID id) const;
+	bool hasPresentAggSolver() const;
+	bool hasPresentModSolver() const;
+	void addIDSolver(defID id);
+	void addAggSolver();
+	IDSolver* getIDSolver(defID id) const;
+	ModSolver* getModSolver() const;
 
 public:
 	PCSolver(SolverOption modes, MinisatID::WLSImpl& inter);
 	virtual ~PCSolver();
 
-	solverlist::const_iterator	getSolversBegin() const { return solvers.begin(); }
-	solverlist::const_iterator	getSolversEnd() const { return solvers.end(); }
-
 	AggSolver* getAggSolver() const;
 
 	// INIT
-	void 		setModSolver	(ModSolver* m);
+	void 	setModSolver	(ModSolver* m);
 
-	Var			newVar			();
-	void		addVar			(Var v);
-	bool 		addClause		(vec<Lit>& lits);
-	bool 		addEquivalence	(const Lit& head, const vec<Lit>& rightlits, bool conj);
-	bool 		addRule			(bool conj, Lit head, const vec<Lit>& lits);
-	bool 		addRuleToID		(int defid, bool conj, Lit head, const vec<Lit>& lits);
-	bool 		addSet			(int id, const vec<Lit>& lits);
-	bool 		addSet			(int id, const vec<Lit>& lits, const std::vector<Weight>& w);
-	bool 		addAggrExpr	(Lit head, int setid, const Weight& bound, AggSign boundsign, AggType type, AggSem defined);
-	bool 		addIntVar		(int groundname, int min, int max);
+	Var		newVar	();
+	bool	add		(Var v);
+	bool	add		(const InnerDisjunction& sentence);
+	bool	add		(const InnerEquivalence& sentence);
+	bool	add		(const InnerRule& sentence);
+	bool	add		(const InnerWSet& sentence);
+	bool	add		(const InnerAggregate& sentence);
+	bool	add		(const InnerMinimizeSubset& sentence);
+	bool	add		(const InnerMinimizeOrderedList& sentence);
+	bool	add		(const InnerMinimizeAgg& sentence);
+	bool	add		(const InnerForcedChoices& sentence);
+
+/*	bool 		addIntVar		(int groundname, int min, int max);
 	bool 		addCPBinaryRel	(Lit head, int groundname, EqType rel, int bound);
 	bool 		addCPBinaryRelVar	(Lit head, int groundname, EqType rel, int groundname2);
 	bool 		addCPSum		(Lit head, std::vector<int> termnames, EqType rel, int bound);
@@ -128,11 +144,7 @@ public:
 	bool 		addCPSumVar		(Lit head, std::vector<int> termnames, std::vector<int> mult, EqType rel, int rhstermname);
 	bool 		addCPCount		(std::vector<int> termnames, int value, EqType rel, int rhstermname);
 	bool 		addCPAlldifferent(const std::vector<int>& termnames);
-
-	void		addForcedChoices(const vec<Lit>& forcedchoices);
-
-    bool 		addMinimize		(const vec<Lit>& lits, bool subsetmnmz);
-    bool 		addMinimize		(const Var head, const int setid, AggType agg);
+*/
 
 	// Solving support
 	void 		newDecisionLevel();
@@ -141,8 +153,8 @@ public:
 	bool 		solve			(const vec<Lit>& assumptions, const ModelExpandOptions& options);
 	lbool 		checkStatus		(lbool status) const; //if status==l_True, do wellfoundednesscheck in IDSolver, if not wellfounded, return l_False, otherwise status
 
-	void		removeAggrHead	(Var x);
-	void		notifyAggrHead	(Var head);
+	void		removeAggrHead	(Var head, int defID);
+	void		notifyAggrHead	(Var head, int defID);
 
 	bool 		assertedBefore	(const Var& l, const Var& p) const;
 	rClause		getExplanation	(Lit l);	//NON-OWNING pointer
@@ -171,38 +183,46 @@ public:
 
 	void		varBumpActivity	(Var v);
 
-	void 		backtrackRest	(Lit l);
 	void 		backtrackDecisionLevel(int levels, int untillevel);
 	rClause 	propagate		(Lit l);
 	rClause 	propagateAtEndOfQueue();
 
-	void 	printCurrentOptimum(const Weight& value) const;
+	void 		printCurrentOptimum(const Weight& value) const;
 
 	// DEBUG
-	void	printModID() const; // SATsolver asks this to PC such that more info (modal e.g.) can be printed.
-	void 	printEnqueued(const Lit& p) const;
-	void	printChoiceMade	(int level, Lit l) const;
-	void 	printStatistics() const;
-	void	print() const;
-	void	print(rClause clause) const;
+	void		printModID() const; // SATsolver asks this to PC such that more info (modal e.g.) can be printed.
+	void 		printEnqueued(const Lit& p) const;
+	void		printChoiceMade	(int level, Lit l) const;
+	void 		printStatistics() const;
+	void		print() const;
+	void		print(rClause clause) const;
 
 	const PCLogger& getLogger() const { return *logger; }
 
 private:
-	void addVar(Lit l) { addVar(var(l)); }
-	void addVars(const vec<Lit>& a);
-	void checkHead(Lit head);
+	bool		isInitialized	() 	const { return state==THEORY_INITIALIZED; }
+	bool		isInitializing	() 	const { return state==THEORY_INITIALIZING; }
+	bool		isParsing		()	const { return state==THEORY_PARSING; }
+
+	bool		hasECNFPrinter() const { return ecnfprinter!=NULL; }
+	ECNFPrinter& getECNFPrinter() { return *ecnfprinter; }
+
+	const solverlist& getSolvers() const { return solvers; }
+
+	void 		addVar(Lit l) { add(var(l)); }
+	void 		addVars(const vec<Lit>& a);
+	void 		addVars(const std::vector<Lit>& a);
 
 	// SOLVING
 	bool 		findNext		(const vec<Lit>& assumpts, vec<Lit>& model, bool& moremodels);
-	bool    	invalidateModel	(vec<Lit>& invalidation);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
-	void 		invalidate		(vec<Lit>& invalidation);
+	bool    	invalidateModel	(const InnerDisjunction& clause);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
+	void 		invalidate		(InnerDisjunction& clause);
 	bool 		findModel		(const vec<Lit>& assumps, vec<Lit>& m, bool& moremodels);
 
 	// OPTIMIZATION
-    bool 	invalidateValue	(vec<Lit>& invalidation);
-	bool 	invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt);
-	bool 	findOptimal		(const vec<Lit>& assumps, vec<Lit>& m);
+    bool 		invalidateValue	(vec<Lit>& invalidation);
+	bool 		invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt);
+	bool 		findOptimal		(const vec<Lit>& assumps, vec<Lit>& m);
 };
 
 }

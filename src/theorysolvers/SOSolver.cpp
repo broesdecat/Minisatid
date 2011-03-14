@@ -64,50 +64,38 @@ void SOSolver::finishParsing(bool& present, bool& unsat){
 	}
 }
 
-//Add information for hierarchy
-
-bool SOSolver::addChild(vsize parent, vsize child, Lit h){
+bool SOSolver::add(int modid, const InnerSubTheory& subtheory){
 	assert(state==LOADINGHIER);
 
-	checkexistsModSolver(parent);
+	int child = subtheory.child;
+	checkexistsModSolver(modid);
 	if(existsModSolver(child)){
 		char s[100]; sprintf(s, ">> Modal operator with id %zu was already defined!\n", child+1);
 		throw idpexception(s);
 	}
-	if(sign(h)){
+	if(sign(subtheory.head)){
 		char s[100]; sprintf(s, ">> Modal operator %zu has a negative head.\n", child+1);
 		throw idpexception(s);
 	}
 	if(solvers.size()<child+1){
 		solvers.resize(child+1, NULL);
 	}
-	Var head = var(h);
+	Var head = var(subtheory.head);
 	solvers[child] = new ModSolver(child, head, this);
-	solvers[child]->setParent(parent);
+	solvers[child]->setParent(modid);
 	return true;
 }
-
-bool SOSolver::addAtoms(vsize modid, const vector<Var>& atoms){
+bool SOSolver::add(int modid, const InnerRigidAtoms& rigid){
 	assert(state==LOADINGHIER);
-
 	//allAtoms.insert(allAtoms.end(), atoms.begin(), atoms.end());
-
 	checkexistsModSolver(modid);
-	return getModSolver(modid)->addAtoms(atoms);
+	return getModSolver(modid)->add(rigid);
 }
 
 //Add information for PC-Solver
 
-void SOSolver::addVar(vsize modid, Var v){
-	if(state==LOADINGHIER){
-		state = LOADINGREST;
-	}
-	assert(state==LOADINGREST);
-
-	//allAtoms.push_back(v);
-
-	checkexistsModSolver(modid);
-	getModSolver(modid)->addVar(v);
+bool SOSolver::add(int modid, Var v){
+	return getModSolverDuringAdding(modid).add(v);
 }
 
 /**
@@ -123,7 +111,7 @@ void SOSolver::addVar(vsize modid, Var v){
  *
  * Currently done substitutions
  */
-bool SOSolver::addClause(vsize modid, vec<Lit>& lits){
+bool SOSolver::add(int modid, const InnerDisjunction& disj){
 	if(state==LOADINGHIER){
 		state = LOADINGREST;
 	}
@@ -146,6 +134,7 @@ bool SOSolver::addClause(vsize modid, vec<Lit>& lits){
 	initialsolvertwo->addClause(onlyexists);*/
 
 	//Try to add a clause as high up in the hierarchy as possible.
+	const vec<Lit>& lits = disj.literals;
 	checkexistsModSolver(modid);
 	vsize previd = modid, currentid = modid;
 	ModSolver* m = NULL;
@@ -183,49 +172,31 @@ bool SOSolver::addClause(vsize modid, vec<Lit>& lits){
 	}
 	bool result;
 	if(negated){
-		//reportf("orig %d => new %d\n", modid, previd);
-		result = getModSolver(previd)->addClause(lits);
+		result = getModSolver(previd)->add(disj);
 	}else{
-		//reportf("orig %d => new %d\n", modid, currentid);
-		result = getModSolver(currentid)->addClause(lits);
+		result = getModSolver(currentid)->add(disj);
 	}
 	return result;
 }
 
-bool SOSolver::addRule(vsize modid, bool conj, Lit head, vec<Lit>& lits){
-	if(state==LOADINGHIER){
-		state = LOADINGREST;
-	}
-	assert(state==LOADINGREST);
-
-	checkexistsModSolver(modid);
-	ModSolver* m = getModSolver(modid);
-	return m->addRule(conj, head, lits);
+bool SOSolver::add(int modid, const InnerRule& rule){
+	return getModSolverDuringAdding(modid).add(rule);
+}
+bool SOSolver::add(int modid, const InnerWSet& wset){
+	return getModSolverDuringAdding(modid).add(wset);
+}
+bool SOSolver::add(int modid, const InnerAggregate& agg){
+	return getModSolverDuringAdding(modid).add(agg);
 }
 
-bool SOSolver::addSet(vsize modid, int setid, vec<Lit>& lits, vector<Weight>& w){
+ModSolver& SOSolver::getModSolverDuringAdding(int modid){
 	if(state==LOADINGHIER){
 		state = LOADINGREST;
 	}
 	assert(state==LOADINGREST);
 
 	checkexistsModSolver(modid);
-	ModSolver* m = getModSolver(modid);
-	return m->addSet(setid, lits, w);
-}
-
-bool SOSolver::addAggrExpr(vsize modid, Lit head, int setid, const Weight& bound, AggSign boundsign, AggType type, AggSem defined){
-	if(state==LOADINGHIER){
-		state = LOADINGREST;
-	}
-	assert(state==LOADINGREST);
-
-	if(sign(head)){
-		throw idpexception(">> Negative heads are not allowed for aggregate expressions!\n");
-	}
-	checkexistsModSolver(modid);
-	ModSolver* m = getModSolver(modid);
-	return m->addAggrExpr(head, setid, bound, boundsign, type, defined);
+	return *getModSolver(modid);
 }
 
 /**

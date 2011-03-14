@@ -17,7 +17,7 @@ using namespace MinisatID;
 
 shared_ptr<WrappedLogicSolver> unittest(SolverOption& modes){ //unsat
 	shared_ptr<WrappedPCSolver> pcsolver = shared_ptr<WrappedPCSolver>(new WrappedPCSolver(modes));
-	vector<Literal> lits, lits2, lits3;
+	/*vector<Literal> lits, lits2, lits3;
 	lits.push_back(Literal(1));
 	lits.push_back(Literal(2, true));
 	lits.push_back(Literal(3));
@@ -34,7 +34,7 @@ shared_ptr<WrappedLogicSolver> unittest(SolverOption& modes){ //unsat
 	vector<int> terms;
 	terms.push_back(groundone);
 	terms.push_back(groundtwo);
-	pcsolver->addCPSum(Literal(1), terms, MGEQ, 18);
+	pcsolver->addCPSum(Literal(1), terms, MGEQ, 18);*/
 
 	return pcsolver;
 }
@@ -42,7 +42,7 @@ shared_ptr<WrappedLogicSolver> unittest(SolverOption& modes){ //unsat
 //Magic sequence problem
 shared_ptr<WrappedLogicSolver> unittest2(SolverOption& modes){
 	shared_ptr<WrappedPCSolver> pcsolver = shared_ptr<WrappedPCSolver>(new WrappedPCSolver(modes));
-	vector<Literal> lits;
+	/*vector<Literal> lits;
 	lits.push_back(Literal(1));
 	lits.push_back(Literal(2));
 	lits.push_back(Literal(3));
@@ -77,7 +77,7 @@ shared_ptr<WrappedLogicSolver> unittest2(SolverOption& modes){
 			pcsolver->addCPBinaryRel(Literal(literalcount++), elemx[i], MEQ, j);
 			pcsolver->addCPBinaryRel(Literal(literalcount++), elemx[i], MGEQ, j);
 		}
-	}
+	}*/
 
 	return pcsolver;
 }
@@ -85,7 +85,7 @@ shared_ptr<WrappedLogicSolver> unittest2(SolverOption& modes){
 shared_ptr<WrappedLogicSolver> unittest3(SolverOption& modes){ //unsat
 	shared_ptr<WrappedPCSolver> pcsolver = shared_ptr<WrappedPCSolver>(new WrappedPCSolver(modes));
 
-	vector<int> elemx;
+	/*vector<int> elemx;
 	int n = 4;
 	for(int i=1; i<n; i++){
 		pcsolver->addIntVar(i, 1, 2);
@@ -104,7 +104,7 @@ shared_ptr<WrappedLogicSolver> unittest3(SolverOption& modes){ //unsat
 				pcsolver->addClause(lits);
 			}
 		}
-	}
+	}*/
 
 	return pcsolver;
 }

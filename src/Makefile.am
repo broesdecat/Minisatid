@@ -60,6 +60,7 @@ libminisatid_2_0_la_SOURCES = \
 		theorysolvers/SOSolver.hpp 			theorysolvers/SOSolver.cpp\
 		utils/IntTypes.h\
 		utils/Print.hpp 					utils/Print.cpp\
+		utils/ECNFPrinter.hpp				utils/ECNFPrinter.cpp\
 		utils/Utils.hpp 					utils/Utils.cpp\
 		utils/PrintMessage.hpp 				utils/PrintMessage.cpp\
 		parser/ResourceManager.hpp 			parser/ResourceManager.cpp\
@@ -75,10 +76,12 @@ AM_CXXFLAGS += -I $(LIBSDIR)/pbsolver/ -I $(LIBSDIR)/pbsolver/pbbase/h/ -I $(LIB
 #MINISAT 2.07 09z
 if USEMINISAT09Z
 libminisatid_2_0_la_SOURCES +=\
-		solver3/Solver.cpp\
-		solver3/Solver.hpp solver3/SolverTypes.hpp\
-		mtlold/Vec.h mtlold/Queue.h mtlold/Alg.h mtlold/Heap.h mtlold/Map.h mtlold/Sort.h
-AM_CXXFLAGS+= -D USEMINISAT09Z
+		satsolver/minisat2-14-hack2009/Solver.cpp\
+		satsolver/minisat2-14-hack2009/Solver.hpp satsolver/minisat2-14-hack2009/SolverTypes.hpp\
+		satsolver/minisat2-14-hack2009/mtl/Vec.h satsolver/minisat2-14-hack2009/mtl/Queue.h\
+		satsolver/minisat2-14-hack2009/mtl/Alg.h satsolver/minisat2-14-hack2009/mtl/Heap.h\
+		satsolver/minisat2-14-hack2009/mtl/Map.h satsolver/minisat2-14-hack2009/mtl/Sort.h
+AM_CXXFLAGS += -D USEMINISAT09Z -I$(srcdir)/satsolver/minisat2-14-hack2009/
 endif
 
 #MINISAT 2.2
@@ -99,10 +102,11 @@ endif
 #MINISAT 2.07
 if USEMINISAT
 libminisatid_2_0_la_SOURCES +=\
-		solver3minisat/Solver.C\
-		solver3minisat/Solver.h solver3minisat/SolverTypes.h\
-		mtlold/Vec.h mtlold/Queue.h mtlold/Alg.h mtlold/Heap.h mtlold/Map.h mtlold/Sort.h
-AM_CXXFLAGS+= -D USEMINISAT
+		satsolver/minisat2-14/Solver.cpp\
+		satsolver/minisat2-14/Solver.hpp satsolver/minisat2-14/SolverTypes.hp\
+		satsolver/minisat2-14/mtl/Vec.h satsolver/minisat2-14/mtl/Queue.h satsolver/minisat2-14/mtl/Alg.h\
+		satsolver/minisat2-14/mtl/Heap.h satsolver/minisat2-14/mtl/Map.h satsolver/minisat2-14/mtl/Sort.h
+AM_CXXFLAGS += -D USEMINISAT -I$(srcdir)/satsolver/minisat2-14/
 endif
 
 pkgconfigdir = $(libdir)/pkgconfig

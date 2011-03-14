@@ -12,11 +12,11 @@
 #include "GeneralUtils.hpp"
 
 #ifdef USEMINISAT
-#include "mtlold/Vec.h"
-#include "mtlold/Queue.h"
-#include "mtlold/Heap.h"
-#include "mtlold/Sort.h"
-#include "solver3minisat/SolverTypes.h"
+#include "minisat2-14/mtl/Vec.h"
+#include "minisat2-14/mtl/Queue.h"
+#include "minisat2-14/mtl/Heap.h"
+#include "minisat2-14/mtl/Sort.h"
+#include "minisat2-14/SolverTypes.hpp"
 
 namespace MinisatID {
 	typedef Minisat::Clause& pClause;
@@ -26,11 +26,11 @@ namespace MinisatID {
 
 #else
 	#ifdef USEMINISAT09Z
-	#include "mtlold/Vec.h"
-	#include "mtlold/Queue.h"
-	#include "mtlold/Heap.h"
-	#include "mtlold/Sort.h"
-	#include "solver3/SolverTypes.hpp"
+	#include "minisat2-14-hack2009/mtl/Vec.h"
+	#include "minisat2-14-hack2009/mtl/Queue.h"
+	#include "minisat2-14-hack2009/mtl/Heap.h"
+	#include "minisat2-14-hack2009/mtl/Sort.h"
+	#include "minisat2-14-hack2009/SolverTypes.hpp"
 
 	namespace MinisatID {
 		typedef Minisat::Clause& pClause;

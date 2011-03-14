@@ -35,11 +35,11 @@ class WrappedLogicSolver;
 class LParseTranslator;
 
 struct BasicRule{
-	Literal head;
+	Atom head;
 	std::vector<Literal> body;
 	bool conj;
 
-	BasicRule(Literal head, std::vector<Literal>& body, bool conj = true):head(head), body(body), conj(conj){	}
+	BasicRule(const Atom& head, std::vector<Literal>& body, bool conj = true):head(head), body(body), conj(conj){	}
 };
 
 struct CardRule: public BasicRule{
@@ -47,7 +47,7 @@ struct CardRule: public BasicRule{
 	Weight atleast;
 	//Card, UB, DEF
 
-	CardRule(int setcount, Literal head, std::vector<Literal>& body, const Weight& atleast):
+	CardRule(int setcount, const Atom& head, std::vector<Literal>& body, const Weight& atleast):
 			BasicRule(head, body), setcount(setcount), atleast(atleast){	}
 };
 
@@ -57,15 +57,15 @@ struct SumRule: public BasicRule{
 	Weight atleast;
 	//Sum, UB, DEF
 
-	SumRule(int setcount, Literal head, std::vector<Literal>& body, std::vector<Weight> weights, const Weight& atleast):
+	SumRule(int setcount, const Atom& head, std::vector<Literal>& body, std::vector<Weight> weights, const Weight& atleast):
 		BasicRule(head, body), setcount(setcount), weights(weights), atleast(atleast){	}
 };
 
 struct ChoiceRule{
-	std::vector<Literal> heads;
+	std::vector<Atom> heads;
 	std::vector<Literal> body;
 
-	ChoiceRule(std::vector<Literal>& heads, std::vector<Literal>& body):heads(heads), body(body){	}
+	ChoiceRule(std::vector<Atom>& heads, std::vector<Literal>& body):heads(heads), body(body){	}
 };
 
 class Read{
@@ -75,6 +75,7 @@ private:
 	int setcount;
 	long size;
 	long linenumber;
+	int defaultdefinitionID;
 	MinisatID::WrappedPCSolver* solver;
 
 	std::vector<BasicRule*> basicrules;

@@ -48,45 +48,46 @@ ModSolver::~ModSolver(){
 	delete solver;
 }
 
-/******************************
- * ADD/INITIALIZATION METHODS *
- ******************************/
-
-void ModSolver::addVar(Var var){
+bool ModSolver::add(Var var){
 	if(getModSolverData().modes().verbosity>5){
 		report("Var %d added to modal solver %zu.\n", var, getPrintId());
 	}
-	getPCSolver().addVar(var);
+	return getPCSolver().add(var);
 }
 
 /**
  * Add all variables in the given vector as variables in the theory.
  */
-void ModSolver::addVars(vec<Lit>& a){
+void ModSolver::addVars(const vec<Lit>& a){
 	for(int i=0; i<a.size(); i++){
-		addVar(var(a[i]));
+		add(var(a[i]));
 	}
 }
 
-bool ModSolver::addClause(vec<Lit>& lits){
-	addVars(lits);
-	return getPCSolver().addClause(lits);
+void ModSolver::addVars(const vector<Lit>& a){
+	for(int i=0; i<a.size(); i++){
+		add(var(a[i]));
+	}
 }
 
-bool ModSolver::addRule(bool conj, Lit head, vec<Lit>& lits){
-	addVar(head);
-	addVars(lits);
-	return getPCSolver().addRule(conj, head, lits);
+bool ModSolver::add(const InnerDisjunction& disj){
+	addVars(disj.literals);
+	return getPCSolver().add(disj);
 }
 
-bool ModSolver::addSet(int setid, vec<Lit>& lits, vector<Weight>& w){
-	addVars(lits);
-	return getPCSolver().addSet(setid, lits, w);
+bool ModSolver::add(const InnerRule& rule){
+	add(rule.head);
+	addVars(rule.body);
+	return getPCSolver().add(rule);
+}
+bool ModSolver::add(const InnerWSet& set){
+	addVars(set.literals);
+	return getPCSolver().add(set);
 }
 
-bool ModSolver::addAggrExpr(Lit head, int setid, const Weight& bound, AggSign boundsign, AggType type, AggSem defined){
-	addVar(var(head));
-	return getPCSolver().addAggrExpr(head, setid, bound, boundsign, type, defined);
+bool ModSolver::add(const InnerAggregate& agg){
+	add(agg.head);
+	return getPCSolver().add(agg);
 }
 
 /**
@@ -95,16 +96,15 @@ bool ModSolver::addAggrExpr(Lit head, int setid, const Weight& bound, AggSign bo
  * but requires some algorithmic changes then, so currently they are added. In addition,
  * they are added as variables to the parent solver, that has to decide on values for them.
  */
-bool ModSolver::addAtoms(const vector<Var>& a){
-	for(vector<Var>::const_iterator i=a.begin(); i<a.end(); i++){
+bool ModSolver::add(const InnerRigidAtoms& rigid){
+	for(vector<Var>::const_iterator i=rigid.rigidatoms.begin(); i<rigid.rigidatoms.end(); i++){
 		atoms.push_back(*i);
-		addVar(*i);
-		getModSolverData().getModSolver(getParentId())->addVar(*i);
+		add(*i);
+		getModSolverData().getModSolver(getParentId())->add(*i);
 	}
 
 	//Creates a bool-vector mapping each atom to whether it was propagated from above or from this theory
 	propfromabove = vector<bool>(atoms.size(), false);
-
 	return true;
 }
 
@@ -113,21 +113,22 @@ bool ModSolver::addAtoms(const vector<Var>& a){
  * Sets the id of the parent modal solver. All rigid atoms are then added (possibly again) to the
  * parent solver, as well as this solver as a child and the head as a variable.
  */
-void ModSolver::setParent(modindex id){
-	parentid = id; hasparent = true;
+void ModSolver::setParent(modindex parentid){
+	parentid = parentid; hasparent = true;
 	pModSolver parent = getModSolverData().getModSolver(getParentId());
 	for(vector<Var>::const_iterator i=atoms.begin(); i<atoms.end(); i++){
-		parent->addVar(*i);
+		parent->add(*i);
 	}
 	parent->addChild(this->id);
-	parent->addVar(head.atom);
+	parent->add(head.atom);
 }
 
 /**
  * Adds a modal solver as a child of this solver, by id.
  */
-void ModSolver::addChild(modindex childid){
+bool ModSolver::addChild(int childid){
 	children.push_back(childid);
+	return true;
 }
 
 /**
@@ -145,10 +146,6 @@ void ModSolver::finishParsingDown(bool& present, bool& unsat){
 		//TODO handle unsat => might make this solver !present
 	}
 }
-
-/*****************
- * SOLVE METHODS *
- *****************/
 
 /**
  * Tells the root solver to do model expansion on his theory

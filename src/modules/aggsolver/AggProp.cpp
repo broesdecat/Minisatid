@@ -32,14 +32,10 @@ Weight	Agg::getCertainBound() const {
 }
 
 paggprop AggProp::max = paggprop (new MaxProp());
+//paggprop AggProp::min = paggprop (new MinProp());
 paggprop AggProp::sum = paggprop (new SumProp());
 paggprop AggProp::card = paggprop (new CardProp());
 paggprop AggProp::prod = paggprop (new ProdProp());
-
-bool MaxProp::isMonotone(const Agg& agg, const Weight& w) const {
-	const Weight& w2 = agg.getCertainBound();
-	return (agg.hasUB() && w <= w) || (!agg.hasUB());
-}
 
 bool SumProp::isMonotone(const Agg& agg, const Weight& w) const {
 	return (agg.hasUB() && w < 0) || (!agg.hasUB() && w > 0);
@@ -99,9 +95,12 @@ WL SumProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* s
 	}
 }
 
-///////
 // MAX Prop
-///////
+
+bool MaxProp::isMonotone(const Agg& agg, const Weight& w) const {
+	const Weight& w2 = agg.getCertainBound();
+	return (agg.hasUB() && w2 <= w) || (!agg.hasUB());
+}
 
 Weight MaxProp::getMinPossible(const TypedSet&) const{
 	return getESV();
@@ -133,9 +132,44 @@ WL MaxProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* s
 	}
 }
 
-///////
+//// MIN Prop
+//
+//bool MinProp::isMonotone(const Agg& agg, const Weight& w) const {
+//	const Weight& w2 = agg.getCertainBound();
+//	return (agg.hasLB() && w <= w2) || (!agg.hasLB());
+//}
+//
+//Weight MinProp::getMinPossible(const TypedSet& set) const{
+//	Weight min = getESV();
+//	for(vwl::const_iterator j = set.getWL().begin(); j<set.getWL().end(); j++){
+//		min = this->add(min, (*j).getWeight());
+//	}
+//	return min;
+//}
+//
+//Weight MinProp::getMaxPossible(const TypedSet&) const {
+//	return getESV();
+//}
+//
+//Weight MinProp::getCombinedWeight(const Weight& first, const Weight& second) const {
+//	return first < second ? first : second;
+//}
+//
+//WL MinProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const {
+//	if (one.getWeight() < two.getWeight()) {
+//		if (set->getKnownBound() > two.getWeight()) {
+//			set->setKnownBound(two.getWeight());
+//		}
+//		return one;
+//	} else {
+//		if (set->getKnownBound() > one.getWeight()) {
+//			set->setKnownBound(one.getWeight());
+//		}
+//		return two;
+//	}
+//}
+
 // PROD Prop
-///////
 
 //TODO INVARIANT: only positive weights in prodagg
 Weight ProdProp::getMinPossible(const TypedSet&) const{
@@ -275,10 +309,24 @@ void Aggrs::removeValue(const AggProp& type, const Weight& weight, bool wasinset
 
 // TypedSet
 
+//TODO watch them?
+bool printedwarning = false;
+
 Propagator*	MaxProp::createPropagator(TypedSet* set) const{
-	//FIXME watched?
+	if(set->isUsingWatches() && !printedwarning){
+		clog <<">> Currently max/min aggregates never use watched-literal-schemes.\n";
+		printedwarning = true;
+	}
 	return new MaxFWAgg(set);
 }
+
+/*Propagator*	MinProp::createPropagator(TypedSet* set) const{
+	if(set->isUsingWatches() && !printedwarning){
+		clog <<">> Currently max/min aggregates never use watched-literal-schemes.\n";
+		printedwarning = true;
+	}
+	return new MinFWAgg(set);
+}*/
 
 Propagator*	SumProp::createPropagator(TypedSet* set) const{
 	if(set->isUsingWatches()){
@@ -303,9 +351,9 @@ void TypedSet::addAgg(Agg* aggr){
 	aggr->setIndex(aggregates.size()-1);
 }
 
-//FIXME add check that aggregate is indeed still referring to that set
 void TypedSet::replaceAgg(const agglist& repl){
 	for(agglist::const_iterator i=aggregates.begin(); i<aggregates.end(); i++){
+		assert((*i)->getSet()==this);
 		(*i)->setTypedSet(NULL);
 		(*i)->setIndex(-1);
 	}
@@ -341,7 +389,7 @@ void TypedSet::initialize(bool& unsat, bool& sat, vps& sets) {
 
 	for (agglist::const_iterator i = getAgg().begin(); i < getAgg().end(); i++) {
 		if ((*i)->isDefined()) {
-			getSolver()->notifyDefinedHead(var((*i)->getHead()));
+			getSolver()->notifyDefinedHead(var((*i)->getHead()), (*i)->getDefID());
 		}
 	}
 }

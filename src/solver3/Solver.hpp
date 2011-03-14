@@ -30,11 +30,11 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include <cstdio>
 
-#include "mtlold/Vec.h"
-#include "mtlold/Heap.h"
-#include "mtlold/Alg.h"
+#include "mtl/Vec.h"
+#include "mtl/Heap.h"
+#include "mtl/Alg.h"
 
-#include "solver3/SolverTypes.hpp"
+#include "SolverTypes.hpp"
 
 /*AB*/
 #include "utils/Utils.hpp"

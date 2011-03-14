@@ -58,13 +58,14 @@ private:
 	AggBound	bound;
 	Lit			head;
 	AggSem		sem;
+	int			defid;
 	int			index;
 	AggType		type;
 	bool		optim;
 
 public:
-	Agg(const Lit& head, AggBound b, AggSem sem, AggType type, bool optim = false):
-		set(NULL), bound(b), head(head), sem(sem), index(-1), type(type), optim(optim){	}
+	Agg(const Lit& head, AggBound b, AggSem sem, int defid, AggType type, bool optim = false):
+		set(NULL), bound(b), head(head), sem(sem), defid(defid), index(-1), type(type), optim(optim){	}
 
 	TypedSet*	getSet		()					const	{ return set; }
 	const Lit& 	getHead		() 					const 	{ return head; }
@@ -80,6 +81,7 @@ public:
 
 	bool 		isDefined	()					const	{ return sem==DEF; }
 	AggSem		getSem		()					const	{ return sem; }
+	int			getDefID	()					const	{ return defid; }
 	AggType		getType		()					const	{ return type; }
 	bool		isOptim		()					const	{ return optim; }
 	void 		setIndex	(int ind) 					{ index = ind; }
@@ -92,11 +94,13 @@ typedef std::vector<Agg*> agglist;
 class AggProp{
 private:
 	static paggprop max;
+	//static paggprop min;
 	static paggprop prod;
 	static paggprop card;
 	static paggprop sum;
 public:
 	static AggProp const * getMax() { return max.get(); }
+	//static AggProp const * getMin() { return min.get(); }
 	static AggProp const * getProd() { return prod.get(); }
 	static AggProp const * getCard() { return card.get(); }
 	static AggProp const * getSum() { return sum.get(); }
@@ -104,7 +108,7 @@ public:
 	virtual const char*	getName					() 										const = 0;
 	virtual AggType 	getType					() 										const = 0;
 	virtual bool 		isNeutralElement		(const Weight& w)						const = 0;
-	virtual bool 		isMonotone				(const Agg& agg, const Weight& w)			const = 0;
+	virtual bool 		isMonotone				(const Agg& agg, const Weight& w)		const = 0;
 
 	//TODO expensive and in fact static: create variables and calc only once!
 	//Calculate best and worst possible values for the EMPTY interpretation, independent of aggregate signs!
@@ -117,8 +121,7 @@ public:
 	virtual Weight		remove					(const Weight& lhs, const Weight& rhs) 	const = 0;
 	virtual bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const = 0;
 
-	virtual Propagator*	createPropagator		(TypedSet* set) 				const = 0;
-
+	virtual Propagator*	createPropagator		(TypedSet* set) 						const = 0;
 	virtual Weight 		getESV					()										const = 0;
 };
 
@@ -135,10 +138,28 @@ public:
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const { return lhs>rhs?lhs:rhs; }
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const { assert(false); return 0; }
 	bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const;
-	Propagator*	createPropagator		(TypedSet* set) const;
+	Propagator*	createPropagator		(TypedSet* set) 						const;
 
 	Weight 		getESV					()										const { return negInfinity(); }
 };
+
+//class MinProp: public AggProp{
+//public:
+//	const char* getName					() 										const { return "MIN"; }
+//	AggType 	getType					() 										const { return MIN; }
+//	bool 		isNeutralElement		(const Weight& w) 						const { return false; }
+//	bool 		isMonotone				(const Agg& agg, const Weight& w)		const;
+//	Weight		getMinPossible			(const TypedSet& set)					const;
+//	Weight		getMaxPossible			(const TypedSet& set)					const;
+//	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
+//	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
+//	Weight		add						(const Weight& lhs, const Weight& rhs) 	const { return lhs<rhs?lhs:rhs; }
+//	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const { assert(false); return 0; }
+//	bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const;
+//	Propagator*	createPropagator		(TypedSet* set) 						const;
+//
+//	Weight 		getESV					()										const { return posInfinity(); }
+//};
 
 class SPProp: public AggProp{
 public:

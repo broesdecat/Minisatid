@@ -28,8 +28,8 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
-#include "solver3/Solver.hpp"
-#include "mtlold/Sort.h"
+#include "Solver.hpp"
+#include "mtl/Sort.h"
 #include <cmath>
 
 #include <vector>
@@ -270,7 +270,6 @@ void Solver::cancelUntil(int level) {
             Var     x  = var(trail[c]);
             assigns[x] = toInt(l_Undef);
             insertVarOrder(x);
-            /*A*/solver.backtrackRest(trail[c]);
         }
         qhead = trail_lim[level];
         trail.shrink(trail.size() - trail_lim[level]);
@@ -1048,10 +1047,10 @@ void Solver::checkLiteralCount()
 
 /*AB*/
 void Solver::printStatistics() const{
-	reportf("restarts              : %lld\n", starts);
-	reportf("conflicts             : %-12lld\n", conflicts);
-	reportf("decisions             : %-12lld   (%4.2f %% random)\n", decisions, (float)rnd_decisions*100 / (float)decisions);
-	reportf("propagations          : %-12lld\n", propagations);
-    reportf("conflict literals     : %-12lld   (%4.2f %% deleted)\n", tot_literals, (max_literals - tot_literals)*100 / (double)max_literals);
+	reportf("restarts              : %lu\n", starts);
+	reportf("conflicts             : %-12lu\n", conflicts);
+	reportf("decisions             : %-12lu   (%4.2f %% random)\n", decisions, (float)rnd_decisions*100 / (float)decisions);
+	reportf("propagations          : %-12lu\n", propagations);
+    reportf("conflict literals     : %-12lu   (%4.2f %% deleted)\n", tot_literals, (max_literals - tot_literals)*100 / (double)max_literals);
 }
 /*AE*/

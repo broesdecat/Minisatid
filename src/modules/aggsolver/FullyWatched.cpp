@@ -46,7 +46,7 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 			//If after initialization, the head will have a fixed value, then this is
 			//independent of any further propagations within that aggregate.
 			//BUT ONLY if it is not defined (or at a later stage, if it cannot be in any loop)
-			getSolver()->removeHeadWatch(var(agg->getHead()));
+			getSolver()->removeHeadWatch(var(agg->getHead()), agg->getDefID());
 			i = getSet().getAggNonConst().erase(i);
 			continue;
 		} else if (result == l_False) {
@@ -203,7 +203,7 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 	}
 
 	if(changedcc || changedcp){
-		//FIXME find aggregate with most stringent bound and only propagate that one!
+		//TODO find aggregate with most stringent bound and only propagate that one!
 		for (agglist::const_iterator i = getSet().getAgg().begin(); confl == nullPtrClause && i<getSet().getAgg().end(); i++){
 			const Agg& pa = **i;
 
@@ -215,9 +215,7 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 
 			lbool hv = value(pa.getHead());
 
-			//FIXME dansmee problem should not occur when not using asapaggprop?
-
-			//FIXME ugly
+			//TODO ugly
 			if(hv==l_True && pa.getSign()==AGGSIGN_LB && !changedcp){
 				continue;
 			}
@@ -688,8 +686,8 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 		}
 	}
 
-	//FIXME the looping over the trail is TOO slow! compared to old card
-	//FIXME but bigger problem is that he keeps on deriving the same propagations!
+	//TODO the looping over the trail is TOO slow! compared to old card
+	//TODO but bigger problem is that he keeps on deriving the same propagations!
 	//=> add a check that does not do propagations if the derived weight bound is the same
 	//=> add a check that if only cp or cc is adapted, only aggs with such bound are checked!
 

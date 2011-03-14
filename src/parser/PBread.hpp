@@ -50,7 +50,7 @@ private:
 
 	IntegerType bound;
 	bool equality;
-	std::vector<WLtuple> lw;
+	WSet wset;
 	int setid;
 	int maxvar;
 

@@ -43,7 +43,7 @@ typedef enum {
 
 Read::Read(WrappedPCSolver* solver, LParseTranslator* trans) :
 		endedparsing(false),
-		maxatomnumber(1), setcount(1), size(0),
+		maxatomnumber(1), setcount(1), size(0), defaultdefinitionID(1),
 		solver(solver), optim(false),
 		translator(trans){
 }
@@ -71,7 +71,6 @@ Atom Read::makeAtom(int n){
 	if (maxatomnumber < n) {
 		maxatomnumber = n;
 	}
-	getSolver()->addVar(Atom(n));
 	return Atom(n);
 }
 
@@ -149,7 +148,7 @@ bool Read::parseBasicRule(istream &f) {
 		return false;
 	}
 
-	basicrules.push_back(new BasicRule(Literal(head), body));
+	basicrules.push_back(new BasicRule(head, body));
 	return true;
 }
 
@@ -193,7 +192,7 @@ bool Read::parseConstraintRule(istream &f) {
 		return false;
 	}
 
-	cardrules.push_back(new CardRule(setcount++, Literal(head), body, Weight(atleast)));
+	cardrules.push_back(new CardRule(setcount++, head, body, Weight(atleast)));
 	return true;
 }
 
@@ -208,7 +207,7 @@ bool Read::parseChoiceRule(istream &f) {
 	}
 	long headssize = n;
 
-	vector<Literal> heads;
+	vector<Atom> heads;
 	for (long i = 0; i < headssize; i++) {
 		f >> n;
 		if (!f.good() || n < 1) {
@@ -216,7 +215,7 @@ bool Read::parseChoiceRule(istream &f) {
 			sprintf(s, "atom out of bounds, line %ld\n", linenumber);
 			throw idpexception(s);
 		}
-		heads.push_back(Literal(makeParsedAtom(n)));
+		heads.push_back(makeParsedAtom(n));
 	}
 
 	vector<Literal> body;
@@ -254,7 +253,7 @@ bool Read::parseWeightRule(istream &f) {
 		return false;
 	}
 
-	sumrules.push_back(new SumRule(setcount++, Literal(head), body, weights, lowerbound));
+	sumrules.push_back(new SumRule(setcount++, head, body, weights, lowerbound));
 	return true;
 }
 
@@ -290,11 +289,12 @@ bool Read::parseOptimizeRule(istream &f) {
 bool Read::addBasicRules() {
 	for (vector<BasicRule*>::const_iterator i = basicrules.begin(); i < basicrules.end(); i++) {
 		bool unsat = false;
-		if((*i)->conj){
-			unsat = !getSolver()->addConjRule((*i)->head.getAtom(), (*i)->body);
-		}else{
-			unsat = !getSolver()->addDisjRule((*i)->head.getAtom(), (*i)->body);
-		}
+		Rule r;
+		r.head = (*i)->head;
+		r.body = (*i)->body;
+		r.conjunctive = (*i)->conj;
+		r.definitionID = defaultdefinitionID;
+		unsat = !getSolver()->add(r);
 		if (unsat) {
 			return false;
 		}
@@ -304,10 +304,21 @@ bool Read::addBasicRules() {
 
 bool Read::addCardRules() {
 	for (vector<CardRule*>::const_iterator i = cardrules.begin(); i < cardrules.end(); i++) {
-		if (!getSolver()->addSet((*i)->setcount, (*i)->body)) {
+		Set set;
+		set.setID = (*i)->setcount;
+		set.literals = (*i)->body;
+		if (!getSolver()->add(set)) {
 			return false;
 		}
-		if (!getSolver()->addAggrExpr((*i)->head, (*i)->setcount, (*i)->atleast, AGGSIGN_LB, CARD, DEF)) {
+		Aggregate agg;
+		agg.head = (*i)->head;
+		agg.setID = (*i)->setcount;
+		agg.bound = (*i)->atleast;
+		agg.sign = AGGSIGN_LB;
+		agg.defID = defaultdefinitionID;
+		agg.type = CARD;
+		agg.sem = DEF;
+		if (!getSolver()->add(agg)) {
 			return false;
 		}
 	}
@@ -316,10 +327,22 @@ bool Read::addCardRules() {
 
 bool Read::addSumRules() {
 	for (vector<SumRule*>::const_iterator i = sumrules.begin(); i < sumrules.end(); i++) {
-		if (!getSolver()->addSet((*i)->setcount, (*i)->body, (*i)->weights)) {
+		WSet set;
+		set.setID = (*i)->setcount;
+		set.literals = (*i)->body;
+		set.weights = (*i)->weights;
+		if (!getSolver()->add(set)) {
 			return false;
 		}
-		if (!getSolver()->addAggrExpr((*i)->head, (*i)->setcount, (*i)->atleast, AGGSIGN_LB, SUM, DEF)) {
+		Aggregate agg;
+		agg.head = (*i)->head;
+		agg.setID = (*i)->setcount;
+		agg.bound = (*i)->atleast;
+		agg.sign = AGGSIGN_LB;
+		agg.defID = defaultdefinitionID;
+		agg.type = SUM;
+		agg.sem = DEF;
+		if (!getSolver()->add(agg)) {
 			return false;
 		}
 	}
@@ -339,15 +362,17 @@ bool Read::tseitinizeHeads(){
 		vector<Literal> tempbody;
 		tempbody.push_back(Literal(1)); //reserve space for the extra choice literal
 		tempbody.insert(tempbody.end(), (*i)->body.begin(), (*i)->body.end());
-		for (vector<Literal>::const_iterator j = (*i)->heads.begin(); j < (*i)->heads.end(); j++) {
-			const Literal& head = *j;
+		for (vector<Atom>::const_iterator j = (*i)->heads.begin(); j < (*i)->heads.end(); j++) {
+			const Atom& head = *j;
 			tempbody[0] = Literal(makeNewAtom());
 			basicrules.push_back(new BasicRule(head, tempbody));
 
 			//To guarantee #model equivalence:
-			vector<Literal> lits;
-			lits.push_back(head);
-			if(!getSolver()->addEquivalence(tempbody[0], lits, true)){
+			Equivalence eq;
+			eq.head = tempbody[0];
+			eq.conj = true;
+			eq.literals.push_back(Literal(head, false));
+			if(!getSolver()->add(eq)){
 				return false;
 			}
 		}
@@ -356,13 +381,13 @@ bool Read::tseitinizeHeads(){
 	//Check whether there are multiple occurrences and rewrite them using tseitin!
 	map<Atom, vector<BasicRule*> > headtorules;
 	for (vector<BasicRule*>::const_iterator i = basicrules.begin(); i < basicrules.end(); i++) {
-		addRuleToHead(headtorules, *i, (*i)->head.getAtom());
+		addRuleToHead(headtorules, *i, (*i)->head);
 	}
 	for (vector<CardRule*>::const_iterator i = cardrules.begin(); i < cardrules.end(); i++) {
-		addRuleToHead(headtorules, *i, (*i)->head.getAtom());
+		addRuleToHead(headtorules, *i, (*i)->head);
 	}
 	for (vector<SumRule*>::const_iterator i = sumrules.begin(); i < sumrules.end(); i++) {
-		addRuleToHead(headtorules, *i, (*i)->head.getAtom());
+		addRuleToHead(headtorules, *i, (*i)->head);
 	}
 
 	//Tseitinize
@@ -375,9 +400,9 @@ bool Read::tseitinizeHeads(){
 		for (vector<BasicRule*>::const_iterator j = (*i).second.begin(); j < (*i).second.end(); j++) {
 			Literal newhead = Literal(makeNewAtom());
 			newheads.push_back(newhead);
-			(*j)->head = newhead;
+			(*j)->head = newhead.getAtom();
 		}
-		basicrules.push_back(new BasicRule(Literal((*i).first), newheads, false));
+		basicrules.push_back(new BasicRule((*i).first, newheads, false));
 	}
 
 	//Make all literals which are defined but do not occur in the theory false
@@ -385,9 +410,9 @@ bool Read::tseitinizeHeads(){
 		assert((*i).second);
 		map<Atom, vector<BasicRule*> >::const_iterator it = headtorules.find((*i).first);
 		if(it==headtorules.end() || (*it).second.size()==0){
-			vector<Literal> lits;
-			lits.push_back(Literal((*i).first, true));
-			if(!getSolver()->addClause(lits)){
+			Disjunction clause;
+			clause.literals.push_back(Literal((*i).first, true));
+			if(!getSolver()->add(clause)){
 				return false;
 			}
 		}
@@ -399,14 +424,18 @@ bool Read::addOptimStatement(){
 	if(optim){
 		vector<Literal> optimheadclause;
 		Literal optimhead = Literal(makeNewAtom());
-		optimheadclause.push_back(optimhead);
-		if(!getSolver()->addClause(optimheadclause)){
+		WSet set;
+		set.setID = optimsetcount;
+		set.literals = optimbody;
+		set.weights = optimweights;
+		if (!getSolver()->add(set)) {
 			return false;
 		}
-		if(!getSolver()->addSet(optimsetcount, optimbody, optimweights)){
-			return false;
-		}
-		if(!getSolver()->addMinimize(optimhead.getAtom(), optimsetcount, SUM)){
+		MinimizeAgg mnmagg;
+		mnmagg.head = optimhead.getAtom();
+		mnmagg.setid = optimsetcount;
+		mnmagg.type = SUM;
+		if(!getSolver()->add(mnmagg)){
 			return false;
 		}
 	}
@@ -434,8 +463,8 @@ bool Read::read(istream &f) {
 			unsat = !parseChoiceRule(f);
 			break;
 		case GENERATERULE:{
-			char s[100];
-			sprintf(s, "As, according to the lparse manual, \"generate rules cause semantical troubles\", we do not support them.\n");
+			char s[200];
+			sprintf(s, "As, according to the lparse manual, \"generate rules cause semantical troubles\", they are not supported.\n");
 			throw idpexception(s);
 			break;
 		}
@@ -509,9 +538,9 @@ bool Read::read(istream &f) {
 			throw idpexception(s);
 		}
 
-		vector<Literal> lits;
-		lits.push_back(Literal(makeParsedAtom(i)));
-		if (!getSolver()->addClause(lits)) {
+		Disjunction clause;
+		clause.literals.push_back(Literal(makeParsedAtom(i)));
+		if (!getSolver()->add(clause)) {
 			return false;
 		}
 	}
@@ -535,15 +564,15 @@ bool Read::read(istream &f) {
 			throw idpexception(s);
 		}
 
-		vector<Literal> lits;
-		lits.push_back(Literal(makeParsedAtom(i), true));
-		if (!getSolver()->addClause(lits)) {
+		Disjunction clause;
+		clause.literals.push_back(Literal(makeParsedAtom(i), true));
+		if (!getSolver()->add(clause)) {
 			return false;
 		}
 	}
 
 	f >> i; // nb of models, zero means all
-	//FIXME is it safe to always ignore the number of models?
+	clog <<">> Number of models in the lparse input is always ignored.\n";
 
 	if (f.fail()) {
 		char s[100];

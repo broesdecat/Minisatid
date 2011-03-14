@@ -40,7 +40,7 @@ protected:
 	int 			maxnumber;
 
 public:
-		Remapper(): maxnumber(0){}
+	Remapper(): maxnumber(0){}
 
 	virtual Var		getVar		(const Atom& atom);
 	virtual Literal	getLiteral	(const Lit& lit);
@@ -72,8 +72,8 @@ private:
 	Solution*		solution; //Non-owning pointer
 
 public:
-			WLSImpl			(const SolverOption& modes);
-	virtual ~WLSImpl		();
+	WLSImpl			(const SolverOption& modes);
+	virtual ~WLSImpl();
 
 	bool 	hasOptimization	() const { return optimization; }
 	bool 	solve			(Solution* sol);
@@ -123,33 +123,22 @@ private:
 	MinisatID::PCSolver* solver;
 
 public:
-			WPCLSImpl		(const SolverOption& modes);
-	virtual ~WPCLSImpl		();
+	WPCLSImpl		(const SolverOption& modes);
+	virtual ~WPCLSImpl();
 
-	void	addVar			(Atom v);
-	bool	addClause		(std::vector<Literal>& lits);
-	bool 	addEquivalence	(const Literal& head, const std::vector<Literal>& rightlits, bool conj);
-	bool	addRule			(bool conj, Literal head, const std::vector<Literal>& lits);
-	bool	addRuleToID		(int defid, bool conj, Literal head, const std::vector<Literal>& lits);
-	bool	addSet			(int id, const std::vector<Literal>& lits);
-	bool 	addSet			(int set_id, const std::vector<WLtuple>& lws);
-	bool	addSet			(int id, const std::vector<Literal>& lits, const std::vector<Weight>& w);
-	bool	addAggrExpr		(Literal head, int setid, const Weight& bound, AggSign sign, AggType type, AggSem sem);
-
-    bool 	addMinimize		(const std::vector<Literal>& lits, bool subsetmnmz);
-    bool 	addMinimize		(const Atom head, const int setid, AggType type);
-
-	bool 	addIntVar		(int groundname, int min, int max);
-	bool 	addCPBinaryRel	(Literal head, int groundname, EqType rel, int bound);
-	bool 	addCPBinaryRelVar(Literal head, int groundname, EqType rel, int groundname2);
-	bool 	addCPSum		(Literal head, const std::vector<int>& termnames, EqType rel, int bound);
-	bool 	addCPSum		(Literal head, const std::vector<int>& termnames, std::vector<int> mult, EqType rel, int bound);
-	bool 	addCPSumVar		(Literal head, const std::vector<int>& termnames, EqType rel, int rhstermname);
-	bool 	addCPSumVar		(Literal head, const std::vector<int>& termnames, std::vector<int> mult, EqType rel, int rhstermname);
-	bool 	addCPCount		(const std::vector<int>& termnames, int value, EqType rel, int rhstermname);
-	bool 	addCPAlldifferent(const std::vector<int>& termnames);
-
-	void	addForcedChoices(const std::vector<Literal> lits);
+	bool	add		(const Atom& sentence);
+	bool	add		(const Disjunction& sentence);
+	bool	add		(const DisjunctionRef& sentence);
+	bool	add		(const Equivalence& sentence);
+	bool	add		(const Rule& sentence);
+	bool	add		(const Set& sentence);
+	bool	add		(const WSet& sentence);
+	bool	add		(const WLSet& sentence);
+	bool	add		(const Aggregate& sentence);
+	bool	add		(const MinimizeSubset& sentence);
+	bool	add		(const MinimizeOrderedList& sentence);
+	bool	add		(const MinimizeAgg& sentence);
+	bool	add		(const ForcedChoices& sentence);
 
 protected:
 	virtual MinisatID::PCSolver* getSolver() const { return solver; }
@@ -160,20 +149,20 @@ private:
 	MinisatID::SOSolver* solver;
 
 public:
-			WSOLSImpl	(const SolverOption& modes);
+	WSOLSImpl		(const SolverOption& modes);
 	virtual ~WSOLSImpl	();
 
-	//Add information for hierarchy
-	bool 	addChild	(vsize parent, vsize child, Literal head);
-	bool	addAtoms	(vsize modid, const std::vector<Atom>& atoms);
+	bool	add		(int modalid, const Atom& sentence);
+	bool	add		(int modalid, const Disjunction& sentence);
+	bool	add		(int modalid, const DisjunctionRef& sentence);
+	bool	add		(int modalid, const Rule& sentence);
+	bool	add		(int modalid, const Set& sentence);
+	bool	add		(int modalid, const WSet& sentence);
+	bool	add		(int modalid, const WLSet& sentence);
+	bool	add		(int modalid, const Aggregate& sentence);
 
-	//Add information for PC-Solver
-	void 	addVar		(vsize modid, Atom v);
-	bool 	addClause	(vsize modid, std::vector<Literal>& lits);
-	bool 	addRule		(vsize modid, bool conj, Literal head, std::vector<Literal>& lits);
-	bool 	addSet		(vsize modid, int set_id, std::vector<WLtuple>& lws);
-	bool 	addSet		(vsize modid, int set_id, std::vector<Literal>& lits, std::vector<Weight>& w);
-	bool 	addAggrExpr	(vsize modid, Literal head, int setid, const Weight& bound, AggSign sign, AggType type, AggSem sem);
+	bool	add		(int modalid, const RigidAtoms& sentence);
+	bool	add		(int modalid, const SubTheory& sentence);
 
 protected:
 	virtual MinisatID::SOSolver* getSolver() const { return solver; }

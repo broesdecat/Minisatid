@@ -74,17 +74,17 @@ private:
 	std::vector<Aggrs::setlist>		var2setlist;		// the pointer network of set var -> set
 
 	//statistics
-	uint64_t propagations;
+	uint64_t 						propagations;
 
 	//new trail datastructure
 	std::vector<Aggrs::setlist > 	setsbacktracktrail;
 	Aggrs::setlist 					setspropagatetrail;
 
-	std::vector<int>								mapdecleveltotrail;
-	int 											index; //fulltrail index?
-	uint											propindex;
-	std::vector<Lit>								littrail;
-	std::vector<LI>									propagated;
+	std::vector<int>				mapdecleveltotrail;
+	int 							index; //fulltrail index?
+	uint							propindex;
+	std::vector<Lit>				littrail;
+	std::vector<LI>					propagated;
 
 public:
 	AggSolver(PCSolver* s);
@@ -104,7 +104,7 @@ public:
 	/**
 	 * @pre: no weights==0 when using a product aggregate
 	 */
-	bool addAggrExpr(int defn, int set_id, const Weight& bound, AggSign boundsign, AggType type, AggSem headeq);
+	bool addAggrExpr(int defn, int set_id, const Weight& bound, AggSign boundsign, AggType type, AggSem sem, int defid);
 
 	bool addMnmz(Var headv, int setid, AggType type);
 
@@ -157,8 +157,8 @@ public:
 	rClause		notifySolver(Aggrs::AggReason* cr);
 	rClause 	doProp					();
 	void 		findClausalPropagations();
-	void 		notifyDefinedHead(Var head);
-	void 		removeHeadWatch(Var x);
+	void 		notifyDefinedHead		(Var head, int defID);
+	void 		removeHeadWatch			(Var head, int defID);
 	void 		setHeadWatch			(Lit head, Aggrs::Agg* agg);
 	void 		addStaticWatch			(Var v, Aggrs::Watch* w);
 	void 		addDynamicWatch			(const Lit& l, Aggrs::Watch* w);
@@ -176,7 +176,7 @@ protected:
 
 	bool		finishSet				(Aggrs::TypedSet* set);
 
-	bool 		addAggrExpr				(Var headv, int setid, const Aggrs::AggBound& bound, AggType type, AggSem headeq);
+	bool 		addAggrExpr				(Var headv, int setid, const Aggrs::AggBound& bound, AggType type, AggSem sem, int defid);
 
 };
 

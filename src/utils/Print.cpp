@@ -54,6 +54,11 @@ void print(const Minisat::vec<Minisat::Lit>& v){
 }
 
 template<>
+void print(const InnerDisjunction& clause){
+	print(clause.literals);
+}
+
+template<>
 void print(Solver * const s){
 	assert(s!=NULL);
 	clog <<"Clauses\n";
@@ -96,25 +101,24 @@ void print(IDSolver const * const s){
 	}
 	clog <<"Definitions\n";
 	for(int i=0; i<s->nVars(); i++){
-		//if(s->isDefined(i)){
-			/*DefType d = s->getDefType(i);
+		if(s->isDefined(i)){
 			if(s->isConjunctive(i)){
-				clog <<"Conjunctive rule");
+				clog <<"Conjunctive rule";
 			}else if(s->isDisjunctive(i)){
-				clog <<"Disjunctive rule");
+				clog <<"Disjunctive rule";
 			}else if(s->isDefinedByAggr(i)){
-				clog <<"Aggregate rule");
-			}*/
+				clog <<"Aggregate rule";
+			}
 
-			/*FIXME const PropRule& r = *s->getDefinition(i);
+			const PropRule& r = s->getDefinition(i);
 			print(r.getHead());
 			int counter = 0;
 			while(counter<r.size()){
 				print(r[counter]);
 				counter++;
 			}
-			clog <<"\n");*/
-		//}
+			clog <<"\n";
+		}
 	}
 }
 

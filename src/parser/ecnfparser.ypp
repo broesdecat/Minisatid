@@ -115,6 +115,12 @@ void parsearbitlist(std::vector<int>* vi);
 void parsetype(std::string* name, std::vector<std::string>* inter);
 void parsepred(std::string* name, int num, std::vector<std::string>* ptypes, bool f);
 
+int defaultdefID = 1;
+enum ECNF_VERSION {VERSION_NONE, VERSION_OLD, VERSION_NEW}; 
+ECNF_VERSION currentreadversion = VERSION_NONE;
+
+void checkVersion(ECNF_VERSION version);
+
 %}
 
 //for a reentrant parser, you need to use %pureparser
@@ -136,7 +142,7 @@ void parsepred(std::string* name, int num, std::vector<std::string>* ptypes, boo
 	std::vector<std::string>*	vstr;
 }
 
-%token DISJUNCTION CONJUNCTION
+%token DISJUNCTION CONJUNCTION DEFOP
 %token SUBSETMINDEFN MNMZDEFN AGGMINDEFN
 %token SETDEFN WSETDEFN  
 %token <integer> ZERO
@@ -224,13 +230,15 @@ rigidvars
 cnfclause	
 		: /*empty*/
 		| 	cnfclause body ZERO	
-				{	
-					if(modsolver.get()!=NULL){
-						CR(modsolver->addClause(cnfcurrentmodid, *$2)); delete $2;
-					}else{
-						CR(solver->addClause(*$2)); delete $2;
-					}
+			{	
+				DisjunctionRef clause(*$2);
+				if(modsolver.get()!=NULL){
+					CR(modsolver->add(cnfcurrentmodid, clause));;
+				}else{
+					CR(solver->add(clause)); 
 				}
+				delete $2;
+			}
 		;
 			
 //---------------------------------------------		
@@ -238,7 +246,13 @@ cnfclause
 //---------------------------------------------
 
 ecnftheory	:	/* empty */
-			|	ecnftheory FORCECHOICE body ZERO { solver->addForcedChoices(*$3); delete $3; }
+			|	ecnftheory FORCECHOICE body ZERO 
+				{ 
+					ForcedChoices choices;
+					choices.forcedchoices = *$3;
+					delete $3;
+					solver->add(choices);  
+				}
 			|	ecnftheory clause
 			|	ecnftheory rule
 			| 	ecnftheory agg
@@ -251,50 +265,136 @@ ecnftheory	:	/* empty */
 			|	ecnftheory cpconstraint
 			;
 			
-mnmz	:	MNMZDEFN body ZERO				{ CR(solver->addMinimize(*$2, false)); delete $2;}
-subsetmnmz: SUBSETMINDEFN body ZERO 		{ CR(solver->addMinimize(*$2, true)); delete $2;}
-summnmz :	AGGMINDEFN AGGDEFN NUMBER NUMBER ZERO	{ CR(solver->addMinimize(cAtom($3), cID($4), $2)); delete $3; delete $4;}
+mnmz	:	MNMZDEFN body ZERO				
+			{
+				MinimizeOrderedList mnm;
+				mnm.literals = *$2;
+				delete $2;
+				CR(solver->add(mnm)); 
+			}
+subsetmnmz: SUBSETMINDEFN body ZERO 		
+			{ 
+				MinimizeSubset mnm;
+				mnm.literals = *$2;
+				delete $2;
+				CR(solver->add(mnm)); 
+			}
+summnmz :	AGGMINDEFN AGGDEFN NUMBER NUMBER ZERO	
+			{ 
+				MinimizeAgg mnm;
+				mnm.head = cAtom($3);
+				mnm.setid = cID($4);
+				mnm.type = $2;
+				delete $3; delete $4;
+				CR(solver->add(mnm)); 
+			}
 		
 clause	:	body ZERO	
-				{ 	CR(solver->addClause(*$1)); delete $1; }
+			{
+				Disjunction clause;
+				clause.literals = *$1;
+				delete $1;
+				CR(solver->add(clause));  
+			}
 		;
 
 rule	:	SEMDEFN NUMBER body ZERO
-				{ 	
-					if($1==COMP){ //hack, to be fixed
-						CR(solver->addConjRule(cAtom($2), *$3));
-					}else{
-						CR(solver->addDisjRule(cAtom($2), *$3));
-					}					 
-					delete $2; delete $3;
-				}
+			{ 	
+				checkVersion(VERSION_OLD);
+				
+				Rule rule;
+				rule.head = cAtom($2);
+				rule.body = *$3;
+				rule.definitionID = defaultdefID;
+				delete $2; delete $3;
+				if($1==COMP){ //hack, to be fixed
+					rule.conjunctive = true;
+				}else{
+					rule.conjunctive = false;
+				}					 
+				CR(solver->add(rule));
+			}
 		;
 
-// type sem sign head setid bound 0
+rule	:	SEMDEFN DEFOP NUMBER NUMBER body ZERO
+			{ 	
+				checkVersion(VERSION_NEW);
+				
+				Rule rule;
+				rule.head = cAtom($4);
+				rule.body = *$5;
+				rule.definitionID = cID($3);
+				delete $3; delete $4; delete $5;
+				if($1==COMP){ //hack, to be fixed
+					rule.conjunctive = true;
+				}else{
+					rule.conjunctive = false;
+				}					 
+				CR(solver->add(rule));
+			}
+		;
+
 agg		:	AGGDEFN SEMDEFN SIGNDEFN NUMBER NUMBER weight ZERO	
-				{	CR(solver->addAggrExpr(cLiteral($4), cID($5), cWeight($6), $3, $1, $2)); 
-					delete $4; delete $5; delete $6;
+			{	
+				if($2 == DEF){
+					checkVersion(VERSION_OLD);
 				}
+	
+				Aggregate agg;
+				agg.head = cAtom($4);
+				agg.setID = cID($5);
+				agg.defID = defaultdefID;
+				agg.bound = cWeight($6);
+				agg.sign = $3;
+				agg.type = $1;
+				agg.sem = $2;
+				delete $4; delete $5; delete $6;
+				CR(solver->add(agg));
+			}
+		;
+agg		:	AGGDEFN DEFOP NUMBER SIGNDEFN NUMBER NUMBER weight ZERO	
+			{	
+				checkVersion(VERSION_NEW);
+
+				Aggregate agg;
+				agg.head = cAtom($5);
+				agg.setID = cID($6);
+				agg.defID = cID($3);
+				agg.bound = cWeight($7);
+				agg.sign = $4;
+				agg.type = $1;
+				agg.sem = DEF;
+				delete $5; delete $6; delete $7;
+				CR(solver->add(agg));
+			}
 		;
 
 set		:	SETDEFN NUMBER body ZERO	
-				{ 	CR(solver->addSet(cID($2), *$3)); 
-					delete $2; delete $3;
-				}
+			{ 	
+				Set set;
+				set.setID = cID($2);
+				set.literals = *$3;
+				delete $2; delete $3;
+				CR(solver->add(set));
+			}
 		;
 
 wset	:	WSETDEFN NUMBER	wbody ZERO	
-				{	CR(solver->addSet(cID($2), *$3)); 
-					delete $2; delete $3;	
-				}
+			{	
+				WLSet set;
+				set.setID = cID($2);
+				set.wl = *$3;
+				delete $2; delete $3;
+				CR(solver->add(set));
+			}
 		;
 
-//---------------------------------------------		
-// ECNF CONSTRAINT SUPPORT	
-//---------------------------------------------
+// ECNF CONSTRAINT SUPPORT
+
+//TODO
 
 intvar	:	INTVAR number number number ZERO 
-				{ 	CR(solver->addIntVar($2, $3, $4)); }
+				{ 	/*CR(solver->addIntVar($2, $3, $4));*/ }
 		;
 
 /*intvarset
@@ -306,10 +406,10 @@ intvar	:	INTVAR number number number ZERO
 
 cpconstraint
 		:	BINTRI NUMBER number REL number ZERO 
-				{ 	CR(solver->addCPBinaryRel(cLiteral($2), $3, $4, $5));
-					delete $2;
+				{ 	/*CR(solver->addCPBinaryRel(cLiteral($2), $3, $4, $5));
+					delete $2;*/
 				}
-		|	BINTRT NUMBER number REL number ZERO 
+/*		|	BINTRT NUMBER number REL number ZERO 
 				{ 	CR(solver->addCPBinaryRelVar(cLiteral($2), $3, $4, $5));
 					delete $2;
 				}
@@ -335,6 +435,7 @@ cpconstraint
 			//only global alldiff at the moment!
 		|	DISTINCT ibody DELIM ZERO //DELIM to remove shift-reduce conflict 
 				{ 	CR(solver->addCPAlldifferent(*$2)); delete $2; }
+*/
 		;
 
 //		
@@ -379,64 +480,136 @@ mrest	: 	/* empty */
 			
 //MODAL PART: USES INDEXES+1 AS MODAL IDs IN THE THEORY
 modhier :	MODDEFN	NUMBER NUMBER NUMBER ZERO 
-				{ 	CR(modsolver->addSubTheory(cID($2)-1, cLiteral($4), cID($3)-1));
-					delete $2; delete $3; delete $4; 
-				}
+			{
+				SubTheory sub;
+				sub.head = cLiteral($4);
+				sub.child = cID($3)-1;
+				delete $3; delete $4;
+				CR(modsolver->add(cID($2)-1, sub));
+				delete $2; 
+			}
 		;
 
 matomset:	QUANTe NUMBER vbody ZERO
-				{ 
-					if(!$1){
-						throw idpexception("Forall quantifiers are not part of the chosen input format.\n");
-					}
-					CR(modsolver->addRigidAtoms(cID($2)-1, *$3)); delete $2; delete $3;
+			{ 
+				if(!$1){
+					throw idpexception("Forall quantifiers are not part of the chosen input format.\n");
 				}
+				RigidAtoms rigid;
+				rigid.rigidatoms = *$3;
+				delete $3;
+				CR(modsolver->add(cID($2)-1, rigid)); 
+				delete $2; 
+			}
 		;
 
 mclause	:	NUMBER body ZERO 
-				{	CR(modsolver->addClause(cID($1)-1, *$2)); 
-					delete $1; delete $2;  
-				}
+			{	
+				Disjunction clause;
+				clause.literals = *$2;
+				delete $2;
+				CR(modsolver->add(cID($1)-1, clause)); 
+				delete $1;   
+			}
 		;
 
 mrule	:	SEMDEFN NUMBER NUMBER body ZERO  
-				{ 	
-					if($1==COMP){ //hack, to be fixed
-						CR(modsolver->addConjRule(cID($2)-1, cAtom($3), *$4));
-					}else{
-						CR(modsolver->addDisjRule(cID($2)-1, cAtom($3), *$4));
-					}					 
-					delete $2; delete $3; delete $4;
-				}
+			{ 	
+				checkVersion(VERSION_OLD);
+				
+				Rule rule;
+				rule.head = cAtom($3);
+				rule.body = *$4;
+				rule.definitionID = defaultdefID;
+				delete $2; delete $4;
+				if($1==COMP){ //hack, to be fixed
+					rule.conjunctive = true;
+				}else{
+					rule.conjunctive = false;
+				}					 
+				CR(modsolver->add(cID($2)-1, rule));		 
+				delete $2;
+			}
+		;
+
+mrule	:	SEMDEFN NUMBER DEFOP NUMBER NUMBER body ZERO
+			{ 	
+				checkVersion(VERSION_NEW);
+				
+				Rule rule;
+				rule.head = cAtom($5);
+				rule.body = *$6;
+				rule.definitionID = cID($4);
+				delete $4; delete $5; delete $6;
+				if($1==COMP){ //hack, to be fixed
+					rule.conjunctive = true;
+				}else{
+					rule.conjunctive = false;
+				}					 
+				CR(modsolver->add(cID($2)-1, rule));
+			}
 		;
 
 magg	:	AGGDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER weight ZERO	
-				{ 	CR(modsolver->addAggrExpr(cID($2)-1, cLiteral($5), cID($6), cWeight($7), $4, $1, $3));
-					delete($2); delete($5); delete($6); delete $7;
+			{ 
+				if($3==DEF){
+					checkVersion(VERSION_OLD);
 				}
+				
+				Aggregate agg;
+				agg.head = cAtom($5);
+				agg.setID = cID($6);
+				agg.defID = defaultdefID;
+				agg.bound = cWeight($7);
+				agg.sign = $4;
+				agg.type = $1;
+				agg.sem = $3;
+				delete $5; delete $6; delete $7;
+				CR(modsolver->add(cID($2)-1, agg));
+				delete($2);
+			}
+		;
+
+magg	:	AGGDEFN NUMBER DEFOP NUMBER SIGNDEFN NUMBER NUMBER weight ZERO	
+			{	
+				checkVersion(VERSION_NEW);
+
+				Aggregate agg;
+				agg.head = cAtom($6);
+				agg.setID = cID($7);
+				agg.defID = cID($4);
+				agg.bound = cWeight($8);
+				agg.sign = $5;
+				agg.type = $1;
+				agg.sem = DEF;
+				delete $6; delete $7; delete $8;
+				CR(modsolver->add(cID($2)-1, agg));
+			}
 		;
 
 mset	:	SETDEFN NUMBER NUMBER body ZERO	
-				{
-					std::vector<MinisatID::Weight> weights;
-					for(std::vector<MinisatID::Literal>::size_type i=0; i<(*$4).size(); i++){
-						weights.push_back(1);
-					}
-					CR(modsolver->addSet(cID($2)-1, cID($3), *$4, weights));
-					delete($2); delete($3); delete $4;
-				}
+			{ 	
+				Set set;
+				set.setID = cID($3);
+				set.literals = *$4;
+				delete $3; delete $4;
+				CR(modsolver->add(cID($2)-1, set));
+				delete($2);
+			}
 		;
 
 mwset	:	WSETDEFN NUMBER NUMBER wbody ZERO	
-				{ 
-					CR(modsolver->addSet(cID($2)-1, cID($3), *$4));
-					delete($2); delete($3); delete $4;
-				}
+			{ 
+				WLSet set;
+				set.setID = cID($3);
+				set.wl = *$4;
+				delete $3; delete $4;
+				CR(modsolver->add(cID($2)-1, set));
+				delete($2);
+			}
 		;
 	
-//---------------------------------------------
 // TRANSLATION
-//---------------------------------------------
 
 
 translation	: /* empty */
@@ -576,6 +749,16 @@ void CR(bool result){
 	}		
 }
 
+void checkVersion(ECNF_VERSION version){
+	if(currentreadversion == VERSION_NONE){
+		currentreadversion = version;
+	}
+	if(currentreadversion != version){
+		throw idpexception("Cannot combine previous ecnf format with the new one "
+				"(using rules/aggregates with and without definition id).\n");
+	}
+}
+
 void initSolver(){
 	solver = pwps(new WrappedPCSolver(modes));
 }
@@ -620,8 +803,13 @@ void readCNFModalHierLevel(bool existential, const vector<Atom>& rigidatoms){
 			heads.push_back(Literal(cnfcurrenthead, true));
 		}
 		cnfcurrentmodid++;
-		CR(modsolver->addSubTheory(cnfcurrentmodid-1, Literal(cnfcurrenthead), cnfcurrentmodid));
-		modsolver->addRigidAtoms(cnfcurrentmodid, rigidatoms);
+		SubTheory sub;
+		sub.head = Literal(cnfcurrenthead);
+		sub.child = cnfcurrentmodid;
+		CR(modsolver->add(cnfcurrentmodid-1, sub));
+		RigidAtoms rigid;
+		rigid.rigidatoms = rigidatoms;
+		modsolver->add(cnfcurrentmodid, rigid);
 		if(rigidatoms.size()==0){
 			throw idpexception("List of rigid atoms is empty.\n");
 		}
@@ -638,9 +826,9 @@ void finishCNFHeader(){
 								"this is not handled at the moment.\n");
 		}
 		for(vector<int>::size_type i = 0; i<modalops.size(); i++){
-			vector<Literal> lits;
-			lits.push_back(heads[i]);
-			CR(modsolver->addClause(modalops[i], lits)); lits.clear();	
+			Disjunction clause;
+			clause.literals.push_back(heads[i]);
+			CR(modsolver->add(modalops[i], clause));	
 		}
 	}
 }

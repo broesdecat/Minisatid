@@ -101,45 +101,42 @@ public:
 	ModSolver(modindex child, Var head, SOSolver* mh);
 	virtual ~ModSolver();
 
-	bool 				addAtoms		(const std::vector<Var>& atoms);
-	void 				addChild		(modindex child);
-	void				setParent		(modindex id);
+	bool	add		(Var v);
+	bool	add		(const InnerDisjunction& sentence);
+	bool	add		(const InnerRule& sentence);
+	bool	add		(const InnerWSet& sentence);
+	bool	add		(const InnerAggregate& sentence);
+	bool	add		(const InnerRigidAtoms& sentence);
+	bool	addChild(int childid);
 
-	void 				setNbModels		(int nb);
+	void	setParent		(modindex id);
+	void 	setNbModels		(int nb);
 
-	//data initialization
-	void				addVar			(Var v);
-	bool 				addClause		(vec<Lit>& lits);
-	bool 				addRule			(bool conj, Lit head, vec<Lit>& lits);
-	bool 				addSet			(int setid, vec<Lit>& lits, std::vector<Weight>& w);
-	bool 				addAggrExpr		(Lit head, int set_id, const Weight& bound, AggSign boundsign, AggType type, AggSem defined);
+	void 	notifyVarAdded	(uint64_t nvars) { /*Is NOT DOWN!*/}
 
-	void 				notifyVarAdded	(uint64_t nvars) { /*Is NOT DOWN!*/}
+	void 	finishParsing	(bool& present, bool& unsat){ init = true; }
+	void 	finishParsingDown(bool& present, bool& unsat);
 
-	void 				finishParsing	(bool& present, bool& unsat){ init = true; }
-	void 				finishParsingDown(bool& present, bool& unsat);
+	bool 	simplify		()	{ return true;};
+	bool 	simplifyDown	();
 
-	bool 				simplify		()	{ return true;};
-	bool 				simplifyDown	();
+	void 	newDecisionLevel();
 
-
-	void 				newDecisionLevel();
-
-	rClause 			getExplanation	(const Lit& l) { assert(false); return nullPtrClause; /*TODO NOT IMPLEMENTED*/ };
+	rClause getExplanation	(const Lit& l) { assert(false); return nullPtrClause; /*TODO NOT IMPLEMENTED*/ };
 
 	/**
 	 * Propagation coming from the parent solver: propagate it through the tree, until a conflict is found.
 	 * SHOULD also return unit propagated implied rigid atoms.
 	 */
-	rClause 			propagateDown	(Lit l);
-	bool	 			propagateDownAtEndOfQueue(vec<Lit>& confldisj);
-	rClause 			propagate		(const Lit& l);
-	rClause 			propagateAtEndOfQueue();
+	rClause 	propagateDown	(Lit l);
+	bool	 	propagateDownAtEndOfQueue(vec<Lit>& confldisj);
+	rClause 	propagate		(const Lit& l);
+	rClause 	propagateAtEndOfQueue();
 
-	void 				backtrackDecisionLevels	(int nblevels, int untillevel);
-	void 				backtrackFromAbove(Lit l);
+	void 		backtrackDecisionLevels	(int nblevels, int untillevel);
+	void 		backtrackFromAbove(Lit l);
 
-	bool 				solve			(const vec<Lit>& assumptions, const ModelExpandOptions& options);
+	bool 		solve			(const vec<Lit>& assumptions, const ModelExpandOptions& options);
 
 
 	//PRINTING
@@ -160,19 +157,19 @@ public:
 	 *
 	 * The model of a theory is the interpretation of all atoms decided by the root SAT solver.
 	 */
-	void 				printModel		();
-	void 				print			() const;
-	void 				printStatistics	() const 	{ /*Do NOT print lower ones here*/};
+	void 		printModel		();
+	void 		print			() const;
+	void 		printStatistics	() const 	{ /*Do NOT print lower ones here*/};
 
 	//GETTERS
-	const char* 		getName			()	const	{ return "modal operator"; }
-	bool				hasParent		()	const 	{ return hasparent; }
-	Var 				getHead			()	const 	{ assert(hasparent); return head.atom; }
-	lbool 				getHeadValue	()	const	{ assert(hasparent); return head.value; }
-	modindex 			getId			()	const	{ return id; }
-	modindex 			getPrintId		()	const	{ return id+1; }
-	modindex			getParentId		()	const	{ return parentid; }
-	modindex			getParentPrintId()	const	{ return parentid+1; }
+	const char* getName			()	const	{ return "modal operator"; }
+	bool		hasParent		()	const 	{ return hasparent; }
+	Var 		getHead			()	const 	{ assert(hasparent); return head.atom; }
+	lbool 		getHeadValue	()	const	{ assert(hasparent); return head.value; }
+	modindex 	getId			()	const	{ return id; }
+	modindex 	getPrintId		()	const	{ return id+1; }
+	modindex	getParentId		()	const	{ return parentid; }
+	modindex	getParentPrintId()	const	{ return parentid+1; }
 	const std::vector<Var>& getAtoms	()	const	{ return atoms; }
 	const vmodindex& 	getChildren		()	const	{ return children; }
 	const SOSolver& 	getModSolverData()	const	{ return *modhier; }
@@ -180,13 +177,14 @@ public:
 	MinisatID::LogicSolver*	getSolver() const { return solver; }
 
 private:
-	void 				addVar			(Lit l)		{ addVar(var(l)); }
-	void 				addVars			(vec<Lit>& a);
+	void 		addVar			(const Lit& l)		{ add(var(l)); }
+	void 		addVars			(const vec<Lit>& a);
+	void 		addVars			(const std::vector<Lit>& a);
 
-	void				adaptValuesOnPropagation(Lit l);
-	void 				doUnitPropagation(const vec<Lit>&);
-	bool 				search			(const vec<Lit>&, bool search = true);
-	bool 				analyzeResult	(bool result, bool allknown, vec<Lit>& confldisj);
+	void		adaptValuesOnPropagation(Lit l);
+	void 		doUnitPropagation(const vec<Lit>&);
+	bool 		search			(const vec<Lit>&, bool search = true);
+	bool 		analyzeResult	(bool result, bool allknown, vec<Lit>& confldisj);
 };
 
 }

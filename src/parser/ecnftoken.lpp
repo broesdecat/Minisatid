@@ -69,6 +69,8 @@ WHITESPACE	[\t\r ]*
 
 <theory>^"Mod"	{ADJ; return MODDEFN;}
 
+<theory>"<-"	{ADJ; return DEFOP;}
+
 <theory>"D"	{ADJ; /*ecnflval*/yylval.sem = MinisatID::DEF;  return SEMDEFN;}
 <theory>"C"	{ADJ; /*ecnflval*/yylval.sem = MinisatID::COMP; return SEMDEFN;}
 <theory>"L"	{ADJ; /*ecnflval*/yylval.sign = MinisatID::AGGSIGN_UB;  return SIGNDEFN;}

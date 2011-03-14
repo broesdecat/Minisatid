@@ -138,55 +138,49 @@ public:
 	IDSolver(MinisatID::PCSolver* s);
 	virtual ~IDSolver();
 
-	MinisatID::AggSolver*	getAggSolver()const{ return recagg==0?NULL:getPCSolver().getAggSolver();}
+	MinisatID::AggSolver*	getAggSolver			()	const	{ return recagg==0?NULL:getPCSolver().getAggSolver();}
 
-	/////////////////////SOLVER NECESSARY
-	virtual void 			notifyVarAdded			(uint64_t nvars);
-	virtual void 			finishParsing		 	(bool& present, bool& unsat);
-	virtual bool 			simplify				(); //False if problem unsat
-	virtual rClause 		propagate				(const Lit& l){ return nullPtrClause; };
-	virtual rClause 		propagateAtEndOfQueue	();
-	//virtual void 			backtrack				(const Lit& l);
-	virtual void 			newDecisionLevel		();
-	virtual void 			backtrackDecisionLevels	(int nblevels, int untillevel){ backtracked = true; };
-	virtual rClause 		getExplanation			(const Lit& l);
+	virtual void 		notifyVarAdded			(uint64_t nvars);
+	virtual void 		finishParsing		 	(bool& present, bool& unsat);
+	virtual bool 		simplify				(); //False if problem unsat
+	virtual rClause 	propagate				(const Lit& l){ return nullPtrClause; };
+	virtual rClause 	propagateAtEndOfQueue	();
+	//virtual void 		backtrack				(const Lit& l);
+	virtual void 		newDecisionLevel		();
+	virtual void 		backtrackDecisionLevels	(int nblevels, int untillevel){ backtracked = true; };
+	virtual rClause 	getExplanation			(const Lit& l);
 
-	virtual void 			printStatistics			() const;
+	virtual void 		printStatistics			() const;
 
-	virtual const char* 	getName					() const { return "definitional"; }
-	virtual void 			print					() const;
+	virtual const char* getName					() const { return "definitional"; }
+	virtual void 		print					() const;
 
-	bool 					checkStatus				();
-	bool 					isWellFoundedModel		();
+	bool 				checkStatus				();
+	bool 				isWellFoundedModel		();
 
-	DEFSEM					getSemantics			() const { return sem; }
+	DEFSEM				getSemantics			() const { return sem; }
 
-	/////////////////////ENDSOLVER NECESSARY
+	const vec<Lit>&		getCFJustificationAggr	(Var v) const;
+	void 				cycleSourceAggr			(Var v, vec<Lit>& nj);
+	void 				notifyAggrHead			(Var head);
+	void 				removeAggrHead			(Var head);
 
-	/////////////////////AGGSOLVER NECESSARY
-	const vec<Lit>&			getCFJustificationAggr	(Var v) const;
-	void 					cycleSourceAggr			(Var v, vec<Lit>& nj);
-	void 					notifyAggrHead			(Var head);
-	void 					removeAggrHead			(Var head);
-	/////////////////////END AGGSOLVER NECESSARY
+	bool    			addRule      			(bool conj, Lit head, const vec<Lit>& ps);	// Add a rule to the solver.
 
-	/////////////////////INITIALIZATION
-	bool    				addRule      			(bool conj, Lit head, const vec<Lit>& ps);	// Add a rule to the solver.
-	/////////////////////END INITIALIZATION
+	bool				isDefined				(Var var) 	const { return hasDefVar(var); }
+	bool 				isConjunctive			(Var v)		const {	return type(v) == CONJ; }
+	bool 				isDisjunctive			(Var v) 	const {	return type(v) == DISJ;	}
+	bool 				isDefinedByAggr			(Var v) 	const {	return type(v) == AGGR;	}
+	const PropRule&		getDefinition			(Var var) 	const { assert(hasDefVar(var)); return *definition(var); }
 
 private:
 	void 				adaptToNVars		(uint64_t nvars);
 	bool 				simplifyGraph		(); //False if problem unsat
 
-	DefinedVar* 		getDefVar			(Var v) const { assert(definitions.size()>v); return definitions[v]; }
+	DefinedVar* 		getDefVar			(Var v) const { assert(v>=0 && definitions.size()>(uint)v); return definitions[(uint)v]; }
 	bool 				hasDefVar			(Var v) const { return getDefVar(v)!=NULL; }
 
-	bool 				isDefined			(Var v) const {	return hasDefVar(v); }
 	bool 				isDefInPosGraph		(Var v) const {	return hasDefVar(v) && (occ(v)==POSLOOP || occ(v)==BOTHLOOP); }
-
-	bool 				isConjunctive		(Var v)	const {	return type(v) == CONJ; }
-	bool 				isDisjunctive		(Var v) const {	return type(v) == DISJ;	}
-	bool 				isDefinedByAggr		(Var v) const {	return type(v) == AGGR;	}
 
 	bool 				canBecomeTrue		(Lit l) const { return value(l) != l_False; }
 	bool 				inSameSCC			(Var x, Var y) const { return isDefined(x) && isDefined(y) && scc(x) == scc(y); }
@@ -206,34 +200,27 @@ private:
 	int 				scc			(Var v)const { return getDefVar(v)->scc(); }
 	const vec<Lit>& 	justification(Var v)const { return getDefVar(v)->justification(); }
 
-	bool				hasdisj_occurs(Lit l) const { return _disj_occurs[toInt(l)].size()>0; }
-	bool				hasconj_occurs(Lit l) const { return _conj_occurs[toInt(l)].size()>0; }
 	const std::vector<Var>&	disj_occurs	(Lit l) const { return _disj_occurs[toInt(l)]; }
 	const std::vector<Var>&	conj_occurs	(Lit l) const { return _conj_occurs[toInt(l)]; }
-	void				addDisjOccurs(Lit l, Var v) { assert(((long)_disj_occurs.size())>toInt(l)); _disj_occurs[toInt(l)].push_back(v); assert(type(v)==DISJ); }
-	void				addConjOccurs(Lit l, Var v) { assert(((long)_conj_occurs.size())>toInt(l)); _conj_occurs[toInt(l)].push_back(v); assert(type(v)==CONJ); }
-	//std::vector<Var>&	disj_occurs	(Lit l) { return _disj_occurs[toInt(l)]; }
-	//std::vector<Var>&	conj_occurs	(Lit l) { return _conj_occurs[toInt(l)]; }
+	bool	hasdisj_occurs(Lit l) const { return _disj_occurs[toInt(l)].size()>0; }
+	bool	hasconj_occurs(Lit l) const { return _conj_occurs[toInt(l)].size()>0; }
+	void	addDisjOccurs(Lit l, Var v) { assert(((long)_disj_occurs.size())>toInt(l)); _disj_occurs[toInt(l)].push_back(v); assert(type(v)==DISJ); }
+	void	addConjOccurs(Lit l, Var v) { assert(((long)_conj_occurs.size())>toInt(l)); _conj_occurs[toInt(l)].push_back(v); assert(type(v)==CONJ); }
 
-//	bool				hasdisj_occurs(Lit l) const { return _disj_occurs.find(toInt(l))!=_disj_occurs.end() && (*_disj_occurs.find(toInt(l))).second.size()>0; }
-//	bool				hasconj_occurs(Lit l) const { return _conj_occurs.find(toInt(l))!=_conj_occurs.end() && (*_conj_occurs.find(toInt(l))).second.size()>0; }
-//	const std::vector<Var>&	disj_occurs	(Lit l) const { return (*_disj_occurs.find(toInt(l))).second; }
-//	const std::vector<Var>&	conj_occurs	(Lit l) const { return (*_conj_occurs.find(toInt(l))).second; }
-
-	void		createDefinition(Var head, PropRule* r, DefType type) { defdVars.push_back(head);
+	void	createDefinition(Var head, PropRule* r, DefType type) { defdVars.push_back(head);
 																		definitions[head] = new DefinedVar(r, type);}
-	void		removeDefinition(Var head) { delete definitions[head]; definitions[head]=NULL; }
+	void	removeDefinition(Var head) { delete definitions[head]; definitions[head]=NULL; }
 
-	bool		setTypeIfNoPosLoops	(Var v) const;
+	bool	setTypeIfNoPosLoops	(Var v) const;
 
-	void 		propagateJustificationDisj(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& heads);
-	void 		propagateJustificationAggr(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& heads);
-	void 		propagateJustificationConj(Lit l, vec<Lit>& heads);
+	void 	propagateJustificationDisj(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& heads);
+	void 	propagateJustificationAggr(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& heads);
+	void 	propagateJustificationConj(Lit l, vec<Lit>& heads);
 
-	void 		findJustificationDisj(Var v, vec<Lit>& jstf);
-	bool 		findJustificationDisj(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust);
-	bool 		findJustificationConj(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust);
-	bool 		findJustificationAggr(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust);
+	void 	findJustificationDisj(Var v, vec<Lit>& jstf);
+	bool 	findJustificationDisj(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust);
+	bool 	findJustificationConj(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust);
+	bool 	findJustificationAggr(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust);
 
 	// Justification methods:
 	void	apply_changes      ();
@@ -289,9 +276,7 @@ private:
 
 	void	addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf);
 
-	/*******************************
-	 * WELL FOUNDED MODEL CHECKING *
-	 *******************************/
+	// WELL FOUNDED MODEL CHECKING
 
 	/*
 	 * Implementation of Tarjan's algorithm for detecting strongly connected components.

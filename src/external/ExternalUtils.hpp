@@ -382,6 +382,106 @@ public:
 	void	notifyOptimalModelFound	()			{ optimalmodelfound = true;	}
 };
 
+class Disjunction{
+public:
+	std::vector<Literal> literals;
+};
+
+class DisjunctionRef{
+public:
+	const std::vector<Literal>& literals;
+
+	DisjunctionRef(const std::vector<Literal>& lits): literals(lits){}
+};
+
+class Equivalence{
+public:
+	bool conj;
+	Literal	head;
+	std::vector<Literal> literals;
+
+	Equivalence():head(0){}
+};
+
+class Rule{
+public:
+	Atom head;
+	std::vector<Literal> body;
+	bool conjunctive;
+	int definitionID;
+
+	Rule(): head(0){}
+};
+
+class Set{
+public:
+	int setID;
+	std::vector<Literal> literals;
+};
+
+class WSet{
+public:
+	int setID;
+	std::vector<Literal> literals;
+	std::vector<Weight> weights;
+};
+
+class WLSet{
+public:
+	int setID;
+	std::vector<WLtuple> wl;
+};
+
+class Aggregate{
+public:
+	Atom head;
+	int setID;
+	Weight bound;
+	AggType type;
+	AggSign sign;
+	AggSem sem;
+	int defID; //Only relevant if defined aggregate
+
+	Aggregate(): head(0){}
+};
+
+class MinimizeOrderedList{
+public:
+	std::vector<Literal> literals;
+};
+
+class MinimizeSubset{
+public:
+	std::vector<Literal> literals;
+};
+
+class MinimizeAgg{
+public:
+	Atom head;
+	int setid;
+	AggType type;
+
+	MinimizeAgg(): head(0){}
+};
+
+class ForcedChoices{
+public:
+	std::vector<Literal> forcedchoices;
+};
+
+class RigidAtoms{
+public:
+	std::vector<Atom> rigidatoms;
+};
+
+class SubTheory{
+public:
+	int child;
+	Literal head;
+
+	SubTheory():head(0){}
+};
+
 }
 
 #endif /*EXTERNALUTILS_HPP_*/

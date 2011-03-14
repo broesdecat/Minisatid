@@ -22,7 +22,7 @@ using namespace MinisatID::Aggrs;
 
 /**
  * TODO sorted aggr? //TODO 2 remember optim!
- * FIXME maximum aggregate
+ * TODO maximum aggregate
  */
 
 PWAgg::PWAgg				(TypedSet* set): Propagator(set) {}

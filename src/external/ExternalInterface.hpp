@@ -34,26 +34,28 @@ typedef std::shared_ptr<WrappedLogicSolver> pwls;
 typedef std::tr1::shared_ptr<WrappedLogicSolver> pwls;
 #endif
 
+
 class WrappedLogicSolver{
 public:
-	void 	printStatistics	()	const;
-
-	void	notifyTimeout	()	const;
+	void 	printStatistics		()	const;
 
 	//Do model expansion, given the options in the solution datastructure.
 	//Automatically initializes the datastructures and simplifies the theory.
-	bool 	solve			(Solution* sol);
+	bool 	solve				(Solution* sol);
 
-	bool 	hasOptimization	() const;
+	bool 	hasOptimization		() const;
 
-	Translator& getTranslator();
-	void	setTranslator	(Translator* translator);
+	Translator& getTranslator	();
+	void	setTranslator		(Translator* translator);
+
+	// Notify the solver a timeout has occurred: allows for finalization time (COMPETITION)
+	void	notifyTimeout		()	const;
 
 protected:
 	WrappedLogicSolver			();
 	virtual ~WrappedLogicSolver	();
 
-	virtual WLSImpl* getImpl() const = 0;
+	virtual WLSImpl* getImpl	() const = 0;
 };
 
 class WrappedPCSolver: public MinisatID::WrappedLogicSolver{
@@ -61,38 +63,32 @@ private:
 	WPCLSImpl* impl;
 
 public:
-	WrappedPCSolver(const SolverOption& modes);
+	WrappedPCSolver	(const SolverOption& modes);
 	~WrappedPCSolver();
 
-	void	addVar			(Atom v);
+	bool	add		(const Disjunction& sentence);
+	bool	add		(const DisjunctionRef& sentence);
+	bool	add		(const Equivalence& sentence);
+	bool	add		(const Rule& sentence);
+	bool	add		(const Set& sentence);
+	bool	add		(const WSet& sentence);
+	bool	add		(const WLSet& sentence);
+	bool	add		(const Aggregate& sentence);
+	bool	add		(const MinimizeSubset& sentence);
+	bool	add		(const MinimizeOrderedList& sentence);
+	bool	add		(const MinimizeAgg& sentence);
+	bool	add		(const ForcedChoices& sentence);
 
-	bool	addClause		(std::vector<Literal>& lits);
-	bool 	addEquivalence	(const Literal& head, const std::vector<Literal>& rightlits, bool conj);
-
-	bool	addConjRule		(Atom head, const std::vector<Literal>& lits);
-	bool	addDisjRule		(Atom head, const std::vector<Literal>& lits);
-	bool	addConjRuleToID (int defid, Atom head, const std::vector<Literal>& lits);
-	bool	addDisjRuleToID (int defid, Atom head, const std::vector<Literal>& lits);
-
-	bool	addSet			(int setid, const std::vector<Literal>& lits);
-	bool 	addSet			(int setid, const std::vector<WLtuple>& lws);
-	bool	addSet			(int setid, const std::vector<Literal>& lits, const std::vector<Weight>& w);
-	bool	addAggrExpr		(Literal head, int setid, const Weight& bound, AggSign sign, AggType type, AggSem sem);
-
-    bool 	addMinimize		(const std::vector<Literal>& lits, bool subsetmnmz);
-    bool 	addMinimize		(const Atom head, const int setid, AggType type);
-
+/*
 	bool 	addIntVar		(int groundname, int min, int max);
-	bool 	addCPBinaryRel	(Literal head, int groundname, EqType rel, int bound);
-	bool 	addCPBinaryRelVar(Literal head, int groundname, EqType rel, int groundname2);
-	bool 	addCPSum		(Literal head, const std::vector<int>& termnames, EqType rel, int bound);
-	bool 	addCPSum		(Literal head, const std::vector<int>& termnames, std::vector<int> mult, EqType rel, int bound);
-	bool 	addCPSumVar		(Literal head, const std::vector<int>& termnames, EqType rel, int rhstermname);
-	bool 	addCPSumVar		(Literal head, const std::vector<int>& termnames, std::vector<int> mult, EqType rel, int rhstermname);
+	bool 	addCPBinaryRel	(const Literal& head, int groundname, EqType rel, int bound);
+	bool 	addCPBinaryRelVar(const Literal& head, int groundname, EqType rel, int groundname2);
+	bool 	addCPSum		(const Literal& head, const std::vector<int>& termnames, EqType rel, int bound);
+	bool 	addCPSum		(const Literal& head, const std::vector<int>& termnames, std::vector<int> mult, EqType rel, int bound);
+	bool 	addCPSumVar		(const Literal& head, const std::vector<int>& termnames, EqType rel, int rhstermname);
+	bool 	addCPSumVar		(const Literal& head, const std::vector<int>& termnames, std::vector<int> mult, EqType rel, int rhstermname);
 	bool 	addCPCount		(const std::vector<int>& termnames, int value, EqType rel, int rhstermname);
-	bool 	addCPAlldifferent(const std::vector<int>& termnames);
-
-	void	addForcedChoices(const std::vector<Literal> lits);
+	bool 	addCPAlldifferent(const std::vector<int>& termnames);*/
 
 protected:
 	WLSImpl* getImpl() const;
@@ -102,26 +98,26 @@ protected:
 //Second order logic solver
 class WrappedSOSolver: public MinisatID::WrappedLogicSolver{
 private:
-	WSOLSImpl* _impl;
+	WSOLSImpl* impl;
 
 public:
-	WrappedSOSolver				(const SolverOption& modes);
-	virtual ~WrappedSOSolver	();
+	WrappedSOSolver	(const SolverOption& modes);
+	virtual ~WrappedSOSolver();
 
-	bool 	addSubTheory	(int parent, Literal head, int child);
-	bool	addRigidAtoms	(int modid, const std::vector<Atom>& atoms);
+	bool	add		(int modalid, const Disjunction& sentence);
+	bool	add		(int modalid, const DisjunctionRef& sentence);
+	bool	add		(int modalid, const Rule& sentence);
+	bool	add		(int modalid, const Set& sentence);
+	bool	add		(int modalid, const WSet& sentence);
+	bool	add		(int modalid, const WLSet& sentence);
+	bool	add		(int modalid, const Aggregate& sentence);
 
-	void 	addVar		(int modid, Atom v);
-	bool 	addClause	(int modid, std::vector<Literal>& lits);
-	bool 	addConjRule	(int modid, Atom head, std::vector<Literal>& lits);
-	bool 	addDisjRule	(int modid, Atom head, std::vector<Literal>& lits);
-	bool 	addSet		(int modid, int setid, std::vector<WLtuple>& lws);
-	bool 	addSet		(int modid, int setid, std::vector<Literal>& lits, std::vector<Weight>& w);
-	bool 	addAggrExpr	(int modid, Literal head, int setid, const Weight& bound, AggSign sign, AggType type, AggSem sem);
+	bool	add		(int modalid, const RigidAtoms& sentence);
+	bool	add		(int modalid, const SubTheory& sentence);
 
 protected:
-	WLSImpl* getImpl() const;
-	WSOLSImpl* getSOImpl() const;
+	WLSImpl* getImpl		() const;
+	WSOLSImpl* getSOImpl	() const;
 };
 
 }

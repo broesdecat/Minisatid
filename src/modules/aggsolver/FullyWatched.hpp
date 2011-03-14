@@ -26,7 +26,8 @@ typedef std::vector<PropagationInfo> vprop;
 
 class FWTrail{
 public:
-	int level, start; //Start is the propagation info from which the next propagatatend should start (first one not seen)
+	int level;
+	uint start; //Start is the propagation info from which the next propagatatend should start (first one not seen)
 	Weight CBC, CBP;
 	vprop props;
 	std::vector<int> headindex; //The index of the aggregate of which the head was propagated

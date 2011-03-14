@@ -64,16 +64,13 @@ public:
 	bool 	simplify		();
 	bool 	solve			(const vec<Lit>& assumptions, const ModelExpandOptions& options);
 
-	//Add information for hierarchy
-	bool 	addChild		(vsize parent, vsize child, Lit head);
-	bool	addAtoms		(vsize modid, const std::vector<Var>& atoms);
-
-	//Add information for PC-Solver
-	void 	addVar			(vsize modid, Var v);
-	bool 	addClause		(vsize modid, vec<Lit>& lits);
-	bool 	addRule			(vsize modid, bool conj, Lit head, vec<Lit>& lits);
-	bool 	addSet			(vsize modid, int set_id, vec<Lit>& lits, std::vector<Weight>& w);
-	bool 	addAggrExpr		(vsize modid, Lit head, int set_id, const Weight& bound, AggSign boundsign, AggType type, AggSem defined);
+	bool	add		(int modid, Var v);
+	bool	add		(int modid, const InnerDisjunction& sentence);
+	bool	add		(int modid, const InnerRule& sentence);
+	bool	add		(int modid, const InnerWSet& sentence);
+	bool	add		(int modid, const InnerAggregate& sentence);
+	bool	add		(int modid, const InnerRigidAtoms& sentence);
+	bool	add		(int modid, const InnerSubTheory& sentence);
 
 	//Get information on hierarchy
 	ModSolver* getModSolver	(vsize modid) const { checkexistsModSolver(modid); return solvers[modid];}
@@ -81,6 +78,7 @@ public:
 	void 	printStatistics	() const { std::clog <<"Statistics printing not implemented for modal solver.\n";}
 
 private:
+	ModSolver& getModSolverDuringAdding(int modid);
 	void	verifyHierarchy		();
 	void	checkexistsModSolver(vsize modid) const;
 	bool	existsModSolver		(vsize modid) const { return modid<solvers.size() && solvers[modid]!=NULL; }

@@ -60,9 +60,9 @@ void AggSolver::notifyVarAdded(uint64_t nvars) {
 	}
 }
 
-void AggSolver::notifyDefinedHead(Var head){
+void AggSolver::notifyDefinedHead(Var head, int defID){
 	assert(isInitializing());
-	getPCSolver().notifyAggrHead(head);
+	getPCSolver().notifyAggrHead(head, defID);
 }
 
 // WATCH MANIPULATION
@@ -73,12 +73,11 @@ void AggSolver::setHeadWatch(Lit head, Agg* agg) {
 	lit2headwatchlist[toInt(head)] = agg;
 }
 
-void AggSolver::removeHeadWatch(Var head) {
+void AggSolver::removeHeadWatch(Var head, int defID) {
 	assert(isInitializing());
-	//delete headwatches[x];
 	lit2headwatchlist[toInt(createNegativeLiteral(head))] = NULL;
 	lit2headwatchlist[toInt(createPositiveLiteral(head))] = NULL;
-	getPCSolver().removeAggrHead(head);
+	getPCSolver().removeAggrHead(head, defID);
 }
 
 void AggSolver::addStaticWatch(Var v, Watch* w) {
@@ -150,13 +149,13 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 	return true;
 }
 
-bool AggSolver::addAggrExpr(Var headv, int setid, const Weight& bound, AggSign boundsign, AggType type, AggSem headeq) {
+bool AggSolver::addAggrExpr(Var headv, int setid, const Weight& bound, AggSign boundsign, AggType type, AggSem sem, int defid) {
 	assert(isParsing());
 	AggBound b(boundsign, bound);
-	return addAggrExpr(headv, setid, b, type, headeq);
+	return addAggrExpr(headv, setid, b, type, sem, defid);
 }
 
-bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType type, AggSem headeq){
+bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType type, AggSem sem, int defid){
 	assert(isParsing());
 	if (parsedSets.find(setid) == parsedSets.end()) { //Exception if does not already exist
 		char s[100];
@@ -204,7 +203,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType
 	//the head of the aggregate
 	Lit head = mkLit(headv, false);
 
-	Agg* agg = new Agg(head, AggBound(bound),headeq, type);
+	Agg* agg = new Agg(head, AggBound(bound),sem, defid, type);
 	set->addAgg(agg);
 
 	if (verbosity() >= 2) { //Print info on added aggregate
@@ -519,7 +518,7 @@ rClause	AggSolver::propagateAtEndOfQueue(){
 	}
 
 	if(!modes().asapaggprop){
-		confl = doProp(); //FIXME initial opb propagation not done?
+		confl = doProp();
 
 		for(vector<TypedSet*>::const_iterator i=setspropagatetrail.begin(); confl==nullPtrClause && i<setspropagatetrail.end(); i++){
 			confl = (*i)->propagateAtEndOfQueue(getCurrentDecisionLevel());
@@ -724,8 +723,9 @@ bool AggSolver::addMnmz(Var headv, int setid, AggType type) {
 	case MAX:
 		prop = AggProp::getMax();
 		break;
-	case MIN:
-		//FIXME, need a minimum propagator for this (transformation into maximum not allowed for optimization purposes)
+	case MIN: //Minimization over a minimum aggregate cannot be transformed into minimization over a maximum aggregate
+		// prop = AggProp::getMin();
+		//TODO need a minimum propagator if we want to support this!
 		throw idpexception("Minimization of a minimum aggregate is currently not supported.\n");
 		break;
 	case PROD:
@@ -741,7 +741,7 @@ bool AggSolver::addMnmz(Var headv, int setid, AggType type) {
 
 	Weight max = prop->getMaxPossible(*set);
 
-	Agg* ae = new Agg(head, AggBound(AGGSIGN_UB, max+1), COMP, type);
+	Agg* ae = new Agg(head, AggBound(AGGSIGN_UB, max+1), COMP, 0, type);
 	ae->setOptim();
 	set->addAgg(ae);
 

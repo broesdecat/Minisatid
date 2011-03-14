@@ -29,9 +29,7 @@ bool 	isPositive(Lit l);
 Lit 	createNegativeLiteral(Var i);
 Lit 	createPositiveLiteral(Var i);
 
-///////
 // Internal weighted literal
-///////
 
 class WL {  // Weighted literal
 private:
@@ -54,6 +52,83 @@ bool compareWLByLits(const WL& one, const WL& two);
 
 //Compare WLs by their weights
 bool compareWLByWeights(const WL& one, const WL& two);
+
+class InnerDisjunction{
+public:
+	vec<Lit> literals;
+};
+
+class InnerEquivalence{
+public:
+	Lit	head;
+	vec<Lit> literals;
+	bool conjunctive;
+};
+
+class InnerRule{
+public:
+	Var head;
+	vec<Lit> body;
+	bool conjunctive;
+	int definitionID;
+};
+
+class InnerSet{
+public:
+	int setID;
+	std::vector<Lit> literals;
+};
+
+class InnerWSet{
+public:
+	int setID;
+	std::vector<Lit> literals;
+	std::vector<Weight> weights;
+};
+
+class InnerAggregate{
+public:
+	Var head;
+	int setID;
+	Weight bound;
+	AggType type;
+	AggSign sign;
+	AggSem sem;
+	int defID; //Only relevant if defined aggregate
+};
+
+class InnerMinimizeOrderedList{
+public:
+	vec<Lit> literals;
+};
+
+class InnerMinimizeSubset{
+public:
+	vec<Lit> literals;
+};
+
+class InnerMinimizeAgg{
+public:
+	Var head;
+	int setid;
+	AggType type;
+};
+
+class InnerForcedChoices{
+public:
+	vec<Lit> forcedchoices;
+};
+
+class InnerRigidAtoms{
+public:
+	std::vector<Var> rigidatoms;
+};
+
+class InnerSubTheory{
+public:
+	int child;
+	Lit head;
+};
 
 }
 

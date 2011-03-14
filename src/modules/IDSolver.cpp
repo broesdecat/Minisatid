@@ -77,7 +77,7 @@ void IDSolver::notifyVarAdded(uint64_t nvars) {
  * If only one body literal, the clause is always made conjunctive (for algorithmic correctness later on), semantics are the same.
  */
 bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
-	assert(!isInitialized()); //Rules might be added before initialization is done (FIXME in fact before finishparsing here has been called, so should correct it)
+	assert(!isInitialized());
 	if (!isPositive(head)) {
 		throw idpexception("Negative heads are not allowed.\n");
 	}
@@ -91,9 +91,9 @@ bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
 
 	if (ps.size() == 0) {
 		Lit h = conj ? head : ~head; //empty set conj = true, empty set disj = false
-		vec<Lit> v;
-		v.push(h);
-		notunsat = getPCSolver().addClause(v);
+		InnerDisjunction v;
+		v.literals.push(h);
+		notunsat = getPCSolver().add(v);
 	} else {
 		//rules with only one body atom have to be treated as conjunctive
 		conj = conj || ps.size() == 1;
@@ -101,7 +101,13 @@ bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
 		PropRule* r = new PropRule(head, ps);
 		createDefinition(var(head), r, conj?CONJ:DISJ);
 
-		notunsat = getPCSolver().addEquivalence(head, ps, conj);
+		InnerEquivalence eq;
+		eq.head = head;
+		for(int i=0; i<ps.size(); i++){
+			eq.literals.push(ps[i]);
+		}
+		eq.conjunctive = conj;
+		notunsat = getPCSolver().add(eq);
 	}
 	return notunsat;
 }
@@ -448,7 +454,7 @@ bool IDSolver::simplifyGraph(){
 		return true;
 	}
 
-	//If calling multiple times, but was to costly so removed from the algorithm
+	//The next is a check on when to do the simplification again
 	assert(getPCSolver().getDecisions().size()==0);
 	int currenttrailsize = getPCSolver().getTrail().size();
 	if (currenttrailsize == previoustrailatsimp) {
@@ -573,7 +579,6 @@ bool IDSolver::simplifyGraph(){
 	defdVars.insert(defdVars.begin(), reducedVars.begin(), reducedVars.end());
 
 	//reconstruct the disj and conj occurs with the reduced number of definitions
-	//FIXME rather costly?
 	_disj_occurs.clear();
 	_conj_occurs.clear();
 	_disj_occurs.resize(2*nVars());
@@ -721,8 +726,7 @@ rClause IDSolver::propagateAtEndOfQueue() {
 		return nullPtrClause;
 	}
 /*
-	//Testing new heuristic!
-	//FIXME: Too slow!
+	//Testing new heuristic! => this implementation is TOO slow
 	const vec<Lit>& trail = getPCSolver().getTrail();
 	int recentindex = getPCSolver().getStartLastLevel();
 	for (int i = recentindex; i < trail.size(); i++) {
@@ -894,7 +898,7 @@ void IDSolver::checkJustification(Var head) {
 
 	//Incorrect to prune out heads in which Lit is not the justification
 
-	//FIXME option? getPCSolver().varBumpActivity(head);
+	//Possible heuristic: getPCSolver().varBumpActivity(head);
 
 	vec<Lit> jstf;
 	bool external = true;
@@ -1788,7 +1792,7 @@ bool IDSolver::isWellFoundedModel() {
 	}
 
 	// Initialize scc of full dependency graph
-	//FIXME also here use reduce memory overhead by only using it for defined variables!
+	//TODO also here use reduce memory overhead by only using it for defined variables!
 	wfroot.resize(nVars(), -1);
 	vector<Var> rootofmixed;
 	wfisMarked.resize(nVars(), false);

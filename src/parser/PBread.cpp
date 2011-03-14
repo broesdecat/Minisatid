@@ -65,10 +65,17 @@ void DefaultCallback::beginObjective() {
  */
 void DefaultCallback::endObjective() {
 	setid++;
-	getSolver()->addSet(setid, lw);
-	lw.clear();
+	wset.setID = setid;
+	getSolver()->add(wset);
+	wset = WSet();
+
+	MinimizeAgg mnm;
 	int newvar = ++maxvar;
-	getSolver()->addMinimize(Atom(newvar), setid, SUM);
+	mnm.head = Atom(newvar);
+	mnm.setid = setid;
+	mnm.type = SUM;
+	getSolver()->add(mnm);
+
 }
 
 /**
@@ -78,7 +85,8 @@ void DefaultCallback::endObjective() {
  * @param idVar: the numerical identifier of the variable
  */
 void DefaultCallback::objectiveTerm(IntegerType coeff, int idVar) {
-	lw.push_back(WLtuple(createLiteralFromOPBVar(idVar), coeff));
+	wset.literals.push_back(createLiteralFromOPBVar(idVar));
+	wset.weights.push_back(coeff);
 }
 
 /**
@@ -96,29 +104,43 @@ void DefaultCallback::objectiveProduct(IntegerType coeff, vector<int> list) {
 
 void DefaultCallback::beginConstraint() {
 	//cout << "constraint: ";
+	assert(wset.literals.size()==0);
 }
 
 void DefaultCallback::endConstraint() {
 	setid++;
-	getSolver()->addSet(setid, lw);
-	lw.clear();
+	wset.setID = setid;
+	getSolver()->add(wset);
+	wset = WSet();
+
 	int newvar = ++maxvar;
-	vector<Literal> lits;
+	Disjunction clause;
+	Aggregate agg;
+	agg.sem = COMP;
+	agg.bound = bound;
+	agg.setID = setid;
+	agg.type = SUM;
 	if(equality){
-		getSolver()->addAggrExpr(Literal(newvar), setid, bound, AGGSIGN_LB, SUM, COMP);
-		lits.clear();
-		lits.push_back(Literal(newvar));
-		getSolver()->addClause(lits);
+		agg.head = Atom(newvar);
+		agg.sign = AGGSIGN_LB;
+		getSolver()->add(agg);
+		clause.literals.clear();
+		clause.literals.push_back(Literal(newvar));
+		getSolver()->add(clause);
 		newvar = ++maxvar;
-		getSolver()->addAggrExpr(Literal(newvar), setid, bound, AGGSIGN_UB, SUM, COMP);
-		lits.clear();
-		lits.push_back(Literal(newvar));
-		getSolver()->addClause(lits);
+		agg.head = Atom(newvar);
+		agg.sign = AGGSIGN_UB;
+		getSolver()->add(agg);
+		clause.literals.clear();
+		clause.literals.push_back(Literal(newvar));
+		getSolver()->add(clause);
 	}else{
-		getSolver()->addAggrExpr(Literal(newvar), setid, bound, AGGSIGN_LB, SUM, COMP);
-		lits.clear();
-		lits.push_back(Literal(newvar));
-		getSolver()->addClause(lits);
+		agg.head = Atom(newvar);
+		agg.sign = AGGSIGN_LB;
+		getSolver()->add(agg);
+		clause.literals.clear();
+		clause.literals.push_back(Literal(newvar));
+		getSolver()->add(clause);
 	}
 }
 
@@ -133,7 +155,8 @@ Literal DefaultCallback::createLiteralFromOPBVar(int var){
  * @param idVar: the numerical identifier of the variable
  */
 void DefaultCallback::constraintTerm(IntegerType coeff, int idVar) {
-	lw.push_back(WLtuple(createLiteralFromOPBVar(idVar), coeff));
+	wset.literals.push_back(createLiteralFromOPBVar(idVar));
+	wset.weights.push_back(coeff);
 }
 
 /**

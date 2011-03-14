@@ -21,9 +21,7 @@ using namespace std;
 using namespace MinisatID;
 using namespace MinisatID::Print;
 
-///////
 // REMAPPER
-///////
 
 Var Remapper::getVar(const Atom& atom){
 	if(atom.getValue()<1){
@@ -134,12 +132,6 @@ void WLSImpl::checkAtoms(const vector<Atom>& atoms, vector<Var>& ll){
 	for(vector<Atom>::const_iterator i=atoms.begin(); i<atoms.end(); i++){
 		ll.push_back(checkAtom(*i));
 	}
-}
-
-void WPCLSImpl::addForcedChoices(const vector<Literal> lits){
-	vec<Lit> ll;
-	checkLits(lits, ll);
-	getSolver()->addForcedChoices(ll);
 }
 
 bool WLSImpl::finishParsing(){
@@ -277,6 +269,7 @@ vector<Literal> WLSImpl::getBackMappedModel(const vec<Lit>& model) const{
 	return outmodel;
 }
 
+
 // PROP SOLVER PIMPL
 
 WPCLSImpl::WPCLSImpl(const SolverOption& modes)
@@ -287,81 +280,93 @@ WPCLSImpl::~WPCLSImpl(){
 	delete solver;
 }
 
-void WPCLSImpl::addVar(Atom v){
-	Var newv = checkAtom(v);
-	getSolver()->addVar(newv);
+bool WPCLSImpl::add(const Atom& v){
+	return getSolver()->add(checkAtom(v));
 }
 
-bool WPCLSImpl::addClause(vector<Literal>& lits){
-	vec<Lit> ll;
-	checkLits(lits, ll);
-	return getSolver()->addClause(ll);
+bool WPCLSImpl::add(const Disjunction& sentence){
+	InnerDisjunction d;
+	checkLits(sentence.literals, d.literals);
+	return getSolver()->add(d);
 }
-
-bool WPCLSImpl::addEquivalence(const Literal& head, const vector<Literal>& body, bool conj){
-	Lit h = checkLit(head);
-	vec<Lit> b;
-	checkLits(body, b);
-	return getSolver()->addEquivalence(h, b, conj);
+bool WPCLSImpl::add(const DisjunctionRef& sentence){
+	InnerDisjunction d;
+	checkLits(sentence.literals, d.literals);
+	return getSolver()->add(d);
 }
-
-bool WPCLSImpl::addRule(bool conj, Literal head, const vector<Literal>& lits){
-	Lit newhead = checkLit(head);
-	vec<Lit> ll;
-	checkLits(lits, ll);
-	return getSolver()->addRule(conj, newhead, ll);
+bool WPCLSImpl::add(const Equivalence& sentence){
+	InnerEquivalence eq;
+	eq.head = checkLit(sentence.head);
+	checkLits(sentence.literals, eq.literals);
+	eq.conjunctive = sentence.conj;
+	return getSolver()->add(eq);
 }
-
-bool WPCLSImpl::addRuleToID(int defid, bool conj, Literal head, const vector<Literal>& lits){
-	Lit newhead = checkLit(head);
-	vec<Lit> ll;
-	checkLits(lits, ll);
-	return getSolver()->addRuleToID(defid, conj, newhead, ll);
+bool WPCLSImpl::add(const Rule& sentence){
+	InnerRule rule;
+	rule.head = checkAtom(sentence.head);
+	rule.definitionID = sentence.definitionID;
+	rule.conjunctive = sentence.conjunctive;
+	checkLits(sentence.body, rule.body);
+	return getSolver()->add(rule);
 }
-
-bool WPCLSImpl::addSet(int id, const vector<Literal>& lits){
-	vec<Lit> ll;
-	checkLits(lits, ll);
-	return getSolver()->addSet(id, ll);
+bool WPCLSImpl::add(const Set& sentence){
+	InnerWSet set;
+	set.setID = sentence.setID;
+	checkLits(sentence.literals, set.literals);
+	set.weights.resize(set.literals.size(), 1);
+	return getSolver()->add(set);
 }
-
-//Might be implemented more efficiently in the future
-bool WPCLSImpl::addSet(int id, const vector<WLtuple>& lws){
-	vector<Literal> lits;
-	lits.reserve(lws.size());
-	vector<Weight> weights;
-	weights.reserve(lws.size());
-
-	for(vector<WLtuple>::const_iterator i=lws.begin(); i<lws.end(); i++){
-		lits.push_back((*i).l);
-		weights.push_back((*i).w);
+bool WPCLSImpl::add(const WSet& sentence){
+	InnerWSet set;
+	set.setID = sentence.setID;
+	checkLits(sentence.literals, set.literals);
+	set.weights = sentence.weights;
+	return getSolver()->add(set);
+}
+bool WPCLSImpl::add(const WLSet& sentence){
+	InnerWSet set;
+	set.setID = sentence.setID;
+	for(vector<WLtuple>::const_iterator i=sentence.wl.begin(); i<sentence.wl.end(); i++){
+		set.literals.push_back(checkLit((*i).l));
+		set.weights.push_back((*i).w);
 	}
-
-	return addSet(id, lits, weights);
+	return getSolver()->add(set);
+}
+bool WPCLSImpl::add(const Aggregate& sentence){
+	InnerAggregate agg;
+	agg.setID = sentence.setID;
+	agg.head = checkAtom(sentence.head);
+	agg.bound = sentence.bound;
+	agg.type = sentence.type;
+	agg.sign = sentence.sign;
+	agg.sem = sentence.sem;
+	agg.defID = sentence.defID;
+	return getSolver()->add(agg);
+}
+bool WPCLSImpl::add(const MinimizeSubset& sentence){
+	InnerMinimizeSubset mnm;
+	checkLits(sentence.literals, mnm.literals);
+	return getSolver()->add(mnm);
+}
+bool WPCLSImpl::add(const MinimizeOrderedList& sentence){
+	InnerMinimizeOrderedList mnm;
+	checkLits(sentence.literals, mnm.literals);
+	return getSolver()->add(mnm);
+}
+bool WPCLSImpl::add(const MinimizeAgg& sentence){
+	InnerMinimizeAgg mnm;
+	mnm.head = checkAtom(sentence.head);
+	mnm.setid = sentence.setid;
+	mnm.type = sentence.type;
+	return getSolver()->add(mnm);
+}
+bool WPCLSImpl::add(const ForcedChoices& sentence){
+	InnerForcedChoices choices;
+	checkLits(sentence.forcedchoices, choices.forcedchoices);
+	return getSolver()->add(choices);
 }
 
-bool WPCLSImpl::addSet(int id, const vector<Literal>& lits, const vector<Weight>& w){
-	vec<Lit> ll;
-	checkLits(lits, ll);
-	return getSolver()->addSet(id, ll, w);
-}
-
-bool WPCLSImpl::addAggrExpr(Literal head, int setid, const Weight& bound, AggSign sign, AggType type, AggSem sem){
-	return getSolver()->addAggrExpr(checkLit(head), setid, bound, sign, type, sem);
-}
-
-bool WPCLSImpl::addMinimize(const vector<Literal>& lits, bool subsetmnmz){
-	vec<Lit> ll;
-	checkLits(lits, ll);
-	setOptimization(true);
-	return getSolver()->addMinimize(ll, subsetmnmz);
-}
-
-bool WPCLSImpl::addMinimize(const Atom head, const int setid, AggType type){
-	setOptimization(true);
-    return getSolver()->addMinimize(checkAtom(head), setid, type);
-}
-
+/*
 bool WPCLSImpl::addIntVar(int groundname, int min, int max){
 	return getSolver()->addIntVar(groundname, min, max);
 }
@@ -396,7 +401,7 @@ bool WPCLSImpl::addCPCount(const vector<int>& termnames, int value, EqType rel, 
 
 bool WPCLSImpl::addCPAlldifferent(const vector<int>& termnames){
 	return getSolver()->addCPAlldifferent(termnames);
-}
+}*/
 
 // MODAL SOLVER
 
@@ -408,57 +413,71 @@ WSOLSImpl::~WSOLSImpl(){
 	delete solver;
 }
 
-void WSOLSImpl::addVar(vsize modid, Atom v){
-	getSolver()->addVar(modid, checkAtom(v));
+bool WSOLSImpl::add(int modid, const Atom& v){
+	return getSolver()->add(modid, checkAtom(v));
 }
 
-bool WSOLSImpl::addClause(vsize modid, vector<Literal>& lits){
-	vec<Lit> ll;
-	checkLits(lits, ll);
-	return getSolver()->addClause(modid, ll);
+bool WSOLSImpl::add(int modid, const Disjunction& sentence){
+	InnerDisjunction d;
+	checkLits(sentence.literals, d.literals);
+	return getSolver()->add(modid, d);
 }
-
-bool WSOLSImpl::addRule(vsize modid, bool conj, Literal head, vector<Literal>& lits){
-	vec<Lit> ll;
-	checkLits(lits, ll);
-	return getSolver()->addRule(modid, conj, checkLit(head), ll);
+bool WSOLSImpl::add(int modid, const DisjunctionRef& sentence){
+	InnerDisjunction d;
+	checkLits(sentence.literals, d.literals);
+	return getSolver()->add(modid, d);
 }
-
-bool WSOLSImpl::addSet(vsize modid, int id, vector<Literal>& lits, vector<Weight>& w){
-	vec<Lit> ll;
-	checkLits(lits, ll);
-	return getSolver()->addSet(modid, id, ll, w);
+bool WSOLSImpl::add(int modid, const Rule& sentence){
+	InnerRule rule;
+	rule.head = checkAtom(sentence.head);
+	rule.definitionID = sentence.definitionID;
+	rule.conjunctive = sentence.conjunctive;
+	checkLits(sentence.body, rule.body);
+	return getSolver()->add(modid, rule);
 }
-
-//Might be implemented more efficiently in the future
-bool WSOLSImpl::addSet(vsize modid, int id, vector<WLtuple>& lws){
-	vector<Literal> lits;
-	lits.reserve(lws.size());
-	vector<Weight> weights;
-	weights.reserve(lws.size());
-
-	for(vector<WLtuple>::const_iterator i=lws.begin(); i<lws.end(); i++){
-		lits.push_back((*i).l);
-		weights.push_back((*i).w);
+bool WSOLSImpl::add(int modid, const Set& sentence){
+	InnerWSet set;
+	set.setID = sentence.setID;
+	checkLits(sentence.literals, set.literals);
+	set.weights.resize(set.literals.size(), 1);
+	return getSolver()->add(modid, set);
+}
+bool WSOLSImpl::add(int modid, const WSet& sentence){
+	InnerWSet set;
+	set.setID = sentence.setID;
+	checkLits(sentence.literals, set.literals);
+	set.weights = sentence.weights;
+	return getSolver()->add(modid, set);
+}
+bool WSOLSImpl::add(int modid, const WLSet& sentence){
+	InnerWSet set;
+	set.setID = sentence.setID;
+	for(vector<WLtuple>::const_iterator i=sentence.wl.begin(); i<sentence.wl.end(); i++){
+		set.literals.push_back(checkLit((*i).l));
+		set.weights.push_back((*i).w);
 	}
-
-	vec<Lit> ll;
-	checkLits(lits, ll);
-
-	return addSet(modid, id, lits, weights);
+	return getSolver()->add(modid, set);
+}
+bool WSOLSImpl::add(int modid, const Aggregate& sentence){
+	InnerAggregate agg;
+	agg.setID = sentence.setID;
+	agg.head = checkAtom(sentence.head);
+	agg.bound = sentence.bound;
+	agg.type = sentence.type;
+	agg.sign = sentence.sign;
+	agg.sem = sentence.sem;
+	agg.defID = sentence.defID;
+	return getSolver()->add(modid, agg);
 }
 
-bool WSOLSImpl::addAggrExpr(vsize modid, Literal head, int setid, const Weight& bound, AggSign sign, AggType type, AggSem sem){
-	return getSolver()->addAggrExpr(modid, checkLit(head), setid, bound, sign, type, sem);
+bool WSOLSImpl::add(int modalid, const RigidAtoms& sentence){
+	InnerRigidAtoms rigid;
+	checkAtoms(sentence.rigidatoms, rigid.rigidatoms);
+	return getSolver()->add(modalid, rigid);
 }
-
-//Add information for hierarchy
-bool WSOLSImpl::addChild(vsize parent, vsize child, Literal head){
-	return getSolver()->addChild(parent, child, checkLit(head));
-}
-
-bool WSOLSImpl::addAtoms(vsize modid, const vector<Atom>& atoms){
-	vector<Var> aa;
-	checkAtoms(atoms, aa);
-	return getSolver()->addAtoms(modid, aa);
+bool WSOLSImpl::add(int modalid, const SubTheory& sentence){
+	InnerSubTheory subtheory;
+	subtheory.child = sentence.child;
+	subtheory.head = checkLit(sentence.head);
+	return getSolver()->add(modalid, subtheory);
 }
