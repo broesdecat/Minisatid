@@ -238,7 +238,6 @@ void WLSImpl::notifyTimeout(){
 
 void WLSImpl::addModel(const vec<Lit>& model){
 	vector<Literal> outmodel(getBackMappedModel(model));
-
 	getSolution().addModel(outmodel, hasOptimization());
 
 	if(getSolution().getPrintOption()==PRINT_ALL || (!hasOptimization() && getSolution().getPrintOption()==PRINT_BEST)){
@@ -250,10 +249,10 @@ void WLSImpl::addModel(const vec<Lit>& model){
 			}
 			getTranslator().printHeader(output);
 		}
-		if(!hasOptimization()){
-			printNbModels(clog, getNbModelsFound(), verbosity());
-		}
 		getTranslator().printModel(output, outmodel);
+	}
+	if(!hasOptimization()){
+		printNbModels(clog, getNbModelsFound(), verbosity());
 	}
 }
 
@@ -352,11 +351,13 @@ bool WPCLSImpl::add(const Aggregate& sentence){
 bool WPCLSImpl::add(const MinimizeSubset& sentence){
 	InnerMinimizeSubset mnm;
 	checkLits(sentence.literals, mnm.literals);
+	setOptimization(true);
 	return getSolver()->add(mnm);
 }
 bool WPCLSImpl::add(const MinimizeOrderedList& sentence){
 	InnerMinimizeOrderedList mnm;
 	checkLits(sentence.literals, mnm.literals);
+	setOptimization(true);
 	return getSolver()->add(mnm);
 }
 bool WPCLSImpl::add(const MinimizeAgg& sentence){
@@ -364,6 +365,7 @@ bool WPCLSImpl::add(const MinimizeAgg& sentence){
 	mnm.head = checkAtom(sentence.head);
 	mnm.setid = sentence.setid;
 	mnm.type = sentence.type;
+	setOptimization(true);
 	return getSolver()->add(mnm);
 }
 bool WPCLSImpl::add(const ForcedChoices& sentence){

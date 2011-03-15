@@ -207,9 +207,7 @@ header	: 	/*empty*/
 		| 	header MNMZPRESENT
 		;
 		
-//---------------------------------------------		
-// CNF THEORY	
-//---------------------------------------------
+// CNF THEORY
 		
 cnftheory	
 		: 	modalcnf { finishCNFHeader(); } cnfclause

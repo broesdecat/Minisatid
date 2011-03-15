@@ -44,13 +44,20 @@ ModSolver::ModSolver(modindex child, Var head, SOSolver* mh):
 	trail.push_back(vector<Lit>());
 }
 
+void ModSolver::addModel(const vec<Lit>& model){
+	if(getNonConstModSolverData().isRoot(this)){
+		getNonConstModSolverData().addModel(model);
+	}
+	WLSImpl::addModel(model);
+}
+
 ModSolver::~ModSolver(){
 	delete solver;
 }
 
 bool ModSolver::add(Var var){
 	if(getModSolverData().modes().verbosity>5){
-		report("Var %d added to modal solver %zu.\n", var, getPrintId());
+		report("Var %d added to modal solver %zu.\n", getPrintableVar(var), getPrintId());
 	}
 	return getPCSolver().add(var);
 }
@@ -114,7 +121,7 @@ bool ModSolver::add(const InnerRigidAtoms& rigid){
  * parent solver, as well as this solver as a child and the head as a variable.
  */
 void ModSolver::setParent(modindex parentid){
-	parentid = parentid; hasparent = true;
+	this->parentid = parentid; hasparent = true;
 	pModSolver parent = getModSolverData().getModSolver(getParentId());
 	for(vector<Var>::const_iterator i=atoms.begin(); i<atoms.end(); i++){
 		parent->add(*i);
@@ -123,9 +130,6 @@ void ModSolver::setParent(modindex parentid){
 	parent->add(head.atom);
 }
 
-/**
- * Adds a modal solver as a child of this solver, by id.
- */
 bool ModSolver::addChild(int childid){
 	children.push_back(childid);
 	return true;
@@ -151,7 +155,17 @@ void ModSolver::finishParsingDown(bool& present, bool& unsat){
  * Tells the root solver to do model expansion on his theory
  */
 bool ModSolver::solve(const vec<Lit>& assumptions, const ModelExpandOptions& options){
-	return getPCSolver().solve(assumptions, options);
+	ModelExpandOptions modoptions;
+	modoptions.printmodels = PRINT_NONE;
+	modoptions.savemodels = SAVE_NONE;
+	modoptions.search = MODELEXPAND;
+	modoptions.nbmodelstofind = options.nbmodelstofind;
+	Solution* s = new Solution(modoptions);
+	setSolution(s);
+	bool result = getPCSolver().solve(assumptions, modoptions);
+	setSolution(NULL);
+	delete s;
+	return result;
 }
 
 /*
@@ -213,7 +227,11 @@ bool ModSolver::search(const vec<Lit>& assumpts, bool search){
 	options.savemodels = SAVE_NONE;
 	options.search = MODELEXPAND;
 	options.nbmodelstofind = 1;
+	Solution* s = new Solution(options);
+	setSolution(s);
 	result = getPCSolver().solve(assumpts, options);
+	setSolution(NULL);
+	delete s;
 	searching = false;
 	return result;
 }
@@ -326,15 +344,14 @@ bool ModSolver::propagateDownAtEndOfQueue(vec<Lit>& confldisj){
 		allknown = true;
 	}
 
+	getPCSolver().saveState(); //IMPORTANT
 	bool result = search(assumptions, allknown);
-
 	result = analyzeResult(result, allknown, confldisj);
+	getPCSolver().resetState();
 
 	if(getModSolverData().modes().verbosity>4){
 		report("Finished checking solver %zu: %s.\n", getPrintId(), result?"no conflict":"conflict");
 	}
-
-	getPCSolver().backtrackTo(0);
 
 	return result;
 }
@@ -423,7 +440,7 @@ bool ModSolver::analyzeResult(bool result, bool allknown, vec<Lit>& confldisj){
 		assert(confldisj.size()>0);
 	}
 
-	return !confldisj;
+	return !conflict;
 }
 
 void ModSolver::print() const{

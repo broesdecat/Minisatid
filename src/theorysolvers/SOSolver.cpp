@@ -44,6 +44,14 @@ bool SOSolver::solve(const vec<Lit>& assumptions, const ModelExpandOptions& opti
 	return solvers[0]->solve(assumptions, options);
 }
 
+bool SOSolver::isRoot(const ModSolver* solver) const{
+	return solvers[0]==solver;
+}
+
+void SOSolver::addModel(const vec<Lit>& model){
+	getParent().addModel(model);
+}
+
 void SOSolver::finishParsing(bool& present, bool& unsat){
 	assert(state==LOADINGREST);
 	state = ALLLOADED;
@@ -69,10 +77,6 @@ bool SOSolver::add(int modid, const InnerSubTheory& subtheory){
 
 	int child = subtheory.child;
 	checkexistsModSolver(modid);
-	if(existsModSolver(child)){
-		char s[100]; sprintf(s, ">> Modal operator with id %zu was already defined!\n", child+1);
-		throw idpexception(s);
-	}
 	if(sign(subtheory.head)){
 		char s[100]; sprintf(s, ">> Modal operator %zu has a negative head.\n", child+1);
 		throw idpexception(s);

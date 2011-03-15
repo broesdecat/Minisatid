@@ -162,6 +162,23 @@ bool Solver::totalModelFound(){
 	return v==var_Undef;
 }
 
+bool Solver::addClause(vec<Lit>& ps, Clause& newclause){
+	assert(decisionLevel() == 0);
+
+	if (!ok){
+		return false;
+	}
+	sort(ps);
+	assert(ps.size()>1);
+
+	Clause* c = Clause_new(ps, false);
+	clauses.push(c);
+	attachClause(*c);
+	newclause = *c;
+
+	return true;
+}
+
 /*AE*/
 
 

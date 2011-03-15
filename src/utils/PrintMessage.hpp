@@ -108,6 +108,13 @@ namespace Print{
 	}
 
 	template<class T>
+	void printNoModels(T& stream, int verbosity = 1000){
+		if (verbosity >= 1) {
+			stream <<"> No models exist.\n";
+		}
+	}
+
+	template<class T>
 	void printModuleNotPresent(T& stream, std::string name, int verbosity = 1000){
 		if (verbosity > 0) {
 			stream <<">    (there will be no propagations on " <<name <<" module)\n";
@@ -125,10 +132,25 @@ namespace Print{
 	void printUnsatFoundDuringParsing(T& stream, int verbosity = 1000){
 		stream << "> Unsat detected during parsing.\n";
 	}
+
 	template<class T>
 	void printSetWatchRatio(T& stream, int setid, double ratio, int verbosity = 1000){
 		if(verbosity>=4){
 			stream <<"> Set " <<setid <<": watch ratio of " <<ratio <<"\n";
+		}
+	}
+
+	template<class T>
+	void printAddingClause(T& stream, const InnerDisjunction& disj, std::string modID, int verbosity = 1000){
+		if (verbosity >= 2) {
+			stream <<"Adding clause:";
+			for (int i = 0; i < disj.literals.size(); i++) {
+				stream <<" " <<disj.literals[i];
+			}
+			if(modID != ""){
+				stream <<" to modal solver " <<modID <<" ";
+			}
+			stream <<"\n";
 		}
 	}
 }

@@ -61,29 +61,31 @@ private:
 
 public:
 /*AB*/
+	template<class C>
+	void     	printClause			(const C& c) const;
+	bool    	addClause 			(vec<Lit>& ps, Clause& newclause);
 	void		addLearnedClause	(Clause* c);	// don't check anything, just add it to the clauses and bump activity
+	void     	removeClause     	(Clause& c);	// Detach and free a clause.
+	Clause* 	makeClause			(const vec<Lit>& lits, bool b){	return Clause_new(lits, b);	}
+	const Clause& 	getClause		(int i) 	const { return *clauses[i]; }
+	int			nbClauses			() 			const { return clauses.size(); }
+
 	void		cancelUntil			(int level);	// Backtrack until a certain level.
 	void		uncheckedEnqueue	(Lit p, Clause* from = NULL);				// Enqueue a literal. Assumes value of literal is undefined
 	int 		getLevel			(int var) const;
 	bool 		totalModelFound		();				//true if the current assignment is completely two-valued
 	std::vector<Lit> getDecisions		() const;
-	int			decisionLevel		() const; // Gives the current decisionlevel.
+	int			decisionLevel		() const; 		// Gives the current decisionlevel.
 	const vec<Lit>& getTrail() const { return trail; }
-	int 			getStartLastLevel() const { return trail_lim.size()==0?0:trail_lim.last(); }
-	void    	varDecayActivity	();                      // Decay all variables with the specified factor. Implemented by increasing the 'bump' value instead.
-	void     	varBumpActivity		(Var v);                 // Increase a variable with the current 'bump' value.
-	void     	claDecayActivity	();                      // Decay all clauses with the specified factor. Implemented by increasing the 'bump' value instead.
-	template<class C>
-	void     	printClause			(const C& c) const;
-	uint64_t    nbVars				() const;       // The current number of variables.
+	int 		getStartLastLevel() const { return trail_lim.size()==0?0:trail_lim.last(); }
+	void    	varDecayActivity	();				// Decay all variables with the specified factor. Implemented by increasing the 'bump' value instead.
+	void     	varBumpActivity		(Var v);		// Increase a variable with the current 'bump' value.
+	void     	claDecayActivity	();				// Decay all clauses with the specified factor. Implemented by increasing the 'bump' value instead.
+	uint64_t    nbVars				() const;		// The current number of variables.
 	void		printStatistics		() const ;
-	Clause* 	makeClause(const vec<Lit>& lits, bool b){	return Clause_new(lits, b);	}
-	const Clause& 	getClause		(int i) const { return *clauses[i]; }
-	int			nbClauses			() const { return clauses.size(); }
-	void		addForcedChoices	(const vec<Lit>& fc) { fc.copyTo(forcedchoices); }
-	void		disableHeur			() { useheur = false; }
+	void		addForcedChoices	(const vec<Lit>& fc) { reportf("Not supported by solver!\n"); exit(-1);  }
+	void		disableHeur			() { reportf("Not supported by solver!\n"); exit(-1); }
 	bool     	isDecisionVar(Var v) const { return decision_var[v]; }
-	//vector<Clause*> getClausesWhichOnlyContain(const vector<Var>& vars);
 /*AE*/
 
     // Constructor/Destructor:
@@ -222,7 +224,7 @@ protected:
     //
     void     attachClause     (Clause& c);             // Attach a clause to watcher lists.
     void     detachClause     (Clause& c);             // Detach a clause to watcher lists.
-    void     removeClause     (Clause& c);             // Detach and free a clause.
+    /*AB*///void     removeClause     (Clause& c);             // Detach and free a clause./*AE*/
     bool     locked           (const Clause& c) const; // Returns TRUE if a clause is a reason for some implication in the current state.
     bool     satisfied        (const Clause& c) const; // Returns TRUE if a clause is satisfied in the current state.
 

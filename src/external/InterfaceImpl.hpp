@@ -77,7 +77,7 @@ public:
 
 	bool 	hasOptimization	() const { return optimization; }
 	bool 	solve			(Solution* sol);
-	void 	addModel		(const vec<Lit>& model);
+	virtual void 	addModel		(const vec<Lit>& model);
 	void	notifyOptimalModelFound();
 
 	int		getNbModelsFound() const { return solution->getNbModelsFound(); }

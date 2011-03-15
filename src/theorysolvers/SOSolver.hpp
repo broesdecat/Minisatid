@@ -61,6 +61,8 @@ public:
 	virtual ~SOSolver		();
 
 	void 	finishParsing	(bool& present, bool& unsat);
+	bool 	isRoot			(const ModSolver* solver) const;
+	void 	addModel		(const vec<Lit>& model);
 	bool 	simplify		();
 	bool 	solve			(const vec<Lit>& assumptions, const ModelExpandOptions& options);
 

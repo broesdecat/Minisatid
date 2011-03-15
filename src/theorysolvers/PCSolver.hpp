@@ -97,9 +97,15 @@ private:
 	// FORCED CHOICES TO MAKE DURING SEARCH
 	vec<Lit> forcedchoices;
 
+	// State saving
+	int 				state_savedlevel;
+	bool 				state_savingclauses;
+	std::vector<rClause> state_savedclauses;
+
 	//Logging
 	PCLogger* logger;
 	ECNFPrinter* ecnfprinter;
+	static bool headerunprinted;
 
 	Minisat::Solver * 	getSolver	() const { return satsolver; }
 
@@ -157,27 +163,24 @@ public:
 	void		notifyAggrHead	(Var head, int defID);
 
 	bool 		assertedBefore	(const Var& l, const Var& p) const;
-	rClause		getExplanation	(Lit l);	//NON-OWNING pointer
+	rClause		getExplanation	(Lit l);			//NON-OWNING pointer
 
-
-    // Solver callbacks
 	lbool		value			(Var x) const;		// The current value of a variable.
 	lbool		value			(Lit p) const;		// The current value of a literal.
 	uint64_t	nVars			()      const;		// The current number of variables.
 
 	rClause 	createClause	(const vec<Lit>& lits, bool learned);
 	//IMPORTANT: The first literal in the clause is the one which can be propagated at moment of derivation!
-	void 		addLearnedClause(rClause c); //Propagate if clause is unit, return false if c is conflicting
-	void    	backtrackTo		(int level);	// Backtrack until a certain level.
+	void 		addLearnedClause(rClause c); 		//Propagate if clause is unit, return false if c is conflicting
+	void    	backtrackTo		(int level);		// Backtrack until a certain level.
 	void    	setTrue			(Lit p, DPLLTmodule* solver, rClause c = nullPtrClause);		// Enqueue a literal. Assumes value of literal is undefined
 
 	const vec<Lit>& getTrail	() 		const;
 	int 		getStartLastLevel() 	const;
 	int 		getLevel		(int var) const; // Returns the decision level at which a variable was deduced.
-	int			getNbDecisions	() 		const;
-
 	int			getCurrentDecisionLevel	() const;
-	std::vector<Lit>	getDecisions() 	const;
+	int			getNbDecisions	() 		const;
+	std::vector<Lit> getDecisions() 	const;
 
 	bool 		totalModelFound	(); //cannot be const!
 
@@ -187,15 +190,18 @@ public:
 	rClause 	propagate		(Lit l);
 	rClause 	propagateAtEndOfQueue();
 
-	void 		printCurrentOptimum(const Weight& value) const;
+	// MOD SOLVER support
+	void		saveState		();
+	void		resetState		();
 
 	// DEBUG
-	void		printModID() const; // SATsolver asks this to PC such that more info (modal e.g.) can be printed.
-	void 		printEnqueued(const Lit& p) const;
+	std::string getModID		() const; // SATsolver asks this to PC such that more info (modal e.g.) can be printed.
+	void 		printEnqueued	(const Lit& p) const;
 	void		printChoiceMade	(int level, Lit l) const;
-	void 		printStatistics() const;
-	void		print() const;
-	void		print(rClause clause) const;
+	void 		printStatistics	() const;
+	void		print			() const;
+	void		print			(rClause clause) const;
+	void 		printCurrentOptimum(const Weight& value) const;
 
 	const PCLogger& getLogger() const { return *logger; }
 
@@ -204,18 +210,19 @@ private:
 	bool		isInitializing	() 	const { return state==THEORY_INITIALIZING; }
 	bool		isParsing		()	const { return state==THEORY_PARSING; }
 
-	bool		hasECNFPrinter() const { return ecnfprinter!=NULL; }
-	ECNFPrinter& getECNFPrinter() { return *ecnfprinter; }
+	bool		hasECNFPrinter	() const { return ecnfprinter!=NULL; }
+	ECNFPrinter& getECNFPrinter	() { return *ecnfprinter; }
 
 	const solverlist& getSolvers() const { return solvers; }
 
-	void 		addVar(Lit l) { add(var(l)); }
-	void 		addVars(const vec<Lit>& a);
-	void 		addVars(const std::vector<Lit>& a);
+	bool		add				(InnerDisjunction& sentence, rClause& newclause);
+	void 		addVar			(Lit l) { add(var(l)); }
+	void 		addVars			(const vec<Lit>& a);
+	void 		addVars			(const std::vector<Lit>& a);
 
 	// SOLVING
 	bool 		findNext		(const vec<Lit>& assumpts, vec<Lit>& model, bool& moremodels);
-	bool    	invalidateModel	(const InnerDisjunction& clause);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
+	bool    	invalidateModel	(InnerDisjunction& clause);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
 	void 		invalidate		(InnerDisjunction& clause);
 	bool 		findModel		(const vec<Lit>& assumps, vec<Lit>& m, bool& moremodels);
 

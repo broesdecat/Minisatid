@@ -48,6 +48,8 @@ DPLLTSolver::~DPLLTSolver(){
 	}
 }
 
+bool PCSolver::headerunprinted = true;
+
 //Has to be value copy of modes!
 PCSolver::PCSolver(SolverOption modes, MinisatID::WLSImpl& inter) :
 		LogicSolver(modes, inter),
@@ -217,13 +219,7 @@ void PCSolver::addVars(const vector<Lit>& a) {
 }
 
 bool PCSolver::add(const InnerDisjunction& disj){
-	if (modes().verbosity >= 2) {
-		clog <<"Adding clause:";
-		for (int i = 0; i < disj.literals.size(); i++) {
-			clog <<" " <<disj.literals[i];
-		}
-		clog <<"\n";
-	}
+	printAddingClause(clog, disj, getModID(), verbosity());
 	addVars(disj.literals);
 
 	if(hasECNFPrinter()){
@@ -678,8 +674,12 @@ bool PCSolver::solve(const vec<Lit>& assumptions, const ModelExpandOptions& opti
 	bool moremodels = true;
 
 	if(verbosity()>=1){
-		reportf("> Conflicts |          ORIGINAL         |          LEARNT          | Progress\n");
-		reportf(">           |    Vars  Clauses Literals |    Limit  Clauses Lit/Cl |         \n");
+		clog <<">>> Search start\n";
+		if(headerunprinted){
+			clog <<"> Conflicts |          ORIGINAL         |          LEARNT          | Progress\n";
+			clog <<">           |    Vars  Clauses Literals |    Limit  Clauses Lit/Cl |         \n";
+			headerunprinted = false;
+		}
 	}
 
 	while (moremodels && (options.nbmodelstofind == 0 || getParent().getNbModelsFound() < options.nbmodelstofind)) {
@@ -699,7 +699,15 @@ bool PCSolver::solve(const vec<Lit>& assumptions, const ModelExpandOptions& opti
 	}
 
 	if(!moremodels && optim==NONE){
-		printNoMoreModels(clog, verbosity());
+		if(getParent().getNbModelsFound() == 0){
+			printNoModels(clog, verbosity());
+		}else{
+			printNoMoreModels(clog, verbosity());
+		}
+	}
+
+	if(verbosity()>=1){
+		clog <<">>> Search done\n";
 	}
 
 	return getParent().getNbModelsFound()>0;
@@ -748,31 +756,30 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, vec<Lit>& m, bool& moremodels) {
 
 void PCSolver::invalidate(InnerDisjunction& clause) {
 	// Add negation of model as clause for next iteration.
-	// add all choice literals
-	vector<Lit> v = getSolver()->getDecisions();
+	// By default: by adding all choice literals
 	vec<Lit>& invalidation = clause.literals;
-	for (vector<Lit>::const_iterator i = v.begin(); i < v.end(); i++) {
-		invalidation.push(~(*i));
-	}
-	// Remove doubles.
-	sort(invalidation);
-	Lit p = lit_Undef;
-	int i = 0, j = 0;
-	for (; i < invalidation.size(); i++) {
-		if (invalidation[i] != p) {
-			invalidation[j++] = (p = invalidation[i]);
+	if(!state_savingclauses || getSolver()->decisionLevel()>1){
+		vector<Lit> v = getSolver()->getDecisions();
+		for (vector<Lit>::const_iterator i = v.begin(); i < v.end(); i++) {
+			invalidation.push(~(*i));
+		}
+	}else{
+		//FIXME Currently, unit clauses cannot be state-saved, so if there was only one decision, we save the whole model
+		for (int var = 0; var<nVars(); var++) {
+			invalidation.push(value(var)==l_True?mkLit(var, true):mkLit(var, false));
 		}
 	}
-	invalidation.shrink(i - j);
 }
 
 /**
  * Returns false if invalidating the model leads to UNSAT, meaning that no more models are possible. Otherwise true.
  */
-bool PCSolver::invalidateModel(const InnerDisjunction& clause) {
-	//TODO: do not backtrack to 0, but do analyzefinal on learnt to check to which level to backtrack.
-	//for subsetminimize this is not so clear, because assumptions have to be added too, so maybe there backtrack to 0 is necessary (for unit propagation before search)
-	getSolver()->cancelUntil(0);
+bool PCSolver::invalidateModel(InnerDisjunction& clause) {
+	getSolver()->cancelUntil(0); // Otherwise, clauses cannot be added to the sat-solver anyway
+
+	if(state_savingclauses && clause.literals.size() == 1){
+		throw idpexception("Cannot state-save unit clauses at the moment!\n");
+	}
 
 	if (modes().verbosity >= 3) {
 		clog <<"Adding model-invalidating clause: [ ";
@@ -780,14 +787,19 @@ bool PCSolver::invalidateModel(const InnerDisjunction& clause) {
 		clog <<"]\n";
 	}
 
-	bool result = add(clause);
+	bool result;
+	if(state_savingclauses){
+		rClause newclause;
+		result = add(clause, newclause);
+		if(result){
+			state_savedclauses.push_back(newclause);
+		}
+	}else{
+		result = add(clause);
+	}
 
 	getSolver()->varDecayActivity();
 	getSolver()->claDecayActivity();
-
-	if (modes().verbosity >= 3) {
-		clog <<"Model invalidated.\n";
-	}
 
 	return result;
 }
@@ -938,24 +950,58 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
 	return modelfound && unsatreached;
 }
 
+// MOD SOLVER
+
+bool PCSolver::add(InnerDisjunction& disj, rClause& newclause){
+	printAddingClause(clog, disj, getModID(), verbosity());
+	addVars(disj.literals);
+
+	if(hasECNFPrinter()){
+		getECNFPrinter().addClause(disj.literals);
+	}
+
+	return getSolver()->addClause(disj.literals, newclause);
+}
+
+void PCSolver::saveState(){
+	state_savedlevel = getCurrentDecisionLevel();
+	state_savingclauses = true;
+}
+
+void PCSolver::resetState(){
+	backtrackTo(state_savedlevel);
+	assert(state_savedlevel == getCurrentDecisionLevel());
+	state_savingclauses = false;
+	for(vector<rClause>::const_iterator i=state_savedclauses.begin(); i<state_savedclauses.end(); i++){
+		getSolver()->removeClause(*i);
+	}
+	state_savedclauses.clear();
+}
+
 // PRINT METHODS
 
-void PCSolver::printModID() const {
-	if(getModSolver()!=NULL){
-		clog <<"mod s " <<getModSolver()->getPrintId();
+string PCSolver::getModID() const {
+	stringstream ss;
+	if(hasModSolver()){
+		ss <<getModSolver()->getPrintId();
 	}
+	return ss.str();
 }
 
 void PCSolver::printEnqueued(const Lit& p) const{
-	clog <<"> Enqueued " <<p <<" in ";
-	printModID();
+	clog <<"> Enqueued " <<p;
+	if(hasModSolver()){
+		clog <<" in modal solver " <<getModID();
+	}
 	reportf("\n");
 }
 
 void PCSolver::printChoiceMade(int level, Lit l) const {
 	if (modes().verbosity >= 2) {
 		clog <<"> Choice literal, dl " <<level <<", ";
-		printModID();
+		if(hasModSolver()){
+			clog <<" in modal solver " <<getModID();
+		}
 
 		clog <<": " <<l <<".\n";
 	}

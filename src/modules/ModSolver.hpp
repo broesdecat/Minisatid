@@ -97,6 +97,8 @@ private:
 
 	std::vector<std::vector<Lit> > trail; //Trail of propagations, necessary because backtrack is still by literal
 
+	virtual void addModel(const vec<Lit>& model);
+
 public:
 	ModSolver(modindex child, Var head, SOSolver* mh);
 	virtual ~ModSolver();
@@ -180,6 +182,8 @@ private:
 	void 		addVar			(const Lit& l)		{ add(var(l)); }
 	void 		addVars			(const vec<Lit>& a);
 	void 		addVars			(const std::vector<Lit>& a);
+
+	SOSolver& 	getNonConstModSolverData()	{ return *modhier; }
 
 	void		adaptValuesOnPropagation(Lit l);
 	void 		doUnitPropagation(const vec<Lit>&);
