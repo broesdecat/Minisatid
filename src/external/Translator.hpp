@@ -36,7 +36,10 @@ struct Type{
 };
 
 struct Symbol{
+private:
 	std::string name;
+public:
+	std::string getName(bool fodot);
 	int startnumber, endnumber;
 	std::vector<Type*> types;
 	bool isfunction;

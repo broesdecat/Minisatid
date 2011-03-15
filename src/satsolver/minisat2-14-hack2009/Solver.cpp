@@ -277,7 +277,7 @@ void Solver::detachClause(Clause& c) {
 void Solver::removeClauses(const std::vector<Clause*>& cs) {
 	int i, j, k = 0;
 	for (i = j = 0; i < clauses.size(); i++){
-	    if(cs[k]==clauses[i]){
+	    if(k<cs.size() && cs[k]==clauses[i]){
 	    	removeClause(*cs[k++]);
 	    }else{
 	    	clauses[j++] = clauses[i];

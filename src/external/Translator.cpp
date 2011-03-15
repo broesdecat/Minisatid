@@ -52,6 +52,16 @@ void Translator::printHeader(std::ostream& output){
 }
 
 
+std::string Symbol::getName(bool fodot){
+	if(fodot){
+		return name;
+	}else{
+		string n = name;
+		n.at(0)=tolower(n.at(0));
+		return n;
+	}
+}
+
 FODOTTranslator::FODOTTranslator(OUTPUTFORMAT fodot): Translator(),
 		tofodot(fodot==TRANS_FODOT), finisheddata(false), emptytrans(true) {
 	assert(fodot!=TRANS_PLAIN);
@@ -158,29 +168,29 @@ void FODOTTranslator::printPredicate(const SymbolInterpr& pred, ostream& output,
 	if(pred.symbol->types.size()==0){ //ATOM
 		bool arbitrary = symbolasarbitatomlist.at(pred.symbol);
 		if(print==PRINT_ARBIT && arbitrary){
-			output <<pred.symbol->name <<"\n";
+			output <<pred.symbol->getName(tofodot) <<"\n";
 		}else if(print!=PRINT_ARBIT && !arbitrary){
 
 			bool atomtrue = pred.tuples.size()!=0;
 			if(tofodot){
-				output <<pred.symbol->name;
+				output <<pred.symbol->getName(tofodot);
 				if(!atomtrue){
 					output << " = false\n";
 				}else{ //True
 					output << " = true\n";
 				}
 			}else if(atomtrue){ //asp && true
-				output <<pred.symbol->name <<". ";
+				output <<pred.symbol->getName(tofodot) <<". ";
 			}
 		}
 	}else{
 		if(tofodot){
-			output << pred.symbol->name << " = { ";
+			output << pred.symbol->getName(tofodot) << " = { ";
 		}
 		bool tupleseen = false;
 		for(vector<TupleInterpr>::const_iterator m = pred.tuples.begin(); m < pred.tuples.end(); ++m) {
 			if(!tofodot){
-				output << pred.symbol->name << "(";
+				output << pred.symbol->getName(tofodot) << "(";
 				printTuple((*m).arguments, output);
 				output <<"). ";
 			}else{
@@ -199,7 +209,7 @@ void FODOTTranslator::printPredicate(const SymbolInterpr& pred, ostream& output,
 
 void FODOTTranslator::printFunction(const SymbolInterpr& func, ostream& output, PRINTCHOICE print) const{
 	if(tofodot){
-		output <<func.symbol->name <<" = ";
+		output <<func.symbol->getName(tofodot) <<" = ";
 		if(func.symbol->types.size() == 1) {
 			assert(func.tuples.size()==1);
 			output << func.tuples.back().arguments[0] <<"\n";
@@ -227,11 +237,11 @@ void FODOTTranslator::printFunction(const SymbolInterpr& func, ostream& output, 
 	}else{
 		if(func.symbol->types.size() == 1) {
 			assert(func.tuples.size()!=0);
-			output << func.symbol->name <<"(" << func.tuples[0].arguments[0] <<"). ";
+			output << func.symbol->getName(tofodot) <<"(" << func.tuples[0].arguments[0] <<"). ";
 		}
 		else {
 			for(vector<TupleInterpr>::const_iterator m = func.tuples.begin(); m < func.tuples.end(); ++m) {
-				output << func.symbol->name <<"(";
+				output << func.symbol->getName(tofodot) <<"(";
 				printTuple((*m).arguments, output);
 				output <<"). ";
 			}
@@ -285,7 +295,7 @@ void FODOTTranslator::printLiteral(std::ostream& output, const Literal& lit) {
 		}
 		output <<args.back()<<"\n";
 	} else {
-		output <<(lit.hasSign()?"~":"") << symbols[pred]->name << "(";
+		output <<(lit.hasSign()?"~":"") << symbols[pred]->getName(tofodot) << "(";
 		printTuple(args, output);
 		output <<")\n";
 	}
