@@ -151,7 +151,6 @@ void Solver::addLearnedClause(Clause* c){
 		}
 	}else{
 		assert(c->size()==1);
-		//TODO maybe backtracking to 0 is not the best method.
 		cancelUntil(0);
 		vec<Lit> ps;
 		ps.push(c->operator [](0));
@@ -195,7 +194,14 @@ bool Solver::totalModelFound(){
 	return matches;
 }*/
 
-bool Solver::addClause(vec<Lit>& ps, Clause& newclause){
+void Solver::removeAllLearnedClauses(){
+	for (int i = 0; i < learnts.size(); i++){
+		removeClause(*learnts[i]);
+	}
+	learnts.clear();
+}
+
+bool Solver::addClause(vec<Lit>& ps, Clause*& newclause){
 	assert(decisionLevel() == 0);
 
 	if (!ok){
@@ -207,7 +213,7 @@ bool Solver::addClause(vec<Lit>& ps, Clause& newclause){
 	Clause* c = Clause_new(ps, false);
 	clauses.push(c);
 	attachClause(*c);
-	newclause = *c;
+	newclause = c;
 
 	return true;
 }
@@ -266,6 +272,21 @@ void Solver::detachClause(Clause& c) {
     if (c.learnt()) learnts_literals -= c.size();
     else            clauses_literals -= c.size(); }
 
+/*AB*/
+//@pre: cs and clauses are both ordered according to time added
+void Solver::removeClauses(const std::vector<Clause*>& cs) {
+	int i, j, k = 0;
+	for (i = j = 0; i < clauses.size(); i++){
+	    if(cs[k]==clauses[i]){
+	    	removeClause(*cs[k++]);
+	    }else{
+	    	clauses[j++] = clauses[i];
+	    }
+	}
+	assert(cs.size()==k);
+	clauses.shrink(i - j);
+}
+/*AE*/
 
 void Solver::removeClause(Clause& c) {
     detachClause(c);

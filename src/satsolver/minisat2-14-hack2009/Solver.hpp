@@ -61,11 +61,15 @@ private:
 
 public:
 /*AB*/
+    // Temporaries (to reduce allocation overhead). Each variable is prefixed by the method in which it is used
+    vec<Lit>            add_tmp;
 	template<class C>
 	void     	printClause			(const C& c) const;
-	bool    	addClause 			(vec<Lit>& ps, Clause& newclause);
+	bool    	addClause 			(vec<Lit>& ps, Clause*& newclause);
+	bool     	addClause       	(const vec<Lit>& ps)    { ps.copyTo(add_tmp); return addClause(add_tmp); }
 	void		addLearnedClause	(Clause* c);	// don't check anything, just add it to the clauses and bump activity
-	void     	removeClause     	(Clause& c);	// Detach and free a clause.
+	void 		removeAllLearnedClauses();
+	void     	removeClauses     	(const std::vector<Clause*>& c);	// Detach and free a clause.
 	Clause* 	makeClause			(const vec<Lit>& lits, bool b){	return Clause_new(lits, b);	}
 	const Clause& 	getClause		(int i) 	const { return *clauses[i]; }
 	int			nbClauses			() 			const { return clauses.size(); }
@@ -195,7 +199,6 @@ protected:
     vec<char>           seen;
     vec<Lit>            analyze_stack;
     vec<Lit>            analyze_toclear;
-    vec<Lit>            add_tmp;
 
     // Main internal methods:
     //
@@ -224,7 +227,7 @@ protected:
     //
     void     attachClause     (Clause& c);             // Attach a clause to watcher lists.
     void     detachClause     (Clause& c);             // Detach a clause to watcher lists.
-    /*AB*///void     removeClause     (Clause& c);             // Detach and free a clause./*AE*/
+    void     removeClause     (Clause& c);             // Detach and free a clause.
     bool     locked           (const Clause& c) const; // Returns TRUE if a clause is a reason for some implication in the current state.
     bool     satisfied        (const Clause& c) const; // Returns TRUE if a clause is satisfied in the current state.
 

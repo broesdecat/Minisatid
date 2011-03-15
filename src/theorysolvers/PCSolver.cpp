@@ -189,7 +189,11 @@ bool PCSolver::add(Var v) {
 	assert(v>-1);
 
 	while (((uint64_t) v) >= nVars()) {
+#ifdef USEMINISAT22
+		getSolver()->newVar(modes().polarity==POL_TRUE?l_True:modes().polarity==POL_FALSE?l_False:l_Undef, false);
+#else
 		getSolver()->newVar(true, false);
+#endif
 		for(solverlist::const_iterator i=getSolvers().begin(); i<getSolvers().end(); i++){
 			if((*i)->present){
 				(*i)->get()->notifyVarAdded(nVars());
@@ -301,7 +305,7 @@ bool PCSolver::add(const InnerAggregate& agg){
 	add(agg.head);
 
 	// TODO hack: after parsing, no more solvers can be created,
-	//			so we have to remember that we might need a definition solver
+	//			so we have to create the idsolver as soon as we see its ID for the first time
 	if(!hasIDSolver(agg.defID)){
 		addIDSolver(agg.defID);
 	}
@@ -764,7 +768,7 @@ void PCSolver::invalidate(InnerDisjunction& clause) {
 			invalidation.push(~(*i));
 		}
 	}else{
-		//FIXME Currently, unit clauses cannot be state-saved, so if there was only one decision, we save the whole model
+		//FIXME Currently, unit clauses cannot be state-saved, so if there is only one literal in the whole theory, it might go wrong
 		for (int var = 0; var<nVars(); var++) {
 			invalidation.push(value(var)==l_True?mkLit(var, true):mkLit(var, false));
 		}
@@ -852,6 +856,7 @@ bool PCSolver::invalidateValue(vec<Lit>& invalidation) {
 /*
  * If the optimum possible value is reached, the model is not invalidated. Otherwise, unsat has to be found first, so it is invalidated.
  * TODO: add code that allows to reset the solver when the optimal value has been found, to search for more models with the same optimal value.
+ * Borrow this code from savestate/resetstate/saveclauses for the modal solver
  *
  * Returns true if an optimal model was found
  */
@@ -972,10 +977,10 @@ void PCSolver::resetState(){
 	backtrackTo(state_savedlevel);
 	assert(state_savedlevel == getCurrentDecisionLevel());
 	state_savingclauses = false;
-	for(vector<rClause>::const_iterator i=state_savedclauses.begin(); i<state_savedclauses.end(); i++){
-		getSolver()->removeClause(*i);
-	}
+	getSolver()->removeClauses(state_savedclauses);
 	state_savedclauses.clear();
+	getSolver()->removeAllLearnedClauses();
+
 }
 
 // PRINT METHODS

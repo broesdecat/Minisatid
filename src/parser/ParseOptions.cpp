@@ -239,10 +239,8 @@ bool MinisatID::parseOptions(int argc, char** argv){
 			modes.pbsolver, cmd,"Choose whether to translate pseudo-boolean constraints to SAT"));
 	options.push_back(new NoValsOption<double>	("","watch-ratio", 	"double",
 			modes.watchesratio, cmd,"The ratio of watches to set literals under which the watched algorithm is used."));
-#ifndef USEMINISAT22
 	options.push_back(new Option<POLARITY, string>("","polarity", 	polvals, poldesc,
 			modes.polarity, cmd, "The default truth value choice of variables"));
-#endif
 	options.push_back(new Option<int, int>("","aggsaving", 			aggsavingvals, aggsavingdesc,
 			modes.aggclausesaving, cmd, "How to handle propagation reasons for aggregates"));
 	options.push_back(new Option<DEFFINDCS, string>("","defsearch", defsearchvals, defsearchdesc,
