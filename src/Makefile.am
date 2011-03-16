@@ -110,8 +110,8 @@ endif
 if USEMINISAT
 #m214dir=satsolver/minisat2-14
 libminisatid_2_0_la_SOURCES +=\
-		satsolver/minisat2-14/Solver.C\
-		satsolver/minisat2-14/Solver.h satsolver/minisat2-14/SolverTypes.h\
+		satsolver/minisat2-14/Solver.cpp\
+		satsolver/minisat2-14/Solver.hpp satsolver/minisat2-14/SolverTypes.hpp\
 		satsolver/minisat2-14/mtl/Vec.h satsolver/minisat2-14/mtl/Queue.h satsolver/minisat2-14/mtl/Alg.h\
 		satsolver/minisat2-14/mtl/Heap.h satsolver/minisat2-14/mtl/Map.h satsolver/minisat2-14/mtl/Sort.h
 AM_CXXFLAGS += -D USEMINISAT -I$(srcdir)/satsolver/minisat2-14/

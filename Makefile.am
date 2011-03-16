@@ -4,7 +4,7 @@
 # Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
 
 ACLOCAL_AMFLAGS = -I m4
-SUBDIRS = lib src
+SUBDIRS = lib src doc
 
 include aminclude.am
 

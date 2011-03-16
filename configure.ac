@@ -114,6 +114,6 @@ esac],[ perftools=false ])
 AM_CONDITIONAL([USEPERFTOOLS],[test x$perftools = xtrue])
 
 AC_CONFIG_SUBDIRS([lib/tclap lib/perftools])
-AC_CONFIG_FILES([Makefile lib/Makefile lib/pbsolver/Makefile src/Makefile src/parser/Makefile src/minisatid-2.0.pc])
+AC_CONFIG_FILES([Makefile doc/Makefile lib/Makefile lib/pbsolver/Makefile src/Makefile src/parser/Makefile src/minisatid-2.0.pc])
 
 AC_OUTPUT

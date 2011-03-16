@@ -1,0 +1,130 @@
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{color}
+\usepackage{xspace}
+\usepackage{url}
+
+\title{On the input language of MinisatID}
+\author{Broes De Cat}
+
+\begin{document}
+
+\maketitle
+
+\section{Supported formats}
+Several input formats are supported:
+\begin{description}
+	\item[opb] open pseudo-boolean competition format, defined in www.cril.univ-artois.fr/PB11/format.pdf
+	\item[cnf] dimacs clausal normal form, defined in www.satcompetition.org/2011/rules.pdf
+	\item[asp] ground answer set program format, defined in www.tcs.hut.fi/Software/smodels/lparse.ps.gz
+	\item[qbf] quantified boolean formula format, defined in www.qbflib.org/Draft/qDimacs.ps.gz
+	\item[ecnf] see the BNF grammar below
+	\item[mecnf] experimental extension for modal operators (allows to express that, given a partial interpretation, a subtheory has a model / all extensions are models).
+\end{description}
+
+From an implementation point of view, the formats cnf, qbf, ecnf and mecnf are detected automatically. The formats opb and asp have to be specified by the option "{\verb --format=x }", with x="{\verb opb }", respectively x="{\verb asp }".
+
+\section{ECNF format}
+ECNF or Extended Clausal Normal Form is the native input language of the solver MinisatID.
+
+\subsection{Syntax}
+The syntax of the language can be expressed as the following (non-formal) BNF grammar ("+" expresses one or more, "*" expresses zero or more):
+
+\begin{verbatim}
+<formula>   ::= <comment>* "p ecnf" <header>* <EOL> <ecnftheory>*
+<comment>   ::= "c" <char (not EOL)>* <EOL>
+<header>    ::= "def" | "aggr" | "mnmz"
+
+<ecnftheory>::= <comment>|<clause>|<rule>|<agg>|<set>|<wset>|
+                <mnmz>|<subsetmnmz>|<aggmnmz>
+
+<clause>    ::= <lit>* <end>
+
+<sem>       ::= "D"|"C"
+<rule>      ::= <sem> <atom> <lit>* <end>
+
+<set>       ::= "Set " <id> <lit>+ <end>
+<wset>      ::= "WSet " <id> <tuple>+ <end>
+
+<operator>  ::= "L"|"G"
+<aggtype>   ::= "Sum" | "Min" | "Max" | "Prod" | "Card"
+<agg>       ::= <aggtype> <sem> <operator> <atom> <id> <int> <end>
+
+<mnmz>      ::= "Mnmlist " <lit>+ <end>
+<subsetmnmz>::= "Mnmsubset " <lit>+ <end>
+<aggmnmz>   ::= "Mnmagg " <aggtype> <atom> <id> <end>
+
+<tuple>     ::= <lit>"="<int>		
+<atom>      ::= <posint>
+<lit>       ::= "-"<posint>|<posint>
+<id>        ::= <posint>
+<posint>    ::= any non-zero positive integer
+<int>       ::= any integer
+
+<end>       ::= "0"
+\end{verbatim}
+
+Additional constraints:
+\begin{itemize}
+	\item Each element is separated by at least one whitespace. Extra whitespaces or newlines can be added anywhere except in the middle of comments.
+	\item Any atom can only be the head of one rule or aggregate.
+	\item Any id can only be defined once.
+\end{itemize}
+	
+\subsection{Semantics}
+
+\paragraph{Literal} { \verb <lit> } a literal is an atom (positive integer) or its negation (negative integer)
+
+\paragraph{Clause} 
+\begin{verbatim}
+<clause>    ::= <lit>* <end>
+\end{verbatim} 
+a clause is the disjunction of its literals 
+
+\paragraph{Rule}
+\begin{verbatim}
+<sem>       ::= "D"|"C"
+<rule>      ::= <sem> <atom> <lit>* <end>
+\end{verbatim} 
+A rule defines its atom in terms of a disjunction (sem="D") or a conjunction (sem="C") of a set of literals. All rules belong to the same definition and are evaluated according to the well-founded semantics (stable semantics can also be specified).
+
+\paragraph{Sets}
+\begin{verbatim}
+<set>       ::= "Set " <id> <lit>+ <end>
+<wset>      ::= "WSet " <id> <tuple>+ <end>
+\end{verbatim} 
+A set is identified by an id and is a non-empty set of tuples literal=integer. The first notation is an abbreviation of literal=1. It signifies that the literal has the associated weight if it is true, and does not belong to the set if it is false.
+
+\paragraph{Aggregates}
+\begin{verbatim}
+<sem>       ::= "D"|"C"
+<operator>  ::= "L"|"G"
+<aggtype>   ::= "Sum" | "Min" | "Max" | "Prod" | "Card"
+<agg>       ::= <aggtype> <sem> <operator> <atom> <id> <int> <end>
+\end{verbatim} 
+Given an example expression
+\begin{verbatim}
+WSet 1 1=2 -2=3 0
+Sum D G 4 1 3 0
+\end{verbatim}
+The semantics is that the atom 4 is defined by the aggregate expression $sum(set_1) \geq 3$. 3 is called the \emph{bound}, 4 is the \emph{head}. If sem="C" instead of "D", completion semantics is used.
+The available aggregate types are sum (also called pseudo-boolean / linear constraint), cardinality (count), maximum, minimum and product. The operator is either "G", $aggregate \geq bound$, or "L", $aggregate \leq bound$.
+ 
+\paragraph{Optimization}
+Optimization can be one of three types:
+\begin{itemize}
+\item Minimize ordered list ({ \verb <mnmz> }): given a list of literals, ordered from best (left) to worst, a model is better if it makes a better literal true.  
+\item Subsetminimization ({ \verb <subsetmnmz> }): find the smallest subset of the set of literals for which a model of the theory exists.
+\item Aggregate optimization ({ \verb <aggmnmz> }): minimize the value of the aggregate, given its type, its head and its set.
+\end{itemize}
+
+\section{License}
+Copyright 2007-2011 Katholieke Universiteit Leuven
+
+Use of this software is governed by the GNU LGPLv3.0 license
+
+Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+\end{document}
