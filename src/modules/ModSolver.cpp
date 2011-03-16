@@ -66,13 +66,13 @@ bool ModSolver::add(Var var){
  * Add all variables in the given vector as variables in the theory.
  */
 void ModSolver::addVars(const vec<Lit>& a){
-	for(int i=0; i<a.size(); i++){
+	for(int i=0; i<a.size(); ++i){
 		add(var(a[i]));
 	}
 }
 
 void ModSolver::addVars(const vector<Lit>& a){
-	for(int i=0; i<a.size(); i++){
+	for(int i=0; i<a.size(); ++i){
 		add(var(a[i]));
 	}
 }
@@ -104,7 +104,7 @@ bool ModSolver::add(const InnerAggregate& agg){
  * they are added as variables to the parent solver, that has to decide on values for them.
  */
 bool ModSolver::add(const InnerRigidAtoms& rigid){
-	for(vector<Var>::const_iterator i=rigid.rigidatoms.begin(); i<rigid.rigidatoms.end(); i++){
+	for(vector<Var>::const_iterator i=rigid.rigidatoms.begin(); i<rigid.rigidatoms.end(); ++i){
 		atoms.push_back(*i);
 		add(*i);
 		getModSolverData().getModSolver(getParentId())->add(*i);
@@ -123,7 +123,7 @@ bool ModSolver::add(const InnerRigidAtoms& rigid){
 void ModSolver::setParent(modindex parentid){
 	this->parentid = parentid; hasparent = true;
 	pModSolver parent = getModSolverData().getModSolver(getParentId());
-	for(vector<Var>::const_iterator i=atoms.begin(); i<atoms.end(); i++){
+	for(vector<Var>::const_iterator i=atoms.begin(); i<atoms.end(); ++i){
 		parent->add(*i);
 	}
 	parent->addChild(this->id);
@@ -143,7 +143,7 @@ void ModSolver::finishParsingDown(bool& present, bool& unsat){
 
 	assert(present);
 
-	for(vmodindex::const_iterator i=getChildren().begin(); !unsat && i<getChildren().end(); i++){
+	for(vmodindex::const_iterator i=getChildren().begin(); !unsat && i<getChildren().end(); ++i){
 		bool childpresent = true, childunsat = false;
 		getModSolverData().getModSolver(*i)->finishParsingDown(childpresent, childunsat);
 		//TODO handle !present
@@ -175,7 +175,7 @@ bool ModSolver::solve(const vec<Lit>& assumptions, const ModelExpandOptions& opt
 bool ModSolver::simplifyDown(){
 	bool result = getPCSolver().simplify();
 
-	for(vmodindex::const_iterator i=getChildren().begin(); result && i<getChildren().end(); i++){
+	for(vmodindex::const_iterator i=getChildren().begin(); result && i<getChildren().end(); ++i){
 		result = getModSolverData().getModSolver(*i)->simplify();
 		//TODO check if this is correct: i think it is not guaranteed that all lower solvers will be searched!
 		//It is anyway necessary, because if no search occurs, the modal solvers should still be checked!
@@ -209,7 +209,7 @@ bool ModSolver::search(const vec<Lit>& assumpts, bool search){
 		result = getPCSolver().startSearch();
 		startindex = 0;
 	}
-	for(; result && startindex<assumptions.size(); startindex++){
+	for(; result && startindex<assumptions.size(); ++startindex){
 		result = getPCSolver().propagate(assumptions[startindex]);
 	}
 	if(search && result){
@@ -250,7 +250,7 @@ rClause ModSolver::propagate(const Lit& l){
 
 	rClause confl = nullPtrClause;
 	trail.back().push_back(l);
-	for(vmodindex::const_iterator i=getChildren().begin(); confl==nullPtrClause && i<getChildren().end(); i++){
+	for(vmodindex::const_iterator i=getChildren().begin(); confl==nullPtrClause && i<getChildren().end(); ++i){
 		confl = getModSolverData().getModSolver(*i)->propagateDown(l);
 	}
 	return confl;
@@ -264,7 +264,7 @@ rClause ModSolver::propagate(const Lit& l){
 rClause ModSolver::propagateAtEndOfQueue(){
 	bool noconflict = true;
 	vec<Lit> confldisj;
-	for(vmodindex::const_iterator i=getChildren().begin(); noconflict && i<getChildren().end(); i++){
+	for(vmodindex::const_iterator i=getChildren().begin(); noconflict && i<getChildren().end(); ++i){
 		assert(confldisj.size()==0);
 		noconflict = getModSolverData().getModSolver(*i)->propagateDownAtEndOfQueue(confldisj);
 	}
@@ -309,7 +309,7 @@ void ModSolver::adaptValuesOnPropagation(Lit l){
 	}
 
 	//adapt rigid atoms value
-	for(vector<AV>::size_type i=0; i<atoms.size(); i++){
+	for(vector<AV>::size_type i=0; i<atoms.size(); ++i){
 		if(var(l)==atoms[i]){
 			propfromabove[i]=true;
 			assumptions.push(l);
@@ -363,8 +363,8 @@ void ModSolver::backtrackDecisionLevels(int nblevels, int untillevel){
 
 	while(trail.size()>((vsize)(untillevel+1))){
 		//IMPORTANT: backtrack in REVERSE trail order! from latest to earliest!
-		for(vector<Lit>::const_reverse_iterator i=trail.back().rbegin(); i<trail.back().rend(); i++){
-			for(vmodindex::const_iterator j=getChildren().begin(); j<getChildren().end(); j++){
+		for(vector<Lit>::const_reverse_iterator i=trail.back().rbegin(); i<trail.back().rend(); ++i){
+			for(vmodindex::const_iterator j=getChildren().begin(); j<getChildren().end(); ++j){
 				getModSolverData().getModSolver((*j))->backtrackFromAbove(*i);
 			}
 		}
@@ -388,7 +388,7 @@ void ModSolver::backtrackFromAbove(Lit l){
 	if(var(l)==getHead() && getHeadValue()!=l_Undef){
 		head.value = l_Undef;
 	}
-	for(vector<AV>::size_type i=0; i<atoms.size(); i++){
+	for(vector<AV>::size_type i=0; i<atoms.size(); ++i){
 		if(atoms[i]==var(l)){
 			if(propfromabove[i] && var(l)==var(assumptions.last())){
 				assumptions.pop();
@@ -401,7 +401,7 @@ void ModSolver::backtrackFromAbove(Lit l){
 				break;
 			}else{
 #ifndef NDEBUG
-				for(int j=0; j<assumptions.size(); j++){
+				for(int j=0; j<assumptions.size(); ++j){
 					assert(var(assumptions[j])!=var(l));
 				}
 #endif
@@ -432,7 +432,7 @@ bool ModSolver::analyzeResult(bool result, bool allknown, vec<Lit>& confldisj){
 			confldisj.push(mkLit(getHead(), getHeadValue()==l_True));
 		}
 		//TODO order of lits in conflict depends on order of assumptions and on order of propagations by parent
-		for(int i=0; i<assumptions.size(); i++){
+		for(int i=0; i<assumptions.size(); ++i){
 			if(propfromabove[i]){
 				confldisj.push(~assumptions[i]);
 			}

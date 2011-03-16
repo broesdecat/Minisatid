@@ -353,7 +353,7 @@ public:
 	const literallist& getAssumptions	() { return assumptions; }
 
 	void 	addModel(literallist model, bool currentlybest) {
-		nbmodelsfound++;
+		++nbmodelsfound;
 		if(modelsave==MODEL_SAVING){ //Error in saving previous model, so abort
 			throw idpexception(">> Previous model failed to save, cannot guarantee correctness.\n");
 		}

@@ -124,7 +124,7 @@ bool SOSolver::add(int modid, const InnerDisjunction& disj){
 	//Check two initial propagation rules
 	bool allexist = true;
 	vec<Lit> onlyexists;
-	for(int i=0; i<lits.size(); i++){
+	for(int i=0; i<lits.size(); ++i){
 		if(isForall(lits[i])){
 			allexist = false;
 		}else{
@@ -146,9 +146,9 @@ bool SOSolver::add(int modid, const InnerDisjunction& disj){
 	while(true){
 		m = getModSolver(currentid);
 		bool alloccur = true;
-		for(int i=0; alloccur && i<lits.size(); i++){
+		for(int i=0; alloccur && i<lits.size(); ++i){
 			bool seen = false;
-			for(vector<Var>::const_iterator j=m->getAtoms().begin(); !seen && j<m->getAtoms().end(); j++){
+			for(vector<Var>::const_iterator j=m->getAtoms().begin(); !seen && j<m->getAtoms().end(); ++j){
 				if(*j==var(lits[i])){
 					seen = true;
 				}
@@ -220,19 +220,19 @@ void SOSolver::verifyHierarchy(){
 	vector<vsize> queue;
 	vector<int> visitcount(solvers.size(), 0);
 	queue.push_back(0);
-	visitcount[0]++;
+	++visitcount[0];
 	while(queue.size()>0){
 		vsize s = queue.back();
 		queue.pop_back();
 		ModSolver* solver = getModSolver(s);
-		for(vmodindex::const_iterator i=solver->getChildren().begin(); i<solver->getChildren().end(); i++){
+		for(vmodindex::const_iterator i=solver->getChildren().begin(); i<solver->getChildren().end(); ++i){
 			if(visitcount[*i]==0){
 				queue.push_back(*i);
 			}
-			visitcount[*i]++;
+			++visitcount[*i];
 		}
 	}
-	for(vmsolvers::const_iterator i=solvers.begin(); i<solvers.end(); i++){
+	for(vmsolvers::const_iterator i=solvers.begin(); i<solvers.end(); ++i){
 		if(visitcount[(*i)->getId()]!=1 && *i!=NULL){
 			char s[200];
 			sprintf(s, ">> The hierarchy of modal solvers does not form a tree. "

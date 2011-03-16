@@ -42,7 +42,7 @@ private:
 public:
 	PCLogger();
 
-	void addPropagation() { propagations++; }
+	void addPropagation() { ++propagations; }
 	int getNbPropagations() const { return propagations; }
 	void addCount(Var v);
 	int getCount(Var v) const;

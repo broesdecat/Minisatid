@@ -115,21 +115,21 @@ Lit WLSImpl::checkLit(const Literal& lit){
 }
 
 void WLSImpl::checkLits(const vector<Literal>& lits, vec<Lit>& ll){
-	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); i++){
+	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); ++i){
 		ll.push(checkLit(*i));
 	}
 }
 
 void WLSImpl::checkLits(const vector<Literal>& lits, vector<Lit>& ll){
 	ll.reserve(lits.size());
-	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); i++){
+	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); ++i){
 		ll.push_back(checkLit(*i));
 	}
 }
 
 void WLSImpl::checkAtoms(const vector<Atom>& atoms, vector<Var>& ll){
 	ll.reserve(atoms.size());
-	for(vector<Atom>::const_iterator i=atoms.begin(); i<atoms.end(); i++){
+	for(vector<Atom>::const_iterator i=atoms.begin(); i<atoms.end(); ++i){
 		ll.push_back(checkAtom(*i));
 	}
 }
@@ -264,7 +264,7 @@ void WLSImpl::notifyOptimalModelFound(){
 //Translate into original vocabulary
 vector<Literal> WLSImpl::getBackMappedModel(const vec<Lit>& model) const{
 	vector<Literal> outmodel;
-	for(int j=0; j<model.size(); j++){
+	for(int j=0; j<model.size(); ++j){
 		if(!getRemapper()->wasInput(var(model[j]))){ //drop all literals that were not part of the input
 			continue;
 		}
@@ -331,7 +331,7 @@ bool WPCLSImpl::add(const WSet& sentence){
 bool WPCLSImpl::add(const WLSet& sentence){
 	InnerWSet set;
 	set.setID = sentence.setID;
-	for(vector<WLtuple>::const_iterator i=sentence.wl.begin(); i<sentence.wl.end(); i++){
+	for(vector<WLtuple>::const_iterator i=sentence.wl.begin(); i<sentence.wl.end(); ++i){
 		set.literals.push_back(checkLit((*i).l));
 		set.weights.push_back((*i).w);
 	}
@@ -460,7 +460,7 @@ bool WSOLSImpl::add(int modid, const WSet& sentence){
 bool WSOLSImpl::add(int modid, const WLSet& sentence){
 	InnerWSet set;
 	set.setID = sentence.setID;
-	for(vector<WLtuple>::const_iterator i=sentence.wl.begin(); i<sentence.wl.end(); i++){
+	for(vector<WLtuple>::const_iterator i=sentence.wl.begin(); i<sentence.wl.end(); ++i){
 		set.literals.push_back(checkLit((*i).l));
 		set.weights.push_back((*i).w);
 	}

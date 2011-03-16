@@ -47,7 +47,7 @@ private:
 public:
     PropRule(Lit head, const vec<Lit>& ps): head(var(head)){
     	lits.reserve(ps.size());
-    	for(int i=0; i<ps.size(); i++){
+    	for(int i=0; i<ps.size(); ++i){
     		lits.push_back(ps[i]);
     	}
     }

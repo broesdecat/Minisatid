@@ -126,7 +126,7 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 	}
 
 	vector<WL> lw;
-	for (vsize i = 0; i < lits.size(); i++) {
+	for (vsize i = 0; i < lits.size(); ++i) {
 #ifdef NOARBITPREC
 		if(weights[i] == posInfinity() || weights[i] == negInfinity()){
 			throw idpexception(
@@ -171,7 +171,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType
 	TypedSet* set = parsedSets[setid];
 
 	// Check whether the head occurs in the body of the set, which is not allowed
-	for (vsize i = 0; i < set->getWL().size(); i++) {
+	for (vsize i = 0; i < set->getWL().size(); ++i) {
 		if (var(set->getWL()[i].getLit()) == headv) { //Exception if head occurs in set itself
 			char s[100];
 			sprintf(s, "Set nr. %d contains a literal of atom %d, the head of an aggregate, which is not allowed.\n", setid, getPrintableVar(headv));
@@ -189,7 +189,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType
 
 #ifdef DEBUG
 	if(type == CARD) { //Check if all card weights are 1
-		for(vwl::size_type i=0; i<parsedSets[setid]->getWL().size(); i++) {
+		for(vwl::size_type i=0; i<parsedSets[setid]->getWL().size(); ++i) {
 			if(parsedSets[setid]->getWL()[i].getWeight()!=1) {
 				report("Cardinality was loaded with wrong weights");
 				assert(false);
@@ -231,7 +231,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	//IMPORTANT: LAZY initialization!
 	adaptToNVars(nVars());
 
-	for(mips::const_iterator i=parsedSets.begin(); i!=parsedSets.end(); i++){
+	for(mips::const_iterator i=parsedSets.begin(); i!=parsedSets.end(); ++i){
 		sets.push_back((*i).second);
 	}
 
@@ -245,7 +245,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	//Finish the sets: add all body literals to the network
 	vps remainingsets;
 	vps satsets;
-	for (vsize i=0; !unsat && i<sets.size(); i++) {
+	for (vsize i=0; !unsat && i<sets.size(); ++i) {
 		TypedSet* set = sets[i];
 		bool setsat = false;
 
@@ -254,7 +254,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		}
 
 		if(!unsat && !setsat){
-			for (vsize i = 0; i < set->getWL().size(); i++) {
+			for (vsize i = 0; i < set->getWL().size(); ++i) {
 				var2setlist[var(set->getWL()[i].getLit())].push_back(set);
 			}
 		}
@@ -272,8 +272,8 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 
 #ifdef DEBUG
 	//Check each aggregate knows it index in the set
-	for(vps::const_iterator j=sets.begin(); j<sets.end(); j++){
-		for (agglist::const_iterator i = (*j)->getAgg().begin(); i<(*j)->getAgg().end(); i++) {
+	for(vps::const_iterator j=sets.begin(); j<sets.end(); ++j){
+		for (agglist::const_iterator i = (*j)->getAgg().begin(); i<(*j)->getAgg().end(); ++i) {
 			assert((*j)==(*i)->getSet());
 			assert((*i)->getSet()->getAgg()[(*i)->getIndex()]==(*i));
 		}
@@ -292,7 +292,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 	//Gather available information
 	map<AggType, int> nbaggs;
 	int totalagg = 0, setlits = 0;
-	for (vps::const_iterator i = sets.begin(); i < sets.end(); i++) {
+	for (vps::const_iterator i = sets.begin(); i < sets.end(); ++i) {
 		int agg = (*i)->getAgg().size();
 		totalagg += agg;
 		setlits += (*i)->getWL().size();
@@ -392,14 +392,14 @@ void AggSolver::newDecisionLevel() {
 void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel) {
 	assert(isInitialized());
 	while(setsbacktracktrail.size()>(vsize)(untillevel+1)){
-		for(vector<TypedSet*>::iterator j=setsbacktracktrail.back().begin(); j<setsbacktracktrail.back().end(); j++){
+		for(vector<TypedSet*>::iterator j=setsbacktracktrail.back().begin(); j<setsbacktracktrail.back().end(); ++j){
 			(*j)->backtrack(nblevels, untillevel);
 		}
 		setsbacktracktrail.pop_back();
 	}
 	setspropagatetrail.clear();
 
-	for(vsize i=mapdecleveltotrail[untillevel+1]; i<littrail.size(); i++){
+	for(vsize i=mapdecleveltotrail[untillevel+1]; i<littrail.size(); ++i){
 		propagated[var(littrail[i])]=LI(l_Undef, 0);
 	}
 	littrail.resize(mapdecleveltotrail[untillevel+1]);
@@ -415,9 +415,9 @@ void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel) {
 bool AggSolver::checkStatus(){
 	assert(isInitialized());
 #ifdef DEBUG
-	for(setlist::const_iterator i=sets.begin(); i<sets.end(); i++){
+	for(setlist::const_iterator i=sets.begin(); i<sets.end(); ++i){
 		Weight w = (*i)->getProp()->getValue();
-		for(agglist::const_iterator j=(*i)->getAgg().begin(); j<(*i)->getAgg().end(); j++){
+		for(agglist::const_iterator j=(*i)->getAgg().begin(); j<(*i)->getAgg().end(); ++j){
 			if(verbosity()>=3){
 				Aggrs::print(10, **j, true);
 			}
@@ -449,25 +449,25 @@ rClause AggSolver::doProp(){
 		Agg* pa = lit2headwatchlist[toInt(p)];
 		if (pa != NULL) {
 			confl = pa->getSet()->propagate(*pa, getCurrentDecisionLevel(), !sign(p));
-			propagations++;
+			++propagations;
 
 			printWatches(verbosity(), this, lit2dynamicwatchlist);
 		}
 
 		const vector<Watch*>& ws = lit2staticwatchlist[var(p)];
-		for (vector<Watch*>::const_iterator i = ws.begin(); confl == nullPtrClause && i < ws.end(); i++) {
+		for (vector<Watch*>::const_iterator i = ws.begin(); confl == nullPtrClause && i < ws.end(); ++i) {
 			confl = (*i)->getSet()->propagate(p, *i, getCurrentDecisionLevel());
-			propagations++;
+			++propagations;
 		}
 
 		if (confl==nullPtrClause && lit2dynamicwatchlist[toInt(p)].size() > 0) {
 			vector<Watch*> ws2(lit2dynamicwatchlist[toInt(p)]); //IMPORTANT copy: watches might be added again if no replacements are found
 			lit2dynamicwatchlist[toInt(p)].clear();
 
-			for (vector<Watch*>::const_iterator i = ws2.begin(); i < ws2.end(); i++) {
+			for (vector<Watch*>::const_iterator i = ws2.begin(); i < ws2.end(); ++i) {
 				if (confl == nullPtrClause) {
 					confl = (*i)->getSet()->propagate(p, (*i), getCurrentDecisionLevel());
-					propagations++;
+					++propagations;
 				} else { //If conflict found, copy all remaining watches in again
 					addDynamicWatch(p, (*i));
 				}
@@ -477,7 +477,7 @@ rClause AggSolver::doProp(){
 		}
 
 		if(modes().asapaggprop){
-			for(vector<TypedSet*>::const_iterator i=setspropagatetrail.begin(); confl==nullPtrClause && i<setspropagatetrail.end(); i++){
+			for(vector<TypedSet*>::const_iterator i=setspropagatetrail.begin(); confl==nullPtrClause && i<setspropagatetrail.end(); ++i){
 				confl = (*i)->propagateAtEndOfQueue(getCurrentDecisionLevel());
 			}
 			setspropagatetrail.clear();
@@ -520,7 +520,7 @@ rClause	AggSolver::propagateAtEndOfQueue(){
 	if(!modes().asapaggprop){
 		confl = doProp();
 
-		for(vector<TypedSet*>::const_iterator i=setspropagatetrail.begin(); confl==nullPtrClause && i<setspropagatetrail.end(); i++){
+		for(vector<TypedSet*>::const_iterator i=setspropagatetrail.begin(); confl==nullPtrClause && i<setspropagatetrail.end(); ++i){
 			confl = (*i)->propagateAtEndOfQueue(getCurrentDecisionLevel());
 		}
 
@@ -569,8 +569,8 @@ Agg* AggSolver::getAggDefiningHead(Var v) const {
 vector<Var> AggSolver::getDefAggHeadsWithBodyLit(Var x) const{
 	assert(isInitialized());
 	vector<Var> heads;
-	for (vps::const_iterator i = var2setlist[x].begin(); i < var2setlist[x].end(); i++) {
-		for (agglist::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); j++) {
+	for (vps::const_iterator i = var2setlist[x].begin(); i < var2setlist[x].end(); ++i) {
+		for (agglist::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); ++j) {
 			if((*j)->isDefined()){
 				heads.push_back(var((*j)->getHead()));
 			}
@@ -629,9 +629,9 @@ void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& l
  */
 void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& heads, VarToJustif& currentjust) {
 	assert(isInitialized());
-	for (vps::const_iterator i = var2setlist[var(w)].begin(); i < var2setlist[var(w)].end(); i++) {
+	for (vps::const_iterator i = var2setlist[var(w)].begin(); i < var2setlist[var(w)].end(); ++i) {
 		TypedSet* set = (*i);
-		for (agglist::const_iterator j = set->getAgg().begin(); j < set->getAgg().end(); j++) {
+		for (agglist::const_iterator j = set->getAgg().begin(); j < set->getAgg().end(); ++j) {
 			const Agg& agg = *(*j);
 			if (!agg.isDefined() || isFalse(agg.getHead())) {
 				continue;
@@ -696,7 +696,7 @@ bool AggSolver::addMnmz(Var headv, int setid, AggType type) {
 	TypedSet* set = parsedSets[setid];
 
 	// Check whether the head occurs in the body of the set, which is no longer allowed
-	for (vsize i = 0; i < set->getWL().size(); i++) {
+	for (vsize i = 0; i < set->getWL().size(); ++i) {
 		if (var(set->getWL()[i].getLit()) == headv) { //Exception if head occurs in set itself
 			char s[100];
 			sprintf(s, "Set nr. %d contains a literal of atom %d, the head of an aggregate, which is not allowed.\n", setid, getPrintableVar(headv));
@@ -705,8 +705,8 @@ bool AggSolver::addMnmz(Var headv, int setid, AggType type) {
 	}
 
 	//Check that not aggregates occur with the same heads
-	for (map<int, TypedSet*>::const_iterator i = parsedSets.begin(); i != parsedSets.end(); i++) {
-		for (vsize j = 0; j < (*i).second->getAgg().size(); j++) {
+	for (map<int, TypedSet*>::const_iterator i = parsedSets.begin(); i != parsedSets.end(); ++i) {
+		for (vsize j = 0; j < (*i).second->getAgg().size(); ++j) {
 			if (var((*i).second->getAgg()[j]->getHead()) == headv) { //Exception if two agg with same head
 				char s[100];
 				sprintf(s, "At least two aggregates have the same head(%d).\n", getPrintableVar(headv));
@@ -815,8 +815,8 @@ void Aggrs::printNumberOfAggregates(int nbsets, int nbagg, int nbsetlits, map<Ag
 void AggSolver::print() const{
 	if (verbosity() >= 3) {
 		clog <<"Aggregates are present after initialization:\n";
-		for (vps::const_iterator i = sets.begin(); i < sets.end(); i++) {
-			for (agglist::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); j++) {
+		for (vps::const_iterator i = sets.begin(); i < sets.end(); ++i) {
+			for (agglist::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); ++j) {
 				Aggrs::print(verbosity(), **j, true);
 			}
 		}
@@ -824,33 +824,33 @@ void AggSolver::print() const{
 
 	printWatches(verbosity(), this, lit2dynamicwatchlist);
 	if (verbosity() >= 10) {
-		for(agglist::const_iterator i=lit2headwatchlist.begin(); i<lit2headwatchlist.end(); i++){
+		for(agglist::const_iterator i=lit2headwatchlist.begin(); i<lit2headwatchlist.end(); ++i){
 			if ((*i) != NULL) {
 				clog <<"Headwatch of var " <<getPrintableVar(var((*i)->getHead())) <<": ";
 				Aggrs::print(verbosity(), *(*i)->getSet(), true);
 			}
 		}
 		Var v = 0;
-		for(vvpw::const_iterator i=lit2staticwatchlist.begin(); i<lit2staticwatchlist.end(); i++, v++){
+		for(vvpw::const_iterator i=lit2staticwatchlist.begin(); i<lit2staticwatchlist.end(); ++i, ++v){
 			if((*i).size()>0){
 				Lit l = mkLit(v/2, v%2==1);
 				clog <<"Bodywatches of var ";
 				Print::print(l);
 				clog <<": ";
-				for (vsize j = 0; j < (*i).size(); j++) {
+				for (vsize j = 0; j < (*i).size(); ++j) {
 					clog <<"      ";
 					Aggrs::print(verbosity(), *((*i)[j])->getSet(), true);
 				}
 			}
 		}
 		v = 0;
-		for(vvpw::const_iterator i=lit2dynamicwatchlist.begin(); i<lit2dynamicwatchlist.end(); i++, v++){
+		for(vvpw::const_iterator i=lit2dynamicwatchlist.begin(); i<lit2dynamicwatchlist.end(); ++i, ++v){
 			if((*i).size()>0){
 				Lit l = mkLit(v/2, v%2==1);
 				clog <<"Bodywatches of var ";
 				Print::print(l);
 				clog <<": ";
-				for (vsize j = 0; j < (*i).size(); j++) {
+				for (vsize j = 0; j < (*i).size(); ++j) {
 					clog <<"      ";
 					Aggrs::print(verbosity(), *((*i)[j])->getSet(), true);
 				}
@@ -862,30 +862,30 @@ void AggSolver::print() const{
 
 /*void AggSolver::findClausalPropagations(){
  int counter = 0;
- for(vsize i=0; i<aggrminsets.size(); i++){
+ for(vsize i=0; i<aggrminsets.size(); ++i){
  vector<Var> set;
- for(lwlv::const_iterator j=aggrminsets[i]->getWLBegin(); j<aggrminsets[i]->getWLEnd(); j++){
+ for(lwlv::const_iterator j=aggrminsets[i]->getWLBegin(); j<aggrminsets[i]->getWLEnd(); ++j){
  set.push_back(var((*j).getLit()));
  }
  counter += getPCSolver().getClausesWhichOnlyContain(set).size();
  }
- for(vsize i=0; i<aggrprodsets.size(); i++){
+ for(vsize i=0; i<aggrprodsets.size(); ++i){
  vector<Var> set;
- for(lwlv::const_iterator j=aggrprodsets[i]->getWLBegin(); j<aggrprodsets[i]->getWLEnd(); j++){
+ for(lwlv::const_iterator j=aggrprodsets[i]->getWLBegin(); j<aggrprodsets[i]->getWLEnd(); ++j){
  set.push_back(var((*j).getLit()));
  }
  counter += getPCSolver().getClausesWhichOnlyContain(set).size();
  }
- for(vsize i=0; i<aggrsumsets.size(); i++){
+ for(vsize i=0; i<aggrsumsets.size(); ++i){
  vector<Var> set;
- for(lwlv::const_iterator j=aggrsumsets[i]->getWLBegin(); j<aggrsumsets[i]->getWLEnd(); j++){
+ for(lwlv::const_iterator j=aggrsumsets[i]->getWLBegin(); j<aggrsumsets[i]->getWLEnd(); ++j){
  set.push_back(var((*j).getLit()));
  }
  counter += getPCSolver().getClausesWhichOnlyContain(set).size();
  }
- for(vsize i=0; i<aggrmaxsets.size(); i++){
+ for(vsize i=0; i<aggrmaxsets.size(); ++i){
  vector<Var> set;
- for(lwlv::const_iterator j=aggrmaxsets[i]->getWLBegin(); j<aggrmaxsets[i]->getWLEnd(); j++){
+ for(lwlv::const_iterator j=aggrmaxsets[i]->getWLBegin(); j<aggrmaxsets[i]->getWLEnd(); ++j){
  set.push_back(var((*j).getLit()));
  }
  counter += getPCSolver().getClausesWhichOnlyContain(set).size();

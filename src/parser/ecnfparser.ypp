@@ -823,7 +823,7 @@ void finishCNFHeader(){
 			throw idpexception("The quantifiers require to negate the full theory, "
 								"this is not handled at the moment.\n");
 		}
-		for(vector<int>::size_type i = 0; i<modalops.size(); i++){
+		for(vector<int>::size_type i = 0; i<modalops.size(); ++i){
 			Disjunction clause;
 			clause.literals.push_back(heads[i]);
 			CR(modsolver->add(modalops[i], clause));	
@@ -856,7 +856,7 @@ Weight cWeight(string* s){
 	const char* c = s->c_str();
 	Weight w(0);
 	bool begin = true, negate = false;
-	for(int i = 0; c[i] != '\0'; i++) {
+	for(int i = 0; c[i] != '\0'; ++i) {
 	    if(begin && c[i]=='-'){
 	    	negate = true;
 	    	begin = false;

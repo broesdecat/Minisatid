@@ -144,7 +144,7 @@ namespace Print{
 	void printAddingClause(T& stream, const InnerDisjunction& disj, std::string modID, int verbosity = 1000){
 		if (verbosity >= 2) {
 			stream <<"Adding clause:";
-			for (int i = 0; i < disj.literals.size(); i++) {
+			for (int i = 0; i < disj.literals.size(); ++i) {
 				stream <<" " <<disj.literals[i];
 			}
 			if(modID != ""){

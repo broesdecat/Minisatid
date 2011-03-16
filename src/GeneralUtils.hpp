@@ -28,7 +28,7 @@ namespace MinisatID {
 	// Support for deleting lists of pointer elements
 	template<class T>
 	void deleteList(std::vector<T*> l){
-		for(class std::vector<T*>::const_iterator i=l.begin(); i!=l.end(); i++){
+		for(class std::vector<T*>::const_iterator i=l.begin(); i!=l.end(); ++i){
 			if(*i!=NULL){
 				delete(*i);
 			}
@@ -38,7 +38,7 @@ namespace MinisatID {
 
 	template<class T>
 	void deleteList(std::vector<std::vector<T*> > l){
-		for(class std::vector<std::vector<T*> >::const_iterator i=l.begin(); i!=l.end(); i++){
+		for(class std::vector<std::vector<T*> >::const_iterator i=l.begin(); i!=l.end(); ++i){
 			deleteList(*i);
 		}
 		l.clear();
@@ -46,7 +46,7 @@ namespace MinisatID {
 
 	template<class T, class K>
 	void deleteList(std::map<K, T*> l){
-		for(class std::map<K, T*>::const_iterator i=l.begin(); i!=l.end(); i++){
+		for(class std::map<K, T*>::const_iterator i=l.begin(); i!=l.end(); ++i){
 			if((*i).second!=NULL){
 				delete((*i).second);
 			}

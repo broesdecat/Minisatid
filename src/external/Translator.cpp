@@ -39,7 +39,7 @@ void Translator::printCurrentOptimum(std::ostream& output, const Weight& value){
 
 void Translator::printModel(std::ostream& output, const std::vector<Literal>& model){
 	bool start = true;
-	for (vector<Literal>::const_iterator i = model.begin(); i < model.end(); i++){
+	for (vector<Literal>::const_iterator i = model.begin(); i < model.end(); ++i){
 		output <<(start ? "" : " ") <<(((*i).hasSign()) ? "-" : "") <<(*i).getAtom().getValue();
 		start = false;
 	}
@@ -79,7 +79,7 @@ void FODOTTranslator::addType(string name, const vector<string>& inter){
 void FODOTTranslator::addPred(string name, int startingnumber, const vector<string>& typenames, bool isfunction){
 	vector<Type*> argtypes;
 	int joinsize = 1;
-	for(vector<string>::const_iterator i = typenames.begin(); i < typenames.end(); i++) {
+	for(vector<string>::const_iterator i = typenames.begin(); i < typenames.end(); ++i) {
 		argtypes.push_back(types.at(*i));
 		joinsize *= argtypes.back()->domainelements.size();
 	}
@@ -97,7 +97,7 @@ void FODOTTranslator::finishParsing(ostream& output){
 
 	largestnottseitinatom = symbols.back()->endnumber;
 
-	for(vector<Symbol*>::const_iterator i=symbols.begin(); i<symbols.end(); i++){
+	for(vector<Symbol*>::const_iterator i=symbols.begin(); i<symbols.end(); ++i){
 		arbitout.push_back(SymbolInterpr(*i));
 		truemodelcombinedout.push_back(SymbolInterpr(*i));
 		symbolasarbitatomlist[*i]=false;
@@ -107,7 +107,7 @@ void FODOTTranslator::finishParsing(ostream& output){
 	uint currpred = 0;
 	// parse the certainly true atoms
 	int curr;
-	for(vector<int>::const_iterator m=truelist.begin(); m<truelist.end(); m++) {
+	for(vector<int>::const_iterator m=truelist.begin(); m<truelist.end(); ++m) {
 		curr = *m;
 		if(curr > largestnottseitinatom){
 			return;
@@ -125,7 +125,7 @@ void FODOTTranslator::finishParsing(ostream& output){
 	// parse and print the arbitrary literals
 	bool hasarbitraries = false;
 	double nbofmodels = 0;
-	for(vector<int>::const_iterator m=arbitlist.begin(); m<arbitlist.end(); m++) {
+	for(vector<int>::const_iterator m=arbitlist.begin(); m<arbitlist.end(); ++m) {
 		curr = *m;
 		if(curr > largestnottseitinatom){
 			return;
@@ -133,7 +133,7 @@ void FODOTTranslator::finishParsing(ostream& output){
 			vector<string> arg;
 			if(deriveStringFromAtomNumber(curr, currpred, arg)){
 				arbitout[currpred].tuples.push_back(TupleInterpr(FIXED_ARBIT, arg));
-				nbofmodels++;
+				++nbofmodels;
 				hasarbitraries = true;
 				if(arbitout[currpred].symbol->types.size()==0){ //atom
 					symbolasarbitatomlist[symbols[currpred]] = true;
@@ -153,7 +153,7 @@ void FODOTTranslator::finishParsing(ostream& output){
 
 void FODOTTranslator::printTuple(const vector<string>& tuple, ostream& output) const{
 	bool begin = true;
-	for(vector<string>::const_iterator k = tuple.begin(); k < tuple.end(); k++) {
+	for(vector<string>::const_iterator k = tuple.begin(); k < tuple.end(); ++k) {
 		if(!begin){
 			output << ",";
 		}
@@ -217,13 +217,13 @@ void FODOTTranslator::printFunction(const SymbolInterpr& func, ostream& output, 
 			int ts = func.symbol->types.size();
 			output <<" { ";
 			bool tupleseen = false;
-			for(vector<TupleInterpr>::const_iterator m = func.tuples.begin(); m < func.tuples.end(); m++) {
+			for(vector<TupleInterpr>::const_iterator m = func.tuples.begin(); m < func.tuples.end(); ++m) {
 				if(tupleseen){
 					output << "; ";
 				}
 				bool begin = true;
 				int count = 0;
-				for(vector<string>::const_iterator k = (*m).arguments.begin(); k < (*m).arguments.end(); k++, count++) {
+				for(vector<string>::const_iterator k = (*m).arguments.begin(); k < (*m).arguments.end(); ++k, ++count) {
 					if(!begin){
 						output << (count==ts-1?"->":",");
 					}
@@ -283,7 +283,7 @@ void FODOTTranslator::printLiteral(std::ostream& output, const Literal& lit) {
 		if(args.size()>1){
 			output << "(";
 		}
-		for(uint k=0; k<args.size()-1; k++) {
+		for(uint k=0; k<args.size()-1; ++k) {
 			if(!begin){
 				output << ",";
 			}
@@ -317,7 +317,7 @@ void FODOTTranslator::printModel(std::ostream& output, const vector<Literal>& mo
 
 	// read and translate the model
 	bool endmodel = false;
-	for(vector<Literal>::const_iterator i=model.begin(); i<model.end(); i++){
+	for(vector<Literal>::const_iterator i=model.begin(); i<model.end(); ++i){
 		int lit = (*i).getValue();
 		if(lit==0 || endmodel){ //end of model found
 			break;
@@ -347,7 +347,7 @@ void FODOTTranslator::printModel(std::ostream& output, const vector<Literal>& mo
  */
 bool FODOTTranslator::deriveStringFromAtomNumber(int atom, uint& currpred, vector<string>& arg) const{
 	while(atom > symbols[currpred]->endnumber) {
-		currpred++;
+		++currpred;
 	}
 	if(atom < symbols[currpred]->startnumber){
 		return false;
@@ -356,7 +356,7 @@ bool FODOTTranslator::deriveStringFromAtomNumber(int atom, uint& currpred, vecto
 	int valueleft = atom;
 	assert(currpred < symbols.size());
 	valueleft = atom-symbols[currpred]->startnumber;
-	for(vector<Type*>::const_reverse_iterator n=symbols[currpred]->types.rbegin(); n < symbols[currpred]->types.rend(); n++) {
+	for(vector<Type*>::const_reverse_iterator n=symbols[currpred]->types.rbegin(); n < symbols[currpred]->types.rend(); ++n) {
 		int cs = (*n)->domainelements.size();
 		int carg = valueleft % cs;
 		string domelem = (*n)->domainelements[carg];
@@ -390,7 +390,7 @@ void LParseTranslator::addTuple(Atom atom, std::string name) {
 }
 
 void LParseTranslator::printModel(std::ostream& output, const std::vector<Literal>& model) {
-	for(vector<Literal>::const_iterator i=model.begin(); i<model.end(); i++){
+	for(vector<Literal>::const_iterator i=model.begin(); i<model.end(); ++i){
 		if(!(*i).hasSign()){ //Do not print false literals
 			map<Atom, string>::const_iterator it = lit2name.find((*i).getAtom());
 			if(it!=lit2name.end()){
@@ -418,7 +418,7 @@ void OPBTranslator::addTuple(Atom atom, std::string name) {
 
 void OPBTranslator::printModel(std::ostream& output, const std::vector<Literal>& model) {
 	output <<"v ";
-	for(vector<Literal>::const_iterator i=model.begin(); i<model.end(); i++){
+	for(vector<Literal>::const_iterator i=model.begin(); i<model.end(); ++i){
 		map<Atom, string>::const_iterator it = lit2name.find((*i).getAtom());
 		if(it!=lit2name.end()){
 			if((*i).hasSign()){

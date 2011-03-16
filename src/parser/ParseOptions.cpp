@@ -68,7 +68,7 @@ struct Option: public Opt{
 	Option(const string &s, const string &l, const vector<T>& vals, const vector<pair<T2, string> >& desc, T& modesarg, TCLAP::CmdLine& cmd, const string &m):
 		shortopt(s), longopt(l), mess(m), defaultval(modesarg), vals(vals), desc(desc), modesarg(modesarg){
 		vector<T2> constrvals;
-		for(typename vector<pair<T2, string> >::const_iterator i=desc.begin(); i<desc.end(); i++){
+		for(typename vector<pair<T2, string> >::const_iterator i=desc.begin(); i<desc.end(); ++i){
 			constrvals.push_back((*i).first);
 		}
 		formatsconstr = new TCLAP::ValuesConstraint<T2>(constrvals);
@@ -79,7 +79,7 @@ struct Option: public Opt{
 		T2 tclapdefault = desc[0].first;
 		bool found = false;
 		ss <<mess <<":" <<endl;
-		for(typename vector<T>::size_type i=0; i<vals.size(); i++){
+		for(typename vector<T>::size_type i=0; i<vals.size(); ++i){
 			ss <<"\t<" <<desc[i].first <<"|" <<desc[i].second <<">";
 			if(vals[i]==defaultval){
 				tclapdefault = desc[i].first;
@@ -102,7 +102,7 @@ struct Option: public Opt{
 		//cerr <<longopt <<" " <<arg->getValue() <<endl;
 		bool found = false;
 		uint i=0;
-		for(; i<desc.size(); i++){
+		for(; i<desc.size(); ++i){
 			if(desc[i].first==arg->getValue()){
 				found = true;
 				break;
@@ -257,7 +257,7 @@ bool MinisatID::parseOptions(int argc, char** argv){
 		return false;
 	}
 
-	for(vector<Opt*>::const_iterator i=options.begin(); i<options.end(); i++){
+	for(vector<Opt*>::const_iterator i=options.begin(); i<options.end(); ++i){
 		(*i)->parse();
 	}
 

@@ -22,7 +22,7 @@ void ECNFPrinter::startPrinting(){
 }
 
 void ECNFPrinter::addClause(const vec<Lit>& lits){
-	for(int i=0; i<lits.size(); i++){
+	for(int i=0; i<lits.size(); ++i){
 		if(i>0){
 			ss <<" -- ";
 		}
@@ -35,7 +35,7 @@ void ECNFPrinter::addClause(const vec<Lit>& lits){
 }
 
 void ECNFPrinter::addSet(const vector<Lit>& lits){
-	for(int i=0; i<lits.size(); i++){
+	for(int i=0; i<lits.size(); ++i){
 		if(i>0){
 			ss <<" -- ";
 		}

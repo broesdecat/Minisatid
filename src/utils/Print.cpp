@@ -44,7 +44,7 @@ void print(const Minisat::Lit& lit){
 
 template<>
 void print(const Minisat::vec<Minisat::Lit>& v){
-	for(int i=0; i<v.size(); i++) {
+	for(int i=0; i<v.size(); ++i) {
 		if(i<v.size()-1){
 			clog <<" ";
 		}
@@ -62,7 +62,7 @@ template<>
 void print(Solver * const s){
 	assert(s!=NULL);
 	clog <<"Clauses\n";
-	for(int i=0; i< s->nbClauses(); i++){
+	for(int i=0; i< s->nbClauses(); ++i){
 		s->printClause(s->getClause(i));
 		clog <<"\n";
 	}
@@ -72,7 +72,7 @@ template<>
 void print(Solver const * const s){
 	assert(s!=NULL);
 	clog <<"Clauses\n";
-	for(int i=0; i< s->nbClauses(); i++){
+	for(int i=0; i< s->nbClauses(); ++i){
 		s->printClause(s->getClause(i));
 		clog <<"\n";
 	}
@@ -100,7 +100,7 @@ void print(IDSolver const * const s){
 		return;
 	}
 	clog <<"Definitions\n";
-	for(int i=0; i<s->nVars(); i++){
+	for(int i=0; i<s->nVars(); ++i){
 		if(s->isDefined(i)){
 			if(s->isConjunctive(i)){
 				clog <<"Conjunctive rule";
@@ -115,7 +115,7 @@ void print(IDSolver const * const s){
 			int counter = 0;
 			while(counter<r.size()){
 				print(r[counter]);
-				counter++;
+				++counter;
 			}
 			clog <<"\n";
 		}
@@ -130,17 +130,17 @@ void print(ModSolver * const m){
 		print(mkLit(m->getHead()), m->getHeadValue());
 	}
 	clog <<", children ";
-	for(vmodindex::const_iterator i=m->getChildren().begin(); i<m->getChildren().end(); i++){
+	for(vmodindex::const_iterator i=m->getChildren().begin(); i<m->getChildren().end(); ++i){
 		clog <<*i;
 	}
 	clog <<"\nModal atoms ";
-	for(vector<Var>::const_iterator i=m->getAtoms().begin(); i<m->getAtoms().end(); i++){
+	for(vector<Var>::const_iterator i=m->getAtoms().begin(); i<m->getAtoms().end(); ++i){
 		clog <<getPrintableVar(*i);
 	}
 	/*clog <<"\nsubtheory\n");
 	print(m->getPCSolver());*/
 	clog <<"SubSolvers\n";
-	for(vmodindex::const_iterator i=m->getChildren().begin(); i<m->getChildren().end(); i++){
+	for(vmodindex::const_iterator i=m->getChildren().begin(); i<m->getChildren().end(); ++i){
 		print(m->getModSolverData().getModSolver(*i));
 	}
 }
@@ -153,17 +153,17 @@ void print(ModSolver const * const m){
 		print(mkLit(m->getHead()), m->getHeadValue());
 	}
 	clog <<", children ";
-	for(vmodindex::const_iterator i=m->getChildren().begin(); i<m->getChildren().end(); i++){
+	for(vmodindex::const_iterator i=m->getChildren().begin(); i<m->getChildren().end(); ++i){
 		clog <<*i;
 	}
 	clog <<"\nModal atoms ";
-	for(vector<Var>::const_iterator i=m->getAtoms().begin(); i<m->getAtoms().end(); i++){
+	for(vector<Var>::const_iterator i=m->getAtoms().begin(); i<m->getAtoms().end(); ++i){
 		clog <<getPrintableVar(*i);
 	}
 	/*clog <<"\nsubtheory\n");
 	print(m->getPCSolver());*/
 	clog <<"SubSolvers\n";
-	for(vmodindex::const_iterator i=m->getChildren().begin(); i<m->getChildren().end(); i++){
+	for(vmodindex::const_iterator i=m->getChildren().begin(); i<m->getChildren().end(); ++i){
 		print(m->getModSolverData().getModSolver(*i));
 	}
 }

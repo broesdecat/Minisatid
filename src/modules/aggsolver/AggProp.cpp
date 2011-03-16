@@ -63,7 +63,7 @@ Weight SumProp::remove(const Weight& lhs, const Weight& rhs) const {
 
 Weight SumProp::getMinPossible(const TypedSet& set) const{
 	Weight min = getESV();
-	for (vwl::const_iterator j = set.getWL().begin(); j < set.getWL().end(); j++) {
+	for (vwl::const_iterator j = set.getWL().begin(); j < set.getWL().end(); ++j) {
 		if((*j).getWeight() < 0){
 			min = this->add(min, (*j).getWeight());
 		}
@@ -73,7 +73,7 @@ Weight SumProp::getMinPossible(const TypedSet& set) const{
 
 Weight SumProp::getMaxPossible(const TypedSet& set) const {
 	Weight max = getESV();
-	for (vwl::const_iterator j = set.getWL().begin(); j < set.getWL().end(); j++) {
+	for (vwl::const_iterator j = set.getWL().begin(); j < set.getWL().end(); ++j) {
 		if((*j).getWeight() > 0){
 			max = this->add(max, (*j).getWeight());
 		}
@@ -108,7 +108,7 @@ Weight MaxProp::getMinPossible(const TypedSet&) const{
 
 Weight MaxProp::getMaxPossible(const TypedSet& set) const {
 	Weight max = getESV();
-	for(vwl::const_iterator j = set.getWL().begin(); j<set.getWL().end(); j++){
+	for(vwl::const_iterator j = set.getWL().begin(); j<set.getWL().end(); ++j){
 		max = this->add(max, (*j).getWeight());
 	}
 	return max;
@@ -141,7 +141,7 @@ WL MaxProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* s
 //
 //Weight MinProp::getMinPossible(const TypedSet& set) const{
 //	Weight min = getESV();
-//	for(vwl::const_iterator j = set.getWL().begin(); j<set.getWL().end(); j++){
+//	for(vwl::const_iterator j = set.getWL().begin(); j<set.getWL().end(); ++j){
 //		min = this->add(min, (*j).getWeight());
 //	}
 //	return min;
@@ -178,7 +178,7 @@ Weight ProdProp::getMinPossible(const TypedSet&) const{
 
 Weight ProdProp::getMaxPossible(const TypedSet& set) const {
 	Weight max = getESV();
-	for(vwl::const_iterator j = set.getWL().begin(); j<set.getWL().end(); j++){
+	for(vwl::const_iterator j = set.getWL().begin(); j<set.getWL().end(); ++j){
 		if((*j).getWeight() > 0){
 			max = this->add(max, (*j).getWeight());
 		}
@@ -352,20 +352,20 @@ void TypedSet::addAgg(Agg* aggr){
 }
 
 void TypedSet::replaceAgg(const agglist& repl){
-	for(agglist::const_iterator i=aggregates.begin(); i<aggregates.end(); i++){
+	for(agglist::const_iterator i=aggregates.begin(); i<aggregates.end(); ++i){
 		assert((*i)->getSet()==this);
 		(*i)->setTypedSet(NULL);
 		(*i)->setIndex(-1);
 	}
 	aggregates.clear();
-	for(agglist::const_iterator i=repl.begin(); i<repl.end(); i++){
+	for(agglist::const_iterator i=repl.begin(); i<repl.end(); ++i){
 		addAgg(*i);
 	}
 }
 
 void TypedSet::replaceAgg(const agglist& repl, const agglist& del){
 	replaceAgg(repl);
-	for(agglist::const_iterator i=del.begin(); i<del.end(); i++){
+	for(agglist::const_iterator i=del.begin(); i<del.end(); ++i){
 		delete *i;
 	}
 }
@@ -374,7 +374,7 @@ void TypedSet::replaceAgg(const agglist& repl, const agglist& del){
  * Initialize the datastructures. If it's neither sat nor unsat and it is defined, notify the pcsolver of this
  */
 void TypedSet::initialize(bool& unsat, bool& sat, vps& sets) {
-	for(vector<AggTransform*>::iterator i=transformations.begin(); !sat && !unsat && i<transformations.end(); i++) {
+	for(vector<AggTransform*>::iterator i=transformations.begin(); !sat && !unsat && i<transformations.end(); ++i) {
 		AggTransform* transfo = *i;
 		transformations.erase(i); i--;
 		transfo->transform(getSolver(), this, sets, unsat, sat);
@@ -387,7 +387,7 @@ void TypedSet::initialize(bool& unsat, bool& sat, vps& sets) {
 
 	if(sat || unsat){ return; }
 
-	for (agglist::const_iterator i = getAgg().begin(); i < getAgg().end(); i++) {
+	for (agglist::const_iterator i = getAgg().begin(); i < getAgg().end(); ++i) {
 		if ((*i)->isDefined()) {
 			getSolver()->notifyDefinedHead(var((*i)->getHead()), (*i)->getDefID());
 		}
@@ -405,7 +405,7 @@ void TypedSet::addExplanation(AggReason& ar) const {
 		clog <<" in expression ";
 		print(getSolver()->verbosity(), ar.getAgg(), false);
 		clog <<" is ";
-		for(int i=0; i<lits.size(); i++){
+		for(int i=0; i<lits.size(); ++i){
 			clog <<" " <<lits[i];
 		}
 		clog <<"\n";
@@ -418,7 +418,7 @@ Propagator::Propagator(TypedSet* set):set(set), aggsolver(set->getSolver()){
 
 // Final initialization call!
 void Propagator::initialize(bool& unsat, bool& sat) {
-	for (agglist::const_iterator i = getSet().getAgg().begin(); i < getSet().getAgg().end(); i++) {
+	for (agglist::const_iterator i = getSet().getAgg().begin(); i < getSet().getAgg().end(); ++i) {
 		if((*i)->getSem()==IMPLICATION){
 			getSolver()->setHeadWatch(~(*i)->getHead(), (*i));
 		}else{
@@ -434,7 +434,7 @@ lbool Propagator::value(const Lit& l) const {
 
 Weight Propagator::getValue() const {
 	Weight total = getSet().getType().getESV();
-	for(vwl::const_iterator i=getSet().getWL().begin(); i<getSet().getWL().end(); i++){
+	for(vwl::const_iterator i=getSet().getWL().begin(); i<getSet().getWL().end(); ++i){
 		lbool val = value((*i).getLit());
 		assert(val!=l_Undef);
 
@@ -456,7 +456,7 @@ bool MaxProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, 
 
 	if (justified && agg.hasUB()) {
 		justified = false;
-		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() > agg.getCertainBound(); i++) {
+		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() > agg.getCertainBound(); ++i) {
 			if (oppositeIsJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push(~(*i).getLit()); //push negative literal, because it should become false
 			} else if (real || currentjust[var((*i).getLit())] != 0) {
@@ -470,7 +470,7 @@ bool MaxProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, 
 
 	if(justified && agg.hasLB()){
 		justified = false;
-		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() >= agg.getCertainBound(); i++) {
+		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() >= agg.getCertainBound(); ++i) {
 			if (isJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push((*i).getLit());
 				justified = true;
@@ -585,7 +585,7 @@ bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, V
 
  if(justified){
  reportf("justification found: ");
- for(int i=0; i<jstf.size(); i++){
+ for(int i=0; i<jstf.size(); ++i){
  print(jstf[i]); reportf(" ");
  }
  reportf("\n");

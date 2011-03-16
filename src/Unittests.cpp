@@ -50,14 +50,14 @@ shared_ptr<WrappedLogicSolver> unittest2(SolverOption& modes){
 	vector<int> mult;
 	vector<int> elemx;
 	int n = 1000;
-	for(int i=0; i<n; i++){
+	for(int i=0; i<n; ++i){
 		mult.push_back(i-1);
 		int x = i;
 		pcsolver->addIntVar(x, 0, n);
 		elemx.push_back(x);
 	}
 
-	for(int i=0; i<n; i++){
+	for(int i=0; i<n; ++i){
 		pcsolver->addCPCount(elemx, i, MEQ, elemx[i]);
 	}
 
@@ -72,8 +72,8 @@ shared_ptr<WrappedLogicSolver> unittest2(SolverOption& modes){
 	pcsolver->addCPSum(Literal(5), elemx, mult, MEQ, 0);
 
 	int literalcount = 6;
-	for(int i=0; i<n; i++){
-		for(int j=0; j<n; j++){
+	for(int i=0; i<n; ++i){
+		for(int j=0; j<n; ++j){
 			pcsolver->addCPBinaryRel(Literal(literalcount++), elemx[i], MEQ, j);
 			pcsolver->addCPBinaryRel(Literal(literalcount++), elemx[i], MGEQ, j);
 		}
@@ -87,15 +87,15 @@ shared_ptr<WrappedLogicSolver> unittest3(SolverOption& modes){ //unsat
 
 	/*vector<int> elemx;
 	int n = 4;
-	for(int i=1; i<n; i++){
+	for(int i=1; i<n; ++i){
 		pcsolver->addIntVar(i, 1, 2);
 		elemx.push_back(i);
 	}
 
 	int c = 1;
-	for(int i=0; i<elemx.size(); i++){
+	for(int i=0; i<elemx.size(); ++i){
 		int left = c;
-		for(int j=0; j<elemx.size(); j++, c++){
+		for(int j=0; j<elemx.size(); ++j, ++c){
 			pcsolver->addCPBinaryRelVar(Literal(c), elemx[i], MNEQ, elemx[j]);
 			if(i+j<n){
 				vector<Literal> lits;
