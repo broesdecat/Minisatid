@@ -47,7 +47,9 @@ namespace MinisatID{
 
 namespace Minisat{
 
-#define reportf(format, args...) ( fflush(stdout), fprintf(stderr, format, ## args), fflush(stderr) )
+/*AB*/
+void reportf(const char* format, ...);
+/*AE*/
 
 //=================================================================================================
 // Solver -- the main class:

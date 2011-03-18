@@ -50,6 +50,10 @@ namespace MinisatID{
 
 namespace Minisat{
 
+/*AB*/
+void reportf(const char* format, ...);
+/*AE*/
+
 class Solver {
 private:
 /*AB*/
@@ -87,7 +91,7 @@ public:
 	void     	claDecayActivity	();				// Decay all clauses with the specified factor. Implemented by increasing the 'bump' value instead.
 	uint64_t    nbVars				() const;		// The current number of variables.
 	void		printStatistics		() const ;
-	void		addForcedChoices	(const vec<Lit>& fc) { reportf("Not supported by solver!\n"); exit(-1);  }
+	void		addForcedChoices	(const vec<Lit>& fc) { fc.copyTo(forcedchoices);  }
 	void		disableHeur			() { reportf("Not supported by solver!\n"); exit(-1); }
 	bool     	isDecisionVar(Var v) const { return decision_var[v]; }
 /*AE*/

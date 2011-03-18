@@ -28,61 +28,61 @@ typedef std::vector<Aggrs::TypedSet*> vps;
  * @post: the literals are sorted according to weight again
  */
 
-class AggTransform;
-const std::vector<AggTransform*>& getTransformations();
+class AggTransformation;
+const std::vector<AggTransformation*>& getTransformations();
 //void doTransformations(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat);
 
-class AggTransform{
+class AggTransformation{
 public:
 	virtual void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const = 0;
 };
 
-class SetReduce : public AggTransform{
+class SetReduce : public AggTransformation{
 public:
 	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
 };
 
-class PartitionIntoTypes : public AggTransform{
+class PartitionIntoTypes : public AggTransformation{
 public:
 	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
 };
 
-class AddTypes : public AggTransform{
+class AddTypes : public AggTransformation{
 public:
 	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
 };
 
-class MinToMax : public AggTransform{
+class MinToMax : public AggTransformation{
 public:
 	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
 };
 
-class MaxToSAT : public AggTransform{
+class MaxToSAT : public AggTransformation{
 public:
 	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
 };
 
-class VerifyWeights : public AggTransform{
+class VerifyWeights : public AggTransformation{
 public:
 	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
 };
 
-class AddHeadImplications : public AggTransform{
+class AddHeadImplications : public AggTransformation{
 public:
 	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
 };
 
-class CardToEquiv : public AggTransform{
+class CardToEquiv : public AggTransformation{
 public:
 	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
 };
 
-class MapToSetOneToOneWithAgg : public AggTransform{
+class MapToSetOneToOneWithAgg : public AggTransformation{
 public:
 	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
 };
 
-class MapToSetWithSameAggSign : public AggTransform{
+class MapToSetWithSameAggSign : public AggTransformation{
 public:
 	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
 };

@@ -13,8 +13,7 @@
 aclocal.m4
 autom4te.cache/*
 */autom4te.cache/*
-builds/*
-*/builds/*
+build*
 configure
 config.guess
 config.sub
@@ -28,3 +27,7 @@ ylwrap
 *.settings/*
 *ltmain.sh
 *.*~
+config.h.in
+lib/*/INSTALL
+lib/*/autom4te.cache
+lib/*/config.h.in

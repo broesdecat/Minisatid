@@ -56,6 +56,7 @@ PCSolver::PCSolver(SolverOption modes, MinisatID::WLSImpl& inter) :
 		satsolver(NULL), aggsolver(NULL), modsolver(NULL),
 		state(THEORY_PARSING),
 		optim(NONE), head(-1),
+		state_savedlevel(0), state_savingclauses(false),
 		logger(new PCLogger()), ecnfprinter(NULL){
 	satsolver = createSolver(*this);
 
@@ -301,7 +302,11 @@ bool PCSolver::add(const InnerWSet& wset){
 	return getAggSolver()->addSet(wset.setID, wset.literals, wset.weights);
 }
 bool PCSolver::add(const InnerAggregate& agg){
-	assert(hasPresentAggSolver());
+	if(!hasPresentAggSolver()){
+		stringstream ss;
+		ss <<"The set with id " <<agg.setID <<" should be defined before the aggregate with head " <<agg.head <<"\n";
+		throw idpexception(ss.str());
+	}
 	add(agg.head);
 
 	// TODO hack: after parsing, no more solvers can be created,

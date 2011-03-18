@@ -19,6 +19,10 @@
 #include <tr1/memory>
 #endif
 
+namespace Minisat{
+	class Solver;
+}
+
 namespace MinisatID{
 
 class WL;
@@ -226,6 +230,7 @@ class Propagator {
 private:
 	TypedSet* set; //Non-owning
 	AggSolver* const aggsolver;
+	Minisat::Solver* satsolver;
 public:
 	Propagator(TypedSet* set);
 	virtual ~Propagator(){};
@@ -260,7 +265,7 @@ protected:
 	Propagator* 		prop;		//OWNS pointer
 
 	int 				setid;
-	std::vector<Aggrs::AggTransform*> transformations;
+	std::vector<Aggrs::AggTransformation*> transformations;
 
 	bool				usingwatches;
 
@@ -315,7 +320,7 @@ public:
 	void 			setProp			(Propagator* p) 			{ prop = p; }
 	Propagator*		getProp			() 			const 			{ return prop; }
 
-	const std::vector<AggTransform*>& getTransformations() const { return transformations; }
+	const std::vector<AggTransformation*>& getTransformations() const { return transformations; }
 
 	void 			initialize		(bool& unsat, bool& sat, vps& sets);
 	void			backtrack		(int nblevels, int untillevel) 			{ getProp()->backtrack(nblevels, untillevel); }
@@ -323,10 +328,6 @@ public:
 	rClause 		propagate		(const Agg& agg, int level, bool headtrue)	{ return getProp()->propagate(level, agg, headtrue); }
 	rClause			propagateAtEndOfQueue(int level) 						{ return getProp()->propagateAtEndOfQueue(level); }
 	void 			addExplanation	(AggReason& ar) const;
-
-	///////
-	// HELP METHODS
-	///////
 };
 
 }

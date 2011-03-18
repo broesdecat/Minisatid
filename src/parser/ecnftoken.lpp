@@ -122,8 +122,8 @@ WHITESPACE	[\t\r ]*
 <trans>{INT}			{ yylval.integer = atoi(yytext); 	return T_NUM;		}
 <trans>{WHITESPACE}   	{                      		}
 <trans>.				{ return *yytext;			}
-<trans>\n             	{							}
 
+<theory,INITIAL,trans>\n {} //IMPORTANT: lex . pattern does NOT match newlines, so match them explicitly!
 <theory,INITIAL>.	{/* Anything else: parse error */
 						char s[100];
 						sprintf(s, "Encountered unexpected character '%s'.\n", yytext);

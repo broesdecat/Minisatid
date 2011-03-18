@@ -36,7 +36,7 @@ public:
 	FWTrail(int level, const Weight& CBC, const Weight& CBP): level(level), start(0), CBC(CBC), CBP(CBP){}
 };
 
-lbool 	canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP, Expl& basedon);
+lbool 	canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP);
 
 class FWAgg: public Propagator {
 protected:

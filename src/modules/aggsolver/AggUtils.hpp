@@ -62,16 +62,13 @@ public:
 	virtual const WL&	getWL	()			const	{ return wl; }
 };
 
-enum Expl{BASEDONCC,BASEDONCP,HEADONLY};
-
 class AggReason {
 private:
-	const Expl	expl;
 	vec<Lit> 	explanation;
 	bool 		hasclause;
 
 public:
-	AggReason(Expl expl) :expl(expl), explanation(), hasclause(false){ }
+	AggReason(): explanation(), hasclause(false){ }
 	virtual ~AggReason() {}
 
 	virtual const Agg&	getAgg			() 	const = 0;
@@ -79,8 +76,6 @@ public:
 	virtual Weight		getPropWeight	()	const = 0;
 	virtual bool		isHeadReason	() 	const = 0;
 	virtual bool		isInSet			()	const = 0;
-
-	Expl		getExpl			()	const { return expl; }
 
     bool 		hasClause		()	const	{ return hasclause; }
     const vec<Lit>&	getClause	()	const	{ assert(hasClause()); return explanation; }
@@ -93,8 +88,8 @@ private:
 	const Lit 	proplit;
 
 public:
-	HeadReason(const Agg& agg, Expl expl, const Lit& proplit)
-		:AggReason(expl), expr(agg), proplit(proplit){
+	HeadReason(const Agg& agg, const Lit& proplit)
+		:AggReason(), expr(agg), proplit(proplit){
 	}
 
 	const Agg&		getAgg			() 	const	{ return expr; }
@@ -112,8 +107,8 @@ private:
 	bool inset;
 
 public:
-	SetLitReason(const Agg& agg, const Lit& setlit, const Weight& setweight, Expl expl, bool inset)
-		: AggReason(expl), expr(agg), l(setlit), w(setweight), inset(inset){ }
+	SetLitReason(const Agg& agg, const Lit& setlit, const Weight& setweight, bool inset)
+		: AggReason(), expr(agg), l(setlit), w(setweight), inset(inset){ }
 
 	const Agg&		getAgg			() 	const	{ return expr; }
     Lit				getPropLit		()	const	{ return inset?l:~l; }
