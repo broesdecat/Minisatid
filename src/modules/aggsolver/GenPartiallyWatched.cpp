@@ -24,7 +24,6 @@ using namespace MinisatID::Aggrs;
 /**
  * TODO sorted aggr?
  * TODO maximum aggregate?
- * TODO optimization aggregate?
  */
 
 PWAgg::PWAgg				(TypedSet* set): Propagator(set) {}
@@ -98,12 +97,17 @@ void GenPWAgg::addStagedWatchesToNetwork(){
 	getStagedWatches().clear();
 }
 
-Agg* GenPWAgg::getAggWithMostStringentBound() const {
+Agg* GenPWAgg::getAggWithMostStringentBound(bool includeunknown) const {
 	Agg* strongestagg = NULL;
 	for(agglist::const_iterator i=getAgg().begin(); i<getAgg().end(); ++i){
-		bool headtrue = value((*i)->getHead())==l_True;
+		bool relevantagg;
+		if(includeunknown){
+			relevantagg = value((*i)->getHead())!=l_True;
+		}else{
+			relevantagg = value((*i)->getHead())==l_False;
+		}
 		//Otherwise, the aggregate does not have to hold (IMPLICATION!)
-		if(!headtrue){
+		if(relevantagg){
 			if(strongestagg==NULL){
 				strongestagg = *i;
 			}else if(strongestagg->hasLB() && strongestagg->getCertainBound()<(*i)->getCertainBound()){
@@ -151,7 +155,7 @@ rClause GenPWAgg::checkPropagation(bool& propagations, minmaxBounds& pessbounds,
 		for(agglist::const_iterator i=getAgg().begin(); confl==nullPtrClause && i<getAgg().end(); ++i){
 			confl = checkHeadPropagationForAgg(propagations, **i, pessbounds);
 		}
-		aggp = getAggWithMostStringentBound();
+		aggp = getAggWithMostStringentBound(false);
 	}
 
 	if(confl==nullPtrClause && aggp!=NULL){
@@ -212,11 +216,11 @@ void GenPWAgg::checkInitiallyKnownAggs(bool& unsat, bool& sat){
 	rClause confl = nullPtrClause;
 	agglist rem, del;
 	for(agglist::const_iterator i=getAgg().begin(); confl==nullPtrClause && i<getAgg().end(); ++i){
-		if(value((*i)->getHead())==l_True){ //Head always true
+		if(!(*i)->isOptim() && value((*i)->getHead())==l_True){ //Head always true
 			del.push_back(*i);
-		}else if(isSatisfied(**i, pessbounds)){ // Agg always true
+		}else if(!(*i)->isOptim() && isSatisfied(**i, pessbounds)){ // Agg always true
 			del.push_back(*i);
-		}else if(isFalsified(**i, pessbounds)){ // Agg always false
+		}else if(!(*i)->isOptim() && isFalsified(**i, pessbounds)){ // Agg always false
 			confl = getSet().getSolver()->notifySolver(new HeadReason(**i, (*i)->getHead()));
 			del.push_back(*i);
 		}else{
@@ -237,14 +241,13 @@ void GenPWAgg::checkInitiallyKnownAggs(bool& unsat, bool& sat){
  *					then reconstruct the set for the aggregate with the lowest bound!
  */
 void GenPWAgg::initialize(bool& unsat, bool& sat) {
+#ifdef DEBUG
 	assert(getAgg().size()>0);
 	assert(unsat==false && sat==false);
-
-#ifdef DEBUG
 	const agglist& aggs = getAgg();
 	AggSign sign = aggs[0]->getSign();
 	for(agglist::const_iterator i=aggs.begin(); i<aggs.end(); ++i){
-		assert((*i)->getSign()==sign && !(*i)->isOptim());
+		assert((*i)->getSign()==sign);
 	}
 #endif
 
@@ -259,14 +262,14 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 		nws.push_back(new GenPWatch(getSetp(), *i, mono, nws.size()));
 	}
 
-	// Check inital derivations
+	// Check initial derivations
 	checkInitiallyKnownAggs(unsat, sat);
 	if(unsat || sat){
 		return;
 	}
 
 	// Calculate reference aggregate (the one which will lead to the most watches)
-	worstagg = getAggWithMostStringentBound();
+	worstagg = getAggWithMostStringentBound(true);
 	assert(worstagg != NULL);
 
 	// Construct first watches

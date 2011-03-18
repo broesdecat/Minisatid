@@ -132,7 +132,7 @@ private:
 	void 				checkInitiallyKnownAggs(bool& unsat, bool& sat);
 
 	Agg const* 	getWorstAgg		() { return worstagg; }
-	Agg* 		getAggWithMostStringentBound() const;
+	Agg* 		getAggWithMostStringentBound(bool includeunknown) const;
 
 	minmaxBounds getBoundsOnEmptyInterpr() const { return emptyinterpretbounds; }
 	void		setBoundsOnEmptyInterpr(minmaxBounds bounds) { emptyinterpretbounds = bounds; }
