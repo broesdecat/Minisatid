@@ -216,11 +216,12 @@ void GenPWAgg::checkInitiallyKnownAggs(bool& unsat, bool& sat){
 	rClause confl = nullPtrClause;
 	agglist rem, del;
 	for(agglist::const_iterator i=getAgg().begin(); confl==nullPtrClause && i<getAgg().end(); ++i){
-		if(!(*i)->isOptim() && value((*i)->getHead())==l_True){ //Head always true
+		bool isoptim = getSolver()->isOptimAgg(*i);
+		if(!isoptim && value((*i)->getHead())==l_True){ //Head always true
 			del.push_back(*i);
-		}else if(!(*i)->isOptim() && isSatisfied(**i, pessbounds)){ // Agg always true
+		}else if(!isoptim && isSatisfied(**i, pessbounds)){ // Agg always true
 			del.push_back(*i);
-		}else if(!(*i)->isOptim() && isFalsified(**i, pessbounds)){ // Agg always false
+		}else if(!isoptim && isFalsified(**i, pessbounds)){ // Agg always false
 			confl = getSet().getSolver()->notifySolver(new HeadReason(**i, (*i)->getHead()));
 			del.push_back(*i);
 		}else{

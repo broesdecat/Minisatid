@@ -26,20 +26,16 @@ using namespace std;
 using namespace MinisatID;
 using namespace MinisatID::Print;
 
-typedef numeric_limits<long> lim;
+typedef numeric_limits<int> lim;
 
-///////
 // Measuring cpu time
-///////
 
 //In elapsed seconds, making abstraction of other processes running on the system
 double MinisatID::cpuTime(void) {
 	return (double)clock() / CLOCKS_PER_SEC;
 }
 
-///////
 // Weight management
-///////
 
 #ifdef GMP
 	ostream& Print::operator<<(ostream& output, const Weight& p) {
@@ -73,9 +69,7 @@ double MinisatID::cpuTime(void) {
 	Weight MinisatID::negInfinity() { return lim::min(); }
 #endif
 
-///////
 // Options for the solvers and their defaults!
-///////
 
 #ifndef DATADIR
 #warning No data directory defined, assuming it is the build directory

@@ -35,7 +35,10 @@ using namespace Print;
 using namespace Aggrs;
 
 AggSolver::AggSolver(PCSolver* s) :
-	DPLLTmodule(s), propagations(0), index(1), propindex(0) {
+	DPLLTmodule(s),
+	dummyhead(-1),
+	propagations(0), index(1), propindex(0),
+	optimagg(NULL){
 }
 
 AggSolver::~AggSolver() {
@@ -49,7 +52,7 @@ Minisat::Solver* AggSolver::getSATSolver() const{
 }
 
 void AggSolver::adaptToNVars(uint64_t nvars){
-	assert(lit2headwatchlist.size() < 2*nvars);
+	assert(lit2dynamicwatchlist.size() < 2*nvars);
 	lit2headwatchlist.resize(2*nvars, NULL);
 	lit2staticwatchlist.resize(nvars);
 	var2setlist.resize(nvars);
@@ -73,15 +76,31 @@ void AggSolver::notifyDefinedHead(Var head, int defID){
 
 void AggSolver::setHeadWatch(Lit head, Agg* agg) {
 	assert(isInitializing());
-	assert(lit2headwatchlist[toInt(head)]==NULL);
-	lit2headwatchlist[toInt(head)] = agg;
+	if(var(head)==dummyhead){
+		if(agg->isDefined()){
+			//TODO clean
+			throw idpexception("Multiple heads occurred with the same head and at least one of them was defined.\n");
+		}
+		if(!sign(head)){
+			dummyheadtrue2watchlist.insert(agg);
+		}else{
+			dummyheadfalse2watchlist.insert(agg);
+		}
+	}else{
+		assert(lit2headwatchlist[toInt(head)]==NULL);
+		lit2headwatchlist[toInt(head)] = agg;
+	}
 }
 
 void AggSolver::removeHeadWatch(Var head, int defID) {
 	assert(isInitializing());
-	lit2headwatchlist[toInt(createNegativeLiteral(head))] = NULL;
-	lit2headwatchlist[toInt(createPositiveLiteral(head))] = NULL;
-	getPCSolver().removeAggrHead(head, defID);
+	if(head==dummyhead){
+		// FIXME
+	}else{
+		lit2headwatchlist[toInt(createNegativeLiteral(head))] = NULL;
+		lit2headwatchlist[toInt(createPositiveLiteral(head))] = NULL;
+		getPCSolver().removeAggrHead(head, defID);
+	}
 }
 
 void AggSolver::addStaticWatch(Var v, Watch* w) {
@@ -185,9 +204,20 @@ bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType
 
 	//Check that no aggregates occur with the same heads
 	if (heads.find(headv) != heads.end()) {
-		char s[100];
-		sprintf(s, "At least two aggregates have the same head(%d).\n", getPrintableVar(headv));
-		throw idpexception(s);
+		if(dummyhead==-1){
+			clog <<">>> IMPORTANT: two aggregates with the same head occurred. Assuming that this head is certainly true.\n";
+			dummyhead = headv;
+			InnerDisjunction clause;
+			clause.literals.push(mkLit(dummyhead, false));
+			if(!getPCSolver().add(clause)){
+				return false;
+			}
+		}else if(dummyhead!=headv){
+			stringstream ss;
+			ss <<"Multiple aggregates with several duplicate heads " <<getPrintableVar(dummyhead) <<" and ";
+			ss <<getPrintableVar(headv) <<").\n";
+			throw idpexception(ss.str());
+		}
 	}
 	heads.insert(headv);
 
@@ -228,7 +258,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		return;
 	}
 
-	if (verbosity() >= 3) {
+	if(verbosity() >= 3){
 		report("Initializing aggregates\n");
 	}
 
@@ -456,6 +486,18 @@ rClause AggSolver::doProp(){
 			++propagations;
 
 			printWatches(verbosity(), this, lit2dynamicwatchlist);
+		}
+
+		if(p==mkLit(dummyhead, false)){
+			for (set<Agg*>::const_iterator i = dummyheadtrue2watchlist.begin(); confl == nullPtrClause && i != dummyheadtrue2watchlist.end(); ++i) {
+				confl = (*i)->getSet()->propagate(**i, getCurrentDecisionLevel(), !sign(p));
+				++propagations;
+			}
+		}else if(p==mkLit(dummyhead, true)){
+			for (set<Agg*>::const_iterator i = dummyheadfalse2watchlist.begin(); confl == nullPtrClause && i != dummyheadfalse2watchlist.end(); ++i) {
+				confl = (*i)->getSet()->propagate(**i, getCurrentDecisionLevel(), !sign(p));
+				++propagations;
+			}
 		}
 
 		const vector<Watch*>& ws = lit2staticwatchlist[var(p)];
@@ -746,7 +788,7 @@ bool AggSolver::addMnmz(Var headv, int setid, AggType type) {
 	Weight max = prop->getMaxPossible(*set);
 
 	Agg* ae = new Agg(head, AggBound(AGGSIGN_UB, max+1), COMP, 0, type);
-	ae->setOptim();
+	setOptimAgg(ae);
 	set->addAgg(ae);
 
 	if (verbosity() >= 3) {
@@ -758,9 +800,9 @@ bool AggSolver::addMnmz(Var headv, int setid, AggType type) {
 	return true;
 }
 
-bool AggSolver::invalidateAgg(vec<Lit>& invalidation, Var head) {
+bool AggSolver::invalidateAgg(vec<Lit>& invalidation) {
 	assert(isInitialized());
-	Agg* a = lit2headwatchlist[toInt(createPositiveLiteral(head))];
+	Agg* a = getOptimAgg();
 	TypedSet* s = a->getSet();
 	Propagator* prop = s->getProp();
 	Weight value = prop->getValue();
@@ -776,7 +818,7 @@ bool AggSolver::invalidateAgg(vec<Lit>& invalidation, Var head) {
 		return true;
 	}
 
-	HeadReason ar(*a, createNegativeLiteral(head));
+	HeadReason ar(*a, createNegativeLiteral(var(a->getHead())));
 	prop->getExplanation(invalidation, ar);
 
 	return false;
@@ -787,10 +829,10 @@ bool AggSolver::invalidateAgg(vec<Lit>& invalidation, Var head) {
  * This method has to be called after every temporary solution has been found to force the propagation of
  * the newly adapted bound.
  */
-void AggSolver::propagateMnmz(Var head) {
+void AggSolver::propagateMnmz() {
 	assert(isInitialized());
 	int level = getPCSolver().getCurrentDecisionLevel();
-	Agg* agg = lit2headwatchlist[toInt(createPositiveLiteral(head))];
+	Agg* agg = getOptimAgg();
 	TypedSet* set = agg->getSet();
 	set->getProp()->propagate(level, *agg, true);
 }
@@ -829,6 +871,18 @@ void AggSolver::print() const{
 	printWatches(verbosity(), this, lit2dynamicwatchlist);
 	if (verbosity() >= 10) {
 		for(agglist::const_iterator i=lit2headwatchlist.begin(); i<lit2headwatchlist.end(); ++i){
+			if ((*i) != NULL) {
+				clog <<"Headwatch of var " <<getPrintableVar(var((*i)->getHead())) <<": ";
+				Aggrs::print(verbosity(), *(*i)->getSet(), true);
+			}
+		}
+		for(set<Agg*>::const_iterator i=dummyheadfalse2watchlist.begin(); i!=dummyheadfalse2watchlist.end(); ++i){
+			if ((*i) != NULL) {
+				clog <<"Headwatch of var " <<getPrintableVar(var((*i)->getHead())) <<": ";
+				Aggrs::print(verbosity(), *(*i)->getSet(), true);
+			}
+		}
+		for(set<Agg*>::const_iterator i=dummyheadtrue2watchlist.begin(); i!=dummyheadtrue2watchlist.end(); ++i){
 			if ((*i) != NULL) {
 				clog <<"Headwatch of var " <<getPrintableVar(var((*i)->getHead())) <<": ";
 				Aggrs::print(verbosity(), *(*i)->getSet(), true);

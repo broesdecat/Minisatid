@@ -65,11 +65,10 @@ private:
 	int			defid;
 	int			index;
 	AggType		type;
-	bool		optim;
 
 public:
-	Agg(const Lit& head, AggBound b, AggSem sem, int defid, AggType type, bool optim = false):
-		set(NULL), bound(b), head(head), sem(sem), defid(defid), index(-1), type(type), optim(optim){	}
+	Agg(const Lit& head, AggBound b, AggSem sem, int defid, AggType type):
+		set(NULL), bound(b), head(head), sem(sem), defid(defid), index(-1), type(type){	}
 
 	TypedSet*	getSet		()					const	{ return set; }
 	const Lit& 	getHead		() 					const 	{ return head; }
@@ -87,10 +86,8 @@ public:
 	AggSem		getSem		()					const	{ return sem; }
 	int			getDefID	()					const	{ return defid; }
 	AggType		getType		()					const	{ return type; }
-	bool		isOptim		()					const	{ return optim; }
 	void 		setIndex	(int ind) 					{ index = ind; }
 	void		setType		(const AggType& s)			{ type = s;}
-	void		setOptim	()							{ optim = true; }
 	void		setTypedSet	(TypedSet * const s)		{ set = s; }
 };
 typedef std::vector<Agg*> agglist;
@@ -228,9 +225,9 @@ void removeValue	(const AggProp& type, const Weight& weight, bool wasinset, Weig
 
 class Propagator {
 private:
-	TypedSet* set; //Non-owning
+	TypedSet* const set; //Non-owning
 	AggSolver* const aggsolver;
-	Minisat::Solver* satsolver;
+	Minisat::Solver* const satsolver;
 public:
 	Propagator(TypedSet* set);
 	virtual ~Propagator(){};

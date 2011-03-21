@@ -449,9 +449,7 @@ Weight Propagator::getValue() const {
 	return total;
 }
 
-/************************
- * RECURSIVE AGGREGATES *
- ************************/
+// RECURSIVE AGGREGATES
 
 bool MaxProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) const {
 	TypedSet* set = agg.getSet();

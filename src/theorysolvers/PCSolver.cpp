@@ -902,7 +902,7 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
 		if (optim == AGGMNMZ) {
 			assert(getAggSolver()!=NULL);
 			//Noodzakelijk om de aanpassingen aan de bound door te propageren.
-			getAggSolver()->propagateMnmz(head);
+			getAggSolver()->propagateMnmz();
 		}
 
 		bool sat = getSolver()->solve(currentassmpt);
@@ -934,7 +934,7 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
 				unsatreached = invalidateSubset(invalidation.literals, currentassmpt);
 				break;
 			case AGGMNMZ:
-				unsatreached = getAggSolver()->invalidateAgg(invalidation.literals, head);
+				unsatreached = getAggSolver()->invalidateAgg(invalidation.literals);
 				break;
 			case NONE:
 				assert(false);

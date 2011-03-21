@@ -29,20 +29,18 @@ using namespace MinisatID::Print;
  * Constructs a ModSolver, with a given head, index and hierarchy pointer. A PCSolver is initialized.
  */
 ModSolver::ModSolver(modindex child, Var head, SOSolver* mh):
-		DPLLTmodule(), WLSImpl(mh->modes()),
+		DPLLTmodule(new PCSolver(mh->modes(), *this)), WLSImpl(mh->modes()),
 		init(false), hasparent(false), searching(false),
 		head(head),
 		id(child), parentid(-1), //, startedsearch(false), startindex(-1),
 		solver(NULL),
 		modhier(mh){
-	SolverOption modescopy(mh->modes());
-	modescopy.nbmodels = 1;
+	getPCSolver().setNbModels(1);
 	//If we are not debugging, we do not want information on the deeper levels
 	if(mh->modes().verbosity<2){
-		modescopy.verbosity = 0;
+		getPCSolver().setVerbosity(0);
 	}
 
-	pcsolver = new PCSolver(modescopy, *this);
 	getPCSolver().setModSolver(this);
 
 	trail.push_back(vector<Lit>());

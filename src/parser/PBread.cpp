@@ -51,6 +51,7 @@ using namespace MinisatID;
  */
 void DefaultCallback::metaData(int nbvar, int nbconstr) {
 	maxvar = nbvar;
+	dummyhead = Atom(++maxvar);
 }
 
 /**
@@ -70,8 +71,7 @@ void DefaultCallback::endObjective() {
 	wset = WSet();
 
 	MinimizeAgg mnm;
-	int newvar = ++maxvar;
-	mnm.head = Atom(newvar);
+	mnm.head = dummyhead;
 	mnm.setid = setid;
 	mnm.type = SUM;
 	getSolver()->add(mnm);
@@ -113,7 +113,6 @@ void DefaultCallback::endConstraint() {
 	getSolver()->add(wset);
 	wset = WSet();
 
-	int newvar = ++maxvar;
 	Disjunction clause;
 	Aggregate agg;
 	agg.sem = COMP;
@@ -121,26 +120,16 @@ void DefaultCallback::endConstraint() {
 	agg.setID = setid;
 	agg.type = SUM;
 	if(equality){
-		agg.head = Atom(newvar);
+		agg.head = dummyhead;
 		agg.sign = AGGSIGN_LB;
 		getSolver()->add(agg);
-		clause.literals.clear();
-		clause.literals.push_back(Literal(newvar));
-		getSolver()->add(clause);
-		newvar = ++maxvar;
-		agg.head = Atom(newvar);
+		agg.head = dummyhead;
 		agg.sign = AGGSIGN_UB;
 		getSolver()->add(agg);
-		clause.literals.clear();
-		clause.literals.push_back(Literal(newvar));
-		getSolver()->add(clause);
 	}else{
-		agg.head = Atom(newvar);
+		agg.head = dummyhead;
 		agg.sign = AGGSIGN_LB;
 		getSolver()->add(agg);
-		clause.literals.clear();
-		clause.literals.push_back(Literal(newvar));
-		getSolver()->add(clause);
 	}
 }
 

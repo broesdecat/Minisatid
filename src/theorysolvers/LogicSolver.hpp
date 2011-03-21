@@ -34,6 +34,8 @@ public:
 
 			int 	verbosity		() const	{ return modes().verbosity; }
 	const SolverOption& modes		() const	{ return _modes; }
+			void	setVerbosity	(int verb)	{ _modes.verbosity = verb; }
+			void	setNbModels		(int nbmodels) { _modes.nbmodels = nbmodels; }
 
 	const MinisatID::WLSImpl& getParent	() const { return parent; }
 	MinisatID::WLSImpl& getParent	() { return parent; }

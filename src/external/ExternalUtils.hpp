@@ -167,7 +167,7 @@ typedef unsigned int uint;
 #else
 	namespace MinisatID {
 	#define NOARBITPREC
-	typedef long Weight;
+	typedef int Weight;
 	//FAST, NO OVERFLOW SUPPORT
 	}
 #endif

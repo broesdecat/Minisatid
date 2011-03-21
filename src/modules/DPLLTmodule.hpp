@@ -25,15 +25,8 @@ private:
 	State init;
 
 protected:
-	PCSolver* pcsolver;
-	Minisat::Solver* satsolver;
-
-	void	setPCSolver(PCSolver* s) {
-		pcsolver = s;
-		satsolver = pcsolver->getSATSolver();
-	}
-
-	DPLLTmodule(): init(PARSING), pcsolver(NULL), satsolver(NULL){}
+	PCSolver* const pcsolver;
+	Minisat::Solver* const satsolver;
 
 public:
 

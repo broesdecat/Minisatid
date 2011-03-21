@@ -20,10 +20,6 @@ namespace Aggrs{
 
 typedef std::vector<PropagationInfo> vprop;
 
-///////
-// DECLARATIONS
-///////
-
 class FWTrail{
 public:
 	int level;
@@ -40,15 +36,10 @@ lbool 	canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP);
 
 class FWAgg: public Propagator {
 protected:
-	/*
-	 * Smart trail system:
+	/* Smart trail system:
 	 * keep a datastructure with: currentBC, currentBP, decisionlevel and stack of propagations
 	 */
 	std::vector<FWTrail*> trail;
-
-	//std::vector<int> headindex;
-	//std::vector<bool> nomoreprops;
-	//mutable std::vector<int> headproptime;
 
 protected:
 	virtual lbool 	initialize				(const Agg& agg);
@@ -58,9 +49,6 @@ protected:
     virtual void 	addToCertainSet			(const WL& l) = 0;
 	virtual void 	removeFromPossibleSet	(const WL& l) = 0;
 
-	///////
-	// GETTERS - SETTERS
-	///////
 	void 			setCP					(const Weight& w) 			{ trail.back()->CBP = w; }
 	void 			setCC					(const Weight& w) 			{ trail.back()->CBC = w; }
 

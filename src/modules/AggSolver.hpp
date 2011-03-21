@@ -64,14 +64,19 @@ class AggSolver: public DPLLTmodule{
 private:
 	Aggrs::mips 					parsedSets;
 	std::set<Var>					heads;
+	Var								dummyhead;
+		// To prevent creating lots of heads which are all certainly true, it is possible to give them all the same (this) head.
+		// The aggregates have to be completion defined!
 
 	Aggrs::setlist					sets;
-	std::vector<Aggrs::AggReason*>	reasons; //Map var to reason
+	std::vector<Aggrs::AggReason*>	reasons; 				//Map var to reason
 
 	std::vector<Aggrs::watchlist>	lit2dynamicwatchlist;	// map lit to watches
 	std::vector<Aggrs::watchlist>	lit2staticwatchlist;	// map lit to watches
-	std::vector<Aggrs::Agg*>		lit2headwatchlist;	// map lit to watches
-	std::vector<Aggrs::setlist>		var2setlist;		// the pointer network of set var -> set
+	std::vector<Aggrs::Agg*>		lit2headwatchlist;		// map lit to watches
+	std::set<Aggrs::Agg*>			dummyheadtrue2watchlist;	// map dummylittrue to watches
+	std::set<Aggrs::Agg*>			dummyheadfalse2watchlist;	// map dummyvarfalse to watches
+	std::vector<Aggrs::setlist>		var2setlist;			// the pointer network of set var -> set
 
 	//statistics
 	uint64_t 						propagations;
@@ -85,6 +90,8 @@ private:
 	uint							propindex;
 	std::vector<Lit>				littrail;
 	std::vector<LI>					propagated;
+
+	Aggrs::Agg*						optimagg;
 
 public:
 	AggSolver(PCSolver* s);
@@ -103,9 +110,7 @@ public:
 	 */
 	bool 		addSet(int id, const std::vector<Lit>& l, const std::vector<Weight>& w);
 
-	/**
-	 * @pre: no weights==0 when using a product aggregate
-	 */
+	//@pre: no weights==0 when using a product aggregate
 	bool 		addAggrExpr(int defn, int set_id, const Weight& bound, AggSign boundsign, AggType type, AggSem sem, int defid);
 
 	bool 		addMnmz(Var headv, int setid, AggType type);
@@ -143,8 +148,8 @@ public:
 	bool 		checkStatus				();
 
 	// OPTIMISATION
-    bool 		invalidateAgg			(vec<Lit>& invalidation, Var head);
-    void 		propagateMnmz			(Var head);
+    bool 		invalidateAgg			(vec<Lit>& invalidation);
+    void 		propagateMnmz			();
 
 	// RECURSIVE AGGREGATES
 	void 		propagateJustifications		(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& v, VarToJustif &nb_body_lits_to_justify);
@@ -170,7 +175,12 @@ public:
 	void		addRootLevel			();
 	int			getTime					(Lit l) const;
 
+	void		setOptimAgg				(Aggrs::Agg* agg) { optimagg = agg; }
+	bool		isOptimAgg				(Aggrs::Agg const * const agg) { return optimagg==agg; }
+
 protected:
+	Aggrs::Agg*	getOptimAgg				() 				{ return optimagg; }
+
 	void 		adaptToNVars			(uint64_t nvars);
 	int 		getCurrentDecisionLevel	() 		const { return setsbacktracktrail.size()-1; }
 

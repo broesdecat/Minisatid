@@ -164,18 +164,17 @@ void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& s
 	for(agglist::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); ++i){
 		const Agg& agg = *(*i);
 
-		if(agg.isOptim()){
+		if(solver->isOptimAgg(*i)){
 			assert(optim==NULL);
 			optim = *i;
 			break;
 		}
-		assert(!agg.isOptim());
 
 		Agg *one, *two;
 		Weight weighttwo = agg.getSign()==AGGSIGN_LB?agg.getBound()-1:agg.getBound()+1;
 		AggSign signtwo = agg.getSign()==AGGSIGN_LB?AGGSIGN_UB:AGGSIGN_LB;
-		one = new Agg(~agg.getHead(), AggBound(agg.getSign(), agg.getBound()), IMPLICATION, 0, agg.getType(), agg.isOptim());
-		two = new Agg(agg.getHead(), AggBound(signtwo, weighttwo), IMPLICATION, 0, agg.getType(), agg.isOptim());
+		one = new Agg(~agg.getHead(), AggBound(agg.getSign(), agg.getBound()), IMPLICATION, 0, agg.getType());
+		two = new Agg(agg.getHead(), AggBound(signtwo, weighttwo), IMPLICATION, 0, agg.getType());
 
 		implaggs.push_back(one);
 		implaggs.push_back(two);
@@ -183,7 +182,9 @@ void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& s
 	}
 
 	if(optim!=NULL){
-		implaggs.push_back(new Agg(~optim->getHead(), AggBound(optim->getSign(), optim->getBound()), IMPLICATION, 0, optim->getType(), optim->isOptim()));
+		Agg* newoptim = new Agg(~optim->getHead(), AggBound(optim->getSign(), optim->getBound()), IMPLICATION, 0, optim->getType());
+		implaggs.push_back(newoptim);
+		solver->setOptimAgg(newoptim);
 		del.push_back(optim);
 	}
 
@@ -380,7 +381,7 @@ void MaxToSAT::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsa
 	}
 
 	for(agglist::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); ++i){
-		if((*i)->isOptim()){
+		if(solver->isOptimAgg(*i)){
 			return;
 		}
 	}
@@ -523,7 +524,7 @@ bool Aggrs::transformSumsToCNF(vps& sets, PCSolver& pcsolver) {
 		for (vsize j = 0; j < (*i)->getAgg().size(); ++j) {
 			Agg* agg = (*i)->getAgg()[j];
 
-			if(agg->isOptim()
+			if(pcsolver.getAggSolver()->isOptimAgg(agg)
 					|| (agg->getType()!=SUM && agg->getType()!=CARD)
 					|| agg->getSem() != COMP){
 				remaining.push_back(agg);

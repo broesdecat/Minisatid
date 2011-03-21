@@ -77,13 +77,13 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
  */
 lbool FWAgg::initialize(const Agg& agg) {
 	rClause confl = nullPtrClause;
-	if(agg.isOptim()){
+	if(getSolver()->isOptimAgg(&agg)){
 		return l_Undef;
 	}
 
 	lbool hv = canPropagateHead(agg, getCC(), getCP());
 	bool alwaystrue = false;
-	if (hv != l_Undef && !agg.isOptim()) {
+	if (hv != l_Undef && !getSolver()->isOptimAgg(&agg)) {
 		alwaystrue = true;
 		//reportf("No more propagations for %d", getPrintableVar(var(head)));
 	}

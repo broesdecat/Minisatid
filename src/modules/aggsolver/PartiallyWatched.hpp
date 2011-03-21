@@ -34,9 +34,6 @@ namespace Aggrs{
 	typedef std::vector<PropagationInfo> vprop;
 }
 
-///////
-// DECLARATIONS
-///////
 namespace Aggrs{
 
 class PWAgg: public Propagator {

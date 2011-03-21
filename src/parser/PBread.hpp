@@ -53,9 +53,10 @@ private:
 	WSet wset;
 	int setid;
 	int maxvar;
+	Atom dummyhead;
 
 public:
-	DefaultCallback(WrappedPCSolver* solver):solver(solver), setid(0){
+	DefaultCallback(WrappedPCSolver* solver):solver(solver), setid(0), dummyhead(Atom(-1)){
 
 	}
 

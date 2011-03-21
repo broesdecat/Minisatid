@@ -78,8 +78,9 @@ bool SOSolver::add(int modid, const InnerSubTheory& subtheory){
 	int child = subtheory.child;
 	checkexistsModSolver(modid);
 	if(sign(subtheory.head)){
-		char s[100]; sprintf(s, ">> Modal operator %zu has a negative head.\n", child+1);
-		throw idpexception(s);
+		stringstream ss;
+		ss <<">> Modal operator " <<child+1 <<" has a negative head.\n";
+		throw idpexception(ss.str());
 	}
 	if(solvers.size()<child+1){
 		solvers.resize(child+1, NULL);
