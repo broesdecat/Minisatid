@@ -58,15 +58,13 @@ void printStats();
 jmp_buf main_loop;
 static void noMoreMem();
 volatile sig_atomic_t abortcode;
-	//0 error encountered
-	//1 memory overflow but could not decrease it
-	//2 sigterm (probably timeout) and did a clean kill so just exit program cleanly
+volatile sig_atomic_t memoryoverflow = 0;
 static void SIGABRT_handler(int signum);
 static void SIGFPE_handler(int signum);
 static void SIGSEGV_handler(int signum);
 static void SIGTERM_handler(int signum);
 static void SIGINT_handler(int signum);
-
+void handleSignals(int code, int& returnvalue, pwls data);
 
 int doModelGeneration(pwls& d);
 
@@ -75,8 +73,6 @@ FODOTTranslator* fodottrans;
 
 Solution* sol = NULL;
 Translator* trans = NULL;
-
-// MAIN METHOD
 
 int main(int argc, char** argv) {
 	//Setting system precision and signal handlers
@@ -114,23 +110,8 @@ int main(int argc, char** argv) {
 		//so if this happens, we jump out
 		bool stoprunning = false;
 		if(setjmp(main_loop)){
-			switch(abortcode){
-			case 0:
-				throw idpexception(">> Signal handled: execution interrupted\n");
-				break;
-			case 1:
-				throw idpexception(">> Signal handled: out of memory");
-				break;
-			case 2:
-				stoprunning = true;
-				if(d.get()!=NULL){
-					d->notifyTimeout();
-				}
-				break;
-			default:
-				assert(false);
-				break;
-			}
+			handleSignals(abortcode, returnvalue, d);
+			stoprunning = true;
 		}
 		if(!stoprunning){
 			returnvalue = doModelGeneration(d);
@@ -295,44 +276,72 @@ static void noMoreMem() {
 	bool reducedmem = false;
 	//TODO try to reduce solver clause base
 	if (!reducedmem) {
-		abortcode=1; //memory overflow
+		abortcode=SIGINT;
+		memoryoverflow = 1;
 		longjmp (main_loop, 1);
 	}
 }
 
-static void SIGABRT_handler(int signum) {
-	cerr <<">>>Abort signal received\n";
-	abortcode=0;
-	longjmp (main_loop, 1);
-}
-
 static void SIGFPE_handler(int signum) {
-	cerr <<">>> Floating point error signal received\n";
-	abortcode=0;
+	abortcode = SIGFPE;
 	longjmp (main_loop, 1);
 }
 
+//IMPORTANT: assumed this is always called externally
 static void SIGTERM_handler(int signum) {
-	//TODO there are (border) cases in which this can go wrong!
-	if(sol!=NULL && trans!=NULL && sol->getPrintOption()==PRINT_BEST && sol->getNbModelsFound()>0){
-		std::ostream output(getOutputBuffer());
-		trans->printModel(output, sol->getBestModelFound());
-		abortcode=2; //cleanly exiting
-	}else{
-		cerr <<">>>Terminate signal received\n";
-		abortcode=0;
-	}
+	abortcode = SIGTERM;
+	longjmp (main_loop, 1);
+}
+
+static void SIGABRT_handler(int signum) {
+	abortcode=SIGABRT;
 	longjmp (main_loop, 1);
 }
 
 static void SIGSEGV_handler(int signum) {
-	cerr <<">>>Segmentation fault signal received\n";
-	abortcode=0;
+	abortcode=SIGSEGV;
 	longjmp (main_loop, 1);
 }
 
 static void SIGINT_handler(int signum) {
-	cerr <<">>>Integer error code signal received\n";
-	abortcode=0;
+	abortcode=SIGINT;
 	longjmp (main_loop, 1);
+}
+
+void handleSignals(int code, int& returnvalue, pwls d){
+	bool cleanexit = false;
+
+	switch(abortcode){
+	case SIGFPE:
+		cerr <<">>> Floating point error signal received\n";
+		break;
+	case SIGABRT:
+		cerr <<">>> Abort signal received\n";
+		break;
+	case SIGINT:
+		clog <<">>> Ctrl-c signal received\n";
+		cleanexit = true;
+		break;
+	case SIGSEGV:
+		cerr <<">>> Segmentation fault signal received\n";
+		break;
+	case SIGTERM:
+		clog <<">>> Terminate signal received\n";
+		cleanexit = true;
+		break;
+	}
+
+	if(cleanexit){
+		returnvalue = 0;
+		if(d.get()!=NULL){
+			d->notifyTimeout();
+		}
+	}else{
+		returnvalue = abortcode;
+		if(memoryoverflow==1){
+			throw idpexception(">>> Signal handled: out of memory\n");
+		}else{
+			throw idpexception(">>> Signal handled: execution interrupted\n");
+		}
+	}
 }

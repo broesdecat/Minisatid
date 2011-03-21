@@ -148,7 +148,11 @@ void PCSolver::addVar(Var v) {
 	assert(v>-1);
 
 	while (((uint64_t) v) >= nVars()) {
-		getSolver()->newVar(true, false);
+#ifdef USEMINISAT22
+                getSolver()->newVar(modes().polarity==POL_TRUE?l_True:modes().polarity==POL_FALSE?l_False:l_Undef, false);
+#else
+                getSolver()->newVar(true, false);
+#endif
 		for(solverlist::const_iterator i=solvers.begin(); i<solvers.end(); i++){
 			if((*i)->present){
 				(*i)->get()->notifyVarAdded(nVars());

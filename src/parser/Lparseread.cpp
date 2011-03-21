@@ -434,7 +434,7 @@ bool Read::read(istream &f) {
 			unsat = !parseChoiceRule(f);
 			break;
 		case GENERATERULE:{
-			char s[100];
+			char s[200];
 			sprintf(s, "As, according to the lparse manual, \"generate rules cause semantical troubles\", we do not support them.\n");
 			throw idpexception(s);
 			break;

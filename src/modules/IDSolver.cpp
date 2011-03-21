@@ -116,7 +116,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	present = true;
 	unsat = false;
 
-	if(modes().defsem==DEF_COMP){
+	if(modes().defsem==DEF_COMP || (recagg==0 && defdVars.size()==0)){
 		present = false;
 		return;
 	}

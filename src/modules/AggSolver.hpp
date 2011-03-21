@@ -18,10 +18,6 @@
 
 namespace MinisatID {
 
-///////
-// Aggregate information
-///////
-
 class PCSolver;
 
 class WL;
@@ -62,10 +58,10 @@ struct LI{
 class AggSolver: public DPLLTmodule{
 	//TODO pimpl
 private:
-	Aggrs::mips 	parsedSets;
-	std::set<Var>	heads;
+	Aggrs::mips 					parsedSets;
+	std::set<Var>					heads;
 
-	Aggrs::setlist	sets;
+	Aggrs::setlist					sets;
 	std::vector<Aggrs::AggReason*>	reasons; //Map var to reason
 
 	std::vector<Aggrs::watchlist>	lit2dynamicwatchlist;	// map lit to watches
@@ -74,17 +70,17 @@ private:
 	std::vector<Aggrs::setlist>		var2setlist;		// the pointer network of set var -> set
 
 	//statistics
-	uint64_t propagations;
+	uint64_t 						propagations;
 
 	//new trail datastructure
 	std::vector<Aggrs::setlist > 	setsbacktracktrail;
 	Aggrs::setlist 					setspropagatetrail;
 
-	std::vector<int>								mapdecleveltotrail;
-	int 											index; //fulltrail index?
-	uint											propindex;
-	std::vector<Lit>								littrail;
-	std::vector<LI>									propagated;
+	std::vector<int>				mapdecleveltotrail;
+	int 							index; //fulltrail index?
+	uint							propindex;
+	std::vector<Lit>				littrail;
+	std::vector<LI>					propagated;
 
 public:
 	AggSolver(PCSolver* s);
