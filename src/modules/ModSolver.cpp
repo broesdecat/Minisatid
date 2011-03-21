@@ -29,7 +29,7 @@ using namespace MinisatID::Print;
  * Constructs a ModSolver, with a given head, index and hierarchy pointer. A PCSolver is initialized.
  */
 ModSolver::ModSolver(modindex child, Var head, SOSolver* mh):
-		DPLLTmodule(NULL), WLSImpl(mh->modes()),
+		DPLLTmodule(), WLSImpl(mh->modes()),
 		init(false), hasparent(false), searching(false),
 		head(head),
 		id(child), parentid(-1), //, startedsearch(false), startindex(-1),
@@ -37,6 +37,10 @@ ModSolver::ModSolver(modindex child, Var head, SOSolver* mh):
 		modhier(mh){
 	SolverOption modescopy(mh->modes());
 	modescopy.nbmodels = 1;
+	//If we are not debugging, we do not want information on the deeper levels
+	if(mh->modes().verbosity<2){
+		modescopy.verbosity = 0;
+	}
 
 	pcsolver = new PCSolver(modescopy, *this);
 	getPCSolver().setModSolver(this);
@@ -48,7 +52,12 @@ void ModSolver::addModel(const vec<Lit>& model){
 	if(getNonConstModSolverData().isRoot(this)){
 		getNonConstModSolverData().addModel(model);
 	}
+	int origverb = getModSolverData().modes().verbosity;
+	if(origverb<2){
+		WLSImpl::_modes.verbosity = 0;
+	}
 	WLSImpl::addModel(model);
+	WLSImpl::_modes.verbosity = origverb;
 }
 
 ModSolver::~ModSolver(){
@@ -72,8 +81,8 @@ void ModSolver::addVars(const vec<Lit>& a){
 }
 
 void ModSolver::addVars(const vector<Lit>& a){
-	for(int i=0; i<a.size(); ++i){
-		add(var(a[i]));
+	for(vector<Lit>::const_iterator i=a.begin(); i<a.end(); ++i){
+		add(var(*i));
 	}
 }
 

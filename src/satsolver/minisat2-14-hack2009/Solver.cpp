@@ -41,6 +41,13 @@ using namespace MinisatID::Print;
 //=================================================================================================
 // Constructor/Destructor:
 
+void Minisat::reportf(const char* format, ...){
+	fflush(stdout);
+    va_list args;
+    va_start(args, format);
+	fprintf(stderr, format, args);
+	fflush(stderr);
+}
 
 Solver::Solver(PCSolver& s/*A*/) :
 	solver(s), /*A*/

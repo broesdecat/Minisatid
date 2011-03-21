@@ -72,6 +72,7 @@ Additional constraints:
 	\item Each element is separated by at least one whitespace. Extra whitespaces or newlines can be added anywhere except in the middle of comments.
 	\item Any atom can only be the head of one rule or aggregate.
 	\item Any id can only be defined once.
+	\item A set has to come before any aggregate using it.
 \end{itemize}
 	
 \subsection{Semantics}
@@ -110,7 +111,7 @@ Given an example expression
 WSet 1 1=2 -2=3 0
 Sum D G 4 1 3 0
 \end{verbatim}
-The semantics is that the atom 4 is defined by the aggregate expression $sum(set_1) \geq 3$. 3 is called the \emph{bound}, 4 is the \emph{head}. If sem="C" instead of "D", completion semantics is used.
+The semantics is that the atom 4 is defined by the aggregate expression $sum(set_1) \geq 3$. 3 is called the \emph{bound}, 4 is the \emph{head}. If sem="C", completion semantics is used, if sem="D", well-founded semantics (with recursive aggregates) is used.
 The available aggregate types are sum (also called pseudo-boolean / linear constraint), cardinality (count), maximum, minimum and product. The operator is either "G", $aggregate \geq bound$, or "L", $aggregate \leq bound$.
  
 \paragraph{Optimization}

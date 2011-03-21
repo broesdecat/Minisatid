@@ -16,11 +16,11 @@
 #include "modules/aggsolver/AggUtils.hpp"
 #include "modules/DPLLTmodule.hpp"
 
-namespace MinisatID {
+namespace Minisat{
+	class Solver;
+}
 
-///////
-// Aggregate information
-///////
+namespace MinisatID {
 
 class PCSolver;
 
@@ -90,6 +90,8 @@ public:
 	AggSolver(PCSolver* s);
 	virtual ~AggSolver();
 
+	Minisat::Solver*		getSATSolver () const;
+
 	// INITIALIZATION
 
 	/**
@@ -99,17 +101,17 @@ public:
 	 * @pre: negative weights are not allowed
 	 * @pre: empty sets are not allowed
 	 */
-	bool addSet(int id, const std::vector<Lit>& l, const std::vector<Weight>& w);
+	bool 		addSet(int id, const std::vector<Lit>& l, const std::vector<Weight>& w);
 
 	/**
 	 * @pre: no weights==0 when using a product aggregate
 	 */
-	bool addAggrExpr(int defn, int set_id, const Weight& bound, AggSign boundsign, AggType type, AggSem sem, int defid);
+	bool 		addAggrExpr(int defn, int set_id, const Weight& bound, AggSign boundsign, AggType type, AggSem sem, int defid);
 
-	bool addMnmz(Var headv, int setid, AggType type);
+	bool 		addMnmz(Var headv, int setid, AggType type);
 
 	// SEARCH
-	void notifyVarAdded(uint64_t nvars);
+	void 		notifyVarAdded(uint64_t nvars);
 
 	/**
 	 * Checks presence of aggregates and initializes all counters.
@@ -141,14 +143,14 @@ public:
 	bool 		checkStatus				();
 
 	// OPTIMISATION
-    bool 				invalidateAgg			(vec<Lit>& invalidation, Var head);
-    void 				propagateMnmz			(Var head);
+    bool 		invalidateAgg			(vec<Lit>& invalidation, Var head);
+    void 		propagateMnmz			(Var head);
 
 	// RECURSIVE AGGREGATES
-	void 				propagateJustifications		(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& v, VarToJustif &nb_body_lits_to_justify);
-	void 				findJustificationAggr		(Var head, vec<Lit>& jstf);
-	bool 				directlyJustifiable			(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust);
-	void 				addExternalLiterals			(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, VarToJustif& seen);
+	void 		propagateJustifications		(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& v, VarToJustif &nb_body_lits_to_justify);
+	void 		findJustificationAggr		(Var head, vec<Lit>& jstf);
+	bool 		directlyJustifiable			(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust);
+	void 		addExternalLiterals			(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, VarToJustif& seen);
 	std::vector<Var> 	getDefAggHeadsWithBodyLit		(Var x) const;
 	vwl::const_iterator getSetLitsOfAggWithHeadBegin(Var x) const;
 	vwl::const_iterator getSetLitsOfAggWithHeadEnd	(Var x) const;

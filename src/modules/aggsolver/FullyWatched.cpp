@@ -81,17 +81,16 @@ lbool FWAgg::initialize(const Agg& agg) {
 		return l_Undef;
 	}
 
-	Expl basedon = HEADONLY;
-	lbool hv = canPropagateHead(agg, getCC(), getCP(), basedon);
+	lbool hv = canPropagateHead(agg, getCC(), getCP());
 	bool alwaystrue = false;
 	if (hv != l_Undef && !agg.isOptim()) {
 		alwaystrue = true;
 		//reportf("No more propagations for %d", getPrintableVar(var(head)));
 	}
 	if (hv == l_True) {
-		confl = getSolver()->notifySolver(new HeadReason(agg, basedon, agg.getHead()));
+		confl = getSolver()->notifySolver(new HeadReason(agg, agg.getHead()));
 	} else if (hv == l_False) {
-		confl = getSolver()->notifySolver(new HeadReason(agg, basedon, ~agg.getHead()));
+		confl = getSolver()->notifySolver(new HeadReason(agg, ~agg.getHead()));
 	}
 	if (confl != nullPtrClause) {
 		return l_False;
@@ -229,16 +228,15 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 				continue;
 			}
 
-			Expl basedon = HEADONLY;
-			lbool result = canPropagateHead(pa, getCC(), getCP(), basedon);
+			lbool result = canPropagateHead(pa, getCC(), getCP());
 			if(hv!=l_Undef){
 				if(result==l_Undef){
 					confl = propagateSpecificAtEnd(pa, hv == l_True);
 				}else if(hv!=result){
-					confl = getSolver()->notifySolver(new HeadReason(pa, basedon, result==l_True?pa.getHead():~pa.getHead()));
+					confl = getSolver()->notifySolver(new HeadReason(pa, result==l_True?pa.getHead():~pa.getHead()));
 				}
 			}else if(result!=l_Undef){
-				confl = getSolver()->notifySolver(new HeadReason(pa, basedon, result==l_True?pa.getHead():~pa.getHead()));
+				confl = getSolver()->notifySolver(new HeadReason(pa, result==l_True?pa.getHead():~pa.getHead()));
 			}
 		}
 	}
@@ -246,7 +244,7 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 	return confl;
 }
 
-lbool Aggrs::canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP, Expl& basedon) {
+lbool Aggrs::canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP) {
 	//if (nomoreprops[agg.getIndex()] || headproptime[agg.getIndex()]!=-1) {
 	//	return headvalue[agg.getIndex()];
 	//}
@@ -257,18 +255,14 @@ lbool Aggrs::canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP
 	const Weight& b = agg.getCertainBound();
 	if(agg.hasUB()){
 		if(CC > b){
-			basedon = BASEDONCC;
 			result = l_False;
 		}else if(CP <= b){
-			basedon = BASEDONCP;
 			result = l_True;
 		}
 	}else{
 		if(CC>= b){
-			basedon = BASEDONCC;
 			result = l_True;
 		}else if(CP < b){
-			basedon = BASEDONCP;
 			result = l_False;
 		}
 	}
@@ -442,12 +436,12 @@ rClause MaxFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 	if (headtrue && agg.hasUB()) {
 		for (vwl::const_reverse_iterator i = getSet().getWL().rbegin(); confl == nullPtrClause && i
 					< getSet().getWL().rend() && agg.getCertainBound() < (*i).getWeight(); ++i) {
-			confl = getSolver()->notifySolver(new SetLitReason(agg, (*i).getLit(), (*i).getWeight(), HEADONLY, false));
+			confl = getSolver()->notifySolver(new SetLitReason(agg, (*i).getLit(), (*i).getWeight(), false));
 		}
 	} else if (!headtrue && agg.hasLB()) {
 		for (vwl::const_reverse_iterator i = getSet().getWL().rbegin(); confl == nullPtrClause && i
 					< getSet().getWL().rend() && agg.getCertainBound() <= (*i).getWeight(); ++i) {
-			confl = getSolver()->notifySolver(new SetLitReason(agg, (*i).getLit(), (*i).getWeight(), HEADONLY, false));
+			confl = getSolver()->notifySolver(new SetLitReason(agg, (*i).getLit(), (*i).getWeight(), false));
 		}
 	}
 	if (confl == nullPtrClause) {
@@ -505,8 +499,7 @@ rClause MaxFWAgg::propagateAll(const Agg& agg, bool headtrue) {
 		}
 	}
 	if (found==1) {
-		//basedon is not really relevant for max
-		confl = getSolver()->notifySolver(new SetLitReason(agg, l, w, BASEDONCC, true));
+		confl = getSolver()->notifySolver(new SetLitReason(agg, l, w, true));
 	}
 	return confl;
 }
@@ -617,19 +610,16 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 
 	bool ub = agg.hasUB();
 	const Weight& bound = agg.getCertainBound();
-	Expl basedon;
 	//determine the lower bound of which weight literals to consider
 	const AggProp& type = getSet().getType();
 	if (headtrue) {
 		if (ub) {
-			basedon = BASEDONCC;
 			weightbound = type.remove(bound, getCC());
 			//+1 because larger and not eq
 			if (type.add(weightbound, getCC()) == bound) {
 				weightbound += 1;
 			}
 		} else {
-			basedon = BASEDONCP;
 			weightbound = type.remove(getCP(), bound);
 			//+1 because larger and not eq
 			if (type.add(weightbound, bound) == getCP()) {
@@ -638,10 +628,8 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 		}
 	} else { //head false
 		if (ub) {
-			basedon = BASEDONCP;
 			weightbound = type.remove(getCP(), bound);
 		} else {
-			basedon = BASEDONCC;
 			weightbound = type.remove(bound, getCC());
 		}
 	}
@@ -679,9 +667,9 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 		//Only propagate those that are not already known in the aggregate solver!
 		if (propagate) {
 			if ((agg.hasUB() && headtrue) || (!agg.hasUB() && !headtrue)) {
-				c = getSolver()->notifySolver(new SetLitReason(agg, (*u).getLit(), (*u).getWeight(), basedon, false));
+				c = getSolver()->notifySolver(new SetLitReason(agg, (*u).getLit(), (*u).getWeight(), false));
 			} else {
-				c = getSolver()->notifySolver(new SetLitReason(agg, (*u).getLit(), (*u).getWeight(), basedon, true));
+				c = getSolver()->notifySolver(new SetLitReason(agg, (*u).getLit(), (*u).getWeight(), true));
 			}
 		}
 	}

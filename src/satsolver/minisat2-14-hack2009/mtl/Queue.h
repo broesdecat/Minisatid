@@ -20,7 +20,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #ifndef MTLOLDQueue_h
 #define MTLOLDQueue_h
 
-#include "mtlold/Vec.h"
+#include "mtl/Vec.h"
 
 namespace Minisat{
 

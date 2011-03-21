@@ -12,6 +12,8 @@
 #include "modules/AggSolver.hpp"
 #include "theorysolvers/PCSolver.hpp"
 
+#include "satsolver/SATSolver.hpp"
+
 #include "modules/aggsolver/FullyWatched.hpp"
 #include "modules/aggsolver/PartiallyWatched.hpp"
 
@@ -225,7 +227,7 @@ Weight ProdProp::getCombinedWeight(const Weight& one, const Weight& two) const {
 
 WL ProdProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const {
 	//NOTE: om dit toe te laten, ofwel bij elke operatie op en literal al zijn voorkomens overlopen
-	//ofwel aggregaten voor doubles ondersteunen (het eerste is eigenlijk de beste oplossing)
+	//ofwel aggregaten voor doubles ondersteunen (hPropagatoret eerste is eigenlijk de beste oplossing)
 	//Mogelijke eenvoudige implementatie: weigts bijhouden als doubles (en al de rest als ints)
 	NoSupportForBothSignInProductAgg(cerr, one.getLit(), two.getLit());
 	throw idpexception("Atoms in product aggregates have to be unique.\n");
@@ -374,8 +376,8 @@ void TypedSet::replaceAgg(const agglist& repl, const agglist& del){
  * Initialize the datastructures. If it's neither sat nor unsat and it is defined, notify the pcsolver of this
  */
 void TypedSet::initialize(bool& unsat, bool& sat, vps& sets) {
-	for(vector<AggTransform*>::iterator i=transformations.begin(); !sat && !unsat && i<transformations.end(); ++i) {
-		AggTransform* transfo = *i;
+	for(vector<AggTransformation*>::iterator i=transformations.begin(); !sat && !unsat && i<transformations.end(); ++i) {
+		AggTransformation* transfo = *i;
 		transformations.erase(i); i--;
 		transfo->transform(getSolver(), this, sets, unsat, sat);
 	}
@@ -412,7 +414,8 @@ void TypedSet::addExplanation(AggReason& ar) const {
 	}
 }
 
-Propagator::Propagator(TypedSet* set):set(set), aggsolver(set->getSolver()){
+Propagator::Propagator(TypedSet* set)
+		:set(set), aggsolver(set->getSolver()), satsolver(set->getSolver()->getSATSolver()){
 
 }
 
@@ -428,8 +431,9 @@ void Propagator::initialize(bool& unsat, bool& sat) {
 	}
 }
 
+// Maximize speed of requesting values! //FIXME add to other solvers
 lbool Propagator::value(const Lit& l) const {
-	return getSolver()->value(l);
+	return satsolver->value(l);
 }
 
 Weight Propagator::getValue() const {

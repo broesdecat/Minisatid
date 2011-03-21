@@ -63,7 +63,11 @@ private:
 	bool 			optimization;
 	bool			printedbestmodel;
 	SolverState 	state;
+
+protected:
 	SolverOption	_modes;
+
+public:
 
 	Remapper*		remapper;
 	Translator*		owntranslator;

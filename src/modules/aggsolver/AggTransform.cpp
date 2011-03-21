@@ -25,15 +25,11 @@ using namespace tr1;
 using namespace MinisatID;
 using namespace Aggrs;
 
-///////
-// TRANSFORMATIONS
-///////
-
-class Transfo{
+class OrderedAggTransformations{
 public:
-	std::vector<AggTransform*> t;
+	std::vector<AggTransformation*> t;
 
-	Transfo(){
+	OrderedAggTransformations(){
 		t.push_back(new PartitionIntoTypes());
 		t.push_back(new MinToMax());
 		t.push_back(new AddTypes());
@@ -45,14 +41,14 @@ public:
 		//t.push_back(new MapToSetOneToOneWithAgg());
 		t.push_back(new MapToSetWithSameAggSign());
 	}
-	~Transfo(){
-		deleteList<AggTransform>(t);
+	~OrderedAggTransformations(){
+		deleteList<AggTransformation>(t);
 	}
 };
 
-Transfo transfo;
+OrderedAggTransformations transfo;
 
-const vector<AggTransform*>& Aggrs::getTransformations(){
+const vector<AggTransformation*>& Aggrs::getTransformations(){
 	return transfo.t;
 }
 
@@ -472,7 +468,7 @@ void CardToEquiv::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& u
 						unsat = unsat || !set->getSolver()->getPCSolver().add(rule);
 					}else{
 						if(headvalue==l_Undef){
-							if(set->getSolver()->notifySolver(new HeadReason(agg, HEADONLY, agg.getHead()))!=nullPtrClause){
+							if(set->getSolver()->notifySolver(new HeadReason(agg,  agg.getHead()))!=nullPtrClause){
 								unsat = true;
 							}
 						}

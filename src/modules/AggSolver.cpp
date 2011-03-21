@@ -44,6 +44,10 @@ AggSolver::~AggSolver() {
 	deleteList<Watch> (lit2staticwatchlist);
 }
 
+Minisat::Solver* AggSolver::getSATSolver() const{
+	return getPCSolver().getSATSolver();
+}
+
 void AggSolver::adaptToNVars(uint64_t nvars){
 	assert(lit2headwatchlist.size() < 2*nvars);
 	lit2headwatchlist.resize(2*nvars, NULL);
@@ -772,7 +776,7 @@ bool AggSolver::invalidateAgg(vec<Lit>& invalidation, Var head) {
 		return true;
 	}
 
-	HeadReason ar(*a, BASEDONCC, createNegativeLiteral(head));
+	HeadReason ar(*a, createNegativeLiteral(head));
 	prop->getExplanation(invalidation, ar);
 
 	return false;

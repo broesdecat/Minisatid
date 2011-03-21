@@ -10,7 +10,12 @@
 #define DPLLTMODULE_HPP_
 
 #include "utils/Utils.hpp"
+#include "satsolver/SATSolver.hpp"
 #include "theorysolvers/PCSolver.hpp"
+
+namespace Minisat{
+	class Solver;
+}
 
 namespace MinisatID {
 
@@ -21,10 +26,19 @@ private:
 
 protected:
 	PCSolver* pcsolver;
+	Minisat::Solver* satsolver;
+
+	void	setPCSolver(PCSolver* s) {
+		pcsolver = s;
+		satsolver = pcsolver->getSATSolver();
+	}
+
+	DPLLTmodule(): init(PARSING), pcsolver(NULL), satsolver(NULL){}
 
 public:
+
 	DPLLTmodule(PCSolver* s) :
-		init(PARSING), pcsolver(s) {
+		init(PARSING), pcsolver(s), satsolver(pcsolver->getSATSolver()) {
 	}
 	virtual ~DPLLTmodule() {	}
 
@@ -35,7 +49,9 @@ public:
 	void notifyInitialized	() { assert(isInitializing()); init = INITIALIZED; }
 
 	const PCSolver& getPCSolver() const { return *pcsolver; }
-	PCSolver& getPCSolver() { return *pcsolver; }
+	PCSolver& getPCSolver	() { return *pcsolver; }
+
+	Minisat::Solver* getSATSolver() const { return satsolver; }
 
 	// DPLL-T methods
 
@@ -56,18 +72,14 @@ public:
 	 * @returns NON-OWNING pointer
 	 */
 	virtual rClause getExplanation(const Lit& l) = 0;
-
 	virtual bool 	checkStatus() { return true; }
-
-	virtual void printStatistics() const = 0;
-
+	virtual void 	printStatistics() const = 0;
 	virtual const char* getName() const = 0;
-
-	virtual void print() const = 0;
+	virtual void 	print() const = 0;
 
 	// Convenience methods (based on getPCSolver)
 
-	int 				verbosity() 			const { return getPCSolver().verbosity(); }
+	int 			verbosity	() 				const { return getPCSolver().verbosity(); }
 	const SolverOption& modes	() 				const { return getPCSolver().modes(); }
 
 	bool 			isTrue		(const Lit& l) 	const { return value(l) == l_True; }
@@ -76,9 +88,9 @@ public:
 	bool 			isFalse		(Var v) 		const {	return value(v) == l_False; }
 	bool 			isUnknown	(const Lit& l) 	const { return value(l) == l_Undef; }
 	bool 			isUnknown	(Var v) 		const { return value(v) == l_Undef; }
-	lbool 			value		(Var x) 		const { return getPCSolver().value(x); }
-	lbool 			value		(const Lit& p) 	const { return getPCSolver().value(p); }
-	int 			nVars		() 				const {	return getPCSolver().nVars();	}
+	lbool 			value		(Var x) 		const { return getSATSolver()->value(x); }
+	lbool 			value		(const Lit& p) 	const { return getSATSolver()->value(p); }
+	int 			nVars		() 				const {	return getSATSolver()->nVars();	}
 };
 
 }

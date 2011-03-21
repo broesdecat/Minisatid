@@ -27,7 +27,7 @@ class AggSolver;
 class ModSolver;
 class DPLLTmodule;
 
-typedef Minisat::Solver* pSolver;
+typedef Minisat::Solver SATSolver;
 typedef IDSolver* pIDSolver;
 typedef AggSolver* pAggSolver;
 typedef ModSolver* pModSolver;
@@ -76,7 +76,7 @@ enum TheoryState {THEORY_PARSING, THEORY_INITIALIZED, THEORY_INITIALIZING};
 class PCSolver: public MinisatID::LogicSolver{
 private:
 	//OWNING POINTER
-	pSolver satsolver;
+	SATSolver* satsolver;
 
 	// IMPORTANT: implicit invariant that IDsolver is always last in the list!
 	solverlist solvers;
@@ -107,7 +107,7 @@ private:
 	ECNFPrinter* ecnfprinter;
 	static bool headerunprinted;
 
-	Minisat::Solver * 	getSolver	() const { return satsolver; }
+	SATSolver* getSolver() const { return satsolver; }
 
 	bool hasIDSolver(defID id) const;
 	bool hasAggSolver() const;
@@ -124,6 +124,7 @@ public:
 	PCSolver(SolverOption modes, MinisatID::WLSImpl& inter);
 	virtual ~PCSolver();
 
+	SATSolver*	getSATSolver() const { return satsolver; }
 	AggSolver* getAggSolver() const;
 
 	// INIT
