@@ -62,10 +62,10 @@ struct LI{
 class AggSolver: public DPLLTmodule{
 	//TODO pimpl
 private:
-	Aggrs::mips 	parsedSets;
-	std::set<Var>	heads;
+	Aggrs::mips 					parsedSets;
+	std::set<Var>					heads;
 
-	Aggrs::setlist	sets;
+	Aggrs::setlist					sets;
 	std::vector<Aggrs::AggReason*>	reasons; //Map var to reason
 
 	std::vector<Aggrs::watchlist>	lit2dynamicwatchlist;	// map lit to watches
