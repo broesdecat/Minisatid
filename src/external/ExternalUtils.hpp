@@ -230,6 +230,7 @@ namespace MinisatID {
 		INPUTFORMAT 	format;
 		OUTPUTFORMAT 	transformat;
 		int 			verbosity;
+		int 			randomseed;
 		int 			nbmodels;
 		bool 			printcnfgraph;
 		DEFSEM 			defsem;

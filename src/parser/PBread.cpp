@@ -52,6 +52,9 @@ using namespace MinisatID;
 void DefaultCallback::metaData(int nbvar, int nbconstr) {
 	maxvar = nbvar;
 	dummyhead = Atom(++maxvar);
+	Disjunction clause;
+	clause.literals.push_back(Literal(dummyhead, false));
+	getSolver()->add(clause);
 }
 
 /**

@@ -207,6 +207,8 @@ bool MinisatID::parseOptions(int argc, char** argv){
 			modes.nbmodels, cmd, "The number of models to search for."));
 	options.push_back(new NoValsOption<int>		("","verbosity", 	"int",
 			modes.verbosity, cmd, "The level of output to generate."));
+	options.push_back(new NoValsOption<int>		("","randomseed", 	"int",
+			modes.randomseed, cmd, "The random seed the solver should use."));
 	options.push_back(new NoValsOption<long>	("","ufsvarintro", 	"long",
 			modes.ufsvarintrothreshold, cmd,"Threshold (compared with ufssize*loopfsize) above which an extra variable is introduced when an unfounded set is found."));
 	options.push_back(new NoValsOption<double>	("","rnd-freq", 	"double",

@@ -80,6 +80,7 @@ SolverOption::SolverOption():
 		format(FORMAT_FODOT),
 		transformat(TRANS_FODOT),
 		verbosity(1),
+		randomseed(91648253),
 		nbmodels(1),
 		printcnfgraph(false),
 		defsem(DEF_WELLF),
@@ -130,6 +131,7 @@ string SolverOption::getPrimesFile() const{
 void SolverOption::print(std::ostream& so) const{
 	so << "format: " 			<<format <<"\n";
 	so << "verbosity: "			<<verbosity <<"\n";
+	so << "randomseed: "		<<randomseed <<"\n";
 	so << "nbmodels: " 			<<nbmodels <<"\n";
 	so << "printcnfgraph: " 	<<printcnfgraph <<"\n";
 	so << "defsem: " 			<<defsem <<"\n";
