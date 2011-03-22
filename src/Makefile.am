@@ -23,7 +23,7 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = minisatid-2.0.pc
 EXTRA_DIST = minisatid-2.0.pc.in
 
-libminisatid_2_0_la_LIBADD = ../lib/pbsolver/libpbsolver-1.0.la # do not forget ldconfig after installing ;)
+libminisatid_2_0_la_LIBADD = @LIBS@ ../lib/pbsolver/libpbsolver-1.0.la # do not forget ldconfig after installing ;)
 
 if USEPERFTOOLS
 libminisatid_2_0_la_LIBADD += ../lib/perftools/.libs/libtcmalloc.la ../lib/perftools/.libs/libprofiler.la

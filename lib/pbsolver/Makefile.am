@@ -1,6 +1,6 @@
 # Copyright 2007-2011 Katholieke Universiteit Leuven# Use of this software is governed by the GNU LGPLv3.0 license# Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement# Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
 AM_CXXFLAGS = @AC_CXXFLAGS@ -I$(srcdir)/ADTs/ -I$(srcdir)/ -I$(srcdir)/pbbase/h/
-AM_LDFLAGS = @AC_LDFLAGS@
+AM_LDFLAGS = @AC_LDFLAGS@ @LIBS@
 
 lib_LTLIBRARIES = libpbsolver-1.0.la
 libpbsolver_1_0_la_LDFLAGS = -version-info 1:2:0
