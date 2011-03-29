@@ -26,6 +26,8 @@ class WLSImpl;
 class WPCLSImpl;
 class WSOLSImpl;
 
+class Monitor;
+
 class WrappedLogicSolver;
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
@@ -50,6 +52,9 @@ public:
 
 	// Notify the solver a timeout has occurred: allows for finalization time (COMPETITION)
 	void	notifyTimeout		()	const;
+
+	// Add a monitor, which will be notified when any event happens
+	void 	addMonitor(Monitor* const monitor);
 
 protected:
 	WrappedLogicSolver			();

@@ -8,6 +8,7 @@
  */
 #include "external/ExternalInterface.hpp"
 #include "external/InterfaceImpl.hpp"
+#include "external/MonitorInterface.hpp"
 #include "external/Translator.hpp"
 
 using namespace std;
@@ -40,6 +41,10 @@ void WrappedLogicSolver::printStatistics() const {
 
 bool WrappedLogicSolver::solve(Solution* sol){
 	return getImpl()->solve(sol);
+}
+
+void WrappedLogicSolver::addMonitor(Monitor* const monitor){
+	getImpl()->addMonitor(monitor);
 }
 
 

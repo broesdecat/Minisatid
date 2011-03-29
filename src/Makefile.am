@@ -45,6 +45,7 @@ minisatid_include_HEADERS = \
 libminisatid_2_0_la_SOURCES = \
 		external/ExternalInterface.hpp		external/ExternalInterface.cpp\
 		external/ExternalUtils.hpp\
+		external/MonitorInterface.hpp\
 		external/Translator.hpp				external/Translator.cpp\
 		external/InterfaceImpl.hpp			external/InterfaceImpl.cpp\
 		satsolver/SATSolver.hpp				satsolver/SATSolver.cpp\
@@ -59,7 +60,7 @@ libminisatid_2_0_la_SOURCES = \
 		modules/aggsolver/FullyWatched.hpp 	modules/aggsolver/FullyWatched.cpp\
 		modules/aggsolver/PartiallyWatched.hpp modules/aggsolver/GenPartiallyWatched.cpp\
 		modules/aggsolver/AggProp.hpp 		modules/aggsolver/AggProp.cpp\
-		theorysolvers/LogicSolver.hpp\
+		theorysolvers/LogicSolver.hpp		theorysolvers/LogicSolver.cpp\
 		theorysolvers/PCSolver.hpp 			theorysolvers/PCSolver.cpp\
 		theorysolvers/SOSolver.hpp 			theorysolvers/SOSolver.cpp\
 		utils/IntTypes.h\
@@ -76,6 +77,9 @@ libminisatid_2_0_la_SOURCES = \
 
 #PBSOLVER		
 AM_CXXFLAGS += -I $(LIBSDIR)/pbsolver/ -I $(LIBSDIR)/pbsolver/pbbase/h/ -I $(LIBSDIR)/pbsolver/ADTs/ -DDATADIR=\"$(datadir)\"
+
+#PLUSCALLBACK
+AM_CXXFLAGS += -I $(LIBSDIR)/pluscallback1.7/
 
 #MINISAT 2.07 09z
 if USEMINISAT09Z

@@ -57,7 +57,8 @@ PCSolver::PCSolver(SolverOption modes, MinisatID::WLSImpl& inter) :
 		state(THEORY_PARSING),
 		optim(NONE), head(-1),
 		state_savedlevel(0), state_savingclauses(false),
-		logger(new PCLogger()), ecnfprinter(NULL){
+		logger(new PCLogger()), ecnfprinter(NULL),
+		hasMonitor(false){
 	satsolver = createSolver(*this);
 
 	if(modes.printcnfgraph){
@@ -601,6 +602,12 @@ void PCSolver::newDecisionLevel() {
 }
 
 void PCSolver::backtrackDecisionLevel(int levels, int untillevel) {
+	if(isBeingMonitored()){
+		InnerBacktrack backtrack;
+		backtrack.untillevel = untillevel;
+		notifyMonitor(backtrack);
+	}
+
 	for(solverlist::const_iterator i=getSolvers().begin(); i<getSolvers().end(); ++i){
 		if((*i)->present){
 			(*i)->get()->backtrackDecisionLevels(levels, untillevel);
@@ -615,6 +622,13 @@ rClause PCSolver::propagate(Lit l) {
 	if (!isInitialized()) {
 		initialprops.push_back(l);
 		return nullPtrClause;
+	}
+
+	if(isBeingMonitored()){
+		InnerPropagation prop;
+		prop.decisionlevel = getCurrentDecisionLevel();
+		prop.propagation = l;
+		notifyMonitor(prop);
 	}
 
 	rClause confl = nullPtrClause;
@@ -662,7 +676,7 @@ bool PCSolver::simplify() {
 	return simp;
 }
 
-Var PCSolver::changeBranchChoice (const Var& chosenvar){
+Var PCSolver::changeBranchChoice(const Var& chosenvar){
 	Var newvar = chosenvar;
 	if(hasAggSolver()){
 		newvar = getAggSolver()->changeBranchChoice(chosenvar);

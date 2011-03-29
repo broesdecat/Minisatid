@@ -132,6 +132,17 @@ public:
 	Lit head;
 };
 
+class InnerPropagation{
+public:
+	int decisionlevel;
+	Lit propagation;
+};
+
+class InnerBacktrack{
+public:
+	int untillevel;
+};
+
 }
 
 #endif /* UTILS_H_ */

@@ -102,11 +102,6 @@ private:
 	bool 				state_savingclauses;
 	std::vector<rClause> state_savedclauses;
 
-	//Logging
-	PCLogger* logger;
-	ECNFPrinter* ecnfprinter;
-	static bool headerunprinted;
-
 	SATSolver* getSolver() const { return satsolver; }
 
 	bool hasIDSolver(defID id) const;
@@ -119,6 +114,14 @@ private:
 	void addAggSolver();
 	IDSolver* getIDSolver(defID id) const;
 	ModSolver* getModSolver() const;
+
+	// Logging
+	PCLogger* logger;
+	ECNFPrinter* ecnfprinter;
+	static bool headerunprinted;
+
+	// Monitoring
+	bool	hasMonitor;
 
 public:
 	PCSolver(SolverOption modes, MinisatID::WLSImpl& inter);
@@ -206,6 +209,7 @@ public:
 	void		print			(rClause clause) const;
 	void 		printCurrentOptimum(const Weight& value) const;
 
+	// MONITORING
 	const PCLogger& getLogger() const { return *logger; }
 
 private:

@@ -28,6 +28,7 @@ class Translator;
 class LogicSolver;
 class PCSolver;
 class SOSolver;
+class Monitor;
 
 // External interfaces offered from the solvers
 
@@ -75,31 +76,37 @@ public:
 
 	Solution*		solution; //Non-owning pointer
 
+	std::vector<Monitor*>		monitors;
+
 public:
 	WLSImpl			(const SolverOption& modes);
 	virtual ~WLSImpl();
 
-	bool 	hasOptimization	() const { return optimization; }
-	bool 	solve			(Solution* sol);
-	virtual void 	addModel		(const vec<Lit>& model);
-	void	notifyOptimalModelFound();
+	virtual void addModel		(const vec<Lit>& model);
 
-	int		getNbModelsFound() const { return solution->getNbModelsFound(); }
+	bool 		hasOptimization		() const { return optimization; }
+	bool 		solve				(Solution* sol);
+	void		notifyOptimalModelFound();
+	void		notifyTimeout		();
+	int			getNbModelsFound	() const { return solution->getNbModelsFound(); }
 
-	Translator& getTranslator();
-	void	setTranslator	(Translator* translator);
+	Translator& getTranslator		();
+	void		setTranslator		(Translator* translator);
 
-	const Solution& getSolution	()		const 	{ assert(solution!=NULL); return *solution; }
-	Solution& 		getSolution	() 				{ assert(solution!=NULL); return *solution; }
-	void			setSolution	(Solution* sol) { solution = sol; } //Can be NULL
+	const Solution& getSolution		()		const 	{ assert(solution!=NULL); return *solution; }
+	Solution& 		getSolution		() 				{ assert(solution!=NULL); return *solution; }
+	void			setSolution		(Solution* sol) { solution = sol; } //Can be NULL
 
-	const SolverOption& modes()	const	{ return _modes; }
-	int 	verbosity		()	const	{ return modes().verbosity; }
-	void 	printStatistics	() const;
-	void 	printLiteral	(std::ostream& stream, const Lit& l) const;
-	void 	printCurrentOptimum(const Weight& value) const;
+	const SolverOption& modes		()	const	{ return _modes; }
+	int 	verbosity				()	const	{ return modes().verbosity; }
+	void 	printStatistics			()	const;
+	void 	printLiteral			(std::ostream& stream, const Lit& l) const;
+	void 	printCurrentOptimum		(const Weight& value) const;
 
-	void	notifyTimeout	();
+	// MONITORING
+	void	addMonitor(Monitor* const mon);
+	template<class T>
+	void 	notifyMonitor(const T& obj);
 
 protected:
 	bool 	finishParsing	();
@@ -119,8 +126,15 @@ protected:
 	Remapper*		getRemapper		()	const { return remapper; }
 	Translator&		getTranslator	()	const { return *translator; }
 
+	bool 			canBackMapLiteral		(const Lit& lit) const;
+	Literal 		getBackMappedLiteral	(const Lit& lit) const;
 	std::vector<Literal> getBackMappedModel	(const vec<Lit>& model) const;
 };
+
+template<>
+void WLSImpl::notifyMonitor(const InnerPropagation& obj);
+template<>
+void WLSImpl::notifyMonitor(const InnerBacktrack& obj);
 
 class WPCLSImpl: public MinisatID::WLSImpl{
 private:

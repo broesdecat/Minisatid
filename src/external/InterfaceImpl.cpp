@@ -16,6 +16,7 @@
 #include "parser/ResourceManager.hpp"
 #include "utils/Print.hpp"
 #include "external/Translator.hpp"
+#include "external/MonitorInterface.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -262,16 +263,45 @@ void WLSImpl::notifyOptimalModelFound(){
 }
 
 //Translate into original vocabulary
+bool WLSImpl::canBackMapLiteral(const Lit& lit) const{
+	return getRemapper()->wasInput(var(lit));
+}
+Literal WLSImpl::getBackMappedLiteral(const Lit& lit) const{
+	assert(!getRemapper()->wasInput(var(lit)));
+	return getRemapper()->getLiteral(lit);
+}
+
 vector<Literal> WLSImpl::getBackMappedModel(const vec<Lit>& model) const{
 	vector<Literal> outmodel;
-	for(int j=0; j<model.size(); ++j){
-		if(!getRemapper()->wasInput(var(model[j]))){ //drop all literals that were not part of the input
-			continue;
+	for(int i=0; i<model.size(); ++i){
+		if(canBackMapLiteral(model[i])){
+			outmodel.push_back(getBackMappedLiteral(model[i]));
 		}
-		outmodel.push_back(getRemapper()->getLiteral(model[j]));
 	}
 	sort(outmodel.begin(), outmodel.end());
 	return outmodel;
+}
+
+void WLSImpl::addMonitor(Monitor * const mon){
+	monitors.push_back(mon);
+	getSolver()->notifyHasMonitor();
+}
+
+template<>
+void WLSImpl::notifyMonitor(const InnerPropagation& obj){
+	if(canBackMapLiteral(obj.propagation)){
+		Literal lit = getBackMappedLiteral(obj.propagation);
+		for(vector<Monitor*>::const_iterator i=monitors.begin(); i<monitors.end(); ++i){
+			(*i)->notifyPropagated(lit, obj.decisionlevel);
+		}
+	}
+}
+
+template<>
+void WLSImpl::notifyMonitor(const InnerBacktrack& obj){
+	for(vector<Monitor*>::const_iterator i=monitors.begin(); i<monitors.end(); ++i){
+		(*i)->notifyBacktracked(obj.untillevel);
+	}
 }
 
 
