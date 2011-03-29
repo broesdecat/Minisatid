@@ -53,6 +53,8 @@ bool compareWLByLits(const WL& one, const WL& two);
 //Compare WLs by their weights
 bool compareWLByWeights(const WL& one, const WL& two);
 
+bool compareWLByAbsWeights(const WL& one, const WL& two);
+
 class InnerDisjunction{
 public:
 	vec<Lit> literals;

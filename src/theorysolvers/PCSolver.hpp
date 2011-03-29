@@ -160,6 +160,8 @@ public:
 	bool 		solve			(const vec<Lit>& assumptions, const ModelExpandOptions& options);
 	lbool 		checkStatus		(lbool status) const; //if status==l_True, do wellfoundednesscheck in IDSolver, if not wellfounded, return l_False, otherwise status
 
+	Var			changeBranchChoice(const Var& chosenvar);
+
 	void		removeAggrHead	(Var head, int defID);
 	void		notifyAggrHead	(Var head, int defID);
 

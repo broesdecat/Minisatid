@@ -92,6 +92,7 @@ SolverOption::SolverOption():
 		aggclausesaving(2),
 		pbsolver(false),
 		watchesratio(0.75),
+		useaggheur(false),
 		primesfile(""),
 		remap(true),
 		rand_var_freq(getDefaultRandfreq()),
@@ -142,6 +143,7 @@ void SolverOption::print(std::ostream& so) const{
 	so << "aggclausesaving: " 	<<aggclausesaving <<"\n";
 	so << "pbsolver: " 			<<pbsolver <<"\n";
 	so << "watchedratio: " 		<<watchesratio <<"\n";
+	so << "using aggregate heuristic: " <<(useaggheur?"yes":"no") <<"\n";
 	so << "primesfile: " 		<<getPrimesFile() <<"\n";
 	so << "remap: " 			<<remap <<"\n";
 	so << "rand_var_freq: " 	<<rand_var_freq <<"\n";

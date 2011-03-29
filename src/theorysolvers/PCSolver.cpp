@@ -495,6 +495,10 @@ void PCSolver::finishParsing(bool& present, bool& unsat) {
 		unsat = true; return;
 	}
 
+	if(modes().useaggheur){
+		getSATSolver()->notifyCustomHeur();
+	}
+
 	// Aggregate pre processing idea
 	/*if(aggsolverpresent){
 	 getAggSolver()->findClausalPropagations();
@@ -656,6 +660,14 @@ bool PCSolver::simplify() {
 		}
 	}
 	return simp;
+}
+
+Var PCSolver::changeBranchChoice (const Var& chosenvar){
+	Var newvar = chosenvar;
+	if(hasAggSolver()){
+		newvar = getAggSolver()->changeBranchChoice(chosenvar);
+	}
+	return newvar;
 }
 
 /*

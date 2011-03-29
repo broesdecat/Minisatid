@@ -59,6 +59,15 @@ struct LI{
 	LI(lbool v, int i): v(v), i(i){}
 };
 
+struct VI{
+	Var var;
+	int heurval;
+
+	bool operator <(const VI& rhs) const{
+		return heurval<rhs.heurval;
+	}
+};
+
 class AggSolver: public DPLLTmodule{
 	//TODO pimpl
 private:
@@ -92,6 +101,10 @@ private:
 	std::vector<LI>					propagated;
 
 	Aggrs::Agg*						optimagg;
+
+	//custom heur
+	std::set<Var>					heurvars; //log n instead of direct (but probably important size reduction)
+	std::vector<VI>					varwithheurval;
 
 public:
 	AggSolver(PCSolver* s);
@@ -136,6 +149,9 @@ public:
 	void 		newDecisionLevel		();
 	void 		backtrackDecisionLevels	(int nblevels, int untillevel);
 	rClause 	getExplanation			(const Lit& l);
+
+	Var			changeBranchChoice 		(const Var& chosenvar);
+	void 		adaptAggHeur			(const vwl& wls, int nbagg);
 
 	// INFORMATION
 

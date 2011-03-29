@@ -169,6 +169,10 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	watcheddesc.push_back(pair<string, string>("yes", "Use smart watches"));
 	watcheddesc.push_back(pair<string, string>("no", "Use full watches"));
 
+	vector<pair<string, string> > aggheurdesc;
+	aggheurdesc.push_back(pair<string, string>("yes", "Use aggregate heuristic"));
+	aggheurdesc.push_back(pair<string, string>("no", "Don't use aggregate heuristic"));
+
 	vector<POLARITY> polvals;
 	vector<pair<string, string> > poldesc;
 	polvals.push_back(POL_TRUE); poldesc.push_back(pair<string, string>("true", "true-first"));
@@ -241,6 +245,8 @@ bool MinisatID::parseOptions(int argc, char** argv){
 			modes.pbsolver, cmd,"Choose whether to translate pseudo-boolean constraints to SAT"));
 	options.push_back(new NoValsOption<double>	("","watch-ratio", 	"double",
 			modes.watchesratio, cmd,"The ratio of watches to set literals under which the watched algorithm is used."));
+	options.push_back(new Option<bool,string>	("","use-agg-heur", 	yesnovals, aggheurdesc,
+			modes.useaggheur, cmd,"Use a specialized aggregate heuristic."));
 	options.push_back(new Option<POLARITY, string>("","polarity", 	polvals, poldesc,
 			modes.polarity, cmd, "The default truth value choice of variables"));
 	options.push_back(new Option<int, int>("","aggsaving", 			aggsavingvals, aggsavingdesc,

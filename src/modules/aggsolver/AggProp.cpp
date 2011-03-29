@@ -311,7 +311,6 @@ void Aggrs::removeValue(const AggProp& type, const Weight& weight, bool wasinset
 
 // TypedSet
 
-//TODO watch them?
 bool printedwarning = false;
 
 Propagator*	MaxProp::createPropagator(TypedSet* set) const{
@@ -331,6 +330,8 @@ Propagator*	MaxProp::createPropagator(TypedSet* set) const{
 }*/
 
 Propagator*	SumProp::createPropagator(TypedSet* set) const{
+	set->getSolver()->adaptAggHeur(set->getWL(), set->getAgg().size());
+
 	if(set->isUsingWatches()){
 		return new GenPWAgg(set);
 	}else{
@@ -339,6 +340,8 @@ Propagator*	SumProp::createPropagator(TypedSet* set) const{
 }
 
 Propagator*	ProdProp::createPropagator(TypedSet* set) const{
+	set->getSolver()->adaptAggHeur(set->getWL(), set->getAgg().size());
+
 	if(set->isUsingWatches()){
 		return new GenPWAgg(set);
 	}else{

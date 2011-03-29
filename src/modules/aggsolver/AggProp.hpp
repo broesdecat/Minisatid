@@ -253,7 +253,7 @@ public:
 class TypedSet{
 protected:
 	Weight 				kb; //kb is "known bound", the value of the set reduced empty set
-	vwl 				wl;
+	vwl 				wl; // INVARIANT: sorted from lowest to highest weight! Except in set reduction operation!
 
 	AggProp const * 	type;
 
