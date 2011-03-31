@@ -50,6 +50,7 @@ typedef numeric_limits<int> intlim;
 //%code{
 	
 extern SolverOption modes;
+extern Solution* sol;
 extern FODOTTranslator*	fodottrans;
 extern int 		yylex(void);
 extern char * 	yytext;
@@ -614,11 +615,7 @@ translation	: /* empty */
 			|	TRANSHEADER typelist predlist funclist truelist arbitlist
 				{					
 					if(fodottrans!=NULL){
-						if(modsolver.get()!=NULL){
-							modsolver->setTranslator(fodottrans);
-						}else{
-							solver->setTranslator(fodottrans);
-						}
+						sol->setTranslator(fodottrans);
 					}
 				}
 			;

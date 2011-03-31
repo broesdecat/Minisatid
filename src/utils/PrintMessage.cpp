@@ -48,15 +48,20 @@ void Print::printInitDataStart(int v) {
 	}
 }
 
-void Print::printStartStatistics(){
+void Print::printStatistics(double parsetime, double simpltime, double solvetime){
 	clog <<">>> [Statistics]\n";
+	if(parsetime>=0){
+		clog <<">>> Parsing phase took " << parsetime <<" sec.\n";
+	}
+	if(simpltime>=0){
+		clog <<">>> Simplication phase took " << simpltime <<" sec.\n";
+	}
+	if(solvetime>=0){
+		clog <<">>> (last) solving phase took " << solvetime <<" sec.\n";
+	}
 }
 
-void Print::printInitDataEnd(int v, double parsetime, bool unsat) {
-	if (v >= 1) {
-		clog <<"> Datastructure initialization finished.\n";
-		clog <<"> Total parsing time : " << parsetime <<" s.\n";
-	}
+void Print::printInitDataEnd(int v, bool unsat) {
 	if (v >= 1 && unsat) {
 		clog <<"> Unsatisfiable found by parsing.\n";
 	}
@@ -67,9 +72,8 @@ void Print::printSimpStart(int v) {
 		clog <<">>> [ Simplifying ]\n";
 	}
 }
-void Print::printSimpEnd(int v, double parsetime, bool unsat) {
+void Print::printSimpEnd(int v, bool unsat) {
 	if (v >= 1) {
-		clog <<"> Total simplification time : " << parsetime <<" s.\n";
 		if(unsat){
 			clog <<"> Unsatisfiable found by unit propagation.\n";
 		}
@@ -79,11 +83,6 @@ void Print::printSimpEnd(int v, double parsetime, bool unsat) {
 void Print::printSolveStart(int v) {
 	if (v >= 1) {
 		clog <<">>> [ Solving ]\n";
-	}
-}
-void Print::printSolveEnd(int v, double parsetime) {
-	if (v >= 1) {
-		clog <<"> Total solving time : " << parsetime <<" s.\n";
 	}
 }
 

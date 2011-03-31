@@ -72,9 +72,7 @@ std::streambuf* StdMan::getBuffer() {
 
 }
 
-///////
 // Input/output file management
-///////
 
 namespace MinisatID {
 	string inputurl = "";
@@ -131,6 +129,11 @@ FILE* MinisatID::getOutputFile() {
 std::streambuf* MinisatID::getOutputBuffer() {
 	createOutput();
 	return output->getBuffer();
+}
+
+shared_ptr<ResMan> MinisatID::getOutputResMan() {
+	createOutput();
+	return output;
 }
 
 void MinisatID::closeInput() {

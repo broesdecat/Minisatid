@@ -7,6 +7,7 @@
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 #include "satsolver/SATSolver.hpp"
+#include "theorysolvers/PCSolver.hpp"
 #include "utils/Utils.hpp"
 
 using namespace MinisatID;

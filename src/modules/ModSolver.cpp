@@ -168,9 +168,9 @@ bool ModSolver::solve(const vec<Lit>& assumptions, const ModelExpandOptions& opt
 	modoptions.search = MODELEXPAND;
 	modoptions.nbmodelstofind = options.nbmodelstofind;
 	Solution* s = new Solution(modoptions);
-	setSolution(s);
+	setSolutionMonitor(s);
 	bool result = getPCSolver().solve(assumptions, modoptions);
-	setSolution(NULL);
+	setSolutionMonitor(NULL);
 	delete s;
 	return result;
 }
@@ -235,9 +235,9 @@ bool ModSolver::search(const vec<Lit>& assumpts, bool search){
 	options.search = MODELEXPAND;
 	options.nbmodelstofind = 1;
 	Solution* s = new Solution(options);
-	setSolution(s);
+	setSolutionMonitor(s);
 	result = getPCSolver().solve(assumpts, options);
-	setSolution(NULL);
+	setSolutionMonitor(NULL);
 	delete s;
 	searching = false;
 	return result;

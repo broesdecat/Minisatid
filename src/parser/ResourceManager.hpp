@@ -15,6 +15,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <tr1/memory>
 
 namespace MinisatID{
 
@@ -79,6 +80,7 @@ FILE* getInputFile();
 std::streambuf* getInputBuffer();
 FILE* getOutputFile();
 std::streambuf* getOutputBuffer();
+std::tr1::shared_ptr<ResMan> getOutputResMan();
 void closeInput();
 void closeOutput();
 

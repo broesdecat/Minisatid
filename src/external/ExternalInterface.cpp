@@ -18,28 +18,17 @@ WrappedLogicSolver::WrappedLogicSolver(){}
 WrappedLogicSolver::~WrappedLogicSolver(){
 }
 
-void WrappedLogicSolver::setTranslator(Translator* translator){
-	getImpl()->setTranslator(translator);
-}
-
 bool WrappedLogicSolver::hasOptimization() const {
 	return getImpl()->hasOptimization();
-}
-
-Translator& WrappedLogicSolver::getTranslator() {
-	return getImpl()->getTranslator();
-}
-
-void WrappedLogicSolver::notifyTimeout() const {
-	getImpl()->notifyTimeout();
 }
 
 void WrappedLogicSolver::printStatistics() const {
 	getImpl()->printStatistics();
 }
 
-bool WrappedLogicSolver::solve(Solution* sol){
-	return getImpl()->solve(sol);
+void WrappedLogicSolver::solve(Solution* sol){
+	getImpl()->setSolutionMonitor(sol);
+	getImpl()->solve();
 }
 
 

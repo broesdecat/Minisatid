@@ -47,6 +47,7 @@ libminisatid_2_0_la_SOURCES = \
 		external/ExternalUtils.hpp\
 		external/Translator.hpp				external/Translator.cpp\
 		external/InterfaceImpl.hpp			external/InterfaceImpl.cpp\
+		external/SolvingMonitor.hpp			external/SolvingMonitor.cpp\
 		satsolver/SATSolver.hpp				satsolver/SATSolver.cpp\
 		satsolver/SATUtils.hpp				satsolver/SATUtils.cpp\
 		modules/DPLLTmodule.hpp 			modules/DPLLTmodule.cpp\

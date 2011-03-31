@@ -15,6 +15,7 @@
 #include <tr1/unordered_map>
 
 #include "external/ExternalUtils.hpp"
+#include "external/SolvingMonitor.hpp"
 
 //IMPORTANT: Need all headers defining an inheritance tree to be able to use their inheritance
 #include "theorysolvers/LogicSolver.hpp"
@@ -61,37 +62,29 @@ public:
 class WLSImpl{
 private:
 	bool 			optimization;
-	bool			printedbestmodel;
 	SolverState 	state;
 
 protected:
 	SolverOption	_modes;
 
 public:
-
 	Remapper*		remapper;
-	Translator*		owntranslator;
-	Translator*		translator;
 
-	Solution*		solution; //Non-owning pointer
+	Solution*		solutionmonitor; //Non-owning pointers
 
 public:
 	WLSImpl			(const SolverOption& modes);
 	virtual ~WLSImpl();
 
 	bool 	hasOptimization	() const { return optimization; }
-	bool 	solve			(Solution* sol);
-	virtual void 	addModel		(const vec<Lit>& model);
+	void 	solve			();
+
+	void 	addModel		(const vec<Lit>& model);
 	void	notifyOptimalModelFound();
 
-	int		getNbModelsFound() const { return solution->getNbModelsFound(); }
+	int		getNbModelsFound() { return solutionmonitor->getNbModelsFound(); }
 
-	Translator& getTranslator();
-	void	setTranslator	(Translator* translator);
-
-	const Solution& getSolution	()		const 	{ assert(solution!=NULL); return *solution; }
-	Solution& 		getSolution	() 				{ assert(solution!=NULL); return *solution; }
-	void			setSolution	(Solution* sol) { solution = sol; } //Can be NULL
+	void	setSolutionMonitor	(Solution* sol);
 
 	const SolverOption& modes()	const	{ return _modes; }
 	int 	verbosity		()	const	{ return modes().verbosity; }
@@ -99,11 +92,10 @@ public:
 	void 	printLiteral	(std::ostream& stream, const Lit& l) const;
 	void 	printCurrentOptimum(const Weight& value) const;
 
-	void	notifyTimeout	();
-
 protected:
 	bool 	finishParsing	();
 	bool 	simplify		();
+
 	void	setOptimization	(bool opt) { optimization = opt; }
 
 	virtual MinisatID::LogicSolver* getSolver() const = 0;
@@ -117,9 +109,12 @@ protected:
 	std::streambuf* getRes	() const;
 
 	Remapper*		getRemapper		()	const { return remapper; }
-	Translator&		getTranslator	()	const { return *translator; }
 
 	std::vector<Literal> getBackMappedModel	(const vec<Lit>& model) const;
+
+private:
+	Solution& 	getSolMonitor() { return *solutionmonitor; }
+	const Solution& getSolMonitor() const { return *solutionmonitor; }
 };
 
 class WPCLSImpl: public MinisatID::WLSImpl{

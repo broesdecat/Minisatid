@@ -14,6 +14,7 @@
 #include <stdio.h>
 
 #include "external/ExternalUtils.hpp"
+#include "external/SolvingMonitor.hpp"
 
 #ifndef __GXX_EXPERIMENTAL_CXX0X__
 #include <tr1/memory>
@@ -41,15 +42,9 @@ public:
 
 	//Do model expansion, given the options in the solution datastructure.
 	//Automatically initializes the datastructures and simplifies the theory.
-	bool 	solve				(Solution* sol);
+	void 	solve				(Solution* sol);
 
 	bool 	hasOptimization		() const;
-
-	Translator& getTranslator	();
-	void	setTranslator		(Translator* translator);
-
-	// Notify the solver a timeout has occurred: allows for finalization time (COMPETITION)
-	void	notifyTimeout		()	const;
 
 protected:
 	WrappedLogicSolver			();

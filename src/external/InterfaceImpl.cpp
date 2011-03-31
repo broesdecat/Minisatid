@@ -65,41 +65,35 @@ Literal SmartRemapper::getLiteral(const Lit& lit){
 
 WLSImpl::WLSImpl(const SolverOption& modes):
 		optimization(false),
-		printedbestmodel(false),
-		state(INIT), _modes(modes),
-		remapper(modes.remap?new SmartRemapper():new Remapper()),
-		owntranslator(new Translator()),
-		translator(owntranslator) //Default translator is alwasy loaded
+		state(INIT),
+		_modes(modes),
+		remapper(modes.remap?new SmartRemapper():new Remapper())
 		{
 }
 
 WLSImpl::~WLSImpl(){
-	if(owntranslator!=NULL){
-		delete owntranslator;
-	}
 	delete remapper;
 }
 
-void WLSImpl::setTranslator(Translator* trans){
-	translator = trans;
-}
-
-Translator& WLSImpl::getTranslator() {
-	return *translator;
+void WLSImpl::setSolutionMonitor(Solution* sol) {
+	if(sol!=NULL) {
+		solutionmonitor = sol;
+		getSolMonitor().setModes(modes());
+	}
 }
 
 void WLSImpl::printStatistics() const {
-	printStartStatistics();
+	getSolMonitor().printStatistics();
 	getSolver()->printStatistics();
 }
 
 void WLSImpl::printLiteral(std::ostream& output, const Lit& l) const{
-	getTranslator().printLiteral(output, getRemapper()->getLiteral(l));
+	getSolMonitor().getTranslator()->printLiteral(output, getRemapper()->getLiteral(l));
 }
 
 void WLSImpl::printCurrentOptimum(const Weight& value) const{
 	ostream output(getRes());
-	getTranslator().printCurrentOptimum(output, value);
+	getSolMonitor().getTranslator()->printCurrentOptimum(output, value);
 }
 
 std::streambuf* WLSImpl::getRes() const {
@@ -135,27 +129,43 @@ void WLSImpl::checkAtoms(const vector<Atom>& atoms, vector<Var>& ll){
 }
 
 bool WLSImpl::finishParsing(){
-	double cpu_time = cpuTime();
+	if(solutionmonitor==NULL){
+		throw idpexception("Solving without instantiating any solution monitor.\n");
+	}
+
+	getSolMonitor().notifyStartDataInit();
 	printInitDataStart(verbosity());
 
 	bool present = true, unsat = false;
+	//FIXME check what present is doing here
 	getSolver()->finishParsing(present, unsat);
+	if(unsat){
+		getSolMonitor().notifyUnsat();
+	}
 	state = PARSED;
 
-	printInitDataEnd(verbosity(), cpuTime()-cpu_time, unsat);
+	getSolMonitor().notifyEndDataInit();
+	printInitDataEnd(verbosity(), getSolMonitor().isUnsat());
 
-	return !unsat;
+	return !getSolMonitor().isUnsat();
 }
 
 bool WLSImpl::simplify(){
-	double cpu_time = cpuTime();
+	if(solutionmonitor==NULL){
+		throw idpexception("Solving without instantiating any solution monitor.\n");
+	}
+
+	getSolMonitor().notifyStartSimplifying();
 	printSimpStart(verbosity());
-	bool unsat = !getSolver()->simplify();
+	if(!getSolver()->simplify()){
+		getSolMonitor().notifyUnsat();
+	}
 	state = SIMPLIFIED;
 
-	printSimpEnd(verbosity(), cpuTime()-cpu_time, unsat);
+	getSolMonitor().notifyEndSimplifying();
+	printSimpEnd(verbosity(), getSolMonitor().isUnsat());
 
-	return !unsat;
+	return !getSolMonitor().isUnsat();
 }
 
 /*
@@ -168,97 +178,53 @@ bool WLSImpl::simplify(){
  * 		MODELEXAND: search for a solution
  * 		PROPAGATE: only do unit propagation (and print nothing, not even when a model is found)
  */
-bool WLSImpl::solve(Solution* sol){
-	bool unsat = false;
-	setSolution(sol);
-
-	if(!unsat && state==INIT){
-		unsat = !finishParsing();
-	}
-	if(!unsat && state==PARSED){
-		unsat = !simplify();
+void WLSImpl::solve(){
+	if(solutionmonitor==NULL){
+		throw idpexception("Solving without instantiating any solution monitor.\n");
 	}
 
-	if(!unsat){
+	if(!getSolMonitor().isUnsat() && state==INIT){
+		if(!finishParsing()){
+			getSolMonitor().notifyUnsat();
+		}
+	}
+	if(!getSolMonitor().isUnsat() && state==PARSED){
+		if(!simplify()){
+			getSolMonitor().notifyUnsat();
+		}
+	}
+
+	if(!getSolMonitor().isUnsat()){
 		assert(state==SIMPLIFIED);
 
-		double cpu_time = cpuTime();
+		getSolMonitor().notifyStartSolving();
 		printSolveStart(verbosity());
 
 		vec<Lit> assumptions;
-		checkLits(getSolution().getAssumptions(), assumptions);
+		checkLits(getSolMonitor().getAssumptions(), assumptions);
 
-		unsat = !getSolver()->solve(assumptions, getSolution().getOptions());
+		if(!getSolver()->solve(assumptions, getSolMonitor().getOptions())){
+			getSolMonitor().notifyUnsat();
+		}
 
-		if(getSolution().getInferenceOption()==MODELEXPAND){
+		if(getSolMonitor().getInferenceOption()==MODELEXPAND){
 			state = SOLVED;
-			if(hasOptimization() && getSolution().getPrintOption()==PRINT_BEST && !unsat){
-				assert(getNbModelsFound()>0);
-
-				std::ostream output(getRes());
-				if(getSolution().hasOptimalModel()){
-					printOptimalModelFound(output, modes().format);
-				}
-				getTranslator().printModel(output, getSolution().getBestModelFound());
-				printedbestmodel = true;
-			}
 		}
 
-		printSolveEnd(verbosity(), cpuTime()-cpu_time);
+		getSolMonitor().notifyEndSolving();
 	}
 
-	if(unsat){
-		std::ostream output(getRes());
-		printUnSatisfiable(output, modes().format, modes().transformat);
-		printUnSatisfiable(clog, modes().format, modes().transformat, modes().verbosity);
-	}else{
-		if(!hasOptimization() && modes().transformat==TRANS_ASP){
-			std::ostream output(getRes());
-			printSatisfiable(output, modes().format, modes().transformat);
-			printSatisfiable(clog, modes().format, modes().transformat, modes().verbosity);
-		}
-	}
-
-	setSolution(NULL);
-
-	return !unsat;
-}
-
-void WLSImpl::notifyTimeout(){
-	//if optimization and best model has not been printed, print it now
-	if(hasOptimization() && getSolution().getPrintOption()==PRINT_BEST && getSolution().getNbModelsFound()>0 && !printedbestmodel){
-		ostream output(getRes());
-		if(getSolution().hasOptimalModel()){
-			printOptimalModelFound(output, modes().format);
-		}
-		getTranslator().printModel(output, getSolution().getBestModelFound());
-		printedbestmodel = true;
-	}
+	getSolMonitor().notifySolvingFinished();
 }
 
 void WLSImpl::addModel(const vec<Lit>& model){
 	vector<Literal> outmodel(getBackMappedModel(model));
-	getSolution().addModel(outmodel, hasOptimization());
-
-	if(getSolution().getPrintOption()==PRINT_ALL || (!hasOptimization() && getSolution().getPrintOption()==PRINT_BEST)){
-		std::ostream output(getRes());
-		if(getNbModelsFound()==1){
-			if(!hasOptimization() && modes().transformat!=TRANS_ASP){
-				printSatisfiable(output, modes().format, modes().transformat);
-				printSatisfiable(clog, modes().format, modes().transformat, modes().verbosity);
-			}
-			getTranslator().printHeader(output);
-		}
-		getTranslator().printModel(output, outmodel);
-	}
-	if(!hasOptimization()){
-		printNbModels(clog, getNbModelsFound(), verbosity());
-	}
+	getSolMonitor().addModel(outmodel);
 }
 
 void WLSImpl::notifyOptimalModelFound(){
 	assert(hasOptimization());
-	getSolution().notifyOptimalModelFound();
+	getSolMonitor().notifyOptimalModelFound();
 }
 
 //Translate into original vocabulary

@@ -320,69 +320,6 @@ struct WLtuple{
 typedef std::vector<Literal> literallist;
 typedef std::vector<std::vector<Literal> > modellist;
 
-enum ModelSaved { MODEL_NONE, MODEL_SAVED, MODEL_SAVING };
-
-class Solution{
-private:
-	const ModelExpandOptions options;
-	int 		nbmodelsfound;
-	literallist	temporarymodel;
-	modellist	models; //IMPORTANT: for optimization problem, models will contain a series of increasingly better models
-
-	literallist assumptions;
-
-	bool		optimalmodelfound;
-
-	ModelSaved modelsave; //CRITICAL SECTION SUPPORT
-
-public:
-	Solution(ModelExpandOptions options):
-			options(options),
-			nbmodelsfound(0),
-			optimalmodelfound(false),
-			modelsave(MODEL_NONE){}
-	~Solution(){};
-
-	int 	getNbModelsFound	() const	{ return nbmodelsfound; }
-	int 	getNbModelsToFind	() const	{ return options.nbmodelstofind; }
-	PrintModel 	getPrintOption	() const 	{ return options.printmodels; }
-	SaveModel 	getSaveOption	() const 	{ return options.savemodels; }
-	Inference 	getInferenceOption	() const 	{ return options.search; }
-	const ModelExpandOptions& getOptions() const { return options; }
-	const modellist& 	getModels() { return models; } //IMPORTANT: no use calling it when models are not being saved.
-
-	const literallist& getAssumptions	() { return assumptions; }
-
-	void 	addModel(literallist model, bool currentlybest) {
-		++nbmodelsfound;
-		if(modelsave==MODEL_SAVING){ //Error in saving previous model, so abort
-			throw idpexception(">> Previous model failed to save, cannot guarantee correctness.\n");
-		}
-		if(getSaveOption()==SAVE_BEST){
-			if(modelsave!=MODEL_NONE){
-				temporarymodel = models.back();
-				models.pop_back();
-				assert(models.empty());
-			}
-		}
-		modelsave = MODEL_SAVING;
-		models.push_back(model);
-		modelsave = MODEL_SAVED;
-	}
-
-	const literallist& getBestModelFound() const{
-		assert(modelsave!=MODEL_NONE);
-		if(modelsave==MODEL_SAVED){
-			return models.back();
-		}else{
-			return temporarymodel;
-		}
-	}
-
-	bool	hasOptimalModel			() const	{ return optimalmodelfound; }
-	void	notifyOptimalModelFound	()			{ optimalmodelfound = true;	}
-};
-
 class Disjunction{
 public:
 	std::vector<Literal> literals;
