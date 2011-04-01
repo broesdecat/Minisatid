@@ -15,6 +15,7 @@
 
 #include <tclap/CmdLine.h>
 #include "external/ResourceManager.hpp"
+#include "external/SolvingMonitor.hpp"
 
 #include "utils/Print.hpp"
 
@@ -114,7 +115,7 @@ struct Option: public Opt{
 };
 
 //Return false if parsing failed
-bool MinisatID::parseOptions(int argc, char** argv){
+bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 	string outputfile = "";
 
 	vector<Opt*> options;
@@ -273,7 +274,7 @@ bool MinisatID::parseOptions(int argc, char** argv){
 		setInputFileUrl(inputfilearg.getValue());
 	}
 	if(outputfile.compare("")!=0){
-		setOutputFileUrl(outputfile);
+		sol->setOutputFile(outputfile);
 	}
 
 	deleteList<Opt>(options);

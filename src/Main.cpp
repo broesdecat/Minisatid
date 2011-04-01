@@ -123,12 +123,11 @@ int main(int argc, char** argv) {
 	sol = createSolution();
 
 	//parse command-line options
-	bool successfullparsing = parseOptions(argc, argv);
+	bool successfullparsing = parseOptions(argc, argv, sol);
 	if(!successfullparsing){
 		sol->notifySolvingAborted();
 		return 0;
 	}else{
-		sol->setOutputResourceManager(getOutputResMan());
 		sol->setNbModelsToFind(modes.nbmodels);
 	}
 

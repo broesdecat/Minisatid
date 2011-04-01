@@ -33,6 +33,8 @@ Solution::Solution(ModelExpandOptions options) :
 		modelsave(MODEL_NONE), solvingstate(SOLVING_STARTED),
 		owntranslator(new Translator()), translator(owntranslator),
 		startparsing(0), endparsing(-1), startfinish(0), endfinish(-1), startsimpl(0), endsimpl(-1), startsolve(0), endsolve(-1){
+
+	resman = std::tr1::shared_ptr<ResMan>(new StdMan(false));
 }
 
 Solution::~Solution(){
@@ -75,6 +77,11 @@ void Solution::printStatistics() const {
 			);
 }
 
+void Solution::notifyCurrentOptimum(const Weight & value) const{
+	ostream output(resman->getBuffer());
+	getTranslator()->printCurrentOptimum(output, value);
+}
+
 const literallist& Solution::getBestModelFound() const {
 	assert(modelsave!=MODEL_NONE);
 	if (modelsave == MODEL_SAVED) {
@@ -106,21 +113,19 @@ void Solution::addModel(const literallist& model) {
 
 	assert(hasTranslator());
 
-	if(resman.get()!=NULL){
-		ostream output(resman.get()->getBuffer());
-		if (getPrintOption() == PRINT_ALL || (!optimizing && getPrintOption() == PRINT_BEST)) {
-			if (getNbModelsFound() == 1) {
-				if (!optimizing && modes.transformat != TRANS_ASP) {
-					printSatisfiable(output, modes.format, modes.transformat);
-					printSatisfiable(clog, modes.format, modes.transformat,	modes.verbosity);
-				}
-				getTranslator()->printHeader(output);
+	ostream output(resman->getBuffer());
+	if (getPrintOption() == PRINT_ALL || (!optimizing && getPrintOption() == PRINT_BEST)) {
+		if (getNbModelsFound() == 1) {
+			if (!optimizing && modes.transformat != TRANS_ASP) {
+				printSatisfiable(output, modes.format, modes.transformat);
+				printSatisfiable(clog, modes.format, modes.transformat,	modes.verbosity);
 			}
-			getTranslator()->printModel(output, model);
+			getTranslator()->printHeader(output);
 		}
-		if (!optimizing) {
-			printNbModels(clog, getNbModelsFound(), modes.verbosity);
-		}
+		getTranslator()->printModel(output, model);
+	}
+	if (!optimizing) {
+		printNbModels(clog, getNbModelsFound(), modes.verbosity);
 	}
 }
 
@@ -135,7 +140,7 @@ void Solution::solvingFinished(){
 		endsolve = cpuTime();
 	}
 
-	ostream output(resman.get()->getBuffer());
+	ostream output(resman->getBuffer());
 	if(isUnsat()){
 		printUnSatisfiable(output, modes.format, modes.transformat);
 		printUnSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);
@@ -155,9 +160,21 @@ void Solution::solvingFinished(){
 		}
 	}
 	output.flush();
+
+	closeOutput();
 }
 
-// FIXME ResMan is not part of the external package (and InterfaceImpl shouldn't be)
+void Solution::closeOutput() {
+	if (resman.get() != NULL) {
+		resman->close();
+	}
+}
+
+void Solution::setOutputFile(std::string output){
+	if(!output.empty()){
+		resman = std::tr1::shared_ptr<ResMan>(new FileMan(output.c_str(), true));
+	}
+}
 
 //Only call internally!
 void Solution::notifySolvingFinished() {

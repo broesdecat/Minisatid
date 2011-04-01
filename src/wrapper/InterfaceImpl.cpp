@@ -93,13 +93,7 @@ void WLSImpl::printLiteral(std::ostream& output, const Lit& l) const{
 }
 
 void WLSImpl::printCurrentOptimum(const Weight& value) const{
-	//FIXME move to solutionmonitor and remove getres!
-	ostream output(getRes());
-	getSolMonitor().getTranslator()->printCurrentOptimum(output, value);
-}
-
-std::streambuf* WLSImpl::getRes() const {
-	return getOutputBuffer();
+	getSolMonitor().notifyCurrentOptimum(value);
 }
 
 Var WLSImpl::checkAtom(const Atom& atom){

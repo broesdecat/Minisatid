@@ -10,7 +10,8 @@
 #define PARSEOPTIONS_HPP_
 
 namespace MinisatID{
-	bool parseOptions(int argc, char** argv);
+	class Solution;
+	bool parseOptions(int argc, char** argv, Solution* sol);
 }
 
 #endif /* PARSEOPTIONS_HPP_ */

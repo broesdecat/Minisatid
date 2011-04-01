@@ -114,8 +114,6 @@ protected:
 	void 	checkLits		(const std::vector<Literal>& lits, std::vector<Lit>& ll);
 	void 	checkAtoms		(const std::vector<Atom>& atoms, std::vector<Var>& ll);
 
-	std::streambuf* getRes	() const;
-
 	Remapper*		getRemapper		()	const { return remapper; }
 
 	bool	canBackMapLiteral		(const Lit& lit) const;
