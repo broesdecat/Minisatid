@@ -17,7 +17,7 @@
 
 #include "external/ExternalUtils.hpp"
 #include "external/Translator.hpp"
-#include "parser/ResourceManager.hpp"
+#include "external/ResourceManager.hpp"
 #include "utils/Print.hpp"
 
 #include "GeneralUtils.hpp"
@@ -156,6 +156,7 @@ void Solution::solvingFinished(){
 
 // FIXME ResMan is not part of the external package (and InterfaceImpl shouldn't be)
 
+//Only call internally!
 void Solution::notifySolvingFinished() {
 	if(solvingstate == SOLVING_FINISHEDCLEANLY){
 		return;

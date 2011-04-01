@@ -7,7 +7,7 @@
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 #include "external/ExternalInterface.hpp"
-#include "external/InterfaceImpl.hpp"
+#include "wrapper/InterfaceImpl.hpp"
 #include "external/Translator.hpp"
 
 using namespace std;

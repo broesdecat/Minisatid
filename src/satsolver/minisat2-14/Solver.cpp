@@ -27,12 +27,17 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include "Solver.hpp"
 #include "mtl/Sort.h"
-#include <cmath>
 
-#include <vector> /*A*/
-/*A*/ using namespace Minisat;
-/*A*/ using namespace MinisatID;
-/*A*/ using namespace MinisatID::Print;
+/*AB*/
+#include <cmath>
+#include <vector>
+#include <iostream>
+#include <cstdarg>
+
+using namespace Minisat;
+using namespace MinisatID;
+using namespace MinisatID::Print;
+/*AE*/
 
 //=================================================================================================
 // Constructor/Destructor:

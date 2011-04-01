@@ -32,11 +32,15 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "mtl/Sort.h"
 #include <cmath>
 
+/*AB*/
 #include <vector>
+#include <iostream>
+#include <cstdarg>
 
 using namespace Minisat;
 using namespace MinisatID;
 using namespace MinisatID::Print;
+/*AE*/
 
 //=================================================================================================
 // Constructor/Destructor:

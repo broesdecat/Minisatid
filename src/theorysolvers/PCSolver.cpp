@@ -10,7 +10,7 @@
 
 #include <iostream>
 
-#include "external/InterfaceImpl.hpp"
+#include "wrapper/InterfaceImpl.hpp"
 
 #include "satsolver/SATSolver.hpp"
 #include "modules/IDSolver.hpp"

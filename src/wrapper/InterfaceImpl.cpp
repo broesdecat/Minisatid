@@ -6,14 +6,14 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#include "external/InterfaceImpl.hpp"
+#include "wrapper/InterfaceImpl.hpp"
 
 #include <cstdlib>
 #include <vector>
 #include <tr1/memory>
 #include <algorithm>
 
-#include "parser/ResourceManager.hpp"
+#include "external/ResourceManager.hpp"
 #include "utils/Print.hpp"
 #include "external/Translator.hpp"
 

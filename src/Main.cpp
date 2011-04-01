@@ -22,7 +22,7 @@
 #include "external/ExternalInterface.hpp"
 #include "external/Translator.hpp"
 #include "Unittests.hpp"
-#include "parser/ResourceManager.hpp"
+#include "external/ResourceManager.hpp"
 #include "parser/Lparseread.hpp"
 #include "parser/PBread.hpp"
 
@@ -58,12 +58,12 @@ void printStats();
 jmp_buf main_loop;
 static void noMoreMem();
 volatile sig_atomic_t abortcode;
-static void SIGABRT_handler(int signum);
-static void SIGFPE_handler(int signum);
-static void SIGSEGV_handler(int signum);
-static void SIGTERM_handler(int signum);
-static void SIGINT_handler(int signum);
-void handleSignals();
+static void SIGABRT_handler	(int signum);
+static void SIGFPE_handler	(int signum);
+static void SIGSEGV_handler	(int signum);
+static void SIGTERM_handler	(int signum);
+static void SIGINT_handler	(int signum);
+void handleSignals	();
 int handleTermination(pwls d);
 
 void doModelGeneration(pwls& d);
@@ -84,9 +84,7 @@ Solution* createSolution(){
 }
 
 int handleTermination(bool cleanexit, pwls d){
-    if(cleanexit){
-        sol->notifyEndSolving();
-    }else{
+    if(!cleanexit){
         sol->notifySolvingAborted();
     }
     int returnvalue = 0;
