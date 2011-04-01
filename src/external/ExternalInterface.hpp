@@ -14,6 +14,7 @@
 #include <stdio.h>
 
 #include "external/ExternalUtils.hpp"
+#include "external/SolvingMonitor.hpp"
 
 #ifndef __GXX_EXPERIMENTAL_CXX0X__
 #include <tr1/memory>
@@ -30,35 +31,31 @@ class Monitor;
 
 class WrappedLogicSolver;
 
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
+typedef WrappedLogicSolver* pwls;
+/*#ifdef __GXX_EXPERIMENTAL_CXX0X__
 typedef std::shared_ptr<WrappedLogicSolver> pwls;
 #else
 typedef std::tr1::shared_ptr<WrappedLogicSolver> pwls;
-#endif
+#endif*/
 
 
 class WrappedLogicSolver{
 public:
+	virtual ~WrappedLogicSolver	();
+
 	void 	printStatistics		()	const;
 
 	//Do model expansion, given the options in the solution datastructure.
 	//Automatically initializes the datastructures and simplifies the theory.
-	bool 	solve				(Solution* sol);
+	void 	solve				(Solution* sol);
 
 	bool 	hasOptimization		() const;
-
-	Translator& getTranslator	();
-	void	setTranslator		(Translator* translator);
-
-	// Notify the solver a timeout has occurred: allows for finalization time (COMPETITION)
-	void	notifyTimeout		()	const;
 
 	// Add a monitor, which will be notified when any event happens
 	void 	addMonitor(Monitor* const monitor);
 
 protected:
 	WrappedLogicSolver			();
-	virtual ~WrappedLogicSolver	();
 
 	virtual WLSImpl* getImpl	() const = 0;
 };

@@ -318,9 +318,6 @@ inline uint64_t Solver::nbVars        ()      const   { return (uint64_t)nVars()
 //=================================================================================================
 // Debug + etc:
 
-
-#define reportf(format, args...) ( fflush(stdout), fprintf(stderr, format, ## args), fflush(stderr) )
-
 static inline void logLit(FILE* f, Lit l)
 {
     fprintf(f, "%sx%d", sign(l) ? "~" : "", var(l)+1);

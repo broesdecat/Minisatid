@@ -39,11 +39,15 @@ void Translator::printCurrentOptimum(std::ostream& output, const Weight& value){
 
 void Translator::printModel(std::ostream& output, const std::vector<Literal>& model){
 	bool start = true;
+	stringstream ss;
 	for (vector<Literal>::const_iterator i = model.begin(); i < model.end(); ++i){
-		output <<(start ? "" : " ") <<(((*i).hasSign()) ? "-" : "") <<(*i).getAtom().getValue();
+		ss <<(start ? "" : " ") <<(((*i).hasSign()) ? "-" : "") <<(*i).getAtom().getValue();
 		start = false;
 	}
-	output << " 0\n";
+	ss << " 0\n";
+	//FIXME start critical section
+	output <<ss.str();
+	//FIXME end critical section
 	output.flush();
 }
 

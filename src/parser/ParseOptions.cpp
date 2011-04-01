@@ -14,7 +14,7 @@
 #include <iostream>
 
 #include <tclap/CmdLine.h>
-#include "parser/ResourceManager.hpp"
+#include "external/ResourceManager.hpp"
 
 #include "utils/Print.hpp"
 

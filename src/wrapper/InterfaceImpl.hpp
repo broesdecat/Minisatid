@@ -15,6 +15,7 @@
 #include <tr1/unordered_map>
 
 #include "external/ExternalUtils.hpp"
+#include "external/SolvingMonitor.hpp"
 
 //IMPORTANT: Need all headers defining an inheritance tree to be able to use their inheritance
 #include "theorysolvers/LogicSolver.hpp"
@@ -62,46 +63,36 @@ public:
 class WLSImpl{
 private:
 	bool 			optimization;
-	bool			printedbestmodel;
 	SolverState 	state;
 
 protected:
 	SolverOption	_modes;
 
 public:
-
 	Remapper*		remapper;
-	Translator*		owntranslator;
-	Translator*		translator;
 
-	Solution*		solution; //Non-owning pointer
-
-	std::vector<Monitor*>		monitors;
+	Solution*		solutionmonitor; //Non-owning pointers
 
 public:
 	WLSImpl			(const SolverOption& modes);
 	virtual ~WLSImpl();
 
-	virtual void addModel		(const vec<Lit>& model);
+	bool 	hasOptimization	() const { return optimization; }
+	void 	solve			();
 
-	bool 		hasOptimization		() const { return optimization; }
-	bool 		solve				(Solution* sol);
-	void		notifyOptimalModelFound();
-	void		notifyTimeout		();
-	int			getNbModelsFound	() const { return solution->getNbModelsFound(); }
+	virtual void 	addModel		(const vec<Lit>& model); //virtual for MODSOLVER!
+	void	notifyOptimalModelFound();
 
-	Translator& getTranslator		();
-	void		setTranslator		(Translator* translator);
+	int		getNbModelsFound() { return solutionmonitor->getNbModelsFound(); }
 
-	const Solution& getSolution		()		const 	{ assert(solution!=NULL); return *solution; }
-	Solution& 		getSolution		() 				{ assert(solution!=NULL); return *solution; }
-	void			setSolution		(Solution* sol) { solution = sol; } //Can be NULL
+	void	setSolutionMonitor	(Solution* sol);
 
-	const SolverOption& modes		()	const	{ return _modes; }
-	int 	verbosity				()	const	{ return modes().verbosity; }
-	void 	printStatistics			()	const;
-	void 	printLiteral			(std::ostream& stream, const Lit& l) const;
-	void 	printCurrentOptimum		(const Weight& value) const;
+	const SolverOption& modes()	const	{ return _modes; }
+	int 	verbosity		()	const	{ return modes().verbosity; }
+	void 	printStatistics	() const;
+	void 	printLiteral	(std::ostream& stream, const Lit& l) const;
+	void 	printCurrentOptimum(const Weight& value) const;
+
 
 	// MONITORING
 	void	addMonitor(Monitor* const mon);
@@ -124,17 +115,13 @@ protected:
 	std::streambuf* getRes	() const;
 
 	Remapper*		getRemapper		()	const { return remapper; }
-	Translator&		getTranslator	()	const { return *translator; }
 
-	bool 			canBackMapLiteral		(const Lit& lit) const;
-	Literal 		getBackMappedLiteral	(const Lit& lit) const;
 	std::vector<Literal> getBackMappedModel	(const vec<Lit>& model) const;
-};
 
-template<>
-void WLSImpl::notifyMonitor(const InnerPropagation& obj);
-template<>
-void WLSImpl::notifyMonitor(const InnerBacktrack& obj);
+private:
+	Solution& 	getSolMonitor() { return *solutionmonitor; }
+	const Solution& getSolMonitor() const { return *solutionmonitor; }
+};
 
 class WPCLSImpl: public MinisatID::WLSImpl{
 private:
