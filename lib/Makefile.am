@@ -7,3 +7,5 @@ SUBDIRS = tclap pbsolver
 if USEPERFTOOLS
 SUBDIRS += perftools
 endif
+
+EXTRA_DIST = pluscallback1.7

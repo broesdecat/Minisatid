@@ -94,6 +94,8 @@ public:
 	void		addForcedChoices	(const vec<Lit>& fc) { fc.copyTo(forcedchoices);  }
 	void		disableHeur			() { reportf("Not supported by solver!\n"); exit(-1); }
 	bool     	isDecisionVar(Var v) const { return decision_var[v]; }
+
+	void		notifyCustomHeur	() { reportf("Not supported by solver!\n"); exit(-1); }
 /*AE*/
 
     // Constructor/Destructor:

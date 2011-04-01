@@ -78,6 +78,9 @@ libminisatid_2_0_la_SOURCES = \
 		GeneralUtils.hpp 					GeneralUtils.cpp\
 		Unittests.hpp 						Unittests.cpp
 
+# CALLBACK FRAMEWORK
+AM_CXXFLAGS += -I $(LIBSRCDIR)/pluscallback1.7/
+
 #PBSOLVER		
 AM_CXXFLAGS += -I $(LIBSRCDIR)/pbsolver/ -I $(LIBSRCDIR)/pbsolver/pbbase/h/ -I $(LIBSRCDIR)/pbsolver/ADTs/ -DDATADIR=\"$(datadir)\"
 

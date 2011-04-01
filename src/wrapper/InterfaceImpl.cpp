@@ -229,14 +229,22 @@ void WLSImpl::notifyOptimalModelFound(){
 	getSolMonitor().notifyOptimalModelFound();
 }
 
+bool WLSImpl::canBackMapLiteral(const Lit& lit) const{
+	return getRemapper()->wasInput(var(lit));
+}
+
+Literal WLSImpl::getBackMappedLiteral(const Lit& lit) const{
+	assert(canBackMapLiteral(lit));
+	return getRemapper()->getLiteral(lit);
+}
+
 //Translate into original vocabulary
 vector<Literal> WLSImpl::getBackMappedModel(const vec<Lit>& model) const{
 	vector<Literal> outmodel;
 	for(int j=0; j<model.size(); ++j){
-		if(!getRemapper()->wasInput(var(model[j]))){ //drop all literals that were not part of the input
-			continue;
+		if(canBackMapLiteral(model[j])){
+			outmodel.push_back(getBackMappedLiteral(model[j]));
 		}
-		outmodel.push_back(getRemapper()->getLiteral(model[j]));
 	}
 	sort(outmodel.begin(), outmodel.end());
 	return outmodel;

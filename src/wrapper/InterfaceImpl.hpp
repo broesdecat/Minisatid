@@ -68,6 +68,8 @@ private:
 protected:
 	SolverOption	_modes;
 
+	std::vector<Monitor*> monitors;
+
 public:
 	Remapper*		remapper;
 
@@ -116,12 +118,20 @@ protected:
 
 	Remapper*		getRemapper		()	const { return remapper; }
 
+	bool	canBackMapLiteral		(const Lit& lit) const;
+	Literal getBackMappedLiteral	(const Lit& lit) const;
 	std::vector<Literal> getBackMappedModel	(const vec<Lit>& model) const;
 
 private:
 	Solution& 	getSolMonitor() { return *solutionmonitor; }
 	const Solution& getSolMonitor() const { return *solutionmonitor; }
 };
+
+template<>
+void WLSImpl::notifyMonitor(const InnerPropagation& obj);
+
+template<>
+void WLSImpl::notifyMonitor(const InnerBacktrack& obj);
 
 class WPCLSImpl: public MinisatID::WLSImpl{
 private:

@@ -200,8 +200,6 @@ public:
 	void		saveState		();
 	void		resetState		();
 
-	Var			changeBranchChoice(Var var) { return var; }
-
 	// DEBUG
 	std::string getModID		() const; // SATsolver asks this to PC such that more info (modal e.g.) can be printed.
 	void 		printEnqueued	(const Lit& p) const;
