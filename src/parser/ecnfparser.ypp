@@ -36,14 +36,17 @@ using namespace std;
 
 typedef numeric_limits<int> intlim;
 
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
+typedef WrappedSOSolver* pwsos;
+typedef WrappedPCSolver* pwps;
+
+/*#ifdef __GXX_EXPERIMENTAL_CXX0X__
    typedef std::shared_ptr<WrappedSOSolver> pwsos;
    typedef std::shared_ptr<WrappedPCSolver> pwps;
 #else
 	#include <tr1/memory>
    typedef std::tr1::shared_ptr<WrappedSOSolver> pwsos;
    typedef std::tr1::shared_ptr<WrappedPCSolver> pwps;
-#endif
+#endif*/
 
 //}
 
@@ -69,8 +72,8 @@ int charPos = 1;
 
 bool unsatfound = false;
 
-pwps	solver;
-pwsos	modsolver;
+pwps	solver = NULL;
+pwsos	modsolver = NULL;
 
 /**
  * CR-CheckResult: checks the result of passing some data to the solvers.
@@ -231,7 +234,7 @@ cnfclause
 		| 	cnfclause body ZERO	
 			{	
 				DisjunctionRef clause(*$2);
-				if(modsolver.get()!=NULL){
+				if(modsolver!=NULL){
 					CR(modsolver->add(cnfcurrentmodid, clause));;
 				}else{
 					CR(solver->add(clause)); 
@@ -720,8 +723,8 @@ int yywrap() {
 void yyinit(){ }
 
 void yydestroy(){
-	solver.reset();
-	modsolver.reset();
+	solver = NULL;
+	modsolver = NULL;
 	heads.clear();
 	modalops.clear();
 }
@@ -755,15 +758,15 @@ void checkVersion(ECNF_VERSION version){
 }
 
 void initSolver(){
-	solver = pwps(new WrappedPCSolver(modes));
+	solver = new WrappedPCSolver(modes);
 }
 
 void initModSolver(){
-	modsolver = pwsos(new WrappedSOSolver(modes));
+	modsolver = new WrappedSOSolver(modes);
 }
 
 pwls getData(){
-	if(solver.get()!=NULL){
+	if(solver!=NULL){
 		return solver;
 	}else{
 		return modsolver;
@@ -771,7 +774,7 @@ pwls getData(){
 }
 
 void readCNFModalHierLevel(bool existential, const vector<Atom>& rigidatoms){
-	assert(solver.get()==NULL);
+	assert(solver==NULL);
 	
 	bool writeexists;
 	if(existential && negatemod){
@@ -787,7 +790,7 @@ void readCNFModalHierLevel(bool existential, const vector<Atom>& rigidatoms){
 		negatemod = true;
 		writeexists = false;
 	}
-	if(modsolver.get()==NULL){
+	if(modsolver==NULL){
 		initModSolver();		 
 		cnfcurrenthead = Atom(atoms+1);
 	}else{
@@ -813,7 +816,7 @@ void readCNFModalHierLevel(bool existential, const vector<Atom>& rigidatoms){
 }
 
 void finishCNFHeader(){
-	if(modsolver.get()==NULL && solver.get()==NULL){ //plain cnf
+	if(modsolver==NULL && solver==NULL){ //plain cnf
 		initSolver();
 	}else{ //modal cnf
 		if(negatemod){

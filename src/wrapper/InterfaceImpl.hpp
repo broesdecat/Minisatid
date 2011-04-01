@@ -79,7 +79,7 @@ public:
 	bool 	hasOptimization	() const { return optimization; }
 	void 	solve			();
 
-	void 	addModel		(const vec<Lit>& model);
+	virtual void 	addModel		(const vec<Lit>& model); //virtual for MODSOLVER!
 	void	notifyOptimalModelFound();
 
 	int		getNbModelsFound() { return solutionmonitor->getNbModelsFound(); }

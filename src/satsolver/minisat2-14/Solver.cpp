@@ -1031,3 +1031,13 @@ void Solver::checkLiteralCount()
         assert((int)clauses_literals == cnt);
     }
 }
+
+/*AB*/
+void Solver::printStatistics() const{
+	std::clog << "> restarts              : " <<starts <<"\n";
+	std::clog << "> conflicts             : " <<decisions <<"  (" <<(float)rnd_decisions*100 / (float)decisions <<" % random)\n";
+	std::clog << "> decisions             : " <<starts <<"\n";
+	std::clog << "> propagations          : " <<propagations <<"\n";
+	std::clog << "> conflict literals     : " <<tot_literals <<"  (" <<((max_literals-tot_literals)*100/(double)max_literals) <<" % deleted)\n";
+}
+/*AE*/

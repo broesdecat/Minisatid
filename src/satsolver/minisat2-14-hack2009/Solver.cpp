@@ -1096,10 +1096,10 @@ void Solver::checkLiteralCount()
 
 /*AB*/
 void Solver::printStatistics() const{
-	reportf("restarts              : %lu\n", starts);
-	reportf("conflicts             : %-12lu\n", conflicts);
-	reportf("decisions             : %-12lu   (%4.2f %% random)\n", decisions, (float)rnd_decisions*100 / (float)decisions);
-	reportf("propagations          : %-12lu\n", propagations);
-    reportf("conflict literals     : %-12lu   (%4.2f %% deleted)\n", tot_literals, (max_literals - tot_literals)*100 / (double)max_literals);
+	std::clog << "> restarts              : " <<starts <<"\n";
+	std::clog << "> conflicts             : " <<decisions <<"  (" <<(float)rnd_decisions*100 / (float)decisions <<" % random)\n";
+	std::clog << "> decisions             : " <<starts <<"\n";
+	std::clog << "> propagations          : " <<propagations <<"\n";
+	std::clog << "> conflict literals     : " <<tot_literals <<"  (" <<((max_literals-tot_literals)*100/(double)max_literals) <<" % deleted)\n";
 }
 /*AE*/

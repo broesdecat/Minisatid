@@ -65,6 +65,10 @@ public:
 	Inference 	getInferenceOption	() const 	{ return options.search; }
 	const ModelExpandOptions& getOptions() const { return options; }
 	const modellist& 	getModels	() 			{ return models; } //IMPORTANT: no use calling it when models are not being saved.
+	void		setPrintModels		(PrintModel printoption) { options.printmodels = printoption; }
+	void		setSaveModels		(SaveModel saveoption)	{ options.savemodels = saveoption; }
+
+	bool		isOptimizationProblem() { return optimizing; }
 
 	const literallist& getAssumptions	() { return assumptions; }
 
@@ -84,9 +88,6 @@ public:
 
 	bool	isSat					() { return getNbModelsFound()>0; }
 	bool	isUnsat					() { return unsatfound; }
-
-	void	setPrintModels			(PrintModel printoption) { options.printmodels = printoption; }
-	void	setSaveModels			(SaveModel saveoption)	{ options.savemodels = saveoption; }
 
 	Translator* 	getTranslator	()	const { return translator; }
 

@@ -106,19 +106,21 @@ void Solution::addModel(const literallist& model) {
 
 	assert(hasTranslator());
 
-	ostream output(resman.get()->getBuffer());
-	if (getPrintOption() == PRINT_ALL || (!optimizing && getPrintOption() == PRINT_BEST)) {
-		if (getNbModelsFound() == 1) {
-			if (!optimizing && modes.transformat != TRANS_ASP) {
-				printSatisfiable(output, modes.format, modes.transformat);
-				printSatisfiable(clog, modes.format, modes.transformat,	modes.verbosity);
+	if(resman.get()!=NULL){
+		ostream output(resman.get()->getBuffer());
+		if (getPrintOption() == PRINT_ALL || (!optimizing && getPrintOption() == PRINT_BEST)) {
+			if (getNbModelsFound() == 1) {
+				if (!optimizing && modes.transformat != TRANS_ASP) {
+					printSatisfiable(output, modes.format, modes.transformat);
+					printSatisfiable(clog, modes.format, modes.transformat,	modes.verbosity);
+				}
+				getTranslator()->printHeader(output);
 			}
-			getTranslator()->printHeader(output);
+			getTranslator()->printModel(output, model);
 		}
-		getTranslator()->printModel(output, model);
-	}
-	if (!optimizing) {
-		printNbModels(clog, getNbModelsFound(), modes.verbosity);
+		if (!optimizing) {
+			printNbModels(clog, getNbModelsFound(), modes.verbosity);
+		}
 	}
 }
 
@@ -138,7 +140,7 @@ void Solution::solvingFinished(){
 		printUnSatisfiable(output, modes.format, modes.transformat);
 		printUnSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);
 	}else if(getNbModelsFound()==0){
-		printUnknown(output);
+		printUnknown(output, modes.format, modes.transformat);
 	}else{ // not unsat and at least one model
 		if(optimizing && getPrintOption()==PRINT_BEST){
 			if(hasOptimalModel()){
@@ -152,6 +154,7 @@ void Solution::solvingFinished(){
 			printSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);
 		}
 	}
+	output.flush();
 }
 
 // FIXME ResMan is not part of the external package (and InterfaceImpl shouldn't be)
