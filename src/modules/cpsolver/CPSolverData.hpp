@@ -1,41 +1,29 @@
-//--------------------------------------------------------------------------------------------------
-//    Copyright (c) 2009-2010, Broes De Cat, K.U.Leuven, Belgium
-//    
-//    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-//    associated documentation files (the "Software"), to deal in the Software without restriction,
-//    including without limitation the rights to use, copy, modify, merge, publish, distribute,
-//    sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
-//    furnished to do so, subject to the following conditions:
-//    
-//    The above copyright notice and this permission notice shall be included in all copies or
-//    substantial portions of the Software.
-//    
-//    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-//    NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-//    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-//    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-//    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//--------------------------------------------------------------------------------------------------
-
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #ifndef CPSOLVERDATA_HPP_
 #define CPSOLVERDATA_HPP_
 
-#include "solvers/cpsolver/Constraint.hpp"
-#include "solvers/cpsolver/CPScript.hpp"
+#include <vector>
 
-#include "solvers/utils/Utils.hpp"
-#ifdef USEMINISAT22
-using namespace Minisat;
-#endif
-
-typedef vector<CP::TermIntVar> vtiv;
-typedef vector<CP::ReifiedConstraint*> vreifconstrptr;
-typedef vector<CP::Constraint*> vnonrconstrptr;
-
+namespace MinisatID{
 namespace CP{
+	class TermIntVar;
+	class ReifiedConstraint;
+	class Constraint;
+
+	typedef vector<CP::TermIntVar> vtiv;
+	typedef vector<CP::ReifiedConstraint*> vreifconstrptr;
+	typedef vector<CP::Constraint*> vnonrconstrptr;
+
 	class CPSolverData{
 	private:
-		vector<CPScript*> history;
+		std::vector<CPScript*> history;
 		vtiv terms;
 		vnonrconstrptr nonreifconstraints;
 		vreifconstrptr reifconstraints;
@@ -61,14 +49,15 @@ namespace CP{
 		const vnonrconstrptr& 	getNonReifConstraints()	const 	{ return nonreifconstraints; }
 		const vreifconstrptr& 	getReifConstraints()	const 	{ return reifconstraints; }
 		//owning pointer
-		void 				addReifConstraint(ReifiedConstraint* c){ reifconstraints.push_back(c); }
-		void 				addNonReifConstraint(Constraint* c){ nonreifconstraints.push_back(c); }
+		void 		addReifConstraint(ReifiedConstraint* c){ reifconstraints.push_back(c); }
+		void 		addNonReifConstraint(Constraint* c){ nonreifconstraints.push_back(c); }
 
 		//vector<Lit> getBoolChanges	() const;
 
 		TermIntVar 	convertToVar	(int term) const;
 		vtiv		convertToVars	(const vector<int>& terms) const;
 	};
+}
 }
 
 #endif /* CPSOLVERDATA_HPP_ */

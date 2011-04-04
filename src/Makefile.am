@@ -117,3 +117,13 @@ libminisatid_2_0_la_SOURCES +=\
 		satsolver/minisat2-14/mtl/Heap.h satsolver/minisat2-14/mtl/Map.h satsolver/minisat2-14/mtl/Sort.h
 AM_CXXFLAGS += -D USEMINISAT -I$(srcdir)/satsolver/minisat2-14/
 endif
+
+#CP INTERFACING
+if USECPSUPPORT
+libminisatid_2_0_la_SOURCES +=\
+		modules/CPSolver.hpp 				modules/CPSolver.cpp\
+		modules/cpsolver/Constraint.hpp		modules/cpsolver/Constraint.cpp\
+		modules/cpsolver/CPSolverData.hpp	modules/cpsolver/CPSolverData.cpp\
+		modules/cpsolver/CPUtils.hpp		modules/cpsolver/CPUtils.cpp\
+		modules/cpsolver/CPScript.hpp		modules/cpsolver/CPScript.cpp
+endif

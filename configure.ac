@@ -106,14 +106,36 @@ esac],[ AC_CXXFLAGS+=" -D NO_GMP " ])
 AC_ARG_ENABLE([perftools],
 [  --enable-perftools=false    Use the google perftools library for memory allocation (does not work for each OS, please consult "http://code.google.com/p/google-perftools/"],
 [case "${enableval}" in
-	no) perftools=false ;;
-	yes) perftools=true ;;
+	no) perftools=no ;;
+	yes) perftools=yes ;;
 	*) AC_MSG_ERROR([bad value ${enableval} for --enable-perftools]) ;;
-esac],[ perftools=false ])
+esac],[ perftools=no ])
 
-AM_CONDITIONAL([USEPERFTOOLS],[test x$perftools = xtrue])
+AC_ARG_ENABLE([cp],
+[  --enable-cp    Include constraint programming support [yes/no] ],
+[enablegecode=$enableval
+],[enablegecode = no])
 
-AC_CONFIG_SUBDIRS([lib/tclap lib/perftools])
+# Check for gecode
+if test "x$enablegecode" == xyes; then
+	#what function to check for? AC_CHECK_LIB([gecodekernel], [space], [], [enablegecode=no], [])
+	AC_CHECK_HEADERS([gecode/kernel.hh gecode/driver.hh gecode/int.hh gecode/minimodel.hh], [], [enablegecode=no])
+	if test x$enablegecode == xno; then
+		AC_MSG_WARN([gecode headers could not be found, disabling cp support])
+	fi
+fi
+
+AM_CONDITIONAL([USEPERFTOOLS],[test x$perftools = xyes])
+AM_CONDITIONAL([USECPSUPPORT],[test x$enablegecode == xyes])
+if test "x$enablegecode" == xyes; then
+	AC_LDFLAGS+=" -lgecodedriver -lgecodeminimodel -lgecodeset -lgecodeint -lgecodekernel -lgecodesupport "
+fi
+
+if test x$perftools = xyes; then
+	AC_CONFIG_SUBDIRS([lib/perftools])
+fi
+
+AC_CONFIG_SUBDIRS([lib/tclap])
 AC_CONFIG_FILES([Makefile doc/Makefile lib/Makefile lib/pbsolver/Makefile src/Makefile src/parser/Makefile src/minisatid-2.0.pc])
 
 AC_OUTPUT

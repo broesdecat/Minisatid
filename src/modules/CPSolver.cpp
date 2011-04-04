@@ -1,42 +1,27 @@
-//--------------------------------------------------------------------------------------------------
-//    Copyright (c) 2009-2010, Broes De Cat, K.U.Leuven, Belgium
-//    
-//    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-//    associated documentation files (the "Software"), to deal in the Software without restriction,
-//    including without limitation the rights to use, copy, modify, merge, publish, distribute,
-//    sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
-//    furnished to do so, subject to the following conditions:
-//    
-//    The above copyright notice and this permission notice shall be included in all copies or
-//    substantial portions of the Software.
-//    
-//    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-//    NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-//    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-//    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-//    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//--------------------------------------------------------------------------------------------------
-
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #include <set>
 #include <map>
 
-#include "solvers/cpsolver/CPSolver.hpp"
-#include "solvers/cpsolver/CPScript.hpp"
+#include "modules/CPSolver.hpp"
+#include "modules/cpsolver/CPScript.hpp"
 
-#include "solvers/cpsolver/CPUtils.hpp"
-#include "solvers/pcsolver/PCSolver.hpp"
+#include "modules/cpsolver/CPUtils.hpp"
+#include "theorysolvers/PCSolver.hpp"
 
-#include <solvers/cpsolver/Constraint.hpp>
-#include <solvers/cpsolver/CPSolverData.hpp>
-#include "solvers/utils/Print.hpp"
+#include "modules/cpsolver/Constraint.hpp"
+#include "modules/cpsolver/CPSolverData.hpp"
+#include "utils/Print.hpp"
 
 using namespace std;
 
-namespace CP {
-	class CPScript;
-	class CPSolverData;
-}
-
+using namespace MinisatID;
 using namespace CP;
 
 CPSolver::CPSolver(PCSolver * solver): ISolver(solver), solverdata(new CPSolverData()),
@@ -48,9 +33,7 @@ CPSolver::~CPSolver() {
 	delete solverdata;
 }
 
-/////////////////////////////////////////
-//	INITIALIZATION
-/////////////////////////////////////////
+// INITIALIZATION
 
 // FIXME: reification atoms have to be unique! CHECK THIS
 
@@ -146,9 +129,7 @@ bool CPSolver::addAllDifferent(vector<int> term){
 	return true;
 }
 
-////////////////////////////
-//	SOLVER METHODS
-////////////////////////////
+// SOLVER METHODS
 
 // Space management:
 //		First space = space after adding all constraints and propagating until fixpoint
@@ -196,8 +177,8 @@ rClause CPSolver::notifySATsolverOfPropagation(const Lit& p) {
 	return nullPtrClause;
 }
 
-bool CPSolver::finishParsing(){
-	assert(!isInitialized());
+void CPSolver::finishParsing(bool& present, bool& unsat){
+	assert(!isInitialized() && present && !unsat);
 	notifyInitialized();
 
 	// Propagate until fixpoint
@@ -205,7 +186,8 @@ bool CPSolver::finishParsing(){
 	SpaceStatus status = getSolverData()->getSpace().status(stats);
 
 	if(status==SS_FAILED){
-		return false;
+		unsat = true;
+		return;
 	}
 
 	// Propagate all assigned reification atoms. If any conflicts, return false
@@ -213,27 +195,35 @@ bool CPSolver::finishParsing(){
 		if((*i)->isAssigned(getSolverData()->getSpace())){
 			rClause confl = notifySATsolverOfPropagation(mkLit((*i)->getAtom(), (*i)->isAssignedFalse(getSolverData()->getSpace())));
 			if(confl!=nullPtrClause){
-				return false;
+				unsat = true;
+				return;
 			}
 		}
 	}
-
-	return true;
 }
 
-//TODO clarify use here of backtrack methods
+void CPSolver::notifyVarAdded(uint64_t nvars){
+	//FIXME necessary/possible?
+}
 
 void CPSolver::newDecisionLevel(){
 	//Add a new timepoint to the history
 	getSolverData()->addSpace();
 }
 
-void CPSolver::backtrackDecisionLevel(){
-	if(!isInitialized()){ return; }
-	getSolverData()->removeSpace();
+void CPSolver::backtrackDecisionLevels(int nblevels, int untillevel){
+	getSolverData()->removeSpace(nblevels);
+	//FIXME: backtrack per literal?
+	/*if(trail.size()>0 && l==trail.back()){
+		trail.pop_back();
+		propagations.erase(var(l));
+	}
+
+	propreason[l] = -1;*/
+
 }
 
-rClause CPSolver::propagate(Lit l){
+rClause CPSolver::propagate(const Lit& l){
 	rClause confl = nullPtrClause;
 	if (!isInitialized()) { return confl; }
 
@@ -256,15 +246,6 @@ rClause CPSolver::propagate(Lit l){
 		}
 	}
 	return confl;
-}
-
-void CPSolver::backtrack(Lit l){
-	if(trail.size()>0 && l==trail.back()){
-		trail.pop_back();
-		propagations.erase(var(l));
-	}
-
-	propreason[l] = -1;
 }
 
 /**
@@ -407,6 +388,14 @@ rClause CPSolver::propagateFinal(){
 	}
 
 	return confl;
+}
+
+void CPSolver::printStatistics() const{
+	//TODO
+}
+
+void CPSolver::print() const{
+	//TODO
 }
 
 //Space* space = new CPScript();

@@ -1,37 +1,22 @@
-//--------------------------------------------------------------------------------------------------
-//    Copyright (c) 2009-2010, Broes De Cat, K.U.Leuven, Belgium
-//    
-//    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
-//    associated documentation files (the "Software"), to deal in the Software without restriction,
-//    including without limitation the rights to use, copy, modify, merge, publish, distribute,
-//    sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
-//    furnished to do so, subject to the following conditions:
-//    
-//    The above copyright notice and this permission notice shall be included in all copies or
-//    substantial portions of the Software.
-//    
-//    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
-//    NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-//    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-//    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
-//    OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-//--------------------------------------------------------------------------------------------------
-
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #ifndef CONSTRAINT_HPP_
 #define CONSTRAINT_HPP_
 
-#include "solvers/cpsolver/CPScript.hpp"
+#include <vector>
 
-using namespace Gecode;
+namespace MinisatID{
 
-namespace CP{
+	typedef std::vector<Gecode::IntVar>::size_type termindex;
+	typedef std::vector<Gecode::BoolVar>::size_type boolindex;
 
-	typedef vector<IntVar>::size_type termindex;
-	typedef vector<BoolVar>::size_type boolindex;
-
-	/*
-	 * The mapping of an index to an interval bounded term to an ID number
-	 */
+	// The mapping of an index to an interval bounded term to an ID number
 	class TermIntVar{
 	private:
 		int ID;
@@ -85,8 +70,8 @@ namespace CP{
 
 	class SumConstraint: public ReifiedConstraint{
 	private:
-		vector<TermIntVar> set;
-		IntRelType rel;
+		std::vector<TermIntVar> set;
+		Gecode::IntRelType rel;
 
 		bool intrhs;
 		TermIntVar trhs;
@@ -96,25 +81,25 @@ namespace CP{
 		vector<int> mult;
 
 	public:
-		SumConstraint(CPScript& space, vector<TermIntVar> tset, IntRelType rel, TermIntVar rhs, int atom);
-		SumConstraint(CPScript& space, vector<TermIntVar> tset, IntRelType rel, int rhs, int atom);
-		SumConstraint(CPScript& space, vector<TermIntVar> tset, vector<int> mult, IntRelType rel, TermIntVar rhs, int atom);
-		SumConstraint(CPScript& space, vector<TermIntVar> tset, vector<int> mult, IntRelType rel, int rhs, int atom);
+		SumConstraint(CPScript& space, std::vector<TermIntVar> tset, Gecode::IntRelType rel, TermIntVar rhs, int atom);
+		SumConstraint(CPScript& space, std::vector<TermIntVar> tset, Gecode::IntRelType rel, int rhs, int atom);
+		SumConstraint(CPScript& space, std::vector<TermIntVar> tset, std::vector<int> mult, Gecode::IntRelType rel, TermIntVar rhs, int atom);
+		SumConstraint(CPScript& space, std::vector<TermIntVar> tset, std::vector<int> mult, Gecode::IntRelType rel, int rhs, int atom);
 
 		virtual ~SumConstraint(){}
 	};
 
 	class CountConstraint: public Constraint{
 	private:
-		vector<TermIntVar> set;
-		IntRelType rel;
+		std::vector<TermIntVar> set;
+		Gecode::IntRelType rel;
 
 		bool intrhs;
 		TermIntVar trhs;
 		int irhs;
 
 	public:
-		CountConstraint(CPScript& space, vector<TermIntVar> tset, IntRelType rel, int value, TermIntVar rhs);
+		CountConstraint(CPScript& space, std::vector<TermIntVar> tset, Gecode::IntRelType rel, int value, TermIntVar rhs);
 
 		virtual ~CountConstraint(){}
 	};
@@ -122,25 +107,25 @@ namespace CP{
 	class BinArithConstraint: public ReifiedConstraint{
 	private:
 		TermIntVar lhs;
-		IntRelType rel;
+		Gecode::IntRelType rel;
 
 		bool intrhs;
 		TermIntVar trhs;
 		int irhs;
 
 	public:
-		BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelType rel, TermIntVar rhs, int atom);
-		BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelType rel, int rhs, int atom);
+		BinArithConstraint(CPScript& space, TermIntVar lhs, Gecode::IntRelType rel, TermIntVar rhs, int atom);
+		BinArithConstraint(CPScript& space, TermIntVar lhs, Gecode::IntRelType rel, int rhs, int atom);
 
 		virtual ~BinArithConstraint(){}
 	};
 
 	class DistinctConstraint: public Constraint{
 	private:
-		IntVarArgs set;
+		Gecode::IntVarArgs set;
 	public:
 		//global distinct constraint
-		DistinctConstraint(CPScript& space, vector<TermIntVar> tset);
+		DistinctConstraint(CPScript& space, std::vector<TermIntVar> tset);
 
 		virtual ~DistinctConstraint(){}
 	};

@@ -142,16 +142,17 @@ public:
 	bool	add		(const InnerMinimizeAgg& sentence);
 	bool	add		(const InnerForcedChoices& sentence);
 
-/*	bool 		addIntVar		(int groundname, int min, int max);
-	bool 		addCPBinaryRel	(Lit head, int groundname, EqType rel, int bound);
-	bool 		addCPBinaryRelVar	(Lit head, int groundname, EqType rel, int groundname2);
-	bool 		addCPSum		(Lit head, std::vector<int> termnames, EqType rel, int bound);
-	bool 		addCPSum		(Lit head, std::vector<int> termnames, std::vector<int> mult, EqType rel, int bound);
-	bool 		addCPSumVar		(Lit head, std::vector<int> termnames, EqType rel, int rhstermname);
-	bool 		addCPSumVar		(Lit head, std::vector<int> termnames, std::vector<int> mult, EqType rel, int rhstermname);
-	bool 		addCPCount		(std::vector<int> termnames, int value, EqType rel, int rhstermname);
-	bool 		addCPAlldifferent(const std::vector<int>& termnames);
-*/
+#ifdef CPSUPPORT
+	bool	add		(const InnerIntVar& object);
+	bool	add		(const InnerCPBinaryRel& object);
+	bool	add		(const InnerCPBinaryRelVar& object);
+	bool	add		(const InnerCPSum& object);
+	bool	add		(const InnerCPSumWeighted& object);
+	bool	add		(const InnerCPSumWithVar& object);
+	bool	add		(const InnerCPSumWeightedWithVar& object);
+	bool	add		(const InnerCPCount& object);
+	bool	add		(const InnerCPAllDiff& object);
+#endif
 
 	// Solving support
 	void 		newDecisionLevel();

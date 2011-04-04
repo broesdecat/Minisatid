@@ -53,41 +53,35 @@ bool compareWLByLits(const WL& one, const WL& two);
 //Compare WLs by their weights
 bool compareWLByWeights(const WL& one, const WL& two);
 
-class InnerDisjunction{
-public:
+struct InnerDisjunction{
 	vec<Lit> literals;
 };
 
-class InnerEquivalence{
-public:
+struct InnerEquivalence{
 	Lit	head;
 	vec<Lit> literals;
 	bool conjunctive;
 };
 
-class InnerRule{
-public:
+struct InnerRule{
 	Var head;
 	vec<Lit> body;
 	bool conjunctive;
 	int definitionID;
 };
 
-class InnerSet{
-public:
+struct InnerSet{
 	int setID;
 	std::vector<Lit> literals;
 };
 
-class InnerWSet{
-public:
+struct InnerWSet{
 	int setID;
 	std::vector<Lit> literals;
 	std::vector<Weight> weights;
 };
 
-class InnerAggregate{
-public:
+struct InnerAggregate{
 	Var head;
 	int setID;
 	Weight bound;
@@ -97,37 +91,91 @@ public:
 	int defID; //Only relevant if defined aggregate
 };
 
-class InnerMinimizeOrderedList{
-public:
+struct InnerMinimizeOrderedList{
 	vec<Lit> literals;
 };
 
-class InnerMinimizeSubset{
-public:
+struct InnerMinimizeSubset{
 	vec<Lit> literals;
 };
 
-class InnerMinimizeAgg{
-public:
+struct InnerMinimizeAgg{
 	Var head;
 	int setid;
 	AggType type;
 };
 
-class InnerForcedChoices{
-public:
+struct InnerForcedChoices{
 	vec<Lit> forcedchoices;
 };
 
-class InnerRigidAtoms{
-public:
+struct InnerRigidAtoms{
 	std::vector<Var> rigidatoms;
 };
 
-class InnerSubTheory{
-public:
+struct InnerSubTheory{
 	int child;
 	Lit head;
+};
+
+struct InnerIntVar{
+	uint varID;
+	int minvalue, maxvalue;
+};
+
+struct InnerCPBinaryRel{
+	const Lit& head;
+	uint varID;
+	EqType rel;
+	int bound;
+};
+
+struct InnerCPBinaryRelVar{
+	const Lit& head;
+	uint lhsvarID, rhsvarID;
+	EqType rel;
+};
+
+
+struct InnerCPSum{
+	const Lit& head;
+	std::vector<uint> varIDs;
+	EqType rel;
+	int bound;
+};
+
+struct InnerCPSumWeighted{
+	const Lit& head;
+	std::vector<uint> varIDs;
+	std::vector<int> weights;
+	EqType rel;
+	int bound;
+};
+
+struct InnerCPSumWithVar{
+	const Lit& head;
+	std::vector<uint> varIDs;
+	EqType rel;
+	uint rhsvarID;
+};
+
+struct InnerCPSumWeightedWithVar{
+	const Lit& head;
+	std::vector<uint> varIDs;
+	std::vector<int> weights;
+	EqType rel;
+	uint rhsvarID;
+};
+
+struct InnerCPCount{
+	std::vector<uint> varIDs;
+	int eqbound;
+	EqType rel;
+	int rhsbound;
+};
+
+struct InnerCPAllDiff{
+	std::vector<uint> varIDs;
 };
 
 }
