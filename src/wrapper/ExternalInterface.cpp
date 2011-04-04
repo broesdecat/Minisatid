@@ -7,7 +7,8 @@
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 #include "external/ExternalInterface.hpp"
-#include "external/InterfaceImpl.hpp"
+#include "wrapper/InterfaceImpl.hpp"
+#include "external/MonitorInterface.hpp"
 #include "external/Translator.hpp"
 
 using namespace std;
@@ -29,6 +30,10 @@ void WrappedLogicSolver::printStatistics() const {
 void WrappedLogicSolver::solve(Solution* sol){
 	getImpl()->setSolutionMonitor(sol);
 	getImpl()->solve();
+}
+
+void WrappedLogicSolver::addMonitor(Monitor* const monitor){
+	getImpl()->addMonitor(monitor);
 }
 
 

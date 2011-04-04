@@ -29,6 +29,7 @@ class Translator;
 class LogicSolver;
 class PCSolver;
 class SOSolver;
+class Monitor;
 
 // External interfaces offered from the solvers
 
@@ -67,6 +68,8 @@ private:
 protected:
 	SolverOption	_modes;
 
+	std::vector<Monitor*> monitors;
+
 public:
 	Remapper*		remapper;
 
@@ -79,7 +82,7 @@ public:
 	bool 	hasOptimization	() const { return optimization; }
 	void 	solve			();
 
-	void 	addModel		(const vec<Lit>& model);
+	virtual void 	addModel		(const vec<Lit>& model); //virtual for MODSOLVER!
 	void	notifyOptimalModelFound();
 
 	int		getNbModelsFound() { return solutionmonitor->getNbModelsFound(); }
@@ -92,10 +95,15 @@ public:
 	void 	printLiteral	(std::ostream& stream, const Lit& l) const;
 	void 	printCurrentOptimum(const Weight& value) const;
 
+
+	// MONITORING
+	void	addMonitor(Monitor* const mon);
+	template<class T>
+	void 	notifyMonitor(const T& obj);
+
 protected:
 	bool 	finishParsing	();
 	bool 	simplify		();
-
 	void	setOptimization	(bool opt) { optimization = opt; }
 
 	virtual MinisatID::LogicSolver* getSolver() const = 0;
@@ -106,16 +114,22 @@ protected:
 	void 	checkLits		(const std::vector<Literal>& lits, std::vector<Lit>& ll);
 	void 	checkAtoms		(const std::vector<Atom>& atoms, std::vector<Var>& ll);
 
-	std::streambuf* getRes	() const;
-
 	Remapper*		getRemapper		()	const { return remapper; }
 
+	bool	canBackMapLiteral		(const Lit& lit) const;
+	Literal getBackMappedLiteral	(const Lit& lit) const;
 	std::vector<Literal> getBackMappedModel	(const vec<Lit>& model) const;
 
 private:
 	Solution& 	getSolMonitor() { return *solutionmonitor; }
 	const Solution& getSolMonitor() const { return *solutionmonitor; }
 };
+
+template<>
+void WLSImpl::notifyMonitor(const InnerPropagation& obj);
+
+template<>
+void WLSImpl::notifyMonitor(const InnerBacktrack& obj);
 
 class WPCLSImpl: public MinisatID::WLSImpl{
 private:

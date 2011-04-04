@@ -27,17 +27,22 @@ class WLSImpl;
 class WPCLSImpl;
 class WSOLSImpl;
 
+class Monitor;
+
 class WrappedLogicSolver;
 
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
+typedef WrappedLogicSolver* pwls;
+/*#ifdef __GXX_EXPERIMENTAL_CXX0X__
 typedef std::shared_ptr<WrappedLogicSolver> pwls;
 #else
 typedef std::tr1::shared_ptr<WrappedLogicSolver> pwls;
-#endif
+#endif*/
 
 
 class WrappedLogicSolver{
 public:
+	virtual ~WrappedLogicSolver	();
+
 	void 	printStatistics		()	const;
 
 	//Do model expansion, given the options in the solution datastructure.
@@ -46,9 +51,11 @@ public:
 
 	bool 	hasOptimization		() const;
 
+	// Add a monitor, which will be notified when any event happens
+	void 	addMonitor(Monitor* const monitor);
+
 protected:
 	WrappedLogicSolver			();
-	virtual ~WrappedLogicSolver	();
 
 	virtual WLSImpl* getImpl	() const = 0;
 };

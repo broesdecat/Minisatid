@@ -94,6 +94,8 @@ public:
 	void		addForcedChoices	(const vec<Lit>& fc) { fc.copyTo(forcedchoices);  }
 	void		disableHeur			() { reportf("Not supported by solver!\n"); exit(-1); }
 	bool     	isDecisionVar(Var v) const { return decision_var[v]; }
+
+	void		notifyCustomHeur	() { reportf("Not supported by solver!\n"); exit(-1); }
 /*AE*/
 
     // Constructor/Destructor:
@@ -317,9 +319,6 @@ inline uint64_t Solver::nbVars        ()      const   { return (uint64_t)nVars()
 
 //=================================================================================================
 // Debug + etc:
-
-
-#define reportf(format, args...) ( fflush(stdout), fprintf(stderr, format, ## args), fflush(stderr) )
 
 static inline void logLit(FILE* f, Lit l)
 {

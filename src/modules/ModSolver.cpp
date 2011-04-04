@@ -169,6 +169,7 @@ bool ModSolver::solve(const vec<Lit>& assumptions, const ModelExpandOptions& opt
 	modoptions.nbmodelstofind = options.nbmodelstofind;
 	Solution* s = new Solution(modoptions);
 	setSolutionMonitor(s);
+	//TODO set resource manager to get output
 	bool result = getPCSolver().solve(assumptions, modoptions);
 	setSolutionMonitor(NULL);
 	delete s;

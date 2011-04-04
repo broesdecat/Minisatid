@@ -343,6 +343,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 
 	//Push initial level (root, before any decisions).
 	addRootLevel();
+	sort(varwithheurval.rbegin(), varwithheurval.rend()); // REVERSE sort!
 
 	printNumberOfAggregates(sets.size(), totalagg, setlits, nbaggs, verbosity());
 	print();
@@ -443,6 +444,48 @@ void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel) {
 		index = 1;
 	}else{
 		index = getTime(littrail.back());
+	}
+}
+
+Var	AggSolver::changeBranchChoice(const Var& chosenvar){
+	assert(modes().useaggheur);
+	if(heurvars.find(chosenvar)!=heurvars.end()){
+		for(vector<VI>::const_iterator i=varwithheurval.begin(); i<varwithheurval.end(); i++){
+			if((*i).var==chosenvar){
+				break;
+			}else if(value((*i).var)==l_Undef){
+				return (*i).var;
+			}
+		}
+	}
+	return chosenvar;
+}
+
+void AggSolver::adaptAggHeur(const vwl& wls, int nbagg){
+	if(!modes().useaggheur){
+		return;
+	}
+	int heur = 1;
+	vwl wlstemp = wls;
+	sort(wlstemp.begin(), wlstemp.end(), compareWLByAbsWeights); //largest numbers last
+	for(vwl::const_iterator i=wlstemp.begin(); i<wlstemp.end(); i++){
+		Var v = var((*i).getLit());
+		set<Var>::iterator it = heurvars.find(v);
+		if(it==heurvars.end()){
+			heurvars.insert(v);
+			for(vector<VI>::iterator j=varwithheurval.begin(); j<varwithheurval.end(); j++){
+				if((*j).var == v){
+					(*j).heurval += heur*nbagg;
+					break;
+				}
+			}
+		}else{
+			VI vi;
+			vi.var = v;
+			vi.heurval = heur * nbagg;
+			varwithheurval.push_back(vi);
+		}
+		heur++;
 	}
 }
 

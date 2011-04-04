@@ -6,16 +6,17 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#include "external/InterfaceImpl.hpp"
+#include "wrapper/InterfaceImpl.hpp"
 
 #include <cstdlib>
 #include <vector>
 #include <tr1/memory>
 #include <algorithm>
 
-#include "parser/ResourceManager.hpp"
+#include "external/ResourceManager.hpp"
 #include "utils/Print.hpp"
 #include "external/Translator.hpp"
+#include "external/MonitorInterface.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -92,12 +93,7 @@ void WLSImpl::printLiteral(std::ostream& output, const Lit& l) const{
 }
 
 void WLSImpl::printCurrentOptimum(const Weight& value) const{
-	ostream output(getRes());
-	getSolMonitor().getTranslator()->printCurrentOptimum(output, value);
-}
-
-std::streambuf* WLSImpl::getRes() const {
-	return getOutputBuffer();
+	getSolMonitor().notifyCurrentOptimum(value);
 }
 
 Var WLSImpl::checkAtom(const Atom& atom){
@@ -227,17 +223,47 @@ void WLSImpl::notifyOptimalModelFound(){
 	getSolMonitor().notifyOptimalModelFound();
 }
 
+bool WLSImpl::canBackMapLiteral(const Lit& lit) const{
+	return getRemapper()->wasInput(var(lit));
+}
+
+Literal WLSImpl::getBackMappedLiteral(const Lit& lit) const{
+	assert(canBackMapLiteral(lit));
+	return getRemapper()->getLiteral(lit);
+}
+
 //Translate into original vocabulary
 vector<Literal> WLSImpl::getBackMappedModel(const vec<Lit>& model) const{
 	vector<Literal> outmodel;
 	for(int j=0; j<model.size(); ++j){
-		if(!getRemapper()->wasInput(var(model[j]))){ //drop all literals that were not part of the input
-			continue;
+		if(canBackMapLiteral(model[j])){
+			outmodel.push_back(getBackMappedLiteral(model[j]));
 		}
-		outmodel.push_back(getRemapper()->getLiteral(model[j]));
 	}
 	sort(outmodel.begin(), outmodel.end());
 	return outmodel;
+}
+
+void WLSImpl::addMonitor(Monitor * const mon){
+	monitors.push_back(mon);
+	getSolver()->notifyHasMonitor();
+}
+
+template<>
+void WLSImpl::notifyMonitor(const InnerPropagation& obj){
+	if(canBackMapLiteral(obj.propagation)){
+		Literal lit = getBackMappedLiteral(obj.propagation);
+		for(vector<Monitor*>::const_iterator i=monitors.begin(); i<monitors.end(); ++i){
+			(*i)->notifyPropagated(lit, obj.decisionlevel);
+		}
+	}
+}
+
+template<>
+void WLSImpl::notifyMonitor(const InnerBacktrack& obj){
+	for(vector<Monitor*>::const_iterator i=monitors.begin(); i<monitors.end(); ++i){
+		(*i)->notifyBacktracked(obj.untillevel);
+	}
 }
 
 

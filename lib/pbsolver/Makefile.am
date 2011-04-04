@@ -4,8 +4,7 @@ AM_LDFLAGS = @AC_LDFLAGS@ @LIBS@
 
 lib_LTLIBRARIES = libpbsolver-1.0.la
 libpbsolver_1_0_la_LDFLAGS = -version-info 1:2:0
-pbsolver_includedir = $(includedir)/pbsolver-1.0
-
+pbsolver_includedir = $(includedir)/pbsolver-1.0
 libpbsolver_1_0_la_SOURCES = Main.C \
 		Debug.C Hardware_adders.C Hardware_clausify.C \
 		Hardware_sorters.C MiniSat.C PbParser.C\

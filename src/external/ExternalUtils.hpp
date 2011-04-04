@@ -242,6 +242,7 @@ namespace MinisatID {
 		bool 			selectOneFromUFS;
 		bool 			pbsolver;
 		double			watchesratio;
+		bool			useaggheur;
 		std::string 	primesfile;
 		bool 			remap;
 		double 			rand_var_freq, var_decay;

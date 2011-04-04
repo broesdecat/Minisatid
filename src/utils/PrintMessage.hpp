@@ -50,8 +50,12 @@ namespace Print{
 	}
 
 	template<class T>
-	void printUnknown(T& stream){
-		stream <<"UNKNOWN\n";
+	void printUnknown(T& stream, INPUTFORMAT inputformat, OUTPUTFORMAT outputformat){
+		if(inputformat==FORMAT_OPB){
+			stream <<"UNKNOWN\n";
+		}else{
+			stream <<"UNKNOWN\n";
+		}
 	}
 
 	template<class T>

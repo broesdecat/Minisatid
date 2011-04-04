@@ -6,10 +6,11 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#include "parser/ResourceManager.hpp"
+#include "external/ResourceManager.hpp"
 #include "GeneralUtils.hpp"
 
 #include <tr1/memory>
+#include <sstream>
 
 using namespace std;
 using namespace std::tr1;
@@ -31,11 +32,11 @@ FILE* FileMan::getFile() {
 	assert(!open || fileptr!=NULL);
 	if (!open) {
 		open = true;
-		fileptr = fopen(name, write ? "wb" : "r");
+		fileptr = fopen(name.c_str(), write ? "wb" : "r");
 		if (fileptr == NULL) {
-			char s[100];
-			sprintf(s, ">> `%s' is not a valid filename or not readable.\n", name);
-			throw idpexception(s);
+			stringstream ss;
+			ss <<">> \"" <<name <<"\" is not a valid filename or not readable.\n";
+			throw idpexception(ss.str());
 		}
 	}
 	return fileptr;
@@ -45,11 +46,11 @@ std::streambuf* FileMan::getBuffer() {
 	assert(!open || fileptr==NULL);
 	if (!open) {
 		open = true;
-		filebuf.open(name, write ? std::ios::out : std::ios::in);
+		filebuf.open(name.c_str(), write ? std::ios::out : std::ios::in);
 		if (!filebuf.is_open()) {
-			char s[100];
-			sprintf(s, ">> `%s' is not a valid filename or not readable.\n", name);
-			throw idpexception(s);
+			stringstream ss;
+			ss <<">> \"" <<name <<"\" is not a valid filename or not readable.\n";
+			throw idpexception(ss.str());
 		}
 	}
 	return &filebuf;
@@ -76,18 +77,12 @@ std::streambuf* StdMan::getBuffer() {
 
 namespace MinisatID {
 	string inputurl = "";
-	string outputurl = "";
-	std::tr1::shared_ptr<ResMan> input, output;
+	std::tr1::shared_ptr<ResMan> input;
 }
 
 void MinisatID::setInputFileUrl(string url) {
 	assert(input.get()==NULL);
 	inputurl = url;
-}
-
-void MinisatID::setOutputFileUrl(string url) {
-	assert(output.get()==NULL);
-	outputurl = url;
 }
 
 void createInput() {
@@ -97,16 +92,6 @@ void createInput() {
 			cerr <<"Reading from standard input...\n";
 		} else {
 			input = std::tr1::shared_ptr<ResMan>(new FileMan(inputurl.c_str(), false));
-		}
-	}
-}
-
-void createOutput() {
-	if (output.get() == NULL) {
-		if (outputurl == "") {
-			output = std::tr1::shared_ptr<ResMan>(new StdMan(false));
-		} else {
-			output = std::tr1::shared_ptr<ResMan>(new FileMan(outputurl.c_str(), true));
 		}
 	}
 }
@@ -121,29 +106,8 @@ std::streambuf* MinisatID::getInputBuffer() {
 	return input->getBuffer();
 }
 
-FILE* MinisatID::getOutputFile() {
-	createOutput();
-	return output->getFile();
-}
-
-std::streambuf* MinisatID::getOutputBuffer() {
-	createOutput();
-	return output->getBuffer();
-}
-
-shared_ptr<ResMan> MinisatID::getOutputResMan() {
-	createOutput();
-	return output;
-}
-
 void MinisatID::closeInput() {
 	if (input.get() != NULL) {
 		input->close();
-	}
-}
-
-void MinisatID::closeOutput() {
-	if (output.get() != NULL) {
-		output->close();
 	}
 }

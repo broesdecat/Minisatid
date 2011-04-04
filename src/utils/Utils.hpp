@@ -53,6 +53,8 @@ bool compareWLByLits(const WL& one, const WL& two);
 //Compare WLs by their weights
 bool compareWLByWeights(const WL& one, const WL& two);
 
+bool compareWLByAbsWeights(const WL& one, const WL& two);
+
 struct InnerDisjunction{
 	vec<Lit> literals;
 };
@@ -176,6 +178,17 @@ struct InnerCPCount{
 
 struct InnerCPAllDiff{
 	std::vector<uint> varIDs;
+};
+
+class InnerPropagation{
+public:
+	int decisionlevel;
+	Lit propagation;
+};
+
+class InnerBacktrack{
+public:
+	int untillevel;
 };
 
 }

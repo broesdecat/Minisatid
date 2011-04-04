@@ -90,6 +90,8 @@ public:
 	void		addForcedChoices	(const vec<Lit>& fc) { reportf("Not supported by solver!\n"); exit(-1);  }
 	void		disableHeur			() { reportf("Not supported by solver!\n"); exit(-1); }
 	bool     	isDecisionVar(Var v) const { return decision_var[v]; }
+
+	void		notifyCustomHeur	() { reportf("Not supported by solver!\n"); exit(-1); }
 /*AE*/
 
     // Constructor/Destructor:
@@ -144,6 +146,8 @@ public:
 
     enum { polarity_true = 0, polarity_false = 1, polarity_user = 2, polarity_rnd = 3 };
 
+    double    random_seed;      // Used by the random variable selection.
+
     // Statistics: (read-only member variable)
     //
     uint64_t starts, decisions, rnd_decisions, propagations, conflicts;
@@ -187,7 +191,6 @@ protected:
     int64_t             simpDB_props;     // Remaining number of propagations that must be made before next execution of 'simplify()'.
     vec<Lit>            assumptions;      // Current set of assumptions provided to solve by the user.
     Heap<VarOrderLt>    order_heap;       // A priority queue of variables ordered with respect to the variable activity.
-    double              random_seed;      // Used by the random variable selection.
     double              progress_estimate;// Set by 'search()'.
     bool                remove_satisfied; // Indicates whether possibly inefficient linear scan for satisfied clauses should be performed in 'simplify'.
 
@@ -352,17 +355,7 @@ inline void Solver::printClause(const C& c) const
     }
 }
 
-/*AB*/
-inline void Solver::printStatistics() const{
-	reportf("restarts              : %lld\n", starts);
-	reportf("conflicts             : %-12lld\n", conflicts);
-	reportf("decisions             : %-12lld   (%4.2f %% random)\n", decisions, (float)rnd_decisions*100 / (float)decisions);
-	reportf("propagations          : %-12lld\n", propagations);
-    reportf("conflict literals     : %-12lld   (%4.2f %% deleted)\n", tot_literals, (max_literals - tot_literals)*100 / (double)max_literals);
 }
-
-}
-/*AE*/
 
 
 //=================================================================================================

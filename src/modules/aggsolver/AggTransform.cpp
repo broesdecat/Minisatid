@@ -587,7 +587,7 @@ bool Aggrs::transformSumsToCNF(vps& sets, PCSolver& pcsolver) {
 	MiniSatPP::opt_tare = true; //Experimentally set to true
 	MiniSatPP::opt_primes_file = pcsolver.modes().getPrimesFile().c_str();
 	MiniSatPP::opt_convert_weak = false;
-	MiniSatPP::opt_convert = MiniSatPP::ct_Mixed;
+	MiniSatPP::opt_convert = MiniSatPP::ct_Sorters;
 	pbsolver->allocConstrs(maxvar, sumaggs);
 
 	bool unsat = false;

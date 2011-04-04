@@ -12,7 +12,7 @@
 #include "utils/Utils.hpp"
 #include "modules/DPLLTmodule.hpp"
 
-#include "external/InterfaceImpl.hpp"
+#include "wrapper/InterfaceImpl.hpp"
 
 namespace MinisatID {
 

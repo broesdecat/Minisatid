@@ -4,9 +4,10 @@
 # Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
 SUBDIRS = parser
 
-LIBSDIR = $(srcdir)/../lib/
+LIBSRCDIR = $(srcdir)/../lib/
+LIBBLDDIR = $(builddir)/../lib/
 
-AM_CXXFLAGS = @AC_CXXFLAGS@ -D VERSION=\"$(MINISATID_VERSION)\" -I $(LIBSDIR)/tclap/include/ #-std=gnu++0x 
+AM_CXXFLAGS = @AC_CXXFLAGS@ -D VERSION=\"$(MINISATID_VERSION)\" -I $(LIBSRCDIR)/tclap/include/ #-std=gnu++0x 
 AM_LDFLAGS = @AC_LDFLAGS@
 
 AM_YFLAGS = -d 
@@ -22,16 +23,17 @@ minisatid_includedir = $(includedir)/minisatid-2.0/external
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = minisatid-2.0.pc
 EXTRA_DIST = minisatid-2.0.pc.in
+EXTRA_DIST += satsolver/minisat2-2/README satsolver/minisat2-2/LICENSE satsolver/minisat2-2/doc
 
-libminisatid_2_0_la_LIBADD = @LIBS@ ../lib/pbsolver/libpbsolver-1.0.la # do not forget ldconfig after installing ;)
+libminisatid_2_0_la_LIBADD = @LIBS@ $(LIBBLDDIR)/pbsolver/libpbsolver-1.0.la # do not forget ldconfig after installing ;)
 
 if USEPERFTOOLS
-libminisatid_2_0_la_LIBADD += ../lib/perftools/.libs/libtcmalloc.la ../lib/perftools/.libs/libprofiler.la
+libminisatid_2_0_la_LIBADD += $(LIBBLDDIR)/perftools/.libs/libtcmalloc.la $(LIBBLDDIR)/perftools/.libs/libprofiler.la
 endif
 
 bin_PROGRAMS = minisatid
 BUILT_SOURCES = parser/ecnfparser.h
-minisatid_LDADD = ../src/libminisatid-2.0.la
+minisatid_LDADD = libminisatid-2.0.la
 
 minisatid_SOURCES = \
 		Main.cpp\
@@ -43,11 +45,13 @@ minisatid_include_HEADERS = \
 		external/Translator.hpp
 		
 libminisatid_2_0_la_SOURCES = \
-		external/ExternalInterface.hpp		external/ExternalInterface.cpp\
+		external/ExternalInterface.hpp		wrapper/ExternalInterface.cpp\
 		external/ExternalUtils.hpp\
-		external/Translator.hpp				external/Translator.cpp\
-		external/InterfaceImpl.hpp			external/InterfaceImpl.cpp\
-		external/SolvingMonitor.hpp			external/SolvingMonitor.cpp\
+		external/MonitorInterface.hpp\
+		external/Translator.hpp				wrapper/Translator.cpp\
+		wrapper/InterfaceImpl.hpp			wrapper/InterfaceImpl.cpp\
+		external/SolvingMonitor.hpp			wrapper/SolvingMonitor.cpp\
+		external/ResourceManager.hpp		wrapper/ResourceManager.cpp\
 		satsolver/SATSolver.hpp				satsolver/SATSolver.cpp\
 		satsolver/SATUtils.hpp				satsolver/SATUtils.cpp\
 		modules/DPLLTmodule.hpp 			modules/DPLLTmodule.cpp\
@@ -60,7 +64,7 @@ libminisatid_2_0_la_SOURCES = \
 		modules/aggsolver/FullyWatched.hpp 	modules/aggsolver/FullyWatched.cpp\
 		modules/aggsolver/PartiallyWatched.hpp modules/aggsolver/GenPartiallyWatched.cpp\
 		modules/aggsolver/AggProp.hpp 		modules/aggsolver/AggProp.cpp\
-		theorysolvers/LogicSolver.hpp\
+		theorysolvers/LogicSolver.hpp		theorysolvers/LogicSolver.cpp\
 		theorysolvers/PCSolver.hpp 			theorysolvers/PCSolver.cpp\
 		theorysolvers/SOSolver.hpp 			theorysolvers/SOSolver.cpp\
 		utils/IntTypes.h\
@@ -68,15 +72,20 @@ libminisatid_2_0_la_SOURCES = \
 		utils/ECNFPrinter.hpp				utils/ECNFPrinter.cpp\
 		utils/Utils.hpp 					utils/Utils.cpp\
 		utils/PrintMessage.hpp 				utils/PrintMessage.cpp\
-		parser/ResourceManager.hpp 			parser/ResourceManager.cpp\
 		parser/Lparseread.hpp 				parser/Lparseread.cpp\
 		parser/PBread.hpp 					parser/PBread.cpp\
 		parser/ParseOptions.hpp 			parser/ParseOptions.cpp\
 		GeneralUtils.hpp 					GeneralUtils.cpp\
 		Unittests.hpp 						Unittests.cpp
 
+# CALLBACK FRAMEWORK
+AM_CXXFLAGS += -I $(LIBSRCDIR)/pluscallback1.7/
+
 #PBSOLVER		
-AM_CXXFLAGS += -I $(LIBSDIR)/pbsolver/ -I $(LIBSDIR)/pbsolver/pbbase/h/ -I $(LIBSDIR)/pbsolver/ADTs/ -DDATADIR=\"$(datadir)\"
+AM_CXXFLAGS += -I $(LIBSRCDIR)/pbsolver/ -I $(LIBSRCDIR)/pbsolver/pbbase/h/ -I $(LIBSRCDIR)/pbsolver/ADTs/ -DDATADIR=\"$(datadir)\"
+
+#PLUSCALLBACK
+AM_CXXFLAGS += -I $(LIBSDIR)/pluscallback1.7/
 
 #MINISAT 2.07 09z
 if USEMINISAT09Z
@@ -100,11 +109,9 @@ libminisatid_2_0_la_SOURCES +=\
 		satsolver/minisat2-2/minisat/mtl/Map.h satsolver/minisat2-2/minisat/mtl/Alloc.h\
 		satsolver/minisat2-2/minisat/mtl/Queue.h satsolver/minisat2-2/minisat/mtl/Heap.h\
 		satsolver/minisat2-2/minisat/mtl/Sort.h satsolver/minisat2-2/minisat/mtl/XAlloc.h\
-		satsolver/minisat2-2/minisat/utils/ParseUtils.h satsolver/minisat2-2/minisat/utils/Options.h\
-		satsolver/minisat2-2/minisat/zconf.h satsolver/minisat2-2/minisat/zlib.h
+		satsolver/minisat2-2/minisat/utils/ParseUtils.h satsolver/minisat2-2/minisat/utils/Options.h
 AM_CXXFLAGS+= -D USEMINISAT22 -I$(srcdir)/satsolver/minisat2-2/minisat -I$(srcdir)/satsolver/minisat2-2/
 #add if not added by minisatid itself! AM_CXXFLAGS+= -D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS
-EXTRA_DIST += satsolver/minisat2-2/README satsolver/minisat2-2/LICENSE satsolver/minisat2-2/doc
 endif
 
 #MINISAT 2.07

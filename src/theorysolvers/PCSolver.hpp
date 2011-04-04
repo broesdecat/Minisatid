@@ -102,11 +102,6 @@ private:
 	bool 				state_savingclauses;
 	std::vector<rClause> state_savedclauses;
 
-	//Logging
-	PCLogger* logger;
-	ECNFPrinter* ecnfprinter;
-	static bool headerunprinted;
-
 	SATSolver* getSolver() const { return satsolver; }
 
 	bool hasIDSolver(defID id) const;
@@ -119,6 +114,14 @@ private:
 	void addAggSolver();
 	IDSolver* getIDSolver(defID id) const;
 	ModSolver* getModSolver() const;
+
+	// Logging
+	PCLogger* logger;
+	ECNFPrinter* ecnfprinter;
+	static bool headerunprinted;
+
+	// Monitoring
+	bool	hasMonitor;
 
 public:
 	PCSolver(SolverOption modes, MinisatID::WLSImpl& inter);
@@ -161,6 +164,8 @@ public:
 	bool 		solve			(const vec<Lit>& assumptions, const ModelExpandOptions& options);
 	lbool 		checkStatus		(lbool status) const; //if status==l_True, do wellfoundednesscheck in IDSolver, if not wellfounded, return l_False, otherwise status
 
+	Var			changeBranchChoice(const Var& chosenvar);
+
 	void		removeAggrHead	(Var head, int defID);
 	void		notifyAggrHead	(Var head, int defID);
 
@@ -196,8 +201,6 @@ public:
 	void		saveState		();
 	void		resetState		();
 
-	Var			changeBranchChoice(Var var) { return var; }
-
 	// DEBUG
 	std::string getModID		() const; // SATsolver asks this to PC such that more info (modal e.g.) can be printed.
 	void 		printEnqueued	(const Lit& p) const;
@@ -207,6 +210,7 @@ public:
 	void		print			(rClause clause) const;
 	void 		printCurrentOptimum(const Weight& value) const;
 
+	// MONITORING
 	const PCLogger& getLogger() const { return *logger; }
 
 private:

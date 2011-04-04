@@ -29,3 +29,7 @@ bool MinisatID::compareWLByLits(const WL& one, const WL& two) {
 bool MinisatID::compareWLByWeights(const WL& one, const WL& two) {
 	return one.getWeight() < two.getWeight();
 }
+
+bool MinisatID::compareWLByAbsWeights(const WL& one, const WL& two) {
+	return abs(one.getWeight()) < abs(two.getWeight());
+}

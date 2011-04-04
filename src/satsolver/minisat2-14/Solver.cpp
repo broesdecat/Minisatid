@@ -27,12 +27,17 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include "Solver.hpp"
 #include "mtl/Sort.h"
-#include <cmath>
 
-#include <vector> /*A*/
-/*A*/ using namespace Minisat;
-/*A*/ using namespace MinisatID;
-/*A*/ using namespace MinisatID::Print;
+/*AB*/
+#include <cmath>
+#include <vector>
+#include <iostream>
+#include <cstdarg>
+
+using namespace Minisat;
+using namespace MinisatID;
+using namespace MinisatID::Print;
+/*AE*/
 
 //=================================================================================================
 // Constructor/Destructor:
@@ -1026,3 +1031,13 @@ void Solver::checkLiteralCount()
         assert((int)clauses_literals == cnt);
     }
 }
+
+/*AB*/
+void Solver::printStatistics() const{
+	std::clog << "> restarts              : " <<starts <<"\n";
+	std::clog << "> conflicts             : " <<decisions <<"  (" <<(float)rnd_decisions*100 / (float)decisions <<" % random)\n";
+	std::clog << "> decisions             : " <<starts <<"\n";
+	std::clog << "> propagations          : " <<propagations <<"\n";
+	std::clog << "> conflict literals     : " <<tot_literals <<"  (" <<((max_literals-tot_literals)*100/(double)max_literals) <<" % deleted)\n";
+}
+/*AE*/

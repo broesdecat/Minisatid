@@ -65,6 +65,10 @@ public:
 	Inference 	getInferenceOption	() const 	{ return options.search; }
 	const ModelExpandOptions& getOptions() const { return options; }
 	const modellist& 	getModels	() 			{ return models; } //IMPORTANT: no use calling it when models are not being saved.
+	void		setPrintModels		(PrintModel printoption) { options.printmodels = printoption; }
+	void		setSaveModels		(SaveModel saveoption)	{ options.savemodels = saveoption; }
+
+	bool		isOptimizationProblem() { return optimizing; }
 
 	const literallist& getAssumptions	() { return assumptions; }
 
@@ -75,8 +79,8 @@ public:
 	bool	hasOptimalModel			() const	{ return optimalmodelfound; }
 	void	notifyOptimizing		() 			{ optimizing = true; }
 	void	notifyOptimalModelFound	()			{ optimalmodelfound = true;	}
-	// FIXME ResMan is not part of the external package (and InterfaceImpl shouldn't be)
-	void	setOutputResourceManager(std::tr1::shared_ptr<ResMan> output) { this->resman = output;}
+	void 	closeOutput				();
+	void	setOutputFile			(std::string output);
 	void	setNbModelsToFind		(int nb) { options.nbmodelstofind = nb; }
 	void 	notifySolvingFinished	();
 	void	notifyUnsat				();
@@ -84,9 +88,6 @@ public:
 
 	bool	isSat					() { return getNbModelsFound()>0; }
 	bool	isUnsat					() { return unsatfound; }
-
-	void	setPrintModels			(PrintModel printoption) { options.printmodels = printoption; }
-	void	setSaveModels			(SaveModel saveoption)	{ options.savemodels = saveoption; }
 
 	Translator* 	getTranslator	()	const { return translator; }
 
@@ -98,6 +99,8 @@ public:
 	void notifyEndSimplifying		();
 	void notifyStartSolving			();
 	void notifyEndSolving			();
+
+	void notifyCurrentOptimum		(const Weight& w) const;
 
 	void printStatistics			() const;
 
