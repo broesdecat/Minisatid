@@ -67,7 +67,6 @@ void Solution::notifyEndSolving() {
 	endsolve = cpuTime();
 }
 
-//FIXME what if some was not started
 void Solution::printStatistics() const {
 	if(startsimpl==0){
 		clog <<getStatisticsMessage((endparsing-startparsing) + (endfinish-startfinish), 0, 0);
