@@ -271,7 +271,7 @@ public:
 			aggsolver(solver),
 			prop(NULL),
 			setid(setid),
-			transformations(getTransformations()),
+			transformations(MinisatID::getTransformations()),
 			usingwatches(true){}
 	TypedSet(const TypedSet& set):
 			kb(set.getKnownBound()),

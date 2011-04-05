@@ -310,7 +310,7 @@ static void noMoreMem() {
 	bool reducedmem = false;
 	//TODO try to reduce solver clause base
 	if (!reducedmem) {
-		abortcode=SIGINT;
+		abortcode=SIGABRT;
 		clog <<">>> Signal handled: out of memory\n";
 		longjmp (main_loop, 1);
 	}
