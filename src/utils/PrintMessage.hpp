@@ -17,7 +17,6 @@
 
 namespace MinisatID{
 
-namespace Print{
 	std::string getProgramVersion();
 	std::string getProgramInfo();
 
@@ -32,7 +31,7 @@ namespace Print{
 
 	void printSolveStart(int v);
 
-	void printStatistics(double parsetime, double simpltime, double solvetime);
+	std::string getStatisticsMessage(double parsetime, double simpltime, double solvetime);
 
 	void printUnsat(int v);
 
@@ -161,8 +160,10 @@ namespace Print{
 			stream <<"\n";
 		}
 	}
+
+	std::string getNoCPSupportString();
+	std::string getMultipleDefAggHeadsException();
 }
 
-}
 
 #endif /* PRINTMESSAGE_HPP_ */

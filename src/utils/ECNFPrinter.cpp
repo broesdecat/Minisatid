@@ -11,7 +11,6 @@
 
 using namespace std;
 using namespace MinisatID;
-using namespace MinisatID::Print;
 
 ECNFPrinter::ECNFPrinter() {}
 

@@ -12,11 +12,29 @@
 #include "modules/DPLLTmodule.hpp"
 
 #include <set>
+#include <map>
 
 namespace MinisatID {
-namespace CP{
+	class TermIntVar;
+	typedef std::vector<TermIntVar> vtiv;
+	class CPScript;
 
 	class CPSolverData;
+
+	class LitTrail{
+	private:
+		std::vector<std::vector<Lit>::size_type> trailindexoflevel;
+		std::vector<Lit> trail;
+		std::map<Var, lbool> values;
+
+	public:
+		LitTrail();
+		void newDecisionLevel();
+		void backtrackDecisionLevels(int nbevels, int untillevel);
+		void propagate(const Lit& lit);
+		lbool value(const Lit& lit) const;
+		const std::vector<Lit>& getTrail() const { return trail; }
+	};
 
 	/**
 	 * Class to interface with cp propagation (and who knows, search engines).
@@ -31,59 +49,63 @@ namespace CP{
 	 */
 	class CPSolver: public DPLLTmodule {
 	private:
-		CPSolverData* 	solverdata; //OWNING pointer
+		CPSolverData* 		solverdata; //OWNING pointer
 
-		std::vector<Lit> 	trail;
-		std::set<Var>		propagations;
+		LitTrail			trail;
 
 		std::map<Lit, std::vector<Lit>::size_type > propreason;
 
-		int endenqueus;
+		bool				searchedandnobacktrack;
 
 	public:
 				CPSolver	(PCSolver * pcsolver);
 		virtual ~CPSolver	();
 
-		bool 	add			(const InnerIntVar& form);
-		bool 	add			(const InnerCPBinaryRel& form);
-		bool 	add			(const InnerCPBinaryRelVar& form);
-		bool 	add			(const InnerCPSum& form);
-		bool 	add			(const InnerCPSumWeighted& form);
-		bool 	add			(const InnerCPSumWithVar& form);
-		bool 	add			(const InnerCPSumWeightedWithVar& form);
-		bool 	add			(const InnerCPCount& form);
-		bool 	add			(const InnerCPAllDiff& form);
+		bool 	add		(const InnerIntVar& form);
+		bool 	add		(const InnerCPBinaryRel& form);
+		bool 	add		(const InnerCPBinaryRelVar& form);
+		bool 	add		(const InnerCPSum& form);
+		bool 	add		(const InnerCPSumWeighted& form);
+		bool 	add		(const InnerCPSumWithVar& form);
+		bool 	add		(const InnerCPSumWeightedWithVar& form);
+		bool 	add		(const InnerCPCount& form);
+		bool 	add		(const InnerCPAllDiff& form);
 
-		void 	notifyVarAdded(uint64_t nvars);
+		void 	notifyVarAdded	(uint64_t nvars);
 
-		bool 	simplify(){ return true; }
+		bool 	simplify		(){ return true; }
+		void 	finishParsing	(bool& present, bool& unsat);
 
-		void 	finishParsing(bool& present, bool& unsat);
-
-		void 	newDecisionLevel		();
+		void 	newDecisionLevel();
 		void 	backtrackDecisionLevels(int nblevels, int untillevel);
 
-		rClause propagate	(const Lit& l);
+		rClause propagate		(const Lit& l);
 		rClause propagateAtEndOfQueue();
 
-		void 	backtrack	(Lit l);
+		rClause getExplanation	(const Lit& p);
 
-		rClause getExplanation(const Lit& p);
-
-		void 	printStatistics() const;
-		const char* getName() const { return "CP-solver"; }
-		void 	print() const;
+		void 	printStatistics	() const;
+		const char* getName		() const { return "CP-solver"; }
+		void 	printState		() const;
 
 	private:
+		void 	checkHeadUniqueness() const;
+
+		rClause propagateReificationConstraints();
+
 		rClause genFullConflictClause();
 
 		rClause notifySATsolverOfPropagation(const Lit& p);
-		rClause propagateFinal();
+		rClause propagateFinal	();
 
-		CPSolverData* getSolverData() const { return solverdata; }
+		const CPSolverData& getData	() const { return *solverdata; }
+		CPSolverData& 		getData	() { return *solverdata; }
+		const CPScript&		getSpace() const;
+		CPScript&			getSpace();
+		TermIntVar 			convertToVar	(uint term) const;
+		vtiv				convertToVars	(const std::vector<uint>& terms) const;
 	};
 
-}
 }
 
 #endif /* CPSOLVER_HPP_ */

@@ -68,7 +68,7 @@ void SOSolver::finishParsing(bool& present, bool& unsat){
 	solvers[0]->finishParsingDown(present, unsat);
 
 	if(modes().verbosity>=2){
-		Print::print(this);
+		print(this);
 	}
 }
 

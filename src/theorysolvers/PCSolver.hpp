@@ -25,9 +25,11 @@ class SolverOption;
 class IDSolver;
 class AggSolver;
 class ModSolver;
+
 #ifdef CPSUPPORT
 class CPSolver;
 #endif
+
 class DPLLTmodule;
 
 typedef Minisat::Solver SATSolver;
@@ -214,14 +216,17 @@ public:
 	void 		printEnqueued	(const Lit& p) const;
 	void		printChoiceMade	(int level, Lit l) const;
 	void 		printStatistics	() const;
-	void		print			() const;
-	void		print			(rClause clause) const;
+	void		printState		() const;
+	void		printClause		(rClause clause) const;
 	void 		printCurrentOptimum(const Weight& value) const;
 
 	// MONITORING
 	const PCLogger& getLogger() const { return *logger; }
 
 private:
+	template<class T>
+	bool		addCP			(const T& formula);
+
 	bool		isInitialized	() 	const { return state==THEORY_INITIALIZED; }
 	bool		isInitializing	() 	const { return state==THEORY_INITIALIZING; }
 	bool		isParsing		()	const { return state==THEORY_PARSING; }

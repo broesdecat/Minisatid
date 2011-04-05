@@ -16,10 +16,8 @@ namespace MinisatID{
 class PCSolver;
 class AggSolver;
 
-namespace Aggrs{
-
 class TypedSet;
-typedef std::vector<Aggrs::TypedSet*> vps;
+typedef std::vector<TypedSet*> vps;
 
 /**
  * Checks whether the same literal occurs multiple times in the set
@@ -89,7 +87,6 @@ public:
 
 bool transformSumsToCNF(vps& sets, MinisatID::PCSolver& pcsolver);
 
-}
 }
 
 #endif /* AGGTRANSFORM_HPP_ */

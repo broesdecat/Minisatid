@@ -25,7 +25,6 @@
 
 using namespace std;
 using namespace MinisatID;
-using namespace MinisatID::Print;
 
 Translator::Translator(): modelcounter(0){}
 

@@ -39,7 +39,6 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 using namespace Minisat;
 using namespace MinisatID;
-using namespace MinisatID::Print;
 /*AE*/
 
 //=================================================================================================

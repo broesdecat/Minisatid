@@ -24,7 +24,6 @@
 
 using namespace std;
 using namespace MinisatID;
-using namespace Print;
 
 Solution::Solution(ModelExpandOptions options) :
 		options(options), nbmodelsfound(0),
@@ -70,11 +69,10 @@ void Solution::notifyEndSolving() {
 
 //FIXME what if some was not started
 void Solution::printStatistics() const {
-	Print::printStatistics(
+	clog <<getStatisticsMessage(
 			(endparsing-startparsing) + (endfinish-startfinish),
 			endsimpl-startsimpl,
-			endsolve-startsolve
-			);
+			endsolve-startsolve);
 }
 
 void Solution::notifyCurrentOptimum(const Weight & value) const{

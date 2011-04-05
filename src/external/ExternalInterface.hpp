@@ -70,31 +70,6 @@ protected:
 	ExternalPCImpl* getPCImpl() const;
 };
 
-// Only those explicitly instantiated (here or elsewhere) will be available in a compiled library
-template<> bool WrappedPCSolver::add(const Disjunction& sentence);
-template<> bool WrappedPCSolver::add(const DisjunctionRef& sentence);
-template<> bool WrappedPCSolver::add(const Equivalence& sentence);
-template<> bool WrappedPCSolver::add(const Rule& sentence);
-template<> bool WrappedPCSolver::add(const Set& sentence);
-template<> bool WrappedPCSolver::add(const WSet& sentence);
-template<> bool WrappedPCSolver::add(const WLSet& sentence);
-template<> bool WrappedPCSolver::add(const Aggregate& sentence);
-template<> bool WrappedPCSolver::add(const MinimizeSubset& sentence);
-template<> bool WrappedPCSolver::add(const MinimizeOrderedList& sentence);
-template<> bool WrappedPCSolver::add(const MinimizeAgg& sentence);
-#ifdef CPSUPPORT
-template<> bool WrappedPCSolver::add(const CPIntVar& sentence);
-template<> bool WrappedPCSolver::add(const CPBinaryRel& sentence);
-template<> bool WrappedPCSolver::add(const CPBinaryRelVar& sentence);
-template<> bool WrappedPCSolver::add(const CPSum& sentence);
-template<> bool WrappedPCSolver::add(const CPSumWeighted& sentence);
-template<> bool WrappedPCSolver::add(const CPSumWithVar& sentence);
-template<> bool WrappedPCSolver::add(const CPSumWeightedWithVar& sentence);
-template<> bool WrappedPCSolver::add(const CPCount& sentence);
-template<> bool WrappedPCSolver::add(const CPAllDiff& sentence);
-#endif
-template<> bool WrappedPCSolver::add(const ForcedChoices& sentence);
-
 //Second order logic solver
 class WrappedSOSolver: public MinisatID::WrappedLogicSolver{
 private:
@@ -102,18 +77,10 @@ private:
 
 public:
 	WrappedSOSolver	(const SolverOption& modes);
-	virtual ~WrappedSOSolver();
+	~WrappedSOSolver();
 
-	bool	add		(int modalid, const Disjunction& sentence);
-	bool	add		(int modalid, const DisjunctionRef& sentence);
-	bool	add		(int modalid, const Rule& sentence);
-	bool	add		(int modalid, const Set& sentence);
-	bool	add		(int modalid, const WSet& sentence);
-	bool	add		(int modalid, const WLSet& sentence);
-	bool	add		(int modalid, const Aggregate& sentence);
-
-	bool	add		(int modalid, const RigidAtoms& sentence);
-	bool	add		(int modalid, const SubTheory& sentence);
+	template<class T>
+	bool	add		(int modid, const T& sentence);
 
 protected:
 	WLSImpl* getImpl		() const;

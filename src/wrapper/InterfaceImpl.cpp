@@ -20,7 +20,6 @@
 
 using namespace std;
 using namespace MinisatID;
-using namespace MinisatID::Print;
 
 // REMAPPER
 
@@ -390,7 +389,12 @@ bool ExternalPCImpl::add(const ForcedChoices& sentence){
 	return getSolver()->add(choices);
 }
 
-#ifdef CPSUPPORT
+void checkCPSupport(){
+#ifndef CPSUPPORT
+	throw idpexception(getNoCPSupportString());
+#endif
+}
+
 template<>
 bool ExternalPCImpl::add(const CPIntVar& sentence){
 	checkCPSupport();
@@ -403,13 +407,18 @@ bool ExternalPCImpl::add(const CPIntVar& sentence){
 template<>
 bool ExternalPCImpl::add(const CPBinaryRel& sentence){
 	checkCPSupport();
+	InnerCPBinaryRel form;
+	form.head = checkAtom(sentence.head);
+	form.varID = sentence.varID;
+	form.rel = sentence.rel;
+	form.bound = sentence.bound;
 	return getSolver()->add(form);
 }
 template<>
 bool ExternalPCImpl::add(const CPBinaryRelVar& sentence){
 	checkCPSupport();
 	InnerCPBinaryRelVar form;
-	checKAtom(sentence.head, form.head);
+	form.head = checkAtom(sentence.head);
 	form.lhsvarID = sentence.lhsvarID;
 	form.rel = sentence.rel;
 	form.rhsvarID = sentence.rhsvarID;
@@ -419,39 +428,61 @@ template<>
 bool ExternalPCImpl::add(const CPSum& sentence){
 	checkCPSupport();
 	InnerCPSum form;
+	form.head = checkAtom(sentence.head);
+	form.rel = sentence.rel;
+	form.bound = sentence.bound;
+	form.varIDs = sentence.varIDs;
 	return getSolver()->add(form);
 }
 template<>
 bool ExternalPCImpl::add(const CPSumWeighted& sentence){
 	checkCPSupport();
 	InnerCPSumWeighted form;
+	form.head = checkAtom(sentence.head);
+	form.rel = sentence.rel;
+	form.bound = sentence.bound;
+	form.weights = sentence.weights;
+	form.varIDs = sentence.varIDs;
 	return getSolver()->add(form);
 }
 template<>
 bool ExternalPCImpl::add(const CPSumWithVar& sentence){
 	checkCPSupport();
 	InnerCPSumWithVar form;
+	form.head = checkAtom(sentence.head);
+	form.rel = sentence.rel;
+	form.rhsvarID = sentence.rhsvarID;
+	form.varIDs = sentence.varIDs;
 	return getSolver()->add(form);
 }
 template<>
 bool ExternalPCImpl::add(const CPSumWeightedWithVar& sentence){
 	checkCPSupport();
 	InnerCPSumWeightedWithVar form;
+	form.head = checkAtom(sentence.head);
+	form.rel = sentence.rel;
+	form.weights = sentence.weights;
+	form.rhsvarID = sentence.rhsvarID;
+	form.varIDs = sentence.varIDs;
 	return getSolver()->add(form);
 }
 template<>
 bool ExternalPCImpl::add(const CPCount& sentence){
 	checkCPSupport();
 	InnerCPCount form;
+	form.varIDs = sentence.varIDs;
+	form.eqbound = sentence.eqbound;
+	form.rel = sentence.rel;
+	form.rhsvar = sentence.rhsvar;
 	return getSolver()->add(form);
 }
 template<>
 bool ExternalPCImpl::add(const CPAllDiff& sentence){
 	checkCPSupport();
 	InnerCPAllDiff form;
+	form.varIDs = sentence.varIDs;
 	return getSolver()->add(form);
 }
-#endif
 
 // MODAL SOLVER
 

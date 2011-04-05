@@ -24,7 +24,6 @@
 
 using namespace std;
 using namespace MinisatID;
-using namespace MinisatID::Print;
 
 typedef numeric_limits<int> lim;
 
@@ -38,7 +37,7 @@ double MinisatID::cpuTime(void) {
 // Weight management
 
 #ifdef GMP
-	ostream& Print::operator<<(ostream& output, const Weight& p) {
+	ostream& MinisatID::operator<<(ostream& output, const Weight& p) {
 		output << p.get_str();
 		return output;
 	}

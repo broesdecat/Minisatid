@@ -14,22 +14,21 @@
 #include "modules/cpsolver/CPUtils.hpp"
 
 namespace MinisatID{
-namespace CP{
 	class TermIntVar;
 	class ReifiedConstraint;
 	class Constraint;
 	class CPScript;
 
-	typedef std::vector<CP::TermIntVar> vtiv;
-	typedef std::vector<CP::ReifiedConstraint*> vreifconstrptr;
-	typedef std::vector<CP::Constraint*> vnonrconstrptr;
+	typedef std::vector<TermIntVar> vtiv;
+	typedef std::vector<ReifiedConstraint*> reifconstrlist;
+	typedef std::vector<Constraint*> vnonrconstrptr;
 
 	class CPSolverData{
 	private:
 		std::vector<CPScript*> history;
 		vtiv terms;
 		vnonrconstrptr nonreifconstraints;
-		vreifconstrptr reifconstraints;
+		reifconstrlist reifconstraints;
 
 	public:
 		CPSolverData();
@@ -50,7 +49,7 @@ namespace CP{
 		void 		addTerm		(const TermIntVar& var);
 
 		const vnonrconstrptr& 	getNonReifConstraints()	const 	{ return nonreifconstraints; }
-		const vreifconstrptr& 	getReifConstraints()	const 	{ return reifconstraints; }
+		const reifconstrlist& 	getReifConstraints()	const 	{ return reifconstraints; }
 		//owning pointer
 		void 		addReifConstraint(ReifiedConstraint* c){ reifconstraints.push_back(c); }
 		void 		addNonReifConstraint(Constraint* c){ nonreifconstraints.push_back(c); }
@@ -60,7 +59,6 @@ namespace CP{
 		TermIntVar 	convertToVar	(uint term) const;
 		vtiv		convertToVars	(const std::vector<uint>& terms) const;
 	};
-}
 }
 
 #endif /* CPSOLVERDATA_HPP_ */

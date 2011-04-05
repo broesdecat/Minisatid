@@ -17,7 +17,6 @@
 #include <utils/Utils.hpp>
 
 namespace MinisatID{
-namespace CP {
 	bool isTrue(Gecode::BoolVar var);
 	bool isFalse(Gecode::BoolVar var);
 	bool isAssigned(Gecode::BoolVar var);
@@ -25,7 +24,6 @@ namespace CP {
 	Gecode::IntRelType negate(Gecode::IntRelType eq);
 
 	Gecode::IntRelType toRelType(MinisatID::EqType eq);
-}
 }
 
 #endif /*CPUTILS_H*/

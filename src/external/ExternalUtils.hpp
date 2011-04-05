@@ -160,9 +160,7 @@ typedef unsigned int uint;
 	};
 	Weight abs(const Weight& w);
 	std::istream& operator>>(std::istream& input, Weight& obj);
-	namespace Print{
-		std::ostream& operator<<(std::ostream& output, const Weight& p);
-	}
+	std::ostream& operator<<(std::ostream& output, const Weight& p);
 	}
 #else
 	namespace MinisatID {
@@ -413,12 +411,16 @@ struct CPBinaryRel{
 	uint varID;
 	EqType rel;
 	int bound;
+
+	CPBinaryRel(): head(0){}
 };
 
 struct CPBinaryRelVar{
 	Atom head;
 	uint lhsvarID, rhsvarID;
 	EqType rel;
+
+	CPBinaryRelVar(): head(0){}
 };
 
 
@@ -427,6 +429,8 @@ struct CPSum{
 	std::vector<uint> varIDs;
 	EqType rel;
 	int bound;
+
+	CPSum(): head(0){}
 };
 
 struct CPSumWeighted{
@@ -435,6 +439,8 @@ struct CPSumWeighted{
 	std::vector<int> weights;
 	EqType rel;
 	int bound;
+
+	CPSumWeighted(): head(0){}
 };
 
 struct CPSumWithVar{
@@ -442,6 +448,8 @@ struct CPSumWithVar{
 	std::vector<uint> varIDs;
 	EqType rel;
 	uint rhsvarID;
+
+	CPSumWithVar(): head(0){}
 };
 
 struct CPSumWeightedWithVar{
@@ -450,6 +458,8 @@ struct CPSumWeightedWithVar{
 	std::vector<int> weights;
 	EqType rel;
 	uint rhsvarID;
+
+	CPSumWeightedWithVar(): head(0){}
 };
 
 struct CPCount{

@@ -14,7 +14,6 @@
 using namespace std;
 
 using namespace MinisatID;
-using namespace CP;
 
 using namespace Gecode;
 

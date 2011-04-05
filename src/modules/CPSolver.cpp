@@ -20,15 +20,47 @@
 #include "utils/Print.hpp"
 
 using namespace std;
-
 using namespace MinisatID;
-using namespace MinisatID::Print;
-using namespace MinisatID::CP;
-
 using namespace Gecode;
 
-CPSolver::CPSolver(PCSolver * solver): DPLLTmodule(solver), solverdata(new CPSolverData()),
-		endenqueus(0){
+//FIXME use trail in aggsolver
+//FIXME include cp model in printing of models
+
+
+LitTrail::LitTrail(){
+	trailindexoflevel.push_back(trail.size());
+}
+void LitTrail::newDecisionLevel(){
+	trailindexoflevel.push_back(trail.size());
+}
+void LitTrail::backtrackDecisionLevels(int nbevels, int untillevel){
+	vector<Var>::size_type earliest = trailindexoflevel[(uint)untillevel+1];
+	clog <<"should backtrack to " <<earliest <<"\n";
+	while(trail.size()>earliest){
+		clog <<"backtracked \n";
+		values[var(trail.back())] = l_Undef;
+		trail.pop_back();
+	}
+
+	for(int nb = 0; nb<nbevels; nb++){
+		trailindexoflevel.pop_back();
+	}
+}
+void LitTrail::propagate(const Lit& l){
+	trail.push_back(l);
+	values[var(l)] = sign(l)?l_False:l_True;
+}
+lbool LitTrail::value(const Lit& l) const{
+	map<Var, lbool>::const_iterator it = values.find(var(l));
+	if(it==values.end()){
+		return l_Undef;
+	}
+	return (*it).second;
+}
+
+CPSolver::CPSolver(PCSolver * solver):
+		DPLLTmodule(solver), solverdata(new CPSolverData()),
+		searchedandnobacktrack(false){
 
 }
 
@@ -36,73 +68,85 @@ CPSolver::~CPSolver() {
 	delete solverdata;
 }
 
-// INITIALIZATION
+const CPScript&	CPSolver::getSpace() const {
+	return getData().getSpace();
+}
+CPScript& CPSolver::getSpace(){
+	return getData().getSpace();
+}
 
-// FIXME: reification atoms have to be unique! CHECK THIS
+TermIntVar CPSolver::convertToVar(uint term) const{
+	return getData().convertToVar(term);
+}
+vtiv CPSolver::convertToVars(const std::vector<uint>& terms) const{
+	return getData().convertToVars(terms);
+}
+
+// INITIALIZATION
 
 bool CPSolver::add(const InnerIntVar& form){
 	assert(!isInitialized());
-	getSolverData()->addTerm(TermIntVar(getSolverData()->getSpace(), form.varID, form.minvalue, form.maxvalue));
+	getData().addTerm(TermIntVar(getSpace(), form.varID, form.minvalue, form.maxvalue));
 	return true;
 }
 
 bool CPSolver::add(const InnerCPBinaryRel& form){
 	assert(!isInitialized());
-	TermIntVar lhs(solverdata->convertToVar(form.varID));
-	getSolverData()->addReifConstraint(new BinArithConstraint(getSolverData()->getSpace(), lhs, toRelType(form.rel), form.bound, form.head));
+	TermIntVar lhs(convertToVar(form.varID));
+	getData().addReifConstraint(new BinArithConstraint(getSpace(), lhs, toRelType(form.rel), form.bound, form.head));
 	return true;
 }
 
 bool CPSolver::add(const InnerCPBinaryRelVar& form){
 	assert(!isInitialized());
-	TermIntVar lhs(getSolverData()->convertToVar(form.lhsvarID));
-	TermIntVar rhs(getSolverData()->convertToVar(form.rhsvarID));
-	getSolverData()->addReifConstraint(new BinArithConstraint(getSolverData()->getSpace(), lhs, toRelType(form.rel), rhs, form.head));
+	TermIntVar lhs(convertToVar(form.lhsvarID));
+	TermIntVar rhs(convertToVar(form.rhsvarID));
+	getData().addReifConstraint(new BinArithConstraint(getSpace(), lhs, toRelType(form.rel), rhs, form.head));
 	return true;
 }
 
 bool CPSolver::add(const InnerCPSum& form){
 	assert(!isInitialized());
-	vector<TermIntVar> set(getSolverData()->convertToVars(form.varIDs));
-	getSolverData()->addReifConstraint(new SumConstraint(getSolverData()->getSpace(), set, toRelType(form.rel), form.bound, form.head));
+	vector<TermIntVar> set(convertToVars(form.varIDs));
+	getData().addReifConstraint(new SumConstraint(getSpace(), set, toRelType(form.rel), form.bound, form.head));
 	return true;
 }
 
 bool CPSolver::add(const InnerCPSumWeighted& form){
 	assert(!isInitialized());
-	vector<TermIntVar> set(getSolverData()->convertToVars(form.varIDs));
-	getSolverData()->addReifConstraint(new SumConstraint(getSolverData()->getSpace(), set, form.weights, toRelType(form.rel), form.bound, form.head));
+	vector<TermIntVar> set(convertToVars(form.varIDs));
+	getData().addReifConstraint(new SumConstraint(getSpace(), set, form.weights, toRelType(form.rel), form.bound, form.head));
 	return true;
 }
 
 bool CPSolver::add(const InnerCPSumWithVar& form){
 	assert(!isInitialized());
-	vector<TermIntVar> set(getSolverData()->convertToVars(form.varIDs));
-	TermIntVar rhs(getSolverData()->convertToVar(form.rhsvarID));
-	getSolverData()->addReifConstraint(new SumConstraint(getSolverData()->getSpace(), set, toRelType(form.rel), rhs, form.head));
+	vector<TermIntVar> set(convertToVars(form.varIDs));
+	TermIntVar rhs(convertToVar(form.rhsvarID));
+	getData().addReifConstraint(new SumConstraint(getSpace(), set, toRelType(form.rel), rhs, form.head));
 	return true;
 }
 
 bool CPSolver::add(const InnerCPSumWeightedWithVar& form){
 	assert(!isInitialized());
-	vector<TermIntVar> set(getSolverData()->convertToVars(form.varIDs));
-	TermIntVar rhs(getSolverData()->convertToVar(form.rhsvarID));
-	getSolverData()->addReifConstraint(new SumConstraint(getSolverData()->getSpace(), set, form.weights, toRelType(form.rel), rhs, form.head));
+	vector<TermIntVar> set(convertToVars(form.varIDs));
+	TermIntVar rhs(convertToVar(form.rhsvarID));
+	getData().addReifConstraint(new SumConstraint(getSpace(), set, form.weights, toRelType(form.rel), rhs, form.head));
 	return true;
 }
 
 bool CPSolver::add(const InnerCPCount& form){
 	assert(!isInitialized());
-	vector<TermIntVar> set(getSolverData()->convertToVars(form.varIDs));
-	TermIntVar rhs(getSolverData()->convertToVar(form.rhsvar));
-	getSolverData()->addNonReifConstraint(new CountConstraint(getSolverData()->getSpace(), set, toRelType(form.rel), form.eqbound, rhs));
+	vector<TermIntVar> set(convertToVars(form.varIDs));
+	TermIntVar rhs(convertToVar(form.rhsvar));
+	getData().addNonReifConstraint(new CountConstraint(getSpace(), set, toRelType(form.rel), form.eqbound, rhs));
 	return true;
 }
 
 bool CPSolver::add(const InnerCPAllDiff& form){
 	assert(!isInitialized());
-	vector<TermIntVar> set(getSolverData()->convertToVars(form.varIDs));
-	getSolverData()->addNonReifConstraint(new DistinctConstraint(getSolverData()->getSpace(), set));
+	vector<TermIntVar> set(convertToVars(form.varIDs));
+	getData().addNonReifConstraint(new DistinctConstraint(getSpace(), set));
 	return true;
 }
 
@@ -114,7 +158,7 @@ bool CPSolver::add(const InnerCPAllDiff& form){
 //			so this can be MULTIPLE fixpoint propagations until next decision level!
 
 rClause CPSolver::getExplanation(const Lit& p){
-	// Important: reason is necessary, because a literal might be derived by CP, but
+	// IMPORTANT: reason is necessary, because a literal might be derived by CP, but
 	// requested an explanation before it is effectively propagated and in the trail itself
 
 	assert(propreason[p]!=-1);
@@ -122,9 +166,8 @@ rClause CPSolver::getExplanation(const Lit& p){
 	vec<Lit> lits;
 	lits.push(p);
 	for(vector<Lit>::size_type i=0; i<propreason[p]; i++){
-		if(propagations.find(var(trail[i])) == propagations.end()){
-			lits.push(~trail[i]);
-		}
+		// FIXME skip all those not propagated into the cp solver
+		lits.push(~trail.getTrail()[i]);
 	}
 	return getPCSolver().createClause(lits, true);
 }
@@ -132,19 +175,18 @@ rClause CPSolver::getExplanation(const Lit& p){
 rClause CPSolver::notifySATsolverOfPropagation(const Lit& p) {
 	if (getPCSolver().value(p) == l_False) {
 		if (getPCSolver().verbosity() >= 2) {
-			//FIXME clog << ">> Deriving conflict in " <<p <<" because of the constraint TODO \n";
+			clog<< ">> Deriving conflict in " <<p <<" because of constraint expression (printing not implemented)\n"; //TODO
 		}
 		vector<Lit>::size_type temp = propreason[p];
-		propreason[p] = trail.size();
+		propreason[p] = trail.getTrail().size();
 		rClause confl = getExplanation(p);
 		propreason[p] = temp;
 		return confl;
 	} else if (getPCSolver().value(p) == l_Undef) {
 		if (getPCSolver().verbosity() >= 2) {
-			//FIXME clog <<">> Deriving " <<p <<" because of the constraint expression TODO \n";
+			clog <<">> Deriving " <<p <<" because of constraint expression (printing not implemented)\n"; //TODO
 		}
-		propreason[p] = trail.size();
-		propagations.insert(var(p));
+		propreason[p] = trail.getTrail().size();
 		getPCSolver().setTrue(p, this);
 	} else {
 		//NOOP
@@ -152,72 +194,75 @@ rClause CPSolver::notifySATsolverOfPropagation(const Lit& p) {
 	return nullPtrClause;
 }
 
+void CPSolver::checkHeadUniqueness() const{
+	set<Var> heads;
+	for(vector<ReifiedConstraint*>::const_iterator i=getData().getReifConstraints().begin(); i<getData().getReifConstraints().end(); i++){
+		if(heads.find((*i)->getHead())!=heads.end()){
+			stringstream ss;
+			ss <<"Constraint reification atoms should be unique, but " <<(*i)->getHead() <<" is shared by at least two constraints.\n";
+			throw idpexception(ss.str());
+		}
+		heads.insert((*i)->getHead());
+	}
+}
+
 void CPSolver::finishParsing(bool& present, bool& unsat){
 	assert(!isInitialized() && present && !unsat);
 	notifyInitialized();
 
+	checkHeadUniqueness();
+
 	// Propagate until fixpoint
 	StatusStatistics stats;
-	SpaceStatus status = getSolverData()->getSpace().status(stats);
+	SpaceStatus status = getSpace().status(stats);
 
 	if(status==SS_FAILED){
 		unsat = true;
-		return;
 	}
 
-	// Propagate all assigned reification atoms. If any conflicts, return false
-	for(vector<ReifiedConstraint*>::const_iterator i=getSolverData()->getReifConstraints().begin(); i<getSolverData()->getReifConstraints().end(); i++){
-		if((*i)->isAssigned(getSolverData()->getSpace())){
-			rClause confl = notifySATsolverOfPropagation(mkLit((*i)->getAtom(), (*i)->isAssignedFalse(getSolverData()->getSpace())));
-			if(confl!=nullPtrClause){
-				unsat = true;
-				return;
-			}
-		}
+	// Propagate all assigned reification atoms.
+	if(!unsat && propagateReificationConstraints()!=nullPtrClause){
+		unsat = true;
 	}
+
+	return;
 }
 
-void CPSolver::notifyVarAdded(uint64_t nvars){
-	//FIXME necessary/possible?
-}
+void CPSolver::notifyVarAdded(uint64_t nvars){}
 
 void CPSolver::newDecisionLevel(){
-	//Add a new timepoint to the history
-	getSolverData()->addSpace();
+	getData().addSpace();
+	trail.newDecisionLevel();
 }
 
 void CPSolver::backtrackDecisionLevels(int nblevels, int untillevel){
-	getSolverData()->removeSpace(nblevels);
-	//FIXME: backtrack per literal?
-	/*if(trail.size()>0 && l==trail.back()){
-		trail.pop_back();
-		propagations.erase(var(l));
-	}
-
-	propreason[l] = -1;*/
-
+	getData().removeSpace(nblevels);
+	searchedandnobacktrack = false;
+	trail.backtrackDecisionLevels(nblevels, untillevel);
 }
 
 rClause CPSolver::propagate(const Lit& l){
 	rClause confl = nullPtrClause;
-	if (!isInitialized()) { return confl; }
+	if(!isInitialized()) { return confl; }
+	if(searchedandnobacktrack){ return confl; }
 
-#ifdef DEBUG
-	for(int i=0; i<trail.size(); i++){
-		assert(var(trail[i])!=var(l));
+	//Check if any constraint matched (might be turned into map)
+	ReifiedConstraint* constr = NULL;
+	for(reifconstrlist::const_iterator i=getData().getReifConstraints().begin(); i<getData().getReifConstraints().end(); i++){
+		if((*i)->getHead()==var(l)){
+			constr = *i;
+			break;
+		}
 	}
-#endif
 
-	for(vreifconstrptr::const_iterator i=getSolverData()->getReifConstraints().begin(); i<getSolverData()->getReifConstraints().end(); i++){
-		if((*i)->getAtom()==var(l)){
-			if(getPCSolver().modes().verbosity >= 5){
-				//FIXME clog <<">> Propagated into CP: " <<l <<".\n";
-			}
-			trail.push_back(l);
-			if((*i)->isAssigned(getSolverData()->getSpace())){
-				return confl;
-			}
-			return (*i)->propagate(!sign(l), getSolverData()->getSpace());
+	if(constr!=NULL){
+		if(getPCSolver().modes().verbosity >= 5){
+			clog <<">> Propagated into CP: " <<l <<".\n";
+		}
+
+		trail.propagate(l);
+		if(!constr->isAssigned(getSpace())){
+			confl = constr->propagate(!sign(l), getSpace());
 		}
 	}
 	return confl;
@@ -267,72 +312,53 @@ rClause CPSolver::genFullConflictClause(){
 	// END
 
 	vec<Lit> clause;
-	for(vector<Lit>::const_reverse_iterator i=trail.rbegin(); i<trail.rend(); i++){
-		if(propagations.find(var(*i)) == propagations.end()){
-			clause.push(~(*i));
-		}
+	for(vector<Lit>::const_reverse_iterator i=trail.getTrail().rbegin(); i<trail.getTrail().rend(); i++){
+		//FIXME skip all literals that were propagated BY the CP solver
+		clause.push(~(*i));
 	}
 	rClause c = getPCSolver().createClause(clause, true);
 	getPCSolver().addLearnedClause(c);
 	return c;
 }
 
-// TODO do not propagate any more when search has been done successfully, until backtrack
+rClause CPSolver::propagateReificationConstraints(){
+	rClause confl = nullPtrClause;
+	for(vector<ReifiedConstraint*>::const_iterator i=getData().getReifConstraints().begin(); confl!=nullPtrClause && i<getData().getReifConstraints().end(); i++){
+		if((*i)->isAssigned(getSpace())){
+			confl = notifySATsolverOfPropagation(mkLit((*i)->getHead(), (*i)->isAssignedFalse(getSpace())));
+		}
+	}
+	return confl;
+}
 
 rClause CPSolver::propagateAtEndOfQueue(){
-	endenqueus++;
-
-	/*if(endenqueus%25!=0){
-		return nullPtrClause;
-	}*/
-
 	rClause confl = nullPtrClause;
 	if (!isInitialized()) { return confl; }
-
-	if(getPCSolver().modes().verbosity>=3){
-		cout << getSolverData()->getSpace() <<endl;
-	}
+	if(searchedandnobacktrack){ return confl; }
 
 	StatusStatistics stats;
-	SpaceStatus status = getSolverData()->getSpace().status(stats);
+	SpaceStatus status = getSpace().status(stats);
 
 	if(status == SS_FAILED){ //Conflict
-		//reportf("Space failed during propagation \n");
-		confl = genFullConflictClause();
-		//reportf("Learned: "); Print::printClause(confl, getPCSolver()); reportf("\n");
-		return confl;
+		return genFullConflictClause();
 	}
 
-	if(getPCSolver().modes().verbosity>=3){
-		clog <<"Propagated " <<trail.size() <<" of " <<getSolverData()->getReifConstraints().size() <<" literals\n";
-		cout <<getSolverData()->getSpace() <<endl;
+	if(verbosity()>=3){
+		clog <<"Propagated " <<trail.getTrail().size() <<" of " <<getData().getReifConstraints().size() <<" literals\n";
 	}
 
-	if(getSolverData()->getReifConstraints().size()==trail.size()/* || endenqueus%50==0*/){
-		clog <<"Searching ";
+	if(getData().getReifConstraints().size()==trail.getTrail().size()){
 		confl = propagateFinal();
-		clog <<" Ended searching \n";
+		searchedandnobacktrack = true;
 	}
 
-	// If no conflict found , propagate all changes
 	if(confl==nullPtrClause){
-		// TODO duplicate with finishparsing
-		for(vector<ReifiedConstraint*>::const_iterator i=getSolverData()->getReifConstraints().begin(); i<getSolverData()->getReifConstraints().end(); i++){
-			if((*i)->isAssigned(getSolverData()->getSpace())){
-				confl = notifySATsolverOfPropagation(mkLit((*i)->getAtom(), (*i)->isAssignedFalse(getSolverData()->getSpace())));
-				if(confl!=nullPtrClause){
-					return confl;
-				}
-			}
-		}
+		confl = propagateReificationConstraints();
 	}
 
 	return confl;
 }
 
-/**
- * does NOT have to be called when all booleans are decided
- */
 rClause CPSolver::propagateFinal(){
 	rClause confl = nullPtrClause;
 
@@ -340,12 +366,12 @@ rClause CPSolver::propagateFinal(){
 	DFS<CPScript>* searchEngine_; // depth first search
 	CPScript* enumerator_ = NULL;
 
-	getSolverData()->getSpace().addBranchers();
+	getSpace().addBranchers();
 
 	searchOptions_ = Search::Options::def;
 	searchOptions_.stop = NULL; //new Search::MemoryStop(1000000000);
 
-	searchEngine_ = new DFS<CPScript>(&getSolverData()->getSpace(), searchOptions_);
+	searchEngine_ = new DFS<CPScript>(&getSpace(), searchOptions_);
 	enumerator_ = searchEngine_->next();
 
 	if(enumerator_==NULL){
@@ -358,8 +384,8 @@ rClause CPSolver::propagateFinal(){
 			confl = genFullConflictClause();
 		}
 	}else{
-		if(getSolverData()->getReifConstraints().size()==trail.size()){ //No @pre guarantee, so check!
-			getSolverData()->replaceLastWith(enumerator_);
+		if(getData().getReifConstraints().size()==trail.getTrail().size()){ //No @pre guarantee, so check!
+			getData().replaceLastWith(enumerator_);
 			cout <<*enumerator_<<endl;
 		}
 	}
@@ -371,7 +397,7 @@ void CPSolver::printStatistics() const{
 	//TODO
 }
 
-void CPSolver::print() const{
+void CPSolver::printState() const{
 	//TODO
 }
 

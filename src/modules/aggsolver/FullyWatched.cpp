@@ -20,8 +20,6 @@
 
 using namespace std;
 using namespace MinisatID;
-using namespace MinisatID::Print;
-using namespace Aggrs;
 
 typedef Agg* pagg;
 typedef Watch* pw;
@@ -208,7 +206,7 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 
 			if (getSolver()->verbosity() >= 6) {
 				clog <<"Propagating into aggr: ";
-				Aggrs::print(getSolver()->verbosity(), pa, false);
+				MinisatID::print(getSolver()->verbosity(), pa, false);
 				clog <<", CC = " <<getCC() <<", CP = " <<getCP() <<"\n";
 			}
 
@@ -244,7 +242,7 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 	return confl;
 }
 
-lbool Aggrs::canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP) {
+lbool MinisatID::canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP) {
 	//if (nomoreprops[agg.getIndex()] || headproptime[agg.getIndex()]!=-1) {
 	//	return headvalue[agg.getIndex()];
 	//}

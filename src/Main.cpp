@@ -34,7 +34,6 @@
 
 using namespace std;
 using namespace MinisatID;
-using namespace MinisatID::Print;
 
 extern char* 	yytext;
 extern int 		lineNo;
@@ -94,7 +93,7 @@ int handleTermination(bool cleanexit, pwls d){
         }
 
     if(d!=NULL && modes.verbosity>0){
-		printStatistics(d);
+    	d->printStatistics();
 	}
     return returnvalue;
 }

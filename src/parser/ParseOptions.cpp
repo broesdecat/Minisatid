@@ -21,7 +21,6 @@
 
 using namespace std;
 using namespace MinisatID;
-using namespace MinisatID::Print;
 
 SolverOption modes; //Used by parser, initialized before parsing!
 

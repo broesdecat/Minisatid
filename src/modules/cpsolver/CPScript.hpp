@@ -12,8 +12,6 @@
 #include "modules/cpsolver/CPUtils.hpp"
 
 namespace MinisatID{
-namespace CP{
-
 	typedef std::vector<Gecode::BoolVar> vboolv;
 	typedef std::vector<Gecode::IntVar> vintv;
 	typedef vboolv::size_type boolvarindex;
@@ -40,7 +38,6 @@ namespace CP{
 	};
 
 	std::ostream& operator <<(std::ostream& ostream, const CPScript& script);
-}
 }
 
 #endif /* CPSCRIPT_HPP_ */

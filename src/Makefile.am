@@ -133,4 +133,5 @@ libminisatid_2_0_la_SOURCES +=\
 		modules/cpsolver/CPSolverData.hpp	modules/cpsolver/CPSolverData.cpp\
 		modules/cpsolver/CPUtils.hpp		modules/cpsolver/CPUtils.cpp\
 		modules/cpsolver/CPScript.hpp		modules/cpsolver/CPScript.cpp
+AM_CXXFLAGS += -D CPSUPPORT
 endif

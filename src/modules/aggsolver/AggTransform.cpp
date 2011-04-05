@@ -23,7 +23,6 @@
 using namespace std;
 using namespace tr1;
 using namespace MinisatID;
-using namespace Aggrs;
 
 class OrderedAggTransformations{
 public:
@@ -48,7 +47,7 @@ public:
 
 OrderedAggTransformations transfo;
 
-const vector<AggTransformation*>& Aggrs::getTransformations(){
+const vector<AggTransformation*>& MinisatID::getTransformations(){
 	return transfo.t;
 }
 
@@ -515,7 +514,7 @@ struct PBAgg {
 };
 
 //FUTURE allow complete translation into sat? => double bounds, defined aggregates, optimization
-bool Aggrs::transformSumsToCNF(vps& sets, PCSolver& pcsolver) {
+bool MinisatID::transformSumsToCNF(vps& sets, PCSolver& pcsolver) {
 	int sumaggs = 0;
 	int maxvar = 1;
 	vector<PBAgg*> pbaggs;

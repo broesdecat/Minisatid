@@ -12,8 +12,6 @@
 using namespace std;
 
 using namespace MinisatID;
-using namespace CP;
-
 using namespace Gecode;
 
 CPScript::CPScript(): Space(){
@@ -54,7 +52,7 @@ void CPScript::addBranchers(){
 	branch(*this, x, INT_VAR_SIZE_MIN, INT_VAL_SPLIT_MAX);
 }
 
-ostream& CP::operator <<(ostream& ostream, const CPScript& script){
+ostream& MinisatID::operator <<(ostream& ostream, const CPScript& script){
 	ostream <<"Space:" <<endl;
 	/*for(vboolv::const_iterator i=script.getBoolVars().begin(); i<script.getBoolVars().end(); i++){
 		ostream << *i <<" " <<endl;

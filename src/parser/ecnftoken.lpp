@@ -92,6 +92,7 @@ WHITESPACE	[\t\r ]*
 <theory>^"INTVAR"	{ADJ; return INTVAR;}
 <theory>^"BINTRI"	{ADJ; return BINTRI;}
 <theory>^"BINTRT"	{ADJ; return BINTRT;}
+<theory>^"DISTINCT"	{ADJ; return DISTINCT;}
 <theory>^"SUMSTRI"	{ADJ; return SUMSTRI;}
 <theory>^"SUMSTRT"	{ADJ; return SUMSTRT;}
 <theory>^"SUMSTSIRI"	{ADJ; return SUMSTSIRI;}

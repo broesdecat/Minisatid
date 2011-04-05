@@ -22,7 +22,6 @@
 
 using namespace std;
 using namespace MinisatID;
-using namespace Aggrs;
 
 /**
  * Important: to justify a head, often several body literals have to become FALSE
@@ -30,7 +29,7 @@ using namespace Aggrs;
  *
  * Also, if a literal has to become FALSE, its INVERSION should be added to the justification!
  */
-bool Aggrs::oppositeIsJustified(const WL& l, VarToJustif& currentjust, bool real, AggSolver const * const solver) {
+bool MinisatID::oppositeIsJustified(const WL& l, VarToJustif& currentjust, bool real, AggSolver const * const solver) {
 	if (real) {
 		return solver->value(l.getLit()) != l_True;
 	} else {
@@ -38,7 +37,7 @@ bool Aggrs::oppositeIsJustified(const WL& l, VarToJustif& currentjust, bool real
 	}
 }
 
-bool Aggrs::isJustified(const WL& l, VarToJustif& currentjust, bool real, AggSolver const * const solver) {
+bool MinisatID::isJustified(const WL& l, VarToJustif& currentjust, bool real, AggSolver const * const solver) {
 	if (real) {
 		return solver->value(l.getLit()) != l_False;
 	} else {
@@ -46,6 +45,6 @@ bool Aggrs::isJustified(const WL& l, VarToJustif& currentjust, bool real, AggSol
 	}
 }
 
-bool Aggrs::isJustified(Var x, VarToJustif& currentjust) {
+bool MinisatID::isJustified(Var x, VarToJustif& currentjust) {
 	return currentjust[x] == 0;
 }

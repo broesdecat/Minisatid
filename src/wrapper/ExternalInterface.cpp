@@ -76,30 +76,42 @@ WSOLSImpl* WrappedSOSolver::getSOImpl() const {
 	return impl;
 }
 
-bool WrappedSOSolver::add(int modalid, const Disjunction& sentence){
+template<class T>
+bool WrappedSOSolver::add(int modalid, const T& sentence){
 	return getSOImpl()->add(modalid, sentence);
 }
-bool WrappedSOSolver::add(int modalid, const DisjunctionRef& sentence){
-	return getSOImpl()->add(modalid, sentence);
-}
-bool WrappedSOSolver::add(int modalid, const Rule& sentence){
-	return getSOImpl()->add(modalid, sentence);
-}
-bool WrappedSOSolver::add(int modalid, const Set& sentence){
-	return getSOImpl()->add(modalid, sentence);
-}
-bool WrappedSOSolver::add(int modalid, const WSet& sentence){
-	return getSOImpl()->add(modalid, sentence);
-}
-bool WrappedSOSolver::add(int modalid, const WLSet& sentence){
-	return getSOImpl()->add(modalid, sentence);
-}
-bool WrappedSOSolver::add(int modalid, const Aggregate& sentence){
-	return getSOImpl()->add(modalid, sentence);
-}
-bool WrappedSOSolver::add(int modalid, const RigidAtoms& sentence){
-	return getSOImpl()->add(modalid, sentence);
-}
-bool WrappedSOSolver::add(int modalid, const SubTheory& sentence){
-	return getSOImpl()->add(modalid, sentence);
-}
+
+// Only those explicitly instantiated (here or elsewhere) will be available in a compiled library
+template bool WrappedPCSolver::add(const Disjunction& sentence);
+template bool WrappedPCSolver::add(const DisjunctionRef& sentence);
+template bool WrappedPCSolver::add(const Equivalence& sentence);
+template bool WrappedPCSolver::add(const Rule& sentence);
+template bool WrappedPCSolver::add(const Set& sentence);
+template bool WrappedPCSolver::add(const WSet& sentence);
+template bool WrappedPCSolver::add(const WLSet& sentence);
+template bool WrappedPCSolver::add(const Aggregate& sentence);
+template bool WrappedPCSolver::add(const MinimizeSubset& sentence);
+template bool WrappedPCSolver::add(const MinimizeOrderedList& sentence);
+template bool WrappedPCSolver::add(const MinimizeAgg& sentence);
+#ifdef CPSUPPORT
+template bool WrappedPCSolver::add(const CPIntVar& sentence);
+template bool WrappedPCSolver::add(const CPBinaryRel& sentence);
+template bool WrappedPCSolver::add(const CPBinaryRelVar& sentence);
+template bool WrappedPCSolver::add(const CPSum& sentence);
+template bool WrappedPCSolver::add(const CPSumWeighted& sentence);
+template bool WrappedPCSolver::add(const CPSumWithVar& sentence);
+template bool WrappedPCSolver::add(const CPSumWeightedWithVar& sentence);
+template bool WrappedPCSolver::add(const CPCount& sentence);
+template bool WrappedPCSolver::add(const CPAllDiff& sentence);
+#endif
+template bool WrappedPCSolver::add(const ForcedChoices& sentence);
+
+template bool WrappedSOSolver::add(int modalid, const Disjunction& sentence);
+template bool WrappedSOSolver::add(int modalid, const DisjunctionRef& sentence);
+template bool WrappedSOSolver::add(int modalid, const Rule& sentence);
+template bool WrappedSOSolver::add(int modalid, const Set& sentence);
+template bool WrappedSOSolver::add(int modalid, const WSet& sentence);
+template bool WrappedSOSolver::add(int modalid, const WLSet& sentence);
+template bool WrappedSOSolver::add(int modalid, const Aggregate& sentence);
+template bool WrappedSOSolver::add(int modalid, const RigidAtoms& sentence);
+template bool WrappedSOSolver::add(int modalid, const SubTheory& sentence);

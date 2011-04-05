@@ -14,7 +14,6 @@
 #include "modules/cpsolver/CPUtils.hpp"
 
 namespace MinisatID{
-namespace CP{
 	class CPScript;
 
 	typedef std::vector<Gecode::IntVar>::size_type termindex;
@@ -52,19 +51,19 @@ namespace CP{
 	// Represents ATOM <=> ConstraintReifiedBy(BoolVars[var])
 	class ReifiedConstraint: public Constraint{
 	private:
-		Var atom;
+		Var head;
 		boolindex var;
 
 	public:
 		ReifiedConstraint(Var atom, CPScript& space);
 		virtual ~ReifiedConstraint(){}
 
-		Var 	getAtom			() 						const { return atom; }
+		Var 	getHead			() 						const { return head; }
 		Gecode::BoolVar getBoolVar(const CPScript& space) const;
 
-		bool	isAssigned		(const CPScript& space) const { return CP::isAssigned(getBoolVar(space)); }
-		bool	isAssignedTrue	(const CPScript& space) const { return CP::isTrue(getBoolVar(space)); }
-		bool	isAssignedFalse	(const CPScript& space) const { return CP::isFalse(getBoolVar(space)); }
+		bool	isAssigned		(const CPScript& space) const { return MinisatID::isAssigned(getBoolVar(space)); }
+		bool	isAssignedTrue	(const CPScript& space) const { return MinisatID::isTrue(getBoolVar(space)); }
+		bool	isAssignedFalse	(const CPScript& space) const { return MinisatID::isFalse(getBoolVar(space)); }
 
 		rClause propagate		(bool becametrue, CPScript& space);
 	};
@@ -131,7 +130,6 @@ namespace CP{
 		virtual ~DistinctConstraint(){}
 	};
 
-}
 }
 
 #endif /* CONSTRAINT_HPP_ */

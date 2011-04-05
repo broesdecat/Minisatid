@@ -14,7 +14,6 @@
 using namespace std;
 
 using namespace MinisatID;
-using namespace CP;
 using namespace Gecode;
 
 TermIntVar::TermIntVar():min(-1), max(-1), var(-1){	}
@@ -27,7 +26,7 @@ Gecode::IntVar 	TermIntVar::getIntVar(const CPScript& space) const {
 	return space.getIntVars()[var];
 }
 
-ReifiedConstraint::ReifiedConstraint(Var atom, CPScript& space): atom(atom), var(space.addBoolVar()){
+ReifiedConstraint::ReifiedConstraint(Var atom, CPScript& space): head(atom), var(space.addBoolVar()){
 }
 
 Gecode::BoolVar ReifiedConstraint::getBoolVar(const CPScript& space) const {
@@ -128,6 +127,6 @@ DistinctConstraint::DistinctConstraint(CPScript& space, vector<TermIntVar> tset)
 //Atmostone NON REIF
 //min max abs mult NON REIF
 
-ostream& CP::operator<< (ostream& os, const TermIntVar& tiv){
+ostream& MinisatID::operator<< (ostream& os, const TermIntVar& tiv){
 	return os <<tiv.ID <<"[" <<tiv.min <<"," <<tiv.max <<"]";
 }

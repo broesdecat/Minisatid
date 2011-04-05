@@ -25,8 +25,8 @@
 
 using namespace std;
 using namespace MinisatID;
-using namespace MinisatID::Print;
 using namespace Minisat;
+
 
 
 PCLogger::PCLogger(): propagations(0){
@@ -57,10 +57,11 @@ bool PCSolver::headerunprinted = true;
 //Has to be value copy of modes!
 PCSolver::PCSolver(SolverOption modes, MinisatID::WLSImpl& inter) :
 		LogicSolver(modes, inter),
-		satsolver(NULL), aggsolver(NULL), modsolver(NULL),cpsolver(NULL),
+		satsolver(NULL),
 		state(THEORY_PARSING),
 		optim(NONE), head(-1),
 		state_savedlevel(0), state_savingclauses(false),
+		aggsolver(NULL), modsolver(NULL),cpsolver(NULL),
 		logger(new PCLogger()), ecnfprinter(NULL),
 		hasMonitor(false){
 	satsolver = createSolver(*this);
@@ -411,7 +412,20 @@ bool PCSolver::add(const InnerForcedChoices& choices){
 bool PCSolver::hasCPSolver() const { return cpsolver!=NULL; }
 bool PCSolver::hasPresentCPSolver() const { return hasCPSolver() && cpsolver->present; }
 
-#ifdef CPSUPPORT
+template<class T>
+bool PCSolver::addCP(const T& formula){
+#ifndef CPSUPPORT
+	assert(false);
+	exit(1);
+#endif
+	if(!hasCPSolver()){
+		addCPSolver();
+	}
+	assert(hasPresentCPSolver());
+	return getCPSolver()->add(formula);
+}
+
+
 void PCSolver::addCPSolver(){
 	assert(isParsing());
 	CPSolver* temp = new CPSolver(this);
@@ -427,105 +441,46 @@ CPSolver* PCSolver::getCPSolver() const {
 }
 
 bool PCSolver::add(const InnerIntVar& obj){
-	if(!hasCpSolver()){
-		addCPSolver();
-	}
-	assert(hasPresentCPSolver());
-	return getCPSolver().add(obj);
+	return addCP(obj);
 }
 
-bool PCSolver::add(const InnerCPBinaryRel& choices){
-	if(!hasCpSolver()){
-		addCPSolver();
-	}
-	assert(hasPresentCPSolver());
-	return getCPSolver().add(obj);
+bool PCSolver::add(const InnerCPBinaryRel& obj){
+	add(obj.head);
+	return addCP(obj);
 }
 
-bool PCSolver::add(const InnerCPBinaryRelVar& choices){
-	if(!hasCpSolver()){
-		addCPSolver();
-	}
-	assert(hasPresentCPSolver());
-	return getCPSolver().add(obj);
+bool PCSolver::add(const InnerCPBinaryRelVar& obj){
+	add(obj.head);
+	return addCP(obj);
 }
 
-bool PCSolver::add(const InnerCPSum& choices){
-	if(!hasCpSolver()){
-		addCPSolver();
-	}
-	assert(hasPresentCPSolver());
-	return getCPSolver().add(obj);
+bool PCSolver::add(const InnerCPSum& obj){
+	add(obj.head);
+	return addCP(obj);
 }
 
-bool PCSolver::add(const InnerCPSumWeighted& choices){
-	if(!hasCpSolver()){
-		addCPSolver();
-	}
-	assert(hasPresentCPSolver());
-	return getCPSolver().add(obj);
+bool PCSolver::add(const InnerCPSumWeighted& obj){
+	add(obj.head);
+	return addCP(obj);
 }
 
-bool PCSolver::add(const InnerCPSumWithVar& choices){
-	if(!hasCpSolver()){
-		addCPSolver();
-	}
-	assert(hasPresentCPSolver());
-	return getCPSolver().add(obj);
+bool PCSolver::add(const InnerCPSumWithVar& obj){
+	add(obj.head);
+	return addCP(obj);
 }
 
-bool PCSolver::add(const InnerCPSumWeightedWithVar& choices){
-	if(!hasCpSolver()){
-		addCPSolver();
-	}
-	assert(hasPresentCPSolver());
-	return getCPSolver().add(obj);
+bool PCSolver::add(const InnerCPSumWeightedWithVar& obj){
+	add(obj.head);
+	return addCP(obj);
 }
 
-bool PCSolver::add(const InnerCPCount& choices){
-	if(!hasCpSolver()){
-		addCPSolver();
-	}
-	assert(hasPresentCPSolver());
-	return getCPSolver().add(obj);
+bool PCSolver::add(const InnerCPCount& obj){
+	return addCP(obj);
 }
 
-bool PCSolver::add(const InnerCPAllDiff& choices){
-	if(!hasCpSolver()){
-		addCPSolver();
-	}
-	assert(hasPresentCPSolver());
-	return getCPSolver().add(obj);
+bool PCSolver::add(const InnerCPAllDiff& obj){
+	return addCP(obj);
 }
-#else
-bool PCSolver::add(const InnerIntVar& obj){
-	return false;
-}
-bool PCSolver::add(const InnerCPBinaryRel& choices){
-	return false;
-}
-bool PCSolver::add(const InnerCPBinaryRelVar& choices){
-	return false;
-}
-bool PCSolver::add(const InnerCPSum& choices){
-	return false;
-}
-bool PCSolver::add(const InnerCPSumWeighted& choices){
-	return false;
-}
-bool PCSolver::add(const InnerCPSumWithVar& choices){
-	return false;
-}
-bool PCSolver::add(const InnerCPSumWeightedWithVar& choices){
-	return false;
-}
-bool PCSolver::add(const InnerCPCount& choices){
-	return false;
-}
-bool PCSolver::add(const InnerCPAllDiff& choices){
-	return false;
-}
-#endif
 
 
 /*
@@ -644,9 +599,9 @@ rClause PCSolver::getExplanation(Lit l) {
 
 	if (verbosity() >= 2) {
 		clog <<"Implicit reason clause from the " <<solver->getName() <<" module ";
-		Print::print(l, sign(l) ? l_False : l_True);
+		MinisatID::print(l, sign(l) ? l_False : l_True);
 		clog <<" : ";
-		Print::print(explan, *this);
+		MinisatID::print(explan, *this);
 		clog <<"\n";
 	}
 
@@ -906,7 +861,7 @@ bool PCSolver::invalidateModel(InnerDisjunction& clause) {
 
 	if (modes().verbosity >= 3) {
 		clog <<"Adding model-invalidating clause: [ ";
-		Print::print(clause);
+		MinisatID::print(clause);
 		clog <<"]\n";
 	}
 
@@ -1140,14 +1095,14 @@ void PCSolver::printStatistics() const {
 	}
 }
 
-void PCSolver::print() const{
-	Print::print(getSolver());
+void PCSolver::printState() const{
+	MinisatID::print(getSolver());
 	for(vector<DPLLTSolver*>::const_iterator i=getSolvers().begin(); i<getSolvers().end(); ++i){
-		(*i)->get()->print();
+		(*i)->get()->printState();
 	}
 }
 
-void PCSolver::print(rClause clause) const {
+void PCSolver::printClause(rClause clause) const {
 	getSolver()->printClause(getClauseRef(clause));
 }
 

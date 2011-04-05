@@ -9,23 +9,22 @@
 #include <modules/cpsolver/CPUtils.hpp>
 
 using namespace MinisatID;
-using namespace CP;
 
 using namespace Gecode;
 
-bool CP::isTrue(BoolVar var){
+bool MinisatID::isTrue(BoolVar var){
 	return var.assigned() && var.one();
 }
 
-bool CP::isFalse(BoolVar var) {
+bool MinisatID::isFalse(BoolVar var) {
 	return var.assigned() && var.zero();
 }
 
-bool CP::isAssigned(BoolVar var){
+bool MinisatID::isAssigned(BoolVar var){
 	return var.assigned();
 }
 
-Gecode::IntRelType CP::negate(IntRelType eq){
+Gecode::IntRelType MinisatID::negate(IntRelType eq){
 	IntRelType g = Gecode::IRT_EQ;
 	switch (eq) {
 		case Gecode::IRT_EQ:
@@ -44,7 +43,7 @@ Gecode::IntRelType CP::negate(IntRelType eq){
 	return g;
 }
 
-IntRelType CP::toRelType(EqType eq){
+IntRelType MinisatID::toRelType(EqType eq){
 	IntRelType g = Gecode::IRT_EQ;
 	switch (eq) {
 		case MEQ:

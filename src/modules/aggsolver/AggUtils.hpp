@@ -22,7 +22,6 @@ class AggSolver;
 //FROM ID SOLVER
 typedef std::vector<int> VarToJustif;
 
-namespace Aggrs{
 class TypedSet;
 class Agg;
 
@@ -117,14 +116,12 @@ public:
     bool			isInSet			()	const	{ return inset; }
 };
 
-///////
 // ID support
-///////
+
 bool 	oppositeIsJustified		(const WL& wl, VarToJustif& currentjust, bool real, AggSolver const * const solver);
 bool 	isJustified				(const WL& wl, VarToJustif& currentjust, bool real, AggSolver const * const solver);
 bool 	isJustified				(Var x, VarToJustif& currentjust);
 
-}
 }
 
 #endif /* AGGCOMB_HPP_ */

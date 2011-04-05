@@ -11,15 +11,12 @@
 #include "utils/Print.hpp"
 #include "theorysolvers/PCSolver.hpp"
 
-#include "utils/Print.hpp"
-
 #include <cmath>
 
 #include "utils/IntTypes.h"
 
 using namespace std;
 using namespace MinisatID;
-using namespace MinisatID::Print;
 
 IDSolver::IDSolver(PCSolver* s):
 		DPLLTmodule(s),
@@ -1271,7 +1268,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 			++justify_conflicts;
 			if (verbosity() >= 2) {
 				report("Adding conflicting loop formula: [ ");
-				Print::print(c, getPCSolver());
+				MinisatID::print(c, getPCSolver());
 				report("].\n");
 			}
 			//reportf("Conflicting unfounded set found.\n");
@@ -1366,7 +1363,7 @@ void IDSolver::addLoopfClause(Lit l, vec<Lit>& lits) {
 
 		if (verbosity() >= 2) {
 			report("Adding loop formula: [ ");
-			Print::print(c, getPCSolver());
+			MinisatID::print(c, getPCSolver());
 			report("].\n");
 		}
 	}
@@ -1515,10 +1512,10 @@ void IDSolver::removeAggrHead(Var head) {
 inline void IDSolver::print(const PropRule& c) const {
 	report("Rule ");
 	Lit head = c.getHead();
-	Print::print(head, value(head));
+	MinisatID::print(head, value(head));
 	report(" <- ");
 	for (int i = 0; i < c.size(); ++i) {
-		Print::print(c[i], value(c[i]));
+		MinisatID::print(c[i], value(c[i]));
 		fprintf(stderr, " ");
 	}
 	report("\n");
@@ -1547,9 +1544,9 @@ bool IDSolver::isCycleFree() const {
 		report("Showing justification for disjunctive atoms. <<<<<<<<<<\n");
 		for (int i = 0; i < nVars(); ++i) {
 			if (isDefined(i) && type(i) == DISJ && occ(i) != MIXEDLOOP) {
-				Print::print(mkLit(i, false));
+				MinisatID::print(mkLit(i, false));
 				report("<-");
-				Print::print(justification(i)[0]);
+				MinisatID::print(justification(i)[0]);
 				report("; ");
 			}
 		}
@@ -1685,7 +1682,7 @@ bool IDSolver::isCycleFree() const {
 					if (type(v) == DISJ) {
 						if (verbosity() >= 2) {
 							report("D %d justified by ", getPrintableVar(v));
-							Print::print(justification(v)[0]);
+							MinisatID::print(justification(v)[0]);
 							report(".\n");
 						}
 						if (!printed[var(justification(v)[0])]) {
@@ -2416,12 +2413,10 @@ UFS IDSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<V
 	return STILLPOSSIBLE;
 }
 
-///////
 // PRINT INFORMATION
-///////
 
-void IDSolver::print() const{
-	Print::print(this);
+void IDSolver::printState() const{
+	MinisatID::print(this);
 }
 
 

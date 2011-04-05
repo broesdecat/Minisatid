@@ -16,8 +16,6 @@
 
 namespace MinisatID {
 
-namespace Aggrs{
-
 typedef std::vector<PropagationInfo> vprop;
 
 class FWTrail{
@@ -113,8 +111,6 @@ protected:
 	virtual rClause propagateSpecificAtEnd				(const Agg& agg, bool headtrue);
 	virtual rClause propagateAll			(const Agg& agg, bool headtrue);
 };
-
-}
 
 }
 

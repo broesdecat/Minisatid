@@ -15,26 +15,22 @@
 namespace MinisatID {
 
 class AggSolver;
-namespace Aggrs{
-	class Agg;
-	typedef Agg* pagg;
-	typedef std::vector<Agg*> agglist;
-	class TypedSet;
+class Agg;
+typedef Agg* pagg;
+typedef std::vector<Agg*> agglist;
+class TypedSet;
 
-	class Propagator;
-	typedef Propagator comb;
-	typedef comb* pcomb;
+class Propagator;
+typedef Propagator comb;
+typedef comb* pcomb;
 
-	class Watch;
-	typedef Watch* pw;
-	typedef std::vector<Watch*> vpw;
-	typedef std::vector<std::vector<Watch*> > vvpw;
+class Watch;
+typedef Watch* pw;
+typedef std::vector<Watch*> vpw;
+typedef std::vector<std::vector<Watch*> > vvpw;
 
-	class PropagationInfo;
-	typedef std::vector<PropagationInfo> vprop;
-}
-
-namespace Aggrs{
+class PropagationInfo;
+typedef std::vector<PropagationInfo> vprop;
 
 class PWAgg: public Propagator {
 public:
@@ -166,8 +162,6 @@ public:
 	SumGenPWAgg(TypedSet* set);
 	virtual ~SumGenPWAgg(){}
 };
-
-}
 
 }
 
