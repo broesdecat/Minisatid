@@ -69,10 +69,16 @@ void Solution::notifyEndSolving() {
 
 //FIXME what if some was not started
 void Solution::printStatistics() const {
-	clog <<getStatisticsMessage(
-			(endparsing-startparsing) + (endfinish-startfinish),
-			endsimpl-startsimpl,
-			endsolve-startsolve);
+	if(startsimpl==0){
+		clog <<getStatisticsMessage((endparsing-startparsing) + (endfinish-startfinish), 0, 0);
+	}else if(startsolve==0){
+		clog <<getStatisticsMessage((endparsing-startparsing) + (endfinish-startfinish), endsimpl-startsimpl, 0);
+	}else{
+		clog <<getStatisticsMessage(
+				(endparsing-startparsing) + (endfinish-startfinish),
+				endsimpl-startsimpl,
+				endsolve-startsolve);
+	}
 }
 
 void Solution::notifyCurrentOptimum(const Weight & value) const{
