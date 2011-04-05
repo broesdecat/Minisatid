@@ -39,7 +39,7 @@ void WrappedLogicSolver::addMonitor(Monitor* const monitor){
 
 
 WrappedPCSolver::WrappedPCSolver(const SolverOption& modes)
-		:WrappedLogicSolver(), impl(new WPCLSImpl(modes)){
+		:WrappedLogicSolver(), impl(new ExternalPCImpl(modes)){
 }
 
 WrappedPCSolver::~WrappedPCSolver(){
@@ -50,45 +50,13 @@ WLSImpl* WrappedPCSolver::getImpl() const {
 	return impl;
 }
 
-WPCLSImpl* WrappedPCSolver::getPCImpl() const {
+ExternalPCImpl* WrappedPCSolver::getPCImpl() const {
 	return impl;
 }
 
-bool WrappedPCSolver::add(const Disjunction& sentence){
-	return getPCImpl()->add(sentence);
-}
-bool WrappedPCSolver::add(const DisjunctionRef& sentence){
-	return getPCImpl()->add(sentence);
-}
-bool WrappedPCSolver::add(const Equivalence& sentence){
-	return getPCImpl()->add(sentence);
-}
-bool WrappedPCSolver::add(const Rule& sentence){
-	return getPCImpl()->add(sentence);
-}
-bool WrappedPCSolver::add(const Set& sentence){
-	return getPCImpl()->add(sentence);
-}
-bool WrappedPCSolver::add(const WSet& sentence){
-	return getPCImpl()->add(sentence);
-}
-bool WrappedPCSolver::add(const WLSet& sentence){
-	return getPCImpl()->add(sentence);
-}
-bool WrappedPCSolver::add(const Aggregate& sentence){
-	return getPCImpl()->add(sentence);
-}
-bool WrappedPCSolver::add(const MinimizeSubset& sentence){
-	return getPCImpl()->add(sentence);
-}
-bool WrappedPCSolver::add(const MinimizeOrderedList& sentence){
-	return getPCImpl()->add(sentence);
-}
-bool WrappedPCSolver::add(const MinimizeAgg& sentence){
-	return getPCImpl()->add(sentence);
-}
-bool WrappedPCSolver::add(const ForcedChoices& sentence){
-	return getPCImpl()->add(sentence);
+template<class T>
+bool WrappedPCSolver::add(const T& sentence){
+	return getPCImpl()->add<T>(sentence);
 }
 
 

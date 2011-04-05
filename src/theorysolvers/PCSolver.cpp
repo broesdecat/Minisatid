@@ -17,6 +17,10 @@
 #include "modules/AggSolver.hpp"
 #include "modules/ModSolver.hpp"
 
+#ifdef CPSUPPORT
+#include "modules/CPSolver.hpp"
+#endif
+
 #include "utils/Print.hpp"
 
 using namespace std;
@@ -53,7 +57,7 @@ bool PCSolver::headerunprinted = true;
 //Has to be value copy of modes!
 PCSolver::PCSolver(SolverOption modes, MinisatID::WLSImpl& inter) :
 		LogicSolver(modes, inter),
-		satsolver(NULL), aggsolver(NULL), modsolver(NULL),
+		satsolver(NULL), aggsolver(NULL), modsolver(NULL),cpsolver(NULL),
 		state(THEORY_PARSING),
 		optim(NONE), head(-1),
 		state_savedlevel(0), state_savingclauses(false),
@@ -77,7 +81,7 @@ PCSolver::~PCSolver() {
 	delete ecnfprinter;
 }
 
-void PCSolver::setModSolver(pModSolver m) {
+void PCSolver::setModSolver(ModSolver* m) {
 	assert(isParsing());
 	modsolver = new DPLLTSolver(m, false);
 	solvers.insert(solvers.begin(), modsolver);
@@ -404,43 +408,125 @@ bool PCSolver::add(const InnerForcedChoices& choices){
 	return true;
 }
 
+bool PCSolver::hasCPSolver() const { return cpsolver!=NULL; }
+bool PCSolver::hasPresentCPSolver() const { return hasCPSolver() && cpsolver->present; }
 
+#ifdef CPSUPPORT
+void PCSolver::addCPSolver(){
+	assert(isParsing());
+	CPSolver* temp = new CPSolver(this);
+	temp->notifyVarAdded(nVars());
 
-/*bool PCSolver::addIntVar(int groundname, int min, int max) {
-	throw idpexception(">> CP-support is not compiled in.\n");
+	cpsolver = new DPLLTSolver(temp, true);
+	solvers.insert(solvers.begin(), cpsolver);
 }
 
-bool PCSolver::addCPBinaryRel(Lit head, int groundname, EqType rel, int bound) {
-	throw idpexception(">> CP-support is not compiled in.\n");
+CPSolver* PCSolver::getCPSolver() const {
+	assert(hasPresentCPSolver());
+	return dynamic_cast<CPSolver*>(cpsolver->get());
 }
 
-bool PCSolver::addCPBinaryRelVar(Lit head, int groundname, EqType rel, int groundname2) {
-	throw idpexception(">> CP-support is not compiled in.\n");
+bool PCSolver::add(const InnerIntVar& obj){
+	if(!hasCpSolver()){
+		addCPSolver();
+	}
+	assert(hasPresentCPSolver());
+	return getCPSolver().add(obj);
 }
 
-bool PCSolver::addCPSum(Lit head, vector<int> termnames, EqType rel, int bound) {
-	throw idpexception(">> CP-support is not compiled in.\n");
+bool PCSolver::add(const InnerCPBinaryRel& choices){
+	if(!hasCpSolver()){
+		addCPSolver();
+	}
+	assert(hasPresentCPSolver());
+	return getCPSolver().add(obj);
 }
 
-bool PCSolver::addCPSum(Lit head, vector<int> termnames, vector<int> mult, EqType rel, int bound) {
-	throw idpexception(">> CP-support is not compiled in.\n");
+bool PCSolver::add(const InnerCPBinaryRelVar& choices){
+	if(!hasCpSolver()){
+		addCPSolver();
+	}
+	assert(hasPresentCPSolver());
+	return getCPSolver().add(obj);
 }
 
-bool PCSolver::addCPSumVar(Lit head, vector<int> termnames, EqType rel, int rhstermname) {
-	throw idpexception(">> CP-support is not compiled in.\n");
+bool PCSolver::add(const InnerCPSum& choices){
+	if(!hasCpSolver()){
+		addCPSolver();
+	}
+	assert(hasPresentCPSolver());
+	return getCPSolver().add(obj);
 }
 
-bool PCSolver::addCPSumVar(Lit head, vector<int> termnames, vector<int> mult, EqType rel, int rhstermname) {
-	throw idpexception(">> CP-support is not compiled in.\n");
+bool PCSolver::add(const InnerCPSumWeighted& choices){
+	if(!hasCpSolver()){
+		addCPSolver();
+	}
+	assert(hasPresentCPSolver());
+	return getCPSolver().add(obj);
 }
 
-bool PCSolver::addCPCount(vector<int> termnames, int value, EqType rel, int rhstermname) {
-	throw idpexception(">> CP-support is not compiled in.\n");
+bool PCSolver::add(const InnerCPSumWithVar& choices){
+	if(!hasCpSolver()){
+		addCPSolver();
+	}
+	assert(hasPresentCPSolver());
+	return getCPSolver().add(obj);
 }
 
-bool PCSolver::addCPAlldifferent(const vector<int>& termnames) {
-	throw idpexception(">> CP-support is not compiled in.\n");
-}*/
+bool PCSolver::add(const InnerCPSumWeightedWithVar& choices){
+	if(!hasCpSolver()){
+		addCPSolver();
+	}
+	assert(hasPresentCPSolver());
+	return getCPSolver().add(obj);
+}
+
+bool PCSolver::add(const InnerCPCount& choices){
+	if(!hasCpSolver()){
+		addCPSolver();
+	}
+	assert(hasPresentCPSolver());
+	return getCPSolver().add(obj);
+}
+
+bool PCSolver::add(const InnerCPAllDiff& choices){
+	if(!hasCpSolver()){
+		addCPSolver();
+	}
+	assert(hasPresentCPSolver());
+	return getCPSolver().add(obj);
+}
+#else
+bool PCSolver::add(const InnerIntVar& obj){
+	return false;
+}
+bool PCSolver::add(const InnerCPBinaryRel& choices){
+	return false;
+}
+bool PCSolver::add(const InnerCPBinaryRelVar& choices){
+	return false;
+}
+bool PCSolver::add(const InnerCPSum& choices){
+	return false;
+}
+bool PCSolver::add(const InnerCPSumWeighted& choices){
+	return false;
+}
+bool PCSolver::add(const InnerCPSumWithVar& choices){
+	return false;
+}
+bool PCSolver::add(const InnerCPSumWeightedWithVar& choices){
+	return false;
+}
+bool PCSolver::add(const InnerCPCount& choices){
+	return false;
+}
+bool PCSolver::add(const InnerCPAllDiff& choices){
+	return false;
+}
+#endif
+
 
 /*
  * Returns "false" if UNSAT was already found, otherwise "true"

@@ -131,31 +131,45 @@ void WLSImpl::notifyMonitor(const InnerPropagation& obj);
 template<>
 void WLSImpl::notifyMonitor(const InnerBacktrack& obj);
 
-class WPCLSImpl: public MinisatID::WLSImpl{
+class ExternalPCImpl: public MinisatID::WLSImpl{
 private:
 	MinisatID::PCSolver* solver;
 
 public:
-	WPCLSImpl		(const SolverOption& modes);
-	virtual ~WPCLSImpl();
+	ExternalPCImpl		(const SolverOption& modes);
+	virtual ~ExternalPCImpl();
 
-	bool	add		(const Atom& sentence);
-	bool	add		(const Disjunction& sentence);
-	bool	add		(const DisjunctionRef& sentence);
-	bool	add		(const Equivalence& sentence);
-	bool	add		(const Rule& sentence);
-	bool	add		(const Set& sentence);
-	bool	add		(const WSet& sentence);
-	bool	add		(const WLSet& sentence);
-	bool	add		(const Aggregate& sentence);
-	bool	add		(const MinimizeSubset& sentence);
-	bool	add		(const MinimizeOrderedList& sentence);
-	bool	add		(const MinimizeAgg& sentence);
-	bool	add		(const ForcedChoices& sentence);
+	template<class T>
+	bool add(const T& formula);
 
 protected:
 	virtual MinisatID::PCSolver* getSolver() const { return solver; }
 };
+
+template<> bool ExternalPCImpl::add(const Atom& sentence);
+template<> bool ExternalPCImpl::add(const Disjunction& sentence);
+template<> bool ExternalPCImpl::add(const DisjunctionRef& sentence);
+template<> bool ExternalPCImpl::add(const Equivalence& sentence);
+template<> bool ExternalPCImpl::add(const Rule& sentence);
+template<> bool ExternalPCImpl::add(const Set& sentence);
+template<> bool ExternalPCImpl::add(const WSet& sentence);
+template<> bool ExternalPCImpl::add(const WLSet& sentence);
+template<> bool ExternalPCImpl::add(const Aggregate& sentence);
+template<> bool ExternalPCImpl::add(const MinimizeSubset& sentence);
+template<> bool ExternalPCImpl::add(const MinimizeOrderedList& sentence);
+template<> bool ExternalPCImpl::add(const MinimizeAgg& sentence);
+#ifdef CPSUPPORT
+template<> bool ExternalPCImpl::add(const CPIntVar& sentence);
+template<> bool ExternalPCImpl::add(const CPBinaryRel& sentence);
+template<> bool ExternalPCImpl::add(const CPBinaryRelVar& sentence);
+template<> bool ExternalPCImpl::add(const CPSum& sentence);
+template<> bool ExternalPCImpl::add(const CPSumWeighted& sentence);
+template<> bool ExternalPCImpl::add(const CPSumWithVar& sentence);
+template<> bool ExternalPCImpl::add(const CPSumWeightedWithVar& sentence);
+template<> bool ExternalPCImpl::add(const CPCount& sentence);
+template<> bool ExternalPCImpl::add(const CPAllDiff& sentence);
+#endif
+template<> bool ExternalPCImpl::add(const ForcedChoices& sentence);
 
 class WSOLSImpl: public MinisatID::WLSImpl{
 private:

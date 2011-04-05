@@ -269,36 +269,44 @@ void WLSImpl::notifyMonitor(const InnerBacktrack& obj){
 
 // PROP SOLVER PIMPL
 
-WPCLSImpl::WPCLSImpl(const SolverOption& modes)
+ExternalPCImpl::ExternalPCImpl(const SolverOption& modes)
 		:WLSImpl(modes), solver(new PCSolver(modes, *this)){
 }
 
-WPCLSImpl::~WPCLSImpl(){
+ExternalPCImpl::~ExternalPCImpl(){
 	delete solver;
 }
 
-bool WPCLSImpl::add(const Atom& v){
+template<>
+bool ExternalPCImpl::add(const Atom& v){
 	return getSolver()->add(checkAtom(v));
 }
 
-bool WPCLSImpl::add(const Disjunction& sentence){
+template<>
+bool ExternalPCImpl::add(const Disjunction& sentence){
 	InnerDisjunction d;
 	checkLits(sentence.literals, d.literals);
 	return getSolver()->add(d);
 }
-bool WPCLSImpl::add(const DisjunctionRef& sentence){
+
+template<>
+bool ExternalPCImpl::add(const DisjunctionRef& sentence){
 	InnerDisjunction d;
 	checkLits(sentence.literals, d.literals);
 	return getSolver()->add(d);
 }
-bool WPCLSImpl::add(const Equivalence& sentence){
+
+template<>
+bool ExternalPCImpl::add(const Equivalence& sentence){
 	InnerEquivalence eq;
 	eq.head = checkLit(sentence.head);
 	checkLits(sentence.literals, eq.literals);
 	eq.conjunctive = sentence.conj;
 	return getSolver()->add(eq);
 }
-bool WPCLSImpl::add(const Rule& sentence){
+
+template<>
+bool ExternalPCImpl::add(const Rule& sentence){
 	InnerRule rule;
 	rule.head = checkAtom(sentence.head);
 	rule.definitionID = sentence.definitionID;
@@ -306,21 +314,27 @@ bool WPCLSImpl::add(const Rule& sentence){
 	checkLits(sentence.body, rule.body);
 	return getSolver()->add(rule);
 }
-bool WPCLSImpl::add(const Set& sentence){
+
+template<>
+bool ExternalPCImpl::add(const Set& sentence){
 	InnerWSet set;
 	set.setID = sentence.setID;
 	checkLits(sentence.literals, set.literals);
 	set.weights.resize(set.literals.size(), 1);
 	return getSolver()->add(set);
 }
-bool WPCLSImpl::add(const WSet& sentence){
+
+template<>
+bool ExternalPCImpl::add(const WSet& sentence){
 	InnerWSet set;
 	set.setID = sentence.setID;
 	checkLits(sentence.literals, set.literals);
 	set.weights = sentence.weights;
 	return getSolver()->add(set);
 }
-bool WPCLSImpl::add(const WLSet& sentence){
+
+template<>
+bool ExternalPCImpl::add(const WLSet& sentence){
 	InnerWSet set;
 	set.setID = sentence.setID;
 	for(vector<WLtuple>::const_iterator i=sentence.wl.begin(); i<sentence.wl.end(); ++i){
@@ -329,7 +343,9 @@ bool WPCLSImpl::add(const WLSet& sentence){
 	}
 	return getSolver()->add(set);
 }
-bool WPCLSImpl::add(const Aggregate& sentence){
+
+template<>
+bool ExternalPCImpl::add(const Aggregate& sentence){
 	InnerAggregate agg;
 	agg.setID = sentence.setID;
 	agg.head = checkAtom(sentence.head);
@@ -340,19 +356,25 @@ bool WPCLSImpl::add(const Aggregate& sentence){
 	agg.defID = sentence.defID;
 	return getSolver()->add(agg);
 }
-bool WPCLSImpl::add(const MinimizeSubset& sentence){
+
+template<>
+bool ExternalPCImpl::add(const MinimizeSubset& sentence){
 	InnerMinimizeSubset mnm;
 	checkLits(sentence.literals, mnm.literals);
 	setOptimization(true);
 	return getSolver()->add(mnm);
 }
-bool WPCLSImpl::add(const MinimizeOrderedList& sentence){
+
+template<>
+bool ExternalPCImpl::add(const MinimizeOrderedList& sentence){
 	InnerMinimizeOrderedList mnm;
 	checkLits(sentence.literals, mnm.literals);
 	setOptimization(true);
 	return getSolver()->add(mnm);
 }
-bool WPCLSImpl::add(const MinimizeAgg& sentence){
+
+template<>
+bool ExternalPCImpl::add(const MinimizeAgg& sentence){
 	InnerMinimizeAgg mnm;
 	mnm.head = checkAtom(sentence.head);
 	mnm.setid = sentence.setid;
@@ -360,48 +382,76 @@ bool WPCLSImpl::add(const MinimizeAgg& sentence){
 	setOptimization(true);
 	return getSolver()->add(mnm);
 }
-bool WPCLSImpl::add(const ForcedChoices& sentence){
+
+template<>
+bool ExternalPCImpl::add(const ForcedChoices& sentence){
 	InnerForcedChoices choices;
 	checkLits(sentence.forcedchoices, choices.forcedchoices);
 	return getSolver()->add(choices);
 }
 
-/*
-bool WPCLSImpl::addIntVar(int groundname, int min, int max){
-	return getSolver()->addIntVar(groundname, min, max);
+#ifdef CPSUPPORT
+template<>
+bool ExternalPCImpl::add(const CPIntVar& sentence){
+	checkCPSupport();
+	InnerIntVar var;
+	var.varID = sentence.varID;
+	var.minvalue = sentence.minvalue;
+	var.maxvalue = sentence.maxvalue;
+	return getSolver()->add(var);
 }
-
-bool WPCLSImpl::addCPBinaryRel(Literal head, int groundname, EqType rel, int bound){
-	return getSolver()->addCPBinaryRel(checkLit(head), groundname, rel, bound);
+template<>
+bool ExternalPCImpl::add(const CPBinaryRel& sentence){
+	checkCPSupport();
+	return getSolver()->add(form);
 }
-
-bool WPCLSImpl::addCPBinaryRelVar(Literal head, int groundname, EqType rel, int groundname2){
-	return getSolver()->addCPBinaryRelVar(checkLit(head), groundname, rel, groundname2);
+template<>
+bool ExternalPCImpl::add(const CPBinaryRelVar& sentence){
+	checkCPSupport();
+	InnerCPBinaryRelVar form;
+	checKAtom(sentence.head, form.head);
+	form.lhsvarID = sentence.lhsvarID;
+	form.rel = sentence.rel;
+	form.rhsvarID = sentence.rhsvarID;
+	return getSolver()->add(form);
 }
-
-bool WPCLSImpl::addCPSum(Literal head, const vector<int>& termnames, EqType rel, int bound){
-	return getSolver()->addCPSum(checkLit(head), termnames, rel, bound);
+template<>
+bool ExternalPCImpl::add(const CPSum& sentence){
+	checkCPSupport();
+	InnerCPSum form;
+	return getSolver()->add(form);
 }
-
-bool WPCLSImpl::addCPSum(Literal head, const vector<int>& termnames, vector<int> mult, EqType rel, int bound){
-	return getSolver()->addCPSum(checkLit(head), termnames, mult, rel, bound);
+template<>
+bool ExternalPCImpl::add(const CPSumWeighted& sentence){
+	checkCPSupport();
+	InnerCPSumWeighted form;
+	return getSolver()->add(form);
 }
-
-bool WPCLSImpl::addCPSumVar(Literal head, const vector<int>& termnames, EqType rel, int rhstermname){
-	return getSolver()->addCPSum(checkLit(head), termnames, rel, rhstermname);
+template<>
+bool ExternalPCImpl::add(const CPSumWithVar& sentence){
+	checkCPSupport();
+	InnerCPSumWithVar form;
+	return getSolver()->add(form);
 }
-
-bool WPCLSImpl::addCPSumVar(Literal head, const vector<int>& termnames, vector<int> mult, EqType rel, int rhstermname){
-	return getSolver()->addCPSum(checkLit(head), termnames, mult, rel, rhstermname);
+template<>
+bool ExternalPCImpl::add(const CPSumWeightedWithVar& sentence){
+	checkCPSupport();
+	InnerCPSumWeightedWithVar form;
+	return getSolver()->add(form);
 }
-
-bool WPCLSImpl::addCPCount(const vector<int>& termnames, int value, EqType rel, int rhstermname){
-	return getSolver()->addCPCount(termnames, value, rel, rhstermname);
+template<>
+bool ExternalPCImpl::add(const CPCount& sentence){
+	checkCPSupport();
+	InnerCPCount form;
+	return getSolver()->add(form);
 }
-
-bool WPCLSImpl::addCPAlldifferent(const vector<int>& termnames){
-	return getSolver()->addCPAlldifferent(termnames);
-}*/
+template<>
+bool ExternalPCImpl::add(const CPAllDiff& sentence){
+	checkCPSupport();
+	InnerCPAllDiff form;
+	return getSolver()->add(form);
+}
+#endif
 
 // MODAL SOLVER
 

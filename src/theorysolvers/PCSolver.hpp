@@ -25,12 +25,12 @@ class SolverOption;
 class IDSolver;
 class AggSolver;
 class ModSolver;
+#ifdef CPSUPPORT
+class CPSolver;
+#endif
 class DPLLTmodule;
 
 typedef Minisat::Solver SATSolver;
-typedef IDSolver* pIDSolver;
-typedef AggSolver* pAggSolver;
-typedef ModSolver* pModSolver;
 
 enum Optim { MNMZ, SUBSETMNMZ, AGGMNMZ, NONE }; // Preference minimization, subset minimization, sum minimization
 
@@ -80,9 +80,6 @@ private:
 
 	// IMPORTANT: implicit invariant that IDsolver is always last in the list!
 	solverlist solvers;
-	std::map<defID, DPLLTSolver*> idsolvers;
-	DPLLTSolver* aggsolver;
-	DPLLTSolver* modsolver;
 
 	TheoryState state;
 	std::vector<Lit>		initialprops;
@@ -104,16 +101,30 @@ private:
 
 	SATSolver* getSolver() const { return satsolver; }
 
+	std::map<defID, DPLLTSolver*> idsolvers;
 	bool hasIDSolver(defID id) const;
-	bool hasAggSolver() const;
-	bool hasModSolver() const;
-	bool hasPresentIDSolver(defID id) const;
-	bool hasPresentAggSolver() const;
-	bool hasPresentModSolver() const;
 	void addIDSolver(defID id);
-	void addAggSolver();
 	IDSolver* getIDSolver(defID id) const;
+	bool hasPresentIDSolver(defID id) const;
+
+	DPLLTSolver* aggsolver;
+	bool hasAggSolver() const;
+	void addAggSolver();
+	bool hasPresentAggSolver() const;
+
+	DPLLTSolver* modsolver;
+	bool hasModSolver() const;
+	bool hasPresentModSolver() const;
 	ModSolver* getModSolver() const;
+
+	DPLLTSolver* cpsolver;
+	bool hasCPSolver() const;
+	bool hasPresentCPSolver() const;
+
+#ifdef CPSUPPORT
+	void addCPSolver();
+	CPSolver* getCPSolver() const;
+#endif
 
 	// Logging
 	PCLogger* logger;
@@ -144,8 +155,6 @@ public:
 	bool	add		(const InnerMinimizeOrderedList& sentence);
 	bool	add		(const InnerMinimizeAgg& sentence);
 	bool	add		(const InnerForcedChoices& sentence);
-
-#ifdef CPSUPPORT
 	bool	add		(const InnerIntVar& object);
 	bool	add		(const InnerCPBinaryRel& object);
 	bool	add		(const InnerCPBinaryRelVar& object);
@@ -155,7 +164,6 @@ public:
 	bool	add		(const InnerCPSumWeightedWithVar& object);
 	bool	add		(const InnerCPCount& object);
 	bool	add		(const InnerCPAllDiff& object);
-#endif
 
 	// Solving support
 	void 		newDecisionLevel();

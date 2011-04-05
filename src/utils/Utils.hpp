@@ -126,28 +126,28 @@ struct InnerIntVar{
 };
 
 struct InnerCPBinaryRel{
-	const Lit& head;
+	Var head;
 	uint varID;
 	EqType rel;
 	int bound;
 };
 
 struct InnerCPBinaryRelVar{
-	const Lit& head;
+	Var head;
 	uint lhsvarID, rhsvarID;
 	EqType rel;
 };
 
 
 struct InnerCPSum{
-	const Lit& head;
+	Var head;
 	std::vector<uint> varIDs;
 	EqType rel;
 	int bound;
 };
 
 struct InnerCPSumWeighted{
-	const Lit& head;
+	Var head;
 	std::vector<uint> varIDs;
 	std::vector<int> weights;
 	EqType rel;
@@ -155,14 +155,14 @@ struct InnerCPSumWeighted{
 };
 
 struct InnerCPSumWithVar{
-	const Lit& head;
+	Var head;
 	std::vector<uint> varIDs;
 	EqType rel;
 	uint rhsvarID;
 };
 
 struct InnerCPSumWeightedWithVar{
-	const Lit& head;
+	Var head;
 	std::vector<uint> varIDs;
 	std::vector<int> weights;
 	EqType rel;
@@ -173,7 +173,7 @@ struct InnerCPCount{
 	std::vector<uint> varIDs;
 	int eqbound;
 	EqType rel;
-	int rhsbound;
+	uint rhsvar;
 };
 
 struct InnerCPAllDiff{

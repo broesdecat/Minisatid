@@ -403,6 +403,66 @@ public:
 	MinimizeAgg(): head(0){}
 };
 
+struct CPIntVar{
+	uint varID;
+	int minvalue, maxvalue;
+};
+
+struct CPBinaryRel{
+	Atom head;
+	uint varID;
+	EqType rel;
+	int bound;
+};
+
+struct CPBinaryRelVar{
+	Atom head;
+	uint lhsvarID, rhsvarID;
+	EqType rel;
+};
+
+
+struct CPSum{
+	Atom head;
+	std::vector<uint> varIDs;
+	EqType rel;
+	int bound;
+};
+
+struct CPSumWeighted{
+	Atom head;
+	std::vector<uint> varIDs;
+	std::vector<int> weights;
+	EqType rel;
+	int bound;
+};
+
+struct CPSumWithVar{
+	Atom head;
+	std::vector<uint> varIDs;
+	EqType rel;
+	uint rhsvarID;
+};
+
+struct CPSumWeightedWithVar{
+	Atom head;
+	std::vector<uint> varIDs;
+	std::vector<int> weights;
+	EqType rel;
+	uint rhsvarID;
+};
+
+struct CPCount{
+	std::vector<uint> varIDs;
+	int eqbound;
+	EqType rel;
+	uint rhsvar;
+};
+
+struct CPAllDiff{
+	std::vector<uint> varIDs;
+};
+
 class ForcedChoices{
 public:
 	std::vector<Literal> forcedchoices;

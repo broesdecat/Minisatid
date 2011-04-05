@@ -13,20 +13,20 @@ using namespace CP;
 
 using namespace Gecode;
 
-bool CP::isTrue(Gecode::BoolVar var){
+bool CP::isTrue(BoolVar var){
 	return var.assigned() && var.one();
 }
 
-bool CP::isFalse(Gecode::BoolVar var) {
+bool CP::isFalse(BoolVar var) {
 	return var.assigned() && var.zero();
 }
 
-bool CP::isAssigned(Gecode::BoolVar var){
+bool CP::isAssigned(BoolVar var){
 	return var.assigned();
 }
 
-Gecode::IntRelType CP::negate(Gecode::IntRelType eq){
-	Gecode::IntRelType g = Gecode::IRT_EQ;
+Gecode::IntRelType CP::negate(IntRelType eq){
+	IntRelType g = Gecode::IRT_EQ;
 	switch (eq) {
 		case Gecode::IRT_EQ:
 			g = Gecode::IRT_NQ; break;
@@ -44,20 +44,20 @@ Gecode::IntRelType CP::negate(Gecode::IntRelType eq){
 	return g;
 }
 
-Gecode::IntRelType CP::toRelType(MINISAT::EqType eq){
-	Gecode::IntRelType g = Gecode::IRT_EQ;
+IntRelType CP::toRelType(EqType eq){
+	IntRelType g = Gecode::IRT_EQ;
 	switch (eq) {
-		case MINISAT::MEQ:
+		case MEQ:
 			g =  Gecode::IRT_EQ; break;
-		case MINISAT::MNEQ:
+		case MNEQ:
 			g =  Gecode::IRT_NQ; break;
-		case MINISAT::MLEQ:
+		case MLEQ:
 			g =  Gecode::IRT_LQ; break;
-		case MINISAT::MGEQ:
+		case MGEQ:
 			g =  Gecode::IRT_GQ; break;
-		case MINISAT::ML:
+		case ML:
 			g =  Gecode::IRT_LE; break;
-		case MINISAT::MG:
+		case MG:
 			g =  Gecode::IRT_GR; break;
 	}
 	return g;

@@ -24,7 +24,7 @@ namespace CP {
 
 	Gecode::IntRelType negate(Gecode::IntRelType eq);
 
-	Gecode::IntRelType toRelType(MINISAT::EqType eq);
+	Gecode::IntRelType toRelType(MinisatID::EqType eq);
 }
 }
 

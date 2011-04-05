@@ -9,6 +9,8 @@
 #ifndef CPSCRIPT_HPP_
 #define CPSCRIPT_HPP_
 
+#include "modules/cpsolver/CPUtils.hpp"
+
 namespace MinisatID{
 namespace CP{
 
@@ -17,7 +19,7 @@ namespace CP{
 	typedef vboolv::size_type boolvarindex;
 	typedef vintv::size_type intvarindex;
 
-	class CPScript: public Space{
+	class CPScript: public Gecode::Space{
 	private:
 		vboolv boolvars;
 		vintv intvars;
@@ -37,7 +39,7 @@ namespace CP{
 		void 			addBranchers();
 	};
 
-	ostream& operator <<(ostream& ostream, const CPScript& script);
+	std::ostream& operator <<(std::ostream& ostream, const CPScript& script);
 }
 }
 

@@ -393,16 +393,14 @@ wset	:	WSETDEFN NUMBER	wbody ZERO
 
 // ECNF CONSTRAINT SUPPORT
 
-//TODO
-
 intvar	:	INTVAR number number number ZERO 
-				{ 	/*CR(solver->addIntVar($2, $3, $4));*/ }
+				{ 	CR(solver->add(CPIntVar($2, $3, $4))); }
 		;
 
-/*intvarset
+intvarset
 		:	INTVARSET number ibody ZERO 
 				{ 	CR(solver->addIntVarSet($2, *$3)); delete $3; }
-		;*/
+		;
 
 //abbreviations: T = intterm, I = intconst, R = relational operator, ST = set of T, SI = set of I
 
@@ -411,7 +409,7 @@ cpconstraint
 				{ 	/*CR(solver->addCPBinaryRel(cLiteral($2), $3, $4, $5));
 					delete $2;*/
 				}
-/*		|	BINTRT NUMBER number REL number ZERO 
+		|	BINTRT NUMBER number REL number ZERO 
 				{ 	CR(solver->addCPBinaryRelVar(cLiteral($2), $3, $4, $5));
 					delete $2;
 				}
@@ -437,27 +435,24 @@ cpconstraint
 			//only global alldiff at the moment!
 		|	DISTINCT ibody DELIM ZERO //DELIM to remove shift-reduce conflict 
 				{ 	CR(solver->addCPAlldifferent(*$2)); delete $2; }
-*/
 		;
 
-//		
-//intlist :  /* empty */
-//		|  intlist NUMBER
-//			{ 
-//				nb.push_back($2); 
-//			}
-//		;
-//
-//cpconstraint	:	/*SUMTRT NUMBER termlist REL NUMBER ZERO {solver->addSum($2, $3, $4, $5);}
-//				|	SUMTRI NUMBER termlist REL number ZERO {solver->addSumVar($2, $3, $4, $5);}
-//				|	SUMTIRT NUMBER termlist DELIM intlist REL NUMBER ZERO {solver->addSum($2, $3, $5, $6, $7);}
-//				|	SUMTIRI NUMBER termlist DELIM intlist REL number ZERO {solver->addSumVar($2, $3, $5, $6, $7);}
-////				|	COUNTTRI termlist REL number ZERO
-//				|	COUNTTRT termlist DELIM number REL NUMBER ZERO { solver->addCount($2, $4, $5, $6); }
-////				| 	DISTINCT termlist REL ZERO { solver->addDistinct($2 $3); }*/
-//				;
+		
+intlist :  /* empty */
+		|  intlist NUMBER
+			{ 
+				nb.push_back($2); 
+			}
+		;
 
-
+cpconstraint	:	SUMTRT NUMBER termlist REL NUMBER ZERO {solver->addSum($2, $3, $4, $5);}
+				|	SUMTRI NUMBER termlist REL number ZERO {solver->addSumVar($2, $3, $4, $5);}
+				|	SUMTIRT NUMBER termlist DELIM intlist REL NUMBER ZERO {solver->addSum($2, $3, $5, $6, $7);}
+				|	SUMTIRI NUMBER termlist DELIM intlist REL number ZERO {solver->addSumVar($2, $3, $5, $6, $7);}
+//				|	COUNTTRI termlist REL number ZERO
+				|	COUNTTRT termlist DELIM number REL NUMBER ZERO { solver->addCount($2, $4, $5, $6); }
+//				| 	DISTINCT termlist REL ZERO { solver->addDistinct($2 $3); }
+				;
 			
 //---------------------------------------------		
 // MECNF THEORY	

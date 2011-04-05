@@ -33,10 +33,10 @@ namespace CP{
 	private:
 		CPSolverData* 	solverdata; //OWNING pointer
 
-		vector<Lit> 	trail;
-		set<Var>		propagations;
+		std::vector<Lit> 	trail;
+		std::set<Var>		propagations;
 
-		map<Lit, vector<Lit>::size_type > propreason;
+		std::map<Lit, std::vector<Lit>::size_type > propreason;
 
 		int endenqueus;
 
@@ -44,15 +44,15 @@ namespace CP{
 				CPSolver	(PCSolver * pcsolver);
 		virtual ~CPSolver	();
 
-		void 	addTerm		(int term, int min, int max);
-		bool 	addAllDifferent(vector<int> term);
-		bool	addBinRel	(int groundname, MINISAT::EqType rel, int bound, int atom);
-		bool	addBinRelVar(int groundname, MINISAT::EqType rel, int groundname2, int atom);
-		bool 	addSum		(vector<int> term, MINISAT::EqType rel, int bound, int atom);
-		bool 	addSum		(vector<int> term, vector<int> mult, MINISAT::EqType rel, int bound, int atom);
-		bool 	addSumVar	(vector<int> term, MINISAT::EqType rel, int rhsterm, int atom);
-		bool 	addSumVar	(vector<int> term, vector<int>, MINISAT::EqType rel, int rhsterm, int atom);
-		bool 	addCount	(vector<int> terms, MINISAT::EqType rel, int value, int rhsterm);
+		bool 	add			(const InnerIntVar& form);
+		bool 	add			(const InnerCPBinaryRel& form);
+		bool 	add			(const InnerCPBinaryRelVar& form);
+		bool 	add			(const InnerCPSum& form);
+		bool 	add			(const InnerCPSumWeighted& form);
+		bool 	add			(const InnerCPSumWithVar& form);
+		bool 	add			(const InnerCPSumWeightedWithVar& form);
+		bool 	add			(const InnerCPCount& form);
+		bool 	add			(const InnerCPAllDiff& form);
 
 		void 	notifyVarAdded(uint64_t nvars);
 

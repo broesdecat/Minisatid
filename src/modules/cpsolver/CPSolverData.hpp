@@ -11,15 +11,18 @@
 
 #include <vector>
 
+#include "modules/cpsolver/CPUtils.hpp"
+
 namespace MinisatID{
 namespace CP{
 	class TermIntVar;
 	class ReifiedConstraint;
 	class Constraint;
+	class CPScript;
 
-	typedef vector<CP::TermIntVar> vtiv;
-	typedef vector<CP::ReifiedConstraint*> vreifconstrptr;
-	typedef vector<CP::Constraint*> vnonrconstrptr;
+	typedef std::vector<CP::TermIntVar> vtiv;
+	typedef std::vector<CP::ReifiedConstraint*> vreifconstrptr;
+	typedef std::vector<CP::Constraint*> vnonrconstrptr;
 
 	class CPSolverData{
 	private:
@@ -38,13 +41,13 @@ namespace CP{
 		void 		replaceLastWith	(CPScript* space);
 
 		void 		addSpace	();
-		void 		removeSpace	();
+		void 		removeSpace	(int nblevels);
 
 		int 		size		() 	const 				{ return history.size(); }
-		CPScript const * const operator[](int i) const 	{ return history[i]; }
+		const CPScript & operator[](int i) const 	{ return *history[i]; }
 
 		const vtiv& getTerms	()	const				{ return terms; }
-		void 		addTerm		(TermIntVar var)		{ terms.push_back(var);	}
+		void 		addTerm		(const TermIntVar& var);
 
 		const vnonrconstrptr& 	getNonReifConstraints()	const 	{ return nonreifconstraints; }
 		const vreifconstrptr& 	getReifConstraints()	const 	{ return reifconstraints; }
@@ -54,8 +57,8 @@ namespace CP{
 
 		//vector<Lit> getBoolChanges	() const;
 
-		TermIntVar 	convertToVar	(int term) const;
-		vtiv		convertToVars	(const vector<int>& terms) const;
+		TermIntVar 	convertToVar	(uint term) const;
+		vtiv		convertToVars	(const std::vector<uint>& terms) const;
 	};
 }
 }

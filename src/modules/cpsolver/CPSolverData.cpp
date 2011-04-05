@@ -7,12 +7,16 @@
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 #include "modules/cpsolver/CPSolverData.hpp"
-#include "utils/Utils.hpp"
+#include "modules/cpsolver/Constraint.hpp"
+#include "modules/cpsolver/CPScript.hpp"
+#include "modules/cpsolver/CPUtils.hpp"
 
 using namespace std;
 
 using namespace MinisatID;
 using namespace CP;
+
+using namespace Gecode;
 
 CPSolverData::CPSolverData(){
 	history.push_back(new CPScript());
@@ -28,16 +32,18 @@ void CPSolverData::addSpace(){
 	history.push_back(static_cast<CPScript*>(getSpace().clone()));
 }
 
-void CPSolverData::removeSpace(int untillevel){
+void CPSolverData::removeSpace(int nblevels){
 	/*reportf("BACKTRACKING SPACES");
 	for(int i=0; i<history.size(); i++){
 		reportf("SPACE");
 		cout <<*history[i] <<endl;
 	}*/
 
-	CPScript* old = history.back();
-	history.pop_back();
-	delete old;
+	for(int i=0; i<nblevels; i++){
+		CPScript* old = history.back();
+		history.pop_back();
+		delete old;
+	}
 }
 
 void CPSolverData::replaceLastWith(CPScript* space){
@@ -60,15 +66,19 @@ void CPSolverData::replaceLastWith(CPScript* space){
 	return lits;
 }*/
 
-vector<TermIntVar> CPSolverData::convertToVars(const vector<int>& terms) const {
+void CPSolverData::addTerm(const TermIntVar& var){
+	terms.push_back(var);
+}
+
+vector<TermIntVar> CPSolverData::convertToVars(const vector<uint>& terms) const {
 	vtiv set;
-	for(vector<int>::const_iterator i=terms.begin(); i<terms.end(); i++){
+	for(vector<uint>::const_iterator i=terms.begin(); i<terms.end(); i++){
 		set.push_back(convertToVar(*i));
 	}
 	return set;
 }
 
-TermIntVar CPSolverData::convertToVar(int term) const {
+TermIntVar CPSolverData::convertToVar(uint term) const {
 	for(vtiv::const_iterator j=getTerms().begin(); j<getTerms().end(); j++){
 		if((*j).operator ==(term)){
 			return *j;

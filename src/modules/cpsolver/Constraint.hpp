@@ -11,7 +11,11 @@
 
 #include <vector>
 
+#include "modules/cpsolver/CPUtils.hpp"
+
 namespace MinisatID{
+namespace CP{
+	class CPScript;
 
 	typedef std::vector<Gecode::IntVar>::size_type termindex;
 	typedef std::vector<Gecode::BoolVar>::size_type boolindex;
@@ -26,20 +30,17 @@ namespace MinisatID{
 		//	TermIntVar(TermIntVar&){}
 
 	public:
-		TermIntVar():min(-1), max(-1), var(-1){	}
-
-		TermIntVar(CPScript& space, int groundterm, int min, int max)
-			: ID(groundterm), min(min), max(max), var(space.addIntVar(min, max)){
-		}
+		TermIntVar();
+		TermIntVar(CPScript& space, int groundterm, int min, int max);
 
 		virtual ~TermIntVar(){}
 
-		IntVar 	getIntVar(const CPScript& space) 	const { return space.getIntVars()[var];	}
+		Gecode::IntVar 	getIntVar(const CPScript& space) 	const;
 
 		bool 	operator==(const TermIntVar& rhs)	const { return this->operator ==(rhs.ID); }
 		bool 	operator==(const int& rhs) 			const { return ID==rhs; }
 
-		friend ostream &operator<<(ostream &stream, const TermIntVar& tiv);
+		friend std::ostream &operator<<(std::ostream &stream, const TermIntVar& tiv);
 	};
 
 	class Constraint{
@@ -51,15 +52,15 @@ namespace MinisatID{
 	// Represents ATOM <=> ConstraintReifiedBy(BoolVars[var])
 	class ReifiedConstraint: public Constraint{
 	private:
-		int atom;
+		Var atom;
 		boolindex var;
 
 	public:
-		ReifiedConstraint(int atom, CPScript& space);
+		ReifiedConstraint(Var atom, CPScript& space);
 		virtual ~ReifiedConstraint(){}
 
-		int 	getAtom			() 						const { return atom; }
-		BoolVar getBoolVar 		(const CPScript& space) const { return space.getBoolVars()[var]; }
+		Var 	getAtom			() 						const { return atom; }
+		Gecode::BoolVar getBoolVar(const CPScript& space) const;
 
 		bool	isAssigned		(const CPScript& space) const { return CP::isAssigned(getBoolVar(space)); }
 		bool	isAssignedTrue	(const CPScript& space) const { return CP::isTrue(getBoolVar(space)); }
@@ -78,13 +79,13 @@ namespace MinisatID{
 		int irhs;
 
 		bool withmult;
-		vector<int> mult;
+		std::vector<int> mult;
 
 	public:
-		SumConstraint(CPScript& space, std::vector<TermIntVar> tset, Gecode::IntRelType rel, TermIntVar rhs, int atom);
-		SumConstraint(CPScript& space, std::vector<TermIntVar> tset, Gecode::IntRelType rel, int rhs, int atom);
-		SumConstraint(CPScript& space, std::vector<TermIntVar> tset, std::vector<int> mult, Gecode::IntRelType rel, TermIntVar rhs, int atom);
-		SumConstraint(CPScript& space, std::vector<TermIntVar> tset, std::vector<int> mult, Gecode::IntRelType rel, int rhs, int atom);
+		SumConstraint(CPScript& space, std::vector<TermIntVar> tset, Gecode::IntRelType rel, TermIntVar rhs, Var atom);
+		SumConstraint(CPScript& space, std::vector<TermIntVar> tset, Gecode::IntRelType rel, int rhs, Var atom);
+		SumConstraint(CPScript& space, std::vector<TermIntVar> tset, std::vector<int> mult, Gecode::IntRelType rel, TermIntVar rhs, Var atom);
+		SumConstraint(CPScript& space, std::vector<TermIntVar> tset, std::vector<int> mult, Gecode::IntRelType rel, int rhs, Var atom);
 
 		virtual ~SumConstraint(){}
 	};
@@ -114,8 +115,8 @@ namespace MinisatID{
 		int irhs;
 
 	public:
-		BinArithConstraint(CPScript& space, TermIntVar lhs, Gecode::IntRelType rel, TermIntVar rhs, int atom);
-		BinArithConstraint(CPScript& space, TermIntVar lhs, Gecode::IntRelType rel, int rhs, int atom);
+		BinArithConstraint(CPScript& space, TermIntVar lhs, Gecode::IntRelType rel, TermIntVar rhs, Var atom);
+		BinArithConstraint(CPScript& space, TermIntVar lhs, Gecode::IntRelType rel, int rhs, Var atom);
 
 		virtual ~BinArithConstraint(){}
 	};
@@ -130,6 +131,7 @@ namespace MinisatID{
 		virtual ~DistinctConstraint(){}
 	};
 
+}
 }
 
 #endif /* CONSTRAINT_HPP_ */

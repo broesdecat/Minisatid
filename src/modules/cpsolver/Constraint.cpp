@@ -8,6 +8,7 @@
  */
 #include "modules/cpsolver/Constraint.hpp"
 
+#include "modules/cpsolver/CPScript.hpp"
 #include "modules/cpsolver/CPUtils.hpp"
 
 using namespace std;
@@ -16,7 +17,21 @@ using namespace MinisatID;
 using namespace CP;
 using namespace Gecode;
 
-ReifiedConstraint::ReifiedConstraint(int atom, CPScript& space): atom(atom), var(space.addBoolVar()){
+TermIntVar::TermIntVar():min(-1), max(-1), var(-1){	}
+
+TermIntVar::TermIntVar(CPScript& space, int groundterm, int min, int max):
+		ID(groundterm), min(min), max(max), var(space.addIntVar(min, max)){
+}
+
+Gecode::IntVar 	TermIntVar::getIntVar(const CPScript& space) const {
+	return space.getIntVars()[var];
+}
+
+ReifiedConstraint::ReifiedConstraint(Var atom, CPScript& space): atom(atom), var(space.addBoolVar()){
+}
+
+Gecode::BoolVar ReifiedConstraint::getBoolVar(const CPScript& space) const {
+	return space.getBoolVars()[var];
 }
 
 rClause ReifiedConstraint::propagate(bool becametrue, CPScript& space){
@@ -27,7 +42,7 @@ rClause ReifiedConstraint::propagate(bool becametrue, CPScript& space){
 	return nullPtrClause;
 }
 
-SumConstraint::SumConstraint(CPScript& space, vector<TermIntVar> tset, IntRelType rel, TermIntVar rhs, int atom)
+SumConstraint::SumConstraint(CPScript& space, vector<TermIntVar> tset, IntRelType rel, TermIntVar rhs, Var atom)
 		: ReifiedConstraint(atom, space), set(tset.size()), rel(rel), intrhs(false), trhs(rhs), withmult(false){
 	IntVarArgs ar(tset.size());
 	for(vector<TermIntVar>::size_type i=0; i<tset.size(); i++){
@@ -37,7 +52,7 @@ SumConstraint::SumConstraint(CPScript& space, vector<TermIntVar> tset, IntRelTyp
 	linear(space, ar, rel, trhs.getIntVar(space), getBoolVar(space)/*,consistency level*/);
 }
 
-SumConstraint::SumConstraint(CPScript& space, vector<TermIntVar> tset, IntRelType rel, int rhs, int atom)
+SumConstraint::SumConstraint(CPScript& space, vector<TermIntVar> tset, IntRelType rel, int rhs, Var atom)
 		: ReifiedConstraint(atom, space), set(tset.size()), rel(rel), intrhs(true), irhs(rhs), withmult(false){
 	IntVarArgs ar(tset.size());
 	for(vector<TermIntVar>::size_type i=0; i<tset.size(); i++){
@@ -47,7 +62,7 @@ SumConstraint::SumConstraint(CPScript& space, vector<TermIntVar> tset, IntRelTyp
 	linear(space, ar, rel, irhs, getBoolVar(space)/*,consistency level*/);
 }
 
-SumConstraint::SumConstraint(CPScript& space, vector<TermIntVar> tset, vector<int> mult, IntRelType rel, TermIntVar rhs, int atom)
+SumConstraint::SumConstraint(CPScript& space, vector<TermIntVar> tset, vector<int> mult, IntRelType rel, TermIntVar rhs, Var atom)
 		: ReifiedConstraint(atom, space), set(tset.size()), rel(rel), intrhs(false), trhs(rhs), withmult(true), mult(mult){
 	IntVarArgs ar(tset.size());
 	for(vector<TermIntVar>::size_type i=0; i<tset.size(); i++){
@@ -55,13 +70,13 @@ SumConstraint::SumConstraint(CPScript& space, vector<TermIntVar> tset, vector<in
 		ar[i] = tset[i].getIntVar(space);
 	}
 	IntArgs ia(mult.size());
-	for(int i=0; i<mult.size(); i++){
+	for(vector<int>::size_type i=0; i<mult.size(); i++){
 		ia[i]=mult[i];
 	}
 	linear(space, ia, ar, rel, trhs.getIntVar(space), getBoolVar(space)/*,consistency level*/);
 }
 
-SumConstraint::SumConstraint(CPScript& space, vector<TermIntVar> tset, vector<int> mult, IntRelType rel, int rhs, int atom)
+SumConstraint::SumConstraint(CPScript& space, vector<TermIntVar> tset, vector<int> mult, IntRelType rel, int rhs, Var atom)
 		: ReifiedConstraint(atom, space), set(tset.size()), rel(rel), intrhs(true), irhs(rhs), withmult(true), mult(mult){
 	IntVarArgs ar(tset.size());
 	for(vector<TermIntVar>::size_type i=0; i<tset.size(); i++){
@@ -69,7 +84,7 @@ SumConstraint::SumConstraint(CPScript& space, vector<TermIntVar> tset, vector<in
 		ar[i] = tset[i].getIntVar(space);
 	}
 	IntArgs ia(mult.size());
-	for(int i=0; i<mult.size(); i++){
+	for(vector<int>::size_type i=0; i<mult.size(); i++){
 		ia[i]=mult[i];
 	}
 	linear(space, ia, ar, rel, irhs, getBoolVar(space)/*,consistency level*/);
@@ -88,14 +103,14 @@ CountConstraint::CountConstraint(CPScript& space, vector<TermIntVar> tset, IntRe
 
 
 
-BinArithConstraint::BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelType rel, TermIntVar rhs, int atom)
+BinArithConstraint::BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelType rel, TermIntVar rhs, Var atom)
 		: ReifiedConstraint(atom, space), lhs(lhs), rel(rel), intrhs(false), trhs(rhs){
 	IntVar ialhs = lhs.getIntVar(space), iarhs = trhs.getIntVar(space);
 
 	Gecode::rel(space, ialhs, rel, iarhs, getBoolVar(space), ICL_DOM);
 }
 
-BinArithConstraint::BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelType rel, int rhs, int atom)
+BinArithConstraint::BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelType rel, int rhs, Var atom)
 		: ReifiedConstraint(atom, space), lhs(lhs), rel(rel), intrhs(true), irhs(rhs){
 	IntVar ialhs = lhs.getIntVar(space);
 	int iarhs = irhs;
@@ -104,7 +119,7 @@ BinArithConstraint::BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelTy
 
 DistinctConstraint::DistinctConstraint(CPScript& space, vector<TermIntVar> tset)
 		: set(tset.size()){
-	for(int i=0; i<tset.size(); i++){
+	for(vector<TermIntVar>::size_type i=0; i<tset.size(); i++){
 		set[i] = tset[i].getIntVar(space);
 	}
 	distinct(space, set);

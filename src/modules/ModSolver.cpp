@@ -129,7 +129,7 @@ bool ModSolver::add(const InnerRigidAtoms& rigid){
  */
 void ModSolver::setParent(modindex parentid){
 	this->parentid = parentid; hasparent = true;
-	pModSolver parent = getModSolverData().getModSolver(getParentId());
+	ModSolver* parent = getModSolverData().getModSolver(getParentId());
 	for(vector<Var>::const_iterator i=atoms.begin(); i<atoms.end(); ++i){
 		parent->add(*i);
 	}

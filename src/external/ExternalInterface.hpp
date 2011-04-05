@@ -24,19 +24,13 @@ namespace MinisatID {
 class Translator;
 
 class WLSImpl;
-class WPCLSImpl;
+class ExternalPCImpl;
 class WSOLSImpl;
 
 class Monitor;
 
 class WrappedLogicSolver;
-
 typedef WrappedLogicSolver* pwls;
-/*#ifdef __GXX_EXPERIMENTAL_CXX0X__
-typedef std::shared_ptr<WrappedLogicSolver> pwls;
-#else
-typedef std::tr1::shared_ptr<WrappedLogicSolver> pwls;
-#endif*/
 
 
 class WrappedLogicSolver{
@@ -62,40 +56,44 @@ protected:
 
 class WrappedPCSolver: public MinisatID::WrappedLogicSolver{
 private:
-	WPCLSImpl* impl;
+	ExternalPCImpl* impl;
 
 public:
 	WrappedPCSolver	(const SolverOption& modes);
 	~WrappedPCSolver();
 
-	bool	add		(const Disjunction& sentence);
-	bool	add		(const DisjunctionRef& sentence);
-	bool	add		(const Equivalence& sentence);
-	bool	add		(const Rule& sentence);
-	bool	add		(const Set& sentence);
-	bool	add		(const WSet& sentence);
-	bool	add		(const WLSet& sentence);
-	bool	add		(const Aggregate& sentence);
-	bool	add		(const MinimizeSubset& sentence);
-	bool	add		(const MinimizeOrderedList& sentence);
-	bool	add		(const MinimizeAgg& sentence);
-	bool	add		(const ForcedChoices& sentence);
-
-/*
-	bool 	addIntVar		(int groundname, int min, int max);
-	bool 	addCPBinaryRel	(const Literal& head, int groundname, EqType rel, int bound);
-	bool 	addCPBinaryRelVar(const Literal& head, int groundname, EqType rel, int groundname2);
-	bool 	addCPSum		(const Literal& head, const std::vector<int>& termnames, EqType rel, int bound);
-	bool 	addCPSum		(const Literal& head, const std::vector<int>& termnames, std::vector<int> mult, EqType rel, int bound);
-	bool 	addCPSumVar		(const Literal& head, const std::vector<int>& termnames, EqType rel, int rhstermname);
-	bool 	addCPSumVar		(const Literal& head, const std::vector<int>& termnames, std::vector<int> mult, EqType rel, int rhstermname);
-	bool 	addCPCount		(const std::vector<int>& termnames, int value, EqType rel, int rhstermname);
-	bool 	addCPAlldifferent(const std::vector<int>& termnames);*/
+	template<class T>
+	bool	add		(const T& sentence);
 
 protected:
 	WLSImpl* getImpl() const;
-	WPCLSImpl* getPCImpl() const;
+	ExternalPCImpl* getPCImpl() const;
 };
+
+// Only those explicitly instantiated (here or elsewhere) will be available in a compiled library
+template<> bool WrappedPCSolver::add(const Disjunction& sentence);
+template<> bool WrappedPCSolver::add(const DisjunctionRef& sentence);
+template<> bool WrappedPCSolver::add(const Equivalence& sentence);
+template<> bool WrappedPCSolver::add(const Rule& sentence);
+template<> bool WrappedPCSolver::add(const Set& sentence);
+template<> bool WrappedPCSolver::add(const WSet& sentence);
+template<> bool WrappedPCSolver::add(const WLSet& sentence);
+template<> bool WrappedPCSolver::add(const Aggregate& sentence);
+template<> bool WrappedPCSolver::add(const MinimizeSubset& sentence);
+template<> bool WrappedPCSolver::add(const MinimizeOrderedList& sentence);
+template<> bool WrappedPCSolver::add(const MinimizeAgg& sentence);
+#ifdef CPSUPPORT
+template<> bool WrappedPCSolver::add(const CPIntVar& sentence);
+template<> bool WrappedPCSolver::add(const CPBinaryRel& sentence);
+template<> bool WrappedPCSolver::add(const CPBinaryRelVar& sentence);
+template<> bool WrappedPCSolver::add(const CPSum& sentence);
+template<> bool WrappedPCSolver::add(const CPSumWeighted& sentence);
+template<> bool WrappedPCSolver::add(const CPSumWithVar& sentence);
+template<> bool WrappedPCSolver::add(const CPSumWeightedWithVar& sentence);
+template<> bool WrappedPCSolver::add(const CPCount& sentence);
+template<> bool WrappedPCSolver::add(const CPAllDiff& sentence);
+#endif
+template<> bool WrappedPCSolver::add(const ForcedChoices& sentence);
 
 //Second order logic solver
 class WrappedSOSolver: public MinisatID::WrappedLogicSolver{

@@ -22,9 +22,12 @@
 using namespace std;
 
 using namespace MinisatID;
-using namespace CP;
+using namespace MinisatID::Print;
+using namespace MinisatID::CP;
 
-CPSolver::CPSolver(PCSolver * solver): ISolver(solver), solverdata(new CPSolverData()),
+using namespace Gecode;
+
+CPSolver::CPSolver(PCSolver * solver): DPLLTmodule(solver), solverdata(new CPSolverData()),
 		endenqueus(0){
 
 }
@@ -37,95 +40,69 @@ CPSolver::~CPSolver() {
 
 // FIXME: reification atoms have to be unique! CHECK THIS
 
-void CPSolver::addTerm(int term, int min, int max){
+bool CPSolver::add(const InnerIntVar& form){
 	assert(!isInitialized());
-	getSolverData()->addTerm(TermIntVar(getSolverData()->getSpace(), term, min, max));
-}
-
-bool CPSolver::addBinRel(int groundname, MINISAT::EqType rel, int bound, int atom){
-	assert(!isInitialized());
-	TermIntVar lhs(solverdata->convertToVar(groundname));
-
-	if(getPCSolver()->modes().verbosity>=10){
-		cout <<"Added binary relation " <<gprintVar(atom) <<" <=> " <<lhs <<" " <<rel <<" "<<bound <<endl;
-	}
-
-	getSolverData()->addReifConstraint(new BinArithConstraint(getSolverData()->getSpace(), lhs, toRelType(rel), bound, atom));
-
+	getSolverData()->addTerm(TermIntVar(getSolverData()->getSpace(), form.varID, form.minvalue, form.maxvalue));
 	return true;
 }
 
-bool CPSolver::addBinRelVar(int groundname, MINISAT::EqType rel, int groundname2, int atom){
+bool CPSolver::add(const InnerCPBinaryRel& form){
 	assert(!isInitialized());
-	TermIntVar lhs(getSolverData()->convertToVar(groundname));
-	TermIntVar rhs(getSolverData()->convertToVar(groundname2));
-
-	if(getPCSolver()->modes().verbosity>=10){
-		cout <<"Added binary relation " <<gprintVar(atom) <<" <=> " <<lhs <<" " <<rel <<" "<<rhs <<endl;
-	}
-
-	getSolverData()->addReifConstraint(new BinArithConstraint(getSolverData()->getSpace(), lhs, toRelType(rel), rhs, atom));
-
+	TermIntVar lhs(solverdata->convertToVar(form.varID));
+	getSolverData()->addReifConstraint(new BinArithConstraint(getSolverData()->getSpace(), lhs, toRelType(form.rel), form.bound, form.head));
 	return true;
 }
 
-bool CPSolver::addSum(vector<int> term, MINISAT::EqType rel, int bound, int atom){
+bool CPSolver::add(const InnerCPBinaryRelVar& form){
 	assert(!isInitialized());
-	vector<TermIntVar> set(getSolverData()->convertToVars(term));
-	getSolverData()->addReifConstraint(new SumConstraint(getSolverData()->getSpace(), set, toRelType(rel), bound, atom));
-
+	TermIntVar lhs(getSolverData()->convertToVar(form.lhsvarID));
+	TermIntVar rhs(getSolverData()->convertToVar(form.rhsvarID));
+	getSolverData()->addReifConstraint(new BinArithConstraint(getSolverData()->getSpace(), lhs, toRelType(form.rel), rhs, form.head));
 	return true;
 }
 
-bool CPSolver::addSum(vector<int> term, vector<int> mult, MINISAT::EqType rel, int bound, int atom){
+bool CPSolver::add(const InnerCPSum& form){
 	assert(!isInitialized());
-	vector<TermIntVar> set(getSolverData()->convertToVars(term));
-	getSolverData()->addReifConstraint(new SumConstraint(getSolverData()->getSpace(), set, mult, toRelType(rel), bound, atom));
-
+	vector<TermIntVar> set(getSolverData()->convertToVars(form.varIDs));
+	getSolverData()->addReifConstraint(new SumConstraint(getSolverData()->getSpace(), set, toRelType(form.rel), form.bound, form.head));
 	return true;
 }
 
-bool CPSolver::addSumVar(vector<int> term, MINISAT::EqType rel, int rhsterm, int atom){
+bool CPSolver::add(const InnerCPSumWeighted& form){
 	assert(!isInitialized());
-	vector<TermIntVar> set(getSolverData()->convertToVars(term));
-	TermIntVar rhs(getSolverData()->convertToVar(rhsterm));
-	getSolverData()->addReifConstraint(new SumConstraint(getSolverData()->getSpace(), set, toRelType(rel), rhs, atom));
-
+	vector<TermIntVar> set(getSolverData()->convertToVars(form.varIDs));
+	getSolverData()->addReifConstraint(new SumConstraint(getSolverData()->getSpace(), set, form.weights, toRelType(form.rel), form.bound, form.head));
 	return true;
 }
 
-bool CPSolver::addSumVar(vector<int> term, vector<int> mult, MINISAT::EqType rel, int rhsterm, int atom){
+bool CPSolver::add(const InnerCPSumWithVar& form){
 	assert(!isInitialized());
-	vector<TermIntVar> set(getSolverData()->convertToVars(term));
-	TermIntVar rhs(getSolverData()->convertToVar(rhsterm));
-	getSolverData()->addReifConstraint(new SumConstraint(getSolverData()->getSpace(), set, mult, toRelType(rel), rhs, atom));
-
+	vector<TermIntVar> set(getSolverData()->convertToVars(form.varIDs));
+	TermIntVar rhs(getSolverData()->convertToVar(form.rhsvarID));
+	getSolverData()->addReifConstraint(new SumConstraint(getSolverData()->getSpace(), set, toRelType(form.rel), rhs, form.head));
 	return true;
 }
 
-bool CPSolver::addCount(vector<int> terms, MINISAT::EqType rel, int value, int rhsterm){
+bool CPSolver::add(const InnerCPSumWeightedWithVar& form){
 	assert(!isInitialized());
-
-	if(getPCSolver()->modes().verbosity>=10){
-		cout <<"Added Count(";
-		for(vector<int>::const_iterator i=terms.begin(); i<terms.end(); i++){
-			cout << *i <<"=" <<value <<", ";
-		}
-		cout <<") " <<rel << " " <<rhsterm <<endl;
-	}
-
-	vector<TermIntVar> set(getSolverData()->convertToVars(terms));
-	TermIntVar rhs(getSolverData()->convertToVar(rhsterm));
-	getSolverData()->addNonReifConstraint(new CountConstraint(getSolverData()->getSpace(), set, toRelType(rel), value, rhs));
-
+	vector<TermIntVar> set(getSolverData()->convertToVars(form.varIDs));
+	TermIntVar rhs(getSolverData()->convertToVar(form.rhsvarID));
+	getSolverData()->addReifConstraint(new SumConstraint(getSolverData()->getSpace(), set, form.weights, toRelType(form.rel), rhs, form.head));
 	return true;
 }
 
-bool CPSolver::addAllDifferent(vector<int> term){
+bool CPSolver::add(const InnerCPCount& form){
 	assert(!isInitialized());
-	vector<TermIntVar> set(getSolverData()->convertToVars(term));
+	vector<TermIntVar> set(getSolverData()->convertToVars(form.varIDs));
+	TermIntVar rhs(getSolverData()->convertToVar(form.rhsvar));
+	getSolverData()->addNonReifConstraint(new CountConstraint(getSolverData()->getSpace(), set, toRelType(form.rel), form.eqbound, rhs));
+	return true;
+}
+
+bool CPSolver::add(const InnerCPAllDiff& form){
+	assert(!isInitialized());
+	vector<TermIntVar> set(getSolverData()->convertToVars(form.varIDs));
 	getSolverData()->addNonReifConstraint(new DistinctConstraint(getSolverData()->getSpace(), set));
-
 	return true;
 }
 
@@ -149,30 +126,28 @@ rClause CPSolver::getExplanation(const Lit& p){
 			lits.push(~trail[i]);
 		}
 	}
-	rClause c = getPCSolver()->addLearnedClause(lits);
-	return c;
+	return getPCSolver().createClause(lits, true);
 }
 
 rClause CPSolver::notifySATsolverOfPropagation(const Lit& p) {
-	if (getPCSolver()->value(p) == l_False) {
-		if (getPCSolver()->modes().verbosity >= 2) {
-			reportf("Deriving conflict in "); gprintLit(p, l_True);
-			reportf(" because of the constraint TODO \n");
+	if (getPCSolver().value(p) == l_False) {
+		if (getPCSolver().verbosity() >= 2) {
+			//FIXME clog << ">> Deriving conflict in " <<p <<" because of the constraint TODO \n";
 		}
 		vector<Lit>::size_type temp = propreason[p];
 		propreason[p] = trail.size();
 		rClause confl = getExplanation(p);
 		propreason[p] = temp;
 		return confl;
-	} else if (getPCSolver()->value(p) == l_Undef) {
-		if (getPCSolver()->modes().verbosity >= 2) {
-			reportf("Deriving "); gprintLit(p, l_True);
-			reportf(" because of the constraint expression TODO \n");
+	} else if (getPCSolver().value(p) == l_Undef) {
+		if (getPCSolver().verbosity() >= 2) {
+			//FIXME clog <<">> Deriving " <<p <<" because of the constraint expression TODO \n";
 		}
 		propreason[p] = trail.size();
 		propagations.insert(var(p));
-		getPCSolver()->setTrue(p);
+		getPCSolver().setTrue(p, this);
 	} else {
+		//NOOP
 	}
 	return nullPtrClause;
 }
@@ -235,8 +210,8 @@ rClause CPSolver::propagate(const Lit& l){
 
 	for(vreifconstrptr::const_iterator i=getSolverData()->getReifConstraints().begin(); i<getSolverData()->getReifConstraints().end(); i++){
 		if((*i)->getAtom()==var(l)){
-			if(getPCSolver()->modes().verbosity >= 5){
-				reportf("Propagated into CP: "); gprintLit(l); reportf(".\n");
+			if(getPCSolver().modes().verbosity >= 5){
+				//FIXME clog <<">> Propagated into CP: " <<l <<".\n";
 			}
 			trail.push_back(l);
 			if((*i)->isAssigned(getSolverData()->getSpace())){
@@ -258,10 +233,10 @@ rClause CPSolver::genFullConflictClause(){
 	CPScript& space = *static_cast<CPScript*>(getSolverData()->getPrevSpace().clone());
 	space.addBranchers();
 	vector<Lit>::const_iterator nonassigned = trail.begin();
-	int currentlevel = getPCSolver()->getLevel(var(trail.back()));
+	int currentlevel = getPCSolver().getLevel(var(trail.back()));
 	reportf("Current level: %d\n", currentlevel);
 	for(; nonassigned<trail.end(); nonassigned++){
-		if(getPCSolver()->getLevel(var(*nonassigned))==currentlevel){
+		if(getPCSolver().getLevel(var(*nonassigned))==currentlevel){
 			break;
 		}
 	}
@@ -297,7 +272,9 @@ rClause CPSolver::genFullConflictClause(){
 			clause.push(~(*i));
 		}
 	}
-	return getPCSolver()->addLearnedClause(clause);
+	rClause c = getPCSolver().createClause(clause, true);
+	getPCSolver().addLearnedClause(c);
+	return c;
 }
 
 // TODO do not propagate any more when search has been done successfully, until backtrack
@@ -312,7 +289,7 @@ rClause CPSolver::propagateAtEndOfQueue(){
 	rClause confl = nullPtrClause;
 	if (!isInitialized()) { return confl; }
 
-	if(getPCSolver()->modes().verbosity>=3){
+	if(getPCSolver().modes().verbosity>=3){
 		cout << getSolverData()->getSpace() <<endl;
 	}
 
@@ -326,15 +303,15 @@ rClause CPSolver::propagateAtEndOfQueue(){
 		return confl;
 	}
 
-	if(getPCSolver()->modes().verbosity>=3){
-		reportf("Propagated %d of %d literals\n", trail.size(), getSolverData()->getReifConstraints().size());
+	if(getPCSolver().modes().verbosity>=3){
+		clog <<"Propagated " <<trail.size() <<" of " <<getSolverData()->getReifConstraints().size() <<" literals\n";
 		cout <<getSolverData()->getSpace() <<endl;
 	}
 
 	if(getSolverData()->getReifConstraints().size()==trail.size()/* || endenqueus%50==0*/){
-		reportf("Searching ");
+		clog <<"Searching ";
 		confl = propagateFinal();
-		reportf(" Ended searching \n");
+		clog <<" Ended searching \n";
 	}
 
 	// If no conflict found , propagate all changes
@@ -375,8 +352,8 @@ rClause CPSolver::propagateFinal(){
 		if(searchEngine_->stopped()){
 			throw idpexception("memory overflow on CP part");
 		}else{
-			if(getPCSolver()->modes().verbosity>=5){
-				reportf("Conflict found in CP search.\n");
+			if(getPCSolver().modes().verbosity>=5){
+				clog <<"Conflict found in CP search.\n";
 			}
 			confl = genFullConflictClause();
 		}
