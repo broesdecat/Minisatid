@@ -144,14 +144,12 @@ bool ModSolver::addChild(int childid){
 /**
  * Recursively notify all Solvers that parsing has finished
  */
-void ModSolver::finishParsingDown(bool& present, bool& unsat){
-	getPCSolver().finishParsing(present, unsat);
-
-	assert(present);
+void ModSolver::finishParsingDown(bool& unsat){
+	getPCSolver().finishParsing(unsat);
 
 	for(vmodindex::const_iterator i=getChildren().begin(); !unsat && i<getChildren().end(); ++i){
-		bool childpresent = true, childunsat = false;
-		getModSolverData().getModSolver(*i)->finishParsingDown(childpresent, childunsat);
+		bool childunsat = false;
+		getModSolverData().getModSolver(*i)->finishParsingDown(childunsat);
 		//TODO handle !present
 		//TODO handle unsat => might make this solver !present
 	}

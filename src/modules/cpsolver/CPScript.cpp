@@ -52,20 +52,16 @@ void CPScript::addBranchers(){
 	branch(*this, x, INT_VAR_SIZE_MIN, INT_VAL_SPLIT_MAX);
 }
 
-ostream& MinisatID::operator <<(ostream& ostream, const CPScript& script){
-	ostream <<"Space:" <<endl;
-	/*for(vboolv::const_iterator i=script.getBoolVars().begin(); i<script.getBoolVars().end(); i++){
-		ostream << *i <<" " <<endl;
-	}*/
-
+ostream& MinisatID::operator <<(ostream& stream, const CPScript& script){
+	stream <<"Space:\n";
 	int count = 0;
 	for(vintv::const_iterator i=script.getIntVars().begin(); i<script.getIntVars().end(); i++){
 		Int::IntView v(*i);
-		std::cout << "var " <<count++ << "=" <<v <<"; ";
+		stream << "var " <<count++ << "=" <<v <<"; ";
 		if(count%10 == 0){
-			ostream <<endl;
+			stream <<"\n";
 		}
 	}
-	ostream <<endl;
-	return ostream;
+	stream <<"\n";
+	return stream;
 }

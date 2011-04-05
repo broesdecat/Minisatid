@@ -60,7 +60,7 @@ public:
 	SOSolver				(SolverOption modes, MinisatID::WLSImpl& inter);
 	virtual ~SOSolver		();
 
-	void 	finishParsing	(bool& present, bool& unsat);
+	void 	finishParsing	(bool& unsat);
 	bool 	isRoot			(const ModSolver* solver) const;
 	void 	addModel		(const vec<Lit>& model);
 	bool 	simplify		();

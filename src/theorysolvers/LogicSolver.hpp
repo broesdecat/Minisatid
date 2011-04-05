@@ -29,7 +29,7 @@ public:
 	virtual ~LogicSolver(){};
 
 	virtual bool 	simplify() = 0;
-	virtual void 	finishParsing	(bool& present, bool& unsat) = 0;
+	virtual void 	finishParsing(bool& unsat) = 0;
 
 	virtual bool	solve(const vec<Lit>& assumptions, const ModelExpandOptions& options) = 0;
 

@@ -315,8 +315,7 @@ bool PCSolver::add(const InnerAggregate& agg){
 	}
 	add(agg.head);
 
-	// TODO hack: after parsing, no more solvers can be created,
-	//			so we have to create the idsolver as soon as we see its ID for the first time
+	// IMPORTANT: create the definition solver as soon as possible (impossible to create it when parsing is finished)
 	if(!hasIDSolver(agg.defID)){
 		addIDSolver(agg.defID);
 	}
@@ -417,15 +416,16 @@ bool PCSolver::addCP(const T& formula){
 #ifndef CPSUPPORT
 	assert(false);
 	exit(1);
-#endif
+#else
 	if(!hasCPSolver()){
 		addCPSolver();
 	}
 	assert(hasPresentCPSolver());
 	return getCPSolver()->add(formula);
+#endif
 }
 
-
+#ifdef CPSUPPORT
 void PCSolver::addCPSolver(){
 	assert(isParsing());
 	CPSolver* temp = new CPSolver(this);
@@ -439,6 +439,7 @@ CPSolver* PCSolver::getCPSolver() const {
 	assert(hasPresentCPSolver());
 	return dynamic_cast<CPSolver*>(cpsolver->get());
 }
+#endif
 
 bool PCSolver::add(const InnerIntVar& obj){
 	return addCP(obj);
@@ -489,11 +490,9 @@ bool PCSolver::add(const InnerCPAllDiff& obj){
  * IMPORTANT: before finishparsing, derived propagations are not propagated to the solvers, so after their finishparsing, we redo
  * all those propagations for the solvers
  */
-void PCSolver::finishParsing(bool& present, bool& unsat) {
+void PCSolver::finishParsing(bool& unsat) {
 	assert(isParsing());
 	state = THEORY_INITIALIZING;
-
-	present = true;
 	unsat = false;
 
 	propagations.resize(nVars(), NULL); //Lazy init

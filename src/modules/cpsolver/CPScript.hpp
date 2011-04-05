@@ -37,7 +37,7 @@ namespace MinisatID{
 		void 			addBranchers();
 	};
 
-	std::ostream& operator <<(std::ostream& ostream, const CPScript& script);
+	std::ostream& operator <<(std::ostream& stream, const CPScript& script);
 }
 
 #endif /* CPSCRIPT_HPP_ */

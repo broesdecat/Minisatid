@@ -173,7 +173,7 @@ rClause CPSolver::getExplanation(const Lit& p){
 rClause CPSolver::notifySATsolverOfPropagation(const Lit& p) {
 	if (getPCSolver().value(p) == l_False) {
 		if (getPCSolver().verbosity() >= 2) {
-			clog<< ">> Deriving conflict in " <<p <<" because of constraint expression (printing not implemented)\n"; //TODO
+			clog <<">> Deriving conflinct in " <<p <<" because of constraint expression.\n";
 		}
 		vector<Lit>::size_type temp = propreason[p];
 		propreason[p] = trail.getTrail().size();
@@ -182,7 +182,7 @@ rClause CPSolver::notifySATsolverOfPropagation(const Lit& p) {
 		return confl;
 	} else if (getPCSolver().value(p) == l_Undef) {
 		if (getPCSolver().verbosity() >= 2) {
-			clog <<">> Deriving " <<p <<" because of constraint expression (printing not implemented)\n"; //TODO
+			clog <<">> Deriving " <<p <<" because of constraint expression.\n";
 		}
 		propreason[p] = trail.getTrail().size();
 		getPCSolver().setTrue(p, this);
@@ -396,69 +396,3 @@ void CPSolver::printStatistics() const{
 void CPSolver::printState() const{
 	//TODO
 }
-
-//Space* space = new CPScript();
-//history.push_back(space);
-//
-//SizeOptions opt("Test configuration");
-//opt.icl(ICL_DOM);
-//opt.size(18);
-//
-//int periods = 10;
-//IntVarArgs n(periods);
-//IntVar n2;
-//
-//for (int p=0; p<periods; p++){
-//	n[p].init(*space,1,10);
-//}
-//
-//distinct(*space, n, opt.icl());
-//
-//StatusStatistics* s = new StatusStatistics();
-//SpaceStatus status = space->status(*s);
-//if(status==SS_FAILED){
-//	reportf("No solution\n");
-//}else if(status==SS_SOLVED){
-//	reportf("Solution found\n");
-//}else{
-//	reportf("Choices left to make\n");
-//}
-//
-//Gecode::Int::IntView x;
-//x.lq(*space, 5);
-
-///**
-// * The new propagator that will be registered to all boolean change events
-// */
-//class DPLLTPropagator: public Propagator{
-//protected:
-//  /// Constructor for posting
-//	DPLLTPropagator(Home home, ViewArray<View>& x): Propagator(home){
-//
-//	}
-//  /// Constructor for cloning \a p
-//	DPLLTPropagator(Space& home, bool share, DPLLTPropagator& p): Propagator(home){
-//
-//	}
-//public:
-//  /// Copy propagator during cloning
-//  virtual Actor*     copy(Space& home, bool share){
-//
-//  }
-//  /// Perform propagation
-//  virtual ExecStatus propagate(Space& home, const ModEventDelta& med){
-//
-//  }
-//  /// Post propagator for view array \a x
-//  static ExecStatus post(Home home, ViewArray<BoolView>& x){
-//	  new (home) Val<View>(home,x);
-//	  return ES_OK;
-//  }
-//};
-//
-//void
-//dpllprop(Home home, const BoolVarArgs& x) {
-//	if (home.failed()) return;
-//	ViewArray<BoolView> xv(home,x);
-//	GECODE_ES_FAIL(DPLLTPropagator::post(home,xv));
-//}

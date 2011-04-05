@@ -131,9 +131,8 @@ bool WLSImpl::finishParsing(){
 	getSolMonitor().notifyStartDataInit();
 	printInitDataStart(verbosity());
 
-	bool present = true, unsat = false;
-	//FIXME check what present is doing here
-	getSolver()->finishParsing(present, unsat);
+	bool unsat = false;
+	getSolver()->finishParsing(unsat);
 	if(unsat){
 		getSolMonitor().notifyUnsat();
 	}

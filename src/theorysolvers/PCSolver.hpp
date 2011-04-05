@@ -169,7 +169,7 @@ public:
 
 	// Solving support
 	void 		newDecisionLevel();
-	void 		finishParsing	(bool& present, bool& unsat);
+	void 		finishParsing	(bool& unsat);
 	bool 		simplify();
 	bool 		solve			(const vec<Lit>& assumptions, const ModelExpandOptions& options);
 	lbool 		checkStatus		(lbool status) const; //if status==l_True, do wellfoundednesscheck in IDSolver, if not wellfounded, return l_False, otherwise status

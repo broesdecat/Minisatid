@@ -158,7 +158,6 @@ template<> bool ExternalPCImpl::add(const Aggregate& sentence);
 template<> bool ExternalPCImpl::add(const MinimizeSubset& sentence);
 template<> bool ExternalPCImpl::add(const MinimizeOrderedList& sentence);
 template<> bool ExternalPCImpl::add(const MinimizeAgg& sentence);
-#ifdef CPSUPPORT
 template<> bool ExternalPCImpl::add(const CPIntVar& sentence);
 template<> bool ExternalPCImpl::add(const CPBinaryRel& sentence);
 template<> bool ExternalPCImpl::add(const CPBinaryRelVar& sentence);
@@ -168,7 +167,6 @@ template<> bool ExternalPCImpl::add(const CPSumWithVar& sentence);
 template<> bool ExternalPCImpl::add(const CPSumWeightedWithVar& sentence);
 template<> bool ExternalPCImpl::add(const CPCount& sentence);
 template<> bool ExternalPCImpl::add(const CPAllDiff& sentence);
-#endif
 template<> bool ExternalPCImpl::add(const ForcedChoices& sentence);
 
 class WSOLSImpl: public MinisatID::WLSImpl{

@@ -281,7 +281,6 @@ pwls parse() {
 		if (unsatfound) {
 			printUnsatFoundDuringParsing(clog, modes.verbosity);
 		} else {
-			//TODO this can also be caught when the sigint handler has received an interrupt, should differentiate
 			throw idpexception(getParseError(e, lineNo, charPos, yytext));
 		}
 	}
