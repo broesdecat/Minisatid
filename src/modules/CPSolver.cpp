@@ -35,9 +35,7 @@ void LitTrail::newDecisionLevel(){
 }
 void LitTrail::backtrackDecisionLevels(int nbevels, int untillevel){
 	vector<Var>::size_type earliest = trailindexoflevel[(uint)untillevel+1];
-	clog <<"should backtrack to " <<earliest <<"\n";
 	while(trail.size()>earliest){
-		clog <<"backtracked \n";
 		values[var(trail.back())] = l_Undef;
 		trail.pop_back();
 	}
@@ -208,7 +206,6 @@ void CPSolver::checkHeadUniqueness() const{
 
 void CPSolver::finishParsing(bool& present, bool& unsat){
 	assert(!isInitialized() && present && !unsat);
-	notifyInitialized();
 
 	checkHeadUniqueness();
 
@@ -323,7 +320,7 @@ rClause CPSolver::genFullConflictClause(){
 
 rClause CPSolver::propagateReificationConstraints(){
 	rClause confl = nullPtrClause;
-	for(vector<ReifiedConstraint*>::const_iterator i=getData().getReifConstraints().begin(); confl!=nullPtrClause && i<getData().getReifConstraints().end(); i++){
+	for(vector<ReifiedConstraint*>::const_iterator i=getData().getReifConstraints().begin(); confl==nullPtrClause && i<getData().getReifConstraints().end(); i++){
 		if((*i)->isAssigned(getSpace())){
 			confl = notifySATsolverOfPropagation(mkLit((*i)->getHead(), (*i)->isAssignedFalse(getSpace())));
 		}
@@ -386,7 +383,6 @@ rClause CPSolver::propagateFinal(){
 	}else{
 		if(getData().getReifConstraints().size()==trail.getTrail().size()){ //No @pre guarantee, so check!
 			getData().replaceLastWith(enumerator_);
-			cout <<*enumerator_<<endl;
 		}
 	}
 

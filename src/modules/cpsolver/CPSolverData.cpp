@@ -83,5 +83,7 @@ TermIntVar CPSolverData::convertToVar(uint term) const {
 			return *j;
 		}
 	}
-	throw idpexception("An integer variable occurred without having been created.\n");
+	stringstream ss;
+	ss <<"The integer variable " <<term <<" occurred without having been created.\n";
+	throw idpexception(ss.str());
 }

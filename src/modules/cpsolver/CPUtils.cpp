@@ -61,3 +61,21 @@ IntRelType MinisatID::toRelType(EqType eq){
 	}
 	return g;
 }
+
+std::ostream& MinisatID::operator<<(std::ostream& stream, Gecode::IntRelType rel){
+	switch (rel) {
+	case Gecode::IRT_EQ:
+		stream <<"="; break;
+	case Gecode::IRT_NQ:
+		stream <<"!="; break;
+	case Gecode::IRT_LQ:
+		stream <<"=<"; break;
+	case Gecode::IRT_GQ:
+		stream <<">="; break;
+	case Gecode::IRT_LE:
+		stream <<"<"; break;
+	case Gecode::IRT_GR:
+		stream <<">"; break;
+	}
+	return stream;
+}

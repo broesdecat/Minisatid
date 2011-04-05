@@ -11,6 +11,8 @@
 #include "modules/cpsolver/CPScript.hpp"
 #include "modules/cpsolver/CPUtils.hpp"
 
+#include "utils/Print.hpp"
+
 using namespace std;
 
 using namespace MinisatID;
@@ -111,6 +113,7 @@ BinArithConstraint::BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelTy
 
 BinArithConstraint::BinArithConstraint(CPScript& space, TermIntVar lhs, IntRelType rel, int rhs, Var atom)
 		: ReifiedConstraint(atom, space), lhs(lhs), rel(rel), intrhs(true), irhs(rhs){
+	//clog <<"Adding constraint " <<getPrintableVar(atom) <<" <=> " <<lhs <<rel <<rhs <<".\n";
 	IntVar ialhs = lhs.getIntVar(space);
 	int iarhs = irhs;
 	Gecode::rel(space, ialhs, rel, iarhs, getBoolVar(space), ICL_DOM);
@@ -121,7 +124,7 @@ DistinctConstraint::DistinctConstraint(CPScript& space, vector<TermIntVar> tset)
 	for(vector<TermIntVar>::size_type i=0; i<tset.size(); i++){
 		set[i] = tset[i].getIntVar(space);
 	}
-	distinct(space, set);
+	distinct(space, set, ICL_DOM);
 }
 
 //Atmostone NON REIF
