@@ -113,41 +113,44 @@ esac],[ perftools=no ])
 
 AC_ARG_ENABLE([cp],
 [  --enable-cp    Include constraint programming support [yes/no] ],
-[enablegecode=$enableval
-],[enablegecode = no])
+[enablegecode=$enableval],[enablegecode=no])
 
 AC_ARG_ENABLE([cpdir],
-[  --enable-cp-dir    Specify directory in which gecode is installed (libs in dir/lib, headers in dir/share/) ],
-[gecodedir=$enableval
- hasgecodedir=yes
- enablegecode=yes
-],[hasgecodedir=no])
+[  --enable-cpdir    Specify directory in which gecode is installed (libs in dir/lib, headers in dir/share/) ],
+[gecodedir=$enableval],[gecodedir=""])
+
+if test "x$gecodedir" != "x"; then
+	hasgecodedir="yes"
+	enablegecode="yes"
+else
+	hasgecodedir=no
+fi
 
 # Check for gecode
-if test "x$enablegecode" == xyes && test "x$hasgecodedir" == xno; then
+if test "x$enablegecode" = "xyes" -a "x$hasgecodedir" = "xno"; then
 	#what function to check for? AC_CHECK_LIB([gecodekernel], [space], [], [enablegecode=no], [])
 	AC_CHECK_HEADERS([gecode/kernel.hh gecode/driver.hh gecode/int.hh gecode/minimodel.hh], [], [enablegecode=no])
-	if test x$enablegecode == xno; then
+	if test "x$enablegecode" = "xno"; then
 		AC_MSG_WARN([gecode headers could not be found, disabling cp support])
 	else
 		AC_LDFLAGS+=" -lgecodedriver -lgecodeminimodel -lgecodeset -lgecodeint -lgecodekernel -lgecodesupport "
 	fi
 fi
-if test "x$enablegecode" == xyes && test "x$hasgecodedir" == xyes; then
+if test "x$enablegecode" = "xyes" -a "x$hasgecodedir" = "xyes"; then
 	echo "Expecting gecode directory to be correct, not verifying"
-	AC_LDFLAGS += " -L $gecodedir/lib -lgecodedriver "
-	AC_LDFLAGS += " -L $gecodedir/lib -lgecodeminimodel "
-	AC_LDFLAGS += " -L $gecodedir/lib -lgecodeset "
-	AC_LDFLAGS += " -L $gecodedir/lib -lgecodeint "
-	AC_LDFLAGS += " -L $gecodedir/lib -lgecodekernel "
-	AC_LDFLAGS += " -L $gecodedir/lib -lgecodesupport "
-	AC_CXXFLAGS+= " -I $gecodedir/share "
+	AC_LDFLAGS+=" -L$gecodedir/lib -lgecodedriver "
+	AC_LDFLAGS+=" -L$gecodedir/lib -lgecodeminimodel "
+	AC_LDFLAGS+=" -L$gecodedir/lib -lgecodeset "
+	AC_LDFLAGS+=" -L$gecodedir/lib -lgecodeint "
+	AC_LDFLAGS+=" -L$gecodedir/lib -lgecodekernel "
+	AC_LDFLAGS+=" -L$gecodedir/lib -lgecodesupport "
+	AC_CXXFLAGS+=" -I $gecodedir/share "
 fi
 
 AM_CONDITIONAL([USEPERFTOOLS],[test x$perftools = xyes])
 AM_CONDITIONAL([USECPSUPPORT],[test x$enablegecode == xyes])
 
-if test x$perftools = xyes; then
+if test "x$perftools"=="xyes"; then
 	AC_CONFIG_SUBDIRS([lib/perftools])
 fi
 
