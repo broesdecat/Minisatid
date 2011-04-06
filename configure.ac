@@ -120,6 +120,7 @@ AC_ARG_ENABLE([cpdir],
 [  --enable-cp-dir    Specify directory in which gecode is installed (libs in dir/lib, headers in dir/share/) ],
 [gecodedir = $enableval
  hasgecodedir = yes
+ enablegecode = yes
 ],[hasgecodedir = no])
 
 # Check for gecode
