@@ -111,6 +111,10 @@ struct InnerForcedChoices{
 	vec<Lit> forcedchoices;
 };
 
+struct InnerSymmetryLiterals{
+	vec<vec<Lit> > literalgroups;
+};
+
 struct InnerRigidAtoms{
 	std::vector<Var> rigidatoms;
 };

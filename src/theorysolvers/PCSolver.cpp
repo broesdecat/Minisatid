@@ -408,6 +408,11 @@ bool PCSolver::add(const InnerForcedChoices& choices){
 	return true;
 }
 
+bool PCSolver::add(const InnerSymmetryLiterals& symms){
+	getSolver()->addSymmetryGroup(symms.literalgroups);
+	return true;
+}
+
 bool PCSolver::hasCPSolver() const { return cpsolver!=NULL; }
 bool PCSolver::hasPresentCPSolver() const { return hasCPSolver() && cpsolver->present; }
 

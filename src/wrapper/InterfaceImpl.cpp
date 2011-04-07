@@ -109,6 +109,15 @@ void WLSImpl::checkLits(const vector<Literal>& lits, vec<Lit>& ll){
 	}
 }
 
+void WLSImpl::checkLits(const vector<vector<Literal> >& lits, vec<vec<Lit> >& ll){
+	for(vector<vector<Literal> >::const_iterator i=lits.begin(); i<lits.end(); ++i){
+		ll.push();
+		for(vector<Literal>::const_iterator j=(*i).begin(); j<(*i).end(); ++j){
+			ll.last().push(checkLit(*j));
+		}
+	}
+}
+
 void WLSImpl::checkLits(const vector<Literal>& lits, vector<Lit>& ll){
 	ll.reserve(lits.size());
 	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); ++i){
@@ -386,6 +395,13 @@ bool ExternalPCImpl::add(const ForcedChoices& sentence){
 	InnerForcedChoices choices;
 	checkLits(sentence.forcedchoices, choices.forcedchoices);
 	return getSolver()->add(choices);
+}
+
+template<>
+bool ExternalPCImpl::add(const SymmetryLiterals& sentence){
+	InnerSymmetryLiterals symms;
+	checkLits(sentence.symmgroups, symms.literalgroups);
+	return getSolver()->add(symms);
 }
 
 void checkCPSupport(){

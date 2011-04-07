@@ -41,7 +41,7 @@ AC_TYPE_SIZE_T
 
 # distribute additional compiler and linker flags
 AC_SUBST([AC_CXXFLAGS])
-AC_SUBST([LIBS])
+AC_SUBST([minisatliblibs])
 AC_SUBST([MINISATID_VERSION])
 
 MINISATID_VERSION=m4_esyscmd([./m4/version.m4 | tr -d '\n'])
@@ -130,26 +130,26 @@ if test "x$enablegecode" = "xyes" -a "x$hasgecodedir" = "xno"; then
 	if test "x$enablegecode" = "xno"; then
 		AC_MSG_WARN([gecode headers could not be found, disabling cp support])
 	else
-		LIBS+=" -lgecodesearch -lgecodegist -lgecodedriver -lgecodeminimodel -lgecodeset -lgecodeint -lgecodekernel -lgecodesupport "
+		minisatliblibs+=" -lgecodesearch -lgecodegist -lgecodedriver -lgecodeminimodel -lgecodeset -lgecodeint -lgecodekernel -lgecodesupport "
 	fi
 fi
 if test "x$enablegecode" = "xyes" -a "x$hasgecodedir" = "xyes"; then
 	echo "Expecting gecode directory to be correct, not verifying"
-	LIBS+=" -L$gecodedir/lib -lgecodesearch "
-	LIBS+=" -L$gecodedir/lib -lgecodegist "
-	LIBS+=" -L$gecodedir/lib -lgecodedriver "
-	LIBS+=" -L$gecodedir/lib -lgecodeminimodel "
-	LIBS+=" -L$gecodedir/lib -lgecodeset "
-	LIBS+=" -L$gecodedir/lib -lgecodeint "
-	LIBS+=" -L$gecodedir/lib -lgecodekernel "
-	LIBS+=" -L$gecodedir/lib -lgecodesupport "
+	minisatliblibs+=" -L$gecodedir/lib -lgecodesearch "
+	minisatliblibs+=" -L$gecodedir/lib -lgecodegist "
+	minisatliblibs+=" -L$gecodedir/lib -lgecodedriver "
+	minisatliblibs+=" -L$gecodedir/lib -lgecodeminimodel "
+	minisatliblibs+=" -L$gecodedir/lib -lgecodeset "
+	minisatliblibs+=" -L$gecodedir/lib -lgecodeint "
+	minisatliblibs+=" -L$gecodedir/lib -lgecodekernel "
+	minisatliblibs+=" -L$gecodedir/lib -lgecodesupport "
 	AC_CXXFLAGS+=" -I $gecodedir/include "
 fi
 
 AM_CONDITIONAL([USEPERFTOOLS],[test x$perftools = xyes])
 AM_CONDITIONAL([USECPSUPPORT],[test x$enablegecode == xyes])
 
-if test "x$perftools"=="xyes"; then
+if test "x$perftools" = "xyes"; then
 	AC_CONFIG_SUBDIRS([lib/perftools])
 fi
 

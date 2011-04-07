@@ -491,6 +491,11 @@ public:
 	SubTheory():head(0){}
 };
 
+class SymmetryLiterals{
+public:
+	std::vector<std::vector<Literal> > symmgroups;
+};
+
 }
 
 #endif /*EXTERNALUTILS_HPP_*/

@@ -113,6 +113,7 @@ protected:
 	void 	checkLits		(const std::vector<Literal>& lits, vec<Lit>& ll);
 	void 	checkLits		(const std::vector<Literal>& lits, std::vector<Lit>& ll);
 	void 	checkAtoms		(const std::vector<Atom>& atoms, std::vector<Var>& ll);
+	void 	checkLits		(const std::vector<std::vector<Literal> >& lits, vec<vec<Lit> >& ll);
 
 	Remapper*		getRemapper		()	const { return remapper; }
 
@@ -168,6 +169,7 @@ template<> bool ExternalPCImpl::add(const CPSumWeightedWithVar& sentence);
 template<> bool ExternalPCImpl::add(const CPCount& sentence);
 template<> bool ExternalPCImpl::add(const CPAllDiff& sentence);
 template<> bool ExternalPCImpl::add(const ForcedChoices& sentence);
+template<> bool ExternalPCImpl::add(const SymmetryLiterals& sentence);
 
 class WSOLSImpl: public MinisatID::WLSImpl{
 private:

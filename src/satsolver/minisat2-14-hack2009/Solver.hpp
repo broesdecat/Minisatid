@@ -61,6 +61,7 @@ private:
 	vec<Lit> 	forcedchoices;
 	int		 	choicestaken;
 	bool 		useheur;
+	/*A*/		vec<vec<vec<Lit> > > symmgroups;
 /*AE*/
 
 public:
@@ -82,7 +83,7 @@ public:
 	void		uncheckedEnqueue	(Lit p, Clause* from = NULL);				// Enqueue a literal. Assumes value of literal is undefined
 	int 		getLevel			(int var) const;
 	bool 		totalModelFound		();				//true if the current assignment is completely two-valued
-	std::vector<Lit> getDecisions		() const;
+	std::vector<Lit> getDecisions	() const;
 	int			decisionLevel		() const; 		// Gives the current decisionlevel.
 	const vec<Lit>& getTrail() const { return trail; }
 	int 		getStartLastLevel() const { return trail_lim.size()==0?0:trail_lim.last(); }
@@ -92,6 +93,7 @@ public:
 	uint64_t    nbVars				() const;		// The current number of variables.
 	void		printStatistics		() const ;
 	void		addForcedChoices	(const vec<Lit>& fc) { fc.copyTo(forcedchoices);  }
+	void		addSymmetryGroup	(const vec<vec<Lit> >& symms);
 	void		disableHeur			() { reportf("Not supported by solver!\n"); exit(-1); }
 	bool     	isDecisionVar(Var v) const { return decision_var[v]; }
 

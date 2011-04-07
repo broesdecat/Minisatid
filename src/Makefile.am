@@ -18,7 +18,7 @@ pkgconfig_DATA = minisatid-2.0.pc
 EXTRA_DIST = minisatid-2.0.pc.in
 
 # do not forget ldconfig after installing ;)
-libminisatid_2_0_la_LIBADD = @LIBS@ $(libsbuilddir)/pbsolver/libpbsolver-1.0.la 
+libminisatid_2_0_la_LIBADD = @minisatliblibs@ $(libsbuilddir)/pbsolver/libpbsolver-1.0.la 
 if USEPERFTOOLS
 libminisatid_2_0_la_LIBADD += $(libsbuilddir)/perftools/.libs/libtcmalloc.la $(libsbuilddir)/perftools/.libs/libprofiler.la
 endif
@@ -67,7 +67,7 @@ AM_CXXFLAGS += -D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS
 AM_CXXFLAGS += -I $(libssourcedir)/pluscallback1.7/
 
 # Pbsolver		
-AM_CXXFLAGS += \ 
+AM_CXXFLAGS += \
 		-I $(libssourcedir)/pbsolver/ -I $(libssourcedir)/pbsolver/pbbase/h/ \
 		-I $(libssourcedir)/pbsolver/ADTs/ -DDATADIR=\"$(datadir)\"
 
