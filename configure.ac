@@ -133,11 +133,13 @@ if test "x$enablegecode" = "xyes" -a "x$hasgecodedir" = "xno"; then
 	if test "x$enablegecode" = "xno"; then
 		AC_MSG_WARN([gecode headers could not be found, disabling cp support])
 	else
-		AC_LDFLAGS+=" -lgecodedriver -lgecodeminimodel -lgecodeset -lgecodeint -lgecodekernel -lgecodesupport "
+		AC_LDFLAGS+=" -lgecodesearch -lgecodegist -lgecodedriver -lgecodeminimodel -lgecodeset -lgecodeint -lgecodekernel -lgecodesupport "
 	fi
 fi
 if test "x$enablegecode" = "xyes" -a "x$hasgecodedir" = "xyes"; then
 	echo "Expecting gecode directory to be correct, not verifying"
+	AC_LDFLAGS+=" -L$gecodedir/lib -lgecodesearch "
+	AC_LDFLAGS+=" -L$gecodedir/lib -lgecodegist "
 	AC_LDFLAGS+=" -L$gecodedir/lib -lgecodedriver "
 	AC_LDFLAGS+=" -L$gecodedir/lib -lgecodeminimodel "
 	AC_LDFLAGS+=" -L$gecodedir/lib -lgecodeset "
