@@ -13,13 +13,12 @@
 
 using namespace std;
 using namespace MinisatID;
-using namespace MinisatID::Print;
 
-string Print::getProgramVersion(){
+string MinisatID::getProgramVersion(){
 	return VERSION;
 }
 
-string Print::getProgramInfo(){
+string MinisatID::getProgramInfo(){
 	string programInfo =
 		"MinisatID is a model generator for the language ECNF, an extension of CNF with aggregates expressions"
 		"(sum, cardinality, min, max, product) and inductive definitions.\n"
@@ -35,58 +34,67 @@ string Print::getProgramInfo(){
 	return programInfo;
 }
 
-void Print::printMainStart(int v) {
+std::string MinisatID::getNoCPSupportString(){
+	return "Constraint Programming support not compiled in, please recompile with --enable-cp=yes.\n";
+}
+
+std::string MinisatID::getMultipleDefAggHeadsException(){
+	return "Multiple heads occurred with the same head and at least one of them was defined.\n";
+}
+
+void MinisatID::printMainStart(int v) {
 	if (v >= 1) {
 		clog <<">>> [ Problem Stats ]\n";
 		clog <<"> Parsing input.\n";
 	}
 }
 
-void Print::printInitDataStart(int v) {
+void MinisatID::printInitDataStart(int v) {
 	if (v >= 1) {
 		clog <<"> Datastructure initialization.\n";
 	}
 }
 
-void Print::printStartStatistics(){
-	clog <<">>> [Statistics]\n";
+std::string MinisatID::getStatisticsMessage(double parsetime, double simpltime, double solvetime){
+	stringstream ss;
+	ss <<">>> [Statistics]\n";
+	if(parsetime>=0){
+		ss <<">>> Parsing phase took " << parsetime <<" sec.\n";
+	}
+	if(simpltime>=0){
+		ss <<">>> Simplication phase took " << simpltime <<" sec.\n";
+	}
+	if(solvetime>=0){
+		ss <<">>> (last) solving phase took " << solvetime <<" sec.\n";
+	}
+	return ss.str();
 }
 
-void Print::printInitDataEnd(int v, double parsetime, bool unsat) {
-	if (v >= 1) {
-		clog <<"> Datastructure initialization finished.\n";
-		clog <<"> Total parsing time : " << parsetime <<" s.\n";
-	}
+void MinisatID::printInitDataEnd(int v, bool unsat) {
 	if (v >= 1 && unsat) {
 		clog <<"> Unsatisfiable found by parsing.\n";
 	}
 }
 
-void Print::printSimpStart(int v) {
+void MinisatID::printSimpStart(int v) {
 	if (v >= 1) {
 		clog <<">>> [ Simplifying ]\n";
 	}
 }
-void Print::printSimpEnd(int v, double parsetime, bool unsat) {
+void MinisatID::printSimpEnd(int v, bool unsat) {
 	if (v >= 1) {
-		clog <<"> Total simplification time : " << parsetime <<" s.\n";
 		if(unsat){
 			clog <<"> Unsatisfiable found by unit propagation.\n";
 		}
 	}
 }
 
-void Print::printSolveStart(int v) {
+void MinisatID::printSolveStart(int v) {
 	if (v >= 1) {
 		clog <<">>> [ Solving ]\n";
 	}
 }
-void Print::printSolveEnd(int v, double parsetime) {
-	if (v >= 1) {
-		clog <<"> Total solving time : " << parsetime <<" s.\n";
-	}
-}
 
-std::string Print::getMinimalVarNumbering(){
+std::string MinisatID::getMinimalVarNumbering(){
 	return ">> Variables can only be numbered starting from 1.\n";
 }

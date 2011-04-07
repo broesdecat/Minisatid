@@ -13,10 +13,6 @@
 #include "utils/Utils.hpp"
 #include "utils/PrintMessage.hpp"
 
-namespace Minisat{
-	class Solver;
-}
-
 /**
  * Verbosity rules:
  * level 0: no output
@@ -27,19 +23,16 @@ namespace Minisat{
 
 namespace MinisatID {
 
-namespace Print {
-
 int getPrintableVar(Var v);
 
 template<class T>
-T& operator<<(T& stream, const Lit& lit){
-	stream <<(sign(lit)?"-":"") <<getPrintableVar(var(lit));
-	return stream;
-}
+std::string print(const T& obj);
 
 template<class T>
-void print(T& stream, const Lit& lit){
-	stream <<(sign(lit)?"-":"") <<getPrintableVar(var(lit));
+T& operator<<(T& stream, const Lit& lit){
+	stream << print(lit);
+//FIXME	stream <<(sign(lit)?"-":"") <<getPrintableVar(var(lit));
+	return stream;
 }
 
 template<class T>
@@ -48,20 +41,8 @@ void print(const T& lit, const lbool val);
 template<class S>
 void print(S * const s);
 
-template<class C>
-void print(const C& c);
-
 template<class S>
 void print(rClause c, const S& s);
-
-template<class T>
-void printStatistics(T obj, int v = 1000){
-	if(v>=1){
-		obj->printStatistics();
-	}
-}
-
-}
 
 }
 

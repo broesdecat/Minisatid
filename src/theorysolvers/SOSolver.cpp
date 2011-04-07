@@ -52,7 +52,7 @@ void SOSolver::addModel(const vec<Lit>& model){
 	getParent().addModel(model);
 }
 
-void SOSolver::finishParsing(bool& present, bool& unsat){
+void SOSolver::finishParsing(bool& unsat){
 	assert(state==LOADINGREST);
 	state = ALLLOADED;
 
@@ -65,10 +65,10 @@ void SOSolver::finishParsing(bool& present, bool& unsat){
 //		return true;
 //	}
 
-	solvers[0]->finishParsingDown(present, unsat);
+	solvers[0]->finishParsingDown(unsat);
 
 	if(modes().verbosity>=2){
-		Print::print(this);
+		print(this);
 	}
 }
 

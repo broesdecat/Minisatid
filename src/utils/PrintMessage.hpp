@@ -17,7 +17,6 @@
 
 namespace MinisatID{
 
-namespace Print{
 	std::string getProgramVersion();
 	std::string getProgramInfo();
 
@@ -25,15 +24,14 @@ namespace Print{
 	void printMainEnd(int v);
 
 	void printInitDataStart(int v);
-	void printInitDataEnd(int v, double parsetime, bool unsat);
+	void printInitDataEnd(int v, bool unsat);
 
 	void printSimpStart(int v);
-	void printSimpEnd(int v, double parsetime, bool unsat);
+	void printSimpEnd(int v, bool unsat);
 
 	void printSolveStart(int v);
-	void printSolveEnd(int v, double parsetime);
 
-	void printStartStatistics();
+	std::string getStatisticsMessage(double parsetime, double simpltime, double solvetime);
 
 	void printUnsat(int v);
 
@@ -48,6 +46,15 @@ namespace Print{
 		std::stringstream ss;
 		ss<<">> Parse error: Line " <<linepos <<", column " <<charpos <<", on \"" <<yytext <<"\": " << e.what();
 		return ss.str();
+	}
+
+	template<class T>
+	void printUnknown(T& stream, INPUTFORMAT inputformat, OUTPUTFORMAT outputformat){
+		if(inputformat==FORMAT_OPB){
+			stream <<"UNKNOWN\n";
+		}else{
+			stream <<"UNKNOWN\n";
+		}
 	}
 
 	template<class T>
@@ -153,8 +160,10 @@ namespace Print{
 			stream <<"\n";
 		}
 	}
+
+	std::string getNoCPSupportString();
+	std::string getMultipleDefAggHeadsException();
 }
 
-}
 
 #endif /* PRINTMESSAGE_HPP_ */

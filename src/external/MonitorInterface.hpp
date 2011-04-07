@@ -34,6 +34,7 @@ public:
 		propagatedcb(lit, decisionlevel);
 	}
 
+	//Keep all assignments at untillevel, but not beyond
 	void notifyBacktracked(int untillevel){
 		backtrackcb(untillevel);
 	}

@@ -28,6 +28,7 @@
 #include "external/ExternalUtils.hpp"
 #include "external/ExternalInterface.hpp"
 #include "external/Translator.hpp"
+#include "utils/Print.hpp"
 
 #include <limits>
 
@@ -36,20 +37,15 @@ using namespace std;
 
 typedef numeric_limits<int> intlim;
 
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-   typedef std::shared_ptr<WrappedSOSolver> pwsos;
-   typedef std::shared_ptr<WrappedPCSolver> pwps;
-#else
-	#include <tr1/memory>
-   typedef std::tr1::shared_ptr<WrappedSOSolver> pwsos;
-   typedef std::tr1::shared_ptr<WrappedPCSolver> pwps;
-#endif
+typedef WrappedSOSolver wsos;
+typedef WrappedPCSolver wps;
 
 //}
 
 //%code{
 	
 extern SolverOption modes;
+extern Solution* sol;
 extern FODOTTranslator*	fodottrans;
 extern int 		yylex(void);
 extern char * 	yytext;
@@ -68,8 +64,8 @@ int charPos = 1;
 
 bool unsatfound = false;
 
-pwps	solver;
-pwsos	modsolver;
+wps*	solver = NULL;
+wsos*	modsolver = NULL;
 
 /**
  * CR-CheckResult: checks the result of passing some data to the solvers.
@@ -92,6 +88,9 @@ MinisatID::Atom cAtom(string* c);
 MinisatID::Literal cLiteral(string* c);
 MinisatID::Weight cWeight(string* s);
 int cID(string* c);
+
+template<class T>
+void addCPTo(WrappedPCSolver* solver, const T& formula);
 
 // Convert integer to string
 std::string itos(int n) {
@@ -131,6 +130,7 @@ void checkVersion(ECNF_VERSION version);
 	const char* cstr;
 	std::string* str;
     std::vector<int>* vints;
+    std::vector<uint>* vuints;
     std::vector<MinisatID::Literal>* vlits;
     std::vector<MinisatID::WLtuple>* vlws;
     std::vector<MinisatID::Atom>* vatoms;
@@ -158,6 +158,7 @@ void checkVersion(ECNF_VERSION version);
 %type <integer> number
 %type <str> weight
 %type <vints> ibody
+%type <vuints> uibody
 %type <vlits> body
 %type <vlws> wbody
 %type <vatoms> vbody
@@ -230,7 +231,7 @@ cnfclause
 		| 	cnfclause body ZERO	
 			{	
 				DisjunctionRef clause(*$2);
-				if(modsolver.get()!=NULL){
+				if(modsolver!=NULL){
 					CR(modsolver->add(cnfcurrentmodid, clause));;
 				}else{
 					CR(solver->add(clause)); 
@@ -389,71 +390,106 @@ wset	:	WSETDEFN NUMBER	wbody ZERO
 
 // ECNF CONSTRAINT SUPPORT
 
-//TODO
-
 intvar	:	INTVAR number number number ZERO 
-				{ 	/*CR(solver->addIntVar($2, $3, $4));*/ }
+			{
+				CPIntVar var;
+				var.varID = $2;
+				var.minvalue = $3;
+				var.maxvalue = $4;
+				addCPTo(solver, var);
+			}
 		;
 
-/*intvarset
-		:	INTVARSET number ibody ZERO 
-				{ 	CR(solver->addIntVarSet($2, *$3)); delete $3; }
-		;*/
+//intvarset
+//		:	INTVARSET number ibody ZERO 
+//				{ 	CR(solver->addIntVarSet($2, *$3)); delete $3; }
+//		;
 
 //abbreviations: T = intterm, I = intconst, R = relational operator, ST = set of T, SI = set of I
 
 cpconstraint
 		:	BINTRI NUMBER number REL number ZERO 
-				{ 	/*CR(solver->addCPBinaryRel(cLiteral($2), $3, $4, $5));
-					delete $2;*/
-				}
-/*		|	BINTRT NUMBER number REL number ZERO 
-				{ 	CR(solver->addCPBinaryRelVar(cLiteral($2), $3, $4, $5));
-					delete $2;
-				}
-		|	SUMSTRI NUMBER ibody REL number ZERO 
-				{ 	CR(solver->addCPSum(cLiteral($2), *$3, $4, $5)); 
-					delete $2; delete $3; 
-				}
-		|	SUMSTRT NUMBER ibody REL number ZERO 
-				{ 	CR(solver->addCPSumVar(cLiteral($2), *$3, $4, $5)); 
-					delete $2; delete $3; 
-				}
-		|	SUMSTSIRI NUMBER ibody DELIM ibody REL number ZERO 
-				{ 	CR(solver->addCPSum(cLiteral($2), *$3, *$5, $6, $7)); 
-					delete $2; delete $3; delete $5; 
-				}
-		|	SUMSTSIRT NUMBER ibody DELIM ibody REL number ZERO 
-				{ 	CR(solver->addCPSumVar(cLiteral($2), *$3, *$5, $6, $7)); 
-					delete $2; delete $3; delete $5; 
-				}
+			{ 	
+				CPBinaryRel binrel;
+				binrel.head = cAtom($2);
+				binrel.varID = $3;
+				binrel.rel = $4;
+				binrel.bound = $5;
+				addCPTo(solver, binrel);
+				delete $2;
+			}
+		|	BINTRT NUMBER number REL number ZERO 
+			{ 	
+				CPBinaryRelVar binrel;
+				binrel.head = cAtom($2);
+				binrel.lhsvarID = $3;
+				binrel.rel = $4;
+				binrel.rhsvarID = $5;
+				addCPTo(solver, binrel);
+				delete $2;
+			}
+		|	SUMSTRI NUMBER uibody REL number ZERO 
+			{ 	
+				CPSum sum;
+				sum.head = cAtom($2);
+				sum.varIDs = *$3;
+				sum.rel = $4;
+				sum.bound = $5;
+				addCPTo(solver, sum);
+				delete $2; delete $3;
+			}
+		|	SUMSTRT NUMBER uibody REL number ZERO
+			{ 	
+				CPSumWithVar sum;
+				sum.head = cAtom($2);
+				sum.varIDs = *$3;
+				sum.rel = $4;
+				sum.rhsvarID = $5;
+				addCPTo(solver, sum);
+				delete $2; delete $3;
+			}
+		|	SUMSTSIRI NUMBER uibody DELIM ibody REL number ZERO 
+			{ 	
+				CPSumWeighted sum;
+				sum.head = cAtom($2);
+				sum.varIDs = *$3;
+				sum.weights = *$5;
+				sum.rel = $6;
+				sum.bound = $7;
+				addCPTo(solver, sum);
+				delete $2; delete $3; delete $5;
+			}
+		|	SUMSTSIRT NUMBER uibody DELIM ibody REL number ZERO 
+			{ 	
+				CPSumWeightedWithVar sum;
+				sum.head = cAtom($2);
+				sum.varIDs = *$3;
+				sum.weights = *$5;
+				sum.rel = $6;
+				sum.rhsvarID = $7;
+				addCPTo(solver, sum);
+				delete $2; delete $3; delete $5;
+			}
 			//only global card at the moment!
-		|	COUNTSTRIT ibody REL number number ZERO 
-				{ 	CR(solver->addCPCount(*$2, $4, $3, $5)); delete $2; }
+		|	COUNTSTRIT uibody REL number number ZERO 
+			{ 	
+				CPCount count;
+				count.varIDs = *$2;
+				count.rel = $3;
+				count.eqbound = $4;				
+				count.rhsvar = $5;
+				addCPTo(solver, count);
+				delete $2;
+			}
 			//only global alldiff at the moment!
-		|	DISTINCT ibody DELIM ZERO //DELIM to remove shift-reduce conflict 
-				{ 	CR(solver->addCPAlldifferent(*$2)); delete $2; }
-*/
+		|	DISTINCT uibody DELIM ZERO //DELIM to remove shift-reduce conflict 
+			{ 	
+				CPAllDiff alldiff;
+				alldiff.varIDs = *$2;
+				addCPTo(solver, alldiff);
+				delete $2;
+			}
 		;
-
-//		
-//intlist :  /* empty */
-//		|  intlist NUMBER
-//			{ 
-//				nb.push_back($2); 
-//			}
-//		;
-//
-//cpconstraint	:	/*SUMTRT NUMBER termlist REL NUMBER ZERO {solver->addSum($2, $3, $4, $5);}
-//				|	SUMTRI NUMBER termlist REL number ZERO {solver->addSumVar($2, $3, $4, $5);}
-//				|	SUMTIRT NUMBER termlist DELIM intlist REL NUMBER ZERO {solver->addSum($2, $3, $5, $6, $7);}
-//				|	SUMTIRI NUMBER termlist DELIM intlist REL number ZERO {solver->addSumVar($2, $3, $5, $6, $7);}
-////				|	COUNTTRI termlist REL number ZERO
-//				|	COUNTTRT termlist DELIM number REL NUMBER ZERO { solver->addCount($2, $4, $5, $6); }
-////				| 	DISTINCT termlist REL ZERO { solver->addDistinct($2 $3); }*/
-//				;
-
-
 			
 //---------------------------------------------		
 // MECNF THEORY	
@@ -606,19 +642,15 @@ mwset	:	WSETDEFN NUMBER NUMBER wbody ZERO
 				delete($2);
 			}
 		;
-	
-// TRANSLATION
 
+
+// TRANSLATION
 
 translation	: /* empty */
 			|	TRANSHEADER typelist predlist funclist truelist arbitlist
 				{					
 					if(fodottrans!=NULL){
-						if(modsolver.get()!=NULL){
-							modsolver->setTranslator(fodottrans);
-						}else{
-							solver->setTranslator(fodottrans);
-						}
+						sol->setTranslator(fodottrans);
 					}
 				}
 			;
@@ -681,22 +713,22 @@ body	:	body NUMBER { $$ = $1; $$->push_back(cLiteral($2));	delete($2); }
 		;
 		
 wbody	:	wbody NUMBER REL 
-				{ 
-					if($3!=MinisatID::MEQ) { 
-						throw MinisatID::idpexception("Weighted sets can only contain tuples with equality.\n");
-					} 
+			{ 
+				if($3!=MinisatID::MEQ) { 
+					throw MinisatID::idpexception("Weighted sets can only contain tuples with equality.\n");
 				} 
+			} 
 			weight	
-				{ $$ = $1; $$->push_back(MinisatID::WLtuple(cLiteral($2), cWeight($5))); delete($2);  delete $5;}
+			{ $$ = $1; $$->push_back(MinisatID::WLtuple(cLiteral($2), cWeight($5))); delete($2);  delete $5;}
 			
 		|	NUMBER REL 
-				{ 
-					if($2!=MinisatID::MEQ) { 
-						throw MinisatID::idpexception("Weighted sets can only contain tuples with equality.\n");
-					} 
+			{ 
+				if($2!=MinisatID::MEQ) { 
+					throw MinisatID::idpexception("Weighted sets can only contain tuples with equality.\n");
 				} 
+			} 
 			weight	
-				{ $$ = new std::vector<WLtuple>(1,MinisatID::WLtuple(cLiteral($1), cWeight($4))); delete($1); delete $4;}
+			{ $$ = new std::vector<WLtuple>(1,MinisatID::WLtuple(cLiteral($1), cWeight($4))); delete($1); delete $4;}
 		;
 		
 vbody	:	vbody NUMBER 	{ $$ = $1; $$->push_back(cAtom($2)); delete($2);	}
@@ -705,6 +737,10 @@ vbody	:	vbody NUMBER 	{ $$ = $1; $$->push_back(cAtom($2)); delete($2);	}
 		
 ibody 	: 	ibody number	{ $$ = $1; $$->push_back($2);	}
 		| 	number  		{ $$ = new vector<int>(1, $1);	}
+		;
+		
+uibody 	: 	uibody number	{ $$ = $1; $$->push_back($2);	}
+		| 	number  		{ $$ = new vector<uint>(1, $1);	}
 		;
 		
 number	:	NUMBER	{ $$ = atoi((*$1).c_str()); delete($1); }
@@ -723,8 +759,8 @@ int yywrap() {
 void yyinit(){ }
 
 void yydestroy(){
-	solver.reset();
-	modsolver.reset();
+	solver = NULL;
+	modsolver = NULL;
 	heads.clear();
 	modalops.clear();
 }
@@ -758,15 +794,15 @@ void checkVersion(ECNF_VERSION version){
 }
 
 void initSolver(){
-	solver = pwps(new WrappedPCSolver(modes));
+	solver = new WrappedPCSolver(modes);
 }
 
 void initModSolver(){
-	modsolver = pwsos(new WrappedSOSolver(modes));
+	modsolver = new WrappedSOSolver(modes);
 }
 
 pwls getData(){
-	if(solver.get()!=NULL){
+	if(solver!=NULL){
 		return solver;
 	}else{
 		return modsolver;
@@ -774,7 +810,7 @@ pwls getData(){
 }
 
 void readCNFModalHierLevel(bool existential, const vector<Atom>& rigidatoms){
-	assert(solver.get()==NULL);
+	assert(solver==NULL);
 	
 	bool writeexists;
 	if(existential && negatemod){
@@ -790,7 +826,7 @@ void readCNFModalHierLevel(bool existential, const vector<Atom>& rigidatoms){
 		negatemod = true;
 		writeexists = false;
 	}
-	if(modsolver.get()==NULL){
+	if(modsolver==NULL){
 		initModSolver();		 
 		cnfcurrenthead = Atom(atoms+1);
 	}else{
@@ -816,7 +852,7 @@ void readCNFModalHierLevel(bool existential, const vector<Atom>& rigidatoms){
 }
 
 void finishCNFHeader(){
-	if(modsolver.get()==NULL && solver.get()==NULL){ //plain cnf
+	if(modsolver==NULL && solver==NULL){ //plain cnf
 		initSolver();
 	}else{ //modal cnf
 		if(negatemod){
@@ -873,6 +909,15 @@ Weight cWeight(string* s){
 		w *= -1;
 	}
 	return w;
+}
+
+template<class T>
+void addCPTo(WrappedPCSolver* solver, const T& formula){
+#ifdef CPSUPPORT
+	CR(solver->add(formula));
+#else
+	throw idpexception(getNoCPSupportString());
+#endif
 }
 
 void parsetruelist(vector<int>* literalnumbers) {

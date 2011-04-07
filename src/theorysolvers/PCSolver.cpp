@@ -10,19 +10,23 @@
 
 #include <iostream>
 
-#include "external/InterfaceImpl.hpp"
+#include "wrapper/InterfaceImpl.hpp"
 
 #include "satsolver/SATSolver.hpp"
 #include "modules/IDSolver.hpp"
 #include "modules/AggSolver.hpp"
 #include "modules/ModSolver.hpp"
 
+#ifdef CPSUPPORT
+#include "modules/CPSolver.hpp"
+#endif
+
 #include "utils/Print.hpp"
 
 using namespace std;
 using namespace MinisatID;
-using namespace MinisatID::Print;
 using namespace Minisat;
+
 
 
 PCLogger::PCLogger(): propagations(0){
@@ -53,10 +57,11 @@ bool PCSolver::headerunprinted = true;
 //Has to be value copy of modes!
 PCSolver::PCSolver(SolverOption modes, MinisatID::WLSImpl& inter) :
 		LogicSolver(modes, inter),
-		satsolver(NULL), aggsolver(NULL), modsolver(NULL),
+		satsolver(NULL),
 		state(THEORY_PARSING),
 		optim(NONE), head(-1),
 		state_savedlevel(0), state_savingclauses(false),
+		aggsolver(NULL), modsolver(NULL),cpsolver(NULL),
 		logger(new PCLogger()), ecnfprinter(NULL),
 		hasMonitor(false){
 	satsolver = createSolver(*this);
@@ -77,7 +82,7 @@ PCSolver::~PCSolver() {
 	delete ecnfprinter;
 }
 
-void PCSolver::setModSolver(pModSolver m) {
+void PCSolver::setModSolver(ModSolver* m) {
 	assert(isParsing());
 	modsolver = new DPLLTSolver(m, false);
 	solvers.insert(solvers.begin(), modsolver);
@@ -310,8 +315,7 @@ bool PCSolver::add(const InnerAggregate& agg){
 	}
 	add(agg.head);
 
-	// TODO hack: after parsing, no more solvers can be created,
-	//			so we have to create the idsolver as soon as we see its ID for the first time
+	// IMPORTANT: create the definition solver as soon as possible (impossible to create it when parsing is finished)
 	if(!hasIDSolver(agg.defID)){
 		addIDSolver(agg.defID);
 	}
@@ -404,41 +408,86 @@ bool PCSolver::add(const InnerForcedChoices& choices){
 	return true;
 }
 
-/*bool PCSolver::addIntVar(int groundname, int min, int max) {
-	throw idpexception(">> CP-support is not compiled in.\n");
+bool PCSolver::add(const InnerSymmetryLiterals& symms){
+	getSolver()->addSymmetryGroup(symms.literalgroups);
+	return true;
 }
 
-bool PCSolver::addCPBinaryRel(Lit head, int groundname, EqType rel, int bound) {
-	throw idpexception(">> CP-support is not compiled in.\n");
+bool PCSolver::hasCPSolver() const { return cpsolver!=NULL; }
+bool PCSolver::hasPresentCPSolver() const { return hasCPSolver() && cpsolver->present; }
+
+template<class T>
+bool PCSolver::addCP(const T& formula){
+#ifndef CPSUPPORT
+	assert(false);
+	exit(1);
+#else
+	if(!hasCPSolver()){
+		addCPSolver();
+	}
+	assert(hasPresentCPSolver());
+	return getCPSolver()->add(formula);
+#endif
 }
 
-bool PCSolver::addCPBinaryRelVar(Lit head, int groundname, EqType rel, int groundname2) {
-	throw idpexception(">> CP-support is not compiled in.\n");
+#ifdef CPSUPPORT
+void PCSolver::addCPSolver(){
+	assert(isParsing());
+	CPSolver* temp = new CPSolver(this);
+	temp->notifyVarAdded(nVars());
+
+	cpsolver = new DPLLTSolver(temp, true);
+	solvers.insert(solvers.begin(), cpsolver);
 }
 
-bool PCSolver::addCPSum(Lit head, vector<int> termnames, EqType rel, int bound) {
-	throw idpexception(">> CP-support is not compiled in.\n");
+CPSolver* PCSolver::getCPSolver() const {
+	assert(hasPresentCPSolver());
+	return dynamic_cast<CPSolver*>(cpsolver->get());
+}
+#endif
+
+bool PCSolver::add(const InnerIntVar& obj){
+	return addCP(obj);
 }
 
-bool PCSolver::addCPSum(Lit head, vector<int> termnames, vector<int> mult, EqType rel, int bound) {
-	throw idpexception(">> CP-support is not compiled in.\n");
+bool PCSolver::add(const InnerCPBinaryRel& obj){
+	add(obj.head);
+	return addCP(obj);
 }
 
-bool PCSolver::addCPSumVar(Lit head, vector<int> termnames, EqType rel, int rhstermname) {
-	throw idpexception(">> CP-support is not compiled in.\n");
+bool PCSolver::add(const InnerCPBinaryRelVar& obj){
+	add(obj.head);
+	return addCP(obj);
 }
 
-bool PCSolver::addCPSumVar(Lit head, vector<int> termnames, vector<int> mult, EqType rel, int rhstermname) {
-	throw idpexception(">> CP-support is not compiled in.\n");
+bool PCSolver::add(const InnerCPSum& obj){
+	add(obj.head);
+	return addCP(obj);
 }
 
-bool PCSolver::addCPCount(vector<int> termnames, int value, EqType rel, int rhstermname) {
-	throw idpexception(">> CP-support is not compiled in.\n");
+bool PCSolver::add(const InnerCPSumWeighted& obj){
+	add(obj.head);
+	return addCP(obj);
 }
 
-bool PCSolver::addCPAlldifferent(const vector<int>& termnames) {
-	throw idpexception(">> CP-support is not compiled in.\n");
-}*/
+bool PCSolver::add(const InnerCPSumWithVar& obj){
+	add(obj.head);
+	return addCP(obj);
+}
+
+bool PCSolver::add(const InnerCPSumWeightedWithVar& obj){
+	add(obj.head);
+	return addCP(obj);
+}
+
+bool PCSolver::add(const InnerCPCount& obj){
+	return addCP(obj);
+}
+
+bool PCSolver::add(const InnerCPAllDiff& obj){
+	return addCP(obj);
+}
+
 
 /*
  * Returns "false" if UNSAT was already found, otherwise "true"
@@ -446,11 +495,9 @@ bool PCSolver::addCPAlldifferent(const vector<int>& termnames) {
  * IMPORTANT: before finishparsing, derived propagations are not propagated to the solvers, so after their finishparsing, we redo
  * all those propagations for the solvers
  */
-void PCSolver::finishParsing(bool& present, bool& unsat) {
+void PCSolver::finishParsing(bool& unsat) {
 	assert(isParsing());
 	state = THEORY_INITIALIZING;
-
-	present = true;
 	unsat = false;
 
 	propagations.resize(nVars(), NULL); //Lazy init
@@ -556,9 +603,9 @@ rClause PCSolver::getExplanation(Lit l) {
 
 	if (verbosity() >= 2) {
 		clog <<"Implicit reason clause from the " <<solver->getName() <<" module ";
-		Print::print(l, sign(l) ? l_False : l_True);
+		MinisatID::print(l, sign(l) ? l_False : l_True);
 		clog <<" : ";
-		Print::print(explan, *this);
+		MinisatID::print(explan, *this);
 		clog <<"\n";
 	}
 
@@ -818,7 +865,7 @@ bool PCSolver::invalidateModel(InnerDisjunction& clause) {
 
 	if (modes().verbosity >= 3) {
 		clog <<"Adding model-invalidating clause: [ ";
-		Print::print(clause);
+		MinisatID::print(clause);
 		clog <<"]\n";
 	}
 
@@ -1052,14 +1099,14 @@ void PCSolver::printStatistics() const {
 	}
 }
 
-void PCSolver::print() const{
-	Print::print(getSolver());
+void PCSolver::printState() const{
+	MinisatID::print(getSolver());
 	for(vector<DPLLTSolver*>::const_iterator i=getSolvers().begin(); i<getSolvers().end(); ++i){
-		(*i)->get()->print();
+		(*i)->get()->printState();
 	}
 }
 
-void PCSolver::print(rClause clause) const {
+void PCSolver::printClause(rClause clause) const {
 	getSolver()->printClause(getClauseRef(clause));
 }
 

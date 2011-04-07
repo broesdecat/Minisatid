@@ -18,8 +18,6 @@
 
 using namespace std;
 using namespace MinisatID;
-using namespace MinisatID::Print;
-using namespace MinisatID::Aggrs;
 
 /**
  * TODO sorted aggr?
@@ -632,6 +630,6 @@ double GenPWAgg::testGenWatchCount() {
 	}
 
 	double ratio = ((double)ws.size())/(ws.size()+nws.size());
-	Print::printSetWatchRatio(clog, getSet().getSetID(), ratio, getSolver()->verbosity());
+	printSetWatchRatio(clog, getSet().getSetID(), ratio, getSolver()->verbosity());
 	return ratio;
 }

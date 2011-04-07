@@ -25,12 +25,14 @@ class SolverOption;
 class IDSolver;
 class AggSolver;
 class ModSolver;
+
+#ifdef CPSUPPORT
+class CPSolver;
+#endif
+
 class DPLLTmodule;
 
 typedef Minisat::Solver SATSolver;
-typedef IDSolver* pIDSolver;
-typedef AggSolver* pAggSolver;
-typedef ModSolver* pModSolver;
 
 enum Optim { MNMZ, SUBSETMNMZ, AGGMNMZ, NONE }; // Preference minimization, subset minimization, sum minimization
 
@@ -80,9 +82,6 @@ private:
 
 	// IMPORTANT: implicit invariant that IDsolver is always last in the list!
 	solverlist solvers;
-	std::map<defID, DPLLTSolver*> idsolvers;
-	DPLLTSolver* aggsolver;
-	DPLLTSolver* modsolver;
 
 	TheoryState state;
 	std::vector<Lit>		initialprops;
@@ -104,16 +103,30 @@ private:
 
 	SATSolver* getSolver() const { return satsolver; }
 
+	std::map<defID, DPLLTSolver*> idsolvers;
 	bool hasIDSolver(defID id) const;
-	bool hasAggSolver() const;
-	bool hasModSolver() const;
-	bool hasPresentIDSolver(defID id) const;
-	bool hasPresentAggSolver() const;
-	bool hasPresentModSolver() const;
 	void addIDSolver(defID id);
-	void addAggSolver();
 	IDSolver* getIDSolver(defID id) const;
+	bool hasPresentIDSolver(defID id) const;
+
+	DPLLTSolver* aggsolver;
+	bool hasAggSolver() const;
+	void addAggSolver();
+	bool hasPresentAggSolver() const;
+
+	DPLLTSolver* modsolver;
+	bool hasModSolver() const;
+	bool hasPresentModSolver() const;
 	ModSolver* getModSolver() const;
+
+	DPLLTSolver* cpsolver;
+	bool hasCPSolver() const;
+	bool hasPresentCPSolver() const;
+
+#ifdef CPSUPPORT
+	void addCPSolver();
+	CPSolver* getCPSolver() const;
+#endif
 
 	// Logging
 	PCLogger* logger;
@@ -144,21 +157,20 @@ public:
 	bool	add		(const InnerMinimizeOrderedList& sentence);
 	bool	add		(const InnerMinimizeAgg& sentence);
 	bool	add		(const InnerForcedChoices& sentence);
-
-/*	bool 		addIntVar		(int groundname, int min, int max);
-	bool 		addCPBinaryRel	(Lit head, int groundname, EqType rel, int bound);
-	bool 		addCPBinaryRelVar	(Lit head, int groundname, EqType rel, int groundname2);
-	bool 		addCPSum		(Lit head, std::vector<int> termnames, EqType rel, int bound);
-	bool 		addCPSum		(Lit head, std::vector<int> termnames, std::vector<int> mult, EqType rel, int bound);
-	bool 		addCPSumVar		(Lit head, std::vector<int> termnames, EqType rel, int rhstermname);
-	bool 		addCPSumVar		(Lit head, std::vector<int> termnames, std::vector<int> mult, EqType rel, int rhstermname);
-	bool 		addCPCount		(std::vector<int> termnames, int value, EqType rel, int rhstermname);
-	bool 		addCPAlldifferent(const std::vector<int>& termnames);
-*/
+	bool	add		(const InnerSymmetryLiterals& sentence);
+	bool	add		(const InnerIntVar& object);
+	bool	add		(const InnerCPBinaryRel& object);
+	bool	add		(const InnerCPBinaryRelVar& object);
+	bool	add		(const InnerCPSum& object);
+	bool	add		(const InnerCPSumWeighted& object);
+	bool	add		(const InnerCPSumWithVar& object);
+	bool	add		(const InnerCPSumWeightedWithVar& object);
+	bool	add		(const InnerCPCount& object);
+	bool	add		(const InnerCPAllDiff& object);
 
 	// Solving support
 	void 		newDecisionLevel();
-	void 		finishParsing	(bool& present, bool& unsat);
+	void 		finishParsing	(bool& unsat);
 	bool 		simplify();
 	bool 		solve			(const vec<Lit>& assumptions, const ModelExpandOptions& options);
 	lbool 		checkStatus		(lbool status) const; //if status==l_True, do wellfoundednesscheck in IDSolver, if not wellfounded, return l_False, otherwise status
@@ -205,14 +217,17 @@ public:
 	void 		printEnqueued	(const Lit& p) const;
 	void		printChoiceMade	(int level, Lit l) const;
 	void 		printStatistics	() const;
-	void		print			() const;
-	void		print			(rClause clause) const;
+	void		printState		() const;
+	void		printClause		(rClause clause) const;
 	void 		printCurrentOptimum(const Weight& value) const;
 
 	// MONITORING
 	const PCLogger& getLogger() const { return *logger; }
 
 private:
+	template<class T>
+	bool		addCP			(const T& formula);
+
 	bool		isInitialized	() 	const { return state==THEORY_INITIALIZED; }
 	bool		isInitializing	() 	const { return state==THEORY_INITIALIZING; }
 	bool		isParsing		()	const { return state==THEORY_PARSING; }

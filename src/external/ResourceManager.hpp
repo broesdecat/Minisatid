@@ -15,6 +15,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <tr1/memory>
 
 namespace MinisatID{
 
@@ -39,7 +40,7 @@ public:
 class FileMan: public ResMan {
 private:
 	bool open, write;
-	const char* name;
+	std::string name;
 	FILE* fileptr;
 	std::filebuf filebuf;
 
@@ -47,7 +48,7 @@ private:
 	FileMan & operator=(const FileMan &);
 
 public:
-	FileMan(const char* name, bool write) : open(false), write(write), name(name), fileptr(NULL) { }
+	FileMan(std::string name, bool write) : open(false), write(write), name(name), fileptr(NULL) { }
 
 	~FileMan() { close(); }
 
@@ -74,13 +75,9 @@ public:
 };
 
 void setInputFileUrl(std::string url);
-void setOutputFileUrl(std::string url);
 FILE* getInputFile();
 std::streambuf* getInputBuffer();
-FILE* getOutputFile();
-std::streambuf* getOutputBuffer();
 void closeInput();
-void closeOutput();
 
 }
 

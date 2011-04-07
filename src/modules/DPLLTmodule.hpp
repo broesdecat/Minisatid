@@ -53,7 +53,6 @@ public:
 	virtual bool simplify() = 0; //False if problem unsat
 	virtual rClause propagate(const Lit& l) = 0;
 	virtual rClause propagateAtEndOfQueue() = 0;
-	//virtual void 	backtrack				(const Lit& l) = 0;
 	virtual void newDecisionLevel() = 0;
 	virtual void backtrackDecisionLevels(int nblevels, int untillevel) = 0;
 
@@ -68,7 +67,7 @@ public:
 	virtual bool 	checkStatus() { return true; }
 	virtual void 	printStatistics() const = 0;
 	virtual const char* getName() const = 0;
-	virtual void 	print() const = 0;
+	virtual void 	printState() const = 0;
 
 	// Convenience methods (based on getPCSolver)
 

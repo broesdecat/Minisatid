@@ -8,7 +8,7 @@
  */
 
 #include "theorysolvers/LogicSolver.hpp"
-#include "external/InterfaceImpl.hpp"
+#include "wrapper/InterfaceImpl.hpp"
 
 using namespace MinisatID;
 

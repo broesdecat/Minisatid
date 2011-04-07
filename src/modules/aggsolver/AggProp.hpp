@@ -31,8 +31,6 @@ typedef std::vector<WL> vwl;
 class PCSolver;
 class AggSolver;
 
-namespace Aggrs{
-
 class AggProp;
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
 	typedef std::shared_ptr<AggProp> paggprop;
@@ -41,8 +39,8 @@ class AggProp;
 #endif
 
 class TypedSet;
-typedef std::map<int, Aggrs::TypedSet*> mips;
-typedef std::vector<Aggrs::TypedSet*> vps;
+typedef std::map<int, TypedSet*> mips;
+typedef std::vector<TypedSet*> vps;
 
 class Watch;
 class AggReason;
@@ -262,7 +260,7 @@ protected:
 	Propagator* 		prop;		//OWNS pointer
 
 	int 				setid;
-	std::vector<Aggrs::AggTransformation*> transformations;
+	std::vector<AggTransformation*> transformations;
 
 	bool				usingwatches;
 
@@ -273,7 +271,7 @@ public:
 			aggsolver(solver),
 			prop(NULL),
 			setid(setid),
-			transformations(Aggrs::getTransformations()),
+			transformations(MinisatID::getTransformations()),
 			usingwatches(true){}
 	TypedSet(const TypedSet& set):
 			kb(set.getKnownBound()),
@@ -327,7 +325,6 @@ public:
 	void 			addExplanation	(AggReason& ar) const;
 };
 
-}
 }
 
 #endif /* AGGPROP_HPP_ */

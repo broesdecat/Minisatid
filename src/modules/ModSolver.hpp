@@ -12,7 +12,7 @@
 #include "utils/Utils.hpp"
 #include "modules/DPLLTmodule.hpp"
 
-#include "external/InterfaceImpl.hpp"
+#include "wrapper/InterfaceImpl.hpp"
 
 namespace MinisatID {
 
@@ -117,7 +117,7 @@ public:
 	void 	notifyVarAdded	(uint64_t nvars) { /*Is NOT DOWN!*/}
 
 	void 	finishParsing	(bool& present, bool& unsat){ init = true; }
-	void 	finishParsingDown(bool& present, bool& unsat);
+	void 	finishParsingDown(bool& unsat);
 
 	bool 	simplify		()	{ return true;};
 	bool 	simplifyDown	();
@@ -160,7 +160,7 @@ public:
 	 * The model of a theory is the interpretation of all atoms decided by the root SAT solver.
 	 */
 	void 		printModel		();
-	void 		print			() const;
+	void 		printState		() const;
 	void 		printStatistics	() const 	{ /*Do NOT print lower ones here*/};
 
 	//GETTERS

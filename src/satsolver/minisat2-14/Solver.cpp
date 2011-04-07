@@ -27,12 +27,16 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include "Solver.hpp"
 #include "mtl/Sort.h"
-#include <cmath>
 
-#include <vector> /*A*/
-/*A*/ using namespace Minisat;
-/*A*/ using namespace MinisatID;
-/*A*/ using namespace MinisatID::Print;
+/*AB*/
+#include <cmath>
+#include <vector>
+#include <iostream>
+#include <cstdarg>
+
+using namespace Minisat;
+using namespace MinisatID;
+/*AE*/
 
 //=================================================================================================
 // Constructor/Destructor:
@@ -108,6 +112,16 @@ Var Solver::newVar(bool sign, bool dvar)
 }
 
 /*AB*/
+
+void Solver::addSymmetryGroup(const vec<vec<Lit> >& symms){
+	symmgroups.push();
+	for(int i=0; i<symms.size(); i++){
+		symmgroups.last().push();
+		for(int j=0; j<symms[j].size(); j++){
+			symmgroups.last().last().push(symms[i][j]);
+		}
+	}
+}
 
 /**
  * This is (currently) necessary, because the intialization schema is the following:
@@ -1026,3 +1040,13 @@ void Solver::checkLiteralCount()
         assert((int)clauses_literals == cnt);
     }
 }
+
+/*AB*/
+void Solver::printStatistics() const{
+	std::clog << "> restarts              : " <<starts <<"\n";
+	std::clog << "> conflicts             : " <<decisions <<"  (" <<(float)rnd_decisions*100 / (float)decisions <<" % random)\n";
+	std::clog << "> decisions             : " <<starts <<"\n";
+	std::clog << "> propagations          : " <<propagations <<"\n";
+	std::clog << "> conflict literals     : " <<tot_literals <<"  (" <<((max_literals-tot_literals)*100/(double)max_literals) <<" % deleted)\n";
+}
+/*AE*/

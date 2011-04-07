@@ -16,29 +16,28 @@
 
 using namespace std;
 using namespace MinisatID;
-using namespace MinisatID::Print;
 
-void Aggrs::setAdded(){
-
-}
-
-void Aggrs::aggrAdded(){
+void MinisatID::setAdded(){
 
 }
 
-void Aggrs::litPropagated(){
+void MinisatID::aggrAdded(){
 
 }
 
-void Aggrs::explanationGenerated(){
+void MinisatID::litPropagated(){
 
 }
 
-void Aggrs::sets(){
+void MinisatID::explanationGenerated(){
 
 }
 
-void Aggrs::printWatches(int verbosity, AggSolver const * const solver, const std::vector<std::vector<Watch*> >& tempwatches){
+void MinisatID::sets(){
+
+}
+
+void MinisatID::printWatches(int verbosity, AggSolver const * const solver, const std::vector<std::vector<Watch*> >& tempwatches){
 	if(verbosity<10){
 		return;
 	}
@@ -58,7 +57,7 @@ void Aggrs::printWatches(int verbosity, AggSolver const * const solver, const st
 			continue;
 		}
 
-		clog<<"    Watch "; Print::print(toLit(i)); clog<<" used by: \n";
+		clog<<"    Watch "; print(toLit(i)); clog<<" used by: \n";
 		for(vsize j=0; j<tempwatches[i].size(); ++j){
 			for(vsize k=0; k<tempwatches[i][j]->getSet()->getAgg().size(); ++k){
 				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(tempwatches[i][j]);
@@ -77,7 +76,7 @@ void printValue(T& output, lbool value){
 	output <<"(" <<(value==l_Undef?"X":value==l_True?"T":"F") <<")";
 }
 
-void Aggrs::print(int verbosity, const TypedSet& c, bool endl) {
+void MinisatID::print(int verbosity, const TypedSet& c, bool endl) {
 	if(verbosity<7){
 		clog <<"set " <<c.getSetID();
 	}else{
@@ -88,7 +87,7 @@ void Aggrs::print(int verbosity, const TypedSet& c, bool endl) {
 				clog <<", ";
 			}
 			begin = false;
-			Print::print((*i).getLit());
+			print((*i).getLit());
 			lbool value = c.getSolver()->value((*i).getLit());
 			printValue(clog, value);
 			clog <<"=" <<(*i).getWeight();
@@ -100,8 +99,8 @@ void Aggrs::print(int verbosity, const TypedSet& c, bool endl) {
 	}
 }
 
-void Aggrs::print(int verbosity, const Agg& ae, bool endl) {
-	Print::print(ae.getHead());
+void MinisatID::print(int verbosity, const Agg& ae, bool endl) {
+	print(ae.getHead());
 	lbool value = ae.getSet()->getSolver()->value(ae.getHead());
 	printValue(clog, value);
 	TypedSet* set = ae.getSet();

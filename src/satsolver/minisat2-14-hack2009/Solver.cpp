@@ -32,11 +32,14 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "mtl/Sort.h"
 #include <cmath>
 
+/*AB*/
 #include <vector>
+#include <iostream>
+#include <cstdarg>
 
 using namespace Minisat;
 using namespace MinisatID;
-using namespace MinisatID::Print;
+/*AE*/
 
 //=================================================================================================
 // Constructor/Destructor:
@@ -120,6 +123,16 @@ Var Solver::newVar(bool sign, bool dvar)
 }
 
 /*AB*/
+
+void Solver::addSymmetryGroup(const vec<vec<Lit> >& symms){
+	symmgroups.push();
+	for(int i=0; i<symms.size(); i++){
+		symmgroups.last().push();
+		for(int j=0; j<symms[j].size(); j++){
+			symmgroups.last().last().push(symms[i][j]);
+		}
+	}
+}
 
 /**
  * This is (currently) necessary, because the intialization schema is the following:
@@ -1092,10 +1105,10 @@ void Solver::checkLiteralCount()
 
 /*AB*/
 void Solver::printStatistics() const{
-	reportf("restarts              : %lu\n", starts);
-	reportf("conflicts             : %-12lu\n", conflicts);
-	reportf("decisions             : %-12lu   (%4.2f %% random)\n", decisions, (float)rnd_decisions*100 / (float)decisions);
-	reportf("propagations          : %-12lu\n", propagations);
-    reportf("conflict literals     : %-12lu   (%4.2f %% deleted)\n", tot_literals, (max_literals - tot_literals)*100 / (double)max_literals);
+	std::clog << "> restarts              : " <<starts <<"\n";
+	std::clog << "> conflicts             : " <<decisions <<"  (" <<(float)rnd_decisions*100 / (float)decisions <<" % random)\n";
+	std::clog << "> decisions             : " <<starts <<"\n";
+	std::clog << "> propagations          : " <<propagations <<"\n";
+	std::clog << "> conflict literals     : " <<tot_literals <<"  (" <<((max_literals-tot_literals)*100/(double)max_literals) <<" % deleted)\n";
 }
 /*AE*/

@@ -4,16 +4,10 @@
 # Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
 SUBDIRS = parser
 
-LIBSDIR = $(srcdir)/../lib/
+libssourcedir = $(srcdir)/../lib/
+libsbuilddir = $(builddir)/../lib/
 
-AM_CXXFLAGS = @AC_CXXFLAGS@ -D VERSION=\"$(MINISATID_VERSION)\" -I $(LIBSDIR)/tclap/include/ #-std=gnu++0x 
-AM_LDFLAGS = @AC_LDFLAGS@
-
-AM_YFLAGS = -d 
-AM_LFLAGS =
-
-#ESSENTIAL FOR INTTYPES USAGE
-AM_CXXFLAGS+= -D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS
+AM_CXXFLAGS = @AC_CXXFLAGS@ -D VERSION=\"$(MINISATID_VERSION)\" #-std=gnu++0x 
 
 lib_LTLIBRARIES = libminisatid-2.0.la
 libminisatid_2_0_la_LDFLAGS = -version-info 1:0:0
@@ -23,31 +17,20 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = minisatid-2.0.pc
 EXTRA_DIST = minisatid-2.0.pc.in
 
-libminisatid_2_0_la_LIBADD = @LIBS@ ../lib/pbsolver/libpbsolver-1.0.la # do not forget ldconfig after installing ;)
-
+# do not forget ldconfig after installing ;)
+libminisatid_2_0_la_LIBADD = @minisatliblibs@ $(libsbuilddir)/pbsolver/libpbsolver-1.0.la 
 if USEPERFTOOLS
-libminisatid_2_0_la_LIBADD += ../lib/perftools/.libs/libtcmalloc.la ../lib/perftools/.libs/libprofiler.la
+libminisatid_2_0_la_LIBADD += $(libsbuilddir)/perftools/.libs/libtcmalloc.la $(libsbuilddir)/perftools/.libs/libprofiler.la
 endif
-
-bin_PROGRAMS = minisatid
-BUILT_SOURCES = parser/ecnfparser.h
-minisatid_LDADD = ../src/libminisatid-2.0.la
-
-minisatid_SOURCES = \
-		Main.cpp\
-		parser/ecnftoken.lpp 				parser/ecnfparser.ypp
-		
-minisatid_include_HEADERS = \
-		external/ExternalInterface.hpp\
-		external/ExternalUtils.hpp\
-		external/Translator.hpp
 		
 libminisatid_2_0_la_SOURCES = \
-		external/ExternalInterface.hpp		external/ExternalInterface.cpp\
+		external/ExternalInterface.hpp		wrapper/ExternalInterface.cpp\
 		external/ExternalUtils.hpp\
 		external/MonitorInterface.hpp\
-		external/Translator.hpp				external/Translator.cpp\
-		external/InterfaceImpl.hpp			external/InterfaceImpl.cpp\
+		external/Translator.hpp				wrapper/Translator.cpp\
+		wrapper/InterfaceImpl.hpp			wrapper/InterfaceImpl.cpp\
+		external/SolvingMonitor.hpp			wrapper/SolvingMonitor.cpp\
+		external/ResourceManager.hpp		wrapper/ResourceManager.cpp\
 		satsolver/SATSolver.hpp				satsolver/SATSolver.cpp\
 		satsolver/SATUtils.hpp				satsolver/SATUtils.cpp\
 		modules/DPLLTmodule.hpp 			modules/DPLLTmodule.cpp\
@@ -68,22 +51,28 @@ libminisatid_2_0_la_SOURCES = \
 		utils/ECNFPrinter.hpp				utils/ECNFPrinter.cpp\
 		utils/Utils.hpp 					utils/Utils.cpp\
 		utils/PrintMessage.hpp 				utils/PrintMessage.cpp\
-		parser/ResourceManager.hpp 			parser/ResourceManager.cpp\
 		parser/Lparseread.hpp 				parser/Lparseread.cpp\
 		parser/PBread.hpp 					parser/PBread.cpp\
 		parser/ParseOptions.hpp 			parser/ParseOptions.cpp\
 		GeneralUtils.hpp 					GeneralUtils.cpp\
 		Unittests.hpp 						Unittests.cpp
 
-#PBSOLVER		
-AM_CXXFLAGS += -I $(LIBSDIR)/pbsolver/ -I $(LIBSDIR)/pbsolver/pbbase/h/ -I $(LIBSDIR)/pbsolver/ADTs/ -DDATADIR=\"$(datadir)\"
+# TClap argument parsing framework
+AM_CXXFLAGS += -I $(libssourcedir)/tclap/include/
 
-#PLUSCALLBACK
-AM_CXXFLAGS += -I $(LIBSDIR)/pluscallback1.7/
+# Required for inttypes usage
+AM_CXXFLAGS += -D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS
 
-#MINISAT 2.07 09z
+# Callback framework
+AM_CXXFLAGS += -I $(libssourcedir)/pluscallback1.7/
+
+# Pbsolver		
+AM_CXXFLAGS += \
+		-I $(libssourcedir)/pbsolver/ -I $(libssourcedir)/pbsolver/pbbase/h/ \
+		-I $(libssourcedir)/pbsolver/ADTs/ -DDATADIR=\"$(datadir)\"
+
+# Minisat 2.14 2009z
 if USEMINISAT09Z
-#m09zdir=satsolver/minisat2-14-hack2009
 libminisatid_2_0_la_SOURCES +=\
 		satsolver/minisat2-14-hack2009/Solver.cpp\
 		satsolver/minisat2-14-hack2009/Solver.hpp satsolver/minisat2-14-hack2009/SolverTypes.hpp\
@@ -93,9 +82,8 @@ libminisatid_2_0_la_SOURCES +=\
 AM_CXXFLAGS += -D USEMINISAT09Z -I$(srcdir)/satsolver/minisat2-14-hack2009/
 endif
 
-#MINISAT 2.2
+# Minisat 2.2
 if USEMINISAT22
-#m22dir=satsolver/minisat2-2/minisat
 libminisatid_2_0_la_SOURCES +=\
 		satsolver/minisat2-2/minisat/core/Solver.cc\
 		satsolver/minisat2-2/minisat/core/Solver.h satsolver/minisat2-2/minisat/core/SolverTypes.h \
@@ -103,16 +91,13 @@ libminisatid_2_0_la_SOURCES +=\
 		satsolver/minisat2-2/minisat/mtl/Map.h satsolver/minisat2-2/minisat/mtl/Alloc.h\
 		satsolver/minisat2-2/minisat/mtl/Queue.h satsolver/minisat2-2/minisat/mtl/Heap.h\
 		satsolver/minisat2-2/minisat/mtl/Sort.h satsolver/minisat2-2/minisat/mtl/XAlloc.h\
-		satsolver/minisat2-2/minisat/utils/ParseUtils.h satsolver/minisat2-2/minisat/utils/Options.h\
-		satsolver/minisat2-2/minisat/zconf.h satsolver/minisat2-2/minisat/zlib.h
+		satsolver/minisat2-2/minisat/utils/ParseUtils.h satsolver/minisat2-2/minisat/utils/Options.h
 AM_CXXFLAGS+= -D USEMINISAT22 -I$(srcdir)/satsolver/minisat2-2/minisat -I$(srcdir)/satsolver/minisat2-2/
-#add if not added by minisatid itself! AM_CXXFLAGS+= -D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS
-EXTRA_DIST += satsolver/minisat2-2/README satsolver/minisat2-2/LICENSE satsolver/minisat2-2/doc
+#also requires AM_CXXFLAGS+= -D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS
 endif
 
-#MINISAT 2.07
+# Minisat 2.14
 if USEMINISAT
-#m214dir=satsolver/minisat2-14
 libminisatid_2_0_la_SOURCES +=\
 		satsolver/minisat2-14/Solver.cpp\
 		satsolver/minisat2-14/Solver.hpp satsolver/minisat2-14/SolverTypes.hpp\
@@ -120,3 +105,32 @@ libminisatid_2_0_la_SOURCES +=\
 		satsolver/minisat2-14/mtl/Heap.h satsolver/minisat2-14/mtl/Map.h satsolver/minisat2-14/mtl/Sort.h
 AM_CXXFLAGS += -D USEMINISAT -I$(srcdir)/satsolver/minisat2-14/
 endif
+
+# CP interface
+if USECPSUPPORT
+libminisatid_2_0_la_SOURCES +=\
+		modules/CPSolver.hpp 				modules/CPSolver.cpp\
+		modules/cpsolver/Constraint.hpp		modules/cpsolver/Constraint.cpp\
+		modules/cpsolver/CPSolverData.hpp	modules/cpsolver/CPSolverData.cpp\
+		modules/cpsolver/CPUtils.hpp		modules/cpsolver/CPUtils.cpp\
+		modules/cpsolver/CPScript.hpp		modules/cpsolver/CPScript.cpp
+AM_CXXFLAGS += -D CPSUPPORT
+endif
+
+AM_YFLAGS = -d 
+AM_LFLAGS =
+
+bin_PROGRAMS = minisatid
+BUILT_SOURCES = parser/ecnfparser.h
+minisatid_LDADD = libminisatid-2.0.la
+
+minisatid_SOURCES = \
+		Main.cpp\
+		parser/ecnftoken.lpp 				parser/ecnfparser.ypp
+		EXTRA_DIST += satsolver/minisat2-2/README satsolver/minisat2-2/LICENSE satsolver/minisat2-2/doc
+EXTRA_DIST += satsolver/minisat2-2/README satsolver/minisat2-2/LICENSE satsolver/minisat2-2/doc
+		
+minisatid_include_HEADERS = \
+		external/ExternalInterface.hpp\
+		external/ExternalUtils.hpp\
+		external/Translator.hpp

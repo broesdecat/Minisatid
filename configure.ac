@@ -41,13 +41,11 @@ AC_TYPE_SIZE_T
 
 # distribute additional compiler and linker flags
 AC_SUBST([AC_CXXFLAGS])
-AC_SUBST([AC_LDFLAGS])
-AC_SUBST([LIBS])
+AC_SUBST([minisatliblibs])
 AC_SUBST([MINISATID_VERSION])
 
 MINISATID_VERSION=m4_esyscmd([./m4/version.m4 | tr -d '\n'])
 AC_CXXFLAGS=" "
-AC_LDFLAGS=" "
 
 AC_CXXFLAGS+="-ffloat-store -Wall -Wextra -Wno-unused-parameter "
 #should use -Wno-vla to allow variable sized arrays, which pbsolver has
@@ -57,13 +55,12 @@ AC_CXXFLAGS+="-ffloat-store -Wall -Wextra -Wno-unused-parameter "
 AC_ARG_ENABLE([build],
 [  --enable-build    Turn on debugging (debug), profiling (profile), release version(release), static release version (static) or code cover building (codecover)],
 [case "${enableval}" in
-	debug)   AC_CXXFLAGS+="-O0 -ggdb -D DEBUG " 		AC_LDFLAGS+=" -ggdb " ;;
-	profile) AC_CXXFLAGS+="-O3 -pg -ggdb -D NDEBUG " 	AC_LDFLAGS+=" -ggdb " ;;
-	release) AC_CXXFLAGS+="-O3 -D NDEBUG " 				AC_LDFLAGS+=" " ;;
-	static)  AC_CXXFLAGS+="-O3 -D NDEBUG " 				AC_LDFLAGS+=" -static " ;;
-	codecover) AC_CXXFLAGS+="-O0 -fprofile-arcs -ftest-coverage -ggdb -D DEBUG " AC_LDFLAGS+="-ggdb " ;;
+	debug)   AC_CXXFLAGS+="-O0 -ggdb -D DEBUG " 	;;
+	profile) AC_CXXFLAGS+="-O3 -pg -ggdb -D NDEBUG " ;;
+	release) AC_CXXFLAGS+="-O3 -D NDEBUG "			 ;;
+	codecover) AC_CXXFLAGS+="-O0 -fprofile-arcs -ftest-coverage -ggdb -D DEBUG " ;;
 	*) AC_MSG_ERROR([bad value ${enableval} for --enable-build]) ;;
-esac],[		AC_CXXFLAGS+="-O3 -D NDEBUG " 				AC_LDFLAGS+=" "])
+esac],[		AC_CXXFLAGS+="-O3 -D NDEBUG "])
 
 AC_ARG_ENABLE([sat],
 [  --enable-sat    Use minisat 2.0b(old), minisat 09z(hack) or minisat 2.2(new)],
@@ -106,14 +103,57 @@ esac],[ AC_CXXFLAGS+=" -D NO_GMP " ])
 AC_ARG_ENABLE([perftools],
 [  --enable-perftools=false    Use the google perftools library for memory allocation (does not work for each OS, please consult "http://code.google.com/p/google-perftools/"],
 [case "${enableval}" in
-	no) perftools=false ;;
-	yes) perftools=true ;;
+	no) perftools=no ;;
+	yes) perftools=yes ;;
 	*) AC_MSG_ERROR([bad value ${enableval} for --enable-perftools]) ;;
-esac],[ perftools=false ])
+esac],[ perftools=no ])
 
-AM_CONDITIONAL([USEPERFTOOLS],[test x$perftools = xtrue])
+AC_ARG_ENABLE([cp],
+[  --enable-cp    Include constraint programming support [yes/no] ],
+[enablegecode=$enableval],[enablegecode=no])
 
-AC_CONFIG_SUBDIRS([lib/tclap lib/perftools])
+AC_ARG_ENABLE([cpdir],
+[  --enable-cpdir    Specify directory in which gecode is installed (libs in dir/lib, headers in dir/include/) ],
+[gecodedir=$enableval],[gecodedir=""])
+
+if test "x$gecodedir" != "x"; then
+	hasgecodedir="yes"
+	enablegecode="yes"
+else
+	hasgecodedir=no
+fi
+
+# Check for gecode
+if test "x$enablegecode" = "xyes" -a "x$hasgecodedir" = "xno"; then
+	#what function to check for? AC_CHECK_LIB([gecodekernel], [space], [], [enablegecode=no], [])
+	AC_CHECK_HEADERS([gecode/kernel.hh gecode/driver.hh gecode/int.hh gecode/minimodel.hh], [], [enablegecode=no])
+	if test "x$enablegecode" = "xno"; then
+		AC_MSG_WARN([gecode headers could not be found, disabling cp support])
+	else
+		minisatliblibs+=" -lgecodesearch -lgecodegist -lgecodedriver -lgecodeminimodel -lgecodeset -lgecodeint -lgecodekernel -lgecodesupport "
+	fi
+fi
+if test "x$enablegecode" = "xyes" -a "x$hasgecodedir" = "xyes"; then
+	echo "Expecting gecode directory to be correct, not verifying"
+	minisatliblibs+=" -L$gecodedir/lib -lgecodesearch "
+	minisatliblibs+=" -L$gecodedir/lib -lgecodegist "
+	minisatliblibs+=" -L$gecodedir/lib -lgecodedriver "
+	minisatliblibs+=" -L$gecodedir/lib -lgecodeminimodel "
+	minisatliblibs+=" -L$gecodedir/lib -lgecodeset "
+	minisatliblibs+=" -L$gecodedir/lib -lgecodeint "
+	minisatliblibs+=" -L$gecodedir/lib -lgecodekernel "
+	minisatliblibs+=" -L$gecodedir/lib -lgecodesupport "
+	AC_CXXFLAGS+=" -I $gecodedir/include "
+fi
+
+AM_CONDITIONAL([USEPERFTOOLS],[test x$perftools = xyes])
+AM_CONDITIONAL([USECPSUPPORT],[test x$enablegecode == xyes])
+
+if test "x$perftools" = "xyes"; then
+	AC_CONFIG_SUBDIRS([lib/perftools])
+fi
+
+AC_CONFIG_SUBDIRS([lib/tclap])
 AC_CONFIG_FILES([Makefile doc/Makefile lib/Makefile lib/pbsolver/Makefile src/Makefile src/parser/Makefile src/minisatid-2.0.pc])
 
 AC_OUTPUT
