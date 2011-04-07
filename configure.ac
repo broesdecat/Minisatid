@@ -41,13 +41,11 @@ AC_TYPE_SIZE_T
 
 # distribute additional compiler and linker flags
 AC_SUBST([AC_CXXFLAGS])
-AC_SUBST([AC_LDFLAGS])
 AC_SUBST([LIBS])
 AC_SUBST([MINISATID_VERSION])
 
 MINISATID_VERSION=m4_esyscmd([./m4/version.m4 | tr -d '\n'])
 AC_CXXFLAGS=" "
-AC_LDFLAGS=" "
 
 AC_CXXFLAGS+="-ffloat-store -Wall -Wextra -Wno-unused-parameter "
 #should use -Wno-vla to allow variable sized arrays, which pbsolver has
@@ -57,13 +55,12 @@ AC_CXXFLAGS+="-ffloat-store -Wall -Wextra -Wno-unused-parameter "
 AC_ARG_ENABLE([build],
 [  --enable-build    Turn on debugging (debug), profiling (profile), release version(release), static release version (static) or code cover building (codecover)],
 [case "${enableval}" in
-	debug)   AC_CXXFLAGS+="-O0 -ggdb -D DEBUG " 		AC_LDFLAGS+=" -ggdb " ;;
-	profile) AC_CXXFLAGS+="-O3 -pg -ggdb -D NDEBUG " 	AC_LDFLAGS+=" -ggdb " ;;
-	release) AC_CXXFLAGS+="-O3 -D NDEBUG " 				AC_LDFLAGS+=" " ;;
-	static)  AC_CXXFLAGS+="-O3 -D NDEBUG " 				AC_LDFLAGS+=" -static " ;;
-	codecover) AC_CXXFLAGS+="-O0 -fprofile-arcs -ftest-coverage -ggdb -D DEBUG " AC_LDFLAGS+="-ggdb " ;;
+	debug)   AC_CXXFLAGS+="-O0 -ggdb -D DEBUG " 	;;
+	profile) AC_CXXFLAGS+="-O3 -pg -ggdb -D NDEBUG " ;;
+	release) AC_CXXFLAGS+="-O3 -D NDEBUG "			 ;;
+	codecover) AC_CXXFLAGS+="-O0 -fprofile-arcs -ftest-coverage -ggdb -D DEBUG " ;;
 	*) AC_MSG_ERROR([bad value ${enableval} for --enable-build]) ;;
-esac],[		AC_CXXFLAGS+="-O3 -D NDEBUG " 				AC_LDFLAGS+=" "])
+esac],[		AC_CXXFLAGS+="-O3 -D NDEBUG "])
 
 AC_ARG_ENABLE([sat],
 [  --enable-sat    Use minisat 2.0b(old), minisat 09z(hack) or minisat 2.2(new)],
@@ -133,19 +130,19 @@ if test "x$enablegecode" = "xyes" -a "x$hasgecodedir" = "xno"; then
 	if test "x$enablegecode" = "xno"; then
 		AC_MSG_WARN([gecode headers could not be found, disabling cp support])
 	else
-		AC_LDFLAGS+=" -lgecodesearch -lgecodegist -lgecodedriver -lgecodeminimodel -lgecodeset -lgecodeint -lgecodekernel -lgecodesupport "
+		LIBS+=" -lgecodesearch -lgecodegist -lgecodedriver -lgecodeminimodel -lgecodeset -lgecodeint -lgecodekernel -lgecodesupport "
 	fi
 fi
 if test "x$enablegecode" = "xyes" -a "x$hasgecodedir" = "xyes"; then
 	echo "Expecting gecode directory to be correct, not verifying"
-	AC_LDFLAGS+=" -L$gecodedir/lib -lgecodesearch "
-	AC_LDFLAGS+=" -L$gecodedir/lib -lgecodegist "
-	AC_LDFLAGS+=" -L$gecodedir/lib -lgecodedriver "
-	AC_LDFLAGS+=" -L$gecodedir/lib -lgecodeminimodel "
-	AC_LDFLAGS+=" -L$gecodedir/lib -lgecodeset "
-	AC_LDFLAGS+=" -L$gecodedir/lib -lgecodeint "
-	AC_LDFLAGS+=" -L$gecodedir/lib -lgecodekernel "
-	AC_LDFLAGS+=" -L$gecodedir/lib -lgecodesupport "
+	LIBS+=" -L$gecodedir/lib -lgecodesearch "
+	LIBS+=" -L$gecodedir/lib -lgecodegist "
+	LIBS+=" -L$gecodedir/lib -lgecodedriver "
+	LIBS+=" -L$gecodedir/lib -lgecodeminimodel "
+	LIBS+=" -L$gecodedir/lib -lgecodeset "
+	LIBS+=" -L$gecodedir/lib -lgecodeint "
+	LIBS+=" -L$gecodedir/lib -lgecodekernel "
+	LIBS+=" -L$gecodedir/lib -lgecodesupport "
 	AC_CXXFLAGS+=" -I $gecodedir/include "
 fi
 
