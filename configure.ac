@@ -116,7 +116,7 @@ AC_ARG_ENABLE([cp],
 [enablegecode=$enableval],[enablegecode=no])
 
 AC_ARG_ENABLE([cpdir],
-[  --enable-cpdir    Specify directory in which gecode is installed (libs in dir/lib, headers in dir/share/) ],
+[  --enable-cpdir    Specify directory in which gecode is installed (libs in dir/lib, headers in dir/include/) ],
 [gecodedir=$enableval],[gecodedir=""])
 
 if test "x$gecodedir" != "x"; then
@@ -144,7 +144,7 @@ if test "x$enablegecode" = "xyes" -a "x$hasgecodedir" = "xyes"; then
 	AC_LDFLAGS+=" -L$gecodedir/lib -lgecodeint "
 	AC_LDFLAGS+=" -L$gecodedir/lib -lgecodekernel "
 	AC_LDFLAGS+=" -L$gecodedir/lib -lgecodesupport "
-	AC_CXXFLAGS+=" -I $gecodedir/share "
+	AC_CXXFLAGS+=" -I $gecodedir/include "
 fi
 
 AM_CONDITIONAL([USEPERFTOOLS],[test x$perftools = xyes])
