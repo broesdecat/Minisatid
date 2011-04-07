@@ -446,7 +446,11 @@ CPSolver* PCSolver::getCPSolver() const {
 }
 #endif
 
-bool PCSolver::add(const InnerIntVar& obj){
+bool PCSolver::add(const InnerIntVarRange& obj){
+	return addCP(obj);
+}
+
+bool PCSolver::add(const InnerIntVarEnum& obj){
 	return addCP(obj);
 }
 

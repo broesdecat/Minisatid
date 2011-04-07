@@ -82,7 +82,13 @@ vtiv CPSolver::convertToVars(const std::vector<uint>& terms) const{
 
 // INITIALIZATION
 
-bool CPSolver::add(const InnerIntVar& form){
+bool CPSolver::add(const InnerIntVarEnum& form){
+	assert(!isInitialized());
+	getData().addTerm(TermIntVar(getSpace(), form.varID, form.values));
+	return true;
+}
+
+bool CPSolver::add(const InnerIntVarRange& form){
 	assert(!isInitialized());
 	getData().addTerm(TermIntVar(getSpace(), form.varID, form.minvalue, form.maxvalue));
 	return true;

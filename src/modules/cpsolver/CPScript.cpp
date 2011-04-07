@@ -39,6 +39,18 @@ intvarindex CPScript::addIntVar(int min, int max){
 	return intvars.size()-1;
 }
 
+intvarindex CPScript::addIntVar(const vector<int>& values){
+	int valuelist[values.size()];
+	int index = 0;
+	for(vector<int>::const_iterator i=values.begin(); i<values.end(); ++i){
+		valuelist[index] = *i;
+		++index;
+	}
+	IntSet set = IntSet(valuelist, values.size());
+	intvars.push_back(IntVar(*this, set));
+	return intvars.size()-1;
+}
+
 boolvarindex CPScript::addBoolVar(){
 	boolvars.push_back(BoolVar(*this, 0, 1));
 	return boolvars.size()-1;

@@ -61,7 +61,8 @@ namespace MinisatID {
 				CPSolver	(PCSolver * pcsolver);
 		virtual ~CPSolver	();
 
-		bool 	add		(const InnerIntVar& form);
+		bool 	add		(const InnerIntVarEnum& form);
+		bool 	add		(const InnerIntVarRange& form);
 		bool 	add		(const InnerCPBinaryRel& form);
 		bool 	add		(const InnerCPBinaryRelVar& form);
 		bool 	add		(const InnerCPSum& form);

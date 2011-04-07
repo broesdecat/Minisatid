@@ -23,14 +23,15 @@ namespace MinisatID{
 	class TermIntVar{
 	private:
 		int ID;
+		bool range;
 		int min, max;
+		std::vector<int> values;
 		termindex var;
-
-		//	TermIntVar(TermIntVar&){}
 
 	public:
 		TermIntVar();
 		TermIntVar(CPScript& space, int groundterm, int min, int max);
+		TermIntVar(CPScript& space, int groundterm, const std::vector<int>& values);
 
 		virtual ~TermIntVar(){}
 

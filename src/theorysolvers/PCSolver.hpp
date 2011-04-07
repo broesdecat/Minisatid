@@ -158,7 +158,8 @@ public:
 	bool	add		(const InnerMinimizeAgg& sentence);
 	bool	add		(const InnerForcedChoices& sentence);
 	bool	add		(const InnerSymmetryLiterals& sentence);
-	bool	add		(const InnerIntVar& object);
+	bool	add		(const InnerIntVarEnum& object);
+	bool	add		(const InnerIntVarRange& object);
 	bool	add		(const InnerCPBinaryRel& object);
 	bool	add		(const InnerCPBinaryRelVar& object);
 	bool	add		(const InnerCPSum& object);

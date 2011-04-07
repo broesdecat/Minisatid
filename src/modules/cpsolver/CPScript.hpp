@@ -32,6 +32,7 @@ namespace MinisatID{
 
 		// Return the mapping of the Var to an integer number
 		intvarindex		addIntVar(int min, int max);
+		intvarindex 	addIntVar(const std::vector<int>& values);
 		boolvarindex	addBoolVar();
 
 		void 			addBranchers();

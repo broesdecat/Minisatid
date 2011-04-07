@@ -411,9 +411,17 @@ void checkCPSupport(){
 }
 
 template<>
-bool ExternalPCImpl::add(const CPIntVar& sentence){
+bool ExternalPCImpl::add(const CPIntVarEnum& sentence){
 	checkCPSupport();
-	InnerIntVar var;
+	InnerIntVarEnum var;
+	var.varID = sentence.varID;
+	var.values = sentence.values;
+	return getSolver()->add(var);
+}
+template<>
+bool ExternalPCImpl::add(const CPIntVarRange& sentence){
+	checkCPSupport();
+	InnerIntVarRange var;
 	var.varID = sentence.varID;
 	var.minvalue = sentence.minvalue;
 	var.maxvalue = sentence.maxvalue;

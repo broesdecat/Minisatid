@@ -124,7 +124,12 @@ struct InnerSubTheory{
 	Lit head;
 };
 
-struct InnerIntVar{
+struct InnerIntVarEnum{
+	uint varID;
+	std::vector<int> values;
+};
+
+struct InnerIntVarRange{
 	uint varID;
 	int minvalue, maxvalue;
 };

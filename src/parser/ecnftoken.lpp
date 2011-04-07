@@ -90,6 +90,7 @@ WHITESPACE	[\t\r ]*
 <theory>"|"		{ADJ; return DELIM;}
 
 <theory>^"INTVAR"	{ADJ; return INTVAR;}
+<theory>^"INTVARDOM" {ADJ; return INTVARDOM;}
 <theory>^"BINTRI"	{ADJ; return BINTRI;}
 <theory>^"BINTRT"	{ADJ; return BINTRT;}
 <theory>^"DISTINCT"	{ADJ; return DISTINCT;}

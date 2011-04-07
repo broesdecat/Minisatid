@@ -18,10 +18,14 @@ using namespace std;
 using namespace MinisatID;
 using namespace Gecode;
 
-TermIntVar::TermIntVar():min(-1), max(-1), var(-1){	}
+TermIntVar::TermIntVar():range(false), min(-1), max(-1), var(-1){	}
 
 TermIntVar::TermIntVar(CPScript& space, int groundterm, int min, int max):
-		ID(groundterm), min(min), max(max), var(space.addIntVar(min, max)){
+		ID(groundterm), range(false), min(min), max(max), var(space.addIntVar(min, max)){
+}
+
+TermIntVar::TermIntVar(CPScript& space, int groundterm, const vector<int>& values):
+		ID(groundterm), range(false), min(-1), max(-1), values(values), var(space.addIntVar(values)){
 }
 
 Gecode::IntVar 	TermIntVar::getIntVar(const CPScript& space) const {

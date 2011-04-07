@@ -401,9 +401,14 @@ public:
 	MinimizeAgg(): head(0){}
 };
 
-struct CPIntVar{
+struct CPIntVarRange{
 	uint varID;
 	int minvalue, maxvalue;
+};
+
+struct CPIntVarEnum{
+	uint varID;
+	std::vector<int> values;
 };
 
 struct CPBinaryRel{
