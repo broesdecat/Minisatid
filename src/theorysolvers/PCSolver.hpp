@@ -85,7 +85,8 @@ private:
 	DPLLTSolver* modsolver;
 
 	TheoryState state;
-	std::vector<Lit>		initialprops;
+	uint 		nbskipped; //For printing the full and correct trail.
+	std::vector<Lit>		initialprops; //IMPORTANT for printing trail, DO NOT CLEAR
 
 	std::vector<DPLLTmodule*> propagations;
 

@@ -55,6 +55,7 @@ PCSolver::PCSolver(SolverOption modes, MinisatID::WLSImpl& inter) :
 		LogicSolver(modes, inter),
 		satsolver(NULL), aggsolver(NULL), modsolver(NULL),
 		state(THEORY_PARSING),
+		nbskipped(0),
 		optim(NONE), head(-1),
 		state_savedlevel(0), state_savingclauses(false),
 		logger(new PCLogger()), ecnfprinter(NULL),
@@ -619,16 +620,27 @@ void PCSolver::backtrackDecisionLevel(int levels, int untillevel) {
  * Returns not-owning pointer
  */
 rClause PCSolver::propagate(Lit l) {
+	if (isBeingMonitored()) {
+		bool print = false;
+		if (!isInitialized()) {
+			print = true;
+		} else {
+			if (nbskipped > initialprops.size()) {
+				print = true;
+			}
+			nbskipped++;
+		}
+		if (print) {
+			InnerPropagation prop;
+			prop.decisionlevel = getCurrentDecisionLevel();
+			prop.propagation = l;
+			notifyMonitor(prop);
+		}
+	}
+
 	if (!isInitialized()) {
 		initialprops.push_back(l);
 		return nullPtrClause;
-	}
-
-	if(isBeingMonitored()){
-		InnerPropagation prop;
-		prop.decisionlevel = getCurrentDecisionLevel();
-		prop.propagation = l;
-		notifyMonitor(prop);
 	}
 
 	rClause confl = nullPtrClause;
