@@ -317,7 +317,12 @@ struct WLtuple{
 };
 
 typedef std::vector<Literal> literallist;
-typedef std::vector<std::vector<Literal> > modellist;
+
+struct VariableEqValue{
+	int variable;
+	int value;
+};
+
 
 class Disjunction{
 public:
@@ -326,16 +331,16 @@ public:
 
 class DisjunctionRef{
 public:
-	const std::vector<Literal>& literals;
+	const literallist& literals;
 
-	DisjunctionRef(const std::vector<Literal>& lits): literals(lits){}
+	DisjunctionRef(const literallist& lits): literals(lits){}
 };
 
 class Equivalence{
 public:
 	bool conj;
 	Literal	head;
-	std::vector<Literal> literals;
+	literallist literals;
 
 	Equivalence():head(0){}
 };
@@ -343,7 +348,7 @@ public:
 class Rule{
 public:
 	Atom head;
-	std::vector<Literal> body;
+	literallist body;
 	bool conjunctive;
 	int definitionID;
 
@@ -353,13 +358,13 @@ public:
 class Set{
 public:
 	int setID;
-	std::vector<Literal> literals;
+	literallist literals;
 };
 
 class WSet{
 public:
 	int setID;
-	std::vector<Literal> literals;
+	literallist literals;
 	std::vector<Weight> weights;
 };
 
@@ -384,12 +389,12 @@ public:
 
 class MinimizeOrderedList{
 public:
-	std::vector<Literal> literals;
+	literallist literals;
 };
 
 class MinimizeSubset{
 public:
-	std::vector<Literal> literals;
+	literallist literals;
 };
 
 class MinimizeAgg{
@@ -480,7 +485,7 @@ struct CPAllDiff{
 
 class ForcedChoices{
 public:
-	std::vector<Literal> forcedchoices;
+	literallist forcedchoices;
 };
 
 class RigidAtoms{
@@ -498,7 +503,7 @@ public:
 
 class SymmetryLiterals{
 public:
-	std::vector<std::vector<Literal> > symmgroups;
+	std::vector<literallist> symmgroups;
 };
 
 }

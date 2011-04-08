@@ -395,6 +395,15 @@ rClause CPSolver::propagateFinal(){
 	return confl;
 }
 
+void CPSolver::getVariableSubstitutions(std::vector<VariableEqValue>& varassignments){
+	for(vtiv::const_iterator i=getData().getTerms().begin(); i<getData().getTerms().end(); i++){
+		VariableEqValue varass;
+		varass.variable = (*i).getID();
+		varass.value = (*i).getIntVar(getSpace()).val();
+		varassignments.push_back(varass);
+	}
+}
+
 void CPSolver::printStatistics() const{
 	//TODO
 }

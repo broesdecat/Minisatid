@@ -220,8 +220,10 @@ void WLSImpl::solve(){
 	getSolMonitor().notifySolvingFinished();
 }
 
-void WLSImpl::addModel(const vec<Lit>& model){
-	vector<Literal> outmodel(getBackMappedModel(model));
+void WLSImpl::addModel(const InnerModel& model){
+	Model* outmodel = new Model();
+	outmodel->literalinterpretations = getBackMappedModel(model.litassignments);
+	outmodel->variableassignments = model.varassignments;
 	getSolMonitor().addModel(outmodel);
 }
 

@@ -84,7 +84,8 @@ private:
 	solverlist solvers;
 
 	TheoryState state;
-	std::vector<Lit>		initialprops;
+	uint 		nbskipped; //For printing the full and correct trail.
+	std::vector<Lit>		initialprops; //IMPORTANT for printing trail, DO NOT CLEAR
 
 	std::vector<DPLLTmodule*> propagations;
 
@@ -252,7 +253,9 @@ private:
 	// OPTIMIZATION
     bool 		invalidateValue	(vec<Lit>& invalidation);
 	bool 		invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt);
-	bool 		findOptimal		(const vec<Lit>& assumps, vec<Lit>& m);
+	bool 		findOptimal		(const vec<Lit>& assumps, InnerModel* m);
+
+	void 		foundAtomModel	(InnerModel* partialmodel);
 };
 
 }

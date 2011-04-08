@@ -72,6 +72,8 @@ namespace MinisatID {
 		bool 	add		(const InnerCPCount& form);
 		bool 	add		(const InnerCPAllDiff& form);
 
+		void 	getVariableSubstitutions(std::vector<VariableEqValue>& varassignments);
+
 		void 	notifyVarAdded	(uint64_t nvars);
 
 		bool 	simplify		(){ return true; }

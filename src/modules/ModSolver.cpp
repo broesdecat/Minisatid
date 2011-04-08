@@ -45,7 +45,7 @@ ModSolver::ModSolver(modindex child, Var head, SOSolver* mh):
 	trail.push_back(vector<Lit>());
 }
 
-void ModSolver::addModel(const vec<Lit>& model){
+void ModSolver::addModel(const InnerModel& model){
 	if(getNonConstModSolverData().isRoot(this)){
 		getNonConstModSolverData().addModel(model);
 	}

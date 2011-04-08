@@ -59,6 +59,7 @@ PCSolver::PCSolver(SolverOption modes, MinisatID::WLSImpl& inter) :
 		LogicSolver(modes, inter),
 		satsolver(NULL),
 		state(THEORY_PARSING),
+		nbskipped(0),
 		optim(NONE), head(-1),
 		state_savedlevel(0), state_savingclauses(false),
 		aggsolver(NULL), modsolver(NULL),cpsolver(NULL),
@@ -670,16 +671,27 @@ void PCSolver::backtrackDecisionLevel(int levels, int untillevel) {
  * Returns not-owning pointer
  */
 rClause PCSolver::propagate(Lit l) {
+	if(isBeingMonitored()){
+		bool print = false;
+		if (!isInitialized()) {
+			print = true;
+		}else{
+			if(nbskipped>initialprops.size()){
+				print = true;
+			}
+			nbskipped++;
+		}
+		if(print){
+			InnerPropagation prop;
+			prop.decisionlevel = getCurrentDecisionLevel();
+			prop.propagation = l;
+			notifyMonitor(prop);
+		}
+	}
+
 	if (!isInitialized()) {
 		initialprops.push_back(l);
 		return nullPtrClause;
-	}
-
-	if(isBeingMonitored()){
-		InnerPropagation prop;
-		prop.decisionlevel = getCurrentDecisionLevel();
-		prop.propagation = l;
-		notifyMonitor(prop);
 	}
 
 	rClause confl = nullPtrClause;
@@ -735,6 +747,16 @@ Var PCSolver::changeBranchChoice(const Var& chosenvar){
 	return newvar;
 }
 
+void PCSolver::foundAtomModel(InnerModel* partialmodel){
+#ifdef CPSUPPORT
+	if(hasCPSolver()){
+		getCPSolver()->getVariableSubstitutions(partialmodel->varassignments);
+		//FIXME allow generating all CP solutions, but only when not optimizing (at the moment)
+	}
+#endif
+	getParent().addModel(*partialmodel);
+}
+
 /*
  * Possible answers:
  * true => satisfiable, at least one model exists (INDEPENDENT of the number of models requested or found)
@@ -747,7 +769,6 @@ Var PCSolver::changeBranchChoice(const Var& chosenvar){
  * find n/all models and return them => save all models
  * count the number of models => do not save models
  */
-
 bool PCSolver::solve(const vec<Lit>& assumptions, const ModelExpandOptions& options){
 	if(optim!=NONE && options.nbmodelstofind!=1){
 		throw idpexception("Finding multiple models can currently not be combined with optimization.\n");
@@ -768,21 +789,23 @@ bool PCSolver::solve(const vec<Lit>& assumptions, const ModelExpandOptions& opti
 		}
 	}
 
+	InnerModel* fullmodel = new InnerModel();
 	while (moremodels && (options.nbmodelstofind == 0 || getParent().getNbModelsFound() < options.nbmodelstofind)) {
-		vec<Lit> model;
 		bool found = false;
 		if(optim!=NONE){
-			found = findOptimal(assumptions, model);
+			found = findOptimal(assumptions, fullmodel);
 			if(!found){
 				moremodels = false;
 			}
 		}else{
-			found = findNext(assumptions, model, moremodels);
+			found = findNext(assumptions, fullmodel->litassignments, moremodels);
 			if (found) {
-				getParent().addModel(model);
+				fullmodel->varassignments.clear();
+				foundAtomModel(fullmodel);
 			}
 		}
 	}
+	delete fullmodel;
 
 	if(!moremodels && optim==NONE){
 		if(getParent().getNbModelsFound() == 0){
@@ -942,7 +965,7 @@ bool PCSolver::invalidateValue(vec<Lit>& invalidation) {
  *
  * Returns true if an optimal model was found
  */
-bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
+bool PCSolver::findOptimal(const vec<Lit>& assmpt, InnerModel* m) {
 	vec<Lit> currentassmpt;
 	assmpt.copyTo(currentassmpt);
 
@@ -990,13 +1013,13 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
 		if (sat) {
 			modelfound = true;
 			//Store current model in m before invalidating the solver
-			m.clear();
+			m->litassignments.clear();
 			int nvars = (int) nVars();
 			for (int i = 0; i < nvars; ++i) {
 				if (value(i) == l_True) {
-					m.push(mkLit(i, false));
+					m->litassignments.push(mkLit(i, false));
 				} else if (value(i) == l_False) {
-					m.push(mkLit(i, true));
+					m->litassignments.push(mkLit(i, true));
 				}
 			}
 
@@ -1026,7 +1049,7 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, vec<Lit>& m) {
 				}
 			}
 
-			getParent().addModel(m);
+			foundAtomModel(m);
 		}
 	}
 

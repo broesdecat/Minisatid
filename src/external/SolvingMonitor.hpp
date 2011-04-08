@@ -26,12 +26,20 @@ class ResMan;
 enum SolvingState { SOLVING_STARTED, SOLVING_FINISHEDCLEANLY, SOLVING_ABORTED};
 enum ModelSaved { MODEL_NONE, MODEL_SAVED, MODEL_SAVING };
 
+struct Model{
+	std::vector<Literal> literalinterpretations;
+	std::vector<VariableEqValue> variableassignments;
+};
+
+typedef std::vector<Model*> modellist;
+
 class Solution{
 private:
 	ModelExpandOptions options;
 	int 		nbmodelsfound;
-	literallist	temporarymodel;
+	Model*		temporarymodel; //Owning pointer
 	modellist	models; //IMPORTANT: for optimization problem, models will contain a series of increasingly better models
+					//Owning pointer
 
 	literallist assumptions;
 
@@ -64,7 +72,6 @@ public:
 	SaveModel 	getSaveOption		() const 	{ return options.savemodels; }
 	Inference 	getInferenceOption	() const 	{ return options.search; }
 	const ModelExpandOptions& getOptions() const { return options; }
-	const modellist& 	getModels	() 			{ return models; } //IMPORTANT: no use calling it when models are not being saved.
 	void		setPrintModels		(PrintModel printoption) { options.printmodels = printoption; }
 	void		setSaveModels		(SaveModel saveoption)	{ options.savemodels = saveoption; }
 
@@ -72,9 +79,9 @@ public:
 
 	const literallist& getAssumptions	() { return assumptions; }
 
-	void 	addModel(const literallist& model);
-
-	const literallist& getBestModelFound() const;
+	void 		addModel			(Model * const model);
+	const Model&		getBestModelFound	() const;
+	const modellist& 	getModels			() const	{ return models; } //IMPORTANT: no use calling it when models are not being saved.
 
 	bool	hasOptimalModel			() const	{ return optimalmodelfound; }
 	void	notifyOptimizing		() 			{ optimizing = true; }
@@ -109,7 +116,7 @@ private:
 
 	void 	solvingFinished			();
 
-	void 	saveModel				(const literallist& model);
+	void 	saveModel				(Model * const model);
 };
 
 }

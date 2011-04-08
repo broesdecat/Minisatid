@@ -30,6 +30,7 @@ class LogicSolver;
 class PCSolver;
 class SOSolver;
 class Monitor;
+class InnerModel;
 
 // External interfaces offered from the solvers
 
@@ -82,7 +83,7 @@ public:
 	bool 	hasOptimization	() const { return optimization; }
 	void 	solve			();
 
-	virtual void 	addModel		(const vec<Lit>& model); //virtual for MODSOLVER!
+	virtual void 	addModel(const InnerModel& model); //virtual for MODSOLVER!
 	void	notifyOptimalModelFound();
 
 	int		getNbModelsFound() { return solutionmonitor->getNbModelsFound(); }

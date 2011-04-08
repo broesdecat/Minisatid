@@ -63,7 +63,7 @@ static void SIGINT_handler	(int signum);
 void handleSignals	();
 int handleTermination(pwls d);
 
-pwls doModelGeneration();
+void doModelGeneration(pwls& d);
 
 extern SolverOption modes;
 FODOTTranslator* fodottrans;
@@ -87,10 +87,11 @@ int handleTermination(bool cleanexit, pwls d){
     int returnvalue = 0;
     if(sol->isUnsat()){
         returnvalue = 20;
-    }else
+    }else{
         if(sol->isSat()){
             returnvalue = 10;
         }
+    }
 
     if(d!=NULL && modes.verbosity>0){
     	d->printStatistics();
@@ -147,7 +148,7 @@ int main(int argc, char** argv) {
 		}
 		if(!stoprunning){
 			jumpback = 0;
-			d = doModelGeneration();
+			doModelGeneration(d);
 			jumpback = 1;
 			cleanexit = true;
 		}
@@ -229,12 +230,11 @@ pwls initializeAndParseFODOT(){
 	return d;
 }
 
-pwls doModelGeneration(){
+void doModelGeneration(pwls& d){
 	// Unittest injection possible here by: pwls d = unittestx();
 
 	sol->notifyStartParsing();
 
-	pwls d = NULL;
 	switch(modes.format){
 		case FORMAT_ASP:
 			d = initializeAndParseASP();
@@ -265,7 +265,6 @@ pwls doModelGeneration(){
 	}else{
 		sol->notifySolvingFinished();
 	}
-	return d;
 }
 
 /**

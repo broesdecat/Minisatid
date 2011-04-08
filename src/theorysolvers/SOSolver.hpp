@@ -62,7 +62,7 @@ public:
 
 	void 	finishParsing	(bool& unsat);
 	bool 	isRoot			(const ModSolver* solver) const;
-	void 	addModel		(const vec<Lit>& model);
+	void 	addModel		(const InnerModel& model);
 	bool 	simplify		();
 	bool 	solve			(const vec<Lit>& assumptions, const ModelExpandOptions& options);
 

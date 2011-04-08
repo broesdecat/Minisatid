@@ -55,6 +55,11 @@ bool compareWLByWeights(const WL& one, const WL& two);
 
 bool compareWLByAbsWeights(const WL& one, const WL& two);
 
+struct InnerModel{
+	vec<Lit> litassignments;
+	std::vector<VariableEqValue> varassignments;
+};
+
 struct InnerDisjunction{
 	vec<Lit> literals;
 };

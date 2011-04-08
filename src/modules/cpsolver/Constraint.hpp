@@ -33,6 +33,8 @@ namespace MinisatID{
 		TermIntVar(CPScript& space, int groundterm, int min, int max);
 		TermIntVar(CPScript& space, int groundterm, const std::vector<int>& values);
 
+		int		getID	() const { return ID; }
+
 		virtual ~TermIntVar(){}
 
 		Gecode::IntVar 	getIntVar(const CPScript& space) 	const;

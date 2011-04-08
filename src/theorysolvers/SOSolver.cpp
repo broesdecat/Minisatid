@@ -48,7 +48,7 @@ bool SOSolver::isRoot(const ModSolver* solver) const{
 	return solvers[0]==solver;
 }
 
-void SOSolver::addModel(const vec<Lit>& model){
+void SOSolver::addModel(const InnerModel& model){
 	getParent().addModel(model);
 }
 

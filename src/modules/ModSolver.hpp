@@ -97,7 +97,7 @@ private:
 
 	std::vector<std::vector<Lit> > trail; //Trail of propagations, necessary because backtrack is still by literal
 
-	virtual void addModel(const vec<Lit>& model);
+	virtual void addModel(const InnerModel& model);
 
 public:
 	ModSolver(modindex child, Var head, SOSolver* mh);

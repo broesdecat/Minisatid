@@ -23,6 +23,8 @@
 #include <GeneralUtils.hpp>
 #include <utils/Print.hpp>
 
+#include <external/SolvingMonitor.hpp>
+
 using namespace std;
 using namespace MinisatID;
 
@@ -36,14 +38,15 @@ void Translator::printCurrentOptimum(std::ostream& output, const Weight& value){
 
 }
 
-void Translator::printModel(std::ostream& output, const std::vector<Literal>& model){
-	bool start = true;
+void Translator::printModel(std::ostream& output, const Model& model){
 	stringstream ss;
-	for (vector<Literal>::const_iterator i = model.begin(); i < model.end(); ++i){
-		ss <<(start ? "" : " ") <<(((*i).hasSign()) ? "-" : "") <<(*i).getAtom().getValue();
-		start = false;
+	for (vector<Literal>::const_iterator i = model.literalinterpretations.begin(); i < model.literalinterpretations.end(); ++i){
+		ss <<(((*i).hasSign()) ? "-" : "") <<(*i).getAtom().getValue() <<" ";
 	}
-	ss << " 0\n";
+	for (vector<VariableEqValue>::const_iterator i = model.variableassignments.begin(); i < model.variableassignments.end(); ++i){
+		ss <<(*i).variable <<"=" <<(*i).value <<" ";
+	}
+	ss << "0\n";
 	//FIXME start critical section
 	output <<ss.str();
 	//FIXME end critical section

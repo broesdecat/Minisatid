@@ -27,6 +27,7 @@ using namespace MinisatID;
 
 Solution::Solution(ModelExpandOptions options) :
 		options(options), nbmodelsfound(0),
+		temporarymodel(NULL),
 		optimizing(false), optimalmodelfound(false),
 		unsatfound(false),
 		modelsave(MODEL_NONE), solvingstate(SOLVING_STARTED),
@@ -40,6 +41,10 @@ Solution::~Solution(){
 	if(owntranslator!=NULL){
 		delete owntranslator;
 	}
+	if(temporarymodel!=NULL){
+		delete temporarymodel;
+	}
+	deleteList<Model>(models);
 };
 
 void Solution::notifyStartParsing() {
@@ -85,16 +90,16 @@ void Solution::notifyCurrentOptimum(const Weight & value) const{
 	getTranslator()->printCurrentOptimum(output, value);
 }
 
-const literallist& Solution::getBestModelFound() const {
+const Model& Solution::getBestModelFound() const {
 	assert(modelsave!=MODEL_NONE);
 	if (modelsave == MODEL_SAVED) {
-		return models.back();
+		return *models.back();
 	} else {
-		return temporarymodel;
+		return *temporarymodel;
 	}
 }
 
-void Solution::saveModel(const literallist& model){
+void Solution::saveModel(Model * const model){
 	++nbmodelsfound;
 	if (modelsave == MODEL_SAVING) { //Error in saving previous model, so abort
 		throw idpexception(">> Previous model failed to save, cannot guarantee correctness.\n");
@@ -111,7 +116,7 @@ void Solution::saveModel(const literallist& model){
 	modelsave = MODEL_SAVED;
 }
 
-void Solution::addModel(const literallist& model) {
+void Solution::addModel(Model * const model) {
 	saveModel(model);
 
 	assert(hasTranslator());
@@ -125,7 +130,7 @@ void Solution::addModel(const literallist& model) {
 			}
 			getTranslator()->printHeader(output);
 		}
-		getTranslator()->printModel(output, model);
+		getTranslator()->printModel(output, *model);
 	}
 	if (!optimizing) {
 		printNbModels(clog, getNbModelsFound(), modes.verbosity);

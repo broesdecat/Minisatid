@@ -18,6 +18,8 @@
 
 namespace MinisatID {
 
+class Model;
+
 enum FIXEDVAL { FIXED_TRUE, FIXED_ARBIT, FIXED_FALSE };
 enum PRINTCHOICE { PRINT_FIXED, PRINT_ARBIT };
 
@@ -66,7 +68,7 @@ public:
 	virtual ~Translator(){}
 
 	virtual void	printLiteral		(std::ostream& output, const MinisatID::Literal& lit);
-	virtual void	printModel			(std::ostream& output, const std::vector<Literal>& model);
+	virtual void	printModel			(std::ostream& output, const Model& model);
 	virtual void 	printCurrentOptimum	(std::ostream& output, const Weight& value);
 	virtual void	printHeader			(std::ostream& output);
 };
