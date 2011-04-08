@@ -31,7 +31,6 @@ std::string print(const T& obj);
 template<class T>
 T& operator<<(T& stream, const Lit& lit){
 	stream << print(lit);
-//FIXME	stream <<(sign(lit)?"-":"") <<getPrintableVar(var(lit));
 	return stream;
 }
 

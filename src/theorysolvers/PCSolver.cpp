@@ -749,8 +749,8 @@ Var PCSolver::changeBranchChoice(const Var& chosenvar){
 }
 
 bool PCSolver::foundAtomModel(InnerModel* partialmodel, const ModelExpandOptions& options){
-#ifdef CPSUPPORT
 	if(hasCPSolver()){
+#ifdef CPSUPPORT
 		rClause confl = nullPtrClause;
 		while(confl==nullPtrClause  && (options.nbmodelstofind == 0 || getParent().getNbModelsFound() < options.nbmodelstofind) && !getParent().hasOptimization()){
 			partialmodel->varassignments.clear();
@@ -761,10 +761,10 @@ bool PCSolver::foundAtomModel(InnerModel* partialmodel, const ModelExpandOptions
 		if(confl!=nullPtrClause){
 			return false;
 		}
-	}
-#else
-	getParent().addModel(*partialmodel);
 #endif
+	}else{
+		getParent().addModel(*partialmodel);
+	}
 	return true;
 }
 

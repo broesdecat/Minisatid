@@ -387,22 +387,22 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 	if(verbosity>4){
 		reportf("Choices: ");
 		for(int i=0; i<trail_lim.size(); i++){
-			print(trail[trail_lim[i]]); reportf(" ");
+			clog <<trail[trail_lim[i]] <<" ";
 		}
 		reportf("\n");
 		reportf("Trail: \n");
 		for(int i=0; i<trail_lim.size()-1; i++){
-			reportf("Level: ");
+			clog <<"Level: ";
 			for(int j=trail_lim[i]; j<trail_lim[i+1]; j++){
-				print(trail[j]); reportf(" ");
+				clog <<trail[j] <<" ";
 			}
-			reportf("\n");
+			clog <<"\n";
 		}
-		reportf("Level: ");
+		clog <<"Level: ";
 		for(int j=trail_lim[trail_lim.size()-1]; j<trail.size(); j++){
-			print(trail[j]); reportf(" ");
+			clog <<trail[j] <<" ";
 		}
-		reportf("\n");
+		clog <<"\n";
 	}
 	/*AE*/
 
@@ -455,9 +455,9 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
         /*AB*/
         if(verbosity>4){
         	for(std::vector<Lit>::const_iterator i=explain.begin(); i<explain.end(); i++){
-        		print(*i); reportf(" ");
+        		clog <<*i <<" ";
         	}
-        	reportf("\n");
+        	clog <<"\n";
 		}
 
         if(deleteImplicitClause){
@@ -1022,7 +1022,7 @@ void Solver::verifyModel()
     assert(!failed);
 
     if(verbosity>3){
-    	reportf("Verified %d original clauses.\n", clauses.size());
+    	clog <<"Verified " <<clauses.size() <<" original clauses.\n";
     }
 }
 

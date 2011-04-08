@@ -1544,10 +1544,7 @@ bool IDSolver::isCycleFree() const {
 		report("Showing justification for disjunctive atoms. <<<<<<<<<<\n");
 		for (int i = 0; i < nVars(); ++i) {
 			if (isDefined(i) && type(i) == DISJ && occ(i) != MIXEDLOOP) {
-				MinisatID::print(mkLit(i, false));
-				report("<-");
-				MinisatID::print(justification(i)[0]);
-				report("; ");
+				clog <<mkLit(i, false) <<"<-" <<justification(i)[0] <<"; ";
 			}
 		}
 		report(">>>>>>>>>>\n");
@@ -1681,9 +1678,7 @@ bool IDSolver::isCycleFree() const {
 					Var v = cycle[idx++];
 					if (type(v) == DISJ) {
 						if (verbosity() >= 2) {
-							report("D %d justified by ", getPrintableVar(v));
-							MinisatID::print(justification(v)[0]);
-							report(".\n");
+							clog <<"D " <<getPrintableVar(v) <<" justified by " <<justification(v)[0] <<".\n";
 						}
 						if (!printed[var(justification(v)[0])]) {
 							cycle.push(var(justification(v)[0]));

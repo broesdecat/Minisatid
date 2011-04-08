@@ -57,7 +57,7 @@ void MinisatID::printWatches(int verbosity, AggSolver const * const solver, cons
 			continue;
 		}
 
-		clog<<"    Watch "; print(toLit(i)); clog<<" used by: \n";
+		clog<<"    Watch " <<toLit(i) <<" used by: \n";
 		for(vsize j=0; j<tempwatches[i].size(); ++j){
 			for(vsize k=0; k<tempwatches[i][j]->getSet()->getAgg().size(); ++k){
 				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(tempwatches[i][j]);
@@ -87,7 +87,7 @@ void MinisatID::print(int verbosity, const TypedSet& c, bool endl) {
 				clog <<", ";
 			}
 			begin = false;
-			print((*i).getLit());
+			clog <<(*i).getLit();
 			lbool value = c.getSolver()->value((*i).getLit());
 			printValue(clog, value);
 			clog <<"=" <<(*i).getWeight();
@@ -100,7 +100,7 @@ void MinisatID::print(int verbosity, const TypedSet& c, bool endl) {
 }
 
 void MinisatID::print(int verbosity, const Agg& ae, bool endl) {
-	print(ae.getHead());
+	clog <<ae.getHead();
 	lbool value = ae.getSet()->getSolver()->value(ae.getHead());
 	printValue(clog, value);
 	TypedSet* set = ae.getSet();

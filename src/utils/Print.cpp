@@ -112,10 +112,10 @@ void print(IDSolver const * const s){
 			}
 
 			const PropRule& r = s->getDefinition(i);
-			print(r.getHead());
+			clog <<r.getHead();
 			int counter = 0;
 			while(counter<r.size()){
-				print(r[counter]);
+				clog <<r[counter];
 				++counter;
 			}
 			clog <<"\n";

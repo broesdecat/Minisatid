@@ -932,9 +932,7 @@ void AggSolver::printState() const{
 		for(vvpw::const_iterator i=lit2staticwatchlist.begin(); i<lit2staticwatchlist.end(); ++i, ++v){
 			if((*i).size()>0){
 				Lit l = mkLit(v/2, v%2==1);
-				clog <<"Bodywatches of var ";
-				print(l);
-				clog <<": ";
+				clog <<"Bodywatches of var " <<l <<": ";
 				for (vsize j = 0; j < (*i).size(); ++j) {
 					clog <<"      ";
 					print(verbosity(), *((*i)[j])->getSet(), true);
@@ -945,9 +943,7 @@ void AggSolver::printState() const{
 		for(vvpw::const_iterator i=lit2dynamicwatchlist.begin(); i<lit2dynamicwatchlist.end(); ++i, ++v){
 			if((*i).size()>0){
 				Lit l = mkLit(v/2, v%2==1);
-				clog <<"Bodywatches of var ";
-				print(l);
-				clog <<": ";
+				clog <<"Bodywatches of var " <<l <<": ";
 				for (vsize j = 0; j < (*i).size(); ++j) {
 					clog <<"      ";
 					print(verbosity(), *((*i)[j])->getSet(), true);

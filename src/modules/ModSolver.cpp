@@ -294,7 +294,7 @@ rClause ModSolver::propagateAtEndOfQueue(){
  */
 rClause ModSolver::propagateDown(Lit l){
 	if(getModSolverData().modes().verbosity>4){
-		print(l); report(" propagated down into modal solver %zu.\n", getPrintId());
+		clog <<l <<" propagated down into modal solver " <<getPrintId() <<".\n";
 	}
 
 	adaptValuesOnPropagation(l);
@@ -387,7 +387,7 @@ void ModSolver::backtrackDecisionLevels(int nblevels, int untillevel){
  */
 void ModSolver::backtrackFromAbove(Lit l){
 	if(getModSolverData().modes().verbosity>4){
-		report("Backtracking "); print(l); report(" from above in mod %zu\n", getPrintId());
+		clog <<"Backtracking " <<l <<" from above in mod " <<getPrintId() <<"\n";
 	}
 
 	if(var(l)==getHead() && getHeadValue()!=l_Undef){
