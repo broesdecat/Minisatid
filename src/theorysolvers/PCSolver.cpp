@@ -432,6 +432,7 @@ bool PCSolver::addCP(const T& formula){
 }
 
 #ifdef CPSUPPORT
+#warning Counting models in the presence of CP variables will be an underapproximation! (finding only one variable assigment for each literal assignment)
 void PCSolver::addCPSolver(){
 	assert(isParsing());
 	CPSolver* temp = new CPSolver(this);
@@ -750,8 +751,13 @@ Var PCSolver::changeBranchChoice(const Var& chosenvar){
 void PCSolver::foundAtomModel(InnerModel* partialmodel){
 #ifdef CPSUPPORT
 	if(hasCPSolver()){
-		getCPSolver()->getVariableSubstitutions(partialmodel->varassignments);
-		//FIXME allow generating all CP solutions, but only when not optimizing (at the moment)
+		rClause confl = nullPtrClause;
+		while(confl==nullPtrClause){
+			getCPSolver()->getVariableSubstitutions(partialmodel->varassignments);
+			//FIXME allow generating all CP solutions, but only when not optimizing (at the moment)
+			getParent().addModel(*partialmodel);
+			confl = getCPSolver()->findNextModel();
+		}
 	}
 #endif
 	getParent().addModel(*partialmodel);

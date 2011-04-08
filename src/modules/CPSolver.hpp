@@ -85,6 +85,8 @@ namespace MinisatID {
 		rClause propagate		(const Lit& l);
 		rClause propagateAtEndOfQueue();
 
+		rClause findNextModel	();
+
 		rClause getExplanation	(const Lit& p);
 
 		void 	printStatistics	() const;

@@ -362,6 +362,10 @@ rClause CPSolver::propagateAtEndOfQueue(){
 	return confl;
 }
 
+rClause CPSolver::findNextModel(){
+	return propagateFinal();
+}
+
 rClause CPSolver::propagateFinal(){
 	rClause confl = nullPtrClause;
 
@@ -396,6 +400,7 @@ rClause CPSolver::propagateFinal(){
 }
 
 void CPSolver::getVariableSubstitutions(std::vector<VariableEqValue>& varassignments){
+	cout <<getSpace();
 	for(vtiv::const_iterator i=getData().getTerms().begin(); i<getData().getTerms().end(); i++){
 		VariableEqValue varass;
 		varass.variable = (*i).getID();
