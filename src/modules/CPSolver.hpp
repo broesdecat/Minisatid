@@ -14,6 +14,11 @@
 #include <set>
 #include <map>
 
+namespace Gecode{
+	template<class T>
+	class DFS;
+}
+
 namespace MinisatID {
 	class TermIntVar;
 	typedef std::vector<TermIntVar> vtiv;
@@ -56,6 +61,8 @@ namespace MinisatID {
 		std::map<Lit, std::vector<Lit>::size_type > propreason;
 
 		bool				searchedandnobacktrack;
+
+		Gecode::DFS<CPScript>* 		savedsearchengine;
 
 	public:
 				CPSolver	(PCSolver * pcsolver);
@@ -101,7 +108,7 @@ namespace MinisatID {
 		rClause genFullConflictClause();
 
 		rClause notifySATsolverOfPropagation(const Lit& p);
-		rClause propagateFinal	();
+		rClause propagateFinal	(bool usesavedengine);
 
 		const CPSolverData& getData	() const { return *solverdata; }
 		CPSolverData& 		getData	() { return *solverdata; }

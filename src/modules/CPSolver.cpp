@@ -58,7 +58,8 @@ lbool LitTrail::value(const Lit& l) const{
 
 CPSolver::CPSolver(PCSolver * solver):
 		DPLLTmodule(solver), solverdata(new CPSolverData()),
-		searchedandnobacktrack(false){
+		searchedandnobacktrack(false),
+		savedsearchengine(NULL){
 
 }
 
@@ -239,6 +240,7 @@ void CPSolver::newDecisionLevel(){
 }
 
 void CPSolver::backtrackDecisionLevels(int nblevels, int untillevel){
+	//clog <<"Backtracked CP solver.\n";
 	getData().removeSpace(nblevels);
 	searchedandnobacktrack = false;
 	trail.backtrackDecisionLevels(nblevels, untillevel);
@@ -351,7 +353,7 @@ rClause CPSolver::propagateAtEndOfQueue(){
 	}
 
 	if(getData().getReifConstraints().size()==trail.getTrail().size()){
-		confl = propagateFinal();
+		confl = propagateFinal(false);
 		searchedandnobacktrack = true;
 	}
 
@@ -363,26 +365,27 @@ rClause CPSolver::propagateAtEndOfQueue(){
 }
 
 rClause CPSolver::findNextModel(){
-	return propagateFinal();
+	return propagateFinal(true);
 }
 
-rClause CPSolver::propagateFinal(){
+rClause CPSolver::propagateFinal(bool usesavedengine){
 	rClause confl = nullPtrClause;
 
-	Search::Options searchOptions_;
-	DFS<CPScript>* searchEngine_; // depth first search
-	CPScript* enumerator_ = NULL;
+	if(!usesavedengine){
+		Search::Options searchOptions;
 
-	getSpace().addBranchers();
+		getSpace().addBranchers();
 
-	searchOptions_ = Search::Options::def;
-	searchOptions_.stop = NULL; //new Search::MemoryStop(1000000000);
+		searchOptions = Search::Options::def;
+		searchOptions.stop = NULL; //new Search::MemoryStop(1000000000);
 
-	searchEngine_ = new DFS<CPScript>(&getSpace(), searchOptions_);
-	enumerator_ = searchEngine_->next();
+		savedsearchengine = new DFS<CPScript>(&getSpace(), searchOptions);
+	}
 
-	if(enumerator_==NULL){
-		if(searchEngine_->stopped()){
+	CPScript* enumerator = savedsearchengine->next();
+
+	if(enumerator==NULL){
+		if(savedsearchengine->stopped()){
 			throw idpexception("memory overflow on CP part");
 		}else{
 			if(getPCSolver().modes().verbosity>=5){
@@ -391,8 +394,10 @@ rClause CPSolver::propagateFinal(){
 			confl = genFullConflictClause();
 		}
 	}else{
+		//clog <<"Model found for CP part.\n";
 		if(getData().getReifConstraints().size()==trail.getTrail().size()){ //No @pre guarantee, so check!
-			getData().replaceLastWith(enumerator_);
+			getData().replaceLastWith(enumerator);
+			//clog <<getSpace();
 		}
 	}
 
@@ -400,7 +405,6 @@ rClause CPSolver::propagateFinal(){
 }
 
 void CPSolver::getVariableSubstitutions(std::vector<VariableEqValue>& varassignments){
-	cout <<getSpace();
 	for(vtiv::const_iterator i=getData().getTerms().begin(); i<getData().getTerms().end(); i++){
 		VariableEqValue varass;
 		varass.variable = (*i).getID();
