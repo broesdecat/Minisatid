@@ -108,7 +108,7 @@ struct InnerMinimizeSubset{
 
 struct InnerMinimizeAgg{
 	Var head;
-	int setid;
+	int setID;
 	AggType type;
 };
 

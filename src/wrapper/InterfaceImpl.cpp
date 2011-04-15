@@ -386,7 +386,7 @@ template<>
 bool ExternalPCImpl::add(const MinimizeAgg& sentence){
 	InnerMinimizeAgg mnm;
 	mnm.head = checkAtom(sentence.head);
-	mnm.setid = sentence.setid;
+	mnm.setID = sentence.setid;
 	mnm.type = sentence.type;
 	setOptimization(true);
 	return getSolver()->add(mnm);

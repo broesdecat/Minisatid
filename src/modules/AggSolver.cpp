@@ -831,12 +831,6 @@ bool AggSolver::addMnmz(Var headv, int setid, AggType type) {
 	setOptimAgg(ae);
 	set->addAgg(ae);
 
-	if (verbosity() >= 3) {
-		report("Added aggregate optimization: Optimize ");
-		MinisatID::print(verbosity(), *ae);
-		report("\n");
-	}
-
 	return true;
 }
 

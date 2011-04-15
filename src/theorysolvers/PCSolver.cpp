@@ -22,6 +22,7 @@
 #endif
 
 #include "utils/Print.hpp"
+#include "utils/ECNFPrinter.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -68,6 +69,11 @@ PCSolver::PCSolver(SolverOption modes, MinisatID::WLSImpl& inter) :
 	satsolver = createSolver(*this);
 
 	if(modes.printcnfgraph){
+		//FIXME
+		//ecnfgraphprinter = new ECNFPrinter();
+	}
+
+	if(modes.verbosity>1){
 		ecnfprinter = new ECNFPrinter();
 	}
 
@@ -230,12 +236,13 @@ void PCSolver::addVars(const vector<Lit>& a) {
 	}
 }
 
+//FIXME add potential modal ID to the ECNF printer!
+
 bool PCSolver::add(const InnerDisjunction& disj){
-	printAddingClause(clog, disj, getModID(), verbosity());
 	addVars(disj.literals);
 
 	if(hasECNFPrinter()){
-		getECNFPrinter().addClause(disj.literals);
+		getECNFPrinter().notifyadded(disj);
 	}
 
 	return getSolver()->addClause(disj.literals);
@@ -284,12 +291,8 @@ bool PCSolver::add(const InnerRule& rule){
 	add(rule.head);
 	addVars(rule.body);
 
-	if (verbosity() >= 2) {
-		report("Adding %s rule, %d <- ", rule.conjunctive?"conjunctive":"disjunctive", getPrintableVar(rule.head));
-		for (int i = 0; i < rule.body.size(); ++i) {
-			report("%s%d ", sign(rule.body[i])?"-":"",getPrintableVar(var(rule.body[i])));
-		}
-		report("\n");
+	if(hasECNFPrinter()){
+		getECNFPrinter().notifyadded(rule);
 	}
 
 	return getIDSolver(rule.definitionID)->addRule(rule.conjunctive, mkLit(rule.head, false), rule.body);
@@ -303,7 +306,7 @@ bool PCSolver::add(const InnerWSet& wset){
 	addVars(wset.literals);
 
 	if(hasECNFPrinter()){
-		getECNFPrinter().addSet(wset.literals);
+		getECNFPrinter().notifyadded(wset);
 	}
 
 	return getAggSolver()->addSet(wset.setID, wset.literals, wset.weights);
@@ -321,6 +324,10 @@ bool PCSolver::add(const InnerAggregate& agg){
 		addIDSolver(agg.defID);
 	}
 
+	if(hasECNFPrinter()){
+		getECNFPrinter().notifyadded(agg);
+	}
+
 	return getAggSolver()->addAggrExpr(agg.head, agg.setID, agg.bound, agg.sign, agg.type, agg.sem, agg.defID);
 }
 bool PCSolver::add(const InnerMinimizeSubset& mnm){
@@ -331,17 +338,8 @@ bool PCSolver::add(const InnerMinimizeSubset& mnm){
 		throw idpexception("At most one set of literals to be minimized can be given.\n");
 	}
 
-	if (modes().verbosity >= 3) {
-		clog <<"Added minimization condition: Subsetminimize [";
-		bool first = true;
-		for (int i = 0; i < mnm.literals.size(); ++i) {
-			if (!first) {
-				clog <<" ";
-			}
-			first = false;
-			clog <<mnm.literals[i];
-		}
-		clog <<"]\n";
+	if(hasECNFPrinter()){
+		getECNFPrinter().notifyadded(mnm);
 	}
 
 	optim = SUBSETMNMZ;
@@ -362,17 +360,8 @@ bool PCSolver::add(const InnerMinimizeOrderedList& mnm){
 		throw idpexception("At most one set of literals to be minimized can be given.\n");
 	}
 
-	if (modes().verbosity >= 3) {
-		clog <<"Added minimization condition: Minimize [";
-		bool first = true;
-		for (int i = 0; i < mnm.literals.size(); ++i) {
-			if (!first) {
-				clog <<"<";
-			}
-			first = false;
-			clog <<mnm.literals[i];
-		}
-		clog <<"]\n";
+	if(hasECNFPrinter()){
+		getECNFPrinter().notifyadded(mnm);
 	}
 
 	optim = MNMZ;
@@ -384,20 +373,24 @@ bool PCSolver::add(const InnerMinimizeOrderedList& mnm){
 
 	return true;
 }
-bool PCSolver::add(const InnerMinimizeAgg& sentence){
+bool PCSolver::add(const InnerMinimizeAgg& mnm){
 	if (optim != NONE) {
 		throw idpexception(">> Only one optimization statement is allowed.\n");
 	}
 
-	add(sentence.head);
+	if(hasECNFPrinter()){
+		getECNFPrinter().notifyadded(mnm);
+	}
+
+	add(mnm.head);
 	optim = AGGMNMZ;
-	this->head = sentence.head;
+	this->head = mnm.head;
 	InnerDisjunction clause;
-	clause.literals.push(mkLit(sentence.head, false));
+	clause.literals.push(mkLit(mnm.head, false));
 	bool notunsat = add(clause);
 	if (notunsat) {
 		assert(getAggSolver()!=NULL);
-		notunsat = getAggSolver()->addMnmz(sentence.head, sentence.setid, sentence.type);
+		notunsat = getAggSolver()->addMnmz(mnm.head, mnm.setID, mnm.type);
 	}
 
 	return notunsat;
@@ -406,11 +399,17 @@ bool PCSolver::add(const InnerForcedChoices& choices){
 	if (choices.forcedchoices.size() != 0) {
 		getSolver()->addForcedChoices(choices.forcedchoices);
 	}
+	if(hasECNFPrinter()){
+		getECNFPrinter().notifyadded(choices);
+	}
 	return true;
 }
 
 bool PCSolver::add(const InnerSymmetryLiterals& symms){
 	getSolver()->addSymmetryGroup(symms.literalgroups);
+	if(hasECNFPrinter()){
+		getECNFPrinter().notifyadded(symms);
+	}
 	return true;
 }
 
@@ -427,6 +426,9 @@ bool PCSolver::addCP(const T& formula){
 		addCPSolver();
 	}
 	assert(hasPresentCPSolver());
+	if(hasECNFPrinter()){
+		getECNFPrinter().notifyadded(formula);
+	}
 	return getCPSolver()->add(formula);
 #endif
 }
@@ -1074,11 +1076,10 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, InnerModel* m, const ModelExp
 // MOD SOLVER
 
 bool PCSolver::add(InnerDisjunction& disj, rClause& newclause){
-	printAddingClause(clog, disj, getModID(), verbosity());
 	addVars(disj.literals);
 
 	if(hasECNFPrinter()){
-		getECNFPrinter().addClause(disj.literals);
+		getECNFPrinter().notifyadded(disj);
 	}
 
 	return getSolver()->addClause(disj.literals, newclause);

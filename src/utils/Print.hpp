@@ -35,6 +35,31 @@ T& operator<<(T& stream, const Lit& lit){
 }
 
 template<class T>
+T& operator<<(T& stream, const EqType& type){
+	switch(type){
+	case MEQ:
+		stream <<"=";
+		break;
+	case MNEQ:
+		stream <<"!=";
+		break;
+	case ML:
+		stream <<"<";
+		break;
+	case MG:
+		stream <<">";
+		break;
+	case MGEQ:
+		stream <<">=";
+		break;
+	case MLEQ:
+		stream <<"=<";
+		break;
+	}
+	return stream;
+}
+
+template<class T>
 void print(const T& lit, const lbool val);
 
 template<class S>

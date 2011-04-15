@@ -12,13 +12,14 @@
 #include <map>
 #include "utils/Utils.hpp"
 #include "theorysolvers/LogicSolver.hpp"
-#include "utils/ECNFPrinter.hpp"
 
 namespace Minisat{
 	class Solver;
 }
 
 namespace MinisatID {
+
+class ECNFPrinter;
 
 class SolverOption;
 
