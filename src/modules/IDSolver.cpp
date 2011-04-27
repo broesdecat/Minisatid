@@ -1774,13 +1774,8 @@ bool IDSolver::isWellFoundedModel() {
 		return true;
 	}
 
-	if (recagg>0) {
-		if (verbosity() > 1) {
-			report("For recursive aggregates, only stable semantics are currently supported!\n");
-			report("Well-foundedness is not checked!\n");
-		}
-
-		return true;
+	if(recagg>0){
+		throw idpexception("For recursive aggregates, only stable semantics is currently supported! Wellfoundedness is not checked\n");
 	}
 
 	// Initialize scc of full dependency graph
@@ -1796,7 +1791,7 @@ bool IDSolver::isWellFoundedModel() {
 		for (vector<int>::size_type z = 0; z < wfroot.size(); ++z) {
 			report("%d has root %d\n", getPrintableVar(z), getPrintableVar(wfroot[z]));
 		}
-		report("Mixedcycles are %s present.\n", rootofmixed.empty()?"not":"possibly");
+		report("Mixed cycles are %s present.\n", rootofmixed.empty()?"not":"possibly");
 	}
 
 	if (rootofmixed.empty()) {

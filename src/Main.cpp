@@ -93,7 +93,7 @@ int handleTermination(bool cleanexit, pwls d){
         }
     }
 
-    if(d!=NULL && modes.verbosity>0){
+    if(d!=NULL && modes.verbosity>1){
     	d->printStatistics();
 	}
     return returnvalue;
