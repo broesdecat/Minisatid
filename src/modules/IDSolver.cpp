@@ -20,7 +20,8 @@ using namespace MinisatID;
 
 IDSolver::IDSolver(PCSolver* s):
 		DPLLTmodule(s),
-		sem(getPCSolver().modes().defsem), recagg(0),
+		sem(getPCSolver().modes().defsem),
+		posrecagg(true), mixedrecagg(true),
 		previoustrailatsimp(-1),
 		posloops(true), negloops(true),
 		simplified(false),
@@ -119,7 +120,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	present = true;
 	unsat = false;
 
-	if(modes().defsem==DEF_COMP || (recagg==0 && defdVars.size()==0)){
+	if(modes().defsem==DEF_COMP || defdVars.size()==0){
 		present = false;
 		return;
 	}
@@ -146,7 +147,6 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 			defdVars[i] = defdVars[defdVars.size() - 1];
 			defdVars.pop_back();
 			i--;
-			recagg--;
 		}
 	}
 	toremoveaggrheads.clear();
@@ -203,6 +203,8 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 
 	Lit l;
 	vector<Var> reducedVars;
+	mixedrecagg = false;
+	posrecagg = false;
 	for (vector<int>::const_iterator i = defdVars.begin(); i < defdVars.end(); ++i) {
 		Var v = (*i);
 		bool isdefd = false;
@@ -260,6 +262,21 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 					}else if(t==CONJ){
 						addConjOccurs(l, v);
 					}
+				}
+			}else if(t==AGGR){
+				switch(occ(v)){
+				case MIXEDLOOP:
+					mixedrecagg = true;
+					break;
+				case POSLOOP:
+					posrecagg = true;
+					break;
+				case BOTHLOOP:
+					mixedrecagg = true;
+					posrecagg = true;
+					break;
+				default:
+					break;
 				}
 			}
 		}
@@ -540,7 +557,8 @@ bool IDSolver::simplifyGraph(){
 	 * If this is not the case, the definition is removed from the data structures.
 	 */
 	vector<Var> reducedVars;
-	int remrecagg = 0;
+	posrecagg = false;
+	mixedrecagg = false;
 	for (vector<int>::const_iterator i = defdVars.begin(); i < defdVars.end(); ++i) {
 		Var v = (*i);
 		if (seen[v] > 0 || isFalse(v)) {
@@ -560,18 +578,29 @@ bool IDSolver::simplifyGraph(){
 				occ(v) = MIXEDLOOP;
 				reducedVars.push_back(v);
 				if (type(v) == AGGR) {
-					++remrecagg;
+					mixedrecagg = true;
 				}
 			}
 		} else {
 			reducedVars.push_back(v);
-			if (type(v) == AGGR) {
-				++remrecagg;
+			if(type(v)==AGGR){
+				switch(occ(v)){
+				case MIXEDLOOP:
+					mixedrecagg = true;
+					break;
+				case POSLOOP:
+					posrecagg = true;
+					break;
+				case BOTHLOOP:
+					mixedrecagg = true;
+					posrecagg = true;
+					break;
+				default:
+					break;
+				}
 			}
 		}
 	}
-	assert(remrecagg<=recagg);
-	recagg = remrecagg;
 	defdVars.clear();
 	defdVars.insert(defdVars.begin(), reducedVars.begin(), reducedVars.end());
 
@@ -1492,7 +1521,6 @@ void IDSolver::cycleSourceAggr(Var v, vec<Lit>& just) {
 }
 
 void IDSolver::notifyAggrHead(Var head) {
-	++recagg;
 	assert(!isDefined(head) && !isInitialized());
 	createDefinition(head, NULL, AGGR);
 }
@@ -1774,7 +1802,7 @@ bool IDSolver::isWellFoundedModel() {
 		return true;
 	}
 
-	if(recagg>0){
+	if(mixedrecagg){
 		throw idpexception("For recursive aggregates, only stable semantics is currently supported! Wellfoundedness is not checked\n");
 	}
 

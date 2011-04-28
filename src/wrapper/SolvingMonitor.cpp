@@ -47,6 +47,13 @@ Solution::~Solution(){
 	deleteList<Model>(models);
 };
 
+Translator* Solution::getTranslator() const {
+	return translator;
+}
+void Solution::setTranslator(Translator* trans) {
+	translator = trans ;
+}
+
 void Solution::notifyStartParsing() {
 	startparsing = cpuTime();
 }

@@ -47,9 +47,9 @@ void Translator::printModel(std::ostream& output, const Model& model){
 		ss <<(*i).variable <<"=" <<(*i).value <<" ";
 	}
 	ss << "0\n";
-	//FIXME start critical section
+	//TODO start critical section
 	output <<ss.str();
-	//FIXME end critical section
+	// end critical section
 	output.flush();
 }
 
@@ -307,7 +307,7 @@ void FODOTTranslator::printLiteral(std::ostream& output, const Literal& lit) {
 	}
 }
 
-void FODOTTranslator::printModel(std::ostream& output, const vector<Literal>& model) {
+void FODOTTranslator::printModel(std::ostream& output, const Model& model) {
 	if(!finisheddata){
 		finishParsing(output);
 	}
@@ -323,7 +323,7 @@ void FODOTTranslator::printModel(std::ostream& output, const vector<Literal>& mo
 
 	// read and translate the model
 	bool endmodel = false;
-	for(vector<Literal>::const_iterator i=model.begin(); i<model.end(); ++i){
+	for(vector<Literal>::const_iterator i=model.literalinterpretations.begin(); i<model.literalinterpretations.end(); ++i){
 		int lit = (*i).getValue();
 		if(lit==0 || endmodel){ //end of model found
 			break;
@@ -342,6 +342,7 @@ void FODOTTranslator::printModel(std::ostream& output, const vector<Literal>& mo
 		output <<"Model:\n";
 	}
 	printInterpr(temptruemodelcombined, output, PRINT_FIXED);
+	assert(model.variableassignments.size()==0);
 }
 
 
@@ -395,8 +396,8 @@ void LParseTranslator::addTuple(Atom atom, std::string name) {
 	lit2name[atom]=name;
 }
 
-void LParseTranslator::printModel(std::ostream& output, const std::vector<Literal>& model) {
-	for(vector<Literal>::const_iterator i=model.begin(); i<model.end(); ++i){
+void LParseTranslator::printModel(std::ostream& output, const Model& model) {
+	for(vector<Literal>::const_iterator i=model.literalinterpretations.begin(); i<model.literalinterpretations.end(); ++i){
 		if(!(*i).hasSign()){ //Do not print false literals
 			map<Atom, string>::const_iterator it = lit2name.find((*i).getAtom());
 			if(it!=lit2name.end()){
@@ -406,6 +407,7 @@ void LParseTranslator::printModel(std::ostream& output, const std::vector<Litera
 	}
 	output <<"\n";
 	output.flush();
+	assert(model.variableassignments.size()==0);
 }
 
 void LParseTranslator::printLiteral(std::ostream& output, const Literal& lit) {
@@ -422,9 +424,9 @@ void OPBTranslator::addTuple(Atom atom, std::string name) {
 	lit2name[atom]=name;
 }
 
-void OPBTranslator::printModel(std::ostream& output, const std::vector<Literal>& model) {
+void OPBTranslator::printModel(std::ostream& output, const Model& model) {
 	output <<"v ";
-	for(vector<Literal>::const_iterator i=model.begin(); i<model.end(); ++i){
+	for(vector<Literal>::const_iterator i=model.literalinterpretations.begin(); i<model.literalinterpretations.end(); ++i){
 		map<Atom, string>::const_iterator it = lit2name.find((*i).getAtom());
 		if(it!=lit2name.end()){
 			if((*i).hasSign()){
@@ -435,6 +437,7 @@ void OPBTranslator::printModel(std::ostream& output, const std::vector<Literal>&
 	}
 	output <<"\n";
 	output.flush();
+	assert(model.variableassignments.size()==0);
 }
 
 void OPBTranslator::printLiteral(std::ostream& output, const Literal& lit) {
