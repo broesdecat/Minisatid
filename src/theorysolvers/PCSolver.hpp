@@ -257,8 +257,6 @@ private:
     bool 		invalidateValue	(vec<Lit>& invalidation);
 	bool 		invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt);
 	bool 		findOptimal		(const vec<Lit>& assumps, const ModelExpandOptions& options);
-
-	bool		foundAtomModel	(InnerModel* partialmodel, const ModelExpandOptions& options);
 };
 
 }

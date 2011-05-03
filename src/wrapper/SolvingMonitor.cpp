@@ -156,10 +156,10 @@ void Solution::solvingFinished(){
 	}
 
 	ostream output(resman->getBuffer());
-	if(isUnsat()){
+	if(isUnsat() && getPrintOption()!=PRINT_NONE){
 		printUnSatisfiable(output, modes.format, modes.transformat);
 		printUnSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);
-	}else if(getNbModelsFound()==0){
+	}else if(getNbModelsFound()==0 && getPrintOption()!=PRINT_NONE){
 		printUnknown(output, modes.format, modes.transformat);
 	}else{ // not unsat and at least one model
 		if(optimizing && getPrintOption()==PRINT_BEST){

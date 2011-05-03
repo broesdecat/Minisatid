@@ -815,7 +815,11 @@ void PCSolver::extractLitModel(InnerModel* fullmodel){
 
 void PCSolver::extractVarModel(InnerModel* fullmodel){
 	fullmodel->varassignments.clear();
-	getCPSolver()->getVariableSubstitutions(fullmodel->varassignments);
+	if(hasCPSolver()){
+#ifdef CPSUPPORT
+		getCPSolver()->getVariableSubstitutions(fullmodel->varassignments);
+#endif
+	}
 }
 
 /**
