@@ -245,16 +245,18 @@ private:
 	void 		addVars			(const vec<Lit>& a);
 	void 		addVars			(const std::vector<Lit>& a);
 
+	void		extractLitModel	(InnerModel* fullmodel);
+	void		extractVarModel	(InnerModel* fullmodel);
+
 	// SOLVING
-	void 		findNext		(const vec<Lit>& assumpts, InnerModel* model, bool& moremodels, const ModelExpandOptions& options);
+	bool 		findNext		(const vec<Lit>& assumpts, const ModelExpandOptions& options);
 	bool    	invalidateModel	(InnerDisjunction& clause);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
 	void 		invalidate		(InnerDisjunction& clause);
-	bool 		findModel		(const vec<Lit>& assumps, vec<Lit>& m, bool& moremodels);
 
 	// OPTIMIZATION
     bool 		invalidateValue	(vec<Lit>& invalidation);
 	bool 		invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt);
-	bool 		findOptimal		(const vec<Lit>& assumps, InnerModel* m, const ModelExpandOptions& options);
+	bool 		findOptimal		(const vec<Lit>& assumps, const ModelExpandOptions& options);
 
 	bool		foundAtomModel	(InnerModel* partialmodel, const ModelExpandOptions& options);
 };
