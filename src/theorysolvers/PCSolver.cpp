@@ -840,6 +840,7 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, const ModelExpandOptions& option
 
 		if (!modelfound) {
 			moremodels = false;
+			break;
 		}
 
 		InnerModel* fullmodel = new InnerModel();
