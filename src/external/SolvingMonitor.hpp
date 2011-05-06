@@ -62,8 +62,6 @@ public:
 	Solution(ModelExpandOptions options);
 	~Solution();
 
-	void 		setTranslator(Translator* trans) { translator = trans ; }
-
 	void		setModes(SolverOption modes) { this->modes = modes;}
 
 	int 		getNbModelsFound	() const	{ return nbmodelsfound; }
@@ -96,7 +94,8 @@ public:
 	bool	isSat					() { return getNbModelsFound()>0; }
 	bool	isUnsat					() { return unsatfound; }
 
-	Translator* 	getTranslator	()	const { return translator; }
+	Translator* getTranslator		()	const;
+	void 		setTranslator		(Translator* trans);
 
 	void notifyStartParsing			();
 	void notifyEndParsing			();

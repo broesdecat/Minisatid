@@ -128,7 +128,7 @@ void Solver::addSymmetryGroup(const vec<vec<Lit> >& symms){
 	symmgroups.push();
 	for(int i=0; i<symms.size(); i++){
 		symmgroups.last().push();
-		for(int j=0; j<symms[j].size(); j++){
+		for(int j=0; j<symms[i].size(); j++){
 			symmgroups.last().last().push(symms[i][j]);
 		}
 	}
@@ -334,7 +334,7 @@ void Solver::cancelUntil(int level) {
         /*AB*/
         int levels = trail_lim.size() - level;
         trail_lim.shrink(levels);
-        solver.backtrackDecisionLevel(levels, decisionLevel());
+        solver.backtrackDecisionLevel(levels, level);
         /*AE*/
     } }
 

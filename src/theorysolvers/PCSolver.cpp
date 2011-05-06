@@ -750,26 +750,6 @@ Var PCSolver::changeBranchChoice(const Var& chosenvar){
 	return newvar;
 }
 
-bool PCSolver::foundAtomModel(InnerModel* partialmodel, const ModelExpandOptions& options){
-	if(hasCPSolver()){
-#ifdef CPSUPPORT
-		rClause confl = nullPtrClause;
-		while(confl==nullPtrClause  && (options.nbmodelstofind == 0 || getParent().getNbModelsFound() < options.nbmodelstofind) && !getParent().hasOptimization()){
-			partialmodel->varassignments.clear();
-			getCPSolver()->getVariableSubstitutions(partialmodel->varassignments);
-			getParent().addModel(*partialmodel);
-			confl = getCPSolver()->findNextModel();
-		}
-		if(confl!=nullPtrClause){
-			return false;
-		}
-#endif
-	}else{
-		getParent().addModel(*partialmodel);
-	}
-	return true;
-}
-
 /*
  * Possible answers:
  * true => satisfiable, at least one model exists (INDEPENDENT of the number of models requested or found)
@@ -791,8 +771,6 @@ bool PCSolver::solve(const vec<Lit>& assumptions, const ModelExpandOptions& opti
 		return getSolver()->solve(assumptions, true);
 	}
 
-	bool moremodels = true;
-
 	if(verbosity()>=1){
 		clog <<">>> Search start\n";
 		if(headerunprinted){
@@ -802,24 +780,17 @@ bool PCSolver::solve(const vec<Lit>& assumptions, const ModelExpandOptions& opti
 		}
 	}
 
-	InnerModel* fullmodel = new InnerModel();
-	while (moremodels && (options.nbmodelstofind == 0 || getParent().getNbModelsFound() < options.nbmodelstofind)) {
-		if(optim!=NONE){
-			bool found = findOptimal(assumptions, fullmodel, options);
-			if(!found){
-				moremodels = false;
+	if(optim!=NONE){
+		findOptimal(assumptions, options);
+	}else{
+		bool moremodels = findNext(assumptions, options);
+		if(!moremodels){
+			//FIXME do not print UNSAT when not printing models
+			if(getParent().getNbModelsFound() == 0){
+				printNoModels(clog, verbosity());
+			}else{
+				printNoMoreModels(clog, verbosity());
 			}
-		}else{
-			findNext(assumptions, fullmodel, moremodels, options);
-		}
-	}
-	delete fullmodel;
-
-	if(!moremodels && optim==NONE){
-		if(getParent().getNbModelsFound() == 0){
-			printNoModels(clog, verbosity());
-		}else{
-			printNoMoreModels(clog, verbosity());
 		}
 	}
 
@@ -828,6 +799,27 @@ bool PCSolver::solve(const vec<Lit>& assumptions, const ModelExpandOptions& opti
 	}
 
 	return getParent().getNbModelsFound()>0;
+}
+
+void PCSolver::extractLitModel(InnerModel* fullmodel){
+	fullmodel->litassignments.clear();
+
+	for (uint64_t i = 0; i < nVars(); ++i) {
+		if (value(i) == l_True) {
+			fullmodel->litassignments.push(mkLit(i, false));
+		} else if (value(i) == l_False) {
+			fullmodel->litassignments.push(mkLit(i, true));
+		}
+	}
+}
+
+void PCSolver::extractVarModel(InnerModel* fullmodel){
+	fullmodel->varassignments.clear();
+	if(hasCPSolver()){
+#ifdef CPSUPPORT
+		getCPSolver()->getVariableSubstitutions(fullmodel->varassignments);
+#endif
+	}
 }
 
 /**
@@ -841,39 +833,47 @@ bool PCSolver::solve(const vec<Lit>& assumptions, const ModelExpandOptions& opti
  * Important: assmpt are the first DECISIONS that are made. So they are not automatic unit propagations
  * and can be backtracked!
  */
-void PCSolver::findNext(const vec<Lit>& assmpt, InnerModel* fullmodel, bool& moremodels, const ModelExpandOptions& options) {
-	bool rslt = getSolver()->solve(assmpt);
+bool PCSolver::findNext(const vec<Lit>& assmpt, const ModelExpandOptions& options) {
+	bool moremodels = true;
+	while (moremodels && (options.nbmodelstofind == 0 || getParent().getNbModelsFound() < options.nbmodelstofind)) {
+		bool modelfound = getSolver()->solve(assmpt);
 
-	if (!rslt) {
-		moremodels = false;
-		return;
-	}
+		if (!modelfound) {
+			moremodels = false;
+			break;
+		}
 
-	fullmodel->litassignments.clear();
+		InnerModel* fullmodel = new InnerModel();
+		extractLitModel(fullmodel);
+		extractVarModel(fullmodel);
+		getParent().addModel(*fullmodel);
 
-	for (uint64_t i = 0; i < nVars(); ++i) {
-		if (value(i) == l_True) {
-			fullmodel->litassignments.push(mkLit(i, false));
-		} else if (value(i) == l_False) {
-			fullmodel->litassignments.push(mkLit(i, true));
+		//Check for more models with different var assignment
+		if(hasCPSolver()){
+#ifdef CPSUPPORT
+			while(moremodels && (options.nbmodelstofind == 0 || getParent().getNbModelsFound() < options.nbmodelstofind)){
+				rClause confl = getCPSolver()->findNextModel();
+				if(confl!=nullPtrClause){
+					moremodels = false;
+				}else{
+					extractVarModel(fullmodel);
+					getParent().addModel(*fullmodel);
+				}
+			}
+#endif
+		}
+		delete fullmodel;
+
+		//Invalidate SAT model
+		if (getSolver()->decisionLevel() != assmpt.size()) { //choices were made, so other models possible
+			InnerDisjunction invalidation;
+			invalidate(invalidation);
+			moremodels = invalidateModel(invalidation);
+		} else {
+			moremodels = false;
 		}
 	}
-
-	//Add model
-	fullmodel->varassignments.clear();
-	moremodels = foundAtomModel(fullmodel, options); //IMPORTANT: call BEFORE invalidation
-	if(!moremodels || (options.nbmodelstofind!=0 && getParent().getNbModelsFound()==options.nbmodelstofind)){
-		return;
-	}
-
-	//check if more models can exist
-	if (getSolver()->decisionLevel() != assmpt.size()) { //choices were made, so other models possible
-		InnerDisjunction invalidation;
-		invalidate(invalidation);
-		moremodels = invalidateModel(invalidation);
-	} else {
-		moremodels = false; //no more models possible
-	}
+	return moremodels;
 }
 
 void PCSolver::invalidate(InnerDisjunction& clause) {
@@ -978,7 +978,7 @@ bool PCSolver::invalidateValue(vec<Lit>& invalidation) {
  *
  * Returns true if an optimal model was found
  */
-bool PCSolver::findOptimal(const vec<Lit>& assmpt, InnerModel* m, const ModelExpandOptions& options) {
+bool PCSolver::findOptimal(const vec<Lit>& assmpt, const ModelExpandOptions& options) {
 	vec<Lit> currentassmpt;
 	assmpt.copyTo(currentassmpt);
 
@@ -1011,6 +1011,7 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, InnerModel* m, const ModelExp
 		}
 	}*/
 
+	InnerModel* m = new InnerModel();
 	while (!unsatreached) {
 		if (optim == AGGMNMZ) {
 			assert(getAggSolver()!=NULL);
@@ -1062,7 +1063,7 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, InnerModel* m, const ModelExp
 				}
 			}
 
-			foundAtomModel(m, options);
+			getParent().addModel(*m);
 		}
 	}
 
