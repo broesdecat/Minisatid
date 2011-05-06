@@ -1095,9 +1095,10 @@ void PCSolver::resetState(){
 	backtrackTo(state_savedlevel);
 	assert(state_savedlevel == getCurrentDecisionLevel());
 	state_savingclauses = false;
-	getSolver()->removeClauses(state_savedclauses);
+#warning RESET STATE INCORRECT
+	//getSolver()->removeClauses(state_savedclauses);
 	state_savedclauses.clear();
-	getSolver()->removeAllLearnedClauses();
+	//getSolver()->removeAllLearnedClauses();
 
 }
 

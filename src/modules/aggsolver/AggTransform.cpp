@@ -479,7 +479,7 @@ void CardToEquiv::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& u
 					InnerRule rule;
 					rule.definitionID = agg.getDefID();
 					rule.head = var(agg.getHead());
-					rule.conjunctive = true;
+					rule.conjunctive = false;
 					for (vsize j = 0; j < set->getWL().size(); ++j) {
 						rule.body.push(set->getWL()[j].getLit());
 					}
