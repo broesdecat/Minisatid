@@ -149,9 +149,9 @@ fi
 AM_CONDITIONAL([USEPERFTOOLS],[test x$perftools = xyes])
 AM_CONDITIONAL([USECPSUPPORT],[test x$enablegecode == xyes])
 
-if test "x$perftools" = "xyes"; then
+#if test "x$perftools" = "xyes"; then
 	AC_CONFIG_SUBDIRS([lib/perftools])
-fi
+#fi
 
 AC_CONFIG_SUBDIRS([lib/tclap])
 AC_CONFIG_FILES([Makefile doc/Makefile lib/Makefile lib/pbsolver/Makefile src/Makefile src/parser/Makefile src/minisatid-2.0.pc])
