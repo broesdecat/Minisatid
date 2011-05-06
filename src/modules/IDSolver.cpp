@@ -291,6 +291,10 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 		negloops = false;
 	}
 
+	if(getSemantics()==DEF_STABLE){
+		negloops = false;
+	}
+
 	if (verbosity() >= 1) {
 		report("> Number of recursive atoms in positive loops : %6d.\n",(int)atoms_in_pos_loops);
 		if (negloops) {
@@ -298,7 +302,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 		}
 	}
 
-	if (!posloops && (!negloops || getSemantics()==DEF_STABLE)) {
+	if (!posloops && !negloops) {
 		present = false;
 		return;
 	}
@@ -388,7 +392,7 @@ void IDSolver::visitFull(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &vi
 			sccs.push(w);
 			incomp[w] = true;
 		} while (w != i);
-		if (mixed) {
+		if (mixed && sccs.size()>1) {
 			rootofmixed.push(i);
 			for (int i = 0; i < sccs.size(); ++i) {
 				nodeinmixed.push(sccs[i]);
