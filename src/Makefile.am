@@ -27,7 +27,9 @@ libminisatid_2_0_la_SOURCES = \
 		external/ExternalInterface.hpp		wrapper/ExternalInterface.cpp\
 		external/ExternalUtils.hpp\
 		external/MonitorInterface.hpp\
+		external/FlatZincRewriter.hpp\
 		external/Translator.hpp				wrapper/Translator.cpp\
+		wrapper/FlatZincRewriter.cpp\
 		wrapper/InterfaceImpl.hpp			wrapper/InterfaceImpl.cpp\
 		external/SolvingMonitor.hpp			wrapper/SolvingMonitor.cpp\
 		external/ResourceManager.hpp		wrapper/ResourceManager.cpp\

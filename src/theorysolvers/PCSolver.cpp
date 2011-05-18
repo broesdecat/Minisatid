@@ -56,7 +56,7 @@ DPLLTSolver::~DPLLTSolver(){
 bool PCSolver::headerunprinted = true;
 
 //Has to be value copy of modes!
-PCSolver::PCSolver(SolverOption modes, MinisatID::WLSImpl& inter) :
+PCSolver::PCSolver(SolverOption modes, MinisatID::WrapperPimpl& inter) :
 		LogicSolver(modes, inter),
 		satsolver(NULL),
 		state(THEORY_PARSING),
@@ -468,22 +468,7 @@ bool PCSolver::add(const InnerCPBinaryRelVar& obj){
 	return addCP(obj);
 }
 
-bool PCSolver::add(const InnerCPSum& obj){
-	add(obj.head);
-	return addCP(obj);
-}
-
 bool PCSolver::add(const InnerCPSumWeighted& obj){
-	add(obj.head);
-	return addCP(obj);
-}
-
-bool PCSolver::add(const InnerCPSumWithVar& obj){
-	add(obj.head);
-	return addCP(obj);
-}
-
-bool PCSolver::add(const InnerCPSumWeightedWithVar& obj){
 	add(obj.head);
 	return addCP(obj);
 }

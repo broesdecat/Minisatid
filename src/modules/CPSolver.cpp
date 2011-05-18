@@ -110,33 +110,10 @@ bool CPSolver::add(const InnerCPBinaryRelVar& form){
 	return true;
 }
 
-bool CPSolver::add(const InnerCPSum& form){
-	assert(!isInitialized());
-	vector<TermIntVar> set(convertToVars(form.varIDs));
-	getData().addReifConstraint(new SumConstraint(getSpace(), set, toRelType(form.rel), form.bound, form.head));
-	return true;
-}
-
 bool CPSolver::add(const InnerCPSumWeighted& form){
 	assert(!isInitialized());
 	vector<TermIntVar> set(convertToVars(form.varIDs));
 	getData().addReifConstraint(new SumConstraint(getSpace(), set, form.weights, toRelType(form.rel), form.bound, form.head));
-	return true;
-}
-
-bool CPSolver::add(const InnerCPSumWithVar& form){
-	assert(!isInitialized());
-	vector<TermIntVar> set(convertToVars(form.varIDs));
-	TermIntVar rhs(convertToVar(form.rhsvarID));
-	getData().addReifConstraint(new SumConstraint(getSpace(), set, toRelType(form.rel), rhs, form.head));
-	return true;
-}
-
-bool CPSolver::add(const InnerCPSumWeightedWithVar& form){
-	assert(!isInitialized());
-	vector<TermIntVar> set(convertToVars(form.varIDs));
-	TermIntVar rhs(convertToVar(form.rhsvarID));
-	getData().addReifConstraint(new SumConstraint(getSpace(), set, form.weights, toRelType(form.rel), rhs, form.head));
 	return true;
 }
 

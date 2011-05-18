@@ -27,6 +27,7 @@
 
 #include "external/ExternalUtils.hpp"
 #include "external/ExternalInterface.hpp"
+#include "external/FlatZincRewriter.hpp"
 #include "external/Translator.hpp"
 #include "utils/Print.hpp"
 
@@ -39,6 +40,7 @@ typedef numeric_limits<int> intlim;
 
 typedef WrappedSOSolver wsos;
 typedef WrappedPCSolver wps;
+typedef FlatZincRewriter wfz;
 
 //}
 
@@ -66,12 +68,18 @@ bool unsatfound = false;
 
 wps*	solver = NULL;
 wsos*	modsolver = NULL;
+wfz* 	fzrewriter = NULL;
 
 /**
  * CR-CheckResult: checks the result of passing some data to the solvers.
  * The result is false if unsat was already detected.
  */
-void CR(bool result);
+template<class T>
+void CR(int modid, const T& formula);
+template<class T>
+void CR(const T& formula, bool cp=false);
+template<class T>
+void CRCP(const T& formula);
 
 void initSolver();
 void initModSolver();
@@ -83,6 +91,7 @@ std::vector<MinisatID::Atom> rigidatoms; //a necessary list of accumulated rigid
 void finishCNFHeader();
 void readCNFModalHierLevel(bool existential, const std::vector<MinisatID::Atom>& rigidatoms);
 pwls getData();
+wfz* getFZRewriter();
 
 MinisatID::Atom cAtom(string* c);
 MinisatID::Literal cLiteral(string* c);
@@ -152,7 +161,7 @@ void checkVersion(ECNF_VERSION version);
 %token <rel> REL
 %token <aggr> AGGDEFN
 %token CNF ECNF MECNF DEFPRESENT AGGPRESENT MNMZPRESENT MODDEFN CPPRESENT
-%token INTVAR INTVARDOM SUMSTRT SUMSTRI SUMSTSIRT SUMSTSIRI COUNTSTRIT DISTINCT DELIM BINTRI BINTRT
+%token INTVAR INTVARDOM SUMSTSIRI COUNTSTRIT DISTINCT DELIM BINTRI BINTRT
 %token FORCECHOICE
 
 %type <integer> number
@@ -232,9 +241,9 @@ cnfclause
 			{	
 				DisjunctionRef clause(*$2);
 				if(modsolver!=NULL){
-					CR(modsolver->add(cnfcurrentmodid, clause));;
+					CR(cnfcurrentmodid, clause);
 				}else{
-					CR(solver->add(clause)); 
+					CR(clause); 
 				}
 				delete $2;
 			}
@@ -269,14 +278,14 @@ mnmz	:	MNMZDEFN body ZERO
 				MinimizeOrderedList mnm;
 				mnm.literals = *$2;
 				delete $2;
-				CR(solver->add(mnm)); 
+				CR(mnm); 
 			}
 subsetmnmz: SUBSETMINDEFN body ZERO 		
 			{ 
 				MinimizeSubset mnm;
 				mnm.literals = *$2;
 				delete $2;
-				CR(solver->add(mnm)); 
+				CR(mnm); 
 			}
 summnmz :	AGGMINDEFN AGGDEFN NUMBER NUMBER ZERO	
 			{ 
@@ -285,7 +294,7 @@ summnmz :	AGGMINDEFN AGGDEFN NUMBER NUMBER ZERO
 				mnm.setid = cID($4);
 				mnm.type = $2;
 				delete $3; delete $4;
-				CR(solver->add(mnm)); 
+				CR(mnm);
 			}
 		
 clause	:	body ZERO	
@@ -293,7 +302,7 @@ clause	:	body ZERO
 				Disjunction clause;
 				clause.literals = *$1;
 				delete $1;
-				CR(solver->add(clause));  
+				CR(clause);
 			}
 		;
 
@@ -311,7 +320,7 @@ rule	:	SEMDEFN NUMBER body ZERO
 				}else{
 					rule.conjunctive = false;
 				}					 
-				CR(solver->add(rule));
+				CR(rule);
 			}
 		;
 
@@ -329,7 +338,7 @@ rule	:	SEMDEFN DEFOP NUMBER NUMBER body ZERO
 				}else{
 					rule.conjunctive = false;
 				}					 
-				CR(solver->add(rule));
+				CR(rule);
 			}
 		;
 
@@ -348,7 +357,7 @@ agg		:	AGGDEFN SEMDEFN SIGNDEFN NUMBER NUMBER weight ZERO
 				agg.type = $1;
 				agg.sem = $2;
 				delete $4; delete $5; delete $6;
-				CR(solver->add(agg));
+				CR(agg);
 			}
 		;
 agg		:	AGGDEFN DEFOP NUMBER SIGNDEFN NUMBER NUMBER weight ZERO	
@@ -364,7 +373,7 @@ agg		:	AGGDEFN DEFOP NUMBER SIGNDEFN NUMBER NUMBER weight ZERO
 				agg.type = $1;
 				agg.sem = DEF;
 				delete $5; delete $6; delete $7;
-				CR(solver->add(agg));
+				CR(agg);
 			}
 		;
 
@@ -374,7 +383,7 @@ set		:	SETDEFN NUMBER body ZERO
 				set.setID = cID($2);
 				set.literals = *$3;
 				delete $2; delete $3;
-				CR(solver->add(set));
+				CR(set);
 			}
 		;
 
@@ -384,7 +393,7 @@ wset	:	WSETDEFN NUMBER	wbody ZERO
 				set.setID = cID($2);
 				set.wl = *$3;
 				delete $2; delete $3;
-				CR(solver->add(set));
+				CR(set);
 			}
 		;
 
@@ -396,14 +405,14 @@ intvar	:	INTVAR number number number ZERO
 				var.varID = $2;
 				var.minvalue = $3;
 				var.maxvalue = $4;
-				addCPTo(solver, var);
+				CRCP(var);
 			}
 		|	INTVARDOM number ibody ZERO 
 			{
 				CPIntVarEnum var;
 				var.varID = $2;
 				var.values = *$3;
-				addCPTo(solver, var);
+				CRCP(var);
 				delete $3;
 			}
 		;
@@ -423,7 +432,7 @@ cpconstraint
 				binrel.varID = $3;
 				binrel.rel = $4;
 				binrel.bound = $5;
-				addCPTo(solver, binrel);
+				CRCP(binrel);
 				delete $2;
 			}
 		|	BINTRT NUMBER number REL number ZERO 
@@ -433,28 +442,8 @@ cpconstraint
 				binrel.lhsvarID = $3;
 				binrel.rel = $4;
 				binrel.rhsvarID = $5;
-				addCPTo(solver, binrel);
+				CRCP(binrel);
 				delete $2;
-			}
-		|	SUMSTRI NUMBER uibody REL number ZERO 
-			{ 	
-				CPSum sum;
-				sum.head = cAtom($2);
-				sum.varIDs = *$3;
-				sum.rel = $4;
-				sum.bound = $5;
-				addCPTo(solver, sum);
-				delete $2; delete $3;
-			}
-		|	SUMSTRT NUMBER uibody REL number ZERO
-			{ 	
-				CPSumWithVar sum;
-				sum.head = cAtom($2);
-				sum.varIDs = *$3;
-				sum.rel = $4;
-				sum.rhsvarID = $5;
-				addCPTo(solver, sum);
-				delete $2; delete $3;
 			}
 		|	SUMSTSIRI NUMBER uibody DELIM ibody REL number ZERO 
 			{ 	
@@ -464,18 +453,7 @@ cpconstraint
 				sum.weights = *$5;
 				sum.rel = $6;
 				sum.bound = $7;
-				addCPTo(solver, sum);
-				delete $2; delete $3; delete $5;
-			}
-		|	SUMSTSIRT NUMBER uibody DELIM ibody REL number ZERO 
-			{ 	
-				CPSumWeightedWithVar sum;
-				sum.head = cAtom($2);
-				sum.varIDs = *$3;
-				sum.weights = *$5;
-				sum.rel = $6;
-				sum.rhsvarID = $7;
-				addCPTo(solver, sum);
+				CRCP(sum);
 				delete $2; delete $3; delete $5;
 			}
 			//only global card at the moment!
@@ -486,7 +464,7 @@ cpconstraint
 				count.rel = $3;
 				count.eqbound = $4;				
 				count.rhsvar = $5;
-				addCPTo(solver, count);
+				CRCP(count);
 				delete $2;
 			}
 			//only global alldiff at the moment!
@@ -494,7 +472,7 @@ cpconstraint
 			{ 	
 				CPAllDiff alldiff;
 				alldiff.varIDs = *$2;
-				addCPTo(solver, alldiff);
+				CRCP(alldiff);
 				delete $2;
 			}
 		;
@@ -527,7 +505,7 @@ modhier :	MODDEFN	NUMBER NUMBER NUMBER ZERO
 				sub.head = cLiteral($4);
 				sub.child = cID($3)-1;
 				delete $3; delete $4;
-				CR(modsolver->add(cID($2)-1, sub));
+				CR(cID($2)-1, sub);
 				delete $2; 
 			}
 		;
@@ -540,7 +518,7 @@ matomset:	QUANTe NUMBER vbody ZERO
 				RigidAtoms rigid;
 				rigid.rigidatoms = *$3;
 				delete $3;
-				CR(modsolver->add(cID($2)-1, rigid)); 
+				CR(cID($2)-1, rigid);
 				delete $2; 
 			}
 		;
@@ -550,7 +528,7 @@ mclause	:	NUMBER body ZERO
 				Disjunction clause;
 				clause.literals = *$2;
 				delete $2;
-				CR(modsolver->add(cID($1)-1, clause)); 
+				CR(cID($1)-1, clause); 
 				delete $1;   
 			}
 		;
@@ -568,8 +546,8 @@ mrule	:	SEMDEFN NUMBER NUMBER body ZERO
 					rule.conjunctive = true;
 				}else{
 					rule.conjunctive = false;
-				}					 
-				CR(modsolver->add(cID($2)-1, rule));		 
+				}	
+				CR(cID($2)-1, rule);		 
 				delete $2;
 			}
 		;
@@ -587,8 +565,8 @@ mrule	:	SEMDEFN NUMBER DEFOP NUMBER NUMBER body ZERO
 					rule.conjunctive = true;
 				}else{
 					rule.conjunctive = false;
-				}					 
-				CR(modsolver->add(cID($2)-1, rule));
+				}		
+				CR(cID($2)-1, rule);
 			}
 		;
 
@@ -607,7 +585,7 @@ magg	:	AGGDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER weight ZERO
 				agg.type = $1;
 				agg.sem = $3;
 				delete $5; delete $6; delete $7;
-				CR(modsolver->add(cID($2)-1, agg));
+				CR(cID($2)-1, agg);
 				delete($2);
 			}
 		;
@@ -625,7 +603,7 @@ magg	:	AGGDEFN NUMBER DEFOP NUMBER SIGNDEFN NUMBER NUMBER weight ZERO
 				agg.type = $1;
 				agg.sem = DEF;
 				delete $6; delete $7; delete $8;
-				CR(modsolver->add(cID($2)-1, agg));
+				CR(cID($2)-1, agg);
 			}
 		;
 
@@ -635,7 +613,7 @@ mset	:	SETDEFN NUMBER NUMBER body ZERO
 				set.setID = cID($3);
 				set.literals = *$4;
 				delete $3; delete $4;
-				CR(modsolver->add(cID($2)-1, set));
+				CR(cID($2)-1, set);
 				delete($2);
 			}
 		;
@@ -646,7 +624,7 @@ mwset	:	WSETDEFN NUMBER NUMBER wbody ZERO
 				set.setID = cID($3);
 				set.wl = *$4;
 				delete $3; delete $4;
-				CR(modsolver->add(cID($2)-1, set));
+				CR(cID($2)-1, set);
 				delete($2);
 			}
 		;
@@ -780,17 +758,6 @@ void yyerror(const char* msg) {
 	throw idpexception(msg);
 }
 
-/**
- * CR-CheckResult: checks the result of passing some data to the solvers.
- * The result is false if unsat was already detected.
- */
-void CR(bool result){
-	if(!result){
-		unsatfound = true;
-		throw idpexception("Unsat during parsing.\n");
-	}		
-}
-
 void checkVersion(ECNF_VERSION version){
 	if(currentreadversion == VERSION_NONE){
 		currentreadversion = version;
@@ -802,10 +769,17 @@ void checkVersion(ECNF_VERSION version){
 }
 
 void initSolver(){
-	solver = new WrappedPCSolver(modes);
+	if(modes.transformat==TRANS_FZ){
+		fzrewriter = new FlatZincRewriter(modes);
+	}else{
+		solver = new WrappedPCSolver(modes);
+	}
 }
 
 void initModSolver(){
+	if(modes.transformat==TRANS_FZ){
+		throw idpexception("Rewriting FO(MOD, .) into flatzinc is not supported yet.");
+	}
 	modsolver = new WrappedSOSolver(modes);
 }
 
@@ -815,6 +789,10 @@ pwls getData(){
 	}else{
 		return modsolver;
 	}
+}
+
+wfz* getFZRewriter(){
+	return fzrewriter;
 }
 
 void readCNFModalHierLevel(bool existential, const vector<Atom>& rigidatoms){
@@ -848,10 +826,10 @@ void readCNFModalHierLevel(bool existential, const vector<Atom>& rigidatoms){
 		SubTheory sub;
 		sub.head = Literal(cnfcurrenthead);
 		sub.child = cnfcurrentmodid;
-		CR(modsolver->add(cnfcurrentmodid-1, sub));
+		CR(cnfcurrentmodid-1, sub);
 		RigidAtoms rigid;
 		rigid.rigidatoms = rigidatoms;
-		modsolver->add(cnfcurrentmodid, rigid);
+		CR(cnfcurrentmodid, rigid);
 		if(rigidatoms.size()==0){
 			throw idpexception("List of rigid atoms is empty.\n");
 		}
@@ -870,7 +848,7 @@ void finishCNFHeader(){
 		for(vector<int>::size_type i = 0; i<modalops.size(); ++i){
 			Disjunction clause;
 			clause.literals.push_back(heads[i]);
-			CR(modsolver->add(modalops[i], clause));	
+			CR(modalops[i], clause);	
 		}
 	}
 }
@@ -919,13 +897,40 @@ Weight cWeight(string* s){
 	return w;
 }
 
+/**
+ * CR-CheckResult: checks the result of passing some data to the solvers.
+ * The result is false if unsat was already detected.
+ */
 template<class T>
-void addCPTo(WrappedPCSolver* solver, const T& formula){
-#ifdef CPSUPPORT
-	CR(solver->add(formula));
-#else
+void CRCP(const T& formula){
+	CR(formula, true);
+}
+template<class T>
+void CR(int modid, const T& formula){
+	bool result = modsolver->add(modid, formula);
+	if(!result){
+		unsatfound = true;
+		throw idpexception("Unsat during parsing.\n");
+	}		
+}
+template<class T>
+void CR(const T& formula, bool cp){
+	if(cp){
+#ifndef CPSUPPORT
 	throw idpexception(getNoCPSupportString());
 #endif
+	}
+
+	bool result = true;
+	if(modes.transformat==TRANS_FZ){
+		fzrewriter->add(formula);
+	}else{
+		result = solver->add(formula);
+	}
+	if(!result){
+		unsatfound = true;
+		throw idpexception("Unsat during parsing.\n");
+	}		
 }
 
 void parsetruelist(vector<int>* literalnumbers) {

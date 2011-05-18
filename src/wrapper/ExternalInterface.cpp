@@ -39,18 +39,18 @@ void WrappedLogicSolver::addMonitor(Monitor* const monitor){
 
 
 WrappedPCSolver::WrappedPCSolver(const SolverOption& modes)
-		:WrappedLogicSolver(), impl(new ExternalPCImpl(modes)){
+		:WrappedLogicSolver(), impl(new PCWrapperPimpl(modes)){
 }
 
 WrappedPCSolver::~WrappedPCSolver(){
 	delete impl;
 }
 
-WLSImpl* WrappedPCSolver::getImpl() const {
+WrapperPimpl* WrappedPCSolver::getImpl() const {
 	return impl;
 }
 
-ExternalPCImpl* WrappedPCSolver::getPCImpl() const {
+PCWrapperPimpl* WrappedPCSolver::getPCImpl() const {
 	return impl;
 }
 
@@ -61,18 +61,18 @@ bool WrappedPCSolver::add(const T& sentence){
 
 
 WrappedSOSolver::WrappedSOSolver(const SolverOption& modes):
-		WrappedLogicSolver(), impl(new WSOLSImpl(modes)){
+		WrappedLogicSolver(), impl(new SOWrapperPimpl(modes)){
 }
 
 WrappedSOSolver::~WrappedSOSolver(){
 	delete impl;
 }
 
-WLSImpl* WrappedSOSolver::getImpl() const {
+WrapperPimpl* WrappedSOSolver::getImpl() const {
 	return impl;
 }
 
-WSOLSImpl* WrappedSOSolver::getSOImpl() const {
+SOWrapperPimpl* WrappedSOSolver::getSOImpl() const {
 	return impl;
 }
 
@@ -98,10 +98,7 @@ template bool WrappedPCSolver::add(const CPIntVarRange& sentence);
 template bool WrappedPCSolver::add(const CPIntVarEnum& sentence);
 template bool WrappedPCSolver::add(const CPBinaryRel& sentence);
 template bool WrappedPCSolver::add(const CPBinaryRelVar& sentence);
-template bool WrappedPCSolver::add(const CPSum& sentence);
 template bool WrappedPCSolver::add(const CPSumWeighted& sentence);
-template bool WrappedPCSolver::add(const CPSumWithVar& sentence);
-template bool WrappedPCSolver::add(const CPSumWeightedWithVar& sentence);
 template bool WrappedPCSolver::add(const CPCount& sentence);
 template bool WrappedPCSolver::add(const CPAllDiff& sentence);
 #endif

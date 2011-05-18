@@ -219,7 +219,7 @@ namespace MinisatID {
 	}; // SAT-solver polarity option
 
 	enum INPUTFORMAT 	{ FORMAT_FODOT, FORMAT_ASP, FORMAT_OPB};
-	enum OUTPUTFORMAT 	{ TRANS_FODOT, TRANS_ASP, TRANS_PLAIN };
+	enum OUTPUTFORMAT 	{ TRANS_FODOT, TRANS_ASP, TRANS_PLAIN, TRANS_FZ };
 
 	// Structure containing general options for the solvers
 	class SolverOption {
@@ -433,16 +433,6 @@ struct CPBinaryRelVar{
 	CPBinaryRelVar(): head(0){}
 };
 
-
-struct CPSum{
-	Atom head;
-	std::vector<uint> varIDs;
-	EqType rel;
-	int bound;
-
-	CPSum(): head(0){}
-};
-
 struct CPSumWeighted{
 	Atom head;
 	std::vector<uint> varIDs;
@@ -451,25 +441,6 @@ struct CPSumWeighted{
 	int bound;
 
 	CPSumWeighted(): head(0){}
-};
-
-struct CPSumWithVar{
-	Atom head;
-	std::vector<uint> varIDs;
-	EqType rel;
-	uint rhsvarID;
-
-	CPSumWithVar(): head(0){}
-};
-
-struct CPSumWeightedWithVar{
-	Atom head;
-	std::vector<uint> varIDs;
-	std::vector<int> weights;
-	EqType rel;
-	uint rhsvarID;
-
-	CPSumWeightedWithVar(): head(0){}
 };
 
 struct CPCount{

@@ -152,35 +152,12 @@ struct InnerCPBinaryRelVar{
 	EqType rel;
 };
 
-
-struct InnerCPSum{
-	Var head;
-	std::vector<uint> varIDs;
-	EqType rel;
-	int bound;
-};
-
 struct InnerCPSumWeighted{
 	Var head;
 	std::vector<uint> varIDs;
 	std::vector<int> weights;
 	EqType rel;
 	int bound;
-};
-
-struct InnerCPSumWithVar{
-	Var head;
-	std::vector<uint> varIDs;
-	EqType rel;
-	uint rhsvarID;
-};
-
-struct InnerCPSumWeightedWithVar{
-	Var head;
-	std::vector<uint> varIDs;
-	std::vector<int> weights;
-	EqType rel;
-	uint rhsvarID;
 };
 
 struct InnerCPCount{

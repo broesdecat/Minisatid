@@ -139,7 +139,7 @@ private:
 	bool	hasMonitor;
 
 public:
-	PCSolver(SolverOption modes, MinisatID::WLSImpl& inter);
+	PCSolver(SolverOption modes, MinisatID::WrapperPimpl& inter);
 	virtual ~PCSolver();
 
 	SATSolver*	getSATSolver() const { return satsolver; }
@@ -164,10 +164,7 @@ public:
 	bool	add		(const InnerIntVarRange& object);
 	bool	add		(const InnerCPBinaryRel& object);
 	bool	add		(const InnerCPBinaryRelVar& object);
-	bool	add		(const InnerCPSum& object);
 	bool	add		(const InnerCPSumWeighted& object);
-	bool	add		(const InnerCPSumWithVar& object);
-	bool	add		(const InnerCPSumWeightedWithVar& object);
 	bool	add		(const InnerCPCount& object);
 	bool	add		(const InnerCPAllDiff& object);
 

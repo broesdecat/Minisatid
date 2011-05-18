@@ -20,6 +20,7 @@
 #include <setjmp.h>
 
 #include "external/ExternalInterface.hpp"
+#include "external/FlatZincRewriter.hpp"
 #include "external/Translator.hpp"
 #include "Unittests.hpp"
 #include "external/ResourceManager.hpp"
@@ -35,10 +36,14 @@
 using namespace std;
 using namespace MinisatID;
 
+#include "parser/Lparseread.cpp"
+#include "parser/PBread.cpp"
+
 extern char* 	yytext;
 extern int 		lineNo;
 extern int 		charPos;
 extern pwls 	getData();
+extern FlatZincRewriter* getFZRewriter();
 
 extern FILE* 	yyin;
 extern int 		yyparse();
@@ -64,6 +69,8 @@ void handleSignals	();
 int handleTermination(pwls d);
 
 void doModelGeneration(pwls& d);
+
+void rewriteIntoFlatZinc();
 
 extern SolverOption modes;
 FODOTTranslator* fodottrans;
@@ -131,6 +138,11 @@ int main(int argc, char** argv) {
 		sol->setNbModelsToFind(modes.nbmodels);
 	}
 
+	if(modes.transformat==TRANS_FZ){
+		rewriteIntoFlatZinc();
+		return 0;
+	}
+
 	printMainStart(modes.verbosity);
 
 	pwls d = NULL;
@@ -180,39 +192,78 @@ int main(int argc, char** argv) {
 	return returnvalue;
 }
 
-pwls initializeAndParseASP(){
-	WrappedPCSolver* p = new WrappedPCSolver(modes);
+void rewriteIntoFlatZinc(){
+	switch(modes.format){
+		case FORMAT_ASP:{
+			LParseTranslator* lptrans = new LParseTranslator();
+			sol->setTranslator(lptrans);
 
+			std::istream is(getInputBuffer());
+			FlatZincRewriter* p = new FlatZincRewriter(modes);
+			Read<FlatZincRewriter>* r = new Read<FlatZincRewriter>(p, lptrans);
+			r->read(is);
+			delete r;
+			closeInput();
+			p->finishParsing();
+			break;}
+		case FORMAT_OPB:{
+			OPBTranslator* opbtrans = new OPBTranslator();
+			sol->setTranslator(opbtrans);
+
+			std::istream is(getInputBuffer());
+			FlatZincRewriter* p = new FlatZincRewriter(modes);
+			PBRead<FlatZincRewriter>* r = new PBRead<FlatZincRewriter>(p, opbtrans, is);
+			r->parse();
+			delete r;
+			closeInput();
+			p->finishParsing();
+			break;}
+		case FORMAT_FODOT:{
+			yyin = getInputFile();
+			yyinit();
+			try {
+				yyparse();
+			} catch (const MinisatID::idpexception& e) {
+				throw idpexception(getParseError(e, lineNo, charPos, yytext));
+			}
+			yydestroy();
+			closeInput();
+			getFZRewriter()->finishParsing();
+			break;
+		}
+	}
+}
+
+pwls initializeAndParseASP(){
 	LParseTranslator* lptrans = new LParseTranslator();
 	trans = lptrans;
 	sol->setTranslator(trans);
 
-	Read* r = new Read(p, lptrans);
-
 	std::istream is(getInputBuffer());
+	WrappedPCSolver* p = new WrappedPCSolver(modes);
+	Read<WrappedPCSolver>* r = new Read<WrappedPCSolver>(p, lptrans);
+
 	if(!r->read(is)){
 		sol->notifyUnsat();
 	}
-
-	delete r;
 	closeInput();
+	delete r;
+
 	return p;
 }
 
 pwls initializeAndParseOPB(){
-	WrappedPCSolver* p = new WrappedPCSolver(modes);
-
 	OPBTranslator* opbtrans = new OPBTranslator();
 	trans = opbtrans;
 	sol->setTranslator(trans);
 
 	std::istream is(getInputBuffer());
+	WrappedPCSolver* p = new WrappedPCSolver(modes);
+	PBRead<WrappedPCSolver>* parser = new PBRead<WrappedPCSolver>(p, opbtrans, is);
 
-	PBRead* parser = new PBRead(p, opbtrans, is);
-	parser->autoLin();
-
-	parser->parse();
-
+	if(!parser->parse()){
+		sol->notifyUnsat();
+	}
 	closeInput();
 	delete parser;
 	return p;

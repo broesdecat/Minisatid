@@ -63,7 +63,7 @@ Literal SmartRemapper::getLiteral(const Lit& lit){
 
 // PIMPL of External Interfaces
 
-WLSImpl::WLSImpl(const SolverOption& modes):
+WrapperPimpl::WrapperPimpl(const SolverOption& modes):
 		optimization(false),
 		state(INIT),
 		_modes(modes),
@@ -71,45 +71,45 @@ WLSImpl::WLSImpl(const SolverOption& modes):
 		{
 }
 
-WLSImpl::~WLSImpl(){
+WrapperPimpl::~WrapperPimpl(){
 	delete remapper;
 }
 
-void WLSImpl::setSolutionMonitor(Solution* sol) {
+void WrapperPimpl::setSolutionMonitor(Solution* sol) {
 	if(sol!=NULL) {
 		solutionmonitor = sol;
 		getSolMonitor().setModes(modes());
 	}
 }
 
-void WLSImpl::printStatistics() const {
+void WrapperPimpl::printStatistics() const {
 	getSolMonitor().printStatistics();
 	getSolver()->printStatistics();
 }
 
-void WLSImpl::printLiteral(std::ostream& output, const Lit& l) const{
+void WrapperPimpl::printLiteral(std::ostream& output, const Lit& l) const{
 	getSolMonitor().getTranslator()->printLiteral(output, getRemapper()->getLiteral(l));
 }
 
-void WLSImpl::printCurrentOptimum(const Weight& value) const{
+void WrapperPimpl::printCurrentOptimum(const Weight& value) const{
 	getSolMonitor().notifyCurrentOptimum(value);
 }
 
-Var WLSImpl::checkAtom(const Atom& atom){
+Var WrapperPimpl::checkAtom(const Atom& atom){
 	return getRemapper()->getVar(atom);
 }
 
-Lit WLSImpl::checkLit(const Literal& lit){
+Lit WrapperPimpl::checkLit(const Literal& lit){
 	return mkLit(checkAtom(lit.getAtom()), lit.hasSign());
 }
 
-void WLSImpl::checkLits(const vector<Literal>& lits, vec<Lit>& ll){
+void WrapperPimpl::checkLits(const vector<Literal>& lits, vec<Lit>& ll){
 	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); ++i){
 		ll.push(checkLit(*i));
 	}
 }
 
-void WLSImpl::checkLits(const vector<vector<Literal> >& lits, vec<vec<Lit> >& ll){
+void WrapperPimpl::checkLits(const vector<vector<Literal> >& lits, vec<vec<Lit> >& ll){
 	for(vector<vector<Literal> >::const_iterator i=lits.begin(); i<lits.end(); ++i){
 		ll.push();
 		for(vector<Literal>::const_iterator j=(*i).begin(); j<(*i).end(); ++j){
@@ -118,21 +118,21 @@ void WLSImpl::checkLits(const vector<vector<Literal> >& lits, vec<vec<Lit> >& ll
 	}
 }
 
-void WLSImpl::checkLits(const vector<Literal>& lits, vector<Lit>& ll){
+void WrapperPimpl::checkLits(const vector<Literal>& lits, vector<Lit>& ll){
 	ll.reserve(lits.size());
 	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); ++i){
 		ll.push_back(checkLit(*i));
 	}
 }
 
-void WLSImpl::checkAtoms(const vector<Atom>& atoms, vector<Var>& ll){
+void WrapperPimpl::checkAtoms(const vector<Atom>& atoms, vector<Var>& ll){
 	ll.reserve(atoms.size());
 	for(vector<Atom>::const_iterator i=atoms.begin(); i<atoms.end(); ++i){
 		ll.push_back(checkAtom(*i));
 	}
 }
 
-bool WLSImpl::finishParsing(){
+bool WrapperPimpl::finishParsing(){
 	if(solutionmonitor==NULL){
 		throw idpexception("Solving without instantiating any solution monitor.\n");
 	}
@@ -153,7 +153,7 @@ bool WLSImpl::finishParsing(){
 	return !getSolMonitor().isUnsat();
 }
 
-bool WLSImpl::simplify(){
+bool WrapperPimpl::simplify(){
 	if(solutionmonitor==NULL){
 		throw idpexception("Solving without instantiating any solution monitor.\n");
 	}
@@ -181,7 +181,7 @@ bool WLSImpl::simplify(){
  * 		MODELEXAND: search for a solution
  * 		PROPAGATE: only do unit propagation (and print nothing, not even when a model is found)
  */
-void WLSImpl::solve(){
+void WrapperPimpl::solve(){
 	if(solutionmonitor==NULL){
 		throw idpexception("Solving without instantiating any solution monitor.\n");
 	}
@@ -220,29 +220,29 @@ void WLSImpl::solve(){
 	getSolMonitor().notifySolvingFinished();
 }
 
-void WLSImpl::addModel(const InnerModel& model){
+void WrapperPimpl::addModel(const InnerModel& model){
 	Model* outmodel = new Model();
 	outmodel->literalinterpretations = getBackMappedModel(model.litassignments);
 	outmodel->variableassignments = model.varassignments;
 	getSolMonitor().addModel(outmodel);
 }
 
-void WLSImpl::notifyOptimalModelFound(){
+void WrapperPimpl::notifyOptimalModelFound(){
 	assert(hasOptimization());
 	getSolMonitor().notifyOptimalModelFound();
 }
 
-bool WLSImpl::canBackMapLiteral(const Lit& lit) const{
+bool WrapperPimpl::canBackMapLiteral(const Lit& lit) const{
 	return getRemapper()->wasInput(var(lit));
 }
 
-Literal WLSImpl::getBackMappedLiteral(const Lit& lit) const{
+Literal WrapperPimpl::getBackMappedLiteral(const Lit& lit) const{
 	assert(canBackMapLiteral(lit));
 	return getRemapper()->getLiteral(lit);
 }
 
 //Translate into original vocabulary
-vector<Literal> WLSImpl::getBackMappedModel(const vec<Lit>& model) const{
+vector<Literal> WrapperPimpl::getBackMappedModel(const vec<Lit>& model) const{
 	vector<Literal> outmodel;
 	for(int j=0; j<model.size(); ++j){
 		if(canBackMapLiteral(model[j])){
@@ -253,13 +253,13 @@ vector<Literal> WLSImpl::getBackMappedModel(const vec<Lit>& model) const{
 	return outmodel;
 }
 
-void WLSImpl::addMonitor(Monitor * const mon){
+void WrapperPimpl::addMonitor(Monitor * const mon){
 	monitors.push_back(mon);
 	getSolver()->notifyHasMonitor();
 }
 
 template<>
-void WLSImpl::notifyMonitor(const InnerPropagation& obj){
+void WrapperPimpl::notifyMonitor(const InnerPropagation& obj){
 	if(canBackMapLiteral(obj.propagation)){
 		Literal lit = getBackMappedLiteral(obj.propagation);
 		for(vector<Monitor*>::const_iterator i=monitors.begin(); i<monitors.end(); ++i){
@@ -269,7 +269,7 @@ void WLSImpl::notifyMonitor(const InnerPropagation& obj){
 }
 
 template<>
-void WLSImpl::notifyMonitor(const InnerBacktrack& obj){
+void WrapperPimpl::notifyMonitor(const InnerBacktrack& obj){
 	for(vector<Monitor*>::const_iterator i=monitors.begin(); i<monitors.end(); ++i){
 		(*i)->notifyBacktracked(obj.untillevel);
 	}
@@ -278,35 +278,35 @@ void WLSImpl::notifyMonitor(const InnerBacktrack& obj){
 
 // PROP SOLVER PIMPL
 
-ExternalPCImpl::ExternalPCImpl(const SolverOption& modes)
-		:WLSImpl(modes), solver(new PCSolver(modes, *this)){
+PCWrapperPimpl::PCWrapperPimpl(const SolverOption& modes)
+		:WrapperPimpl(modes), solver(new PCSolver(modes, *this)){
 }
 
-ExternalPCImpl::~ExternalPCImpl(){
+PCWrapperPimpl::~PCWrapperPimpl(){
 	delete solver;
 }
 
 template<>
-bool ExternalPCImpl::add(const Atom& v){
+bool PCWrapperPimpl::add(const Atom& v){
 	return getSolver()->add(checkAtom(v));
 }
 
 template<>
-bool ExternalPCImpl::add(const Disjunction& sentence){
+bool PCWrapperPimpl::add(const Disjunction& sentence){
 	InnerDisjunction d;
 	checkLits(sentence.literals, d.literals);
 	return getSolver()->add(d);
 }
 
 template<>
-bool ExternalPCImpl::add(const DisjunctionRef& sentence){
+bool PCWrapperPimpl::add(const DisjunctionRef& sentence){
 	InnerDisjunction d;
 	checkLits(sentence.literals, d.literals);
 	return getSolver()->add(d);
 }
 
 template<>
-bool ExternalPCImpl::add(const Equivalence& sentence){
+bool PCWrapperPimpl::add(const Equivalence& sentence){
 	InnerEquivalence eq;
 	eq.head = checkLit(sentence.head);
 	checkLits(sentence.literals, eq.literals);
@@ -315,7 +315,7 @@ bool ExternalPCImpl::add(const Equivalence& sentence){
 }
 
 template<>
-bool ExternalPCImpl::add(const Rule& sentence){
+bool PCWrapperPimpl::add(const Rule& sentence){
 	InnerRule rule;
 	rule.head = checkAtom(sentence.head);
 	rule.definitionID = sentence.definitionID;
@@ -325,7 +325,7 @@ bool ExternalPCImpl::add(const Rule& sentence){
 }
 
 template<>
-bool ExternalPCImpl::add(const Set& sentence){
+bool PCWrapperPimpl::add(const Set& sentence){
 	InnerWSet set;
 	set.setID = sentence.setID;
 	checkLits(sentence.literals, set.literals);
@@ -334,7 +334,7 @@ bool ExternalPCImpl::add(const Set& sentence){
 }
 
 template<>
-bool ExternalPCImpl::add(const WSet& sentence){
+bool PCWrapperPimpl::add(const WSet& sentence){
 	InnerWSet set;
 	set.setID = sentence.setID;
 	checkLits(sentence.literals, set.literals);
@@ -343,7 +343,7 @@ bool ExternalPCImpl::add(const WSet& sentence){
 }
 
 template<>
-bool ExternalPCImpl::add(const WLSet& sentence){
+bool PCWrapperPimpl::add(const WLSet& sentence){
 	InnerWSet set;
 	set.setID = sentence.setID;
 	for(vector<WLtuple>::const_iterator i=sentence.wl.begin(); i<sentence.wl.end(); ++i){
@@ -354,7 +354,7 @@ bool ExternalPCImpl::add(const WLSet& sentence){
 }
 
 template<>
-bool ExternalPCImpl::add(const Aggregate& sentence){
+bool PCWrapperPimpl::add(const Aggregate& sentence){
 	InnerAggregate agg;
 	agg.setID = sentence.setID;
 	agg.head = checkAtom(sentence.head);
@@ -367,7 +367,7 @@ bool ExternalPCImpl::add(const Aggregate& sentence){
 }
 
 template<>
-bool ExternalPCImpl::add(const MinimizeSubset& sentence){
+bool PCWrapperPimpl::add(const MinimizeSubset& sentence){
 	InnerMinimizeSubset mnm;
 	checkLits(sentence.literals, mnm.literals);
 	setOptimization(true);
@@ -375,7 +375,7 @@ bool ExternalPCImpl::add(const MinimizeSubset& sentence){
 }
 
 template<>
-bool ExternalPCImpl::add(const MinimizeOrderedList& sentence){
+bool PCWrapperPimpl::add(const MinimizeOrderedList& sentence){
 	InnerMinimizeOrderedList mnm;
 	checkLits(sentence.literals, mnm.literals);
 	setOptimization(true);
@@ -383,7 +383,7 @@ bool ExternalPCImpl::add(const MinimizeOrderedList& sentence){
 }
 
 template<>
-bool ExternalPCImpl::add(const MinimizeAgg& sentence){
+bool PCWrapperPimpl::add(const MinimizeAgg& sentence){
 	InnerMinimizeAgg mnm;
 	mnm.head = checkAtom(sentence.head);
 	mnm.setID = sentence.setid;
@@ -393,14 +393,14 @@ bool ExternalPCImpl::add(const MinimizeAgg& sentence){
 }
 
 template<>
-bool ExternalPCImpl::add(const ForcedChoices& sentence){
+bool PCWrapperPimpl::add(const ForcedChoices& sentence){
 	InnerForcedChoices choices;
 	checkLits(sentence.forcedchoices, choices.forcedchoices);
 	return getSolver()->add(choices);
 }
 
 template<>
-bool ExternalPCImpl::add(const SymmetryLiterals& sentence){
+bool PCWrapperPimpl::add(const SymmetryLiterals& sentence){
 	InnerSymmetryLiterals symms;
 	checkLits(sentence.symmgroups, symms.literalgroups);
 	return getSolver()->add(symms);
@@ -413,7 +413,7 @@ void checkCPSupport(){
 }
 
 template<>
-bool ExternalPCImpl::add(const CPIntVarEnum& sentence){
+bool PCWrapperPimpl::add(const CPIntVarEnum& sentence){
 	checkCPSupport();
 	InnerIntVarEnum var;
 	var.varID = sentence.varID;
@@ -421,7 +421,7 @@ bool ExternalPCImpl::add(const CPIntVarEnum& sentence){
 	return getSolver()->add(var);
 }
 template<>
-bool ExternalPCImpl::add(const CPIntVarRange& sentence){
+bool PCWrapperPimpl::add(const CPIntVarRange& sentence){
 	checkCPSupport();
 	InnerIntVarRange var;
 	var.varID = sentence.varID;
@@ -430,7 +430,7 @@ bool ExternalPCImpl::add(const CPIntVarRange& sentence){
 	return getSolver()->add(var);
 }
 template<>
-bool ExternalPCImpl::add(const CPBinaryRel& sentence){
+bool PCWrapperPimpl::add(const CPBinaryRel& sentence){
 	checkCPSupport();
 	InnerCPBinaryRel form;
 	form.head = checkAtom(sentence.head);
@@ -440,7 +440,7 @@ bool ExternalPCImpl::add(const CPBinaryRel& sentence){
 	return getSolver()->add(form);
 }
 template<>
-bool ExternalPCImpl::add(const CPBinaryRelVar& sentence){
+bool PCWrapperPimpl::add(const CPBinaryRelVar& sentence){
 	checkCPSupport();
 	InnerCPBinaryRelVar form;
 	form.head = checkAtom(sentence.head);
@@ -450,17 +450,7 @@ bool ExternalPCImpl::add(const CPBinaryRelVar& sentence){
 	return getSolver()->add(form);
 }
 template<>
-bool ExternalPCImpl::add(const CPSum& sentence){
-	checkCPSupport();
-	InnerCPSum form;
-	form.head = checkAtom(sentence.head);
-	form.rel = sentence.rel;
-	form.bound = sentence.bound;
-	form.varIDs = sentence.varIDs;
-	return getSolver()->add(form);
-}
-template<>
-bool ExternalPCImpl::add(const CPSumWeighted& sentence){
+bool PCWrapperPimpl::add(const CPSumWeighted& sentence){
 	checkCPSupport();
 	InnerCPSumWeighted form;
 	form.head = checkAtom(sentence.head);
@@ -471,28 +461,7 @@ bool ExternalPCImpl::add(const CPSumWeighted& sentence){
 	return getSolver()->add(form);
 }
 template<>
-bool ExternalPCImpl::add(const CPSumWithVar& sentence){
-	checkCPSupport();
-	InnerCPSumWithVar form;
-	form.head = checkAtom(sentence.head);
-	form.rel = sentence.rel;
-	form.rhsvarID = sentence.rhsvarID;
-	form.varIDs = sentence.varIDs;
-	return getSolver()->add(form);
-}
-template<>
-bool ExternalPCImpl::add(const CPSumWeightedWithVar& sentence){
-	checkCPSupport();
-	InnerCPSumWeightedWithVar form;
-	form.head = checkAtom(sentence.head);
-	form.rel = sentence.rel;
-	form.weights = sentence.weights;
-	form.rhsvarID = sentence.rhsvarID;
-	form.varIDs = sentence.varIDs;
-	return getSolver()->add(form);
-}
-template<>
-bool ExternalPCImpl::add(const CPCount& sentence){
+bool PCWrapperPimpl::add(const CPCount& sentence){
 	checkCPSupport();
 	InnerCPCount form;
 	form.varIDs = sentence.varIDs;
@@ -502,7 +471,7 @@ bool ExternalPCImpl::add(const CPCount& sentence){
 	return getSolver()->add(form);
 }
 template<>
-bool ExternalPCImpl::add(const CPAllDiff& sentence){
+bool PCWrapperPimpl::add(const CPAllDiff& sentence){
 	checkCPSupport();
 	InnerCPAllDiff form;
 	form.varIDs = sentence.varIDs;
@@ -511,29 +480,35 @@ bool ExternalPCImpl::add(const CPAllDiff& sentence){
 
 // MODAL SOLVER
 
-WSOLSImpl::WSOLSImpl(const SolverOption& modes):
-		WLSImpl(modes), solver(new SOSolver(modes, *this)){
+SOWrapperPimpl::SOWrapperPimpl(const SolverOption& modes):
+		WrapperPimpl(modes), solver(new SOSolver(modes, *this)){
 }
 
-WSOLSImpl::~WSOLSImpl(){
+SOWrapperPimpl::~SOWrapperPimpl(){
 	delete solver;
 }
 
-bool WSOLSImpl::add(int modid, const Atom& v){
+template<>
+bool SOWrapperPimpl::add(int modid, const Atom& v){
 	return getSolver()->add(modid, checkAtom(v));
 }
 
-bool WSOLSImpl::add(int modid, const Disjunction& sentence){
+template<>
+bool SOWrapperPimpl::add(int modid, const Disjunction& sentence){
 	InnerDisjunction d;
 	checkLits(sentence.literals, d.literals);
 	return getSolver()->add(modid, d);
 }
-bool WSOLSImpl::add(int modid, const DisjunctionRef& sentence){
+
+template<>
+bool SOWrapperPimpl::add(int modid, const DisjunctionRef& sentence){
 	InnerDisjunction d;
 	checkLits(sentence.literals, d.literals);
 	return getSolver()->add(modid, d);
 }
-bool WSOLSImpl::add(int modid, const Rule& sentence){
+
+template<>
+bool SOWrapperPimpl::add(int modid, const Rule& sentence){
 	InnerRule rule;
 	rule.head = checkAtom(sentence.head);
 	rule.definitionID = sentence.definitionID;
@@ -541,21 +516,27 @@ bool WSOLSImpl::add(int modid, const Rule& sentence){
 	checkLits(sentence.body, rule.body);
 	return getSolver()->add(modid, rule);
 }
-bool WSOLSImpl::add(int modid, const Set& sentence){
+
+template<>
+bool SOWrapperPimpl::add(int modid, const Set& sentence){
 	InnerWSet set;
 	set.setID = sentence.setID;
 	checkLits(sentence.literals, set.literals);
 	set.weights.resize(set.literals.size(), 1);
 	return getSolver()->add(modid, set);
 }
-bool WSOLSImpl::add(int modid, const WSet& sentence){
+
+template<>
+bool SOWrapperPimpl::add(int modid, const WSet& sentence){
 	InnerWSet set;
 	set.setID = sentence.setID;
 	checkLits(sentence.literals, set.literals);
 	set.weights = sentence.weights;
 	return getSolver()->add(modid, set);
 }
-bool WSOLSImpl::add(int modid, const WLSet& sentence){
+
+template<>
+bool SOWrapperPimpl::add(int modid, const WLSet& sentence){
 	InnerWSet set;
 	set.setID = sentence.setID;
 	for(vector<WLtuple>::const_iterator i=sentence.wl.begin(); i<sentence.wl.end(); ++i){
@@ -564,7 +545,9 @@ bool WSOLSImpl::add(int modid, const WLSet& sentence){
 	}
 	return getSolver()->add(modid, set);
 }
-bool WSOLSImpl::add(int modid, const Aggregate& sentence){
+
+template<>
+bool SOWrapperPimpl::add(int modid, const Aggregate& sentence){
 	InnerAggregate agg;
 	agg.setID = sentence.setID;
 	agg.head = checkAtom(sentence.head);
@@ -576,12 +559,15 @@ bool WSOLSImpl::add(int modid, const Aggregate& sentence){
 	return getSolver()->add(modid, agg);
 }
 
-bool WSOLSImpl::add(int modalid, const RigidAtoms& sentence){
+template<>
+bool SOWrapperPimpl::add(int modalid, const RigidAtoms& sentence){
 	InnerRigidAtoms rigid;
 	checkAtoms(sentence.rigidatoms, rigid.rigidatoms);
 	return getSolver()->add(modalid, rigid);
 }
-bool WSOLSImpl::add(int modalid, const SubTheory& sentence){
+
+template<>
+bool SOWrapperPimpl::add(int modalid, const SubTheory& sentence){
 	InnerSubTheory subtheory;
 	subtheory.child = sentence.child;
 	subtheory.head = checkLit(sentence.head);

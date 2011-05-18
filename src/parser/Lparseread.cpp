@@ -41,40 +41,38 @@ typedef enum {
 	GENERATERULE = 4, WEIGHTRULE = 5, OPTIMIZERULE = 6
 } RuleType;
 
-Read::Read(WrappedPCSolver* solver, LParseTranslator* trans) :
-		endedparsing(false),
-		maxatomnumber(1), setcount(1), size(0), defaultdefinitionID(1),
-		solver(solver), optim(false),
-		translator(trans){
-}
-
-Read::~Read() {
+template<class T>
+Read<T>::~Read() {
 	deleteList<BasicRule>	(basicrules);
 	deleteList<SumRule>		(sumrules);
 	deleteList<CardRule>	(cardrules);
 	deleteList<ChoiceRule>	(choicerules);
 }
 
-Atom Read::makeParsedAtom(int n){
+template<class T>
+Atom Read<T>::makeParsedAtom(int n){
 	Atom atom = makeAtom(n);
 	pair<Atom, bool> p(atom,true);
 	defatoms.insert(p);
 	return atom;
 }
 
-Atom Read::makeNewAtom(){
+template<class T>
+Atom Read<T>::makeNewAtom(){
 	assert(endedparsing);
 	return makeAtom(++maxatomnumber);
 }
 
-Atom Read::makeAtom(int n){
+template<class T>
+Atom Read<T>::makeAtom(int n){
 	if (maxatomnumber < n) {
 		maxatomnumber = n;
 	}
 	return Atom(n);
 }
 
-bool Read::readBody(istream &f, long size, bool pos, vector<Literal>& body) {
+template<class T>
+bool Read<T>::readBody(istream &f, long size, bool pos, vector<Literal>& body) {
 	long n;
 	for (long i = 0; i < size; ++i) {
 		f >> n;
@@ -88,7 +86,8 @@ bool Read::readBody(istream &f, long size, bool pos, vector<Literal>& body) {
 	return true;
 }
 
-bool Read::readFullBody(istream &f, vector<Literal>& body){
+template<class T>
+bool Read<T>::readFullBody(istream &f, vector<Literal>& body){
 	long n;
 	f >> n; // total body size
 	if (!f.good() || n < 0) {
@@ -115,7 +114,8 @@ bool Read::readFullBody(istream &f, vector<Literal>& body){
 	return true;
 }
 
-bool Read::readWeights(std::istream &f, std::vector<Weight>& weights, int bodysize){
+template<class T>
+bool Read<T>::readWeights(std::istream &f, std::vector<Weight>& weights, int bodysize){
 	Weight sum = 0, w = 0;
 	for (long i = 0; i < bodysize; ++i) {
 		f >> w;
@@ -133,7 +133,8 @@ bool Read::readWeights(std::istream &f, std::vector<Weight>& weights, int bodysi
 	return true;
 }
 
-bool Read::parseBasicRule(istream &f) {
+template<class T>
+bool Read<T>::parseBasicRule(istream &f) {
 	long n;
 	f >> n; // rule head
 	if (!f.good() || n < 1) {
@@ -152,7 +153,8 @@ bool Read::parseBasicRule(istream &f) {
 	return true;
 }
 
-bool Read::parseConstraintRule(istream &f) {
+template<class T>
+bool Read<T>::parseConstraintRule(istream &f) {
 	long n;
 	f >> n; // rule head
 	if (!f.good() || n < 1) {
@@ -196,7 +198,8 @@ bool Read::parseConstraintRule(istream &f) {
 	return true;
 }
 
-bool Read::parseChoiceRule(istream &f) {
+template<class T>
+bool Read<T>::parseChoiceRule(istream &f) {
 	long n;
 
 	f >> n; // number of heads
@@ -227,7 +230,8 @@ bool Read::parseChoiceRule(istream &f) {
 	return true;
 }
 
-bool Read::parseWeightRule(istream &f) {
+template<class T>
+bool Read<T>::parseWeightRule(istream &f) {
 	long n;
 	f >> n; // number of heads
 	if (!f.good() || n < 1) {
@@ -257,7 +261,8 @@ bool Read::parseWeightRule(istream &f) {
 	return true;
 }
 
-bool Read::parseOptimizeRule(istream &f) {
+template<class T>
+bool Read<T>::parseOptimizeRule(istream &f) {
 	long n;
 	f >> n; // formerly choice between min or max, only 0 (minimize) still accepted
 	if (!f.good())
@@ -286,7 +291,8 @@ bool Read::parseOptimizeRule(istream &f) {
 	return true;
 }
 
-bool Read::addBasicRules() {
+template<class T>
+bool Read<T>::addBasicRules() {
 	for (vector<BasicRule*>::const_iterator i = basicrules.begin(); i < basicrules.end(); ++i) {
 		bool unsat = false;
 		Rule r;
@@ -302,7 +308,8 @@ bool Read::addBasicRules() {
 	return true;
 }
 
-bool Read::addCardRules() {
+template<class T>
+bool Read<T>::addCardRules() {
 	for (vector<CardRule*>::const_iterator i = cardrules.begin(); i < cardrules.end(); ++i) {
 		Set set;
 		set.setID = (*i)->setcount;
@@ -325,7 +332,8 @@ bool Read::addCardRules() {
 	return true;
 }
 
-bool Read::addSumRules() {
+template<class T>
+bool Read<T>::addSumRules() {
 	for (vector<SumRule*>::const_iterator i = sumrules.begin(); i < sumrules.end(); ++i) {
 		WSet set;
 		set.setID = (*i)->setcount;
@@ -349,14 +357,16 @@ bool Read::addSumRules() {
 	return true;
 }
 
-void Read::addRuleToHead(map<Atom, vector<BasicRule*> >& headtorules, BasicRule* rule, Atom head){
+template<class T>
+void Read<T>::addRuleToHead(map<Atom, vector<BasicRule*> >& headtorules, BasicRule* rule, Atom head){
 	if (headtorules.find(head) == headtorules.end()) {
 		headtorules.insert(pair<Atom, vector<BasicRule*> > (head, std::vector<BasicRule*>()));
 	}
 	(*headtorules.find(head)).second.push_back(rule);
 }
 
-bool Read::tseitinizeHeads(){
+template<class T>
+bool Read<T>::tseitinizeHeads(){
 	// Transform away all choicerules
 	for (vector<ChoiceRule*>::const_iterator i = choicerules.begin(); i < choicerules.end(); ++i) {
 		vector<Literal> tempbody;
@@ -420,7 +430,8 @@ bool Read::tseitinizeHeads(){
 	return true;
 }
 
-bool Read::addOptimStatement(){
+template<class T>
+bool Read<T>::addOptimStatement(){
 	if(optim){
 		vector<Literal> optimheadclause;
 		Literal optimhead = Literal(makeNewAtom());
@@ -442,7 +453,8 @@ bool Read::addOptimStatement(){
 	return true;
 }
 
-bool Read::read(istream &f) {
+template<class T>
+bool Read<T>::read(istream &f) {
 	// Read rules.
 	int type;
 	bool stop = false, unsat = false;

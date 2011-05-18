@@ -69,13 +69,7 @@ void ECNFPrinter::notifyadded(const InnerCPCount& set);
 template<>
 void ECNFPrinter::notifyadded(const InnerCPBinaryRelVar& set);
 template<>
-void ECNFPrinter::notifyadded(const InnerCPSum& set);
-template<>
-void ECNFPrinter::notifyadded(const InnerCPSumWeightedWithVar& set);
-template<>
 void ECNFPrinter::notifyadded(const InnerCPSumWeighted& set);
-template<>
-void ECNFPrinter::notifyadded(const InnerCPSumWithVar& set);
 
 }
 /*
