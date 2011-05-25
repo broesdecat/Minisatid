@@ -380,8 +380,8 @@ bool Read<T>::tseitinizeHeads(){
 			//To guarantee #model equivalence:
 			Equivalence eq;
 			eq.head = tempbody[0];
-			eq.conj = true;
-			eq.literals.push_back(Literal(head, false));
+			eq.conjunctive = true;
+			eq.body.push_back(Literal(head, false));
 			if(!getSolver()->add(eq)){
 				return false;
 			}

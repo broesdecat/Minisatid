@@ -338,9 +338,9 @@ public:
 
 class Equivalence{
 public:
-	bool conj;
+	bool conjunctive;
 	Literal	head;
-	literallist literals;
+	literallist body;
 
 	Equivalence():head(0){}
 };

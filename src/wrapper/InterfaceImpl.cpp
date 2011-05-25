@@ -309,8 +309,8 @@ template<>
 bool PCWrapperPimpl::add(const Equivalence& sentence){
 	InnerEquivalence eq;
 	eq.head = checkLit(sentence.head);
-	checkLits(sentence.literals, eq.literals);
-	eq.conjunctive = sentence.conj;
+	checkLits(sentence.body, eq.literals);
+	eq.conjunctive = sentence.conjunctive;
 	return getSolver()->add(eq);
 }
 

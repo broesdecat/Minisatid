@@ -563,7 +563,7 @@ bool FlatZincRewriter::add(const DisjunctionRef& sentence){
 
 template<>
 bool FlatZincRewriter::add(const Equivalence& equiv){
-	addEquiv(equiv.head, equiv.literals, equiv.conj, CLOSE);
+	addEquiv(equiv.head, equiv.body, equiv.conjunctive, CLOSE);
 	return true;
 }
 

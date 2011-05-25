@@ -65,6 +65,8 @@ WHITESPACE	[\t\r ]*
 <theory>"Min"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::MIN; return AGGDEFN;}
 <theory>"Max"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::MAX; return AGGDEFN;}
 
+<theory>^"Equiv"	{ADJ; return EQUIV;}
+
 <theory>^"Mod"	{ADJ; return MODDEFN;}
 
 <theory>"<-"	{ADJ; return DEFOP;}

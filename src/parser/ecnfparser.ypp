@@ -151,7 +151,7 @@ void checkVersion(ECNF_VERSION version);
 	std::vector<std::string>*	vstr;
 }
 
-%token DISJUNCTION CONJUNCTION DEFOP
+%token DEFOP EQUIV
 %token SUBSETMINDEFN MNMZDEFN AGGMINDEFN
 %token SETDEFN WSETDEFN  
 %token <integer> ZERO
@@ -262,6 +262,7 @@ ecnftheory	:	/* empty */
 					solver->add(choices);  
 				}
 			|	ecnftheory clause
+			|	ecnftheory equiv
 			|	ecnftheory rule
 			| 	ecnftheory agg
 			|	ecnftheory set
@@ -303,6 +304,21 @@ clause	:	body ZERO
 				clause.literals = *$1;
 				delete $1;
 				CR(clause);
+			}
+		;
+
+equiv	:	EQUIV SEMDEFN NUMBER body ZERO
+			{ 					
+				Equivalence equiv;
+				equiv.head = cLiteral($3);
+				equiv.body = *$4;
+				delete $3; delete $4;
+				if($2==COMP){ //hack, to be fixed
+					equiv.conjunctive = true;
+				}else{
+					equiv.conjunctive = false;
+				}					 
+				CR(equiv);
 			}
 		;
 
