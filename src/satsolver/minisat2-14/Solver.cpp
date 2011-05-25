@@ -34,6 +34,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <iostream>
 #include <cstdarg>
 
+using namespace std;
 using namespace Minisat;
 using namespace MinisatID;
 /*AE*/

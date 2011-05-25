@@ -15,6 +15,9 @@
 
 #include "utils/IntTypes.h"
 
+// FIXME an unwellfounded model does NOT mean that the definition is not wellfounded
+// TODO only add one loopform at a time (save all lits, check next time first whether all are false, otherwise choose one more)
+
 using namespace std;
 using namespace MinisatID;
 

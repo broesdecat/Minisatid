@@ -137,6 +137,7 @@ int main(int argc, char** argv) {
 	}else{
 		sol->setNbModelsToFind(modes.nbmodels);
 	}
+	sol->setModes(modes); //TODO find cleaner way? => these are set when solve is called, but earlier statements might have incorrect behavior then (printing unsat e.g.)
 
 	if(modes.transformat==TRANS_FZ){
 		rewriteIntoFlatZinc();

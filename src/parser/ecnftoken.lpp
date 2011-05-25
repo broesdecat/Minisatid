@@ -28,9 +28,7 @@ extern int charPos;
 %}
 
 /* lex definitions: */
-%option noyywrap
-/*seems to be necessary to avoid windows problem with fileno function?*/
-%option never-interactive 
+%option noyywrap never-interactive 
 
 %s theory
 %s trans

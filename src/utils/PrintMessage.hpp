@@ -137,7 +137,9 @@ namespace MinisatID{
 
 	template<class T>
 	void printUnsatFoundDuringParsing(T& stream, int verbosity = 1000){
-		stream << "> Unsat detected during parsing.\n";
+		if(verbosity>=1){
+			stream << "> Unsat detected during parsing.\n";
+		}
 	}
 
 	template<class T>
