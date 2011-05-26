@@ -80,7 +80,7 @@ struct AV{
  * MS:backtrackdown
  */
 
-class ModSolver: public DPLLTmodule, public MinisatID::WrapperPimpl{
+class ModSolver: public Propagator, public MinisatID::WrapperPimpl{
 private:
 	bool 		init, hasparent, searching;
 

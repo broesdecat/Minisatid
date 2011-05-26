@@ -180,6 +180,8 @@ public:
 class InnerBacktrack{
 public:
 	int untillevel;
+
+	InnerBacktrack(int untillevel): untillevel(untillevel){}
 };
 
 }

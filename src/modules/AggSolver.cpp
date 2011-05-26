@@ -33,7 +33,7 @@ using namespace std;
 using namespace MinisatID;
 
 AggSolver::AggSolver(PCSolver* s) :
-	DPLLTmodule(s),
+	Propagator(s),
 	dummyhead(-1),
 	propagations(0), index(1), propindex(0),
 	optimagg(NULL){

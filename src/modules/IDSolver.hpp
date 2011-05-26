@@ -91,7 +91,7 @@ public:
 	const vec<Lit>& 		justification()const { return _justification; }
 };
 
-class IDSolver: public DPLLTmodule{
+class IDSolver: public Propagator{
 private:
 	std::vector<DefinedVar*> definitions; //Maps all variables to NULL or a defined variable
 

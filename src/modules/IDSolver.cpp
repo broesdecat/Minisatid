@@ -22,7 +22,7 @@ using namespace std;
 using namespace MinisatID;
 
 IDSolver::IDSolver(PCSolver* s):
-		DPLLTmodule(s),
+		Propagator(s),
 		sem(getPCSolver().modes().defsem),
 		posrecagg(true), mixedrecagg(true),
 		previoustrailatsimp(-1),

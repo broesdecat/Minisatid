@@ -20,7 +20,7 @@ namespace Minisat{
 namespace MinisatID {
 
 enum State { PARSING, INITIALIZING, INITIALIZED };
-class DPLLTmodule {
+class Propagator {
 private:
 	State init;
 
@@ -30,10 +30,10 @@ protected:
 
 public:
 
-	DPLLTmodule(PCSolver* s) :
+	Propagator(PCSolver* s) :
 		init(PARSING), pcsolver(s), satsolver(pcsolver->getSATSolver()) {
 	}
-	virtual ~DPLLTmodule() {	}
+	virtual ~Propagator() {	}
 
 	bool isParsing			() const { return init==PARSING; }
 	bool isInitializing 	() const { return init==INITIALIZING; }

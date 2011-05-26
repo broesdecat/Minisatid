@@ -22,10 +22,10 @@ class LogicSolver{
 private:
 	SolverOption _modes;
 	MinisatID::WrapperPimpl& parent;
-	bool hasMonitor;
+
 public:
 	LogicSolver(MinisatID::SolverOption modes, MinisatID::WrapperPimpl& inter)
-			:_modes(modes), parent(inter), hasMonitor(false){};
+			: _modes(modes), parent(inter){};
 	virtual ~LogicSolver(){};
 
 	virtual bool 	simplify() = 0;
@@ -42,11 +42,6 @@ public:
 	MinisatID::WrapperPimpl& 		getParent	() 			{ return parent; }
 
 	virtual void 	printStatistics	() const = 0;
-
-	void notifyHasMonitor();
-	bool isBeingMonitored() const;
-	void notifyMonitor(const InnerPropagation& obj);
-	void notifyMonitor(const InnerBacktrack& obj);
 };
 
 

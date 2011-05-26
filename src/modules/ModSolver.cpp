@@ -28,7 +28,7 @@ using namespace MinisatID;
  * Constructs a ModSolver, with a given head, index and hierarchy pointer. A PCSolver is initialized.
  */
 ModSolver::ModSolver(modindex child, Var head, SOSolver* mh):
-		DPLLTmodule(new PCSolver(mh->modes(), *this)), WrapperPimpl(mh->modes()),
+		Propagator(new PCSolver(mh->modes(), *this)), WrapperPimpl(mh->modes()),
 		init(false), hasparent(false), searching(false),
 		head(head),
 		id(child), parentid(-1), //, startedsearch(false), startindex(-1),

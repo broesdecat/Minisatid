@@ -98,3 +98,11 @@ void MinisatID::printSolveStart(int v) {
 std::string MinisatID::getMinimalVarNumbering(){
 	return ">> Variables can only be numbered starting from 1.\n";
 }
+
+bool headerprinted = false;
+bool headerAlreadyPrinted(){
+	return headerprinted;
+}
+void notifyHeaderPrinted(){
+	headerprinted = true;
+}

@@ -66,7 +66,7 @@ struct VI{
 	}
 };
 
-class AggSolver: public DPLLTmodule{
+class AggSolver: public Propagator{
 	//TODO pimpl
 private:
 	mips 					parsedSets;

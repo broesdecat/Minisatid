@@ -121,6 +121,27 @@ namespace MinisatID{
 		}
 	}
 
+	bool headerAlreadyPrinted();
+	void notifyHeaderPrinted();
+	template<class T>
+	void printSearchStart(T& stream, int verbosity = 1000){
+		if(verbosity>=1){
+			clog <<">>> Search start\n";
+			if(!headerAlreadyPrinted()){
+				stream <<"> Conflicts |          ORIGINAL         |          LEARNT          | Progress\n";
+				stream <<">           |    Vars  Clauses Literals |    Limit  Clauses Lit/Cl |         \n";
+				notifyHeaderPrinted();
+			}
+		}
+	}
+
+	template<class T>
+	void printSearchEnd(T& stream, int verbosity = 1000){
+		if (verbosity >= 1) {
+			clog <<">>> Search done\n";
+		}
+	}
+
 	template<class T>
 	void printModuleNotPresent(T& stream, std::string name, int verbosity = 1000){
 		if (verbosity > 0) {

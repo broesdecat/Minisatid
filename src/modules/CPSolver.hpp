@@ -52,7 +52,7 @@ namespace MinisatID {
 	 * 			constraints, vars and domains can be added to the space
 	 * 			space has a "status" operation which propagates until fixpoint or failure
 	 */
-	class CPSolver: public DPLLTmodule {
+	class CPSolver: public Propagator {
 	private:
 		CPSolverData* 		solverdata; //OWNING pointer
 

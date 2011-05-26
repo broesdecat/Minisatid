@@ -57,7 +57,7 @@ lbool LitTrail::value(const Lit& l) const{
 }
 
 CPSolver::CPSolver(PCSolver * solver):
-		DPLLTmodule(solver), solverdata(new CPSolverData()),
+		Propagator(solver), solverdata(new CPSolverData()),
 		searchedandnobacktrack(false),
 		savedsearchengine(NULL){
 
