@@ -10,12 +10,8 @@
 #define PROPAGATORFACTORY_HPP_
 
 #include <map>
+#include <vector>
 #include "utils/Utils.hpp"
-
-
-#include <map>
-#include "utils/Utils.hpp"
-#include "theorysolvers/LogicSolver.hpp"
 
 namespace Minisat{
 	class Solver;
@@ -23,10 +19,14 @@ namespace Minisat{
 
 namespace MinisatID {
 
-class ECNFPrinter;
+class PCSolver;
+
+class ParsingMonitor;
+class SearchMonitor;
 
 class SolverOption;
 
+class Propagator;
 class IDSolver;
 class AggSolver;
 class ModSolver;
@@ -35,144 +35,95 @@ class ModSolver;
 class CPSolver;
 #endif
 
-class Propagator;
-
 typedef Minisat::Solver SATSolver;
-
-enum Optim { MNMZ, SUBSETMNMZ, AGGMNMZ, NONE }; // Preference minimization, subset minimization, sum minimization
-
-class PCSolver;
 
 typedef int defID;
 
-class WrappedPropagator{
-private:
-	Propagator* module;
-	const bool createdhere;
-
-	WrappedPropagator(WrappedPropagator&);
-	WrappedPropagator& operator=(WrappedPropagator& m);
-
-public:
-	bool present; //Indicates whether the solver should be integrated into the search
-
-	WrappedPropagator(Propagator* module, bool createdhere): module(module), createdhere(createdhere), present(true){ assert(module!=NULL);}
-	~WrappedPropagator();
-
-	Propagator* get() const { return module; }
-};
-
-typedef std::vector<WrappedPropagator*> solverlist;
-enum TheoryState {THEORY_PARSING, THEORY_INITIALIZED, THEORY_INITIALIZING};
-
 class PropagatorFactory {
 private:
-	//OWNING POINTER
+	PCSolver* engine;
+	PCSolver& getEngine() { return *engine; }
+	PCSolver* getEnginep() const { return engine; }
+	const PCSolver& getEngine() const { return *engine; }
+
+	std::vector<Propagator*> tobedeleted; //propagators that should be deleted when no the factory goes down.
+
+	bool parsing; //state
+
 	SATSolver* satsolver;
-
-	TheoryState state;
-	uint 		nbskipped; //For printing the full and correct trail.
-	std::vector<Lit>		initialprops; //IMPORTANT for printing trail, DO NOT CLEAR
-
-	std::vector<Propagator*> propagators;
-
-	// FORCED CHOICES TO MAKE DURING SEARCH
-	vec<Lit> forcedchoices;
-
-	// State saving
-	int 				state_savedlevel;
-	bool 				state_savingclauses;
-	std::vector<rClause> state_savedclauses;
-
 	SATSolver* getSolver() const { return satsolver; }
 
-	std::map<defID, WrappedPropagator*> idsolvers;
+	std::map<defID, IDSolver*> idsolvers;
 	bool hasIDSolver(defID id) const;
 	void addIDSolver(defID id);
-	IDSolver* getIDSolver(defID id) const;
-	bool hasPresentIDSolver(defID id) const;
+	IDSolver* getIDSolver(defID id);
 
-	WrappedPropagator* aggsolver;
-	bool hasAggSolver() const;
+	AggSolver* aggsolver;
+	bool hasAggSolver() const { return aggsolver!=NULL; }
 	void addAggSolver();
-	bool hasPresentAggSolver() const;
+	AggSolver* getAggSolver();
 
-	WrappedPropagator* modsolver;
-	bool hasModSolver() const;
-	bool hasPresentModSolver() const;
-	ModSolver* getModSolver() const;
+	ModSolver* modsolver;
+	bool hasModSolver() const { return modsolver!=NULL; }
+	ModSolver* getModSolver() const {return modsolver; }
 
-	WrappedPropagator* cpsolver;
-	bool hasCPSolver() const;
-	bool hasPresentCPSolver() const;
 
 #ifdef CPSUPPORT
-	void addCPSolver();
-	CPSolver* getCPSolver() const;
+	CPSolver* cpsolver;
+	bool hasCPSolver() const { return cpsolver!=NULL; }
+	CPSolver* getCPSolver();
+#else
+	bool hasCPSolver() const { return false; }
 #endif
 
 	// Logging
-	PCLogger* logger;
-	ECNFPrinter* ecnfprinter;
-	static bool headerunprinted;
-
-	// Monitoring
-	bool	hasMonitor;
+	std::vector<ParsingMonitor*> parsingmonitors;
 
 public:
-	PropagatorFactory();
+	PropagatorFactory(const SolverOption& modes, PCSolver* engine);
 	virtual ~PropagatorFactory();
 
-	SATSolver*	getSATSolver() const { return satsolver; }
-	AggSolver* getAggSolver() const;
+	bool add(const Var& sentence);
+	bool add(const InnerDisjunction& sentence);
+	bool add(const InnerEquivalence& sentence);
+	bool add(const InnerRule& sentence);
+	bool add(const InnerWSet& sentence);
+	bool add(const InnerAggregate& sentence);
+	bool add(const InnerMinimizeSubset& sentence);
+	bool add(const InnerMinimizeOrderedList& sentence);
+	bool add(const InnerMinimizeAgg& sentence);
+	bool add(const InnerForcedChoices& sentence);
+	bool add(const InnerSymmetryLiterals& sentence);
+	bool add(const InnerIntVarEnum& object);
+	bool add(const InnerIntVarRange& object);
+	bool add(const InnerCPBinaryRel& object);
+	bool add(const InnerCPBinaryRelVar& object);
+	bool add(const InnerCPSumWeighted& object);
+	bool add(const InnerCPCount& object);
+	bool add(const InnerCPAllDiff& object);
 
-	// INIT
-	Var		newVar	();
-	bool	add		(Var v);
-	bool	add		(const InnerDisjunction& sentence);
-	bool	add		(const InnerEquivalence& sentence);
-	bool	add		(const InnerRule& sentence);
-	bool	add		(const InnerWSet& sentence);
-	bool	add		(const InnerAggregate& sentence);
-	bool	add		(const InnerMinimizeSubset& sentence);
-	bool	add		(const InnerMinimizeOrderedList& sentence);
-	bool	add		(const InnerMinimizeAgg& sentence);
-	bool	add		(const InnerForcedChoices& sentence);
-	bool	add		(const InnerSymmetryLiterals& sentence);
-	bool	add		(const InnerIntVarEnum& object);
-	bool	add		(const InnerIntVarRange& object);
-	bool	add		(const InnerCPBinaryRel& object);
-	bool	add		(const InnerCPBinaryRelVar& object);
-	bool	add		(const InnerCPSumWeighted& object);
-	bool	add		(const InnerCPCount& object);
-	bool	add		(const InnerCPAllDiff& object);
+	bool add(InnerDisjunction& disj, rClause& newclause);
 
-	void		removeAggrHead	(Var head, int defID);
-	void		notifyAggrHead	(Var head, int defID);
+	void finishParsing();
 
-	// MONITORING
-	const PCLogger& getLogger() const { return *logger; }
+	void setModSolver(ModSolver* m);
+
+	//TODO should remove this dependency when possible
+	AggSolver* getOptimAggSolver() { return aggsolver; }
 
 private:
 	template<class T>
 	bool		addCP			(const T& formula);
 
-	bool		isInitialized	() 	const { return state==THEORY_INITIALIZED; }
-	bool		isInitializing	() 	const { return state==THEORY_INITIALIZING; }
-	bool		isParsing		()	const { return state==THEORY_PARSING; }
+	bool		isInitialized	() 	const { return !parsing; }
+	bool		isParsing		()	const { return parsing; }
 
-	bool		hasECNFPrinter	() const { return ecnfprinter!=NULL; }
-	ECNFPrinter& getECNFPrinter	() { return *ecnfprinter; }
-
-	const solverlist& getSolvers() const { return solvers; }
-
-	bool		add				(InnerDisjunction& sentence, rClause& newclause);
 	void 		addVar			(Lit l) { add(var(l)); }
 	void 		addVars			(const vec<Lit>& a);
 	void 		addVars			(const std::vector<Lit>& a);
 
-	void		extractLitModel	(InnerModel* fullmodel);
-	void		extractVarModel	(InnerModel* fullmodel);
+	template<typename T>
+	void 		notifyMonitorsOfAdding(const T& obj) const ;
 };
 
 }

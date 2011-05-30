@@ -25,7 +25,7 @@ typedef Agg* pagg;
 typedef Watch* pw;
 
 FWAgg::FWAgg(TypedSet* set) :
-	Propagator(set) {
+	AggPropagator(set) {
 
 }
 
@@ -65,7 +65,7 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 		getSolver()->addStaticWatch(v, new Watch(getSetp(), *j));
 	}
 
-	Propagator::initialize(unsat, sat);
+	AggPropagator::initialize(unsat, sat);
 }
 
 /**
@@ -97,7 +97,7 @@ lbool FWAgg::initialize(const Agg& agg) {
 	return alwaystrue ? l_True : l_Undef;
 }
 
-void FWAgg::backtrack(int nblevels, int untillevel){
+void FWAgg::backtrack(int untillevel){
 	while(getTrail().back()->level>untillevel){
 		//report("Backtrack trail of FW\n");
 		delete getTrail().back();

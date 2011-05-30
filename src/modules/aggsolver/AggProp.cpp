@@ -311,7 +311,7 @@ void MinisatID::removeValue(const AggProp& type, const Weight& weight, bool wasi
 
 bool printedwarning = false;
 
-Propagator*	MaxProp::createPropagator(TypedSet* set) const{
+AggPropagator*	MaxProp::createPropagator(TypedSet* set) const{
 	if(set->isUsingWatches() && !printedwarning){
 		clog <<">> Currently max/min aggregates never use watched-literal-schemes.\n";
 		printedwarning = true;
@@ -327,7 +327,7 @@ Propagator*	MaxProp::createPropagator(TypedSet* set) const{
 	return new MinFWAgg(set);
 }*/
 
-Propagator*	SumProp::createPropagator(TypedSet* set) const{
+AggPropagator*	SumProp::createPropagator(TypedSet* set) const{
 	set->getSolver()->adaptAggHeur(set->getWL(), set->getAgg().size());
 
 	if(set->isUsingWatches()){
@@ -337,7 +337,7 @@ Propagator*	SumProp::createPropagator(TypedSet* set) const{
 	}
 }
 
-Propagator*	ProdProp::createPropagator(TypedSet* set) const{
+AggPropagator*	ProdProp::createPropagator(TypedSet* set) const{
 	set->getSolver()->adaptAggHeur(set->getWL(), set->getAgg().size());
 
 	if(set->isUsingWatches()){
@@ -415,13 +415,13 @@ void TypedSet::addExplanation(AggReason& ar) const {
 	}
 }
 
-Propagator::Propagator(TypedSet* set)
+AggPropagator::AggPropagator(TypedSet* set)
 		:set(set), aggsolver(set->getSolver()), satsolver(set->getSolver()->getSATSolver()){
 
 }
 
 // Final initialization call!
-void Propagator::initialize(bool& unsat, bool& sat) {
+void AggPropagator::initialize(bool& unsat, bool& sat) {
 	for (agglist::const_iterator i = getSet().getAgg().begin(); i < getSet().getAgg().end(); ++i) {
 		if((*i)->getSem()==IMPLICATION){
 			getSolver()->setHeadWatch(~(*i)->getHead(), (*i));
@@ -433,11 +433,11 @@ void Propagator::initialize(bool& unsat, bool& sat) {
 }
 
 // Maximize speed of requesting values! //FIXME add to other solvers
-lbool Propagator::value(const Lit& l) const {
+lbool AggPropagator::value(const Lit& l) const {
 	return satsolver->value(l);
 }
 
-Weight Propagator::getValue() const {
+Weight AggPropagator::getValue() const {
 	Weight total = getSet().getType().getESV();
 	for(vwl::const_iterator i=getSet().getWL().begin(); i<getSet().getWL().end(); ++i){
 		lbool val = value((*i).getLit());

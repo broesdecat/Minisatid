@@ -21,13 +21,14 @@
 using namespace std;
 using namespace MinisatID;
 
-IDSolver::IDSolver(PCSolver* s):
+IDSolver::IDSolver(PCSolver* s, int definitionID):
 		Propagator(s),
+		definitionID(definitionID),
+		aggsolver(NULL),
 		sem(getPCSolver().modes().defsem),
 		posrecagg(true), mixedrecagg(true),
 		previoustrailatsimp(-1),
 		posloops(true), negloops(true),
-		simplified(false),
 		backtracked(true),
 		adaption_total(0), adaption_current(0),
 		atoms_in_pos_loops(0),
@@ -54,19 +55,6 @@ inline void IDSolver::clearCycleSources() {
 	css.clear();
 }
 
-void IDSolver::adaptToNVars(uint64_t nvars){
-	seen.resize(nvars, 0);
-	_disj_occurs.resize(nvars*2);
-	_conj_occurs.resize(nvars*2);
-}
-
-void IDSolver::notifyVarAdded(uint64_t nvars) {
-	definitions.resize(nvars, NULL);
-	if(!isParsing()){
-		adaptToNVars(nvars);
-	}
-}
-
 /**
  * First literal in ps is the head of the rule. It has to be present and it has to be positive.
  *
@@ -81,6 +69,11 @@ bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
 	assert(!isInitialized());
 	if (!isPositive(head)) {
 		throw idpexception("Negative heads are not allowed.\n");
+	}
+
+	// LAZY init
+	if(definitions.size()<=var(head)){
+		definitions.resize(var(head)+1, NULL);
 	}
 
 	if(isDefined(var(head))){
@@ -119,7 +112,8 @@ bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
  * @PRE: aggregates have to have been finished
  */
 void IDSolver::finishParsing(bool& present, bool& unsat) {
-	assert(isInitializing());
+	assert(isParsing());
+	notifyParsed();
 	present = true;
 	unsat = false;
 
@@ -128,10 +122,12 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 		return;
 	}
 
-	int nvars = nVars();
+	maxvar = nVars();
 
 	//LAZY initialization
-	adaptToNVars(nvars);
+	seen.resize(maxvar, 0);
+	_disj_occurs.resize(maxvar*2);
+	_conj_occurs.resize(maxvar*2);
 
 	for (vsize i = 0; i < defdVars.size(); ++i) {
 		assert(isDefined(defdVars[i]));
@@ -163,9 +159,9 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	}
 
 	// Initialize scc of full dependency graph
-	vec<bool> incomp(nvars, false);
+	vec<bool> incomp(maxvar, false);
 	vec<Var> stack;
-	vec<int> visited(nvars, 0); // =0 represents not visited; >0 corresponds to visited through a positive body literal, <0 through a negative body literal
+	vec<int> visited(maxvar, 0); // =0 represents not visited; >0 corresponds to visited through a positive body literal, <0 through a negative body literal
 	vec<Var> rootofmixed;
 	vec<Var> nodeinmixed;
 	int counter = 1;
@@ -223,7 +219,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 				}
 				break;
 			case AGGR: {
-				if (getAggSolver() != NULL) {
+				if (hasRecursiveAggregates()) {
 					for (vwl::const_iterator j = getAggSolver()->getSetLitsOfAggWithHeadBegin(v); !isdefd && j< getAggSolver()->getSetLitsOfAggWithHeadEnd(v); ++j) {
 						if (inSameSCC(v, var((*j).getLit()))) { // NOTE: disregard sign here: set literals can occur both pos and neg in justifications.
 							isdefd = true;
@@ -322,6 +318,10 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 			}
 		}
 	}
+
+	unsat = !simplifyGraph();
+
+	notifyInitialized();
 }
 
 /**
@@ -412,7 +412,7 @@ void IDSolver::visitFull(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &vi
  * @post: the scc will be denoted by the variable in the scc which was visited first
  */
 void IDSolver::visit(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter) {
-	assert(scc(i)>=0 && scc(i)<nVars());
+	assert(scc(i)>=0 && scc(i)<maxvar);
 	assert(!incomp[i]);
 	visited[i] = ++counter;
 	scc(i) = i;
@@ -512,7 +512,7 @@ bool IDSolver::simplifyGraph(){
 
 	// initialize a queue of literals that are safe with regard to cycle-freeness. (i.e.: either are not in justification, or are justified in a cycle-free way.)
 	vec<Lit> propq;
-	for (int i = 0; i < nVars(); ++i) {
+	for (int i = 0; i < maxvar; ++i) {
 		Lit l = createNegativeLiteral(i);
 		if (!isFalse(l)) {
 			propq.push(l); // First negative literals are added that are not already false
@@ -614,8 +614,8 @@ bool IDSolver::simplifyGraph(){
 	//reconstruct the disj and conj occurs with the reduced number of definitions
 	_disj_occurs.clear();
 	_conj_occurs.clear();
-	_disj_occurs.resize(2*nVars());
-	_conj_occurs.resize(2*nVars());
+	_disj_occurs.resize(2*maxvar);
+	_conj_occurs.resize(2*maxvar);
 	for (vector<int>::const_iterator i = defdVars.begin(); i < defdVars.end(); ++i) {
 		Var v = (*i);
 		if (type(v) == CONJ || type(v) == DISJ) {
@@ -690,20 +690,6 @@ bool IDSolver::simplifyGraph(){
 	return true;
 }
 
-//@pre: conflicts are empty
-//This is called after every simplification, which happens on solver restarts
-//Simplifying the definition again is only relevant if more literals are currently asserted on the base level,
-//which we check by storing the previous number of stored literals in previoustrailatsimp and comparing with the current trail
-bool IDSolver::simplify() {
-	//Originally, simplifygraph was called here every time, but it proved to be very expensive and have few uses, to is only called once any more.
-	bool notunsat = true;
-	if(!simplified){
-		notunsat = simplifyGraph();
-		simplified = true;
-	}
-	return notunsat;
-}
-
 /**
  * propagate the fact that w has been justified.
  *
@@ -744,7 +730,7 @@ void IDSolver::propagateJustificationConj(Lit l, vec<Lit>& heads) {
 }
 
 void IDSolver::propagateJustificationAggr(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& heads) {
-	if (getAggSolver() == NULL) {
+	if (!hasRecursiveAggregates()) {
 		return;
 	}
 	getAggSolver()->propagateJustifications(l, jstf, heads, seen);
@@ -754,7 +740,7 @@ void IDSolver::propagateJustificationAggr(Lit l, vec<vec<Lit> >& jstf, vec<Lit>&
  * IMPORTANT: should ONLY be called after all possible other propagations have been done:
  * the state has to be stable for both aggregate and unit propagations
  */
-rClause IDSolver::propagateAtEndOfQueue() {
+rClause IDSolver::notifypropagate() {
 	if (!isInitialized() || !indirectPropagateNow()) {
 		return nullPtrClause;
 	}
@@ -797,7 +783,7 @@ rClause IDSolver::propagateAtEndOfQueue() {
 		int visittime = 1; //time at which NO node has been visited yet
 		vec<Var> stack;
 		vector<Var> seen2;
-		seen2.resize(nVars(), 0);
+		seen2.resize(maxvar, 0);
 		/* the seen2 variable is used to indicate:
 		 * 		that a value has been visited (and its number is the time at which it was visited
 		 * 		0 means not yet visited
@@ -826,7 +812,7 @@ rClause IDSolver::propagateAtEndOfQueue() {
 				}
 			}
 		}
-		for (int i = 0; i < nVars(); ++i) {
+		for (int i = 0; i < maxvar; ++i) {
 			seen2[i] = 0;
 		}
 	}
@@ -856,7 +842,7 @@ rClause IDSolver::propagateAtEndOfQueue() {
 	return confl;
 }
 
-void IDSolver::newDecisionLevel() {
+void IDSolver::notifyNewDecisionLevel() {
 	if(posloops && modes().defn_strategy != adaptive && !isCycleFree()) {
 		throw idpexception("Positive justification graph is not cycle free!\n");
 	}
@@ -871,11 +857,8 @@ void IDSolver::findCycleSources() {
 	clearCycleSources();
 
 	if (!backtracked && getPCSolver().modes().defn_strategy == always) {
-		const vec<Lit>& trail = getPCSolver().getTrail();
-		int recentindex = getPCSolver().getStartLastLevel();
-		for (int i = recentindex; i < trail.size(); ++i) {
-			Lit l = trail[i]; //l has become true, so find occurences of ~l
-
+		while(hasNextProp()){
+			Lit l = getNextProp(); //l has become true, so find occurences of ~l
 			assert(value(~l)==l_False);
 
 			//TODO should check whether it is faster to use a real watched scheme here: go from justification to heads easily,
@@ -885,7 +868,7 @@ void IDSolver::findCycleSources() {
 				checkJustification(*j);
 			}
 
-			if (getAggSolver() != NULL) {
+			if (hasRecursiveAggregates()) {
 				vector<Var> heads = getAggSolver()->getDefAggHeadsWithBodyLit(var(~l));
 				for (vv::const_iterator j = heads.begin(); j < heads.end(); ++j) {
 					if(hasDefVar(*j)){
@@ -1041,7 +1024,7 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 	}
 
 #ifdef DEBUG
-	for (int i = 0; i < nVars(); ++i) {
+	for (int i = 0; i < maxvar; ++i) {
 		assert(seen[i]==0);
 	}
 #endif
@@ -1235,7 +1218,7 @@ void IDSolver::changejust(Var v, vec<Lit>& j) {
 void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf) {
 #ifdef DEBUG
 	assert(loopf.size()==1); //Space for the head/new variable
-	for (int i = 0; i < nVars(); ++i) { //seen should be cleared
+	for (int i = 0; i < maxvar; ++i) { //seen should be cleared
 		assert(seen[i]==0);
 	}
 #endif
@@ -1451,7 +1434,7 @@ void IDSolver::markNonJustifiedAddParents(Var x, Var cs, queue<Var> &q, vec<Var>
 			markNonJustifiedAddVar(*i, cs, q, tmpseen);
 		}
 	}
-	if (getAggSolver() != NULL) {
+	if (hasRecursiveAggregates()) {
 		vector<Var> heads = getAggSolver()->getDefAggHeadsWithBodyLit(x);
 		for (vector<Var>::size_type i = 0; i < heads.size(); ++i) {
 			vec<Lit>& jstfc = justification(heads[i]);
@@ -1527,8 +1510,15 @@ void IDSolver::cycleSourceAggr(Var v, vec<Lit>& just) {
 	}
 }
 
-void IDSolver::notifyAggrHead(Var head) {
+void IDSolver::notifyAggrHead(Var head, AggSolver* aggsolver) {
+	// LAZY init
+	if(definitions.size()<=head){
+		definitions.resize(head+1, NULL);
+	}
+
 	assert(!isDefined(head) && !isInitialized());
+	assert(this->aggsolver==NULL || this->aggsolver==aggsolver); // TODO
+	this->aggsolver = aggsolver;
 	createDefinition(head, NULL, AGGR);
 }
 
@@ -1564,11 +1554,11 @@ bool IDSolver::isCycleFree() const {
 		return true;
 	}
 #ifdef DEBUG
-	for (int i = 0; i < nVars(); ++i) {
+	for (int i = 0; i < maxvar; ++i) {
 		assert(!isDefined(i) || justification(i).size()>0 || type(i)!=DISJ || occ(i)==MIXEDLOOP);
 	}
 #endif
-	if (getAggSolver() != NULL) {
+	if (hasRecursiveAggregates()) {
 		if (verbosity() >= 2) {
 			report("Cycle-freeness checking is not implemented in the presence of recursive aggregates.\n");
 		}
@@ -1577,7 +1567,7 @@ bool IDSolver::isCycleFree() const {
 
 	if (verbosity() >= 2) {
 		report("Showing justification for disjunctive atoms. <<<<<<<<<<\n");
-		for (int i = 0; i < nVars(); ++i) {
+		for (int i = 0; i < maxvar; ++i) {
 			if (isDefined(i) && type(i) == DISJ && occ(i) != MIXEDLOOP) {
 				clog <<mkLit(i, false) <<"<-" <<justification(i)[0] <<"; ";
 			}
@@ -1586,10 +1576,10 @@ bool IDSolver::isCycleFree() const {
 	}
 
 	// Verify cycles.
-	vector<Var> isfree(nVars(), 0); // per variable. 0 = free, >0 = number of literals in body still to be justified.
+	vector<Var> isfree(maxvar, 0); // per variable. 0 = free, >0 = number of literals in body still to be justified.
 	vector<Lit> justified;
 	int cnt_nonjustified = 0;
-	for (int i = 0; i < nVars(); ++i) {
+	for (int i = 0; i < maxvar; ++i) {
 		justified.push_back(mkLit(i, true)); // negative literals are justified anyhow.
 		if (!isDefInPosGraph(i)) {
 			justified.push_back(mkLit(i, false));
@@ -1696,16 +1686,16 @@ bool IDSolver::isCycleFree() const {
 		}
 
 		vec<bool> printed;
-		printed.growTo(nVars(), false);
+		printed.growTo(maxvar, false);
 		int i = 0;
-		while (i < nVars()) {
+		while (i < maxvar) {
 			if (verbosity() > 2) {
 				report("Cycle:\n");
 			}
-			for (; i < nVars() && (!isDefInPosGraph(i) || isfree[i] == 0); ++i)
+			for (; i < maxvar && (!isDefInPosGraph(i) || isfree[i] == 0); ++i)
 				;
 
-			if (i < nVars()) {
+			if (i < maxvar) {
 				vec<Var> cycle;
 				cycle.push(i);
 				int idx = 0;
@@ -1758,11 +1748,11 @@ bool IDSolver::isCycleFree() const {
 	return cnt_nonjustified == 0;
 }
 
-bool IDSolver::checkStatus(){
+rClause IDSolver::notifyFullAssignmentFound(){
 	if(getSemantics()==DEF_WELLF){
 		return isWellFoundedModel();
 	}
-	return true;
+	return nullPtrClause;
 }
 
 /****************************
@@ -1788,7 +1778,7 @@ bool IDSolver::checkStatus(){
  * TODO currently no well founded model checking over aggregates
  * this can be done by implementing wf propagation and counter methods in aggregates.
  */
-bool IDSolver::isWellFoundedModel() {
+rClause IDSolver::isWellFoundedModel() {
 	if(getSemantics()!=DEF_WELLF){
 		throw idpexception("Should not be checking for well-founded model, because mode is stable semantics!\n");
 	}
@@ -1798,7 +1788,7 @@ bool IDSolver::isWellFoundedModel() {
 		if (verbosity() > 1) {
 			report("A positive unfounded loop exists, so not well-founded!\n");
 		}
-		return false;
+		return nullPtrClause;
 	}
 #endif
 
@@ -1806,7 +1796,7 @@ bool IDSolver::isWellFoundedModel() {
 		if (verbosity() > 1) {
 			report("Well-founded for positive loops, no negative loops present!\n");
 		}
-		return true;
+		return nullPtrClause;
 	}
 
 	if(mixedrecagg){
@@ -1815,9 +1805,9 @@ bool IDSolver::isWellFoundedModel() {
 
 	// Initialize scc of full dependency graph
 	//TODO also here use reduce memory overhead by only using it for defined variables!
-	wfroot.resize(nVars(), -1);
+	wfroot.resize(maxvar, -1);
 	vector<Var> rootofmixed;
-	wfisMarked.resize(nVars(), false);
+	wfisMarked.resize(maxvar, false);
 
 	findMixedCycles(wfroot, rootofmixed);
 
@@ -1833,7 +1823,7 @@ bool IDSolver::isWellFoundedModel() {
 		if (verbosity() > 1) {
 			report("The model is well-founded!\n");
 		}
-		return true;
+		return nullPtrClause;
 	}
 
 	markUpward();
@@ -1858,7 +1848,7 @@ bool IDSolver::isWellFoundedModel() {
 			if (verbosity() > 1) {
 				report("The model is well-founded!\n");
 			}
-			return true;
+			return nullPtrClause;
 		}
 		overestimateCounters();
 		forwardPropagate(false);
@@ -1867,11 +1857,11 @@ bool IDSolver::isWellFoundedModel() {
 			if (verbosity() > 1) {
 				report("The model is well-founded!\n");
 			}
-			return true;
+			return nullPtrClause;
 		}
 	}
 
-	for (int i = 0; i < nVars(); ++i) {
+	for (int i = 0; i < maxvar; ++i) {
 		seen[i] = 0;
 	}
 
@@ -1879,7 +1869,8 @@ bool IDSolver::isWellFoundedModel() {
 		report("The model is not well-founded!\n");
 	}
 
-	return false;
+	//FIXME should be the model (or a minimal unfounded loop)!
+	return nullPtrClause;
 }
 
 /**
@@ -1888,9 +1879,9 @@ bool IDSolver::isWellFoundedModel() {
  * so pure negative loops are not possible.
  */
 void IDSolver::findMixedCycles(vector<Var> &root, vector<int>& rootofmixed) {
-	vector<bool> incomp(nVars(), false);
+	vector<bool> incomp(maxvar, false);
 	stack<Var> stack;
-	vector<int> visited(nVars(), 0); // =0 represents not visited; >0 corresponds to visited through a positive body literal, <0 through a negative body literal
+	vector<int> visited(maxvar, 0); // =0 represents not visited; >0 corresponds to visited through a positive body literal, <0 through a negative body literal
 	int counter = 1;
 
 	for (vector<Var>::const_iterator i = defdVars.begin(); i < defdVars.end(); ++i) {

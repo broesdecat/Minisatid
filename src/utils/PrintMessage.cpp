@@ -76,18 +76,6 @@ void MinisatID::printInitDataEnd(int v, bool unsat) {
 	}
 }
 
-void MinisatID::printSimpStart(int v) {
-	if (v >= 1) {
-		clog <<">>> [ Simplifying ]\n";
-	}
-}
-void MinisatID::printSimpEnd(int v, bool unsat) {
-	if (v >= 1) {
-		if(unsat){
-			clog <<"> Unsatisfiable found by unit propagation.\n";
-		}
-	}
-}
 
 void MinisatID::printSolveStart(int v) {
 	if (v >= 1) {
@@ -100,9 +88,9 @@ std::string MinisatID::getMinimalVarNumbering(){
 }
 
 bool headerprinted = false;
-bool headerAlreadyPrinted(){
+bool MinisatID::headerAlreadyPrinted(){
 	return headerprinted;
 }
-void notifyHeaderPrinted(){
+void MinisatID::notifyHeaderPrinted(){
 	headerprinted = true;
 }

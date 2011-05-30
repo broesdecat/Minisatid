@@ -85,7 +85,7 @@ public:
 	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
 };
 
-bool transformSumsToCNF(vps& sets, MinisatID::PCSolver& pcsolver);
+bool transformSumsToCNF(vps& sets, AggSolver& aggsolver);
 
 }
 

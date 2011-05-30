@@ -23,6 +23,7 @@ using namespace MinisatID;
 
 // REMAPPER
 
+
 Var Remapper::getVar(const Atom& atom){
 	if(atom.getValue()<1){
 		throw idpexception(getMinimalVarNumbering());
@@ -153,24 +154,6 @@ bool WrapperPimpl::finishParsing(){
 	return !getSolMonitor().isUnsat();
 }
 
-bool WrapperPimpl::simplify(){
-	if(solutionmonitor==NULL){
-		throw idpexception("Solving without instantiating any solution monitor.\n");
-	}
-
-	getSolMonitor().notifyStartSimplifying();
-	printSimpStart(verbosity());
-	if(!getSolver()->simplify()){
-		getSolMonitor().notifyUnsat();
-	}
-	state = SIMPLIFIED;
-
-	getSolMonitor().notifyEndSimplifying();
-	printSimpEnd(verbosity(), getSolMonitor().isUnsat());
-
-	return !getSolMonitor().isUnsat();
-}
-
 /*
  * Solution options:
  * 		PRINT_NONE: never print any models
@@ -191,14 +174,9 @@ void WrapperPimpl::solve(){
 			getSolMonitor().notifyUnsat();
 		}
 	}
-	if(!getSolMonitor().isUnsat() && state==PARSED){
-		if(!simplify()){
-			getSolMonitor().notifyUnsat();
-		}
-	}
 
 	if(!getSolMonitor().isUnsat()){
-		assert(state==SIMPLIFIED);
+		assert(state==PARSED);
 
 		getSolMonitor().notifyStartSolving();
 		printSolveStart(verbosity());
@@ -255,7 +233,7 @@ vector<Literal> WrapperPimpl::getBackMappedModel(const vec<Lit>& model) const{
 
 void WrapperPimpl::addMonitor(Monitor * const mon){
 	monitors.push_back(mon);
-	getSolver()->notifyHasMonitor();
+	getSolver()->requestMonitor(this);
 }
 
 template<>
@@ -279,7 +257,7 @@ void WrapperPimpl::notifyMonitor(const InnerBacktrack& obj){
 // PROP SOLVER PIMPL
 
 PCWrapperPimpl::PCWrapperPimpl(const SolverOption& modes)
-		:WrapperPimpl(modes), solver(new PCSolver(modes, *this)){
+		:WrapperPimpl(modes), solver(new PCSolver(modes, *this, 1)){
 }
 
 PCWrapperPimpl::~PCWrapperPimpl(){

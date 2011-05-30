@@ -93,6 +93,13 @@ public:
 
 class IDSolver: public Propagator{
 private:
+	int definitionID;
+
+	//FIXME can stop at max literal number in heads and bodies
+	Var maxvar; //The maximum var number seen in the whole definition, used to instantiate datastructures
+
+	AggSolver* 				aggsolver;
+
 	std::vector<DefinedVar*> definitions; //Maps all variables to NULL or a defined variable
 
 	std::vector<std::vector<Var> > 	_disj_occurs, _conj_occurs;
@@ -110,7 +117,6 @@ private:
 	bool 					posloops, negloops;
 	std::vector<Var>		defdVars;	// All the vars that are the head of some kind of definition (disj, conj or aggr). Allows to iterate over all definitions.
 
-	bool					simplified;
 	bool					backtracked;	//True if the solver has backtracked between now and the previous search for cycle sources. Is true at the start
 
 	std::set<Var>			toremoveaggrheads; //The set of defined aggregates that are no longer defined and should be removed from IDSolver during simplification.
@@ -135,34 +141,35 @@ private:
     uint64_t 				nb_times_findCS, justify_calls, cs_removed_in_justify, succesful_justify_calls, extdisj_sizes, total_marked_size;
 
 public:
-	IDSolver(MinisatID::PCSolver* s);
+	IDSolver(PCSolver* s, int definitionID);
 	virtual ~IDSolver();
 
-	MinisatID::AggSolver*	getAggSolver		()	const	{ return (!posrecagg || !mixedrecagg)?NULL:getPCSolver().getAggSolver();}
+	int					getDefinitionID() const { return definitionID; }
 
-	virtual void 		notifyVarAdded			(uint64_t nvars);
+	bool				hasRecursiveAggregates	() const 	{ return posrecagg || mixedrecagg; }
+	MinisatID::AggSolver*	getAggSolver		() const	{ assert(hasRecursiveAggregates()); return aggsolver;}
+
+	// Propagator methods
 	virtual void 		finishParsing		 	(bool& present, bool& unsat);
-	virtual bool 		simplify				(); //False if problem unsat
-	virtual rClause 	propagate				(const Lit& l){ return nullPtrClause; };
-	virtual rClause 	propagateAtEndOfQueue	();
-	//virtual void 		backtrack				(const Lit& l);
-	virtual void 		newDecisionLevel		();
-	virtual void 		backtrackDecisionLevels	(int nblevels, int untillevel){ backtracked = true; };
+	virtual rClause 	notifypropagate			();
+	virtual void 		notifyNewDecisionLevel	();
+	virtual void 		notifyBacktrack			(int untillevel){ backtracked = true; Propagator::notifyBacktrack(untillevel); };
 	virtual rClause 	getExplanation			(const Lit& l);
-
-	virtual void 		printStatistics			() const;
-
 	virtual const char* getName					() const { return "definitional"; }
 	virtual void 		printState				() const;
+	virtual void 		printStatistics			() const;
+	rClause				notifyFullAssignmentFound();
+	Var 				notifyBranchChoice		(const Var& var) const { return var; }
 
-	bool 				checkStatus				();
-	bool 				isWellFoundedModel		();
+
+
+	rClause				isWellFoundedModel		();
 
 	DEFSEM				getSemantics			() const { return sem; }
 
 	const vec<Lit>&		getCFJustificationAggr	(Var v) const;
 	void 				cycleSourceAggr			(Var v, vec<Lit>& nj);
-	void 				notifyAggrHead			(Var head);
+	void 				notifyAggrHead			(Var head, AggSolver* aggsolver);
 	void 				removeAggrHead			(Var head);
 
 	bool    			addRule      			(bool conj, Lit head, const vec<Lit>& ps);	// Add a rule to the solver.
@@ -174,9 +181,9 @@ public:
 	const PropRule&		getDefinition			(Var var) 	const { assert(hasDefVar(var)); return *definition(var); }
 
 private:
-	void 				adaptToNVars		(uint64_t nvars);
 	bool 				simplifyGraph		(); //False if problem unsat
 
+	//FIXME should not expect definitions to be full range of nvars! So semantics of these methods will have to change
 	DefinedVar* 		getDefVar			(Var v) const { assert(v>=0 && definitions.size()>(uint)v); return definitions[(uint)v]; }
 	bool 				hasDefVar			(Var v) const { return getDefVar(v)!=NULL; }
 

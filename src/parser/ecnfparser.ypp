@@ -919,7 +919,12 @@ Weight cWeight(string* s){
  */
 template<class T>
 void CRCP(const T& formula){
+#ifdef CPSUPPORT
 	CR(formula, true);
+#else
+	throw idpexception(getNoCPSupportString());
+#endif
+	
 }
 template<class T>
 void CR(int modid, const T& formula){

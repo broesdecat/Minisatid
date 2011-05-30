@@ -32,7 +32,7 @@ public:
 
 lbool 	canPropagateHead(const Agg& agg, const Weight& CC, const Weight& CP);
 
-class FWAgg: public Propagator {
+class FWAgg: public AggPropagator {
 protected:
 	/* Smart trail system:
 	 * keep a datastructure with: currentBC, currentBP, decisionlevel and stack of propagations
@@ -60,7 +60,7 @@ public:
 	rClause 		propagate				(const Lit& p, Watch* ws, int level);
 	rClause 		propagate				(int level, const Agg& agg, bool headtrue);
 	rClause			propagateAtEndOfQueue	(int level);
-	void		 	backtrack				(int nblevels, int untillevel);
+	void		 	backtrack				(int untillevel);
 	virtual void 	getExplanation			(vec<Lit>& lits, const AggReason& ar) = 0;
 
 	const Weight& 	getCP					()	const 	{ return trail.back()->CBP; }

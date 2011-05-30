@@ -24,7 +24,7 @@ using namespace MinisatID;
  * TODO maximum aggregate?
  */
 
-PWAgg::PWAgg				(TypedSet* set): Propagator(set) {}
+PWAgg::PWAgg				(TypedSet* set): AggPropagator(set) {}
 GenPWAgg::GenPWAgg			(TypedSet* set): PWAgg(set), emptyinterpretbounds(Weight(0), Weight(0)){}
 CardGenPWAgg::CardGenPWAgg	(TypedSet* set):GenPWAgg(set){}
 SumGenPWAgg::SumGenPWAgg	(TypedSet* set):GenPWAgg(set){}

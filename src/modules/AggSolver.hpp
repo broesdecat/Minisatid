@@ -23,6 +23,7 @@ namespace Minisat{
 namespace MinisatID {
 
 class PCSolver;
+class IDSolver;
 
 class WL;
 typedef std::vector<WL> vwl;
@@ -69,9 +70,13 @@ struct VI{
 class AggSolver: public Propagator{
 	//TODO pimpl
 private:
+	std::map<int,IDSolver*> 	idsolvers;
+	bool 		hasIDSolver(int defid) { return idsolvers.find(defid)!=idsolvers.end(); }
+	IDSolver& 	getIDSolver(int defid) { return *idsolvers.at(defid); }
+
 	mips 					parsedSets;
-	std::set<Var>					heads;
-	Var								dummyhead;
+	std::set<Var>			heads;
+	Var						dummyhead;
 		// To prevent creating lots of heads which are all certainly true, it is possible to give them all the same (this) head.
 		// The aggregates have to be completion defined!
 
@@ -122,44 +127,26 @@ public:
 	bool 		addSet(int id, const std::vector<Lit>& l, const std::vector<Weight>& w);
 
 	//@pre: no weights==0 when using a product aggregate
-	bool 		addAggrExpr(int defn, int set_id, const Weight& bound, AggSign boundsign, AggType type, AggSem sem, int defid);
+	bool 		addDefinedAggrExpr(const InnerAggregate& agg, IDSolver* idsolver);
+	bool 		addAggrExpr(const InnerAggregate& agg);
 
 	bool 		addMnmz(Var headv, int setid, AggType type);
 
-	// SEARCH
-	void 		notifyVarAdded(uint64_t nvars);
-
-	/**
-	 * Checks presence of aggregates and initializes all counters.
-	 * UNSAT is set to true if unsat is detected
-	 * PRESENT is set to true if aggregate propagations should be done
-	 */
+	// Propagator methods
 	void 		finishParsing		 	(bool& present, bool& unsat);
-
-	bool 		simplify				() { return true; }; //False if problem unsat
-
-	/**
-	 * Goes through all watches and propagates the fact that p was set true.
-	 */
-	rClause 	propagate				(const Lit& l);
-	rClause	 	propagateAtEndOfQueue	();
-
-	void 		newDecisionLevel		();
-	void 		backtrackDecisionLevels	(int nblevels, int untillevel);
+	rClause	 	notifypropagate			();
+	void 		notifyNewDecisionLevel	();
+	void 		notifyBacktrack			(int untillevel);
 	rClause 	getExplanation			(const Lit& l);
-
-	Var			changeBranchChoice 		(const Var& chosenvar);
-	void 		adaptAggHeur			(const vwl& wls, int nbagg);
-
-	// INFORMATION
-
+	Var			notifyBranchChoice 		(const Var& chosenvar) const;
 	const char* getName					() const { return "aggregate"; }
 	void 		printState				() const;
 	void 		printStatistics			() const;
+	rClause 	notifyFullAssignmentFound();
 
-	// VERIFICATION
 
-	bool 		checkStatus				();
+
+	void 		adaptAggHeur			(const vwl& wls, int nbagg);
 
 	// OPTIMISATION
     bool 		invalidateAgg			(vec<Lit>& invalidation);
@@ -201,9 +188,6 @@ protected:
 	Agg*		getAggDefiningHead		(Var v) const;
 
 	bool		finishSet				(TypedSet* set);
-
-	bool 		addAggrExpr				(Var headv, int setid, const AggBound& bound, AggType type, AggSem sem, int defid);
-
 };
 
 void printNumberOfAggregates(int nbsets, int nbagg, int nbsetlits, std::map<MinisatID::AggType, int>& nbaggs, int verbosity = 1000);

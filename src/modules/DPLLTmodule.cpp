@@ -8,4 +8,19 @@
  */
 #include "modules/DPLLTmodule.hpp"
 
+#include "satsolver/SATSolver.hpp"
+
+using namespace std;
 using namespace MinisatID;
+
+void Propagator::notifyBacktrack(int untillevel){
+	trailindex = getPCSolver().getSATSolver()->getTrailSize();
+}
+
+bool Propagator::hasNextProp(){
+	return trailindex < getPCSolver().getSATSolver()->getTrailSize();
+}
+
+const Lit& Propagator::getNextProp(){
+	return getPCSolver().getSATSolver()->getTrailElem(trailindex++);
+}

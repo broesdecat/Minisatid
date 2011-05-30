@@ -45,17 +45,23 @@ libminisatid_2_0_la_SOURCES = \
 		modules/aggsolver/FullyWatched.hpp 	modules/aggsolver/FullyWatched.cpp\
 		modules/aggsolver/PartiallyWatched.hpp modules/aggsolver/GenPartiallyWatched.cpp\
 		modules/aggsolver/AggProp.hpp 		modules/aggsolver/AggProp.cpp\
+		modules/LazyGrounder.hpp	 		modules/LazyGrounder.cpp\
 		theorysolvers/LogicSolver.hpp		theorysolvers/LogicSolver.cpp\
 		theorysolvers/PCSolver.hpp 			theorysolvers/PCSolver.cpp\
 		theorysolvers/SOSolver.hpp 			theorysolvers/SOSolver.cpp\
+		theorysolvers/EventQueue.hpp 		theorysolvers/EventQueue.cpp\
+		theorysolvers/PropagatorFactory.hpp theorysolvers/PropagatorFactory.cpp\
 		utils/IntTypes.h\
 		utils/Print.hpp 					utils/Print.cpp\
-		utils/ECNFPrinter.hpp				utils/ECNFPrinter.cpp\
 		utils/Utils.hpp 					utils/Utils.cpp\
 		utils/PrintMessage.hpp 				utils/PrintMessage.cpp\
 		parser/Lparseread.hpp 				parser/Lparseread.cpp\
 		parser/PBread.hpp 					parser/PBread.cpp\
 		parser/ParseOptions.hpp 			parser/ParseOptions.cpp\
+		monitors/ECNFGraphPrinter.hpp\
+		monitors/HumanReadableParsingPrinter.hpp\
+		monitors/ParsingMonitor.hpp\
+		monitors/SearchMonitor.hpp\
 		GeneralUtils.hpp 					GeneralUtils.cpp\
 		Unittests.hpp 						Unittests.cpp
 

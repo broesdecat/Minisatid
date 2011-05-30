@@ -15,6 +15,8 @@
 
 #include "theorysolvers/PCSolver.hpp"
 
+#include "modules/IDSolver.hpp"
+
 #include "modules/aggsolver/AggPrint.hpp"
 #include "modules/aggsolver/AggUtils.hpp"
 #include "modules/aggsolver/AggTransform.hpp"
@@ -33,10 +35,16 @@ using namespace std;
 using namespace MinisatID;
 
 AggSolver::AggSolver(PCSolver* s) :
-	Propagator(s),
-	dummyhead(-1),
-	propagations(0), index(1), propindex(0),
-	optimagg(NULL){
+		Propagator(s),
+		dummyhead(-1),
+		propagations(0), index(1), propindex(0),
+		optimagg(NULL){
+
+	getPCSolver().accept(this, BACKTRACK);
+	getPCSolver().accept(this, CHOICE);
+	getPCSolver().accept(this, DECISIONLEVEL);
+	getPCSolver().accept(this, PARSINGDONE);
+	getPCSolver().accept(this, PRINTSTATE);
 }
 
 AggSolver::~AggSolver() {
@@ -59,15 +67,9 @@ void AggSolver::adaptToNVars(uint64_t nvars){
 	propagated.resize(nvars, LI(l_Undef, 0));
 }
 
-void AggSolver::notifyVarAdded(uint64_t nvars) {
-	if(!isParsing()){
-		adaptToNVars(nvars);
-	}
-}
-
 void AggSolver::notifyDefinedHead(Var head, int defID){
-	assert(isInitializing());
-	getPCSolver().notifyAggrHead(head, defID);
+	assert(isInitializing() && hasIDSolver(defID));
+	getIDSolver(defID).notifyAggrHead(head, this);
 }
 
 // WATCH MANIPULATION
@@ -96,7 +98,8 @@ void AggSolver::removeHeadWatch(Var head, int defID) {
 	}else{
 		lit2headwatchlist[toInt(createNegativeLiteral(head))] = NULL;
 		lit2headwatchlist[toInt(createPositiveLiteral(head))] = NULL;
-		getPCSolver().removeAggrHead(head, defID);
+		assert(hasIDSolver(defID));
+		getIDSolver(defID).removeAggrHead(head);
 	}
 }
 
@@ -169,89 +172,93 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 	return true;
 }
 
-bool AggSolver::addAggrExpr(Var headv, int setid, const Weight& bound, AggSign boundsign, AggType type, AggSem sem, int defid) {
-	assert(isParsing());
-	AggBound b(boundsign, bound);
-	return addAggrExpr(headv, setid, b, type, sem, defid);
+
+
+bool AggSolver::addDefinedAggrExpr(const InnerAggregate& agg, IDSolver* idsolver){
+	assert(!hasIDSolver(idsolver->getDefinitionID()) && agg.defID == idsolver->getDefinitionID());
+	idsolvers.insert(pair<int, IDSolver*>(idsolver->getDefinitionID(), idsolver));
+	return addAggrExpr(agg);
 }
 
-bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType type, AggSem sem, int defid){
+bool AggSolver::addAggrExpr(const InnerAggregate& agg){
 	assert(isParsing());
-	if (parsedSets.find(setid) == parsedSets.end()) { //Exception if does not already exist
-		char s[100];
-		sprintf(s, "Set nr. %d is used, but not defined yet.\n", setid);
-		throw idpexception(s);
-	}
-	if (headv < 0) { //Exception if head is neg
-		char s[100];
-		sprintf(s, "Heads have to be positive, which is violated for head %d.\n", headv);
-		throw idpexception(s);
-	}
-
-	TypedSet* set = parsedSets[setid];
-
-	// Check whether the head occurs in the body of the set, which is not allowed
-	for (vsize i = 0; i < set->getWL().size(); ++i) {
-		if (var(set->getWL()[i].getLit()) == headv) { //Exception if head occurs in set itself
+		if (parsedSets.find(agg.setID) == parsedSets.end()) { //Exception if does not already exist
 			char s[100];
-			sprintf(s, "Set nr. %d contains a literal of atom %d, the head of an aggregate, which is not allowed.\n", setid, getPrintableVar(headv));
+			sprintf(s, "Set nr. %d is used, but not defined yet.\n", agg.setID);
 			throw idpexception(s);
 		}
-	}
-
-	//Check that no aggregates occur with the same heads
-	if (heads.find(headv) != heads.end()) {
-		if(dummyhead==-1){
-			clog <<">>> IMPORTANT: two aggregates with the same head occurred. Assuming that this head is certainly true.\n";
-			dummyhead = headv;
-			InnerDisjunction clause;
-			clause.literals.push(mkLit(dummyhead, false));
-			if(!getPCSolver().add(clause)){
-				return false;
-			}
-		}else if(dummyhead!=headv){
-			stringstream ss;
-			ss <<"Multiple aggregates with several duplicate heads " <<getPrintableVar(dummyhead) <<" and ";
-			ss <<getPrintableVar(headv) <<").\n";
-			throw idpexception(ss.str());
+		if (agg.head < 0) { //Exception if head is neg
+			char s[100];
+			sprintf(s, "Heads have to be positive, which is violated for head %d.\n", agg.head);
+			throw idpexception(s);
 		}
-	}
-	heads.insert(headv);
 
-#ifdef DEBUG
-	if(type == CARD) { //Check if all card weights are 1
-		for(vwl::size_type i=0; i<parsedSets[setid]->getWL().size(); ++i) {
-			if(parsedSets[setid]->getWL()[i].getWeight()!=1) {
-				report("Cardinality was loaded with wrong weights");
-				assert(false);
+		TypedSet* set = parsedSets[agg.setID];
+
+		// Check whether the head occurs in the body of the set, which is not allowed
+		for (vsize i = 0; i < set->getWL().size(); ++i) {
+			if (var(set->getWL()[i].getLit()) == agg.head) { //Exception if head occurs in set itself
+				char s[100];
+				sprintf(s, "Set nr. %d contains a literal of atom %d, the head of an aggregate, which is not allowed.\n", agg.setID, getPrintableVar(agg.head));
+				throw idpexception(s);
 			}
 		}
-	}
-#endif
 
-	getPCSolver().varBumpActivity(headv);
+		//Check that no aggregates occur with the same heads
+		if (heads.find(agg.head) != heads.end()) {
+			if(dummyhead==-1){
+				clog <<">>> IMPORTANT: two aggregates with the same head occurred. Assuming that this head is certainly true.\n";
+				dummyhead = agg.head;
+				InnerDisjunction clause;
+				clause.literals.push(mkLit(dummyhead, false));
+				if(!getPCSolver().add(clause)){
+					return false;
+				}
+			}else if(dummyhead!=agg.head){
+				stringstream ss;
+				ss <<"Multiple aggregates with several duplicate heads " <<getPrintableVar(dummyhead) <<" and ";
+				ss <<getPrintableVar(agg.head) <<").\n";
+				throw idpexception(ss.str());
+			}
+		}
+		heads.insert(agg.head);
 
-	//the head of the aggregate
-	Lit head = mkLit(headv, false);
+	#ifdef DEBUG
+		if(agg.type == CARD) { //Check if all card weights are 1
+			for(vwl::size_type i=0; i<parsedSets[agg.setID]->getWL().size(); ++i) {
+				if(parsedSets[agg.setID]->getWL()[i].getWeight()!=1) {
+					report("Cardinality was loaded with wrong weights");
+					assert(false);
+				}
+			}
+		}
+	#endif
 
-	Agg* agg = new Agg(head, AggBound(bound),sem, defid, type);
-	set->addAgg(agg);
+		getPCSolver().varBumpActivity(agg.head);
 
-	if (verbosity() >= 2) { //Print info on added aggregate
-		MinisatID::print(verbosity(), *agg);
-		report("\n");
-	}
+		//the head of the aggregate
+		Lit head = mkLit(agg.head, false);
 
-	return true;
+		Agg* aggregate = new Agg(head, AggBound(agg.sign, agg.bound),agg.sem, agg.defID, agg.type);
+		set->addAgg(aggregate);
+
+		if (verbosity() >= 2) { //Print info on added aggregate
+			MinisatID::print(verbosity(), *aggregate);
+			report("\n");
+		}
+
+		return true;
 }
 
 void AggSolver::finishParsing(bool& present, bool& unsat) {
-	assert(isInitializing());
+	assert(isParsing());
+	notifyParsed();
 	unsat = false;
 	present = true;
 
 	if (parsedSets.size() == 0) {
 		present = false;
+		notifyInitialized();
 		return;
 	}
 
@@ -270,7 +277,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 
 	//Rewrite completion sum and card constraints into CNF using PBSOLVER
 	if(getPCSolver().modes().pbsolver && !unsat){
-		unsat = !transformSumsToCNF(sets, getPCSolver());
+		unsat = !transformSumsToCNF(sets, *this);
 	}
 
 	//Finish the sets: add all body literals to the network
@@ -317,6 +324,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		if (verbosity() >= 3) {
 			report("Initializing aggregates finished, unsat detected.\n");
 		}
+		notifyInitialized();
 		return;
 	}
 
@@ -335,6 +343,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 			report("Initializing aggregates finished, no aggregates present after initialization.\n");
 		}
 		present = false;
+		notifyInitialized();
 		return;
 	}
 
@@ -344,6 +353,8 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 
 	printNumberOfAggregates(sets.size(), totalagg, setlits, nbaggs, verbosity());
 	printState();
+
+	notifyInitialized();
 }
 
 /**
@@ -414,18 +425,18 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 	return nullPtrClause;
 }
 
-void AggSolver::newDecisionLevel() {
+void AggSolver::notifyNewDecisionLevel() {
 	assert(isInitialized());
 	mapdecleveltotrail.push_back(littrail.size());
 	setspropagatetrail.clear();
 	setsbacktracktrail.push_back(vector<TypedSet*>());
 }
 
-void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel) {
+void AggSolver::notifyBacktrack(int untillevel) {
 	assert(isInitialized());
 	while(setsbacktracktrail.size()>(vsize)(untillevel+1)){
 		for(vector<TypedSet*>::iterator j=setsbacktracktrail.back().begin(); j<setsbacktracktrail.back().end(); ++j){
-			(*j)->backtrack(nblevels, untillevel);
+			(*j)->backtrack(untillevel);
 		}
 		setsbacktracktrail.pop_back();
 	}
@@ -442,9 +453,10 @@ void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel) {
 	}else{
 		index = getTime(littrail.back());
 	}
+	Propagator::notifyBacktrack(untillevel);
 }
 
-Var	AggSolver::changeBranchChoice(const Var& chosenvar){
+Var	AggSolver::notifyBranchChoice(const Var& chosenvar) const{
 	assert(modes().useaggheur);
 	if(heurvars.find(chosenvar)!=heurvars.end()){
 		for(vector<VI>::const_iterator i=varwithheurval.begin(); i<varwithheurval.end(); i++){
@@ -486,7 +498,7 @@ void AggSolver::adaptAggHeur(const vwl& wls, int nbagg){
 	}
 }
 
-bool AggSolver::checkStatus(){
+rClause AggSolver::notifyFullAssignmentFound(){
 	assert(isInitialized());
 #ifdef DEBUG
 	for(setlist::const_iterator i=sets.begin(); i<sets.end(); ++i){
@@ -504,7 +516,7 @@ bool AggSolver::checkStatus(){
 		}
 	}
 #endif
-	return true;
+	return nullPtrClause;
 }
 
 rClause AggSolver::doProp(){
@@ -513,12 +525,13 @@ rClause AggSolver::doProp(){
 
 	for(; confl==nullPtrClause && propindex<littrail.size();){
 		const Lit& p = littrail[propindex++];
-		assert(propagated[var(p)].v==l_Undef);
-		propagated[var(p)]=LI(sign(p)?l_False:l_True, index++);
 
 		if (verbosity() >= 3) {
 			report("Aggr_propagate("); print(p, l_True); report(").\n");
 		}
+		assert(propagated[var(p)].v==l_Undef);
+
+		propagated[var(p)]=LI(sign(p)?l_False:l_True, index++);
 
 		Agg* pa = lit2headwatchlist[toInt(p)];
 		if (pa != NULL) {
@@ -577,42 +590,27 @@ rClause AggSolver::doProp(){
 /**
  * Returns non-owning pointer
  */
-rClause AggSolver::propagate(const Lit& p) {
+rClause AggSolver::notifypropagate() {
 	assert(isInitialized());
 	rClause confl = nullPtrClause;
-	if (!isInitialized()) {
-		return confl;
-	}
 
-	littrail.push_back(p);
-
-	if(modes().asapaggprop){
-		confl = doProp();
-	}
-
-	return confl;
-}
-
-/**
- * Returns non-owning pointer
- */
-rClause	AggSolver::propagateAtEndOfQueue(){
-	assert(isInitialized());
-	rClause confl = nullPtrClause;
-	if (!isInitialized()) {
-		return confl;
+	while(hasNextProp()){
+		const Lit& l = getNextProp();
+		littrail.push_back(l);
 	}
 
 	if(!modes().asapaggprop){
-		confl = doProp();
-
-		for(vector<TypedSet*>::const_iterator i=setspropagatetrail.begin(); confl==nullPtrClause && i<setspropagatetrail.end(); ++i){
-			confl = (*i)->propagateAtEndOfQueue(getCurrentDecisionLevel());
-		}
-
-		printWatches(verbosity(), this, lit2dynamicwatchlist);
-		setspropagatetrail.clear();
+		//FIXME do necessary action,
+		//then go to stage two and queue again
+		//return confl;
 	}
+
+	confl = doProp();
+	for(vector<TypedSet*>::const_iterator i=setspropagatetrail.begin(); confl==nullPtrClause && i<setspropagatetrail.end(); ++i){
+		confl = (*i)->propagateAtEndOfQueue(getCurrentDecisionLevel());
+	}
+	printWatches(verbosity(), this, lit2dynamicwatchlist);
+	setspropagatetrail.clear();
 
 	return confl;
 }
@@ -838,7 +836,7 @@ bool AggSolver::invalidateAgg(vec<Lit>& invalidation) {
 	assert(isInitialized());
 	Agg* a = getOptimAgg();
 	TypedSet* s = a->getSet();
-	Propagator* prop = s->getProp();
+	AggPropagator* prop = s->getProp();
 	Weight value = prop->getValue();
 
 	getPCSolver().printCurrentOptimum(value);

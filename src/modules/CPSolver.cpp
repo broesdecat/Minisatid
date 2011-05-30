@@ -23,7 +23,6 @@ using namespace std;
 using namespace MinisatID;
 using namespace Gecode;
 
-//FIXME use trail in aggsolver
 //FIXME include cp model in printing of models
 
 
@@ -33,14 +32,14 @@ LitTrail::LitTrail(){
 void LitTrail::newDecisionLevel(){
 	trailindexoflevel.push_back(trail.size());
 }
-void LitTrail::backtrackDecisionLevels(int nbevels, int untillevel){
+void LitTrail::backtrackDecisionLevels(int untillevel){
 	vector<Var>::size_type earliest = trailindexoflevel[(uint)untillevel+1];
 	while(trail.size()>earliest){
 		values[var(trail.back())] = l_Undef;
 		trail.pop_back();
 	}
 
-	for(int nb = 0; nb<nbevels; nb++){
+	while(trailindexoflevel.size()>untillevel+1){
 		trailindexoflevel.pop_back();
 	}
 }
@@ -206,47 +205,78 @@ void CPSolver::finishParsing(bool& present, bool& unsat){
 		unsat = true;
 	}
 
+	notifyInitialized();
+
 	return;
 }
 
-void CPSolver::notifyVarAdded(uint64_t nvars){}
-
-void CPSolver::newDecisionLevel(){
+void CPSolver::notifyNewDecisionLevel(){
 	getData().addSpace();
 	trail.newDecisionLevel();
 }
 
-void CPSolver::backtrackDecisionLevels(int nblevels, int untillevel){
+void CPSolver::notifyBacktrack(int untillevel){
 	//clog <<"Backtracked CP solver.\n";
-	getData().removeSpace(nblevels);
+	getData().removeSpace(untillevel);
 	searchedandnobacktrack = false;
-	trail.backtrackDecisionLevels(nblevels, untillevel);
+	trail.backtrackDecisionLevels(untillevel);
+	Propagator::notifyBacktrack(untillevel);
 }
 
-rClause CPSolver::propagate(const Lit& l){
+rClause CPSolver::notifypropagate(){
 	rClause confl = nullPtrClause;
+
 	if(!isInitialized()) { return confl; }
 	if(searchedandnobacktrack){ return confl; }
 
-	//Check if any constraint matched (might be turned into map)
-	ReifiedConstraint* constr = NULL;
-	for(reifconstrlist::const_iterator i=getData().getReifConstraints().begin(); i<getData().getReifConstraints().end(); i++){
-		if((*i)->getHead()==var(l)){
-			constr = *i;
-			break;
+	while(hasNextProp() && confl==nullPtrClause){
+		const Lit& l = getNextProp();
+
+		//Check if any constraint matched (might be turned into map)
+		ReifiedConstraint* constr = NULL;
+		for(reifconstrlist::const_iterator i=getData().getReifConstraints().begin(); i<getData().getReifConstraints().end(); i++){
+			if((*i)->getHead()==var(l)){
+				constr = *i;
+				break;
+			}
+		}
+
+		if(constr!=NULL){
+			if(getPCSolver().modes().verbosity >= 5){
+				clog <<">> Propagated into CP: " <<l <<".\n";
+			}
+
+			trail.propagate(l);
+			if(!constr->isAssigned(getSpace())){
+				confl = constr->propagate(!sign(l), getSpace());
+			}
 		}
 	}
 
-	if(constr!=NULL){
-		if(getPCSolver().modes().verbosity >= 5){
-			clog <<">> Propagated into CP: " <<l <<".\n";
-		}
-
-		trail.propagate(l);
-		if(!constr->isAssigned(getSpace())){
-			confl = constr->propagate(!sign(l), getSpace());
-		}
+	if(confl!=nullPtrClause){
+		return confl;
 	}
+
+	StatusStatistics stats;
+	SpaceStatus status = getSpace().status(stats);
+
+	if(status == SS_FAILED){ //Conflict
+		return genFullConflictClause();
+	}
+
+	if(verbosity()>=3){
+		clog <<"Propagated " <<trail.getTrail().size() <<" of " <<getData().getReifConstraints().size() <<" literals\n";
+	}
+
+	if(getData().getReifConstraints().size()==trail.getTrail().size()){
+		confl = propagateFinal(false);
+		searchedandnobacktrack = true;
+	}
+
+	if(confl==nullPtrClause){
+		confl = propagateReificationConstraints();
+	}
+
 	return confl;
 }
 
@@ -310,34 +340,6 @@ rClause CPSolver::propagateReificationConstraints(){
 			confl = notifySATsolverOfPropagation(mkLit((*i)->getHead(), (*i)->isAssignedFalse(getSpace())));
 		}
 	}
-	return confl;
-}
-
-rClause CPSolver::propagateAtEndOfQueue(){
-	rClause confl = nullPtrClause;
-	if (!isInitialized()) { return confl; }
-	if(searchedandnobacktrack){ return confl; }
-
-	StatusStatistics stats;
-	SpaceStatus status = getSpace().status(stats);
-
-	if(status == SS_FAILED){ //Conflict
-		return genFullConflictClause();
-	}
-
-	if(verbosity()>=3){
-		clog <<"Propagated " <<trail.getTrail().size() <<" of " <<getData().getReifConstraints().size() <<" literals\n";
-	}
-
-	if(getData().getReifConstraints().size()==trail.getTrail().size()){
-		confl = propagateFinal(false);
-		searchedandnobacktrack = true;
-	}
-
-	if(confl==nullPtrClause){
-		confl = propagateReificationConstraints();
-	}
-
 	return confl;
 }
 

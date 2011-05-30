@@ -20,8 +20,8 @@ typedef Agg* pagg;
 typedef std::vector<Agg*> agglist;
 class TypedSet;
 
-class Propagator;
-typedef Propagator comb;
+class AggPropagator;
+typedef AggPropagator comb;
 typedef comb* pcomb;
 
 class Watch;
@@ -32,7 +32,7 @@ typedef std::vector<std::vector<Watch*> > vvpw;
 class PropagationInfo;
 typedef std::vector<PropagationInfo> vprop;
 
-class PWAgg: public Propagator {
+class PWAgg: public AggPropagator {
 public:
 	PWAgg(TypedSet* set);
 	virtual ~PWAgg(){};
@@ -108,7 +108,6 @@ public:
 	rClause 	propagate		(const Lit& p, Watch* w, int level);
 	rClause 	propagate		(int level, const Agg& agg, bool headtrue);
 	rClause		propagateAtEndOfQueue(int level);
-	void		backtrack		(int nblevels, int untillevel){};
     void 		getExplanation	(vec<Lit>& lits, const AggReason& ar);
 
 	double 		testGenWatchCount();

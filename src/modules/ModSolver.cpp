@@ -28,11 +28,10 @@ using namespace MinisatID;
  * Constructs a ModSolver, with a given head, index and hierarchy pointer. A PCSolver is initialized.
  */
 ModSolver::ModSolver(modindex child, Var head, SOSolver* mh):
-		Propagator(new PCSolver(mh->modes(), *this)), WrapperPimpl(mh->modes()),
+		Propagator(new PCSolver(mh->modes(), *this, child)), WrapperPimpl(mh->modes()),
 		init(false), hasparent(false), searching(false),
 		head(head),
 		id(child), parentid(-1), //, startedsearch(false), startindex(-1),
-		solver(NULL),
 		modhier(mh){
 	getPCSolver().setNbModels(1);
 	//If we are not debugging, we do not want information on the deeper levels
@@ -58,7 +57,7 @@ void ModSolver::addModel(const InnerModel& model){
 }
 
 ModSolver::~ModSolver(){
-	delete solver;
+	delete pcsolver;
 }
 
 bool ModSolver::add(Var var){
@@ -153,6 +152,7 @@ void ModSolver::finishParsingDown(bool& unsat){
 		//TODO handle !present
 		//TODO handle unsat => might make this solver !present
 	}
+	notifyInitialized();
 }
 
 /**
@@ -173,30 +173,7 @@ bool ModSolver::solve(const vec<Lit>& assumptions, const ModelExpandOptions& opt
 	return result;
 }
 
-/*
- * Simplifies PC solver and afterwards simplifies lower modal operators.
- * Returns false if the problem is unsat (and then does not simplify other solvers).
- */
-bool ModSolver::simplifyDown(){
-	bool result = getPCSolver().simplify();
-
-	for(vmodindex::const_iterator i=getChildren().begin(); result && i<getChildren().end(); ++i){
-		result = getModSolverData().getModSolver(*i)->simplify();
-		//TODO check if this is correct: i think it is not guaranteed that all lower solvers will be searched!
-		//It is anyway necessary, because if no search occurs, the modal solvers should still be checked!
-		//TODO can this be called multiple times (it shouldn't)
-		if(result){
-			vec<Lit> confl;
-			if(!getModSolverData().getModSolver(*i)->propagateDownAtEndOfQueue(confl)){
-				result = false;
-			}
-		}
-	}
-
-	return result;
-}
-
-void ModSolver::newDecisionLevel(){
+void ModSolver::notifyNewDecisionLevel(){
 	trail.push_back(vector<Lit>());
 }
 
@@ -244,29 +221,31 @@ bool ModSolver::search(const vec<Lit>& assumpts, bool search){
 /**
  * Returns non-owning pointer
  */
-rClause ModSolver::propagate(const Lit& l){
-	/*if(!searching){
+rClause ModSolver::notifypropagate(){
+	rClause confl = nullPtrClause;
+	if(!searching){
 		vector<Lit> v = getPCSolver().getDecisions();
 		//TODO propagate up WITH reason
-	}*/
-	if(getModSolverData().modes().verbosity>4){
-		clog <<">>Propagated " <<l <<" from PC in mod " <<getPrintId() <<".\n";
 	}
 
-	rClause confl = nullPtrClause;
-	trail.back().push_back(l);
-	for(vmodindex::const_iterator i=getChildren().begin(); confl==nullPtrClause && i<getChildren().end(); ++i){
-		confl = getModSolverData().getModSolver(*i)->propagateDown(l);
-	}
-	return confl;
-}
+	while(hasNextProp() && confl==nullPtrClause){
+		const Lit& l = getNextProp();
+		if(getModSolverData().modes().verbosity>4){
+			clog <<">>Propagated " <<l <<" from PC in mod " <<getPrintId() <<".\n";
+		}
 
-//In future, we might want to delay effectively propagating and searching in subfolders to the point where the
-//queue is empty, so we will need a propagateDown and a propagateDownEndOfQueue
-/**
- * Returns non-owning pointer
- */
-rClause ModSolver::propagateAtEndOfQueue(){
+		trail.back().push_back(l);
+		for(vmodindex::const_iterator i=getChildren().begin(); confl==nullPtrClause && i<getChildren().end(); ++i){
+			confl = getModSolverData().getModSolver(*i)->propagateDown(l);
+		}
+	}
+
+	if(confl!=nullPtrClause){
+		return confl;
+	}
+
+	//In future, we might want to delay effectively propagating and searching in subfolders to the point where the
+	//queue is empty, so we will need a propagateDown and a propagateDownEndOfQueue
 	bool noconflict = true;
 	vec<Lit> confldisj;
 	for(vmodindex::const_iterator i=getChildren().begin(); noconflict && i<getChildren().end(); ++i){
@@ -274,7 +253,6 @@ rClause ModSolver::propagateAtEndOfQueue(){
 		noconflict = getModSolverData().getModSolver(*i)->propagateDownAtEndOfQueue(confldisj);
 	}
 
-	rClause confl = nullPtrClause;
 	if(!noconflict){
 		confl = getPCSolver().createClause(confldisj, true);
 		getPCSolver().addLearnedClause(confl);
@@ -361,7 +339,7 @@ bool ModSolver::propagateDownAtEndOfQueue(vec<Lit>& confldisj){
 	return result;
 }
 
-void ModSolver::backtrackDecisionLevels(int nblevels, int untillevel){
+void ModSolver::notifyBacktrack(int untillevel){
 	if(getModSolverData().modes().verbosity>4){
 		report("Backtracking from PC in mod %zu to level %d\n", getPrintId(), untillevel);
 	}
@@ -375,6 +353,8 @@ void ModSolver::backtrackDecisionLevels(int nblevels, int untillevel){
 		}
 		trail.pop_back();
 	}
+
+	Propagator::notifyBacktrack(untillevel);
 }
 
 /**

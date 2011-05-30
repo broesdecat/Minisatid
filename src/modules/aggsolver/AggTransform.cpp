@@ -514,7 +514,7 @@ struct PBAgg {
 };
 
 //FUTURE allow complete translation into sat? => double bounds, defined aggregates, optimization
-bool MinisatID::transformSumsToCNF(vps& sets, PCSolver& pcsolver) {
+bool MinisatID::transformSumsToCNF(vps& sets, AggSolver& aggsolver) {
 	int sumaggs = 0;
 	int maxvar = 1;
 	vector<PBAgg*> pbaggs;
@@ -523,7 +523,7 @@ bool MinisatID::transformSumsToCNF(vps& sets, PCSolver& pcsolver) {
 		for (vsize j = 0; j < (*i)->getAgg().size(); ++j) {
 			Agg* agg = (*i)->getAgg()[j];
 
-			if(pcsolver.getAggSolver()->isOptimAgg(agg)
+			if(aggsolver.isOptimAgg(agg)
 					|| (agg->getType()!=SUM && agg->getType()!=CARD)
 					|| agg->getSem() != COMP){
 				remaining.push_back(agg);
@@ -581,10 +581,10 @@ bool MinisatID::transformSumsToCNF(vps& sets, PCSolver& pcsolver) {
 	}
 
 	MiniSatPP::PbSolver* pbsolver = new MiniSatPP::PbSolver();
-	MiniSatPP::opt_verbosity = pcsolver.verbosity()-1; //Gives a bit too much output on 1
+	MiniSatPP::opt_verbosity = aggsolver.verbosity()-1; //Gives a bit too much output on 1
 	MiniSatPP::opt_abstract = true; //Should be true
 	MiniSatPP::opt_tare = true; //Experimentally set to true
-	MiniSatPP::opt_primes_file = pcsolver.modes().getPrimesFile().c_str();
+	MiniSatPP::opt_primes_file = aggsolver.modes().getPrimesFile().c_str();
 	MiniSatPP::opt_convert_weak = false;
 	MiniSatPP::opt_convert = MiniSatPP::ct_Sorters;
 	pbsolver->allocConstrs(maxvar, sumaggs);
@@ -610,14 +610,14 @@ bool MinisatID::transformSumsToCNF(vps& sets, PCSolver& pcsolver) {
 
 	//Any literal that is larger than maxvar will have been newly introduced, so should be mapped to nVars()+lit
 	//add the CNF to the solver
-	int maxnumber = pcsolver.nVars();
+	int maxnumber = aggsolver.nVars();
 	for (vector<vector<MiniSatPP::Lit> >::const_iterator i = pbencodings.begin(); i < pbencodings.end(); ++i) {
 		InnerDisjunction clause;
 		for (vector<MiniSatPP::Lit>::const_iterator j = (*i).begin(); j < (*i).end(); ++j) {
 			Var v = MiniSatPP::var(*j) + (MiniSatPP::var(*j) > maxvar ? maxnumber - maxvar : 0);
 			clause.literals.push(mkLit(v, MiniSatPP::sign(*j)));
 		}
-		pcsolver.add(clause);
+		aggsolver.getPCSolver().add(clause);
 	}
 
 	return true;

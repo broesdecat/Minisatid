@@ -31,14 +31,14 @@ void CPSolverData::addSpace(){
 	history.push_back(static_cast<CPScript*>(getSpace().clone()));
 }
 
-void CPSolverData::removeSpace(int nblevels){
+void CPSolverData::removeSpace(int untillevel){
 	/*reportf("BACKTRACKING SPACES");
 	for(int i=0; i<history.size(); i++){
 		reportf("SPACE");
 		cout <<*history[i] <<endl;
 	}*/
 
-	for(int i=0; i<nblevels; i++){
+	while(history.size()>untillevel+1){
 		CPScript* old = history.back();
 		history.pop_back();
 		delete old;

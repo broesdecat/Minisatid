@@ -45,7 +45,7 @@ typedef std::vector<TypedSet*> vps;
 class Watch;
 class AggReason;
 
-class Propagator;
+class AggPropagator;
 
 struct AggBound{
 	Weight bound;
@@ -120,7 +120,7 @@ public:
 	virtual Weight		remove					(const Weight& lhs, const Weight& rhs) 	const = 0;
 	virtual bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const = 0;
 
-	virtual Propagator*	createPropagator		(TypedSet* set) 						const = 0;
+	virtual AggPropagator*	createPropagator		(TypedSet* set) 						const = 0;
 	virtual Weight 		getESV					()										const = 0;
 };
 
@@ -137,7 +137,7 @@ public:
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const { return lhs>rhs?lhs:rhs; }
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const { assert(false); return 0; }
 	bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const;
-	Propagator*	createPropagator		(TypedSet* set) 						const;
+	AggPropagator*	createPropagator		(TypedSet* set) 						const;
 
 	Weight 		getESV					()										const { return negInfinity(); }
 };
@@ -177,7 +177,7 @@ public:
 	Weight		getMaxPossible			(const TypedSet& set)					const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
-	Propagator*	createPropagator		(TypedSet* set) const;
+	AggPropagator*	createPropagator		(TypedSet* set) const;
 
 	Weight 		getESV					()										const { return Weight(1); }
 };
@@ -194,7 +194,7 @@ public:
 	Weight		getMaxPossible			(const TypedSet& set)					const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
-	Propagator*	createPropagator		(TypedSet* set) const;
+	AggPropagator*	createPropagator		(TypedSet* set) const;
 
 	Weight 		getESV					()										const { return Weight(0); }
 };
@@ -221,20 +221,20 @@ void addValue		(const AggProp& type, const Weight& weight, bool wasinset, Weight
 void removeValue	(const AggProp& type, const Weight& weight, bool addtoset, minmaxBounds& bounds);
 void removeValue	(const AggProp& type, const Weight& weight, bool wasinset, Weight& min, Weight& max);
 
-class Propagator {
+class AggPropagator {
 private:
 	TypedSet* const set; //Non-owning
 	AggSolver* const aggsolver;
 	Minisat::Solver* const satsolver;
 public:
-	Propagator(TypedSet* set);
-	virtual ~Propagator(){};
+	AggPropagator(TypedSet* set);
+	virtual ~AggPropagator(){};
 
 	virtual void 		initialize(bool& unsat, bool& sat);
 	virtual rClause 	propagate		(const Lit& p, Watch* w, int level) = 0;
 	virtual rClause 	propagate		(int level, const Agg& agg, bool headtrue) = 0;
 	virtual rClause		propagateAtEndOfQueue(int level) = 0;
-	virtual void		backtrack		(int nblevels, int untillevel) = 0;
+	virtual void		backtrack		(int untillevel){}
     virtual void 		getExplanation	(vec<Lit>& lits, const AggReason& ar) = 0;
 
     TypedSet&			getSet() 			{ return *set; }
@@ -257,7 +257,7 @@ protected:
 
 	agglist			 	aggregates;	//OWNS the pointers
 	AggSolver*			aggsolver;	//does NOT own this pointer
-	Propagator* 		prop;		//OWNS pointer
+	AggPropagator* 		prop;		//OWNS pointer
 
 	int 				setid;
 	std::vector<AggTransformation*> transformations;
@@ -312,13 +312,13 @@ public:
 		type = w;
 	}
 
-	void 			setProp			(Propagator* p) 			{ prop = p; }
-	Propagator*		getProp			() 			const 			{ return prop; }
+	void 			setProp			(AggPropagator* p) 			{ prop = p; }
+	AggPropagator*		getProp			() 			const 			{ return prop; }
 
 	const std::vector<AggTransformation*>& getTransformations() const { return transformations; }
 
 	void 			initialize		(bool& unsat, bool& sat, vps& sets);
-	void			backtrack		(int nblevels, int untillevel) 			{ getProp()->backtrack(nblevels, untillevel); }
+	void			backtrack		(int untillevel) 			{ getProp()->backtrack(untillevel); }
 	rClause 		propagate		(const Lit& p, Watch* w, int level) 	{ return getProp()->propagate(p, w, level); }
 	rClause 		propagate		(const Agg& agg, int level, bool headtrue)	{ return getProp()->propagate(level, agg, headtrue); }
 	rClause			propagateAtEndOfQueue(int level) 						{ return getProp()->propagateAtEndOfQueue(level); }

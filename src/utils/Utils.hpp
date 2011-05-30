@@ -22,6 +22,8 @@ typedef unsigned int uint;
 
 namespace MinisatID {
 
+enum EVENT { FULLASSIGNMENT, CHOICE, FIXBOOL, BACKTRACK, DECISIONLEVEL, PARSINGDONE, PRINTSTATE, PRINTSTATS, COMPLETEMODEL, FINDMODEL};
+
 // General vector size type usable for any POINTER types!
 typedef std::vector<void*>::size_type vsize;
 
@@ -62,6 +64,15 @@ struct InnerModel{
 
 struct InnerDisjunction{
 	vec<Lit> literals;
+
+	InnerDisjunction(){}
+	InnerDisjunction(const InnerDisjunction& orig){
+		orig.literals.copyTo(literals);
+	}
+
+	void operator=(const InnerDisjunction& orig){
+		orig.literals.copyTo(literals);
+	}
 };
 
 struct InnerEquivalence{
