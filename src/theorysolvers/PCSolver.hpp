@@ -87,7 +87,8 @@ public:
 
 	void		accept(Propagator* propagator);
 	void 		accept(Propagator* propagator, EVENT event);
-	void		acceptVarEvent(Propagator* propagator, Var var);
+	void 		acceptLitEvent(Propagator* propagator, const Lit& lit, PRIORITY priority);
+	void 		acceptFinishParsing(Propagator* propagator, bool late);
 
 	void 		setModSolver(ModSolver* m);
 

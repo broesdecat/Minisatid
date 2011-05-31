@@ -18,8 +18,9 @@ enum State { PARSING, INITIALIZING, INITIALIZED };
 
 class Propagator {
 private:
-	State init;
+	State 	init;
 	int 	trailindex; //the index in the trail of next propagation to do.
+	bool	inqueue;	//used by the queueing mechanism to refrain from putting a propagator in the queue
 
 protected:
 	PCSolver* pcsolver;
@@ -28,6 +29,7 @@ public:
 	Propagator(PCSolver* s) :
 			init(PARSING),
 			trailindex(0),
+			inqueue(false),
 			pcsolver(s) {
 		pcsolver->accept(this);
 	}
@@ -35,6 +37,11 @@ public:
 
 	const PCSolver& getPCSolver() const { return *pcsolver; }
 	PCSolver& getPCSolver	() { return *pcsolver; }
+
+	// queueing mech
+	void notifyQueued() { inqueue = true; }
+	void notifyDeQueued() { inqueue = false; }
+	bool isQueued() const { return inqueue; }
 
 
 	// Propagator methods

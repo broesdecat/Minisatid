@@ -46,8 +46,6 @@ private:
 	PCSolver* getEnginep() const { return engine; }
 	const PCSolver& getEngine() const { return *engine; }
 
-	std::vector<Propagator*> tobedeleted; //propagators that should be deleted when no the factory goes down.
-
 	bool parsing; //state
 
 	SATSolver* satsolver;

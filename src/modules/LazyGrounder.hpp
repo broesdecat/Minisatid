@@ -46,7 +46,7 @@ public:
 	void 	notifyBacktrack		(int untillevel) { return; }
 	rClause	notifypropagate		();
 	Var 	notifyBranchChoice	(const Var& var) const { return var; }
-	void 	printStatistics		() const {}
+	void 	printStatistics		() const;
 	void 	printState			() const {}
 };
 }

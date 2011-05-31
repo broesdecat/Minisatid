@@ -43,7 +43,7 @@ AggSolver::AggSolver(PCSolver* s) :
 	getPCSolver().accept(this, BACKTRACK);
 	getPCSolver().accept(this, CHOICE);
 	getPCSolver().accept(this, DECISIONLEVEL);
-	getPCSolver().accept(this, PARSINGDONE);
+	getPCSolver().acceptFinishParsing(this, false);
 	getPCSolver().accept(this, PRINTSTATE);
 }
 

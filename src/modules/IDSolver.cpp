@@ -122,6 +122,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 		return;
 	}
 
+	//FIXME should make maxvar as small as possible.
 	maxvar = nVars();
 
 	//LAZY initialization

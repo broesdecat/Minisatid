@@ -31,27 +31,43 @@ private:
 	std::vector<Propagator*> allpropagators;
 
 	std::map<EVENT, std::vector<Propagator*> > event2propagator;
-	std::vector<std::vector<Propagator*> > varevent2propagator;
+	std::vector<Propagator*> earlyfinishparsing, latefinishparsing;
+	std::vector<std::map<PRIORITY, std::vector<Propagator*> > > litevent2propagator;
 
 public:
 	EventQueue(PCSolver& pcsolver);
 	virtual ~EventQueue();
 
+
+	// IMPORTANT: EACH propagator has to register her (takes care of deletion)
 	void accept(Propagator* propagator){
 		allpropagators.push_back(propagator);
 	}
 
-	void accept(Propagator* propagator, EVENT basicevent){ //register for events without extra information
+	// IMPORTANT: a propagator should only accept events when he is ready for those events!
+	void accept(Propagator* propagator, EVENT basicevent){
 		event2propagator[basicevent].push_back(propagator);
 	}
-
-	void acceptVarEvent(Propagator* propagator, Var varevent){
-		varevent2propagator[varevent].push_back(propagator);
+	//NOTE Both aggsolver and modsolver can add rules during their initialization, so idsolver should be late and all the others early!
+	void acceptFinishParsing(Propagator* propagator, bool late){
+		if(late){
+			latefinishparsing.push_back(propagator);
+		}else{
+			earlyfinishparsing.push_back(propagator);
+		}
 	}
 
-	void notifyVarAdded();
+	//TODO should check doubles in another way (or prevent any from being added) (maybe a set is better than a vector)
+	void acceptLitEvent(Propagator* propagator, const Lit& litevent, PRIORITY priority){
+		for(std::vector<Propagator*>::const_iterator i=litevent2propagator[toInt(litevent)].at(priority).begin(); i<litevent2propagator[toInt(litevent)].at(priority).end(); ++i){
+			if((*i)==propagator){
+				return;
+			}
+		}
+		litevent2propagator[toInt(litevent)].at(priority).push_back(propagator);
+	}
 
-	//FIXME a propagator should know whether propagate can already be called on it (because of not finished parsing yet)
+	void 	notifyVarAdded();
 
 	rClause notifyFullAssignmentFound();
 	void 	finishParsing			(bool& unsat);

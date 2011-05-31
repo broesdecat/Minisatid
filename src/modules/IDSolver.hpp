@@ -95,7 +95,6 @@ class IDSolver: public Propagator{
 private:
 	int definitionID;
 
-	//FIXME can stop at max literal number in heads and bodies
 	Var maxvar; //The maximum var number seen in the whole definition, used to instantiate datastructures
 
 	AggSolver* 				aggsolver;
@@ -103,8 +102,6 @@ private:
 	std::vector<DefinedVar*> definitions; //Maps all variables to NULL or a defined variable
 
 	std::vector<std::vector<Var> > 	_disj_occurs, _conj_occurs;
-	//std::map<Var, std::vector<Var> > 	_disj_occurs, _conj_occurs;
-	//std::tr1::unordered_map<Var, std::vector<Var> > 	_disj_occurs, _conj_occurs;
 
 	VarToJustif				seen;
 
@@ -183,9 +180,8 @@ public:
 private:
 	bool 				simplifyGraph		(); //False if problem unsat
 
-	//FIXME should not expect definitions to be full range of nvars! So semantics of these methods will have to change
-	DefinedVar* 		getDefVar			(Var v) const { assert(v>=0 && definitions.size()>(uint)v); return definitions[(uint)v]; }
-	bool 				hasDefVar			(Var v) const { return getDefVar(v)!=NULL; }
+	DefinedVar* 		getDefVar			(Var v) const { assert(v>=0 && v<maxvar && definitions.size()>(uint)v); return definitions[(uint)v]; }
+	bool 				hasDefVar			(Var v) const { return v<maxvar && getDefVar(v)!=NULL; }
 
 	bool 				isDefInPosGraph		(Var v) const {	return hasDefVar(v) && (occ(v)==POSLOOP || occ(v)==BOTHLOOP); }
 

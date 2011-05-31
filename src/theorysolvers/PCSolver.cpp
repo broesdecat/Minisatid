@@ -44,7 +44,7 @@ PCSolver::PCSolver(SolverOption modes, MinisatID::WrapperPimpl& inter, int ID) :
 	queue = new EventQueue(*this);
 
 	searchengine = new Solver(this);
-#ifdef CPSUPPORT //TODO create dummy implemententation of CPSolver to remove all the ifdefs
+#ifdef CPSUPPORT
 	cpsolver = new CPSolver(this);
 #endif
 
@@ -53,9 +53,9 @@ PCSolver::PCSolver(SolverOption modes, MinisatID::WrapperPimpl& inter, int ID) :
 
 PCSolver::~PCSolver() {
 	delete(queue);
-	delete(searchengine);
+	//delete(searchengine); //FIXME delete responsability?
 #ifdef CPSUPPORT
-	delete(cpsolver);
+	//delete(cpsolver); //FIXME delete responsability?
 #endif
 	delete(factory);
 	delete(searchmonitor);
@@ -133,8 +133,12 @@ void PCSolver::accept(Propagator* propagator, EVENT event){
 	getEventQueue().accept(propagator, event);
 }
 
-void PCSolver::acceptVarEvent(Propagator* propagator, Var var){
-	getEventQueue().acceptVarEvent(propagator, var);
+void PCSolver::acceptLitEvent(Propagator* propagator, const Lit& lit, PRIORITY priority){
+	getEventQueue().acceptLitEvent(propagator, lit, priority);
+}
+
+void PCSolver::acceptFinishParsing(Propagator* propagator, bool late){
+	getEventQueue().acceptFinishParsing(propagator, late);
 }
 
 void PCSolver::setModSolver(ModSolver* m){
@@ -324,7 +328,7 @@ void PCSolver::extractLitModel(InnerModel* fullmodel){
 void PCSolver::extractVarModel(InnerModel* fullmodel){
 	fullmodel->varassignments.clear();
 #ifdef CPSUPPORT
-	//TODO what if not present?
+	//FIXME do not delete cpsolver if not present, or set to NULL here too!!!
 	getCPSolver().getVariableSubstitutions(fullmodel->varassignments);
 #endif
 }

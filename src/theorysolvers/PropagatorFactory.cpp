@@ -18,6 +18,7 @@
 #include "modules/IDSolver.hpp"
 #include "modules/AggSolver.hpp"
 #include "modules/ModSolver.hpp"
+#include "modules/LazyGrounder.hpp"
 
 #ifdef CPSUPPORT
 #include "modules/CPSolver.hpp"
@@ -50,7 +51,7 @@ PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine
 		parsingmonitors.push_back(new ECNFGraphPrinter(cout));
 	}
 
-	if(modes.verbosity>1){
+	if(modes.verbosity>2){
 		parsingmonitors.push_back(new HumanReadableParsingPrinter(clog));
 	}
 
@@ -60,7 +61,6 @@ PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine
 }
 
 PropagatorFactory::~PropagatorFactory() {
-	deleteList<Propagator>(tobedeleted);
 	deleteList<ParsingMonitor>(parsingmonitors);
 }
 
@@ -95,14 +95,12 @@ AggSolver* PropagatorFactory::getAggSolver() {
 void PropagatorFactory::addAggSolver(){
 	assert(isParsing());
 	aggsolver = new AggSolver(getEnginep());
-	tobedeleted.push_back(aggsolver);
 }
 
 void PropagatorFactory::addIDSolver(defID id){
 	assert(isParsing());
 	IDSolver* idsolver = new IDSolver(getEnginep(), id);
 	idsolvers.insert(pair<defID, IDSolver*>(id, idsolver));
-	tobedeleted.push_back(idsolver);
 }
 
 bool PropagatorFactory::add(const Var& v) {
@@ -126,7 +124,14 @@ bool PropagatorFactory::add(const InnerDisjunction& formula){
 	notifyMonitorsOfAdding(formula);
 
 	addVars(formula.literals);
-	return getSolver()->addClause(formula.literals);
+
+//	if(formula.literals.size()<3){
+		return getSolver()->addClause(formula.literals);
+/*	}else{
+		LazyGrounder* g = new LazyGrounder(getEnginep());
+		g->setClause(formula);
+		return g;
+	}*/
 }
 
 bool PropagatorFactory::add(const InnerEquivalence& formula){
