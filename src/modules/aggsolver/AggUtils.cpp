@@ -29,7 +29,7 @@ using namespace MinisatID;
  *
  * Also, if a literal has to become FALSE, its INVERSION should be added to the justification!
  */
-bool MinisatID::oppositeIsJustified(const WL& l, VarToJustif& currentjust, bool real, AggSolver const * const solver) {
+bool MinisatID::oppositeIsJustified(const WL& l, const InterMediateDataStruct& currentjust, bool real, AggSolver const * const solver) {
 	if (real) {
 		return solver->value(l.getLit()) != l_True;
 	} else {
@@ -37,7 +37,7 @@ bool MinisatID::oppositeIsJustified(const WL& l, VarToJustif& currentjust, bool 
 	}
 }
 
-bool MinisatID::isJustified(const WL& l, VarToJustif& currentjust, bool real, AggSolver const * const solver) {
+bool MinisatID::isJustified(const WL& l, const InterMediateDataStruct& currentjust, bool real, AggSolver const * const solver) {
 	if (real) {
 		return solver->value(l.getLit()) != l_False;
 	} else {
@@ -45,6 +45,6 @@ bool MinisatID::isJustified(const WL& l, VarToJustif& currentjust, bool real, Ag
 	}
 }
 
-bool MinisatID::isJustified(Var x, VarToJustif& currentjust) {
-	return currentjust[x] == 0;
+bool MinisatID::isJustified(Var x, const InterMediateDataStruct& currentjust) {
+	return currentjust.hasElem(x) && currentjust.getElem(x) == 0;
 }

@@ -19,6 +19,8 @@ enum State { PARSING, INITIALIZING, INITIALIZED };
 class Propagator {
 private:
 	State 	init;
+	bool	present;
+	bool	searchalgo;
 	int 	trailindex; //the index in the trail of next propagation to do.
 	bool	inqueue;	//used by the queueing mechanism to refrain from putting a propagator in the queue
 
@@ -28,6 +30,8 @@ protected:
 public:
 	Propagator(PCSolver* s) :
 			init(PARSING),
+			present(true),
+			searchalgo(false),
 			trailindex(0),
 			inqueue(false),
 			pcsolver(s) {
@@ -42,6 +46,14 @@ public:
 	void notifyQueued() { inqueue = true; }
 	void notifyDeQueued() { inqueue = false; }
 	bool isQueued() const { return inqueue; }
+
+	// presence
+	bool 	isPresent() const { return present; }
+	void	notifyNotPresent() { present = false; }
+
+	// presence
+	bool 	isUsedForSearch() const { return searchalgo; }
+	void	notifyUsedForSearch() { searchalgo = true; }
 
 
 	// Propagator methods
@@ -60,6 +72,7 @@ public:
 	virtual Var 	notifyBranchChoice	(const Var& var) const = 0;
 	virtual void 	printStatistics		() const = 0;
 	virtual void 	printState			() const = 0;
+	virtual int		getNbOfFormulas		() const = 0;
 
 	bool 			hasNextProp();
 	const Lit&	 	getNextProp();

@@ -45,6 +45,7 @@ private:
 	const SearchEngine& getSolver() const { return *searchengine; }
 #ifdef CPSUPPORT
 	CPSolver* cpsolver;
+	bool hasCPSolver() const;
 	CPSolver& getCPSolver() { return *cpsolver; }
 	const CPSolver& getCPSolver() const { return *cpsolver; }
 #endif
@@ -131,6 +132,8 @@ public:
 
 	void 		backtrackDecisionLevel(int untillevel);
 	rClause 	propagate		();
+
+	int			getNbOfFormulas	() const;
 
 	// MOD SOLVER support
 	void		saveState		();

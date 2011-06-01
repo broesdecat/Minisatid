@@ -68,7 +68,6 @@ struct VI{
 };
 
 class AggSolver: public Propagator{
-	//TODO pimpl
 private:
 	std::map<int,IDSolver*> 	idsolvers;
 	bool 		hasIDSolver(int defid) { return idsolvers.find(defid)!=idsolvers.end(); }
@@ -143,6 +142,7 @@ public:
 	void 		printState				() const;
 	void 		printStatistics			() const;
 	rClause 	notifyFullAssignmentFound();
+	int			getNbOfFormulas			() const;
 
 
 
@@ -153,15 +153,16 @@ public:
     void 		propagateMnmz			();
 
 	// RECURSIVE AGGREGATES
-	void 		propagateJustifications		(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& v, VarToJustif &nb_body_lits_to_justify);
+	void 		propagateJustifications		(const Lit& l, vec<vec<Lit> >& jstf, vec<Lit>& v, InterMediateDataStruct& nb_body_lits_to_justify);
 	void 		findJustificationAggr		(Var head, vec<Lit>& jstf);
-	bool 		directlyJustifiable			(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust);
-	void 		addExternalLiterals			(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, VarToJustif& seen);
+	bool 		directlyJustifiable			(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, InterMediateDataStruct& currentjust);
+	void 		addExternalLiterals			(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, InterMediateDataStruct& seen);
 	std::vector<Var> 	getDefAggHeadsWithBodyLit		(Var x) const;
 	vwl::const_iterator getSetLitsOfAggWithHeadBegin(Var x) const;
 	vwl::const_iterator getSetLitsOfAggWithHeadEnd	(Var x) const;
 
-	//INTERNAL (TODO into pimpl)
+
+
 	rClause		notifySolver(AggReason* cr);
 	rClause 	doProp					();
 	void 		findClausalPropagations();

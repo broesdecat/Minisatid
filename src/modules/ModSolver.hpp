@@ -124,6 +124,7 @@ public:
 	rClause getExplanation		(const Lit& l) { assert(false); return nullPtrClause; /*TODO NOT IMPLEMENTED*/ };
 	rClause notifyFullAssignmentFound(){ return nullPtrClause; } // TODO should check wellfoundedness here
 	Var 	notifyBranchChoice	(const Var& var) const { return var; }
+	int		getNbOfFormulas		() const { return children.size(); }
 
 
 

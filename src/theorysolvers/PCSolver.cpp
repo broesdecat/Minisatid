@@ -44,8 +44,10 @@ PCSolver::PCSolver(SolverOption modes, MinisatID::WrapperPimpl& inter, int ID) :
 	queue = new EventQueue(*this);
 
 	searchengine = new Solver(this);
+	searchengine->notifyUsedForSearch();
 #ifdef CPSUPPORT
 	cpsolver = new CPSolver(this);
+	cpsolver->notifyUsedForSearch();
 #endif
 
 	factory = new PropagatorFactory(modes, this);
@@ -60,6 +62,12 @@ PCSolver::~PCSolver() {
 	delete(factory);
 	delete(searchmonitor);
 }
+
+#ifdef CPSUPPORT
+bool PCSolver::hasCPSolver() const {
+	return cpsolver!=NULL && cpsolver->isPresent();
+}
+#endif
 
 lbool PCSolver::value(Var x)	const { return getSolver().value(x); }
 lbool PCSolver::value(Lit p)	const { return getSolver().value(p); }
@@ -271,6 +279,10 @@ rClause PCSolver::propagate() {
 	return getEventQueue().notifyPropagate();
 }
 
+int	PCSolver::getNbOfFormulas() const{
+	return getEventQueue().getNbOfFormulas();
+}
+
 Var PCSolver::changeBranchChoice(const Var& chosenvar){
 	return getEventQueue().notifyBranchChoice(chosenvar);
 }
@@ -328,8 +340,9 @@ void PCSolver::extractLitModel(InnerModel* fullmodel){
 void PCSolver::extractVarModel(InnerModel* fullmodel){
 	fullmodel->varassignments.clear();
 #ifdef CPSUPPORT
-	//FIXME do not delete cpsolver if not present, or set to NULL here too!!!
-	getCPSolver().getVariableSubstitutions(fullmodel->varassignments);
+	if(hasCPSolver()){
+		getCPSolver().getVariableSubstitutions(fullmodel->varassignments);
+	}
 #endif
 }
 
@@ -360,14 +373,16 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, const ModelExpandOptions& option
 		getParent().addModel(*fullmodel);
 
 #ifdef CPSUPPORT
-		//Check for more models with different var assignment
-		while(moremodels && (options.nbmodelstofind == 0 || getParent().getNbModelsFound() < options.nbmodelstofind)){
-			rClause confl = getCPSolver().findNextModel();
-			if(confl!=nullPtrClause){
-				moremodels = false;
-			}else{
-				extractVarModel(fullmodel);
-				getParent().addModel(*fullmodel);
+		if(hasCPSolver()){
+			//Check for more models with different var assignment
+			while(moremodels && (options.nbmodelstofind == 0 || getParent().getNbModelsFound() < options.nbmodelstofind)){
+				rClause confl = getCPSolver().findNextModel();
+				if(confl!=nullPtrClause){
+					moremodels = false;
+				}else{
+					extractVarModel(fullmodel);
+					getParent().addModel(*fullmodel);
+				}
 			}
 		}
 #endif
@@ -383,6 +398,7 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, const ModelExpandOptions& option
 			moremodels = false;
 		}
 	}
+
 	return moremodels;
 }
 

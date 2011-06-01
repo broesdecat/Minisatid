@@ -118,7 +118,7 @@ public:
 
 	virtual Weight		add						(const Weight& lhs, const Weight& rhs) 	const = 0;
 	virtual Weight		remove					(const Weight& lhs, const Weight& rhs) 	const = 0;
-	virtual bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const = 0;
+	virtual bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) 	const = 0;
 
 	virtual AggPropagator*	createPropagator		(TypedSet* set) 						const = 0;
 	virtual Weight 		getESV					()										const = 0;
@@ -136,7 +136,7 @@ public:
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const { return lhs>rhs?lhs:rhs; }
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const { assert(false); return 0; }
-	bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const;
+	bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) 	const;
 	AggPropagator*	createPropagator		(TypedSet* set) 						const;
 
 	Weight 		getESV					()										const { return negInfinity(); }
@@ -162,7 +162,7 @@ public:
 
 class SPProp: public AggProp{
 public:
-	bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const;
+	bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) 	const;
 };
 
 class ProdProp: public SPProp{

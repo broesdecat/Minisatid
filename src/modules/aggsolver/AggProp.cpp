@@ -452,7 +452,7 @@ Weight AggPropagator::getValue() const {
 
 // RECURSIVE AGGREGATES
 
-bool MaxProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) const {
+bool MaxProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const {
 	TypedSet* set = agg.getSet();
 	bool justified = true;
 	const vwl& wl = set->getWL();
@@ -462,7 +462,7 @@ bool MaxProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, 
 		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() > agg.getCertainBound(); ++i) {
 			if (oppositeIsJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push(~(*i).getLit()); //push negative literal, because it should become false
-			} else if (real || currentjust[var((*i).getLit())] != 0) {
+			} else if (real || currentjust.getElem(var((*i).getLit())) != 0) {
 				nonjstf.push(var((*i).getLit()));
 			}
 		}
@@ -477,7 +477,7 @@ bool MaxProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, 
 			if (isJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push((*i).getLit());
 				justified = true;
-			} else if (real || currentjust[var((*i).getLit())] != 0) {
+			} else if (real || currentjust.getElem(var((*i).getLit())) != 0) {
 				nonjstf.push(var((*i).getLit()));
 			}
 		}
@@ -499,7 +499,7 @@ bool MaxProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, 
  * 					if so, change the justification to the negation of all those below the bound literals
  * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
  */
-bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) const {
+bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const {
 	TypedSet* set = agg.getSet();
 	const AggProp& type = agg.getSet()->getType();
 	bool justified = true;
@@ -515,7 +515,7 @@ bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, V
 				if (bestpossible <= agg.getCertainBound()) {
 					justified = true;
 				}
-			} else if (real || currentjust[var((*i).getLit())] != 0) {
+			} else if (real || currentjust.getElem(var((*i).getLit())) != 0) {
 				nonjstf.push(var((*i).getLit()));
 			}
 		}
@@ -530,7 +530,7 @@ bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, V
 				if (bestcertain >= agg.getCertainBound()) {
 					justified = true;
 				}
-			} else if (real || currentjust[var((*i).getLit())] != 0) {
+			} else if (real || currentjust.getElem(var((*i).getLit())) != 0) {
 				nonjstf.push(var((*i).getLit()));
 			}
 		}

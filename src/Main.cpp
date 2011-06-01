@@ -172,6 +172,7 @@ int main(int argc, char** argv) {
 		printUnexpectedError(cerr);
 		cleanexit = false;
 	}
+	jumpback = 1;
 
 	int returnvalue = handleTermination(cleanexit, d);
 

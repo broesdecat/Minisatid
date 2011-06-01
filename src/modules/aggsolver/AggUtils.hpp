@@ -118,9 +118,9 @@ public:
 
 // ID support
 
-bool 	oppositeIsJustified		(const WL& wl, VarToJustif& currentjust, bool real, AggSolver const * const solver);
-bool 	isJustified				(const WL& wl, VarToJustif& currentjust, bool real, AggSolver const * const solver);
-bool 	isJustified				(Var x, VarToJustif& currentjust);
+bool 	oppositeIsJustified		(const WL& wl, const InterMediateDataStruct& currentjust, bool real, AggSolver const * const solver);
+bool 	isJustified				(const WL& wl, const InterMediateDataStruct& currentjust, bool real, AggSolver const * const solver);
+bool 	isJustified				(Var x, const InterMediateDataStruct& currentjust);
 
 }
 

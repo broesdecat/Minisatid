@@ -89,6 +89,8 @@ void AggSolver::setHeadWatch(Lit head, Agg* agg) {
 		assert(lit2headwatchlist[toInt(head)]==NULL);
 		lit2headwatchlist[toInt(head)] = agg;
 	}
+	getPCSolver().acceptLitEvent(this, head, FAST);
+	getPCSolver().acceptLitEvent(this, ~head, FAST);
 }
 
 void AggSolver::removeHeadWatch(Var head, int defID) {
@@ -106,11 +108,14 @@ void AggSolver::removeHeadWatch(Var head, int defID) {
 void AggSolver::addStaticWatch(Var v, Watch* w) {
 	assert(isInitializing());
 	lit2staticwatchlist[v].push_back(w);
+	getPCSolver().acceptLitEvent(this, mkLit(v, true), FAST);
+	getPCSolver().acceptLitEvent(this, ~mkLit(v, true), FAST);
 }
 
 void AggSolver::addDynamicWatch(const Lit& l, Watch* w) {
 	assert(!isParsing());
 	lit2dynamicwatchlist[toInt(l)].push_back(w);
+	getPCSolver().acceptLitEvent(this, l, FAST);
 }
 
 int AggSolver::getTime(Lit l) const {
@@ -175,8 +180,10 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 
 
 bool AggSolver::addDefinedAggrExpr(const InnerAggregate& agg, IDSolver* idsolver){
-	assert(!hasIDSolver(idsolver->getDefinitionID()) && agg.defID == idsolver->getDefinitionID());
-	idsolvers.insert(pair<int, IDSolver*>(idsolver->getDefinitionID(), idsolver));
+	if(!hasIDSolver(idsolver->getDefinitionID())){
+		idsolvers.insert(pair<int, IDSolver*>(idsolver->getDefinitionID(), idsolver));
+	}
+	assert(agg.defID == idsolver->getDefinitionID());
 	return addAggrExpr(agg);
 }
 
@@ -498,6 +505,14 @@ void AggSolver::adaptAggHeur(const vwl& wls, int nbagg){
 	}
 }
 
+int	AggSolver::getNbOfFormulas() const{
+	int count = 0;
+	for(setlist::const_iterator i=sets.begin(); i<sets.end(); ++i){
+		count += (*i)->getAgg().size();
+	}
+	return count;
+}
+
 rClause AggSolver::notifyFullAssignmentFound(){
 	assert(isInitialized());
 #ifdef DEBUG
@@ -682,13 +697,13 @@ vwl::const_iterator AggSolver::getSetLitsOfAggWithHeadEnd(Var x) const {
  * Probably NEVER usable external clause!
  * TODO: optimize: add monotone literals until the aggregate can become true
  */
-void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, VarToJustif& seen) {
+void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, InterMediateDataStruct& seen) {
 	assert(isInitialized());
 	TypedSet* set = getAggDefiningHead(v)->getSet();
 
 	for (vwl::const_iterator i = set->getWL().begin(); i < set->getWL().end(); ++i) {
 		Lit l = (*i).getLit();
-		if(ufs.find(var(l)) != ufs.end() || seen[var(l)] == (isPositive(l) ? 2 : 1)){
+		if(ufs.find(var(l)) != ufs.end() || seen.getElem(var(l)) == (isPositive(l) ? 2 : 1)){
 			continue;
 		}
 
@@ -701,7 +716,7 @@ void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& l
 		}
 
 		loopf.push(l);
-		seen[var(l)] = isPositive(l) ? 2 : 1;
+		seen.getElem(var(l)) = isPositive(l) ? 2 : 1;
 	}
 }
 
@@ -711,7 +726,7 @@ void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& l
  *
  * @post: any new derived heads are in heads, with its respective justification in jstf
  */
-void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& heads, VarToJustif& currentjust) {
+void AggSolver::propagateJustifications(const Lit& w, vec<vec<Lit> >& jstfs, vec<Lit>& heads, InterMediateDataStruct& currentjust) {
 	assert(isInitialized());
 	for (vps::const_iterator i = var2setlist[var(w)].begin(); i < var2setlist[var(w)].end(); ++i) {
 		TypedSet* set = (*i);
@@ -727,12 +742,12 @@ void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& 
 			}
 
 			Var head = var(agg.getHead());
-			if (currentjust[head] > 0) { //only check its body for justification when it has not yet been derived
+			if (currentjust.getElem(head) > 0) { //only check its body for justification when it has not yet been derived
 				vec<Lit> jstf;
 				vec<Var> nonjstf;
 
 				if (set->getType().canJustifyHead(agg, jstf, nonjstf, currentjust, false)) {
-					currentjust[head] = 0;
+					currentjust.getElem(head) = 0;
 					heads.push(mkLit(head, false));
 					jstfs.push();
 					jstf.copyTo(jstfs.last());
@@ -748,9 +763,10 @@ void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& 
 void AggSolver::findJustificationAggr(Var head, vec<Lit>& outjstf) {
 	assert(isInitialized());
 	vec<Var> nonjstf;
-	VarToJustif currentjust;
+	InterMediateDataStruct* currentjust = new InterMediateDataStruct(0,0); //create an empty justification
 	const Agg& agg = *getAggDefiningHead(head);
-	agg.getSet()->getType().canJustifyHead(agg, outjstf, nonjstf, currentjust, true);
+	agg.getSet()->getType().canJustifyHead(agg, outjstf, nonjstf, *currentjust, true);
+	delete currentjust;
 }
 
 /**
@@ -758,7 +774,7 @@ void AggSolver::findJustificationAggr(Var head, vec<Lit>& outjstf) {
  * contain its justification and true will be returned. Otherwise, false will be returned and nonjstf will contain
  * all body literals of v that are not justified.
  */
-bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust) {
+bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, InterMediateDataStruct& currentjust) {
 	assert(isInitialized());
 	const Agg& agg = *getAggDefiningHead(v);
 	return agg.getSet()->getType().canJustifyHead(agg, jstf, nonjstf, currentjust, false);

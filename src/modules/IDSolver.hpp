@@ -15,6 +15,7 @@
 #include <queue>
 #include <vector>
 #include <map>
+#include <cmath>
 #include <tr1/unordered_map>
 
 #include "utils/Utils.hpp"
@@ -95,15 +96,14 @@ class IDSolver: public Propagator{
 private:
 	int definitionID;
 
-	Var maxvar; //The maximum var number seen in the whole definition, used to instantiate datastructures
-
 	AggSolver* 				aggsolver;
 
+	Var minvar, maxvar, nbvars; 	//The lowest and highest headvariable. INVAR: Definitions will be offset by minvar and the size will be nbvars
 	std::vector<DefinedVar*> definitions; //Maps all variables to NULL or a defined variable
 
 	std::vector<std::vector<Var> > 	_disj_occurs, _conj_occurs;
 
-	VarToJustif				seen;
+	InterMediateDataStruct*	_seen;
 
 	DEFSEM					sem;
 
@@ -123,6 +123,8 @@ private:
 
 	// Cycle sources:
 	std::vector<Var>		css;                    // List of cycle sources. May still include atoms v that have !isCS[v].
+	std::set<Var>			savedufs;
+	vec<Lit>				savedloopf;
 
 
 	//Well-founded model checking
@@ -157,6 +159,7 @@ public:
 	virtual void 		printStatistics			() const;
 	rClause				notifyFullAssignmentFound();
 	Var 				notifyBranchChoice		(const Var& var) const { return var; }
+	int					getNbOfFormulas			() const { return definitions.size() * log(definitions.size()); }
 
 
 
@@ -180,8 +183,10 @@ public:
 private:
 	bool 				simplifyGraph		(); //False if problem unsat
 
-	DefinedVar* 		getDefVar			(Var v) const { assert(v>=0 && v<maxvar && definitions.size()>(uint)v); return definitions[(uint)v]; }
-	bool 				hasDefVar			(Var v) const { return v<maxvar && getDefVar(v)!=NULL; }
+	void 				adaptStructsToHead	(Var head);
+	DefinedVar* 		getDefVar			(Var v) const { assert(v>=0 && minvar<=v && v-minvar<nbvars); return definitions[v-minvar]; }
+	void				setDefVar			(Var v, DefinedVar* newvar) { assert(v>=0 && minvar<=v && v-minvar<nbvars); definitions[v-minvar] = newvar; }
+	bool 				hasDefVar			(Var v) const { return minvar<=v && v-minvar<nbvars && getDefVar(v)!=NULL; }
 
 	bool 				isDefInPosGraph		(Var v) const {	return hasDefVar(v) && (occ(v)==POSLOOP || occ(v)==BOTHLOOP); }
 
@@ -203,27 +208,32 @@ private:
 	int 				scc			(Var v)const { return getDefVar(v)->scc(); }
 	const vec<Lit>& 	justification(Var v)const { return getDefVar(v)->justification(); }
 
-	const std::vector<Var>&	disj_occurs	(Lit l) const { return _disj_occurs[toInt(l)]; }
-	const std::vector<Var>&	conj_occurs	(Lit l) const { return _conj_occurs[toInt(l)]; }
-	bool	hasdisj_occurs(Lit l) const { return _disj_occurs[toInt(l)].size()>0; }
-	bool	hasconj_occurs(Lit l) const { return _conj_occurs[toInt(l)].size()>0; }
-	void	addDisjOccurs(Lit l, Var v) { assert(((long)_disj_occurs.size())>toInt(l)); _disj_occurs[toInt(l)].push_back(v); assert(type(v)==DISJ); }
-	void	addConjOccurs(Lit l, Var v) { assert(((long)_conj_occurs.size())>toInt(l)); _conj_occurs[toInt(l)].push_back(v); assert(type(v)==CONJ); }
+	int&				seen		(Var v) { return _seen->getElem(v); }
+	const int&			seen		(Var v) const { return _seen->getElem(v); }
+
+	const std::vector<Var>&	disj_occurs	(const Lit& l) const { return _disj_occurs[toInt(l)]; }
+	const std::vector<Var>&	conj_occurs	(const Lit& l) const { return _conj_occurs[toInt(l)]; }
+	std::vector<Var>&		disj_occurs	(const Lit& l) { return _disj_occurs[toInt(l)]; }
+	std::vector<Var>&		conj_occurs	(const Lit& l) { return _conj_occurs[toInt(l)]; }
+	bool	hasdisj_occurs(const Lit& l) const { return disj_occurs(l).size()>0; }
+	bool	hasconj_occurs(const Lit& l) const { return conj_occurs(l).size()>0; }
+	void	addDisjOccurs(const Lit& l, Var v) { disj_occurs(l).push_back(v); assert(type(v)==DISJ); }
+	void	addConjOccurs(const Lit& l, Var v) { conj_occurs(l).push_back(v); assert(type(v)==CONJ); }
 
 	void	createDefinition(Var head, PropRule* r, DefType type) { defdVars.push_back(head);
-																		definitions[head] = new DefinedVar(r, type);}
-	void	removeDefinition(Var head) { delete definitions[head]; definitions[head]=NULL; }
+																		setDefVar(head, new DefinedVar(r, type));}
+	void	removeDefinition(Var head) { delete getDefVar(head); setDefVar(head, NULL); }
 
 	bool	setTypeIfNoPosLoops	(Var v) const;
 
-	void 	propagateJustificationDisj(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& heads);
-	void 	propagateJustificationAggr(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& heads);
-	void 	propagateJustificationConj(Lit l, vec<Lit>& heads);
+	void 	propagateJustificationDisj(const Lit& l, vec<vec<Lit> >& jstf, vec<Lit>& heads);
+	void 	propagateJustificationAggr(const Lit& l, vec<vec<Lit> >& jstf, vec<Lit>& heads);
+	void 	propagateJustificationConj(const Lit& l, vec<Lit>& heads);
 
 	void 	findJustificationDisj(Var v, vec<Lit>& jstf);
-	bool 	findJustificationDisj(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust);
-	bool 	findJustificationConj(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust);
-	bool 	findJustificationAggr(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust);
+	bool 	findJustificationDisj(Var v, vec<Lit>& jstf, vec<Var>& nonjstf);
+	bool 	findJustificationConj(Var v, vec<Lit>& jstf, vec<Var>& nonjstf);
+	bool 	findJustificationAggr(Var v, vec<Lit>& jstf, vec<Var>& nonjstf);
 
 	// Justification methods:
 	void	apply_changes      ();

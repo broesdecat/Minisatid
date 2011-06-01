@@ -89,6 +89,7 @@ SolverOption::SolverOption():
 		checkcyclefreeness(false),
 		idclausesaving(0),
 		aggclausesaving(2),
+		selectOneFromUFS(false),
 		pbsolver(false),
 		watchesratio(0.75),
 		useaggheur(false),

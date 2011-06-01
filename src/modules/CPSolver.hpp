@@ -89,6 +89,7 @@ public:
 	void 	printState		() const;
 	Var 	notifyBranchChoice	(const Var& var) const { return var; }
 	rClause notifyFullAssignmentFound() { return nullPtrClause; }
+	int		getNbOfFormulas	() const;
 
 
 	// Search methods

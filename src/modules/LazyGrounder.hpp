@@ -48,6 +48,7 @@ public:
 	Var 	notifyBranchChoice	(const Var& var) const { return var; }
 	void 	printStatistics		() const;
 	void 	printState			() const {}
+	int		getNbOfFormulas		() const { return 1; }
 };
 }
 

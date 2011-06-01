@@ -60,6 +60,8 @@ CPSolver::CPSolver(PCSolver * solver):
 		searchedandnobacktrack(false),
 		savedsearchengine(NULL){
 
+	getPCSolver().accept(this, FULLASSIGNMENT);
+	getPCSolver().acceptFinishParsing(this, false);
 }
 
 CPSolver::~CPSolver() {
@@ -96,6 +98,8 @@ bool CPSolver::add(const InnerIntVarRange& form){
 
 bool CPSolver::add(const InnerCPBinaryRel& form){
 	assert(!isInitialized());
+	getPCSolver().acceptLitEvent(this, mkLit(form.head, true), SLOW);
+	getPCSolver().acceptLitEvent(this, ~mkLit(form.head, true), SLOW);
 	TermIntVar lhs(convertToVar(form.varID));
 	getData().addReifConstraint(new BinArithConstraint(getSpace(), lhs, toRelType(form.rel), form.bound, form.head));
 	return true;
@@ -105,6 +109,8 @@ bool CPSolver::add(const InnerCPBinaryRelVar& form){
 	assert(!isInitialized());
 	TermIntVar lhs(convertToVar(form.lhsvarID));
 	TermIntVar rhs(convertToVar(form.rhsvarID));
+	getPCSolver().acceptLitEvent(this, mkLit(form.head, true), SLOW);
+	getPCSolver().acceptLitEvent(this, ~mkLit(form.head, true), SLOW);
 	getData().addReifConstraint(new BinArithConstraint(getSpace(), lhs, toRelType(form.rel), rhs, form.head));
 	return true;
 }
@@ -112,6 +118,8 @@ bool CPSolver::add(const InnerCPBinaryRelVar& form){
 bool CPSolver::add(const InnerCPSumWeighted& form){
 	assert(!isInitialized());
 	vector<TermIntVar> set(convertToVars(form.varIDs));
+	getPCSolver().acceptLitEvent(this, mkLit(form.head, true), SLOW);
+	getPCSolver().acceptLitEvent(this, ~mkLit(form.head, true), SLOW);
 	getData().addReifConstraint(new SumConstraint(getSpace(), set, form.weights, toRelType(form.rel), form.bound, form.head));
 	return true;
 }
@@ -188,7 +196,13 @@ void CPSolver::checkHeadUniqueness() const{
 }
 
 void CPSolver::finishParsing(bool& present, bool& unsat){
-	assert(!isInitialized() && present && !unsat);
+	assert(isParsing() && present && !unsat);
+	notifyParsed();
+
+	if(getData().getNonReifConstraints().size() + getData().getReifConstraints().size() + getData().getTerms().size() == 0){
+		present = false;
+		return;
+	}
 
 	checkHeadUniqueness();
 
@@ -350,7 +364,7 @@ rClause CPSolver::findNextModel(){
 rClause CPSolver::propagateFinal(bool usesavedengine){
 	rClause confl = nullPtrClause;
 
-	if(!usesavedengine){
+	if(!usesavedengine || savedsearchengine == NULL){
 		Search::Options searchOptions;
 
 		getSpace().addBranchers();
@@ -370,6 +384,7 @@ rClause CPSolver::propagateFinal(bool usesavedengine){
 			if(getPCSolver().modes().verbosity>=5){
 				clog <<"Conflict found in CP search.\n";
 			}
+			//FIXME also found if there are no solutions or there are constraints submitted (which should not fail in any case).
 			confl = genFullConflictClause();
 		}
 	}else{
@@ -390,6 +405,10 @@ void CPSolver::getVariableSubstitutions(std::vector<VariableEqValue>& varassignm
 		varass.value = (*i).getIntVar(getSpace()).val();
 		varassignments.push_back(varass);
 	}
+}
+
+int	CPSolver::getNbOfFormulas() const {
+	return solverdata->getNonReifConstraints().size() + solverdata->getReifConstraints().size();
 }
 
 void CPSolver::printStatistics() const{

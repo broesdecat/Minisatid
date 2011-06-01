@@ -8,6 +8,7 @@
  */
 #include "theorysolvers/EventQueue.hpp"
 #include "theorysolvers/PCSolver.hpp"
+#include "satsolver/SATSolver.hpp"
 
 #include "utils/PrintMessage.hpp"
 
@@ -21,7 +22,7 @@ EventQueue::EventQueue(PCSolver& pcsolver):
 	event2propagator[PRINTSTATE];
 	event2propagator[PRINTSTATS];
 	event2propagator[CHOICE];
-	event2propagator[COMPLETEMODEL];
+	event2propagator[FULLASSIGNMENT];
 	event2propagator[DECISIONLEVEL];
 	event2propagator[BACKTRACK];
 }
@@ -32,46 +33,75 @@ EventQueue::~EventQueue() {
 
 void EventQueue::notifyVarAdded(){
 	while(litevent2propagator.size()<2*getPCSolver().nVars()){
-		map<PRIORITY, vector<Propagator*> > newmap;
-		newmap[FAST];
-		newmap[SLOW];
+		vector<proplist> newmap;
+		newmap.push_back(proplist());
+		newmap.push_back(proplist());
 		litevent2propagator.push_back(newmap);
 	}
 }
 
+void EventQueue::setTrue(const proplist& list, queue<Propagator*>& queue){
+	const unsigned int size = list.size();
+	for(unsigned int i=0; i<size; ++i){
+		Propagator* p = list[i];
+		if(!p->isQueued()){
+			p->notifyQueued();
+			queue.push(p);
+		}
+	}
+}
+
 void EventQueue::setTrue(const Lit& l){
-	const map<PRIORITY, vector<Propagator*> >& listbypriority = litevent2propagator[toInt(l)];
-	for(std::vector<Propagator*>::const_iterator i=listbypriority.at(FAST).begin(); i<listbypriority.at(FAST).end(); ++i){
-		if(!(*i)->isQueued()){
-			(*i)->notifyQueued();
-			fastqueue.push(*i);
-		}
-	}
-	for(std::vector<Propagator*>::const_iterator i=listbypriority.at(SLOW).begin(); i<listbypriority.at(SLOW).end(); ++i){
-		if(!(*i)->isQueued()){
-			(*i)->notifyQueued();
-			slowqueue.push(*i);
-		}
-	}
+	setTrue(litevent2propagator[toInt(l)][FAST], fastqueue);
+	setTrue(litevent2propagator[toInt(l)][SLOW], slowqueue);
 }
 
 void EventQueue::finishParsing(bool& unsat){
 	unsat = false;
 
-	for(std::vector<Propagator*>::const_iterator i=earlyfinishparsing.begin(); !unsat && i<earlyfinishparsing.end(); ++i){
+	//FIXME remember all !present and go over them and all data structs afterwards
+	proplist toberemoved;
+	for(proplist::const_iterator i=earlyfinishparsing.begin(); !unsat && i<earlyfinishparsing.end(); ++i){
 		bool present = true;
 		(*i)->finishParsing(present, unsat);
 		if(!present){
 			printNoPropagationsOn(clog, (*i)->getName(), getPCSolver().verbosity());
-			//TODO propagator can be deleted (but then need to update all relevant datastructures)
+			(*i)->notifyNotPresent();
 		}
 	}
-	for(std::vector<Propagator*>::const_iterator i=latefinishparsing.begin(); !unsat && i<latefinishparsing.end(); ++i){
+	earlyfinishparsing.clear();
+
+	for(proplist::const_iterator i=latefinishparsing.begin(); !unsat && i<latefinishparsing.end(); ++i){
 		bool present = true;
 		(*i)->finishParsing(present, unsat);
 		if(!present){
 			printNoPropagationsOn(clog, (*i)->getName(), getPCSolver().verbosity());
-			//TODO propagator can be deleted (but then need to update all relevant datastructures)
+			(*i)->notifyNotPresent();
+		}
+	}
+	latefinishparsing.clear();
+
+	//IMPORTANT: the propagators which are no longer present should be deleted from EVERY datastructure that is used later on!
+	for(map<EVENT, proplist >::iterator i=event2propagator.begin(); i!=event2propagator.end(); ++i){
+		for(proplist::iterator j=(*i).second.begin(); j<(*i).second.end(); ++j){
+			if(!(*j)->isPresent()){
+				j = (*i).second.erase(j);
+			}
+		}
+	}
+	for(vector<vector<proplist > >::iterator i=litevent2propagator.begin(); i<litevent2propagator.end(); ++i){
+		for(vector<proplist >::iterator j=(*i).begin(); j!=(*i).end(); ++j){
+			for(proplist::iterator k=(*j).begin(); k<(*j).end(); ++k){
+				if(!(*k)->isPresent()){
+					k = (*j).erase(k);
+				}
+			}
+		}
+	}
+	for(proplist::iterator j=allpropagators.begin(); j<allpropagators.end(); ++j){
+		if(!(*j)->isPresent() && !(*j)->isUsedForSearch()){
+			delete(*j);
+			j = allpropagators.erase(j);
 		}
 	}
 
@@ -98,42 +128,52 @@ rClause EventQueue::notifyPropagate(){
 	return confl;
 }
 
+int	EventQueue::getNbOfFormulas() const{
+	int count = 0;
+	for(proplist::const_iterator i=allpropagators.begin(); i<allpropagators.end(); ++i){
+		if((*i)->isPresent()){
+			count += (*i)->getNbOfFormulas();
+		}
+	}
+	return count;
+}
+
 rClause EventQueue::notifyFullAssignmentFound(){
 	rClause confl = nullPtrClause;
-	for(std::vector<Propagator*>::const_iterator i=event2propagator.at(COMPLETEMODEL).begin(); confl==nullPtrClause && i<event2propagator.at(COMPLETEMODEL).end(); ++i){
+	for(proplist::const_iterator i=event2propagator.at(FULLASSIGNMENT).begin(); confl==nullPtrClause && i<event2propagator.at(FULLASSIGNMENT).end(); ++i){
 		confl = (*i)->notifyFullAssignmentFound();
 	}
 	return confl;
 }
 
 void EventQueue::notifyNewDecisionLevel(){
-	for(std::vector<Propagator*>::const_iterator i=event2propagator.at(DECISIONLEVEL).begin(); i<event2propagator.at(DECISIONLEVEL).end(); ++i){
+	for(proplist::const_iterator i=event2propagator.at(DECISIONLEVEL).begin(); i<event2propagator.at(DECISIONLEVEL).end(); ++i){
 		(*i)->notifyNewDecisionLevel();
 	}
 }
 
 void EventQueue::notifyBacktrack(int untillevel){
-	for(std::vector<Propagator*>::const_iterator i=event2propagator.at(BACKTRACK).begin(); i<event2propagator.at(BACKTRACK).end(); ++i){
+	for(proplist::const_iterator i=event2propagator.at(BACKTRACK).begin(); i<event2propagator.at(BACKTRACK).end(); ++i){
 		(*i)->notifyBacktrack(untillevel);
 	}
 }
 
 Var EventQueue::notifyBranchChoice(Var var){
 	Var currentvar = var;
-	for(std::vector<Propagator*>::const_iterator i=event2propagator.at(CHOICE).begin(); i<event2propagator.at(CHOICE).end(); ++i){
+	for(proplist::const_iterator i=event2propagator.at(CHOICE).begin(); i<event2propagator.at(CHOICE).end(); ++i){
 		currentvar = (*i)->notifyBranchChoice(currentvar);
 	}
 	return currentvar;
 }
 
 void EventQueue::printState() const {
-	for(std::vector<Propagator*>::const_iterator i=event2propagator.at(PRINTSTATE).begin(); i<event2propagator.at(PRINTSTATE).end(); ++i){
+	for(proplist::const_iterator i=event2propagator.at(PRINTSTATE).begin(); i<event2propagator.at(PRINTSTATE).end(); ++i){
 		(*i)->printState();
 	}
 }
 
 void EventQueue::printStatistics() const {
-	for(std::vector<Propagator*>::const_iterator i=event2propagator.at(PRINTSTATS).begin(); i<event2propagator.at(PRINTSTATS).end(); ++i){
+	for(proplist::const_iterator i=event2propagator.at(PRINTSTATS).begin(); i<event2propagator.at(PRINTSTATS).end(); ++i){
 		(*i)->printStatistics();
 	}
 }

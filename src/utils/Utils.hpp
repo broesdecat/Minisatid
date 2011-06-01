@@ -22,8 +22,24 @@ typedef unsigned int uint;
 
 namespace MinisatID {
 
-enum PRIORITY { FAST, SLOW };
-enum EVENT { FULLASSIGNMENT, CHOICE, FIXBOOL, BACKTRACK, DECISIONLEVEL, PRINTSTATE, PRINTSTATS, COMPLETEMODEL, FINDMODEL};
+class InterMediateDataStruct{
+private:
+	int offset;
+	std::vector<int> seen;
+
+public:
+	InterMediateDataStruct(int nbvars, int offset):offset(offset){
+		seen.resize(nbvars, 0);
+	}
+
+	bool hasElem(Var var) const { return var-offset>=0 && ((uint)var-offset)<seen.size(); }
+
+	int& getElem(Var var) { return seen[var-offset]; }
+	const int& getElem(Var var) const { return seen[var-offset]; }
+};
+
+enum PRIORITY { FAST = 0, SLOW = 1 };
+enum EVENT { CHOICE, BACKTRACK, DECISIONLEVEL, PRINTSTATE, PRINTSTATS, FULLASSIGNMENT};
 
 // General vector size type usable for any POINTER types!
 typedef std::vector<void*>::size_type vsize;
