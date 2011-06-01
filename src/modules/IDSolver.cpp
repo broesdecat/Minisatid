@@ -64,16 +64,24 @@ inline void IDSolver::clearCycleSources() {
 
 // TODO keep vector, make it a map, a queue? Parsing will go extremely slow if heads are in descending order for example
 void IDSolver::adaptStructsToHead(Var head){
+	bool minchanged = false;
+	bool maxchanged = false;
 	if(minvar==-1 || head<minvar){
 		minvar = head;
+		minchanged = true;
+	}
+	if(maxvar==-1 || maxvar<head){
+		maxvar = head;
+		maxchanged = true;
+	}
+	if(minchanged){
 		while(definitions.size()<maxvar-minvar+1){
 			int size = definitions.size();
 			definitions.insert(definitions.begin(), NULL);
 			assert(size<definitions.size());
 		}
 	}
-	if(maxvar==-1 || maxvar<head){
-		maxvar = head;
+	if(maxchanged){
 		definitions.resize(maxvar-minvar+1, NULL);
 	}
 	nbvars = definitions.size();
@@ -1900,8 +1908,16 @@ rClause IDSolver::isWellFoundedModel() {
 		report("The model is not well-founded!\n");
 	}
 
-	//FIXME should be the model (or a minimal unfounded loop)!
-	return nullPtrClause;
+	//Returns the found assignment (TODO might be optimized to just
+	const vector<Lit>& decisions = getPCSolver().getDecisions();
+	vec<Lit> invalidation;
+	for(vector<Lit>::const_iterator i=decisions.begin(); i<decisions.end(); ++i){
+		invalidation.push(~(*i));
+	}
+	rClause confl = getPCSolver().createClause(invalidation, true);
+	getPCSolver().addLearnedClause(confl);
+	//FIXME solve adding root clause permanently now
+	return confl;
 }
 
 /**

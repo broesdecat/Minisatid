@@ -85,7 +85,7 @@ void EventQueue::finishParsing(bool& unsat){
 	for(map<EVENT, proplist >::iterator i=event2propagator.begin(); i!=event2propagator.end(); ++i){
 		for(proplist::iterator j=(*i).second.begin(); j<(*i).second.end(); ++j){
 			if(!(*j)->isPresent()){
-				j = (*i).second.erase(j);
+				j = --(*i).second.erase(j);
 			}
 		}
 	}
@@ -93,7 +93,7 @@ void EventQueue::finishParsing(bool& unsat){
 		for(vector<proplist >::iterator j=(*i).begin(); j!=(*i).end(); ++j){
 			for(proplist::iterator k=(*j).begin(); k<(*j).end(); ++k){
 				if(!(*k)->isPresent()){
-					k = (*j).erase(k);
+					k = --(*j).erase(k);
 				}
 			}
 		}
@@ -101,7 +101,7 @@ void EventQueue::finishParsing(bool& unsat){
 	for(proplist::iterator j=allpropagators.begin(); j<allpropagators.end(); ++j){
 		if(!(*j)->isPresent() && !(*j)->isUsedForSearch()){
 			delete(*j);
-			j = allpropagators.erase(j);
+			j = --allpropagators.erase(j);
 		}
 	}
 

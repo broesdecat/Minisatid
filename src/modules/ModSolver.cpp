@@ -42,6 +42,14 @@ ModSolver::ModSolver(modindex child, Var head, SOSolver* mh):
 	getPCSolver().setModSolver(this);
 
 	trail.push_back(vector<Lit>());
+
+#warning "Prevent deleting modsolver in queue (automatically added by Propagator to allpropagators, so will be deleted there!)"
+	getPCSolver().accept(this, PRINTSTATS);
+	getPCSolver().accept(this, DECISIONLEVEL);
+	getPCSolver().accept(this, BACKTRACK);
+	getPCSolver().accept(this, PRINTSTATE);
+	getPCSolver().accept(this, FULLASSIGNMENT);
+	getPCSolver().acceptFinishParsing(this, true);
 }
 
 void ModSolver::addModel(const InnerModel& model){
@@ -144,6 +152,7 @@ bool ModSolver::addChild(int childid){
  * Recursively notify all Solvers that parsing has finished
  */
 void ModSolver::finishParsingDown(bool& unsat){
+	notifyParsed();
 	getPCSolver().finishParsing(unsat);
 
 	for(vmodindex::const_iterator i=getChildren().begin(); !unsat && i<getChildren().end(); ++i){
