@@ -228,7 +228,8 @@ private:
 
 	void 	propagateJustificationDisj(const Lit& l, vec<vec<Lit> >& jstf, vec<Lit>& heads);
 	void 	propagateJustificationAggr(const Lit& l, vec<vec<Lit> >& jstf, vec<Lit>& heads);
-	void 	propagateJustificationConj(const Lit& l, vec<Lit>& heads);
+	template<typename T>
+	void 	propagateJustificationConj(const Lit& l, T& heads);
 
 	void 	findJustificationDisj(Var v, vec<Lit>& jstf);
 	bool 	findJustificationDisj(Var v, vec<Lit>& jstf, vec<Var>& nonjstf);

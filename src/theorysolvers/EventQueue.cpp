@@ -25,10 +25,13 @@ EventQueue::EventQueue(PCSolver& pcsolver):
 	event2propagator[FULLASSIGNMENT];
 	event2propagator[DECISIONLEVEL];
 	event2propagator[BACKTRACK];
+	event2propagator[EXITCLEANLY];
 }
 
 EventQueue::~EventQueue() {
-	deleteList<Propagator>(allpropagators);
+	for(proplist::const_iterator i=event2propagator.at(EXITCLEANLY).begin(); i<event2propagator.at(EXITCLEANLY).end(); ++i){
+		delete(*i);
+	}
 }
 
 void EventQueue::notifyVarAdded(){

@@ -39,7 +39,7 @@ public:
 };
 
 enum PRIORITY { FAST = 0, SLOW = 1 };
-enum EVENT { CHOICE, BACKTRACK, DECISIONLEVEL, PRINTSTATE, PRINTSTATS, FULLASSIGNMENT};
+enum EVENT { EXITCLEANLY, CHOICE, BACKTRACK, DECISIONLEVEL, PRINTSTATE, PRINTSTATS, FULLASSIGNMENT};
 
 // General vector size type usable for any POINTER types!
 typedef std::vector<void*>::size_type vsize;

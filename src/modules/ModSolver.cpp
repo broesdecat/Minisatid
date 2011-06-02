@@ -43,7 +43,6 @@ ModSolver::ModSolver(modindex child, Var head, SOSolver* mh):
 
 	trail.push_back(vector<Lit>());
 
-#warning "Prevent deleting modsolver in queue (automatically added by Propagator to allpropagators, so will be deleted there!)"
 	getPCSolver().accept(this, PRINTSTATS);
 	getPCSolver().accept(this, DECISIONLEVEL);
 	getPCSolver().accept(this, BACKTRACK);
@@ -69,6 +68,8 @@ ModSolver::~ModSolver(){
 }
 
 bool ModSolver::add(Var var){
+	getPCSolver().acceptLitEvent(this, mkLit(var, true), SLOW);
+	getPCSolver().acceptLitEvent(this, mkLit(var, false), SLOW);
 	if(getModSolverData().modes().verbosity>5){
 		report("Var %d added to modal solver %zu.\n", getPrintableVar(var), getPrintId());
 	}

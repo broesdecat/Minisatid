@@ -62,6 +62,9 @@ private:
 
 	std::vector<Propagator*> propagations;
 
+	// Explanation dummies: used to fix up learned clauses which are too small
+	Var dummy1, dummy2;
+
 	// OPTIMIZATION INFORMATION
 	Optim 		optim;
 	Var 		head;

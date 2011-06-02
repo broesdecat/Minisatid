@@ -611,6 +611,9 @@ rClause AggSolver::notifypropagate() {
 
 	while(hasNextProp()){
 		const Lit& l = getNextProp();
+		if(propagated.size()<var(l)+1){ //FIXME hack to prevent non-used vars to be checked
+			continue;
+		}
 		littrail.push_back(l);
 	}
 

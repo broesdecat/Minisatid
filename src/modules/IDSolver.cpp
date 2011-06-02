@@ -80,11 +80,12 @@ void IDSolver::adaptStructsToHead(Var head){
 			definitions.insert(definitions.begin(), NULL);
 			assert(size<definitions.size());
 		}
+		nbvars = definitions.size();
 	}
 	if(maxchanged){
 		definitions.resize(maxvar-minvar+1, NULL);
+		nbvars = definitions.size();
 	}
-	nbvars = definitions.size();
 }
 
 /**
@@ -132,8 +133,9 @@ bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
 		}
 		eq.conjunctive = conj;
 		notunsat = getPCSolver().add(eq);
+		assert(isDefined(var(head)));
 	}
-	assert(isDefined(var(head)));
+
 	return notunsat;
 }
 
@@ -500,7 +502,6 @@ void IDSolver::visit(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visite
 }
 
 bool IDSolver::simplifyGraph(){
-	//Maybe already derived that no positive loops are possible: so skip simplification
 	if(!posloops){
 		return true;
 	}
@@ -515,7 +516,6 @@ bool IDSolver::simplifyGraph(){
 		previoustrailatsimp = currenttrailsize;
 	}
 
-	// NOTE: we're doing a stable model initialization here. No need for a loop.
 	for(vv::const_iterator i=defdVars.begin(); i<defdVars.end(); ++i){
 		justification(*i).clear();
 	}
@@ -541,24 +541,26 @@ bool IDSolver::simplifyGraph(){
 	}
 
 	// initialize a queue of literals that are safe with regard to cycle-freeness. (i.e.: either are not in justification, or are justified in a cycle-free way.)
-	vec<Lit> propq;
-	for (int i = 0; i < nbvars; ++i) {
+	queue<Lit> propq;
+	for (int i = 0; i < nVars(); ++i) {
 		Lit l = createNegativeLiteral(i);
 		if (!isFalse(l)) {
 			propq.push(l); // First negative literals are added that are not already false
 		}
 		l = createPositiveLiteral(i);
 		if (!isDefInPosGraph(i) && !isFalse(l)) {
-			seen(var(l)) = 0; //Mixed loop is justified, so seen is 0 (otherwise might find the same literal multiple times)
+			if(isDefined(var(l))){
+				seen(var(l)) = 0; //Mixed loop is justified, so seen is 0 (otherwise might find the same literal multiple times)
+			}
 			propq.push(l); // Then all non-false non-defined positive literals.
 		}
 	}
 
 	// propagate safeness to defined literals until fixpoint.
 	// While we do this, we build the initial justification.
-	while (propq.size() > 0) {
-		Lit l = propq.last(); //only heads are added to the queue
-		assert(sign(l) || seen(var(l))==0);
+	while (!propq.empty()) {
+		Lit l = propq.front(); //only heads are added to the queue
+		assert(sign(l) || !isDefined(var(l)) || (seen(var(l))==0));
 		propq.pop();
 
 		vec<Lit> heads;
@@ -687,10 +689,31 @@ bool IDSolver::simplifyGraph(){
 		throw idpexception("Positive justification graph is not cycle free!\n");
 	}
 #ifdef DEBUG
+	if(verbosity()>=9){
+		clog <<"Justifications:\n";
+	}
+	int count = 0;
 	for (vv::const_iterator i = defdVars.begin(); i < defdVars.end(); ++i) {
 		Var var = *i;
 		assert(hasDefVar(var));
 		assert(justification(var).size()>0 || type(var)!=DISJ || occ(var)==MIXEDLOOP);
+
+		if(verbosity()>=9){
+			clog <<getPrintableVar(var) <<"<-";
+			bool begin = true;
+			count++;
+			for(int i=0; i<justification(var).size(); i++){
+				if(!begin){
+					clog <<",";
+				}
+				begin = false;
+				clog <<justification(var)[i];
+			}
+			clog <<";";
+			if(count%30==0){
+				clog <<"\n";
+			}
+		}
 
 		Lit l(createPositiveLiteral(var));
 		if(hasdisj_occurs(l)){
@@ -714,6 +737,9 @@ bool IDSolver::simplifyGraph(){
 				assert(type(*j)==CONJ);
 			}
 		}
+	}
+	if(verbosity()>=9){
+		clog <<"\n";
 	}
 #endif
 
@@ -743,7 +769,8 @@ void IDSolver::propagateJustificationDisj(const Lit& l, vec<vec<Lit> >& jstf, ve
 	}
 }
 
-void IDSolver::propagateJustificationConj(const Lit& l, vec<Lit>& heads) {
+template<typename T>
+void IDSolver::propagateJustificationConj(const Lit& l, T& heads) {
 	if(hasconj_occurs(l)){
 		const vector<Var>& ll = conj_occurs(l);
 		for (vector<Var>::const_iterator i = ll.begin(); i < ll.end(); ++i) {
@@ -1493,7 +1520,7 @@ void IDSolver::markNonJustifiedAddParents(Var x, Var cs, queue<Var> &q, vec<Var>
 }
 
 inline void IDSolver::markNonJustifiedAddVar(Var v, Var cs, queue<Var> &q, vec<Var>& tmpseen) {
-	if (inSameSCC(v, cs) && (getPCSolver().modes().defn_search == include_cs || v == cs || !isCS(v))) {
+	if (!isFalse(v) & inSameSCC(v, cs) && (getPCSolver().modes().defn_search == include_cs || v == cs || !isCS(v))) {
 		if (seen(v) == 0) {
 			seen(v) = 1;
 			tmpseen.push(v);
@@ -1908,15 +1935,14 @@ rClause IDSolver::isWellFoundedModel() {
 		report("The model is not well-founded!\n");
 	}
 
-	//Returns the found assignment (TODO might be optimized to just
+	//Returns the found assignment (TODO might be optimized to just return the loop)
 	const vector<Lit>& decisions = getPCSolver().getDecisions();
-	vec<Lit> invalidation;
+	InnerDisjunction invalidation;
 	for(vector<Lit>::const_iterator i=decisions.begin(); i<decisions.end(); ++i){
-		invalidation.push(~(*i));
+		invalidation.literals.push(~(*i));
 	}
-	rClause confl = getPCSolver().createClause(invalidation, true);
+	rClause confl = getPCSolver().createClause(invalidation.literals, true);
 	getPCSolver().addLearnedClause(confl);
-	//FIXME solve adding root clause permanently now
 	return confl;
 }
 

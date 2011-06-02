@@ -95,11 +95,13 @@ AggSolver* PropagatorFactory::getAggSolver() {
 void PropagatorFactory::addAggSolver(){
 	assert(isParsing());
 	aggsolver = new AggSolver(getEnginep());
+	getEngine().accept(aggsolver, EXITCLEANLY);
 }
 
 void PropagatorFactory::addIDSolver(defID id){
 	assert(isParsing());
 	IDSolver* idsolver = new IDSolver(getEnginep(), id);
+	getEngine().accept(idsolver, EXITCLEANLY);
 	idsolvers.insert(pair<defID, IDSolver*>(id, idsolver));
 }
 
@@ -129,6 +131,7 @@ bool PropagatorFactory::add(const InnerDisjunction& formula){
 		return getSolver()->addClause(formula.literals);
 /*	}else{
 		LazyGrounder* g = new LazyGrounder(getEnginep());
+		etEngine().accept(g, EXITCLEANLY);
 		g->setClause(formula);
 		return g;
 	}*/

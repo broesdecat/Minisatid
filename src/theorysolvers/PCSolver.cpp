@@ -55,9 +55,9 @@ PCSolver::PCSolver(SolverOption modes, MinisatID::WrapperPimpl& inter, int ID) :
 
 PCSolver::~PCSolver() {
 	delete(queue);
-	//delete(searchengine); //FIXME delete responsability?
+	delete(searchengine);
 #ifdef CPSUPPORT
-	//delete(cpsolver); //FIXME delete responsability?
+	delete(cpsolver);
 #endif
 	delete(factory);
 	delete(searchmonitor);
@@ -74,7 +74,19 @@ lbool PCSolver::value(Lit p)	const { return getSolver().value(p); }
 uint64_t PCSolver::nVars()		const { return getSolver().nbVars(); }
 
 rClause PCSolver::createClause(const vec<Lit>& lits, bool learned) {
-	return getSolver().makeClause(lits, learned);
+	if(lits.size()==0){
+		vec<Lit> dummylits; //INVAR, solver does not simplify learned clauses
+		dummylits.push(mkLit(dummy1, true));
+		dummylits.push(mkLit(dummy2, true));
+		return getSolver().makeClause(dummylits, learned);
+	}else if(lits.size()==1){
+		vec<Lit> dummylits;
+		dummylits.push(lits[0]);
+		dummylits.push(mkLit(dummy1, true));
+		return getSolver().makeClause(dummylits, learned);
+	}else{
+		return getSolver().makeClause(lits, learned);
+	}
 }
 
 void PCSolver::addLearnedClause(rClause c) {
@@ -155,7 +167,7 @@ void PCSolver::setModSolver(ModSolver* m){
 
 //IMPORTANT: only allowed after initialization!
 Var PCSolver::newVar() {
-	assert(isInitialized());
+	assert(isInitializing());
 	Var newvar = nVars()+1;
 	createVar(newvar);
 	return newvar;
@@ -240,6 +252,17 @@ void PCSolver::createVar(Var v){
 }
 
 void PCSolver::finishParsing(bool& unsat) {
+	state = THEORY_INITIALIZING;
+
+	dummy1 = newVar();
+	InnerDisjunction d1;
+	d1.literals.push(mkLit(dummy1, false));
+	add(d1);
+	dummy2 = newVar();
+	InnerDisjunction d2;
+	d2.literals.push(mkLit(dummy2, false));
+	add(d2);
+
 	propagations.resize(nVars(), NULL); //Lazy init
 
 	getFactory().finishParsing();

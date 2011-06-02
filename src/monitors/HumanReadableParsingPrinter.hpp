@@ -35,7 +35,7 @@ public:
 	}
 
 	void notifyadded(const InnerRule& rule){
-		target() <<"Added rule: " <<rule.head <<" <- ";
+		target() <<"Added rule: " <<getPrintableVar(rule.head) <<" <- ";
 		for(int i=0; i<rule.body.size(); ++i){
 			target() <<rule.body[i];
 			if(i<rule.body.size()-1){
@@ -77,7 +77,7 @@ public:
 
 
 	void notifyadded(const InnerAggregate& agg){
-		target() <<"Added aggregate " << agg.head <<" "<<(agg.sem==COMP?"<=>":"<-");
+		target() <<"Added aggregate " << getPrintableVar(agg.head) <<" "<<(agg.sem==COMP?"<=>":"<-");
 		if(agg.sem==DEF){
 			target() <<"(" <<agg.defID <<")";
 		}
@@ -105,7 +105,7 @@ public:
 
 
 	void notifyadded(const InnerMinimizeAgg& mnm){
-		target() <<"Minimizing aggregate " <<mnm.head <<" <=> ";
+		target() <<"Minimizing aggregate " <<getPrintableVar(mnm.head) <<" <=> ";
 		switch(mnm.type){
 		case SUM:
 			target() <<"sum";
@@ -205,7 +205,7 @@ public:
 
 
 	void notifyadded(const InnerCPBinaryRel& rel){
-		target() <<"Added binary constraint " <<rel.head <<" <=> var" <<rel.varID <<" "<<rel.rel <<" " <<rel.bound <<"\n";
+		target() <<"Added binary constraint " <<getPrintableVar(rel.head) <<" <=> var" <<rel.varID <<" "<<rel.rel <<" " <<rel.bound <<"\n";
 	}
 
 
@@ -215,12 +215,12 @@ public:
 
 
 	void notifyadded(const InnerCPBinaryRelVar& rel){
-		target() <<"Added binary constraint " <<rel.head <<" <=> var" <<rel.lhsvarID <<" "<<rel.rel <<" var" <<rel.rhsvarID <<"\n";
+		target() <<"Added binary constraint " <<getPrintableVar(rel.head) <<" <=> var" <<rel.lhsvarID <<" "<<rel.rel <<" var" <<rel.rhsvarID <<"\n";
 	}
 
 
 	void notifyadded(const InnerCPSumWeighted& sum){
-		target() <<"Added sum constraint " <<sum.head <<" <=> sum({ ";
+		target() <<"Added sum constraint " <<getPrintableVar(sum.head) <<" <=> sum({ ";
 		std::vector<int>::size_type count = 0;
 		std::vector<uint>::const_iterator litit=sum.varIDs.begin();
 		std::vector<int>::const_iterator weightit=sum.weights.begin();

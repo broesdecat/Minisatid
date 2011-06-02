@@ -60,7 +60,10 @@ CPSolver::CPSolver(PCSolver * solver):
 		searchedandnobacktrack(false),
 		savedsearchengine(NULL){
 
-	getPCSolver().accept(this, FULLASSIGNMENT);
+	getPCSolver().accept(this, BACKTRACK);
+	getPCSolver().accept(this, DECISIONLEVEL);
+	getPCSolver().accept(this, PRINTSTATS);
+	getPCSolver().accept(this, PRINTSTATE);
 	getPCSolver().acceptFinishParsing(this, false);
 }
 
@@ -408,7 +411,7 @@ void CPSolver::getVariableSubstitutions(std::vector<VariableEqValue>& varassignm
 }
 
 int	CPSolver::getNbOfFormulas() const {
-	return solverdata->getNonReifConstraints().size() + solverdata->getReifConstraints().size();
+	return solverdata->getNonReifConstraints().size()*100 + solverdata->getReifConstraints().size()*100;
 }
 
 void CPSolver::printStatistics() const{
