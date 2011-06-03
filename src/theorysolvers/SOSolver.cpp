@@ -156,14 +156,15 @@ bool SOSolver::add(int modid, const InnerDisjunction& disj){
 		if(!alloccur){
 			break;
 		}
-		if(m->getHeadValue()==l_Undef){
-			break;
-		}else if(m->getHeadValue()==l_False){
-			negated = !negated;
-		}
 		int parentid = m->getParentId();
 		if(parentid==-1){
 			break;
+		}else{
+			if(m->getHeadValue()==l_Undef){
+				break;
+			}else if(m->getHeadValue()==l_False){
+				negated = !negated;
+			}
 		}
 		currentid = parentid;
 		if(!negated){

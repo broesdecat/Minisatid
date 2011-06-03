@@ -569,9 +569,55 @@ bool FlatZincRewriter::add(const Equivalence& equiv){
 
 template<>
 bool FlatZincRewriter::add(const Rule& rule){
-	addEquiv(Literal(rule.head, false), rule.body, rule.conjunctive, OPEN);
-	addDefAnnotation(rule.definitionID, constraints);
-	constraints <<";\n";
+	check(rule.body);
+	check(rule.head);
+
+	if(!rule.conjunctive && rule.body.size()>1){
+		bool satpossible = true;
+		for(literallist::const_iterator i=rule.body.begin(); satpossible && i<rule.body.end(); ++i){
+			Rule smallrule;
+			smallrule.head = rule.head;
+			smallrule.body.push_back(*i);
+			smallrule.conjunctive = true;
+			smallrule.definitionID = rule.definitionID;
+			satpossible &= add(smallrule);
+		}
+		return satpossible;
+	}
+
+	constraints <<"constraint inductive_rule(";
+	constraints <<getVarName(rule.head) <<", ";
+
+	constraints <<"[";
+	bool begin = true;
+	for(literallist::const_iterator i=rule.body.begin(); i<rule.body.end(); ++i){
+		if((*i).hasSign()){
+			continue;
+		}
+		if(!begin){
+			constraints <<", ";
+		}
+		begin = false;
+		constraints <<getVarName(*i);
+	}
+	constraints  <<"], ";
+
+	constraints <<"[";
+	begin = true;
+	for(literallist::const_iterator i=rule.body.begin(); i<rule.body.end(); ++i){
+		if(!(*i).hasSign()){
+			continue;
+		}
+		if(!begin){
+			constraints <<", ";
+		}
+		begin = false;
+		constraints <<getVarName(*i);
+	}
+	constraints  <<"], ";
+
+	constraints <<rule.definitionID;
+	constraints <<");\n";
 	return true;
 }
 

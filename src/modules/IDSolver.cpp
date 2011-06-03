@@ -25,7 +25,8 @@ IDSolver::IDSolver(PCSolver* s, int definitionID):
 		Propagator(s),
 		definitionID(definitionID),
 		aggsolver(NULL),
-		minvar(-1), maxvar(-1), nbvars(0),
+		//minvar(-1), maxvar(-1), nbvars(0),
+		minvar(0), nbvars(0),
 		sem(getPCSolver().modes().defsem),
 		posrecagg(true), mixedrecagg(true),
 		previoustrailatsimp(-1),
@@ -64,7 +65,7 @@ inline void IDSolver::clearCycleSources() {
 
 // TODO keep vector, make it a map, a queue? Parsing will go extremely slow if heads are in descending order for example
 void IDSolver::adaptStructsToHead(Var head){
-	bool minchanged = false;
+	/*	bool minchanged = false;
 	bool maxchanged = false;
 	if(minvar==-1 || head<minvar){
 		minvar = head;
@@ -85,7 +86,9 @@ void IDSolver::adaptStructsToHead(Var head){
 	if(maxchanged){
 		definitions.resize(maxvar-minvar+1, NULL);
 		nbvars = definitions.size();
-	}
+	}*/
+	nbvars = nVars();
+	definitions.resize(nbvars, NULL);
 }
 
 /**
@@ -192,9 +195,10 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	}
 
 	// Initialize scc of full dependency graph
-	vec<bool> incomp(nbvars, false);
+	//TODO remove nVars!
+	vec<bool> incomp(nVars(), false);
 	vec<Var> stack;
-	vec<int> visited(nbvars, 0); // =0 represents not visited; >0 corresponds to visited through a positive body literal, <0 through a negative body literal
+	vec<int> visited(nVars(), 0); // =0 represents not visited; >0 corresponds to visited through a positive body literal, <0 through a negative body literal
 	vec<Var> rootofmixed;
 	vec<Var> nodeinmixed;
 	int counter = 1;
@@ -969,7 +973,7 @@ void IDSolver::findCycleSources() {
 }
 
 void IDSolver::checkJustification(Var head) {
-	if (isCS(head) || isFalse(head) || !isDefInPosGraph(head)) {
+	if (!isDefInPosGraph(head) || isFalse(head) || isCS(head)) {
 		return;
 	}
 
@@ -1095,8 +1099,8 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 	}
 
 #ifdef DEBUG
-	for (int i = 0; i < nbvars; ++i) {
-		assert(seen(i)==0);
+	for (int i = 0; i < defdVars.size(); ++i) {
+		assert(seen(defdVars[i])==0);
 	}
 #endif
 
@@ -1292,8 +1296,8 @@ void IDSolver::changejust(Var v, vec<Lit>& just) {
 void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf) {
 #ifdef DEBUG
 	assert(loopf.size()==1); //Space for the head/new variable
-	for (int i = 0; i < nbvars; ++i) { //seen should be cleared
-		assert(seen(i)==0);
+	for (int i = 0; i < defdVars.size(); ++i) { //seen should be cleared
+		assert(seen(defdVars[i])==0);
 	}
 #endif
 
@@ -1310,7 +1314,7 @@ void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf) {
 				const PropRule& c = *definition(*tch);
 				for (int i = 0; i < c.size(); ++i) {
 					Lit l = c[i];
-					if (seen(var(l)) != (isPositive(l) ? 2 : 1) && ufs.find(var(c[i])) == ufs.end()) {
+					if ((!isDefined(var(l)) || seen(var(l))!=(isPositive(l)?2:1)) && ufs.find(var(c[i])) == ufs.end()) {
 						assert(isFalse(l));
 						loopf.push(l);
 						seen(var(l)) = (isPositive(l) ? 2 : 1);
@@ -1520,7 +1524,8 @@ void IDSolver::markNonJustifiedAddParents(Var x, Var cs, queue<Var> &q, vec<Var>
 }
 
 inline void IDSolver::markNonJustifiedAddVar(Var v, Var cs, queue<Var> &q, vec<Var>& tmpseen) {
-	if (!isFalse(v) & inSameSCC(v, cs) && (getPCSolver().modes().defn_search == include_cs || v == cs || !isCS(v))) {
+	// TODO prove whether this false can be here?
+	if (/*!isFalse(v) && */ inSameSCC(v, cs) && (getPCSolver().modes().defn_search == include_cs || v == cs || !isCS(v))) {
 		if (seen(v) == 0) {
 			seen(v) = 1;
 			tmpseen.push(v);

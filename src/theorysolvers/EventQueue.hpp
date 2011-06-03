@@ -61,15 +61,7 @@ public:
 		}
 	}
 
-	//TODO should check doubles in another way (or prevent any from being added) (maybe a set is better than a vector)
-	void acceptLitEvent(Propagator* propagator, const Lit& litevent, PRIORITY priority){
-		for(proplist::const_iterator i=litevent2propagator[toInt(litevent)][priority].begin(); i<litevent2propagator[toInt(litevent)][priority].end(); ++i){
-			if((*i)==propagator){
-				return;
-			}
-		}
-		litevent2propagator[toInt(litevent)][priority].push_back(propagator);
-	}
+	void acceptLitEvent(Propagator* propagator, const Lit& litevent, PRIORITY priority);
 
 	void 	notifyVarAdded			();
 

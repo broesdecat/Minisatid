@@ -167,6 +167,7 @@ public:
 	rClause 	doProp					();
 	void 		findClausalPropagations();
 	void 		notifyDefinedHead		(Var head, int defID);
+	void 		removeHeadWatch			(Var head);
 	void 		removeHeadWatch			(Var head, int defID);
 	void 		setHeadWatch			(Lit head, Agg* agg);
 	void 		addStaticWatch			(Var v, Watch* w);

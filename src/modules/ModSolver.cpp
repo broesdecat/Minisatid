@@ -68,12 +68,12 @@ ModSolver::~ModSolver(){
 }
 
 bool ModSolver::add(Var var){
-	getPCSolver().acceptLitEvent(this, mkLit(var, true), SLOW);
-	getPCSolver().acceptLitEvent(this, mkLit(var, false), SLOW);
 	if(getModSolverData().modes().verbosity>5){
 		report("Var %d added to modal solver %zu.\n", getPrintableVar(var), getPrintId());
 	}
-	return getPCSolver().add(var);
+	bool satpossible = getPCSolver().add(var);
+	registeredvars.push_back(var);
+	return satpossible;
 }
 
 /**
@@ -156,6 +156,11 @@ void ModSolver::finishParsingDown(bool& unsat){
 	notifyParsed();
 	getPCSolver().finishParsing(unsat);
 
+	for(vector<Var>::const_iterator i=registeredvars.begin(); i<registeredvars.end(); ++i){
+		getPCSolver().acceptLitEvent(this, mkLit(*i, true), SLOW);
+		getPCSolver().acceptLitEvent(this, mkLit(*i, false), SLOW);
+	}
+
 	for(vmodindex::const_iterator i=getChildren().begin(); !unsat && i<getChildren().end(); ++i){
 		bool childunsat = false;
 		getModSolverData().getModSolver(*i)->finishParsingDown(childunsat);
@@ -226,6 +231,10 @@ bool ModSolver::search(const vec<Lit>& assumpts, bool search){
 	delete s;
 	searching = false;
 	return result;
+}
+
+void ModSolver::finishParsing(bool& present, bool& unsat){
+	init = true;
 }
 
 /**

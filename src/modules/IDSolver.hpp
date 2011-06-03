@@ -98,7 +98,7 @@ private:
 
 	AggSolver* 				aggsolver;
 
-	Var minvar, maxvar, nbvars; 	//The lowest and highest headvariable. INVAR: Definitions will be offset by minvar and the size will be nbvars
+	Var minvar, nbvars; //TODO, maxvar, nbvars; 	//The lowest and highest headvariable. INVAR: Definitions will be offset by minvar and the size will be nbvars
 	std::vector<DefinedVar*> definitions; //Maps all variables to NULL or a defined variable
 
 	std::vector<std::vector<Var> > 	_disj_occurs, _conj_occurs;

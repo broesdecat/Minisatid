@@ -37,7 +37,7 @@ enum TheoryState {THEORY_PARSING, THEORY_INITIALIZED, THEORY_INITIALIZING};
 class PCSolver: public MinisatID::LogicSolver{
 private:
 	int	ID;
-	int getID() const { return ID; }
+	int getID() const { return ID+1; }
 
 	//Search algorithms //TODO refactor into an interface "searchalgorithm" with subclasses satsolver and cpsolver?
 	SearchEngine* searchengine;

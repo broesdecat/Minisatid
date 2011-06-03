@@ -165,9 +165,9 @@ void PCSolver::setModSolver(ModSolver* m){
 	getFactory().setModSolver(m);
 }
 
-//IMPORTANT: only allowed after initialization!
+//IMPORTANT: only allowed after parsing!
 Var PCSolver::newVar() {
-	assert(isInitializing());
+	assert(!isParsing());
 	Var newvar = nVars()+1;
 	createVar(newvar);
 	return newvar;

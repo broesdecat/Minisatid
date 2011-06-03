@@ -83,6 +83,7 @@ struct AV{
 class ModSolver: public Propagator, public MinisatID::WrapperPimpl{
 private:
 	bool 		init, hasparent, searching;
+	std::vector<Var> registeredvars;
 
 	AV			head;
 	std::vector<Var>	atoms; //atoms which are rigid within this solver
@@ -117,7 +118,7 @@ public:
 	const char* getName			()	const	{ return "modal operator"; }
 	void 		printState		() const;
 	void 		printStatistics	() const 	{ /*Do NOT print lower ones here*/};
-	void 	finishParsing		(bool& present, bool& unsat){ init = true; }
+	void 	finishParsing		(bool& present, bool& unsat);
 	rClause	notifypropagate		();
 	void 	notifyNewDecisionLevel	();
 	void 	notifyBacktrack		(int untillevel);

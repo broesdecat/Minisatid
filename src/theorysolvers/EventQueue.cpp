@@ -43,6 +43,22 @@ void EventQueue::notifyVarAdded(){
 	}
 }
 
+//TODO should check doubles in another way (or prevent any from being added) (maybe a set is better than a vector)
+void EventQueue::acceptLitEvent(Propagator* propagator, const Lit& litevent, PRIORITY priority){
+	for(proplist::const_iterator i=litevent2propagator[toInt(litevent)][priority].begin(); i<litevent2propagator[toInt(litevent)][priority].end(); ++i){
+		if((*i)==propagator){
+			return;
+		}
+	}
+	litevent2propagator[toInt(litevent)][priority].push_back(propagator);
+	if(getPCSolver().value(litevent)==l_True){
+		if(!propagator->isQueued()){
+			propagator->notifyQueued();
+			priority==FAST?fastqueue.push(propagator):slowqueue.push(propagator);
+		}
+	}
+}
+
 void EventQueue::setTrue(const proplist& list, queue<Propagator*>& queue){
 	const unsigned int size = list.size();
 	for(unsigned int i=0; i<size; ++i){

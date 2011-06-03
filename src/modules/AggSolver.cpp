@@ -45,6 +45,7 @@ AggSolver::AggSolver(PCSolver* s) :
 	getPCSolver().accept(this, DECISIONLEVEL);
 	getPCSolver().acceptFinishParsing(this, false);
 	getPCSolver().accept(this, PRINTSTATE);
+	getPCSolver().accept(this, PRINTSTATS);
 }
 
 AggSolver::~AggSolver() {
@@ -94,14 +95,18 @@ void AggSolver::setHeadWatch(Lit head, Agg* agg) {
 }
 
 void AggSolver::removeHeadWatch(Var head, int defID) {
+	assert(hasIDSolver(defID));
+	getIDSolver(defID).removeAggrHead(head);
+	removeHeadWatch(head);
+}
+
+void AggSolver::removeHeadWatch(Var head) {
 	assert(isInitializing());
 	if(head==dummyhead){
 		// FIXME
 	}else{
 		lit2headwatchlist[toInt(createNegativeLiteral(head))] = NULL;
 		lit2headwatchlist[toInt(createPositiveLiteral(head))] = NULL;
-		assert(hasIDSolver(defID));
-		getIDSolver(defID).removeAggrHead(head);
 	}
 }
 

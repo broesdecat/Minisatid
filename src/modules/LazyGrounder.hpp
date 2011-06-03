@@ -1,10 +1,11 @@
 /*
- * LazyGrounder.hpp
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
  *
- *  Created on: May 30, 2011
- *      Author: broes
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-
 #ifndef LAZYGROUNDER_HPP_
 #define LAZYGROUNDER_HPP_
 
@@ -27,28 +28,23 @@ namespace MinisatID{
 
 class PCSolver;
 
-class LazyGrounder: public Propagator{
-private:
+struct LazyGroundedClause{
 	InnerDisjunction clause;
-	int indexinfullclause, indexinclausevector;
+	int indexofnext;
+
+	LazyGroundedClause(const InnerDisjunction& clause): clause(clause), indexofnext(0){	}
+};
+
+class LazyGrounder{
+private:
+	std::vector<LazyGroundedClause> clauses;
 public:
-	LazyGrounder(PCSolver* pcsolver);
+	LazyGrounder();
 	virtual ~LazyGrounder();
 
-	bool	setClause(const InnerDisjunction& clause);
+	bool addClause(const InnerDisjunction& clause);
 
-	// Propagator methods
-	const char* getName			() const { return "lazy grounder"; }
-	rClause getExplanation		(const Lit& l) { assert(false); return nullPtrClause; }
-	rClause notifyFullAssignmentFound() { return nullPtrClause; }
-	void 	finishParsing		(bool& present, bool& unsat) { return; }
-	void 	notifyNewDecisionLevel	() { return; }
-	void 	notifyBacktrack		(int untillevel) { return; }
-	rClause	notifypropagate		();
-	Var 	notifyBranchChoice	(const Var& var) const { return var; }
-	void 	printStatistics		() const;
-	void 	printState			() const {}
-	int		getNbOfFormulas		() const { return 1; }
+	bool expand(int clauseID, vec<Lit> currentclause);
 };
 }
 
