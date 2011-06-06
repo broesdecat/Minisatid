@@ -294,6 +294,30 @@ lbool MinisatID::canPropagateHead(const Agg& agg, const Weight& CC, const Weight
  * headreason && explain headfalse:
  * 		CASE 2 without adding head
  */
+void SPFWAgg::checkAddToExplan(bool& stop, Weight& min, Weight& max, const PropagationInfo& propinfo, const Agg& agg, bool caseone, vector<PropagationInfo>& reasons){
+	bool inset = propinfo.getType()==POS;
+	addValue(getSet().getType(), propinfo.getWeight(), inset, min, max);
+	bool monoweight = getSet().getType().isMonotone(agg, propinfo.getWeight());
+	bool monolit = monoweight?inset:!inset;
+	bool add = false;
+	if(caseone && !monolit){
+		add = true;
+	}else if(!caseone && monolit){
+		add = true;
+	}
+	if(add){
+		reasons.push_back(propinfo);
+
+		if(caseone){
+			stop = isFalsified(agg, min, max);
+		}else{
+			stop = isSatisfied(agg, min, max);
+		}
+	}
+}
+bool comparePropagationInfoByWeights(const PropagationInfo& one, const PropagationInfo& two) {
+	return one.getWeight() < two.getWeight();
+}
 void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	const Agg& agg = ar.getAgg();
 	const Lit& head = agg.getHead();
@@ -315,71 +339,73 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	}
 
 	bool stop = false;
-	vector<WL> reasons;
+	vector<PropagationInfo> reasons;
 	if(caseone){
 		stop = isFalsified(agg, min, max);
 	}else{
 		stop = isSatisfied(agg, min, max);
 	}
+
+	PCSolver& pcsolver = getSolver()->getPCSolver();
+	//IMPORTANT: first go over all literals and check which are already in the currently generated partial nogood (only if generating explanation on conflict)
+	if(getSolver()->modes().aggclausesaving==2){
+		bool foundpropagatedlit = false;
+		for(vector<FWTrail*>::const_iterator a=getTrail().begin(); !stop && !foundpropagatedlit && a<getTrail().end(); ++a){
+			for (vprop::const_iterator i = (*a)->props.begin(); !stop && !foundpropagatedlit && i < (*a)->props.end(); ++i) {
+				if((*i).getLit()==ar.getPropLit()){ //important! As we dont see all literals in this loop, we are not guaranteed to find a full explanation before seeing the literal itself (which is why we redo the loop later on)
+					foundpropagatedlit = true;
+					break;
+				}
+				if((*i).getType()==HEAD || var((*i).getLit())==var(ar.getPropLit())){
+					continue;
+				}
+				if(!pcsolver.isAlreadyUsedInAnalyze((*i).getLit()) && pcsolver.getLevel(var((*i).getLit()))!=pcsolver.getCurrentDecisionLevel()){
+					continue;
+				}
+
+				checkAddToExplan(stop, min, max, *i, agg, caseone, reasons);
+			}
+		}
+	}
+
+	//Then go over the trail earliest to latest to add more to the explanation
 	for(vector<FWTrail*>::const_iterator a=getTrail().begin(); !stop && a<getTrail().end(); ++a){
 		for (vprop::const_iterator i = (*a)->props.begin(); !stop && i < (*a)->props.end(); ++i) {
 			if((*i).getType()==HEAD || var((*i).getLit())==var(ar.getPropLit())){
 				continue;
 			}
-
-			bool inset = (*i).getType()==POS;
-			addValue(getSet().getType(), (*i).getWeight(), inset, min, max);
-			bool monoweight = getSet().getType().isMonotone(agg, (*i).getWeight());
-			bool monolit = monoweight?inset:!inset;
-			bool add = false;
-			if(caseone && !monolit){
-				add = true;
-			}else if(!caseone && monolit){
-				add = true;
-			}
-			if(add){
-				reasons.push_back((*i).getWL());
-
-				if(caseone){
-					stop = isFalsified(agg, min, max);
-				}else{
-					stop = isSatisfied(agg, min, max);
+			if(getSolver()->modes().aggclausesaving==2){
+				if(pcsolver.isAlreadyUsedInAnalyze((*i).getLit()) || pcsolver.getLevel(var((*i).getLit()))==pcsolver.getCurrentDecisionLevel()){
+					continue;
 				}
 			}
+
+			checkAddToExplan(stop, min, max, *i, agg, caseone, reasons);
 		}
 	}
 
 	assert(stop);
 
 	//Subsetminimization
-	//Slowdown for weight bounded set
 	if(getSolver()->modes().subsetminimizeexplanation){
-		/*bool changes = true;
-		if(checkmonofalse){
-			while(changes){
-				changes = false;
-				for(vector<WL>::iterator i=reasons.begin(); i<reasons.end(); ++i){
-					Weight temp = max;
+		sort(reasons.begin(), reasons.end(), comparePropagationInfoByWeights);
+		for(vector<PropagationInfo>::iterator i=reasons.begin(); i<reasons.end(); ++i){
+			Weight tempmax = max;
+			Weight tempmin = min;
 
-					bool monolit = getSet().getType().isMonotone(agg, *i);
-					if(monolit){
-						max = getSet().getType().add(max, (*i).getWeight());
-					}else{
-						max = getSet().getType().remove(max, (*i).getWeight());
-					}
-
-					if((headtrue && isSatisfied(agg, min, max)) || (!headtrue && isFalsified(agg, min, max))){
-						reasons.erase(i);
-						changes = true;
-					}else{
-						max = temp;
-					}
-				}
+			bool inset = (*i).getType()==POS;
+			removeValue(getSet().getType(), (*i).getWeight(), inset, min, max);
+			if((caseone && isFalsified(agg, min, max) ) ||(!caseone && isSatisfied(agg, min, max))){
+				i = reasons.erase(i);
+				i--;
+			}else{
+				max = tempmax;
+				min = tempmin;
 			}
-		}*/
+		}
 	}
 
-	for(vector<WL>::const_iterator i=reasons.begin(); i<reasons.end(); ++i){
+	for(vector<PropagationInfo>::const_iterator i=reasons.begin(); i<reasons.end(); ++i){
 		lits.push(~(*i).getLit());
 	}
 }

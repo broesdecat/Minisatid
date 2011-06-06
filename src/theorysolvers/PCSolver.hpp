@@ -129,6 +129,8 @@ public:
 	int			getNbDecisions	() 		const;
 	std::vector<Lit> getDecisions() 	const;
 
+	bool		isAlreadyUsedInAnalyze(const Lit& lit) const;
+
 	bool 		totalModelFound	(); //cannot be const!
 
 	void		varBumpActivity	(Var v);

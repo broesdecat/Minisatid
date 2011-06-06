@@ -137,6 +137,10 @@ vector<Lit> PCSolver::getDecisions() const {
 	return getSolver().getDecisions();
 }
 
+bool PCSolver::isAlreadyUsedInAnalyze(const Lit& lit) const{
+	return getSolver().isAlreadyUsedInAnalyze(lit);
+}
+
 bool PCSolver::totalModelFound() {
 	return getSolver().totalModelFound();
 }

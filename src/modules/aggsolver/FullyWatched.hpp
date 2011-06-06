@@ -51,6 +51,7 @@ protected:
 	void 			setCC					(const Weight& w) 			{ trail.back()->CBC = w; }
 
 	std::vector<FWTrail*>&	getTrail		() 					 		{ return trail; }
+	//TODO implement trail iterator?
 
 public:
 	FWAgg(TypedSet* set);
@@ -72,6 +73,7 @@ public:
 	SPFWAgg(TypedSet* agg);
 	virtual ~SPFWAgg(){};
 
+	void checkAddToExplan(bool& stop, Weight& min, Weight& max, const PropagationInfo& i, const Agg& agg, bool caseone, std::vector<PropagationInfo>& reasons);
 	virtual void 	getExplanation			(vec<Lit>& lits, const AggReason& ar);
 
 protected:

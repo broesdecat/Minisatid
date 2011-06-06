@@ -300,6 +300,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		bool setsat = false;
 
 		if(!unsat && !setsat){
+			//FIXME: error in new engine because watches are added before full initialization is done, sometimes leading to propagation calls before full initialization is done (which is not allowed!)
 			set->initialize(unsat, setsat, sets);
 		}
 
@@ -390,6 +391,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 
 	//If a propagation will be done or conflict (not already true), then add the learned clause first
 	if (value(p) != l_True && getPCSolver().modes().aggclausesaving < 2) {
+		//FIXME bug here if called during initialization (test with fast magicseries)
 		ar->getAgg().getSet()->addExplanation(*ar);
 	}
 
