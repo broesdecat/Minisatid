@@ -572,17 +572,23 @@ bool FlatZincRewriter::add(const Rule& rule){
 	check(rule.body);
 	check(rule.head);
 
-	if(!rule.conjunctive && rule.body.size()>1){
-		bool satpossible = true;
-		for(literallist::const_iterator i=rule.body.begin(); satpossible && i<rule.body.end(); ++i){
-			Rule smallrule;
-			smallrule.head = rule.head;
-			smallrule.body.push_back(*i);
-			smallrule.conjunctive = true;
-			smallrule.definitionID = rule.definitionID;
-			satpossible &= add(smallrule);
+	if(!rule.conjunctive){
+		if(rule.body.size()>1){
+			bool satpossible = true;
+			for(literallist::const_iterator i=rule.body.begin(); satpossible && i<rule.body.end(); ++i){
+				Rule smallrule;
+				smallrule.head = rule.head;
+				smallrule.body.push_back(*i);
+				smallrule.conjunctive = true;
+				smallrule.definitionID = rule.definitionID;
+				satpossible &= add(smallrule);
+			}
+			return satpossible;
+		}else if(rule.body.size()==0){
+			InnerDisjunction clause;
+			clause.literals.push(~rule.head);
+			return add(clause);
 		}
-		return satpossible;
 	}
 
 	constraints <<"constraint inductive_rule(";
