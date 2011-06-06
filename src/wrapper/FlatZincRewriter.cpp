@@ -159,6 +159,13 @@ void FlatZincRewriter::check(const vector<Literal>& lits){
 	}
 }
 
+template<>
+void FlatZincRewriter::checkOnlyPos(const vector<Literal>& lits){
+	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); ++i){
+		check((*i).getAtom());
+	}
+}
+
 template<typename T>
 void addMappedList(const vector<T>& list, ostream& stream){
 	bool begin = true;
@@ -569,7 +576,7 @@ bool FlatZincRewriter::add(const Equivalence& equiv){
 
 template<>
 bool FlatZincRewriter::add(const Rule& rule){
-	check(rule.body);
+	checkOnlyPos(rule.body);
 	check(rule.head);
 
 	if(!rule.conjunctive){
