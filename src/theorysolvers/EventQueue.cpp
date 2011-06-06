@@ -78,8 +78,6 @@ void EventQueue::setTrue(const Lit& l){
 void EventQueue::finishParsing(bool& unsat){
 	unsat = false;
 
-	//FIXME remember all !present and go over them and all data structs afterwards
-	proplist toberemoved;
 	for(proplist::const_iterator i=earlyfinishparsing.begin(); !unsat && i<earlyfinishparsing.end(); ++i){
 		bool present = true;
 		(*i)->finishParsing(present, unsat);
@@ -99,6 +97,7 @@ void EventQueue::finishParsing(bool& unsat){
 		}
 	}
 	latefinishparsing.clear();
+
 
 	//IMPORTANT: the propagators which are no longer present should be deleted from EVERY datastructure that is used later on!
 	for(map<EVENT, proplist >::iterator i=event2propagator.begin(); i!=event2propagator.end(); ++i){
@@ -123,6 +122,7 @@ void EventQueue::finishParsing(bool& unsat){
 			j = --allpropagators.erase(j);
 		}
 	}
+
 
 	// Do all possible propagations that are queued
 	if (notifyPropagate() != nullPtrClause) {

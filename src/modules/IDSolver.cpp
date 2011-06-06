@@ -160,8 +160,8 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 
 	//LAZY initialization
 	_seen = new InterMediateDataStruct(nbvars, minvar);
-	_disj_occurs.resize(nVars()*2);
-	_conj_occurs.resize(nVars()*2);
+	_disj_occurs.resize(nVars()*2, vector<Var>());
+	_conj_occurs.resize(nVars()*2, vector<Var>());
 
 #ifdef DEBUG
 	for (vsize i = 0; i < defdVars.size(); ++i) {
@@ -650,8 +650,8 @@ bool IDSolver::simplifyGraph(){
 	//reconstruct the disj and conj occurs with the reduced number of definitions
 	_disj_occurs.clear();
 	_conj_occurs.clear();
-	_disj_occurs.resize(2*nVars());
-	_conj_occurs.resize(2*nVars());
+	_disj_occurs.resize(2*nVars(), vector<Var>());
+	_conj_occurs.resize(2*nVars(), vector<Var>());
 	for (vector<int>::const_iterator i = defdVars.begin(); i < defdVars.end(); ++i) {
 		Var v = (*i);
 		if (type(v) == CONJ || type(v) == DISJ) {
@@ -935,6 +935,9 @@ void IDSolver::findCycleSources() {
 		while(hasNextProp()){
 			Lit l = getNextProp(); //l has become true, so find occurences of ~l
 			assert(value(~l)==l_False);
+			if(nbvars <= var(l)){
+				continue;
+			}
 
 			//TODO should check whether it is faster to use a real watched scheme here: go from justification to heads easily,
 			//so this loop only goes over literal which are really justifications

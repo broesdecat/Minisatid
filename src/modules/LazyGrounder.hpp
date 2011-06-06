@@ -37,14 +37,14 @@ struct LazyGroundedClause{
 
 class LazyGrounder{
 private:
-	std::vector<LazyGroundedClause> clauses;
+	std::vector<LazyGroundedClause*> clauses;
 public:
 	LazyGrounder();
 	virtual ~LazyGrounder();
 
-	bool addClause(const InnerDisjunction& clause);
+	void addClause(const InnerDisjunction& clause);
 
-	bool expand(int clauseID, vec<Lit> currentclause);
+	bool expand(int clauseID, vec<Lit>& currentclause);
 };
 }
 

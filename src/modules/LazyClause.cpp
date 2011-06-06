@@ -1,36 +1,24 @@
 /*
- * Copyright 2007-2011 Katholieke Universiteit Leuven
+ * LazyGrounder.cpp
  *
- * Use of this software is governed by the GNU LGPLv3.0 license
- *
- * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
- * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ *  Created on: May 30, 2011
+ *      Author: broes
  */
+
 #include "modules/LazyGrounder.hpp"
+
+#include "theorysolvers/PCSolver.hpp"
 
 using namespace std;
 using namespace MinisatID;
 
-LazyGrounder::LazyGrounder(){
+LazyGrounder::LazyGrounder(PCSolver* pcsolver): Propagator(pcsolver), indexinfullclause(0), indexinclausevector(0) {
+	getPCSolver().accept(this, PRINTSTATS);
 }
 
 LazyGrounder::~LazyGrounder() {
-	deleteList<LazyGroundedClause>(clauses);
 }
 
-void LazyGrounder::addClause(const InnerDisjunction& clause){
-	clauses.push_back(new LazyGroundedClause(clause));
-}
-
-bool LazyGrounder::expand(int clauseID, vec<Lit>& currentclause){
-	LazyGroundedClause lz = *clauses[clauseID];
-	if(lz.clause.literals.size()<=lz.indexofnext){
-		return false;
-	}
-	currentclause.push(lz.clause.literals[lz.indexofnext++]);
-	return true;
-}
-/*
 bool LazyGrounder::setClause(const InnerDisjunction& clause){
 	this->clause = clause;
 
@@ -77,4 +65,4 @@ rClause	LazyGrounder::notifypropagate(){
 
 void LazyGrounder::printStatistics() const {
 	clog <<"Lazy grounded: " <<(indexinfullclause+1) <<" of " <<clause.literals.size() <<" literals.\n";
-}*/
+}
