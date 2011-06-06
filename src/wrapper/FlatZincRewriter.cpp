@@ -585,8 +585,8 @@ bool FlatZincRewriter::add(const Rule& rule){
 			}
 			return satpossible;
 		}else if(rule.body.size()==0){
-			InnerDisjunction clause;
-			clause.literals.push(~rule.head);
+			Disjunction clause;
+			clause.literals.push_back(Literal(rule.head, true));
 			return add(clause);
 		}
 	}
@@ -618,7 +618,7 @@ bool FlatZincRewriter::add(const Rule& rule){
 			constraints <<", ";
 		}
 		begin = false;
-		constraints <<getVarName(*i);
+		constraints <<getVarName(~*i);
 	}
 	constraints  <<"], ";
 
