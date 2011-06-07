@@ -735,6 +735,10 @@ Var PCSolver::changeBranchChoice(const Var& chosenvar){
 	return newvar;
 }
 
+bool PCSolver::isAlreadyUsedInAnalyze(const Lit& lit) const{
+	return getSolver()->isAlreadyUsedInAnalyze(lit);
+}
+
 /*
  * Possible answers:
  * true => satisfiable, at least one model exists (INDEPENDENT of the number of models requested or found)

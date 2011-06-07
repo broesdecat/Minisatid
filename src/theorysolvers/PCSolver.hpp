@@ -177,6 +177,8 @@ public:
 
 	Var			changeBranchChoice(const Var& chosenvar);
 
+	bool		isAlreadyUsedInAnalyze(const Lit& lit) const;
+
 	void		removeAggrHead	(Var head, int defID);
 	void		notifyAggrHead	(Var head, int defID);
 
