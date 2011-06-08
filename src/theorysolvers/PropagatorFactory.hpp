@@ -42,9 +42,6 @@ typedef int defID;
 class PropagatorFactory {
 private:
 	PCSolver* engine;
-	PCSolver& getEngine() { return *engine; }
-	PCSolver* getEnginep() const { return engine; }
-	const PCSolver& getEngine() const { return *engine; }
 
 	bool parsing; //state
 
@@ -52,9 +49,6 @@ private:
 	SATSolver* getSolver() const { return satsolver; }
 
 	std::map<defID, IDSolver*> idsolvers;
-	bool hasIDSolver(defID id) const;
-	void addIDSolver(defID id);
-	IDSolver* getIDSolver(defID id);
 
 	AggSolver* aggsolver;
 	bool hasAggSolver() const { return aggsolver!=NULL; }
@@ -80,6 +74,14 @@ private:
 public:
 	PropagatorFactory(const SolverOption& modes, PCSolver* engine);
 	virtual ~PropagatorFactory();
+
+	bool hasIDSolver(defID id) const;
+	void addIDSolver(defID id);
+	IDSolver* getIDSolver(defID id);
+
+	PCSolver& getEngine() { return *engine; }
+	PCSolver* getEnginep() const { return engine; }
+	const PCSolver& getEngine() const { return *engine; }
 
 	bool add(const Var& sentence);
 	bool add(const InnerDisjunction& sentence);

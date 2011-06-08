@@ -47,6 +47,8 @@ PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine
 	cpsolver = getEnginep()->getCPSolverp();
 #endif
 
+	//TODO create aggpropfactory and call finishparsing on it
+
 	if(modes.printcnfgraph){
 		parsingmonitors.push_back(new ECNFGraphPrinter(cout));
 	}

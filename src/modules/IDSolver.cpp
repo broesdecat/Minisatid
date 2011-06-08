@@ -2530,6 +2530,285 @@ void IDSolver::printStatistics() const {
 	report(">                       : %4.2f treated per loop\n", (float)succesful_justify_calls/nb_times_findCS);
 }
 
+//FIXME
+/*
+// RECURSIVE AGGREGATES
+
+bool MaxProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const {
+	TypedSet* set = agg.getSet();
+	bool justified = true;
+	const vwl& wl = set->getWL();
+
+	if (justified && agg.hasUB()) {
+		justified = false;
+		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() > agg.getCertainBound(); ++i) {
+			if (oppositeIsJustified(*i, currentjust, real, set->getSolver())) {
+				jstf.push(~(*i).getLit()); //push negative literal, because it should become false
+			} else if (real || currentjust.getElem(var((*i).getLit())) != 0) {
+				nonjstf.push(var((*i).getLit()));
+			}
+		}
+		if (nonjstf.size() == 0) {
+			justified = true;
+		}
+	}
+
+	if(justified && agg.hasLB()){
+		justified = false;
+		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() >= agg.getCertainBound(); ++i) {
+			if (isJustified(*i, currentjust, real, set->getSolver())) {
+				jstf.push((*i).getLit());
+				justified = true;
+			} else if (real || currentjust.getElem(var((*i).getLit())) != 0) {
+				nonjstf.push(var((*i).getLit()));
+			}
+		}
+	}
+
+	if (!justified) {
+		jstf.clear();
+	}
+
+	return justified;
+}
+
+/**
+ * AGG <= B: v is justified if one literal below/eq the bound is THAT IS NOT THE HEAD
+ * 					if so, change the justification to the literal
+ * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
+ * A <= AGG: v is justified if the negation of all literals below the bound are. The emptyset is always a solution,
+ * 			 so no conclusions have to be drawn from the literals above/eq the bound
+ * 					if so, change the justification to the negation of all those below the bound literals
+ * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
+ */
+bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const {
+	TypedSet* set = agg.getSet();
+	const AggProp& type = agg.getSet()->getType();
+	bool justified = true;
+	const vwl& wl = set->getWL();
+
+	if (justified && agg.hasUB()) {
+		justified = false;
+		Weight bestpossible = type.getMaxPossible(*set);
+		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
+			if (oppositeIsJustified(*i, currentjust, real, set->getSolver())) {
+				jstf.push(~(*i).getLit());
+				bestpossible = type.remove(bestpossible, (*i).getWeight());
+				if (bestpossible <= agg.getCertainBound()) {
+					justified = true;
+				}
+			} else if (real || currentjust.getElem(var((*i).getLit())) != 0) {
+				nonjstf.push(var((*i).getLit()));
+			}
+		}
+	}
+	if(justified && agg.hasLB()){
+		justified = false;
+		Weight bestcertain = set->getType().getMinPossible(*set);
+		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
+			if (isJustified(*i, currentjust, real, set->getSolver())) {
+				jstf.push((*i).getLit());
+				bestcertain = type.add(bestcertain, (*i).getWeight());
+				if (bestcertain >= agg.getCertainBound()) {
+					justified = true;
+				}
+			} else if (real || currentjust.getElem(var((*i).getLit())) != 0) {
+				nonjstf.push(var((*i).getLit()));
+			}
+		}
+	}
+
+	if (!justified) {
+		jstf.clear();
+	}
+
+	return justified;
+}
+
+/*bool SPAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
+ //OTHER IMPLEMENTATION (probably buggy)
+ pSet s = getSet();
+
+ Weight current = 0;
+ if(isLower()){
+ current = s->getBestPossible();
+ }else{
+ current = s->getEmptySetValue();
+ }
+
+ bool justified = false;
+ if(aggValueImpliesHead(current)){
+ justified = true;
+ }
+
+ for (lwlv::const_iterator i = s->getWLBegin(); !justified && i < s->getWLEnd(); ++i) {
+ if(isMonotone(*i) && s->isJustified(*i, currentjust, real)){
+ if(isLower()){
+ jstf.push(~(*i).getLit());
+ current = this->remove(current, (*i).getWeight());
+ }else{
+ //if(s->isJustified(*i, currentjust, real)){
+ jstf.push((*i).getLit());
+ current = this->add(current, (*i).getWeight());
+ }
+
+ if (aggValueImpliesHead(current)){
+ justified = true;
+ }
+ }else if(real ||currentjust[var((*i).getLit())]!=0){
+ nonjstf.push(var((*i).getLit()));
+ }
+ }
+
+ if (!justified) {
+ jstf.clear();
+ }
+
+ if(s->getSolver()->getPCSolver()->modes().verbosity >=4){
+ reportf("Justification checked for ");
+ printAggrExpr(this);
+
+ if(justified){
+ reportf("justification found: ");
+ for(int i=0; i<jstf.size(); ++i){
+ print(jstf[i]); reportf(" ");
+ }
+ reportf("\n");
+ }else{
+ reportf("no justification found.\n");
+ }
+ }
+
+ return justified;
+ }
+
+ // RECURSIVE AGGREGATES
+
+Agg* AggSolver::getAggDefiningHead(Var v) const {
+	assert(isInitialized());
+	Agg* agg = lit2headwatchlist[toInt(createNegativeLiteral(v))];
+	assert(agg!=NULL && agg->isDefined());
+	return agg;
+}
+
+vector<Var> AggSolver::getDefAggHeadsWithBodyLit(Var x) const{
+	assert(isInitialized());
+	vector<Var> heads;
+	for (vps::const_iterator i = var2setlist[x].begin(); i < var2setlist[x].end(); ++i) {
+		for (agglist::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); ++j) {
+			if((*j)->isDefined()){
+				heads.push_back(var((*j)->getHead()));
+			}
+		}
+	}
+	return heads;
+}
+
+vwl::const_iterator AggSolver::getSetLitsOfAggWithHeadBegin(Var x) const {
+	assert(isInitialized());
+	return getAggDefiningHead(x)->getSet()->getWL().begin();
+}
+
+vwl::const_iterator AggSolver::getSetLitsOfAggWithHeadEnd(Var x) const {
+	assert(isInitialized());
+	return getAggDefiningHead(x)->getSet()->getWL().end();
+}
+
+/**
+ * For an aggregate expression defined by v, add all set literals to loopf that
+ * 		- have not been added already(seen[A]==1 for A, seen[A]==2 for ~A)
+ * 		- might help to make the expression true (monotone literals!) (to make it a more relevant learned clause)
+ * Currently CONSIDERABLE overapproximation: take all known false literals which are set literal or its negation,
+ * do not occur in ufs and have not been seen yet.
+ * Probably NEVER usable external clause!
+ * TODO: optimize: add monotone literals until the aggregate can become true
+ */
+void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, InterMediateDataStruct& seen) {
+	assert(isInitialized());
+	TypedSet* set = getAggDefiningHead(v)->getSet();
+
+	for (vwl::const_iterator i = set->getWL().begin(); i < set->getWL().end(); ++i) {
+		Lit l = (*i).getLit();
+		if(ufs.find(var(l)) != ufs.end() || seen.getElem(var(l)) == (isPositive(l) ? 2 : 1)){
+			continue;
+		}
+
+		if(isTrue(l)){
+			l = ~l;
+		}
+
+		if(!isFalse(l)){
+			continue;
+		}
+
+		loopf.push(l);
+		seen.getElem(var(l)) = isPositive(l) ? 2 : 1;
+	}
+}
+
+/**
+ * Propagates the fact that w has been justified and use the info on other earlier justifications to derive other
+ * heads.
+ *
+ * @post: any new derived heads are in heads, with its respective justification in jstf
+ */
+void AggSolver::propagateJustifications(const Lit& w, vec<vec<Lit> >& jstfs, vec<Lit>& heads, InterMediateDataStruct& currentjust) {
+	assert(isInitialized());
+	for (vps::const_iterator i = var2setlist[var(w)].begin(); i < var2setlist[var(w)].end(); ++i) {
+		TypedSet* set = (*i);
+		for (agglist::const_iterator j = set->getAgg().begin(); j < set->getAgg().end(); ++j) {
+			const Agg& agg = *(*j);
+			if (!agg.isDefined() || isFalse(agg.getHead())) {
+				continue;
+			}
+
+			//FIXME HACK HACK!
+			if(agg.getSem()==IMPLICATION && !sign(agg.getHead())){
+				continue;
+			}
+
+			Var head = var(agg.getHead());
+			if (currentjust.getElem(head) > 0) { //only check its body for justification when it has not yet been derived
+				vec<Lit> jstf;
+				vec<Var> nonjstf;
+
+				if (set->getType().canJustifyHead(agg, jstf, nonjstf, currentjust, false)) {
+					currentjust.getElem(head) = 0;
+					heads.push(mkLit(head, false));
+					jstfs.push();
+					jstf.copyTo(jstfs.last());
+				}
+			}
+		}
+	}
+}
+
+/**
+ * The given head is not false. So it has a (possibly looping) justification. Find this justification
+ */
+void AggSolver::findJustificationAggr(Var head, vec<Lit>& outjstf) {
+	assert(isInitialized());
+	vec<Var> nonjstf;
+	InterMediateDataStruct* currentjust = new InterMediateDataStruct(0,0); //create an empty justification
+	const Agg& agg = *getAggDefiningHead(head);
+	agg.getSet()->getType().canJustifyHead(agg, outjstf, nonjstf, *currentjust, true);
+	delete currentjust;
+}
+
+/**
+ * Check whether the given var is justified by the current justification graph. If this is the case, jstf will
+ * contain its justification and true will be returned. Otherwise, false will be returned and nonjstf will contain
+ * all body literals of v that are not justified.
+ */
+bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, InterMediateDataStruct& currentjust) {
+	assert(isInitialized());
+	const Agg& agg = *getAggDefiningHead(v);
+	return agg.getSet()->getType().canJustifyHead(agg, jstf, nonjstf, currentjust, false);
+}
+
+ */
+ */
+
 //TARJAN ALGORITHM FOR FINDING UNFOUNDED SETS IN GENERAL INDUCTIVE DEFINITIONS (NOT ONLY SINGLE CONJUNCTS). THIS DOES NOT WORK YET
 ///////////////
 ////Finding unfounded checks by

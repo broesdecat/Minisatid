@@ -39,6 +39,7 @@ libminisatid_2_0_la_SOURCES = \
 		modules/ModSolver.hpp	 			modules/ModSolver.cpp\
 		modules/IDSolver.hpp 				modules/IDSolver.cpp\
 		modules/AggSolver.hpp 				modules/AggSolver.cpp\
+		modules/AggPropFactory.hpp 			modules/AggPropFactory.cpp\
 		modules/aggsolver/AggTransform.hpp 	modules/aggsolver/AggTransform.cpp\
 		modules/aggsolver/AggUtils.hpp 		modules/aggsolver/AggUtils.cpp\
 		modules/aggsolver/AggPrint.hpp 		modules/aggsolver/AggPrint.cpp\

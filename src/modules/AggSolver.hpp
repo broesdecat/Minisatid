@@ -116,19 +116,6 @@ public:
 
 	// INITIALIZATION
 
-	/**
-	 * Adds the set with the given id to the solver and sets its literals and its weights.
-	 *
-	 * @pre: no set with the same id has already been added
-	 * @pre: negative weights are not allowed
-	 * @pre: empty sets are not allowed
-	 */
-	bool 		addSet(int id, const std::vector<Lit>& l, const std::vector<Weight>& w);
-
-	//@pre: no weights==0 when using a product aggregate
-	bool 		addDefinedAggrExpr(const InnerAggregate& agg, IDSolver* idsolver);
-	bool 		addAggrExpr(const InnerAggregate& agg);
-
 	bool 		addMnmz(Var headv, int setid, AggType type);
 
 	// Propagator methods
@@ -191,8 +178,6 @@ protected:
 
 	bool		finishSet				(TypedSet* set);
 };
-
-void printNumberOfAggregates(int nbsets, int nbagg, int nbsetlits, std::map<MinisatID::AggType, int>& nbaggs, int verbosity = 1000);
 
 }
 
