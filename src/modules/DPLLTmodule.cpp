@@ -24,3 +24,12 @@ bool Propagator::hasNextProp(){
 const Lit& Propagator::getNextProp(){
 	return getPCSolver().getSATSolver()->getTrailElem(trailindex++);
 }
+
+void Propagator::addWatch(Var atom) {
+	getPCSolver().acceptLitEvent(this, mkLit(atom, false), FAST);
+	getPCSolver().acceptLitEvent(this, mkLit(atom, true), FAST);
+}
+
+void Propagator::addWatch(const Lit& lit) {
+	getPCSolver().acceptLitEvent(this, lit, FAST);
+}

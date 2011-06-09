@@ -7,7 +7,7 @@
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 #include "modules/IDSolver.hpp"
-#include "modules/AggSolver.hpp"
+#include "modules/aggsolver/AggProp.hpp"
 #include "utils/Print.hpp"
 #include "theorysolvers/PCSolver.hpp"
 
@@ -24,7 +24,6 @@ using namespace MinisatID;
 IDSolver::IDSolver(PCSolver* s, int definitionID):
 		Propagator(s),
 		definitionID(definitionID),
-		aggsolver(NULL),
 		//minvar(-1), maxvar(-1), nbvars(0),
 		minvar(0), nbvars(0),
 		sem(getPCSolver().modes().defsem),
@@ -257,7 +256,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 				break;
 			case AGGR: {
 				if (hasRecursiveAggregates()) {
-					for (vwl::const_iterator j = getAggSolver()->getSetLitsOfAggWithHeadBegin(v); !isdefd && j< getAggSolver()->getSetLitsOfAggWithHeadEnd(v); ++j) {
+					for (vwl::const_iterator j = getSetLitsOfAggWithHeadBegin(v); !isdefd && j< getSetLitsOfAggWithHeadEnd(v); ++j) {
 						if (inSameSCC(v, var((*j).getLit()))) { // NOTE: disregard sign here: set literals can occur both pos and neg in justifications.
 							isdefd = true;
 						}
@@ -399,7 +398,7 @@ void IDSolver::visitFull(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &vi
 			break;
 		}
 		case AGGR: {
-			for (vwl::const_iterator j = getAggSolver()->getSetLitsOfAggWithHeadBegin(i); j<getAggSolver()->getSetLitsOfAggWithHeadEnd(i); ++j) {
+			for (vwl::const_iterator j = getSetLitsOfAggWithHeadBegin(i); j<getSetLitsOfAggWithHeadEnd(i); ++j) {
 				Var w = var((*j).getLit());
 				if (!isDefined(w)) {
 					continue;
@@ -475,7 +474,7 @@ void IDSolver::visit(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visite
 		}
 		case AGGR: {
 			//TODO this can be optimized by using another method which only returns literals possibly in the positive dependency graph.
-			for (vwl::const_iterator j = getAggSolver()->getSetLitsOfAggWithHeadBegin(i); j<getAggSolver()->getSetLitsOfAggWithHeadEnd(i); ++j) {
+			for (vwl::const_iterator j = getSetLitsOfAggWithHeadBegin(i); j<getSetLitsOfAggWithHeadEnd(i); ++j) {
 				Var w = var((*j).getLit());
 				if (!isDefined(w)) {
 					continue;
@@ -794,7 +793,26 @@ void IDSolver::propagateJustificationAggr(const Lit& l, vec<vec<Lit> >& jstf, ve
 	if (!hasRecursiveAggregates()) {
 		return;
 	}
-	getAggSolver()->propagateJustifications(l, jstf, heads, *_seen);
+	for(vector<DefinedVar*>::const_iterator i = aggr_occurs[var(l)].begin(); i < aggr_occurs[var(l)].end(); ++i) {
+		const Agg& agg = (*i)->_definedaggregate;
+			if (isFalse(agg.getHead())) {
+				continue;
+			}
+
+			Var head = var(agg.getHead());
+			if (currentjust.getElem(head) > 0) { //only check its body for justification when it has not yet been derived
+				vec<Lit> jstf;
+				vec<Var> nonjstf;
+
+				if (canJustifyHead(agg, jstf, nonjstf, currentjust, false)) {
+					currentjust.getElem(head) = 0;
+					heads.push(mkLit(head, false));
+					jstfs.push();
+					jstf.copyTo(jstfs.last());
+				}
+			}
+		}
+	}
 }
 
 /*
@@ -2530,11 +2548,16 @@ void IDSolver::printStatistics() const {
 	report(">                       : %4.2f treated per loop\n", (float)succesful_justify_calls/nb_times_findCS);
 }
 
-//FIXME
-/*
-// RECURSIVE AGGREGATES
+bool IDSolver::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const {
+	if(agg.getType()==MAX){
+		return canJustifyMaxHead(agg, jstf, nonjstf, currentjust, real);
+	}else{
+		assert(agg.getType()==PROD || agg.getType(SUM));
+		return canJustifySPHead(agg, jstf, nonjstf, currentjust, real);
+	}
+}
 
-bool MaxProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const {
+bool IDSolver::canJustifyMaxHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const {
 	TypedSet* set = agg.getSet();
 	bool justified = true;
 	const vwl& wl = set->getWL();
@@ -2581,7 +2604,7 @@ bool MaxProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, 
  * 					if so, change the justification to the negation of all those below the bound literals
  * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
  */
-bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const {
+bool IDSolver::canJustifySPHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const {
 	TypedSet* set = agg.getSet();
 	const AggProp& type = agg.getSet()->getType();
 	bool justified = true;
@@ -2626,91 +2649,82 @@ bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, c
 }
 
 /*bool SPAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
- //OTHER IMPLEMENTATION (probably buggy)
- pSet s = getSet();
+	//OTHER IMPLEMENTATION (probably buggy)
+	pSet s = getSet();
 
- Weight current = 0;
- if(isLower()){
- current = s->getBestPossible();
- }else{
- current = s->getEmptySetValue();
- }
+	Weight current = 0;
+	if (isLower()) {
+		current = s->getBestPossible();
+	} else {
+		current = s->getEmptySetValue();
+	}
 
- bool justified = false;
- if(aggValueImpliesHead(current)){
- justified = true;
- }
+	bool justified = false;
+	if (aggValueImpliesHead(current)) {
+		justified = true;
+	}
 
- for (lwlv::const_iterator i = s->getWLBegin(); !justified && i < s->getWLEnd(); ++i) {
- if(isMonotone(*i) && s->isJustified(*i, currentjust, real)){
- if(isLower()){
- jstf.push(~(*i).getLit());
- current = this->remove(current, (*i).getWeight());
- }else{
- //if(s->isJustified(*i, currentjust, real)){
- jstf.push((*i).getLit());
- current = this->add(current, (*i).getWeight());
- }
+	for (lwlv::const_iterator i = s->getWLBegin(); !justified && i
+			< s->getWLEnd(); ++i) {
+		if (isMonotone(*i) && s->isJustified(*i, currentjust, real)) {
+			if (isLower()) {
+				jstf.push(~(*i).getLit());
+				current = this->remove(current, (*i).getWeight());
+			} else {
+				//if(s->isJustified(*i, currentjust, real)){
+				jstf.push((*i).getLit());
+				current = this->add(current, (*i).getWeight());
+			}
 
- if (aggValueImpliesHead(current)){
- justified = true;
- }
- }else if(real ||currentjust[var((*i).getLit())]!=0){
- nonjstf.push(var((*i).getLit()));
- }
- }
+			if (aggValueImpliesHead(current)) {
+				justified = true;
+			}
+		} else if (real || currentjust[var((*i).getLit())] != 0) {
+			nonjstf.push(var((*i).getLit()));
+		}
+	}
 
- if (!justified) {
- jstf.clear();
- }
+	if (!justified) {
+		jstf.clear();
+	}
 
- if(s->getSolver()->getPCSolver()->modes().verbosity >=4){
- reportf("Justification checked for ");
- printAggrExpr(this);
+	if (s->getSolver()->getPCSolver()->modes().verbosity >= 4) {
+		reportf("Justification checked for ");
+		printAggrExpr(this);
 
- if(justified){
- reportf("justification found: ");
- for(int i=0; i<jstf.size(); ++i){
- print(jstf[i]); reportf(" ");
- }
- reportf("\n");
- }else{
- reportf("no justification found.\n");
- }
- }
+		if (justified) {
+			reportf("justification found: ");
+			for (int i = 0; i < jstf.size(); ++i) {
+				print(jstf[i]);
+				reportf(" ");
+			}
+			reportf("\n");
+		} else {
+			reportf("no justification found.\n");
+		}
+	}
 
- return justified;
- }
+	return justified;
+}*/
 
- // RECURSIVE AGGREGATES
-
-Agg* AggSolver::getAggDefiningHead(Var v) const {
-	assert(isInitialized());
-	Agg* agg = lit2headwatchlist[toInt(createNegativeLiteral(v))];
-	assert(agg!=NULL && agg->isDefined());
-	return agg;
+Agg* IDSolver::getAggDefiningHead(Var v) const {
+	//FIXME checks en mooiere code
+	return definitions[v]->_definedaggregate;
 }
 
-vector<Var> AggSolver::getDefAggHeadsWithBodyLit(Var x) const{
-	assert(isInitialized());
+vector<Var> IDSolver::getDefAggHeadsWithBodyLit(Var x) const{
 	vector<Var> heads;
-	for (vps::const_iterator i = var2setlist[x].begin(); i < var2setlist[x].end(); ++i) {
-		for (agglist::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); ++j) {
-			if((*j)->isDefined()){
-				heads.push_back(var((*j)->getHead()));
-			}
-		}
+	for (vps::const_iterator i = aggr_occurs[x].begin(); i < aggr_occurs[x].end(); ++i) {
+		heads.push_back(var((*i)->getHead()));
 	}
 	return heads;
 }
 
-vwl::const_iterator AggSolver::getSetLitsOfAggWithHeadBegin(Var x) const {
-	assert(isInitialized());
+vwl::const_iterator IDSolver::getSetLitsOfAggWithHeadBegin(Var x) const {
 	return getAggDefiningHead(x)->getSet()->getWL().begin();
 }
 
-vwl::const_iterator AggSolver::getSetLitsOfAggWithHeadEnd(Var x) const {
-	assert(isInitialized());
+vwl::const_iterator IDSolver::getSetLitsOfAggWithHeadEnd(Var x) const {
 	return getAggDefiningHead(x)->getSet()->getWL().end();
 }
 
@@ -2723,8 +2737,7 @@ vwl::const_iterator AggSolver::getSetLitsOfAggWithHeadEnd(Var x) const {
  * Probably NEVER usable external clause!
  * TODO: optimize: add monotone literals until the aggregate can become true
  */
-void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, InterMediateDataStruct& seen) {
-	assert(isInitialized());
+void IDSOlver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, InterMediateDataStruct& seen) {
 	TypedSet* set = getAggDefiningHead(v)->getSet();
 
 	for (vwl::const_iterator i = set->getWL().begin(); i < set->getWL().end(); ++i) {
@@ -2747,51 +2760,13 @@ void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& l
 }
 
 /**
- * Propagates the fact that w has been justified and use the info on other earlier justifications to derive other
- * heads.
- *
- * @post: any new derived heads are in heads, with its respective justification in jstf
- */
-void AggSolver::propagateJustifications(const Lit& w, vec<vec<Lit> >& jstfs, vec<Lit>& heads, InterMediateDataStruct& currentjust) {
-	assert(isInitialized());
-	for (vps::const_iterator i = var2setlist[var(w)].begin(); i < var2setlist[var(w)].end(); ++i) {
-		TypedSet* set = (*i);
-		for (agglist::const_iterator j = set->getAgg().begin(); j < set->getAgg().end(); ++j) {
-			const Agg& agg = *(*j);
-			if (!agg.isDefined() || isFalse(agg.getHead())) {
-				continue;
-			}
-
-			//FIXME HACK HACK!
-			if(agg.getSem()==IMPLICATION && !sign(agg.getHead())){
-				continue;
-			}
-
-			Var head = var(agg.getHead());
-			if (currentjust.getElem(head) > 0) { //only check its body for justification when it has not yet been derived
-				vec<Lit> jstf;
-				vec<Var> nonjstf;
-
-				if (set->getType().canJustifyHead(agg, jstf, nonjstf, currentjust, false)) {
-					currentjust.getElem(head) = 0;
-					heads.push(mkLit(head, false));
-					jstfs.push();
-					jstf.copyTo(jstfs.last());
-				}
-			}
-		}
-	}
-}
-
-/**
  * The given head is not false. So it has a (possibly looping) justification. Find this justification
  */
-void AggSolver::findJustificationAggr(Var head, vec<Lit>& outjstf) {
-	assert(isInitialized());
+void IDSolver::findJustificationAggr(Var head, vec<Lit>& outjstf) {
 	vec<Var> nonjstf;
 	InterMediateDataStruct* currentjust = new InterMediateDataStruct(0,0); //create an empty justification
 	const Agg& agg = *getAggDefiningHead(head);
-	agg.getSet()->getType().canJustifyHead(agg, outjstf, nonjstf, *currentjust, true);
+	canJustifyHead(agg, outjstf, nonjstf, *currentjust, true);
 	delete currentjust;
 }
 
@@ -2800,14 +2775,10 @@ void AggSolver::findJustificationAggr(Var head, vec<Lit>& outjstf) {
  * contain its justification and true will be returned. Otherwise, false will be returned and nonjstf will contain
  * all body literals of v that are not justified.
  */
-bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, InterMediateDataStruct& currentjust) {
-	assert(isInitialized());
+bool IDSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, InterMediateDataStruct& currentjust) {
 	const Agg& agg = *getAggDefiningHead(v);
-	return agg.getSet()->getType().canJustifyHead(agg, jstf, nonjstf, currentjust, false);
+	return canJustifyHead(agg, jstf, nonjstf, currentjust, false);
 }
-
- */
- */
 
 //TARJAN ALGORITHM FOR FINDING UNFOUNDED SETS IN GENERAL INDUCTIVE DEFINITIONS (NOT ONLY SINGLE CONJUNCTS). THIS DOES NOT WORK YET
 ///////////////

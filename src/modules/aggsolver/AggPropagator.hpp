@@ -28,6 +28,8 @@ public:
 
 	//Assert: only call if model is two-valued!
 	virtual Weight		getValue() const;
+
+	rClause 			notifySolver(AggReason* ar);
 };
 }
 

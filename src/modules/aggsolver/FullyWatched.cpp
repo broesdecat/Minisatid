@@ -29,6 +29,8 @@ FWAgg::FWAgg(TypedSet* set) :
 
 }
 
+
+
 void FWAgg::initialize(bool& unsat, bool& sat) {
 	if (getSet().getAgg().size() == 0) {
 		sat = true;	return;

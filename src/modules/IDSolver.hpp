@@ -28,7 +28,7 @@ typedef std::vector<Var> vv;
 typedef std::vector<int> VarToJustif; //Maps variables to their current state in the justification algorithm
 
 class PCSolver;
-class AggSolver;
+class Agg;
 
 /**
  * The different possible types of definitions.
@@ -62,16 +62,21 @@ public:
 
 class DefinedVar{
 private:
-	std::vector<Lit> 	_reason;
-	PropRule* 			_definition;	//Can be NULL if aggregate
-	DefType 			_type;
-	DefOcc 				_occ;
-	bool 				_isCS;			//Currently considered cycle source
-	int 				_scc;			//To which SCC it belongs
-	vec<Lit> 			_justification;	//Its current justification
+	std::vector<Lit> _reason;
+	union{
+		PropRule*	_definition;
+		Agg*		_definedaggregate;
+	};
+
+	DefType 		_type;
+	DefOcc 			_occ;
+	bool 			_isCS;			//Currently considered cycle source
+	int 			_scc;			//To which SCC it belongs
+	vec<Lit> 		_justification;	//Its current justification
 
 public:
 	DefinedVar(PropRule* rule, DefType type): _definition(rule), _type(type), _occ(BOTHLOOP), _isCS(false), _scc(-1){}
+	DefinedVar(Agg* rule): _definedaggregate(rule), _type(AGGR), _occ(BOTHLOOP), _isCS(false), _scc(-1){}
 	~DefinedVar(){
 		delete _definition;
 	}
@@ -95,8 +100,6 @@ public:
 class IDSolver: public Propagator{
 private:
 	int definitionID;
-
-	AggSolver* 				aggsolver;
 
 	Var minvar, nbvars; //TODO, maxvar, nbvars; 	//The lowest and highest headvariable. INVAR: Definitions will be offset by minvar and the size will be nbvars
 	std::vector<DefinedVar*> definitions; //Maps all variables to NULL or a defined variable
@@ -146,7 +149,6 @@ public:
 	int					getDefinitionID() const { return definitionID; }
 
 	bool				hasRecursiveAggregates	() const 	{ return posrecagg || mixedrecagg; }
-	MinisatID::AggSolver*	getAggSolver		() const	{ assert(hasRecursiveAggregates()); return aggsolver;}
 
 	// Propagator methods
 	virtual void 		finishParsing		 	(bool& present, bool& unsat);
@@ -169,8 +171,7 @@ public:
 
 	const vec<Lit>&		getCFJustificationAggr	(Var v) const;
 	void 				cycleSourceAggr			(Var v, vec<Lit>& nj);
-	void 				notifyAggrHead			(Var head, AggSolver* aggsolver);
-	void 				removeAggrHead			(Var head);
+	void 				addDefinedAggregate		(Agg* agg);
 
 	bool    			addRule      			(bool conj, Lit head, const vec<Lit>& ps);	// Add a rule to the solver.
 

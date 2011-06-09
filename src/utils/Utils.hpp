@@ -117,11 +117,14 @@ struct InnerWSet{
 };
 
 struct InnerAggregate{
-	Var head;
 	int setID;
 	Weight bound;
 	AggType type;
 	AggSign sign;
+};
+
+struct InnerReifAggregate: public InnerAggregate{
+	Var head;
 	AggSem sem;
 	int defID; //Only relevant if defined aggregate
 };

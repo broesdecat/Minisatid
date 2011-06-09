@@ -39,8 +39,10 @@ private:
 	PropagatorFactory* propagatorfactory;
 
 	setid2set 	parsedSets;
+	setlist		sets;
 	varlist		heads;
-	Var			dummyhead;
+	Var 		temphead;
+	Lit			dummyhead;
 
 public:
 	AggPropFactory(PropagatorFactory* s);
@@ -51,15 +53,19 @@ public:
 	 * @pre: set is not empty
 	 */
 	bool addSet(int id, const std::vector<WL>& weightedliterals);
+	bool addAggrExpr(const InnerReifAggregate& agg);
 	bool addAggrExpr(const InnerAggregate& agg);
 
-	void finishParsing(bool& present, bool& unsat);
+	void finishParsing(bool& unsat);
 
 private:
+	bool AggPropFactory::addAggrExpr(const InnerReifAggregate& agg);
+
 	const PropagatorFactory& getPropagatorFactory() const { return *propagatorfactory; }
 	PropagatorFactory& getPropagatorFactory() { return *propagatorfactory; }
-	const PCSolver& getPCSolver() const;
-	PCSolver& getPCSolver();
+	const PCSolver& getEngine() const;
+	PCSolver& getEngine();
+	PCSolver* getEnginep();
 
 	bool 		hasIDSolver(int defid) const;
 	IDSolver& 	getIDSolver(int defid);

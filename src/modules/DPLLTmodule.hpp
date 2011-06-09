@@ -91,6 +91,9 @@ public:
 	lbool 	value		(const Lit& p) 	const { return getPCSolver().value(p); }
 	int 	nVars		() 				const {	return getPCSolver().nVars(); }
 
+	void	addWatch	(Var atom);
+	void	addWatch	(const Lit& lit);
+
 	// State methods
 	bool isParsing			() const { return init==PARSING; }
 	bool isInitializing 	() const { return init==INITIALIZING; }

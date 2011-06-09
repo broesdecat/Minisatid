@@ -25,18 +25,20 @@
 using namespace std;
 using namespace MinisatID;
 
-const PCSolver& AggPropFactory::getPCSolver() const { return getPropagatorFactory().getEngine(); }
-PCSolver& AggPropFactory::getPCSolver() { return getPropagatorFactory().getEngine(); }
+const PCSolver& AggPropFactory::getEngine() const { return getPropagatorFactory().getEngine(); }
+PCSolver& AggPropFactory::getEngine() { return getPropagatorFactory().getEngine(); }
+PCSolver* AggPropFactory::getEnginep() { return getPropagatorFactory().getEnginep(); }
 
 bool 		AggPropFactory::hasIDSolver(int defid) const { return getPropagatorFactory().hasIDSolver(defid); }
 IDSolver& 	AggPropFactory::getIDSolver(int defid) { return *getPropagatorFactory().getIDSolver(defid); }
 
 AggPropFactory::AggPropFactory(PropagatorFactory* s) :
 		propagatorfactory(s),
-		dummyhead(-1){
+		temphead(-1), dummyhead(-1){
 }
 
 AggPropFactory::~AggPropFactory() {
+	deleteList<TypedSet>(sets);
 }
 
 void throwUndefinedSet(int setid){
@@ -80,7 +82,7 @@ bool AggPropFactory::addSet(int setid, const vector<WL>& weightedlits) {
 		throwEmptySet(setid);
 	}
 
-	if (parsedSets.find(setid) != parsedSets.end()) {
+	if (alreadyInContainer(setid, parsedSets)) {
 		throwDoubleDefinedSet(setid);
 	}
 
@@ -99,114 +101,74 @@ bool AggPropFactory::addSet(int setid, const vector<WL>& weightedlits) {
 	return true;
 }
 
-bool AggPropFactory::addAggExpr(const InnerNonReifAggregate& agg){
-	//TODO
+bool AggPropFactory::addAggrExpr(const InnerReifAggregate& agg){
+	if(alreadyInContainer(agg.head, heads)){
+		throwDuplicateHeads(agg.head);
+	}
+	return addAggr(agg);
 }
 
 bool AggPropFactory::addAggrExpr(const InnerAggregate& agg){
+	InnerReifAggregate newagg;
+	newagg.head = temphead;
+	newagg.bound = agg.bound;
+	newagg.sem = COMP; //TODO can also be implication if only one model / sat equivalence is needed
+	newagg.setID = agg.setID;
+	newagg.type = agg.type;
+	return addAggr(newagg);
+}
 
 template<class C, class Elem>
 bool alreadyInContainer(const Elem& elem, const C& container){
 	return container.end()==container.find(elem);
 }
 
-bool AggPropFactory::addAggrExpr(const InnerAggregate& agg, bool reified){
+bool AggPropFactory::addAggrExpr(const InnerReifAggregate& agg){
 	if (!alreadyInContainer(agg.setID, parsedSets)) {
 		throwUndefinedSet(agg.setID);
 	}
 
-	if (agg.head < 0) {
-		throwNegativeHead(agg.head);
-	}
-
 	TypedSet* set = parsedSets[agg.setID];
+	heads.insert(agg.head);
+
+	Lit head = mkLit(agg.head, false);
+	Agg* aggregate = new Agg(head, AggBound(agg.sign, agg.bound),agg.sem, agg.defID, agg.type);
+	set->addAgg(aggregate);
 
 	for (vwl::const_iterator i=set->getWL().begin(); i<set->getWL().end(); ++i) {
 		if (var((*i).getLit()) == agg.head) {
 			throwHeadOccursInSet(agg.head, agg.setID);
 		}
-	}
-
-	//Check that no aggregates occur with the same heads
-	if(alreadyInContainer(agg.head, heads)){
-		if(reified){
-			throwDuplicateHeads(agg.head);
-		}else{
-			 agg.head == dummyhead;
-		}
-	}
-
-	//TODO
-	/*
-	heads.insert(agg.head);
-
 #ifdef DEBUG
-	if(agg.type == CARD) { //Check if all card weights are 1
-		for(vwl::size_type i=0; i<parsedSets[agg.setID]->getWL().size(); ++i) {
-			if(parsedSets[agg.setID]->getWL()[i].getWeight()!=1) {
-				report("Cardinality was loaded with wrong weights");
-				assert(false);
-			}
+		if(agg.type == CARD) {
+			assert((*i).getWeight()==1);
 		}
-	}
 #endif
-
-	getPCSolver().varBumpActivity(agg.head);
-
-	Lit head = mkLit(agg.head, false); //TODO Var!
-	Agg* aggregate = new Agg(head, AggBound(agg.sign, agg.bound),agg.sem, agg.defID, agg.type);
-	set->addAgg(aggregate);
+	}
 
 	return true;
 }
 
-void AggPropFactory::finishParsing(bool& present, bool& unsat) {
-	unsat = false;
-	present = true;
+void AggPropFactory::initializeAllSets(){
+	setlist remainingsets;
+	setlist satsets;
+	for (setlist::iterator i=sets.begin(); !unsat && i<sets.end(); ++i) {
+		TypedSet* set = *i;
 
-	if (parsedSets.size() == 0) {
-		present = false;
-		notifyInitialized();
-		return;
-	}
-
-	if(verbosity() >= 3){
-		report("Initializing aggregates\n");
-	}
-
-	//IMPORTANT: LAZY initialization!
-	adaptToNVars(nVars());
-
-	for(mips::const_iterator i=parsedSets.begin(); i!=parsedSets.end(); ++i){
-		sets.push_back((*i).second);
-	}
-
-	// Initialization of all sets
-
-	//Rewrite completion sum and card constraints into CNF using PBSOLVER
-	if(getPCSolver().modes().pbsolver && !unsat){
-		unsat = !transformSumsToCNF(sets, *this);
-	}
-
-	//Finish the sets: add all body literals to the network
-	vps remainingsets;
-	vps satsets;
-	for (vsize i=0; !unsat && i<sets.size(); ++i) {
-		TypedSet* set = sets[i];
-		bool setsat = false;
-
-		if(!unsat && !setsat){
-			//FIXME: error in new engine because watches are added before full initialization is done, sometimes leading to propagation calls before full initialization is done (which is not allowed!)
-			set->initialize(unsat, setsat, sets);
-		}
-
-		if(!unsat && !setsat){
-			for (vsize i = 0; i < set->getWL().size(); ++i) {
-				var2setlist[var(set->getWL()[i].getLit())].push_back(set);
+		for(agglist::iterator j=set->getAggNonConst().begin(); j<set->getAggNonConst().end(); ++h){
+			if((*j)->getHead()==temphead){
+				(*j)->setHead(dummyhead);
 			}
+
+			getEngine().varBumpActivity((*j)->getHead());
 		}
 
-		if(setsat){
+		bool removeset = false;
+		if(!unsat && !removeset){
+			set->initialize(unsat, removeset, sets);
+		}
+
+		if(removeset){
 			satsets.push_back(set);
 		}else{
 			assert(unsat || set->getAgg().size()>0);
@@ -215,6 +177,65 @@ void AggPropFactory::finishParsing(bool& present, bool& unsat) {
 	}
 	sets.clear();
 	sets.insert(sets.begin(), remainingsets.begin(), remainingsets.end());
+}
+
+bool printedwarning = false;
+void AggPropFactory::finishParsing(bool& unsat) {
+	unsat = false;
+
+	if (parsedSets.size() == 0) {
+		return;
+	}
+
+	for(mips::const_iterator i=parsedSets.begin(); i!=parsedSets.end(); ++i){
+		sets.push_back((*i).second);
+	}
+
+	// Initialization of all sets
+	if(getEngine().modes().pbsolver && !unsat){
+		unsat = !transformSumsToCNF(sets, getEngine());
+	}
+
+	dummyhead = mkLit(getEngine().newVar());
+	InnerDisjunction unitclause;
+	unitclause.literals.push(dummyhead);
+	getEngine().add(unitclause);
+
+	initializeAllSets();
+
+
+
+	for(setlist::const_iterator i=remainingsets.begin(); i<remainingsets.end(); ++i){
+		TypedSet* set = *i;
+		sets.push_back(set);
+
+		switch((*i)->type){
+		case CARD:
+		case SUM:
+			if(set->isUsingWatches()){
+				new GenPWAgg(getEnginep(), set);
+			}else{
+				new SumFWAgg(getEnginep(), set);
+			}
+			break;
+		case PROD:
+			if(set->isUsingWatches()){
+				new GenPWAgg(getEnginep(), set);
+			}else{
+				new ProdFWAgg(getEnginep(), set);
+			}
+			break;
+		case MAX:
+			if(set->isUsingWatches() && !printedwarning){
+				clog <<">> Currently max/min aggregates never use watched-literal-schemes.\n";
+				printedwarning = true;
+			}
+			new MaxFWAgg(getEnginep(), set);
+			break;
+		default:
+			assert(false);
+		}
+	}
 	deleteList<TypedSet>(satsets);
 
 #ifdef DEBUG
@@ -225,75 +246,5 @@ void AggPropFactory::finishParsing(bool& present, bool& unsat) {
 			assert((*i)->getSet()->getAgg()[(*i)->getIndex()]==(*i));
 		}
 	}
-
-	//TODO check all watches are correct
 #endif
-
-	if(unsat){
-		if (verbosity() >= 3) {
-			report("Initializing aggregates finished, unsat detected.\n");
-		}
-		notifyInitialized();
-		return;
-	}
-
-	//Gather available information
-	map<AggType, int> nbaggs;
-	int totalagg = 0, setlits = 0;
-	for (vps::const_iterator i = sets.begin(); i < sets.end(); ++i) {
-		int agg = (*i)->getAgg().size();
-		totalagg += agg;
-		setlits += (*i)->getWL().size();
-		nbaggs[(*i)->getType().getType()]+=agg; //Defaults to 0 if new: http://forums.whirlpool.net.au/archive/1286863
-	}
-
-	if (totalagg == 0) {
-		if (verbosity() >= 3) {
-			report("Initializing aggregates finished, no aggregates present after initialization.\n");
-		}
-		present = false;
-		notifyInitialized();
-		return;
-	}*/
 }
-
-/*
-bool printedwarning = false;
-
-AggPropagator*	MaxProp::createPropagator(TypedSet* set) const{
-	if(set->isUsingWatches() && !printedwarning){
-		clog <<">> Currently max/min aggregates never use watched-literal-schemes.\n";
-		printedwarning = true;
-	}
-	return new MaxFWAgg(set);
-}
-
-//Propagator*	MinProp::createPropagator(TypedSet* set) const{
-//	if(set->isUsingWatches() && !printedwarning){
-//		clog <<">> Currently max/min aggregates never use watched-literal-schemes.\n";
-//		printedwarning = true;
-//	}
-//	return new MinFWAgg(set);
-//}
-
-AggPropagator*	SumProp::createPropagator(TypedSet* set) const{
-	set->getSolver()->adaptAggHeur(set->getWL(), set->getAgg().size());
-
-	if(set->isUsingWatches()){
-		return new GenPWAgg(set);
-	}else{
-		return new SumFWAgg(set);
-	}
-}
-
-AggPropagator*	ProdProp::createPropagator(TypedSet* set) const{
-	set->getSolver()->adaptAggHeur(set->getWL(), set->getAgg().size());
-
-	if(set->isUsingWatches()){
-		return new GenPWAgg(set);
-	}else{
-		return new ProdFWAgg(set);
-	}
-}
-*/
- */
