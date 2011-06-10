@@ -51,7 +51,10 @@ public:
 bool compareWLByLits(const WL& one, const WL& two);
 
 //Compare WLs by their weights
-bool compareWLByWeights(const WL& one, const WL& two);
+template<class T>
+bool compareByWeights(const T& one, const T& two) {
+	return one.getWeight() < two.getWeight();
+}
 
 bool compareWLByAbsWeights(const WL& one, const WL& two);
 
