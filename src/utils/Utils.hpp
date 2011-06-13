@@ -134,19 +134,19 @@ struct InnerSubTheory{
 
 struct InnerIntVarEnum{
 	uint varID;
-	std::vector<int> values;
+	std::vector<Weight> values;
 };
 
 struct InnerIntVarRange{
 	uint varID;
-	int minvalue, maxvalue;
+	Weight minvalue, maxvalue;
 };
 
 struct InnerCPBinaryRel{
 	Var head;
 	uint varID;
 	EqType rel;
-	int bound;
+	Weight bound;
 };
 
 struct InnerCPBinaryRelVar{
@@ -158,14 +158,14 @@ struct InnerCPBinaryRelVar{
 struct InnerCPSumWeighted{
 	Var head;
 	std::vector<uint> varIDs;
-	std::vector<int> weights;
+	std::vector<Weight> weights;
 	EqType rel;
-	int bound;
+	Weight bound;
 };
 
 struct InnerCPCount{
 	std::vector<uint> varIDs;
-	int eqbound;
+	Weight eqbound;
 	EqType rel;
 	uint rhsvar;
 };
