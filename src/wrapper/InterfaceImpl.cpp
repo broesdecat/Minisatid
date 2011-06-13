@@ -333,7 +333,7 @@ bool PCWrapperPimpl::add(const WLSet& sentence){
 
 template<>
 bool PCWrapperPimpl::add(const Aggregate& sentence){
-	InnerAggregate agg;
+	InnerReifAggregate agg;
 	agg.setID = sentence.setID;
 	agg.head = checkAtom(sentence.head);
 	agg.bound = sentence.bound;
@@ -526,7 +526,7 @@ bool SOWrapperPimpl::add(int modid, const WLSet& sentence){
 
 template<>
 bool SOWrapperPimpl::add(int modid, const Aggregate& sentence){
-	InnerAggregate agg;
+	InnerReifAggregate agg;
 	agg.setID = sentence.setID;
 	agg.head = checkAtom(sentence.head);
 	agg.bound = sentence.bound;

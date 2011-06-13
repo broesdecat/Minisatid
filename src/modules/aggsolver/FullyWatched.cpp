@@ -390,19 +390,15 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 
 	//Subsetminimization
 	if(getSolver()->modes().subsetminimizeexplanation){
-		sort(reasons.begin(), reasons.end(), comparePropagationInfoByWeights);
+		sort(reasons.begin(), reasons.end(), compareByWeights<PropagationInfo>);
 		for(vector<PropagationInfo>::iterator i=reasons.begin(); i<reasons.end(); ++i){
-			Weight tempmax = max;
-			Weight tempmin = min;
-
 			bool inset = (*i).getType()==POS;
 			removeValue(getSet().getType(), (*i).getWeight(), inset, min, max);
 			if((caseone && isFalsified(agg, min, max) ) ||(!caseone && isSatisfied(agg, min, max))){
 				i = reasons.erase(i);
 				i--;
 			}else{
-				max = tempmax;
-				min = tempmin;
+				break;
 			}
 		}
 	}

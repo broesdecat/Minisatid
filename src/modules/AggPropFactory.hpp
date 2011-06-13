@@ -32,7 +32,6 @@ struct AggBound;
 
 typedef std::map<int, TypedSet*> setid2set;
 typedef std::vector<TypedSet*> setlist;
-typedef std::set<Var> varlist;
 
 class AggPropFactory{
 private:

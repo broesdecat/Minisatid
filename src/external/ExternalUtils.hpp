@@ -408,19 +408,19 @@ public:
 
 struct CPIntVarRange{
 	uint varID;
-	int minvalue, maxvalue;
+	Weight minvalue, maxvalue;
 };
 
 struct CPIntVarEnum{
 	uint varID;
-	std::vector<int> values;
+	std::vector<Weight> values;
 };
 
 struct CPBinaryRel{
 	Atom head;
 	uint varID;
 	EqType rel;
-	int bound;
+	Weight bound;
 
 	CPBinaryRel(): head(0){}
 };
@@ -436,16 +436,16 @@ struct CPBinaryRelVar{
 struct CPSumWeighted{
 	Atom head;
 	std::vector<uint> varIDs;
-	std::vector<int> weights;
+	std::vector<Weight> weights;
 	EqType rel;
-	int bound;
+	Weight bound;
 
 	CPSumWeighted(): head(0){}
 };
 
 struct CPCount{
 	std::vector<uint> varIDs;
-	int eqbound;
+	Weight eqbound;
 	EqType rel;
 	uint rhsvar;
 };

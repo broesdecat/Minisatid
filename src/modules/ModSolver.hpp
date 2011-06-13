@@ -107,7 +107,7 @@ public:
 	bool	add		(const InnerDisjunction& sentence);
 	bool	add		(const InnerRule& sentence);
 	bool	add		(const InnerWSet& sentence);
-	bool	add		(const InnerAggregate& sentence);
+	bool	add		(const InnerReifAggregate& sentence);
 	bool	add		(const InnerRigidAtoms& sentence);
 	bool	addChild(int childid);
 

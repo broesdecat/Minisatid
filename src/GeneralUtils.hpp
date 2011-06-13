@@ -17,6 +17,19 @@
 #include <iostream>
 #include <fstream>
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+	template<class T>
+	struct sharedptr{
+		typedef std::shared_ptr<T> ptr;
+	};
+#else
+	#include <tr1/memory>
+	template<class T>
+	struct sharedptr{
+		typedef std::tr1::shared_ptr<T> ptr;
+	};
+#endif
+
 #include "external/ExternalUtils.hpp"
 
 #define report(...) ( fflush(stdout), fprintf(stderr, __VA_ARGS__), fflush(stderr) )

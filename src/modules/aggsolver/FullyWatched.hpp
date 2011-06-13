@@ -73,7 +73,7 @@ public:
 	SPFWAgg(TypedSet* agg);
 	virtual ~SPFWAgg(){};
 
-	void checkAddToExplan(bool& stop, Weight& min, Weight& max, const PropagationInfo& i, const Agg& agg, bool caseone, std::vector<PropagationInfo>& reasons);
+	void checkAddToExplan(bool& stop, Weight& min, Weight& max, const PropagationInfo& propinfo, const Agg& agg, bool caseone, std::vector<PropagationInfo>& reasons);
 	virtual void 	getExplanation			(vec<Lit>& lits, const AggReason& ar);
 
 protected:

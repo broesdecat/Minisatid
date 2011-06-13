@@ -83,6 +83,7 @@ public:
 
 	std::vector<Lit>& 		reason(){ return _reason; }
 	PropRule* 				definition(){ return _definition; }
+	Agg* 					definedaggregate(){ return _definedaggregate; }
 	DefType& 				type(){ return _type; }
 	DefOcc& 				occ(){ return _occ; }
 	bool &					isCS(){ return _isCS; }
@@ -104,7 +105,7 @@ private:
 	Var minvar, nbvars; //TODO, maxvar, nbvars; 	//The lowest and highest headvariable. INVAR: Definitions will be offset by minvar and the size will be nbvars
 	std::vector<DefinedVar*> definitions; //Maps all variables to NULL or a defined variable
 
-	std::vector<std::vector<Var> > 	_disj_occurs, _conj_occurs;
+	std::vector<std::vector<Var> > 	_disj_occurs, _conj_occurs, _aggr_occurs;
 
 	InterMediateDataStruct*	_seen;
 
@@ -171,8 +172,8 @@ public:
 
 	const vec<Lit>&		getCFJustificationAggr	(Var v) const;
 	void 				cycleSourceAggr			(Var v, vec<Lit>& nj);
-	void 				addDefinedAggregate		(Agg* agg);
 
+	void 				addDefinedAggregate		(Agg* agg);
 	bool    			addRule      			(bool conj, Lit head, const vec<Lit>& ps);	// Add a rule to the solver.
 
 	bool				isDefined				(Var var) 	const { return hasDefVar(var); }
@@ -196,6 +197,7 @@ private:
 
 	std::vector<Lit>& 	reason		(Var v){ assert(hasDefVar(v)); return getDefVar(v)->reason(); }
 	PropRule const*		definition	(Var v) const { assert(hasDefVar(v)); return getDefVar(v)->definition(); }
+	Agg *				aggdefinition(Var v) const { assert(hasDefVar(v)); return getDefVar(v)->definedaggregate(); }
 	DefType& 			type		(Var v){ assert(hasDefVar(v)); return getDefVar(v)->type(); }
 	DefOcc& 			occ			(Var v){ assert(hasDefVar(v)); return getDefVar(v)->occ(); }
 	bool &				isCS		(Var v){ assert(hasDefVar(v)); return getDefVar(v)->isCS(); }
@@ -209,17 +211,25 @@ private:
 	int 				scc			(Var v)const { return getDefVar(v)->scc(); }
 	const vec<Lit>& 	justification(Var v)const { return getDefVar(v)->justification(); }
 
+	//TODO assert
+	bool				hasSeen		(Var v) const { return _seen->hasElem(v); }
 	int&				seen		(Var v) { return _seen->getElem(v); }
 	const int&			seen		(Var v) const { return _seen->getElem(v); }
 
 	const std::vector<Var>&	disj_occurs	(const Lit& l) const { return _disj_occurs[toInt(l)]; }
-	const std::vector<Var>&	conj_occurs	(const Lit& l) const { return _conj_occurs[toInt(l)]; }
 	std::vector<Var>&		disj_occurs	(const Lit& l) { return _disj_occurs[toInt(l)]; }
-	std::vector<Var>&		conj_occurs	(const Lit& l) { return _conj_occurs[toInt(l)]; }
 	bool	hasdisj_occurs(const Lit& l) const { return disj_occurs(l).size()>0; }
-	bool	hasconj_occurs(const Lit& l) const { return conj_occurs(l).size()>0; }
 	void	addDisjOccurs(const Lit& l, Var v) { disj_occurs(l).push_back(v); assert(type(v)==DISJ); }
+
+	std::vector<Var>&		conj_occurs	(const Lit& l) { return _conj_occurs[toInt(l)]; }
+	const std::vector<Var>&	conj_occurs	(const Lit& l) const { return _conj_occurs[toInt(l)]; }
+	bool	hasconj_occurs(const Lit& l) const { return conj_occurs(l).size()>0; }
 	void	addConjOccurs(const Lit& l, Var v) { conj_occurs(l).push_back(v); assert(type(v)==CONJ); }
+
+	std::vector<Var>&		aggr_occurs	(const Lit& l) { return _aggr_occurs[toInt(l)]; }
+	const std::vector<Var>&	aggr_occurs	(const Lit& l) const { return _aggr_occurs[toInt(l)]; }
+	bool	hasaggr_occurs(const Lit& l) const { return aggr_occurs(l).size()>0; }
+	void	addaggrOccurs(const Lit& l, Var v) { aggr_occurs(l).push_back(v); assert(type(v)==DISJ); }
 
 	void	createDefinition(Var head, PropRule* r, DefType type) { defdVars.push_back(head);
 																		setDefVar(head, new DefinedVar(r, type));}
@@ -275,6 +285,9 @@ private:
 	bool	directlyJustifiable			(Var v, std::set<Var>& ufs, std::queue<Var>& q);            // Auxiliary for 'unfounded(..)'. True if v can be immediately justified by one change_jstfc action.
 	bool	isJustified					(Lit x) const;
 	bool	isJustified					(Var x) const;
+	bool 	oppositeIsJustified			(const WL& wl, bool real) const;
+	bool 	isJustified					(const WL& wl, bool real) const;
+
 	bool	propagateJustified			(Var v, Var cs, std::set<Var>& ufs);    // Auxiliary for 'unfounded(..)'. Propagate the fact that 'v' is now justified. True if 'cs' is now justified
 	void	addLoopfClause				(Lit l, vec<Lit>& lits);
 
@@ -314,6 +327,18 @@ private:
 	void forwardPropagate(bool);
 	void overestimateCounters();
 	void removeMarks();
+
+
+	bool canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const;
+	bool canJustifyMaxHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const;
+	bool canJustifySPHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const;
+	Agg* getAggDefiningHead(Var v) const;
+	std::vector<Var> getDefAggHeadsWithBodyLit(Var x) const;
+	vwl::const_iterator getSetLitsOfAggWithHeadBegin(Var x) const;
+	vwl::const_iterator getSetLitsOfAggWithHeadEnd(Var x) const ;
+	void addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, InterMediateDataStruct& seen);
+	void findJustificationAggr(Var head, vec<Lit>& outjstf) ;
+	bool directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, InterMediateDataStruct& currentjust);
 };
 
 }

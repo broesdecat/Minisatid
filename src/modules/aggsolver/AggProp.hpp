@@ -15,10 +15,6 @@
 #include "modules/aggsolver/AggUtils.hpp"
 #include "modules/aggsolver/AggTransform.hpp"
 
-#ifndef __GXX_EXPERIMENTAL_CXX0X__
-#include <tr1/memory>
-#endif
-
 namespace Minisat{
 	class Solver;
 }
@@ -30,16 +26,13 @@ class Agg;
 typedef std::vector<WL> vwl;
 
 class AggProp;
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-	typedef std::shared_ptr<AggProp> paggprop;
-#else
-	typedef std::tr1::shared_ptr<AggProp> paggprop;
-#endif
+typedef sharedptr<AggProp>::ptr paggprop;
 
 class TypedSet;
 typedef std::map<int, TypedSet*> mips;
 typedef std::vector<TypedSet*> vps;
 
+class AggPropagator;
 class AggReason;
 
 struct AggBound{
@@ -220,13 +213,12 @@ public:
 	}
 	virtual ~TypedSet(){
 		deleteList<Agg>(aggregates);
-		delete prop;
 	}
 
 	int				getSetID		() 			const 			{ return setid; }
 
 	const vwl&		getWL			()			const 			{ return wl; }
-	void			setWL			(const vwl& wl2)			{ wl=wl2; stable_sort(wl.begin(), wl.end(), compareWLByWeights);}
+	void			setWL			(const vwl& wl2)			{ wl=wl2; stable_sort(wl.begin(), wl.end(), compareByWeights<WL>);}
 
 	const std::vector<Agg*>& getAgg		()	const					{ return aggregates; }
 	std::vector<Agg*>& getAggNonConst	()	 						{ return aggregates; }

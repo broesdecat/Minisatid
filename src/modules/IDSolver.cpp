@@ -789,27 +789,26 @@ void IDSolver::propagateJustificationConj(const Lit& l, T& heads) {
 	}
 }
 
-void IDSolver::propagateJustificationAggr(const Lit& l, vec<vec<Lit> >& jstf, vec<Lit>& heads) {
+void IDSolver::propagateJustificationAggr(const Lit& l, vec<vec<Lit> >& jstfs, vec<Lit>& heads) {
 	if (!hasRecursiveAggregates()) {
 		return;
 	}
-	for(vector<DefinedVar*>::const_iterator i = aggr_occurs[var(l)].begin(); i < aggr_occurs[var(l)].end(); ++i) {
-		const Agg& agg = (*i)->_definedaggregate;
-			if (isFalse(agg.getHead())) {
-				continue;
-			}
+	for(vector<Var>::const_iterator i = aggr_occurs(l).begin(); i < aggr_occurs(l).end(); ++i) {
+		const Agg& agg = *aggdefinition(*i);
+		if (isFalse(agg.getHead())) {
+			continue;
+		}
 
-			Var head = var(agg.getHead());
-			if (currentjust.getElem(head) > 0) { //only check its body for justification when it has not yet been derived
-				vec<Lit> jstf;
-				vec<Var> nonjstf;
+		Var head = var(agg.getHead());
+		if (seen(head) > 0) { //only check its body for justification when it has not yet been derived
+			vec<Lit> jstf;
+			vec<Var> nonjstf;
 
-				if (canJustifyHead(agg, jstf, nonjstf, currentjust, false)) {
-					currentjust.getElem(head) = 0;
-					heads.push(mkLit(head, false));
-					jstfs.push();
-					jstf.copyTo(jstfs.last());
-				}
+			if (canJustifyHead(agg, jstf, nonjstf, *_seen, false)) {
+				seen(head) = 0;
+				heads.push(mkLit(head, false));
+				jstfs.push();
+				jstf.copyTo(jstfs.last());
 			}
 		}
 	}
@@ -965,7 +964,7 @@ void IDSolver::findCycleSources() {
 			}
 
 			if (hasRecursiveAggregates()) {
-				vector<Var> heads = getAggSolver()->getDefAggHeadsWithBodyLit(var(~l));
+				vector<Var> heads = getDefAggHeadsWithBodyLit(var(~l));
 				for (vv::const_iterator j = heads.begin(); j < heads.end(); ++j) {
 					if(hasDefVar(*j)){
 						checkJustification(*j);
@@ -1019,7 +1018,7 @@ void IDSolver::checkJustification(Var head) {
 		findJustificationDisj(head, jstf);
 	} else {
 		assert(type(head)==AGGR);
-		getAggSolver()->findJustificationAggr(head, jstf);
+		findJustificationAggr(head, jstf);
 	}
 	for (int i = 0; external && i < jstf.size(); ++i) {
 		if (isDefined(var(jstf[i])) && inSameSCC(head, var(jstf[i])) && isPositive(jstf[i])) {
@@ -1135,6 +1134,12 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 }
 
 /**
+ * Important: to justify a head, often several body literals have to become FALSE
+ * For such literals, they have to be justified if they are NEGATIVE
+ *
+ * Also, if a literal has to become FALSE, its INVERSION should be added to the justification!
+ */
+/**
  * seen is used as a justification mark/counter:
  *
  * seen==0 || negative body literal <=> justified
@@ -1143,7 +1148,21 @@ inline bool IDSolver::isJustified(Lit x) const {
 	return isJustified(var(x)) || !isPositive(x);
 }
 inline bool IDSolver::isJustified(Var x) const {
-	return seen(x) == 0;
+	return hasSeen(x) && seen(x) == 0;
+}
+inline bool IDSolver::oppositeIsJustified(const WL& l, bool real) const {
+	if (real) {
+		return value(l.getLit()) != l_True;
+	} else {
+		return value(l.getLit()) != l_True && (!sign(l.getLit()) || isJustified(var(l.getLit())));
+	}
+}
+inline bool IDSolver::isJustified(const WL& l, bool real) const {
+	if (real) {
+		return value(l.getLit()) != l_False;
+	} else {
+		return value(l.getLit()) != l_False && (sign(l.getLit()) || isJustified(var(l.getLit())));
+	}
 }
 
 /**
@@ -1193,7 +1212,7 @@ bool IDSolver::findJustificationConj(Var v, vec<Lit>& jstf, vec<Var>& nonjstf) {
 
 bool IDSolver::findJustificationAggr(Var v, vec<Lit>& jstf, vec<Var>& nonjstf) {
 	seen(v) = 1; //used as boolean (0 is justified, 1 is not)
-	if (getAggSolver()->directlyJustifiable(v, jstf, nonjstf, *_seen)) {
+	if (directlyJustifiable(v, jstf, nonjstf, *_seen)) {
 		seen(v) = 0;
 	}
 	return seen(v) == 0;
@@ -1344,7 +1363,7 @@ void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf) {
 				break;
 			}
 			case AGGR:
-				getAggSolver()->addExternalLiterals(*tch, ufs, loopf, *_seen);
+				addExternalLiterals(*tch, ufs, loopf, *_seen);
 				break;
 			default:
 				assert(false);
@@ -1531,7 +1550,7 @@ void IDSolver::markNonJustifiedAddParents(Var x, Var cs, queue<Var> &q, vec<Var>
 		}
 	}
 	if (hasRecursiveAggregates()) {
-		vector<Var> heads = getAggSolver()->getDefAggHeadsWithBodyLit(x);
+		vector<Var> heads = getDefAggHeadsWithBodyLit(x);
 		for (vector<Var>::size_type i = 0; i < heads.size(); ++i) {
 			vec<Lit>& jstfc = justification(heads[i]);
 			for (int k = 0; k < jstfc.size(); ++k) {
@@ -1607,7 +1626,10 @@ void IDSolver::cycleSourceAggr(Var v, vec<Lit>& just) {
 	}
 }
 
-void IDSolver::notifyAggrHead(Var head, AggSolver* aggsolver) {
+void addDefinedAggregate(Agg* agg){
+	//TODO
+}
+/*void IDSolver::notifyAggrHead(Var head, AggSolver* aggsolver) {
 	// LAZY init
 	adaptStructsToHead(head);
 
@@ -1616,14 +1638,7 @@ void IDSolver::notifyAggrHead(Var head, AggSolver* aggsolver) {
 	assert(this->aggsolver==NULL || this->aggsolver==aggsolver); // TODO
 	this->aggsolver = aggsolver;
 	createDefinition(head, NULL, AGGR);
-}
-
-void IDSolver::removeAggrHead(Var head) {
-	assert(!isInitialized());
-	if (isDefined(head)) {
-		toremoveaggrheads.insert(head);
-	}
-}
+}*/
 
 inline void IDSolver::print(const PropRule& c) const {
 	report("Rule ");
@@ -2565,7 +2580,7 @@ bool IDSolver::canJustifyMaxHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjs
 	if (justified && agg.hasUB()) {
 		justified = false;
 		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() > agg.getCertainBound(); ++i) {
-			if (oppositeIsJustified(*i, currentjust, real, set->getSolver())) {
+			if (oppositeIsJustified(*i, real)) {
 				jstf.push(~(*i).getLit()); //push negative literal, because it should become false
 			} else if (real || currentjust.getElem(var((*i).getLit())) != 0) {
 				nonjstf.push(var((*i).getLit()));
@@ -2579,7 +2594,7 @@ bool IDSolver::canJustifyMaxHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjs
 	if(justified && agg.hasLB()){
 		justified = false;
 		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() >= agg.getCertainBound(); ++i) {
-			if (isJustified(*i, currentjust, real, set->getSolver())) {
+			if (isJustified(*i, real)) {
 				jstf.push((*i).getLit());
 				justified = true;
 			} else if (real || currentjust.getElem(var((*i).getLit())) != 0) {
@@ -2614,7 +2629,7 @@ bool IDSolver::canJustifySPHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjst
 		justified = false;
 		Weight bestpossible = type.getMaxPossible(*set);
 		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
-			if (oppositeIsJustified(*i, currentjust, real, set->getSolver())) {
+			if (oppositeIsJustified(*i, real)) {
 				jstf.push(~(*i).getLit());
 				bestpossible = type.remove(bestpossible, (*i).getWeight());
 				if (bestpossible <= agg.getCertainBound()) {
@@ -2629,7 +2644,7 @@ bool IDSolver::canJustifySPHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjst
 		justified = false;
 		Weight bestcertain = set->getType().getMinPossible(*set);
 		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
-			if (isJustified(*i, currentjust, real, set->getSolver())) {
+			if (isJustified(*i, real)) {
 				jstf.push((*i).getLit());
 				bestcertain = type.add(bestcertain, (*i).getWeight());
 				if (bestcertain >= agg.getCertainBound()) {
@@ -2709,13 +2724,13 @@ bool IDSolver::canJustifySPHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjst
 
 Agg* IDSolver::getAggDefiningHead(Var v) const {
 	//FIXME checks en mooiere code
-	return definitions[v]->_definedaggregate;
+	return aggdefinition(v);
 }
 
 vector<Var> IDSolver::getDefAggHeadsWithBodyLit(Var x) const{
 	vector<Var> heads;
-	for (vps::const_iterator i = aggr_occurs[x].begin(); i < aggr_occurs[x].end(); ++i) {
-		heads.push_back(var((*i)->getHead()));
+	for (vector<Var>::const_iterator i = aggr_occurs(mkLit(x)).begin(); i < aggr_occurs(mkLit(x)).end(); ++i) {
+		heads.push_back(var(aggdefinition(*i)->getHead()));
 	}
 	return heads;
 }
@@ -2737,7 +2752,7 @@ vwl::const_iterator IDSolver::getSetLitsOfAggWithHeadEnd(Var x) const {
  * Probably NEVER usable external clause!
  * TODO: optimize: add monotone literals until the aggregate can become true
  */
-void IDSOlver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, InterMediateDataStruct& seen) {
+void IDSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, InterMediateDataStruct& seen) {
 	TypedSet* set = getAggDefiningHead(v)->getSet();
 
 	for (vwl::const_iterator i = set->getWL().begin(); i < set->getWL().end(); ++i) {

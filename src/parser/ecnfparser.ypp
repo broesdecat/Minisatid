@@ -139,6 +139,7 @@ void checkVersion(ECNF_VERSION version);
 	const char* cstr;
 	std::string* str;
     std::vector<int>* vints;
+    std::vector<MinisatID::Weight>* vweights;
     std::vector<uint>* vuints;
     std::vector<MinisatID::Literal>* vlits;
     std::vector<MinisatID::WLtuple>* vlws;
@@ -166,7 +167,7 @@ void checkVersion(ECNF_VERSION version);
 
 %type <integer> number
 %type <str> weight
-%type <vints> ibody
+%type <vweights> weightbody
 %type <vuints> uibody
 %type <vlits> body
 %type <vlws> wbody
@@ -415,15 +416,16 @@ wset	:	WSETDEFN NUMBER	wbody ZERO
 
 // ECNF CONSTRAINT SUPPORT
 
-intvar	:	INTVAR number number number ZERO 
+intvar	:	INTVAR number weight weight ZERO 
 			{
 				CPIntVarRange var;
 				var.varID = $2;
-				var.minvalue = $3;
-				var.maxvalue = $4;
+				var.minvalue = cWeight($3);
+				var.maxvalue = cWeight($4);
 				CRCP(var);
+				delete $3; delete $4;
 			}
-		|	INTVARDOM number ibody ZERO 
+		|	INTVARDOM number weightbody ZERO 
 			{
 				CPIntVarEnum var;
 				var.varID = $2;
@@ -441,15 +443,15 @@ intvar	:	INTVAR number number number ZERO
 //abbreviations: T = intterm, I = intconst, R = relational operator, ST = set of T, SI = set of I
 
 cpconstraint
-		:	BINTRI NUMBER number REL number ZERO 
+		:	BINTRI NUMBER number REL weight ZERO 
 			{ 	
 				CPBinaryRel binrel;
 				binrel.head = cAtom($2);
 				binrel.varID = $3;
 				binrel.rel = $4;
-				binrel.bound = $5;
+				binrel.bound = cWeight($5);
 				CRCP(binrel);
-				delete $2;
+				delete $2; delete $5;
 			}
 		|	BINTRT NUMBER number REL number ZERO 
 			{ 	
@@ -461,27 +463,27 @@ cpconstraint
 				CRCP(binrel);
 				delete $2;
 			}
-		|	SUMSTSIRI NUMBER uibody DELIM ibody REL number ZERO 
+		|	SUMSTSIRI NUMBER uibody DELIM weightbody REL weight ZERO 
 			{ 	
 				CPSumWeighted sum;
 				sum.head = cAtom($2);
 				sum.varIDs = *$3;
 				sum.weights = *$5;
 				sum.rel = $6;
-				sum.bound = $7;
+				sum.bound = cWeight($7);
 				CRCP(sum);
-				delete $2; delete $3; delete $5;
+				delete $2; delete $3; delete $5; delete $7;
 			}
 			//only global card at the moment!
-		|	COUNTSTRIT uibody REL number number ZERO 
+		|	COUNTSTRIT uibody REL weight number ZERO 
 			{ 	
 				CPCount count;
 				count.varIDs = *$2;
 				count.rel = $3;
-				count.eqbound = $4;				
+				count.eqbound = cWeight($4);
 				count.rhsvar = $5;
 				CRCP(count);
-				delete $2;
+				delete $2; delete $4;
 			}
 			//only global alldiff at the moment!
 		|	DISTINCT uibody DELIM ZERO //DELIM to remove shift-reduce conflict 
@@ -737,8 +739,9 @@ vbody	:	vbody NUMBER 	{ $$ = $1; $$->push_back(cAtom($2)); delete($2);	}
 		|	NUMBER			{ $$ = new vector<Atom>(1,cAtom($1)); delete($1);	}	
 		;
 		
-ibody 	: 	ibody number	{ $$ = $1; $$->push_back($2);	}
-		| 	number  		{ $$ = new vector<int>(1, $1);	}
+weightbody 	
+		: 	weightbody weight	{ $$ = $1; $$->push_back(cWeight($2)); delete $2; }
+		| 	weight			{ $$ = new vector<Weight>(1, cWeight($1)); delete $1;	}
 		;
 		
 uibody 	: 	uibody number	{ $$ = $1; $$->push_back($2);	}

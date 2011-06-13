@@ -14,8 +14,6 @@
 
 namespace MinisatID{
 
-class WL;
-typedef std::vector<WL> vwl;
 class AggSolver;
 
 
@@ -115,12 +113,6 @@ public:
     bool			isHeadReason	() 	const	{ return false; }
     bool			isInSet			()	const	{ return inset; }
 };
-
-// ID support
-
-bool 	oppositeIsJustified		(const WL& wl, const InterMediateDataStruct& currentjust, bool real, AggSolver const * const solver);
-bool 	isJustified				(const WL& wl, const InterMediateDataStruct& currentjust, bool real, AggSolver const * const solver);
-bool 	isJustified				(Var x, const InterMediateDataStruct& currentjust);
 
 }
 
