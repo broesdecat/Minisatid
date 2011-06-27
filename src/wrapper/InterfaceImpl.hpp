@@ -45,6 +45,7 @@ protected:
 public:
 	Remapper(): maxnumber(0){}
 
+	virtual bool	hasVar		(const Atom& atom, Var& mappedvarifexists) const;
 	virtual Var		getVar		(const Atom& atom);
 	virtual Literal	getLiteral	(const Lit& lit);
 	bool			wasInput	(int var)	const { return var<maxnumber; }
@@ -56,6 +57,7 @@ private:
 	atommap 		origtocontiguousatommapper, contiguoustoorigatommapper;
 
 public:
+	bool	hasVar		(const Atom& atom, Var& mappedvarifexists) const;
 	Var		getVar		(const Atom& atom);
 	Literal	getLiteral	(const Lit& lit);
 
@@ -125,6 +127,8 @@ protected:
 private:
 	Solution& 	getSolMonitor() { return *solutionmonitor; }
 	const Solution& getSolMonitor() const { return *solutionmonitor; }
+
+	void	notifySmallestTseitin	(const Atom& tseitin);
 };
 
 template<>
