@@ -248,6 +248,7 @@ namespace MinisatID {
 		bool 			bumpaggonnotify, bumpidonstart;
 		bool			subsetminimizeexplanation, asapaggprop;
 		long 			ufsvarintrothreshold;
+		bool			tseitindecisions;
 
 		SolverOption();
 

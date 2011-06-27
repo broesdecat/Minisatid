@@ -71,6 +71,9 @@ public:
 	virtual void	printModel			(std::ostream& output, const Model& model);
 	virtual void 	printCurrentOptimum	(std::ostream& output, const Weight& value);
 	virtual void	printHeader			(std::ostream& output);
+
+	virtual bool	hasTseitinKnowledge	() const { return false; }
+	virtual Atom	smallestTseitinAtom	() { assert(false); return Atom(0); }
 };
 
 class FODOTTranslator: public Translator{
@@ -80,6 +83,9 @@ private:
 	bool emptytrans; //true as long as no predicate has been added to the translator
 
 	int largestnottseitinatom;
+
+	// arbitrary temp information
+	bool printedArbitrary;
 
 	// output
 	modelvec arbitout, truemodelcombinedout;
@@ -104,7 +110,11 @@ public:
 	void 	printModel			(std::ostream& output, const Model& model);
 	void 	printHeader			(std::ostream& output);
 
+	bool	hasTseitinKnowledge	() const { return true; }
+	Atom	smallestTseitinAtom	() { assert(hasTseitinKnowledge()); finishData(); return Atom(largestnottseitinatom+1); }
+
 private:
+	void 	finishData		();
 	void 	finishParsing	(std::ostream& output);
 	std::string getPredName	(int predn) const;
 	void 	printTuple		(const std::vector<std::string>& tuple, std::ostream& output) 	const;

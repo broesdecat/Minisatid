@@ -37,6 +37,15 @@ Literal Remapper::getLiteral(const Lit& lit){
 	return Literal(var(lit)+1, sign(lit));
 }
 
+bool Remapper::hasVar(const Atom& atom, Var& mappedvarifexists) const{
+	if(atom.getValue()<=maxnumber){
+		mappedvarifexists = atom.getValue();
+		return true;
+	}else{
+		return false;
+	}
+}
+
 Var SmartRemapper::getVar(const Atom& atom){
 	if(atom.getValue()<1){
 		throw idpexception(getMinimalVarNumbering());
@@ -61,6 +70,16 @@ Literal SmartRemapper::getLiteral(const Lit& lit){
 	return Literal(origatom, sign(lit));
 }
 
+bool SmartRemapper::hasVar(const Atom& atom, Var& mappedvarifexists) const{
+	atommap::const_iterator i = origtocontiguousatommapper.find(atom.getValue());
+	if(i==origtocontiguousatommapper.end()){
+		return false;
+	}else{
+		mappedvarifexists = (*i).second;
+		return true;
+	}
+}
+
 // PIMPL of External Interfaces
 
 WrapperPimpl::WrapperPimpl(const SolverOption& modes):
@@ -79,6 +98,9 @@ void WrapperPimpl::setSolutionMonitor(Solution* sol) {
 	if(sol!=NULL) {
 		solutionmonitor = sol;
 		getSolMonitor().setModes(modes());
+		if(sol->hasTseitinKnowledge() && !modes().tseitindecisions){
+			notifySmallestTseitin(sol->smallestTseitinAtom());
+		}
 	}
 }
 
@@ -88,13 +110,26 @@ void WrapperPimpl::printStatistics() const {
 }
 
 void WrapperPimpl::printLiteral(std::ostream& output, const Lit& l) const{
-	getSolMonitor().getTranslator()->printLiteral(output, getRemapper()->getLiteral(l));
+	getSolMonitor().printLiteral(output, getRemapper()->getLiteral(l));
 }
 
 void WrapperPimpl::printCurrentOptimum(const Weight& value) const{
 	getSolMonitor().notifyCurrentOptimum(value);
 }
 
+void WrapperPimpl::notifySmallestTseitin(const Atom& tseitin){
+	Atom posstseitin = tseitin;
+	while(true){
+		Var var = 0;
+		if(getRemapper()->hasVar(posstseitin, var)){
+			cerr <<"Non decision var " <<getPrintableVar(var) <<"\n";
+			getSolver()->notifyNonDecisionVar(var);
+		}else{
+			break;
+		}
+		posstseitin = Atom(posstseitin.getValue()+1);
+	}
+}
 Var WrapperPimpl::checkAtom(const Atom& atom){
 	return getRemapper()->getVar(atom);
 }
