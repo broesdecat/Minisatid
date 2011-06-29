@@ -150,6 +150,10 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 	bumpaggonnotifydesc.push_back(pair<string, string>("yes", "Bump"));
 	bumpaggonnotifydesc.push_back(pair<string, string>("no", "Don't bump"));
 
+	vector<pair<string, string> > decideontseitins;
+	decideontseitins.push_back(pair<string, string>("yes", "Use as decision literals"));
+	decideontseitins.push_back(pair<string, string>("no", "Don't use as decision literals"));
+
 	vector<pair<string, string> > bumpidonstartdesc;
 	bumpidonstartdesc.push_back(pair<string, string>("yes", "Bump"));
 	bumpidonstartdesc.push_back(pair<string, string>("no", "Don't bump"));
@@ -243,6 +247,8 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 			modes.subsetminimizeexplanation, cmd, "Choose whether to minimize aggregate explanations"));
 	options.push_back(new Option<bool, string>	("","asapaggprop", 	yesnovals, asapaggpropdesc,
 			modes.asapaggprop, cmd, "Choose whether to propagate aggregates as fast as possible"));
+	options.push_back(new Option<bool, string>	("","tseitindecision", 	yesnovals, decideontseitins,
+			modes.tseitindecisions, cmd,"Choose whether tseitin literals can be used as decision literals."));
 	options.push_back(new Option<bool, string>	("","pbsolver", 	yesnovals, pbsolverdesc,
 			modes.pbsolver, cmd,"Choose whether to translate pseudo-boolean constraints to SAT"));
 	options.push_back(new NoValsOption<double>	("","watch-ratio", 	"double",

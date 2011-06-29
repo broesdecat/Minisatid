@@ -43,6 +43,8 @@ public:
 
 	virtual void 	printStatistics	() const = 0;
 
+	virtual void notifyNonDecisionVar(Var var){}
+
 	void notifyHasMonitor();
 	bool isBeingMonitored() const;
 	void notifyMonitor(const InnerPropagation& obj);

@@ -139,6 +139,23 @@ public:
 	bool linearizeProduct(int newSymbol, std::vector<int> product);
 };
 
+// we represent each node of a n-ary tree by a std::vector<ProductNode>
+struct ProductNode {
+	int lit; // ID of the literal
+	int productId; // identifier associated to the product of the
+	// literals found from the root up to this node
+	std::vector<ProductNode> *next; // list of next literals in a product
+
+	ProductNode(int l) {
+		lit = l;
+		productId = 0;
+		next = NULL;
+	}
+
+	// if we define a destructor to free <next>, we'll have to define
+	// a copy constructor and use reference counting. It's not worth it.
+};
+
 /**
  * this class stores products of literals (as a tree) in order to
  * associate unique identifiers to these product (for linearization)
@@ -146,23 +163,6 @@ public:
 template<class T>
 class ProductStore {
 private:
-	// we represent each node of a n-ary tree by a std::vector<ProductNode>
-	struct ProductNode {
-		int lit; // ID of the literal
-		int productId; // identifier associated to the product of the
-		// literals found from the root up to this node
-		std::vector<ProductNode> *next; // list of next literals in a product
-
-		ProductNode(int l) {
-			lit = l;
-			productId = 0;
-			next = NULL;
-		}
-
-		// if we define a destructor to free <next>, we'll have to define
-		// a copy constructor and use reference counting. It's not worth it.
-	};
-
 	std::vector<ProductNode> root; // root of the n-ary tree
 	int nextSymbol; // next available variable
 

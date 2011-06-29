@@ -410,6 +410,9 @@ Lit Solver::pickBranchLit(int polarity_mode, double random_var_freq)
 |  Effect:
 |    Will undo part of the trail, upto but not beyond the assumption of the current decision level.
 |________________________________________________________________________________________________@*/
+bool Solver::isAlreadyUsedInAnalyze(const Lit& lit) const{
+	return seen[var(lit)]==1;
+}
 void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 {
     int pathC = 0;

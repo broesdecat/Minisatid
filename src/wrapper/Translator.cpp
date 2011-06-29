@@ -69,7 +69,9 @@ std::string Symbol::getName(bool fodot){
 }
 
 FODOTTranslator::FODOTTranslator(OUTPUTFORMAT fodot): Translator(),
-		tofodot(fodot==TRANS_FODOT), finisheddata(false), emptytrans(true) {
+		tofodot(fodot==TRANS_FODOT), finisheddata(false), emptytrans(true),
+		largestnottseitinatom(-1),
+		printedArbitrary(false){
 	assert(fodot!=TRANS_PLAIN);
 }
 
@@ -94,7 +96,11 @@ void FODOTTranslator::addPred(string name, int startingnumber, const vector<stri
 	emptytrans = false;
 }
 
-void FODOTTranslator::finishParsing(ostream& output){
+// REENTRANT
+void FODOTTranslator::finishData(){
+	if(finisheddata){
+		return;
+	}
 	finisheddata = true;
 
 	if(emptytrans){
@@ -112,9 +118,8 @@ void FODOTTranslator::finishParsing(ostream& output){
 	// set initial values
 	uint currpred = 0;
 	// parse the certainly true atoms
-	int curr;
 	for(vector<int>::const_iterator m=truelist.begin(); m<truelist.end(); ++m) {
-		curr = *m;
+		int curr = *m;
 		if(curr > largestnottseitinatom){
 			return;
 		}else{
@@ -124,36 +129,38 @@ void FODOTTranslator::finishParsing(ostream& output){
 			}
 		}
 	}
+}
 
-	// set initial values
-	currpred = 0;
-
-	// parse and print the arbitrary literals
-	bool hasarbitraries = false;
-	double nbofmodels = 0;
-	for(vector<int>::const_iterator m=arbitlist.begin(); m<arbitlist.end(); ++m) {
-		curr = *m;
-		if(curr > largestnottseitinatom){
-			return;
-		}else{
-			vector<string> arg;
-			if(deriveStringFromAtomNumber(curr, currpred, arg)){
-				arbitout[currpred].tuples.push_back(TupleInterpr(FIXED_ARBIT, arg));
-				++nbofmodels;
-				hasarbitraries = true;
-				if(arbitout[currpred].symbol->types.size()==0){ //atom
-					symbolasarbitatomlist[symbols[currpred]] = true;
+// REENTRANT
+void FODOTTranslator::finishParsing(ostream& output){
+	finishData();
+	if(!printedArbitrary){
+		uint currpred = 0;
+		bool hasUnprintedArbitrary = false;
+		int modelsRepresentedByArbitrary= 0;
+		for(vector<int>::const_iterator m=arbitlist.begin(); m<arbitlist.end(); ++m) {
+			int curr = *m;
+			if(curr > largestnottseitinatom){
+				return;
+			}else{
+				vector<string> arg;
+				if(deriveStringFromAtomNumber(curr, currpred, arg)){
+					arbitout[currpred].tuples.push_back(TupleInterpr(FIXED_ARBIT, arg));
+					++modelsRepresentedByArbitrary;
+					hasUnprintedArbitrary = true;
+					if(arbitout[currpred].symbol->types.size()==0){ //atom
+						symbolasarbitatomlist[symbols[currpred]] = true;
+					}
 				}
 			}
 		}
-	}
-	if(hasarbitraries){
 		if(tofodot){
-			output <<"Arbitrary truth values (representing 2^" <<nbofmodels <<" interpretations):\n";
+			output <<"Arbitrary truth values (representing 2^" <<modelsRepresentedByArbitrary <<" interpretations):\n";
 			printInterpr(arbitout, output, PRINT_ARBIT);
 		}else{
-			clog <<"Arbitrary truth values represent 2^" <<nbofmodels <<" interpretations.\n";
+			clog <<"Arbitrary truth values represent 2^" <<modelsRepresentedByArbitrary <<" interpretations.\n";
 		}
+		printedArbitrary = true;
 	}
 }
 

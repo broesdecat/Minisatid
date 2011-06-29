@@ -54,6 +54,19 @@ void Solution::setTranslator(Translator* trans) {
 	translator = trans ;
 }
 
+void Solution::printLiteral(ostream& stream, const Literal& lit) const {
+	if(hasTranslator()){
+		getTranslator()->printLiteral(stream, lit);
+	}
+}
+bool Solution::hasTseitinKnowledge() const{
+	return hasTranslator() && getTranslator()->hasTseitinKnowledge();
+}
+Atom Solution::smallestTseitinAtom(){
+	assert(hasTranslator());
+	return getTranslator()->smallestTseitinAtom();
+}
+
 void Solution::notifyStartParsing() {
 	startparsing = cpuTime();
 }

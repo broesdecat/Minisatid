@@ -870,7 +870,7 @@ void IDSolver::newDecisionLevel() {
 void IDSolver::findCycleSources() {
 	clearCycleSources();
 
-	if (!backtracked && getPCSolver().modes().defn_strategy == always) {
+	if (!backtracked || getPCSolver().modes().defn_strategy == always) {
 		const vec<Lit>& trail = getPCSolver().getTrail();
 		int recentindex = getPCSolver().getStartLastLevel();
 		for (int i = recentindex; i < trail.size(); ++i) {
@@ -894,7 +894,7 @@ void IDSolver::findCycleSources() {
 				}
 			}
 		}
-	} else {
+	} else { //Only if not always and backtracked
 		// NOTE: with a clever trail system, we could even after conflicts avoid having to look at all rules.
 		backtracked = false;
 		for (vector<Var>::const_iterator i = defdVars.begin(); i < defdVars.end(); ++i) {

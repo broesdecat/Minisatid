@@ -260,8 +260,8 @@ template<class T> bool DefaultCallback<T>::linearizeProduct(int newSymbol, vecto
  * if necessary)
  */
 template<class T> int ProductStore<T>::getProductVariable(vector<int> &list) {
-	vector<typename ProductStore<T>::ProductNode> *p = &root;
-	typename vector<typename ProductStore<T>::ProductNode>::iterator pos;
+	vector<ProductNode> *p = &root;
+	typename vector<ProductNode>::iterator pos;
 
 	// list must be sorted
 	sort(list.begin(), list.end());
@@ -294,7 +294,7 @@ template<class T> int ProductStore<T>::getProductVariable(vector<int> &list) {
  */
 template<class T> bool ProductStore<T>::defineProductVariableRec(DefaultCallback<T> &cb, vector<ProductNode> &nodes, vector<int> &list) {
 	bool possat = true;
-	for (typename vector<ProductStore<T>::ProductNode>::const_iterator i = nodes.begin(); i < nodes.end(); ++i) {
+	for (typename vector<ProductNode>::const_iterator i = nodes.begin(); i < nodes.end(); ++i) {
 		list.push_back((*i).lit);
 		if ((*i).productId){
 			possat &= cb.linearizeProduct((*i).productId, list);
@@ -314,7 +314,7 @@ template<class T> bool ProductStore<T>::defineProductVariableRec(DefaultCallback
  *
  */
 template<class T> void ProductStore<T>::freeProductVariableRec(vector<ProductNode> &nodes) {
-	for (typename vector<ProductStore<T>::ProductNode>::const_iterator i = nodes.begin(); i < nodes.end(); ++i) {
+	for (typename vector<ProductNode>::const_iterator i = nodes.begin(); i < nodes.end(); ++i) {
 		if ((*i).next) {
 			freeProductVariableRec(*(*i).next);
 			delete (*i).next;

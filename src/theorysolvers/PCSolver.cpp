@@ -224,6 +224,10 @@ bool PCSolver::add(Var v) {
 	return true;
 }
 
+void PCSolver::notifyNonDecisionVar(Var var){
+	getSolver()->setDecisionVar(var, false);
+}
+
 void PCSolver::addVars(const vec<Lit>& a) {
 	for (int i = 0; i < a.size(); ++i) {
 		add(var(a[i]));
