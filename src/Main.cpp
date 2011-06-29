@@ -20,9 +20,10 @@
 #include <setjmp.h>
 
 #include "external/ExternalInterface.hpp"
+#include "external/FlatZincRewriter.hpp"
 #include "external/Translator.hpp"
 #include "Unittests.hpp"
-#include "parser/ResourceManager.hpp"
+#include "external/ResourceManager.hpp"
 #include "parser/Lparseread.hpp"
 #include "parser/PBread.hpp"
 
@@ -33,16 +34,16 @@
 #endif
 
 using namespace std;
-#ifndef __GXX_EXPERIMENTAL_CXX0X__
-using namespace std::tr1;
-#endif
 using namespace MinisatID;
-using namespace MinisatID::Print;
+
+#include "parser/Lparseread.cpp"
+#include "parser/PBread.cpp"
 
 extern char* 	yytext;
 extern int 		lineNo;
 extern int 		charPos;
 extern pwls 	getData();
+extern FlatZincRewriter* getFZRewriter();
 
 extern FILE* 	yyin;
 extern int 		yyparse();
@@ -58,21 +59,52 @@ void printStats();
 jmp_buf main_loop;
 static void noMoreMem();
 volatile sig_atomic_t abortcode;
-volatile sig_atomic_t memoryoverflow = 0;
-static void SIGABRT_handler(int signum);
-static void SIGFPE_handler(int signum);
-static void SIGSEGV_handler(int signum);
-static void SIGTERM_handler(int signum);
-static void SIGINT_handler(int signum);
-void handleSignals(int code, int& returnvalue, pwls data);
+volatile sig_atomic_t jumpback;	//Only jump back when this is 0
+static void SIGABRT_handler	(int signum);
+static void SIGFPE_handler	(int signum);
+static void SIGSEGV_handler	(int signum);
+static void SIGTERM_handler	(int signum);
+static void SIGINT_handler	(int signum);
+void handleSignals	();
+int handleTermination(pwls d);
 
-int doModelGeneration(pwls& d);
+void doModelGeneration(pwls& d);
+
+void rewriteIntoFlatZinc();
 
 extern SolverOption modes;
 FODOTTranslator* fodottrans;
 
 Solution* sol = NULL;
 Translator* trans = NULL;
+
+Solution* createSolution(){
+	ModelExpandOptions options;
+	options.printmodels	= PRINT_ALL;
+	options.savemodels = SAVE_NONE;
+	options.search = MODELEXPAND;
+	options.nbmodelstofind = 1;
+	return new Solution(options);
+}
+
+int handleTermination(bool cleanexit, pwls d){
+    if(!cleanexit){
+        sol->notifySolvingAborted();
+    }
+    int returnvalue = 0;
+    if(sol->isUnsat()){
+        returnvalue = 20;
+    }else{
+        if(sol->isSat()){
+            returnvalue = 10;
+        }
+    }
+
+    if(d!=NULL && modes.verbosity>1){
+    	d->printStatistics();
+	}
+    return returnvalue;
+}
 
 int main(int argc, char** argv) {
 	//Setting system precision and signal handlers
@@ -83,6 +115,7 @@ int main(int argc, char** argv) {
 	_FPU_SETCW(newcw); // double precision for repeatability
 #endif
 
+	jumpback = 1;
 	signal(SIGABRT, SIGABRT_handler);
 	signal(SIGFPE, SIGFPE_handler);
 	signal(SIGTERM, SIGTERM_handler);
@@ -94,39 +127,57 @@ int main(int argc, char** argv) {
 	//set memory handler
 	std::set_new_handler(noMoreMem);
 
+	sol = createSolution();
+
 	//parse command-line options
-	if(!parseOptions(argc, argv)){
-		return 1;
+	bool successfullparsing = parseOptions(argc, argv, sol);
+	if(!successfullparsing){
+		sol->notifySolvingAborted();
+		return 0;
+	}else{
+		sol->setNbModelsToFind(modes.nbmodels);
+	}
+	sol->setModes(modes); //TODO find cleaner way? => these are set when solve is called, but earlier statements might have incorrect behavior then (printing unsat e.g.)
+
+	if(modes.transformat==TRANS_FZ){
+		rewriteIntoFlatZinc();
+		return 0;
 	}
 
 	printMainStart(modes.verbosity);
 
-	pwls d;
-	int returnvalue = 1;
-	try { // Start catching IDP exceptions
-
+	pwls d = NULL;
+	bool cleanexit = false;
+	try {
 		//IMPORTANT: because signals are handled asynchronously, a special mechanism is needed to recover from them (exception throwing does not work)
 		//setjmp maintains a jump point to which any stack can jump back, re-executing this statement with different return value,
 		//so if this happens, we jump out
 		bool stoprunning = false;
 		if(setjmp(main_loop)){
-			handleSignals(abortcode, returnvalue, d);
+			jumpback = 1;
+			handleSignals();
+			cleanexit = false;
 			stoprunning = true;
 		}
 		if(!stoprunning){
-			returnvalue = doModelGeneration(d);
+			jumpback = 0;
+			doModelGeneration(d);
+			jumpback = 1;
+			cleanexit = true;
 		}
-
-#ifdef NDEBUG
-		exit(returnvalue);     // (faster than "return", which will invoke the destructor for 'Solver')
-#endif
 	} catch (const exception& e) {
 		printExceptionCaught(cerr, e);
-		if(d.get()!=NULL){
-			printStatistics(d);
-		}
-		_exit(1);
+		cleanexit = false;
+	} catch (int i) {
+		printUnexpectedError(cerr);
+		cleanexit = false;
 	}
+
+	int returnvalue = handleTermination(cleanexit, d);
+
+#ifdef NDEBUG
+	return returnvalue; //Do not call all destructors
+#endif
 
 	if(trans!=NULL){
 		delete trans;
@@ -136,107 +187,136 @@ int main(int argc, char** argv) {
 		delete sol;
 	}
 
+	if(d!=NULL){
+		delete d;
+	}
 	return returnvalue;
 }
 
-bool initializeAndParseASP(pwls& d){
-	bool unsat = false;
+void rewriteIntoFlatZinc(){
+	switch(modes.format){
+		case FORMAT_ASP:{
+			LParseTranslator* lptrans = new LParseTranslator();
+			sol->setTranslator(lptrans);
 
-	WrappedPCSolver* p = new WrappedPCSolver(modes);
-	d = shared_ptr<WrappedLogicSolver>(p);
+			std::istream is(getInputBuffer());
+			FlatZincRewriter* p = new FlatZincRewriter(modes);
+			Read<FlatZincRewriter>* r = new Read<FlatZincRewriter>(p, lptrans);
+			r->read(is);
+			delete r;
+			closeInput();
+			p->finishParsing();
+			break;}
+		case FORMAT_OPB:{
+			OPBTranslator* opbtrans = new OPBTranslator();
+			sol->setTranslator(opbtrans);
 
+			std::istream is(getInputBuffer());
+			FlatZincRewriter* p = new FlatZincRewriter(modes);
+			PBRead<FlatZincRewriter>* r = new PBRead<FlatZincRewriter>(p, opbtrans, is);
+			r->parse();
+			delete r;
+			closeInput();
+			p->finishParsing();
+			break;}
+		case FORMAT_FODOT:{
+			yyin = getInputFile();
+			yyinit();
+			try {
+				yyparse();
+			} catch (const MinisatID::idpexception& e) {
+				throw idpexception(getParseError(e, lineNo, charPos, yytext));
+			}
+			yydestroy();
+			closeInput();
+			getFZRewriter()->finishParsing();
+			break;
+		}
+	}
+}
+
+pwls initializeAndParseASP(){
 	LParseTranslator* lptrans = new LParseTranslator();
 	trans = lptrans;
-	p->setTranslator(trans);
-
-	Read* r = new Read(p, lptrans);
+	sol->setTranslator(trans);
 
 	std::istream is(getInputBuffer());
+	WrappedPCSolver* p = new WrappedPCSolver(modes);
+	Read<WrappedPCSolver>* r = new Read<WrappedPCSolver>(p, lptrans);
+
 	if(!r->read(is)){
-		unsat = true;
+		sol->notifyUnsat();
 	}
-
-	delete r;
 	closeInput();
+	delete r;
 
-	return unsat;
+	return p;
 }
 
-bool initializeAndParseOPB(pwls& d){
-	bool unsat = false;
-
-	WrappedPCSolver* p = new WrappedPCSolver(modes);
-	d = shared_ptr<WrappedLogicSolver>(p); //Only set d if successfully parsed
-
+pwls initializeAndParseOPB(){
 	OPBTranslator* opbtrans = new OPBTranslator();
 	trans = opbtrans;
-	p->setTranslator(trans);
+	sol->setTranslator(trans);
 
 	std::istream is(getInputBuffer());
+	WrappedPCSolver* p = new WrappedPCSolver(modes);
+	PBRead<WrappedPCSolver>* parser = new PBRead<WrappedPCSolver>(p, opbtrans, is);
 
-	PBRead* parser = new PBRead(p, opbtrans, is);
-	parser->autoLin();
-
-	parser->parse();
-
+	if(!parser->parse()){
+		sol->notifyUnsat();
+	}
 	closeInput();
 	delete parser;
-
-	return unsat;
+	return p;
 }
 
-bool initializeAndParseFODOT(pwls& d){
+pwls initializeAndParseFODOT(){
 	if(modes.transformat!=TRANS_PLAIN){
 		fodottrans = new FODOTTranslator(modes.transformat);
 		trans = fodottrans;
 	}
 
 	yyin = getInputFile();
-	d = parse();
+	pwls d = parse();
 	closeInput();
-
-	return d.get()==NULL;
+	return d;
 }
 
-int doModelGeneration(pwls& d){
+void doModelGeneration(pwls& d){
 	// Unittest injection possible here by: pwls d = unittestx();
 
-	bool unsat = false;
+	sol->notifyStartParsing();
+
 	switch(modes.format){
 		case FORMAT_ASP:
-			unsat = initializeAndParseASP(d);
+			d = initializeAndParseASP();
 			break;
 		case FORMAT_OPB:
-			unsat = initializeAndParseOPB(d);
+			d = initializeAndParseOPB();
 			break;
 		case FORMAT_FODOT:{
-			unsat = initializeAndParseFODOT(d);
+			d = initializeAndParseFODOT();
 			break;
 		}
 	}
 
-	if(unsat){
-		ostream output(getOutputBuffer());
-		printUnSatisfiable(output, modes.format, modes.transformat);
-		printUnSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);
-	}else{ //Solve
-		ModelExpandOptions options;
-		if(modes.format==FORMAT_OPB && d->hasOptimization()){
-			options.printmodels	= PRINT_BEST;
-			options.savemodels = SAVE_BEST;
-		}else{
-			options.printmodels	= PRINT_ALL;
-			options.savemodels = SAVE_NONE;
+	sol->notifyEndParsing();
+
+	if(!sol->isUnsat()){
+		assert(d!=NULL);
+		if(d->hasOptimization()){
+			sol->notifyOptimizing();
 		}
-		options.search = MODELEXPAND;
-		options.nbmodelstofind = modes.nbmodels;
-		sol = new Solution(options);
-		unsat = !d->solve(sol);
 
-		printStatistics(d, modes.verbosity);
+		if(modes.format==FORMAT_OPB && sol->isOptimizationProblem()){ // Change default options added before parsing
+			sol->setPrintModels(PRINT_BEST);
+			sol->setSaveModels(SAVE_BEST);
+		}
+
+		d->solve(sol);
+	}else{
+		sol->notifySolvingFinished();
 	}
-
-	return unsat ? 20 : 10;
 }
 
 /**
@@ -252,17 +332,22 @@ pwls parse() {
 		if (unsatfound) {
 			printUnsatFoundDuringParsing(clog, modes.verbosity);
 		} else {
-			//TODO this can also be caught when the sigint handler has received an interrupt, should differentiate
 			throw idpexception(getParseError(e, lineNo, charPos, yytext));
 		}
 	}
 
 	pwls d = getData();
 
-	yydestroy(); //There is still a memory leak of about 16 Kb in the flex scanner, which is inherent to the flex C (not C++) scanner
+	yydestroy();
 
 	if (unsatfound) {
-		d = shared_ptr<WrappedLogicSolver> ();
+		sol->notifyUnsat();
+		if(d!=NULL){
+			delete d;
+		}
+		d = NULL;
+	}else{
+		assert(d!=NULL);
 	}
 
 	return d;
@@ -276,41 +361,49 @@ static void noMoreMem() {
 	bool reducedmem = false;
 	//TODO try to reduce solver clause base
 	if (!reducedmem) {
-		abortcode=SIGINT;
-		memoryoverflow = 1;
+		abortcode=SIGABRT;
+		clog <<">>> Signal handled: out of memory\n";
 		longjmp (main_loop, 1);
 	}
 }
 
 static void SIGFPE_handler(int signum) {
 	abortcode = SIGFPE;
-	longjmp (main_loop, 1);
+	if(jumpback==0){
+		longjmp (main_loop, 1);
+	}
 }
 
 //IMPORTANT: assumed this is always called externally
 static void SIGTERM_handler(int signum) {
 	abortcode = SIGTERM;
-	longjmp (main_loop, 1);
+	if(jumpback==0){
+		longjmp (main_loop, 1);
+	}
 }
 
 static void SIGABRT_handler(int signum) {
 	abortcode=SIGABRT;
-	longjmp (main_loop, 1);
+	if(jumpback==0){
+		longjmp (main_loop, 1);
+	}
 }
 
 static void SIGSEGV_handler(int signum) {
 	abortcode=SIGSEGV;
-	longjmp (main_loop, 1);
+	if(jumpback==0){
+		longjmp (main_loop, 1);
+	}
 }
 
 static void SIGINT_handler(int signum) {
 	abortcode=SIGINT;
-	longjmp (main_loop, 1);
+	if(jumpback==0){
+		longjmp (main_loop, 1);
+	}
 }
 
-void handleSignals(int code, int& returnvalue, pwls d){
-	bool cleanexit = false;
-
+void handleSignals(){
 	switch(abortcode){
 	case SIGFPE:
 		cerr <<">>> Floating point error signal received\n";
@@ -320,28 +413,12 @@ void handleSignals(int code, int& returnvalue, pwls d){
 		break;
 	case SIGINT:
 		clog <<">>> Ctrl-c signal received\n";
-		cleanexit = true;
 		break;
 	case SIGSEGV:
 		cerr <<">>> Segmentation fault signal received\n";
 		break;
 	case SIGTERM:
 		clog <<">>> Terminate signal received\n";
-		cleanexit = true;
 		break;
-	}
-
-	if(cleanexit){
-		returnvalue = 0;
-		if(d.get()!=NULL){
-			d->notifyTimeout();
-		}
-	}else{
-		returnvalue = abortcode;
-		if(memoryoverflow==1){
-			throw idpexception(">>> Signal handled: out of memory\n");
-		}else{
-			throw idpexception(">>> Signal handled: execution interrupted\n");
-		}
 	}
 }

@@ -16,6 +16,11 @@
 
 namespace MinisatID{
 
+class InnerDisjunction;
+class InnerSet;
+class InnerWSet;
+class Aggregate;
+
 class ECNFPrinter {
 private:
 	std::stringstream ss;
@@ -26,10 +31,68 @@ public:
 
 	void 	startPrinting();
 	void 	endPrinting(std::ostream& stream);
-	void 	addClause	(const vec<Lit>& lits);
-	void 	addSet		(const std::vector<Lit>& lits);
+
+	template<class T>
+	void 	notifyadded(const T& formula);
 };
 
+template<>
+void ECNFPrinter::notifyadded(const InnerDisjunction& lits);
+template<>
+void ECNFPrinter::notifyadded(const InnerRule& lits);
+template<>
+void ECNFPrinter::notifyadded(const InnerSet& lits);
+template<>
+void ECNFPrinter::notifyadded(const InnerWSet& lits);
+template<>
+void ECNFPrinter::notifyadded(const InnerAggregate& lits);
+template<>
+void ECNFPrinter::notifyadded(const InnerMinimizeAgg& set);
+template<>
+void ECNFPrinter::notifyadded(const InnerMinimizeOrderedList& set);
+template<>
+void ECNFPrinter::notifyadded(const InnerMinimizeSubset& set);
+template<>
+void ECNFPrinter::notifyadded(const InnerSymmetryLiterals& set);
+template<>
+void ECNFPrinter::notifyadded(const InnerForcedChoices& set);
+template<>
+void ECNFPrinter::notifyadded(const InnerIntVarEnum& set);
+template<>
+void ECNFPrinter::notifyadded(const InnerIntVarRange& set);
+template<>
+void ECNFPrinter::notifyadded(const InnerCPAllDiff& set);
+template<>
+void ECNFPrinter::notifyadded(const InnerCPBinaryRel& set);
+template<>
+void ECNFPrinter::notifyadded(const InnerCPCount& set);
+template<>
+void ECNFPrinter::notifyadded(const InnerCPBinaryRelVar& set);
+template<>
+void ECNFPrinter::notifyadded(const InnerCPSumWeighted& set);
+
 }
+/*
+class ECNFGraphPrinter {
+private:
+	std::stringstream ss;
+
+public:
+	ECNFGraphPrinter();
+	virtual ~ECNFGraphPrinter();
+
+	void 	startPrinting();
+	void 	endPrinting(std::ostream& stream);
+
+	template<class T>
+	void 	notifyadded(const T& formula);
+};
+
+template<>
+void ECNFGraphPrinter::notifyadded(const InnerDisjunction& lits);
+template<>
+void ECNFGraphPrinter::notifyadded(const InnerWSet& lits);
+
+}*/
 
 #endif /* ECNFPRINTER_HPP_ */

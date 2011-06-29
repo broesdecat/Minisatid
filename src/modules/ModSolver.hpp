@@ -12,7 +12,7 @@
 #include "utils/Utils.hpp"
 #include "modules/DPLLTmodule.hpp"
 
-#include "external/InterfaceImpl.hpp"
+#include "wrapper/InterfaceImpl.hpp"
 
 namespace MinisatID {
 
@@ -80,7 +80,7 @@ struct AV{
  * MS:backtrackdown
  */
 
-class ModSolver: public DPLLTmodule, public MinisatID::WLSImpl{
+class ModSolver: public DPLLTmodule, public MinisatID::WrapperPimpl{
 private:
 	bool 		init, hasparent, searching;
 
@@ -97,7 +97,7 @@ private:
 
 	std::vector<std::vector<Lit> > trail; //Trail of propagations, necessary because backtrack is still by literal
 
-	virtual void addModel(const vec<Lit>& model);
+	virtual void addModel(const InnerModel& model);
 
 public:
 	ModSolver(modindex child, Var head, SOSolver* mh);
@@ -117,7 +117,7 @@ public:
 	void 	notifyVarAdded	(uint64_t nvars) { /*Is NOT DOWN!*/}
 
 	void 	finishParsing	(bool& present, bool& unsat){ init = true; }
-	void 	finishParsingDown(bool& present, bool& unsat);
+	void 	finishParsingDown(bool& unsat);
 
 	bool 	simplify		()	{ return true;};
 	bool 	simplifyDown	();
@@ -160,7 +160,7 @@ public:
 	 * The model of a theory is the interpretation of all atoms decided by the root SAT solver.
 	 */
 	void 		printModel		();
-	void 		print			() const;
+	void 		printState		() const;
 	void 		printStatistics	() const 	{ /*Do NOT print lower ones here*/};
 
 	//GETTERS

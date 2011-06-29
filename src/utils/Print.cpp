@@ -26,8 +26,6 @@ using namespace Minisat;
 
 namespace MinisatID{
 
-namespace Print{
-
 int getPrintableVar(Var v){
 	return v+1;
 }
@@ -38,24 +36,27 @@ void print(const Minisat::Lit& lit, const lbool val){
 }
 
 template<>
-void print(const Minisat::Lit& lit){
-	std::clog <<(sign(lit)?"-":"") <<getPrintableVar(var(lit));
-}
-
-template<>
-void print(const Minisat::vec<Minisat::Lit>& v){
+std::string print(const Minisat::vec<Minisat::Lit>& v){
+	stringstream ss;
 	for(int i=0; i<v.size(); ++i) {
 		if(i<v.size()-1){
-			clog <<" ";
+			ss <<" ";
 		}
-		print(v[i]);
+		ss <<v[i];
 	}
-	clog <<"\n";
+	ss <<"\n";
+	return ss.str();
 }
 
 template<>
-void print(const InnerDisjunction& clause){
-	print(clause.literals);
+std::string print(const InnerDisjunction& clause){
+	return print(clause.literals);
+}
+
+template<> std::string print(const Lit& lit){
+	std::stringstream ss;
+	ss <<(sign(lit)?"-":"") <<getPrintableVar(var(lit));
+	return ss.str();
 }
 
 template<>
@@ -80,7 +81,7 @@ void print(Solver const * const s){
 
 template<>
 void print(PCSolver * const s){
-	s->print();
+	s->printState();
 }
 
 template<>
@@ -111,10 +112,10 @@ void print(IDSolver const * const s){
 			}
 
 			const PropRule& r = s->getDefinition(i);
-			print(r.getHead());
+			clog <<r.getHead();
 			int counter = 0;
 			while(counter<r.size()){
-				print(r[counter]);
+				clog <<r[counter];
 				++counter;
 			}
 			clog <<"\n";
@@ -190,9 +191,7 @@ void print(rClause c, const S& s){
 
 template<>
 void print(rClause c, const PCSolver& s){
-	s.print(c);
-}
-
+	s.printClause(c);
 }
 
 }

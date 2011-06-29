@@ -16,32 +16,40 @@
 namespace MinisatID {
 
 class Solution;
-class WLSImpl;
+class WrapperPimpl;
 
 class LogicSolver{
 private:
 	SolverOption _modes;
-	MinisatID::WLSImpl& parent;
+	MinisatID::WrapperPimpl& parent;
+	bool hasMonitor;
 public:
-	LogicSolver(MinisatID::SolverOption modes, MinisatID::WLSImpl& inter)
-			:_modes(modes), parent(inter){};
+	LogicSolver(MinisatID::SolverOption modes, MinisatID::WrapperPimpl& inter)
+			:_modes(modes), parent(inter), hasMonitor(false){};
 	virtual ~LogicSolver(){};
 
 	virtual bool 	simplify() = 0;
-	virtual void 	finishParsing	(bool& present, bool& unsat) = 0;
+	virtual void 	finishParsing(bool& unsat) = 0;
 
 	virtual bool	solve(const vec<Lit>& assumptions, const ModelExpandOptions& options) = 0;
 
-			int 	verbosity		() const	{ return modes().verbosity; }
-	const SolverOption& modes		() const	{ return _modes; }
-			void	setVerbosity	(int verb)	{ _modes.verbosity = verb; }
-			void	setNbModels		(int nbmodels) { _modes.nbmodels = nbmodels; }
+			int 	verbosity		() const		{ return modes().verbosity; }
+	const SolverOption& modes		() const		{ return _modes; }
+			void	setVerbosity	(int verb)		{ _modes.verbosity = verb; }
+			void	setNbModels		(int nbmodels)	 { _modes.nbmodels = nbmodels; }
 
-	const MinisatID::WLSImpl& getParent	() const { return parent; }
-	MinisatID::WLSImpl& getParent	() { return parent; }
+	const MinisatID::WrapperPimpl& 	getParent	() const	{ return parent; }
+	MinisatID::WrapperPimpl& 		getParent	() 			{ return parent; }
 
 	virtual void 	printStatistics	() const = 0;
+
+	void notifyHasMonitor();
+	bool isBeingMonitored() const;
+	void notifyMonitor(const InnerPropagation& obj);
+	void notifyMonitor(const InnerBacktrack& obj);
 };
+
+
 
 }
 

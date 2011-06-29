@@ -27,12 +27,17 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include "Solver.hpp"
 #include "mtl/Sort.h"
-#include <cmath>
 
-#include <vector> /*A*/
-/*A*/ using namespace Minisat;
-/*A*/ using namespace MinisatID;
-/*A*/ using namespace MinisatID::Print;
+/*AB*/
+#include <cmath>
+#include <vector>
+#include <iostream>
+#include <cstdarg>
+
+using namespace std;
+using namespace Minisat;
+using namespace MinisatID;
+/*AE*/
 
 //=================================================================================================
 // Constructor/Destructor:
@@ -108,6 +113,16 @@ Var Solver::newVar(bool sign, bool dvar)
 }
 
 /*AB*/
+
+void Solver::addSymmetryGroup(const vec<vec<Lit> >& symms){
+	symmgroups.push();
+	for(int i=0; i<symms.size(); i++){
+		symmgroups.last().push();
+		for(int j=0; j<symms[i].size(); j++){
+			symmgroups.last().last().push(symms[i][j]);
+		}
+	}
+}
 
 /**
  * This is (currently) necessary, because the intialization schema is the following:
@@ -289,7 +304,7 @@ void Solver::cancelUntil(int level) {
         /*AB*/
         int levels = trail_lim.size() - level;
         trail_lim.shrink(levels);
-        solver.backtrackDecisionLevel(levels, decisionLevel());
+        solver.backtrackDecisionLevel(levels, level);
         /*AE*/
     } }
 
@@ -373,22 +388,22 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 	if(verbosity>4){
 		reportf("Choices: ");
 		for(int i=0; i<trail_lim.size(); i++){
-			print(trail[trail_lim[i]]); reportf(" ");
+			clog <<trail[trail_lim[i]] <<" ";
 		}
 		reportf("\n");
 		reportf("Trail: \n");
 		for(int i=0; i<trail_lim.size()-1; i++){
-			reportf("Level: ");
+			clog <<"Level: ";
 			for(int j=trail_lim[i]; j<trail_lim[i+1]; j++){
-				print(trail[j]); reportf(" ");
+				clog <<trail[j] <<" ";
 			}
-			reportf("\n");
+			clog <<"\n";
 		}
-		reportf("Level: ");
+		clog <<"Level: ";
 		for(int j=trail_lim[trail_lim.size()-1]; j<trail.size(); j++){
-			print(trail[j]); reportf(" ");
+			clog <<trail[j] <<" ";
 		}
-		reportf("\n");
+		clog <<"\n";
 	}
 	/*AE*/
 
@@ -441,9 +456,9 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
         /*AB*/
         if(verbosity>4){
         	for(std::vector<Lit>::const_iterator i=explain.begin(); i<explain.end(); i++){
-        		print(*i); reportf(" ");
+        		clog <<*i <<" ";
         	}
-        	reportf("\n");
+        	clog <<"\n";
 		}
 
         if(deleteImplicitClause){
@@ -1008,7 +1023,7 @@ void Solver::verifyModel()
     assert(!failed);
 
     if(verbosity>3){
-    	reportf("Verified %d original clauses.\n", clauses.size());
+    	clog <<"Verified " <<clauses.size() <<" original clauses.\n";
     }
 }
 
@@ -1026,3 +1041,13 @@ void Solver::checkLiteralCount()
         assert((int)clauses_literals == cnt);
     }
 }
+
+/*AB*/
+void Solver::printStatistics() const{
+	std::clog << "> restarts              : " <<starts <<"\n";
+	std::clog << "> conflicts             : " <<decisions <<"  (" <<(float)rnd_decisions*100 / (float)decisions <<" % random)\n";
+	std::clog << "> decisions             : " <<starts <<"\n";
+	std::clog << "> propagations          : " <<propagations <<"\n";
+	std::clog << "> conflict literals     : " <<tot_literals <<"  (" <<((max_literals-tot_literals)*100/(double)max_literals) <<" % deleted)\n";
+}
+/*AE*/

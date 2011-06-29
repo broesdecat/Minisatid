@@ -23,7 +23,6 @@
 using namespace std;
 using namespace tr1;
 using namespace MinisatID;
-using namespace Aggrs;
 
 class OrderedAggTransformations{
 public:
@@ -48,7 +47,7 @@ public:
 
 OrderedAggTransformations transfo;
 
-const vector<AggTransformation*>& Aggrs::getTransformations(){
+const vector<AggTransformation*>& MinisatID::getTransformations(){
 	return transfo.t;
 }
 
@@ -480,7 +479,7 @@ void CardToEquiv::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& u
 					InnerRule rule;
 					rule.definitionID = agg.getDefID();
 					rule.head = var(agg.getHead());
-					rule.conjunctive = true;
+					rule.conjunctive = false;
 					for (vsize j = 0; j < set->getWL().size(); ++j) {
 						rule.body.push(set->getWL()[j].getLit());
 					}
@@ -515,7 +514,7 @@ struct PBAgg {
 };
 
 //FUTURE allow complete translation into sat? => double bounds, defined aggregates, optimization
-bool Aggrs::transformSumsToCNF(vps& sets, PCSolver& pcsolver) {
+bool MinisatID::transformSumsToCNF(vps& sets, PCSolver& pcsolver) {
 	int sumaggs = 0;
 	int maxvar = 1;
 	vector<PBAgg*> pbaggs;
@@ -587,7 +586,7 @@ bool Aggrs::transformSumsToCNF(vps& sets, PCSolver& pcsolver) {
 	MiniSatPP::opt_tare = true; //Experimentally set to true
 	MiniSatPP::opt_primes_file = pcsolver.modes().getPrimesFile().c_str();
 	MiniSatPP::opt_convert_weak = false;
-	MiniSatPP::opt_convert = MiniSatPP::ct_Mixed;
+	MiniSatPP::opt_convert = MiniSatPP::ct_Sorters;
 	pbsolver->allocConstrs(maxvar, sumaggs);
 
 	bool unsat = false;

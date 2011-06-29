@@ -18,6 +18,8 @@
 
 namespace MinisatID {
 
+class Model;
+
 enum FIXEDVAL { FIXED_TRUE, FIXED_ARBIT, FIXED_FALSE };
 enum PRINTCHOICE { PRINT_FIXED, PRINT_ARBIT };
 
@@ -66,7 +68,7 @@ public:
 	virtual ~Translator(){}
 
 	virtual void	printLiteral		(std::ostream& output, const MinisatID::Literal& lit);
-	virtual void	printModel			(std::ostream& output, const std::vector<Literal>& model);
+	virtual void	printModel			(std::ostream& output, const Model& model);
 	virtual void 	printCurrentOptimum	(std::ostream& output, const Weight& value);
 	virtual void	printHeader			(std::ostream& output);
 };
@@ -99,7 +101,7 @@ public:
 	void 	addPred			(std::string name, int num, const std::vector<std::string>& ptypes, bool f);
 
 	void 	printLiteral		(std::ostream& output, const MinisatID::Literal& lit);
-	void 	printModel			(std::ostream& output, const std::vector<Literal>& model);
+	void 	printModel			(std::ostream& output, const Model& model);
 	void 	printHeader			(std::ostream& output);
 
 private:
@@ -123,7 +125,7 @@ public:
 	void 	addTuple		(Atom atom, std::string name);
 
 	void 	printLiteral	(std::ostream& output, const MinisatID::Literal& lit);
-	void 	printModel		(std::ostream& output, const std::vector<Literal>& model);
+	void 	printModel		(std::ostream& output, const Model& model);
 	void 	printHeader		(std::ostream& output);
 };
 
@@ -138,7 +140,7 @@ public:
 	void 	addTuple		(Atom atom, std::string name);
 
 	void 	printLiteral		(std::ostream& output, const MinisatID::Literal& lit);
-	void 	printModel			(std::ostream& output, const std::vector<Literal>& model);
+	void 	printModel			(std::ostream& output, const Model& model);
 	void 	printCurrentOptimum	(std::ostream& output, const Weight& value);
 	void 	printHeader			(std::ostream& output);
 };

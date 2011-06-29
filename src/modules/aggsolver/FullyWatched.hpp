@@ -16,8 +16,6 @@
 
 namespace MinisatID {
 
-namespace Aggrs{
-
 typedef std::vector<PropagationInfo> vprop;
 
 class FWTrail{
@@ -74,6 +72,7 @@ public:
 	SPFWAgg(TypedSet* agg);
 	virtual ~SPFWAgg(){};
 
+	void checkAddToExplan(bool& stop, Weight& min, Weight& max, const PropagationInfo& propinfo, const Agg& agg, bool caseone, std::vector<PropagationInfo>& reasons);
 	virtual void 	getExplanation			(vec<Lit>& lits, const AggReason& ar);
 
 protected:
@@ -113,8 +112,6 @@ protected:
 	virtual rClause propagateSpecificAtEnd				(const Agg& agg, bool headtrue);
 	virtual rClause propagateAll			(const Agg& agg, bool headtrue);
 };
-
-}
 
 }
 

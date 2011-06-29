@@ -103,7 +103,7 @@ private:
 
 	DEFSEM					sem;
 
-	int 					recagg; 	//The number of recursive aggregates present, if 0 after initialization, no aggsolver linking will be used.
+	bool					posrecagg, mixedrecagg;
 
 	int						previoustrailatsimp; //The size of the trail the previous time simplification was run.
 
@@ -138,7 +138,7 @@ public:
 	IDSolver(MinisatID::PCSolver* s);
 	virtual ~IDSolver();
 
-	MinisatID::AggSolver*	getAggSolver			()	const	{ return recagg==0?NULL:getPCSolver().getAggSolver();}
+	MinisatID::AggSolver*	getAggSolver		()	const	{ return (!posrecagg || !mixedrecagg)?NULL:getPCSolver().getAggSolver();}
 
 	virtual void 		notifyVarAdded			(uint64_t nvars);
 	virtual void 		finishParsing		 	(bool& present, bool& unsat);
@@ -153,7 +153,7 @@ public:
 	virtual void 		printStatistics			() const;
 
 	virtual const char* getName					() const { return "definitional"; }
-	virtual void 		print					() const;
+	virtual void 		printState				() const;
 
 	bool 				checkStatus				();
 	bool 				isWellFoundedModel		();

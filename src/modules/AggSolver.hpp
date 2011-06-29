@@ -27,18 +27,16 @@ class PCSolver;
 class WL;
 typedef std::vector<WL> vwl;
 
-namespace Aggrs{
-	class Agg;
-	class TypedSet;
-	class Watch;
-	class AggReason;
-	struct AggBound;
+class Agg;
+class TypedSet;
+class Watch;
+class AggReason;
+struct AggBound;
 
-	typedef std::map<int, Aggrs::TypedSet*> mips;
-	typedef std::vector<Aggrs::Agg*> agglist;
-	typedef std::vector<Aggrs::TypedSet*> setlist;
-	typedef std::vector<Aggrs::Watch*> watchlist;
-}
+typedef std::map<int, TypedSet*> mips;
+typedef std::vector<Agg*> agglist;
+typedef std::vector<TypedSet*> setlist;
+typedef std::vector<Watch*> watchlist;
 
 typedef std::vector<Weight> vw;
 typedef std::vector<Lit> vl;
@@ -59,39 +57,52 @@ struct LI{
 	LI(lbool v, int i): v(v), i(i){}
 };
 
+struct VI{
+	Var var;
+	int heurval;
+
+	bool operator <(const VI& rhs) const{
+		return heurval<rhs.heurval;
+	}
+};
+
 class AggSolver: public DPLLTmodule{
 	//TODO pimpl
 private:
-	Aggrs::mips 					parsedSets;
+	mips 					parsedSets;
 	std::set<Var>					heads;
 	Var								dummyhead;
 		// To prevent creating lots of heads which are all certainly true, it is possible to give them all the same (this) head.
 		// The aggregates have to be completion defined!
 
-	Aggrs::setlist					sets;
-	std::vector<Aggrs::AggReason*>	reasons; 				//Map var to reason
+	setlist					sets;
+	std::vector<AggReason*>	reasons; 				//Map var to reason
 
-	std::vector<Aggrs::watchlist>	lit2dynamicwatchlist;	// map lit to watches
-	std::vector<Aggrs::watchlist>	lit2staticwatchlist;	// map lit to watches
-	std::vector<Aggrs::Agg*>		lit2headwatchlist;		// map lit to watches
-	std::set<Aggrs::Agg*>			dummyheadtrue2watchlist;	// map dummylittrue to watches
-	std::set<Aggrs::Agg*>			dummyheadfalse2watchlist;	// map dummyvarfalse to watches
-	std::vector<Aggrs::setlist>		var2setlist;			// the pointer network of set var -> set
+	std::vector<watchlist>	lit2dynamicwatchlist;	// map lit to watches
+	std::vector<watchlist>	lit2staticwatchlist;	// map lit to watches
+	std::vector<Agg*>		lit2headwatchlist;		// map lit to watches
+	std::set<Agg*>			dummyheadtrue2watchlist;	// map dummylittrue to watches
+	std::set<Agg*>			dummyheadfalse2watchlist;	// map dummyvarfalse to watches
+	std::vector<setlist>	var2setlist;			// the pointer network of set var -> set
 
 	//statistics
-	uint64_t 						propagations;
+	uint64_t 				propagations;
 
 	//new trail datastructure
-	std::vector<Aggrs::setlist > 	setsbacktracktrail;
-	Aggrs::setlist 					setspropagatetrail;
+	std::vector<setlist > 	setsbacktracktrail;
+	setlist 				setspropagatetrail;
 
-	std::vector<int>				mapdecleveltotrail;
-	int 							index; //fulltrail index?
-	uint							propindex;
-	std::vector<Lit>				littrail;
-	std::vector<LI>					propagated;
+	std::vector<int>		mapdecleveltotrail;
+	int 					index; //fulltrail index?
+	uint					propindex;
+	std::vector<Lit>		littrail;
+	std::vector<LI>			propagated;
 
-	Aggrs::Agg*						optimagg;
+	Agg*					optimagg;
+
+	//custom heur
+	std::set<Var>			heurvars; //log n instead of direct (but probably important size reduction)
+	std::vector<VI>			varwithheurval;
 
 public:
 	AggSolver(PCSolver* s);
@@ -137,10 +148,13 @@ public:
 	void 		backtrackDecisionLevels	(int nblevels, int untillevel);
 	rClause 	getExplanation			(const Lit& l);
 
+	Var			changeBranchChoice 		(const Var& chosenvar);
+	void 		adaptAggHeur			(const vwl& wls, int nbagg);
+
 	// INFORMATION
 
 	const char* getName					() const { return "aggregate"; }
-	void 		print					() const;
+	void 		printState				() const;
 	void 		printStatistics			() const;
 
 	// VERIFICATION
@@ -161,40 +175,38 @@ public:
 	vwl::const_iterator getSetLitsOfAggWithHeadEnd	(Var x) const;
 
 	//INTERNAL (TODO into pimpl)
-	rClause		notifySolver(Aggrs::AggReason* cr);
+	rClause		notifySolver(AggReason* cr);
 	rClause 	doProp					();
 	void 		findClausalPropagations();
 	void 		notifyDefinedHead		(Var head, int defID);
 	void 		removeHeadWatch			(Var head, int defID);
-	void 		setHeadWatch			(Lit head, Aggrs::Agg* agg);
-	void 		addStaticWatch			(Var v, Aggrs::Watch* w);
-	void 		addDynamicWatch			(const Lit& l, Aggrs::Watch* w);
-	const std::vector<Aggrs::TypedSet*>&	getPropTrail	() const { return setspropagatetrail; }
-	void		addToPropTrail			(Aggrs::TypedSet* set) { setspropagatetrail.push_back(set); }
-	void		addToBackTrail			(Aggrs::TypedSet* set) { setsbacktracktrail.back().push_back(set); }
+	void 		setHeadWatch			(Lit head, Agg* agg);
+	void 		addStaticWatch			(Var v, Watch* w);
+	void 		addDynamicWatch			(const Lit& l, Watch* w);
+	const std::vector<TypedSet*>&	getPropTrail	() const { return setspropagatetrail; }
+	void		addToPropTrail			(TypedSet* set) { setspropagatetrail.push_back(set); }
+	void		addToBackTrail			(TypedSet* set) { setsbacktracktrail.back().push_back(set); }
 	void		addRootLevel			();
 	int			getTime					(Lit l) const;
 
-	void		setOptimAgg				(Aggrs::Agg* agg) { optimagg = agg; }
-	bool		isOptimAgg				(Aggrs::Agg const * const agg) { return optimagg==agg; }
+	void		setOptimAgg				(Agg* agg) { optimagg = agg; }
+	bool		isOptimAgg				(Agg const * const agg) { return optimagg==agg; }
 
 protected:
-	Aggrs::Agg*	getOptimAgg				() 				{ return optimagg; }
+	Agg*		getOptimAgg				() 				{ return optimagg; }
 
 	void 		adaptToNVars			(uint64_t nvars);
 	int 		getCurrentDecisionLevel	() 		const { return setsbacktracktrail.size()-1; }
 
-	Aggrs::Agg* getAggDefiningHead		(Var v) const;
+	Agg*		getAggDefiningHead		(Var v) const;
 
-	bool		finishSet				(Aggrs::TypedSet* set);
+	bool		finishSet				(TypedSet* set);
 
-	bool 		addAggrExpr				(Var headv, int setid, const Aggrs::AggBound& bound, AggType type, AggSem sem, int defid);
+	bool 		addAggrExpr				(Var headv, int setid, const AggBound& bound, AggType type, AggSem sem, int defid);
 
 };
 
-namespace Aggrs{
-	void printNumberOfAggregates(int nbsets, int nbagg, int nbsetlits, std::map<MinisatID::AggType, int>& nbaggs, int verbosity = 1000);
-}
+void printNumberOfAggregates(int nbsets, int nbagg, int nbsetlits, std::map<MinisatID::AggType, int>& nbaggs, int verbosity = 1000);
 
 }
 

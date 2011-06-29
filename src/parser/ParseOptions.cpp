@@ -14,13 +14,13 @@
 #include <iostream>
 
 #include <tclap/CmdLine.h>
-#include "parser/ResourceManager.hpp"
+#include "external/ResourceManager.hpp"
+#include "external/SolvingMonitor.hpp"
 
 #include "utils/Print.hpp"
 
 using namespace std;
 using namespace MinisatID;
-using namespace MinisatID::Print;
 
 SolverOption modes; //Used by parser, initialized before parsing!
 
@@ -114,7 +114,7 @@ struct Option: public Opt{
 };
 
 //Return false if parsing failed
-bool MinisatID::parseOptions(int argc, char** argv){
+bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 	string outputfile = "";
 
 	vector<Opt*> options;
@@ -134,6 +134,7 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	transvals.push_back(TRANS_FODOT); transdesc.push_back(pair<string, string>("fodot", "Translate model into FO(.) structure"));
 	transvals.push_back(TRANS_ASP); transdesc.push_back(pair<string, string>("asp", "Translate model into ASP facts"));
 	transvals.push_back(TRANS_PLAIN); transdesc.push_back(pair<string, string>("plain", "Return model in integer format"));
+	transvals.push_back(TRANS_FZ); transdesc.push_back(pair<string, string>("flatzinc", "Rewrite theory into flatzinc model"));
 
 	vector<pair<string, string> > checkcyclesdesc;
 	checkcyclesdesc.push_back(pair<string, string>("yes", "Check"));
@@ -168,6 +169,10 @@ bool MinisatID::parseOptions(int argc, char** argv){
 	vector<pair<string, string> > watcheddesc;
 	watcheddesc.push_back(pair<string, string>("yes", "Use smart watches"));
 	watcheddesc.push_back(pair<string, string>("no", "Use full watches"));
+
+	vector<pair<string, string> > aggheurdesc;
+	aggheurdesc.push_back(pair<string, string>("yes", "Use aggregate heuristic"));
+	aggheurdesc.push_back(pair<string, string>("no", "Don't use aggregate heuristic"));
 
 	vector<POLARITY> polvals;
 	vector<pair<string, string> > poldesc;
@@ -215,6 +220,7 @@ bool MinisatID::parseOptions(int argc, char** argv){
 			modes.rand_var_freq, cmd,"The frequency with which to make a random choice (between 0 and 1)."));
 	options.push_back(new NoValsOption<double>	("","decay", 		"double",
 			modes.var_decay, cmd, "The decay of variable activities within the SAT-solver (larger than or equal to 0)."));
+	//TODO outputfile not supported for flatzinc output
 	options.push_back(new NoValsOption<string>	("o","outputfile", 	"file",
 			outputfile, cmd,"The outputfile to use to write out models."));
     options.push_back(new NoValsOption<string>	("","primesfile",	"file",
@@ -241,6 +247,8 @@ bool MinisatID::parseOptions(int argc, char** argv){
 			modes.pbsolver, cmd,"Choose whether to translate pseudo-boolean constraints to SAT"));
 	options.push_back(new NoValsOption<double>	("","watch-ratio", 	"double",
 			modes.watchesratio, cmd,"The ratio of watches to set literals under which the watched algorithm is used."));
+	options.push_back(new Option<bool,string>	("","use-agg-heur", 	yesnovals, aggheurdesc,
+			modes.useaggheur, cmd,"Use a specialized aggregate heuristic."));
 	options.push_back(new Option<POLARITY, string>("","polarity", 	polvals, poldesc,
 			modes.polarity, cmd, "The default truth value choice of variables"));
 	options.push_back(new Option<int, int>("","aggsaving", 			aggsavingvals, aggsavingdesc,
@@ -267,7 +275,7 @@ bool MinisatID::parseOptions(int argc, char** argv){
 		setInputFileUrl(inputfilearg.getValue());
 	}
 	if(outputfile.compare("")!=0){
-		setOutputFileUrl(outputfile);
+		sol->setOutputFile(outputfile);
 	}
 
 	deleteList<Opt>(options);

@@ -9,7 +9,7 @@ AC_INIT([google-perftools],[1.6],[opensource@google.com])
 # (for sanity checking)
 AC_CONFIG_SRCDIR(README)
 AC_CANONICAL_HOST
-AM_INIT_AUTOMAKE([dist-zip])
+AM_INIT_AUTOMAKE([dist-zip tar-pax])
 AC_CONFIG_HEADERS([src/config.h])
 
 # Export the version information (for tc_version and friends)

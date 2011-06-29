@@ -11,19 +11,20 @@
 #include "utils/Print.hpp"
 #include "theorysolvers/PCSolver.hpp"
 
-#include "utils/Print.hpp"
-
 #include <cmath>
 
 #include "utils/IntTypes.h"
 
+// FIXME an unwellfounded model does NOT mean that the definition is not wellfounded
+// TODO only add one loopform at a time (save all lits, check next time first whether all are false, otherwise choose one more)
+
 using namespace std;
 using namespace MinisatID;
-using namespace MinisatID::Print;
 
 IDSolver::IDSolver(PCSolver* s):
 		DPLLTmodule(s),
-		sem(getPCSolver().modes().defsem), recagg(0),
+		sem(getPCSolver().modes().defsem),
+		posrecagg(true), mixedrecagg(true),
 		previoustrailatsimp(-1),
 		posloops(true), negloops(true),
 		simplified(false),
@@ -122,7 +123,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	present = true;
 	unsat = false;
 
-	if(modes().defsem==DEF_COMP || (recagg==0 && defdVars.size()==0)){
+	if(modes().defsem==DEF_COMP || defdVars.size()==0){
 		present = false;
 		return;
 	}
@@ -149,7 +150,6 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 			defdVars[i] = defdVars[defdVars.size() - 1];
 			defdVars.pop_back();
 			i--;
-			recagg--;
 		}
 	}
 	toremoveaggrheads.clear();
@@ -206,6 +206,8 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 
 	Lit l;
 	vector<Var> reducedVars;
+	mixedrecagg = false;
+	posrecagg = false;
 	for (vector<int>::const_iterator i = defdVars.begin(); i < defdVars.end(); ++i) {
 		Var v = (*i);
 		bool isdefd = false;
@@ -264,6 +266,21 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 						addConjOccurs(l, v);
 					}
 				}
+			}else if(t==AGGR){
+				switch(occ(v)){
+				case MIXEDLOOP:
+					mixedrecagg = true;
+					break;
+				case POSLOOP:
+					posrecagg = true;
+					break;
+				case BOTHLOOP:
+					mixedrecagg = true;
+					posrecagg = true;
+					break;
+				default:
+					break;
+				}
 			}
 		}
 	}
@@ -277,6 +294,10 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 		negloops = false;
 	}
 
+	if(getSemantics()==DEF_STABLE){
+		negloops = false;
+	}
+
 	if (verbosity() >= 1) {
 		report("> Number of recursive atoms in positive loops : %6d.\n",(int)atoms_in_pos_loops);
 		if (negloops) {
@@ -284,7 +305,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 		}
 	}
 
-	if (!posloops && (!negloops || getSemantics()==DEF_STABLE)) {
+	if (!posloops && !negloops) {
 		present = false;
 		return;
 	}
@@ -374,7 +395,7 @@ void IDSolver::visitFull(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &vi
 			sccs.push(w);
 			incomp[w] = true;
 		} while (w != i);
-		if (mixed) {
+		if (mixed && sccs.size()>1) {
 			rootofmixed.push(i);
 			for (int i = 0; i < sccs.size(); ++i) {
 				nodeinmixed.push(sccs[i]);
@@ -543,7 +564,8 @@ bool IDSolver::simplifyGraph(){
 	 * If this is not the case, the definition is removed from the data structures.
 	 */
 	vector<Var> reducedVars;
-	int remrecagg = 0;
+	posrecagg = false;
+	mixedrecagg = false;
 	for (vector<int>::const_iterator i = defdVars.begin(); i < defdVars.end(); ++i) {
 		Var v = (*i);
 		if (seen[v] > 0 || isFalse(v)) {
@@ -563,18 +585,29 @@ bool IDSolver::simplifyGraph(){
 				occ(v) = MIXEDLOOP;
 				reducedVars.push_back(v);
 				if (type(v) == AGGR) {
-					++remrecagg;
+					mixedrecagg = true;
 				}
 			}
 		} else {
 			reducedVars.push_back(v);
-			if (type(v) == AGGR) {
-				++remrecagg;
+			if(type(v)==AGGR){
+				switch(occ(v)){
+				case MIXEDLOOP:
+					mixedrecagg = true;
+					break;
+				case POSLOOP:
+					posrecagg = true;
+					break;
+				case BOTHLOOP:
+					mixedrecagg = true;
+					posrecagg = true;
+					break;
+				default:
+					break;
+				}
 			}
 		}
 	}
-	assert(remrecagg<=recagg);
-	recagg = remrecagg;
 	defdVars.clear();
 	defdVars.insert(defdVars.begin(), reducedVars.begin(), reducedVars.end());
 
@@ -1271,7 +1304,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 			++justify_conflicts;
 			if (verbosity() >= 2) {
 				report("Adding conflicting loop formula: [ ");
-				Print::print(c, getPCSolver());
+				MinisatID::print(c, getPCSolver());
 				report("].\n");
 			}
 			//reportf("Conflicting unfounded set found.\n");
@@ -1366,7 +1399,7 @@ void IDSolver::addLoopfClause(Lit l, vec<Lit>& lits) {
 
 		if (verbosity() >= 2) {
 			report("Adding loop formula: [ ");
-			Print::print(c, getPCSolver());
+			MinisatID::print(c, getPCSolver());
 			report("].\n");
 		}
 	}
@@ -1495,7 +1528,6 @@ void IDSolver::cycleSourceAggr(Var v, vec<Lit>& just) {
 }
 
 void IDSolver::notifyAggrHead(Var head) {
-	++recagg;
 	assert(!isDefined(head) && !isInitialized());
 	createDefinition(head, NULL, AGGR);
 }
@@ -1515,10 +1547,10 @@ void IDSolver::removeAggrHead(Var head) {
 inline void IDSolver::print(const PropRule& c) const {
 	report("Rule ");
 	Lit head = c.getHead();
-	Print::print(head, value(head));
+	MinisatID::print(head, value(head));
 	report(" <- ");
 	for (int i = 0; i < c.size(); ++i) {
-		Print::print(c[i], value(c[i]));
+		MinisatID::print(c[i], value(c[i]));
 		fprintf(stderr, " ");
 	}
 	report("\n");
@@ -1547,10 +1579,7 @@ bool IDSolver::isCycleFree() const {
 		report("Showing justification for disjunctive atoms. <<<<<<<<<<\n");
 		for (int i = 0; i < nVars(); ++i) {
 			if (isDefined(i) && type(i) == DISJ && occ(i) != MIXEDLOOP) {
-				Print::print(mkLit(i, false));
-				report("<-");
-				Print::print(justification(i)[0]);
-				report("; ");
+				clog <<mkLit(i, false) <<"<-" <<justification(i)[0] <<"; ";
 			}
 		}
 		report(">>>>>>>>>>\n");
@@ -1684,9 +1713,7 @@ bool IDSolver::isCycleFree() const {
 					Var v = cycle[idx++];
 					if (type(v) == DISJ) {
 						if (verbosity() >= 2) {
-							report("D %d justified by ", getPrintableVar(v));
-							Print::print(justification(v)[0]);
-							report(".\n");
+							clog <<"D " <<getPrintableVar(v) <<" justified by " <<justification(v)[0] <<".\n";
 						}
 						if (!printed[var(justification(v)[0])]) {
 							cycle.push(var(justification(v)[0]));
@@ -1782,13 +1809,8 @@ bool IDSolver::isWellFoundedModel() {
 		return true;
 	}
 
-	if (recagg>0) {
-		if (verbosity() > 1) {
-			report("For recursive aggregates, only stable semantics are currently supported!\n");
-			report("Well-foundedness is not checked!\n");
-		}
-
-		return true;
+	if(mixedrecagg){
+		throw idpexception("For recursive aggregates, only stable semantics is currently supported! Wellfoundedness is not checked\n");
 	}
 
 	// Initialize scc of full dependency graph
@@ -1804,7 +1826,7 @@ bool IDSolver::isWellFoundedModel() {
 		for (vector<int>::size_type z = 0; z < wfroot.size(); ++z) {
 			report("%d has root %d\n", getPrintableVar(z), getPrintableVar(wfroot[z]));
 		}
-		report("Mixedcycles are %s present.\n", rootofmixed.empty()?"not":"possibly");
+		report("Mixed cycles are %s present.\n", rootofmixed.empty()?"not":"possibly");
 	}
 
 	if (rootofmixed.empty()) {
@@ -2416,12 +2438,10 @@ UFS IDSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, vec<V
 	return STILLPOSSIBLE;
 }
 
-///////
 // PRINT INFORMATION
-///////
 
-void IDSolver::print() const{
-	Print::print(this);
+void IDSolver::printState() const{
+	MinisatID::print(this);
 }
 
 

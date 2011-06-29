@@ -21,7 +21,6 @@
 
 using namespace std;
 using namespace MinisatID;
-using namespace MinisatID::Print;
 
 //Important: The head variable does not occur in this theory, so should NOT automatically be
 //added as a var in it.
@@ -29,7 +28,7 @@ using namespace MinisatID::Print;
  * Constructs a ModSolver, with a given head, index and hierarchy pointer. A PCSolver is initialized.
  */
 ModSolver::ModSolver(modindex child, Var head, SOSolver* mh):
-		DPLLTmodule(new PCSolver(mh->modes(), *this)), WLSImpl(mh->modes()),
+		DPLLTmodule(new PCSolver(mh->modes(), *this)), WrapperPimpl(mh->modes()),
 		init(false), hasparent(false), searching(false),
 		head(head),
 		id(child), parentid(-1), //, startedsearch(false), startindex(-1),
@@ -46,16 +45,16 @@ ModSolver::ModSolver(modindex child, Var head, SOSolver* mh):
 	trail.push_back(vector<Lit>());
 }
 
-void ModSolver::addModel(const vec<Lit>& model){
+void ModSolver::addModel(const InnerModel& model){
 	if(getNonConstModSolverData().isRoot(this)){
 		getNonConstModSolverData().addModel(model);
 	}
 	int origverb = getModSolverData().modes().verbosity;
 	if(origverb<2){
-		WLSImpl::_modes.verbosity = 0;
+		WrapperPimpl::_modes.verbosity = 0;
 	}
-	WLSImpl::addModel(model);
-	WLSImpl::_modes.verbosity = origverb;
+	WrapperPimpl::addModel(model);
+	WrapperPimpl::_modes.verbosity = origverb;
 }
 
 ModSolver::~ModSolver(){
@@ -129,7 +128,7 @@ bool ModSolver::add(const InnerRigidAtoms& rigid){
  */
 void ModSolver::setParent(modindex parentid){
 	this->parentid = parentid; hasparent = true;
-	pModSolver parent = getModSolverData().getModSolver(getParentId());
+	ModSolver* parent = getModSolverData().getModSolver(getParentId());
 	for(vector<Var>::const_iterator i=atoms.begin(); i<atoms.end(); ++i){
 		parent->add(*i);
 	}
@@ -145,14 +144,12 @@ bool ModSolver::addChild(int childid){
 /**
  * Recursively notify all Solvers that parsing has finished
  */
-void ModSolver::finishParsingDown(bool& present, bool& unsat){
-	getPCSolver().finishParsing(present, unsat);
-
-	assert(present);
+void ModSolver::finishParsingDown(bool& unsat){
+	getPCSolver().finishParsing(unsat);
 
 	for(vmodindex::const_iterator i=getChildren().begin(); !unsat && i<getChildren().end(); ++i){
-		bool childpresent = true, childunsat = false;
-		getModSolverData().getModSolver(*i)->finishParsingDown(childpresent, childunsat);
+		bool childunsat = false;
+		getModSolverData().getModSolver(*i)->finishParsingDown(childunsat);
 		//TODO handle !present
 		//TODO handle unsat => might make this solver !present
 	}
@@ -168,9 +165,10 @@ bool ModSolver::solve(const vec<Lit>& assumptions, const ModelExpandOptions& opt
 	modoptions.search = MODELEXPAND;
 	modoptions.nbmodelstofind = options.nbmodelstofind;
 	Solution* s = new Solution(modoptions);
-	setSolution(s);
+	setSolutionMonitor(s);
+	//TODO set resource manager to get output
 	bool result = getPCSolver().solve(assumptions, modoptions);
-	setSolution(NULL);
+	setSolutionMonitor(NULL);
 	delete s;
 	return result;
 }
@@ -235,9 +233,9 @@ bool ModSolver::search(const vec<Lit>& assumpts, bool search){
 	options.search = MODELEXPAND;
 	options.nbmodelstofind = 1;
 	Solution* s = new Solution(options);
-	setSolution(s);
+	setSolutionMonitor(s);
 	result = getPCSolver().solve(assumpts, options);
-	setSolution(NULL);
+	setSolutionMonitor(NULL);
 	delete s;
 	searching = false;
 	return result;
@@ -252,7 +250,7 @@ rClause ModSolver::propagate(const Lit& l){
 		//TODO propagate up WITH reason
 	}*/
 	if(getModSolverData().modes().verbosity>4){
-		report("Propagated "); Print::print(l); report(" from PC in mod %zu\n", getPrintId());
+		clog <<">>Propagated " <<l <<" from PC in mod " <<getPrintId() <<".\n";
 	}
 
 	rClause confl = nullPtrClause;
@@ -282,7 +280,7 @@ rClause ModSolver::propagateAtEndOfQueue(){
 		getPCSolver().addLearnedClause(confl);
 
 		if(getModSolverData().modes().verbosity>=5){
-			Print::print(confl, getPCSolver());
+			print(confl, getPCSolver());
 		}
 	}
 	return confl;
@@ -296,7 +294,7 @@ rClause ModSolver::propagateAtEndOfQueue(){
  */
 rClause ModSolver::propagateDown(Lit l){
 	if(getModSolverData().modes().verbosity>4){
-		Print::print(l); report(" propagated down into modal solver %zu.\n", getPrintId());
+		clog <<l <<" propagated down into modal solver " <<getPrintId() <<".\n";
 	}
 
 	adaptValuesOnPropagation(l);
@@ -389,7 +387,7 @@ void ModSolver::backtrackDecisionLevels(int nblevels, int untillevel){
  */
 void ModSolver::backtrackFromAbove(Lit l){
 	if(getModSolverData().modes().verbosity>4){
-		report("Backtracking "); Print::print(l); report(" from above in mod %zu\n", getPrintId());
+		clog <<"Backtracking " <<l <<" from above in mod " <<getPrintId() <<"\n";
 	}
 
 	if(var(l)==getHead() && getHeadValue()!=l_Undef){
@@ -450,8 +448,8 @@ bool ModSolver::analyzeResult(bool result, bool allknown, vec<Lit>& confldisj){
 	return !conflict;
 }
 
-void ModSolver::print() const{
-	Print::print(this);
+void ModSolver::printState() const{
+	print(this);
 }
 
 void ModSolver::printModel(){

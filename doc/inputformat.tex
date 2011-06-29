@@ -22,7 +22,7 @@ Several input formats are supported:
 	\item[asp] ground answer set program format, defined in www.tcs.hut.fi/Software/smodels/lparse.ps.gz
 	\item[qbf] quantified boolean formula format, defined in www.qbflib.org/Draft/qDimacs.ps.gz
 	\item[ecnf] see the BNF grammar below
-	\item[mecnf] experimental extension for modal operators (allows to express that, given a partial interpretation, a subtheory has a model / all extensions are models).
+	\item[mecnf] experimental extension for modal operators (allows to express that, given a partial interpretation, a subtheory has a model / all extensions are models). No details will be provided yet in this document.
 \end{description}
 
 From an implementation point of view, the formats cnf, qbf, ecnf and mecnf are detected automatically. The formats opb and asp have to be specified by the option "{\verb --format=x }", with x="{\verb opb }", respectively x="{\verb asp }".
@@ -31,48 +31,74 @@ From an implementation point of view, the formats cnf, qbf, ecnf and mecnf are d
 ECNF or Extended Clausal Normal Form is the native input language of the solver MinisatID.
 
 \subsection{Syntax}
-The syntax of the language can be expressed as the following (non-formal) BNF grammar ("+" expresses one or more, "*" expresses zero or more):
+The syntax of the language can be expressed as the following BNF grammar ("+" expresses one or more, "*" expresses zero or more):
 
 \begin{verbatim}
 <formula>   ::= <comment>* "p ecnf" <header>* <EOL> <ecnftheory>*
 <comment>   ::= "c" <char (not EOL)>* <EOL>
 <header>    ::= "def" | "aggr" | "mnmz"
 
-<ecnftheory>::= <comment>|<clause>|<rule>|<agg>|<set>|<wset>|
-                <mnmz>|<subsetmnmz>|<aggmnmz>
+<ecnftheory>::= <comment>|
+                <clause>|
+                <rule1>|<rule2>|
+                <set>|<wset>|<agg1>|<agg2>|
+                <mnmz>|<subsetmnmz>|<aggmnmz>|
+                <rangevar>|<enumvar>|<binrelvi>|<binrelvv>|
+                <sumi>|<sumv>|sumvi>|<sumii>|<count>|<alldiff>
 
 <clause>    ::= <lit>* <end>
 
 <sem>       ::= "D"|"C"
-<rule>      ::= <sem> <atom> <lit>* <end>
+<rule1>      ::= <sem> <atom> <lit>* <end>
+<rule2>      ::= <sem> <defdelim> <id> <atom> <lit>* <end>
 
 <set>       ::= "Set " <id> <lit>+ <end>
 <wset>      ::= "WSet " <id> <tuple>+ <end>
 
-<operator>  ::= "L"|"G"
+<aggop>     ::= "L"|"G"
 <aggtype>   ::= "Sum" | "Min" | "Max" | "Prod" | "Card"
-<agg>       ::= <aggtype> <sem> <operator> <atom> <id> <int> <end>
+<agg1>       ::= <aggtype> <sem> <aggop> <atom> <id> <int> <end>
+<agg2>       ::= <aggtype> <defdelim> <id> <aggop> <atom> <id> <int> <end>
 
 <mnmz>      ::= "Mnmlist " <lit>+ <end>
 <subsetmnmz>::= "Mnmsubset " <lit>+ <end>
 <aggmnmz>   ::= "Mnmagg " <aggtype> <atom> <id> <end>
 
-<tuple>     ::= <lit>"="<int>		
+<cpop>      ::= ">" | "<" | "=<" | ">=" | "=" | "~="
+<rangevar>  ::="INTVARDOM" <var> <int>+ <end>
+<enumvar>   ::="INTVAR" <var> <int> <int> <end>
+<binrelvi>  ::="BINTRI"	<atom> <var> <cpop> <int> <end>
+<binrelvv>  ::="BINTRT"	<atom> <var> <cpop> <var> <end>
+<sumi>      ::="SUMSTRI" <atom> <var>+ <cpop> <int> <end>
+<sumv>      ::="SUMSTRT" <atom> <var>+ <cpop> <var> <end>
+<sumii>     ::="SUMSTSIRI" <atom> <vartuple>+ <cpop> <int> <end>
+<sumvi>     ::="SUMSTSIRT" <atom> <vartuple>+ <cpop> <var> <end>
+<count>     ::="COUNTSTRIT" <var>+ <op> <int> <var> <end>
+<alldiff>   ::="DISTINCT" <var>+ <end>
+
+<vartuple>    ::= "<"<var>","<int>">"
+<tuple>     ::= <lit>"="<int>	
+
 <atom>      ::= <posint>
 <lit>       ::= "-"<posint>|<posint>
 <id>        ::= <posint>
+<var>       ::= <int>
 <posint>    ::= any non-zero positive integer
 <int>       ::= any integer
+
+<defdelim>  ::= "<-"
 
 <end>       ::= "0"
 \end{verbatim}
 
-Additional constraints:
+Additional constraints on the language:
 \begin{itemize}
-	\item Each element is separated by at least one whitespace. Extra whitespaces or newlines can be added anywhere except in the middle of comments.
-	\item Any atom can only be the head of one rule or aggregate.
-	\item Any id can only be defined once.
-	\item A set has to come before any aggregate using it.
+	\item Each element is separated by at least one whitespace. Extra whitespaces or newlines can be added anywhere, only newlines within comments are not allowed.
+	\item Any atom can only be the head of one rule or aggregate. \textbf{Exception}: An atom can occur as the head of multiple aggregate expressions, as long as there is only one such atom and there is a unit clause making it certainly true. This prevents inventing zillions of dummy atoms for e.g. large opb instances.
+	\item Any id can only be defined once within the same type of statement.
+	\item A set has to be defined before any aggregate using it.
+	\item The header is provided for backwards-compatibility purposes, but is deprecated.
+	\item 
 \end{itemize}
 	
 \subsection{Semantics}
@@ -89,8 +115,9 @@ a clause is the disjunction of its literals
 \begin{verbatim}
 <sem>       ::= "D"|"C"
 <rule>      ::= <sem> <atom> <lit>* <end>
+<rule2>      ::= <sem> <defdelim> <id> <atom> <lit>* <end>
 \end{verbatim} 
-A rule defines its atom in terms of a disjunction (sem="D") or a conjunction (sem="C") of a set of literals. All rules belong to the same definition and are evaluated according to the well-founded semantics (stable semantics can also be specified).
+A rule defines its atom in terms of a disjunction (sem="D") or a conjunction (sem="C") of a set of literals. Any definition is evaluated according to the well-founded semantics (stable semantics can be specified as an option). In the case of rule1, all rules belong to the same definition. In the case of rule2, a definition id is specified, denoting the definition to which it belongs. If any rule is specified without a definition ID, no other rule can have a definition ID.
 
 \paragraph{Sets}
 \begin{verbatim}
@@ -102,16 +129,20 @@ A set is identified by an id and is a non-empty set of tuples literal=integer. T
 \paragraph{Aggregates}
 \begin{verbatim}
 <sem>       ::= "D"|"C"
-<operator>  ::= "L"|"G"
+<aggop>     ::= "L"|"G"
 <aggtype>   ::= "Sum" | "Min" | "Max" | "Prod" | "Card"
-<agg>       ::= <aggtype> <sem> <operator> <atom> <id> <int> <end>
+<agg1>       ::= <aggtype> <sem> <aggop> <atom> <id> <int> <end>
+<agg2>       ::= <aggtype> <defdelim> <id> <aggop> <atom> <id> <int> <end>
 \end{verbatim} 
 Given an example expression
 \begin{verbatim}
 WSet 1 1=2 -2=3 0
 Sum D G 4 1 3 0
 \end{verbatim}
-The semantics is that the atom 4 is defined by the aggregate expression $sum(set_1) \geq 3$. 3 is called the \emph{bound}, 4 is the \emph{head}. If sem="C", completion semantics is used, if sem="D", well-founded semantics (with recursive aggregates) is used.
+The semantics is that the atom 4 is defined by the aggregate expression $sum(set_1) \geq 3$. 3 is called the \emph{bound}, 4 is the \emph{head}. If sem="C", completion semantics is used, if sem="D", well-founded semantics (with recursive aggregates) is used. 
+
+Again, agg1 assumes all rules and defined aggregates are part of the same definition, agg2 defines a partition into multiple definitions. If agg1 is used, no agg2 or rule2 are allowed to occur in the theory
+.
 The available aggregate types are sum (also called pseudo-boolean / linear constraint), cardinality (count), maximum, minimum and product. The operator is either "G", $aggregate \geq bound$, or "L", $aggregate \leq bound$.
  
 \paragraph{Optimization}
@@ -120,6 +151,36 @@ Optimization can be one of three types:
 \item Minimize ordered list ({ \verb <mnmz> }): given a list of literals, ordered from best (left) to worst, a model is better if it makes a better literal true.  
 \item Subsetminimization ({ \verb <subsetmnmz> }): find the smallest subset of the set of literals for which a model of the theory exists.
 \item Aggregate optimization ({ \verb <aggmnmz> }): minimize the value of the aggregate, given its type, its head and its set.
+\end{itemize}
+
+\paragraph{Constraints}
+A number of finite domain constraints is support by the input format, probably subject to a serious extension in the near future.
+
+\begin{verbatim}
+<rangevar>  ::="INTVARDOM" <var> <int>+ <end>
+<enumvar>   ::="INTVAR" <var> <int> <int> <end>
+\end{verbatim} 
+
+A finite-domain variable is identified by an identifier (var) and defined either by a range, specified by its minimum and maximum value (in that order and inclusive), or by an enumeration of all values it can map to.
+
+\begin{verbatim}
+<cpop>      ::= ">" | "<" | "=<" | ">=" | "=" | "~="
+<binrelvi>  ::="BINTRI"	<atom> <var> <cpop> <int> <end>
+<binrelvv>  ::="BINTRT"	<atom> <var> <cpop> <var> <end>
+<sumi>      ::="SUMSTRI" <atom> <var>+ <cpop> <int> <end>
+<sumv>      ::="SUMSTRT" <atom> <var>+ <cpop> <var> <end>
+<sumii>     ::="SUMSTSIRI" <atom> <vartuple>+ <cpop> <int> <end>
+<sumvi>     ::="SUMSTSIRT" <atom> <vartuple>+ <cpop> <var> <end>
+<count>     ::="COUNTSTRIT" <var>+ <op> <int> <var> <end>
+<alldiff>   ::="DISTINCT" <var>+ <end>
+\end{verbatim} 
+
+The currently supported constraints are (where $op$ is either $\leq, \geq, =, \neq, <, >$)
+\begin{itemize}
+\item binary relations of the form $var~op~var$ or $var~op~integer$, reified by a logical atom.
+\item sum constraints of the form $sum(varlist)~op~int$, $sum(varlist)~op~var$, $sum(list(var\times int))~op~int$, $sum(list(var \times int))~op~var$, also reified by a logical atom.
+\item a global count constraint of the form $count({var | varlist, var~op~int}) = var$.
+\item a global alldifferent constraint of the form $alldiff(varlist)$.
 \end{itemize}
 
 \section{License}

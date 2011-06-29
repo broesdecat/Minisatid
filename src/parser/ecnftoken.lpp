@@ -28,9 +28,7 @@ extern int charPos;
 %}
 
 /* lex definitions: */
-%option noyywrap
-/*seems to be necessary to avoid windows problem with fileno function?*/
-%option never-interactive 
+%option noyywrap never-interactive 
 
 %s theory
 %s trans
@@ -67,6 +65,8 @@ WHITESPACE	[\t\r ]*
 <theory>"Min"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::MIN; return AGGDEFN;}
 <theory>"Max"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::MAX; return AGGDEFN;}
 
+<theory>^"Equiv"	{ADJ; return EQUIV;}
+
 <theory>^"Mod"	{ADJ; return MODDEFN;}
 
 <theory>"<-"	{ADJ; return DEFOP;}
@@ -90,12 +90,11 @@ WHITESPACE	[\t\r ]*
 <theory>"|"		{ADJ; return DELIM;}
 
 <theory>^"INTVAR"	{ADJ; return INTVAR;}
+<theory>^"INTVARDOM" {ADJ; return INTVARDOM;}
 <theory>^"BINTRI"	{ADJ; return BINTRI;}
 <theory>^"BINTRT"	{ADJ; return BINTRT;}
-<theory>^"SUMSTRI"	{ADJ; return SUMSTRI;}
-<theory>^"SUMSTRT"	{ADJ; return SUMSTRT;}
+<theory>^"DISTINCT"	{ADJ; return DISTINCT;}
 <theory>^"SUMSTSIRI"	{ADJ; return SUMSTSIRI;}
-<theory>^"SUMSTSIRT"	{ADJ; return SUMSTSIRT;}
 <theory>^"COUNTSTRIT"	{ADJ; return COUNTSTRIT;}
 
 <theory>"="		{ADJ; /*ecnflval*/yylval.rel = MinisatID::MEQ; return REL;}

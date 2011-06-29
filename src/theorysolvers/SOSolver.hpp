@@ -57,12 +57,12 @@ private:
 	modhierstate state;	//stores the current state of the parsing.
 
 public:
-	SOSolver				(SolverOption modes, MinisatID::WLSImpl& inter);
+	SOSolver				(SolverOption modes, MinisatID::WrapperPimpl& inter);
 	virtual ~SOSolver		();
 
-	void 	finishParsing	(bool& present, bool& unsat);
+	void 	finishParsing	(bool& unsat);
 	bool 	isRoot			(const ModSolver* solver) const;
-	void 	addModel		(const vec<Lit>& model);
+	void 	addModel		(const InnerModel& model);
 	bool 	simplify		();
 	bool 	solve			(const vec<Lit>& assumptions, const ModelExpandOptions& options);
 

@@ -41,10 +41,11 @@ namespace MinisatID {
 
 namespace MinisatID {
 
+template<class T>
 class DefaultCallback {
 private:
-	WrappedPCSolver* solver;
-	WrappedPCSolver* getSolver() { return solver; }
+	T* solver;
+	T* getSolver() { return solver; }
 
 	Literal 		createLiteralFromOPBVar(int var);
 
@@ -56,7 +57,7 @@ private:
 	Atom dummyhead;
 
 public:
-	DefaultCallback(WrappedPCSolver* solver):solver(solver), setid(0), dummyhead(Atom(-1)){
+	DefaultCallback(T* solver):solver(solver), setid(0), dummyhead(Atom(-1)){
 
 	}
 
@@ -66,7 +67,7 @@ public:
 	 * @param nbvar: the number of variables
 	 * @param nbconstr: the number of contraints
 	 */
-	void metaData(int nbvar, int nbconstr);
+	bool metaData(int nbvar, int nbconstr);
 
 	/**
 	 * callback called before we read the objective function
@@ -76,7 +77,7 @@ public:
 	/**
 	 * callback called after we've read the objective function
 	 */
-	void endObjective();
+	bool endObjective();
 
 	/**
 	 * callback called when we read a term of the objective function
@@ -97,7 +98,7 @@ public:
 
 	void beginConstraint();
 
-	void endConstraint();
+	bool endConstraint();
 
 	/**
 	 * callback called when we read a term of a constraint
@@ -135,13 +136,14 @@ public:
 	 * add the necessary constraints to define newSymbol as equivalent
 	 * to the product (conjunction) of literals in product.
 	 */
-	void linearizeProduct(int newSymbol, std::vector<int> product);
+	bool linearizeProduct(int newSymbol, std::vector<int> product);
 };
 
 /**
  * this class stores products of literals (as a tree) in order to
  * associate unique identifiers to these product (for linearization)
  */
+template<class T>
 class ProductStore {
 private:
 	// we represent each node of a n-ary tree by a std::vector<ProductNode>
@@ -189,17 +191,18 @@ public:
 	 */
 	int getProductVariable(std::vector<int> &list);
 
-	void defineProductVariable(DefaultCallback &cb) {
+	bool defineProductVariable(DefaultCallback<T> &cb) {
 		std::vector<int> list;
-		defineProductVariableRec(cb, root, list);
+		return defineProductVariableRec(cb, root, list);
 	}
 	void freeProductVariable() { freeProductVariableRec(root); }
 
 private:
-	void defineProductVariableRec(DefaultCallback &cb, std::vector<ProductNode> &nodes, std::vector<int> &list);
+	bool defineProductVariableRec(DefaultCallback<T> &cb, std::vector<ProductNode> &nodes, std::vector<int> &list);
 	void freeProductVariableRec(std::vector<ProductNode> &nodes);
 };
 
+template<class T>
 class PBRead{
 private:
 	OPBTranslator* trans;
@@ -208,11 +211,11 @@ private:
 
 	bool autoLinearize;
 	int nbProduct, sizeProduct; // MetaData for non linear format
-	ProductStore store;
-	DefaultCallback cb;
+	ProductStore<T> store;
+	DefaultCallback<T> cb;
 
 public:
-	PBRead(WrappedPCSolver* solver, OPBTranslator* trans, std::istream &stream):
+	PBRead(T* solver, OPBTranslator* trans, std::istream &stream):
 			trans(trans), in(stream), cb(solver) {
 		autoLinearize = false;
 
@@ -226,7 +229,7 @@ public:
 		store.freeProductVariable();
 	}
 
-	void parse();
+	bool parse();
 	void autoLin() { autoLinearize = true; }
 
 private:
@@ -261,7 +264,7 @@ private:
 	 *
 	 * calls metaData with the data that was read
 	 */
-	void readMetaData();
+	bool readMetaData();
 
 	/**
 	 * skip the comments at the beginning of the file
@@ -280,14 +283,14 @@ private:
 	 *
 	 * calls beginObjective, objectiveTerm and endObjective
 	 */
-	void readObjective();
+	bool readObjective();
 
 	/**
 	 * read a constraint
 	 *
 	 * calls beginConstraint, constraintTerm and endConstraint
 	 */
-	void readConstraint();
+	bool readConstraint();
 
 	/**
 	 * passes a product term to the solver (first linearizes the product

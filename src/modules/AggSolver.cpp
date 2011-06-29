@@ -31,8 +31,6 @@
 
 using namespace std;
 using namespace MinisatID;
-using namespace Print;
-using namespace Aggrs;
 
 AggSolver::AggSolver(PCSolver* s) :
 	DPLLTmodule(s),
@@ -78,8 +76,7 @@ void AggSolver::setHeadWatch(Lit head, Agg* agg) {
 	assert(isInitializing());
 	if(var(head)==dummyhead){
 		if(agg->isDefined()){
-			//TODO clean
-			throw idpexception("Multiple heads occurred with the same head and at least one of them was defined.\n");
+			throw idpexception(getMultipleDefAggHeadsException());
 		}
 		if(!sign(head)){
 			dummyheadtrue2watchlist.insert(agg);
@@ -166,7 +163,7 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 
 	if (verbosity() >= 2) {
 		report("Added ");
-		Aggrs::print(10000, *set, true);
+		MinisatID::print(10000, *set, true);
 	}
 
 	return true;
@@ -241,7 +238,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType
 	set->addAgg(agg);
 
 	if (verbosity() >= 2) { //Print info on added aggregate
-		Aggrs::print(verbosity(), *agg);
+		MinisatID::print(verbosity(), *agg);
 		report("\n");
 	}
 
@@ -343,9 +340,10 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 
 	//Push initial level (root, before any decisions).
 	addRootLevel();
+	sort(varwithheurval.rbegin(), varwithheurval.rend()); // REVERSE sort!
 
 	printNumberOfAggregates(sets.size(), totalagg, setlits, nbaggs, verbosity());
-	print();
+	printState();
 }
 
 /**
@@ -375,9 +373,9 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 	if (value(p) == l_False) {
 		if (verbosity() >= 2) {
 			report("Deriving conflict in ");
-			Print::print(p, l_True);
+			print(p, l_True);
 			report(" because of the aggregate expression ");
-			Aggrs::print(verbosity(), ar->getAgg(), true);
+			MinisatID::print(verbosity(), ar->getAgg(), true);
 		}
 		assert(getPCSolver().modes().aggclausesaving>1 || ar->hasClause());
 		assert(reasons[var(p)]==NULL || getPCSolver().modes().aggclausesaving>1 || reasons[var(p)]->hasClause());
@@ -392,9 +390,9 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 	} else if (value(p) == l_Undef) {
 		if (verbosity() >= 2) {
 			report("Deriving ");
-			Print::print(p, l_True);
+			print(p, l_True);
 			report(" because of the aggregate expression ");
-			Aggrs::print(verbosity(), ar->getAgg(), true);
+			MinisatID::print(verbosity(), ar->getAgg(), true);
 		}
 
 		//Keeping a reason longer than necessary is not a problem => if after backtracking still unknown, then no getexplanation, if it becomes known,
@@ -446,6 +444,48 @@ void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel) {
 	}
 }
 
+Var	AggSolver::changeBranchChoice(const Var& chosenvar){
+	assert(modes().useaggheur);
+	if(heurvars.find(chosenvar)!=heurvars.end()){
+		for(vector<VI>::const_iterator i=varwithheurval.begin(); i<varwithheurval.end(); i++){
+			if((*i).var==chosenvar){
+				break;
+			}else if(value((*i).var)==l_Undef){
+				return (*i).var;
+			}
+		}
+	}
+	return chosenvar;
+}
+
+void AggSolver::adaptAggHeur(const vwl& wls, int nbagg){
+	if(!modes().useaggheur){
+		return;
+	}
+	int heur = 1;
+	vwl wlstemp = wls;
+	sort(wlstemp.begin(), wlstemp.end(), compareWLByAbsWeights); //largest numbers last
+	for(vwl::const_iterator i=wlstemp.begin(); i<wlstemp.end(); i++){
+		Var v = var((*i).getLit());
+		set<Var>::iterator it = heurvars.find(v);
+		if(it==heurvars.end()){
+			heurvars.insert(v);
+			for(vector<VI>::iterator j=varwithheurval.begin(); j<varwithheurval.end(); j++){
+				if((*j).var == v){
+					(*j).heurval += heur*nbagg;
+					break;
+				}
+			}
+		}else{
+			VI vi;
+			vi.var = v;
+			vi.heurval = heur * nbagg;
+			varwithheurval.push_back(vi);
+		}
+		heur++;
+	}
+}
+
 bool AggSolver::checkStatus(){
 	assert(isInitialized());
 #ifdef DEBUG
@@ -453,7 +493,7 @@ bool AggSolver::checkStatus(){
 		Weight w = (*i)->getProp()->getValue();
 		for(agglist::const_iterator j=(*i)->getAgg().begin(); j<(*i)->getAgg().end(); ++j){
 			if(verbosity()>=3){
-				Aggrs::print(10, **j, true);
+				MinisatID::print(10, **j, true);
 			}
 			lbool headval = value((*j)->getHead());
 			if((*j)->getSem()==IMPLICATION){
@@ -477,7 +517,7 @@ rClause AggSolver::doProp(){
 		propagated[var(p)]=LI(sign(p)?l_False:l_True, index++);
 
 		if (verbosity() >= 3) {
-			report("Aggr_propagate("); Print::print(p, l_True); report(").\n");
+			report("Aggr_propagate("); print(p, l_True); report(").\n");
 		}
 
 		Agg* pa = lit2headwatchlist[toInt(p)];
@@ -791,12 +831,6 @@ bool AggSolver::addMnmz(Var headv, int setid, AggType type) {
 	setOptimAgg(ae);
 	set->addAgg(ae);
 
-	if (verbosity() >= 3) {
-		report("Added aggregate optimization: Optimize ");
-		Aggrs::print(verbosity(), *ae);
-		report("\n");
-	}
-
 	return true;
 }
 
@@ -843,7 +877,7 @@ void AggSolver::printStatistics() const {
 	clog <<"> Aggregate propagations: " <<propagations <<"\n";
 }
 
-void Aggrs::printNumberOfAggregates(int nbsets, int nbagg, int nbsetlits, map<AggType, int>& nbaggs, int verbosity){
+void MinisatID::printNumberOfAggregates(int nbsets, int nbagg, int nbsetlits, map<AggType, int>& nbaggs, int verbosity){
 	//Print lots of information
 	if (verbosity == 1) {
 		clog <<"> Number of aggregates: " <<nbagg <<" aggregates over " <<nbsets <<" sets.\n";
@@ -858,12 +892,12 @@ void Aggrs::printNumberOfAggregates(int nbsets, int nbagg, int nbsetlits, map<Ag
 	}
 }
 
-void AggSolver::print() const{
+void AggSolver::printState() const{
 	if (verbosity() >= 3) {
 		clog <<"Aggregates are present after initialization:\n";
 		for (vps::const_iterator i = sets.begin(); i < sets.end(); ++i) {
 			for (agglist::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); ++j) {
-				Aggrs::print(verbosity(), **j, true);
+				print(verbosity(), **j, true);
 			}
 		}
 	}
@@ -873,31 +907,29 @@ void AggSolver::print() const{
 		for(agglist::const_iterator i=lit2headwatchlist.begin(); i<lit2headwatchlist.end(); ++i){
 			if ((*i) != NULL) {
 				clog <<"Headwatch of var " <<getPrintableVar(var((*i)->getHead())) <<": ";
-				Aggrs::print(verbosity(), *(*i)->getSet(), true);
+				print(verbosity(), *(*i)->getSet(), true);
 			}
 		}
 		for(set<Agg*>::const_iterator i=dummyheadfalse2watchlist.begin(); i!=dummyheadfalse2watchlist.end(); ++i){
 			if ((*i) != NULL) {
 				clog <<"Headwatch of var " <<getPrintableVar(var((*i)->getHead())) <<": ";
-				Aggrs::print(verbosity(), *(*i)->getSet(), true);
+				print(verbosity(), *(*i)->getSet(), true);
 			}
 		}
 		for(set<Agg*>::const_iterator i=dummyheadtrue2watchlist.begin(); i!=dummyheadtrue2watchlist.end(); ++i){
 			if ((*i) != NULL) {
 				clog <<"Headwatch of var " <<getPrintableVar(var((*i)->getHead())) <<": ";
-				Aggrs::print(verbosity(), *(*i)->getSet(), true);
+				print(verbosity(), *(*i)->getSet(), true);
 			}
 		}
 		Var v = 0;
 		for(vvpw::const_iterator i=lit2staticwatchlist.begin(); i<lit2staticwatchlist.end(); ++i, ++v){
 			if((*i).size()>0){
 				Lit l = mkLit(v/2, v%2==1);
-				clog <<"Bodywatches of var ";
-				Print::print(l);
-				clog <<": ";
+				clog <<"Bodywatches of var " <<l <<": ";
 				for (vsize j = 0; j < (*i).size(); ++j) {
 					clog <<"      ";
-					Aggrs::print(verbosity(), *((*i)[j])->getSet(), true);
+					print(verbosity(), *((*i)[j])->getSet(), true);
 				}
 			}
 		}
@@ -905,17 +937,14 @@ void AggSolver::print() const{
 		for(vvpw::const_iterator i=lit2dynamicwatchlist.begin(); i<lit2dynamicwatchlist.end(); ++i, ++v){
 			if((*i).size()>0){
 				Lit l = mkLit(v/2, v%2==1);
-				clog <<"Bodywatches of var ";
-				Print::print(l);
-				clog <<": ";
+				clog <<"Bodywatches of var " <<l <<": ";
 				for (vsize j = 0; j < (*i).size(); ++j) {
 					clog <<"      ";
-					Aggrs::print(verbosity(), *((*i)[j])->getSet(), true);
+					print(verbosity(), *((*i)[j])->getSet(), true);
 				}
 			}
 		}
 	}
-	//TODO move to Print::print(this);
 }
 
 /*void AggSolver::findClausalPropagations(){

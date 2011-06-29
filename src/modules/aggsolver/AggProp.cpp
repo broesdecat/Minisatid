@@ -26,8 +26,6 @@ using namespace std;
 using namespace std::tr1;
 #endif
 using namespace MinisatID;
-using namespace MinisatID::Print;
-using namespace Aggrs;
 
 Weight	Agg::getCertainBound() const {
 	return bound.bound-getSet()->getKnownBound();
@@ -173,7 +171,7 @@ WL MaxProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* s
 
 // PROD Prop
 
-//TODO INVARIANT: only positive weights in prodagg
+//INVARIANT: only positive weights in prodagg
 Weight ProdProp::getMinPossible(const TypedSet&) const{
 	return getESV();
 }
@@ -235,7 +233,7 @@ WL ProdProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* 
 
 //AGGREGATES
 
-bool Aggrs::isSatisfied(const Agg& agg, const Weight& min, const Weight& max){
+bool MinisatID::isSatisfied(const Agg& agg, const Weight& min, const Weight& max){
 	if(agg.hasUB()){
 		return max<=agg.getCertainBound();
 	}else{ //LB
@@ -243,7 +241,7 @@ bool Aggrs::isSatisfied(const Agg& agg, const Weight& min, const Weight& max){
 	}
 }
 
-bool Aggrs::isSatisfied(const Agg& agg, const minmaxBounds& bounds){
+bool MinisatID::isSatisfied(const Agg& agg, const minmaxBounds& bounds){
 	if(agg.hasUB()){
 		return bounds.max<=agg.getCertainBound();
 	}else{ //LB
@@ -251,7 +249,7 @@ bool Aggrs::isSatisfied(const Agg& agg, const minmaxBounds& bounds){
 	}
 }
 
-bool Aggrs::isFalsified(const Agg& agg, const Weight& min, const Weight& max){
+bool MinisatID::isFalsified(const Agg& agg, const Weight& min, const Weight& max){
 	if(agg.hasUB()){
 		return min>agg.getCertainBound();
 	}else{ //LB
@@ -259,7 +257,7 @@ bool Aggrs::isFalsified(const Agg& agg, const Weight& min, const Weight& max){
 	}
 }
 
-bool Aggrs::isFalsified(const Agg& agg, const minmaxBounds& bounds){
+bool MinisatID::isFalsified(const Agg& agg, const minmaxBounds& bounds){
 	if(agg.hasUB()){
 		return bounds.min>agg.getCertainBound();
 	}else{ //LB
@@ -276,10 +274,10 @@ bool Aggrs::isFalsified(const Agg& agg, const minmaxBounds& bounds){
  * 		if weight is pos: max will decrease, so remove from max
  * 		if weight is neg: min will increase, so remove from min
  */
-void Aggrs::addValue(const AggProp& type, const Weight& weight, bool addtoset, minmaxBounds& bounds){
+void MinisatID::addValue(const AggProp& type, const Weight& weight, bool addtoset, minmaxBounds& bounds){
 	addValue(type, weight, addtoset, bounds.min, bounds.max);
 }
-void Aggrs::addValue(const AggProp& type, const Weight& weight, bool addtoset, Weight& min, Weight& max){
+void MinisatID::addValue(const AggProp& type, const Weight& weight, bool addtoset, Weight& min, Weight& max){
 	bool pos = weight>=0;
 	if(pos && addtoset){
 		min = type.add(min, weight);
@@ -292,11 +290,11 @@ void Aggrs::addValue(const AggProp& type, const Weight& weight, bool addtoset, W
 	}
 }
 
-void Aggrs::removeValue(const AggProp& type, const Weight& weight, bool wasinset, minmaxBounds& bounds) {
+void MinisatID::removeValue(const AggProp& type, const Weight& weight, bool wasinset, minmaxBounds& bounds) {
 	removeValue(type, weight, wasinset, bounds.min, bounds.max);
 }
 
-void Aggrs::removeValue(const AggProp& type, const Weight& weight, bool wasinset, Weight& min, Weight& max) {
+void MinisatID::removeValue(const AggProp& type, const Weight& weight, bool wasinset, Weight& min, Weight& max) {
 	bool pos = weight>=0;
 	if(pos && wasinset){
 		min = type.remove(min, weight);
@@ -311,7 +309,6 @@ void Aggrs::removeValue(const AggProp& type, const Weight& weight, bool wasinset
 
 // TypedSet
 
-//TODO watch them?
 bool printedwarning = false;
 
 Propagator*	MaxProp::createPropagator(TypedSet* set) const{
@@ -331,6 +328,8 @@ Propagator*	MaxProp::createPropagator(TypedSet* set) const{
 }*/
 
 Propagator*	SumProp::createPropagator(TypedSet* set) const{
+	set->getSolver()->adaptAggHeur(set->getWL(), set->getAgg().size());
+
 	if(set->isUsingWatches()){
 		return new GenPWAgg(set);
 	}else{
@@ -339,6 +338,8 @@ Propagator*	SumProp::createPropagator(TypedSet* set) const{
 }
 
 Propagator*	ProdProp::createPropagator(TypedSet* set) const{
+	set->getSolver()->adaptAggHeur(set->getWL(), set->getAgg().size());
+
 	if(set->isUsingWatches()){
 		return new GenPWAgg(set);
 	}else{

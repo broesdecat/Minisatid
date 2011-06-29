@@ -160,9 +160,7 @@ typedef unsigned int uint;
 	};
 	Weight abs(const Weight& w);
 	std::istream& operator>>(std::istream& input, Weight& obj);
-	namespace Print{
-		std::ostream& operator<<(std::ostream& output, const Weight& p);
-	}
+	std::ostream& operator<<(std::ostream& output, const Weight& p);
 	}
 #else
 	namespace MinisatID {
@@ -221,7 +219,7 @@ namespace MinisatID {
 	}; // SAT-solver polarity option
 
 	enum INPUTFORMAT 	{ FORMAT_FODOT, FORMAT_ASP, FORMAT_OPB};
-	enum OUTPUTFORMAT 	{ TRANS_FODOT, TRANS_ASP, TRANS_PLAIN };
+	enum OUTPUTFORMAT 	{ TRANS_FODOT, TRANS_ASP, TRANS_PLAIN, TRANS_FZ };
 
 	// Structure containing general options for the solvers
 	class SolverOption {
@@ -242,6 +240,7 @@ namespace MinisatID {
 		bool 			selectOneFromUFS;
 		bool 			pbsolver;
 		double			watchesratio;
+		bool			useaggheur;
 		std::string 	primesfile;
 		bool 			remap;
 		double 			rand_var_freq, var_decay;
@@ -318,70 +317,12 @@ struct WLtuple{
 };
 
 typedef std::vector<Literal> literallist;
-typedef std::vector<std::vector<Literal> > modellist;
 
-enum ModelSaved { MODEL_NONE, MODEL_SAVED, MODEL_SAVING };
-
-class Solution{
-private:
-	const ModelExpandOptions options;
-	int 		nbmodelsfound;
-	literallist	temporarymodel;
-	modellist	models; //IMPORTANT: for optimization problem, models will contain a series of increasingly better models
-
-	literallist assumptions;
-
-	bool		optimalmodelfound;
-
-	ModelSaved modelsave; //CRITICAL SECTION SUPPORT
-
-public:
-	Solution(ModelExpandOptions options):
-			options(options),
-			nbmodelsfound(0),
-			optimalmodelfound(false),
-			modelsave(MODEL_NONE){}
-	~Solution(){};
-
-	int 	getNbModelsFound	() const	{ return nbmodelsfound; }
-	int 	getNbModelsToFind	() const	{ return options.nbmodelstofind; }
-	PrintModel 	getPrintOption	() const 	{ return options.printmodels; }
-	SaveModel 	getSaveOption	() const 	{ return options.savemodels; }
-	Inference 	getInferenceOption	() const 	{ return options.search; }
-	const ModelExpandOptions& getOptions() const { return options; }
-	const modellist& 	getModels() { return models; } //IMPORTANT: no use calling it when models are not being saved.
-
-	const literallist& getAssumptions	() { return assumptions; }
-
-	void 	addModel(literallist model, bool currentlybest) {
-		++nbmodelsfound;
-		if(modelsave==MODEL_SAVING){ //Error in saving previous model, so abort
-			throw idpexception(">> Previous model failed to save, cannot guarantee correctness.\n");
-		}
-		if(getSaveOption()==SAVE_BEST){
-			if(modelsave!=MODEL_NONE){
-				temporarymodel = models.back();
-				models.pop_back();
-				assert(models.empty());
-			}
-		}
-		modelsave = MODEL_SAVING;
-		models.push_back(model);
-		modelsave = MODEL_SAVED;
-	}
-
-	const literallist& getBestModelFound() const{
-		assert(modelsave!=MODEL_NONE);
-		if(modelsave==MODEL_SAVED){
-			return models.back();
-		}else{
-			return temporarymodel;
-		}
-	}
-
-	bool	hasOptimalModel			() const	{ return optimalmodelfound; }
-	void	notifyOptimalModelFound	()			{ optimalmodelfound = true;	}
+struct VariableEqValue{
+	int variable;
+	int value;
 };
+
 
 class Disjunction{
 public:
@@ -390,16 +331,16 @@ public:
 
 class DisjunctionRef{
 public:
-	const std::vector<Literal>& literals;
+	const literallist& literals;
 
-	DisjunctionRef(const std::vector<Literal>& lits): literals(lits){}
+	DisjunctionRef(const literallist& lits): literals(lits){}
 };
 
 class Equivalence{
 public:
-	bool conj;
+	bool conjunctive;
 	Literal	head;
-	std::vector<Literal> literals;
+	literallist body;
 
 	Equivalence():head(0){}
 };
@@ -407,7 +348,7 @@ public:
 class Rule{
 public:
 	Atom head;
-	std::vector<Literal> body;
+	literallist body;
 	bool conjunctive;
 	int definitionID;
 
@@ -417,13 +358,13 @@ public:
 class Set{
 public:
 	int setID;
-	std::vector<Literal> literals;
+	literallist literals;
 };
 
 class WSet{
 public:
 	int setID;
-	std::vector<Literal> literals;
+	literallist literals;
 	std::vector<Weight> weights;
 };
 
@@ -448,12 +389,12 @@ public:
 
 class MinimizeOrderedList{
 public:
-	std::vector<Literal> literals;
+	literallist literals;
 };
 
 class MinimizeSubset{
 public:
-	std::vector<Literal> literals;
+	literallist literals;
 };
 
 class MinimizeAgg{
@@ -465,9 +406,57 @@ public:
 	MinimizeAgg(): head(0){}
 };
 
+struct CPIntVarRange{
+	uint varID;
+	Weight minvalue, maxvalue;
+};
+
+struct CPIntVarEnum{
+	uint varID;
+	std::vector<Weight> values;
+};
+
+struct CPBinaryRel{
+	Atom head;
+	uint varID;
+	EqType rel;
+	Weight bound;
+
+	CPBinaryRel(): head(0){}
+};
+
+struct CPBinaryRelVar{
+	Atom head;
+	uint lhsvarID, rhsvarID;
+	EqType rel;
+
+	CPBinaryRelVar(): head(0){}
+};
+
+struct CPSumWeighted{
+	Atom head;
+	std::vector<uint> varIDs;
+	std::vector<Weight> weights;
+	EqType rel;
+	Weight bound;
+
+	CPSumWeighted(): head(0){}
+};
+
+struct CPCount{
+	std::vector<uint> varIDs;
+	Weight eqbound;
+	EqType rel;
+	uint rhsvar;
+};
+
+struct CPAllDiff{
+	std::vector<uint> varIDs;
+};
+
 class ForcedChoices{
 public:
-	std::vector<Literal> forcedchoices;
+	literallist forcedchoices;
 };
 
 class RigidAtoms{
@@ -481,6 +470,11 @@ public:
 	Literal head;
 
 	SubTheory():head(0){}
+};
+
+class SymmetryLiterals{
+public:
+	std::vector<literallist> symmgroups;
 };
 
 }
