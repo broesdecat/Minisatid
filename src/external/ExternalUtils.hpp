@@ -269,9 +269,9 @@ namespace MinisatID {
 		int 			nbmodelstofind;
 
 		ModelExpandOptions():
-				printmodels(PRINT_ALL), savemodels(SAVE_ALL), search(MODELEXPAND),
-				nbmodelstofind(0)
-			{}
+				printmodels(PRINT_BEST), savemodels(SAVE_NONE), search(MODELEXPAND),
+				nbmodelstofind(0){
+		}
 	};
 }
 

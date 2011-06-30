@@ -15,7 +15,9 @@
 #include "modules/aggsolver/AggUtils.hpp"
 #include "modules/aggsolver/AggTransform.hpp"
 
-#ifndef __GXX_EXPERIMENTAL_CXX0X__
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+#include <memory>
+#else
 #include <tr1/memory>
 #endif
 
