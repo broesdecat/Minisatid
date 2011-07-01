@@ -145,7 +145,7 @@ public:
 	void addPred(std::string name, int startingnumber, const std::vector<std::string>& typenames, bool isfunction){
 		std::vector<Type*> argtypes;
 		int joinsize = 1;
-		for(auto i = typenames.begin(); i < typenames.end(); ++i) {
+		for(std::vector<std::string>::const_iterator i = typenames.begin(); i < typenames.end(); ++i) {
 			argtypes.push_back(types.at(*i));
 			joinsize *= argtypes.back()->domainelements.size();
 		}
@@ -175,7 +175,7 @@ private:
 	std::string getPredName	(int predn) const;
 	void printTuple(const std::vector<std::string>& tuple, std::ostream& output) const{
 		bool begin = true;
-		for(auto k = tuple.begin(); k < tuple.end(); ++k) {
+		for(std::vector<std::string>::const_iterator k = tuple.begin(); k < tuple.end(); ++k) {
 			if(!begin){
 				output << ",";
 			}
@@ -208,9 +208,9 @@ public:
 	}
 
 	void printModel(std::ostream& output, const Model& model) {
-		for(auto i=model.literalinterpretations.begin(); i<model.literalinterpretations.end(); ++i){
+		for(std::vector<Literal>::const_iterator i=model.literalinterpretations.begin(); i<model.literalinterpretations.end(); ++i){
 			if(!(*i).hasSign()){ //Do not print false literals
-				auto it = lit2name.find((*i).getAtom());
+				std::map<Atom, std::string>::const_iterator it = lit2name.find((*i).getAtom());
 				if(it!=lit2name.end()){
 					output <<(*it).second <<" ";
 				}
@@ -222,7 +222,7 @@ public:
 	}
 
 	void printLiteral(std::ostream& output, const Literal& lit) {
-		auto it = lit2name.find(lit.getAtom());
+		std::map<Atom, std::string>::const_iterator it = lit2name.find(lit.getAtom());
 		if(it!=lit2name.end()){
 			output <<(lit.hasSign()?"~":"") <<(*it).second <<"\n";
 		}
@@ -243,8 +243,8 @@ public:
 
 	void printModel(std::ostream& output, const Model& model) {
 		output <<"v ";
-		for(auto i=model.literalinterpretations.begin(); i<model.literalinterpretations.end(); ++i){
-			auto it = lit2name.find((*i).getAtom());
+		for(std::vector<Literal>::const_iterator i=model.literalinterpretations.begin(); i<model.literalinterpretations.end(); ++i){
+			std::map<Atom, std::string>::const_iterator it = lit2name.find((*i).getAtom());
 			if(it!=lit2name.end()){
 				if((*i).hasSign()){
 					output <<"-";

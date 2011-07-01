@@ -36,13 +36,13 @@ void FODOTTranslator::finishData(){
 
 	largestnottseitinatom = symbols.back()->endnumber;
 
-	for(auto i=symbols.begin(); i<symbols.end(); ++i){
+	for(std::vector<Symbol*>::const_iterator i=symbols.begin(); i<symbols.end(); ++i){
 		truemodelcombinedout.push_back(SymbolInterpr(*i));
 		symbolasarbitatomlist[*i]=false;
 	}
 
 	// parse the certainly true atoms
-	for(auto m=truelist.begin(); m<truelist.end(); ++m) {
+	for(std::vector<int>::const_iterator m=truelist.begin(); m<truelist.end(); ++m) {
 		int curr = *m;
 		if(curr > largestnottseitinatom){
 			continue;
@@ -63,14 +63,14 @@ void FODOTTranslator::finishParsing(ostream& output){
 	finishData();
 	if(!printedArbitrary){
 		int modelsRepresentedByArbitrary= 0;
-		for(auto m=arbitlist.begin(); m<arbitlist.end(); ++m) {
+		for(std::vector<int>::const_iterator m=arbitlist.begin(); m<arbitlist.end(); ++m) {
 			int curr = *m;
 			if(curr > largestnottseitinatom){
 				continue;
 			}else{
 				AtomInfo info = deriveStringFromAtomNumber(curr);
 				if(info.hastranslation){
-					auto symbol = symbols[info.symbolindex];
+					Symbol* symbol = symbols[info.symbolindex];
 					SymbolInterpr interpr(symbol);
 					interpr.tuples.push_back(TupleInterpr(FIXED_ARBIT, info.arg));
 					arbitout.push_back(interpr);

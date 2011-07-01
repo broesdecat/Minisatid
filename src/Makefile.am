@@ -7,7 +7,7 @@ SUBDIRS = parser
 libssourcedir = $(srcdir)/../lib/
 libsbuilddir = $(builddir)/../lib/
 
-AM_CXXFLAGS = @AC_CXXFLAGS@ -D VERSION=\"$(MINISATID_VERSION)\" -std=gnu++0x 
+AM_CXXFLAGS = @AC_CXXFLAGS@ -D VERSION=\"$(MINISATID_VERSION)\" #-std=c++0x 
 
 lib_LTLIBRARIES = libminisatid-2.0.la
 libminisatid_2_0_la_LDFLAGS = -version-info 1:0:0
