@@ -39,6 +39,7 @@
 #include <iostream>
 #include <stdlib.h>
 #include <algorithm>
+
 using namespace std;
 
 using namespace MinisatID;
@@ -49,35 +50,38 @@ using namespace MinisatID;
  * @param nbvar: the number of variables
  * @param nbconstr: the number of contraints
  */
-void DefaultCallback::metaData(int nbvar, int nbconstr) {
+template<class T> bool DefaultCallback<T>::metaData(int nbvar, int nbconstr) {
 	maxvar = nbvar;
 	dummyhead = Atom(++maxvar);
 	Disjunction clause;
 	clause.literals.push_back(Literal(dummyhead, false));
-	getSolver()->add(clause);
+	return getSolver()->add(clause);
 }
 
 /**
  * callback called before we read the objective function
  */
-void DefaultCallback::beginObjective() {
+template<class T> void DefaultCallback<T>::beginObjective() {
 
 }
 
 /**
  * callback called after we've read the objective function
  */
-void DefaultCallback::endObjective() {
+template<class T> bool DefaultCallback<T>::endObjective() {
+	bool possat = true;
+
 	setid++;
 	wset.setID = setid;
-	getSolver()->add(wset);
+	possat &= getSolver()->add(wset);
 	wset = WSet();
 
 	MinimizeAgg mnm;
 	mnm.head = dummyhead;
 	mnm.setid = setid;
 	mnm.type = SUM;
-	getSolver()->add(mnm);
+	possat &= getSolver()->add(mnm);
+	return possat;
 
 }
 
@@ -87,7 +91,7 @@ void DefaultCallback::endObjective() {
  * @param coeff: the coefficient of the term
  * @param idVar: the numerical identifier of the variable
  */
-void DefaultCallback::objectiveTerm(IntegerType coeff, int idVar) {
+template<class T> void DefaultCallback<T>::objectiveTerm(IntegerType coeff, int idVar) {
 	wset.literals.push_back(createLiteralFromOPBVar(idVar));
 	wset.weights.push_back(coeff);
 }
@@ -99,21 +103,22 @@ void DefaultCallback::objectiveTerm(IntegerType coeff, int idVar) {
  * @param coeff: the coefficient of the term
  * @param list: list of literals which appear in the product
  */
-void DefaultCallback::objectiveProduct(IntegerType coeff, vector<int> list) {
+template<class T> void DefaultCallback<T>::objectiveProduct(IntegerType coeff, vector<int> list) {
 	cerr <<"Leaving out linearization of opb constraints is not supported!\n";
 	assert(false);
 	exit(1);
 }
 
-void DefaultCallback::beginConstraint() {
+template<class T> void DefaultCallback<T>::beginConstraint() {
 	//cout << "constraint: ";
 	assert(wset.literals.size()==0);
 }
 
-void DefaultCallback::endConstraint() {
+template<class T> bool DefaultCallback<T>::endConstraint() {
+	bool posssat = true;
 	setid++;
 	wset.setID = setid;
-	getSolver()->add(wset);
+	posssat &= getSolver()->add(wset);
 	wset = WSet();
 
 	Disjunction clause;
@@ -125,18 +130,19 @@ void DefaultCallback::endConstraint() {
 	if(equality){
 		agg.head = dummyhead;
 		agg.sign = AGGSIGN_LB;
-		getSolver()->add(agg);
+		posssat &= getSolver()->add(agg);
 		agg.head = dummyhead;
 		agg.sign = AGGSIGN_UB;
-		getSolver()->add(agg);
+		posssat &= getSolver()->add(agg);
 	}else{
 		agg.head = dummyhead;
 		agg.sign = AGGSIGN_LB;
-		getSolver()->add(agg);
+		posssat &= getSolver()->add(agg);
 	}
+	return posssat;
 }
 
-Literal DefaultCallback::createLiteralFromOPBVar(int var){
+template<class T> Literal DefaultCallback<T>::createLiteralFromOPBVar(int var){
 	return Literal(::abs(var), var<0);
 }
 
@@ -146,7 +152,7 @@ Literal DefaultCallback::createLiteralFromOPBVar(int var){
  * @param coeff: the coefficient of the term
  * @param idVar: the numerical identifier of the variable
  */
-void DefaultCallback::constraintTerm(IntegerType coeff, int idVar) {
+template<class T> void DefaultCallback<T>::constraintTerm(IntegerType coeff, int idVar) {
 	wset.literals.push_back(createLiteralFromOPBVar(idVar));
 	wset.weights.push_back(coeff);
 }
@@ -158,7 +164,7 @@ void DefaultCallback::constraintTerm(IntegerType coeff, int idVar) {
  * @param coeff: the coefficient of the term
  * @param list: list of literals which appear in the product
  */
-void DefaultCallback::constraintProduct(IntegerType coeff, vector<int> list) {
+template<class T> void DefaultCallback<T>::constraintProduct(IntegerType coeff, vector<int> list) {
 	cerr <<"Leaving out linearization of opb constraints is not supported!\n";
 	assert(false);
 	exit(1);
@@ -169,7 +175,7 @@ void DefaultCallback::constraintProduct(IntegerType coeff, vector<int> list) {
  *
  * @param relop: the relational operator (>= or =)
  */
-void DefaultCallback::constraintRelOp(string relop) {
+template<class T> void DefaultCallback<T>::constraintRelOp(string relop) {
 	if(relop.compare("=")==0){
 		equality = true;
 	}else{
@@ -183,7 +189,7 @@ void DefaultCallback::constraintRelOp(string relop) {
  *
  * @param val: the degree of the constraint
  */
-void DefaultCallback::constraintRightTerm(IntegerType val) {
+template<class T> void DefaultCallback<T>::constraintRightTerm(IntegerType val) {
 	bound = val;
 }
 
@@ -191,7 +197,8 @@ void DefaultCallback::constraintRightTerm(IntegerType val) {
  * add the necessary constraints to define newSymbol as equivalent
  * to the product (conjunction) of literals in product.
  */
-void DefaultCallback::linearizeProduct(int newSymbol, vector<int> product) {
+template<class T> bool DefaultCallback<T>::linearizeProduct(int newSymbol, vector<int> product) {
+	bool possat = true;
 	IntegerType r;
 
 	// product => newSymbol (this is a clause)
@@ -207,7 +214,7 @@ void DefaultCallback::linearizeProduct(int newSymbol, vector<int> product) {
 			constraintTerm(1, -(*i));
 	constraintRelOp(">=");
 	constraintRightTerm(r);
-	endConstraint();
+	possat &= endConstraint();
 
 #ifdef ONLYCLAUSES
 	// newSymbol => product translated as
@@ -226,7 +233,7 @@ void DefaultCallback::linearizeProduct(int newSymbol, vector<int> product) {
 		}
 		constraintRelOp(">=");
 		constraintRightTerm(r);
-		endConstraint();
+		possat &= endConstraint();
 	}
 #else
 	// newSymbol => product translated as
@@ -243,17 +250,18 @@ void DefaultCallback::linearizeProduct(int newSymbol, vector<int> product) {
 		}
 	constraintRelOp(">=");
 	constraintRightTerm(r);
-	endConstraint();
+	possat &= endConstraint();
 #endif
+	return possat;
 }
 
 /**
  * get the identifier associated to a product term (update the list
  * if necessary)
  */
-int ProductStore::getProductVariable(vector<int> &list) {
+template<class T> int ProductStore<T>::getProductVariable(vector<int> &list) {
 	vector<ProductNode> *p = &root;
-	vector<ProductNode>::iterator pos;
+	typename vector<ProductNode>::iterator pos;
 
 	// list must be sorted
 	sort(list.begin(), list.end());
@@ -284,25 +292,29 @@ int ProductStore::getProductVariable(vector<int> &list) {
  * add the constraints which define all product terms
  *
  */
-void ProductStore::defineProductVariableRec(DefaultCallback &cb, vector<ProductNode> &nodes, vector<int> &list) {
-	for (vector<ProductNode>::const_iterator i = nodes.begin(); i < nodes.end(); ++i) {
+template<class T> bool ProductStore<T>::defineProductVariableRec(DefaultCallback<T> &cb, vector<ProductNode> &nodes, vector<int> &list) {
+	bool possat = true;
+	for (typename vector<ProductNode>::const_iterator i = nodes.begin(); i < nodes.end(); ++i) {
 		list.push_back((*i).lit);
-		if ((*i).productId)
-			cb.linearizeProduct((*i).productId, list);
+		if ((*i).productId){
+			possat &= cb.linearizeProduct((*i).productId, list);
+		}
 
-		if ((*i).next)
-			defineProductVariableRec(cb, *(*i).next, list);
+		if ((*i).next){
+			possat &= defineProductVariableRec(cb, *(*i).next, list);
+		}
 
 		list.pop_back();
 	}
+	return possat;
 }
 
 /**
  * free all allocated product data
  *
  */
-void ProductStore::freeProductVariableRec(vector<ProductNode> &nodes) {
-	for (vector<ProductNode>::const_iterator i = nodes.begin(); i < nodes.end(); ++i) {
+template<class T> void ProductStore<T>::freeProductVariableRec(vector<ProductNode> &nodes) {
+	for (typename vector<ProductNode>::const_iterator i = nodes.begin(); i < nodes.end(); ++i) {
 		if ((*i).next) {
 			freeProductVariableRec(*(*i).next);
 			delete (*i).next;
@@ -317,7 +329,7 @@ void ProductStore::freeProductVariableRec(vector<ProductNode> &nodes) {
  * @param list: the current list of identifiers that were read
  * @return true iff an identifier was correctly read
  */
-bool PBRead::readIdentifier(vector<int> &list) {
+template<class T> bool PBRead<T>::readIdentifier(vector<int> &list) {
 	char c;
 	bool negated = false;
 
@@ -375,7 +387,7 @@ bool PBRead::readIdentifier(vector<int> &list) {
  * @param s: the variable to hold the relational operator we read
  * @return true iff a relational operator was correctly read
  */
-bool PBRead::readRelOp(string &s) {
+template<class T> bool PBRead<T>::readRelOp(string &s) {
 	char c;
 
 	skipSpaces();
@@ -403,7 +415,8 @@ bool PBRead::readRelOp(string &s) {
  *
  * calls metaData with the data that was read
  */
-void PBRead::readMetaData() {
+template<class T> bool PBRead<T>::readMetaData() {
+	bool possat = true;
 	char c;
 	string s;
 
@@ -451,18 +464,20 @@ void PBRead::readMetaData() {
 	// callback to transmit the data
 	if (nbProduct && autoLinearize) {
 #ifdef ONLYCLAUSES
-		cb.metaData(nbVars+nbProduct,nbConstr+nbProduct+sizeProduct);
+		possat &= cb.metaData(nbVars+nbProduct,nbConstr+nbProduct+sizeProduct);
 #else
-		cb.metaData(nbVars + nbProduct, nbConstr + 2 * nbProduct);
+		possat &= cb.metaData(nbVars + nbProduct, nbConstr + 2 * nbProduct);
 #endif
-	} else
-		cb.metaData(nbVars, nbConstr);
+	} else{
+		possat &= cb.metaData(nbVars, nbConstr);
+	}
+	return possat;
 }
 
 /**
  * skip the comments at the beginning of the file
  */
-void PBRead::skipComments() {
+template<class T> void PBRead<T>::skipComments() {
 	string s;
 	char c;
 
@@ -480,7 +495,7 @@ void PBRead::skipComments() {
  * @param coeff: the coefficient of the variable
  * @param list: the list of literals identifiers in the product
  */
-void PBRead::readTerm(IntegerType &coeff, vector<int> &list) {
+template<class T> void PBRead<T>::readTerm(IntegerType &coeff, vector<int> &list) {
 	list.clear();
 	in >> coeff;
 	skipSpaces();
@@ -497,7 +512,8 @@ void PBRead::readTerm(IntegerType &coeff, vector<int> &list) {
  *
  * calls beginObjective, objectiveTerm and endObjective
  */
-void PBRead::readObjective() {
+template<class T> bool PBRead<T>::readObjective() {
+	bool possat = true;
 	char c;
 	string s;
 
@@ -511,7 +527,7 @@ void PBRead::readObjective() {
 	if (c != 'm') {
 		// no objective line
 		putback(c);
-		return;
+		return possat;
 	}
 
 	if (get() == 'i' && get() == 'n' && get() == ':') {
@@ -534,9 +550,11 @@ void PBRead::readObjective() {
 				throw idpexception("unexpected character in objective function.\n");
 		}
 
-		cb.endObjective();
-	} else
+		possat &= cb.endObjective();
+	} else{
 		throw idpexception("input format error: 'min:' expected.\n");
+	}
+	return possat;
 }
 
 /**
@@ -544,7 +562,7 @@ void PBRead::readObjective() {
  *
  * calls beginConstraint, constraintTerm and endConstraint
  */
-void PBRead::readConstraint() {
+template<class T> bool PBRead<T>::readConstraint() {
 	string s;
 	char c;
 
@@ -588,14 +606,14 @@ void PBRead::readConstraint() {
 	if (eof() || c != ';')
 		throw idpexception("semicolon expected at end of constraint.\n");
 
-	cb.endConstraint();
+	return cb.endConstraint();
 }
 
 /**
  * passes a product term to the solver (first linearizes the product
  * if this is wanted)
  */
-void PBRead::handleProduct(bool inObjective, IntegerType coeff, vector<int> &list) {
+template<class T> void PBRead<T>::handleProduct(bool inObjective, IntegerType coeff, vector<int> &list) {
 	if (autoLinearize) {
 		// get symbol corresponding to this product
 		int var = store.getProductVariable(list);
@@ -616,12 +634,13 @@ void PBRead::handleProduct(bool inObjective, IntegerType coeff, vector<int> &lis
  * parses the file and uses the callbacks to send the data
  * back to the program
  */
-void PBRead::parse() {
+template<class T> bool PBRead<T>::parse() {
+	bool possat = true;
 	char c;
 
 	readMetaData();
 	skipComments();
-	readObjective();
+	possat &= readObjective();
 
 	// read constraints
 	int nbConstraintsRead = 0;
@@ -637,7 +656,7 @@ void PBRead::parse() {
 		if (eof())
 			break;
 
-		readConstraint();
+		possat &= readConstraint();
 		nbConstraintsRead++;
 	}
 
@@ -648,7 +667,8 @@ void PBRead::parse() {
 	}
 
 	if (autoLinearize) {
-		store.defineProductVariable(cb);
+		possat &= store.defineProductVariable(cb);
 	}
+	return possat;
 }
 

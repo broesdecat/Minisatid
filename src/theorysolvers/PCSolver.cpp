@@ -56,7 +56,7 @@ DPLLTSolver::~DPLLTSolver(){
 bool PCSolver::headerunprinted = true;
 
 //Has to be value copy of modes!
-PCSolver::PCSolver(SolverOption modes, MinisatID::WLSImpl& inter) :
+PCSolver::PCSolver(SolverOption modes, MinisatID::WrapperPimpl& inter) :
 		LogicSolver(modes, inter),
 		satsolver(NULL),
 		state(THEORY_PARSING),
@@ -222,6 +222,10 @@ bool PCSolver::add(Var v) {
 		propagations.resize(nVars(), NULL);
 	}
 	return true;
+}
+
+void PCSolver::notifyNonDecisionVar(Var var){
+	getSolver()->setDecisionVar(var, false);
 }
 
 void PCSolver::addVars(const vec<Lit>& a) {
@@ -468,22 +472,7 @@ bool PCSolver::add(const InnerCPBinaryRelVar& obj){
 	return addCP(obj);
 }
 
-bool PCSolver::add(const InnerCPSum& obj){
-	add(obj.head);
-	return addCP(obj);
-}
-
 bool PCSolver::add(const InnerCPSumWeighted& obj){
-	add(obj.head);
-	return addCP(obj);
-}
-
-bool PCSolver::add(const InnerCPSumWithVar& obj){
-	add(obj.head);
-	return addCP(obj);
-}
-
-bool PCSolver::add(const InnerCPSumWeightedWithVar& obj){
 	add(obj.head);
 	return addCP(obj);
 }
@@ -748,6 +737,10 @@ Var PCSolver::changeBranchChoice(const Var& chosenvar){
 		newvar = getAggSolver()->changeBranchChoice(chosenvar);
 	}
 	return newvar;
+}
+
+bool PCSolver::isAlreadyUsedInAnalyze(const Lit& lit) const{
+	return getSolver()->isAlreadyUsedInAnalyze(lit);
 }
 
 /*

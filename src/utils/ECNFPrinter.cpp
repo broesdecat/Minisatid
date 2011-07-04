@@ -219,39 +219,11 @@ void ECNFPrinter::notifyadded(const InnerCPBinaryRelVar& rel){
 }
 
 template<>
-void ECNFPrinter::notifyadded(const InnerCPSum& sum){
-	ss <<"Added sum constraint " <<sum.head <<" <=> sum({ ";
-	vector<int>::size_type count = 0;
-	for(vector<uint>::const_iterator i=sum.varIDs.begin(); i<sum.varIDs.end(); ++count, ++i){
-		ss <<"var" <<*i;
-		if(count<sum.varIDs.size()-1){
-			ss <<", ";
-		}
-	}
-	ss <<sum.rel <<" " <<sum.bound <<"\n";
-}
-
-template<>
-void ECNFPrinter::notifyadded(const InnerCPSumWeightedWithVar& sum){
-	ss <<"Added sum constraint " <<sum.head <<" <=> sum({ ";
-	vector<int>::size_type count = 0;
-	vector<uint>::const_iterator litit=sum.varIDs.begin();
-	vector<int>::const_iterator weightit=sum.weights.begin();
-	for(; litit<sum.varIDs.end(); ++count, ++litit, ++weightit){
-		ss <<"var" <<*litit <<"*" <<*weightit;
-		if(count<sum.varIDs.size()-1){
-			ss <<", ";
-		}
-	}
-	ss <<sum.rel <<" var" <<sum.rhsvarID <<"\n";
-}
-
-template<>
 void ECNFPrinter::notifyadded(const InnerCPSumWeighted& sum){
 	ss <<"Added sum constraint " <<sum.head <<" <=> sum({ ";
 	vector<int>::size_type count = 0;
 	vector<uint>::const_iterator litit=sum.varIDs.begin();
-	vector<int>::const_iterator weightit=sum.weights.begin();
+	vector<Weight>::const_iterator weightit=sum.weights.begin();
 	for(; litit<sum.varIDs.end(); ++count, ++litit, ++weightit){
 		ss <<"var" <<*litit <<"*" <<*weightit;
 		if(count<sum.varIDs.size()-1){
@@ -259,19 +231,6 @@ void ECNFPrinter::notifyadded(const InnerCPSumWeighted& sum){
 		}
 	}
 	ss <<sum.rel <<" " <<sum.bound <<"\n";
-}
-
-template<>
-void ECNFPrinter::notifyadded(const InnerCPSumWithVar& sum){
-	ss <<"Added sum constraint " <<sum.head <<" <=> sum({ ";
-	vector<int>::size_type count = 0;
-	for(vector<uint>::const_iterator i=sum.varIDs.begin(); i<sum.varIDs.end(); ++count, ++i){
-		ss <<"var" <<*i;
-		if(count<sum.varIDs.size()-1){
-			ss <<", ";
-		}
-	}
-	ss <<sum.rel <<" var" <<sum.rhsvarID <<"\n";
 }
 
 void ECNFPrinter::endPrinting(ostream& stream){

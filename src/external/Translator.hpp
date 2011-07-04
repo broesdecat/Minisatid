@@ -13,6 +13,14 @@
 #include <string>
 #include <map>
 #include <ostream>
+#include <sstream>
+
+#include <algorithm>
+
+#include <GeneralUtils.hpp>
+#include <utils/Print.hpp>
+
+#include <external/SolvingMonitor.hpp>
 
 #include "external/ExternalUtils.hpp"
 
@@ -41,7 +49,15 @@ struct Symbol{
 private:
 	std::string name;
 public:
-	std::string getName(bool fodot);
+	std::string getName(bool fodot){
+		if(fodot){
+			return name;
+		}else{
+			std::string n = name;
+			n.at(0)=tolower(n.at(0));
+			return n;
+		}
+	}
 	int startnumber, endnumber;
 	std::vector<Type*> types;
 	bool isfunction;
@@ -59,18 +75,32 @@ struct SymbolInterpr{
 typedef std::vector<SymbolInterpr> modelvec;
 
 class Translator {
-protected:
-	// counters
-	mutable int modelcounter;
-
 public:
-	Translator();
+	Translator(){}
 	virtual ~Translator(){}
 
-	virtual void	printLiteral		(std::ostream& output, const MinisatID::Literal& lit);
-	virtual void	printModel			(std::ostream& output, const Model& model);
-	virtual void 	printCurrentOptimum	(std::ostream& output, const Weight& value);
-	virtual void	printHeader			(std::ostream& output);
+
+	virtual void	printModel			(std::ostream& output, const Model& model){
+		std::stringstream ss;
+		for (std::vector<Literal>::const_iterator i = model.literalinterpretations.begin(); i < model.literalinterpretations.end(); ++i){
+			ss <<(((*i).hasSign()) ? "-" : "") <<(*i).getAtom().getValue() <<" ";
+		}
+		for (std::vector<VariableEqValue>::const_iterator i = model.variableassignments.begin(); i < model.variableassignments.end(); ++i){
+			ss <<(*i).variable <<"=" <<(*i).value <<" ";
+		}
+		ss << "0\n";
+		//TODO start critical section
+		output <<ss.str();
+		// end critical section
+		output.flush();
+	}
+
+	virtual void	printLiteral		(std::ostream& output, const MinisatID::Literal& lit){}
+	virtual void 	printCurrentOptimum	(std::ostream& output, const Weight& value){}
+	virtual void	printHeader			(std::ostream& output){}
+
+	virtual bool	hasTseitinKnowledge	() const { return false; }
+	virtual Atom	smallestTseitinAtom	() { assert(false); return Atom(0); }
 };
 
 class FODOTTranslator: public Translator{
@@ -80,6 +110,9 @@ private:
 	bool emptytrans; //true as long as no predicate has been added to the translator
 
 	int largestnottseitinatom;
+
+	// arbitrary temp information
+	bool printedArbitrary;
 
 	// output
 	modelvec arbitout, truemodelcombinedout;
@@ -92,26 +125,74 @@ private:
 	std::map<Symbol*,bool>		symbolasarbitatomlist;
 
 public:
-			FODOTTranslator	(OUTPUTFORMAT fodot);
-	virtual ~FODOTTranslator();
+	FODOTTranslator(OUTPUTFORMAT fodot): Translator(),
+			tofodot(fodot==TRANS_FODOT), finisheddata(false), emptytrans(true),
+			largestnottseitinatom(-1),
+			printedArbitrary(false){
+		assert(fodot!=TRANS_PLAIN);
+	}
+
+	virtual ~FODOTTranslator() {
+		deleteList<Type>(types);
+		deleteList<Symbol>(symbols);
+	}
 
 	void	setTruelist		(const std::vector<int>& vi) { truelist = vi;}
 	void 	setArbitlist	(const std::vector<int>& vi) { arbitlist = vi;}
-	void 	addType			(std::string name, const std::vector<std::string>& inter);
-	void 	addPred			(std::string name, int num, const std::vector<std::string>& ptypes, bool f);
+	void addType(std::string name, const std::vector<std::string>& inter){
+		types.insert(std::pair<std::string,Type*>(name, new Type(name, inter)));
+	}
+	void addPred(std::string name, int startingnumber, const std::vector<std::string>& typenames, bool isfunction){
+		std::vector<Type*> argtypes;
+		int joinsize = 1;
+		for(std::vector<std::string>::const_iterator i = typenames.begin(); i < typenames.end(); ++i) {
+			argtypes.push_back(types.at(*i));
+			joinsize *= argtypes.back()->domainelements.size();
+		}
+
+		symbols.push_back(new Symbol(name, startingnumber, startingnumber+joinsize-1, argtypes, isfunction));
+		emptytrans = false;
+	}
 
 	void 	printLiteral		(std::ostream& output, const MinisatID::Literal& lit);
 	void 	printModel			(std::ostream& output, const Model& model);
-	void 	printHeader			(std::ostream& output);
+	void 	printHeader			(std::ostream& output){
+		if(!finisheddata){
+			finishParsing(output);
+		}
+
+		if(emptytrans){
+			return;
+		}
+	}
+
+	bool	hasTseitinKnowledge	() const { return true; }
+	Atom	smallestTseitinAtom	() { assert(hasTseitinKnowledge()); finishData(); return Atom(largestnottseitinatom+1); }
 
 private:
+	void 	finishData		();
 	void 	finishParsing	(std::ostream& output);
 	std::string getPredName	(int predn) const;
-	void 	printTuple		(const std::vector<std::string>& tuple, std::ostream& output) 	const;
+	void printTuple(const std::vector<std::string>& tuple, std::ostream& output) const{
+		bool begin = true;
+		for(std::vector<std::string>::const_iterator k = tuple.begin(); k < tuple.end(); ++k) {
+			if(!begin){
+				output << ",";
+			}
+			begin = false;
+			output << *k;
+		}
+	}
 	void 	printPredicate	(const SymbolInterpr& pred, std::ostream& output, PRINTCHOICE print)	const;
 	void 	printFunction	(const SymbolInterpr& pred, std::ostream& output, PRINTCHOICE print)	const;
 	void 	printInterpr	(const modelvec& model, std::ostream& output, PRINTCHOICE print)	const;
-	bool 	deriveStringFromAtomNumber(int atom, uint& currpred, std::vector<std::string>& arg) const;
+
+	struct AtomInfo{
+		bool hastranslation;
+		uint symbolindex;
+		std::vector<std::string> arg;
+	};
+	AtomInfo deriveStringFromAtomNumber(int atom) const;
 };
 
 class LParseTranslator: public Translator {
@@ -119,14 +200,33 @@ private:
 	std::map<Atom,std::string>	lit2name;
 
 public:
-			LParseTranslator():Translator(){}
+	LParseTranslator():Translator(){}
 	virtual ~LParseTranslator(){}
 
-	void 	addTuple		(Atom atom, std::string name);
+	void addTuple(Atom atom, std::string name) {
+		lit2name[atom]=name;
+	}
 
-	void 	printLiteral	(std::ostream& output, const MinisatID::Literal& lit);
-	void 	printModel		(std::ostream& output, const Model& model);
-	void 	printHeader		(std::ostream& output);
+	void printModel(std::ostream& output, const Model& model) {
+		for(std::vector<Literal>::const_iterator i=model.literalinterpretations.begin(); i<model.literalinterpretations.end(); ++i){
+			if(!(*i).hasSign()){ //Do not print false literals
+				std::map<Atom, std::string>::const_iterator it = lit2name.find((*i).getAtom());
+				if(it!=lit2name.end()){
+					output <<(*it).second <<" ";
+				}
+			}
+		}
+		output <<"\n";
+		output.flush();
+		assert(model.variableassignments.size()==0);
+	}
+
+	void printLiteral(std::ostream& output, const Literal& lit) {
+		std::map<Atom, std::string>::const_iterator it = lit2name.find(lit.getAtom());
+		if(it!=lit2name.end()){
+			output <<(lit.hasSign()?"~":"") <<(*it).second <<"\n";
+		}
+	}
 };
 
 class OPBTranslator: public Translator {
@@ -134,15 +234,32 @@ private:
 	std::map<Atom,std::string>	lit2name;
 
 public:
-			OPBTranslator():Translator(){}
+	OPBTranslator():Translator(){}
 	virtual ~OPBTranslator(){}
 
-	void 	addTuple		(Atom atom, std::string name);
+	void addTuple(Atom atom, std::string name){
+		lit2name[atom]=name;
+	}
 
-	void 	printLiteral		(std::ostream& output, const MinisatID::Literal& lit);
-	void 	printModel			(std::ostream& output, const Model& model);
-	void 	printCurrentOptimum	(std::ostream& output, const Weight& value);
-	void 	printHeader			(std::ostream& output);
+	void printModel(std::ostream& output, const Model& model) {
+		output <<"v ";
+		for(std::vector<Literal>::const_iterator i=model.literalinterpretations.begin(); i<model.literalinterpretations.end(); ++i){
+			std::map<Atom, std::string>::const_iterator it = lit2name.find((*i).getAtom());
+			if(it!=lit2name.end()){
+				if((*i).hasSign()){
+					output <<"-";
+				}
+				output <<(*it).second <<" ";
+			}
+		}
+		output <<"\n";
+		output.flush();
+		assert(model.variableassignments.size()==0);
+	}
+
+	virtual void printCurrentOptimum(std::ostream& output, const Weight& value){
+		output <<"o " <<value <<"\n";
+	}
 };
 
 }

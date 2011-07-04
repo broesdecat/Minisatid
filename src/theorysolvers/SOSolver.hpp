@@ -57,7 +57,7 @@ private:
 	modhierstate state;	//stores the current state of the parsing.
 
 public:
-	SOSolver				(SolverOption modes, MinisatID::WLSImpl& inter);
+	SOSolver				(SolverOption modes, MinisatID::WrapperPimpl& inter);
 	virtual ~SOSolver		();
 
 	void 	finishParsing	(bool& unsat);

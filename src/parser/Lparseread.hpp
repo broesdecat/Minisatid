@@ -68,6 +68,7 @@ struct ChoiceRule{
 	ChoiceRule(std::vector<Atom>& heads, std::vector<Literal>& body):heads(heads), body(body){	}
 };
 
+template<class T>
 class Read{
 private:
 	bool endedparsing;
@@ -76,7 +77,7 @@ private:
 	long size;
 	long linenumber;
 	int defaultdefinitionID;
-	MinisatID::WrappedPCSolver* solver;
+	T* solver;
 
 	std::vector<BasicRule*> basicrules;
 	std::vector<CardRule*> cardrules;
@@ -93,7 +94,12 @@ private:
 	MinisatID::LParseTranslator* translator;
 
 public:
-	Read (WrappedPCSolver* solver, LParseTranslator* trans);
+	Read(T* solver, LParseTranslator* trans):
+		endedparsing(false),
+		maxatomnumber(1), setcount(1), size(0), defaultdefinitionID(1),
+		solver(solver), optim(false),
+		translator(trans){
+	}
 	~Read ();
 	bool read (std::istream &f);
 
@@ -118,7 +124,7 @@ private:
 	bool tseitinizeHeads	();
 	void addRuleToHead(std::map<Atom, std::vector<BasicRule*> >& headtorules, BasicRule* rule, Atom head);
 
-	MinisatID::WrappedPCSolver* getSolver() { return solver; }
+	T* getSolver() { return solver; }
 };
 
 }

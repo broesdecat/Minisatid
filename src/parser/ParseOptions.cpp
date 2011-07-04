@@ -134,6 +134,7 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 	transvals.push_back(TRANS_FODOT); transdesc.push_back(pair<string, string>("fodot", "Translate model into FO(.) structure"));
 	transvals.push_back(TRANS_ASP); transdesc.push_back(pair<string, string>("asp", "Translate model into ASP facts"));
 	transvals.push_back(TRANS_PLAIN); transdesc.push_back(pair<string, string>("plain", "Return model in integer format"));
+	transvals.push_back(TRANS_FZ); transdesc.push_back(pair<string, string>("flatzinc", "Rewrite theory into flatzinc model"));
 
 	vector<pair<string, string> > checkcyclesdesc;
 	checkcyclesdesc.push_back(pair<string, string>("yes", "Check"));
@@ -148,6 +149,10 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 	vector<pair<string, string> > bumpaggonnotifydesc;
 	bumpaggonnotifydesc.push_back(pair<string, string>("yes", "Bump"));
 	bumpaggonnotifydesc.push_back(pair<string, string>("no", "Don't bump"));
+
+	vector<pair<string, string> > decideontseitins;
+	decideontseitins.push_back(pair<string, string>("yes", "Use as decision literals"));
+	decideontseitins.push_back(pair<string, string>("no", "Don't use as decision literals"));
 
 	vector<pair<string, string> > bumpidonstartdesc;
 	bumpidonstartdesc.push_back(pair<string, string>("yes", "Bump"));
@@ -219,6 +224,7 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 			modes.rand_var_freq, cmd,"The frequency with which to make a random choice (between 0 and 1)."));
 	options.push_back(new NoValsOption<double>	("","decay", 		"double",
 			modes.var_decay, cmd, "The decay of variable activities within the SAT-solver (larger than or equal to 0)."));
+	//TODO outputfile not supported for flatzinc output
 	options.push_back(new NoValsOption<string>	("o","outputfile", 	"file",
 			outputfile, cmd,"The outputfile to use to write out models."));
     options.push_back(new NoValsOption<string>	("","primesfile",	"file",
@@ -241,6 +247,8 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 			modes.subsetminimizeexplanation, cmd, "Choose whether to minimize aggregate explanations"));
 	options.push_back(new Option<bool, string>	("","asapaggprop", 	yesnovals, asapaggpropdesc,
 			modes.asapaggprop, cmd, "Choose whether to propagate aggregates as fast as possible"));
+	options.push_back(new Option<bool, string>	("","tseitindecision", 	yesnovals, decideontseitins,
+			modes.tseitindecisions, cmd,"Choose whether tseitin literals can be used as decision literals."));
 	options.push_back(new Option<bool, string>	("","pbsolver", 	yesnovals, pbsolverdesc,
 			modes.pbsolver, cmd,"Choose whether to translate pseudo-boolean constraints to SAT"));
 	options.push_back(new NoValsOption<double>	("","watch-ratio", 	"double",

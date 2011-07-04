@@ -51,7 +51,10 @@ public:
 bool compareWLByLits(const WL& one, const WL& two);
 
 //Compare WLs by their weights
-bool compareWLByWeights(const WL& one, const WL& two);
+template<class T>
+bool compareByWeights(const T& one, const T& two) {
+	return one.getWeight() < two.getWeight();
+}
 
 bool compareWLByAbsWeights(const WL& one, const WL& two);
 
@@ -131,19 +134,19 @@ struct InnerSubTheory{
 
 struct InnerIntVarEnum{
 	uint varID;
-	std::vector<int> values;
+	std::vector<Weight> values;
 };
 
 struct InnerIntVarRange{
 	uint varID;
-	int minvalue, maxvalue;
+	Weight minvalue, maxvalue;
 };
 
 struct InnerCPBinaryRel{
 	Var head;
 	uint varID;
 	EqType rel;
-	int bound;
+	Weight bound;
 };
 
 struct InnerCPBinaryRelVar{
@@ -152,40 +155,17 @@ struct InnerCPBinaryRelVar{
 	EqType rel;
 };
 
-
-struct InnerCPSum{
-	Var head;
-	std::vector<uint> varIDs;
-	EqType rel;
-	int bound;
-};
-
 struct InnerCPSumWeighted{
 	Var head;
 	std::vector<uint> varIDs;
-	std::vector<int> weights;
+	std::vector<Weight> weights;
 	EqType rel;
-	int bound;
-};
-
-struct InnerCPSumWithVar{
-	Var head;
-	std::vector<uint> varIDs;
-	EqType rel;
-	uint rhsvarID;
-};
-
-struct InnerCPSumWeightedWithVar{
-	Var head;
-	std::vector<uint> varIDs;
-	std::vector<int> weights;
-	EqType rel;
-	uint rhsvarID;
+	Weight bound;
 };
 
 struct InnerCPCount{
 	std::vector<uint> varIDs;
-	int eqbound;
+	Weight eqbound;
 	EqType rel;
 	uint rhsvar;
 };

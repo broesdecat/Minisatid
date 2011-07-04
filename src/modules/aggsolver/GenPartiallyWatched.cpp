@@ -165,7 +165,7 @@ rClause GenPWAgg::checkPropagation(bool& propagations, minmaxBounds& pessbounds,
 		}else{
 			lowerbound = WL(mkLit(1), getType().remove(agg.getCertainBound(), pessbounds.min));
 		}
-		vwl::const_iterator i = upper_bound(getSet().getWL().begin(), getSet().getWL().end(), lowerbound, compareWLByWeights);
+		vwl::const_iterator i = upper_bound(getSet().getWL().begin(), getSet().getWL().end(), lowerbound, compareByWeights<WL>);
 		for(; confl==nullPtrClause && i<getSet().getWL().end(); ++i){ //INVARIANT: sorted WL
 			if(value((*i).getLit())==l_Undef){ //Otherwise would have been head conflict
 				propagations = true;
@@ -476,8 +476,16 @@ bool compareWLIearlier(const WLI& one, const WLI& two){
 
 void GenPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	const PCSolver& pcsol = getSolver()->getPCSolver();
+	const Agg& agg = ar.getAgg();
+	const Lit& head = agg.getHead();
 
-	const Lit& head = ar.getAgg().getHead();
+	bool caseone = false;
+	if(ar.isHeadReason()){
+		caseone = head!=ar.getPropLit();
+	}else{
+		caseone = value(head)==l_True;
+	}
+
 	const Lit& proplit = ar.getPropLit();
 	bool conflictclause = value(ar.getPropLit())==l_False;
 	lbool headval = value(head);
@@ -513,7 +521,7 @@ void GenPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 		addValue(getType(), ar.getPropWeight(), !ar.isInSet(), pessbounds);
 	}
 
-	//Calc min and max
+	vector<WLI> reasons;
 	for(vector<WLI>::const_iterator i=wlis.begin(); !isFalsified(ar.getAgg(), pessbounds) && i<wlis.end(); ++i){
 		const WLI& wl = *i;
 		if(var(wl.getLit())==var(proplit)){
@@ -521,10 +529,28 @@ void GenPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 		}
 		if(conflictclause || pcsol.assertedBefore(var(wl.getLit()), var(proplit))){
 			addValue(getType(), wl.getWeight(), wl.inset, pessbounds);
-			lbool val = value(wl.getLit());
-			lits.push(val==l_True?~wl.getLit():wl.getLit());
+			reasons.push_back(*i);
 		}
 	}
+
+	//Subsetminimization
+	if(getSolver()->modes().subsetminimizeexplanation){
+		sort(reasons.begin(), reasons.end(), compareByWeights<WLI>);
+		for(vector<WLI>::iterator i=reasons.begin(); i<reasons.end(); ++i){
+			removeValue(getSet().getType(), (*i).getWeight(), (*i).inset, pessbounds);
+			if((caseone && isFalsified(agg, pessbounds) ) ||(!caseone && isSatisfied(agg, pessbounds))){
+				i = reasons.erase(i);
+				i--;
+			}else{
+				break;
+			}
+		}
+	}
+
+	for(vector<WLI>::const_iterator i=reasons.begin(); i<reasons.end(); ++i){
+		lits.push(value((*i).getLit())==l_True?~(*i).getLit():(*i).getLit());
+	}
+
 	assert(isFalsified(ar.getAgg(), pessbounds));
 }
 

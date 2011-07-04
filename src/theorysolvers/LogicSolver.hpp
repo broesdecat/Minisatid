@@ -16,15 +16,15 @@
 namespace MinisatID {
 
 class Solution;
-class WLSImpl;
+class WrapperPimpl;
 
 class LogicSolver{
 private:
 	SolverOption _modes;
-	MinisatID::WLSImpl& parent;
+	MinisatID::WrapperPimpl& parent;
 	bool hasMonitor;
 public:
-	LogicSolver(MinisatID::SolverOption modes, MinisatID::WLSImpl& inter)
+	LogicSolver(MinisatID::SolverOption modes, MinisatID::WrapperPimpl& inter)
 			:_modes(modes), parent(inter), hasMonitor(false){};
 	virtual ~LogicSolver(){};
 
@@ -38,10 +38,12 @@ public:
 			void	setVerbosity	(int verb)		{ _modes.verbosity = verb; }
 			void	setNbModels		(int nbmodels)	 { _modes.nbmodels = nbmodels; }
 
-	const MinisatID::WLSImpl& 	getParent	() const	{ return parent; }
-	MinisatID::WLSImpl& 		getParent	() 			{ return parent; }
+	const MinisatID::WrapperPimpl& 	getParent	() const	{ return parent; }
+	MinisatID::WrapperPimpl& 		getParent	() 			{ return parent; }
 
 	virtual void 	printStatistics	() const = 0;
+
+	virtual void notifyNonDecisionVar(Var var){}
 
 	void notifyHasMonitor();
 	bool isBeingMonitored() const;

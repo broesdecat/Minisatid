@@ -139,7 +139,7 @@ private:
 	bool	hasMonitor;
 
 public:
-	PCSolver(SolverOption modes, MinisatID::WLSImpl& inter);
+	PCSolver(SolverOption modes, MinisatID::WrapperPimpl& inter);
 	virtual ~PCSolver();
 
 	SATSolver*	getSATSolver() const { return satsolver; }
@@ -164,10 +164,7 @@ public:
 	bool	add		(const InnerIntVarRange& object);
 	bool	add		(const InnerCPBinaryRel& object);
 	bool	add		(const InnerCPBinaryRelVar& object);
-	bool	add		(const InnerCPSum& object);
 	bool	add		(const InnerCPSumWeighted& object);
-	bool	add		(const InnerCPSumWithVar& object);
-	bool	add		(const InnerCPSumWeightedWithVar& object);
 	bool	add		(const InnerCPCount& object);
 	bool	add		(const InnerCPAllDiff& object);
 
@@ -179,6 +176,8 @@ public:
 	lbool 		checkStatus		(lbool status) const; //if status==l_True, do wellfoundednesscheck in IDSolver, if not wellfounded, return l_False, otherwise status
 
 	Var			changeBranchChoice(const Var& chosenvar);
+
+	bool		isAlreadyUsedInAnalyze(const Lit& lit) const;
 
 	void		removeAggrHead	(Var head, int defID);
 	void		notifyAggrHead	(Var head, int defID);
@@ -214,6 +213,9 @@ public:
 	// MOD SOLVER support
 	void		saveState		();
 	void		resetState		();
+
+
+	void 		notifyNonDecisionVar(Var var);
 
 	// DEBUG
 	std::string getModID		() const; // SATsolver asks this to PC such that more info (modal e.g.) can be printed.

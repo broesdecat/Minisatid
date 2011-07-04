@@ -219,7 +219,7 @@ namespace MinisatID {
 	}; // SAT-solver polarity option
 
 	enum INPUTFORMAT 	{ FORMAT_FODOT, FORMAT_ASP, FORMAT_OPB};
-	enum OUTPUTFORMAT 	{ TRANS_FODOT, TRANS_ASP, TRANS_PLAIN };
+	enum OUTPUTFORMAT 	{ TRANS_FODOT, TRANS_ASP, TRANS_PLAIN, TRANS_FZ };
 
 	// Structure containing general options for the solvers
 	class SolverOption {
@@ -248,6 +248,7 @@ namespace MinisatID {
 		bool 			bumpaggonnotify, bumpidonstart;
 		bool			subsetminimizeexplanation, asapaggprop;
 		long 			ufsvarintrothreshold;
+		bool			tseitindecisions;
 
 		SolverOption();
 
@@ -268,9 +269,9 @@ namespace MinisatID {
 		int 			nbmodelstofind;
 
 		ModelExpandOptions():
-				printmodels(PRINT_ALL), savemodels(SAVE_ALL), search(MODELEXPAND),
-				nbmodelstofind(0)
-			{}
+				printmodels(PRINT_BEST), savemodels(SAVE_NONE), search(MODELEXPAND),
+				nbmodelstofind(0){
+		}
 	};
 }
 
@@ -338,9 +339,9 @@ public:
 
 class Equivalence{
 public:
-	bool conj;
+	bool conjunctive;
 	Literal	head;
-	literallist literals;
+	literallist body;
 
 	Equivalence():head(0){}
 };
@@ -408,19 +409,19 @@ public:
 
 struct CPIntVarRange{
 	uint varID;
-	int minvalue, maxvalue;
+	Weight minvalue, maxvalue;
 };
 
 struct CPIntVarEnum{
 	uint varID;
-	std::vector<int> values;
+	std::vector<Weight> values;
 };
 
 struct CPBinaryRel{
 	Atom head;
 	uint varID;
 	EqType rel;
-	int bound;
+	Weight bound;
 
 	CPBinaryRel(): head(0){}
 };
@@ -433,48 +434,19 @@ struct CPBinaryRelVar{
 	CPBinaryRelVar(): head(0){}
 };
 
-
-struct CPSum{
-	Atom head;
-	std::vector<uint> varIDs;
-	EqType rel;
-	int bound;
-
-	CPSum(): head(0){}
-};
-
 struct CPSumWeighted{
 	Atom head;
 	std::vector<uint> varIDs;
-	std::vector<int> weights;
+	std::vector<Weight> weights;
 	EqType rel;
-	int bound;
+	Weight bound;
 
 	CPSumWeighted(): head(0){}
 };
 
-struct CPSumWithVar{
-	Atom head;
-	std::vector<uint> varIDs;
-	EqType rel;
-	uint rhsvarID;
-
-	CPSumWithVar(): head(0){}
-};
-
-struct CPSumWeightedWithVar{
-	Atom head;
-	std::vector<uint> varIDs;
-	std::vector<int> weights;
-	EqType rel;
-	uint rhsvarID;
-
-	CPSumWeightedWithVar(): head(0){}
-};
-
 struct CPCount{
 	std::vector<uint> varIDs;
-	int eqbound;
+	Weight eqbound;
 	EqType rel;
 	uint rhsvar;
 };

@@ -9,9 +9,9 @@ namespace MiniSatPP {
 #define length(a) ( sizeof ( a ) / sizeof ( *a ) )
 
 struct sData{
-       unsigned int lastRelevent; 
+       long unsigned int lastRelevent;
        unsigned long cost;  
-       unsigned int carryIns;	
+       long unsigned int carryIns;
        unsigned int baseMul;
 };
    

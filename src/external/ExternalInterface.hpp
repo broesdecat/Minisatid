@@ -23,9 +23,9 @@
 namespace MinisatID {
 class Translator;
 
-class WLSImpl;
-class ExternalPCImpl;
-class WSOLSImpl;
+class WrapperPimpl;
+class PCWrapperPimpl;
+class SOWrapperPimpl;
 
 class Monitor;
 
@@ -51,12 +51,12 @@ public:
 protected:
 	WrappedLogicSolver			();
 
-	virtual WLSImpl* getImpl	() const = 0;
+	virtual WrapperPimpl* getImpl	() const = 0;
 };
 
 class WrappedPCSolver: public MinisatID::WrappedLogicSolver{
 private:
-	ExternalPCImpl* impl;
+	PCWrapperPimpl* impl;
 
 public:
 	WrappedPCSolver	(const SolverOption& modes);
@@ -66,14 +66,14 @@ public:
 	bool	add		(const T& sentence);
 
 protected:
-	WLSImpl* getImpl() const;
-	ExternalPCImpl* getPCImpl() const;
+	WrapperPimpl* getImpl() const;
+	PCWrapperPimpl* getPCImpl() const;
 };
 
 //Second order logic solver
 class WrappedSOSolver: public MinisatID::WrappedLogicSolver{
 private:
-	WSOLSImpl* impl;
+	SOWrapperPimpl* impl;
 
 public:
 	WrappedSOSolver	(const SolverOption& modes);
@@ -83,8 +83,8 @@ public:
 	bool	add		(int modid, const T& sentence);
 
 protected:
-	WLSImpl* getImpl		() const;
-	WSOLSImpl* getSOImpl	() const;
+	WrapperPimpl* getImpl		() const;
+	SOWrapperPimpl* getSOImpl	() const;
 };
 
 }

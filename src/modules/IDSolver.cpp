@@ -15,6 +15,9 @@
 
 #include "utils/IntTypes.h"
 
+// FIXME an unwellfounded model does NOT mean that the definition is not wellfounded
+// TODO only add one loopform at a time (save all lits, check next time first whether all are false, otherwise choose one more)
+
 using namespace std;
 using namespace MinisatID;
 
@@ -867,7 +870,7 @@ void IDSolver::newDecisionLevel() {
 void IDSolver::findCycleSources() {
 	clearCycleSources();
 
-	if (!backtracked && getPCSolver().modes().defn_strategy == always) {
+	if (!backtracked || getPCSolver().modes().defn_strategy == always) {
 		const vec<Lit>& trail = getPCSolver().getTrail();
 		int recentindex = getPCSolver().getStartLastLevel();
 		for (int i = recentindex; i < trail.size(); ++i) {
@@ -891,7 +894,7 @@ void IDSolver::findCycleSources() {
 				}
 			}
 		}
-	} else {
+	} else { //Only if not always and backtracked
 		// NOTE: with a clever trail system, we could even after conflicts avoid having to look at all rules.
 		backtracked = false;
 		for (vector<Var>::const_iterator i = defdVars.begin(); i < defdVars.end(); ++i) {

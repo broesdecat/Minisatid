@@ -15,7 +15,9 @@
 #include "modules/aggsolver/AggUtils.hpp"
 #include "modules/aggsolver/AggTransform.hpp"
 
-#ifndef __GXX_EXPERIMENTAL_CXX0X__
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+#include <memory>
+#else
 #include <tr1/memory>
 #endif
 
@@ -292,7 +294,7 @@ public:
 
 	AggSolver *		getSolver		()			const			{ return aggsolver; }
 	const vwl&		getWL			()			const 			{ return wl; }
-	void			setWL			(const vwl& wl2)			{ wl=wl2; stable_sort(wl.begin(), wl.end(), compareWLByWeights);}
+	void			setWL			(const vwl& wl2)			{ wl=wl2; stable_sort(wl.begin(), wl.end(), compareByWeights<WL>);}
 
 	const std::vector<Agg*>& getAgg		()	const					{ return aggregates; }
 	std::vector<Agg*>& getAggNonConst	()	 						{ return aggregates; }

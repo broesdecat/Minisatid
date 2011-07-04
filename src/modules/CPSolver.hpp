@@ -72,10 +72,7 @@ namespace MinisatID {
 		bool 	add		(const InnerIntVarRange& form);
 		bool 	add		(const InnerCPBinaryRel& form);
 		bool 	add		(const InnerCPBinaryRelVar& form);
-		bool 	add		(const InnerCPSum& form);
 		bool 	add		(const InnerCPSumWeighted& form);
-		bool 	add		(const InnerCPSumWithVar& form);
-		bool 	add		(const InnerCPSumWeightedWithVar& form);
 		bool 	add		(const InnerCPCount& form);
 		bool 	add		(const InnerCPAllDiff& form);
 
