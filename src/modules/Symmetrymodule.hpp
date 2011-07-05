@@ -89,7 +89,7 @@ public:
 					if(!forbiddenRows.count(i)){
 						Lit symLit = mkLit(symVars[i][column],!sign(l));
 						if(solver->value(symLit)==l_Undef){
-							solver->uncheckedEnqueue(symLit);
+							solver->setTrue(symLit, NULL);
 						}else{
 							if(sign(l)){
 								assert(solver->value(symLit)==l_True);
@@ -103,9 +103,9 @@ public:
 		}
 	}
 
-	bool isPropagated(const Lit& conflict){
+	bool isPropagated(const Lit& conflict) const{
 		bool result = false;
-		for(std::set<unsigned int>::iterator sui_it=forbiddenColumns.begin(); !result && sui_it!=forbiddenColumns.end(); sui_it++){
+		for(std::set<unsigned int>::const_iterator sui_it=forbiddenColumns.begin(); !result && sui_it!=forbiddenColumns.end(); sui_it++){
 			result=columns[*sui_it].count(var(conflict));
 		}
 		return result;
@@ -119,12 +119,11 @@ private:
 	std::vector<std::vector<std::vector<Lit> > > symmgroups;
 
 	std::vector<SymVars*> symClasses;
-	bool propagatedBySymClasses;
 
 	bool parsing;
 
 public:
-	SymmetryPropagator(Solver s) : solver(s), propagatedBySymClasses(false), parsing(true){}
+	SymmetryPropagator(Solver s) : solver(s), parsing(true){}
 	virtual ~SymmetryPropagator() {
 		deleteList<SymVars>(symClasses);
 	}
@@ -137,27 +136,28 @@ public:
 	}
 
 	bool analyze(const Lit& p){
+		bool propagatedBySymClasses = false;
         for(unsigned int i=0; !propagatedBySymClasses && i<symClasses.size(); i++){
         	propagatedBySymClasses = symClasses[i]->isPropagated(p);
         }
         return propagatedBySymClasses;
 	}
 
-	void finishParsing(bool& present, bool& unsat) {
-	    propagatedBySymClasses = false;
+	void finishParsing() {
 	    for(unsigned int i=0; i<symmgroups.size(); i++){
 	    	symClasses.push_back(new SymVars(symmgroups[i]));
 	    }
 	}
-	virtual rClause propagate(const Lit& l) {
+
+	void propagate(const Lit& l) {
 	   	for(std::vector<SymVars*>::iterator vs_it=symClasses.begin(); vs_it!=symClasses.end(); vs_it++){
-			(*vs_it)->propagate(l,solver.getCurrentDecisionLevel());
+			(*vs_it)->propagate(l,solver->getCurrentDecisionLevel());
 		}
 	}
-	//TODO ORDER OF CALLS (symmsolver probably first!)
-	virtual void backtrackDecisionLevels(int level, const Lit& decision) {
+
+	void backtrackDecisionLevels(int level, const Lit& decision) {
         for(std::vector<SymVars*>::iterator vs_it=symClasses.begin(); vs_it!=symClasses.end(); ++vs_it){
-        	(*vs_it)->backtrack(level, decision, this);
+        	(*vs_it)->backtrack(level, decision, solver);
 		}
 	}
 };

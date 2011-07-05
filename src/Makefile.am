@@ -45,6 +45,7 @@ libminisatid_2_0_la_SOURCES = \
 		modules/aggsolver/FullyWatched.hpp 	modules/aggsolver/FullyWatched.cpp\
 		modules/aggsolver/PartiallyWatched.hpp modules/aggsolver/GenPartiallyWatched.cpp\
 		modules/aggsolver/AggProp.hpp 		modules/aggsolver/AggProp.cpp\
+		modules/Symmetrymodule.hpp\
 		theorysolvers/LogicSolver.hpp		theorysolvers/LogicSolver.cpp\
 		theorysolvers/PCSolver.hpp 			theorysolvers/PCSolver.cpp\
 		theorysolvers/SOSolver.hpp 			theorysolvers/SOSolver.cpp\

@@ -87,6 +87,7 @@ PCSolver::~PCSolver() {
 	deleteList<DPLLTSolver>(solvers);
 	delete satsolver;
 	delete logger;
+	delete symmsolver;
 	delete ecnfprinter;
 }
 
@@ -102,7 +103,6 @@ bool PCSolver::hasAggSolver() const { return aggsolver!=NULL; }
 bool PCSolver::hasModSolver() const { return modsolver!=NULL; }
 
 bool PCSolver::hasPresentIDSolver(defID id) const { return hasIDSolver(id) && idsolvers.at(id)->present; }
-bool PCSolver::hasPresentSymmSolver() const { return hasSymmSolver() && symmsolver!=NULL; }
 bool PCSolver::hasPresentAggSolver() const { return hasAggSolver() && aggsolver->present; }
 bool PCSolver::hasPresentModSolver() const { return hasModSolver() && modsolver->present; }
 
@@ -118,9 +118,7 @@ void PCSolver::addIDSolver(defID id){
 
 void PCSolver::addSymmSolver(){
 	assert(isParsing());
-	SymmetryPropagator* tempagg = new SymmetryPropagator(this);
-	symmsolver = new DPLLTSolver(tempagg, true);
-	solvers.insert(solvers.begin(), symmsolver);
+	symmsolver = new SymmetryPropagator<PCSolver*>(this);
 }
 
 void PCSolver::addAggSolver(){
@@ -136,8 +134,8 @@ IDSolver* PCSolver::getIDSolver(defID id) const {
 	assert(hasPresentIDSolver(id));
 	return dynamic_cast<IDSolver*>(idsolvers.at(id)->get());
 }
-SymmetryPropagator* PCSolver::getSymmSolver() const {
-	assert(hasPresentSymmSolver());
+SymmetryPropagator<PCSolver*>* PCSolver::getSymmSolver() const {
+	assert(hasSymmSolver());
 	return symmsolver;
 }
 AggSolver* PCSolver::getAggSolver() const {
@@ -502,6 +500,9 @@ bool PCSolver::add(const InnerCPAllDiff& obj){
 	return addCP(obj);
 }
 
+bool PCSolver::symmetryPropagationOnAnalyze(const Lit& p){
+	return getSymmSolver()->analyze(p);
+}
 
 /*
  * Returns "false" if UNSAT was already found, otherwise "true"
@@ -513,6 +514,8 @@ void PCSolver::finishParsing(bool& unsat) {
 	assert(isParsing());
 	state = THEORY_INITIALIZING;
 	unsat = false;
+
+	getSymmSolver()->finishParsing();
 
 	propagations.resize(nVars(), NULL); //Lazy init
 
@@ -662,11 +665,15 @@ void PCSolver::newDecisionLevel() {
 	}
 }
 
-void PCSolver::backtrackDecisionLevel(int levels, int untillevel) {
+void PCSolver::backtrackDecisionLevel(int levels, int untillevel, const Lit& earliestdecision) {
 	if(isBeingMonitored()){
 		InnerBacktrack backtrack;
 		backtrack.untillevel = untillevel;
 		notifyMonitor(backtrack);
+	}
+
+	if(hasSymmSolver()){
+		getSymmSolver()->backtrackDecisionLevels(untillevel, earliestdecision);
 	}
 
 	for(solverlist::const_iterator i=getSolvers().begin(); i<getSolvers().end(); ++i){
@@ -679,7 +686,7 @@ void PCSolver::backtrackDecisionLevel(int levels, int untillevel) {
 /**
  * Returns not-owning pointer
  */
-rClause PCSolver::propagate(Lit l) {
+rClause PCSolver::propagate(const Lit& l) {
 	if(isBeingMonitored()){
 		bool print = false;
 		if (!isInitialized()) {
@@ -704,6 +711,11 @@ rClause PCSolver::propagate(Lit l) {
 	}
 
 	rClause confl = nullPtrClause;
+
+	if(hasSymmSolver()){
+		getSymmSolver()->propagate(l);
+	}
+
 	for(solverlist::const_iterator i=getSolvers().begin(); confl==nullPtrClause && i<getSolvers().end(); ++i){
 		if((*i)->present){
 			confl = (*i)->get()->propagate(l);
