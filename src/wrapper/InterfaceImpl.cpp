@@ -122,7 +122,6 @@ void WrapperPimpl::notifySmallestTseitin(const Atom& tseitin){
 	while(true){
 		Var var = 0;
 		if(getRemapper()->hasVar(posstseitin, var)){
-			cerr <<"Non decision var " <<getPrintableVar(var) <<"\n";
 			getSolver()->notifyNonDecisionVar(var);
 		}else{
 			break;

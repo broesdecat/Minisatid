@@ -93,7 +93,6 @@ template bool WrappedPCSolver::add(const Aggregate& sentence);
 template bool WrappedPCSolver::add(const MinimizeSubset& sentence);
 template bool WrappedPCSolver::add(const MinimizeOrderedList& sentence);
 template bool WrappedPCSolver::add(const MinimizeAgg& sentence);
-#ifdef CPSUPPORT
 template bool WrappedPCSolver::add(const CPIntVarRange& sentence);
 template bool WrappedPCSolver::add(const CPIntVarEnum& sentence);
 template bool WrappedPCSolver::add(const CPBinaryRel& sentence);
@@ -101,7 +100,6 @@ template bool WrappedPCSolver::add(const CPBinaryRelVar& sentence);
 template bool WrappedPCSolver::add(const CPSumWeighted& sentence);
 template bool WrappedPCSolver::add(const CPCount& sentence);
 template bool WrappedPCSolver::add(const CPAllDiff& sentence);
-#endif
 template bool WrappedPCSolver::add(const ForcedChoices& sentence);
 template bool WrappedPCSolver::add(const SymmetryLiterals& sentence);
 

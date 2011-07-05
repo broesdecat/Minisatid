@@ -80,7 +80,7 @@ Translator* trans = NULL;
 
 Solution* createSolution(){
 	ModelExpandOptions options;
-	options.printmodels	= PRINT_ALL;
+	options.printmodels	= PRINT_BEST;
 	options.savemodels = SAVE_NONE;
 	options.search = MODELEXPAND;
 	options.nbmodelstofind = 1;
