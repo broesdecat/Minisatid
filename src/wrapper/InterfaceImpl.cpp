@@ -152,6 +152,13 @@ void WrapperPimpl::checkLits(const vector<vector<Literal> >& lits, vec<vec<Lit> 
 	}
 }
 
+void WrapperPimpl::checkLits(const vector<vector<Literal> >& lits, vector<vector<Lit> >& ll){
+	for(vector<vector<Literal> >::const_iterator i=lits.begin(); i<lits.end(); ++i){
+		ll.push_back(vector<Lit>());
+		checkLits(*i, ll.back());
+	}
+}
+
 void WrapperPimpl::checkLits(const vector<Literal>& lits, vector<Lit>& ll){
 	ll.reserve(lits.size());
 	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); ++i){

@@ -15,6 +15,7 @@
 #include "satsolver/SATSolver.hpp"
 #include "modules/IDSolver.hpp"
 #include "modules/AggSolver.hpp"
+#include "modules/Symmetrymodule.hpp"
 #include "modules/ModSolver.hpp"
 
 #ifdef CPSUPPORT
@@ -96,10 +97,12 @@ void PCSolver::setModSolver(ModSolver* m) {
 }
 
 bool PCSolver::hasIDSolver(defID id) const { return idsolvers.find(id)!=idsolvers.end(); }
+bool PCSolver::hasSymmSolver() const { return symmsolver!=NULL; }
 bool PCSolver::hasAggSolver() const { return aggsolver!=NULL; }
 bool PCSolver::hasModSolver() const { return modsolver!=NULL; }
 
 bool PCSolver::hasPresentIDSolver(defID id) const { return hasIDSolver(id) && idsolvers.at(id)->present; }
+bool PCSolver::hasPresentSymmSolver() const { return hasSymmSolver() && symmsolver!=NULL; }
 bool PCSolver::hasPresentAggSolver() const { return hasAggSolver() && aggsolver->present; }
 bool PCSolver::hasPresentModSolver() const { return hasModSolver() && modsolver->present; }
 
@@ -111,6 +114,13 @@ void PCSolver::addIDSolver(defID id){
 	DPLLTSolver* dplltsolver = new DPLLTSolver(idsolver, true);
 	idsolvers.insert(pair<defID, DPLLTSolver*>(id, dplltsolver));
 	solvers.push_back(dplltsolver);
+}
+
+void PCSolver::addSymmSolver(){
+	assert(isParsing());
+	SymmetryPropagator* tempagg = new SymmetryPropagator(this);
+	symmsolver = new DPLLTSolver(tempagg, true);
+	solvers.insert(solvers.begin(), symmsolver);
 }
 
 void PCSolver::addAggSolver(){
@@ -125,6 +135,10 @@ void PCSolver::addAggSolver(){
 IDSolver* PCSolver::getIDSolver(defID id) const {
 	assert(hasPresentIDSolver(id));
 	return dynamic_cast<IDSolver*>(idsolvers.at(id)->get());
+}
+SymmetryPropagator* PCSolver::getSymmSolver() const {
+	assert(hasPresentSymmSolver());
+	return symmsolver;
 }
 AggSolver* PCSolver::getAggSolver() const {
 	assert(hasPresentAggSolver());
@@ -410,7 +424,10 @@ bool PCSolver::add(const InnerForcedChoices& choices){
 }
 
 bool PCSolver::add(const InnerSymmetryLiterals& symms){
-	getSolver()->addSymmetryGroup(symms.literalgroups);
+	if(!hasSymmSolver()){
+		addSymmSolver();
+	}
+	getSymmSolver()->add(symms.literalgroups);
 	if(hasECNFPrinter()){
 		getECNFPrinter().notifyadded(symms);
 	}
@@ -1110,7 +1127,7 @@ void PCSolver::printEnqueued(const Lit& p) const{
 	if(hasModSolver()){
 		clog <<" in modal solver " <<getModID();
 	}
-	reportf("\n");
+	clog <<"\n";
 }
 
 void PCSolver::printChoiceMade(int level, Lit l) const {

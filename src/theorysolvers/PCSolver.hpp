@@ -24,6 +24,7 @@ class ECNFPrinter;
 class SolverOption;
 
 class IDSolver;
+class SymmetryPropagator;
 class AggSolver;
 class ModSolver;
 
@@ -111,6 +112,11 @@ private:
 	IDSolver* getIDSolver(defID id) const;
 	bool hasPresentIDSolver(defID id) const;
 
+	SymmetryPropagator* symmsolver;
+	bool hasSymmSolver() const;
+	void addSymmSolver();
+	bool hasPresentSymmSolver() const;
+
 	DPLLTSolver* aggsolver;
 	bool hasAggSolver() const;
 	void addAggSolver();
@@ -144,6 +150,7 @@ public:
 
 	SATSolver*	getSATSolver() const { return satsolver; }
 	AggSolver* getAggSolver() const;
+	SymmetryPropagator* getSymmSolver() const;
 
 	// INIT
 	void 	setModSolver	(ModSolver* m);
