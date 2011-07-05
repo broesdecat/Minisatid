@@ -18,6 +18,7 @@ AC_PROG_YACC
 AC_LANG([C++])
 
 #found on http://realmike.org/blog/2010/07/18/gnu-automake-by-example/#doxygen
+DX_DOXYGEN_FEATURE(ON)
 DX_HTML_FEATURE(ON)
 DX_CHM_FEATURE(OFF)
 DX_CHI_FEATURE(OFF)
