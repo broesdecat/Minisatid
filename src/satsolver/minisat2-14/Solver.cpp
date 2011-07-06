@@ -369,7 +369,7 @@ Lit Solver::pickBranchLit(int polarity_mode, double random_var_freq)
 bool Solver::isAlreadyUsedInAnalyze(const Lit& lit) const{
 	return seen[var(lit)]==1;
 }
-void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
+bool Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 {
     int pathC = 0;
     Lit p     = lit_Undef;
@@ -471,11 +471,15 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
         /*AE*/
 
 		// Select next clause to look at:
-		while (!seen[var(trail[index--])]);
-		p     = trail[index+1];
-		confl = reason[var(p)];
+        while (!seen[var(trail[index--])]);
+        p     = trail[index+1];
+        confl = reason(var(p));
 
-        /*AB*/
+		/*AB*/
+        if(solver.symmetryPropagationOnAnalyze(p)){
+        	return true;
+        }
+
         if(verbosity>4){
 			reportf("Getting explanation for ");
 			for(std::vector<Lit>::iterator i=explain.begin(); i<explain.end(); i++){
@@ -833,7 +837,14 @@ lbool Solver::search(int nof_conflicts, int nof_learnts, /*AB*/bool nosearch/*AB
             first = false;
 
             learnt_clause.clear();
-            analyze(confl, learnt_clause, backtrack_level);
+
+            bool symmetrybacktrack = analyze(confl, learnt_clause, backtrack_level);
+
+            if(symmetrybacktrack){
+				cancelUntil(decisionLevel()-1);
+				continue;
+            }
+
             cancelUntil(backtrack_level);
             assert(value(learnt_clause[0]) == l_Undef);
 
