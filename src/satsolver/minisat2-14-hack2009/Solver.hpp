@@ -61,7 +61,6 @@ private:
 	vec<Lit> 	forcedchoices;
 	int		 	choicestaken;
 	bool 		useheur;
-	/*A*/		vec<vec<vec<Lit> > > symmgroups;
 /*AE*/
 
 public:
@@ -93,7 +92,6 @@ public:
 	uint64_t    nbVars				() const;		// The current number of variables.
 	void		printStatistics		() const ;
 	void		addForcedChoices	(const vec<Lit>& fc) { fc.copyTo(forcedchoices);  }
-	void		addSymmetryGroup	(const vec<vec<Lit> >& symms);
 	void		disableHeur			() { reportf("Not supported by solver!\n"); exit(-1); }
 	bool     	isDecisionVar(Var v) const { return decision_var[v]; }
 
