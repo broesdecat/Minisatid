@@ -117,6 +117,7 @@ protected:
 	void 	checkLits		(const std::vector<Literal>& lits, std::vector<Lit>& ll);
 	void 	checkAtoms		(const std::vector<Atom>& atoms, std::vector<Var>& ll);
 	void 	checkLits		(const std::vector<std::vector<Literal> >& lits, vec<vec<Lit> >& ll);
+	void 	checkLits		(const std::vector<std::vector<Literal> >& lits, std::vector<std::vector<Lit> >& ll);
 
 	Remapper*		getRemapper		()	const { return remapper; }
 

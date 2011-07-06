@@ -24,6 +24,7 @@ class ECNFPrinter;
 class SolverOption;
 
 class IDSolver;
+template<class Solver> class SymmetryPropagator;
 class AggSolver;
 class ModSolver;
 
@@ -111,6 +112,11 @@ private:
 	IDSolver* getIDSolver(defID id) const;
 	bool hasPresentIDSolver(defID id) const;
 
+	SymmetryPropagator<PCSolver*>* symmsolver;
+	SymmetryPropagator<PCSolver*>* getSymmSolver() const;
+	bool hasSymmSolver() const;
+	void addSymmSolver();
+
 	DPLLTSolver* aggsolver;
 	bool hasAggSolver() const;
 	void addAggSolver();
@@ -144,6 +150,8 @@ public:
 
 	SATSolver*	getSATSolver() const { return satsolver; }
 	AggSolver* getAggSolver() const;
+
+	bool symmetryPropagationOnAnalyze(const Lit& p);
 
 	// INIT
 	void 	setModSolver	(ModSolver* m);
@@ -206,8 +214,8 @@ public:
 
 	void		varBumpActivity	(Var v);
 
-	void 		backtrackDecisionLevel(int levels, int untillevel);
-	rClause 	propagate		(Lit l);
+	void 		backtrackDecisionLevel(int levels, int untillevel, const Lit& earliestdecision);
+	rClause 	propagate		(const Lit& l);
 	rClause 	propagateAtEndOfQueue();
 
 	// MOD SOLVER support

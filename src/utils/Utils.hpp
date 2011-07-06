@@ -120,7 +120,7 @@ struct InnerForcedChoices{
 };
 
 struct InnerSymmetryLiterals{
-	vec<vec<Lit> > literalgroups;
+	std::vector<std::vector<Lit> > literalgroups;
 };
 
 struct InnerRigidAtoms{

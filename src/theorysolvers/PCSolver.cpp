@@ -15,6 +15,7 @@
 #include "satsolver/SATSolver.hpp"
 #include "modules/IDSolver.hpp"
 #include "modules/AggSolver.hpp"
+#include "modules/Symmetrymodule.hpp"
 #include "modules/ModSolver.hpp"
 
 #ifdef CPSUPPORT
@@ -86,6 +87,7 @@ PCSolver::~PCSolver() {
 	deleteList<DPLLTSolver>(solvers);
 	delete satsolver;
 	delete logger;
+	delete symmsolver;
 	delete ecnfprinter;
 }
 
@@ -96,6 +98,7 @@ void PCSolver::setModSolver(ModSolver* m) {
 }
 
 bool PCSolver::hasIDSolver(defID id) const { return idsolvers.find(id)!=idsolvers.end(); }
+bool PCSolver::hasSymmSolver() const { return symmsolver!=NULL; }
 bool PCSolver::hasAggSolver() const { return aggsolver!=NULL; }
 bool PCSolver::hasModSolver() const { return modsolver!=NULL; }
 
@@ -113,6 +116,11 @@ void PCSolver::addIDSolver(defID id){
 	solvers.push_back(dplltsolver);
 }
 
+void PCSolver::addSymmSolver(){
+	assert(isParsing());
+	symmsolver = new SymmetryPropagator<PCSolver*>(this);
+}
+
 void PCSolver::addAggSolver(){
 	assert(isParsing());
 	AggSolver* tempagg = new AggSolver(this);
@@ -125,6 +133,10 @@ void PCSolver::addAggSolver(){
 IDSolver* PCSolver::getIDSolver(defID id) const {
 	assert(hasPresentIDSolver(id));
 	return dynamic_cast<IDSolver*>(idsolvers.at(id)->get());
+}
+SymmetryPropagator<PCSolver*>* PCSolver::getSymmSolver() const {
+	assert(hasSymmSolver());
+	return symmsolver;
 }
 AggSolver* PCSolver::getAggSolver() const {
 	assert(hasPresentAggSolver());
@@ -410,7 +422,10 @@ bool PCSolver::add(const InnerForcedChoices& choices){
 }
 
 bool PCSolver::add(const InnerSymmetryLiterals& symms){
-	getSolver()->addSymmetryGroup(symms.literalgroups);
+	if(!hasSymmSolver()){
+		addSymmSolver();
+	}
+	getSymmSolver()->add(symms.literalgroups);
 	if(hasECNFPrinter()){
 		getECNFPrinter().notifyadded(symms);
 	}
@@ -485,6 +500,9 @@ bool PCSolver::add(const InnerCPAllDiff& obj){
 	return addCP(obj);
 }
 
+bool PCSolver::symmetryPropagationOnAnalyze(const Lit& p){
+	return getSymmSolver()->analyze(p);
+}
 
 /*
  * Returns "false" if UNSAT was already found, otherwise "true"
@@ -496,6 +514,8 @@ void PCSolver::finishParsing(bool& unsat) {
 	assert(isParsing());
 	state = THEORY_INITIALIZING;
 	unsat = false;
+
+	getSymmSolver()->finishParsing();
 
 	propagations.resize(nVars(), NULL); //Lazy init
 
@@ -645,11 +665,15 @@ void PCSolver::newDecisionLevel() {
 	}
 }
 
-void PCSolver::backtrackDecisionLevel(int levels, int untillevel) {
+void PCSolver::backtrackDecisionLevel(int levels, int untillevel, const Lit& earliestdecision) {
 	if(isBeingMonitored()){
 		InnerBacktrack backtrack;
 		backtrack.untillevel = untillevel;
 		notifyMonitor(backtrack);
+	}
+
+	if(hasSymmSolver()){
+		getSymmSolver()->backtrackDecisionLevels(untillevel, earliestdecision);
 	}
 
 	for(solverlist::const_iterator i=getSolvers().begin(); i<getSolvers().end(); ++i){
@@ -662,7 +686,7 @@ void PCSolver::backtrackDecisionLevel(int levels, int untillevel) {
 /**
  * Returns not-owning pointer
  */
-rClause PCSolver::propagate(Lit l) {
+rClause PCSolver::propagate(const Lit& l) {
 	if(isBeingMonitored()){
 		bool print = false;
 		if (!isInitialized()) {
@@ -687,6 +711,11 @@ rClause PCSolver::propagate(Lit l) {
 	}
 
 	rClause confl = nullPtrClause;
+
+	if(hasSymmSolver()){
+		getSymmSolver()->propagate(l);
+	}
+
 	for(solverlist::const_iterator i=getSolvers().begin(); confl==nullPtrClause && i<getSolvers().end(); ++i){
 		if((*i)->present){
 			confl = (*i)->get()->propagate(l);
@@ -1110,7 +1139,7 @@ void PCSolver::printEnqueued(const Lit& p) const{
 	if(hasModSolver()){
 		clog <<" in modal solver " <<getModID();
 	}
-	reportf("\n");
+	clog <<"\n";
 }
 
 void PCSolver::printChoiceMade(int level, Lit l) const {
