@@ -41,8 +41,8 @@ public:
 	}
 
 	void print(){
-		for(int i=0; i<symVars.size(); i++){
-			for(int j=0; j<symVars[i].size() && !forbiddenRows.count(i); j++){
+		for(unsigned int i=0; i<symVars.size(); i++){
+			for(unsigned int j=0; j<symVars[i].size() && !forbiddenRows.count(i); j++){
 				if(!forbiddenColumns.count(j)){
 					std::clog << symVars[i][j] << " | ";
 				}else{
@@ -85,7 +85,7 @@ public:
 			if(!forbiddenRows.count(row) && !forbiddenColumns.count(column)){
 				forbiddenColumns.insert(column);
 				columnBacktrackLevels.push_back(std::pair<int, unsigned int>(level,column));// is level juist?
-				for(int i=0; i<symVars.size(); i++){
+				for(unsigned int i=0; i<symVars.size(); i++){
 					if(!forbiddenRows.count(i)){
 						Lit symLit = mkLit(symVars[i][column],!sign(l));
 						if(solver->value(symLit)==l_Undef){
@@ -137,26 +137,26 @@ public:
 
 	bool analyze(const Lit& p){
 		bool propagatedBySymClasses = false;
-        for(unsigned int i=0; !propagatedBySymClasses && i<symClasses.size(); i++){
-        	propagatedBySymClasses = symClasses[i]->isPropagated(p);
+        for(auto i=symClasses.begin(); !propagatedBySymClasses && i<symClasses.end(); i++){
+        	propagatedBySymClasses = (*i)->isPropagated(p);
         }
         return propagatedBySymClasses;
 	}
 
 	void finishParsing() {
-	    for(unsigned int i=0; i<symmgroups.size(); i++){
-	    	symClasses.push_back(new SymVars(symmgroups[i]));
+	    for(auto i=symmgroups.begin(); i<symmgroups.end(); ++i){
+	    	symClasses.push_back(new SymVars(*i));
 	    }
 	}
 
 	void propagate(const Lit& l) {
-	   	for(std::vector<SymVars*>::iterator vs_it=symClasses.begin(); vs_it!=symClasses.end(); vs_it++){
+	   	for(auto vs_it=symClasses.begin(); vs_it!=symClasses.end(); vs_it++){
 			(*vs_it)->propagate(l,solver->getCurrentDecisionLevel());
 		}
 	}
 
 	void backtrackDecisionLevels(int level, const Lit& decision) {
-        for(std::vector<SymVars*>::iterator vs_it=symClasses.begin(); vs_it!=symClasses.end(); ++vs_it){
+        for(auto vs_it=symClasses.begin(); vs_it!=symClasses.end(); ++vs_it){
         	(*vs_it)->backtrack(level, decision, solver);
 		}
 	}
