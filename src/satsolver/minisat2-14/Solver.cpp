@@ -554,6 +554,10 @@ bool Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 
 
     for (int j = 0; j < analyze_toclear.size(); j++) seen[var(analyze_toclear[j])] = 0;    // ('seen[]' is now cleared)
+
+    /*AB*/
+    return false;
+    /*AE*/
 }
 
 
