@@ -125,16 +125,6 @@ Var Solver::newVar(bool sign, bool dvar)
 
 /*AB*/
 
-void Solver::addSymmetryGroup(const vec<vec<Lit> >& symms){
-	symmgroups.push();
-	for(int i=0; i<symms.size(); i++){
-		symmgroups.last().push();
-		for(int j=0; j<symms[i].size(); j++){
-			symmgroups.last().last().push(symms[i][j]);
-		}
-	}
-}
-
 /**
  * This is (currently) necessary, because the intialization schema is the following:
  *
@@ -619,6 +609,10 @@ bool Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 
 
     for (int j = 0; j < analyze_toclear.size(); j++) seen[var(analyze_toclear[j])] = 0;    // ('seen[]' is now cleared)
+
+    /*AB*/
+	return false;
+	/*AE*/
 }
 
 

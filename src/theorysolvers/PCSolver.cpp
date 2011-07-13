@@ -64,7 +64,7 @@ PCSolver::PCSolver(SolverOption modes, MinisatID::WrapperPimpl& inter) :
 		nbskipped(0),
 		optim(NONE), head(-1),
 		state_savedlevel(0), state_savingclauses(false),
-		aggsolver(NULL), modsolver(NULL),cpsolver(NULL),
+		symmsolver(NULL),aggsolver(NULL), modsolver(NULL),cpsolver(NULL),
 		logger(new PCLogger()), ecnfprinter(NULL),
 		hasMonitor(false){
 	satsolver = createSolver(*this);
@@ -501,6 +501,9 @@ bool PCSolver::add(const InnerCPAllDiff& obj){
 }
 
 bool PCSolver::symmetryPropagationOnAnalyze(const Lit& p){
+	if(!hasSymmSolver()){
+		return false;
+	}
 	return getSymmSolver()->analyze(p);
 }
 
@@ -515,7 +518,9 @@ void PCSolver::finishParsing(bool& unsat) {
 	state = THEORY_INITIALIZING;
 	unsat = false;
 
-	getSymmSolver()->finishParsing();
+	if(hasSymmSolver()){
+		getSymmSolver()->finishParsing();
+	}
 
 	propagations.resize(nVars(), NULL); //Lazy init
 
