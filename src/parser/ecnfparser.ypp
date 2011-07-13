@@ -77,7 +77,7 @@ wfz* 	fzrewriter = NULL;
 template<class T>
 void CR(int modid, const T& formula);
 template<class T>
-void CR(const T& formula, bool cp=false);
+void CR(const T& formula);
 template<class T>
 void CRCP(const T& formula);
 
@@ -922,7 +922,7 @@ Weight cWeight(string* s){
  */
 template<class T>
 void CRCP(const T& formula){
-	CR(formula, true);
+	CR(formula);
 }
 template<class T>
 void CR(int modid, const T& formula){
@@ -933,13 +933,7 @@ void CR(int modid, const T& formula){
 	}		
 }
 template<class T>
-void CR(const T& formula, bool cp){
-	if(cp){
-#ifndef CPSUPPORT
-	throw idpexception(getNoCPSupportString());
-#endif
-	}
-
+void CR(const T& formula){
 	bool result = true;
 	if(modes.transformat==TRANS_FZ){
 		fzrewriter->add(formula);
