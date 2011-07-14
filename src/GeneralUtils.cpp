@@ -99,10 +99,13 @@ SolverOption::SolverOption():
 		polarity(getDefaultPolarity()),
 		bumpaggonnotify(true),
 		bumpidonstart(false),
-		subsetminimizeexplanation(false),
+
 		asapaggprop(false),
 		ufsvarintrothreshold(500),
-		tseitindecisions(true){
+		tseitindecisions(true),
+		subsetminimizeexplanation(false),
+		currentlevelfirstinexplanation(true),
+		innogoodfirstinexplanation(true){
 	stringstream str;
 	str <<DATADIR <<"/P1.TXT";
 	primesfile = str.str();

@@ -246,9 +246,11 @@ namespace MinisatID {
 		double 			rand_var_freq, var_decay;
 		POLARITY 		polarity;
 		bool 			bumpaggonnotify, bumpidonstart;
-		bool			subsetminimizeexplanation, asapaggprop;
+		bool			asapaggprop;
 		long 			ufsvarintrothreshold;
 		bool			tseitindecisions;
+		bool			subsetminimizeexplanation, currentlevelfirstinexplanation, innogoodfirstinexplanation;
+
 
 		SolverOption();
 
