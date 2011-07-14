@@ -346,41 +346,80 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 		stop = isSatisfied(agg, min, max);
 	}
 
+	// FIXME cleanup and add to other explanations
 	PCSolver& pcsolver = getSolver()->getPCSolver();
+	const int declevel = pcsolver.getCurrentDecisionLevel();
+	bool foundpropagatedlit = false;
+	if(pcsolver.modes().currentlevelfirstinexplanation && getTrail().back()->level==declevel){
+		for (vprop::const_iterator i = getTrail().back()->props.begin(); !stop && !foundpropagatedlit && i < getTrail().back()->props.end(); ++i) {
+			const Lit& lit = (*i).getLit();
+			assert(pcsolver.getLevel(var(lit))==declevel);
+			if(lit==ar.getPropLit()){ //NOTE: We only see a subset of the possibly relevant literals, so we are not guaranteed to find the full explanation before seeing the propagated literal, so we have to redo the loop later on.
+				foundpropagatedlit = true;
+				break;
+			}
+			if((*i).getType()==HEAD){
+				continue;
+			}
+
+			checkAddToExplan(stop, min, max, *i, agg, caseone, reasons);
+		}
+	}
+
 	//IMPORTANT: first go over all literals and check which are already in the currently generated partial nogood (only if generating explanation on conflict)
-	if(getSolver()->modes().aggclausesaving==2){
+	if(getSolver()->modes().aggclausesaving==2 && pcsolver.modes().innogoodfirstinexplanation){
 		bool foundpropagatedlit = false;
 		for(vector<FWTrail*>::const_iterator a=getTrail().begin(); !stop && !foundpropagatedlit && a<getTrail().end(); ++a){
 			for (vprop::const_iterator i = (*a)->props.begin(); !stop && !foundpropagatedlit && i < (*a)->props.end(); ++i) {
-				if((*i).getLit()==ar.getPropLit()){ //important! As we dont see all literals in this loop, we are not guaranteed to find a full explanation before seeing the literal itself (which is why we redo the loop later on)
+				const Lit& lit = (*i).getLit();
+				if(lit==ar.getPropLit()){ //NOTE: We only see a subset of the possibly relevant literals, so we are not guaranteed to find the full explanation before seeing the propagated literal, so we have to redo the loop later on.
 					foundpropagatedlit = true;
 					break;
 				}
-				if((*i).getType()==HEAD || var((*i).getLit())==var(ar.getPropLit())){
-					continue;
-				}
-				if(!pcsolver.isAlreadyUsedInAnalyze((*i).getLit()) && pcsolver.getLevel(var((*i).getLit()))!=pcsolver.getCurrentDecisionLevel()){
+				if((*i).getType()==HEAD){
 					continue;
 				}
 
-				checkAddToExplan(stop, min, max, *i, agg, caseone, reasons);
+				bool add = true;
+				if(pcsolver.modes().currentlevelfirstinexplanation && pcsolver.getLevel(var(lit))==declevel){
+					add = false;
+				}
+				if(!pcsolver.isAlreadyUsedInAnalyze(lit)){
+					add = false;
+				}
+
+				if(add){
+					checkAddToExplan(stop, min, max, *i, agg, caseone, reasons);
+				}
 			}
 		}
 	}
 
 	//Then go over the trail earliest to latest to add more to the explanation
-	for(vector<FWTrail*>::const_iterator a=getTrail().begin(); !stop && a<getTrail().end(); ++a){
-		for (vprop::const_iterator i = (*a)->props.begin(); !stop && i < (*a)->props.end(); ++i) {
-			if((*i).getType()==HEAD || var((*i).getLit())==var(ar.getPropLit())){
+	foundpropagatedlit = false;
+	for(vector<FWTrail*>::const_iterator a=getTrail().begin(); !stop && !foundpropagatedlit && a<getTrail().end(); ++a){
+		for (vprop::const_iterator i = (*a)->props.begin(); !stop && !foundpropagatedlit && i < (*a)->props.end(); ++i) {
+			const Lit& lit = (*i).getLit();
+			if(lit==ar.getPropLit()){ //NOTE: We only see a subset of the possibly relevant literals, so we are not guaranteed to find the full explanation before seeing the propagated literal, so we have to redo the loop later on.
+				foundpropagatedlit = true;
+				break;
+			}
+			if((*i).getType()==HEAD){
 				continue;
 			}
-			if(getSolver()->modes().aggclausesaving==2){
-				if(pcsolver.isAlreadyUsedInAnalyze((*i).getLit()) || pcsolver.getLevel(var((*i).getLit()))==pcsolver.getCurrentDecisionLevel()){
-					continue;
-				}
+			bool add = true;
+			if(pcsolver.modes().currentlevelfirstinexplanation && pcsolver.getLevel(var(lit))==declevel){
+				add = false;
+			}
+			if(getSolver()->modes().aggclausesaving==2
+					&& pcsolver.modes().innogoodfirstinexplanation
+					&& pcsolver.isAlreadyUsedInAnalyze(lit)){
+				add = false;
 			}
 
-			checkAddToExplan(stop, min, max, *i, agg, caseone, reasons);
+			if(add){
+				checkAddToExplan(stop, min, max, *i, agg, caseone, reasons);
+			}
 		}
 	}
 

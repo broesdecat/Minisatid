@@ -162,6 +162,14 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 	subsetminimdesc.push_back(pair<string, string>("yes", "Minimize"));
 	subsetminimdesc.push_back(pair<string, string>("no", "Don't minimize"));
 
+	vector<pair<string, string> > nogoodexplandesc;
+	nogoodexplandesc.push_back(pair<string, string>("yes", "Add first"));
+	nogoodexplandesc.push_back(pair<string, string>("no", "Don't add first"));
+
+	vector<pair<string, string> > currentlevelexplandesc;
+	currentlevelexplandesc.push_back(pair<string, string>("yes", "Add first"));
+	currentlevelexplandesc.push_back(pair<string, string>("no", "Don't add first"));
+
 	vector<pair<string, string> > asapaggpropdesc;
 	asapaggpropdesc.push_back(pair<string, string>("yes", "Early"));
 	asapaggpropdesc.push_back(pair<string, string>("no", "Late"));
@@ -243,8 +251,12 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 			modes.bumpaggonnotify, cmd,"Choose whether to bump variable activity on aggregate propagation"));
 	options.push_back(new Option<bool, string>	("","bumpid", 		yesnovals, bumpidonstartdesc,
 			modes.bumpidonstart, cmd, "Choose whether to bump variable activity on ID initialization"));
-	options.push_back(new Option<bool, string>	("","minimexplan", 	yesnovals, subsetminimdesc,
+	options.push_back(new Option<bool, string>	("","minexplan", 	yesnovals, subsetminimdesc,
 			modes.subsetminimizeexplanation, cmd, "Choose whether to minimize aggregate explanations"));
+	options.push_back(new Option<bool, string>	("","firstexplan", 	yesnovals, currentlevelexplandesc,
+			modes.currentlevelfirstinexplanation, cmd, "Choose whether to add literals in the current decision level to the explanation first"));
+	options.push_back(new Option<bool, string>	("","nogoodexplan", 	yesnovals, nogoodexplandesc,
+			modes.innogoodfirstinexplanation, cmd, "Choose whether to add literals already in the global nogood to the explanation first"));
 	options.push_back(new Option<bool, string>	("","asapaggprop", 	yesnovals, asapaggpropdesc,
 			modes.asapaggprop, cmd, "Choose whether to propagate aggregates as fast as possible"));
 	options.push_back(new Option<bool, string>	("","tseitindecision", 	yesnovals, decideontseitins,

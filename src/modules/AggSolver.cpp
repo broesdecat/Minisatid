@@ -361,7 +361,7 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 	const Lit& p = ar->getPropLit();
 
 	if(modes().bumpaggonnotify){ //seems to be better here, untested!
-		//Decreases sokoban, performance, increases fastfood
+		//Decreases sokoban and dansmee performance, increases fastfood
 		getPCSolver().varBumpActivity(var(p));
 	}
 
@@ -631,12 +631,11 @@ rClause AggSolver::getExplanation(const Lit& p) {
 	rClause c = nullPtrClause;
 	if (getPCSolver().modes().aggclausesaving < 2) {
 		assert(ar.hasClause());
-
-		c = getPCSolver().createClause(ar.getClause(), true);
 	} else {
 		ar.getAgg().getSet()->addExplanation(ar);
-		c = getPCSolver().createClause(ar.getClause(), true);
 	}
+
+	c = getPCSolver().createClause(ar.getClause(), true);
 
 	//do not add each clause to SAT-solver: real slowdown for e.g. magicseries
 
