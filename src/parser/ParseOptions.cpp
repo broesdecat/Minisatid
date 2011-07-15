@@ -131,10 +131,11 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 
 	vector<OUTPUTFORMAT> transvals;
 	vector<pair<string, string> > transdesc;
-	transvals.push_back(TRANS_FODOT); transdesc.push_back(pair<string, string>("fodot", "Translate model into FO(.) structure"));
-	transvals.push_back(TRANS_ASP); transdesc.push_back(pair<string, string>("asp", "Translate model into ASP facts"));
-	transvals.push_back(TRANS_PLAIN); transdesc.push_back(pair<string, string>("plain", "Return model in integer format"));
+	transvals.push_back(TRANS_FODOT); transdesc.push_back(pair<string, string>("fodot", "Translate model into FO(.) structure (default if input is fodot)"));
+	transvals.push_back(TRANS_ASP); transdesc.push_back(pair<string, string>("asp", "Translate model into ASP facts (default if input is asp)"));
+	transvals.push_back(TRANS_PLAIN); transdesc.push_back(pair<string, string>("plain", "Return model in sat format"));
 	transvals.push_back(TRANS_FZ); transdesc.push_back(pair<string, string>("flatzinc", "Rewrite theory into flatzinc model"));
+	transvals.push_back(TRANS_OPB); transdesc.push_back(pair<string, string>("opb", "Print out into opb output format (default if input is opb)"));
 
 	vector<pair<string, string> > checkcyclesdesc;
 	checkcyclesdesc.push_back(pair<string, string>("yes", "Check"));
@@ -297,6 +298,20 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 	}
 
 	deleteList<Opt>(options);
+
+	if(modes.transformat==TRANS_DEFAULT){
+		switch(modes.format){
+			case FORMAT_ASP:
+				modes.transformat = TRANS_ASP;
+				break;
+			case FORMAT_OPB:
+				modes.transformat = TRANS_OPB;
+				break;
+			case FORMAT_FODOT:
+				modes.transformat = TRANS_FODOT;
+				break;
+		}
+	}
 
 	if(!modes.verifyOptions()){
 		return false;

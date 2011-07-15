@@ -219,7 +219,7 @@ namespace MinisatID {
 	}; // SAT-solver polarity option
 
 	enum INPUTFORMAT 	{ FORMAT_FODOT, FORMAT_ASP, FORMAT_OPB};
-	enum OUTPUTFORMAT 	{ TRANS_FODOT, TRANS_ASP, TRANS_PLAIN, TRANS_FZ };
+	enum OUTPUTFORMAT 	{ TRANS_FODOT, TRANS_ASP, TRANS_PLAIN, TRANS_FZ, TRANS_OPB, TRANS_DEFAULT };
 
 	// Structure containing general options for the solvers
 	class SolverOption {

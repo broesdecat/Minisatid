@@ -77,7 +77,7 @@ double MinisatID::cpuTime(void) {
 
 SolverOption::SolverOption():
 		format(FORMAT_FODOT),
-		transformat(TRANS_FODOT),
+		transformat(TRANS_DEFAULT),
 		verbosity(1),
 		randomseed(91648253),
 		nbmodels(1),

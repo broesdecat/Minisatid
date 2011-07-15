@@ -49,8 +49,8 @@ namespace MinisatID{
 	}
 
 	template<class T>
-	void printUnknown(T& stream, INPUTFORMAT inputformat, OUTPUTFORMAT outputformat){
-		if(inputformat==FORMAT_OPB){
+	void printUnknown(T& stream, OUTPUTFORMAT outputformat){
+		if(outputformat==TRANS_OPB){
 			stream <<"UNKNOWN\n";
 		}else{
 			stream <<"UNKNOWN\n";
@@ -71,9 +71,9 @@ namespace MinisatID{
 	std::string getMinimalVarNumbering();
 
 	template<class T>
-	void printSatisfiable(T& stream, INPUTFORMAT inputformat, OUTPUTFORMAT outputformat, int verbosity = 1000){
+	void printSatisfiable(T& stream, OUTPUTFORMAT outputformat, int verbosity = 1000){
 		if(verbosity>=1){
-			if(inputformat==FORMAT_OPB){
+			if(outputformat==TRANS_OPB){
 				stream<<"s SATISFIABLE\n";
 			}else if(outputformat==TRANS_ASP){
 				stream <<"ANSWER SET FOUND\n";
@@ -84,9 +84,9 @@ namespace MinisatID{
 	}
 
 	template<class T>
-	void printUnSatisfiable(T& stream, INPUTFORMAT inputformat, OUTPUTFORMAT outputformat, int verbosity = 1000){
+	void printUnSatisfiable(T& stream, OUTPUTFORMAT outputformat, int verbosity = 1000){
 		if(verbosity>=1){
-			if(inputformat==FORMAT_OPB){
+			if(outputformat==TRANS_OPB){
 				stream<<"s UNSATISFIABLE\n";
 			}else if(outputformat==TRANS_ASP){
 				stream <<"INCONSISTENT\n";
@@ -97,9 +97,9 @@ namespace MinisatID{
 	}
 
 	template<class T>
-	void printOptimalModelFound(T& stream, INPUTFORMAT format, int verbosity = 1000){
+	void printOptimalModelFound(T& stream, OUTPUTFORMAT outputformat, int verbosity = 1000){
 		if(verbosity>=1){
-			if(format==FORMAT_OPB){
+			if(outputformat==TRANS_OPB){
 				stream<<"s OPTIMUM FOUND\n";
 			}else{
 				stream<<"OPTIMUM FOUND\n";
