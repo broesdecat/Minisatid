@@ -155,9 +155,10 @@ rClause PCSolver::createClause(const vec<Lit>& lits, bool learned) {
 	return getSolver()->makeClause(lits, learned);
 }
 
-void PCSolver::addLearnedClause(rClause c) {
-	getSolver()->addLearnedClause(c);
-}
+void PCSolver::addLearnedClause(rClause c) { getSolver()->addLearnedClause(c); }
+void PCSolver::removeClause(rClause c) { getSolver()->removeClause(c); }
+int	PCSolver::getClauseSize	(rClause cr) const { return getSATSolver()->getClauseSize(cr); }
+Lit	PCSolver::getClauseLit	(rClause cr, int i) const { return getSATSolver()->getClauseLit(cr, i); }
 
 void PCSolver::backtrackTo(int level) {
 	getSolver()->cancelUntil(level);
@@ -238,6 +239,18 @@ bool PCSolver::add(Var v) {
 
 void PCSolver::notifyNonDecisionVar(Var var){
 	getSolver()->setDecisionVar(var, false);
+}
+
+void PCSolver::notifyClauseAdded(rClause clauseID){
+	if(hasSymmSolver()){
+		getSymmSolver()->notifyClauseAdded(clauseID);
+	}
+}
+
+void PCSolver::notifyClauseDeleted(rClause clauseID){
+	if(hasSymmSolver()){
+		getSymmSolver()->notifyClauseDeleted(clauseID);
+	}
 }
 
 void PCSolver::addVars(const vec<Lit>& a) {
@@ -426,6 +439,17 @@ bool PCSolver::add(const InnerSymmetryLiterals& symms){
 		addSymmSolver();
 	}
 	getSymmSolver()->add(symms.literalgroups);
+	if(hasECNFPrinter()){
+		getECNFPrinter().notifyadded(symms);
+	}
+	return true;
+}
+
+bool PCSolver::add(const InnerSymmetry& symms){
+	if(!hasSymmSolver()){
+		addSymmSolver();
+	}
+	getSymmSolver()->add(symms.symmetry);
 	if(hasECNFPrinter()){
 		getECNFPrinter().notifyadded(symms);
 	}

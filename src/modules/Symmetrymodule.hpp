@@ -123,7 +123,7 @@ private:
 	bool parsing;
 
 public:
-	SymmetryPropagator(Solver s) : solver(s), parsing(true){}
+	SymmetryPropagator(Solver s) : solver(s), parsing(true), deleting(false){}
 	virtual ~SymmetryPropagator() {
 		deleteList<SymVars>(symClasses);
 	}
@@ -144,6 +144,7 @@ public:
 	}
 
 	void finishParsing() {
+		parsing = false;
 	    for(auto i=symmgroups.begin(); i<symmgroups.end(); ++i){
 	    	symClasses.push_back(new SymVars(*i));
 	    }
@@ -159,6 +160,93 @@ public:
         for(auto vs_it=symClasses.begin(); vs_it!=symClasses.end(); ++vs_it){
         	(*vs_it)->backtrack(level, decision, solver);
 		}
+	}
+
+// Different symmetry strategy, TODO should be split into different class
+// => if a clause is added, add all symmetric clauses also
+// => when a clause is deleted, all symmetric ones have to be deleted too!
+// => INVARIANT: for any clause in the db, all its symmetric ones are always also in the db
+	// FIXME will not compile with other sat solvers
+private:
+	std::map<Var, std::vector<uint> > var2symmetries;
+	std::vector<std::map<Var, Var> > symmetries;
+	std::map<rClause, uint> clause2index;
+	std::map<uint, std::vector<rClause> > symmetricclauses;
+	bool deleting;
+
+	void addSymmetricClause(const vec<Lit>& clause, const std::map<Var, Var>& symmetry, int symmindex){
+		vec<Lit> newclause;
+		for(int i=0; i<clause.size(); ++i){
+			auto it = symmetry.find(var(clause[i]));
+			if(it==symmetry.end()){
+				newclause.push(clause[i]);
+			}else{
+				newclause.push(mkLit((*it).second, sign(clause[i])));
+			}
+		}
+		rClause rc = solver->createClause(newclause, true);
+		solver->addLearnedClause(rc); // TODO should have the guarantee that this never leads to a conflict.
+		symmetricclauses[symmindex].push_back(rc);
+		clause2index.insert(std::pair<rClause, uint>(rc, symmindex));
+		//This is the case if always, all symmetric statements of any statement are also explicitly in the theoy
+	}
+
+public:
+	void add(const std::map<Var, Var>& symmetry){
+		assert(parsing);
+		symmetries.push_back(symmetry);
+		for(auto i=symmetry.begin(); i!=symmetry.end(); ++i){
+			var2symmetries[(*i).first].push_back(symmetries.size()-1);
+		}
+		// TODO Assume the grounding is perfectly symmetric according to all symmetries.
+		// If this is not the case, during adding of symmetric clauses, conflicts might pop up
+	}
+
+	void notifyClauseAdded(rClause clauseID){
+		if(parsing || clause2index.find(clauseID)!=clause2index.end()){
+			return;
+		}
+		//add all symmetries
+		std::set<uint> symmindices;
+		vec<Lit> clause;
+		for(int i=0; i<solver->getClauseSize(clauseID); ++i){
+			clause.push(solver->getClauseLit(clauseID, i));
+		}
+		for(int i=0; i<clause.size(); ++i){
+			auto it = var2symmetries.find(var(clause[i]));
+			if(it==var2symmetries.end()){
+				continue;
+			}
+			symmindices.insert((*it).second.begin(), (*it).second.end());
+		}
+		if(symmindices.size()>0){
+			int symmindex = symmetricclauses.size();
+			symmetricclauses[symmindex].push_back(clauseID);
+			clause2index.insert(std::pair<rClause, uint>(clauseID, symmindex));
+			for(auto index = symmindices.begin(); index!=symmindices.end(); ++index){
+				addSymmetricClause(clause, symmetries.at(*index), symmindex);
+			}
+		}
+	}
+
+	void notifyClauseDeleted(rClause c){
+		if(deleting){
+			return;
+		}
+		deleting = true;
+
+		auto it = clause2index.find(c);
+		if(it==clause2index.end()){
+			deleting = false;
+			return;
+		}
+		std::vector<rClause>& symm = symmetricclauses.at((*it).second);
+		for(auto i=symm.begin(); i!=symm.end(); ++i){
+			solver->removeClause(*i);
+			clause2index.erase(*i);
+		}
+		symmetricclauses.erase((*it).second);
+		deleting = false;
 	}
 };
 

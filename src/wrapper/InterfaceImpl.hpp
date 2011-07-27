@@ -116,6 +116,7 @@ protected:
 	void 	checkLits		(const std::vector<Literal>& lits, vec<Lit>& ll);
 	void 	checkLits		(const std::vector<Literal>& lits, std::vector<Lit>& ll);
 	void 	checkAtoms		(const std::vector<Atom>& atoms, std::vector<Var>& ll);
+	void 	checkAtoms		(const std::map<Atom, Atom>& atoms, std::map<Var, Var>& ll);
 	void 	checkLits		(const std::vector<std::vector<Literal> >& lits, vec<vec<Lit> >& ll);
 	void 	checkLits		(const std::vector<std::vector<Literal> >& lits, std::vector<std::vector<Lit> >& ll);
 
@@ -174,6 +175,7 @@ template<> bool PCWrapperPimpl::add(const CPCount& sentence);
 template<> bool PCWrapperPimpl::add(const CPAllDiff& sentence);
 template<> bool PCWrapperPimpl::add(const ForcedChoices& sentence);
 template<> bool PCWrapperPimpl::add(const SymmetryLiterals& sentence);
+template<> bool PCWrapperPimpl::add(const Symmetry& sentence);
 
 class SOWrapperPimpl: public MinisatID::WrapperPimpl{
 private:

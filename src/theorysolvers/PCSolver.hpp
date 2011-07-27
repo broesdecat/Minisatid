@@ -168,6 +168,7 @@ public:
 	bool	add		(const InnerMinimizeAgg& sentence);
 	bool	add		(const InnerForcedChoices& sentence);
 	bool	add		(const InnerSymmetryLiterals& sentence);
+	bool	add		(const InnerSymmetry& sentence);
 	bool	add		(const InnerIntVarEnum& object);
 	bool	add		(const InnerIntVarRange& object);
 	bool	add		(const InnerCPBinaryRel& object);
@@ -199,7 +200,11 @@ public:
 
 	rClause 	createClause	(const vec<Lit>& lits, bool learned);
 	//IMPORTANT: The first literal in the clause is the one which can be propagated at moment of derivation!
+	// used for watch initialization in solver
 	void 		addLearnedClause(rClause c); 		//Propagate if clause is unit, return false if c is conflicting
+	void 		removeClause	(rClause c);
+	int			getClauseSize	(rClause cr) const;
+	Lit			getClauseLit	(rClause cr, int i) const;
 	void    	backtrackTo		(int level);		// Backtrack until a certain level.
 	void    	setTrue			(Lit p, DPLLTmodule* solver, rClause c = nullPtrClause);		// Enqueue a literal. Assumes value of literal is undefined
 
@@ -224,6 +229,8 @@ public:
 
 
 	void 		notifyNonDecisionVar(Var var);
+	void 		notifyClauseAdded(rClause clauseID);
+	void 		notifyClauseDeleted(rClause clauseID);
 
 	// DEBUG
 	std::string getModID		() const; // SATsolver asks this to PC such that more info (modal e.g.) can be printed.

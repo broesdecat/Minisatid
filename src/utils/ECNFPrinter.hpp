@@ -55,6 +55,8 @@ void ECNFPrinter::notifyadded(const InnerMinimizeSubset& set);
 template<>
 void ECNFPrinter::notifyadded(const InnerSymmetryLiterals& set);
 template<>
+void ECNFPrinter::notifyadded(const InnerSymmetry& set);
+template<>
 void ECNFPrinter::notifyadded(const InnerForcedChoices& set);
 template<>
 void ECNFPrinter::notifyadded(const InnerIntVarEnum& set);

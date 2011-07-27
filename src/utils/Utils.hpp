@@ -123,6 +123,11 @@ struct InnerSymmetryLiterals{
 	std::vector<std::vector<Lit> > literalgroups;
 };
 
+struct InnerSymmetry{
+	//INVAR keys are unique
+	std::map<Var, Var> symmetry;
+};
+
 struct InnerRigidAtoms{
 	std::vector<Var> rigidatoms;
 };

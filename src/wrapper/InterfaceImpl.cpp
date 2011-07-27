@@ -173,6 +173,12 @@ void WrapperPimpl::checkAtoms(const vector<Atom>& atoms, vector<Var>& ll){
 	}
 }
 
+void WrapperPimpl::checkAtoms(const std::map<Atom, Atom>& atoms, std::map<Var, Var>& ll){
+	for(auto i=atoms.begin(); i!=atoms.end(); ++i){
+		ll.insert(pair<Var, Var>(checkAtom((*i).first), checkAtom((*i).second)));
+	}
+}
+
 bool WrapperPimpl::finishParsing(){
 	if(solutionmonitor==NULL){
 		throw idpexception("Solving without instantiating any solution monitor.\n");
@@ -444,6 +450,13 @@ template<>
 bool PCWrapperPimpl::add(const SymmetryLiterals& sentence){
 	InnerSymmetryLiterals symms;
 	checkLits(sentence.symmgroups, symms.literalgroups);
+	return getSolver()->add(symms);
+}
+
+template<>
+bool PCWrapperPimpl::add(const Symmetry& sentence){
+	InnerSymmetry symms;
+	checkAtoms(sentence.symmetry, symms.symmetry);
 	return getSolver()->add(symms);
 }
 

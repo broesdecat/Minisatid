@@ -480,6 +480,12 @@ public:
 	std::vector<literallist> symmgroups;
 };
 
+class Symmetry{
+public:
+	// INVAR: the keys are unique
+	std::map<Atom, Atom> symmetry;
+};
+
 }
 
 #endif /*EXTERNALUTILS_HPP_*/

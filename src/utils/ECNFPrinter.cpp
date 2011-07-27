@@ -163,6 +163,20 @@ void ECNFPrinter::notifyadded(const InnerSymmetryLiterals& symm){
 }
 
 template<>
+void ECNFPrinter::notifyadded(const InnerSymmetry& symm){
+	ss <<"Added symmetry: <";
+	bool begin = true;
+	for(auto i=symm.symmetry.begin(); i!=symm.symmetry.begin(); ++i){
+		if(!begin){
+			ss <<", ";
+		}
+		begin = false;
+		ss <<(*i).first <<"->" <<(*i).second;
+	}
+	ss <<">\n";
+}
+
+template<>
 void ECNFPrinter::notifyadded(const InnerForcedChoices& choices){
 	ss <<"Forced choices ";
 	for(int i=0; i<choices.forcedchoices.size(); ++i){
