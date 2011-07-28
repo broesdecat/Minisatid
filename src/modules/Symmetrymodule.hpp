@@ -123,7 +123,9 @@ private:
 	bool parsing;
 
 public:
-	SymmetryPropagator(Solver s) : solver(s), parsing(true), deleting(false){}
+	SymmetryPropagator(Solver s) :
+			solver(s), parsing(true),
+			deleting(false), adding(false){}
 	virtual ~SymmetryPropagator() {
 		deleteList<SymVars>(symClasses);
 	}
@@ -172,7 +174,7 @@ private:
 	std::vector<std::map<Var, Var> > symmetries;
 	std::map<rClause, uint> clause2index;
 	std::map<uint, std::vector<rClause> > symmetricclauses;
-	bool deleting;
+	bool deleting, adding;
 
 	void addSymmetricClause(const vec<Lit>& clause, const std::map<Var, Var>& symmetry, int symmindex){
 		vec<Lit> newclause;
@@ -206,6 +208,10 @@ public:
 		if(parsing || clause2index.find(clauseID)!=clause2index.end()){
 			return;
 		}
+		if(adding){
+			return;
+		}
+		adding = true;
 		//add all symmetries
 		std::set<uint> symmindices;
 		vec<Lit> clause;
@@ -227,6 +233,7 @@ public:
 				addSymmetricClause(clause, symmetries.at(*index), symmindex);
 			}
 		}
+		adding = false;
 	}
 
 	void notifyClauseDeleted(rClause c){
