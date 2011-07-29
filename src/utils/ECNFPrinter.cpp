@@ -33,7 +33,7 @@ void ECNFPrinter::notifyadded(const InnerDisjunction& clause){
 
 template<>
 void ECNFPrinter::notifyadded(const InnerRule& rule){
-	ss <<"Added rule: " <<rule.head <<" <- ";
+	ss <<"Added rule: " <<getPrintableVar(rule.head) <<" <- ";
 	for(int i=0; i<rule.body.size(); ++i){
 		ss <<rule.body[i];
 		if(i<rule.body.size()-1){
