@@ -20,8 +20,8 @@ AC_CONFIG_FILES([ Makefile \
 		   include/Makefile \
 		   include/tclap/Makefile \
 		   config/Makefile])
-AC_CONFIG_COMMANDS([default],[\
-		   chmod a+x $ac_top_srcdir/tests/*.sh],[])
+#AC_CONFIG_COMMANDS([default],[\
+#		   chmod a+x $ac_top_srcdir/tests/*.sh],[])
 AC_OUTPUT
 
 #          examples/Makefile
