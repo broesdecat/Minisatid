@@ -108,6 +108,7 @@ public:
 	rClause 	propagate		(const Lit& p, Watch* w, int level);
 	rClause 	propagate		(int level, const Agg& agg, bool headtrue);
 	rClause		propagateAtEndOfQueue(int level);
+	void		backtrack		(int untillevel){};
     void 		getExplanation	(vec<Lit>& lits, const AggReason& ar);
 
 	double 		testGenWatchCount();

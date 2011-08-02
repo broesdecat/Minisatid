@@ -12,6 +12,7 @@
 #include "satsolver/SATSolver.hpp"
 #include "modules/ModSolver.hpp"
 #include "modules/AggSolver.hpp"
+#include "modules/Symmetrymodule.hpp"
 #include "modules/CPSolver.hpp"
 #include "wrapper/InterfaceImpl.hpp"
 
@@ -43,11 +44,9 @@ PCSolver::PCSolver(SolverOption modes, MinisatID::WrapperPimpl& inter, int ID) :
 
 	queue = new EventQueue(*this);
 
-	searchengine = new Solver(this);
-	searchengine->notifyUsedForSearch();
+	searchengine = createSolver(*this);
 #ifdef CPSUPPORT
 	cpsolver = new CPSolver(this);
-	cpsolver->notifyUsedForSearch();
 #endif
 
 	factory = new PropagatorFactory(modes, this);
@@ -93,9 +92,10 @@ rClause PCSolver::createClause(const vec<Lit>& lits, bool learned) {
 	}
 }
 
-void PCSolver::addLearnedClause(rClause c) {
-	getSolver().addLearnedClause(c);
-}
+void PCSolver::addLearnedClause(rClause c) { getSolver().addLearnedClause(c); }
+void PCSolver::removeClause(rClause c) { getSolver().removeClause(c); }
+int	PCSolver::getClauseSize	(rClause cr) const { return getSATSolver()->getClauseSize(cr); }
+Lit	PCSolver::getClauseLit	(rClause cr, int i) const { return getSATSolver()->getClauseLit(cr, i); }
 
 void PCSolver::backtrackTo(int level) {
 	getSolver().cancelUntil(level);
@@ -183,6 +183,25 @@ Var PCSolver::newVar() {
 
 rClause PCSolver::checkFullAssignment() {
 	return getEventQueue().notifyFullAssignmentFound();
+}
+
+void PCSolver::notifyClauseAdded(rClause clauseID){
+	if(getFactory().hasSymmSolver()){
+		getFactory().getSymmSolver()->notifyClauseAdded(clauseID);
+	}
+}
+
+void PCSolver::notifyClauseDeleted(rClause clauseID){
+	if(getFactory().hasSymmSolver()){
+		getFactory().getSymmSolver()->notifyClauseDeleted(clauseID);
+	}
+}
+
+bool PCSolver::symmetryPropagationOnAnalyze(const Lit& p){
+	if(not getFactory().hasSymmSolver()){
+		return false;
+	}
+	return getFactory().getSymmSolver()->analyze(p);
 }
 
 /**
@@ -365,7 +384,14 @@ bool PCSolver::solve(const vec<Lit>& assumptions, const ModelExpandOptions& opti
 
 void PCSolver::extractLitModel(InnerModel* fullmodel){
 	fullmodel->litassignments.clear();
-	getSATSolver()->extendToFullModel(fullmodel);
+	// FIXME implement more efficiently in the satsolver?
+	for (uint64_t i = 0; i < nVars(); ++i) {
+		if (value(i) == l_True) {
+			fullmodel->litassignments.push(mkLit(i, false));
+		} else if (value(i) == l_False) {
+			fullmodel->litassignments.push(mkLit(i, true));
+		}
+	}
 }
 
 void PCSolver::extractVarModel(InnerModel* fullmodel){

@@ -23,7 +23,6 @@ namespace Minisat{
 namespace MinisatID {
 
 class PCSolver;
-class IDSolver;
 
 class WL;
 typedef std::vector<WL> vwl;
@@ -68,11 +67,8 @@ struct VI{
 };
 
 class AggSolver: public Propagator{
+	//TODO pimpl
 private:
-	std::map<int,IDSolver*> 	idsolvers;
-	bool 		hasIDSolver(int defid) { return idsolvers.find(defid)!=idsolvers.end(); }
-	IDSolver& 	getIDSolver(int defid) { return *idsolvers.at(defid); }
-
 	mips 					parsedSets;
 	std::set<Var>			heads;
 	Var						dummyhead;
@@ -102,11 +98,11 @@ private:
 	std::vector<Lit>		littrail;
 	std::vector<LI>			propagated;
 
-	Agg*					optimagg;
-
 	//custom heur
 	std::set<Var>			heurvars; //log n instead of direct (but probably important size reduction)
 	std::vector<VI>			varwithheurval;
+
+	Agg*					optimagg;
 
 public:
 	AggSolver(PCSolver* s);
@@ -116,45 +112,46 @@ public:
 
 	// INITIALIZATION
 
+	/**
+	 * Adds the set with the given id to the solver and sets its literals and its weights.
+	 *
+	 * @pre: no set with the same id has already been added
+	 * @pre: negative weights are not allowed
+	 * @pre: empty sets are not allowed
+	 */
+	bool 		addSet(int id, const std::vector<Lit>& l, const std::vector<Weight>& w);
+
+	bool 		addAggrExpr(const InnerAggregate agg);
+	bool 		addAggrExpr(const InnerReifAggregate agg);
+	bool 		addDefinedAggrExpr(const InnerReifAggregate agg, IDSolver* idsolver);
+
 	bool 		addMnmz(Var headv, int setid, AggType type);
 
+	// SEARCH
+	void 		notifyVarAdded(uint64_t nvars);
+
 	// Propagator methods
-	void 		finishParsing		 	(bool& present, bool& unsat);
-	rClause	 	notifypropagate			();
-	void 		notifyNewDecisionLevel	();
-	void 		notifyBacktrack			(int untillevel);
-	rClause 	getExplanation			(const Lit& l);
-	Var			notifyBranchChoice 		(const Var& chosenvar) const;
-	const char* getName					() const { return "aggregate"; }
-	void 		printState				() const;
-	void 		printStatistics			() const;
-	rClause 	notifyFullAssignmentFound();
-	int			getNbOfFormulas			() const;
+	virtual void 		finishParsing		 	(bool& present, bool& unsat);
+	virtual rClause 	notifypropagate			();
+	virtual void 		notifyNewDecisionLevel	();
+	virtual void 		notifyBacktrack			(int untillevel);
+	virtual rClause 	getExplanation			(const Lit& l);
+	virtual const char* getName					() const { return "aggregate"; }
+	virtual void 		printState				() const;
+	virtual void 		printStatistics			() const;
+	rClause				notifyFullAssignmentFound();
+	Var 				notifyBranchChoice		(const Var& var) const;
+	int					getNbOfFormulas			() const { return 1; } // FIXME
 
 
-
+	rClause 	propagate				(const Lit& l);
 	void 		adaptAggHeur			(const vwl& wls, int nbagg);
 
-	// OPTIMISATION
-    bool 		invalidateAgg			(vec<Lit>& invalidation);
-    void 		propagateMnmz			();
-
-	// RECURSIVE AGGREGATES
-	void 		propagateJustifications		(const Lit& l, vec<vec<Lit> >& jstf, vec<Lit>& v, InterMediateDataStruct& nb_body_lits_to_justify);
-	void 		findJustificationAggr		(Var head, vec<Lit>& jstf);
-	bool 		directlyJustifiable			(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, InterMediateDataStruct& currentjust);
-	void 		addExternalLiterals			(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, InterMediateDataStruct& seen);
-	std::vector<Var> 	getDefAggHeadsWithBodyLit		(Var x) const;
-	vwl::const_iterator getSetLitsOfAggWithHeadBegin(Var x) const;
-	vwl::const_iterator getSetLitsOfAggWithHeadEnd	(Var x) const;
-
-
-
+	//INTERNAL (TODO into pimpl)
 	rClause		notifySolver(AggReason* cr);
 	rClause 	doProp					();
 	void 		findClausalPropagations();
 	void 		notifyDefinedHead		(Var head, int defID);
-	void 		removeHeadWatch			(Var head);
 	void 		removeHeadWatch			(Var head, int defID);
 	void 		setHeadWatch			(Lit head, Agg* agg);
 	void 		addStaticWatch			(Var v, Watch* w);
@@ -165,8 +162,10 @@ public:
 	void		addRootLevel			();
 	int			getTime					(Lit l) const;
 
+	bool 		invalidateAgg			(vec<Lit>& invalidation);
 	void		setOptimAgg				(Agg* agg) { optimagg = agg; }
 	bool		isOptimAgg				(Agg const * const agg) { return optimagg==agg; }
+	void 		propagateMnmz			();
 
 protected:
 	Agg*		getOptimAgg				() 				{ return optimagg; }
@@ -174,10 +173,13 @@ protected:
 	void 		adaptToNVars			(uint64_t nvars);
 	int 		getCurrentDecisionLevel	() 		const { return setsbacktracktrail.size()-1; }
 
-	Agg*		getAggDefiningHead		(Var v) const;
-
 	bool		finishSet				(TypedSet* set);
+
+	bool 		addAggrExpr				(Var headv, int setid, const AggBound& bound, AggType type, AggSem sem, int defid);
+
 };
+
+void printNumberOfAggregates(int nbsets, int nbagg, int nbsetlits, std::map<MinisatID::AggType, int>& nbaggs, int verbosity = 1000);
 
 }
 

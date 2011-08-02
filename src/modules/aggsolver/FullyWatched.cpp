@@ -29,8 +29,6 @@ FWAgg::FWAgg(TypedSet* set) :
 
 }
 
-
-
 void FWAgg::initialize(bool& unsat, bool& sat) {
 	if (getSet().getAgg().size() == 0) {
 		sat = true;	return;
@@ -46,7 +44,7 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 			//If after initialization, the head will have a fixed value, then this is
 			//independent of any further propagations within that aggregate.
 			//BUT ONLY if it is not defined (or at a later stage, if it cannot be in any loop)
-			getSolver()->removeHeadWatch(var(agg->getHead()));
+			getSolver()->removeHeadWatch(var(agg->getHead()), agg->getDefID());
 			i = getSet().getAggNonConst().erase(i);
 			continue;
 		} else if (result == l_False) {
@@ -77,6 +75,7 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
  */
 lbool FWAgg::initialize(const Agg& agg) {
 	rClause confl = nullPtrClause;
+
 	if(getSolver()->isOptimAgg(&agg)){
 		return l_Undef;
 	}

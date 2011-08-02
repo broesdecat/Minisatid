@@ -106,6 +106,10 @@ bool ModSolver::add(const InnerWSet& set){
 	return getPCSolver().add(set);
 }
 
+bool ModSolver::add(const InnerAggregate& agg){
+	return getPCSolver().add(agg);
+}
+
 bool ModSolver::add(const InnerReifAggregate& agg){
 	add(agg.head);
 	return getPCSolver().add(agg);

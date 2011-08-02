@@ -33,7 +33,7 @@ using namespace std;
 using namespace MinisatID;
 
 AggSolver::AggSolver(PCSolver* s) :
-	DPLLTmodule(s),
+	Propagator(s),
 	dummyhead(-1),
 	propagations(0), index(1), propindex(0),
 	optimagg(NULL){
@@ -64,12 +64,6 @@ void AggSolver::notifyVarAdded(uint64_t nvars) {
 		adaptToNVars(nvars);
 	}
 }
-
-void AggSolver::notifyDefinedHead(Var head, int defID){
-	assert(isInitializing());
-	getPCSolver().notifyAggrHead(head, defID);
-}
-
 // WATCH MANIPULATION
 
 void AggSolver::setHeadWatch(Lit head, Agg* agg) {
@@ -96,7 +90,6 @@ void AggSolver::removeHeadWatch(Var head, int defID) {
 	}else{
 		lit2headwatchlist[toInt(createNegativeLiteral(head))] = NULL;
 		lit2headwatchlist[toInt(createPositiveLiteral(head))] = NULL;
-		getPCSolver().removeAggrHead(head, defID);
 	}
 }
 
@@ -169,10 +162,25 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 	return true;
 }
 
-bool AggSolver::addAggrExpr(Var headv, int setid, const Weight& bound, AggSign boundsign, AggType type, AggSem sem, int defid) {
+// FIXME move to aggpropfactory
+bool AggSolver::addAggrExpr(const InnerAggregate agg) {
+	assert(not isParsing());
+	AggBound b(agg.sign, agg.bound);
+	// FIXME create dummy head => all add methods should be called after parsing
+	return addAggrExpr(dummyhead, agg.setID, b, agg.type, COMP, -1);
+}
+
+bool AggSolver::addAggrExpr(const InnerReifAggregate agg) {
 	assert(isParsing());
-	AggBound b(boundsign, bound);
-	return addAggrExpr(headv, setid, b, type, sem, defid);
+	assert(agg.defID==-1);
+	AggBound b(agg.sign, agg.bound);
+	return addAggrExpr(agg.head, agg.setID, b, agg.type, agg.sem, -1);
+}
+
+bool AggSolver::addDefinedAggrExpr(const InnerReifAggregate agg, IDSolver* idsolver) {
+	assert(isParsing());
+	AggBound b(agg.sign, agg.bound);
+	return addAggrExpr(agg.head, agg.setID, b, agg.type, agg.sem, agg.defID);
 }
 
 bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType type, AggSem sem, int defid){
@@ -414,18 +422,18 @@ rClause AggSolver::notifySolver(AggReason* ar) {
 	return nullPtrClause;
 }
 
-void AggSolver::newDecisionLevel() {
+void AggSolver::notifyNewDecisionLevel() {
 	assert(isInitialized());
 	mapdecleveltotrail.push_back(littrail.size());
 	setspropagatetrail.clear();
 	setsbacktracktrail.push_back(vector<TypedSet*>());
 }
 
-void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel) {
+void AggSolver::notifyBacktrack(int untillevel) {
 	assert(isInitialized());
 	while(setsbacktracktrail.size()>(vsize)(untillevel+1)){
 		for(vector<TypedSet*>::iterator j=setsbacktracktrail.back().begin(); j<setsbacktracktrail.back().end(); ++j){
-			(*j)->backtrack(nblevels, untillevel);
+			(*j)->backtrack(untillevel);
 		}
 		setsbacktracktrail.pop_back();
 	}
@@ -444,7 +452,7 @@ void AggSolver::backtrackDecisionLevels(int nblevels, int untillevel) {
 	}
 }
 
-Var	AggSolver::changeBranchChoice(const Var& chosenvar){
+Var	AggSolver::notifyBranchChoice(const Var& chosenvar) const {
 	assert(modes().useaggheur);
 	if(heurvars.find(chosenvar)!=heurvars.end()){
 		for(vector<VI>::const_iterator i=varwithheurval.begin(); i<varwithheurval.end(); i++){
@@ -486,7 +494,7 @@ void AggSolver::adaptAggHeur(const vwl& wls, int nbagg){
 	}
 }
 
-bool AggSolver::checkStatus(){
+rClause AggSolver::notifyFullAssignmentFound(){
 	assert(isInitialized());
 #ifdef DEBUG
 	for(setlist::const_iterator i=sets.begin(); i<sets.end(); ++i){
@@ -504,7 +512,7 @@ bool AggSolver::checkStatus(){
 		}
 	}
 #endif
-	return true;
+	return nullPtrClause;
 }
 
 rClause AggSolver::doProp(){
@@ -596,7 +604,7 @@ rClause AggSolver::propagate(const Lit& p) {
 /**
  * Returns non-owning pointer
  */
-rClause	AggSolver::propagateAtEndOfQueue(){
+rClause	AggSolver::notifypropagate(){
 	assert(isInitialized());
 	rClause confl = nullPtrClause;
 	if (!isInitialized()) {
@@ -640,129 +648,6 @@ rClause AggSolver::getExplanation(const Lit& p) {
 	//do not add each clause to SAT-solver: real slowdown for e.g. magicseries
 
 	return c;
-}
-
-// RECURSIVE AGGREGATES
-
-Agg* AggSolver::getAggDefiningHead(Var v) const {
-	assert(isInitialized());
-	Agg* agg = lit2headwatchlist[toInt(createNegativeLiteral(v))];
-	assert(agg!=NULL && agg->isDefined());
-	return agg;
-}
-
-vector<Var> AggSolver::getDefAggHeadsWithBodyLit(Var x) const{
-	assert(isInitialized());
-	vector<Var> heads;
-	for (vps::const_iterator i = var2setlist[x].begin(); i < var2setlist[x].end(); ++i) {
-		for (agglist::const_iterator j = (*i)->getAgg().begin(); j < (*i)->getAgg().end(); ++j) {
-			if((*j)->isDefined()){
-				heads.push_back(var((*j)->getHead()));
-			}
-		}
-	}
-	return heads;
-}
-
-vwl::const_iterator AggSolver::getSetLitsOfAggWithHeadBegin(Var x) const {
-	assert(isInitialized());
-	return getAggDefiningHead(x)->getSet()->getWL().begin();
-}
-
-vwl::const_iterator AggSolver::getSetLitsOfAggWithHeadEnd(Var x) const {
-	assert(isInitialized());
-	return getAggDefiningHead(x)->getSet()->getWL().end();
-}
-
-/**
- * For an aggregate expression defined by v, add all set literals to loopf that
- * 		- have not been added already(seen[A]==1 for A, seen[A]==2 for ~A)
- * 		- might help to make the expression true (monotone literals!) (to make it a more relevant learned clause)
- * Currently CONSIDERABLE overapproximation: take all known false literals which are set literal or its negation,
- * do not occur in ufs and have not been seen yet.
- * Probably NEVER usable external clause!
- * TODO: optimize: add monotone literals until the aggregate can become true
- */
-void AggSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, VarToJustif& seen) {
-	assert(isInitialized());
-	TypedSet* set = getAggDefiningHead(v)->getSet();
-
-	for (vwl::const_iterator i = set->getWL().begin(); i < set->getWL().end(); ++i) {
-		Lit l = (*i).getLit();
-		if(ufs.find(var(l)) != ufs.end() || seen[var(l)] == (isPositive(l) ? 2 : 1)){
-			continue;
-		}
-
-		if(isTrue(l)){
-			l = ~l;
-		}
-
-		if(!isFalse(l)){
-			continue;
-		}
-
-		loopf.push(l);
-		seen[var(l)] = isPositive(l) ? 2 : 1;
-	}
-}
-
-/**
- * Propagates the fact that w has been justified and use the info on other earlier justifications to derive other
- * heads.
- *
- * @post: any new derived heads are in heads, with its respective justification in jstf
- */
-void AggSolver::propagateJustifications(Lit w, vec<vec<Lit> >& jstfs, vec<Lit>& heads, VarToJustif& currentjust) {
-	assert(isInitialized());
-	for (vps::const_iterator i = var2setlist[var(w)].begin(); i < var2setlist[var(w)].end(); ++i) {
-		TypedSet* set = (*i);
-		for (agglist::const_iterator j = set->getAgg().begin(); j < set->getAgg().end(); ++j) {
-			const Agg& agg = *(*j);
-			if (!agg.isDefined() || isFalse(agg.getHead())) {
-				continue;
-			}
-
-			//FIXME HACK HACK!
-			if(agg.getSem()==IMPLICATION && !sign(agg.getHead())){
-				continue;
-			}
-
-			Var head = var(agg.getHead());
-			if (currentjust[head] > 0) { //only check its body for justification when it has not yet been derived
-				vec<Lit> jstf;
-				vec<Var> nonjstf;
-
-				if (set->getType().canJustifyHead(agg, jstf, nonjstf, currentjust, false)) {
-					currentjust[head] = 0;
-					heads.push(mkLit(head, false));
-					jstfs.push();
-					jstf.copyTo(jstfs.last());
-				}
-			}
-		}
-	}
-}
-
-/**
- * The given head is not false. So it has a (possibly looping) justification. Find this justification
- */
-void AggSolver::findJustificationAggr(Var head, vec<Lit>& outjstf) {
-	assert(isInitialized());
-	vec<Var> nonjstf;
-	VarToJustif currentjust;
-	const Agg& agg = *getAggDefiningHead(head);
-	agg.getSet()->getType().canJustifyHead(agg, outjstf, nonjstf, currentjust, true);
-}
-
-/**
- * Check whether the given var is justified by the current justification graph. If this is the case, jstf will
- * contain its justification and true will be returned. Otherwise, false will be returned and nonjstf will contain
- * all body literals of v that are not justified.
- */
-bool AggSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust) {
-	assert(isInitialized());
-	const Agg& agg = *getAggDefiningHead(v);
-	return agg.getSet()->getType().canJustifyHead(agg, jstf, nonjstf, currentjust, false);
 }
 
 // OPTIMIZATION
@@ -837,7 +722,7 @@ bool AggSolver::invalidateAgg(vec<Lit>& invalidation) {
 	assert(isInitialized());
 	Agg* a = getOptimAgg();
 	TypedSet* s = a->getSet();
-	Propagator* prop = s->getProp();
+	AggPropagator* prop = s->getProp();
 	Weight value = prop->getValue();
 
 	getPCSolver().printCurrentOptimum(value);

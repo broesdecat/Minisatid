@@ -51,7 +51,6 @@ protected:
 	void 			setCC					(const Weight& w) 			{ trail.back()->CBC = w; }
 
 	std::vector<FWTrail*>&	getTrail		() 					 		{ return trail; }
-	//TODO implement trail iterator?
 
 public:
 	FWAgg(TypedSet* set);

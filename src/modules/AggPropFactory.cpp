@@ -25,6 +25,14 @@
 using namespace std;
 using namespace MinisatID;
 
+template<class C, class Elem>
+bool alreadyInContainer(const Elem& elem, const C& container){
+	return container.end()==container.find(elem);
+}
+
+// FIXME completely unfinished code.
+// FIXME Also remove this code from the aggsolver
+
 const PCSolver& AggPropFactory::getEngine() const { return getPropagatorFactory().getEngine(); }
 PCSolver& AggPropFactory::getEngine() { return getPropagatorFactory().getEngine(); }
 PCSolver* AggPropFactory::getEnginep() { return getPropagatorFactory().getEnginep(); }
@@ -34,7 +42,7 @@ IDSolver& 	AggPropFactory::getIDSolver(int defid) { return *getPropagatorFactory
 
 AggPropFactory::AggPropFactory(PropagatorFactory* s) :
 		propagatorfactory(s),
-		temphead(-1), dummyhead(-1){
+		temphead(-1), dummyhead(mkLit(-1)){
 }
 
 AggPropFactory::~AggPropFactory() {
@@ -72,7 +80,7 @@ void throwHeadOccursInSet(Var head, int setid){
 }
 
 void throwDuplicateHeads(Var head){
-	strinstream ss;
+	stringstream ss;
 	ss <<"Multiple aggregates with the same heads " <<getPrintableVar(head) <<".\n";
 	throw idpexception(ss.str());
 }
@@ -94,9 +102,10 @@ bool AggPropFactory::addSet(int setid, const vector<WL>& weightedlits) {
 #endif
 	}
 
-	TypedSet* set = new TypedSet(setid);
+/* FIXME
+ 	TypedSet* set = new TypedSet(setid);
 	set->setWL(weightedlits);
-	parsedSets[setid] = set;
+	parsedSets[setid] = set;*/
 
 	return true;
 }
@@ -118,13 +127,8 @@ bool AggPropFactory::addAggrExpr(const InnerAggregate& agg){
 	return addAggr(newagg);
 }
 
-template<class C, class Elem>
-bool alreadyInContainer(const Elem& elem, const C& container){
-	return container.end()==container.find(elem);
-}
-
-bool AggPropFactory::addAggrExpr(const InnerReifAggregate& agg){
-	if (!alreadyInContainer(agg.setID, parsedSets)) {
+bool AggPropFactory::addAggr(const InnerReifAggregate& agg){
+	if (not alreadyInContainer(agg.setID, parsedSets)) {
 		throwUndefinedSet(agg.setID);
 	}
 
@@ -150,17 +154,18 @@ bool AggPropFactory::addAggrExpr(const InnerReifAggregate& agg){
 }
 
 void AggPropFactory::initializeAllSets(){
+	bool unsat = false;
 	setlist remainingsets;
 	setlist satsets;
 	for (setlist::iterator i=sets.begin(); !unsat && i<sets.end(); ++i) {
 		TypedSet* set = *i;
 
-		for(agglist::iterator j=set->getAggNonConst().begin(); j<set->getAggNonConst().end(); ++h){
-			if((*j)->getHead()==temphead){
+		for(auto j=set->getAggNonConst().begin(); j<set->getAggNonConst().end(); ++j){
+			if(var((*j)->getHead())==temphead){
 				(*j)->setHead(dummyhead);
 			}
 
-			getEngine().varBumpActivity((*j)->getHead());
+			getEngine().varBumpActivity(var((*j)->getHead()));
 		}
 
 		bool removeset = false;
@@ -203,40 +208,7 @@ void AggPropFactory::finishParsing(bool& unsat) {
 
 	initializeAllSets();
 
-
-
-	for(setlist::const_iterator i=remainingsets.begin(); i<remainingsets.end(); ++i){
-		TypedSet* set = *i;
-		sets.push_back(set);
-
-		switch((*i)->type){
-		case CARD:
-		case SUM:
-			if(set->isUsingWatches()){
-				new GenPWAgg(getEnginep(), set);
-			}else{
-				new SumFWAgg(getEnginep(), set);
-			}
-			break;
-		case PROD:
-			if(set->isUsingWatches()){
-				new GenPWAgg(getEnginep(), set);
-			}else{
-				new ProdFWAgg(getEnginep(), set);
-			}
-			break;
-		case MAX:
-			if(set->isUsingWatches() && !printedwarning){
-				clog <<">> Currently max/min aggregates never use watched-literal-schemes.\n";
-				printedwarning = true;
-			}
-			new MaxFWAgg(getEnginep(), set);
-			break;
-		default:
-			assert(false);
-		}
-	}
-	deleteList<TypedSet>(satsets);
+	// FIXME propagator creation code?
 
 #ifdef DEBUG
 	//Check each aggregate knows it index in the set

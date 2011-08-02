@@ -19,6 +19,7 @@
 #include "modules/AggSolver.hpp"
 #include "modules/ModSolver.hpp"
 #include "modules/LazyGrounder.hpp"
+#include "modules/Symmetrymodule.hpp"
 
 #ifdef CPSUPPORT
 #include "modules/CPSolver.hpp"
@@ -37,7 +38,8 @@ PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine
 		engine(engine),
 		parsing(true),
 		satsolver(NULL),
-		aggsolver(NULL), modsolver(NULL)
+		aggsolver(NULL), modsolver(NULL),
+		symmsolver(NULL)
 #ifdef CPSUPPORT
 		,cpsolver(NULL)
 #endif
@@ -105,6 +107,15 @@ void PropagatorFactory::addIDSolver(defID id){
 	IDSolver* idsolver = new IDSolver(getEnginep(), id);
 	getEngine().accept(idsolver, EXITCLEANLY);
 	idsolvers.insert(pair<defID, IDSolver*>(id, idsolver));
+}
+
+void PropagatorFactory::addSymmSolver(){
+	assert(isParsing());
+	symmsolver = new SymmetryPropagator<PCSolver*>(getEnginep());
+}
+SymmetryPropagator<PCSolver*>* PropagatorFactory::getSymmSolver() const {
+	assert(hasSymmSolver());
+	return symmsolver;
 }
 
 bool PropagatorFactory::add(const Var& v) {
@@ -194,6 +205,18 @@ bool PropagatorFactory::add(const InnerAggregate& formula){
 
 	if(!hasAggSolver()){
 		stringstream ss;
+		ss <<"The set with id " <<formula.setID <<" should be defined before any aggregates using it.\n";
+		throw idpexception(ss.str());
+	}
+
+	return getAggSolver()->addAggrExpr(formula);
+}
+
+bool PropagatorFactory::add(const InnerReifAggregate& formula){
+	notifyMonitorsOfAdding(formula);
+
+	if(!hasAggSolver()){
+		stringstream ss;
 		ss <<"The set with id " <<formula.setID <<" should be defined before the aggregate with head " <<formula.head <<"\n";
 		throw idpexception(ss.str());
 	}
@@ -257,7 +280,14 @@ bool PropagatorFactory::add(const InnerForcedChoices& formula){
 bool PropagatorFactory::add(const InnerSymmetryLiterals& formula){
 	notifyMonitorsOfAdding(formula);
 
-	getSolver()->addSymmetryGroup(formula.literalgroups);
+	getSymmSolver()->add(formula.literalgroups);
+	return true;
+}
+
+bool PropagatorFactory::add(const InnerSymmetry& formula){
+	notifyMonitorsOfAdding(formula);
+
+	getSymmSolver()->add(formula.symmetry);
 	return true;
 }
 

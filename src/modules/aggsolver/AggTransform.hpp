@@ -14,6 +14,7 @@
 namespace MinisatID{
 
 class PCSolver;
+class AggSolver;
 
 class TypedSet;
 typedef std::vector<TypedSet*> vps;
@@ -84,7 +85,7 @@ public:
 	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
 };
 
-bool transformSumsToCNF(vps& sets, PCSolver& pcsolver);
+bool transformSumsToCNF(vps& sets, MinisatID::PCSolver& pcsolver);
 
 }
 

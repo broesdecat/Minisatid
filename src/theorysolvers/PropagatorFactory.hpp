@@ -30,6 +30,7 @@ class Propagator;
 class IDSolver;
 class AggSolver;
 class ModSolver;
+template<class Solver> class SymmetryPropagator;
 
 #ifdef CPSUPPORT
 class CPSolver;
@@ -59,6 +60,9 @@ private:
 	bool hasModSolver() const { return modsolver!=NULL; }
 	ModSolver* getModSolver() const {return modsolver; }
 
+	SymmetryPropagator<PCSolver*>* symmsolver;
+	void addSymmSolver();
+
 
 #ifdef CPSUPPORT
 	CPSolver* cpsolver;
@@ -75,6 +79,9 @@ public:
 	PropagatorFactory(const SolverOption& modes, PCSolver* engine);
 	virtual ~PropagatorFactory();
 
+	SymmetryPropagator<PCSolver*>* getSymmSolver() const;
+	bool hasSymmSolver() const;
+
 	bool hasIDSolver(defID id) const;
 	void addIDSolver(defID id);
 	IDSolver* getIDSolver(defID id);
@@ -89,6 +96,7 @@ public:
 	bool add(const InnerRule& sentence);
 	bool add(const InnerWSet& sentence);
 	bool add(const InnerAggregate& sentence);
+	bool add(const InnerReifAggregate& sentence);
 	bool add(const InnerMinimizeSubset& sentence);
 	bool add(const InnerMinimizeOrderedList& sentence);
 	bool add(const InnerMinimizeAgg& sentence);

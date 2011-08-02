@@ -75,8 +75,30 @@ public:
 		target() <<"}\n";
 	}
 
-
 	void notifyadded(const InnerAggregate& agg){
+		target() <<"Added aggregate: ";
+		switch(agg.type){
+		case SUM:
+			target() <<"sum";
+			break;
+		case CARD:
+			target() <<"card";
+			break;
+		case MIN:
+			target() <<"min";
+			break;
+		case MAX:
+			target() <<"max";
+			break;
+		case PROD:
+			target() <<"prod";
+			break;
+		}
+		target() <<"( set" <<agg.setID <<" )" <<(agg.sign==AGGSIGN_UB?"=<":">=") <<agg.bound;
+		target() <<"\n";
+	}
+
+	void notifyadded(const InnerReifAggregate& agg){
 		target() <<"Added aggregate " << getPrintableVar(agg.head) <<" "<<(agg.sem==COMP?"<=>":"<-");
 		if(agg.sem==DEF){
 			target() <<"(" <<agg.defID <<")";
@@ -102,7 +124,6 @@ public:
 		target() <<"( set" <<agg.setID <<" )" <<(agg.sign==AGGSIGN_UB?"=<":">=") <<agg.bound;
 		target() <<"\n";
 	}
-
 
 	void notifyadded(const InnerMinimizeAgg& mnm){
 		target() <<"Minimizing aggregate " <<getPrintableVar(mnm.head) <<" <=> ";
@@ -150,6 +171,18 @@ public:
 		target() <<" }\n";
 	}
 
+	void notifyadded(const InnerSymmetry& symm){
+		target() <<"Added symmetry:\n\t";
+		bool begin = true;
+		for(auto i=symm.symmetry.begin(); i!=symm.symmetry.end(); ++i){
+			if(not begin){
+				target() <<", ";
+			}
+			begin = false;
+			target() <<(*i).first <<"->" <<(*i).second;
+		}
+		target() <<"\n";
+	}
 
 	void notifyadded(const InnerSymmetryLiterals& symm){
 		target() <<"Added symmetries:\n";

@@ -102,6 +102,10 @@ public:
 
 	void 		finishParsing(bool& unsat);
 
+	void 		notifyClauseAdded(rClause clauseID);
+	void 		notifyClauseDeleted(rClause clauseID);
+	bool 		symmetryPropagationOnAnalyze(const Lit& p);
+
 	// Solving support
 	void 		newDecisionLevel();
 	bool 		solve			(const vec<Lit>& assumptions, const ModelExpandOptions& options);
@@ -119,6 +123,9 @@ public:
 	rClause 	createClause	(const vec<Lit>& lits, bool learned);
 	//IMPORTANT: The first literal in the clause is the one which can be propagated at moment of derivation!
 	void 		addLearnedClause(rClause c); 		//Propagate if clause is unit, return false if c is conflicting
+	void 		removeClause	(rClause c);
+	int			getClauseSize	(rClause cr) const;
+	Lit			getClauseLit	(rClause cr, int i) const;
 	void    	backtrackTo		(int level);		// Backtrack until a certain level.
 	void    	setTrue			(const Lit& p, Propagator* solver, rClause c = nullPtrClause);		// Enqueue a literal. Assumes value of literal is undefined
 

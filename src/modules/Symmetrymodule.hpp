@@ -126,6 +126,7 @@ public:
 	SymmetryPropagator(Solver s) :
 			solver(s), parsing(true),
 			deleting(false), adding(false){}
+	//FIXME add events
 	virtual ~SymmetryPropagator() {
 		deleteList<SymVars>(symClasses);
 	}

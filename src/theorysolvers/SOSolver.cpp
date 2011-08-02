@@ -189,6 +189,9 @@ bool SOSolver::add(int modid, const InnerWSet& wset){
 bool SOSolver::add(int modid, const InnerAggregate& agg){
 	return getModSolverDuringAdding(modid).add(agg);
 }
+bool SOSolver::add(int modid, const InnerReifAggregate& agg){
+	return getModSolverDuringAdding(modid).add(agg);
+}
 
 ModSolver& SOSolver::getModSolverDuringAdding(int modid){
 	if(state==LOADINGHIER){

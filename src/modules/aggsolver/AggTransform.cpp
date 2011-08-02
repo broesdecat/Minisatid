@@ -378,7 +378,7 @@ void MaxToSAT::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsa
 		return;
 	}
 
-	for(agglist::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); ++i){
+	for(auto i=set->getAgg().begin(); i<set->getAgg().end(); ++i){
 		if(solver->isOptimAgg(*i)){
 			return;
 		}
@@ -512,7 +512,7 @@ struct PBAgg {
 	int sign;
 };
 
-//FUTURE allow complete translation into sat? => double bounds, defined aggregates, optimization
+//FUTURE allow complete translation into sat? => double bounds, defined aggregates
 bool MinisatID::transformSumsToCNF(vps& sets, PCSolver& pcsolver) {
 	int sumaggs = 0;
 	int maxvar = 1;
@@ -522,7 +522,7 @@ bool MinisatID::transformSumsToCNF(vps& sets, PCSolver& pcsolver) {
 		for (vsize j = 0; j < (*i)->getAgg().size(); ++j) {
 			Agg* agg = (*i)->getAgg()[j];
 
-			if((agg->getType()!=SUM && agg->getType()!=CARD)|| agg->getSem() != COMP){
+			if((agg->getType()!=SUM && agg->getType()!=CARD) || agg->getSem() != COMP){
 				remaining.push_back(agg);
 				continue;
 			}

@@ -32,6 +32,7 @@ struct AggBound;
 
 typedef std::map<int, TypedSet*> setid2set;
 typedef std::vector<TypedSet*> setlist;
+typedef std::set<Var> varlist;
 
 class AggPropFactory{
 private:
@@ -58,7 +59,9 @@ public:
 	void finishParsing(bool& unsat);
 
 private:
-	bool AggPropFactory::addAggrExpr(const InnerReifAggregate& agg);
+	bool addAggr(const InnerReifAggregate& agg);
+
+	void initializeAllSets();
 
 	const PropagatorFactory& getPropagatorFactory() const { return *propagatorfactory; }
 	PropagatorFactory& getPropagatorFactory() { return *propagatorfactory; }

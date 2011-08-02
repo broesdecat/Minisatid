@@ -42,12 +42,11 @@ void MinisatID::printWatches(int verbosity, AggSolver const * const solver, cons
 		return;
 	}
 	clog <<"Current effective watches: \n";
-	Var var = 0;
-	for(vector<std::vector<Watch*> >::const_iterator i=tempwatches.begin(); i<tempwatches.end(); ++i, ++var){
+	for(vsize i=0; i<2*solver->nVars(); ++i){
 		bool found = false;
-		for(vsize j=0; !found && j<(*i).size(); ++j){
-			for(vsize k=0; !found && k<(*i)[j]->getSet()->getAgg().size(); ++k){
-				GenPWatch* watch2 = dynamic_cast<GenPWatch*>((*i)[j]);
+		for(vsize j=0; !found && j<tempwatches[i].size(); ++j){
+			for(vsize k=0; !found && k<tempwatches[i][j]->getSet()->getAgg().size(); ++k){
+				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(tempwatches[i][j]);
 				if(watch2!=NULL && watch2->isInWS()){
 					found = true;
 				}
@@ -58,13 +57,13 @@ void MinisatID::printWatches(int verbosity, AggSolver const * const solver, cons
 			continue;
 		}
 
-		clog<<"    Watch " <<toLit(2*var) <<" used by: \n";
-		for(vsize j=0; j<(*i).size(); ++j){
-			for(vsize k=0; k<(*i)[j]->getSet()->getAgg().size(); ++k){
-				GenPWatch* watch2 = dynamic_cast<GenPWatch*>((*i)[j]);
+		clog<<"    Watch " <<toLit(i) <<" used by: \n";
+		for(vsize j=0; j<tempwatches[i].size(); ++j){
+			for(vsize k=0; k<tempwatches[i][j]->getSet()->getAgg().size(); ++k){
+				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(tempwatches[i][j]);
 				if(watch2!=NULL && watch2->isInWS()){
 					clog<<"        ";
-					print(verbosity, *(*i)[j]->getSet()->getAgg()[k], true);
+					print(verbosity, *tempwatches[i][j]->getSet()->getAgg()[k], true);
 				}
 			}
 		}

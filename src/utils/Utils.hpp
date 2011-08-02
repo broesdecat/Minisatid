@@ -128,7 +128,11 @@ struct InnerAggregate{
 	AggSign sign;
 };
 
-struct InnerReifAggregate: public InnerAggregate{
+struct InnerReifAggregate{
+	int setID;
+	Weight bound;
+	AggType type;
+	AggSign sign;
 	Var head;
 	AggSem sem;
 	int defID; //Only relevant if defined aggregate
