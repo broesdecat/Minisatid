@@ -94,6 +94,7 @@ public:
 	bool add(const InnerMinimizeAgg& sentence);
 	bool add(const InnerForcedChoices& sentence);
 	bool add(const InnerSymmetryLiterals& sentence);
+	bool add(const InnerSymmetry& sentence);
 	bool add(const InnerIntVarEnum& object);
 	bool add(const InnerIntVarRange& object);
 	bool add(const InnerCPBinaryRel& object);

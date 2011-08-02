@@ -62,6 +62,8 @@ private:
 
 	std::vector<Propagator*> propagations;
 
+	virtual void	notifyNonDecisionVar(Var var);
+
 	// Explanation dummies: used to fix up learned clauses which are too small
 	Var dummy1, dummy2;
 

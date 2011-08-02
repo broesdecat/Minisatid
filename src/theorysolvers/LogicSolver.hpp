@@ -23,6 +23,9 @@ private:
 	SolverOption _modes;
 	WrapperPimpl& parent;
 
+	//Currently, the monitor is always the parent TODO should add a nice interface for that
+	std::vector<WrapperPimpl*> monitors;
+
 public:
 	LogicSolver(SolverOption modes, WrapperPimpl& inter)
 			: _modes(modes), parent(inter){};
@@ -40,11 +43,10 @@ public:
 	const WrapperPimpl& 	getParent	() const	{ return parent; }
 	WrapperPimpl& 		getParent	() 				{ return parent; }
 
+	virtual void	notifyNonDecisionVar(Var var) = 0;
+
 	virtual void 	printStatistics	() const = 0;
 
-	//Currently, the monitor is always the parent TODO should add a nice interface for that
-private:
-	std::vector<WrapperPimpl*> monitors;
 public:
 	void requestMonitor		(WrapperPimpl* monitor) { monitors.push_back(monitor); }
 	bool isBeingMonitored	() const { return monitors.size()>0; }
@@ -52,57 +54,6 @@ public:
 	void notifyMonitor(const InnerBacktrack& obj);
 };
 
-
-
 }
 
 #endif /* SOLVERI_H_ */
-
-#include <cstdio>
-
-#include "utils/Utils.hpp"
-
-namespace MinisatID {
-
-class Solution;
-class WrapperPimpl;
-
-class LogicSolver{
-private:
-	SolverOption _modes;
-	MinisatID::WrapperPimpl& parent;
-	bool hasMonitor;
-public:
-	LogicSolver(MinisatID::SolverOption modes, MinisatID::WrapperPimpl& inter)
-			:_modes(modes), parent(inter), hasMonitor(false){};
-	virtual ~LogicSolver(){};
-
-	virtual bool 	simplify() = 0;
-	virtual void 	finishParsing(bool& unsat) = 0;
-
-	virtual bool	solve(const vec<Lit>& assumptions, const ModelExpandOptions& options) = 0;
-
-			int 	verbosity		() const		{ return modes().verbosity; }
-	const SolverOption& modes		() const		{ return _modes; }
-			void	setVerbosity	(int verb)		{ _modes.verbosity = verb; }
-			void	setNbModels		(int nbmodels)	 { _modes.nbmodels = nbmodels; }
-
-	const MinisatID::WrapperPimpl& 	getParent	() const	{ return parent; }
-	MinisatID::WrapperPimpl& 		getParent	() 			{ return parent; }
-
-	virtual void 	printStatistics	() const = 0;
-
-	virtual void notifyNonDecisionVar(Var var){}
-
-	void notifyHasMonitor();
-	bool isBeingMonitored() const;
-	void notifyMonitor(const InnerPropagation& obj);
-	void notifyMonitor(const InnerBacktrack& obj);
-};
-
-
-
-}
-
-#endif /* SOLVERI_H_ */
->>>>>>> 8429f80a9467fede870b8a4355c2468f93a2184e

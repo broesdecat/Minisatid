@@ -18,6 +18,7 @@
 #include <fstream>
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
+	#include <memory>
 	template<class T>
 	struct sharedptr{
 		typedef std::shared_ptr<T> ptr;

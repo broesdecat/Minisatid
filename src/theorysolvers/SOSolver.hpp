@@ -74,6 +74,8 @@ public:
 	bool	add		(int modid, const InnerRigidAtoms& sentence);
 	bool	add		(int modid, const InnerSubTheory& sentence);
 
+	virtual void	notifyNonDecisionVar(Var var) { }//FIXME
+
 	//Get information on hierarchy
 	ModSolver* getModSolver	(vsize modid) const { checkexistsModSolver(modid); return solvers[modid];}
 

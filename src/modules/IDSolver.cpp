@@ -240,7 +240,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	vector<Var> reducedVars;
 	mixedrecagg = false;
 	posrecagg = false;
-	for (vector<int>::const_iterator i = defdVars.begin(); i < defdVars.end(); ++i) {
+	for (auto i = defdVars.begin(); i < defdVars.end(); ++i) {
 		Var v = (*i);
 		bool isdefd = false;
 		DefType t = type(v);
@@ -948,7 +948,7 @@ void IDSolver::notifyNewDecisionLevel() {
 void IDSolver::findCycleSources() {
 	clearCycleSources();
 
-	if (!backtracked && getPCSolver().modes().defn_strategy == always) {
+	if (!backtracked || getPCSolver().modes().defn_strategy == always) {
 		while(hasNextProp()){
 			Lit l = getNextProp(); //l has become true, so find occurences of ~l
 			assert(value(~l)==l_False);
@@ -972,7 +972,7 @@ void IDSolver::findCycleSources() {
 				}
 			}
 		}
-	} else {
+	} else { //Only if not always and backtracked
 		// NOTE: with a clever trail system, we could even after conflicts avoid having to look at all rules.
 		backtracked = false;
 		for (vector<Var>::const_iterator i = defdVars.begin(); i < defdVars.end(); ++i) {
@@ -2567,7 +2567,7 @@ bool IDSolver::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf,
 	if(agg.getType()==MAX){
 		return canJustifyMaxHead(agg, jstf, nonjstf, currentjust, real);
 	}else{
-		assert(agg.getType()==PROD || agg.getType(SUM));
+		assert(agg.getType()==PROD || agg.getType()==SUM);
 		return canJustifySPHead(agg, jstf, nonjstf, currentjust, real);
 	}
 }
