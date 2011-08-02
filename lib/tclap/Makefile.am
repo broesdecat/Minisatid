@@ -1,7 +1,7 @@
 
 ACLOCAL_AMFLAGS = -I config
 
-SUBDIRS = include config # examples docs tests msc
+SUBDIRS = include config # tests examples docs msc
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = $(PACKAGE).pc

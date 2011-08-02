@@ -45,6 +45,7 @@ protected:
 public:
 	Remapper(): maxnumber(0){}
 
+	virtual bool	hasVar		(const Atom& atom, Var& mappedvarifexists) const;
 	virtual Var		getVar		(const Atom& atom);
 	virtual Literal	getLiteral	(const Lit& lit);
 	bool			wasInput	(int var)	const { return var<maxnumber; }
@@ -56,6 +57,7 @@ private:
 	atommap 		origtocontiguousatommapper, contiguoustoorigatommapper;
 
 public:
+	bool	hasVar		(const Atom& atom, Var& mappedvarifexists) const;
 	Var		getVar		(const Atom& atom);
 	Literal	getLiteral	(const Lit& lit);
 
@@ -113,7 +115,9 @@ protected:
 	void 	checkLits		(const std::vector<Literal>& lits, vec<Lit>& ll);
 	void 	checkLits		(const std::vector<Literal>& lits, std::vector<Lit>& ll);
 	void 	checkAtoms		(const std::vector<Atom>& atoms, std::vector<Var>& ll);
+	void 	checkAtoms		(const std::map<Atom, Atom>& atoms, std::map<Var, Var>& ll);
 	void 	checkLits		(const std::vector<std::vector<Literal> >& lits, vec<vec<Lit> >& ll);
+	void 	checkLits		(const std::vector<std::vector<Literal> >& lits, std::vector<std::vector<Lit> >& ll);
 
 	Remapper*		getRemapper		()	const { return remapper; }
 
@@ -124,6 +128,8 @@ protected:
 private:
 	Solution& 	getSolMonitor() { return *solutionmonitor; }
 	const Solution& getSolMonitor() const { return *solutionmonitor; }
+
+	void	notifySmallestTseitin	(const Atom& tseitin);
 };
 
 template<>
@@ -168,6 +174,7 @@ template<> bool PCWrapperPimpl::add(const CPCount& sentence);
 template<> bool PCWrapperPimpl::add(const CPAllDiff& sentence);
 template<> bool PCWrapperPimpl::add(const ForcedChoices& sentence);
 template<> bool PCWrapperPimpl::add(const SymmetryLiterals& sentence);
+template<> bool PCWrapperPimpl::add(const Symmetry& sentence);
 
 class SOWrapperPimpl: public MinisatID::WrapperPimpl{
 private:

@@ -136,7 +136,7 @@ n|N|no|No|NO)
 ;;
 esac
 ], [
-AC_SUBST([X_FLAG_$1], [DX_IF_FEATURE([$1], 1, 0)])
+AC_SUBST([DX_FLAG_$1], [DX_IF_FEATURE([$1], 1, 0)])
 $4
 ])
 if DX_TEST_FEATURE([$1]); then

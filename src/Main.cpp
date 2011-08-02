@@ -80,7 +80,7 @@ Translator* trans = NULL;
 
 Solution* createSolution(){
 	ModelExpandOptions options;
-	options.printmodels	= PRINT_ALL;
+	options.printmodels	= PRINT_BEST;
 	options.savemodels = SAVE_NONE;
 	options.search = MODELEXPAND;
 	options.nbmodelstofind = 1;
@@ -257,6 +257,10 @@ pwls initializeAndParseASP(){
 pwls initializeAndParseOPB(){
 	OPBTranslator* opbtrans = new OPBTranslator();
 	trans = opbtrans;
+	//TODO hack, make a clean translation solution (also have to add lparse style translation for fodot)
+	if(modes.transformat==TRANS_PLAIN){
+		trans = new Translator();
+	}
 	sol->setTranslator(trans);
 
 	std::istream is(getInputBuffer());
@@ -268,6 +272,11 @@ pwls initializeAndParseOPB(){
 	}
 	closeInput();
 	delete parser;
+
+	if(modes.transformat==TRANS_PLAIN){
+		delete(opbtrans);
+	}
+
 	return p;
 }
 

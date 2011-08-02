@@ -153,7 +153,12 @@ struct InnerForcedChoices{
 };
 
 struct InnerSymmetryLiterals{
-	vec<vec<Lit> > literalgroups;
+	std::vector<std::vector<Lit> > literalgroups;
+};
+
+struct InnerSymmetry{
+	//INVAR keys are unique
+	std::map<Var, Var> symmetry;
 };
 
 struct InnerRigidAtoms{

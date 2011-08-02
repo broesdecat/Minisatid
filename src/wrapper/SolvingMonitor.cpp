@@ -54,6 +54,19 @@ void Solution::setTranslator(Translator* trans) {
 	translator = trans ;
 }
 
+void Solution::printLiteral(ostream& stream, const Literal& lit) const {
+	if(hasTranslator()){
+		getTranslator()->printLiteral(stream, lit);
+	}
+}
+bool Solution::hasTseitinKnowledge() const{
+	return hasTranslator() && getTranslator()->hasTseitinKnowledge();
+}
+Atom Solution::smallestTseitinAtom(){
+	assert(hasTranslator());
+	return getTranslator()->smallestTseitinAtom();
+}
+
 void Solution::notifyStartParsing() {
 	startparsing = cpuTime();
 }
@@ -126,8 +139,8 @@ void Solution::addModel(Model * const model) {
 	if (getPrintOption() == PRINT_ALL || (!optimizing && getPrintOption() == PRINT_BEST)) {
 		if (getNbModelsFound() == 1) {
 			if (!optimizing && modes.transformat != TRANS_ASP) {
-				printSatisfiable(output, modes.format, modes.transformat);
-				printSatisfiable(clog, modes.format, modes.transformat,	modes.verbosity);
+				printSatisfiable(output, modes.transformat);
+				printSatisfiable(clog, modes.transformat,	modes.verbosity);
 			}
 			getTranslator()->printHeader(output);
 		}
@@ -151,21 +164,21 @@ void Solution::solvingFinished(){
 
 	ostream output(resman->getBuffer());
 	if(isUnsat() && getPrintOption()!=PRINT_NONE){
-		printUnSatisfiable(output, modes.format, modes.transformat);
-		printUnSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);
+		printUnSatisfiable(output, modes.transformat);
+		printUnSatisfiable(clog, modes.transformat, modes.verbosity);
 	}else if(getNbModelsFound()==0 && getPrintOption()!=PRINT_NONE){
-		printUnknown(output, modes.format, modes.transformat);
+		printUnknown(output, modes.transformat);
 	}else{ // not unsat and at least one model
 		if(optimizing && getPrintOption()==PRINT_BEST){
 			if(hasOptimalModel()){
-				printOptimalModelFound(output, modes.format);
+				printOptimalModelFound(output, modes.transformat);
 			}
 			if(hasTranslator()){
 				getTranslator()->printModel(output, getBestModelFound());
 			}
 		}else if(!optimizing && modes.transformat==TRANS_ASP){
-			printSatisfiable(output, modes.format, modes.transformat);
-			printSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);
+			printSatisfiable(output, modes.transformat);
+			printSatisfiable(clog, modes.transformat, modes.verbosity);
 		}
 	}
 	output.flush();

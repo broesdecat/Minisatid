@@ -7,7 +7,5 @@ ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = lib src doc
 
 include aminclude.am
-
 MOSTLYCLEANFILES = $(DX_CLEANFILES)
-
 EXTRA_DIST = $(DX_CONFIG)

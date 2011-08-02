@@ -77,7 +77,7 @@ double MinisatID::cpuTime(void) {
 
 SolverOption::SolverOption():
 		format(FORMAT_FODOT),
-		transformat(TRANS_FODOT),
+		transformat(TRANS_DEFAULT),
 		verbosity(1),
 		randomseed(91648253),
 		nbmodels(1),
@@ -100,9 +100,13 @@ SolverOption::SolverOption():
 		polarity(getDefaultPolarity()),
 		bumpaggonnotify(true),
 		bumpidonstart(false),
-		subsetminimizeexplanation(false),
+
 		asapaggprop(false),
-		ufsvarintrothreshold(500){
+		ufsvarintrothreshold(500),
+		tseitindecisions(true),
+		subsetminimizeexplanation(false),
+		currentlevelfirstinexplanation(true),
+		innogoodfirstinexplanation(true){
 	stringstream str;
 	str <<DATADIR <<"/P1.TXT";
 	primesfile = str.str();
@@ -154,4 +158,5 @@ void SolverOption::print(std::ostream& so) const{
 	so << "subsetminimizeexplanation: " <<subsetminimizeexplanation <<"\n";
 	so << "asapaggprop: " 		<<asapaggprop <<"\n";
 	so << "ufsvarintrothreshold: " <<ufsvarintrothreshold <<"\n";
+	so << "tseitindecisions: " 	<<tseitindecisions <<"\n";
 }

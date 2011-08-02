@@ -88,7 +88,6 @@ struct Option: public Opt{
 			}
 			ss <<endl;
 		}
-		assert(found);
 
 		arg = new TCLAP::ValueArg<T2>(shortopt,longopt, ss.str(), false, tclapdefault, formatsconstr, cmd);
 	};
@@ -131,10 +130,11 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 
 	vector<OUTPUTFORMAT> transvals;
 	vector<pair<string, string> > transdesc;
-	transvals.push_back(TRANS_FODOT); transdesc.push_back(pair<string, string>("fodot", "Translate model into FO(.) structure"));
-	transvals.push_back(TRANS_ASP); transdesc.push_back(pair<string, string>("asp", "Translate model into ASP facts"));
-	transvals.push_back(TRANS_PLAIN); transdesc.push_back(pair<string, string>("plain", "Return model in integer format"));
+	transvals.push_back(TRANS_FODOT); transdesc.push_back(pair<string, string>("fodot", "Translate model into FO(.) structure (default if input is fodot)"));
+	transvals.push_back(TRANS_ASP); transdesc.push_back(pair<string, string>("asp", "Translate model into ASP facts (default if input is asp)"));
+	transvals.push_back(TRANS_PLAIN); transdesc.push_back(pair<string, string>("plain", "Return model in sat format"));
 	transvals.push_back(TRANS_FZ); transdesc.push_back(pair<string, string>("flatzinc", "Rewrite theory into flatzinc model"));
+	transvals.push_back(TRANS_OPB); transdesc.push_back(pair<string, string>("opb", "Print out into opb output format (default if input is opb)"));
 
 	vector<pair<string, string> > checkcyclesdesc;
 	checkcyclesdesc.push_back(pair<string, string>("yes", "Check"));
@@ -150,6 +150,10 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 	bumpaggonnotifydesc.push_back(pair<string, string>("yes", "Bump"));
 	bumpaggonnotifydesc.push_back(pair<string, string>("no", "Don't bump"));
 
+	vector<pair<string, string> > decideontseitins;
+	decideontseitins.push_back(pair<string, string>("yes", "Use as decision literals"));
+	decideontseitins.push_back(pair<string, string>("no", "Don't use as decision literals"));
+
 	vector<pair<string, string> > bumpidonstartdesc;
 	bumpidonstartdesc.push_back(pair<string, string>("yes", "Bump"));
 	bumpidonstartdesc.push_back(pair<string, string>("no", "Don't bump"));
@@ -157,6 +161,14 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 	vector<pair<string, string> > subsetminimdesc;
 	subsetminimdesc.push_back(pair<string, string>("yes", "Minimize"));
 	subsetminimdesc.push_back(pair<string, string>("no", "Don't minimize"));
+
+	vector<pair<string, string> > nogoodexplandesc;
+	nogoodexplandesc.push_back(pair<string, string>("yes", "Add first"));
+	nogoodexplandesc.push_back(pair<string, string>("no", "Don't add first"));
+
+	vector<pair<string, string> > currentlevelexplandesc;
+	currentlevelexplandesc.push_back(pair<string, string>("yes", "Add first"));
+	currentlevelexplandesc.push_back(pair<string, string>("no", "Don't add first"));
 
 	vector<pair<string, string> > asapaggpropdesc;
 	asapaggpropdesc.push_back(pair<string, string>("yes", "Early"));
@@ -243,12 +255,18 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 			modes.bumpaggonnotify, cmd,"Choose whether to bump variable activity on aggregate propagation"));
 	options.push_back(new Option<bool, string>	("","bumpid", 		yesnovals, bumpidonstartdesc,
 			modes.bumpidonstart, cmd, "Choose whether to bump variable activity on ID initialization"));
-	options.push_back(new Option<bool, string>	("","minimexplan", 	yesnovals, subsetminimdesc,
+	options.push_back(new Option<bool, string>	("","minexplan", 	yesnovals, subsetminimdesc,
 			modes.subsetminimizeexplanation, cmd, "Choose whether to minimize aggregate explanations"));
+	options.push_back(new Option<bool, string>	("","firstexplan", 	yesnovals, currentlevelexplandesc,
+			modes.currentlevelfirstinexplanation, cmd, "Choose whether to add literals in the current decision level to the explanation first"));
+	options.push_back(new Option<bool, string>	("","nogoodexplan", 	yesnovals, nogoodexplandesc,
+			modes.innogoodfirstinexplanation, cmd, "Choose whether to add literals already in the global nogood to the explanation first"));
 	options.push_back(new Option<bool, string>	("","asapaggprop", 	yesnovals, asapaggpropdesc,
 			modes.asapaggprop, cmd, "Choose whether to propagate aggregates as fast as possible"));
 	options.push_back(new Option<bool, string>	("","oneclauseufs",  yesnovals, ufsclauseaddingdesc,
 			modes.selectOneFromUFS, cmd,"Choose whether learn one clause at a time when an unfounded set is found"));
+	options.push_back(new Option<bool, string>	("","tseitindecision", 	yesnovals, decideontseitins,
+			modes.tseitindecisions, cmd,"Choose whether tseitin literals can be used as decision literals."));
 	options.push_back(new Option<bool, string>	("","pbsolver", 	yesnovals, pbsolverdesc,
 			modes.pbsolver, cmd,"Choose whether to translate pseudo-boolean constraints to SAT"));
 	options.push_back(new NoValsOption<double>	("","watch-ratio", 	"double",
@@ -285,6 +303,20 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 	}
 
 	deleteList<Opt>(options);
+
+	if(modes.transformat==TRANS_DEFAULT){
+		switch(modes.format){
+			case FORMAT_ASP:
+				modes.transformat = TRANS_ASP;
+				break;
+			case FORMAT_OPB:
+				modes.transformat = TRANS_OPB;
+				break;
+			case FORMAT_FODOT:
+				modes.transformat = TRANS_FODOT;
+				break;
+		}
+	}
 
 	if(!modes.verifyOptions()){
 		return false;

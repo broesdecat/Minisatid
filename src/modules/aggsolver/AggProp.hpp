@@ -15,6 +15,12 @@
 #include "modules/aggsolver/AggUtils.hpp"
 #include "modules/aggsolver/AggTransform.hpp"
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+#include <memory>
+#else
+#include <tr1/memory>
+#endif
+
 namespace Minisat{
 	class Solver;
 }

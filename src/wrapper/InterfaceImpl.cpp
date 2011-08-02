@@ -38,6 +38,15 @@ Literal Remapper::getLiteral(const Lit& lit){
 	return Literal(var(lit)+1, sign(lit));
 }
 
+bool Remapper::hasVar(const Atom& atom, Var& mappedvarifexists) const{
+	if(atom.getValue()<=maxnumber){
+		mappedvarifexists = atom.getValue();
+		return true;
+	}else{
+		return false;
+	}
+}
+
 Var SmartRemapper::getVar(const Atom& atom){
 	if(atom.getValue()<1){
 		throw idpexception(getMinimalVarNumbering());
@@ -62,6 +71,16 @@ Literal SmartRemapper::getLiteral(const Lit& lit){
 	return Literal(origatom, sign(lit));
 }
 
+bool SmartRemapper::hasVar(const Atom& atom, Var& mappedvarifexists) const{
+	atommap::const_iterator i = origtocontiguousatommapper.find(atom.getValue());
+	if(i==origtocontiguousatommapper.end()){
+		return false;
+	}else{
+		mappedvarifexists = (*i).second;
+		return true;
+	}
+}
+
 // PIMPL of External Interfaces
 
 WrapperPimpl::WrapperPimpl(const SolverOption& modes):
@@ -80,6 +99,9 @@ void WrapperPimpl::setSolutionMonitor(Solution* sol) {
 	if(sol!=NULL) {
 		solutionmonitor = sol;
 		getSolMonitor().setModes(modes());
+		if(sol->hasTseitinKnowledge() && !modes().tseitindecisions){
+			notifySmallestTseitin(sol->smallestTseitinAtom());
+		}
 	}
 }
 
@@ -89,13 +111,25 @@ void WrapperPimpl::printStatistics() const {
 }
 
 void WrapperPimpl::printLiteral(std::ostream& output, const Lit& l) const{
-	getSolMonitor().getTranslator()->printLiteral(output, getRemapper()->getLiteral(l));
+	getSolMonitor().printLiteral(output, getRemapper()->getLiteral(l));
 }
 
 void WrapperPimpl::printCurrentOptimum(const Weight& value) const{
 	getSolMonitor().notifyCurrentOptimum(value);
 }
 
+void WrapperPimpl::notifySmallestTseitin(const Atom& tseitin){
+	Atom posstseitin = tseitin;
+	while(true){
+		Var var = 0;
+		if(getRemapper()->hasVar(posstseitin, var)){
+			getSolver()->notifyNonDecisionVar(var);
+		}else{
+			break;
+		}
+		posstseitin = Atom(posstseitin.getValue()+1);
+	}
+}
 Var WrapperPimpl::checkAtom(const Atom& atom){
 	return getRemapper()->getVar(atom);
 }
@@ -119,6 +153,13 @@ void WrapperPimpl::checkLits(const vector<vector<Literal> >& lits, vec<vec<Lit> 
 	}
 }
 
+void WrapperPimpl::checkLits(const vector<vector<Literal> >& lits, vector<vector<Lit> >& ll){
+	for(vector<vector<Literal> >::const_iterator i=lits.begin(); i<lits.end(); ++i){
+		ll.push_back(vector<Lit>());
+		checkLits(*i, ll.back());
+	}
+}
+
 void WrapperPimpl::checkLits(const vector<Literal>& lits, vector<Lit>& ll){
 	ll.reserve(lits.size());
 	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); ++i){
@@ -130,6 +171,12 @@ void WrapperPimpl::checkAtoms(const vector<Atom>& atoms, vector<Var>& ll){
 	ll.reserve(atoms.size());
 	for(vector<Atom>::const_iterator i=atoms.begin(); i<atoms.end(); ++i){
 		ll.push_back(checkAtom(*i));
+	}
+}
+
+void WrapperPimpl::checkAtoms(const std::map<Atom, Atom>& atoms, std::map<Var, Var>& ll){
+	for(auto i=atoms.begin(); i!=atoms.end(); ++i){
+		ll.insert(pair<Var, Var>(checkAtom((*i).first), checkAtom((*i).second)));
 	}
 }
 
@@ -381,6 +428,13 @@ template<>
 bool PCWrapperPimpl::add(const SymmetryLiterals& sentence){
 	InnerSymmetryLiterals symms;
 	checkLits(sentence.symmgroups, symms.literalgroups);
+	return getSolver()->add(symms);
+}
+
+template<>
+bool PCWrapperPimpl::add(const Symmetry& sentence){
+	InnerSymmetry symms;
+	checkAtoms(sentence.symmetry, symms.symmetry);
 	return getSolver()->add(symms);
 }
 

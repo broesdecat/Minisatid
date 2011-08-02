@@ -219,7 +219,7 @@ namespace MinisatID {
 	}; // SAT-solver polarity option
 
 	enum INPUTFORMAT 	{ FORMAT_FODOT, FORMAT_ASP, FORMAT_OPB};
-	enum OUTPUTFORMAT 	{ TRANS_FODOT, TRANS_ASP, TRANS_PLAIN, TRANS_FZ };
+	enum OUTPUTFORMAT 	{ TRANS_FODOT, TRANS_ASP, TRANS_PLAIN, TRANS_FZ, TRANS_OPB, TRANS_DEFAULT };
 
 	// Structure containing general options for the solvers
 	class SolverOption {
@@ -246,8 +246,11 @@ namespace MinisatID {
 		double 			rand_var_freq, var_decay;
 		POLARITY 		polarity;
 		bool 			bumpaggonnotify, bumpidonstart;
-		bool			subsetminimizeexplanation, asapaggprop;
+		bool			asapaggprop;
 		long 			ufsvarintrothreshold;
+		bool			tseitindecisions;
+		bool			subsetminimizeexplanation, currentlevelfirstinexplanation, innogoodfirstinexplanation;
+
 
 		SolverOption();
 
@@ -268,9 +271,9 @@ namespace MinisatID {
 		int 			nbmodelstofind;
 
 		ModelExpandOptions():
-				printmodels(PRINT_ALL), savemodels(SAVE_ALL), search(MODELEXPAND),
-				nbmodelstofind(0)
-			{}
+				printmodels(PRINT_BEST), savemodels(SAVE_NONE), search(MODELEXPAND),
+				nbmodelstofind(0){
+		}
 	};
 }
 
@@ -475,6 +478,12 @@ public:
 class SymmetryLiterals{
 public:
 	std::vector<literallist> symmgroups;
+};
+
+class Symmetry{
+public:
+	// INVAR: the keys are unique
+	std::map<Atom, Atom> symmetry;
 };
 
 }

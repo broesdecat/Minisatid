@@ -125,16 +125,6 @@ Var Solver::newVar(bool sign, bool dvar)
 
 /*AB*/
 
-void Solver::addSymmetryGroup(const vec<vec<Lit> >& symms){
-	symmgroups.push();
-	for(int i=0; i<symms.size(); i++){
-		symmgroups.last().push();
-		for(int j=0; j<symms[i].size(); j++){
-			symmgroups.last().last().push(symms[i][j]);
-		}
-	}
-}
-
 /**
  * This is (currently) necessary, because the intialization schema is the following:
  *
@@ -410,7 +400,10 @@ Lit Solver::pickBranchLit(int polarity_mode, double random_var_freq)
 |  Effect:
 |    Will undo part of the trail, upto but not beyond the assumption of the current decision level.
 |________________________________________________________________________________________________@*/
-void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
+bool Solver::isAlreadyUsedInAnalyze(const Lit& lit) const{
+	return seen[var(lit)]==1;
+}
+bool Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 {
     int pathC = 0;
     Lit p     = lit_Undef;
@@ -527,9 +520,13 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
         // Select next clause to look at:
         while (!seen[var(trail[index--])]);
         p     = trail[index+1];
-        confl = reason[var(p)];
+        confl = reason(var(p));
 
-        /*AB*/
+		/*AB*/
+        if(solver.symmetryPropagationOnAnalyze(p)){
+        	return true;
+        }
+
         if(verbosity>4){
 			reportf("    Now getting explanation for ");
 			for(std::vector<Lit>::iterator i=explain.begin(); i<explain.end(); i++){
@@ -612,6 +609,10 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 
 
     for (int j = 0; j < analyze_toclear.size(); j++) seen[var(analyze_toclear[j])] = 0;    // ('seen[]' is now cleared)
+
+    /*AB*/
+	return false;
+	/*AE*/
 }
 
 
@@ -890,7 +891,14 @@ lbool Solver::search(/*AB*/bool nosearch/*AE*/)
             first = false;
 
             learnt_clause.clear();
-            analyze(confl, learnt_clause, backtrack_level);
+
+            bool symmetrybacktrack = analyze(confl, learnt_clause, backtrack_level);
+
+            if(symmetrybacktrack){
+				cancelUntil(decisionLevel()-1);
+				continue;
+            }
+
             cancelUntil(backtrack_level);
             assert(value(learnt_clause[0]) == l_Undef);
 
@@ -1034,10 +1042,10 @@ bool Solver::solve(const vec<Lit>& assumps /*AB*/, bool nosearch /*AE*/)
     while (status == l_Undef){
     	status = search(/*AB*/nosearch/*AE*/);
     	/*AB*/
-    	status = solver.checkStatus(status);
     	if(nosearch){
     		return status==l_True;
     	}
+    	status = solver.checkStatus(status);
     	/*AE*/
     }
 

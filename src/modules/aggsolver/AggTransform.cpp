@@ -21,7 +21,6 @@
 #include "PbSolver.h"
 
 using namespace std;
-using namespace tr1;
 using namespace MinisatID;
 
 class OrderedAggTransformations{

@@ -94,8 +94,10 @@ public:
 	bool	isSat					() { return getNbModelsFound()>0; }
 	bool	isUnsat					() { return unsatfound; }
 
-	Translator* getTranslator		()	const;
 	void 		setTranslator		(Translator* trans);
+	void 		printLiteral(std::ostream& stream, const Literal& lit) const ;
+	bool		hasTseitinKnowledge	() const;
+	Atom		smallestTseitinAtom	();
 
 	void notifyStartParsing			();
 	void notifyEndParsing			();
@@ -112,6 +114,7 @@ public:
 
 private:
 	bool	hasTranslator			()	const	{ return translator!=NULL; }
+	Translator* getTranslator		()	const;
 
 	void 	solvingFinished			();
 
