@@ -88,7 +88,6 @@ struct Option: public Opt{
 			}
 			ss <<endl;
 		}
-		assert(found);
 
 		arg = new TCLAP::ValueArg<T2>(shortopt,longopt, ss.str(), false, tclapdefault, formatsconstr, cmd);
 	};

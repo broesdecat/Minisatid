@@ -1042,10 +1042,10 @@ bool Solver::solve(const vec<Lit>& assumps /*AB*/, bool nosearch /*AE*/)
     while (status == l_Undef){
     	status = search(/*AB*/nosearch/*AE*/);
     	/*AB*/
-    	status = solver.checkStatus(status);
     	if(nosearch){
     		return status==l_True;
     	}
+    	status = solver.checkStatus(status);
     	/*AE*/
     }
 

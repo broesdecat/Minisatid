@@ -981,10 +981,10 @@ bool Solver::solve(const vec<Lit>& assumps /*AB*/, bool nosearch /*AE*/)
             reportf("| %9d | %7d %8d %8d | %8d %8d %6.0f | %6.3f %% |\n", (int)conflicts, order_heap.size(), nClauses(), (int)clauses_literals, (int)nof_learnts, nLearnts(), (double)learnts_literals/nLearnts(), progress_estimate*100), fflush(stdout);
         status = search((int)nof_conflicts, (int)nof_learnts, /*AB*/nosearch/*AE*/);
 		/*AB*/
-		status = solver.checkStatus(status);
 		if(nosearch){
 			return status==l_True;
 		}
+		status = solver.checkStatus(status);
 		/*AE*/
         nof_conflicts *= restart_inc;
         nof_learnts   *= learntsize_inc;
