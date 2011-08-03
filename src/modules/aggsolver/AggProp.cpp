@@ -311,6 +311,43 @@ void MinisatID::removeValue(const AggProp& type, const Weight& weight, bool wasi
 
 bool printedwarning = false;
 
+
+AggPropagator*	MaxProp::createPropagator(TypedSet* set) const{
+	if(set->isUsingWatches() && !printedwarning){
+		clog <<">> Currently max/min aggregates never use watched-literal-schemes.\n";
+		printedwarning = true;
+	}
+	return new MaxFWAgg(set);
+}
+
+/*AggPropagator*	MinProp::createPropagator(TypedSet* set) const{
+	if(set->isUsingWatches() && !printedwarning){
+		clog <<">> Currently max/min aggregates never use watched-literal-schemes.\n";
+		printedwarning = true;
+	}
+	return new MinFWAgg(set);
+}*/
+
+AggPropagator*	SumProp::createPropagator(TypedSet* set) const{
+	set->getSolver()->adaptAggHeur(set->getWL(), set->getAgg().size());
+
+	if(set->isUsingWatches()){
+		return new GenPWAgg(set);
+	}else{
+		return new SumFWAgg(set);
+	}
+}
+
+AggPropagator*	ProdProp::createPropagator(TypedSet* set) const{
+	set->getSolver()->adaptAggHeur(set->getWL(), set->getAgg().size());
+
+	if(set->isUsingWatches()){
+		return new GenPWAgg(set);
+	}else{
+		return new ProdFWAgg(set);
+	}
+}
+
 void TypedSet::addAgg(Agg* aggr){
 	assert(aggr!=NULL);
 	aggregates.push_back(aggr);
@@ -349,17 +386,10 @@ void TypedSet::initialize(bool& unsat, bool& sat, vps& sets) {
 
 	if(sat || unsat){ return; }
 
-	// FIXME who creates the propagators?
-	//setProp(getType().createAggPropagator(this));
+	setProp(getType().createPropagator(this));
 	prop->initialize(unsat, sat);
 
 	if(sat || unsat){ return; }
-
-	for (agglist::const_iterator i = getAgg().begin(); i < getAgg().end(); ++i) {
-		if ((*i)->isDefined()) {
-			getSolver()->notifyDefinedHead(var((*i)->getHead()), (*i)->getDefID());
-		}
-	}
 }
 
 void TypedSet::addExplanation(AggReason& ar) const {

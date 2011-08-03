@@ -155,7 +155,7 @@ public:
 	virtual void 		finishParsing		 	(bool& present, bool& unsat);
 	virtual rClause 	notifypropagate			();
 	virtual void 		notifyNewDecisionLevel	();
-	virtual void 		notifyBacktrack			(int untillevel){ backtracked = true; Propagator::notifyBacktrack(untillevel); };
+	virtual void 		notifyBacktrack			(int untillevel, const Lit& decision){ backtracked = true; Propagator::notifyBacktrack(untillevel, decision); };
 	virtual rClause 	getExplanation			(const Lit& l);
 	virtual const char* getName					() const { return "definitional"; }
 	virtual void 		printState				() const;

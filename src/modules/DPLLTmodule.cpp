@@ -13,7 +13,7 @@
 using namespace std;
 using namespace MinisatID;
 
-void Propagator::notifyBacktrack(int untillevel){
+void Propagator::notifyBacktrack(int untillevel, const Lit& decision){
 	trailindex = getPCSolver().getSATSolver()->getTrailSize();
 }
 

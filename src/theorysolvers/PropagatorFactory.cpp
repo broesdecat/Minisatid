@@ -113,6 +113,9 @@ void PropagatorFactory::addSymmSolver(){
 	assert(isParsing());
 	symmsolver = new SymmetryPropagator<PCSolver*>(getEnginep());
 }
+bool PropagatorFactory::hasSymmSolver() const {
+	return symmsolver!=NULL;
+}
 SymmetryPropagator<PCSolver*>* PropagatorFactory::getSymmSolver() const {
 	assert(hasSymmSolver());
 	return symmsolver;

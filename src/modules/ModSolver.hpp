@@ -122,7 +122,7 @@ public:
 	void 	finishParsing		(bool& present, bool& unsat);
 	rClause	notifypropagate		();
 	void 	notifyNewDecisionLevel	();
-	void 	notifyBacktrack		(int untillevel);
+	void 	notifyBacktrack		(int untillevel, const Lit& decision);
 	rClause getExplanation		(const Lit& l) { assert(false); return nullPtrClause; /*TODO NOT IMPLEMENTED*/ };
 	rClause notifyFullAssignmentFound(){ return nullPtrClause; } // TODO should check wellfoundedness here
 	Var 	notifyBranchChoice	(const Var& var) const { return var; }

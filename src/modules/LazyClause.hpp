@@ -43,7 +43,7 @@ public:
 	rClause notifyFullAssignmentFound() { return nullPtrClause; }
 	void 	finishParsing		(bool& present, bool& unsat) { return; }
 	void 	notifyNewDecisionLevel	() { return; }
-	void 	notifyBacktrack		(int untillevel) { return; }
+	void 	notifyBacktrack		(int untillevel, const Lit& decision) { return; }
 	rClause	notifypropagate		();
 	Var 	notifyBranchChoice	(const Var& var) const { return var; }
 	void 	printStatistics		() const;

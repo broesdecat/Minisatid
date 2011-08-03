@@ -429,7 +429,7 @@ void AggSolver::notifyNewDecisionLevel() {
 	setsbacktracktrail.push_back(vector<TypedSet*>());
 }
 
-void AggSolver::notifyBacktrack(int untillevel) {
+void AggSolver::notifyBacktrack(int untillevel, const Lit& decision) {
 	assert(isInitialized());
 	while(setsbacktracktrail.size()>(vsize)(untillevel+1)){
 		for(vector<TypedSet*>::iterator j=setsbacktracktrail.back().begin(); j<setsbacktracktrail.back().end(); ++j){
@@ -450,6 +450,7 @@ void AggSolver::notifyBacktrack(int untillevel) {
 	}else{
 		index = getTime(littrail.back());
 	}
+	Propagator::notifyBacktrack(untillevel, decision);
 }
 
 Var	AggSolver::notifyBranchChoice(const Var& chosenvar) const {

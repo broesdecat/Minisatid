@@ -26,13 +26,18 @@ EventQueue::EventQueue(PCSolver& pcsolver):
 	event2propagator[DECISIONLEVEL];
 	event2propagator[BACKTRACK];
 	event2propagator[EXITCLEANLY];
+	event2propagator[ADDCLAUSE];
+	event2propagator[REMOVECLAUSE];
+	event2propagator[SYMMETRYANALYZE];
 }
 
 EventQueue::~EventQueue() {
-	for(proplist::const_iterator i=event2propagator.at(EXITCLEANLY).begin(); i<event2propagator.at(EXITCLEANLY).end(); ++i){
+	for(auto i=begin(EXITCLEANLY); i<end(EXITCLEANLY); ++i){
 		delete(*i);
 	}
 }
+
+// FIXME add ETERNALPROPAGATE for sat and aggsolver
 
 void EventQueue::notifyVarAdded(){
 	while(litevent2propagator.size()<2*getPCSolver().nVars()){
@@ -78,7 +83,7 @@ void EventQueue::setTrue(const Lit& l){
 void EventQueue::finishParsing(bool& unsat){
 	unsat = false;
 
-	for(proplist::const_iterator i=earlyfinishparsing.begin(); !unsat && i<earlyfinishparsing.end(); ++i){
+	for(auto i=earlyfinishparsing.begin(); !unsat && i<earlyfinishparsing.end(); ++i){
 		bool present = true;
 		(*i)->finishParsing(present, unsat);
 		if(!present){
@@ -88,7 +93,7 @@ void EventQueue::finishParsing(bool& unsat){
 	}
 	earlyfinishparsing.clear();
 
-	for(proplist::const_iterator i=latefinishparsing.begin(); !unsat && i<latefinishparsing.end(); ++i){
+	for(auto i=latefinishparsing.begin(); !unsat && i<latefinishparsing.end(); ++i){
 		bool present = true;
 		(*i)->finishParsing(present, unsat);
 		if(!present){
@@ -100,14 +105,14 @@ void EventQueue::finishParsing(bool& unsat){
 
 
 	//IMPORTANT: the propagators which are no longer present should be deleted from EVERY datastructure that is used later on!
-	for(map<EVENT, proplist >::iterator i=event2propagator.begin(); i!=event2propagator.end(); ++i){
+	for(auto i=event2propagator.begin(); i!=event2propagator.end(); ++i){
 		for(proplist::iterator j=(*i).second.begin(); j<(*i).second.end(); ++j){
 			if(!(*j)->isPresent()){
 				j = --(*i).second.erase(j);
 			}
 		}
 	}
-	for(vector<vector<proplist > >::iterator i=litevent2propagator.begin(); i<litevent2propagator.end(); ++i){
+	for(auto i=litevent2propagator.begin(); i<litevent2propagator.end(); ++i){
 		for(vector<proplist >::iterator j=(*i).begin(); j!=(*i).end(); ++j){
 			for(proplist::iterator k=(*j).begin(); k<(*j).end(); ++k){
 				if(!(*k)->isPresent()){
@@ -116,7 +121,7 @@ void EventQueue::finishParsing(bool& unsat){
 			}
 		}
 	}
-	for(proplist::iterator j=allpropagators.begin(); j<allpropagators.end(); ++j){
+	for(auto j=allpropagators.begin(); j<allpropagators.end(); ++j){
 		if(!(*j)->isPresent() && !(*j)->isUsedForSearch()){
 			delete(*j);
 			j = --allpropagators.erase(j);
@@ -157,42 +162,71 @@ int	EventQueue::getNbOfFormulas() const{
 	return count;
 }
 
+proplist::const_iterator EventQueue::begin(EVENT event) const{
+	return event2propagator.at(event).begin();
+}
+
+proplist::const_iterator EventQueue::end(EVENT event) const{
+	return event2propagator.at(event).end();
+}
+
 rClause EventQueue::notifyFullAssignmentFound(){
 	rClause confl = nullPtrClause;
-	for(proplist::const_iterator i=event2propagator.at(FULLASSIGNMENT).begin(); confl==nullPtrClause && i<event2propagator.at(FULLASSIGNMENT).end(); ++i){
+	for(auto i=begin(FULLASSIGNMENT); confl==nullPtrClause && i<end(FULLASSIGNMENT); ++i){
 		confl = (*i)->notifyFullAssignmentFound();
 	}
 	return confl;
 }
 
+void EventQueue::notifyClauseAdded(rClause clauseID){
+	for(auto i=begin(ADDCLAUSE); i<end(ADDCLAUSE); ++i){
+		(*i)->notifyClauseAdded(clauseID);
+	}
+}
+
+void EventQueue::notifyClauseDeleted(rClause clauseID){
+	for(auto i=begin(REMOVECLAUSE); i<end(REMOVECLAUSE); ++i){
+		(*i)->notifyClauseDeleted(clauseID);
+	}
+}
+
+bool EventQueue::symmetryPropagationOnAnalyze(const Lit& p){
+	for(auto i=begin(SYMMETRYANALYZE); i<end(SYMMETRYANALYZE); ++i){
+		if((*i)->symmetryPropagationOnAnalyze(p)){
+			return true;
+		}
+	}
+	return false;
+}
+
 void EventQueue::notifyNewDecisionLevel(){
-	for(proplist::const_iterator i=event2propagator.at(DECISIONLEVEL).begin(); i<event2propagator.at(DECISIONLEVEL).end(); ++i){
+	for(auto i=begin(DECISIONLEVEL); i<end(DECISIONLEVEL); ++i){
 		(*i)->notifyNewDecisionLevel();
 	}
 }
 
-void EventQueue::notifyBacktrack(int untillevel){
-	for(proplist::const_iterator i=event2propagator.at(BACKTRACK).begin(); i<event2propagator.at(BACKTRACK).end(); ++i){
-		(*i)->notifyBacktrack(untillevel);
+void EventQueue::notifyBacktrack(int untillevel, const Lit& decision){
+	for(auto i=begin(BACKTRACK); i<end(BACKTRACK); ++i){
+		(*i)->notifyBacktrack(untillevel, decision);
 	}
 }
 
 Var EventQueue::notifyBranchChoice(Var var){
 	Var currentvar = var;
-	for(proplist::const_iterator i=event2propagator.at(CHOICE).begin(); i<event2propagator.at(CHOICE).end(); ++i){
+	for(auto i=begin(CHOICE); i<end(CHOICE); ++i){
 		currentvar = (*i)->notifyBranchChoice(currentvar);
 	}
 	return currentvar;
 }
 
 void EventQueue::printState() const {
-	for(proplist::const_iterator i=event2propagator.at(PRINTSTATE).begin(); i<event2propagator.at(PRINTSTATE).end(); ++i){
+	for(auto i=begin(PRINTSTATE); i<end(PRINTSTATE); ++i){
 		(*i)->printState();
 	}
 }
 
 void EventQueue::printStatistics() const {
-	for(proplist::const_iterator i=event2propagator.at(PRINTSTATS).begin(); i<event2propagator.at(PRINTSTATS).end(); ++i){
+	for(auto i=begin(PRINTSTATS); i<end(PRINTSTATS); ++i){
 		(*i)->printStatistics();
 	}
 }

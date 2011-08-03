@@ -362,7 +362,7 @@ bool ModSolver::propagateDownAtEndOfQueue(vec<Lit>& confldisj){
 	return result;
 }
 
-void ModSolver::notifyBacktrack(int untillevel){
+void ModSolver::notifyBacktrack(int untillevel, const Lit& decision){
 	if(getModSolverData().modes().verbosity>4){
 		report("Backtracking from PC in mod %zu to level %d\n", getPrintId(), untillevel);
 	}
@@ -377,7 +377,7 @@ void ModSolver::notifyBacktrack(int untillevel){
 		trail.pop_back();
 	}
 
-	Propagator::notifyBacktrack(untillevel);
+	Propagator::notifyBacktrack(untillevel, decision);
 }
 
 /**

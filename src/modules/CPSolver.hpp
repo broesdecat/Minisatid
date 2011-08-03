@@ -81,7 +81,7 @@ public:
 	// Propagator methods
 	void 	finishParsing	(bool& present, bool& unsat);
 	void 	notifyNewDecisionLevel();
-	void 	notifyBacktrack(int untillevel);
+	void 	notifyBacktrack(int untillevel, const Lit& decision);
 	rClause notifypropagate();
 	rClause getExplanation	(const Lit& p);
 	void 	printStatistics	() const;

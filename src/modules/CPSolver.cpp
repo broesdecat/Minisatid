@@ -232,12 +232,12 @@ void CPSolver::notifyNewDecisionLevel(){
 	trail.newDecisionLevel();
 }
 
-void CPSolver::notifyBacktrack(int untillevel){
+void CPSolver::notifyBacktrack(int untillevel, const Lit& decision){
 	//clog <<"Backtracked CP solver.\n";
 	getData().removeSpace(untillevel);
 	searchedandnobacktrack = false;
 	trail.backtrackDecisionLevels(untillevel);
-	Propagator::notifyBacktrack(untillevel);
+	Propagator::notifyBacktrack(untillevel, decision);
 }
 
 rClause CPSolver::notifypropagate(){

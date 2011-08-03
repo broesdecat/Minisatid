@@ -134,7 +134,7 @@ public:
 	virtual void 		finishParsing		 	(bool& present, bool& unsat);
 	virtual rClause 	notifypropagate			();
 	virtual void 		notifyNewDecisionLevel	();
-	virtual void 		notifyBacktrack			(int untillevel);
+	virtual void 		notifyBacktrack			(int untillevel, const Lit& decision);
 	virtual rClause 	getExplanation			(const Lit& l);
 	virtual const char* getName					() const { return "aggregate"; }
 	virtual void 		printState				() const;

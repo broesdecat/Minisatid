@@ -58,21 +58,23 @@ public:
 
 	// Propagator methods
 	virtual const char* getName			() const = 0;
-	virtual rClause getExplanation		(const Lit& l) = 0;
-	virtual rClause notifyFullAssignmentFound() = 0;
-	/**
-	 * Checks presence of aggregates and initializes all counters.
-	 * UNSAT is set to true if unsat is detected
-	 * PRESENT is set to true if aggregate propagations should be done
-	 */
-	virtual void 	finishParsing		(bool& present, bool& unsat) = 0;
-	virtual void 	notifyNewDecisionLevel	() = 0;
-	virtual void 	notifyBacktrack		(int untillevel);
-	virtual rClause	notifypropagate		() = 0;
-	virtual Var 	notifyBranchChoice	(const Var& var) const = 0;
-	virtual void 	printStatistics		() const = 0;
-	virtual void 	printState			() const = 0;
-	virtual int		getNbOfFormulas		() const = 0;
+	virtual rClause getExplanation		(const Lit& l) { assert(false); return nullPtrClause; }
+	virtual rClause notifyFullAssignmentFound() { assert(false); return nullPtrClause; }
+	virtual void 	finishParsing		(bool& present, bool& unsat){ assert(false); }
+		// Checks presence of aggregates and initializes all counters. UNSAT is set to true if unsat is detected
+		// PRESENT is set to true if aggregate propagations should be done
+	virtual void 	notifyNewDecisionLevel	()						{ assert(false); }
+	// FIXME NOTE: call explicitly when using hasnextprop/nextprop!
+	virtual void 	notifyBacktrack		(int untillevel, const Lit& decision);
+	virtual rClause	notifypropagate		()							{ assert(false); return nullPtrClause; }
+	virtual Var 	notifyBranchChoice	(const Var& var) const 		{ assert(false); return var; }
+	virtual void 	printStatistics		() const 					{ assert(false); }
+	virtual void 	printState			() const 					{ assert(false); }
+	virtual int		getNbOfFormulas		() const 					{ assert(false); return 0; }
+	virtual void 	notifyClauseAdded(rClause clauseID) 			{ assert(false); }
+	virtual void 	notifyClauseDeleted(rClause clauseID) 			{ assert(false); }
+	virtual bool 	symmetryPropagationOnAnalyze(const Lit& p) 		{ assert(false); return false; }
+
 
 	bool 			hasNextProp();
 	const Lit&	 	getNextProp();

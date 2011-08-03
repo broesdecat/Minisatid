@@ -102,10 +102,6 @@ public:
 
 	void 		finishParsing(bool& unsat);
 
-	void 		notifyClauseAdded(rClause clauseID);
-	void 		notifyClauseDeleted(rClause clauseID);
-	bool 		symmetryPropagationOnAnalyze(const Lit& p);
-
 	// Solving support
 	void 		newDecisionLevel();
 	bool 		solve			(const vec<Lit>& assumptions, const ModelExpandOptions& options);
@@ -144,8 +140,12 @@ public:
 
 	void		varBumpActivity	(Var v);
 
-	void 		backtrackDecisionLevel(int untillevel);
+	void 		backtrackDecisionLevel(int untillevel, const Lit& decision);
 	rClause 	propagate		();
+
+	void 		notifyClauseAdded(rClause clauseID);
+	void 		notifyClauseDeleted(rClause clauseID);
+	bool 		symmetryPropagationOnAnalyze(const Lit& p);
 
 	int			getNbOfFormulas	() const;
 

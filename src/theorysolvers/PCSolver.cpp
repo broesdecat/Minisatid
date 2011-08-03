@@ -12,7 +12,6 @@
 #include "satsolver/SATSolver.hpp"
 #include "modules/ModSolver.hpp"
 #include "modules/AggSolver.hpp"
-#include "modules/Symmetrymodule.hpp"
 #include "modules/CPSolver.hpp"
 #include "wrapper/InterfaceImpl.hpp"
 
@@ -44,7 +43,7 @@ PCSolver::PCSolver(SolverOption modes, MinisatID::WrapperPimpl& inter, int ID) :
 
 	queue = new EventQueue(*this);
 
-	searchengine = createSolver(*this);
+	searchengine = createSolver(this);
 #ifdef CPSUPPORT
 	cpsolver = new CPSolver(this);
 #endif
@@ -186,22 +185,15 @@ rClause PCSolver::checkFullAssignment() {
 }
 
 void PCSolver::notifyClauseAdded(rClause clauseID){
-	if(getFactory().hasSymmSolver()){
-		getFactory().getSymmSolver()->notifyClauseAdded(clauseID);
-	}
+	getEventQueue().notifyClauseAdded(clauseID);
 }
 
 void PCSolver::notifyClauseDeleted(rClause clauseID){
-	if(getFactory().hasSymmSolver()){
-		getFactory().getSymmSolver()->notifyClauseDeleted(clauseID);
-	}
+	getEventQueue().notifyClauseDeleted(clauseID);
 }
 
 bool PCSolver::symmetryPropagationOnAnalyze(const Lit& p){
-	if(not getFactory().hasSymmSolver()){
-		return false;
-	}
-	return getFactory().getSymmSolver()->analyze(p);
+	return getEventQueue().symmetryPropagationOnAnalyze(p);
 }
 
 /**
@@ -311,13 +303,13 @@ void PCSolver::newDecisionLevel() {
 	getEventQueue().notifyNewDecisionLevel();
 }
 
-void PCSolver::backtrackDecisionLevel(int untillevel) {
+void PCSolver::backtrackDecisionLevel(int untillevel, const Lit& decision) {
 	if(isBeingMonitored()){
 		InnerBacktrack backtrack(untillevel);
 		notifyMonitor(backtrack);
 	}
 
-	getEventQueue().notifyBacktrack(untillevel);
+	getEventQueue().notifyBacktrack(untillevel, decision);
 }
 
 /**

@@ -67,33 +67,24 @@ public:
 
 	int		getNbOfFormulas			() const;
 
+	void 	notifyClauseAdded(rClause clauseID);
+	void 	notifyClauseDeleted(rClause clauseID);
+	bool 	symmetryPropagationOnAnalyze(const Lit& p);
 	rClause notifyFullAssignmentFound();
 	void 	finishParsing			(bool& unsat);
 	void 	notifyNewDecisionLevel	();
-	void 	notifyBacktrack			(int untillevel);
+	void 	notifyBacktrack			(int untillevel, const Lit& decision);
 	rClause notifyPropagate			();
 	Var 	notifyBranchChoice		(Var var);
 	void 	printState				() const;
 	void 	printStatistics			() const;
-	void	setTrue					(const Lit& l);/*{
-		const proplist& fastlistbypriority = litevent2propagator[toInt(l)].at(FAST);
-		const proplist& slowlistbypriority = litevent2propagator[toInt(l)].at(SLOW);
-		for(proplist::const_iterator i=fastlistbypriority.begin(); i<fastlistbypriority.end(); ++i){
-			if(!(*i)->isQueued()){
-				(*i)->notifyQueued();
-				fastqueue.push(*i);
-			}
-		}
-		for(proplist::const_iterator i=slowlistbypriority.begin(); i<slowlistbypriority.end(); ++i){
-			if(!(*i)->isQueued()){
-				(*i)->notifyQueued();
-				slowqueue.push(*i);
-			}
-		}
-	}*/
+	void	setTrue					(const Lit& l);
 
 private:
 	void 	setTrue(const proplist& list, std::queue<Propagator*>& queue);
+
+	proplist::const_iterator begin(EVENT event) const;
+	proplist::const_iterator end(EVENT event) const;
 };
 }
 

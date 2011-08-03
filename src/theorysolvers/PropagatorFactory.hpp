@@ -62,7 +62,8 @@ private:
 
 	SymmetryPropagator<PCSolver*>* symmsolver;
 	void addSymmSolver();
-
+	SymmetryPropagator<PCSolver*>* getSymmSolver() const;
+	bool hasSymmSolver() const;
 
 #ifdef CPSUPPORT
 	CPSolver* cpsolver;
@@ -78,9 +79,6 @@ private:
 public:
 	PropagatorFactory(const SolverOption& modes, PCSolver* engine);
 	virtual ~PropagatorFactory();
-
-	SymmetryPropagator<PCSolver*>* getSymmSolver() const;
-	bool hasSymmSolver() const;
 
 	bool hasIDSolver(defID id) const;
 	void addIDSolver(defID id);
