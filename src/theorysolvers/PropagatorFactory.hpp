@@ -11,6 +11,7 @@
 
 #include <map>
 #include <vector>
+#include <set>
 #include "utils/Utils.hpp"
 
 namespace Minisat{
@@ -72,6 +73,12 @@ private:
 #else
 	bool hasCPSolver() const { return false; }
 #endif
+
+	// Parsing support
+	std::vector<InnerRule*> parsedrules;
+	std::map<int, InnerWSet*> parsedsets;
+	std::vector<InnerAggregate*> parsedaggs;
+	std::vector<InnerReifAggregate*> parsedreifaggs;
 
 	// Logging
 	std::vector<ParsingMonitor*> parsingmonitors;

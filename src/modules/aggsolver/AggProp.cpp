@@ -37,6 +37,9 @@ paggprop AggProp::sum = paggprop (new SumProp());
 paggprop AggProp::card = paggprop (new CardProp());
 paggprop AggProp::prod = paggprop (new ProdProp());
 
+Weight AggProp::getMinPossible(const TypedSet& set)	const { return getMinPossible(set.getWL()); }
+Weight AggProp::getMaxPossible(const TypedSet& set)	const { return getMaxPossible(set.getWL()); }
+
 bool SumProp::isMonotone(const Agg& agg, const Weight& w) const {
 	return (agg.hasUB() && w < 0) || (!agg.hasUB() && w > 0);
 }
@@ -61,9 +64,9 @@ Weight SumProp::remove(const Weight& lhs, const Weight& rhs) const {
 	return lhs - rhs;
 }
 
-Weight SumProp::getMinPossible(const TypedSet& set) const{
+Weight SumProp::getMinPossible(const std::vector<WL>& wls) const{
 	Weight min = getESV();
-	for (vwl::const_iterator j = set.getWL().begin(); j < set.getWL().end(); ++j) {
+	for (vwl::const_iterator j = wls.begin(); j < wls.end(); ++j) {
 		if((*j).getWeight() < 0){
 			min = this->add(min, (*j).getWeight());
 		}
@@ -71,9 +74,9 @@ Weight SumProp::getMinPossible(const TypedSet& set) const{
 	return min;
 }
 
-Weight SumProp::getMaxPossible(const TypedSet& set) const {
+Weight SumProp::getMaxPossible(const std::vector<WL>& wls) const {
 	Weight max = getESV();
-	for (vwl::const_iterator j = set.getWL().begin(); j < set.getWL().end(); ++j) {
+	for (vwl::const_iterator j = wls.begin(); j < wls.end(); ++j) {
 		if((*j).getWeight() > 0){
 			max = this->add(max, (*j).getWeight());
 		}
@@ -102,13 +105,13 @@ bool MaxProp::isMonotone(const Agg& agg, const Weight& w) const {
 	return (agg.hasUB() && w2 <= w) || (!agg.hasUB());
 }
 
-Weight MaxProp::getMinPossible(const TypedSet&) const{
+Weight MaxProp::getMinPossible(const std::vector<WL>&) const{
 	return getESV();
 }
 
-Weight MaxProp::getMaxPossible(const TypedSet& set) const {
+Weight MaxProp::getMaxPossible(const std::vector<WL>& wls) const {
 	Weight max = getESV();
-	for(vwl::const_iterator j = set.getWL().begin(); j<set.getWL().end(); ++j){
+	for(vwl::const_iterator j = wls.begin(); j<wls.end(); ++j){
 		max = this->add(max, (*j).getWeight());
 	}
 	return max;
@@ -172,13 +175,13 @@ WL MaxProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* s
 // PROD Prop
 
 //INVARIANT: only positive weights in prodagg
-Weight ProdProp::getMinPossible(const TypedSet&) const{
+Weight ProdProp::getMinPossible(const std::vector<WL>&) const{
 	return getESV();
 }
 
-Weight ProdProp::getMaxPossible(const TypedSet& set) const {
+Weight ProdProp::getMaxPossible(const std::vector<WL>& wls) const {
 	Weight max = getESV();
-	for(vwl::const_iterator j = set.getWL().begin(); j<set.getWL().end(); ++j){
+	for(vwl::const_iterator j = wls.begin(); j<wls.end(); ++j){
 		if((*j).getWeight() > 0){
 			max = this->add(max, (*j).getWeight());
 		}
@@ -502,7 +505,7 @@ bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, V
 
 	if (justified && agg.hasUB()) {
 		justified = false;
-		Weight bestpossible = type.getMaxPossible(*set);
+		Weight bestpossible = type.getMaxPossible(set->getWL());
 		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
 			if (oppositeIsJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push(~(*i).getLit());
@@ -517,7 +520,7 @@ bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, V
 	}
 	if(justified && agg.hasLB()){
 		justified = false;
-		Weight bestcertain = set->getType().getMinPossible(*set);
+		Weight bestcertain = set->getType().getMinPossible(set->getWL());
 		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
 			if (isJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push((*i).getLit());

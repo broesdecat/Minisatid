@@ -80,7 +80,7 @@ public:
 	//Get information on hierarchy
 	ModSolver* getModSolver	(vsize modid) const { checkexistsModSolver(modid); return solvers[modid];}
 
-	void 	printStatistics	() const { std::clog <<"Statistics printing not implemented for modal solver.\n";}
+	void 	printStatistics	() const;
 
 private:
 	ModSolver& getModSolverDuringAdding(int modid);

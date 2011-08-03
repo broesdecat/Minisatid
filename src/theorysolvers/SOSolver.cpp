@@ -13,6 +13,7 @@
 #include "modules/ModSolver.hpp"
 
 #include <vector>
+#include <iostream>
 
 using namespace std;
 using namespace MinisatID;
@@ -25,6 +26,10 @@ SOSolver::SOSolver(SolverOption modes, MinisatID::WrapperPimpl& inter)
 
 SOSolver::~SOSolver(){
 	deleteList<ModSolver>(solvers);
+}
+
+void SOSolver::printStatistics() const {
+	std::clog <<"Statistics printing not implemented for modal solver.\n";
 }
 
 void SOSolver::checkexistsModSolver(vsize modid) const {

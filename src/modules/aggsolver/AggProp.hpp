@@ -62,13 +62,14 @@ private:
 	AggBound	bound;
 	Lit			head;
 	AggSem		sem;
-	int			defid;
 	int			index;
 	AggType		type;
 
 public:
-	Agg(const Lit& head, AggBound b, AggSem sem, int defid, AggType type):
-		set(NULL), bound(b), head(head), sem(sem), defid(defid), index(-1), type(type){	}
+	Agg(const Lit& head, AggBound b, AggSem sem, AggType type):
+			set(NULL), bound(b), head(head), sem(sem), index(-1), type(type){
+		assert(sem!=DEF);
+	}
 
 	TypedSet*	getSet		()					const	{ return set; }
 	const Lit& 	getHead		() 					const 	{ return head; }
@@ -82,9 +83,7 @@ public:
 	bool		hasLB		()					const	{ return bound.sign!=AGGSIGN_UB; }
 	AggSign		getSign		()					const	{ return bound.sign; }
 
-	bool 		isDefined	()					const	{ return sem==DEF; }
 	AggSem		getSem		()					const	{ return sem; }
-	int			getDefID	()					const	{ return defid; }
 	AggType		getType		()					const	{ return type; }
 	void 		setIndex	(int ind) 					{ index = ind; }
 	void		setType		(const AggType& s)			{ type = s;}
@@ -113,8 +112,10 @@ public:
 
 	//TODO expensive and in fact static: create variables and calc only once!
 	//Calculate best and worst possible values for the EMPTY interpretation, independent of aggregate signs!
-	virtual Weight		getMinPossible			(const TypedSet& set)					const = 0;
-	virtual Weight		getMaxPossible			(const TypedSet& set)					const = 0;
+	virtual Weight		getMinPossible			(const TypedSet& set)					const;
+	virtual Weight		getMaxPossible			(const TypedSet& set)					const;
+	virtual Weight		getMinPossible			(const std::vector<WL>& wls)			const = 0;
+	virtual Weight		getMaxPossible			(const std::vector<WL>& wls)			const = 0;
 	virtual Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const = 0;
 	virtual WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const = 0;
 
@@ -122,7 +123,7 @@ public:
 	virtual Weight		remove					(const Weight& lhs, const Weight& rhs) 	const = 0;
 	virtual bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const = 0;
 
-	virtual AggPropagator*	createPropagator		(TypedSet* set) 						const = 0;
+	virtual AggPropagator*	createPropagator	(TypedSet* set) 						const = 0;
 	virtual Weight 		getESV					()										const = 0;
 };
 
@@ -132,14 +133,14 @@ public:
 	AggType 	getType					() 										const { return MAX; }
 	bool 		isNeutralElement		(const Weight& w) 						const { return false; }
 	bool 		isMonotone				(const Agg& agg, const Weight& w)		const;
-	Weight		getMinPossible			(const TypedSet& set)					const;
-	Weight		getMaxPossible			(const TypedSet& set)					const;
+	Weight		getMinPossible			(const std::vector<WL>& wls)			const;
+	Weight		getMaxPossible			(const std::vector<WL>& wls)			const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const { return lhs>rhs?lhs:rhs; }
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const { assert(false); return 0; }
 	bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const;
-	AggPropagator*	createPropagator		(TypedSet* set) 						const;
+	AggPropagator*	createPropagator	(TypedSet* set) 						const;
 
 	Weight 		getESV					()										const { return negInfinity(); }
 };
@@ -157,7 +158,7 @@ public:
 //	Weight		add						(const Weight& lhs, const Weight& rhs) 	const { return lhs<rhs?lhs:rhs; }
 //	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const { assert(false); return 0; }
 //	bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const;
-//	AggPropagator*	createPropagator		(TypedSet* set) 						const;
+//	AggPropagator*	createPropagator	(TypedSet* set) 						const;
 //
 //	Weight 		getESV					()										const { return posInfinity(); }
 //};
@@ -175,11 +176,11 @@ public:
 	bool 		isMonotone				(const Agg& agg, const Weight& w)		const;
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const;
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const;
-	Weight		getMinPossible			(const TypedSet& set)					const;
-	Weight		getMaxPossible			(const TypedSet& set)					const;
+	Weight		getMinPossible			(const std::vector<WL>& wls)			const;
+	Weight		getMaxPossible			(const std::vector<WL>& wls)			const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
-	AggPropagator*	createPropagator		(TypedSet* set) const;
+	AggPropagator*	createPropagator	(TypedSet* set) const;
 
 	Weight 		getESV					()										const { return Weight(1); }
 };
@@ -192,11 +193,11 @@ public:
 	bool 		isMonotone				(const Agg& agg, const Weight& w)		const;
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const;
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const;
-	Weight		getMinPossible			(const TypedSet& set)					const;
-	Weight		getMaxPossible			(const TypedSet& set)					const;
+	Weight		getMinPossible			(const std::vector<WL>& wls)			const;
+	Weight		getMaxPossible			(const std::vector<WL>& wls)			const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
-	AggPropagator*	createPropagator		(TypedSet* set) const;
+	AggPropagator*	createPropagator	(TypedSet* set) const;
 
 	Weight 		getESV					()										const { return Weight(0); }
 };

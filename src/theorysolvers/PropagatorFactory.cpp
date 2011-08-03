@@ -34,6 +34,36 @@ using namespace std;
 using namespace MinisatID;
 using namespace Minisat;
 
+void throwUndefinedSet(int setid){
+	stringstream ss;
+	ss <<"Set nr. " <<setid <<" is used, but not defined yet.\n";
+	throw idpexception(ss.str());
+}
+
+void throwDoubleDefinedSet(int setid){
+	stringstream ss;
+	ss <<"Set nr. " <<setid <<" is defined more than once.\n";
+	throw idpexception(ss.str());
+}
+
+void throwEmptySet(int setid){
+	stringstream ss;
+	ss <<"Set nr. " <<setid <<" is empty.\n";
+	throw idpexception(ss.str());
+}
+
+void throwNegativeHead(Var head){
+	stringstream ss;
+	ss <<"An aggregate cannot be defined by a negative head, violated for " <<getPrintableVar(head) <<".\n";
+	throw idpexception(ss.str());
+}
+
+void throwHeadOccursInSet(Var head, int setid){
+	stringstream ss;
+	ss <<"For the aggregated with head " <<getPrintableVar(head) <<" also occurs in its set.\n";
+	throw idpexception(ss.str());
+}
+
 PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine) :
 		engine(engine),
 		parsing(true),
@@ -45,8 +75,10 @@ PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine
 #endif
 		{
 	satsolver = getEnginep()->getSATSolver();
+	satsolver->notifyUsedForSearch();
 #ifdef CPSUPPORT
 	cpsolver = getEnginep()->getCPSolverp();
+	cpsolver->notifyUsedForSearch();
 #endif
 
 	//TODO create aggpropfactory and call finishparsing on it
@@ -59,7 +91,7 @@ PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine
 		parsingmonitors.push_back(new HumanReadableParsingPrinter(clog));
 	}
 
-	for(vector<ParsingMonitor*>::const_iterator i = parsingmonitors.begin(); i<parsingmonitors.end(); ++i){
+	for(auto i = parsingmonitors.begin(); i<parsingmonitors.end(); ++i){
 		(*i)->notifyStart();
 	}
 }
@@ -99,13 +131,13 @@ AggSolver* PropagatorFactory::getAggSolver() {
 void PropagatorFactory::addAggSolver(){
 	assert(isParsing());
 	aggsolver = new AggSolver(getEnginep());
-	getEngine().accept(aggsolver, EXITCLEANLY);
+	getEngine().accept(aggsolver, EV_EXITCLEANLY);
 }
 
 void PropagatorFactory::addIDSolver(defID id){
 	assert(isParsing());
 	IDSolver* idsolver = new IDSolver(getEnginep(), id);
-	getEngine().accept(idsolver, EXITCLEANLY);
+	getEngine().accept(idsolver, EV_EXITCLEANLY);
 	idsolvers.insert(pair<defID, IDSolver*>(id, idsolver));
 }
 
@@ -133,7 +165,7 @@ void PropagatorFactory::addVars(const vec<Lit>& a) {
 }
 
 void PropagatorFactory::addVars(const vector<Lit>& a) {
-	for (vector<Lit>::const_iterator i=a.begin(); i < a.end(); ++i) {
+	for (auto i=a.begin(); i!=a.end(); ++i) {
 		add(var(*i));
 	}
 }
@@ -143,6 +175,7 @@ bool PropagatorFactory::add(const InnerDisjunction& formula){
 
 	addVars(formula.literals);
 
+	// TODO lazygrounder
 //	if(formula.literals.size()<3){
 		return getSolver()->addClause(formula.literals);
 /*	}else{
@@ -193,14 +226,27 @@ bool PropagatorFactory::add(const InnerRule& formula){
 
 	add(formula.head);
 	addVars(formula.body);
-	return getIDSolver(formula.definitionID)->addRule(formula.conjunctive, mkLit(formula.head, false), formula.body);
+
+	parsedrules.push_back(new InnerRule(formula));
+	return true;
 }
 
 bool PropagatorFactory::add(const InnerWSet& formula){
 	notifyMonitorsOfAdding(formula);
 
+	if (formula.literals.size() == 0) {
+		throwEmptySet(formula.setID);
+	}
+
 	addVars(formula.literals);
-	return getAggSolver()->addSet(formula.setID, formula.literals, formula.weights);
+
+	if (contains(parsedsets, formula.setID)) {
+		throwDoubleDefinedSet(formula.setID);
+	}else{
+		parsedsets.insert(pair<int, InnerWSet*>(formula.setID, new InnerWSet(formula)));
+	}
+
+	return true;
 }
 
 bool PropagatorFactory::add(const InnerAggregate& formula){
@@ -212,7 +258,8 @@ bool PropagatorFactory::add(const InnerAggregate& formula){
 		throw idpexception(ss.str());
 	}
 
-	return getAggSolver()->addAggrExpr(formula);
+	parsedaggs.push_back(new InnerAggregate(formula));
+	return true;
 }
 
 bool PropagatorFactory::add(const InnerReifAggregate& formula){
@@ -225,11 +272,9 @@ bool PropagatorFactory::add(const InnerReifAggregate& formula){
 	}
 
 	add(formula.head);
-	if(formula.sem == DEF){
-		return getAggSolver()->addDefinedAggrExpr(formula, getIDSolver(formula.defID));
-	}else{
-		return getAggSolver()->addAggrExpr(formula);
-	}
+
+	parsedreifaggs.push_back(new InnerReifAggregate(formula));
+	return true;
 }
 
 bool PropagatorFactory::add(const InnerMinimizeSubset& formula){
@@ -358,5 +403,67 @@ void PropagatorFactory::finishParsing() {
 
 	for(vector<ParsingMonitor*>::const_iterator i = parsingmonitors.begin(); i<parsingmonitors.end(); ++i){
 		(*i)->notifyEnd();
+	}
+
+	// aggregate checking
+	Var v = getEngine().newVar();
+	for(auto i=parsedaggs.begin(); i!=parsedaggs.end(); ++i){
+		InnerReifAggregate* r = new InnerReifAggregate();
+		r->bound = (*i)->bound;
+		r->defID = -1;
+		r->head = v;
+		r->sem = COMP;
+		r->setID = (*i)->setID;
+		r->sign	= (*i)->sign;
+		r->type	= (*i)->type;
+		parsedreifaggs.push_back(r);
+	}
+	deleteList<InnerAggregate>(parsedaggs);
+	for(auto i=parsedreifaggs.begin(); i!=parsedreifaggs.end(); ++i){
+		if(parsedsets.find((*i)->setID)==parsedsets.end()){
+			throwUndefinedSet((*i)->setID);
+		}
+	}
+	for(auto i=parsedreifaggs.begin(); i!=parsedreifaggs.end(); ++i){
+		InnerWSet* set = parsedsets.at((*i)->setID);
+		for(auto j=set->literals.begin(); j!=set->literals.end(); ++j){
+			if (var(*j) == (*i)->head) {
+				throwHeadOccursInSet((*i)->head, (*i)->setID);
+			}
+		}
+	}
+#ifdef DEBUG
+	for(auto i=parsedreifaggs.begin(); i!=parsedreifaggs.end(); ++i){
+		if((*i)->type==CARD){
+			InnerWSet* set = parsedsets.at((*i)->setID);
+			for(auto j=set->weights.begin(); j!=set->weights.end(); ++j){
+				assert(*j==1);
+			}
+		}
+	}
+#endif
+
+	bool notunsat = true;
+	// aggregate adding
+	for(auto i=parsedsets.begin(); i!=parsedsets.end(); ++i){
+		getAggSolver()->addSet((*i).second->setID, (*i).second->literals, (*i).second->weights);
+	}
+	for(auto i=parsedreifaggs.begin(); notunsat && i!=parsedreifaggs.end(); ++i){
+		if((*i)->defID!=-1){
+			getIDSolver((*i)->defID)->addDefinedAggregate(**i, *parsedsets.at((*i)->setID));
+		}
+		notunsat = getAggSolver()->addAggrExpr(**i);
+	}
+	deleteList<InnerReifAggregate>(parsedreifaggs);
+	deleteList<InnerWSet>(parsedsets);
+
+	// rule adding
+	for(auto i=parsedrules.begin(); notunsat && i!=parsedrules.end(); ++i){
+		notunsat = getIDSolver((*i)->definitionID)->addRule((*i)->conjunctive, (*i)->head, (*i)->body);
+	}
+	deleteList<InnerRule>(parsedrules);
+
+	if(not notunsat){
+		//FIXME
 	}
 }

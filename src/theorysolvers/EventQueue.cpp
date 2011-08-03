@@ -19,25 +19,24 @@ using namespace std;
 
 EventQueue::EventQueue(PCSolver& pcsolver):
 			pcsolver(pcsolver){
-	event2propagator[PRINTSTATE];
-	event2propagator[PRINTSTATS];
-	event2propagator[CHOICE];
-	event2propagator[FULLASSIGNMENT];
-	event2propagator[DECISIONLEVEL];
-	event2propagator[BACKTRACK];
-	event2propagator[EXITCLEANLY];
-	event2propagator[ADDCLAUSE];
-	event2propagator[REMOVECLAUSE];
-	event2propagator[SYMMETRYANALYZE];
+	event2propagator[EV_PRINTSTATE];
+	event2propagator[EV_PRINTSTATS];
+	event2propagator[EV_CHOICE];
+	event2propagator[EV_PROPAGATE];
+	event2propagator[EV_FULLASSIGNMENT];
+	event2propagator[EV_DECISIONLEVEL];
+	event2propagator[EV_BACKTRACK];
+	event2propagator[EV_EXITCLEANLY];
+	event2propagator[EV_ADDCLAUSE];
+	event2propagator[EV_REMOVECLAUSE];
+	event2propagator[EV_SYMMETRYANALYZE];
 }
 
 EventQueue::~EventQueue() {
-	for(auto i=begin(EXITCLEANLY); i<end(EXITCLEANLY); ++i){
+	for(auto i=begin(EV_EXITCLEANLY); i<end(EV_EXITCLEANLY); ++i){
 		delete(*i);
 	}
 }
-
-// FIXME add ETERNALPROPAGATE for sat and aggsolver
 
 void EventQueue::notifyVarAdded(){
 	while(litevent2propagator.size()<2*getPCSolver().nVars()){
@@ -137,6 +136,9 @@ void EventQueue::finishParsing(bool& unsat){
 
 rClause EventQueue::notifyPropagate(){
 	rClause confl = nullPtrClause;
+	for(auto i=begin(EV_PROPAGATE); confl==nullPtrClause && i<end(EV_PROPAGATE); ++i){
+		confl = (*i)->notifypropagate();
+	}
 	while(fastqueue.size()+slowqueue.size()!=0 && confl==nullPtrClause){
 		Propagator* p = NULL;
 		if(fastqueue.size()!=0){
@@ -172,26 +174,26 @@ proplist::const_iterator EventQueue::end(EVENT event) const{
 
 rClause EventQueue::notifyFullAssignmentFound(){
 	rClause confl = nullPtrClause;
-	for(auto i=begin(FULLASSIGNMENT); confl==nullPtrClause && i<end(FULLASSIGNMENT); ++i){
+	for(auto i=begin(EV_FULLASSIGNMENT); confl==nullPtrClause && i<end(EV_FULLASSIGNMENT); ++i){
 		confl = (*i)->notifyFullAssignmentFound();
 	}
 	return confl;
 }
 
 void EventQueue::notifyClauseAdded(rClause clauseID){
-	for(auto i=begin(ADDCLAUSE); i<end(ADDCLAUSE); ++i){
+	for(auto i=begin(EV_ADDCLAUSE); i<end(EV_ADDCLAUSE); ++i){
 		(*i)->notifyClauseAdded(clauseID);
 	}
 }
 
 void EventQueue::notifyClauseDeleted(rClause clauseID){
-	for(auto i=begin(REMOVECLAUSE); i<end(REMOVECLAUSE); ++i){
+	for(auto i=begin(EV_REMOVECLAUSE); i<end(EV_REMOVECLAUSE); ++i){
 		(*i)->notifyClauseDeleted(clauseID);
 	}
 }
 
 bool EventQueue::symmetryPropagationOnAnalyze(const Lit& p){
-	for(auto i=begin(SYMMETRYANALYZE); i<end(SYMMETRYANALYZE); ++i){
+	for(auto i=begin(EV_SYMMETRYANALYZE); i<end(EV_SYMMETRYANALYZE); ++i){
 		if((*i)->symmetryPropagationOnAnalyze(p)){
 			return true;
 		}
@@ -200,33 +202,33 @@ bool EventQueue::symmetryPropagationOnAnalyze(const Lit& p){
 }
 
 void EventQueue::notifyNewDecisionLevel(){
-	for(auto i=begin(DECISIONLEVEL); i<end(DECISIONLEVEL); ++i){
+	for(auto i=begin(EV_DECISIONLEVEL); i<end(EV_DECISIONLEVEL); ++i){
 		(*i)->notifyNewDecisionLevel();
 	}
 }
 
 void EventQueue::notifyBacktrack(int untillevel, const Lit& decision){
-	for(auto i=begin(BACKTRACK); i<end(BACKTRACK); ++i){
+	for(auto i=begin(EV_BACKTRACK); i<end(EV_BACKTRACK); ++i){
 		(*i)->notifyBacktrack(untillevel, decision);
 	}
 }
 
 Var EventQueue::notifyBranchChoice(Var var){
 	Var currentvar = var;
-	for(auto i=begin(CHOICE); i<end(CHOICE); ++i){
+	for(auto i=begin(EV_CHOICE); i<end(EV_CHOICE); ++i){
 		currentvar = (*i)->notifyBranchChoice(currentvar);
 	}
 	return currentvar;
 }
 
 void EventQueue::printState() const {
-	for(auto i=begin(PRINTSTATE); i<end(PRINTSTATE); ++i){
+	for(auto i=begin(EV_PRINTSTATE); i<end(EV_PRINTSTATE); ++i){
 		(*i)->printState();
 	}
 }
 
 void EventQueue::printStatistics() const {
-	for(auto i=begin(PRINTSTATS); i<end(PRINTSTATS); ++i){
+	for(auto i=begin(EV_PRINTSTATS); i<end(EV_PRINTSTATS); ++i){
 		(*i)->printStatistics();
 	}
 }

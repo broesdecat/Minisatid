@@ -7,7 +7,6 @@
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 #include "modules/IDSolver.hpp"
-#include "modules/aggsolver/AggProp.hpp"
 #include "utils/Print.hpp"
 #include "theorysolvers/PCSolver.hpp"
 
@@ -37,16 +36,20 @@ IDSolver::IDSolver(PCSolver* s, int definitionID):
 		nb_times_findCS(0), justify_calls(0), cs_removed_in_justify(0), succesful_justify_calls(0),
 		extdisj_sizes(0), total_marked_size(0)
 		{
-	getPCSolver().accept(this, PRINTSTATS);
-	getPCSolver().accept(this, DECISIONLEVEL);
-	getPCSolver().accept(this, BACKTRACK);
-	getPCSolver().accept(this, PRINTSTATE);
-	getPCSolver().accept(this, FULLASSIGNMENT);
+	getPCSolver().accept(this, EV_PRINTSTATS);
+	getPCSolver().accept(this, EV_DECISIONLEVEL);
+	getPCSolver().accept(this, EV_BACKTRACK);
+	getPCSolver().accept(this, EV_PRINTSTATE);
+	getPCSolver().accept(this, EV_FULLASSIGNMENT);
 	getPCSolver().acceptFinishParsing(this, true);
 }
 
 IDSolver::~IDSolver() {
 	deleteList<DefinedVar> (definitions);
+}
+
+int	IDSolver::getNbOfFormulas() const {
+	return definitions.size() * log(definitions.size());
 }
 
 inline void IDSolver::addCycleSource(Var v) {
@@ -67,7 +70,6 @@ void IDSolver::adaptStructsToHead(Var head){
 	/*	bool minchanged = false;
 	bool maxchanged = false;
 	if(minvar==-1 || head<minvar){
-		minvar = head;
 		minchanged = true;
 	}
 	if(maxvar==-1 || maxvar<head){
@@ -100,24 +102,21 @@ void IDSolver::adaptStructsToHead(Var head){
  *
  * If only one body literal, the clause is always made conjunctive (for algorithmic correctness later on), semantics are the same.
  */
-bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
+bool IDSolver::addRule(bool conj, Var head, const vec<Lit>& ps) {
 	assert(!isInitialized());
-	if (!isPositive(head)) {
-		throw idpexception("Negative heads are not allowed.\n");
-	}
 
 	// LAZY init
-	adaptStructsToHead(var(head));
+	adaptStructsToHead(head);
 
-	if(isDefined(var(head))){
-		char s[100]; sprintf(s, "Multiple rules have the same head %d, which is not allowed!\n", getPrintableVar(var(head)));
+	if(isDefined(head)){
+		char s[100]; sprintf(s, "Multiple rules have the same head %d, which is not allowed!\n", getPrintableVar(head));
 		throw idpexception(s);
 	}
 
 	bool notunsat = true;
 
 	if (ps.size() == 0) {
-		Lit h = conj ? head : ~head; //empty set conj = true, empty set disj = false
+		Lit h = conj ? mkLit(head) : mkLit(head, true); //empty set conj = true, empty set disj = false
 		InnerDisjunction v;
 		v.literals.push(h);
 		notunsat = getPCSolver().add(v);
@@ -125,20 +124,36 @@ bool IDSolver::addRule(bool conj, Lit head, const vec<Lit>& ps) {
 		//rules with only one body atom have to be treated as conjunctive
 		conj = conj || ps.size() == 1;
 
-		PropRule* r = new PropRule(head, ps);
-		createDefinition(var(head), r, conj?CONJ:DISJ);
+		PropRule* r = new PropRule(mkLit(head), ps);
+		createDefinition(head, r, conj?CONJ:DISJ);
 
 		InnerEquivalence eq;
-		eq.head = head;
+		eq.head = mkLit(head);
 		for(int i=0; i<ps.size(); ++i){
 			eq.literals.push(ps[i]);
 		}
 		eq.conjunctive = conj;
 		notunsat = getPCSolver().add(eq);
-		assert(isDefined(var(head)));
+		assert(isDefined(head));
 	}
 
 	return notunsat;
+}
+
+void IDSolver::addDefinedAggregate(const InnerReifAggregate& inneragg, const InnerWSet& innerset){
+	Var head = inneragg.head;
+	adaptStructsToHead(head);
+	if(isDefined(head)){
+		char s[100]; sprintf(s, "Multiple rules have the same head %d, which is not allowed!\n", getPrintableVar(head));
+		throw idpexception(s);
+	}
+	AggBound b(inneragg.sign, inneragg.bound);
+	std::vector<WL> wls;
+	for(int i=0; i<innerset.literals.size(); ++i){
+		wls.push_back(WL(innerset.literals[i], innerset.weights[i]));
+	}
+	IDAgg* agg = new IDAgg(mkLit(head), b, inneragg.sem, inneragg.type, wls);
+	createDefinition(head, agg);
 }
 
 /*
@@ -794,7 +809,7 @@ void IDSolver::propagateJustificationAggr(const Lit& l, vec<vec<Lit> >& jstfs, v
 		return;
 	}
 	for(vector<Var>::const_iterator i = aggr_occurs(l).begin(); i < aggr_occurs(l).end(); ++i) {
-		const Agg& agg = *aggdefinition(*i);
+		const IDAgg& agg = *aggdefinition(*i);
 		if (isFalse(agg.getHead())) {
 			continue;
 		}
@@ -1625,20 +1640,6 @@ void IDSolver::cycleSourceAggr(Var v, vec<Lit>& just) {
 		changejust(v, just);
 	}
 }
-
-void addDefinedAggregate(Agg* agg){
-	//TODO
-}
-/*void IDSolver::notifyAggrHead(Var head, AggSolver* aggsolver) {
-	// LAZY init
-	adaptStructsToHead(head);
-
-	assert(!isInitialized());
-	assert(!isDefined(head));
-	assert(this->aggsolver==NULL || this->aggsolver==aggsolver); // TODO
-	this->aggsolver = aggsolver;
-	createDefinition(head, NULL, AGGR);
-}*/
 
 inline void IDSolver::print(const PropRule& c) const {
 	report("Rule ");
@@ -2563,7 +2564,17 @@ void IDSolver::printStatistics() const {
 	report(">                       : %4.2f treated per loop\n", (float)succesful_justify_calls/nb_times_findCS);
 }
 
-bool IDSolver::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const {
+AggProp const * const getProp(AggType type){
+	switch(type){
+		case MIN: assert(false); // FIXME
+		case MAX: return AggProp::getMax();
+		case SUM: return AggProp::getSum();
+		case PROD: return AggProp::getProd();
+		case CARD: return AggProp::getCard();
+	}
+}
+
+bool IDSolver::canJustifyHead(const IDAgg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const {
 	if(agg.getType()==MAX){
 		return canJustifyMaxHead(agg, jstf, nonjstf, currentjust, real);
 	}else{
@@ -2572,14 +2583,13 @@ bool IDSolver::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf,
 	}
 }
 
-bool IDSolver::canJustifyMaxHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const {
-	TypedSet* set = agg.getSet();
+bool IDSolver::canJustifyMaxHead(const IDAgg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const {
 	bool justified = true;
-	const vwl& wl = set->getWL();
+	const vwl& wl = agg.getWL();
 
 	if (justified && agg.hasUB()) {
 		justified = false;
-		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() > agg.getCertainBound(); ++i) {
+		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() > agg.getBound(); ++i) {
 			if (oppositeIsJustified(*i, real)) {
 				jstf.push(~(*i).getLit()); //push negative literal, because it should become false
 			} else if (real || currentjust.getElem(var((*i).getLit())) != 0) {
@@ -2593,7 +2603,7 @@ bool IDSolver::canJustifyMaxHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjs
 
 	if(justified && agg.hasLB()){
 		justified = false;
-		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() >= agg.getCertainBound(); ++i) {
+		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() >= agg.getBound(); ++i) {
 			if (isJustified(*i, real)) {
 				jstf.push((*i).getLit());
 				justified = true;
@@ -2619,20 +2629,19 @@ bool IDSolver::canJustifyMaxHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjs
  * 					if so, change the justification to the negation of all those below the bound literals
  * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
  */
-bool IDSolver::canJustifySPHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const {
-	TypedSet* set = agg.getSet();
-	const AggProp& type = agg.getSet()->getType();
+bool IDSolver::canJustifySPHead(const IDAgg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const {
+	const AggProp& type = *getProp(agg.getType());
 	bool justified = true;
-	const vwl& wl = set->getWL();
+	const vwl& wl = agg.getWL();
 
 	if (justified && agg.hasUB()) {
 		justified = false;
-		Weight bestpossible = type.getMaxPossible(*set);
+		Weight bestpossible = type.getMaxPossible(wl);
 		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
 			if (oppositeIsJustified(*i, real)) {
 				jstf.push(~(*i).getLit());
 				bestpossible = type.remove(bestpossible, (*i).getWeight());
-				if (bestpossible <= agg.getCertainBound()) {
+				if (bestpossible <= agg.getBound()) {
 					justified = true;
 				}
 			} else if (real || currentjust.getElem(var((*i).getLit())) != 0) {
@@ -2642,12 +2651,12 @@ bool IDSolver::canJustifySPHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjst
 	}
 	if(justified && agg.hasLB()){
 		justified = false;
-		Weight bestcertain = set->getType().getMinPossible(*set);
+		Weight bestcertain = type.getMinPossible(wl);
 		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
 			if (isJustified(*i, real)) {
 				jstf.push((*i).getLit());
 				bestcertain = type.add(bestcertain, (*i).getWeight());
-				if (bestcertain >= agg.getCertainBound()) {
+				if (bestcertain >= agg.getBound()) {
 					justified = true;
 				}
 			} else if (real || currentjust.getElem(var((*i).getLit())) != 0) {
@@ -2722,7 +2731,7 @@ bool IDSolver::canJustifySPHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjst
 	return justified;
 }*/
 
-Agg* IDSolver::getAggDefiningHead(Var v) const {
+IDAgg* IDSolver::getAggDefiningHead(Var v) const {
 	//FIXME checks en mooiere code
 	return aggdefinition(v);
 }
@@ -2736,11 +2745,11 @@ vector<Var> IDSolver::getDefAggHeadsWithBodyLit(Var x) const{
 }
 
 vwl::const_iterator IDSolver::getSetLitsOfAggWithHeadBegin(Var x) const {
-	return getAggDefiningHead(x)->getSet()->getWL().begin();
+	return getAggDefiningHead(x)->getWL().begin();
 }
 
 vwl::const_iterator IDSolver::getSetLitsOfAggWithHeadEnd(Var x) const {
-	return getAggDefiningHead(x)->getSet()->getWL().end();
+	return getAggDefiningHead(x)->getWL().end();
 }
 
 /**
@@ -2753,9 +2762,7 @@ vwl::const_iterator IDSolver::getSetLitsOfAggWithHeadEnd(Var x) const {
  * TODO: optimize: add monotone literals until the aggregate can become true
  */
 void IDSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, InterMediateDataStruct& seen) {
-	TypedSet* set = getAggDefiningHead(v)->getSet();
-
-	for (vwl::const_iterator i = set->getWL().begin(); i < set->getWL().end(); ++i) {
+	for (vwl::const_iterator i = getAggDefiningHead(v)->getWL().begin(); i < getAggDefiningHead(v)->getWL().end(); ++i) {
 		Lit l = (*i).getLit();
 		if(ufs.find(var(l)) != ufs.end() || seen.getElem(var(l)) == (isPositive(l) ? 2 : 1)){
 			continue;
@@ -2780,7 +2787,7 @@ void IDSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& lo
 void IDSolver::findJustificationAggr(Var head, vec<Lit>& outjstf) {
 	vec<Var> nonjstf;
 	InterMediateDataStruct* currentjust = new InterMediateDataStruct(0,0); //create an empty justification
-	const Agg& agg = *getAggDefiningHead(head);
+	const IDAgg& agg = *getAggDefiningHead(head);
 	canJustifyHead(agg, outjstf, nonjstf, *currentjust, true);
 	delete currentjust;
 }
@@ -2791,7 +2798,7 @@ void IDSolver::findJustificationAggr(Var head, vec<Lit>& outjstf) {
  * all body literals of v that are not justified.
  */
 bool IDSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, InterMediateDataStruct& currentjust) {
-	const Agg& agg = *getAggDefiningHead(v);
+	const IDAgg& agg = *getAggDefiningHead(v);
 	return canJustifyHead(agg, jstf, nonjstf, currentjust, false);
 }
 

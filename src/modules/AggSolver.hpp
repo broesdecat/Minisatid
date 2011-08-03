@@ -121,9 +121,7 @@ public:
 	 */
 	bool 		addSet(int id, const std::vector<Lit>& l, const std::vector<Weight>& w);
 
-	bool 		addAggrExpr(const InnerAggregate agg);
 	bool 		addAggrExpr(const InnerReifAggregate agg);
-	bool 		addDefinedAggrExpr(const InnerReifAggregate agg, IDSolver* idsolver);
 
 	bool 		addMnmz(Var headv, int setid, AggType type);
 
@@ -131,17 +129,18 @@ public:
 	void 		notifyVarAdded(uint64_t nvars);
 
 	// Propagator methods
+	virtual const char* getName					() const { return "aggregate"; }
+	virtual int			getNbOfFormulas			() const { return 1; } // FIXME
+	virtual rClause 	getExplanation			(const Lit& l);
+	// Event propagator methods
 	virtual void 		finishParsing		 	(bool& present, bool& unsat);
 	virtual rClause 	notifypropagate			();
 	virtual void 		notifyNewDecisionLevel	();
 	virtual void 		notifyBacktrack			(int untillevel, const Lit& decision);
-	virtual rClause 	getExplanation			(const Lit& l);
-	virtual const char* getName					() const { return "aggregate"; }
 	virtual void 		printState				() const;
 	virtual void 		printStatistics			() const;
-	rClause				notifyFullAssignmentFound();
-	Var 				notifyBranchChoice		(const Var& var) const;
-	int					getNbOfFormulas			() const { return 1; } // FIXME
+	virtual rClause		notifyFullAssignmentFound();
+	virtual Var 		notifyBranchChoice		(const Var& var) const;
 
 
 	rClause 	propagate				(const Lit& l);
@@ -151,8 +150,7 @@ public:
 	rClause		notifySolver(AggReason* cr);
 	rClause 	doProp					();
 	void 		findClausalPropagations();
-	void 		notifyDefinedHead		(Var head, int defID);
-	void 		removeHeadWatch			(Var head, int defID);
+	void 		removeHeadWatch			(Var head);
 	void 		setHeadWatch			(Lit head, Agg* agg);
 	void 		addStaticWatch			(Var v, Watch* w);
 	void 		addDynamicWatch			(const Lit& l, Watch* w);
@@ -175,7 +173,7 @@ protected:
 
 	bool		finishSet				(TypedSet* set);
 
-	bool 		addAggrExpr				(Var headv, int setid, const AggBound& bound, AggType type, AggSem sem, int defid);
+	bool 		addAggrExpr				(Var headv, int setid, const AggBound& bound, AggType type, AggSem sem);
 
 };
 

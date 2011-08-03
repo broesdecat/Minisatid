@@ -40,7 +40,7 @@ public:
 	virtual ~EventQueue();
 
 
-	// IMPORTANT: EACH propagator has to register here (takes care of deletion)
+	// NOTE: EACH propagator has to register here (takes care of deletion)
 	void accept(Propagator* propagator){
 		for(proplist::const_iterator i=allpropagators.begin(); i<allpropagators.end(); ++i){
 			assert(propagator!=*i);
@@ -48,7 +48,7 @@ public:
 		allpropagators.push_back(propagator);
 	}
 
-	// IMPORTANT: a propagator should only accept events when he is ready for those events!
+	// NOTE: a propagator should only accept events when he is ready for those events!
 	void accept(Propagator* propagator, EVENT basicevent){
 		event2propagator[basicevent].push_back(propagator);
 	}

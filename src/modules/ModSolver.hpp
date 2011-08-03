@@ -116,17 +116,15 @@ public:
 	void 	setNbModels		(int nb);
 
 	//Propagator methods
-	const char* getName			()	const	{ return "modal operator"; }
-	void 		printState		() const;
-	void 		printStatistics	() const 	{ /*Do NOT print lower ones here*/};
-	void 	finishParsing		(bool& present, bool& unsat);
-	rClause	notifypropagate		();
-	void 	notifyNewDecisionLevel	();
-	void 	notifyBacktrack		(int untillevel, const Lit& decision);
-	rClause getExplanation		(const Lit& l) { assert(false); return nullPtrClause; /*TODO NOT IMPLEMENTED*/ };
-	rClause notifyFullAssignmentFound(){ return nullPtrClause; } // TODO should check wellfoundedness here
-	Var 	notifyBranchChoice	(const Var& var) const { return var; }
-	int		getNbOfFormulas		() const { return children.size(); }
+	const char* getName				()	const	{ return "modal operator"; }
+	void 		printState			() const;
+	void 		finishParsing		(bool& present, bool& unsat);
+	rClause		notifypropagate		();
+	void 		notifyNewDecisionLevel	();
+	void 		notifyBacktrack		(int untillevel, const Lit& decision);
+	rClause 	getExplanation		(const Lit& l) { assert(false); return nullPtrClause; /*TODO NOT IMPLEMENTED*/ };
+	rClause 	notifyFullAssignmentFound(){ return nullPtrClause; } // TODO should check wellfoundedness here
+	int			getNbOfFormulas		() const { return children.size(); }
 
 
 

@@ -9,17 +9,15 @@
 #ifndef IDSOLVER_H_
 #define IDSOLVER_H_
 
-#include <cstdio>
 #include <set>
 #include <stack>
 #include <queue>
 #include <vector>
 #include <map>
-#include <cmath>
-#include <tr1/unordered_map>
 
 #include "utils/Utils.hpp"
 #include "modules/DPLLTmodule.hpp"
+#include "modules/aggsolver/AggProp.hpp"
 
 namespace MinisatID {
 
@@ -28,7 +26,6 @@ typedef std::vector<Var> vv;
 typedef std::vector<int> VarToJustif; //Maps variables to their current state in the justification algorithm
 
 class PCSolver;
-class Agg;
 
 /**
  * The different possible types of definitions.
@@ -60,12 +57,37 @@ public:
     vl::const_iterator end()	const 	{ return lits.end(); }
 };
 
+class IDAgg{
+private:
+	AggBound	bound;
+	Lit			head;
+	AggSem		sem;
+	int			index;
+	AggType		type;
+	std::vector<WL> wls;
+
+public:
+	IDAgg(const Lit& head, AggBound b, AggSem sem, AggType type, const std::vector<WL>& wls):
+		bound(b), head(head), sem(sem), index(-1), type(type), wls(wls){	}
+
+	const Lit& 	getHead		() 					const 	{ return head; }
+	void	 	setHead		(const Lit& l)			 	{ head = l; }
+	int			getIndex	()					const	{ return index; }
+
+	const Weight&	getBound()					const	{ return bound.bound; }
+	bool		hasUB		()					const	{ return bound.sign!=AGGSIGN_LB; }
+	bool		hasLB		()					const	{ return bound.sign!=AGGSIGN_UB; }
+	AggSign		getSign		()					const	{ return bound.sign; }
+	const std::vector<WL>& getWL()				const 	{ return wls; }
+	AggType		getType		()					const 	{ return type; }
+};
+
 class DefinedVar{
 private:
 	std::vector<Lit> _reason;
 	union{
 		PropRule*	_definition;
-		Agg*		_definedaggregate;
+		IDAgg*		_definedaggregate;
 	};
 
 	DefType 		_type;
@@ -76,14 +98,14 @@ private:
 
 public:
 	DefinedVar(PropRule* rule, DefType type): _definition(rule), _type(type), _occ(BOTHLOOP), _isCS(false), _scc(-1){}
-	DefinedVar(Agg* rule): _definedaggregate(rule), _type(AGGR), _occ(BOTHLOOP), _isCS(false), _scc(-1){}
+	DefinedVar(IDAgg* rule): _definedaggregate(rule), _type(AGGR), _occ(BOTHLOOP), _isCS(false), _scc(-1){}
 	~DefinedVar(){
 		delete _definition;
 	}
 
 	std::vector<Lit>& 		reason(){ return _reason; }
 	PropRule* 				definition(){ return _definition; }
-	Agg* 					definedaggregate(){ return _definedaggregate; }
+	IDAgg* 					definedaggregate(){ return _definedaggregate; }
 	DefType& 				type(){ return _type; }
 	DefOcc& 				occ(){ return _occ; }
 	bool &					isCS(){ return _isCS; }
@@ -152,18 +174,17 @@ public:
 	bool				hasRecursiveAggregates	() const 	{ return posrecagg || mixedrecagg; }
 
 	// Propagator methods
+	virtual const char* getName					() const { return "definitional"; }
+	virtual int			getNbOfFormulas			() const;
+	virtual rClause 	getExplanation			(const Lit& l);
+	// Event propagator methods
 	virtual void 		finishParsing		 	(bool& present, bool& unsat);
 	virtual rClause 	notifypropagate			();
 	virtual void 		notifyNewDecisionLevel	();
 	virtual void 		notifyBacktrack			(int untillevel, const Lit& decision){ backtracked = true; Propagator::notifyBacktrack(untillevel, decision); };
-	virtual rClause 	getExplanation			(const Lit& l);
-	virtual const char* getName					() const { return "definitional"; }
 	virtual void 		printState				() const;
 	virtual void 		printStatistics			() const;
-	rClause				notifyFullAssignmentFound();
-	Var 				notifyBranchChoice		(const Var& var) const { return var; }
-	int					getNbOfFormulas			() const { return definitions.size() * log(definitions.size()); }
-
+	virtual rClause		notifyFullAssignmentFound();
 
 
 	rClause				isWellFoundedModel		();
@@ -173,8 +194,8 @@ public:
 	const vec<Lit>&		getCFJustificationAggr	(Var v) const;
 	void 				cycleSourceAggr			(Var v, vec<Lit>& nj);
 
-	void 				addDefinedAggregate		(Agg* agg);
-	bool    			addRule      			(bool conj, Lit head, const vec<Lit>& ps);	// Add a rule to the solver.
+	void 				addDefinedAggregate		(const InnerReifAggregate& agg, const InnerWSet& set);
+	bool    			addRule      			(bool conj, Var head, const vec<Lit>& ps);	// Add a rule to the solver.
 
 	bool				isDefined				(Var var) 	const { return hasDefVar(var); }
 	bool 				isConjunctive			(Var v)		const {	return type(v) == CONJ; }
@@ -197,7 +218,7 @@ private:
 
 	std::vector<Lit>& 	reason		(Var v){ assert(hasDefVar(v)); return getDefVar(v)->reason(); }
 	PropRule const*		definition	(Var v) const { assert(hasDefVar(v)); return getDefVar(v)->definition(); }
-	Agg *				aggdefinition(Var v) const { assert(hasDefVar(v)); return getDefVar(v)->definedaggregate(); }
+	IDAgg *				aggdefinition(Var v) const { assert(hasDefVar(v)); return getDefVar(v)->definedaggregate(); }
 	DefType& 			type		(Var v){ assert(hasDefVar(v)); return getDefVar(v)->type(); }
 	DefOcc& 			occ			(Var v){ assert(hasDefVar(v)); return getDefVar(v)->occ(); }
 	bool &				isCS		(Var v){ assert(hasDefVar(v)); return getDefVar(v)->isCS(); }
@@ -211,10 +232,9 @@ private:
 	int 				scc			(Var v)const { return getDefVar(v)->scc(); }
 	const vec<Lit>& 	justification(Var v)const { return getDefVar(v)->justification(); }
 
-	//TODO assert
-	bool				hasSeen		(Var v) const { return _seen->hasElem(v); }
-	int&				seen		(Var v) { return _seen->getElem(v); }
-	const int&			seen		(Var v) const { return _seen->getElem(v); }
+	bool				hasSeen		(Var v) const 	{ return _seen->hasElem(v); }
+	int&				seen		(Var v) 		{ assert(hasSeen(v)); return _seen->getElem(v); }
+	const int&			seen		(Var v) const 	{ assert(hasSeen(v)); return _seen->getElem(v); }
 
 	const std::vector<Var>&	disj_occurs	(const Lit& l) const { return _disj_occurs[toInt(l)]; }
 	std::vector<Var>&		disj_occurs	(const Lit& l) { return _disj_occurs[toInt(l)]; }
@@ -231,8 +251,8 @@ private:
 	bool	hasaggr_occurs(const Lit& l) const { return aggr_occurs(l).size()>0; }
 	void	addaggrOccurs(const Lit& l, Var v) { aggr_occurs(l).push_back(v); assert(type(v)==DISJ); }
 
-	void	createDefinition(Var head, PropRule* r, DefType type) { defdVars.push_back(head);
-																		setDefVar(head, new DefinedVar(r, type));}
+	void	createDefinition(Var head, PropRule* r, DefType type) 	{ defdVars.push_back(head); setDefVar(head, new DefinedVar(r, type));}
+	void	createDefinition(Var head, IDAgg* agg) 					{ defdVars.push_back(head); setDefVar(head, new DefinedVar(agg));}
 	void	removeDefinition(Var head) { delete getDefVar(head); setDefVar(head, NULL); }
 
 	bool	setTypeIfNoPosLoops	(Var v) const;
@@ -329,10 +349,10 @@ private:
 	void removeMarks();
 
 
-	bool canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const;
-	bool canJustifyMaxHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const;
-	bool canJustifySPHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const;
-	Agg* getAggDefiningHead(Var v) const;
+	bool canJustifyHead(const IDAgg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const;
+	bool canJustifyMaxHead(const IDAgg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const;
+	bool canJustifySPHead(const IDAgg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const;
+	IDAgg* getAggDefiningHead(Var v) const;
 	std::vector<Var> getDefAggHeadsWithBodyLit(Var x) const;
 	vwl::const_iterator getSetLitsOfAggWithHeadBegin(Var x) const;
 	vwl::const_iterator getSetLitsOfAggWithHeadEnd(Var x) const ;

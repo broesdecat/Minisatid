@@ -9,14 +9,13 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <vector>
 #include <map>
-#include <string>
 
-#include "satsolver/SATUtils.hpp"
 #include "GeneralUtils.hpp"
+#include "satsolver/SATUtils.hpp"
 
 typedef unsigned int uint;
 
@@ -39,7 +38,8 @@ public:
 };
 
 enum PRIORITY { FAST = 0, SLOW = 1 };
-enum EVENT { EXITCLEANLY, CHOICE, BACKTRACK, DECISIONLEVEL, PRINTSTATE, PRINTSTATS, FULLASSIGNMENT, ADDCLAUSE, REMOVECLAUSE, SYMMETRYANALYZE};
+enum EVENT { EV_PROPAGATE, EV_EXITCLEANLY, EV_CHOICE, EV_BACKTRACK, EV_DECISIONLEVEL, EV_PRINTSTATE, EV_PRINTSTATS,
+			EV_FULLASSIGNMENT, EV_ADDCLAUSE, EV_REMOVECLAUSE, EV_SYMMETRYANALYZE};
 
 // General vector size type usable for any POINTER types!
 typedef std::vector<void*>::size_type vsize;
@@ -108,6 +108,11 @@ struct InnerRule{
 	vec<Lit> body;
 	bool conjunctive;
 	int definitionID;
+
+	InnerRule(): head(-1), conjunctive(true), definitionID(-1){}
+	InnerRule(const InnerRule& rule): head(rule.head), conjunctive(rule.conjunctive), definitionID(rule.definitionID){
+		rule.body.copyTo(body);
+	}
 };
 
 struct InnerSet{

@@ -79,18 +79,16 @@ public:
 	void 	getVariableSubstitutions(std::vector<VariableEqValue>& varassignments);
 
 	// Propagator methods
+	const char* getName		() const { return "CP-solver"; }
+	int		getNbOfFormulas	() const;
+	rClause getExplanation	(const Lit& p);
+	// Event propagator methods
 	void 	finishParsing	(bool& present, bool& unsat);
 	void 	notifyNewDecisionLevel();
 	void 	notifyBacktrack(int untillevel, const Lit& decision);
 	rClause notifypropagate();
-	rClause getExplanation	(const Lit& p);
 	void 	printStatistics	() const;
-	const char* getName		() const { return "CP-solver"; }
 	void 	printState		() const;
-	Var 	notifyBranchChoice	(const Var& var) const { return var; }
-	rClause notifyFullAssignmentFound() { return nullPtrClause; }
-	int		getNbOfFormulas	() const;
-
 
 	// Search methods
 	rClause findNextModel	();

@@ -33,10 +33,18 @@ using namespace std;
 using namespace MinisatID;
 
 AggSolver::AggSolver(PCSolver* s) :
-	Propagator(s),
-	dummyhead(-1),
-	propagations(0), index(1), propindex(0),
-	optimagg(NULL){
+		Propagator(s),
+		dummyhead(-1),
+		propagations(0), index(1), propindex(0),
+		optimagg(NULL){
+	getPCSolver().accept(this, EV_DECISIONLEVEL);
+	getPCSolver().accept(this, EV_BACKTRACK);
+	getPCSolver().accept(this, EV_PRINTSTATE);
+	getPCSolver().accept(this, EV_PRINTSTATS);
+	getPCSolver().accept(this, EV_FULLASSIGNMENT);
+	getPCSolver().accept(this, EV_CHOICE);
+	getPCSolver().accept(this, EV_PROPAGATE);
+	getPCSolver().acceptFinishParsing(this, false);
 }
 
 AggSolver::~AggSolver() {
@@ -69,9 +77,6 @@ void AggSolver::notifyVarAdded(uint64_t nvars) {
 void AggSolver::setHeadWatch(Lit head, Agg* agg) {
 	assert(isInitializing());
 	if(var(head)==dummyhead){
-		if(agg->isDefined()){
-			throw idpexception(getMultipleDefAggHeadsException());
-		}
 		if(!sign(head)){
 			dummyheadtrue2watchlist.insert(agg);
 		}else{
@@ -83,7 +88,7 @@ void AggSolver::setHeadWatch(Lit head, Agg* agg) {
 	}
 }
 
-void AggSolver::removeHeadWatch(Var head, int defID) {
+void AggSolver::removeHeadWatch(Var head) {
 	assert(isInitializing());
 	if(head==dummyhead){
 		// FIXME
@@ -124,19 +129,7 @@ void AggSolver::addRootLevel(){
 
 bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>& weights) {
 	assert(isParsing());
-	assert(lits.size()==weights.size());
-
-	if (lits.size() == 0) {
-		char s[100];
-		sprintf(s, "Set nr. %d is empty.\n", setid);
-		throw idpexception(s);
-	}
-
-	if (parsedSets.find(setid) != parsedSets.end()) {
-		char s[100];
-		sprintf(s, "Set nr. %d is defined more than once.\n", setid);
-		throw idpexception(s);
-	}
+	assert(lits.size()>0 && lits.size()==weights.size());
 
 	vector<WL> lw;
 	for (vsize i = 0; i < lits.size(); ++i) {
@@ -162,39 +155,14 @@ bool AggSolver::addSet(int setid, const vector<Lit>& lits, const vector<Weight>&
 	return true;
 }
 
-// FIXME move to aggpropfactory
-bool AggSolver::addAggrExpr(const InnerAggregate agg) {
-	assert(not isParsing());
-	AggBound b(agg.sign, agg.bound);
-	// FIXME create dummy head => all add methods should be called after parsing
-	return addAggrExpr(dummyhead, agg.setID, b, agg.type, COMP, -1);
-}
-
 bool AggSolver::addAggrExpr(const InnerReifAggregate agg) {
 	assert(isParsing());
-	assert(agg.defID==-1);
 	AggBound b(agg.sign, agg.bound);
-	return addAggrExpr(agg.head, agg.setID, b, agg.type, agg.sem, -1);
+	return addAggrExpr(agg.head, agg.setID, b, agg.type, agg.sem);
 }
 
-bool AggSolver::addDefinedAggrExpr(const InnerReifAggregate agg, IDSolver* idsolver) {
+bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType type, AggSem sem){
 	assert(isParsing());
-	AggBound b(agg.sign, agg.bound);
-	return addAggrExpr(agg.head, agg.setID, b, agg.type, agg.sem, agg.defID);
-}
-
-bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType type, AggSem sem, int defid){
-	assert(isParsing());
-	if (parsedSets.find(setid) == parsedSets.end()) { //Exception if does not already exist
-		char s[100];
-		sprintf(s, "Set nr. %d is used, but not defined yet.\n", setid);
-		throw idpexception(s);
-	}
-	if (headv < 0) { //Exception if head is neg
-		char s[100];
-		sprintf(s, "Heads have to be positive, which is violated for head %d.\n", headv);
-		throw idpexception(s);
-	}
 
 	TypedSet* set = parsedSets[setid];
 
@@ -242,7 +210,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType
 	//the head of the aggregate
 	Lit head = mkLit(headv, false);
 
-	Agg* agg = new Agg(head, AggBound(bound),sem, defid, type);
+	Agg* agg = new Agg(head, AggBound(bound),sem, type);
 	set->addAgg(agg);
 
 	if (verbosity() >= 2) { //Print info on added aggregate
@@ -710,9 +678,9 @@ bool AggSolver::addMnmz(Var headv, int setid, AggType type) {
 		break;
 	}
 
-	Weight max = prop->getMaxPossible(*set);
+	Weight max = prop->getMaxPossible(set->getWL());
 
-	Agg* ae = new Agg(head, AggBound(AGGSIGN_UB, max+1), COMP, 0, type);
+	Agg* ae = new Agg(head, AggBound(AGGSIGN_UB, max+1), COMP, type);
 	setOptimAgg(ae);
 	set->addAgg(ae);
 
@@ -733,7 +701,7 @@ bool AggSolver::invalidateAgg(vec<Lit>& invalidation) {
 
 	a->setBound(AggBound(a->getSign(), value - 1));
 
-	if (s->getType().getMinPossible(*s) == value) {
+	if (s->getType().getMinPossible(s->getWL()) == value) {
 		return true;
 	}
 

@@ -495,9 +495,6 @@ bool PCSolver::invalidateModel(InnerDisjunction& clause) {
 		result = add(clause);
 	}
 
-	getSolver().varDecayActivity();
-	getSolver().claDecayActivity();
-
 	return result;
 }
 

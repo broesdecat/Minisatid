@@ -43,11 +43,10 @@ ModSolver::ModSolver(modindex child, Var head, SOSolver* mh):
 
 	trail.push_back(vector<Lit>());
 
-	getPCSolver().accept(this, PRINTSTATS);
-	getPCSolver().accept(this, DECISIONLEVEL);
-	getPCSolver().accept(this, BACKTRACK);
-	getPCSolver().accept(this, PRINTSTATE);
-	getPCSolver().accept(this, FULLASSIGNMENT);
+	getPCSolver().accept(this, EV_PRINTSTATE);
+	getPCSolver().accept(this, EV_DECISIONLEVEL);
+	getPCSolver().accept(this, EV_BACKTRACK);
+	getPCSolver().accept(this, EV_FULLASSIGNMENT);
 	getPCSolver().acceptFinishParsing(this, true);
 }
 

@@ -143,7 +143,7 @@ void MapToSetOneToOneWithAgg::transform(AggSolver* solver, TypedSet* set, vps& s
 void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const {
 	bool watchable = true;
 	for(vector<Agg*>::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); ++i){
-		if((*i)->getType()==MAX || (*i)->isDefined()){
+		if((*i)->getType()==MAX){
 			watchable = false;
 		}
 	}
@@ -171,8 +171,8 @@ void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& s
 		Agg *one, *two;
 		Weight weighttwo = agg.getSign()==AGGSIGN_LB?agg.getBound()-1:agg.getBound()+1;
 		AggSign signtwo = agg.getSign()==AGGSIGN_LB?AGGSIGN_UB:AGGSIGN_LB;
-		one = new Agg(~agg.getHead(), AggBound(agg.getSign(), agg.getBound()), IMPLICATION, 0, agg.getType());
-		two = new Agg(agg.getHead(), AggBound(signtwo, weighttwo), IMPLICATION, 0, agg.getType());
+		one = new Agg(~agg.getHead(), AggBound(agg.getSign(), agg.getBound()), IMPLICATION, agg.getType());
+		two = new Agg(agg.getHead(), AggBound(signtwo, weighttwo), IMPLICATION, agg.getType());
 
 		implaggs.push_back(one);
 		implaggs.push_back(two);
@@ -180,7 +180,7 @@ void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& s
 	}
 
 	if(optim!=NULL){
-		Agg* newoptim = new Agg(~optim->getHead(), AggBound(optim->getSign(), optim->getBound()), IMPLICATION, 0, optim->getType());
+		Agg* newoptim = new Agg(~optim->getHead(), AggBound(optim->getSign(), optim->getBound()), IMPLICATION, optim->getType());
 		implaggs.push_back(newoptim);
 		solver->setOptimAgg(newoptim);
 		del.push_back(optim);
@@ -393,7 +393,7 @@ void MaxToSAT::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsa
 	const Agg& agg = *set->getAgg()[0];
 	bool ub = agg.hasUB();
 	const Weight& bound = agg.getBound();
-	if (agg.isDefined()) {
+/*	if (agg.isDefined()) { //FIXME add code somewhere else?
 		InnerRule rule;
 		rule.definitionID = agg.getDefID();
 		rule.head = var(agg.getHead());
@@ -410,7 +410,7 @@ void MaxToSAT::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsa
 		}
 
 		notunsat = set->getSolver()->getPCSolver().add(rule);
-	} else {
+	} else {*/
 		InnerDisjunction clause;
 		clause.literals.push(ub? agg.getHead():~agg.getHead());
 		for (vwl::const_reverse_iterator i = set->getWL().rbegin(); i < set->getWL().rend()	&& (*i).getWeight() >= bound; ++i) {
@@ -430,7 +430,7 @@ void MaxToSAT::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsa
 			clause.literals.push(~(*i).getLit());
 			notunsat = set->getSolver()->getPCSolver().add(clause);
 		}
-	}
+	//}
 	set->replaceAgg(vector<Agg*>());
 
 	if(notunsat){
@@ -459,22 +459,22 @@ void CardToEquiv::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& u
 				if(headvalue==l_False){
 					unsat = true;
 				}else{
-					if (agg.getSem() == DEF) {
+					/*if (agg.getSem() == DEF) {
 						InnerRule rule;
 						rule.definitionID = agg.getDefID();
 						rule.head = var(agg.getHead());
 						rule.conjunctive = true;
 						unsat = unsat || !set->getSolver()->getPCSolver().add(rule);
-					}else{
+					}else{*/
 						if(headvalue==l_Undef){
 							if(set->getSolver()->notifySolver(new HeadReason(agg,  agg.getHead()))!=nullPtrClause){
 								unsat = true;
 							}
 						}
-					}
+					//}
 				}
 			}else if(agg.hasLB() && bound==1){
-				if (agg.getSem() == DEF) {
+				/*if (agg.getSem() == DEF) {
 					InnerRule rule;
 					rule.definitionID = agg.getDefID();
 					rule.head = var(agg.getHead());
@@ -483,7 +483,7 @@ void CardToEquiv::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& u
 						rule.body.push(set->getWL()[j].getLit());
 					}
 					unsat = !set->getSolver()->getPCSolver().add(rule);
-				} else{
+				} else{*/
 					InnerEquivalence eq;
 					eq.head = agg.getHead();
 					eq.conjunctive = false;
@@ -491,7 +491,7 @@ void CardToEquiv::transform(AggSolver* solver, TypedSet* set, vps& sets, bool& u
 						eq.literals.push(set->getWL()[j].getLit());
 					}
 					unsat = !set->getSolver()->getPCSolver().add(eq);
-				}
+				//}
 			}else{
 				remaggs.push_back(*i);
 			}

@@ -60,10 +60,10 @@ CPSolver::CPSolver(PCSolver * solver):
 		searchedandnobacktrack(false),
 		savedsearchengine(NULL){
 
-	getPCSolver().accept(this, BACKTRACK);
-	getPCSolver().accept(this, DECISIONLEVEL);
-	getPCSolver().accept(this, PRINTSTATS);
-	getPCSolver().accept(this, PRINTSTATE);
+	getPCSolver().accept(this, EV_BACKTRACK);
+	getPCSolver().accept(this, EV_DECISIONLEVEL);
+	getPCSolver().accept(this, EV_PRINTSTATS);
+	getPCSolver().accept(this, EV_PRINTSTATE);
 	getPCSolver().acceptFinishParsing(this, false);
 }
 

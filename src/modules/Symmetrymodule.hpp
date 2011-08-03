@@ -67,7 +67,7 @@ public:
 	}
 
 	template<class Solver>
-	void backtrack(int level, const Lit& l, Solver solver){
+	void backtrack(int level, const Lit& l, Solver& solver){
 		while(!rowBacktrackLevels.empty() && level < rowBacktrackLevels.back().first){
 			forbiddenRows.erase(rowBacktrackLevels.back().second);
 			rowBacktrackLevels.pop_back();
@@ -88,13 +88,13 @@ public:
 				for(unsigned int i=0; i<symVars.size(); i++){
 					if(!forbiddenRows.count(i)){
 						Lit symLit = mkLit(symVars[i][column],!sign(l));
-						if(solver->value(symLit)==l_Undef){
-							solver->setTrue(symLit, NULL);
+						if(solver.value(symLit)==l_Undef){
+							solver.setTrue(symLit, NULL);
 						}else{
 							if(sign(l)){
-								assert(solver->value(symLit)==l_True);
+								assert(solver.value(symLit)==l_True);
 							}else{
-								assert(solver->value(symLit)==l_False);
+								assert(solver.value(symLit)==l_False);
 							}
 						}
 					}
@@ -113,9 +113,8 @@ public:
 };
 
 template<class Solver>
-class SymmetryPropagator {
+class SymmetryPropagator: public Propagator{
 private:
-	Solver solver;
 	std::vector<std::vector<std::vector<Lit> > > symmgroups;
 
 	std::vector<SymVars*> symClasses;
@@ -124,9 +123,16 @@ private:
 
 public:
 	SymmetryPropagator(Solver s) :
-			solver(s), parsing(true),
-			deleting(false), adding(false){}
-	//FIXME add events
+			Propagator(s), parsing(true),
+			adding(false){
+		getPCSolver().accept(this, EV_BACKTRACK);
+		getPCSolver().accept(this, EV_REMOVECLAUSE);
+		getPCSolver().accept(this, EV_ADDCLAUSE);
+		getPCSolver().accept(this, EV_SYMMETRYANALYZE);
+		getPCSolver().accept(this, EV_PROPAGATE);
+		getPCSolver().acceptFinishParsing(this, false);
+	}
+
 	virtual ~SymmetryPropagator() {
 		deleteList<SymVars>(symClasses);
 	}
@@ -138,7 +144,9 @@ public:
 		symmgroups.push_back(symmgroup);
 	}
 
-	bool analyze(const Lit& p){
+	virtual const char* getName			() const { return "symmetry"; }
+
+	bool symmetryPropagationOnAnalyze(const Lit& p){
 		bool propagatedBySymClasses = false;
         for(auto i=symClasses.begin(); !propagatedBySymClasses && i<symClasses.end(); i++){
         	propagatedBySymClasses = (*i)->isPropagated(p);
@@ -146,22 +154,23 @@ public:
         return propagatedBySymClasses;
 	}
 
-	void finishParsing() {
+	void finishParsing(bool& present, bool& unsat) {
 		parsing = false;
 	    for(auto i=symmgroups.begin(); i<symmgroups.end(); ++i){
 	    	symClasses.push_back(new SymVars(*i));
 	    }
 	}
 
-	void propagate(const Lit& l) {
+	rClause notifypropagate(const Lit& l) {
 	   	for(auto vs_it=symClasses.begin(); vs_it!=symClasses.end(); vs_it++){
-			(*vs_it)->propagate(l,solver->getCurrentDecisionLevel());
+			(*vs_it)->propagate(l,getPCSolver().getCurrentDecisionLevel());
 		}
+	   	return nullPtrClause;
 	}
 
-	void backtrackDecisionLevels(int level, const Lit& decision) {
+	void notifyBacktrack(int untillevel, const Lit& decision) {
         for(auto vs_it=symClasses.begin(); vs_it!=symClasses.end(); ++vs_it){
-        	(*vs_it)->backtrack(level, decision, solver);
+        	(*vs_it)->backtrack(untillevel, decision, getPCSolver());
 		}
 	}
 
@@ -173,12 +182,11 @@ public:
 private:
 	std::map<Var, std::vector<uint> > var2symmetries;
 	std::vector<std::map<Var, Var> > symmetries;
-	std::map<rClause, uint> clause2index;
-	std::map<uint, std::vector<rClause> > symmetricclauses;
-	bool deleting, adding;
+	bool adding;
 
-	void addSymmetricClause(const vec<Lit>& clause, const std::map<Var, Var>& symmetry, int symmindex){
+	void addSymmetricClause(const vec<Lit>& clause, const std::map<Var, Var>& symmetry){
 		vec<Lit> newclause;
+		bool allfalse = true; int level = 0;
 		for(int i=0; i<clause.size(); ++i){
 			auto it = symmetry.find(var(clause[i]));
 			if(it==symmetry.end()){
@@ -186,11 +194,25 @@ private:
 			}else{
 				newclause.push(mkLit((*it).second, sign(clause[i])));
 			}
+
+			if(allfalse && getPCSolver().value(newclause.last())==l_False){
+				int varlevel = getPCSolver().getLevel(var(newclause.last()));
+				if(varlevel-1>level){
+					level = varlevel-1;
+				}
+			}else{
+				allfalse = false;
+			}
 		}
-		rClause rc = solver->createClause(newclause, true);
-		solver->addLearnedClause(rc); // TODO should have the guarantee that this never leads to a conflict.
-		symmetricclauses[symmindex].push_back(rc);
-		clause2index.insert(std::pair<rClause, uint>(rc, symmindex));
+		if(allfalse){
+			if(level==0){ //FIXME handle
+				assert(false);
+				std::cerr <<"Unsatisfiable symmetric clause, is not handled now.";
+			}
+			getPCSolver().backtrackTo(level);
+		}
+		rClause rc = getPCSolver().createClause(newclause, true);
+		getPCSolver().addLearnedClause(rc); // TODO should have the guarantee that this never leads to a conflict.
 		//This is the case if always, all symmetric statements of any statement are also explicitly in the theoy
 	}
 
@@ -206,7 +228,7 @@ public:
 	}
 
 	void notifyClauseAdded(rClause clauseID){
-		if(parsing || clause2index.find(clauseID)!=clause2index.end()){
+		if(parsing){
 			return;
 		}
 		if(adding){
@@ -216,8 +238,8 @@ public:
 		//add all symmetries
 		std::set<uint> symmindices;
 		vec<Lit> clause;
-		for(int i=0; i<solver->getClauseSize(clauseID); ++i){
-			clause.push(solver->getClauseLit(clauseID, i));
+		for(int i=0; i<getPCSolver().getClauseSize(clauseID); ++i){
+			clause.push(getPCSolver().getClauseLit(clauseID, i));
 		}
 		for(int i=0; i<clause.size(); ++i){
 			auto it = var2symmetries.find(var(clause[i]));
@@ -227,34 +249,14 @@ public:
 			symmindices.insert((*it).second.begin(), (*it).second.end());
 		}
 		if(symmindices.size()>0){
-			int symmindex = symmetricclauses.size();
-			symmetricclauses[symmindex].push_back(clauseID);
-			clause2index.insert(std::pair<rClause, uint>(clauseID, symmindex));
 			for(auto index = symmindices.begin(); index!=symmindices.end(); ++index){
-				addSymmetricClause(clause, symmetries.at(*index), symmindex);
+				addSymmetricClause(clause, symmetries.at(*index));
 			}
 		}
 		adding = false;
 	}
 
 	void notifyClauseDeleted(rClause c){
-		if(deleting){
-			return;
-		}
-		deleting = true;
-
-		auto it = clause2index.find(c);
-		if(it==clause2index.end()){
-			deleting = false;
-			return;
-		}
-		std::vector<rClause>& symm = symmetricclauses.at((*it).second);
-		for(auto i=symm.begin(); i!=symm.end(); ++i){
-			solver->removeClause(*i);
-			clause2index.erase(*i);
-		}
-		symmetricclauses.erase((*it).second);
-		deleting = false;
 	}
 };
 
