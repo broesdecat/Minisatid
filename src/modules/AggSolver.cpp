@@ -67,11 +67,6 @@ void AggSolver::adaptToNVars(uint64_t nvars){
 	propagated.resize(nvars, LI(l_Undef, 0));
 }
 
-void AggSolver::notifyVarAdded(uint64_t nvars) {
-	if(!isParsing()){
-		adaptToNVars(nvars);
-	}
-}
 // WATCH MANIPULATION
 
 void AggSolver::setHeadWatch(Lit head, Agg* agg) {
@@ -568,7 +563,10 @@ rClause	AggSolver::notifypropagate(){
 	}
 
 	while(hasNextProp()){
-		littrail.push_back(getNextProp());
+		Lit l = getNextProp();
+		if(var(l)<propagated.size()){ // FIXME should find a cleaner way for this!
+			littrail.push_back(l);
+		}
 	}
 
 	if(!modes().asapaggprop){
