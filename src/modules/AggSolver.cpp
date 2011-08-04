@@ -210,7 +210,7 @@ bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType
 	//the head of the aggregate
 	Lit head = mkLit(headv, false);
 
-	Agg* agg = new Agg(head, AggBound(bound),sem, type);
+	Agg* agg = new Agg(head, AggBound(bound),sem==DEF?COMP:sem, type);
 	set->addAgg(agg);
 
 	if (verbosity() >= 2) { //Print info on added aggregate
@@ -222,7 +222,8 @@ bool AggSolver::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType
 }
 
 void AggSolver::finishParsing(bool& present, bool& unsat) {
-	assert(isInitializing());
+	assert(isParsing());
+	notifyParsed();
 	unsat = false;
 	present = true;
 
@@ -320,6 +321,8 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 
 	printNumberOfAggregates(sets.size(), totalagg, setlits, nbaggs, verbosity());
 	printState();
+
+	notifyInitialized();
 }
 
 /**
@@ -554,30 +557,15 @@ rClause AggSolver::doProp(){
 /**
  * Returns non-owning pointer
  */
-rClause AggSolver::propagate(const Lit& p) {
-	assert(isInitialized());
-	rClause confl = nullPtrClause;
-	if (!isInitialized()) {
-		return confl;
-	}
-
-	littrail.push_back(p);
-
-	if(modes().asapaggprop){
-		confl = doProp();
-	}
-
-	return confl;
-}
-
-/**
- * Returns non-owning pointer
- */
 rClause	AggSolver::notifypropagate(){
 	assert(isInitialized());
 	rClause confl = nullPtrClause;
 	if (!isInitialized()) {
 		return confl;
+	}
+
+	while(hasNextProp()){
+		littrail.push_back(getNextProp());
 	}
 
 	if(!modes().asapaggprop){

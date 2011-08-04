@@ -65,6 +65,20 @@ namespace MinisatID {
 		l.clear();
 	}
 
+	template<class T, class K>
+	void deleteList(std::map<K, std::map<K, std::vector<T*> > >& l){
+		for(auto i=l.begin(); i!=l.end(); ++i){
+			for(auto j=(*i).second.begin(); j!=(*i).second.end(); ++j){
+				for(auto k=(*j).second.begin(); k!=(*j).second.end(); ++k){
+					if((*k).second!=NULL){
+						delete((*k).second);
+					}
+				}
+			}
+		}
+		l.clear();
+	}
+
 	template<class List, class Elem>
 	bool contains(const List& l, const Elem& e){
 		return l.find(e)!=l.end();

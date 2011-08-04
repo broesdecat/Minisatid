@@ -73,6 +73,7 @@ PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine
 #ifdef CPSUPPORT
 		,cpsolver(NULL)
 #endif
+		,maxset(1)
 		{
 	satsolver = getEnginep()->getSATSolver();
 	satsolver->notifyUsedForSearch();
@@ -129,20 +130,17 @@ AggSolver* PropagatorFactory::getAggSolver() {
 }
 
 void PropagatorFactory::addAggSolver(){
-	assert(isParsing());
 	aggsolver = new AggSolver(getEnginep());
 	getEngine().accept(aggsolver, EV_EXITCLEANLY);
 }
 
 void PropagatorFactory::addIDSolver(defID id){
-	assert(isParsing());
 	IDSolver* idsolver = new IDSolver(getEnginep(), id);
 	getEngine().accept(idsolver, EV_EXITCLEANLY);
 	idsolvers.insert(pair<defID, IDSolver*>(id, idsolver));
 }
 
 void PropagatorFactory::addSymmSolver(){
-	assert(isParsing());
 	symmsolver = new SymmetryPropagator<PCSolver*>(getEnginep());
 }
 bool PropagatorFactory::hasSymmSolver() const {
@@ -240,6 +238,10 @@ bool PropagatorFactory::add(const InnerWSet& formula){
 
 	addVars(formula.literals);
 
+	if(formula.setID>maxset){
+		maxset = formula.setID;
+	}
+
 	if (contains(parsedsets, formula.setID)) {
 		throwDoubleDefinedSet(formula.setID);
 	}else{
@@ -252,7 +254,7 @@ bool PropagatorFactory::add(const InnerWSet& formula){
 bool PropagatorFactory::add(const InnerAggregate& formula){
 	notifyMonitorsOfAdding(formula);
 
-	if(!hasAggSolver()){
+	if(parsedsets.find(formula.setID)==parsedsets.end()){
 		stringstream ss;
 		ss <<"The set with id " <<formula.setID <<" should be defined before any aggregates using it.\n";
 		throw idpexception(ss.str());
@@ -265,7 +267,7 @@ bool PropagatorFactory::add(const InnerAggregate& formula){
 bool PropagatorFactory::add(const InnerReifAggregate& formula){
 	notifyMonitorsOfAdding(formula);
 
-	if(!hasAggSolver()){
+	if(parsedsets.find(formula.setID)==parsedsets.end()){
 		stringstream ss;
 		ss <<"The set with id " <<formula.setID <<" should be defined before the aggregate with head " <<formula.head <<"\n";
 		throw idpexception(ss.str());
@@ -407,6 +409,9 @@ void PropagatorFactory::finishParsing() {
 
 	// aggregate checking
 	Var v = getEngine().newVar();
+	InnerDisjunction clause;
+	clause.literals.push(mkLit(v));
+	add(clause);
 	for(auto i=parsedaggs.begin(); i!=parsedaggs.end(); ++i){
 		InnerReifAggregate* r = new InnerReifAggregate();
 		r->bound = (*i)->bound;
@@ -431,6 +436,22 @@ void PropagatorFactory::finishParsing() {
 				throwHeadOccursInSet((*i)->head, (*i)->setID);
 			}
 		}
+		if((*i)->type==MIN){ // FIXME move somewhere else + code duplication with aggtransform
+			//Transform Min into Max set: invert all weights
+			auto newset = new InnerWSet(*set);
+			newset->setID = ++maxset;
+			(*i)->setID = newset->setID;
+			parsedsets.insert(pair<int, InnerWSet*>(newset->setID, newset));
+			newset->weights.clear();
+			for (auto j=set->weights.begin(); j!=set->weights.end(); ++j) {
+				newset->weights.push_back(-(*j));
+			}
+
+			//Invert the bound
+			(*i)->bound = -(*i)->bound;
+			(*i)->type = MAX;
+			(*i)->sign = (*i)->sign==AGGSIGN_LB?AGGSIGN_UB:AGGSIGN_LB;
+		}
 	}
 #ifdef DEBUG
 	for(auto i=parsedreifaggs.begin(); i!=parsedreifaggs.end(); ++i){
@@ -449,7 +470,7 @@ void PropagatorFactory::finishParsing() {
 		getAggSolver()->addSet((*i).second->setID, (*i).second->literals, (*i).second->weights);
 	}
 	for(auto i=parsedreifaggs.begin(); notunsat && i!=parsedreifaggs.end(); ++i){
-		if((*i)->defID!=-1){
+		if((*i)->sem==DEF){
 			getIDSolver((*i)->defID)->addDefinedAggregate(**i, *parsedsets.at((*i)->setID));
 		}
 		notunsat = getAggSolver()->addAggrExpr(**i);
@@ -461,7 +482,7 @@ void PropagatorFactory::finishParsing() {
 	for(auto i=parsedrules.begin(); notunsat && i!=parsedrules.end(); ++i){
 		notunsat = getIDSolver((*i)->definitionID)->addRule((*i)->conjunctive, (*i)->head, (*i)->body);
 	}
-	deleteList<InnerRule>(parsedrules);
+	parsedrules.clear();
 
 	if(not notunsat){
 		//FIXME

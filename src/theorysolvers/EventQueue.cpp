@@ -18,7 +18,8 @@ using namespace MinisatID;
 using namespace std;
 
 EventQueue::EventQueue(PCSolver& pcsolver):
-			pcsolver(pcsolver){
+			pcsolver(pcsolver),
+			initialized(false){
 	event2propagator[EV_PRINTSTATE];
 	event2propagator[EV_PRINTSTATS];
 	event2propagator[EV_CHOICE];
@@ -44,6 +45,15 @@ void EventQueue::notifyVarAdded(){
 		newmap.push_back(proplist());
 		newmap.push_back(proplist());
 		litevent2propagator.push_back(newmap);
+	}
+}
+
+void EventQueue::addEternalPropagators(){
+	for(auto propagator=begin(EV_PROPAGATE); propagator<end(EV_PROPAGATE); ++propagator){
+		if(!(*propagator)->isQueued()){
+			(*propagator)->notifyQueued();
+			fastqueue.push(*propagator);
+		}
 	}
 }
 
@@ -75,6 +85,9 @@ void EventQueue::setTrue(const proplist& list, queue<Propagator*>& queue){
 }
 
 void EventQueue::setTrue(const Lit& l){
+	if(isInitialized()){
+		addEternalPropagators();
+	}
 	setTrue(litevent2propagator[toInt(l)][FAST], fastqueue);
 	setTrue(litevent2propagator[toInt(l)][SLOW], slowqueue);
 }
@@ -127,6 +140,7 @@ void EventQueue::finishParsing(bool& unsat){
 		}
 	}
 
+	notifyInitialized();
 
 	// Do all possible propagations that are queued
 	if (notifyPropagate() != nullPtrClause) {
@@ -136,9 +150,6 @@ void EventQueue::finishParsing(bool& unsat){
 
 rClause EventQueue::notifyPropagate(){
 	rClause confl = nullPtrClause;
-	for(auto i=begin(EV_PROPAGATE); confl==nullPtrClause && i<end(EV_PROPAGATE); ++i){
-		confl = (*i)->notifypropagate();
-	}
 	while(fastqueue.size()+slowqueue.size()!=0 && confl==nullPtrClause){
 		Propagator* p = NULL;
 		if(fastqueue.size()!=0){

@@ -87,7 +87,7 @@ private:
 	std::vector<Lit> _reason;
 	union{
 		PropRule*	_definition;
-		IDAgg*		_definedaggregate;
+		IDAgg*		_definedaggregate; // INVARIANT: no initially justified aggregates
 	};
 
 	DefType 		_type;
@@ -100,7 +100,11 @@ public:
 	DefinedVar(PropRule* rule, DefType type): _definition(rule), _type(type), _occ(BOTHLOOP), _isCS(false), _scc(-1){}
 	DefinedVar(IDAgg* rule): _definedaggregate(rule), _type(AGGR), _occ(BOTHLOOP), _isCS(false), _scc(-1){}
 	~DefinedVar(){
-		delete _definition;
+		if(_type==AGGR){
+			delete(_definedaggregate);
+		}else{
+			delete(_definition);
+		}
 	}
 
 	std::vector<Lit>& 		reason(){ return _reason; }
@@ -141,8 +145,6 @@ private:
 	std::vector<Var>		defdVars;	// All the vars that are the head of some kind of definition (disj, conj or aggr). Allows to iterate over all definitions.
 
 	bool					backtracked;	//True if the solver has backtracked between now and the previous search for cycle sources. Is true at the start
-
-	std::set<Var>			toremoveaggrheads; //The set of defined aggregates that are no longer defined and should be removed from IDSolver during simplification.
 
 	int						adaption_total;     // Used only if defn_strategy==adaptive. Number of decision levels between indirectPropagate() uses.
 	int						adaption_current;   // Used only if defn_strategy==adaptive. Number of decision levels left until next indirectPropagate() use.
@@ -249,7 +251,7 @@ private:
 	std::vector<Var>&		aggr_occurs	(const Lit& l) { return _aggr_occurs[toInt(l)]; }
 	const std::vector<Var>&	aggr_occurs	(const Lit& l) const { return _aggr_occurs[toInt(l)]; }
 	bool	hasaggr_occurs(const Lit& l) const { return aggr_occurs(l).size()>0; }
-	void	addaggrOccurs(const Lit& l, Var v) { aggr_occurs(l).push_back(v); assert(type(v)==DISJ); }
+	void	addAggrOccurs(const Lit& l, Var v) { aggr_occurs(l).push_back(v); assert(type(v)==AGGR); }
 
 	void	createDefinition(Var head, PropRule* r, DefType type) 	{ defdVars.push_back(head); setDefVar(head, new DefinedVar(r, type));}
 	void	createDefinition(Var head, IDAgg* agg) 					{ defdVars.push_back(head); setDefVar(head, new DefinedVar(agg));}
@@ -303,10 +305,10 @@ private:
 	void	markNonJustifiedAddVar		(Var v, Var cs, std::queue<Var> &q, vec<Var>& tmpseen);
 	void	markNonJustifiedAddParents	(Var x, Var cs, std::queue<Var> &q, vec<Var>& tmpseen);
 	bool	directlyJustifiable			(Var v, std::set<Var>& ufs, std::queue<Var>& q);            // Auxiliary for 'unfounded(..)'. True if v can be immediately justified by one change_jstfc action.
-	bool	isJustified					(Lit x) const;
-	bool	isJustified					(Var x) const;
-	bool 	oppositeIsJustified			(const WL& wl, bool real) const;
-	bool 	isJustified					(const WL& wl, bool real) const;
+	bool	isJustified					(const InterMediateDataStruct& currentjust, Lit x) const;
+	bool	isJustified					(const InterMediateDataStruct& currentjust, Var x) const;
+	bool 	oppositeIsJustified			(const InterMediateDataStruct& currentjust, const WL& wl, bool real) const;
+	bool 	isJustified					(const InterMediateDataStruct& currentjust, const WL& wl, bool real) const;
 
 	bool	propagateJustified			(Var v, Var cs, std::set<Var>& ufs);    // Auxiliary for 'unfounded(..)'. Propagate the fact that 'v' is now justified. True if 'cs' is now justified
 	void	addLoopfClause				(Lit l, vec<Lit>& lits);
@@ -359,6 +361,7 @@ private:
 	void addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, InterMediateDataStruct& seen);
 	void findJustificationAggr(Var head, vec<Lit>& outjstf) ;
 	bool directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, InterMediateDataStruct& currentjust);
+	bool isInitiallyJustified(const IDAgg& agg);
 };
 
 }

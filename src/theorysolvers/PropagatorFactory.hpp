@@ -75,6 +75,7 @@ private:
 #endif
 
 	// Parsing support
+	int maxset;
 	std::vector<InnerRule*> parsedrules;
 	std::map<int, InnerWSet*> parsedsets;
 	std::vector<InnerAggregate*> parsedaggs;
@@ -137,7 +138,7 @@ private:
 	void 		addVars			(const std::vector<Lit>& a);
 
 	template<typename T>
-	void 		notifyMonitorsOfAdding(const T& obj) const ;
+	void 		notifyMonitorsOfAdding(const T& obj) const;
 };
 
 }

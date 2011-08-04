@@ -35,12 +35,16 @@ private:
 	proplist earlyfinishparsing, latefinishparsing;
 	std::vector<std::vector<proplist> > litevent2propagator;
 
+	bool initialized;
+	void notifyInitialized() { initialized = true; }
+	bool isInitialized() const { return initialized; }
+
 public:
 	EventQueue(PCSolver& pcsolver);
 	virtual ~EventQueue();
 
 
-	// NOTE: EACH propagator has to register here (takes care of deletion)
+	// NOTE: EACH propagator has to register here for the general methods
 	void accept(Propagator* propagator){
 		for(proplist::const_iterator i=allpropagators.begin(); i<allpropagators.end(); ++i){
 			assert(propagator!=*i);
@@ -61,7 +65,8 @@ public:
 		}
 	}
 
-	void acceptLitEvent(Propagator* propagator, const Lit& litevent, PRIORITY priority);
+	void 	addEternalPropagators();
+	void 	acceptLitEvent(Propagator* propagator, const Lit& litevent, PRIORITY priority);
 
 	void 	notifyVarAdded			();
 

@@ -142,8 +142,6 @@ public:
 	virtual rClause		notifyFullAssignmentFound();
 	virtual Var 		notifyBranchChoice		(const Var& var) const;
 
-
-	rClause 	propagate				(const Lit& l);
 	void 		adaptAggHeur			(const vwl& wls, int nbagg);
 
 	//INTERNAL (TODO into pimpl)

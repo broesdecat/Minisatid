@@ -163,6 +163,7 @@ rClause FWAgg::propagate(const Lit& p, pw ws, int level) {
 	assert(found);
 #endif
 
+	assert(fwobj->level == level && level == getSolver()->getPCSolver().getLevel(var(p)));
 	fwobj->props.push_back(PropagationInfo(p, ws->getWL().getWeight(), ws->getType(p)));
 
 	return nullPtrClause;

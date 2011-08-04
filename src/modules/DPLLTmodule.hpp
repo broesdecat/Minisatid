@@ -66,7 +66,6 @@ public:
 	virtual void 	notifyNewDecisionLevel	()						{ assert(false); }
 	// NOTE: call explicitly when using hasnextprop/nextprop!
 	virtual void 	notifyBacktrack		(int untillevel, const Lit& decision);
-	virtual rClause	notifypropagate		(const Lit&)				{ assert(false); return nullPtrClause; }
 	virtual rClause	notifypropagate		()							{ assert(false); return nullPtrClause; }
 	virtual Var 	notifyBranchChoice	(const Var& var) const 		{ assert(false); return var; }
 	virtual void 	printStatistics		() const 					{ assert(false); }
