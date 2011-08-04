@@ -141,6 +141,7 @@ void EventQueue::finishParsing(bool& unsat){
 	}
 
 	notifyInitialized();
+	addEternalPropagators();
 
 	// Do all possible propagations that are queued
 	if (notifyPropagate() != nullPtrClause) {

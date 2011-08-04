@@ -411,8 +411,8 @@ void IDSolver::visitFull(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &vi
 				}
 
 				if (visited[w] == 0) {
-					visitFull(w, incomp, stack, visited, counter, true, rootofmixed, nodeinmixed);
-				} else if (!incomp[w] && visited[i] > 0) {
+					visitFull(w, incomp, stack, visited, counter, false /*Over-approximation of negative occurences*/, rootofmixed, nodeinmixed);
+				} else if (!incomp[w] && visited[i] > 0) { // Over-approximation of negative occurences
 					visited[i] = -visited[i];
 				}
 				if (!incomp[w] && abs(visited[scc(i)]) > abs(visited[scc(w)])) {
@@ -2659,65 +2659,6 @@ bool IDSolver::canJustifySPHead(const IDAgg& agg, vec<Lit>& jstf, vec<Var>& nonj
 	return justified;
 }
 
-/*bool SPAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
-	//OTHER IMPLEMENTATION (probably buggy)
-	pSet s = getSet();
-
-	Weight current = 0;
-	if (isLower()) {
-		current = s->getBestPossible();
-	} else {
-		current = s->getEmptySetValue();
-	}
-
-	bool justified = false;
-	if (aggValueImpliesHead(current)) {
-		justified = true;
-	}
-
-	for (lwlv::const_iterator i = s->getWLBegin(); !justified && i
-			< s->getWLEnd(); ++i) {
-		if (isMonotone(*i) && s->isJustified(*i, currentjust, real)) {
-			if (isLower()) {
-				jstf.push(~(*i).getLit());
-				current = this->remove(current, (*i).getWeight());
-			} else {
-				//if(s->isJustified(*i, currentjust, real)){
-				jstf.push((*i).getLit());
-				current = this->add(current, (*i).getWeight());
-			}
-
-			if (aggValueImpliesHead(current)) {
-				justified = true;
-			}
-		} else if (real || currentjust[var((*i).getLit())] != 0) {
-			nonjstf.push(var((*i).getLit()));
-		}
-	}
-
-	if (!justified) {
-		jstf.clear();
-	}
-
-	if (s->getSolver()->getPCSolver()->modes().verbosity >= 4) {
-		reportf("Justification checked for ");
-		printAggrExpr(this);
-
-		if (justified) {
-			reportf("justification found: ");
-			for (int i = 0; i < jstf.size(); ++i) {
-				print(jstf[i]);
-				reportf(" ");
-			}
-			reportf("\n");
-		} else {
-			reportf("no justification found.\n");
-		}
-	}
-
-	return justified;
-}*/
-
 IDAgg* IDSolver::getAggDefiningHead(Var v) const {
 	//FIXME checks en mooiere code
 	return aggdefinition(v);
@@ -2790,10 +2731,12 @@ bool IDSolver::directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, Int
 }
 
 bool IDSolver::isInitiallyJustified(const IDAgg& agg){
-	vec<Lit> jstf;
-	vec<Var> nonjstf;
-	InterMediateDataStruct currentjust(0, 0);
-	return canJustifyHead(agg, jstf, nonjstf, currentjust, true);
+	if(agg.getSign()==AGGSIGN_LB && getProp(agg.getType())->getMinPossible(agg.getWL())>=agg.getBound()){
+		return true;
+	}else if(agg.getSign()==AGGSIGN_UB && getProp(agg.getType())->getMaxPossible(agg.getWL())<=agg.getBound()){
+		return true;
+	}
+	return false;
 }
 
 //TARJAN ALGORITHM FOR FINDING UNFOUNDED SETS IN GENERAL INDUCTIVE DEFINITIONS (NOT ONLY SINGLE CONJUNCTS). THIS DOES NOT WORK YET
