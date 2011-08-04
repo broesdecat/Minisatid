@@ -229,6 +229,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 
 	if (parsedSets.size() == 0) {
 		present = false;
+		notifyInitialized();
 		return;
 	}
 
@@ -294,6 +295,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 		if (verbosity() >= 3) {
 			report("Initializing aggregates finished, unsat detected.\n");
 		}
+		notifyInitialized();
 		return;
 	}
 
@@ -312,6 +314,7 @@ void AggSolver::finishParsing(bool& present, bool& unsat) {
 			report("Initializing aggregates finished, no aggregates present after initialization.\n");
 		}
 		present = false;
+		notifyInitialized();
 		return;
 	}
 
