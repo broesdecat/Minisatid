@@ -9,9 +9,10 @@
 #ifndef PCSOLVER_H_
 #define PCSOLVER_H_
 
-#include <map>
 #include "utils/Utils.hpp"
 #include "theorysolvers/LogicSolver.hpp"
+
+#include "theorysolvers/PropagatorFactory.hpp"
 
 namespace Minisat{
 	class Solver;
@@ -19,180 +20,97 @@ namespace Minisat{
 
 namespace MinisatID {
 
-class ECNFPrinter;
-
-class SolverOption;
-
-class IDSolver;
-template<class Solver> class SymmetryPropagator;
-class AggSolver;
-class ModSolver;
-
-#ifdef CPSUPPORT
 class CPSolver;
-#endif
-
-class DPLLTmodule;
-
-typedef Minisat::Solver SATSolver;
+class ModSolver;
+class SolverOption;
+class Propagator;
+class PropagatorFactory;
+class EventQueue;
+class SearchMonitor;
+typedef Minisat::Solver SearchEngine;
 
 enum Optim { MNMZ, SUBSETMNMZ, AGGMNMZ, NONE }; // Preference minimization, subset minimization, sum minimization
 
-class PCLogger{
-private:
-	std::vector<int> occurrences;
-	int propagations;
-
-public:
-	PCLogger();
-
-	void addPropagation() { ++propagations; }
-	int getNbPropagations() const { return propagations; }
-	void addCount(Var v);
-	int getCount(Var v) const;
-
-};
-
-class PCSolver;
-
-typedef int defID;
-
-class DPLLTSolver{
-private:
-	DPLLTmodule* module;
-	const bool createdhere;
-
-	DPLLTSolver(DPLLTSolver&);
-	DPLLTSolver& operator=(DPLLTSolver& m);
-
-public:
-	bool present; //Indicates whether the solver should be integrated into the search
-
-	DPLLTSolver(DPLLTmodule* module, bool createdhere): module(module), createdhere(createdhere), present(true){ assert(module!=NULL);}
-	~DPLLTSolver();
-
-	DPLLTmodule* get() const { return module; }
-};
-
-typedef std::vector<DPLLTSolver*> solverlist;
 enum TheoryState {THEORY_PARSING, THEORY_INITIALIZED, THEORY_INITIALIZING};
+
 
 class PCSolver: public MinisatID::LogicSolver{
 private:
-	//OWNING POINTER
-	SATSolver* satsolver;
+	int	ID;
+	int getID() const { return ID+1; }
 
-	// IMPORTANT: implicit invariant that IDsolver is always last in the list!
-	solverlist solvers;
+	//Search algorithms //TODO refactor into an interface "searchalgorithm" with subclasses satsolver and cpsolver?
+	SearchEngine* searchengine;
+	SearchEngine& getSolver() { return *searchengine; }
+	const SearchEngine& getSolver() const { return *searchengine; }
+#ifdef CPSUPPORT
+	CPSolver* cpsolver;
+	bool hasCPSolver() const;
+	CPSolver& getCPSolver() { return *cpsolver; }
+	const CPSolver& getCPSolver() const { return *cpsolver; }
+#endif
+
+	EventQueue* queue;
+	EventQueue& getEventQueue() { return *queue; }
+	const EventQueue& getEventQueue() const { return *queue; }
+
+	PropagatorFactory* factory;
+	PropagatorFactory& getFactory() { return *factory; }
+	const PropagatorFactory& getFactory() const { return *factory; }
 
 	TheoryState state;
-	uint 		nbskipped; //For printing the full and correct trail.
-	std::vector<Lit>		initialprops; //IMPORTANT for printing trail, DO NOT CLEAR
 
-	std::vector<DPLLTmodule*> propagations;
+	std::vector<Propagator*> propagations;
+
+	virtual void	notifyNonDecisionVar(Var var);
+
+	// Explanation dummies: used to fix up learned clauses which are too small
+	Var dummy1, dummy2;
 
 	// OPTIMIZATION INFORMATION
 	Optim 		optim;
 	Var 		head;
 	vec<Lit>	to_minimize;
 
-	// FORCED CHOICES TO MAKE DURING SEARCH
-	vec<Lit> forcedchoices;
-
 	// State saving
 	int 				state_savedlevel;
 	bool 				state_savingclauses;
 	std::vector<rClause> state_savedclauses;
 
-	SATSolver* getSolver() const { return satsolver; }
-
-	std::map<defID, DPLLTSolver*> idsolvers;
-	bool hasIDSolver(defID id) const;
-	void addIDSolver(defID id);
-	IDSolver* getIDSolver(defID id) const;
-	bool hasPresentIDSolver(defID id) const;
-
-	SymmetryPropagator<PCSolver*>* symmsolver;
-	SymmetryPropagator<PCSolver*>* getSymmSolver() const;
-	bool hasSymmSolver() const;
-	void addSymmSolver();
-
-	DPLLTSolver* aggsolver;
-	bool hasAggSolver() const;
-	void addAggSolver();
-	bool hasPresentAggSolver() const;
-
-	DPLLTSolver* modsolver;
-	bool hasModSolver() const;
-	bool hasPresentModSolver() const;
-	ModSolver* getModSolver() const;
-
-	DPLLTSolver* cpsolver;
-	bool hasCPSolver() const;
-	bool hasPresentCPSolver() const;
-
-#ifdef CPSUPPORT
-	void addCPSolver();
-	CPSolver* getCPSolver() const;
-#endif
-
 	// Logging
-	PCLogger* logger;
-	ECNFPrinter* ecnfprinter;
-	static bool headerunprinted;
-
-	// Monitoring
-	bool	hasMonitor;
+	SearchMonitor* searchmonitor;
+	SearchMonitor& getSearchMonitor() { return *searchmonitor; }
+	const SearchMonitor& getSearchMonitor() const { return *searchmonitor; }
 
 public:
-	PCSolver(SolverOption modes, MinisatID::WrapperPimpl& inter);
+	PCSolver(SolverOption modes, MinisatID::WrapperPimpl& inter, int ID);
 	virtual ~PCSolver();
 
-	SATSolver*	getSATSolver() const { return satsolver; }
-	AggSolver* getAggSolver() const;
+	SearchEngine*	getSATSolver() const { return searchengine; }
+#ifdef CPSUPPORT
+	CPSolver* 		getCPSolverp() const { return cpsolver; }
+#endif
 
-	bool symmetryPropagationOnAnalyze(const Lit& p);
+	void		accept(Propagator* propagator);
+	void 		accept(Propagator* propagator, EVENT event);
+	void 		acceptLitEvent(Propagator* propagator, const Lit& lit, PRIORITY priority);
+	void 		acceptFinishParsing(Propagator* propagator, bool late);
 
-	// INIT
-	void 	setModSolver	(ModSolver* m);
+	void 		setModSolver(ModSolver* m);
 
-	Var		newVar	();
-	bool	add		(Var v);
-	bool	add		(const InnerDisjunction& sentence);
-	bool	add		(const InnerEquivalence& sentence);
-	bool	add		(const InnerRule& sentence);
-	bool	add		(const InnerWSet& sentence);
-	bool	add		(const InnerAggregate& sentence);
-	bool	add		(const InnerMinimizeSubset& sentence);
-	bool	add		(const InnerMinimizeOrderedList& sentence);
-	bool	add		(const InnerMinimizeAgg& sentence);
-	bool	add		(const InnerForcedChoices& sentence);
-	bool	add		(const InnerSymmetryLiterals& sentence);
-	bool	add		(const InnerSymmetry& sentence);
-	bool	add		(const InnerIntVarEnum& object);
-	bool	add		(const InnerIntVarRange& object);
-	bool	add		(const InnerCPBinaryRel& object);
-	bool	add		(const InnerCPBinaryRelVar& object);
-	bool	add		(const InnerCPSumWeighted& object);
-	bool	add		(const InnerCPCount& object);
-	bool	add		(const InnerCPAllDiff& object);
+	Var			newVar();
+
+	void 		finishParsing(bool& unsat);
 
 	// Solving support
 	void 		newDecisionLevel();
-	void 		finishParsing	(bool& unsat);
-	bool 		simplify();
 	bool 		solve			(const vec<Lit>& assumptions, const ModelExpandOptions& options);
-	lbool 		checkStatus		(lbool status) const; //if status==l_True, do wellfoundednesscheck in IDSolver, if not wellfounded, return l_False, otherwise status
+	rClause 	checkFullAssignment();
 
 	Var			changeBranchChoice(const Var& chosenvar);
 
-	bool		isAlreadyUsedInAnalyze(const Lit& lit) const;
-
-	void		removeAggrHead	(Var head, int defID);
-	void		notifyAggrHead	(Var head, int defID);
-
 	bool 		assertedBefore	(const Var& l, const Var& p) const;
-	rClause		getExplanation	(Lit l);			//NON-OWNING pointer
+	rClause		getExplanation	(const Lit& l);			//NON-OWNING pointer
 
 	lbool		value			(Var x) const;		// The current value of a variable.
 	lbool		value			(Lit p) const;		// The current value of a literal.
@@ -200,13 +118,14 @@ public:
 
 	rClause 	createClause	(const vec<Lit>& lits, bool learned);
 	//IMPORTANT: The first literal in the clause is the one which can be propagated at moment of derivation!
-	// used for watch initialization in solver
 	void 		addLearnedClause(rClause c); 		//Propagate if clause is unit, return false if c is conflicting
 	void 		removeClause	(rClause c);
 	int			getClauseSize	(rClause cr) const;
 	Lit			getClauseLit	(rClause cr, int i) const;
 	void    	backtrackTo		(int level);		// Backtrack until a certain level.
-	void    	setTrue			(Lit p, DPLLTmodule* solver, rClause c = nullPtrClause);		// Enqueue a literal. Assumes value of literal is undefined
+	void    	setTrue			(const Lit& p, Propagator* solver, rClause c = nullPtrClause);		// Enqueue a literal. Assumes value of literal is undefined
+
+	void 		notifySetTrue	(const Lit& p);
 
 	const vec<Lit>& getTrail	() 		const;
 	int 		getStartLastLevel() 	const;
@@ -215,25 +134,33 @@ public:
 	int			getNbDecisions	() 		const;
 	std::vector<Lit> getDecisions() 	const;
 
+	bool		isAlreadyUsedInAnalyze(const Lit& lit) const;
+
 	bool 		totalModelFound	(); //cannot be const!
 
 	void		varBumpActivity	(Var v);
 
-	void 		backtrackDecisionLevel(int levels, int untillevel, const Lit& earliestdecision);
-	rClause 	propagate		(const Lit& l);
-	rClause 	propagateAtEndOfQueue();
+	void 		backtrackDecisionLevel(int untillevel, const Lit& decision);
+	rClause 	propagate		();
+
+	void 		notifyClauseAdded(rClause clauseID);
+	void 		notifyClauseDeleted(rClause clauseID);
+	bool 		symmetryPropagationOnAnalyze(const Lit& p);
+
+	int			getNbOfFormulas	() const;
 
 	// MOD SOLVER support
 	void		saveState		();
 	void		resetState		();
 
+	template<typename T>
+	bool 		add(const T& sentence){ return getFactory().add(sentence); }
+	void		createVar(Var v);
 
-	void 		notifyNonDecisionVar(Var var);
-	void 		notifyClauseAdded(rClause clauseID);
-	void 		notifyClauseDeleted(rClause clauseID);
+	void		addOptimization(Optim type, Var head);
+	void		addOptimization(Optim type, const vec<Lit>& literals);
 
 	// DEBUG
-	std::string getModID		() const; // SATsolver asks this to PC such that more info (modal e.g.) can be printed.
 	void 		printEnqueued	(const Lit& p) const;
 	void		printChoiceMade	(int level, Lit l) const;
 	void 		printStatistics	() const;
@@ -241,29 +168,15 @@ public:
 	void		printClause		(rClause clause) const;
 	void 		printCurrentOptimum(const Weight& value) const;
 
-	// MONITORING
-	const PCLogger& getLogger() const { return *logger; }
-
 private:
-	template<class T>
-	bool		addCP			(const T& formula);
+	int 		getNbModelsFound() const;
 
 	bool		isInitialized	() 	const { return state==THEORY_INITIALIZED; }
 	bool		isInitializing	() 	const { return state==THEORY_INITIALIZING; }
 	bool		isParsing		()	const { return state==THEORY_PARSING; }
 
-	bool		hasECNFPrinter	() const { return ecnfprinter!=NULL; }
-	ECNFPrinter& getECNFPrinter	() { return *ecnfprinter; }
-
-	const solverlist& getSolvers() const { return solvers; }
-
-	bool		add				(InnerDisjunction& sentence, rClause& newclause);
-	void 		addVar			(Lit l) { add(var(l)); }
-	void 		addVars			(const vec<Lit>& a);
-	void 		addVars			(const std::vector<Lit>& a);
-
-	void		extractLitModel	(InnerModel* fullmodel);
-	void		extractVarModel	(InnerModel* fullmodel);
+	void 		extractLitModel(InnerModel* fullmodel);
+	void 		extractVarModel(InnerModel* fullmodel);
 
 	// SOLVING
 	bool 		findNext		(const vec<Lit>& assumpts, const ModelExpandOptions& options);

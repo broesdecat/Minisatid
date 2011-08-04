@@ -3,9 +3,9 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: Something
-Description: Some library.
-Requires: somethingelse-2.0 somethingmore-1.0
+Name: MinisatID
+Description: Framework to solve search problems by a hybrid SAT-CP-SMT approach.
+Requires: 
 Version: @PACKAGE_VERSION@
-Libs: -L${libdir} -lsomething-1.0
-Cflags: -I${includedir}/something-1.0 -I${libdir}/something-1.0/include
+Libs: -L${libdir} -lminisatid-1.0
+Cflags: -I${includedir}/minisatid-1.0 -I${libdir}/minisatid-1.0/include

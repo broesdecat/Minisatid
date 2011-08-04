@@ -34,7 +34,7 @@ class InnerModel;
 
 // External interfaces offered from the solvers
 
-enum SolverState { INIT, PARSED, SIMPLIFIED, SOLVED};
+enum SolverState { INIT, PARSED, SOLVED};
 
 typedef std::tr1::unordered_map<int, int> atommap;
 
@@ -88,7 +88,7 @@ public:
 	virtual void 	addModel(const InnerModel& model); //virtual for MODSOLVER!
 	void	notifyOptimalModelFound();
 
-	int		getNbModelsFound() { return solutionmonitor->getNbModelsFound(); }
+	int		getNbModelsFound() const { return solutionmonitor->getNbModelsFound(); }
 
 	void	setSolutionMonitor	(Solution* sol);
 
@@ -106,7 +106,6 @@ public:
 
 protected:
 	bool 	finishParsing	();
-	bool 	simplify		();
 	void	setOptimization	(bool opt) { optimization = opt; }
 
 	virtual MinisatID::LogicSolver* getSolver() const = 0;

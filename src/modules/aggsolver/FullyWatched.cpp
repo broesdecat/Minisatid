@@ -25,7 +25,7 @@ typedef Agg* pagg;
 typedef Watch* pw;
 
 FWAgg::FWAgg(TypedSet* set) :
-	Propagator(set) {
+	AggPropagator(set) {
 
 }
 
@@ -40,11 +40,11 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 	for (agglist::iterator i = getSet().getAggNonConst().begin(); !unsat && i < getSet().getAggNonConst().end();) {
 		pagg agg = (*i);
 		lbool result = initialize(*agg);
-		if (result == l_True && !agg->isDefined()) {
+		if (result == l_True) {
 			//If after initialization, the head will have a fixed value, then this is
 			//independent of any further propagations within that aggregate.
 			//BUT ONLY if it is not defined (or at a later stage, if it cannot be in any loop)
-			getSolver()->removeHeadWatch(var(agg->getHead()), agg->getDefID());
+			getSolver()->removeHeadWatch(var(agg->getHead()));
 			i = getSet().getAggNonConst().erase(i);
 			continue;
 		} else if (result == l_False) {
@@ -65,7 +65,7 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 		getSolver()->addStaticWatch(v, new Watch(getSetp(), *j));
 	}
 
-	Propagator::initialize(unsat, sat);
+	AggPropagator::initialize(unsat, sat);
 }
 
 /**
@@ -75,6 +75,7 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
  */
 lbool FWAgg::initialize(const Agg& agg) {
 	rClause confl = nullPtrClause;
+
 	if(getSolver()->isOptimAgg(&agg)){
 		return l_Undef;
 	}
@@ -97,7 +98,7 @@ lbool FWAgg::initialize(const Agg& agg) {
 	return alwaystrue ? l_True : l_Undef;
 }
 
-void FWAgg::backtrack(int nblevels, int untillevel){
+void FWAgg::backtrack(int untillevel){
 	while(getTrail().back()->level>untillevel){
 		//report("Backtrack trail of FW\n");
 		delete getTrail().back();
@@ -162,6 +163,7 @@ rClause FWAgg::propagate(const Lit& p, pw ws, int level) {
 	assert(found);
 #endif
 
+	assert(fwobj->level == level && level == getSolver()->getPCSolver().getLevel(var(p)));
 	fwobj->props.push_back(PropagationInfo(p, ws->getWL().getWeight(), ws->getType(p)));
 
 	return nullPtrClause;

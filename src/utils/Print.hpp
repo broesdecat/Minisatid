@@ -23,7 +23,8 @@
 
 namespace MinisatID {
 
-int getPrintableVar(Var v);
+template<typename T>
+int getPrintableVar(T v) { return v+1; }
 
 template<class T>
 std::string print(const T& obj);

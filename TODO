@@ -1,2 +1,5 @@
 Known bugs:
 	--defsearch=adapt crashes on some theories
+	
+Enhancements:
+	add modal ID to the parsing monitors

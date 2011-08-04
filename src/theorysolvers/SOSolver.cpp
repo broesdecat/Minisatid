@@ -13,6 +13,7 @@
 #include "modules/ModSolver.hpp"
 
 #include <vector>
+#include <iostream>
 
 using namespace std;
 using namespace MinisatID;
@@ -27,16 +28,15 @@ SOSolver::~SOSolver(){
 	deleteList<ModSolver>(solvers);
 }
 
+void SOSolver::printStatistics() const {
+	std::clog <<"Statistics printing not implemented for modal solver.\n";
+}
+
 void SOSolver::checkexistsModSolver(vsize modid) const {
 	if(!existsModSolver(modid)){
 		char s[100]; sprintf(s, ">> No modal operator with id %zu was declared! ", modid+1);
 		throw idpexception(s);
 	}
-}
-
-bool SOSolver::simplify(){
-	assert(state==ALLLOADED);
-	return solvers[0]->simplifyDown();
 }
 
 bool SOSolver::solve(const vec<Lit>& assumptions, const ModelExpandOptions& options){
@@ -161,14 +161,15 @@ bool SOSolver::add(int modid, const InnerDisjunction& disj){
 		if(!alloccur){
 			break;
 		}
-		if(m->getHeadValue()==l_Undef){
-			break;
-		}else if(m->getHeadValue()==l_False){
-			negated = !negated;
-		}
 		int parentid = m->getParentId();
 		if(parentid==-1){
 			break;
+		}else{
+			if(m->getHeadValue()==l_Undef){
+				break;
+			}else if(m->getHeadValue()==l_False){
+				negated = !negated;
+			}
 		}
 		currentid = parentid;
 		if(!negated){
@@ -191,6 +192,9 @@ bool SOSolver::add(int modid, const InnerWSet& wset){
 	return getModSolverDuringAdding(modid).add(wset);
 }
 bool SOSolver::add(int modid, const InnerAggregate& agg){
+	return getModSolverDuringAdding(modid).add(agg);
+}
+bool SOSolver::add(int modid, const InnerReifAggregate& agg){
 	return getModSolverDuringAdding(modid).add(agg);
 }
 

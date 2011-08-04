@@ -80,15 +80,15 @@ struct AV{
  * MS:backtrackdown
  */
 
-class ModSolver: public DPLLTmodule, public MinisatID::WrapperPimpl{
+class ModSolver: public Propagator, public MinisatID::WrapperPimpl{
 private:
 	bool 		init, hasparent, searching;
+	std::vector<Var> registeredvars;
 
 	AV			head;
 	std::vector<Var>	atoms; //atoms which are rigid within this solver
 
 	modindex 	id, parentid;
-	PCSolver*	solver;
 	vmodindex 	children;
 	SOSolver* 	modhier;	//NON-OWNING POINTER!
 
@@ -108,37 +108,40 @@ public:
 	bool	add		(const InnerRule& sentence);
 	bool	add		(const InnerWSet& sentence);
 	bool	add		(const InnerAggregate& sentence);
+	bool	add		(const InnerReifAggregate& sentence);
 	bool	add		(const InnerRigidAtoms& sentence);
 	bool	addChild(int childid);
 
 	void	setParent		(modindex id);
 	void 	setNbModels		(int nb);
 
-	void 	notifyVarAdded	(uint64_t nvars) { /*Is NOT DOWN!*/}
+	//Propagator methods
+	const char* getName				()	const	{ return "modal operator"; }
+	void 		printState			() const;
+	void 		finishParsing		(bool& present, bool& unsat);
+	rClause		notifypropagate		();
+	void 		notifyNewDecisionLevel	();
+	void 		notifyBacktrack		(int untillevel, const Lit& decision);
+	rClause 	getExplanation		(const Lit& l) { assert(false); return nullPtrClause; /*TODO NOT IMPLEMENTED*/ };
+	rClause 	notifyFullAssignmentFound(){ return nullPtrClause; } // TODO should check wellfoundedness here
+	int			getNbOfFormulas		() const { return children.size(); }
 
-	void 	finishParsing	(bool& present, bool& unsat){ init = true; }
-	void 	finishParsingDown(bool& unsat);
 
-	bool 	simplify		()	{ return true;};
-	bool 	simplifyDown	();
 
-	void 	newDecisionLevel();
-
-	rClause getExplanation	(const Lit& l) { assert(false); return nullPtrClause; /*TODO NOT IMPLEMENTED*/ };
-
+	//Model solver specific
 	/**
 	 * Propagation coming from the parent solver: propagate it through the tree, until a conflict is found.
 	 * SHOULD also return unit propagated implied rigid atoms.
 	 */
 	rClause 	propagateDown	(Lit l);
-	bool	 	propagateDownAtEndOfQueue(vec<Lit>& confldisj);
-	rClause 	propagate		(const Lit& l);
-	rClause 	propagateAtEndOfQueue();
-
-	void 		backtrackDecisionLevels	(int nblevels, int untillevel);
 	void 		backtrackFromAbove(Lit l);
+	void 		finishParsingDown(bool& unsat);
+	bool 		propagateDownAtEndOfQueue(vec<Lit>& confldisj);
 
 	bool 		solve			(const vec<Lit>& assumptions, const ModelExpandOptions& options);
+
+	//Necessary because child of wrapperpimpl
+	virtual MinisatID::LogicSolver* getSolver() const { assert(false); return NULL;}
 
 
 	//PRINTING
@@ -160,11 +163,7 @@ public:
 	 * The model of a theory is the interpretation of all atoms decided by the root SAT solver.
 	 */
 	void 		printModel		();
-	void 		printState		() const;
-	void 		printStatistics	() const 	{ /*Do NOT print lower ones here*/};
 
-	//GETTERS
-	const char* getName			()	const	{ return "modal operator"; }
 	bool		hasParent		()	const 	{ return hasparent; }
 	Var 		getHead			()	const 	{ assert(hasparent); return head.atom; }
 	lbool 		getHeadValue	()	const	{ assert(hasparent); return head.value; }
@@ -175,8 +174,6 @@ public:
 	const std::vector<Var>& getAtoms	()	const	{ return atoms; }
 	const vmodindex& 	getChildren		()	const	{ return children; }
 	const SOSolver& 	getModSolverData()	const	{ return *modhier; }
-
-	MinisatID::LogicSolver*	getSolver() const { return solver; }
 
 private:
 	void 		addVar			(const Lit& l)		{ add(var(l)); }

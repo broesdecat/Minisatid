@@ -71,13 +71,16 @@ public:
 	bool	add		(int modid, const InnerRule& sentence);
 	bool	add		(int modid, const InnerWSet& sentence);
 	bool	add		(int modid, const InnerAggregate& sentence);
+	bool	add		(int modid, const InnerReifAggregate& sentence);
 	bool	add		(int modid, const InnerRigidAtoms& sentence);
 	bool	add		(int modid, const InnerSubTheory& sentence);
+
+	virtual void	notifyNonDecisionVar(Var var) { }//FIXME
 
 	//Get information on hierarchy
 	ModSolver* getModSolver	(vsize modid) const { checkexistsModSolver(modid); return solvers[modid];}
 
-	void 	printStatistics	() const { std::clog <<"Statistics printing not implemented for modal solver.\n";}
+	void 	printStatistics	() const;
 
 private:
 	ModSolver& getModSolverDuringAdding(int modid);
