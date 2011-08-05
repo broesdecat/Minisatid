@@ -38,6 +38,8 @@ libminisatid_2_0_la_SOURCES = \
 		modules/DPLLTmodule.hpp 			modules/DPLLTmodule.cpp\
 		modules/ModSolver.hpp	 			modules/ModSolver.cpp\
 		modules/IDSolver.hpp 				modules/IDSolver.cpp\
+		modules/IntVar.hpp 					modules/IntVar.cpp\
+		modules/BinConstr.hpp 				modules/BinConstr.cpp\
 		modules/AggSolver.hpp 				modules/AggSolver.cpp\
 		modules/aggsolver/AggTransform.hpp 	modules/aggsolver/AggTransform.cpp\
 		modules/aggsolver/AggUtils.hpp 		modules/aggsolver/AggUtils.cpp\

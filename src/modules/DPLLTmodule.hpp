@@ -70,7 +70,7 @@ public:
 	virtual Var 	notifyBranchChoice	(const Var& var) const 		{ assert(false); return var; }
 	virtual void 	printStatistics		() const 					{ assert(false); }
 	virtual void 	printState			() const 					{ assert(false); }
-	virtual int		getNbOfFormulas		() const 					{ assert(false); return 0; }
+	virtual int		getNbOfFormulas		() const 					{ return 0; }
 	virtual void 	notifyClauseAdded	(rClause) 					{ assert(false); }
 	virtual void 	notifyClauseDeleted	(rClause) 					{ assert(false); }
 	virtual bool 	symmetryPropagationOnAnalyze(const Lit&) 		{ assert(false); return false; }

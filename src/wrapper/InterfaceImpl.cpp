@@ -454,7 +454,6 @@ bool PCWrapperPimpl::add(const CPIntVarEnum& sentence){
 }
 template<>
 bool PCWrapperPimpl::add(const CPIntVarRange& sentence){
-	checkCPSupport();
 	InnerIntVarRange var;
 	var.varID = sentence.varID;
 	var.minvalue = sentence.minvalue;
@@ -473,7 +472,6 @@ bool PCWrapperPimpl::add(const CPBinaryRel& sentence){
 }
 template<>
 bool PCWrapperPimpl::add(const CPBinaryRelVar& sentence){
-	checkCPSupport();
 	InnerCPBinaryRelVar form;
 	form.head = checkAtom(sentence.head);
 	form.lhsvarID = sentence.lhsvarID;

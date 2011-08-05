@@ -244,3 +244,11 @@ void EventQueue::printStatistics() const {
 		(*i)->printStatistics();
 	}
 }
+
+void EventQueue::notifyBoundsChanged(IntVar* var) {
+	for(auto i=intvar2propagator[var->id()].begin(); i<intvar2propagator[var->id()].end(); ++i){
+		if(not (*i)->isQueued()){
+			fastqueue.push(*i);
+		}
+	}
+}

@@ -20,6 +20,7 @@ namespace Minisat{
 
 namespace MinisatID {
 
+class IntVar;
 class PCSolver;
 
 class ParsingMonitor;
@@ -45,6 +46,7 @@ class PropagatorFactory {
 private:
 	PCSolver* engine;
 
+	int dummyvar; // dummy, true head
 	bool parsing; //state
 
 	SATSolver* satsolver;
@@ -74,6 +76,8 @@ private:
 	bool hasCPSolver() const { return false; }
 #endif
 
+	std::map<int, IntVar*> intvars;
+
 	// Parsing support
 	int maxset;
 	std::vector<InnerRule*> parsedrules;
@@ -100,6 +104,7 @@ public:
 	bool add(const InnerDisjunction& sentence);
 	bool add(const InnerEquivalence& sentence);
 	bool add(const InnerRule& sentence);
+	bool add(const InnerSet& sentence);
 	bool add(const InnerWSet& sentence);
 	bool add(const InnerAggregate& sentence);
 	bool add(const InnerReifAggregate& sentence);
@@ -119,7 +124,11 @@ public:
 
 	bool add(InnerDisjunction& disj, rClause& newclause);
 
+	int newSetID();
+
 	void finishParsing();
+
+	void includeCPModel(std::vector<VariableEqValue>& varassignments);
 
 	void setModSolver(ModSolver* m);
 

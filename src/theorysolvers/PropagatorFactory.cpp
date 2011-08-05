@@ -20,6 +20,7 @@
 #include "modules/ModSolver.hpp"
 #include "modules/LazyGrounder.hpp"
 #include "modules/Symmetrymodule.hpp"
+#include "modules/BinConstr.hpp"
 
 #ifdef CPSUPPORT
 #include "modules/CPSolver.hpp"
@@ -168,6 +169,11 @@ void PropagatorFactory::addVars(const vector<Lit>& a) {
 	}
 }
 
+int PropagatorFactory::newSetID(){
+	assert(!isParsing());
+	return maxset++;
+}
+
 bool PropagatorFactory::add(const InnerDisjunction& formula){
 	notifyMonitorsOfAdding(formula);
 
@@ -229,6 +235,14 @@ bool PropagatorFactory::add(const InnerRule& formula){
 	return true;
 }
 
+bool PropagatorFactory::add(const InnerSet& formula){
+	InnerWSet set;
+	set.setID = formula.setID;
+	set.literals = formula.literals;
+	set.weights.resize(set.literals.size(), 1);
+	return add(set);
+}
+
 bool PropagatorFactory::add(const InnerWSet& formula){
 	notifyMonitorsOfAdding(formula);
 
@@ -244,9 +258,13 @@ bool PropagatorFactory::add(const InnerWSet& formula){
 
 	if (contains(parsedsets, formula.setID)) {
 		throwDoubleDefinedSet(formula.setID);
-	}else{
+	}
+
+	if(isParsing()){
 		parsedsets.insert(pair<int, InnerWSet*>(formula.setID, new InnerWSet(formula)));
 	}
+
+	// FIXME
 
 	return true;
 }
@@ -260,8 +278,20 @@ bool PropagatorFactory::add(const InnerAggregate& formula){
 		throw idpexception(ss.str());
 	}
 
-	parsedaggs.push_back(new InnerAggregate(formula));
-	return true;
+	if(isParsing()){
+		parsedaggs.push_back(new InnerAggregate(formula));
+		return true;
+	}
+	//
+	InnerReifAggregate r = InnerReifAggregate();
+	r.bound = formula.bound;
+	r.defID = -1;
+	r.head = dummyvar;
+	r.sem = COMP;
+	r.setID = formula.setID;
+	r.sign	= formula.sign;
+	r.type	= formula.type;
+	return add(r);
 }
 
 bool PropagatorFactory::add(const InnerReifAggregate& formula){
@@ -275,8 +305,12 @@ bool PropagatorFactory::add(const InnerReifAggregate& formula){
 
 	add(formula.head);
 
-	parsedreifaggs.push_back(new InnerReifAggregate(formula));
-	return true;
+	if(isParsing()){
+		parsedreifaggs.push_back(new InnerReifAggregate(formula));
+		return true;
+	}
+
+	// FIXME add agg propagator
 }
 
 bool PropagatorFactory::add(const InnerMinimizeSubset& formula){
@@ -361,8 +395,14 @@ CPSolver* PropagatorFactory::getCPSolver() {
 }
 #endif
 
+int IntVar::maxid_ = 0;
+
 bool PropagatorFactory::add(const InnerIntVarRange& obj){
-	return addCP(obj);
+	if(intvars.find(obj.varID)==intvars.end()){
+		// todo throw exception
+	}
+	intvars.insert(pair<int, IntVar*>(obj.varID, new IntVar(getEnginep(), obj.varID, obj.minvalue, obj.maxvalue)));
+	return true;
 }
 
 bool PropagatorFactory::add(const InnerIntVarEnum& obj){
@@ -370,13 +410,14 @@ bool PropagatorFactory::add(const InnerIntVarEnum& obj){
 }
 
 bool PropagatorFactory::add(const InnerCPBinaryRel& obj){
-	add(obj.head);
-	return addCP(obj);
+	//TODO new BinaryConstraint(getEnginep(), intvars.at(obj.varID), obj.bound, obj.head);
+	return true;
 }
 
 bool PropagatorFactory::add(const InnerCPBinaryRelVar& obj){
 	add(obj.head);
-	return addCP(obj);
+	new BinaryConstraint(getEnginep(), intvars.at(obj.lhsvarID), obj.rel, intvars.at(obj.rhsvarID), obj.head);
+	return true;
 }
 
 bool PropagatorFactory::add(const InnerCPSumWeighted& obj){
@@ -408,15 +449,15 @@ void PropagatorFactory::finishParsing() {
 	}
 
 	// aggregate checking
-	Var v = getEngine().newVar();
+	dummyvar = getEngine().newVar();
 	InnerDisjunction clause;
-	clause.literals.push(mkLit(v));
+	clause.literals.push(mkLit(dummyvar));
 	add(clause);
 	for(auto i=parsedaggs.begin(); i!=parsedaggs.end(); ++i){
 		InnerReifAggregate* r = new InnerReifAggregate();
 		r->bound = (*i)->bound;
 		r->defID = -1;
-		r->head = v;
+		r->head = dummyvar;
 		r->sem = COMP;
 		r->setID = (*i)->setID;
 		r->sign	= (*i)->sign;
@@ -486,5 +527,14 @@ void PropagatorFactory::finishParsing() {
 
 	if(not notunsat){
 		//FIXME
+	}
+}
+
+void PropagatorFactory::includeCPModel(std::vector<VariableEqValue>& varassignments){
+	for(auto i=intvars.begin(); i!=intvars.end(); ++i){
+		VariableEqValue vareq;
+		vareq.variable = (*i).first;
+		vareq.value = (*i).second->minValue();
+		varassignments.push_back(vareq);
 	}
 }

@@ -27,6 +27,7 @@ class Propagator;
 class PropagatorFactory;
 class EventQueue;
 class SearchMonitor;
+class IntVar;
 typedef Minisat::Solver SearchEngine;
 
 enum Optim { MNMZ, SUBSETMNMZ, AGGMNMZ, NONE }; // Preference minimization, subset minimization, sum minimization
@@ -93,12 +94,14 @@ public:
 
 	void		accept(Propagator* propagator);
 	void 		accept(Propagator* propagator, EVENT event);
+	void 		acceptBounds(IntVar* var, Propagator* propagator);
 	void 		acceptLitEvent(Propagator* propagator, const Lit& lit, PRIORITY priority);
 	void 		acceptFinishParsing(Propagator* propagator, bool late);
 
 	void 		setModSolver(ModSolver* m);
 
 	Var			newVar();
+	int			newSetID();
 
 	void 		finishParsing(bool& unsat);
 
@@ -142,6 +145,8 @@ public:
 
 	void 		backtrackDecisionLevel(int untillevel, const Lit& decision);
 	rClause 	propagate		();
+
+	void		notifyBoundsChanged(IntVar* var);
 
 	void 		notifyClauseAdded(rClause clauseID);
 	void 		notifyClauseDeleted(rClause clauseID);

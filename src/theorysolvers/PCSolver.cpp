@@ -13,6 +13,7 @@
 #include "modules/ModSolver.hpp"
 #include "modules/AggSolver.hpp"
 #include "modules/CPSolver.hpp"
+#include "modules/IntVar.hpp"
 #include "wrapper/InterfaceImpl.hpp"
 
 #include "theorysolvers/PropagatorFactory.hpp"
@@ -101,6 +102,7 @@ void PCSolver::backtrackTo(int level) {
 }
 
 void PCSolver::setTrue(const Lit& p, Propagator* module, rClause c) {
+	assert(value(p)!=l_False && value(p)!=l_True);
 	propagations[var(p)] = module;
 	getSolver().uncheckedEnqueue(p, c);
 }
@@ -160,6 +162,10 @@ void PCSolver::accept(Propagator* propagator, EVENT event){
 	getEventQueue().accept(propagator, event);
 }
 
+void PCSolver::acceptBounds(IntVar* var, Propagator* propagator){
+	getEventQueue().acceptBounds(var, propagator);
+}
+
 void PCSolver::acceptLitEvent(Propagator* propagator, const Lit& lit, PRIORITY priority){
 	getEventQueue().acceptLitEvent(propagator, lit, priority);
 }
@@ -175,13 +181,22 @@ void PCSolver::setModSolver(ModSolver* m){
 //IMPORTANT: only allowed after parsing!
 Var PCSolver::newVar() {
 	assert(!isParsing());
-	Var newvar = nVars()+1;
+	Var newvar = nVars();
 	createVar(newvar);
 	return newvar;
 }
 
+int	PCSolver::newSetID(){
+	assert(!isParsing());
+	return getFactory().newSetID();
+}
+
 rClause PCSolver::checkFullAssignment() {
 	return getEventQueue().notifyFullAssignmentFound();
+}
+
+void PCSolver::notifyBoundsChanged(IntVar* var){
+	getEventQueue().notifyBoundsChanged(var);
 }
 
 void PCSolver::notifyClauseAdded(rClause clauseID){
@@ -388,6 +403,7 @@ void PCSolver::extractLitModel(InnerModel* fullmodel){
 
 void PCSolver::extractVarModel(InnerModel* fullmodel){
 	fullmodel->varassignments.clear();
+	getFactory().includeCPModel(fullmodel->varassignments);
 #ifdef CPSUPPORT
 	if(hasCPSolver()){
 		getCPSolver().getVariableSubstitutions(fullmodel->varassignments);

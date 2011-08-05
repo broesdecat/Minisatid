@@ -13,10 +13,12 @@
 #include <queue>
 #include "utils/Utils.hpp"
 #include "modules/DPLLTmodule.hpp"
+#include "modules/IntVar.hpp"
 
 namespace MinisatID{
 
 class PCSolver;
+class IntVar;
 class InnerModel;
 
 typedef std::vector<Propagator*> proplist;
@@ -34,6 +36,7 @@ private:
 	std::map<EVENT, proplist > event2propagator;
 	proplist earlyfinishparsing, latefinishparsing;
 	std::vector<std::vector<proplist> > litevent2propagator;
+	std::vector<proplist> intvar2propagator;
 
 	bool initialized;
 	void notifyInitialized() { initialized = true; }
@@ -64,6 +67,12 @@ public:
 			earlyfinishparsing.push_back(propagator);
 		}
 	}
+	void acceptBounds(IntVar* var, Propagator* propagator){
+		if(intvar2propagator.size()<=var->id()){
+			intvar2propagator.resize(var->id()+1, proplist());
+		}
+		intvar2propagator[var->id()].push_back(propagator);
+	}
 
 	void 	addEternalPropagators();
 	void 	acceptLitEvent(Propagator* propagator, const Lit& litevent, PRIORITY priority);
@@ -84,6 +93,7 @@ public:
 	void 	printState				() const;
 	void 	printStatistics			() const;
 	void	setTrue					(const Lit& l);
+	void 	notifyBoundsChanged		(IntVar* var);
 
 private:
 	void 	setTrue(const proplist& list, std::queue<Propagator*>& queue);
