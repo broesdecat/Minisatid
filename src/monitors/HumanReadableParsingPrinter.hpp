@@ -125,28 +125,6 @@ public:
 		target() <<"\n";
 	}
 
-	void notifyadded(const InnerMinimizeAgg& mnm){
-		target() <<"Minimizing aggregate " <<getPrintableVar(mnm.head) <<" <=> ";
-		switch(mnm.type){
-		case SUM:
-			target() <<"sum";
-			break;
-		case CARD:
-			target() <<"card";
-			break;
-		case MIN:
-			target() <<"min";
-			break;
-		case MAX:
-			target() <<"max";
-			break;
-		case PROD:
-			target() <<"prod";
-			break;
-		}
-		target() <<"( set" <<mnm.setID <<" )";
-	}
-
 
 	void notifyadded(const InnerMinimizeOrderedList& mnm){
 		target() <<"Minimizing ordered list ";

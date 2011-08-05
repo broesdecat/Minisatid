@@ -9,7 +9,7 @@
 #include "modules/aggsolver/FullyWatched.hpp"
 
 #include "modules/aggsolver/AggPrint.hpp"
-#include "modules/AggSolver.hpp"
+#include "modules/aggsolver/AggSet.hpp"
 #include "theorysolvers/PCSolver.hpp"
 
 #include <algorithm>
@@ -44,9 +44,10 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 			//If after initialization, the head will have a fixed value, then this is
 			//independent of any further propagations within that aggregate.
 			//BUT ONLY if it is not defined (or at a later stage, if it cannot be in any loop)
-			getSolver()->removeHeadWatch(var(agg->getHead()));
-			i = getSet().getAggNonConst().erase(i);
-			continue;
+			// FIXME remove headwatch
+			//getSet().removeHeadWatch(var(agg->getHead()));
+			//i = getSet().getAggNonConst().erase(i);
+			//continue;
 		} else if (result == l_False) {
 			unsat = true; //UNSAT because always false
 			return;
@@ -62,7 +63,9 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 	for (vwl::const_iterator j = getSet().getWL().begin(); j < getSet().getWL().end(); ++j) {
 		const Lit& l = (*j).getLit();
 		Var v = var(l);
-		getSolver()->addStaticWatch(v, new Watch(getSetp(), *j));
+		// FIXME permanent watch
+		getSet().getPCSolver().acceptLitEvent(getSetp(), l, FAST);
+		getSet().getPCSolver().acceptLitEvent(getSetp(), ~l, FAST);
 	}
 
 	AggPropagator::initialize(unsat, sat);
@@ -76,20 +79,16 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 lbool FWAgg::initialize(const Agg& agg) {
 	rClause confl = nullPtrClause;
 
-	if(getSolver()->isOptimAgg(&agg)){
-		return l_Undef;
-	}
-
 	lbool hv = canPropagateHead(agg, getCC(), getCP());
 	bool alwaystrue = false;
-	if (hv != l_Undef && !getSolver()->isOptimAgg(&agg)) {
+	if (hv != l_Undef) {
 		alwaystrue = true;
 		//reportf("No more propagations for %d", getPrintableVar(var(head)));
 	}
 	if (hv == l_True) {
-		confl = getSolver()->notifySolver(new HeadReason(agg, agg.getHead()));
+		confl = getSet().notifySolver(new HeadReason(agg, agg.getHead()));
 	} else if (hv == l_False) {
-		confl = getSolver()->notifySolver(new HeadReason(agg, ~agg.getHead()));
+		confl = getSet().notifySolver(new HeadReason(agg, ~agg.getHead()));
 	}
 	if (confl != nullPtrClause) {
 		return l_False;
@@ -119,11 +118,11 @@ rClause FWAgg::propagate(int level, const Agg& agg, bool headtrue) {
 	if(fwobj->level<level){
 		getTrail().push_back(new FWTrail(level, fwobj->CBC, fwobj->CBP));
 		fwobj = getTrail().back();
-		getSolver()->addToBackTrail(getSetp());
+		getSet().getPCSolver().acceptForBacktrack(getSetp());
 	}
 
 	if(fwobj->start == fwobj->props.size()){
-		getSolver()->addToPropTrail(getSetp());
+		getSet().getPCSolver().acceptForPropagation(getSetp());
 	}
 
 	fwobj->props.push_back(PropagationInfo(headtrue?agg.getHead():~agg.getHead(), 0, HEAD));
@@ -138,10 +137,10 @@ rClause FWAgg::propagate(const Lit& p, pw ws, int level) {
 	if(fwobj->level<level){
 		getTrail().push_back(new FWTrail(level, fwobj->CBC, fwobj->CBP));
 		fwobj = getTrail().back();
-		getSolver()->addToBackTrail(getSetp());
+		getSet().getPCSolver().acceptForBacktrack(getSetp());
 	}
 	if(fwobj->start == fwobj->props.size()){
-		getSolver()->addToPropTrail(getSetp());
+		getSet().getPCSolver().acceptForPropagation(getSetp());
 	}
 
 #ifdef DEBUG
@@ -155,15 +154,11 @@ rClause FWAgg::propagate(const Lit& p, pw ws, int level) {
 	assert(foundlit);
 
 	bool found = false;
-	for(vector<TypedSet*>::const_iterator i=getSolver()->getPropTrail().begin(); !found && i<getSolver()->getPropTrail().end(); ++i){
-		if(getSetp()==*i){
-			found = true;
-		}
-	}
+	found = true; // FIXME it SHOULD be in the propagation queue now
 	assert(found);
 #endif
 
-	assert(fwobj->level == level && level == getSolver()->getPCSolver().getLevel(var(p)));
+	assert(fwobj->level == level && level == getSet().getPCSolver().getLevel(var(p)));
 	fwobj->props.push_back(PropagationInfo(p, ws->getWL().getWeight(), ws->getType(p)));
 
 	return nullPtrClause;
@@ -206,9 +201,9 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 		for (agglist::const_iterator i = getSet().getAgg().begin(); confl == nullPtrClause && i<getSet().getAgg().end(); ++i){
 			const Agg& pa = **i;
 
-			if (getSolver()->verbosity() >= 6) {
+			if (getSet().verbosity() >= 6) {
 				clog <<"Propagating into aggr: ";
-				MinisatID::print(getSolver()->verbosity(), pa, false);
+				MinisatID::print(getSet().verbosity(), pa, false);
 				clog <<", CC = " <<getCC() <<", CP = " <<getCP() <<"\n";
 			}
 
@@ -233,10 +228,10 @@ rClause FWAgg::propagateAtEndOfQueue(int level){
 				if(result==l_Undef){
 					confl = propagateSpecificAtEnd(pa, hv == l_True);
 				}else if(hv!=result){
-					confl = getSolver()->notifySolver(new HeadReason(pa, result==l_True?pa.getHead():~pa.getHead()));
+					confl = getSet().notifySolver(new HeadReason(pa, result==l_True?pa.getHead():~pa.getHead()));
 				}
 			}else if(result!=l_Undef){
-				confl = getSolver()->notifySolver(new HeadReason(pa, result==l_True?pa.getHead():~pa.getHead()));
+				confl = getSet().notifySolver(new HeadReason(pa, result==l_True?pa.getHead():~pa.getHead()));
 			}
 		}
 	}
@@ -349,7 +344,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	}
 
 	// FIXME cleanup and add to other explanations
-	PCSolver& pcsolver = getSolver()->getPCSolver();
+	PCSolver& pcsolver = getSet().getPCSolver();
 	const int declevel = pcsolver.getCurrentDecisionLevel();
 	bool foundpropagatedlit = false;
 	if(pcsolver.modes().currentlevelfirstinexplanation && getTrail().back()->level==declevel){
@@ -369,7 +364,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	}
 
 	//IMPORTANT: first go over all literals and check which are already in the currently generated partial nogood (only if generating explanation on conflict)
-	if(getSolver()->modes().aggclausesaving==2 && pcsolver.modes().innogoodfirstinexplanation){
+	if(getSet().modes().aggclausesaving==2 && pcsolver.modes().innogoodfirstinexplanation){
 		bool foundpropagatedlit = false;
 		for(vector<FWTrail*>::const_iterator a=getTrail().begin(); !stop && !foundpropagatedlit && a<getTrail().end(); ++a){
 			for (vprop::const_iterator i = (*a)->props.begin(); !stop && !foundpropagatedlit && i < (*a)->props.end(); ++i) {
@@ -413,7 +408,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 			if(pcsolver.modes().currentlevelfirstinexplanation && pcsolver.getLevel(var(lit))==declevel){
 				add = false;
 			}
-			if(getSolver()->modes().aggclausesaving==2
+			if(getSet().modes().aggclausesaving==2
 					&& pcsolver.modes().innogoodfirstinexplanation
 					&& pcsolver.isAlreadyUsedInAnalyze(lit)){
 				add = false;
@@ -428,7 +423,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	assert(stop);
 
 	//Subsetminimization
-	if(getSolver()->modes().subsetminimizeexplanation){
+	if(getSet().modes().subsetminimizeexplanation){
 		sort(reasons.begin(), reasons.end(), compareByWeights<PropagationInfo>);
 		for(vector<PropagationInfo>::iterator i=reasons.begin(); i<reasons.end(); ++i){
 			bool inset = (*i).getType()==POS;
@@ -497,12 +492,12 @@ rClause MaxFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 	if (headtrue && agg.hasUB()) {
 		for (vwl::const_reverse_iterator i = getSet().getWL().rbegin(); confl == nullPtrClause && i
 					< getSet().getWL().rend() && agg.getCertainBound() < (*i).getWeight(); ++i) {
-			confl = getSolver()->notifySolver(new SetLitReason(agg, (*i).getLit(), (*i).getWeight(), false));
+			confl = getSet().notifySolver(new SetLitReason(agg, (*i).getLit(), (*i).getWeight(), false));
 		}
 	} else if (!headtrue && agg.hasLB()) {
 		for (vwl::const_reverse_iterator i = getSet().getWL().rbegin(); confl == nullPtrClause && i
 					< getSet().getWL().rend() && agg.getCertainBound() <= (*i).getWeight(); ++i) {
-			confl = getSolver()->notifySolver(new SetLitReason(agg, (*i).getLit(), (*i).getWeight(), false));
+			confl = getSet().notifySolver(new SetLitReason(agg, (*i).getLit(), (*i).getWeight(), false));
 		}
 	}
 	if (confl == nullPtrClause) {
@@ -560,7 +555,7 @@ rClause MaxFWAgg::propagateAll(const Agg& agg, bool headtrue) {
 		}
 	}
 	if (found==1) {
-		confl = getSolver()->notifySolver(new SetLitReason(agg, l, w, true));
+		confl = getSet().notifySolver(new SetLitReason(agg, l, w, true));
 	}
 	return confl;
 }
@@ -715,7 +710,7 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 
 		bool propagate = value(l)==l_Undef;
 
-		if(!propagate && getSolver()->getPCSolver().getLevel(var(l))==getSolver()->getPCSolver().getCurrentDecisionLevel()){
+		if(!propagate && getSet().getPCSolver().getLevel(var(l))==getSet().getPCSolver().getCurrentDecisionLevel()){
 			bool found = false;
 			for(vprop::const_iterator i=getTrail().back()->props.begin(); !found && i<getTrail().back()->props.end(); ++i){
 				if(var(l)==var((*i).getLit())){
@@ -728,9 +723,9 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 		//Only propagate those that are not already known in the aggregate solver!
 		if (propagate) {
 			if ((agg.hasUB() && headtrue) || (!agg.hasUB() && !headtrue)) {
-				c = getSolver()->notifySolver(new SetLitReason(agg, (*u).getLit(), (*u).getWeight(), false));
+				c = getSet().notifySolver(new SetLitReason(agg, (*u).getLit(), (*u).getWeight(), false));
 			} else {
-				c = getSolver()->notifySolver(new SetLitReason(agg, (*u).getLit(), (*u).getWeight(), true));
+				c = getSet().notifySolver(new SetLitReason(agg, (*u).getLit(), (*u).getWeight(), true));
 			}
 		}
 	}
@@ -743,7 +738,7 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 #ifdef DEBUG
 	bool allknown = true;
 	for (vwl::const_iterator u = wls.begin(); allknown && u < wls.end(); ++u) {
-		if((*u).getWeight()>=weightbound && getSolver()->value((*u).getLit())==l_Undef){
+		if((*u).getWeight()>=weightbound && value((*u).getLit())==l_Undef){
 			allknown = false;
 		}
 	}

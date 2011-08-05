@@ -151,7 +151,7 @@ void checkVersion(ECNF_VERSION version);
 }
 
 %token DEFOP EQUIV
-%token SUBSETMINDEFN MNMZDEFN AGGMINDEFN
+%token SUBSETMINDEFN MNMZDEFN VARMINDEFN
 %token SETDEFN WSETDEFN  
 %token <integer> ZERO
 %token <str> NUMBER
@@ -268,32 +268,29 @@ ecnftheory	:	/* empty */
 			|	ecnftheory wset
 			|	ecnftheory mnmz
 			|	ecnftheory subsetmnmz
-			|	ecnftheory summnmz
+			|	ecnftheory varmnmz
 			|	ecnftheory intvar
 			|	ecnftheory cpconstraint
 			;
 			
-mnmz	:	MNMZDEFN body ZERO				
+mnmz	:	MNMZDEFN body ZERO
 			{
 				MinimizeOrderedList mnm;
 				mnm.literals = *$2;
 				delete $2;
 				CR(mnm); 
 			}
-subsetmnmz: SUBSETMINDEFN body ZERO 		
+subsetmnmz: SUBSETMINDEFN body ZERO
 			{ 
 				MinimizeSubset mnm;
 				mnm.literals = *$2;
 				delete $2;
 				CR(mnm); 
 			}
-summnmz :	AGGMINDEFN AGGDEFN NUMBER NUMBER ZERO	
+varmnmz :	VARMINDEFN NUMBER ZERO
 			{ 
-				MinimizeAgg mnm;
-				mnm.head = cAtom($3);
-				mnm.setid = cID($4);
-				mnm.type = $2;
-				delete $3; delete $4;
+				MinimizeVar mnm;
+				mnm.varID = cID($2);
 				CR(mnm);
 			}
 		
@@ -316,7 +313,7 @@ equiv	:	EQUIV SEMDEFN NUMBER body ZERO
 					equiv.conjunctive = true;
 				}else{
 					equiv.conjunctive = false;
-				}					 
+				}
 				CR(equiv);
 			}
 		;
@@ -334,7 +331,7 @@ rule	:	SEMDEFN NUMBER body ZERO
 					rule.conjunctive = true;
 				}else{
 					rule.conjunctive = false;
-				}					 
+				}
 				CR(rule);
 			}
 		;
@@ -352,7 +349,7 @@ rule	:	SEMDEFN DEFOP NUMBER NUMBER body ZERO
 					rule.conjunctive = true;
 				}else{
 					rule.conjunctive = false;
-				}					 
+				}
 				CR(rule);
 			}
 		;

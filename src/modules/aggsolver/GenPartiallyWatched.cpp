@@ -8,8 +8,8 @@
  */
 #include "modules/aggsolver/PartiallyWatched.hpp"
 
-#include "modules/AggSolver.hpp"
 #include "modules/aggsolver/AggPrint.hpp"
+#include "modules/aggsolver/AggSet.hpp"
 #include "theorysolvers/PCSolver.hpp"
 
 #include <stdint.h>
@@ -75,7 +75,7 @@ void GenPWAgg::addWatchToNetwork(GenPWatch* watch){
 	assert(watch->isInWS());
 	if(!watch->isInNetwork()){
 		watch->addToNetwork();
-		getSolver()->addDynamicWatch(watch->getWatchLit(), watch);
+		getSet().getPCSolver().acceptLitEvent(getSetp(), watch->getWatchLit(), FAST);
 	}
 }
 
@@ -169,7 +169,7 @@ rClause GenPWAgg::checkPropagation(bool& propagations, minmaxBounds& pessbounds,
 		for(; confl==nullPtrClause && i<getSet().getWL().end(); ++i){ //INVARIANT: sorted WL
 			if(value((*i).getLit())==l_Undef){ //Otherwise would have been head conflict
 				propagations = true;
-				confl = getSolver()->notifySolver(new SetLitReason(agg, (*i).getLit(), (*i).getWeight(), agg.hasLB()));
+				confl = getSet().notifySolver(new SetLitReason(agg, (*i).getLit(), (*i).getWeight(), agg.hasLB()));
 			}
 		}
 	}
@@ -188,7 +188,7 @@ rClause GenPWAgg::checkHeadPropagationForAgg(bool& propagations, const Agg& agg,
 	}
 	if(propagatehead){
 		propagations = true;
-		confl = getSolver()->notifySolver(new HeadReason(agg, agg.getHead()));
+		confl = getSet().notifySolver(new HeadReason(agg, agg.getHead()));
 	}
 
 	return confl;
@@ -198,7 +198,7 @@ minmaxBounds GenPWAgg::calculatePessimisticBounds(){
 	minmaxBounds pessbounds(getBoundsOnEmptyInterpr());
 	for(vwl::const_iterator i=getSet().getWL().begin(); i<getSet().getWL().end(); ++i){
 		const WL& wl = *i;
-		lbool val = getSolver()->value(wl.getLit());
+		lbool val = value(wl.getLit());
 		if(val==l_True){
 			pessbounds.min = getType().add(pessbounds.min, wl.getWeight());
 		}else if(val==l_False){
@@ -214,13 +214,12 @@ void GenPWAgg::checkInitiallyKnownAggs(bool& unsat, bool& sat){
 	rClause confl = nullPtrClause;
 	agglist rem, del;
 	for(agglist::const_iterator i=getAgg().begin(); confl==nullPtrClause && i<getAgg().end(); ++i){
-		bool isoptim = getSolver()->isOptimAgg(*i);
-		if(!isoptim && value((*i)->getHead())==l_True){ //Head always true
+		if(value((*i)->getHead())==l_True){ //Head always true
 			del.push_back(*i);
-		}else if(!isoptim && isSatisfied(**i, pessbounds)){ // Agg always true
+		}else if(isSatisfied(**i, pessbounds)){ // Agg always true
 			del.push_back(*i);
-		}else if(!isoptim && isFalsified(**i, pessbounds)){ // Agg always false
-			confl = getSet().getSolver()->notifySolver(new HeadReason(**i, (*i)->getHead()));
+		}else if(isFalsified(**i, pessbounds)){ // Agg always false
+			confl = getSet().notifySolver(new HeadReason(**i, (*i)->getHead()));
 			del.push_back(*i);
 		}else{
 			rem.push_back(*i);
@@ -475,7 +474,7 @@ bool compareWLIearlier(const WLI& one, const WLI& two){
 }
 
 void GenPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
-	const PCSolver& pcsol = getSolver()->getPCSolver();
+	const PCSolver& pcsol = getSet().getPCSolver();
 	const Agg& agg = ar.getAgg();
 	const Lit& head = agg.getHead();
 
@@ -496,19 +495,20 @@ void GenPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	}
 
 	vector<WLI> wlis;
-	for(genwatchlist::const_iterator i=getWS().begin(); i<getWS().end(); ++i){
+	// FIXME getlevel approximation of gettime might be incorrect!
+	for(auto i=getWS().begin(); i<getWS().end(); ++i){
 		if(var((*i)->getWatchLit())!=var(proplit)){
-			lbool val = value((*i)->getWatchLit());
-			if(val==l_True){
-				wlis.push_back(WLI((*i)->getWL(), getSolver()->getTime((*i)->getWL().getLit()), (*i)->getWatchLit()==(*i)->getWL().getLit()));
+			const Lit& lit = (*i)->getWL().getLit();
+			if(value((*i)->getWatchLit())==l_True){
+				wlis.push_back(WLI((*i)->getWL(), getSet().getPCSolver().getLevel(var(lit)), (*i)->getWatchLit()==lit));
 			}
 		}
 	}
 	for(genwatchlist::const_iterator i=getNWS().begin(); i<getNWS().end(); ++i){
 		if(var((*i)->getWatchLit())!=var(proplit)){
-			lbool val = value((*i)->getWatchLit());
-			if(val==l_True){
-				wlis.push_back(WLI((*i)->getWL(), getSolver()->getTime((*i)->getWL().getLit()), (*i)->getWatchLit()==(*i)->getWL().getLit()));
+			const Lit& lit = (*i)->getWL().getLit();
+			if(value((*i)->getWatchLit())==l_True){
+				wlis.push_back(WLI((*i)->getWL(), getSet().getPCSolver().getLevel(var(lit)), (*i)->getWatchLit()==lit));
 			}
 		}
 	}
@@ -534,7 +534,7 @@ void GenPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	}
 
 	//Subsetminimization
-	if(getSolver()->modes().subsetminimizeexplanation){
+	if(getSet().modes().subsetminimizeexplanation){
 		sort(reasons.begin(), reasons.end(), compareByWeights<WLI>);
 		for(vector<WLI>::iterator i=reasons.begin(); i<reasons.end(); ++i){
 			removeValue(getSet().getType(), (*i).getWeight(), (*i).inset, pessbounds);
@@ -656,6 +656,6 @@ double GenPWAgg::testGenWatchCount() {
 	}
 
 	double ratio = ((double)ws.size())/(ws.size()+nws.size());
-	printSetWatchRatio(clog, getSet().getSetID(), ratio, getSolver()->verbosity());
+	printSetWatchRatio(clog, getSet().getSetID(), ratio, getSet().verbosity());
 	return ratio;
 }

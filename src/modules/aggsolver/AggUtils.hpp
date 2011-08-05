@@ -16,8 +16,8 @@ namespace MinisatID{
 
 class WL;
 typedef std::vector<WL> vwl;
-class AggSolver;
 
+class PCSolver;
 
 //FROM ID SOLVER
 typedef std::vector<int> VarToJustif;
@@ -26,6 +26,13 @@ class TypedSet;
 class Agg;
 
 enum Occurrence {HEAD, POS, NEG};
+
+struct AggBound{
+	Weight bound;
+	AggSign sign;
+
+	AggBound(AggSign sign, const Weight& b):bound(b), sign(sign){}
+};
 
 class PropagationInfo {	// Propagated literal
 private:
@@ -118,8 +125,8 @@ public:
 
 // ID support
 
-bool 	oppositeIsJustified		(const WL& wl, VarToJustif& currentjust, bool real, AggSolver const * const solver);
-bool 	isJustified				(const WL& wl, VarToJustif& currentjust, bool real, AggSolver const * const solver);
+bool 	oppositeIsJustified		(const WL& wl, VarToJustif& currentjust, bool real, PCSolver const * const solver);
+bool 	isJustified				(const WL& wl, VarToJustif& currentjust, bool real, PCSolver const * const solver);
 bool 	isJustified				(Var x, VarToJustif& currentjust);
 
 }

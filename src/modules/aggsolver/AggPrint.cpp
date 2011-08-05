@@ -8,45 +8,24 @@
  */
 #include "modules/aggsolver/AggPrint.hpp"
 
-#include "modules/aggsolver/AggProp.hpp"
+#include "modules/aggsolver/AggSet.hpp"
 #include "modules/aggsolver/PartiallyWatched.hpp"
-#include "modules/AggSolver.hpp"
 
 #include "utils/Print.hpp"
 
 using namespace std;
 using namespace MinisatID;
 
-void MinisatID::setAdded(){
-
-}
-
-void MinisatID::aggrAdded(){
-
-}
-
-void MinisatID::litPropagated(){
-
-}
-
-void MinisatID::explanationGenerated(){
-
-}
-
-void MinisatID::sets(){
-
-}
-
-void MinisatID::printWatches(int verbosity, AggSolver const * const solver, const std::vector<std::vector<Watch*> >& tempwatches){
+void MinisatID::printWatches(int verbosity, const std::vector<std::vector<Watch*> >& var2watches){
 	if(verbosity<10){
 		return;
 	}
 	clog <<"Current effective watches: \n";
-	for(vsize i=0; i<2*solver->nVars(); ++i){
+	for(uint i=0; i<var2watches.size(); ++i){
 		bool found = false;
-		for(vsize j=0; !found && j<tempwatches[i].size(); ++j){
-			for(vsize k=0; !found && k<tempwatches[i][j]->getSet()->getAgg().size(); ++k){
-				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(tempwatches[i][j]);
+		for(vsize j=0; !found && j<var2watches[i].size(); ++j){
+			for(vsize k=0; !found && k<var2watches[i][j]->getSet()->getAgg().size(); ++k){
+				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(var2watches[i][j]);
 				if(watch2!=NULL && watch2->isInWS()){
 					found = true;
 				}
@@ -58,12 +37,12 @@ void MinisatID::printWatches(int verbosity, AggSolver const * const solver, cons
 		}
 
 		clog<<"    Watch " <<toLit(i) <<" used by: \n";
-		for(vsize j=0; j<tempwatches[i].size(); ++j){
-			for(vsize k=0; k<tempwatches[i][j]->getSet()->getAgg().size(); ++k){
-				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(tempwatches[i][j]);
+		for(vsize j=0; j<var2watches[i].size(); ++j){
+			for(vsize k=0; k<var2watches[i][j]->getSet()->getAgg().size(); ++k){
+				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(var2watches[i][j]);
 				if(watch2!=NULL && watch2->isInWS()){
 					clog<<"        ";
-					print(verbosity, *tempwatches[i][j]->getSet()->getAgg()[k], true);
+					print(verbosity, *var2watches[i][j]->getSet()->getAgg()[k], true);
 				}
 			}
 		}
@@ -88,7 +67,7 @@ void MinisatID::print(int verbosity, const TypedSet& c, bool endl) {
 			}
 			begin = false;
 			clog <<(*i).getLit();
-			lbool value = c.getSolver()->value((*i).getLit());
+			lbool value = c.value((*i).getLit());
 			printValue(clog, value);
 			clog <<"=" <<(*i).getWeight();
 		}
@@ -101,7 +80,7 @@ void MinisatID::print(int verbosity, const TypedSet& c, bool endl) {
 
 void MinisatID::print(int verbosity, const Agg& ae, bool endl) {
 	clog <<ae.getHead();
-	lbool value = ae.getSet()->getSolver()->value(ae.getHead());
+	lbool value = ae.getSet()->value(ae.getHead());
 	printValue(clog, value);
 	TypedSet* set = ae.getSet();
 	switch(ae.getSem()){

@@ -433,6 +433,8 @@ bool Read<T>::tseitinizeHeads(){
 template<class T>
 bool Read<T>::addOptimStatement(){
 	if(optim){
+#warning lparse optimization is broken
+		/* FIXME
 		vector<Literal> optimheadclause;
 		Literal optimhead = Literal(makeNewAtom());
 		WSet set;
@@ -442,13 +444,12 @@ bool Read<T>::addOptimStatement(){
 		if (!getSolver()->add(set)) {
 			return false;
 		}
-		MinimizeAgg mnmagg;
-		mnmagg.head = optimhead.getAtom();
-		mnmagg.setid = optimsetcount;
-		mnmagg.type = SUM;
-		if(!getSolver()->add(mnmagg)){
+
+		MinimizeVar mnm;
+		mnm.varID = varID;
+		if(not getSolver()->add(mnm)){
 			return false;
-		}
+		}*/
 	}
 	return true;
 }

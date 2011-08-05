@@ -8,7 +8,6 @@
  */
 #include "modules/aggsolver/AggUtils.hpp"
 
-#include "modules/AggSolver.hpp"
 #include "modules/aggsolver/FullyWatched.hpp"
 #include "modules/aggsolver/PartiallyWatched.hpp"
 
@@ -29,7 +28,7 @@ using namespace MinisatID;
  *
  * Also, if a literal has to become FALSE, its INVERSION should be added to the justification!
  */
-bool MinisatID::oppositeIsJustified(const WL& l, VarToJustif& currentjust, bool real, AggSolver const * const solver) {
+bool MinisatID::oppositeIsJustified(const WL& l, VarToJustif& currentjust, bool real, PCSolver const * const solver) {
 	if (real) {
 		return solver->value(l.getLit()) != l_True;
 	} else {
@@ -37,7 +36,7 @@ bool MinisatID::oppositeIsJustified(const WL& l, VarToJustif& currentjust, bool 
 	}
 }
 
-bool MinisatID::isJustified(const WL& l, VarToJustif& currentjust, bool real, AggSolver const * const solver) {
+bool MinisatID::isJustified(const WL& l, VarToJustif& currentjust, bool real, PCSolver const * const solver) {
 	if (real) {
 		return solver->value(l.getLit()) != l_False;
 	} else {

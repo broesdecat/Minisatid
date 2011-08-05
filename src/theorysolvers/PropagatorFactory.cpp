@@ -15,8 +15,9 @@
 #include "wrapper/InterfaceImpl.hpp"
 
 #include "satsolver/SATSolver.hpp"
+#include "modules/aggsolver/Agg2SAT.hpp"
 #include "modules/IDSolver.hpp"
-#include "modules/AggSolver.hpp"
+#include "modules/aggsolver/AggSet.hpp"
 #include "modules/ModSolver.hpp"
 #include "modules/LazyGrounder.hpp"
 #include "modules/Symmetrymodule.hpp"
@@ -69,7 +70,7 @@ PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine
 		engine(engine),
 		parsing(true),
 		satsolver(NULL),
-		aggsolver(NULL), modsolver(NULL),
+		modsolver(NULL),
 		symmsolver(NULL)
 #ifdef CPSUPPORT
 		,cpsolver(NULL)
@@ -82,8 +83,6 @@ PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine
 	cpsolver = getEnginep()->getCPSolverp();
 	cpsolver->notifyUsedForSearch();
 #endif
-
-	//TODO create aggpropfactory and call finishparsing on it
 
 	if(modes.printcnfgraph){
 		parsingmonitors.push_back(new ECNFGraphPrinter(cout));
@@ -121,18 +120,6 @@ IDSolver* PropagatorFactory::getIDSolver(defID id) {
 		addIDSolver(id);
 	}
 	return idsolvers.at(id);
-}
-
-AggSolver* PropagatorFactory::getAggSolver() {
-	if(!hasAggSolver()){
-		addAggSolver();
-	}
-	return aggsolver;
-}
-
-void PropagatorFactory::addAggSolver(){
-	aggsolver = new AggSolver(getEnginep());
-	getEngine().accept(aggsolver, EV_EXITCLEANLY);
 }
 
 void PropagatorFactory::addIDSolver(defID id){
@@ -260,11 +247,28 @@ bool PropagatorFactory::add(const InnerWSet& formula){
 		throwDoubleDefinedSet(formula.setID);
 	}
 
-	if(isParsing()){
-		parsedsets.insert(pair<int, InnerWSet*>(formula.setID, new InnerWSet(formula)));
+	assert(formula.literals.size()>0 && formula.literals.size()==formula.weights.size());
+
+	vector<WL> lw;
+	for (vsize i = 0; i < formula.literals.size(); ++i) {
+#ifdef NOARBITPREC
+		if(formula.weights[i] == posInfinity() || formula.weights[i] == negInfinity()){
+			throw idpexception(
+				"Weights equal to or larger than the largest integer number "
+				"are not allowed in limited precision.\n");
+		}
+#endif
+		lw.push_back(WL(formula.literals[i], formula.weights[i]));
 	}
 
-	// FIXME
+	TypedSet* set = new TypedSet(getEnginep(), formula.setID);
+	set->setWL(lw);
+
+	if(isParsing()){
+		parsedsets.insert(pair<int, TypedSet*>(formula.setID, set));
+	}
+
+	// FIXME initialize immediately if no longer parsing
 
 	return true;
 }
@@ -282,7 +286,7 @@ bool PropagatorFactory::add(const InnerAggregate& formula){
 		parsedaggs.push_back(new InnerAggregate(formula));
 		return true;
 	}
-	//
+
 	InnerReifAggregate r = InnerReifAggregate();
 	r.bound = formula.bound;
 	r.defID = -1;
@@ -294,23 +298,78 @@ bool PropagatorFactory::add(const InnerAggregate& formula){
 	return add(r);
 }
 
-bool PropagatorFactory::add(const InnerReifAggregate& formula){
-	notifyMonitorsOfAdding(formula);
+bool PropagatorFactory::addAggrExpr(const InnerReifAggregate& agg){
+	if(parsedsets.find(agg.setID)==parsedsets.end()){
+		throwUndefinedSet(agg.setID);
+	}
 
-	if(parsedsets.find(formula.setID)==parsedsets.end()){
+	if(agg.sem==DEF){
+		TypedSet* set = parsedsets.at(agg.setID);
+		InnerWSet innerset;
+		innerset.setID = agg.setID;
+		for(auto i=set->getWL().begin(); i!=set->getWL().end(); ++i){
+			innerset.literals.push_back((*i).getLit());
+			innerset.weights.push_back((*i).getWeight());
+		}
+		getIDSolver(agg.defID)->addDefinedAggregate(agg, innerset);
+	}
+	AggBound b(agg.sign, agg.bound);
+	return addAggrExpr(agg.head, agg.setID, b, agg.type, agg.sem);
+}
+
+bool PropagatorFactory::addAggrExpr(Var headv, int setid, const AggBound& bound, AggType type, AggSem sem){
+	assert(isParsing());
+
+	TypedSet* set = parsedsets.at(setid);
+
+	// Check whether the head occurs in the body of the set, which is not allowed
+	for (vsize i = 0; i < set->getWL().size(); ++i) {
+		if (var(set->getWL()[i].getLit()) == headv) { //Exception if head occurs in set itself
+			char s[100];
+			sprintf(s, "Set nr. %d contains a literal of atom %d, the head of an aggregate, which is not allowed.\n", setid, getPrintableVar(headv));
+			throw idpexception(s);
+		}
+	}
+
+#ifdef DEBUG
+	if(type == CARD) { //Check if all card weights are 1
+		for(vwl::size_type i=0; i<set->getWL().size(); ++i) {
+			if(set->getWL()[i].getWeight()!=1) {
+				report("Cardinality was loaded with wrong weights");
+				assert(false);
+			}
+		}
+	}
+#endif
+
+	getEngine().varBumpActivity(headv); // NOTE heuristic! (TODO move)
+
+	//the head of the aggregate
+	Lit head = mkLit(headv, false);
+
+	Agg* agg = new Agg(head, AggBound(bound),sem==DEF?COMP:sem, type);
+	set->addAgg(agg);
+
+	if (getEngine().verbosity() >= 2) { //Print info on added aggregate
+		MinisatID::print(getEngine().verbosity(), *agg);
+		report("\n");
+	}
+
+	return true;
+}
+
+bool PropagatorFactory::add(const InnerReifAggregate& agg){
+	notifyMonitorsOfAdding(agg);
+
+	if(parsedsets.find(agg.setID)==parsedsets.end()){
 		stringstream ss;
-		ss <<"The set with id " <<formula.setID <<" should be defined before the aggregate with head " <<formula.head <<"\n";
+		ss <<"The set with id " <<agg.setID <<" should be defined before the aggregate with head " <<agg.head <<"\n";
 		throw idpexception(ss.str());
 	}
 
-	add(formula.head);
+	add(agg.head);
 
-	if(isParsing()){
-		parsedreifaggs.push_back(new InnerReifAggregate(formula));
-		return true;
-	}
-
-	// FIXME add agg propagator
+	return addAggrExpr(agg);
 }
 
 bool PropagatorFactory::add(const InnerMinimizeSubset& formula){
@@ -337,19 +396,11 @@ bool PropagatorFactory::add(const InnerMinimizeOrderedList& formula){
 
 	return true;
 }
-bool PropagatorFactory::add(const InnerMinimizeAgg& formula){
+bool PropagatorFactory::add(const InnerMinimizeVar& formula){
 	notifyMonitorsOfAdding(formula);
 
-	add(formula.head);
-	getEngine().addOptimization(AGGMNMZ, formula.head);
-	InnerDisjunction clause;
-	clause.literals.push(mkLit(formula.head, false));
-	bool notunsat = add(clause);
-	if (notunsat) {
-		assert(getAggSolver()!=NULL);
-		notunsat = getAggSolver()->addMnmz(formula.head, formula.setID, formula.type);
-	}
-	return notunsat;
+	// FIXME check var existence and add optim intvar to pcsolver
+	return true;
 }
 
 bool PropagatorFactory::add(const InnerForcedChoices& formula){
@@ -448,76 +499,32 @@ void PropagatorFactory::finishParsing() {
 		(*i)->notifyEnd();
 	}
 
+	bool notunsat = true;
+
 	// aggregate checking
 	dummyvar = getEngine().newVar();
 	InnerDisjunction clause;
 	clause.literals.push(mkLit(dummyvar));
 	add(clause);
-	for(auto i=parsedaggs.begin(); i!=parsedaggs.end(); ++i){
-		InnerReifAggregate* r = new InnerReifAggregate();
-		r->bound = (*i)->bound;
-		r->defID = -1;
-		r->head = dummyvar;
-		r->sem = COMP;
-		r->setID = (*i)->setID;
-		r->sign	= (*i)->sign;
-		r->type	= (*i)->type;
-		parsedreifaggs.push_back(r);
+	for(auto i=parsedaggs.begin(); notunsat && i!=parsedaggs.end(); ++i){
+		InnerReifAggregate r;
+		r.bound = (*i)->bound;
+		r.defID = -1;
+		r.head = dummyvar;
+		r.sem = COMP;
+		r.setID = (*i)->setID;
+		r.sign	= (*i)->sign;
+		r.type	= (*i)->type;
+		notunsat = add(r);
 	}
 	deleteList<InnerAggregate>(parsedaggs);
-	for(auto i=parsedreifaggs.begin(); i!=parsedreifaggs.end(); ++i){
-		if(parsedsets.find((*i)->setID)==parsedsets.end()){
-			throwUndefinedSet((*i)->setID);
-		}
-	}
-	for(auto i=parsedreifaggs.begin(); i!=parsedreifaggs.end(); ++i){
-		InnerWSet* set = parsedsets.at((*i)->setID);
-		for(auto j=set->literals.begin(); j!=set->literals.end(); ++j){
-			if (var(*j) == (*i)->head) {
-				throwHeadOccursInSet((*i)->head, (*i)->setID);
-			}
-		}
-		if((*i)->type==MIN){ // FIXME move somewhere else + code duplication with aggtransform
-			//Transform Min into Max set: invert all weights
-			auto newset = new InnerWSet(*set);
-			newset->setID = ++maxset;
-			(*i)->setID = newset->setID;
-			parsedsets.insert(pair<int, InnerWSet*>(newset->setID, newset));
-			newset->weights.clear();
-			for (auto j=set->weights.begin(); j!=set->weights.end(); ++j) {
-				newset->weights.push_back(-(*j));
-			}
 
-			//Invert the bound
-			(*i)->bound = -(*i)->bound;
-			(*i)->type = MAX;
-			(*i)->sign = (*i)->sign==AGGSIGN_LB?AGGSIGN_UB:AGGSIGN_LB;
-		}
-	}
-#ifdef DEBUG
-	for(auto i=parsedreifaggs.begin(); i!=parsedreifaggs.end(); ++i){
-		if((*i)->type==CARD){
-			InnerWSet* set = parsedsets.at((*i)->setID);
-			for(auto j=set->weights.begin(); j!=set->weights.end(); ++j){
-				assert(*j==1);
-			}
-		}
-	}
-#endif
+	// FIXME initialize aggregate sets via finishparsing!
 
-	bool notunsat = true;
-	// aggregate adding
-	for(auto i=parsedsets.begin(); i!=parsedsets.end(); ++i){
-		getAggSolver()->addSet((*i).second->setID, (*i).second->literals, (*i).second->weights);
+	// FIXME we miss newly created sets here, add to addaggrexpr also!
+	if(getEngine().modes().pbsolver){
+		transformSumsToCNF(getEngine(), parsedsets);
 	}
-	for(auto i=parsedreifaggs.begin(); notunsat && i!=parsedreifaggs.end(); ++i){
-		if((*i)->sem==DEF){
-			getIDSolver((*i)->defID)->addDefinedAggregate(**i, *parsedsets.at((*i)->setID));
-		}
-		notunsat = getAggSolver()->addAggrExpr(**i);
-	}
-	deleteList<InnerReifAggregate>(parsedreifaggs);
-	deleteList<InnerWSet>(parsedsets);
 
 	// rule adding
 	for(auto i=parsedrules.begin(); notunsat && i!=parsedrules.end(); ++i){

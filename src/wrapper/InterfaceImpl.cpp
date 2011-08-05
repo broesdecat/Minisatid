@@ -408,11 +408,9 @@ bool PCWrapperPimpl::add(const MinimizeOrderedList& sentence){
 }
 
 template<>
-bool PCWrapperPimpl::add(const MinimizeAgg& sentence){
-	InnerMinimizeAgg mnm;
-	mnm.head = checkAtom(sentence.head);
-	mnm.setID = sentence.setid;
-	mnm.type = sentence.type;
+bool PCWrapperPimpl::add(const MinimizeVar& sentence){
+	InnerMinimizeVar mnm;
+	mnm.varID = sentence.varID;
 	setOptimization(true);
 	return getSolver()->add(mnm);
 }

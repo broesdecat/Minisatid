@@ -30,7 +30,7 @@ class SearchMonitor;
 class IntVar;
 typedef Minisat::Solver SearchEngine;
 
-enum Optim { MNMZ, SUBSETMNMZ, AGGMNMZ, NONE }; // Preference minimization, subset minimization, sum minimization
+enum Optim { MNMZ, SUBSETMNMZ, NONE }; // Preference minimization, subset minimization, sum minimization
 
 enum TheoryState {THEORY_PARSING, THEORY_INITIALIZED, THEORY_INITIALIZING};
 
@@ -93,6 +93,8 @@ public:
 #endif
 
 	void		accept(Propagator* propagator);
+	void		acceptForBacktrack(Propagator* propagator);
+	void		acceptForPropagation(Propagator* propagator);
 	void 		accept(Propagator* propagator, EVENT event);
 	void 		acceptBounds(IntVar* var, Propagator* propagator);
 	void 		acceptLitEvent(Propagator* propagator, const Lit& lit, PRIORITY priority);

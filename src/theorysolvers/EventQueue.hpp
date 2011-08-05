@@ -29,7 +29,7 @@ private:
 	PCSolver& getPCSolver() { return pcsolver; }
 	const PCSolver& getPCSolver() const { return pcsolver; }
 
-	std::queue<Propagator*> fastqueue, slowqueue;
+	std::queue<Propagator*> fastqueue, slowqueue, backtrackqueue;
 
 	proplist allpropagators;
 
@@ -53,6 +53,13 @@ public:
 			assert(propagator!=*i);
 		}
 		allpropagators.push_back(propagator);
+	}
+
+	void acceptForBacktrack(Propagator* propagator){
+		backtrackqueue.push(propagator);
+	}
+	void acceptForPropagation(Propagator* propagator){
+		fastqueue.push(propagator);
 	}
 
 	// NOTE: a propagator should only accept events when he is ready for those events!

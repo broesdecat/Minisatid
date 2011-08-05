@@ -7,24 +7,16 @@
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 #include "modules/aggsolver/AggProp.hpp"
+#include "modules/aggsolver/AggSet.hpp"
 #include "modules/aggsolver/AggPrint.hpp"
 #include "modules/aggsolver/AggUtils.hpp"
-#include "modules/AggSolver.hpp"
-#include "theorysolvers/PCSolver.hpp"
-
-#include "satsolver/SATSolver.hpp"
 
 #include "modules/aggsolver/FullyWatched.hpp"
 #include "modules/aggsolver/PartiallyWatched.hpp"
 
-#include "utils/Print.hpp"
-
-#include <assert.h>
+#include <cassert>
 
 using namespace std;
-#ifndef __GXX_EXPERIMENTAL_CXX0X__
-using namespace std::tr1;
-#endif
 using namespace MinisatID;
 
 Weight	Agg::getCertainBound() const {
@@ -332,7 +324,7 @@ AggPropagator*	MaxProp::createPropagator(TypedSet* set) const{
 }*/
 
 AggPropagator*	SumProp::createPropagator(TypedSet* set) const{
-	set->getSolver()->adaptAggHeur(set->getWL(), set->getAgg().size());
+	//FIXME aggheur set->getSolver()->adaptAggHeur(set->getWL(), set->getAgg().size());
 
 	if(set->isUsingWatches()){
 		return new GenPWAgg(set);
@@ -342,7 +334,7 @@ AggPropagator*	SumProp::createPropagator(TypedSet* set) const{
 }
 
 AggPropagator*	ProdProp::createPropagator(TypedSet* set) const{
-	set->getSolver()->adaptAggHeur(set->getWL(), set->getAgg().size());
+	//FIXME aggheur set->getSolver()->adaptAggHeur(set->getWL(), set->getAgg().size());
 
 	if(set->isUsingWatches()){
 		return new GenPWAgg(set);
@@ -351,88 +343,26 @@ AggPropagator*	ProdProp::createPropagator(TypedSet* set) const{
 	}
 }
 
-void TypedSet::addAgg(Agg* aggr){
-	assert(aggr!=NULL);
-	aggregates.push_back(aggr);
-	aggr->setTypedSet(this);
-	aggr->setIndex(aggregates.size()-1);
-}
-
-void TypedSet::replaceAgg(const agglist& repl){
-	for(agglist::const_iterator i=aggregates.begin(); i<aggregates.end(); ++i){
-		assert((*i)->getSet()==this);
-		(*i)->setTypedSet(NULL);
-		(*i)->setIndex(-1);
-	}
-	aggregates.clear();
-	for(agglist::const_iterator i=repl.begin(); i<repl.end(); ++i){
-		addAgg(*i);
-	}
-}
-
-void TypedSet::replaceAgg(const agglist& repl, const agglist& del){
-	replaceAgg(repl);
-	for(agglist::const_iterator i=del.begin(); i<del.end(); ++i){
-		delete *i;
-	}
-}
-
-/*
- * Initialize the datastructures. If it's neither sat nor unsat and it is defined, notify the pcsolver of this
- */
-void TypedSet::initialize(bool& unsat, bool& sat, vps& sets) {
-	for(vector<AggTransformation*>::iterator i=transformations.begin(); !sat && !unsat && i<transformations.end(); ++i) {
-		AggTransformation* transfo = *i;
-		transformations.erase(i); i--;
-		transfo->transform(getSolver(), this, sets, unsat, sat);
-	}
-
-	if(sat || unsat){ return; }
-
-	setProp(getType().createPropagator(this));
-	prop->initialize(unsat, sat);
-
-	if(sat || unsat){ return; }
-}
-
-void TypedSet::addExplanation(AggReason& ar) const {
-	vec<Lit> lits;
-	lits.push(ar.getPropLit());
-	getProp()->getExplanation(lits, ar);
-	ar.setClause(lits);
-
-	if(getSolver()->verbosity()>=3){
-		clog <<"Explanation for deriving " <<ar.getPropLit();
-		clog <<" in expression ";
-		print(getSolver()->verbosity(), ar.getAgg(), false);
-		clog <<" is ";
-		for(int i=0; i<lits.size(); ++i){
-			clog <<" " <<lits[i];
-		}
-		clog <<"\n";
-	}
-}
-
 AggPropagator::AggPropagator(TypedSet* set)
-		:set(set), aggsolver(set->getSolver()), satsolver(set->getSolver()->getSATSolver()){
+		:set(set){
 
 }
 
 // Final initialization call!
 void AggPropagator::initialize(bool& unsat, bool& sat) {
 	for (agglist::const_iterator i = getSet().getAgg().begin(); i < getSet().getAgg().end(); ++i) {
+		// FIXME permanent watches!
 		if((*i)->getSem()==IMPLICATION){
-			getSolver()->setHeadWatch(~(*i)->getHead(), (*i));
+			getSet().getPCSolver().acceptLitEvent(getSetp(), ~(*i)->getHead(), FAST);
 		}else{
-			getSolver()->setHeadWatch((*i)->getHead(), (*i));
-			getSolver()->setHeadWatch(~(*i)->getHead(), (*i));
+			getSet().getPCSolver().acceptLitEvent(getSetp(), (*i)->getHead(), FAST);
+			getSet().getPCSolver().acceptLitEvent(getSetp(), ~(*i)->getHead(), FAST);
 		}
 	}
 }
 
-// Maximize speed of requesting values! //FIXME add to other solvers
 lbool AggPropagator::value(const Lit& l) const {
-	return satsolver->value(l);
+	return getSet().value(l);
 }
 
 Weight AggPropagator::getValue() const {
@@ -447,153 +377,3 @@ Weight AggPropagator::getValue() const {
 	}
 	return total;
 }
-
-// RECURSIVE AGGREGATES
-
-bool MaxProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) const {
-	TypedSet* set = agg.getSet();
-	bool justified = true;
-	const vwl& wl = set->getWL();
-
-	if (justified && agg.hasUB()) {
-		justified = false;
-		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() > agg.getCertainBound(); ++i) {
-			if (oppositeIsJustified(*i, currentjust, real, set->getSolver())) {
-				jstf.push(~(*i).getLit()); //push negative literal, because it should become false
-			} else if (real || currentjust[var((*i).getLit())] != 0) {
-				nonjstf.push(var((*i).getLit()));
-			}
-		}
-		if (nonjstf.size() == 0) {
-			justified = true;
-		}
-	}
-
-	if(justified && agg.hasLB()){
-		justified = false;
-		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() >= agg.getCertainBound(); ++i) {
-			if (isJustified(*i, currentjust, real, set->getSolver())) {
-				jstf.push((*i).getLit());
-				justified = true;
-			} else if (real || currentjust[var((*i).getLit())] != 0) {
-				nonjstf.push(var((*i).getLit()));
-			}
-		}
-	}
-
-	if (!justified) {
-		jstf.clear();
-	}
-
-	return justified;
-}
-
-/**
- * AGG <= B: v is justified if one literal below/eq the bound is THAT IS NOT THE HEAD
- * 					if so, change the justification to the literal
- * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
- * A <= AGG: v is justified if the negation of all literals below the bound are. The emptyset is always a solution,
- * 			 so no conclusions have to be drawn from the literals above/eq the bound
- * 					if so, change the justification to the negation of all those below the bound literals
- * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
- */
-bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) const {
-	TypedSet* set = agg.getSet();
-	const AggProp& type = agg.getSet()->getType();
-	bool justified = true;
-	const vwl& wl = set->getWL();
-
-	if (justified && agg.hasUB()) {
-		justified = false;
-		Weight bestpossible = type.getMaxPossible(set->getWL());
-		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
-			if (oppositeIsJustified(*i, currentjust, real, set->getSolver())) {
-				jstf.push(~(*i).getLit());
-				bestpossible = type.remove(bestpossible, (*i).getWeight());
-				if (bestpossible <= agg.getCertainBound()) {
-					justified = true;
-				}
-			} else if (real || currentjust[var((*i).getLit())] != 0) {
-				nonjstf.push(var((*i).getLit()));
-			}
-		}
-	}
-	if(justified && agg.hasLB()){
-		justified = false;
-		Weight bestcertain = set->getType().getMinPossible(set->getWL());
-		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
-			if (isJustified(*i, currentjust, real, set->getSolver())) {
-				jstf.push((*i).getLit());
-				bestcertain = type.add(bestcertain, (*i).getWeight());
-				if (bestcertain >= agg.getCertainBound()) {
-					justified = true;
-				}
-			} else if (real || currentjust[var((*i).getLit())] != 0) {
-				nonjstf.push(var((*i).getLit()));
-			}
-		}
-	}
-
-	if (!justified) {
-		jstf.clear();
-	}
-
-	return justified;
-}
-
-/*bool SPAgg::canJustifyHead(vec<Lit>& jstf, vec<Var>& nonjstf, vec<int>& currentjust, bool real) const {
- //OTHER IMPLEMENTATION (probably buggy)
- pSet s = getSet();
-
- Weight current = 0;
- if(isLower()){
- current = s->getBestPossible();
- }else{
- current = s->getEmptySetValue();
- }
-
- bool justified = false;
- if(aggValueImpliesHead(current)){
- justified = true;
- }
-
- for (lwlv::const_iterator i = s->getWLBegin(); !justified && i < s->getWLEnd(); ++i) {
- if(isMonotone(*i) && s->isJustified(*i, currentjust, real)){
- if(isLower()){
- jstf.push(~(*i).getLit());
- current = this->remove(current, (*i).getWeight());
- }else{
- //if(s->isJustified(*i, currentjust, real)){
- jstf.push((*i).getLit());
- current = this->add(current, (*i).getWeight());
- }
-
- if (aggValueImpliesHead(current)){
- justified = true;
- }
- }else if(real ||currentjust[var((*i).getLit())]!=0){
- nonjstf.push(var((*i).getLit()));
- }
- }
-
- if (!justified) {
- jstf.clear();
- }
-
- if(s->getSolver()->getPCSolver()->modes().verbosity >=4){
- reportf("Justification checked for ");
- printAggrExpr(this);
-
- if(justified){
- reportf("justification found: ");
- for(int i=0; i<jstf.size(); ++i){
- print(jstf[i]); reportf(" ");
- }
- reportf("\n");
- }else{
- reportf("no justification found.\n");
- }
- }
-
- return justified;
- }*/

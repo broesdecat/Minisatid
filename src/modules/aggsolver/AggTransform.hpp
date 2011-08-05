@@ -14,7 +14,6 @@
 namespace MinisatID{
 
 class PCSolver;
-class AggSolver;
 
 class TypedSet;
 typedef std::vector<TypedSet*> vps;
@@ -28,64 +27,62 @@ typedef std::vector<TypedSet*> vps;
 
 class AggTransformation;
 const std::vector<AggTransformation*>& getTransformations();
-//void doTransformations(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat);
+//void doTransformations(AggSolver* solver, TypedSet* set, bool& unsat, bool& sat);
 
 class AggTransformation{
 public:
-	virtual void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const = 0;
+	virtual void transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const = 0;
 };
 
 class SetReduce : public AggTransformation{
 public:
-	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
+	void transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const;
 };
 
 class PartitionIntoTypes : public AggTransformation{
 public:
-	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
+	void transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const;
 };
 
 class AddTypes : public AggTransformation{
 public:
-	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
+	void transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const;
 };
 
 class MinToMax : public AggTransformation{
 public:
-	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
+	void transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const;
 };
 
 class MaxToSAT : public AggTransformation{
 public:
-	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
+	void transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const;
 };
 
 class VerifyWeights : public AggTransformation{
 public:
-	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
+	void transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const;
 };
 
 class AddHeadImplications : public AggTransformation{
 public:
-	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
+	void transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const;
 };
 
 class CardToEquiv : public AggTransformation{
 public:
-	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
+	void transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const;
 };
 
 class MapToSetOneToOneWithAgg : public AggTransformation{
 public:
-	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
+	void transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const;
 };
 
 class MapToSetWithSameAggSign : public AggTransformation{
 public:
-	void transform(AggSolver* solver, TypedSet* set, vps& sets, bool& unsat, bool& sat) const;
+	void transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const;
 };
-
-bool transformSumsToCNF(vps& sets, MinisatID::PCSolver& pcsolver);
 
 }
 

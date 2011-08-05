@@ -13,32 +13,11 @@
 #include <algorithm>
 
 #include "modules/aggsolver/AggUtils.hpp"
-#include "modules/aggsolver/AggTransform.hpp"
-
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-#include <memory>
-#else
-#include <tr1/memory>
-#endif
-
-namespace Minisat{
-	class Solver;
-}
 
 namespace MinisatID{
 
-class WL;
-typedef std::vector<WL> vwl;
-
-class PCSolver;
-class AggSolver;
-
 class AggProp;
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-	typedef std::shared_ptr<AggProp> paggprop;
-#else
-	typedef std::tr1::shared_ptr<AggProp> paggprop;
-#endif
+typedef sharedptr<AggProp>::ptr paggprop;
 
 class TypedSet;
 typedef std::map<int, TypedSet*> mips;
@@ -48,13 +27,6 @@ class Watch;
 class AggReason;
 
 class AggPropagator;
-
-struct AggBound{
-	Weight bound;
-	AggSign sign;
-
-	AggBound(AggSign sign, const Weight& b):bound(b), sign(sign){}
-};
 
 class Agg{
 private:
@@ -121,9 +93,7 @@ public:
 
 	virtual Weight		add						(const Weight& lhs, const Weight& rhs) 	const = 0;
 	virtual Weight		remove					(const Weight& lhs, const Weight& rhs) 	const = 0;
-	virtual bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const = 0;
-
-	virtual AggPropagator*	createPropagator	(TypedSet* set) 						const = 0;
+		virtual AggPropagator*	createPropagator	(TypedSet* set) 						const = 0;
 	virtual Weight 		getESV					()										const = 0;
 };
 
@@ -139,7 +109,6 @@ public:
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const { return lhs>rhs?lhs:rhs; }
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const { assert(false); return 0; }
-	bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const;
 	AggPropagator*	createPropagator	(TypedSet* set) 						const;
 
 	Weight 		getESV					()										const { return negInfinity(); }
@@ -215,10 +184,10 @@ struct minmaxBounds{
 	minmaxBounds(const Weight& min, const Weight& max):min(min),max(max){}
 };
 
-bool isSatisfied(const Agg& agg, const Weight& min, const Weight& max);
-bool isSatisfied(const Agg& agg, const minmaxBounds& bounds);
-bool isFalsified(const Agg& agg, const Weight& min, const Weight& max);
-bool isFalsified(const Agg& agg, const minmaxBounds& bounds);
+bool isSatisfied	(const Agg& agg, const Weight& min, const Weight& max);
+bool isSatisfied	(const Agg& agg, const minmaxBounds& bounds);
+bool isFalsified	(const Agg& agg, const Weight& min, const Weight& max);
+bool isFalsified	(const Agg& agg, const minmaxBounds& bounds);
 void addValue		(const AggProp& type, const Weight& weight, bool addtoset, minmaxBounds& bounds);
 void addValue		(const AggProp& type, const Weight& weight, bool wasinset, Weight& min, Weight& max);
 void removeValue	(const AggProp& type, const Weight& weight, bool addtoset, minmaxBounds& bounds);
@@ -227,8 +196,6 @@ void removeValue	(const AggProp& type, const Weight& weight, bool wasinset, Weig
 class AggPropagator {
 private:
 	TypedSet* const set; //Non-owning
-	AggSolver* const aggsolver;
-	Minisat::Solver* const satsolver;
 public:
 	AggPropagator(TypedSet* set);
 	virtual ~AggPropagator(){};
@@ -244,88 +211,10 @@ public:
     const TypedSet&		getSet() 	const	{ return *set; }
     TypedSet*			getSetp()	const 	{ return set; }
 
-    AggSolver*			getSolver() const { return aggsolver; }
 	lbool				value(const Lit& l) const;
 
 	//Assert: only call if model is two-valued!
 	virtual Weight		getValue() const;
-};
-
-class TypedSet{
-protected:
-	Weight 				kb; //kb is "known bound", the value of the set reduced empty set
-	vwl 				wl; // INVARIANT: sorted from lowest to highest weight! Except in set reduction operation!
-
-	AggProp const * 	type;
-
-	agglist			 	aggregates;	//OWNS the pointers
-	AggSolver*			aggsolver;	//does NOT own this pointer
-	AggPropagator* 		prop;		//OWNS pointer
-
-	int 				setid;
-	std::vector<AggTransformation*> transformations;
-
-	bool				usingwatches;
-
-public:
-	TypedSet(AggSolver* solver, int setid):
-			kb(Weight(0)),
-			type(NULL),
-			aggsolver(solver),
-			prop(NULL),
-			setid(setid),
-			transformations(MinisatID::getTransformations()),
-			usingwatches(true){}
-	TypedSet(const TypedSet& set):
-			kb(set.getKnownBound()),
-			wl(set.getWL()),
-			type(set.getTypep()),
-			aggsolver(set.getSolver()),
-			prop(NULL),
-			setid(set.getSetID()),
-			transformations(set.getTransformations()),
-			usingwatches(set.isUsingWatches()){
-	}
-	virtual ~TypedSet(){
-		deleteList<Agg>(aggregates);
-		delete prop;
-	}
-
-	int				getSetID		() 			const 			{ return setid; }
-
-	AggSolver *		getSolver		()			const			{ return aggsolver; }
-	const vwl&		getWL			()			const 			{ return wl; }
-	void			setWL			(const vwl& wl2)			{ wl=wl2; stable_sort(wl.begin(), wl.end(), compareByWeights<WL>);}
-
-	const std::vector<Agg*>& getAgg		()	const					{ return aggregates; }
-	std::vector<Agg*>& getAggNonConst	()	 						{ return aggregates; }
-	void			replaceAgg		(const agglist& repl);
-	void			replaceAgg		(const agglist& repl, const agglist& del);
-	void 			addAgg			(Agg* aggr);
-
-	bool			isUsingWatches() const { return usingwatches; }
-	void			setUsingWatches(bool use) { usingwatches = use; }
-
-	const Weight&	getKnownBound	()			const			{ return kb; }
-	void 			setKnownBound	(const Weight& w)			{ kb = w; }
-
-	const AggProp&	getType			() 			const 			{ assert(type!=NULL); return *type; }
-	AggProp const *	getTypep		() 			const 			{ return type; }
-	void 			setType			(AggProp const * const w)	{
-		type = w;
-	}
-
-	void 			setProp			(AggPropagator* p) 			{ prop = p; }
-	AggPropagator*		getProp			() 			const 			{ return prop; }
-
-	const std::vector<AggTransformation*>& getTransformations() const { return transformations; }
-
-	void 			initialize		(bool& unsat, bool& sat, vps& sets);
-	void			backtrack		(int untillevel) 			{ getProp()->backtrack(untillevel); }
-	rClause 		propagate		(const Lit& p, Watch* w, int level) 	{ return getProp()->propagate(p, w, level); }
-	rClause 		propagate		(const Agg& agg, int level, bool headtrue)	{ return getProp()->propagate(level, agg, headtrue); }
-	rClause			propagateAtEndOfQueue(int level) 						{ return getProp()->propagateAtEndOfQueue(level); }
-	void 			addExplanation	(AggReason& ar) const;
 };
 
 }

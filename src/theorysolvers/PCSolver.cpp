@@ -11,7 +11,6 @@
 #include <iostream>
 #include "satsolver/SATSolver.hpp"
 #include "modules/ModSolver.hpp"
-#include "modules/AggSolver.hpp"
 #include "modules/CPSolver.hpp"
 #include "modules/IntVar.hpp"
 #include "wrapper/InterfaceImpl.hpp"
@@ -156,6 +155,13 @@ void PCSolver::varBumpActivity(Var v) {
 
 void PCSolver::accept(Propagator* propagator){
 	getEventQueue().accept(propagator);
+}
+
+void PCSolver::acceptForBacktrack(Propagator* propagator){
+	getEventQueue().acceptForBacktrack(propagator);
+}
+void PCSolver::acceptForPropagation(Propagator* propagator){
+	getEventQueue().acceptForPropagation(propagator);
 }
 
 void PCSolver::accept(Propagator* propagator, EVENT event){
@@ -304,11 +310,6 @@ void PCSolver::finishParsing(bool& unsat) {
 	if(modes().useaggheur){
 		getSATSolver()->notifyCustomHeur();
 	}
-
-	// Aggregate pre processing idea
-	//if(aggsolverpresent){
-	//getAggSolver()->findClausalPropagations();
-	//}
 
 	state = THEORY_INITIALIZED;
 }
@@ -601,12 +602,6 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, const ModelExpandOptions& opt
 
 	InnerModel* m = new InnerModel();
 	while (!unsatreached) {
-		if (optim == AGGMNMZ) {
-			assert(getFactory().getOptimAggSolver()!=NULL);
-			//Noodzakelijk om de aanpassingen aan de bound door te propageren.
-			getFactory().getOptimAggSolver()->propagateMnmz();
-		}
-
 		bool sat = getSolver().solve(currentassmpt);
 		if(!sat){
 			unsatreached = true;
@@ -634,9 +629,6 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, const ModelExpandOptions& opt
 			case SUBSETMNMZ:
 				currentassmpt.clear();
 				unsatreached = invalidateSubset(invalidation.literals, currentassmpt);
-				break;
-			case AGGMNMZ:
-				unsatreached = getFactory().getOptimAggSolver()->invalidateAgg(invalidation.literals);
 				break;
 			case NONE:
 				assert(false);

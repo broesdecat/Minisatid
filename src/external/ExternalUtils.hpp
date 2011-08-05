@@ -400,13 +400,9 @@ public:
 	literallist literals;
 };
 
-class MinimizeAgg{
+class MinimizeVar{
 public:
-	Atom head;
-	int setid;
-	AggType type;
-
-	MinimizeAgg(): head(0){}
+	uint varID;
 };
 
 struct CPIntVarRange{

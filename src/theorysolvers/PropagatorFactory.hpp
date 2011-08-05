@@ -13,12 +13,15 @@
 #include <vector>
 #include <set>
 #include "utils/Utils.hpp"
+#include "modules/aggsolver/AggUtils.hpp"
 
 namespace Minisat{
 	class Solver;
 }
 
 namespace MinisatID {
+
+class TypedSet;
 
 class IntVar;
 class PCSolver;
@@ -30,7 +33,6 @@ class SolverOption;
 
 class Propagator;
 class IDSolver;
-class AggSolver;
 class ModSolver;
 template<class Solver> class SymmetryPropagator;
 
@@ -54,11 +56,6 @@ private:
 
 	std::map<defID, IDSolver*> idsolvers;
 
-	AggSolver* aggsolver;
-	bool hasAggSolver() const { return aggsolver!=NULL; }
-	void addAggSolver();
-	AggSolver* getAggSolver();
-
 	ModSolver* modsolver;
 	bool hasModSolver() const { return modsolver!=NULL; }
 	ModSolver* getModSolver() const {return modsolver; }
@@ -81,9 +78,8 @@ private:
 	// Parsing support
 	int maxset;
 	std::vector<InnerRule*> parsedrules;
-	std::map<int, InnerWSet*> parsedsets;
+	std::map<int, TypedSet*> parsedsets;
 	std::vector<InnerAggregate*> parsedaggs;
-	std::vector<InnerReifAggregate*> parsedreifaggs;
 
 	// Logging
 	std::vector<ParsingMonitor*> parsingmonitors;
@@ -110,7 +106,7 @@ public:
 	bool add(const InnerReifAggregate& sentence);
 	bool add(const InnerMinimizeSubset& sentence);
 	bool add(const InnerMinimizeOrderedList& sentence);
-	bool add(const InnerMinimizeAgg& sentence);
+	bool add(const InnerMinimizeVar& sentence);
 	bool add(const InnerForcedChoices& sentence);
 	bool add(const InnerSymmetryLiterals& sentence);
 	bool add(const InnerSymmetry& sentence);
@@ -132,19 +128,19 @@ public:
 
 	void setModSolver(ModSolver* m);
 
-	//TODO should remove this dependency when possible
-	AggSolver* getOptimAggSolver() { return aggsolver; }
-
 private:
 	template<class T>
-	bool		addCP			(const T& formula);
+	bool addCP			(const T& formula);
 
-	bool		isInitialized	() 	const { return !parsing; }
-	bool		isParsing		()	const { return parsing; }
+	bool isInitialized	() 	const { return !parsing; }
+	bool isParsing		()	const { return parsing; }
 
-	void 		addVar			(Lit l) { add(var(l)); }
-	void 		addVars			(const vec<Lit>& a);
-	void 		addVars			(const std::vector<Lit>& a);
+	void addVar			(Lit l) { add(var(l)); }
+	void addVars		(const vec<Lit>& a);
+	void addVars		(const std::vector<Lit>& a);
+
+	bool addAggrExpr	(const InnerReifAggregate& agg);
+	bool addAggrExpr	(Var headv, int setid, const AggBound& bound, AggType type, AggSem sem);
 
 	template<typename T>
 	void 		notifyMonitorsOfAdding(const T& obj) const;

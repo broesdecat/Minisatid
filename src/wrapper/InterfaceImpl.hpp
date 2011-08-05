@@ -164,7 +164,7 @@ template<> bool PCWrapperPimpl::add(const WLSet& sentence);
 template<> bool PCWrapperPimpl::add(const Aggregate& sentence);
 template<> bool PCWrapperPimpl::add(const MinimizeSubset& sentence);
 template<> bool PCWrapperPimpl::add(const MinimizeOrderedList& sentence);
-template<> bool PCWrapperPimpl::add(const MinimizeAgg& sentence);
+template<> bool PCWrapperPimpl::add(const MinimizeVar& sentence);
 template<> bool PCWrapperPimpl::add(const CPIntVarRange& sentence);
 template<> bool PCWrapperPimpl::add(const CPIntVarEnum& sentence);
 template<> bool PCWrapperPimpl::add(const CPBinaryRel& sentence);

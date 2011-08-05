@@ -18,7 +18,6 @@
 
 #include "modules/IDSolver.hpp"
 #include "modules/ModSolver.hpp"
-#include "modules/AggSolver.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -78,16 +77,6 @@ void print(Solver const * const s){
 template<>
 void print(PCSolver * const s){
 	s->printState();
-}
-
-template<>
-void print(AggSolver const * const p){
-	if(p==NULL){
-		clog <<"No aggregates\n";
-		return;
-	}
-	clog <<"Aggregates\n";
-	//TODO
 }
 
 template<>

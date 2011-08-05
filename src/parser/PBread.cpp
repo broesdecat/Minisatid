@@ -71,16 +71,19 @@ template<class T> void DefaultCallback<T>::beginObjective() {
 template<class T> bool DefaultCallback<T>::endObjective() {
 	bool possat = true;
 
+#warning opb optimization is broken
+	/* FIXME
 	setid++;
 	wset.setID = setid;
 	possat &= getSolver()->add(wset);
 	wset = WSet();
 
-	MinimizeAgg mnm;
-	mnm.head = dummyhead;
-	mnm.setid = setid;
-	mnm.type = SUM;
+	/* FIXME
+	MinimizeVar mnm;
+	mnm.varID = varID;
 	possat &= getSolver()->add(mnm);
+	 */
+
 	return possat;
 
 }

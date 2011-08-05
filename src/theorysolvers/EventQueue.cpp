@@ -220,6 +220,10 @@ void EventQueue::notifyNewDecisionLevel(){
 }
 
 void EventQueue::notifyBacktrack(int untillevel, const Lit& decision){
+	while(not backtrackqueue.empty()){
+		backtrackqueue.front()->notifyBacktrack(untillevel, decision);
+		backtrackqueue.pop();
+	}
 	for(auto i=begin(EV_BACKTRACK); i<end(EV_BACKTRACK); ++i){
 		(*i)->notifyBacktrack(untillevel, decision);
 	}

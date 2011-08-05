@@ -154,10 +154,8 @@ struct InnerMinimizeSubset{
 	vec<Lit> literals;
 };
 
-struct InnerMinimizeAgg{
-	Var head;
-	int setID;
-	AggType type;
+struct InnerMinimizeVar{
+	uint varID;
 };
 
 struct InnerForcedChoices{
