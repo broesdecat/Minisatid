@@ -22,6 +22,9 @@ typedef unsigned int uint;
 
 namespace MinisatID {
 
+inline Lit  mkPosLit	(Var var) 	{ return mkLit(var, false); }
+inline Lit  mkNegLit	(Var var) 	{ return mkLit(var, true); }
+
 // General vector size type usable for any POINTER types!
 typedef std::vector<void*>::size_type vsize;
 
