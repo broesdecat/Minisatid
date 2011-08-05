@@ -6,24 +6,21 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-
 #include "theorysolvers/LogicSolver.hpp"
+
 #include "wrapper/InterfaceImpl.hpp"
 
+using namespace std;
 using namespace MinisatID;
 
-void LogicSolver::notifyHasMonitor() {
-	hasMonitor = true;
-}
-
-bool LogicSolver::isBeingMonitored() const{
-	return hasMonitor;
-}
-
 void LogicSolver::notifyMonitor(const InnerPropagation& obj){
-	getParent().notifyMonitor(obj);
+	for(std::vector<WrapperPimpl*>::const_iterator i=monitors.begin(); i<monitors.end(); ++i){
+		(*i)->notifyMonitor(obj);
+	}
 }
 
 void LogicSolver::notifyMonitor(const InnerBacktrack& obj){
-	getParent().notifyMonitor(obj);
+	for(std::vector<WrapperPimpl*>::const_iterator i=monitors.begin(); i<monitors.end(); ++i){
+		(*i)->notifyMonitor(obj);
+	}
 }

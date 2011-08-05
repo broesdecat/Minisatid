@@ -26,10 +26,6 @@ using namespace Minisat;
 
 namespace MinisatID{
 
-int getPrintableVar(Var v){
-	return v+1;
-}
-
 template<>
 void print(const Minisat::Lit& lit, const lbool val){
 	std::clog <<(sign(lit)?"-":"") <<getPrintableVar(var(lit)) <<":" <<(val==l_True?'1':(val==l_False?'0':'X'));
@@ -59,24 +55,24 @@ template<> std::string print(const Lit& lit){
 	return ss.str();
 }
 
-template<>
-void print(Solver * const s){
-	assert(s!=NULL);
+void print(const Solver& s){
 	clog <<"Clauses\n";
-	for(int i=0; i< s->nbClauses(); ++i){
-		s->printClause(s->getClause(i));
+	for(int i=0; i< s.nbClauses(); ++i){
+		s.printClause(s.getClause(i));
 		clog <<"\n";
 	}
 }
 
 template<>
+void print(Solver * const s){
+	assert(s!=NULL);
+	print(*s);
+}
+
+template<>
 void print(Solver const * const s){
 	assert(s!=NULL);
-	clog <<"Clauses\n";
-	for(int i=0; i< s->nbClauses(); ++i){
-		s->printClause(s->getClause(i));
-		clog <<"\n";
-	}
+	print(*s);
 }
 
 template<>

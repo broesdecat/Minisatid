@@ -93,7 +93,9 @@ protected:
 	const WSet& getSet(uint i) const;
 
 	template<typename T>
-	void 	check			(const T& atom);
+	void 	check			(const T& obj);
+	template<typename T>
+	void 	checkOnlyPos	(const T& obj);
 
 	Atom createAtom();
 	uint createCpVar(const Weight& min, const Weight& max);
@@ -124,6 +126,7 @@ protected:
 template<> void FlatZincRewriter::check(const Atom& atom);
 template<> void FlatZincRewriter::check(const Literal& lit);
 template<> void FlatZincRewriter::check(const std::vector<Literal>& lits);
+template<> void FlatZincRewriter::checkOnlyPos(const std::vector<Literal>& lits);
 template<> void FlatZincRewriter::check(const std::vector<std::vector<Literal> >& lits);
 template<> void FlatZincRewriter::check(const std::vector<Atom>& atoms);
 

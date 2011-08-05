@@ -21,14 +21,16 @@ class WrapperPimpl;
 class LogicSolver{
 private:
 	SolverOption _modes;
-	MinisatID::WrapperPimpl& parent;
-	bool hasMonitor;
+	WrapperPimpl& parent;
+
+	//Currently, the monitor is always the parent TODO should add a nice interface for that
+	std::vector<WrapperPimpl*> monitors;
+
 public:
-	LogicSolver(MinisatID::SolverOption modes, MinisatID::WrapperPimpl& inter)
-			:_modes(modes), parent(inter), hasMonitor(false){};
+	LogicSolver(SolverOption modes, WrapperPimpl& inter)
+			: _modes(modes), parent(inter){};
 	virtual ~LogicSolver(){};
 
-	virtual bool 	simplify() = 0;
 	virtual void 	finishParsing(bool& unsat) = 0;
 
 	virtual bool	solve(const vec<Lit>& assumptions, const ModelExpandOptions& options) = 0;
@@ -36,22 +38,21 @@ public:
 			int 	verbosity		() const		{ return modes().verbosity; }
 	const SolverOption& modes		() const		{ return _modes; }
 			void	setVerbosity	(int verb)		{ _modes.verbosity = verb; }
-			void	setNbModels		(int nbmodels)	 { _modes.nbmodels = nbmodels; }
+			void	setNbModels		(int nbmodels)	{ _modes.nbmodels = nbmodels; }
 
-	const MinisatID::WrapperPimpl& 	getParent	() const	{ return parent; }
-	MinisatID::WrapperPimpl& 		getParent	() 			{ return parent; }
+	const WrapperPimpl& 	getParent	() const	{ return parent; }
+	WrapperPimpl& 		getParent	() 				{ return parent; }
+
+	virtual void	notifyNonDecisionVar(Var var) = 0;
 
 	virtual void 	printStatistics	() const = 0;
 
-	virtual void notifyNonDecisionVar(Var var){}
-
-	void notifyHasMonitor();
-	bool isBeingMonitored() const;
+public:
+	void requestMonitor		(WrapperPimpl* monitor) { monitors.push_back(monitor); }
+	bool isBeingMonitored	() const { return monitors.size()>0; }
 	void notifyMonitor(const InnerPropagation& obj);
 	void notifyMonitor(const InnerBacktrack& obj);
 };
-
-
 
 }
 

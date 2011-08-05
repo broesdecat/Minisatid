@@ -9,14 +9,13 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <vector>
 #include <map>
-#include <string>
 
-#include "satsolver/SATUtils.hpp"
 #include "GeneralUtils.hpp"
+#include "satsolver/SATUtils.hpp"
 
 typedef unsigned int uint;
 
@@ -24,6 +23,26 @@ namespace MinisatID {
 
 inline Lit  mkPosLit	(Var var) 	{ return mkLit(var, false); }
 inline Lit  mkNegLit	(Var var) 	{ return mkLit(var, true); }
+
+class InterMediateDataStruct{
+private:
+	int offset;
+	std::vector<int> seen;
+
+public:
+	InterMediateDataStruct(int nbvars, int offset):offset(offset){
+		seen.resize(nbvars, 0);
+	}
+
+	bool hasElem(Var var) const { return var-offset>=0 && ((uint)var-offset)<seen.size(); }
+
+	int& getElem(Var var) { return seen[var-offset]; }
+	const int& getElem(Var var) const { return seen[var-offset]; }
+};
+
+enum PRIORITY { FAST = 0, SLOW = 1 };
+enum EVENT { EV_PROPAGATE, EV_EXITCLEANLY, EV_CHOICE, EV_BACKTRACK, EV_DECISIONLEVEL, EV_PRINTSTATE, EV_PRINTSTATS,
+			EV_FULLASSIGNMENT, EV_ADDCLAUSE, EV_REMOVECLAUSE, EV_SYMMETRYANALYZE};
 
 // General vector size type usable for any POINTER types!
 typedef std::vector<void*>::size_type vsize;
@@ -50,13 +69,15 @@ public:
     bool 			operator==	(const WL& p)		 const { return weight == p.weight && lit==p.lit; }
 };
 
+typedef std::vector<WL> vwl;
+
 //Compare WLs by their literals, placing same literals next to each other
 bool compareWLByLits(const WL& one, const WL& two);
 
 //Compare WLs by their weights
 template<class T>
 bool compareByWeights(const T& one, const T& two) {
-	return one.getWeight() < two.getWeight();
+      return one.getWeight() < two.getWeight();
 }
 
 bool compareWLByAbsWeights(const WL& one, const WL& two);
@@ -68,6 +89,15 @@ struct InnerModel{
 
 struct InnerDisjunction{
 	vec<Lit> literals;
+
+	InnerDisjunction(){}
+	InnerDisjunction(const InnerDisjunction& orig){
+		orig.literals.copyTo(literals);
+	}
+
+	void operator=(const InnerDisjunction& orig){
+		orig.literals.copyTo(literals);
+	}
 };
 
 struct InnerEquivalence{
@@ -81,6 +111,11 @@ struct InnerRule{
 	vec<Lit> body;
 	bool conjunctive;
 	int definitionID;
+
+	InnerRule(): head(-1), conjunctive(true), definitionID(-1){}
+	InnerRule(const InnerRule& rule): head(rule.head), conjunctive(rule.conjunctive), definitionID(rule.definitionID){
+		rule.body.copyTo(body);
+	}
 };
 
 struct InnerSet{
@@ -95,11 +130,18 @@ struct InnerWSet{
 };
 
 struct InnerAggregate{
-	Var head;
 	int setID;
 	Weight bound;
 	AggType type;
 	AggSign sign;
+};
+
+struct InnerReifAggregate{
+	int setID;
+	Weight bound;
+	AggType type;
+	AggSign sign;
+	Var head;
 	AggSem sem;
 	int defID; //Only relevant if defined aggregate
 };
@@ -191,6 +233,8 @@ public:
 class InnerBacktrack{
 public:
 	int untillevel;
+
+	InnerBacktrack(int untillevel): untillevel(untillevel){}
 };
 
 }

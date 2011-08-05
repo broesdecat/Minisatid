@@ -33,7 +33,7 @@ extern int charPos;
 %s theory
 %s trans
 
-ID			_*[A-Za-z][a-zA-Z0-9_]*
+ID			_*[A-Za-z]['a-zA-Z0-9_]*
 INT			-?[0-9]+
 WHITESPACE	[\t\r ]*
 

@@ -9,14 +9,13 @@
 
 #include "satsolver/SATSolver.hpp"
 #include "theorysolvers/PCSolver.hpp"
-#include "utils/Utils.hpp"
 
 using namespace MinisatID;
 
 #ifdef USEMINISAT22
-Minisat::Solver* MinisatID::createSolver(MinisatID::PCSolver& pcsolver){
+Minisat::Solver* MinisatID::createSolver(MinisatID::PCSolver* pcsolver){
 	Minisat::Solver* s = new Minisat::Solver(pcsolver);
-	const SolverOption& options = pcsolver.modes();
+	const SolverOption& options = pcsolver->modes();
 	s->random_var_freq = options.rand_var_freq;
 	s->var_decay = options.var_decay;
 	s->verbosity = options.verbosity;
@@ -24,9 +23,9 @@ Minisat::Solver* MinisatID::createSolver(MinisatID::PCSolver& pcsolver){
 	return s;
 }
 #else
-Minisat::Solver* MinisatID::createSolver(MinisatID::PCSolver& pcsolver){
+Minisat::Solver* MinisatID::createSolver(MinisatID::PCSolver* pcsolver){
 	Minisat::Solver* s = new Minisat::Solver(pcsolver);
-	const SolverOption& options = pcsolver.modes();
+	const SolverOption& options = pcsolver->modes();
 	s->random_var_freq = options.rand_var_freq;
 	s->var_decay = options.var_decay;
 	s->random_seed = options.randomseed;

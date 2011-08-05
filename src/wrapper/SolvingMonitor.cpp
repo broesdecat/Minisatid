@@ -79,12 +79,6 @@ void Solution::notifyStartDataInit() {
 void Solution::notifyEndDataInit() {
 	endfinish = cpuTime();
 }
-void Solution::notifyStartSimplifying() {
-	startsimpl = cpuTime();
-}
-void Solution::notifyEndSimplifying() {
-	endsimpl = cpuTime();
-}
 void Solution::notifyStartSolving() {
 	startsolve = cpuTime();
 }

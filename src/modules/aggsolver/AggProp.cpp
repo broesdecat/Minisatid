@@ -37,6 +37,9 @@ paggprop AggProp::sum = paggprop (new SumProp());
 paggprop AggProp::card = paggprop (new CardProp());
 paggprop AggProp::prod = paggprop (new ProdProp());
 
+Weight AggProp::getMinPossible(const TypedSet& set)	const { return getMinPossible(set.getWL()); }
+Weight AggProp::getMaxPossible(const TypedSet& set)	const { return getMaxPossible(set.getWL()); }
+
 bool SumProp::isMonotone(const Agg& agg, const Weight& w) const {
 	return (agg.hasUB() && w < 0) || (!agg.hasUB() && w > 0);
 }
@@ -61,9 +64,9 @@ Weight SumProp::remove(const Weight& lhs, const Weight& rhs) const {
 	return lhs - rhs;
 }
 
-Weight SumProp::getMinPossible(const TypedSet& set) const{
+Weight SumProp::getMinPossible(const std::vector<WL>& wls) const{
 	Weight min = getESV();
-	for (vwl::const_iterator j = set.getWL().begin(); j < set.getWL().end(); ++j) {
+	for (vwl::const_iterator j = wls.begin(); j < wls.end(); ++j) {
 		if((*j).getWeight() < 0){
 			min = this->add(min, (*j).getWeight());
 		}
@@ -71,9 +74,9 @@ Weight SumProp::getMinPossible(const TypedSet& set) const{
 	return min;
 }
 
-Weight SumProp::getMaxPossible(const TypedSet& set) const {
+Weight SumProp::getMaxPossible(const std::vector<WL>& wls) const {
 	Weight max = getESV();
-	for (vwl::const_iterator j = set.getWL().begin(); j < set.getWL().end(); ++j) {
+	for (vwl::const_iterator j = wls.begin(); j < wls.end(); ++j) {
 		if((*j).getWeight() > 0){
 			max = this->add(max, (*j).getWeight());
 		}
@@ -102,13 +105,13 @@ bool MaxProp::isMonotone(const Agg& agg, const Weight& w) const {
 	return (agg.hasUB() && w2 <= w) || (!agg.hasUB());
 }
 
-Weight MaxProp::getMinPossible(const TypedSet&) const{
+Weight MaxProp::getMinPossible(const std::vector<WL>&) const{
 	return getESV();
 }
 
-Weight MaxProp::getMaxPossible(const TypedSet& set) const {
+Weight MaxProp::getMaxPossible(const std::vector<WL>& wls) const {
 	Weight max = getESV();
-	for(vwl::const_iterator j = set.getWL().begin(); j<set.getWL().end(); ++j){
+	for(vwl::const_iterator j = wls.begin(); j<wls.end(); ++j){
 		max = this->add(max, (*j).getWeight());
 	}
 	return max;
@@ -172,13 +175,13 @@ WL MaxProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* s
 // PROD Prop
 
 //INVARIANT: only positive weights in prodagg
-Weight ProdProp::getMinPossible(const TypedSet&) const{
+Weight ProdProp::getMinPossible(const std::vector<WL>&) const{
 	return getESV();
 }
 
-Weight ProdProp::getMaxPossible(const TypedSet& set) const {
+Weight ProdProp::getMaxPossible(const std::vector<WL>& wls) const {
 	Weight max = getESV();
-	for(vwl::const_iterator j = set.getWL().begin(); j<set.getWL().end(); ++j){
+	for(vwl::const_iterator j = wls.begin(); j<wls.end(); ++j){
 		if((*j).getWeight() > 0){
 			max = this->add(max, (*j).getWeight());
 		}
@@ -225,7 +228,7 @@ Weight ProdProp::getCombinedWeight(const Weight& one, const Weight& two) const {
 
 WL ProdProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const {
 	//NOTE: om dit toe te laten, ofwel bij elke operatie op en literal al zijn voorkomens overlopen
-	//ofwel aggregaten voor doubles ondersteunen (hPropagatoret eerste is eigenlijk de beste oplossing)
+	//ofwel aggregaten voor doubles ondersteunen (hAggPropagatoret eerste is eigenlijk de beste oplossing)
 	//Mogelijke eenvoudige implementatie: weigts bijhouden als doubles (en al de rest als ints)
 	NoSupportForBothSignInProductAgg(cerr, one.getLit(), two.getLit());
 	throw idpexception("Atoms in product aggregates have to be unique.\n");
@@ -311,7 +314,8 @@ void MinisatID::removeValue(const AggProp& type, const Weight& weight, bool wasi
 
 bool printedwarning = false;
 
-Propagator*	MaxProp::createPropagator(TypedSet* set) const{
+
+AggPropagator*	MaxProp::createPropagator(TypedSet* set) const{
 	if(set->isUsingWatches() && !printedwarning){
 		clog <<">> Currently max/min aggregates never use watched-literal-schemes.\n";
 		printedwarning = true;
@@ -319,7 +323,7 @@ Propagator*	MaxProp::createPropagator(TypedSet* set) const{
 	return new MaxFWAgg(set);
 }
 
-/*Propagator*	MinProp::createPropagator(TypedSet* set) const{
+/*AggPropagator*	MinProp::createPropagator(TypedSet* set) const{
 	if(set->isUsingWatches() && !printedwarning){
 		clog <<">> Currently max/min aggregates never use watched-literal-schemes.\n";
 		printedwarning = true;
@@ -327,7 +331,7 @@ Propagator*	MaxProp::createPropagator(TypedSet* set) const{
 	return new MinFWAgg(set);
 }*/
 
-Propagator*	SumProp::createPropagator(TypedSet* set) const{
+AggPropagator*	SumProp::createPropagator(TypedSet* set) const{
 	set->getSolver()->adaptAggHeur(set->getWL(), set->getAgg().size());
 
 	if(set->isUsingWatches()){
@@ -337,7 +341,7 @@ Propagator*	SumProp::createPropagator(TypedSet* set) const{
 	}
 }
 
-Propagator*	ProdProp::createPropagator(TypedSet* set) const{
+AggPropagator*	ProdProp::createPropagator(TypedSet* set) const{
 	set->getSolver()->adaptAggHeur(set->getWL(), set->getAgg().size());
 
 	if(set->isUsingWatches()){
@@ -389,12 +393,6 @@ void TypedSet::initialize(bool& unsat, bool& sat, vps& sets) {
 	prop->initialize(unsat, sat);
 
 	if(sat || unsat){ return; }
-
-	for (agglist::const_iterator i = getAgg().begin(); i < getAgg().end(); ++i) {
-		if ((*i)->isDefined()) {
-			getSolver()->notifyDefinedHead(var((*i)->getHead()), (*i)->getDefID());
-		}
-	}
 }
 
 void TypedSet::addExplanation(AggReason& ar) const {
@@ -415,13 +413,13 @@ void TypedSet::addExplanation(AggReason& ar) const {
 	}
 }
 
-Propagator::Propagator(TypedSet* set)
+AggPropagator::AggPropagator(TypedSet* set)
 		:set(set), aggsolver(set->getSolver()), satsolver(set->getSolver()->getSATSolver()){
 
 }
 
 // Final initialization call!
-void Propagator::initialize(bool& unsat, bool& sat) {
+void AggPropagator::initialize(bool& unsat, bool& sat) {
 	for (agglist::const_iterator i = getSet().getAgg().begin(); i < getSet().getAgg().end(); ++i) {
 		if((*i)->getSem()==IMPLICATION){
 			getSolver()->setHeadWatch(~(*i)->getHead(), (*i));
@@ -433,11 +431,11 @@ void Propagator::initialize(bool& unsat, bool& sat) {
 }
 
 // Maximize speed of requesting values! //FIXME add to other solvers
-lbool Propagator::value(const Lit& l) const {
+lbool AggPropagator::value(const Lit& l) const {
 	return satsolver->value(l);
 }
 
-Weight Propagator::getValue() const {
+Weight AggPropagator::getValue() const {
 	Weight total = getSet().getType().getESV();
 	for(vwl::const_iterator i=getSet().getWL().begin(); i<getSet().getWL().end(); ++i){
 		lbool val = value((*i).getLit());
@@ -507,7 +505,7 @@ bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, V
 
 	if (justified && agg.hasUB()) {
 		justified = false;
-		Weight bestpossible = type.getMaxPossible(*set);
+		Weight bestpossible = type.getMaxPossible(set->getWL());
 		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
 			if (oppositeIsJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push(~(*i).getLit());
@@ -522,7 +520,7 @@ bool SPProp::canJustifyHead(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, V
 	}
 	if(justified && agg.hasLB()){
 		justified = false;
-		Weight bestcertain = set->getType().getMinPossible(*set);
+		Weight bestcertain = set->getType().getMinPossible(set->getWL());
 		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
 			if (isJustified(*i, currentjust, real, set->getSolver())) {
 				jstf.push((*i).getLit());

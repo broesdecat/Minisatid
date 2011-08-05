@@ -121,6 +121,27 @@ namespace MinisatID{
 		}
 	}
 
+	bool headerAlreadyPrinted();
+	void notifyHeaderPrinted();
+	template<class T>
+	void printSearchStart(T& stream, int verbosity = 1000){
+		if(verbosity>=1){
+			stream <<">>> Search start\n";
+			if(!headerAlreadyPrinted()){
+				stream <<"> Conflicts |          ORIGINAL         |          LEARNT          | Progress\n";
+				stream <<">           |    Vars  Clauses Literals |    Limit  Clauses Lit/Cl |         \n";
+				notifyHeaderPrinted();
+			}
+		}
+	}
+
+	template<class T>
+	void printSearchEnd(T& stream, int verbosity = 1000){
+		if (verbosity >= 1) {
+			stream <<">>> Search done\n";
+		}
+	}
+
 	template<class T>
 	void printModuleNotPresent(T& stream, std::string name, int verbosity = 1000){
 		if (verbosity > 0) {
@@ -146,6 +167,13 @@ namespace MinisatID{
 	void printSetWatchRatio(T& stream, int setid, double ratio, int verbosity = 1000){
 		if(verbosity>=4){
 			stream <<"> Set " <<setid <<": watch ratio of " <<ratio <<"\n";
+		}
+	}
+
+	template<class T>
+	void printNoPropagationsOn(T& stream, const char* name, int verbosity = 1000){
+		if(verbosity > 0) {
+			stream <<">    (there will be no propagations on " <<name <<" module)\n";
 		}
 	}
 

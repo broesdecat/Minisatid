@@ -182,6 +182,10 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 	watcheddesc.push_back(pair<string, string>("yes", "Use smart watches"));
 	watcheddesc.push_back(pair<string, string>("no", "Use full watches"));
 
+	vector<pair<string, string> > ufsclauseaddingdesc;
+	ufsclauseaddingdesc.push_back(pair<string, string>("yes", "Only add one clause per unfounded loop"));
+	ufsclauseaddingdesc.push_back(pair<string, string>("no", "Add all clauses"));
+
 	vector<pair<string, string> > aggheurdesc;
 	aggheurdesc.push_back(pair<string, string>("yes", "Use aggregate heuristic"));
 	aggheurdesc.push_back(pair<string, string>("no", "Don't use aggregate heuristic"));
@@ -259,6 +263,8 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 			modes.innogoodfirstinexplanation, cmd, "Choose whether to add literals already in the global nogood to the explanation first"));
 	options.push_back(new Option<bool, string>	("","asapaggprop", 	yesnovals, asapaggpropdesc,
 			modes.asapaggprop, cmd, "Choose whether to propagate aggregates as fast as possible"));
+	options.push_back(new Option<bool, string>	("","oneclauseufs",  yesnovals, ufsclauseaddingdesc,
+			modes.selectOneFromUFS, cmd,"Choose whether learn one clause at a time when an unfounded set is found"));
 	options.push_back(new Option<bool, string>	("","tseitindecision", 	yesnovals, decideontseitins,
 			modes.tseitindecisions, cmd,"Choose whether tseitin literals can be used as decision literals."));
 	options.push_back(new Option<bool, string>	("","pbsolver", 	yesnovals, pbsolverdesc,
