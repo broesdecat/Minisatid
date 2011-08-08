@@ -42,6 +42,9 @@ protected:
 protected:
 	virtual lbool 	initialize				(const Agg& agg);
 
+	virtual void propagate(int level, Watch* ws, int aggindex);
+	virtual void propagate(const Lit& p, Watch* ws, int level);
+
     virtual rClause propagateSpecificAtEnd	(const Agg& agg, bool headtrue) = 0;
 
     virtual void 	addToCertainSet			(const WL& l) = 0;
@@ -57,10 +60,8 @@ public:
 	virtual ~FWAgg(){};
 
 	virtual void 	initialize				(bool& unsat, bool& sat);
-	rClause 		propagate				(const Lit& p, Watch* ws, int level);
-	rClause 		propagate				(int level, const Agg& agg, bool headtrue);
-	rClause			propagateAtEndOfQueue	(int level);
-	void		 	backtrack				(int untillevel);
+	virtual rClause	propagateAtEndOfQueue	();
+	virtual void	backtrack				(int untillevel);
 	virtual void 	getExplanation			(vec<Lit>& lits, const AggReason& ar) = 0;
 
 	const Weight& 	getCP					()	const 	{ return trail.back()->CBP; }

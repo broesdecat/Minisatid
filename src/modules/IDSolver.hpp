@@ -196,7 +196,7 @@ public:
 	const vec<Lit>&		getCFJustificationAggr	(Var v) const;
 	void 				cycleSourceAggr			(Var v, vec<Lit>& nj);
 
-	void 				addDefinedAggregate		(const InnerReifAggregate& agg, const InnerWSet& set);
+	void 				addDefinedAggregate		(const InnerReifAggregate& agg, const InnerWLSet& set);
 	bool    			addRule      			(bool conj, Var head, const vec<Lit>& ps);	// Add a rule to the solver.
 
 	bool				isDefined				(Var var) 	const { return hasDefVar(var); }

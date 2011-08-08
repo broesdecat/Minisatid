@@ -17,6 +17,7 @@ using namespace std;
 using namespace MinisatID;
 
 void MinisatID::printWatches(int verbosity, const std::vector<std::vector<Watch*> >& var2watches){
+/*	FIXME
 	if(verbosity<10){
 		return;
 	}
@@ -47,7 +48,7 @@ void MinisatID::printWatches(int verbosity, const std::vector<std::vector<Watch*
 			}
 		}
 	}
-	clog <<"\n";
+	clog <<"\n";*/
 }
 
 template<class T>

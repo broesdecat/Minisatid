@@ -75,6 +75,19 @@ public:
 		}
 		target() <<"[color=green];\n";
 	}
+
+	void notifyadded(const MinisatID::InnerWLSet& set){
+		for(unsigned int i=0; i<set.wls.size(); ++i){
+			if(i>0){
+				target() <<" -- ";
+			}
+			target() <<getPrintableVar(var(set.wls[i].getLit()));
+		}
+		if(set.wls.size()>1){
+			target() <<" -- " <<getPrintableVar(var(set.wls[0].getLit())) <<" ";
+		}
+		target() <<"[color=green];\n";
+	}
 };
 
 }

@@ -90,10 +90,9 @@ rClause	IntVar::notifypropagate(){
 }
 
 void IntVar::addConstraints(){
-	InnerSet set;
-	set.setID = engine().newSetID();
+	InnerWLSet set(CARD, engine().newSetID(), std::vector<WL>());
 	for(uint i=0; i<equalities.size(); ++i){
-		set.literals.push_back(mkPosLit(equalities[i]));
+		set.wls.push_back(WL(mkPosLit(equalities[i]), 1));
 	}
 	InnerAggregate lowercard;
 	lowercard.setID = set.setID;

@@ -8,6 +8,7 @@
  */
 #include "modules/aggsolver/AggUtils.hpp"
 
+#include "modules/aggsolver/AggSet.hpp"
 #include "modules/aggsolver/FullyWatched.hpp"
 #include "modules/aggsolver/PartiallyWatched.hpp"
 
@@ -46,4 +47,10 @@ bool MinisatID::isJustified(const WL& l, VarToJustif& currentjust, bool real, PC
 
 bool MinisatID::isJustified(Var x, VarToJustif& currentjust) {
 	return currentjust[x] == 0;
+}
+
+int	Watch::getAggIndex() const { return agg->getIndex(); }
+
+void Watch::propagate(){
+	set->notifypropagate(this);
 }

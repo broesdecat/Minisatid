@@ -54,18 +54,27 @@ public:
 class Watch{
 private:
 	TypedSet* 		set;
-	const 	WL		wl;	//the literal as it occurs in the set
+	bool 			head, origlit;
+	Agg*			agg;
+	Lit 			proplit;
+	Weight 			weight;
 public:
-	Watch(TypedSet* set, const WL& wl):
-		set(set), wl(wl){}
+	Watch(TypedSet* set, const Lit& lit, Agg* agg):
+		set(set), head(true), origlit(false), agg(agg), proplit(lit), weight(0){}
+	Watch(TypedSet* set, const Lit& lit, const Weight& weight, bool origlit):
+		set(set), head(false), origlit(origlit), agg(NULL), proplit(lit), weight(weight){}
 
-	virtual ~Watch(){}
+	bool			headWatch	() 	const 	{ return head; }
+	TypedSet*		getSet		()	const 	{ return set; }
+	Occurrence 		getType		()	const 	{ return origlit?POS:NEG; }
+		//Return POS if the literal in the set was provided, otherwise neg
+	bool			isOrigLit	()	const	{ return origlit; }
+	const Lit&		getPropLit	()	const	{ return proplit; }
+	Lit				getOrigLit	()	const	{ return origlit?proplit:~proplit; }
+	const Weight&	getWeight	()	const 	{ return weight; }
+	int				getAggIndex	()	const;
 
-	TypedSet*		getSet		()	 		const 	{ return set; }
-	//Return POS if the literal in the set was provided, otherwise neg
-	Occurrence 		getType		(const Lit& p)	const 	{ return p==wl.getLit()?POS:NEG; }
-
-	virtual const WL&	getWL	()			const	{ return wl; }
+	void			propagate	();
 };
 
 class AggReason {

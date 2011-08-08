@@ -639,6 +639,7 @@ bool FlatZincRewriter::add(const Rule& rule){
 template<>
 bool FlatZincRewriter::add(const Set& set){
 	WSet wset;
+	wset.type = set.type;
 	for(literallist::const_iterator i=set.literals.begin(); i<set.literals.end(); ++i){
 		wset.literals.push_back(*i);
 		wset.weights.push_back(1);
@@ -656,6 +657,7 @@ bool FlatZincRewriter::add(const WSet& set){
 template<>
 bool FlatZincRewriter::add(const WLSet& set){
 	WSet wset;
+	wset.type = set.type;
 	for(vector<WLtuple>::const_iterator i=set.wl.begin(); i<set.wl.end(); ++i){
 		wset.literals.push_back((*i).l);
 		wset.weights.push_back((*i).w);

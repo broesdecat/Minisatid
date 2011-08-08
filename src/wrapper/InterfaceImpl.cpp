@@ -351,30 +351,32 @@ bool PCWrapperPimpl::add(const Rule& sentence){
 
 template<>
 bool PCWrapperPimpl::add(const Set& sentence){
-	InnerWSet set;
+	WSet set;
 	set.setID = sentence.setID;
-	checkLits(sentence.literals, set.literals);
-	set.weights.resize(set.literals.size(), 1);
-	return getSolver()->add(set);
+	set.type = sentence.type;
+	set.literals = sentence.literals;
+	set.weights = vector<Weight>(sentence.literals.size(), 1);
+	return add(set);
 }
 
 template<>
 bool PCWrapperPimpl::add(const WSet& sentence){
-	InnerWSet set;
+	WLSet set;
 	set.setID = sentence.setID;
-	checkLits(sentence.literals, set.literals);
-	set.weights = sentence.weights;
-	return getSolver()->add(set);
+	set.type = sentence.type;
+	for(int i=0; i<sentence.literals.size(); ++i){
+		set.wl.push_back(WLtuple(sentence.literals[i], sentence.weights[i]));
+	}
+	return add(set);
 }
 
 template<>
 bool PCWrapperPimpl::add(const WLSet& sentence){
-	InnerWSet set;
-	set.setID = sentence.setID;
-	for(vector<WLtuple>::const_iterator i=sentence.wl.begin(); i<sentence.wl.end(); ++i){
-		set.literals.push_back(checkLit((*i).l));
-		set.weights.push_back((*i).w);
+	vector<WL> wls;
+	for(auto i=sentence.wl.begin(); i<sentence.wl.end(); ++i){
+		wls.push_back(WL(checkLit((*i).l), (*i).w));
 	}
+	InnerWLSet set(sentence.type, sentence.setID, wls);
 	return getSolver()->add(set);
 }
 
@@ -547,29 +549,28 @@ bool SOWrapperPimpl::add(int modid, const Rule& sentence){
 
 template<>
 bool SOWrapperPimpl::add(int modid, const Set& sentence){
-	InnerWSet set;
-	set.setID = sentence.setID;
-	checkLits(sentence.literals, set.literals);
-	set.weights.resize(set.literals.size(), 1);
+	vector<Weight> weights = vector<Weight>(sentence.literals.size(), 1);
+	InnerWLSet set(sentence.type, sentence.setID, vector<WL>());
+	for(auto i=sentence.literals.begin(); i!=sentence.literals.end(); ++i){
+		set.wls.push_back(WL(checkLit(*i), 1));
+	}
 	return getSolver()->add(modid, set);
 }
 
 template<>
 bool SOWrapperPimpl::add(int modid, const WSet& sentence){
-	InnerWSet set;
-	set.setID = sentence.setID;
-	checkLits(sentence.literals, set.literals);
-	set.weights = sentence.weights;
+	InnerWLSet set(sentence.type, sentence.setID, vector<WL>());
+	for(uint i=0; i!=sentence.literals.size(); ++i){
+		set.wls.push_back(WL(checkLit(sentence.literals[i]), sentence.weights[i]));
+	}
 	return getSolver()->add(modid, set);
 }
 
 template<>
 bool SOWrapperPimpl::add(int modid, const WLSet& sentence){
-	InnerWSet set;
-	set.setID = sentence.setID;
+	InnerWLSet set(sentence.type, sentence.setID, vector<WL>());
 	for(vector<WLtuple>::const_iterator i=sentence.wl.begin(); i<sentence.wl.end(); ++i){
-		set.literals.push_back(checkLit((*i).l));
-		set.weights.push_back((*i).w);
+		set.wls.push_back(WL(checkLit((*i).l),(*i).w));
 	}
 	return getSolver()->add(modid, set);
 }

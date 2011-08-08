@@ -188,7 +188,7 @@ bool SOSolver::add(int modid, const InnerDisjunction& disj){
 bool SOSolver::add(int modid, const InnerRule& rule){
 	return getModSolverDuringAdding(modid).add(rule);
 }
-bool SOSolver::add(int modid, const InnerWSet& wset){
+bool SOSolver::add(int modid, const InnerWLSet& wset){
 	return getModSolverDuringAdding(modid).add(wset);
 }
 bool SOSolver::add(int modid, const InnerAggregate& agg){

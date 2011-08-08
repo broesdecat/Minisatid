@@ -17,7 +17,6 @@
 #include "modules/aggsolver/AggUtils.hpp"
 #include "modules/aggsolver/AggTransform.hpp"
 #include "modules/aggsolver/AggProp.hpp"
-#include "modules/LitTrail.hpp"
 
 namespace MinisatID {
 
@@ -32,34 +31,14 @@ protected:
 	AggPropagator* 		prop;		//OWNS pointer
 
 	int 				setid;
-	std::vector<AggTransformation*> transformations;
 
 	bool				usingwatches;
 
 	std::map<Var, AggReason*>	reasons;
 
-	LitTrail			littrail;
-	// FIXME why do we need the "propagated" datastruture of littrail?
-
 public:
-	TypedSet(PCSolver* solver, int setid):
-			Propagator(solver),
-			kb(Weight(0)),
-			type(NULL),
-			prop(NULL),
-			setid(setid),
-			transformations(MinisatID::getTransformations()),
-			usingwatches(true){}
-	TypedSet(const TypedSet& set):
-			Propagator(set.pcsolver),
-			kb(set.getKnownBound()),
-			wl(set.getWL()),
-			type(set.getTypep()),
-			prop(NULL),
-			setid(set.getSetID()),
-			transformations(set.getTransformations()),
-			usingwatches(set.isUsingWatches()){
-	}
+	TypedSet(PCSolver* solver, int setid, Weight knownbound);
+	TypedSet(const TypedSet& set);
 	virtual ~TypedSet(){
 		deleteList<Agg>(aggregates);
 		delete prop;
@@ -80,7 +59,6 @@ public:
 	void			setUsingWatches(bool use) { usingwatches = use; }
 
 	const Weight&	getKnownBound	()			const			{ return kb; }
-	void 			setKnownBound	(const Weight& w)			{ kb = w; }
 
 	const AggProp&	getType			() 			const 			{ assert(type!=NULL); return *type; }
 	AggProp const *	getTypep		() 			const 			{ return type; }
@@ -91,11 +69,6 @@ public:
 	void 			setProp			(AggPropagator* p) 			{ prop = p; }
 	AggPropagator*	getProp			() 			const 			{ return prop; }
 
-	const std::vector<AggTransformation*>& getTransformations() const { return transformations; }
-
-	rClause 		propagate		(const Lit& p, Watch* w, int level) 	{ return getProp()->propagate(p, w, level); }
-	rClause 		propagate		(const Agg& agg, int level, bool headtrue)	{ return getProp()->propagate(level, agg, headtrue); }
-	rClause			propagateAtEndOfQueue(int level) 						{ return getProp()->propagateAtEndOfQueue(level); }
 	void 			addExplanation	(AggReason& ar) const;
 
 	rClause 		notifySolver(AggReason* ar);
@@ -112,6 +85,7 @@ public:
 	virtual void 	notifyNewDecisionLevel	();
 	// NOTE: call explicitly when using hasnextprop/nextprop!
 	virtual void 	notifyBacktrack		(int untillevel, const Lit& decision);
+			void 	notifypropagate		(Watch* w);
 	virtual rClause	notifypropagate		();
 };
 

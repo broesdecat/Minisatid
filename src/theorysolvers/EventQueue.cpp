@@ -34,9 +34,11 @@ EventQueue::EventQueue(PCSolver& pcsolver):
 }
 
 EventQueue::~EventQueue() {
-	for(auto i=begin(EV_EXITCLEANLY); i<end(EV_EXITCLEANLY); ++i){
-		delete(*i);
+	auto props = event2propagator.at(EV_EXITCLEANLY);
+	for(uint i=0; i<size(EV_EXITCLEANLY); ++i){
+		delete(props[i]);
 	}
+	deleteList<Watch>(watchevent2propagator);
 }
 
 void EventQueue::notifyVarAdded(){
@@ -45,14 +47,17 @@ void EventQueue::notifyVarAdded(){
 		newmap.push_back(proplist());
 		newmap.push_back(proplist());
 		litevent2propagator.push_back(newmap);
+		watchevent2propagator.push_back(watchlist());
 	}
 }
 
 void EventQueue::addEternalPropagators(){
-	for(auto propagator=begin(EV_PROPAGATE); propagator<end(EV_PROPAGATE); ++propagator){
-		if(!(*propagator)->isQueued()){
-			(*propagator)->notifyQueued();
-			fastqueue.push(*propagator);
+	auto props = event2propagator.at(EV_PROPAGATE);
+	for(uint i=0; i<size(EV_PROPAGATE); ++i){
+		Propagator* propagator = props[i];
+		if(!propagator->isQueued()){
+			propagator->notifyQueued();
+			fastqueue.push(propagator);
 		}
 	}
 }
@@ -73,6 +78,22 @@ void EventQueue::acceptLitEvent(Propagator* propagator, const Lit& litevent, PRI
 	}
 }
 
+// TODO turn lits into litwatches and add accepted flag?
+void EventQueue::accept(Watch* watch){
+	watchevent2propagator[toInt(watch->getPropLit())].push_back(watch);
+	if(getPCSolver().value(watch->getPropLit())==l_True){
+		watch->propagate();
+	}
+}
+
+void EventQueue::acceptFinishParsing(Propagator* propagator, bool late){
+	if(late){
+		latefinishparsing.push_back(propagator);
+	}else{
+		earlyfinishparsing.push_back(propagator);
+	}
+}
+
 void EventQueue::setTrue(const proplist& list, queue<Propagator*>& queue){
 	const unsigned int size = list.size();
 	for(unsigned int i=0; i<size; ++i){
@@ -88,6 +109,9 @@ void EventQueue::setTrue(const Lit& l){
 	if(isInitialized()){
 		addEternalPropagators();
 	}
+	for(int i=0; i!=watchevent2propagator[toInt(l)].size(); ++i){
+		watchevent2propagator[toInt(l)][i]->propagate();
+	}
 	setTrue(litevent2propagator[toInt(l)][FAST], fastqueue);
 	setTrue(litevent2propagator[toInt(l)][SLOW], slowqueue);
 }
@@ -95,22 +119,24 @@ void EventQueue::setTrue(const Lit& l){
 void EventQueue::finishParsing(bool& unsat){
 	unsat = false;
 
-	for(auto i=earlyfinishparsing.begin(); !unsat && i<earlyfinishparsing.end(); ++i){
+	for(int i=0; !unsat && i!=earlyfinishparsing.size(); ++i){
+		Propagator* prop = earlyfinishparsing[i];
 		bool present = true;
-		(*i)->finishParsing(present, unsat);
+		prop->finishParsing(present, unsat);
 		if(!present){
-			printNoPropagationsOn(clog, (*i)->getName(), getPCSolver().verbosity());
-			(*i)->notifyNotPresent();
+			printNoPropagationsOn(clog, prop->getName(), getPCSolver().verbosity());
+			prop->notifyNotPresent();
 		}
 	}
 	earlyfinishparsing.clear();
 
-	for(auto i=latefinishparsing.begin(); !unsat && i<latefinishparsing.end(); ++i){
+	for(int i=0; !unsat && i!=latefinishparsing.size(); ++i){
+		Propagator* prop = latefinishparsing[i];
 		bool present = true;
-		(*i)->finishParsing(present, unsat);
+		prop->finishParsing(present, unsat);
 		if(!present){
-			printNoPropagationsOn(clog, (*i)->getName(), getPCSolver().verbosity());
-			(*i)->notifyNotPresent();
+			printNoPropagationsOn(clog, prop->getName(), getPCSolver().verbosity());
+			prop->notifyNotPresent();
 		}
 	}
 	latefinishparsing.clear();
@@ -176,37 +202,41 @@ int	EventQueue::getNbOfFormulas() const{
 	return count;
 }
 
-proplist::const_iterator EventQueue::begin(EVENT event) const{
-	return event2propagator.at(event).begin();
-}
-
-proplist::const_iterator EventQueue::end(EVENT event) const{
-	return event2propagator.at(event).end();
+uint EventQueue::size(EVENT event) const{
+	return event2propagator.at(event).size();
 }
 
 rClause EventQueue::notifyFullAssignmentFound(){
 	rClause confl = nullPtrClause;
-	for(auto i=begin(EV_FULLASSIGNMENT); confl==nullPtrClause && i<end(EV_FULLASSIGNMENT); ++i){
-		confl = (*i)->notifyFullAssignmentFound();
+	auto props = event2propagator.at(EV_FULLASSIGNMENT);
+	for(uint i=0; confl==nullPtrClause && i<size(EV_FULLASSIGNMENT); ++i){
+		if(!props[i]->isPresent()){ continue; }
+		confl = props[i]->notifyFullAssignmentFound();
 	}
 	return confl;
 }
 
 void EventQueue::notifyClauseAdded(rClause clauseID){
-	for(auto i=begin(EV_ADDCLAUSE); i<end(EV_ADDCLAUSE); ++i){
-		(*i)->notifyClauseAdded(clauseID);
+	auto props = event2propagator.at(EV_ADDCLAUSE);
+	for(uint i=0; i<size(EV_ADDCLAUSE); ++i){
+		if(!props[i]->isPresent()){ continue; }
+		props[i]->notifyClauseAdded(clauseID);
 	}
 }
 
 void EventQueue::notifyClauseDeleted(rClause clauseID){
-	for(auto i=begin(EV_REMOVECLAUSE); i<end(EV_REMOVECLAUSE); ++i){
-		(*i)->notifyClauseDeleted(clauseID);
+	auto props = event2propagator.at(EV_REMOVECLAUSE);
+	for(uint i=0; i<size(EV_REMOVECLAUSE); ++i){
+		if(!props[i]->isPresent()){ continue; }
+		props[i]->notifyClauseAdded(clauseID);
 	}
 }
 
 bool EventQueue::symmetryPropagationOnAnalyze(const Lit& p){
-	for(auto i=begin(EV_SYMMETRYANALYZE); i<end(EV_SYMMETRYANALYZE); ++i){
-		if((*i)->symmetryPropagationOnAnalyze(p)){
+	auto props = event2propagator.at(EV_SYMMETRYANALYZE);
+	for(uint i=0; i<size(EV_SYMMETRYANALYZE); ++i){
+		if(!props[i]->isPresent()){ continue; }
+		if(props[i]->symmetryPropagationOnAnalyze(p)){
 			return true;
 		}
 	}
@@ -214,8 +244,10 @@ bool EventQueue::symmetryPropagationOnAnalyze(const Lit& p){
 }
 
 void EventQueue::notifyNewDecisionLevel(){
-	for(auto i=begin(EV_DECISIONLEVEL); i<end(EV_DECISIONLEVEL); ++i){
-		(*i)->notifyNewDecisionLevel();
+	auto props = event2propagator.at(EV_DECISIONLEVEL);
+	for(uint i=0; i<size(EV_DECISIONLEVEL); ++i){
+		if(!props[i]->isPresent()){ continue; }
+		props[i]->notifyNewDecisionLevel();
 	}
 }
 
@@ -224,33 +256,42 @@ void EventQueue::notifyBacktrack(int untillevel, const Lit& decision){
 		backtrackqueue.front()->notifyBacktrack(untillevel, decision);
 		backtrackqueue.pop();
 	}
-	for(auto i=begin(EV_BACKTRACK); i<end(EV_BACKTRACK); ++i){
-		(*i)->notifyBacktrack(untillevel, decision);
+	auto props = event2propagator.at(EV_BACKTRACK);
+	for(uint i=0; i<size(EV_BACKTRACK); ++i){
+		if(!props[i]->isPresent()){ continue; }
+		props[i]->notifyBacktrack(untillevel, decision);
 	}
 }
 
 Var EventQueue::notifyBranchChoice(Var var){
+	auto props = event2propagator.at(EV_CHOICE);
 	Var currentvar = var;
-	for(auto i=begin(EV_CHOICE); i<end(EV_CHOICE); ++i){
-		currentvar = (*i)->notifyBranchChoice(currentvar);
+	for(uint i=0; i<size(EV_CHOICE); ++i){
+		if(!props[i]->isPresent()){ continue; }
+		currentvar = props[i]->notifyBranchChoice(currentvar);
 	}
 	return currentvar;
 }
 
 void EventQueue::printState() const {
-	for(auto i=begin(EV_PRINTSTATE); i<end(EV_PRINTSTATE); ++i){
-		(*i)->printState();
+	auto props = event2propagator.at(EV_PRINTSTATE);
+	for(uint i=0; i<size(EV_PRINTSTATE); ++i){
+		if(!props[i]->isPresent()){ continue; }
+		props[i]->printState();
 	}
 }
 
 void EventQueue::printStatistics() const {
-	for(auto i=begin(EV_PRINTSTATS); i<end(EV_PRINTSTATS); ++i){
-		(*i)->printStatistics();
+	auto props = event2propagator.at(EV_PRINTSTATS);
+	for(uint i=0; i<size(EV_PRINTSTATS); ++i){
+		if(!props[i]->isPresent()){ continue; }
+		props[i]->printStatistics();
 	}
 }
 
 void EventQueue::notifyBoundsChanged(IntVar* var) {
 	for(auto i=intvar2propagator[var->id()].begin(); i<intvar2propagator[var->id()].end(); ++i){
+		if(!(*i)->isPresent()){ continue; }
 		if(not (*i)->isQueued()){
 			fastqueue.push(*i);
 		}

@@ -32,6 +32,8 @@ class SOSolver;
 class Monitor;
 class InnerModel;
 
+typedef std::vector<Lit> litlist;
+
 // External interfaces offered from the solvers
 
 enum SolverState { INIT, PARSED, SOLVED};

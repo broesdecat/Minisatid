@@ -140,7 +140,7 @@ bool IDSolver::addRule(bool conj, Var head, const vec<Lit>& ps) {
 	return notunsat;
 }
 
-void IDSolver::addDefinedAggregate(const InnerReifAggregate& inneragg, const InnerWSet& innerset){
+void IDSolver::addDefinedAggregate(const InnerReifAggregate& inneragg, const InnerWLSet& innerset){
 	Var head = inneragg.head;
 	adaptStructsToHead(head);
 	if(isDefined(head)){
@@ -149,11 +149,7 @@ void IDSolver::addDefinedAggregate(const InnerReifAggregate& inneragg, const Inn
 	}
 
 	AggBound b(inneragg.sign, inneragg.bound);
-	std::vector<WL> wls;
-	for(uint i=0; i<innerset.literals.size(); ++i){
-		wls.push_back(WL(innerset.literals[i], innerset.weights[i]));
-	}
-	IDAgg* agg = new IDAgg(mkLit(head), b, inneragg.sem, inneragg.type, wls);
+	IDAgg* agg = new IDAgg(mkLit(head), b, inneragg.sem, inneragg.type, innerset.wls);
 	if(isInitiallyJustified(*agg)){
 		delete(agg);
 		return;
@@ -2557,7 +2553,7 @@ AggProp const * getProp(AggType type){
 		case SUM: return AggProp::getSum();
 		case PROD: return AggProp::getProd();
 		case CARD: return AggProp::getCard();
-		default: break;
+		default: assert(false); break;
 	}
 }
 

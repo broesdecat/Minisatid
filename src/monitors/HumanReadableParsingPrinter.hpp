@@ -75,6 +75,18 @@ public:
 		target() <<"}\n";
 	}
 
+	void notifyadded(const InnerWLSet& set){
+		target() <<"Added non-weighted set " <<set.setID <<" = {";
+		std::vector<Lit>::size_type count = 0;
+		for(auto i=set.wls.begin(); i!=set.wls.end(); ++i, ++count){
+			target() <<(*i).getLit() <<"=" <<(*i).getWeight();
+			if(count<set.wls.size()-1){
+				target() <<", ";
+			}
+		}
+		target() <<"}\n";
+	}
+
 	void notifyadded(const InnerAggregate& agg){
 		target() <<"Added aggregate: ";
 		switch(agg.type){

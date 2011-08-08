@@ -313,6 +313,7 @@ bool Read<T>::addCardRules() {
 	for (vector<CardRule*>::const_iterator i = cardrules.begin(); i < cardrules.end(); ++i) {
 		Set set;
 		set.setID = (*i)->setcount;
+		set.type = CARD;
 		set.literals = (*i)->body;
 		if (!getSolver()->add(set)) {
 			return false;
@@ -337,6 +338,7 @@ bool Read<T>::addSumRules() {
 	for (vector<SumRule*>::const_iterator i = sumrules.begin(); i < sumrules.end(); ++i) {
 		WSet set;
 		set.setID = (*i)->setcount;
+		set.type = SUM;
 		set.literals = (*i)->body;
 		set.weights = (*i)->weights;
 		if (!getSolver()->add(set)) {

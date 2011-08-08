@@ -64,8 +64,11 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 		const Lit& l = (*j).getLit();
 		Var v = var(l);
 		// FIXME permanent watch
-		getSet().getPCSolver().acceptLitEvent(getSetp(), l, FAST);
-		getSet().getPCSolver().acceptLitEvent(getSetp(), ~l, FAST);
+		Watch *pos, *neg;
+		pos = new Watch(getSetp(), (*j).getLit(), (*j).getWeight(), true);
+		neg = new Watch(getSetp(), ~(*j).getLit(), (*j).getWeight(), false);
+		getSet().getPCSolver().accept(pos);
+		getSet().getPCSolver().accept(neg);
 	}
 
 	AggPropagator::initialize(unsat, sat);
@@ -109,7 +112,7 @@ void FWAgg::backtrack(int untillevel){
 /**
  * Returns non-owning pointer
  */
-rClause FWAgg::propagate(int level, const Agg& agg, bool headtrue) {
+void FWAgg::propagate(int level, Watch* watch, int aggindex) {
 	//if (nomoreprops[agg.getIndex()] || headproptime[agg.getIndex()]!=-1) {
 	//	return nullPtrClause;
 	//}
@@ -125,14 +128,12 @@ rClause FWAgg::propagate(int level, const Agg& agg, bool headtrue) {
 		getSet().getPCSolver().acceptForPropagation(getSetp());
 	}
 
-	fwobj->props.push_back(PropagationInfo(headtrue?agg.getHead():~agg.getHead(), 0, HEAD));
-	fwobj->headindex.push_back(agg.getIndex());
+	fwobj->props.push_back(PropagationInfo(watch->getPropLit(), 0, HEAD));
+	fwobj->headindex.push_back(aggindex);
 	fwobj->headtime.push_back(fwobj->props.size());
-
-	return nullPtrClause;
 }
 
-rClause FWAgg::propagate(const Lit& p, pw ws, int level) {
+void FWAgg::propagate(const Lit& p, Watch* ws, int level) {
 	FWTrail* fwobj = getTrail().back();
 	if(fwobj->level<level){
 		getTrail().push_back(new FWTrail(level, fwobj->CBC, fwobj->CBP));
@@ -159,17 +160,18 @@ rClause FWAgg::propagate(const Lit& p, pw ws, int level) {
 #endif
 
 	assert(fwobj->level == level && level == getSet().getPCSolver().getLevel(var(p)));
-	fwobj->props.push_back(PropagationInfo(p, ws->getWL().getWeight(), ws->getType(p)));
-
-	return nullPtrClause;
+	fwobj->props.push_back(PropagationInfo(p, ws->getWeight(), ws->getType()));
 }
 
-rClause FWAgg::propagateAtEndOfQueue(int level){
+rClause FWAgg::propagateAtEndOfQueue(){
 	rClause confl = nullPtrClause;
 
 	FWTrail& fwobj = *getTrail().back();
 
-	assert(fwobj.level==level && fwobj.start!=fwobj.props.size());
+	// FIXME should never have called propagate then! (were originally asserts
+	if(fwobj.start==fwobj.props.size() || fwobj.level!=getSet().getPCSolver().getCurrentDecisionLevel()){
+		return confl;
+	}
 
 	bool changedcp = false;
 	bool changedcc = false;
@@ -807,6 +809,19 @@ void ProdFWAgg::initialize(bool& unsat, bool& sat) {
 	if (getSet().getAgg().size() == 0) {
 		sat = true;
 		return;
+	}
+	for (agglist::iterator i = getSet().getAggNonConst().begin(); i < getSet().getAggNonConst().end(); ++i) {
+		if((*i)->getCertainBound()<=0){
+			if((*i)->getSign()==AGGSIGN_LB){
+				// always positive
+				delete(*i);
+				getSet().getAggNonConst().erase(i);
+				i--;
+			}else{
+				unsat = true;
+				return;
+			}
+		}
 	}
 #ifdef NOARBITPREC
 	//Test whether the total product of the weights is not infinity for intweights

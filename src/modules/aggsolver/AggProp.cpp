@@ -32,6 +32,19 @@ paggprop AggProp::prod = paggprop (new ProdProp());
 Weight AggProp::getMinPossible(const TypedSet& set)	const { return getMinPossible(set.getWL()); }
 Weight AggProp::getMaxPossible(const TypedSet& set)	const { return getMaxPossible(set.getWL()); }
 
+Weight AggProp::getValue(const TypedSet& set) const {
+	Weight total = getESV();
+	for(vwl::const_iterator i=set.getWL().begin(); i<set.getWL().end(); ++i){
+		lbool val = set.value((*i).getLit());
+		assert(val!=l_Undef);
+
+		if(val==l_True){
+			total = add(total, (*i).getWeight());
+		}
+	}
+	return total;
+}
+
 bool SumProp::isMonotone(const Agg& agg, const Weight& w) const {
 	return (agg.hasUB() && w < 0) || (!agg.hasUB() && w > 0);
 }
@@ -80,12 +93,12 @@ Weight SumProp::getCombinedWeight(const Weight& one, const Weight& two) const {
 	return this->add(one, two);
 }
 
-WL SumProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const {
+WL SumProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, Weight& knownbound) const {
 	if (one.getWeight() < two.getWeight()) {
-		set->setKnownBound(set->getKnownBound() + one.getWeight());
+		knownbound += one.getWeight();
 		return WL(two.getLit(), this->remove(two.getWeight(), one.getWeight()));
 	} else {
-		set->setKnownBound(set->getKnownBound() + two.getWeight());
+		knownbound += two.getWeight();
 		return WL(one.getLit(), this->remove(one.getWeight(), two.getWeight()));
 	}
 }
@@ -113,15 +126,15 @@ Weight MaxProp::getCombinedWeight(const Weight& first, const Weight& second) con
 	return first > second ? first : second;
 }
 
-WL MaxProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const {
+WL MaxProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, Weight& knownbound) const {
 	if (one.getWeight() > two.getWeight()) {
-		if (set->getKnownBound() < two.getWeight()) {
-			set->setKnownBound(two.getWeight());
+		if (knownbound < two.getWeight()) {
+			knownbound = two.getWeight();
 		}
 		return one;
 	} else {
-		if (set->getKnownBound() < one.getWeight()) {
-			set->setKnownBound(one.getWeight());
+		if (knownbound < one.getWeight()) {
+			knownbound = one.getWeight();
 		}
 		return two;
 	}
@@ -218,7 +231,7 @@ Weight ProdProp::getCombinedWeight(const Weight& one, const Weight& two) const {
 	return this->add(one, two);
 }
 
-WL ProdProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const {
+WL ProdProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, Weight& knownbound) const {
 	//NOTE: om dit toe te laten, ofwel bij elke operatie op en literal al zijn voorkomens overlopen
 	//ofwel aggregaten voor doubles ondersteunen (hAggPropagatoret eerste is eigenlijk de beste oplossing)
 	//Mogelijke eenvoudige implementatie: weigts bijhouden als doubles (en al de rest als ints)
@@ -327,7 +340,7 @@ AggPropagator*	SumProp::createPropagator(TypedSet* set) const{
 	//FIXME aggheur set->getSolver()->adaptAggHeur(set->getWL(), set->getAgg().size());
 
 	if(set->isUsingWatches()){
-		return new GenPWAgg(set);
+		//FIXME return new GenPWAgg(set);
 	}else{
 		return new SumFWAgg(set);
 	}
@@ -337,7 +350,7 @@ AggPropagator*	ProdProp::createPropagator(TypedSet* set) const{
 	//FIXME aggheur set->getSolver()->adaptAggHeur(set->getWL(), set->getAgg().size());
 
 	if(set->isUsingWatches()){
-		return new GenPWAgg(set);
+		//FIXME return new GenPWAgg(set);
 	}else{
 		return new ProdFWAgg(set);
 	}
@@ -351,12 +364,13 @@ AggPropagator::AggPropagator(TypedSet* set)
 // Final initialization call!
 void AggPropagator::initialize(bool& unsat, bool& sat) {
 	for (agglist::const_iterator i = getSet().getAgg().begin(); i < getSet().getAgg().end(); ++i) {
-		// FIXME permanent watches!
-		if((*i)->getSem()==IMPLICATION){
-			getSet().getPCSolver().acceptLitEvent(getSetp(), ~(*i)->getHead(), FAST);
-		}else{
-			getSet().getPCSolver().acceptLitEvent(getSetp(), (*i)->getHead(), FAST);
-			getSet().getPCSolver().acceptLitEvent(getSetp(), ~(*i)->getHead(), FAST);
+		// both for implication and comp
+		Watch* w = new Watch(getSetp(), ~(*i)->getHead(), *i);
+		getSet().getPCSolver().accept(w);
+
+		if((*i)->getSem()==COMP){
+			Watch* w2 = new Watch(getSetp(), (*i)->getHead(), *i);
+			getSet().getPCSolver().accept(w2);
 		}
 	}
 }
@@ -365,15 +379,11 @@ lbool AggPropagator::value(const Lit& l) const {
 	return getSet().value(l);
 }
 
-Weight AggPropagator::getValue() const {
-	Weight total = getSet().getType().getESV();
-	for(vwl::const_iterator i=getSet().getWL().begin(); i<getSet().getWL().end(); ++i){
-		lbool val = value((*i).getLit());
-		assert(val!=l_Undef);
-
-		if(val==l_True){
-			total = getSet().getType().add(total, (*i).getWeight());
-		}
+void AggPropagator::propagate(Watch* ws){
+	int level = getSet().getPCSolver().getLevel(var(ws->getPropLit()));
+	if(ws->headWatch()){
+		propagate(level, ws, ws->getAggIndex());
+	}else{
+		propagate(ws->getPropLit(), ws, level);
 	}
-	return total;
 }

@@ -157,6 +157,10 @@ void PCSolver::accept(Propagator* propagator){
 	getEventQueue().accept(propagator);
 }
 
+void PCSolver::accept(Watch* watch){
+	getEventQueue().accept(watch);
+}
+
 void PCSolver::acceptForBacktrack(Propagator* propagator){
 	getEventQueue().acceptForBacktrack(propagator);
 }
@@ -304,14 +308,13 @@ void PCSolver::finishParsing(bool& unsat) {
 	add(d2);
 
 	propagations.resize(nVars(), NULL); //Lazy init
+	state = THEORY_INITIALIZED;
 
 	getFactory().finishParsing();
 	getEventQueue().finishParsing(unsat);
 	if(modes().useaggheur){
 		getSATSolver()->notifyCustomHeur();
 	}
-
-	state = THEORY_INITIALIZED;
 }
 
 // Called by SAT solver when new decision level is started, BEFORE choice has been made!

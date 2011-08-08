@@ -69,7 +69,7 @@ public:
 	bool	add		(int modid, Var v);
 	bool	add		(int modid, const InnerDisjunction& sentence);
 	bool	add		(int modid, const InnerRule& sentence);
-	bool	add		(int modid, const InnerWSet& sentence);
+	bool	add		(int modid, const InnerWLSet& sentence);
 	bool	add		(int modid, const InnerAggregate& sentence);
 	bool	add		(int modid, const InnerReifAggregate& sentence);
 	bool	add		(int modid, const InnerRigidAtoms& sentence);

@@ -10,79 +10,22 @@
 #define AGGTRANSFORM_HPP_
 
 #include <vector>
+#include "modules/aggsolver/AggProp.hpp"
+#include "modules/aggsolver/AggSet.hpp"
+#include "modules/aggsolver/AggUtils.hpp"
+#include "theorysolvers/PCSolver.hpp"
 
 namespace MinisatID{
 
-class PCSolver;
+void verifySet(const InnerWLSet& set);
 
-class TypedSet;
-typedef std::vector<TypedSet*> vps;
+void verifyAggregate(InnerWLSet const * const set, Var head, AggType aggtype);
 
-/**
- * Checks whether the same literal occurs multiple times in the set
- * If this is the case, all identical literals are combined into one.
- *
- * @post: the literals are sorted according to weight again
- */
-
-class AggTransformation;
-const std::vector<AggTransformation*>& getTransformations();
-//void doTransformations(AggSolver* solver, TypedSet* set, bool& unsat, bool& sat);
-
-class AggTransformation{
-public:
-	virtual void transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const = 0;
-};
-
-class SetReduce : public AggTransformation{
-public:
-	void transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const;
-};
-
-class PartitionIntoTypes : public AggTransformation{
-public:
-	void transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const;
-};
-
-class AddTypes : public AggTransformation{
-public:
-	void transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const;
-};
-
-class MinToMax : public AggTransformation{
-public:
-	void transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const;
-};
-
-class MaxToSAT : public AggTransformation{
-public:
-	void transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const;
-};
-
-class VerifyWeights : public AggTransformation{
-public:
-	void transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const;
-};
-
-class AddHeadImplications : public AggTransformation{
-public:
-	void transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const;
-};
-
-class CardToEquiv : public AggTransformation{
-public:
-	void transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const;
-};
-
-class MapToSetOneToOneWithAgg : public AggTransformation{
-public:
-	void transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const;
-};
-
-class MapToSetWithSameAggSign : public AggTransformation{
-public:
-	void transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const;
-};
+//@pre: has been split
+void setReduce(PCSolver* solver, InnerWLSet* set, std::vector<Agg*>& aggs, const AggProp& type, Weight& knownbound, bool& unsat, bool& sat);
+void addHeadImplications(PCSolver* solver, InnerWLSet* set, std::vector<Agg*>& aggs, bool& unsat, bool& sat);
+void max2SAT(PCSolver* solver, InnerWLSet* set, std::vector<Agg*>& aggs, bool& unsat, bool& sat);
+void card2Equiv(PCSolver* solver, InnerWLSet* set, std::vector<Agg*>& aggs, const Weight& knownbound, bool& unsat, bool& sat);
 
 }
 

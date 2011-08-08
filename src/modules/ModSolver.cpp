@@ -100,8 +100,10 @@ bool ModSolver::add(const InnerRule& rule){
 	addVars(rule.body);
 	return getPCSolver().add(rule);
 }
-bool ModSolver::add(const InnerWSet& set){
-	addVars(set.literals);
+bool ModSolver::add(const InnerWLSet& set){
+	for(auto i=set.wls.begin(); i!=set.wls.end(); ++i){
+		addVar((*i).getLit());
+	}
 	return getPCSolver().add(set);
 }
 

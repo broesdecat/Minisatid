@@ -78,7 +78,8 @@ private:
 	// Parsing support
 	int maxset;
 	std::vector<InnerRule*> parsedrules;
-	std::map<int, TypedSet*> parsedsets;
+	typedef std::pair<InnerWLSet*, std::vector<Agg*> > SetWithAggs;
+	std::map<int, SetWithAggs> parsedsets;
 	std::vector<InnerAggregate*> parsedaggs;
 
 	// Logging
@@ -102,6 +103,7 @@ public:
 	bool add(const InnerRule& sentence);
 	bool add(const InnerSet& sentence);
 	bool add(const InnerWSet& sentence);
+	bool add(const InnerWLSet& sentence);
 	bool add(const InnerAggregate& sentence);
 	bool add(const InnerReifAggregate& sentence);
 	bool add(const InnerMinimizeSubset& sentence);
@@ -139,11 +141,14 @@ private:
 	void addVars		(const vec<Lit>& a);
 	void addVars		(const std::vector<Lit>& a);
 
-	bool addAggrExpr	(const InnerReifAggregate& agg);
-	bool addAggrExpr	(Var headv, int setid, const AggBound& bound, AggType type, AggSem sem);
+	bool addAggrExpr	(Var headv, int setid, AggSign sign, const Weight& bound, AggType type, AggSem sem);
 
 	template<typename T>
 	void 		notifyMonitorsOfAdding(const T& obj) const;
+
+	IntVar*		getIntVar(int varID) const;
+
+	bool finishSet(InnerWLSet* set, std::vector<Agg*>& agg);
 };
 
 }

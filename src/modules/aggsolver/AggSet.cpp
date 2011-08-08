@@ -1,16 +1,43 @@
-/************************************
- AggSet.cpp
- this file belongs to GidL 2.0
- (c) K.U.Leuven
- ************************************/
-
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #include "modules/aggsolver/AggSet.hpp"
 #include "modules/aggsolver/AggPrint.hpp"
 #include "utils/Print.hpp"
+#include <cmath>
 
 using namespace std;
 
 namespace MinisatID {
+
+TypedSet::TypedSet(PCSolver* solver, int setid, Weight knownbound):
+		Propagator(solver),
+		kb(knownbound),
+		type(NULL),
+		prop(NULL),
+		setid(setid),
+		usingwatches(true){
+	getPCSolver().acceptFinishParsing(this, false);
+	getPCSolver().accept(this, EV_BACKTRACK);
+	getPCSolver().accept(this, EV_FULLASSIGNMENT);
+}
+TypedSet::TypedSet(const TypedSet& set):
+		Propagator(set.pcsolver),
+		kb(set.getKnownBound()),
+		wl(set.getWL()),
+		type(set.getTypep()),
+		prop(NULL),
+		setid(set.getSetID()),
+		usingwatches(set.isUsingWatches()){
+	getPCSolver().acceptFinishParsing(this, false);
+	getPCSolver().accept(this, EV_BACKTRACK);
+	getPCSolver().accept(this, EV_FULLASSIGNMENT);
+}
 
 void TypedSet::addAgg(Agg* aggr){
 	assert(aggr!=NULL);
@@ -43,32 +70,18 @@ void TypedSet::replaceAgg(const agglist& repl, const agglist& del){
 }
 
 void TypedSet::finishParsing(bool& present, bool& unsat){
-	assert(isParsing());
+	assert(isParsing() && !unsat && present);
 	notifyParsed();
-	unsat = false;
-	present = true;
 
-	if(not unsat && present){
-		if (verbosity() >= 2) {
-			report("Added ");
-			MinisatID::print(10000, *this, true);
-		}
-
-		bool sat = not present;
-		for(auto i=transformations.begin(); present && not unsat && i<transformations.end(); ++i) {
-			AggTransformation* transfo = *i;
-			transformations.erase(i); i--;
-			transfo->transform(pcsolver, this, unsat, sat);
-		}
-
-		if(not sat && not unsat){
-			setProp(getType().createPropagator(this));
-			prop->initialize(unsat, sat);
-		}
-
-		present = not sat;
+	if (verbosity() >= 2) {
+		report("Added ");
+		MinisatID::print(10000, *this, true);
 	}
 
+	setProp(getType().createPropagator(this));
+	bool sat = false;
+	getProp()->initialize(unsat, sat);
+	present = not sat;
 	if(present){
 		assert(unsat || getAgg().size()>0);
 	}
@@ -92,7 +105,7 @@ void TypedSet::finishParsing(bool& present, bool& unsat){
 	}
 
 	//Push initial level (root, before any decisions).
-	littrail.newDecisionLevel();
+	// littrail.newDecisionLevel();
 
 	notifyInitialized();
 }
@@ -174,25 +187,31 @@ void TypedSet::addExplanation(AggReason& ar) const {
 }
 
 void TypedSet::notifyNewDecisionLevel(){
-	littrail.newDecisionLevel();
+	//littrail.newDecisionLevel();
 }
+
+void TypedSet::notifypropagate(Watch* w) {
+	getProp()->propagate(w);
+	getPCSolver().acceptForPropagation(this);
+}
+
 rClause	TypedSet::notifypropagate(){
-	while(littrail.hasNext()){
-		// TODO propagate all literals
-	}
-	getProp()->propagateAtEndOfQueue();
+	/*while(littrail.hasNext()){
+		// propagate all literals
+	}*/
+	return getProp()->propagateAtEndOfQueue();
 }
 
 void TypedSet::notifyBacktrack(int untillevel, const Lit& decision){
 	getProp()->backtrack(untillevel);
-	littrail.backtrackDecisionLevels(untillevel);
+	//littrail.backtrackDecisionLevels(untillevel);
 	Propagator::notifyBacktrack(untillevel, decision);
 }
 
 rClause TypedSet::notifyFullAssignmentFound(){
 	assert(isInitialized());
 #ifdef DEBUG
-	Weight w = getProp()->getValue();
+	Weight w = getType().getValue(*this);
 	for(agglist::const_iterator j=getAgg().begin(); j<getAgg().end(); ++j){
 		if(verbosity()>=3){
 			MinisatID::print(10, **j, true);

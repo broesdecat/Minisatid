@@ -22,6 +22,9 @@ class IntVar;
 class InnerModel;
 
 typedef std::vector<Propagator*> proplist;
+typedef std::vector<Watch*> watchlist;
+
+// FIXME using iterators while the container can be changed is NOT allowed!
 
 class EventQueue {
 private:
@@ -36,6 +39,7 @@ private:
 	std::map<EVENT, proplist > event2propagator;
 	proplist earlyfinishparsing, latefinishparsing;
 	std::vector<std::vector<proplist> > litevent2propagator;
+	std::vector<watchlist> watchevent2propagator;
 	std::vector<proplist> intvar2propagator;
 
 	bool initialized;
@@ -67,13 +71,7 @@ public:
 		event2propagator[basicevent].push_back(propagator);
 	}
 	//NOTE Both aggsolver and modsolver can add rules during their initialization, so idsolver should be late and all the others early!
-	void acceptFinishParsing(Propagator* propagator, bool late){
-		if(late){
-			latefinishparsing.push_back(propagator);
-		}else{
-			earlyfinishparsing.push_back(propagator);
-		}
-	}
+	void acceptFinishParsing(Propagator* propagator, bool late);
 	void acceptBounds(IntVar* var, Propagator* propagator){
 		if(intvar2propagator.size()<=var->id()){
 			intvar2propagator.resize(var->id()+1, proplist());
@@ -83,6 +81,7 @@ public:
 
 	void 	addEternalPropagators();
 	void 	acceptLitEvent(Propagator* propagator, const Lit& litevent, PRIORITY priority);
+	void 	accept(Watch* watch); // NOTE: permanent watches!
 
 	void 	notifyVarAdded			();
 
@@ -105,8 +104,7 @@ public:
 private:
 	void 	setTrue(const proplist& list, std::queue<Propagator*>& queue);
 
-	proplist::const_iterator begin(EVENT event) const;
-	proplist::const_iterator end(EVENT event) const;
+	uint size(EVENT event) const;
 };
 }
 

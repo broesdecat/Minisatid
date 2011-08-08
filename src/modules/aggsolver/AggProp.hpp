@@ -82,6 +82,8 @@ public:
 	virtual bool 		isNeutralElement		(const Weight& w)						const = 0;
 	virtual bool 		isMonotone				(const Agg& agg, const Weight& w)		const = 0;
 
+	Weight				getValue				(const TypedSet& set)					const;
+
 	//TODO expensive and in fact static: create variables and calc only once!
 	//Calculate best and worst possible values for the EMPTY interpretation, independent of aggregate signs!
 	virtual Weight		getMinPossible			(const TypedSet& set)					const;
@@ -89,7 +91,7 @@ public:
 	virtual Weight		getMinPossible			(const std::vector<WL>& wls)			const = 0;
 	virtual Weight		getMaxPossible			(const std::vector<WL>& wls)			const = 0;
 	virtual Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const = 0;
-	virtual WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const = 0;
+	virtual WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, Weight& knownbound) const = 0;
 
 	virtual Weight		add						(const Weight& lhs, const Weight& rhs) 	const = 0;
 	virtual Weight		remove					(const Weight& lhs, const Weight& rhs) 	const = 0;
@@ -106,7 +108,7 @@ public:
 	Weight		getMinPossible			(const std::vector<WL>& wls)			const;
 	Weight		getMaxPossible			(const std::vector<WL>& wls)			const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
-	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
+	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, Weight& knownbound) const;
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const { return lhs>rhs?lhs:rhs; }
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const { assert(false); return 0; }
 	AggPropagator*	createPropagator	(TypedSet* set) 						const;
@@ -148,7 +150,7 @@ public:
 	Weight		getMinPossible			(const std::vector<WL>& wls)			const;
 	Weight		getMaxPossible			(const std::vector<WL>& wls)			const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
-	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
+	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, Weight& knownbound) const;
 	AggPropagator*	createPropagator	(TypedSet* set) const;
 
 	Weight 		getESV					()										const { return Weight(1); }
@@ -165,7 +167,7 @@ public:
 	Weight		getMinPossible			(const std::vector<WL>& wls)			const;
 	Weight		getMaxPossible			(const std::vector<WL>& wls)			const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
-	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
+	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, Weight& knownbound) const;
 	AggPropagator*	createPropagator	(TypedSet* set) const;
 
 	Weight 		getESV					()										const { return Weight(0); }
@@ -201,9 +203,8 @@ public:
 	virtual ~AggPropagator(){};
 
 	virtual void 		initialize(bool& unsat, bool& sat);
-	virtual rClause 	propagate		(const Lit& p, Watch* w, int level) = 0;
-	virtual rClause 	propagate		(int level, const Agg& agg, bool headtrue) = 0;
-	virtual rClause		propagateAtEndOfQueue(int level) = 0;
+	virtual void 		propagate		(Watch* w);
+	virtual rClause		propagateAtEndOfQueue() = 0;
 	virtual void		backtrack		(int untillevel) = 0;
     virtual void 		getExplanation	(vec<Lit>& lits, const AggReason& ar) = 0;
 
@@ -213,8 +214,9 @@ public:
 
 	lbool				value(const Lit& l) const;
 
-	//Assert: only call if model is two-valued!
-	virtual Weight		getValue() const;
+protected:
+	virtual void propagate(int level, Watch* ws, int aggindex) = 0;
+	virtual void propagate(const Lit& p, Watch* ws, int level) = 0;
 };
 
 }

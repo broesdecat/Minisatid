@@ -119,14 +119,45 @@ struct InnerRule{
 };
 
 struct InnerSet{
+	AggType type;
 	int setID;
 	std::vector<Lit> literals;
+
+	InnerSet(AggType type, int setID, const std::vector<Lit>& literals)
+			:type(type), setID(setID), literals(literals){
+
+	}
 };
 
 struct InnerWSet{
+	AggType type;
 	int setID;
 	std::vector<Lit> literals;
 	std::vector<Weight> weights;
+
+	InnerWSet(AggType type, int setID, const std::vector<Lit>& literals, const std::vector<Weight>& weights)
+			:type(type), setID(setID), literals(literals), weights(weights){
+
+	}
+};
+
+struct InnerWLSet{
+	AggType type;
+	int setID;
+	std::vector<WL> wls;
+
+	InnerWLSet(AggType type, int setID, const std::vector<Lit>& literals, const std::vector<Weight>& weights)
+			:type(type), setID(setID){
+		for(uint i=0; i<literals.size(); ++i){
+			wls.push_back(WL(literals[i], weights[i]));
+		}
+	}
+
+	InnerWLSet(AggType type, int setID, const std::vector<WL>& wls)
+			:type(type), setID(setID), wls(wls){
+	}
+
+	const std::vector<WL>& getWL() const { return wls; }
 };
 
 struct InnerAggregate{
