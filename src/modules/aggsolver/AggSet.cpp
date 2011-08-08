@@ -17,6 +17,10 @@ void TypedSet::addAgg(Agg* aggr){
 	aggregates.push_back(aggr);
 	aggr->setTypedSet(this);
 	aggr->setIndex(aggregates.size()-1);
+	if (getPCSolver().verbosity() >= 2) {
+		MinisatID::print(getPCSolver().verbosity(), *aggr);
+		report("\n");
+	}
 }
 
 void TypedSet::replaceAgg(const agglist& repl){
@@ -44,23 +48,28 @@ void TypedSet::finishParsing(bool& present, bool& unsat){
 	unsat = false;
 	present = true;
 
-	//IMPORTANT: LAZY initialization!
-	// FIXME adaptToNVars(nVars());
+	if(not unsat && present){
+		if (verbosity() >= 2) {
+			report("Added ");
+			MinisatID::print(10000, *this, true);
+		}
 
-	//Rewrite completion sum and card constraints into CNF using PBSOLVER
-	// FIXME
-	/*if(getPCSolver().modes().pbsolver && !unsat){
-		unsat = !transformSumsToCNF(sets, getPCSolver());
-	}*/
+		bool sat = not present;
+		for(auto i=transformations.begin(); present && not unsat && i<transformations.end(); ++i) {
+			AggTransformation* transfo = *i;
+			transformations.erase(i); i--;
+			transfo->transform(pcsolver, this, unsat, sat);
+		}
 
-	//Finish the sets: add all body literals to the network
-	bool setsat = false;
+		if(not sat && not unsat){
+			setProp(getType().createPropagator(this));
+			prop->initialize(unsat, sat);
+		}
 
-	if(!unsat && !setsat){
-		initialize(unsat, setsat);
+		present = not sat;
 	}
 
-	if(!setsat){
+	if(present){
 		assert(unsat || getAgg().size()>0);
 	}
 
@@ -68,7 +77,7 @@ void TypedSet::finishParsing(bool& present, bool& unsat){
 	//Check each aggregate knows it index in the set
 	for (agglist::const_iterator i = getAgg().begin(); i<getAgg().end(); ++i) {
 		assert(this==(*i)->getSet());
-		// FIXME assert((*i)->getSet()->getAgg()[(*i)->getIndex()]==(*i));
+		assert(getAgg()[(*i)->getIndex()]==(*i));
 	}
 
 	//TODO check all watches are correct
@@ -83,32 +92,9 @@ void TypedSet::finishParsing(bool& present, bool& unsat){
 	}
 
 	//Push initial level (root, before any decisions).
-	// FIXME addRootLevel();
+	littrail.newDecisionLevel();
 
 	notifyInitialized();
-}
-
-/*
- * Initialize the datastructures. If it's neither sat nor unsat and it is defined, notify the pcsolver of this
- */
-void TypedSet::initialize(bool& unsat, bool& sat) {
-	if (verbosity() >= 2) {
-		report("Added ");
-		MinisatID::print(10000, *this, true);
-	}
-
-	for(auto i=transformations.begin(); !sat && !unsat && i<transformations.end(); ++i) {
-		AggTransformation* transfo = *i;
-		transformations.erase(i); i--;
-		transfo->transform(pcsolver, this, unsat, sat);
-	}
-
-	if(sat || unsat){ return; }
-
-	setProp(getType().createPropagator(this));
-	prop->initialize(unsat, sat);
-
-	if(sat || unsat){ return; }
 }
 
 rClause TypedSet::notifySolver(AggReason* ar) {
@@ -134,16 +120,14 @@ rClause TypedSet::notifySolver(AggReason* ar) {
 		}
 		assert(getPCSolver().modes().aggclausesaving>1 || ar->hasClause());
 
-		//FIXME reasons
-		/*
 		assert(reasons[var(p)]==NULL || getPCSolver().modes().aggclausesaving>1 || reasons[var(p)]->hasClause());
 		AggReason* old_ar = reasons[var(p)];
 		reasons[var(p)] = ar;
 		rClause confl = getExplanation(p);	//Reason manipulation because getexplanation uses that reason!
 		reasons[var(p)] = old_ar;
 		delete ar; // Have to delete before addLearnedClause, as internally it might lead to backtrack and removing the reason
-		getPCSolver().addLearnedClause(confl);*/
-		//return confl;
+		getPCSolver().addLearnedClause(confl);
+		return confl;
 	} else if (value(p) == l_Undef) {
 		if (verbosity() >= 2) {
 			report("Deriving ");
@@ -154,11 +138,10 @@ rClause TypedSet::notifySolver(AggReason* ar) {
 
 		//Keeping a reason longer than necessary is not a problem => if after backtracking still unknown, then no getexplanation, if it becomes known,
 		//either this is overwritten or the propagation stems from another module, which will be asked for the explanation
-		// FIXME reasons!
-		/*if(reasons[var(p)] != NULL){
+		if(reasons[var(p)] != NULL){
 			delete reasons[var(p)];
 		}
-		reasons[var(p)] = ar;*/
+		reasons[var(p)] = ar;
 
 		if (getPCSolver().modes().aggclausesaving < 1) {
 			rClause c = getPCSolver().createClause(ar->getClause(), true);
@@ -190,7 +173,19 @@ void TypedSet::addExplanation(AggReason& ar) const {
 	}
 }
 
+void TypedSet::notifyNewDecisionLevel(){
+	littrail.newDecisionLevel();
+}
+rClause	TypedSet::notifypropagate(){
+	while(littrail.hasNext()){
+		// TODO propagate all literals
+	}
+	getProp()->propagateAtEndOfQueue();
+}
+
 void TypedSet::notifyBacktrack(int untillevel, const Lit& decision){
+	getProp()->backtrack(untillevel);
+	littrail.backtrackDecisionLevels(untillevel);
 	Propagator::notifyBacktrack(untillevel, decision);
 }
 
@@ -217,8 +212,6 @@ rClause TypedSet::notifyFullAssignmentFound(){
 rClause TypedSet::getExplanation(const Lit& p) {
 	assert(!isParsing());
 
-	// FIXME reasons
-/*
 	assert(reasons[var(p)] != NULL);
 	AggReason& ar = *reasons[var(p)];
 
@@ -233,7 +226,11 @@ rClause TypedSet::getExplanation(const Lit& p) {
 
 	//do not add each clause to SAT-solver: real slowdown for e.g. magicseries
 
-	return c; */
+	return c;
+}
+
+int	TypedSet::getNbOfFormulas() const {
+	return getAgg().size() * getWL().size() * log(getWL().size()); // Could refine depending on aggregate type
 }
 
 } /* namespace MinisatID */

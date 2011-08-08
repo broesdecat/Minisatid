@@ -264,11 +264,7 @@ bool PropagatorFactory::add(const InnerWSet& formula){
 	TypedSet* set = new TypedSet(getEnginep(), formula.setID);
 	set->setWL(lw);
 
-	if(isParsing()){
-		parsedsets.insert(pair<int, TypedSet*>(formula.setID, set));
-	}
-
-	// FIXME initialize immediately if no longer parsing
+	parsedsets.insert(pair<int, TypedSet*>(formula.setID, set));
 
 	return true;
 }
@@ -344,15 +340,28 @@ bool PropagatorFactory::addAggrExpr(Var headv, int setid, const AggBound& bound,
 
 	getEngine().varBumpActivity(headv); // NOTE heuristic! (TODO move)
 
-	//the head of the aggregate
 	Lit head = mkLit(headv, false);
 
 	Agg* agg = new Agg(head, AggBound(bound),sem==DEF?COMP:sem, type);
 	set->addAgg(agg);
 
-	if (getEngine().verbosity() >= 2) { //Print info on added aggregate
-		MinisatID::print(getEngine().verbosity(), *agg);
-		report("\n");
+	if(not isParsing()){
+		assert(getEngine().getCurrentDecisionLevel()==0);
+		if(getEngine().modes().pbsolver){
+			map<int, TypedSet*> newsets;
+			newsets[set->getSetID()] = set;
+			transformSumsToCNF(getEngine(), newsets);
+		}
+
+		bool present = false, unsat = false;
+		set->finishParsing(present, unsat);
+		if(unsat){
+			throw idpexception("Adding unsatisfiable aggregates during search is not handled correctly at the moment.\n");
+		}
+		if(not present){
+			delete(set);
+			parsedsets.erase(setid); // TODO might still be present in event datastructures => should be removed by those in fact!
+		}
 	}
 
 	return true;
@@ -399,7 +408,8 @@ bool PropagatorFactory::add(const InnerMinimizeOrderedList& formula){
 bool PropagatorFactory::add(const InnerMinimizeVar& formula){
 	notifyMonitorsOfAdding(formula);
 
-	// FIXME check var existence and add optim intvar to pcsolver
+#warning MinimizeVar is not handled at the moment
+	// TODO check var existence and add optim intvar to pcsolver
 	return true;
 }
 
@@ -450,7 +460,7 @@ int IntVar::maxid_ = 0;
 
 bool PropagatorFactory::add(const InnerIntVarRange& obj){
 	if(intvars.find(obj.varID)==intvars.end()){
-		// todo throw exception
+		throw idpexception("Integer variable was not declared before use.\n");
 	}
 	intvars.insert(pair<int, IntVar*>(obj.varID, new IntVar(getEnginep(), obj.varID, obj.minvalue, obj.maxvalue)));
 	return true;
@@ -461,8 +471,29 @@ bool PropagatorFactory::add(const InnerIntVarEnum& obj){
 }
 
 bool PropagatorFactory::add(const InnerCPBinaryRel& obj){
-	//TODO new BinaryConstraint(getEnginep(), intvars.at(obj.varID), obj.bound, obj.head);
-	return true;
+	InnerEquivalence eq;
+	eq.head = mkPosLit(h);
+	switch(comp){
+		case MEQ:
+			eq.literals.push(left->getEQLit(right));
+			break;
+		case MNEQ:
+			eq.literals.push(left->getNEQLit(right));
+			break;
+		case MGEQ:
+			eq.literals.push(left->getGEQLit(right));
+			break;
+		case MG:
+			eq.literals.push(left->getGEQLit(right+1));
+			break;
+		case MLEQ:
+			eq.literals.push(left->getLEQLit(right));
+			break;
+		case ML:
+			eq.literals.push(left->getLEQLit(right-1));
+			break;
+	}
+	return getPCSolver().add(eq);
 }
 
 bool PropagatorFactory::add(const InnerCPBinaryRelVar& obj){
@@ -491,21 +522,23 @@ bool PropagatorFactory::add(InnerDisjunction& formula, rClause& newclause){
 	return getSolver()->addClause(formula.literals, newclause);
 }
 
-void PropagatorFactory::finishParsing() {
+bool PropagatorFactory::finishParsing() {
 	assert(isParsing());
 	parsing = false;
 
-	for(vector<ParsingMonitor*>::const_iterator i = parsingmonitors.begin(); i<parsingmonitors.end(); ++i){
+	for(auto i = parsingmonitors.begin(); i<parsingmonitors.end(); ++i){
 		(*i)->notifyEnd();
 	}
 
 	bool notunsat = true;
 
-	// aggregate checking
+	// create one, certainly true variable which can act as a dummy head
 	dummyvar = getEngine().newVar();
 	InnerDisjunction clause;
 	clause.literals.push(mkLit(dummyvar));
 	add(clause);
+
+	// create reified aggregates
 	for(auto i=parsedaggs.begin(); notunsat && i!=parsedaggs.end(); ++i){
 		InnerReifAggregate r;
 		r.bound = (*i)->bound;
@@ -519,22 +552,18 @@ void PropagatorFactory::finishParsing() {
 	}
 	deleteList<InnerAggregate>(parsedaggs);
 
-	// FIXME initialize aggregate sets via finishparsing!
-
-	// FIXME we miss newly created sets here, add to addaggrexpr also!
-	if(getEngine().modes().pbsolver){
-		transformSumsToCNF(getEngine(), parsedsets);
+	// transform into SAT if requested
+	if(notunsat && getEngine().modes().pbsolver){
+		notunsat &= transformSumsToCNF(getEngine(), parsedsets);
 	}
 
 	// rule adding
 	for(auto i=parsedrules.begin(); notunsat && i!=parsedrules.end(); ++i){
-		notunsat = getIDSolver((*i)->definitionID)->addRule((*i)->conjunctive, (*i)->head, (*i)->body);
+		notunsat &= getIDSolver((*i)->definitionID)->addRule((*i)->conjunctive, (*i)->head, (*i)->body);
 	}
-	parsedrules.clear();
+	deleteList<InnerRule>(parsedrules);
 
-	if(not notunsat){
-		//FIXME
-	}
+	return notunsat;
 }
 
 void PropagatorFactory::includeCPModel(std::vector<VariableEqValue>& varassignments){

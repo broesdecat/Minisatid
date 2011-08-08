@@ -8,6 +8,8 @@
 
 namespace MinisatID{
 
+enum BinComp { BIN_EQ, BIN_NEQ, BIN_L, BIN_LEQ};
+
 class IntVar: public Propagator{
 private:
 	static int maxid_;

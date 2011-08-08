@@ -5,8 +5,6 @@
 
 namespace MinisatID{
 
-enum BinComp { BIN_EQ, BIN_NEQ, BIN_L, BIN_LEQ}; //
-
 class BinaryConstraint: public Propagator{
 	Lit head_;
 	IntVar *left_, *right_;

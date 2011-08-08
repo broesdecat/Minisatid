@@ -17,6 +17,7 @@
 #include "modules/aggsolver/AggUtils.hpp"
 #include "modules/aggsolver/AggTransform.hpp"
 #include "modules/aggsolver/AggProp.hpp"
+#include "modules/LitTrail.hpp"
 
 namespace MinisatID {
 
@@ -34,6 +35,11 @@ protected:
 	std::vector<AggTransformation*> transformations;
 
 	bool				usingwatches;
+
+	std::map<Var, AggReason*>	reasons;
+
+	LitTrail			littrail;
+	// FIXME why do we need the "propagated" datastruture of littrail?
 
 public:
 	TypedSet(PCSolver* solver, int setid):
@@ -87,8 +93,6 @@ public:
 
 	const std::vector<AggTransformation*>& getTransformations() const { return transformations; }
 
-	void 			initialize		(bool& unsat, bool& sat);
-	void			backtrack		(int untillevel) 			{ getProp()->backtrack(untillevel); }
 	rClause 		propagate		(const Lit& p, Watch* w, int level) 	{ return getProp()->propagate(p, w, level); }
 	rClause 		propagate		(const Agg& agg, int level, bool headtrue)	{ return getProp()->propagate(level, agg, headtrue); }
 	rClause			propagateAtEndOfQueue(int level) 						{ return getProp()->propagateAtEndOfQueue(level); }
@@ -96,10 +100,11 @@ public:
 
 	rClause 		notifySolver(AggReason* ar);
 
-	// FIXME
 	// Propagator methods
 	virtual const char* getName			() const { return "aggregate"; }
+	virtual int		getNbOfFormulas		() const;
 	virtual rClause getExplanation		(const Lit&);
+
 	virtual rClause notifyFullAssignmentFound();
 	virtual void 	finishParsing		(bool& present, bool& unsat);
 		// Checks presence of aggregates and initializes all counters. UNSAT is set to true if unsat is detected
@@ -107,14 +112,7 @@ public:
 	virtual void 	notifyNewDecisionLevel	();
 	// NOTE: call explicitly when using hasnextprop/nextprop!
 	virtual void 	notifyBacktrack		(int untillevel, const Lit& decision);
-	virtual rClause	notifypropagate		()							{ assert(false); return nullPtrClause; }
-	virtual Var 	notifyBranchChoice	(const Var& var) const 		{ assert(false); return var; }
-	virtual void 	printStatistics		() const 					{ assert(false); }
-	virtual void 	printState			() const 					{ assert(false); }
-	virtual int		getNbOfFormulas		() const 					{ return 0; }
-	virtual void 	notifyClauseAdded	(rClause) 					{ assert(false); }
-	virtual void 	notifyClauseDeleted	(rClause) 					{ assert(false); }
-	virtual bool 	symmetryPropagationOnAnalyze(const Lit&) 		{ assert(false); return false; }
+	virtual rClause	notifypropagate		();
 };
 
 } /* namespace MinisatID */

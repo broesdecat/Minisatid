@@ -122,7 +122,7 @@ public:
 
 	int newSetID();
 
-	void finishParsing();
+	bool finishParsing();
 
 	void includeCPModel(std::vector<VariableEqValue>& varassignments);
 

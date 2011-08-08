@@ -38,7 +38,7 @@ rClause BinaryConstraint::getExplanation(const Lit& lit){
 		}
 	}
 	return getPCSolver().createClause(explan.literals, true);
-	// TODO
+	// FIXME
 /*		switch(comp_){
 	case BIN_EQ:
 		if(leftmax()<rightmin()){

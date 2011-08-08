@@ -95,7 +95,6 @@ void IntVar::addConstraints(){
 	for(uint i=0; i<equalities.size(); ++i){
 		set.literals.push_back(mkPosLit(equalities[i]));
 	}
-	// FIXME this happens after finishparsing of the factory (and possible also after finishing the aggsolver), so these are NOT added
 	InnerAggregate lowercard;
 	lowercard.setID = set.setID;
 	lowercard.bound = 1;
