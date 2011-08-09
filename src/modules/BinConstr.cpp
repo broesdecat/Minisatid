@@ -8,6 +8,8 @@
  */
 
 #include "modules/BinConstr.hpp"
+#include <iostream>
+#include "utils/Print.hpp"
 
 using namespace MinisatID;
 
@@ -20,14 +22,20 @@ BinaryConstraint::BinaryConstraint(PCSolver* engine, IntVar* left, EqType comp, 
 		case MLEQ: left_ = left; right_=right; comp_=BIN_LEQ; break;
 		case ML:   left_ = left; right_=right; comp_=BIN_L; break;
 	}
-	getPCSolver().acceptBounds(left, this);
-	getPCSolver().acceptBounds(right, this);
+	getPCSolver().accept(this, EV_PRINTSTATE);
+	getPCSolver().acceptFinishParsing(this, true); // has to be AFTER the intvars!
+}
+
+void BinaryConstraint::finishParsing(bool& unsat, bool& sat){
+	// TODO anything on intvars cannot be accepted before finishparsing of the intvar!
 	getPCSolver().acceptLitEvent(this, head(), FAST);
 	getPCSolver().acceptLitEvent(this, ~head(), FAST);
-	getPCSolver().accept(this, EV_PRINTSTATE);
+	getPCSolver().acceptBounds(left(), this);
+	getPCSolver().acceptBounds(right(), this);
 }
 
 rClause BinaryConstraint::getExplanation(const Lit& lit){
+	assert(false);
 	bool headtrue = getPCSolver().value(head())==l_True;
 	InnerDisjunction explan;
 	explan.literals.push(lit);
@@ -103,6 +111,7 @@ rClause BinaryConstraint::propagate(IntVar* var, BIN_SIGN comp, int bound){
 			if(val==l_False){
 				return getExplanation(lit);
 			}else if(val==l_Undef){
+				std::cerr <<"CP propagate: var" <<var->id() <<" =< " <<bound <<"\n";
 				getPCSolver().setTrue(lit, this);
 			}
 		}
@@ -114,6 +123,7 @@ rClause BinaryConstraint::propagate(IntVar* var, BIN_SIGN comp, int bound){
 			if(val==l_False){
 				return getExplanation(lit);
 			}else if(val==l_Undef){
+				std::cerr <<"CP propagate: var " <<var->origid() <<" >= " <<bound <<"\n";
 				getPCSolver().setTrue(var->getGEQLit(bound), this);
 			}
 		}
@@ -124,6 +134,7 @@ rClause BinaryConstraint::propagate(IntVar* var, BIN_SIGN comp, int bound){
 		if(val==l_False){
 			return getExplanation(lit);
 		}else if(val==l_Undef){
+			std::cerr <<"CP propagate: var " <<var->origid() <<" ~= " <<bound <<"\n";
 			getPCSolver().setTrue(var->getNEQLit(bound), this);
 		}
 		break;}

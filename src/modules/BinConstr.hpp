@@ -55,6 +55,8 @@ public:
 
 	virtual rClause	notifypropagate();
 
+	virtual void finishParsing(bool& unsat, bool& sat);
+
 	virtual void printState() const;
 
 };

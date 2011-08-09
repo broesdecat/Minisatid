@@ -62,6 +62,18 @@ void EventQueue::addEternalPropagators(){
 	}
 }
 
+void EventQueue::notifyBoundsChanged(IntVar* var) {
+	if(!isInitialized()){ // TODO enforce by design?
+		return;
+	}
+	for(auto i=intvar2propagator[var->id()].begin(); i<intvar2propagator[var->id()].end(); ++i){
+		if(!(*i)->isPresent()){ continue; }
+		if(not (*i)->isQueued()){
+			fastqueue.push(*i);
+		}
+	}
+}
+
 //TODO should check doubles in another way (or prevent any from being added) (maybe a set is better than a vector)
 void EventQueue::acceptLitEvent(Propagator* propagator, const Lit& litevent, PRIORITY priority){
 	for(proplist::const_iterator i=litevent2propagator[toInt(litevent)][priority].begin(); i<litevent2propagator[toInt(litevent)][priority].end(); ++i){
@@ -168,6 +180,15 @@ void EventQueue::finishParsing(bool& unsat){
 
 	notifyInitialized();
 	addEternalPropagators();
+	for(auto intvar = intvar2propagator.begin(); intvar!=intvar2propagator.end(); ++intvar){
+		for(auto prop = intvar->begin(); prop != intvar->end(); ++prop){
+			if(!(*prop)->isPresent()){ continue; }
+			if(not (*prop)->isQueued()){
+				fastqueue.push(*prop);
+			}
+		}
+	}
+
 
 	// Do all possible propagations that are queued
 	if (notifyPropagate() != nullPtrClause) {
@@ -286,14 +307,5 @@ void EventQueue::printStatistics() const {
 	for(uint i=0; i<size(EV_PRINTSTATS); ++i){
 		if(!props[i]->isPresent()){ continue; }
 		props[i]->printStatistics();
-	}
-}
-
-void EventQueue::notifyBoundsChanged(IntVar* var) {
-	for(auto i=intvar2propagator[var->id()].begin(); i<intvar2propagator[var->id()].end(); ++i){
-		if(!(*i)->isPresent()){ continue; }
-		if(not (*i)->isQueued()){
-			fastqueue.push(*i);
-		}
 	}
 }

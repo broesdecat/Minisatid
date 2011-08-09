@@ -16,7 +16,7 @@ using namespace MinisatID;
 IntVar::IntVar(PCSolver* solver, int origid, int min, int max)
 		: Propagator(solver),
 		  id_(maxid_++), origid_(origid),
-		  engine_(*solver), offset(engine().nVars()),
+		  engine_(*solver), offset(-1),
 		  minvalue(min), maxvalue(max),
 		  currentmin(min), currentmax(max){
 	getPCSolver().accept(this, EV_BACKTRACK);
@@ -25,7 +25,9 @@ IntVar::IntVar(PCSolver* solver, int origid, int min, int max)
 }
 
 void IntVar::finishParsing(bool& present, bool& unsat){
+	offset = engine().nVars();
 	for(int i=origMinValue(); i<origMaxValue()+1; ++i){
+		// TODO equalities moeten mss geen decision vars zijn?
 		equalities.push_back(engine().newVar());
 		disequalities.push_back(engine().newVar());
 	}
@@ -50,6 +52,7 @@ void IntVar::finishParsing(bool& present, bool& unsat){
 			std::clog <<mkPosLit(*i) <<" <=> " <<origid() <<"=<" <<minvalue+index <<"\n";
 		}
 	}
+	std::cerr <<"var " <<origid() <<"[" <<currentmin <<"," <<currentmax <<"]\n";
 }
 
 void IntVar::notifyBacktrack(int untillevel, const Lit& decision){
@@ -61,10 +64,12 @@ void IntVar::notifyBacktrack(int untillevel, const Lit& decision){
 	}
 	uint index = equalities.size()-1;
 	for(auto i=equalities.rbegin(); i<equalities.rend(); ++i, --index){
-		if(engine().value(equalities[index])!=l_False){
+		if(engine().value(*i)!=l_False){
 			currentmax = minvalue + index;
+			break;
 		}
 	}
+	std::cerr <<"var " <<origid() <<"[" <<currentmin <<"," <<currentmax <<"] (post-backtrack)\n";
 }
 
 rClause	IntVar::notifypropagate(){
@@ -83,6 +88,7 @@ rClause	IntVar::notifypropagate(){
 		}
 	}
 	if(lastmin!=currentmin || lastmax!=currentmax){
+		std::cerr <<"var " <<origid() <<"[" <<currentmin <<"," <<currentmax <<"]\n";
 		engine().notifyBoundsChanged(this);
 	}
 
@@ -112,23 +118,23 @@ void IntVar::addConstraints(){
 		same.literals.push(mkPosLit(disequalities[i]));
 		engine().add(same);
 		if(i<equalities.size()-1){
-			// if eq[i] => ~diseq[i+1]
-			InnerDisjunction next;
-			next.literals.push(mkNegLit(equalities[i]));
-			next.literals.push(mkNegLit(disequalities[i+1]));
-			engine().add(next);
-			// if ~diseq[i] => ~diseq[i+1]
-			InnerDisjunction nextdis;
-			nextdis.literals.push(mkPosLit(disequalities[i]));
-			nextdis.literals.push(mkNegLit(disequalities[i+1]));
-			engine().add(nextdis);
-		}
-		// if diseq[i] => diseq[i-1]
-		if(i>0){
+			// if diseq[i] => diseq[i+1]
 			InnerDisjunction prev;
 			prev.literals.push(mkNegLit(disequalities[i]));
-			prev.literals.push(mkPosLit(disequalities[i-1]));
+			prev.literals.push(mkPosLit(disequalities[i+1]));
 			engine().add(prev);
+		}
+		if(i>0){
+			// if eq[i] => ~diseq[i-1]
+			InnerDisjunction next;
+			next.literals.push(mkNegLit(equalities[i]));
+			next.literals.push(mkNegLit(disequalities[i-1]));
+			engine().add(next);
+			// if ~diseq[i] => ~diseq[i-1]
+			InnerDisjunction nextdis;
+			nextdis.literals.push(mkPosLit(disequalities[i]));
+			nextdis.literals.push(mkNegLit(disequalities[i-1]));
+			engine().add(nextdis);
 		}
 	}
 }

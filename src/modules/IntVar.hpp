@@ -15,7 +15,8 @@ private:
 	static int maxid_;
 	int id_, origid_;
 	PCSolver& engine_;
-	int offset, minvalue, maxvalue, currentmin, currentmax;
+	const int minvalue, maxvalue;
+	int offset, currentmin, currentmax;
 	std::vector<Var> equalities;	// eq[i] == minvalue+i
 	std::vector<Var> disequalities; // eq[i] =< minvalue+i
 	// given atom, its meaning is eq[atom-offset]
