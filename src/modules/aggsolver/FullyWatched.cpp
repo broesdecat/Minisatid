@@ -66,9 +66,9 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 		// FIXME permanent watch
 		Watch *pos, *neg;
 		pos = new Watch(getSetp(), (*j).getLit(), (*j).getWeight(), true);
-		neg = new Watch(getSetp(), ~(*j).getLit(), (*j).getWeight(), false);
-		getSet().getPCSolver().accept(pos);
-		getSet().getPCSolver().accept(neg);
+		neg = new Watch(getSetp(), not (*j).getLit(), (*j).getWeight(), false);
+		getSet().getPCSolver().accept(pos, true);
+		getSet().getPCSolver().accept(neg, true);
 	}
 
 	AggPropagator::initialize(unsat, sat);
@@ -91,7 +91,7 @@ lbool FWAgg::initialize(const Agg& agg) {
 	if (hv == l_True) {
 		confl = getSet().notifySolver(new HeadReason(agg, agg.getHead()));
 	} else if (hv == l_False) {
-		confl = getSet().notifySolver(new HeadReason(agg, ~agg.getHead()));
+		confl = getSet().notifySolver(new HeadReason(agg, not agg.getHead()));
 	}
 	if (confl != nullPtrClause) {
 		return l_False;
@@ -148,7 +148,7 @@ void FWAgg::propagate(const Lit& p, Watch* ws, int level) {
 	assert(ws->getSet()==getSetp());
 	bool foundlit = false;
 	for(vwl::const_iterator i=getSet().getWL().begin(); i<getSet().getWL().end() ; ++i){
-		if(var((*i).getLit())==var(p)){
+		if(var(i->getLit())==var(p)){
 			foundlit = true;
 		}
 	}
@@ -230,10 +230,10 @@ rClause FWAgg::propagateAtEndOfQueue(){
 				if(result==l_Undef){
 					confl = propagateSpecificAtEnd(pa, hv == l_True);
 				}else if(hv!=result){
-					confl = getSet().notifySolver(new HeadReason(pa, result==l_True?pa.getHead():~pa.getHead()));
+					confl = getSet().notifySolver(new HeadReason(pa, result==l_True?pa.getHead():not pa.getHead()));
 				}
 			}else if(result!=l_Undef){
-				confl = getSet().notifySolver(new HeadReason(pa, result==l_True?pa.getHead():~pa.getHead()));
+				confl = getSet().notifySolver(new HeadReason(pa, result==l_True?pa.getHead():not pa.getHead()));
 			}
 		}
 	}
@@ -334,7 +334,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 
 	if(!ar.isHeadReason()){
 		addValue(getSet().getType(), ar.getPropWeight(), !ar.isInSet(), min, max);
-		lits.push(value(head)==l_True?~head:head);
+		lits.push(value(head)==l_True?not head:head);
 	}
 
 	bool stop = false;
@@ -351,13 +351,13 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	bool foundpropagatedlit = false;
 	if(pcsolver.modes().currentlevelfirstinexplanation && getTrail().back()->level==declevel){
 		for (vprop::const_iterator i = getTrail().back()->props.begin(); !stop && !foundpropagatedlit && i < getTrail().back()->props.end(); ++i) {
-			const Lit& lit = (*i).getLit();
+			const Lit& lit = i->getLit();
 			assert(pcsolver.getLevel(var(lit))==declevel);
 			if(lit==ar.getPropLit()){ //NOTE: We only see a subset of the possibly relevant literals, so we are not guaranteed to find the full explanation before seeing the propagated literal, so we have to redo the loop later on.
 				foundpropagatedlit = true;
 				break;
 			}
-			if((*i).getType()==HEAD){
+			if(i->getType()==HEAD){
 				continue;
 			}
 
@@ -370,12 +370,12 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 		bool foundpropagatedlit = false;
 		for(vector<FWTrail*>::const_iterator a=getTrail().begin(); !stop && !foundpropagatedlit && a<getTrail().end(); ++a){
 			for (vprop::const_iterator i = (*a)->props.begin(); !stop && !foundpropagatedlit && i < (*a)->props.end(); ++i) {
-				const Lit& lit = (*i).getLit();
+				const Lit& lit = i->getLit();
 				if(lit==ar.getPropLit()){ //NOTE: We only see a subset of the possibly relevant literals, so we are not guaranteed to find the full explanation before seeing the propagated literal, so we have to redo the loop later on.
 					foundpropagatedlit = true;
 					break;
 				}
-				if((*i).getType()==HEAD){
+				if(i->getType()==HEAD){
 					continue;
 				}
 
@@ -398,12 +398,12 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	foundpropagatedlit = false;
 	for(vector<FWTrail*>::const_iterator a=getTrail().begin(); !stop && !foundpropagatedlit && a<getTrail().end(); ++a){
 		for (vprop::const_iterator i = (*a)->props.begin(); !stop && !foundpropagatedlit && i < (*a)->props.end(); ++i) {
-			const Lit& lit = (*i).getLit();
+			const Lit& lit = i->getLit();
 			if(lit==ar.getPropLit()){ //NOTE: We only see a subset of the possibly relevant literals, so we are not guaranteed to find the full explanation before seeing the propagated literal, so we have to redo the loop later on.
 				foundpropagatedlit = true;
 				break;
 			}
-			if((*i).getType()==HEAD){
+			if(i->getType()==HEAD){
 				continue;
 			}
 			bool add = true;
@@ -428,8 +428,8 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	if(getSet().modes().subsetminimizeexplanation){
 		sort(reasons.begin(), reasons.end(), compareByWeights<PropagationInfo>);
 		for(vector<PropagationInfo>::iterator i=reasons.begin(); i<reasons.end(); ++i){
-			bool inset = (*i).getType()==POS;
-			removeValue(getSet().getType(), (*i).getWeight(), inset, min, max);
+			bool inset = i->getType()==POS;
+			removeValue(getSet().getType(), i->getWeight(), inset, min, max);
 			if((caseone && isFalsified(agg, min, max) ) ||(!caseone && isSatisfied(agg, min, max))){
 				i = reasons.erase(i);
 				i--;
@@ -440,7 +440,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	}
 
 	for(vector<PropagationInfo>::const_iterator i=reasons.begin(); i<reasons.end(); ++i){
-		lits.push(~(*i).getLit());
+		lits.push(not i->getLit());
 	}
 }
 
@@ -493,13 +493,13 @@ rClause MaxFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 	rClause confl = nullPtrClause;
 	if (headtrue && agg.hasUB()) {
 		for (vwl::const_reverse_iterator i = getSet().getWL().rbegin(); confl == nullPtrClause && i
-					< getSet().getWL().rend() && agg.getCertainBound() < (*i).getWeight(); ++i) {
-			confl = getSet().notifySolver(new SetLitReason(agg, (*i).getLit(), (*i).getWeight(), false));
+					< getSet().getWL().rend() && agg.getCertainBound() < i->getWeight(); ++i) {
+			confl = getSet().notifySolver(new SetLitReason(agg, i->getLit(), i->getWeight(), false));
 		}
 	} else if (!headtrue && agg.hasLB()) {
 		for (vwl::const_reverse_iterator i = getSet().getWL().rbegin(); confl == nullPtrClause && i
-					< getSet().getWL().rend() && agg.getCertainBound() <= (*i).getWeight(); ++i) {
-			confl = getSet().notifySolver(new SetLitReason(agg, (*i).getLit(), (*i).getWeight(), false));
+					< getSet().getWL().rend() && agg.getCertainBound() <= i->getWeight(); ++i) {
+			confl = getSet().notifySolver(new SetLitReason(agg, i->getLit(), i->getWeight(), false));
 		}
 	}
 	if (confl == nullPtrClause) {
@@ -529,7 +529,7 @@ rClause MaxFWAgg::propagateAll(const Agg& agg, bool headtrue) {
 		return confl;
 	}
 
-	Lit l = mkLit(0);
+	Lit l = mkPosLit(0);
 	Weight w(0);
 	int found = 0;
 	for (vwl::const_iterator i=getSet().getWL().begin(); found<2 && i<getSet().getWL().end(); ++i) {
@@ -613,16 +613,16 @@ void MaxFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 		bool found = false;
 		for(vector<FWTrail*>::const_iterator a=getTrail().begin(); !found && a<getTrail().end(); ++a){
         	for (vprop::const_iterator i = (*a)->props.begin(); !found && i < (*a)->props.end(); ++i) {
-        		if((*i).getType()==HEAD || var((*i).getLit())==var(ar.getPropLit())){
+        		if(i->getType()==HEAD || var(i->getLit())==var(ar.getPropLit())){
         			continue;
         		}
-        		if((*i).getWeight()<bound){
+        		if(i->getWeight()<bound){
         			continue;
         		}
-        		if(inset && (*i).getType()==NEG){
+        		if(inset && i->getType()==NEG){
         			continue;
         		}
-        		lits.push(~(*i).getLit());
+        		lits.push(~i->getLit());
         		if(one){
         			found = true;
         		}
@@ -715,7 +715,7 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 		if(!propagate && getSet().getPCSolver().getLevel(var(l))==getSet().getPCSolver().getCurrentDecisionLevel()){
 			bool found = false;
 			for(vprop::const_iterator i=getTrail().back()->props.begin(); !found && i<getTrail().back()->props.end(); ++i){
-				if(var(l)==var((*i).getLit())){
+				if(var(l)==var(i->getLit())){
 					found = true;
 				}
 			}
@@ -766,10 +766,10 @@ void SumFWAgg::initialize(bool& unsat, bool& sat) {
 	//Test whether the total sum of the weights is not infinity for intweights
 	Weight total(0);
 	for(vwl::const_iterator i=getSet().getWL().begin(); i<getSet().getWL().end(); ++i) {
-		if(INT_MAX-total < (*i).getWeight()) {
+		if(INT_MAX-total < i->getWeight()) {
 			throw idpexception("The total sum of weights exceeds max-int, correctness cannot be guaranteed in limited precision.\n");
 		}
-		total += abs((*i).getWeight());
+		total += abs(i->getWeight());
 	}
 #endif
 
@@ -777,15 +777,15 @@ void SumFWAgg::initialize(bool& unsat, bool& sat) {
 	vwl wlits2;
 	Weight totalneg(0);
 	for (vwl::const_iterator i = getSet().getWL().begin(); i < getSet().getWL().end(); ++i) {
-		if ((*i).getWeight() < 0) {
-			totalneg -= (*i).getWeight();
+		if (i->getWeight() < 0) {
+			totalneg -= i->getWeight();
 		}
 	}
 	if (totalneg > 0) {
 		//Important: negate literals of with negative weights!
 		for (vwl::const_iterator i = getSet().getWL().begin(); i < getSet().getWL().end(); ++i) {
-			if((*i).getWeight()<0){
-				wlits2.push_back(WL(~(*i).getLit(), abs((*i).getWeight())));
+			if(i->getWeight()<0){
+				wlits2.push_back(WL(~i->getLit(), abs(i->getWeight())));
 			}else{
 				wlits2.push_back(*i);
 			}
@@ -827,10 +827,10 @@ void ProdFWAgg::initialize(bool& unsat, bool& sat) {
 	//Test whether the total product of the weights is not infinity for intweights
 	Weight total(1);
 	for(vwl::const_iterator i=getSet().getWL().begin(); i<getSet().getWL().end(); ++i) {
-		if(posInfinity()/total < (*i).getWeight()) {
+		if(posInfinity()/total < i->getWeight()) {
 			throw idpexception("The total product of weights exceeds max-int, correctness cannot be guaranteed in limited precision.\n");
 		}
-		total *= (*i).getWeight();
+		total *= i->getWeight();
 	}
 #endif
 

@@ -525,18 +525,12 @@ bool PropagatorFactory::finishSet(InnerWLSet* set, vector<Agg*>& aggs){
 	if(!sat && ! unsat){ addHeadImplications(getEnginep(), set, aggs, unsat, sat); }
 	if(!sat && ! unsat){ max2SAT(getEnginep(), set, aggs, unsat, sat); }
 	if(!sat && ! unsat){ card2Equiv(getEnginep(), set, aggs, knownbound, unsat, sat); }
-
-	if(!sat && !unsat){
-		TypedSet* propagator = new TypedSet(getEnginep(), set->setID, knownbound);
-		propagator->setUsingWatches(false);//TODO
-		propagator->setWL(set->wls);
-		propagator->setType(type);
-		propagator->replaceAgg(aggs);
+	if(!sat && ! unsat){
+		decideUsingWatchesAndCreatePropagators(getEnginep(), set, aggs, knownbound);
 	}
 	aggs.clear();
 
 	return !unsat;
-	// TODO partial watches t.push_back(new MapToSetWithSameAggSign()); // => creates 1 extra set
 }
 
 bool PropagatorFactory::finishParsing() {

@@ -70,11 +70,11 @@ public:
 		//Return POS if the literal in the set was provided, otherwise neg
 	bool			isOrigLit	()	const	{ return origlit; }
 	const Lit&		getPropLit	()	const	{ return proplit; }
-	Lit				getOrigLit	()	const	{ return origlit?proplit:~proplit; }
+	Lit				getOrigLit	()	const	{ return origlit?proplit:not proplit; }
 	const Weight&	getWeight	()	const 	{ return weight; }
 	int				getAggIndex	()	const;
 
-	void			propagate	();
+	virtual void	propagate	();
 };
 
 class AggReason {
@@ -126,7 +126,7 @@ public:
 		: AggReason(), expr(agg), l(setlit), w(setweight), inset(inset){ }
 
 	const Agg&		getAgg			() 	const	{ return expr; }
-    Lit				getPropLit		()	const	{ return inset?l:~l; }
+    Lit				getPropLit		()	const	{ return inset?l:not l; }
     Weight			getPropWeight	()	const	{ return w; }
     bool			isHeadReason	() 	const	{ return false; }
     bool			isInSet			()	const	{ return inset; }

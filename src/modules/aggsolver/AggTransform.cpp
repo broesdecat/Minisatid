@@ -133,11 +133,11 @@ void MinisatID::addHeadImplications(PCSolver* solver, InnerWLSet* set, std::vect
 				Agg* second = *i;
 				InnerDisjunction disj;
 				disj.literals.push(first->getHead());
-				disj.literals.push(~second->getHead());
+				disj.literals.push(not second->getHead());
 				solver->add(disj);
 				if(first->getBound()==second->getBound()){
 					InnerDisjunction disj2;
-					disj2.literals.push(~first->getHead());
+					disj2.literals.push(not first->getHead());
 					disj2.literals.push(second->getHead());
 					solver->add(disj2);
 				}
@@ -152,11 +152,11 @@ void MinisatID::addHeadImplications(PCSolver* solver, InnerWLSet* set, std::vect
 				Agg* second = *i;
 				InnerDisjunction disj;
 				disj.literals.push(first->getHead());
-				disj.literals.push(~second->getHead());
+				disj.literals.push(not second->getHead());
 				solver->add(disj);
 				if(first->getBound()==second->getBound()){
 					InnerDisjunction disj2;
-					disj2.literals.push(~first->getHead());
+					disj2.literals.push(not first->getHead());
 					disj2.literals.push(second->getHead());
 					solver->add(disj2);
 				}
@@ -202,7 +202,7 @@ void MinisatID::max2SAT(PCSolver* solver, InnerWLSet* set, std::vector<Agg*>& ag
 		notunsat = set->getSolver()->getPCSolver().add(rule);
 	} else {*/
 		InnerDisjunction clause;
-		clause.literals.push(ub? agg.getHead():~agg.getHead());
+		clause.literals.push(ub? agg.getHead():not agg.getHead());
 		for (vwl::const_reverse_iterator i = set->wls.rbegin(); i < set->wls.rend()	&& (*i).getWeight() >= bound; ++i) {
 			if (ub && (*i).getWeight() == bound) {
 				break;
@@ -216,8 +216,8 @@ void MinisatID::max2SAT(PCSolver* solver, InnerWLSet* set, std::vector<Agg*>& ag
 				break;
 			}
 			clause.literals.clear();
-			clause.literals.push(ub?~agg.getHead():agg.getHead());
-			clause.literals.push(~(*i).getLit());
+			clause.literals.push(ub?not agg.getHead():agg.getHead());
+			clause.literals.push(not (*i).getLit());
 			notunsat = solver->add(clause);
 		}
 	//}
@@ -290,6 +290,90 @@ void MinisatID::card2Equiv(PCSolver* solver, InnerWLSet* set, std::vector<Agg*>&
 
 	if(!unsat && aggs.size()==0){
 		sat = true;
+	}
+}
+
+AggProp const * getType(AggType type){
+	switch (type) {
+		case MAX:
+			return AggProp::getMax(); break;
+		case SUM:
+			return AggProp::getSum(); break;
+		case CARD:
+			return AggProp::getCard(); break;
+		case PROD:
+			return AggProp::getProd(); break;
+		default: assert(false); break;
+	}
+}
+
+void createPropagator(PCSolver* solver, InnerWLSet* set, std::vector<Agg*>& aggs, const Weight& knownbound, bool usewatches){
+	TypedSet* propagator = new TypedSet(solver, set->setID, knownbound);
+	propagator->setUsingWatches(usewatches);
+	propagator->setWL(set->wls);
+	propagator->setType(getType(set->type));
+	propagator->replaceAgg(aggs);
+}
+
+void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, InnerWLSet* set, std::vector<Agg*>& aggs, const Weight& knownbound){
+	bool watchable = true;
+	assert(aggs.size()>0);
+	for(auto i=aggs.begin(); i<aggs.end(); ++i){
+		if((*i)->getType()==MAX){
+			watchable = false;
+		}
+	}
+	if(!watchable){
+		return;
+	}
+
+	assert(aggs[0]->getSem()!=IMPLICATION); // TODO add to other transformations!
+
+	//create implication aggs
+	agglist implaggs, del;
+	for(agglist::const_iterator i=aggs.begin(); i<aggs.end(); ++i){
+		const Agg& agg = *(*i);
+
+		Agg *one, *two;
+		Weight weighttwo = agg.getSign()==AGGSIGN_LB?agg.getBound()-1:agg.getBound()+1;
+		AggSign signtwo = agg.getSign()==AGGSIGN_LB?AGGSIGN_UB:AGGSIGN_LB;
+		one = new Agg(~agg.getHead(), AggBound(agg.getSign(), agg.getBound()), IMPLICATION, agg.getType());
+		two = new Agg(agg.getHead(), AggBound(signtwo, weighttwo), IMPLICATION, agg.getType());
+
+		implaggs.push_back(one);
+		implaggs.push_back(two);
+		del.push_back(*i);
+	}
+
+	//separate in both signs
+	agglist signoneaggs, signtwoaggs;
+	signoneaggs.push_back(implaggs[0]);
+	for (agglist::const_iterator i = ++implaggs.begin(); i < implaggs.end(); ++i) {
+		if ((*i)->getSign() == implaggs[0]->getSign()) {
+			signoneaggs.push_back(*i);
+		} else {
+			signtwoaggs.push_back(*i);
+		}
+	}
+
+	//for each, generate watches and count ratio
+	//		partially watched and add sets in new format!
+	assert(signoneaggs.size()>0);
+	double ratioone = testGenWatchCount(*solver, *set, *getType(set->type), signoneaggs);
+	double ratiotwo = 0;
+	if(signtwoaggs.size()>0){
+		ratiotwo = testGenWatchCount(*solver, *set, *getType(set->type), signtwoaggs);
+	}
+
+	// Create propagators
+	double ratio = ratioone*0.5+ratiotwo*0.5;
+	if(ratio<=solver->modes().watchesratio){
+		createPropagator(solver, set, signoneaggs, knownbound, true);
+		if(signtwoaggs.size()>0){
+			createPropagator(solver, set, signtwoaggs, knownbound, true);
+		}
+	}else{
+		createPropagator(solver, set, aggs, knownbound, false);
 	}
 }
 

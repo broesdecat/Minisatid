@@ -340,7 +340,7 @@ AggPropagator*	SumProp::createPropagator(TypedSet* set) const{
 	//FIXME aggheur set->getSolver()->adaptAggHeur(set->getWL(), set->getAgg().size());
 
 	if(set->isUsingWatches()){
-		//FIXME return new GenPWAgg(set);
+		return new GenPWAgg(set);
 	}else{
 		return new SumFWAgg(set);
 	}
@@ -350,7 +350,7 @@ AggPropagator*	ProdProp::createPropagator(TypedSet* set) const{
 	//FIXME aggheur set->getSolver()->adaptAggHeur(set->getWL(), set->getAgg().size());
 
 	if(set->isUsingWatches()){
-		//FIXME return new GenPWAgg(set);
+		return new GenPWAgg(set);
 	}else{
 		return new ProdFWAgg(set);
 	}
@@ -365,12 +365,12 @@ AggPropagator::AggPropagator(TypedSet* set)
 void AggPropagator::initialize(bool& unsat, bool& sat) {
 	for (agglist::const_iterator i = getSet().getAgg().begin(); i < getSet().getAgg().end(); ++i) {
 		// both for implication and comp
-		Watch* w = new Watch(getSetp(), ~(*i)->getHead(), *i);
-		getSet().getPCSolver().accept(w);
+		Watch* w = new Watch(getSetp(), not (*i)->getHead(), *i);
+		getSet().getPCSolver().accept(w, true);
 
 		if((*i)->getSem()==COMP){
 			Watch* w2 = new Watch(getSetp(), (*i)->getHead(), *i);
-			getSet().getPCSolver().accept(w2);
+			getSet().getPCSolver().accept(w2, true);
 		}
 	}
 }

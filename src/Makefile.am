@@ -45,7 +45,7 @@ libminisatid_2_0_la_SOURCES = \
 		modules/aggsolver/AggSet.hpp 		modules/aggsolver/AggSet.cpp\
 		modules/aggsolver/AggPrint.hpp 		modules/aggsolver/AggPrint.cpp\
 		modules/aggsolver/FullyWatched.hpp 	modules/aggsolver/FullyWatched.cpp\
-		modules/aggsolver/PartiallyWatched.hpp modules/aggsolver/GenPartiallyWatched.cpp\
+		modules/aggsolver/PartiallyWatched.hpp modules/aggsolver/PartiallyWatched.cpp\
 		modules/aggsolver/AggProp.hpp 		modules/aggsolver/AggProp.cpp\
 		modules/LazyGrounder.hpp	 		modules/LazyGrounder.cpp\
 		modules/Symmetrymodule.hpp\
@@ -53,6 +53,7 @@ libminisatid_2_0_la_SOURCES = \
 		theorysolvers/PCSolver.hpp 			theorysolvers/PCSolver.cpp\
 		theorysolvers/SOSolver.hpp 			theorysolvers/SOSolver.cpp\
 		theorysolvers/EventQueue.hpp 		theorysolvers/EventQueue.cpp\
+		theorysolvers/TimeTrail.hpp\
 		theorysolvers/PropagatorFactory.hpp theorysolvers/PropagatorFactory.cpp\
 		utils/IntTypes.h\
 		utils/Print.hpp 					utils/Print.cpp\

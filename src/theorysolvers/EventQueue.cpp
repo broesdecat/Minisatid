@@ -91,7 +91,10 @@ void EventQueue::acceptLitEvent(Propagator* propagator, const Lit& litevent, PRI
 }
 
 // TODO turn lits into litwatches and add accepted flag?
-void EventQueue::accept(Watch* watch){
+void EventQueue::accept(Watch* watch, bool permanent){
+	if(!permanent){
+#warning implement dynamic watches!
+	}
 	watchevent2propagator[toInt(watch->getPropLit())].push_back(watch);
 	if(getPCSolver().value(watch->getPropLit())==l_True){
 		watch->propagate();

@@ -29,7 +29,7 @@ BinaryConstraint::BinaryConstraint(PCSolver* engine, IntVar* left, EqType comp, 
 void BinaryConstraint::finishParsing(bool& unsat, bool& sat){
 	// TODO anything on intvars cannot be accepted before finishparsing of the intvar!
 	getPCSolver().acceptLitEvent(this, head(), FAST);
-	getPCSolver().acceptLitEvent(this, ~head(), FAST);
+	getPCSolver().acceptLitEvent(this, not head(), FAST);
 	getPCSolver().acceptBounds(left(), this);
 	getPCSolver().acceptBounds(right(), this);
 }
@@ -192,28 +192,28 @@ rClause	BinaryConstraint::notifypropagate(){
 		switch(comp_){
 		case BIN_EQ:
 			if(violatedEq()){
-				prop = true; headprop = ~head();
+				prop = true; headprop = not head();
 			}else if(satisfiedEq()){
 				prop = true; headprop = head();
 			}
 			break;
 		case BIN_NEQ:
 			if(satisfiedEq()){
-				prop = true; headprop = ~head();
+				prop = true; headprop = not head();
 			}else if(violatedEq()){
 				prop = true; headprop = head();
 			}
 			break;
 		case BIN_L:
 			if(rightmax()<=leftmin()){
-				prop = true; headprop = ~head();
+				prop = true; headprop = not head();
 			}else if(leftmax()<rightmax()){
 				prop = true; headprop = head();
 			}
 			break;
 		case BIN_LEQ:
 			if(rightmax()<leftmin()){
-				prop = true; headprop = ~head();
+				prop = true; headprop = not head();
 			}else if(leftmax()<=rightmax()){
 				prop = true; headprop = head();
 			}

@@ -81,7 +81,7 @@ public:
 
 	void 	addEternalPropagators();
 	void 	acceptLitEvent(Propagator* propagator, const Lit& litevent, PRIORITY priority);
-	void 	accept(Watch* watch); // NOTE: permanent watches!
+	void 	accept(Watch* watch, bool permanent);
 
 	void 	notifyVarAdded			();
 

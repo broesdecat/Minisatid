@@ -101,8 +101,8 @@ bool CPSolver::add(const InnerIntVarRange& form){
 
 bool CPSolver::add(const InnerCPBinaryRel& form){
 	assert(!isInitialized());
-	getPCSolver().acceptLitEvent(this, mkLit(form.head, true), SLOW);
-	getPCSolver().acceptLitEvent(this, ~mkLit(form.head, true), SLOW);
+	getPCSolver().acceptLitEvent(this, mkNegLit(form.head), SLOW);
+	getPCSolver().acceptLitEvent(this, not mkNegLit(form.head), SLOW);
 	TermIntVar lhs(convertToVar(form.varID));
 	getData().addReifConstraint(new BinArithConstraint(getSpace(), lhs, toRelType(form.rel), form.bound, form.head));
 	return true;
@@ -112,8 +112,8 @@ bool CPSolver::add(const InnerCPBinaryRelVar& form){
 	assert(!isInitialized());
 	TermIntVar lhs(convertToVar(form.lhsvarID));
 	TermIntVar rhs(convertToVar(form.rhsvarID));
-	getPCSolver().acceptLitEvent(this, mkLit(form.head, true), SLOW);
-	getPCSolver().acceptLitEvent(this, ~mkLit(form.head, true), SLOW);
+	getPCSolver().acceptLitEvent(this, mkNegLit(form.head), SLOW);
+	getPCSolver().acceptLitEvent(this, not mkNegLit(form.head), SLOW);
 	getData().addReifConstraint(new BinArithConstraint(getSpace(), lhs, toRelType(form.rel), rhs, form.head));
 	return true;
 }
@@ -121,8 +121,8 @@ bool CPSolver::add(const InnerCPBinaryRelVar& form){
 bool CPSolver::add(const InnerCPSumWeighted& form){
 	assert(!isInitialized());
 	vector<TermIntVar> set(convertToVars(form.varIDs));
-	getPCSolver().acceptLitEvent(this, mkLit(form.head, true), SLOW);
-	getPCSolver().acceptLitEvent(this, ~mkLit(form.head, true), SLOW);
+	getPCSolver().acceptLitEvent(this, mkNegLit(form.head), SLOW);
+	getPCSolver().acceptLitEvent(this, not mkNegLit(form.head), SLOW);
 	getData().addReifConstraint(new SumConstraint(getSpace(), set, form.weights, toRelType(form.rel), form.bound, form.head));
 	return true;
 }
@@ -354,7 +354,7 @@ rClause CPSolver::propagateReificationConstraints(){
 	rClause confl = nullPtrClause;
 	for(vector<ReifiedConstraint*>::const_iterator i=getData().getReifConstraints().begin(); confl==nullPtrClause && i<getData().getReifConstraints().end(); i++){
 		if((*i)->isAssigned(getSpace())){
-			confl = notifySATsolverOfPropagation(mkLit((*i)->getHead(), (*i)->isAssignedFalse(getSpace())));
+			confl = notifySATsolverOfPropagation((*i)->isAssignedFalse(getSpace())?mkNegLit((*i)->getHead()):mkPosLit((*i)->getHead())));
 		}
 	}
 	return confl;
