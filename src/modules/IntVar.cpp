@@ -28,8 +28,14 @@ void IntVar::finishParsing(bool& present, bool& unsat){
 	offset = engine().nVars();
 	for(int i=origMinValue(); i<origMaxValue()+1; ++i){
 		// TODO equalities moeten mss geen decision vars zijn?
-		equalities.push_back(engine().newVar());
-		disequalities.push_back(engine().newVar());
+		Var var = engine().newVar();
+		equalities.push_back(var);
+		var2intvarvalues.insert(std::pair<int, IntVarValue>(var, IntVarValue(this, true, i+minValue())));
+
+		var = engine().newVar();
+		disequalities.push_back(var);
+		var2intvarvalues.insert(std::pair<int, IntVarValue>(var, IntVarValue(this, false, i+minValue())));
+
 	}
 	for(auto i=equalities.begin(); i<equalities.end(); ++i){
 		engine().acceptLitEvent(this, mkPosLit(*i), FAST);

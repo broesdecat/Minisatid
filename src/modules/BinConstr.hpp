@@ -7,7 +7,7 @@ namespace MinisatID{
 
 class BinaryConstraint: public Propagator{
 	Lit head_;
-	IntVar *left_, *right_;
+	IntView *left_, *right_;
 	BinComp comp_;
 
 public:
@@ -22,8 +22,11 @@ public:
 
 	virtual rClause getExplanation(const Lit& lit);
 
-	IntVar* left() const { return left_;}
-	IntVar* right() const { return right_;}
+	IntView* left() const { return left_;}
+	IntView* right() const { return right_;}
+	IntVar* leftvar() const { return left()->var(); }
+	IntVar* rightvar() const { return right()->var(); }
+	BinComp	comp() const { return comp_; }
 
 	int leftmin() const { return left_->minValue(); }
 	int leftmax() const { return left_->maxValue(); }
@@ -50,8 +53,12 @@ public:
 	 */
 	enum BIN_SIGN { LOWEREQ, HIGHEREQ, NOT};
 
-	rClause propagate(int bound, BIN_SIGN comp, IntVar* var);
-	rClause propagate(IntVar* var, BIN_SIGN comp, int bound);
+	rClause propagate(int bound, BIN_SIGN comp, IntView* var);
+	rClause propagate(IntView* var, BIN_SIGN comp, int bound);
+
+//	void addExplanIntVarLit(InnerDisjunction& clause, IntVar* othervar, int bound, AggSign varsign);
+//	rClause propagate(const Lit& truehead, int bound, BIN_SIGN comp, IntVar* var, AggSign varsign);
+//	rClause propagate(const Lit& truehead, IntVar* var, BIN_SIGN comp, int bound, AggSign varsign);
 
 	virtual rClause	notifypropagate();
 

@@ -8,11 +8,22 @@
 
 namespace MinisatID{
 
-enum BinComp { BIN_EQ, BIN_NEQ, BIN_L, BIN_LEQ};
+enum BinComp { BIN_EQ, BIN_LEQ};
+
+class IntVar;
+
+struct IntVarValue{
+	IntVar* var;
+	bool 	eq;
+	Weight value;
+
+	IntVarValue(IntVar* var, bool eq, Weight value): var(var), eq(eq), value(value){}
+};
 
 class IntVar: public Propagator{
 private:
 	static int maxid_;
+	static std::map<int, IntVarValue> var2intvarvalues;
 	int id_, origid_;
 	PCSolver& engine_;
 	const int minvalue, maxvalue;
@@ -23,6 +34,8 @@ private:
 	
 public:
 	IntVar(PCSolver* solver, int origid, int min, int max);
+
+	static const IntVarValue& getIntVar(const Lit& lit) { return var2intvarvalues.at(var(lit)); }
 
 	virtual const char* getName() const { return "intvar"; }
 	virtual void finishParsing(bool& present, bool& unsat);
@@ -67,6 +80,54 @@ public:
 
 private:
 	void addConstraints();
+};
+
+class IntView{
+private:
+	IntVar* var_;
+	int constdiff_;
+
+	int constdiff() const { return constdiff_; }
+
+public:
+	IntView(IntVar* var, int constdiff): var_(var), constdiff_(constdiff){ }
+
+	IntVar* var() const { return var_; }
+
+	int id() const { return var()->id(); }
+	int origid() const { return var()->origid(); }
+
+	int origMinValue(){
+		return var()->origMinValue()+constdiff();
+	}
+
+	int origMaxValue(){
+		return var()->origMaxValue()+constdiff();
+	}
+
+	int minValue(){
+		return var()->minValue()+constdiff();
+	}
+
+	int maxValue(){
+		return var()->maxValue()+constdiff();
+	}
+
+	Lit getLEQLit(int bound){
+		return var()->getLEQLit(bound-constdiff());
+	}
+
+	Lit getGEQLit(int bound){
+		return var()->getGEQLit(bound-constdiff());
+	}
+
+	Lit getEQLit(int bound){
+		return var()->getEQLit(bound-constdiff());
+	}
+
+	Lit getNEQLit(int bound){
+		return var()->getNEQLit(bound-constdiff());
+	}
 };
 
 }
