@@ -63,8 +63,6 @@ private:
 
 	SymmetryPropagator<PCSolver*>* symmsolver;
 	void addSymmSolver();
-	SymmetryPropagator<PCSolver*>* getSymmSolver() const;
-	bool hasSymmSolver() const;
 
 #ifdef CPSUPPORT
 	CPSolver* cpsolver;
@@ -95,6 +93,10 @@ public:
 	PCSolver& getEngine() { return *engine; }
 	PCSolver* getEnginep() const { return engine; }
 	const PCSolver& getEngine() const { return *engine; }
+
+	// TODO move!
+	bool hasSymmSolver() const;
+	SymmetryPropagator<PCSolver*>* getSymmSolver() const;
 
 	bool add(const Var& sentence);
 	bool add(const InnerDisjunction& sentence);

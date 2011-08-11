@@ -29,7 +29,6 @@ EventQueue::EventQueue(PCSolver& pcsolver):
 	event2propagator[EV_BACKTRACK];
 	event2propagator[EV_EXITCLEANLY];
 	event2propagator[EV_ADDCLAUSE];
-	event2propagator[EV_REMOVECLAUSE];
 	event2propagator[EV_SYMMETRYANALYZE];
 }
 
@@ -195,12 +194,6 @@ rClause EventQueue::notifyFullAssignmentFound(){
 void EventQueue::notifyClauseAdded(rClause clauseID){
 	for(auto i=begin(EV_ADDCLAUSE); i<end(EV_ADDCLAUSE); ++i){
 		(*i)->notifyClauseAdded(clauseID);
-	}
-}
-
-void EventQueue::notifyClauseDeleted(rClause clauseID){
-	for(auto i=begin(EV_REMOVECLAUSE); i<end(EV_REMOVECLAUSE); ++i){
-		(*i)->notifyClauseDeleted(clauseID);
 	}
 }
 
