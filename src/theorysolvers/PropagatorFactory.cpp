@@ -330,12 +330,20 @@ bool PropagatorFactory::add(const InnerForcedChoices& formula){
 bool PropagatorFactory::add(const InnerSymmetryLiterals& formula){
 	notifyMonitorsOfAdding(formula);
 
+	if(!hasSymmSolver()){
+		addSymmSolver();
+	}
+
 	getSymmSolver()->add(formula.literalgroups);
 	return true;
 }
 
 bool PropagatorFactory::add(const InnerSymmetry& formula){
 	notifyMonitorsOfAdding(formula);
+
+	if(!hasSymmSolver()){
+		addSymmSolver();
+	}
 
 	getSymmSolver()->add(formula.symmetry);
 	return true;
