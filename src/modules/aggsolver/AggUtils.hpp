@@ -53,28 +53,40 @@ public:
 
 class Watch{
 private:
-	TypedSet* 		set;
-	bool 			head, origlit;
-	Agg*			agg;
-	Lit 			proplit;
-	Weight 			weight;
+	TypedSet* 		set_;
+	bool 			head_, origlit_, dynamic_;
+	Agg*			agg_;
+	Lit 			proplit_;
+	Weight 			weight_;
 public:
-	Watch(TypedSet* set, const Lit& lit, Agg* agg):
-		set(set), head(true), origlit(false), agg(agg), proplit(lit), weight(0){}
-	Watch(TypedSet* set, const Lit& lit, const Weight& weight, bool origlit):
-		set(set), head(false), origlit(origlit), agg(NULL), proplit(lit), weight(weight){}
+	Watch(TypedSet* set, const Lit& lit, Agg* agg, bool dynamic):
+			set_(set),
+			head_(true), origlit_(false), dynamic_(dynamic),
+			agg_(agg),
+			proplit_(lit),
+			weight_(0){}
+	Watch(TypedSet* set, const Lit& lit, const Weight& weight, bool origlit, bool dynamic):
+			set_(set),
+			head_(false), origlit_(origlit), dynamic_(dynamic),
+			agg_(NULL),
+			proplit_(lit),
+			weight_(weight){}
 
-	bool			headWatch	() 	const 	{ return head; }
-	TypedSet*		getSet		()	const 	{ return set; }
-	Occurrence 		getType		()	const 	{ return origlit?POS:NEG; }
+	virtual ~Watch(){}
+
+	bool 			dynamic		() 	const	{ return dynamic_; }
+
+	bool			headWatch	() 	const 	{ return head_; }
+	TypedSet*		getSet		()	const 	{ return set_; }
+	Occurrence 		getType		()	const 	{ return origlit_?POS:NEG; }
 		//Return POS if the literal in the set was provided, otherwise neg
-	bool			isOrigLit	()	const	{ return origlit; }
-	const Lit&		getPropLit	()	const	{ return proplit; }
-	Lit				getOrigLit	()	const	{ return origlit?proplit:not proplit; }
-	const Weight&	getWeight	()	const 	{ return weight; }
+	bool			isOrigLit	()	const	{ return origlit_; }
+	const Lit&		getPropLit	()	const	{ return proplit_; }
+	Lit				getOrigLit	()	const	{ return origlit_?proplit_:not proplit_; }
+	const Weight&	getWeight	()	const 	{ return weight_; }
 	int				getAggIndex	()	const;
 
-	virtual void	propagate	();
+	void			propagate	();
 };
 
 class AggReason {

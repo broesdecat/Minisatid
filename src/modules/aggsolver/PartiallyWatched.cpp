@@ -74,7 +74,7 @@ void GenPWAgg::addWatchToNetwork(GenPWatch* watch){
 	assert(watch->isInWS());
 	if(!watch->isInNetwork()){
 		watch->addToNetwork();
-		getSet().getPCSolver().acceptLitEvent(getSetp(), watch->getWatchLit(), FAST);
+		getSet().getPCSolver().accept(watch);
 	}
 }
 
@@ -412,7 +412,16 @@ void GenPWAgg::genWatches(vsize& i, const Agg& agg, minmaxOptimAndPessBounds& bo
 	assert(isSatisfied(agg, bounds.optim) || i>=getNWS().size());
 }
 
-rClause GenPWAgg::propagate2(const Lit& p, Watch* watch, int level) {
+void GenPWAgg::propagate(int level, Watch* ws, int aggindex){
+	trail.push_back(ws);
+	getSet().getPCSolver().acceptForBacktrack(getSetp());
+}
+void GenPWAgg::propagate(const Lit& p, Watch* ws, int level){
+	trail.push_back(ws);
+	getSet().getPCSolver().acceptForBacktrack(getSetp());
+}
+
+rClause GenPWAgg::propagateAtEndOfQueue(Watch* watch) {
 	rClause confl = nullPtrClause;
 	GenPWatch* const pw = dynamic_cast<GenPWatch*>(watch);
 
@@ -448,7 +457,7 @@ rClause GenPWAgg::propagate2(const Lit& p, Watch* watch, int level) {
 	return confl;
 }
 
-rClause GenPWAgg::propagate2(int level, const Agg& agg, bool headtrue) {
+rClause GenPWAgg::propagateAtEndOfQueue(const Agg& agg) {
 	bool propagations = false;
 	rClause confl = reconstructSet(NULL, propagations, &agg);
 	addStagedWatchesToNetwork();
@@ -457,19 +466,31 @@ rClause GenPWAgg::propagate2(int level, const Agg& agg, bool headtrue) {
 
 // NOOP because all propagation is done in propagate
 rClause	GenPWAgg::propagateAtEndOfQueue(){
-	return nullPtrClause;
+	rClause confl = nullPtrClause;
+	int i = 0;
+	while(confl == nullPtrClause && trail.size()>0){
+		auto watch = trail[i];
+		if(watch->headWatch()){
+			propagateAtEndOfQueue(*getAgg()[watch->getAggIndex()]);
+		}else{
+			propagateAtEndOfQueue(watch);
+		}
+	}
+	trail.clear();
+	return confl;
 }
 
-class WLI: public WL{
+class wlt: public WL{
 public:
 	int time;
 	bool inset;
 
-	WLI(): WL(createPositiveLiteral(1), Weight(0)), time(0), inset(false){}
-	WLI(const WL& wl, int time, bool inset): WL(wl), time(time), inset(inset){}
+	wlt(): WL(createPositiveLiteral(1), Weight(0)), time(0), inset(false){}
+	wlt(const WL& wl, int time, bool inset): WL(wl), time(time), inset(inset){}
 };
 
-bool compareWLIearlier(const WLI& one, const WLI& two){
+template<class T>
+bool compareEarlier(const T& one, const T& two){
 	return one.time < two.time;
 }
 
@@ -494,13 +515,14 @@ void GenPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 		lits.push(headval==l_True?not head:head);
 	}
 
-	vector<WLI> wlis;
+	std::vector<wlt> wlis;
 	// FIXME getlevel approximation of gettime might be incorrect!
 	for(auto i=getWS().begin(); i<getWS().end(); ++i){
 		if(var((*i)->getWatchLit())!=var(proplit)){
 			const Lit& lit = (*i)->getWL().getLit();
 			if(value((*i)->getWatchLit())==l_True){
-				wlis.push_back(WLI((*i)->getWL(), getSet().getPCSolver().getLevel(var(lit)), (*i)->getWatchLit()==lit));
+				wlt wli((*i)->getWL(), getSet().getPCSolver().getLevel(var(lit)), (*i)->getWatchLit()==lit);
+				wlis.push_back(wli);
 			}
 		}
 	}
@@ -508,34 +530,34 @@ void GenPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 		if(var((*i)->getWatchLit())!=var(proplit)){
 			const Lit& lit = (*i)->getWL().getLit();
 			if(value((*i)->getWatchLit())==l_True){
-				wlis.push_back(WLI((*i)->getWL(), getSet().getPCSolver().getLevel(var(lit)), (*i)->getWatchLit()==lit));
+				wlt wli((*i)->getWL(), getSet().getPCSolver().getLevel(var(lit)), (*i)->getWatchLit()==lit);
+				wlis.push_back(wli);
 			}
 		}
 	}
 
 	//Follow propagation order
-	sort(wlis.begin(), wlis.end(), compareWLIearlier);
+	sort(wlis.begin(), wlis.end(), compareEarlier<wlt>);
 
 	minmaxBounds pessbounds(getBoundsOnEmptyInterpr());
 	if(!ar.isHeadReason()){ //Change value according to propagating negation of proplit
 		addValue(getType(), ar.getPropWeight(), !ar.isInSet(), pessbounds);
 	}
 
-	vector<WLI> reasons;
-	for(vector<WLI>::const_iterator i=wlis.begin(); !isFalsified(ar.getAgg(), pessbounds) && i<wlis.end(); ++i){
-		const WLI& wl = *i;
-		if(var(wl.getLit())==var(proplit)){
+	vector<wlt> reasons;
+	for(auto i=wlis.begin(); !isFalsified(ar.getAgg(), pessbounds) && i<wlis.end(); ++i){
+		if(var(i->getLit())==var(proplit)){
 			continue;
 		}
-		if(conflictclause || pcsol.assertedBefore(var(wl.getLit()), var(proplit))){
-			addValue(getType(), wl.getWeight(), wl.inset, pessbounds);
+		if(conflictclause || pcsol.assertedBefore(var(i->getLit()), var(proplit))){
+			addValue(getType(), i->getWeight(), i->inset, pessbounds);
 			reasons.push_back(*i);
 		}
 	}
 
 	//Subsetminimization
 	if(getSet().modes().subsetminimizeexplanation){
-		sort(reasons.begin(), reasons.end(), compareByWeights<WLI>);
+		sort(reasons.begin(), reasons.end(), compareByWeights<wlt>);
 		for(auto i=reasons.begin(); i<reasons.end(); ++i){
 			removeValue(getSet().getType(), i->getWeight(), i->inset, pessbounds);
 			if((caseone && isFalsified(agg, pessbounds) ) ||(!caseone && isSatisfied(agg, pessbounds))){
@@ -554,9 +576,23 @@ void GenPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	assert(isFalsified(ar.getAgg(), pessbounds));
 }
 
+class TempWatch{
+private:
+	const 	WL		_wl;
+	const 	bool	_watchneg;
+public:
+	TempWatch(const WL& wl, bool watchneg):
+		_wl(wl),
+		_watchneg(watchneg){
+	}
+
+	bool 		isMonotone	()	const 	{ return _watchneg; }
+	const WL& 	getWL		() 	const 	{ return _wl; }
+};
+
 double MinisatID::testGenWatchCount(const PCSolver& solver, const InnerWLSet& set, const AggProp& type, const std::vector<Agg*> aggs) {
 	int totallits = set.wls.size(), totalwatches = 0;
-	genwatchlist nws;
+	std::vector<TempWatch*> nws;
 	Agg const * worstagg;
 
 	//Calculate min and max values over empty interpretation
@@ -566,7 +602,7 @@ double MinisatID::testGenWatchCount(const PCSolver& solver, const InnerWLSet& se
 	for(vsize i=0; i<wls.size(); ++i){
 		const WL& wl = wls[i];
 		bool mono = type.isMonotone(**aggs.begin(), wl.getWeight());
-		nws.push_back(new GenPWatch(NULL, wl, mono, nws.size())); // fixme
+		nws.push_back(new TempWatch(wl, mono));
 	}
 
 	//Calculate reference aggregate (the one which will lead to the most watches
@@ -587,7 +623,7 @@ double MinisatID::testGenWatchCount(const PCSolver& solver, const InnerWLSet& se
 	}
 
 	minmaxOptimAndPessBounds bounds(emptyinterpretbounds);
-	GenPWatch* largest = NULL;
+	TempWatch* largest = NULL;
 	vsize i = 0;
 	for(;!isSatisfied(agg, bounds.optim) && !isSatisfied(agg, bounds.pess) && i<nws.size(); ++i){
 		WL wl = nws[i]->getWL();

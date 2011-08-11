@@ -38,16 +38,16 @@ EventQueue::~EventQueue() {
 	for(uint i=0; i<size(EV_EXITCLEANLY); ++i){
 		delete(props[i]);
 	}
-	deleteList<Watch>(watchevent2propagator);
+	deleteList<Watch>(lit2watches);
 }
 
 void EventQueue::notifyVarAdded(){
-	while(litevent2propagator.size()<2*getPCSolver().nVars()){
+	while(lit2priority2propagators.size()<2*getPCSolver().nVars()){
 		vector<proplist> newmap;
 		newmap.push_back(proplist());
 		newmap.push_back(proplist());
-		litevent2propagator.push_back(newmap);
-		watchevent2propagator.push_back(watchlist());
+		lit2priority2propagators.push_back(newmap);
+		lit2watches.push_back(watchlist());
 	}
 }
 
@@ -66,7 +66,7 @@ void EventQueue::notifyBoundsChanged(IntVar* var) {
 	if(!isInitialized()){ // TODO enforce by design?
 		return;
 	}
-	for(auto i=intvar2propagator[var->id()].begin(); i<intvar2propagator[var->id()].end(); ++i){
+	for(auto i=intvarid2propagators[var->id()].begin(); i<intvarid2propagators[var->id()].end(); ++i){
 		if(!(*i)->isPresent()){ continue; }
 		if(not (*i)->isQueued()){
 			fastqueue.push(*i);
@@ -75,13 +75,13 @@ void EventQueue::notifyBoundsChanged(IntVar* var) {
 }
 
 //TODO should check doubles in another way (or prevent any from being added) (maybe a set is better than a vector)
-void EventQueue::acceptLitEvent(Propagator* propagator, const Lit& litevent, PRIORITY priority){
-	for(proplist::const_iterator i=litevent2propagator[toInt(litevent)][priority].begin(); i<litevent2propagator[toInt(litevent)][priority].end(); ++i){
+void EventQueue::accept(Propagator* propagator, const Lit& litevent, PRIORITY priority){
+	for(proplist::const_iterator i=lit2priority2propagators[toInt(litevent)][priority].begin(); i<lit2priority2propagators[toInt(litevent)][priority].end(); ++i){
 		if((*i)==propagator){
 			return;
 		}
 	}
-	litevent2propagator[toInt(litevent)][priority].push_back(propagator);
+	lit2priority2propagators[toInt(litevent)][priority].push_back(propagator);
 	if(getPCSolver().value(litevent)==l_True){
 		if(!propagator->isQueued()){
 			propagator->notifyQueued();
@@ -91,21 +91,10 @@ void EventQueue::acceptLitEvent(Propagator* propagator, const Lit& litevent, PRI
 }
 
 // TODO turn lits into litwatches and add accepted flag?
-void EventQueue::accept(Watch* watch, bool permanent){
-	if(!permanent){
-#warning implement dynamic watches!
-	}
-	watchevent2propagator[toInt(watch->getPropLit())].push_back(watch);
+void EventQueue::accept(Watch* watch){
+	lit2watches[toInt(watch->getPropLit())].push_back(watch);
 	if(getPCSolver().value(watch->getPropLit())==l_True){
 		watch->propagate();
-	}
-}
-
-void EventQueue::acceptFinishParsing(Propagator* propagator, bool late){
-	if(late){
-		latefinishparsing.push_back(propagator);
-	}else{
-		earlyfinishparsing.push_back(propagator);
 	}
 }
 
@@ -124,53 +113,48 @@ void EventQueue::setTrue(const Lit& l){
 	if(isInitialized()){
 		addEternalPropagators();
 	}
-	for(int i=0; i!=watchevent2propagator[toInt(l)].size(); ++i){
-		watchevent2propagator[toInt(l)][i]->propagate();
+	for(int i=0; i!=lit2watches[toInt(l)].size(); ++i){
+		lit2watches[toInt(l)][i]->propagate();
 	}
-	setTrue(litevent2propagator[toInt(l)][FAST], fastqueue);
-	setTrue(litevent2propagator[toInt(l)][SLOW], slowqueue);
+	for(auto i=lit2watches[toInt(l)].begin(); i!=lit2watches[toInt(l)].end(); ++i){
+		if((*i)->dynamic()){
+			i = lit2watches[toInt(l)].erase(i);
+		}
+	}
+	setTrue(lit2priority2propagators[toInt(l)][FAST], fastqueue);
+	setTrue(lit2priority2propagators[toInt(l)][SLOW], slowqueue);
 }
 
-void EventQueue::finishParsing(bool& unsat){
-	unsat = false;
-
-	for(int i=0; !unsat && i!=earlyfinishparsing.size(); ++i){
-		Propagator* prop = earlyfinishparsing[i];
-		bool present = true;
-		prop->finishParsing(present, unsat);
-		if(!present){
-			printNoPropagationsOn(clog, prop->getName(), getPCSolver().verbosity());
-			prop->notifyNotPresent();
-		}
+void EventQueue::acceptFinishParsing(Propagator* propagator, bool late){
+	if(late){
+		finishparsing.push_back(propagator);
+	}else{
+		finishparsing.push_front(propagator);
 	}
-	earlyfinishparsing.clear();
+}
 
-	for(int i=0; !unsat && i!=latefinishparsing.size(); ++i){
-		Propagator* prop = latefinishparsing[i];
-		bool present = true;
-		prop->finishParsing(present, unsat);
-		if(!present){
-			printNoPropagationsOn(clog, prop->getName(), getPCSolver().verbosity());
-			prop->notifyNotPresent();
-		}
-	}
-	latefinishparsing.clear();
-
-
+void EventQueue::clearNotPresentPropagators(){
 	//IMPORTANT: the propagators which are no longer present should be deleted from EVERY datastructure that is used later on!
 	for(auto i=event2propagator.begin(); i!=event2propagator.end(); ++i){
-		for(proplist::iterator j=(*i).second.begin(); j<(*i).second.end(); ++j){
+		for(auto j=(*i).second.begin(); j<(*i).second.end(); ++j){
 			if(!(*j)->isPresent()){
 				j = --(*i).second.erase(j);
 			}
 		}
 	}
-	for(auto i=litevent2propagator.begin(); i<litevent2propagator.end(); ++i){
-		for(vector<proplist >::iterator j=(*i).begin(); j!=(*i).end(); ++j){
-			for(proplist::iterator k=(*j).begin(); k<(*j).end(); ++k){
+	for(auto i=lit2priority2propagators.begin(); i<lit2priority2propagators.end(); ++i){
+		for(auto j=(*i).begin(); j!=(*i).end(); ++j){
+			for(auto k=(*j).begin(); k<(*j).end(); ++k){
 				if(!(*k)->isPresent()){
 					k = --(*j).erase(k);
 				}
+			}
+		}
+	}
+	for(auto intvar = intvarid2propagators.begin(); intvar!=intvarid2propagators.end(); ++intvar){
+		for(auto prop = intvar->begin(); prop != intvar->end(); ++prop){
+			if(!(*prop)->isPresent()){
+				prop = --(*intvar).erase(prop);
 			}
 		}
 	}
@@ -180,12 +164,30 @@ void EventQueue::finishParsing(bool& unsat){
 			j = --allpropagators.erase(j);
 		}
 	}
+}
+
+void EventQueue::finishParsing(bool& unsat){
+	unsat = false;
+
+	while(finishparsing.size()>0){
+		auto prop = finishparsing.front();
+		finishparsing.pop_front();
+		bool present = true;
+		prop->finishParsing(present, unsat);
+		if(!present){
+			printNoPropagationsOn(clog, prop->getName(), getPCSolver().verbosity());
+			prop->notifyNotPresent();
+		}
+	}
+
+	clearNotPresentPropagators();
 
 	notifyInitialized();
+
+	// Queue all necessary propagators
 	addEternalPropagators();
-	for(auto intvar = intvar2propagator.begin(); intvar!=intvar2propagator.end(); ++intvar){
+	for(auto intvar = intvarid2propagators.begin(); intvar!=intvarid2propagators.end(); ++intvar){
 		for(auto prop = intvar->begin(); prop != intvar->end(); ++prop){
-			if(!(*prop)->isPresent()){ continue; }
 			if(not (*prop)->isQueued()){
 				fastqueue.push(*prop);
 			}

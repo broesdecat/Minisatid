@@ -1325,7 +1325,7 @@ void IDSolver::changejust(Var v, vec<Lit>& just) {
 	justification(v).clear();
 	just.copyTo(justification(v));
 	for(int i=0; i<just.size(); ++i){
-		getPCSolver().acceptLitEvent(this, not just[i], SLOW);
+		getPCSolver().accept(this, not just[i], SLOW);
 	}
 }
 

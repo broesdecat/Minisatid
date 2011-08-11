@@ -11,6 +11,7 @@
 
 #include <vector>
 #include <queue>
+#include <deque>
 #include "utils/Utils.hpp"
 #include "modules/DPLLTmodule.hpp"
 #include "modules/IntVar.hpp"
@@ -35,12 +36,11 @@ private:
 	std::queue<Propagator*> fastqueue, slowqueue, backtrackqueue;
 
 	proplist allpropagators;
-
-	std::map<EVENT, proplist > event2propagator;
-	proplist earlyfinishparsing, latefinishparsing;
-	std::vector<std::vector<proplist> > litevent2propagator;
-	std::vector<watchlist> watchevent2propagator;
-	std::vector<proplist> intvar2propagator;
+	std::deque<Propagator*> finishparsing;
+	std::map<EVENT, proplist > event2propagator;					// |events|
+	std::vector<std::vector<proplist> > lit2priority2propagators;	// |lits|
+	std::vector<watchlist> lit2watches;								// |lits|
+	std::vector<proplist> intvarid2propagators; 					// |intvars|
 
 	bool initialized;
 	void notifyInitialized() { initialized = true; }
@@ -73,15 +73,15 @@ public:
 	//NOTE Both aggsolver and modsolver can add rules during their initialization, so idsolver should be late and all the others early!
 	void acceptFinishParsing(Propagator* propagator, bool late);
 	void acceptBounds(IntVar* var, Propagator* propagator){
-		if(intvar2propagator.size()<=var->id()){
-			intvar2propagator.resize(var->id()+1, proplist());
+		if(intvarid2propagators.size()<=var->id()){
+			intvarid2propagators.resize(var->id()+1, proplist());
 		}
-		intvar2propagator[var->id()].push_back(propagator);
+		intvarid2propagators[var->id()].push_back(propagator);
 	}
+	void 	accept(Propagator* propagator, const Lit& litevent, PRIORITY priority);
+	void 	accept(Watch* watch);
 
 	void 	addEternalPropagators();
-	void 	acceptLitEvent(Propagator* propagator, const Lit& litevent, PRIORITY priority);
-	void 	accept(Watch* watch, bool permanent);
 
 	void 	notifyVarAdded			();
 
@@ -103,6 +103,7 @@ public:
 
 private:
 	void 	setTrue(const proplist& list, std::queue<Propagator*>& queue);
+	void 	clearNotPresentPropagators();
 
 	uint size(EVENT event) const;
 };

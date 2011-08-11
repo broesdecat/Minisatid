@@ -39,33 +39,26 @@ class GenPWatch: public Watch{
 private:
 			bool	_innws; //True if it is in NWS, false if it is in WS
 			bool	_innet; //True if it is in the watch network
-	const 	WL		_wl;
-	const 	bool	_watchneg;
 			int 	_index; //-1 if _innws
 public:
 	GenPWatch(TypedSet* set, const WL& wl, bool watchneg, vsize index):
-		Watch(set, wl.getLit(), wl.getWeight(), not watchneg),
+		Watch(set, wl.getLit(), wl.getWeight(), not watchneg, true),
 		_innws(true),
 		_innet(false),
-		_wl(wl),
-		_watchneg(watchneg),
 		_index(index){
 	}
 
-	int getIndex() const { return _index; }
-	void setIndex(int c) { _index = c; }
-
-	bool 		isMonotone	()	const 	{ return _watchneg; }
-	const WL& 	getWL		() 	const 	{ return _wl; }
-	Lit			getWatchLit	() 	const 	{ return _watchneg?not _wl.getLit():_wl.getLit(); }
+	int 		getIndex		() const 	{ return _index; }
+	void 		setIndex		(int c) 	{ _index = c; }
+	bool 		isMonotone		()	const 	{ return not isOrigLit(); }
+	WL		 	getWL			() 	const 	{ return WL(getPropLit(), getWeight()); }
+	Lit			getWatchLit		() 	const 	{ return isMonotone()?not getPropLit():getPropLit(); }
 	bool		isInNetwork		() 	const 	{ return _innet; }
-	void		addToNetwork	() { _innet = true; }
-	void		removeFromNetwork() { _innet = false; }
+	void		addToNetwork	() 			{ _innet = true; }
+	void		removeFromNetwork() 		{ _innet = false; }
 
-	bool		isInWS	()	const	{ return !_innws; }
-	void		movedToOther() { _innws = !_innws; }
-
-	virtual void	propagate	() { /*FIXME*/ }
+	bool		isInWS			()	const	{ return !_innws; }
+	void		movedToOther	() 			{ _innws = !_innws; }
 };
 
 typedef GenPWatch* pgpw;
@@ -84,6 +77,7 @@ private:
 	genwatchlist ws, nws, newwatches;
 	minmaxBounds emptyinterpretbounds;
 	Agg const * worstagg;
+	std::vector<Watch*> trail;
 
 public:
 	GenPWAgg(TypedSet* set);
@@ -91,14 +85,14 @@ public:
 
 	virtual void 	initialize				(bool& unsat, bool& sat);
 	virtual rClause	propagateAtEndOfQueue	();
-	virtual void	backtrack				(int untillevel) {}
+	virtual void	backtrack				(int untillevel){ trail.clear(); }
 	virtual void 	getExplanation			(vec<Lit>& lits, const AggReason& ar);
 
 protected:
-	virtual void propagate(int level, Watch* ws, int aggindex) { /*FIXME*/ }
-	virtual void propagate(const Lit& p, Watch* ws, int level) { /*FIXME*/ }
-	rClause		propagate2		(const Lit& p, Watch* w, int level);
-	rClause		propagate2		(int level, const Agg& agg, bool headtrue);
+	virtual void propagate(int level, Watch* ws, int aggindex);
+	virtual void propagate(const Lit& p, Watch* ws, int level);
+	rClause	propagateAtEndOfQueue(Watch* w);
+	rClause	propagateAtEndOfQueue(const Agg& agg);
 
 private:
 	const genwatchlist&	getNWS	() const 	{ return nws; }

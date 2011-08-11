@@ -162,8 +162,8 @@ void ModSolver::finishParsingDown(bool& unsat){
 	getPCSolver().finishParsing(unsat);
 
 	for(vector<Var>::const_iterator i=registeredvars.begin(); i<registeredvars.end(); ++i){
-		getPCSolver().acceptLitEvent(this, mkLit(*i, true), SLOW);
-		getPCSolver().acceptLitEvent(this, mkLit(*i, false), SLOW);
+		getPCSolver().accept(this, mkLit(*i, true), SLOW);
+		getPCSolver().accept(this, mkLit(*i, false), SLOW);
 	}
 
 	for(vmodindex::const_iterator i=getChildren().begin(); !unsat && i<getChildren().end(); ++i){

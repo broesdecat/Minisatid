@@ -65,10 +65,10 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 		Var v = var(l);
 		// FIXME permanent watch
 		Watch *pos, *neg;
-		pos = new Watch(getSetp(), (*j).getLit(), (*j).getWeight(), true);
-		neg = new Watch(getSetp(), not (*j).getLit(), (*j).getWeight(), false);
-		getSet().getPCSolver().accept(pos, true);
-		getSet().getPCSolver().accept(neg, true);
+		pos = new Watch(getSetp(), (*j).getLit(), (*j).getWeight(), true, false);
+		neg = new Watch(getSetp(), not (*j).getLit(), (*j).getWeight(), false, false);
+		getSet().getPCSolver().accept(pos);
+		getSet().getPCSolver().accept(neg);
 	}
 
 	AggPropagator::initialize(unsat, sat);

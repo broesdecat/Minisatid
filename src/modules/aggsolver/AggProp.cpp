@@ -365,12 +365,12 @@ AggPropagator::AggPropagator(TypedSet* set)
 void AggPropagator::initialize(bool& unsat, bool& sat) {
 	for (agglist::const_iterator i = getSet().getAgg().begin(); i < getSet().getAgg().end(); ++i) {
 		// both for implication and comp
-		Watch* w = new Watch(getSetp(), not (*i)->getHead(), *i);
-		getSet().getPCSolver().accept(w, true);
+		Watch* w = new Watch(getSetp(), not (*i)->getHead(), *i, false);
+		getSet().getPCSolver().accept(w);
 
 		if((*i)->getSem()==COMP){
-			Watch* w2 = new Watch(getSetp(), (*i)->getHead(), *i);
-			getSet().getPCSolver().accept(w2, true);
+			Watch* w2 = new Watch(getSetp(), (*i)->getHead(), *i, false);
+			getSet().getPCSolver().accept(w2);
 		}
 	}
 }

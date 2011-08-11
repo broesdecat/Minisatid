@@ -26,10 +26,10 @@ const Lit& Propagator::getNextProp(){
 }
 
 void Propagator::addWatch(Var atom) {
-	getPCSolver().acceptLitEvent(this, mkPosLit(atom), FAST);
-	getPCSolver().acceptLitEvent(this, mkNegLit(atom), FAST);
+	getPCSolver().accept(this, mkPosLit(atom), FAST);
+	getPCSolver().accept(this, mkNegLit(atom), FAST);
 }
 
 void Propagator::addWatch(const Lit& lit) {
-	getPCSolver().acceptLitEvent(this, lit, FAST);
+	getPCSolver().accept(this, lit, FAST);
 }

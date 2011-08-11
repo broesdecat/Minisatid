@@ -96,12 +96,12 @@ public:
 #endif
 
 	void		accept(Propagator* propagator);
-	void 		accept(Watch* watch, bool permanent);
+	void 		accept(Watch* watch);
 	void		acceptForBacktrack(Propagator* propagator);
 	void		acceptForPropagation(Propagator* propagator);
 	void 		accept(Propagator* propagator, EVENT event);
 	void 		acceptBounds(IntVar* var, Propagator* propagator);
-	void 		acceptLitEvent(Propagator* propagator, const Lit& lit, PRIORITY priority);
+	void 		accept(Propagator* propagator, const Lit& lit, PRIORITY priority);
 	void 		acceptFinishParsing(Propagator* propagator, bool late);
 
 	void 		setModSolver(ModSolver* m);

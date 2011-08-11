@@ -32,12 +32,12 @@ void IntVar::finishParsing(bool& present, bool& unsat){
 		disequalities.push_back(engine().newVar());
 	}
 	for(auto i=equalities.begin(); i<equalities.end(); ++i){
-		engine().acceptLitEvent(this, mkPosLit(*i), FAST);
-		engine().acceptLitEvent(this, mkNegLit(*i), FAST);
+		engine().accept(this, mkPosLit(*i), FAST);
+		engine().accept(this, mkNegLit(*i), FAST);
 	}
 	for(auto i=disequalities.begin(); i<disequalities.end(); ++i){
-		engine().acceptLitEvent(this, mkPosLit(*i), FAST);
-		engine().acceptLitEvent(this, mkNegLit(*i), FAST);
+		engine().accept(this, mkPosLit(*i), FAST);
+		engine().accept(this, mkNegLit(*i), FAST);
 	}
 	addConstraints();
 	engine().notifyBoundsChanged(this);

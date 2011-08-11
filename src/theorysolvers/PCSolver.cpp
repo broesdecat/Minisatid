@@ -161,8 +161,8 @@ void PCSolver::accept(Propagator* propagator){
 	getEventQueue().accept(propagator);
 }
 
-void PCSolver::accept(Watch* watch, bool permanent){
-	getEventQueue().accept(watch, permanent);
+void PCSolver::accept(Watch* watch){
+	getEventQueue().accept(watch);
 }
 
 void PCSolver::acceptForBacktrack(Propagator* propagator){
@@ -180,8 +180,8 @@ void PCSolver::acceptBounds(IntVar* var, Propagator* propagator){
 	getEventQueue().acceptBounds(var, propagator);
 }
 
-void PCSolver::acceptLitEvent(Propagator* propagator, const Lit& lit, PRIORITY priority){
-	getEventQueue().acceptLitEvent(propagator, lit, priority);
+void PCSolver::accept(Propagator* propagator, const Lit& lit, PRIORITY priority){
+	getEventQueue().accept(propagator, lit, priority);
 }
 
 void PCSolver::acceptFinishParsing(Propagator* propagator, bool late){
