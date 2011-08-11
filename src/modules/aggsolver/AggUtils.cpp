@@ -49,8 +49,10 @@ bool MinisatID::isJustified(Var x, VarToJustif& currentjust) {
 	return currentjust[x] == 0;
 }
 
-int	Watch::getAggIndex() const { return agg->getIndex(); }
+int	Watch::getAggIndex() const {
+	return agg_->getIndex();
+}
 
 void Watch::propagate(){
-	set->notifypropagate(this);
+	set_->notifypropagate(this);
 }

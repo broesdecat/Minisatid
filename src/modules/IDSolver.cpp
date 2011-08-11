@@ -952,20 +952,20 @@ void IDSolver::findCycleSources() {
 
 	if (!backtracked || getPCSolver().modes().defn_strategy == always) {
 		while(hasNextProp()){
-			Lit l = getNextProp(); //l has become true, so find occurences of ~l
-			assert(value(~l)==l_False);
+			Lit l = getNextProp(); //l has become true, so find occurences of not l
+			assert(value(not l)==l_False);
 			if(nbvars <= var(l)){
 				continue;
 			}
 
 			//TODO should check whether it is faster to use a real watched scheme here: go from justification to heads easily,
 			//so this loop only goes over literal which are really justifications
-			const vector<Var>& ds = disj_occurs(~l);
+			const vector<Var>& ds = disj_occurs(not l);
 			for (vector<Var>::const_iterator j = ds.begin(); j < ds.end(); ++j) {
 				checkJustification(*j);
 			}
 
-			vector<Var> heads = getDefAggHeadsWithBodyLit(var(~l));
+			vector<Var> heads = getDefAggHeadsWithBodyLit(var(not l));
 			for (vv::const_iterator j = heads.begin(); j < heads.end(); ++j) {
 				if(hasDefVar(*j)){
 					checkJustification(*j);
@@ -1325,7 +1325,7 @@ void IDSolver::changejust(Var v, vec<Lit>& just) {
 	justification(v).clear();
 	just.copyTo(justification(v));
 	for(int i=0; i<just.size(); ++i){
-		getPCSolver().acceptLitEvent(this, ~just[i], SLOW);
+		getPCSolver().accept(this, not just[i], SLOW);
 	}
 }
 
@@ -1343,7 +1343,7 @@ void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf) {
 
 	//In seen, we store literals that have been added to the loopf or found not to belong in it.
 	//seen(A)==1 indicates that A has been added
-	//seen(A)==2 indicates that ~A has been added
+	//seen(A)==2 indicates that not A has been added
 	//Both can be added once, because of the assumption that a rule has been simplified to only contain any of them once
 
 	for (std::set<Var>::const_iterator tch = ufs.begin(); tch != ufs.end(); ++tch) {
@@ -1429,14 +1429,14 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 				report("Adding new variable for loop formulas: %d.\n", getPrintableVar(v));
 			}
 
-			// ~v \vee \bigvee\extdisj{L}
+			// not v \vee \bigvee\extdisj{L}
 			addLoopfClause(createNegativeLiteral(v), loopf);
 
-			// \forall d \in \extdisj{L}: ~d \vee v
+			// \forall d \in \extdisj{L}: not d \vee v
 			vec<Lit> binaryclause(2);
 			binaryclause[1] = createPositiveLiteral(v);
 			for (int i = 1; i < loopf.size(); ++i) {
-				addLoopfClause(~loopf[i], binaryclause);
+				addLoopfClause(not loopf[i], binaryclause);
 			}
 
 			loopf.shrink(2);
@@ -1964,7 +1964,7 @@ rClause IDSolver::isWellFoundedModel() {
 	const vector<Lit>& decisions = getPCSolver().getDecisions();
 	InnerDisjunction invalidation;
 	for(vector<Lit>::const_iterator i=decisions.begin(); i<decisions.end(); ++i){
-		invalidation.literals.push(~(*i));
+		invalidation.literals.push(not (*i));
 	}
 	rClause confl = getPCSolver().createClause(invalidation.literals, true);
 	getPCSolver().addLearnedClause(confl);
@@ -2133,7 +2133,7 @@ void IDSolver::markUpward() {
 			}
 		}
 
-		l = ~l;
+		l = not l;
 
 		if(hasconj_occurs(l)){
 			for (vv::const_iterator i = conj_occurs(l).begin(); i < conj_occurs(l).end(); ++i) {
@@ -2237,7 +2237,7 @@ void IDSolver::forwardPropagate(bool removemarks) {
 		}
 
 
-		l = ~l;
+		l = not l;
 
 		//Literal l has become false, so for all rules with body literal l and marked head,
 		//if DISJ and counter gets 0, then head will be false, so add false head to queue
@@ -2572,11 +2572,11 @@ bool IDSolver::canJustifyMaxHead(const IDAgg& agg, vec<Lit>& jstf, vec<Var>& non
 
 	if (justified && agg.hasUB()) {
 		justified = false;
-		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() > agg.getBound(); ++i) {
+		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && i->getWeight() > agg.getBound(); ++i) {
 			if (oppositeIsJustified(currentjust, *i, real)) {
-				jstf.push(~(*i).getLit()); //push negative literal, because it should become false
-			} else if (real || currentjust.getElem(var((*i).getLit())) != 0) {
-				nonjstf.push(var((*i).getLit()));
+				jstf.push(not i->getLit()); //push negative literal, because it should become false
+			} else if (real || currentjust.getElem(var(i->getLit())) != 0) {
+				nonjstf.push(var(i->getLit()));
 			}
 		}
 		if (nonjstf.size() == 0) {
@@ -2586,12 +2586,12 @@ bool IDSolver::canJustifyMaxHead(const IDAgg& agg, vec<Lit>& jstf, vec<Var>& non
 
 	if(justified && agg.hasLB()){
 		justified = false;
-		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && (*i).getWeight() >= agg.getBound(); ++i) {
+		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && i->getWeight() >= agg.getBound(); ++i) {
 			if (isJustified(currentjust, *i, real)) {
-				jstf.push((*i).getLit());
+				jstf.push(i->getLit());
 				justified = true;
-			} else if (real || (currentjust.hasElem(var((*i).getLit())) && currentjust.getElem(var((*i).getLit())) != 0)) {
-				nonjstf.push(var((*i).getLit()));
+			} else if (real || (currentjust.hasElem(var(i->getLit())) && currentjust.getElem(var(i->getLit())) != 0)) {
+				nonjstf.push(var(i->getLit()));
 			}
 		}
 	}
@@ -2622,13 +2622,13 @@ bool IDSolver::canJustifySPHead(const IDAgg& agg, vec<Lit>& jstf, vec<Var>& nonj
 		Weight bestpossible = type.getMaxPossible(wl);
 		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
 			if (oppositeIsJustified(currentjust, *i, real)) {
-				jstf.push(~(*i).getLit());
-				bestpossible = type.remove(bestpossible, (*i).getWeight());
+				jstf.push(not i->getLit());
+				bestpossible = type.remove(bestpossible, i->getWeight());
 				if (bestpossible <= agg.getBound()) {
 					justified = true;
 				}
-			} else if (real || currentjust.getElem(var((*i).getLit())) != 0) {
-				nonjstf.push(var((*i).getLit()));
+			} else if (real || currentjust.getElem(var(i->getLit())) != 0) {
+				nonjstf.push(var(i->getLit()));
 			}
 		}
 	}
@@ -2637,13 +2637,13 @@ bool IDSolver::canJustifySPHead(const IDAgg& agg, vec<Lit>& jstf, vec<Var>& nonj
 		Weight bestcertain = type.getMinPossible(wl);
 		for (vwl::const_iterator i = wl.begin(); !justified && i < wl.end(); ++i) {
 			if (isJustified(currentjust, *i, real)) {
-				jstf.push((*i).getLit());
-				bestcertain = type.add(bestcertain, (*i).getWeight());
+				jstf.push(i->getLit());
+				bestcertain = type.add(bestcertain, i->getWeight());
 				if (bestcertain >= agg.getBound()) {
 					justified = true;
 				}
-			} else if (real || (currentjust.hasElem(var((*i).getLit())) && currentjust.getElem(var((*i).getLit())) != 0)) {
-				nonjstf.push(var((*i).getLit()));
+			} else if (real || (currentjust.hasElem(var(i->getLit())) && currentjust.getElem(var(i->getLit())) != 0)) {
+				nonjstf.push(var(i->getLit()));
 			}
 		}
 	}
@@ -2678,7 +2678,7 @@ vwl::const_iterator IDSolver::getSetLitsOfAggWithHeadEnd(Var x) const {
 
 /**
  * For an aggregate expression defined by v, add all set literals to loopf that
- * 		- have not been added already(seen[A]==1 for A, seen[A]==2 for ~A)
+ * 		- have not been added already(seen[A]==1 for A, seen[A]==2 for not A)
  * 		- might help to make the expression true (monotone literals!) (to make it a more relevant learned clause)
  * Currently CONSIDERABLE overapproximation: take all known false literals which are set literal or its negation,
  * do not occur in ufs and have not been seen yet.
@@ -2687,13 +2687,13 @@ vwl::const_iterator IDSolver::getSetLitsOfAggWithHeadEnd(Var x) const {
  */
 void IDSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, InterMediateDataStruct& seen) {
 	for (vwl::const_iterator i = getAggDefiningHead(v)->getWL().begin(); i < getAggDefiningHead(v)->getWL().end(); ++i) {
-		Lit l = (*i).getLit();
+		Lit l = i->getLit();
 		if(ufs.find(var(l)) != ufs.end() || seen.getElem(var(l)) == (isPositive(l) ? 2 : 1)){
 			continue;
 		}
 
 		if(isTrue(l)){
-			l = ~l;
+			l = not l;
 		}
 
 		if(!isFalse(l)){

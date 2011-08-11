@@ -26,6 +26,7 @@ void setReduce(PCSolver* solver, InnerWLSet* set, std::vector<Agg*>& aggs, const
 void addHeadImplications(PCSolver* solver, InnerWLSet* set, std::vector<Agg*>& aggs, bool& unsat, bool& sat);
 void max2SAT(PCSolver* solver, InnerWLSet* set, std::vector<Agg*>& aggs, bool& unsat, bool& sat);
 void card2Equiv(PCSolver* solver, InnerWLSet* set, std::vector<Agg*>& aggs, const Weight& knownbound, bool& unsat, bool& sat);
+void decideUsingWatchesAndCreatePropagators(PCSolver* solver, InnerWLSet* set, std::vector<Agg*>& aggs, const Weight& knownbound);
 
 }
 

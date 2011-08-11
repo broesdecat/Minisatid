@@ -17,6 +17,7 @@
 
 #include "theorysolvers/PropagatorFactory.hpp"
 #include "theorysolvers/EventQueue.hpp"
+#include "theorysolvers/TimeTrail.hpp"
 
 #include "monitors/SearchMonitor.hpp"
 
@@ -37,6 +38,7 @@ PCSolver::PCSolver(SolverOption modes, MinisatID::WrapperPimpl& inter, int ID) :
 		queue(NULL),
 		factory(NULL),
 		state(THEORY_PARSING),
+		trail(new TimeTrail()),
 		optim(NONE), head(-1),
 		state_savedlevel(0), state_savingclauses(false),
 		searchmonitor(new SearchMonitor()){
@@ -59,6 +61,7 @@ PCSolver::~PCSolver() {
 #endif
 	delete(factory);
 	delete(searchmonitor);
+	delete(trail);
 }
 
 #ifdef CPSUPPORT
@@ -102,6 +105,7 @@ void PCSolver::backtrackTo(int level) {
 
 void PCSolver::setTrue(const Lit& p, Propagator* module, rClause c) {
 	assert(value(p)!=l_False && value(p)!=l_True);
+	trail->notifyPropagate(p);
 	propagations[var(p)] = module;
 	getSolver().uncheckedEnqueue(p, c);
 }
@@ -176,8 +180,8 @@ void PCSolver::acceptBounds(IntVar* var, Propagator* propagator){
 	getEventQueue().acceptBounds(var, propagator);
 }
 
-void PCSolver::acceptLitEvent(Propagator* propagator, const Lit& lit, PRIORITY priority){
-	getEventQueue().acceptLitEvent(propagator, lit, priority);
+void PCSolver::accept(Propagator* propagator, const Lit& lit, PRIORITY priority){
+	getEventQueue().accept(propagator, lit, priority);
 }
 
 void PCSolver::acceptFinishParsing(Propagator* propagator, bool late){
@@ -295,6 +299,10 @@ void PCSolver::createVar(Var v){
 	}
 }
 
+int	PCSolver::getTime(const Lit& lit){
+	return trail->getTime(lit);
+}
+
 void PCSolver::finishParsing(bool& unsat) {
 	state = THEORY_INITIALIZING;
 
@@ -328,6 +336,7 @@ void PCSolver::backtrackDecisionLevel(int untillevel, const Lit& decision) {
 		notifyMonitor(backtrack);
 	}
 
+	trail->notifyBacktrack(untillevel);
 	getEventQueue().notifyBacktrack(untillevel, decision);
 }
 

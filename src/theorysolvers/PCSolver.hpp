@@ -20,6 +20,7 @@ namespace Minisat{
 
 namespace MinisatID {
 
+class TimeTrail;
 class CPSolver;
 class ModSolver;
 class SolverOption;
@@ -61,12 +62,14 @@ private:
 
 	TheoryState state;
 
-	std::vector<Propagator*> propagations;
-
 	virtual void	notifyNonDecisionVar(Var var);
 
 	// Explanation dummies: used to fix up learned clauses which are too small
 	Var dummy1, dummy2;
+
+	// Trail support
+	TimeTrail* trail;
+	std::vector<Propagator*> propagations;
 
 	// OPTIMIZATION INFORMATION
 	Optim 		optim;
@@ -98,7 +101,7 @@ public:
 	void		acceptForPropagation(Propagator* propagator);
 	void 		accept(Propagator* propagator, EVENT event);
 	void 		acceptBounds(IntVar* var, Propagator* propagator);
-	void 		acceptLitEvent(Propagator* propagator, const Lit& lit, PRIORITY priority);
+	void 		accept(Propagator* propagator, const Lit& lit, PRIORITY priority);
 	void 		acceptFinishParsing(Propagator* propagator, bool late);
 
 	void 		setModSolver(ModSolver* m);
@@ -107,6 +110,8 @@ public:
 	int			newSetID();
 
 	void 		finishParsing(bool& unsat);
+
+	int			getTime(const Lit& lit);
 
 	// Solving support
 	void 		newDecisionLevel();
