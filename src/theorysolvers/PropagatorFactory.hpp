@@ -62,8 +62,8 @@ private:
 
 	SymmetryPropagator<PCSolver*>* symmsolver;
 	void addSymmSolver();
-	SymmetryPropagator<PCSolver*>* getSymmSolver() const;
 	bool hasSymmSolver() const;
+	SymmetryPropagator<PCSolver*>* getSymmSolver() const;
 
 #ifdef CPSUPPORT
 	CPSolver* cpsolver;

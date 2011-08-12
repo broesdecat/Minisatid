@@ -174,9 +174,9 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 	asapaggpropdesc.push_back(pair<string, string>("yes", "Early"));
 	asapaggpropdesc.push_back(pair<string, string>("no", "Late"));
 
-	vector<pair<string, string> > pbsolverdesc;
-	pbsolverdesc.push_back(pair<string, string>("yes", "Use pbsolver"));
-	pbsolverdesc.push_back(pair<string, string>("no", "Don't use pbsolver"));
+	vector<pair<string, string> > tocnfdesc;
+	tocnfdesc.push_back(pair<string, string>("yes", "Translate to CNF"));
+	tocnfdesc.push_back(pair<string, string>("no", "Don't translate to CNF"));
 
 	vector<pair<string, string> > watcheddesc;
 	watcheddesc.push_back(pair<string, string>("yes", "Use smart watches"));
@@ -267,8 +267,8 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 			modes.selectOneFromUFS, cmd,"Choose whether learn one clause at a time when an unfounded set is found"));
 	options.push_back(new Option<bool, string>	("","tseitindecision", 	yesnovals, decideontseitins,
 			modes.tseitindecisions, cmd,"Choose whether tseitin literals can be used as decision literals."));
-	options.push_back(new Option<bool, string>	("","pbsolver", 	yesnovals, pbsolverdesc,
-			modes.pbsolver, cmd,"Choose whether to translate pseudo-boolean constraints to SAT"));
+	options.push_back(new Option<bool, string>	("","toSAT", 	yesnovals, tocnfdesc,
+			modes.tocnf, cmd,"Choose whether to translate non-clausal constraints to clauses."));
 	options.push_back(new NoValsOption<double>	("","watch-ratio", 	"double",
 			modes.watchesratio, cmd,"The ratio of watches to set literals under which the watched algorithm is used."));
 	options.push_back(new Option<bool,string>	("","use-agg-heur", 	yesnovals, aggheurdesc,

@@ -389,12 +389,20 @@ bool PropagatorFactory::add(const InnerForcedChoices& formula){
 bool PropagatorFactory::add(const InnerSymmetryLiterals& formula){
 	notifyMonitorsOfAdding(formula);
 
+	if(!hasSymmSolver()){
+		addSymmSolver();
+	}
+
 	getSymmSolver()->add(formula.literalgroups);
 	return true;
 }
 
 bool PropagatorFactory::add(const InnerSymmetry& formula){
 	notifyMonitorsOfAdding(formula);
+
+	if(!hasSymmSolver()){
+		addSymmSolver();
+	}
 
 	getSymmSolver()->add(formula.symmetry);
 	return true;
@@ -501,7 +509,7 @@ bool PropagatorFactory::finishSet(InnerWLSet* set, vector<Agg*>& aggs){
 	bool unsat = false, sat = false;
 
 	// transform into SAT if requested
-	if(getEngine().modes().pbsolver){
+	if(getEngine().modes().tocnf){
 		if(!transformSumsToCNF(getEngine(), set, aggs)){
 			return false;
 		}

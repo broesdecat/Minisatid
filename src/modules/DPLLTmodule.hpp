@@ -58,6 +58,8 @@ public:
 
 	// Propagator methods
 	virtual const char* getName			() const = 0;
+	virtual int		getNbOfFormulas		() const 					{ return 0; }
+
 	virtual rClause getExplanation		(const Lit&) 				{ assert(false); return nullPtrClause; }
 	virtual rClause notifyFullAssignmentFound() 					{ assert(false); return nullPtrClause; }
 	virtual void 	finishParsing		(bool& present, bool& unsat){ assert(false); }
@@ -70,10 +72,10 @@ public:
 	virtual Var 	notifyBranchChoice	(const Var& var) const 		{ assert(false); return var; }
 	virtual void 	printStatistics		() const 					{ assert(false); }
 	virtual void 	printState			() const 					{ assert(false); }
-	virtual int		getNbOfFormulas		() const 					{ return 0; }
 	virtual void 	notifyClauseAdded	(rClause) 					{ assert(false); }
-	virtual void 	notifyClauseDeleted	(rClause) 					{ assert(false); }
 	virtual bool 	symmetryPropagationOnAnalyze(const Lit&) 		{ assert(false); return false; }
+	virtual bool 	checkSymmetryAlgo1	(const Lit& lit)			{ assert(false); return false; }
+	virtual bool 	checkSymmetryAlgo2	()							{ assert(false); return false; }
 
 
 	bool 			hasNextProp();

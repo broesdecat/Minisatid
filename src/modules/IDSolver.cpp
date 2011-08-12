@@ -224,9 +224,10 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	stack.clear();
 	counter = 1;
 
+	vector<Var> sccroots;
 	for (int i = 0; i < nodeinmixed.size(); ++i) {
 		if (visited[nodeinmixed[i]] == 0) {
-			visit(nodeinmixed[i], incomp, stack, visited, counter);
+			visit(nodeinmixed[i], incomp, stack, visited, counter, sccroots);
 		}
 	}
 
@@ -361,6 +362,34 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 
 	unsat = !simplifyGraph();
 
+	// TODO in fact, having a propagator per scc might seem more logical?
+
+	if(!unsat && modes().tocnf){
+		vector<toCNF::Rule*> rules;
+		for(auto root = sccroots.begin(); root!=sccroots.end(); ++root){
+			// TODO better to store full sccs instead having to loop over them here?
+			for(auto i=defdVars.begin(); i<defdVars.end(); ++i){
+				if((*root)==(*i)){
+					DefinedVar* defvar = getDefVar(*i);
+					vector<Var> defbodylits;
+					vector<Lit> openbodylits;
+					auto proprule = defvar->definition();
+					for(auto bodylit=proprule->begin(); bodylit!=proprule->end(); ++bodylit){
+						if(hasDefVar(var(*bodylit)) && scc(var(*bodylit))==scc(*root)){
+							defbodylits.push_back(var(*bodylit));
+						}else{
+							openbodylits.push_back(*bodylit);
+						}
+					}
+					toCNF::Rule* rule = new toCNF::Rule(isDisjunctive(*i), *i, defbodylits, openbodylits);
+					rules.push_back(rule);
+				}
+			}
+			toCNF::SCC2SAT(getPCSolver(), rules);
+			deleteList<toCNF::Rule>(rules);
+		}
+	}
+
 	notifyInitialized();
 }
 
@@ -449,7 +478,7 @@ void IDSolver::visitFull(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &vi
  * @post: root will be a partition that will be the exact partition of SCCs, by setting everything on the stack to the same root in the end
  * @post: the scc will be denoted by the variable in the scc which was visited first
  */
-void IDSolver::visit(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter) {
+void IDSolver::visit(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter, vector<Var>& roots) {
 	assert(scc(i)>=0 && scc(i)<nbvars);
 	assert(!incomp[i]);
 	visited[i] = ++counter;
@@ -465,7 +494,7 @@ void IDSolver::visit(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visite
 				Var w = var(l);
 				if (isDefined(w) && i != w && isPositive(l)) {
 					if (visited[w] == 0) {
-						visit(w, incomp, stack, visited, counter);
+						visit(w, incomp, stack, visited, counter, roots);
 					}
 					if (!incomp[w] && visited[scc(i)] > visited[scc(w)]) {
 						scc(i) = scc(w);
@@ -483,7 +512,7 @@ void IDSolver::visit(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visite
 				}
 
 				if (visited[w] == 0) {
-					visit(w, incomp, stack, visited, counter);
+					visit(w, incomp, stack, visited, counter, roots);
 				}
 				if (!incomp[w] && visited[scc(i)] > visited[scc(w)]) {
 					scc(i) = scc(w);
@@ -497,6 +526,7 @@ void IDSolver::visit(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visite
 
 	if (scc(i) == i) {
 		int w;
+		roots.push_back(i);
 		do {
 			w = stack.last();
 			stack.pop();

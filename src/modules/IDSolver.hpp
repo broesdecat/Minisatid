@@ -316,7 +316,7 @@ private:
 	// Another propagation method (too expensive in practice):
 	// void     fwIndirectPropagate();
 
-	void visit(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter); // Method to initialize 'scc'.
+	void visit(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter, std::vector<Var>& roots); // Method to initialize 'scc'.
 	void visitFull(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter, bool throughPositiveLit, vec<int>& rootofmixed, vec<Var>& nodeinmixed);
 
 	// Debug:

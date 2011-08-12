@@ -90,7 +90,7 @@ SolverOption::SolverOption():
 		idclausesaving(0),
 		aggclausesaving(2),
 		selectOneFromUFS(false),
-		pbsolver(false),
+		tocnf(false),
 		watchesratio(0.75),
 		useaggheur(false),
 		primesfile(""),
@@ -114,7 +114,7 @@ SolverOption::SolverOption():
 
 bool SolverOption::verifyOptions() const{
 	string s(getPrimesFile());
-	if(pbsolver && !fileIsReadable(s.c_str())){
+	if(tocnf && !fileIsReadable(s.c_str())){
 		printPrimesFileNotReadable(clog, s);
 		return false;
 	}
@@ -145,7 +145,7 @@ void SolverOption::print(std::ostream& so) const{
 	so << "defn_search: " 		<<defn_search <<"\n";
 	so << "checking cycles: "	<<checkcyclefreeness <<"\n";
 	so << "aggclausesaving: " 	<<aggclausesaving <<"\n";
-	so << "pbsolver: " 			<<pbsolver <<"\n";
+	so << "tocnf: " 			<<tocnf <<"\n";
 	so << "watchedratio: " 		<<watchesratio <<"\n";
 	so << "using aggregate heuristic: " <<(useaggheur?"yes":"no") <<"\n";
 	so << "primesfile: " 		<<getPrimesFile() <<"\n";

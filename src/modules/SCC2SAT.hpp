@@ -14,74 +14,82 @@
 
 namespace MinisatID {
 
+namespace toCNF{
+
+class Rule{
+	bool disjunctive_;
+	Var head_;
+	std::vector<Var> defbody_;
+	std::vector<Lit> openbody_;
+
+public:
+	Rule(bool disjunctive, Var head, const std::vector<Var>& deflits, const std::vector<Lit>& openlits)
+			:disjunctive_(disjunctive), head_(head), defbody_(deflits), openbody_(openlits){
+
+	}
+
+	Var getHead() const { return head_; }
+	bool isDisjunctive() const { return disjunctive_; }
+	const std::vector<Var>& defVars() const { return defbody_; }
+	const std::vector<Lit>& openLits() const { return openbody_; }
+};
+
+class LevelVar{
+	// First bit is 2^0
+	std::vector<Var> bits_;
+public:
+	LevelVar(PCSolver& solver, int maxlevel){
+		int maxbits = (log((double)maxlevel)/log(2))+0.5;
+		for(int i=0; i<maxbits; ++i) {
+			bits_.push_back(solver.newVar());
+		}
+	}
+
+	const std::vector<Var> bits() const { return bits_; }
+};
+
+enum ENC_SIGN { ENC_LEQPLUS1, ENC_GREATER };
+
+struct Encoding{
+	LevelVar *left, *right;
+	ENC_SIGN sign;
+		// if true: left =< right + 1
+		// else left > right
+
+	bool operator== (const Encoding& enc) const {
+		return left==enc.left || right==enc.right || sign==enc.sign;
+	}
+	bool operator< (const Encoding& enc) const {
+		return left<enc.left || right<enc.right || sign<enc.sign;
+	}
+
+	Encoding(LevelVar* left, LevelVar* right, ENC_SIGN sign)
+			:left(left), right(right), sign(sign){
+
+	}
+};
+
+struct UnaryEncoding{
+	LevelVar *left;
+	ENC_SIGN sign;
+		// if true: left =<  1
+		// else left > 0
+
+	bool operator== (const UnaryEncoding& enc) const {
+		return left==enc.left || sign==enc.sign;
+	}
+	bool operator< (const UnaryEncoding& enc) const {
+		return left<enc.left || sign<enc.sign;
+	}
+
+	UnaryEncoding(LevelVar* left, ENC_SIGN sign)
+			:left(left), sign(sign){
+	}
+};
+
 class SCC2SAT {
-	class Rule{
-		bool disjunctive_;
-		Var head_;
-		std::vector<Var> defbody_;
-		std::vector<Lit> openbody_;
-
-	public:
-		Var getHead() const { return head_; }
-		bool isDisjunctive() const { return disjunctive_; }
-		const std::vector<Var>& defVars() const { return defbody_; }
-		const std::vector<Lit>& openLits() const { return openbody_; }
-	};
-
-	class LevelVar{
-		// First bit is 2^0
-		std::vector<Var> bits_;
-	public:
-		LevelVar(PCSolver& solver, int maxlevel){
-			int maxbits = (log((double)maxlevel)/log(2))+0.5;
-			for(int i=0; i<maxbits; ++i) {
-				bits_.push_back(solver.newVar());
-			}
-		}
-
-		const std::vector<Var> bits() const { return bits_; }
-	};
-
-	enum ENC_SIGN { ENC_LEQPLUS1, ENC_GREATER };
-
-	struct Encoding{
-		LevelVar *left, *right;
-		ENC_SIGN sign;
-			// if true: left =< right + 1
-			// else left > right
-
-		bool operator== (const Encoding& enc) const {
-			return left==enc.left || right==enc.right || sign==enc.sign;
-		}
-		bool operator< (const Encoding& enc) const {
-			return left<enc.left || right<enc.right || sign<enc.sign;
-		}
-
-		Encoding(LevelVar* left, LevelVar* right, ENC_SIGN sign)
-				:left(left), right(right), sign(sign){
-
-		}
-	};
-
-	struct UnaryEncoding{
-		LevelVar *left;
-		ENC_SIGN sign;
-			// if true: left =<  1
-			// else left > 0
-
-		bool operator== (const UnaryEncoding& enc) const {
-			return left==enc.left || sign==enc.sign;
-		}
-		bool operator< (const UnaryEncoding& enc) const {
-			return left<enc.left || sign<enc.sign;
-		}
-
-		UnaryEncoding(LevelVar* left, ENC_SIGN sign)
-				:left(left), sign(sign){
-		}
-	};
 private:
-	PCSolver* solver_;
+	PCSolver& solver_;
 	int maxlevel;
 	std::map<Var, LevelVar*> atom2level;
 	std::set<Var> defined;
@@ -89,15 +97,17 @@ private:
 	std::map<Encoding, Var> necessaryEncodings;
 	std::map<UnaryEncoding, Var> necessaryUnEncodings;
 public:
+
+
 	// @pre: rules is one SCC
-	void transform(PCSolver* solver, const std::vector<Rule*>& rules){
-		solver_ = solver;
+	SCC2SAT(PCSolver& solver, const std::vector<Rule*>& rules)
+			:solver_(solver){
 		for(auto rule=rules.begin(); rule!=rules.end(); ++rule){
 			defined.insert((*rule)->getHead());
 		}
 		maxlevel = defined.size()-1; // maxlevel is the scc size - 1
 		for(auto head=defined.begin(); head!=defined.end(); ++head){
-			atom2level.insert(std::pair<Var, LevelVar*>(*head, new LevelVar(*solver, maxlevel)));
+			atom2level.insert(std::pair<Var, LevelVar*>(*head, new LevelVar(solver, maxlevel)));
 		}
 		for(auto rule=rules.begin(); rule!=rules.end(); ++rule){
 			if((*rule)->isDisjunctive()){
@@ -108,6 +118,7 @@ public:
 		}
 	}
 
+private:
 	/*
 	 * P1 <- Q1 | ... | Qn
 	 * ==>
@@ -137,9 +148,9 @@ public:
 			clause.literals.push(mkNegLit(rule.getHead()));
 			clause.literals.push(mkNegLit(*def));
 			clause.literals.push(retrieveEncoding(headvar, bodyvar, ENC_LEQPLUS1));
-			solver_->add(clause);
+			solver_.add(clause);
 
-			Var tseitin = solver_->newVar();
+			Var tseitin = solver_.newVar();
 			tseitins.literals.push(mkPosLit(tseitin));
 
 			InnerEquivalence eq;
@@ -153,9 +164,9 @@ public:
 			clause.literals.push(mkNegLit(rule.getHead()));
 			clause.literals.push(not *open);
 			clause.literals.push(retrieveEncoding(headvar, ENC_LEQPLUS1));
-			solver_->add(clause);
+			solver_.add(clause);
 
-			Var tseitin = solver_->newVar();
+			Var tseitin = solver_.newVar();
 			tseitins.literals.push(mkPosLit(tseitin));
 
 			InnerEquivalence eq;
@@ -164,7 +175,7 @@ public:
 			eq.literals.push(*open);
 			eq.literals.push(retrieveEncoding(headvar, ENC_GREATER));
 		}
-		solver_->add(tseitins);
+		solver_.add(tseitins);
 	}
 
 	/*
@@ -194,9 +205,9 @@ public:
 			InnerDisjunction clause;
 			clause.literals.push(mkNegLit(rule.getHead()));
 			clause.literals.push(retrieveEncoding(headvar, bodyvar, ENC_GREATER));
-			solver_->add(clause);
+			solver_.add(clause);
 
-			Var tseitin = solver_->newVar();
+			Var tseitin = solver_.newVar();
 			tseitins.literals.push(mkPosLit(tseitin));
 
 			InnerEquivalence eq;
@@ -209,10 +220,10 @@ public:
 			InnerDisjunction clause;
 			clause.literals.push(mkNegLit(rule.getHead()));
 			clause.literals.push(retrieveEncoding(headvar, ENC_GREATER));
-			solver_->add(clause);
+			solver_.add(clause);
 		}
 		for(auto open = rule.openLits().begin(); open!=rule.openLits().end(); ++open){
-			Var tseitin = solver_->newVar();
+			Var tseitin = solver_.newVar();
 			tseitins.literals.push(mkPosLit(tseitin));
 
 			InnerEquivalence eq;
@@ -221,7 +232,7 @@ public:
 			eq.literals.push(*open);
 			eq.literals.push(retrieveEncoding(headvar, ENC_LEQPLUS1));
 		}
-		solver_->add(tseitins);
+		solver_.add(tseitins);
 	}
 
 	bool isOpen(const Lit& lit){
@@ -237,14 +248,14 @@ public:
 			auto enc = necessaryUnEncodings.find(UnaryEncoding(left, sign));
 			Var v;
 			if(enc==necessaryUnEncodings.end()){
-				v = solver_->newVar();
+				v = solver_.newVar();
 				InnerEquivalence eq;
 				eq.head = mkPosLit(v);
 				eq.conjunctive = true;
 				for(auto bit=++left->bits().begin(); bit!=left->bits().end(); ++bit){
 					eq.literals.push(mkNegLit(*bit));
 				}
-				solver_->add(eq);
+				solver_.add(eq);
 				necessaryUnEncodings.insert(std::pair<UnaryEncoding, Var>(UnaryEncoding(left, sign), v));
 			}else{
 				v = enc->second;
@@ -266,22 +277,22 @@ public:
 
 	Lit addEq(const Lit& leftbit, const Lit& rightbit){
 		InnerEquivalence neq;
-		neq.head = mkPosLit(solver_->newVar());
+		neq.head = mkPosLit(solver_.newVar());
 		neq.conjunctive = true;
 		neq.literals.push(leftbit);
 		neq.literals.push(rightbit);
-		solver_->add(neq);
+		solver_.add(neq);
 		return neq.head;
 	}
 
 	Lit addEq(const Lit& one, const Lit& two, const Lit& three){
 		InnerEquivalence neq;
-		neq.head = mkPosLit(solver_->newVar());
+		neq.head = mkPosLit(solver_.newVar());
 		neq.conjunctive = true;
 		neq.literals.push(one);
 		neq.literals.push(two);
 		neq.literals.push(three);
-		solver_->add(neq);
+		solver_.add(neq);
 		return neq.head;
 	}
 
@@ -289,9 +300,9 @@ public:
 		level encoding:
 		l(P1) = 2^0*P11 + 2^1*P12 + ... + 2^max*P1max
 		encode leq+1 as
-		TODO
-		leqp1(P1, Q1, i) <=> P1i<Q1i | (P1i=Q1i & leqp1(P1, Q1, i-1))
-		leqp1(P1, Q1, 0) <=> true
+		fullft(P1, Q1, i) <=> ~P1i & Q1i & fullft(P1, Q1, i-1)
+		leqp1(P1, Q1, i) <=> (~P1i & Q1i) | (P10 & Q10 & leqp1(P1, Q1, i-1)) | (~P10 & ~Q10 & leqp1(P1, Q1, i-1)) | (P11 & ~Q11 & fullft(P1, Q1, i-1))
+		leqp1(P1, Q1, 1) <=> ~(~Q11 & ~Q10 & P11 & P10)
 		then l(P1)=<l(Q1)+1 becomes leqp1(P1, Q1, max)
 		encode greater as
 		g(P1, Q1, i) <=> (P1i & ~Q1i) | (P1i & Q1i & g(P1, Q1, i-1)) | (~P1i & ~Q1i & g(P1, Q1, i-1))
@@ -301,15 +312,15 @@ public:
 	Var addEncoding(const Encoding& enc){
 		Var next;
 		if(enc.sign == ENC_GREATER){
-			Var prev = solver_->newVar();
+			Var prev = solver_.newVar();
 			InnerEquivalence eq;
 			eq.head = mkPosLit(prev);
 			eq.conjunctive = true;
 			eq.literals.push(mkPosLit(enc.left->bits()[0]));
 			eq.literals.push(mkNegLit(enc.right->bits()[0]));
-			solver_->add(eq);
+			solver_.add(eq);
 			for(int i=1; i<enc.left->bits().size(); ++i){
-				next = solver_->newVar();
+				next = solver_.newVar();
 				Var leftbit = enc.left->bits()[i];
 				Var rightbit = enc.right->bits()[i];
 				InnerEquivalence eq;
@@ -318,16 +329,61 @@ public:
 				eq.literals.push(addEq(mkPosLit(leftbit), mkNegLit(rightbit)));
 				eq.literals.push(addEq(mkPosLit(leftbit), mkPosLit(rightbit), mkPosLit(prev)));
 				eq.literals.push(addEq(mkNegLit(leftbit), mkNegLit(rightbit), mkPosLit(prev)));
-				solver_->add(eq);
+				solver_.add(eq);
 				prev = next;
 			}
 		}else{
-			// TODO
+			//fullft(P1, Q1, i) <=> ~P1i & Q1i & fullft(P1, Q1, i-1)
+			std::vector<Var> fullfalstrue;
+			Var prev = var(addEq(mkNegLit(enc.left->bits()[0]), mkPosLit(enc.right->bits()[0])));
+			fullfalstrue.push_back(prev);
+			for(int i=1; i<enc.left->bits().size(); ++i){
+				next = solver_.newVar();
+				Var leftbit = enc.left->bits()[i];
+				Var rightbit = enc.right->bits()[i];
+				InnerEquivalence eq;
+				eq.head = mkPosLit(next);
+				eq.conjunctive = true;
+				eq.literals.push(mkNegLit(leftbit));
+				eq.literals.push(mkPosLit(rightbit));
+				eq.literals.push(mkPosLit(prev));
+				solver_.add(eq);
+				prev = next;
+				fullfalstrue.push_back(prev);
+			}
+
+			//leqp1(P1, Q1, i) <=> (~P1i & Q1i) | (P10 & Q10 & leqp1(P1, Q1, i-1)) | (~P10 & ~Q10 & leqp1(P1, Q1, i-1)) | (P11 & ~Q11 & fullft(P1, Q1, i-1))
+			//leqp1(P1, Q1, 1) <=> ~(~Q11 & ~Q10 & P11 & P10)
+			InnerEquivalence eq;
+			prev = solver_.newVar();
+			eq.head = mkNegLit(prev);
+			eq.conjunctive = true;
+			eq.literals.push(mkNegLit(enc.right->bits()[1]));
+			eq.literals.push(mkNegLit(enc.right->bits()[0]));
+			eq.literals.push(mkPosLit(enc.left->bits()[1]));
+			eq.literals.push(mkPosLit(enc.left->bits()[0]));
+			solver_.add(eq);
+			for(int i=1; i<enc.left->bits().size(); ++i){
+				next = solver_.newVar();
+				Var leftbit = enc.left->bits()[i];
+				Var rightbit = enc.right->bits()[i];
+				InnerEquivalence eq;
+				eq.head = mkPosLit(next);
+				eq.conjunctive = true;
+				eq.literals.push(addEq(mkNegLit(leftbit), mkPosLit(rightbit)));
+				eq.literals.push(addEq(mkPosLit(leftbit), mkPosLit(rightbit), mkPosLit(prev)));
+				eq.literals.push(addEq(mkNegLit(leftbit), mkNegLit(rightbit), mkPosLit(prev)));
+				eq.literals.push(addEq(mkPosLit(leftbit), mkNegLit(rightbit), mkPosLit(fullfalstrue[i-1])));
+				solver_.add(eq);
+				prev = next;
+			}
 		}
 		necessaryEncodings.insert(enc2var(enc, next));
 		return next;
 	}
 };
+
+}
 
 } /* namespace MinisatID */
 #endif /* SCC2SAT_HPP_ */

@@ -238,7 +238,7 @@ namespace MinisatID {
 		bool			checkcyclefreeness;
 		int 			idclausesaving, aggclausesaving;
 		bool 			selectOneFromUFS;
-		bool 			pbsolver;
+		bool 			tocnf;
 		double			watchesratio;
 		bool			useaggheur;
 		std::string 	primesfile;

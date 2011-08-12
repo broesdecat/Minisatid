@@ -101,6 +101,9 @@ public:
 	void	setTrue					(const Lit& l);
 	void 	notifyBoundsChanged		(IntVar* var);
 
+	bool 	checkSymmetryAlgo1(const Lit& lit);
+	bool	checkSymmetryAlgo2();
+
 private:
 	void 	setTrue(const proplist& list, std::queue<Propagator*>& queue);
 	void 	clearNotPresentPropagators();

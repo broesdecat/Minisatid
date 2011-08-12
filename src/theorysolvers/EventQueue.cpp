@@ -29,8 +29,9 @@ EventQueue::EventQueue(PCSolver& pcsolver):
 	event2propagator[EV_BACKTRACK];
 	event2propagator[EV_EXITCLEANLY];
 	event2propagator[EV_ADDCLAUSE];
-	event2propagator[EV_REMOVECLAUSE];
 	event2propagator[EV_SYMMETRYANALYZE];
+	event2propagator[EV_SYMMCHECK1];
+	event2propagator[EV_SYMMCHECK2];
 }
 
 EventQueue::~EventQueue() {
@@ -250,19 +251,31 @@ void EventQueue::notifyClauseAdded(rClause clauseID){
 	}
 }
 
-void EventQueue::notifyClauseDeleted(rClause clauseID){
-	auto props = event2propagator.at(EV_REMOVECLAUSE);
-	for(uint i=0; i<size(EV_REMOVECLAUSE); ++i){
-		if(!props[i]->isPresent()){ continue; }
-		props[i]->notifyClauseAdded(clauseID);
-	}
-}
-
 bool EventQueue::symmetryPropagationOnAnalyze(const Lit& p){
 	auto props = event2propagator.at(EV_SYMMETRYANALYZE);
 	for(uint i=0; i<size(EV_SYMMETRYANALYZE); ++i){
-		if(!props[i]->isPresent()){ continue; }
 		if(props[i]->symmetryPropagationOnAnalyze(p)){
+			return true;
+		}
+	}
+	return false;
+}
+
+// unsat if true
+bool EventQueue::checkSymmetryAlgo1(const Lit& lit){
+	auto props = event2propagator.at(EV_SYMMCHECK1);
+	for(uint i=0; i<size(EV_SYMMCHECK1); ++i){
+		if(props[i]->checkSymmetryAlgo1(lit)){
+			return true;
+		}
+	}
+	return false;
+}
+
+bool EventQueue::checkSymmetryAlgo2(){
+	auto props = event2propagator.at(EV_SYMMCHECK2);
+	for(uint i=0; i<size(EV_SYMMCHECK2); ++i){
+		if(props[i]->checkSymmetryAlgo2()){
 			return true;
 		}
 	}

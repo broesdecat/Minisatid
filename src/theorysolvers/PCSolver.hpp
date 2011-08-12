@@ -157,10 +157,12 @@ public:
 	void		notifyBoundsChanged(IntVar* var);
 
 	void 		notifyClauseAdded(rClause clauseID);
-	void 		notifyClauseDeleted(rClause clauseID);
 	bool 		symmetryPropagationOnAnalyze(const Lit& p);
 
 	int			getNbOfFormulas	() const;
+
+	bool 		propagateSymmetry(const Lit& l);
+	bool		propagateSymmetry2();
 
 	// MOD SOLVER support
 	void		saveState		();
