@@ -13,20 +13,24 @@
 
 using namespace MinisatID;
 
-BinaryConstraint::BinaryConstraint(PCSolver* engine, IntVar* left, EqType comp, IntVar* right, Var h): Propagator(engine), head_(mkPosLit(h)){
-	switch(comp){
-		case MEQ:  left_ = left; right_=right; comp_=BIN_EQ; break;
-		case MNEQ: left_ = left; right_=right; comp_=BIN_NEQ; break;
-		case MGEQ: left_ = right; right_=left; comp_=BIN_L; break;
-		case MG:   left_ = right; right_=left; comp_=BIN_LEQ; break;
-		case MLEQ: left_ = left; right_=right; comp_=BIN_LEQ; break;
-		case ML:   left_ = left; right_=right; comp_=BIN_L; break;
+BinaryConstraint::BinaryConstraint(PCSolver* engine, IntVar* left, EqType comp,
+		IntVar* right, Var h) :
+	Propagator(engine) {
+	// TODO leave out a case by adding views and LEQ var is L (var + 1)
+	// TODO leave out a case by negating the head! (NEQ)
+	switch (comp) {
+	case MEQ:	head_ = mkPosLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 0); comp_ = BIN_EQ; break;
+	case MNEQ:	head_ = mkNegLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 0); comp_ = BIN_EQ; break;
+	case MLEQ:	head_ = mkPosLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 0); comp_ = BIN_LEQ; break;
+	case ML:	head_ = mkPosLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 1); comp_ = BIN_LEQ; break;
+	case MGEQ:	head_ = mkNegLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 1); comp_ = BIN_LEQ; break;
+	case MG:	head_ = mkNegLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 0); comp_ = BIN_LEQ; break;
 	}
 	getPCSolver().accept(this, EV_PRINTSTATE);
 	getPCSolver().acceptFinishParsing(this, true); // has to be AFTER the intvars!
 }
 
-void BinaryConstraint::finishParsing(bool& unsat, bool& sat){
+void BinaryConstraint::finishParsing(bool& unsat, bool& sat) {
 	// TODO anything on intvars cannot be accepted before finishparsing of the intvar!
 	getPCSolver().accept(this, head(), FAST);
 	getPCSolver().accept(this, not head(), FAST);
@@ -34,192 +38,159 @@ void BinaryConstraint::finishParsing(bool& unsat, bool& sat){
 	getPCSolver().acceptBounds(right(), this);
 }
 
-rClause BinaryConstraint::getExplanation(const Lit& lit){
+rClause BinaryConstraint::getExplanation(const Lit& lit) {
 	assert(false);
-	bool headtrue = getPCSolver().value(head())==l_True;
-	InnerDisjunction explan;
-	explan.literals.push(lit);
-	if((comp_==BIN_EQ && headtrue) || (comp_==BIN_NEQ && !headtrue)){
-		if(var(lit)==var(head())){ // both vars have the same value
-			explan.literals.push(left()->getEQLit(left()->minValue()));
-			explan.literals.push(right()->getEQLit(right()->minValue()));
-		}
-	}
-	return getPCSolver().createClause(explan.literals, true);
-	// FIXME
-/*		switch(comp_){
-	case BIN_EQ:
-		if(leftmax()<rightmin()){
-			vec<Lit> clause;
-			clause.push(left()->getGEQLit(rightmin()));
-			clause.push(right()->getLEQLit(leftmax()));
-			return getPCSolver().createClause(clause, true);
-		}else if(rightmin()<leftmax()){
-			vec<Lit> clause;
-			clause.push(left()->getLEQLit(rightmax()));
-			clause.push(right()->getGEQLit(leftmin()));
-			return getPCSolver().createClause(clause, true);
-		}
-		propagate(left(), HIGHEREQ, rightmin());
-		propagate(right(), HIGHEREQ, leftmin());
-		propagate(left(), LOWEREQ, rightmax());
-		propagate(right(), LOWEREQ, leftmax());
-		break;
-	case BIN_NEQ:
-		if(satisfiedEq()){
-			vec<Lit> clause;
-			clause.push(left()->getNEQLit(left()->minValue()));
-			clause.push(left()->getNEQLit(right()->minValue()));
-			return getPCSolver().createClause(clause, true);
-		}
-		if(leftmin()==leftmax()){
-			propagate(leftmin(), NOT, right());
-		}
-		break;
-	case BIN_L:
-		if(rightmax()<=leftmin()){
-			vec<Lit> clause;
-			clause.push(left()->getLEQLit(rightmax()-1));
-			clause.push(right()->getLEQLit(leftmax()));
-			return getPCSolver().createClause(clause, true);
-		}
-		propagate(left(), LOWEREQ, rightmax()-1);
-		propagate(right(), HIGHEREQ, leftmin()+1);
-		break;
-	case BIN_LEQ:
-		if(rightmax()<leftmin()){
-			return getExplanation();
-		}
-		propagate(left(), LOWEREQ, rightmax());
-		propagate(right(), HIGHEREQ, leftmin());
-		break;
-	}*/
+/*
+	if comp is BIN_LEQ
+		if lit is head
+			if headtrue
+				explain is left = leftmin & right = leftmin
+			else if leftmax < rightmin
+				explain is left =< leftmax & rightmin =< right
+			else assert rightmax < leftmin
+				explain is right =< rightmax & leftmin =< left
+		else
+			lit means var c x
+			if headtrue
+				assert c is LEQ
+				explain is head and othervar LEQ x
+			else
+				assert c is NEQ
+				explain is head and othervar EQ x
+	else //comp is BIN_LEQ
+		if lit is head
+			if headtrue
+				explain is left = leftmin & right = leftmin
+			else if leftmax < rightmin
+				explain is left =< leftmax & rightmin =< right
+			else assert rightmax < leftmin
+				explain is right =< rightmax & leftmin =< left
+		else
+			lit means var c x
+			if headtrue
+				assert c is LEQ
+				explain is head and othervar LEQ x
+			else
+				assert c is NEQ
+				explain is head and othervar EQ x
+*/
 }
 
-rClause BinaryConstraint::propagate(int bound, BIN_SIGN comp, IntVar* var){
-	if(comp==NOT){
+rClause BinaryConstraint::propagate(int bound, BIN_SIGN comp, IntView* var) {
+	if (comp == NOT) {
 		return propagate(var, NOT, bound);
 	}
-	return propagate(var, comp==LOWEREQ?HIGHEREQ:LOWEREQ, comp==LOWEREQ?bound+1:bound-1);
+	return propagate(var, comp == LOWEREQ ? HIGHEREQ : LOWEREQ, comp == LOWEREQ ? bound + 1 : bound - 1);
 }
-rClause BinaryConstraint::propagate(IntVar* var, BIN_SIGN comp, int bound){
-	switch(comp){
+rClause BinaryConstraint::propagate(IntView* var, BIN_SIGN comp, int bound) {
+	switch (comp) {
 	case LOWEREQ:
-		if(bound<var->maxValue() && var->origMinValue()<=bound){
+		if (bound < var->maxValue() && var->origMinValue() <= bound) {
 			Lit lit = var->getLEQLit(bound);
 			lbool val = getPCSolver().value(lit);
-			if(val==l_False){
+			if (val == l_False) {
 				return getExplanation(lit);
-			}else if(val==l_Undef){
-				std::cerr <<"CP propagate: var" <<var->id() <<" =< " <<bound <<"\n";
+			} else if (val == l_Undef) {
 				getPCSolver().setTrue(lit, this);
 			}
 		}
 		break;
 	case HIGHEREQ:
-		if(var->minValue()<bound && bound<=var->origMaxValue()){
+		if (var->minValue() < bound && bound <= var->origMaxValue()) {
 			Lit lit = var->getGEQLit(bound);
 			lbool val = getPCSolver().value(lit);
-			if(val==l_False){
+			if (val == l_False) {
 				return getExplanation(lit);
-			}else if(val==l_Undef){
-				std::cerr <<"CP propagate: var " <<var->origid() <<" >= " <<bound <<"\n";
+			} else if (val == l_Undef) {
 				getPCSolver().setTrue(var->getGEQLit(bound), this);
 			}
 		}
 		break;
-	case NOT:{
+	case NOT: {
 		Lit lit = var->getNEQLit(bound);
 		lbool val = getPCSolver().value(lit);
-		if(val==l_False){
+		if (val == l_False) {
 			return getExplanation(lit);
-		}else if(val==l_Undef){
-			std::cerr <<"CP propagate: var " <<var->origid() <<" ~= " <<bound <<"\n";
+		} else if (val == l_Undef) {
 			getPCSolver().setTrue(var->getNEQLit(bound), this);
 		}
-		break;}
+		break;
+	}
 	}
 	return nullPtrClause;
 }
 
-rClause	BinaryConstraint::notifypropagate(){
+rClause BinaryConstraint::notifypropagate() {
 	rClause confl = nullPtrClause;
 	lbool headvalue = getPCSolver().value(head());
-	if(headvalue==l_True){
-		switch(comp_){
+	if (headvalue == l_True) {
+		switch (comp_) {
 		case BIN_EQ:
-			if(confl==nullPtrClause){ confl = propagate(left(), HIGHEREQ, rightmin()); }
-			if(confl==nullPtrClause){ confl = propagate(right(), HIGHEREQ, leftmin()); }
-			if(confl==nullPtrClause){ confl = propagate(left(), LOWEREQ, rightmax()); }
-			if(confl==nullPtrClause){ confl = propagate(right(), LOWEREQ, leftmax()); }
-			break;
-		case BIN_NEQ:
-			if(confl==nullPtrClause){ confl = propagate(leftmin(), NOT, right()); }
-			break;
-		case BIN_L:
-			if(confl==nullPtrClause){ confl = propagate(left(), LOWEREQ, rightmax()-1); }
-			if(confl==nullPtrClause){ confl = propagate(right(), HIGHEREQ, leftmin()+1); }
+			if (confl == nullPtrClause) {
+				confl = propagate(left(), HIGHEREQ, rightmin());
+			}
+			if (confl == nullPtrClause) {
+				confl = propagate(right(), HIGHEREQ, leftmin());
+			}
+			if (confl == nullPtrClause) {
+				confl = propagate(left(), LOWEREQ, rightmax());
+			}
+			if (confl == nullPtrClause) {
+				confl = propagate(right(), LOWEREQ, leftmax());
+			}
 			break;
 		case BIN_LEQ:
-			if(confl==nullPtrClause){ confl = propagate(left(), LOWEREQ, rightmax()); }
-			if(confl==nullPtrClause){ confl = propagate(right(), HIGHEREQ, leftmin()); }
+			if (confl == nullPtrClause) {
+				confl = propagate(left(), LOWEREQ, rightmax());
+			}
+			if (confl == nullPtrClause) {
+				confl = propagate(right(), HIGHEREQ, leftmin());
+			}
 			break;
 		}
-	}else if(headvalue==l_False){
-		switch(comp_){
+	} else if (headvalue == l_False) {
+		switch (comp_) {
 		case BIN_EQ:
-			if(confl==nullPtrClause){ confl = propagate(leftmin(), NOT, right()); }
-			if(confl==nullPtrClause){ confl = propagate(rightmin(), NOT, left()); }
-			break;
-		case BIN_NEQ:
-			if(confl==nullPtrClause){ confl = propagate(left(), HIGHEREQ, rightmin()); }
-			if(confl==nullPtrClause){ confl = propagate(right(), HIGHEREQ, leftmin()); }
-			if(confl==nullPtrClause){ confl = propagate(left(), LOWEREQ, rightmax()); }
-			if(confl==nullPtrClause){ confl = propagate(right(), LOWEREQ, leftmax()); }
-			break;
-		case BIN_L: // GEQ => left()>=rightmin()
-			if(confl==nullPtrClause){ confl = propagate(left(), HIGHEREQ, rightmin()); }
-			if(confl==nullPtrClause){ confl = propagate(right(), LOWEREQ, leftmax()); }
+			if (confl == nullPtrClause) {
+				confl = propagate(leftmin(), NOT, right());
+			}
+			if (confl == nullPtrClause) {
+				confl = propagate(rightmin(), NOT, left());
+			}
 			break;
 		case BIN_LEQ: // G => left()>=rightmin()+1
-			if(confl==nullPtrClause){ confl = propagate(left(), HIGHEREQ, rightmin()+1); }
-			if(confl==nullPtrClause){ confl = propagate(right(), LOWEREQ, leftmax()-1); }
+			if (confl == nullPtrClause) {
+				confl = propagate(left(), HIGHEREQ, rightmin() + 1);
+			}
+			if (confl == nullPtrClause) {
+				confl = propagate(right(), LOWEREQ, leftmax() - 1);
+			}
 			break;
 		}
-	}else{ // head is unknown: can only propagate head
+	} else { // head is unknown: can only propagate head
 		bool prop = false;
 		Lit headprop = head();
-		switch(comp_){
+		switch (comp_) {
 		case BIN_EQ:
-			if(violatedEq()){
-				prop = true; headprop = not head();
-			}else if(satisfiedEq()){
-				prop = true; headprop = head();
-			}
-			break;
-		case BIN_NEQ:
-			if(satisfiedEq()){
-				prop = true; headprop = not head();
-			}else if(violatedEq()){
-				prop = true; headprop = head();
-			}
-			break;
-		case BIN_L:
-			if(rightmax()<=leftmin()){
-				prop = true; headprop = not head();
-			}else if(leftmax()<rightmax()){
-				prop = true; headprop = head();
+			if (violatedEq()) {
+				prop = true;
+				headprop = ~head();
+			} else if (satisfiedEq()) {
+				prop = true;
+				headprop = head();
 			}
 			break;
 		case BIN_LEQ:
-			if(rightmax()<leftmin()){
-				prop = true; headprop = not head();
-			}else if(leftmax()<=rightmax()){
-				prop = true; headprop = head();
+			if (rightmax() < leftmin()) {
+				prop = true;
+				headprop = ~head();
+			} else if (leftmax() <= rightmax()) {
+				prop = true;
+				headprop = head();
 			}
 			break;
 		}
-		if(prop){
+		if (prop) {
 			getPCSolver().setTrue(headprop, this);
 		}
 	}
@@ -227,7 +198,11 @@ rClause	BinaryConstraint::notifypropagate(){
 	return confl;
 }
 
-void BinaryConstraint::printState() const{
-	// TODO
+void BinaryConstraint::printState() const {
+	std::clog << "binConstr: " << head() << " <=> " << "var"
+			<< left()->origid() << "[" << left()->minValue() << ", "
+			<< left()->maxValue() << "]" << " " << comp() << " " << "var"
+			<< right()->origid() << "[" << right()->minValue() << ", "
+			<< right()->maxValue() << "]";
 }
 
