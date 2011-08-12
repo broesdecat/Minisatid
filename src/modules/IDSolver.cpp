@@ -10,6 +10,8 @@
 #include "utils/Print.hpp"
 #include "theorysolvers/PCSolver.hpp"
 
+#include "modules/SCC2SAT.hpp"
+
 #include <cmath>
 
 #include "utils/IntTypes.h"

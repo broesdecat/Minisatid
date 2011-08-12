@@ -40,6 +40,7 @@ libminisatid_2_0_la_SOURCES = \
 		modules/IDSolver.hpp 				modules/IDSolver.cpp\
 		modules/IntVar.hpp 					modules/IntVar.cpp\
 		modules/BinConstr.hpp 				modules/BinConstr.cpp\
+		modules/SCC2SAT.hpp\
 		modules/aggsolver/AggTransform.hpp 	modules/aggsolver/AggTransform.cpp\
 		modules/aggsolver/AggUtils.hpp 		modules/aggsolver/AggUtils.cpp\
 		modules/aggsolver/AggSet.hpp 		modules/aggsolver/AggSet.cpp\
