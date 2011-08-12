@@ -85,6 +85,9 @@ public:
 	void 	printStatistics			() const;
 	void	setTrue					(const Lit& l);
 
+	bool 	checkSymmetryAlgo1(const Lit& lit);
+	bool	checkSymmetryAlgo2();
+
 private:
 	void 	setTrue(const proplist& list, std::queue<Propagator*>& queue);
 

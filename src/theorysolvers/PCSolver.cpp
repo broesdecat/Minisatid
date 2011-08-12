@@ -12,7 +12,6 @@
 #include "satsolver/SATSolver.hpp"
 #include "modules/ModSolver.hpp"
 #include "modules/AggSolver.hpp"
-#include "modules/Symmetrymodule.hpp"
 #include "modules/CPSolver.hpp"
 #include "wrapper/InterfaceImpl.hpp"
 
@@ -323,18 +322,11 @@ void PCSolver::backtrackDecisionLevel(int untillevel, const Lit& decision) {
 }
 
 bool PCSolver::propagateSymmetry2() {
-	if (getFactory().hasSymmSolver()) {
-		return getFactory().getSymmSolver()->notifyPropagate();
-	}
-	return true;
+	return getEventQueue().checkSymmetryAlgo2();
 }
 
 bool PCSolver::propagateSymmetry(const Lit& l) {
-	if (getFactory().hasSymmSolver()) {
-		getFactory().getSymmSolver()->notifypropagate(l);
-		return getFactory().getSymmSolver()->hasGeneratedConflict();
-	}
-	return false;
+	return getEventQueue().checkSymmetryAlgo1(l);
 }
 
 /**

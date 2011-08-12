@@ -15,10 +15,12 @@
 
 namespace MinisatID {
 
+typedef std::pair<unsigned int, unsigned int> uintpair;
+
 class SymVars{
 public:
 	std::vector<std::vector<Var> > symVars;
-	std::map<Var, std::pair<unsigned int, unsigned int> > activeVars;
+	std::map<Var,  uintpair> activeVars;
 	std::set<Lit> propagatedLits;
 	std::set<unsigned int> allowedColumns;
 	std::set<unsigned int> allowedRows;
@@ -28,11 +30,10 @@ public:
 
 	// @pre: alle binnenste vectoren in args hebben zelfde lengte
 	// @pre: alle Literals van args zijn positief
-	// TODO: input zuigt, zou moeten var zijn ipv lit, en zou moeten getransponeerd zijn
 	SymVars(std::vector<std::vector<Lit> >& args){
 		for(unsigned int i=0; i<args.size(); ++i){
 			for(unsigned int j=0; j<args[i].size(); ++j){
-				activeVars.insert(std::pair<Var, std::pair<unsigned int, unsigned int> >(var(args[i][j]), std::pair<unsigned int, unsigned int>(j,i)));
+				activeVars.insert(std::pair<Var, uintpair >(var(args[i][j]), uintpair(j,i)));
 				allowedRows.insert(j);
 				if(symVars.size()<=j){
 					symVars.push_back(std::vector<Var>());
@@ -41,7 +42,6 @@ public:
 			}
 			allowedColumns.insert(i);
 		}
-//		print();
 	}
 
 	void print(){
@@ -80,9 +80,6 @@ public:
 					}
 				}
 			}
-//			for(auto lits_it=propLits.begin(); lits_it!=propLits.end(); ++lits_it){
-//				std::clog << "proplits: " << *lits_it << "\n";
-//			}
 			allowedRows.erase(row);
 			std::pair<unsigned int,std::vector<Lit> > entry = std::pair<unsigned int,std::vector<Lit> >(row,propLits);
 			rowBacktrackLevels.push_back(std::pair<int, std::pair<unsigned int,std::vector<Lit> > >(level,entry));
@@ -91,8 +88,6 @@ public:
 	}
 
 	void backtrack(int level, const Lit& l){
-//		std::clog << level << " | " << l << "\n";
-//		print();
 		while(!columnBacktrackLevels.empty() && level < columnBacktrackLevels.back().first){
 			unsigned int column = columnBacktrackLevels.back().second;
 			for(auto rows_it=allowedRows.begin(); rows_it!=allowedRows.end(); ++rows_it){
@@ -146,15 +141,13 @@ public:
 		getPCSolver().accept(this, EV_BACKTRACK);
 		getPCSolver().accept(this, EV_ADDCLAUSE);
 		getPCSolver().accept(this, EV_SYMMETRYANALYZE);
+		getPCSolver().accept(this, EV_SYMMCHECK1);
+		getPCSolver().accept(this, EV_SYMMCHECK2);
 		getPCSolver().acceptFinishParsing(this, false);
 	}
 
 	virtual ~SymmetryPropagator() {
 		deleteList<SymVars>(symClasses);
-	}
-
-	bool hasGeneratedConflict(){
-		return generatedConflict;
 	}
 
 	// DPLL-T methods
@@ -165,6 +158,7 @@ public:
 	}
 
 	virtual const char* getName			() const { return "symmetry"; }
+	virtual int		getNbOfFormulas		() const { return 0; }
 
 	bool symmetryPropagationOnAnalyze(const Lit& p){
 		bool propagatedBySymClasses = false;
@@ -179,13 +173,16 @@ public:
 	    for(auto i=symmgroups.begin(); i<symmgroups.end(); ++i){
 	    	symClasses.push_back(new SymVars(*i));
 	    }
+	    if(symmgroups.size()==0 && symmetries.size()==0){
+	    	present = false;
+	    }
 	}
 
-	rClause notifypropagate(const Lit& l) {
+	bool checkSymmetryAlgo1(const Lit& l) {
 	   	for(auto vs_it=symClasses.begin(); vs_it!=symClasses.end(); vs_it++){
 			(*vs_it)->propagate(l,getPCSolver().getCurrentDecisionLevel(), getPCSolver());
 		}
-	   	return nullPtrClause;
+	   	return generatedConflict;
 	}
 
 	void notifyBacktrack(int untillevel, const Lit& decision) {
@@ -195,7 +192,7 @@ public:
 		}
 	}
 
-	// Different symmetry strategy, TODO should be split into different class
+	// Different symmetry strategy, TODO should be split into different classes
 	// => if a clause is added, add all symmetric clauses also
 	// => when a clause is deleted, all symmetric ones have to be deleted too!
 	// => INVARIANT: for any clause in the db, all its symmetric ones are always also in the db
@@ -229,8 +226,7 @@ private:
 		}
 
 		if (allfalse) {
-			if (level == 0) { //FIXME handle
-				std::cerr << "Unsatisfiable symmetric clause, is not handled now.";
+			if (level == 0) {
 				return false;
 			}
 			getPCSolver().backtrackTo(level);
@@ -266,8 +262,6 @@ public:
 		for(auto i=symmetry.begin(); i!=symmetry.end(); ++i){
 			var2symmetries[(*i).first].push_back(symmetries.size()-1);
 		}
-		// TODO Assume the grounding is perfectly symmetric according to all symmetries.
-		// If this is not the case, during adding of symmetric clauses, conflicts might pop up
 	}
 
 	void notifyClauseAdded(rClause clauseID){
@@ -284,7 +278,7 @@ public:
 		addedClauses.push_back(clause);
 	}
 
-    bool notifyPropagate() {
+    bool checkSymmetryAlgo2() {
 		bool noConflict = true;
 		adding = true;
 		if (addedClauses.size() > 0) {

@@ -149,7 +149,7 @@ public:
 	int			getNbOfFormulas	() const;
 
 	bool 		propagateSymmetry(const Lit& l);
-	bool 		propagateSymmetry2();
+	bool		propagateSymmetry2();
 
 	// MOD SOLVER support
 	void		saveState		();

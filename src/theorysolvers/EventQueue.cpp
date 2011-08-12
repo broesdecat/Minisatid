@@ -30,6 +30,8 @@ EventQueue::EventQueue(PCSolver& pcsolver):
 	event2propagator[EV_EXITCLEANLY];
 	event2propagator[EV_ADDCLAUSE];
 	event2propagator[EV_SYMMETRYANALYZE];
+	event2propagator[EV_SYMMCHECK1];
+	event2propagator[EV_SYMMCHECK2];
 }
 
 EventQueue::~EventQueue() {
@@ -200,6 +202,25 @@ void EventQueue::notifyClauseAdded(rClause clauseID){
 bool EventQueue::symmetryPropagationOnAnalyze(const Lit& p){
 	for(auto i=begin(EV_SYMMETRYANALYZE); i<end(EV_SYMMETRYANALYZE); ++i){
 		if((*i)->symmetryPropagationOnAnalyze(p)){
+			return true;
+		}
+	}
+	return false;
+}
+
+// unsat if true
+bool EventQueue::checkSymmetryAlgo1(const Lit& lit){
+	for(auto i=begin(EV_SYMMCHECK1); i<end(EV_SYMMCHECK1); ++i){
+		if((*i)->checkSymmetryAlgo1(lit)){
+			return true;
+		}
+	}
+	return false;
+}
+
+bool EventQueue::checkSymmetryAlgo2(){
+	for(auto i=begin(EV_SYMMCHECK2); i<end(EV_SYMMCHECK2); ++i){
+		if((*i)->checkSymmetryAlgo2()){
 			return true;
 		}
 	}
