@@ -33,7 +33,7 @@ public:
 
 	virtual void 	finishParsing(bool& unsat) = 0;
 
-	virtual bool	solve(const vec<Lit>& assumptions, const ModelExpandOptions& options) = 0;
+	virtual bool	solve(const litlist& assumptions, const ModelExpandOptions& options) = 0;
 
 			int 	verbosity		() const		{ return modes().verbosity; }
 	const SolverOption& modes		() const		{ return _modes; }

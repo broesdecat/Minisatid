@@ -39,7 +39,7 @@ void SOSolver::checkexistsModSolver(vsize modid) const {
 	}
 }
 
-bool SOSolver::solve(const vec<Lit>& assumptions, const ModelExpandOptions& options){
+bool SOSolver::solve(const litlist& assumptions, const ModelExpandOptions& options){
 	assert(state==ALLLOADED);
 	return solvers[0]->solve(assumptions, options);
 }
@@ -124,7 +124,7 @@ bool SOSolver::add(int modid, const InnerDisjunction& disj){
 /*
 	//Check two initial propagation rules
 	bool allexist = true;
-	vec<Lit> onlyexists;
+	litlist onlyexists;
 	for(int i=0; i<lits.size(); ++i){
 		if(isForall(lits[i])){
 			allexist = false;
@@ -139,7 +139,7 @@ bool SOSolver::add(int modid, const InnerDisjunction& disj){
 	initialsolvertwo->addClause(onlyexists);*/
 
 	//Try to add a clause as high up in the hierarchy as possible.
-	const vec<Lit>& lits = disj.literals;
+	const litlist& lits = disj.literals;
 	checkexistsModSolver(modid);
 	vsize previd = modid, currentid = modid;
 	ModSolver* m = NULL;

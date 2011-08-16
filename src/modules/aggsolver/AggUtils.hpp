@@ -91,7 +91,7 @@ public:
 
 class AggReason {
 private:
-	vec<Lit> 	explanation;
+	InnerDisjunction 	explanation;
 	bool 		hasclause;
 
 public:
@@ -105,8 +105,8 @@ public:
 	virtual bool		isInSet			()	const = 0;
 
     bool 		hasClause		()	const	{ return hasclause; }
-    const vec<Lit>&	getClause	()	const	{ assert(hasClause()); return explanation; }
-    void		setClause		(const Minisat::vec<Lit>& c) {	c.copyTo(explanation); hasclause = true; }
+    const InnerDisjunction&	getClause	()	const	{ assert(hasClause()); return explanation; }
+    void		setClause		(const InnerDisjunction& c) {	explanation = c; hasclause = true; }
 };
 
 class HeadReason: public AggReason {

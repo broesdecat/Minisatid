@@ -152,7 +152,7 @@ private:
 	// Cycle sources:
 	std::vector<Var>		css;                    // List of cycle sources. May still include atoms v that have !isCS[v].
 	std::set<Var>			savedufs;
-	vec<Lit>				savedloopf;
+	InnerDisjunction		savedloopf;
 
 
 	//Well-founded model checking
@@ -311,7 +311,7 @@ private:
 	bool 	isJustified					(const InterMediateDataStruct& currentjust, const WL& wl, bool real) const;
 
 	bool	propagateJustified			(Var v, Var cs, std::set<Var>& ufs);    // Auxiliary for 'unfounded(..)'. Propagate the fact that 'v' is now justified. True if 'cs' is now justified
-	void	addLoopfClause				(Lit l, vec<Lit>& lits);
+	void	addLoopfClause				(Lit l, InnerDisjunction& lits);
 
 	// Another propagation method (too expensive in practice):
 	// void     fwIndirectPropagate();
@@ -324,7 +324,7 @@ private:
 	void	print		(const PropRule& c)	const;
 	bool	isCycleFree	() 					const;			// Verifies whether justification is indeed cycle free, not used, for debugging purposes.
 
-	void	addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf);
+	void	addExternalDisjuncts(const std::set<Var>& ufs, litlist& loopf);
 
 	// WELL FOUNDED MODEL CHECKING
 
@@ -358,7 +358,7 @@ private:
 	std::vector<Var> getDefAggHeadsWithBodyLit(Var x) const;
 	vwl::const_iterator getSetLitsOfAggWithHeadBegin(Var x) const;
 	vwl::const_iterator getSetLitsOfAggWithHeadEnd(Var x) const ;
-	void addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, InterMediateDataStruct& seen);
+	void addExternalLiterals(Var v, const std::set<Var>& ufs, litlist& loopf, InterMediateDataStruct& seen);
 	void findJustificationAggr(Var head, vec<Lit>& outjstf) ;
 	bool directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, InterMediateDataStruct& currentjust);
 	bool isInitiallyJustified(const IDAgg& agg);

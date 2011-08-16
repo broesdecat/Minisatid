@@ -21,6 +21,7 @@ typedef unsigned int uint;
 
 namespace MinisatID {
 
+typedef std::vector<Lit> litlist;
 inline Lit  mkPosLit	(Var var) 	{ return mkLit(var, false); }
 inline Lit  mkNegLit	(Var var) 	{ return mkLit(var, true); }
 inline Lit 	operator!	(Lit p)		{ Lit q; q.x = p.x ^ 1; return q; }
@@ -84,44 +85,25 @@ bool compareByWeights(const T& one, const T& two) {
 bool compareWLByAbsWeights(const WL& one, const WL& two);
 
 struct InnerModel{
-	vec<Lit> litassignments;
+	std::vector<Lit> litassignments;
 	std::vector<VariableEqValue> varassignments;
 };
 
 struct InnerDisjunction{
-	vec<Lit> literals;
-
-	InnerDisjunction(){}
-	InnerDisjunction(const InnerDisjunction& orig){
-		orig.literals.copyTo(literals);
-	}
-
-	void operator=(const InnerDisjunction& orig){
-		orig.literals.copyTo(literals);
-	}
+	std::vector<Lit> literals;
 };
 
 struct InnerEquivalence{
 	Lit	head;
-	vec<Lit> literals;
+	std::vector<Lit> literals;
 	bool conjunctive;
-
-	InnerEquivalence():head(mkLit(-1)){}
-	InnerEquivalence(const InnerEquivalence& eq):head(eq.head), conjunctive(eq.conjunctive){
-		eq.literals.copyTo(literals);
-	}
 };
 
 struct InnerRule{
 	Var head;
-	vec<Lit> body;
+	std::vector<Lit> body;
 	bool conjunctive;
 	int definitionID;
-
-	InnerRule(): head(-1), conjunctive(true), definitionID(-1){}
-	InnerRule(const InnerRule& rule): head(rule.head), conjunctive(rule.conjunctive), definitionID(rule.definitionID){
-		rule.body.copyTo(body);
-	}
 };
 
 struct InnerSet{
@@ -130,9 +112,7 @@ struct InnerSet{
 	std::vector<Lit> literals;
 
 	InnerSet(AggType type, int setID, const std::vector<Lit>& literals)
-			:type(type), setID(setID), literals(literals){
-
-	}
+			:type(type), setID(setID), literals(literals){}
 };
 
 struct InnerWSet{
@@ -143,7 +123,6 @@ struct InnerWSet{
 
 	InnerWSet(AggType type, int setID, const std::vector<Lit>& literals, const std::vector<Weight>& weights)
 			:type(type), setID(setID), literals(literals), weights(weights){
-
 	}
 };
 
@@ -184,11 +163,11 @@ struct InnerReifAggregate{
 };
 
 struct InnerMinimizeOrderedList{
-	vec<Lit> literals;
+	std::vector<Lit> literals;
 };
 
 struct InnerMinimizeSubset{
-	vec<Lit> literals;
+	std::vector<Lit> literals;
 };
 
 struct InnerMinimizeVar{
@@ -196,7 +175,7 @@ struct InnerMinimizeVar{
 };
 
 struct InnerForcedChoices{
-	vec<Lit> forcedchoices;
+	std::vector<Lit> forcedchoices;
 };
 
 struct InnerSymmetryLiterals{

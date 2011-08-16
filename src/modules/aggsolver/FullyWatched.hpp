@@ -62,7 +62,7 @@ public:
 	virtual void 	initialize				(bool& unsat, bool& sat);
 	virtual rClause	propagateAtEndOfQueue	();
 	virtual void	backtrack				(int untillevel);
-	virtual void 	getExplanation			(vec<Lit>& lits, const AggReason& ar) = 0;
+	virtual void 	getExplanation			(litlist& lits, const AggReason& ar) = 0;
 
 	const Weight& 	getCP					()	const 	{ return trail.back()->CBP; }
 	const Weight& 	getCC					()	const 	{ return trail.back()->CBC; }
@@ -74,7 +74,7 @@ public:
 	virtual ~SPFWAgg(){};
 
 	void checkAddToExplan(bool& stop, Weight& min, Weight& max, const PropagationInfo& propinfo, const Agg& agg, bool caseone, std::vector<PropagationInfo>& reasons);
-	virtual void 	getExplanation			(vec<Lit>& lits, const AggReason& ar);
+	virtual void 	getExplanation			(litlist& lits, const AggReason& ar);
 
 protected:
 	virtual rClause propagateSpecificAtEnd	(const Agg& agg, bool headtrue);
@@ -104,7 +104,7 @@ public:
 	virtual ~MaxFWAgg(){};
 
 	virtual void 	initialize				(bool& unsat, bool& sat);
-	virtual void 	getExplanation			(vec<Lit>& lits, const AggReason& ar);
+	virtual void 	getExplanation			(litlist& lits, const AggReason& ar);
 
 protected:
 	virtual void 	addToCertainSet			(const WL& l);

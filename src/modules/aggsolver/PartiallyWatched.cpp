@@ -494,7 +494,7 @@ bool compareEarlier(const T& one, const T& two){
 	return one.time < two.time;
 }
 
-void GenPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
+void GenPWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 	const PCSolver& pcsol = getSet().getPCSolver();
 	const Agg& agg = ar.getAgg();
 	const Lit& head = agg.getHead();
@@ -512,7 +512,7 @@ void GenPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	//if head known and not propagated and generating conflict clause or asserted before
 	if(headval!=l_Undef && var(ar.getPropLit())!=var(head) &&
 			(conflictclause || pcsol.assertedBefore(var(head), var(proplit)))){
-		lits.push(headval==l_True?not head:head);
+		lits.push_back(headval==l_True?not head:head);
 	}
 
 	std::vector<wlt> wlis;
@@ -570,7 +570,7 @@ void GenPWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	}
 
 	for(auto i=reasons.begin(); i<reasons.end(); ++i){
-		lits.push(value(i->getLit())==l_True?not i->getLit():i->getLit());
+		lits.push_back(value(i->getLit())==l_True?not i->getLit():i->getLit());
 	}
 
 	assert(isFalsified(ar.getAgg(), pessbounds));

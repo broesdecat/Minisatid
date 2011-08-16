@@ -43,7 +43,7 @@ public:
 			assert(var2time.size()>(vsize)var(trail[i]));
 			var2time[var(trail[i])]=-1;
 		}
-		trail.resize(decisionlevel2trail[(vsize)untillevel+1]-1);
+		trail.resize(decisionlevel2trail[(vsize)untillevel+1]);
 		decisionlevel2trail.resize((vsize)untillevel+1);
 	}
 	bool hasTime(const Lit& lit){

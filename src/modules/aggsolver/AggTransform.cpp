@@ -132,13 +132,13 @@ void MinisatID::addHeadImplications(PCSolver* solver, InnerWLSet* set, std::vect
 			for(agglist::const_iterator i=lbaggs.begin()+1; i<lbaggs.end(); ++i){
 				Agg* second = *i;
 				InnerDisjunction disj;
-				disj.literals.push(first->getHead());
-				disj.literals.push(not second->getHead());
+				disj.literals.push_back(first->getHead());
+				disj.literals.push_back(not second->getHead());
 				solver->add(disj);
 				if(first->getBound()==second->getBound()){
 					InnerDisjunction disj2;
-					disj2.literals.push(not first->getHead());
-					disj2.literals.push(second->getHead());
+					disj2.literals.push_back(not first->getHead());
+					disj2.literals.push_back(second->getHead());
 					solver->add(disj2);
 				}
 				first = second;
@@ -151,13 +151,13 @@ void MinisatID::addHeadImplications(PCSolver* solver, InnerWLSet* set, std::vect
 			for(agglist::const_iterator i=ubaggs.begin()+1; i<ubaggs.end(); ++i){
 				Agg* second = *i;
 				InnerDisjunction disj;
-				disj.literals.push(first->getHead());
-				disj.literals.push(not second->getHead());
+				disj.literals.push_back(first->getHead());
+				disj.literals.push_back(not second->getHead());
 				solver->add(disj);
 				if(first->getBound()==second->getBound()){
 					InnerDisjunction disj2;
-					disj2.literals.push(not first->getHead());
-					disj2.literals.push(second->getHead());
+					disj2.literals.push_back(not first->getHead());
+					disj2.literals.push_back(second->getHead());
 					solver->add(disj2);
 				}
 				first = second;
@@ -193,21 +193,21 @@ void MinisatID::max2SAT(PCSolver* solver, InnerWLSet* set, std::vector<Agg*>& ag
 				break;
 			}
 			if (ub) {
-				rule.body.push(~(*i).getLit());
+				rule.body.push_back(~(*i).getLit());
 			} else {
-				rule.body.push((*i).getLit());
+				rule.body.push_back((*i).getLit());
 			}
 		}
 
 		notunsat = set->getSolver()->getPCSolver().add(rule);
 	} else {*/
 		InnerDisjunction clause;
-		clause.literals.push(ub? agg.getHead():not agg.getHead());
+		clause.literals.push_back(ub? agg.getHead():not agg.getHead());
 		for (vwl::const_reverse_iterator i = set->wls.rbegin(); i < set->wls.rend()	&& (*i).getWeight() >= bound; ++i) {
 			if (ub && (*i).getWeight() == bound) {
 				break;
 			}
-			clause.literals.push((*i).getLit());
+			clause.literals.push_back((*i).getLit());
 		}
 		notunsat = solver->add(clause);
 		for (vwl::const_reverse_iterator i = set->wls.rbegin(); notunsat && i < set->wls.rend()
@@ -216,8 +216,8 @@ void MinisatID::max2SAT(PCSolver* solver, InnerWLSet* set, std::vector<Agg*>& ag
 				break;
 			}
 			clause.literals.clear();
-			clause.literals.push(ub?not agg.getHead():agg.getHead());
-			clause.literals.push(not (*i).getLit());
+			clause.literals.push_back(ub?not agg.getHead():agg.getHead());
+			clause.literals.push_back(not (*i).getLit());
 			notunsat = solver->add(clause);
 		}
 	//}
@@ -268,7 +268,7 @@ void MinisatID::card2Equiv(PCSolver* solver, InnerWLSet* set, std::vector<Agg*>&
 					rule.head = var(agg.getHead());
 					rule.conjunctive = false;
 					for (vsize j = 0; j < set->getWL().size(); ++j) {
-						rule.body.push(set->getWL()[j].getLit());
+						rule.body.push_back(set->getWL()[j].getLit());
 					}
 					unsat = !set->getSolver()->getPCSolver().add(rule);
 				} else{*/
@@ -276,7 +276,7 @@ void MinisatID::card2Equiv(PCSolver* solver, InnerWLSet* set, std::vector<Agg*>&
 					eq.head = agg.getHead();
 					eq.conjunctive = false;
 					for (vsize j = 0; j < set->wls.size(); ++j) {
-						eq.literals.push(set->wls[j].getLit());
+						eq.literals.push_back(set->wls[j].getLit());
 					}
 					unsat = !solver->add(eq);
 				//}

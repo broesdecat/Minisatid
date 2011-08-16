@@ -148,7 +148,9 @@ int main(int argc, char** argv) {
 
 	pwls d = NULL;
 	bool cleanexit = false;
+#ifdef NDEBUG
 	try {
+#endif
 		//IMPORTANT: because signals are handled asynchronously, a special mechanism is needed to recover from them (exception throwing does not work)
 		//setjmp maintains a jump point to which any stack can jump back, re-executing this statement with different return value,
 		//so if this happens, we jump out
@@ -165,6 +167,7 @@ int main(int argc, char** argv) {
 			jumpback = 1;
 			cleanexit = true;
 		}
+#ifdef NDEBUG
 	} catch (const exception& e) {
 		printExceptionCaught(cerr, e);
 		cleanexit = false;
@@ -172,6 +175,7 @@ int main(int argc, char** argv) {
 		printUnexpectedError(cerr);
 		cleanexit = false;
 	}
+#endif
 	jumpback = 1;
 
 	int returnvalue = handleTermination(cleanexit, d);

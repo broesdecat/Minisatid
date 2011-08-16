@@ -169,9 +169,9 @@ rClause TypedSet::notifySolver(AggReason* ar) {
 }
 
 void TypedSet::addExplanation(AggReason& ar) const {
-	vec<Lit> lits;
-	lits.push(ar.getPropLit());
-	getProp()->getExplanation(lits, ar);
+	InnerDisjunction lits;
+	lits.literals.push_back(ar.getPropLit());
+	getProp()->getExplanation(lits.literals, ar);
 	ar.setClause(lits);
 
 	if(verbosity()>=3){
@@ -179,8 +179,8 @@ void TypedSet::addExplanation(AggReason& ar) const {
 		std::clog <<" in expression ";
 		print(verbosity(), ar.getAgg(), false);
 		std::clog <<" is ";
-		for(int i=0; i<lits.size(); ++i){
-			std::clog <<" " <<lits[i];
+		for(int i=0; i<lits.literals.size(); ++i){
+			std::clog <<" " <<lits.literals[i];
 		}
 		std::clog <<"\n";
 	}

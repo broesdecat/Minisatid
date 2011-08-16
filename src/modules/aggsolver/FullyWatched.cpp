@@ -315,7 +315,7 @@ void SPFWAgg::checkAddToExplan(bool& stop, Weight& min, Weight& max, const Propa
 bool comparePropagationInfoByWeights(const PropagationInfo& one, const PropagationInfo& two) {
 	return one.getWeight() < two.getWeight();
 }
-void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
+void SPFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 	const Agg& agg = ar.getAgg();
 	const Lit& head = agg.getHead();
 
@@ -332,7 +332,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 
 	if(!ar.isHeadReason()){
 		addValue(getSet().getType(), ar.getPropWeight(), !ar.isInSet(), min, max);
-		lits.push(value(head)==l_True?not head:head);
+		lits.push_back(value(head)==l_True?not head:head);
 	}
 
 	bool stop = false;
@@ -438,7 +438,7 @@ void SPFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
 	}
 
 	for(vector<PropagationInfo>::const_iterator i=reasons.begin(); i<reasons.end(); ++i){
-		lits.push(not i->getLit());
+		lits.push_back(not i->getLit());
 	}
 }
 
@@ -560,14 +560,14 @@ rClause MaxFWAgg::propagateAll(const Agg& agg, bool headtrue) {
 	return confl;
 }
 
-void MaxFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
+void MaxFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 	const Agg& agg = ar.getAgg();
 	const Lit& head = agg.getHead();
 
 	bool search = true, one, inset = false;
 	Weight bound = agg.getCertainBound();
 	if(!ar.isHeadReason()){
-		lits.push(value(head)==l_True ? ~head : head);
+		lits.push_back(value(head)==l_True ? ~head : head);
 		if(value(head)==l_True){
 			if(agg.hasLB()){
 				//all OTHERS larger or eq to bound
@@ -620,7 +620,7 @@ void MaxFWAgg::getExplanation(vec<Lit>& lits, const AggReason& ar) {
         		if(inset && i->getType()==NEG){
         			continue;
         		}
-        		lits.push(~i->getLit());
+        		lits.push_back(~i->getLit());
         		if(one){
         			found = true;
         		}

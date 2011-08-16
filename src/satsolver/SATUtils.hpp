@@ -12,10 +12,6 @@
 #include "GeneralUtils.hpp"
 
 #ifdef USEMINISAT
-#include "minisat2-14/mtl/Vec.h"
-#include "minisat2-14/mtl/Queue.h"
-#include "minisat2-14/mtl/Heap.h"
-#include "minisat2-14/mtl/Sort.h"
 #include "minisat2-14/SolverTypes.hpp"
 
 namespace MinisatID {
@@ -26,10 +22,6 @@ namespace MinisatID {
 
 #else
 	#ifdef USEMINISAT09Z
-	#include "minisat2-14-hack2009/mtl/Vec.h"
-	#include "minisat2-14-hack2009/mtl/Queue.h"
-	#include "minisat2-14-hack2009/mtl/Heap.h"
-	#include "minisat2-14-hack2009/mtl/Sort.h"
 	#include "minisat2-14-hack2009/SolverTypes.hpp"
 
 	namespace MinisatID {
@@ -39,10 +31,6 @@ namespace MinisatID {
 	}
 
 	#else //Minisat 2.2
-		#include "mtl/Vec.h"
-		#include "mtl/Queue.h"
-		#include "mtl/Heap.h"
-		#include "mtl/Sort.h"
 		#include "core/SolverTypes.h"
 
 		namespace MinisatID {

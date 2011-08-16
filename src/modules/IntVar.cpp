@@ -122,26 +122,26 @@ void IntVar::addConstraints(){
 	for(uint i=0; i<equalities.size(); ++i){
 		// if eq[i] => diseq[i]
 		InnerDisjunction same;
-		same.literals.push(mkNegLit(equalities[i]));
-		same.literals.push(mkPosLit(disequalities[i]));
+		same.literals.push_back(mkNegLit(equalities[i]));
+		same.literals.push_back(mkPosLit(disequalities[i]));
 		engine().add(same);
 		if(i<equalities.size()-1){
 			// if diseq[i] => diseq[i+1]
 			InnerDisjunction prev;
-			prev.literals.push(mkNegLit(disequalities[i]));
-			prev.literals.push(mkPosLit(disequalities[i+1]));
+			prev.literals.push_back(mkNegLit(disequalities[i]));
+			prev.literals.push_back(mkPosLit(disequalities[i+1]));
 			engine().add(prev);
 		}
 		if(i>0){
 			// if eq[i] => ~diseq[i-1]
 			InnerDisjunction next;
-			next.literals.push(mkNegLit(equalities[i]));
-			next.literals.push(mkNegLit(disequalities[i-1]));
+			next.literals.push_back(mkNegLit(equalities[i]));
+			next.literals.push_back(mkNegLit(disequalities[i-1]));
 			engine().add(next);
 			// if ~diseq[i] => ~diseq[i-1]
 			InnerDisjunction nextdis;
-			nextdis.literals.push(mkPosLit(disequalities[i]));
-			nextdis.literals.push(mkNegLit(disequalities[i-1]));
+			nextdis.literals.push_back(mkPosLit(disequalities[i]));
+			nextdis.literals.push_back(mkNegLit(disequalities[i-1]));
 			engine().add(nextdis);
 		}
 	}

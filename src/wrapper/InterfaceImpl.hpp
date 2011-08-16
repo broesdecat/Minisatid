@@ -125,7 +125,7 @@ protected:
 
 	bool	canBackMapLiteral		(const Lit& lit) const;
 	Literal getBackMappedLiteral	(const Lit& lit) const;
-	std::vector<Literal> getBackMappedModel	(const vec<Lit>& model) const;
+	std::vector<Literal> getBackMappedModel	(const std::vector<Lit>& model) const;
 
 private:
 	Solution& 	getSolMonitor() { return *solutionmonitor; }

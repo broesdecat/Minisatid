@@ -64,7 +64,7 @@ public:
 	bool 	isRoot			(const ModSolver* solver) const;
 	void 	addModel		(const InnerModel& model);
 	bool 	simplify		();
-	bool 	solve			(const vec<Lit>& assumptions, const ModelExpandOptions& options);
+	bool 	solve			(const litlist& assumptions, const ModelExpandOptions& options);
 
 	bool	add		(int modid, Var v);
 	bool	add		(int modid, const InnerDisjunction& sentence);

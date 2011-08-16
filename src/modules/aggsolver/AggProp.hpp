@@ -206,7 +206,7 @@ public:
 	virtual void 		propagate		(Watch* w);
 	virtual rClause		propagateAtEndOfQueue() = 0;
 	virtual void		backtrack		(int untillevel) = 0;
-    virtual void 		getExplanation	(vec<Lit>& lits, const AggReason& ar) = 0;
+    virtual void 		getExplanation	(litlist& lits, const AggReason& ar) = 0;
 
     TypedSet&			getSet() 			{ return *set; }
     const TypedSet&		getSet() 	const	{ return *set; }

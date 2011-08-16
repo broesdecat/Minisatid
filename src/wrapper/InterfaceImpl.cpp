@@ -228,7 +228,7 @@ void WrapperPimpl::solve(){
 		getSolMonitor().notifyStartSolving();
 		printSolveStart(verbosity());
 
-		vec<Lit> assumptions;
+		litlist assumptions;
 		checkLits(getSolMonitor().getAssumptions(), assumptions);
 
 		if(!getSolver()->solve(assumptions, getSolMonitor().getOptions())){
@@ -267,11 +267,11 @@ Literal WrapperPimpl::getBackMappedLiteral(const Lit& lit) const{
 }
 
 //Translate into original vocabulary
-vector<Literal> WrapperPimpl::getBackMappedModel(const vec<Lit>& model) const{
+vector<Literal> WrapperPimpl::getBackMappedModel(const std::vector<Lit>& model) const{
 	vector<Literal> outmodel;
-	for(int j=0; j<model.size(); ++j){
-		if(canBackMapLiteral(model[j])){
-			outmodel.push_back(getBackMappedLiteral(model[j]));
+	for(auto i=model.begin(); i!=model.end(); ++i){
+		if(canBackMapLiteral(*i)){
+			outmodel.push_back(getBackMappedLiteral(*i));
 		}
 	}
 	sort(outmodel.begin(), outmodel.end());

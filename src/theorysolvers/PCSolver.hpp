@@ -74,7 +74,7 @@ private:
 	// OPTIMIZATION INFORMATION
 	Optim 		optim;
 	Var 		head;
-	vec<Lit>	to_minimize;
+	litlist	to_minimize;
 
 	// State saving
 	int 				state_savedlevel;
@@ -110,7 +110,7 @@ public:
 
 	// Solving support
 	void 		newDecisionLevel();
-	bool 		solve			(const vec<Lit>& assumptions, const ModelExpandOptions& options);
+	bool 		solve			(const litlist& assumptions, const ModelExpandOptions& options);
 	rClause 	checkFullAssignment();
 
 	Var			changeBranchChoice(const Var& chosenvar);
@@ -122,7 +122,7 @@ public:
 	lbool		value			(Lit p) const;		// The current value of a literal.
 	uint64_t	nVars			()      const;		// The current number of variables.
 
-	rClause 	createClause	(const vec<Lit>& lits, bool learned);
+	rClause 	createClause	(const InnerDisjunction& clause, bool learned);
 	//IMPORTANT: The first literal in the clause is the one which can be propagated at moment of derivation!
 	void 		addLearnedClause(rClause c); 		//Propagate if clause is unit, return false if c is conflicting
 	void 		removeClause	(rClause c);
@@ -133,7 +133,7 @@ public:
 
 	void 		notifySetTrue	(const Lit& p);
 
-	const vec<Lit>& getTrail	() 		const;
+	const litlist& getTrail	() 		const;
 	int 		getStartLastLevel() 	const;
 	int 		getLevel		(int var) const; // Returns the decision level at which a variable was deduced.
 	int			getCurrentDecisionLevel	() const;
@@ -168,7 +168,7 @@ public:
 	void		createVar(Var v);
 
 	void		addOptimization(Optim type, Var head);
-	void		addOptimization(Optim type, const vec<Lit>& literals);
+	void		addOptimization(Optim type, const litlist& literals);
 
 	// DEBUG
 	void 		printEnqueued	(const Lit& p) const;
@@ -194,9 +194,9 @@ private:
 	void 		invalidate		(InnerDisjunction& clause);
 
 	// OPTIMIZATION
-    bool 		invalidateValue	(vec<Lit>& invalidation);
-	bool 		invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt);
-	bool 		findOptimal		(const vec<Lit>& assumps, const ModelExpandOptions& options);
+    bool 		invalidateValue	(litlist& invalidation);
+	bool 		invalidateSubset(litlist& invalidation, vec<Lit>& assmpt);
+	bool 		findOptimal		(const litlist& assumps, const ModelExpandOptions& options);
 };
 
 }

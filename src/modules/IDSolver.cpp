@@ -120,7 +120,7 @@ bool IDSolver::addRule(bool conj, Var head, const vec<Lit>& ps) {
 	if (ps.size() == 0) {
 		Lit h = conj ? mkLit(head) : mkLit(head, true); //empty set conj = true, empty set disj = false
 		InnerDisjunction v;
-		v.literals.push(h);
+		v.literals.push_back(h);
 		notunsat = getPCSolver().add(v);
 	} else {
 		//rules with only one body atom have to be treated as conjunctive
@@ -132,7 +132,7 @@ bool IDSolver::addRule(bool conj, Var head, const vec<Lit>& ps) {
 		InnerEquivalence eq;
 		eq.head = mkLit(head);
 		for(int i=0; i<ps.size(); ++i){
-			eq.literals.push(ps[i]);
+			eq.literals.push_back(ps[i]);
 		}
 		eq.conjunctive = conj;
 		notunsat = getPCSolver().add(eq);
@@ -1377,7 +1377,7 @@ void IDSolver::changejust(Var v, vec<Lit>& just) {
  * Given an unfounded sets, constructs the loop formula:
  * the set of all relevant external literals of the rules with heads in the unfounded set.
  */
-void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf) {
+void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs,litlist& loopf) {
 #ifdef DEBUG
 	assert(loopf.size()==1); //Space for the head/new variable
 	for (auto i=defdVars.begin(); i!=defdVars.end(); ++i) { //seen should be cleared
@@ -1400,7 +1400,7 @@ void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf) {
 					Lit l = c[i];
 					if ((!isDefined(var(l)) || seen(var(l))!=(isPositive(l)?2:1)) && ufs.find(var(c[i])) == ufs.end()) {
 						assert(isFalse(l));
-						loopf.push(l);
+						loopf.push_back(l);
 						seen(var(l)) = (isPositive(l) ? 2 : 1);
 					}
 				}
@@ -1416,7 +1416,7 @@ void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf) {
 		}
 	}
 
-	for (int i = 1; i < loopf.size(); ++i) {
+	for (vsize i = 1; i < loopf.size(); ++i) {
 		seen(var(loopf[i])) = 0;
 	}
 	extdisj_sizes += loopf.size() - 1;
@@ -1437,13 +1437,14 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	assert(!ufs.empty());
 
 	// Create the loop formula: add the external disjuncts (first element will be filled in later).
-	vec<Lit> loopf(1);
-	addExternalDisjuncts(ufs, loopf);
+	InnerDisjunction loopf;
+	loopf.literals.push_back(mkLit(-1));
+	addExternalDisjuncts(ufs, loopf.literals);
 
 	// Check if any of the literals in the set are already true, which leads to a conflict.
 	for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); ++tch) {
 		if (isTrue(*tch)) {
-			loopf[0] = createNegativeLiteral(*tch); //negate the head to create a clause
+			loopf.literals[0] = createNegativeLiteral(*tch); //negate the head to create a clause
 			rClause c = getPCSolver().createClause(loopf, true);
 			getPCSolver().addLearnedClause(c);
 			++justify_conflicts;
@@ -1461,12 +1462,12 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	//There might be multiple loops => solution: save unfounded set and if propagate is called again and no backtrack has occurred, check if all have been propagated to be false, otherwise, add more clauses
 	if(getPCSolver().modes().selectOneFromUFS){
 		savedufs = ufs;
-		loopf.copyTo(savedloopf);
+		savedloopf = loopf;
 		Lit l = createNegativeLiteral(*ufs.begin());
 		addLoopfClause(l, loopf);
 	}else{
 		// No conflict: then enqueue all facts and their loop formulas.
-		if((long)(loopf.size()*ufs.size())>modes().ufsvarintrothreshold){
+		if((long)(loopf.literals.size()*ufs.size())>modes().ufsvarintrothreshold){
 			//introduce a new var to represent all external disjuncts: v <=> \bigvee external disj
 			Var v = getPCSolver().newVar();
 			if (verbosity() >= 2) {
@@ -1477,16 +1478,16 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 			addLoopfClause(createNegativeLiteral(v), loopf);
 
 			// \forall d \in \extdisj{L}: not d \vee v
-			vec<Lit> binaryclause(2);
-			binaryclause[1] = createPositiveLiteral(v);
-			for (int i = 1; i < loopf.size(); ++i) {
-				addLoopfClause(not loopf[i], binaryclause);
+			InnerDisjunction binaryclause;
+			binaryclause.literals = litlist{mkLit(-1), mkPosLit(v)};
+			for (vsize i = 1; i < loopf.literals.size(); ++i) {
+				addLoopfClause(not loopf.literals[i], binaryclause);
 			}
 
-			loopf.shrink(2);
+			loopf.literals.resize(2);
 
 			//the end loop formula just contains v
-			loopf[1] = createPositiveLiteral(v);
+			loopf.literals[1] = createPositiveLiteral(v);
 		}
 
 		for (std::set<Var>::iterator tch = ufs.begin(); tch != ufs.end(); ++tch) {
@@ -1499,23 +1500,20 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 }
 
 //Should make l false in the process
-void IDSolver::addLoopfClause(Lit l, vec<Lit>& lits) {
-	lits[0] = l;
+void IDSolver::addLoopfClause(Lit l, InnerDisjunction& lits) {
+	lits.literals[0] = l;
 
 	if (getPCSolver().modes().idclausesaving > 0) {
-		if (value(lits[0]) == l_Undef) {
+		if (value(lits.literals[0]) == l_Undef) {
 #ifdef DEBUG
-			for(int i=1; i<lits.size(); ++i){
-				assert(value(lits[i])!=l_Undef);
-				assert(getPCSolver().assertedBefore(var(lits[i]), var(l)));
+			for(vsize i=1; i<lits.literals.size(); ++i){
+				assert(value(lits.literals[i])!=l_Undef);
+				assert(getPCSolver().assertedBefore(var(lits.literals[i]), var(l)));
 			}
 #endif
 
-			reason(var(l)).clear();
-			for (int i = 0; i < lits.size(); ++i) {
-				reason(var(l)).push_back(lits[i]);
-			}
-			getPCSolver().setTrue(lits[0], this);
+			reason(var(l)) = lits.literals;
+			getPCSolver().setTrue(lits.literals[0], this);
 		}
 	} else {
 		rClause c = getPCSolver().createClause(lits, true);
@@ -1526,12 +1524,12 @@ void IDSolver::addLoopfClause(Lit l, vec<Lit>& lits) {
 		int unknown = 0;
 		int unknindex = -1;
 		bool allfalse = true;
-		for (int i = 0; unknown < 2 && i < lits.size(); ++i) {
-			if (value(lits[i]) == l_Undef) {
+		for (vsize i = 0; unknown < 2 && i < lits.literals.size(); ++i) {
+			if (value(lits.literals[i]) == l_Undef) {
 				++unknown;
 				unknindex = i;
 				allfalse = false;
-			} else if (value(lits[i]) == l_True) {
+			} else if (value(lits.literals[i]) == l_True) {
 				allfalse = false;
 			}
 		}
@@ -1540,7 +1538,7 @@ void IDSolver::addLoopfClause(Lit l, vec<Lit>& lits) {
 		}
 
 		if (unknown == 1) {
-			getPCSolver().setTrue(lits[unknindex], NULL, c);
+			getPCSolver().setTrue(lits.literals[unknindex], NULL, c);
 		}
 
 		if (verbosity() >= 2) {
@@ -1555,11 +1553,9 @@ void IDSolver::addLoopfClause(Lit l, vec<Lit>& lits) {
 
 rClause IDSolver::getExplanation(const Lit& l) {
 	assert(getPCSolver().modes().idclausesaving>0);
-	vec<Lit> lits;
-	for (vector<Lit>::const_iterator i = reason(var(l)).begin(); i < reason(var(l)).end(); ++i) {
-		lits.push(*i);
-	}
-	return getPCSolver().createClause(lits, true);
+	InnerDisjunction clause;
+	clause.literals = reason(var(l));
+	return getPCSolver().createClause(clause, true);
 }
 
 /* Precondition:  seen(i)==0 for each i.
@@ -2008,9 +2004,9 @@ rClause IDSolver::isWellFoundedModel() {
 	const vector<Lit>& decisions = getPCSolver().getDecisions();
 	InnerDisjunction invalidation;
 	for(vector<Lit>::const_iterator i=decisions.begin(); i<decisions.end(); ++i){
-		invalidation.literals.push(not (*i));
+		invalidation.literals.push_back(not (*i));
 	}
-	rClause confl = getPCSolver().createClause(invalidation.literals, true);
+	rClause confl = getPCSolver().createClause(invalidation, true);
 	getPCSolver().addLearnedClause(confl);
 	return confl;
 }
@@ -2729,7 +2725,7 @@ vwl::const_iterator IDSolver::getSetLitsOfAggWithHeadEnd(Var x) const {
  * Probably NEVER usable external clause!
  * TODO: optimize: add monotone literals until the aggregate can become true
  */
-void IDSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& loopf, InterMediateDataStruct& seen) {
+void IDSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, litlist& loopf, InterMediateDataStruct& seen) {
 	for (vwl::const_iterator i = getAggDefiningHead(v)->getWL().begin(); i < getAggDefiningHead(v)->getWL().end(); ++i) {
 		Lit l = i->getLit();
 		if(ufs.find(var(l)) != ufs.end() || seen.getElem(var(l)) == (isPositive(l) ? 2 : 1)){
@@ -2744,7 +2740,7 @@ void IDSolver::addExternalLiterals(Var v, const std::set<Var>& ufs, vec<Lit>& lo
 			continue;
 		}
 
-		loopf.push(l);
+		loopf.push_back(l);
 		seen.getElem(var(l)) = isPositive(l) ? 2 : 1;
 	}
 }

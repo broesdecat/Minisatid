@@ -92,7 +92,7 @@ private:
 	vmodindex 	children;
 	SOSolver* 	modhier;	//NON-OWNING POINTER!
 
-	vec<Lit> 	assumptions;
+	litlist 	assumptions;
 	std::vector<bool> propfromabove; //Indicates whether this literal was propagated by the parent
 
 	std::vector<std::vector<Lit> > trail; //Trail of propagations, necessary because backtrack is still by literal
@@ -136,9 +136,9 @@ public:
 	rClause 	propagateDown	(Lit l);
 	void 		backtrackFromAbove(Lit l);
 	void 		finishParsingDown(bool& unsat);
-	bool 		propagateDownAtEndOfQueue(vec<Lit>& confldisj);
+	bool 		propagateDownAtEndOfQueue(litlist& confldisj);
 
-	bool 		solve			(const vec<Lit>& assumptions, const ModelExpandOptions& options);
+	bool 		solve			(const litlist& assumptions, const ModelExpandOptions& options);
 
 	//Necessary because child of wrapperpimpl
 	virtual MinisatID::LogicSolver* getSolver() const { assert(false); return NULL;}
@@ -177,15 +177,14 @@ public:
 
 private:
 	void 		addVar			(const Lit& l)		{ add(var(l)); }
-	void 		addVars			(const vec<Lit>& a);
-	void 		addVars			(const std::vector<Lit>& a);
+	void 		addVars			(const litlist& a);
 
 	SOSolver& 	getNonConstModSolverData()	{ return *modhier; }
 
 	void		adaptValuesOnPropagation(Lit l);
-	void 		doUnitPropagation(const vec<Lit>&);
-	bool 		search			(const vec<Lit>&, bool search = true);
-	bool 		analyzeResult	(bool result, bool allknown, vec<Lit>& confldisj);
+	void 		doUnitPropagation(const litlist&);
+	bool 		search			(const litlist&, bool search = true);
+	bool 		analyzeResult	(bool result, bool allknown, litlist& confldisj);
 };
 
 }

@@ -86,7 +86,7 @@ public:
 	virtual void 	initialize				(bool& unsat, bool& sat);
 	virtual rClause	propagateAtEndOfQueue	();
 	virtual void	backtrack				(int untillevel){ trail.clear(); }
-	virtual void 	getExplanation			(vec<Lit>& lits, const AggReason& ar);
+	virtual void 	getExplanation			(litlist& lits, const AggReason& ar);
 
 protected:
 	virtual void propagate(int level, Watch* ws, int aggindex);
