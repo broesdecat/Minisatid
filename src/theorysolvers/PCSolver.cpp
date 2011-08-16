@@ -188,7 +188,7 @@ void PCSolver::accept(Propagator* propagator, EVENT event){
 	getEventQueue().accept(propagator, event);
 }
 
-void PCSolver::acceptBounds(IntVar* var, Propagator* propagator){
+void PCSolver::acceptBounds(IntView* var, Propagator* propagator){
 	getEventQueue().acceptBounds(var, propagator);
 }
 
@@ -336,6 +336,7 @@ void PCSolver::finishParsing(bool& unsat) {
 
 // Called by SAT solver when new decision level is started, BEFORE choice has been made!
 void PCSolver::newDecisionLevel() {
+	trail->notifyNewDecisionLevel();
 	getEventQueue().notifyNewDecisionLevel();
 }
 

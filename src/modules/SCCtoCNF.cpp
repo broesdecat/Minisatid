@@ -1,38 +1,21 @@
-/************************************
- SCC2SAT.hpp
- this file belongs to GidL 2.0
- (c) K.U.Leuven
- ************************************/
-
-#ifndef SCC2SAT_HPP_
-#define SCC2SAT_HPP_
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 
 #include <vector>
 #include <cmath>
 
-#include "utils/Utils.hpp"
+#include "modules/SCCtoCNF.hpp"
+#include "theorysolvers/PCSolver.hpp"
 
 namespace MinisatID {
 
 namespace toCNF{
-
-class Rule{
-	bool disjunctive_;
-	Var head_;
-	std::vector<Var> defbody_;
-	std::vector<Lit> openbody_;
-
-public:
-	Rule(bool disjunctive, Var head, const std::vector<Var>& deflits, const std::vector<Lit>& openlits)
-			:disjunctive_(disjunctive), head_(head), defbody_(deflits), openbody_(openlits){
-
-	}
-
-	Var getHead() const { return head_; }
-	bool isDisjunctive() const { return disjunctive_; }
-	const std::vector<Var>& defVars() const { return defbody_; }
-	const std::vector<Lit>& openLits() const { return openbody_; }
-};
 
 class LevelVar{
 	// First bit is 2^0
@@ -87,7 +70,9 @@ struct UnaryEncoding{
 	}
 };
 
-class SCC2SAT {
+enum SATENUM { POSSIBLYSAT, UNSAT };
+
+class SCCtoCNF {
 private:
 	PCSolver& solver_;
 	int maxlevel;
@@ -98,24 +83,26 @@ private:
 	std::map<UnaryEncoding, Var> necessaryUnEncodings;
 public:
 
-
 	// @pre: rules is one SCC
-	SCC2SAT(PCSolver& solver, const std::vector<Rule*>& rules)
-			:solver_(solver){
+	SCCtoCNF(PCSolver& solver):solver_(solver){}
+
+	SATENUM transform(const std::vector<Rule*>& rules){
 		for(auto rule=rules.begin(); rule!=rules.end(); ++rule){
 			defined.insert((*rule)->getHead());
 		}
-		maxlevel = defined.size()-1; // maxlevel is the scc size - 1
+		maxlevel = defined.size(); // maxlevel is the scc size
 		for(auto head=defined.begin(); head!=defined.end(); ++head){
-			atom2level.insert(std::pair<Var, LevelVar*>(*head, new LevelVar(solver, maxlevel)));
+			atom2level.insert(std::pair<Var, LevelVar*>(*head, new LevelVar(solver_, maxlevel)));
 		}
-		for(auto rule=rules.begin(); rule!=rules.end(); ++rule){
+		SATENUM state = POSSIBLYSAT;
+		for(auto rule=rules.begin(); state==POSSIBLYSAT && rule!=rules.end(); ++rule){
 			if((*rule)->isDisjunctive()){
-				transformDisjunction(**rule);
+				state = transformDisjunction(**rule);
 			}else{
-				transformConjunction(**rule);
+				state = transformConjunction(**rule);
 			}
 		}
+		return state;
 	}
 
 private:
@@ -138,17 +125,21 @@ private:
 	 * ...
 	 * PTn <=> l(P1)>l(Qn) & Qn
 	 */
-	void transformDisjunction(const Rule& rule){
+	SATENUM transformDisjunction(const Rule& rule){
+		SATENUM state = POSSIBLYSAT;
 		LevelVar* headvar = atom2level[rule.getHead()];
 		InnerDisjunction tseitins;
 		tseitins.literals.push(mkNegLit(rule.getHead()));
-		for(auto def = rule.defVars().begin(); def!=rule.defVars().end(); ++def){
+		for(auto def = rule.defVars().begin(); state==POSSIBLYSAT && def!=rule.defVars().end(); ++def){
+			assert(defined.find(*def)!=defined.end());
 			LevelVar* bodyvar = atom2level[*def];
 			InnerDisjunction clause;
 			clause.literals.push(mkNegLit(rule.getHead()));
 			clause.literals.push(mkNegLit(*def));
 			clause.literals.push(retrieveEncoding(headvar, bodyvar, ENC_LEQPLUS1));
-			solver_.add(clause);
+			if(not solver_.add(clause)){
+				state = UNSAT;
+			}
 
 			Var tseitin = solver_.newVar();
 			tseitins.literals.push(mkPosLit(tseitin));
@@ -158,13 +149,18 @@ private:
 			eq.conjunctive = true;
 			eq.literals.push(mkPosLit(*def));
 			eq.literals.push(retrieveEncoding(headvar, bodyvar, ENC_GREATER));
+			if(not solver_.add(eq)){
+				state = UNSAT;
+			}
 		}
-		for(auto open = rule.openLits().begin(); open!=rule.openLits().end(); ++open){
+		for(auto open = rule.openLits().begin(); state==POSSIBLYSAT && open!=rule.openLits().end(); ++open){
 			InnerDisjunction clause;
 			clause.literals.push(mkNegLit(rule.getHead()));
 			clause.literals.push(not *open);
 			clause.literals.push(retrieveEncoding(headvar, ENC_LEQPLUS1));
-			solver_.add(clause);
+			if(not solver_.add(clause)){
+				state = UNSAT;
+			}
 
 			Var tseitin = solver_.newVar();
 			tseitins.literals.push(mkPosLit(tseitin));
@@ -174,8 +170,14 @@ private:
 			eq.conjunctive = true;
 			eq.literals.push(*open);
 			eq.literals.push(retrieveEncoding(headvar, ENC_GREATER));
+			if(not solver_.add(eq)){
+				state = UNSAT;
+			}
 		}
-		solver_.add(tseitins);
+		if(not solver_.add(tseitins)){
+			state = UNSAT;
+		}
+		return state;
 	}
 
 	/*
@@ -196,16 +198,20 @@ private:
 	 * 	...
 	 * 	QTn <=> l(Q1)<=l(Pn)+1 & Pn
 	 */
-	void transformConjunction(const Rule& rule){
+	SATENUM transformConjunction(const Rule& rule){
+		SATENUM state = POSSIBLYSAT;
 		LevelVar* headvar = atom2level[rule.getHead()];
 		InnerDisjunction tseitins;
 		tseitins.literals.push(mkNegLit(rule.getHead()));
-		for(auto def = rule.defVars().begin(); def!=rule.defVars().end(); ++def){
+		for(auto def = rule.defVars().begin(); state==POSSIBLYSAT && def!=rule.defVars().end(); ++def){
+			assert(defined.find(*def)!=defined.end());
 			LevelVar* bodyvar = atom2level[*def];
 			InnerDisjunction clause;
 			clause.literals.push(mkNegLit(rule.getHead()));
 			clause.literals.push(retrieveEncoding(headvar, bodyvar, ENC_GREATER));
-			solver_.add(clause);
+			if(not solver_.add(clause)){
+				state = UNSAT;
+			}
 
 			Var tseitin = solver_.newVar();
 			tseitins.literals.push(mkPosLit(tseitin));
@@ -215,14 +221,19 @@ private:
 			eq.conjunctive = true;
 			eq.literals.push(mkPosLit(*def));
 			eq.literals.push(retrieveEncoding(headvar, bodyvar, ENC_LEQPLUS1));
+			if(not solver_.add(eq)){
+				state = UNSAT;
+			}
 		}
 		if(rule.openLits().size()>0){
 			InnerDisjunction clause;
 			clause.literals.push(mkNegLit(rule.getHead()));
 			clause.literals.push(retrieveEncoding(headvar, ENC_GREATER));
-			solver_.add(clause);
+			if(not solver_.add(clause)){
+				state = UNSAT;
+			}
 		}
-		for(auto open = rule.openLits().begin(); open!=rule.openLits().end(); ++open){
+		for(auto open = rule.openLits().begin(); state==POSSIBLYSAT && open!=rule.openLits().end(); ++open){
 			Var tseitin = solver_.newVar();
 			tseitins.literals.push(mkPosLit(tseitin));
 
@@ -231,8 +242,14 @@ private:
 			eq.conjunctive = true;
 			eq.literals.push(*open);
 			eq.literals.push(retrieveEncoding(headvar, ENC_LEQPLUS1));
+			if(not solver_.add(eq)){
+				state = UNSAT;
+			}
 		}
-		solver_.add(tseitins);
+		if(not solver_.add(tseitins)){
+			state = UNSAT;
+		}
+		return state;
 	}
 
 	bool isOpen(const Lit& lit){
@@ -255,7 +272,8 @@ private:
 				for(auto bit=++left->bits().begin(); bit!=left->bits().end(); ++bit){
 					eq.literals.push(mkNegLit(*bit));
 				}
-				solver_.add(eq);
+				bool possiblysat = solver_.add(eq);
+				assert(possiblysat);
 				necessaryUnEncodings.insert(std::pair<UnaryEncoding, Var>(UnaryEncoding(left, sign), v));
 			}else{
 				v = enc->second;
@@ -281,7 +299,7 @@ private:
 		neq.conjunctive = true;
 		neq.literals.push(leftbit);
 		neq.literals.push(rightbit);
-		solver_.add(neq);
+		solver_.add(neq); // cannot become unsat
 		return neq.head;
 	}
 
@@ -292,7 +310,7 @@ private:
 		neq.literals.push(one);
 		neq.literals.push(two);
 		neq.literals.push(three);
-		solver_.add(neq);
+		solver_.add(neq);  // cannot become unsat
 		return neq.head;
 	}
 
@@ -311,6 +329,7 @@ private:
 	*/
 	Var addEncoding(const Encoding& enc){
 		Var next;
+		SATENUM state = POSSIBLYSAT;
 		if(enc.sign == ENC_GREATER){
 			Var prev = solver_.newVar();
 			InnerEquivalence eq;
@@ -318,7 +337,9 @@ private:
 			eq.conjunctive = true;
 			eq.literals.push(mkPosLit(enc.left->bits()[0]));
 			eq.literals.push(mkNegLit(enc.right->bits()[0]));
-			solver_.add(eq);
+			if(not solver_.add(eq)){
+				state = UNSAT;
+			}
 			for(int i=1; i<enc.left->bits().size(); ++i){
 				next = solver_.newVar();
 				Var leftbit = enc.left->bits()[i];
@@ -329,61 +350,83 @@ private:
 				eq.literals.push(addEq(mkPosLit(leftbit), mkNegLit(rightbit)));
 				eq.literals.push(addEq(mkPosLit(leftbit), mkPosLit(rightbit), mkPosLit(prev)));
 				eq.literals.push(addEq(mkNegLit(leftbit), mkNegLit(rightbit), mkPosLit(prev)));
-				solver_.add(eq);
+				if(not solver_.add(eq)){
+					state = UNSAT;
+				}
 				prev = next;
 			}
 		}else{
-			//fullft(P1, Q1, i) <=> ~P1i & Q1i & fullft(P1, Q1, i-1)
-			std::vector<Var> fullfalstrue;
-			Var prev = var(addEq(mkNegLit(enc.left->bits()[0]), mkPosLit(enc.right->bits()[0])));
-			fullfalstrue.push_back(prev);
-			for(int i=1; i<enc.left->bits().size(); ++i){
+			//leqp1(P1, Q1, 0) <=> true
+			if(enc.left->bits().size()<2){
 				next = solver_.newVar();
-				Var leftbit = enc.left->bits()[i];
-				Var rightbit = enc.right->bits()[i];
-				InnerEquivalence eq;
-				eq.head = mkPosLit(next);
-				eq.conjunctive = true;
-				eq.literals.push(mkNegLit(leftbit));
-				eq.literals.push(mkPosLit(rightbit));
-				eq.literals.push(mkPosLit(prev));
-				solver_.add(eq);
-				prev = next;
+				InnerDisjunction d;
+				d.literals.push(mkPosLit(next));
+				solver_.add(d);  // cannot become unsat
+			}else{
+				//fullft(P1, Q1, i) <=> ~P1i & Q1i & fullft(P1, Q1, i-1)
+				std::vector<Var> fullfalstrue;
+				Var prev = var(addEq(mkNegLit(enc.left->bits()[0]), mkPosLit(enc.right->bits()[0])));
 				fullfalstrue.push_back(prev);
-			}
+				for(int i=1; i<enc.left->bits().size(); ++i){
+					next = solver_.newVar();
+					Var leftbit = enc.left->bits()[i];
+					Var rightbit = enc.right->bits()[i];
+					InnerEquivalence eq;
+					eq.head = mkPosLit(next);
+					eq.conjunctive = true;
+					eq.literals.push(mkNegLit(leftbit));
+					eq.literals.push(mkPosLit(rightbit));
+					eq.literals.push(mkPosLit(prev));
+					if(not solver_.add(eq)){
+						state = UNSAT;
+					}
+					prev = next;
+					fullfalstrue.push_back(prev);
+				}
 
-			//leqp1(P1, Q1, i) <=> (~P1i & Q1i) | (P10 & Q10 & leqp1(P1, Q1, i-1)) | (~P10 & ~Q10 & leqp1(P1, Q1, i-1)) | (P11 & ~Q11 & fullft(P1, Q1, i-1))
-			//leqp1(P1, Q1, 1) <=> ~(~Q11 & ~Q10 & P11 & P10)
-			InnerEquivalence eq;
-			prev = solver_.newVar();
-			eq.head = mkNegLit(prev);
-			eq.conjunctive = true;
-			eq.literals.push(mkNegLit(enc.right->bits()[1]));
-			eq.literals.push(mkNegLit(enc.right->bits()[0]));
-			eq.literals.push(mkPosLit(enc.left->bits()[1]));
-			eq.literals.push(mkPosLit(enc.left->bits()[0]));
-			solver_.add(eq);
-			for(int i=1; i<enc.left->bits().size(); ++i){
-				next = solver_.newVar();
-				Var leftbit = enc.left->bits()[i];
-				Var rightbit = enc.right->bits()[i];
+				//leqp1(P1, Q1, i) <=> (~P1i & Q1i) | (P10 & Q10 & leqp1(P1, Q1, i-1)) | (~P10 & ~Q10 & leqp1(P1, Q1, i-1)) | (P11 & ~Q11 & fullft(P1, Q1, i-1))
+				//leqp1(P1, Q1, 1) <=> ~(~Q11 & ~Q10 & P11 & P10)
 				InnerEquivalence eq;
-				eq.head = mkPosLit(next);
+				prev = solver_.newVar();
+				eq.head = mkNegLit(prev);
 				eq.conjunctive = true;
-				eq.literals.push(addEq(mkNegLit(leftbit), mkPosLit(rightbit)));
-				eq.literals.push(addEq(mkPosLit(leftbit), mkPosLit(rightbit), mkPosLit(prev)));
-				eq.literals.push(addEq(mkNegLit(leftbit), mkNegLit(rightbit), mkPosLit(prev)));
-				eq.literals.push(addEq(mkPosLit(leftbit), mkNegLit(rightbit), mkPosLit(fullfalstrue[i-1])));
-				solver_.add(eq);
-				prev = next;
+				eq.literals.push(mkNegLit(enc.right->bits()[1]));
+				eq.literals.push(mkNegLit(enc.right->bits()[0]));
+				eq.literals.push(mkPosLit(enc.left->bits()[1]));
+				eq.literals.push(mkPosLit(enc.left->bits()[0]));
+				if(not solver_.add(eq)){
+					state = UNSAT;
+				}
+				for(int i=1; i<enc.left->bits().size(); ++i){
+					next = solver_.newVar();
+					Var leftbit = enc.left->bits()[i];
+					Var rightbit = enc.right->bits()[i];
+					InnerEquivalence eq;
+					eq.head = mkPosLit(next);
+					eq.conjunctive = true;
+					eq.literals.push(addEq(mkNegLit(leftbit), mkPosLit(rightbit)));
+					eq.literals.push(addEq(mkPosLit(leftbit), mkPosLit(rightbit), mkPosLit(prev)));
+					eq.literals.push(addEq(mkNegLit(leftbit), mkNegLit(rightbit), mkPosLit(prev)));
+					eq.literals.push(addEq(mkPosLit(leftbit), mkNegLit(rightbit), mkPosLit(fullfalstrue[i-1])));
+					if(not solver_.add(eq)){
+						state = UNSAT;
+					}
+					prev = next;
+				}
 			}
 		}
+		assert(state == POSSIBLYSAT);
 		necessaryEncodings.insert(enc2var(enc, next));
 		return next;
 	}
 };
 
+bool transformSCCtoCNF(PCSolver& solver, const std::vector<Rule*>& rules){
+	SCCtoCNF* scc2cnf = new SCCtoCNF(solver);
+	SATENUM state = scc2cnf->transform(rules);
+	return state==POSSIBLYSAT;
+}
+
 }
 
 } /* namespace MinisatID */
-#endif /* SCC2SAT_HPP_ */

@@ -272,14 +272,15 @@ bool EventQueue::checkSymmetryAlgo1(const Lit& lit){
 	return false;
 }
 
+// return false if unsat
 bool EventQueue::checkSymmetryAlgo2(){
 	auto props = event2propagator.at(EV_SYMMCHECK2);
 	for(uint i=0; i<size(EV_SYMMCHECK2); ++i){
-		if(props[i]->checkSymmetryAlgo2()){
-			return true;
+		if(not props[i]->checkSymmetryAlgo2()){
+			return false;
 		}
 	}
-	return false;
+	return true;
 }
 
 void EventQueue::notifyNewDecisionLevel(){

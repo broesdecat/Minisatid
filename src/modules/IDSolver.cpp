@@ -10,7 +10,7 @@
 #include "utils/Print.hpp"
 #include "theorysolvers/PCSolver.hpp"
 
-#include "modules/SCC2SAT.hpp"
+#include "modules/SCCtoCNF.hpp"
 
 #include <cmath>
 
@@ -203,15 +203,17 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	vec<bool> incomp(nVars(), false);
 	vec<Var> stack;
 	vec<int> visited(nVars(), 0); // =0 represents not visited; >0 corresponds to visited through a positive body literal, <0 through a negative body literal
-	vec<Var> rootofmixed;
+	vector<Var> sccroots, mixedroots;
 	vec<Var> nodeinmixed;
 	int counter = 1;
 
 	for (vector<Var>::const_iterator i = defdVars.begin(); i < defdVars.end(); ++i) {
 		if (visited[(*i)] == 0) {
-			visitFull((*i), incomp, stack, visited, counter, true, rootofmixed, nodeinmixed);
+			visitFull((*i), incomp, stack, visited, counter, true, sccroots, mixedroots, nodeinmixed);
 		}
 	}
+
+	int mixedsccs = mixedroots.size();
 
 	//all var in rootofmixed are the roots of mixed loops. All other are no loops (size 1) or positive loops
 
@@ -224,7 +226,6 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	stack.clear();
 	counter = 1;
 
-	vector<Var> sccroots;
 	for (int i = 0; i < nodeinmixed.size(); ++i) {
 		if (visited[nodeinmixed[i]] == 0) {
 			visit(nodeinmixed[i], incomp, stack, visited, counter, sccroots);
@@ -327,7 +328,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	if (atoms_in_pos_loops == 0) {
 		posloops = false;
 	}
-	if (rootofmixed.size() == 0) {
+	if (mixedsccs == 0) {
 		negloops = false;
 	}
 
@@ -367,15 +368,15 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	if(!unsat && modes().tocnf){
 		vector<toCNF::Rule*> rules;
 		for(auto root = sccroots.begin(); root!=sccroots.end(); ++root){
+			// FIXME use current interpretation to decide which rules/sccs not to transform
 			// TODO better to store full sccs instead having to loop over them here?
 			for(auto i=defdVars.begin(); i<defdVars.end(); ++i){
-				if((*root)==(*i)){
-					DefinedVar* defvar = getDefVar(*i);
+				if(scc(*root)==scc(*i)){
 					vector<Var> defbodylits;
 					vector<Lit> openbodylits;
-					auto proprule = defvar->definition();
+					auto proprule = getDefVar(*i)->definition();
 					for(auto bodylit=proprule->begin(); bodylit!=proprule->end(); ++bodylit){
-						if(hasDefVar(var(*bodylit)) && scc(var(*bodylit))==scc(*root)){
+						if(not sign(*bodylit) && hasDefVar(var(*bodylit)) && scc(var(*bodylit))==scc(*root)){
 							defbodylits.push_back(var(*bodylit));
 						}else{
 							openbodylits.push_back(*bodylit);
@@ -385,9 +386,11 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 					rules.push_back(rule);
 				}
 			}
-			toCNF::SCC2SAT(getPCSolver(), rules);
+			unsat = not toCNF::transformSCCtoCNF(getPCSolver(), rules);
 			deleteList<toCNF::Rule>(rules);
 		}
+		present = false;
+		// TODO should still allow wellfoundedness checks here!
 	}
 
 	notifyInitialized();
@@ -400,7 +403,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
  * @post: the scc will be denoted by the variable in the scc which was visited first
  */
 void IDSolver::visitFull(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited,
-		int& counter, bool throughPositiveLit, vec<int>& rootofmixed, vec<Var>& nodeinmixed) {
+		int& counter, bool throughPositiveLit, vector<Var>& posroots, vector<Var>& rootofmixed, vec<Var>& nodeinmixed) {
 	assert(!incomp[i]);
 	assert(isDefined(i));
 	++counter;
@@ -420,7 +423,7 @@ void IDSolver::visitFull(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &vi
 				}
 
 				if (visited[w] == 0) {
-					visitFull(w, incomp, stack, visited, counter, isPositive(l), rootofmixed, nodeinmixed);
+					visitFull(w, incomp, stack, visited, counter, isPositive(l), posroots, rootofmixed, nodeinmixed);
 				} else if (!incomp[w] && !isPositive(l) && visited[i] > 0) {
 					visited[i] = -visited[i];
 				}
@@ -438,7 +441,7 @@ void IDSolver::visitFull(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &vi
 				}
 
 				if (visited[w] == 0) {
-					visitFull(w, incomp, stack, visited, counter, false /*Over-approximation of negative occurences*/, rootofmixed, nodeinmixed);
+					visitFull(w, incomp, stack, visited, counter, false /*Over-approximation of negative occurences*/, posroots, rootofmixed, nodeinmixed);
 				} else if (!incomp[w] && visited[i] > 0) { // Over-approximation of negative occurences
 					visited[i] = -visited[i];
 				}
@@ -454,6 +457,7 @@ void IDSolver::visitFull(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &vi
 		vec<Var> sccs;
 		bool mixed = false;
 		int w;
+		posroots.push_back(i);
 		do {
 			w = stack.last();
 			stack.pop();
@@ -463,7 +467,7 @@ void IDSolver::visitFull(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &vi
 			incomp[w] = true;
 		} while (w != i);
 		if (mixed && sccs.size()>1) {
-			rootofmixed.push(i);
+			rootofmixed.push_back(i);
 			for (int i = 0; i < sccs.size(); ++i) {
 				nodeinmixed.push(sccs[i]);
 			}

@@ -267,7 +267,7 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 			modes.selectOneFromUFS, cmd,"Choose whether learn one clause at a time when an unfounded set is found"));
 	options.push_back(new Option<bool, string>	("","tseitindecision", 	yesnovals, decideontseitins,
 			modes.tseitindecisions, cmd,"Choose whether tseitin literals can be used as decision literals."));
-	options.push_back(new Option<bool, string>	("","toSAT", 	yesnovals, tocnfdesc,
+	options.push_back(new Option<bool, string>	("","tocnf", 	yesnovals, tocnfdesc,
 			modes.tocnf, cmd,"Choose whether to translate non-clausal constraints to clauses."));
 	options.push_back(new NoValsOption<double>	("","watch-ratio", 	"double",
 			modes.watchesratio, cmd,"The ratio of watches to set literals under which the watched algorithm is used."));

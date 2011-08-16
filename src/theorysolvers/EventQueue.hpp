@@ -72,7 +72,7 @@ public:
 	}
 	//NOTE Both aggsolver and modsolver can add rules during their initialization, so idsolver should be late and all the others early!
 	void acceptFinishParsing(Propagator* propagator, bool late);
-	void acceptBounds(IntVar* var, Propagator* propagator){
+	void acceptBounds(IntView* var, Propagator* propagator){
 		if(intvarid2propagators.size()<=var->id()){
 			intvarid2propagators.resize(var->id()+1, proplist());
 		}

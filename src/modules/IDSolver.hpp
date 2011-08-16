@@ -317,7 +317,7 @@ private:
 	// void     fwIndirectPropagate();
 
 	void visit(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter, std::vector<Var>& roots); // Method to initialize 'scc'.
-	void visitFull(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter, bool throughPositiveLit, vec<int>& rootofmixed, vec<Var>& nodeinmixed);
+	void visitFull(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter, bool throughPositiveLit, std::vector<Var>& posroots, std::vector<Var>& rootofmixed, vec<Var>& nodeinmixed);
 
 	// Debug:
 	void	print		(const rClause c)	const;

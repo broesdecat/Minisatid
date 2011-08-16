@@ -71,10 +71,10 @@ WHITESPACE	[\t\r ]*
 
 <theory>"<-"	{ADJ; return DEFOP;}
 
-<theory>"D"	{ADJ; /*ecnflval*/yylval.sem = MinisatID::DEF;  return SEMDEFN;}
-<theory>"C"	{ADJ; /*ecnflval*/yylval.sem = MinisatID::COMP; return SEMDEFN;}
-<theory>"L"	{ADJ; /*ecnflval*/yylval.sign = MinisatID::AGGSIGN_UB;  return SIGNDEFN;}
-<theory>"G"	{ADJ; /*ecnflval*/yylval.sign = MinisatID::AGGSIGN_LB; return SIGNDEFN;}
+<theory>"D"		{ADJ; /*ecnflval*/yylval.sem = MinisatID::DEF;  return SEMDEFN;}
+<theory>"C"		{ADJ; /*ecnflval*/yylval.sem = MinisatID::COMP; return SEMDEFN;}
+<theory>"L"		{ADJ; /*ecnflval*/yylval.sign = MinisatID::AGGSIGN_UB;  return SIGNDEFN;}
+<theory>"G"		{ADJ; /*ecnflval*/yylval.sign = MinisatID::AGGSIGN_LB; return SIGNDEFN;}
 
 <theory>^"e"	{ADJ; /*ecnflval*/yylval.boolean = true; return QUANTe;} //existential quantifier
 <theory>^"a"	{ADJ; /*ecnflval*/yylval.boolean = false; return QUANTe;} //universal quantifier

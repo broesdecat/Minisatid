@@ -29,19 +29,21 @@ public:
 	}
 	void notifyPropagate(const Lit& lit) {
 		if(var2time.size()<=var(lit)){
-			var2time.resize(var(lit), -1);
-		}
-		if(decisionlevel2trail.back()<trail.size()){
-			decisionlevel2trail.push_back(trail.size());
+			var2time.resize(var(lit)+1, -1);
 		}
 		trail.push_back(lit);
 		var2time[var(lit)] = time++;
 	}
+	void notifyNewDecisionLevel(){
+		decisionlevel2trail.push_back(trail.size());
+	}
 	void notifyBacktrack(int untillevel) {
 		for(vsize i=decisionlevel2trail[untillevel+1]; i<trail.size(); ++i){
+			assert(trail.size()>i);
+			assert(var2time.size()>var(trail[i]));
 			var2time[var(trail[i])]=-1;
 		}
-		trail.resize(decisionlevel2trail[untillevel+1]);
+		trail.resize(decisionlevel2trail[untillevel+1]-1);
 		decisionlevel2trail.resize(untillevel+1);
 	}
 	bool hasTime(const Lit& lit){

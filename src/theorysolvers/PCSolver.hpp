@@ -28,7 +28,7 @@ class Propagator;
 class PropagatorFactory;
 class EventQueue;
 class SearchMonitor;
-class IntVar;
+class IntView;
 typedef Minisat::Solver SearchEngine;
 
 enum Optim { MNMZ, SUBSETMNMZ, NONE }; // Preference minimization, subset minimization, sum minimization
@@ -100,7 +100,7 @@ public:
 	void		acceptForBacktrack(Propagator* propagator);
 	void		acceptForPropagation(Propagator* propagator);
 	void 		accept(Propagator* propagator, EVENT event);
-	void 		acceptBounds(IntVar* var, Propagator* propagator);
+	void 		acceptBounds(IntView* var, Propagator* propagator);
 	void 		accept(Propagator* propagator, const Lit& lit, PRIORITY priority);
 	void 		acceptFinishParsing(Propagator* propagator, bool late);
 
