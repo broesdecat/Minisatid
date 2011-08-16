@@ -105,6 +105,11 @@ struct InnerEquivalence{
 	Lit	head;
 	vec<Lit> literals;
 	bool conjunctive;
+
+	InnerEquivalence():head(mkLit(-1)){}
+	InnerEquivalence(const InnerEquivalence& eq):head(eq.head), conjunctive(eq.conjunctive){
+		eq.literals.copyTo(literals);
+	}
 };
 
 struct InnerRule{

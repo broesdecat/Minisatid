@@ -46,7 +46,7 @@ libminisatid_2_0_la_SOURCES = \
 		modules/IDSolver.hpp 				modules/IDSolver.cpp\
 		modules/IntVar.hpp 					modules/IntVar.cpp\
 		modules/BinConstr.hpp 				modules/BinConstr.cpp\
-		modules/SCCtoCNF.hpp modules/SCCtoCNF.cpp\
+		modules/SCCtoCNF.hpp\
 		modules/aggsolver/AggTransform.hpp 	modules/aggsolver/AggTransform.cpp\
 		modules/aggsolver/AggUtils.hpp 		modules/aggsolver/AggUtils.cpp\
 		modules/aggsolver/AggSet.hpp 		modules/aggsolver/AggSet.cpp\
@@ -139,7 +139,7 @@ endif
 AM_YFLAGS = -d 
 AM_LFLAGS =
 
-bin_PROGRAMS = minisatid
+bin_PROGRAMS = minisatid alltests
 BUILT_SOURCES = parser/ecnfparser.h
 minisatid_LDADD = libminisatid-2.0.la
 
@@ -153,3 +153,8 @@ minisatid_include_HEADERS = \
 		external/ExternalInterface.hpp\
 		external/ExternalUtils.hpp\
 		external/Translator.hpp
+
+alltests_SOURCES = tests/googletestsnippet.cpp tests/janhunentest.cpp libminisatid_2_0_la_SOURCES
+alltests_LDADD = -lgtest -lpthread
+
+TESTS = alltests
