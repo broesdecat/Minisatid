@@ -114,7 +114,7 @@ void EventQueue::setTrue(const Lit& l){
 	if(isInitialized()){
 		addEternalPropagators();
 	}
-	for(int i=0; i!=lit2watches[toInt(l)].size(); ++i){
+	for(vsize i=0; i!=lit2watches[toInt(l)].size(); ++i){
 		lit2watches[toInt(l)][i]->propagate();
 	}
 	for(auto i=lit2watches[toInt(l)].begin(); i!=lit2watches[toInt(l)].end(); ++i){

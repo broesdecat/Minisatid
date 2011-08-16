@@ -13,7 +13,7 @@
 #include <sstream>
 #include <iostream>
 
-#include "monitors/ParsingMonitor.hpp"
+#include "parser/parsingmonitors/ParsingMonitor.hpp"
 #include "utils/Utils.hpp"
 
 namespace MinisatID{
@@ -176,9 +176,9 @@ public:
 
 	void notifyadded(const InnerSymmetryLiterals& symm){
 		target() <<"Added symmetries:\n";
-		for(int i=0; i<symm.literalgroups.size(); ++i){
+		for(vsize i=0; i<symm.literalgroups.size(); ++i){
 			target() <<"\tgroup ";
-			for(int j=0; j<symm.literalgroups[i].size(); ++j){
+			for(vsize j=0; j<symm.literalgroups[i].size(); ++j){
 				target() <<symm.literalgroups[i][j] <<" ";
 			}
 			target() <<"\n";
@@ -246,7 +246,7 @@ public:
 		target() <<"Added sum constraint " <<getPrintableVar(sum.head) <<" <=> sum({ ";
 		std::vector<int>::size_type count = 0;
 		std::vector<uint>::const_iterator litit=sum.varIDs.begin();
-		std::vector<int>::const_iterator weightit=sum.weights.begin();
+		std::vector<Weight>::const_iterator weightit=sum.weights.begin();
 		for(; litit<sum.varIDs.end(); ++count, ++litit, ++weightit){
 			target() <<"var" <<*litit <<"*" <<*weightit;
 			if(count<sum.varIDs.size()-1){

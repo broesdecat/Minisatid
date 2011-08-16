@@ -29,7 +29,7 @@ class Translator;
 class LogicSolver;
 class PCSolver;
 class SOSolver;
-class Monitor;
+class SearchMonitor;
 class InnerModel;
 
 typedef std::vector<Lit> litlist;
@@ -73,7 +73,7 @@ private:
 protected:
 	SolverOption	_modes;
 
-	std::vector<Monitor*> monitors;
+	std::vector<SearchMonitor*> monitors;
 
 public:
 	Remapper*		remapper;
@@ -102,7 +102,7 @@ public:
 
 
 	// MONITORING
-	void	addMonitor(Monitor* const mon);
+	void	addMonitor(SearchMonitor* const mon);
 	template<class T>
 	void 	notifyMonitor(const T& obj);
 

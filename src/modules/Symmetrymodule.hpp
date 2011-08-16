@@ -207,7 +207,7 @@ private:
 		vec<Lit> newclause;
 		bool allfalse = true;
 		int level = 0;
-		for (int i = 0; i < clause.size(); ++i) {
+		for (vsize i = 0; i < clause.size(); ++i) {
 			auto it = symmetry.find(var(clause[i]));
 			if (it == symmetry.end()) {
 				newclause.push(clause[i]);
@@ -240,7 +240,7 @@ private:
 		bool noConflict = true;
 		//add all symmetries
 		std::set<uint> symmindices;
-		for (int i = 0; i < clause.size(); ++i) {
+		for (vsize i = 0; i < clause.size(); ++i) {
 			auto it = var2symmetries.find(var(clause[i]));
 			if (it == var2symmetries.end()) {
 				continue;

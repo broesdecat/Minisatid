@@ -303,7 +303,8 @@ AggProp const * getType(AggType type){
 			return AggProp::getCard(); break;
 		case PROD:
 			return AggProp::getProd(); break;
-		default: assert(false); break;
+		default:
+			throw idpexception("Encountered a bug in the code which transforms aggregates.\n");
 	}
 }
 

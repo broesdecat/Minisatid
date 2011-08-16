@@ -9,8 +9,8 @@
 #include "GeneralUtils.hpp"
 
 #include <cstdlib>
-#include <stdio.h>
-#include <stdint.h>
+#include <cstdio>
+#include <cstdint>
 #include <tr1/memory>
 #include <limits>
 #include <ctime>
@@ -57,6 +57,8 @@ double MinisatID::cpuTime(void) {
 	Weight MinisatID::posInfinity() { return Weight(true); }
 	Weight MinisatID::negInfinity() { return Weight(false); }
 
+	int MinisatID::toInt(const Weight& weight) { return toInt(weight); }
+
 #else //USING FINITE PRECISION WEIGHTS
 	string MinisatID::toString(const Weight& w){
 		stringstream s;
@@ -64,8 +66,9 @@ double MinisatID::cpuTime(void) {
 		return s.str();
 	}
 	Weight MinisatID::posInfinity() { return lim::max(); }
-
 	Weight MinisatID::negInfinity() { return lim::min(); }
+	int MinisatID::toInt(const Weight& weight) { return weight; }
+
 #endif
 
 // Options for the solvers and their defaults!

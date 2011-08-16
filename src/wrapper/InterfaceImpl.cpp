@@ -16,7 +16,7 @@
 #include "external/ResourceManager.hpp"
 #include "utils/Print.hpp"
 #include "external/Translator.hpp"
-#include "external/MonitorInterface.hpp"
+#include "external/SearchMonitor.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -278,7 +278,7 @@ vector<Literal> WrapperPimpl::getBackMappedModel(const vec<Lit>& model) const{
 	return outmodel;
 }
 
-void WrapperPimpl::addMonitor(Monitor * const mon){
+void WrapperPimpl::addMonitor(SearchMonitor * const mon){
 	monitors.push_back(mon);
 	getSolver()->requestMonitor(this);
 }
@@ -287,7 +287,7 @@ template<>
 void WrapperPimpl::notifyMonitor(const InnerPropagation& obj){
 	if(canBackMapLiteral(obj.propagation)){
 		Literal lit = getBackMappedLiteral(obj.propagation);
-		for(vector<Monitor*>::const_iterator i=monitors.begin(); i<monitors.end(); ++i){
+		for(auto i=monitors.begin(); i<monitors.end(); ++i){
 			(*i)->notifyPropagated(lit, obj.decisionlevel);
 		}
 	}
@@ -295,7 +295,7 @@ void WrapperPimpl::notifyMonitor(const InnerPropagation& obj){
 
 template<>
 void WrapperPimpl::notifyMonitor(const InnerBacktrack& obj){
-	for(vector<Monitor*>::const_iterator i=monitors.begin(); i<monitors.end(); ++i){
+	for(auto i=monitors.begin(); i<monitors.end(); ++i){
 		(*i)->notifyBacktracked(obj.untillevel);
 	}
 }
@@ -364,7 +364,7 @@ bool PCWrapperPimpl::add(const WSet& sentence){
 	WLSet set;
 	set.setID = sentence.setID;
 	set.type = sentence.type;
-	for(int i=0; i<sentence.literals.size(); ++i){
+	for(uint i=0; i<sentence.literals.size(); ++i){
 		set.wl.push_back(WLtuple(sentence.literals[i], sentence.weights[i]));
 	}
 	return add(set);

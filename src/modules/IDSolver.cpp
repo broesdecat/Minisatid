@@ -289,20 +289,27 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 
 			//IMPORTANT: also add mixed loop rules to the network for checking well-founded model
 			//could be moved to different datastructure to speed up
-			if(t==DISJ || t==CONJ){
-				for (vl::const_iterator j = definition(v)->begin(); j < definition(v)->end(); ++j) {
+			switch(t){
+			case DISJ:
+				for (auto j = definition(v)->begin(); j < definition(v)->end(); ++j) {
 					l = *j;
 					if(l==definition(v)->getHead()){
 						continue;
 					}
-					switch(t){
-						case DISJ: addDisjOccurs(l, v); break;
-						case CONJ: addConjOccurs(l, v); break;
-					}
+					addDisjOccurs(l, v);
 				}
-			}else if(t==AGGR){
-				const IDAgg& dfn = *aggdefinition(v);
-				for (auto j=dfn.getWL().begin(); j!=dfn.getWL().end(); ++j) {
+				break;
+			case CONJ:
+				for (auto j = definition(v)->begin(); j < definition(v)->end(); ++j) {
+					l = *j;
+					if(l==definition(v)->getHead()){
+						continue;
+					}
+					addConjOccurs(l, v);
+				}
+				break;
+			case AGGR:
+				for (auto j=(*aggdefinition(v)).getWL().begin(); j!=(*aggdefinition(v)).getWL().end(); ++j) {
 					addAggrOccurs((*j).getLit(), v);
 				}
 				switch(occ(v)){
@@ -319,6 +326,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 				default:
 					break;
 				}
+				break;
 			}
 		}
 	}
@@ -1155,8 +1163,8 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 	}
 
 #ifdef DEBUG
-	for (int i = 0; i < defdVars.size(); ++i) {
-		assert(seen(defdVars[i])==0);
+	for (auto i=defdVars.begin(); i!=defdVars.end(); ++i) { //seen should have been
+		assert(seen(*i)==0);
 	}
 #endif
 
@@ -1372,8 +1380,8 @@ void IDSolver::changejust(Var v, vec<Lit>& just) {
 void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs, vec<Lit>& loopf) {
 #ifdef DEBUG
 	assert(loopf.size()==1); //Space for the head/new variable
-	for (int i = 0; i < defdVars.size(); ++i) { //seen should be cleared
-		assert(seen(defdVars[i])==0);
+	for (auto i=defdVars.begin(); i!=defdVars.end(); ++i) { //seen should be cleared
+		assert(seen(*i)==0);
 	}
 #endif
 

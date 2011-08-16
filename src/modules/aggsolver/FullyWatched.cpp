@@ -62,11 +62,9 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 
 	for (vwl::const_iterator j = getSet().getWL().begin(); j < getSet().getWL().end(); ++j) {
 		const Lit& l = (*j).getLit();
-		Var v = var(l);
-		// FIXME permanent watch
 		Watch *pos, *neg;
-		pos = new Watch(getSetp(), (*j).getLit(), (*j).getWeight(), true, false);
-		neg = new Watch(getSetp(), not (*j).getLit(), (*j).getWeight(), false, false);
+		pos = new Watch(getSetp(), l, (*j).getWeight(), true, false);
+		neg = new Watch(getSetp(), not l, (*j).getWeight(), false, false);
 		getSet().getPCSolver().accept(pos);
 		getSet().getPCSolver().accept(neg);
 	}

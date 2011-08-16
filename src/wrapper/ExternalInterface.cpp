@@ -8,7 +8,7 @@
  */
 #include "external/ExternalInterface.hpp"
 #include "wrapper/InterfaceImpl.hpp"
-#include "external/MonitorInterface.hpp"
+#include "external/SearchMonitor.hpp"
 #include "external/Translator.hpp"
 
 using namespace std;
@@ -32,7 +32,7 @@ void WrappedLogicSolver::solve(Solution* sol){
 	getImpl()->solve();
 }
 
-void WrappedLogicSolver::addMonitor(Monitor* const monitor){
+void WrappedLogicSolver::addMonitor(SearchMonitor* const monitor){
 	getImpl()->addMonitor(monitor);
 }
 

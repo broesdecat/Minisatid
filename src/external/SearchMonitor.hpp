@@ -10,14 +10,15 @@
 #define MONITORINTERFACE_HPP
 
 #include <functional>
-
 #include "external/ExternalUtils.hpp"
-
 #include "callback.hpp"
 
 namespace MinisatID {
 
-class Monitor{
+/**
+ * Class which monitors actions during the propagation/search and notifies its registered callbacks.
+ */
+class SearchMonitor{
 private:
 	cb::Callback1<void, int> backtrackcb;
 	cb::Callback2<void, Literal, int> propagatedcb;
@@ -30,7 +31,7 @@ public:
 		propagatedcb = cb;
 	}
 
-	void notifyPropagated(Literal lit, int decisionlevel){
+	void notifyPropagated(const Literal& lit, int decisionlevel){
 		propagatedcb(lit, decisionlevel);
 	}
 

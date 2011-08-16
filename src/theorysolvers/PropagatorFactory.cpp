@@ -30,8 +30,8 @@
 
 #include "utils/Print.hpp"
 
-#include "monitors/ECNFGraphPrinter.hpp"
-#include "monitors/HumanReadableParsingPrinter.hpp"
+#include "parser/parsingmonitors/ECNFGraphPrinter.hpp"
+#include "parser/parsingmonitors/HumanReadableParsingPrinter.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -443,7 +443,7 @@ bool PropagatorFactory::add(const InnerIntVarRange& obj){
 		ss <<"Integer variable " <<obj.varID <<" was declared twice.\n";
 		throw idpexception(ss.str());
 	}
-	intvars.insert(pair<int, IntVar*>(obj.varID, new IntVar(getEnginep(), obj.varID, obj.minvalue, obj.maxvalue)));
+	intvars.insert(pair<int, IntVar*>(obj.varID, new IntVar(getEnginep(), obj.varID, toInt(obj.minvalue), toInt(obj.maxvalue))));
 	return true;
 }
 
@@ -456,24 +456,25 @@ bool PropagatorFactory::add(const InnerCPBinaryRel& obj){
 	add(obj.head);
 	eq.head = mkPosLit(obj.head);
 	IntVar* left = getIntVar(obj.varID);
+	int intbound = toInt(obj.bound);
 	switch(obj.rel){
 		case MEQ:
-			eq.literals.push(left->getEQLit(obj.bound));
+			eq.literals.push(left->getEQLit(intbound));
 			break;
 		case MNEQ:
-			eq.literals.push(left->getNEQLit(obj.bound));
+			eq.literals.push(left->getNEQLit(intbound));
 			break;
 		case MGEQ:
-			eq.literals.push(left->getGEQLit(obj.bound));
+			eq.literals.push(left->getGEQLit(intbound));
 			break;
 		case MG:
-			eq.literals.push(left->getGEQLit(obj.bound+1));
+			eq.literals.push(left->getGEQLit(intbound+1));
 			break;
 		case MLEQ:
-			eq.literals.push(left->getLEQLit(obj.bound));
+			eq.literals.push(left->getLEQLit(intbound));
 			break;
 		case ML:
-			eq.literals.push(left->getLEQLit(obj.bound-1));
+			eq.literals.push(left->getLEQLit(intbound-1));
 			break;
 	}
 	return add(eq);

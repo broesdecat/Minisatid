@@ -31,7 +31,7 @@ class SearchMonitor;
 class IntView;
 typedef Minisat::Solver SearchEngine;
 
-enum Optim { MNMZ, SUBSETMNMZ, NONE }; // Preference minimization, subset minimization, sum minimization
+enum Optim { MNMZ, SUBSETMNMZ, NONE };
 
 enum TheoryState {THEORY_PARSING, THEORY_INITIALIZED, THEORY_INITIALIZING};
 
@@ -80,11 +80,6 @@ private:
 	int 				state_savedlevel;
 	bool 				state_savingclauses;
 	std::vector<rClause> state_savedclauses;
-
-	// Logging
-	SearchMonitor* searchmonitor;
-	SearchMonitor& getSearchMonitor() { return *searchmonitor; }
-	const SearchMonitor& getSearchMonitor() const { return *searchmonitor; }
 
 public:
 	PCSolver(SolverOption modes, MinisatID::WrapperPimpl& inter, int ID);

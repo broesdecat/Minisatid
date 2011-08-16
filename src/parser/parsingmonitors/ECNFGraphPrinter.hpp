@@ -1,14 +1,15 @@
 /*
- * HumanReadableParsingMonitor.hpp
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
  *
- *  Created on: 26-mei-2011
- *      Author: Broes
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
+#ifndef ECNFGRAPHPARSINGMONITOR_HPP_
+#define ECNFGRAPHPARSINGMONITOR_HPP_
 
-#ifndef HUMANREADABLEPARSINGMONITOR_HPP_
-#define HUMANREADABLEPARSINGMONITOR_HPP_
-
-#include "monitors/ParsingMonitor.hpp"
+#include "parser/parsingmonitors/ParsingMonitor.hpp"
 
 namespace MinisatID{
 
@@ -92,4 +93,4 @@ public:
 
 }
 
-#endif /* HUMANREADABLEPARSINGMONITOR_HPP_ */
+#endif /* ECNFGRAPHPARSINGMONITOR_HPP_ */

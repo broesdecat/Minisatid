@@ -46,35 +46,35 @@ public:
 	int origid() const { return origid_; }
 	PCSolver& engine() { return engine_; }
 
-	int origMinValue(){
+	int origMinValue() const {
 		return minvalue;
 	}
 
-	int origMaxValue(){
+	int origMaxValue() const {
 		return maxvalue;
 	}
 
-	int minValue(){
+	int minValue() const {
 		return currentmin;
 	}
 
-	int maxValue(){
+	int maxValue() const {
 		return currentmax;
 	}
 
-	Lit getLEQLit(int bound){
+	Lit getLEQLit(int bound) const {
 		return mkPosLit(disequalities[bound-minvalue]);
 	}
 
-	Lit getGEQLit(int bound){
+	Lit getGEQLit(int bound) const {
 		return mkNegLit(disequalities[bound-minvalue-1]);
 	}
 
-	Lit getEQLit(int bound){
+	Lit getEQLit(int bound) const {
 		return mkPosLit(equalities[bound-minvalue]);
 	}
 
-	Lit getNEQLit(int bound){
+	Lit getNEQLit(int bound) const {
 		return mkNegLit(equalities[bound-minvalue]);
 	}
 
@@ -97,35 +97,35 @@ public:
 	int id() const { return var()->id(); }
 	int origid() const { return var()->origid(); }
 
-	int origMinValue(){
+	int origMinValue() const {
 		return var()->origMinValue()+constdiff();
 	}
 
-	int origMaxValue(){
+	int origMaxValue() const {
 		return var()->origMaxValue()+constdiff();
 	}
 
-	int minValue(){
+	int minValue() const {
 		return var()->minValue()+constdiff();
 	}
 
-	int maxValue(){
+	int maxValue() const {
 		return var()->maxValue()+constdiff();
 	}
 
-	Lit getLEQLit(int bound){
+	Lit getLEQLit(int bound) const {
 		return var()->getLEQLit(bound-constdiff());
 	}
 
-	Lit getGEQLit(int bound){
+	Lit getGEQLit(int bound) const {
 		return var()->getGEQLit(bound-constdiff());
 	}
 
-	Lit getEQLit(int bound){
+	Lit getEQLit(int bound) const {
 		return var()->getEQLit(bound-constdiff());
 	}
 
-	Lit getNEQLit(int bound){
+	Lit getNEQLit(int bound) const {
 		return var()->getNEQLit(bound-constdiff());
 	}
 };

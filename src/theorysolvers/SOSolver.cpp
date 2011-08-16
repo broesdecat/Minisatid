@@ -82,7 +82,7 @@ bool SOSolver::add(int modid, const InnerSubTheory& subtheory){
 		ss <<">> Modal operator " <<child+1 <<" has a negative head.\n";
 		throw idpexception(ss.str());
 	}
-	if(solvers.size()<child+1){
+	if(solvers.size()<(uint)child+1){
 		solvers.resize(child+1, NULL);
 	}
 	Var head = var(subtheory.head);

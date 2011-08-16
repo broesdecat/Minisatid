@@ -340,7 +340,7 @@ private:
 			if(not solver_.add(eq)){
 				state = UNSAT;
 			}
-			for(int i=1; i<enc.left->bits().size(); ++i){
+			for(vsize i=1; i<enc.left->bits().size(); ++i){
 				next = solver_.newVar();
 				Var leftbit = enc.left->bits()[i];
 				Var rightbit = enc.right->bits()[i];
@@ -367,7 +367,7 @@ private:
 				std::vector<Var> fullfalstrue;
 				Var prev = var(addEq(mkNegLit(enc.left->bits()[0]), mkPosLit(enc.right->bits()[0])));
 				fullfalstrue.push_back(prev);
-				for(int i=1; i<enc.left->bits().size(); ++i){
+				for(vsize i=1; i<enc.left->bits().size(); ++i){
 					next = solver_.newVar();
 					Var leftbit = enc.left->bits()[i];
 					Var rightbit = enc.right->bits()[i];
@@ -397,7 +397,7 @@ private:
 				if(not solver_.add(eq)){
 					state = UNSAT;
 				}
-				for(int i=1; i<enc.left->bits().size(); ++i){
+				for(vsize i=1; i<enc.left->bits().size(); ++i){
 					next = solver_.newVar();
 					Var leftbit = enc.left->bits()[i];
 					Var rightbit = enc.right->bits()[i];

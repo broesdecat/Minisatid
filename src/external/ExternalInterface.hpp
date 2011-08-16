@@ -9,16 +9,12 @@
 #ifndef EXTERNALINTERFACE_HPP_
 #define EXTERNALINTERFACE_HPP_
 
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdio.h>
+#include <cstdlib>
+#include <cstdint>
+#include <cstdio>
 
 #include "external/ExternalUtils.hpp"
 #include "external/SolvingMonitor.hpp"
-
-#ifndef __GXX_EXPERIMENTAL_CXX0X__
-#include <tr1/memory>
-#endif
 
 namespace MinisatID {
 class Translator;
@@ -27,7 +23,7 @@ class WrapperPimpl;
 class PCWrapperPimpl;
 class SOWrapperPimpl;
 
-class Monitor;
+class SearchMonitor;
 
 class WrappedLogicSolver;
 typedef WrappedLogicSolver* pwls;
@@ -46,7 +42,7 @@ public:
 	bool 	hasOptimization		() const;
 
 	// Add a monitor, which will be notified when any event happens
-	void 	addMonitor(Monitor* const monitor);
+	void 	addMonitor(SearchMonitor* const monitor);
 
 protected:
 	WrappedLogicSolver			();
@@ -60,7 +56,7 @@ private:
 
 public:
 	WrappedPCSolver	(const SolverOption& modes);
-	~WrappedPCSolver();
+	virtual ~WrappedPCSolver();
 
 	template<class T>
 	bool	add		(const T& sentence);
@@ -77,7 +73,7 @@ private:
 
 public:
 	WrappedSOSolver	(const SolverOption& modes);
-	~WrappedSOSolver();
+	virtual ~WrappedSOSolver();
 
 	template<class T>
 	bool	add		(int modid, const T& sentence);

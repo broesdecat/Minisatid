@@ -18,9 +18,9 @@ std::map<int, IntVarValue> IntVar::var2intvarvalues;
 IntVar::IntVar(PCSolver* solver, int origid, int min, int max)
 		: Propagator(solver),
 		  id_(maxid_++), origid_(origid),
-		  engine_(*solver), offset(-1),
+		  engine_(*solver),
 		  minvalue(min), maxvalue(max),
-		  currentmin(min), currentmax(max){
+		  offset(-1), currentmin(min), currentmax(max){
 	getPCSolver().accept(this, EV_BACKTRACK);
 	getPCSolver().accept(this, EV_PROPAGATE);
 	getPCSolver().acceptFinishParsing(this, false);

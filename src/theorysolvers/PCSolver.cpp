@@ -19,8 +19,6 @@
 #include "theorysolvers/EventQueue.hpp"
 #include "theorysolvers/TimeTrail.hpp"
 
-#include "monitors/SearchMonitor.hpp"
-
 #include "utils/Print.hpp"
 
 using namespace std;
@@ -38,8 +36,7 @@ PCSolver::PCSolver(SolverOption modes, MinisatID::WrapperPimpl& inter, int ID) :
 		state(THEORY_PARSING),
 		trail(new TimeTrail()),
 		optim(NONE), head(-1),
-		state_savedlevel(0), state_savingclauses(false),
-		searchmonitor(new SearchMonitor()){
+		state_savedlevel(0), state_savingclauses(false){
 
 	queue = new EventQueue(*this);
 
@@ -58,7 +55,6 @@ PCSolver::~PCSolver() {
 	delete(cpsolver);
 #endif
 	delete(factory);
-	delete(searchmonitor);
 	delete(trail);
 }
 
@@ -301,8 +297,6 @@ void PCSolver::createVar(Var v) {
 	getSolver().setDecisionVar(v, true);
 
 	getEventQueue().notifyVarAdded();
-
-	getSearchMonitor().addCount(v);
 
 	if (isInitialized()) { //Lazy init
 		propagations.resize(nVars(), NULL);
@@ -550,8 +544,8 @@ bool PCSolver::invalidateModel(InnerDisjunction& clause) {
 bool PCSolver::invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt) {
 	int subsetsize = 0;
 
-	for (unsigned int i = 0; i < to_minimize.size(); ++i) {
-		if (getSolver().model[var(to_minimize[i])] == l_True) {
+	for (int i = 0; i < to_minimize.size(); ++i) {
+		if (getSolver().model[(vsize)var(to_minimize[i])] == l_True) {
 			invalidation.push(~to_minimize[i]);
 			++subsetsize;
 		} else {
@@ -569,7 +563,7 @@ bool PCSolver::invalidateSubset(vec<Lit>& invalidation, vec<Lit>& assmpt) {
 bool PCSolver::invalidateValue(vec<Lit>& invalidation) {
 	bool currentoptimumfound = false;
 
-	for (unsigned int i = 0; !currentoptimumfound && i < to_minimize.size(); ++i) {
+	for (int i = 0; !currentoptimumfound && i < to_minimize.size(); ++i) {
 		if (!currentoptimumfound && getSolver().model[var(to_minimize[i])] == l_True) {
 			if (modes().verbosity >= 1) {
 				clog << "> Current optimum found for: ";

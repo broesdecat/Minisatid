@@ -24,15 +24,21 @@ libminisatid_2_0_la_LIBADD += $(libsbuilddir)/perftools/.libs/libtcmalloc.la $(l
 endif
 		
 libminisatid_2_0_la_SOURCES = \
+		external/SolvingMonitor.hpp\
+		external/ResourceManager.hpp\
 		external/ExternalInterface.hpp		wrapper/ExternalInterface.cpp\
+		external/Weight.hpp\
+		external/Idpexception.hpp\
+		external/Datastructures.hpp\
 		external/ExternalUtils.hpp\
-		external/MonitorInterface.hpp\
+		external/SearchMonitor.hpp\
 		external/FlatZincRewriter.hpp\
-		external/Translator.hpp				wrapper/Translator.cpp\
+		external/Translator.hpp\
+		wrapper/Translator.cpp\
 		wrapper/FlatZincRewriter.cpp\
 		wrapper/InterfaceImpl.hpp			wrapper/InterfaceImpl.cpp\
-		external/SolvingMonitor.hpp			wrapper/SolvingMonitor.cpp\
-		external/ResourceManager.hpp		wrapper/ResourceManager.cpp\
+		wrapper/SolvingMonitor.cpp\
+		wrapper/ResourceManager.cpp\
 		satsolver/SATSolver.hpp				satsolver/SATSolver.cpp\
 		satsolver/SATUtils.hpp				satsolver/SATUtils.cpp\
 		modules/DPLLTmodule.hpp 			modules/DPLLTmodule.cpp\
@@ -64,10 +70,9 @@ libminisatid_2_0_la_SOURCES = \
 		parser/Lparseread.hpp 				parser/Lparseread.cpp\
 		parser/PBread.hpp 					parser/PBread.cpp\
 		parser/ParseOptions.hpp 			parser/ParseOptions.cpp\
-		monitors/ECNFGraphPrinter.hpp\
-		monitors/HumanReadableParsingPrinter.hpp\
-		monitors/ParsingMonitor.hpp\
-		monitors/SearchMonitor.hpp\
+		parser/parsingmonitors/ECNFGraphPrinter.hpp\
+		parser/parsingmonitors/HumanReadableParsingPrinter.hpp\
+		parser/parsingmonitors/ParsingMonitor.hpp\
 		GeneralUtils.hpp 					GeneralUtils.cpp\
 		Unittests.hpp 						Unittests.cpp
 
@@ -141,7 +146,7 @@ minisatid_LDADD = libminisatid-2.0.la
 minisatid_SOURCES = \
 		Main.cpp\
 		parser/ecnftoken.lpp 				parser/ecnfparser.ypp
-		EXTRA_DIST += satsolver/minisat2-2/README satsolver/minisat2-2/LICENSE satsolver/minisat2-2/doc
+		
 EXTRA_DIST += satsolver/minisat2-2/README satsolver/minisat2-2/LICENSE satsolver/minisat2-2/doc
 		
 minisatid_include_HEADERS = \
