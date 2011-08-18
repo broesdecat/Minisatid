@@ -204,19 +204,19 @@ private:
 	bool adding;
 
     bool addSymmetricClause(const std::vector<Lit>& clause, const std::map<Var, Var>& symmetry){
-		vec<Lit> newclause;
+		InnerDisjunction newclause;
 		bool allfalse = true;
 		int level = 0;
 		for (vsize i = 0; i < clause.size(); ++i) {
 			auto it = symmetry.find(var(clause[i]));
 			if (it == symmetry.end()) {
-				newclause.push(clause[i]);
+				newclause.literals.push_back(clause[i]);
 			} else {
-				newclause.push(mkLit((*it).second, sign(clause[i])));
+				newclause.literals.push_back(mkLit((*it).second, sign(clause[i])));
 			}
 
-			if (allfalse && getPCSolver().value(newclause.last()) == l_False) {
-				int varlevel = getPCSolver().getLevel(var(newclause.last()));
+			if (allfalse && getPCSolver().value(newclause.literals.back()) == l_False) {
+				int varlevel = getPCSolver().getLevel(var(newclause.literals.back()));
 				if (varlevel - 1 > level) {
 					level = varlevel - 1;
 				}

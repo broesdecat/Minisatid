@@ -46,6 +46,10 @@ PCSolver::PCSolver(SolverOption modes, MinisatID::WrapperPimpl& inter, int ID) :
 #endif
 
 	factory = new PropagatorFactory(modes, this);
+
+	if(verbosity()>1){
+		modes.print(clog);
+	}
 }
 
 PCSolver::~PCSolver() {
@@ -261,25 +265,17 @@ rClause PCSolver::getExplanation(const Lit& l) {
  * Returns true if l was asserted before p
  */
 bool PCSolver::assertedBefore(const Var& l, const Var& p) const {
-	if (getLevel(l) < getLevel(p)) {
+	assert(value(l)!=l_Undef && value(p)!=l_Undef);
+
+	if(getLevel(l) < getLevel(p)) {
 		return true;
 	}
 
-	bool before = true;
-	const litlist& trail = getTrail();
-	int recentindex = getStartLastLevel();
-	for (int i = recentindex; i < trail.size(); ++i) {
-		Lit rlit = trail[i];
-		if (var(rlit) == l) { // l encountered first, so before
-			break;
-		}
-		if (var(rlit) == p) { // p encountered first, so after
-			before = false;
-			break;
-		}
+	if(getTime(l)<getTime(p)){
+		return true;
 	}
 
-	return before;
+	return false;
 }
 
 void PCSolver::createVar(Var v) {
@@ -303,7 +299,10 @@ void PCSolver::createVar(Var v) {
 	}
 }
 
-int	PCSolver::getTime(const Lit& lit){
+int	PCSolver::getTime(const Var& var) const{
+	return trail->getTime(mkPosLit(var));
+}
+int	PCSolver::getTime(const Lit& lit) const{
 	return trail->getTime(lit);
 }
 

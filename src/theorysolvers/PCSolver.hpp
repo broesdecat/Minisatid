@@ -106,7 +106,8 @@ public:
 
 	void 		finishParsing(bool& unsat);
 
-	int			getTime(const Lit& lit);
+	int			getTime(const Var& var) const;
+	int			getTime(const Lit& lit) const;
 
 	// Solving support
 	void 		newDecisionLevel();
@@ -133,7 +134,6 @@ public:
 
 	void 		notifySetTrue	(const Lit& p);
 
-	const litlist& getTrail	() 		const;
 	int 		getStartLastLevel() 	const;
 	int 		getLevel		(int var) const; // Returns the decision level at which a variable was deduced.
 	int			getCurrentDecisionLevel	() const;

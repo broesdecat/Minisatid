@@ -43,14 +43,9 @@ private:
 	vl lits;
 
 public:
-    PropRule(Lit head, const vec<Lit>& ps): head(var(head)){
-    	lits.reserve(ps.size());
-    	for(int i=0; i<ps.size(); ++i){
-    		lits.push_back(ps[i]);
-    	}
-    }
+    PropRule(Lit head, const std::vector<Lit>& ps): head(var(head)), lits(ps){  }
 
-    int 	size() 				const	{ return lits.size(); }
+    vsize 	size() 				const	{ return lits.size(); }
     Lit 	getHead() 			const	{ return mkLit(head, false); }
     Lit 	operator [](int i) 	const	{ return lits[i]; }
     vl::const_iterator begin()	const 	{ return lits.begin(); }
@@ -94,7 +89,7 @@ private:
 	DefOcc 			_occ;
 	bool 			_isCS;			//Currently considered cycle source
 	int 			_scc;			//To which SCC it belongs
-	vec<Lit> 		_justification;	//Its current justification
+	std::vector<Lit> 		_justification;	//Its current justification
 
 public:
 	DefinedVar(PropRule* rule, DefType type): _definition(rule), _type(type), _occ(BOTHLOOP), _isCS(false), _scc(-1){}
@@ -114,14 +109,14 @@ public:
 	DefOcc& 				occ(){ return _occ; }
 	bool &					isCS(){ return _isCS; }
 	int &					scc(){ return _scc; }
-	vec<Lit>& 				justification(){ return _justification; }
+	std::vector<Lit>& 				justification(){ return _justification; }
 
 	const std::vector<Lit>& reason()const { return _reason; }
 	const DefType& 			type()const { return _type; }
 	const DefOcc& 			occ()const { return _occ; }
 	bool					isCS()const { return _isCS; }
 	int						scc()const { return _scc; }
-	const vec<Lit>& 		justification()const { return _justification; }
+	const std::vector<Lit>& 		justification()const { return _justification; }
 };
 
 class IDSolver: public Propagator{
@@ -138,8 +133,6 @@ private:
 	DEFSEM					sem;
 
 	bool					posrecagg, mixedrecagg;
-
-	int						previoustrailatsimp; //The size of the trail the previous time simplification was run.
 
 	bool 					posloops, negloops;
 	std::vector<Var>		defdVars;	// All the vars that are the head of some kind of definition (disj, conj or aggr). Allows to iterate over all definitions.
@@ -193,11 +186,11 @@ public:
 
 	DEFSEM				getSemantics			() const { return sem; }
 
-	const vec<Lit>&		getCFJustificationAggr	(Var v) const;
-	void 				cycleSourceAggr			(Var v, vec<Lit>& nj);
+	const std::vector<Lit>&		getCFJustificationAggr	(Var v) const;
+	void 				cycleSourceAggr			(Var v, std::vector<Lit>& nj);
 
 	void 				addDefinedAggregate		(const InnerReifAggregate& agg, const InnerWLSet& set);
-	bool    			addRule      			(bool conj, Var head, const vec<Lit>& ps);	// Add a rule to the solver.
+	bool    			addRule      			(bool conj, Var head, const std::vector<Lit>& ps);	// Add a rule to the solver.
 
 	bool				isDefined				(Var var) 	const { return hasDefVar(var); }
 	bool 				isConjunctive			(Var v)		const {	return type(v) == CONJ; }
@@ -225,14 +218,14 @@ private:
 	DefOcc& 			occ			(Var v){ assert(hasDefVar(v)); return getDefVar(v)->occ(); }
 	bool &				isCS		(Var v){ assert(hasDefVar(v)); return getDefVar(v)->isCS(); }
 	int &				scc			(Var v){ assert(hasDefVar(v)); return getDefVar(v)->scc(); }
-	vec<Lit>& 			justification(Var v){ assert(hasDefVar(v)); return getDefVar(v)->justification(); }
+	std::vector<Lit>& 			justification(Var v){ assert(hasDefVar(v)); return getDefVar(v)->justification(); }
 
 	const std::vector<Lit>& 	reason		(Var v)const { return getDefVar(v)->reason(); }
 	const DefType& 		type		(Var v)const { return getDefVar(v)->type(); }
 	const DefOcc& 		occ			(Var v)const { return getDefVar(v)->occ(); }
 	bool 				isCS		(Var v)const { return getDefVar(v)->isCS(); }
 	int 				scc			(Var v)const { return getDefVar(v)->scc(); }
-	const vec<Lit>& 	justification(Var v)const { return getDefVar(v)->justification(); }
+	const std::vector<Lit>& 	justification(Var v)const { return getDefVar(v)->justification(); }
 
 	bool				hasSeen		(Var v) const 	{ return _seen->hasElem(v); }
 	int&				seen		(Var v) 		{ assert(hasSeen(v)); return _seen->getElem(v); }
@@ -259,19 +252,19 @@ private:
 
 	bool	setTypeIfNoPosLoops	(Var v) const;
 
-	void 	propagateJustificationDisj(const Lit& l, vec<vec<Lit> >& jstf, vec<Lit>& heads);
-	void 	propagateJustificationAggr(const Lit& l, vec<vec<Lit> >& jstf, vec<Lit>& heads);
-	template<typename T>
-	void 	propagateJustificationConj(const Lit& l, T& heads);
+	void 	propagateJustificationDisj(const Lit& l, std::vector<std::vector<Lit> >& jstf, std::vector<Lit>& heads);
+	void 	propagateJustificationAggr(const Lit& l, std::vector<std::vector<Lit> >& jstf, std::vector<Lit>& heads);
+	void 	propagateJustificationConj(const Lit& l, std::queue<Lit>& heads);
+	void 	propagateJustificationConj(const Lit& l, std::vector<Lit>& heads);
 
-	void 	findJustificationDisj(Var v, vec<Lit>& jstf);
-	bool 	findJustificationDisj(Var v, vec<Lit>& jstf, vec<Var>& nonjstf);
-	bool 	findJustificationConj(Var v, vec<Lit>& jstf, vec<Var>& nonjstf);
-	bool 	findJustificationAggr(Var v, vec<Lit>& jstf, vec<Var>& nonjstf);
+	void 	findJustificationDisj(Var v, std::vector<Lit>& jstf);
+	bool 	findJustificationDisj(Var v, std::vector<Lit>& jstf, std::vector<Var>& nonjstf);
+	bool 	findJustificationConj(Var v, std::vector<Lit>& jstf, std::vector<Var>& nonjstf);
+	bool 	findJustificationAggr(Var v, std::vector<Lit>& jstf, std::vector<Var>& nonjstf);
 
 	// Justification methods:
 	void	apply_changes      ();
-	void 	changejust(Var v, vec<Lit>& j);
+	void 	changejust(Var v, const std::vector<Lit>& j);
 
 	// Cycle source methods:
 	void	addCycleSource				(Var v);
@@ -293,17 +286,17 @@ private:
 	bool	unfounded          (Var cs, std::set<Var>& ufs);      // True iff 'cs' is currently in an unfounded set, 'ufs'.
 	rClause	assertUnfoundedSet (const std::set<Var>& ufs);
 
-	UFS 	visitForUFSsimple	(Var v, std::set<Var>& ufs, int& visittime, vec<Var>& stack, VarToJustif& visited, vec<vec<Lit> >& network);
-	void 	changeJustificationsTarjan(Var definednode, Lit firstjustification, vec<vec<Lit> >& network, VarToJustif& visited); //changes the justifications of the tarjan algorithm
+	UFS 	visitForUFSsimple	(Var v, std::set<Var>& ufs, int& visittime, std::vector<Var>& stack, VarToJustif& visited, std::vector<std::vector<Lit> >& network);
+	void 	changeJustificationsTarjan(Var definednode, Lit firstjustification, std::vector<std::vector<Lit> >& network, VarToJustif& visited); //changes the justifications of the tarjan algorithm
 
 	bool	visitedEarlierTarjan	(Var x, Var y, const VarToJustif& visitedandjust)	const;
 	bool	visitedTarjan			(Var x, const VarToJustif& visitedandjust) 		const;
 	int		visitedAtTarjan			(Var x, const VarToJustif& visitedandjust) 		const;
 	bool	hasJustificationTarjan	(Var x, const VarToJustif& visitedandjust)			const;
 
-	void	markNonJustified   			(Var cs, vec<Var>& tmpseen);                           // Auxiliary for 'unfounded(..)'. Marks all ancestors of 'cs' in sp_justification as 'seen'.
-	void	markNonJustifiedAddVar		(Var v, Var cs, std::queue<Var> &q, vec<Var>& tmpseen);
-	void	markNonJustifiedAddParents	(Var x, Var cs, std::queue<Var> &q, vec<Var>& tmpseen);
+	void	markNonJustified   			(Var cs, std::vector<Var>& tmpseen);                           // Auxiliary for 'unfounded(..)'. Marks all ancestors of 'cs' in sp_justification as 'seen'.
+	void	markNonJustifiedAddVar		(Var v, Var cs, std::queue<Var> &q, std::vector<Var>& tmpseen);
+	void	markNonJustifiedAddParents	(Var x, Var cs, std::queue<Var> &q, std::vector<Var>& tmpseen);
 	bool	directlyJustifiable			(Var v, std::set<Var>& ufs, std::queue<Var>& q);            // Auxiliary for 'unfounded(..)'. True if v can be immediately justified by one change_jstfc action.
 	bool	isJustified					(const InterMediateDataStruct& currentjust, Lit x) const;
 	bool	isJustified					(const InterMediateDataStruct& currentjust, Var x) const;
@@ -316,8 +309,8 @@ private:
 	// Another propagation method (too expensive in practice):
 	// void     fwIndirectPropagate();
 
-	void visit(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter, std::vector<Var>& roots); // Method to initialize 'scc'.
-	void visitFull(Var i, vec<bool> &incomp, vec<Var> &stack, vec<Var> &visited, int& counter, bool throughPositiveLit, std::vector<Var>& posroots, std::vector<Var>& rootofmixed, vec<Var>& nodeinmixed);
+	void visit(Var i, std::vector<bool> &incomp, std::vector<Var> &stack, std::vector<Var> &visited, int& counter, std::vector<Var>& roots); // Method to initialize 'scc'.
+	void visitFull(Var i, std::vector<bool> &incomp, std::vector<Var> &stack, std::vector<Var> &visited, int& counter, bool throughPositiveLit, std::vector<Var>& posroots, std::vector<Var>& rootofmixed, std::vector<Var>& nodeinmixed);
 
 	// Debug:
 	void	print		(const rClause c)	const;
@@ -351,16 +344,16 @@ private:
 	void removeMarks();
 
 
-	bool canJustifyHead(const IDAgg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const;
-	bool canJustifyMaxHead(const IDAgg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const;
-	bool canJustifySPHead(const IDAgg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const;
+	bool canJustifyHead(const IDAgg& agg, std::vector<Lit>& jstf, std::vector<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const;
+	bool canJustifyMaxHead(const IDAgg& agg, std::vector<Lit>& jstf, std::vector<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const;
+	bool canJustifySPHead(const IDAgg& agg, std::vector<Lit>& jstf, std::vector<Var>& nonjstf, const InterMediateDataStruct& currentjust, bool real) const;
 	IDAgg* getAggDefiningHead(Var v) const;
 	std::vector<Var> getDefAggHeadsWithBodyLit(Var x) const;
 	vwl::const_iterator getSetLitsOfAggWithHeadBegin(Var x) const;
 	vwl::const_iterator getSetLitsOfAggWithHeadEnd(Var x) const ;
 	void addExternalLiterals(Var v, const std::set<Var>& ufs, litlist& loopf, InterMediateDataStruct& seen);
-	void findJustificationAggr(Var head, vec<Lit>& outjstf) ;
-	bool directlyJustifiable(Var v, vec<Lit>& jstf, vec<Var>& nonjstf, InterMediateDataStruct& currentjust);
+	void findJustificationAggr(Var head, std::vector<Lit>& outjstf) ;
+	bool directlyJustifiable(Var v, std::vector<Lit>& jstf, std::vector<Var>& nonjstf, InterMediateDataStruct& currentjust);
 	bool isInitiallyJustified(const IDAgg& agg);
 };
 

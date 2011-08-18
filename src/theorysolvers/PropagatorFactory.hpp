@@ -35,6 +35,7 @@ class Propagator;
 class IDSolver;
 class ModSolver;
 template<class Solver> class SymmetryPropagator;
+class AggToCNFTransformer;
 
 #ifdef CPSUPPORT
 class CPSolver;
@@ -64,6 +65,11 @@ private:
 	void addSymmSolver();
 	bool hasSymmSolver() const;
 	SymmetryPropagator<PCSolver*>* getSymmSolver() const;
+
+	AggToCNFTransformer* aggToCNF;
+	void addAggToCNFTransformer();
+	bool hasAggToCNFTransformer() const;
+	AggToCNFTransformer* getAggToCNFTransformer() const;
 
 #ifdef CPSUPPORT
 	CPSolver* cpsolver;

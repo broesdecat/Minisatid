@@ -35,7 +35,6 @@
 
 using namespace std;
 using namespace MinisatID;
-using namespace Minisat;
 
 void throwUndefinedSet(int setid){
 	stringstream ss;
@@ -72,7 +71,8 @@ PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine
 		parsing(true),
 		satsolver(NULL),
 		modsolver(NULL),
-		symmsolver(NULL)
+		symmsolver(NULL),
+		aggToCNF(NULL)
 #ifdef CPSUPPORT
 		,cpsolver(NULL)
 #endif
@@ -143,6 +143,18 @@ SymmetryPropagator<PCSolver*>* PropagatorFactory::getSymmSolver() const {
 	return symmsolver;
 }
 
+void PropagatorFactory::addAggToCNFTransformer(){
+	assert(not hasAggToCNFTransformer());
+	aggToCNF = new AggToCNFTransformer();
+}
+bool PropagatorFactory::hasAggToCNFTransformer() const{
+	return aggToCNF!=NULL;
+}
+AggToCNFTransformer* PropagatorFactory::getAggToCNFTransformer() const{
+	assert(hasAggToCNFTransformer());
+	return aggToCNF;
+}
+
 bool PropagatorFactory::add(const Var& v) {
 	getEngine().createVar(v);
 	return true;
@@ -165,14 +177,18 @@ int PropagatorFactory::newSetID(){
 	return maxset++;
 }
 
-bool PropagatorFactory::add(const InnerDisjunction& formula){
-	notifyMonitorsOfAdding(formula);
+bool PropagatorFactory::add(const InnerDisjunction& clause){
+	notifyMonitorsOfAdding(clause);
 
-	addVars(formula.literals);
+	addVars(clause.literals);
 
 	// TODO lazygrounder
 //	if(formula.literals.size()<3){
-		return getSolver()->addClause(formula.literals);
+		vec<Lit> lits;
+		for(auto lit = clause.literals.begin(); lit!=clause.literals.end(); ++lit){
+			lits.push(*lit);
+		}
+		return getSolver()->addClause(lits);
 /*	}else{
 		LazyGrounder* g = new LazyGrounder(getEnginep());
 		etEngine().accept(g, EXITCLEANLY);
@@ -187,29 +203,28 @@ bool PropagatorFactory::add(const InnerEquivalence& formula){
 	bool notunsat = true;
 
 	//create the completion
-	vec<Lit> comp;
-	comp.push(formula.head);
+	InnerDisjunction comp;
+	litlist& lits = comp.literals;
+	lits.push_back(formula.head);
 
 	for (int i = 0; i < formula.literals.size(); ++i) {
-		comp.push(formula.literals[i]);
+		lits.push_back(formula.literals[i]);
 	}
 
 	if (formula.conjunctive) {
-		for (int i = 1; i < comp.size(); ++i) {
-			comp[i] = ~comp[i];
+		for (int i = 1; i < lits.size(); ++i) {
+			lits[i] = ~lits[i];
 		}
 	} else {
-		comp[0] = ~comp[0];
+		lits[0] = ~lits[0];
 	}
 
-	InnerDisjunction clause;
-	comp.copyTo(clause.literals);
-	notunsat = add(clause);
+	notunsat = add(comp);
 
-	for (int i = 1; notunsat && i < comp.size(); ++i) {
+	for (int i = 1; notunsat && i < lits.size(); ++i) {
 		InnerDisjunction binclause;
-		binclause.literals.push(~comp[0]);
-		binclause.literals.push(~comp[i]);
+		binclause.literals.push_back(~lits[0]);
+		binclause.literals.push_back(~lits[i]);
 		notunsat = add(binclause);
 	}
 
@@ -381,7 +396,11 @@ bool PropagatorFactory::add(const InnerForcedChoices& formula){
 	notifyMonitorsOfAdding(formula);
 
 	if (formula.forcedchoices.size() != 0) {
-		getSolver()->addForcedChoices(formula.forcedchoices);
+		vec<Lit> lits;
+		for(auto lit = formula.forcedchoices.begin(); lit!=formula.forcedchoices.end(); ++lit){
+			lits.push(*lit);
+		}
+		getSolver()->addForcedChoices(lits);
 	}
 	return true;
 }
@@ -459,22 +478,22 @@ bool PropagatorFactory::add(const InnerCPBinaryRel& obj){
 	int intbound = toInt(obj.bound);
 	switch(obj.rel){
 		case MEQ:
-			eq.literals.push(left->getEQLit(intbound));
+			eq.literals.push_back(left->getEQLit(intbound));
 			break;
 		case MNEQ:
-			eq.literals.push(left->getNEQLit(intbound));
+			eq.literals.push_back(left->getNEQLit(intbound));
 			break;
 		case MGEQ:
-			eq.literals.push(left->getGEQLit(intbound));
+			eq.literals.push_back(left->getGEQLit(intbound));
 			break;
 		case MG:
-			eq.literals.push(left->getGEQLit(intbound+1));
+			eq.literals.push_back(left->getGEQLit(intbound+1));
 			break;
 		case MLEQ:
-			eq.literals.push(left->getLEQLit(intbound));
+			eq.literals.push_back(left->getLEQLit(intbound));
 			break;
 		case ML:
-			eq.literals.push(left->getLEQLit(intbound-1));
+			eq.literals.push_back(left->getLEQLit(intbound-1));
 			break;
 	}
 	return add(eq);
@@ -503,7 +522,11 @@ bool PropagatorFactory::add(InnerDisjunction& formula, rClause& newclause){
 	notifyMonitorsOfAdding(formula);
 	addVars(formula.literals);
 
-	return getSolver()->addClause(formula.literals, newclause);
+	vec<Lit> lits;
+	for(auto lit = formula.literals.begin(); lit!=formula.literals.end(); ++lit){
+		lits.push(*lit);
+	}
+	return getSolver()->addClause(lits, newclause);
 }
 
 bool PropagatorFactory::finishSet(InnerWLSet* set, vector<Agg*>& aggs){
@@ -511,9 +534,13 @@ bool PropagatorFactory::finishSet(InnerWLSet* set, vector<Agg*>& aggs){
 
 	// transform into SAT if requested
 	if(getEngine().modes().tocnf){
-		if(!transformSumsToCNF(getEngine(), set, aggs)){
-			return false;
+		if(not hasAggToCNFTransformer()){
+			addAggToCNFTransformer();
 		}
+		getAggToCNFTransformer()->add(set, aggs);
+	}
+	if(aggs.size()==0){
+		return true;
 	}
 
 	AggProp const * type = NULL;
@@ -555,7 +582,7 @@ bool PropagatorFactory::finishParsing() {
 	// create one, certainly true variable which can act as a dummy head
 	dummyvar = getEngine().newVar();
 	InnerDisjunction clause;
-	clause.literals.push(mkLit(dummyvar));
+	clause.literals.push_back(mkLit(dummyvar));
 	add(clause);
 
 	// create reified aggregates
@@ -574,6 +601,9 @@ bool PropagatorFactory::finishParsing() {
 
 	for(auto i=parsedsets.begin(); notunsat && i!=parsedsets.end(); ++i){
 		notunsat &= finishSet((*i).second.first, (*i).second.second);
+	}
+	if(hasAggToCNFTransformer()){
+		notunsat &= getAggToCNFTransformer()->execute(getEngine());
 	}
 
 	// rule adding

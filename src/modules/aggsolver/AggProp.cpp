@@ -20,6 +20,7 @@ using namespace std;
 using namespace MinisatID;
 
 Weight	Agg::getCertainBound() const {
+	assert(getSet()!=NULL);
 	return bound.bound-getSet()->getKnownBound();
 }
 

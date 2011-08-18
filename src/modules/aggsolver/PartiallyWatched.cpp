@@ -608,9 +608,9 @@ double MinisatID::testGenWatchCount(const PCSolver& solver, const InnerWLSet& se
 	//Calculate reference aggregate (the one which will lead to the most watches
 	worstagg = *aggs.begin();
 	for(agglist::const_iterator i=aggs.begin(); i<aggs.end(); ++i){
-		if((*i)->hasLB() && worstagg->getCertainBound()<(*i)->getCertainBound()){
+		if((*i)->hasLB() && worstagg->getBound()<(*i)->getBound()){
 			worstagg = *i;
-		}else if((*i)->hasUB() && worstagg->getCertainBound()>(*i)->getCertainBound()){
+		}else if((*i)->hasUB() && worstagg->getBound()>(*i)->getBound()){
 			worstagg = *i;
 		}
 	}
