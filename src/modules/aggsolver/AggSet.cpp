@@ -39,33 +39,25 @@ TypedSet::TypedSet(const TypedSet& set):
 	getPCSolver().accept(this, EV_FULLASSIGNMENT);
 }
 
-void TypedSet::addAgg(Agg* aggr){
-	assert(aggr!=NULL);
-	aggregates.push_back(aggr);
-	aggr->setTypedSet(this);
-	aggr->setIndex(aggregates.size()-1);
+void TypedSet::addAgg(const TempAgg& tempagg){
+	auto agg = new Agg(this, tempagg);
+	aggregates.push_back(agg);
+	agg->setIndex(aggregates.size()-1);
 	if (getPCSolver().verbosity() >= 2) {
-		MinisatID::print(getPCSolver().verbosity(), *aggr);
+		MinisatID::print(getPCSolver().verbosity(), *agg);
 		report("\n");
 	}
 }
 
-void TypedSet::replaceAgg(const agglist& repl){
-	for(agglist::const_iterator i=aggregates.begin(); i<aggregates.end(); ++i){
-		assert((*i)->getSet()==this);
-		(*i)->setTypedSet(NULL);
-		(*i)->setIndex(-1);
+void TypedSet::removeAggs(const std::set<Agg*>& del){
+	for(auto agg = getAggNonConst().begin(); agg!=getAggNonConst().end(); ++agg){
+		if(del.find(*agg)!=del.end()){
+			agg = getAggNonConst().erase(agg);
+		}
 	}
-	aggregates.clear();
-	for(agglist::const_iterator i=repl.begin(); i<repl.end(); ++i){
-		addAgg(*i);
-	}
-}
-
-void TypedSet::replaceAgg(const agglist& repl, const agglist& del){
-	replaceAgg(repl);
-	for(agglist::const_iterator i=del.begin(); i<del.end(); ++i){
-		delete *i;
+	int index = 0;
+	for(auto agg = getAgg().begin(); agg!=getAgg().end(); ++agg, index++){
+		(*agg)->setIndex(index);
 	}
 }
 

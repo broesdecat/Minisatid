@@ -21,7 +21,7 @@ namespace Minisat{
 
 namespace MinisatID {
 
-class TypedSet;
+class TempAgg;
 
 class IntVar;
 class PCSolver;
@@ -84,7 +84,7 @@ private:
 	// Parsing support
 	int maxset;
 	std::vector<InnerRule*> parsedrules;
-	typedef std::pair<InnerWLSet*, std::vector<Agg*> > SetWithAggs;
+	typedef std::pair<InnerWLSet*, std::vector<TempAgg*> > SetWithAggs;
 	std::map<int, SetWithAggs> parsedsets;
 	std::vector<InnerAggregate*> parsedaggs;
 
@@ -154,7 +154,7 @@ private:
 
 	IntVar*		getIntVar(int varID) const;
 
-	bool finishSet(InnerWLSet* set, std::vector<Agg*>& agg);
+	bool finishSet(InnerWLSet* set, std::vector<TempAgg*>& agg);
 };
 
 }

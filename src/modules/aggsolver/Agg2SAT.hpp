@@ -38,10 +38,10 @@ public:
 
 	AggToCNFTransformer():maxvar(1){}
 
-	void add(InnerWLSet* set, std::vector<Agg*>& aggs){
-		agglist remaining;
+	void add(InnerWLSet* set, std::vector<TempAgg*>& aggs){
+		tempagglist remaining;
 		for (auto i=aggs.begin(); i!=aggs.end(); ++i) {
-			Agg* agg = *i;
+			TempAgg* agg = *i;
 
 			if((agg->getType()!=SUM && agg->getType()!=CARD) || agg->getSem() != COMP){
 				// TODO allow complete translation into sat? => double bounds

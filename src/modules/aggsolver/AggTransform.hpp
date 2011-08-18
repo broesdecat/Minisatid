@@ -22,11 +22,11 @@ void verifySet(const InnerWLSet& set);
 void verifyAggregate(InnerWLSet const * const set, Var head, AggType aggtype);
 
 //@pre: has been split
-void setReduce(PCSolver* solver, InnerWLSet* set, std::vector<Agg*>& aggs, const AggProp& type, Weight& knownbound, bool& unsat, bool& sat);
-void addHeadImplications(PCSolver* solver, InnerWLSet* set, std::vector<Agg*>& aggs, bool& unsat, bool& sat);
-void max2SAT(PCSolver* solver, InnerWLSet* set, std::vector<Agg*>& aggs, bool& unsat, bool& sat);
-void card2Equiv(PCSolver* solver, InnerWLSet* set, std::vector<Agg*>& aggs, const Weight& knownbound, bool& unsat, bool& sat);
-void decideUsingWatchesAndCreatePropagators(PCSolver* solver, InnerWLSet* set, std::vector<Agg*>& aggs, const Weight& knownbound);
+void setReduce(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>& aggs, const AggProp& type, Weight& knownbound, bool& unsat, bool& sat);
+void addHeadImplications(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>& aggs, bool& unsat, bool& sat);
+void max2SAT(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>& aggs, bool& unsat, bool& sat);
+void card2Equiv(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>& aggs, const Weight& knownbound, bool& unsat, bool& sat);
+void decideUsingWatchesAndCreatePropagators(PCSolver* solver, InnerWLSet* set, const std::vector<TempAgg*>& aggs, const Weight& knownbound);
 
 }
 

@@ -264,7 +264,7 @@ bool PropagatorFactory::add(const InnerWLSet& formula){
 
 	// TODO only if type is known here verifySet(formula);
 
-	parsedsets.insert(pair<int, SetWithAggs>(formula.setID, SetWithAggs(new InnerWLSet(formula), vector<Agg*>())));
+	parsedsets.insert(pair<int, SetWithAggs>(formula.setID, SetWithAggs(new InnerWLSet(formula), vector<TempAgg*>())));
 
 	return true;
 }
@@ -334,7 +334,7 @@ bool PropagatorFactory::addAggrExpr(Var head, int setid, AggSign sign, const Wei
 
 	getEngine().varBumpActivity(head); // NOTE heuristic! (TODO move)
 
-	Agg* agg = new Agg(mkPosLit(head), AggBound(sign, bound),sem==DEF?COMP:sem, type);
+	TempAgg* agg = new TempAgg(mkPosLit(head), AggBound(sign, bound),sem==DEF?COMP:sem, type);
 	set.second.push_back(agg);
 
 	if(not isParsing()){
@@ -529,7 +529,7 @@ bool PropagatorFactory::add(InnerDisjunction& formula, rClause& newclause){
 	return getSolver()->addClause(lits, newclause);
 }
 
-bool PropagatorFactory::finishSet(InnerWLSet* set, vector<Agg*>& aggs){
+bool PropagatorFactory::finishSet(InnerWLSet* set, vector<TempAgg*>& aggs){
 	bool unsat = false, sat = false;
 
 	// transform into SAT if requested

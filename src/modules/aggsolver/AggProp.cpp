@@ -21,7 +21,7 @@ using namespace MinisatID;
 
 Weight	Agg::getCertainBound() const {
 	assert(getSet()!=NULL);
-	return bound.bound-getSet()->getKnownBound();
+	return getBound()-getSet()->getKnownBound();
 }
 
 paggprop AggProp::max = paggprop (new MaxProp());
@@ -49,8 +49,15 @@ Weight AggProp::getValue(const TypedSet& set) const {
 bool SumProp::isMonotone(const Agg& agg, const Weight& w) const {
 	return (agg.hasUB() && w < 0) || (!agg.hasUB() && w > 0);
 }
+bool SumProp::isMonotone(const TempAgg& agg, const Weight& w, const Weight&) const {
+	return (agg.hasUB() && w < 0) || (!agg.hasUB() && w > 0);
+}
 
 bool ProdProp::isMonotone(const Agg& agg, const Weight& w) const {
+	assert(w == 0 || w >= 1);
+	return !agg.hasUB();
+}
+bool ProdProp::isMonotone(const TempAgg& agg, const Weight& w, const Weight&) const {
 	assert(w == 0 || w >= 1);
 	return !agg.hasUB();
 }
@@ -108,6 +115,10 @@ WL SumProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, Weight& kno
 
 bool MaxProp::isMonotone(const Agg& agg, const Weight& w) const {
 	const Weight& w2 = agg.getCertainBound();
+	return (agg.hasUB() && w2 <= w) || (!agg.hasUB());
+}
+bool MaxProp::isMonotone(const TempAgg& agg, const Weight& w, const Weight& knownbound) const {
+	const Weight& w2 = agg.getCertainBound(knownbound);
 	return (agg.hasUB() && w2 <= w) || (!agg.hasUB());
 }
 
@@ -255,6 +266,14 @@ bool MinisatID::isSatisfied(const Agg& agg, const minmaxBounds& bounds){
 		return bounds.max<=agg.getCertainBound();
 	}else{ //LB
 		return bounds.min>=agg.getCertainBound();
+	}
+}
+
+bool MinisatID::isSatisfied(const TempAgg& agg, const minmaxBounds& bounds, const Weight& knownbound){
+	if(agg.hasUB()){
+		return bounds.max<=agg.getCertainBound(knownbound);
+	}else{ //LB
+		return bounds.min>=agg.getCertainBound(knownbound);
 	}
 }
 

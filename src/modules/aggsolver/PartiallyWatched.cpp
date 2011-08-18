@@ -12,9 +12,10 @@
 #include "modules/aggsolver/AggSet.hpp"
 #include "theorysolvers/PCSolver.hpp"
 
-#include <stdint.h>
-#include <inttypes.h>
-#include <limits.h>
+#include <cstdint>
+#include <cinttypes>
+#include <climits>
+#include <set>
 
 using namespace std;
 using namespace MinisatID;
@@ -211,20 +212,18 @@ void GenPWAgg::checkInitiallyKnownAggs(bool& unsat, bool& sat){
 	minmaxBounds pessbounds = calculatePessimisticBounds();
 
 	rClause confl = nullPtrClause;
-	agglist rem, del;
-	for(agglist::const_iterator i=getAgg().begin(); confl==nullPtrClause && i<getAgg().end(); ++i){
+	std::set<Agg*> del;
+	for(auto i=getAgg().begin(); confl==nullPtrClause && i<getAgg().end(); ++i){
 		if(value((*i)->getHead())==l_True){ //Head always true
-			del.push_back(*i);
+			del.insert(*i);
 		}else if(isSatisfied(**i, pessbounds)){ // Agg always true
-			del.push_back(*i);
+			del.insert(*i);
 		}else if(isFalsified(**i, pessbounds)){ // Agg always false
 			confl = getSet().notifySolver(new HeadReason(**i, (*i)->getHead()));
-			del.push_back(*i);
-		}else{
-			rem.push_back(*i);
+			del.insert(*i);
 		}
 	}
-	getSet().replaceAgg(rem, del);
+	getSet().removeAggs(del);
 	if(confl!=nullPtrClause){
 		unsat = true;
 	}else if(getAgg().size()==0){
@@ -467,8 +466,7 @@ rClause GenPWAgg::propagateAtEndOfQueue(const Agg& agg) {
 // NOOP because all propagation is done in propagate
 rClause	GenPWAgg::propagateAtEndOfQueue(){
 	rClause confl = nullPtrClause;
-	int i = 0;
-	while(confl == nullPtrClause && trail.size()>0){
+	for(vsize i=0; confl == nullPtrClause && i<trail.size(); ++i){
 		auto watch = trail[i];
 		if(watch->headWatch()){
 			propagateAtEndOfQueue(*getAgg()[watch->getAggIndex()]);
@@ -590,10 +588,10 @@ public:
 	const WL& 	getWL		() 	const 	{ return _wl; }
 };
 
-double MinisatID::testGenWatchCount(const PCSolver& solver, const InnerWLSet& set, const AggProp& type, const std::vector<Agg*> aggs) {
+double MinisatID::testGenWatchCount(const PCSolver& solver, const InnerWLSet& set, const AggProp& type, const std::vector<TempAgg*> aggs, const Weight& knownbound) {
 	int totallits = set.wls.size(), totalwatches = 0;
 	std::vector<TempWatch*> nws;
-	Agg const * worstagg;
+	TempAgg const * worstagg;
 
 	//Calculate min and max values over empty interpretation
 	//Create sets and watches, initialize min/max values
@@ -601,13 +599,13 @@ double MinisatID::testGenWatchCount(const PCSolver& solver, const InnerWLSet& se
 	const vwl& wls = set.getWL();
 	for(vsize i=0; i<wls.size(); ++i){
 		const WL& wl = wls[i];
-		bool mono = type.isMonotone(**aggs.begin(), wl.getWeight());
+		bool mono = type.isMonotone(**aggs.begin(), wl.getWeight(), knownbound);
 		nws.push_back(new TempWatch(wl, mono));
 	}
 
 	//Calculate reference aggregate (the one which will lead to the most watches
 	worstagg = *aggs.begin();
-	for(agglist::const_iterator i=aggs.begin(); i<aggs.end(); ++i){
+	for(auto i=aggs.begin(); i<aggs.end(); ++i){
 		if((*i)->hasLB() && worstagg->getBound()<(*i)->getBound()){
 			worstagg = *i;
 		}else if((*i)->hasUB() && worstagg->getBound()>(*i)->getBound()){
@@ -616,7 +614,7 @@ double MinisatID::testGenWatchCount(const PCSolver& solver, const InnerWLSet& se
 	}
 
 	bool oneagg = aggs.size()==1;
-	const Agg& agg = *worstagg;
+	const TempAgg& agg = *worstagg;
 
 	if(oneagg && solver.value(agg.getHead())==l_True){
 		return 0;
@@ -625,7 +623,7 @@ double MinisatID::testGenWatchCount(const PCSolver& solver, const InnerWLSet& se
 	minmaxOptimAndPessBounds bounds(emptyinterpretbounds);
 	TempWatch* largest = NULL;
 	vsize i = 0;
-	for(;!isSatisfied(agg, bounds.optim) && !isSatisfied(agg, bounds.pess) && i<nws.size(); ++i){
+	for(;!isSatisfied(agg, bounds.optim, knownbound) && !isSatisfied(agg, bounds.pess, knownbound) && i<nws.size(); ++i){
 		WL wl = nws[i]->getWL();
 		lbool val = solver.value(wl.getLit());
 
@@ -645,11 +643,11 @@ double MinisatID::testGenWatchCount(const PCSolver& solver, const InnerWLSet& se
 
 	//if head was unknown before method start, at most head can have been propagated
 	//so do not have to find second supporting ws
-	if((!oneagg || solver.value(agg.getHead())!=l_Undef) && (largest!=NULL && !isSatisfied(agg, bounds.pess))){
+	if((!oneagg || solver.value(agg.getHead())!=l_Undef) && (largest!=NULL && !isSatisfied(agg, bounds.pess, knownbound))){
 		removeValue(type, largest->getWL().getWeight(), largest->isMonotone(), bounds.optim);
 
 		//Again until satisfied IMPORTANT: continue from previous index!
-		for(; !isSatisfied(agg, bounds.optim) && !isSatisfied(agg, bounds.pess) && i<nws.size(); ++i){
+		for(; !isSatisfied(agg, bounds.optim, knownbound) && !isSatisfied(agg, bounds.pess, knownbound) && i<nws.size(); ++i){
 			WL wl = nws[i]->getWL();
 			lbool val = solver.value(wl.getLit());
 
