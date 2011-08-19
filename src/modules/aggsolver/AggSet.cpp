@@ -49,8 +49,9 @@ void TypedSet::addAgg(const TempAgg& tempagg){
 	}
 }
 
+// FIXME overal != in condities vervangen door < voor vectoren, want ++ is niet toegelaten op end!
 void TypedSet::removeAggs(const std::set<Agg*>& del){
-	for(auto agg = getAggNonConst().begin(); agg!=getAggNonConst().end(); ++agg){
+	for(auto agg = getAggNonConst().begin(); agg<getAggNonConst().end(); ++agg){
 		if(del.find(*agg)!=del.end()){
 			agg = getAggNonConst().erase(agg);
 		}

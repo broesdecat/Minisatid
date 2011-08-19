@@ -80,17 +80,17 @@ void GenPWAgg::addWatchToNetwork(GenPWatch* watch){
 }
 
 void GenPWAgg::resetStagedWatches(int startindex){
-	//genwatchlist::const_iterator i = getStagedWatches().begin()+startindex;
-	/*for(; i<getStagedWatches().end(); ++i){
-		moveFromWSToNWS(*i);
-	}*/
 	getStagedWatches().erase(getStagedWatches().begin()+startindex, getStagedWatches().end());
 }
 
 void GenPWAgg::addStagedWatchesToNetwork(){
 	for(genwatchlist::const_iterator i=getStagedWatches().begin(); i<getStagedWatches().end(); ++i){
-		moveFromNWSToWS(*i);
-		addWatchToNetwork(*i);
+		if(not (*i)->isInWS()){
+			moveFromNWSToWS(*i);
+		}
+		if(not (*i)->isInNetwork()){
+			addWatchToNetwork(*i);
+		}
 	}
 	getStagedWatches().clear();
 }
@@ -290,14 +290,14 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
  */
 rClause GenPWAgg::reconstructSet(GenPWatch* watch, bool& propagations, Agg const * propagg){
 #ifdef DEBUG
-	for(vwl::const_iterator i=getSet().getWL().begin(); i<getSet().getWL().end(); ++i){
+	for(auto i=getSet().getWL().begin(); i<getSet().getWL().end(); ++i){
 		bool found = false;
-		for(genwatchlist::const_iterator j=getNWS().begin(); j<getNWS().end(); ++j){
+		for(auto j=getNWS().begin(); j<getNWS().end(); ++j){
 			if(var(i->getLit())==var((*j)->getWL().getLit())){
 				found = true;
 			}
 		}
-		for(genwatchlist::const_iterator j=getWS().begin(); j<getWS().end(); ++j){
+		for(auto j=getWS().begin(); j<getWS().end(); ++j){
 			if(var(i->getLit())==var((*j)->getWL().getLit())){
 				found = true;
 			}
@@ -311,8 +311,7 @@ rClause GenPWAgg::reconstructSet(GenPWatch* watch, bool& propagations, Agg const
 
 	//possible HACK: watch all at all times
 	/*for(int i=0 ;i<getNWS().size(); ++i){
-		addToWatchedSet(i);
-		i--;
+		stageWatch(getNWS()[i]);
 	}*/
 
 	//possible HACK: always keep watch
@@ -398,8 +397,6 @@ void GenPWAgg::genWatches(vsize& i, const Agg& agg, minmaxOptimAndPessBounds& bo
 		}
 
 		if((watch->isMonotone() && val!=l_False) || (!watch->isMonotone() && val!=l_True)){
-			//moveFromNWSToWS(watch);
-			//i--;
 			stageWatch(watch);
 
 			if(largest==NULL || largest->getWL().getWeight() < wl.getWeight()){
@@ -443,7 +440,7 @@ rClause GenPWAgg::propagateAtEndOfQueue(Watch* watch) {
 	if(!propagations && confl==nullPtrClause){ //It can be safely removed as a watch
 		moveFromWSToNWS(pw);
 	}else{ //Otherwise, add it again to the network
-		addWatchToNetwork(pw);
+		stageWatch(pw);
 	}
 
 	if(confl!=nullPtrClause){
@@ -469,9 +466,9 @@ rClause	GenPWAgg::propagateAtEndOfQueue(){
 	for(vsize i=0; confl == nullPtrClause && i<trail.size(); ++i){
 		auto watch = trail[i];
 		if(watch->headWatch()){
-			propagateAtEndOfQueue(*getAgg()[watch->getAggIndex()]);
+			confl = propagateAtEndOfQueue(*getAgg()[watch->getAggIndex()]);
 		}else{
-			propagateAtEndOfQueue(watch);
+			confl = propagateAtEndOfQueue(watch);
 		}
 	}
 	trail.clear();
@@ -514,12 +511,11 @@ void GenPWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 	}
 
 	std::vector<wlt> wlis;
-	// FIXME getlevel approximation of gettime might be incorrect!
 	for(auto i=getWS().begin(); i<getWS().end(); ++i){
 		if(var((*i)->getWatchLit())!=var(proplit)){
 			const Lit& lit = (*i)->getWL().getLit();
 			if(value((*i)->getWatchLit())==l_True){
-				wlt wli((*i)->getWL(), getSet().getPCSolver().getLevel(var(lit)), (*i)->getWatchLit()==lit);
+				wlt wli((*i)->getWL(), getSet().getPCSolver().getTime(var(lit)), (*i)->getWatchLit()==lit);
 				wlis.push_back(wli);
 			}
 		}
@@ -528,7 +524,7 @@ void GenPWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 		if(var((*i)->getWatchLit())!=var(proplit)){
 			const Lit& lit = (*i)->getWL().getLit();
 			if(value((*i)->getWatchLit())==l_True){
-				wlt wli((*i)->getWL(), getSet().getPCSolver().getLevel(var(lit)), (*i)->getWatchLit()==lit);
+				wlt wli((*i)->getWL(), getSet().getPCSolver().getTime(var(lit)), (*i)->getWatchLit()==lit);
 				wlis.push_back(wli);
 			}
 		}

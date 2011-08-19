@@ -18,13 +18,13 @@
 namespace MinisatID {
 
 class TimeTrail{
-	int 					time;
+	int 					newesttimepoint;
 	std::vector<Lit>		trail;
 	std::vector<int>		var2time;
 	std::vector<vsize>		decisionlevel2trail;
 
 public:
-	TimeTrail(): time(0){
+	TimeTrail(): newesttimepoint(0){
 		decisionlevel2trail.push_back(trail.size());
 	}
 	void notifyPropagate(const Lit& lit) {
@@ -32,7 +32,7 @@ public:
 			var2time.resize(var(lit)+1, -1);
 		}
 		trail.push_back(lit);
-		var2time[(vsize)var(lit)] = time++;
+		var2time[(vsize)var(lit)] = newesttimepoint++;
 	}
 	void notifyNewDecisionLevel(){
 		decisionlevel2trail.push_back(trail.size());
@@ -50,7 +50,9 @@ public:
 		return var2time.size()>(vsize)var(lit) && var2time[(vsize)var(lit)]!=-1;
 	}
 	int getTime(const Lit& lit){
-		assert(hasTime(lit));
+		if(!hasTime(lit)){
+			return newesttimepoint+1;
+		}
 		return var2time[(vsize)var(lit)];
 	}
 };

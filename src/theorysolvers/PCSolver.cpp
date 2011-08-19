@@ -121,13 +121,13 @@ void PCSolver::backtrackTo(int level) {
 
 void PCSolver::setTrue(const Lit& p, Propagator* module, rClause c) {
 	assert(value(p)!=l_False && value(p)!=l_True);
-	trail->notifyPropagate(p);
 	propagations[var(p)] = module;
 	getSolver().uncheckedEnqueue(p, c);
 }
 
 void PCSolver::notifySetTrue(const Lit& p) {
 	getEventQueue().setTrue(p);
+	trail->notifyPropagate(p);
 
 	if (isBeingMonitored()) {
 		InnerPropagation prop;
