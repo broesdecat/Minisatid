@@ -211,7 +211,7 @@ protected:
     bool     enqueue          (Lit p, Clause* from = NULL);                            // Test if fact 'p' contradicts current state, enqueue otherwise.
     Clause*  propagate        ();                                                      // Perform unit propagation. Returns possibly conflicting clause.
     //void     cancelUntil      (int level);                                             // Backtrack until a certain level.
-    void     analyze          (Clause* confl, vec<Lit>& out_learnt, int& out_btlevel); // (bt = backtrack)
+    bool     analyze          (Clause* confl, vec<Lit>& out_learnt, int& out_btlevel); // (bt = backtrack)
     void     analyzeFinal     (Lit p, vec<Lit>& out_conflict);                         // COULD THIS BE IMPLEMENTED BY THE ORDINARIY "analyze" BY SOME REASONABLE GENERALIZATION?
     bool     litRedundant     (Lit p, uint32_t abstract_levels);                       // (helper method for 'analyze()')
     lbool    search           (int nof_conflicts, int nof_learnts, /*AB*/bool nosearch = false/*AB*/);                    // Search for a given number of conflicts.

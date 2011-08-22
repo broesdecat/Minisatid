@@ -12,6 +12,8 @@
 #include "utils/Utils.hpp"
 #include "theorysolvers/PCSolver.hpp"
 
+#include <list>
+
 namespace MinisatID {
 
 class SymVars{
