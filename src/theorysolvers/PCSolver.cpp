@@ -1043,7 +1043,10 @@ bool PCSolver::findOptimal(const vec<Lit>& assmpt, const ModelExpandOptions& opt
 		if (optim == AGGMNMZ) {
 			assert(getAggSolver()!=NULL);
 			//Noodzakelijk om de aanpassingen aan de bound door te propageren.
-			getAggSolver()->propagateMnmz();
+			if(not getAggSolver()->propagateMnmz()){
+				unsatreached = true;
+				continue;
+			}
 		}
 
 		bool sat = getSolver()->solve(currentassmpt);

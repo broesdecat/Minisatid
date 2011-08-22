@@ -258,7 +258,7 @@ public:
 	}
 
 	virtual void printCurrentOptimum(std::ostream& output, const Weight& value){
-		output <<"o " <<value <<"\n";
+		output <<"o " <<value <<std::endl; // NOTE: has to FLUSH after each print!
 	}
 };
 

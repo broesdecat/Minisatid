@@ -163,7 +163,7 @@ public:
 
 	// OPTIMISATION
     bool 		invalidateAgg			(vec<Lit>& invalidation);
-    void 		propagateMnmz			();
+    bool		propagateMnmz			();
 
 	// RECURSIVE AGGREGATES
 	void 		propagateJustifications		(Lit l, vec<vec<Lit> >& jstf, vec<Lit>& v, VarToJustif &nb_body_lits_to_justify);

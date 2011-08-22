@@ -179,6 +179,10 @@ void Solution::solvingFinished(){
 			if(hasOptimalModel()){
 				printOptimalModelFound(output, modes.format);
 			}
+			if(modes.format==FORMAT_OPB){
+				printSatisfiable(output, modes.format, modes.transformat);
+				printSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);
+			}
 			if(hasTranslator()){
 				getTranslator()->printModel(output, getBestModelFound());
 			}

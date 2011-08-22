@@ -862,13 +862,16 @@ bool AggSolver::invalidateAgg(vec<Lit>& invalidation) {
  * TODO: not really beautiful solution, maybe it can be fixed with ASSUMPTIONS?
  * This method has to be called after every temporary solution has been found to force the propagation of
  * the newly adapted bound.
+ *
+ * @returns: false if certainly unsatisfiable;
  */
-void AggSolver::propagateMnmz() {
+bool AggSolver::propagateMnmz() {
 	assert(isInitialized());
 	int level = getPCSolver().getCurrentDecisionLevel();
 	Agg* agg = getOptimAgg();
 	TypedSet* set = agg->getSet();
-	set->getProp()->propagate(level, *agg, true);
+	rClause confl = set->getProp()->propagate(level, *agg, true);
+	return confl==nullPtrClause;
 }
 
 // PRINTING
