@@ -158,14 +158,17 @@ void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& s
 
 	//create implication aggs
 	agglist implaggs, del;
-	Agg* optim = NULL;
+	// FIXME there is an error in the watches code on optimal bound update (example is sicco problem)
+//	Agg* optim = NULL;
 	for(agglist::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); ++i){
 		const Agg& agg = *(*i);
 
 		if(solver->isOptimAgg(*i)){
-			assert(optim==NULL);
-			optim = *i;
-			break;
+			assert(/*optim==NULL &&*/ set->getAgg().size()==1);
+			//optim = *i;
+			set->setUsingWatches(false);
+			return;
+			//break;
 		}
 
 		Agg *one, *two;
@@ -179,12 +182,12 @@ void MapToSetWithSameAggSign::transform(AggSolver* solver, TypedSet* set, vps& s
 		del.push_back(*i);
 	}
 
-	if(optim!=NULL){
+/*	if(optim!=NULL){
 		Agg* newoptim = new Agg(~optim->getHead(), AggBound(optim->getSign(), optim->getBound()), IMPLICATION, 0, optim->getType());
 		implaggs.push_back(newoptim);
 		solver->setOptimAgg(newoptim);
 		del.push_back(optim);
-	}
+	}*/
 
 	//separate in both signs
 	agglist signoneaggs, signtwoaggs;
