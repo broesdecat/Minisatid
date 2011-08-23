@@ -438,6 +438,22 @@ bool PCWrapperPimpl::add(const Symmetry& sentence){
 	return getSolver()->add(symms);
 }
 
+template<>
+bool PCWrapperPimpl::add(const LazyClause& sentence){
+	InnerLazyClause lc;
+	lc.monitor = sentence.monitor;
+	lc.tseitin = checkLit(sentence.tseitin);
+	return getSolver()->add(lc);
+}
+
+template<>
+bool PCWrapperPimpl::add(const LazyClauseAddition& sentence){
+	InnerLazyClauseAddition lc;
+	lc.ref = sentence.ref;
+	lc.addedlit = checkLit(sentence.addedlit);
+	return getSolver()->add(lc);
+}
+
 void checkCPSupport(){
 #ifndef CPSUPPORT
 	throw idpexception(getNoCPSupportString());

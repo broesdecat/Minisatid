@@ -251,6 +251,18 @@ public:
 	InnerBacktrack(int untillevel): untillevel(untillevel){}
 };
 
+class InnerLazyClause{
+public:
+	LazyClauseMonitor* monitor;
+	Lit tseitin;
+};
+
+class InnerLazyClauseAddition{
+public:
+	LazyClauseRef* ref;
+	Lit addedlit;
+};
+
 }
 
 #endif /* UTILS_H_ */

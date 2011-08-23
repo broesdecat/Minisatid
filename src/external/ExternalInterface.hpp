@@ -25,6 +25,9 @@ class SOWrapperPimpl;
 
 class SearchMonitor;
 
+class LazyClauseMonitor;
+class LazyClauseRef;
+
 class WrappedLogicSolver;
 typedef WrappedLogicSolver* pwls;
 
@@ -59,7 +62,7 @@ public:
 	virtual ~WrappedPCSolver();
 
 	template<class T>
-	bool	add		(const T& sentence);
+	bool	add(const T& sentence);
 
 protected:
 	WrapperPimpl* getImpl() const;

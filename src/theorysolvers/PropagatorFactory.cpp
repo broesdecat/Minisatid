@@ -623,3 +623,12 @@ void PropagatorFactory::includeCPModel(std::vector<VariableEqValue>& varassignme
 		varassignments.push_back(vareq);
 	}
 }
+
+bool PropagatorFactory::add(const InnerLazyClause& object){
+	// FIXME
+#warning still implement lazyclause in propagatorfactory
+}
+bool PropagatorFactory::add(const InnerLazyClauseAddition& object){
+	// FIXME
+#warning still implement lazyclauseaddition in propagatorfactory
+}

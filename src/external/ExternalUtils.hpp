@@ -14,6 +14,7 @@
 #include "external/Idpexception.hpp"
 #include "external/Weight.hpp"
 #include "external/Datastructures.hpp"
+#include "external/LazyClauseSupport.hpp"
 
 typedef unsigned int uint;
 

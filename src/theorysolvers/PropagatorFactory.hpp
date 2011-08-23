@@ -125,6 +125,8 @@ public:
 	bool add(const InnerCPSumWeighted& object);
 	bool add(const InnerCPCount& object);
 	bool add(const InnerCPAllDiff& object);
+	bool add(const InnerLazyClause& object);
+	bool add(const InnerLazyClauseAddition& object);
 
 	bool add(InnerDisjunction& disj, rClause& newclause);
 

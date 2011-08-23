@@ -27,6 +27,13 @@ namespace MinisatID{
 
 class PCSolver;
 
+class LazyClausePropagator{
+public:
+	void notifyFullyGround();
+	void notifyCertainlyTrue();
+	void notifyCertainlyFalse();
+};
+
 class LazyGrounder: public Propagator{
 private:
 	InnerDisjunction clause;

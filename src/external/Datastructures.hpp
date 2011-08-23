@@ -12,6 +12,7 @@
 #include <vector>
 #include <map>
 #include <cassert>
+#include "external/Weight.hpp"
 
 namespace MinisatID {
 

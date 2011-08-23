@@ -31,6 +31,8 @@ class PCSolver;
 class SOSolver;
 class SearchMonitor;
 class InnerModel;
+class LazyClauseMonitor;
+class LazyClauseRef;
 
 typedef std::vector<Lit> litlist;
 
@@ -177,6 +179,8 @@ template<> bool PCWrapperPimpl::add(const CPAllDiff& sentence);
 template<> bool PCWrapperPimpl::add(const ForcedChoices& sentence);
 template<> bool PCWrapperPimpl::add(const SymmetryLiterals& sentence);
 template<> bool PCWrapperPimpl::add(const Symmetry& sentence);
+template<> bool PCWrapperPimpl::add(const LazyClause& sentence);
+template<> bool PCWrapperPimpl::add(const LazyClauseAddition& sentence);
 
 class SOWrapperPimpl: public MinisatID::WrapperPimpl{
 private:
