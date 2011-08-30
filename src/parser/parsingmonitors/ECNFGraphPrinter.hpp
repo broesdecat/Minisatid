@@ -26,7 +26,7 @@ public:
 	}
 
 	void notifyadded(const MinisatID::InnerDisjunction& lits){
-		for(int i=0; i<lits.literals.size(); ++i){
+		for(uint i=0; i<lits.literals.size(); ++i){
 			if(i>0){
 				target() <<" -- ";
 			}
@@ -39,7 +39,7 @@ public:
 	}
 
 	void notifyadded(const MinisatID::InnerRule& lits){
-		for(int i=0; i<lits.body.size(); ++i){
+		for(uint i=0; i<lits.body.size(); ++i){
 			if(i>0){
 				target() <<" -- ";
 			}

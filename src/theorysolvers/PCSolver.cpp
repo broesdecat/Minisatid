@@ -364,6 +364,14 @@ int PCSolver::getNbOfFormulas() const {
 	return getEventQueue().getNbOfFormulas();
 }
 
+bool PCSolver::isUnsat() const{
+	return getSATSolver()->isUnsat();
+}
+
+void PCSolver::notifyUnsat() {
+	return getSATSolver()->notifyUnsat();
+}
+
 Var PCSolver::changeBranchChoice(const Var& chosenvar) {
 	return getEventQueue().notifyBranchChoice(chosenvar);
 }
@@ -529,18 +537,17 @@ bool PCSolver::invalidateModel(InnerDisjunction& clause) {
 		clog << "]\n";
 	}
 
-	bool result;
 	if (state_savingclauses) {
 		rClause newclause;
-		result = getFactory().add(clause, newclause);
-		if (result) {
+		getFactory().add(clause, newclause);
+		if (not isUnsat()) {
 			state_savedclauses.push_back(newclause);
 		}
 	} else {
-		result = add(clause);
+		add(clause);
 	}
 
-	return result;
+	return isUnsat();
 }
 
 // OPTIMIZATION METHODS

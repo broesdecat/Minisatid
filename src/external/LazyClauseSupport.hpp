@@ -18,16 +18,16 @@ class LazyClauseRef;
 
 class LazyClauseMonitor{
 private:
-	cb::Callback0<void> requestGroundingCB;
+	cb::Callback0<bool> requestGroundingCB;
 	cb::Callback1<void, LazyClauseRef*> notifyCreated;
 
 public:
-	void setRequestMoreGrounding(cb::Callback0<void> cb){
+	void setRequestMoreGrounding(cb::Callback0<bool> cb){
 		requestGroundingCB = cb;
 	}
 
-	void requestMoreGrounding(){
-		requestGroundingCB();
+	bool requestMoreGrounding(){
+		return requestGroundingCB();
 	}
 
 	void setNotifyClauseCreated(cb::Callback1<void, LazyClauseRef*> cb){
@@ -38,29 +38,35 @@ public:
 		notifyCreated(ref);
 	}
 };
+
 class LazyClauseRef{
 private:
 	LazyClausePropagator* clause;
 
 public:
-	void notifyFullyGrounded();
 	void notifyCertainlyTrue();
 	void notifyCertainlyFalse();
+
+	LazyClausePropagator* getClause() const { return clause; }
+
+	LazyClauseRef(LazyClausePropagator * const prop): clause(prop){}
 };
+
+// POCO's
 
 class LazyClause{
 public:
+	Literal tseitin, first, second;
 	LazyClauseMonitor* monitor;
-	Literal tseitin;
 
-	LazyClause(Literal tseitin, LazyClauseMonitor* monitor)
-			:tseitin(tseitin), monitor(monitor){}
+	LazyClause(Literal tseitin, Literal first, Literal second, LazyClauseMonitor* monitor)
+			:tseitin(tseitin), first(first), second(second), monitor(monitor){}
 };
 
 class LazyClauseAddition{
 public:
-	LazyClauseRef* ref;
 	Literal addedlit;
+	LazyClauseRef* ref;
 
 	LazyClauseAddition(Literal lit, LazyClauseRef* ref)
 			:addedlit(lit), ref(ref){}

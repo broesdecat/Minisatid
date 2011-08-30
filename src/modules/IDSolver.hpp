@@ -190,7 +190,7 @@ public:
 	void 				cycleSourceAggr			(Var v, std::vector<Lit>& nj);
 
 	void 				addDefinedAggregate		(const InnerReifAggregate& agg, const InnerWLSet& set);
-	bool    			addRule      			(bool conj, Var head, const std::vector<Lit>& ps);	// Add a rule to the solver.
+	void    			addRule      			(bool conj, Var head, const std::vector<Lit>& ps);	// Add a rule to the solver.
 
 	bool				isDefined				(Var var) 	const { return hasDefVar(var); }
 	bool 				isConjunctive			(Var v)		const {	return type(v) == CONJ; }

@@ -174,7 +174,6 @@ void MinisatID::max2SAT(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>
 		return;
 	}
 
-	bool notunsat = true;
 	assert(aggs.size()==1);
 	/*
 	 * For a maximum: if lower,  head <=> conj of negation of all literals with weight higher than bound
@@ -209,8 +208,8 @@ void MinisatID::max2SAT(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>
 			}
 			clause.literals.push_back((*i).getLit());
 		}
-		notunsat = solver->add(clause);
-		for (vwl::const_reverse_iterator i = set->wls.rbegin(); notunsat && i < set->wls.rend()
+		solver->add(clause);
+		for (vwl::const_reverse_iterator i = set->wls.rbegin(); i < set->wls.rend()
 					&& (*i).getWeight() >= bound; ++i) {
 			if (ub && (*i).getWeight() == bound) {
 				break;
@@ -218,15 +217,15 @@ void MinisatID::max2SAT(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>
 			clause.literals.clear();
 			clause.literals.push_back(ub?not agg.getHead():agg.getHead());
 			clause.literals.push_back(not (*i).getLit());
-			notunsat = solver->add(clause);
+			solver->add(clause);
 		}
 	//}
 	aggs.clear();
 
-	if(notunsat){
-		sat = true; //Encoding succeeded, so aggregate itself can be dropped.
-	}else{
+	if(solver->isUnsat()){
 		unsat = true;
+	}else{
+		sat = true; //Encoding succeeded, so aggregate itself can be dropped.
 	}
 }
 
@@ -246,9 +245,7 @@ void MinisatID::card2Equiv(PCSolver* solver, InnerWLSet* set, std::vector<TempAg
 			const Weight& bound = agg.getBound()-knownbound;
 			if(agg.hasLB() && bound==0){
 				lbool headvalue = solver->value(agg.getHead());
-				if(headvalue==l_False){
-					unsat = true;
-				}else{
+				if(headvalue!=l_False){
 					/*if (agg.getSem() == DEF) {
 						InnerRule rule;
 						rule.definitionID = agg.getDefID();
@@ -278,17 +275,20 @@ void MinisatID::card2Equiv(PCSolver* solver, InnerWLSet* set, std::vector<TempAg
 					for (vsize j = 0; j < set->wls.size(); ++j) {
 						eq.literals.push_back(set->wls[j].getLit());
 					}
-					unsat = !solver->add(eq);
+					solver->add(eq);
 				//}
 			}else{
 				remaggs.push_back(*i);
+			}
+			if(solver->isUnsat()){
+				unsat = true;
 			}
 		}
 		aggs.clear();
 		aggs = remaggs;
 	}
 
-	if(!unsat && aggs.size()==0){
+	if(not unsat && aggs.size()==0){
 		sat = true;
 	}
 }

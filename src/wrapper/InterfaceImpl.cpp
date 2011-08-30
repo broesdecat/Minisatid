@@ -313,21 +313,24 @@ PCWrapperPimpl::~PCWrapperPimpl(){
 
 template<>
 bool PCWrapperPimpl::add(const Atom& v){
-	return getSolver()->add(checkAtom(v));
+	getSolver()->add(checkAtom(v));
+	return true;
 }
 
 template<>
 bool PCWrapperPimpl::add(const Disjunction& sentence){
 	InnerDisjunction d;
 	checkLits(sentence.literals, d.literals);
-	return getSolver()->add(d);
+	getSolver()->add(d);
+	return getSolver()->isUnsat();
 }
 
 template<>
 bool PCWrapperPimpl::add(const DisjunctionRef& sentence){
 	InnerDisjunction d;
 	checkLits(sentence.literals, d.literals);
-	return getSolver()->add(d);
+	getSolver()->add(d);
+	return getSolver()->isUnsat();
 }
 
 template<>
@@ -336,7 +339,8 @@ bool PCWrapperPimpl::add(const Equivalence& sentence){
 	eq.head = checkLit(sentence.head);
 	checkLits(sentence.body, eq.literals);
 	eq.conjunctive = sentence.conjunctive;
-	return getSolver()->add(eq);
+	getSolver()->add(eq);
+	return getSolver()->isUnsat();
 }
 
 template<>
@@ -346,7 +350,8 @@ bool PCWrapperPimpl::add(const Rule& sentence){
 	rule.definitionID = sentence.definitionID;
 	rule.conjunctive = sentence.conjunctive;
 	checkLits(sentence.body, rule.body);
-	return getSolver()->add(rule);
+	getSolver()->add(rule);
+	return getSolver()->isUnsat();
 }
 
 template<>
@@ -356,7 +361,8 @@ bool PCWrapperPimpl::add(const Set& sentence){
 	set.type = sentence.type;
 	set.literals = sentence.literals;
 	set.weights = vector<Weight>(sentence.literals.size(), 1);
-	return add(set);
+	add(set);
+	return getSolver()->isUnsat();
 }
 
 template<>
@@ -367,7 +373,8 @@ bool PCWrapperPimpl::add(const WSet& sentence){
 	for(uint i=0; i<sentence.literals.size(); ++i){
 		set.wl.push_back(WLtuple(sentence.literals[i], sentence.weights[i]));
 	}
-	return add(set);
+	add(set);
+	return getSolver()->isUnsat();
 }
 
 template<>
@@ -377,7 +384,8 @@ bool PCWrapperPimpl::add(const WLSet& sentence){
 		wls.push_back(WL(checkLit((*i).l), (*i).w));
 	}
 	InnerWLSet set(sentence.type, sentence.setID, wls);
-	return getSolver()->add(set);
+	getSolver()->add(set);
+	return getSolver()->isUnsat();
 }
 
 template<>
@@ -390,7 +398,8 @@ bool PCWrapperPimpl::add(const Aggregate& sentence){
 	agg.sign = sentence.sign;
 	agg.sem = sentence.sem;
 	agg.defID = sentence.defID;
-	return getSolver()->add(agg);
+	getSolver()->add(agg);
+	return getSolver()->isUnsat();
 }
 
 template<>
@@ -398,7 +407,8 @@ bool PCWrapperPimpl::add(const MinimizeSubset& sentence){
 	InnerMinimizeSubset mnm;
 	checkLits(sentence.literals, mnm.literals);
 	setOptimization(true);
-	return getSolver()->add(mnm);
+	getSolver()->add(mnm);
+	return getSolver()->isUnsat();
 }
 
 template<>
@@ -406,7 +416,8 @@ bool PCWrapperPimpl::add(const MinimizeOrderedList& sentence){
 	InnerMinimizeOrderedList mnm;
 	checkLits(sentence.literals, mnm.literals);
 	setOptimization(true);
-	return getSolver()->add(mnm);
+	getSolver()->add(mnm);
+	return getSolver()->isUnsat();
 }
 
 template<>
@@ -414,28 +425,32 @@ bool PCWrapperPimpl::add(const MinimizeVar& sentence){
 	InnerMinimizeVar mnm;
 	mnm.varID = sentence.varID;
 	setOptimization(true);
-	return getSolver()->add(mnm);
+	getSolver()->add(mnm);
+	return getSolver()->isUnsat();
 }
 
 template<>
 bool PCWrapperPimpl::add(const ForcedChoices& sentence){
 	InnerForcedChoices choices;
 	checkLits(sentence.forcedchoices, choices.forcedchoices);
-	return getSolver()->add(choices);
+	getSolver()->add(choices);
+	return getSolver()->isUnsat();
 }
 
 template<>
 bool PCWrapperPimpl::add(const SymmetryLiterals& sentence){
 	InnerSymmetryLiterals symms;
 	checkLits(sentence.symmgroups, symms.literalgroups);
-	return getSolver()->add(symms);
+	getSolver()->add(symms);
+	return getSolver()->isUnsat();
 }
 
 template<>
 bool PCWrapperPimpl::add(const Symmetry& sentence){
 	InnerSymmetry symms;
 	checkAtoms(sentence.symmetry, symms.symmetry);
-	return getSolver()->add(symms);
+	getSolver()->add(symms);
+	return getSolver()->isUnsat();
 }
 
 template<>
@@ -443,7 +458,10 @@ bool PCWrapperPimpl::add(const LazyClause& sentence){
 	InnerLazyClause lc;
 	lc.monitor = sentence.monitor;
 	lc.tseitin = checkLit(sentence.tseitin);
-	return getSolver()->add(lc);
+	lc.first = checkLit(sentence.first);
+	lc.second = checkLit(sentence.second);
+	getSolver()->add(lc);
+	return getSolver()->isUnsat();
 }
 
 template<>
@@ -451,7 +469,8 @@ bool PCWrapperPimpl::add(const LazyClauseAddition& sentence){
 	InnerLazyClauseAddition lc;
 	lc.ref = sentence.ref;
 	lc.addedlit = checkLit(sentence.addedlit);
-	return getSolver()->add(lc);
+	getSolver()->add(lc);
+	return getSolver()->isUnsat();
 }
 
 void checkCPSupport(){
@@ -466,7 +485,8 @@ bool PCWrapperPimpl::add(const CPIntVarEnum& sentence){
 	InnerIntVarEnum var;
 	var.varID = sentence.varID;
 	var.values = sentence.values;
-	return getSolver()->add(var);
+	getSolver()->add(var);
+	return getSolver()->isUnsat();
 }
 template<>
 bool PCWrapperPimpl::add(const CPIntVarRange& sentence){
@@ -474,7 +494,8 @@ bool PCWrapperPimpl::add(const CPIntVarRange& sentence){
 	var.varID = sentence.varID;
 	var.minvalue = sentence.minvalue;
 	var.maxvalue = sentence.maxvalue;
-	return getSolver()->add(var);
+	getSolver()->add(var);
+	return getSolver()->isUnsat();
 }
 template<>
 bool PCWrapperPimpl::add(const CPBinaryRel& sentence){
@@ -484,7 +505,8 @@ bool PCWrapperPimpl::add(const CPBinaryRel& sentence){
 	form.varID = sentence.varID;
 	form.rel = sentence.rel;
 	form.bound = sentence.bound;
-	return getSolver()->add(form);
+	getSolver()->add(form);
+	return getSolver()->isUnsat();
 }
 template<>
 bool PCWrapperPimpl::add(const CPBinaryRelVar& sentence){
@@ -493,7 +515,8 @@ bool PCWrapperPimpl::add(const CPBinaryRelVar& sentence){
 	form.lhsvarID = sentence.lhsvarID;
 	form.rel = sentence.rel;
 	form.rhsvarID = sentence.rhsvarID;
-	return getSolver()->add(form);
+	getSolver()->add(form);
+	return getSolver()->isUnsat();
 }
 template<>
 bool PCWrapperPimpl::add(const CPSumWeighted& sentence){
@@ -504,7 +527,8 @@ bool PCWrapperPimpl::add(const CPSumWeighted& sentence){
 	form.bound = sentence.bound;
 	form.weights = sentence.weights;
 	form.varIDs = sentence.varIDs;
-	return getSolver()->add(form);
+	getSolver()->add(form);
+	return getSolver()->isUnsat();
 }
 template<>
 bool PCWrapperPimpl::add(const CPCount& sentence){
@@ -514,14 +538,16 @@ bool PCWrapperPimpl::add(const CPCount& sentence){
 	form.eqbound = sentence.eqbound;
 	form.rel = sentence.rel;
 	form.rhsvar = sentence.rhsvar;
-	return getSolver()->add(form);
+	getSolver()->add(form);
+	return getSolver()->isUnsat();
 }
 template<>
 bool PCWrapperPimpl::add(const CPAllDiff& sentence){
 	checkCPSupport();
 	InnerCPAllDiff form;
 	form.varIDs = sentence.varIDs;
-	return getSolver()->add(form);
+	getSolver()->add(form);
+	return getSolver()->isUnsat();
 }
 
 // MODAL SOLVER

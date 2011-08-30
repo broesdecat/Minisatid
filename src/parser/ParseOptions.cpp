@@ -190,6 +190,10 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 	aggheurdesc.push_back(pair<string, string>("yes", "Use aggregate heuristic"));
 	aggheurdesc.push_back(pair<string, string>("no", "Don't use aggregate heuristic"));
 
+	vector<pair<string, string> > lazydesc;
+	lazydesc.push_back(pair<string, string>("yes", "Use lazy grounding"));
+	lazydesc.push_back(pair<string, string>("no", "Don't use lazy grounding"));
+
 	vector<POLARITY> polvals;
 	vector<pair<string, string> > poldesc;
 	polvals.push_back(POL_TRUE); poldesc.push_back(pair<string, string>("true", "true-first"));
@@ -283,6 +287,8 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 			modes.defsem, cmd,"Choose the semantics of the inductive definitions"));
 	options.push_back(new Option<int, int>("","idsaving", 			idsavingvals, idsavingdesc,
 			modes.idclausesaving, cmd, "Choose how to handle propagation reasons for inductive definitions"));
+	options.push_back(new Option<bool, string>	("","lazy", 	yesnovals, lazydesc,
+			modes.lazy, cmd, "Choose whether to use lazy grounding of formulas"));
 
 	try {
 		cmd.parse(argc, argv);

@@ -28,23 +28,29 @@ namespace MinisatID{
 
 class PCSolver;
 
-struct LazyGroundedClause{
-	InnerDisjunction clause;
-	int indexofnext;
-
-	LazyGroundedClause(const InnerDisjunction& clause): clause(clause), indexofnext(0){	}
-};
-
-class LazyGrounder{
+class LazyClausePropagator: public Propagator{
 private:
-	std::vector<LazyGroundedClause*> clauses;
+	bool certainlytrue;
+	Lit head;
+	InnerDisjunction clause;
+	LazyClauseMonitor* monitor;
+
+	void handleFullyGround();
+
 public:
-	LazyGrounder();
-	virtual ~LazyGrounder();
+	LazyClausePropagator(PCSolver* engine, const InnerLazyClause& lz);
+	virtual ~LazyClausePropagator();
 
-	void addClause(const InnerDisjunction& clause);
+	void add(const Lit& lit);
 
-	bool expand(int clauseID, vec<Lit>& currentclause);
+	rClause notifyPropagate();
+
+	void notifyCertainlyTrue();
+	void notifyCertainlyFalse();
+
+	// Propagator methods
+	virtual const char* getName			() const 					{ return "lazyclause"; }
+	virtual int		getNbOfFormulas		() const 					{ return 1; }
 };
 }
 

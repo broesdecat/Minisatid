@@ -65,7 +65,7 @@ namespace MinisatID {
 		long 			ufsvarintrothreshold;
 		bool			tseitindecisions;
 		bool			subsetminimizeexplanation, currentlevelfirstinexplanation, innogoodfirstinexplanation;
-
+		bool			lazy;
 
 		SolverOption();
 

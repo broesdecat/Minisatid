@@ -11,70 +11,102 @@
 using namespace std;
 using namespace MinisatID;
 
-LazyGrounder::LazyGrounder(){
+LazyClausePropagator::LazyClausePropagator(PCSolver* engine, const InnerLazyClause& lz):
+		Propagator(engine),
+		certainlytrue(false),
+		head(lz.tseitin),
+		monitor(lz.monitor){
+	monitor->notifyClauseCreated(new LazyClauseRef(this));
+	clause.literals.push_back(lz.first);
+	clause.literals.push_back(lz.second);
+	getPCSolver().accept(this, lz.tseitin, SLOW);
+	getPCSolver().accept(this, not lz.tseitin, SLOW);
+	getPCSolver().accept(this, not lz.first, SLOW); // FIXME dynamic watches and 2-watched scheme
+	getPCSolver().accept(this, not lz.second, SLOW);
 }
 
-LazyGrounder::~LazyGrounder() {
-	deleteList<LazyGroundedClause>(clauses);
+LazyClausePropagator::~LazyClausePropagator(){
+
 }
 
-void LazyGrounder::addClause(const InnerDisjunction& clause){
-	clauses.push_back(new LazyGroundedClause(clause));
+void LazyClausePropagator::add(const Lit& lit){
+	clause.literals.push_back(lit);
+	getPCSolver().accept(this, not lit, SLOW);
+
+	InnerDisjunction disj;
+	disj.literals.push_back(not lit);
+	disj.literals.push_back(head);
+	getPCSolver().add(disj);
 }
 
-bool LazyGrounder::expand(int clauseID, vec<Lit>& currentclause){
-	LazyGroundedClause lz = *clauses[clauseID];
-	if(lz.clause.literals.size()<=lz.indexofnext){
-		return false;
+void LazyClausePropagator::handleFullyGround(){
+	InnerDisjunction fullclause;
+	fullclause.literals.push_back(not head);
+	for(auto litit=clause.literals.begin(); litit<clause.literals.end(); ++litit){
+		fullclause.literals.push_back(*litit);
 	}
-	currentclause.push(lz.clause.literals[lz.indexofnext++]);
-	return true;
-}
-/*
-bool LazyGrounder::setClause(const InnerDisjunction& clause){
-	this->clause = clause;
 
-	bool found = false;
-	while(!found && indexinfullclause<clause.literals.size()){
-		indexinfullclause++;
-		if(!isFalse(clause.literals[indexinfullclause])){
-			found = true;
-			getPCSolver().acceptLitEvent(this, ~clause.literals[indexinfullclause], SLOW);
-		}
-	}
-	if(!found){
-		return false;
-	}
-	return true;
+	getPCSolver().add(fullclause);
 }
 
-rClause	LazyGrounder::notifypropagate(){
-	rClause confl = nullPtrClause;
-	while(confl==nullPtrClause && hasNextProp()){
-		const Lit& lit = getNextProp();
-		int index = 0;
-		bool found = false;
-		while(!found && index<clause.literals.size()){
-			if(indexinfullclause<index){
-				indexinfullclause++;
+rClause LazyClausePropagator::notifyPropagate(){
+	if(certainlytrue){ // TODO the propagator should be removed then
+		return nullPtrClause;
+	}
+
+	lbool headvalue = value(head);
+
+	if(headvalue==l_False){
+		bool fullyground = false;
+		while(not fullyground){
+			fullyground = monitor->requestMoreGrounding();
+			if(getPCSolver().isUnsat()){
+				return nullPtrClause;
 			}
-			if(!isFalse(clause.literals[index])){
-				found = true;
-				getPCSolver().acceptLitEvent(this, ~clause.literals[index], SLOW);
-			}
-			index++;
 		}
-		if(!found){
-			//have seen full clause (finally), so conflict: return a clause and add a watch again
-			//TODO should add the clause as a permanent one and refrain from adding the clause to the watches again
-			getPCSolver().acceptLitEvent(this, ~lit, SLOW);
-			confl = getPCSolver().createClause(clause.literals, true);
-			getPCSolver().addLearnedClause(confl);
+		handleFullyGround();
+		return nullPtrClause;
+	}
+
+	bool allFalse = true;
+	bool oneTrue = false;
+	for(auto litit=clause.literals.begin(); allFalse && litit<clause.literals.end(); ++litit){
+		lbool litvalue = value(*litit);
+		if(litvalue!=l_False){
+			allFalse = false;
+			if(litvalue==l_True){
+				oneTrue = true;
+			}
 		}
 	}
-	return confl;
+
+	if(headvalue==l_True){
+		while(allFalse){
+			bool fullyground = monitor->requestMoreGrounding();
+			if(fullyground){
+				handleFullyGround();
+				return nullPtrClause;
+			}
+			if(getPCSolver().isUnsat()){
+				return nullPtrClause;
+			}
+			lbool litvalue = value(clause.literals.back());
+			if(litvalue!=l_False){
+				allFalse = false;
+			}
+		}
+	}else if(headvalue==l_Undef){
+		if(oneTrue){
+			getPCSolver().setTrue(head, this, nullPtrClause);
+		}
+	}
+
+	return nullPtrClause;
 }
 
-void LazyGrounder::printStatistics() const {
-	clog <<"Lazy grounded: " <<(indexinfullclause+1) <<" of " <<clause.literals.size() <<" literals.\n";
-}*/
+void LazyClausePropagator::notifyCertainlyTrue(){
+	certainlytrue = true;
+}
+void LazyClausePropagator::notifyCertainlyFalse(){
+	getPCSolver().notifyUnsat();
+}

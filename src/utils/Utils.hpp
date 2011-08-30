@@ -254,7 +254,7 @@ public:
 class InnerLazyClause{
 public:
 	LazyClauseMonitor* monitor;
-	Lit tseitin;
+	Lit tseitin, first, second;
 };
 
 class InnerLazyClauseAddition{

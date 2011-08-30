@@ -6,16 +6,13 @@
 
 #include "external/LazyClauseSupport.hpp"
 
-#include "modules/LazyClause.hpp"
+#include "modules/LazyGrounder.hpp"
 
 using namespace MinisatID;
 
-void LazyClauseRef::notifyFullyGrounded(){
-	clause->notifyFullyGround();
-}
 void LazyClauseRef::notifyCertainlyTrue(){
-	clause->notifyCertainlyTrue();
+	getClause()->notifyCertainlyTrue();
 }
 void LazyClauseRef::notifyCertainlyFalse(){
-	clause->notifyCertainlyFalse();
+	getClause()->notifyCertainlyFalse();
 }

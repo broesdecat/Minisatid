@@ -109,7 +109,8 @@ SolverOption::SolverOption():
 		tseitindecisions(true),
 		subsetminimizeexplanation(false),
 		currentlevelfirstinexplanation(true),
-		innogoodfirstinexplanation(true){
+		innogoodfirstinexplanation(true),
+		lazy(false){
 	stringstream str;
 	str <<DATADIR <<"/P1.TXT";
 	primesfile = str.str();
@@ -162,4 +163,5 @@ void SolverOption::print(std::ostream& so) const{
 	so << "asapaggprop: " 		<<asapaggprop <<"\n";
 	so << "ufsvarintrothreshold: " <<ufsvarintrothreshold <<"\n";
 	so << "tseitindecisions: " 	<<tseitindecisions <<"\n";
+	so << "lazy: " 				<<(lazy?"yes":"no") <<"\n";
 }

@@ -33,10 +33,11 @@ struct PBAgg {
 // FIXME currently, at most one call to execute is allowed, subsequent ones will segfault
 class AggToCNFTransformer{
 public:
+	PCSolver& pcsolver;
 	std::vector<PBAgg*> pbaggs;
 	int maxvar;
 
-	AggToCNFTransformer():maxvar(1){}
+	AggToCNFTransformer(PCSolver* pcsolver):pcsolver(*pcsolver), maxvar(1){}
 
 	void add(InnerWLSet* set, std::vector<TempAgg*>& aggs){
 		tempagglist remaining;
@@ -99,7 +100,7 @@ public:
 		aggs = remaining;
 	}
 
-	bool execute(PCSolver& pcsolver){
+	bool execute(){
 		MiniSatPP::PbSolver* pbsolver = new MiniSatPP::PbSolver();
 		MiniSatPP::opt_verbosity = pcsolver.verbosity()-1; //Gives a bit too much output on 1
 		MiniSatPP::opt_abstract = true; //Should be true

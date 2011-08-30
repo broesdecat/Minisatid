@@ -168,8 +168,11 @@ public:
 	void		resetState		();
 
 	template<typename T>
-	bool 		add(const T& sentence){ return getFactory().add(sentence); }
+	void 		add(const T& sentence){ getFactory().add(sentence); }
 	void		createVar(Var v);
+
+	bool 		isUnsat() const;
+	void		notifyUnsat();
 
 	void		addOptimization(Optim type, Var head);
 	void		addOptimization(Optim type, const litlist& literals);

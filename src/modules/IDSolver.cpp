@@ -103,7 +103,7 @@ void IDSolver::adaptStructsToHead(Var head){
  *
  * If only one body literal, the clause is always made conjunctive (for algorithmic correctness later on), semantics are the same.
  */
-bool IDSolver::addRule(bool conj, Var head, const std::vector<Lit>& ps) {
+void IDSolver::addRule(bool conj, Var head, const std::vector<Lit>& ps) {
 	assert(!isInitialized());
 
 	// LAZY init
@@ -114,13 +114,11 @@ bool IDSolver::addRule(bool conj, Var head, const std::vector<Lit>& ps) {
 		throw idpexception(s);
 	}
 
-	bool notunsat = true;
-
 	if (ps.size() == 0) {
 		Lit h = conj ? mkLit(head) : mkLit(head, true); //empty set conj = true, empty set disj = false
 		InnerDisjunction v;
 		v.literals.push_back(h);
-		notunsat = getPCSolver().add(v);
+		getPCSolver().add(v);
 	} else {
 		//rules with only one body atom have to be treated as conjunctive
 		conj = conj || ps.size() == 1;
@@ -132,11 +130,9 @@ bool IDSolver::addRule(bool conj, Var head, const std::vector<Lit>& ps) {
 		eq.head = mkLit(head);
 		eq.literals = ps;
 		eq.conjunctive = conj;
-		notunsat = getPCSolver().add(eq);
+		getPCSolver().add(eq);
 		assert(isDefined(head));
 	}
-
-	return notunsat;
 }
 
 void IDSolver::addDefinedAggregate(const InnerReifAggregate& inneragg, const InnerWLSet& innerset){

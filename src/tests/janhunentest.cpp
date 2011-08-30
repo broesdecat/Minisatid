@@ -27,6 +27,7 @@ namespace Tests{
 		int newVar() { return start++; }
 		bool add(const InnerDisjunction& d){ disj.push_back(new InnerDisjunction(d)); return true; }
 		bool add(const InnerEquivalence& eq){ eqs.push_back(new InnerEquivalence(eq)); return true; }
+		bool isUnsat() const { return false; }
 	};
 
 

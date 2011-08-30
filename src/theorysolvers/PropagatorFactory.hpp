@@ -45,45 +45,79 @@ typedef Minisat::Solver SATSolver;
 
 typedef int defID;
 
-class PropagatorFactory {
+template<class PropStorage>
+class ManagedFactoryStorage{
+private:
+	PropStorage* storage_;
+
+protected:
+	ManagedFactoryStorage(): storage_(NULL){}
+
+	void addStorage(PCSolver* engine){
+		assert(not hasStorage());
+		storage_ = new PropStorage(engine);
+	}
+	bool hasStorage() const {
+		return storage_!=NULL;
+	}
+	PropStorage* getStorage() const {
+		assert(hasStorage());
+		return storage_;
+	}
+};
+
+template<class PropStorage>
+class FactoryStorage{
+private:
+	PropStorage* storage_;
+
+protected:
+	FactoryStorage(): storage_(NULL){}
+
+	bool hasStorage() const {
+		return storage_!=NULL;
+	}
+	PropStorage* getStorage() const {
+		assert(hasStorage());
+		return storage_;
+	}
+
+	void setStorage(PropStorage* storage){
+		assert(not hasStorage());
+		storage_ = storage;
+	}
+};
+
+typedef FactoryStorage<ModSolver> ModStorage;
+typedef FactoryStorage<SATSolver> SATStorage;
+#ifdef CPSUPPORT
+typedef FactoryStorage<CPSolver> CPStorage;
+#endif
+typedef ManagedFactoryStorage<SymmetryPropagator<PCSolver*>> SymmStorage;
+typedef ManagedFactoryStorage<AggToCNFTransformer> AggStorage;
+
+class PropagatorFactory:
+	public ModStorage,
+	public SATStorage,
+	public SymmStorage,
+	public AggStorage
+#ifdef CPSUPPORT
+	, public CPStorage
+#endif
+	{
 private:
 	PCSolver* engine;
 
 	int dummyvar; // dummy, true head
 	bool parsing; //state
 
-	SATSolver* satsolver;
-	SATSolver* getSolver() const { return satsolver; }
-
 	std::map<defID, IDSolver*> idsolvers;
-
-	ModSolver* modsolver;
-	bool hasModSolver() const { return modsolver!=NULL; }
-	ModSolver* getModSolver() const {return modsolver; }
-
-	SymmetryPropagator<PCSolver*>* symmsolver;
-	void addSymmSolver();
-	bool hasSymmSolver() const;
-	SymmetryPropagator<PCSolver*>* getSymmSolver() const;
-
-	AggToCNFTransformer* aggToCNF;
-	void addAggToCNFTransformer();
-	bool hasAggToCNFTransformer() const;
-	AggToCNFTransformer* getAggToCNFTransformer() const;
-
-#ifdef CPSUPPORT
-	CPSolver* cpsolver;
-	bool hasCPSolver() const { return cpsolver!=NULL; }
-	CPSolver* getCPSolver();
-#else
-	bool hasCPSolver() const { return false; }
-#endif
 
 	std::map<int, IntVar*> intvars;
 
 	// Parsing support
 	int maxset;
-	std::vector<InnerRule*> parsedrules;
+	//std::vector<InnerRule*> parsedrules;
 	typedef std::pair<InnerWLSet*, std::vector<TempAgg*> > SetWithAggs;
 	std::map<int, SetWithAggs> parsedsets;
 	std::vector<InnerAggregate*> parsedaggs;
@@ -103,32 +137,33 @@ public:
 	PCSolver* getEnginep() const { return engine; }
 	const PCSolver& getEngine() const { return *engine; }
 
-	bool add(const Var& sentence);
-	bool add(const InnerDisjunction& sentence);
-	bool add(const InnerEquivalence& sentence);
-	bool add(const InnerRule& sentence);
-	bool add(const InnerSet& sentence);
-	bool add(const InnerWSet& sentence);
-	bool add(const InnerWLSet& sentence);
-	bool add(const InnerAggregate& sentence);
-	bool add(const InnerReifAggregate& sentence);
-	bool add(const InnerMinimizeSubset& sentence);
-	bool add(const InnerMinimizeOrderedList& sentence);
-	bool add(const InnerMinimizeVar& sentence);
-	bool add(const InnerForcedChoices& sentence);
-	bool add(const InnerSymmetryLiterals& sentence);
-	bool add(const InnerSymmetry& sentence);
-	bool add(const InnerIntVarEnum& object);
-	bool add(const InnerIntVarRange& object);
-	bool add(const InnerCPBinaryRel& object);
-	bool add(const InnerCPBinaryRelVar& object);
-	bool add(const InnerCPSumWeighted& object);
-	bool add(const InnerCPCount& object);
-	bool add(const InnerCPAllDiff& object);
-	bool add(const InnerLazyClause& object);
-	bool add(const InnerLazyClauseAddition& object);
+	void add(const Var& sentence);
+	void add(const InnerDisjunction& sentence);
+	void add(const InnerEquivalence& sentence);
+	void add(const InnerRule& sentence);
+	void add(const InnerSet& sentence);
+	void add(const InnerWSet& sentence);
+	void add(const InnerWLSet& sentence);
+	void add(const InnerAggregate& sentence);
+	void add(const InnerReifAggregate& sentence);
+	void add(const InnerMinimizeSubset& sentence);
+	void add(const InnerMinimizeOrderedList& sentence);
+	void add(const InnerMinimizeVar& sentence);
+	void add(const InnerForcedChoices& sentence);
+	void add(const InnerSymmetryLiterals& sentence);
+	void add(const InnerSymmetry& sentence);
+	void add(const InnerIntVarEnum& object);
+	void add(const InnerIntVarRange& object);
+	void add(const InnerCPBinaryRel& object);
+	void add(const InnerCPBinaryRelVar& object);
+	void add(const InnerCPSumWeighted& object);
+	void add(const InnerCPCount& object);
+	void add(const InnerCPAllDiff& object);
+	void add(const InnerLazyClause& object);
+	void add(const InnerLazyClauseAddition& object);
 
-	bool add(InnerDisjunction& disj, rClause& newclause);
+	void add(const std::vector<InnerRule*>& definition);
+	void add(InnerDisjunction& disj, rClause& newclause);
 
 	int newSetID();
 
@@ -140,7 +175,7 @@ public:
 
 private:
 	template<class T>
-	bool addCP			(const T& formula);
+	void addCP			(const T& formula);
 
 	bool isInitialized	() 	const { return !parsing; }
 	bool isParsing		()	const { return parsing; }
@@ -149,7 +184,7 @@ private:
 	void addVars		(const vec<Lit>& a);
 	void addVars		(const std::vector<Lit>& a);
 
-	bool addAggrExpr	(Var headv, int setid, AggSign sign, const Weight& bound, AggType type, AggSem sem);
+	void addAggrExpr	(Var headv, int setid, AggSign sign, const Weight& bound, AggType type, AggSem sem);
 
 	template<typename T>
 	void 		notifyMonitorsOfAdding(const T& obj) const;

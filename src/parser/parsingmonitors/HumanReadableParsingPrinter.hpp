@@ -25,7 +25,7 @@ public:
 
 	void notifyadded(const InnerDisjunction& clause){
 		target() <<"Added clause ";
-		for(int i=0; i<clause.literals.size(); ++i){
+		for(uint i=0; i<clause.literals.size(); ++i){
 			target() <<clause.literals[i];
 			if(i<clause.literals.size()-1){
 				target() <<" | ";
@@ -36,7 +36,7 @@ public:
 
 	void notifyadded(const InnerRule& rule){
 		target() <<"Added rule: " <<getPrintableVar(rule.head) <<" <- ";
-		for(int i=0; i<rule.body.size(); ++i){
+		for(uint i=0; i<rule.body.size(); ++i){
 			target() <<rule.body[i];
 			if(i<rule.body.size()-1){
 				if(rule.conjunctive){
@@ -140,7 +140,7 @@ public:
 
 	void notifyadded(const InnerMinimizeOrderedList& mnm){
 		target() <<"Minimizing ordered list ";
-		for(int i=0; i<mnm.literals.size(); ++i){
+		for(uint i=0; i<mnm.literals.size(); ++i){
 			target() <<mnm.literals[i];
 			if(i<mnm.literals.size()-1){
 				target() <<" < ";
@@ -152,7 +152,7 @@ public:
 
 	void notifyadded(const InnerMinimizeSubset& mnm){
 		target() <<"Searching minimal subset of set { ";
-		for(int i=0; i<mnm.literals.size(); ++i){
+		for(uint i=0; i<mnm.literals.size(); ++i){
 			target() <<mnm.literals[i];
 			if(i<mnm.literals.size()-1){
 				target() <<",";
@@ -188,7 +188,7 @@ public:
 
 	void notifyadded(const InnerForcedChoices& choices){
 		target() <<"Forced choices ";
-		for(int i=0; i<choices.forcedchoices.size(); ++i){
+		for(uint i=0; i<choices.forcedchoices.size(); ++i){
 			target() <<choices.forcedchoices[i];
 			if(i<choices.forcedchoices.size()-1){
 				target() <<" ";
