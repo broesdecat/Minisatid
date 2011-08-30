@@ -43,7 +43,7 @@ public:
 
 	void add(const Lit& lit);
 
-	rClause notifyPropagate();
+	rClause notifypropagate();
 
 	void notifyCertainlyTrue();
 	void notifyCertainlyFalse();

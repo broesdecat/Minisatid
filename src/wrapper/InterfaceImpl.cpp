@@ -459,7 +459,6 @@ bool PCWrapperPimpl::add(const LazyClause& sentence){
 	lc.monitor = sentence.monitor;
 	lc.tseitin = checkLit(sentence.tseitin);
 	lc.first = checkLit(sentence.first);
-	lc.second = checkLit(sentence.second);
 	getSolver()->add(lc);
 	return getSolver()->isUnsat();
 }

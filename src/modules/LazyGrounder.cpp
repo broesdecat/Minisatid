@@ -18,11 +18,9 @@ LazyClausePropagator::LazyClausePropagator(PCSolver* engine, const InnerLazyClau
 		monitor(lz.monitor){
 	monitor->notifyClauseCreated(new LazyClauseRef(this));
 	clause.literals.push_back(lz.first);
-	clause.literals.push_back(lz.second);
 	getPCSolver().accept(this, lz.tseitin, SLOW);
 	getPCSolver().accept(this, not lz.tseitin, SLOW);
 	getPCSolver().accept(this, not lz.first, SLOW); // FIXME dynamic watches and 2-watched scheme
-	getPCSolver().accept(this, not lz.second, SLOW);
 }
 
 LazyClausePropagator::~LazyClausePropagator(){
@@ -49,7 +47,7 @@ void LazyClausePropagator::handleFullyGround(){
 	getPCSolver().add(fullclause);
 }
 
-rClause LazyClausePropagator::notifyPropagate(){
+rClause LazyClausePropagator::notifypropagate(){
 	if(certainlytrue){ // TODO the propagator should be removed then
 		return nullPtrClause;
 	}

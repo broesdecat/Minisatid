@@ -18,10 +18,13 @@ class LazyClauseRef;
 
 class LazyClauseMonitor{
 private:
+	int id;
 	cb::Callback0<bool> requestGroundingCB;
-	cb::Callback1<void, LazyClauseRef*> notifyCreated;
+	cb::Callback2<void, int, LazyClauseRef*> notifyCreated;
 
 public:
+	LazyClauseMonitor(int id): id(id){}
+
 	void setRequestMoreGrounding(cb::Callback0<bool> cb){
 		requestGroundingCB = cb;
 	}
@@ -30,12 +33,12 @@ public:
 		return requestGroundingCB();
 	}
 
-	void setNotifyClauseCreated(cb::Callback1<void, LazyClauseRef*> cb){
+	void setNotifyClauseCreated(cb::Callback2<void, int, LazyClauseRef*> cb){
 		notifyCreated = cb;
 	}
 
 	void notifyClauseCreated(LazyClauseRef* ref){
-		notifyCreated(ref);
+		notifyCreated(id, ref);
 	}
 };
 
@@ -56,11 +59,11 @@ public:
 
 class LazyClause{
 public:
-	Literal tseitin, first, second;
+	Literal tseitin, first;
 	LazyClauseMonitor* monitor;
 
-	LazyClause(Literal tseitin, Literal first, Literal second, LazyClauseMonitor* monitor)
-			:tseitin(tseitin), first(first), second(second), monitor(monitor){}
+	LazyClause(Literal tseitin, Literal first, LazyClauseMonitor* monitor)
+			:tseitin(tseitin), first(first), monitor(monitor){}
 };
 
 class LazyClauseAddition{
