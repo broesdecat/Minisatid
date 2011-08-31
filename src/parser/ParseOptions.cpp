@@ -253,8 +253,8 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 			modes.printcnfgraph, cmd, "Choose whether to generate a .dot graph representation of the ecnf"));
 	options.push_back(new Option<bool, string>	("", "cyclefreeness-check", yesnovals, checkcyclesdesc,
 			modes.checkcyclefreeness, cmd, "Check the correctness of the inductive definition algorithm."));
-	options.push_back(new Option<bool, string>	("r", "remap", 		yesnovals, remapdesc,
-			modes.remap, cmd, "Choose whether to remap literals from the input structure to a contiguous internal representation"));
+//	options.push_back(new Option<bool, string>	("r", "remap", 		yesnovals, remapdesc,
+//			modes.remap, cmd, "Choose whether to remap literals from the input structure to a contiguous internal representation"));
 	options.push_back(new Option<bool, string>	("","bumpagg", 		yesnovals, bumpaggonnotifydesc,
 			modes.bumpaggonnotify, cmd,"Choose whether to bump variable activity on aggregate propagation"));
 	options.push_back(new Option<bool, string>	("","bumpid", 		yesnovals, bumpidonstartdesc,

@@ -64,6 +64,14 @@ Var SmartRemapper::getVar(const Atom& atom){
 	return v;
 }
 
+Var SmartRemapper::getNewVar(){
+	return maxnumber++; // FIXME check invariants on the data structures!
+}
+
+bool SmartRemapper::wasInput(Var var) const{
+	return contiguoustoorigatommapper.find(var)!=contiguoustoorigatommapper.end();
+}
+
 Literal SmartRemapper::getLiteral(const Lit& lit){
 	atommap::const_iterator atom = contiguoustoorigatommapper.find(var(lit));
 	assert(atom!=contiguoustoorigatommapper.end());
@@ -83,11 +91,17 @@ bool SmartRemapper::hasVar(const Atom& atom, Var& mappedvarifexists) const{
 
 // PIMPL of External Interfaces
 
+
+// Create var in the remapper which has original value, but which can be used safely by the solver.
+Var WrapperPimpl::getNewVar(){
+	return getRemapper()->getNewVar();
+}
+
 WrapperPimpl::WrapperPimpl(const SolverOption& modes):
 		optimization(false),
 		state(INIT),
 		_modes(modes),
-		remapper(modes.remap?new SmartRemapper():new Remapper())
+		remapper(/*modes.remap?*/new SmartRemapper()/*:new Remapper()*/)
 		{
 }
 
@@ -111,7 +125,9 @@ void WrapperPimpl::printStatistics() const {
 }
 
 void WrapperPimpl::printLiteral(std::ostream& output, const Lit& l) const{
-	getSolMonitor().printLiteral(output, getRemapper()->getLiteral(l));
+	if(canBackMapLiteral(l)){
+		getSolMonitor().printLiteral(output, getRemapper()->getLiteral(l));
+	}
 }
 
 void WrapperPimpl::printCurrentOptimum(const Weight& value) const{
@@ -457,17 +473,7 @@ template<>
 bool PCWrapperPimpl::add(const LazyClause& sentence){
 	InnerLazyClause lc;
 	lc.monitor = sentence.monitor;
-	lc.tseitin = checkLit(sentence.tseitin);
-	lc.first = checkLit(sentence.first);
-	getSolver()->add(lc);
-	return getSolver()->isUnsat();
-}
-
-template<>
-bool PCWrapperPimpl::add(const LazyClauseAddition& sentence){
-	InnerLazyClauseAddition lc;
-	lc.ref = sentence.ref;
-	lc.addedlit = checkLit(sentence.addedlit);
+	lc.residual = checkLit(sentence.residual);
 	getSolver()->add(lc);
 	return getSolver()->isUnsat();
 }

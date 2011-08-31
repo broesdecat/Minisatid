@@ -173,7 +173,7 @@ void PCSolver::accept(Propagator* propagator) {
 	getEventQueue().accept(propagator);
 }
 
-void PCSolver::accept(Watch* watch){
+void PCSolver::accept(GenWatch* const watch){
 	getEventQueue().accept(watch);
 }
 
@@ -207,9 +207,9 @@ void PCSolver::setModSolver(ModSolver* m) {
 //IMPORTANT: only allowed after parsing!
 Var PCSolver::newVar() {
 	assert(!isParsing());
-	Var newvar = nVars();
-	createVar(newvar);
-	return newvar;
+	Var v = getParent().getNewVar();
+	add(v);
+	return v;
 }
 
 int	PCSolver::newSetID(){
@@ -547,7 +547,7 @@ bool PCSolver::invalidateModel(InnerDisjunction& clause) {
 		add(clause);
 	}
 
-	return isUnsat();
+	return not isUnsat();
 }
 
 // OPTIMIZATION METHODS

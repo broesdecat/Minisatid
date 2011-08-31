@@ -160,7 +160,6 @@ public:
 	void add(const InnerCPCount& object);
 	void add(const InnerCPAllDiff& object);
 	void add(const InnerLazyClause& object);
-	void add(const InnerLazyClauseAddition& object);
 
 	void add(const std::vector<InnerRule*>& definition);
 	void add(InnerDisjunction& disj, rClause& newclause);

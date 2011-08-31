@@ -11,100 +11,25 @@
 using namespace std;
 using namespace MinisatID;
 
-LazyClausePropagator::LazyClausePropagator(PCSolver* engine, const InnerLazyClause& lz):
-		Propagator(engine),
-		certainlytrue(false),
-		head(lz.tseitin),
-		monitor(lz.monitor){
-	monitor->notifyClauseCreated(new LazyClauseRef(this));
-	clause.literals.push_back(lz.first);
-	getPCSolver().accept(this, lz.tseitin, SLOW);
-	getPCSolver().accept(this, not lz.tseitin, SLOW);
-	getPCSolver().accept(this, not lz.first, SLOW); // FIXME dynamic watches and 2-watched scheme
+LazyResidualWatch::LazyResidualWatch(PCSolver* engine, const Lit lit, LazyClauseMonitor* monitor):
+		engine(engine),
+		monitor(monitor), residual(lit){
+	engine->accept(this);
 }
 
-LazyClausePropagator::~LazyClausePropagator(){
-
+void LazyResidualWatch::propagate(){
+	new LazyResidual(this);
 }
 
-void LazyClausePropagator::add(const Lit& lit){
-	clause.literals.push_back(lit);
-	getPCSolver().accept(this, not lit, SLOW);
-
-	InnerDisjunction disj;
-	disj.literals.push_back(not lit);
-	disj.literals.push_back(head);
-	getPCSolver().add(disj);
+const Lit& LazyResidualWatch::getPropLit() const{
+	return residual;
 }
 
-void LazyClausePropagator::handleFullyGround(){
-	InnerDisjunction fullclause;
-	fullclause.literals.push_back(not head);
-	for(auto litit=clause.literals.begin(); litit<clause.literals.end(); ++litit){
-		fullclause.literals.push_back(*litit);
-	}
-
-	getPCSolver().add(fullclause);
+LazyResidual::LazyResidual(LazyResidualWatch* const watch):Propagator(watch->engine), watch(watch){
+	getPCSolver().acceptForPropagation(this);
 }
 
-rClause LazyClausePropagator::notifypropagate(){
-	if(certainlytrue){ // TODO the propagator should be removed then
-		return nullPtrClause;
-	}
-
-	lbool headvalue = value(head);
-
-	if(headvalue==l_False){
-		bool fullyground = false;
-		while(not fullyground){
-			fullyground = monitor->requestMoreGrounding();
-			if(getPCSolver().isUnsat()){
-				return nullPtrClause;
-			}
-		}
-		handleFullyGround();
-		return nullPtrClause;
-	}
-
-	bool allFalse = true;
-	bool oneTrue = false;
-	for(auto litit=clause.literals.begin(); allFalse && litit<clause.literals.end(); ++litit){
-		lbool litvalue = value(*litit);
-		if(litvalue!=l_False){
-			allFalse = false;
-			if(litvalue==l_True){
-				oneTrue = true;
-			}
-		}
-	}
-
-	if(headvalue==l_True){
-		while(allFalse){
-			bool fullyground = monitor->requestMoreGrounding();
-			if(fullyground){
-				handleFullyGround();
-				return nullPtrClause;
-			}
-			if(getPCSolver().isUnsat()){
-				return nullPtrClause;
-			}
-			lbool litvalue = value(clause.literals.back());
-			if(litvalue!=l_False){
-				allFalse = false;
-			}
-		}
-	}else if(headvalue==l_Undef){
-		if(oneTrue){
-			getPCSolver().setTrue(head, this, nullPtrClause);
-		}
-	}
-
+rClause LazyResidual::notifypropagate(){
+	watch->monitor->requestMoreGrounding();
 	return nullPtrClause;
-}
-
-void LazyClausePropagator::notifyCertainlyTrue(){
-	certainlytrue = true;
-}
-void LazyClausePropagator::notifyCertainlyFalse(){
-	getPCSolver().notifyUnsat();
 }

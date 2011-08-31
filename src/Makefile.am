@@ -40,7 +40,6 @@ libminisatid_2_0_la_SOURCES = \
 		wrapper/InterfaceImpl.hpp			wrapper/InterfaceImpl.cpp\
 		wrapper/SolvingMonitor.cpp\
 		wrapper/ResourceManager.cpp\
-		wrapper/LazyClauseSupport.cpp\
 		satsolver/SATSolver.hpp				satsolver/SATSolver.cpp\
 		satsolver/SATUtils.hpp				satsolver/SATUtils.cpp\
 		modules/DPLLTmodule.hpp 			modules/DPLLTmodule.cpp\

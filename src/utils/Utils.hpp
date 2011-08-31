@@ -254,15 +254,16 @@ public:
 class InnerLazyClause{
 public:
 	LazyClauseMonitor* monitor;
-	Lit tseitin, first;
+	Lit residual;
 };
 
-class InnerLazyClauseAddition{
+class GenWatch{
 public:
-	LazyClauseRef* ref;
-	Lit addedlit;
+	virtual ~GenWatch(){}
+	virtual void propagate() = 0;
+	virtual const Lit& getPropLit() const = 0;
+	virtual bool dynamic() const = 0;
 };
 
 }
-
 #endif /* UTILS_H_ */

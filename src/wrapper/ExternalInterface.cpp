@@ -105,7 +105,6 @@ template bool WrappedPCSolver::add(const ForcedChoices& sentence);
 template bool WrappedPCSolver::add(const SymmetryLiterals& sentence);
 template bool WrappedPCSolver::add(const Symmetry& sentence);
 template bool WrappedPCSolver::add(const LazyClause& sentence);
-template bool WrappedPCSolver::add(const LazyClauseAddition& sentence);
 
 template bool WrappedSOSolver::add(int modalid, const Disjunction& sentence);
 template bool WrappedSOSolver::add(int modalid, const DisjunctionRef& sentence);

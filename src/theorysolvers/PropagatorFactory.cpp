@@ -573,11 +573,6 @@ void PropagatorFactory::includeCPModel(std::vector<VariableEqValue>& varassignme
 }
 
 void PropagatorFactory::add(const InnerLazyClause& object){
-	addVar(object.first);
-	addVar(object.tseitin);
-	new LazyClausePropagator(getEnginep(), object);
-}
-void PropagatorFactory::add(const InnerLazyClauseAddition& object){
-	addVar(object.addedlit);
-	object.ref->getClause()->add(object.addedlit);
+	addVar(object.residual);
+	new LazyResidualWatch(getEnginep(), object.residual, object.monitor);
 }

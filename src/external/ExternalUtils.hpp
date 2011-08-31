@@ -57,7 +57,7 @@ namespace MinisatID {
 		double			watchesratio;
 		bool			useaggheur;
 		std::string 	primesfile;
-		bool 			remap;
+		//bool 			remap;
 		double 			rand_var_freq, var_decay;
 		POLARITY 		polarity;
 		bool 			bumpaggonnotify, bumpidonstart;

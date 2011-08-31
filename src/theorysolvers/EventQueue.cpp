@@ -39,7 +39,7 @@ EventQueue::~EventQueue() {
 	for(uint i=0; i<size(EV_EXITCLEANLY); ++i){
 		delete(props[i]);
 	}
-	deleteList<Watch>(lit2watches);
+	deleteList<GenWatch>(lit2watches);
 }
 
 void EventQueue::notifyVarAdded(){
@@ -92,7 +92,7 @@ void EventQueue::accept(Propagator* propagator, const Lit& litevent, PRIORITY pr
 }
 
 // TODO turn lits into litwatches and add accepted flag?
-void EventQueue::accept(Watch* watch){
+void EventQueue::accept(GenWatch* const watch){
 	lit2watches[toInt(watch->getPropLit())].push_back(watch);
 }
 

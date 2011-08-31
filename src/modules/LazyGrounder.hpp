@@ -27,30 +27,36 @@
 namespace MinisatID{
 
 class PCSolver;
+class Watch;
 
-class LazyClausePropagator: public Propagator{
+class LazyResidual;
+
+class LazyResidualWatch: public GenWatch{
 private:
-	bool certainlytrue;
-	Lit head;
-	InnerDisjunction clause;
+	PCSolver* engine;
 	LazyClauseMonitor* monitor;
-
-	void handleFullyGround();
+	Lit residual;
 
 public:
-	LazyClausePropagator(PCSolver* engine, const InnerLazyClause& lz);
-	virtual ~LazyClausePropagator();
+	LazyResidualWatch(PCSolver* engine, const Lit lit, LazyClauseMonitor* monitor);
 
-	void add(const Lit& lit);
+	virtual void propagate();
+	virtual const Lit& getPropLit() const;
+	virtual bool dynamic() const { return true; }
 
-	rClause notifypropagate();
+	friend class LazyResidual;
+};
 
-	void notifyCertainlyTrue();
-	void notifyCertainlyFalse();
+class LazyResidual: public Propagator{
+private:
+	LazyResidualWatch* watch;
 
-	// Propagator methods
-	virtual const char* getName			() const 					{ return "lazyclause"; }
-	virtual int		getNbOfFormulas		() const 					{ return 1; }
+public:
+	LazyResidual(LazyResidualWatch* const watch);
+
+	const char* getName() const { return "lazy residual notifier";}
+
+	virtual rClause notifypropagate();
 };
 }
 

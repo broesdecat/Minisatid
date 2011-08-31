@@ -97,7 +97,7 @@ SolverOption::SolverOption():
 		watchesratio(0.75),
 		useaggheur(false),
 		primesfile(""),
-		remap(true),
+		//remap(true),
 		rand_var_freq(getDefaultRandfreq()),
 		var_decay(getDefaultDecay()),
 		polarity(getDefaultPolarity()),
@@ -153,7 +153,7 @@ void SolverOption::print(std::ostream& so) const{
 	so << "watchedratio: " 		<<watchesratio <<"\n";
 	so << "using aggregate heuristic: " <<(useaggheur?"yes":"no") <<"\n";
 	so << "primesfile: " 		<<getPrimesFile() <<"\n";
-	so << "remap: " 			<<remap <<"\n";
+	//so << "remap: " 			<<remap <<"\n";
 	so << "rand_var_freq: " 	<<rand_var_freq <<"\n";
 	so << "var_decay: " 		<<var_decay <<"\n";
 	so << "polarity: " 			<<polarity <<"\n";

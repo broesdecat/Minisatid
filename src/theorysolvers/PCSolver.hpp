@@ -91,7 +91,7 @@ public:
 #endif
 
 	void		accept(Propagator* propagator);
-	void 		accept(Watch* watch);
+	void 		accept(GenWatch* const watch);
 	void		acceptForBacktrack(Propagator* propagator);
 	void		acceptForPropagation(Propagator* propagator);
 	void 		accept(Propagator* propagator, EVENT event);
