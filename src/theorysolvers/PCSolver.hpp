@@ -159,10 +159,6 @@ public:
 	bool 		propagateSymmetry(const Lit& l);
 	bool		propagateSymmetry2();
 
-	// LAZY SUPPORT
-	LazyClauseRef* createLazyClause(LazyClauseMonitor* monitor);
-	void		addToLazyClause(Lit lit, LazyClauseRef*);
-
 	// MOD SOLVER support
 	void		saveState		();
 	void		resetState		();

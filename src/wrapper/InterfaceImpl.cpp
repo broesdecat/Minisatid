@@ -470,10 +470,11 @@ bool PCWrapperPimpl::add(const Symmetry& sentence){
 }
 
 template<>
-bool PCWrapperPimpl::add(const LazyClause& sentence){
+bool PCWrapperPimpl::add(const LazyGroundLit& sentence){
 	InnerLazyClause lc;
 	lc.monitor = sentence.monitor;
 	lc.residual = checkLit(sentence.residual);
+	lc.watchboth = sentence.watchboth;
 	getSolver()->add(lc);
 	return getSolver()->isUnsat();
 }

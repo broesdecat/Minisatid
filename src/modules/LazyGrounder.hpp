@@ -34,11 +34,11 @@ class LazyResidual;
 class LazyResidualWatch: public GenWatch{
 private:
 	PCSolver* engine;
-	LazyClauseMonitor* monitor;
+	LazyGroundingCommand* monitor;
 	Lit residual;
 
 public:
-	LazyResidualWatch(PCSolver* engine, const Lit lit, LazyClauseMonitor* monitor);
+	LazyResidualWatch(PCSolver* engine, const Lit lit, LazyGroundingCommand* monitor);
 
 	virtual void propagate();
 	virtual const Lit& getPropLit() const;

@@ -16,33 +16,22 @@ namespace MinisatID{
 class LazyClausePropagator;
 class LazyClauseRef;
 
-class LazyClauseMonitor{
-private:
-	int residual;
-	typedef cb::Callback1<void, const int&> callbackgrounding;
-	callbackgrounding requestGroundingCB;
-
+class LazyGroundingCommand{
 public:
-	LazyClauseMonitor(const int& residual):residual(residual){}
-
-	void setRequestMoreGrounding(callbackgrounding cb){
-		requestGroundingCB = cb;
-	}
-
-	void requestMoreGrounding(){
-		requestGroundingCB(residual);
-	}
+	LazyGroundingCommand(){}
+	virtual void requestGrounding() = 0;
 };
 
 // POCO's
 
-class LazyClause{
+class LazyGroundLit{
 public:
+	bool watchboth;
 	Literal residual;
-	LazyClauseMonitor* monitor;
+	LazyGroundingCommand* monitor;
 
-	LazyClause(Literal residual, LazyClauseMonitor* monitor)
-			:residual(residual), monitor(monitor){}
+	LazyGroundLit(bool watchboth, const Literal& residual, LazyGroundingCommand* monitor)
+			:watchboth(watchboth), residual(residual), monitor(monitor){}
 };
 
 }

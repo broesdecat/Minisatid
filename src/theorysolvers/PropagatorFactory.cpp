@@ -574,5 +574,8 @@ void PropagatorFactory::includeCPModel(std::vector<VariableEqValue>& varassignme
 
 void PropagatorFactory::add(const InnerLazyClause& object){
 	addVar(object.residual);
+	if(object.watchboth){
+		new LazyResidualWatch(getEnginep(), ~object.residual, object.monitor);
+	}
 	new LazyResidualWatch(getEnginep(), object.residual, object.monitor);
 }

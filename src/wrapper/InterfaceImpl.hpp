@@ -183,7 +183,7 @@ template<> bool PCWrapperPimpl::add(const CPAllDiff& sentence);
 template<> bool PCWrapperPimpl::add(const ForcedChoices& sentence);
 template<> bool PCWrapperPimpl::add(const SymmetryLiterals& sentence);
 template<> bool PCWrapperPimpl::add(const Symmetry& sentence);
-template<> bool PCWrapperPimpl::add(const LazyClause& sentence);
+template<> bool PCWrapperPimpl::add(const LazyGroundLit& sentence);
 
 class SOWrapperPimpl: public MinisatID::WrapperPimpl{
 private:

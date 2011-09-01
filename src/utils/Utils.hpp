@@ -253,8 +253,9 @@ public:
 
 class InnerLazyClause{
 public:
-	LazyClauseMonitor* monitor;
+	LazyGroundingCommand* monitor;
 	Lit residual;
+	bool watchboth;
 };
 
 class GenWatch{

@@ -11,7 +11,7 @@
 using namespace std;
 using namespace MinisatID;
 
-LazyResidualWatch::LazyResidualWatch(PCSolver* engine, const Lit lit, LazyClauseMonitor* monitor):
+LazyResidualWatch::LazyResidualWatch(PCSolver* engine, const Lit lit, LazyGroundingCommand* monitor):
 		engine(engine),
 		monitor(monitor), residual(lit){
 	engine->accept(this);
@@ -30,6 +30,6 @@ LazyResidual::LazyResidual(LazyResidualWatch* const watch):Propagator(watch->eng
 }
 
 rClause LazyResidual::notifypropagate(){
-	watch->monitor->requestMoreGrounding();
+	watch->monitor->requestGrounding();
 	return nullPtrClause;
 }
