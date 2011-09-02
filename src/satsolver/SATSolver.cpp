@@ -20,6 +20,9 @@ Minisat::Solver* MinisatID::createSolver(MinisatID::PCSolver* pcsolver){
 	s->var_decay = options.var_decay;
 	s->verbosity = options.verbosity;
 	s->random_seed = options.randomseed;
+	if(options.polarity==POL_RAND){
+		s->rnd_pol=true;
+	}
 	return s;
 }
 #else

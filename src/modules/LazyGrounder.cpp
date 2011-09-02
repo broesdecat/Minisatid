@@ -30,6 +30,7 @@ LazyResidual::LazyResidual(LazyResidualWatch* const watch):Propagator(watch->eng
 }
 
 rClause LazyResidual::notifypropagate(){
-	watch->monitor->requestGrounding();
+	watch->monitor->requestGrounding(); // FIXME should delete the other watch too
+	notifyNotPresent(); // FIXME clean way of deleting this?
 	return nullPtrClause;
 }

@@ -13,6 +13,7 @@
 #include <map>
 #include <exception>
 #include <fstream>
+#include <cstdio>
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
 	#include <memory>

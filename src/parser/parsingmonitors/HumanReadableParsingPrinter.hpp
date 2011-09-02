@@ -35,7 +35,7 @@ public:
 	}
 
 	void notifyadded(const InnerRule& rule){
-		target() <<"Added rule: " <<getPrintableVar(rule.head) <<" <- ";
+		target() <<"Added rule " <<getPrintableVar(rule.head) <<" <- ";
 		for(uint i=0; i<rule.body.size(); ++i){
 			target() <<rule.body[i];
 			if(i<rule.body.size()-1){
@@ -46,7 +46,7 @@ public:
 				}
 			}
 		}
-		target() <<"\n";
+		target() <<" to definition " <<rule.definitionID <<"\n";
 	}
 
 	void notifyadded(const InnerSet& set){

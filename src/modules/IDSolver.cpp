@@ -28,7 +28,7 @@ IDSolver::IDSolver(PCSolver* s, int definitionID):
 		//minvar(-1), maxvar(-1), nbvars(0),
 		minvar(0), nbvars(0),
 		sem(getPCSolver().modes().defsem),
-		posrecagg(true), mixedrecagg(true),
+		posrecagg(false), mixedrecagg(false),
 		posloops(true), negloops(true),
 		backtracked(true),
 		adaption_total(0), adaption_current(0),
@@ -104,7 +104,13 @@ void IDSolver::adaptStructsToHead(Var head){
  * If only one body literal, the clause is always made conjunctive (for algorithmic correctness later on), semantics are the same.
  */
 void IDSolver::addRule(bool conj, Var head, const std::vector<Lit>& ps) {
-	assert(!isInitialized());
+	// FIXME, when finishparsing return present=false, the IDSolver should be deleted. Currenlty it still exists and addrule can still be called
+	// (and isinitialized is still false because finishparsing was aborted)
+
+	//assert(!isInitialized());	 FIXME hack for lazy grounding
+	if(getPCSolver().isInitialized() && getPCSolver().getCurrentDecisionLevel()!=0){
+		getPCSolver().backtrackTo(0);
+	}
 
 	// LAZY init
 	adaptStructsToHead(head);
@@ -133,6 +139,13 @@ void IDSolver::addRule(bool conj, Var head, const std::vector<Lit>& ps) {
 		getPCSolver().add(eq);
 		assert(isDefined(head));
 	}
+
+	//FIXME hack for lazy grounding
+	if(getPCSolver().isInitialized()){
+		bool present = false;
+		bool unsat = false;
+		finishParsing(present, unsat);
+	}
 }
 
 void IDSolver::addDefinedAggregate(const InnerReifAggregate& inneragg, const InnerWLSet& innerset){
@@ -158,17 +171,18 @@ void IDSolver::addDefinedAggregate(const InnerReifAggregate& inneragg, const Inn
  * @PRE: aggregates have to have been finished
  */
 void IDSolver::finishParsing(bool& present, bool& unsat) {
-	assert(isParsing());
-	notifyParsed();
+// FIXME	assert(isParsing());
+//	notifyParsed();
 	present = true;
 	unsat = false;
 
 	if(modes().defsem==DEF_COMP || defdVars.size()==0){
-		present = false;
+//		present = false; FIXME hack for lazy grounding
 		return;
 	}
 
 	//LAZY initialization
+	posloops = true; negloops = true; mixedrecagg = false; posrecagg = false;
 	_seen = new InterMediateDataStruct(nbvars, minvar);
 	_disj_occurs.resize(nVars()*2, vector<Var>());
 	_conj_occurs.resize(nVars()*2, vector<Var>());
@@ -200,7 +214,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	std::vector<Var> nodeinmixed;
 	int counter = 1;
 
-	for (vector<Var>::const_iterator i = defdVars.begin(); i < defdVars.end(); ++i) {
+	for (auto i = defdVars.begin(); i < defdVars.end(); ++i) {
 		if (visited[(*i)] == 0) {
 			visitFull((*i), incomp, stack, visited, counter, true, sccroots, mixedroots, nodeinmixed);
 		}
@@ -271,7 +285,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 			addtonetwork = true;
 		} else { //can never be in posloop
 			if (occ(v) == NONDEFOCC) { //will not occur in a loop
-				removeDefinition(v);
+				//FIXME lazy grounding removeDefinition(v);
 			} else if (occ(v) == MIXEDLOOP) { //might occur in a mixed loop
 				addtonetwork = true;
 			}
@@ -323,8 +337,8 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 			}
 		}
 	}
-	defdVars.clear();
-	defdVars.insert(defdVars.begin(), reducedVars.begin(), reducedVars.end());
+//	defdVars.clear(); // lazy grounding hack
+//	defdVars.insert(defdVars.begin(), reducedVars.begin(), reducedVars.end());
 
 	if (atoms_in_pos_loops == 0) {
 		posloops = false;
@@ -345,13 +359,12 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	}
 
 	if (!posloops && !negloops) {
-		present = false;
-		return;
+//		present = false; FIXME hack for lazy grounding
 	}
 
 	//This heuristic on its own solves hamiltonian path for slow decay
 	if(modes().bumpidonstart){
-		for (vector<Var>::const_iterator i = defdVars.begin(); i < defdVars.end(); ++i) {
+		for (auto i = defdVars.begin(); i < defdVars.end(); ++i) {
 			const Var& v = *i;
 			if(isDefined(v) && type(v)==DISJ){
 				const PropRule& r = *definition(v);
@@ -390,11 +403,11 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 			unsat = not toCNF::transformSCCtoCNF(getPCSolver(), rules);
 			deleteList<toCNF::Rule>(rules);
 		}
-		present = false;
+		//		present = false; FIXME hack for lazy grounding
 		// TODO should still allow wellfoundedness checks here!
 	}
 
-	notifyInitialized();
+//	notifyInitialized(); FIXME lazy grounding hack
 }
 
 /**
@@ -637,7 +650,7 @@ bool IDSolver::simplifyGraph(){
 			}
 
 			if (occ(v) == POSLOOP) {
-				removeDefinition(v);
+				//FIXME lazy grounding removeDefinition(v);
 				--atoms_in_pos_loops;
 			} else {
 				occ(v) = MIXEDLOOP;
@@ -726,7 +739,7 @@ bool IDSolver::simplifyGraph(){
 	for (auto i = defdVars.begin(); i < defdVars.end(); ++i) {
 		Var var = *i;
 		assert(hasDefVar(var));
-		assert(justification(var).size()>0 || type(var)!=DISJ || occ(var)==MIXEDLOOP);
+		//assert(justification(var).size()>0 || type(var)!=DISJ || occ(var)==MIXEDLOOP); FIXME lazy grounding hack (because invar that def gets deleted)
 
 		if(verbosity()>=9){
 			clog <<getPrintableVar(var) <<"<-";
@@ -855,7 +868,10 @@ void IDSolver::propagateJustificationAggr(const Lit& l, std::vector<std::vector<
  * the state has to be stable for both aggregate and unit propagations
  */
 rClause IDSolver::notifypropagate() {
-	if (!isInitialized() || !indirectPropagateNow()) {
+	if (/*!isInitialized() || */ !indirectPropagateNow()) { // FIXME lazy grounding hack
+		return nullPtrClause;
+	}
+	if(!getPCSolver().isInitialized()){ // FIXME lazy grounding hack
 		return nullPtrClause;
 	}
 /*

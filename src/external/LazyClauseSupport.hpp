@@ -17,9 +17,14 @@ class LazyClausePropagator;
 class LazyClauseRef;
 
 class LazyGroundingCommand{
+private:
+	bool allreadyground;
 public:
-	LazyGroundingCommand(){}
-	virtual void requestGrounding() = 0;
+	LazyGroundingCommand():allreadyground(false){}
+	virtual void requestGrounding(){
+		allreadyground = true;
+	}
+	bool alreadyGround() const { return allreadyground; }
 };
 
 // POCO's

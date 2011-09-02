@@ -181,10 +181,11 @@ public:
 	void		printClause		(rClause clause) const;
 	void 		printCurrentOptimum(const Weight& value) const;
 
+	bool		isInitialized	() 	const { return state==THEORY_INITIALIZED; }
+
 private:
 	int 		getNbModelsFound() const;
 
-	bool		isInitialized	() 	const { return state==THEORY_INITIALIZED; }
 	bool		isInitializing	() 	const { return state==THEORY_INITIALIZING; }
 	bool		isParsing		()	const { return state==THEORY_PARSING; }
 
