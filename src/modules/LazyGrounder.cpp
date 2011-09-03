@@ -30,6 +30,11 @@ LazyResidual::LazyResidual(LazyResidualWatch* const watch):Propagator(watch->eng
 }
 
 rClause LazyResidual::notifypropagate(){
+	if(getPCSolver().getCurrentDecisionLevel()>0){
+		getPCSolver().backtrackTo(0); // FIXME extremely inefficient: should rather make sure that all the add methods
+		//(e.g. clauses in the sat solver, backtrack to the appropriate level if necessary
+		//      (where the constraint is not unsatisfied)).
+	}
 	watch->monitor->requestGrounding(); // FIXME should delete the other watch too
 	notifyNotPresent(); // FIXME clean way of deleting this?
 	return nullPtrClause;
