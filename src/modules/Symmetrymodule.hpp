@@ -205,7 +205,7 @@ private:
 
     bool addSymmetricClause(const std::vector<Lit>& clause, const std::map<Var, Var>& symmetry){
 		InnerDisjunction newclause;
-		std::vector<Lit>& lits = newclause.literals;
+		litlist& lits = newclause.literals;
 		bool allfalse = true;
 		int level = 0;
 		for (vsize i = 0; i < clause.size(); ++i) {

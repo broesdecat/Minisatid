@@ -91,7 +91,7 @@ public:
 #endif
 
 	void		accept(Propagator* propagator);
-	void 		accept(Watch* watch);
+	void 		accept(GenWatch* const watch);
 	void		acceptForBacktrack(Propagator* propagator);
 	void		acceptForPropagation(Propagator* propagator);
 	void 		accept(Propagator* propagator, EVENT event);
@@ -106,7 +106,8 @@ public:
 
 	void 		finishParsing(bool& unsat);
 
-	int			getTime(const Lit& lit);
+	int			getTime(const Var& var) const;
+	int			getTime(const Lit& lit) const;
 
 	// Solving support
 	void 		newDecisionLevel();
@@ -163,8 +164,11 @@ public:
 	void		resetState		();
 
 	template<typename T>
-	bool 		add(const T& sentence){ return getFactory().add(sentence); }
+	void 		add(const T& sentence){ getFactory().add(sentence); }
 	void		createVar(Var v);
+
+	bool 		isUnsat() const;
+	void		notifyUnsat();
 
 	void		addOptimization(Optim type, Var head);
 	void		addOptimization(Optim type, const litlist& literals);
@@ -179,10 +183,11 @@ public:
 	void		printClause		(rClause clause) const;
 	void 		printCurrentOptimum(const Weight& value) const;
 
+	bool		isInitialized	() 	const { return state==THEORY_INITIALIZED; }
+
 private:
 	int 		getNbModelsFound() const;
 
-	bool		isInitialized	() 	const { return state==THEORY_INITIALIZED; }
 	bool		isInitializing	() 	const { return state==THEORY_INITIALIZING; }
 	bool		isParsing		()	const { return state==THEORY_PARSING; }
 

@@ -27,24 +27,36 @@
 namespace MinisatID{
 
 class PCSolver;
+class Watch;
 
-struct LazyGroundedClause{
-	InnerDisjunction clause;
-	int indexofnext;
+class LazyResidual;
 
-	LazyGroundedClause(const InnerDisjunction& clause): clause(clause), indexofnext(0){	}
+class LazyResidualWatch: public GenWatch{
+private:
+	PCSolver* engine;
+	LazyGroundingCommand* monitor;
+	Lit residual;
+
+public:
+	LazyResidualWatch(PCSolver* engine, const Lit lit, LazyGroundingCommand* monitor);
+
+	virtual void propagate();
+	virtual const Lit& getPropLit() const;
+	virtual bool dynamic() const { return true; }
+
+	friend class LazyResidual;
 };
 
-class LazyGrounder{
+class LazyResidual: public Propagator{
 private:
-	std::vector<LazyGroundedClause*> clauses;
+	LazyResidualWatch* watch;
+
 public:
-	LazyGrounder();
-	virtual ~LazyGrounder();
+	LazyResidual(LazyResidualWatch* const watch);
 
-	void addClause(const InnerDisjunction& clause);
+	const char* getName() const { return "lazy residual notifier";}
 
-	bool expand(int clauseID, litlist& currentclause);
+	virtual rClause notifypropagate();
 };
 }
 

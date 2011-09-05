@@ -51,7 +51,7 @@ public:
 };
 
 
-class Watch{
+class Watch: public GenWatch{
 private:
 	TypedSet* 		set_;
 	bool 			head_, origlit_, dynamic_;

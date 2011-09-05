@@ -155,13 +155,13 @@ rClause CPSolver::getExplanation(const Lit& p){
 
 	assert(propreason[p]!=-1);
 
-	vec<Lit> lits;
-	lits.push(p);
+	InnerDisjunction clause;
+	clause.literals.push_back(p);
 	for(vector<Lit>::size_type i=0; i<propreason[p]; i++){
 		// FIXME skip all those not propagated into the cp solver
-		lits.push(~trail.getTrail()[i]);
+		clause.literals.push_back(~trail.getTrail()[i]);
 	}
-	return getPCSolver().createClause(lits, true);
+	return getPCSolver().createClause(clause, true);
 }
 
 rClause CPSolver::notifySATsolverOfPropagation(const Lit& p) {
@@ -340,10 +340,10 @@ rClause CPSolver::genFullConflictClause(){
 	reportf("Conflicting literal: "); gprintLit(*nonassigned); reportf("\n");*/
 	// END
 
-	vec<Lit> clause;
+	InnerDisjunction clause;
 	for(vector<Lit>::const_reverse_iterator i=trail.getTrail().rbegin(); i<trail.getTrail().rend(); i++){
 		//FIXME skip all literals that were propagated BY the CP solver
-		clause.push(~(*i));
+		clause.literals.push_back(~(*i));
 	}
 	rClause c = getPCSolver().createClause(clause, true);
 	getPCSolver().addLearnedClause(c);

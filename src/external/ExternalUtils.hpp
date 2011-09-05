@@ -14,6 +14,7 @@
 #include "external/Idpexception.hpp"
 #include "external/Weight.hpp"
 #include "external/Datastructures.hpp"
+#include "external/LazyClauseSupport.hpp"
 
 typedef unsigned int uint;
 
@@ -58,7 +59,7 @@ namespace MinisatID {
 		double			watchesratio;
 		bool			useaggheur;
 		std::string 	primesfile;
-		bool 			remap;
+		//bool 			remap;
 		double 			rand_var_freq, var_decay;
 		POLARITY 		polarity;
 		bool 			bumpaggonnotify, bumpidonstart;
@@ -66,7 +67,7 @@ namespace MinisatID {
 		long 			ufsvarintrothreshold;
 		bool			tseitindecisions;
 		bool			subsetminimizeexplanation, currentlevelfirstinexplanation, innogoodfirstinexplanation;
-
+		bool			lazy;
 
 		SolverOption();
 

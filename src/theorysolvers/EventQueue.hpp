@@ -23,7 +23,7 @@ class IntVar;
 class InnerModel;
 
 typedef std::vector<Propagator*> proplist;
-typedef std::vector<Watch*> watchlist;
+typedef std::vector<GenWatch*> watchlist;
 
 // FIXME using iterators while the container can be changed is NOT allowed!
 
@@ -79,7 +79,7 @@ public:
 		intvarid2propagators[(vsize)var->id()].push_back(propagator);
 	}
 	void 	accept(Propagator* propagator, const Lit& litevent, PRIORITY priority);
-	void 	accept(Watch* watch);
+	void 	accept(GenWatch* const watch);
 
 	void 	addEternalPropagators();
 

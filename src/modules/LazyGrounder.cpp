@@ -11,70 +11,31 @@
 using namespace std;
 using namespace MinisatID;
 
-LazyGrounder::LazyGrounder(){
+LazyResidualWatch::LazyResidualWatch(PCSolver* engine, const Lit lit, LazyGroundingCommand* monitor):
+		engine(engine),
+		monitor(monitor), residual(lit){
+	engine->accept(this);
 }
 
-LazyGrounder::~LazyGrounder() {
-	deleteList<LazyGroundedClause>(clauses);
+void LazyResidualWatch::propagate(){
+	new LazyResidual(this);
 }
 
-void LazyGrounder::addClause(const InnerDisjunction& clause){
-	clauses.push_back(new LazyGroundedClause(clause));
+const Lit& LazyResidualWatch::getPropLit() const{
+	return residual;
 }
 
-bool LazyGrounder::expand(int clauseID, litlist& currentclause){
-	LazyGroundedClause lz = *clauses[clauseID];
-	if(lz.clause.literals.size()<=lz.indexofnext){
-		return false;
+LazyResidual::LazyResidual(LazyResidualWatch* const watch):Propagator(watch->engine), watch(watch){
+	getPCSolver().acceptForPropagation(this);
+}
+
+rClause LazyResidual::notifypropagate(){
+	if(getPCSolver().getCurrentDecisionLevel()>0){
+		getPCSolver().backtrackTo(0); // FIXME extremely inefficient: should rather make sure that all the add methods
+		//(e.g. clauses in the sat solver, backtrack to the appropriate level if necessary
+		//      (where the constraint is not unsatisfied)).
 	}
-	currentclause.push_back(lz.clause.literals[lz.indexofnext++]);
-	return true;
+	watch->monitor->requestGrounding(); // FIXME should delete the other watch too
+	notifyNotPresent(); // FIXME clean way of deleting this?
+	return nullPtrClause;
 }
-/*
-bool LazyGrounder::setClause(const InnerDisjunction& clause){
-	this->clause = clause;
-
-	bool found = false;
-	while(!found && indexinfullclause<clause.literals.size()){
-		indexinfullclause++;
-		if(!isFalse(clause.literals[indexinfullclause])){
-			found = true;
-			getPCSolver().acceptLitEvent(this, ~clause.literals[indexinfullclause], SLOW);
-		}
-	}
-	if(!found){
-		return false;
-	}
-	return true;
-}
-
-rClause	LazyGrounder::notifypropagate(){
-	rClause confl = nullPtrClause;
-	while(confl==nullPtrClause && hasNextProp()){
-		const Lit& lit = getNextProp();
-		int index = 0;
-		bool found = false;
-		while(!found && index<clause.literals.size()){
-			if(indexinfullclause<index){
-				indexinfullclause++;
-			}
-			if(!isFalse(clause.literals[index])){
-				found = true;
-				getPCSolver().acceptLitEvent(this, ~clause.literals[index], SLOW);
-			}
-			index++;
-		}
-		if(!found){
-			//have seen full clause (finally), so conflict: return a clause and add a watch again
-			//TODO should add the clause as a permanent one and refrain from adding the clause to the watches again
-			getPCSolver().acceptLitEvent(this, ~lit, SLOW);
-			confl = getPCSolver().createClause(clause.literals, true);
-			getPCSolver().addLearnedClause(confl);
-		}
-	}
-	return confl;
-}
-
-void LazyGrounder::printStatistics() const {
-	clog <<"Lazy grounded: " <<(indexinfullclause+1) <<" of " <<clause.literals.size() <<" literals.\n";
-}*/

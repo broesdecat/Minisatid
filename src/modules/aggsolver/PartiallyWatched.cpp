@@ -12,9 +12,10 @@
 #include "modules/aggsolver/AggSet.hpp"
 #include "theorysolvers/PCSolver.hpp"
 
-#include <stdint.h>
-#include <inttypes.h>
-#include <limits.h>
+#include <cstdint>
+#include <cinttypes>
+#include <climits>
+#include <set>
 
 using namespace std;
 using namespace MinisatID;
@@ -79,17 +80,17 @@ void GenPWAgg::addWatchToNetwork(GenPWatch* watch){
 }
 
 void GenPWAgg::resetStagedWatches(int startindex){
-	//genwatchlist::const_iterator i = getStagedWatches().begin()+startindex;
-	/*for(; i<getStagedWatches().end(); ++i){
-		moveFromWSToNWS(*i);
-	}*/
 	getStagedWatches().erase(getStagedWatches().begin()+startindex, getStagedWatches().end());
 }
 
 void GenPWAgg::addStagedWatchesToNetwork(){
 	for(genwatchlist::const_iterator i=getStagedWatches().begin(); i<getStagedWatches().end(); ++i){
-		moveFromNWSToWS(*i);
-		addWatchToNetwork(*i);
+		if(not (*i)->isInWS()){
+			moveFromNWSToWS(*i);
+		}
+		if(not (*i)->isInNetwork()){
+			addWatchToNetwork(*i);
+		}
 	}
 	getStagedWatches().clear();
 }
@@ -211,20 +212,18 @@ void GenPWAgg::checkInitiallyKnownAggs(bool& unsat, bool& sat){
 	minmaxBounds pessbounds = calculatePessimisticBounds();
 
 	rClause confl = nullPtrClause;
-	agglist rem, del;
-	for(agglist::const_iterator i=getAgg().begin(); confl==nullPtrClause && i<getAgg().end(); ++i){
+	std::set<Agg*> del;
+	for(auto i=getAgg().begin(); confl==nullPtrClause && i<getAgg().end(); ++i){
 		if(value((*i)->getHead())==l_True){ //Head always true
-			del.push_back(*i);
+			del.insert(*i);
 		}else if(isSatisfied(**i, pessbounds)){ // Agg always true
-			del.push_back(*i);
+			del.insert(*i);
 		}else if(isFalsified(**i, pessbounds)){ // Agg always false
 			confl = getSet().notifySolver(new HeadReason(**i, (*i)->getHead()));
-			del.push_back(*i);
-		}else{
-			rem.push_back(*i);
+			del.insert(*i);
 		}
 	}
-	getSet().replaceAgg(rem, del);
+	getSet().removeAggs(del);
 	if(confl!=nullPtrClause){
 		unsat = true;
 	}else if(getAgg().size()==0){
@@ -291,14 +290,14 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
  */
 rClause GenPWAgg::reconstructSet(GenPWatch* watch, bool& propagations, Agg const * propagg){
 #ifdef DEBUG
-	for(vwl::const_iterator i=getSet().getWL().begin(); i<getSet().getWL().end(); ++i){
+	for(auto i=getSet().getWL().begin(); i<getSet().getWL().end(); ++i){
 		bool found = false;
-		for(genwatchlist::const_iterator j=getNWS().begin(); j<getNWS().end(); ++j){
+		for(auto j=getNWS().begin(); j<getNWS().end(); ++j){
 			if(var(i->getLit())==var((*j)->getWL().getLit())){
 				found = true;
 			}
 		}
-		for(genwatchlist::const_iterator j=getWS().begin(); j<getWS().end(); ++j){
+		for(auto j=getWS().begin(); j<getWS().end(); ++j){
 			if(var(i->getLit())==var((*j)->getWL().getLit())){
 				found = true;
 			}
@@ -312,8 +311,7 @@ rClause GenPWAgg::reconstructSet(GenPWatch* watch, bool& propagations, Agg const
 
 	//possible HACK: watch all at all times
 	/*for(int i=0 ;i<getNWS().size(); ++i){
-		addToWatchedSet(i);
-		i--;
+		stageWatch(getNWS()[i]);
 	}*/
 
 	//possible HACK: always keep watch
@@ -399,8 +397,6 @@ void GenPWAgg::genWatches(vsize& i, const Agg& agg, minmaxOptimAndPessBounds& bo
 		}
 
 		if((watch->isMonotone() && val!=l_False) || (!watch->isMonotone() && val!=l_True)){
-			//moveFromNWSToWS(watch);
-			//i--;
 			stageWatch(watch);
 
 			if(largest==NULL || largest->getWL().getWeight() < wl.getWeight()){
@@ -444,7 +440,7 @@ rClause GenPWAgg::propagateAtEndOfQueue(Watch* watch) {
 	if(!propagations && confl==nullPtrClause){ //It can be safely removed as a watch
 		moveFromWSToNWS(pw);
 	}else{ //Otherwise, add it again to the network
-		addWatchToNetwork(pw);
+		stageWatch(pw);
 	}
 
 	if(confl!=nullPtrClause){
@@ -467,13 +463,12 @@ rClause GenPWAgg::propagateAtEndOfQueue(const Agg& agg) {
 // NOOP because all propagation is done in propagate
 rClause	GenPWAgg::propagateAtEndOfQueue(){
 	rClause confl = nullPtrClause;
-	int i = 0;
-	while(confl == nullPtrClause && trail.size()>0){
+	for(vsize i=0; confl == nullPtrClause && i<trail.size(); ++i){
 		auto watch = trail[i];
 		if(watch->headWatch()){
-			propagateAtEndOfQueue(*getAgg()[watch->getAggIndex()]);
+			confl = propagateAtEndOfQueue(*getAgg()[watch->getAggIndex()]);
 		}else{
-			propagateAtEndOfQueue(watch);
+			confl = propagateAtEndOfQueue(watch);
 		}
 	}
 	trail.clear();
@@ -516,12 +511,11 @@ void GenPWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 	}
 
 	std::vector<wlt> wlis;
-	// FIXME getlevel approximation of gettime might be incorrect!
 	for(auto i=getWS().begin(); i<getWS().end(); ++i){
 		if(var((*i)->getWatchLit())!=var(proplit)){
 			const Lit& lit = (*i)->getWL().getLit();
 			if(value((*i)->getWatchLit())==l_True){
-				wlt wli((*i)->getWL(), getSet().getPCSolver().getLevel(var(lit)), (*i)->getWatchLit()==lit);
+				wlt wli((*i)->getWL(), getSet().getPCSolver().getTime(var(lit)), (*i)->getWatchLit()==lit);
 				wlis.push_back(wli);
 			}
 		}
@@ -530,7 +524,7 @@ void GenPWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 		if(var((*i)->getWatchLit())!=var(proplit)){
 			const Lit& lit = (*i)->getWL().getLit();
 			if(value((*i)->getWatchLit())==l_True){
-				wlt wli((*i)->getWL(), getSet().getPCSolver().getLevel(var(lit)), (*i)->getWatchLit()==lit);
+				wlt wli((*i)->getWL(), getSet().getPCSolver().getTime(var(lit)), (*i)->getWatchLit()==lit);
 				wlis.push_back(wli);
 			}
 		}
@@ -590,10 +584,10 @@ public:
 	const WL& 	getWL		() 	const 	{ return _wl; }
 };
 
-double MinisatID::testGenWatchCount(const PCSolver& solver, const InnerWLSet& set, const AggProp& type, const std::vector<Agg*> aggs) {
+double MinisatID::testGenWatchCount(const PCSolver& solver, const InnerWLSet& set, const AggProp& type, const std::vector<TempAgg*> aggs, const Weight& knownbound) {
 	int totallits = set.wls.size(), totalwatches = 0;
 	std::vector<TempWatch*> nws;
-	Agg const * worstagg;
+	TempAgg const * worstagg;
 
 	//Calculate min and max values over empty interpretation
 	//Create sets and watches, initialize min/max values
@@ -601,22 +595,22 @@ double MinisatID::testGenWatchCount(const PCSolver& solver, const InnerWLSet& se
 	const vwl& wls = set.getWL();
 	for(vsize i=0; i<wls.size(); ++i){
 		const WL& wl = wls[i];
-		bool mono = type.isMonotone(**aggs.begin(), wl.getWeight());
+		bool mono = type.isMonotone(**aggs.begin(), wl.getWeight(), knownbound);
 		nws.push_back(new TempWatch(wl, mono));
 	}
 
 	//Calculate reference aggregate (the one which will lead to the most watches
 	worstagg = *aggs.begin();
-	for(agglist::const_iterator i=aggs.begin(); i<aggs.end(); ++i){
-		if((*i)->hasLB() && worstagg->getCertainBound()<(*i)->getCertainBound()){
+	for(auto i=aggs.begin(); i<aggs.end(); ++i){
+		if((*i)->hasLB() && worstagg->getBound()<(*i)->getBound()){
 			worstagg = *i;
-		}else if((*i)->hasUB() && worstagg->getCertainBound()>(*i)->getCertainBound()){
+		}else if((*i)->hasUB() && worstagg->getBound()>(*i)->getBound()){
 			worstagg = *i;
 		}
 	}
 
 	bool oneagg = aggs.size()==1;
-	const Agg& agg = *worstagg;
+	const TempAgg& agg = *worstagg;
 
 	if(oneagg && solver.value(agg.getHead())==l_True){
 		return 0;
@@ -625,7 +619,7 @@ double MinisatID::testGenWatchCount(const PCSolver& solver, const InnerWLSet& se
 	minmaxOptimAndPessBounds bounds(emptyinterpretbounds);
 	TempWatch* largest = NULL;
 	vsize i = 0;
-	for(;!isSatisfied(agg, bounds.optim) && !isSatisfied(agg, bounds.pess) && i<nws.size(); ++i){
+	for(;!isSatisfied(agg, bounds.optim, knownbound) && !isSatisfied(agg, bounds.pess, knownbound) && i<nws.size(); ++i){
 		WL wl = nws[i]->getWL();
 		lbool val = solver.value(wl.getLit());
 
@@ -645,11 +639,11 @@ double MinisatID::testGenWatchCount(const PCSolver& solver, const InnerWLSet& se
 
 	//if head was unknown before method start, at most head can have been propagated
 	//so do not have to find second supporting ws
-	if((!oneagg || solver.value(agg.getHead())!=l_Undef) && (largest!=NULL && !isSatisfied(agg, bounds.pess))){
+	if((!oneagg || solver.value(agg.getHead())!=l_Undef) && (largest!=NULL && !isSatisfied(agg, bounds.pess, knownbound))){
 		removeValue(type, largest->getWL().getWeight(), largest->isMonotone(), bounds.optim);
 
 		//Again until satisfied IMPORTANT: continue from previous index!
-		for(; !isSatisfied(agg, bounds.optim) && !isSatisfied(agg, bounds.pess) && i<nws.size(); ++i){
+		for(; !isSatisfied(agg, bounds.optim, knownbound) && !isSatisfied(agg, bounds.pess, knownbound) && i<nws.size(); ++i){
 			WL wl = nws[i]->getWL();
 			lbool val = solver.value(wl.getLit());
 

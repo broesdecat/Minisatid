@@ -98,7 +98,7 @@ SolverOption::SolverOption():
 		watchesratio(0.75),
 		useaggheur(false),
 		primesfile(""),
-		remap(true),
+		//remap(true),
 		rand_var_freq(getDefaultRandfreq()),
 		var_decay(getDefaultDecay()),
 		polarity(getDefaultPolarity()),
@@ -110,7 +110,8 @@ SolverOption::SolverOption():
 		tseitindecisions(true),
 		subsetminimizeexplanation(false),
 		currentlevelfirstinexplanation(true),
-		innogoodfirstinexplanation(true){
+		innogoodfirstinexplanation(true),
+		lazy(false){
 	stringstream str;
 	str <<DATADIR <<"/P1.TXT";
 	primesfile = str.str();
@@ -154,7 +155,7 @@ void SolverOption::print(std::ostream& so) const{
 	so << "watchedratio: " 		<<watchesratio <<"\n";
 	so << "using aggregate heuristic: " <<(useaggheur?"yes":"no") <<"\n";
 	so << "primesfile: " 		<<getPrimesFile() <<"\n";
-	so << "remap: " 			<<remap <<"\n";
+	//so << "remap: " 			<<remap <<"\n";
 	so << "rand_var_freq: " 	<<rand_var_freq <<"\n";
 	so << "var_decay: " 		<<var_decay <<"\n";
 	so << "polarity: " 			<<polarity <<"\n";
@@ -164,4 +165,5 @@ void SolverOption::print(std::ostream& so) const{
 	so << "asapaggprop: " 		<<asapaggprop <<"\n";
 	so << "ufsvarintrothreshold: " <<ufsvarintrothreshold <<"\n";
 	so << "tseitindecisions: " 	<<tseitindecisions <<"\n";
+	so << "lazy: " 				<<(lazy?"yes":"no") <<"\n";
 }

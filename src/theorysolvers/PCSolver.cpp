@@ -48,6 +48,10 @@ PCSolver::PCSolver(SolverOption modes, MinisatID::WrapperPimpl& inter, int ID) :
 #endif
 
 	factory = new PropagatorFactory(modes, this);
+
+	if(verbosity()>1){
+		modes.print(clog);
+	}
 }
 
 PCSolver::~PCSolver() {
@@ -119,13 +123,13 @@ void PCSolver::backtrackTo(int level) {
 
 void PCSolver::setTrue(const Lit& p, Propagator* module, rClause c) {
 	assert(value(p)!=l_False && value(p)!=l_True);
-	trail->notifyPropagate(p);
 	propagations[var(p)] = module;
 	getSolver().uncheckedEnqueue(p, c);
 }
 
 void PCSolver::notifySetTrue(const Lit& p) {
 	getEventQueue().setTrue(p);
+	trail->notifyPropagate(p);
 
 	if (isBeingMonitored()) {
 		InnerPropagation prop;
@@ -171,7 +175,7 @@ void PCSolver::accept(Propagator* propagator) {
 	getEventQueue().accept(propagator);
 }
 
-void PCSolver::accept(Watch* watch){
+void PCSolver::accept(GenWatch* const watch){
 	getEventQueue().accept(watch);
 }
 
@@ -205,9 +209,9 @@ void PCSolver::setModSolver(ModSolver* m) {
 //IMPORTANT: only allowed after parsing!
 Var PCSolver::newVar() {
 	assert(!isParsing());
-	Var newvar = nVars();
-	createVar(newvar);
-	return newvar;
+	Var v = getParent().getNewVar();
+	add(v);
+	return v;
 }
 
 int	PCSolver::newSetID(){
@@ -263,25 +267,16 @@ rClause PCSolver::getExplanation(const Lit& l) {
  * Returns true if l was asserted before p
  */
 bool PCSolver::assertedBefore(const Var& l, const Var& p) const {
-	if (getLevel(l) < getLevel(p)) {
+	assert(value(l)!=l_Undef && value(p)!=l_Undef);
+
+	if(getLevel(l) < getLevel(p)) {
+		return true;
+	}
+	if(getTime(l)<getTime(p)){
 		return true;
 	}
 
-	bool before = true;
-	const vec<Lit>& trail = getSolver().getTrail();
-	int recentindex = getStartLastLevel();
-	for (int i = recentindex; i < trail.size(); ++i) {
-		Lit rlit = trail[i];
-		if (var(rlit) == l) { // l encountered first, so before
-			break;
-		}
-		if (var(rlit) == p) { // p encountered first, so after
-			before = false;
-			break;
-		}
-	}
-
-	return before;
+	return false;
 }
 
 void PCSolver::createVar(Var v) {
@@ -305,7 +300,10 @@ void PCSolver::createVar(Var v) {
 	}
 }
 
-int	PCSolver::getTime(const Lit& lit){
+int	PCSolver::getTime(const Var& var) const{
+	return trail->getTime(mkPosLit(var));
+}
+int	PCSolver::getTime(const Lit& lit) const{
 	return trail->getTime(lit);
 }
 
@@ -365,6 +363,14 @@ rClause PCSolver::propagate() {
 
 int PCSolver::getNbOfFormulas() const {
 	return getEventQueue().getNbOfFormulas();
+}
+
+bool PCSolver::isUnsat() const{
+	return getSATSolver()->isUnsat();
+}
+
+void PCSolver::notifyUnsat() {
+	return getSATSolver()->notifyUnsat();
 }
 
 Var PCSolver::changeBranchChoice(const Var& chosenvar) {
@@ -532,18 +538,17 @@ bool PCSolver::invalidateModel(InnerDisjunction& clause) {
 		clog << "]\n";
 	}
 
-	bool result;
 	if (state_savingclauses) {
 		rClause newclause;
-		result = getFactory().add(clause, newclause);
-		if (result) {
+		getFactory().add(clause, newclause);
+		if (not isUnsat()) {
 			state_savedclauses.push_back(newclause);
 		}
 	} else {
-		result = add(clause);
+		add(clause);
 	}
 
-	return result;
+	return not isUnsat();
 }
 
 // OPTIMIZATION METHODS

@@ -28,9 +28,8 @@ class AggReason;
 
 class AggPropagator;
 
-class Agg{
+class TempAgg{
 private:
-	TypedSet*	set;
 	AggBound	bound;
 	Lit			head;
 	AggSem		sem;
@@ -38,18 +37,17 @@ private:
 	AggType		type;
 
 public:
-	Agg(const Lit& head, const AggBound& b, AggSem sem, AggType type):
-			set(NULL), bound(b), head(head), sem(sem), index(-1), type(type){
+	TempAgg(const Lit& head, AggBound b, AggSem sem, AggType type):
+			bound(b), head(head), sem(sem), index(-1), type(type){
 		assert(sem!=DEF);
 	}
 
-	TypedSet*	getSet		()					const	{ return set; }
 	const Lit& 	getHead		() 					const 	{ return head; }
 	void	 	setHead		(const Lit& l)			 	{ head = l; }
 	int			getIndex	()					const	{ return index; }
 
 	const Weight&	getBound()					const	{ return bound.bound; }
-	Weight	getCertainBound()					const;
+	Weight		getCertainBound(const Weight& knownbound) const { return bound.bound - knownbound; }
 	void		setBound	(AggBound b)				{ bound = b; }
 	bool		hasUB		()					const	{ return bound.sign!=AGGSIGN_LB; }
 	bool		hasLB		()					const	{ return bound.sign!=AGGSIGN_UB; }
@@ -59,20 +57,30 @@ public:
 	AggType		getType		()					const	{ return type; }
 	void 		setIndex	(int ind) 					{ index = ind; }
 	void		setType		(const AggType& s)			{ type = s;}
-	void		setTypedSet	(TypedSet * const s)		{ set = s; }
+};
+typedef std::vector<TempAgg*> tempagglist;
+
+class Agg: public TempAgg{
+private:
+	TypedSet*	set;
+
+public:
+	Agg(TypedSet* set, const TempAgg& agg):
+		TempAgg(agg), set(set){}
+
+	TypedSet*	getSet		()					const	{ return set; }
+	Weight	getCertainBound()					const;
 };
 typedef std::vector<Agg*> agglist;
 
 class AggProp{
 private:
 	static paggprop max;
-	//static paggprop min;
 	static paggprop prod;
 	static paggprop card;
 	static paggprop sum;
 public:
 	static AggProp const * getMax() { return max.get(); }
-	//static AggProp const * getMin() { return min.get(); }
 	static AggProp const * getProd() { return prod.get(); }
 	static AggProp const * getCard() { return card.get(); }
 	static AggProp const * getSum() { return sum.get(); }
@@ -81,6 +89,7 @@ public:
 	virtual AggType 	getType					() 										const = 0;
 	virtual bool 		isNeutralElement		(const Weight& w)						const = 0;
 	virtual bool 		isMonotone				(const Agg& agg, const Weight& w)		const = 0;
+	virtual bool 		isMonotone				(const TempAgg& agg, const Weight& w, const Weight& knownbound)	const = 0;
 
 	Weight				getValue				(const TypedSet& set)					const;
 
@@ -105,6 +114,7 @@ public:
 	AggType 	getType					() 										const { return MAX; }
 	bool 		isNeutralElement		(const Weight& w) 						const { return false; }
 	bool 		isMonotone				(const Agg& agg, const Weight& w)		const;
+	bool 		isMonotone				(const TempAgg& agg, const Weight& w, const Weight& knownbound)	const;
 	Weight		getMinPossible			(const std::vector<WL>& wls)			const;
 	Weight		getMaxPossible			(const std::vector<WL>& wls)			const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
@@ -115,24 +125,6 @@ public:
 
 	Weight 		getESV					()										const { return negInfinity(); }
 };
-
-//class MinProp: public AggProp{
-//public:
-//	const char* getName					() 										const { return "MIN"; }
-//	AggType 	getType					() 										const { return MIN; }
-//	bool 		isNeutralElement		(const Weight& w) 						const { return false; }
-//	bool 		isMonotone				(const Agg& agg, const Weight& w)		const;
-//	Weight		getMinPossible			(const TypedSet& set)					const;
-//	Weight		getMaxPossible			(const TypedSet& set)					const;
-//	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
-//	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, TypedSet* set) const;
-//	Weight		add						(const Weight& lhs, const Weight& rhs) 	const { return lhs<rhs?lhs:rhs; }
-//	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const { assert(false); return 0; }
-//	bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const;
-//	AggPropagator*	createPropagator	(TypedSet* set) 						const;
-//
-//	Weight 		getESV					()										const { return posInfinity(); }
-//};
 
 class SPProp: public AggProp{
 public:
@@ -145,6 +137,7 @@ public:
 	AggType 	getType					() 										const { return PROD; }
 	bool 		isNeutralElement		(const Weight& w) 						const { return w==1; }
 	bool 		isMonotone				(const Agg& agg, const Weight& w)		const;
+	bool 		isMonotone				(const TempAgg& agg, const Weight& w, const Weight& knownbound)	const;
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const;
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const;
 	Weight		getMinPossible			(const std::vector<WL>& wls)			const;
@@ -162,6 +155,7 @@ public:
 	AggType 	getType					() 										const { return SUM; }
 	bool 		isNeutralElement		(const Weight& w) 						const { return w==0; }
 	bool 		isMonotone				(const Agg& agg, const Weight& w)		const;
+	bool 		isMonotone				(const TempAgg& agg, const Weight& w, const Weight& knownbound)	const;
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const;
 	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const;
 	Weight		getMinPossible			(const std::vector<WL>& wls)			const;
@@ -188,6 +182,7 @@ struct minmaxBounds{
 
 bool isSatisfied	(const Agg& agg, const Weight& min, const Weight& max);
 bool isSatisfied	(const Agg& agg, const minmaxBounds& bounds);
+bool isSatisfied	(const TempAgg& agg, const minmaxBounds& bounds, const Weight& knownbound);
 bool isFalsified	(const Agg& agg, const Weight& min, const Weight& max);
 bool isFalsified	(const Agg& agg, const minmaxBounds& bounds);
 void addValue		(const AggProp& type, const Weight& weight, bool addtoset, minmaxBounds& bounds);

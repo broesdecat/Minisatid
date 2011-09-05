@@ -21,7 +21,6 @@
 
 using namespace std;
 using namespace MinisatID;
-using namespace Minisat;
 
 namespace MinisatID{
 
@@ -56,7 +55,7 @@ template<> std::string print(const Lit& lit){
 	return ss.str();
 }
 
-void print(const Solver& s){
+void print(const Minisat::Solver& s){
 	clog <<"Clauses\n";
 	for(int i=0; i< s.nbClauses(); ++i){
 		s.printClause(s.getClause(i));
@@ -65,13 +64,13 @@ void print(const Solver& s){
 }
 
 template<>
-void print(Solver * const s){
+void print(Minisat::Solver * const s){
 	assert(s!=NULL);
 	print(*s);
 }
 
 template<>
-void print(Solver const * const s){
+void print(Minisat::Solver const * const s){
 	assert(s!=NULL);
 	print(*s);
 }
@@ -89,24 +88,25 @@ void print(IDSolver const * const s){
 	}
 	clog <<"Definitions\n";
 	for(int i=0; i<s->nVars(); ++i){
-		if(s->isDefined(i)){
-			if(s->isConjunctive(i)){
-				clog <<"Conjunctive rule";
-			}else if(s->isDisjunctive(i)){
-				clog <<"Disjunctive rule";
-			}else if(s->isDefinedByAggr(i)){
-				clog <<"Aggregate rule";
-			}
-
-			const PropRule& r = s->getDefinition(i);
-			clog <<r.getHead();
-			int counter = 0;
-			while(counter<r.size()){
-				clog <<r[counter];
-				++counter;
-			}
-			clog <<"\n";
+		if(not s->isDefined(i)){
+			continue;
 		}
+		if(s->isConjunctive(i)){
+			clog <<"Conjunctive rule";
+		}else if(s->isDisjunctive(i)){
+			clog <<"Disjunctive rule";
+		}else if(s->isDefinedByAggr(i)){
+			clog <<"Aggregate rule";
+		}
+
+		const PropRule& r = s->getDefinition(i);
+		clog <<r.getHead();
+		int counter = 0;
+		while(counter<r.size()){
+			clog <<r[counter];
+			++counter;
+		}
+		clog <<"\n";
 	}
 }
 
@@ -118,17 +118,17 @@ void print(ModSolver * const m){
 		print(mkLit(m->getHead()), m->getHeadValue());
 	}
 	clog <<", children ";
-	for(vmodindex::const_iterator i=m->getChildren().begin(); i<m->getChildren().end(); ++i){
+	for(auto i=m->getChildren().begin(); i<m->getChildren().end(); ++i){
 		clog <<*i;
 	}
 	clog <<"\nModal atoms ";
-	for(vector<Var>::const_iterator i=m->getAtoms().begin(); i<m->getAtoms().end(); ++i){
+	for(auto i=m->getAtoms().begin(); i<m->getAtoms().end(); ++i){
 		clog <<getPrintableVar(*i);
 	}
 	/*clog <<"\nsubtheory\n");
 	print(m->getPCSolver());*/
 	clog <<"SubSolvers\n";
-	for(vmodindex::const_iterator i=m->getChildren().begin(); i<m->getChildren().end(); ++i){
+	for(auto i=m->getChildren().begin(); i<m->getChildren().end(); ++i){
 		print(m->getModSolverData().getModSolver(*i));
 	}
 }
@@ -141,17 +141,17 @@ void print(ModSolver const * const m){
 		print(mkLit(m->getHead()), m->getHeadValue());
 	}
 	clog <<", children ";
-	for(vmodindex::const_iterator i=m->getChildren().begin(); i<m->getChildren().end(); ++i){
+	for(auto i=m->getChildren().begin(); i<m->getChildren().end(); ++i){
 		clog <<*i;
 	}
 	clog <<"\nModal atoms ";
-	for(vector<Var>::const_iterator i=m->getAtoms().begin(); i<m->getAtoms().end(); ++i){
+	for(auto i=m->getAtoms().begin(); i<m->getAtoms().end(); ++i){
 		clog <<getPrintableVar(*i);
 	}
 	/*clog <<"\nsubtheory\n");
 	print(m->getPCSolver());*/
 	clog <<"SubSolvers\n";
-	for(vmodindex::const_iterator i=m->getChildren().begin(); i<m->getChildren().end(); ++i){
+	for(auto i=m->getChildren().begin(); i<m->getChildren().end(); ++i){
 		print(m->getModSolverData().getModSolver(*i));
 	}
 }

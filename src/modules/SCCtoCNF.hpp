@@ -179,7 +179,8 @@ private:
 			tseitins.literals.push_back(tseitin);
 			state &= addConjEq(tseitin, litlist{*open, retrieveEncoding(headvar, ENC_GREATER)});
 		}
-		if(not solver_.add(tseitins)){
+		solver_.add(tseitins);
+		if(solver_.isUnsat()){
 			state = UNSAT;
 		}
 		return state;
@@ -225,7 +226,8 @@ private:
 			tseitins.literals.push_back(tseitin);
 			state &= addConjEq(tseitin, litlist{*open, retrieveEncoding(headvar, ENC_LEQPLUS1)});
 		}
-		if(not solver_.add(tseitins)){
+		solver_.add(tseitins);
+		if(solver_.isUnsat()){
 			state = UNSAT;
 		}
 		return state;
@@ -251,8 +253,7 @@ private:
 				for(auto bit=++left->bits().begin(); bit!=left->bits().end(); ++bit){
 					eq.literals.push_back(mkNegLit(*bit));
 				}
-				bool possiblysat = solver_.add(eq);
-				assert(possiblysat);
+				solver_.add(eq);
 				necessaryUnEncodings.insert(std::pair<UnaryEncoding, Var>(UnaryEncoding(left, sign), v));
 			}else{
 				v = enc->second;
@@ -275,7 +276,8 @@ private:
 	SATENUM addClause(const litlist& lits){
 		InnerDisjunction d;
 		d.literals = lits;
-		return solver_.add(d)?POSSIBLYSAT:UNSAT;
+		solver_.add(d);
+		return solver_.isUnsat()?POSSIBLYSAT:UNSAT;
 	}
 
 	SATENUM addDisjEq(const Lit& head, const litlist& lits){
@@ -283,7 +285,8 @@ private:
 		eq.head = head;
 		eq.conjunctive = false;
 		eq.literals = lits;
-		return solver_.add(eq)?POSSIBLYSAT:UNSAT;
+		solver_.add(eq);
+		return solver_.isUnsat()?POSSIBLYSAT:UNSAT;
 	}
 
 	SATENUM addConjEq(const Lit& head, const litlist& lits){
@@ -291,7 +294,8 @@ private:
 		eq.head = head;
 		eq.conjunctive = true;
 		eq.literals = lits;
-		return solver_.add(eq)?POSSIBLYSAT:UNSAT;
+		solver_.add(eq);
+		return solver_.isUnsat()?POSSIBLYSAT:UNSAT;
 	}
 
 	/*

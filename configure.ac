@@ -3,6 +3,7 @@
 # Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
 # Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
 AC_INIT([minisatid],[m4_esyscmd([./m4/version.m4])],[krr@cs.kuleuven.be])
+AM_SILENT_RULES([yes])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -29,7 +30,7 @@ DX_PDF_FEATURE(OFF)
 DX_PS_FEATURE(OFF)
 DX_INIT_DOXYGEN(minisatid, doxygen.cfg, doc)
 
-AM_INIT_AUTOMAKE([1.9 tar-pax foreign subdir-objects -Wall]) #silent-rules FROM VERSION 1.11 OTHER parameters like pedantic, seem no to work here, I set them in debug CXXflags!
+AM_INIT_AUTOMAKE([1.9 tar-pax foreign subdir-objects -Wall]) #OTHER parameters like pedantic, seem no to work here, I set them in debug CXXflags!
 
 #check for the necessary headers
 AC_HEADER_STDC

@@ -34,6 +34,7 @@ libminisatid_2_0_la_SOURCES = \
 		external/SearchMonitor.hpp\
 		external/FlatZincRewriter.hpp\
 		external/Translator.hpp\
+		external/LazyClauseSupport.hpp\
 		wrapper/Translator.cpp\
 		wrapper/FlatZincRewriter.cpp\
 		wrapper/InterfaceImpl.hpp			wrapper/InterfaceImpl.cpp\

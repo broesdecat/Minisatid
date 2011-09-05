@@ -31,6 +31,8 @@ class PCSolver;
 class SOSolver;
 class SearchMonitor;
 class InnerModel;
+class LazyClauseMonitor;
+class LazyClauseRef;
 
 typedef std::vector<Lit> litlist;
 
@@ -50,7 +52,8 @@ public:
 	virtual bool	hasVar		(const Atom& atom, Var& mappedvarifexists) const;
 	virtual Var		getVar		(const Atom& atom);
 	virtual Literal	getLiteral	(const Lit& lit);
-	bool			wasInput	(int var)	const { return var<maxnumber; }
+	virtual Var 	getNewVar	() { assert(false); return -1; }
+	virtual bool	wasInput	(Var var)const { return var<maxnumber; }
 };
 
 class SmartRemapper: public Remapper{
@@ -62,7 +65,8 @@ public:
 	bool	hasVar		(const Atom& atom, Var& mappedvarifexists) const;
 	Var		getVar		(const Atom& atom);
 	Literal	getLiteral	(const Lit& lit);
-
+	Var 	getNewVar	();
+	bool	wasInput	(Var var) const;
 };
 
 class WrapperPimpl{
@@ -83,6 +87,8 @@ public:
 public:
 	WrapperPimpl			(const SolverOption& modes);
 	virtual ~WrapperPimpl();
+
+	Var 	getNewVar();
 
 	bool 	hasOptimization	() const { return optimization; }
 	void 	solve			();
@@ -176,6 +182,7 @@ template<> bool PCWrapperPimpl::add(const CPAllDiff& sentence);
 template<> bool PCWrapperPimpl::add(const ForcedChoices& sentence);
 template<> bool PCWrapperPimpl::add(const SymmetryLiterals& sentence);
 template<> bool PCWrapperPimpl::add(const Symmetry& sentence);
+template<> bool PCWrapperPimpl::add(const LazyGroundLit& sentence);
 
 class SOWrapperPimpl: public MinisatID::WrapperPimpl{
 private:

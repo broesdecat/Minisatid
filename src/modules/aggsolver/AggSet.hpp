@@ -51,9 +51,10 @@ public:
 
 	const std::vector<Agg*>& getAgg		()	const					{ return aggregates; }
 	std::vector<Agg*>& getAggNonConst	()	 						{ return aggregates; }
-	void			replaceAgg		(const agglist& repl);
-	void			replaceAgg		(const agglist& repl, const agglist& del);
-	void 			addAgg			(Agg* aggr);
+	//void			replaceAgg		(const agglist& repl);
+	//void			replaceAgg		(const agglist& repl, const agglist& del);
+	void 			addAgg			(const TempAgg& aggr);
+	void 			removeAggs		(const std::set<Agg*>& del);
 
 	bool			isUsingWatches() const { return usingwatches; }
 	void			setUsingWatches(bool use) { usingwatches = use; }

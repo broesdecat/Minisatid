@@ -23,6 +23,7 @@
 #include "modules/LazyGrounder.hpp"
 #include "modules/Symmetrymodule.hpp"
 #include "modules/BinConstr.hpp"
+#include "modules/LazyGrounder.hpp"
 
 #ifdef CPSUPPORT
 #include "modules/CPSolver.hpp"
@@ -35,7 +36,6 @@
 
 using namespace std;
 using namespace MinisatID;
-using namespace Minisat;
 
 using Minisat::vec;
 
@@ -72,19 +72,13 @@ void throwHeadOccursInSet(Var head, int setid){
 PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine) :
 		engine(engine),
 		parsing(true),
-		satsolver(NULL),
-		modsolver(NULL),
-		symmsolver(NULL)
-#ifdef CPSUPPORT
-		,cpsolver(NULL)
-#endif
-		,maxset(1)
+		maxset(1)
 		{
-	satsolver = getEnginep()->getSATSolver();
-	satsolver->notifyUsedForSearch();
+	SATStorage::setStorage(engine->getSATSolver());
+	SATStorage::getStorage()->notifyUsedForSearch();
 #ifdef CPSUPPORT
-	cpsolver = getEnginep()->getCPSolverp();
-	cpsolver->notifyUsedForSearch();
+	CPStorage::setStorage(engine->getCPSolverp());
+	CPStorage::getStorage()->notifyUsedForSearch();
 #endif
 
 	if(modes.printcnfgraph){
@@ -116,7 +110,7 @@ void PropagatorFactory::notifyMonitorsOfAdding(const T& obj) const{
 
 void PropagatorFactory::setModSolver(ModSolver* m) {
 	assert(isParsing());
-	modsolver = m;
+	ModStorage::setStorage(m);
 }
 
 bool PropagatorFactory::hasIDSolver(defID id) const { return idsolvers.find(id)!=idsolvers.end(); }
@@ -134,20 +128,8 @@ void PropagatorFactory::addIDSolver(defID id){
 	idsolvers.insert(pair<defID, IDSolver*>(id, idsolver));
 }
 
-void PropagatorFactory::addSymmSolver(){
-	symmsolver = new SymmetryPropagator<PCSolver*>(getEnginep());
-}
-bool PropagatorFactory::hasSymmSolver() const {
-	return symmsolver!=NULL;
-}
-SymmetryPropagator<PCSolver*>* PropagatorFactory::getSymmSolver() const {
-	assert(hasSymmSolver());
-	return symmsolver;
-}
-
-bool PropagatorFactory::add(const Var& v) {
+void PropagatorFactory::add(const Var& v) {
 	getEngine().createVar(v);
-	return true;
 }
 
 void PropagatorFactory::addVars(const vector<Lit>& a) {
@@ -167,16 +149,16 @@ void toVec(const std::vector<Lit>& literals, vec<Lit>& lits){
 	}
 }
 
-bool PropagatorFactory::add(const InnerDisjunction& formula){
-	notifyMonitorsOfAdding(formula);
+void PropagatorFactory::add(const InnerDisjunction& clause){
+	notifyMonitorsOfAdding(clause);
 
-	addVars(formula.literals);
+	addVars(clause.literals);
 
-	// TODO lazygrounder
+	// TODO 1-watched scheme
 //	if(formula.literals.size()<3){
 		vec<Lit> lits;
 		toVec(formula.literals, lits);
-		return getSolver()->addClause(lits);
+		SATStorage::getStorage()->addClause(lits);
 /*	}else{
 		LazyGrounder* g = new LazyGrounder(getEnginep());
 		etEngine().accept(g, EXITCLEANLY);
@@ -185,14 +167,14 @@ bool PropagatorFactory::add(const InnerDisjunction& formula){
 	}*/
 }
 
-bool PropagatorFactory::add(const InnerEquivalence& formula){
+void PropagatorFactory::add(const InnerEquivalence& formula){
+	// TODO equiv propagator (or at least, 1-watched scheme for the long clause)
 	addVar(formula.head);
 	addVars(formula.literals);
-	bool notunsat = true;
 
 	//create the completion
-	InnerDisjunction clause;
-	vector<Lit>& lits = clause.literals;
+	InnerDisjunction comp;
+	litlist& lits = comp.literals;
 	lits.push_back(formula.head);
 
 	for (int i = 0; i < formula.literals.size(); ++i) {
@@ -207,29 +189,34 @@ bool PropagatorFactory::add(const InnerEquivalence& formula){
 		lits[0] = ~lits[0];
 	}
 
-	notunsat = add(clause);
+	add(comp);
 
-	for (int i = 1; notunsat && i < clause.literals.size(); ++i) {
+	for (int i = 1; i < lits.size(); ++i) {
 		InnerDisjunction binclause;
-		binclause.literals.push_back(~clause.literals[0]);
-		binclause.literals.push_back(~clause.literals[i]);
-		notunsat = add(binclause);
+		binclause.literals.push_back(~lits[0]);
+		binclause.literals.push_back(~lits[i]);
+		add(binclause);
 	}
-
-	return notunsat;
 }
 
-bool PropagatorFactory::add(const InnerRule& formula){
-	notifyMonitorsOfAdding(formula);
+void PropagatorFactory::add(const InnerRule& rule){
+	notifyMonitorsOfAdding(rule);
 
-	add(formula.head);
-	addVars(formula.body);
+	add(rule.head);
+	addVars(rule.body);
 
-	parsedrules.push_back(new InnerRule(formula));
-	return true;
+	if(getEngine().modes().lazy){
+		// FIXME LazyStorage::getStorage()->add(new InnerRule(rule));
+	}else{
+		getIDSolver(rule.definitionID)->addRule(rule.conjunctive, rule.head, rule.body);
+	}
 }
 
-bool PropagatorFactory::add(const InnerWLSet& formula){
+void PropagatorFactory::add(const std::vector<InnerRule*>& definition){
+	// FIXME Add all rules to new idsolver and finish it
+}
+
+void PropagatorFactory::add(const InnerWLSet& formula){
 	notifyMonitorsOfAdding(formula);
 
 	if (formula.wls.size() == 0) {
@@ -252,12 +239,10 @@ bool PropagatorFactory::add(const InnerWLSet& formula){
 
 	// TODO only if type is known here verifySet(formula);
 
-	parsedsets.insert(pair<int, SetWithAggs>(formula.setID, SetWithAggs(new InnerWLSet(formula), vector<Agg*>())));
-
-	return true;
+	parsedsets.insert(pair<int, SetWithAggs>(formula.setID, SetWithAggs(new InnerWLSet(formula), vector<TempAgg*>())));
 }
 
-bool PropagatorFactory::add(const InnerAggregate& agg){
+void PropagatorFactory::add(const InnerAggregate& agg){
 	notifyMonitorsOfAdding(agg);
 
 	if(parsedsets.find(agg.setID)==parsedsets.end()){
@@ -266,7 +251,6 @@ bool PropagatorFactory::add(const InnerAggregate& agg){
 
 	if(isParsing()){
 		parsedaggs.push_back(new InnerAggregate(agg));
-		return true;
 	}else{
 		InnerReifAggregate r = InnerReifAggregate();
 		r.bound = agg.bound;
@@ -276,11 +260,11 @@ bool PropagatorFactory::add(const InnerAggregate& agg){
 		r.setID = agg.setID;
 		r.sign	= agg.sign;
 		r.type	= agg.type;
-		return add(r);
+		add(r);
 	}
 }
 
-bool PropagatorFactory::add(const InnerReifAggregate& origagg){
+void PropagatorFactory::add(const InnerReifAggregate& origagg){
 	notifyMonitorsOfAdding(origagg);
 	InnerReifAggregate newagg(origagg);
 
@@ -307,10 +291,10 @@ bool PropagatorFactory::add(const InnerReifAggregate& origagg){
 	if(newagg.sem==DEF){
 		getIDSolver(newagg.defID)->addDefinedAggregate(newagg, *setwithagg.first);
 	}
-	return addAggrExpr(newagg.head, newagg.setID, newagg.sign, newagg.bound, newagg.type, newagg.sem);
+	addAggrExpr(newagg.head, newagg.setID, newagg.sign, newagg.bound, newagg.type, newagg.sem);
 }
 
-bool PropagatorFactory::addAggrExpr(Var head, int setid, AggSign sign, const Weight& bound, AggType type, AggSem sem){
+void PropagatorFactory::addAggrExpr(Var head, int setid, AggSign sign, const Weight& bound, AggType type, AggSem sem){
 	assert(type!=MIN);
 	SetWithAggs& set = parsedsets.at(setid);
 
@@ -322,7 +306,7 @@ bool PropagatorFactory::addAggrExpr(Var head, int setid, AggSign sign, const Wei
 
 	getEngine().varBumpActivity(head); // NOTE heuristic! (TODO move)
 
-	Agg* agg = new Agg(mkPosLit(head), AggBound(sign, bound),sem==DEF?COMP:sem, type);
+	TempAgg* agg = new TempAgg(mkPosLit(head), AggBound(sign, bound),sem==DEF?COMP:sem, type);
 	set.second.push_back(agg);
 
 	if(not isParsing()){
@@ -344,11 +328,9 @@ bool PropagatorFactory::addAggrExpr(Var head, int setid, AggSign sign, const Wei
 			parsedsets.erase(setid); // TODO might still be present in event datastructures => should be removed by those in fact!
 		}*/
 	}
-
-	return true;
 }
 
-bool PropagatorFactory::add(const InnerMinimizeSubset& formula){
+void PropagatorFactory::add(const InnerMinimizeSubset& formula){
 	notifyMonitorsOfAdding(formula);
 
 	if (formula.literals.size() == 0) {
@@ -357,10 +339,9 @@ bool PropagatorFactory::add(const InnerMinimizeSubset& formula){
 
 	addVars(formula.literals);
 	getEngine().addOptimization(SUBSETMNMZ, formula.literals);
-	return true;
 }
 
-bool PropagatorFactory::add(const InnerMinimizeOrderedList& formula){
+void PropagatorFactory::add(const InnerMinimizeOrderedList& formula){
 	notifyMonitorsOfAdding(formula);
 
 	if (formula.literals.size() == 0) {
@@ -369,69 +350,55 @@ bool PropagatorFactory::add(const InnerMinimizeOrderedList& formula){
 
 	addVars(formula.literals);
 	getEngine().addOptimization(MNMZ, formula.literals);
-
-	return true;
 }
-bool PropagatorFactory::add(const InnerMinimizeVar& formula){
+void PropagatorFactory::add(const InnerMinimizeVar& formula){
 	notifyMonitorsOfAdding(formula);
 
 #warning MinimizeVar is not handled at the moment
 	// TODO check var existence and add optim intvar to pcsolver
-	return true;
 }
 
-bool PropagatorFactory::add(const InnerForcedChoices& formula){
+void PropagatorFactory::add(const InnerForcedChoices& formula){
 	notifyMonitorsOfAdding(formula);
 
 	if (formula.forcedchoices.size() != 0) {
 		vec<Lit> lits;
 		toVec(formula.forcedchoices, lits);
-		getSolver()->addForcedChoices(lits);
+		SATStorage::getStorage()->addForcedChoices(lits);
 	}
-	return true;
 }
 
-bool PropagatorFactory::add(const InnerSymmetryLiterals& formula){
+void PropagatorFactory::add(const InnerSymmetryLiterals& formula){
 	notifyMonitorsOfAdding(formula);
 
-	if(!hasSymmSolver()){
-		addSymmSolver();
+	if(not SymmStorage::hasStorage()){
+		SymmStorage::addStorage(getEnginep());
 	}
 
-	getSymmSolver()->add(formula.literalgroups);
-	return true;
+	SymmStorage::getStorage()->add(formula.literalgroups);
 }
 
-bool PropagatorFactory::add(const InnerSymmetry& formula){
+void PropagatorFactory::add(const InnerSymmetry& formula){
 	notifyMonitorsOfAdding(formula);
 
-	if(!hasSymmSolver()){
-		addSymmSolver();
+	if(not SymmStorage::hasStorage()){
+		SymmStorage::addStorage(getEnginep());
 	}
 
-	getSymmSolver()->add(formula.symmetry);
-	return true;
+	SymmStorage::getStorage()->add(formula.symmetry);
 }
 
 template<class T>
-bool PropagatorFactory::addCP(const T& formula){
+void PropagatorFactory::addCP(const T& formula){
 	notifyMonitorsOfAdding(formula);
 #ifndef CPSUPPORT
 	assert(false);
 	exit(1);
 #else
-	return getCPSolver()->add(formula);
-#endif
-}
-
-#ifdef CPSUPPORT
+	return CPStorage::getStorage()->add(formula);
 #warning Counting models in the presence of CP variables will be an underapproximation! (finding only one variable assigment for each literal assignment)
-
-CPSolver* PropagatorFactory::getCPSolver() {
-	assert(cpsolver!=NULL);
-	return cpsolver;
-}
 #endif
+}
 
 int IntVar::maxid_ = 0;
 
@@ -442,21 +409,20 @@ IntVar*	PropagatorFactory::getIntVar(int varID) const {
 	return intvars.at(varID);
 }
 
-bool PropagatorFactory::add(const InnerIntVarRange& obj){
+void PropagatorFactory::add(const InnerIntVarRange& obj){
 	if(intvars.find(obj.varID)!=intvars.end()){
 		stringstream ss;
 		ss <<"Integer variable " <<obj.varID <<" was declared twice.\n";
 		throw idpexception(ss.str());
 	}
 	intvars.insert(pair<int, IntVar*>(obj.varID, new IntVar(getEnginep(), obj.varID, toInt(obj.minvalue), toInt(obj.maxvalue))));
-	return true;
 }
 
-bool PropagatorFactory::add(const InnerIntVarEnum& obj){
-	return addCP(obj);
+void PropagatorFactory::add(const InnerIntVarEnum& obj){
+	addCP(obj);
 }
 
-bool PropagatorFactory::add(const InnerCPBinaryRel& obj){
+void PropagatorFactory::add(const InnerCPBinaryRel& obj){
 	InnerEquivalence eq;
 	add(obj.head);
 	eq.head = mkPosLit(obj.head);
@@ -482,45 +448,48 @@ bool PropagatorFactory::add(const InnerCPBinaryRel& obj){
 			eq.literals.push_back(left->getLEQLit(intbound-1));
 			break;
 	}
-	return add(eq);
+	add(eq);
 }
 
-bool PropagatorFactory::add(const InnerCPBinaryRelVar& obj){
+void PropagatorFactory::add(const InnerCPBinaryRelVar& obj){
 	add(obj.head);
 	new BinaryConstraint(getEnginep(), intvars.at(obj.lhsvarID), obj.rel, intvars.at(obj.rhsvarID), obj.head);
-	return true;
 }
 
-bool PropagatorFactory::add(const InnerCPSumWeighted& obj){
+void PropagatorFactory::add(const InnerCPSumWeighted& obj){
 	add(obj.head);
-	return addCP(obj);
+	addCP(obj);
 }
 
-bool PropagatorFactory::add(const InnerCPCount& obj){
-	return addCP(obj);
+void PropagatorFactory::add(const InnerCPCount& obj){
+	addCP(obj);
 }
 
-bool PropagatorFactory::add(const InnerCPAllDiff& obj){
-	return addCP(obj);
+void PropagatorFactory::add(const InnerCPAllDiff& obj){
+	addCP(obj);
 }
 
-bool PropagatorFactory::add(InnerDisjunction& formula, rClause& newclause){
+void PropagatorFactory::add(InnerDisjunction& formula, rClause& newclause){
 	notifyMonitorsOfAdding(formula);
 	addVars(formula.literals);
 
 	vec<Lit> lits;
 	toVec(formula.literals, lits);
-	return getSolver()->addClause(lits, newclause);
+	SATStorage::getStorage()->addClause(lits, newclause);
 }
 
-bool PropagatorFactory::finishSet(InnerWLSet* set, vector<Agg*>& aggs){
+bool PropagatorFactory::finishSet(InnerWLSet* set, vector<TempAgg*>& aggs){
 	bool unsat = false, sat = false;
 
 	// transform into SAT if requested
 	if(getEngine().modes().tocnf){
-		if(!transformSumsToCNF(getEngine(), set, aggs)){
-			return false;
+		if(not AggStorage::hasStorage()){
+			AggStorage::addStorage(getEnginep());
 		}
+		AggStorage::getStorage()->add(set, aggs);
+	}
+	if(aggs.size()==0){
+		return true;
 	}
 
 	AggProp const * type = NULL;
@@ -557,13 +526,13 @@ bool PropagatorFactory::finishParsing() {
 		(*i)->notifyEnd();
 	}
 
-	bool notunsat = true;
-
 	// create one, certainly true variable which can act as a dummy head
 	dummyvar = getEngine().newVar();
 	InnerDisjunction clause;
 	clause.literals.push_back(mkLit(dummyvar));
 	add(clause);
+
+	bool notunsat = true;
 
 	// create reified aggregates
 	for(auto i=parsedaggs.begin(); notunsat && i!=parsedaggs.end(); ++i){
@@ -575,19 +544,17 @@ bool PropagatorFactory::finishParsing() {
 		r.setID = (*i)->setID;
 		r.sign	= (*i)->sign;
 		r.type	= (*i)->type;
-		notunsat = add(r);
+		add(r);
+		notunsat = not getEngine().isUnsat();
 	}
 	deleteList<InnerAggregate>(parsedaggs);
 
 	for(auto i=parsedsets.begin(); notunsat && i!=parsedsets.end(); ++i){
 		notunsat &= finishSet((*i).second.first, (*i).second.second);
 	}
-
-	// rule adding
-	for(auto i=parsedrules.begin(); notunsat && i!=parsedrules.end(); ++i){
-		notunsat &= getIDSolver((*i)->definitionID)->addRule((*i)->conjunctive, (*i)->head, (*i)->body);
+	if(AggStorage::hasStorage()){
+		notunsat &= AggStorage::getStorage()->execute();
 	}
-	deleteList<InnerRule>(parsedrules);
 
 	return notunsat;
 }
@@ -599,4 +566,12 @@ void PropagatorFactory::includeCPModel(std::vector<VariableEqValue>& varassignme
 		vareq.value = (*i).second->minValue();
 		varassignments.push_back(vareq);
 	}
+}
+
+void PropagatorFactory::add(const InnerLazyClause& object){
+	addVar(object.residual);
+	if(object.watchboth){
+		new LazyResidualWatch(getEnginep(), ~object.residual, object.monitor);
+	}
+	new LazyResidualWatch(getEnginep(), object.residual, object.monitor);
 }

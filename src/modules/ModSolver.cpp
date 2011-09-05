@@ -70,9 +70,9 @@ bool ModSolver::add(Var var){
 	if(getModSolverData().modes().verbosity>5){
 		report("Var %d added to modal solver %zu.\n", getPrintableVar(var), getPrintId());
 	}
-	bool satpossible = getPCSolver().add(var);
+	getPCSolver().add(var);
 	registeredvars.push_back(var);
-	return satpossible;
+	return true;
 }
 
 /**
@@ -86,28 +86,33 @@ void ModSolver::addVars(const litlist& a){
 
 bool ModSolver::add(const InnerDisjunction& disj){
 	addVars(disj.literals);
-	return getPCSolver().add(disj);
+	getPCSolver().add(disj);
+	return getPCSolver().isUnsat();
 }
 
 bool ModSolver::add(const InnerRule& rule){
 	add(rule.head);
 	addVars(rule.body);
-	return getPCSolver().add(rule);
+	getPCSolver().add(rule);
+	return getPCSolver().isUnsat();
 }
 bool ModSolver::add(const InnerWLSet& set){
 	for(auto i=set.wls.begin(); i!=set.wls.end(); ++i){
 		addVar((*i).getLit());
 	}
-	return getPCSolver().add(set);
+	getPCSolver().add(set);
+	return getPCSolver().isUnsat();
 }
 
 bool ModSolver::add(const InnerAggregate& agg){
-	return getPCSolver().add(agg);
+	getPCSolver().add(agg);
+	return getPCSolver().isUnsat();
 }
 
 bool ModSolver::add(const InnerReifAggregate& agg){
 	add(agg.head);
-	return getPCSolver().add(agg);
+	getPCSolver().add(agg);
+	return getPCSolver().isUnsat();
 }
 
 /**

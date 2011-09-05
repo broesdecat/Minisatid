@@ -252,6 +252,20 @@ public:
 	InnerBacktrack(int untillevel): untillevel(untillevel){}
 };
 
-}
+class InnerLazyClause{
+public:
+	LazyGroundingCommand* monitor;
+	Lit residual;
+	bool watchboth;
+};
 
+class GenWatch{
+public:
+	virtual ~GenWatch(){}
+	virtual void propagate() = 0;
+	virtual const Lit& getPropLit() const = 0;
+	virtual bool dynamic() const = 0;
+};
+
+}
 #endif /* UTILS_H_ */

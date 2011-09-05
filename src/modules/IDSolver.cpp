@@ -28,7 +28,7 @@ IDSolver::IDSolver(PCSolver* s, int definitionID):
 		//minvar(-1), maxvar(-1), nbvars(0),
 		minvar(0), nbvars(0),
 		sem(getPCSolver().modes().defsem),
-		posrecagg(true), mixedrecagg(true),
+		posrecagg(false), mixedrecagg(false),
 		posloops(true), negloops(true),
 		backtracked(true),
 		adaption_total(0), adaption_current(0),
@@ -104,7 +104,13 @@ void IDSolver::adaptStructsToHead(Var head){
  * If only one body literal, the clause is always made conjunctive (for algorithmic correctness later on), semantics are the same.
  */
 bool IDSolver::addRule(bool conj, Var head, const litlist& ps) {
-	assert(!isInitialized());
+	// FIXME, when finishparsing return present=false, the IDSolver should be deleted. Currenlty it still exists and addrule can still be called
+	// (and isinitialized is still false because finishparsing was aborted)
+
+	//assert(!isInitialized());	 FIXME hack for lazy grounding
+	if(getPCSolver().isInitialized() && getPCSolver().getCurrentDecisionLevel()!=0){
+		getPCSolver().backtrackTo(0);
+	}
 
 	// LAZY init
 	adaptStructsToHead(head);
@@ -114,13 +120,11 @@ bool IDSolver::addRule(bool conj, Var head, const litlist& ps) {
 		throw idpexception(s);
 	}
 
-	bool notunsat = true;
-
 	if (ps.size() == 0) {
 		Lit h = conj ? mkLit(head) : mkLit(head, true); //empty set conj = true, empty set disj = false
 		InnerDisjunction v;
 		v.literals.push_back(h);
-		notunsat = getPCSolver().add(v);
+		getPCSolver().add(v);
 	} else {
 		//rules with only one body atom have to be treated as conjunctive
 		conj = conj || ps.size() == 1;
@@ -130,15 +134,18 @@ bool IDSolver::addRule(bool conj, Var head, const litlist& ps) {
 
 		InnerEquivalence eq;
 		eq.head = mkLit(head);
-		for(int i=0; i<ps.size(); ++i){
-			eq.literals.push_back(ps[i]);
-		}
+		eq.literals = ps;
 		eq.conjunctive = conj;
-		notunsat = getPCSolver().add(eq);
+		getPCSolver().add(eq);
 		assert(isDefined(head));
 	}
 
-	return notunsat;
+	//FIXME hack for lazy grounding
+	if(getPCSolver().isInitialized()){
+		bool present = false;
+		bool unsat = false;
+		finishParsing(present, unsat);
+	}
 }
 
 void IDSolver::addDefinedAggregate(const InnerReifAggregate& inneragg, const InnerWLSet& innerset){
@@ -164,17 +171,18 @@ void IDSolver::addDefinedAggregate(const InnerReifAggregate& inneragg, const Inn
  * @PRE: aggregates have to have been finished
  */
 void IDSolver::finishParsing(bool& present, bool& unsat) {
-	assert(isParsing());
-	notifyParsed();
+// FIXME	assert(isParsing());
+//	notifyParsed();
 	present = true;
 	unsat = false;
 
 	if(modes().defsem==DEF_COMP || defdVars.size()==0){
-		present = false;
+//		present = false; FIXME hack for lazy grounding
 		return;
 	}
 
 	//LAZY initialization
+	posloops = true; negloops = true; mixedrecagg = false; posrecagg = false;
 	_seen = new InterMediateDataStruct(nbvars, minvar);
 	_disj_occurs.resize(nVars()*2, varlist());
 	_conj_occurs.resize(nVars()*2, varlist());
@@ -217,17 +225,17 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	//all var in rootofmixed are the roots of mixed loops. All other are no loops (size 1) or positive loops
 
 	// Initialize scc of positive dependency graph
-	for (int i = 0; i < nodeinmixed.size(); ++i) {
-		incomp[nodeinmixed[i]] = false;
-		occ(nodeinmixed[i]) = MIXEDLOOP;
-		visited[nodeinmixed[i]] = 0;
+	for (auto i=nodeinmixed.begin(); i!=nodeinmixed.end(); ++i) {
+		incomp[*i] = false;
+		occ(*i) = MIXEDLOOP;
+		visited[*i] = 0;
 	}
 	stack.clear();
 	counter = 1;
 
-	for (int i = 0; i < nodeinmixed.size(); ++i) {
-		if (visited[nodeinmixed[i]] == 0) {
-			visit(nodeinmixed[i], incomp, stack, visited, counter, sccroots);
+	for (auto i=nodeinmixed.begin(); i!=nodeinmixed.end(); ++i) {
+		if (visited[*i] == 0) {
+			visit(*i, incomp, stack, visited, counter, sccroots);
 		}
 	}
 
@@ -277,7 +285,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 			addtonetwork = true;
 		} else { //can never be in posloop
 			if (occ(v) == NONDEFOCC) { //will not occur in a loop
-				removeDefinition(v);
+				//FIXME lazy grounding removeDefinition(v);
 			} else if (occ(v) == MIXEDLOOP) { //might occur in a mixed loop
 				addtonetwork = true;
 			}
@@ -329,8 +337,8 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 			}
 		}
 	}
-	defdVars.clear();
-	defdVars.insert(defdVars.begin(), reducedVars.begin(), reducedVars.end());
+//	defdVars.clear(); // lazy grounding hack
+//	defdVars.insert(defdVars.begin(), reducedVars.begin(), reducedVars.end());
 
 	if (atoms_in_pos_loops == 0) {
 		posloops = false;
@@ -351,8 +359,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	}
 
 	if (!posloops && !negloops) {
-		present = false;
-		return;
+//		present = false; FIXME hack for lazy grounding
 	}
 
 	//This heuristic on its own solves hamiltonian path for slow decay
@@ -361,7 +368,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 			const Var& v = *i;
 			if(isDefined(v) && type(v)==DISJ){
 				const PropRule& r = *definition(v);
-				for(int j=0; j<r.size(); ++j){
+				for(vsize j=0; j<r.size(); ++j){
 					getPCSolver().varBumpActivity(var(r[j]));
 				}
 			}
@@ -396,11 +403,11 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 			unsat = not toCNF::transformSCCtoCNF(getPCSolver(), rules);
 			deleteList<toCNF::Rule>(rules);
 		}
-		present = false;
+		//		present = false; FIXME hack for lazy grounding
 		// TODO should still allow wellfoundedness checks here!
 	}
 
-	notifyInitialized();
+//	notifyInitialized(); FIXME lazy grounding hack
 }
 
 /**
@@ -422,7 +429,7 @@ void IDSolver::visitFull(Var i, vector<bool> &incomp, varlist &stack, varlist &v
 		case DISJ:
 		case CONJ: {
 			PropRule const * const r = definition(i);
-			for (int j = 0; j < r->size(); ++j) {
+			for (vsize j = 0; j < r->size(); ++j) {
 				Lit l = (*r)[j];
 				int w = var(l);
 				if (!isDefined(w)) {
@@ -475,9 +482,7 @@ void IDSolver::visitFull(Var i, vector<bool> &incomp, varlist &stack, varlist &v
 		} while (w != i);
 		if (mixed && sccs.size()>1) {
 			rootofmixed.push_back(i);
-			for (int i = 0; i < sccs.size(); ++i) {
-				nodeinmixed.push_back(sccs[i]);
-			}
+			nodeinmixed.insert(nodeinmixed.begin(), sccs.begin(), sccs.end());
 		}
 	}
 }
@@ -500,7 +505,7 @@ void IDSolver::visit(Var i, vector<bool> &incomp, varlist &stack, varlist &visit
 		case DISJ:
 		case CONJ: {
 			PropRule const * const r = definition(i);
-			for (int j = 0; j < r->size(); ++j) {
+			for (vsize j = 0; j < r->size(); ++j) {
 				Lit l = (*r)[j];
 				Var w = var(l);
 				if (isDefined(w) && i != w && isPositive(l)) {
@@ -531,8 +536,6 @@ void IDSolver::visit(Var i, vector<bool> &incomp, varlist &stack, varlist &visit
 			}
 			break;
 		}
-		default:
-			assert(false);
 	}
 
 	if (scc(i) == i) {
@@ -547,7 +550,8 @@ void IDSolver::visit(Var i, vector<bool> &incomp, varlist &stack, varlist &visit
 	}
 }
 
-// In the past, was run also when deriving more root literals, but turned out to be quite costly and have little effect. In future, might have a heuristic on when to run again
+// NOTE: essentially, simplifygraph can be called anytime the level-0 interpretation has changed.
+// In default model expansion, this turned out to be quite expensive, so it was disabled.
 bool IDSolver::simplifyGraph(){
 	if(!posloops){
 		return true;
@@ -602,7 +606,7 @@ bool IDSolver::simplifyGraph(){
 		vector<litlist > jstf;
 
 		propagateJustificationDisj(l, jstf, heads);
-		for (int i = 0; i < heads.size(); ++i) {
+		for (vsize i = 0; i < heads.size(); ++i) {
 			assert(jstf[i].size()>0);
 			changejust(var(heads[i]), jstf[i]);
 			propq.push(heads[i]);
@@ -611,7 +615,7 @@ bool IDSolver::simplifyGraph(){
 		jstf.clear();
 
 		propagateJustificationAggr(l, jstf, heads);
-		for (int i = 0; i < heads.size(); ++i) {
+		for (vsize i = 0; i < heads.size(); ++i) {
 			changejust(var(heads[i]), jstf[i]);
 			propq.push(heads[i]);
 		}
@@ -646,7 +650,7 @@ bool IDSolver::simplifyGraph(){
 			}
 
 			if (occ(v) == POSLOOP) {
-				removeDefinition(v);
+				//FIXME lazy grounding removeDefinition(v);
 				--atoms_in_pos_loops;
 			} else {
 				occ(v) = MIXEDLOOP;
@@ -683,17 +687,16 @@ bool IDSolver::simplifyGraph(){
 	_conj_occurs.clear();
 	_disj_occurs.resize(2*nVars(), varlist());
 	_conj_occurs.resize(2*nVars(), varlist());
-	for (vector<int>::const_iterator i = defdVars.begin(); i < defdVars.end(); ++i) {
+	for (auto i = defdVars.begin(); i < defdVars.end(); ++i) {
 		Var v = (*i);
 		if (type(v) == CONJ || type(v) == DISJ) {
 			const PropRule& dfn = *definition(v);
-			for (int j = 0; j < dfn.size(); ++j) {
-				Lit l = dfn[j];
-				if (l != dfn.getHead()) { //don't look for a justification that is the head literal itself
+			for (auto litit=dfn.begin(); litit!=dfn.end(); ++litit) {
+				if (*litit != dfn.getHead()) { //don't look for a justification that is the head literal itself
 					if (type(v) == DISJ) {
-						addDisjOccurs(l, v);
+						addDisjOccurs(*litit, v);
 					} else if (type(v) == CONJ) {
-						addConjOccurs(l, v);
+						addConjOccurs(*litit, v);
 					}
 				}
 			}
@@ -736,18 +739,18 @@ bool IDSolver::simplifyGraph(){
 	for (auto i = defdVars.begin(); i < defdVars.end(); ++i) {
 		Var var = *i;
 		assert(hasDefVar(var));
-		assert(justification(var).size()>0 || type(var)!=DISJ || occ(var)==MIXEDLOOP);
+		//assert(justification(var).size()>0 || type(var)!=DISJ || occ(var)==MIXEDLOOP); FIXME lazy grounding hack (because invar that def gets deleted)
 
 		if(verbosity()>=9){
 			clog <<getPrintableVar(var) <<"<-";
 			bool begin = true;
 			count++;
-			for(int i=0; i<justification(var).size(); i++){
+			for(auto i=justification(var).begin(); i!=justification(var).end(); ++i){
 				if(!begin){
 					clog <<",";
 				}
 				begin = false;
-				clog <<justification(var)[i];
+				clog <<*i;
 			}
 			clog <<";";
 			if(count%30==0){
@@ -823,6 +826,21 @@ void IDSolver::propagateJustificationConj(const Lit& l, std::queue<Lit>& heads) 
 		}
 	}
 }
+void IDSolver::propagateJustificationConj(const Lit& l, vector<Lit>& heads) {
+	if(hasconj_occurs(l)){
+		const vector<Var>& ll = conj_occurs(l);
+		for (auto i = ll.begin(); i < ll.end(); ++i) {
+			const Var& v = *i;
+			if (isFalse(v) || seen(v) == 0) {
+				continue;
+			}
+			seen(v)--;
+			if (seen(v) == 0) {
+				heads.push_back(createPositiveLiteral(v));
+			}
+		}
+	}
+}
 
 void IDSolver::propagateJustificationConj(const Lit& l, litlist& heads) {
 	if(hasconj_occurs(l)){
@@ -866,7 +884,10 @@ void IDSolver::propagateJustificationAggr(const Lit& l, vector<litlist >& jstfs,
  * the state has to be stable for both aggregate and unit propagations
  */
 rClause IDSolver::notifypropagate() {
-	if (!isInitialized() || !indirectPropagateNow()) {
+	if (/*!isInitialized() || */ !indirectPropagateNow()) { // FIXME lazy grounding hack
+		return nullPtrClause;
+	}
+	if(!getPCSolver().isInitialized()){ // FIXME lazy grounding hack
 		return nullPtrClause;
 	}
 /*
@@ -1043,7 +1064,7 @@ void IDSolver::checkJustification(Var head) {
 	}
 
 	bool justfalse = false;
-	for (int i = 0; !justfalse && i < justification(head).size(); ++i) {
+	for (vsize i = 0; !justfalse && i < justification(head).size(); ++i) {
 		if (isFalse(justification(head)[i])) {
 			justfalse = true;
 		}
@@ -1065,7 +1086,7 @@ void IDSolver::checkJustification(Var head) {
 		assert(type(head)==AGGR);
 		findJustificationAggr(head, jstf);
 	}
-	for (int i = 0; external && i < jstf.size(); ++i) {
+	for (vsize i = 0; external && i < jstf.size(); ++i) {
 		if (isDefined(var(jstf[i])) && inSameSCC(head, var(jstf[i])) && isPositive(jstf[i])) {
 			external = false;
 		}
@@ -1085,7 +1106,7 @@ void IDSolver::checkJustification(Var head) {
 void IDSolver::findJustificationDisj(Var v, litlist& jstf) {
 	const PropRule& c = *definition(v);
 	int pos = -1;
-	for (int i = 0; i < c.size(); ++i) {
+	for (vsize i = 0; i < c.size(); ++i) {
 		if (!isFalse(c[i])) {
 			pos = i;
 			if (!inSameSCC(v, var(c[i])) || !isPositive(c[i]) || !isDefined(var(c[i]))) {
@@ -1159,7 +1180,7 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 		}
 	}
 
-	for (int i = 0; i < tmpseen.size(); ++i) {
+	for (vsize i = 0; i < tmpseen.size(); ++i) {
 		seen(tmpseen[i]) = 0;
 	}
 
@@ -1218,7 +1239,7 @@ bool IDSolver::findJustificationDisj(Var v, litlist& jstf, varlist& nonjstf) {
 	bool externallyjustified = false;
 	seen(v) = 1;
 	int pos = -1;
-	for (int i = 0; !externallyjustified && i < c.size(); ++i) {
+	for (vsize i = 0; !externallyjustified && i < c.size(); ++i) {
 		if (c.getHead() == c[i]) {
 			continue;
 		}
@@ -1246,7 +1267,7 @@ bool IDSolver::findJustificationDisj(Var v, litlist& jstf, varlist& nonjstf) {
 bool IDSolver::findJustificationConj(Var v, litlist& jstf, varlist& nonjstf) {
 	const PropRule& c = *definition(v);
 	seen(v) = 0;
-	for (int i = 0; i < c.size(); ++i) {
+	for (vsize i = 0; i < c.size(); ++i) {
 		if (isPositive(c[i]) && seen(var(c[i])) != 0) {
 			++seen(v);
 			nonjstf.push_back(var(c[i]));
@@ -1302,7 +1323,7 @@ bool IDSolver::directlyJustifiable(Var v, std::set<Var>& ufs, queue<Var>& q) {
 		 * Maarten had such a "guards" system in the original code, but he claimed it complicated the code and
 		 * had only a slight performance advantage and only on some benchmarks. It is commented in his original code.
 		 */
-		for (int i = 0; i < nonjstf.size(); ++i) {
+		for (vsize i = 0; i < nonjstf.size(); ++i) {
 			assert(!isJustified(*_seen, nonjstf[i]));
 			if (inSameSCC(nonjstf[i], v)) {
 				if (ufs.insert(nonjstf[i]).second) { //set insert returns true (in second) if the insertion worked (no duplicates)
@@ -1343,7 +1364,7 @@ bool IDSolver::propagateJustified(Var v, Var cs, std::set<Var>& ufs) {
 		propagateJustificationDisj(bdl, jstf, heads);
 		propagateJustificationAggr(bdl, jstf, heads);
 
-		for (int i = 0; i < heads.size(); ++i) {
+		for (vsize i = 0; i < heads.size(); ++i) {
 			assert(jstf[i].size()>0);
 			changejust(var(heads[i]), jstf[i]);
 			justifiedq.push_back(var(heads[i]));
@@ -1368,7 +1389,7 @@ bool IDSolver::propagateJustified(Var v, Var cs, std::set<Var>& ufs) {
 void IDSolver::changejust(Var v, litlist& just) {
 	assert(just.size()>0 || type(v)==AGGR); //justification can be empty for aggregates
 	justification(v) = just;
-	for(int i=0; i<just.size(); ++i){
+	for(vint i=0; i<just.size(); ++i){
 		getPCSolver().accept(this, not just[i], SLOW);
 	}
 }
@@ -1396,7 +1417,7 @@ void IDSolver::addExternalDisjuncts(const std::set<Var>& ufs,litlist& loopf) {
 				break;
 			case DISJ: {
 				const PropRule& c = *definition(*tch);
-				for (int i = 0; i < c.size(); ++i) {
+				for (vsize i = 0; i < c.size(); ++i) {
 					Lit l = c[i];
 					if ((!isDefined(var(l)) || seen(var(l))!=(isPositive(l)?2:1)) && ufs.find(var(c[i])) == ufs.end()) {
 						assert(isFalse(l));
@@ -1592,7 +1613,7 @@ void IDSolver::markNonJustifiedAddParents(Var x, Var cs, queue<Var> &q, varlist&
 	varlist heads = getDefAggHeadsWithBodyLit(x);
 	for (varlist::size_type i = 0; i < heads.size(); ++i) {
 		litlist& jstfc = justification(heads[i]);
-		for (int k = 0; k < jstfc.size(); ++k) {
+		for (vsize k = 0; k < jstfc.size(); ++k) {
 			if (jstfc[k] == poslit) { // Found that x is actually used in y's justification.
 				markNonJustifiedAddVar(heads[i], cs, q, tmpseen);
 				break;
@@ -1651,7 +1672,7 @@ const litlist& IDSolver::getCFJustificationAggr(Var v) const {
  */
 void IDSolver::cycleSourceAggr(Var v, litlist& just) {
 	bool alljustifiedexternally = true;
-	for (int i = 0; alljustifiedexternally && i < just.size(); ++i) {
+	for (vsize i = 0; alljustifiedexternally && i < just.size(); ++i) {
 		if (isDefInPosGraph(var(just[i])) && inSameSCC(v, var(just[i]))) {
 			alljustifiedexternally = false;
 		}
@@ -1669,7 +1690,7 @@ inline void IDSolver::print(const PropRule& c) const {
 	Lit head = c.getHead();
 	MinisatID::print(head, value(head));
 	report(" <- ");
-	for (int i = 0; i < c.size(); ++i) {
+	for (vsize i = 0; i < c.size(); ++i) {
 		MinisatID::print(c[i], value(c[i]));
 		fprintf(stderr, " ");
 	}
@@ -1721,18 +1742,18 @@ bool IDSolver::isCycleFree() const {
 				if (value(i) == l_True) {
 					assert(value(justification(i)[0])!=l_False);
 				} else {
-					for (int j = 0; j < definition(i)->size(); ++j) {
+					for (vsize j = 0; j < definition(i)->size(); ++j) {
 						assert(value(definition(i)->operator [](j))!=l_True);
 					}
 				}
 			} else {
 				if (value(i) == l_True) {
-					for (int j = 0; j < definition(i)->size(); ++j) {
+					for (vsize j = 0; j < definition(i)->size(); ++j) {
 						assert(value(definition(i)->operator [](j))!=l_False);
 					}
 				} else {
 					bool found = false;
-					for (int j = 0; !found && j < definition(i)->size(); ++j) {
+					for (vsize j = 0; !found && j < definition(i)->size(); ++j) {
 						if (value(definition(i)->operator [](j)) != l_True) {
 							found = true;
 						}
@@ -1826,9 +1847,8 @@ bool IDSolver::isCycleFree() const {
 				;
 
 			if (i < nbvars) {
-				varlist cycle;
-				cycle.push_back(i);
-				int idx = 0;
+				varlist cycle{i};
+				vsize idx = 0;
 				while (idx < cycle.size()) {
 					Var v = cycle[idx++];
 					if (type(v) == DISJ) {
@@ -1843,7 +1863,7 @@ bool IDSolver::isCycleFree() const {
 							report("C %d has", getPrintableVar(v));
 						}
 						const PropRule& c = *definition(v);
-						for (int j = 0; j < c.size(); ++j) {
+						for (vsize j = 0; j < c.size(); ++j) {
 							Var vj = var(c[j]);
 							if (c[j] != c.getHead() && isPositive(c[j]) && (isfree[vj] != 0 || printed[vj])) {
 								if (verbosity() > 2) {
@@ -1865,7 +1885,7 @@ bool IDSolver::isCycleFree() const {
 					}
 					printed[v] = true;
 				}
-				for (int j = 0; j < cycle.size(); ++j) {
+				for (vsize j = 0; j < cycle.size(); ++j) {
 					isfree[cycle[j]] = 0;
 				}
 			}
@@ -2061,7 +2081,7 @@ void IDSolver::visitWF(Var v, varlist &root, vector<bool> &incomp, stack<Var> &s
 		 }*/
 	} else if ((headtrue && isConjunctive(v)) || (!headtrue && isDisjunctive(v))) {
 		//head is false and disj, or head is true and conj: all body literals are its justification
-		for (int i = 0; i < definition(v)->size(); ++i) {
+		for (vsize i = 0; i < definition(v)->size(); ++i) {
 			Lit l = definition(v)->operator [](i);
 			Var w = var(l);
 			if (!isDefined(w)) {
@@ -2082,7 +2102,7 @@ void IDSolver::visitWF(Var v, varlist &root, vector<bool> &incomp, stack<Var> &s
 		//			If there is, it will be found later if another false literal exists without a mixed loop.
 		Lit l = mkLit(-1);
 		if (isConjunctive(v)) {
-			for (int i = 0; i < definition(v)->size(); ++i) {
+			for (vsize i = 0; i < definition(v)->size(); ++i) {
 				Lit l2 = definition(v)->operator [](i);
 				if (isFalse(l2)) {
 					l = l2;
@@ -2090,7 +2110,7 @@ void IDSolver::visitWF(Var v, varlist &root, vector<bool> &incomp, stack<Var> &s
 				}
 			}
 		} else {
-			for (int i = 0; i < definition(v)->size(); ++i) {
+			for (vsize i = 0; i < definition(v)->size(); ++i) {
 				Lit l2 = definition(v)->operator [](i);
 				if (isTrue(l2)) {
 					l = l2;
@@ -2210,7 +2230,7 @@ void IDSolver::initializeCounters() {
 		Var v = *i;
 		seen(v) = 0;
 		bool canbepropagated = false;
-		for (int j = 0; !canbepropagated && j < definition(v)->size(); ++j) {
+		for (vsize j = 0; !canbepropagated && j < definition(v)->size(); ++j) {
 			Lit bl = definition(v)->operator [](j);
 			if (wfisMarked[var(bl)]) {
 				++seen(v);
@@ -2313,8 +2333,8 @@ void IDSolver::overestimateCounters() {
 		Var v = *i;
 		assert(seen(v) > 0);
 
-		for (int j = 0; j < definition(v)->size(); ++j) {
-			Lit bdl = definition(v)->operator [](j);
+		for (vsize j = 0; j < definition(v)->size(); ++j) {
+			const Lit& bdl = definition(v)->operator [](j);
 			if (wfisMarked[var(bdl)] && !isPositive(bdl) && v != var(bdl)) {
 				if (type(v) == CONJ) {
 					seen(v)--;
@@ -2386,8 +2406,9 @@ void IDSolver::changeJustificationsTarjan(Var definednode, Lit firstjustificatio
 	while (queue.size() > 0) {
 		Lit just = queue.back();
 		queue.pop_back();
-		for (int i = 0; i < network[visitedAtTarjan(var(just), vis)].size(); ++i) {
-			Lit t = network[visitedAtTarjan(var(just), vis)][i];
+		auto list = network[visitedAtTarjan(var(just), vis)];
+		for (auto i=list.begin(); i!=list.end(); ++i) {
+			const Lit& t = *i;
 			if (!hasJustificationTarjan(var(t), vis)) {
 				litlist j;
 				j.push_back(just);
@@ -2440,7 +2461,7 @@ UFS IDSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, varli
 	Lit definedChild;
 	bool childfound = false;
 
-	for (int i = 0; i < c->size(); ++i) {
+	for (vsize i = 0; i < c->size(); ++i) {
 		DefType childtype = type(var(c->operator [](i)));
 		Lit l = c->operator [](i);
 		if (var(l) == v) {
@@ -2487,7 +2508,7 @@ UFS IDSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, varli
 			}
 		}
 	} else { //DISJ, have returned from all others
-		for (int i = 0; i < c->size(); ++i) {
+		for (vsize i = 0; i < c->size(); ++i) {
 			Var child = var(c->operator [](i));
 			if (child == v) {
 				continue;
@@ -2543,7 +2564,7 @@ UFS IDSolver::visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, varli
 			return UFSFOUND;
 		} else {
 			int containsx = 0;
-			for (int i = 0; i < c->size(); ++i) {
+			for (vsize i = 0; i < c->size(); ++i) {
 				if (x == var(c->operator [](i))) {
 					++containsx;
 				}
@@ -2774,140 +2795,3 @@ bool IDSolver::isInitiallyJustified(const IDAgg& agg){
 	}
 	return false;
 }
-
-//TARJAN ALGORITHM FOR FINDING UNFOUNDED SETS IN GENERAL INDUCTIVE DEFINITIONS (NOT ONLY SINGLE CONJUNCTS). THIS DOES NOT WORK YET
-///////////////
-////Finding unfounded checks by
-////Generalized tarjanUFS
-////DOES NOT WORK WITH AGGREGATES
-////justification is een subgrafe van de dependency grafe
-//UFS IDSolver::visitForUFSgeneral(Var v, Var cs, std::set<Var>& ufs, int visittime, varlist& stack, varlist& root, varlist& visited, vector<bool>& incomp){
-//	visited[v]=visittime;visittime++;root[v]=v;
-//
-//	DefType type = type(v);
-//
-//	if(type==AGGR){return OLDCHECK;}
-//	assert(type==CONJ || type==DISJ);
-//
-//	CCC c = definition[v];
-//	//PropRule* c = definition[v];
-//
-//	for(int i=0; i<c->size(); ++i){
-//		DefType childtype = defType[var(c->operator [](i))];
-//		Lit l = c->operator [](i);
-//		if(var(l)==v){ continue; } //rule head or identical body atom
-//		if(childtype==AGGR){return OLDCHECK;}
-//		if(childtype==NONDEF || scc[var(l)]!=scc[v] || incomp[var(l)] /*|| STILL JUSTIFIED*/){
-//			if(value(l)!=l_False && type==DISJ){
-//				incomp[v]=true;
-//				//change_jstfc_disj(v, l);
-//				return NOTUNFOUNDED;
-//			}
-//		}
-//	}
-//
-//	stack.push_back(v);
-//
-//	int notunfoundedchildren = 0;
-//	int totaldefined = 0;
-//	bool notunfounded = false, stop = false;
-//
-//	for(int i=0; i<c->size(); ++i){
-//		Var child = var(c->operator [](i));
-//		if(child==v){continue;}
-//		if(!(defType[child]==CONJ || defType[child]==DISJ)){continue;}
-//		totaldefined++;
-//		if(visited[child]==-1){
-//			switch(visitForUFSgeneral(child, cs, ufs, visittime, stack, root, visited, incomp)){
-//			case STILLPOSSIBLE:
-//				//if CONJ and the child's parent was visited earlier than this node,
-//				//then return higher, because no other conjunct has to be visited to find a UFS if the loop goes higher
-//				//if this is the highest visited node, there is a loop which starts here so UFS, so stop
-//				if(type==CONJ){
-//					if(visited[root[child]]<visited[v]){
-//						return STILLPOSSIBLE;
-//					}else if(visited[root[child]]==visited[v]){
-//						stop = true;
-//					}
-//				}
-//				break;
-//			case NOTUNFOUNDED:
-//				if(type == CONJ){
-//					notunfoundedchildren++;
-//				}else{
-//					//change_jstfc_disj(v, c->operator [](i));
-//					notunfounded = true;
-//				}
-//				break;
-//			case UFSFOUND:
-//				return UFSFOUND;
-//			case OLDCHECK:
-//				return OLDCHECK;
-//			}
-//		}
-//		if(notunfounded || stop){
-//			break;
-//		}
-//		if(!incomp[child] && visited[root[child]]<visited[v]){
-//			root[v]=root[child];
-//		}
-//	}
-//
-//	if(type == CONJ && notunfoundedchildren==totaldefined){
-//		notunfounded = true;
-//		//do something with justifications for CONJ, or not necessary?
-//	}
-//
-//	if(notunfounded){
-//		//change justification of this node and of anything above x on the stack
-//		Var x = stack.last();
-//		while(x!=v){
-//			incomp[x]=true;
-//			/*if(defType[x]==DISJ){
-//				//change the justification randomly to one of the body literals CHECK IF THIS IS CORRECT
-//				Queue<Var> q;
-//				Justify(v, cs, ufs, q);
-//			}*/
-//			stack.pop();
-//			x=stack.last();
-//		}
-//
-//		return NOTUNFOUNDED;
-//	}else {
-//		if(root[v]==v){
-//			bool allfalse = true;
-//
-//			Var x;
-//			do{
-//				x = stack.last();
-//				if(value(x)!=l_False){allfalse = false;}
-//				ufs.insert(x);
-//				incomp[x]=true;
-//				stack.pop();
-//			}while(x!=v);
-//
-//			if(allfalse){
-//				ufs.clear();
-//				return STILLPOSSIBLE;
-//			}
-//			if(ufs.size()>1){
-//				return UFSFOUND;
-//			}else{
-//				int containsx = 0;
-//				for(int i=0; i<c->size(); ++i){
-//					if(x==var(c->operator [](i))){
-//						containsx++;
-//					}
-//				}
-//				if(containsx>1){ //there is a loop of length 1, so x itself is an UFS
-//					return UFSFOUND;
-//				}else{//no loops, x is only an SCC, not a UFS
-//					ufs.clear();
-//					return STILLPOSSIBLE;
-//				}
-//			}
-//		}else{
-//			return STILLPOSSIBLE;
-//		}
-//	}
-//}

@@ -49,8 +49,6 @@ namespace MinisatID {
 	using Minisat::Var;
 	using Minisat::Lit;
 	using Minisat::var;
-	using Minisat::toLit;
-	using Minisat::toInt;
 
 	extern rClause nullPtrClause;
 	pClause getClauseRef(rClause rc);

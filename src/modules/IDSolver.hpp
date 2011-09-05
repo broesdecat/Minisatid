@@ -43,7 +43,7 @@ private:
 public:
     PropRule(Lit head, const litlist& ps): head(var(head)), lits(ps){}
 
-    int 	size() 				const	{ return lits.size(); }
+    vsize 	size() 				const	{ return lits.size(); }
     Lit 	getHead() 			const	{ return mkLit(head, false); }
     Lit 	operator [](int i) 	const	{ return lits[i]; }
     litlist::const_iterator begin()	const 	{ return lits.begin(); }
@@ -114,7 +114,7 @@ public:
 	const DefOcc& 			occ()const { return _occ; }
 	bool					isCS()const { return _isCS; }
 	int						scc()const { return _scc; }
-	const litlist& 		justification()const { return _justification; }
+	const litlist& 			justification()const { return _justification; }
 };
 
 class IDSolver: public Propagator{

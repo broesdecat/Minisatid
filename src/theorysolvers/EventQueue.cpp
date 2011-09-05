@@ -39,7 +39,7 @@ EventQueue::~EventQueue() {
 	for(uint i=0; i<size(EV_EXITCLEANLY); ++i){
 		delete(props[i]);
 	}
-	deleteList<Watch>(lit2watches);
+	deleteList<GenWatch>(lit2watches);
 }
 
 void EventQueue::notifyVarAdded(){
@@ -92,11 +92,8 @@ void EventQueue::accept(Propagator* propagator, const Lit& litevent, PRIORITY pr
 }
 
 // TODO turn lits into litwatches and add accepted flag?
-void EventQueue::accept(Watch* watch){
+void EventQueue::accept(GenWatch* const watch){
 	lit2watches[toInt(watch->getPropLit())].push_back(watch);
-	if(getPCSolver().value(watch->getPropLit())==l_True){
-		watch->propagate();
-	}
 }
 
 void EventQueue::setTrue(const proplist& list, queue<Propagator*>& queue){
@@ -117,11 +114,14 @@ void EventQueue::setTrue(const Lit& l){
 	for(vsize i=0; i!=lit2watches[toInt(l)].size(); ++i){
 		lit2watches[toInt(l)][i]->propagate();
 	}
+	// TODO should be sped up a lot
+	watchlist remwatches;
 	for(auto i=lit2watches[toInt(l)].begin(); i!=lit2watches[toInt(l)].end(); ++i){
-		if((*i)->dynamic()){
-			i = lit2watches[toInt(l)].erase(i);
+		if(not (*i)->dynamic()){
+			remwatches.push_back(*i);
 		}
 	}
+	lit2watches[toInt(l)] = remwatches;
 	setTrue(lit2priority2propagators[toInt(l)][FAST], fastqueue);
 	setTrue(lit2priority2propagators[toInt(l)][SLOW], slowqueue);
 }
