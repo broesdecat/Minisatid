@@ -100,14 +100,14 @@ public:
 		aggs = remaining;
 	}
 
-	bool execute(){
+	SATVAL execute(){
 		MiniSatPP::PbSolver* pbsolver = new MiniSatPP::PbSolver();
 		MiniSatPP::opt_verbosity = pcsolver.verbosity()-1; //Gives a bit too much output on 1
 		MiniSatPP::opt_abstract = true; //Should be true
 		MiniSatPP::opt_tare = true; //Experimentally set to true
 		MiniSatPP::opt_primes_file = pcsolver.modes().getPrimesFile().c_str();
 		MiniSatPP::opt_convert_weak = false;
-		MiniSatPP::opt_convert = MiniSatPP::ct_Sorters;
+		MiniSatPP::opt_convert = MiniSatPP::ct_BDDs;
 		pbsolver->allocConstrs(maxvar, pbaggs.size());
 
 		bool unsat = false;
@@ -119,7 +119,7 @@ public:
 		if (unsat) {
 			delete pbsolver;
 			deleteList<PBAgg>(pbaggs);
-			return false;
+			return SATVAL::UNSAT;
 		}
 
 		//get CNF out of the pseudoboolean matrix
@@ -128,7 +128,7 @@ public:
 		delete pbsolver;
 		if (unsat) {
 			deleteList<PBAgg>(pbaggs);
-			return false;
+			return SATVAL::UNSAT;
 		}
 
 		//Any literal that is larger than maxvar will have been newly introduced, so should be mapped to nVars()+lit
@@ -144,7 +144,7 @@ public:
 		}
 
 		deleteList<PBAgg>(pbaggs);
-		return true;
+		return pcsolver.isUnsat();
 	}
 };
 

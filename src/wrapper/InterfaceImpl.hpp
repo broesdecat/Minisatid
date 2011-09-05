@@ -114,7 +114,7 @@ public:
 	void 	notifyMonitor(const T& obj);
 
 protected:
-	bool 	finishParsing	();
+	SATVAL 	finishParsing	();
 	void	setOptimization	(bool opt) { optimization = opt; }
 
 	virtual MinisatID::LogicSolver* getSolver() const = 0;
@@ -134,6 +134,7 @@ protected:
 
 private:
 	Solution& 	getSolMonitor() { return *solutionmonitor; }
+	bool		hasSolMonitor() const { return solutionmonitor!=NULL; }
 	const Solution& getSolMonitor() const { return *solutionmonitor; }
 
 	void	notifySmallestTseitin	(const Atom& tseitin);
@@ -154,35 +155,35 @@ public:
 	virtual ~PCWrapperPimpl();
 
 	template<class T>
-	bool add(const T& formula);
+	SATVAL add(const T& formula);
 
 protected:
 	virtual MinisatID::PCSolver* getSolver() const { return solver; }
 };
 
-template<> bool PCWrapperPimpl::add(const Atom& sentence);
-template<> bool PCWrapperPimpl::add(const Disjunction& sentence);
-template<> bool PCWrapperPimpl::add(const DisjunctionRef& sentence);
-template<> bool PCWrapperPimpl::add(const Equivalence& sentence);
-template<> bool PCWrapperPimpl::add(const Rule& sentence);
-template<> bool PCWrapperPimpl::add(const Set& sentence);
-template<> bool PCWrapperPimpl::add(const WSet& sentence);
-template<> bool PCWrapperPimpl::add(const WLSet& sentence);
-template<> bool PCWrapperPimpl::add(const Aggregate& sentence);
-template<> bool PCWrapperPimpl::add(const MinimizeSubset& sentence);
-template<> bool PCWrapperPimpl::add(const MinimizeOrderedList& sentence);
-template<> bool PCWrapperPimpl::add(const MinimizeVar& sentence);
-template<> bool PCWrapperPimpl::add(const CPIntVarRange& sentence);
-template<> bool PCWrapperPimpl::add(const CPIntVarEnum& sentence);
-template<> bool PCWrapperPimpl::add(const CPBinaryRel& sentence);
-template<> bool PCWrapperPimpl::add(const CPBinaryRelVar& sentence);
-template<> bool PCWrapperPimpl::add(const CPSumWeighted& sentence);
-template<> bool PCWrapperPimpl::add(const CPCount& sentence);
-template<> bool PCWrapperPimpl::add(const CPAllDiff& sentence);
-template<> bool PCWrapperPimpl::add(const ForcedChoices& sentence);
-template<> bool PCWrapperPimpl::add(const SymmetryLiterals& sentence);
-template<> bool PCWrapperPimpl::add(const Symmetry& sentence);
-template<> bool PCWrapperPimpl::add(const LazyGroundLit& sentence);
+template<> SATVAL PCWrapperPimpl::add(const Atom& sentence);
+template<> SATVAL PCWrapperPimpl::add(const Disjunction& sentence);
+template<> SATVAL PCWrapperPimpl::add(const DisjunctionRef& sentence);
+template<> SATVAL PCWrapperPimpl::add(const Equivalence& sentence);
+template<> SATVAL PCWrapperPimpl::add(const Rule& sentence);
+template<> SATVAL PCWrapperPimpl::add(const Set& sentence);
+template<> SATVAL PCWrapperPimpl::add(const WSet& sentence);
+template<> SATVAL PCWrapperPimpl::add(const WLSet& sentence);
+template<> SATVAL PCWrapperPimpl::add(const Aggregate& sentence);
+template<> SATVAL PCWrapperPimpl::add(const MinimizeSubset& sentence);
+template<> SATVAL PCWrapperPimpl::add(const MinimizeOrderedList& sentence);
+template<> SATVAL PCWrapperPimpl::add(const MinimizeVar& sentence);
+template<> SATVAL PCWrapperPimpl::add(const CPIntVarRange& sentence);
+template<> SATVAL PCWrapperPimpl::add(const CPIntVarEnum& sentence);
+template<> SATVAL PCWrapperPimpl::add(const CPBinaryRel& sentence);
+template<> SATVAL PCWrapperPimpl::add(const CPBinaryRelVar& sentence);
+template<> SATVAL PCWrapperPimpl::add(const CPSumWeighted& sentence);
+template<> SATVAL PCWrapperPimpl::add(const CPCount& sentence);
+template<> SATVAL PCWrapperPimpl::add(const CPAllDiff& sentence);
+template<> SATVAL PCWrapperPimpl::add(const ForcedChoices& sentence);
+template<> SATVAL PCWrapperPimpl::add(const SymmetryLiterals& sentence);
+template<> SATVAL PCWrapperPimpl::add(const Symmetry& sentence);
+template<> SATVAL PCWrapperPimpl::add(const LazyGroundLit& sentence);
 
 class SOWrapperPimpl: public MinisatID::WrapperPimpl{
 private:
@@ -193,22 +194,22 @@ public:
 	virtual ~SOWrapperPimpl	();
 
 	template<class T>
-	bool add(int modalid, const T& formula);
+	SATVAL add(int modalid, const T& formula);
 
 protected:
 	virtual MinisatID::SOSolver* getSolver() const { return solver; }
 };
 
-template<> bool SOWrapperPimpl::add(int modalid, const Atom& sentence);
-template<> bool SOWrapperPimpl::add(int modalid, const Disjunction& sentence);
-template<> bool SOWrapperPimpl::add(int modalid, const DisjunctionRef& sentence);
-template<> bool SOWrapperPimpl::add(int modalid, const Rule& sentence);
-template<> bool SOWrapperPimpl::add(int modalid, const Set& sentence);
-template<> bool SOWrapperPimpl::add(int modalid, const WSet& sentence);
-template<> bool SOWrapperPimpl::add(int modalid, const WLSet& sentence);
-template<> bool SOWrapperPimpl::add(int modalid, const Aggregate& sentence);
-template<> bool SOWrapperPimpl::add(int modalid, const RigidAtoms& sentence);
-template<> bool SOWrapperPimpl::add(int modalid, const SubTheory& sentence);
+template<> SATVAL SOWrapperPimpl::add(int modalid, const Atom& sentence);
+template<> SATVAL SOWrapperPimpl::add(int modalid, const Disjunction& sentence);
+template<> SATVAL SOWrapperPimpl::add(int modalid, const DisjunctionRef& sentence);
+template<> SATVAL SOWrapperPimpl::add(int modalid, const Rule& sentence);
+template<> SATVAL SOWrapperPimpl::add(int modalid, const Set& sentence);
+template<> SATVAL SOWrapperPimpl::add(int modalid, const WSet& sentence);
+template<> SATVAL SOWrapperPimpl::add(int modalid, const WLSet& sentence);
+template<> SATVAL SOWrapperPimpl::add(int modalid, const Aggregate& sentence);
+template<> SATVAL SOWrapperPimpl::add(int modalid, const RigidAtoms& sentence);
+template<> SATVAL SOWrapperPimpl::add(int modalid, const SubTheory& sentence);
 
 }
 

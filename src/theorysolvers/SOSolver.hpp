@@ -66,14 +66,14 @@ public:
 	bool 	simplify		();
 	bool 	solve			(const litlist& assumptions, const ModelExpandOptions& options);
 
-	bool	add		(int modid, Var v);
-	bool	add		(int modid, const InnerDisjunction& sentence);
-	bool	add		(int modid, const InnerRule& sentence);
-	bool	add		(int modid, const InnerWLSet& sentence);
-	bool	add		(int modid, const InnerAggregate& sentence);
-	bool	add		(int modid, const InnerReifAggregate& sentence);
-	bool	add		(int modid, const InnerRigidAtoms& sentence);
-	bool	add		(int modid, const InnerSubTheory& sentence);
+	SATVAL	add		(int modid, Var v);
+	SATVAL	add		(int modid, const InnerDisjunction& sentence);
+	SATVAL	add		(int modid, const InnerRule& sentence);
+	SATVAL	add		(int modid, const InnerWLSet& sentence);
+	SATVAL	add		(int modid, const InnerAggregate& sentence);
+	SATVAL	add		(int modid, const InnerReifAggregate& sentence);
+	SATVAL	add		(int modid, const InnerRigidAtoms& sentence);
+	SATVAL	add		(int modid, const InnerSubTheory& sentence);
 
 	virtual void	notifyNonDecisionVar(Var var) { }//FIXME
 

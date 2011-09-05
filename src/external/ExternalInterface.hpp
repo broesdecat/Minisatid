@@ -63,7 +63,7 @@ public:
 	virtual ~WrappedPCSolver();
 
 	template<class T>
-	bool	add(const T& sentence);
+	SATVAL	add(const T& sentence);
 
 protected:
 	WrapperPimpl* getImpl() const;
@@ -80,7 +80,7 @@ public:
 	virtual ~WrappedSOSolver();
 
 	template<class T>
-	bool	add		(int modid, const T& sentence);
+	SATVAL	add		(int modid, const T& sentence);
 
 protected:
 	WrapperPimpl* getImpl		() const;

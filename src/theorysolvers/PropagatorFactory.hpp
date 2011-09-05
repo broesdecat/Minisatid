@@ -166,7 +166,7 @@ public:
 
 	int newSetID();
 
-	bool finishParsing();
+	SATVAL finishParsing();
 
 	void includeCPModel(std::vector<VariableEqValue>& varassignments);
 
@@ -189,7 +189,7 @@ private:
 
 	IntVar*		getIntVar(int varID) const;
 
-	bool finishSet(InnerWLSet* set, std::vector<TempAgg*>& agg);
+	SATVAL finishSet(InnerWLSet* set, std::vector<TempAgg*>& agg);
 };
 
 }

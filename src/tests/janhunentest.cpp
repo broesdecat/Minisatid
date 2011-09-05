@@ -12,12 +12,19 @@
 #include "gtest/gtest.h"
 
 #include "modules/SCCtoCNF.hpp"
-#include "utils/Utils.hpp"
 
 using namespace std;
 using namespace MinisatID;
 
+#warning something wrong with having to include this operator here (because externalinterface.cpp is not in the test sources, which it shouldnt)
+SATVAL MinisatID::operator&= (SATVAL orig, SATVAL add){
+	return (orig==SATVAL::UNSAT||add==SATVAL::UNSAT)? SATVAL::UNSAT: SATVAL::POS_SAT;
+}
+
+namespace MinisatID{
+
 namespace Tests{
+
 	struct SolverMOC{
 	private: int start;
 	public:
@@ -27,7 +34,7 @@ namespace Tests{
 		int newVar() { return start++; }
 		bool add(const InnerDisjunction& d){ disj.push_back(new InnerDisjunction(d)); return true; }
 		bool add(const InnerEquivalence& eq){ eqs.push_back(new InnerEquivalence(eq)); return true; }
-		bool isUnsat() const { return false; }
+		SATVAL isUnsat() const { return SATVAL::POS_SAT; }
 	};
 
 
@@ -51,4 +58,6 @@ namespace Tests{
 		bool notunsat = MinisatID::toCNF::transformSCCtoCNF<SolverMOC>(moc, rules);
 		EXPECT_TRUE(notunsat);
 	}
+}
+
 }

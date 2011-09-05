@@ -101,7 +101,8 @@ WrapperPimpl::WrapperPimpl(const SolverOption& modes):
 		optimization(false),
 		state(INIT),
 		_modes(modes),
-		remapper(/*modes.remap?*/new SmartRemapper()/*:new Remapper()*/)
+		remapper(/*modes.remap?*/new SmartRemapper()/*:new Remapper()*/),
+		solutionmonitor(NULL)
 		{
 }
 
@@ -120,7 +121,9 @@ void WrapperPimpl::setSolutionMonitor(Solution* sol) {
 }
 
 void WrapperPimpl::printStatistics() const {
-	getSolMonitor().printStatistics();
+	if(hasSolMonitor()){
+		getSolMonitor().printStatistics();
+	}
 	getSolver()->printStatistics();
 }
 
@@ -181,25 +184,27 @@ void WrapperPimpl::checkAtoms(const std::map<Atom, Atom>& atoms, std::map<Var, V
 	}
 }
 
-bool WrapperPimpl::finishParsing(){
-	if(solutionmonitor==NULL){
-		throw idpexception("Solving without instantiating any solution monitor.\n");
+SATVAL WrapperPimpl::finishParsing(){
+	if(hasSolMonitor()){
+		getSolMonitor().notifyStartDataInit();
+		printInitDataStart(verbosity());
 	}
-
-	getSolMonitor().notifyStartDataInit();
-	printInitDataStart(verbosity());
 
 	bool unsat = false;
 	getSolver()->finishParsing(unsat);
 	if(unsat){
-		getSolMonitor().notifyUnsat();
+		if(hasSolMonitor()){
+			getSolMonitor().notifyUnsat();
+		}
 	}
 	state = PARSED;
 
-	getSolMonitor().notifyEndDataInit();
-	printInitDataEnd(verbosity(), getSolMonitor().isUnsat());
+	if(hasSolMonitor()){
+		getSolMonitor().notifyEndDataInit();
+		printInitDataEnd(verbosity(), getSolMonitor().isUnsat());
+	}
 
-	return !getSolMonitor().isUnsat();
+	return unsat?SATVAL::UNSAT:SATVAL::POS_SAT;
 }
 
 /*
@@ -218,7 +223,7 @@ void WrapperPimpl::solve(){
 	}
 
 	if(!getSolMonitor().isUnsat() && state==INIT){
-		if(!finishParsing()){
+		if(finishParsing()==SATVAL::UNSAT){
 			getSolMonitor().notifyUnsat();
 		}
 	}
@@ -320,13 +325,13 @@ PCWrapperPimpl::~PCWrapperPimpl(){
 }
 
 template<>
-bool PCWrapperPimpl::add(const Atom& v){
+SATVAL PCWrapperPimpl::add(const Atom& v){
 	getSolver()->add(checkAtom(v));
-	return true;
+	return SATVAL::POS_SAT;
 }
 
 template<>
-bool PCWrapperPimpl::add(const Disjunction& sentence){
+SATVAL PCWrapperPimpl::add(const Disjunction& sentence){
 	InnerDisjunction d;
 	checkLits(sentence.literals, d.literals);
 	getSolver()->add(d);
@@ -334,7 +339,7 @@ bool PCWrapperPimpl::add(const Disjunction& sentence){
 }
 
 template<>
-bool PCWrapperPimpl::add(const DisjunctionRef& sentence){
+SATVAL PCWrapperPimpl::add(const DisjunctionRef& sentence){
 	InnerDisjunction d;
 	checkLits(sentence.literals, d.literals);
 	getSolver()->add(d);
@@ -342,7 +347,7 @@ bool PCWrapperPimpl::add(const DisjunctionRef& sentence){
 }
 
 template<>
-bool PCWrapperPimpl::add(const Equivalence& sentence){
+SATVAL PCWrapperPimpl::add(const Equivalence& sentence){
 	InnerEquivalence eq;
 	eq.head = checkLit(sentence.head);
 	checkLits(sentence.body, eq.literals);
@@ -352,7 +357,7 @@ bool PCWrapperPimpl::add(const Equivalence& sentence){
 }
 
 template<>
-bool PCWrapperPimpl::add(const Rule& sentence){
+SATVAL PCWrapperPimpl::add(const Rule& sentence){
 	InnerRule rule;
 	rule.head = checkAtom(sentence.head);
 	rule.definitionID = sentence.definitionID;
@@ -363,7 +368,7 @@ bool PCWrapperPimpl::add(const Rule& sentence){
 }
 
 template<>
-bool PCWrapperPimpl::add(const Set& sentence){
+SATVAL PCWrapperPimpl::add(const Set& sentence){
 	WSet set;
 	set.setID = sentence.setID;
 	set.type = sentence.type;
@@ -374,7 +379,7 @@ bool PCWrapperPimpl::add(const Set& sentence){
 }
 
 template<>
-bool PCWrapperPimpl::add(const WSet& sentence){
+SATVAL PCWrapperPimpl::add(const WSet& sentence){
 	WLSet set;
 	set.setID = sentence.setID;
 	set.type = sentence.type;
@@ -386,7 +391,7 @@ bool PCWrapperPimpl::add(const WSet& sentence){
 }
 
 template<>
-bool PCWrapperPimpl::add(const WLSet& sentence){
+SATVAL PCWrapperPimpl::add(const WLSet& sentence){
 	vector<WL> wls;
 	for(auto i=sentence.wl.begin(); i<sentence.wl.end(); ++i){
 		wls.push_back(WL(checkLit((*i).l), (*i).w));
@@ -397,7 +402,7 @@ bool PCWrapperPimpl::add(const WLSet& sentence){
 }
 
 template<>
-bool PCWrapperPimpl::add(const Aggregate& sentence){
+SATVAL PCWrapperPimpl::add(const Aggregate& sentence){
 	InnerReifAggregate agg;
 	agg.setID = sentence.setID;
 	agg.head = checkAtom(sentence.head);
@@ -411,7 +416,7 @@ bool PCWrapperPimpl::add(const Aggregate& sentence){
 }
 
 template<>
-bool PCWrapperPimpl::add(const MinimizeSubset& sentence){
+SATVAL PCWrapperPimpl::add(const MinimizeSubset& sentence){
 	InnerMinimizeSubset mnm;
 	checkLits(sentence.literals, mnm.literals);
 	setOptimization(true);
@@ -420,7 +425,7 @@ bool PCWrapperPimpl::add(const MinimizeSubset& sentence){
 }
 
 template<>
-bool PCWrapperPimpl::add(const MinimizeOrderedList& sentence){
+SATVAL PCWrapperPimpl::add(const MinimizeOrderedList& sentence){
 	InnerMinimizeOrderedList mnm;
 	checkLits(sentence.literals, mnm.literals);
 	setOptimization(true);
@@ -429,7 +434,7 @@ bool PCWrapperPimpl::add(const MinimizeOrderedList& sentence){
 }
 
 template<>
-bool PCWrapperPimpl::add(const MinimizeVar& sentence){
+SATVAL PCWrapperPimpl::add(const MinimizeVar& sentence){
 	InnerMinimizeVar mnm;
 	mnm.varID = sentence.varID;
 	setOptimization(true);
@@ -438,7 +443,7 @@ bool PCWrapperPimpl::add(const MinimizeVar& sentence){
 }
 
 template<>
-bool PCWrapperPimpl::add(const ForcedChoices& sentence){
+SATVAL PCWrapperPimpl::add(const ForcedChoices& sentence){
 	InnerForcedChoices choices;
 	checkLits(sentence.forcedchoices, choices.forcedchoices);
 	getSolver()->add(choices);
@@ -446,7 +451,7 @@ bool PCWrapperPimpl::add(const ForcedChoices& sentence){
 }
 
 template<>
-bool PCWrapperPimpl::add(const SymmetryLiterals& sentence){
+SATVAL PCWrapperPimpl::add(const SymmetryLiterals& sentence){
 	InnerSymmetryLiterals symms;
 	checkLits(sentence.symmgroups, symms.literalgroups);
 	getSolver()->add(symms);
@@ -454,7 +459,7 @@ bool PCWrapperPimpl::add(const SymmetryLiterals& sentence){
 }
 
 template<>
-bool PCWrapperPimpl::add(const Symmetry& sentence){
+SATVAL PCWrapperPimpl::add(const Symmetry& sentence){
 	InnerSymmetry symms;
 	checkAtoms(sentence.symmetry, symms.symmetry);
 	getSolver()->add(symms);
@@ -462,7 +467,7 @@ bool PCWrapperPimpl::add(const Symmetry& sentence){
 }
 
 template<>
-bool PCWrapperPimpl::add(const LazyGroundLit& sentence){
+SATVAL PCWrapperPimpl::add(const LazyGroundLit& sentence){
 	InnerLazyClause lc;
 	lc.monitor = sentence.monitor;
 	lc.residual = checkLit(sentence.residual);
@@ -478,7 +483,7 @@ void checkCPSupport(){
 }
 
 template<>
-bool PCWrapperPimpl::add(const CPIntVarEnum& sentence){
+SATVAL PCWrapperPimpl::add(const CPIntVarEnum& sentence){
 	checkCPSupport();
 	InnerIntVarEnum var;
 	var.varID = sentence.varID;
@@ -487,7 +492,7 @@ bool PCWrapperPimpl::add(const CPIntVarEnum& sentence){
 	return getSolver()->isUnsat();
 }
 template<>
-bool PCWrapperPimpl::add(const CPIntVarRange& sentence){
+SATVAL PCWrapperPimpl::add(const CPIntVarRange& sentence){
 	InnerIntVarRange var;
 	var.varID = sentence.varID;
 	var.minvalue = sentence.minvalue;
@@ -496,7 +501,7 @@ bool PCWrapperPimpl::add(const CPIntVarRange& sentence){
 	return getSolver()->isUnsat();
 }
 template<>
-bool PCWrapperPimpl::add(const CPBinaryRel& sentence){
+SATVAL PCWrapperPimpl::add(const CPBinaryRel& sentence){
 	checkCPSupport();
 	InnerCPBinaryRel form;
 	form.head = checkAtom(sentence.head);
@@ -507,7 +512,7 @@ bool PCWrapperPimpl::add(const CPBinaryRel& sentence){
 	return getSolver()->isUnsat();
 }
 template<>
-bool PCWrapperPimpl::add(const CPBinaryRelVar& sentence){
+SATVAL PCWrapperPimpl::add(const CPBinaryRelVar& sentence){
 	InnerCPBinaryRelVar form;
 	form.head = checkAtom(sentence.head);
 	form.lhsvarID = sentence.lhsvarID;
@@ -517,7 +522,7 @@ bool PCWrapperPimpl::add(const CPBinaryRelVar& sentence){
 	return getSolver()->isUnsat();
 }
 template<>
-bool PCWrapperPimpl::add(const CPSumWeighted& sentence){
+SATVAL PCWrapperPimpl::add(const CPSumWeighted& sentence){
 	checkCPSupport();
 	InnerCPSumWeighted form;
 	form.head = checkAtom(sentence.head);
@@ -529,7 +534,7 @@ bool PCWrapperPimpl::add(const CPSumWeighted& sentence){
 	return getSolver()->isUnsat();
 }
 template<>
-bool PCWrapperPimpl::add(const CPCount& sentence){
+SATVAL PCWrapperPimpl::add(const CPCount& sentence){
 	checkCPSupport();
 	InnerCPCount form;
 	form.varIDs = sentence.varIDs;
@@ -540,7 +545,7 @@ bool PCWrapperPimpl::add(const CPCount& sentence){
 	return getSolver()->isUnsat();
 }
 template<>
-bool PCWrapperPimpl::add(const CPAllDiff& sentence){
+SATVAL PCWrapperPimpl::add(const CPAllDiff& sentence){
 	checkCPSupport();
 	InnerCPAllDiff form;
 	form.varIDs = sentence.varIDs;
@@ -559,26 +564,26 @@ SOWrapperPimpl::~SOWrapperPimpl(){
 }
 
 template<>
-bool SOWrapperPimpl::add(int modid, const Atom& v){
+SATVAL SOWrapperPimpl::add(int modid, const Atom& v){
 	return getSolver()->add(modid, checkAtom(v));
 }
 
 template<>
-bool SOWrapperPimpl::add(int modid, const Disjunction& sentence){
+SATVAL SOWrapperPimpl::add(int modid, const Disjunction& sentence){
 	InnerDisjunction d;
 	checkLits(sentence.literals, d.literals);
 	return getSolver()->add(modid, d);
 }
 
 template<>
-bool SOWrapperPimpl::add(int modid, const DisjunctionRef& sentence){
+SATVAL SOWrapperPimpl::add(int modid, const DisjunctionRef& sentence){
 	InnerDisjunction d;
 	checkLits(sentence.literals, d.literals);
 	return getSolver()->add(modid, d);
 }
 
 template<>
-bool SOWrapperPimpl::add(int modid, const Rule& sentence){
+SATVAL SOWrapperPimpl::add(int modid, const Rule& sentence){
 	InnerRule rule;
 	rule.head = checkAtom(sentence.head);
 	rule.definitionID = sentence.definitionID;
@@ -588,7 +593,7 @@ bool SOWrapperPimpl::add(int modid, const Rule& sentence){
 }
 
 template<>
-bool SOWrapperPimpl::add(int modid, const Set& sentence){
+SATVAL SOWrapperPimpl::add(int modid, const Set& sentence){
 	vector<Weight> weights = vector<Weight>(sentence.literals.size(), 1);
 	InnerWLSet set(sentence.type, sentence.setID, vector<WL>());
 	for(auto i=sentence.literals.begin(); i!=sentence.literals.end(); ++i){
@@ -598,7 +603,7 @@ bool SOWrapperPimpl::add(int modid, const Set& sentence){
 }
 
 template<>
-bool SOWrapperPimpl::add(int modid, const WSet& sentence){
+SATVAL SOWrapperPimpl::add(int modid, const WSet& sentence){
 	InnerWLSet set(sentence.type, sentence.setID, vector<WL>());
 	for(uint i=0; i!=sentence.literals.size(); ++i){
 		set.wls.push_back(WL(checkLit(sentence.literals[i]), sentence.weights[i]));
@@ -607,7 +612,7 @@ bool SOWrapperPimpl::add(int modid, const WSet& sentence){
 }
 
 template<>
-bool SOWrapperPimpl::add(int modid, const WLSet& sentence){
+SATVAL SOWrapperPimpl::add(int modid, const WLSet& sentence){
 	InnerWLSet set(sentence.type, sentence.setID, vector<WL>());
 	for(vector<WLtuple>::const_iterator i=sentence.wl.begin(); i<sentence.wl.end(); ++i){
 		set.wls.push_back(WL(checkLit((*i).l),(*i).w));
@@ -616,7 +621,7 @@ bool SOWrapperPimpl::add(int modid, const WLSet& sentence){
 }
 
 template<>
-bool SOWrapperPimpl::add(int modid, const Aggregate& sentence){
+SATVAL SOWrapperPimpl::add(int modid, const Aggregate& sentence){
 	InnerReifAggregate agg;
 	agg.setID = sentence.setID;
 	agg.head = checkAtom(sentence.head);
@@ -629,14 +634,14 @@ bool SOWrapperPimpl::add(int modid, const Aggregate& sentence){
 }
 
 template<>
-bool SOWrapperPimpl::add(int modalid, const RigidAtoms& sentence){
+SATVAL SOWrapperPimpl::add(int modalid, const RigidAtoms& sentence){
 	InnerRigidAtoms rigid;
 	checkAtoms(sentence.rigidatoms, rigid.rigidatoms);
 	return getSolver()->add(modalid, rigid);
 }
 
 template<>
-bool SOWrapperPimpl::add(int modalid, const SubTheory& sentence){
+SATVAL SOWrapperPimpl::add(int modalid, const SubTheory& sentence){
 	InnerSubTheory subtheory;
 	subtheory.child = sentence.child;
 	subtheory.head = checkLit(sentence.head);

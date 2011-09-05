@@ -167,7 +167,7 @@ public:
 	void 		add(const T& sentence){ getFactory().add(sentence); }
 	void		createVar(Var v);
 
-	bool 		isUnsat() const;
+	SATVAL 		isUnsat() const;
 	void		notifyUnsat();
 
 	void		addOptimization(Optim type, Var head);
@@ -196,7 +196,7 @@ private:
 
 	// SOLVING
 	bool 		findNext		(const Minisat::vec<Lit>& assumpts, const ModelExpandOptions& options);
-	bool    	invalidateModel	(InnerDisjunction& clause);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
+	SATVAL    	invalidateModel	(InnerDisjunction& clause);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
 	void 		invalidate		(InnerDisjunction& clause);
 
 	// OPTIMIZATION

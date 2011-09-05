@@ -55,7 +55,7 @@ template<class T> bool DefaultCallback<T>::metaData(int nbvar, int nbconstr) {
 	dummyhead = Atom(++maxvar);
 	Disjunction clause;
 	clause.literals.push_back(Literal(dummyhead, false));
-	return getSolver()->add(clause);
+	return getSolver()->add(clause)==SATVAL::POS_SAT;
 }
 
 /**
@@ -75,13 +75,13 @@ template<class T> bool DefaultCallback<T>::endObjective() {
 	/* FIXME
 	setid++;
 	wset.setID = setid;
-	possat &= getSolver()->add(wset);
+	possat &= getSolver()->add(wset)==SATVAL::POS_SAT;
 	wset = WSet();
 
 	/* FIXME
 	MinimizeVar mnm;
 	mnm.varID = varID;
-	possat &= getSolver()->add(mnm);
+	possat &= getSolver()->add(mnm)==SATVAL::POS_SAT;
 	 */
 
 	return possat;
@@ -118,7 +118,7 @@ template<class T> void DefaultCallback<T>::beginConstraint() {
 }
 
 template<class T> bool DefaultCallback<T>::endConstraint() {
-	bool posssat = true;
+	SATVAL posssat = SATVAL::POS_SAT;
 	setid++;
 	wset.setID = setid;
 	posssat &= getSolver()->add(wset);
@@ -142,7 +142,7 @@ template<class T> bool DefaultCallback<T>::endConstraint() {
 		agg.sign = AGGSIGN_LB;
 		posssat &= getSolver()->add(agg);
 	}
-	return posssat;
+	return posssat==SATVAL::POS_SAT;
 }
 
 template<class T> Literal DefaultCallback<T>::createLiteralFromOPBVar(int var){

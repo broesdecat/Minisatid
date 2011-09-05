@@ -83,7 +83,7 @@ public:
 	 * 			For this, we need to be sure what the maximum numbers are!
 	 */
 	template<class T>
-	bool 	add				(const T& formula);
+	SATVAL 	add				(const T& formula);
 
 	void	finishParsing	();
 
@@ -130,25 +130,25 @@ template<> void FlatZincRewriter::checkOnlyPos(const std::vector<Literal>& lits)
 template<> void FlatZincRewriter::check(const std::vector<std::vector<Literal> >& lits);
 template<> void FlatZincRewriter::check(const std::vector<Atom>& atoms);
 
-template<> bool FlatZincRewriter::add(const literallist& lits);
-template<> bool FlatZincRewriter::add(const Disjunction& sentence);
-template<> bool FlatZincRewriter::add(const DisjunctionRef& sentence);
-template<> bool FlatZincRewriter::add(const Rule& sentence);
-template<> bool FlatZincRewriter::add(const Equivalence& sentence);
-template<> bool FlatZincRewriter::add(const Set& sentence);
-template<> bool FlatZincRewriter::add(const WSet& sentence);
-template<> bool FlatZincRewriter::add(const WLSet& sentence);
-template<> bool FlatZincRewriter::add(const Aggregate& sentence);
-template<> bool FlatZincRewriter::add(const MinimizeSubset& sentence);
-template<> bool FlatZincRewriter::add(const MinimizeOrderedList& sentence);
-template<> bool FlatZincRewriter::add(const MinimizeVar& sentence);
-template<> bool FlatZincRewriter::add(const CPIntVarRange& sentence);
-template<> bool FlatZincRewriter::add(const CPIntVarEnum& sentence);
-template<> bool FlatZincRewriter::add(const CPBinaryRel& sentence);
-template<> bool FlatZincRewriter::add(const CPBinaryRelVar& sentence);
-template<> bool FlatZincRewriter::add(const CPSumWeighted& sentence);
-template<> bool FlatZincRewriter::add(const CPCount& sentence);
-template<> bool FlatZincRewriter::add(const CPAllDiff& sentence);
+template<> SATVAL FlatZincRewriter::add(const literallist& lits);
+template<> SATVAL FlatZincRewriter::add(const Disjunction& sentence);
+template<> SATVAL FlatZincRewriter::add(const DisjunctionRef& sentence);
+template<> SATVAL FlatZincRewriter::add(const Rule& sentence);
+template<> SATVAL FlatZincRewriter::add(const Equivalence& sentence);
+template<> SATVAL FlatZincRewriter::add(const Set& sentence);
+template<> SATVAL FlatZincRewriter::add(const WSet& sentence);
+template<> SATVAL FlatZincRewriter::add(const WLSet& sentence);
+template<> SATVAL FlatZincRewriter::add(const Aggregate& sentence);
+template<> SATVAL FlatZincRewriter::add(const MinimizeSubset& sentence);
+template<> SATVAL FlatZincRewriter::add(const MinimizeOrderedList& sentence);
+template<> SATVAL FlatZincRewriter::add(const MinimizeVar& sentence);
+template<> SATVAL FlatZincRewriter::add(const CPIntVarRange& sentence);
+template<> SATVAL FlatZincRewriter::add(const CPIntVarEnum& sentence);
+template<> SATVAL FlatZincRewriter::add(const CPBinaryRel& sentence);
+template<> SATVAL FlatZincRewriter::add(const CPBinaryRelVar& sentence);
+template<> SATVAL FlatZincRewriter::add(const CPSumWeighted& sentence);
+template<> SATVAL FlatZincRewriter::add(const CPCount& sentence);
+template<> SATVAL FlatZincRewriter::add(const CPAllDiff& sentence);
 
 }
 

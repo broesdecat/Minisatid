@@ -26,6 +26,9 @@ namespace MinisatID {
 	enum DEFSEARCHSTRAT { breadth_first, depth_first }; // Unfounded set search strategy
 	enum DEFSEM { DEF_STABLE, DEF_WELLF, DEF_COMP }; 	// Definitional semantics
 
+	enum class SATVAL { UNSAT, POS_SAT};
+	SATVAL operator&= (SATVAL orig, SATVAL add);
+
 	enum POLARITY {
 		POL_TRUE,
 		POL_FALSE,

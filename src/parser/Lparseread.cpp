@@ -300,7 +300,7 @@ bool Read<T>::addBasicRules() {
 		r.body = (*i)->body;
 		r.conjunctive = (*i)->conj;
 		r.definitionID = defaultdefinitionID;
-		unsat = !getSolver()->add(r);
+		unsat = getSolver()->add(r)==SATVAL::UNSAT;
 		if (unsat) {
 			return false;
 		}
@@ -315,7 +315,7 @@ bool Read<T>::addCardRules() {
 		set.setID = (*i)->setcount;
 		set.type = CARD;
 		set.literals = (*i)->body;
-		if (!getSolver()->add(set)) {
+		if (getSolver()->add(set)==SATVAL::UNSAT) {
 			return false;
 		}
 		Aggregate agg;
@@ -326,7 +326,7 @@ bool Read<T>::addCardRules() {
 		agg.defID = defaultdefinitionID;
 		agg.type = CARD;
 		agg.sem = DEF;
-		if (!getSolver()->add(agg)) {
+		if (getSolver()->add(agg)==SATVAL::UNSAT) {
 			return false;
 		}
 	}
@@ -341,7 +341,7 @@ bool Read<T>::addSumRules() {
 		set.type = SUM;
 		set.literals = (*i)->body;
 		set.weights = (*i)->weights;
-		if (!getSolver()->add(set)) {
+		if (getSolver()->add(set)==SATVAL::UNSAT) {
 			return false;
 		}
 		Aggregate agg;
@@ -352,7 +352,7 @@ bool Read<T>::addSumRules() {
 		agg.defID = defaultdefinitionID;
 		agg.type = SUM;
 		agg.sem = DEF;
-		if (!getSolver()->add(agg)) {
+		if (getSolver()->add(agg)==SATVAL::UNSAT) {
 			return false;
 		}
 	}
@@ -384,7 +384,7 @@ bool Read<T>::tseitinizeHeads(){
 			eq.head = tempbody[0];
 			eq.conjunctive = true;
 			eq.body.push_back(Literal(head, false));
-			if(!getSolver()->add(eq)){
+			if(getSolver()->add(eq)==SATVAL::UNSAT){
 				return false;
 			}
 		}
@@ -424,7 +424,7 @@ bool Read<T>::tseitinizeHeads(){
 		if(it==headtorules.end() || (*it).second.size()==0){
 			Disjunction clause;
 			clause.literals.push_back(Literal((*i).first, true));
-			if(!getSolver()->add(clause)){
+			if(getSolver()->add(clause)==SATVAL::UNSAT){
 				return false;
 			}
 		}
@@ -443,13 +443,13 @@ bool Read<T>::addOptimStatement(){
 		set.setID = optimsetcount;
 		set.literals = optimbody;
 		set.weights = optimweights;
-		if (!getSolver()->add(set)) {
+		if (getSolver()->add(set)==SATVAL::UNSAT) {
 			return false;
 		}
 
 		MinimizeVar mnm;
 		mnm.varID = varID;
-		if(not getSolver()->add(mnm)){
+		if(getSolver()->add(mnm)==SATVAL::UNSAT){
 			return false;
 		}*/
 	}
@@ -555,7 +555,7 @@ bool Read<T>::read(istream &f) {
 
 		Disjunction clause;
 		clause.literals.push_back(Literal(makeParsedAtom(i)));
-		if (!getSolver()->add(clause)) {
+		if (getSolver()->add(clause)==SATVAL::UNSAT) {
 			return false;
 		}
 	}
@@ -581,7 +581,7 @@ bool Read<T>::read(istream &f) {
 
 		Disjunction clause;
 		clause.literals.push_back(Literal(makeParsedAtom(i), true));
-		if (!getSolver()->add(clause)) {
+		if (getSolver()->add(clause)==SATVAL::UNSAT) {
 			return false;
 		}
 	}

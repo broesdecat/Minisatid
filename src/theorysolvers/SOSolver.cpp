@@ -72,7 +72,7 @@ void SOSolver::finishParsing(bool& unsat){
 	}
 }
 
-bool SOSolver::add(int modid, const InnerSubTheory& subtheory){
+SATVAL SOSolver::add(int modid, const InnerSubTheory& subtheory){
 	assert(state==LOADINGHIER);
 
 	int child = subtheory.child;
@@ -88,9 +88,9 @@ bool SOSolver::add(int modid, const InnerSubTheory& subtheory){
 	Var head = var(subtheory.head);
 	solvers[child] = new ModSolver(child, head, this);
 	solvers[child]->setParent(modid);
-	return true;
+	return SATVAL::POS_SAT;
 }
-bool SOSolver::add(int modid, const InnerRigidAtoms& rigid){
+SATVAL SOSolver::add(int modid, const InnerRigidAtoms& rigid){
 	assert(state==LOADINGHIER);
 	//allAtoms.insert(allAtoms.end(), atoms.begin(), atoms.end());
 	checkexistsModSolver(modid);
@@ -99,7 +99,7 @@ bool SOSolver::add(int modid, const InnerRigidAtoms& rigid){
 
 //Add information for PC-Solver
 
-bool SOSolver::add(int modid, Var v){
+SATVAL SOSolver::add(int modid, Var v){
 	return getModSolverDuringAdding(modid).add(v);
 }
 
@@ -116,7 +116,7 @@ bool SOSolver::add(int modid, Var v){
  *
  * Currently done substitutions
  */
-bool SOSolver::add(int modid, const InnerDisjunction& disj){
+SATVAL SOSolver::add(int modid, const InnerDisjunction& disj){
 	if(state==LOADINGHIER){
 		state = LOADINGREST;
 	}
@@ -176,7 +176,7 @@ bool SOSolver::add(int modid, const InnerDisjunction& disj){
 			 previd = currentid;
 		}
 	}
-	bool result;
+	SATVAL result;
 	if(negated){
 		result = getModSolver(previd)->add(disj);
 	}else{
@@ -185,16 +185,16 @@ bool SOSolver::add(int modid, const InnerDisjunction& disj){
 	return result;
 }
 
-bool SOSolver::add(int modid, const InnerRule& rule){
+SATVAL SOSolver::add(int modid, const InnerRule& rule){
 	return getModSolverDuringAdding(modid).add(rule);
 }
-bool SOSolver::add(int modid, const InnerWLSet& wset){
+SATVAL SOSolver::add(int modid, const InnerWLSet& wset){
 	return getModSolverDuringAdding(modid).add(wset);
 }
-bool SOSolver::add(int modid, const InnerAggregate& agg){
+SATVAL SOSolver::add(int modid, const InnerAggregate& agg){
 	return getModSolverDuringAdding(modid).add(agg);
 }
-bool SOSolver::add(int modid, const InnerReifAggregate& agg){
+SATVAL SOSolver::add(int modid, const InnerReifAggregate& agg){
 	return getModSolverDuringAdding(modid).add(agg);
 }
 

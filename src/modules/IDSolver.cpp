@@ -103,7 +103,7 @@ void IDSolver::adaptStructsToHead(Var head){
  *
  * If only one body literal, the clause is always made conjunctive (for algorithmic correctness later on), semantics are the same.
  */
-bool IDSolver::addRule(bool conj, Var head, const litlist& ps) {
+SATVAL IDSolver::addRule(bool conj, Var head, const litlist& ps) {
 	// FIXME, when finishparsing return present=false, the IDSolver should be deleted. Currenlty it still exists and addrule can still be called
 	// (and isinitialized is still false because finishparsing was aborted)
 
@@ -146,6 +146,7 @@ bool IDSolver::addRule(bool conj, Var head, const litlist& ps) {
 		bool unsat = false;
 		finishParsing(present, unsat);
 	}
+	return getPCSolver().isUnsat();
 }
 
 void IDSolver::addDefinedAggregate(const InnerReifAggregate& inneragg, const InnerWLSet& innerset){
@@ -826,21 +827,6 @@ void IDSolver::propagateJustificationConj(const Lit& l, std::queue<Lit>& heads) 
 		}
 	}
 }
-void IDSolver::propagateJustificationConj(const Lit& l, vector<Lit>& heads) {
-	if(hasconj_occurs(l)){
-		const vector<Var>& ll = conj_occurs(l);
-		for (auto i = ll.begin(); i < ll.end(); ++i) {
-			const Var& v = *i;
-			if (isFalse(v) || seen(v) == 0) {
-				continue;
-			}
-			seen(v)--;
-			if (seen(v) == 0) {
-				heads.push_back(createPositiveLiteral(v));
-			}
-		}
-	}
-}
 
 void IDSolver::propagateJustificationConj(const Lit& l, litlist& heads) {
 	if(hasconj_occurs(l)){
@@ -1389,7 +1375,7 @@ bool IDSolver::propagateJustified(Var v, Var cs, std::set<Var>& ufs) {
 void IDSolver::changejust(Var v, litlist& just) {
 	assert(just.size()>0 || type(v)==AGGR); //justification can be empty for aggregates
 	justification(v) = just;
-	for(vint i=0; i<just.size(); ++i){
+	for(vsize i=0; i<just.size(); ++i){
 		getPCSolver().accept(this, not just[i], SLOW);
 	}
 }

@@ -917,21 +917,21 @@ Weight cWeight(string* s){
  */
 template<class T>
 void CR(int modid, const T& formula){
-	bool result = modsolver->add(modid, formula);
-	if(!result){
+	SATVAL result = modsolver->add(modid, formula);
+	if(result==SATVAL::UNSAT){
 		unsatfound = true;
 		throw idpexception("Unsat during parsing.\n");
 	}		
 }
 template<class T>
 void CR(const T& formula){
-	bool result = true;
+	SATVAL result = SATVAL::POS_SAT;
 	if(modes.transformat==TRANS_FZ){
 		fzrewriter->add(formula);
 	}else{
 		result = solver->add(formula);
 	}
-	if(!result){
+	if(result==SATVAL::UNSAT){
 		unsatfound = true;
 		throw idpexception("Unsat during parsing.\n");
 	}		

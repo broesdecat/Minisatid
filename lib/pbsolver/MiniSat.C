@@ -787,7 +787,7 @@ void Solver::exportClauses(cchar* filename)
 }
 
 void Solver::toCNF(std::vector<std::vector<Lit> >& cnf){
-/*	assert(decisionLevel() == 0);
+	assert(decisionLevel() == 0);
     // Export CNF:
     for (int i = 0; i < assigns.size(); i++){
         if (value(i) != l_Undef && level[i] == 0) {
@@ -802,7 +802,7 @@ void Solver::toCNF(std::vector<std::vector<Lit> >& cnf){
         for (int j = 0; j < c.size(); j++){
         	cnf.back().push_back(c[j]);
         }
-    }*/
+    }
 }
 
 }

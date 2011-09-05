@@ -222,7 +222,7 @@ void MinisatID::max2SAT(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>
 	//}
 	aggs.clear();
 
-	if(solver->isUnsat()){
+	if(solver->isUnsat()==SATVAL::UNSAT){
 		unsat = true;
 	}else{
 		sat = true; //Encoding succeeded, so aggregate itself can be dropped.
@@ -280,7 +280,7 @@ void MinisatID::card2Equiv(PCSolver* solver, InnerWLSet* set, std::vector<TempAg
 			}else{
 				remaggs.push_back(*i);
 			}
-			if(solver->isUnsat()){
+			if(solver->isUnsat()==SATVAL::UNSAT){
 				unsat = true;
 			}
 		}

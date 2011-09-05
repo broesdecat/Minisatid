@@ -66,13 +66,13 @@ ModSolver::~ModSolver(){
 	delete pcsolver;
 }
 
-bool ModSolver::add(Var var){
+SATVAL ModSolver::add(Var var){
 	if(getModSolverData().modes().verbosity>5){
 		report("Var %d added to modal solver %zu.\n", getPrintableVar(var), getPrintId());
 	}
 	getPCSolver().add(var);
 	registeredvars.push_back(var);
-	return true;
+	return SATVAL::POS_SAT;
 }
 
 /**
@@ -84,19 +84,19 @@ void ModSolver::addVars(const litlist& a){
 	}
 }
 
-bool ModSolver::add(const InnerDisjunction& disj){
+SATVAL ModSolver::add(const InnerDisjunction& disj){
 	addVars(disj.literals);
 	getPCSolver().add(disj);
 	return getPCSolver().isUnsat();
 }
 
-bool ModSolver::add(const InnerRule& rule){
+SATVAL ModSolver::add(const InnerRule& rule){
 	add(rule.head);
 	addVars(rule.body);
 	getPCSolver().add(rule);
 	return getPCSolver().isUnsat();
 }
-bool ModSolver::add(const InnerWLSet& set){
+SATVAL ModSolver::add(const InnerWLSet& set){
 	for(auto i=set.wls.begin(); i!=set.wls.end(); ++i){
 		addVar((*i).getLit());
 	}
@@ -104,12 +104,12 @@ bool ModSolver::add(const InnerWLSet& set){
 	return getPCSolver().isUnsat();
 }
 
-bool ModSolver::add(const InnerAggregate& agg){
+SATVAL ModSolver::add(const InnerAggregate& agg){
 	getPCSolver().add(agg);
 	return getPCSolver().isUnsat();
 }
 
-bool ModSolver::add(const InnerReifAggregate& agg){
+SATVAL ModSolver::add(const InnerReifAggregate& agg){
 	add(agg.head);
 	getPCSolver().add(agg);
 	return getPCSolver().isUnsat();
@@ -121,7 +121,7 @@ bool ModSolver::add(const InnerReifAggregate& agg){
  * but requires some algorithmic changes then, so currently they are added. In addition,
  * they are added as variables to the parent solver, that has to decide on values for them.
  */
-bool ModSolver::add(const InnerRigidAtoms& rigid){
+SATVAL ModSolver::add(const InnerRigidAtoms& rigid){
 	for(vector<Var>::const_iterator i=rigid.rigidatoms.begin(); i<rigid.rigidatoms.end(); ++i){
 		atoms.push_back(*i);
 		add(*i);
@@ -130,7 +130,7 @@ bool ModSolver::add(const InnerRigidAtoms& rigid){
 
 	//Creates a bool-vector mapping each atom to whether it was propagated from above or from this theory
 	propfromabove = vector<bool>(atoms.size(), false);
-	return true;
+	return SATVAL::POS_SAT;
 }
 
 
@@ -148,9 +148,9 @@ void ModSolver::setParent(modindex parentid){
 	parent->add(head.atom);
 }
 
-bool ModSolver::addChild(int childid){
+SATVAL ModSolver::addChild(int childid){
 	children.push_back(childid);
-	return true;
+	return SATVAL::POS_SAT;
 }
 
 /**

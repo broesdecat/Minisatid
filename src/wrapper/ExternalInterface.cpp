@@ -16,6 +16,10 @@
 using namespace std;
 using namespace MinisatID;
 
+SATVAL MinisatID::operator&= (SATVAL orig, SATVAL add){
+	return (orig==SATVAL::UNSAT||add==SATVAL::UNSAT)? SATVAL::UNSAT: SATVAL::POS_SAT;
+}
+
 WrappedLogicSolver::WrappedLogicSolver(){}
 
 WrappedLogicSolver::~WrappedLogicSolver(){
@@ -61,7 +65,7 @@ PCWrapperPimpl* WrappedPCSolver::getPCImpl() const {
 }
 
 template<class T>
-bool WrappedPCSolver::add(const T& sentence){
+SATVAL WrappedPCSolver::add(const T& sentence){
 	return getPCImpl()->add<T>(sentence);
 }
 
@@ -82,40 +86,40 @@ SOWrapperPimpl* WrappedSOSolver::getSOImpl() const {
 }
 
 template<class T>
-bool WrappedSOSolver::add(int modalid, const T& sentence){
+SATVAL WrappedSOSolver::add(int modalid, const T& sentence){
 	return getSOImpl()->add(modalid, sentence);
 }
 
 // Only those explicitly instantiated (here or elsewhere) will be available in a compiled library
-template bool WrappedPCSolver::add(const Disjunction& sentence);
-template bool WrappedPCSolver::add(const DisjunctionRef& sentence);
-template bool WrappedPCSolver::add(const Equivalence& sentence);
-template bool WrappedPCSolver::add(const Rule& sentence);
-template bool WrappedPCSolver::add(const Set& sentence);
-template bool WrappedPCSolver::add(const WSet& sentence);
-template bool WrappedPCSolver::add(const WLSet& sentence);
-template bool WrappedPCSolver::add(const Aggregate& sentence);
-template bool WrappedPCSolver::add(const MinimizeSubset& sentence);
-template bool WrappedPCSolver::add(const MinimizeOrderedList& sentence);
-template bool WrappedPCSolver::add(const MinimizeVar& sentence);
-template bool WrappedPCSolver::add(const CPIntVarRange& sentence);
-template bool WrappedPCSolver::add(const CPIntVarEnum& sentence);
-template bool WrappedPCSolver::add(const CPBinaryRel& sentence);
-template bool WrappedPCSolver::add(const CPBinaryRelVar& sentence);
-template bool WrappedPCSolver::add(const CPSumWeighted& sentence);
-template bool WrappedPCSolver::add(const CPCount& sentence);
-template bool WrappedPCSolver::add(const CPAllDiff& sentence);
-template bool WrappedPCSolver::add(const ForcedChoices& sentence);
-template bool WrappedPCSolver::add(const SymmetryLiterals& sentence);
-template bool WrappedPCSolver::add(const Symmetry& sentence);
-template bool WrappedPCSolver::add(const LazyGroundLit& sentence);
+template SATVAL WrappedPCSolver::add(const Disjunction& sentence);
+template SATVAL WrappedPCSolver::add(const DisjunctionRef& sentence);
+template SATVAL WrappedPCSolver::add(const Equivalence& sentence);
+template SATVAL WrappedPCSolver::add(const Rule& sentence);
+template SATVAL WrappedPCSolver::add(const Set& sentence);
+template SATVAL WrappedPCSolver::add(const WSet& sentence);
+template SATVAL WrappedPCSolver::add(const WLSet& sentence);
+template SATVAL WrappedPCSolver::add(const Aggregate& sentence);
+template SATVAL WrappedPCSolver::add(const MinimizeSubset& sentence);
+template SATVAL WrappedPCSolver::add(const MinimizeOrderedList& sentence);
+template SATVAL WrappedPCSolver::add(const MinimizeVar& sentence);
+template SATVAL WrappedPCSolver::add(const CPIntVarRange& sentence);
+template SATVAL WrappedPCSolver::add(const CPIntVarEnum& sentence);
+template SATVAL WrappedPCSolver::add(const CPBinaryRel& sentence);
+template SATVAL WrappedPCSolver::add(const CPBinaryRelVar& sentence);
+template SATVAL WrappedPCSolver::add(const CPSumWeighted& sentence);
+template SATVAL WrappedPCSolver::add(const CPCount& sentence);
+template SATVAL WrappedPCSolver::add(const CPAllDiff& sentence);
+template SATVAL WrappedPCSolver::add(const ForcedChoices& sentence);
+template SATVAL WrappedPCSolver::add(const SymmetryLiterals& sentence);
+template SATVAL WrappedPCSolver::add(const Symmetry& sentence);
+template SATVAL WrappedPCSolver::add(const LazyGroundLit& sentence);
 
-template bool WrappedSOSolver::add(int modalid, const Disjunction& sentence);
-template bool WrappedSOSolver::add(int modalid, const DisjunctionRef& sentence);
-template bool WrappedSOSolver::add(int modalid, const Rule& sentence);
-template bool WrappedSOSolver::add(int modalid, const Set& sentence);
-template bool WrappedSOSolver::add(int modalid, const WSet& sentence);
-template bool WrappedSOSolver::add(int modalid, const WLSet& sentence);
-template bool WrappedSOSolver::add(int modalid, const Aggregate& sentence);
-template bool WrappedSOSolver::add(int modalid, const RigidAtoms& sentence);
-template bool WrappedSOSolver::add(int modalid, const SubTheory& sentence);
+template SATVAL WrappedSOSolver::add(int modalid, const Disjunction& sentence);
+template SATVAL WrappedSOSolver::add(int modalid, const DisjunctionRef& sentence);
+template SATVAL WrappedSOSolver::add(int modalid, const Rule& sentence);
+template SATVAL WrappedSOSolver::add(int modalid, const Set& sentence);
+template SATVAL WrappedSOSolver::add(int modalid, const WSet& sentence);
+template SATVAL WrappedSOSolver::add(int modalid, const WLSet& sentence);
+template SATVAL WrappedSOSolver::add(int modalid, const Aggregate& sentence);
+template SATVAL WrappedSOSolver::add(int modalid, const RigidAtoms& sentence);
+template SATVAL WrappedSOSolver::add(int modalid, const SubTheory& sentence);

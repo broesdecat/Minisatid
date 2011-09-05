@@ -365,8 +365,8 @@ int PCSolver::getNbOfFormulas() const {
 	return getEventQueue().getNbOfFormulas();
 }
 
-bool PCSolver::isUnsat() const{
-	return getSATSolver()->isUnsat();
+SATVAL PCSolver::isUnsat() const{
+	return getSATSolver()->isUnsat()?SATVAL::UNSAT:SATVAL::POS_SAT;
 }
 
 void PCSolver::notifyUnsat() {
@@ -496,7 +496,7 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, const ModelExpandOptions& option
 		if (getSolver().decisionLevel() != assmpt.size()) { //choices were made, so other models possible
 			InnerDisjunction invalidation;
 			invalidate(invalidation);
-			moremodels = invalidateModel(invalidation);
+			moremodels = invalidateModel(invalidation)==SATVAL::POS_SAT;
 		} else {
 			moremodels = false;
 		}
@@ -525,7 +525,7 @@ void PCSolver::invalidate(InnerDisjunction& clause) {
 /**
  * Returns false if invalidating the model leads to UNSAT, meaning that no more models are possible. Otherwise true.
  */
-bool PCSolver::invalidateModel(InnerDisjunction& clause) {
+SATVAL PCSolver::invalidateModel(InnerDisjunction& clause) {
 	getSolver().cancelUntil(0); // Otherwise, clauses cannot be added to the sat-solver anyway
 
 	if (state_savingclauses && clause.literals.size() == 1) {
@@ -541,14 +541,14 @@ bool PCSolver::invalidateModel(InnerDisjunction& clause) {
 	if (state_savingclauses) {
 		rClause newclause;
 		getFactory().add(clause, newclause);
-		if (not isUnsat()) {
+		if (isUnsat()==SATVAL::POS_SAT) {
 			state_savedclauses.push_back(newclause);
 		}
 	} else {
 		add(clause);
 	}
 
-	return not isUnsat();
+	return isUnsat();
 }
 
 // OPTIMIZATION METHODS
@@ -675,7 +675,7 @@ bool PCSolver::findOptimal(const litlist& assmpt, const ModelExpandOptions& opti
 
 			if (!unsatreached) {
 				if (getSolver().decisionLevel() != currentassmpt.size()) { //choices were made, so other models possible
-					unsatreached = !invalidateModel(invalidation);
+					unsatreached = invalidateModel(invalidation) == SATVAL::UNSAT;
 				} else {
 					unsatreached = true;
 				}
@@ -762,4 +762,5 @@ void PCSolver::printTheory(ostream& stream) const{
 	assert(getCurrentDecisionLevel()==0);
 	stream <<"p ecnf\n";
 	getSATSolver()->printECNF(stream);
+	clog <<"Currently only printing out all clauses in the theory.";
 }

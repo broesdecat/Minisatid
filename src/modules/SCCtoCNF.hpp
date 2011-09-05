@@ -92,12 +92,6 @@ struct UnaryEncoding{
 	}
 };
 
-enum SATENUM { POSSIBLYSAT, UNSAT };
-
-SATENUM operator&= (SATENUM orig, SATENUM add){
-	return (orig==UNSAT||add==UNSAT)? UNSAT: POSSIBLYSAT;
-}
-
 template<class Solver>
 class SCCtoCNF {
 private:
@@ -113,7 +107,7 @@ public:
 	// @pre: rules is one SCC
 	SCCtoCNF(Solver& solver):solver_(solver){}
 
-	SATENUM transform(const std::vector<Rule*>& rules){
+	SATVAL transform(const std::vector<Rule*>& rules){
 		for(auto rule=rules.begin(); rule!=rules.end(); ++rule){
 			defined.insert((*rule)->getHead());
 		}
@@ -121,8 +115,8 @@ public:
 		for(auto head=defined.begin(); head!=defined.end(); ++head){
 			atom2level.insert(std::pair<Var, LevelVar*>(*head, new LevelVar(solver_, maxlevel)));
 		}
-		SATENUM state = POSSIBLYSAT;
-		for(auto rule=rules.begin(); state==POSSIBLYSAT && rule!=rules.end(); ++rule){
+		SATVAL state = SATVAL::POS_SAT;
+		for(auto rule=rules.begin(); state==SATVAL::POS_SAT && rule!=rules.end(); ++rule){
 			if((*rule)->isDisjunctive()){
 				state = transformDisjunction(**rule);
 			}else{
@@ -152,13 +146,13 @@ private:
 	 * ...
 	 * PTn <=> l(P1)>l(Qn) & Qn
 	 */
-	SATENUM transformDisjunction(const Rule& rule){
-		SATENUM state = POSSIBLYSAT;
+	SATVAL transformDisjunction(const Rule& rule){
+		SATVAL state = SATVAL::POS_SAT;
 		LevelVar* headvar = atom2level[rule.getHead()];
 		InnerDisjunction tseitins;
 		tseitins.literals.push_back(mkNegLit(rule.getHead()));
 		for(auto def = rule.defVars().begin(); def!=rule.defVars().end(); ++def) {
-			if(state!=POSSIBLYSAT){
+			if(state!=SATVAL::POS_SAT){
 		    	break;
 		    }
 			assert(defined.find(*def)!=defined.end());
@@ -170,7 +164,7 @@ private:
 			state &= addConjEq(tseitin, litlist{mkPosLit(*def), retrieveEncoding(headvar, bodyvar, ENC_GREATER)});
 		}
 		for(auto open = rule.openLits().begin(); open!=rule.openLits().end(); ++open) {
-			if(state!=POSSIBLYSAT){
+			if(state!=SATVAL::POS_SAT){
 		    	break;
 		    }
 			state &= addClause(litlist{mkNegLit(rule.getHead()), not *open, retrieveEncoding(headvar, ENC_LEQPLUS1)});
@@ -180,9 +174,7 @@ private:
 			state &= addConjEq(tseitin, litlist{*open, retrieveEncoding(headvar, ENC_GREATER)});
 		}
 		solver_.add(tseitins);
-		if(solver_.isUnsat()){
-			state = UNSAT;
-		}
+		state &= solver_.isUnsat();
 		return state;
 	}
 
@@ -204,12 +196,12 @@ private:
 	 * 	...
 	 * 	QTn <=> l(Q1)<=l(Pn)+1 & Pn
 	 */
-	SATENUM transformConjunction(const Rule& rule){
-		SATENUM state = POSSIBLYSAT;
+	SATVAL transformConjunction(const Rule& rule){
+		SATVAL state = SATVAL::POS_SAT;
 		LevelVar* headvar = atom2level[rule.getHead()];
 		InnerDisjunction tseitins;
 		tseitins.literals.push_back(mkNegLit(rule.getHead()));
-		for(auto def = rule.defVars().begin(); state==POSSIBLYSAT && def!=rule.defVars().end(); ++def){
+		for(auto def = rule.defVars().begin(); state==SATVAL::POS_SAT && def!=rule.defVars().end(); ++def){
 			assert(defined.find(*def)!=defined.end());
 			LevelVar* bodyvar = atom2level[*def];
 			state &= addClause(litlist{mkNegLit(rule.getHead()), retrieveEncoding(headvar, bodyvar, ENC_GREATER)});
@@ -221,15 +213,13 @@ private:
 		if(rule.openLits().size()>0){
 			state &= addClause(litlist{mkNegLit(rule.getHead()), retrieveEncoding(headvar, ENC_GREATER)});
 		}
-		for(auto open = rule.openLits().begin(); state==POSSIBLYSAT && open!=rule.openLits().end(); ++open){
+		for(auto open = rule.openLits().begin(); state==SATVAL::POS_SAT && open!=rule.openLits().end(); ++open){
 			Lit tseitin = mkPosLit(solver_.newVar());
 			tseitins.literals.push_back(tseitin);
 			state &= addConjEq(tseitin, litlist{*open, retrieveEncoding(headvar, ENC_LEQPLUS1)});
 		}
 		solver_.add(tseitins);
-		if(solver_.isUnsat()){
-			state = UNSAT;
-		}
+		state &= solver_.isUnsat();
 		return state;
 	}
 
@@ -273,29 +263,29 @@ private:
 		return mkPosLit(v);
 	}
 
-	SATENUM addClause(const litlist& lits){
+	SATVAL addClause(const litlist& lits){
 		InnerDisjunction d;
 		d.literals = lits;
 		solver_.add(d);
-		return solver_.isUnsat()?POSSIBLYSAT:UNSAT;
+		return solver_.isUnsat();
 	}
 
-	SATENUM addDisjEq(const Lit& head, const litlist& lits){
+	SATVAL addDisjEq(const Lit& head, const litlist& lits){
 		InnerEquivalence eq;
 		eq.head = head;
 		eq.conjunctive = false;
 		eq.literals = lits;
 		solver_.add(eq);
-		return solver_.isUnsat()?POSSIBLYSAT:UNSAT;
+		return solver_.isUnsat();
 	}
 
-	SATENUM addConjEq(const Lit& head, const litlist& lits){
+	SATVAL addConjEq(const Lit& head, const litlist& lits){
 		InnerEquivalence eq;
 		eq.head = head;
 		eq.conjunctive = true;
 		eq.literals = lits;
 		solver_.add(eq);
-		return solver_.isUnsat()?POSSIBLYSAT:UNSAT;
+		return solver_.isUnsat();
 	}
 
 	/*
@@ -313,7 +303,7 @@ private:
 	*/
 	Var addEncoding(const Encoding& enc){
 		Var next;
-		SATENUM state = POSSIBLYSAT;
+		SATVAL state = SATVAL::POS_SAT;
 		if(enc.sign == ENC_GREATER){
 			// greater base case: g(P1,Q1,0) <=> P10 & ~Q10
 			Var prev = solver_.newVar();
@@ -336,7 +326,6 @@ private:
 				state &= addDisjEq(mkPosLit(next), litlist{firstconj, secondconj, thirdconj});
 				prev = next;
 			}
-
 		}else{
 			//leqp1(P1, Q1, 0) <=> true
 			if(enc.left->bits().size()<2){
@@ -382,7 +371,7 @@ private:
 				}
 			}
 		}
-		assert(state == POSSIBLYSAT);
+		assert(state == SATVAL::POS_SAT);
 		necessaryEncodings.insert(enc2var(enc, next));
 		return next;
 	}
@@ -391,9 +380,9 @@ private:
 template<class Solver>
 bool transformSCCtoCNF(Solver& solver, std::vector<Rule*>& rules){
 	SCCtoCNF<Solver>* transformer = new SCCtoCNF<Solver>(solver);
-	SATENUM state = transformer->transform(rules);
+	SATVAL state = transformer->transform(rules);
 	delete transformer;
-	return state!=UNSAT;
+	return state!=SATVAL::UNSAT;
 }
 
 }

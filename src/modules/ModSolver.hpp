@@ -103,14 +103,14 @@ public:
 	ModSolver(modindex child, Var head, SOSolver* mh);
 	virtual ~ModSolver();
 
-	bool	add		(Var v);
-	bool	add		(const InnerDisjunction& sentence);
-	bool	add		(const InnerRule& sentence);
-	bool	add		(const InnerWLSet& sentence);
-	bool	add		(const InnerAggregate& sentence);
-	bool	add		(const InnerReifAggregate& sentence);
-	bool	add		(const InnerRigidAtoms& sentence);
-	bool	addChild(int childid);
+	SATVAL	add		(Var v);
+	SATVAL	add		(const InnerDisjunction& sentence);
+	SATVAL	add		(const InnerRule& sentence);
+	SATVAL	add		(const InnerWLSet& sentence);
+	SATVAL	add		(const InnerAggregate& sentence);
+	SATVAL	add		(const InnerReifAggregate& sentence);
+	SATVAL	add		(const InnerRigidAtoms& sentence);
+	SATVAL	addChild(int childid);
 
 	void	setParent		(modindex id);
 	void 	setNbModels		(int nb);

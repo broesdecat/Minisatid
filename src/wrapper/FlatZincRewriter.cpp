@@ -537,7 +537,7 @@ void FlatZincRewriter::add(const WSet& set, int setID){
 }
 
 template<>
-bool FlatZincRewriter::add(const literallist& lits){
+SATVAL FlatZincRewriter::add(const literallist& lits){
 	literallist pos, neg;
 	for(literallist::const_iterator i=lits.begin(); i<lits.end(); ++i){
 		if((*i).hasSign()){
@@ -555,36 +555,36 @@ bool FlatZincRewriter::add(const literallist& lits){
 	constraints <<"], [";
 	addMappedList(neg, constraints);
 	constraints  <<"]);\n";
-	return true;
+	return SATVAL::POS_SAT;
 }
 
 template<>
-bool FlatZincRewriter::add(const Disjunction& sentence){
+SATVAL FlatZincRewriter::add(const Disjunction& sentence){
 	add(sentence.literals);
-	return true;
+	return SATVAL::POS_SAT;
 }
 
 template<>
-bool FlatZincRewriter::add(const DisjunctionRef& sentence){
+SATVAL FlatZincRewriter::add(const DisjunctionRef& sentence){
 	add(sentence.literals);
-	return true;
+	return SATVAL::POS_SAT;
 }
 
 template<>
-bool FlatZincRewriter::add(const Equivalence& equiv){
+SATVAL FlatZincRewriter::add(const Equivalence& equiv){
 	addEquiv(equiv.head, equiv.body, equiv.conjunctive, CLOSE);
-	return true;
+	return SATVAL::POS_SAT;
 }
 
 template<>
-bool FlatZincRewriter::add(const Rule& rule){
+SATVAL FlatZincRewriter::add(const Rule& rule){
 	checkOnlyPos(rule.body);
 	check(rule.head);
 
 	if(!rule.conjunctive){
 		if(rule.body.size()>1){
-			bool satpossible = true;
-			for(literallist::const_iterator i=rule.body.begin(); satpossible && i<rule.body.end(); ++i){
+			SATVAL satpossible = SATVAL::POS_SAT;
+			for(literallist::const_iterator i=rule.body.begin(); satpossible==SATVAL::POS_SAT && i<rule.body.end(); ++i){
 				Rule smallrule;
 				smallrule.head = rule.head;
 				smallrule.body.push_back(*i);
@@ -633,11 +633,11 @@ bool FlatZincRewriter::add(const Rule& rule){
 
 	constraints <<rule.definitionID;
 	constraints <<");\n";
-	return true;
+	return SATVAL::POS_SAT;
 }
 
 template<>
-bool FlatZincRewriter::add(const Set& set){
+SATVAL FlatZincRewriter::add(const Set& set){
 	WSet wset;
 	wset.type = set.type;
 	for(literallist::const_iterator i=set.literals.begin(); i<set.literals.end(); ++i){
@@ -645,17 +645,17 @@ bool FlatZincRewriter::add(const Set& set){
 		wset.weights.push_back(1);
 	}
 	add(wset, set.setID);
-	return true;
+	return SATVAL::POS_SAT;
 }
 
 template<>
-bool FlatZincRewriter::add(const WSet& set){
+SATVAL FlatZincRewriter::add(const WSet& set){
 	add(set, set.setID);
-	return true;
+	return SATVAL::POS_SAT;
 }
 
 template<>
-bool FlatZincRewriter::add(const WLSet& set){
+SATVAL FlatZincRewriter::add(const WLSet& set){
 	WSet wset;
 	wset.type = set.type;
 	for(vector<WLtuple>::const_iterator i=set.wl.begin(); i<set.wl.end(); ++i){
@@ -663,11 +663,11 @@ bool FlatZincRewriter::add(const WLSet& set){
 		wset.weights.push_back((*i).w);
 	}
 	add(wset, set.setID);
-	return true;
+	return SATVAL::POS_SAT;
 }
 
 template<>
-bool FlatZincRewriter::add(const Aggregate& origagg){
+SATVAL FlatZincRewriter::add(const Aggregate& origagg){
 	check(origagg.head);
 
 	if(origagg.type==PROD){
@@ -708,37 +708,37 @@ bool FlatZincRewriter::add(const Aggregate& origagg){
 		}
 		constraints <<";\n";
 	}
-	return true;
+	return SATVAL::POS_SAT;
 }
 
 template<>
-bool FlatZincRewriter::add(const MinimizeSubset& sentence){
+SATVAL FlatZincRewriter::add(const MinimizeSubset& sentence){
 	assert(isParsing());
 	optim = MNMZ_SUBSET;
 	savedsubsetmnmz = sentence;
 	check(sentence.literals);
-	return true;
+	return SATVAL::POS_SAT;
 }
 
 template<>
-bool FlatZincRewriter::add(const MinimizeOrderedList& sentence){
+SATVAL FlatZincRewriter::add(const MinimizeOrderedList& sentence){
 	assert(isParsing());
 	optim = MNMZ_LIST;
 	check(sentence.literals);
 	savedlistmnmz = sentence;
-	return true;
+	return SATVAL::POS_SAT;
 }
 
 template<>
-bool FlatZincRewriter::add(const MinimizeVar& mnm){
+SATVAL FlatZincRewriter::add(const MinimizeVar& mnm){
 	assert(isParsing());
 	savedvar = mnm;
 	optim = MNMZ_VAR;
-	return true;
+	return SATVAL::POS_SAT;
 }
 
 template<>
-bool FlatZincRewriter::add(const CPIntVarEnum& var){
+SATVAL FlatZincRewriter::add(const CPIntVarEnum& var){
 	stringstream ss;
 	ss <<"{";
 	bool begin = true;
@@ -762,19 +762,19 @@ bool FlatZincRewriter::add(const CPIntVarEnum& var){
 		}
 	}
 	addIntegerVar(var.varID, ss.str(), min, max);
-	return true;
+	return SATVAL::POS_SAT;
 }
 
 template<>
-bool FlatZincRewriter::add(const CPIntVarRange& var){
+SATVAL FlatZincRewriter::add(const CPIntVarRange& var){
 	stringstream ss;
 	ss <<var.minvalue <<".." <<var.maxvalue;
 	addIntegerVar(var.varID, ss.str(), var.minvalue, var.maxvalue);
-	return true;
+	return SATVAL::POS_SAT;
 }
 
 template<>
-bool FlatZincRewriter::add(const CPBinaryRel& rel){
+SATVAL FlatZincRewriter::add(const CPBinaryRel& rel){
 	assert(isParsing());
 	check(rel.head);
 
@@ -786,11 +786,11 @@ bool FlatZincRewriter::add(const CPBinaryRel& rel){
 	binrel.head = rel.head;
 	binrel.rel = rel.rel;
 	savedbinrels.push_back(binrel);
-	return true;
+	return SATVAL::POS_SAT;
 }
 
 template<>
-bool FlatZincRewriter::add(const CPBinaryRelVar& rel){
+SATVAL FlatZincRewriter::add(const CPBinaryRelVar& rel){
 	assert(isParsing());
 	check(rel.head);
 
@@ -800,23 +800,23 @@ bool FlatZincRewriter::add(const CPBinaryRelVar& rel){
 	binrel.head = rel.head;
 	binrel.rel = rel.rel;
 	savedbinrels.push_back(binrel);
-	return true;
+	return SATVAL::POS_SAT;
 }
 
 template<>
-bool FlatZincRewriter::add(const CPSumWeighted& sum){
+SATVAL FlatZincRewriter::add(const CPSumWeighted& sum){
 	assert(isParsing());
 	check(sum.head);
 	savedcpsums.push_back(sum);
-	return true;
+	return SATVAL::POS_SAT;
 }
 
 template<>
-bool FlatZincRewriter::add(const CPCount& sentence){
+SATVAL FlatZincRewriter::add(const CPCount& sentence){
 	throw idpexception("Count constraints are not yet supported by the flatzinc backend.");
 }
 
 template<>
-bool FlatZincRewriter::add(const CPAllDiff& sentence){
+SATVAL FlatZincRewriter::add(const CPAllDiff& sentence){
 	throw idpexception("Alldifferent is not yet supported by the flatzinc backend.");
 }

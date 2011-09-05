@@ -157,7 +157,7 @@ void PropagatorFactory::add(const InnerDisjunction& clause){
 	// TODO 1-watched scheme
 //	if(formula.literals.size()<3){
 		vec<Lit> lits;
-		toVec(formula.literals, lits);
+		toVec(clause.literals, lits);
 		SATStorage::getStorage()->addClause(lits);
 /*	}else{
 		LazyGrounder* g = new LazyGrounder(getEnginep());
@@ -478,7 +478,7 @@ void PropagatorFactory::add(InnerDisjunction& formula, rClause& newclause){
 	SATStorage::getStorage()->addClause(lits, newclause);
 }
 
-bool PropagatorFactory::finishSet(InnerWLSet* set, vector<TempAgg*>& aggs){
+SATVAL PropagatorFactory::finishSet(InnerWLSet* set, vector<TempAgg*>& aggs){
 	bool unsat = false, sat = false;
 
 	// transform into SAT if requested
@@ -489,7 +489,7 @@ bool PropagatorFactory::finishSet(InnerWLSet* set, vector<TempAgg*>& aggs){
 		AggStorage::getStorage()->add(set, aggs);
 	}
 	if(aggs.size()==0){
-		return true;
+		return SATVAL::POS_SAT;
 	}
 
 	AggProp const * type = NULL;
@@ -515,10 +515,10 @@ bool PropagatorFactory::finishSet(InnerWLSet* set, vector<TempAgg*>& aggs){
 	}
 	aggs.clear();
 
-	return !unsat;
+	return unsat?SATVAL::UNSAT:SATVAL::POS_SAT;
 }
 
-bool PropagatorFactory::finishParsing() {
+SATVAL PropagatorFactory::finishParsing() {
 	assert(isParsing());
 	parsing = false;
 
@@ -532,10 +532,10 @@ bool PropagatorFactory::finishParsing() {
 	clause.literals.push_back(mkLit(dummyvar));
 	add(clause);
 
-	bool notunsat = true;
+	SATVAL satval = SATVAL::POS_SAT;
 
 	// create reified aggregates
-	for(auto i=parsedaggs.begin(); notunsat && i!=parsedaggs.end(); ++i){
+	for(auto i=parsedaggs.begin(); satval==SATVAL::POS_SAT && i!=parsedaggs.end(); ++i){
 		InnerReifAggregate r;
 		r.bound = (*i)->bound;
 		r.defID = -1;
@@ -545,18 +545,18 @@ bool PropagatorFactory::finishParsing() {
 		r.sign	= (*i)->sign;
 		r.type	= (*i)->type;
 		add(r);
-		notunsat = not getEngine().isUnsat();
+		satval &= getEngine().isUnsat();
 	}
 	deleteList<InnerAggregate>(parsedaggs);
 
-	for(auto i=parsedsets.begin(); notunsat && i!=parsedsets.end(); ++i){
-		notunsat &= finishSet((*i).second.first, (*i).second.second);
+	for(auto i=parsedsets.begin(); satval==SATVAL::POS_SAT && i!=parsedsets.end(); ++i){
+		satval &= finishSet((*i).second.first, (*i).second.second);
 	}
 	if(AggStorage::hasStorage()){
-		notunsat &= AggStorage::getStorage()->execute();
+		satval &= AggStorage::getStorage()->execute();
 	}
 
-	return notunsat;
+	return satval;
 }
 
 void PropagatorFactory::includeCPModel(std::vector<VariableEqValue>& varassignments){
