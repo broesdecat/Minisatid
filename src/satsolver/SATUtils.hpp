@@ -42,7 +42,6 @@ namespace MinisatID {
 #endif
 
 namespace MinisatID {
-	using Minisat::vec;
 	using Minisat::l_False;
 	using Minisat::l_Undef;
 	using Minisat::l_True;

@@ -31,13 +31,15 @@ void print(const Minisat::Lit& lit, const lbool val){
 }
 
 template<>
-std::string print(const Minisat::vec<Minisat::Lit>& v){
+std::string print(const litlist& v){
 	stringstream ss;
-	for(int i=0; i<v.size(); ++i) {
-		if(i<v.size()-1){
+	bool begin = false;
+	for(auto litit=v.begin(); litit<v.end(); ++litit){
+		if(not begin){
 			ss <<" ";
 		}
-		ss <<v[i];
+		begin = false;
+		ss <<*litit;
 	}
 	ss <<"\n";
 	return ss.str();

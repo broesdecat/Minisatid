@@ -15,7 +15,7 @@ using namespace std;
 
 namespace MinisatID {
 
-TypedSet::TypedSet(PCSolver* solver, int setid, Weight knownbound):
+TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound):
 		Propagator(solver),
 		kb(knownbound),
 		type(NULL),

@@ -25,6 +25,8 @@ using namespace std;
 using namespace MinisatID;
 using namespace Minisat;
 
+using Minisat::vec;
+
 //Has to be value copy of modes!
 PCSolver::PCSolver(SolverOption modes, MinisatID::WrapperPimpl& inter, int ID) :
 		LogicSolver(modes, inter), ID(ID), searchengine(NULL),
@@ -266,7 +268,7 @@ bool PCSolver::assertedBefore(const Var& l, const Var& p) const {
 	}
 
 	bool before = true;
-	const litlist& trail = getTrail();
+	const vec<Lit>& trail = getSolver().getTrail();
 	int recentindex = getStartLastLevel();
 	for (int i = recentindex; i < trail.size(); ++i) {
 		Lit rlit = trail[i];
@@ -747,4 +749,12 @@ void PCSolver::printClause(rClause clause) const {
 
 void PCSolver::printCurrentOptimum(const Weight& value) const {
 	getParent().printCurrentOptimum(value);
+}
+
+// TODO move this to an event in the queue?
+// @pre: decision level = 0
+void PCSolver::printTheory(ostream& stream) const{
+	assert(getCurrentDecisionLevel()==0);
+	stream <<"p ecnf\n";
+	getSATSolver()->printECNF(stream);
 }

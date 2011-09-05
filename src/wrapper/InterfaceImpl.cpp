@@ -138,21 +138,6 @@ Lit WrapperPimpl::checkLit(const Literal& lit){
 	return mkLit(checkAtom(lit.getAtom()), lit.hasSign());
 }
 
-void WrapperPimpl::checkLits(const vector<Literal>& lits, vec<Lit>& ll){
-	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); ++i){
-		ll.push(checkLit(*i));
-	}
-}
-
-void WrapperPimpl::checkLits(const vector<vector<Literal> >& lits, vec<vec<Lit> >& ll){
-	for(vector<vector<Literal> >::const_iterator i=lits.begin(); i<lits.end(); ++i){
-		ll.push();
-		for(vector<Literal>::const_iterator j=(*i).begin(); j<(*i).end(); ++j){
-			ll.last().push(checkLit(*j));
-		}
-	}
-}
-
 void WrapperPimpl::checkLits(const vector<vector<Literal> >& lits, vector<vector<Lit> >& ll){
 	for(vector<vector<Literal> >::const_iterator i=lits.begin(); i<lits.end(); ++i){
 		ll.push_back(vector<Lit>());
@@ -243,6 +228,13 @@ void WrapperPimpl::solve(){
 	}
 
 	getSolMonitor().notifySolvingFinished();
+}
+
+void WrapperPimpl::printTheory(ostream& stream){
+	if(state==INIT){
+		finishParsing();
+	}
+	getSolver()->printTheory(stream);
 }
 
 void WrapperPimpl::addModel(const InnerModel& model){

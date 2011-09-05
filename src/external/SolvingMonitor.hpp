@@ -63,6 +63,7 @@ public:
 	~Solution();
 
 	void		setModes(SolverOption modes) { this->modes = modes;}
+	void 		setInference(Inference inference) { options.search = inference; }
 
 	int 		getNbModelsFound	() const	{ return nbmodelsfound; }
 	int 		getNbModelsToFind	() const	{ return options.nbmodelstofind; }

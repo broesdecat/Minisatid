@@ -38,6 +38,7 @@ public:
 	//Do model expansion, given the options in the solution datastructure.
 	//Automatically initializes the datastructures and simplifies the theory.
 	void 	solve				(Solution* sol);
+	void 	printTheory			(std::ostream& stream) const;
 
 	bool 	hasOptimization		() const;
 

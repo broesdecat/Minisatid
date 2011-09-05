@@ -126,7 +126,7 @@ bool transformSumsToCNF(PCSolver& pcsolver, InnerWLSet* set, std::vector<Agg*>& 
 		InnerDisjunction clause;
 		for (auto j = (*i).begin(); j < (*i).end(); ++j) {
 			Var v = MiniSatPP::var(*j) + (MiniSatPP::var(*j) > maxvar ? maxnumber - maxvar : 0);
-			clause.literals.push(MiniSatPP::sign(*j)?mkNegLit(v):mkPosLit(v));
+			clause.literals.push_back(MiniSatPP::sign(*j)?mkNegLit(v):mkPosLit(v));
 		}
 		pcsolver.add(clause);
 	}

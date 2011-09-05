@@ -133,7 +133,6 @@ public:
 
 	void 		notifySetTrue	(const Lit& p);
 
-	const litlist& getTrail	() 		const;
 	int 		getStartLastLevel() 	const;
 	int 		getLevel		(int var) const; // Returns the decision level at which a variable was deduced.
 	int			getCurrentDecisionLevel	() const;
@@ -170,6 +169,8 @@ public:
 	void		addOptimization(Optim type, Var head);
 	void		addOptimization(Optim type, const litlist& literals);
 
+	void 		printTheory(std::ostream& stream) const;
+
 	// DEBUG
 	void 		printEnqueued	(const Lit& p) const;
 	void		printChoiceMade	(int level, Lit l) const;
@@ -189,13 +190,13 @@ private:
 	void 		extractVarModel(InnerModel* fullmodel);
 
 	// SOLVING
-	bool 		findNext		(const vec<Lit>& assumpts, const ModelExpandOptions& options);
+	bool 		findNext		(const Minisat::vec<Lit>& assumpts, const ModelExpandOptions& options);
 	bool    	invalidateModel	(InnerDisjunction& clause);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
 	void 		invalidate		(InnerDisjunction& clause);
 
 	// OPTIMIZATION
     bool 		invalidateValue	(litlist& invalidation);
-	bool 		invalidateSubset(litlist& invalidation, vec<Lit>& assmpt);
+	bool 		invalidateSubset(litlist& invalidation, Minisat::vec<Lit>& assmpt);
 	bool 		findOptimal		(const litlist& assumps, const ModelExpandOptions& options);
 };
 

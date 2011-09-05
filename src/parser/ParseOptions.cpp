@@ -175,8 +175,14 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 	asapaggpropdesc.push_back(pair<string, string>("no", "Late"));
 
 	vector<pair<string, string> > tocnfdesc;
-	tocnfdesc.push_back(pair<string, string>("yes", "Translate to CNF"));
-	tocnfdesc.push_back(pair<string, string>("no", "Don't translate to CNF"));
+	tocnfdesc.push_back(pair<string, string>("yes", "Transform as much as possible into CNF"));
+	tocnfdesc.push_back(pair<string, string>("no", "Use the default transformation heuristics"));
+
+	vector<Inference> inferencevals;
+	vector<pair<string, string> > inferencedesc;
+	//inferencevals.push_back(PROPAGATE); inferencedesc.push_back(pair<string, string>("propagate", "Only do unit propagation"));
+	inferencevals.push_back(PRINTTHEORY); inferencedesc.push_back(pair<string, string>("print", "Print out an ecnf file representing the theory"));
+	inferencevals.push_back(MODELEXPAND); inferencedesc.push_back(pair<string, string>("mx", "Do modelexpansion on the thery"));
 
 	vector<pair<string, string> > watcheddesc;
 	watcheddesc.push_back(pair<string, string>("yes", "Use smart watches"));
@@ -245,6 +251,8 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 			modes.format, cmd, "The format of the input theory"));
 	options.push_back(new Option<OUTPUTFORMAT, string>("", "outputformat", transvals, transdesc,
 			modes.transformat, cmd, "The requested output format (only relevant if translation information is provided)."));
+	options.push_back(new Option<Inference, string>("", "inference", inferencevals, inferencedesc,
+			modes.inference, cmd, "The requested inference task to execute."));
 	options.push_back(new Option<bool, string>	("", "ecnfgraph", 	yesnovals, ecnfgraphdesc,
 			modes.printcnfgraph, cmd, "Choose whether to generate a .dot graph representation of the ecnf"));
 	options.push_back(new Option<bool, string>	("", "cyclefreeness-check", yesnovals, checkcyclesdesc,

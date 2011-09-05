@@ -34,13 +34,14 @@ public:
 	virtual void 	finishParsing(bool& unsat) = 0;
 
 	virtual bool	solve(const litlist& assumptions, const ModelExpandOptions& options) = 0;
+	virtual void	printTheory(std::ostream& stream) const = 0;
 
 			int 	verbosity		() const		{ return modes().verbosity; }
 	const SolverOption& modes		() const		{ return _modes; }
 			void	setVerbosity	(int verb)		{ _modes.verbosity = verb; }
 			void	setNbModels		(int nbmodels)	{ _modes.nbmodels = nbmodels; }
 
-	const WrapperPimpl& 	getParent	() const	{ return parent; }
+	const WrapperPimpl& getParent	() const	{ return parent; }
 	WrapperPimpl& 		getParent	() 				{ return parent; }
 
 	virtual void	notifyNonDecisionVar(Var var) = 0;

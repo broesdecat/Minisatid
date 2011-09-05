@@ -79,6 +79,7 @@ double MinisatID::cpuTime(void) {
 #endif
 
 SolverOption::SolverOption():
+		inference(MODELEXPAND),
 		format(FORMAT_FODOT),
 		transformat(TRANS_DEFAULT),
 		verbosity(1),
@@ -137,6 +138,7 @@ string SolverOption::getPrimesFile() const{
 }
 
 void SolverOption::print(std::ostream& so) const{
+	so << "inference: " 		<<inference <<"\n";
 	so << "format: " 			<<format <<"\n";
 	so << "verbosity: "			<<verbosity <<"\n";
 	so << "randomseed: "		<<randomseed <<"\n";

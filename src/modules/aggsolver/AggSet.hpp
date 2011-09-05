@@ -37,7 +37,7 @@ protected:
 	std::map<Var, AggReason*>	reasons;
 
 public:
-	TypedSet(PCSolver* solver, int setid, Weight knownbound);
+	TypedSet(PCSolver* solver, int setid, const Weight& knownbound);
 	TypedSet(const TypedSet& set);
 	virtual ~TypedSet(){
 		deleteList<Agg>(aggregates);

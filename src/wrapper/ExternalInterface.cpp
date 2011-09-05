@@ -32,6 +32,10 @@ void WrappedLogicSolver::solve(Solution* sol){
 	getImpl()->solve();
 }
 
+void WrappedLogicSolver::printTheory(ostream& stream) const{
+	getImpl()->printTheory(stream);
+}
+
 void WrappedLogicSolver::addMonitor(SearchMonitor* const monitor){
 	getImpl()->addMonitor(monitor);
 }

@@ -81,6 +81,7 @@ public:
 	ModSolver* getModSolver	(vsize modid) const { checkexistsModSolver(modid); return solvers[modid];}
 
 	void 	printStatistics	() const;
+	void 	printTheory(std::ostream& stream) const { assert(false); }
 
 private:
 	ModSolver& getModSolverDuringAdding(int modid);

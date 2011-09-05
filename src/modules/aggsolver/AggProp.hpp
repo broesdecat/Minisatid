@@ -38,7 +38,7 @@ private:
 	AggType		type;
 
 public:
-	Agg(const Lit& head, AggBound b, AggSem sem, AggType type):
+	Agg(const Lit& head, const AggBound& b, AggSem sem, AggType type):
 			set(NULL), bound(b), head(head), sem(sem), index(-1), type(type){
 		assert(sem!=DEF);
 	}
@@ -136,7 +136,7 @@ public:
 
 class SPProp: public AggProp{
 public:
-	bool 		canJustifyHead			(const Agg& agg, vec<Lit>& jstf, vec<Var>& nonjstf, VarToJustif& currentjust, bool real) 	const;
+	bool 		canJustifyHead			(const Agg& agg, litlist& jstf, varlist& nonjstf, VarToJustif& currentjust, bool real) 	const;
 };
 
 class ProdProp: public SPProp{

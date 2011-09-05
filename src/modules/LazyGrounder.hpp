@@ -44,7 +44,7 @@ public:
 
 	void addClause(const InnerDisjunction& clause);
 
-	bool expand(int clauseID, vec<Lit>& currentclause);
+	bool expand(int clauseID, litlist& currentclause);
 };
 }
 

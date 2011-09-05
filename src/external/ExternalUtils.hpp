@@ -34,11 +34,13 @@ namespace MinisatID {
 
 	enum INPUTFORMAT 	{ FORMAT_FODOT, FORMAT_ASP, FORMAT_OPB};
 	enum OUTPUTFORMAT 	{ TRANS_FODOT, TRANS_ASP, TRANS_PLAIN, TRANS_FZ, TRANS_OPB, TRANS_DEFAULT };
+	enum Inference		{PROPAGATE, MODELEXPAND, PRINTTHEORY };
 
 	// Structure containing general options for the solvers
 	class SolverOption {
 			//TODO prevent unauthorised access by getters and setters (e.g. primesfile should NEVER be accessed directly
 	public:
+		Inference		inference;
 		INPUTFORMAT 	format;
 		OUTPUTFORMAT 	transformat;
 		int 			verbosity;
@@ -75,7 +77,6 @@ namespace MinisatID {
 
 	enum PrintModel	{PRINT_ALL, PRINT_BEST, PRINT_NONE};
 	enum SaveModel	{SAVE_ALL, SAVE_BEST, SAVE_NONE};
-	enum Inference	{PROPAGATE, MODELEXPAND };
 
 	class ModelExpandOptions{
 	public:

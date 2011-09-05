@@ -37,6 +37,8 @@ using namespace std;
 using namespace MinisatID;
 using namespace Minisat;
 
+using Minisat::vec;
+
 void throwUndefinedSet(int setid){
 	stringstream ss;
 	ss <<"Set nr. " <<setid <<" is used, but not defined yet.\n";
@@ -148,12 +150,6 @@ bool PropagatorFactory::add(const Var& v) {
 	return true;
 }
 
-void PropagatorFactory::addVars(const vec<Lit>& a) {
-	for (int i = 0; i < a.size(); ++i) {
-		add(var(a[i]));
-	}
-}
-
 void PropagatorFactory::addVars(const vector<Lit>& a) {
 	for (auto i=a.begin(); i!=a.end(); ++i) {
 		add(var(*i));
@@ -165,6 +161,12 @@ int PropagatorFactory::newSetID(){
 	return maxset++;
 }
 
+void toVec(const std::vector<Lit>& literals, vec<Lit>& lits){
+	for(auto i=literals.begin(); i<literals.end(); ++i){
+		lits.push(*i);
+	}
+}
+
 bool PropagatorFactory::add(const InnerDisjunction& formula){
 	notifyMonitorsOfAdding(formula);
 
@@ -172,7 +174,9 @@ bool PropagatorFactory::add(const InnerDisjunction& formula){
 
 	// TODO lazygrounder
 //	if(formula.literals.size()<3){
-		return getSolver()->addClause(formula.literals);
+		vec<Lit> lits;
+		toVec(formula.literals, lits);
+		return getSolver()->addClause(lits);
 /*	}else{
 		LazyGrounder* g = new LazyGrounder(getEnginep());
 		etEngine().accept(g, EXITCLEANLY);
@@ -187,29 +191,28 @@ bool PropagatorFactory::add(const InnerEquivalence& formula){
 	bool notunsat = true;
 
 	//create the completion
-	vec<Lit> comp;
-	comp.push(formula.head);
+	InnerDisjunction clause;
+	vector<Lit>& lits = clause.literals;
+	lits.push_back(formula.head);
 
 	for (int i = 0; i < formula.literals.size(); ++i) {
-		comp.push(formula.literals[i]);
+		lits.push_back(formula.literals[i]);
 	}
 
 	if (formula.conjunctive) {
-		for (int i = 1; i < comp.size(); ++i) {
-			comp[i] = ~comp[i];
+		for (int i = 1; i < lits.size(); ++i) {
+			lits[i] = ~lits[i];
 		}
 	} else {
-		comp[0] = ~comp[0];
+		lits[0] = ~lits[0];
 	}
 
-	InnerDisjunction clause;
-	comp.copyTo(clause.literals);
 	notunsat = add(clause);
 
-	for (int i = 1; notunsat && i < comp.size(); ++i) {
+	for (int i = 1; notunsat && i < clause.literals.size(); ++i) {
 		InnerDisjunction binclause;
-		binclause.literals.push(~comp[0]);
-		binclause.literals.push(~comp[i]);
+		binclause.literals.push_back(~clause.literals[0]);
+		binclause.literals.push_back(~clause.literals[i]);
 		notunsat = add(binclause);
 	}
 
@@ -381,7 +384,9 @@ bool PropagatorFactory::add(const InnerForcedChoices& formula){
 	notifyMonitorsOfAdding(formula);
 
 	if (formula.forcedchoices.size() != 0) {
-		getSolver()->addForcedChoices(formula.forcedchoices);
+		vec<Lit> lits;
+		toVec(formula.forcedchoices, lits);
+		getSolver()->addForcedChoices(lits);
 	}
 	return true;
 }
@@ -459,22 +464,22 @@ bool PropagatorFactory::add(const InnerCPBinaryRel& obj){
 	int intbound = toInt(obj.bound);
 	switch(obj.rel){
 		case MEQ:
-			eq.literals.push(left->getEQLit(intbound));
+			eq.literals.push_back(left->getEQLit(intbound));
 			break;
 		case MNEQ:
-			eq.literals.push(left->getNEQLit(intbound));
+			eq.literals.push_back(left->getNEQLit(intbound));
 			break;
 		case MGEQ:
-			eq.literals.push(left->getGEQLit(intbound));
+			eq.literals.push_back(left->getGEQLit(intbound));
 			break;
 		case MG:
-			eq.literals.push(left->getGEQLit(intbound+1));
+			eq.literals.push_back(left->getGEQLit(intbound+1));
 			break;
 		case MLEQ:
-			eq.literals.push(left->getLEQLit(intbound));
+			eq.literals.push_back(left->getLEQLit(intbound));
 			break;
 		case ML:
-			eq.literals.push(left->getLEQLit(intbound-1));
+			eq.literals.push_back(left->getLEQLit(intbound-1));
 			break;
 	}
 	return add(eq);
@@ -503,7 +508,9 @@ bool PropagatorFactory::add(InnerDisjunction& formula, rClause& newclause){
 	notifyMonitorsOfAdding(formula);
 	addVars(formula.literals);
 
-	return getSolver()->addClause(formula.literals, newclause);
+	vec<Lit> lits;
+	toVec(formula.literals, lits);
+	return getSolver()->addClause(lits, newclause);
 }
 
 bool PropagatorFactory::finishSet(InnerWLSet* set, vector<Agg*>& aggs){
@@ -555,7 +562,7 @@ bool PropagatorFactory::finishParsing() {
 	// create one, certainly true variable which can act as a dummy head
 	dummyvar = getEngine().newVar();
 	InnerDisjunction clause;
-	clause.literals.push(mkLit(dummyvar));
+	clause.literals.push_back(mkLit(dummyvar));
 	add(clause);
 
 	// create reified aggregates

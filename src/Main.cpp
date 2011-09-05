@@ -68,6 +68,7 @@ static void SIGINT_handler	(int signum);
 void handleSignals	();
 int handleTermination(pwls d);
 
+void parseAndInitializeTheory(pwls& d);
 void doModelGeneration(pwls& d);
 
 void rewriteIntoFlatZinc();
@@ -138,6 +139,7 @@ int main(int argc, char** argv) {
 		sol->setNbModelsToFind(modes.nbmodels);
 	}
 	sol->setModes(modes); //TODO find cleaner way? => these are set when solve is called, but earlier statements might have incorrect behavior then (printing unsat e.g.)
+	sol->setInference(modes.inference);
 
 	if(modes.transformat==TRANS_FZ){
 		rewriteIntoFlatZinc();
@@ -163,7 +165,19 @@ int main(int argc, char** argv) {
 		}
 		if(!stoprunning){
 			jumpback = 0;
-			doModelGeneration(d);
+			parseAndInitializeTheory(d);
+			if(sol->getInferenceOption()==MODELEXPAND){
+				doModelGeneration(d);
+			}else if(sol->getInferenceOption()==PRINTTHEORY){
+				if(sol->isUnsat()){
+					cout <<"p ecnf\n0\n"; cout.flush();
+				}else{
+					assert(d!=NULL);
+					d->printTheory(cout);
+					cout.flush();
+				}
+			}
+
 			jumpback = 1;
 			cleanexit = true;
 		}
@@ -296,9 +310,7 @@ pwls initializeAndParseFODOT(){
 	return d;
 }
 
-void doModelGeneration(pwls& d){
-	// Unittest injection possible here by: pwls d = unittestx();
-
+void parseAndInitializeTheory(pwls& d){
 	sol->notifyStartParsing();
 
 	switch(modes.format){
@@ -315,6 +327,10 @@ void doModelGeneration(pwls& d){
 	}
 
 	sol->notifyEndParsing();
+}
+
+void doModelGeneration(pwls& d){
+	// Unittest injection possible here by: pwls d = unittestx();
 
 	if(!sol->isUnsat()){
 		assert(d!=NULL);

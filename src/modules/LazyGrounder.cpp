@@ -22,12 +22,12 @@ void LazyGrounder::addClause(const InnerDisjunction& clause){
 	clauses.push_back(new LazyGroundedClause(clause));
 }
 
-bool LazyGrounder::expand(int clauseID, vec<Lit>& currentclause){
+bool LazyGrounder::expand(int clauseID, litlist& currentclause){
 	LazyGroundedClause lz = *clauses[clauseID];
 	if(lz.clause.literals.size()<=lz.indexofnext){
 		return false;
 	}
-	currentclause.push(lz.clause.literals[lz.indexofnext++]);
+	currentclause.push_back(lz.clause.literals[lz.indexofnext++]);
 	return true;
 }
 /*

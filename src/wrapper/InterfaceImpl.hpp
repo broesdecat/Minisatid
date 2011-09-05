@@ -86,6 +86,7 @@ public:
 
 	bool 	hasOptimization	() const { return optimization; }
 	void 	solve			();
+	void 	printTheory		(std::ostream& stream);
 
 	virtual void 	addModel(const InnerModel& model); //virtual for MODSOLVER!
 	void	notifyOptimalModelFound();
@@ -114,11 +115,9 @@ protected:
 
 	Var 	checkAtom		(const Atom& atom);
 	Lit 	checkLit		(const Literal& lit);
-	void 	checkLits		(const std::vector<Literal>& lits, vec<Lit>& ll);
 	void 	checkLits		(const std::vector<Literal>& lits, std::vector<Lit>& ll);
 	void 	checkAtoms		(const std::vector<Atom>& atoms, std::vector<Var>& ll);
 	void 	checkAtoms		(const std::map<Atom, Atom>& atoms, std::map<Var, Var>& ll);
-	void 	checkLits		(const std::vector<std::vector<Literal> >& lits, vec<vec<Lit> >& ll);
 	void 	checkLits		(const std::vector<std::vector<Literal> >& lits, std::vector<std::vector<Lit> >& ll);
 
 	Remapper*		getRemapper		()	const { return remapper; }

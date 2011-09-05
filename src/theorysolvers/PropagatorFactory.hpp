@@ -138,7 +138,6 @@ private:
 	bool isParsing		()	const { return parsing; }
 
 	void addVar			(Lit l) { add(var(l)); }
-	void addVars		(const vec<Lit>& a);
 	void addVars		(const std::vector<Lit>& a);
 
 	bool addAggrExpr	(Var headv, int setid, AggSign sign, const Weight& bound, AggType type, AggSem sem);
