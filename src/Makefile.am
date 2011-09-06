@@ -140,7 +140,10 @@ endif
 AM_YFLAGS = -d 
 AM_LFLAGS =
 
-bin_PROGRAMS = minisatid alltests
+bin_PROGRAMS = minisatid 
+if BUILDTESTS
+bin_PROGRAMS += alltests
+endif 
 BUILT_SOURCES = parser/ecnfparser.h
 minisatid_LDADD = libminisatid-2.0.la
 

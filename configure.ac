@@ -102,6 +102,14 @@ AC_ARG_ENABLE([gmp],
 	*) AC_MSG_ERROR([bad value ${enableval} for --enable-gmp]) ;;
 esac],[ AC_CXXFLAGS+=" -D NO_GMP " ])
 
+AC_ARG_ENABLE([tests],
+[  --enable-tests    Also compile in unit-tests (if you have an appropriate google-test library)],
+[case "${enableval}" in
+	yes) enabletests=yes ;;
+	no) enabletests=no ;;
+	*) AC_MSG_ERROR([bad value ${enableval} for --enable-tests]) ;;
+esac],[ tests=yes ])
+
 AC_ARG_ENABLE([perftools],
 [  --enable-perftools=false    Use the google perftools library for memory allocation (does not work for each OS, please consult "http://code.google.com/p/google-perftools/"],
 [case "${enableval}" in
@@ -149,6 +157,7 @@ if test "x$enablegecode" = "xyes" -a "x$hasgecodedir" = "xyes"; then
 fi
 
 AM_CONDITIONAL([USEPERFTOOLS],[test x$perftools = xyes])
+AM_CONDITIONAL([BUILDTESTS],[test x$enabletests = xyes])
 AM_CONDITIONAL([USECPSUPPORT],[test x$enablegecode == xyes])
 
 #if test "x$perftools" = "xyes"; then
