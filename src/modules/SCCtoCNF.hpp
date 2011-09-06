@@ -23,85 +23,85 @@ namespace toCNF{
 class Rule{
 	bool disjunctive_;
 	Var head_;
-	std::vector<Var> defbody_;
-	litlist openbody_;
+	litlist defbody_, openbody_;
 
 public:
-	Rule(bool disjunctive, Var head, const std::vector<Var>& deflits, const litlist& openlits)
-			:disjunctive_(disjunctive), head_(head), defbody_(deflits), openbody_(openlits){
+	Rule(bool disjunctive, Var head, const litlist& deflits, const litlist& openlits)
+			:disjunctive_(disjunctive), head_(head), defbody_(deflits), openbody_(openlits){}
 
-	}
-
-	Var getHead() const { return head_; }
-	bool isDisjunctive() const { return disjunctive_; }
-	const std::vector<Var>& defVars() const { return defbody_; }
-	const litlist& openLits() const { return openbody_; }
+	Var 			getHead() 		const { return head_; }
+	bool 			isDisjunctive() const { return disjunctive_; }
+	const litlist& 	def() 			const { return defbody_; }
+	const litlist& 	open() 			const { return openbody_; }
 };
 
-class LevelVar{
+class Level2SAT{
 	// First bit is 2^0
-	std::vector<Var> bits_;
+	varlist bits_;
 public:
 	template<class Solver>
-	LevelVar(Solver& solver, int maxlevel){
+	Level2SAT(Solver& solver, int maxlevel){
 		int maxbits = (log((double)maxlevel)/log(2))+0.5;
 		for(int i=0; i<maxbits; ++i) {
 			bits_.push_back(solver.newVar());
 		}
 	}
 
-	const std::vector<Var> bits() const { return bits_; }
-};
-
-enum ENC_SIGN { ENC_LEQPLUS1, ENC_GREATER };
-
-struct Encoding{
-	LevelVar *left, *right;
-	ENC_SIGN sign;
-		// if true: left =< right + 1
-		// else left > right
-
-	bool operator== (const Encoding& enc) const {
-		return left==enc.left || right==enc.right || sign==enc.sign;
-	}
-	bool operator< (const Encoding& enc) const {
-		return left<enc.left || right<enc.right || sign<enc.sign;
+	const varlist& bits() const { return bits_; }
+	litlist zero() const { return zero(bits_.size()-1); }
+	litlist zero(int toindex) const {
+		litlist list;
+		for(auto i=0; i<toindex+1; ++i){
+			list.push_back(mkNegLit(bits()[i]));
+		}
+		return list;
 	}
 
-	Encoding(LevelVar* left, LevelVar* right, ENC_SIGN sign)
-			:left(left), right(right), sign(sign){
-
-	}
-};
-
-struct UnaryEncoding{
-	LevelVar *left;
-	ENC_SIGN sign;
-		// if true: left =<  1
-		// else left > 0
-
-	bool operator== (const UnaryEncoding& enc) const {
-		return left==enc.left || sign==enc.sign;
-	}
-	bool operator< (const UnaryEncoding& enc) const {
-		return left<enc.left || sign<enc.sign;
-	}
-
-	UnaryEncoding(LevelVar* left, ENC_SIGN sign)
-			:left(left), sign(sign){
+	litlist one(int toindex) const {
+		litlist list;
+		for(auto i=0; i<toindex+1; ++i){
+			list.push_back(mkPosLit(bits()[i]));
+		}
+		return list;
 	}
 };
 
 template<class Solver>
 class SCCtoCNF {
+	enum class SIGN { L1, G};
+
+	struct Comp{
+		SIGN sign;
+		Level2SAT *left, *right;
+		bool operator== (const Comp& enc) const {
+			return sign==enc.sign && left==enc.left && right==enc.right;
+		}
+		bool operator< (const Comp& enc) const {
+			if(sign==SIGN::L1 && enc.sign==SIGN::G){
+				return true;
+			}else if(sign==SIGN::G && enc.sign==SIGN::L1){
+				return false;
+			}else{
+				return left<enc.left || (left==enc.left && right<enc.right);
+			}
+		}
+		Comp(Level2SAT* left, SIGN sign, Level2SAT* right): sign(sign), left(left), right(right){}
+	};
+
+	struct EqToZero{
+		Level2SAT* left;
+		bool operator== (const EqToZero& enc) const { return left==enc.left; }
+		bool operator< (const EqToZero& enc) const { return left<enc.left; }
+		EqToZero(Level2SAT* left):left(left){}
+	};
+
 private:
 	Solver& solver_;
 	int maxlevel;
-	std::map<Var, LevelVar*> atom2level;
+	std::map<Var, Level2SAT*> atom2level;
 	std::set<Var> defined;
-	typedef std::pair<Encoding, Var> enc2var;
-	std::map<Encoding, Var> necessaryEncodings;
-	std::map<UnaryEncoding, Var> necessaryUnEncodings;
+	std::map<EqToZero,Lit> eq2zeromap;
+	std::map<Comp,Lit> largermap;
 public:
 
 	// @pre: rules is one SCC
@@ -111,10 +111,19 @@ public:
 		for(auto rule=rules.begin(); rule!=rules.end(); ++rule){
 			defined.insert((*rule)->getHead());
 		}
+
 		maxlevel = defined.size(); // maxlevel is the scc size
+
 		for(auto head=defined.begin(); head!=defined.end(); ++head){
-			atom2level.insert(std::pair<Var, LevelVar*>(*head, new LevelVar(solver_, maxlevel)));
+			auto headvar = new Level2SAT(solver_, maxlevel);
+			atom2level[*head] = headvar;
+
+			// Encode ~p => l(p)=0 for all defineds
+			if(solver_.value(*head)!=l_True){
+				addClause(litlist{mkPosLit(*head), zero2SAT(headvar)});
+			}
 		}
+
 		SATVAL state = SATVAL::POS_SAT;
 		for(auto rule=rules.begin(); state==SATVAL::POS_SAT && rule!=rules.end(); ++rule){
 			if((*rule)->isDisjunctive()){
@@ -130,138 +139,74 @@ private:
 	/*
 	 * P1 <- Q1 | ... | Qn
 	 * ==>
-	 * P1 => l(P1) = min(l(Q1)|Q1, ..., l(Qn)|Qn)+1
-	 * ==>
-	 * P1 & Q1 => l(P1)=<l(Q1)+1
-	 * ...
-	 * P1 & Qn => l(P1)=<l(Qn)+1
-	 * P1 => (l(P1)>=l(Q1)+1 & Q1) | ... (l(P1)>=l(Qn)+1 & Qn)
-	 * ==>
-	 * ==>
-	 * ~P1 | ~Q1 | l(P1)=<l(Q1)+1
-	 * ...
-	 * ~P1 | ~Qn | l(P1)=<l(Qn)+1
-	 * ~P1 | PT1 | ... | PTn
-	 * PT1 <=> l(P1)>l(Q1) & Q1
-	 * ...
-	 * PTn <=> l(P1)>l(Qn) & Qn
+	 * !def i: ~P | l(P)=<l(Qi)+1 | ~Qi
+	 * !open i: ~P | l(P)=0 | ~Qi
+	 * ~P | (l(P)>l(Q1) & Q1) | ... | (l(P)>l(Qn) & Qn) or def qi: =0
 	 */
 	SATVAL transformDisjunction(const Rule& rule){
-		SATVAL state = SATVAL::POS_SAT;
-		LevelVar* headvar = atom2level[rule.getHead()];
-		InnerDisjunction tseitins;
-		tseitins.literals.push_back(mkNegLit(rule.getHead()));
-		for(auto def = rule.defVars().begin(); def!=rule.defVars().end(); ++def) {
-			if(state!=SATVAL::POS_SAT){
-		    	break;
-		    }
-			assert(defined.find(*def)!=defined.end());
-			LevelVar* bodyvar = atom2level[*def];
-			state &= addClause(litlist{mkNegLit(rule.getHead()), mkNegLit(*def), retrieveEncoding(headvar, bodyvar, ENC_LEQPLUS1)});
+		auto headvar = atom2level[rule.getHead()];
+		Lit head = mkPosLit(rule.getHead());
 
-			Lit tseitin = mkPosLit(solver_.newVar());
-			tseitins.literals.push_back(tseitin);
-			state &= addConjEq(tseitin, litlist{mkPosLit(*def), retrieveEncoding(headvar, bodyvar, ENC_GREATER)});
+		if(solver_.value(head)==l_False){
+			return solver_.isUnsat();
 		}
-		for(auto open = rule.openLits().begin(); open!=rule.openLits().end(); ++open) {
-			if(state!=SATVAL::POS_SAT){
-		    	break;
-		    }
-			state &= addClause(litlist{mkNegLit(rule.getHead()), not *open, retrieveEncoding(headvar, ENC_LEQPLUS1)});
 
-			Lit tseitin = mkPosLit(solver_.newVar());
-			tseitins.literals.push_back(tseitin);
-			state &= addConjEq(tseitin, litlist{*open, retrieveEncoding(headvar, ENC_GREATER)});
+		litlist tseitins{~head};
+		for(auto litit = rule.def().begin(); litit!=rule.def().end(); ++litit) {
+			assert(defined.find(var(*litit))!=defined.end());
+			auto bodyvar = atom2level[var(*litit)];
+
+			if(solver_.value(*litit)!=l_False){
+				addClause(litlist{~head, ~(*litit), Comp2SAT(headvar, SIGN::L1, bodyvar)});
+				tseitins.push_back(and2SAT(litlist{*litit, Comp2SAT(headvar, SIGN::G, bodyvar)}));
+				// FIXME should check returned literals on their value!
+			}
 		}
-		solver_.add(tseitins);
-		state &= solver_.isUnsat();
-		return state;
+
+		for(auto litit = rule.open().begin(); litit!=rule.open().end(); ++litit) {
+			if(solver_.value(*litit)!=l_False){
+				addClause(litlist{~head, ~(*litit), zero2SAT(headvar)});
+				tseitins.push_back(and2SAT(litlist{*litit, zero2SAT(headvar)}));
+				// FIXME should check returned literals on their value!
+			}
+		}
+
+		addClause(tseitins);
+
+		return solver_.isUnsat();
 	}
 
 	/*
-	 * 	Q1 <- P1 & ... & Qn
-	 * 	==>
-	 * 	Q1 => l(Q1) = max(l(P1)|P1, ..., l(Pn)|Pn)+1
-	 * 	==>
-	 * 	Q1 => l(Q1)>=l(P1)+1
-	 * 	...
-	 * 	Q1 => l(Q1)>=l(Pn)+1
-	 * 	Q1 => (l(Q1)=<l(P1)+1 & P1) | ... (l(Q1)<=l(Pn)+1 & Pn)
-	 * 	==>
-	 * 	~Q1 | l(Q1)>l(P1)
-	 * 	...
-	 * 	~Q1 | l(Q1)>l(Pn)
-	 * 	~Q1 | QT1 | ... | QTn
-	 * 	QT1 <=> l(Q1)=<l(P1)+1 & P1
-	 * 	...
-	 * 	QTn <=> l(Q1)<=l(Pn)+1 & Pn
+	 * P1 <- Q1 & ... & Qn
+	 * ==>
+	 * !def i: ~P | l(P)>l(Qi)
+	 * ~P | l(P)=<l(Q1)+1 | ... | l(P)=<l(Qn)+1 only for qi in def
 	 */
 	SATVAL transformConjunction(const Rule& rule){
-		SATVAL state = SATVAL::POS_SAT;
-		LevelVar* headvar = atom2level[rule.getHead()];
-		InnerDisjunction tseitins;
-		tseitins.literals.push_back(mkNegLit(rule.getHead()));
-		for(auto def = rule.defVars().begin(); state==SATVAL::POS_SAT && def!=rule.defVars().end(); ++def){
-			assert(defined.find(*def)!=defined.end());
-			LevelVar* bodyvar = atom2level[*def];
-			state &= addClause(litlist{mkNegLit(rule.getHead()), retrieveEncoding(headvar, bodyvar, ENC_GREATER)});
+		auto headvar = atom2level[rule.getHead()];
+		Lit head = mkPosLit(rule.getHead());
 
-			Lit tseitin = mkPosLit(solver_.newVar());
-			tseitins.literals.push_back(tseitin);
-			state &= addConjEq(tseitin, litlist{mkPosLit(*def), retrieveEncoding(headvar, bodyvar, ENC_LEQPLUS1)});
+		if(solver_.value(head)==l_False){
+			return solver_.isUnsat();
 		}
-		if(rule.openLits().size()>0){
-			state &= addClause(litlist{mkNegLit(rule.getHead()), retrieveEncoding(headvar, ENC_GREATER)});
+
+		litlist tseitins{~head};
+		for(auto litit = rule.def().begin(); litit!=rule.def().end(); ++litit) {
+			assert(defined.find(var(*litit))!=defined.end());
+			auto bodyvar = atom2level[var(*litit)];
+
+			addClause(litlist{~head, Comp2SAT(headvar, SIGN::G, bodyvar)});
+			tseitins.push_back(Comp2SAT(headvar, SIGN::L1, bodyvar));
+			// FIXME should check returned literals on their value!
 		}
-		for(auto open = rule.openLits().begin(); state==SATVAL::POS_SAT && open!=rule.openLits().end(); ++open){
-			Lit tseitin = mkPosLit(solver_.newVar());
-			tseitins.literals.push_back(tseitin);
-			state &= addConjEq(tseitin, litlist{*open, retrieveEncoding(headvar, ENC_LEQPLUS1)});
-		}
-		solver_.add(tseitins);
-		state &= solver_.isUnsat();
-		return state;
+		tseitins.push_back(zero2SAT(headvar));
+
+		addClause(tseitins);
+
+		return solver_.isUnsat();
 	}
 
-	bool isOpen(const Lit& lit){
-		return sign(lit) || defined.find(var(lit))==defined.end();
-	}
-
-	// Retrieve encoding of left > 0 (left[1]=1) or left <= 1 (left[i]=0 forall i except lowest)
-	// level van alle atomen tussen 0 en maxlevel (inclusief). opens hebben level 0 (dus geen level encoding nodig)
-	Lit retrieveEncoding(LevelVar* left, ENC_SIGN sign){
-		if(sign==ENC_GREATER){
-			return mkPosLit(left->bits()[0]);
-		}else{
-			auto enc = necessaryUnEncodings.find(UnaryEncoding(left, sign));
-			Var v;
-			if(enc==necessaryUnEncodings.end()){
-				v = solver_.newVar();
-				InnerEquivalence eq;
-				eq.head = mkPosLit(v);
-				eq.conjunctive = true;
-				for(auto bit=++left->bits().begin(); bit!=left->bits().end(); ++bit){
-					eq.literals.push_back(mkNegLit(*bit));
-				}
-				solver_.add(eq);
-				necessaryUnEncodings.insert(std::pair<UnaryEncoding, Var>(UnaryEncoding(left, sign), v));
-			}else{
-				v = enc->second;
-			}
-			return mkPosLit(v);
-		}
-	}
-
-	Lit retrieveEncoding(LevelVar* left, LevelVar* right, ENC_SIGN sign){
-		auto enc = necessaryEncodings.find(Encoding(left, right, sign));
-		Var v;
-		if(enc==necessaryEncodings.end()){
-			v = addEncoding(Encoding(left, right, sign));
-		}else{
-			v = enc->second;
-		}
-		return mkPosLit(v);
-	}
+	// FIXME use current interpretation to simplify things in the code below also
 
 	SATVAL addClause(const litlist& lits){
 		InnerDisjunction d;
@@ -270,110 +215,111 @@ private:
 		return solver_.isUnsat();
 	}
 
-	SATVAL addDisjEq(const Lit& head, const litlist& lits){
-		InnerEquivalence eq;
-		eq.head = head;
-		eq.conjunctive = false;
-		eq.literals = lits;
-		solver_.add(eq);
-		return solver_.isUnsat();
-	}
-
-	SATVAL addConjEq(const Lit& head, const litlist& lits){
-		InnerEquivalence eq;
-		eq.head = head;
-		eq.conjunctive = true;
-		eq.literals = lits;
-		solver_.add(eq);
-		return solver_.isUnsat();
-	}
-
-	/*
-		level encoding:
-		l(P1) = 2^0*P11 + 2^1*P12 + ... + 2^max*P1max
-		encode leq+1 as
-		fullft(P1, Q1, i) <=> ~P1i & Q1i & fullft(P1, Q1, i-1)
-		leqp1(P1, Q1, i) <=> (~P1i & Q1i) | (P10 & Q10 & leqp1(P1, Q1, i-1)) | (~P10 & ~Q10 & leqp1(P1, Q1, i-1)) | (P11 & ~Q11 & fullft(P1, Q1, i-1))
-		leqp1(P1, Q1, 1) <=> ~(~Q11 & ~Q10 & P11 & P10)
-		then l(P1)=<l(Q1)+1 becomes leqp1(P1, Q1, max)
-		encode greater as
-		g(P1, Q1, i) <=> (P1i & ~Q1i) | (P1i & Q1i & g(P1, Q1, i-1)) | (~P1i & ~Q1i & g(P1, Q1, i-1))
-		g(P1, Q1, 0) <=> P10 & ~Q10
-		then l(P1)>l(Q1) becomes g(P1, Q1, max)
-	*/
-	Var addEncoding(const Encoding& enc){
-		Var next;
-		SATVAL state = SATVAL::POS_SAT;
-		if(enc.sign == ENC_GREATER){
-			// greater base case: g(P1,Q1,0) <=> P10 & ~Q10
-			Var prev = solver_.newVar();
-			Var leftbiti = enc.left->bits()[0];
-			Var rightbiti = enc.right->bits()[0];
-			state &= addConjEq(mkPosLit(prev), litlist{mkPosLit(leftbiti), mkNegLit(rightbiti)});
-
-			// greater recursive case
-			for(vsize i=1; i<enc.left->bits().size(); ++i){
-				Var leftbit = enc.left->bits()[i];
-				Var rightbit = enc.right->bits()[i];
-				Lit firstconj = mkPosLit(solver_.newVar());
-				state &= addConjEq(firstconj, litlist{mkPosLit(leftbit), mkNegLit(rightbit)});
-				Lit secondconj = mkPosLit(solver_.newVar());
-				state &= addConjEq(secondconj, litlist{mkPosLit(leftbit), mkPosLit(rightbit), mkPosLit(prev)});
-				Lit thirdconj = mkPosLit(solver_.newVar());
-				state &= addConjEq(thirdconj, litlist{mkNegLit(leftbit), mkNegLit(rightbit), mkPosLit(prev)});
-
-				next = solver_.newVar();
-				state &= addDisjEq(mkPosLit(next), litlist{firstconj, secondconj, thirdconj});
-				prev = next;
-			}
+	Lit zero2SAT(Level2SAT* left){
+		auto it = eq2zeromap.find(EqToZero(left));
+		if(it==eq2zeromap.end()){
+			Lit tseitin = and2SAT(left->zero());
+			eq2zeromap[EqToZero(left)] = tseitin;
+			return tseitin;
 		}else{
-			//leqp1(P1, Q1, 0) <=> true
-			if(enc.left->bits().size()<2){
-				next = solver_.newVar();
-				state &= addClause(litlist{mkPosLit(next)});
-			}else{
-				//fullft(P1, Q1, i) <=> ~P1i & Q1i & fullft(P1, Q1, i-1)
-				std::vector<Var> fullfalstrue;
-				Lit temp = mkPosLit(solver_.newVar());
-				state &= addConjEq(temp, litlist{mkNegLit(enc.left->bits()[0]), mkPosLit(enc.right->bits()[0])});
-				Var prev = var(temp);
-				fullfalstrue.push_back(prev);
-				for(vsize i=1; i<enc.left->bits().size(); ++i){
-					next = solver_.newVar();
-					Var leftbit = enc.left->bits()[i];
-					Var rightbit = enc.right->bits()[i];
-					state &= addConjEq(mkPosLit(next), litlist{mkNegLit(leftbit), mkPosLit(rightbit), mkPosLit(prev)}); // TODO return value
-					prev = next;
-					fullfalstrue.push_back(prev);
-				}
-
-				//leqp1(P1, Q1, i) <=> (~P1i & Q1i) | (P10 & Q10 & leqp1(P1, Q1, i-1)) | (~P10 & ~Q10 & leqp1(P1, Q1, i-1)) | (P11 & ~Q11 & fullft(P1, Q1, i-1))
-				//leqp1(P1, Q1, 1) <=> ~(~Q11 & ~Q10 & P11 & P10)
-				prev = solver_.newVar();
-				state &= addConjEq(mkNegLit(prev), litlist{mkNegLit(enc.right->bits()[1]),mkNegLit(enc.right->bits()[0]), mkPosLit(enc.left->bits()[1]), mkPosLit(enc.left->bits()[0])});
-
-				for(vsize i=1; i<enc.left->bits().size(); ++i){
-					Var leftbit = enc.left->bits()[i];
-					Var rightbit = enc.right->bits()[i];
-
-					Lit firstconj = mkPosLit(solver_.newVar());
-					state &= addConjEq(firstconj, litlist{mkNegLit(leftbit), mkPosLit(rightbit)});
-					Lit secondconj = mkPosLit(solver_.newVar());
-					state &= addConjEq(secondconj, litlist{mkPosLit(leftbit), mkPosLit(rightbit), mkPosLit(prev)});
-					Lit thirdconj = mkPosLit(solver_.newVar());
-					state &= addConjEq(thirdconj, litlist{mkNegLit(leftbit), mkNegLit(rightbit), mkPosLit(prev)});
-					Lit fourthconj = mkPosLit(solver_.newVar());
-					state &= addConjEq(fourthconj, litlist{mkPosLit(leftbit), mkNegLit(rightbit), mkPosLit(fullfalstrue[i-1])});
-
-					next = solver_.newVar();
-					state &= addDisjEq(mkPosLit(next), litlist{firstconj, secondconj, thirdconj, fourthconj});
-					prev = next;
-				}
-			}
+			return (*it).second;
 		}
-		assert(state == SATVAL::POS_SAT);
-		necessaryEncodings.insert(enc2var(enc, next));
-		return next;
+	}
+
+	Lit and2SAT(const litlist& subs){
+		Lit tseitin = mkPosLit(solver_.newVar());
+
+		InnerEquivalence eq;
+		eq.head = tseitin;
+		eq.conjunctive = true;
+		eq.literals = subs;
+		solver_.add(eq);
+
+		return tseitin;
+	}
+
+	Lit or2SAT(const litlist& subs){
+		Lit tseitin = mkPosLit(solver_.newVar());
+
+		InnerEquivalence eq;
+		eq.head = tseitin;
+		eq.conjunctive = false;
+		eq.literals = subs;
+		solver_.add(eq);
+
+		return tseitin;
+	}
+
+	Lit Comp2SAT(Level2SAT* left, SIGN sign, Level2SAT* right){
+		auto it = largermap.find(Comp(left, sign, right));
+		if(it==largermap.end()){
+			Lit tseitin;
+			if(sign==SIGN::G){
+				tseitin = G2SAT(left, right, left->bits().size());
+			}else{
+				tseitin = L2SAT(left, right, left->bits().size());
+			}
+			largermap[Comp(left, sign, right)] = tseitin;
+			return tseitin;
+		}else{
+			return (*it).second;
+		}
+	}
+
+	Lit L2SAT(Level2SAT* left, Level2SAT* right, int index){
+		if(index==1){
+			return ~and2SAT(litlist{
+						mkPosLit(left->bits()[0]),
+						mkPosLit(left->bits()[0]),
+						mkNegLit(right->bits()[1]),
+						mkNegLit(right->bits()[0])
+					});
+		}else{
+			return or2SAT(litlist{
+					and2SAT(litlist{
+						EqBit2SAT(right->bits()[index], left->bits()[index]),
+						L2SAT(left, right, index-1)
+					}),
+					and2SAT(litlist{
+						GBit2SAT(right->bits()[index], left->bits()[index]),
+						restZero2SAT(right, index-1),
+						restOneSAT(left, index-1)
+					})
+				});
+		}
+	}
+
+	Lit restZero2SAT(Level2SAT* left, int index){
+		litlist list(left->zero(index));
+		return and2SAT(list);
+	}
+
+	Lit restOneSAT(Level2SAT* left, int index){
+		litlist list(left->one(index));
+		return and2SAT(list);
+	}
+
+	Lit G2SAT(Level2SAT* left, Level2SAT* right, int index){
+		Lit gtseitin = GBit2SAT(left->bits()[0], right->bits()[0]);
+		if(index==0){
+			return gtseitin;
+		}else{
+			return or2SAT(litlist{
+					gtseitin,
+					and2SAT(litlist{
+						EqBit2SAT(left->bits()[index], right->bits()[index]),
+						G2SAT(left, right, index-1)})});
+		}
+	}
+
+	Lit GBit2SAT(Var leftbit, Var rightbit){
+		return and2SAT(litlist{mkPosLit(leftbit), mkNegLit(rightbit)});
+	}
+
+	Lit EqBit2SAT(Var leftbit, Var rightbit){
+		return or2SAT(litlist{
+						and2SAT(litlist{mkPosLit(leftbit), mkPosLit(rightbit)}),
+						and2SAT(litlist{mkNegLit(leftbit), mkNegLit(rightbit)})});
 	}
 };
 

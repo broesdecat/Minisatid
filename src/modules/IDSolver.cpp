@@ -383,16 +383,15 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	if(!unsat && modes().tocnf){
 		vector<toCNF::Rule*> rules;
 		for(auto root = sccroots.begin(); root!=sccroots.end(); ++root){
-			// FIXME use current interpretation to decide which rules/sccs not to transform
 			// TODO better to store full sccs instead having to loop over them here?
 			for(auto i=defdVars.begin(); i<defdVars.end(); ++i){
 				if(scc(*root)==scc(*i)){
-					varlist defbodylits;
+					litlist defbodylits;
 					litlist openbodylits;
 					auto proprule = getDefVar(*i)->definition();
 					for(auto bodylit=proprule->begin(); bodylit!=proprule->end(); ++bodylit){
 						if(not sign(*bodylit) && hasDefVar(var(*bodylit)) && scc(var(*bodylit))==scc(*root)){
-							defbodylits.push_back(var(*bodylit));
+							defbodylits.push_back(*bodylit);
 						}else{
 							openbodylits.push_back(*bodylit);
 						}
@@ -404,8 +403,8 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 			unsat = not toCNF::transformSCCtoCNF(getPCSolver(), rules);
 			deleteList<toCNF::Rule>(rules);
 		}
+		notifyNotPresent(); // TODO should still allow wellfoundedness checks here!
 		//		present = false; FIXME hack for lazy grounding
-		// TODO should still allow wellfoundedness checks here!
 	}
 
 //	notifyInitialized(); FIXME lazy grounding hack
@@ -1885,7 +1884,10 @@ bool IDSolver::isCycleFree() const {
 }
 
 rClause IDSolver::notifyFullAssignmentFound(){
-	rClause confl = notifypropagate();
+	rClause confl = nullPtrClause;
+	if(confl==nullPtrClause && not modes().tocnf){ // FIXME should separate propagators!
+		notifypropagate();
+	}
 	if(confl==nullPtrClause && getSemantics()==DEF_WELLF){
 		confl = isWellFoundedModel();
 	}
