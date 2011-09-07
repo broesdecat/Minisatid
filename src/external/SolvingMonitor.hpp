@@ -16,7 +16,7 @@
 #include <tr1/memory>
 
 #include "external/ExternalUtils.hpp"
-
+#include "external/Translator.hpp"
 
 namespace MinisatID {
 
@@ -25,13 +25,6 @@ class ResMan;
 
 enum SolvingState { SOLVING_STARTED, SOLVING_FINISHEDCLEANLY, SOLVING_ABORTED};
 enum ModelSaved { MODEL_NONE, MODEL_SAVED, MODEL_SAVING };
-
-struct Model{
-	std::vector<Literal> literalinterpretations;
-	std::vector<VariableEqValue> variableassignments;
-};
-
-typedef std::vector<Model*> modellist;
 
 class Solution{
 private:
@@ -95,11 +88,14 @@ public:
 	bool	isSat					() { return getNbModelsFound()>0; }
 	bool	isUnsat					() { return unsatfound; }
 
-	void 		setTranslator		(Translator* trans);
-	void 		printLiteral(std::ostream& stream, const Literal& lit) const ;
-	bool		hasTseitinKnowledge	() const;
-	Atom		smallestTseitinAtom	();
-
+	void 	setTranslator			(Translator* trans);
+	void 	printLiteral			(std::ostream& stream, const Literal& l) const;
+	template<class List>
+	void 	printTranslation		(std::ostream& output, const List& list) const{
+		if(hasTranslator()){
+			getTranslator()->printTranslation(output, list);
+		}
+	}
 	void notifyStartParsing			();
 	void notifyEndParsing			();
 	void notifyStartDataInit		();

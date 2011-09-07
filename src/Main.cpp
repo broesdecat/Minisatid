@@ -74,10 +74,9 @@ void doModelGeneration(pwls& d);
 void rewriteIntoFlatZinc();
 
 extern SolverOption modes;
-FODOTTranslator* fodottrans;
+OUTPUTFORMAT transformat;
 
 Solution* sol = NULL;
-Translator* trans = NULL;
 
 Solution* createSolution(){
 	ModelExpandOptions options;
@@ -173,7 +172,7 @@ int main(int argc, char** argv) {
 					cout <<"p ecnf\n0\n"; cout.flush();
 				}else{
 					assert(d!=NULL);
-					d->printTheory(cout);
+					d->printTheory(cout, sol);
 					cout.flush();
 				}
 			}
@@ -197,10 +196,6 @@ int main(int argc, char** argv) {
 #ifdef NDEBUG
 	return returnvalue; //Do not call all destructors
 #endif
-
-	if(trans!=NULL){
-		delete trans;
-	}
 
 	if(sol!=NULL){
 		delete sol;
@@ -256,8 +251,9 @@ void rewriteIntoFlatZinc(){
 
 pwls initializeAndParseASP(){
 	LParseTranslator* lptrans = new LParseTranslator();
-	trans = lptrans;
-	sol->setTranslator(trans);
+	if(modes.transformat!=TRANS_PLAIN){
+		sol->setTranslator(lptrans);
+	}
 
 	std::istream is(getInputBuffer());
 	WrappedPCSolver* p = new WrappedPCSolver(modes);
@@ -274,12 +270,9 @@ pwls initializeAndParseASP(){
 
 pwls initializeAndParseOPB(){
 	OPBTranslator* opbtrans = new OPBTranslator();
-	trans = opbtrans;
-	//TODO hack, make a clean translation solution (also have to add lparse style translation for fodot)
-	if(modes.transformat==TRANS_PLAIN){
-		trans = new Translator();
+	if(modes.transformat!=TRANS_PLAIN){
+		sol->setTranslator(opbtrans);
 	}
-	sol->setTranslator(trans);
 
 	std::istream is(getInputBuffer());
 	WrappedPCSolver* p = new WrappedPCSolver(modes);
@@ -300,8 +293,7 @@ pwls initializeAndParseOPB(){
 
 pwls initializeAndParseFODOT(){
 	if(modes.transformat!=TRANS_PLAIN){
-		fodottrans = new FODOTTranslator(modes.transformat);
-		trans = fodottrans;
+		transformat = modes.transformat;
 	}
 
 	yyin = getInputFile();

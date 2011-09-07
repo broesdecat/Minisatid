@@ -195,6 +195,10 @@ void FODOTTranslator::printInterpr(const modelvec& model, ostream& output, PRINT
 	output.flush();
 }
 
+bool FODOTTranslator::hasTranslation(const MinisatID::Literal& lit) const{
+	return deriveStringFromAtomNumber(lit.getAtom().getValue()).hastranslation;
+}
+
 //IMPORTANT: non-incremental (slow), so do not use for printing a full model!
 void FODOTTranslator::printLiteral(std::ostream& output, const Literal& lit) {
 	if(!finisheddata){
@@ -206,7 +210,7 @@ void FODOTTranslator::printLiteral(std::ostream& output, const Literal& lit) {
 	}
 
 	AtomInfo info = deriveStringFromAtomNumber(lit.getAtom().getValue());
-	if(!info.hastranslation){
+	if(not info.hastranslation){
 		return;
 	}
 
@@ -278,14 +282,18 @@ void FODOTTranslator::printModel(std::ostream& output, const Model& model) {
  */
 FODOTTranslator::AtomInfo FODOTTranslator::deriveStringFromAtomNumber(int atom) const{
 	AtomInfo info;
+	info.hastranslation = false;
 	info.symbolindex = 0;
+
+	if(atom > largestnottseitinatom){
+		return info;
+	}
 
 	uint& index = info.symbolindex;
 	while(atom > symbols[index]->endnumber) {
 		++index;
 	}
 	if(atom < symbols[index]->startnumber){
-		info.hastranslation = false;
 		return info;
 	}
 

@@ -32,7 +32,6 @@
 namespace MinisatID {
 
 class WrappedLogicSolver;
-class LParseTranslator;
 
 struct BasicRule{
 	Atom head;

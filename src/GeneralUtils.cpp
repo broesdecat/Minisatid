@@ -107,7 +107,7 @@ SolverOption::SolverOption():
 
 		asapaggprop(false),
 		ufsvarintrothreshold(500),
-		tseitindecisions(true),
+		decideontseitins(true),
 		subsetminimizeexplanation(false),
 		currentlevelfirstinexplanation(true),
 		innogoodfirstinexplanation(true),
@@ -164,6 +164,6 @@ void SolverOption::print(std::ostream& so) const{
 	so << "subsetminimizeexplanation: " <<subsetminimizeexplanation <<"\n";
 	so << "asapaggprop: " 		<<asapaggprop <<"\n";
 	so << "ufsvarintrothreshold: " <<ufsvarintrothreshold <<"\n";
-	so << "tseitindecisions: " 	<<tseitindecisions <<"\n";
+	so << "tseitindecisions: " 	<<decideontseitins <<"\n";
 	so << "lazy: " 				<<(lazy?"yes":"no") <<"\n";
 }

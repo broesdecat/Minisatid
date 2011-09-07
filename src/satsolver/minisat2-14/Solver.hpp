@@ -61,6 +61,9 @@ private:
 
 public:
 /*AB*/
+	bool		isUnsat				() const { return not ok; }
+	void 		notifyUnsat			() { ok = false; }
+	void		printECNF			(std::ostream& stream){ assert(false);}
 	// Temporaries (to reduce allocation overhead). Each variable is prefixed by the method in which it is used
 	vec<Lit>            add_tmp;
 	template<class C>

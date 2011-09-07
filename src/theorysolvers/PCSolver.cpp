@@ -758,9 +758,11 @@ void PCSolver::printCurrentOptimum(const Weight& value) const {
 
 // TODO move this to an event in the queue?
 // @pre: decision level = 0
-void PCSolver::printTheory(ostream& stream) const{
+void PCSolver::printTheory(ostream& stream){
 	assert(getCurrentDecisionLevel()==0);
 	stream <<"p ecnf\n";
-	getSATSolver()->printECNF(stream);
-	clog <<"Currently only printing out all clauses in the theory.";
+	std::set<Var> printedvars;
+	getSATSolver()->printECNF(stream, printedvars);
+	getParent().printTranslation(stream, printedvars);
+	clog <<"Currently not printing out any other constructs than clauses from the theory.";
 }

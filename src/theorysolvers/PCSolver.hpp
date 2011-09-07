@@ -173,7 +173,7 @@ public:
 	void		addOptimization(Optim type, Var head);
 	void		addOptimization(Optim type, const litlist& literals);
 
-	void 		printTheory(std::ostream& stream) const;
+	void 		printTheory(std::ostream& stream);
 
 	// DEBUG
 	void 		printEnqueued	(const Lit& p) const;

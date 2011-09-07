@@ -38,7 +38,8 @@ void WrappedLogicSolver::solve(Solution* sol){
 	getImpl()->solve();
 }
 
-void WrappedLogicSolver::printTheory(ostream& stream) const{
+void WrappedLogicSolver::printTheory(ostream& stream, Solution* sol) const{
+	getImpl()->setSolutionMonitor(sol);
 	getImpl()->printTheory(stream);
 }
 

@@ -68,7 +68,7 @@ namespace MinisatID {
 		bool 			bumpaggonnotify, bumpidonstart;
 		bool			asapaggprop;
 		long 			ufsvarintrothreshold;
-		bool			tseitindecisions;
+		bool			decideontseitins;
 		bool			subsetminimizeexplanation, currentlevelfirstinexplanation, innogoodfirstinexplanation;
 		bool			lazy;
 

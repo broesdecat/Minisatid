@@ -44,7 +44,7 @@ typedef std::tr1::unordered_map<int, int> atommap;
 
 class Remapper{
 protected:
-	int 			maxnumber;
+	int maxnumber;
 
 public:
 	Remapper(): maxnumber(0){}
@@ -54,6 +54,7 @@ public:
 	virtual Literal	getLiteral	(const Lit& lit);
 	virtual Var 	getNewVar	() { assert(false); return -1; }
 	virtual bool	wasInput	(Var var)const { return var<maxnumber; }
+	virtual Var		largestVar	() const { return maxnumber; }
 };
 
 class SmartRemapper: public Remapper{
@@ -105,6 +106,16 @@ public:
 	int 	verbosity		()	const	{ return modes().verbosity; }
 	void 	printStatistics	() const;
 	void 	printLiteral	(std::ostream& stream, const Lit& l) const;
+	template<class List>
+	void 	printTranslation(std::ostream& output, const List& l){
+		std::vector<Literal> litstoprint;
+		for(auto i=l.begin(); i!=l.end(); ++i){
+			if(canBackMapLiteral(mkPosLit(*i))){
+				litstoprint.push_back(getRemapper()->getLiteral(mkPosLit(*i)));
+			}
+		}
+		getSolMonitor().printTranslation(output, litstoprint);
+	}
 	void 	printCurrentOptimum(const Weight& value) const;
 
 
@@ -126,7 +137,7 @@ protected:
 	void 	checkAtoms		(const std::map<Atom, Atom>& atoms, std::map<Var, Var>& ll);
 	void 	checkLits		(const std::vector<std::vector<Literal> >& lits, std::vector<std::vector<Lit> >& ll);
 
-	Remapper*		getRemapper		()	const { return remapper; }
+	Remapper* getRemapper		()	const { return remapper; }
 
 	bool	canBackMapLiteral		(const Lit& lit) const;
 	Literal getBackMappedLiteral	(const Lit& lit) const;
@@ -137,7 +148,16 @@ private:
 	bool		hasSolMonitor() const { return solutionmonitor!=NULL; }
 	const Solution& getSolMonitor() const { return *solutionmonitor; }
 
-	void	notifySmallestTseitin	(const Atom& tseitin);
+	void dontDecideTseitins(){
+		Var i = 0;
+		while(i<=getRemapper()->largestVar()){
+			Var mappedvar;
+			if(getRemapper()->hasVar(Atom(i), mappedvar)){
+				getSolver()->notifyNonDecisionVar(mappedvar);
+			}
+			i++;
+		}
+	}
 };
 
 template<>

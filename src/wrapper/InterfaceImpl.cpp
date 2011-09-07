@@ -114,8 +114,11 @@ void WrapperPimpl::setSolutionMonitor(Solution* sol) {
 	if(sol!=NULL) {
 		solutionmonitor = sol;
 		getSolMonitor().setModes(modes());
-		if(sol->hasTseitinKnowledge() && !modes().tseitindecisions){
-			notifySmallestTseitin(sol->smallestTseitinAtom());
+
+		// FIXME check if this happens at the correct moment
+		// NOTE: after parsing the translation, set the decision heuristic for the tseitins
+		if(not modes().decideontseitins){
+			dontDecideTseitins();
 		}
 	}
 }
@@ -137,18 +140,6 @@ void WrapperPimpl::printCurrentOptimum(const Weight& value) const{
 	getSolMonitor().notifyCurrentOptimum(value);
 }
 
-void WrapperPimpl::notifySmallestTseitin(const Atom& tseitin){
-	Atom posstseitin = tseitin;
-	while(true){
-		Var var = 0;
-		if(getRemapper()->hasVar(posstseitin, var)){
-			getSolver()->notifyNonDecisionVar(var);
-		}else{
-			break;
-		}
-		posstseitin = Atom(posstseitin.getValue()+1);
-	}
-}
 Var WrapperPimpl::checkAtom(const Atom& atom){
 	return getRemapper()->getVar(atom);
 }

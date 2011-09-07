@@ -12,7 +12,6 @@
 #include <vector>
 #include <cmath>
 
-#include "modules/SCCtoCNF.hpp"
 #include "theorysolvers/PCSolver.hpp"
 #include "utils/Utils.hpp"
 

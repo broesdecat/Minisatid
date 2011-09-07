@@ -69,6 +69,12 @@ struct VariableEqValue{
 	int value;
 };
 
+struct Model{
+	std::vector<Literal> literalinterpretations;
+	std::vector<VariableEqValue> variableassignments;
+};
+
+typedef std::vector<Model*> modellist;
 
 class Disjunction{
 public:

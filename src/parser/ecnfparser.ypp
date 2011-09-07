@@ -48,7 +48,9 @@ typedef FlatZincRewriter wfz;
 	
 extern SolverOption modes;
 extern Solution* sol;
-extern FODOTTranslator*	fodottrans;
+FODOTTranslator*	fodottrans = NULL;
+LParseTranslator*	simpletrans = NULL;
+extern OUTPUTFORMAT transformat;
 extern int 		yylex(void);
 extern char * 	yytext;
 
@@ -116,6 +118,7 @@ std::string itos(int n) {
 
 // Parsing
 
+void addTuple(int literalnumber, const string& atom);
 void parsetruelist(std::vector<int>* vi);
 void parsearbitlist(std::vector<int>* vi);
 void parsetype(std::string* name, std::vector<std::string>* inter);
@@ -172,7 +175,7 @@ void checkVersion(ECNF_VERSION version);
 %type <vatoms> vbody
 
 //Translation
-%token TRANSHEADER
+%token TRANSHEADER TRANSHEADER2
 %token TYPE
 %token PRED
 %token FUNC
@@ -345,7 +348,7 @@ rule	:	SEMDEFN DEFOP NUMBER NUMBER body ZERO
 				rule.body = *$5;
 				rule.definitionID = cID($3);
 				delete $3; delete $4; delete $5;
-				if($1==COMP){ //hack, to be fixed
+				if($1==COMP){ //hack, to be fixedsetTruelist
 					rule.conjunctive = true;
 				}else{
 					rule.conjunctive = false;
@@ -647,9 +650,17 @@ mwset	:	WSETDEFN NUMBER NUMBER wbody ZERO
 
 translation	: /* empty */
 			|	TRANSHEADER typelist predlist funclist truelist arbitlist
-				{					
+				{
+					fodottrans = new FODOTTranslator(transformat);	
 					if(fodottrans!=NULL){
 						sol->setTranslator(fodottrans);
+					}
+				}
+			| 	TRANSHEADER2 tuplelist
+				{	
+					simpletrans = new LParseTranslator();				
+					if(simpletrans!=NULL){
+						sol->setTranslator(simpletrans);
 					}
 				}
 			;
@@ -697,6 +708,10 @@ numlist		: /* empty */		{ $$ = new vector<int>(0); }
 			| numlist T_NUM		{ $1->push_back($2); $$ = $1; }
 			| numlist identifier '/' T_NUM		{ $$ = $1; }
 			| numlist identifier '/' T_NUM ':' { $$ = $1; }
+			;
+			
+tuplelist	: /* empty */ 
+			| tuplelist T_NUM identifier { addTuple($2, *$3); delete($3); }
 			;
 
 identifier	: T_ID	{ $$ = $1;	}
@@ -935,6 +950,12 @@ void CR(const T& formula){
 		unsatfound = true;
 		throw idpexception("Unsat during parsing.\n");
 	}		
+}
+
+void addTuple(int literalnumber, const string& atom) {
+	if(simpletrans!=NULL){
+		simpletrans->addTuple(Atom(literalnumber), atom);
+	}
 }
 
 void parsetruelist(vector<int>* literalnumbers) {
