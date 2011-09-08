@@ -13,6 +13,8 @@
 #include "theorysolvers/PCSolver.hpp"
 #include "utils/Print.hpp"
 
+#include <list>
+
 namespace MinisatID {
 
 typedef std::pair<unsigned int, unsigned int> uintpair;

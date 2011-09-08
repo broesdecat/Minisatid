@@ -271,6 +271,7 @@ void FODOTTranslator::printModel(std::ostream& output, const Model& model) {
 	}
 	printInterpr(temptruemodelcombined, output, PRINT_FIXED);
 	assert(model.variableassignments.size()==0);
+	output.flush();
 }
 
 

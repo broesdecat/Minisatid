@@ -283,6 +283,7 @@ bool Solver::satisfied(const Clause& c) const {
 // Revert to the state at given level (keeping all assignment at 'level' but not beyond).
 //
 void Solver::cancelUntil(int level) {
+	/*AB*/Lit decision = trail[trail_lim[level]];
     if (decisionLevel() > level){
         for (int c = trail.size()-1; c >= trail_lim[level]; c--){
             Var     x  = var(trail[c]);
@@ -294,7 +295,7 @@ void Solver::cancelUntil(int level) {
         /*AB*/
         int levels = trail_lim.size() - level;
         trail_lim.shrink(levels);
-        solver.backtrackDecisionLevel(level);
+        solver.backtrackDecisionLevel(levels, level, decision);
         /*AE*/
     } }
 
@@ -463,7 +464,7 @@ bool Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel)
 		// Select next clause to look at:
         while (!seen[var(trail[index--])]);
         p     = trail[index+1];
-        confl = reason(var(p));
+        confl = reason[var(p)];
 
 		/*AB*/
         if(solver.symmetryPropagationOnAnalyze(p)){
