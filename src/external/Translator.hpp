@@ -96,10 +96,11 @@ public:
 	void 	printTranslation(std::ostream& output, const List& l){
 		finish();
 		output <<"=== atom translation ===\n";
-		for(auto i=l.begin(); i<l.end(); ++i){
-			if(hasTranslation(*i)){
-				output <<(((*i).hasSign()) ? "-" : "") <<(*i).getAtom().getValue() <<" ";
-				printLiteral(output, *i);
+		output <<"size of lit list: "<<l.size() <<"\n";
+		for(auto var2lit=l.begin(); var2lit<l.end(); ++var2lit){
+			if(hasTranslation((*var2lit).second)){
+				output <<getPrintableVar((*var2lit).first) <<" ";
+				printLiteral(output, (*var2lit).second);
 			}
 		}
 	}

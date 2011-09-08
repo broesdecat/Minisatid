@@ -62,8 +62,6 @@ private:
 
 	TheoryState state;
 
-	virtual void	notifyNonDecisionVar(Var var);
-
 	// Explanation dummies: used to fix up learned clauses which are too small
 	Var dummy1, dummy2;
 
@@ -89,6 +87,8 @@ public:
 #ifdef CPSUPPORT
 	CPSolver* 		getCPSolverp() const { return cpsolver; }
 #endif
+
+	virtual void	notifyNonDecisionVar(Var var);
 
 	void		accept(Propagator* propagator);
 	void 		accept(GenWatch* const watch);

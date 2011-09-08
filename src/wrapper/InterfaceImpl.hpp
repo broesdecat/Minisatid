@@ -108,10 +108,12 @@ public:
 	void 	printLiteral	(std::ostream& stream, const Lit& l) const;
 	template<class List>
 	void 	printTranslation(std::ostream& output, const List& l){
-		std::vector<Literal> litstoprint;
+		std::vector<std::pair<uint, Literal>> litstoprint;
 		for(auto i=l.begin(); i!=l.end(); ++i){
 			if(canBackMapLiteral(mkPosLit(*i))){
-				litstoprint.push_back(getRemapper()->getLiteral(mkPosLit(*i)));
+				// TODO NOTE: the theory is printed in the NEW vocabulary, not in the input one
+				// So we print the new variable and the translation of its original version
+				litstoprint.push_back(std::pair<uint, Literal>(*i, getRemapper()->getLiteral(mkPosLit(*i))));
 			}
 		}
 		getSolMonitor().printTranslation(output, litstoprint);

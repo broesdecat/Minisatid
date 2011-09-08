@@ -9,7 +9,6 @@
 #include "external/ExternalInterface.hpp"
 #include "wrapper/InterfaceImpl.hpp"
 #include "external/SearchMonitor.hpp"
-#include "external/Translator.hpp"
 
 #include "external/LazyClauseSupport.hpp"
 

@@ -649,20 +649,23 @@ mwset	:	WSETDEFN NUMBER NUMBER wbody ZERO
 // TRANSLATION
 
 translation	: /* empty */
-			|	TRANSHEADER typelist predlist funclist truelist arbitlist
+			|	TRANSHEADER 
 				{
 					fodottrans = new FODOTTranslator(transformat);	
 					if(fodottrans!=NULL){
 						sol->setTranslator(fodottrans);
 					}
-				}
-			| 	TRANSHEADER2 tuplelist
+				} 
+				typelist predlist funclist truelist arbitlist
+				
+			| 	TRANSHEADER2 
 				{	
 					simpletrans = new LParseTranslator();				
 					if(simpletrans!=NULL){
 						sol->setTranslator(simpletrans);
 					}
 				}
+				tuplelist
 			;
 			
 typelist	: /* empty */

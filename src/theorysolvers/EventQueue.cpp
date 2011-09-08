@@ -77,6 +77,8 @@ void EventQueue::notifyBoundsChanged(IntVar* var) {
 
 //TODO should check doubles in another way (or prevent any from being added) (maybe a set is better than a vector)
 void EventQueue::accept(Propagator* propagator, const Lit& litevent, PRIORITY priority){
+//TODO if a residual is watched, do something in the propagator
+//do not forget other accepts and the sat solver watches (separate!)
 	for(proplist::const_iterator i=lit2priority2propagators[toInt(litevent)][priority].begin(); i<lit2priority2propagators[toInt(litevent)][priority].end(); ++i){
 		if((*i)==propagator){
 			return;
