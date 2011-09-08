@@ -423,7 +423,7 @@ intvar	:	INTVAR number weight weight ZERO
 				CR(var);
 				delete $3; delete $4;
 			}
-		|	INTVARDOM number weightbody ZERO 
+		|	INTVARDOM number weightbody DELIM ZERO 
 			{
 				CPIntVarEnum var;
 				var.varID = $2;
