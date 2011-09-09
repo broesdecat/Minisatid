@@ -137,7 +137,7 @@ public:
 	PCSolver* getEnginep() const { return engine; }
 	const PCSolver& getEngine() const { return *engine; }
 
-	void add(const Var& sentence);
+	void add(const Var& sentence, bool nondecision = false);
 	void add(const InnerDisjunction& sentence);
 	void add(const InnerEquivalence& sentence);
 	void add(const InnerRule& sentence);
@@ -179,7 +179,7 @@ private:
 	bool isInitialized	() 	const { return !parsing; }
 	bool isParsing		()	const { return parsing; }
 
-	void addVar			(Lit l) { add(var(l)); }
+	void addVar			(Lit l, bool nondecision = false) { add(var(l), nondecision); }
 	void addVars		(const std::vector<Lit>& a);
 
 	void addAggrExpr	(Var headv, int setid, AggSign sign, const Weight& bound, AggType type, AggSem sem);

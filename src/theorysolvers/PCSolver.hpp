@@ -260,7 +260,7 @@ public:
 
 	template<typename T>
 	void 		add(const T& sentence){ getFactory().add(sentence); }
-	void		createVar(Var v);
+	void		createVar(Var v, bool nondecision = false);
 
 	SATVAL 		satState() const;
 	void		notifyUnsat();

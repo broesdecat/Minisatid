@@ -15,8 +15,6 @@ LazyResidualWatch::LazyResidualWatch(PCSolver* engine, const Lit lit, LazyGround
 		engine(engine),
 		monitor(monitor), residual(lit){
 	engine->accept(this);
-	engine->notifyNonDecisionVar(var(lit));
-	//TODO engine->notifyResidual(var(lit));
 }
 
 void LazyResidualWatch::propagate(){

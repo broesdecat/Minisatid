@@ -81,15 +81,17 @@ uint64_t PCSolver::nVars() const {
 }
 
 bool PCSolver::isDecisionVar(Var var) {
-	if(var>nVars()-1){
+	if(var>=nVars()){
 		return false;
 	}
 	return getSATSolver()->isDecisionVar(var);
 }
 void PCSolver::notifyNonDecisionVar(Var var) {
+	cerr <<"Make not decided variable " <<getPrintableVar(var) <<"\n";
 	getSATSolver()->setDecisionVar(var, false);
 }
 void PCSolver::notifyDecisionVar(Var var) {
+	cerr <<"Make decided variable " <<getPrintableVar(var) <<"\n";
 	getSATSolver()->setDecisionVar(var, true);
 }
 
@@ -288,8 +290,10 @@ bool PCSolver::assertedBefore(const Var& l, const Var& p) const {
 	return false;
 }
 
-void PCSolver::createVar(Var v) {
+void PCSolver::createVar(Var v, bool nondecision) {
 	assert(v>-1);
+
+	bool newvar = v>=nVars();
 
 	while (((uint64_t) v) >= nVars()) {
 #ifdef USEMINISAT22
@@ -300,12 +304,12 @@ void PCSolver::createVar(Var v) {
 #endif
 	}
 
-	getSolver().setDecisionVar(v, true);
-
-	getEventQueue().notifyVarAdded();
-
-	if (isInitialized()) { //Lazy init
-		propagations.resize(nVars(), NULL);
+	if(newvar){
+		getSolver().setDecisionVar(v, not nondecision);
+		getEventQueue().notifyVarAdded();
+		if (isInitialized()) { //Lazy init
+			propagations.resize(nVars(), NULL);
+		}
 	}
 }
 
