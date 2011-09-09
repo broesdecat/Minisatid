@@ -9,12 +9,21 @@ A simple Chaff-like SAT-solver with support for incremental SAT.
 #ifndef SatELite_h
 #define SatELite_h
 
+#include "Int.h"
 #include "SolverTypes.h"
 #include "VarOrder.h"
 
 namespace MiniSatPP {
-	
+
 namespace SatELite {
+
+#ifndef __SGI_STL_INTERNAL_RELOPS   // (be aware of SGI's STL implementation...)
+#define __SGI_STL_INTERNAL_RELOPS
+template <class T> macro bool operator != (const T& x, const T& y) { return !(x == y); }
+template <class T> macro bool operator >  (const T& x, const T& y) { return y < x;     }
+template <class T> macro bool operator <= (const T& x, const T& y) { return !(y < x);  }
+template <class T> macro bool operator >= (const T& x, const T& y) { return !(x < y);  }
+#endif
 
 extern bool opt_confl_1sub  ;
 extern bool opt_confl_ksub  ;

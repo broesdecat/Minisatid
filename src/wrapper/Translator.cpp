@@ -24,6 +24,14 @@
 using namespace std;
 using namespace MinisatID;
 
+void OPBPolicy::printCurrentOptimum(std::ostream& output, const Weight& value){
+	output <<"o " <<value <<std::endl; // NOTE: has to FLUSH after each print!
+}
+
+void LParsePolicy::printCurrentOptimum(std::ostream& output, const Weight& value){
+	output <<"Current optimum " <<value <<"\n";
+}
+
 // REENTRANT
 void FODOTTranslator::finishData(){
 	if(finisheddata){

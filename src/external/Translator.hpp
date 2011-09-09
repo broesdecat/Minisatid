@@ -18,7 +18,6 @@
 #include <algorithm>
 
 #include <GeneralUtils.hpp>
-#include <utils/Print.hpp>
 
 #include "external/ExternalUtils.hpp"
 
@@ -213,16 +212,12 @@ private:
 
 class OPBPolicy{
 public:
-	void printCurrentOptimum(std::ostream& output, const Weight& value){
-		output <<"o " <<value <<std::endl; // NOTE: has to FLUSH after each print!
-	}
+	void printCurrentOptimum(std::ostream& output, const Weight& value);
 };
 
 class LParsePolicy{
 public:
-	void printCurrentOptimum(std::ostream& output, const Weight& value){
-		output <<"Current optimum " <<value <<"\n";
-	}
+	void printCurrentOptimum(std::ostream& output, const Weight& value);
 };
 
 template<class OptimumPolicy>

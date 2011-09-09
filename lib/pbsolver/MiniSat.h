@@ -18,28 +18,6 @@ namespace MiniSatPP {
 namespace MiniSat {
 
 //=================================================================================================
-// Clause -- a simple class for representing a clause
-
-
-class Clause {
-    uint    size_learnt;
-    Lit     data[1];
-public:
-    // NOTE: Cannot be used by normal 'new' operator!
-    Clause(bool learnt, const vec<Lit>& ps) {
-        size_learnt = (ps.size() << 1) | (int)learnt;
-        for (int i = 0; i < ps.size(); i++) data[i] = ps[i];
-        if (learnt) activity() = 0; }
-
-    int     size        (void)      const { return size_learnt >> 1; }
-    bool    learnt      (void)      const { return size_learnt & 1; }
-    Lit     operator [] (int index) const { return data[index]; }
-    Lit&    operator [] (int index)       { return data[index]; }
-    float&  activity    (void)      const { return *((float*)&data[size()]); }
-};
-
-
-//=================================================================================================
 // LitClauseUnion -- a simple union type:
 
 
@@ -196,8 +174,7 @@ public:
     bool    addClause(const vec<Lit>& ps) { if (ok){ Clause* c; ok = newClause(ps, false, c); if (c != NULL) clauses.push(c); } return ok; }
     // -- debug:
     void    exportClauses(cchar* filename);
-    
-    //export: 
+
 	void toCNF(std::vector<std::vector<Lit> >& cnf);
 	
     // Solving:

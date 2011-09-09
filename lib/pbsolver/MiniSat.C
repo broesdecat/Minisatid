@@ -1,3 +1,5 @@
+
+#include "PB2CNF.hpp"
 #include "MiniSat.h"
 #include "Sort.h"
 #include <cmath>
@@ -788,21 +790,7 @@ void Solver::exportClauses(cchar* filename)
 
 void Solver::toCNF(std::vector<std::vector<Lit> >& cnf){
 	assert(decisionLevel() == 0);
-    // Export CNF:
-    for (int i = 0; i < assigns.size(); i++){
-        if (value(i) != l_Undef && level[i] == 0) {
-        	cnf.push_back(std::vector<Lit>());
-        	Lit t = Lit(i,!(value(i) == l_True));
-        	cnf.back().push_back(t);        	
-        }
-    }
-    for (int i = 0; i < clauses.size(); i++){
-        Clause& c = *clauses[i];
-        cnf.push_back(std::vector<Lit>());
-        for (int j = 0; j < c.size(); j++){
-        	cnf.back().push_back(c[j]);
-        }
-    }
+	MiniSatPP::toCNF(cnf, clauses, assigns, level);
 }
 
 }

@@ -347,18 +347,21 @@ const lbool l_False = toLbool(-1);
 const lbool l_Undef = toLbool( 0);
 const lbool l_Error = toLbool(1 << (sizeof(int)*8-1));
 
+inline bool operator==(const lbool& x, const lbool& y) { return x.operator ==(y);}
+inline bool operator!=(const lbool& x, const lbool& y) { return x.operator !=(y);}
+
 
 //=================================================================================================
 // Relation operators -- extend definitions from '==' and '<'
 
 
-#ifndef __SGI_STL_INTERNAL_RELOPS   // (be aware of SGI's STL implementation...)
+/*#ifndef __SGI_STL_INTERNAL_RELOPS   // (be aware of SGI's STL implementation...)
 #define __SGI_STL_INTERNAL_RELOPS
 template <class T> macro bool operator != (const T& x, const T& y) { return !(x == y); }
 template <class T> macro bool operator >  (const T& x, const T& y) { return y < x;     }
 template <class T> macro bool operator <= (const T& x, const T& y) { return !(y < x);  }
 template <class T> macro bool operator >= (const T& x, const T& y) { return !(x < y);  }
-#endif
+#endif*/
 
 }
 //=================================================================================================
