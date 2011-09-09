@@ -35,6 +35,107 @@ enum Optim { MNMZ, SUBSETMNMZ, NONE };
 
 enum TheoryState {THEORY_PARSING, THEORY_INITIALIZED, THEORY_INITIALIZING};
 
+/* TODO split up pcsolver in these classes, such that more design time safety is possible
+class SearchI{
+	bool		isDecisionVar(Var var);
+	void		notifyDecisionVar(Var var);
+	void		notifyNonDecisionVar(Var var);
+
+	SATVAL 		satState() const;
+	void		notifyUnsat();
+
+	void    	setTrue			(const Lit& p, Propagator* solver, rClause c = nullPtrClause);		// Enqueue a literal. Assumes value of literal is undefined
+
+	void		varBumpActivity	(Var v);
+};
+
+class StateI{
+	int 		getStartLastLevel() 	const;
+	int 		getLevel		(int var) const; // Returns the decision level at which a variable was deduced.
+	int			getCurrentDecisionLevel	() const;
+	int			getNbDecisions	() 		const;
+	std::vector<Lit> getDecisions() 	const;
+
+	int			getTime(const Var& var) const;
+	bool 		assertedBefore	(const Var& l, const Var& p) const;
+	rClause		getExplanation	(const Lit& l);			//NON-OWNING pointer
+	bool		isAlreadyUsedInAnalyze(const Lit& lit) const;
+
+	int			getClauseSize	(rClause cr) const;
+	Lit			getClauseLit	(rClause cr, int i) const;
+
+	lbool		value			(Var x) const;		// The current value of a variable.
+	lbool		value			(Lit p) const;		// The current value of a literal.
+	uint64_t	nVars			()      const;		// The current number of variables.
+};
+
+class EventQueueI{
+	void		accept(Propagator* propagator);
+	void 		accept(GenWatch* const watch);
+	void		acceptForBacktrack(Propagator* propagator);
+	void		acceptForPropagation(Propagator* propagator);
+	void 		accept(Propagator* propagator, EVENT event);
+	void 		acceptBounds(IntView* var, Propagator* propagator);
+	void 		accept(Propagator* propagator, const Lit& lit, PRIORITY priority);
+	void 		acceptFinishParsing(Propagator* propagator, bool late);
+
+	void		notifyBoundsChanged(IntVar* var);
+	void 		newDecisionLevel();
+	bool 		solve			(const litlist& assumptions, const ModelExpandOptions& options);
+	rClause 	checkFullAssignment();
+	bool 		hasTotalModel(); //cannot be const!
+	void    	backtrackTo		(int level);		// Backtrack until a certain level.
+	void 		backtrackDecisionLevel(int untillevel, const Lit& decision);
+	rClause 	propagate		();
+
+	int			getNbOfFormulas	() const;
+
+	bool 		symmetryPropagationOnAnalyze(const Lit& p);
+	bool 		propagateSymmetry(const Lit& l);
+	bool		propagateSymmetry2();
+
+	Var			changeBranchChoice(const Var& chosenvar);
+};
+
+class ModSolverI{
+	void		saveState		();
+	void		resetState		();
+};
+
+class SATMonitor{
+	void 		notifySetTrue	(const Lit& p);
+	void 		notifyClauseAdded(rClause clauseID);
+};
+
+class FactoryI{
+	void		createVar(Var v);
+	Var			newVar();
+	int			newSetID();
+
+	template<typename T>
+	void 		add(const T& sentence){ getFactory().add(sentence); }
+
+	void		addOptimization(Optim type, Var head);
+	void		addOptimization(Optim type, const litlist& literals);
+
+	void 		setModSolver(ModSolver* m);
+
+	rClause 	createClause	(const InnerDisjunction& clause, bool learned);
+	//IMPORTANT: The first literal in the clause is the one which can be propagated at moment of derivation!
+	void 		addLearnedClause(rClause c); 		//Propagate if clause is unit, return false if c is conflicting
+	void 		removeClause	(rClause c);
+};
+
+class PCSolverI{
+	// DEBUG
+	void 		printTheory(std::ostream& stream);
+	void 		printEnqueued	(const Lit& p) const;
+	void		printChoiceMade	(int level, Lit l) const;
+	void 		printStatistics	() const;
+	void		printState		() const;
+	void		printClause		(rClause clause) const;
+	void 		printCurrentOptimum(const Weight& value) const;
+};*/
 
 class PCSolver: public MinisatID::LogicSolver{
 private:
@@ -88,7 +189,9 @@ public:
 	CPSolver* 		getCPSolverp() const { return cpsolver; }
 #endif
 
-	virtual void	notifyNonDecisionVar(Var var);
+	bool		isDecisionVar(Var var);
+	void		notifyDecisionVar(Var var);
+	void		notifyNonDecisionVar(Var var);
 
 	void		accept(Propagator* propagator);
 	void 		accept(GenWatch* const watch);
@@ -99,26 +202,29 @@ public:
 	void 		accept(Propagator* propagator, const Lit& lit, PRIORITY priority);
 	void 		acceptFinishParsing(Propagator* propagator, bool late);
 
-	void 		setModSolver(ModSolver* m);
-
 	Var			newVar();
 	int			newSetID();
 
 	void 		finishParsing(bool& unsat);
 
-	int			getTime(const Var& var) const;
-	int			getTime(const Lit& lit) const;
-
-	// Solving support
+	void    	setTrue			(const Lit& p, Propagator* solver, rClause c = nullPtrClause);		// Enqueue a literal. Assumes value of literal is undefined
+	void 		notifySetTrue	(const Lit& p);
 	void 		newDecisionLevel();
 	bool 		solve			(const litlist& assumptions, const ModelExpandOptions& options);
 	rClause 	checkFullAssignment();
+	bool 		hasTotalModel(); //cannot be const!
+	void    	backtrackTo		(int level);		// Backtrack until a certain level.
+	void 		backtrackDecisionLevel(int untillevel, const Lit& decision);
+	rClause 	propagate		();
 
 	Var			changeBranchChoice(const Var& chosenvar);
 
+	int			getTime(const Var& var) const;
 	bool 		assertedBefore	(const Var& l, const Var& p) const;
 	rClause		getExplanation	(const Lit& l);			//NON-OWNING pointer
+	bool		isAlreadyUsedInAnalyze(const Lit& lit) const;
 
+	void		varBumpActivity	(Var v);
 	lbool		value			(Var x) const;		// The current value of a variable.
 	lbool		value			(Lit p) const;		// The current value of a literal.
 	uint64_t	nVars			()      const;		// The current number of variables.
@@ -129,10 +235,6 @@ public:
 	void 		removeClause	(rClause c);
 	int			getClauseSize	(rClause cr) const;
 	Lit			getClauseLit	(rClause cr, int i) const;
-	void    	backtrackTo		(int level);		// Backtrack until a certain level.
-	void    	setTrue			(const Lit& p, Propagator* solver, rClause c = nullPtrClause);		// Enqueue a literal. Assumes value of literal is undefined
-
-	void 		notifySetTrue	(const Lit& p);
 
 	int 		getStartLastLevel() 	const;
 	int 		getLevel		(int var) const; // Returns the decision level at which a variable was deduced.
@@ -140,14 +242,6 @@ public:
 	int			getNbDecisions	() 		const;
 	std::vector<Lit> getDecisions() 	const;
 
-	bool		isAlreadyUsedInAnalyze(const Lit& lit) const;
-
-	bool 		totalModelFound	(); //cannot be const!
-
-	void		varBumpActivity	(Var v);
-
-	void 		backtrackDecisionLevel(int untillevel, const Lit& decision);
-	rClause 	propagate		();
 
 	void		notifyBoundsChanged(IntVar* var);
 
@@ -160,6 +254,7 @@ public:
 	bool		propagateSymmetry2();
 
 	// MOD SOLVER support
+	void 		setModSolver(ModSolver* m);
 	void		saveState		();
 	void		resetState		();
 
@@ -167,7 +262,7 @@ public:
 	void 		add(const T& sentence){ getFactory().add(sentence); }
 	void		createVar(Var v);
 
-	SATVAL 		isUnsat() const;
+	SATVAL 		satState() const;
 	void		notifyUnsat();
 
 	void		addOptimization(Optim type, Var head);

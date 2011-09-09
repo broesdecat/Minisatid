@@ -147,7 +147,7 @@ private:
 		Lit head = mkPosLit(rule.getHead());
 
 		if(solver_.value(head)==l_False){
-			return solver_.isUnsat();
+			return solver_.satState();
 		}
 
 		litlist tseitins{~head};
@@ -172,7 +172,7 @@ private:
 
 		addClause(tseitins);
 
-		return solver_.isUnsat();
+		return solver_.satState();
 	}
 
 	/*
@@ -186,7 +186,7 @@ private:
 		Lit head = mkPosLit(rule.getHead());
 
 		if(solver_.value(head)==l_False){
-			return solver_.isUnsat();
+			return solver_.satState();
 		}
 
 		litlist tseitins{~head};
@@ -202,7 +202,7 @@ private:
 
 		addClause(tseitins);
 
-		return solver_.isUnsat();
+		return solver_.satState();
 	}
 
 	// FIXME use current interpretation to simplify things in the code below also
@@ -211,7 +211,7 @@ private:
 		InnerDisjunction d;
 		d.literals = lits;
 		solver_.add(d);
-		return solver_.isUnsat();
+		return solver_.satState();
 	}
 
 	Lit zero2SAT(Level2SAT* left){

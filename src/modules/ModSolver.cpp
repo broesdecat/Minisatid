@@ -87,32 +87,32 @@ void ModSolver::addVars(const litlist& a){
 SATVAL ModSolver::add(const InnerDisjunction& disj){
 	addVars(disj.literals);
 	getPCSolver().add(disj);
-	return getPCSolver().isUnsat();
+	return getPCSolver().satState();
 }
 
 SATVAL ModSolver::add(const InnerRule& rule){
 	add(rule.head);
 	addVars(rule.body);
 	getPCSolver().add(rule);
-	return getPCSolver().isUnsat();
+	return getPCSolver().satState();
 }
 SATVAL ModSolver::add(const InnerWLSet& set){
 	for(auto i=set.wls.begin(); i!=set.wls.end(); ++i){
 		addVar((*i).getLit());
 	}
 	getPCSolver().add(set);
-	return getPCSolver().isUnsat();
+	return getPCSolver().satState();
 }
 
 SATVAL ModSolver::add(const InnerAggregate& agg){
 	getPCSolver().add(agg);
-	return getPCSolver().isUnsat();
+	return getPCSolver().satState();
 }
 
 SATVAL ModSolver::add(const InnerReifAggregate& agg){
 	add(agg.head);
 	getPCSolver().add(agg);
-	return getPCSolver().isUnsat();
+	return getPCSolver().satState();
 }
 
 /**

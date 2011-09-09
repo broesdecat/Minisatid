@@ -80,8 +80,17 @@ uint64_t PCSolver::nVars() const {
 	return getSolver().nbVars();
 }
 
+bool PCSolver::isDecisionVar(Var var) {
+	if(var>nVars()-1){
+		return false;
+	}
+	return getSATSolver()->isDecisionVar(var);
+}
 void PCSolver::notifyNonDecisionVar(Var var) {
 	getSATSolver()->setDecisionVar(var, false);
+}
+void PCSolver::notifyDecisionVar(Var var) {
+	getSATSolver()->setDecisionVar(var, true);
 }
 
 rClause PCSolver::createClause(const InnerDisjunction& clause, bool learned) {
@@ -163,7 +172,7 @@ bool PCSolver::isAlreadyUsedInAnalyze(const Lit& lit) const {
 	return getSolver().isAlreadyUsedInAnalyze(lit);
 }
 
-bool PCSolver::totalModelFound() {
+bool PCSolver::hasTotalModel() {
 	return getSolver().totalModelFound();
 }
 
@@ -303,9 +312,6 @@ void PCSolver::createVar(Var v) {
 int	PCSolver::getTime(const Var& var) const{
 	return trail->getTime(mkPosLit(var));
 }
-int	PCSolver::getTime(const Lit& lit) const{
-	return trail->getTime(lit);
-}
 
 void PCSolver::finishParsing(bool& unsat) {
 	state = THEORY_INITIALIZING;
@@ -365,7 +371,7 @@ int PCSolver::getNbOfFormulas() const {
 	return getEventQueue().getNbOfFormulas();
 }
 
-SATVAL PCSolver::isUnsat() const{
+SATVAL PCSolver::satState() const{
 	return getSATSolver()->isUnsat()?SATVAL::UNSAT:SATVAL::POS_SAT;
 }
 
@@ -541,14 +547,14 @@ SATVAL PCSolver::invalidateModel(InnerDisjunction& clause) {
 	if (state_savingclauses) {
 		rClause newclause;
 		getFactory().add(clause, newclause);
-		if (isUnsat()==SATVAL::POS_SAT) {
+		if (satState()==SATVAL::POS_SAT) {
 			state_savedclauses.push_back(newclause);
 		}
 	} else {
 		add(clause);
 	}
 
-	return isUnsat();
+	return satState();
 }
 
 // OPTIMIZATION METHODS

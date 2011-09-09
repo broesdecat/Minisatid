@@ -146,7 +146,7 @@ SATVAL IDSolver::addRule(bool conj, Var head, const litlist& ps) {
 		bool unsat = false;
 		finishParsing(present, unsat);
 	}
-	return getPCSolver().isUnsat();
+	return getPCSolver().satState();
 }
 
 void IDSolver::addDefinedAggregate(const InnerReifAggregate& inneragg, const InnerWLSet& innerset){
@@ -1109,7 +1109,7 @@ void IDSolver::findJustificationDisj(Var v, litlist& jstf) {
 bool IDSolver::indirectPropagateNow() {
 	bool propagate = true;
 	// if not always and state is three-valued.
-	if (getPCSolver().modes().defn_strategy != always && !getPCSolver().totalModelFound()) {
+	if (getPCSolver().modes().defn_strategy != always && !getPCSolver().hasTotalModel()) {
 		if (getPCSolver().modes().defn_strategy == lazy) {
 			propagate = false;
 		}

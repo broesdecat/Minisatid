@@ -71,9 +71,9 @@ namespace MinisatID{
 	std::string getMinimalVarNumbering();
 
 	template<class T>
-	void printSatisfiable(T& stream, OUTPUTFORMAT outputformat, int verbosity = 1000){
+	void printSatisfiable(T& stream, INPUTFORMAT inputformat, OUTPUTFORMAT outputformat, int verbosity = 1000){
 		if(verbosity>=1){
-			if(outputformat==TRANS_OPB){
+			if(inputformat==FORMAT_OPB){
 				stream<<"s SATISFIABLE\n";
 			}else if(outputformat==TRANS_ASP){
 				stream <<"ANSWER SET FOUND\n";
@@ -84,9 +84,9 @@ namespace MinisatID{
 	}
 
 	template<class T>
-	void printUnSatisfiable(T& stream, OUTPUTFORMAT outputformat, int verbosity = 1000){
+	void printUnSatisfiable(T& stream, INPUTFORMAT inputformat, OUTPUTFORMAT outputformat, int verbosity = 1000){
 		if(verbosity>=1){
-			if(outputformat==TRANS_OPB){
+			if(inputformat==FORMAT_OPB){
 				stream<<"s UNSATISFIABLE\n";
 			}else if(outputformat==TRANS_ASP){
 				stream <<"INCONSISTENT\n";

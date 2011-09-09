@@ -77,6 +77,9 @@ void EventQueue::notifyBoundsChanged(IntVar* var) {
 
 //TODO should check doubles in another way (or prevent any from being added) (maybe a set is better than a vector)
 void EventQueue::accept(Propagator* propagator, const Lit& litevent, PRIORITY priority){
+	if(not getPCSolver().isDecisionVar(var(litevent))){
+		getPCSolver().notifyDecisionVar(var(litevent));
+	}
 //TODO if a residual is watched, do something in the propagator
 //do not forget other accepts and the sat solver watches (separate!)
 	for(proplist::const_iterator i=lit2priority2propagators[toInt(litevent)][priority].begin(); i<lit2priority2propagators[toInt(litevent)][priority].end(); ++i){
@@ -95,6 +98,9 @@ void EventQueue::accept(Propagator* propagator, const Lit& litevent, PRIORITY pr
 
 // TODO turn lits into litwatches and add accepted flag?
 void EventQueue::accept(GenWatch* const watch){
+	if(not getPCSolver().isDecisionVar(var(watch->getPropLit()))){
+		getPCSolver().notifyDecisionVar(var(watch->getPropLit()));
+	}
 	lit2watches[toInt(watch->getPropLit())].push_back(watch);
 }
 

@@ -144,7 +144,7 @@ public:
 		}
 
 		deleteList<PBAgg>(pbaggs);
-		return pcsolver.isUnsat();
+		return pcsolver.satState();
 	}
 };
 
