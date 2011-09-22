@@ -365,9 +365,8 @@ uint FlatZincRewriter::createCpVar(const std::vector<Weight>& values){
 
 uint FlatZincRewriter::addOptimization(){
 	int optimvar = 0;
-	if(optim==MNMZ_VAR){
-		/* FIXME
-		const MinimizeAgg& mnm = savedaggmnmz;
+	if(optim==MNMZ_AGG){
+		const MinimizeAgg& mnm = savedagg;
 		if(mnm.type != SUM && mnm.type != CARD){
 			throw idpexception("Optimization only supported on sum or cardinality aggregates.");
 		}
@@ -391,7 +390,6 @@ uint FlatZincRewriter::addOptimization(){
 		Disjunction d;
 		d.literals.push_back(Literal(mnm.head));
 		add(d);
-		*/
 	}else if(optim==MNMZ_LIST){
 		const MinimizeOrderedList& mnm = savedlistmnmz;
 
@@ -406,6 +404,9 @@ uint FlatZincRewriter::addOptimization(){
 		}
 	}else if(optim==MNMZ_SUBSET){
 		throw idpexception("Subset minimization is not supported by the FlatZinc language.");
+	}else{
+		assert(optim==MNMZ_VAR);
+		// TODO
 	}
 	return optimvar;
 }
@@ -734,6 +735,14 @@ SATVAL FlatZincRewriter::add(const MinimizeVar& mnm){
 	assert(isParsing());
 	savedvar = mnm;
 	optim = MNMZ_VAR;
+	return SATVAL::POS_SAT;
+}
+
+template<>
+SATVAL FlatZincRewriter::add(const MinimizeAgg& mnm){
+	assert(isParsing());
+	savedagg = mnm;
+	optim = MNMZ_AGG;
 	return SATVAL::POS_SAT;
 }
 

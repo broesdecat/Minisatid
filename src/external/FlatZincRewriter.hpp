@@ -27,7 +27,7 @@ enum SolverState { PARSING, FINISHING};
 
 typedef std::vector<Weight> weightlist;
 
-enum OptimFZ { MNMZ_NONE, MNMZ_VAR, MNMZ_LIST, MNMZ_SUBSET };
+enum OptimFZ { MNMZ_NONE, MNMZ_VAR, MNMZ_LIST, MNMZ_SUBSET, MNMZ_AGG };
 
 enum CloseConstraint {CLOSE, OPEN};
 
@@ -55,6 +55,7 @@ private:
 
 	OptimFZ				optim;
 	MinimizeVar 		savedvar; // To be added AFTER initialization
+	MinimizeAgg			savedagg; // To be added AFTER initialization
 	MinimizeOrderedList savedlistmnmz; // To be added AFTER initialization
 	MinimizeSubset 		savedsubsetmnmz; // To be added AFTER initialization
 
@@ -142,6 +143,7 @@ template<> SATVAL FlatZincRewriter::add(const Aggregate& sentence);
 template<> SATVAL FlatZincRewriter::add(const MinimizeSubset& sentence);
 template<> SATVAL FlatZincRewriter::add(const MinimizeOrderedList& sentence);
 template<> SATVAL FlatZincRewriter::add(const MinimizeVar& sentence);
+template<> SATVAL FlatZincRewriter::add(const MinimizeAgg& sentence);
 template<> SATVAL FlatZincRewriter::add(const CPIntVarRange& sentence);
 template<> SATVAL FlatZincRewriter::add(const CPIntVarEnum& sentence);
 template<> SATVAL FlatZincRewriter::add(const CPBinaryRel& sentence);

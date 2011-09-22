@@ -195,6 +195,7 @@ template<> SATVAL PCWrapperPimpl::add(const Aggregate& sentence);
 template<> SATVAL PCWrapperPimpl::add(const MinimizeSubset& sentence);
 template<> SATVAL PCWrapperPimpl::add(const MinimizeOrderedList& sentence);
 template<> SATVAL PCWrapperPimpl::add(const MinimizeVar& sentence);
+template<> SATVAL PCWrapperPimpl::add(const MinimizeAgg& sentence);
 template<> SATVAL PCWrapperPimpl::add(const CPIntVarRange& sentence);
 template<> SATVAL PCWrapperPimpl::add(const CPIntVarEnum& sentence);
 template<> SATVAL PCWrapperPimpl::add(const CPBinaryRel& sentence);

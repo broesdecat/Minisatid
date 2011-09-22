@@ -68,8 +68,9 @@ public:
 	Agg(TypedSet* set, const TempAgg& agg):
 		TempAgg(agg), set(set){}
 
-	TypedSet*	getSet		()					const	{ return set; }
-	Weight	getCertainBound()					const;
+	TypedSet*	getSet			()	const	{ return set; }
+	Weight		getCertainBound	()	const;
+	SATVAL		reInitializeAgg	();
 };
 typedef std::vector<Agg*> agglist;
 

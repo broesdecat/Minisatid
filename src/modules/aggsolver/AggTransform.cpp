@@ -308,7 +308,7 @@ AggProp const * getType(AggType type){
 	}
 }
 
-void createPropagator(PCSolver* solver, InnerWLSet* set, const std::vector<TempAgg*>& aggs, const Weight& knownbound, bool usewatches){
+TypedSet* createPropagator(PCSolver* solver, InnerWLSet* set, const std::vector<TempAgg*>& aggs, const Weight& knownbound, bool usewatches){
 	TypedSet* propagator = new TypedSet(solver, set->setID, knownbound);
 	propagator->setUsingWatches(usewatches);
 	propagator->setWL(set->wls);
@@ -316,6 +316,17 @@ void createPropagator(PCSolver* solver, InnerWLSet* set, const std::vector<TempA
 	for(auto agg=aggs.begin(); agg!=aggs.end(); ++agg){
 		propagator->addAgg(**agg);
 	}
+	return propagator;
+}
+
+void MinisatID::decideUsingWatchesAndCreateOptimPropagator(PCSolver* solver, InnerWLSet* set, TempAgg* agg, const Weight& knownbound){
+	// Set correct upper bound:
+	agg->setBound(AggBound(AggSign::AGGSIGN_UB, getType(set->type)->getMaxPossible(set->wls)));
+
+	double ratio = testGenWatchCount(*solver, *set, *getType(set->type), tempagglist{agg}, knownbound);
+	auto typedset = createPropagator(solver, set, tempagglist{agg}, knownbound, ratio<=solver->modes().watchesratio);
+
+	solver->addAggOptimization(typedset);
 }
 
 void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, InnerWLSet* set, const std::vector<TempAgg*>& aggs, const Weight& knownbound){

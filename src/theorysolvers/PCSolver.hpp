@@ -31,7 +31,7 @@ class SearchMonitor;
 class IntView;
 typedef Minisat::Solver SearchEngine;
 
-enum Optim { MNMZ, SUBSETMNMZ, NONE };
+enum class Optim { LIST, SUBSET, AGG, NONE };
 
 enum TheoryState {THEORY_PARSING, THEORY_INITIALIZED, THEORY_INITIALIZING};
 
@@ -173,7 +173,8 @@ private:
 	// OPTIMIZATION INFORMATION
 	Optim 		optim;
 	Var 		head;
-	litlist	to_minimize;
+	litlist		to_minimize;
+	Agg*		agg_to_minimize;
 
 	// State saving
 	int 				state_savedlevel;
@@ -265,8 +266,8 @@ public:
 	SATVAL 		satState() const;
 	void		notifyUnsat();
 
-	void		addOptimization(Optim type, Var head);
 	void		addOptimization(Optim type, const litlist& literals);
+	void 		addAggOptimization(TypedSet* aggmnmz);
 
 	void 		printTheory(std::ostream& stream);
 
@@ -297,6 +298,7 @@ private:
 	// OPTIMIZATION
     bool 		invalidateValue	(litlist& invalidation);
 	bool 		invalidateSubset(litlist& invalidation, Minisat::vec<Lit>& assmpt);
+	bool 		invalidateAgg	(litlist& invalidation);
 	bool 		findOptimal		(const litlist& assumps, const ModelExpandOptions& options);
 };
 

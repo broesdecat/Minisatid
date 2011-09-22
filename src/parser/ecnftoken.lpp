@@ -83,6 +83,7 @@ WHITESPACE	[\t\r ]*
 <theory>^"Mnmsubset"	{ADJ; return SUBSETMINDEFN;}
 <theory>^"Mnmlist"		{ADJ; return MNMZDEFN;}
 <theory>^"Mnmvar"		{ADJ; return VARMINDEFN;}
+<theory>^"Mnmagg"		{ADJ; return AGGMINDEFN;}
 
 <theory>" "		{ADJ; /* disregard whitespaces */}
 <theory>"\t"	{ADJ; /*                       */}

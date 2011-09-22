@@ -175,6 +175,12 @@ struct InnerMinimizeVar{
 	uint varID;
 };
 
+struct InnerMinimizeAgg{
+	Var head;
+	int setID;
+	AggType type;
+};
+
 struct InnerForcedChoices{
 	std::vector<Lit> forcedchoices;
 };
@@ -263,7 +269,7 @@ class GenWatch{
 public:
 	virtual ~GenWatch(){}
 	virtual void propagate() = 0;
-	virtual const Lit& getPropLit() const = 0;
+	virtual const Lit& getPropLit() const = 0; // FIXME document which literal is watched and what that means (becoming false or true?)
 	virtual bool dynamic() const = 0;
 };
 

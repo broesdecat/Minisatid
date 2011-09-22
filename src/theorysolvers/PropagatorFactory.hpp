@@ -149,6 +149,7 @@ public:
 	void add(const InnerMinimizeSubset& sentence);
 	void add(const InnerMinimizeOrderedList& sentence);
 	void add(const InnerMinimizeVar& sentence);
+	void add(const InnerMinimizeAgg& sentence);
 	void add(const InnerForcedChoices& sentence);
 	void add(const InnerSymmetryLiterals& sentence);
 	void add(const InnerSymmetry& sentence);
@@ -189,7 +190,7 @@ private:
 
 	IntVar*		getIntVar(int varID) const;
 
-	SATVAL finishSet(InnerWLSet* set, std::vector<TempAgg*>& agg);
+	SATVAL finishSet(InnerWLSet* set, std::vector<TempAgg*>& agg, bool optimagg = false);
 };
 
 }

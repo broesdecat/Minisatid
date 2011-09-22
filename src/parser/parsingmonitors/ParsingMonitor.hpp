@@ -34,6 +34,7 @@ public:
 	virtual void notifyadded(const InnerMinimizeOrderedList& set){}
 	virtual void notifyadded(const InnerMinimizeSubset& set){}
 	virtual void notifyadded(const InnerMinimizeVar& set){}
+	virtual void notifyadded(const InnerMinimizeAgg& set){}
 	virtual void notifyadded(const InnerSymmetry& set){}
 	virtual void notifyadded(const InnerSymmetryLiterals& set){}
 	virtual void notifyadded(const InnerForcedChoices& set){}

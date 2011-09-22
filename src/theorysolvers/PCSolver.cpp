@@ -19,6 +19,8 @@
 #include "theorysolvers/EventQueue.hpp"
 #include "theorysolvers/TimeTrail.hpp"
 
+#include "modules/aggsolver/AggSet.hpp"
+
 #include "utils/Print.hpp"
 
 using namespace std;
@@ -37,7 +39,7 @@ PCSolver::PCSolver(SolverOption modes, MinisatID::WrapperPimpl& inter, int ID) :
 		factory(NULL),
 		state(THEORY_PARSING),
 		trail(new TimeTrail()),
-		optim(NONE), head(-1),
+		optim(Optim::NONE), head(-1),
 		state_savedlevel(0), state_savingclauses(false){
 
 	queue = new EventQueue(*this);
@@ -404,7 +406,7 @@ int PCSolver::getNbModelsFound() const {
  * count the number of models => do not save models
  */
 bool PCSolver::solve(const litlist& assumptions, const ModelExpandOptions& options) {
-	if (optim != NONE && options.nbmodelstofind != 1) {
+	if (optim != Optim::NONE && options.nbmodelstofind != 1) {
 		throw idpexception("Finding multiple models can currently not be combined with optimization.\n");
 	}
 
@@ -419,7 +421,7 @@ bool PCSolver::solve(const litlist& assumptions, const ModelExpandOptions& optio
 
 	printSearchStart(clog, verbosity());
 
-	if (optim != NONE) {
+	if (optim != Optim::NONE) {
 		findOptimal(assumptions, options);
 	} else {
 		bool moremodels = findNext(vecassumptions, options);
@@ -621,35 +623,16 @@ bool PCSolver::findOptimal(const litlist& assmpt, const ModelExpandOptions& opti
 
 	bool modelfound = false, unsatreached = false;
 
-	//CHECKS whether first element yields a solution, otherwise previous strategy is done
-	//should IMPLEMENT dichotomic search in the end: check half and go to interval containing solution!
-	/*
-	 if(optim==MNMZ){
-	 assmpt.push_back(to_minimize[0]);
-	 rslt = getSolver().solve(assmpt);
-	 if(!rslt){
-	 getSolver().cancelUntil(0);
-	 litlist lits;
-	 lits.push_back(~to_minimize[0]);
-	 getSolver().addClause(lits);
-	 assmpt.pop();
-	 rslt = true;
-	 }else{
-	 optimumreached = true;
-	 m.clear();
-	 int nvars = (int) nVars();
-	 for (int i = 0; i < nvars; ++i) {
-	 if (value(i) == l_True) {
-	 m.push_back(mkLit(i, false));
-	 } else if (value(i) == l_False) {
-	 m.push_back(mkLit(i, true));
-	 }
-	 }
-	 }
-	 }*/
-
 	InnerModel* m = new InnerModel();
 	while (!unsatreached) {
+		if (optim == Optim::AGG) {
+			// NOTE: necessary to propagate the changes to the bound correctly
+			if(agg_to_minimize->reInitializeAgg() == SATVAL::UNSAT){
+				unsatreached = true;
+				continue;
+			}
+		}
+
 		bool sat = getSolver().solve(currentassmpt);
 		if (!sat) {
 			unsatreached = true;
@@ -671,14 +654,17 @@ bool PCSolver::findOptimal(const litlist& assmpt, const ModelExpandOptions& opti
 			//invalidate the solver
 			InnerDisjunction invalidation;
 			switch (optim) {
-			case MNMZ:
+			case Optim::LIST:
 				unsatreached = invalidateValue(invalidation.literals);
 				break;
-			case SUBSETMNMZ:
+			case Optim::SUBSET:
 				currentassmpt.clear();
 				unsatreached = invalidateSubset(invalidation.literals, currentassmpt);
 				break;
-			case NONE:
+			case Optim::AGG:
+				unsatreached = invalidateAgg(invalidation.literals);
+				break;
+			case Optim::NONE:
 				assert(false);
 				break;
 			}
@@ -702,22 +688,45 @@ bool PCSolver::findOptimal(const litlist& assmpt, const ModelExpandOptions& opti
 	return modelfound && unsatreached;
 }
 
-void PCSolver::addOptimization(Optim type, Var head) {
-	if (optim != NONE) {
-		throw idpexception(">> Only one optimization statement is allowed.\n");
+bool PCSolver::invalidateAgg(litlist& invalidation) {
+	assert(isInitialized());
+	auto agg = agg_to_minimize;
+	auto s = agg->getSet();
+	Weight value = s->getType().getValue(*s);
+
+	printCurrentOptimum(value);
+	if(modes().verbosity>=1){
+		clog <<"> Current optimal value " <<value <<"\n";
 	}
 
-	optim = type;
-	this->head = head;
+	agg->setBound(AggBound(agg->getSign(), value - 1));
+
+	if (s->getType().getMinPossible(*s) == value) {
+		return true;
+	}
+
+	HeadReason ar(*agg, createNegativeLiteral(var(agg->getHead())));
+	s->getProp()->getExplanation(invalidation, ar);
+
+	return false;
 }
 
 void PCSolver::addOptimization(Optim type, const litlist& literals) {
-	if (optim != NONE) {
+	if (optim != Optim::NONE) {
 		throw idpexception(">> Only one optimization statement is allowed.\n");
 	}
 
 	optim = type;
 	to_minimize = literals;
+}
+
+void PCSolver::addAggOptimization(TypedSet* aggmnmz) {
+	if (optim != Optim::NONE) {
+		throw idpexception(">> Only one optimization statement is allowed.\n");
+	}
+
+	optim = Optim::AGG;
+	agg_to_minimize = aggmnmz->getAgg().front();
 }
 
 void PCSolver::saveState() {

@@ -101,7 +101,18 @@ void EventQueue::accept(GenWatch* const watch){
 	if(not getPCSolver().isDecisionVar(var(watch->getPropLit()))){
 		getPCSolver().notifyDecisionVar(var(watch->getPropLit()));
 	}
-	lit2watches[toInt(watch->getPropLit())].push_back(watch);
+	bool addwatch = true;
+	if(getPCSolver().value(watch->getPropLit())==l_True){ // FIXME should happen in all add methods?
+		// are propagated asap, but not in this method as that leads to correctness issues
+		// TODO how to handle those better?
+		propagateasap.push_back(watch);
+		if(watch->dynamic()){
+			addwatch = false;
+		}
+	}
+	if(addwatch){
+		lit2watches[toInt(watch->getPropLit())].push_back(watch);
+	}
 }
 
 void EventQueue::setTrue(const proplist& list, queue<Propagator*>& queue){
@@ -211,6 +222,11 @@ void EventQueue::finishParsing(bool& unsat){
 }
 
 rClause EventQueue::notifyPropagate(){
+	for(auto i=propagateasap.begin(); i<propagateasap.end(); ++i){
+		(*i)->propagate();
+	}
+	propagateasap.clear();
+
 	rClause confl = nullPtrClause;
 	while(fastqueue.size()+slowqueue.size()!=0 && confl==nullPtrClause){
 		Propagator* p = NULL;

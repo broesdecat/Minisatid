@@ -69,23 +69,19 @@ template<class T> void DefaultCallback<T>::beginObjective() {
  * callback called after we've read the objective function
  */
 template<class T> bool DefaultCallback<T>::endObjective() {
-	bool possat = true;
+	SATVAL possat = SATVAL::POS_SAT;
 
-#warning opb optimization is broken
-	/* FIXME
 	setid++;
 	wset.setID = setid;
-	possat &= getSolver()->add(wset)==SATVAL::POS_SAT;
+	possat &= getSolver()->add(wset);
 	wset = WSet();
 
-	/* FIXME
-	MinimizeVar mnm;
-	mnm.varID = varID;
-	possat &= getSolver()->add(mnm)==SATVAL::POS_SAT;
-	 */
-
-	return possat;
-
+	MinimizeAgg mnm;
+	mnm.head = dummyhead;
+	mnm.setid = setid;
+	mnm.type = SUM;
+	possat &= getSolver()->add(mnm);
+	return possat==SATVAL::POS_SAT;
 }
 
 /**

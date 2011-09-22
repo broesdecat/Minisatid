@@ -338,7 +338,7 @@ void PropagatorFactory::add(const InnerMinimizeSubset& formula){
 	}
 
 	addVars(formula.literals);
-	getEngine().addOptimization(SUBSETMNMZ, formula.literals);
+	getEngine().addOptimization(Optim::SUBSET, formula.literals);
 }
 
 void PropagatorFactory::add(const InnerMinimizeOrderedList& formula){
@@ -349,7 +349,22 @@ void PropagatorFactory::add(const InnerMinimizeOrderedList& formula){
 	}
 
 	addVars(formula.literals);
-	getEngine().addOptimization(MNMZ, formula.literals);
+	getEngine().addOptimization(Optim::LIST, formula.literals);
+}
+void PropagatorFactory::add(const InnerMinimizeAgg& formula){
+	notifyMonitorsOfAdding(formula);
+
+	add(formula.head);
+	auto it = parsedsets.find(formula.setID);
+	if(it==parsedsets.end()){
+		throwUndefinedSet(formula.setID);
+	}
+	auto set = it->second.first;
+
+	tempagglist aggs;
+	AggBound bound(AggSign::AGGSIGN_UB, Weight(0));
+	aggs.push_back(new TempAgg(mkPosLit(formula.head), bound, AggSem::IMPLICATION, formula.type));
+	finishSet(set, aggs, true);
 }
 void PropagatorFactory::add(const InnerMinimizeVar& formula){
 	notifyMonitorsOfAdding(formula);
@@ -478,11 +493,12 @@ void PropagatorFactory::add(InnerDisjunction& formula, rClause& newclause){
 	SATStorage::getStorage()->addClause(lits, newclause);
 }
 
-SATVAL PropagatorFactory::finishSet(InnerWLSet* set, vector<TempAgg*>& aggs){
+SATVAL PropagatorFactory::finishSet(InnerWLSet* set, vector<TempAgg*>& aggs, bool optimagg){
+
 	bool unsat = false, sat = false;
 
 	// transform into SAT if requested
-	if(getEngine().modes().tocnf){
+	if(getEngine().modes().tocnf && not optimagg){
 		if(not AggStorage::hasStorage()){
 			AggStorage::addStorage(getEnginep());
 		}
@@ -505,14 +521,22 @@ SATVAL PropagatorFactory::finishSet(InnerWLSet* set, vector<TempAgg*>& aggs){
 		default: assert(false); break;
 	}
 
-	Weight knownbound;
-	if(!sat && ! unsat){ setReduce(getEnginep(), set, aggs, *type, knownbound, unsat, sat); }
-	if(!sat && ! unsat){ addHeadImplications(getEnginep(), set, aggs, unsat, sat); }
-	if(!sat && ! unsat){ max2SAT(getEnginep(), set, aggs, unsat, sat); }
-	if(!sat && ! unsat){ card2Equiv(getEnginep(), set, aggs, knownbound, unsat, sat); }
-	if(!sat && ! unsat){
-		decideUsingWatchesAndCreatePropagators(getEnginep(), set, aggs, knownbound);
+	Weight knownbound(0);
+	if(not optimagg){ // TODO can we do better for minimization over aggregates?
+		if(!sat && ! unsat){ setReduce(getEnginep(), set, aggs, *type, knownbound, unsat, sat); }
+		if(!sat && ! unsat){ addHeadImplications(getEnginep(), set, aggs, unsat, sat); }
+		if(!sat && ! unsat){ max2SAT(getEnginep(), set, aggs, unsat, sat); }
+		if(!sat && ! unsat){ card2Equiv(getEnginep(), set, aggs, knownbound, unsat, sat); }
+		if(!sat && ! unsat){
+			decideUsingWatchesAndCreatePropagators(getEnginep(), set, aggs, knownbound);
+		}
+	}else{
+		if(!sat && ! unsat){
+			assert(aggs.size()==0);
+			decideUsingWatchesAndCreateOptimPropagator(getEnginep(), set, aggs[0], knownbound);
+		}
 	}
+
 	aggs.clear();
 
 	return unsat?SATVAL::UNSAT:SATVAL::POS_SAT;

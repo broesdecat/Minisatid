@@ -102,6 +102,7 @@ template SATVAL WrappedPCSolver::add(const Aggregate& sentence);
 template SATVAL WrappedPCSolver::add(const MinimizeSubset& sentence);
 template SATVAL WrappedPCSolver::add(const MinimizeOrderedList& sentence);
 template SATVAL WrappedPCSolver::add(const MinimizeVar& sentence);
+template SATVAL WrappedPCSolver::add(const MinimizeAgg& sentence);
 template SATVAL WrappedPCSolver::add(const CPIntVarRange& sentence);
 template SATVAL WrappedPCSolver::add(const CPIntVarEnum& sentence);
 template SATVAL WrappedPCSolver::add(const CPBinaryRel& sentence);

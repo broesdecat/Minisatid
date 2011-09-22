@@ -42,6 +42,8 @@ private:
 	std::vector<watchlist> lit2watches;								// |lits|
 	std::vector<proplist> intvarid2propagators; 					// |intvars|
 
+	watchlist propagateasap;
+
 	bool initialized;
 	void notifyInitialized() { initialized = true; }
 	bool isInitialized() const { return initialized; }

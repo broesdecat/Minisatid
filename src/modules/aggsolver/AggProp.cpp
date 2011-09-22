@@ -24,6 +24,14 @@ Weight	Agg::getCertainBound() const {
 	return getBound()-getSet()->getKnownBound();
 }
 
+SATVAL Agg::reInitializeAgg(){
+	TypedSet& set = *getSet();
+	int level = set.getPCSolver().getCurrentDecisionLevel();
+	// FIXME check whether this is sufficient?
+	rClause confl = set.getProp()->propagateAtEndOfQueue();
+	return confl==nullPtrClause?SATVAL::POS_SAT:SATVAL::UNSAT;
+}
+
 paggprop AggProp::max = paggprop (new MaxProp());
 //paggprop AggProp::min = paggprop (new MinProp());
 paggprop AggProp::sum = paggprop (new SumProp());
