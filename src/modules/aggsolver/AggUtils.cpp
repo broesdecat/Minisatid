@@ -23,32 +23,6 @@
 using namespace std;
 using namespace MinisatID;
 
-/**
- * Important: to justify a head, often several body literals have to become FALSE
- * For such literals, they have to be justified if they are NEGATIVE
- *
- * Also, if a literal has to become FALSE, its INVERSION should be added to the justification!
- */
-bool MinisatID::oppositeIsJustified(const WL& l, VarToJustif& currentjust, bool real, PCSolver const * const solver) {
-	if (real) {
-		return solver->value(l.getLit()) != l_True;
-	} else {
-		return solver->value(l.getLit()) != l_True && (!sign(l.getLit()) || isJustified(var(l.getLit()), currentjust));
-	}
-}
-
-bool MinisatID::isJustified(const WL& l, VarToJustif& currentjust, bool real, PCSolver const * const solver) {
-	if (real) {
-		return solver->value(l.getLit()) != l_False;
-	} else {
-		return solver->value(l.getLit()) != l_False && (sign(l.getLit()) || isJustified(var(l.getLit()), currentjust));
-	}
-}
-
-bool MinisatID::isJustified(Var x, VarToJustif& currentjust) {
-	return currentjust[x] == 0;
-}
-
 int	Watch::getAggIndex() const {
 	return agg_->getIndex();
 }

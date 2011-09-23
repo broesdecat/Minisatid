@@ -128,8 +128,6 @@ public:
 };
 
 class SPProp: public AggProp{
-public:
-	bool 		canJustifyHead			(const Agg& agg, litlist& jstf, varlist& nonjstf, VarToJustif& currentjust, bool real) 	const;
 };
 
 class ProdProp: public SPProp{

@@ -333,7 +333,7 @@ void PCSolver::finishParsing(bool& unsat) {
 	propagations.resize(nVars(), NULL); //Lazy init
 	state = THEORY_INITIALIZED;
 
-	getFactory().finishParsing();
+	unsat |= getFactory().finishParsing()==SATVAL::UNSAT;
 	getEventQueue().finishParsing(unsat);
 	if (modes().useaggheur) {
 		getSATSolver()->notifyCustomHeur();

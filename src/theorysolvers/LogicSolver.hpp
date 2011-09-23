@@ -42,7 +42,7 @@ public:
 			void	setNbModels		(int nbmodels)	{ _modes.nbmodels = nbmodels; }
 
 	const WrapperPimpl& getParent	() const	{ return parent; }
-	WrapperPimpl& 		getParent	() 				{ return parent; }
+	WrapperPimpl& 		getParent	() 			{ return parent; }
 
 	virtual void	notifyNonDecisionVar(Var var) = 0;
 

@@ -82,11 +82,13 @@ protected:
 
 public:
 	Remapper*		remapper;
+	bool 			sharedremapper;
 
 	Solution*		solutionmonitor; //Non-owning pointers
 
 public:
 	WrapperPimpl			(const SolverOption& modes);
+	WrapperPimpl			(const SolverOption& modes, Remapper* sharedremapper);
 	virtual ~WrapperPimpl();
 
 	Var 	getNewVar();
@@ -120,6 +122,7 @@ public:
 	}
 	void 	printCurrentOptimum(const Weight& value) const;
 
+	Remapper* getRemapper		()	const { return remapper; }
 
 	// MONITORING
 	void	addMonitor(SearchMonitor* const mon);
@@ -138,8 +141,6 @@ protected:
 	void 	checkAtoms		(const std::vector<Atom>& atoms, std::vector<Var>& ll);
 	void 	checkAtoms		(const std::map<Atom, Atom>& atoms, std::map<Var, Var>& ll);
 	void 	checkLits		(const std::vector<std::vector<Literal> >& lits, std::vector<std::vector<Lit> >& ll);
-
-	Remapper* getRemapper		()	const { return remapper; }
 
 	bool	canBackMapLiteral		(const Lit& lit) const;
 	Literal getBackMappedLiteral	(const Lit& lit) const;

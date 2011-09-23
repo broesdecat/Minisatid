@@ -14,14 +14,13 @@
 #include <queue>
 #include <vector>
 #include <map>
+#include <iostream>
 
 #include "utils/Utils.hpp"
 #include "modules/DPLLTmodule.hpp"
 #include "modules/aggsolver/AggProp.hpp"
 
 namespace MinisatID {
-
-typedef std::vector<int> VarToJustif; //Maps variables to their current state in the justification algorithm
 
 class PCSolver;
 
@@ -31,7 +30,7 @@ class PCSolver;
  * If a variable is NONDEFPOS, a definition is associated with it, but there is no recursion through it in the POSITIVE dependency graph
  * 		but there might be recursion over negation (relevant for the well-founded model)
  */
-enum DefType	{ DISJ, CONJ, AGGR };
+enum class DefType	{ DISJ, CONJ, AGGR };
 enum DefOcc 	{ NONDEFOCC, POSLOOP, MIXEDLOOP, BOTHLOOP };
 enum UFS 		{ NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK };
 
@@ -91,9 +90,9 @@ private:
 
 public:
 	DefinedVar(PropRule* rule, DefType type): _definition(rule), _type(type), _occ(BOTHLOOP), _isCS(false), _scc(-1){}
-	DefinedVar(IDAgg* rule): _definedaggregate(rule), _type(AGGR), _occ(BOTHLOOP), _isCS(false), _scc(-1){}
+	DefinedVar(IDAgg* rule): _definedaggregate(rule), _type(DefType::AGGR), _occ(BOTHLOOP), _isCS(false), _scc(-1){}
 	~DefinedVar(){
-		if(_type==AGGR){
+		if(_type==DefType::AGGR){
 			delete(_definedaggregate);
 		}else{
 			delete(_definition);
@@ -101,20 +100,60 @@ public:
 	}
 
 	litlist& 		reason(){ return _reason; }
-	PropRule* 				definition(){ return _definition; }
-	IDAgg* 					definedaggregate(){ return _definedaggregate; }
-	DefType& 				type(){ return _type; }
-	DefOcc& 				occ(){ return _occ; }
-	bool &					isCS(){ return _isCS; }
-	int &					scc(){ return _scc; }
-	litlist& 				justification(){ return _justification; }
+	PropRule* 		definition(){ return _definition; }
+	IDAgg* 			definedaggregate(){ return _definedaggregate; }
+	DefType& 		type(){ return _type; }
+	DefOcc& 		occ(){ return _occ; }
+	bool &			isCS(){ return _isCS; }
+	int &			scc(){ return _scc; }
+	litlist& 		justification(){ return _justification; }
 
-	const litlist& reason()const { return _reason; }
-	const DefType& 			type()const { return _type; }
-	const DefOcc& 			occ()const { return _occ; }
-	bool					isCS()const { return _isCS; }
-	int						scc()const { return _scc; }
-	const litlist& 			justification()const { return _justification; }
+	const litlist&	reason()const { return _reason; }
+	const DefType&	type()const { return _type; }
+	const DefOcc&	occ()const { return _occ; }
+	bool			isCS()const { return _isCS; }
+	int				scc()const { return _scc; }
+	const litlist& 	justification()const { return _justification; }
+};
+
+//Statistics
+struct IDStats{
+    uint64_t cycle_sources, justifiable_cycle_sources, cycles, cycle_sizes, justify_conflicts;
+    uint64_t nb_times_findCS, justify_calls, cs_removed_in_justify, succesful_justify_calls, extdisj_sizes, total_marked_size;
+
+    IDStats():
+		cycle_sources(0), justifiable_cycle_sources(0), cycles(0), cycle_sizes(0), justify_conflicts(0),
+		nb_times_findCS(0), justify_calls(0), cs_removed_in_justify(0), succesful_justify_calls(0),
+		extdisj_sizes(0), total_marked_size(0){}
+
+    void print() const{
+		std::clog <<"> cycles                : " <<cycles <<"\n";
+		std::clog <<"> cycle conflicts       : " <<justify_conflicts <<"\n";
+		std::clog <<"> avg cycle size        : " <<(float)cycle_sizes/cycles <<"\n";
+		std::clog <<"> avg extdisj size      : " <<(float)extdisj_sizes/cycles <<"\n";
+		std::clog <<"> justify runs          : " <<justify_calls <<"(" <<(float)justify_calls/cycles <<"/cycle)\n";
+		std::clog <<"> avg. justify searchsp.: " <<(float)total_marked_size/justify_calls <<" lits\n";
+		std::clog <<"> cycle sources         : " <<cycle_sources <<"\n";
+		std::clog <<">                       : " <<(float)nb_times_findCS/cycle_sources <<" found per run of findCycleSources()\n";
+		std::clog <<">                       : " <<(float)cs_removed_in_justify/justify_calls <<" removed per justify run\n";
+		std::clog <<">                       : " <<(float)succesful_justify_calls/nb_times_findCS <<" treated per loop\n";
+    }
+};
+
+class NetworkHandling{
+private:
+	DefType type;
+	std::vector<varlist > _occurs;
+
+public:
+	NetworkHandling(DefType type): type(type){}
+
+	const varlist&	occurs		(const Lit& l) const { assert(inNetwork(l)); return _occurs[toInt(l)]; }
+	varlist&		occurs		(const Lit& l) { assert(inNetwork(l)); return _occurs[toInt(l)]; }
+	bool 			inNetwork	(const Lit& l) const { return _occurs.size()>toInt(l); }
+	void			add			(const Lit& l, Var v) { occurs(l).push_back(v); /*assert(IDSolver::type(v)==type);*/ }
+	void 			resize		(int n) { _occurs.resize(n, varlist()); }
+	void 			clear		() { _occurs.clear(); }
 };
 
 class IDSolver: public Propagator{
@@ -122,49 +161,39 @@ private:
 	int definitionID;
 
 	Var minvar, nbvars; //TODO, maxvar, nbvars; 	//The lowest and highest headvariable. INVAR: Definitions will be offset by minvar and the size will be nbvars
-	std::vector<DefinedVar*> definitions; //Maps all variables to NULL or a defined variable
 
-	std::vector<varlist > 	_disj_occurs, _conj_occurs, _aggr_occurs;
+	NetworkHandling conj, disj, aggr;
 
 	InterMediateDataStruct*	_seen;
 
-	DEFSEM					sem;
+	DEFSEM				sem;
+	bool				posrecagg, mixedrecagg;
+	bool 				posloops, negloops;
 
-	bool					posrecagg, mixedrecagg;
+	varlist				sccroots;
 
-	bool 					posloops, negloops;
-	varlist		defdVars;	// All the vars that are the head of some kind of definition (disj, conj or aggr). Allows to iterate over all definitions.
+	varlist				defdVars;	// All the vars that are the head of some kind of definition (disj, conj or aggr). Allows to iterate over all definitions.
+	std::vector<DefinedVar*> definitions; //Maps all variables to NULL or a defined variable
 
-	bool					backtracked;	//True if the solver has backtracked between now and the previous search for cycle sources. Is true at the start
+	bool				backtracked;	//True if the solver has backtracked between now and the previous search for cycle sources. Is true at the start
+	int					adaption_total;     // Used only if defn_strategy==adaptive. Number of decision levels between indirectPropagate() uses.
+	int					adaption_current;   // Used only if defn_strategy==adaptive. Number of decision levels left until next indirectPropagate() use.
 
-	int						adaption_total;     // Used only if defn_strategy==adaptive. Number of decision levels between indirectPropagate() uses.
-	int						adaption_current;   // Used only if defn_strategy==adaptive. Number of decision levels left until next indirectPropagate() use.
+	varlist				css; // List of possible support violators.
 
-	// Cycle sources:
-	varlist		css;                    // List of cycle sources. May still include atoms v that have !isCS[v].
-	std::set<Var>			savedufs;
-	InnerDisjunction		savedloopf;
+	std::set<Var>		savedufs;
+	InnerDisjunction	savedloopf;
 
-
-	//Well-founded model checking
-	bool 					wffixpoint;
-	varlist 		wfroot, wfrootnodes;
-	std::queue<Lit> 		wfqueue;
-	std::set<Var> 			wfmarkedAtoms;
-	std::vector<bool> 		wfisMarked;
-
-	//Statistics
-	uint64_t 				atoms_in_pos_loops;
-    uint64_t 				cycle_sources, justifiable_cycle_sources, cycles, cycle_sizes, justify_conflicts;
-    uint64_t 				nb_times_findCS, justify_calls, cs_removed_in_justify, succesful_justify_calls, extdisj_sizes, total_marked_size;
+	IDStats				stats;
 
 public:
 	IDSolver(PCSolver* s, int definitionID);
 	virtual ~IDSolver();
 
-	int					getDefinitionID() const { return definitionID; }
+	int		getDefinitionID	() const { return definitionID; }
+	DEFSEM	getSemantics	() const { return sem; }
 
-	bool				hasRecursiveAggregates	() const 	{ return posrecagg || mixedrecagg; }
+	bool	hasRecursiveAggregates	() const 	{ return posrecagg || mixedrecagg; }
 
 	// Propagator methods
 	virtual const char* getName					() const { return "definitional"; }
@@ -182,22 +211,25 @@ public:
 
 	rClause				isWellFoundedModel		();
 
-	DEFSEM				getSemantics			() const { return sem; }
-
-	const litlist&		getCFJustificationAggr	(Var v) const;
-	void 				cycleSourceAggr			(Var v, litlist& nj);
-
-	void 				addDefinedAggregate		(const InnerReifAggregate& agg, const InnerWLSet& set);
 	SATVAL    			addRule      			(bool conj, Var head, const litlist& ps);	// Add a rule to the solver.
+	void 				addDefinedAggregate		(const InnerReifAggregate& agg, const InnerWLSet& set);
 
 	bool				isDefined				(Var var) 	const { return hasDefVar(var); }
-	bool 				isConjunctive			(Var v)		const {	return type(v) == CONJ; }
-	bool 				isDisjunctive			(Var v) 	const {	return type(v) == DISJ;	}
-	bool 				isDefinedByAggr			(Var v) 	const {	return type(v) == AGGR;	}
+	bool 				isConjunctive			(Var v)		const {	return type(v) == DefType::CONJ; }
+	bool 				isDisjunctive			(Var v) 	const {	return type(v) == DefType::DISJ;	}
+	bool 				isDefinedByAggr			(Var v) 	const {	return type(v) == DefType::AGGR;	}
 	const PropRule&		getDefinition			(Var var) 	const { assert(hasDefVar(var)); return *definition(var); }
 
 private:
-	bool 				simplifyGraph		(); //False if problem unsat
+	void 				generateSCCs();
+	void 				bumpHeadHeuristic();
+
+	void 				addToNetwork(Var v);
+
+	bool 				loopPossibleOver(Var v);
+
+	SATVAL 				transformToCNF		(const varlist& sccroots, bool& present);
+	bool 				simplifyGraph		(int atomsinposloops); //False if problem unsat
 
 	void 				adaptStructsToHead	(Var head);
 	DefinedVar* 		getDefVar			(Var v) const { assert(v>=0 && minvar<=v && v-minvar<nbvars); return definitions[v-minvar]; }
@@ -209,7 +241,7 @@ private:
 	bool 				canBecomeTrue		(Lit l) const { return value(l) != l_False; }
 	bool 				inSameSCC			(Var x, Var y) const { return isDefined(x) && isDefined(y) && scc(x) == scc(y); }
 
-	litlist& 	reason		(Var v){ assert(hasDefVar(v)); return getDefVar(v)->reason(); }
+	litlist& 			reason		(Var v){ assert(hasDefVar(v)); return getDefVar(v)->reason(); }
 	PropRule const*		definition	(Var v) const { assert(hasDefVar(v)); return getDefVar(v)->definition(); }
 	IDAgg *				aggdefinition(Var v) const { assert(hasDefVar(v)); return getDefVar(v)->definedaggregate(); }
 	DefType& 			type		(Var v){ assert(hasDefVar(v)); return getDefVar(v)->type(); }
@@ -218,37 +250,20 @@ private:
 	int &				scc			(Var v){ assert(hasDefVar(v)); return getDefVar(v)->scc(); }
 	litlist& 			justification(Var v){ assert(hasDefVar(v)); return getDefVar(v)->justification(); }
 
-	const litlist& 	reason		(Var v)const { return getDefVar(v)->reason(); }
+	const litlist& 		reason		(Var v)const { return getDefVar(v)->reason(); }
 	const DefType& 		type		(Var v)const { return getDefVar(v)->type(); }
 	const DefOcc& 		occ			(Var v)const { return getDefVar(v)->occ(); }
 	bool 				isCS		(Var v)const { return getDefVar(v)->isCS(); }
 	int 				scc			(Var v)const { return getDefVar(v)->scc(); }
-	const litlist& 	justification(Var v)const { return getDefVar(v)->justification(); }
+	const litlist& 		justification(Var v)const { return getDefVar(v)->justification(); }
 
 	bool				hasSeen		(Var v) const 	{ return _seen->hasElem(v); }
 	int&				seen		(Var v) 		{ assert(hasSeen(v)); return _seen->getElem(v); }
 	const int&			seen		(Var v) const 	{ assert(hasSeen(v)); return _seen->getElem(v); }
 
-	const varlist&	disj_occurs	(const Lit& l) const { return _disj_occurs[toInt(l)]; }
-	varlist&		disj_occurs	(const Lit& l) { return _disj_occurs[toInt(l)]; }
-	bool	hasdisj_occurs(const Lit& l) const { return disj_occurs(l).size()>0; }
-	void	addDisjOccurs(const Lit& l, Var v) { disj_occurs(l).push_back(v); assert(type(v)==DISJ); }
-
-	varlist&		conj_occurs	(const Lit& l) { return _conj_occurs[toInt(l)]; }
-	const varlist&	conj_occurs	(const Lit& l) const { return _conj_occurs[toInt(l)]; }
-	bool	hasconj_occurs(const Lit& l) const { return conj_occurs(l).size()>0; }
-	void	addConjOccurs(const Lit& l, Var v) { conj_occurs(l).push_back(v); assert(type(v)==CONJ); }
-
-	varlist&		aggr_occurs	(const Lit& l) { return _aggr_occurs[toInt(l)]; }
-	const varlist&	aggr_occurs	(const Lit& l) const { return _aggr_occurs[toInt(l)]; }
-	bool	hasaggr_occurs(const Lit& l) const { return aggr_occurs(l).size()>0; }
-	void	addAggrOccurs(const Lit& l, Var v) { aggr_occurs(l).push_back(v); assert(type(v)==AGGR); }
-
 	void	createDefinition(Var head, PropRule* r, DefType type) 	{ defdVars.push_back(head); setDefVar(head, new DefinedVar(r, type));}
 	void	createDefinition(Var head, IDAgg* agg) 					{ defdVars.push_back(head); setDefVar(head, new DefinedVar(agg));}
-	void	removeDefinition(Var head) { delete getDefVar(head); setDefVar(head, NULL); }
-
-	bool	setTypeIfNoPosLoops	(Var v) const;
+	void	removeDefinition(Var head);
 
 	void 	propagateJustificationDisj(const Lit& l, std::vector<litlist>& jstf, litlist& heads);
 	void 	propagateJustificationAggr(const Lit& l, std::vector<litlist>& jstf, litlist& heads);
@@ -260,9 +275,7 @@ private:
 	bool 	findJustificationConj(Var v, litlist& jstf, varlist& nonjstf);
 	bool 	findJustificationAggr(Var v, litlist& jstf, varlist& nonjstf);
 
-	// Justification methods:
-	void	apply_changes      ();
-	void 	changejust(Var v, litlist& j);
+	void 	changejust		(Var v, litlist& j);
 
 	// Cycle source methods:
 	void	addCycleSource				(Var v);
@@ -271,26 +284,11 @@ private:
 	void	findJustification			(Var v);
 	void 	checkJustification			(Var head);
 
-	// Propagation method:
-	rClause  indirectPropagate  		();                        /* Main method.
-                                                                      1) Finds cycle sources and supporting justification.
-                                                                      2) Applies 'unfounded(..)' on each of them,
-                                                                      3) ... asserting an unfounded set as soon as one is found, or
-                                                                         applying the changes to 'J' after no unfounded set is found for any cycle source.
-	 */
+	rClause  indirectPropagate  		();
 
-	// Auxiliary for indirectPropagate:
 	bool	indirectPropagateNow();                               // Decide (depending on chosen strategy) whether or not to do propagations now.
 	bool	unfounded          (Var cs, std::set<Var>& ufs);      // True iff 'cs' is currently in an unfounded set, 'ufs'.
 	rClause	assertUnfoundedSet (const std::set<Var>& ufs);
-
-	UFS 	visitForUFSsimple(Var v, std::set<Var>& ufs, int& visittime, varlist& stack, VarToJustif& visited, std::vector<litlist >& network);
-	void 	changeJustificationsTarjan(Var definednode, Lit firstjustification, std::vector<litlist >& network, VarToJustif& visited); //changes the justifications of the tarjan algorithm
-
-	bool	visitedEarlierTarjan	(Var x, Var y, const VarToJustif& visitedandjust)	const;
-	bool	visitedTarjan			(Var x, const VarToJustif& visitedandjust) 		const;
-	int		visitedAtTarjan			(Var x, const VarToJustif& visitedandjust) 		const;
-	bool	hasJustificationTarjan	(Var x, const VarToJustif& visitedandjust)			const;
 
 	void	markNonJustified   			(Var cs, varlist& tmpseen);                           // Auxiliary for 'unfounded(..)'. Marks all ancestors of 'cs' in sp_justification as 'seen'.
 	void	markNonJustifiedAddVar		(Var v, Var cs, std::queue<Var> &q, varlist& tmpseen);
@@ -304,44 +302,42 @@ private:
 	bool	propagateJustified			(Var v, Var cs, std::set<Var>& ufs);    // Auxiliary for 'unfounded(..)'. Propagate the fact that 'v' is now justified. True if 'cs' is now justified
 	void	addLoopfClause				(Lit l, InnerDisjunction& lits);
 
-	// Another propagation method (too expensive in practice):
-	// void     fwIndirectPropagate();
-
 	void visit(Var i, std::vector<bool> &incomp, varlist &stack, varlist &visited, int& counter, varlist& roots); // Method to initialize 'scc'.
 	void visitFull(Var i, std::vector<bool> &incomp, varlist &stack, varlist &visited, int& counter, bool throughPositiveLit, varlist& posroots, varlist& rootofmixed, varlist& nodeinmixed);
+
+	void	addExternalDisjuncts(const std::set<Var>& ufs, litlist& loopf);
 
 	// Debug:
 	void	print		(const rClause c)	const;
 	void	print		(const PropRule& c)	const;
 	bool	isCycleFree	() 					const;			// Verifies whether justification is indeed cycle free, not used, for debugging purposes.
 
-	void	addExternalDisjuncts(const std::set<Var>& ufs, litlist& loopf);
-
 	// WELL FOUNDED MODEL CHECKING
 
-	/*
-	 * Implementation of Tarjan's algorithm for detecting strongly connected components.
-	 */
+	//Well-founded model checking
+	bool 				wffixpoint;
+	varlist 			wfroot, wfrootnodes;
+	std::queue<Lit> 	wfqueue;
+	std::set<Var> 		wfmarkedAtoms;
+	std::vector<bool> 	wfisMarked;
+
+	// Implementation of Tarjan's algorithm for detecting strongly connected components.
 	void visitWF(Var i, varlist &root, std::vector<bool> &incomp, std::stack<Var> &stack, varlist &visited, int& counter, bool throughPositiveLit, std::vector<int>& rootofmixed);
 	/*
 	 * Search for mixed cycles in the justification graph of the current model.
 	 * @post For every mixed cycle in the justification graph, there is one literal of the cycle on \c _mixedCycleRoots.
 	 */
 	void findMixedCycles(varlist &root, std::vector<int>& rootofmixed);
-	/*
-	 * Mark all atoms that are above the mixed cycle roots in the justification graph.
-	 */
+	// Mark all atoms that are above the mixed cycle roots in the justification graph.
 	void markUpward();
 	void mark(Var);
-	/*
-	 * For marked literal l, set _counters[l] to the number of marked bodyliterals in its body. When l is conj/disj, and contains an false/true unmarked bodyliteral, l is pushed on _queuePropagate.
-	 */
+	// For marked literal l, set _counters[l] to the number of marked bodyliterals in its body. When l is conj/disj, and contains an false/true unmarked bodyliteral, l is pushed on _queuePropagate.
 	void initializeCounters();
 	void forwardPropagate(bool);
 	void overestimateCounters();
 	void removeMarks();
 
-
+	// RECURSIVE AGGREGATE SUPPORT
 	bool canJustifyHead(const IDAgg& agg, litlist& jstf, varlist& nonjstf, const InterMediateDataStruct& currentjust, bool real) const;
 	bool canJustifyMaxHead(const IDAgg& agg, litlist& jstf, varlist& nonjstf, const InterMediateDataStruct& currentjust, bool real) const;
 	bool canJustifySPHead(const IDAgg& agg, litlist& jstf, varlist& nonjstf, const InterMediateDataStruct& currentjust, bool real) const;

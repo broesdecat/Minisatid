@@ -337,7 +337,8 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, InnerWL
 			watchable = false;
 		}
 	}
-	if(!watchable){
+	if(not watchable){
+		createPropagator(solver, set, aggs, knownbound, false);
 		return;
 	}
 

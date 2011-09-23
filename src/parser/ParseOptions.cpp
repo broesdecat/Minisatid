@@ -178,6 +178,10 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 	tocnfdesc.push_back(pair<string, string>("yes", "Transform as much as possible into CNF"));
 	tocnfdesc.push_back(pair<string, string>("no", "Use the default transformation heuristics"));
 
+	vector<pair<string, string> > checkcycledesc;
+	checkcycledesc.push_back(pair<string, string>("yes", "Double-check for cycles"));
+	checkcycledesc.push_back(pair<string, string>("no", "Don't double-check"));
+
 	vector<Inference> inferencevals;
 	vector<pair<string, string> > inferencedesc;
 	//inferencevals.push_back(PROPAGATE); inferencedesc.push_back(pair<string, string>("propagate", "Only do unit propagation"));
@@ -281,6 +285,10 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 			modes.decideontseitins, cmd,"Choose whether tseitin literals can be used as decision literals."));
 	options.push_back(new Option<bool, string>	("","tocnf", 	yesnovals, tocnfdesc,
 			modes.tocnf, cmd,"Choose whether to translate non-clausal constraints to clauses."));
+	options.push_back(new Option<bool, string>	("","doublecyclecheck", 	yesnovals, checkcycledesc,
+			modes.checkcyclefreeness, cmd,"Choose whether to also check cycles with the bottom-up algorithm (for debugging purposes)."));
+
+
 	options.push_back(new NoValsOption<double>	("","watch-ratio", 	"double",
 			modes.watchesratio, cmd,"The ratio of watches to set literals under which the watched algorithm is used."));
 	options.push_back(new Option<bool,string>	("","use-agg-heur", 	yesnovals, aggheurdesc,

@@ -52,7 +52,7 @@ Var SmartRemapper::getVar(const Atom& atom){
 		throw idpexception(getMinimalVarNumbering());
 	}
 
-	atommap::const_iterator i = origtocontiguousatommapper.find(atom.getValue());
+	auto i = origtocontiguousatommapper.find(atom.getValue());
 	Var v = 0;
 	if(i==origtocontiguousatommapper.end()){
 		origtocontiguousatommapper.insert(pair<int, int>(atom.getValue(), maxnumber));
@@ -101,13 +101,27 @@ WrapperPimpl::WrapperPimpl(const SolverOption& modes):
 		optimization(false),
 		state(INIT),
 		_modes(modes),
+
+		// FIXME needed for being able to introduce new variables as soon as possible
 		remapper(/*modes.remap?*/new SmartRemapper()/*:new Remapper()*/),
+		sharedremapper(false),
+		solutionmonitor(NULL)
+		{
+}
+WrapperPimpl::WrapperPimpl(const SolverOption& modes, Remapper* sharedremapper):
+		optimization(false),
+		state(INIT),
+		_modes(modes),
+		remapper(sharedremapper),
+		sharedremapper(true),
 		solutionmonitor(NULL)
 		{
 }
 
 WrapperPimpl::~WrapperPimpl(){
-	delete remapper;
+	if(not sharedremapper){
+		delete remapper;
+	}
 }
 
 void WrapperPimpl::setSolutionMonitor(Solution* sol) {

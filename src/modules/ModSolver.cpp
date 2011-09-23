@@ -28,7 +28,7 @@ using namespace MinisatID;
  * Constructs a ModSolver, with a given head, index and hierarchy pointer. A PCSolver is initialized.
  */
 ModSolver::ModSolver(modindex child, Var head, SOSolver* mh):
-		Propagator(new PCSolver(mh->modes(), *this, child)), WrapperPimpl(mh->modes()),
+		Propagator(new PCSolver(mh->modes(), *this, child)), WrapperPimpl(mh->modes(), mh->getParent().getRemapper()),
 		init(false), hasparent(false), searching(false),
 		head(head),
 		id(child), parentid(-1), //, startedsearch(false), startindex(-1),
@@ -160,12 +160,12 @@ void ModSolver::finishParsingDown(bool& unsat){
 	notifyParsed();
 	getPCSolver().finishParsing(unsat);
 
-	for(vector<Var>::const_iterator i=registeredvars.begin(); i<registeredvars.end(); ++i){
+	for(auto i=registeredvars.begin(); i<registeredvars.end(); ++i){
 		getPCSolver().accept(this, mkLit(*i, true), SLOW);
 		getPCSolver().accept(this, mkLit(*i, false), SLOW);
 	}
 
-	for(vmodindex::const_iterator i=getChildren().begin(); !unsat && i<getChildren().end(); ++i){
+	for(auto i=getChildren().begin(); !unsat && i<getChildren().end(); ++i){
 		bool childunsat = false;
 		getModSolverData().getModSolver(*i)->finishParsingDown(childunsat);
 		//TODO handle !present

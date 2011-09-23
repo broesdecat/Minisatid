@@ -19,9 +19,6 @@ typedef std::vector<WL> vwl;
 
 class PCSolver;
 
-//FROM ID SOLVER
-typedef std::vector<int> VarToJustif;
-
 class TypedSet;
 class Agg;
 
@@ -143,12 +140,6 @@ public:
     bool			isHeadReason	() 	const	{ return false; }
     bool			isInSet			()	const	{ return inset; }
 };
-
-// ID support
-
-bool 	oppositeIsJustified		(const WL& wl, VarToJustif& currentjust, bool real, PCSolver const * const solver);
-bool 	isJustified				(const WL& wl, VarToJustif& currentjust, bool real, PCSolver const * const solver);
-bool 	isJustified				(Var x, VarToJustif& currentjust);
 
 }
 
