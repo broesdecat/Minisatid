@@ -376,7 +376,6 @@ template<>
 SATVAL PCWrapperPimpl::add(const Set& sentence){
 	WSet set;
 	set.setID = sentence.setID;
-	set.type = sentence.type;
 	set.literals = sentence.literals;
 	set.weights = vector<Weight>(sentence.literals.size(), 1);
 	add(set);
@@ -387,7 +386,6 @@ template<>
 SATVAL PCWrapperPimpl::add(const WSet& sentence){
 	WLSet set;
 	set.setID = sentence.setID;
-	set.type = sentence.type;
 	for(uint i=0; i<sentence.literals.size(); ++i){
 		set.wl.push_back(WLtuple(sentence.literals[i], sentence.weights[i]));
 	}
@@ -401,7 +399,7 @@ SATVAL PCWrapperPimpl::add(const WLSet& sentence){
 	for(auto i=sentence.wl.begin(); i<sentence.wl.end(); ++i){
 		wls.push_back(WL(checkLit((*i).l), (*i).w));
 	}
-	InnerWLSet set(sentence.type, sentence.setID, wls);
+	InnerWLSet set(sentence.setID, wls);
 	getSolver()->add(set);
 	return getSolver()->satState();
 }
@@ -610,7 +608,7 @@ SATVAL SOWrapperPimpl::add(int modid, const Rule& sentence){
 template<>
 SATVAL SOWrapperPimpl::add(int modid, const Set& sentence){
 	vector<Weight> weights = vector<Weight>(sentence.literals.size(), 1);
-	InnerWLSet set(sentence.type, sentence.setID, vector<WL>());
+	InnerWLSet set(sentence.setID, vector<WL>());
 	for(auto i=sentence.literals.begin(); i!=sentence.literals.end(); ++i){
 		set.wls.push_back(WL(checkLit(*i), 1));
 	}
@@ -619,7 +617,7 @@ SATVAL SOWrapperPimpl::add(int modid, const Set& sentence){
 
 template<>
 SATVAL SOWrapperPimpl::add(int modid, const WSet& sentence){
-	InnerWLSet set(sentence.type, sentence.setID, vector<WL>());
+	InnerWLSet set(sentence.setID, vector<WL>());
 	for(uint i=0; i!=sentence.literals.size(); ++i){
 		set.wls.push_back(WL(checkLit(sentence.literals[i]), sentence.weights[i]));
 	}
@@ -628,7 +626,7 @@ SATVAL SOWrapperPimpl::add(int modid, const WSet& sentence){
 
 template<>
 SATVAL SOWrapperPimpl::add(int modid, const WLSet& sentence){
-	InnerWLSet set(sentence.type, sentence.setID, vector<WL>());
+	InnerWLSet set(sentence.setID, vector<WL>());
 	for(vector<WLtuple>::const_iterator i=sentence.wl.begin(); i<sentence.wl.end(); ++i){
 		set.wls.push_back(WL(checkLit((*i).l),(*i).w));
 	}

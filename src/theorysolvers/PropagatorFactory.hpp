@@ -141,8 +141,6 @@ public:
 	void add(const InnerDisjunction& sentence);
 	void add(const InnerEquivalence& sentence);
 	void add(const InnerRule& sentence);
-	void add(const InnerSet& sentence);
-	void add(const InnerWSet& sentence);
 	void add(const InnerWLSet& sentence);
 	void add(const InnerAggregate& sentence);
 	void add(const InnerReifAggregate& sentence);

@@ -275,6 +275,9 @@ void PropagatorFactory::add(const InnerReifAggregate& origagg){
 	add(newagg.head);
 
 	auto setwithagg = parsedsets.at(newagg.setID);
+	if(setwithagg.second.empty()){
+		setwithagg.first->type = origagg.type;
+	}
 	if(newagg.type == MIN){
 		newagg.type = MAX;
 		newagg.sign = newagg.sign==AGGSIGN_LB?AGGSIGN_UB:AGGSIGN_LB;
@@ -360,6 +363,7 @@ void PropagatorFactory::add(const InnerMinimizeAgg& formula){
 		throwUndefinedSet(formula.setID);
 	}
 	auto set = it->second.first;
+	set->type = formula.type;
 
 	tempagglist aggs;
 	AggBound bound(AggSign::AGGSIGN_UB, Weight(0));
@@ -532,7 +536,7 @@ SATVAL PropagatorFactory::finishSet(InnerWLSet* set, vector<TempAgg*>& aggs, boo
 		}
 	}else{
 		if(!sat && ! unsat){
-			assert(aggs.size()==0);
+			assert(aggs.size()==1);
 			decideUsingWatchesAndCreateOptimPropagator(getEnginep(), set, aggs[0], knownbound);
 		}
 	}

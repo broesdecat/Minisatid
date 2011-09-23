@@ -109,14 +109,12 @@ public:
 
 class Set{
 public:
-	AggType type;
 	int setID;
 	literallist literals;
 };
 
 class WSet{
 public:
-	AggType type;
 	int setID;
 	literallist literals;
 	std::vector<Weight> weights;
@@ -124,7 +122,6 @@ public:
 
 class WLSet{
 public:
-	AggType type;
 	int setID;
 	std::vector<WLtuple> wl;
 };

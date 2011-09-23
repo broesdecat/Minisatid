@@ -49,32 +49,6 @@ public:
 		target() <<" to definition " <<rule.definitionID <<"\n";
 	}
 
-	void notifyadded(const InnerSet& set){
-		target() <<"Added non-weighted set " <<set.setID <<" = {";
-		std::vector<Lit>::size_type count = 0;
-		for(std::vector<Lit>::const_iterator i=set.literals.begin(); i<set.literals.end(); ++i, ++count){
-			target() <<*i;
-			if(count<set.literals.size()-1){
-				target() <<", ";
-			}
-		}
-		target() <<"}\n";
-	}
-
-	void notifyadded(const InnerWSet& set){
-		target() <<"Added non-weighted set " <<set.setID <<" = {";
-		std::vector<Lit>::size_type count = 0;
-		std::vector<Lit>::const_iterator litit = set.literals.begin();
-		std::vector<Weight>::const_iterator weightit = set.weights.begin();
-		for(; litit<set.literals.end(); ++litit, ++weightit, ++count){
-			target() <<*litit <<"=" <<*weightit;
-			if(count<set.literals.size()-1){
-				target() <<", ";
-			}
-		}
-		target() <<"}\n";
-	}
-
 	void notifyadded(const InnerWLSet& set){
 		target() <<"Added non-weighted set " <<set.setID <<" = {";
 		std::vector<Lit>::size_type count = 0;

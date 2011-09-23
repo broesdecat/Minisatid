@@ -26,8 +26,6 @@ public:
 
 	virtual void notifyadded(const InnerDisjunction& lits){}
 	virtual void notifyadded(const InnerRule& lits){}
-	virtual void notifyadded(const InnerSet& lits){}
-	virtual void notifyadded(const InnerWSet& lits){}
 	virtual void notifyadded(const InnerWLSet& lits){}
 	virtual void notifyadded(const InnerAggregate& lits){}
 	virtual void notifyadded(const InnerReifAggregate& lits){}

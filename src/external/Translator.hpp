@@ -12,6 +12,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <iostream>
 #include <ostream>
 #include <sstream>
 
@@ -106,8 +107,8 @@ public:
 
 	virtual bool hasTranslation			(const MinisatID::Literal& lit) const { return false; }
 
-	virtual void printLiteral			(std::ostream& output, const MinisatID::Literal& lit){ assert(false);}
-	virtual void printCurrentOptimum	(std::ostream& output, const Weight& value) { }
+	virtual void printLiteral			(std::ostream& output, const MinisatID::Literal& lit){ std::clog <<(lit.hasSign()?"-":"") <<lit.getAtom().getValue(); }
+	virtual void printCurrentOptimum	(std::ostream& output, const Weight& value) { std::clog <<value; }
 	virtual void printHeader			(std::ostream& output) {}
 
 	virtual void finish(){}

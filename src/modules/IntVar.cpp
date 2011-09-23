@@ -104,7 +104,7 @@ rClause	IntVar::notifypropagate(){
 }
 
 void IntVar::addConstraints(){
-	InnerWLSet set(CARD, engine().newSetID(), std::vector<WL>());
+	InnerWLSet set(engine().newSetID(), std::vector<WL>());
 	for(uint i=0; i<equalities.size(); ++i){
 		set.wls.push_back(WL(mkPosLit(equalities[i]), 1));
 	}

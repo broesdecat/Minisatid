@@ -51,32 +51,6 @@ public:
 		target() <<"[color=green];\n";
 	}
 
-	void notifyadded(const MinisatID::InnerSet& lits){
-		for(unsigned int i=0; i<lits.literals.size(); ++i){
-			if(i>0){
-				target() <<" -- ";
-			}
-			target() <<getPrintableVar(var(lits.literals[i]));
-		}
-		if(lits.literals.size()>1){
-			target() <<" -- " <<getPrintableVar(var(lits.literals[0])) <<" ";
-		}
-		target() <<"[color=green];\n";
-	}
-
-	void notifyadded(const MinisatID::InnerWSet& lits){
-		for(unsigned int i=0; i<lits.literals.size(); ++i){
-			if(i>0){
-				target() <<" -- ";
-			}
-			target() <<getPrintableVar(var(lits.literals[i]));
-		}
-		if(lits.literals.size()>1){
-			target() <<" -- " <<getPrintableVar(var(lits.literals[0])) <<" ";
-		}
-		target() <<"[color=green];\n";
-	}
-
 	void notifyadded(const MinisatID::InnerWLSet& set){
 		for(unsigned int i=0; i<set.wls.size(); ++i){
 			if(i>0){
