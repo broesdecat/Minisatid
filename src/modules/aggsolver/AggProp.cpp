@@ -25,11 +25,9 @@ Weight	Agg::getCertainBound() const {
 }
 
 SATVAL Agg::reInitializeAgg(){
-	TypedSet& set = *getSet();
-	int level = set.getPCSolver().getCurrentDecisionLevel();
-	// FIXME check whether this is sufficient?
-	rClause confl = set.getProp()->propagateAtEndOfQueue();
-	return confl==nullPtrClause?SATVAL::POS_SAT:SATVAL::UNSAT;
+	bool sat = false, unsat = false;
+	getSet()->getProp()->initialize(unsat, sat); // FIXME insufficient for watches
+	return unsat?SATVAL::UNSAT:SATVAL::POS_SAT;
 }
 
 paggprop AggProp::max = paggprop (new MaxProp());
@@ -391,7 +389,7 @@ AggPropagator::AggPropagator(TypedSet* set)
 
 // Final initialization call!
 void AggPropagator::initialize(bool& unsat, bool& sat) {
-	for (agglist::const_iterator i = getSet().getAgg().begin(); i < getSet().getAgg().end(); ++i) {
+	for (auto i = getSet().getAgg().begin(); i < getSet().getAgg().end(); ++i) {
 		// both for implication and comp
 		Watch* w = new Watch(getSetp(), not (*i)->getHead(), *i, false);
 		getSet().getPCSolver().accept(w);

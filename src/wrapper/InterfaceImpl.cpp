@@ -422,8 +422,10 @@ template<>
 SATVAL PCWrapperPimpl::add(const MinimizeSubset& sentence){
 	InnerMinimizeSubset mnm;
 	checkLits(sentence.literals, mnm.literals);
-	setOptimization(true);
 	getSolver()->add(mnm);
+
+	setOptimization(true);
+
 	return getSolver()->satState();
 }
 
@@ -431,8 +433,10 @@ template<>
 SATVAL PCWrapperPimpl::add(const MinimizeOrderedList& sentence){
 	InnerMinimizeOrderedList mnm;
 	checkLits(sentence.literals, mnm.literals);
-	setOptimization(true);
 	getSolver()->add(mnm);
+
+	setOptimization(true);
+
 	return getSolver()->satState();
 }
 
@@ -440,8 +444,10 @@ template<>
 SATVAL PCWrapperPimpl::add(const MinimizeVar& sentence){
 	InnerMinimizeVar mnm;
 	mnm.varID = sentence.varID;
-	setOptimization(true);
 	getSolver()->add(mnm);
+
+	setOptimization(true);
+
 	return getSolver()->satState();
 }
 
@@ -452,6 +458,9 @@ SATVAL PCWrapperPimpl::add(const MinimizeAgg& sentence){
 	mnm.setID = sentence.setid;
 	mnm.type = sentence.type;
 	getSolver()->add(mnm);
+
+	setOptimization(true);
+
 	return getSolver()->satState();
 }
 

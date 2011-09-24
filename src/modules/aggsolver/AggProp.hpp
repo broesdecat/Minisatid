@@ -62,15 +62,17 @@ typedef std::vector<TempAgg*> tempagglist;
 
 class Agg: public TempAgg{
 private:
+	bool optim;
 	TypedSet*	set;
 
 public:
-	Agg(TypedSet* set, const TempAgg& agg):
-		TempAgg(agg), set(set){}
+	Agg(TypedSet* set, const TempAgg& agg, bool optim):
+		TempAgg(agg), optim(optim), set(set){}
 
 	TypedSet*	getSet			()	const	{ return set; }
 	Weight		getCertainBound	()	const;
 	SATVAL		reInitializeAgg	();
+	bool		isOptim			() const { return optim; }
 };
 typedef std::vector<Agg*> agglist;
 

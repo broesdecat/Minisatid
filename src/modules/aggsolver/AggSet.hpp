@@ -53,7 +53,7 @@ public:
 	std::vector<Agg*>& getAggNonConst	()	 						{ return aggregates; }
 	//void			replaceAgg		(const agglist& repl);
 	//void			replaceAgg		(const agglist& repl, const agglist& del);
-	void 			addAgg			(const TempAgg& aggr);
+	void 			addAgg			(const TempAgg& aggr, bool optim);
 	void 			removeAggs		(const std::set<Agg*>& del);
 
 	bool			isUsingWatches() const { return usingwatches; }

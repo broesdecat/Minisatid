@@ -214,6 +214,9 @@ void GenPWAgg::checkInitiallyKnownAggs(bool& unsat, bool& sat){
 	rClause confl = nullPtrClause;
 	std::set<Agg*> del;
 	for(auto i=getAgg().begin(); confl==nullPtrClause && i<getAgg().end(); ++i){
+		if((*i)->isOptim()){
+			continue;
+		}
 		if(value((*i)->getHead())==l_True){ //Head always true
 			del.insert(*i);
 		}else if(isSatisfied(**i, pessbounds)){ // Agg always true

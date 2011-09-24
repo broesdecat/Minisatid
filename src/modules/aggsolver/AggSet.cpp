@@ -39,8 +39,8 @@ TypedSet::TypedSet(const TypedSet& set):
 	getPCSolver().accept(this, EV_FULLASSIGNMENT);
 }
 
-void TypedSet::addAgg(const TempAgg& tempagg){
-	auto agg = new Agg(this, tempagg);
+void TypedSet::addAgg(const TempAgg& tempagg, bool optim){
+	auto agg = new Agg(this, tempagg, optim);
 	aggregates.push_back(agg);
 	agg->setIndex(aggregates.size()-1);
 	if (getPCSolver().verbosity() >= 2) {
