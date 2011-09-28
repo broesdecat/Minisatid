@@ -451,6 +451,7 @@ SATVAL PCWrapperPimpl::add(const MinimizeAgg& sentence){
 	mnm.head = checkAtom(sentence.head);
 	mnm.setID = sentence.setid;
 	mnm.type = sentence.type;
+	setOptimization(true);
 	getSolver()->add(mnm);
 	return getSolver()->satState();
 }

@@ -358,6 +358,11 @@ void PropagatorFactory::add(const InnerMinimizeAgg& formula){
 	notifyMonitorsOfAdding(formula);
 
 	add(formula.head);
+
+	InnerDisjunction d;
+	d.literals.push_back(mkPosLit(formula.head));
+	add(d);
+
 	auto it = parsedsets.find(formula.setID);
 	if(it==parsedsets.end()){
 		throwUndefinedSet(formula.setID);
@@ -367,7 +372,8 @@ void PropagatorFactory::add(const InnerMinimizeAgg& formula){
 
 	tempagglist aggs;
 	AggBound bound(AggSign::AGGSIGN_UB, Weight(0));
-	aggs.push_back(new TempAgg(mkPosLit(formula.head), bound, AggSem::IMPLICATION, formula.type));
+	// FIXME IMPLICATION IS USED INCORRECTLY (but could be used here!)
+	aggs.push_back(new TempAgg(mkPosLit(formula.head), bound, AggSem::COMP, formula.type));
 	finishSet(set, aggs, true);
 }
 void PropagatorFactory::add(const InnerMinimizeVar& formula){

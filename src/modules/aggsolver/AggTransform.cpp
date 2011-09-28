@@ -324,7 +324,7 @@ void MinisatID::decideUsingWatchesAndCreateOptimPropagator(PCSolver* solver, Inn
 	agg->setBound(AggBound(AggSign::AGGSIGN_UB, getType(set->type)->getMaxPossible(set->wls)));
 
 	double ratio = testGenWatchCount(*solver, *set, *getType(set->type), tempagglist{agg}, knownbound);
-	auto typedset = createPropagator(solver, set, tempagglist{agg}, knownbound, ratio<=solver->modes().watchesratio);
+	auto typedset = createPropagator(solver, set, tempagglist{agg}, knownbound, ratio<solver->modes().watchesratio);
 
 	solver->addAggOptimization(typedset);
 }
@@ -382,7 +382,7 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, InnerWL
 
 	// Create propagators
 	double ratio = ratioone*0.5+ratiotwo*0.5;
-	if(ratio<=solver->modes().watchesratio){
+	if(ratio<solver->modes().watchesratio){
 		createPropagator(solver, set, signoneaggs, knownbound, true);
 		if(signtwoaggs.size()>0){
 			createPropagator(solver, set, signtwoaggs, knownbound, true);
