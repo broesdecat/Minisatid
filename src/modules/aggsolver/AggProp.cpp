@@ -28,7 +28,7 @@ SATVAL Agg::reInitializeAgg(){
 	TypedSet& set = *getSet();
 	int level = set.getPCSolver().getCurrentDecisionLevel();
 	// FIXME check whether this is sufficient?
-	rClause confl = set.getProp()->propagateAtEndOfQueue();
+	rClause confl = set.getProp()->reInitialize();
 	return confl==nullPtrClause?SATVAL::POS_SAT:SATVAL::UNSAT;
 }
 

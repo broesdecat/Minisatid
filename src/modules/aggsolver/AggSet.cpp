@@ -39,8 +39,8 @@ TypedSet::TypedSet(const TypedSet& set):
 	getPCSolver().accept(this, EV_FULLASSIGNMENT);
 }
 
-void TypedSet::addAgg(const TempAgg& tempagg){
-	auto agg = new Agg(this, tempagg);
+void TypedSet::addAgg(const TempAgg& tempagg, bool optim){
+	auto agg = new Agg(this, tempagg, optim);
 	aggregates.push_back(agg);
 	agg->setIndex(aggregates.size()-1);
 	if (getPCSolver().verbosity() >= 2) {
@@ -93,12 +93,7 @@ void TypedSet::finishParsing(bool& present, bool& unsat){
 		if (verbosity() >= 3) {
 			report("Initializing aggregate set, unsat detected.\n");
 		}
-		notifyInitialized();
-		return;
 	}
-
-	//Push initial level (root, before any decisions).
-	// littrail.newDecisionLevel();
 
 	notifyInitialized();
 }

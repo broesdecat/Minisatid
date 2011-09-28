@@ -97,12 +97,13 @@ void GenPWAgg::addStagedWatchesToNetwork(){
 
 Agg* GenPWAgg::getAggWithMostStringentBound(bool includeunknown) const {
 	Agg* strongestagg = NULL;
-	for(agglist::const_iterator i=getAgg().begin(); i<getAgg().end(); ++i){
-		bool relevantagg;
+	for(auto i=getAgg().begin(); i<getAgg().end(); ++i){
+		// FIXME review this code?
+		bool relevantagg = (*i)->getSem()==COMP;
 		if(includeunknown){
-			relevantagg = value((*i)->getHead())!=l_True;
+			relevantagg |= value((*i)->getHead())!=l_True;
 		}else{
-			relevantagg = value((*i)->getHead())==l_False;
+			relevantagg |= value((*i)->getHead())==l_False;
 		}
 		//Otherwise, the aggregate does not have to hold (IMPLICATION!)
 		if(relevantagg){
@@ -214,6 +215,9 @@ void GenPWAgg::checkInitiallyKnownAggs(bool& unsat, bool& sat){
 	rClause confl = nullPtrClause;
 	std::set<Agg*> del;
 	for(auto i=getAgg().begin(); confl==nullPtrClause && i<getAgg().end(); ++i){
+		if((*i)->isOptimAgg()){
+			continue;
+		}
 		if(value((*i)->getHead())==l_True){ //Head always true
 			del.insert(*i);
 		}else if(isSatisfied(**i, pessbounds)){ // Agg always true
@@ -242,8 +246,9 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 	assert(unsat==false && sat==false);
 	const agglist& aggs = getAgg();
 	AggSign sign = aggs[0]->getSign();
-	for(agglist::const_iterator i=aggs.begin(); i<aggs.end(); ++i){
+	for(auto i=aggs.begin(); i<aggs.end(); ++i){
 		assert((*i)->getSign()==sign);
+		assert((*i)->getSem()==IMPLICATION);
 	}
 #endif
 
@@ -253,7 +258,7 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 	setBoundsOnEmptyInterpr(minmaxBounds(getType().getMinPossible(set), getType().getMaxPossible(set)));
 
 	// Create watches
-	for(vwl::const_reverse_iterator i=wls.rbegin(); i<wls.rend(); ++i){
+	for(auto i=wls.rbegin(); i<wls.rend(); ++i){
 		bool mono = getType().isMonotone(**getAgg().begin(), i->getWeight());
 		nws.push_back(new GenPWatch(getSetp(), *i, mono, nws.size()));
 	}
@@ -277,6 +282,15 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 
 	addStagedWatchesToNetwork();
 	AggPropagator::initialize(unsat, sat);
+}
+
+rClause GenPWAgg::reInitialize() {
+	bool propagations = false;
+	rClause confl = reconstructSet(NULL, propagations, NULL);
+	if(confl==nullPtrClause){
+		confl = propagateAtEndOfQueue();
+	}
+	return confl;
 }
 
 /**
