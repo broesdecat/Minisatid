@@ -713,9 +713,7 @@ void PbSolver::solve(solve_Command cmd, bool skipSolving) {
 				break;
 
 			if (opt_verbosity >= 1) {
-				char* tmp = toString(best_goalvalue);
-				reportf("\bFound solution: %s\b\n", tmp);
-				xfree(tmp);
+				reportf("\bFound solution: %s\b\n", toString(best_goalvalue).c_str());
 			}
 			if (!addConstr(goal_ps, goal_Cs, best_goalvalue, -2, false))
 				break;
@@ -730,13 +728,9 @@ void PbSolver::solve(solve_Command cmd, bool skipSolving) {
 		else if (goal == NULL)
 			reportf("\bSATISFIABLE: No goal function specified.\b\n");
 		else if (cmd == sc_FirstSolution) {
-			char* tmp = toString(best_goalvalue);
-			reportf("\bFirst solution found: %s\b\n", tmp);
-			xfree(tmp);
+			reportf("\bFirst solution found: %s\b\n", toString(best_goalvalue).c_str());
 		} else {
-			char* tmp = toString(best_goalvalue);
-			reportf("\bOptimal solution: %s\b\n", tmp);
-			xfree(tmp);
+			reportf("\bOptimal solution: %s\b\n", toString(best_goalvalue).c_str());
 		}
 	}
 }

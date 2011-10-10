@@ -468,9 +468,13 @@ void printBaseOutPut(double cpuTime,bool isSat,bool timeout,bool exception){
 	  	}
 	  	file<<";"<<md.emptyBaseNOI<<";"<<md.numOfCoffes<<";"<<numOfDecisions;
 	  	file<<";"<<opt_abstract<<";"<<opt_tare<<";"<<opt_use_shortCuts<<";"<<opt_convert_weak<<";";
-	  	if  (opt_sorting_network_encoding = oddEvenEncoding)      file<<"oddEvenEncoding";
-        else if  (opt_sorting_network_encoding = oddEvenEncoding) file<<"pairwiseSortEncoding";
-        else                                                      file<<"unarySortAddEncoding";	  		
+	  	if  (opt_sorting_network_encoding == oddEvenEncoding){
+	  		file<<"oddEvenEncoding";
+	  	} else if(opt_sorting_network_encoding == pairwiseSortEncoding){
+        	file<<"pairwiseSortEncoding";
+        } else{
+        	file<<"unarySortAddEncoding";
+        }
 	  	file<<"\n";   
 	  	delete baseMetaData.back();
 	  	baseMetaData.pop_back();
@@ -544,9 +548,13 @@ void printHugeOutPut(double cpuTime,bool isSat,bool timeout,bool exception){
 	  	}
 	  	file<<";"<<md.emptyBaseNOI<<";"<<md.numOfCoffes<<";"<<numOfDecisions;
 	  	file<<";"<<opt_abstract<<";"<<opt_tare<<";"<<opt_use_shortCuts<<";"<<opt_convert_weak<<";";
-	  	if  (opt_sorting_network_encoding = oddEvenEncoding)      file<<"oddEvenEncoding";
-        else if  (opt_sorting_network_encoding = oddEvenEncoding) file<<"pairwiseSortEncoding";
-        else                                                      file<<"unarySortAddEncoding";	  		
+	  	if  (opt_sorting_network_encoding == oddEvenEncoding){
+	  		file<<"oddEvenEncoding";
+	  	} else if(opt_sorting_network_encoding == pairwiseSortEncoding){
+        	file<<"pairwiseSortEncoding";
+        } else{
+        	file<<"unarySortAddEncoding";
+        }
 	  	file<<"\n"; 
 	  	delete baseMetaData.back(); 
 	  	baseMetaData.pop_back();
@@ -663,7 +671,7 @@ int run(int argc, char** argv) {
   return 0;
 }
 
-int test1() {
+void test1() {
 	 opt_convert_weak = false;
 	 opt_convert = ct_Sorters;
 	 
@@ -745,8 +753,8 @@ int test1() {
 	 //pb_solver->solve(convert(opt_command),false);
 	 std::vector<std::vector<Lit> > cnf;
 	 pb_solver->toCNF(cnf);
-	 for (int i=0;i<cnf.size();i++) {
-	 	for(int j=0;j<cnf[i].size();j++) std::cout<<(sign(cnf[i][j])? "-": "")<< var(cnf[i][j])<<" ";
+	 for (uint i=0;i<cnf.size();i++) {
+	 	for(uint j=0;j<cnf[i].size();j++) std::cout<<(sign(cnf[i][j])? "-": "")<< var(cnf[i][j])<<" ";
 	 	std::cout<<"\n";
 	 }
 }

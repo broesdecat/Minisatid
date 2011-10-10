@@ -1,6 +1,7 @@
 #ifndef Int_h
 #define Int_h
 
+#include <sstream>
 #include "Global.h"
 
 //=================================================================================================
@@ -64,7 +65,11 @@ public:
     Int  operator /  (Int other) const {A2 return Int(data / other.data); }
     Int  operator %  (Int other) const {A2 return Int(data % other.data); }
 
-    friend char* toString(Int num) { char buf[32]; sprintf(buf, "%lld", num.data); return xstrdup(buf); }   // Caller must free string.
+    friend std::string toString(Int num) {
+    	std::stringstream ss;
+    	ss <<num.data;
+    	return ss.str();
+    }
     friend int   toint   (Int num) { if (num > INT_MAX || num < INT_MIN) throw Exception_IntOverflow(xstrdup("toint")); return (int)num.data; }
 };
 
