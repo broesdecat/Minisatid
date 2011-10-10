@@ -149,8 +149,8 @@ void deleteTmpFile(cchar* prefix, bool exact)
 {
     uint    len = strlen(prefix);
     for (int i = 0; i < tmp_files.size();){
-        if (!exact && (strlen(tmp_files[i]) == len + 6 && strncmp(tmp_files[i], prefix, len) == 0)
-        ||   exact && (strcmp(tmp_files[i], prefix) == 0))
+        if ((!exact && (strlen(tmp_files[i]) == len + 6 && strncmp(tmp_files[i], prefix, len) == 0) )
+        	|| (exact && (strcmp(tmp_files[i], prefix) == 0)))
         {
             fclose(tmp_fps[i]);
             ::remove(tmp_files[i]);

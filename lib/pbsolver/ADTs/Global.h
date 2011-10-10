@@ -322,16 +322,18 @@ macro void xfreeAll(vec<T*>& ptrs) {
 
 
 class lbool {
+private:
     int     value;
     explicit lbool(int v) : value(v) { }
+
+    friend bool operator==(const lbool& x, const lbool& y);
+    friend bool operator!=(const lbool& x, const lbool& y);
 
 public:
     lbool()       : value(0) { }
     lbool(bool x) : value((int)x*2-1) { }
     int toInt(void) const { return value; }
 
-    bool  operator == (const lbool& other) const { return value == other.value; }
-    bool  operator != (const lbool& other) const { return value != other.value; }
     lbool operator ~  (void)               const { return lbool(-value); }
 
     friend int   toInt  (lbool l);
@@ -347,8 +349,8 @@ const lbool l_False = toLbool(-1);
 const lbool l_Undef = toLbool( 0);
 const lbool l_Error = toLbool(1 << (sizeof(int)*8-1));
 
-inline bool operator==(const lbool& x, const lbool& y) { return x.operator ==(y);}
-inline bool operator!=(const lbool& x, const lbool& y) { return x.operator !=(y);}
+inline bool operator==(const lbool& x, const lbool& y) { return x.value == y.value;}
+inline bool operator!=(const lbool& x, const lbool& y) { return x.value != y.value;}
 
 
 //=================================================================================================
