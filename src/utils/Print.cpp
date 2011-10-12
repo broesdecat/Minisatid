@@ -33,7 +33,7 @@ template<>
 std::string print(const litlist& v){
 	stringstream ss;
 	bool begin = false;
-	for(auto litit=v.begin(); litit<v.end(); ++litit){
+	for(auto litit=v.cbegin(); litit<v.cend(); ++litit){
 		if(not begin){
 			ss <<" ";
 		}
@@ -118,17 +118,17 @@ void print(ModSolver * const m){
 		print(mkLit(m->getHead()), m->getHeadValue());
 	}
 	clog <<", children ";
-	for(auto i=m->getChildren().begin(); i<m->getChildren().end(); ++i){
+	for(auto i=m->getChildren().cbegin(); i<m->getChildren().cend(); ++i){
 		clog <<*i;
 	}
 	clog <<"\nModal atoms ";
-	for(auto i=m->getAtoms().begin(); i<m->getAtoms().end(); ++i){
+	for(auto i=m->getAtoms().cbegin(); i<m->getAtoms().cend(); ++i){
 		clog <<getPrintableVar(*i);
 	}
 	/*clog <<"\nsubtheory\n");
 	print(m->getPCSolver());*/
 	clog <<"SubSolvers\n";
-	for(auto i=m->getChildren().begin(); i<m->getChildren().end(); ++i){
+	for(auto i=m->getChildren().cbegin(); i<m->getChildren().cend(); ++i){
 		print(m->getModSolverData().getModSolver(*i));
 	}
 }
@@ -141,17 +141,17 @@ void print(ModSolver const * const m){
 		print(mkLit(m->getHead()), m->getHeadValue());
 	}
 	clog <<", children ";
-	for(auto i=m->getChildren().begin(); i<m->getChildren().end(); ++i){
+	for(auto i=m->getChildren().cbegin(); i<m->getChildren().cend(); ++i){
 		clog <<*i;
 	}
 	clog <<"\nModal atoms ";
-	for(auto i=m->getAtoms().begin(); i<m->getAtoms().end(); ++i){
+	for(auto i=m->getAtoms().cbegin(); i<m->getAtoms().cend(); ++i){
 		clog <<getPrintableVar(*i);
 	}
 	/*clog <<"\nsubtheory\n");
 	print(m->getPCSolver());*/
 	clog <<"SubSolvers\n";
-	for(auto i=m->getChildren().begin(); i<m->getChildren().end(); ++i){
+	for(auto i=m->getChildren().cbegin(); i<m->getChildren().cend(); ++i){
 		print(m->getModSolverData().getModSolver(*i));
 	}
 }

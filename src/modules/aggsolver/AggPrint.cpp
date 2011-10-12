@@ -62,7 +62,7 @@ void MinisatID::print(int verbosity, const TypedSet& c, bool endl) {
 	}else{
 		clog <<"set " <<c.getSetID() <<" = {";
 		bool begin = true;
-		for (vwl::const_iterator i = c.getWL().begin(); i < c.getWL().end(); ++i) {
+		for (vwl::const_iterator i = c.getWL().cbegin(); i < c.getWL().cend(); ++i) {
 			if(!begin){
 				clog <<", ";
 			}

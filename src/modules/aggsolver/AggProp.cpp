@@ -43,7 +43,7 @@ Weight AggProp::getMaxPossible(const TypedSet& set)	const { return getMaxPossibl
 
 Weight AggProp::getValue(const TypedSet& set) const {
 	Weight total = getESV();
-	for(vwl::const_iterator i=set.getWL().begin(); i<set.getWL().end(); ++i){
+	for(vwl::const_iterator i=set.getWL().cbegin(); i<set.getWL().cend(); ++i){
 		lbool val = set.value((*i).getLit());
 		assert(val!=l_Undef);
 
@@ -87,7 +87,7 @@ Weight SumProp::remove(const Weight& lhs, const Weight& rhs) const {
 
 Weight SumProp::getMinPossible(const std::vector<WL>& wls) const{
 	Weight min = getESV();
-	for (vwl::const_iterator j = wls.begin(); j < wls.end(); ++j) {
+	for (vwl::const_iterator j = wls.cbegin(); j < wls.cend(); ++j) {
 		if((*j).getWeight() < 0){
 			min = this->add(min, (*j).getWeight());
 		}
@@ -97,7 +97,7 @@ Weight SumProp::getMinPossible(const std::vector<WL>& wls) const{
 
 Weight SumProp::getMaxPossible(const std::vector<WL>& wls) const {
 	Weight max = getESV();
-	for (vwl::const_iterator j = wls.begin(); j < wls.end(); ++j) {
+	for (vwl::const_iterator j = wls.cbegin(); j < wls.cend(); ++j) {
 		if((*j).getWeight() > 0){
 			max = this->add(max, (*j).getWeight());
 		}
@@ -136,7 +136,7 @@ Weight MaxProp::getMinPossible(const std::vector<WL>&) const{
 
 Weight MaxProp::getMaxPossible(const std::vector<WL>& wls) const {
 	Weight max = getESV();
-	for(vwl::const_iterator j = wls.begin(); j<wls.end(); ++j){
+	for(vwl::const_iterator j = wls.cbegin(); j<wls.cend(); ++j){
 		max = this->add(max, (*j).getWeight());
 	}
 	return max;
@@ -169,7 +169,7 @@ WL MaxProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, Weight& kno
 //
 //Weight MinProp::getMinPossible(const TypedSet& set) const{
 //	Weight min = getESV();
-//	for(vwl::const_iterator j = set.getWL().begin(); j<set.getWL().end(); ++j){
+//	for(vwl::const_iterator j = set.getWL().cbegin(); j<set.getWL().cend(); ++j){
 //		min = this->add(min, (*j).getWeight());
 //	}
 //	return min;
@@ -206,7 +206,7 @@ Weight ProdProp::getMinPossible(const std::vector<WL>&) const{
 
 Weight ProdProp::getMaxPossible(const std::vector<WL>& wls) const {
 	Weight max = getESV();
-	for(vwl::const_iterator j = wls.begin(); j<wls.end(); ++j){
+	for(vwl::const_iterator j = wls.cbegin(); j<wls.cend(); ++j){
 		if((*j).getWeight() > 0){
 			max = this->add(max, (*j).getWeight());
 		}
@@ -391,7 +391,7 @@ AggPropagator::AggPropagator(TypedSet* set)
 
 // Final initialization call!
 void AggPropagator::initialize(bool& unsat, bool& sat) {
-	for (agglist::const_iterator i = getSet().getAgg().begin(); i < getSet().getAgg().end(); ++i) {
+	for (agglist::const_iterator i = getSet().getAgg().cbegin(); i < getSet().getAgg().cend(); ++i) {
 		// both for implication and comp
 		Watch* w = new Watch(getSetp(), not (*i)->getHead(), *i, false);
 		getSet().getPCSolver().accept(w);

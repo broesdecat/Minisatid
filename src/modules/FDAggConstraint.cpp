@@ -30,7 +30,7 @@ void FDAggConstraint::finishParsing(bool& unsat, bool& sat){
 	// TODO anything on intvars cannot be accepted before finishparsing of the intvar!
 	getPCSolver().accept(this, head(), FAST);
 	getPCSolver().accept(this, not head(), FAST);
-	for(auto i=set.begin(); i!=set.end(); ++i){
+	for(auto i=set.cbegin(); i!=set.cend(); ++i){
 		getPCSolver().acceptBounds(*i, this);
 	}
 }

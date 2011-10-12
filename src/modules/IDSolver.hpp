@@ -45,8 +45,8 @@ public:
     vsize 	size() 				const	{ return lits.size(); }
     Lit 	getHead() 			const	{ return mkLit(head, false); }
     Lit 	operator [](int i) 	const	{ return lits[i]; }
-    litlist::const_iterator begin()	const 	{ return lits.begin(); }
-    litlist::const_iterator end()	const 	{ return lits.end(); }
+    litlist::const_iterator cbegin()	const 	{ return lits.cbegin(); }
+    litlist::const_iterator cend()	const 	{ return lits.cend(); }
 };
 
 class IDAgg{

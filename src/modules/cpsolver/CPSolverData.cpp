@@ -54,7 +54,7 @@ void CPSolverData::replaceLastWith(CPScript* space){
 
 /*vector<Lit> CPSolverData::getBoolChanges() const{
 	vector<Lit> lits;
-	for(vreifconstrptr::const_iterator i=getReifConstraints().begin(); i<getReifConstraints().end(); i++){
+	for(vreifconstrptr::const_iterator i=getReifConstraints().cbegin(); i<getReifConstraints().cend(); i++){
 		BoolVar current = (*i)->getBoolVar(getSpace());
 		assert(history.size()>1);
 		BoolVar prev = (*i)->getBoolVar(*history[history.size()-2]);
@@ -71,14 +71,14 @@ void CPSolverData::addTerm(const TermIntVar& var){
 
 vector<TermIntVar> CPSolverData::convertToVars(const vector<uint>& terms) const {
 	vtiv set;
-	for(vector<uint>::const_iterator i=terms.begin(); i<terms.end(); i++){
+	for(vector<uint>::const_iterator i=terms.cbegin(); i<terms.cend(); i++){
 		set.push_back(convertToVar(*i));
 	}
 	return set;
 }
 
 TermIntVar CPSolverData::convertToVar(uint term) const {
-	for(vtiv::const_iterator j=getTerms().begin(); j<getTerms().end(); j++){
+	for(vtiv::const_iterator j=getTerms().cbegin(); j<getTerms().cend(); j++){
 		if((*j).operator ==(term)){
 			return *j;
 		}

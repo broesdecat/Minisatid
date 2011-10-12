@@ -55,7 +55,7 @@ public:
 
 	// NOTE: EACH propagator has to register here for the general methods
 	void accept(Propagator* propagator){
-		for(proplist::const_iterator i=allpropagators.begin(); i<allpropagators.end(); ++i){
+		for(proplist::const_iterator i=allpropagators.cbegin(); i<allpropagators.cend(); ++i){
 			assert(propagator!=*i);
 		}
 		allpropagators.push_back(propagator);

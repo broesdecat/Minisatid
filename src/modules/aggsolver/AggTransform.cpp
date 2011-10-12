@@ -28,7 +28,7 @@ bool compareAggBounds(TempAgg* lhs, TempAgg* rhs){
 }
 
 void MinisatID::verifySet(const InnerWLSet& set){
-	for(auto i=set.wls.begin(); i<set.wls.end(); ++i) {
+	for(auto i=set.wls.cbegin(); i<set.wls.cend(); ++i) {
 		if(set.type == CARD && (*i).getWeight()!=1) {
 			throw idpexception("Cardinality set does not have weights equal to 1.\n");
 		}
@@ -54,7 +54,7 @@ void MinisatID::verifyAggregate(InnerWLSet const * const set, Var head, AggType 
 		ss <<"Set nr. " <<set->setID <<" has type " <<set->type <<", but contains an aggregate over type " <<aggtype <<".\n";
 		throw idpexception(ss.str());
 	}
-	for(auto i=set->wls.begin(); i<set->wls.end(); ++i) {
+	for(auto i=set->wls.cbegin(); i<set->wls.cend(); ++i) {
 		if (var((*i).getLit()) == head) { //Exception if head occurs in set itself
 			stringstream ss;
 			ss <<"Set nr. " <<set->setID <<" contains a literal of atom " <<head <<", the head of an aggregate, which is not allowed.\n";
@@ -119,7 +119,7 @@ void MinisatID::addHeadImplications(PCSolver* solver, InnerWLSet* set, std::vect
 	assert(!unsat && !sat && aggs.size()>0);
 	if(aggs.size()>1 && aggs[0]->getSem()!=IMPLICATION){
 		tempagglist lbaggs, ubaggs;
-		for(auto i=aggs.begin(); i<aggs.end(); ++i){
+		for(auto i=aggs.cbegin(); i<aggs.cend(); ++i){
 			if((*i)->hasLB()){
 				lbaggs.push_back(*i);
 			}else{
@@ -128,8 +128,8 @@ void MinisatID::addHeadImplications(PCSolver* solver, InnerWLSet* set, std::vect
 		}
 		if(lbaggs.size()>1){
 			sort(lbaggs.begin(),lbaggs.end(), compareAggBounds);
-			TempAgg* first = *lbaggs.begin();
-			for(auto i=lbaggs.begin()+1; i<lbaggs.end(); ++i){
+			TempAgg* first = *lbaggs.cbegin();
+			for(auto i=lbaggs.cbegin()+1; i<lbaggs.cend(); ++i){
 				TempAgg* second = *i;
 				InnerDisjunction disj;
 				disj.literals.push_back(first->getHead());
@@ -147,8 +147,8 @@ void MinisatID::addHeadImplications(PCSolver* solver, InnerWLSet* set, std::vect
 		if(ubaggs.size()>1){
 			sort(ubaggs.begin(),ubaggs.end(), compareAggBounds);
 			reverse(ubaggs.begin(), ubaggs.end());
-			TempAgg* first = *ubaggs.begin();
-			for(auto i=ubaggs.begin()+1; i<ubaggs.end(); ++i){
+			TempAgg* first = *ubaggs.cbegin();
+			for(auto i=ubaggs.cbegin()+1; i<ubaggs.cend(); ++i){
 				TempAgg* second = *i;
 				InnerDisjunction disj;
 				disj.literals.push_back(first->getHead());
@@ -240,7 +240,7 @@ void MinisatID::card2Equiv(PCSolver* solver, InnerWLSet* set, std::vector<TempAg
 	assert(!unsat);
 	if (aggs[0]->getType() == CARD && aggs[0]->getSem()!=IMPLICATION) {
 		tempagglist remaggs;
-		for (auto i = aggs.begin(); !unsat && i < aggs.end(); ++i) {
+		for (auto i = aggs.cbegin(); !unsat && i < aggs.cend(); ++i) {
 			const TempAgg& agg = *(*i);
 			const Weight& bound = agg.getBound()-knownbound;
 			if(agg.hasLB() && bound==0){
@@ -313,7 +313,7 @@ TypedSet* createPropagator(PCSolver* solver, InnerWLSet* set, const std::vector<
 	propagator->setUsingWatches(usewatches);
 	propagator->setWL(set->wls);
 	propagator->setType(getType(set->type));
-	for(auto agg=aggs.begin(); agg!=aggs.end(); ++agg){
+	for(auto agg=aggs.cbegin(); agg!=aggs.cend(); ++agg){
 		propagator->addAgg(**agg, optim);
 	}
 	return propagator;
@@ -332,7 +332,7 @@ void MinisatID::decideUsingWatchesAndCreateOptimPropagator(PCSolver* solver, Inn
 void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, InnerWLSet* set, const std::vector<TempAgg*>& aggs, const Weight& knownbound){
 	bool watchable = true;
 	assert(aggs.size()>0);
-	for(auto i=aggs.begin(); i<aggs.end(); ++i){
+	for(auto i=aggs.cbegin(); i<aggs.cend(); ++i){
 		if((*i)->getType()==MAX){
 			watchable = false;
 		}
@@ -346,7 +346,7 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, InnerWL
 
 	//create implication aggs
 	tempagglist implaggs, del;
-	for(auto i=aggs.begin(); i<aggs.end(); ++i){
+	for(auto i=aggs.cbegin(); i<aggs.cend(); ++i){
 		const TempAgg& agg = *(*i);
 
 		TempAgg *one, *two;
@@ -363,7 +363,7 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, InnerWL
 	//separate in both signs
 	tempagglist signoneaggs, signtwoaggs;
 	signoneaggs.push_back(implaggs[0]);
-	for (auto i = ++implaggs.begin(); i < implaggs.end(); ++i) {
+	for (auto i = ++implaggs.cbegin(); i < implaggs.cend(); ++i) {
 		if ((*i)->getSign() == implaggs[0]->getSign()) {
 			signoneaggs.push_back(*i);
 		} else {
@@ -435,7 +435,7 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, InnerWL
 //	newaggs.push_back(aggs[0]);
 //	set->replaceAgg(newaggs);
 //
-//	for (agglist::const_iterator i = ++aggs.begin(); i < aggs.end(); ++i) {
+//	for (agglist::const_iterator i = ++aggs.cbegin(); i < aggs.cend(); ++i) {
 //		TypedSet* newset = new TypedSet(*set);
 //		newset->addAgg(*i);
 //		assert(newset->getAgg().size()==1);
@@ -447,7 +447,7 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, InnerWL
 //void MapToSetWithSameAggSign::transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const {
 //	bool watchable = true;
 //	assert(!unsat && !sat && set->getAgg().size()>0);
-//	for(vector<TempAgg*>::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); ++i){
+//	for(vector<TempAgg*>::const_iterator i=set->getAgg().cbegin(); i<set->getAgg().cend(); ++i){
 //		if((*i)->getType()==MAX){
 //			watchable = false;
 //		}
@@ -463,7 +463,7 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, InnerWL
 //
 //	//create implication aggs
 //	agglist implaggs, del;
-//	for(agglist::const_iterator i=set->getAgg().begin(); i<set->getAgg().end(); ++i){
+//	for(agglist::const_iterator i=set->getAgg().cbegin(); i<set->getAgg().cend(); ++i){
 //		const Agg& agg = *(*i);
 //
 //		Agg *one, *two;
@@ -480,7 +480,7 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, InnerWL
 //	//separate in both signs
 //	agglist signoneaggs, signtwoaggs;
 //	signoneaggs.push_back(implaggs[0]);
-//	for (agglist::const_iterator i = ++implaggs.begin(); i < implaggs.end(); ++i) {
+//	for (agglist::const_iterator i = ++implaggs.cbegin(); i < implaggs.cend(); ++i) {
 //		if ((*i)->getSign() == implaggs[0]->getSign()) {
 //			signoneaggs.push_back(*i);
 //		} else {
@@ -537,14 +537,14 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, InnerWL
 //	}
 //	//Partition the aggregates according to their type
 //	map<AggType, agglist> partaggs;
-//	for (agglist::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); ++i) {
+//	for (agglist::const_iterator i = set->getAgg().cbegin(); i < set->getAgg().cend(); ++i) {
 //		partaggs[(*i)->getType()].push_back(*i);
 //	}
 //
-//	map<AggType, agglist>::const_iterator i = partaggs.begin();
+//	map<AggType, agglist>::const_iterator i = partaggs.cbegin();
 //	set->replaceAgg((*i).second);
 //	++i;
-//	for (; i != partaggs.end(); ++i) {
+//	for (; i != partaggs.cend(); ++i) {
 //		TypedSet* newset = new TypedSet(*set);
 //		assert((*i).second.size()>0);
 //		newset->replaceAgg((*i).second);
@@ -588,7 +588,7 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, InnerWL
 //		set->setWL(wl);
 //
 //		//Invert the bound of all the aggregates involved
-//		for (agglist::const_iterator i = set->getAgg().begin(); i < set->getAgg().end(); ++i) {
+//		for (agglist::const_iterator i = set->getAgg().cbegin(); i < set->getAgg().cend(); ++i) {
 //			Weight bound = -(*i)->getBound();
 //			AggSign sign = (*i)->getSign()==AGGSIGN_LB?AGGSIGN_UB:AGGSIGN_LB;
 //			(*i)->setBound(AggBound(sign, bound));

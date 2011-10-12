@@ -19,12 +19,12 @@ CPScript::CPScript(): Space(){
 }
 
 CPScript::CPScript(bool share, CPScript& s): Space(share, s){
-	for(vboolv::iterator i=s.boolvars.begin(); i<s.boolvars.end(); i++){
+	for(vboolv::iterator i=s.boolvars.cbegin(); i<s.boolvars.cend(); i++){
 		boolvars.push_back(BoolVar());
 		boolvars.back().update(*this, share, *i);
 	}
 
-	for(vintv::iterator i=s.intvars.begin(); i<s.intvars.end(); i++){
+	for(vintv::iterator i=s.intvars.cbegin(); i<s.intvars.cend(); i++){
 		intvars.push_back(IntVar());
 		intvars.back().update(*this, share, *i);
 	}
@@ -42,7 +42,7 @@ intvarindex CPScript::addIntVar(int min, int max){
 intvarindex CPScript::addIntVar(const vector<int>& values){
 	int valuelist[values.size()];
 	int index = 0;
-	for(vector<int>::const_iterator i=values.begin(); i<values.end(); ++i){
+	for(vector<int>::const_iterator i=values.cbegin(); i<values.cend(); ++i){
 		valuelist[index] = *i;
 		++index;
 	}
@@ -67,7 +67,7 @@ void CPScript::addBranchers(){
 ostream& MinisatID::operator <<(ostream& stream, const CPScript& script){
 	stream <<"Space:\n";
 	int count = 0;
-	for(vintv::const_iterator i=script.getIntVars().begin(); i<script.getIntVars().end(); i++){
+	for(vintv::const_iterator i=script.getIntVars().cbegin(); i<script.getIntVars().cend(); i++){
 		Int::IntView v(*i);
 		stream << "var " <<count++ << "=" <<v <<"; ";
 		if(count%10 == 0){

@@ -51,7 +51,7 @@ template<>
 void ECNFPrinter::notifyadded(const InnerSet& set){
 	ss <<"Added non-weighted set " <<set.setID <<" = {";
 	vector<Lit>::size_type count = 0;
-	for(vector<Lit>::const_iterator i=set.literals.begin(); i<set.literals.end(); ++i, ++count){
+	for(vector<Lit>::const_iterator i=set.literals.cbegin(); i<set.literals.cend(); ++i, ++count){
 		ss <<*i;
 		if(count<set.literals.size()-1){
 			ss <<", ";
@@ -64,9 +64,9 @@ template<>
 void ECNFPrinter::notifyadded(const InnerWSet& set){
 	ss <<"Added non-weighted set " <<set.setID <<" = {";
 	vector<Lit>::size_type count = 0;
-	vector<Lit>::const_iterator litit = set.literals.begin();
-	vector<Weight>::const_iterator weightit = set.weights.begin();
-	for(; litit<set.literals.end(); ++litit, ++weightit, ++count){
+	vector<Lit>::const_iterator litit = set.literals.cbegin();
+	vector<Weight>::const_iterator weightit = set.weights.cbegin();
+	for(; litit<set.literals.cend(); ++litit, ++weightit, ++count){
 		ss <<*litit <<"=" <<*weightit;
 		if(count<set.literals.size()-1){
 			ss <<", ";
@@ -166,7 +166,7 @@ template<>
 void ECNFPrinter::notifyadded(const InnerSymmetry& symm){
 	ss <<"Added symmetry: <";
 	bool begin = true;
-	for(auto i=symm.symmetry.begin(); i!=symm.symmetry.begin(); ++i){
+	for(auto i=symm.symmetry.cbegin(); i!=symm.symmetry.cbegin(); ++i){
 		if(!begin){
 			ss <<", ";
 		}
@@ -236,9 +236,9 @@ template<>
 void ECNFPrinter::notifyadded(const InnerCPSumWeighted& sum){
 	ss <<"Added sum constraint " <<sum.head <<" <=> sum({ ";
 	vector<int>::size_type count = 0;
-	vector<uint>::const_iterator litit=sum.varIDs.begin();
-	vector<Weight>::const_iterator weightit=sum.weights.begin();
-	for(; litit<sum.varIDs.end(); ++count, ++litit, ++weightit){
+	vector<uint>::const_iterator litit=sum.varIDs.cbegin();
+	vector<Weight>::const_iterator weightit=sum.weights.cbegin();
+	for(; litit<sum.varIDs.cend(); ++count, ++litit, ++weightit){
 		ss <<"var" <<*litit <<"*" <<*weightit;
 		if(count<sum.varIDs.size()-1){
 			ss <<", ";

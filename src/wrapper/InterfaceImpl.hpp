@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <tr1/unordered_map>
+#include <unordered_map>
 
 #include "external/ExternalUtils.hpp"
 #include "external/SolvingMonitor.hpp"
@@ -40,7 +40,7 @@ typedef std::vector<Lit> litlist;
 
 enum SolverState { INIT, PARSED, SOLVED};
 
-typedef std::tr1::unordered_map<int, int> atommap;
+typedef std::unordered_map<int, int> atommap;
 
 class Remapper{
 protected:
@@ -111,7 +111,7 @@ public:
 	template<class List>
 	void 	printTranslation(std::ostream& output, const List& l){
 		std::vector<std::pair<uint, Literal>> litstoprint;
-		for(auto i=l.begin(); i!=l.end(); ++i){
+		for(auto i=l.cbegin(); i!=l.cend(); ++i){
 			if(canBackMapLiteral(mkPosLit(*i))){
 				// TODO NOTE: the theory is printed in the NEW vocabulary, not in the input one
 				// So we print the new variable and the translation of its original version

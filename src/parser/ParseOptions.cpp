@@ -68,7 +68,7 @@ struct Option: public Opt{
 	Option(const string &s, const string &l, const vector<T>& vals, const vector<pair<T2, string> >& desc, T& modesarg, TCLAP::CmdLine& cmd, const string &m):
 		shortopt(s), longopt(l), mess(m), defaultval(modesarg), vals(vals), desc(desc), modesarg(modesarg){
 		vector<T2> constrvals;
-		for(typename vector<pair<T2, string> >::const_iterator i=desc.begin(); i<desc.end(); ++i){
+		for(typename vector<pair<T2, string> >::const_iterator i=desc.cbegin(); i<desc.cend(); ++i){
 			constrvals.push_back((*i).first);
 		}
 		formatsconstr = new TCLAP::ValuesConstraint<T2>(constrvals);
@@ -313,7 +313,7 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 		return false;
 	}
 
-	for(vector<Opt*>::const_iterator i=options.begin(); i<options.end(); ++i){
+	for(vector<Opt*>::const_iterator i=options.cbegin(); i<options.cend(); ++i){
 		(*i)->parse();
 	}
 

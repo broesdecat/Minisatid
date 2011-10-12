@@ -107,13 +107,13 @@ public:
 	SCCtoCNF(Solver& solver):solver_(solver){}
 
 	SATVAL transform(const std::vector<Rule*>& rules){
-		for(auto rule=rules.begin(); rule!=rules.end(); ++rule){
+		for(auto rule=rules.cbegin(); rule!=rules.cend(); ++rule){
 			defined.insert((*rule)->getHead());
 		}
 
 		maxlevel = defined.size(); // maxlevel is the scc size
 
-		for(auto head=defined.begin(); head!=defined.end(); ++head){
+		for(auto head=defined.cbegin(); head!=defined.cend(); ++head){
 			auto headvar = new Level2SAT(solver_, maxlevel);
 			atom2level[*head] = headvar;
 
@@ -124,7 +124,7 @@ public:
 		}
 
 		SATVAL state = SATVAL::POS_SAT;
-		for(auto rule=rules.begin(); state==SATVAL::POS_SAT && rule!=rules.end(); ++rule){
+		for(auto rule=rules.cbegin(); state==SATVAL::POS_SAT && rule!=rules.cend(); ++rule){
 			if((*rule)->isDisjunctive()){
 				state = transformDisjunction(**rule);
 			}else{
@@ -151,8 +151,8 @@ private:
 		}
 
 		litlist tseitins{~head};
-		for(auto litit = rule.def().begin(); litit!=rule.def().end(); ++litit) {
-			assert(defined.find(var(*litit))!=defined.end());
+		for(auto litit = rule.def().cbegin(); litit!=rule.def().cend(); ++litit) {
+			assert(defined.find(var(*litit))!=defined.cend());
 			auto bodyvar = atom2level[var(*litit)];
 
 			if(solver_.value(*litit)!=l_False){
@@ -162,7 +162,7 @@ private:
 			}
 		}
 
-		for(auto litit = rule.open().begin(); litit!=rule.open().end(); ++litit) {
+		for(auto litit = rule.open().cbegin(); litit!=rule.open().cend(); ++litit) {
 			if(solver_.value(*litit)!=l_False){
 				addClause(litlist{~head, ~(*litit), zero2SAT(headvar)});
 				tseitins.push_back(and2SAT(litlist{*litit, zero2SAT(headvar)}));
@@ -190,8 +190,8 @@ private:
 		}
 
 		litlist tseitins{~head};
-		for(auto litit = rule.def().begin(); litit!=rule.def().end(); ++litit) {
-			assert(defined.find(var(*litit))!=defined.end());
+		for(auto litit = rule.def().cbegin(); litit!=rule.def().cend(); ++litit) {
+			assert(defined.find(var(*litit))!=defined.cend());
 			auto bodyvar = atom2level[var(*litit)];
 
 			addClause(litlist{~head, Comp2SAT(headvar, SIGN::G, bodyvar)});
@@ -216,7 +216,7 @@ private:
 
 	Lit zero2SAT(Level2SAT* left){
 		auto it = eq2zeromap.find(EqToZero(left));
-		if(it==eq2zeromap.end()){
+		if(it==eq2zeromap.cend()){
 			Lit tseitin = and2SAT(left->zero());
 			eq2zeromap[EqToZero(left)] = tseitin;
 			return tseitin;
@@ -251,7 +251,7 @@ private:
 
 	Lit Comp2SAT(Level2SAT* left, SIGN sign, Level2SAT* right){
 		auto it = largermap.find(Comp(left, sign, right));
-		if(it==largermap.end()){
+		if(it==largermap.cend()){
 			Lit tseitin;
 			if(sign==SIGN::G){
 				tseitin = G2SAT(left, right, left->bits().size());

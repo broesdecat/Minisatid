@@ -47,8 +47,8 @@ public:
 	}
 
 	void print(){
-		for(auto rows_it=allowedRows.begin(); rows_it!=allowedRows.end(); ++rows_it){
-			for(auto columns_it=allowedColumns.begin(); columns_it!=allowedColumns.end(); ++columns_it){
+		for(auto rows_it=allowedRows.cbegin(); rows_it!=allowedRows.cend(); ++rows_it){
+			for(auto columns_it=allowedColumns.cbegin(); columns_it!=allowedColumns.cend(); ++columns_it){
 				std::clog << symVars[*rows_it][*columns_it]+1 << " | ";
 			}
 			std::clog << "\n";
@@ -60,11 +60,11 @@ public:
 	bool propagate(const Lit& l, int level, Solver& solver){
 		bool conflict=false;
 		auto var_it = activeVars.find(var(l));
-		if(var_it!=activeVars.end()){ // present in table, so row and column are still allowed
+		if(var_it!=activeVars.cend()){ // present in table, so row and column are still allowed
 			unsigned int row=var_it->second.first;
 			unsigned int column = var_it->second.second;
 			std::vector<Lit> propLits;
-			for(auto columns_it=allowedColumns.begin(); columns_it!=allowedColumns.end(); ++columns_it){
+			for(auto columns_it=allowedColumns.cbegin(); columns_it!=allowedColumns.cend(); ++columns_it){
 				Var symVar = symVars[row][*columns_it];
 				activeVars.erase(symVar);
 				if(*columns_it!=column){
@@ -83,7 +83,7 @@ public:
 				}
 			}
 			allowedRows.erase(row);
-			std::pair<unsigned int,std::vector<Lit> > entry = std::pair<unsigned int,std::vector<Lit> >(row,propLits);
+			auto entry = std::pair<unsigned int,std::vector<Lit> >(row,propLits);
 			rowBacktrackLevels.push_back(std::pair<int, std::pair<unsigned int,std::vector<Lit> > >(level,entry));
 		}
 		return conflict;
@@ -92,7 +92,7 @@ public:
 	void backtrack(int level, const Lit& l){
 		while(!columnBacktrackLevels.empty() && level < columnBacktrackLevels.back().first){
 			unsigned int column = columnBacktrackLevels.back().second;
-			for(auto rows_it=allowedRows.begin(); rows_it!=allowedRows.end(); ++rows_it){
+			for(auto rows_it=allowedRows.cbegin(); rows_it!=allowedRows.cend(); ++rows_it){
 				activeVars[symVars[*rows_it][column]]=std::pair<unsigned int,unsigned int>(*rows_it,column);
 			}
 			allowedColumns.insert(column);
@@ -100,20 +100,20 @@ public:
 		}
 		while(!rowBacktrackLevels.empty() && level < rowBacktrackLevels.back().first){
 			unsigned int row = rowBacktrackLevels.back().second.first;
-			for(auto columns_it=allowedColumns.begin(); columns_it!=allowedColumns.end(); ++columns_it){
+			for(auto columns_it=allowedColumns.cbegin(); columns_it!=allowedColumns.cend(); ++columns_it){
 				activeVars[symVars[row][*columns_it]]=std::pair<unsigned int,unsigned int>(row,*columns_it);
 			}
 			std::vector<Lit> propLits=rowBacktrackLevels.back().second.second;
-			for(auto lits_it=propLits.begin(); lits_it!=propLits.end(); ++lits_it){
+			for(auto lits_it=propLits.cbegin(); lits_it!=propLits.cend(); ++lits_it){
 				propagatedLits.erase(*lits_it);
 			}
 			allowedRows.insert(row);
 			rowBacktrackLevels.pop_back();
 		}
 		auto var_it = activeVars.find(var(l));
-		if(var_it!=activeVars.end()){
+		if(var_it!=activeVars.cend()){
 			unsigned int column = var_it->second.second;
-			for(auto rows_it=allowedRows.begin(); rows_it!=allowedRows.end(); ++rows_it){
+			for(auto rows_it=allowedRows.cbegin(); rows_it!=allowedRows.cend(); ++rows_it){
 				activeVars.erase(symVars[*rows_it][column]);
 			}
 			allowedColumns.erase(column);
@@ -164,7 +164,7 @@ public:
 
 	bool symmetryPropagationOnAnalyze(const Lit& p){
 		bool propagatedBySymClasses = false;
-        for(auto i=symClasses.begin(); !propagatedBySymClasses && i<symClasses.end(); i++){
+        for(auto i=symClasses.cbegin(); !propagatedBySymClasses && i<symClasses.cend(); i++){
         	propagatedBySymClasses = (*i)->isPropagated(p);
         }
         return propagatedBySymClasses;
@@ -181,7 +181,7 @@ public:
 	}
 
 	bool checkSymmetryAlgo1(const Lit& l) {
-	   	for(auto vs_it=symClasses.begin(); vs_it!=symClasses.end(); vs_it++){
+	   	for(auto vs_it=symClasses.cbegin(); vs_it!=symClasses.cend(); vs_it++){
 			(*vs_it)->propagate(l,getPCSolver().getCurrentDecisionLevel(), getPCSolver());
 		}
 	   	return generatedConflict;
@@ -189,7 +189,7 @@ public:
 
 	void notifyBacktrack(int untillevel, const Lit& decision) {
 		generatedConflict=false;
-        for(auto vs_it=symClasses.begin(); vs_it!=symClasses.end(); ++vs_it){
+        for(auto vs_it=symClasses.cbegin(); vs_it!=symClasses.cend(); ++vs_it){
         	(*vs_it)->backtrack(untillevel, decision);
 		}
 	}
@@ -212,7 +212,7 @@ private:
 		int level = 0;
 		for (vsize i = 0; i < clause.size(); ++i) {
 			auto it = symmetry.find(var(clause[i]));
-			if (it == symmetry.end()) {
+			if (it == symmetry.cend()) {
 				lits.push_back(clause[i]);
 			} else {
 				lits.push_back(mkLit((*it).second, sign(clause[i])));
@@ -245,13 +245,13 @@ private:
 		std::set<uint> symmindices;
 		for (vsize i = 0; i < clause.size(); ++i) {
 			auto it = var2symmetries.find(var(clause[i]));
-			if (it == var2symmetries.end()) {
+			if (it == var2symmetries.cend()) {
 				continue;
 			}
-			symmindices.insert((*it).second.begin(), (*it).second.end());
+			symmindices.insert((*it).second.cbegin(), (*it).second.cend());
 		}
 		if (symmindices.size() > 0) {
-			for (auto index = symmindices.begin(); noConflict && index != symmindices.end(); ++index) {
+			for (auto index = symmindices.cbegin(); noConflict && index != symmindices.cend(); ++index) {
 				noConflict = addSymmetricClause(clause, symmetries.at(*index));
 			}
 		}
@@ -262,7 +262,7 @@ public:
 	void add(const std::map<Var, Var>& symmetry){
 		assert(parsing);
 		symmetries.push_back(symmetry);
-		for(auto i=symmetry.begin(); i!=symmetry.end(); ++i){
+		for(auto i=symmetry.cbegin(); i!=symmetry.cend(); ++i){
 			var2symmetries[(*i).first].push_back(symmetries.size()-1);
 		}
 	}
@@ -285,7 +285,7 @@ public:
 		bool noConflict = true;
 		adding = true;
 		if (addedClauses.size() > 0) {
-			for (auto it = addedClauses.begin(); noConflict && it != addedClauses.end(); ++it) {
+			for (auto it = addedClauses.cbegin(); noConflict && it != addedClauses.cend(); ++it) {
 				noConflict = addSymmetricClauses(*it);
 			}
 		}

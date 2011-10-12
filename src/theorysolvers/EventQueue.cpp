@@ -67,7 +67,7 @@ void EventQueue::notifyBoundsChanged(IntVar* var) {
 	if(!isInitialized()){ // TODO enforce by design?
 		return;
 	}
-	for(auto i=intvarid2propagators[var->id()].begin(); i<intvarid2propagators[var->id()].end(); ++i){
+	for(auto i=intvarid2propagators[var->id()].cbegin(); i<intvarid2propagators[var->id()].cend(); ++i){
 		if(!(*i)->isPresent()){ continue; }
 		if(not (*i)->isQueued()){
 			fastqueue.push(*i);
@@ -82,7 +82,7 @@ void EventQueue::accept(Propagator* propagator, const Lit& litevent, PRIORITY pr
 	}
 //TODO if a residual is watched, do something in the propagator
 //do not forget other accepts and the sat solver watches (separate!)
-	for(proplist::const_iterator i=lit2priority2propagators[toInt(litevent)][priority].begin(); i<lit2priority2propagators[toInt(litevent)][priority].end(); ++i){
+	for(proplist::const_iterator i=lit2priority2propagators[toInt(litevent)][priority].cbegin(); i<lit2priority2propagators[toInt(litevent)][priority].cend(); ++i){
 		if((*i)==propagator){
 			return;
 		}
@@ -135,7 +135,7 @@ void EventQueue::setTrue(const Lit& l){
 	}
 	// TODO should be sped up a lot
 	watchlist remwatches;
-	for(auto i=lit2watches[toInt(l)].begin(); i!=lit2watches[toInt(l)].end(); ++i){
+	for(auto i=lit2watches[toInt(l)].cbegin(); i!=lit2watches[toInt(l)].cend(); ++i){
 		if(not (*i)->dynamic()){
 			remwatches.push_back(*i);
 		}
@@ -206,7 +206,7 @@ void EventQueue::finishParsing(bool& unsat){
 
 	// Queue all necessary propagators
 	addEternalPropagators();
-	for(auto intvar = intvarid2propagators.begin(); intvar!=intvarid2propagators.end(); ++intvar){
+	for(auto intvar = intvarid2propagators.cbegin(); intvar!=intvarid2propagators.cend(); ++intvar){
 		for(auto prop = intvar->begin(); prop != intvar->end(); ++prop){
 			if(not (*prop)->isQueued()){
 				fastqueue.push(*prop);
@@ -222,7 +222,7 @@ void EventQueue::finishParsing(bool& unsat){
 }
 
 rClause EventQueue::notifyPropagate(){
-	for(auto i=propagateasap.begin(); i<propagateasap.end(); ++i){
+	for(auto i=propagateasap.cbegin(); i<propagateasap.cend(); ++i){
 		(*i)->propagate();
 	}
 	propagateasap.clear();
@@ -245,7 +245,7 @@ rClause EventQueue::notifyPropagate(){
 
 int	EventQueue::getNbOfFormulas() const{
 	int count = 0;
-	for(proplist::const_iterator i=allpropagators.begin(); i<allpropagators.end(); ++i){
+	for(proplist::const_iterator i=allpropagators.cbegin(); i<allpropagators.cend(); ++i){
 		if((*i)->isPresent()){
 			count += (*i)->getNbOfFormulas();
 		}

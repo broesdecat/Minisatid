@@ -92,7 +92,7 @@ SATVAL SOSolver::add(int modid, const InnerSubTheory& subtheory){
 }
 SATVAL SOSolver::add(int modid, const InnerRigidAtoms& rigid){
 	assert(state==LOADINGHIER);
-	//allAtoms.insert(allAtoms.end(), atoms.begin(), atoms.end());
+	//allAtoms.insert(allAtoms.cend(), atoms.cbegin(), atoms.cend());
 	checkexistsModSolver(modid);
 	return getModSolver(modid)->add(rigid);
 }
@@ -149,7 +149,7 @@ SATVAL SOSolver::add(int modid, const InnerDisjunction& disj){
 		bool alloccur = true;
 		for(int i=0; alloccur && i<lits.size(); ++i){
 			bool seen = false;
-			for(vector<Var>::const_iterator j=m->getAtoms().begin(); !seen && j<m->getAtoms().end(); ++j){
+			for(vector<Var>::const_iterator j=m->getAtoms().cbegin(); !seen && j<m->getAtoms().cend(); ++j){
 				if(*j==var(lits[i])){
 					seen = true;
 				}
@@ -230,14 +230,14 @@ void SOSolver::verifyHierarchy(){
 		vsize s = queue.back();
 		queue.pop_back();
 		ModSolver* solver = getModSolver(s);
-		for(vmodindex::const_iterator i=solver->getChildren().begin(); i<solver->getChildren().end(); ++i){
+		for(vmodindex::const_iterator i=solver->getChildren().cbegin(); i<solver->getChildren().cend(); ++i){
 			if(visitcount[*i]==0){
 				queue.push_back(*i);
 			}
 			++visitcount[*i];
 		}
 	}
-	for(vmsolvers::const_iterator i=solvers.begin(); i<solvers.end(); ++i){
+	for(vmsolvers::const_iterator i=solvers.cbegin(); i<solvers.cend(); ++i){
 		if(visitcount[(*i)->getId()]!=1 && *i!=NULL){
 			char s[200];
 			sprintf(s, ">> The hierarchy of modal solvers does not form a tree. "

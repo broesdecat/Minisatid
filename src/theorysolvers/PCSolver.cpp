@@ -110,7 +110,7 @@ rClause PCSolver::createClause(const InnerDisjunction& clause, bool learned) {
 		return getSolver().makeClause(dummylits, learned);
 	} else {
 		vec<Lit> lits;
-		for(auto lit = clause.literals.begin(); lit!=clause.literals.end(); ++lit){
+		for(auto lit = clause.literals.cbegin(); lit!=clause.literals.cend(); ++lit){
 			lits.push(*lit);
 		}
 		return getSolver().makeClause(lits, learned);
@@ -411,7 +411,7 @@ bool PCSolver::solve(const litlist& assumptions, const ModelExpandOptions& optio
 	}
 
 	vec<Lit> vecassumptions;
-	for(auto i=assumptions.begin(); i!=assumptions.end(); ++i){
+	for(auto i=assumptions.cbegin(); i!=assumptions.cend(); ++i){
 		vecassumptions.push(*i);
 	}
 
@@ -523,7 +523,7 @@ void PCSolver::invalidate(InnerDisjunction& clause) {
 	litlist& invalidation = clause.literals;
 	if (!state_savingclauses || getSolver().decisionLevel() > 1) {
 		vector<Lit> v = getSolver().getDecisions();
-		for (vector<Lit>::const_iterator i = v.begin(); i < v.end(); ++i) {
+		for (vector<Lit>::const_iterator i = v.cbegin(); i < v.cend(); ++i) {
 			invalidation.push_back(~(*i));
 		}
 	} else {
@@ -617,7 +617,7 @@ bool PCSolver::invalidateValue(litlist& invalidation) {
  */
 bool PCSolver::findOptimal(const litlist& assmpt, const ModelExpandOptions& options) {
 	vec<Lit> currentassmpt;
-	for(auto i=assmpt.begin(); i!=assmpt.end(); ++i){
+	for(auto i=assmpt.cbegin(); i!=assmpt.cend(); ++i){
 		currentassmpt.push(*i);
 	}
 
