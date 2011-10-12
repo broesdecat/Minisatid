@@ -131,8 +131,8 @@ rClause BinaryConstraint::propagate(IntView* var, BIN_SIGN comp, int bound) {
 	}
 	Lit h = value(head())==l_True?~head():head();
 	InnerDisjunction clause;
-	clause.literals = { h, lit, othervarreason};
-	const autoauto  ref = getPCSolver().createClause(clause, true);
+	clause.literals = { h, lit, ~othervarreason};
+	const auto& ref = getPCSolver().createClause(clause, true);
 	getPCSolver().addLearnedClause(ref);
 	return nullPtrClause;
 }
@@ -187,31 +187,31 @@ rClause BinaryConstraint::notifypropagate() {
 		switch (comp_) {
 		case BIN_EQ:
 			if(leftmax()<rightmin()){
-				clause.literals.push_back(left()->getLEQLit(leftmax()));
-				clause.literals.push_back(right()->getGEQLit(rightmin()));
+				clause.literals.push_back(~left()->getLEQLit(leftmax()));
+				clause.literals.push_back(~right()->getGEQLit(rightmin()));
 				prop = true;
 				headprop = ~head();
 			}else if(rightmax() < leftmin()){
-				clause.literals.push_back(left()->getGEQLit(leftmin()));
-				clause.literals.push_back(right()->getLEQLit(rightmax()));
+				clause.literals.push_back(~left()->getGEQLit(leftmin()));
+				clause.literals.push_back(~right()->getLEQLit(rightmax()));
 				prop = true;
 				headprop = ~head();
 			}  else if (leftmin()==rightmax() && rightmin()==leftmax()) {
-				clause.literals.push_back(left()->getEQLit(leftmin()));
-				clause.literals.push_back(right()->getEQLit(rightmin()));
+				clause.literals.push_back(~left()->getEQLit(leftmin()));
+				clause.literals.push_back(~right()->getEQLit(rightmin()));
 				prop = true;
 				headprop = head();
 			}
 			break;
 		case BIN_LEQ:
 			if (rightmax() < leftmin()) {
-				clause.literals.push_back(left()->getGEQLit(leftmin()));
-				clause.literals.push_back(right()->getLEQLit(rightmax()));
+				clause.literals.push_back(~left()->getGEQLit(leftmin()));
+				clause.literals.push_back(~right()->getLEQLit(rightmax()));
 				prop = true;
 				headprop = ~head();
 			} else if (leftmax() <= rightmin()) {
-				clause.literals.push_back(left()->getLEQLit(leftmax()));
-				clause.literals.push_back(right()->getGEQLit(rightmin()));
+				clause.literals.push_back(~left()->getLEQLit(leftmax()));
+				clause.literals.push_back(~right()->getGEQLit(rightmin()));
 				prop = true;
 				headprop = head();
 			}
@@ -219,7 +219,7 @@ rClause BinaryConstraint::notifypropagate() {
 		}
 		if (prop) {
 			//getPCSolver().setTrue(headprop, this);
-			const autoauto  ref = getPCSolver().createClause(clause, true);
+			const auto& ref = getPCSolver().createClause(clause, true);
 			getPCSolver().addLearnedClause(ref);
 		}
 	}
