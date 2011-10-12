@@ -20,7 +20,7 @@ BinaryConstraint::BinaryConstraint(PCSolver* engine, IntVar* left, EqType comp,
 	case MEQ:	head_ = mkPosLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 0); comp_ = BIN_EQ; break;
 	case MNEQ:	head_ = mkNegLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 0); comp_ = BIN_EQ; break;
 	case MLEQ:	head_ = mkPosLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 0); comp_ = BIN_LEQ; break;
-	case ML:	head_ = mkPosLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 1); comp_ = BIN_LEQ; break;
+	case ML:	head_ = mkPosLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, -1); comp_ = BIN_LEQ; break;
 	case MGEQ:	head_ = mkNegLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 1); comp_ = BIN_LEQ; break;
 	case MG:	head_ = mkNegLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 0); comp_ = BIN_LEQ; break;
 	}

@@ -117,8 +117,12 @@ rClause PCSolver::createClause(const InnerDisjunction& clause, bool learned) {
 	}
 }
 
+// NOTE: when adding a clause, this should be propagated asap
 void PCSolver::addLearnedClause(rClause c) {
+	// FIXME method is incorrect if clause can propagate
+	// FIXME method is incorrect if first two literals of clause are false, but possible others aren't
 	getSolver().addLearnedClause(c);
+//FIXME	getEventQueue().acceptForPropagation(getSATSolver());
 }
 void PCSolver::removeClause(rClause c) {
 	getSolver().removeClause(c);
