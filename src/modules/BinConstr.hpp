@@ -11,7 +11,6 @@ class BinaryConstraint: public Propagator{
 	BinComp comp_;
 
 public:
-
 	BinaryConstraint(PCSolver* engine, IntVar* left, EqType comp, IntVar* right, Var h);
 
 	const Lit& head() const { return head_; }
@@ -26,6 +25,7 @@ public:
 	IntView* right() const { return right_;}
 	IntVar* leftvar() const { return left()->var(); }
 	IntVar* rightvar() const { return right()->var(); }
+	IntView* other(IntView* view) const { return left()==view?right():left(); }
 	BinComp	comp() const { return comp_; }
 
 	int leftmin() const { return left_->minValue(); }
