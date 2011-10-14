@@ -420,7 +420,7 @@ void PropagatorFactory::addCP(const T& formula){
 	assert(false);
 	exit(1);
 #else
-	return CPStorage::getStorage()->add(formula);
+	CPStorage::getStorage()->add(formula);
 #warning Counting models in the presence of CP variables will be an underapproximation! (finding only one variable assigment for each literal assignment)
 #endif
 }
