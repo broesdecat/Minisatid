@@ -19,12 +19,12 @@ CPScript::CPScript(): Space(){
 }
 
 CPScript::CPScript(bool share, CPScript& s): Space(share, s){
-	for(vboolv::iterator i=s.boolvars.cbegin(); i<s.boolvars.cend(); i++){
+	for(auto i=s.boolvars.begin(); i<s.boolvars.end(); i++){
 		boolvars.push_back(BoolVar());
 		boolvars.back().update(*this, share, *i);
 	}
 
-	for(vintv::iterator i=s.intvars.cbegin(); i<s.intvars.cend(); i++){
+	for(auto i=s.intvars.begin(); i<s.intvars.end(); i++){
 		intvars.push_back(IntVar());
 		intvars.back().update(*this, share, *i);
 	}

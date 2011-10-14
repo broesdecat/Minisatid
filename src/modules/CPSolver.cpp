@@ -354,7 +354,7 @@ rClause CPSolver::propagateReificationConstraints(){
 	rClause confl = nullPtrClause;
 	for(vector<ReifiedConstraint*>::const_iterator i=getData().getReifConstraints().cbegin(); confl==nullPtrClause && i<getData().getReifConstraints().cend(); i++){
 		if((*i)->isAssigned(getSpace())){
-			confl = notifySATsolverOfPropagation((*i)->isAssignedFalse(getSpace())?mkNegLit((*i)->getHead()):mkPosLit((*i)->getHead())));
+			confl = notifySATsolverOfPropagation((*i)->isAssignedFalse(getSpace())?mkNegLit((*i)->getHead()):mkPosLit((*i)->getHead()));
 		}
 	}
 	return confl;
