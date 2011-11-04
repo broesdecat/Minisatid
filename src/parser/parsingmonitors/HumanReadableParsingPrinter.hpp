@@ -52,7 +52,7 @@ public:
 	void notifyadded(const InnerWLSet& set){
 		target() <<"Added non-weighted set " <<set.setID <<" = {";
 		std::vector<Lit>::size_type count = 0;
-		for(auto i=set.wls.begin(); i!=set.wls.end(); ++i, ++count){
+		for(auto i=set.wls.cbegin(); i!=set.wls.cend(); ++i, ++count){
 			target() <<(*i).getLit() <<"=" <<(*i).getWeight();
 			if(count<set.wls.size()-1){
 				target() <<", ";
@@ -138,7 +138,7 @@ public:
 	void notifyadded(const InnerSymmetry& symm){
 		target() <<"Added symmetry:\n\t";
 		bool begin = true;
-		for(auto i=symm.symmetry.begin(); i!=symm.symmetry.end(); ++i){
+		for(auto i=symm.symmetry.cbegin(); i!=symm.symmetry.cend(); ++i){
 			if(not begin){
 				target() <<", ";
 			}
@@ -219,9 +219,9 @@ public:
 	void notifyadded(const InnerCPSumWeighted& sum){
 		target() <<"Added sum constraint " <<getPrintableVar(sum.head) <<" <=> sum({ ";
 		std::vector<int>::size_type count = 0;
-		std::vector<uint>::const_iterator litit=sum.varIDs.begin();
-		std::vector<Weight>::const_iterator weightit=sum.weights.begin();
-		for(; litit<sum.varIDs.end(); ++count, ++litit, ++weightit){
+		std::vector<uint>::const_iterator litit=sum.varIDs.cbegin();
+		std::vector<Weight>::const_iterator weightit=sum.weights.cbegin();
+		for(; litit<sum.varIDs.cend(); ++count, ++litit, ++weightit){
 			target() <<"var" <<*litit <<"*" <<*weightit;
 			if(count<sum.varIDs.size()-1){
 				target() <<", ";

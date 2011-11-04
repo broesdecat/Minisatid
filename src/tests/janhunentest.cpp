@@ -16,7 +16,7 @@
 using namespace std;
 using namespace MinisatID;
 
-#warning something wrong with having to include this operator here (because externalinterface.cpp is not in the test sources, which it shouldnt)
+// FIXME something wrong with having to include this operator here (because externalinterface.cpp is not in the test sources, which it shouldnt)
 SATVAL MinisatID::operator&= (SATVAL orig, SATVAL add){
 	return (orig==SATVAL::UNSAT||add==SATVAL::UNSAT)? SATVAL::UNSAT: SATVAL::POS_SAT;
 }
@@ -25,6 +25,7 @@ namespace MinisatID{
 
 namespace Tests{
 
+	// FIXME
 	struct SolverMOC{
 	private: int start;
 	public:
@@ -35,6 +36,9 @@ namespace Tests{
 		bool add(const InnerDisjunction& d){ disj.push_back(new InnerDisjunction(d)); return true; }
 		bool add(const InnerEquivalence& eq){ eqs.push_back(new InnerEquivalence(eq)); return true; }
 		SATVAL isUnsat() const { return SATVAL::POS_SAT; }
+		SATVAL satState() const { return SATVAL::POS_SAT; }
+		lbool value(const Lit& lit) { return l_True; }
+		lbool value(Var var) { return l_True; }
 	};
 
 
@@ -49,9 +53,9 @@ namespace Tests{
 	TEST(SCCTest, SimpleLoop) {
 		SolverMOC moc(3);
 		vector<toCNF::Rule*> rules;
-		vector<Var> pdef, qdef;
-		pdef.push_back(2);
-		qdef.push_back(1);
+		litlist pdef, qdef;
+		pdef.push_back(mkPosLit(2));
+		qdef.push_back(mkPosLit(1));
 		vector<Lit> popen, qopen;
 		rules.push_back(new toCNF::Rule(false, 1, pdef, popen));
 		rules.push_back(new toCNF::Rule(false, 2, qdef, qopen));

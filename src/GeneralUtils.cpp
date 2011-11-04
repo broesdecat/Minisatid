@@ -95,7 +95,9 @@ SolverOption::SolverOption():
 		aggclausesaving(2),
 		selectOneFromUFS(false),
 		tocnf(false),
-		watchesratio(0.75),
+		// FIXME watchesratio(0.75),
+#warning watches currently disabled
+		watchesratio(0),
 		useaggheur(false),
 		primesfile(""),
 		//remap(true),

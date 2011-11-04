@@ -68,7 +68,7 @@ struct Option: public Opt{
 	Option(const string &s, const string &l, const vector<T>& vals, const vector<pair<T2, string> >& desc, T& modesarg, TCLAP::CmdLine& cmd, const string &m):
 		shortopt(s), longopt(l), mess(m), defaultval(modesarg), vals(vals), desc(desc), modesarg(modesarg){
 		vector<T2> constrvals;
-		for(typename vector<pair<T2, string> >::const_iterator i=desc.begin(); i<desc.end(); ++i){
+		for(typename vector<pair<T2, string> >::const_iterator i=desc.cbegin(); i<desc.cend(); ++i){
 			constrvals.push_back((*i).first);
 		}
 		formatsconstr = new TCLAP::ValuesConstraint<T2>(constrvals);
@@ -287,10 +287,12 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 			modes.tocnf, cmd,"Choose whether to translate non-clausal constraints to clauses."));
 	options.push_back(new Option<bool, string>	("","doublecyclecheck", 	yesnovals, checkcycledesc,
 			modes.checkcyclefreeness, cmd,"Choose whether to also check cycles with the bottom-up algorithm (for debugging purposes)."));
+	/*options.push_back(new NoValsOption<double>	("","watch-ratio", 	"double",
+			modes.watchesratio, cmd,"The ratio of watches to set literals under which the watched algorithm is used."));*/
+	// FIXME currently, watches are disabled
+	std::cerr <<"Currently, no watched aggregates!\n";
+	modes.watchesratio = 0;
 
-
-	options.push_back(new NoValsOption<double>	("","watch-ratio", 	"double",
-			modes.watchesratio, cmd,"The ratio of watches to set literals under which the watched algorithm is used."));
 	options.push_back(new Option<bool,string>	("","use-agg-heur", 	yesnovals, aggheurdesc,
 			modes.useaggheur, cmd,"Use a specialized aggregate heuristic."));
 	options.push_back(new Option<POLARITY, string>("","polarity", 	polvals, poldesc,
@@ -313,7 +315,7 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 		return false;
 	}
 
-	for(vector<Opt*>::const_iterator i=options.begin(); i<options.end(); ++i){
+	for(vector<Opt*>::const_iterator i=options.cbegin(); i<options.cend(); ++i){
 		(*i)->parse();
 	}
 

@@ -41,7 +41,7 @@ public:
 
 	void add(InnerWLSet* set, std::vector<TempAgg*>& aggs){
 		tempagglist remaining;
-		for (auto i=aggs.begin(); i!=aggs.end(); ++i) {
+		for (auto i=aggs.cbegin(); i!=aggs.cend(); ++i) {
 			TempAgg* agg = *i;
 
 			if((agg->getType()!=SUM && agg->getType()!=CARD) || agg->getSem() != COMP){
@@ -67,7 +67,7 @@ public:
 			pbaggeq.bound = bound;
 			pbaggineq.bound = bound;
 			Weight min = 0, max = 0;
-			for (auto k = set->getWL().begin(); k < set->getWL().end(); ++k) {
+			for (auto k = set->getWL().cbegin(); k < set->getWL().cend(); ++k) {
 				pbaggeq.literals.push(MiniSatPP::Lit(var((*k).getLit()), sign((*k).getLit())));
 				pbaggineq.literals.push(MiniSatPP::Lit(var((*k).getLit()), sign((*k).getLit())));
 				if (var((*k).getLit()) > maxvar) {
@@ -111,7 +111,7 @@ public:
 		pbsolver->allocConstrs(maxvar, pbaggs.size());
 
 		bool unsat = false;
-		for (auto i = pbaggs.begin(); !unsat && i < pbaggs.end(); ++i) {
+		for (auto i = pbaggs.cbegin(); !unsat && i < pbaggs.cend(); ++i) {
 			unsat = !pbsolver->addConstr((*i)->literals, (*i)->weights, MiniSatPP::Int((*i)->bound), (*i)->sign, false);
 		}
 		deleteList<PBAgg> (pbaggs);
@@ -134,9 +134,9 @@ public:
 		//Any literal that is larger than maxvar will have been newly introduced, so should be mapped to nVars()+lit
 		//add the CNF to the solver
 		int maxnumber = pcsolver.nVars();
-		for (auto i = pbencodings.begin(); i < pbencodings.end(); ++i) {
+		for (auto i = pbencodings.cbegin(); i < pbencodings.cend(); ++i) {
 			InnerDisjunction clause;
-			for (auto j = (*i).begin(); j < (*i).end(); ++j) {
+			for (auto j = (*i).cbegin(); j < (*i).cend(); ++j) {
 				Var v = MiniSatPP::var(*j) + (MiniSatPP::var(*j) > maxvar ? maxnumber - maxvar : 0);
 				clause.literals.push_back(MiniSatPP::sign(*j)?mkNegLit(v):mkPosLit(v));
 			}

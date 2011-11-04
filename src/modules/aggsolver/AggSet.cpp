@@ -52,12 +52,12 @@ void TypedSet::addAgg(const TempAgg& tempagg, bool optim){
 // FIXME overal != in condities vervangen door < voor vectoren, want ++ is niet toegelaten op end!
 void TypedSet::removeAggs(const std::set<Agg*>& del){
 	for(auto agg = getAggNonConst().begin(); agg<getAggNonConst().end(); ++agg){
-		if(del.find(*agg)!=del.end()){
+		if(del.find(*agg)!=del.cend()){
 			agg = getAggNonConst().erase(agg);
 		}
 	}
 	int index = 0;
-	for(auto agg = getAgg().begin(); agg!=getAgg().end(); ++agg, index++){
+	for(auto agg = getAgg().cbegin(); agg!=getAgg().cend(); ++agg, index++){
 		(*agg)->setIndex(index);
 	}
 }
@@ -81,7 +81,7 @@ void TypedSet::finishParsing(bool& present, bool& unsat){
 
 #ifdef DEBUG
 	//Check each aggregate knows it index in the set
-	for (agglist::const_iterator i = getAgg().begin(); i<getAgg().end(); ++i) {
+	for (agglist::const_iterator i = getAgg().cbegin(); i<getAgg().cend(); ++i) {
 		assert(this==(*i)->getSet());
 		assert(getAgg()[(*i)->getIndex()]==(*i));
 	}
@@ -93,12 +93,7 @@ void TypedSet::finishParsing(bool& present, bool& unsat){
 		if (verbosity() >= 3) {
 			report("Initializing aggregate set, unsat detected.\n");
 		}
-		notifyInitialized();
-		return;
 	}
-
-	//Push initial level (root, before any decisions).
-	// littrail.newDecisionLevel();
 
 	notifyInitialized();
 }
@@ -205,7 +200,7 @@ rClause TypedSet::notifyFullAssignmentFound(){
 	assert(isInitialized());
 #ifdef DEBUG
 	Weight w = getType().getValue(*this);
-	for(agglist::const_iterator j=getAgg().begin(); j<getAgg().end(); ++j){
+	for(agglist::const_iterator j=getAgg().cbegin(); j<getAgg().cend(); ++j){
 		if(verbosity()>=3){
 			MinisatID::print(10, **j, true);
 		}

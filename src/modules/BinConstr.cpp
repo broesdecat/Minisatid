@@ -16,13 +16,11 @@ using namespace MinisatID;
 BinaryConstraint::BinaryConstraint(PCSolver* engine, IntVar* left, EqType comp,
 		IntVar* right, Var h) :
 	Propagator(engine) {
-	// TODO leave out a case by adding views and LEQ var is L (var + 1)
-	// TODO leave out a case by negating the head! (NEQ)
 	switch (comp) {
 	case MEQ:	head_ = mkPosLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 0); comp_ = BIN_EQ; break;
 	case MNEQ:	head_ = mkNegLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 0); comp_ = BIN_EQ; break;
 	case MLEQ:	head_ = mkPosLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 0); comp_ = BIN_LEQ; break;
-	case ML:	head_ = mkPosLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 1); comp_ = BIN_LEQ; break;
+	case ML:	head_ = mkPosLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, -1); comp_ = BIN_LEQ; break;
 	case MGEQ:	head_ = mkNegLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 1); comp_ = BIN_LEQ; break;
 	case MG:	head_ = mkNegLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 0); comp_ = BIN_LEQ; break;
 	}
@@ -82,41 +80,60 @@ rClause BinaryConstraint::propagate(int bound, BIN_SIGN comp, IntView* var) {
 	}
 	return propagate(var, comp == LOWEREQ ? HIGHEREQ : LOWEREQ, comp == LOWEREQ ? bound + 1 : bound - 1);
 }
+
+/**
+ * Propagate the fact that var comp bound has to be true.
+ * The reason for this will always contain the head and the other var!
+ */
 rClause BinaryConstraint::propagate(IntView* var, BIN_SIGN comp, int bound) {
+	Lit othervarreason;
+	Lit lit;
 	switch (comp) {
-	case LOWEREQ:
+	case LOWEREQ: //var <= bound
 		if (bound < var->maxValue() && var->origMinValue() <= bound) {
-			Lit lit = var->getLEQLit(bound);
-			lbool val = getPCSolver().value(lit);
+			lit = var->getLEQLit(bound);
+			othervarreason = other(var)->getLEQLit(bound);
+			/*lbool val = getPCSolver().value(lit);
 			if (val == l_False) {
 				return getExplanation(lit);
 			} else if (val == l_Undef) {
 				getPCSolver().setTrue(lit, this);
-			}
+			}*/
+		}else{
+			return nullPtrClause;
 		}
 		break;
-	case HIGHEREQ:
+	case HIGHEREQ: // var >= bound
 		if (var->minValue() < bound && bound <= var->origMaxValue()) {
-			Lit lit = var->getGEQLit(bound);
-			lbool val = getPCSolver().value(lit);
+			lit = var->getGEQLit(bound);
+			othervarreason = other(var)->getGEQLit(bound);
+			/*lbool val = getPCSolver().value(lit);
 			if (val == l_False) {
 				return getExplanation(lit);
 			} else if (val == l_Undef) {
 				getPCSolver().setTrue(var->getGEQLit(bound), this);
-			}
+			}*/
+		}else{
+			return nullPtrClause;
 		}
 		break;
 	case NOT: {
-		Lit lit = var->getNEQLit(bound);
-		lbool val = getPCSolver().value(lit);
+		lit = var->getNEQLit(bound);
+		othervarreason = other(var)->getEQLit(bound);
+		/*lbool val = getPCSolver().value(lit);
 		if (val == l_False) {
 			return getExplanation(lit);
 		} else if (val == l_Undef) {
 			getPCSolver().setTrue(var->getNEQLit(bound), this);
-		}
+		}*/
 		break;
 	}
 	}
+	Lit h = value(head())==l_True?~head():head();
+	InnerDisjunction clause;
+	clause.literals = { h, lit, ~othervarreason};
+	const auto& ref = getPCSolver().createClause(clause, true);
+	getPCSolver().addLearnedClause(ref);
 	return nullPtrClause;
 }
 
@@ -159,39 +176,51 @@ rClause BinaryConstraint::notifypropagate() {
 			}
 			break;
 		case BIN_LEQ: // G => left()>=rightmin()+1
-			if (confl == nullPtrClause) {
-				confl = propagate(left(), HIGHEREQ, rightmin() + 1);
-			}
-			if (confl == nullPtrClause) {
-				confl = propagate(right(), LOWEREQ, leftmax() - 1);
-			}
+			if (confl == nullPtrClause) { confl = propagate(left(), HIGHEREQ, rightmin() + 1); }
+			if (confl == nullPtrClause) { confl = propagate(right(), LOWEREQ, leftmax() - 1); }
 			break;
 		}
 	} else { // head is unknown: can only propagate head
 		bool prop = false;
 		Lit headprop = head();
+		InnerDisjunction clause;
 		switch (comp_) {
 		case BIN_EQ:
-			if (violatedEq()) {
+			if(leftmax()<rightmin()){
+				clause.literals.push_back(~left()->getLEQLit(leftmax()));
+				clause.literals.push_back(~right()->getGEQLit(rightmin()));
 				prop = true;
 				headprop = ~head();
-			} else if (satisfiedEq()) {
+			}else if(rightmax() < leftmin()){
+				clause.literals.push_back(~left()->getGEQLit(leftmin()));
+				clause.literals.push_back(~right()->getLEQLit(rightmax()));
+				prop = true;
+				headprop = ~head();
+			}  else if (leftmin()==rightmax() && rightmin()==leftmax()) {
+				clause.literals.push_back(~left()->getEQLit(leftmin()));
+				clause.literals.push_back(~right()->getEQLit(rightmin()));
 				prop = true;
 				headprop = head();
 			}
 			break;
 		case BIN_LEQ:
 			if (rightmax() < leftmin()) {
+				clause.literals.push_back(~left()->getGEQLit(leftmin()));
+				clause.literals.push_back(~right()->getLEQLit(rightmax()));
 				prop = true;
 				headprop = ~head();
-			} else if (leftmax() <= rightmax()) {
+			} else if (leftmax() <= rightmin()) {
+				clause.literals.push_back(~left()->getLEQLit(leftmax()));
+				clause.literals.push_back(~right()->getGEQLit(rightmin()));
 				prop = true;
 				headprop = head();
 			}
 			break;
 		}
 		if (prop) {
-			getPCSolver().setTrue(headprop, this);
+			//getPCSolver().setTrue(headprop, this);
+			const auto& ref = getPCSolver().createClause(clause, true);
+			getPCSolver().addLearnedClause(ref);
 		}
 	}
 

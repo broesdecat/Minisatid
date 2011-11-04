@@ -54,7 +54,7 @@ Var SmartRemapper::getVar(const Atom& atom){
 
 	auto i = origtocontiguousatommapper.find(atom.getValue());
 	Var v = 0;
-	if(i==origtocontiguousatommapper.end()){
+	if(i==origtocontiguousatommapper.cend()){
 		origtocontiguousatommapper.insert(pair<int, int>(atom.getValue(), maxnumber));
 		contiguoustoorigatommapper.insert(pair<int, int>(maxnumber, atom.getValue()));
 		v = maxnumber++;
@@ -69,19 +69,19 @@ Var SmartRemapper::getNewVar(){
 }
 
 bool SmartRemapper::wasInput(Var var) const{
-	return contiguoustoorigatommapper.find(var)!=contiguoustoorigatommapper.end();
+	return contiguoustoorigatommapper.find(var)!=contiguoustoorigatommapper.cend();
 }
 
 Literal SmartRemapper::getLiteral(const Lit& lit){
 	atommap::const_iterator atom = contiguoustoorigatommapper.find(var(lit));
-	assert(atom!=contiguoustoorigatommapper.end());
+	assert(atom!=contiguoustoorigatommapper.cend());
 	int origatom = (*atom).second;
 	return Literal(origatom, sign(lit));
 }
 
 bool SmartRemapper::hasVar(const Atom& atom, Var& mappedvarifexists) const{
 	atommap::const_iterator i = origtocontiguousatommapper.find(atom.getValue());
-	if(i==origtocontiguousatommapper.end()){
+	if(i==origtocontiguousatommapper.cend()){
 		return false;
 	}else{
 		mappedvarifexists = (*i).second;
@@ -163,7 +163,7 @@ Lit WrapperPimpl::checkLit(const Literal& lit){
 }
 
 void WrapperPimpl::checkLits(const vector<vector<Literal> >& lits, vector<vector<Lit> >& ll){
-	for(vector<vector<Literal> >::const_iterator i=lits.begin(); i<lits.end(); ++i){
+	for(vector<vector<Literal> >::const_iterator i=lits.cbegin(); i<lits.cend(); ++i){
 		ll.push_back(vector<Lit>());
 		checkLits(*i, ll.back());
 	}
@@ -171,20 +171,20 @@ void WrapperPimpl::checkLits(const vector<vector<Literal> >& lits, vector<vector
 
 void WrapperPimpl::checkLits(const vector<Literal>& lits, vector<Lit>& ll){
 	ll.reserve(lits.size());
-	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); ++i){
+	for(vector<Literal>::const_iterator i=lits.cbegin(); i<lits.cend(); ++i){
 		ll.push_back(checkLit(*i));
 	}
 }
 
 void WrapperPimpl::checkAtoms(const vector<Atom>& atoms, vector<Var>& ll){
 	ll.reserve(atoms.size());
-	for(vector<Atom>::const_iterator i=atoms.begin(); i<atoms.end(); ++i){
+	for(vector<Atom>::const_iterator i=atoms.cbegin(); i<atoms.cend(); ++i){
 		ll.push_back(checkAtom(*i));
 	}
 }
 
 void WrapperPimpl::checkAtoms(const std::map<Atom, Atom>& atoms, std::map<Var, Var>& ll){
-	for(auto i=atoms.begin(); i!=atoms.end(); ++i){
+	for(auto i=atoms.cbegin(); i!=atoms.cend(); ++i){
 		ll.insert(pair<Var, Var>(checkAtom((*i).first), checkAtom((*i).second)));
 	}
 }
@@ -287,7 +287,7 @@ Literal WrapperPimpl::getBackMappedLiteral(const Lit& lit) const{
 //Translate into original vocabulary
 vector<Literal> WrapperPimpl::getBackMappedModel(const std::vector<Lit>& model) const{
 	vector<Literal> outmodel;
-	for(auto i=model.begin(); i!=model.end(); ++i){
+	for(auto i=model.cbegin(); i!=model.cend(); ++i){
 		if(canBackMapLiteral(*i)){
 			outmodel.push_back(getBackMappedLiteral(*i));
 		}
@@ -305,7 +305,7 @@ template<>
 void WrapperPimpl::notifyMonitor(const InnerPropagation& obj){
 	if(canBackMapLiteral(obj.propagation)){
 		Literal lit = getBackMappedLiteral(obj.propagation);
-		for(auto i=monitors.begin(); i<monitors.end(); ++i){
+		for(auto i=monitors.cbegin(); i<monitors.cend(); ++i){
 			(*i)->notifyPropagated(lit, obj.decisionlevel);
 		}
 	}
@@ -313,7 +313,7 @@ void WrapperPimpl::notifyMonitor(const InnerPropagation& obj){
 
 template<>
 void WrapperPimpl::notifyMonitor(const InnerBacktrack& obj){
-	for(auto i=monitors.begin(); i<monitors.end(); ++i){
+	for(auto i=monitors.cbegin(); i<monitors.cend(); ++i){
 		(*i)->notifyBacktracked(obj.untillevel);
 	}
 }
@@ -396,7 +396,7 @@ SATVAL PCWrapperPimpl::add(const WSet& sentence){
 template<>
 SATVAL PCWrapperPimpl::add(const WLSet& sentence){
 	vector<WL> wls;
-	for(auto i=sentence.wl.begin(); i<sentence.wl.end(); ++i){
+	for(auto i=sentence.wl.cbegin(); i<sentence.wl.cend(); ++i){
 		wls.push_back(WL(checkLit((*i).l), (*i).w));
 	}
 	InnerWLSet set(sentence.setID, wls);
@@ -457,6 +457,7 @@ SATVAL PCWrapperPimpl::add(const MinimizeAgg& sentence){
 	mnm.head = checkAtom(sentence.head);
 	mnm.setID = sentence.setid;
 	mnm.type = sentence.type;
+	setOptimization(true);
 	getSolver()->add(mnm);
 
 	setOptimization(true);
@@ -618,7 +619,7 @@ template<>
 SATVAL SOWrapperPimpl::add(int modid, const Set& sentence){
 	vector<Weight> weights = vector<Weight>(sentence.literals.size(), 1);
 	InnerWLSet set(sentence.setID, vector<WL>());
-	for(auto i=sentence.literals.begin(); i!=sentence.literals.end(); ++i){
+	for(auto i=sentence.literals.cbegin(); i!=sentence.literals.cend(); ++i){
 		set.wls.push_back(WL(checkLit(*i), 1));
 	}
 	return getSolver()->add(modid, set);
@@ -636,7 +637,7 @@ SATVAL SOWrapperPimpl::add(int modid, const WSet& sentence){
 template<>
 SATVAL SOWrapperPimpl::add(int modid, const WLSet& sentence){
 	InnerWLSet set(sentence.setID, vector<WL>());
-	for(vector<WLtuple>::const_iterator i=sentence.wl.begin(); i<sentence.wl.end(); ++i){
+	for(vector<WLtuple>::const_iterator i=sentence.wl.cbegin(); i<sentence.wl.cend(); ++i){
 		set.wls.push_back(WL(checkLit((*i).l),(*i).w));
 	}
 	return getSolver()->add(modid, set);

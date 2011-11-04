@@ -79,7 +79,7 @@ SATVAL ModSolver::add(Var var){
  * Add all variables in the given vector as variables in the theory.
  */
 void ModSolver::addVars(const litlist& a){
-	for(auto i=a.begin(); i<a.end(); ++i){
+	for(auto i=a.cbegin(); i<a.cend(); ++i){
 		add(var(*i));
 	}
 }
@@ -97,7 +97,7 @@ SATVAL ModSolver::add(const InnerRule& rule){
 	return getPCSolver().satState();
 }
 SATVAL ModSolver::add(const InnerWLSet& set){
-	for(auto i=set.wls.begin(); i!=set.wls.end(); ++i){
+	for(auto i=set.wls.cbegin(); i!=set.wls.cend(); ++i){
 		addVar((*i).getLit());
 	}
 	getPCSolver().add(set);
@@ -122,7 +122,7 @@ SATVAL ModSolver::add(const InnerReifAggregate& agg){
  * they are added as variables to the parent solver, that has to decide on values for them.
  */
 SATVAL ModSolver::add(const InnerRigidAtoms& rigid){
-	for(vector<Var>::const_iterator i=rigid.rigidatoms.begin(); i<rigid.rigidatoms.end(); ++i){
+	for(vector<Var>::const_iterator i=rigid.rigidatoms.cbegin(); i<rigid.rigidatoms.cend(); ++i){
 		atoms.push_back(*i);
 		add(*i);
 		getModSolverData().getModSolver(getParentId())->add(*i);
@@ -141,7 +141,7 @@ SATVAL ModSolver::add(const InnerRigidAtoms& rigid){
 void ModSolver::setParent(modindex parentid){
 	this->parentid = parentid; hasparent = true;
 	ModSolver* parent = getModSolverData().getModSolver(getParentId());
-	for(vector<Var>::const_iterator i=atoms.begin(); i<atoms.end(); ++i){
+	for(vector<Var>::const_iterator i=atoms.cbegin(); i<atoms.cend(); ++i){
 		parent->add(*i);
 	}
 	parent->addChild(this->id);
@@ -160,12 +160,12 @@ void ModSolver::finishParsingDown(bool& unsat){
 	notifyParsed();
 	getPCSolver().finishParsing(unsat);
 
-	for(auto i=registeredvars.begin(); i<registeredvars.end(); ++i){
+	for(auto i=registeredvars.cbegin(); i<registeredvars.cend(); ++i){
 		getPCSolver().accept(this, mkLit(*i, true), SLOW);
 		getPCSolver().accept(this, mkLit(*i, false), SLOW);
 	}
 
-	for(auto i=getChildren().begin(); !unsat && i<getChildren().end(); ++i){
+	for(auto i=getChildren().cbegin(); !unsat && i<getChildren().cend(); ++i){
 		bool childunsat = false;
 		getModSolverData().getModSolver(*i)->finishParsingDown(childunsat);
 		//TODO handle !present
@@ -258,7 +258,7 @@ rClause ModSolver::notifypropagate(){
 		}
 
 		trail.back().push_back(l);
-		for(vmodindex::const_iterator i=getChildren().begin(); confl==nullPtrClause && i<getChildren().end(); ++i){
+		for(vmodindex::const_iterator i=getChildren().cbegin(); confl==nullPtrClause && i<getChildren().cend(); ++i){
 			confl = getModSolverData().getModSolver(*i)->propagateDown(l);
 		}
 	}
@@ -271,7 +271,7 @@ rClause ModSolver::notifypropagate(){
 	//queue is empty, so we will need a propagateDown and a propagateDownEndOfQueue
 	bool noconflict = true;
 	InnerDisjunction confldisj;
-	for(vmodindex::const_iterator i=getChildren().begin(); noconflict && i<getChildren().end(); ++i){
+	for(vmodindex::const_iterator i=getChildren().cbegin(); noconflict && i<getChildren().cend(); ++i){
 		assert(confldisj.literals.size()==0);
 		noconflict = getModSolverData().getModSolver(*i)->propagateDownAtEndOfQueue(confldisj.literals);
 	}
@@ -370,7 +370,7 @@ void ModSolver::notifyBacktrack(int untillevel, const Lit& decision){
 	while(trail.size()>((vsize)(untillevel+1))){
 		//IMPORTANT: backtrack in REVERSE trail order! from latest to earliest!
 		for(vector<Lit>::const_reverse_iterator i=trail.back().rbegin(); i<trail.back().rend(); ++i){
-			for(vmodindex::const_iterator j=getChildren().begin(); j<getChildren().end(); ++j){
+			for(vmodindex::const_iterator j=getChildren().cbegin(); j<getChildren().cend(); ++j){
 				getModSolverData().getModSolver((*j))->backtrackFromAbove(*i);
 			}
 		}

@@ -14,13 +14,13 @@ using namespace std;
 using namespace MinisatID;
 
 void LogicSolver::notifyMonitor(const InnerPropagation& obj){
-	for(std::vector<WrapperPimpl*>::const_iterator i=monitors.begin(); i<monitors.end(); ++i){
+	for(std::vector<WrapperPimpl*>::const_iterator i=monitors.cbegin(); i<monitors.cend(); ++i){
 		(*i)->notifyMonitor(obj);
 	}
 }
 
 void LogicSolver::notifyMonitor(const InnerBacktrack& obj){
-	for(std::vector<WrapperPimpl*>::const_iterator i=monitors.begin(); i<monitors.end(); ++i){
+	for(std::vector<WrapperPimpl*>::const_iterator i=monitors.cbegin(); i<monitors.cend(); ++i){
 		(*i)->notifyMonitor(obj);
 	}
 }

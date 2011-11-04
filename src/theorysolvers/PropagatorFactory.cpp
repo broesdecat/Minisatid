@@ -89,21 +89,21 @@ PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine
 		parsingmonitors.push_back(new HumanReadableParsingPrinter(clog));
 	}
 
-	for(auto i = parsingmonitors.begin(); i<parsingmonitors.end(); ++i){
+	for(auto i = parsingmonitors.cbegin(); i<parsingmonitors.cend(); ++i){
 		(*i)->notifyStart();
 	}
 }
 
 PropagatorFactory::~PropagatorFactory() {
 	deleteList<ParsingMonitor>(parsingmonitors);
-	for(auto i=parsedsets.begin(); i!=parsedsets.end(); ++i){
+	for(auto i=parsedsets.cbegin(); i!=parsedsets.cend(); ++i){
 		delete((*i).second.first);
 	}
 }
 
 template<typename T>
 void PropagatorFactory::notifyMonitorsOfAdding(const T& obj) const{
-	for(vector<ParsingMonitor*>::const_iterator i = parsingmonitors.begin(); i<parsingmonitors.end(); ++i){
+	for(vector<ParsingMonitor*>::const_iterator i = parsingmonitors.cbegin(); i<parsingmonitors.cend(); ++i){
 		(*i)->notifyadded(obj);
 	}
 }
@@ -113,7 +113,7 @@ void PropagatorFactory::setModSolver(ModSolver* m) {
 	ModStorage::setStorage(m);
 }
 
-bool PropagatorFactory::hasIDSolver(defID id) const { return idsolvers.find(id)!=idsolvers.end(); }
+bool PropagatorFactory::hasIDSolver(defID id) const { return idsolvers.find(id)!=idsolvers.cend(); }
 
 IDSolver* PropagatorFactory::getIDSolver(defID id) {
 	if(!hasIDSolver(id)){
@@ -133,7 +133,7 @@ void PropagatorFactory::add(const Var& v, bool nondecision) {
 }
 
 void PropagatorFactory::addVars(const vector<Lit>& a) {
-	for (auto i=a.begin(); i!=a.end(); ++i) {
+	for (auto i=a.cbegin(); i!=a.cend(); ++i) {
 		add(var(*i));
 	}
 }
@@ -144,7 +144,7 @@ int PropagatorFactory::newSetID(){
 }
 
 void toVec(const std::vector<Lit>& literals, vec<Lit>& lits){
-	for(auto i=literals.begin(); i<literals.end(); ++i){
+	for(auto i=literals.cbegin(); i<literals.cend(); ++i){
 		lits.push(*i);
 	}
 }
@@ -223,7 +223,7 @@ void PropagatorFactory::add(const InnerWLSet& formula){
 		throwEmptySet(formula.setID);
 	}
 
-	for(auto i=formula.wls.begin(); i!=formula.wls.end(); ++i){
+	for(auto i=formula.wls.cbegin(); i!=formula.wls.cend(); ++i){
 		addVar((*i).getLit());
 	}
 
@@ -245,7 +245,7 @@ void PropagatorFactory::add(const InnerWLSet& formula){
 void PropagatorFactory::add(const InnerAggregate& agg){
 	notifyMonitorsOfAdding(agg);
 
-	if(parsedsets.find(agg.setID)==parsedsets.end()){
+	if(parsedsets.find(agg.setID)==parsedsets.cend()){
 		throwUndefinedSet(agg.setID);
 	}
 
@@ -268,7 +268,7 @@ void PropagatorFactory::add(const InnerReifAggregate& origagg){
 	notifyMonitorsOfAdding(origagg);
 	InnerReifAggregate newagg(origagg);
 
-	if(parsedsets.find(newagg.setID)==parsedsets.end()){
+	if(parsedsets.find(newagg.setID)==parsedsets.cend()){
 		throwUndefinedSet(newagg.setID);
 	}
 
@@ -285,7 +285,7 @@ void PropagatorFactory::add(const InnerReifAggregate& origagg){
 		if(setwithagg.second.size()==0){ // FIXME ugly: check whether it is the first MIN agg added to the set
 			InnerWLSet* set = setwithagg.first;
 			vector<WL> newwls;
-			for(auto i=set->getWL().begin(); i!=set->getWL().end(); ++i){
+			for(auto i=set->getWL().cbegin(); i!=set->getWL().cend(); ++i){
 				newwls.push_back(WL((*i).getLit(), -(*i).getWeight()));
 			}
 			set->wls = newwls;
@@ -358,8 +358,13 @@ void PropagatorFactory::add(const InnerMinimizeAgg& formula){
 	notifyMonitorsOfAdding(formula);
 
 	add(formula.head);
+
+	InnerDisjunction d;
+	d.literals.push_back(mkPosLit(formula.head));
+	add(d);
+
 	auto it = parsedsets.find(formula.setID);
-	if(it==parsedsets.end()){
+	if(it==parsedsets.cend()){
 		throwUndefinedSet(formula.setID);
 	}
 	auto set = it->second.first;
@@ -367,7 +372,8 @@ void PropagatorFactory::add(const InnerMinimizeAgg& formula){
 
 	tempagglist aggs;
 	AggBound bound(AggSign::AGGSIGN_UB, Weight(0));
-	aggs.push_back(new TempAgg(mkPosLit(formula.head), bound, AggSem::IMPLICATION, formula.type));
+	// FIXME IMPLICATION IS USED INCORRECTLY (but could be used here!)
+	aggs.push_back(new TempAgg(mkPosLit(formula.head), bound, AggSem::COMP, formula.type));
 	finishSet(set, aggs, true);
 }
 void PropagatorFactory::add(const InnerMinimizeVar& formula){
@@ -414,7 +420,7 @@ void PropagatorFactory::addCP(const T& formula){
 	assert(false);
 	exit(1);
 #else
-	return CPStorage::getStorage()->add(formula);
+	CPStorage::getStorage()->add(formula);
 #warning Counting models in the presence of CP variables will be an underapproximation! (finding only one variable assigment for each literal assignment)
 #endif
 }
@@ -422,14 +428,14 @@ void PropagatorFactory::addCP(const T& formula){
 int IntVar::maxid_ = 0;
 
 IntVar*	PropagatorFactory::getIntVar(int varID) const {
-	if(intvars.find(varID)==intvars.end()){
+	if(intvars.find(varID)==intvars.cend()){
 		throw idpexception("Integer variable was not declared before use.\n");
 	}
 	return intvars.at(varID);
 }
 
 void PropagatorFactory::add(const InnerIntVarRange& obj){
-	if(intvars.find(obj.varID)!=intvars.end()){
+	if(intvars.find(obj.varID)!=intvars.cend()){
 		stringstream ss;
 		ss <<"Integer variable " <<obj.varID <<" was declared twice.\n";
 		throw idpexception(ss.str());
@@ -550,7 +556,7 @@ SATVAL PropagatorFactory::finishParsing() {
 	assert(isParsing());
 	parsing = false;
 
-	for(auto i = parsingmonitors.begin(); i<parsingmonitors.end(); ++i){
+	for(auto i = parsingmonitors.cbegin(); i<parsingmonitors.cend(); ++i){
 		(*i)->notifyEnd();
 	}
 
@@ -563,7 +569,7 @@ SATVAL PropagatorFactory::finishParsing() {
 	SATVAL satval = SATVAL::POS_SAT;
 
 	// create reified aggregates
-	for(auto i=parsedaggs.begin(); satval==SATVAL::POS_SAT && i!=parsedaggs.end(); ++i){
+	for(auto i=parsedaggs.cbegin(); satval==SATVAL::POS_SAT && i!=parsedaggs.cend(); ++i){
 		InnerReifAggregate r;
 		r.bound = (*i)->bound;
 		r.defID = -1;
@@ -588,7 +594,7 @@ SATVAL PropagatorFactory::finishParsing() {
 }
 
 void PropagatorFactory::includeCPModel(std::vector<VariableEqValue>& varassignments){
-	for(auto i=intvars.begin(); i!=intvars.end(); ++i){
+	for(auto i=intvars.cbegin(); i!=intvars.cend(); ++i){
 		VariableEqValue vareq;
 		vareq.variable = (*i).first;
 		vareq.value = (*i).second->minValue();

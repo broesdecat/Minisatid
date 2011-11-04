@@ -49,7 +49,7 @@ void LitTrail::propagate(const Lit& l){
 }
 lbool LitTrail::value(const Lit& l) const{
 	map<Var, lbool>::const_iterator it = values.find(var(l));
-	if(it==values.end()){
+	if(it==values.cend()){
 		return l_Undef;
 	}
 	return (*it).second;
@@ -188,8 +188,8 @@ rClause CPSolver::notifySATsolverOfPropagation(const Lit& p) {
 
 void CPSolver::checkHeadUniqueness() const{
 	set<Var> heads;
-	for(vector<ReifiedConstraint*>::const_iterator i=getData().getReifConstraints().begin(); i<getData().getReifConstraints().end(); i++){
-		if(heads.find((*i)->getHead())!=heads.end()){
+	for(vector<ReifiedConstraint*>::const_iterator i=getData().getReifConstraints().cbegin(); i<getData().getReifConstraints().cend(); i++){
+		if(heads.find((*i)->getHead())!=heads.cend()){
 			stringstream ss;
 			ss <<"Constraint reification atoms should be unique, but " <<(*i)->getHead() <<" is shared by at least two constraints.\n";
 			throw idpexception(ss.str());
@@ -251,7 +251,7 @@ rClause CPSolver::notifypropagate(){
 
 		//Check if any constraint matched (might be turned into map)
 		ReifiedConstraint* constr = NULL;
-		for(reifconstrlist::const_iterator i=getData().getReifConstraints().begin(); i<getData().getReifConstraints().end(); i++){
+		for(reifconstrlist::const_iterator i=getData().getReifConstraints().cbegin(); i<getData().getReifConstraints().cend(); i++){
 			if((*i)->getHead()==var(l)){
 				constr = *i;
 				break;
@@ -306,17 +306,17 @@ rClause CPSolver::genFullConflictClause(){
 	/*reportf("Finding shortest reason \n");
 	CPScript& space = *static_cast<CPScript*>(getSolverData()->getPrevSpace().clone());
 	space.addBranchers();
-	vector<Lit>::const_iterator nonassigned = trail.begin();
+	vector<Lit>::const_iterator nonassigned = trail.cbegin();
 	int currentlevel = getPCSolver().getLevel(var(trail.back()));
 	reportf("Current level: %d\n", currentlevel);
-	for(; nonassigned<trail.end(); nonassigned++){
+	for(; nonassigned<trail.cend(); nonassigned++){
 		if(getPCSolver().getLevel(var(*nonassigned))==currentlevel){
 			break;
 		}
 	}
-	for(; nonassigned<trail.end(); nonassigned++){
+	for(; nonassigned<trail.cend(); nonassigned++){
 		reportf("Possible conflict literal: "); gprintLit(*nonassigned); reportf("\n");
-		for(vreifconstrptr::const_iterator i=getSolverData()->getReifConstraints().begin(); i<getSolverData()->getReifConstraints().end(); i++){
+		for(vreifconstrptr::const_iterator i=getSolverData()->getReifConstraints().cbegin(); i<getSolverData()->getReifConstraints().cend(); i++){
 			if((*i)->getAtom()==var(*nonassigned) && !(*i)->isAssigned(space)){
 				(*i)->propagate(!sign(*nonassigned), space);
 				break;
@@ -352,9 +352,9 @@ rClause CPSolver::genFullConflictClause(){
 
 rClause CPSolver::propagateReificationConstraints(){
 	rClause confl = nullPtrClause;
-	for(vector<ReifiedConstraint*>::const_iterator i=getData().getReifConstraints().begin(); confl==nullPtrClause && i<getData().getReifConstraints().end(); i++){
+	for(vector<ReifiedConstraint*>::const_iterator i=getData().getReifConstraints().cbegin(); confl==nullPtrClause && i<getData().getReifConstraints().cend(); i++){
 		if((*i)->isAssigned(getSpace())){
-			confl = notifySATsolverOfPropagation((*i)->isAssignedFalse(getSpace())?mkNegLit((*i)->getHead()):mkPosLit((*i)->getHead())));
+			confl = notifySATsolverOfPropagation((*i)->isAssignedFalse(getSpace())?mkNegLit((*i)->getHead()):mkPosLit((*i)->getHead()));
 		}
 	}
 	return confl;
@@ -402,7 +402,7 @@ rClause CPSolver::propagateFinal(bool usesavedengine){
 }
 
 void CPSolver::getVariableSubstitutions(std::vector<VariableEqValue>& varassignments){
-	for(vtiv::const_iterator i=getData().getTerms().begin(); i<getData().getTerms().end(); i++){
+	for(vtiv::const_iterator i=getData().getTerms().cbegin(); i<getData().getTerms().cend(); i++){
 		VariableEqValue varass;
 		varass.variable = (*i).getID();
 		varass.value = (*i).getIntVar(getSpace()).val();

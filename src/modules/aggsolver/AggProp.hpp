@@ -69,6 +69,7 @@ public:
 	Agg(TypedSet* set, const TempAgg& agg, bool optim):
 		TempAgg(agg), optim(optim), set(set){}
 
+	bool		isOptimAgg		() 	const	{ return optim; }
 	TypedSet*	getSet			()	const	{ return set; }
 	Weight		getCertainBound	()	const;
 	SATVAL		reInitializeAgg	();
@@ -199,6 +200,7 @@ public:
 	virtual ~AggPropagator(){};
 
 	virtual void 		initialize(bool& unsat, bool& sat);
+	virtual rClause		reInitialize() = 0;
 	virtual void 		propagate		(Watch* w);
 	virtual rClause		propagateAtEndOfQueue() = 0;
 	virtual void		backtrack		(int untillevel) = 0;

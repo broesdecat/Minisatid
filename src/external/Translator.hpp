@@ -79,10 +79,10 @@ public:
 
 	virtual void printModel(std::ostream& output, const Model& model){
 		std::stringstream ss;
-		for (auto i = model.literalinterpretations.begin(); i < model.literalinterpretations.end(); ++i){
+		for (auto i = model.literalinterpretations.cbegin(); i < model.literalinterpretations.cend(); ++i){
 			ss <<(((*i).hasSign()) ? "-" : "") <<(*i).getAtom().getValue() <<" ";
 		}
-		for (auto i = model.variableassignments.begin(); i < model.variableassignments.end(); ++i){
+		for (auto i = model.variableassignments.cbegin(); i < model.variableassignments.cend(); ++i){
 			ss <<(*i).variable <<"=" <<(*i).value <<" ";
 		}
 		ss << "0\n";
@@ -97,7 +97,7 @@ public:
 		finish();
 		output <<"=== atom translation ===\n";
 		output <<"size of lit list: "<<l.size() <<"\n";
-		for(auto var2lit=l.begin(); var2lit<l.end(); ++var2lit){
+		for(auto var2lit=l.cbegin(); var2lit<l.cend(); ++var2lit){
 			if(hasTranslation((*var2lit).second)){
 				output <<getPrintableVar((*var2lit).first) <<" ";
 				printLiteral(output, (*var2lit).second);
@@ -162,7 +162,7 @@ public:
 	void addPred(std::string name, int startingnumber, const std::vector<std::string>& typenames, bool isfunction){
 		std::vector<Type*> argtypes;
 		int joinsize = 1;
-		for(auto i = typenames.begin(); i < typenames.end(); ++i) {
+		for(auto i = typenames.cbegin(); i < typenames.cend(); ++i) {
 			argtypes.push_back(types.at(*i));
 			joinsize *= argtypes.back()->domainelements.size();
 		}
@@ -191,7 +191,7 @@ private:
 	std::string getPredName	(int predn) const;
 	void printTuple(const std::vector<std::string>& tuple, std::ostream& output) const{
 		bool begin = true;
-		for(auto k = tuple.begin(); k < tuple.end(); ++k) {
+		for(auto k = tuple.cbegin(); k < tuple.cend(); ++k) {
 			if(!begin){
 				output << ",";
 			}
@@ -231,7 +231,7 @@ public:
 	virtual ~TupleTranslator(){}
 
 	bool hasTranslation	(const MinisatID::Literal& lit) const {
-		return lit2name.find(lit.getAtom())!=lit2name.end();
+		return lit2name.find(lit.getAtom())!=lit2name.cend();
 	}
 
 	void addTuple(Atom atom, std::string name) {
@@ -239,10 +239,10 @@ public:
 	}
 
 	void printModel(std::ostream& output, const Model& model) {
-		for(auto i=model.literalinterpretations.begin(); i<model.literalinterpretations.end(); ++i){
+		for(auto i=model.literalinterpretations.cbegin(); i<model.literalinterpretations.cend(); ++i){
 			if(!(*i).hasSign()){ //Do not print false literals
 				auto it = lit2name.find((*i).getAtom());
-				if(it!=lit2name.end()){
+				if(it!=lit2name.cend()){
 					output <<(*it).second <<" ";
 				}
 			}
@@ -254,7 +254,7 @@ public:
 
 	void printLiteral(std::ostream& output, const Literal& lit) {
 		auto it = lit2name.find(lit.getAtom());
-		if(it!=lit2name.end()){
+		if(it!=lit2name.cend()){
 			output <<(lit.hasSign()?"~":"") <<(*it).second <<"\n";
 		}
 	}

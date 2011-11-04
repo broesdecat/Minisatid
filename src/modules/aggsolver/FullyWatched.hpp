@@ -60,6 +60,7 @@ public:
 	virtual ~FWAgg(){};
 
 	virtual void 	initialize				(bool& unsat, bool& sat);
+	virtual rClause reInitialize			() { return propagateAtEndOfQueue(); }
 	virtual rClause	propagateAtEndOfQueue	();
 	virtual void	backtrack				(int untillevel);
 	virtual void 	getExplanation			(litlist& lits, const AggReason& ar) = 0;

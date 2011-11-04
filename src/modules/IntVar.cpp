@@ -39,11 +39,11 @@ void IntVar::finishParsing(bool& present, bool& unsat){
 		var2intvarvalues.insert(std::pair<int, IntVarValue>(var, IntVarValue(this, false, i+minValue())));
 
 	}
-	for(auto i=equalities.begin(); i<equalities.end(); ++i){
+	for(auto i=equalities.cbegin(); i<equalities.cend(); ++i){
 		engine().accept(this, mkPosLit(*i), FAST);
 		engine().accept(this, mkNegLit(*i), FAST);
 	}
-	for(auto i=disequalities.begin(); i<disequalities.end(); ++i){
+	for(auto i=disequalities.cbegin(); i<disequalities.cend(); ++i){
 		engine().accept(this, mkPosLit(*i), FAST);
 		engine().accept(this, mkNegLit(*i), FAST);
 	}
@@ -52,15 +52,16 @@ void IntVar::finishParsing(bool& present, bool& unsat){
 
 	if(verbosity()>3){
 		int index = 0;
-		for(auto i=equalities.begin(); i<equalities.end(); ++i, index++){
+		for(auto i=equalities.cbegin(); i<equalities.cend(); ++i, index++){
 			std::clog <<mkPosLit(*i) <<" <=> " <<origid() <<"=" <<minvalue+index <<"\n";
 		}
 		index = 0;
-		for(auto i=disequalities.begin(); i<disequalities.end(); ++i, index++){
+		for(auto i=disequalities.cbegin(); i<disequalities.cend(); ++i, index++){
 			std::clog <<mkPosLit(*i) <<" <=> " <<origid() <<"=<" <<minvalue+index <<"\n";
 		}
 	}
-	std::cerr <<"var " <<origid() <<"[" <<currentmin <<"," <<currentmax <<"]\n";
+	std::cerr <<"var" <<origid() <<"[" <<currentmin <<"," <<currentmax <<"]\n";
+	getPCSolver().acceptBounds(new IntView(this, 0), this);
 }
 
 void IntVar::notifyBacktrack(int untillevel, const Lit& decision){
@@ -77,7 +78,7 @@ void IntVar::notifyBacktrack(int untillevel, const Lit& decision){
 			break;
 		}
 	}
-	std::cerr <<"var " <<origid() <<"[" <<currentmin <<"," <<currentmax <<"] (post-backtrack)\n";
+	std::cerr <<"var" <<origid() <<"[" <<currentmin <<"," <<currentmax <<"] (post-backtrack)\n";
 }
 
 rClause	IntVar::notifypropagate(){
@@ -96,7 +97,7 @@ rClause	IntVar::notifypropagate(){
 		}
 	}
 	if(lastmin!=currentmin || lastmax!=currentmax){
-		std::cerr <<"var " <<origid() <<"[" <<currentmin <<"," <<currentmax <<"]\n";
+		std::cerr <<"var" <<origid() <<"[" <<currentmin <<"," <<currentmax <<"]\n";
 		engine().notifyBoundsChanged(this);
 	}
 

@@ -37,7 +37,7 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 	trail.push_back(new FWTrail(0, getSet().getType().getMinPossible(getSet()), getSet().getType().getMaxPossible(getSet())));
 
 	int counter = 0;
-	for (auto i = getSet().getAggNonConst().begin(); !unsat && i < getSet().getAggNonConst().end();) {
+	for (auto i = getSet().getAggNonConst().cbegin(); !unsat && i < getSet().getAggNonConst().cend();) {
 		pagg agg = (*i);
 		if(not agg->isOptim()){
 			lbool result = initialize(*agg);
@@ -62,7 +62,7 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 		sat = true; return;
 	}
 
-	for (auto j = getSet().getWL().begin(); j < getSet().getWL().end(); ++j) {
+	for (auto j = getSet().getWL().cbegin(); j < getSet().getWL().cend(); ++j) {
 		const Lit& l = (*j).getLit();
 		Watch *pos, *neg;
 		pos = new Watch(getSetp(), l, (*j).getWeight(), true, false);
@@ -147,7 +147,7 @@ void FWAgg::propagate(const Lit& p, Watch* ws, int level) {
 #ifdef DEBUG
 	assert(ws->getSet()==getSetp());
 	bool foundlit = false;
-	for(vwl::const_iterator i=getSet().getWL().begin(); i<getSet().getWL().end() ; ++i){
+	for(vwl::const_iterator i=getSet().getWL().cbegin(); i<getSet().getWL().cend() ; ++i){
 		if(var(i->getLit())==var(p)){
 			foundlit = true;
 		}
@@ -190,7 +190,7 @@ rClause FWAgg::propagateAtEndOfQueue(){
 	}
 	fwobj.start = fwobj.props.size();
 
-	for(vector<int>::const_iterator i=fwobj.headindex.begin(); confl==nullPtrClause && i<fwobj.headindex.end(); ++i){
+	for(vector<int>::const_iterator i=fwobj.headindex.cbegin(); confl==nullPtrClause && i<fwobj.headindex.cend(); ++i){
 		pagg agg = getSet().getAgg()[*i];
 		assert(agg->getSet()->getAgg()[agg->getIndex()]==agg && *i == agg->getIndex());
 		lbool headval = value(agg->getHead());
@@ -200,7 +200,7 @@ rClause FWAgg::propagateAtEndOfQueue(){
 
 	if(changedcc || changedcp){
 		//TODO find aggregate with most stringent bound and only propagate that one!
-		for (agglist::const_iterator i = getSet().getAgg().begin(); confl == nullPtrClause && i<getSet().getAgg().end(); ++i){
+		for (agglist::const_iterator i = getSet().getAgg().cbegin(); confl == nullPtrClause && i<getSet().getAgg().cend(); ++i){
 			const Agg& pa = **i;
 
 			if (getSet().verbosity() >= 6) {
@@ -350,7 +350,7 @@ void SPFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 	const int declevel = pcsolver.getCurrentDecisionLevel();
 	bool foundpropagatedlit = false;
 	if(pcsolver.modes().currentlevelfirstinexplanation && getTrail().back()->level==declevel){
-		for (vprop::const_iterator i = getTrail().back()->props.begin(); !stop && !foundpropagatedlit && i < getTrail().back()->props.end(); ++i) {
+		for (vprop::const_iterator i = getTrail().back()->props.cbegin(); !stop && !foundpropagatedlit && i < getTrail().back()->props.cend(); ++i) {
 			const Lit& lit = i->getLit();
 			assert(pcsolver.getLevel(var(lit))==declevel);
 			if(lit==ar.getPropLit()){ //NOTE: We only see a subset of the possibly relevant literals, so we are not guaranteed to find the full explanation before seeing the propagated literal, so we have to redo the loop later on.
@@ -368,8 +368,8 @@ void SPFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 	//IMPORTANT: first go over all literals and check which are already in the currently generated partial nogood (only if generating explanation on conflict)
 	if(getSet().modes().aggclausesaving==2 && pcsolver.modes().innogoodfirstinexplanation){
 		bool foundpropagatedlit = false;
-		for(vector<FWTrail*>::const_iterator a=getTrail().begin(); !stop && !foundpropagatedlit && a<getTrail().end(); ++a){
-			for (vprop::const_iterator i = (*a)->props.begin(); !stop && !foundpropagatedlit && i < (*a)->props.end(); ++i) {
+		for(vector<FWTrail*>::const_iterator a=getTrail().cbegin(); !stop && !foundpropagatedlit && a<getTrail().cend(); ++a){
+			for (vprop::const_iterator i = (*a)->props.cbegin(); !stop && !foundpropagatedlit && i < (*a)->props.cend(); ++i) {
 				const Lit& lit = i->getLit();
 				if(lit==ar.getPropLit()){ //NOTE: We only see a subset of the possibly relevant literals, so we are not guaranteed to find the full explanation before seeing the propagated literal, so we have to redo the loop later on.
 					foundpropagatedlit = true;
@@ -396,8 +396,8 @@ void SPFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 
 	//Then go over the trail earliest to latest to add more to the explanation
 	foundpropagatedlit = false;
-	for(vector<FWTrail*>::const_iterator a=getTrail().begin(); !stop && !foundpropagatedlit && a<getTrail().end(); ++a){
-		for (vprop::const_iterator i = (*a)->props.begin(); !stop && !foundpropagatedlit && i < (*a)->props.end(); ++i) {
+	for(vector<FWTrail*>::const_iterator a=getTrail().cbegin(); !stop && !foundpropagatedlit && a<getTrail().cend(); ++a){
+		for (vprop::const_iterator i = (*a)->props.cbegin(); !stop && !foundpropagatedlit && i < (*a)->props.cend(); ++i) {
 			const Lit& lit = i->getLit();
 			if(lit==ar.getPropLit()){ //NOTE: We only see a subset of the possibly relevant literals, so we are not guaranteed to find the full explanation before seeing the propagated literal, so we have to redo the loop later on.
 				foundpropagatedlit = true;
@@ -427,7 +427,7 @@ void SPFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 	//Subsetminimization
 	if(getSet().modes().subsetminimizeexplanation){
 		sort(reasons.begin(), reasons.end(), compareByWeights<PropagationInfo>);
-		for(vector<PropagationInfo>::iterator i=reasons.begin(); i<reasons.end(); ++i){
+		for(auto i=reasons.begin(); i<reasons.end(); ++i){
 			bool inset = i->getType()==POS;
 			removeValue(getSet().getType(), i->getWeight(), inset, min, max);
 			if((caseone && isFalsified(agg, min, max) ) ||(!caseone && isSatisfied(agg, min, max))){
@@ -439,7 +439,7 @@ void SPFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 		}
 	}
 
-	for(vector<PropagationInfo>::const_iterator i=reasons.begin(); i<reasons.end(); ++i){
+	for(auto i=reasons.cbegin(); i<reasons.cend(); ++i){
 		lits.push_back(not i->getLit());
 	}
 }
@@ -532,7 +532,7 @@ rClause MaxFWAgg::propagateAll(const Agg& agg, bool headtrue) {
 	Lit l = mkPosLit(0);
 	Weight w(0);
 	int found = 0;
-	for (vwl::const_iterator i=getSet().getWL().begin(); found<2 && i<getSet().getWL().end(); ++i) {
+	for (vwl::const_iterator i=getSet().getWL().cbegin(); found<2 && i<getSet().getWL().cend(); ++i) {
 		const WL& wl = (*i);
 		if(headtrue){
 			if(agg.hasLB() && wl.getWeight() < agg.getCertainBound()){
@@ -611,8 +611,8 @@ void MaxFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 	}
 	if(search){
 		bool found = false;
-		for(vector<FWTrail*>::const_iterator a=getTrail().begin(); !found && a<getTrail().end(); ++a){
-        	for (vprop::const_iterator i = (*a)->props.begin(); !found && i < (*a)->props.end(); ++i) {
+		for(vector<FWTrail*>::const_iterator a=getTrail().cbegin(); !found && a<getTrail().cend(); ++a){
+        	for (vprop::const_iterator i = (*a)->props.cbegin(); !found && i < (*a)->props.cend(); ++i) {
         		if(i->getType()==HEAD || var(i->getLit())==var(ar.getPropLit())){
         			continue;
         		}
@@ -663,7 +663,7 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 
 	TypedSet& set = getSet();
 	const vwl& wls = set.getWL();
-	vwl::const_iterator from = wls.end();
+	vwl::const_iterator from = wls.cend();
 	Weight weightbound;
 
 	bool ub = agg.hasUB();
@@ -698,8 +698,8 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 	}
 #endif
 
-	from = lower_bound(wls.begin(), wls.end(), weightbound);
-	if (from == getSet().getWL().end()) {
+	from = lower_bound(wls.cbegin(), wls.cend(), weightbound);
+	if (from == getSet().getWL().cend()) {
 		return c;
 	}
 
@@ -707,14 +707,14 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 	 * The lower bound indicates from which bound all literals should be propagate that are not yet known to the aggregate solver
 	 * All literals known to the sat solver are certainly sa
 	 */
-	for (vwl::const_iterator u = from; c == nullPtrClause && u < wls.end(); ++u) {
+	for (vwl::const_iterator u = from; c == nullPtrClause && u < wls.cend(); ++u) {
 		const Lit& l = (*u).getLit();
 
 		bool propagate = value(l)==l_Undef;
 
 		if(!propagate && getSet().getPCSolver().getLevel(var(l))==getSet().getPCSolver().getCurrentDecisionLevel()){
 			bool found = false;
-			for(vprop::const_iterator i=getTrail().back()->props.begin(); !found && i<getTrail().back()->props.end(); ++i){
+			for(vprop::const_iterator i=getTrail().back()->props.cbegin(); !found && i<getTrail().back()->props.cend(); ++i){
 				if(var(l)==var(i->getLit())){
 					found = true;
 				}
@@ -739,7 +739,7 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 
 #ifdef DEBUG
 	bool allknown = true;
-	for (vwl::const_iterator u = wls.begin(); allknown && u < wls.end(); ++u) {
+	for (vwl::const_iterator u = wls.cbegin(); allknown && u < wls.cend(); ++u) {
 		if((*u).getWeight()>=weightbound && value((*u).getLit())==l_Undef){
 			allknown = false;
 		}
@@ -765,7 +765,7 @@ void SumFWAgg::initialize(bool& unsat, bool& sat) {
 #ifdef NOARBITPREC
 	//Test whether the total sum of the weights is not infinity for intweights
 	Weight total(0);
-	for(vwl::const_iterator i=getSet().getWL().begin(); i<getSet().getWL().end(); ++i) {
+	for(vwl::const_iterator i=getSet().getWL().cbegin(); i<getSet().getWL().cend(); ++i) {
 		if(INT_MAX-total < i->getWeight()) {
 			throw idpexception("The total sum of weights exceeds max-int, correctness cannot be guaranteed in limited precision.\n");
 		}
@@ -776,14 +776,14 @@ void SumFWAgg::initialize(bool& unsat, bool& sat) {
 	//Calculate the total negative weight to make all weights positive
 	vwl wlits2;
 	Weight totalneg(0);
-	for (vwl::const_iterator i = getSet().getWL().begin(); i < getSet().getWL().end(); ++i) {
+	for (vwl::const_iterator i = getSet().getWL().cbegin(); i < getSet().getWL().cend(); ++i) {
 		if (i->getWeight() < 0) {
 			totalneg -= i->getWeight();
 		}
 	}
 	if (totalneg > 0) {
 		//Important: negate literals of with negative weights!
-		for (vwl::const_iterator i = getSet().getWL().begin(); i < getSet().getWL().end(); ++i) {
+		for (vwl::const_iterator i = getSet().getWL().cbegin(); i < getSet().getWL().cend(); ++i) {
 			if(i->getWeight()<0){
 				wlits2.push_back(WL(~i->getLit(), abs(i->getWeight())));
 			}else{
@@ -791,7 +791,7 @@ void SumFWAgg::initialize(bool& unsat, bool& sat) {
 			}
 		}
 		getSet().setWL(wlits2);
-		for (auto i = getSet().getAgg().begin(); i < getSet().getAgg().end(); ++i) {
+		for (auto i = getSet().getAgg().cbegin(); i < getSet().getAgg().cend(); ++i) {
 			Weight b = getSet().getType().add((*i)->getCertainBound(), totalneg);
 			(*i)->setBound(AggBound((*i)->getSign(), b));
 		}
@@ -810,7 +810,7 @@ void ProdFWAgg::initialize(bool& unsat, bool& sat) {
 		sat = true;
 		return;
 	}
-	for (agglist::iterator i = getSet().getAggNonConst().begin(); i < getSet().getAggNonConst().end(); ++i) {
+	for (auto i = getSet().getAggNonConst().begin(); i < getSet().getAggNonConst().end(); ++i) {
 		if((*i)->getCertainBound()<=0){
 			if((*i)->getSign()==AGGSIGN_LB){
 				// always positive
@@ -826,7 +826,7 @@ void ProdFWAgg::initialize(bool& unsat, bool& sat) {
 #ifdef NOARBITPREC
 	//Test whether the total product of the weights is not infinity for intweights
 	Weight total(1);
-	for(vwl::const_iterator i=getSet().getWL().begin(); i<getSet().getWL().end(); ++i) {
+	for(auto i=getSet().getWL().cbegin(); i<getSet().getWL().cend(); ++i) {
 		if(posInfinity()/total < i->getWeight()) {
 			throw idpexception("The total product of weights exceeds max-int, correctness cannot be guaranteed in limited precision.\n");
 		}

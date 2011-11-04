@@ -205,7 +205,7 @@ template<class T> bool DefaultCallback<T>::linearizeProduct(int newSymbol, vecto
 	r = 1;
 	beginConstraint();
 	constraintTerm(1, newSymbol);
-	for (vector<int>::const_iterator i =product.begin(); i < product.end(); ++i)
+	for (auto i =product.cbegin(); i < product.cend(); ++i)
 		if (*i > 0) {
 			constraintTerm(-1, *i);
 			r -= 1;
@@ -240,7 +240,7 @@ template<class T> bool DefaultCallback<T>::linearizeProduct(int newSymbol, vecto
 	r = 0;
 	beginConstraint();
 	constraintTerm(-(int) product.size(), newSymbol);
-	for (vector<int>::const_iterator i =product.begin(); i < product.end(); ++i)
+	for (auto i =product.cbegin(); i < product.cend(); ++i)
 		if (*i > 0)
 			constraintTerm(1, *i);
 		else {
@@ -266,7 +266,7 @@ template<class T> int ProductStore<T>::getProductVariable(vector<int> &list) {
 	sort(list.begin(), list.end());
 
 	// is this a known product ?
-	for (vector<int>::const_iterator i =list.begin(); i < list.end(); ++i){
+	for (auto i =list.cbegin(); i < list.cend(); ++i){
 		assert(p!=NULL);
 
 		// look for list[i] in *p
@@ -274,7 +274,7 @@ template<class T> int ProductStore<T>::getProductVariable(vector<int> &list) {
 		if (pos == p->end() || (*pos).lit != *i)
 			pos = p->insert(pos, ProductNode(*i)); // insert at the right place
 
-		if(i+1 != list.end() && (*pos).next == NULL){
+		if(i+1 != list.cend() && (*pos).next == NULL){
 			(*pos).next = new vector<ProductNode> ;
 		}
 
@@ -293,7 +293,7 @@ template<class T> int ProductStore<T>::getProductVariable(vector<int> &list) {
  */
 template<class T> bool ProductStore<T>::defineProductVariableRec(DefaultCallback<T> &cb, vector<ProductNode> &nodes, vector<int> &list) {
 	bool possat = true;
-	for (typename vector<ProductNode>::const_iterator i = nodes.begin(); i < nodes.end(); ++i) {
+	for (typename vector<ProductNode>::const_iterator i = nodes.cbegin(); i < nodes.cend(); ++i) {
 		list.push_back((*i).lit);
 		if ((*i).productId){
 			possat &= cb.linearizeProduct((*i).productId, list);
@@ -313,7 +313,7 @@ template<class T> bool ProductStore<T>::defineProductVariableRec(DefaultCallback
  *
  */
 template<class T> void ProductStore<T>::freeProductVariableRec(vector<ProductNode> &nodes) {
-	for (typename vector<ProductNode>::const_iterator i = nodes.begin(); i < nodes.end(); ++i) {
+	for (typename vector<ProductNode>::const_iterator i = nodes.cbegin(); i < nodes.cend(); ++i) {
 		if ((*i).next) {
 			freeProductVariableRec(*(*i).next);
 			delete (*i).next;

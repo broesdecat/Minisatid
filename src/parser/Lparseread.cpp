@@ -293,7 +293,7 @@ bool Read<T>::parseOptimizeRule(istream &f) {
 
 template<class T>
 bool Read<T>::addBasicRules() {
-	for (vector<BasicRule*>::const_iterator i = basicrules.begin(); i < basicrules.end(); ++i) {
+	for (vector<BasicRule*>::const_iterator i = basicrules.cbegin(); i < basicrules.cend(); ++i) {
 		bool unsat = false;
 		Rule r;
 		r.head = (*i)->head;
@@ -310,7 +310,7 @@ bool Read<T>::addBasicRules() {
 
 template<class T>
 bool Read<T>::addCardRules() {
-	for (vector<CardRule*>::const_iterator i = cardrules.begin(); i < cardrules.end(); ++i) {
+	for (vector<CardRule*>::const_iterator i = cardrules.cbegin(); i < cardrules.cend(); ++i) {
 		Set set;
 		set.setID = (*i)->setcount;
 		set.literals = (*i)->body;
@@ -334,7 +334,7 @@ bool Read<T>::addCardRules() {
 
 template<class T>
 bool Read<T>::addSumRules() {
-	for (vector<SumRule*>::const_iterator i = sumrules.begin(); i < sumrules.end(); ++i) {
+	for (vector<SumRule*>::const_iterator i = sumrules.cbegin(); i < sumrules.cend(); ++i) {
 		WSet set;
 		set.setID = (*i)->setcount;
 		set.literals = (*i)->body;
@@ -359,7 +359,7 @@ bool Read<T>::addSumRules() {
 
 template<class T>
 void Read<T>::addRuleToHead(map<Atom, vector<BasicRule*> >& headtorules, BasicRule* rule, Atom head){
-	if (headtorules.find(head) == headtorules.end()) {
+	if (headtorules.find(head) == headtorules.cend()) {
 		headtorules.insert(pair<Atom, vector<BasicRule*> > (head, std::vector<BasicRule*>()));
 	}
 	(*headtorules.find(head)).second.push_back(rule);
@@ -368,11 +368,11 @@ void Read<T>::addRuleToHead(map<Atom, vector<BasicRule*> >& headtorules, BasicRu
 template<class T>
 bool Read<T>::tseitinizeHeads(){
 	// Transform away all choicerules
-	for (vector<ChoiceRule*>::const_iterator i = choicerules.begin(); i < choicerules.end(); ++i) {
+	for (vector<ChoiceRule*>::const_iterator i = choicerules.cbegin(); i < choicerules.cend(); ++i) {
 		vector<Literal> tempbody;
 		tempbody.push_back(Literal(1)); //reserve space for the extra choice literal
-		tempbody.insert(tempbody.end(), (*i)->body.begin(), (*i)->body.end());
-		for (vector<Atom>::const_iterator j = (*i)->heads.begin(); j < (*i)->heads.end(); ++j) {
+		tempbody.insert(tempbody.end(), (*i)->body.cbegin(), (*i)->body.cend());
+		for (vector<Atom>::const_iterator j = (*i)->heads.cbegin(); j < (*i)->heads.cend(); ++j) {
 			const Atom& head = *j;
 			tempbody[0] = Literal(makeNewAtom());
 			basicrules.push_back(new BasicRule(head, tempbody));
@@ -390,24 +390,24 @@ bool Read<T>::tseitinizeHeads(){
 
 	//Check whether there are multiple occurrences and rewrite them using tseitin!
 	map<Atom, vector<BasicRule*> > headtorules;
-	for (vector<BasicRule*>::const_iterator i = basicrules.begin(); i < basicrules.end(); ++i) {
+	for (vector<BasicRule*>::const_iterator i = basicrules.cbegin(); i < basicrules.cend(); ++i) {
 		addRuleToHead(headtorules, *i, (*i)->head);
 	}
-	for (vector<CardRule*>::const_iterator i = cardrules.begin(); i < cardrules.end(); ++i) {
+	for (vector<CardRule*>::const_iterator i = cardrules.cbegin(); i < cardrules.cend(); ++i) {
 		addRuleToHead(headtorules, *i, (*i)->head);
 	}
-	for (vector<SumRule*>::const_iterator i = sumrules.begin(); i < sumrules.end(); ++i) {
+	for (vector<SumRule*>::const_iterator i = sumrules.cbegin(); i < sumrules.cend(); ++i) {
 		addRuleToHead(headtorules, *i, (*i)->head);
 	}
 
 	//Tseitinize
-	for (map<Atom, vector<BasicRule*> >::const_iterator i = headtorules.begin(); i != headtorules.end(); ++i) {
+	for (map<Atom, vector<BasicRule*> >::const_iterator i = headtorules.cbegin(); i != headtorules.cend(); ++i) {
 		if ((*i).second.size() < 2) { //No multiple heads
 			continue;
 		}
 
 		vector<Literal> newheads;
-		for (vector<BasicRule*>::const_iterator j = (*i).second.begin(); j < (*i).second.end(); ++j) {
+		for (vector<BasicRule*>::const_iterator j = (*i).second.cbegin(); j < (*i).second.cend(); ++j) {
 			Literal newhead = Literal(makeNewAtom());
 			newheads.push_back(newhead);
 			(*j)->head = newhead.getAtom();
@@ -416,10 +416,10 @@ bool Read<T>::tseitinizeHeads(){
 	}
 
 	//Make all literals which are defined but do not occur in the theory false
-	for(map<Atom, bool>::const_iterator i=defatoms.begin(); i!=defatoms.end(); ++i){
+	for(map<Atom, bool>::const_iterator i=defatoms.cbegin(); i!=defatoms.cend(); ++i){
 		assert((*i).second);
 		map<Atom, vector<BasicRule*> >::const_iterator it = headtorules.find((*i).first);
-		if(it==headtorules.end() || (*it).second.size()==0){
+		if(it==headtorules.cend() || (*it).second.size()==0){
 			Disjunction clause;
 			clause.literals.push_back(Literal((*i).first, true));
 			if(getSolver()->add(clause)==SATVAL::UNSAT){

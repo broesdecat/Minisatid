@@ -44,13 +44,13 @@ void FODOTTranslator::finishData(){
 
 	largestnottseitinatom = symbols.back()->endnumber;
 
-	for(std::vector<Symbol*>::const_iterator i=symbols.begin(); i<symbols.end(); ++i){
+	for(auto i=symbols.cbegin(); i<symbols.cend(); ++i){
 		truemodelcombinedout.push_back(SymbolInterpr(*i));
 		symbolasarbitatomlist[*i]=false;
 	}
 
 	// parse the certainly true atoms
-	for(std::vector<int>::const_iterator m=truelist.begin(); m<truelist.end(); ++m) {
+	for(auto m=truelist.cbegin(); m<truelist.cend(); ++m) {
 		int curr = *m;
 		if(curr > largestnottseitinatom){
 			continue;
@@ -71,7 +71,7 @@ void FODOTTranslator::finishParsing(ostream& output){
 	finishData();
 	if(!printedArbitrary){
 		int modelsRepresentedByArbitrary= 0;
-		for(std::vector<int>::const_iterator m=arbitlist.begin(); m<arbitlist.end(); ++m) {
+		for(auto m=arbitlist.cbegin(); m<arbitlist.cend(); ++m) {
 			int curr = *m;
 			if(curr > largestnottseitinatom){
 				continue;
@@ -128,7 +128,7 @@ void FODOTTranslator::printPredicate(const SymbolInterpr& pred, ostream& output,
 			output << pred.symbol->getName(tofodot) << " = { ";
 		}
 		bool tupleseen = false;
-		for(vector<TupleInterpr>::const_iterator m = pred.tuples.begin(); m < pred.tuples.end(); ++m) {
+		for(auto m = pred.tuples.cbegin(); m < pred.tuples.cend(); ++m) {
 			if(!tofodot){
 				output << pred.symbol->getName(tofodot) << "(";
 				printTuple((*m).arguments, output);
@@ -157,13 +157,13 @@ void FODOTTranslator::printFunction(const SymbolInterpr& func, ostream& output, 
 			int ts = func.symbol->types.size();
 			output <<" { ";
 			bool tupleseen = false;
-			for(vector<TupleInterpr>::const_iterator m = func.tuples.begin(); m < func.tuples.end(); ++m) {
+			for(auto m = func.tuples.cbegin(); m < func.tuples.cend(); ++m) {
 				if(tupleseen){
 					output << "; ";
 				}
 				bool begin = true;
 				int count = 0;
-				for(vector<string>::const_iterator k = (*m).arguments.begin(); k < (*m).arguments.end(); ++k, ++count) {
+				for(auto k = (*m).arguments.cbegin(); k < (*m).arguments.cend(); ++k, ++count) {
 					if(!begin){
 						output << (count==ts-1?"->":",");
 					}
@@ -180,7 +180,7 @@ void FODOTTranslator::printFunction(const SymbolInterpr& func, ostream& output, 
 			output << func.symbol->getName(tofodot) <<"(" << func.tuples[0].arguments[0] <<"). ";
 		}
 		else {
-			for(vector<TupleInterpr>::const_iterator m = func.tuples.begin(); m < func.tuples.end(); ++m) {
+			for(auto m = func.tuples.cbegin(); m < func.tuples.cend(); ++m) {
 				output << func.symbol->getName(tofodot) <<"(";
 				printTuple((*m).arguments, output);
 				output <<"). ";
@@ -190,7 +190,7 @@ void FODOTTranslator::printFunction(const SymbolInterpr& func, ostream& output, 
 }
 
 void FODOTTranslator::printInterpr(const modelvec& model, ostream& output, PRINTCHOICE printfixed) const{
-	for(vector<SymbolInterpr>::const_iterator n = model.begin(); n < model.end(); ++n) {
+	for(auto n = model.cbegin(); n < model.cend(); ++n) {
 		if((*n).symbol->isfunction) {
 			printFunction(*n, output, printfixed);
 		} else {
@@ -259,7 +259,7 @@ void FODOTTranslator::printModel(std::ostream& output, const Model& model) {
 
 	// read and translate the model
 	bool endmodel = false;
-	for(vector<Literal>::const_iterator i=model.literalinterpretations.begin(); i<model.literalinterpretations.end(); ++i){
+	for(auto i=model.literalinterpretations.cbegin(); i<model.literalinterpretations.cend(); ++i){
 		int lit = (*i).getValue();
 		if(lit==0 || endmodel){ //end of model found
 			break;

@@ -102,7 +102,7 @@ void FlatZincRewriter::check(const Literal& lit){
 	set<uint>& seenset = lit.hasSign()?negatomsseen:atomsseen;
 
 	bool add = false;
-	if(seenset.find(value)==seenset.end()){
+	if(seenset.find(value)==seenset.cend()){
 		seenset.insert(value);
 		add = true;
 	}
@@ -131,7 +131,7 @@ void FlatZincRewriter::createIntVar(const Literal& lit, bool def, int defID){
 	int value = lit.getAtom().getValue();
 	set<uint>& seenset = lit.hasSign()?litnegatomsseen:litatomsseen;
 
-	if(seenset.find(value)==seenset.end()){
+	if(seenset.find(value)==seenset.cend()){
 		seenset.insert(value);
 		definitions <<"var 0..1: " <<getIntVarName(lit) <<";\n";
 		constraints <<"constraint int_eq_reif(" <<getIntVarName(lit) <<", " <<"1" <<", " <<getVarName(lit) <<")";
@@ -143,25 +143,25 @@ void FlatZincRewriter::createIntVar(const Literal& lit, bool def, int defID){
 }
 
 const Weight& FlatZincRewriter::getMin(uint var){
-	assert(varbounds.find(var)!=varbounds.end());
+	assert(varbounds.find(var)!=varbounds.cend());
 	return (*varbounds.find(var)).second.first;
 }
 
 const Weight& FlatZincRewriter::getMax(uint var){
-	assert(varbounds.find(var)!=varbounds.end());
+	assert(varbounds.find(var)!=varbounds.cend());
 	return (*varbounds.find(var)).second.second;
 }
 
 template<>
 void FlatZincRewriter::check(const vector<Literal>& lits){
-	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); ++i){
+	for(vector<Literal>::const_iterator i=lits.cbegin(); i<lits.cend(); ++i){
 		check(*i);
 	}
 }
 
 template<>
 void FlatZincRewriter::checkOnlyPos(const vector<Literal>& lits){
-	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); ++i){
+	for(vector<Literal>::const_iterator i=lits.cbegin(); i<lits.cend(); ++i){
 		check((*i).getAtom());
 	}
 }
@@ -169,7 +169,7 @@ void FlatZincRewriter::checkOnlyPos(const vector<Literal>& lits){
 template<typename T>
 void addMappedList(const vector<T>& list, ostream& stream){
 	bool begin = true;
-	for(typename vector<T>::const_iterator i=list.begin(); i<list.end(); ++i){
+	for(typename vector<T>::const_iterator i=list.cbegin(); i<list.cend(); ++i){
 		if(!begin){
 			stream <<", ";
 		}
@@ -181,7 +181,7 @@ void addMappedList(const vector<T>& list, ostream& stream){
 template<typename T>
 void addIntVarList(const vector<T>& list, ostream& stream){
 	bool begin = true;
-	for(typename vector<T>::const_iterator i=list.begin(); i<list.end(); ++i){
+	for(typename vector<T>::const_iterator i=list.cbegin(); i<list.cend(); ++i){
 		if(!begin){
 			stream <<", ";
 		}
@@ -193,7 +193,7 @@ void addIntVarList(const vector<T>& list, ostream& stream){
 template<typename T>
 void addIntList(const vector<T>& list, ostream& stream){
 	bool begin = true;
-	for(typename vector<T>::const_iterator i=list.begin(); i<list.end(); ++i){
+	for(typename vector<T>::const_iterator i=list.cbegin(); i<list.cend(); ++i){
 		if(!begin){
 			stream <<", ";
 		}
@@ -251,7 +251,7 @@ Atom FlatZincRewriter::createAtom(){
 void FlatZincRewriter::addSum(const weightlist& weights, const vector<uint>& vars, const Atom& head, EqType rel, const Weight& bound){
 	stringstream ss;
 	bool begin = true;
-	for(vector<uint>::const_iterator i=vars.begin(); i<vars.end(); ++i){
+	for(vector<uint>::const_iterator i=vars.cbegin(); i<vars.cend(); ++i){
 		if(!begin){
 			ss <<", ";
 		}
@@ -310,7 +310,7 @@ void FlatZincRewriter::addVarSum(const weightlist& weights, const vector<uint>& 
 void FlatZincRewriter::addVarSum(const weightlist& weights, const vector<Literal>& lits, const Atom& head, EqType rel, uint rhsvar){
 	stringstream ss;
 	bool begin = true;
-	for(vector<Literal>::const_iterator i=lits.begin(); i<lits.end(); ++i){
+	for(vector<Literal>::const_iterator i=lits.cbegin(); i<lits.cend(); ++i){
 		if(!begin){
 			ss <<", ";
 		}
@@ -326,7 +326,7 @@ void FlatZincRewriter::addVarSum(const weightlist& weights, const vector<Literal
 }
 
 void FlatZincRewriter::addSum(const Aggregate& agg, const WSet& set){
-	for(literallist::const_iterator i=set.literals.begin(); i<set.literals.end(); ++i){
+	for(literallist::const_iterator i=set.literals.cbegin(); i<set.literals.cend(); ++i){
 		createIntVar(*i, agg.sem==DEF, agg.defID);
 	}
 
@@ -372,7 +372,7 @@ uint FlatZincRewriter::addOptimization(){
 		}
 		const WSet& set = getSet(mnm.setid);
 		Weight min = 0, max = 0;
-		for(weightlist::const_iterator i=set.weights.begin(); i<set.weights.end(); ++i){
+		for(weightlist::const_iterator i=set.weights.cbegin(); i<set.weights.cend(); ++i){
 			if((*i)<0){
 				min += *i;
 			}else{
@@ -382,7 +382,7 @@ uint FlatZincRewriter::addOptimization(){
 
 		optimvar = createCpVar(min, max);
 
-		for(literallist::const_iterator i=set.literals.begin(); i<set.literals.end(); ++i){
+		for(literallist::const_iterator i=set.literals.cbegin(); i<set.literals.cend(); ++i){
 			createIntVar(*i, false, 0);
 		}
 
@@ -396,7 +396,7 @@ uint FlatZincRewriter::addOptimization(){
 		optimvar = createCpVar(1, long(mnm.literals.size()));
 
 		int currentvalue = 1;
-		for(literallist::const_iterator i=mnm.literals.begin(); i<mnm.literals.end(); ++i){
+		for(literallist::const_iterator i=mnm.literals.cbegin(); i<mnm.literals.cend(); ++i){
 			stringstream ss;
 			ss <<currentvalue;
 			addBinRel(getVarName(optimvar), ss.str(), *i, MEQ);
@@ -465,15 +465,15 @@ void FlatZincRewriter::addProduct(const Aggregate& agg, const WSet& set){
 void FlatZincRewriter::finishParsing(){
 	state = FINISHING;
 
-	for(vector<BinRel>::const_iterator i=savedbinrels.begin(); i<savedbinrels.end(); ++i){
+	for(vector<BinRel>::const_iterator i=savedbinrels.cbegin(); i<savedbinrels.cend(); ++i){
 		addBinRel((*i).left, (*i).right, Literal((*i).head, false), (*i).rel);
 	}
 
-	for(vector<CPSumWeighted>::const_iterator i=savedcpsums.begin(); i<savedcpsums.end(); ++i){
+	for(vector<CPSumWeighted>::const_iterator i=savedcpsums.cbegin(); i<savedcpsums.cend(); ++i){
 		addSum((*i).weights, (*i).varIDs, (*i).head, (*i).rel, (*i).bound);
 	}
 
-	for(vector<Aggregate>::const_iterator i=savedaggs.begin(); i<savedaggs.end(); ++i){
+	for(vector<Aggregate>::const_iterator i=savedaggs.cbegin(); i<savedaggs.cend(); ++i){
 		if((*i).type==PROD){
 			addProduct(*i, getSet((*i).setID));
 		}else{
@@ -496,7 +496,7 @@ void FlatZincRewriter::finishParsing(){
 // ADDITION METHODS
 
 void FlatZincRewriter::addIntegerVar(uint varID, const string& domainexpr, const Weight& min, const Weight& max){
-	if(cpvarsseen.find(varID)!=cpvarsseen.end()){
+	if(cpvarsseen.find(varID)!=cpvarsseen.cend()){
 		stringstream ss;
 		ss <<"Double addition of integer variable " <<varID <<".";
 		throw idpexception(ss.str());
@@ -540,7 +540,7 @@ void FlatZincRewriter::add(const WSet& set, int setID){
 template<>
 SATVAL FlatZincRewriter::add(const literallist& lits){
 	literallist pos, neg;
-	for(literallist::const_iterator i=lits.begin(); i<lits.end(); ++i){
+	for(literallist::const_iterator i=lits.cbegin(); i<lits.cend(); ++i){
 		if((*i).hasSign()){
 			neg.push_back(~(*i));
 		}else{
@@ -585,7 +585,7 @@ SATVAL FlatZincRewriter::add(const Rule& rule){
 	if(!rule.conjunctive){
 		if(rule.body.size()>1){
 			SATVAL satpossible = SATVAL::POS_SAT;
-			for(literallist::const_iterator i=rule.body.begin(); satpossible==SATVAL::POS_SAT && i<rule.body.end(); ++i){
+			for(literallist::const_iterator i=rule.body.cbegin(); satpossible==SATVAL::POS_SAT && i<rule.body.cend(); ++i){
 				Rule smallrule;
 				smallrule.head = rule.head;
 				smallrule.body.push_back(*i);
@@ -606,7 +606,7 @@ SATVAL FlatZincRewriter::add(const Rule& rule){
 
 	constraints <<"[";
 	bool begin = true;
-	for(literallist::const_iterator i=rule.body.begin(); i<rule.body.end(); ++i){
+	for(literallist::const_iterator i=rule.body.cbegin(); i<rule.body.cend(); ++i){
 		if((*i).hasSign()){
 			continue;
 		}
@@ -620,7 +620,7 @@ SATVAL FlatZincRewriter::add(const Rule& rule){
 
 	constraints <<"[";
 	begin = true;
-	for(literallist::const_iterator i=rule.body.begin(); i<rule.body.end(); ++i){
+	for(literallist::const_iterator i=rule.body.cbegin(); i<rule.body.cend(); ++i){
 		if(!(*i).hasSign()){
 			continue;
 		}
@@ -640,7 +640,7 @@ SATVAL FlatZincRewriter::add(const Rule& rule){
 template<>
 SATVAL FlatZincRewriter::add(const Set& set){
 	WSet wset;
-	for(literallist::const_iterator i=set.literals.begin(); i<set.literals.end(); ++i){
+	for(literallist::const_iterator i=set.literals.cbegin(); i<set.literals.cend(); ++i){
 		wset.literals.push_back(*i);
 		wset.weights.push_back(1);
 	}
@@ -657,7 +657,7 @@ SATVAL FlatZincRewriter::add(const WSet& set){
 template<>
 SATVAL FlatZincRewriter::add(const WLSet& set){
 	WSet wset;
-	for(vector<WLtuple>::const_iterator i=set.wl.begin(); i<set.wl.end(); ++i){
+	for(vector<WLtuple>::const_iterator i=set.wl.cbegin(); i<set.wl.cend(); ++i){
 		wset.literals.push_back((*i).l);
 		wset.weights.push_back((*i).w);
 	}
@@ -749,7 +749,7 @@ SATVAL FlatZincRewriter::add(const CPIntVarEnum& var){
 	stringstream ss;
 	ss <<"{";
 	bool begin = true;
-	for(vector<Weight>::const_iterator i=var.values.begin(); i<var.values.end(); ++i){
+	for(vector<Weight>::const_iterator i=var.values.cbegin(); i<var.values.cend(); ++i){
 		if(!begin){
 			ss <<", ";
 		}
