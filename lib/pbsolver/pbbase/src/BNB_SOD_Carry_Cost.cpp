@@ -23,7 +23,7 @@ static inline void createChild(struct BaseSearchState* father,register unsigned 
 	 * @return	SearchMetaData*  
 */
 SearchMetaData* bnb_SOD_Carry_Cost_search(unsigned int weights[][2],int length,std::vector<unsigned int>& primes,unsigned int cutoff,bool nonPrimePossible,bool abstraction,bool sumOfDig){
-		SearchMetaData*  md;  //preperations
+		SearchMetaData*  md = NULL;  //preperations
 		/*if (sumOfDig) md =  new SearchMetaData(lg2(weights[0][0]),cutoff,weights[0][0],length,"BNB_cost_sumOfDigits");
 		else 		  md =  new SearchMetaData(lg2(weights[0][0]),cutoff,weights[0][0],length,"BNB_cost_carry"); 
 		THeap que;

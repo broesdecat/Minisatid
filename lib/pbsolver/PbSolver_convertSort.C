@@ -310,7 +310,7 @@ Formula buildConstraint(const Linear& c, int max_cost)
     }
     Int lo = c.lo;
     Int hi = c.hi;
-	if (opt_tare & (lo == hi | lo == Int_MIN | hi == Int_MAX)) {
+	if (opt_tare & ((lo == hi) | (lo == Int_MIN) | (hi == Int_MAX))) {
 		Int toNormlize;
 		Int toAdd;
 		if (lo == Int_MIN) toNormlize = hi;
