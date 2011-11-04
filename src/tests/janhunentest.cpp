@@ -17,7 +17,7 @@ using namespace std;
 using namespace MinisatID;
 
 // FIXME something wrong with having to include this operator here (because externalinterface.cpp is not in the test sources, which it shouldnt)
-SATVAL MinisatID::operator&= (SATVAL orig, SATVAL add){
+SATVAL operator&= (SATVAL orig, SATVAL add){
 	return (orig==SATVAL::UNSAT||add==SATVAL::UNSAT)? SATVAL::UNSAT: SATVAL::POS_SAT;
 }
 
