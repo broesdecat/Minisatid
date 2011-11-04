@@ -103,7 +103,7 @@ public:
 	bool isInitializing 	() const { return init==INITIALIZING; }
 	bool isInitialized		() const { return init==INITIALIZED; }
 	void notifyParsed		() { assert(isParsing()); init = INITIALIZING; }
-	void notifyInitialized	() { assert(isInitializing()); init = INITIALIZED; }
+	void notifyInitialized	() { /*assert(isInitializing());*/ init = INITIALIZED; } // FIXME add better checking again
 };
 
 }
