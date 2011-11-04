@@ -308,7 +308,7 @@ AggProp const * getType(AggType type){
 	}
 }
 
-TypedSet* createPropagator(PCSolver* solver, InnerWLSet* set, const std::vector<TempAgg*>& aggs, const Weight& knownbound, bool usewatches, bool optim = false){
+TypedSet* createPropagator(PCSolver* solver, InnerWLSet* set, const std::vector<TempAgg*>& aggs, const Weight& knownbound, bool usewatches, bool optim){
 	TypedSet* propagator = new TypedSet(solver, set->setID, knownbound);
 	propagator->setUsingWatches(usewatches);
 	propagator->setWL(set->wls);
@@ -324,6 +324,7 @@ void MinisatID::decideUsingWatchesAndCreateOptimPropagator(PCSolver* solver, Inn
 	agg->setBound(AggBound(AggSign::AGGSIGN_UB, getType(set->type)->getMaxPossible(set->wls)));
 
 	double ratio = testGenWatchCount(*solver, *set, *getType(set->type), tempagglist{agg}, knownbound);
+	// FIXME for watched datastructs, the (re)initialize is not correct
 	auto typedset = createPropagator(solver, set, tempagglist{agg}, knownbound, ratio<solver->modes().watchesratio, true);
 
 	solver->addAggOptimization(typedset);
@@ -338,7 +339,7 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, InnerWL
 		}
 	}
 	if(not watchable){
-		createPropagator(solver, set, aggs, knownbound, false);
+		createPropagator(solver, set, aggs, knownbound, false, false);
 		return;
 	}
 
@@ -382,220 +383,12 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, InnerWL
 
 	// Create propagators
 	double ratio = ratioone*0.5+ratiotwo*0.5;
-	if(ratio<solver->modes().watchesratio){
-		createPropagator(solver, set, signoneaggs, knownbound, true);
+	if(ratio<solver->modes().watchesratio){ // FIXME NOTE it has to be disequality, because there are some cases in which ratio can be 0
+		createPropagator(solver, set, signoneaggs, knownbound, true, false);
 		if(signtwoaggs.size()>0){
-			createPropagator(solver, set, signtwoaggs, knownbound, true);
+			createPropagator(solver, set, signtwoaggs, knownbound, true, false);
 		}
 	}else{
-		createPropagator(solver, set, aggs, knownbound, false);
+		createPropagator(solver, set, aggs, knownbound, false, false);
 	}
 }
-
-//
-//class OrderedAggTransformations{
-//public:
-//	std::vector<AggTransformation*> t;
-//
-//	OrderedAggTransformations(){
-//		t.push_back(new PartitionIntoTypes()); // add as inputformat invariant? => set has type!
-//		t.push_back(new MinToMax()); // can be in init
-//		t.push_back(new AddTypes()); // part of the invariant then => set has type
-//		t.push_back(new VerifyWeights()); // can be in init
-//		t.push_back(new MaxToSAT()); // can be on a per-aggregate basis (so also in init)
-//		t.push_back(new SetReduce()); // does not create extra sets
-//		t.push_back(new CardToEquiv()); // can be on a per-aggregate basis
-//		t.push_back(new AddHeadImplications()); // do not change set
-//		//t.push_back(new MapToSetOneToOneWithAgg());
-//		t.push_back(new MapToSetWithSameAggSign()); // => creates 1 extra set
-//	}
-//	~OrderedAggTransformations(){
-//		deleteList<AggTransformation>(t);
-//	}
-//};
-//
-//OrderedAggTransformations transfo;
-//
-//const vector<AggTransformation*>& MinisatID::getTransformations(){
-//	return transfo.t;
-//}
-//
-//
-//
-//void MapToSetOneToOneWithAgg::transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const {
-//	assert(!unsat && !sat && set->getAgg().size()>0);
-//	if(!set->isUsingWatches() || set->getAgg().size()==1){
-//		return;
-//	}
-//
-//	agglist aggs = set->getAgg();
-//	assert(aggs.size()>0);
-//
-//	agglist newaggs;
-//	newaggs.push_back(aggs[0]);
-//	set->replaceAgg(newaggs);
-//
-//	for (agglist::const_iterator i = ++aggs.cbegin(); i < aggs.cend(); ++i) {
-//		TypedSet* newset = new TypedSet(*set);
-//		newset->addAgg(*i);
-//		assert(newset->getAgg().size()==1);
-//		// insert again sets.push_back(newset);
-//	}
-//	assert(set->getAgg().size()==1);
-//}
-//
-//void MapToSetWithSameAggSign::transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const {
-//	bool watchable = true;
-//	assert(!unsat && !sat && set->getAgg().size()>0);
-//	for(vector<TempAgg*>::const_iterator i=set->getAgg().cbegin(); i<set->getAgg().cend(); ++i){
-//		if((*i)->getType()==MAX){
-//			watchable = false;
-//		}
-//	}
-//	if(!watchable){
-//		set->setUsingWatches(false);
-//	}
-//	if(!set->isUsingWatches()){
-//		return;
-//	}
-//
-//	assert(set->getAgg()[0]->getSem()!=IMPLICATION); //add to other transformations!
-//
-//	//create implication aggs
-//	agglist implaggs, del;
-//	for(agglist::const_iterator i=set->getAgg().cbegin(); i<set->getAgg().cend(); ++i){
-//		const Agg& agg = *(*i);
-//
-//		Agg *one, *two;
-//		Weight weighttwo = agg.getSign()==AGGSIGN_LB?agg.getBound()-1:agg.getBound()+1;
-//		AggSign signtwo = agg.getSign()==AGGSIGN_LB?AGGSIGN_UB:AGGSIGN_LB;
-//		one = new Agg(~agg.getHead(), AggBound(agg.getSign(), agg.getBound()), IMPLICATION, agg.getType());
-//		two = new Agg(agg.getHead(), AggBound(signtwo, weighttwo), IMPLICATION, agg.getType());
-//
-//		implaggs.push_back(one);
-//		implaggs.push_back(two);
-//		del.push_back(*i);
-//	}
-//
-//	//separate in both signs
-//	agglist signoneaggs, signtwoaggs;
-//	signoneaggs.push_back(implaggs[0]);
-//	for (agglist::const_iterator i = ++implaggs.cbegin(); i < implaggs.cend(); ++i) {
-//		if ((*i)->getSign() == implaggs[0]->getSign()) {
-//			signoneaggs.push_back(*i);
-//		} else {
-//			signtwoaggs.push_back(*i);
-//		}
-//	}
-//
-//	//for each, generate watches and count ratio
-//	//		partially watched and add sets in new format!
-///*	TypedSet* signoneset = new TypedSet(*set);
-//	signoneset->replaceAgg(signoneaggs);
-//	GenPWAgg* propone = new GenPWAgg(signoneset);
-//	signoneset->setProp(propone);
-//	double ratioone = propone->testGenWatchCount();
-//
-//	double ratiotwo = 0;
-//	TypedSet* signtwoset = NULL;
-//	if(signtwoaggs.size()>0){
-//		signtwoset = new TypedSet(*set);
-//		signtwoset->replaceAgg(signtwoaggs);
-//		GenPWAgg* proptwo = new GenPWAgg(signtwoset);
-//		signtwoset->setProp(proptwo);
-//		ratiotwo = proptwo->testGenWatchCount();
-//	}
-//
-//	double ratio = ratioone*0.5+ratiotwo*0.5;
-//	if(ratio<=solver->modes().watchesratio){
-//		if(signtwoset!=NULL){
-//			agglist empty;
-//			signtwoset->replaceAgg(empty);
-//			set->replaceAgg(signtwoaggs, del);
-//			delete propone;
-//			signoneset->setProp(NULL);
-//			sets.push_back(signoneset);
-//		}else{
-//			agglist empty;
-//			signoneset->replaceAgg(empty);
-//			set->replaceAgg(signoneaggs, del);
-//			delete signoneset;
-//		}
-//	}else{*/
-//		set->setUsingWatches(false);
-//	/*	delete signoneset;
-//	}
-//	if(signtwoset!=NULL){
-//		delete signtwoset;
-//	}*/
-//}
-//
-//void PartitionIntoTypes::transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const {
-//	if(set->getAgg().size()==0){
-//		sat = true;
-//		return;
-//	}
-//	//Partition the aggregates according to their type
-//	map<AggType, agglist> partaggs;
-//	for (agglist::const_iterator i = set->getAgg().cbegin(); i < set->getAgg().cend(); ++i) {
-//		partaggs[(*i)->getType()].push_back(*i);
-//	}
-//
-//	map<AggType, agglist>::const_iterator i = partaggs.cbegin();
-//	set->replaceAgg((*i).second);
-//	++i;
-//	for (; i != partaggs.cend(); ++i) {
-//		TypedSet* newset = new TypedSet(*set);
-//		assert((*i).second.size()>0);
-//		newset->replaceAgg((*i).second);
-//		newset->setWL(set->getWL());
-//		// insert again sets.push_back(newset);
-//	}
-//}
-//
-//
-////@pre Has to be split
-//
-//
-////@pre Has to be split
-////Adds the type objects and correct esv to the sets
-//void AddTypes::transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const {
-//	switch (set->getAgg()[0]->getType()) {
-//		case MAX:
-//			set->setType(AggProp::getMax());
-//			break;
-//		case SUM:
-//			set->setType(AggProp::getSum());
-//			break;
-//		case CARD:
-//			set->setType(AggProp::getCard());
-//			break;
-//		case PROD:
-//			set->setType(AggProp::getProd());
-//			break;
-//		default:
-//			assert(false);
-//	}
-//}
-//
-//void MinToMax::transform(PCSolver* solver, TypedSet* set, bool& unsat, bool& sat) const {
-//	if (set->getAgg()[0]->getType() == MIN) {
-//		//Transform Min into Max set: invert all weights
-//		vwl wl;
-//		for (vsize i = 0; i < set->getWL().size(); ++i) {
-//			wl.push_back(WL(set->getWL()[i].getLit(), -set->getWL()[i].getWeight()));
-//		}
-//		set->setWL(wl);
-//
-//		//Invert the bound of all the aggregates involved
-//		for (agglist::const_iterator i = set->getAgg().cbegin(); i < set->getAgg().cend(); ++i) {
-//			Weight bound = -(*i)->getBound();
-//			AggSign sign = (*i)->getSign()==AGGSIGN_LB?AGGSIGN_UB:AGGSIGN_LB;
-//			(*i)->setBound(AggBound(sign, bound));
-//			assert((*i)->getType()==MIN);
-//			(*i)->setType(MAX);
-//		}
-//	}
-//}
-//
-//
