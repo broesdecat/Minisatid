@@ -205,11 +205,11 @@ void PropagatorFactory::add(const InnerRule& rule){
 	add(rule.head);
 	addVars(rule.body);
 
-	if(getEngine().modes().lazy){
+//	if(getEngine().modes().lazy){
 		// FIXME LazyStorage::getStorage()->add(new InnerRule(rule));
-	}else{
+//	}else{
 		getIDSolver(rule.definitionID)->addRule(rule.conjunctive, rule.head, rule.body);
-	}
+//	}
 }
 
 void PropagatorFactory::add(const std::vector<InnerRule*>& definition){
