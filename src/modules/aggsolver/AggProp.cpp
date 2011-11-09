@@ -391,7 +391,7 @@ AggPropagator::AggPropagator(TypedSet* set)
 
 // Final initialization call!
 void AggPropagator::initialize(bool& unsat, bool& sat) {
-	for (agglist::const_iterator i = getSet().getAgg().cbegin(); i < getSet().getAgg().cend(); ++i) {
+	for (auto i = getSet().getAgg().cbegin(); i < getSet().getAgg().cend(); ++i) {
 		// both for implication and comp
 		Watch* w = new Watch(getSetp(), not (*i)->getHead(), *i, false);
 		getSet().getPCSolver().accept(w);

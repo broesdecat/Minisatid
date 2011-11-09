@@ -39,18 +39,20 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 	int counter = 0;
 	for (auto i = getSet().getAggNonConst().cbegin(); !unsat && i < getSet().getAggNonConst().cend();) {
 		pagg agg = (*i);
-		lbool result = initialize(*agg);
-		if (result == l_True) {
-			//If after initialization, the head will have a fixed value, then this is
-			//independent of any further propagations within that aggregate.
-			//BUT ONLY if it is not defined (or at a later stage, if it cannot be in any loop)
-			// FIXME remove headwatch
-			//getSet().removeHeadWatch(var(agg->getHead()));
-			//i = getSet().getAggNonConst().erase(i);
-			//continue;
-		} else if (result == l_False) {
-			unsat = true; //UNSAT because always false
-			return;
+		if(not agg->isOptim()){
+			lbool result = initialize(*agg);
+			if (result == l_True) {
+				//If after initialization, the head will have a fixed value, then this is
+				//independent of any further propagations within that aggregate.
+				//BUT ONLY if it is not defined (or at a later stage, if it cannot be in any loop)
+				// FIXME remove headwatch
+				//getSet().removeHeadWatch(var(agg->getHead()));
+				//i = getSet().getAggNonConst().erase(i);
+				//continue;
+			} else if (result == l_False) {
+				unsat = true; //UNSAT because always false
+				return;
+			}
 		}
 		agg->setIndex(counter++);
 		++i;
@@ -60,7 +62,7 @@ void FWAgg::initialize(bool& unsat, bool& sat) {
 		sat = true; return;
 	}
 
-	for (vwl::const_iterator j = getSet().getWL().cbegin(); j < getSet().getWL().cend(); ++j) {
+	for (auto j = getSet().getWL().cbegin(); j < getSet().getWL().cend(); ++j) {
 		const Lit& l = (*j).getLit();
 		Watch *pos, *neg;
 		pos = new Watch(getSetp(), l, (*j).getWeight(), true, false);
@@ -789,7 +791,7 @@ void SumFWAgg::initialize(bool& unsat, bool& sat) {
 			}
 		}
 		getSet().setWL(wlits2);
-		for (agglist::const_iterator i = getSet().getAgg().cbegin(); i < getSet().getAgg().cend(); ++i) {
+		for (auto i = getSet().getAgg().cbegin(); i < getSet().getAgg().cend(); ++i) {
 			Weight b = getSet().getType().add((*i)->getCertainBound(), totalneg);
 			(*i)->setBound(AggBound((*i)->getSign(), b));
 		}

@@ -258,6 +258,8 @@ void IDSolver::addToNetwork(Var v){
  * @PRE: aggregates have to have been finished
  */
 void IDSolver::finishParsing(bool& present, bool& unsat) {
+	notifyParsed();
+
 	present = true;
 	unsat = false;
 

@@ -158,7 +158,12 @@ minisatid_include_HEADERS = \
 		external/ExternalUtils.hpp\
 		external/Translator.hpp
 
-alltests_SOURCES = tests/googletestsnippet.cpp tests/janhunentest.cpp libminisatid_2_0_la_SOURCES
-alltests_LDADD = -lgtest -lpthread
+alltests_SOURCES = tests/googletestsnippet.cpp tests/janhunentest.cpp
+# below is a workaround which allows to reuse SOURCES and still guarantee unique names (if using it on different targets) 
+#alltests_CXXFLAGS = $(AM_CXXFLAGS)
+alltests_LDADD = -lgtest -lpthread libminisatid-2.0.la
 
 TESTS = alltests
+
+#issue with google test?
+DISTCLEANFILES = alltests 
