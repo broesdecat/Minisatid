@@ -644,7 +644,7 @@ void SPFWAgg::addToCertainSet(const WL& l) {
 }
 
 void SPFWAgg::removeFromPossibleSet(const WL& l) {
-	setCP(getSet().getType().remove(getCP(), l.getWeight()));
+	setCP(getSet().getType().removeMax(getCP(), l.getWeight()));
 }
 
 /**
@@ -672,23 +672,23 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 	const AggProp& type = getSet().getType();
 	if (headtrue) {
 		if (ub) {
-			weightbound = type.remove(bound, getCC());
+			weightbound = type.removeMin(bound, getCC());
 			//+1 because larger and not eq
-			if (type.add(weightbound, getCC()) == bound) {
+			if (type.add(weightbound, getCC()) >= bound) {
 				weightbound += 1;
 			}
 		} else {
-			weightbound = type.remove(getCP(), bound);
+			weightbound = type.removeMax(getCP(), bound);
 			//+1 because larger and not eq
-			if (type.add(weightbound, bound) == getCP()) {
+			if (type.add(weightbound, bound) <= getCP()) {
 				weightbound += 1;
 			}
 		}
 	} else { //head false
 		if (ub) {
-			weightbound = type.remove(getCP(), bound);
+			weightbound = type.removeMax(getCP(), bound);
 		} else {
-			weightbound = type.remove(bound, getCC());
+			weightbound = type.removeMin(bound, getCC());
 		}
 	}
 

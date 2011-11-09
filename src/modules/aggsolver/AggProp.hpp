@@ -107,9 +107,16 @@ public:
 	virtual WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, Weight& knownbound) const = 0;
 
 	virtual Weight		add						(const Weight& lhs, const Weight& rhs) 	const = 0;
-	virtual Weight		remove					(const Weight& lhs, const Weight& rhs) 	const = 0;
-		virtual AggPropagator*	createPropagator	(TypedSet* set) 						const = 0;
+	virtual Weight		removeMax				(const Weight& lhs, const Weight& rhs) 	const{
+		return remove(lhs, rhs);
+	}
+	virtual Weight		removeMin				(const Weight& lhs, const Weight& rhs) 	const{
+		return remove(lhs, rhs);
+	}
+	virtual AggPropagator*	createPropagator	(TypedSet* set) 						const = 0;
 	virtual Weight 		getESV					()										const = 0;
+protected:
+	virtual Weight		remove					(const Weight& lhs, const Weight& rhs) 	const = 0;
 };
 
 class MaxProp: public AggProp{
@@ -141,7 +148,8 @@ public:
 	bool 		isMonotone				(const Agg& agg, const Weight& w)		const;
 	bool 		isMonotone				(const TempAgg& agg, const Weight& w, const Weight& knownbound)	const;
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const;
-	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const;
+	virtual Weight	removeMax			(const Weight& lhs, const Weight& rhs) 	const;
+	virtual Weight	removeMin			(const Weight& lhs, const Weight& rhs) 	const;
 	Weight		getMinPossible			(const std::vector<WL>& wls)			const;
 	Weight		getMaxPossible			(const std::vector<WL>& wls)			const;
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
@@ -149,6 +157,8 @@ public:
 	AggPropagator*	createPropagator	(TypedSet* set) const;
 
 	Weight 		getESV					()										const { return Weight(1); }
+protected:
+	Weight remove(const Weight& lhs, const Weight& rhs) const;
 };
 
 class SumProp: public SPProp{

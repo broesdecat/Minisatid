@@ -162,9 +162,9 @@ rClause GenPWAgg::checkPropagation(bool& propagations, minmaxBounds& pessbounds,
 		WL lowerbound(mkPosLit(1), Weight(0));
 		//Calculate lowes
 		if(agg.hasLB()){
-			lowerbound = WL(mkPosLit(1), getType().remove(pessbounds.max, agg.getCertainBound()));
+			lowerbound = WL(mkPosLit(1), getType().removeMax(pessbounds.max, agg.getCertainBound()));
 		}else{
-			lowerbound = WL(mkPosLit(1), getType().remove(agg.getCertainBound(), pessbounds.min));
+			lowerbound = WL(mkPosLit(1), getType().removeMin(agg.getCertainBound(), pessbounds.min));
 		}
 		vwl::const_iterator i = upper_bound(getSet().getWL().cbegin(), getSet().getWL().cend(), lowerbound, compareByWeights<WL>);
 		for(; confl==nullPtrClause && i<getSet().getWL().cend(); ++i){ //INVARIANT: sorted WL
@@ -203,7 +203,7 @@ minmaxBounds GenPWAgg::calculatePessimisticBounds(){
 		if(val==l_True){
 			pessbounds.min = getType().add(pessbounds.min, wl.getWeight());
 		}else if(val==l_False){
-			pessbounds.max = getType().remove(pessbounds.max, wl.getWeight());
+			pessbounds.max = getType().removeMax(pessbounds.max, wl.getWeight());
 		}
 	}
 	return pessbounds;

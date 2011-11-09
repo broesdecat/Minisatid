@@ -234,16 +234,31 @@ Weight ProdProp::add(const Weight& lhs, const Weight& rhs) const {
 	return lhs * rhs;
 }
 
-Weight ProdProp::remove(const Weight& lhs, const Weight& rhs) const {
+Weight ProdProp::remove(const Weight&, const Weight&) const{
+	assert(false);
+}
+Weight ProdProp::removeMin(const Weight& lhs, const Weight& rhs) const{
 	Weight w = 0;
 	assert(rhs!=0); //FIXME should prevent this from happening
 	if (rhs != 0) {
 		w = lhs / rhs;
-		if (w == 1 && lhs > rhs) {
-			w = 2;
+		if (w*rhs>lhs) {
+			w--;
 		}
 	}
-
+//	cerr <<"mindiv: " <<lhs <<"/" <<rhs <<"=" <<w <<"\n";
+	return w;
+}
+Weight ProdProp::removeMax(const Weight& lhs, const Weight& rhs) const{
+	Weight w = 0;
+	assert(rhs!=0); //FIXME should prevent this from happening
+	if (rhs != 0) {
+		w = lhs / rhs;
+		if (rhs*w<lhs) {
+			w++;
+		}
+	}
+//	cerr <<"maxdiv: " <<lhs <<"/" <<rhs <<"=" <<w <<"\n";
 	return w;
 }
 
@@ -318,11 +333,11 @@ void MinisatID::addValue(const AggProp& type, const Weight& weight, bool addtose
 	if(pos && addtoset){
 		min = type.add(min, weight);
 	}else if(pos && !addtoset){
-		max = type.remove(max, weight);
+		max = type.removeMax(max, weight);
 	}else if(!pos && addtoset){
 		max = type.add(max, weight);
 	}else{ //!pos && !addtoset
-		min = type.remove(min, weight);
+		min = type.removeMin(min, weight);
 	}
 }
 
@@ -333,11 +348,11 @@ void MinisatID::removeValue(const AggProp& type, const Weight& weight, bool wasi
 void MinisatID::removeValue(const AggProp& type, const Weight& weight, bool wasinset, Weight& min, Weight& max) {
 	bool pos = weight>=0;
 	if(pos && wasinset){
-		min = type.remove(min, weight);
+		min = type.removeMin(min, weight);
 	}else if(pos && !wasinset){
 		max = type.add(max, weight);
 	}else if(!pos && wasinset){
-		max = type.remove(max, weight);
+		max = type.removeMax(max, weight);
 	}else{ //!pos && !wasinset
 		min = type.add(min, weight);
 	}

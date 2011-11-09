@@ -2235,7 +2235,7 @@ bool IDSolver::canJustifySPHead(const IDAgg& agg, litlist& jstf, varlist& nonjst
 		for (vwl::const_iterator i = wl.cbegin(); !justified && i < wl.cend(); ++i) {
 			if (oppositeIsJustified(currentjust, *i, real)) {
 				jstf.push_back(not i->getLit());
-				bestpossible = type.remove(bestpossible, i->getWeight());
+				bestpossible = type.removeMax(bestpossible, i->getWeight());
 				if (bestpossible <= agg.getBound()) {
 					justified = true;
 				}
