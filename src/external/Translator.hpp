@@ -105,11 +105,11 @@ public:
 		}
 	}
 
-	virtual bool hasTranslation			(const MinisatID::Literal& lit) const { return false; }
+	virtual bool hasTranslation			(const MinisatID::Literal&) const { return false; }
 
-	virtual void printLiteral			(std::ostream& output, const MinisatID::Literal& lit){ std::clog <<(lit.hasSign()?"-":"") <<lit.getAtom().getValue(); }
-	virtual void printCurrentOptimum	(std::ostream& output, const Weight& value) { std::clog <<value; }
-	virtual void printHeader			(std::ostream& output) {}
+	virtual void printLiteral			(std::ostream& output, const MinisatID::Literal& lit){ output <<(lit.hasSign()?"-":"") <<lit.getAtom().getValue(); }
+	virtual void printCurrentOptimum	(std::ostream& output, const Weight& value) { output <<value; }
+	virtual void printHeader			(std::ostream&) {}
 
 	virtual void finish(){}
 };
