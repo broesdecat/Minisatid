@@ -9,11 +9,10 @@
 #include "external/ResourceManager.hpp"
 #include "GeneralUtils.hpp"
 
-#include <tr1/memory>
+#include <memory>
 #include <sstream>
 
 using namespace std;
-using namespace std::tr1;
 using namespace MinisatID;
 
 void FileMan::close() {
@@ -77,7 +76,7 @@ std::streambuf* StdMan::getBuffer() {
 
 namespace MinisatID {
 	string inputurl = "";
-	std::tr1::shared_ptr<ResMan> input;
+	std::shared_ptr<ResMan> input;
 }
 
 void MinisatID::setInputFileUrl(string url) {
@@ -88,10 +87,10 @@ void MinisatID::setInputFileUrl(string url) {
 void createInput() {
 	if (input.get() == NULL) {
 		if (inputurl == "") {
-			input = std::tr1::shared_ptr<ResMan>(new StdMan(true));
+			input = std::shared_ptr<ResMan>(new StdMan(true));
 			cerr <<"Reading from standard input...\n";
 		} else {
-			input = std::tr1::shared_ptr<ResMan>(new FileMan(inputurl.c_str(), false));
+			input = std::shared_ptr<ResMan>(new FileMan(inputurl.c_str(), false));
 		}
 	}
 }

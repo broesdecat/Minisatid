@@ -34,7 +34,7 @@ Solution::Solution(ModelExpandOptions options) :
 		owntranslator(new Translator()), translator(owntranslator),
 		startparsing(0), endparsing(-1), startfinish(0), endfinish(-1), startsimpl(0), endsimpl(-1), startsolve(0), endsolve(-1){
 
-	resman = std::tr1::shared_ptr<ResMan>(new StdMan(false));
+	resman = std::shared_ptr<ResMan>(new StdMan(false));
 }
 
 Solution::~Solution(){
@@ -191,7 +191,7 @@ void Solution::closeOutput() {
 
 void Solution::setOutputFile(std::string output){
 	if(!output.empty()){
-		resman = std::tr1::shared_ptr<ResMan>(new FileMan(output.c_str(), true));
+		resman = std::shared_ptr<ResMan>(new FileMan(output.c_str(), true));
 	}
 }
 
