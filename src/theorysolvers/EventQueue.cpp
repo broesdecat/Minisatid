@@ -216,7 +216,8 @@ void EventQueue::finishParsing(bool& unsat){
 
 
 	// Do all possible propagations that are queued
-	if (notifyPropagate() != nullPtrClause) {
+	// TODO double unsat specification?
+	if (not unsat && getPCSolver().satState()!=SATVAL::UNSAT && notifyPropagate() != nullPtrClause) {
 		unsat = true; return;
 	}
 }
@@ -228,6 +229,7 @@ rClause EventQueue::notifyPropagate(){
 	propagateasap.clear();
 
 	rClause confl = nullPtrClause;
+	assert(getPCSolver().satState()!=SATVAL::UNSAT);
 	while(fastqueue.size()+slowqueue.size()!=0 && confl==nullPtrClause){
 		Propagator* p = NULL;
 		if(fastqueue.size()!=0){
@@ -239,6 +241,7 @@ rClause EventQueue::notifyPropagate(){
 		}
 		p->notifyDeQueued();
 		confl = p->notifypropagate();
+		assert(getPCSolver().satState()!=SATVAL::UNSAT || confl!=nullPtrClause);
 	}
 	return confl;
 }
