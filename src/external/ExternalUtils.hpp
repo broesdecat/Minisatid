@@ -13,10 +13,11 @@
 
 typedef unsigned int uint;
 
-#include "external/Idpexception.hpp"
-#include "external/Weight.hpp"
-#include "external/Datastructures.hpp"
-#include "external/LazyClauseSupport.hpp"
+#include "Idpexception.hpp"
+#include "Weight.hpp"
+#include "Datastructures.hpp"
+#include "LazyClauseSupport.hpp"
+#include "TerminationManagement.hpp"
 
 namespace MinisatID {
 	// Definitional options
