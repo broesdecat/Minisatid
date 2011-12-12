@@ -56,11 +56,10 @@ private:
 	AggSem		sem;
 	int			index;
 	AggType		type;
-	std::vector<WL> wls;
+	std::vector<WL> wls; // NOTE: SORTED by literal weights!
 
 public:
-	IDAgg(const Lit& head, AggBound b, AggSem sem, AggType type, const std::vector<WL>& wls):
-		bound(b), head(head), sem(sem), index(-1), type(type), wls(wls){	}
+	IDAgg(const Lit& head, AggBound b, AggSem sem, AggType type, const std::vector<WL>& wls);
 
 	const Lit& 	getHead		() 					const 	{ return head; }
 	void	 	setHead		(const Lit& l)			 	{ head = l; }

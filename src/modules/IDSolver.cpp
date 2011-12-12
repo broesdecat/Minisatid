@@ -26,6 +26,11 @@
 using namespace std;
 using namespace MinisatID;
 
+IDAgg::IDAgg(const Lit& head, AggBound b, AggSem sem, AggType type, const std::vector<WL>& origwls):
+	bound(b), head(head), sem(sem), index(-1), type(type), wls(origwls){
+	std::sort(wls.begin(), wls.end(), compareByWeights<WL>);
+}
+
 IDSolver::IDSolver(PCSolver* s, int definitionID):
 		Propagator(s),
 		definitionID(definitionID),
@@ -2240,7 +2245,7 @@ bool IDSolver::canJustifyMaxHead(const IDAgg& agg, litlist& jstf, varlist& nonjs
 
 	if (justified && agg.hasUB()) {
 		justified = false;
-		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && i->getWeight() > agg.getBound(); ++i) {
+		for (auto i = wl.crbegin(); i < wl.crend() && i->getWeight() > agg.getBound(); ++i) {
 			if (oppositeIsJustified(currentjust, *i, real)) {
 				jstf.push_back(not i->getLit()); //push negative literal, because it should become false
 			} else if (real || currentjust.getElem(var(i->getLit())) != 0) {
@@ -2254,7 +2259,7 @@ bool IDSolver::canJustifyMaxHead(const IDAgg& agg, litlist& jstf, varlist& nonjs
 
 	if(justified && agg.hasLB()){
 		justified = false;
-		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && i->getWeight() >= agg.getBound(); ++i) {
+		for (auto i = wl.crbegin(); i < wl.crend() && i->getWeight() >= agg.getBound(); ++i) {
 			if (isJustified(currentjust, *i, real)) {
 				jstf.push_back(i->getLit());
 				justified = true;
