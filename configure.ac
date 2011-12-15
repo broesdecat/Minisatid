@@ -110,14 +110,6 @@ AC_ARG_ENABLE([tests],
 	*) AC_MSG_ERROR([bad value ${enableval} for --enable-tests]) ;;
 esac],[ tests=yes ])
 
-AC_ARG_ENABLE([perftools],
-[  --enable-perftools=false    Use the google perftools library for memory allocation (does not work for each OS, please consult "http://code.google.com/p/google-perftools/"],
-[case "${enableval}" in
-	no) perftools=no ;;
-	yes) perftools=yes ;;
-	*) AC_MSG_ERROR([bad value ${enableval} for --enable-perftools]) ;;
-esac],[ perftools=no ])
-
 AC_ARG_ENABLE([cp],
 [  --enable-cp    Include constraint programming support [yes/no] ],
 [enablegecode=$enableval],[enablegecode=no])
@@ -156,13 +148,8 @@ if test "x$enablegecode" = "xyes" -a "x$hasgecodedir" = "xyes"; then
 	AC_CXXFLAGS+=" -I $gecodedir/include "
 fi
 
-AM_CONDITIONAL([USEPERFTOOLS],[test x$perftools = xyes])
 AM_CONDITIONAL([BUILDTESTS],[test x$enabletests = xyes])
 AM_CONDITIONAL([USECPSUPPORT],[test x$enablegecode == xyes])
-
-#if test "x$perftools" = "xyes"; then
-	AC_CONFIG_SUBDIRS([lib/perftools])
-#fi
 
 AC_CONFIG_SUBDIRS([lib/tclap])
 AC_CONFIG_FILES([Makefile doc/Makefile lib/Makefile lib/pbsolver/Makefile src/Makefile src/parser/Makefile src/minisatid-2.0.pc])

@@ -18,11 +18,8 @@ pkgconfig_DATA = minisatid-2.0.pc
 EXTRA_DIST = minisatid-2.0.pc.in
 
 # do not forget ldconfig after installing ;)
-libminisatid_2_0_la_LIBADD = @minisatliblibs@ $(libsbuilddir)/pbsolver/libpbsolver-1.0.la 
-if USEPERFTOOLS
-libminisatid_2_0_la_LIBADD += $(libsbuilddir)/perftools/.libs/libtcmalloc.la $(libsbuilddir)/perftools/.libs/libprofiler.la
-endif
-		
+libminisatid_2_0_la_LIBADD = @minisatliblibs@ $(libsbuilddir)/pbsolver/libpbsolver-1.0.la
+	
 libminisatid_2_0_la_SOURCES = \
 		external/SolvingMonitor.hpp\
 		external/ResourceManager.hpp\
