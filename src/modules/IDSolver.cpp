@@ -309,10 +309,10 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 			addtonetwork = true;
 		} else { //can never be in posloop
 			if (occ(v) == NONDEFOCC) { //will not occur in a loop
-				cerr <<getPrintableVar(v) <<" cannot be in any loop.\n";
+				//cerr <<getPrintableVar(v) <<" cannot be in any loop.\n";
 				removeDefinition(v);
 			} else if (occ(v) == MIXEDLOOP) { //might occur in a mixed loop
-				cerr <<getPrintableVar(v) <<" can be in a mixed loop.\n";
+				//cerr <<getPrintableVar(v) <<" can be in a mixed loop.\n";
 				addtonetwork = true;
 			}
 		}
