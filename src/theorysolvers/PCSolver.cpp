@@ -223,10 +223,8 @@ void PCSolver::setModSolver(ModSolver* m) {
 	getFactory().setModSolver(m);
 }
 
-//IMPORTANT: only allowed after parsing!
 Var PCSolver::newVar() {
-	assert(!isParsing());
-	Var v = getParent().getNewVar();
+	auto v = getParent().getNewVar(); // NOTE: request from the parent remapper TODO prevent remapper from not being used
 	add(v);
 	return v;
 }
