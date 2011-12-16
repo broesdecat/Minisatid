@@ -14,7 +14,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <tr1/unordered_map>
 
 #include "external/ExternalInterface.hpp"
 #include "external/ExternalUtils.hpp"

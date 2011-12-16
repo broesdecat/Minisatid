@@ -10,7 +10,6 @@
 
 #include <cstdlib>
 #include <vector>
-#include <tr1/memory>
 #include <algorithm>
 
 #include "external/ResourceManager.hpp"

@@ -13,7 +13,6 @@
 #include <string>
 #include <map>
 #include <ostream>
-#include <tr1/memory>
 
 #include "external/ExternalUtils.hpp"
 #include "external/Translator.hpp"
@@ -43,7 +42,7 @@ private:
 	ModelSaved modelsave; //CRITICAL SECTION SUPPORT
 	SolvingState solvingstate;
 
-	std::tr1::shared_ptr<ResMan> resman;
+	std::shared_ptr<ResMan> resman;
 
 	Translator *owntranslator, *translator;
 

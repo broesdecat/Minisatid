@@ -4,8 +4,4 @@
 # Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
 SUBDIRS = tclap pbsolver
 
-if USEPERFTOOLS
-SUBDIRS += perftools
-endif
-
 EXTRA_DIST = pluscallback1.7

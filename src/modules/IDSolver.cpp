@@ -26,6 +26,11 @@
 using namespace std;
 using namespace MinisatID;
 
+IDAgg::IDAgg(const Lit& head, AggBound b, AggSem sem, AggType type, const std::vector<WL>& origwls):
+	bound(b), head(head), sem(sem), index(-1), type(type), wls(origwls){
+	std::sort(wls.begin(), wls.end(), compareByWeights<WL>);
+}
+
 IDSolver::IDSolver(PCSolver* s, int definitionID):
 		Propagator(s),
 		definitionID(definitionID),
@@ -274,6 +279,11 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 		if(not modes().lazy){
 			present = false;
 		}
+#ifdef DEBUG
+	for (auto i=defdVars.cbegin(); i!=defdVars.cend(); ++i) { //seen should have been erased
+		assert(seen(*i)==0);
+	}
+#endif
 		return;
 	}
 
@@ -340,13 +350,23 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 		bumpHeadHeuristic();
 	}
 
-	unsat = !simplifyGraph(atoms_in_pos_loops);
+	unsat = not simplifyGraph(atoms_in_pos_loops);
 
-	if(!unsat && modes().tocnf){
+	if(not unsat && modes().tocnf){
 		unsat = transformToCNF(sccroots, present)==SATVAL::UNSAT;
 	}
 
 	notifyInitialized();
+
+	if(unsat){
+		getPCSolver().notifyUnsat();
+	}else{
+#ifdef DEBUG
+	for (auto i=defdVars.cbegin(); i!=defdVars.cend(); ++i) { //seen should have been erased
+		assert(seen(*i)==0);
+	}
+#endif
+	}
 }
 
 void IDSolver::bumpHeadHeuristic(){
@@ -626,15 +646,16 @@ bool IDSolver::simplifyGraph(int atomsinposloops){
 	varlist reducedVars;
 	posrecagg = false;
 	mixedrecagg = false;
-	for (vector<int>::const_iterator i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
+	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
 		Var v = (*i);
 		if (seen(v) > 0 || isFalse(v)) {
 			if (verbosity() >= 2) {
 				report(" %d", getPrintableVar(v));
 			}
-			if (isTrue(v)) {
+			if(isTrue(v)){
 				return false;
-			} else if (isUnknown(v)) {
+			}
+			if(isUnknown(v)) {
 				getPCSolver().setTrue(createNegativeLiteral(v), this);
 			}
 
@@ -698,7 +719,7 @@ bool IDSolver::simplifyGraph(int atomsinposloops){
 	}
 
 	//Reset the elements in "seen" that were changed
-	//IMPORTANT do not return before this call!
+	//NOTE: do not return before this call!
 	for (auto i = usedseen.cbegin(); i < usedseen.cend(); ++i) {
 		seen(*i) = 0;
 	}
@@ -764,6 +785,12 @@ bool IDSolver::simplifyGraph(int atomsinposloops){
 	}
 	if(verbosity()>=9){
 		clog <<"\n";
+	}
+#endif
+
+#ifdef DEBUG
+	for (auto i=defdVars.cbegin(); i!=defdVars.cend(); ++i) { //seen should have been erased
+		assert(seen(*i)==0);
 	}
 #endif
 
@@ -844,6 +871,13 @@ void IDSolver::propagateJustificationAggr(const Lit& l, vector<litlist >& jstfs,
  * the state has to be stable for both aggregate and unit propagations
  */
 rClause IDSolver::notifypropagate() {
+#ifdef DEBUG
+	assert(getPCSolver().satState()!=SATVAL::UNSAT);
+	for (auto i=defdVars.cbegin(); i!=defdVars.cend(); ++i) { //seen should have been erased
+		assert(seen(*i)==0);
+	}
+#endif
+
 	// There was an unfounded set saved which might not have been completely propagated by unit propagation
 	// So check if there are any literals unknown and add more loopformulas
 	if(savedufs.size()!=0){
@@ -851,6 +885,11 @@ rClause IDSolver::notifypropagate() {
 			if(!isFalse(*i)){
 				Lit l = createNegativeLiteral(*i);
 				addLoopfClause(l, savedloopf);
+#ifdef DEBUG
+	for (auto i=defdVars.cbegin(); i!=defdVars.cend(); ++i) { //seen should have been erased
+		assert(seen(*i)==0);
+	}
+#endif
 				return nullPtrClause;
 			}
 		}
@@ -858,12 +897,22 @@ rClause IDSolver::notifypropagate() {
 	}
 
 	if(not posloops || not isInitialized() || not indirectPropagateNow()){
+#ifdef DEBUG
+	for (auto i=defdVars.cbegin(); i!=defdVars.cend(); ++i) { //seen should have been erased
+		assert(seen(*i)==0);
+	}
+#endif
 		return nullPtrClause;
 	}
 
 	findCycleSources();
 
 	if (css.empty()) {
+#ifdef DEBUG
+	for (auto i=defdVars.cbegin(); i!=defdVars.cend(); ++i) { //seen should have been erased
+		assert(seen(*i)==0);
+	}
+#endif
 		return nullPtrClause;
 	}
 
@@ -908,6 +957,12 @@ rClause IDSolver::notifypropagate() {
 			adaption_current = 0;
 		}
 	}
+
+#ifdef DEBUG
+	for (auto i=defdVars.cbegin(); i!=defdVars.cend(); ++i) { //seen should have been erased
+		assert(seen(*i)==0);
+	}
+#endif
 
 	return confl;
 }
@@ -1057,6 +1112,12 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 	queue<Var> q;
 	Var v;
 
+#ifdef DEBUG
+	for (auto i=defdVars.cbegin(); i!=defdVars.cend(); ++i) { //seen should have been erased
+		assert(seen(*i)==0);
+	}
+#endif
+
 	markNonJustified(cs, tmpseen);
 	bool csisjustified = false;
 
@@ -1095,7 +1156,7 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 	}
 
 #ifdef DEBUG
-	for (auto i=defdVars.cbegin(); i!=defdVars.cend(); ++i) { //seen should have been
+	for (auto i=defdVars.cbegin(); i!=defdVars.cend(); ++i) { //seen should have been erased
 		assert(seen(*i)==0);
 	}
 #endif
@@ -2184,7 +2245,7 @@ bool IDSolver::canJustifyMaxHead(const IDAgg& agg, litlist& jstf, varlist& nonjs
 
 	if (justified && agg.hasUB()) {
 		justified = false;
-		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && i->getWeight() > agg.getBound(); ++i) {
+		for (auto i = wl.crbegin(); i < wl.crend() && i->getWeight() > agg.getBound(); ++i) {
 			if (oppositeIsJustified(currentjust, *i, real)) {
 				jstf.push_back(not i->getLit()); //push negative literal, because it should become false
 			} else if (real || currentjust.getElem(var(i->getLit())) != 0) {
@@ -2198,7 +2259,7 @@ bool IDSolver::canJustifyMaxHead(const IDAgg& agg, litlist& jstf, varlist& nonjs
 
 	if(justified && agg.hasLB()){
 		justified = false;
-		for (vwl::const_reverse_iterator i = wl.rbegin(); i < wl.rend() && i->getWeight() >= agg.getBound(); ++i) {
+		for (auto i = wl.crbegin(); i < wl.crend() && i->getWeight() >= agg.getBound(); ++i) {
 			if (isJustified(currentjust, *i, real)) {
 				jstf.push_back(i->getLit());
 				justified = true;

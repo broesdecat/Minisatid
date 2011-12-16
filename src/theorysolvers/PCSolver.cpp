@@ -235,6 +235,7 @@ int	PCSolver::newSetID(){
 }
 
 rClause PCSolver::checkFullAssignment() {
+	assert(satState()!=SATVAL::UNSAT);
 	return getEventQueue().notifyFullAssignmentFound();
 }
 

@@ -11,7 +11,6 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstdint>
-#include <tr1/memory>
 #include <limits>
 #include <ctime>
 

@@ -12,6 +12,8 @@
 #include <vector>
 #include <map>
 #include <cassert>
+#include <cstdint>
+#include <cstdlib>
 #include "external/Weight.hpp"
 
 namespace MinisatID {
@@ -49,7 +51,7 @@ public:
 	Atom 	getAtom() 						const { return Atom(lit<0?-lit:lit); }
 	bool 	hasSign() 						const { return lit<0; }
 	bool 	operator== (const Literal& l) 	const { return lit == l.lit; }
-	bool 	operator< (const Literal& l) 	const {	return abs(lit) < abs(l.lit); }
+	bool 	operator< (const Literal& l) 	const {	return std::abs(lit) < std::abs(l.lit); }
 	Literal operator~()						const { return Literal(getAtom(), lit>0?true:false); }
 };
 

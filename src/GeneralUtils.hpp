@@ -15,19 +15,11 @@
 #include <fstream>
 #include <cstdio>
 
-#ifdef __GXX_EXPERIMENTAL_CXX0X__
-	#include <memory>
-	template<class T>
-	struct sharedptr{
-		typedef std::shared_ptr<T> ptr;
-	};
-#else
-	#include <tr1/memory>
-	template<class T>
-	struct sharedptr{
-		typedef std::tr1::shared_ptr<T> ptr;
-	};
-#endif
+#include <memory>
+template<class T>
+struct sharedptr{
+	typedef std::shared_ptr<T> ptr;
+};
 
 #include "external/ExternalUtils.hpp"
 

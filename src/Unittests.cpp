@@ -9,9 +9,6 @@
 #include "Unittests.hpp"
 
 using namespace std;
-#ifndef __GXX_EXPERIMENTAL_CXX0X__
-	using namespace std::tr1;
-#endif
 using namespace MinisatID;
 
 
