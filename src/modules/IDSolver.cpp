@@ -197,7 +197,7 @@ bool IDSolver::loopPossibleOver(Var v){
 		case DefType::CONJ:
 			for (auto j = definition(v)->cbegin(); j < definition(v)->cend(); ++j) {
 				Lit l = *j;
-				if (isPositive(l) && inSameSCC(v, var(l))) {
+				if (inSameSCC(v, var(l))) {
 					return true;
 				}
 			}
@@ -309,8 +309,10 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 			addtonetwork = true;
 		} else { //can never be in posloop
 			if (occ(v) == NONDEFOCC) { //will not occur in a loop
+				cerr <<getPrintableVar(v) <<" cannot be in any loop.\n";
 				removeDefinition(v);
 			} else if (occ(v) == MIXEDLOOP) { //might occur in a mixed loop
+				cerr <<getPrintableVar(v) <<" can be in a mixed loop.\n";
 				addtonetwork = true;
 			}
 		}
@@ -1782,6 +1784,8 @@ rClause IDSolver::notifyFullAssignmentFound(){
  * TODO currently no well founded model checking over aggregates
  * this can be done by implementing wf propagation and counter methods in aggregates.
  */
+bool printednontotalwarning = false;
+
 rClause IDSolver::isWellFoundedModel() {
 	if(getSemantics()!=DEF_WELLF){
 		throw idpexception("Should not be checking for well-founded model, because mode is stable semantics!\n");
@@ -1869,6 +1873,10 @@ rClause IDSolver::isWellFoundedModel() {
 		seen(i) = 0;
 	}
 
+	if(verbosity()>0 && not printednontotalwarning){
+		printednontotalwarning = true;
+		report("The definition is not total (found an interpretation of the open symbols with a three-valued well-founded model).\n");
+	}
 	if (verbosity() > 1) {
 		report("The model is not well-founded!\n");
 	}
