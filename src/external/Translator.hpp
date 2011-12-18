@@ -12,6 +12,7 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <set>
 #include <iostream>
 #include <ostream>
 #include <sstream>
@@ -77,33 +78,10 @@ public:
 	Translator(){}
 	virtual ~Translator(){}
 
-	virtual void printModel(std::ostream& output, const Model& model){
-		std::stringstream ss;
-		for (auto i = model.literalinterpretations.cbegin(); i < model.literalinterpretations.cend(); ++i){
-			ss <<(((*i).hasSign()) ? "-" : "") <<(*i).getAtom().getValue() <<" ";
-		}
-		for (auto i = model.variableassignments.cbegin(); i < model.variableassignments.cend(); ++i){
-			ss <<(*i).variable <<"=" <<(*i).value <<" ";
-		}
-		ss << "0\n";
-		//TODO start critical section
-		output <<ss.str();
-		// end critical section
-		output.flush();
-	}
+	virtual void printModel(std::ostream& output, const Model& model);
 
-	template<class List>
-	void 	printTranslation(std::ostream& output, const List& l){
-		finish();
-		output <<"=== atom translation ===\n";
-		output <<"size of lit list: "<<l.size() <<"\n";
-		for(auto var2lit=l.cbegin(); var2lit<l.cend(); ++var2lit){
-			if(hasTranslation((*var2lit).second)){
-				output <<getPrintableVar((*var2lit).first) <<" ";
-				printLiteral(output, (*var2lit).second);
-			}
-		}
-	}
+	template<typename List> // vector/map/set with pairs of unsigned int and MinisatID::Literal
+	void printTranslation(std::ostream& output, const List& l);
 
 	virtual bool hasTranslation			(const MinisatID::Literal&) const { return false; }
 

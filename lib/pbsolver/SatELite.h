@@ -501,26 +501,26 @@ struct Solver {
 
 macro void dump(Clause c, bool newline = true, FILE* out = stdout) {
     fprintf(out, "{");
-    for (int i = 0; i < c.size(); i++) fprintf(out, " "L_LIT, L_lit(c[i]));
+//    for (int i = 0; i < c.size(); i++) fprintf(out, " "L_LIT, L_lit(c[i]));
     fprintf(out, " }%s", newline ? "\n" : "");
     fflush(out);
 }
 macro void dump(Solver& S, Clause c, bool newline = true, FILE* out = stdout) {
     fprintf(out, "{");
-    for (int i = 0; i < c.size(); i++) fprintf(out, " "L_LIT":%c", L_lit(c[i]), name(S.value(c[i])));
+ //   for (int i = 0; i < c.size(); i++) fprintf(out, " "L_LIT":%c", L_lit(c[i]), name(S.value(c[i])));
     fprintf(out, " }%s", newline ? "\n" : "");
     fflush(out);
 }
 
 macro void dump(const vec<Lit>& c, bool newline = true, FILE* out = stdout) {
     fprintf(out, "{");
-    for (int i = 0; i < c.size(); i++) fprintf(out, " "L_LIT, L_lit(c[i]));
+ //   for (int i = 0; i < c.size(); i++) fprintf(out, " "L_LIT, L_lit(c[i]));
     fprintf(out, " }%s", newline ? "\n" : "");
     fflush(out);
 }
 macro void dump(Solver& S, vec<Lit>& c, bool newline = true, FILE* out = stdout) {
     fprintf(out, "{");
-    for (int i = 0; i < c.size(); i++) fprintf(out, " "L_LIT":%c", L_lit(c[i]), name(S.value(c[i])));
+ //   for (int i = 0; i < c.size(); i++) fprintf(out, " "L_LIT":%c", L_lit(c[i]), name(S.value(c[i])));
     fprintf(out, " }%s", newline ? "\n" : "");
     fflush(out);
 }
