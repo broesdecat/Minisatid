@@ -48,6 +48,7 @@ protected:
 
 public:
 	Remapper(): maxnumber(0){}
+	virtual ~Remapper(){}
 
 	virtual bool	hasVar		(const Atom& atom, Var& mappedvarifexists) const;
 	virtual Var		getVar		(const Atom& atom);

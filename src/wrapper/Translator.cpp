@@ -24,6 +24,38 @@
 using namespace std;
 using namespace MinisatID;
 
+void Translator::printModel(std::ostream& output, const Model& model){
+	std::stringstream ss;
+	for (auto i = model.literalinterpretations.cbegin(); i < model.literalinterpretations.cend(); ++i){
+		ss <<(((*i).hasSign()) ? "-" : "") <<(*i).getAtom().getValue() <<" ";
+	}
+	for (auto i = model.variableassignments.cbegin(); i < model.variableassignments.cend(); ++i){
+		ss <<(*i).variable <<"=" <<(*i).value <<" ";
+	}
+	ss << "0\n";
+	//TODO start critical section
+	output <<ss.str();
+	// end critical section
+	output.flush();
+}
+
+template<typename List>
+void Translator::printTranslation(std::ostream& output, const List& l){
+	finish();
+	output <<"=== atom translation ===\n";
+	output <<"size of lit list: "<<l.size() <<"\n";
+	for(auto var2lit=l.cbegin(); var2lit!=l.cend(); ++var2lit){
+		if(hasTranslation((*var2lit).second)){
+			output <<getPrintableVar((*var2lit).first) <<" ";
+			printLiteral(output, (*var2lit).second);
+		}
+	}
+}
+
+template void Translator::printTranslation(std::ostream& output, const std::vector<std::pair<unsigned int, MinisatID::Literal> >& l);
+template void Translator::printTranslation(std::ostream& output, const std::set<std::pair<unsigned int, MinisatID::Literal> >& l);
+template void Translator::printTranslation(std::ostream& output, const std::map<unsigned int, MinisatID::Literal>& l);
+
 void OPBPolicy::printCurrentOptimum(std::ostream& output, const Weight& value){
 	output <<"o " <<value <<std::endl; // NOTE: has to FLUSH after each print!
 }
