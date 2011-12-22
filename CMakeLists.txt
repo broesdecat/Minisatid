@@ -5,7 +5,9 @@ project (minisatid)
 set (MinisatID_VERSION_MAJOR 2)
 set (MinisatID_VERSION_MINOR 3)
 
-SET(BUILD_SHARED_LIBS OFF)
+SET(BUILD_SHARED_LIBS ON)
+
+ENABLE_TESTING()
 
 OPTION(GMP  "Enable gmp support" OFF)
 if(GMP)

@@ -137,14 +137,14 @@ set_target_properties(minisatid-bin PROPERTIES OUTPUT_NAME minisatid)
 install (TARGETS minisatid-bin DESTINATION bin)
 install (TARGETS minisatid DESTINATION lib)
 
-ENABLE_TESTING()
-
 MESSAGE(STATUS "Options:")
 MESSAGE(STATUS "use22 ${SOLVER_22}")
 MESSAGE(STATUS "use2-14 ${SOLVER_214}")
 MESSAGE(STATUS "use2-14-hack ${SOLVER_214_HACK}")
+MESSAGE(STATUS "use cpsupport ${CPSUPPORT}")
+MESSAGE(STATUS "building tests ${BUILDTESTS}")
 
-if(BUILDTESTS)
+if(${BUILDTESTS})
 add_executable(alltests tests/googletestsnippet.cpp tests/janhunentest.cpp)
 target_link_libraries(alltests minisatid gtest pthread)
 add_test(googletests alltests)
