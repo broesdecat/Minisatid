@@ -220,7 +220,7 @@ public:
 
     // Methods:
     //
-    friend char* toString(Int num) {
+    friend std::string toString(Int num) {
         if      (num == Int_MIN) return xstrdup("-oo");
         else if (num == Int_MAX) return xstrdup("+oo");
         assert(!num.small());

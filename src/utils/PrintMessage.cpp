@@ -15,7 +15,7 @@ using namespace std;
 using namespace MinisatID;
 
 string MinisatID::getProgramVersion(){
-	return VERSION;
+	return std::string("")+VERSION;
 }
 
 string MinisatID::getProgramInfo(){

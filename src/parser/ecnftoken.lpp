@@ -19,7 +19,7 @@
 using namespace std; 
 //UP TILL HERE!
 
-#include "parser/ecnfparser.h"
+#include "parser.hh"
 
 extern int lineNo;
 extern int charPos;
