@@ -120,10 +120,6 @@ add_library(minisatid
 		${SATSOLVER_SOURCES}
 )
 
-if(${CMAKE_BUILD_TYPE} MATCHES "StaticRelease")
-	set_target_properties(minisatid PROPERTIES LINK_FLAGS "-static -all-static ")
-endif()
-
 target_link_libraries(minisatid pbsolver)
 
 find_package(BISON)
@@ -137,6 +133,11 @@ add_executable(minisatid-bin Main.cpp ${BISON_myparser_OUTPUTS} ${FLEX_myscanner
 target_link_libraries(minisatid-bin pbsolver minisatid)
 set_target_properties(minisatid-bin PROPERTIES OUTPUT_NAME minisatid)
 
+if(BUILD_MINISATID_STATIC)
+	set_target_properties(minisatid PROPERTIES LINK_FLAGS "-static -all-static ")
+	set_target_properties(minisatid-bin PROPERTIES LINK_FLAGS "-static -all-static ")
+endif()
+
 # add the install targets
 install (TARGETS minisatid-bin DESTINATION bin)
 install (TARGETS minisatid DESTINATION lib)
@@ -149,9 +150,9 @@ MESSAGE(STATUS "use cpsupport ${CPSUPPORT}")
 MESSAGE(STATUS "building tests ${BUILDTESTS}")
 
 if(${BUILDTESTS})
-add_executable(mtests tests/googletestsnippet.cpp tests/janhunentest.cpp)
-target_link_libraries(mtests minisatid gtest pthread)
-add_test(minisatidtests mtests)
+	add_executable(mtests tests/googletestsnippet.cpp tests/janhunentest.cpp)
+	target_link_libraries(mtests minisatid gtest pthread)
+	add_test(minisatidtests mtests)
 endif()
 		
 #EXTRA_DIST += satsolver/minisat2-2/README satsolver/minisat2-2/LICENSE satsolver/minisat2-2/doc
