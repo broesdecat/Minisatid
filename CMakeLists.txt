@@ -5,8 +5,6 @@ project (minisatid)
 set (MinisatID_VERSION_MAJOR 2)
 set (MinisatID_VERSION_MINOR 3)
 
-SET(BUILD_SHARED_LIBS ON)
-
 ENABLE_TESTING()
 
 OPTION(GMP  "Enable gmp support" OFF)
@@ -17,11 +15,17 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D NO_GMP")
 endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -Wextra ")
 
-if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -ggdb")	
-endif()
-if(${CMAKE_BUILD_TYPE} MATCHES "Release")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+if(${CMAKE_BUILD_TYPE} MATCHES "StaticRelease")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+	set(BUILD_SHARED_LIBS OFF)
+else()
+	if(${CMAKE_BUILD_TYPE} MATCHES "Release")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+		set(BUILD_SHARED_LIBS ON)
+	else() # debug
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -ggdb")
+		set(BUILD_SHARED_LIBS ON)	
+	endif()
 endif()
 
 MESSAGE(STATUS "Global CXX flags: ")

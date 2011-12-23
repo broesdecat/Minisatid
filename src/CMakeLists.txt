@@ -120,6 +120,10 @@ add_library(minisatid
 		${SATSOLVER_SOURCES}
 )
 
+if(${CMAKE_BUILD_TYPE} MATCHES "StaticRelease")
+	set_target_properties(minisatid PROPERTIES LINK_FLAGS "-static -all-static ")
+endif()
+
 target_link_libraries(minisatid pbsolver)
 
 find_package(BISON)
