@@ -149,9 +149,9 @@ MESSAGE(STATUS "use cpsupport ${CPSUPPORT}")
 MESSAGE(STATUS "building tests ${BUILDTESTS}")
 
 if(${BUILDTESTS})
-add_executable(alltests tests/googletestsnippet.cpp tests/janhunentest.cpp)
-target_link_libraries(alltests minisatid gtest pthread)
-add_test(googletests alltests)
+add_executable(mtests tests/googletestsnippet.cpp tests/janhunentest.cpp)
+target_link_libraries(mtests minisatid gtest pthread)
+add_test(minisatidtests mtests)
 endif()
 		
 #EXTRA_DIST += satsolver/minisat2-2/README satsolver/minisat2-2/LICENSE satsolver/minisat2-2/doc
