@@ -134,8 +134,8 @@ target_link_libraries(minisatid-bin pbsolver minisatid)
 set_target_properties(minisatid-bin PROPERTIES OUTPUT_NAME minisatid)
 
 if(BUILD_MINISATID_STATIC)
-	set_target_properties(minisatid PROPERTIES LINK_FLAGS "-static -all-static ")
-	set_target_properties(minisatid-bin PROPERTIES LINK_FLAGS "-static -all-static ")
+	set_target_properties(minisatid PROPERTIES LINK_FLAGS "-static ")
+	set_target_properties(minisatid-bin PROPERTIES LINK_FLAGS "-static ")
 endif()
 
 # add the install targets
@@ -147,9 +147,9 @@ MESSAGE(STATUS "use22 ${SOLVER_22}")
 MESSAGE(STATUS "use2-14 ${SOLVER_214}")
 MESSAGE(STATUS "use2-14-hack ${SOLVER_214_HACK}")
 MESSAGE(STATUS "use cpsupport ${CPSUPPORT}")
-MESSAGE(STATUS "building tests ${BUILDTESTS}")
+MESSAGE(STATUS "building minisatid tests ${BUILDTESTS}")
 
-if(${BUILDTESTS})
+if(BUILDTESTS)
 	add_executable(mtests tests/googletestsnippet.cpp tests/janhunentest.cpp)
 	target_link_libraries(mtests minisatid gtest pthread)
 	add_test(minisatidtests mtests)
