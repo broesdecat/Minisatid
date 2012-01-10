@@ -69,7 +69,9 @@ MESSAGE(STATUS "Global CXX flags: ")
 MESSAGE(STATUS "${CMAKE_CXX_FLAGS}")
 
 add_subdirectory(lib/pbsolver)
-add_subdirectory(lib/gtest-1.6.0)
+if(BUILDTESTS)
+	add_subdirectory(lib/gtest-1.6.0)
+endif()
 add_subdirectory(src)
 
 include(CPack)
