@@ -8,6 +8,7 @@ include_directories ("
 MESSAGE(STATUS "building minisatid tests ${BUILDTESTS}")
 
 if(${BUILDTESTS})
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++0x") #necessary for gtest!
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D TESTDIR=\\\"${PROJECT_SOURCE_DIR}/tests\\\" ")
 	add_executable(mtests tests/googletestsnippet.cpp tests/janhunentest.cpp)
 	target_link_libraries(mtests minisatid gtest)

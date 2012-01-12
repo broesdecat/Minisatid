@@ -42,6 +42,8 @@ endif()
 project(gtest CXX C)
 cmake_minimum_required(VERSION 2.6.2)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++0x")
+
 if (COMMAND set_up_hermetic_build)
   set_up_hermetic_build()
 endif()

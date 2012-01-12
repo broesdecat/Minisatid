@@ -6,6 +6,7 @@ include_directories ("${PROJECT_SOURCE_DIR}/lib/tclap/include")
 
 include_directories ("${PROJECT_SOURCE_DIR}/lib/pbsolver/ADTs" "${PROJECT_SOURCE_DIR}/lib/pbsolver/pbbase/h" "${PROJECT_SOURCE_DIR}/lib/pbsolver/") 
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D VERSION=\\\"${MinisatID_VERSION_MAJOR}-${MinisatID_VERSION_MINOR}\\\"")
 
 OPTION(SOLVER_22  "Use minisat-2-2" ON)
