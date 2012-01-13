@@ -46,7 +46,7 @@ set(SATSOLVER_SOURCES
 		satsolver/minisat2-14/mtl/Vec.h satsolver/minisat2-14/mtl/Queue.h satsolver/minisat2-14/mtl/Alg.h
 		satsolver/minisat2-14/mtl/Heap.h satsolver/minisat2-14/mtl/Map.h satsolver/minisat2-14/mtl/Sort.h
 )
-include_directories("${PROJECT_SOURCE_DIR}/src//satsolver/minisat2-14/")
+include_directories("${PROJECT_SOURCE_DIR}/src/satsolver/minisat2-14/")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D USEMINISAT ")
 endif()
 
@@ -120,7 +120,18 @@ add_library(minisatid
 		${SATSOLVER_SOURCES}
 )
 
-target_link_libraries(minisatid pbsolver)
+set(LIBS ${LIBS} pbsolver)
+
+find_package(Gecode)
+if(GECODE_FOUND)
+	message(STATUS "Including gecode")
+	include_directories(${GECODE_INCLUDE_DIRS})
+	set(LIBS ${LIBS} ${GECODE_LIBRARIES})
+else()
+	message(STATUS "Gecode not found")
+endif()
+
+target_link_libraries(minisatid ${LIBS})
 
 find_package(BISON)
 find_package(FLEX)
