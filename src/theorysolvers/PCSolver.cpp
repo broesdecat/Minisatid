@@ -418,7 +418,7 @@ bool PCSolver::solve(const litlist& assumptions, const ModelExpandOptions& optio
 		vecassumptions.push(*i);
 	}
 
-	if (options.search == PROPAGATE) { //Only do unit propagation
+	if (options.inference == PROPAGATE) { //Only do unit propagation
 		return getSolver().solve(vecassumptions, true);
 	}
 

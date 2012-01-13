@@ -182,11 +182,11 @@ void IDSolver::generateSCCs(){
 	}
 
 	if (verbosity() > 20) {
-		report("Printing mapping from variables to the ID of the SCC in which it occurs:\n");
+		clog <<"Printing mapping from variables to the ID of the SCC in which it occurs:\n";
 		for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
-			report("SCC of %d is %d, ", getPrintableVar(*i), getPrintableVar(scc(*i)));
+			clog <<"SCC of " <<getPrintableVar(*i) <<" is " <<getPrintableVar(scc(*i)) <<", ";
 		}
-		report("Ended printing sccs.\n");
+		clog <<"Ended printing sccs.\n";
 	}
 }
 
@@ -293,7 +293,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	}
 
 	if (verbosity() >= 1) {
-		report("> Number of rules : %6zu.\n",defdVars.size());
+		clog <<"> Number of rules : " <<defdVars.size() <<".\n";
 	}
 
 	// Determine which literals should no longer be considered defined (according to the scc in the positive graph) + init occurs
@@ -342,9 +342,9 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	}
 
 	if (verbosity() >= 1) {
-		report("> Number of recursive atoms in positive loops : %6d.\n",(int)atoms_in_pos_loops);
+		clog <<"> Number of recursive atoms in positive loops : " <<atoms_in_pos_loops <<".\n";
 		if (negloops) {
-			report("> Mixed loops also exist.\n");
+			clog <<"> Mixed loops also exist.\n";
 		}
 	}
 
@@ -637,7 +637,7 @@ bool IDSolver::simplifyGraph(int atomsinposloops){
 	}
 
 	if (verbosity() >= 2) {
-		report("Initialization of justification makes these atoms false: [");
+		clog <<"Initialization of justification makes these atoms false: [";
 	}
 
 	/**
@@ -652,7 +652,7 @@ bool IDSolver::simplifyGraph(int atomsinposloops){
 		Var v = (*i);
 		if (seen(v) > 0 || isFalse(v)) {
 			if (verbosity() >= 2) {
-				report(" %d", getPrintableVar(v));
+				clog <<" " <<getPrintableVar(v);
 			}
 			if(isTrue(v)){
 				return false;
@@ -727,7 +727,7 @@ bool IDSolver::simplifyGraph(int atomsinposloops){
 	}
 
 	if (verbosity() >= 2) {
-		report(" ]\n");
+		clog <<" ]\n";
 	}
 
 	if (atomsinposloops == 0) {
@@ -736,7 +736,7 @@ bool IDSolver::simplifyGraph(int atomsinposloops){
 
 	if (!posloops && !negloops) {
 		if (verbosity() >= 1) {
-			report("> All recursive atoms falsified in initializations.\n");
+			clog <<"> All recursive atoms falsified in initializations.\n";
 		}
 	}
 
@@ -934,11 +934,11 @@ rClause IDSolver::notifypropagate() {
 	rClause confl = nullPtrClause;
 	if (ufs_found) {
 		if (verbosity() >= 2) {
-			report("Found an unfounded set of size %d: {",(int)ufs.size());
+			clog <<"Found an unfounded set of size " <<ufs.size() <<": {";
 			for (std::set<Var>::const_iterator it = ufs.cbegin(); it != ufs.cend(); ++it) {
-				report(" %d",getPrintableVar(*it));
+				clog <<" " <<getPrintableVar(*it);
 			}
-			report(" }.\n");
+			clog <<" }.\n";
 		}
 		++stats.cycles;
 		stats.cycle_sizes += ufs.size();
@@ -1015,11 +1015,11 @@ void IDSolver::findCycleSources() {
 		}
 	}
 	if (verbosity() >= 2) {
-		report("Indirect propagations. Verifying %zu cycle sources:",css.size());
+		clog <<"Indirect propagations. Verifying " <<css.size() <<"cycle sources:";
 		for (auto i = css.cbegin(); i < css.cend(); ++i) {
-			report(" %d", getPrintableVar(*i));
+			clog <<" " <<getPrintableVar(*i);
 		}
-		report(".\n");
+		clog <<".\n";
 	}
 	++stats.nb_times_findCS;
 	stats.cycle_sources += css.size();
@@ -1129,7 +1129,7 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 	if (verbosity() > 9) {
 		for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
 			if (isJustified(*_seen, *i)) {
-				report("Still justified %d\n", getPrintableVar(*i));
+				clog <<"Still justified " <<getPrintableVar(*i) <<"\n";
 			}
 		}
 	}
@@ -1145,7 +1145,7 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 		}
 		if (directlyJustifiable(v, ufs, q)) {
 			if (verbosity() > 5) {
-				report("Can directly justify %d\n", getPrintableVar(v));
+				clog <<"Can directly justify " <<getPrintableVar(v) <<"\n";
 			}
 			if (propagateJustified(v, cs, ufs)) {
 				csisjustified = true;
@@ -1342,7 +1342,7 @@ bool IDSolver::propagateJustified(Var v, Var cs, std::set<Var>& ufs) {
 			changejust(var(heads[i]), jstf[i]);
 			justifiedq.push_back(var(heads[i]));
 			if (verbosity() > 5) {
-				report("justified %d\n", getPrintableVar(var(heads[i])));
+				clog <<"justified " <<getPrintableVar(var(heads[i])) <<"\n";
 			}
 		}
 
@@ -1351,7 +1351,7 @@ bool IDSolver::propagateJustified(Var v, Var cs, std::set<Var>& ufs) {
 		for (int i = 0; i < heads.size(); ++i) {
 			justifiedq.push_back(var(heads[i]));
 			if (verbosity() > 5) {
-				report("justified %d\n", getPrintableVar(var(heads[i])));
+				clog <<"justified " <<getPrintableVar(var(heads[i])) <<"\n";
 			}
 		}
 	}
@@ -1443,9 +1443,9 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 			getPCSolver().addLearnedClause(c);
 			++stats.justify_conflicts;
 			if (verbosity() >= 2) {
-				report("Adding conflicting loop formula: [ ");
+				clog <<"Adding conflicting loop formula: [ ";
 				MinisatID::print(c, getPCSolver());
-				report("].\n");
+				clog <<"].\n";
 			}
 			//reportf("Conflicting unfounded set found.\n");
 			return c;
@@ -1465,7 +1465,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 			//introduce a new var to represent all external disjuncts: v <=> \bigvee external disj
 			Var v = getPCSolver().newVar();
 			if (verbosity() >= 2) {
-				report("Adding new variable for loop formulas: %d.\n", getPrintableVar(v));
+				clog <<"Adding new variable for loop formulas: " <<getPrintableVar(v) <<"\n";
 			}
 
 			// not v \vee \bigvee\extdisj{L}
@@ -1536,9 +1536,9 @@ void IDSolver::addLoopfClause(Lit l, InnerDisjunction& lits) {
 		}
 
 		if (verbosity() >= 2) {
-			report("Adding loop formula: [ ");
+			clog <<"Adding loop formula: [ ";
 			MinisatID::print(c, getPCSolver());
-			report("].\n");
+			clog <<"].\n";
 		}
 	}
 
@@ -1604,21 +1604,21 @@ inline void IDSolver::markNonJustifiedAddVar(Var v, Var cs, queue<Var> &q, varli
 		}
 
 		if (verbosity() > 9) {
-			report("Not justified %d, times %d\n", getPrintableVar(v), seen(v));
+			clog <<"Not justified " <<getPrintableVar(v) <<", times " <<seen(v) <<"\n";
 		}
 	}
 }
 
 inline void IDSolver::print(const PropRule& c) const {
-	report("Rule ");
+	clog <<"Rule ";
 	Lit head = c.getHead();
 	MinisatID::print(head, value(head));
-	report(" <- ");
+	clog <<" <- ";
 	for (vsize i = 0; i < c.size(); ++i) {
 		MinisatID::print(c[i], value(c[i]));
-		fprintf(stderr, " ");
+		clog <<" ";
 	}
-	report("\n");
+	clog <<"\n";
 }
 
 /**
@@ -1635,13 +1635,13 @@ bool IDSolver::isCycleFree() const {
 #endif
 
 	if (verbosity() >= 2) {
-		report("Showing justification for disjunctive atoms. <<<<<<<<<<\n");
+		clog <<"Showing justification for disjunctive atoms. <<<<<<<<<<\n";
 		for (int i = 0; i < nbvars; ++i) {
 			if (isDefined(i) && type(i) == DefType::DISJ && occ(i) != MIXEDLOOP) {
 				clog <<mkLit(i, false) <<"<-" <<justification(i)[0] <<"; ";
 			}
 		}
-		report(">>>>>>>>>>\n");
+		clog <<">>>>>>>>>>\n";
 	}
 
 	// Verify cycles.
@@ -1719,7 +1719,7 @@ bool IDSolver::isCycleFree() const {
 		}
 
 		varlist as = getDefAggHeadsWithBodyLit(var(l));
-		for (int i=0;i<as.size();++i) {
+		for (uint i=0;i<as.size();++i) {
 			Var d = as[i];
 			bool found = false;
 			for(int j=0; j<justification(d).size(); ++j){
@@ -1794,7 +1794,7 @@ rClause IDSolver::isWellFoundedModel() {
 #ifdef DEBUG
 	if (posloops && !isCycleFree()) {
 		if (verbosity() > 1) {
-			report("A positive unfounded loop exists, so not well-founded!\n");
+			clog <<"A positive unfounded loop exists, so not well-founded!\n";
 		}
 		return nullPtrClause;
 	}
@@ -1802,7 +1802,7 @@ rClause IDSolver::isWellFoundedModel() {
 
 	if (!negloops) {
 		if (verbosity() > 1) {
-			report("Well-founded for positive loops, no negative loops present!\n");
+			clog <<"Well-founded for positive loops, no negative loops present!\n";
 		}
 		return nullPtrClause;
 	}
@@ -1820,16 +1820,16 @@ rClause IDSolver::isWellFoundedModel() {
 	findMixedCycles(wfroot, rootofmixed);
 
 	if (verbosity() > 1) {
-		report("general SCCs found");
+		clog <<"general SCCs found";
 		for (vector<int>::size_type z = 0; z < wfroot.size(); ++z) {
-			report("%d has root %d\n", getPrintableVar(z), getPrintableVar(wfroot[z]));
+			clog <<getPrintableVar(z) <<" has root " <<getPrintableVar(wfroot[z]) <<"\n";
 		}
-		report("Mixed cycles are %s present.\n", rootofmixed.empty()?"not":"possibly");
+		clog <<"Mixed cycles are " <<(rootofmixed.empty()?"not":"possibly") <<" present.\n";
 	}
 
 	if (rootofmixed.empty()) {
 		if (verbosity() > 1) {
-			report("The model is well-founded!\n");
+			clog <<"The model is well-founded!\n";
 		}
 		return nullPtrClause;
 	}
@@ -1854,7 +1854,7 @@ rClause IDSolver::isWellFoundedModel() {
 		forwardPropagate(true);
 		if (wfmarkedAtoms.empty()) {
 			if (verbosity() > 1) {
-				report("The model is well-founded!\n");
+				clog <<"The model is well-founded!\n";
 			}
 			return nullPtrClause;
 		}
@@ -1863,7 +1863,7 @@ rClause IDSolver::isWellFoundedModel() {
 		removeMarks();
 		if (wfmarkedAtoms.empty()) {
 			if (verbosity() > 1) {
-				report("The model is well-founded!\n");
+				clog <<"The model is well-founded!\n";
 			}
 			return nullPtrClause;
 		}
@@ -1875,10 +1875,10 @@ rClause IDSolver::isWellFoundedModel() {
 
 	if(verbosity()>0 && not printednontotalwarning){
 		printednontotalwarning = true;
-		report("The definition is not total (found an interpretation of the open symbols with a three-valued well-founded model).\n");
+		clog <<"The definition is not total (found an interpretation of the open symbols with a three-valued well-founded model).\n";
 	}
 	if (verbosity() > 1) {
-		report("The model is not well-founded!\n");
+		clog <<"The model is not well-founded!\n";
 	}
 
 	//Returns the found assignment (TODO might be optimized to just return the loop)
@@ -2234,7 +2234,7 @@ AggProp const * getProp(AggType type){
 		case SUM: return AggProp::getSum();
 		case PROD: return AggProp::getProd();
 		case CARD: return AggProp::getCard();
-		default: assert(false); break;
+		default: assert(false); return NULL;
 	}
 }
 

@@ -14,7 +14,8 @@
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
-#include "external/Weight.hpp"
+#include "Weight.hpp"
+#include "ExternalUtils.hpp"
 
 namespace MinisatID {
 

@@ -1,35 +1,0 @@
-# Copyright 2007-2011 Katholieke Universiteit Leuven# Use of this software is governed by the GNU LGPLv3.0 license# Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement# Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
-#!/bin/bash
-
-cd ../../
-aclocal
-autoreconf
-libtoolize --force
-automake --add-missing
-cd -
-
-TYPE=release
-BITS=32
-SAT=hack
-GMP=no
-
-if [[ $# -ge 1 ]]
-then
-	TYPE=$1
-	if [ $# -ge 2 ]
-	then
-		SAT=$2
-		if [ $# -ge 3 ]
-		then
-			BITS=$3
-			if [ $# -ge 4 ]
-			then
-				GMP=$4
-			fi
-		fi
-	fi
-fi
-
-rm -r *
-../../configure --enable-build=$TYPE --enable-sat=$SAT --enable-bits=$BITS --enable-gmp=$GMP --enable-silent-rules
-make

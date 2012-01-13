@@ -16,10 +16,6 @@
 #include <cstdio>
 
 #include <memory>
-template<class T>
-struct sharedptr{
-	typedef std::shared_ptr<T> ptr;
-};
 
 #include "external/ExternalUtils.hpp"
 

@@ -17,7 +17,7 @@
 namespace MinisatID{
 
 class AggProp;
-typedef sharedptr<AggProp>::ptr paggprop;
+typedef std::shared_ptr<AggProp> paggprop;
 
 class TypedSet;
 typedef std::map<int, TypedSet*> mips;
@@ -84,6 +84,8 @@ private:
 	static paggprop card;
 	static paggprop sum;
 public:
+	virtual ~AggProp(){}
+
 	static AggProp const * getMax() { return max.get(); }
 	static AggProp const * getProd() { return prod.get(); }
 	static AggProp const * getCard() { return card.get(); }
@@ -123,7 +125,7 @@ class MaxProp: public AggProp{
 public:
 	const char* getName					() 										const { return "MAX"; }
 	AggType 	getType					() 										const { return MAX; }
-	bool 		isNeutralElement		(const Weight& w) 						const { return false; }
+	bool 		isNeutralElement		(const Weight&) 						const { return false; }
 	bool 		isMonotone				(const Agg& agg, const Weight& w)		const;
 	bool 		isMonotone				(const TempAgg& agg, const Weight& w, const Weight& knownbound)	const;
 	Weight		getMinPossible			(const std::vector<WL>& wls)			const;
@@ -131,7 +133,7 @@ public:
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, Weight& knownbound) const;
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const { return lhs>rhs?lhs:rhs; }
-	Weight		remove					(const Weight& lhs, const Weight& rhs) 	const { assert(false); return 0; }
+	Weight		remove					(const Weight&, const Weight&) 			const { assert(false); return 0; }
 	AggPropagator*	createPropagator	(TypedSet* set) 						const;
 
 	Weight 		getESV					()										const { return negInfinity(); }

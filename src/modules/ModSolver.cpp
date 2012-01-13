@@ -122,7 +122,7 @@ SATVAL ModSolver::add(const InnerReifAggregate& agg){
  * they are added as variables to the parent solver, that has to decide on values for them.
  */
 SATVAL ModSolver::add(const InnerRigidAtoms& rigid){
-	for(vector<Var>::const_iterator i=rigid.rigidatoms.cbegin(); i<rigid.rigidatoms.cend(); ++i){
+	for(auto i=rigid.rigidatoms.cbegin(); i<rigid.rigidatoms.cend(); ++i){
 		atoms.push_back(*i);
 		add(*i);
 		getModSolverData().getModSolver(getParentId())->add(*i);
@@ -141,7 +141,7 @@ SATVAL ModSolver::add(const InnerRigidAtoms& rigid){
 void ModSolver::setParent(modindex parentid){
 	this->parentid = parentid; hasparent = true;
 	ModSolver* parent = getModSolverData().getModSolver(getParentId());
-	for(vector<Var>::const_iterator i=atoms.cbegin(); i<atoms.cend(); ++i){
+	for(auto i=atoms.cbegin(); i<atoms.cend(); ++i){
 		parent->add(*i);
 	}
 	parent->addChild(this->id);
@@ -181,7 +181,7 @@ bool ModSolver::solve(const litlist& assumptions, const ModelExpandOptions& opti
 	ModelExpandOptions modoptions;
 	modoptions.printmodels = PRINT_NONE;
 	modoptions.savemodels = SAVE_NONE;
-	modoptions.search = MODELEXPAND;
+	modoptions.inference = MODELEXPAND;
 	modoptions.nbmodelstofind = options.nbmodelstofind;
 	Solution* s = new Solution(modoptions);
 	setSolutionMonitor(s);
@@ -226,7 +226,7 @@ bool ModSolver::search(const litlist& assumpts, bool search){
 	ModelExpandOptions options;
 	options.printmodels = PRINT_NONE;
 	options.savemodels = SAVE_NONE;
-	options.search = MODELEXPAND;
+	options.inference = MODELEXPAND;
 	options.nbmodelstofind = 1;
 	Solution* s = new Solution(options);
 	setSolutionMonitor(s);
@@ -258,7 +258,7 @@ rClause ModSolver::notifypropagate(){
 		}
 
 		trail.back().push_back(l);
-		for(vmodindex::const_iterator i=getChildren().cbegin(); confl==nullPtrClause && i<getChildren().cend(); ++i){
+		for(auto i=getChildren().cbegin(); confl==nullPtrClause && i<getChildren().cend(); ++i){
 			confl = getModSolverData().getModSolver(*i)->propagateDown(l);
 		}
 	}
@@ -271,7 +271,7 @@ rClause ModSolver::notifypropagate(){
 	//queue is empty, so we will need a propagateDown and a propagateDownEndOfQueue
 	bool noconflict = true;
 	InnerDisjunction confldisj;
-	for(vmodindex::const_iterator i=getChildren().cbegin(); noconflict && i<getChildren().cend(); ++i){
+	for(auto i=getChildren().cbegin(); noconflict && i<getChildren().cend(); ++i){
 		assert(confldisj.literals.size()==0);
 		noconflict = getModSolverData().getModSolver(*i)->propagateDownAtEndOfQueue(confldisj.literals);
 	}
@@ -356,7 +356,7 @@ bool ModSolver::propagateDownAtEndOfQueue(litlist& confldisj){
 	getPCSolver().resetState();
 
 	if(getModSolverData().modes().verbosity>4){
-		report("Finished checking solver %zu: %s.\n", getPrintId(), result?"no conflict":"conflict");
+		clog <<"Finished checking solver " <<getPrintId() <<": " <<(result?"no conflict":"conflict") <<".\n";
 	}
 
 	return result;
@@ -364,13 +364,13 @@ bool ModSolver::propagateDownAtEndOfQueue(litlist& confldisj){
 
 void ModSolver::notifyBacktrack(int untillevel, const Lit& decision){
 	if(getModSolverData().modes().verbosity>4){
-		report("Backtracking from PC in mod %zu to level %d\n", getPrintId(), untillevel);
+		clog <<"Backtracking from PC in mod " <<getPrintId() <<" to level " <<untillevel <<"\n";
 	}
 
 	while(trail.size()>((vsize)(untillevel+1))){
 		//IMPORTANT: backtrack in REVERSE trail order! from latest to earliest!
-		for(vector<Lit>::const_reverse_iterator i=trail.back().rbegin(); i<trail.back().rend(); ++i){
-			for(vmodindex::const_iterator j=getChildren().cbegin(); j<getChildren().cend(); ++j){
+		for(auto i=trail.back().rbegin(); i<trail.back().rend(); ++i){
+			for(auto j=getChildren().cbegin(); j<getChildren().cend(); ++j){
 				getModSolverData().getModSolver((*j))->backtrackFromAbove(*i);
 			}
 		}

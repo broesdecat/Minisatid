@@ -55,13 +55,14 @@ public:
 	~Solution();
 
 	void		setModes(SolverOption modes) { this->modes = modes;}
-	void 		setInference(Inference inference) { options.search = inference; }
+	void 		setInference(Inference inference) { options.inference = inference; }
 
 	int 		getNbModelsFound	() const	{ return nbmodelsfound; }
 	int 		getNbModelsToFind	() const	{ return options.nbmodelstofind; }
 	PrintModel 	getPrintOption		() const 	{ return options.printmodels; }
 	SaveModel 	getSaveOption		() const 	{ return options.savemodels; }
-	Inference 	getInferenceOption	() const 	{ return options.search; }
+	Inference 	getInferenceOption	() const 	{ return options.inference; }
+	void 		setInferenceOption	(Inference inf)	{ options.inference = inf; }
 	const ModelExpandOptions& getOptions() const { return options; }
 	void		setPrintModels		(PrintModel printoption) { options.printmodels = printoption; }
 	void		setSaveModels		(SaveModel saveoption)	{ options.savemodels = saveoption; }

@@ -186,7 +186,8 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 	vector<pair<string, string> > inferencedesc;
 	//inferencevals.push_back(PROPAGATE); inferencedesc.push_back(pair<string, string>("propagate", "Only do unit propagation"));
 	inferencevals.push_back(PRINTTHEORY); inferencedesc.push_back(pair<string, string>("print", "Print out an ecnf file representing the theory"));
-	inferencevals.push_back(MODELEXPAND); inferencedesc.push_back(pair<string, string>("mx", "Do modelexpansion on the thery"));
+	inferencevals.push_back(MODELEXPAND); inferencedesc.push_back(pair<string, string>("mx", "Do modelexpansion on the theory"));
+	inferencevals.push_back(PROPAGATE); inferencedesc.push_back(pair<string, string>("propagate", "Do unit propagation on the theory"));
 
 	vector<pair<string, string> > watcheddesc;
 	watcheddesc.push_back(pair<string, string>("yes", "Use smart watches"));

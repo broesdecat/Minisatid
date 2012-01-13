@@ -19,6 +19,12 @@ typedef unsigned int uint;
 #include "LazyClauseSupport.hpp"
 #include "TerminationManagement.hpp"
 
+#ifndef NDEBUG
+#define Assert(condition) { if(!(condition)){ std::stringstream ss; ss << "ASSERT FAILED: " << #condition << " @ " << __FILE__ << " (" << __LINE__ << ")"; throw AssertionException(ss.str());} }
+#else
+#define Assert(x) do {} while(0)
+#endif
+
 namespace MinisatID {
 	// Definitional options
 	enum DEFFINDCS { always, adaptive, lazy };	// Unfounded set search frequency
@@ -87,11 +93,11 @@ namespace MinisatID {
 	public:
 		PrintModel		printmodels;
 		SaveModel		savemodels;
-		Inference		search;
+		Inference		inference;
 		int 			nbmodelstofind;
 
 		ModelExpandOptions():
-				printmodels(PRINT_BEST), savemodels(SAVE_NONE), search(MODELEXPAND),
+				printmodels(PRINT_BEST), savemodels(SAVE_NONE), inference(MODELEXPAND),
 				nbmodelstofind(0){
 		}
 	};
