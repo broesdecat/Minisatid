@@ -31,4 +31,4 @@ include_directories ("${PROJECT_SOURCE_DIR}/ADTs" "${PROJECT_SOURCE_DIR}/pbbase/
 
 # add the install targets
 install (TARGETS pbsolver DESTINATION lib)
-install (FILES "${PROJECT_SOURCE_DIR}/P1.TXT" DESTINATION include)
+install (FILES "${PROJECT_SOURCE_DIR}/P1.TXT" DESTINATION var/minisatid)

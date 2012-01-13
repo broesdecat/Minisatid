@@ -4,10 +4,16 @@ include_directories ("${PROJECT_SOURCE_DIR}/src/")
 include_directories ("${PROJECT_SOURCE_DIR}/lib/pluscallback1.7/")
 include_directories ("${PROJECT_SOURCE_DIR}/lib/tclap/include")
 
-include_directories ("${PROJECT_SOURCE_DIR}/lib/pbsolver/ADTs" "${PROJECT_SOURCE_DIR}/lib/pbsolver/pbbase/h" "${PROJECT_SOURCE_DIR}/lib/pbsolver/") 
+include_directories (
+	"${PROJECT_SOURCE_DIR}/lib/pbsolver/ADTs" 
+	"${PROJECT_SOURCE_DIR}/lib/pbsolver/pbbase/h" 
+	"${PROJECT_SOURCE_DIR}/lib/pbsolver/"
+) 
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D VERSION=\\\"${MinisatID_VERSION_MAJOR}-${MinisatID_VERSION_MINOR}\\\"")
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D DATADIR=\\\"${CMAKE_INSTALL_PREFIX}/var/minisatid\\\"")
 
 OPTION(SOLVER_22  "Use minisat-2-2" ON)
 OPTION(SOLVER_214_HACK  "Use minisat-2-14-2009hack" OFF)
@@ -47,7 +53,7 @@ set(SATSOLVER_SOURCES
 		satsolver/minisat2-14/mtl/Vec.h satsolver/minisat2-14/mtl/Queue.h satsolver/minisat2-14/mtl/Alg.h
 		satsolver/minisat2-14/mtl/Heap.h satsolver/minisat2-14/mtl/Map.h satsolver/minisat2-14/mtl/Sort.h
 )
-include_directories("${PROJECT_SOURCE_DIR}/src//satsolver/minisat2-14/")
+include_directories("${PROJECT_SOURCE_DIR}/src/satsolver/minisat2-14/")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D USEMINISAT ")
 endif()
 
@@ -121,7 +127,18 @@ add_library(minisatid
 		${SATSOLVER_SOURCES}
 )
 
-target_link_libraries(minisatid pbsolver)
+set(LIBS ${LIBS} pbsolver)
+
+find_package(Gecode)
+if(GECODE_FOUND)
+	message(STATUS "Including gecode")
+	include_directories(${GECODE_INCLUDE_DIRS})
+	set(LIBS ${LIBS} ${GECODE_LIBRARIES})
+else()
+	message(STATUS "Gecode not found")
+endif()
+
+target_link_libraries(minisatid ${LIBS})
 
 find_package(BISON)
 find_package(FLEX)

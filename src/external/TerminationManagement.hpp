@@ -5,5 +5,4 @@ void startInference();
 bool terminateRequested();
 void requestTermination();
 
-
 #endif /* TERMINATIONMANAGEMENT_HPP_ */

@@ -39,34 +39,30 @@ using namespace MinisatID;
 #include "parser/Lparseread.cpp"
 #include "parser/PBread.cpp"
 
-extern char* 	yytext;
-extern int 		lineNo;
-extern int 		charPos;
-extern pwls 	getData();
+extern char* yytext;
+extern int lineNo;
+extern int charPos;
+extern pwls getData();
 extern FlatZincRewriter* getFZRewriter();
 
-extern FILE* 	yyin;
-extern int 		yyparse();
-extern void 	yydestroy();
-extern void 	yyinit();
-extern bool 	unsatfound;
+extern FILE* yyin;
+extern int yyparse();
+extern void yydestroy();
+extern void yyinit();
+extern bool unsatfound;
 
-const char* 	hasPrefix(const char* str, const char* prefix);
 pwls parse();
-
-void printStats();
 
 jmp_buf main_loop;
 static void noMoreMem();
 volatile sig_atomic_t abortcode;
-volatile sig_atomic_t jumpback;	//Only jump back when this is 0
-static void SIGABRT_handler	(int signum);
-static void SIGFPE_handler	(int signum);
-static void SIGSEGV_handler	(int signum);
-static void SIGTERM_handler	(int signum);
-static void SIGINT_handler	(int signum);
-void handleSignals	();
-int handleTermination(pwls d);
+volatile sig_atomic_t jumpback; //Only jump back when this is 0
+static void SIGABRT_handler(int signum);
+static void SIGFPE_handler(int signum);
+static void SIGSEGV_handler(int signum);
+static void SIGTERM_handler(int signum);
+static void SIGINT_handler(int signum);
+void handleSignals();
 
 void parseAndInitializeTheory(pwls& d);
 void doModelGeneration(pwls& d);
@@ -78,32 +74,32 @@ OUTPUTFORMAT transformat;
 
 Solution* sol = NULL;
 
-Solution* createSolution(){
+Solution* createSolution() {
 	ModelExpandOptions options;
-	options.printmodels	= PRINT_BEST;
+	options.printmodels = PRINT_BEST;
 	options.savemodels = SAVE_NONE;
-	options.search = MODELEXPAND;
+	options.inference = MODELEXPAND;
 	options.nbmodelstofind = 1;
 	return new Solution(options);
 }
 
-int handleTermination(bool cleanexit, pwls d){
-    if(!cleanexit){
-        sol->notifySolvingAborted();
-    }
-    int returnvalue = 0;
-    if(sol->isUnsat()){
-        returnvalue = 20;
-    }else{
-        if(sol->isSat()){
-            returnvalue = 10;
-        }
-    }
-
-    if(d!=NULL && modes.verbosity>1){
-    	d->printStatistics();
+int handleTermination(bool cleanexit, pwls d) {
+	if (!cleanexit) {
+		sol->notifySolvingAborted();
 	}
-    return returnvalue;
+	int returnvalue = 0;
+	if (sol->isUnsat()) {
+		returnvalue = 20;
+	} else {
+		if (sol->isSat()) {
+			returnvalue = 10;
+		}
+	}
+
+	if (d != NULL && modes.verbosity > 1) {
+		d->printStatistics();
+	}
+	return returnvalue;
 }
 
 int main(int argc, char** argv) {
@@ -112,7 +108,8 @@ int main(int argc, char** argv) {
 	fpu_control_t oldcw, newcw;
 	_FPU_GETCW(oldcw);
 	newcw = (oldcw & ~_FPU_EXTENDED) | _FPU_DOUBLE;
-	_FPU_SETCW(newcw); // double precision for repeatability
+	_FPU_SETCW(newcw);
+	// double precision for repeatability
 #endif
 
 	jumpback = 1;
@@ -131,16 +128,16 @@ int main(int argc, char** argv) {
 
 	//parse command-line options
 	bool successfullparsing = parseOptions(argc, argv, sol);
-	if(!successfullparsing){
+	if (!successfullparsing) {
 		sol->notifySolvingAborted();
 		return 0;
-	}else{
+	} else {
 		sol->setNbModelsToFind(modes.nbmodels);
 	}
 	sol->setModes(modes); //TODO find cleaner way? => these are set when solve is called, but earlier statements might have incorrect behavior then (printing unsat e.g.)
 	sol->setInference(modes.inference);
 
-	if(modes.transformat==TRANS_FZ){
+	if (modes.transformat == TRANS_FZ) {
 		rewriteIntoFlatZinc();
 		return 0;
 	}
@@ -152,42 +149,50 @@ int main(int argc, char** argv) {
 #ifdef NDEBUG
 	try {
 #endif
-		//IMPORTANT: because signals are handled asynchronously, a special mechanism is needed to recover from them (exception throwing does not work)
-		//setjmp maintains a jump point to which any stack can jump back, re-executing this statement with different return value,
-		//so if this happens, we jump out
-		bool stoprunning = false;
-		if(setjmp(main_loop)){
-			jumpback = 1;
-			handleSignals();
-			cleanexit = false;
-			stoprunning = true;
-		}
-		if(!stoprunning){
-			jumpback = 0;
-			parseAndInitializeTheory(d);
-			if(sol->getInferenceOption()==MODELEXPAND){
-				doModelGeneration(d);
-			}else if(sol->getInferenceOption()==PRINTTHEORY){
-				if(sol->isUnsat()){
-					cout <<"p ecnf\n0\n"; cout.flush();
-				}else{
-					assert(d!=NULL);
-					d->printTheory(cout, sol);
-					cout.flush();
-				}
-			}
-
-			jumpback = 1;
-			cleanexit = true;
-		}
-#ifdef NDEBUG
-	} catch (const exception& e) {
-		printExceptionCaught(cerr, e);
+	//IMPORTANT: because signals are handled asynchronously, a special mechanism is needed to recover from them (exception throwing does not work)
+	//setjmp maintains a jump point to which any stack can jump back, re-executing this statement with different return value,
+	//so if this happens, we jump out
+	bool stoprunning = false;
+	if (setjmp(main_loop)) {
+		jumpback = 1;
+		handleSignals();
 		cleanexit = false;
-	} catch (int i) {
-		printUnexpectedError(cerr);
-		cleanexit = false;
+		stoprunning = true;
 	}
+	if (!stoprunning) {
+		jumpback = 0;
+		parseAndInitializeTheory(d);
+		if (sol->getInferenceOption() == MODELEXPAND || sol->getInferenceOption() == PROPAGATE) {
+			doModelGeneration(d);
+		} else if (sol->getInferenceOption() == PRINTTHEORY) {
+			// Do unit propagation
+			sol->setInferenceOption(PROPAGATE);
+			sol->setPrintModels(PRINT_NONE);
+			doModelGeneration(d);
+
+			// Print the theory
+			sol->setInferenceOption(PRINTTHEORY);
+			if (sol->isUnsat()) {
+				cout << "p ecnf\n0\n";
+				cout.flush();
+			} else {
+				assert(d!=NULL);
+				d->printTheory(cout, sol);
+				cout.flush();
+			}
+		}
+
+		jumpback = 1;
+		cleanexit = true;
+	}
+#ifdef NDEBUG
+} catch (const exception& e) {
+	printExceptionCaught(cerr, e);
+	cleanexit = false;
+} catch (int i) {
+	printUnexpectedError(cerr);
+	cleanexit = false;
+}
 #endif
 	jumpback = 1;
 
@@ -197,61 +202,63 @@ int main(int argc, char** argv) {
 	return returnvalue; //Do not call all destructors
 #endif
 
-	if(sol!=NULL){
+	if (sol != NULL) {
 		delete sol;
 	}
 
-	if(d!=NULL){
+	if (d != NULL) {
 		delete d;
 	}
 	return returnvalue;
 }
 
-void rewriteIntoFlatZinc(){
-	switch(modes.format){
-		case FORMAT_ASP:{
-			LParseTranslator* lptrans = new LParseTranslator();
-			sol->setTranslator(lptrans);
+void rewriteIntoFlatZinc() {
+	switch (modes.format) {
+	case FORMAT_ASP: {
+		LParseTranslator* lptrans = new LParseTranslator();
+		sol->setTranslator(lptrans);
 
-			std::istream is(getInputBuffer());
-			FlatZincRewriter* p = new FlatZincRewriter(modes);
-			Read<FlatZincRewriter>* r = new Read<FlatZincRewriter>(p, lptrans);
-			r->read(is);
-			delete r;
-			closeInput();
-			p->finishParsing();
-			break;}
-		case FORMAT_OPB:{
-			OPBTranslator* opbtrans = new OPBTranslator();
-			sol->setTranslator(opbtrans);
+		std::istream is(getInputBuffer());
+		FlatZincRewriter* p = new FlatZincRewriter(modes);
+		Read<FlatZincRewriter>* r = new Read<FlatZincRewriter>(p, lptrans);
+		r->read(is);
+		delete r;
+		closeInput();
+		p->finishParsing();
+		break;
+	}
+	case FORMAT_OPB: {
+		OPBTranslator* opbtrans = new OPBTranslator();
+		sol->setTranslator(opbtrans);
 
-			std::istream is(getInputBuffer());
-			FlatZincRewriter* p = new FlatZincRewriter(modes);
-			PBRead<FlatZincRewriter>* r = new PBRead<FlatZincRewriter>(p, opbtrans, is);
-			r->parse();
-			delete r;
-			closeInput();
-			p->finishParsing();
-			break;}
-		case FORMAT_FODOT:{
-			yyin = getInputFile();
-			yyinit();
-			try {
-				yyparse();
-			} catch (const MinisatID::idpexception& e) {
-				throw idpexception(getParseError(e, lineNo, charPos, yytext));
-			}
-			yydestroy();
-			closeInput();
-			getFZRewriter()->finishParsing();
-			break;
+		std::istream is(getInputBuffer());
+		FlatZincRewriter* p = new FlatZincRewriter(modes);
+		PBRead<FlatZincRewriter>* r = new PBRead<FlatZincRewriter>(p, opbtrans, is);
+		r->parse();
+		delete r;
+		closeInput();
+		p->finishParsing();
+		break;
+	}
+	case FORMAT_FODOT: {
+		yyin = getInputFile();
+		yyinit();
+		try {
+			yyparse();
+		} catch (const MinisatID::idpexception& e) {
+			throw idpexception(getParseError(e, lineNo, charPos, yytext));
 		}
+		yydestroy();
+		closeInput();
+		getFZRewriter()->finishParsing();
+		break;
+	}
 	}
 }
 
-pwls initializeAndParseASP(){
+pwls initializeAndParseASP() {
 	LParseTranslator* lptrans = new LParseTranslator();
-	if(modes.transformat!=TRANS_PLAIN){
+	if (modes.transformat != TRANS_PLAIN) {
 		sol->setTranslator(lptrans);
 	}
 
@@ -259,7 +266,7 @@ pwls initializeAndParseASP(){
 	WrappedPCSolver* p = new WrappedPCSolver(modes);
 	Read<WrappedPCSolver>* r = new Read<WrappedPCSolver>(p, lptrans);
 
-	if(!r->read(is)){
+	if (!r->read(is)) {
 		sol->notifyUnsat();
 	}
 	closeInput();
@@ -268,9 +275,9 @@ pwls initializeAndParseASP(){
 	return p;
 }
 
-pwls initializeAndParseOPB(){
+pwls initializeAndParseOPB() {
 	OPBTranslator* opbtrans = new OPBTranslator();
-	if(modes.transformat!=TRANS_PLAIN){
+	if (modes.transformat != TRANS_PLAIN) {
 		sol->setTranslator(opbtrans);
 	}
 
@@ -278,21 +285,21 @@ pwls initializeAndParseOPB(){
 	WrappedPCSolver* p = new WrappedPCSolver(modes);
 	PBRead<WrappedPCSolver>* parser = new PBRead<WrappedPCSolver>(p, opbtrans, is);
 
-	if(!parser->parse()){
+	if (!parser->parse()) {
 		sol->notifyUnsat();
 	}
 	closeInput();
 	delete parser;
 
-	if(modes.transformat==TRANS_PLAIN){
-		delete(opbtrans);
+	if (modes.transformat == TRANS_PLAIN) {
+		delete (opbtrans);
 	}
 
 	return p;
 }
 
-pwls initializeAndParseFODOT(){
-	if(modes.transformat!=TRANS_PLAIN){
+pwls initializeAndParseFODOT() {
+	if (modes.transformat != TRANS_PLAIN) {
 		transformat = modes.transformat;
 	}
 
@@ -302,43 +309,44 @@ pwls initializeAndParseFODOT(){
 	return d;
 }
 
-void parseAndInitializeTheory(pwls& d){
+void parseAndInitializeTheory(pwls& d) {
 	sol->notifyStartParsing();
 
-	switch(modes.format){
-		case FORMAT_ASP:
-			d = initializeAndParseASP();
-			break;
-		case FORMAT_OPB:
-			d = initializeAndParseOPB();
-			break;
-		case FORMAT_FODOT:{
-			d = initializeAndParseFODOT();
-			break;
-		}
+	switch (modes.format) {
+	case FORMAT_ASP:
+		d = initializeAndParseASP();
+		break;
+	case FORMAT_OPB:
+		d = initializeAndParseOPB();
+		break;
+	case FORMAT_FODOT: {
+		d = initializeAndParseFODOT();
+		break;
+	}
 	}
 
 	sol->notifyEndParsing();
 }
 
-void doModelGeneration(pwls& d){
+void doModelGeneration(pwls& d) {
 	// Unittest injection possible here by: pwls d = unittestx();
 
-	if(!sol->isUnsat()){
-		assert(d!=NULL);
-		if(d->hasOptimization()){
-			sol->notifyOptimizing();
-		}
-
-		if(modes.format==FORMAT_OPB && sol->isOptimizationProblem()){ // Change default options added before parsing
-			sol->setPrintModels(PRINT_BEST);
-			sol->setSaveModels(SAVE_BEST);
-		}
-
-		d->solve(sol);
-	}else{
+	if(sol->isUnsat()){
 		sol->notifySolvingFinished();
+		return;
 	}
+
+	assert(d!=NULL);
+	if (d->hasOptimization()) {
+		sol->notifyOptimizing();
+	}
+
+	if (modes.format == FORMAT_OPB && sol->isOptimizationProblem()) { // Change default options added before parsing
+		sol->setPrintModels(PRINT_BEST);
+		sol->setSaveModels(SAVE_BEST);
+	}
+
+	d->solve(sol);
 }
 
 /**
@@ -364,11 +372,11 @@ pwls parse() {
 
 	if (unsatfound) {
 		sol->notifyUnsat();
-		if(d!=NULL){
+		if (d != NULL) {
 			delete d;
 		}
 		d = NULL;
-	}else{
+	} else {
 		assert(d!=NULL);
 	}
 
@@ -383,64 +391,64 @@ static void noMoreMem() {
 	bool reducedmem = false;
 	//TODO try to reduce solver clause base
 	if (!reducedmem) {
-		abortcode=SIGABRT;
-		clog <<">>> Signal handled: out of memory\n";
-		longjmp (main_loop, 1);
+		abortcode = SIGABRT;
+		clog << ">>> Signal handled: out of memory\n";
+		longjmp(main_loop, 1);
 	}
 }
 
 static void SIGFPE_handler(int signum) {
 	abortcode = SIGFPE;
-	if(jumpback==0){
-		longjmp (main_loop, 1);
+	if (jumpback == 0) {
+		longjmp(main_loop, 1);
 	}
 }
 
 //IMPORTANT: assumed this is always called externally
 static void SIGTERM_handler(int signum) {
 	abortcode = SIGTERM;
-	if(jumpback==0){
-		longjmp (main_loop, 1);
+	if (jumpback == 0) {
+		longjmp(main_loop, 1);
 	}
 }
 
 static void SIGABRT_handler(int signum) {
-	abortcode=SIGABRT;
-	if(jumpback==0){
-		longjmp (main_loop, 1);
+	abortcode = SIGABRT;
+	if (jumpback == 0) {
+		longjmp(main_loop, 1);
 	}
 }
 
 static void SIGSEGV_handler(int signum) {
-	abortcode=SIGSEGV;
-	if(jumpback==0){
-		longjmp (main_loop, 1);
+	abortcode = SIGSEGV;
+	if (jumpback == 0) {
+		longjmp(main_loop, 1);
 	}
 }
 
 static void SIGINT_handler(int signum) {
-	abortcode=SIGINT;
-	if(jumpback==0){
-		longjmp (main_loop, 1);
+	abortcode = SIGINT;
+	if (jumpback == 0) {
+		longjmp(main_loop, 1);
 	}
 }
 
-void handleSignals(){
-	switch(abortcode){
+void handleSignals() {
+	switch (abortcode) {
 	case SIGFPE:
-		cerr <<">>> Floating point error signal received\n";
+		cerr << ">>> Floating point error signal received\n";
 		break;
 	case SIGABRT:
-		cerr <<">>> Abort signal received\n";
+		cerr << ">>> Abort signal received\n";
 		break;
 	case SIGINT:
-		clog <<">>> Ctrl-c signal received\n";
+		clog << ">>> Ctrl-c signal received\n";
 		break;
 	case SIGSEGV:
-		cerr <<">>> Segmentation fault signal received\n";
+		cerr << ">>> Segmentation fault signal received\n";
 		break;
 	case SIGTERM:
-		clog <<">>> Terminate signal received\n";
+		clog << ">>> Terminate signal received\n";
 		break;
 	}
 }

@@ -5,10 +5,12 @@ project (minisatid)
 set (MinisatID_VERSION_MAJOR 2)
 set (MinisatID_VERSION_MINOR 3)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/scripts/")
+
 ENABLE_TESTING()
 
 ### RPATH HANDLING
-function(handleRPATHUnix)
+macro(handleRPATHUnix)
 	# use, i.e. don't skip the full RPATH for the build tree
 	SET(CMAKE_SKIP_BUILD_RPATH  FALSE)
 	
@@ -24,7 +26,7 @@ function(handleRPATHUnix)
 	IF("${isSystemDir}" STREQUAL "-1")
 	   SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 	ENDIF()
-endfunction()
+endmacro()
 
 OPTION(GMP  "Enable gmp support" OFF)
 if(GMP)

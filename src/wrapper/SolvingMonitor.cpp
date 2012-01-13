@@ -45,7 +45,7 @@ Solution::~Solution(){
 		delete temporarymodel;
 	}
 	deleteList<Model>(models);
-};
+}
 
 Translator* Solution::getTranslator() const {
 	return translator;
