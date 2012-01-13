@@ -9,6 +9,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/scripts/")
 
 ENABLE_TESTING()
 
+set(CMAKE_MODULE_PATH "$CMAKE_MODULE_PATH cmake/")
+
 ### RPATH HANDLING
 macro(handleRPATHUnix)
 	# use, i.e. don't skip the full RPATH for the build tree

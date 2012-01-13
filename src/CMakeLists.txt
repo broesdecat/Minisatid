@@ -13,7 +13,7 @@ include_directories (
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D VERSION=\\\"${MinisatID_VERSION_MAJOR}-${MinisatID_VERSION_MINOR}\\\"")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D DATADIR=\\\"${CMAKE_INSTALL_PREFIX}/var/minisatid\\\"")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D DATADIR=\"\\\"${CMAKE_INSTALL_PREFIX}/var/minisatid\\\"\"")
 
 OPTION(SOLVER_22  "Use minisat-2-2" ON)
 OPTION(SOLVER_214_HACK  "Use minisat-2-14-2009hack" OFF)
