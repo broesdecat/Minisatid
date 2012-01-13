@@ -52,7 +52,7 @@ else()
 		if(${CMAKE_BUILD_TYPE} MATCHES "StaticDebug")
 			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -ggdb -DDEBUG ")
 			set(BUILD_SHARED_LIBS OFF) # to allow stepping
-			set(BUILD_IDP_STATIC ON)   # to allow stepping
+			set(BUILD_MINISATID_STATIC ON)   # to allow stepping
 		else() #default debug
 			set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -ggdb -DDEBUG ")
 			set(BUILD_SHARED_LIBS ON)
