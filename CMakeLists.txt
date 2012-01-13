@@ -36,8 +36,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D NO_GMP")
 endif()
 
 # Set default compile flags for GCC
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 if(CMAKE_COMPILER_IS_GNUCXX)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -Wextra ")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra -pedantic ")
 endif()
 
 if(${CMAKE_BUILD_TYPE} MATCHES "StaticRelease")
@@ -71,6 +72,9 @@ MESSAGE(STATUS "Global CXX flags: ")
 MESSAGE(STATUS "${CMAKE_CXX_FLAGS}")
 
 add_subdirectory(lib/pbsolver)
+if(BUILDTESTS)
+	add_subdirectory(lib/gtest-1.6.0)
+endif()
 add_subdirectory(src)
 
 include(CPack)

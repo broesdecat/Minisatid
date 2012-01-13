@@ -1,8 +1,6 @@
 cmake_minimum_required (VERSION 2.6)
 project (pbsolver)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-unused-parameter") 
-
 add_library(pbsolver Main.C
 		PB2CNF.hpp PB2CNF.cpp
 		Debug.C Hardware_adders.C Hardware_clausify.C
@@ -24,6 +22,8 @@ add_library(pbsolver Main.C
 		pbbase/h/BNB_SOD_Carry_Cost.h pbbase/h/ForwardSearch.h pbbase/h/GenralBaseFunctions.h
 		pbbase/h/MiniSatOrig.h pbbase/h/RelativeBaseSearch.h pbbase/h/SearchMetaData.h
 		pbbase/h/THeap.h pbbase/h/THeapComp.h)
+		
+set_target_properties(pbsolver PROPERTIES COMPILE_FLAGS "-std=c++0x -Wno-unused-parameter")
 
 # add the binary tree to the search path for include files
 include_directories ("${PROJECT_BINARY_DIR}")

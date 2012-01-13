@@ -30,7 +30,7 @@ class LogicSolver;
 class PCSolver;
 class SOSolver;
 class SearchMonitor;
-class InnerModel;
+struct InnerModel;
 class LazyClauseMonitor;
 class LazyClauseRef;
 

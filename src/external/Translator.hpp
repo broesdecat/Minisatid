@@ -25,7 +25,7 @@
 
 namespace MinisatID {
 
-class Model;
+struct Model;
 
 enum FIXEDVAL { FIXED_TRUE, FIXED_ARBIT, FIXED_FALSE };
 enum PRINTCHOICE { PRINT_FIXED, PRINT_ARBIT };

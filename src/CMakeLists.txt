@@ -6,6 +6,7 @@ include_directories ("${PROJECT_SOURCE_DIR}/lib/tclap/include")
 
 include_directories ("${PROJECT_SOURCE_DIR}/lib/pbsolver/ADTs" "${PROJECT_SOURCE_DIR}/lib/pbsolver/pbbase/h" "${PROJECT_SOURCE_DIR}/lib/pbsolver/") 
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D VERSION=\\\"${MinisatID_VERSION_MAJOR}-${MinisatID_VERSION_MINOR}\\\"")
 
 OPTION(SOLVER_22  "Use minisat-2-2" ON)
@@ -158,12 +159,5 @@ MESSAGE(STATUS "use22 ${SOLVER_22}")
 MESSAGE(STATUS "use2-14 ${SOLVER_214}")
 MESSAGE(STATUS "use2-14-hack ${SOLVER_214_HACK}")
 MESSAGE(STATUS "use cpsupport ${CPSUPPORT}")
-MESSAGE(STATUS "building minisatid tests ${BUILDTESTS}")
-
-if(BUILDTESTS)
-	add_executable(mtests tests/googletestsnippet.cpp tests/janhunentest.cpp)
-	target_link_libraries(mtests minisatid gtest pthread)
-	add_test(minisatidtests mtests)
-endif()
 		
 #EXTRA_DIST += satsolver/minisat2-2/README satsolver/minisat2-2/LICENSE satsolver/minisat2-2/doc
