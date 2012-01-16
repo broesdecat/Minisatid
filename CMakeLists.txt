@@ -5,11 +5,9 @@ project (minisatid)
 set (MinisatID_VERSION_MAJOR 2)
 set (MinisatID_VERSION_MINOR 3)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/scripts/")
-
 ENABLE_TESTING()
 
-set(CMAKE_MODULE_PATH "$CMAKE_MODULE_PATH cmake/")
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/")
 
 ### RPATH HANDLING
 macro(handleRPATHUnix)
