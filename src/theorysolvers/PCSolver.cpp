@@ -325,20 +325,22 @@ int	PCSolver::getTime(const Var& var) const{
 }
 
 void PCSolver::finishParsing(bool& unsat) {
-	state = THEORY_INITIALIZING;
-	dummy1 = newVar();
-	InnerDisjunction d1;
-	d1.literals.push_back(mkLit(dummy1, false));
-	add(d1);
-	dummy2 = newVar();
-	InnerDisjunction d2;
-	d2.literals.push_back(mkLit(dummy2, false));
-	add(d2);
+	if(state!=THEORY_INITIALIZED){
+		state = THEORY_INITIALIZING;
+		dummy1 = newVar();
+		InnerDisjunction d1;
+		d1.literals.push_back(mkLit(dummy1, false));
+		add(d1);
+		dummy2 = newVar();
+		InnerDisjunction d2;
+		d2.literals.push_back(mkLit(dummy2, false));
+		add(d2);
 
-	propagations.resize(nVars(), NULL); //Lazy init
-	state = THEORY_INITIALIZED;
+		propagations.resize(nVars(), NULL); //Lazy init
+		state = THEORY_INITIALIZED;
+		unsat |= getFactory().finishParsing()==SATVAL::UNSAT;
+	}
 
-	unsat |= getFactory().finishParsing()==SATVAL::UNSAT;
 	getEventQueue().finishParsing(unsat);
 	if (modes().useaggheur) {
 		getSATSolver()->notifyCustomHeur();

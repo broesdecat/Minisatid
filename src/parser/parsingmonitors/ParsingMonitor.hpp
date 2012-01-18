@@ -24,25 +24,25 @@ public:
 	virtual void notifyStart(){}
 	virtual void notifyEnd(){}
 
-	virtual void notifyadded(const InnerDisjunction& lits){}
-	virtual void notifyadded(const InnerRule& lits){}
-	virtual void notifyadded(const InnerWLSet& lits){}
-	virtual void notifyadded(const InnerAggregate& lits){}
-	virtual void notifyadded(const InnerReifAggregate& lits){}
-	virtual void notifyadded(const InnerMinimizeOrderedList& set){}
-	virtual void notifyadded(const InnerMinimizeSubset& set){}
-	virtual void notifyadded(const InnerMinimizeVar& set){}
-	virtual void notifyadded(const InnerMinimizeAgg& set){}
-	virtual void notifyadded(const InnerSymmetry& set){}
-	virtual void notifyadded(const InnerSymmetryLiterals& set){}
-	virtual void notifyadded(const InnerForcedChoices& set){}
-	virtual void notifyadded(const InnerIntVarEnum& set){}
-	virtual void notifyadded(const InnerIntVarRange& set){}
-	virtual void notifyadded(const InnerCPAllDiff& set){}
-	virtual void notifyadded(const InnerCPBinaryRel& set){}
-	virtual void notifyadded(const InnerCPCount& set){}
-	virtual void notifyadded(const InnerCPBinaryRelVar& set){}
-	virtual void notifyadded(const InnerCPSumWeighted& set){}
+	virtual void notifyadded(const InnerDisjunction&){}
+	virtual void notifyadded(const InnerRule&){}
+	virtual void notifyadded(const InnerWLSet&){}
+	virtual void notifyadded(const InnerAggregate&){}
+	virtual void notifyadded(const InnerReifAggregate&){}
+	virtual void notifyadded(const InnerMinimizeOrderedList&){}
+	virtual void notifyadded(const InnerMinimizeSubset&){}
+	virtual void notifyadded(const InnerMinimizeVar&){}
+	virtual void notifyadded(const InnerMinimizeAgg&){}
+	virtual void notifyadded(const InnerSymmetry&){}
+	virtual void notifyadded(const InnerSymmetryLiterals&){}
+	virtual void notifyadded(const InnerForcedChoices&){}
+	virtual void notifyadded(const InnerIntVarEnum&){}
+	virtual void notifyadded(const InnerIntVarRange&){}
+	virtual void notifyadded(const InnerCPAllDiff&){}
+	virtual void notifyadded(const InnerCPBinaryRel&){}
+	virtual void notifyadded(const InnerCPCount&){}
+	virtual void notifyadded(const InnerCPBinaryRelVar&){}
+	virtual void notifyadded(const InnerCPSumWeighted&){}
 
 protected:
 	std::ostream& target() { return stream; }

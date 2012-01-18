@@ -34,6 +34,26 @@ enum class DefType	{ DISJ, CONJ, AGGR };
 enum DefOcc 	{ NONDEFOCC, POSLOOP, MIXEDLOOP, BOTHLOOP };
 enum UFS 		{ NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK };
 
+struct TempRule{
+	Var head;
+	std::vector<Lit> body;
+	bool conjunctive;
+
+	bool isagg;
+	InnerReifAggregate* inneragg;
+	InnerWLSet* innerset;
+
+	TempRule(Var head, bool conjunctive, std::vector<Lit> body): head(head), body(body), conjunctive(conjunctive), isagg(false), inneragg(NULL), innerset(NULL){}
+	TempRule(InnerReifAggregate* inneragg, InnerWLSet* innerset): head(inneragg->head), isagg(true), inneragg(inneragg), innerset(innerset){}
+
+	~TempRule(){
+		if(isagg){
+			delete(inneragg);
+			delete(innerset);
+		}
+	}
+};
+
 class PropRule {
 private:
 	const Var head;
@@ -185,6 +205,8 @@ private:
 
 	IDStats				stats;
 
+	std::map<Var, TempRule*> rules;
+
 public:
 	IDSolver(PCSolver* s, int definitionID);
 	virtual ~IDSolver();
@@ -210,7 +232,9 @@ public:
 
 	rClause				isWellFoundedModel		();
 
-	SATVAL    			addRule      			(bool conj, Var head, const litlist& ps);	// Add a rule to the solver.
+	void				addRule      			(bool conj, Var head, const litlist& ps);	// Add a rule to the solver.
+	SATVAL				addFinishedRule			(TempRule* rule);
+	void				addFinishedDefinedAggregate(TempRule* rule);
 	void 				addDefinedAggregate		(const InnerReifAggregate& agg, const InnerWLSet& set);
 
 	bool				isDefined				(Var var) 	const { return hasDefVar(var); }

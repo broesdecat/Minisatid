@@ -80,6 +80,51 @@ void IDSolver::adaptStructsToHead(Var head){
 	definitions.resize(nbvars, NULL);
 }
 
+void IDSolver::addDefinedAggregate(const InnerReifAggregate& inneragg, const InnerWLSet& innerset){
+	auto newrule = new TempRule(new InnerReifAggregate(inneragg), new InnerWLSet(innerset));
+	auto it = rules.find(inneragg.head);
+	if(it==rules.cend()){
+		rules[inneragg.head] = newrule;
+		return;
+	}
+
+	auto prevrule = it->second;
+	if(prevrule->conjunctive){ // introduce new var (we need disjunctive root anyway
+		auto newvar = getPCSolver().newVar();
+		rules[newvar] = new TempRule(newvar, prevrule->conjunctive, prevrule->body);
+		prevrule->conjunctive = false;
+		prevrule->body = {mkLit(newvar)};
+	}
+	auto newvar = getPCSolver().newVar();
+	newrule->inneragg->head = newvar;
+	newrule->head = newvar;
+	rules[newvar] = newrule;
+	prevrule->body.push_back(mkPosLit(newvar));
+}
+
+void IDSolver::addRule(bool conj, Var head, const litlist& ps) {
+	auto it = rules.find(head);
+	if(it==rules.cend()){
+		rules[head] = new TempRule(head, conj, ps);
+		return;
+	}
+
+	auto prevrule = it->second;
+	if(prevrule->conjunctive){ // introduce new var (we need disjunctive root anyway
+		auto newvar = getPCSolver().newVar();
+		rules[newvar] = new TempRule(newvar, prevrule->conjunctive, prevrule->body);
+		prevrule->conjunctive = false;
+		prevrule->body = {mkLit(newvar)};
+	}
+	if(conj){ // Create a new var and rule first
+		auto newvar = getPCSolver().newVar();
+		rules[newvar] = new TempRule(newvar, conj, ps);
+		prevrule->body.push_back(mkPosLit(newvar));
+	}else{ // Disjunctive, so can add directly
+		prevrule->body.insert(prevrule->body.end(), ps.cbegin(), ps.cend());
+	}
+}
+
 /**
  * First literal in ps is the head of the rule. It has to be present and it has to be positive.
  *
@@ -90,10 +135,15 @@ void IDSolver::adaptStructsToHead(Var head){
  *
  * If only one body literal, the clause is always made conjunctive (for algorithmic correctness later on), semantics are the same.
  */
-SATVAL IDSolver::addRule(bool conj, Var head, const litlist& ps) {
-	if(getPCSolver().getCurrentDecisionLevel()!=0){
+SATVAL IDSolver::addFinishedRule(TempRule* rule) {
+	MAssert(not rule->isagg);
+
+	if(getPCSolver().getCurrentDecisionLevel()!=0){ // NOTE can only add rules at level 0 TODO => is this not only the case because of propagation possible derived earlier?
 		getPCSolver().backtrackTo(0);
 	}
+
+	auto conj = rule->conjunctive;
+	auto head = rule->head;
 
 	adaptStructsToHead(head);
 
@@ -102,44 +152,42 @@ SATVAL IDSolver::addRule(bool conj, Var head, const litlist& ps) {
 		throw idpexception(s);
 	}
 
-	if (ps.empty()) {
+	if (rule->body.empty()) {
 		Lit h = conj ? mkLit(head) : mkLit(head, true); //empty set conj = true, empty set disj = false
 		InnerDisjunction v;
 		v.literals.push_back(h);
 		getPCSolver().add(v);
 	} else {
-		conj = conj || ps.size() == 1; //rules with only one body atom are treated as conjunctive
+		conj = conj || rule->body.size() == 1; //rules with only one body atom are treated as conjunctive
 
-		auto r = new PropRule(mkLit(head), ps);
+		auto r = new PropRule(mkLit(head), rule->body);
 		createDefinition(head, r, conj?DefType::CONJ:DefType::DISJ);
 
 		InnerEquivalence eq;
 		eq.head = mkLit(head);
-		eq.literals = ps;
+		eq.literals = rule->body;
 		eq.conjunctive = conj;
 		getPCSolver().add(eq);
 		assert(isDefined(head));
 	}
 
-	if(getPCSolver().isInitialized() && modes().lazy){
-		bool present = false;
-		bool unsat = false;
-		finishParsing(present, unsat);
-	}
-
 	return getPCSolver().satState();
 }
 
-void IDSolver::addDefinedAggregate(const InnerReifAggregate& inneragg, const InnerWLSet& innerset){
-	Var head = inneragg.head;
+void IDSolver::addFinishedDefinedAggregate(TempRule* rule){
+	MAssert(rule->isagg);
+
+	cerr <<"Adding agg rule with head " <<rule->head <<"\n";
+
+	Var head = rule->head;
 	adaptStructsToHead(head);
 	if(isDefined(head)){
 		char s[100]; sprintf(s, "Multiple rules have the same head %d, which is not allowed!\n", getPrintableVar(head));
 		throw idpexception(s);
 	}
 
-	AggBound b(inneragg.sign, inneragg.bound);
-	IDAgg* agg = new IDAgg(mkLit(head), b, inneragg.sem, inneragg.type, innerset.wls);
+	AggBound b(rule->inneragg->sign, rule->inneragg->bound);
+	IDAgg* agg = new IDAgg(mkLit(head), b, rule->inneragg->sem, rule->inneragg->type, rule->innerset->wls);
 	if(isInitiallyJustified(*agg)){
 		delete(agg);
 		return;
@@ -267,7 +315,19 @@ void IDSolver::addToNetwork(Var v){
  * @PRE: aggregates have to have been finished
  */
 void IDSolver::finishParsing(bool& present, bool& unsat) {
-	//notifyParsed(); // TODO not correct after repeated calls
+	//notifyParsed(); // TODO not correct after repeated calls (lazy grounding)
+
+	for(auto i=rules.cbegin(); not unsat && i!=rules.cend(); ++i) {
+		if(i->second->inneragg){
+			addFinishedDefinedAggregate(i->second);
+		}else{
+			MAssert(i->first==i->second->head);
+			if(addFinishedRule(i->second)==SATVAL::UNSAT){
+				unsat = true;
+			}
+		}
+	}
+	deleteList(rules);
 
 	present = true;
 	unsat = false;
