@@ -36,6 +36,7 @@ IDSolver::IDSolver(PCSolver* s, int definitionID):
 		definitionID(definitionID),
 		minvar(0), nbvars(0),
 		conj(DefType::CONJ), disj(DefType::DISJ), aggr(DefType::AGGR),
+		_seen(NULL),
 		sem(getPCSolver().modes().defsem),
 		posrecagg(false), mixedrecagg(false),
 		posloops(true), negloops(true),
@@ -51,6 +52,9 @@ IDSolver::IDSolver(PCSolver* s, int definitionID):
 }
 
 IDSolver::~IDSolver() {
+	if(_seen!=NULL){
+		delete(_seen);
+	}
 	deleteList<DefinedVar> (definitions);
 }
 
@@ -270,6 +274,9 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 
 	//LAZY initialization
 	posloops = true; negloops = true; mixedrecagg = false; posrecagg = false;
+	if(_seen!=NULL){
+		delete(_seen);
+	}
 	_seen = new InterMediateDataStruct(nbvars, minvar);
 	disj.resize(nVars()*2);
 	conj.resize(nVars()*2);
