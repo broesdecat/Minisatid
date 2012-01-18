@@ -36,10 +36,10 @@ rClause LazyResidual::notifypropagate(){
 		//      (where the constraint is not unsatisfied)).
 	}
 	watch->monitor->requestGrounding(); // FIXME should delete the other watch too
-	notifyNotPresent(); // FIXME clean way of deleting this?
 
 	bool unsat = false;
 	getPCSolver().finishParsing(unsat);
+	notifyNotPresent(); // FIXME clean way of deleting this? FIXME only do this after finishparsing as this deleted propagators (including this one otherwise!)
 
 	if(getPCSolver().satState()==SATVAL::UNSAT){
 		InnerDisjunction d;

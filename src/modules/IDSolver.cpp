@@ -100,6 +100,9 @@ void IDSolver::addDefinedAggregate(const InnerReifAggregate& inneragg, const Inn
 	newrule->head = newvar;
 	rules[newvar] = newrule;
 	prevrule->body.push_back(mkPosLit(newvar));
+	if(not isParsing()){
+		getPCSolver().acceptFinishParsing(this, true);
+	}
 }
 
 void IDSolver::addRule(bool conj, Var head, const litlist& ps) {
@@ -122,6 +125,9 @@ void IDSolver::addRule(bool conj, Var head, const litlist& ps) {
 		prevrule->body.push_back(mkPosLit(newvar));
 	}else{ // Disjunctive, so can add directly
 		prevrule->body.insert(prevrule->body.end(), ps.cbegin(), ps.cend());
+	}
+	if(not isParsing()){
+		getPCSolver().acceptFinishParsing(this, true);
 	}
 }
 
