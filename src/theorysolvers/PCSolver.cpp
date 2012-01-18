@@ -82,6 +82,8 @@ uint64_t PCSolver::nVars() const {
 	return getSolver().nbVars();
 }
 
+const std::vector<Lit>& PCSolver::getTrail() const { return trail->getTrail(); }
+
 bool PCSolver::isDecisionVar(Var var) {
 	if(var>=nVars()){
 		return false;
@@ -89,11 +91,11 @@ bool PCSolver::isDecisionVar(Var var) {
 	return getSATSolver()->isDecisionVar(var);
 }
 void PCSolver::notifyNonDecisionVar(Var var) {
-	cerr <<"Make not decided variable " <<getPrintableVar(var) <<"\n";
+	// cerr <<"Make not decided variable " <<getPrintableVar(var) <<"\n";
 	getSATSolver()->setDecisionVar(var, false);
 }
 void PCSolver::notifyDecisionVar(Var var) {
-	cerr <<"Make decided variable " <<getPrintableVar(var) <<"\n";
+	// cerr <<"Make decided variable " <<getPrintableVar(var) <<"\n";
 	getSATSolver()->setDecisionVar(var, true);
 }
 

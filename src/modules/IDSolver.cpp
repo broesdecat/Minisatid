@@ -267,7 +267,7 @@ void IDSolver::addToNetwork(Var v){
  * @PRE: aggregates have to have been finished
  */
 void IDSolver::finishParsing(bool& present, bool& unsat) {
-	notifyParsed();
+	//notifyParsed(); // TODO not correct after repeated calls
 
 	present = true;
 	unsat = false;

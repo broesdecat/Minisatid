@@ -13,6 +13,7 @@
 #include "utils/PrintMessage.hpp"
 
 #include <iostream>
+#include <typeinfo>
 
 using namespace MinisatID;
 using namespace std;
@@ -251,14 +252,14 @@ rClause EventQueue::notifyPropagate() {
 		}
 		p->notifyDeQueued();
 		confl = p->notifypropagate();
-		assert(getPCSolver().satState()!=SATVAL::UNSAT || confl!=nullPtrClause);
+		MAssert(getPCSolver().satState()!=SATVAL::UNSAT || confl!=nullPtrClause);
 	}
 	return confl;
 }
 
 int EventQueue::getNbOfFormulas() const {
 	int count = 0;
-	for (proplist::const_iterator i = allpropagators.cbegin(); i < allpropagators.cend(); ++i) {
+	for (auto i = allpropagators.cbegin(); i < allpropagators.cend(); ++i) {
 		if ((*i)->isPresent()) {
 			count += (*i)->getNbOfFormulas();
 		}

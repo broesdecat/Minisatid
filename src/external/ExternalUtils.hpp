@@ -20,9 +20,9 @@ typedef unsigned int uint;
 #include "TerminationManagement.hpp"
 
 #ifndef NDEBUG
-#define Assert(condition) { if(!(condition)){ std::stringstream ss; ss << "ASSERT FAILED: " << #condition << " @ " << __FILE__ << " (" << __LINE__ << ")"; throw AssertionException(ss.str());} }
+#define MAssert(condition) { if(!(condition)){ std::stringstream ss; ss << "ASSERT FAILED: " << #condition << " @ " << __FILE__ << " (" << __LINE__ << ")"; throw idpexception(ss.str());} }
 #else
-#define Assert(x) do {} while(0)
+#define MAssert(x) do {} while(0)
 #endif
 
 namespace MinisatID {

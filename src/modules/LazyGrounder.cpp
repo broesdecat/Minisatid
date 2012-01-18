@@ -37,5 +37,11 @@ rClause LazyResidual::notifypropagate(){
 	}
 	watch->monitor->requestGrounding(); // FIXME should delete the other watch too
 	notifyNotPresent(); // FIXME clean way of deleting this?
-	return nullPtrClause;
+	if(getPCSolver().satState()==SATVAL::UNSAT){
+		InnerDisjunction d;
+		d.literals = { getPCSolver().getTrail().back()};
+		return getPCSolver().createClause(d, true);
+	}else{
+		return nullPtrClause;
+	}
 }

@@ -88,6 +88,8 @@ public:
 	CPSolver* 		getCPSolverp() const { return cpsolver; }
 #endif
 
+	const std::vector<Lit>& getTrail() const;
+
 	bool		isDecisionVar(Var var);
 	void		notifyDecisionVar(Var var);
 	void		notifyNonDecisionVar(Var var);

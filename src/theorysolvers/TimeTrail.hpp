@@ -27,6 +27,7 @@ public:
 	TimeTrail(): newesttimepoint(0){
 		decisionlevel2trail.push_back(trail.size());
 	}
+	const std::vector<Lit>& getTrail() const { return trail; }
 	void notifyPropagate(const Lit& lit) {
 		if(var2time.size()<=(vsize)var(lit)){
 			var2time.resize(var(lit)+1, -1);

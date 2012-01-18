@@ -19,7 +19,7 @@ private:
 	std::string mess;
 
 public:
-	idpexception(std::string m): std::exception(), mess(m){		}
+	idpexception(const std::string& m): std::exception(), mess(m){		}
 	idpexception(const char* m): std::exception(){
 		mess.append(m);
 	}
