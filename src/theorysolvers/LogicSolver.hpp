@@ -38,6 +38,7 @@ public:
 
 			int 	verbosity		() const		{ return modes().verbosity; }
 	const SolverOption& modes		() const		{ return _modes; }
+	SolverOption& 	getNonConstOptions() 			{ return _modes; }
 			void	setVerbosity	(int verb)		{ _modes.verbosity = verb; }
 			void	setNbModels		(int nbmodels)	{ _modes.nbmodels = nbmodels; }
 
