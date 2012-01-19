@@ -80,6 +80,18 @@ void print(PCSolver * const s){
 	s->printState();
 }
 
+template<typename List>
+void printList(const List& list, const std::string& between){
+	bool begin = true;
+	for(auto j=list.cbegin(); j<list.cend(); j++){
+		if(not begin){
+			clog <<between;
+		}
+		begin = false;
+		clog <<*j;
+	}
+}
+
 template<>
 void print(IDSolver const * const s){
 	if(s==NULL){
@@ -91,20 +103,14 @@ void print(IDSolver const * const s){
 		if(not s->isDefined(i)){
 			continue;
 		}
-		if(s->isConjunctive(i)){
-			clog <<"Conjunctive rule";
-		}else if(s->isDisjunctive(i)){
-			clog <<"Disjunctive rule";
-		}else if(s->isDefinedByAggr(i)){
-			clog <<"Aggregate rule";
-		}
-
 		const PropRule& r = s->getDefinition(i);
-		clog <<r.getHead();
-		int counter = 0;
-		while(counter<r.size()){
-			clog <<r[counter];
-			++counter;
+		clog <<r.getHead() <<" <- ";
+		if(s->isConjunctive(i)){
+			printList(r, " & ");
+		}else if(s->isDisjunctive(i)){
+			printList(r, " | ");
+		}else if(s->isDefinedByAggr(i)){
+			clog <<"aggregate rule"; // TODO print aggregate
 		}
 		clog <<"\n";
 	}
