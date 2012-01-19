@@ -10,6 +10,7 @@
 #define EXTERNALUTILS_HPP_
 
 #include <string>
+#include <sstream>
 
 typedef unsigned int uint;
 
