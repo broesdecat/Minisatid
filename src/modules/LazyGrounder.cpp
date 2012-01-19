@@ -37,7 +37,7 @@ rClause LazyResidual::notifypropagate(){
 	}
 	watch->monitor->requestGrounding(); // FIXME should delete the other watch too
 
-	bool unsat = false;
+	bool unsat;
 	getPCSolver().finishParsing(unsat);
 	notifyNotPresent(); // FIXME clean way of deleting this? FIXME only do this after finishparsing as this deleted propagators (including this one otherwise!)
 

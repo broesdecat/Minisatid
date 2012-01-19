@@ -47,6 +47,7 @@ private:
 	bool initialized;
 	void notifyInitialized() { initialized = true; }
 	bool isInitialized() const { return initialized; }
+	bool finishing;
 
 public:
 	EventQueue(PCSolver& pcsolver);
