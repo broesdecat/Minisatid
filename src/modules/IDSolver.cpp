@@ -202,6 +202,9 @@ void IDSolver::addFinishedDefinedAggregate(TempRule* rule){
  * @PRE: aggregates have to have been finished
  */
 void IDSolver::finishParsing(bool& present, bool& unsat) {
+	if(rules.size()==0 && not forcefinish && finishedonce){
+		return;
+	}
 	if(getPCSolver().getCurrentDecisionLevel()!=0){ // NOTE can only add rules at level 0 TODO => is this not only the case because of propagation possible derived earlier?
 		getPCSolver().backtrackTo(0);
 	}
@@ -216,7 +219,8 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	//notifyParsed(); // TODO not correct after repeated calls (lazy grounding)
 
 	//cerr <<"Finishing\n";
-	for(auto i=rules.cbegin(); not unsat && i!=rules.cend(); ++i) {
+	auto temprules = rules; // NOTE: need copy because during adding we might do more grounding and get more rules
+	for(auto i=temprules.cbegin(); not unsat && i!=temprules.cend(); ++i) {
 		if(i->second->inneragg){
 			addFinishedDefinedAggregate(i->second);
 		}else{
@@ -237,6 +241,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 		getPCSolver().getNonConstOptions().defn_strategy = adaptive;
 		return;
 	}
+	needtofinish = false;
 	finishedonce = true;
 	forcefinish = false;
 

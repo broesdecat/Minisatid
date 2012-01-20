@@ -379,6 +379,12 @@ void EventQueue::printState() const {
 	}
 }
 
+void EventQueue::printECNF(ostream& stream, set<Var>& printedvars) const {
+	for (auto i=allpropagators.cbegin(); i < allpropagators.cend(); ++i) {
+		//(*i)->printECNF(); //TODO
+	}
+}
+
 void EventQueue::printStatistics() const {
 	auto props = event2propagator.at(EV_PRINTSTATS);
 	for (uint i = 0; i < size(EV_PRINTSTATS); ++i) {

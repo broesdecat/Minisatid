@@ -7,6 +7,8 @@
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 #include "modules/LazyGrounder.hpp"
+#include <iostream>
+#include "utils/Print.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -35,6 +37,7 @@ rClause LazyResidual::notifypropagate(){
 		//(e.g. clauses in the sat solver, backtrack to the appropriate level if necessary
 		//      (where the constraint is not unsatisfied)).
 	}
+	//cerr <<"Requesting lazy grounding for " <<watch->getPropLit() <<"\n";
 	watch->monitor->requestGrounding(); // FIXME should delete the other watch too
 
 	bool unsat;
