@@ -8,16 +8,16 @@
  */
 #include <ctime>
 #include <cstring>
-#include <stdint.h>
+#include <cstdint>
 #include <cerrno>
 #include <iostream>
 #include <fstream>
-#include <signal.h>
+#include <csignal>
 #include <sstream>
 
 #include "parser/ParseOptions.hpp"
 
-#include <setjmp.h>
+#include <csetjmp>
 
 #include "external/ExternalInterface.hpp"
 #include "external/FlatZincRewriter.hpp"
@@ -113,13 +113,21 @@ int main(int argc, char** argv) {
 #endif
 
 	jumpback = 1;
-	signal(SIGABRT, SIGABRT_handler);
-	signal(SIGFPE, SIGFPE_handler);
-	signal(SIGTERM, SIGTERM_handler);
-	signal(SIGSEGV, SIGSEGV_handler);
-	signal(SIGINT, SIGINT_handler);
+	struct sigaction abort, overflow, segfault, terminate, sigint, sighup;
+	abort.sa_handler=SIGABRT_handler;
+	overflow.sa_handler=SIGFPE_handler;
+	terminate.sa_handler=SIGTERM_handler;
+	segfault.sa_handler=SIGSEGV_handler;
+	sigint.sa_handler=SIGINT_handler;
+	sighup.sa_handler=SIGINT_handler;
+
+	sigaction(SIGABRT, &abort, NULL);
+	sigaction(SIGFPE, &overflow, NULL);
+	sigaction(SIGTERM, &terminate, NULL);
+	sigaction(SIGSEGV, &segfault, NULL);
+	sigaction(SIGINT, &sigint, NULL);
 #if defined(__linux__)
-	signal(SIGHUP, SIGINT_handler);
+	sigaction(SIGHUP, &sighup, NULL);
 #endif
 	//set memory handler
 	std::set_new_handler(noMoreMem);
