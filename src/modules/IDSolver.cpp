@@ -1485,8 +1485,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 				addLoopfClause(not loopf.literals[i], binaryclause);
 			}
 
-			vec<Lit> temp(2);
-			temp.copyTo(loopf);
+			loopf.literals = litlist(2);
 
 			//the end loop formula just contains v
 			loopf.literals[1] = createPositiveLiteral(v);
