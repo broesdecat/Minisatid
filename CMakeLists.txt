@@ -28,12 +28,30 @@ macro(handleRPATHUnix)
 	ENDIF()
 endmacro()
 
-OPTION(GMP  "Enable gmp support" OFF)
+OPTION(SOLVER_22  		"Use minisat-2-2" ON)
+OPTION(SOLVER_214_HACK  "Use minisat-2-14-2009hack" OFF)
+OPTION(SOLVER_214  		"Use minisat-2-14" OFF)
+OPTION(WITHCP  			"Include cpsupport (need gecode to be installed)" OFF)
+OPTION(GECODE_DIR  		"Optional, specify path where gecode is installed" "")
+OPTION(BUILDTESTS  		"Run the gtest tests" ON)
+OPTION(GMP  			"Enable gmp support" OFF)
+
 if(GMP)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D GMP")	
 else()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D NO_GMP")
 endif()
+
+if(WITHCP)
+	find_package(Gecode)
+	if(GECODE_FOUND)
+		include_directories(${GECODE_INCLUDE_DIRS})
+		set(LIBS ${LIBS} ${GECODE_LIBRARIES})
+	else()
+		message(FATAL_ERROR "Gecode not found (maybe specify a custom install directory via GECODE_DIR?)")
+	endif()
+endif()
+
 
 # Set default compile flags for GCC
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")

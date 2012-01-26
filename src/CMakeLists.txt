@@ -11,63 +11,57 @@ include_directories (
 ) 
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D VERSION=\\\"${MinisatID_VERSION_MAJOR}-${MinisatID_VERSION_MINOR}\\\"")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D DATADIR=\"\\\"${CMAKE_INSTALL_PREFIX}/var/minisatid\\\"\"")
 
-OPTION(SOLVER_22  "Use minisat-2-2" ON)
-OPTION(SOLVER_214_HACK  "Use minisat-2-14-2009hack" OFF)
-OPTION(SOLVER_214  "Use minisat-2-14" OFF)
-OPTION(CPSUPPORT  "Use cpsupport" OFF)
-OPTION(GECODE_DIR  "Optional, specify path where gecode is installed" "")
-OPTION(BUILDTESTS  "Run the gtest tests" ON)
-
 if(SOLVER_22)
-set(SATSOLVER_SOURCES satsolver/minisat2-2/minisat/core/Solver.cc
-		satsolver/minisat2-2/minisat/core/Solver.h satsolver/minisat2-2/minisat/core/SolverTypes.h 
-		satsolver/minisat2-2/minisat/mtl/IntTypes.h satsolver/minisat2-2/minisat/mtl/Alg.h satsolver/minisat2-2/minisat/mtl/Vec.h
-		satsolver/minisat2-2/minisat/mtl/Map.h satsolver/minisat2-2/minisat/mtl/Alloc.h
-		satsolver/minisat2-2/minisat/mtl/Queue.h satsolver/minisat2-2/minisat/mtl/Heap.h
-		satsolver/minisat2-2/minisat/mtl/Sort.h satsolver/minisat2-2/minisat/mtl/XAlloc.h
-		satsolver/minisat2-2/minisat/utils/ParseUtils.h satsolver/minisat2-2/minisat/utils/Options.h
-)
-include_directories("${PROJECT_SOURCE_DIR}/src/satsolver/minisat2-2/minisat" "${PROJECT_SOURCE_DIR}/src/satsolver/minisat2-2/")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS -D USEMINISAT22")
+	set(SATSOLVER_SOURCES satsolver/minisat2-2/minisat/core/Solver.cc
+			satsolver/minisat2-2/minisat/core/Solver.h satsolver/minisat2-2/minisat/core/SolverTypes.h 
+			satsolver/minisat2-2/minisat/mtl/IntTypes.h satsolver/minisat2-2/minisat/mtl/Alg.h satsolver/minisat2-2/minisat/mtl/Vec.h
+			satsolver/minisat2-2/minisat/mtl/Map.h satsolver/minisat2-2/minisat/mtl/Alloc.h
+			satsolver/minisat2-2/minisat/mtl/Queue.h satsolver/minisat2-2/minisat/mtl/Heap.h
+			satsolver/minisat2-2/minisat/mtl/Sort.h satsolver/minisat2-2/minisat/mtl/XAlloc.h
+			satsolver/minisat2-2/minisat/utils/ParseUtils.h satsolver/minisat2-2/minisat/utils/Options.h
+	)
+	include_directories("${PROJECT_SOURCE_DIR}/src/satsolver/minisat2-2/minisat" "${PROJECT_SOURCE_DIR}/src/satsolver/minisat2-2/")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS -D USEMINISAT22")
 endif()
 
 if(SOLVER_214_HACK)
-set(SATSOLVER_SOURCES 
-		satsolver/minisat2-14-hack2009/Solver.cpp
-		satsolver/minisat2-14-hack2009/Solver.hpp satsolver/minisat2-14-hack2009/SolverTypes.hpp
-		satsolver/minisat2-14-hack2009/mtl/Vec.h satsolver/minisat2-14-hack2009/mtl/Queue.h
-		satsolver/minisat2-14-hack2009/mtl/Alg.h satsolver/minisat2-14-hack2009/mtl/Heap.h
-		satsolver/minisat2-14-hack2009/mtl/Map.h satsolver/minisat2-14-hack2009/mtl/Sort.h
-)
-include_directories("${PROJECT_SOURCE_DIR}/src/satsolver/minisat2-14-hack2009/")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D USEMINISAT09Z ")
+	set(SATSOLVER_SOURCES 
+			satsolver/minisat2-14-hack2009/Solver.cpp
+			satsolver/minisat2-14-hack2009/Solver.hpp satsolver/minisat2-14-hack2009/SolverTypes.hpp
+			satsolver/minisat2-14-hack2009/mtl/Vec.h satsolver/minisat2-14-hack2009/mtl/Queue.h
+			satsolver/minisat2-14-hack2009/mtl/Alg.h satsolver/minisat2-14-hack2009/mtl/Heap.h
+			satsolver/minisat2-14-hack2009/mtl/Map.h satsolver/minisat2-14-hack2009/mtl/Sort.h
+	)
+	include_directories("${PROJECT_SOURCE_DIR}/src/satsolver/minisat2-14-hack2009/")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D USEMINISAT09Z ")
 endif()
 
 if(USEMINISAT)
-set(SATSOLVER_SOURCES 
-		satsolver/minisat2-14/Solver.cpp
-		satsolver/minisat2-14/Solver.hpp satsolver/minisat2-14/SolverTypes.hpp
-		satsolver/minisat2-14/mtl/Vec.h satsolver/minisat2-14/mtl/Queue.h satsolver/minisat2-14/mtl/Alg.h
-		satsolver/minisat2-14/mtl/Heap.h satsolver/minisat2-14/mtl/Map.h satsolver/minisat2-14/mtl/Sort.h
-)
-include_directories("${PROJECT_SOURCE_DIR}/src/satsolver/minisat2-14/")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D USEMINISAT ")
+	set(SATSOLVER_SOURCES 
+			satsolver/minisat2-14/Solver.cpp
+			satsolver/minisat2-14/Solver.hpp satsolver/minisat2-14/SolverTypes.hpp
+			satsolver/minisat2-14/mtl/Vec.h satsolver/minisat2-14/mtl/Queue.h satsolver/minisat2-14/mtl/Alg.h
+			satsolver/minisat2-14/mtl/Heap.h satsolver/minisat2-14/mtl/Map.h satsolver/minisat2-14/mtl/Sort.h
+	)
+	include_directories("${PROJECT_SOURCE_DIR}/src/satsolver/minisat2-14/")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D USEMINISAT ")
 endif()
 
 # CP interface
-if(CPSUPPORT)
-set(CPSOURCES
-		modules/CPSolver.hpp 				modules/CPSolver.cpp
-		modules/cpsolver/Constraint.hpp		modules/cpsolver/Constraint.cpp
-		modules/cpsolver/CPSolverData.hpp	modules/cpsolver/CPSolverData.cpp
-		modules/cpsolver/CPUtils.hpp		modules/cpsolver/CPUtils.cpp
-		modules/cpsolver/CPScript.hpp		modules/cpsolver/CPScript.cpp
-)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D CPSUPPORT")
+if(WITHCP)
+	set(CPSOURCES
+			modules/CPSolver.hpp 				modules/CPSolver.cpp
+			modules/cpsolver/Constraint.hpp		modules/cpsolver/Constraint.cpp
+			modules/cpsolver/CPSolverData.hpp	modules/cpsolver/CPSolverData.cpp
+			modules/cpsolver/CPUtils.hpp		modules/cpsolver/CPUtils.cpp
+			modules/cpsolver/CPScript.hpp		modules/cpsolver/CPScript.cpp
+	)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D CPSUPPORT")
 endif()
 
 add_library(minisatid
@@ -126,18 +120,10 @@ add_library(minisatid
 		GeneralUtils.hpp 					GeneralUtils.cpp
 		Unittests.hpp 						Unittests.cpp
 		${SATSOLVER_SOURCES}
+		${CP_SOURCES}
 )
 
 set(LIBS ${LIBS} pbsolver)
-
-find_package(Gecode)
-if(GECODE_FOUND)
-	message(STATUS "Including gecode")
-	include_directories(${GECODE_INCLUDE_DIRS})
-	set(LIBS ${LIBS} ${GECODE_LIBRARIES})
-else()
-	message(STATUS "Gecode not found")
-endif()
 
 target_link_libraries(minisatid ${LIBS})
 
