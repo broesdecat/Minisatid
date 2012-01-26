@@ -54,7 +54,7 @@ endif()
 
 # CP interface
 if(WITHCP)
-	set(CPSOURCES
+	set(CP_SOURCES
 			modules/CPSolver.hpp 				modules/CPSolver.cpp
 			modules/cpsolver/Constraint.hpp		modules/cpsolver/Constraint.cpp
 			modules/cpsolver/CPSolverData.hpp	modules/cpsolver/CPSolverData.cpp
@@ -144,7 +144,7 @@ if(BUILD_MINISATID_STATIC)
 endif()
 
 # add the install targets
-install (TARGETS minisatid-bin DESTINATION bin)
+install (TARGETS minisatid-bin DESTINATION bin PERMISSIONS OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 install (TARGETS minisatid DESTINATION lib)
 
 MESSAGE(STATUS "Options:")
