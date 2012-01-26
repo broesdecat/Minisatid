@@ -19,6 +19,7 @@ OPTION(SOLVER_22  "Use minisat-2-2" ON)
 OPTION(SOLVER_214_HACK  "Use minisat-2-14-2009hack" OFF)
 OPTION(SOLVER_214  "Use minisat-2-14" OFF)
 OPTION(CPSUPPORT  "Use cpsupport" OFF)
+OPTION(GECODE_DIR  "Optional, specify path where gecode is installed" "")
 OPTION(BUILDTESTS  "Run the gtest tests" ON)
 
 if(SOLVER_22)
