@@ -32,7 +32,7 @@ OPTION(SOLVER_22  		"Use minisat-2-2" ON)
 OPTION(SOLVER_214_HACK  "Use minisat-2-14-2009hack" OFF)
 OPTION(SOLVER_214  		"Use minisat-2-14" OFF)
 OPTION(WITHCP  			"Include cpsupport (need gecode to be installed)" OFF)
-OPTION(GECODE_DIR  		"Optional, specify path where gecode is installed" "")
+set(GECODE_DIR  		"")
 OPTION(BUILDTESTS  		"Run the gtest tests" ON)
 OPTION(GMP  			"Enable gmp support" OFF)
 
