@@ -128,8 +128,8 @@ void PropagatorFactory::addIDSolver(defID id){
 	idsolvers.insert(pair<defID, IDSolver*>(id, idsolver));
 }
 
-void PropagatorFactory::add(const Var& v, bool nondecision) {
-	getEngine().createVar(v, nondecision);
+void PropagatorFactory::add(const Var& v, VARHEUR heur) {
+	getEngine().createVar(v, heur==VARHEUR::DONT_DECIDE);
 }
 
 void PropagatorFactory::addVars(const vector<Lit>& a) {
@@ -606,7 +606,7 @@ void PropagatorFactory::add(const InnerLazyClause& object){
 	assert(getEngine().modes().lazy);
 	assert(not getEngine().isDecisionVar(var(object.residual)));
 			// TODO in fact, want to check that it does not yet occur in the theory, this is easiest hack
-	addVar(object.residual, true); // NOTE: by default, do not decide on residuals
+	addVar(object.residual, VARHEUR::DONT_DECIDE); // NOTE: by default, do not decide on residuals
 	if(object.watchboth){
 		new LazyResidualWatch(getEnginep(), ~object.residual, object.monitor);
 	}
