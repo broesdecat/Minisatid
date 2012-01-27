@@ -41,7 +41,7 @@ public:
 	TypedSet(const TypedSet& set);
 	virtual ~TypedSet(){
 		deleteList<Agg>(aggregates);
-		delete prop;
+		delete(prop);
 	}
 
 	int				getSetID		() 			const 			{ return setid; }
@@ -67,7 +67,6 @@ public:
 		type = w;
 	}
 
-	void 			setProp			(AggPropagator* p) 			{ prop = p; }
 	AggPropagator*	getProp			() 			const 			{ return prop; }
 
 	void 			addExplanation	(AggReason& ar) const;

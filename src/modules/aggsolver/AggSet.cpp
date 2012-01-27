@@ -23,8 +23,6 @@ TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound):
 		setid(setid),
 		usingwatches(true){
 	getPCSolver().acceptFinishParsing(this, false);
-	getPCSolver().accept(this, EV_BACKTRACK);
-	getPCSolver().accept(this, EV_FULLASSIGNMENT);
 }
 TypedSet::TypedSet(const TypedSet& set):
 		Propagator(set.pcsolver),
@@ -35,8 +33,6 @@ TypedSet::TypedSet(const TypedSet& set):
 		setid(set.getSetID()),
 		usingwatches(set.isUsingWatches()){
 	getPCSolver().acceptFinishParsing(this, false);
-	getPCSolver().accept(this, EV_BACKTRACK);
-	getPCSolver().accept(this, EV_FULLASSIGNMENT);
 }
 
 void TypedSet::addAgg(const TempAgg& tempagg, bool optim){
@@ -71,7 +67,10 @@ void TypedSet::finishParsing(bool& present, bool& unsat){
 		MinisatID::print(10000, *this, true);
 	}
 
-	setProp(getType().createPropagator(this));
+	getPCSolver().accept(this, EV_BACKTRACK);
+	getPCSolver().accept(this, EV_FULLASSIGNMENT);
+
+	prop = getType().createPropagator(this);
 	bool sat = false;
 	getProp()->initialize(unsat, sat);
 	present = not sat;
@@ -191,6 +190,7 @@ rClause	TypedSet::notifypropagate(){
 }
 
 void TypedSet::notifyBacktrack(int untillevel, const Lit& decision){
+	MAssert(getProp()!=NULL);
 	getProp()->backtrack(untillevel);
 	//littrail.backtrackDecisionLevels(untillevel);
 	Propagator::notifyBacktrack(untillevel, decision);
