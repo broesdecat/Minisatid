@@ -7,6 +7,8 @@
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 #include "modules/LazyGrounder.hpp"
+#include <iostream>
+#include "utils/Print.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -35,8 +37,13 @@ rClause LazyResidual::notifypropagate(){
 		//(e.g. clauses in the sat solver, backtrack to the appropriate level if necessary
 		//      (where the constraint is not unsatisfied)).
 	}
+	//cerr <<"Requesting lazy grounding for " <<watch->getPropLit() <<"\n";
 	watch->monitor->requestGrounding(); // FIXME should delete the other watch too
-	notifyNotPresent(); // FIXME clean way of deleting this?
+
+	bool unsat;
+	getPCSolver().finishParsing(unsat);
+	notifyNotPresent(); // FIXME clean way of deleting this? FIXME only do this after finishparsing as this deleted propagators (including this one otherwise!)
+
 	if(getPCSolver().satState()==SATVAL::UNSAT){
 		InnerDisjunction d;
 		d.literals = { getPCSolver().getTrail().back()};

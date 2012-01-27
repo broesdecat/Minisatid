@@ -19,7 +19,7 @@ using namespace MinisatID;
 using namespace std;
 
 EventQueue::EventQueue(PCSolver& pcsolver) :
-		pcsolver(pcsolver), initialized(false) {
+		pcsolver(pcsolver), initialized(false), finishing(false) {
 	event2propagator[EV_PRINTSTATE];
 	event2propagator[EV_PRINTSTATS];
 	event2propagator[EV_CHOICE];
@@ -200,6 +200,11 @@ void EventQueue::clearNotPresentPropagators() {
 void EventQueue::finishParsing(bool& unsat) {
 	unsat = false;
 
+	if(finishing){
+		return;
+	}
+	finishing = true;
+
 	while (finishparsing.size() > 0) {
 		auto prop = finishparsing.front();
 		finishparsing.pop_front();
@@ -229,8 +234,9 @@ void EventQueue::finishParsing(bool& unsat) {
 	// TODO double unsat specification?
 	if (not unsat && getPCSolver().satState() != SATVAL::UNSAT && notifyPropagate() != nullPtrClause) {
 		unsat = true;
-		return;
 	}
+
+	finishing = false;
 }
 
 rClause EventQueue::notifyPropagate() {
@@ -273,8 +279,10 @@ uint EventQueue::size(EVENT event) const {
 
 rClause EventQueue::notifyFullAssignmentFound() {
 	rClause confl = nullPtrClause;
+	MAssert(getPCSolver().hasTotalModel());
 	auto props = event2propagator.at(EV_FULLASSIGNMENT);
-	for (uint i = 0; confl == nullPtrClause && i < size(EV_FULLASSIGNMENT); ++i) {
+	// FIXME propagation can backtrack and invalidate total model, so should stop then!
+	for (uint i = 0; confl == nullPtrClause && i < size(EV_FULLASSIGNMENT) && getPCSolver().hasTotalModel(); ++i) {
 		if (!props[i]->isPresent()) {
 			continue;
 		}
@@ -368,6 +376,12 @@ void EventQueue::printState() const {
 			continue;
 		}
 		props[i]->printState();
+	}
+}
+
+void EventQueue::printECNF(ostream& stream, set<Var>& printedvars) const {
+	for (auto i=allpropagators.cbegin(); i < allpropagators.cend(); ++i) {
+		//(*i)->printECNF(); //TODO
 	}
 }
 

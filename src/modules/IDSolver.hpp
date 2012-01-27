@@ -34,6 +34,26 @@ enum class DefType	{ DISJ, CONJ, AGGR };
 enum DefOcc 	{ NONDEFOCC, POSLOOP, MIXEDLOOP, BOTHLOOP };
 enum UFS 		{ NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK };
 
+struct TempRule{
+	Var head;
+	std::vector<Lit> body;
+	bool conjunctive;
+
+	bool isagg;
+	InnerReifAggregate* inneragg;
+	InnerWLSet* innerset;
+
+	TempRule(Var head, bool conjunctive, std::vector<Lit> body): head(head), body(body), conjunctive(conjunctive), isagg(false), inneragg(NULL), innerset(NULL){}
+	TempRule(InnerReifAggregate* inneragg, InnerWLSet* innerset): head(inneragg->head), isagg(true), inneragg(inneragg), innerset(innerset){}
+
+	~TempRule(){
+		if(isagg){
+			delete(inneragg);
+			delete(innerset);
+		}
+	}
+};
+
 class PropRule {
 private:
 	const Var head;
@@ -147,10 +167,10 @@ private:
 public:
 	NetworkHandling(DefType type): type(type){}
 
-	const varlist&	occurs		(const Lit& l) const { assert(inNetwork(l)); return _occurs[toInt(l)]; }
-	varlist&		occurs		(const Lit& l) { assert(inNetwork(l)); return _occurs[toInt(l)]; }
+	const varlist&	occurs		(const Lit& l) const { MAssert(inNetwork(l)); return _occurs[toInt(l)]; }
+	varlist&		occurs		(const Lit& l) { MAssert(inNetwork(l)); return _occurs[toInt(l)]; }
 	bool 			inNetwork	(const Lit& l) const { return _occurs.size()>toInt(l); }
-	void			add			(const Lit& l, Var v) { occurs(l).push_back(v); /*assert(IDSolver::type(v)==type);*/ }
+	void			add			(const Lit& l, Var v) { occurs(l).push_back(v); /*MAssert(IDSolver::type(v)==type);*/ }
 	void 			resize		(int n) { _occurs.resize(n, varlist()); }
 	void 			clear		() { _occurs.clear(); }
 };
@@ -158,6 +178,8 @@ public:
 class IDSolver: public Propagator{
 private:
 	int definitionID;
+
+	bool finishedonce, needtofinish, forcefinish, infactnotpresent; // NOTE: last one because ispresent will always be true when lazy grounding
 
 	Var minvar, nbvars; //TODO, maxvar, nbvars; 	//The lowest and highest headvariable. INVAR: Definitions will be offset by minvar and the size will be nbvars
 
@@ -185,6 +207,8 @@ private:
 
 	IDStats				stats;
 
+	std::map<Var, TempRule*> rules;
+
 public:
 	IDSolver(PCSolver* s, int definitionID);
 	virtual ~IDSolver();
@@ -210,14 +234,16 @@ public:
 
 	rClause				isWellFoundedModel		();
 
-	SATVAL    			addRule      			(bool conj, Var head, const litlist& ps);	// Add a rule to the solver.
+	void				addRule      			(bool conj, Var head, const litlist& ps);	// Add a rule to the solver.
+	SATVAL				addFinishedRule			(TempRule* rule);
+	void				addFinishedDefinedAggregate(TempRule* rule);
 	void 				addDefinedAggregate		(const InnerReifAggregate& agg, const InnerWLSet& set);
 
 	bool				isDefined				(Var var) 	const { return hasDefVar(var); }
 	bool 				isConjunctive			(Var v)		const {	return type(v) == DefType::CONJ; }
 	bool 				isDisjunctive			(Var v) 	const {	return type(v) == DefType::DISJ;	}
 	bool 				isDefinedByAggr			(Var v) 	const {	return type(v) == DefType::AGGR;	}
-	const PropRule&		getDefinition			(Var var) 	const { assert(hasDefVar(var)); return *definition(var); }
+	const PropRule&		getDefinition			(Var var) 	const { MAssert(hasDefVar(var)); return *definition(var); }
 
 private:
 	void 				generateSCCs();
@@ -231,8 +257,8 @@ private:
 	bool 				simplifyGraph		(int atomsinposloops); //False if problem unsat
 
 	void 				adaptStructsToHead	(Var head);
-	DefinedVar* 		getDefVar			(Var v) const { assert(v>=0 && minvar<=v && v-minvar<nbvars); return definitions[v-minvar]; }
-	void				setDefVar			(Var v, DefinedVar* newvar) { assert(v>=0 && minvar<=v && v-minvar<nbvars); definitions[v-minvar] = newvar; }
+	DefinedVar* 		getDefVar			(Var v) const { MAssert(v>=0 && minvar<=v && v-minvar<nbvars); return definitions[v-minvar]; }
+	void				setDefVar			(Var v, DefinedVar* newvar) { MAssert(v>=0 && minvar<=v && v-minvar<nbvars); definitions[v-minvar] = newvar; }
 	bool 				hasDefVar			(Var v) const { return minvar<=v && v-minvar<nbvars && getDefVar(v)!=NULL; }
 
 	bool 				isDefInPosGraph		(Var v) const {	return hasDefVar(v) && (occ(v)==POSLOOP || occ(v)==BOTHLOOP); }
@@ -240,14 +266,14 @@ private:
 	bool 				canBecomeTrue		(Lit l) const { return value(l) != l_False; }
 	bool 				inSameSCC			(Var x, Var y) const { return isDefined(x) && isDefined(y) && scc(x) == scc(y); }
 
-	litlist& 			reason		(Var v){ assert(hasDefVar(v)); return getDefVar(v)->reason(); }
-	PropRule const*		definition	(Var v) const { assert(hasDefVar(v)); return getDefVar(v)->definition(); }
-	IDAgg *				aggdefinition(Var v) const { assert(hasDefVar(v)); return getDefVar(v)->definedaggregate(); }
-	DefType& 			type		(Var v){ assert(hasDefVar(v)); return getDefVar(v)->type(); }
-	DefOcc& 			occ			(Var v){ assert(hasDefVar(v)); return getDefVar(v)->occ(); }
-	bool &				isCS		(Var v){ assert(hasDefVar(v)); return getDefVar(v)->isCS(); }
-	int &				scc			(Var v){ assert(hasDefVar(v)); return getDefVar(v)->scc(); }
-	litlist& 			justification(Var v){ assert(hasDefVar(v)); return getDefVar(v)->justification(); }
+	litlist& 			reason		(Var v){ MAssert(hasDefVar(v)); return getDefVar(v)->reason(); }
+	PropRule const*		definition	(Var v) const { MAssert(hasDefVar(v)); return getDefVar(v)->definition(); }
+	IDAgg *				aggdefinition(Var v) const { MAssert(hasDefVar(v)); return getDefVar(v)->definedaggregate(); }
+	DefType& 			type		(Var v){ MAssert(hasDefVar(v)); return getDefVar(v)->type(); }
+	DefOcc& 			occ			(Var v){ MAssert(hasDefVar(v)); return getDefVar(v)->occ(); }
+	bool &				isCS		(Var v){ MAssert(hasDefVar(v)); return getDefVar(v)->isCS(); }
+	int &				scc			(Var v){ MAssert(hasDefVar(v)); return getDefVar(v)->scc(); }
+	litlist& 			justification(Var v){ MAssert(hasDefVar(v)); return getDefVar(v)->justification(); }
 
 	const litlist& 		reason		(Var v)const { return getDefVar(v)->reason(); }
 	const DefType& 		type		(Var v)const { return getDefVar(v)->type(); }
@@ -257,8 +283,8 @@ private:
 	const litlist& 		justification(Var v)const { return getDefVar(v)->justification(); }
 
 	bool				hasSeen		(Var v) const 	{ return _seen->hasElem(v); }
-	int&				seen		(Var v) 		{ assert(hasSeen(v)); return _seen->getElem(v); }
-	const int&			seen		(Var v) const 	{ assert(hasSeen(v)); return _seen->getElem(v); }
+	int&				seen		(Var v) 		{ MAssert(hasSeen(v)); return _seen->getElem(v); }
+	const int&			seen		(Var v) const 	{ MAssert(hasSeen(v)); return _seen->getElem(v); }
 
 	void	createDefinition(Var head, PropRule* r, DefType type) 	{ defdVars.push_back(head); setDefVar(head, new DefinedVar(r, type));}
 	void	createDefinition(Var head, IDAgg* agg) 					{ defdVars.push_back(head); setDefVar(head, new DefinedVar(agg));}

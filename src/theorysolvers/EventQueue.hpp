@@ -47,6 +47,7 @@ private:
 	bool initialized;
 	void notifyInitialized() { initialized = true; }
 	bool isInitialized() const { return initialized; }
+	bool finishing;
 
 public:
 	EventQueue(PCSolver& pcsolver);
@@ -99,6 +100,7 @@ public:
 	rClause notifyPropagate			();
 	Var 	notifyBranchChoice		(Var var);
 	void 	printState				() const;
+	void 	printECNF(std::ostream& stream, std::set<Var>& printedvars) const;
 	void 	printStatistics			() const;
 	void	setTrue					(const Lit& l);
 	void 	notifyBoundsChanged		(IntVar* var);
