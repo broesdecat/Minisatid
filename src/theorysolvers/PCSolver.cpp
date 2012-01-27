@@ -91,12 +91,10 @@ bool PCSolver::isDecisionVar(Var var) {
 	return getSATSolver()->isDecisionVar(var);
 }
 void PCSolver::notifyNonDecisionVar(Var var) {
-	// cerr <<"Make not decided variable " <<getPrintableVar(var) <<"\n";
-	getSATSolver()->setDecisionVar(var, false);
+	getSATSolver()->setDecidable(var, false);
 }
 void PCSolver::notifyDecisionVar(Var var) {
-	// cerr <<"Make decided variable " <<getPrintableVar(var) <<"\n";
-	getSATSolver()->setDecisionVar(var, true);
+	getSATSolver()->setDecidable(var, true);
 }
 
 rClause PCSolver::createClause(const InnerDisjunction& clause, bool learned) {
@@ -297,7 +295,10 @@ bool PCSolver::assertedBefore(const Var& l, const Var& p) const {
 	return false;
 }
 
-void PCSolver::createVar(Var v, bool nondecision) {
+/**
+ * VARHEUR::DECIDE has precedence over NON_DECIDE for repeated calls to the same var!
+ */
+void PCSolver::createVar(Var v, VARHEUR decide) {
 	assert(v>-1);
 
 	bool newvar = v>=nVars();
@@ -312,11 +313,16 @@ void PCSolver::createVar(Var v, bool nondecision) {
 	}
 
 	if(newvar){
-		getSolver().setDecisionVar(v, not nondecision);
+		getSolver().setDecidable(v, decide==VARHEUR::DECIDE);
 		getEventQueue().notifyVarAdded();
 		if (isInitialized()) { //Lazy init
 			propagations.resize(nVars(), NULL);
 		}
+	}
+
+	// If already exists, migt have to swap from non-decidable to decidable!
+	if(not newvar && decide==VARHEUR::DECIDE){
+		getSolver().setDecidable(v, decide==VARHEUR::DECIDE);
 	}
 }
 

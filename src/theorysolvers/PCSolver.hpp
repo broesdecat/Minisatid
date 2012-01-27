@@ -161,7 +161,7 @@ public:
 
 	template<typename T>
 	void 		add(const T& sentence){ getFactory().add(sentence); }
-	void		createVar(Var v, bool nondecision = false);
+	void		createVar(Var v, VARHEUR decide);
 
 	SATVAL 		satState() const;
 	void		notifyUnsat();

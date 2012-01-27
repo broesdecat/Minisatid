@@ -96,8 +96,6 @@ typedef FactoryStorage<CPSolver> CPStorage;
 typedef ManagedFactoryStorage<SymmetryPropagator<PCSolver*>> SymmStorage;
 typedef ManagedFactoryStorage<AggToCNFTransformer> AggStorage;
 
-enum class VARHEUR { DECIDE, DONT_DECIDE};
-
 class PropagatorFactory:
 	public ModStorage,
 	public SATStorage,
@@ -139,7 +137,9 @@ public:
 	PCSolver* getEnginep() const { return engine; }
 	const PCSolver& getEngine() const { return *engine; }
 
-	void add(const Var& sentence, VARHEUR heur = VARHEUR::DECIDE);
+	void add(const Var& sentence){
+		addVar(sentence, VARHEUR::DECIDE);
+	}
 	void add(const InnerDisjunction& sentence);
 	void add(const InnerEquivalence& sentence);
 	void add(const InnerRule& sentence);
@@ -162,7 +162,6 @@ public:
 	void add(const InnerCPAllDiff& object);
 	void add(const InnerLazyClause& object);
 
-	void add(const std::vector<InnerRule*>& definition);
 	void add(InnerDisjunction& disj, rClause& newclause);
 
 	int newSetID();
@@ -180,8 +179,9 @@ private:
 	bool isInitialized	() 	const { return !parsing; }
 	bool isParsing		()	const { return parsing; }
 
-	inline void addVar	(Lit l, VARHEUR heur = VARHEUR::DECIDE) { add(var(l), heur); }
-	void addVars		(const std::vector<Lit>& a);
+	void addVar			(const Var& l, VARHEUR heur);
+	void addVar			(Lit l, VARHEUR heur = VARHEUR::DECIDE) { addVar(var(l), heur); }
+	void addVars		(const std::vector<Lit>& a, VARHEUR heur = VARHEUR::DECIDE);
 
 	void addAggrExpr	(Var headv, int setid, AggSign sign, const Weight& bound, AggType type, AggSem sem);
 

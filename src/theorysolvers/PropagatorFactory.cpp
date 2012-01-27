@@ -128,13 +128,13 @@ void PropagatorFactory::addIDSolver(defID id){
 	idsolvers.insert(pair<defID, IDSolver*>(id, idsolver));
 }
 
-void PropagatorFactory::add(const Var& v, VARHEUR heur) {
-	getEngine().createVar(v, heur==VARHEUR::DONT_DECIDE);
+void PropagatorFactory::addVar(const Var& v, VARHEUR heur) {
+	getEngine().createVar(v, heur);
 }
 
-void PropagatorFactory::addVars(const vector<Lit>& a) {
+void PropagatorFactory::addVars(const vector<Lit>& a, VARHEUR heur) {
 	for (auto i=a.cbegin(); i!=a.cend(); ++i) {
-		add(var(*i));
+		addVar(var(*i), heur);
 	}
 }
 
@@ -152,7 +152,8 @@ void toVec(const std::vector<Lit>& literals, vec<Lit>& lits){
 void PropagatorFactory::add(const InnerDisjunction& clause){
 	notifyMonitorsOfAdding(clause);
 
-	addVars(clause.literals);
+	addVars(clause.literals, getEngine().modes().lazy?VARHEUR::DONT_DECIDE:VARHEUR::DECIDE);
+		// By default, do not decide for literals in decisions
 
 	// TODO 1-watched scheme
 //	if(formula.literals.size()<3){
@@ -210,10 +211,6 @@ void PropagatorFactory::add(const InnerRule& rule){
 //	}else{
 		getIDSolver(rule.definitionID)->addRule(rule.conjunctive, rule.head, rule.body);
 //	}
-}
-
-void PropagatorFactory::add(const std::vector<InnerRule*>& definition){
-	// FIXME Add all rules to new idsolver and finish it
 }
 
 void PropagatorFactory::add(const InnerWLSet& formula){
@@ -380,6 +377,7 @@ void PropagatorFactory::add(const InnerMinimizeVar& formula){
 	notifyMonitorsOfAdding(formula);
 
 #warning MinimizeVar is not handled at the moment
+	MAssert(false);
 	// TODO check var existence and add optim intvar to pcsolver
 }
 
@@ -449,7 +447,7 @@ void PropagatorFactory::add(const InnerIntVarEnum& obj){
 }
 
 void PropagatorFactory::add(const InnerCPBinaryRel& obj){
-	add(obj.head); // TODO kan de wrapper (die dit ook weet, dat niet zelf al adden? Zou duplicatie voorkomen)
+	add(obj.head);
 	addCP(obj);
 
 	/*InnerEquivalence eq;
@@ -610,7 +608,7 @@ void PropagatorFactory::add(const InnerLazyClause& object){
 	assert(getEngine().modes().lazy);
 	assert(not getEngine().isDecisionVar(var(object.residual)));
 			// TODO in fact, want to check that it does not yet occur in the theory, this is easiest hack
-	addVar(object.residual, VARHEUR::DONT_DECIDE); // NOTE: by default, do not decide on residuals
+	addVar(object.residual, VARHEUR::DONT_DECIDE); // NOTE: By default, do not decide residuals
 	if(object.watchboth){
 		new LazyResidualWatch(getEnginep(), ~object.residual, object.monitor);
 	}
