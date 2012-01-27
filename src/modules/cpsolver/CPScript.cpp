@@ -42,7 +42,7 @@ intvarindex CPScript::addIntVar(int min, int max){
 intvarindex CPScript::addIntVar(const vector<int>& values){
 	int valuelist[values.size()];
 	int index = 0;
-	for(vector<int>::const_iterator i=values.cbegin(); i<values.cend(); ++i){
+	for(auto i=values.cbegin(); i<values.cend(); ++i){
 		valuelist[index] = *i;
 		++index;
 	}

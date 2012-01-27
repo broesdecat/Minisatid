@@ -87,6 +87,9 @@ public:
 	void 	notifyNewDecisionLevel();
 	void 	notifyBacktrack(int untillevel, const Lit& decision);
 	rClause notifypropagate();
+	rClause notifyFullAssignmentFound() {
+		return notifypropagate();
+	}
 	void 	printStatistics	() const;
 	void 	printState		() const;
 

@@ -62,6 +62,7 @@ CPSolver::CPSolver(PCSolver * solver):
 
 	getPCSolver().accept(this, EV_BACKTRACK);
 	getPCSolver().accept(this, EV_DECISIONLEVEL);
+	getPCSolver().accept(this, EV_FULLASSIGNMENT);
 	getPCSolver().accept(this, EV_PRINTSTATS);
 	getPCSolver().accept(this, EV_PRINTSTATE);
 	getPCSolver().acceptFinishParsing(this, false);
@@ -224,6 +225,11 @@ void CPSolver::finishParsing(bool& present, bool& unsat){
 
 	notifyInitialized();
 
+	for(auto i=getData().getReifConstraints().cbegin(); i<getData().getReifConstraints().cend(); ++i){
+		getPCSolver().accept(this, mkPosLit((*i)->getHead()), PRIORITY::SLOW);
+		getPCSolver().accept(this, mkNegLit((*i)->getHead()), PRIORITY::SLOW);
+	}
+
 	return;
 }
 
@@ -341,7 +347,7 @@ rClause CPSolver::genFullConflictClause(){
 	// END
 
 	InnerDisjunction clause;
-	for(vector<Lit>::const_reverse_iterator i=trail.getTrail().rbegin(); i<trail.getTrail().rend(); i++){
+	for(auto i=trail.getTrail().rbegin(); i<trail.getTrail().rend(); i++){
 		//FIXME skip all literals that were propagated BY the CP solver
 		clause.literals.push_back(~(*i));
 	}
@@ -352,7 +358,7 @@ rClause CPSolver::genFullConflictClause(){
 
 rClause CPSolver::propagateReificationConstraints(){
 	rClause confl = nullPtrClause;
-	for(vector<ReifiedConstraint*>::const_iterator i=getData().getReifConstraints().cbegin(); confl==nullPtrClause && i<getData().getReifConstraints().cend(); i++){
+	for(auto i=getData().getReifConstraints().cbegin(); confl==nullPtrClause && i<getData().getReifConstraints().cend(); i++){
 		if((*i)->isAssigned(getSpace())){
 			confl = notifySATsolverOfPropagation((*i)->isAssignedFalse(getSpace())?mkNegLit((*i)->getHead()):mkPosLit((*i)->getHead()));
 		}

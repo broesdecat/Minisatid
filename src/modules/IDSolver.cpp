@@ -511,7 +511,7 @@ SATVAL IDSolver::transformToCNF(const varlist& sccroots, bool& present){
 }
 
 void IDSolver::removeDefinition(Var head) {
-	if(modes().lazy){
+	if(modes().lazy){ // NOTE: it might not currently be in a loop, but might be in future when more rules are added
 		return;
 	}
 	delete getDefVar(head); setDefVar(head, NULL);
@@ -746,6 +746,9 @@ bool IDSolver::simplifyGraph(int atomsinposloops){
 	mixedrecagg = false;
 	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
 		Var v = (*i);
+		if(occ(v)==NONDEFOCC){
+			continue; // Not defined at the moment, but might be later on if lazy
+		}
 		if (seen(v) > 0 || isFalse(v)) {
 			if (verbosity() >= 2) {
 				clog <<" " <<getPrintableVar(v);
@@ -1907,6 +1910,11 @@ bool printednontotalwarning = false;
 
 rClause IDSolver::isWellFoundedModel() {
 	MAssert(getPCSolver().hasTotalModel());
+
+	if(modes().lazy){ // NOTE: lazy invariant: only total definitions
+		return nullPtrClause;
+	}
+
 	if(getSemantics()!=DEF_WELLF){
 		throw idpexception("Should not be checking for well-founded model, because mode is stable semantics!\n");
 	}

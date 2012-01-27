@@ -170,8 +170,8 @@ void PropagatorFactory::add(const InnerDisjunction& clause){
 
 void PropagatorFactory::add(const InnerEquivalence& formula){
 	// TODO equiv propagator (or at least, 1-watched scheme for the long clause)
-	addVar(formula.head);
-	addVars(formula.literals);
+	addVar(formula.head, getEngine().modes().lazy?VARHEUR::DONT_DECIDE:VARHEUR::DECIDE);
+	addVars(formula.literals, getEngine().modes().lazy?VARHEUR::DONT_DECIDE:VARHEUR::DECIDE);
 
 	//create the completion
 	InnerDisjunction comp;
@@ -204,7 +204,8 @@ void PropagatorFactory::add(const InnerRule& rule){
 	notifyMonitorsOfAdding(rule);
 
 	add(rule.head);
-	addVars(rule.body);
+	// TODO: prove that this is correct:
+	addVars(rule.body, getEngine().modes().lazy?VARHEUR::DONT_DECIDE:VARHEUR::DECIDE);
 
 //	if(getEngine().modes().lazy){
 		// FIXME LazyStorage::getStorage()->add(new InnerRule(rule));
