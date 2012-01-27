@@ -143,12 +143,16 @@ if(BUILD_MINISATID_STATIC)
 	set_target_properties(minisatid-bin PROPERTIES LINK_FLAGS "-static ")
 endif()
 
+set_target_properties(
+	minisatid minisatid-bin PROPERTIES
+	VERSION ${MinisatID_VERSION}
+)
+
 # add the install targets
 install (TARGETS minisatid minisatid-bin 
 		RUNTIME DESTINATION bin
 		LIBRARY DESTINATION lib
 		ARCHIVE DESTINATION lib
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
 
 MESSAGE(STATUS "Options:")

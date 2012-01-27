@@ -535,6 +535,7 @@ SATVAL PCWrapperPimpl::add(const CPBinaryRel& sentence){
 }
 template<>
 SATVAL PCWrapperPimpl::add(const CPBinaryRelVar& sentence){
+	checkCPSupport();
 	InnerCPBinaryRelVar form;
 	form.head = checkAtom(sentence.head);
 	form.lhsvarID = sentence.lhsvarID;

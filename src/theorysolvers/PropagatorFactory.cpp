@@ -435,12 +435,13 @@ IntVar*	PropagatorFactory::getIntVar(int varID) const {
 }
 
 void PropagatorFactory::add(const InnerIntVarRange& obj){
-	if(intvars.find(obj.varID)!=intvars.cend()){
+	addCP(obj);
+	/*if(intvars.find(obj.varID)!=intvars.cend()){
 		stringstream ss;
 		ss <<"Integer variable " <<obj.varID <<" was declared twice.\n";
 		throw idpexception(ss.str());
 	}
-	intvars.insert(pair<int, IntVar*>(obj.varID, new IntVar(getEnginep(), obj.varID, toInt(obj.minvalue), toInt(obj.maxvalue))));
+	intvars.insert(pair<int, IntVar*>(obj.varID, new IntVar(getEnginep(), obj.varID, toInt(obj.minvalue), toInt(obj.maxvalue))));*/
 }
 
 void PropagatorFactory::add(const InnerIntVarEnum& obj){
@@ -448,8 +449,10 @@ void PropagatorFactory::add(const InnerIntVarEnum& obj){
 }
 
 void PropagatorFactory::add(const InnerCPBinaryRel& obj){
-	InnerEquivalence eq;
-	add(obj.head);
+	add(obj.head); // TODO kan de wrapper (die dit ook weet, dat niet zelf al adden? Zou duplicatie voorkomen)
+	addCP(obj);
+
+	/*InnerEquivalence eq;
 	eq.head = mkPosLit(obj.head);
 	IntVar* left = getIntVar(obj.varID);
 	int intbound = toInt(obj.bound);
@@ -473,12 +476,13 @@ void PropagatorFactory::add(const InnerCPBinaryRel& obj){
 			eq.literals.push_back(left->getLEQLit(intbound-1));
 			break;
 	}
-	add(eq);
+	add(eq);*/
 }
 
 void PropagatorFactory::add(const InnerCPBinaryRelVar& obj){
 	add(obj.head);
-	new BinaryConstraint(getEnginep(), intvars.at(obj.lhsvarID), obj.rel, intvars.at(obj.rhsvarID), obj.head);
+	addCP(obj);
+	//new BinaryConstraint(getEnginep(), intvars.at(obj.lhsvarID), obj.rel, intvars.at(obj.rhsvarID), obj.head);
 }
 
 void PropagatorFactory::add(const InnerCPSumWeighted& obj){
