@@ -150,6 +150,10 @@ SATVAL IDSolver::addFinishedRule(TempRule* rule) {
 	auto conj = rule->conjunctive;
 	auto head = rule->head;
 
+	//cerr <<"Added final rule " <<getPrintableVar(rule->head) <<" <- ";
+	//printList(rule->body, rule->conjunctive?" & ":" | ");
+	//cerr <<"\n";
+
 	adaptStructsToHead(head);
 
 	if(isDefined(head)){

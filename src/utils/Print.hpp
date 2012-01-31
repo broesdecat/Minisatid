@@ -69,6 +69,18 @@ void print(S * const s);
 template<class S>
 void print(rClause c, const S& s);
 
+template<typename List>
+void printList(const List& list, const std::string& between){
+	bool begin = true;
+	for(auto j=list.cbegin(); j<list.cend(); j++){
+		if(not begin){
+			std::clog <<between;
+		}
+		begin = false;
+		std::clog <<*j;
+	}
+}
+
 }
 
 #endif /* PRINT_HPP_ */

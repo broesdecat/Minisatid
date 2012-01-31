@@ -80,18 +80,6 @@ void print(PCSolver * const s){
 	s->printState();
 }
 
-template<typename List>
-void printList(const List& list, const std::string& between){
-	bool begin = true;
-	for(auto j=list.cbegin(); j<list.cend(); j++){
-		if(not begin){
-			clog <<between;
-		}
-		begin = false;
-		clog <<*j;
-	}
-}
-
 template<>
 void print(IDSolver const * const s){
 	if(s==NULL){
