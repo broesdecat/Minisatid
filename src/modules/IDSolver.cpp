@@ -213,23 +213,16 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	unsat = false;
 
 	if(verbosity()>0){
-		clog <<">>> Initializing inductive definitions\n";
+		clog <<">>> Initializing inductive definition " <<definitionID <<"\n";
 	}
 
 	//notifyParsed(); // TODO not correct after repeated calls (lazy grounding)
 
-	//cerr <<"Finishing\n";
 	auto temprules = rules; // NOTE: need copy because during adding we might do more grounding and get more rules
 	for(auto i=temprules.cbegin(); not unsat && i!=temprules.cend(); ++i) {
 		if(i->second->inneragg){
 			addFinishedDefinedAggregate(i->second);
 		}else{
-	//		MAssert(i->first==i->second->head);
-	//		cerr <<"Adding rule " <<i->second->head <<" <- ";
-	//		for(auto j=i->second->body.cbegin(); j<i->second->body.cend(); ++j){
-	//			cerr <<*j <<(i->second->conjunctive?"&":"|");
-	//		}
-	//		cerr <<"\n";
 			if(addFinishedRule(i->second)==SATVAL::UNSAT){
 				unsat = true;
 			}
@@ -758,7 +751,7 @@ bool IDSolver::simplifyGraph(int atomsinposloops){
 			}
 
 			if (occ(v) == POSLOOP) {
-				//FIXME lazy grounding removeDefinition(v);
+				//FIXME lazygrounding? removeDefinition(v);
 				--atomsinposloops;
 			} else {
 				occ(v) = MIXEDLOOP;
@@ -1869,7 +1862,7 @@ rClause IDSolver::notifyFullAssignmentFound(){
 	}
 	rClause confl = nullPtrClause;
 	if(confl==nullPtrClause){ // FIXME should separate propagators!
-		confl = notifypropagate(); // FIXME can backtrack and invalidate total model!!!
+		confl = notifypropagate(); // FIXME might propagate within backtrack and not have a total model anymore!!!
 		if(not getPCSolver().hasTotalModel()){
 			return confl;
 		}
