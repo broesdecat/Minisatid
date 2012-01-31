@@ -125,11 +125,11 @@ bool SolverOption::verifyOptions() const{
 		return false;
 	}
 	if(var_decay<0.0){
-		cerr <<"The value for decay should be positive.\n";
+		clog <<"The value for decay should be positive.\n";
 		return false;
 	}
 	if(rand_var_freq<0.0 || rand_var_freq>1.0){
-		cerr <<"The value for rnd-freq should be between 0 and 1.\n";
+		clog <<"The value for rnd-freq should be between 0 and 1.\n";
 		return false;
 	}
 	return true;

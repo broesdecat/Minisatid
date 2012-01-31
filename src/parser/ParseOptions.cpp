@@ -98,7 +98,7 @@ struct Option: public Opt{
 	}
 
 	void parse(){
-		//cerr <<longopt <<" " <<arg->getValue() <<endl;
+		//clog <<longopt <<" " <<arg->getValue() <<endl;
 		bool found = false;
 		uint i=0;
 		for(; i<desc.size(); ++i){
@@ -291,7 +291,7 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 	/*options.push_back(new NoValsOption<double>	("","watch-ratio", 	"double",
 			modes.watchesratio, cmd,"The ratio of watches to set literals under which the watched algorithm is used."));*/
 	// FIXME currently, watches are disabled
-	std::cerr <<"Currently, no watched aggregates!\n";
+	std::clog <<"Currently, no watched aggregates!\n";
 	modes.watchesratio = 0;
 
 	options.push_back(new Option<bool,string>	("","use-agg-heur", 	yesnovals, aggheurdesc,
@@ -312,7 +312,7 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 	try {
 		cmd.parse(argc, argv);
 	} catch (TCLAP::ArgException &e){
-		std::cerr << "Error: " << e.error() << " for arg " << e.argId() << std::endl;
+		std::clog << "Error: " << e.error() << " for arg " << e.argId() << std::endl;
 		return false;
 	}
 

@@ -502,7 +502,7 @@ SATVAL PCWrapperPimpl::add(const LazyGroundLit& sentence){
 	lc.monitor = sentence.monitor;
 	lc.residual = checkLit(sentence.residual);
 	lc.watchboth = sentence.watchboth;
-	//cerr <<"Watching " <<(lc.watchboth?"both":"single") <<" on " <<lc.residual <<"\n";
+	//clog <<"Watching " <<(lc.watchboth?"both":"single") <<" on " <<lc.residual <<"\n";
 	getSolver()->add(lc);
 	return getSolver()->satState();
 }

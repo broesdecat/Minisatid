@@ -37,7 +37,7 @@ rClause LazyResidual::notifypropagate(){
 		//(e.g. clauses in the sat solver, backtrack to the appropriate level if necessary
 		//      (where the constraint is not unsatisfied)).
 	}
-	//cerr <<"Requesting lazy grounding for " <<watch->getPropLit() <<"\n";
+	//clog <<"Requesting lazy grounding for " <<watch->getPropLit() <<"\n";
 	watch->monitor->requestGrounding(); // FIXME should delete the other watch too
 
 	bool unsat;

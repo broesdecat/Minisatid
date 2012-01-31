@@ -626,9 +626,9 @@ void PropagatorFactory::add(const InnerLazyClause& object){
 	assert(not getEngine().isDecisionVar(var(object.residual)));
 			// TODO in fact, want to check that it does not yet occur in the theory, this is easiest hack
 	addVar(object.residual, VARHEUR::DONT_DECIDE); // NOTE: By default, do not decide residuals
-	//cerr <<"Adding residual: ";
+	//clog <<"Adding residual: ";
 	//print(object.residual);
-	//cerr <<", " <<(object.watchboth?"both":"only true") <<"watch\n";
+	//clog <<", " <<(object.watchboth?"both":"only true") <<"watch\n";
 	if(object.watchboth){
 		new LazyResidualWatch(getEnginep(), ~object.residual, object.monitor);
 	}

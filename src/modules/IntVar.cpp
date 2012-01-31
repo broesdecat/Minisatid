@@ -60,7 +60,7 @@ void IntVar::finishParsing(bool& present, bool& unsat){
 			std::clog <<mkPosLit(*i) <<" <=> " <<origid() <<"=<" <<minvalue+index <<"\n";
 		}
 	}
-	std::cerr <<"var" <<origid() <<"[" <<currentmin <<"," <<currentmax <<"]\n";
+	std::clog <<"var" <<origid() <<"[" <<currentmin <<"," <<currentmax <<"]\n";
 	getPCSolver().acceptBounds(new IntView(this, 0), this);
 }
 
@@ -78,7 +78,7 @@ void IntVar::notifyBacktrack(int untillevel, const Lit& decision){
 			break;
 		}
 	}
-	std::cerr <<"var" <<origid() <<"[" <<currentmin <<"," <<currentmax <<"] (post-backtrack)\n";
+	std::clog <<"var" <<origid() <<"[" <<currentmin <<"," <<currentmax <<"] (post-backtrack)\n";
 }
 
 rClause	IntVar::notifypropagate(){
@@ -97,7 +97,7 @@ rClause	IntVar::notifypropagate(){
 		}
 	}
 	if(lastmin!=currentmin || lastmax!=currentmax){
-		std::cerr <<"var" <<origid() <<"[" <<currentmin <<"," <<currentmax <<"]\n";
+		std::clog <<"var" <<origid() <<"[" <<currentmin <<"," <<currentmax <<"]\n";
 		engine().notifyBoundsChanged(this);
 	}
 

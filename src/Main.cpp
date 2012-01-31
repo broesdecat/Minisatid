@@ -195,10 +195,10 @@ int main(int argc, char** argv) {
 	}
 #ifdef NDEBUG
 } catch (const exception& e) {
-	printExceptionCaught(cerr, e);
+	printExceptionCaught(clog, e);
 	cleanexit = false;
 } catch (int i) {
-	printUnexpectedError(cerr);
+	printUnexpectedError(clog);
 	cleanexit = false;
 }
 #endif
@@ -444,16 +444,16 @@ static void SIGINT_handler(int signum) {
 void handleSignals() {
 	switch (abortcode) {
 	case SIGFPE:
-		cerr << ">>> Floating point error signal received\n";
+		clog << ">>> Floating point error signal received\n";
 		break;
 	case SIGABRT:
-		cerr << ">>> Abort signal received\n";
+		clog << ">>> Abort signal received\n";
 		break;
 	case SIGINT:
 		clog << ">>> Ctrl-c signal received\n";
 		break;
 	case SIGSEGV:
-		cerr << ">>> Segmentation fault signal received\n";
+		clog << ">>> Segmentation fault signal received\n";
 		break;
 	case SIGTERM:
 		clog << ">>> Terminate signal received\n";

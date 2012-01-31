@@ -246,7 +246,7 @@ Weight ProdProp::removeMin(const Weight& lhs, const Weight& rhs) const{
 			w--;
 		}
 	}
-//	cerr <<"mindiv: " <<lhs <<"/" <<rhs <<"=" <<w <<"\n";
+//	clog <<"mindiv: " <<lhs <<"/" <<rhs <<"=" <<w <<"\n";
 	return w;
 }
 Weight ProdProp::removeMax(const Weight& lhs, const Weight& rhs) const{
@@ -258,7 +258,7 @@ Weight ProdProp::removeMax(const Weight& lhs, const Weight& rhs) const{
 			w++;
 		}
 	}
-//	cerr <<"maxdiv: " <<lhs <<"/" <<rhs <<"=" <<w <<"\n";
+//	clog <<"maxdiv: " <<lhs <<"/" <<rhs <<"=" <<w <<"\n";
 	return w;
 }
 
@@ -270,7 +270,7 @@ WL ProdProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, Weight& kn
 	//NOTE: om dit toe te laten, ofwel bij elke operatie op en literal al zijn voorkomens overlopen
 	//ofwel aggregaten voor doubles ondersteunen (hAggPropagatoret eerste is eigenlijk de beste oplossing)
 	//Mogelijke eenvoudige implementatie: weigts bijhouden als doubles (en al de rest als ints)
-	NoSupportForBothSignInProductAgg(cerr, one.getLit(), two.getLit());
+	NoSupportForBothSignInProductAgg(clog, one.getLit(), two.getLit());
 	throw idpexception("Atoms in product aggregates have to be unique.\n");
 }
 

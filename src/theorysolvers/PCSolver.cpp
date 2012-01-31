@@ -606,7 +606,7 @@ bool PCSolver::invalidateValue(litlist& invalidation) {
 		if (!currentoptimumfound && getSolver().model[var(to_minimize[i])] == l_True) {
 			if (modes().verbosity >= 1) {
 				clog << "> Current optimum found for: ";
-				getParent().printLiteral(cerr, to_minimize[i]);
+				getParent().printLiteral(clog, to_minimize[i]);
 				clog << "\n";
 			}
 			currentoptimumfound = true;

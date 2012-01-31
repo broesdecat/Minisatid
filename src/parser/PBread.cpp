@@ -103,7 +103,7 @@ template<class T> void DefaultCallback<T>::objectiveTerm(IntegerType coeff, int 
  * @param list: list of literals which appear in the product
  */
 template<class T> void DefaultCallback<T>::objectiveProduct(IntegerType coeff, vector<int> list) {
-	cerr <<"Leaving out linearization of opb constraints is not supported!\n";
+	clog <<"Leaving out linearization of opb constraints is not supported!\n";
 	assert(false);
 	exit(1);
 }
@@ -164,7 +164,7 @@ template<class T> void DefaultCallback<T>::constraintTerm(IntegerType coeff, int
  * @param list: list of literals which appear in the product
  */
 template<class T> void DefaultCallback<T>::constraintProduct(IntegerType coeff, vector<int> list) {
-	cerr <<"Leaving out linearization of opb constraints is not supported!\n";
+	clog <<"Leaving out linearization of opb constraints is not supported!\n";
 	assert(false);
 	exit(1);
 }

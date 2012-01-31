@@ -150,9 +150,9 @@ SATVAL IDSolver::addFinishedRule(TempRule* rule) {
 	auto conj = rule->conjunctive;
 	auto head = rule->head;
 
-	//cerr <<"Added final rule " <<getPrintableVar(rule->head) <<" <- ";
+	//clog <<"Added final rule " <<getPrintableVar(rule->head) <<" <- ";
 	//printList(rule->body, rule->conjunctive?" & ":" | ");
-	//cerr <<"\n";
+	//clog <<"\n";
 
 	adaptStructsToHead(head);
 
@@ -299,10 +299,10 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 			addtonetwork = true;
 		} else { //can never be in posloop
 			if (occ(v) == NONDEFOCC) { //will not occur in a loop
-				//cerr <<getPrintableVar(v) <<" cannot be in any loop.\n";
+				//clog <<getPrintableVar(v) <<" cannot be in any loop.\n";
 				removeDefinition(v);
 			} else if (occ(v) == MIXEDLOOP) { //might occur in a mixed loop
-				//cerr <<getPrintableVar(v) <<" can be in a mixed loop.\n";
+				//clog <<getPrintableVar(v) <<" can be in a mixed loop.\n";
 				addtonetwork = true;
 			}
 		}

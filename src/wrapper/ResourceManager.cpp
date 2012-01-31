@@ -88,7 +88,7 @@ void createInput() {
 	if (input.get() == NULL) {
 		if (inputurl == "") {
 			input = std::shared_ptr<ResMan>(new StdMan(true));
-			cerr <<"Reading from standard input...\n";
+			clog <<"Reading from standard input...\n";
 		} else {
 			input = std::shared_ptr<ResMan>(new FileMan(inputurl.c_str(), false));
 		}
