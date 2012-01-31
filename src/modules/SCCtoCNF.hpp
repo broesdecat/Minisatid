@@ -228,8 +228,9 @@ private:
 	Lit and2SAT(const litlist& subs){
 		Lit tseitin = mkPosLit(solver_.newVar());
 
-		InnerEquivalence eq;
+		InnerImplication eq;
 		eq.head = tseitin;
+		eq.type = ImplicationType::EQUIVALENT;
 		eq.conjunctive = true;
 		eq.literals = subs;
 		solver_.add(eq);
@@ -240,8 +241,9 @@ private:
 	Lit or2SAT(const litlist& subs){
 		Lit tseitin = mkPosLit(solver_.newVar());
 
-		InnerEquivalence eq;
+		InnerImplication eq;
 		eq.head = tseitin;
+		eq.type = ImplicationType::EQUIVALENT;
 		eq.conjunctive = false;
 		eq.literals = subs;
 		solver_.add(eq);

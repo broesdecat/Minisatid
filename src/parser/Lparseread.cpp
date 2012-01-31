@@ -378,10 +378,7 @@ bool Read<T>::tseitinizeHeads(){
 			basicrules.push_back(new BasicRule(head, tempbody));
 
 			//To guarantee #model equivalence:
-			Equivalence eq;
-			eq.head = tempbody[0];
-			eq.conjunctive = true;
-			eq.body.push_back(Literal(head, false));
+			Implication eq(tempbody[0], ImplicationType::EQUIVALENT, {Literal(head, false)}, true);
 			if(getSolver()->add(eq)==SATVAL::UNSAT){
 				return false;
 			}

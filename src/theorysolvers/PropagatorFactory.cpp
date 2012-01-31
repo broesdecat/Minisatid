@@ -168,35 +168,48 @@ void PropagatorFactory::add(const InnerDisjunction& clause){
 	}*/
 }
 
-void PropagatorFactory::add(const InnerEquivalence& formula){
-	// TODO equiv propagator (or at least, 1-watched scheme for the long clause)
+// Precondition: already added vars!
+void PropagatorFactory::addImplication(const Lit& head, const litlist& body, bool conjunction){
+	if(conjunction){
+		InnerDisjunction d;
+		d.literals.resize(2, not head);
+		for(auto i=body.cbegin(); i<body.cend(); ++i){
+			d.literals[1] = *i;
+			add(d);
+		}
+	}else{
+		InnerDisjunction d;
+		d.literals.insert(d.literals.begin(), body.cbegin(), body.cend());
+		d.literals.push_back(not head);
+		add(d);
+	}
+}
+
+// Precondition: already added vars!
+void PropagatorFactory::addReverseImplication(const Lit& head, const litlist& body, bool conjunction){
+	litlist list;
+	for(auto i=body.cbegin(); i<body.cend(); ++i){
+		list.push_back(not *i);
+	}
+	addImplication(not head, list, not conjunction);
+}
+
+void PropagatorFactory::add(const InnerImplication& formula){
+	// TODO equiv propagator (or 1-watched scheme for the long clause)
 	addVar(formula.head, getEngine().modes().lazy?VARHEUR::DONT_DECIDE:VARHEUR::DECIDE);
 	addVars(formula.literals, getEngine().modes().lazy?VARHEUR::DONT_DECIDE:VARHEUR::DECIDE);
 
-	//create the completion
-	InnerDisjunction comp;
-	litlist& lits = comp.literals;
-	lits.push_back(formula.head);
-
-	for (int i = 0; i < formula.literals.size(); ++i) {
-		lits.push_back(formula.literals[i]);
-	}
-
-	if (formula.conjunctive) {
-		for (int i = 1; i < lits.size(); ++i) {
-			lits[i] = ~lits[i];
-		}
-	} else {
-		lits[0] = ~lits[0];
-	}
-
-	add(comp);
-
-	for (int i = 1; i < lits.size(); ++i) {
-		InnerDisjunction binclause;
-		binclause.literals.push_back(~lits[0]);
-		binclause.literals.push_back(~lits[i]);
-		add(binclause);
+	switch(formula.type){
+	case ImplicationType::EQUIVALENT:
+		addImplication(formula.head, formula.literals, formula.conjunctive);
+		addReverseImplication(formula.head, formula.literals, formula.conjunctive);
+		break;
+	case ImplicationType::IMPLIEDBY:
+		addReverseImplication(formula.head, formula.literals, formula.conjunctive);
+		break;
+	case ImplicationType::IMPLIES:
+		addImplication(formula.head, formula.literals, formula.conjunctive);
+		break;
 	}
 }
 
@@ -506,9 +519,12 @@ void PropagatorFactory::add(InnerDisjunction& formula, rClause& newclause){
 	SATStorage::getStorage()->addClause(lits, newclause);
 }
 
-SATVAL PropagatorFactory::finishSet(InnerWLSet* set, vector<TempAgg*>& aggs, bool optimagg){
-
+SATVAL PropagatorFactory::finishSet(const InnerWLSet* origset, vector<TempAgg*>& aggs, bool optimagg){
 	bool unsat = false, sat = false;
+
+	MAssert(origset->wls.size()>0);
+
+	auto set = new InnerWLSet(*origset);
 
 	// transform into SAT if requested
 	if(getEngine().modes().tocnf && not optimagg){
@@ -610,6 +626,9 @@ void PropagatorFactory::add(const InnerLazyClause& object){
 	assert(not getEngine().isDecisionVar(var(object.residual)));
 			// TODO in fact, want to check that it does not yet occur in the theory, this is easiest hack
 	addVar(object.residual, VARHEUR::DONT_DECIDE); // NOTE: By default, do not decide residuals
+	//cerr <<"Adding residual: ";
+	//print(object.residual);
+	//cerr <<", " <<(object.watchboth?"both":"only true") <<"watch\n";
 	if(object.watchboth){
 		new LazyResidualWatch(getEnginep(), ~object.residual, object.monitor);
 	}

@@ -141,7 +141,7 @@ public:
 		addVar(sentence, VARHEUR::DECIDE);
 	}
 	void add(const InnerDisjunction& sentence);
-	void add(const InnerEquivalence& sentence);
+	void add(const InnerImplication& sentence);
 	void add(const InnerRule& sentence);
 	void add(const InnerWLSet& sentence);
 	void add(const InnerAggregate& sentence);
@@ -173,6 +173,11 @@ public:
 	void setModSolver(ModSolver* m);
 
 private:
+	// NOTE already added literals!
+	void addImplication(const Lit& head, const litlist& body, bool conjunction);
+	// NOTE already added literals!
+	void addReverseImplication(const Lit& head, const litlist& body, bool conjunction);
+
 	template<class T>
 	void addCP			(const T& formula);
 
@@ -190,7 +195,7 @@ private:
 
 	IntVar*		getIntVar(int varID) const;
 
-	SATVAL finishSet(InnerWLSet* set, std::vector<TempAgg*>& agg, bool optimagg = false);
+	SATVAL finishSet(const InnerWLSet* set, std::vector<TempAgg*>& agg, bool optimagg = false);
 };
 
 }

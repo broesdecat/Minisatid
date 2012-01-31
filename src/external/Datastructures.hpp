@@ -54,6 +54,7 @@ public:
 	bool 	operator== (const Literal& l) 	const { return lit == l.lit; }
 	bool 	operator< (const Literal& l) 	const {	return std::abs(lit) < std::abs(l.lit); }
 	Literal operator~()						const { return Literal(getAtom(), lit>0?true:false); }
+	Literal operator!()						const { return Literal(getAtom(), lit>0?true:false); }
 };
 
 // A class representing a tuple of a literal and an associated weight
@@ -91,13 +92,18 @@ public:
 	DisjunctionRef(const literallist& lits): literals(lits){}
 };
 
-class Equivalence{
+enum class ImplicationType { IMPLIES, IMPLIEDBY, EQUIVALENT};
+class Implication{
 public:
-	bool conjunctive;
-	Literal	head;
-	literallist body;
+	const Literal	head;
+	const ImplicationType type;
+	const literallist body;
+	const bool conjunction;
 
-	Equivalence():head(0){}
+	Implication(const Literal& head, ImplicationType type, const literallist& body, bool conjunction):
+		head(head), type(type), body(body), conjunction(conjunction){
+
+	}
 };
 
 class Rule{

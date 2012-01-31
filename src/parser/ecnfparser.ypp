@@ -319,15 +319,9 @@ clause	:	body ZERO
 
 equiv	:	EQUIV SEMDEFN NUMBER body ZERO
 			{ 					
-				Equivalence equiv;
-				equiv.head = cLiteral($3);
-				equiv.body = *$4;
+				// TODO using COMP here is a bit of a hack in reusing lexer constants, should fix it!
+				Implication equiv(cLiteral($3), ImplicationType::EQUIVALENT, *$4, $2==COMP);
 				delete $3; delete $4;
-				if($2==COMP){ //hack, to be fixed
-					equiv.conjunctive = true;
-				}else{
-					equiv.conjunctive = false;
-				}
 				CR(equiv);
 			}
 		;

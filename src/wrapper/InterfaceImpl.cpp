@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <vector>
 #include <algorithm>
+#include <limits>
 
 #include "external/ResourceManager.hpp"
 #include "utils/Print.hpp"
@@ -22,11 +23,15 @@ using namespace MinisatID;
 
 // REMAPPER
 
+void checkVar(const Atom& atom){
+	if(atom.getValue()<1 || atom.getValue() == numeric_limits<int>::max()){
+		throw idpexception(disAllowedVarNumbers());
+	}
+}
 
 Var Remapper::getVar(const Atom& atom){
-	if(atom.getValue()<1){
-		throw idpexception(getMinimalVarNumbering());
-	}
+	checkVar(atom);
+
 	if(atom.getValue()>maxnumber){
 		maxnumber = atom.getValue();
 	}
@@ -47,9 +52,7 @@ bool Remapper::hasVar(const Atom& atom, Var& mappedvarifexists) const{
 }
 
 Var SmartRemapper::getVar(const Atom& atom){
-	if(atom.getValue()<1){
-		throw idpexception(getMinimalVarNumbering());
-	}
+	checkVar(atom);
 
 	auto i = origtocontiguousatommapper.find(atom.getValue());
 	Var v = 0;
@@ -154,7 +157,11 @@ void WrapperPimpl::printCurrentOptimum(const Weight& value) const{
 }
 
 Var WrapperPimpl::checkAtom(const Atom& atom){
-	return getRemapper()->getVar(atom);
+	auto mappedlit = getRemapper()->getVar(atom);
+	if(verbosity()>2){
+		clog <<"Mapped " <<atom.getValue() <<" to " <<getPrintableVar(mappedlit) <<"\n";
+	}
+	return mappedlit;
 }
 
 Lit WrapperPimpl::checkLit(const Literal& lit){
@@ -162,7 +169,7 @@ Lit WrapperPimpl::checkLit(const Literal& lit){
 }
 
 void WrapperPimpl::checkLits(const vector<vector<Literal> >& lits, vector<vector<Lit> >& ll){
-	for(vector<vector<Literal> >::const_iterator i=lits.cbegin(); i<lits.cend(); ++i){
+	for(auto i=lits.cbegin(); i<lits.cend(); ++i){
 		ll.push_back(vector<Lit>());
 		checkLits(*i, ll.back());
 	}
@@ -170,14 +177,14 @@ void WrapperPimpl::checkLits(const vector<vector<Literal> >& lits, vector<vector
 
 void WrapperPimpl::checkLits(const vector<Literal>& lits, vector<Lit>& ll){
 	ll.reserve(lits.size());
-	for(vector<Literal>::const_iterator i=lits.cbegin(); i<lits.cend(); ++i){
+	for(auto i=lits.cbegin(); i<lits.cend(); ++i){
 		ll.push_back(checkLit(*i));
 	}
 }
 
 void WrapperPimpl::checkAtoms(const vector<Atom>& atoms, vector<Var>& ll){
 	ll.reserve(atoms.size());
-	for(vector<Atom>::const_iterator i=atoms.cbegin(); i<atoms.cend(); ++i){
+	for(auto i=atoms.cbegin(); i<atoms.cend(); ++i){
 		ll.push_back(checkAtom(*i));
 	}
 }
@@ -351,11 +358,12 @@ SATVAL PCWrapperPimpl::add(const DisjunctionRef& sentence){
 }
 
 template<>
-SATVAL PCWrapperPimpl::add(const Equivalence& sentence){
-	InnerEquivalence eq;
+SATVAL PCWrapperPimpl::add(const Implication& sentence){
+	InnerImplication eq;
 	eq.head = checkLit(sentence.head);
+	eq.type = sentence.type;
 	checkLits(sentence.body, eq.literals);
-	eq.conjunctive = sentence.conjunctive;
+	eq.conjunctive = sentence.conjunction;
 	getSolver()->add(eq);
 	return getSolver()->satState();
 }
@@ -494,6 +502,7 @@ SATVAL PCWrapperPimpl::add(const LazyGroundLit& sentence){
 	lc.monitor = sentence.monitor;
 	lc.residual = checkLit(sentence.residual);
 	lc.watchboth = sentence.watchboth;
+	//cerr <<"Watching " <<(lc.watchboth?"both":"single") <<" on " <<lc.residual <<"\n";
 	getSolver()->add(lc);
 	return getSolver()->satState();
 }

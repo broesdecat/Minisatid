@@ -168,8 +168,9 @@ SATVAL IDSolver::addFinishedRule(TempRule* rule) {
 		auto r = new PropRule(mkLit(head), rule->body);
 		createDefinition(head, r, conj?DefType::CONJ:DefType::DISJ);
 
-		InnerEquivalence eq;
+		InnerImplication eq;
 		eq.head = mkLit(head);
+		eq.type = ImplicationType::EQUIVALENT;
 		eq.literals = rule->body;
 		eq.conjunctive = conj;
 		getPCSolver().add(eq);
@@ -202,6 +203,7 @@ void IDSolver::addFinishedDefinedAggregate(TempRule* rule){
  * @PRE: aggregates have to have been finished
  */
 void IDSolver::finishParsing(bool& present, bool& unsat) {
+	MAssert(getPCSolver().satState()!=SATVAL::UNSAT);
 	if(rules.size()==0 && not forcefinish && finishedonce){
 		return;
 	}
@@ -218,32 +220,36 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 
 	//notifyParsed(); // TODO not correct after repeated calls (lazy grounding)
 
-	//cerr <<"Finishing\n";
-	auto temprules = rules; // NOTE: need copy because during adding we might do more grounding and get more rules
-	for(auto i=temprules.cbegin(); not unsat && i!=temprules.cend(); ++i) {
-		if(i->second->inneragg){
-			addFinishedDefinedAggregate(i->second);
-		}else{
-	//		MAssert(i->first==i->second->head);
-	//		cerr <<"Adding rule " <<i->second->head <<" <- ";
-	//		for(auto j=i->second->body.cbegin(); j<i->second->body.cend(); ++j){
-	//			cerr <<*j <<(i->second->conjunctive?"&":"|");
-	//		}
-	//		cerr <<"\n";
-			if(addFinishedRule(i->second)==SATVAL::UNSAT){
-				unsat = true;
+	while(rules.size()>0){
+		auto temprules = rules; // NOTE: need copy because during adding we might do more grounding and get more rules
+		rules.clear();
+		for(auto i=temprules.cbegin(); not unsat && i!=temprules.cend(); ++i) {
+			if(i->second->inneragg){
+				addFinishedDefinedAggregate(i->second);
+			}else{
+				if(addFinishedRule(i->second)==SATVAL::UNSAT){
+					unsat = true;
+				}
 			}
 		}
+		deleteList(temprules);
 	}
-	deleteList(rules);
+
+	if(unsat){
+		getPCSolver().notifyUnsat(); // TODO: Probably already done
+		return;
+	}
 
 	if(finishedonce && not forcefinish){
 		getPCSolver().getNonConstOptions().defn_strategy = adaptive;
+		MAssert(getPCSolver().satState()!=SATVAL::UNSAT || unsat);
 		return;
 	}
 	needtofinish = false;
 	finishedonce = true;
 	forcefinish = false;
+
+	MAssert(getPCSolver().satState()!=SATVAL::UNSAT);
 
 	//LAZY initialization
 	posloops = true; negloops = true; mixedrecagg = false; posrecagg = false;
@@ -333,9 +339,10 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	}
 
 	unsat = not simplifyGraph(atoms_in_pos_loops);
-
+	MAssert(getPCSolver().satState()!=SATVAL::UNSAT || unsat);
 	if(not unsat && modes().tocnf){
 		unsat = transformToCNF(sccroots, present)==SATVAL::UNSAT;
+		MAssert(getPCSolver().satState()!=SATVAL::UNSAT || unsat);
 	}
 
 	notifyInitialized();
@@ -349,6 +356,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	}
 #endif
 	}
+	MAssert(getPCSolver().satState()!=SATVAL::UNSAT || unsat);
 }
 
 void IDSolver::generateSCCs(){
@@ -660,7 +668,9 @@ void IDSolver::visit(Var i, vector<bool> &incomp, varlist &stack, varlist &visit
 // NOTE: essentially, simplifygraph can be called anytime the level-0 interpretation has changed.
 // In default model expansion, this turned out to be quite expensive, so it was disabled.
 bool IDSolver::simplifyGraph(int atomsinposloops){
+	MAssert(getPCSolver().satState()!=SATVAL::UNSAT);
 	if(!posloops){
+		MAssert(getPCSolver().satState()!=SATVAL::UNSAT);
 		return true;
 	}
 
@@ -895,7 +905,7 @@ bool IDSolver::simplifyGraph(int atomsinposloops){
 	}
 #endif
 
-	return true;
+	return getPCSolver().satState()!=SATVAL::UNSAT;
 }
 
 /**
@@ -972,6 +982,7 @@ void IDSolver::propagateJustificationAggr(const Lit& l, vector<litlist >& jstfs,
  * the state has to be stable for both aggregate and unit propagations
  */
 rClause IDSolver::notifypropagate() {
+	MAssert(getPCSolver().satState()!=SATVAL::UNSAT);
 	if(needtofinish){
 		forcefinish = true;
 		bool present, unsat;
@@ -981,6 +992,7 @@ rClause IDSolver::notifypropagate() {
 			infactnotpresent = true;
 			return nullPtrClause;
 		}
+		MAssert(getPCSolver().satState()!=SATVAL::UNSAT || unsat);
 		if(unsat){
 			// FIXME incorrect dummy unsat clause!
 			InnerDisjunction d;
@@ -2155,7 +2167,7 @@ void IDSolver::visitWF(Var v, varlist &root, vector<bool> &incomp, stack<Var> &s
  */
 void IDSolver::mark(Var h) {
 	Lit l = mkLit(h, isFalse(h)); //holds the literal that has to be propagated, so has the model value
-	if (!wfisMarked[h]) {
+	if (!wfisMarked[h] && getDefVar(h)->type()!=DefType::AGGR) { //FIXME: initializecounters cannot handle aggregates, but at this moment we know they will not be recursive!
 		wfqueue.push(l);
 		wfisMarked[h] = true;
 		wfmarkedAtoms.insert(h);

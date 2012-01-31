@@ -68,7 +68,7 @@ void MinisatID::verifyAggregate(InnerWLSet const * const set, Var head, AggType 
 //@pre: has been split
 //@post: set ordered from low to high weights
 void MinisatID::setReduce(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>& aggs, const AggProp& type, Weight& knownbound, bool& unsat, bool& sat){
-	assert(!unsat && !sat && aggs.size()>0);
+	assert(!unsat && !sat && aggs.size()>0 && set->wls.size()>0);
 	vwl oldset = set->wls;
 	vwl newset;
 
@@ -202,7 +202,7 @@ void MinisatID::max2SAT(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>
 	} else {*/
 		InnerDisjunction clause;
 		clause.literals.push_back(ub? agg.getHead():not agg.getHead());
-		for (vwl::const_reverse_iterator i = set->wls.rbegin(); i < set->wls.rend()	&& (*i).getWeight() >= bound; ++i) {
+		for (auto i = set->wls.rbegin(); i < set->wls.rend()	&& (*i).getWeight() >= bound; ++i) {
 			if (ub && (*i).getWeight() == bound) {
 				break;
 			}
@@ -269,8 +269,9 @@ void MinisatID::card2Equiv(PCSolver* solver, InnerWLSet* set, std::vector<TempAg
 					}
 					unsat = !set->getSolver()->getPCSolver().add(rule);
 				} else{*/
-					InnerEquivalence eq;
+					InnerImplication eq;
 					eq.head = agg.getHead();
+					eq.type = ImplicationType::EQUIVALENT;
 					eq.conjunctive = false;
 					for (vsize j = 0; j < set->wls.size(); ++j) {
 						eq.literals.push_back(set->wls[j].getLit());

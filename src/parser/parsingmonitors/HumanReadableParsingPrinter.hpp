@@ -36,13 +36,17 @@ public:
 
 	void notifyadded(const InnerRule& rule){
 		target() <<"Added rule " <<getPrintableVar(rule.head) <<" <- ";
-		for(uint i=0; i<rule.body.size(); ++i){
-			target() <<rule.body[i];
-			if(i<rule.body.size()-1){
-				if(rule.conjunctive){
-					target() <<" & ";
-				}else{
-					target() <<" | ";
+		if(rule.body.size()==0){
+			target() <<(rule.conjunctive?"true":"false");
+		}else{
+			for(uint i=0; i<rule.body.size(); ++i){
+				target() <<rule.body[i];
+				if(i<rule.body.size()-1){
+					if(rule.conjunctive){
+						target() <<" & ";
+					}else{
+						target() <<" | ";
+					}
 				}
 			}
 		}

@@ -118,7 +118,7 @@ protected:
 	void addVarSum(const weightlist& weights, const std::vector<Literal>& lits, const Atom& head, EqType rel, uint bound);
 	void addProduct(const Aggregate& agg, const WSet& set);
 	void addSum(const Aggregate& agg, const WSet& set);
-	void addEquiv(const Literal& head, const literallist& body, bool conjunctive, CloseConstraint close);
+	void addEquiv(const Implication& impl, CloseConstraint close);
 
 	uint addOptimization();
 };
@@ -134,7 +134,7 @@ template<> SATVAL FlatZincRewriter::add(const literallist& lits);
 template<> SATVAL FlatZincRewriter::add(const Disjunction& sentence);
 template<> SATVAL FlatZincRewriter::add(const DisjunctionRef& sentence);
 template<> SATVAL FlatZincRewriter::add(const Rule& sentence);
-template<> SATVAL FlatZincRewriter::add(const Equivalence& sentence);
+template<> SATVAL FlatZincRewriter::add(const Implication& sentence);
 template<> SATVAL FlatZincRewriter::add(const Set& sentence);
 template<> SATVAL FlatZincRewriter::add(const WSet& sentence);
 template<> SATVAL FlatZincRewriter::add(const WLSet& sentence);

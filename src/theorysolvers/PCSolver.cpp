@@ -500,6 +500,8 @@ bool PCSolver::findNext(const vec<Lit>& assmpt, const ModelExpandOptions& option
 		extractVarModel(fullmodel);
 		getParent().addModel(*fullmodel);
 
+		//printTheory(clog);
+
 #ifdef CPSUPPORT
 		if(hasCPSolver()) {
 			//Check for more models with different var assignment

@@ -514,17 +514,53 @@ void FlatZincRewriter::addIntegerVar(uint varID, const string& domainexpr, const
 	}
 }
 
-void FlatZincRewriter::addEquiv(const Literal& head, const literallist& body, bool conjunctive, CloseConstraint close){
-	check(body);
-	check(head);
+void FlatZincRewriter::addEquiv(const Implication& implication, CloseConstraint close){
+	check(implication.body);
+	check(implication.head);
 
-	if(conjunctive){
-		constraints <<"constraint array_bool_and([";
-	}else{
-		constraints <<"constraint array_bool_or([";
+	switch(implication.type){
+	case ImplicationType::EQUIVALENT:
+		if(implication.conjunction){
+			constraints <<"constraint array_bool_and([";
+		}else{
+			constraints <<"constraint array_bool_or([";
+		}
+		addMappedList(implication.body, constraints);
+		constraints  <<"], " <<getVarName(implication.head) <<")";
+		break;
+	case ImplicationType::IMPLIES:
+		if(implication.conjunction){
+			Disjunction d;
+			d.literals.resize(2, not implication.head);
+			for(auto i=implication.body.cbegin(); i<implication.body.cend(); ++i){
+				d.literals[1] = *i;
+				add(d);
+			}
+		}else{
+			Disjunction d;
+			d.literals.insert(d.literals.begin(), implication.body.cbegin(), implication.body.cend());
+			d.literals.push_back(not implication.head);
+			add(d);
+		}
+		break;
+	case ImplicationType::IMPLIEDBY:
+		if(implication.conjunction){
+			Disjunction d;
+			for(auto i=implication.body.cbegin(); i<implication.body.cend(); ++i){
+				d.literals.push_back(not *i);
+			}
+			d.literals.push_back(implication.head);
+			add(d);
+		}else{
+			Disjunction d;
+			d.literals.resize(2, implication.head);
+			for(auto i=implication.body.cbegin(); i<implication.body.cend(); ++i){
+				d.literals[1] = *i;
+				add(d);
+			}
+		}
+		break;
 	}
-	addMappedList(body, constraints);
-	constraints  <<"], " <<getVarName(head) <<")";
 	if(close==CLOSE){
 		constraints <<";\n";
 	}
@@ -571,8 +607,8 @@ SATVAL FlatZincRewriter::add(const DisjunctionRef& sentence){
 }
 
 template<>
-SATVAL FlatZincRewriter::add(const Equivalence& equiv){
-	addEquiv(equiv.head, equiv.body, equiv.conjunctive, CLOSE);
+SATVAL FlatZincRewriter::add(const Implication& implic){
+	addEquiv(implic, CLOSE);
 	return SATVAL::POS_SAT;
 }
 
@@ -700,7 +736,7 @@ SATVAL FlatZincRewriter::add(const Aggregate& origagg){
 			lits.push_back(ub?~set.literals[i]:set.literals[i]);
 		}
 
-		addEquiv(Literal(agg.head, false), lits, ub, OPEN);
+		addEquiv(Implication(Literal(agg.head, false), ImplicationType::EQUIVALENT, lits, ub), OPEN);
 		if(agg.sem==DEF){
 			addDefAnnotation(agg.defID, constraints);
 		}

@@ -205,7 +205,7 @@ void EventQueue::finishParsing(bool& unsat) {
 	}
 	finishing = true;
 
-	while (finishparsing.size() > 0) {
+	while (finishparsing.size() > 0 && not unsat) {
 		auto prop = finishparsing.front();
 		finishparsing.pop_front();
 		bool present = true;
@@ -282,11 +282,13 @@ rClause EventQueue::notifyFullAssignmentFound() {
 	MAssert(getPCSolver().hasTotalModel());
 	auto props = event2propagator.at(EV_FULLASSIGNMENT);
 	// FIXME propagation can backtrack and invalidate total model, so should stop then!
+	MAssert(getPCSolver().satState()!=SATVAL::UNSAT);
 	for (uint i = 0; confl == nullPtrClause && i < size(EV_FULLASSIGNMENT) && getPCSolver().hasTotalModel(); ++i) {
 		if (!props[i]->isPresent()) {
 			continue;
 		}
 		confl = props[i]->notifyFullAssignmentFound();
+		MAssert(getPCSolver().satState()!=SATVAL::UNSAT || confl!=nullPtrClause);
 	}
 	return confl;
 }

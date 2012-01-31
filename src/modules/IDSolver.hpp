@@ -113,14 +113,16 @@ public:
 	~DefinedVar(){
 		if(_type==DefType::AGGR){
 			delete(_definedaggregate);
+			_definedaggregate = NULL;
 		}else{
 			delete(_definition);
+			_definition = NULL;
 		}
 	}
 
 	litlist& 		reason(){ return _reason; }
-	PropRule* 		definition(){ return _definition; }
-	IDAgg* 			definedaggregate(){ return _definedaggregate; }
+	PropRule* 		definition(){ MAssert(_type!=DefType::AGGR); return _definition; }
+	IDAgg* 			definedaggregate(){ MAssert(_type==DefType::AGGR); return _definedaggregate; }
 	DefType& 		type(){ return _type; }
 	DefOcc& 		occ(){ return _occ; }
 	bool &			isCS(){ return _isCS; }

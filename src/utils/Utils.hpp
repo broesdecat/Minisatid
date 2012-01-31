@@ -96,8 +96,9 @@ struct InnerDisjunction{
 	std::vector<Lit> literals;
 };
 
-struct InnerEquivalence{
+struct InnerImplication{
 	Lit	head;
+	ImplicationType type;
 	std::vector<Lit> literals;
 	bool conjunctive;
 };
