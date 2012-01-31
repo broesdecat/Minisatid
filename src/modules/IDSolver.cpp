@@ -215,7 +215,7 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	unsat = false;
 
 	if(verbosity()>0){
-		clog <<">>> Initializing inductive definitions\n";
+		clog <<">>> Initializing inductive definition " <<definitionID <<"\n";
 	}
 
 	//notifyParsed(); // TODO not correct after repeated calls (lazy grounding)
@@ -771,7 +771,7 @@ bool IDSolver::simplifyGraph(int atomsinposloops){
 			}
 
 			if (occ(v) == POSLOOP) {
-				//FIXME lazy grounding removeDefinition(v);
+				//FIXME lazygrounding? removeDefinition(v);
 				--atomsinposloops;
 			} else {
 				occ(v) = MIXEDLOOP;
@@ -1884,7 +1884,7 @@ rClause IDSolver::notifyFullAssignmentFound(){
 	}
 	rClause confl = nullPtrClause;
 	if(confl==nullPtrClause){ // FIXME should separate propagators!
-		confl = notifypropagate(); // FIXME can backtrack and invalidate total model!!!
+		confl = notifypropagate(); // FIXME might propagate within backtrack and not have a total model anymore!!!
 		if(not getPCSolver().hasTotalModel()){
 			return confl;
 		}
