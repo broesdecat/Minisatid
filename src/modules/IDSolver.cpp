@@ -34,7 +34,7 @@ IDAgg::IDAgg(const Lit& head, AggBound b, AggSem sem, AggType type, const std::v
 IDSolver::IDSolver(PCSolver* s, int definitionID):
 		Propagator(s),
 		definitionID(definitionID),
-		finishedonce(false), needtofinish(false), forcefinish(false), infactnotpresent(false),
+		finishedonce(false), needtofinishrules(false), needtofinishid(false), forcefinish(false), infactnotpresent(false),
 		minvar(0), nbvars(0),
 		conj(DefType::CONJ), disj(DefType::DISJ), aggr(DefType::AGGR),
 		_seen(NULL),
@@ -49,7 +49,7 @@ IDSolver::IDSolver(PCSolver* s, int definitionID):
 	getPCSolver().accept(this, EV_BACKTRACK);
 	getPCSolver().accept(this, EV_PRINTSTATE);
 	getPCSolver().accept(this, EV_FULLASSIGNMENT);
-	getPCSolver().acceptFinishParsing(this, true);
+	registerFinishParsing();
 }
 
 IDSolver::~IDSolver() {
@@ -81,7 +81,16 @@ void IDSolver::adaptStructsToHead(Var){
 	definitions.resize(nbvars, NULL);
 }
 
+void IDSolver::registerFinishParsing(){
+	if(not needtofinishrules){
+		getPCSolver().acceptFinishParsing(this, true);
+	}
+	needtofinishrules = true;
+}
+
 void IDSolver::addDefinedAggregate(const InnerReifAggregate& inneragg, const InnerWLSet& innerset){
+	registerFinishParsing();
+
 	auto newrule = new TempRule(new InnerReifAggregate(inneragg), new InnerWLSet(innerset));
 	auto it = rules.find(inneragg.head);
 	if(it==rules.cend()){
@@ -101,13 +110,11 @@ void IDSolver::addDefinedAggregate(const InnerReifAggregate& inneragg, const Inn
 	newrule->head = newvar;
 	rules[newvar] = newrule;
 	prevrule->body.push_back(mkPosLit(newvar));
-	if(not isParsing()){
-		getPCSolver().acceptFinishParsing(this, true);
-	}
-	needtofinish = true;
 }
 
 void IDSolver::addRule(bool conj, Var head, const litlist& ps) {
+	registerFinishParsing();
+
 	auto it = rules.find(head);
 	if(it==rules.cend()){
 		rules[head] = new TempRule(head, conj, ps);
@@ -115,7 +122,7 @@ void IDSolver::addRule(bool conj, Var head, const litlist& ps) {
 	}
 
 	auto prevrule = it->second;
-	if(prevrule->conjunctive){ // introduce new var (we need disjunctive root anyway
+	if(prevrule->conjunctive){ // introduce new var (we need disjunctive root anyway)
 		auto newvar = getPCSolver().newVar();
 		rules[newvar] = new TempRule(newvar, prevrule->conjunctive, prevrule->body);
 		prevrule->conjunctive = false;
@@ -128,10 +135,6 @@ void IDSolver::addRule(bool conj, Var head, const litlist& ps) {
 	}else{ // Disjunctive, so can add directly
 		prevrule->body.insert(prevrule->body.end(), ps.cbegin(), ps.cend());
 	}
-	if(not isParsing()){
-		getPCSolver().acceptFinishParsing(this, true);
-	}
-	needtofinish = true;
 }
 
 /**
@@ -181,6 +184,8 @@ SATVAL IDSolver::addFinishedRule(TempRule* rule) {
 		MAssert(isDefined(head));
 	}
 
+	needtofinishid = true;
+
 	return getPCSolver().satState();
 }
 
@@ -201,6 +206,7 @@ void IDSolver::addFinishedDefinedAggregate(TempRule* rule){
 		return;
 	}
 	createDefinition(head, agg);
+	needtofinishid = true;
 }
 
 /*
@@ -217,10 +223,6 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 
 	present = true;
 	unsat = false;
-
-	if(verbosity()>0){
-		clog <<">>> Initializing inductive definition " <<definitionID <<"\n";
-	}
 
 	//notifyParsed(); // TODO not correct after repeated calls (lazy grounding)
 
@@ -239,6 +241,8 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 		deleteList(temprules);
 	}
 
+	needtofinishrules = false;
+
 	if(unsat){
 		getPCSolver().notifyUnsat(); // TODO: Probably already done
 		return;
@@ -249,9 +253,13 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 		MAssert(getPCSolver().satState()!=SATVAL::UNSAT || unsat);
 		return;
 	}
-	needtofinish = false;
+	needtofinishid = false;
 	finishedonce = true;
 	forcefinish = false;
+
+	if(verbosity()>0){
+		clog <<">>> Initializing inductive definition " <<definitionID <<"\n";
+	}
 
 	MAssert(getPCSolver().satState()!=SATVAL::UNSAT);
 
@@ -987,7 +995,7 @@ void IDSolver::propagateJustificationAggr(const Lit& l, vector<litlist >& jstfs,
  */
 rClause IDSolver::notifypropagate() {
 	MAssert(getPCSolver().satState()!=SATVAL::UNSAT);
-	if(needtofinish){
+	if(needtofinishid){
 		forcefinish = true;
 		bool present, unsat;
 		infactnotpresent = false;

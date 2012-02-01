@@ -21,10 +21,11 @@ private:
 	bool allreadyground;
 public:
 	LazyGroundingCommand():allreadyground(false){}
-	virtual void requestGrounding(){
+	virtual void requestGrounding() = 0;
+	void notifyGrounded(){
 		allreadyground = true;
 	}
-	bool alreadyGround() const { return allreadyground; }
+	bool isAlreadyGround() const { return allreadyground; }
 };
 
 // POCO's

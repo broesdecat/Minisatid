@@ -38,7 +38,7 @@ private:
 	Lit residual;
 
 public:
-	LazyResidualWatch(PCSolver* engine, const Lit lit, LazyGroundingCommand* monitor);
+	LazyResidualWatch(PCSolver* engine, const Lit& lit, LazyGroundingCommand* monitor);
 
 	virtual void propagate();
 	virtual const Lit& getPropLit() const;

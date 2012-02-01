@@ -181,7 +181,8 @@ class IDSolver: public Propagator{
 private:
 	int definitionID;
 
-	bool finishedonce, needtofinish, forcefinish, infactnotpresent; // NOTE: last one because ispresent will always be true when lazy grounding
+	bool finishedonce, needtofinishrules, needtofinishid, forcefinish;
+	bool infactnotpresent; // NOTE: last one because ispresent will always be true when lazy grounding
 
 	Var minvar, nbvars; //TODO, maxvar, nbvars; 	//The lowest and highest headvariable. INVAR: Definitions will be offset by minvar and the size will be nbvars
 
@@ -248,6 +249,7 @@ public:
 	const PropRule&		getDefinition			(Var var) 	const { MAssert(hasDefVar(var)); return *definition(var); }
 
 private:
+	void 				registerFinishParsing();
 	void 				generateSCCs();
 	void 				bumpHeadHeuristic();
 

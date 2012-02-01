@@ -216,7 +216,7 @@ void EventQueue::finishParsing(bool& unsat) {
 		}
 	}
 
-	clearNotPresentPropagators();
+	//TODO very expensive??? clearNotPresentPropagators();
 
 	notifyInitialized();
 

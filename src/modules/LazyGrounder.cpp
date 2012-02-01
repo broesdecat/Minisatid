@@ -13,7 +13,7 @@
 using namespace std;
 using namespace MinisatID;
 
-LazyResidualWatch::LazyResidualWatch(PCSolver* engine, const Lit lit, LazyGroundingCommand* monitor):
+LazyResidualWatch::LazyResidualWatch(PCSolver* engine, const Lit& lit, LazyGroundingCommand* monitor):
 		engine(engine),
 		monitor(monitor), residual(lit){
 	engine->accept(this);
@@ -32,17 +32,21 @@ LazyResidual::LazyResidual(LazyResidualWatch* const watch):Propagator(watch->eng
 }
 
 rClause LazyResidual::notifypropagate(){
+	MAssert(isPresent());
+	//clog <<"Lazy grounding";
 	if(getPCSolver().getCurrentDecisionLevel()>0){
+		//clog <<" with reset";
 		getPCSolver().backtrackTo(0); // FIXME extremely inefficient: should rather make sure that all the add methods
 		//(e.g. clauses in the sat solver, backtrack to the appropriate level if necessary
 		//      (where the constraint is not unsatisfied)).
 	}
+	//clog <<"\n";
 	//clog <<"Requesting lazy grounding for " <<watch->getPropLit() <<"\n";
 	watch->monitor->requestGrounding(); // FIXME should delete the other watch too
 
 	bool unsat;
 	getPCSolver().finishParsing(unsat);
-	notifyNotPresent(); // FIXME clean way of deleting this? FIXME only do this after finishparsing as this deleted propagators (including this one otherwise!)
+	notifyNotPresent(); // FIXME clean way of deleting this? FIXME only do this after finishparsing as this propagated is then DELETED
 
 	if(getPCSolver().satState()==SATVAL::UNSAT){
 		InnerDisjunction d;
