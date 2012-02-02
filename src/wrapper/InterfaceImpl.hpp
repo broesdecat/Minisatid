@@ -71,6 +71,8 @@ public:
 	bool	wasInput	(Var var) const;
 };
 
+typedef cb::Callback1<std::string, int> callbackprinting;
+
 class WrapperPimpl{
 private:
 	bool 			optimization;
@@ -87,10 +89,16 @@ public:
 
 	Solution*		solutionmonitor; //Non-owning pointers
 
+private:
+	bool 		hasprintcallback;
+	callbackprinting printliteral;
+
 public:
 	WrapperPimpl			(const SolverOption& modes);
 	WrapperPimpl			(const SolverOption& modes, Remapper* sharedremapper);
 	virtual ~WrapperPimpl();
+
+	void setTranslator(callbackprinting translator);
 
 	Var 	getNewVar();
 

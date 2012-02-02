@@ -33,16 +33,15 @@ LazyResidual::LazyResidual(LazyResidualWatch* const watch):Propagator(watch->eng
 
 rClause LazyResidual::notifypropagate(){
 	MAssert(isPresent());
-	//clog <<"Lazy grounding";
 	if(getPCSolver().getCurrentDecisionLevel()>0){
-		//clog <<" with reset";
 		getPCSolver().backtrackTo(0); // FIXME extremely inefficient: should rather make sure that all the add methods
 		//(e.g. clauses in the sat solver, backtrack to the appropriate level if necessary
 		//      (where the constraint is not unsatisfied)).
 	}
-	//clog <<"\n";
-	//clog <<"Requesting lazy grounding for " <<watch->getPropLit() <<"\n";
+	// TODO make preventpropagation more specific?
+	getPCSolver().preventPropagation(); // NOTE: necessary for inductive definitions, as otherwise might try propagation before all rules for some head have been added.
 	watch->monitor->requestGrounding(); // FIXME should delete the other watch too
+	getPCSolver().allowPropagation();
 
 	bool unsat;
 	getPCSolver().finishParsing(unsat);

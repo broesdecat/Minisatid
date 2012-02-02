@@ -219,6 +219,13 @@ void PCSolver::acceptFinishParsing(Propagator* propagator, bool late){
 	getEventQueue().acceptFinishParsing(propagator, late);
 }
 
+void PCSolver::preventPropagation(){
+	getEventQueue().preventPropagation();
+}
+void PCSolver::allowPropagation(){
+	getEventQueue().allowPropagation();
+}
+
 void PCSolver::setModSolver(ModSolver* m) {
 	getFactory().setModSolver(m);
 }

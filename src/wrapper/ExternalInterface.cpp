@@ -52,6 +52,10 @@ WrappedPCSolver::WrappedPCSolver(const SolverOption& modes)
 		:WrappedLogicSolver(), impl(new PCWrapperPimpl(modes)){
 }
 
+void WrappedPCSolver::setTranslator(callbackprinting translator){
+	getPCImpl()->setTranslator(translator);
+}
+
 WrappedPCSolver::~WrappedPCSolver(){
 	delete impl;
 }

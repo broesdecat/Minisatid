@@ -19,7 +19,7 @@ using namespace MinisatID;
 using namespace std;
 
 EventQueue::EventQueue(PCSolver& pcsolver) :
-		pcsolver(pcsolver), initialized(false), finishing(false) {
+		pcsolver(pcsolver), initialized(false), finishing(false), allowpropagation(true) {
 	event2propagator[EV_PRINTSTATE];
 	event2propagator[EV_PRINTSTATS];
 	event2propagator[EV_CHOICE];
@@ -40,6 +40,13 @@ EventQueue::~EventQueue() {
 		delete (props[i]);
 	}
 	deleteList<GenWatch>(lit2watches);
+}
+
+void EventQueue::preventPropagation(){
+	allowpropagation = false;
+}
+void EventQueue::allowPropagation(){
+	allowpropagation = true;
 }
 
 void EventQueue::notifyVarAdded() {
@@ -200,46 +207,54 @@ void EventQueue::clearNotPresentPropagators() {
 void EventQueue::finishParsing(bool& unsat) {
 	unsat = false;
 
-	if(finishing){
+	if(finishing || not allowpropagation){
 		return;
 	}
 	finishing = true;
 
-	while (finishparsing.size() > 0 && not unsat) {
-		auto prop = finishparsing.front();
-		finishparsing.pop_front();
-		bool present = true;
-		prop->finishParsing(present, unsat);
-		if (!present) {
-			printNoPropagationsOn(clog, prop->getName(), getPCSolver().verbosity());
-			prop->notifyNotPresent();
-		}
-	}
-
-	//TODO very expensive??? clearNotPresentPropagators();
-
-	notifyInitialized();
-
-	// Queue all necessary propagators
-	addEternalPropagators();
-	for (auto intvar = intvarid2propagators.cbegin(); intvar != intvarid2propagators.cend(); ++intvar) {
-		for (auto prop = intvar->begin(); prop != intvar->end(); ++prop) {
-			if (not (*prop)->isQueued()) {
-				fastqueue.push(*prop);
+	while(finishparsing.size() > 0){
+		while (finishparsing.size() > 0 && not unsat) {
+			auto prop = finishparsing.front();
+			finishparsing.pop_front();
+			bool present = true;
+			prop->finishParsing(present, unsat);
+			if(unsat){
+				return;
+			}
+			if (!present) {
+				printNoPropagationsOn(clog, prop->getName(), getPCSolver().verbosity());
+				prop->notifyNotPresent();
 			}
 		}
-	}
 
-	// Do all possible propagations that are queued
-	// TODO double unsat specification?
-	if (not unsat && getPCSolver().satState() != SATVAL::UNSAT && notifyPropagate() != nullPtrClause) {
-		unsat = true;
+		//clearNotPresentPropagators() TODO very expensive??
+
+		notifyInitialized();
+
+		// Queue all necessary propagators
+		addEternalPropagators();
+		for (auto intvar = intvarid2propagators.cbegin(); intvar != intvarid2propagators.cend(); ++intvar) {
+			for (auto prop = intvar->begin(); prop != intvar->end(); ++prop) {
+				if (not (*prop)->isQueued()) {
+					fastqueue.push(*prop);
+				}
+			}
+		}
+
+		// Do all possible propagations that are queued
+		if (getPCSolver().satState() != SATVAL::UNSAT && notifyPropagate() != nullPtrClause) {
+			unsat = true;
+		}
 	}
 
 	finishing = false;
 }
 
 rClause EventQueue::notifyPropagate() {
+	if(not allowpropagation){
+		return nullPtrClause;
+	}
+
 	for (auto i = propagateasap.cbegin(); i < propagateasap.cend(); ++i) {
 		(*i)->propagate();
 	}

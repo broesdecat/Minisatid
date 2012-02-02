@@ -35,7 +35,7 @@ public:
 	}
 
 	void notifyadded(const InnerRule& rule){
-		target() <<"Added rule " <<getPrintableVar(rule.head) <<" <- ";
+		target() <<"Added rule " <<mkPosLit(rule.head) <<" <- ";
 		if(rule.body.size()==0){
 			target() <<(rule.conjunctive?"true":"false");
 		}else{
@@ -89,7 +89,7 @@ public:
 	}
 
 	void notifyadded(const InnerReifAggregate& agg){
-		target() <<"Added aggregate " << getPrintableVar(agg.head) <<" "<<(agg.sem==COMP?"<=>":"<-");
+		target() <<"Added aggregate " << mkPosLit(agg.head) <<" "<<(agg.sem==COMP?"<=>":"<-");
 		if(agg.sem==DEF){
 			target() <<"(" <<agg.defID <<")";
 		}
@@ -206,7 +206,7 @@ public:
 
 
 	void notifyadded(const InnerCPBinaryRel& rel){
-		target() <<"Added binary constraint " <<getPrintableVar(rel.head) <<" <=> var" <<rel.varID <<" "<<rel.rel <<" " <<rel.bound <<"\n";
+		target() <<"Added binary constraint " <<mkPosLit(rel.head) <<" <=> var" <<rel.varID <<" "<<rel.rel <<" " <<rel.bound <<"\n";
 	}
 
 
@@ -216,12 +216,12 @@ public:
 
 
 	void notifyadded(const InnerCPBinaryRelVar& rel){
-		target() <<"Added binary constraint " <<getPrintableVar(rel.head) <<" <=> var" <<rel.lhsvarID <<" "<<rel.rel <<" var" <<rel.rhsvarID <<"\n";
+		target() <<"Added binary constraint " <<mkPosLit(rel.head) <<" <=> var" <<rel.lhsvarID <<" "<<rel.rel <<" var" <<rel.rhsvarID <<"\n";
 	}
 
 
 	void notifyadded(const InnerCPSumWeighted& sum){
-		target() <<"Added sum constraint " <<getPrintableVar(sum.head) <<" <=> sum({ ";
+		target() <<"Added sum constraint " <<mkPosLit(sum.head) <<" <=> sum({ ";
 		std::vector<int>::size_type count = 0;
 		std::vector<uint>::const_iterator litit=sum.varIDs.cbegin();
 		std::vector<Weight>::const_iterator weightit=sum.weights.cbegin();

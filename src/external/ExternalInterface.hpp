@@ -54,6 +54,8 @@ protected:
 	virtual WrapperPimpl* getImpl	() const = 0;
 };
 
+typedef cb::Callback1<std::string, int> callbackprinting;
+
 class WrappedPCSolver: public MinisatID::WrappedLogicSolver{
 private:
 	PCWrapperPimpl* impl;
@@ -61,6 +63,8 @@ private:
 public:
 	WrappedPCSolver	(const SolverOption& modes);
 	virtual ~WrappedPCSolver();
+
+	void setTranslator(callbackprinting translator);
 
 	template<class T>
 	SATVAL	add(const T& sentence);

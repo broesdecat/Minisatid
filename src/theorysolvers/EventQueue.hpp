@@ -49,10 +49,14 @@ private:
 	bool isInitialized() const { return initialized; }
 	bool finishing;
 
+	bool allowpropagation;
+
 public:
 	EventQueue(PCSolver& pcsolver);
 	virtual ~EventQueue();
 
+	void preventPropagation();
+	void allowPropagation();
 
 	// NOTE: EACH propagator has to register here for the general methods
 	void accept(Propagator* propagator){

@@ -13,6 +13,8 @@
 
 #include "satsolver/SATSolver.hpp"
 
+#include "wrapper/InterfaceImpl.hpp"
+
 #include "theorysolvers/PCSolver.hpp"
 #include "theorysolvers/SOSolver.hpp"
 
@@ -23,6 +25,16 @@ using namespace std;
 using namespace MinisatID;
 
 namespace MinisatID{
+
+WrapperPimpl* currentpimpl = NULL; //TODO useful but incorrect for multiple solvers
+
+void setTranslator(WrapperPimpl* translator){
+	// TODO currentpimpl = translator;
+}
+
+WrapperPimpl* getTranslator(){
+	return currentpimpl;
+}
 
 template<>
 void print(const Minisat::Lit& lit, const lbool val){
@@ -51,7 +63,11 @@ std::string print(const InnerDisjunction& clause){
 
 template<> std::string print(const Lit& lit){
 	std::stringstream ss;
-	ss <<(sign(lit)?"-":"") <<getPrintableVar(var(lit));
+	if(getTranslator()!=NULL){
+		getTranslator()->printLiteral(ss, lit);
+	}else{
+		ss <<(sign(lit)?"-":"") <<getPrintableVar(var(lit));
+	}
 	return ss.str();
 }
 

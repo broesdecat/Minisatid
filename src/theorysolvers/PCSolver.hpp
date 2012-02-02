@@ -90,6 +90,9 @@ public:
 
 	const std::vector<Lit>& getTrail() const;
 
+	void		preventPropagation();
+	void 		allowPropagation();
+
 	bool		isDecisionVar(Var var);
 	void		notifyDecisionVar(Var var);
 	void		notifyNonDecisionVar(Var var);

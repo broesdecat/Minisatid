@@ -995,7 +995,7 @@ void IDSolver::propagateJustificationAggr(const Lit& l, vector<litlist >& jstfs,
  */
 rClause IDSolver::notifypropagate() {
 	MAssert(getPCSolver().satState()!=SATVAL::UNSAT);
-	if(needtofinishid){
+	if(needtofinishid || needtofinishrules){
 		forcefinish = true;
 		bool present, unsat;
 		infactnotpresent = false;
@@ -1154,7 +1154,7 @@ void IDSolver::findCycleSources() {
 			}
 		}
 	}
-	if (verbosity() >= 2) {
+	if (verbosity() > 3) {
 		clog <<"Indirect propagations. Verifying " <<css.size() <<"cycle sources:";
 		for (auto i = css.cbegin(); i < css.cend(); ++i) {
 			clog <<" " <<getPrintableVar(*i);

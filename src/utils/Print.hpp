@@ -23,6 +23,10 @@
 
 namespace MinisatID {
 
+class WrapperPimpl;
+
+void setTranslator(WrapperPimpl* translator);
+
 template<typename T>
 int getPrintableVar(T v) { return v+1; }
 

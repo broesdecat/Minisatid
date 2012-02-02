@@ -107,8 +107,10 @@ WrapperPimpl::WrapperPimpl(const SolverOption& modes):
 		// FIXME needed for being able to introduce new variables as soon as possible
 		remapper(/*modes.remap?*/new SmartRemapper()/*:new Remapper()*/),
 		sharedremapper(false),
-		solutionmonitor(NULL)
+		solutionmonitor(NULL),
+		hasprintcallback(false)
 		{
+	//MinisatID::setTranslator(this); TODO good for debugging, but unsafe in case of multiple solvers:
 }
 WrapperPimpl::WrapperPimpl(const SolverOption& modes, Remapper* sharedremapper):
 		optimization(false),
@@ -116,8 +118,15 @@ WrapperPimpl::WrapperPimpl(const SolverOption& modes, Remapper* sharedremapper):
 		_modes(modes),
 		remapper(sharedremapper),
 		sharedremapper(true),
-		solutionmonitor(NULL)
+		solutionmonitor(NULL),
+		hasprintcallback(false)
 		{
+	//MinisatID::setTranslator(this); TODO good for debugging, but unsafe in case of multiple solvers:
+}
+
+void WrapperPimpl::setTranslator(callbackprinting translator){
+	hasprintcallback = true,
+	printliteral = translator;
 }
 
 WrapperPimpl::~WrapperPimpl(){
@@ -147,7 +156,9 @@ void WrapperPimpl::printStatistics() const {
 }
 
 void WrapperPimpl::printLiteral(std::ostream& output, const Lit& l) const{
-	if(canBackMapLiteral(l)){
+	if(canBackMapLiteral(l) && hasprintcallback){
+		output << printliteral(getRemapper()->getLiteral(l).getValue());
+	}else if(canBackMapLiteral(l) && hasSolMonitor()){
 		getSolMonitor().printLiteral(output, getRemapper()->getLiteral(l));
 	}
 }
@@ -158,7 +169,7 @@ void WrapperPimpl::printCurrentOptimum(const Weight& value) const{
 
 Var WrapperPimpl::checkAtom(const Atom& atom){
 	auto mappedlit = getRemapper()->getVar(atom);
-	if(verbosity()>2){
+	if(verbosity()>4){
 		clog <<"Mapped " <<atom.getValue() <<" to " <<getPrintableVar(mappedlit) <<"\n";
 	}
 	return mappedlit;
