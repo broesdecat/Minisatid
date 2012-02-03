@@ -99,10 +99,6 @@ SATVAL SOSolver::add(int modid, const InnerRigidAtoms& rigid){
 
 //Add information for PC-Solver
 
-SATVAL SOSolver::add(int modid, Var v){
-	return getModSolverDuringAdding(modid).add(v);
-}
-
 /**
  * Try to add the clause as high up in the hierarchy as possible.
  *

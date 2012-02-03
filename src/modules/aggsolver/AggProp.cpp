@@ -408,12 +408,14 @@ AggPropagator::AggPropagator(TypedSet* set)
 void AggPropagator::initialize(bool& unsat, bool& sat) {
 	for (auto i = getSet().getAgg().cbegin(); i < getSet().getAgg().cend(); ++i) {
 		// both for implication and comp
-		Watch* w = new Watch(getSetp(), not (*i)->getHead(), *i, false);
+		auto w = new Watch(getSetp(), not (*i)->getHead(), *i, false);
 		getSet().getPCSolver().accept(w);
+		getSet().getPCSolver().notifyDecisionVar(var(w->getPropLit()));
 
 		if((*i)->getSem()==COMP){
-			Watch* w2 = new Watch(getSetp(), (*i)->getHead(), *i, false);
+			auto w2 = new Watch(getSetp(), (*i)->getHead(), *i, false);
 			getSet().getPCSolver().accept(w2);
+			getSet().getPCSolver().notifyDecisionVar(var(w->getPropLit()));
 		}
 	}
 }

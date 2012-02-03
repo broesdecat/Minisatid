@@ -125,10 +125,10 @@ IDSolver* PropagatorFactory::getIDSolver(defID id) {
 void PropagatorFactory::addIDSolver(defID id){
 	IDSolver* idsolver = new IDSolver(getEnginep(), id);
 	getEngine().accept(idsolver, EV_EXITCLEANLY);
-	idsolvers.insert(pair<defID, IDSolver*>(id, idsolver));
+	idsolvers.insert({id, idsolver});
 }
 
-void PropagatorFactory::addVar(const Var& v, VARHEUR heur) {
+void PropagatorFactory::addVar(Var v, VARHEUR heur) {
 	getEngine().createVar(v, heur);
 }
 
@@ -149,11 +149,16 @@ void toVec(const std::vector<Lit>& literals, vec<Lit>& lits){
 	}
 }
 
+// If lazy, do not decide for literals in decisions
+// NOTE: only use this if the watches mechanism of the constraint will take care of making literal decidable if necessary
+VARHEUR PropagatorFactory::lazyDecide() const{
+	return getEngine().modes().lazy?VARHEUR::DONT_DECIDE:VARHEUR::DECIDE;
+}
+
 void PropagatorFactory::add(const InnerDisjunction& clause){
 	notifyMonitorsOfAdding(clause);
 
-	addVars(clause.literals, getEngine().modes().lazy?VARHEUR::DONT_DECIDE:VARHEUR::DECIDE);
-		// By default, do not decide for literals in decisions
+	addVars(clause.literals, lazyDecide());
 
 	// TODO 1-watched scheme
 //	if(formula.literals.size()<3){
@@ -196,8 +201,8 @@ void PropagatorFactory::addReverseImplication(const Lit& head, const litlist& bo
 
 void PropagatorFactory::add(const InnerImplication& formula){
 	// TODO equiv propagator (or 1-watched scheme for the long clause)
-	addVar(formula.head, getEngine().modes().lazy?VARHEUR::DONT_DECIDE:VARHEUR::DECIDE);
-	addVars(formula.literals, getEngine().modes().lazy?VARHEUR::DONT_DECIDE:VARHEUR::DECIDE);
+	addVar(formula.head, lazyDecide());
+	addVars(formula.literals, lazyDecide());
 
 	switch(formula.type){
 	case ImplicationType::EQUIVALENT:
@@ -216,15 +221,10 @@ void PropagatorFactory::add(const InnerImplication& formula){
 void PropagatorFactory::add(const InnerRule& rule){
 	notifyMonitorsOfAdding(rule);
 
-	add(rule.head);
-	// TODO: prove that this is correct:
-	addVars(rule.body, getEngine().modes().lazy?VARHEUR::DONT_DECIDE:VARHEUR::DECIDE);
+	addVar(rule.head, lazyDecide());
+	addVars(rule.body, lazyDecide());
 
-//	if(getEngine().modes().lazy){
-		// FIXME LazyStorage::getStorage()->add(new InnerRule(rule));
-//	}else{
-		getIDSolver(rule.definitionID)->addRule(rule.conjunctive, rule.head, rule.body);
-//	}
+	getIDSolver(rule.definitionID)->addRule(rule.conjunctive, rule.head, rule.body);
 }
 
 void PropagatorFactory::add(const InnerWLSet& formula){
@@ -250,7 +250,7 @@ void PropagatorFactory::add(const InnerWLSet& formula){
 
 	// TODO only if type is known here verifySet(formula);
 
-	parsedsets.insert(pair<int, SetWithAggs>(formula.setID, SetWithAggs(new InnerWLSet(formula), vector<TempAgg*>())));
+	parsedsets.insert({formula.setID, SetWithAggs(new InnerWLSet(formula), vector<TempAgg*>())});
 }
 
 void PropagatorFactory::add(const InnerAggregate& agg){
@@ -283,7 +283,7 @@ void PropagatorFactory::add(const InnerReifAggregate& origagg){
 		throwUndefinedSet(newagg.setID);
 	}
 
-	add(newagg.head);
+	addVar(newagg.head);
 
 	auto setwithagg = parsedsets.at(newagg.setID);
 	if(setwithagg.second.empty()){
@@ -368,7 +368,7 @@ void PropagatorFactory::add(const InnerMinimizeOrderedList& formula){
 void PropagatorFactory::add(const InnerMinimizeAgg& formula){
 	notifyMonitorsOfAdding(formula);
 
-	add(formula.head);
+	addVar(formula.head);
 
 	InnerDisjunction d;
 	d.literals.push_back(mkPosLit(formula.head));
@@ -461,7 +461,7 @@ void PropagatorFactory::add(const InnerIntVarEnum& obj){
 }
 
 void PropagatorFactory::add(const InnerCPBinaryRel& obj){
-	add(obj.head);
+	addVar(obj.head);
 	addCP(obj);
 
 	/*InnerEquivalence eq;
@@ -492,13 +492,13 @@ void PropagatorFactory::add(const InnerCPBinaryRel& obj){
 }
 
 void PropagatorFactory::add(const InnerCPBinaryRelVar& obj){
-	add(obj.head);
+	addVar(obj.head);
 	addCP(obj);
 	//new BinaryConstraint(getEnginep(), intvars.at(obj.lhsvarID), obj.rel, intvars.at(obj.rhsvarID), obj.head);
 }
 
 void PropagatorFactory::add(const InnerCPSumWeighted& obj){
-	add(obj.head);
+	addVar(obj.head);
 	addCP(obj);
 }
 
@@ -622,13 +622,10 @@ void PropagatorFactory::includeCPModel(std::vector<VariableEqValue>& varassignme
 }
 
 void PropagatorFactory::add(const InnerLazyClause& object){
-	assert(getEngine().modes().lazy);
-	assert(not getEngine().isDecisionVar(var(object.residual)));
+	MAssert(getEngine().modes().lazy);
+	MAssert(not getEngine().isDecisionVar(var(object.residual)));
 			// TODO in fact, want to check that it does not yet occur in the theory, this is easiest hack
-	addVar(object.residual, VARHEUR::DONT_DECIDE); // NOTE: By default, do not decide residuals
-	//clog <<"Adding residual: ";
-	//print(object.residual);
-	//clog <<", " <<(object.watchboth?"both":"only true") <<"watch\n";
+	addVar(object.residual, lazyDecide());
 	if(object.watchboth){
 		new LazyResidualWatch(getEnginep(), ~object.residual, object.monitor);
 	}

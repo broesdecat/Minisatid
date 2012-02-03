@@ -108,9 +108,10 @@ void EventQueue::accept(Propagator* propagator, const Lit& litevent, PRIORITY pr
 
 // TODO turn lits into litwatches and add accepted flag?
 void EventQueue::accept(GenWatch* const watch) {
-	if (not getPCSolver().isDecisionVar(var(watch->getPropLit()))) {
-		getPCSolver().notifyDecisionVar(var(watch->getPropLit()));
-	}
+// TODO commented this for lazy grounding, check issues with aggregates?
+//	if (not getPCSolver().isDecisionVar(var(watch->getPropLit()))) {
+//		getPCSolver().notifyDecisionVar(var(watch->getPropLit()));
+//	}
 	bool addwatch = true;
 	if (getPCSolver().value(watch->getPropLit()) == l_True) { // FIXME should happen in all add methods?
 		// are propagated asap, but not in this method as that leads to correctness issues
@@ -207,10 +208,14 @@ void EventQueue::clearNotPresentPropagators() {
 void EventQueue::finishParsing(bool& unsat) {
 	unsat = false;
 
-	if(finishing || not allowpropagation){
+	if(finishing || not allowpropagation || finishparsing.size()==0){
 		return;
 	}
 	finishing = true;
+
+	if(getPCSolver().verbosity()>0){
+		clog <<">>> Adding additional constraints to search\n";
+	}
 
 	while(finishparsing.size() > 0){
 		while (finishparsing.size() > 0 && not unsat) {

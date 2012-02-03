@@ -66,7 +66,6 @@ public:
 	bool 	simplify		();
 	bool 	solve			(const litlist& assumptions, const ModelExpandOptions& options);
 
-	SATVAL	add		(int modid, Var v);
 	SATVAL	add		(int modid, const InnerDisjunction& sentence);
 	SATVAL	add		(int modid, const InnerRule& sentence);
 	SATVAL	add		(int modid, const InnerWLSet& sentence);

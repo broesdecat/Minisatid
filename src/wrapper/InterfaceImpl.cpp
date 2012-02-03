@@ -110,7 +110,7 @@ WrapperPimpl::WrapperPimpl(const SolverOption& modes):
 		solutionmonitor(NULL),
 		hasprintcallback(false)
 		{
-	//MinisatID::setTranslator(this); TODO good for debugging, but unsafe in case of multiple solvers:
+	MinisatID::setTranslator(this); //TODO good for debugging, but unsafe in case of multiple solvers:
 }
 WrapperPimpl::WrapperPimpl(const SolverOption& modes, Remapper* sharedremapper):
 		optimization(false),
@@ -121,7 +121,7 @@ WrapperPimpl::WrapperPimpl(const SolverOption& modes, Remapper* sharedremapper):
 		solutionmonitor(NULL),
 		hasprintcallback(false)
 		{
-	//MinisatID::setTranslator(this); TODO good for debugging, but unsafe in case of multiple solvers:
+	MinisatID::setTranslator(this); //TODO good for debugging, but unsafe in case of multiple solvers:
 }
 
 void WrapperPimpl::setTranslator(callbackprinting translator){
@@ -155,11 +155,14 @@ void WrapperPimpl::printStatistics() const {
 	getSolver()->printStatistics();
 }
 
+// NOTE: called by global operator<<(const Lit& l)!
 void WrapperPimpl::printLiteral(std::ostream& output, const Lit& l) const{
 	if(canBackMapLiteral(l) && hasprintcallback){
 		output << printliteral(getRemapper()->getLiteral(l).getValue());
 	}else if(canBackMapLiteral(l) && hasSolMonitor()){
 		getSolMonitor().printLiteral(output, getRemapper()->getLiteral(l));
+	}else{
+		output <<(sign(l)?"-":"") <<var(l); // NOTE: do not call <<l, this will cause an infinite loop (as that calls this method!)
 	}
 }
 
@@ -168,11 +171,7 @@ void WrapperPimpl::printCurrentOptimum(const Weight& value) const{
 }
 
 Var WrapperPimpl::checkAtom(const Atom& atom){
-	auto mappedlit = getRemapper()->getVar(atom);
-	if(verbosity()>4){
-		clog <<"Mapped " <<atom.getValue() <<" to " <<getPrintableVar(mappedlit) <<"\n";
-	}
-	return mappedlit;
+	return getRemapper()->getVar(atom);
 }
 
 Lit WrapperPimpl::checkLit(const Literal& lit){
@@ -344,12 +343,6 @@ PCWrapperPimpl::PCWrapperPimpl(const SolverOption& modes)
 
 PCWrapperPimpl::~PCWrapperPimpl(){
 	delete solver;
-}
-
-template<>
-SATVAL PCWrapperPimpl::add(const Atom& v){
-	getSolver()->add(checkAtom(v));
-	return SATVAL::POS_SAT;
 }
 
 template<>
@@ -604,11 +597,6 @@ SOWrapperPimpl::SOWrapperPimpl(const SolverOption& modes):
 
 SOWrapperPimpl::~SOWrapperPimpl(){
 	delete solver;
-}
-
-template<>
-SATVAL SOWrapperPimpl::add(int modid, const Atom& v){
-	return getSolver()->add(modid, checkAtom(v));
 }
 
 template<>

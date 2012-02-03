@@ -217,9 +217,6 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	if(rules.size()==0 && not forcefinish && finishedonce){
 		return;
 	}
-	if(getPCSolver().getCurrentDecisionLevel()!=0){ // NOTE can only add rules at level 0 TODO => is this not only the case because of propagation possible derived earlier?
-		getPCSolver().backtrackTo(0);
-	}
 
 	present = true;
 	unsat = false;
@@ -259,6 +256,10 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 
 	if(verbosity()>0){
 		clog <<">>> Initializing inductive definition " <<definitionID <<"\n";
+	}
+
+	if(getPCSolver().getCurrentDecisionLevel()!=0){ // NOTE can only initialize sccs and unfounded sets at level 0
+		getPCSolver().backtrackTo(0);
 	}
 
 	MAssert(getPCSolver().satState()!=SATVAL::UNSAT);

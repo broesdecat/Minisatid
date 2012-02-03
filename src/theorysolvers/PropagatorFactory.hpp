@@ -137,8 +137,8 @@ public:
 	PCSolver* getEnginep() const { return engine; }
 	const PCSolver& getEngine() const { return *engine; }
 
-	void add(const Var& sentence){
-		addVar(sentence, VARHEUR::DECIDE);
+	void add(const Var& var){
+		addVar(var, VARHEUR::DECIDE); // NOTE: only used by modal solver, so should always decide those
 	}
 	void add(const InnerDisjunction& sentence);
 	void add(const InnerImplication& sentence);
@@ -173,6 +173,8 @@ public:
 	void setModSolver(ModSolver* m);
 
 private:
+	VARHEUR lazyDecide() const;
+
 	// NOTE already added literals!
 	void addImplication(const Lit& head, const litlist& body, bool conjunction);
 	// NOTE already added literals!
@@ -184,7 +186,7 @@ private:
 	bool isInitialized	() 	const { return !parsing; }
 	bool isParsing		()	const { return parsing; }
 
-	void addVar			(const Var& l, VARHEUR heur);
+	void addVar			(Var l, VARHEUR heur = VARHEUR::DECIDE);
 	void addVar			(Lit l, VARHEUR heur = VARHEUR::DECIDE) { addVar(var(l), heur); }
 	void addVars		(const std::vector<Lit>& a, VARHEUR heur = VARHEUR::DECIDE);
 

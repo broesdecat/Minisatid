@@ -29,7 +29,7 @@ namespace MinisatID{
 WrapperPimpl* currentpimpl = NULL; //TODO useful but incorrect for multiple solvers
 
 void setTranslator(WrapperPimpl* translator){
-	// TODO currentpimpl = translator;
+	currentpimpl = translator;
 }
 
 WrapperPimpl* getTranslator(){

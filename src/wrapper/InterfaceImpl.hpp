@@ -193,7 +193,6 @@ protected:
 	virtual MinisatID::PCSolver* getSolver() const { return solver; }
 };
 
-template<> SATVAL PCWrapperPimpl::add(const Atom& sentence);
 template<> SATVAL PCWrapperPimpl::add(const Disjunction& sentence);
 template<> SATVAL PCWrapperPimpl::add(const DisjunctionRef& sentence);
 template<> SATVAL PCWrapperPimpl::add(const Implication& sentence);
@@ -233,7 +232,6 @@ protected:
 	virtual MinisatID::SOSolver* getSolver() const { return solver; }
 };
 
-template<> SATVAL SOWrapperPimpl::add(int modalid, const Atom& sentence);
 template<> SATVAL SOWrapperPimpl::add(int modalid, const Disjunction& sentence);
 template<> SATVAL SOWrapperPimpl::add(int modalid, const DisjunctionRef& sentence);
 template<> SATVAL SOWrapperPimpl::add(int modalid, const Rule& sentence);

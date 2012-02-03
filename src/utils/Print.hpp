@@ -28,7 +28,7 @@ class WrapperPimpl;
 void setTranslator(WrapperPimpl* translator);
 
 template<typename T>
-int getPrintableVar(T v) { return v+1; }
+Lit getPrintableVar(T v) { return mkPosLit(v); }
 
 template<class T>
 std::string print(const T& obj);
