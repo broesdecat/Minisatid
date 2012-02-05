@@ -138,20 +138,11 @@ public:
 	bool isTrue(const Lit& l) const {
 		return value(l) == l_True;
 	}
-	bool isTrue(Var v) const {
-		return value(v) == l_True;
-	}
 	bool isFalse(const Lit& l) const {
 		return value(l) == l_False;
 	}
-	bool isFalse(Var v) const {
-		return value(v) == l_False;
-	}
 	bool isUnknown(const Lit& l) const {
 		return value(l) == l_Undef;
-	}
-	bool isUnknown(Var v) const {
-		return value(v) == l_Undef;
 	}
 	lbool value(Var x) const {
 		return getPCSolver().value(x);

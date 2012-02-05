@@ -694,7 +694,7 @@ bool IDSolver::simplifyGraph(int atomsinposloops){
 	varlist usedseen; //stores which elements in the "seen" datastructure we adapted to reset them later on
 	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
 		Var v = (*i);
-		if (isFalse(v)) {
+		if (isFalse(mkPosLit(v))) {
 			continue;
 		}
 		switch (type(v)) {
@@ -772,14 +772,15 @@ bool IDSolver::simplifyGraph(int atomsinposloops){
 		if(occ(v)==NONDEFOCC){
 			continue; // Not defined at the moment, but might be later on if lazy
 		}
-		if (seen(v) > 0 || isFalse(v)) {
+		auto lit = mkPosLit(v);
+		if (seen(v) > 0 || isFalse(lit)) {
 			if (verbosity() >= 2) {
-				clog <<" " <<getPrintableVar(v);
+				clog <<" " <<lit;
 			}
-			if(isTrue(v)){
+			if(isTrue(lit)){
 				return false;
 			}
-			if(isUnknown(v)) {
+			if(isUnknown(lit)) {
 				getPCSolver().setTrue(createNegativeLiteral(v), this);
 			}
 
@@ -932,7 +933,7 @@ void IDSolver::propagateJustificationDisj(const Lit& l, vector<litlist>& jstf, l
 	const varlist& dd = disj.occurs(l);
 	for (auto i = dd.cbegin(); i < dd.cend(); ++i) {
 		const Var& v = *i;
-		if (isFalse(v) || seen(v) == 0) {
+		if (isFalse(mkPosLit(v)) || seen(v) == 0) {
 			continue;
 		}
 		seen(v) = 0;
@@ -945,7 +946,7 @@ void IDSolver::propagateJustificationConj(const Lit& l, std::queue<Lit>& heads) 
 	const varlist& ll = conj.occurs(l);
 	for (auto i = ll.cbegin(); i < ll.cend(); ++i) {
 		const Var& v = *i;
-		if (isFalse(v) || seen(v) == 0) {
+		if (isFalse(mkPosLit(v)) || seen(v) == 0) {
 			continue;
 		}
 		seen(v)--;
@@ -959,7 +960,7 @@ void IDSolver::propagateJustificationConj(const Lit& l, litlist& heads) {
 	const varlist& ll = conj.occurs(l);
 	for (auto i = ll.cbegin(); i < ll.cend(); ++i) {
 		const Var& v = *i;
-		if (isFalse(v) || seen(v) == 0) {
+		if (isFalse(mkPosLit(v)) || seen(v) == 0) {
 			continue;
 		}
 		seen(v)--;
@@ -1025,7 +1026,7 @@ rClause IDSolver::notifypropagate() {
 	// So check if there are any literals unknown and add more loopformulas
 	if(savedufs.size()!=0){
 		for(auto i=savedufs.cbegin(); i!=savedufs.cend(); ++i){
-			if(!isFalse(*i)){
+			if(!isFalse(mkPosLit(*i))){
 				Lit l = createNegativeLiteral(*i);
 				addLoopfClause(l, savedloopf);
 #ifdef DEBUG
@@ -1167,7 +1168,7 @@ void IDSolver::findCycleSources() {
 }
 
 void IDSolver::checkJustification(Var head) {
-	if (!isDefInPosGraph(head) || isFalse(head) || isCS(head)) {
+	if (!isDefInPosGraph(head) || isFalse(mkPosLit(head)) || isCS(head)) {
 		return;
 	}
 
@@ -1577,8 +1578,8 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	addExternalDisjuncts(ufs, loopf.literals);
 
 	// Check if any of the literals in the set are already true, which leads to a conflict.
-	for (std::set<Var>::iterator tch = ufs.cbegin(); tch != ufs.cend(); ++tch) {
-		if (isTrue(*tch)) {
+	for (auto tch = ufs.cbegin(); tch != ufs.cend(); ++tch) {
+		if (isTrue(mkPosLit(*tch))) {
 			loopf.literals[0] = createNegativeLiteral(*tch); //negate the head to create a clause
 			rClause c = getPCSolver().createClause(loopf, true);
 			getPCSolver().addLearnedClause(c);
@@ -2179,7 +2180,7 @@ void IDSolver::visitWF(Var v, varlist &root, vector<bool> &incomp, stack<Var> &s
  * Marks the head of a rule
  */
 void IDSolver::mark(Var h) {
-	Lit l = mkLit(h, isFalse(h)); //holds the literal that has to be propagated, so has the model value
+	Lit l = mkLit(h, isFalse(mkPosLit(h))); //holds the literal that has to be propagated, so has the model value
 	if (!wfisMarked[h] && getDefVar(h)->type()!=DefType::AGGR) { //FIXME: initializecounters cannot handle aggregates, but at this moment we know they will not be recursive!
 		wfqueue.push(l);
 		wfisMarked[h] = true;
@@ -2252,7 +2253,7 @@ void IDSolver::initializeCounters() {
 		}
 		if (seen(v) == 0 || canbepropagated) {
 			seen(v) = 0;
-			wfqueue.push(isTrue(v) ? createPositiveLiteral(v) : createNegativeLiteral(v));
+			wfqueue.push(isTrue(mkPosLit(v)) ? createPositiveLiteral(v) : createNegativeLiteral(v));
 		}
 	}
 }

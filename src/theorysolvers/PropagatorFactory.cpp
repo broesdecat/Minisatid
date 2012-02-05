@@ -516,7 +516,7 @@ void PropagatorFactory::add(InnerDisjunction& formula, rClause& newclause){
 
 	vec<Lit> lits;
 	toVec(formula.literals, lits);
-	SATStorage::getStorage()->addClause(lits, newclause);
+	SATStorage::getStorage()->addBinaryOrLargerClause(lits, newclause);
 }
 
 SATVAL PropagatorFactory::finishSet(const InnerWLSet* origset, vector<TempAgg*>& aggs, bool optimagg){
