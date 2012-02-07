@@ -1,9 +1,3 @@
-/************************************
-	LazyClauseSupport.hpp
-	this file belongs to GidL 2.0
-	(c) K.U.Leuven
-************************************/
-
 #ifndef LAZYCLAUSESUPPORT_HPP_
 #define LAZYCLAUSESUPPORT_HPP_
 
@@ -11,33 +5,38 @@
 
 #include "external/Datastructures.hpp"
 
-namespace MinisatID{
+namespace MinisatID {
 
-class LazyClausePropagator;
-class LazyClauseRef;
-
-class LazyGroundingCommand{
+class LazyGroundingCommand {
 private:
 	bool allreadyground;
 public:
-	LazyGroundingCommand():allreadyground(false){}
+	LazyGroundingCommand()
+			: allreadyground(false) {
+	}
+	virtual ~LazyGroundingCommand() {
+	}
+
 	virtual void requestGrounding() = 0;
-	void notifyGrounded(){
+
+	void notifyGrounded() {
 		allreadyground = true;
 	}
-	bool isAlreadyGround() const { return allreadyground; }
+	bool isAlreadyGround() const {
+		return allreadyground;
+	}
 };
 
-// POCO's
-
-class LazyGroundLit{
+// POCO
+class LazyGroundLit {
 public:
 	bool watchboth;
 	Literal residual;
 	LazyGroundingCommand* monitor;
 
 	LazyGroundLit(bool watchboth, const Literal& residual, LazyGroundingCommand* monitor)
-			:watchboth(watchboth), residual(residual), monitor(monitor){}
+			: watchboth(watchboth), residual(residual), monitor(monitor) {
+	}
 };
 
 }

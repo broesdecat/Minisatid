@@ -219,6 +219,14 @@ void PCSolver::acceptFinishParsing(Propagator* propagator, bool late){
 	getEventQueue().acceptFinishParsing(propagator, late);
 }
 
+void PCSolver::acceptForDecidable(Var v, Propagator* prop){
+	getEventQueue().acceptForDecidable(v, prop);
+}
+void PCSolver::notifyBecameDecidable(Var v){
+	MAssert(v<nVars());
+	getEventQueue().notifyBecameDecidable(v);
+}
+
 void PCSolver::preventPropagation(){
 	getEventQueue().preventPropagation();
 }
@@ -321,7 +329,6 @@ void PCSolver::createVar(Var v, VARHEUR decide) {
 
 	if(newvar){
 		getSolver().setDecidable(v, decide==VARHEUR::DECIDE);
-		getEventQueue().notifyVarAdded();
 		if (isInitialized()) { //Lazy init
 			propagations.resize(nVars(), NULL);
 		}
@@ -331,6 +338,10 @@ void PCSolver::createVar(Var v, VARHEUR decide) {
 	if(not newvar && decide==VARHEUR::DECIDE){
 		getSolver().setDecidable(v, decide==VARHEUR::DECIDE);
 	}
+}
+
+void PCSolver::notifyVarAdded(){
+	getEventQueue().notifyVarAdded();
 }
 
 int	PCSolver::getTime(const Var& var) const{

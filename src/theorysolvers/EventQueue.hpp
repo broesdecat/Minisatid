@@ -42,6 +42,9 @@ private:
 	std::vector<watchlist> lit2watches;								// |lits|
 	std::vector<proplist> intvarid2propagators; 					// |intvars|
 
+	std::vector<std::vector<Propagator*>> var2decidable;			// |vars|
+	std::queue<Propagator*> propagatedecidables;
+
 	watchlist propagateasap;
 
 	bool initialized;
@@ -94,6 +97,8 @@ public:
 
 	int		getNbOfFormulas			() const;
 
+	void 	acceptForDecidable(Var v, Propagator* prop);
+	void 	notifyBecameDecidable(Var v);
 	void 	notifyClauseAdded(rClause clauseID);
 	void 	notifyClauseDeleted(rClause clauseID);
 	bool 	symmetryPropagationOnAnalyze(const Lit& p);
@@ -102,6 +107,7 @@ public:
 	void 	notifyNewDecisionLevel	();
 	void 	notifyBacktrack			(int untillevel, const Lit& decision);
 	rClause notifyPropagate			();
+	rClause checkDecidables			();
 	Var 	notifyBranchChoice		(Var var);
 	void 	printState				() const;
 	void 	printECNF(std::ostream& stream, std::set<Var>& printedvars) const;

@@ -49,9 +49,11 @@ public:
 
 class LazyResidual: public Propagator{
 private:
-	LazyResidualWatch* watch;
+	LazyGroundingCommand* monitor;
+	Lit residual;
 
 public:
+	LazyResidual(PCSolver* engine, Var var, LazyGroundingCommand* monitor);
 	LazyResidual(LazyResidualWatch* const watch);
 
 	const char* getName() const { return "lazy residual notifier";}

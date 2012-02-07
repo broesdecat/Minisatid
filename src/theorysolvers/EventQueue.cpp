@@ -52,11 +52,12 @@ void EventQueue::allowPropagation(){
 void EventQueue::notifyVarAdded() {
 	while (lit2priority2propagators.size() < 2 * getPCSolver().nVars()) {
 		vector<proplist> newmap;
-		newmap.push_back(proplist());
-		newmap.push_back(proplist());
+		newmap.push_back({});
+		newmap.push_back({});
 		lit2priority2propagators.push_back(newmap);
-		lit2watches.push_back(watchlist());
+		lit2watches.push_back({});
 	}
+	var2decidable.resize(getPCSolver().nVars());
 }
 
 void EventQueue::addEternalPropagators() {
@@ -255,19 +256,42 @@ void EventQueue::finishParsing(bool& unsat) {
 	finishing = false;
 }
 
+rClause EventQueue::checkDecidables(){
+	rClause confl = nullPtrClause;
+	while(not propagatedecidables.empty() && confl==nullPtrClause){
+		auto prop = propagatedecidables.front();
+		propagatedecidables.pop();
+		confl = prop->notifypropagate();
+	}
+	return confl;
+}
+
 rClause EventQueue::notifyPropagate() {
 	if(not allowpropagation){
 		return nullPtrClause;
 	}
 
-	for (auto i = propagateasap.cbegin(); i < propagateasap.cend(); ++i) {
+	rClause confl = nullPtrClause;
+	confl = checkDecidables();
+
+	for (auto i = propagateasap.cbegin(); i < propagateasap.cend() && confl==nullPtrClause; ++i) {
+		confl = checkDecidables();
+		if(confl!=nullPtrClause){
+			break;
+		}
+
 		(*i)->propagate();
 	}
 	propagateasap.clear();
 
-	rClause confl = nullPtrClause;
 	assert(getPCSolver().satState()!=SATVAL::UNSAT);
 	while (fastqueue.size() + slowqueue.size() != 0 && confl == nullPtrClause) {
+		MAssert(fastqueue.size() + slowqueue.size() != 0);
+		confl = checkDecidables();
+		if(confl!=nullPtrClause || fastqueue.size()+slowqueue.size()==0){ // Might get called recursively (TODO should that be prevented?) so might be empty here
+			break;
+		}
+
 		Propagator* p = NULL;
 		if (fastqueue.size() != 0) {
 			p = fastqueue.front();
@@ -280,6 +304,7 @@ rClause EventQueue::notifyPropagate() {
 		confl = p->notifypropagate();
 		MAssert(getPCSolver().satState()!=SATVAL::UNSAT || confl!=nullPtrClause);
 	}
+
 	return confl;
 }
 
@@ -311,6 +336,23 @@ rClause EventQueue::notifyFullAssignmentFound() {
 		MAssert(getPCSolver().satState()!=SATVAL::UNSAT || confl!=nullPtrClause);
 	}
 	return confl;
+}
+
+void EventQueue::acceptForDecidable(Var v, Propagator* prop){
+	MAssert(v<var2decidable.size());
+	if(not getPCSolver().isDecisionVar(v)){
+		propagatedecidables.push(prop);
+	}else{
+		prop->notifypropagate();
+	}
+}
+
+void EventQueue::notifyBecameDecidable(Var v){
+	MAssert(v<var2decidable.size());
+	for(auto i=var2decidable[v].cbegin(); i<var2decidable[v].cend(); ++i){
+		propagatedecidables.push(*i);
+	}
+	var2decidable[v].clear();
 }
 
 void EventQueue::notifyClauseAdded(rClause clauseID) {

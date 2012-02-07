@@ -27,7 +27,12 @@ const Lit& LazyResidualWatch::getPropLit() const{
 	return residual;
 }
 
-LazyResidual::LazyResidual(LazyResidualWatch* const watch):Propagator(watch->engine), watch(watch){
+// Watch BOTH: so watching when it becomes decidable
+LazyResidual::LazyResidual(PCSolver* engine, Var var, LazyGroundingCommand* monitor):Propagator(engine), monitor(monitor), residual(mkPosLit(var)){
+	getPCSolver().acceptForDecidable(var, this);
+}
+
+LazyResidual::LazyResidual(LazyResidualWatch* const watch):Propagator(watch->engine), monitor(watch->monitor), residual(watch->residual){
 	getPCSolver().acceptForPropagation(this);
 }
 
@@ -40,11 +45,13 @@ rClause LazyResidual::notifypropagate(){
 	}
 	// TODO make preventpropagation more specific?
 	getPCSolver().preventPropagation(); // NOTE: necessary for inductive definitions, as otherwise might try propagation before all rules for some head have been added.
-	watch->monitor->requestGrounding(); // FIXME should delete the other watch too
+	monitor->requestGrounding(); // FIXME should delete the other watch too
 	getPCSolver().allowPropagation();
 
 	bool unsat;
-	getPCSolver().finishParsing(unsat);
+	if(getPCSolver().isInitialized()){ // NOTE: otherwise, it will be called later and would be incorrect here!
+		getPCSolver().finishParsing(unsat);
+	}
 	notifyNotPresent(); // FIXME clean way of deleting this? FIXME only do this after finishparsing as this propagated is then DELETED
 
 	if(getPCSolver().satState()==SATVAL::UNSAT){

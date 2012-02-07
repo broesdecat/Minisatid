@@ -106,6 +106,9 @@ public:
 	void 		accept(Propagator* propagator, const Lit& lit, PRIORITY priority);
 	void 		acceptFinishParsing(Propagator* propagator, bool late);
 
+	void 		acceptForDecidable(Var v, Propagator* prop);
+	void 		notifyBecameDecidable(Var v);
+
 	Var			newVar();
 	int			newSetID();
 
@@ -165,6 +168,7 @@ public:
 	template<typename T>
 	void 		add(const T& sentence){ getFactory().add(sentence); }
 	void		createVar(Var v, VARHEUR decide);
+	void 		notifyVarAdded();
 
 	SATVAL 		satState() const;
 	void		notifyUnsat();
@@ -183,12 +187,11 @@ public:
 	void 		printCurrentOptimum(const Weight& value) const;
 
 	bool		isInitialized	() 	const { return state==THEORY_INITIALIZED; }
+	bool		isInitializing	() 	const { return state==THEORY_INITIALIZING; }
+	bool		isParsing		()	const { return state==THEORY_PARSING; }
 
 private:
 	int 		getNbModelsFound() const;
-
-	bool		isInitializing	() 	const { return state==THEORY_INITIALIZING; }
-	bool		isParsing		()	const { return state==THEORY_PARSING; }
 
 	void 		extractLitModel(InnerModel* fullmodel);
 	void 		extractVarModel(InnerModel* fullmodel);

@@ -627,7 +627,8 @@ void PropagatorFactory::add(const InnerLazyClause& object){
 			// TODO in fact, want to check that it does not yet occur in the theory, this is easiest hack
 	addVar(object.residual, lazyDecide());
 	if(object.watchboth){
-		new LazyResidualWatch(getEnginep(), ~object.residual, object.monitor);
+		new LazyResidual(getEnginep(), var(object.residual), object.monitor);
+	}else{
+		new LazyResidualWatch(getEnginep(), object.residual, object.monitor);
 	}
-	new LazyResidualWatch(getEnginep(), object.residual, object.monitor);
 }
