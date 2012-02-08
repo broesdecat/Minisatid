@@ -486,7 +486,6 @@ bool IDSolver::simplifyGraph(int& atomsinposloops){
 				--atomsinposloops;
 			} else {
 				occ(v) = MIXEDLOOP;
-				cerr <<"Mixed\n";
 				reducedVars.push_back(v);
 				if (type(v) == DefType::AGGR) {
 					mixedrecagg = true;
