@@ -484,13 +484,11 @@ bool IDSolver::simplifyGraph(int& atomsinposloops){
 			if (occ(v) == POSLOOP) {
 				//FIXME lazygrounding? removeDefinition(v);
 				--atomsinposloops;
-				cerr <<"Posloop\n";
 			} else {
 				occ(v) = MIXEDLOOP;
 				cerr <<"Mixed\n";
 				reducedVars.push_back(v);
 				if (type(v) == DefType::AGGR) {
-					cerr <<"w\n";
 					mixedrecagg = true;
 				}
 			}
@@ -502,7 +500,6 @@ bool IDSolver::simplifyGraph(int& atomsinposloops){
 					mixedrecagg = true;
 					break;
 				case POSLOOP:
-					cerr <<"Remaining pos loop\n";
 					posrecagg = true;
 					break;
 				case BOTHLOOP:
@@ -510,7 +507,6 @@ bool IDSolver::simplifyGraph(int& atomsinposloops){
 					posrecagg = true;
 					break;
 				case NONDEFOCC:
-					cerr <<"No loop\n";
 					break;
 				}
 			}
