@@ -258,7 +258,7 @@ private:
 	bool 				loopPossibleOver(Var v);
 
 	SATVAL 				transformToCNF		(const varlist& sccroots, bool& present);
-	bool 				simplifyGraph		(int atomsinposloops); //False if problem unsat
+	bool 				simplifyGraph		(int& atomsinposloops); //False if problem unsat
 
 	void 				adaptStructsToHead	(Var head);
 	DefinedVar* 		getDefVar			(Var v) const { MAssert(v>=0 && minvar<=v && v-minvar<nbvars); return definitions[v-minvar]; }

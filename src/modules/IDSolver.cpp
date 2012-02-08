@@ -295,6 +295,8 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 		clog <<"> Number of rules : " <<defdVars.size() <<".\n";
 	}
 
+	generateSCCs();
+
 	// Determine which literals should no longer be considered defined (according to the scc in the positive graph) + init occurs
 	int atoms_in_pos_loops = 0;
 	varlist reducedVars;
@@ -340,18 +342,19 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 		}
 	}
 
-	if (verbosity() >= 1) {
-		clog <<"> Number of recursive atoms in positive loops : " <<atoms_in_pos_loops <<".\n";
-		if (negloops) {
-			clog <<"> Mixed loops also exist.\n";
-		}
-	}
-
 	if(modes().bumpidonstart){
 		bumpHeadHeuristic();
 	}
 
 	unsat = not simplifyGraph(atoms_in_pos_loops);
+
+	if (verbosity() >= 1) {
+		clog <<"> Number of recursive atoms in positive loops : " <<atoms_in_pos_loops <<".\n";
+		if (negloops) {
+			clog <<"> Mixed loops" <<(mixedrecagg?", also over aggregates,":"") <<" exist.\n";
+		}
+	}
+
 	MAssert(getPCSolver().satState()!=SATVAL::UNSAT || unsat);
 	if(not unsat && modes().tocnf){
 		unsat = transformToCNF(sccroots, present)==SATVAL::UNSAT;
@@ -370,6 +373,255 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 #endif
 	}
 	MAssert(getPCSolver().satState()!=SATVAL::UNSAT || unsat);
+}
+
+// NOTE: essentially, simplifygraph can be called anytime the level-0 interpretation has changed.
+// In default model expansion, this turned out to be quite expensive, so it was disabled.
+bool IDSolver::simplifyGraph(int& atomsinposloops){
+	MAssert(getPCSolver().satState()!=SATVAL::UNSAT);
+	if(!posloops){
+		MAssert(getPCSolver().satState()!=SATVAL::UNSAT);
+		return true;
+	}
+
+	for(auto i=defdVars.cbegin(); i<defdVars.cend(); ++i){
+		justification(*i).clear();
+	}
+
+	varlist usedseen; //stores which elements in the "seen" datastructure we adapted to reset them later on
+	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
+		Var v = (*i);
+		if (isFalse(mkPosLit(v))) {
+			continue;
+		}
+		switch (type(v)) {
+			case DefType::DISJ:
+			case DefType::AGGR:
+				seen(v) = 1;
+				break;
+			case DefType::CONJ:
+				seen(v) = definition(v)->size();
+				break;
+		}
+		usedseen.push_back(v);
+	}
+
+	// initialize a queue of literals that are safe with regard to cycle-freeness. (i.e.: either are not in justification, or are justified in a cycle-free way.)
+	queue<Lit> propq;
+	for (int i = 0; i < nVars(); ++i) {
+		Lit l = createNegativeLiteral(i);
+		if (!isFalse(l)) {
+			propq.push(l); // First negative literals are added that are not already false
+		}
+		l = createPositiveLiteral(i);
+		if (!isDefInPosGraph(i) && !isFalse(l)) {
+			if(isDefined(var(l))){
+				seen(var(l)) = 0; //Mixed loop is justified, so seen is 0 (otherwise might find the same literal multiple times)
+			}
+			propq.push(l); // Then all non-false non-defined positive literals.
+		}
+	}
+
+	// propagate safeness to defined literals until fixpoint.
+	// While we do this, we build the initial justification.
+	while (!propq.empty()) {
+		Lit l = propq.front(); //only heads are added to the queue
+		MAssert(sign(l) || !isDefined(var(l)) || (seen(var(l))==0));
+		propq.pop();
+
+		litlist heads;
+		vector<litlist > jstf;
+
+		propagateJustificationDisj(l, jstf, heads);
+		for (vsize i = 0; i < heads.size(); ++i) {
+			MAssert(jstf[i].size()>0);
+			changejust(var(heads[i]), jstf[i]);
+			propq.push(heads[i]);
+		}
+		heads.clear();
+		jstf.clear();
+
+		propagateJustificationAggr(l, jstf, heads);
+		for (vsize i = 0; i < heads.size(); ++i) {
+			changejust(var(heads[i]), jstf[i]);
+			propq.push(heads[i]);
+		}
+		heads.clear();
+		jstf.clear();
+
+		propagateJustificationConj(l, propq);
+	}
+
+	if (verbosity() >= 2) {
+		clog <<"Initialization of justification makes these atoms false: [";
+	}
+
+	/**
+	 * Goes through all definitions and checks whether they can still become true (if they have been
+	 * justified). Otherwise, it is checked (overestimation) whether a negative loop might be possible.
+	 * If this is not the case, the definition is removed from the data structures.
+	 */
+	varlist reducedVars;
+	posrecagg = false;
+	mixedrecagg = false;
+	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
+		Var v = (*i);
+		if(occ(v)==NONDEFOCC){
+			continue; // Not defined at the moment, but might be later on if lazy
+		}
+		auto lit = mkPosLit(v);
+		if (seen(v) > 0 || isFalse(lit)) {
+			if (verbosity() >= 2) {
+				clog <<" " <<lit;
+			}
+			if(isTrue(lit)){
+				return false;
+			}
+			if(isUnknown(lit)) {
+				getPCSolver().setTrue(createNegativeLiteral(v), this);
+			}
+
+			if (occ(v) == POSLOOP) {
+				//FIXME lazygrounding? removeDefinition(v);
+				--atomsinposloops;
+				cerr <<"Posloop\n";
+			} else {
+				occ(v) = MIXEDLOOP;
+				cerr <<"Mixed\n";
+				reducedVars.push_back(v);
+				if (type(v) == DefType::AGGR) {
+					cerr <<"w\n";
+					mixedrecagg = true;
+				}
+			}
+		} else {
+			reducedVars.push_back(v);
+			if(type(v)==DefType::AGGR){
+				switch(occ(v)){
+				case MIXEDLOOP:
+					mixedrecagg = true;
+					break;
+				case POSLOOP:
+					cerr <<"Remaining pos loop\n";
+					posrecagg = true;
+					break;
+				case BOTHLOOP:
+					mixedrecagg = true;
+					posrecagg = true;
+					break;
+				case NONDEFOCC:
+					cerr <<"No loop\n";
+					break;
+				}
+			}
+		}
+	}
+	defdVars.clear();
+	defdVars.insert(defdVars.begin(), reducedVars.cbegin(), reducedVars.cend());
+
+	//reconstruct the disj and conj occurs with the reduced number of definitions
+	disj.clear();
+	conj.clear();
+	disj.resize(2*nVars());
+	conj.resize(2*nVars());
+	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
+		Var v = (*i);
+		if (type(v) == DefType::CONJ || type(v) == DefType::DISJ) {
+			const PropRule& dfn = *definition(v);
+			for (auto litit=dfn.cbegin(); litit!=dfn.cend(); ++litit) {
+				if (*litit != dfn.getHead()) { //don't look for a justification that is the head literal itself
+					if (type(v) == DefType::DISJ) {
+						disj.add(*litit, v);
+					} else if (type(v) == DefType::CONJ) {
+						conj.add(*litit, v);
+					}
+				}
+			}
+		}else{
+			const IDAgg& dfn = *aggdefinition(v);
+			for (auto j=dfn.getWL().cbegin(); j!=dfn.getWL().cend(); ++j) {
+				aggr.add((*j).getLit(), v);
+			}
+		}
+	}
+
+	//Reset the elements in "seen" that were changed
+	//NOTE: do not return before this call!
+	for (auto i = usedseen.cbegin(); i < usedseen.cend(); ++i) {
+		seen(*i) = 0;
+	}
+
+	if (verbosity() >= 2) {
+		clog <<" ]\n";
+	}
+
+	if (atomsinposloops == 0) {
+		posloops = false;
+	}
+
+	if (!posloops && !negloops) {
+		if (verbosity() >= 1) {
+			clog <<"> All recursive atoms falsified in initializations.\n";
+		}
+	}
+
+	if(posloops && modes().defn_strategy != adaptive && !isCycleFree()) {
+		throw idpexception("Positive justification graph is not cycle free!\n");
+	}
+#ifdef DEBUG
+	if(verbosity()>=9){
+		clog <<"Justifications:\n";
+	}
+	int count = 0;
+	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
+		Var var = *i;
+		MAssert(hasDefVar(var));
+		//MAssert(justification(var).size()>0 || type(var)!=DefType::DISJ || occ(var)==MIXEDLOOP); FIXME lazy grounding hack (because invar that def gets deleted)
+
+		if(verbosity()>=9){
+			clog <<getPrintableVar(var) <<"<-";
+			bool begin = true;
+			count++;
+			for(auto i=justification(var).cbegin(); i!=justification(var).cend(); ++i){
+				if(!begin){
+					clog <<",";
+				}
+				begin = false;
+				clog <<*i;
+			}
+			clog <<";";
+			if(count%30==0){
+				clog <<"\n";
+			}
+		}
+
+		Lit l(createPositiveLiteral(var));
+		for (auto j = disj.occurs(l).cbegin(); j < disj.occurs(l).cend(); ++j) {
+			MAssert(type(*j)==DefType::DISJ);
+		}
+		for (auto j = conj.occurs(l).cbegin(); j < conj.occurs(l).cend(); ++j) {
+			MAssert(type(*j)==DefType::CONJ);
+		}
+		l = createNegativeLiteral(var);
+		for (auto j = disj.occurs(l).cbegin(); j < disj.occurs(l).cend(); ++j) {
+			MAssert(type(*j)==DefType::DISJ);
+		}
+		for (auto j = conj.occurs(l).cbegin(); j < conj.occurs(l).cend(); ++j) {
+			MAssert(type(*j)==DefType::CONJ);
+		}
+	}
+	if(verbosity()>=9){
+		clog <<"\n";
+	}
+#endif
+
+#ifdef DEBUG
+	for (auto i=defdVars.cbegin(); i!=defdVars.cend(); ++i) { //seen should have been erased
+		MAssert(seen(*i)==0);
+	}
+#endif
+
+	return getPCSolver().satState()!=SATVAL::UNSAT;
 }
 
 void IDSolver::generateSCCs(){
@@ -676,250 +928,6 @@ void IDSolver::visit(Var i, vector<bool> &incomp, varlist &stack, varlist &visit
 			incomp[w] = true;
 		} while (w != i);
 	}
-}
-
-// NOTE: essentially, simplifygraph can be called anytime the level-0 interpretation has changed.
-// In default model expansion, this turned out to be quite expensive, so it was disabled.
-bool IDSolver::simplifyGraph(int atomsinposloops){
-	MAssert(getPCSolver().satState()!=SATVAL::UNSAT);
-	if(!posloops){
-		MAssert(getPCSolver().satState()!=SATVAL::UNSAT);
-		return true;
-	}
-
-	for(auto i=defdVars.cbegin(); i<defdVars.cend(); ++i){
-		justification(*i).clear();
-	}
-
-	varlist usedseen; //stores which elements in the "seen" datastructure we adapted to reset them later on
-	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
-		Var v = (*i);
-		if (isFalse(mkPosLit(v))) {
-			continue;
-		}
-		switch (type(v)) {
-			case DefType::DISJ:
-			case DefType::AGGR:
-				seen(v) = 1;
-				break;
-			case DefType::CONJ:
-				seen(v) = definition(v)->size();
-				break;
-		}
-		usedseen.push_back(v);
-	}
-
-	// initialize a queue of literals that are safe with regard to cycle-freeness. (i.e.: either are not in justification, or are justified in a cycle-free way.)
-	queue<Lit> propq;
-	for (int i = 0; i < nVars(); ++i) {
-		Lit l = createNegativeLiteral(i);
-		if (!isFalse(l)) {
-			propq.push(l); // First negative literals are added that are not already false
-		}
-		l = createPositiveLiteral(i);
-		if (!isDefInPosGraph(i) && !isFalse(l)) {
-			if(isDefined(var(l))){
-				seen(var(l)) = 0; //Mixed loop is justified, so seen is 0 (otherwise might find the same literal multiple times)
-			}
-			propq.push(l); // Then all non-false non-defined positive literals.
-		}
-	}
-
-	// propagate safeness to defined literals until fixpoint.
-	// While we do this, we build the initial justification.
-	while (!propq.empty()) {
-		Lit l = propq.front(); //only heads are added to the queue
-		MAssert(sign(l) || !isDefined(var(l)) || (seen(var(l))==0));
-		propq.pop();
-
-		litlist heads;
-		vector<litlist > jstf;
-
-		propagateJustificationDisj(l, jstf, heads);
-		for (vsize i = 0; i < heads.size(); ++i) {
-			MAssert(jstf[i].size()>0);
-			changejust(var(heads[i]), jstf[i]);
-			propq.push(heads[i]);
-		}
-		heads.clear();
-		jstf.clear();
-
-		propagateJustificationAggr(l, jstf, heads);
-		for (vsize i = 0; i < heads.size(); ++i) {
-			changejust(var(heads[i]), jstf[i]);
-			propq.push(heads[i]);
-		}
-		heads.clear();
-		jstf.clear();
-
-		propagateJustificationConj(l, propq);
-	}
-
-	if (verbosity() >= 2) {
-		clog <<"Initialization of justification makes these atoms false: [";
-	}
-
-	/**
-	 * Goes through all definitions and checks whether they can still become true (if they have been
-	 * justified). Otherwise, it is checked (overestimation) whether a negative loop might be possible.
-	 * If this is not the case, the definition is removed from the data structures.
-	 */
-	varlist reducedVars;
-	posrecagg = false;
-	mixedrecagg = false;
-	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
-		Var v = (*i);
-		if(occ(v)==NONDEFOCC){
-			continue; // Not defined at the moment, but might be later on if lazy
-		}
-		auto lit = mkPosLit(v);
-		if (seen(v) > 0 || isFalse(lit)) {
-			if (verbosity() >= 2) {
-				clog <<" " <<lit;
-			}
-			if(isTrue(lit)){
-				return false;
-			}
-			if(isUnknown(lit)) {
-				getPCSolver().setTrue(createNegativeLiteral(v), this);
-			}
-
-			if (occ(v) == POSLOOP) {
-				//FIXME lazygrounding? removeDefinition(v);
-				--atomsinposloops;
-			} else {
-				occ(v) = MIXEDLOOP;
-				reducedVars.push_back(v);
-				if (type(v) == DefType::AGGR) {
-					mixedrecagg = true;
-				}
-			}
-		} else {
-			reducedVars.push_back(v);
-			if(type(v)==DefType::AGGR){
-				switch(occ(v)){
-				case MIXEDLOOP:
-					mixedrecagg = true;
-					break;
-				case POSLOOP:
-					posrecagg = true;
-					break;
-				case BOTHLOOP:
-					mixedrecagg = true;
-					posrecagg = true;
-					break;
-				default:
-					break;
-				}
-			}
-		}
-	}
-	defdVars.clear();
-	defdVars.insert(defdVars.begin(), reducedVars.cbegin(), reducedVars.cend());
-
-	//reconstruct the disj and conj occurs with the reduced number of definitions
-	disj.clear();
-	conj.clear();
-	disj.resize(2*nVars());
-	conj.resize(2*nVars());
-	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
-		Var v = (*i);
-		if (type(v) == DefType::CONJ || type(v) == DefType::DISJ) {
-			const PropRule& dfn = *definition(v);
-			for (auto litit=dfn.cbegin(); litit!=dfn.cend(); ++litit) {
-				if (*litit != dfn.getHead()) { //don't look for a justification that is the head literal itself
-					if (type(v) == DefType::DISJ) {
-						disj.add(*litit, v);
-					} else if (type(v) == DefType::CONJ) {
-						conj.add(*litit, v);
-					}
-				}
-			}
-		}else{
-			const IDAgg& dfn = *aggdefinition(v);
-			for (auto j=dfn.getWL().cbegin(); j!=dfn.getWL().cend(); ++j) {
-				aggr.add((*j).getLit(), v);
-			}
-		}
-	}
-
-	//Reset the elements in "seen" that were changed
-	//NOTE: do not return before this call!
-	for (auto i = usedseen.cbegin(); i < usedseen.cend(); ++i) {
-		seen(*i) = 0;
-	}
-
-	if (verbosity() >= 2) {
-		clog <<" ]\n";
-	}
-
-	if (atomsinposloops == 0) {
-		posloops = false;
-	}
-
-	if (!posloops && !negloops) {
-		if (verbosity() >= 1) {
-			clog <<"> All recursive atoms falsified in initializations.\n";
-		}
-	}
-
-	if(posloops && modes().defn_strategy != adaptive && !isCycleFree()) {
-		throw idpexception("Positive justification graph is not cycle free!\n");
-	}
-#ifdef DEBUG
-	if(verbosity()>=9){
-		clog <<"Justifications:\n";
-	}
-	int count = 0;
-	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
-		Var var = *i;
-		MAssert(hasDefVar(var));
-		//MAssert(justification(var).size()>0 || type(var)!=DefType::DISJ || occ(var)==MIXEDLOOP); FIXME lazy grounding hack (because invar that def gets deleted)
-
-		if(verbosity()>=9){
-			clog <<getPrintableVar(var) <<"<-";
-			bool begin = true;
-			count++;
-			for(auto i=justification(var).cbegin(); i!=justification(var).cend(); ++i){
-				if(!begin){
-					clog <<",";
-				}
-				begin = false;
-				clog <<*i;
-			}
-			clog <<";";
-			if(count%30==0){
-				clog <<"\n";
-			}
-		}
-
-		Lit l(createPositiveLiteral(var));
-		for (auto j = disj.occurs(l).cbegin(); j < disj.occurs(l).cend(); ++j) {
-			MAssert(type(*j)==DefType::DISJ);
-		}
-		for (auto j = conj.occurs(l).cbegin(); j < conj.occurs(l).cend(); ++j) {
-			MAssert(type(*j)==DefType::CONJ);
-		}
-		l = createNegativeLiteral(var);
-		for (auto j = disj.occurs(l).cbegin(); j < disj.occurs(l).cend(); ++j) {
-			MAssert(type(*j)==DefType::DISJ);
-		}
-		for (auto j = conj.occurs(l).cbegin(); j < conj.occurs(l).cend(); ++j) {
-			MAssert(type(*j)==DefType::CONJ);
-		}
-	}
-	if(verbosity()>=9){
-		clog <<"\n";
-	}
-#endif
-
-#ifdef DEBUG
-	for (auto i=defdVars.cbegin(); i!=defdVars.cend(); ++i) { //seen should have been erased
-		MAssert(seen(*i)==0);
-	}
-#endif
-
-	return getPCSolver().satState()!=SATVAL::UNSAT;
 }
 
 /**
