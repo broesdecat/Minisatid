@@ -360,7 +360,7 @@ bool Read<T>::addSumRules() {
 template<class T>
 void Read<T>::addRuleToHead(map<Atom, vector<BasicRule*> >& headtorules, BasicRule* rule, Atom head){
 	if (headtorules.find(head) == headtorules.cend()) {
-		headtorules.insert({head, {}});
+		headtorules.insert(std::pair<Atom, vector<BasicRule*> >(head, std::vector<BasicRule*>()));
 	}
 	(*headtorules.find(head)).second.push_back(rule);
 }

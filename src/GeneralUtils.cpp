@@ -150,7 +150,7 @@ void SolverOption::print(std::ostream& so) const{
 	so << "ufs_strategy: "		<<ufs_strategy <<"\n";
 	so << "defn_strategy: " 	<<defn_strategy <<"\n";
 	so << "defn_search: " 		<<defn_search <<"\n";
-	so << "checking cycles: "	<<checkcyclefreeness <<"\n";
+	so << "double check cycles: "	<<checkcyclefreeness <<"\n";
 	so << "aggclausesaving: " 	<<aggclausesaving <<"\n";
 	so << "tocnf: " 			<<tocnf <<"\n";
 	so << "watchedratio: " 		<<watchesratio <<"\n";

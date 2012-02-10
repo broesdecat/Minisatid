@@ -58,7 +58,7 @@ void Solution::printLiteral(ostream& stream, const Literal& lit) const {
 	if(hasTranslator() && getTranslator()->hasTranslation(lit)){
 		getTranslator()->printLiteral(stream, lit);
 	}else{
-		stream <<(lit.hasSign()?"~":"") <<"tseitin_" <<lit.getValue()+1;
+		stream <<(lit.hasSign()?"~":"") <<"tseitin_" <<abs(lit.getValue());
 	}
 }
 

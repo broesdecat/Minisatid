@@ -159,8 +159,13 @@ void WrapperPimpl::printStatistics() const {
 void WrapperPimpl::printLiteral(std::ostream& output, const Lit& l) const{
 	if(canBackMapLiteral(l) && hasprintcallback){
 		output << printliteral(getRemapper()->getLiteral(l).getValue());
-	}else if(canBackMapLiteral(l) && hasSolMonitor()){
-		getSolMonitor().printLiteral(output, getRemapper()->getLiteral(l));
+	}else if(canBackMapLiteral(l)){
+		if(hasSolMonitor()){
+			getSolMonitor().printLiteral(output, getRemapper()->getLiteral(l));
+		}else{
+			auto lit = getRemapper()->getLiteral(l);
+			output <<(lit.hasSign()?"~":"") <<"tseitin_" <<abs(lit.getValue());
+		}
 	}else{
 		output <<(sign(l)?"-":"") <<"tseitin_" <<var(l)+1; // NOTE: do not call <<l, this will cause an infinite loop (as that calls this method!)
 	}
