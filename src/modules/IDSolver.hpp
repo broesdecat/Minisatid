@@ -337,8 +337,6 @@ private:
 	void	addExternalDisjuncts(const std::set<Var>& ufs, litlist& loopf);
 
 	// Debug:
-	void	print		(const rClause c)	const;
-	void	print		(const PropRule& c)	const;
 	bool	isCycleFree	() 					const;			// Verifies whether justification is indeed cycle free, not used, for debugging purposes.
 
 	// WELL FOUNDED MODEL CHECKING

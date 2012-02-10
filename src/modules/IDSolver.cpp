@@ -352,9 +352,6 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	}
 
 	unsat = not simplifyGraph(atoms_in_pos_loops);
-	if (not unsat && posloops && !isCycleFree()) {
-		throw idpexception("Positive justification graph is not cycle free!\n");
-	}
 
 	if (verbosity() >= 1) {
 		clog << "> Number of recursive atoms in positive loops : " << atoms_in_pos_loops << ".\n";
@@ -366,16 +363,17 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	CHECK(unsat)
 	if (not unsat && modes().tocnf) {
 		unsat = transformToCNF(sccroots, present) == SATVAL::UNSAT;
-CHECK	(unsat)
-}
+		CHECK	(unsat)
+	}
 
 	notifyInitialized();
 
 	if (unsat) {
 		getPCSolver().notifyUnsat();
 	} else {
-CHECKSEEN}
-CHECK(unsat)
+		CHECKSEEN
+	}
+	CHECK(unsat)
 }
 
 // NOTE: essentially, simplifygraph can be called anytime the level-0 interpretation has changed.
@@ -1727,20 +1725,9 @@ inline void IDSolver::markNonJustifiedAddVar(Var v, Var cs, queue<Var> &q, varli
 	}
 }
 
-inline void IDSolver::print(const PropRule& c) const {
-	clog << "Rule ";
-	Lit head = c.getHead();
-	MinisatID::print(head, value(head));
-	clog << " <- ";
-	for (vsize i = 0; i < c.size(); ++i) {
-		MinisatID::print(c[i], value(c[i]));
-		clog << " ";
-	}
-	clog << "\n";
-}
-
 /**
  * Checks if there are any positive loops in the current depenndecy graph. Mainly used for debugging purposes (does slow bottom-up reasoning)
+ * @precondition: propagation has to be at fixpoint! So is not necessarily correct at the end of finishparsing or notifypropagate!
  */
 bool IDSolver::isCycleFree() const {
 	if (!modes().checkcyclefreeness) {
@@ -1796,7 +1783,6 @@ bool IDSolver::isCycleFree() const {
 					}
 					MAssert(found);
 				}
-
 			}
 		}
 	}
