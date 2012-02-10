@@ -2079,7 +2079,7 @@ void IDSolver::visitWF(Var v, varlist &root, vector<bool> &incomp, stack<Var> &s
 		int& counter, bool throughPositiveLit, vector<int>& rootofmixed) {
 	MAssert(!incomp[v]);
 	MAssert(isDefined(v));
-	if(occ(v)!=DefOcc::BOTHLOOP || occ(v)!=DefOcc::MIXEDLOOP){
+	if(occ(v)!=DefOcc::BOTHLOOP && occ(v)!=DefOcc::MIXEDLOOP){
 		return;
 	}
 	MAssert(getDefVar(v)->type()!=DefType::AGGR);
