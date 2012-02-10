@@ -360,7 +360,7 @@ bool Read<T>::addSumRules() {
 template<class T>
 void Read<T>::addRuleToHead(map<Atom, vector<BasicRule*> >& headtorules, BasicRule* rule, Atom head){
 	if (headtorules.find(head) == headtorules.cend()) {
-		headtorules.insert(pair<Atom, vector<BasicRule*> > (head, std::vector<BasicRule*>()));
+		headtorules.insert({head, {}});
 	}
 	(*headtorules.find(head)).second.push_back(rule);
 }
@@ -368,12 +368,12 @@ void Read<T>::addRuleToHead(map<Atom, vector<BasicRule*> >& headtorules, BasicRu
 template<class T>
 bool Read<T>::tseitinizeHeads(){
 	// Transform away all choicerules
-	for (vector<ChoiceRule*>::const_iterator i = choicerules.cbegin(); i < choicerules.cend(); ++i) {
+	for (auto i = choicerules.cbegin(); i < choicerules.cend(); ++i) {
 		vector<Literal> tempbody;
 		tempbody.push_back(Literal(1)); //reserve space for the extra choice literal
 		tempbody.insert(tempbody.end(), (*i)->body.cbegin(), (*i)->body.cend());
-		for (vector<Atom>::const_iterator j = (*i)->heads.cbegin(); j < (*i)->heads.cend(); ++j) {
-			const Atom& head = *j;
+		for (auto j = (*i)->heads.cbegin(); j < (*i)->heads.cend(); ++j) {
+			auto head = *j;
 			tempbody[0] = Literal(makeNewAtom());
 			basicrules.push_back(new BasicRule(head, tempbody));
 
@@ -387,35 +387,20 @@ bool Read<T>::tseitinizeHeads(){
 
 	//Check whether there are multiple occurrences and rewrite them using tseitin!
 	map<Atom, vector<BasicRule*> > headtorules;
-	for (vector<BasicRule*>::const_iterator i = basicrules.cbegin(); i < basicrules.cend(); ++i) {
+	for (auto i = basicrules.cbegin(); i < basicrules.cend(); ++i) {
 		addRuleToHead(headtorules, *i, (*i)->head);
 	}
-	for (vector<CardRule*>::const_iterator i = cardrules.cbegin(); i < cardrules.cend(); ++i) {
+	for (auto i = cardrules.cbegin(); i < cardrules.cend(); ++i) {
 		addRuleToHead(headtorules, *i, (*i)->head);
 	}
-	for (vector<SumRule*>::const_iterator i = sumrules.cbegin(); i < sumrules.cend(); ++i) {
+	for (auto i = sumrules.cbegin(); i < sumrules.cend(); ++i) {
 		addRuleToHead(headtorules, *i, (*i)->head);
-	}
-
-	//Tseitinize
-	for (map<Atom, vector<BasicRule*> >::const_iterator i = headtorules.cbegin(); i != headtorules.cend(); ++i) {
-		if ((*i).second.size() < 2) { //No multiple heads
-			continue;
-		}
-
-		vector<Literal> newheads;
-		for (vector<BasicRule*>::const_iterator j = (*i).second.cbegin(); j < (*i).second.cend(); ++j) {
-			Literal newhead = Literal(makeNewAtom());
-			newheads.push_back(newhead);
-			(*j)->head = newhead.getAtom();
-		}
-		basicrules.push_back(new BasicRule((*i).first, newheads, false));
 	}
 
 	//Make all literals which are defined but do not occur in the theory false
-	for(map<Atom, bool>::const_iterator i=defatoms.cbegin(); i!=defatoms.cend(); ++i){
+	for(auto i=defatoms.cbegin(); i!=defatoms.cend(); ++i){
 		assert((*i).second);
-		map<Atom, vector<BasicRule*> >::const_iterator it = headtorules.find((*i).first);
+		auto it = headtorules.find((*i).first);
 		if(it==headtorules.cend() || (*it).second.size()==0){
 			Disjunction clause;
 			clause.literals.push_back(Literal((*i).first, true));
