@@ -38,7 +38,7 @@ WrapperPimpl* getTranslator(){
 
 template<>
 void print(const Minisat::Lit& lit, const lbool val){
-	std::clog <<(sign(lit)?"-":"") <<getPrintableVar(var(lit)) <<":" <<(val==l_True?'1':(val==l_False?'0':'X'));
+	std::clog <<(sign(lit)?"-":"") <<var(lit)+1 <<":" <<(val==l_True?'1':(val==l_False?'0':'X'));
 }
 
 template<>
@@ -66,7 +66,7 @@ template<> std::string print(const Lit& lit){
 	if(getTranslator()!=NULL){
 		getTranslator()->printLiteral(ss, lit);
 	}else{
-		ss <<(sign(lit)?"-":"") <<getPrintableVar(var(lit));
+		ss <<(sign(lit)?"-":"") <<var(lit)+1;
 	}
 	return ss.str();
 }

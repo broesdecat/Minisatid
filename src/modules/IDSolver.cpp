@@ -160,8 +160,9 @@ SATVAL IDSolver::addFinishedRule(TempRule* rule) {
 	adaptStructsToHead(head);
 
 	if(isDefined(head)){
-		char s[100]; sprintf(s, "Multiple rules have the same head %d, which is not allowed!\n", getPrintableVar(head));
-		throw idpexception(s);
+		stringstream ss;
+		ss <<"Multiple rules have the same head " <<getPrintableVar(head) <<", which is not allowed!\n";
+		throw idpexception(ss.str());
 	}
 
 	if (rule->body.empty()) {
@@ -195,8 +196,9 @@ void IDSolver::addFinishedDefinedAggregate(TempRule* rule){
 	Var head = rule->head;
 	adaptStructsToHead(head);
 	if(isDefined(head)){
-		char s[100]; sprintf(s, "Multiple rules have the same head %d, which is not allowed!\n", getPrintableVar(head));
-		throw idpexception(s);
+		stringstream ss;
+		ss <<"Multiple rules have the same head " <<getPrintableVar(head) <<", which is not allowed!\n";
+		throw idpexception(ss.str());
 	}
 
 	AggBound b(rule->inneragg->sign, rule->inneragg->bound);
@@ -1066,32 +1068,33 @@ rClause IDSolver::notifypropagate() {
 	uint64_t old_justify_calls = stats.justify_calls;
 
 	std::set<Var> ufs;
+	rClause confl = nullPtrClause;
 	bool ufs_found = false;
-	for (auto j = css.cbegin(); !ufs_found && j < css.cend(); ++j) {
+	for (auto j = css.cbegin(); confl==nullPtrClause && j < css.cend(); ++j) {
 		if (isCS(*j)) {
 			ufs_found = unfounded(*j, ufs);
+			if(ufs_found){
+				if (verbosity() >= 2) {
+					clog <<"Found an unfounded set of size " <<ufs.size() <<": {";
+					for (auto it = ufs.cbegin(); it != ufs.cend(); ++it) {
+						clog <<" " <<getPrintableVar(*it);
+					}
+					clog <<" }.\n";
+				}
+				++stats.cycles;
+				stats.cycle_sizes += ufs.size();
+				if (getPCSolver().modes().defn_strategy == adaptive) {
+					++adaption_current; // This way we make sure that if adaption_current > adaption_total, this decision level had indirect propagations.
+				}
+				confl = assertUnfoundedSet(ufs);
+			}
 		}
 	}
 
 	// stats.justifiable_cycle_sources += ufs_found ? (j - 1) : j; // This includes those that are removed inside "unfounded".
 	stats.succesful_justify_calls += (stats.justify_calls - old_justify_calls);
 
-	rClause confl = nullPtrClause;
-	if (ufs_found) {
-		if (verbosity() >= 2) {
-			clog <<"Found an unfounded set of size " <<ufs.size() <<": {";
-			for (std::set<Var>::const_iterator it = ufs.cbegin(); it != ufs.cend(); ++it) {
-				clog <<" " <<getPrintableVar(*it);
-			}
-			clog <<" }.\n";
-		}
-		++stats.cycles;
-		stats.cycle_sizes += ufs.size();
-		if (getPCSolver().modes().defn_strategy == adaptive) {
-			++adaption_current; // This way we make sure that if adaption_current > adaption_total, this decision level had indirect propagations.
-		}
-		confl = assertUnfoundedSet(ufs);
-	} else { // Found a witness justification.
+	if (confl==nullPtrClause) { // Found a witness justification.
 		if (getPCSolver().modes().defn_strategy == adaptive) {
 			if (adaption_current == adaption_total) {
 				++adaption_total; // Next time, skip one decision level extra.
@@ -1128,9 +1131,9 @@ void IDSolver::notifyNewDecisionLevel() {
 void IDSolver::findCycleSources() {
 	clearCycleSources();
 
-	if (!backtracked || getPCSolver().modes().defn_strategy == always) {
+	if (not backtracked || getPCSolver().modes().defn_strategy == always) {
 		while(hasNextProp()){
-			Lit l = getNextProp(); //l has become true, so find occurences of not l
+			Lit l = getNextProp(); //l has become true, so find occurrences of not l
 			MAssert(value(not l)==l_False);
 			if(nbvars <= var(l)){
 				continue;
@@ -2076,6 +2079,10 @@ void IDSolver::visitWF(Var v, varlist &root, vector<bool> &incomp, stack<Var> &s
 		int& counter, bool throughPositiveLit, vector<int>& rootofmixed) {
 	MAssert(!incomp[v]);
 	MAssert(isDefined(v));
+	if(occ(v)!=DefOcc::BOTHLOOP || occ(v)!=DefOcc::MIXEDLOOP){
+		return;
+	}
+	MAssert(getDefVar(v)->type()!=DefType::AGGR);
 	++counter;
 	visited[v] = throughPositiveLit ? counter : -counter;
 	root[v] = v;
@@ -2240,7 +2247,7 @@ void IDSolver::markUpward() {
  * The DefType::DISJ counters count the number of literals still needed to make the DefType::DISJ false
  */
 void IDSolver::initializeCounters() {
-	for (set<Var>::iterator i = wfmarkedAtoms.cbegin(); i != wfmarkedAtoms.cend(); ++i) {
+	for (auto i = wfmarkedAtoms.cbegin(); i != wfmarkedAtoms.cend(); ++i) {
 		Var v = *i;
 		seen(v) = 0;
 		bool canbepropagated = false;
