@@ -233,7 +233,7 @@ public:
 	void printLiteral(std::ostream& output, const Literal& lit) {
 		auto it = lit2name.find(lit.getAtom());
 		if(it!=lit2name.cend()){
-			output <<(lit.hasSign()?"~":"") <<(*it).second <<"\n";
+			output <<(lit.hasSign()?"~":"") <<(*it).second <<"";
 		}
 	}
 

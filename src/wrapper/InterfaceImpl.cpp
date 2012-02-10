@@ -75,14 +75,14 @@ bool SmartRemapper::wasInput(Var var) const{
 }
 
 Literal SmartRemapper::getLiteral(const Lit& lit){
-	atommap::const_iterator atom = contiguoustoorigatommapper.find(var(lit));
+	auto atom = contiguoustoorigatommapper.find(var(lit));
 	assert(atom!=contiguoustoorigatommapper.cend());
 	int origatom = (*atom).second;
 	return Literal(origatom, sign(lit));
 }
 
 bool SmartRemapper::hasVar(const Atom& atom, Var& mappedvarifexists) const{
-	atommap::const_iterator i = origtocontiguousatommapper.find(atom.getValue());
+	auto i = origtocontiguousatommapper.find(atom.getValue());
 	if(i==origtocontiguousatommapper.cend()){
 		return false;
 	}else{
@@ -162,7 +162,7 @@ void WrapperPimpl::printLiteral(std::ostream& output, const Lit& l) const{
 	}else if(canBackMapLiteral(l) && hasSolMonitor()){
 		getSolMonitor().printLiteral(output, getRemapper()->getLiteral(l));
 	}else{
-		output <<(sign(l)?"-":"") <<var(l); // NOTE: do not call <<l, this will cause an infinite loop (as that calls this method!)
+		output <<(sign(l)?"-":"") <<"tseitin_" <<var(l)+1; // NOTE: do not call <<l, this will cause an infinite loop (as that calls this method!)
 	}
 }
 
