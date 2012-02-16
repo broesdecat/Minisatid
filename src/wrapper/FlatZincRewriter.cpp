@@ -365,11 +365,11 @@ uint FlatZincRewriter::createCpVar(const std::vector<Weight>& values){
 uint FlatZincRewriter::addOptimization(){
 	int optimvar = 0;
 	if(optim==MNMZ_AGG){
-		const MinimizeAgg& mnm = savedagg;
+		auto mnm = savedagg;
 		if(mnm.type != SUM && mnm.type != CARD){
 			throw idpexception("Optimization only supported on sum or cardinality aggregates.");
 		}
-		const WSet& set = getSet(mnm.setid);
+		auto set = getSet(mnm.setid);
 		Weight min = 0, max = 0;
 		for(auto i=set.weights.cbegin(); i<set.weights.cend(); ++i){
 			if((*i)<0){
@@ -385,12 +385,13 @@ uint FlatZincRewriter::addOptimization(){
 			createIntVar(*i, false, 0);
 		}
 
-		addVarSum(set.weights, set.literals, mnm.head, MEQ, optimvar);
+		auto head = createAtom();
+		addVarSum(set.weights, set.literals, head, MEQ, optimvar);
 		Disjunction d;
-		d.literals.push_back(Literal(mnm.head));
+		d.literals.push_back(Literal(head));
 		add(d);
 	}else if(optim==MNMZ_LIST){
-		const MinimizeOrderedList& mnm = savedlistmnmz;
+		auto mnm = savedlistmnmz;
 
 		optimvar = createCpVar(1, long(mnm.literals.size()));
 

@@ -14,12 +14,7 @@
 #include <iostream>
 #include "utils/Utils.hpp"
 
-namespace MinisatID{
-
-class InnerDisjunction;
-class InnerSet;
-class InnerWSet;
-class Aggregate;
+namespace MinisatID {
 
 class ECNFPrinter {
 private:
@@ -29,11 +24,11 @@ public:
 	ECNFPrinter();
 	virtual ~ECNFPrinter();
 
-	void 	startPrinting();
-	void 	endPrinting(std::ostream& stream);
+	void startPrinting();
+	void endPrinting(std::ostream& stream);
 
 	template<class T>
-	void 	notifyadded(const T& formula);
+	void notifyadded(const T& formula);
 };
 
 template<>
@@ -41,11 +36,11 @@ void ECNFPrinter::notifyadded(const InnerDisjunction& lits);
 template<>
 void ECNFPrinter::notifyadded(const InnerRule& lits);
 template<>
-void ECNFPrinter::notifyadded(const InnerSet& lits);
-template<>
-void ECNFPrinter::notifyadded(const InnerWSet& lits);
+void ECNFPrinter::notifyadded(const InnerWLSet& lits);
 template<>
 void ECNFPrinter::notifyadded(const InnerAggregate& lits);
+template<>
+void ECNFPrinter::notifyadded(const InnerReifAggregate& lits);
 template<>
 void ECNFPrinter::notifyadded(const InnerMinimizeAgg& set);
 template<>
@@ -75,26 +70,26 @@ void ECNFPrinter::notifyadded(const InnerCPSumWeighted& set);
 
 }
 /*
-class ECNFGraphPrinter {
-private:
-	std::stringstream ss;
+ class ECNFGraphPrinter {
+ private:
+ std::stringstream ss;
 
-public:
-	ECNFGraphPrinter();
-	virtual ~ECNFGraphPrinter();
+ public:
+ ECNFGraphPrinter();
+ virtual ~ECNFGraphPrinter();
 
-	void 	startPrinting();
-	void 	endPrinting(std::ostream& stream);
+ void 	startPrinting();
+ void 	endPrinting(std::ostream& stream);
 
-	template<class T>
-	void 	notifyadded(const T& formula);
-};
+ template<class T>
+ void 	notifyadded(const T& formula);
+ };
 
-template<>
-void ECNFGraphPrinter::notifyadded(const InnerDisjunction& lits);
-template<>
-void ECNFGraphPrinter::notifyadded(const InnerWSet& lits);
+ template<>
+ void ECNFGraphPrinter::notifyadded(const InnerDisjunction& lits);
+ template<>
+ void ECNFGraphPrinter::notifyadded(const InnerWSet& lits);
 
-}*/
+ }*/
 
 #endif /* ECNFPRINTER_HPP_ */

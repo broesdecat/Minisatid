@@ -48,35 +48,46 @@ void ECNFPrinter::notifyadded(const InnerRule& rule){
 }
 
 template<>
-void ECNFPrinter::notifyadded(const InnerSet& set){
+void ECNFPrinter::notifyadded(const InnerWLSet& set){
 	ss <<"Added non-weighted set " <<set.setID <<" = {";
-	vector<Lit>::size_type count = 0;
-	for(vector<Lit>::const_iterator i=set.literals.cbegin(); i<set.literals.cend(); ++i, ++count){
-		ss <<*i;
-		if(count<set.literals.size()-1){
+	bool begin = true;
+	for(auto i = set.wls.cbegin(); i<set.wls.cend(); ++i){
+		if(not begin){
 			ss <<", ";
 		}
-	}
-	ss <<"}\n";
-}
-
-template<>
-void ECNFPrinter::notifyadded(const InnerWSet& set){
-	ss <<"Added non-weighted set " <<set.setID <<" = {";
-	vector<Lit>::size_type count = 0;
-	vector<Lit>::const_iterator litit = set.literals.cbegin();
-	vector<Weight>::const_iterator weightit = set.weights.cbegin();
-	for(; litit<set.literals.cend(); ++litit, ++weightit, ++count){
-		ss <<*litit <<"=" <<*weightit;
-		if(count<set.literals.size()-1){
-			ss <<", ";
-		}
+		begin = false;
+		ss <<(*i).getLit() <<"=" <<(*i).getWeight();
 	}
 	ss <<"}\n";
 }
 
 template<>
 void ECNFPrinter::notifyadded(const InnerAggregate& agg){
+	ss <<"Added aggregate ";
+	ss <<" ";
+	switch(agg.type){
+	case SUM:
+		ss <<"sum";
+		break;
+	case CARD:
+		ss <<"card";
+		break;
+	case MIN:
+		ss <<"min";
+		break;
+	case MAX:
+		ss <<"max";
+		break;
+	case PROD:
+		ss <<"prod";
+		break;
+	}
+	ss <<"( set" <<agg.setID <<" )" <<(agg.sign==AGGSIGN_UB?"=<":">=") <<agg.bound;
+	ss <<"\n";
+}
+
+template<>
+void ECNFPrinter::notifyadded(const InnerReifAggregate& agg){
 	ss <<"Added aggregate " << agg.head <<" "<<(agg.sem==COMP?"<=>":"<-");
 	if(agg.sem==DEF){
 		ss <<"(" <<agg.defID <<")";
@@ -105,7 +116,7 @@ void ECNFPrinter::notifyadded(const InnerAggregate& agg){
 
 template<>
 void ECNFPrinter::notifyadded(const InnerMinimizeAgg& mnm){
-	ss <<"Minimizing aggregate " <<mnm.head <<" <=> ";
+	ss <<"Minimizing aggregate ";
 	switch(mnm.type){
 	case SUM:
 		ss <<"sum";

@@ -470,7 +470,6 @@ SATVAL PCWrapperPimpl::add(const MinimizeVar& sentence){
 template<>
 SATVAL PCWrapperPimpl::add(const MinimizeAgg& sentence){
 	InnerMinimizeAgg mnm;
-	mnm.head = checkAtom(sentence.head);
 	mnm.setID = sentence.setid;
 	mnm.type = sentence.type;
 	setOptimization(true);

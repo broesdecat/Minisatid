@@ -159,7 +159,6 @@ struct InnerMinimizeVar{
 };
 
 struct InnerMinimizeAgg{
-	Var head;
 	int setID;
 	AggType type;
 };

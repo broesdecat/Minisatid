@@ -165,11 +165,8 @@ public:
 
 class MinimizeAgg{
 public:
-	Atom head;
 	int setid;
 	AggType type;
-
-	MinimizeAgg(): head(0){}
 };
 
 struct CPIntVarRange{

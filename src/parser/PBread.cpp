@@ -77,7 +77,6 @@ template<class T> bool DefaultCallback<T>::endObjective() {
 	wset = WSet();
 
 	MinimizeAgg mnm;
-	mnm.head = dummyhead;
 	mnm.setid = setid;
 	mnm.type = SUM;
 	possat &= getSolver()->add(mnm);

@@ -416,7 +416,6 @@ template<class T>
 bool Read<T>::addOptimStatement(){
 	if(optim){
 		vector<Literal> optimheadclause;
-		Literal optimhead = Literal(makeNewAtom());
 		WSet set;
 		set.setID = optimsetcount;
 		set.literals = optimbody;
@@ -425,7 +424,6 @@ bool Read<T>::addOptimStatement(){
 			return false;
 		}
 		MinimizeAgg mnmagg;
-		mnmagg.head = optimhead.getAtom();
 		mnmagg.setid = optimsetcount;
 		mnmagg.type = SUM;
 		if(getSolver()->add(mnmagg)==SATVAL::UNSAT){
