@@ -290,8 +290,8 @@ private:
 	int&				seen		(Var v) 		{ MAssert(hasSeen(v)); return _seen->getElem(v); }
 	const int&			seen		(Var v) const 	{ MAssert(hasSeen(v)); return _seen->getElem(v); }
 
-	void	createDefinition(Var head, PropRule* r, DefType type) 	{ defdVars.push_back(head); setDefVar(head, new DefinedVar(r, type));}
-	void	createDefinition(Var head, IDAgg* agg) 					{ defdVars.push_back(head); setDefVar(head, new DefinedVar(agg));}
+	void	createDefinition(Var head, PropRule* r, DefType type);
+	void	createDefinition(Var head, IDAgg* agg);
 	void	removeDefinition(Var head);
 
 	void 	propagateJustificationDisj(const Lit& l, std::vector<litlist>& jstf, litlist& heads);
@@ -337,6 +337,7 @@ private:
 	void	addExternalDisjuncts(const std::set<Var>& ufs, litlist& loopf);
 
 	// Debug:
+	void 	printPosGraphJustifications() const;
 	bool	isCycleFree	() 					const;			// Verifies whether justification is indeed cycle free, not used, for debugging purposes.
 
 	// WELL FOUNDED MODEL CHECKING

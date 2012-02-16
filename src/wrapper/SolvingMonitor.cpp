@@ -58,7 +58,7 @@ void Solution::printLiteral(ostream& stream, const Literal& lit) const {
 	if(hasTranslator() && getTranslator()->hasTranslation(lit)){
 		getTranslator()->printLiteral(stream, lit);
 	}else{
-		stream <<(lit.hasSign()?"~":"") <<"tseitin_" <<abs(lit.getValue());
+		stream <<(lit.hasSign()?"~":"") <<"tseitin_" <<abs(lit.getValue()); // TODO it is possible that when translation info is added, all printing changes!
 	}
 }
 

@@ -100,7 +100,7 @@ PropagatorFactory::~PropagatorFactory() {
 
 template<typename T>
 void PropagatorFactory::notifyMonitorsOfAdding(const T& obj) const {
-	for (vector<ParsingMonitor*>::const_iterator i = parsingmonitors.cbegin(); i < parsingmonitors.cend(); ++i) {
+	for (auto i = parsingmonitors.cbegin(); i < parsingmonitors.cend(); ++i) {
 		(*i)->notifyadded(obj);
 	}
 }

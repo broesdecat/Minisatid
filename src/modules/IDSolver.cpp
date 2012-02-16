@@ -63,6 +63,17 @@ IDSolver::~IDSolver() {
 	deleteList<DefinedVar>(definitions);
 }
 
+void IDSolver::createDefinition(Var head, PropRule* r, DefType type) {
+	MAssert(not hasDefVar(head));
+	defdVars.push_back(head);
+	setDefVar(head, new DefinedVar(r, type));
+}
+void IDSolver::createDefinition(Var head, IDAgg* agg) {
+	MAssert(not hasDefVar(head));
+	defdVars.push_back(head);
+	setDefVar(head, new DefinedVar(agg));
+}
+
 int IDSolver::getNbOfFormulas() const {
 	return definitions.size() * log(definitions.size());
 }
@@ -157,9 +168,11 @@ SATVAL IDSolver::addFinishedRule(TempRule* rule) {
 	auto conj = rule->conjunctive;
 	auto head = rule->head;
 
-	//clog <<"Added final rule " <<getPrintableVar(rule->head) <<" <- ";
-	//printList(rule->body, rule->conjunctive?" & ":" | ");
-	//clog <<"\n";
+	if(verbosity()>4){
+		clog <<"Added final rule " <<getPrintableVar(rule->head) <<" <- ";
+		printList(rule->body, rule->conjunctive?" & ":" | ");
+		clog <<"\n";
+	}
 
 	adaptStructsToHead(head);
 
@@ -196,6 +209,11 @@ SATVAL IDSolver::addFinishedRule(TempRule* rule) {
 
 void IDSolver::addFinishedDefinedAggregate(TempRule* rule) {
 	MAssert(rule->isagg);
+
+	if(verbosity()>4){
+		clog <<"Added final aggregate rule " <<getPrintableVar(rule->head) <<" <- ...";
+		clog <<"\n";
+	}
 
 	Var head = rule->head;
 	adaptStructsToHead(head);
@@ -363,17 +381,16 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	CHECK(unsat)
 	if (not unsat && modes().tocnf) {
 		unsat = transformToCNF(sccroots, present) == SATVAL::UNSAT;
-		CHECK	(unsat)
-	}
+CHECK	(unsat)
+}
 
 	notifyInitialized();
 
 	if (unsat) {
 		getPCSolver().notifyUnsat();
 	} else {
-		CHECKSEEN
-	}
-	CHECK(unsat)
+CHECKSEEN}
+CHECK(unsat)
 }
 
 // NOTE: essentially, simplifygraph can be called anytime the level-0 interpretation has changed.
@@ -453,8 +470,17 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 		propagateJustificationConj(l, propq);
 	}
 
+	stringstream ss;
 	if (verbosity() >= 2) {
-		clog << "Initialization of justification makes these atoms false: [";
+		ss << "Initialization of justification makes these atoms false: [";
+	}
+
+	set<Var> test;
+	for(auto i=defdVars.cbegin(); i<defdVars.cend(); ++i) {
+		if(test.find(*i)!=test.cend()){
+			MAssert(false);
+		}
+		test.insert(*i);
 	}
 
 	/**
@@ -473,7 +499,7 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 		auto lit = mkPosLit(v);
 		if (seen(v) > 0 || isFalse(lit)) {
 			if (verbosity() >= 2) {
-				clog << " " << lit;
+				ss << " " << lit;
 			}
 			if (isTrue(lit)) {
 				return false;
@@ -518,8 +544,10 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 	//reconstruct the disj and conj occurs with the reduced number of definitions
 	disj.clear();
 	conj.clear();
+	aggr.clear();
 	disj.resize(2 * nVars());
 	conj.resize(2 * nVars());
+	aggr.resize(2 * nVars());
 	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
 		Var v = (*i);
 		if (type(v) == DefType::CONJ || type(v) == DefType::DISJ) {
@@ -548,7 +576,8 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 	}
 
 	if (verbosity() >= 2) {
-		clog << " ]\n";
+		ss << " ]\n";
+		clog << ss.str();
 	}
 
 	if (atomsinposloops == 0) {
@@ -563,7 +592,7 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 
 #ifdef DEBUG
 	if(verbosity()>=9) {
-		clog <<"Justifications:\n";
+		printPosGraphJustifications();
 	}
 	int count = 0;
 	for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
@@ -602,9 +631,6 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 		for (auto j = conj.occurs(l).cbegin(); j < conj.occurs(l).cend(); ++j) {
 			MAssert(type(*j)==DefType::CONJ);
 		}
-	}
-	if(verbosity()>=9) {
-		clog <<"\n";
 	}
 #endif
 	CHECKSEEN
@@ -1725,6 +1751,35 @@ inline void IDSolver::markNonJustifiedAddVar(Var v, Var cs, queue<Var> &q, varli
 	}
 }
 
+void IDSolver::printPosGraphJustifications() const{
+	clog << ">>>> Justifications (on pos graph):\n";
+	for (int i = 0; i < nbvars; ++i) {
+		if (isDefined(i) && occ(i) != MIXEDLOOP) {
+			clog <<"    " <<mkLit(i, false) << "<-";
+			switch(type(i)){
+			case DefType::DISJ:
+				clog << justification(i)[0] << "; \n";
+				break;
+			case DefType::CONJ:
+				clog <<"all (conj) \n";
+				break;
+			case DefType::AGGR:{
+				bool begin = true;
+				for(auto j=justification(i).cbegin(); j<justification(i).cend(); ++j) {
+					if(not begin){
+						clog <<" ";
+					}
+					begin = false;
+					clog <<*j;
+				}
+				clog <<"\n";
+				break;}
+			}
+		}
+	}
+	clog << "\n";
+}
+
 /**
  * Checks if there are any positive loops in the current depenndecy graph. Mainly used for debugging purposes (does slow bottom-up reasoning)
  * @precondition: propagation has to be at fixpoint! So is not necessarily correct at the end of finishparsing or notifypropagate!
@@ -1740,13 +1795,7 @@ bool IDSolver::isCycleFree() const {
 #endif
 
 	if (verbosity() >= 2) {
-		clog << "Showing justification for disjunctive atoms. <<<<<<<<<<\n";
-		for (int i = 0; i < nbvars; ++i) {
-			if (isDefined(i) && type(i) == DefType::DISJ && occ(i) != MIXEDLOOP) {
-				clog << mkLit(i, false) << "<-" << justification(i)[0] << "; ";
-			}
-		}
-		clog << ">>>>>>>>>>\n";
+		printPosGraphJustifications();
 	}
 
 	// Verify cycles.
@@ -1791,7 +1840,6 @@ bool IDSolver::isCycleFree() const {
 		return true;
 	}
 
-	uint idx = 0;
 	while (cnt_nonjustified > 0 && not justified.empty()) {
 		auto l = justified.front();
 		justified.pop();
@@ -2470,8 +2518,11 @@ IDAgg* IDSolver::getAggDefiningHead(Var v) const {
 
 varlist IDSolver::getDefAggHeadsWithBodyLit(Var x) const {
 	varlist heads;
-	for (auto i = aggr.occurs(mkLit(x)).cbegin(); i < aggr.occurs(mkLit(x)).cend(); ++i) {
-		heads.push_back(var(aggdefinition(*i)->getHead()));
+	for (auto i = aggr.occurs(mkPosLit(x)).cbegin(); i < aggr.occurs(mkPosLit(x)).cend(); ++i) {
+		heads.push_back(*i);
+	}
+	for (auto i = aggr.occurs(mkNegLit(x)).cbegin(); i < aggr.occurs(mkNegLit(x)).cend(); ++i) {
+		heads.push_back(*i);
 	}
 	return heads;
 }

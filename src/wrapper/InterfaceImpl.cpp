@@ -167,7 +167,7 @@ void WrapperPimpl::printLiteral(std::ostream& output, const Lit& l) const{
 			output <<(lit.hasSign()?"~":"") <<"tseitin_" <<abs(lit.getValue());
 		}
 	}else{
-		output <<(sign(l)?"-":"") <<"tseitin_" <<var(l)+1; // NOTE: do not call <<l, this will cause an infinite loop (as that calls this method!)
+		output <<(sign(l)?"-":"") <<"intern_" <<var(l)+1; // NOTE: do not call <<l, this will cause an infinite loop (as that calls this method!)
 	}
 }
 

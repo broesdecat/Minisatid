@@ -656,7 +656,7 @@ bool PCSolver::findOptimal(const litlist& assmpt, const ModelExpandOptions& opti
 
 	bool modelfound = false, unsatreached = false;
 
-	InnerModel* m = new InnerModel();
+	auto m = new InnerModel();
 	while (!unsatreached) {
 		if (optim == Optim::AGG) {
 			// NOTE: necessary to propagate the changes to the bound correctly
