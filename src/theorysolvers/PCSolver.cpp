@@ -810,10 +810,17 @@ void PCSolver::printCurrentOptimum(const Weight& value) const {
 
 // @pre: decision level = 0
 void PCSolver::printTheory(ostream& stream){
-	stream <<"p ecnf\n";
+	stringstream ss;
 	std::set<Var> printedvars;
-	getSATSolver()->printECNF(stream, printedvars);
-	getEventQueue().printECNF(stream, printedvars);
-	getParent().printTranslation(stream, printedvars);
+	int nbclauses = 0;
+	nbclauses += getSATSolver()->printECNF(ss, printedvars);
+	if(modes().tocnf){
+		getEventQueue().printECNF(ss, printedvars);
+		getParent().printTranslation(ss, printedvars);
+		stream <<"p ecnf\n";
+	}else{
+		stream <<"p cnf " <<printedvars.size()+1 <<" " <<nbclauses <<"\n";
+	}
+	stream <<ss.str();
 	clog <<"Currently not printing out any other constructs than clauses from the theory.";
 }

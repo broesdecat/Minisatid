@@ -430,8 +430,7 @@ template<class T>
 void PropagatorFactory::addCP(const T& formula) {
 	notifyMonitorsOfAdding(formula);
 #ifndef CPSUPPORT
-	assert(false);
-	exit(1);
+	throw idpexception("Adding a finite domain constraint while minisatid was compiled without CP support\n");
 #else
 	CPStorage::getStorage()->add(formula);
 #warning Counting models in the presence of CP variables will be an underapproximation! (finding only one variable assigment for each literal assignment)
