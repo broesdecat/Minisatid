@@ -1,0 +1,22 @@
+This is the readme for the solver MinisatID from IDP system, version 3.3.0.
+
+*** Installing and running the system
+Required software packages:
+   - C and C++ compiler, supporting most of the C++11 standard. Examples are GCC 4.4 or higher, clang 3.2 or visual studio 11.
+   - Cmake build environment. 
+   - Bison and flex packages or yacc and lex packages.
+   - Pdflatex and doxygen for building the documentation.
+   - (optional) Gecode for constraint programming support.
+
+Assume minisatid is unpacked in <minisatiddir>, you want to build in <builddir> (cannot be the same as <minisatiddir>) and install in <installdir>. 
+Building and installing is then achieved by executing the following commands:
+	cd <builddir>
+	cmake <minisatiddir> -DCMAKE_INSTALL_PREFIX=<installdir> -DCMAKE_BUILD_TYPE="Release"
+	make -j 4
+	make check
+	make install
+
+Alternatively, cmake-gui can be used as a graphical way to set cmake options.
+
+*** Further information
+For more information on using the system, please checkout the website http://dtai.cs.kuleuven.be/krr/software/minisatid
