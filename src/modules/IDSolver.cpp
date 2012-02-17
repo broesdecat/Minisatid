@@ -1807,8 +1807,11 @@ bool IDSolver::isCycleFree() const {
 		if (!isDefInPosGraph(i) || type(i) == DefType::AGGR) { // FIXME: ignores aggregates!
 			justified.push(mkLit(i, false));
 		} else {
-			++cnt_nonjustified;
-			isfree[i] = type(i) == DefType::CONJ ? definition(i)->size() : 1;
+			if(not isFalse(mkPosLit(i))){
+				//cerr <<"Not justified " <<getPrintableVar(i) <<"\n";
+				++cnt_nonjustified;
+				isfree[i] = type(i) == DefType::CONJ ? definition(i)->size() : 1;
+			}
 
 			if (type(i) == DefType::DISJ) {
 				if (value(i) == l_True) {
@@ -1856,6 +1859,7 @@ bool IDSolver::isCycleFree() const {
 				isfree[d] = 0;
 				justified.push(mkLit(d, false));
 				--cnt_nonjustified;
+				//cerr <<"Justified " <<getPrintableVar(d) <<"\n";
 			}
 		}
 
@@ -1867,6 +1871,7 @@ bool IDSolver::isCycleFree() const {
 				if (isfree[c] == 0) {
 					justified.push(mkLit(c, false));
 					--cnt_nonjustified;
+					//cerr <<"Justified " <<getPrintableVar(c) <<"\n";
 				}
 			}
 		}
@@ -1886,6 +1891,7 @@ bool IDSolver::isCycleFree() const {
 				if (isfree[d] == 0) {
 					justified.push(mkLit(d, false));
 					--cnt_nonjustified;
+					//cerr <<"Justified " <<getPrintableVar(d) <<"\n";
 				}
 			}
 		}
