@@ -128,7 +128,7 @@ set(CPACK_SOURCE_GENERATOR TGZ)
 # in absolute path + filename to find files or directories to be excluded
 # from source tarball.
 set(CPACK_SOURCE_IGNORE_FILES
-	"^${PROJECT_SOURCE_DIR}/.*"
+	"^${PROJECT_SOURCE_DIR}/\\\\..*"
 	"^${PROJECT_SOURCE_DIR}/.git/"
 	"^${PROJECT_SOURCE_DIR}/*/.git/"
 	"^${PROJECT_SOURCE_DIR}/*/*/.git/"
