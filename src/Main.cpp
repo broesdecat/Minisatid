@@ -112,22 +112,15 @@ int main(int argc, char** argv) {
 	// double precision for repeatability
 #endif
 
-	jumpback = 1;
-	struct sigaction abort, overflow, segfault, terminate, sigint, sighup;
-	abort.sa_handler=SIGABRT_handler;
-	overflow.sa_handler=SIGFPE_handler;
-	terminate.sa_handler=SIGTERM_handler;
-	segfault.sa_handler=SIGSEGV_handler;
-	sigint.sa_handler=SIGINT_handler;
-	sighup.sa_handler=SIGINT_handler;
+	jumpback = 1;	
 
-	sigaction(SIGABRT, &abort, NULL);
-	sigaction(SIGFPE, &overflow, NULL);
-	sigaction(SIGTERM, &terminate, NULL);
-	sigaction(SIGSEGV, &segfault, NULL);
-	sigaction(SIGINT, &sigint, NULL);
+	signal(SIGABRT, SIGABRT_handler);
+	signal(SIGFPE, SIGFPE_handler);
+	signal(SIGTERM, SIGTERM_handler);
+	signal(SIGSEGV, SIGSEGV_handler);
+	signal(SIGINT, SIGINT_handler);
 #if defined(__linux__)
-	sigaction(SIGHUP, &sighup, NULL);
+	signal(SIGHUP, SIGINT_handler);
 #endif
 	//set memory handler
 	std::set_new_handler(noMoreMem);

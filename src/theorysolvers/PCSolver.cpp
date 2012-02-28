@@ -270,6 +270,7 @@ bool PCSolver::symmetryPropagationOnAnalyze(const Lit& p) {
  * Returns OWNING pointer (faster).
  */
 rClause PCSolver::getExplanation(const Lit& l) {
+	setVerbosity(10);
 	if (modes().verbosity > 2) {
 		clog << "Generating explanation for " << l << ", ";
 	}
@@ -289,7 +290,7 @@ rClause PCSolver::getExplanation(const Lit& l) {
 		print(explan, *this);
 		clog << "\n";
 	}
-
+	setVerbosity(0);
 	return explan;
 }
 
@@ -784,7 +785,7 @@ void PCSolver::printEnqueued(const Lit& p) const {
 	clog << "> Enqueued " << p << " in solver " << getID() << "\n";
 }
 
-void PCSolver::printChoiceMade(int level, Lit l) const {
+void PCSolver::printChoiceMade(int level, const Lit& l) const {
 	if (modes().verbosity >= 2) {
 		clog << "> Choice literal, dl " << level << ", in solver " << getID() << ": " << l << ".\n";
 	}

@@ -180,7 +180,7 @@ public:
 
 	// DEBUG
 	void 		printEnqueued	(const Lit& p) const;
-	void		printChoiceMade	(int level, Lit l) const;
+	void		printChoiceMade	(int level, const Lit& l) const;
 	void 		printStatistics	() const;
 	void		printState		() const;
 	void		printClause		(rClause clause) const;

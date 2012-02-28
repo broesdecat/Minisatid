@@ -323,7 +323,7 @@ void SPFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 
 	bool caseone = false;
 	if(ar.isHeadReason()){
-		caseone = head!=ar.getPropLit();
+		caseone = head!=ar.getPropLit(); // NOTE: check the REQUESTED head value, not its real value
 	}else{
 		caseone = value(head)==l_True;
 	}
@@ -568,7 +568,7 @@ void MaxFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 
 	bool search = true, one, inset = false;
 	Weight bound = agg.getCertainBound();
-	if(!ar.isHeadReason()){
+	if(not ar.isHeadReason()){
 		lits.push_back(value(head)==l_True ? ~head : head);
 		if(value(head)==l_True){
 			if(agg.hasLB()){
@@ -587,7 +587,7 @@ void MaxFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 			}
 		}
 	}else{
-		if(value(head)==l_True){
+		if(not sign(ar.getPropLit())){ // NOTE: check the REQUESTED head value, not the real value!
 			if(agg.hasLB()){
 				//find one larger or eq and inset
 				one = true;
@@ -611,8 +611,8 @@ void MaxFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 	}
 	if(search){
 		bool found = false;
-		for(vector<FWTrail*>::const_iterator a=getTrail().cbegin(); !found && a<getTrail().cend(); ++a){
-        	for (vprop::const_iterator i = (*a)->props.cbegin(); !found && i < (*a)->props.cend(); ++i) {
+		for(auto a=getTrail().cbegin(); not found && a<getTrail().cend(); ++a){
+        	for (auto i = (*a)->props.cbegin(); not found && i < (*a)->props.cend(); ++i) {
         		if(i->getType()==HEAD || var(i->getLit())==var(ar.getPropLit())){
         			continue;
         		}
