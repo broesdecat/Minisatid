@@ -270,7 +270,6 @@ bool PCSolver::symmetryPropagationOnAnalyze(const Lit& p) {
  * Returns OWNING pointer (faster).
  */
 rClause PCSolver::getExplanation(const Lit& l) {
-	setVerbosity(10);
 	if (modes().verbosity > 2) {
 		clog << "Generating explanation for " << l << ", ";
 	}
@@ -290,7 +289,6 @@ rClause PCSolver::getExplanation(const Lit& l) {
 		print(explan, *this);
 		clog << "\n";
 	}
-	setVerbosity(0);
 	return explan;
 }
 
