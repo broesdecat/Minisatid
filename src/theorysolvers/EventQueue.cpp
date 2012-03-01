@@ -341,7 +341,7 @@ rClause EventQueue::notifyFullAssignmentFound() {
 void EventQueue::acceptForDecidable(Var v, Propagator* prop){
 	MAssert(v<var2decidable.size());
 	if(not getPCSolver().isDecisionVar(v)){
-		propagatedecidables.push(prop);
+		var2decidable[v].push_back(prop);
 	}else{
 		prop->notifypropagate();
 	}
