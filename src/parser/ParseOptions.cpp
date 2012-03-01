@@ -144,6 +144,7 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 	transvals.push_back(TRANS_PLAIN); transdesc.push_back(pair<string, string>("plain", "Return model in sat format"));
 	transvals.push_back(TRANS_FZ); transdesc.push_back(pair<string, string>("flatzinc", "Rewrite theory into flatzinc model"));
 	transvals.push_back(TRANS_OPB); transdesc.push_back(pair<string, string>("opb", "Print out into opb output format (default if input is opb)"));
+	transvals.push_back(TRANS_DEFAULT); transdesc.push_back(pair<string, string>("default", "Return the model in the default output format associated to the input language."));
 
 	vector<pair<string, string> > checkcyclesdesc;
 	checkcyclesdesc.push_back(pair<string, string>("yes", "Check"));
