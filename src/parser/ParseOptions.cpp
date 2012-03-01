@@ -68,18 +68,17 @@ struct Option: public Opt{
 	Option(const string &s, const string &l, const vector<T>& vals, const vector<pair<T2, string> >& desc, T& modesarg, TCLAP::CmdLine& cmd, const string &m):
 		shortopt(s), longopt(l), mess(m), defaultval(modesarg), vals(vals), desc(desc), modesarg(modesarg){
 		vector<T2> constrvals;
-		for(typename vector<pair<T2, string> >::const_iterator i=desc.cbegin(); i<desc.cend(); ++i){
+		for(auto i=desc.cbegin(); i<desc.cend(); ++i){
 			constrvals.push_back((*i).first);
 		}
 		formatsconstr = new TCLAP::ValuesConstraint<T2>(constrvals);
 
 		stringstream ss;
-
 		assert(desc.size()>0 && vals.size()==desc.size());
 		T2 tclapdefault = desc[0].first;
 		bool found = false;
 		ss <<mess <<":" <<endl;
-		for(typename vector<T>::size_type i=0; i<vals.size(); ++i){
+		for(auto i=0; i<vals.size(); ++i){
 			ss <<"\t<" <<desc[i].first <<"|" <<desc[i].second <<">";
 			if(vals[i]==defaultval){
 				tclapdefault = desc[i].first;
@@ -87,6 +86,12 @@ struct Option: public Opt{
 				found = true;
 			}
 			ss <<endl;
+		}
+
+		if(not found){
+			stringstream ss2;
+			ss2 <<"Option " <<s <<"(" <<l <<")" <<" has no value " <<defaultval <<", so cannot set this as default value.\n";
+			throw idpexception(ss2.str());
 		}
 
 		arg = new TCLAP::ValueArg<T2>(shortopt,longopt, ss.str(), false, tclapdefault, formatsconstr, cmd);
