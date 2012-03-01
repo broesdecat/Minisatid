@@ -4,7 +4,7 @@ project (minisatid)
 # The version number.
 set (MinisatID_VERSION_MAJOR 3)
 set (MinisatID_VERSION_MINOR 3)
-set (MinisatID_VERSION_PATCH 1)
+set (MinisatID_VERSION_PATCH 2)
 set (MinisatID_VERSION "${MinisatID_VERSION_MAJOR}.${MinisatID_VERSION_MINOR}.${MinisatID_VERSION_PATCH}")
 
 ENABLE_TESTING()
@@ -113,12 +113,11 @@ set(CPACK_SOURCE_GENERATOR TGZ)
 # note: escape char is \\\\
 set(CPACK_SOURCE_IGNORE_FILES
 	"^${PROJECT_SOURCE_DIR}/\\\\..*"
-	"^${PROJECT_SOURCE_DIR}/.git/"
-	"^${PROJECT_SOURCE_DIR}/*/.git/"
-	"^${PROJECT_SOURCE_DIR}/*/*/.git/"
+	".*/.git/"
 	"^${PROJECT_SOURCE_DIR}/builds/"
 	"^${PROJECT_SOURCE_DIR}/build/"
 )
+message(STATUS "minisatid project source dir: ${PROJECT_SOURCE_DIR}")
 message(STATUS "source package name: ${CPACK_SOURCE_PACKAGE_FILE_NAME}")
 message(STATUS "source package ignores: ${CPACK_SOURCE_IGNORE_FILES}")
 include(CPack)

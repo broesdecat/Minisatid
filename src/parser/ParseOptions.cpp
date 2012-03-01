@@ -78,7 +78,7 @@ struct Option: public Opt{
 		T2 tclapdefault = desc[0].first;
 		bool found = false;
 		ss <<mess <<":" <<endl;
-		for(auto i=0; i<vals.size(); ++i){
+		for(size_t i=0; i<vals.size(); ++i){
 			ss <<"\t<" <<desc[i].first <<"|" <<desc[i].second <<">";
 			if(vals[i]==defaultval){
 				tclapdefault = desc[i].first;
@@ -90,7 +90,7 @@ struct Option: public Opt{
 
 		if(not found){
 			stringstream ss2;
-			ss2 <<"Option " <<s <<"(" <<l <<")" <<" has no value " <<defaultval <<", so cannot set this as default value.\n";
+			ss2 <<"Option " <<shortopt <<"(" <<longopt <<")" <<" has no value " <<defaultval <<", so cannot set this as default value.\n";
 			throw idpexception(ss2.str());
 		}
 
@@ -103,7 +103,6 @@ struct Option: public Opt{
 	}
 
 	void parse(){
-		//clog <<longopt <<" " <<arg->getValue() <<endl;
 		bool found = false;
 		uint i=0;
 		for(; i<desc.size(); ++i){
@@ -112,8 +111,13 @@ struct Option: public Opt{
 				break;
 			}
 		}
-		assert(found);
-		modesarg = vals[i];
+		if(found){
+			modesarg = vals[i];
+		}else{
+			stringstream ss2;
+			ss2 <<"Option " <<shortopt <<"(" <<longopt <<")" <<" cannot be set to " <<arg->getValue() <<".\n";
+			throw idpexception(ss2.str());
+		}
 	}
 };
 
