@@ -640,7 +640,7 @@ void PropagatorFactory::add(const InnerLazyClause& object) {
 	MAssert(not getEngine().isDecisionVar(var(object.residual)));
 	// TODO in fact, want to check that it does not yet occur in the theory, this is easiest hack
 	addVar(object.residual, lazyDecide());
-	if(verbosity()>4){
+	if(getEngine().verbosity()>4){
 		clog <<object.residual <<" is delayed " <<(object.watchboth?"on unknown":"on true") <<"\n";
 	}
 	if (object.watchboth) {

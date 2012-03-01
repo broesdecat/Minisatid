@@ -74,13 +74,13 @@ public:
 	SATVAL	add		(int modid, const InnerRigidAtoms& sentence);
 	SATVAL	add		(int modid, const InnerSubTheory& sentence);
 
-	virtual void	notifyNonDecisionVar(Var var) { }//FIXME
+	virtual void	notifyNonDecisionVar(Var) { }//FIXME
 
 	//Get information on hierarchy
 	ModSolver* getModSolver	(vsize modid) const { checkexistsModSolver(modid); return solvers[modid];}
 
 	void 	printStatistics	() const;
-	void 	printTheory(std::ostream& stream) { assert(false); }
+	void 	printTheory(std::ostream&) { assert(false); }
 
 private:
 	ModSolver& getModSolverDuringAdding(int modid);
