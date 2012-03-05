@@ -45,8 +45,8 @@ private:
 
 public:
 	//@pre: a is positive
-	explicit Literal(int a, bool s = false): lit(s?-a:a){ assert(a>=0); }
-	explicit Literal(Atom a, bool s = false): lit(s?-a.getValue():a.getValue()){ assert(a.getValue()>=0); }
+	explicit Literal(int a, bool s = false): lit(s?-a:a){ MAssert(a>=0); }
+	explicit Literal(Atom a, bool s = false): lit(s?-a.getValue():a.getValue()){ MAssert(a.getValue()>=0); }
 
 	int		getValue()						const { return lit; }
 	Atom 	getAtom() 						const { return Atom(lit<0?-lit:lit); }

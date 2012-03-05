@@ -118,7 +118,7 @@ public:
 			tofodot(fodot==TRANS_FODOT), finisheddata(false), emptytrans(true),
 			largestnottseitinatom(-1),
 			printedArbitrary(false){
-		assert(fodot!=TRANS_PLAIN);
+		MAssert(fodot!=TRANS_PLAIN);
 	}
 
 	virtual ~FODOTTranslator() {
@@ -227,7 +227,7 @@ public:
 		}
 		output <<"\n";
 		output.flush();
-		assert(model.variableassignments.size()==0);
+		MAssert(model.variableassignments.size()==0);
 	}
 
 	void printLiteral(std::ostream& output, const Literal& lit) {

@@ -14,17 +14,17 @@
 
 typedef unsigned int uint;
 
-#include "Idpexception.hpp"
-#include "Weight.hpp"
-#include "Datastructures.hpp"
-#include "LazyClauseSupport.hpp"
-#include "TerminationManagement.hpp"
-
 #ifndef NDEBUG
 #define MAssert(condition) { if(!(condition)){ std::stringstream ss; ss << "ASSERT FAILED: " << #condition << " @ " << __FILE__ << " (" << __LINE__ << ")"; throw idpexception(ss.str());} }
 #else
 #define MAssert(x) do {} while(0)
 #endif
+
+#include "Idpexception.hpp"
+#include "Weight.hpp"
+#include "Datastructures.hpp"
+#include "LazyClauseSupport.hpp"
+#include "TerminationManagement.hpp"
 
 namespace MinisatID {
 	// Definitional options
