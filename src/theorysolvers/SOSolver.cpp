@@ -52,7 +52,7 @@ void SOSolver::addModel(const InnerModel& model){
 	getParent().addModel(model);
 }
 
-void SOSolver::finishParsing(bool& unsat){
+void SOSolver::finishParsing(){
 	assert(state==LOADINGREST);
 	state = ALLLOADED;
 
@@ -65,11 +65,15 @@ void SOSolver::finishParsing(bool& unsat){
 //		return true;
 //	}
 
-	solvers[0]->finishParsingDown(unsat);
+	solvers[0]->finishParsingDown();
 
 	if(modes().verbosity>=2){
 		print(this);
 	}
+}
+
+bool SOSolver::isUnsat() const{
+	return getModSolver(0)->getSolver()->isUnsat();
 }
 
 SATVAL SOSolver::add(int modid, const InnerSubTheory& subtheory){

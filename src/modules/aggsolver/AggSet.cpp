@@ -41,7 +41,7 @@ void TypedSet::addAgg(const TempAgg& tempagg, bool optim){
 	agg->setIndex(aggregates.size()-1);
 	if (getPCSolver().verbosity() >= 2) {
 		MinisatID::print(getPCSolver().verbosity(), *agg);
-		report("\n");
+		clog <<"\n";
 	}
 }
 
@@ -58,12 +58,12 @@ void TypedSet::removeAggs(const std::set<Agg*>& del){
 	}
 }
 
-void TypedSet::finishParsing(bool& present, bool& unsat){
-	assert(isParsing() && !unsat && present);
+void TypedSet::finishParsing(bool& present){
+	assert(isParsing() && present);
 	notifyParsed();
 
 	if (verbosity() >= 2) {
-		report("Added ");
+		clog <<"Added ";
 		MinisatID::print(10000, *this, true);
 	}
 
@@ -72,6 +72,7 @@ void TypedSet::finishParsing(bool& present, bool& unsat){
 
 	prop = getType().createPropagator(this);
 	bool sat = false;
+	bool unsat = false;
 	getProp()->initialize(unsat, sat);
 	present = not sat;
 	if(present){
@@ -90,8 +91,9 @@ void TypedSet::finishParsing(bool& present, bool& unsat){
 
 	if(unsat){
 		if (verbosity() >= 3) {
-			report("Initializing aggregate set, unsat detected.\n");
+			clog <<"Initializing aggregate set, unsat detected.\n";
 		}
+		getPCSolver().notifyUnsat();
 	}
 
 	notifyInitialized();
@@ -113,9 +115,9 @@ rClause TypedSet::notifySolver(AggReason* ar) {
 
 	if (value(p) == l_False) {
 		if (verbosity() >= 2) {
-			report("Deriving conflict in ");
+			clog <<"Deriving conflict in ";
 			print(p, l_True);
-			report(" because of the aggregate expression ");
+			clog <<" because of the aggregate expression ";
 			MinisatID::print(verbosity(), ar->getAgg(), true);
 		}
 		assert(getPCSolver().modes().aggclausesaving>1 || ar->hasClause());
@@ -130,9 +132,9 @@ rClause TypedSet::notifySolver(AggReason* ar) {
 		return confl;
 	} else if (value(p) == l_Undef) {
 		if (verbosity() >= 2) {
-			report("Deriving ");
+			clog <<"Deriving ";
 			print(p, l_True);
-			report(" because of the aggregate expression ");
+			clog <<" because of the aggregate expression ";
 			MinisatID::print(verbosity(), ar->getAgg(), true);
 		}
 

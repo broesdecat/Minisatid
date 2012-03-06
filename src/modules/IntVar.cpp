@@ -26,7 +26,8 @@ IntVar::IntVar(PCSolver* solver, int origid, int min, int max)
 	getPCSolver().acceptFinishParsing(this, false);
 }
 
-void IntVar::finishParsing(bool& present, bool& unsat){
+void IntVar::finishParsing(bool& present){
+	present = true;
 	offset = engine().nVars();
 	for(int i=origMinValue(); i<origMaxValue()+1; ++i){
 		// TODO equalities moeten mss geen decision vars zijn?

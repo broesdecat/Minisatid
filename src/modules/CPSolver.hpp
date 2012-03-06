@@ -83,7 +83,7 @@ public:
 	int		getNbOfFormulas	() const;
 	rClause getExplanation	(const Lit& p);
 	// Event propagator methods
-	void 	finishParsing	(bool& present, bool& unsat);
+	void 	finishParsing	(bool& present);
 	void 	notifyNewDecisionLevel();
 	void 	notifyBacktrack(int untillevel, const Lit& decision);
 	rClause notifypropagate();

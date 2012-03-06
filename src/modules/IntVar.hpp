@@ -38,7 +38,7 @@ public:
 	static const IntVarValue& getIntVar(const Lit& lit) { return var2intvarvalues.at(var(lit)); }
 
 	virtual const char* getName() const { return "intvar"; }
-	virtual void finishParsing(bool& present, bool& unsat);
+	virtual void finishParsing(bool& present);
 	virtual void notifyBacktrack(int untillevel, const Lit& decision);
 	virtual rClause	notifypropagate();
 

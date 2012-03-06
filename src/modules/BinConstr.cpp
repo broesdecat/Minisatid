@@ -28,7 +28,8 @@ BinaryConstraint::BinaryConstraint(PCSolver* engine, IntVar* left, EqType comp,
 	getPCSolver().acceptFinishParsing(this, true); // has to be AFTER the intvars!
 }
 
-void BinaryConstraint::finishParsing(bool& unsat, bool& sat) {
+void BinaryConstraint::finishParsing(bool& present) {
+	present = true;
 	// TODO anything on intvars cannot be accepted before finishparsing of the intvar!
 	getPCSolver().accept(this, head(), FAST);
 	getPCSolver().accept(this, not head(), FAST);

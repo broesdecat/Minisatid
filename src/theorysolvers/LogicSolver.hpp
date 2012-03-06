@@ -31,7 +31,7 @@ public:
 			: _modes(modes), parent(inter){};
 	virtual ~LogicSolver(){};
 
-	virtual void 	finishParsing(bool& unsat) = 0;
+	virtual void 	finishParsing() = 0;
 
 	virtual bool	solve(const litlist& assumptions, const ModelExpandOptions& options) = 0;
 	virtual void	printTheory(std::ostream& stream) = 0;
@@ -48,6 +48,8 @@ public:
 	virtual void	notifyNonDecisionVar(Var var) = 0;
 
 	virtual void 	printStatistics	() const = 0;
+
+	virtual bool	isUnsat() const = 0;
 
 public:
 	void requestMonitor		(WrapperPimpl* monitor) { monitors.push_back(monitor); }

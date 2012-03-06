@@ -43,18 +43,20 @@ rClause LazyResidual::notifypropagate(){
 		//(e.g. clauses in the sat solver, backtrack to the appropriate level if necessary
 		//      (where the constraint is not unsatisfied)).
 	}
+
+	MAssert(not getPCSolver().isUnsat());
+
 	// TODO make preventpropagation more specific?
 	getPCSolver().preventPropagation(); // NOTE: necessary for inductive definitions, as otherwise might try propagation before all rules for some head have been added.
 	monitor->requestGrounding(); // FIXME should delete the other watch too
 	getPCSolver().allowPropagation();
 
-	bool unsat;
-	if(getPCSolver().isInitialized()){ // NOTE: otherwise, it will be called later and would be incorrect here!
-		getPCSolver().finishParsing(unsat);
+	if(not getPCSolver().isUnsat() && getPCSolver().isInitialized()){ // NOTE: otherwise, it will be called later and would be incorrect here!
+		getPCSolver().finishParsing();
 	}
 	notifyNotPresent(); // FIXME clean way of deleting this? FIXME only do this after finishparsing as this propagated is then DELETED
 
-	if(getPCSolver().satState()==SATVAL::UNSAT){
+	if(getPCSolver().isUnsat()){
 		InnerDisjunction d;
 		d.literals = { getPCSolver().getTrail().back()};
 		return getPCSolver().createClause(d, true);

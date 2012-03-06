@@ -199,8 +199,8 @@ void CPSolver::checkHeadUniqueness() const{
 	}
 }
 
-void CPSolver::finishParsing(bool& present, bool& unsat){
-	assert(isParsing() && present && !unsat);
+void CPSolver::finishParsing(bool& present){
+	assert(isParsing() && present);
 	notifyParsed();
 
 	if(getData().getNonReifConstraints().size() + getData().getReifConstraints().size() + getData().getTerms().size() == 0){
@@ -215,12 +215,12 @@ void CPSolver::finishParsing(bool& present, bool& unsat){
 	SpaceStatus status = getSpace().status(stats);
 
 	if(status==SS_FAILED){
-		unsat = true;
+		getPCSolver().notifyUnsat();
 	}
 
 	// Propagate all assigned reification atoms.
-	if(!unsat && propagateReificationConstraints()!=nullPtrClause){
-		unsat = true;
+	if(not getPCSolver().isUnsat() && propagateReificationConstraints()!=nullPtrClause){
+		getPCSolver().notifyUnsat();
 	}
 
 	notifyInitialized();

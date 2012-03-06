@@ -236,26 +236,25 @@ void IDSolver::addFinishedDefinedAggregate(TempRule* rule) {
 /*
  * @PRE: aggregates have to have been finished
  */
-void IDSolver::finishParsing(bool& present, bool& unsat) {
-	MAssert(getPCSolver().satState()!=SATVAL::UNSAT);
+void IDSolver::finishParsing(bool& present) {
+	MAssert(not getPCSolver().isUnsat());
 	if (rules.size() == 0 && not forcefinish && finishedonce) {
 		return;
 	}
 
 	present = true;
-	unsat = false;
 
 	//notifyParsed(); // TODO not correct after repeated calls (lazy grounding)
 
 	while (rules.size() > 0) {
 		auto temprules = rules; // NOTE: need copy because during adding we might do more grounding and get more rules
 		rules.clear();
-		for (auto i = temprules.cbegin(); not unsat && i != temprules.cend(); ++i) {
+		for (auto i = temprules.cbegin(); not getPCSolver().isUnsat() && i != temprules.cend(); ++i) {
 			if (i->second->inneragg) {
 				addFinishedDefinedAggregate(i->second);
 			} else {
 				if (addFinishedRule(i->second) == SATVAL::UNSAT) {
-					unsat = true;
+					getPCSolver().notifyUnsat();
 				}
 			}
 		}
@@ -264,14 +263,8 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 
 	needtofinishrules = false;
 
-	if (unsat) {
-		getPCSolver().notifyUnsat(); // TODO: Probably already done
-		return;
-	}
-
 	if (finishedonce && not forcefinish) {
 		getPCSolver().getNonConstOptions().defn_strategy = adaptive;
-		CHECK(unsat)
 		return;
 	}
 	needtofinishid = false;
@@ -285,8 +278,6 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 	if (getPCSolver().getCurrentDecisionLevel() != 0) { // NOTE can only initialize sccs and unfounded sets at level 0
 		getPCSolver().backtrackTo(0);
 	}
-
-	CHECK(unsat)
 
 	//LAZY initialization
 	posloops = true;
@@ -369,7 +360,10 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 		bumpHeadHeuristic();
 	}
 
-	unsat = not simplifyGraph(atoms_in_pos_loops);
+	bool unsat = getPCSolver().isUnsat();
+	if(not unsat){
+		unsat = not simplifyGraph(atoms_in_pos_loops);
+	}
 
 	if (verbosity() >= 1) {
 		clog << "> Number of recursive atoms in positive loops : " << atoms_in_pos_loops << ".\n";
@@ -378,19 +372,17 @@ void IDSolver::finishParsing(bool& present, bool& unsat) {
 		}
 	}
 
-	CHECK(unsat)
 	if (not unsat && modes().tocnf) {
 		unsat = transformToCNF(sccroots, present) == SATVAL::UNSAT;
-CHECK	(unsat)
-}
+	}
 
 	notifyInitialized();
 
 	if (unsat) {
 		getPCSolver().notifyUnsat();
 	} else {
-CHECKSEEN}
-CHECK(unsat)
+		CHECKSEEN
+	}
 }
 
 // NOTE: essentially, simplifygraph can be called anytime the level-0 interpretation has changed.
@@ -1023,14 +1015,14 @@ rClause IDSolver::notifypropagate() {
 	CHECKNOTUNSAT
 	if (needtofinishid || needtofinishrules) {
 		forcefinish = true;
-		bool present, unsat;
+		bool present;
 		infactnotpresent = false;
-		finishParsing(present, unsat);
+		finishParsing(present);
 		if (not present) {
 			infactnotpresent = true;
 			return nullPtrClause;
 		}
-		if (unsat) {
+		if (getPCSolver().isUnsat()) {
 			// FIXME incorrect? dummy unsat clause!
 			InnerDisjunction d;
 			d.literals = {getPCSolver().getTrail().back()};

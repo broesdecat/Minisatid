@@ -226,7 +226,7 @@ public:
 	virtual int			getNbOfFormulas			() const;
 	virtual rClause 	getExplanation			(const Lit& l);
 	// Event propagator methods
-	virtual void 		finishParsing		 	(bool& present, bool& unsat);
+	virtual void 		finishParsing		 	(bool& present);
 	virtual rClause 	notifypropagate			();
 	virtual void 		notifyNewDecisionLevel	();
 	virtual void 		notifyBacktrack			(int untillevel, const Lit& decision){ backtracked = true; Propagator::notifyBacktrack(untillevel, decision); };

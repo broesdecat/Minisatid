@@ -59,6 +59,8 @@ public:
 	const char* getName() const { return "lazy residual notifier";}
 
 	virtual rClause notifypropagate();
+
+	void finishParsing(bool&) {}
 };
 }
 

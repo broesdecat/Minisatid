@@ -156,18 +156,20 @@ SATVAL ModSolver::addChild(int childid){
 /**
  * Recursively notify all Solvers that parsing has finished
  */
-void ModSolver::finishParsingDown(bool& unsat){
+void ModSolver::finishParsingDown(){
 	notifyParsed();
-	getPCSolver().finishParsing(unsat);
+	getPCSolver().finishParsing();
 
 	for(auto i=registeredvars.cbegin(); i<registeredvars.cend(); ++i){
 		getPCSolver().accept(this, mkLit(*i, true), SLOW);
 		getPCSolver().accept(this, mkLit(*i, false), SLOW);
 	}
 
-	for(auto i=getChildren().cbegin(); !unsat && i<getChildren().cend(); ++i){
-		bool childunsat = false;
-		getModSolverData().getModSolver(*i)->finishParsingDown(childunsat);
+	bool unsat = getPCSolver().isUnsat();
+	for(auto i=getChildren().cbegin(); not unsat && i<getChildren().cend(); ++i){
+		auto child = getModSolverData().getModSolver(*i);
+		child->finishParsingDown();
+		unsat = child->getPCSolver().isUnsat();
 		//TODO handle !present
 		//TODO handle unsat => might make this solver !present
 	}
@@ -237,7 +239,8 @@ bool ModSolver::search(const litlist& assumpts, bool search){
 	return result;
 }
 
-void ModSolver::finishParsing(bool& present, bool& unsat){
+void ModSolver::finishParsing(bool& present){
+	present = true;
 	init = true;
 }
 

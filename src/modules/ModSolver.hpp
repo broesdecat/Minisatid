@@ -118,7 +118,7 @@ public:
 	//Propagator methods
 	const char* getName				()	const	{ return "modal operator"; }
 	void 		printState			() const;
-	void 		finishParsing		(bool& present, bool& unsat);
+	void 		finishParsing		(bool& present);
 	rClause		notifypropagate		();
 	void 		notifyNewDecisionLevel	();
 	void 		notifyBacktrack		(int untillevel, const Lit& decision);
@@ -135,7 +135,7 @@ public:
 	 */
 	rClause 	propagateDown	(Lit l);
 	void 		backtrackFromAbove(Lit l);
-	void 		finishParsingDown(bool& unsat);
+	void 		finishParsingDown();
 	bool 		propagateDownAtEndOfQueue(litlist& confldisj);
 
 	bool 		solve			(const litlist& assumptions, const ModelExpandOptions& options);

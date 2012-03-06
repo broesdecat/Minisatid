@@ -103,7 +103,7 @@ public:
 	void 	notifyClauseDeleted(rClause clauseID);
 	bool 	symmetryPropagationOnAnalyze(const Lit& p);
 	rClause notifyFullAssignmentFound();
-	void 	finishParsing			(bool& unsat);
+	void 	finishParsing			();
 	void 	notifyNewDecisionLevel	();
 	void 	notifyBacktrack			(int untillevel, const Lit& decision);
 	rClause notifyPropagate			();
@@ -121,6 +121,8 @@ public:
 private:
 	void 	setTrue(const proplist& list, std::queue<Propagator*>& queue);
 	void 	clearNotPresentPropagators();
+
+	bool 	isUnsat() const;
 
 	uint size(EVENT event) const;
 };

@@ -112,7 +112,7 @@ public:
 	Var			newVar();
 	int			newSetID();
 
-	void 		finishParsing(bool& unsat);
+	void 		finishParsing();
 
 	void    	setTrue			(const Lit& p, Propagator* solver, rClause c = nullPtrClause);		// Enqueue a literal. Assumes value of literal is undefined
 	void 		notifySetTrue	(const Lit& p);
@@ -172,6 +172,7 @@ public:
 
 	SATVAL 		satState() const;
 	void		notifyUnsat();
+	bool		isUnsat() const { return satState()==SATVAL::UNSAT; }
 
 	void		addOptimization(Optim type, const litlist& literals);
 	void 		addAggOptimization(TypedSet* aggmnmz);

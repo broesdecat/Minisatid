@@ -18,8 +18,8 @@
 using namespace MinisatID;
 using namespace std;
 
-EventQueue::EventQueue(PCSolver& pcsolver) :
-		pcsolver(pcsolver), initialized(false), finishing(false), allowpropagation(true) {
+EventQueue::EventQueue(PCSolver& pcsolver)
+		: pcsolver(pcsolver), initialized(false), finishing(false), allowpropagation(true) {
 	event2propagator[EV_PRINTSTATE];
 	event2propagator[EV_PRINTSTATS];
 	event2propagator[EV_CHOICE];
@@ -42,20 +42,24 @@ EventQueue::~EventQueue() {
 	deleteList<GenWatch>(lit2watches);
 }
 
-void EventQueue::preventPropagation(){
+void EventQueue::preventPropagation() {
 	allowpropagation = false;
 }
-void EventQueue::allowPropagation(){
+void EventQueue::allowPropagation() {
 	allowpropagation = true;
+}
+
+bool EventQueue::isUnsat() const{
+	return getPCSolver().satState() == SATVAL::UNSAT;
 }
 
 void EventQueue::notifyVarAdded() {
 	while (lit2priority2propagators.size() < 2 * getPCSolver().nVars()) {
 		vector<proplist> newmap;
-		newmap.push_back({});
-		newmap.push_back({});
+		newmap.push_back( { });
+		newmap.push_back( { });
 		lit2priority2propagators.push_back(newmap);
-		lit2watches.push_back({});
+		lit2watches.push_back( { });
 	}
 	var2decidable.resize(getPCSolver().nVars());
 }
@@ -206,31 +210,34 @@ void EventQueue::clearNotPresentPropagators() {
 	}
 }
 
-void EventQueue::finishParsing(bool& unsat) {
-	unsat = false;
+void EventQueue::finishParsing() {
+	MAssert(not isUnsat());
 
-	if(finishing || not allowpropagation || finishparsing.size()==0){
+	if (finishing || not allowpropagation || finishparsing.size() == 0) {
 		return;
 	}
 	finishing = true;
 
-	if(getPCSolver().verbosity()>0){
-		clog <<">>> Adding additional constraints to search\n";
+	if (getPCSolver().verbosity() > 0) {
+		clog << ">>> Adding additional constraints to search\n";
 	}
 
-	while(finishparsing.size() > 0){
-		while (finishparsing.size() > 0 && not unsat) {
+	while (finishparsing.size() > 0 && not isUnsat()) {
+		while (finishparsing.size() > 0 && not isUnsat()) {
 			auto prop = finishparsing.front();
 			finishparsing.pop_front();
 			bool present = true;
-			prop->finishParsing(present, unsat);
-			if(unsat){
-				return;
+			prop->finishParsing(present);
+			if (isUnsat()) {
+				break;
 			}
 			if (!present) {
 				printNoPropagationsOn(clog, prop->getName(), getPCSolver().verbosity());
 				prop->notifyNotPresent();
 			}
+		}
+		if (isUnsat()) {
+			break;
 		}
 
 		//clearNotPresentPropagators() TODO very expensive??
@@ -247,18 +254,20 @@ void EventQueue::finishParsing(bool& unsat) {
 			}
 		}
 
+		MAssert(not isUnsat());
+
 		// Do all possible propagations that are queued
-		if (getPCSolver().satState() != SATVAL::UNSAT && notifyPropagate() != nullPtrClause) {
-			unsat = true;
+		if (notifyPropagate() != nullPtrClause) {
+			getPCSolver().notifyUnsat(); // TODO do something with the conflict clause?
 		}
 	}
 
 	finishing = false;
 }
 
-rClause EventQueue::checkDecidables(){
+rClause EventQueue::checkDecidables() {
 	rClause confl = nullPtrClause;
-	while(not propagatedecidables.empty() && confl==nullPtrClause){
+	while (not propagatedecidables.empty() && confl == nullPtrClause) {
 		auto prop = propagatedecidables.front();
 		propagatedecidables.pop();
 		confl = prop->notifypropagate();
@@ -267,16 +276,16 @@ rClause EventQueue::checkDecidables(){
 }
 
 rClause EventQueue::notifyPropagate() {
-	if(not allowpropagation){
+	if (not allowpropagation) {
 		return nullPtrClause;
 	}
 
 	rClause confl = nullPtrClause;
 	confl = checkDecidables();
 
-	for (auto i = propagateasap.cbegin(); i < propagateasap.cend() && confl==nullPtrClause; ++i) {
+	for (auto i = propagateasap.cbegin(); i < propagateasap.cend() && confl == nullPtrClause; ++i) {
 		confl = checkDecidables();
-		if(confl!=nullPtrClause){
+		if (confl != nullPtrClause) {
 			break;
 		}
 
@@ -288,7 +297,7 @@ rClause EventQueue::notifyPropagate() {
 	while (fastqueue.size() + slowqueue.size() != 0 && confl == nullPtrClause) {
 		MAssert(fastqueue.size() + slowqueue.size() != 0);
 		confl = checkDecidables();
-		if(confl!=nullPtrClause || fastqueue.size()+slowqueue.size()==0){ // Might get called recursively (TODO should that be prevented?) so might be empty here
+		if (confl != nullPtrClause || fastqueue.size() + slowqueue.size() == 0) { // Might get called recursively (TODO should that be prevented?) so might be empty here
 			break;
 		}
 
@@ -338,18 +347,18 @@ rClause EventQueue::notifyFullAssignmentFound() {
 	return confl;
 }
 
-void EventQueue::acceptForDecidable(Var v, Propagator* prop){
+void EventQueue::acceptForDecidable(Var v, Propagator* prop) {
 	MAssert(v<var2decidable.size());
-	if(not getPCSolver().isDecisionVar(v)){
+	if (not getPCSolver().isDecisionVar(v)) {
 		var2decidable[v].push_back(prop);
-	}else{
+	} else {
 		prop->notifypropagate();
 	}
 }
 
-void EventQueue::notifyBecameDecidable(Var v){
+void EventQueue::notifyBecameDecidable(Var v) {
 	MAssert(v<var2decidable.size());
-	for(auto i=var2decidable[v].cbegin(); i<var2decidable[v].cend(); ++i){
+	for (auto i = var2decidable[v].cbegin(); i < var2decidable[v].cend(); ++i) {
 		propagatedecidables.push(*i);
 	}
 	var2decidable[v].clear();
@@ -444,7 +453,7 @@ void EventQueue::printState() const {
 }
 
 void EventQueue::printECNF(ostream& stream, set<Var>& printedvars) const {
-	for (auto i=allpropagators.cbegin(); i < allpropagators.cend(); ++i) {
+	for (auto i = allpropagators.cbegin(); i < allpropagators.cend(); ++i) {
 		//(*i)->printECNF(); //TODO
 	}
 }

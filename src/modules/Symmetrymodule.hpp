@@ -170,7 +170,8 @@ public:
         return propagatedBySymClasses;
 	}
 
-	void finishParsing(bool& present, bool& unsat) {
+	void finishParsing(bool& present) {
+		present = true;
 		parsing = false;
 	    for(auto i=symmgroups.begin(); i<symmgroups.end(); ++i){
 	    	symClasses.push_back(new SymVars(*i));

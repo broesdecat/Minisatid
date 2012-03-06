@@ -347,7 +347,7 @@ int	PCSolver::getTime(const Var& var) const{
 	return trail->getTime(mkPosLit(var));
 }
 
-void PCSolver::finishParsing(bool& unsat) {
+void PCSolver::finishParsing() {
 	if(state!=THEORY_INITIALIZED){
 		state = THEORY_INITIALIZING;
 		dummy1 = newVar();
@@ -361,10 +361,16 @@ void PCSolver::finishParsing(bool& unsat) {
 
 		propagations.resize(nVars(), NULL); //Lazy init
 		state = THEORY_INITIALIZED;
-		unsat |= getFactory().finishParsing()==SATVAL::UNSAT;
+		if(getFactory().finishParsing()==SATVAL::UNSAT){
+			notifyUnsat();
+		}
 	}
 
-	getEventQueue().finishParsing(unsat);
+	if(isUnsat()){
+		return;
+	}
+
+	getEventQueue().finishParsing();
 	if (modes().useaggheur) {
 		getSATSolver()->notifyCustomHeur();
 	}

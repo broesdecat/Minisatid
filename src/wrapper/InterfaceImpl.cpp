@@ -216,9 +216,8 @@ SATVAL WrapperPimpl::finishParsing(){
 		printInitDataStart(verbosity());
 	}
 
-	bool unsat = false;
-	getSolver()->finishParsing(unsat);
-	if(unsat){
+	getSolver()->finishParsing();
+	if(getSolver()->isUnsat()){
 		if(hasSolMonitor()){
 			getSolMonitor().notifyUnsat();
 		}
@@ -230,7 +229,7 @@ SATVAL WrapperPimpl::finishParsing(){
 		printInitDataEnd(verbosity(), getSolMonitor().isUnsat());
 	}
 
-	return unsat?SATVAL::UNSAT:SATVAL::POS_SAT;
+	return getSolver()->isUnsat()?SATVAL::UNSAT:SATVAL::POS_SAT;
 }
 
 /*

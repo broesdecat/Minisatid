@@ -85,9 +85,8 @@ public:
 		assert(false);
 		return nullPtrClause;
 	}
-	virtual void finishParsing(bool&, bool&) {
-		assert(false);
-	}
+	// First argument is true is the propagator is NOT certainly satisfied in the initial interpretation
+	virtual void finishParsing(bool&) = 0;
 	// Checks presence of aggregates and initializes all counters. UNSAT is set to true if unsat is detected
 	// PRESENT is set to true if aggregate propagations should be done
 	virtual void notifyNewDecisionLevel() {

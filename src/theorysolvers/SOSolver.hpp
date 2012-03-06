@@ -60,7 +60,7 @@ public:
 	SOSolver				(SolverOption modes, MinisatID::WrapperPimpl& inter);
 	virtual ~SOSolver		();
 
-	void 	finishParsing	(bool& unsat);
+	void 	finishParsing	();
 	bool 	isRoot			(const ModSolver* solver) const;
 	void 	addModel		(const InnerModel& model);
 	bool 	simplify		();
@@ -81,6 +81,8 @@ public:
 
 	void 	printStatistics	() const;
 	void 	printTheory(std::ostream&) { assert(false); }
+
+	bool	isUnsat() const;
 
 private:
 	ModSolver& getModSolverDuringAdding(int modid);

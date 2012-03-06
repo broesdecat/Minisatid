@@ -79,7 +79,7 @@ public:
 	virtual rClause getExplanation		(const Lit&);
 
 	virtual rClause notifyFullAssignmentFound();
-	virtual void 	finishParsing		(bool& present, bool& unsat);
+	virtual void 	finishParsing		(bool& present);
 		// Checks presence of aggregates and initializes all counters. UNSAT is set to true if unsat is detected
 		// PRESENT is set to true if aggregate propagations should be done
 	virtual void 	notifyNewDecisionLevel	();
