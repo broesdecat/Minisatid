@@ -51,12 +51,6 @@ void throwDoubleDefinedSet(int setid) {
 	throw idpexception(ss.str());
 }
 
-void throwEmptySet(int setid) {
-	stringstream ss;
-	ss << "Set nr. " << setid << " is empty.\n";
-	throw idpexception(ss.str());
-}
-
 void throwNegativeHead(Var head) {
 	stringstream ss;
 	ss << "An aggregate cannot be defined by a negative head, violated for " << getPrintableVar(head) << ".\n";
@@ -229,10 +223,6 @@ void PropagatorFactory::add(const InnerRule& rule) {
 void PropagatorFactory::add(const InnerWLSet& formula) {
 	notifyMonitorsOfAdding(formula);
 
-	if (formula.wls.size() == 0) {
-		throwEmptySet(formula.setID);
-	}
-
 	for (auto i = formula.wls.cbegin(); i != formula.wls.cend(); ++i) {
 		addVar((*i).getLit());
 	}
@@ -244,8 +234,6 @@ void PropagatorFactory::add(const InnerWLSet& formula) {
 	if (contains(parsedsets, formula.setID)) {
 		throwDoubleDefinedSet(formula.setID);
 	}
-
-	assert(formula.wls.size()>0);
 
 	// TODO only if type is known here verifySet(formula);
 
@@ -293,7 +281,7 @@ void PropagatorFactory::add(const InnerReifAggregate& origagg) {
 		newagg.sign = newagg.sign == AGGSIGN_LB ? AGGSIGN_UB : AGGSIGN_LB;
 		newagg.bound = -newagg.bound;
 		if (setwithagg.second.size() == 0) { // FIXME ugly: check whether it is the first MIN agg added to the set
-			InnerWLSet* set = setwithagg.first;
+			auto set = setwithagg.first;
 			vector<WL> newwls;
 			for (auto i = set->getWL().cbegin(); i != set->getWL().cend(); ++i) {
 				newwls.push_back(WL((*i).getLit(), -(*i).getWeight()));
@@ -319,27 +307,11 @@ void PropagatorFactory::addAggrExpr(Var head, int setid, AggSign sign, const Wei
 
 	getEngine().varBumpActivity(head); // NOTE heuristic! (TODO move)
 
-	TempAgg* agg = new TempAgg(mkPosLit(head), AggBound(sign, bound), sem == DEF ? COMP : sem, type);
+	auto agg = new TempAgg(mkPosLit(head), AggBound(sign, bound), sem == DEF ? COMP : sem, type);
 	set.second.push_back(agg);
 
 	if (not isParsing()) {
 		finishSet(set.first, set.second);
-		/*FIXME assert(getEngine().getCurrentDecisionLevel()==0);
-		 if(getEngine().modes().pbsolver){
-		 map<int, TypedSet*> newsets;
-		 newsets[setid] = set;
-		 transformSumsToCNF(getEngine(), newsets);
-		 }
-
-		 bool present = false, unsat = false;
-		 set->finishParsing(present, unsat);
-		 if(unsat){
-		 throw idpexception("Adding unsatisfiable aggregates during search is not handled correctly at the moment.\n");
-		 }
-		 if(not present){
-		 delete(set);
-		 parsedsets.erase(setid); // TODO might still be present in event datastructures => should be removed by those in fact!
-		 }*/
 	}
 }
 
@@ -522,23 +494,8 @@ void PropagatorFactory::add(InnerDisjunction& formula, rClause& newclause) {
 SATVAL PropagatorFactory::finishSet(const InnerWLSet* origset, vector<TempAgg*>& aggs, bool optimagg) {
 	bool unsat = false, sat = false;
 
-	MAssert(origset->wls.size()>0);
-
-	auto set = new InnerWLSet(*origset);
-
-	// transform into SAT if requested
-	if (getEngine().modes().tocnf && not optimagg) {
-		if (not AggStorage::hasStorage()) {
-			AggStorage::addStorage(getEnginep());
-		}
-		AggStorage::getStorage()->add(set, aggs);
-	}
-	if (aggs.size() == 0) {
-		return SATVAL::POS_SAT;
-	}
-
 	AggProp const * type = NULL;
-	switch (set->type) {
+	switch (origset->type) {
 	case MAX:
 		type = AggProp::getMax();
 		break;
@@ -554,6 +511,34 @@ SATVAL PropagatorFactory::finishSet(const InnerWLSet* origset, vector<TempAgg*>&
 	default:
 		assert(false);
 		break;
+	}
+
+	if(origset->wls.size()==0){
+		if(optimagg){
+			throw idpexception("An optimization aggregate cannot have an empty set.\n");
+		}
+		for(auto i=aggs.cbegin(); i<aggs.cend(); ++i){
+			if((*i)->hasLB()){
+				getEngine().notifySetTrue((type->getESV()>=(*i)->getBound())?(*i)->getHead():not (*i)->getHead());
+			}else{
+				getEngine().notifySetTrue((type->getESV()<=(*i)->getBound())?(*i)->getHead():not (*i)->getHead());
+			}
+		}
+		aggs.clear();
+		return getEngine().satState();
+	}
+
+	auto set = new InnerWLSet(*origset);
+
+	// transform into SAT if requested
+	if (getEngine().modes().tocnf && not optimagg) {
+		if (not AggStorage::hasStorage()) {
+			AggStorage::addStorage(getEnginep());
+		}
+		AggStorage::getStorage()->add(set, aggs);
+	}
+	if (aggs.size() == 0) {
+		return SATVAL::POS_SAT;
 	}
 
 	Weight knownbound(0);
@@ -647,5 +632,6 @@ void PropagatorFactory::add(const InnerLazyClause& object) {
 		new LazyResidual(getEnginep(), var(object.residual), object.monitor);
 	} else {
 		new LazyResidualWatch(getEnginep(), object.residual, object.monitor);
+		//getEngine().getSATSolver()->setPolarity(var(object.residual), sign(object.residual)?l_True:l_False);
 	}
 }
