@@ -243,6 +243,8 @@ void PropagatorFactory::add(const InnerWLSet& formula) {
 void PropagatorFactory::add(const InnerAggregate& agg) {
 	notifyMonitorsOfAdding(agg);
 
+	guaranteeAtRootLevel(); // TODO currently only at root level, should change?
+
 	if (parsedsets.find(agg.setID) == parsedsets.cend()) {
 		throwUndefinedSet(agg.setID);
 	}
@@ -264,6 +266,9 @@ void PropagatorFactory::add(const InnerAggregate& agg) {
 
 void PropagatorFactory::add(const InnerReifAggregate& origagg) {
 	notifyMonitorsOfAdding(origagg);
+
+	guaranteeAtRootLevel(); // TODO currently only at root level, should change?
+
 	InnerReifAggregate newagg(origagg);
 
 	if (parsedsets.find(newagg.setID) == parsedsets.cend()) {
@@ -318,6 +323,8 @@ void PropagatorFactory::addAggrExpr(Var head, int setid, AggSign sign, const Wei
 void PropagatorFactory::add(const InnerMinimizeSubset& formula) {
 	notifyMonitorsOfAdding(formula);
 
+	guaranteeAtRootLevel();
+
 	if (formula.literals.size() == 0) {
 		throw idpexception("The set of literals to be minimized is empty.\n");
 	}
@@ -329,6 +336,8 @@ void PropagatorFactory::add(const InnerMinimizeSubset& formula) {
 void PropagatorFactory::add(const InnerMinimizeOrderedList& formula) {
 	notifyMonitorsOfAdding(formula);
 
+	guaranteeAtRootLevel();
+
 	if (formula.literals.size() == 0) {
 		throw idpexception("The set of literals to be minimized is empty.\n");
 	}
@@ -338,6 +347,8 @@ void PropagatorFactory::add(const InnerMinimizeOrderedList& formula) {
 }
 void PropagatorFactory::add(const InnerMinimizeAgg& formula) {
 	notifyMonitorsOfAdding(formula);
+
+	guaranteeAtRootLevel();
 
 	auto head = getEngine().newVar();
 	addVar(head);
@@ -363,6 +374,8 @@ void PropagatorFactory::add(const InnerMinimizeAgg& formula) {
 void PropagatorFactory::add(const InnerMinimizeVar& formula) {
 	notifyMonitorsOfAdding(formula);
 
+	guaranteeAtRootLevel();
+
 #warning MinimizeVar is not handled at the moment
 	MAssert(false);
 	// TODO check var existence and add optim intvar to pcsolver
@@ -370,6 +383,8 @@ void PropagatorFactory::add(const InnerMinimizeVar& formula) {
 
 void PropagatorFactory::add(const InnerForcedChoices& formula) {
 	notifyMonitorsOfAdding(formula);
+
+	guaranteeAtRootLevel();
 
 	if (formula.forcedchoices.size() != 0) {
 		vec<Lit> lits;
@@ -381,6 +396,8 @@ void PropagatorFactory::add(const InnerForcedChoices& formula) {
 void PropagatorFactory::add(const InnerSymmetryLiterals& formula) {
 	notifyMonitorsOfAdding(formula);
 
+	guaranteeAtRootLevel();
+
 	if (not SymmStorage::hasStorage()) {
 		SymmStorage::addStorage(getEnginep());
 	}
@@ -390,6 +407,8 @@ void PropagatorFactory::add(const InnerSymmetryLiterals& formula) {
 
 void PropagatorFactory::add(const InnerSymmetry& formula) {
 	notifyMonitorsOfAdding(formula);
+
+	guaranteeAtRootLevel();
 
 	if (not SymmStorage::hasStorage()) {
 		SymmStorage::addStorage(getEnginep());
@@ -401,6 +420,7 @@ void PropagatorFactory::add(const InnerSymmetry& formula) {
 template<class T>
 void PropagatorFactory::addCP(const T& formula) {
 	notifyMonitorsOfAdding(formula);
+	guaranteeAtRootLevel();
 #ifndef CPSUPPORT
 	throw idpexception("Adding a finite domain constraint while minisatid was compiled without CP support\n");
 #else
@@ -489,6 +509,12 @@ void PropagatorFactory::add(InnerDisjunction& formula, rClause& newclause) {
 	vec<Lit> lits;
 	toVec(formula.literals, lits);
 	SATStorage::getStorage()->addBinaryOrLargerClause(lits, newclause);
+}
+
+void PropagatorFactory::guaranteeAtRootLevel(){
+	if(getEngine().getCurrentDecisionLevel()>0){
+		getEngine().backtrackTo(0);
+	}
 }
 
 SATVAL PropagatorFactory::finishSet(const InnerWLSet* origset, vector<TempAgg*>& aggs, bool optimagg) {

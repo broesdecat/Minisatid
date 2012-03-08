@@ -275,10 +275,6 @@ void IDSolver::finishParsing(bool& present) {
 		clog << ">>> Initializing inductive definition " << definitionID << "\n";
 	}
 
-	if (getPCSolver().getCurrentDecisionLevel() != 0) { // NOTE can only initialize sccs and unfounded sets at level 0
-		getPCSolver().backtrackTo(0);
-	}
-
 	//LAZY initialization
 	posloops = true;
 	negloops = true;
@@ -351,13 +347,17 @@ void IDSolver::finishParsing(bool& present) {
 	}
 
 	if (!posloops && !negloops) {
-		if (not modes().lazy) {
-			present = false;
-		}
+		present = false;
+		return;
 	}
 
 	if (modes().bumpidonstart) {
 		bumpHeadHeuristic();
+	}
+
+	// TODO NOTE: VERY IMPORTANT: any code above this line should NOT use information on the interpretation!
+	if (getPCSolver().getCurrentDecisionLevel() != 0) { // NOTE can only initialize unfounded sets at level 0 TODO can we improve this schema?
+		getPCSolver().backtrackTo(0);
 	}
 
 	bool unsat = getPCSolver().isUnsat();
@@ -815,10 +815,10 @@ void IDSolver::visitFull(Var i, vector<bool> &incomp, varlist &stack, varlist &v
 	switch (type(i)) {
 	case DefType::DISJ:
 	case DefType::CONJ: {
-		PropRule const * const r = definition(i);
+		auto r = definition(i);
 		for (vsize j = 0; j < r->size(); ++j) {
-			Lit l = (*r)[j];
-			int w = var(l);
+			auto l = (*r)[j];
+			auto w = var(l);
 			if (!isDefined(w)) {
 				continue;
 			}
@@ -835,8 +835,8 @@ void IDSolver::visitFull(Var i, vector<bool> &incomp, varlist &stack, varlist &v
 		break;
 	}
 	case DefType::AGGR: {
-		for (vwl::const_iterator j = getSetLitsOfAggWithHeadBegin(i); j < getSetLitsOfAggWithHeadEnd(i); ++j) {
-			Var w = var((*j).getLit());
+		for (auto j = getSetLitsOfAggWithHeadBegin(i); j < getSetLitsOfAggWithHeadEnd(i); ++j) {
+			auto w = var((*j).getLit());
 			if (!isDefined(w)) {
 				continue;
 			}
@@ -892,10 +892,10 @@ void IDSolver::visit(Var i, vector<bool> &incomp, varlist &stack, varlist &visit
 	switch (type(i)) {
 	case DefType::DISJ:
 	case DefType::CONJ: {
-		PropRule const * const r = definition(i);
+		auto r = definition(i);
 		for (vsize j = 0; j < r->size(); ++j) {
-			Lit l = (*r)[j];
-			Var w = var(l);
+			auto l = (*r)[j];
+			auto w = var(l);
 			if (isDefined(w) && i != w && isPositive(l)) {
 				if (visited[w] == 0) {
 					visit(w, incomp, stack, visited, counter, roots);
@@ -909,8 +909,8 @@ void IDSolver::visit(Var i, vector<bool> &incomp, varlist &stack, varlist &visit
 	}
 	case DefType::AGGR: {
 		//TODO this can be optimized by using another method which only returns literals possibly in the positive dependency graph.
-		for (vwl::const_iterator j = getSetLitsOfAggWithHeadBegin(i); j < getSetLitsOfAggWithHeadEnd(i); ++j) {
-			Var w = var((*j).getLit());
+		for (auto j = getSetLitsOfAggWithHeadBegin(i); j < getSetLitsOfAggWithHeadEnd(i); ++j) {
+			auto w = var((*j).getLit());
 			if (!isDefined(w)) {
 				continue;
 			}
