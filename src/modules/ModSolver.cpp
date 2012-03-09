@@ -412,7 +412,7 @@ void ModSolver::backtrackFromAbove(Lit l){
 				break;
 			}else{
 #ifndef NDEBUG
-				for(int j=0; j<assumptions.size(); ++j){
+				for(vsize j=0; j<assumptions.size(); ++j){
 					assert(var(assumptions[j])!=var(l));
 				}
 #endif

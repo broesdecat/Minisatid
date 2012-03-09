@@ -154,11 +154,11 @@ rClause CPSolver::getExplanation(const Lit& p){
 	// IMPORTANT: reason is necessary, because a literal might be derived by CP, but
 	// requested an explanation before it is effectively propagated and in the trail itself
 
-	assert(propreason[p]!=-1);
+	assert(propreason[p]!=(vsize)-1);
 
 	InnerDisjunction clause;
 	clause.literals.push_back(p);
-	for(vector<Lit>::size_type i=0; i<propreason[p]; i++){
+	for(vsize i=0; i<propreason[p]; i++){
 		// FIXME skip all those not propagated into the cp solver
 		clause.literals.push_back(~trail.getTrail()[i]);
 	}
@@ -170,7 +170,7 @@ rClause CPSolver::notifySATsolverOfPropagation(const Lit& p) {
 		if (getPCSolver().verbosity() >= 2) {
 			clog <<">> Deriving conflinct in " <<p <<" because of constraint expression.\n";
 		}
-		vector<Lit>::size_type temp = propreason[p];
+		vsize temp = propreason[p];
 		propreason[p] = trail.getTrail().size();
 		rClause confl = getExplanation(p);
 		propreason[p] = temp;

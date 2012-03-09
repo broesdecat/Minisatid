@@ -348,7 +348,7 @@ rClause EventQueue::notifyFullAssignmentFound() {
 }
 
 void EventQueue::acceptForDecidable(Var v, Propagator* prop) {
-	MAssert(v<var2decidable.size());
+	MAssert((vsize)v<var2decidable.size());
 	if (not getPCSolver().isDecisionVar(v)) {
 		var2decidable[v].push_back(prop);
 	} else {
@@ -357,7 +357,7 @@ void EventQueue::acceptForDecidable(Var v, Propagator* prop) {
 }
 
 void EventQueue::notifyBecameDecidable(Var v) {
-	MAssert(v<var2decidable.size());
+	MAssert((vsize)v<var2decidable.size());
 	for (auto i = var2decidable[v].cbegin(); i < var2decidable[v].cend(); ++i) {
 		propagatedecidables.push(*i);
 	}

@@ -223,7 +223,7 @@ void PCSolver::acceptForDecidable(Var v, Propagator* prop){
 	getEventQueue().acceptForDecidable(v, prop);
 }
 void PCSolver::notifyBecameDecidable(Var v){
-	MAssert(v<nVars());
+	MAssert((uint64_t)v<nVars());
 	getEventQueue().notifyBecameDecidable(v);
 }
 
