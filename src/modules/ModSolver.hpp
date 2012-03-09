@@ -122,7 +122,7 @@ public:
 	rClause		notifypropagate		();
 	void 		notifyNewDecisionLevel	();
 	void 		notifyBacktrack		(int untillevel, const Lit& decision);
-	rClause 	getExplanation		(const Lit& l) { assert(false); return nullPtrClause; /*TODO NOT IMPLEMENTED*/ };
+	rClause 	getExplanation		(const Lit&) { throw idpexception("getting explanation in modsolver is not implemented.\n"); /*TODO NOT IMPLEMENTED*/ };
 	rClause 	notifyFullAssignmentFound(){ return nullPtrClause; } // TODO should check wellfoundedness here
 	int			getNbOfFormulas		() const { return children.size(); }
 

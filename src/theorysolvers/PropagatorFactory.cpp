@@ -59,7 +59,7 @@ void throwNegativeHead(Var head) {
 
 void throwHeadOccursInSet(Var head, int setid) {
 	stringstream ss;
-	ss << "For the aggregated with head " << getPrintableVar(head) << " also occurs in its set.\n";
+	ss << "For the aggregated with head " << getPrintableVar(head) << " also occurs in set " <<setid <<".\n";
 	throw idpexception(ss.str());
 }
 
@@ -376,8 +376,7 @@ void PropagatorFactory::add(const InnerMinimizeVar& formula) {
 
 	guaranteeAtRootLevel();
 
-#warning MinimizeVar is not handled at the moment
-	MAssert(false);
+	throw idpexception("MinimizeVar is not handled at the moment"); // FIXME
 	// TODO check var existence and add optim intvar to pcsolver
 }
 
@@ -425,7 +424,7 @@ void PropagatorFactory::addCP(const T& formula) {
 	throw idpexception("Adding a finite domain constraint while minisatid was compiled without CP support\n");
 #else
 	CPStorage::getStorage()->add(formula);
-#warning Counting models in the presence of CP variables will be an underapproximation! (finding only one variable assigment for each literal assignment)
+	clog <<"Counting models in the presence of CP variables will be an under-approximation! (finding only one variable assingment for each literal assignment).\n";
 #endif
 }
 
@@ -517,6 +516,8 @@ void PropagatorFactory::guaranteeAtRootLevel(){
 	}
 }
 
+#define SETNOT2VAL(sat, unsat, aggs) (not sat && not unsat && aggs.size()>0)
+
 SATVAL PropagatorFactory::finishSet(const InnerWLSet* origset, vector<TempAgg*>& aggs, bool optimagg) {
 	bool unsat = false, sat = false;
 
@@ -569,23 +570,23 @@ SATVAL PropagatorFactory::finishSet(const InnerWLSet* origset, vector<TempAgg*>&
 
 	Weight knownbound(0);
 	if (not optimagg) { // TODO can we do better for minimization over aggregates?
-		if (!sat && !unsat) {
+		if (SETNOT2VAL(sat, unsat, aggs)) {
 			setReduce(getEnginep(), set, aggs, *type, knownbound, unsat, sat);
 		}
-		if (!sat && !unsat) {
+		if (SETNOT2VAL(sat, unsat, aggs)) {
 			addHeadImplications(getEnginep(), set, aggs, unsat, sat);
 		}
-		if (!sat && !unsat) {
+		if (SETNOT2VAL(sat, unsat, aggs)) {
 			max2SAT(getEnginep(), set, aggs, unsat, sat);
 		}
-		if (!sat && !unsat) {
+		if (SETNOT2VAL(sat, unsat, aggs)) {
 			card2Equiv(getEnginep(), set, aggs, knownbound, unsat, sat);
 		}
-		if (!sat && !unsat) {
+		if (SETNOT2VAL(sat, unsat, aggs)) {
 			decideUsingWatchesAndCreatePropagators(getEnginep(), set, aggs, knownbound);
 		}
 	} else {
-		if (!sat && !unsat) {
+		if (SETNOT2VAL(sat, unsat, aggs)) {
 			assert(aggs.size()==1);
 			decideUsingWatchesAndCreateOptimPropagator(getEnginep(), set, aggs[0], knownbound);
 		}
@@ -631,7 +632,7 @@ SATVAL PropagatorFactory::finishParsing() {
 		satval &= finishSet((*i).second.first, (*i).second.second);
 	}
 	if (AggStorage::hasStorage()) {
-		satval &= AggStorage::getStorage()->execute();
+		satval &= execute(*AggStorage::getStorage());
 	}
 
 	return satval;

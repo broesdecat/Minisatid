@@ -18,8 +18,6 @@
 #include "theorysolvers/PCSolver.hpp"
 #include "modules/aggsolver/PartiallyWatched.hpp"
 
-#include "PbSolver.h"
-
 using namespace std;
 using namespace MinisatID;
 
@@ -67,8 +65,8 @@ void MinisatID::verifyAggregate(InnerWLSet const * const set, Var head, AggType 
 
 //@pre: has been split
 //@post: set ordered from low to high weights
-void MinisatID::setReduce(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>& aggs, const AggProp& type, Weight& knownbound, bool& unsat, bool& sat){
-	assert(!unsat && !sat && aggs.size()>0 && set->wls.size()>0);
+void MinisatID::setReduce(PCSolver*, InnerWLSet* set, std::vector<TempAgg*>&, const AggProp& type, Weight& knownbound, bool&, bool&){
+	assert(set->wls.size()>0);
 	vwl oldset = set->wls;
 	vwl newset;
 
@@ -115,8 +113,7 @@ void MinisatID::setReduce(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg
 	std::sort(set->wls.begin(), set->wls.end(), compareByWeights<WL>);
 }
 
-void MinisatID::addHeadImplications(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>& aggs, bool& unsat, bool& sat) {
-	assert(!unsat && !sat && aggs.size()>0);
+void MinisatID::addHeadImplications(PCSolver* solver, InnerWLSet*, std::vector<TempAgg*>& aggs, bool&, bool&) {
 	if(aggs.size()>1 && aggs[0]->getSem()!=IMPLICATION){
 		tempagglist lbaggs, ubaggs;
 		for(auto i=aggs.cbegin(); i<aggs.cend(); ++i){

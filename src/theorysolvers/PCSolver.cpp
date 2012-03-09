@@ -85,7 +85,7 @@ uint64_t PCSolver::nVars() const {
 const std::vector<Lit>& PCSolver::getTrail() const { return trail->getTrail(); }
 
 bool PCSolver::isDecisionVar(Var var) {
-	if(var>=nVars()){
+	if((uint64_t)var>=nVars()){
 		return false;
 	}
 	return getSATSolver()->isDecisionVar(var);
@@ -315,7 +315,7 @@ bool PCSolver::assertedBefore(const Var& l, const Var& p) const {
 void PCSolver::createVar(Var v, VARHEUR decide) {
 	assert(v>-1);
 
-	bool newvar = v>=nVars();
+	bool newvar = (uint64_t)v>=nVars();
 
 	while (((uint64_t) v) >= nVars()) {
 #ifdef USEMINISAT22
@@ -458,7 +458,7 @@ bool PCSolver::solve(const litlist& assumptions, const ModelExpandOptions& optio
 	printSearchStart(clog, verbosity());
 
 	if (optim != Optim::NONE) {
-		findOptimal(assumptions, options);
+		findOptimal(assumptions);
 	} else {
 		bool moremodels = findNext(vecassumptions, options);
 		if (!moremodels) {
@@ -606,7 +606,7 @@ SATVAL PCSolver::invalidateModel(InnerDisjunction& clause) {
 bool PCSolver::invalidateSubset(litlist& invalidation, vec<Lit>& assmpt) {
 	int subsetsize = 0;
 
-	for (int i = 0; i < to_minimize.size(); ++i) {
+	for (vsize i = 0; i < to_minimize.size(); ++i) {
 		if (getSolver().model[(vsize)var(to_minimize[i])] == l_True) {
 			invalidation.push_back(~to_minimize[i]);
 			++subsetsize;
@@ -625,7 +625,7 @@ bool PCSolver::invalidateSubset(litlist& invalidation, vec<Lit>& assmpt) {
 bool PCSolver::invalidateValue(litlist& invalidation) {
 	bool currentoptimumfound = false;
 
-	for (int i = 0; !currentoptimumfound && i < to_minimize.size(); ++i) {
+	for (vsize i = 0; !currentoptimumfound && i < to_minimize.size(); ++i) {
 		if (!currentoptimumfound && getSolver().model[var(to_minimize[i])] == l_True) {
 			if (modes().verbosity >= 1) {
 				clog << "> Current optimum found for: ";
@@ -653,7 +653,7 @@ bool PCSolver::invalidateValue(litlist& invalidation) {
  *
  * Returns true if an optimal model was found
  */
-bool PCSolver::findOptimal(const litlist& assmpt, const ModelExpandOptions& options) {
+bool PCSolver::findOptimal(const litlist& assmpt) {
 	vec<Lit> currentassmpt;
 	for(auto i=assmpt.cbegin(); i!=assmpt.cend(); ++i){
 		currentassmpt.push(*i);
@@ -776,11 +776,11 @@ void PCSolver::resetState() {
 	backtrackTo(state_savedlevel);
 	assert(state_savedlevel == getCurrentDecisionLevel());
 	state_savingclauses = false;
-#warning RESET STATE INCORRECT
+
+	throw idpexception("Resetting state is incorrect.\n"); // FIXME
 	//getSolver().removeClauses(state_savedclauses);
 	state_savedclauses.clear();
 	//getSolver().removeAllLearnedClauses();
-
 }
 
 // PRINT METHODS

@@ -50,7 +50,7 @@ using namespace MinisatID;
  * @param nbvar: the number of variables
  * @param nbconstr: the number of contraints
  */
-template<class T> bool DefaultCallback<T>::metaData(int nbvar, int nbconstr) {
+template<class T> bool DefaultCallback<T>::metaData(int nbvar, int) {
 	maxvar = nbvar;
 	dummyhead = Atom(++maxvar);
 	Disjunction clause;
@@ -101,10 +101,8 @@ template<class T> void DefaultCallback<T>::objectiveTerm(IntegerType coeff, int 
  * @param coeff: the coefficient of the term
  * @param list: list of literals which appear in the product
  */
-template<class T> void DefaultCallback<T>::objectiveProduct(IntegerType coeff, vector<int> list) {
-	clog <<"Leaving out linearization of opb constraints is not supported!\n";
-	assert(false);
-	exit(1);
+template<class T> void DefaultCallback<T>::objectiveProduct(IntegerType, vector<int>) {
+	throw idpexception("Linearization of opb constraints is mandatory\n!");
 }
 
 template<class T> void DefaultCallback<T>::beginConstraint() {
@@ -162,10 +160,8 @@ template<class T> void DefaultCallback<T>::constraintTerm(IntegerType coeff, int
  * @param coeff: the coefficient of the term
  * @param list: list of literals which appear in the product
  */
-template<class T> void DefaultCallback<T>::constraintProduct(IntegerType coeff, vector<int> list) {
-	clog <<"Leaving out linearization of opb constraints is not supported!\n";
-	assert(false);
-	exit(1);
+template<class T> void DefaultCallback<T>::constraintProduct(IntegerType, vector<int>) {
+	throw idpexception("Linearization of opb constraints is mandatory!\n");
 }
 
 /**

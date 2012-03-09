@@ -171,7 +171,7 @@ public:
 
 	const varlist&	occurs		(const Lit& l) const { MAssert(inNetwork(l)); return _occurs[toInt(l)]; }
 	varlist&		occurs		(const Lit& l) { MAssert(inNetwork(l)); return _occurs[toInt(l)]; }
-	bool 			inNetwork	(const Lit& l) const { return _occurs.size()>toInt(l); }
+	bool 			inNetwork	(const Lit& l) const { return _occurs.size()>(unsigned int)toInt(l); }
 	void			add			(const Lit& l, Var v) { occurs(l).push_back(v); /*MAssert(IDSolver::type(v)==type);*/ }
 	void 			resize		(int n) { _occurs.resize(n, varlist()); }
 	void 			clear		() { _occurs.clear(); }

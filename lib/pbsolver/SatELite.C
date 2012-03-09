@@ -1532,9 +1532,10 @@ bool Solver::solve(const vec<Lit>& assumps)
 // "Solver_subsume.C" BEGIN
 //#################################################################################################
 
-#define Report(format, args...) ((verbosity >= 1) ? reportf(format , ## args) : (void)0)
-//#define Report(format, args...)
-#define Report2(format, args...) ((verbosity >= 2) ? reportf(format , ## args) : (void)0)
+#define Report(format) do{if(verbosity >= 1){reportf(format);}}while(false)
+#define Report2(format) do{if(verbosity >= 2){reportf(format);}}while(false)
+#define Reportargs(format, args...) do{if(verbosity >= 1){reportf(format, ##args);}}while(false)
+#define Report2args(format, args...) do{if(verbosity >= 2){reportf(format, ##args);}}while(false)
 
 
 macro bool has(Clause c, Lit p) {
@@ -1860,8 +1861,9 @@ void Solver::simplifyBySubsumption(bool with_var_elim)
             unregisterIteration(s0);
         }
 
-        if (literals_removed > 0 || clauses_subsumed > 0)
-            Report2("  #literals-removed: %d    #clauses-subsumed: %d\n", literals_removed, clauses_subsumed);
+        if (literals_removed > 0 || clauses_subsumed > 0){
+        	Report2args("  #literals-removed: %d    #clauses-subsumed: %d\n", literals_removed, clauses_subsumed);
+        }
 
 
         // VARIABLE ELIMINATION:
@@ -1903,7 +1905,7 @@ void Solver::simplifyBySubsumption(bool with_var_elim)
             assert(propQ.size() == 0);
             for (int i = 0; i < order.size(); i++){
               #ifndef SAT_LIVE
-                if (i % 1000 == 999 || i == order.size()-1) Report("  -- var.elim.:  %d/%d          \r", i+1, order.size());
+                if (i % 1000 == 999 || i == order.size()-1) Reportargs("  -- var.elim.:  %d/%d          \r", i+1, order.size());
               #endif
                 if (maybeEliminate(order[i])){
                     vars_elimed++;
@@ -1915,16 +1917,15 @@ void Solver::simplifyBySubsumption(bool with_var_elim)
             if (vars_elimed == 0)
                 break;
 
-            Report2("  #clauses-removed: %-8d #var-elim: %d\n", clauses_before - nClauses(), vars_elimed);
+            Report2args("  #clauses-removed: %-8d #var-elim: %d\n", clauses_before - nClauses(), vars_elimed);
         }
         //assert(touched_list.size() == 0);     // <<= No longer true, due to asymmetric branching. Ignore it for the moment...
 //  }while (cl_added.size() > 0);
     }while (cl_added.size() > 100);
 
-    if (orig_n_clauses != nClauses() || orig_n_literals != nLiterals())
-        //Report("#clauses: %d -> %d    #literals: %d -> %d    (#learnts: %d)\n", orig_n_clauses, nClauses(), orig_n_literals, nLiterals(), nLearnts());
-        //Report("#clauses:%8d (%6d removed)    #literals:%8d (%6d removed)    (#learnts:%8d)\n", nClauses(), orig_n_clauses-nClauses(), nLiterals(), orig_n_literals-nLiterals(), nLearnts());
-        Report("| %9d | %7d %8d | %7s %7d %8s %7s | %6s   | %d/%d\n", (int)stats.conflicts, nClauses(), nLiterals(), "--", nLearnts(), "--", "--", "--", nClauses() - orig_n_clauses, nLiterals() - orig_n_literals);
+    if (orig_n_clauses != nClauses() || orig_n_literals != nLiterals()){
+    	Reportargs("| %9d | %7d %8d | %7s %7d %8s %7s | %6s   | %d/%d\n", (int)stats.conflicts, nClauses(), nLiterals(), "--", nLearnts(), "--", "--", "--", nClauses() - orig_n_clauses, nLiterals() - orig_n_literals);
+    }
 
 
     if (opt_pre_sat){
@@ -1936,8 +1937,8 @@ void Solver::simplifyBySubsumption(bool with_var_elim)
                 vmap[i] = c++;
 
         Report("==============================================================================\n");
-        Report("Result  :   #vars: %d   #clauses: %d   #literals: %d\n", c, nClauses(), nLiterals());
-        Report("CPU time:   %g s\n", cpuTime());
+        Reportargs("Result  :   #vars: %d   #clauses: %d   #literals: %d\n", c, nClauses(), nLiterals());
+        Reportargs("CPU time:   %g s\n", cpuTime());
         Report("==============================================================================\n");
 
         // Write CNF or BCNF file:

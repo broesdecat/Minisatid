@@ -398,7 +398,7 @@ static void noMoreMem() {
 	}
 }
 
-static void SIGFPE_handler(int signum) {
+static void SIGFPE_handler(int) {
 	abortcode = SIGFPE;
 	if (jumpback == 0) {
 		longjmp(main_loop, 1);
@@ -406,28 +406,28 @@ static void SIGFPE_handler(int signum) {
 }
 
 //IMPORTANT: assumed this is always called externally
-static void SIGTERM_handler(int signum) {
+static void SIGTERM_handler(int) {
 	abortcode = SIGTERM;
 	if (jumpback == 0) {
 		longjmp(main_loop, 1);
 	}
 }
 
-static void SIGABRT_handler(int signum) {
+static void SIGABRT_handler(int) {
 	abortcode = SIGABRT;
 	if (jumpback == 0) {
 		longjmp(main_loop, 1);
 	}
 }
 
-static void SIGSEGV_handler(int signum) {
+static void SIGSEGV_handler(int) {
 	abortcode = SIGSEGV;
 	if (jumpback == 0) {
 		longjmp(main_loop, 1);
 	}
 }
 
-static void SIGINT_handler(int signum) {
+static void SIGINT_handler(int) {
 	abortcode = SIGINT;
 	if (jumpback == 0) {
 		longjmp(main_loop, 1);

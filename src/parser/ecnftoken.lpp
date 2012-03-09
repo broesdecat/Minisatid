@@ -28,7 +28,7 @@ extern int charPos;
 %}
 
 /* lex definitions: */
-%option noyywrap never-interactive 
+%option noyywrap never-interactive nounput
 
 %s theory
 %s trans

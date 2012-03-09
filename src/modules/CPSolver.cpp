@@ -39,7 +39,7 @@ void LitTrail::backtrackDecisionLevels(int untillevel){
 		trail.pop_back();
 	}
 
-	while(trailindexoflevel.size()>untillevel+1){
+	while(trailindexoflevel.size()>(vsize)(untillevel+1)){
 		trailindexoflevel.pop_back();
 	}
 }
