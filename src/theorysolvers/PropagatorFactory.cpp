@@ -659,6 +659,6 @@ void PropagatorFactory::add(const InnerLazyClause& object) {
 		new LazyResidual(getEnginep(), var(object.residual), object.monitor);
 	} else {
 		new LazyResidualWatch(getEnginep(), object.residual, object.monitor);
-		//getEngine().getSATSolver()->setPolarity(var(object.residual), sign(object.residual)?l_True:l_False);
+		getEngine().getSATSolver()->setInitialPolarity(var(object.residual), sign(object.residual));
 	}
 }
