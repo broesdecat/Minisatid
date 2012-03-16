@@ -26,7 +26,6 @@ Weight	Agg::getCertainBound() const {
 
 SATVAL Agg::reInitializeAgg(){
 	TypedSet& set = *getSet();
-	int level = set.getPCSolver().getCurrentDecisionLevel();
 	// FIXME check whether this is sufficient?
 	rClause confl = set.getProp()->reInitialize();
 	return confl==nullPtrClause?SATVAL::POS_SAT:SATVAL::UNSAT;
@@ -62,11 +61,11 @@ bool SumProp::isMonotone(const TempAgg& agg, const Weight& w, const Weight&) con
 }
 
 bool ProdProp::isMonotone(const Agg& agg, const Weight& w) const {
-	assert(w == 0 || w >= 1);
+	assert(w>=0);
 	return !agg.hasUB();
 }
 bool ProdProp::isMonotone(const TempAgg& agg, const Weight& w, const Weight&) const {
-	assert(w == 0 || w >= 1);
+	assert(w>=0);
 	return !agg.hasUB();
 }
 
@@ -235,7 +234,7 @@ Weight ProdProp::add(const Weight& lhs, const Weight& rhs) const {
 }
 
 Weight ProdProp::remove(const Weight&, const Weight&) const{
-	assert(false);
+	throw idpexception("Cannot remove weights from a product propagator.\n");
 }
 Weight ProdProp::removeMin(const Weight& lhs, const Weight& rhs) const{
 	Weight w = 0;
@@ -266,7 +265,7 @@ Weight ProdProp::getCombinedWeight(const Weight& one, const Weight& two) const {
 	return this->add(one, two);
 }
 
-WL ProdProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, Weight& knownbound) const {
+WL ProdProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, Weight&) const {
 	//NOTE: om dit toe te laten, ofwel bij elke operatie op en literal al zijn voorkomens overlopen
 	//ofwel aggregaten voor doubles ondersteunen (hAggPropagatoret eerste is eigenlijk de beste oplossing)
 	//Mogelijke eenvoudige implementatie: weigts bijhouden als doubles (en al de rest als ints)
@@ -405,7 +404,7 @@ AggPropagator::AggPropagator(TypedSet* set)
 }
 
 // Final initialization call!
-void AggPropagator::initialize(bool& unsat, bool& sat) {
+void AggPropagator::initialize(bool&, bool&) {
 	for (auto i = getSet().getAgg().cbegin(); i < getSet().getAgg().cend(); ++i) {
 		// both for implication and comp
 		auto w = new Watch(getSetp(), not (*i)->getHead(), *i, false);

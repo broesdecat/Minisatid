@@ -16,8 +16,6 @@ namespace MiniSat {
 // For derivation output (verbosity level 2)
 #define L_IND    "%-*d"
 #define L_ind    decisionLevel()*3+3,decisionLevel()
-#define L_LIT    "%s%d"
-#define L_lit(p) sign(p)?"-":"", var(p)
 
 // Just like 'assert()' but expression will be evaluated in the release version as well.
 inline void check(bool expr) { assert(expr); }

@@ -125,6 +125,8 @@ private:
 	// Logging
 	std::vector<ParsingMonitor*> parsingmonitors;
 
+	void guaranteeAtRootLevel();
+
 public:
 	PropagatorFactory(const SolverOption& modes, PCSolver* engine);
 	virtual ~PropagatorFactory();

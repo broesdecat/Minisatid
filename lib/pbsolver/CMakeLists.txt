@@ -1,6 +1,15 @@
 cmake_minimum_required (VERSION 2.6)
 project (pbsolver)
 
+macro(addToCXX ARGUMENT)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ARGUMENT}")
+endmacro()
+macro(addToC ARGUMENT)
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${ARGUMENT}")
+endmacro()
+
+addToCXX("-Wno-unused-parameter -Wno-unused-result -Wno-strict-aliasing -Wno-vla -Wno-parentheses -Wno-return-type -Wno-variadic-macros")
+
 add_library(pbsolver Main.C
 		PB2CNF.hpp PB2CNF.cpp
 		Debug.C Hardware_adders.C Hardware_clausify.C

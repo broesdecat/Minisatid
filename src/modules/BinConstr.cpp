@@ -37,8 +37,8 @@ void BinaryConstraint::finishParsing(bool& present) {
 	getPCSolver().acceptBounds(right(), this);
 }
 
-rClause BinaryConstraint::getExplanation(const Lit& lit) {
-	assert(false);
+rClause BinaryConstraint::getExplanation(const Lit&) {
+	throw idpexception("Generating explanations for binary constraints is not implemented yet.\n");
 /*
 	if comp is BIN_LEQ
 		if lit is head

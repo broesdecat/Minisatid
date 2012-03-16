@@ -38,13 +38,9 @@ LazyResidual::LazyResidual(LazyResidualWatch* const watch):Propagator(watch->eng
 
 rClause LazyResidual::notifypropagate(){
 	MAssert(isPresent());
-	if(getPCSolver().getCurrentDecisionLevel()>0){
-		getPCSolver().backtrackTo(0); // FIXME extremely inefficient: should rather make sure that all the add methods
-		//(e.g. clauses in the sat solver, backtrack to the appropriate level if necessary
-		//      (where the constraint is not unsatisfied)).
-	}
-
 	MAssert(not getPCSolver().isUnsat());
+
+	// NOTE: have to make sure that constraints are never added at a level where they will no have full effect!
 
 	// TODO make preventpropagation more specific?
 	getPCSolver().preventPropagation(); // NOTE: necessary for inductive definitions, as otherwise might try propagation before all rules for some head have been added.

@@ -302,7 +302,7 @@ rClause GenPWAgg::reInitialize() {
  * 		if head known
  * 			remove largest, keep adding non-false until satisfied
  */
-rClause GenPWAgg::reconstructSet(GenPWatch* watch, bool& propagations, Agg const * propagg){
+rClause GenPWAgg::reconstructSet(GenPWatch*, bool& propagations, Agg const * propagg){
 #ifdef DEBUG
 	for(auto i=getSet().getWL().cbegin(); i<getSet().getWL().cend(); ++i){
 		bool found = false;
@@ -422,11 +422,11 @@ void GenPWAgg::genWatches(vsize& i, const Agg& agg, minmaxOptimAndPessBounds& bo
 	assert(isSatisfied(agg, bounds.optim) || i>=getNWS().size());
 }
 
-void GenPWAgg::propagate(int level, Watch* ws, int aggindex){
+void GenPWAgg::propagate(int, Watch* ws, int){
 	trail.push_back(ws);
 	getSet().getPCSolver().acceptForBacktrack(getSetp());
 }
-void GenPWAgg::propagate(const Lit& p, Watch* ws, int level){
+void GenPWAgg::propagate(const Lit&, Watch* ws, int){
 	trail.push_back(ws);
 	getSet().getPCSolver().acceptForBacktrack(getSetp());
 }

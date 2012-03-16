@@ -38,7 +38,7 @@ void CPSolverData::removeSpace(int untillevel){
 		cout <<*history[i] <<endl;
 	}*/
 
-	while(history.size()>untillevel+1){
+	while(history.size()>vsize(untillevel+1)){
 		CPScript* old = history.back();
 		history.pop_back();
 		delete old;

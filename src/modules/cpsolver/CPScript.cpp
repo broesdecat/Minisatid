@@ -40,13 +40,7 @@ intvarindex CPScript::addIntVar(int min, int max){
 }
 
 intvarindex CPScript::addIntVar(const vector<int>& values){
-	int valuelist[values.size()];
-	int index = 0;
-	for(auto i=values.cbegin(); i<values.cend(); ++i){
-		valuelist[index] = *i;
-		++index;
-	}
-	IntSet set = IntSet(valuelist, values.size());
+	auto set = IntSet(values.data(), values.size());
 	intvars.push_back(IntVar(*this, set));
 	return intvars.size()-1;
 }

@@ -86,7 +86,7 @@ public:
 	virtual void 	initialize				(bool& unsat, bool& sat);
 	virtual rClause reInitialize			();
 	virtual rClause	propagateAtEndOfQueue	();
-	virtual void	backtrack				(int untillevel){ trail.clear(); }
+	virtual void	backtrack				(int){ trail.clear(); }
 	virtual void 	getExplanation			(litlist& lits, const AggReason& ar);
 
 protected:

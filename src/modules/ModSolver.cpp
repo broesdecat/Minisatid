@@ -68,7 +68,7 @@ ModSolver::~ModSolver(){
 
 SATVAL ModSolver::add(Var var){
 	if(getModSolverData().modes().verbosity>5){
-		report("Var %d added to modal solver %zu.\n", getPrintableVar(var), getPrintId());
+		clog <<"Var " <<getPrintableVar(var) <<" added to modal solver " <<getPrintId() <<"\n";
 	}
 	getPCSolver().add(var);
 	registeredvars.push_back(var);
@@ -198,8 +198,8 @@ void ModSolver::notifyNewDecisionLevel(){
 	trail.push_back(vector<Lit>());
 }
 
-void ModSolver::doUnitPropagation(const litlist& assumpts){
-
+void ModSolver::doUnitPropagation(const litlist&){
+	// TODO
 }
 
 bool ModSolver::search(const litlist& assumpts, bool search){
@@ -335,7 +335,7 @@ void ModSolver::adaptValuesOnPropagation(Lit l){
 bool ModSolver::propagateDownAtEndOfQueue(litlist& confldisj){
 	if(!init){ return true; }
 	if(getModSolverData().modes().verbosity>4){
-		report("End of queue propagation down into modal solver %zu.\n", getPrintId());
+		clog <<"End of queue propagation down into modal solver" <<getPrintId() <<"\n";
 	}
 
 	bool allknown = false;
@@ -412,7 +412,7 @@ void ModSolver::backtrackFromAbove(Lit l){
 				break;
 			}else{
 #ifndef NDEBUG
-				for(int j=0; j<assumptions.size(); ++j){
+				for(vsize j=0; j<assumptions.size(); ++j){
 					assert(var(assumptions[j])!=var(l));
 				}
 #endif
@@ -443,7 +443,7 @@ bool ModSolver::analyzeResult(bool result, bool allknown, litlist& confldisj){
 			confldisj.push_back(mkLit(getHead(), getHeadValue()==l_True));
 		}
 		//TODO order of lits in conflict depends on order of assumptions and on order of propagations by parent
-		for(int i=0; i<assumptions.size(); ++i){
+		for(vsize i=0; i<assumptions.size(); ++i){
 			if(propfromabove[i]){
 				confldisj.push_back(~assumptions[i]);
 			}

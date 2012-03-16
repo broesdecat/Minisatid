@@ -59,7 +59,7 @@ void throwNegativeHead(Var head) {
 
 void throwHeadOccursInSet(Var head, int setid) {
 	stringstream ss;
-	ss << "For the aggregated with head " << getPrintableVar(head) << " also occurs in its set.\n";
+	ss << "For the aggregated with head " << getPrintableVar(head) << " also occurs in set " <<setid <<".\n";
 	throw idpexception(ss.str());
 }
 
@@ -243,6 +243,8 @@ void PropagatorFactory::add(const InnerWLSet& formula) {
 void PropagatorFactory::add(const InnerAggregate& agg) {
 	notifyMonitorsOfAdding(agg);
 
+	guaranteeAtRootLevel(); // TODO currently only at root level, should change?
+
 	if (parsedsets.find(agg.setID) == parsedsets.cend()) {
 		throwUndefinedSet(agg.setID);
 	}
@@ -264,6 +266,9 @@ void PropagatorFactory::add(const InnerAggregate& agg) {
 
 void PropagatorFactory::add(const InnerReifAggregate& origagg) {
 	notifyMonitorsOfAdding(origagg);
+
+	guaranteeAtRootLevel(); // TODO currently only at root level, should change?
+
 	InnerReifAggregate newagg(origagg);
 
 	if (parsedsets.find(newagg.setID) == parsedsets.cend()) {
@@ -318,6 +323,8 @@ void PropagatorFactory::addAggrExpr(Var head, int setid, AggSign sign, const Wei
 void PropagatorFactory::add(const InnerMinimizeSubset& formula) {
 	notifyMonitorsOfAdding(formula);
 
+	guaranteeAtRootLevel();
+
 	if (formula.literals.size() == 0) {
 		throw idpexception("The set of literals to be minimized is empty.\n");
 	}
@@ -329,6 +336,8 @@ void PropagatorFactory::add(const InnerMinimizeSubset& formula) {
 void PropagatorFactory::add(const InnerMinimizeOrderedList& formula) {
 	notifyMonitorsOfAdding(formula);
 
+	guaranteeAtRootLevel();
+
 	if (formula.literals.size() == 0) {
 		throw idpexception("The set of literals to be minimized is empty.\n");
 	}
@@ -338,6 +347,8 @@ void PropagatorFactory::add(const InnerMinimizeOrderedList& formula) {
 }
 void PropagatorFactory::add(const InnerMinimizeAgg& formula) {
 	notifyMonitorsOfAdding(formula);
+
+	guaranteeAtRootLevel();
 
 	auto head = getEngine().newVar();
 	addVar(head);
@@ -363,13 +374,16 @@ void PropagatorFactory::add(const InnerMinimizeAgg& formula) {
 void PropagatorFactory::add(const InnerMinimizeVar& formula) {
 	notifyMonitorsOfAdding(formula);
 
-#warning MinimizeVar is not handled at the moment
-	MAssert(false);
+	guaranteeAtRootLevel();
+
+	throw idpexception("MinimizeVar is not handled at the moment"); // FIXME
 	// TODO check var existence and add optim intvar to pcsolver
 }
 
 void PropagatorFactory::add(const InnerForcedChoices& formula) {
 	notifyMonitorsOfAdding(formula);
+
+	guaranteeAtRootLevel();
 
 	if (formula.forcedchoices.size() != 0) {
 		vec<Lit> lits;
@@ -381,6 +395,8 @@ void PropagatorFactory::add(const InnerForcedChoices& formula) {
 void PropagatorFactory::add(const InnerSymmetryLiterals& formula) {
 	notifyMonitorsOfAdding(formula);
 
+	guaranteeAtRootLevel();
+
 	if (not SymmStorage::hasStorage()) {
 		SymmStorage::addStorage(getEnginep());
 	}
@@ -390,6 +406,8 @@ void PropagatorFactory::add(const InnerSymmetryLiterals& formula) {
 
 void PropagatorFactory::add(const InnerSymmetry& formula) {
 	notifyMonitorsOfAdding(formula);
+
+	guaranteeAtRootLevel();
 
 	if (not SymmStorage::hasStorage()) {
 		SymmStorage::addStorage(getEnginep());
@@ -401,11 +419,12 @@ void PropagatorFactory::add(const InnerSymmetry& formula) {
 template<class T>
 void PropagatorFactory::addCP(const T& formula) {
 	notifyMonitorsOfAdding(formula);
+	guaranteeAtRootLevel();
 #ifndef CPSUPPORT
 	throw idpexception("Adding a finite domain constraint while minisatid was compiled without CP support\n");
 #else
 	CPStorage::getStorage()->add(formula);
-#warning Counting models in the presence of CP variables will be an underapproximation! (finding only one variable assigment for each literal assignment)
+	clog <<"Counting models in the presence of CP variables will be an under-approximation! (finding only one variable assingment for each literal assignment).\n";
 #endif
 }
 
@@ -491,6 +510,14 @@ void PropagatorFactory::add(InnerDisjunction& formula, rClause& newclause) {
 	SATStorage::getStorage()->addBinaryOrLargerClause(lits, newclause);
 }
 
+void PropagatorFactory::guaranteeAtRootLevel(){
+	if(getEngine().getCurrentDecisionLevel()>0){
+		getEngine().backtrackTo(0);
+	}
+}
+
+#define SETNOT2VAL(sat, unsat, aggs) (not sat && not unsat && aggs.size()>0)
+
 SATVAL PropagatorFactory::finishSet(const InnerWLSet* origset, vector<TempAgg*>& aggs, bool optimagg) {
 	bool unsat = false, sat = false;
 
@@ -543,23 +570,23 @@ SATVAL PropagatorFactory::finishSet(const InnerWLSet* origset, vector<TempAgg*>&
 
 	Weight knownbound(0);
 	if (not optimagg) { // TODO can we do better for minimization over aggregates?
-		if (!sat && !unsat) {
+		if (SETNOT2VAL(sat, unsat, aggs)) {
 			setReduce(getEnginep(), set, aggs, *type, knownbound, unsat, sat);
 		}
-		if (!sat && !unsat) {
+		if (SETNOT2VAL(sat, unsat, aggs)) {
 			addHeadImplications(getEnginep(), set, aggs, unsat, sat);
 		}
-		if (!sat && !unsat) {
+		if (SETNOT2VAL(sat, unsat, aggs)) {
 			max2SAT(getEnginep(), set, aggs, unsat, sat);
 		}
-		if (!sat && !unsat) {
+		if (SETNOT2VAL(sat, unsat, aggs)) {
 			card2Equiv(getEnginep(), set, aggs, knownbound, unsat, sat);
 		}
-		if (!sat && !unsat) {
+		if (SETNOT2VAL(sat, unsat, aggs)) {
 			decideUsingWatchesAndCreatePropagators(getEnginep(), set, aggs, knownbound);
 		}
 	} else {
-		if (!sat && !unsat) {
+		if (SETNOT2VAL(sat, unsat, aggs)) {
 			assert(aggs.size()==1);
 			decideUsingWatchesAndCreateOptimPropagator(getEnginep(), set, aggs[0], knownbound);
 		}
@@ -605,7 +632,7 @@ SATVAL PropagatorFactory::finishParsing() {
 		satval &= finishSet((*i).second.first, (*i).second.second);
 	}
 	if (AggStorage::hasStorage()) {
-		satval &= AggStorage::getStorage()->execute();
+		satval &= execute(*AggStorage::getStorage());
 	}
 
 	return satval;
@@ -632,6 +659,6 @@ void PropagatorFactory::add(const InnerLazyClause& object) {
 		new LazyResidual(getEnginep(), var(object.residual), object.monitor);
 	} else {
 		new LazyResidualWatch(getEnginep(), object.residual, object.monitor);
-		//getEngine().getSATSolver()->setPolarity(var(object.residual), sign(object.residual)?l_True:l_False);
+		getEngine().getSATSolver()->setInitialPolarity(var(object.residual), sign(object.residual));
 	}
 }

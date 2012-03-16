@@ -142,7 +142,6 @@ void FODOTTranslator::printPredicate(const SymbolInterpr& pred, ostream& output,
 		if(print==PRINT_ARBIT && arbitrary){
 			output <<pred.symbol->getName(tofodot) <<"\n";
 		}else if(print!=PRINT_ARBIT && !arbitrary){
-
 			bool atomtrue = pred.tuples.size()!=0;
 			if(tofodot){
 				output <<pred.symbol->getName(tofodot);
@@ -179,7 +178,8 @@ void FODOTTranslator::printPredicate(const SymbolInterpr& pred, ostream& output,
 	}
 }
 
-void FODOTTranslator::printFunction(const SymbolInterpr& func, ostream& output, PRINTCHOICE print) const{
+// printchoice is not relevant as a function is never arbitrary (always have func constraints)
+void FODOTTranslator::printFunction(const SymbolInterpr& func, ostream& output, PRINTCHOICE) const{
 	if(tofodot){
 		output <<func.symbol->getName(tofodot) <<" = ";
 		if(func.symbol->types.size() == 1) {
@@ -341,7 +341,7 @@ FODOTTranslator::AtomInfo FODOTTranslator::deriveStringFromAtomNumber(int atom) 
 	int valueleft = atom;
 	assert(index < symbols.size());
 	valueleft = atom-symbols[index]->startnumber;
-	for(vector<Type*>::const_reverse_iterator n=symbols[index]->types.rbegin(); n < symbols[index]->types.rend(); ++n) {
+	for(auto n=symbols[index]->types.crbegin(); n < symbols[index]->types.crend(); ++n) {
 		int cs = (*n)->domainelements.size();
 		int carg = valueleft % cs;
 		string domelem = (*n)->domainelements[carg];

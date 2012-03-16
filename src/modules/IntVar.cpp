@@ -65,7 +65,7 @@ void IntVar::finishParsing(bool& present){
 	getPCSolver().acceptBounds(new IntView(this, 0), this);
 }
 
-void IntVar::notifyBacktrack(int untillevel, const Lit& decision){
+void IntVar::notifyBacktrack(int, const Lit&){
 	for(uint i=0; i<equalities.size(); ++i){
 		if(engine().value(equalities[i])!=l_False){
 			currentmin = minvalue+i;

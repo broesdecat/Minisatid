@@ -493,32 +493,32 @@ struct Solver {
 
 // Just like 'assert()' but expression will be evaluated in the release version as well.
 #ifdef NDEBUG
-  inline void check(bool expr) { assert(expr); }
+  inline void check(bool expr) { }
 #else
   #define check assert
 #endif
 
 
-macro void dump(Clause c, bool newline = true, FILE* out = stdout) {
+macro void dump(Clause, bool newline = true, FILE* out = stdout) {
     fprintf(out, "{");
 //    for (int i = 0; i < c.size(); i++) fprintf(out, " "L_LIT, L_lit(c[i]));
     fprintf(out, " }%s", newline ? "\n" : "");
     fflush(out);
 }
-macro void dump(Solver& S, Clause c, bool newline = true, FILE* out = stdout) {
+macro void dump(Solver&, Clause, bool newline = true, FILE* out = stdout) {
     fprintf(out, "{");
  //   for (int i = 0; i < c.size(); i++) fprintf(out, " "L_LIT":%c", L_lit(c[i]), name(S.value(c[i])));
     fprintf(out, " }%s", newline ? "\n" : "");
     fflush(out);
 }
 
-macro void dump(const vec<Lit>& c, bool newline = true, FILE* out = stdout) {
+macro void dump(const vec<Lit>&, bool newline = true, FILE* out = stdout) {
     fprintf(out, "{");
  //   for (int i = 0; i < c.size(); i++) fprintf(out, " "L_LIT, L_lit(c[i]));
     fprintf(out, " }%s", newline ? "\n" : "");
     fflush(out);
 }
-macro void dump(Solver& S, vec<Lit>& c, bool newline = true, FILE* out = stdout) {
+macro void dump(Solver&, vec<Lit>&, bool newline = true, FILE* out = stdout) {
     fprintf(out, "{");
  //   for (int i = 0; i < c.size(); i++) fprintf(out, " "L_LIT":%c", L_lit(c[i]), name(S.value(c[i])));
     fprintf(out, " }%s", newline ? "\n" : "");

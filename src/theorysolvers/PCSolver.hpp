@@ -206,7 +206,7 @@ private:
     bool 		invalidateValue	(litlist& invalidation);
 	bool 		invalidateSubset(litlist& invalidation, Minisat::vec<Lit>& assmpt);
 	bool 		invalidateAgg	(litlist& invalidation);
-	bool 		findOptimal		(const litlist& assumps, const ModelExpandOptions& options);
+	bool 		findOptimal		(const litlist& assumps);
 };
 
 }

@@ -34,8 +34,9 @@ void SOSolver::printStatistics() const {
 
 void SOSolver::checkexistsModSolver(vsize modid) const {
 	if(!existsModSolver(modid)){
-		char s[100]; sprintf(s, ">> No modal operator with id %zu was declared! ", modid+1);
-		throw idpexception(s);
+		stringstream ss;
+		ss <<">> No modal operator with id " <<modid+1 <<"was declared! ";
+		throw idpexception(ss.str());
 	}
 }
 
@@ -147,7 +148,7 @@ SATVAL SOSolver::add(int modid, const InnerDisjunction& disj){
 	while(true){
 		m = getModSolver(currentid);
 		bool alloccur = true;
-		for(int i=0; alloccur && i<lits.size(); ++i){
+		for(vsize i=0; alloccur && i<lits.size(); ++i){
 			bool seen = false;
 			for(vector<Var>::const_iterator j=m->getAtoms().cbegin(); !seen && j<m->getAtoms().cend(); ++j){
 				if(*j==var(lits[i])){
@@ -220,7 +221,7 @@ ModSolver& SOSolver::getModSolverDuringAdding(int modid){
  */
 //TODO: should verify that any head only occurs in the theory of the parent modal solver.
 void SOSolver::verifyHierarchy(){
-	assert(state = ALLLOADED);
+	assert(state == ALLLOADED);
 
 	vector<vsize> queue;
 	vector<int> visitcount(solvers.size(), 0);
@@ -239,12 +240,12 @@ void SOSolver::verifyHierarchy(){
 	}
 	for(vmsolvers::const_iterator i=solvers.cbegin(); i<solvers.cend(); ++i){
 		if(visitcount[(*i)->getId()]!=1 && *i!=NULL){
-			char s[200];
-			sprintf(s, ">> The hierarchy of modal solvers does not form a tree. "
-					"The Solver with id %zu is %s. \n",
-						(*i)->getPrintId(),
-						visitcount[(*i)->getId()]==0?"not referenced":"referenced multiple times");
-			throw idpexception(s);
+			stringstream ss;
+			ss <<">>The hierarchy of modal solvers does not form a tree. ";
+			ss <<"The Solver with id " <<(*i)->getPrintId() <<"is ";
+			ss <<(visitcount[(*i)->getId()]==0?"not referenced":"referenced multiple times");
+			ss <<".\n";
+			throw idpexception(ss.str());
 		}
 	}
 }
