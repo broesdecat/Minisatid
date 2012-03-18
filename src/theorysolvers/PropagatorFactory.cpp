@@ -125,9 +125,17 @@ void PropagatorFactory::addVar(Var v, VARHEUR heur) {
 	getEngine().createVar(v, heur);
 }
 
+void PropagatorFactory::addVar(Lit lit, VARHEUR heur){
+	addVar(var(lit), heur);
+	/*if(newvar){ // FIXME hack to guarantee that if a literal only occurs positive(negative), it's var is first chosen true(false)
+		getEngine().getSATSolver()->setInitialPolarity(var(lit), sign(lit));
+		std::clog <<"First choosing " <<lit <<" " <<(sign(lit)?"true":"false") <<"\n";
+	}*/
+}
+
 void PropagatorFactory::addVars(const vector<Lit>& a, VARHEUR heur) {
 	for (auto i = a.cbegin(); i != a.cend(); ++i) {
-		addVar(var(*i), heur);
+		addVar(*i, heur);
 	}
 }
 
@@ -658,7 +666,8 @@ void PropagatorFactory::add(const InnerLazyClause& object) {
 	if (object.watchboth) {
 		new LazyResidual(getEnginep(), var(object.residual), object.monitor);
 	} else {
+		getEngine().getSATSolver()->setInitialPolarity(var(object.residual), not sign(object.residual));
 		new LazyResidualWatch(getEnginep(), object.residual, object.monitor);
-		getEngine().getSATSolver()->setInitialPolarity(var(object.residual), sign(object.residual));
+		//std::clog <<"First choosing " <<mkPosLit(var(object.residual)) <<" " <<(not sign(object.residual)?"true":"false") <<"\n";
 	}
 }

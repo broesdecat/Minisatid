@@ -315,8 +315,6 @@ bool PCSolver::assertedBefore(const Var& l, const Var& p) const {
 void PCSolver::createVar(Var v, VARHEUR decide) {
 	assert(v>-1);
 
-	bool newvar = (uint64_t)v>=nVars();
-
 	while (((uint64_t) v) >= nVars()) {
 #ifdef USEMINISAT22
 		getSolver().newVar(
@@ -326,16 +324,11 @@ void PCSolver::createVar(Var v, VARHEUR decide) {
 #endif
 	}
 
-	if(newvar){
+	if(not getSolver().isDecisionVar(v)){
 		getSolver().setDecidable(v, decide==VARHEUR::DECIDE);
-		if (isInitialized()) { //Lazy init
+		if (isInitialized() && propagations.size()<nVars()) { //Lazy init
 			propagations.resize(nVars(), NULL);
 		}
-	}
-
-	// If already exists, migt have to swap from non-decidable to decidable!
-	if(not newvar && decide==VARHEUR::DECIDE){
-		getSolver().setDecidable(v, decide==VARHEUR::DECIDE);
 	}
 }
 

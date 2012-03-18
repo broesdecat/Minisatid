@@ -189,7 +189,7 @@ private:
 	bool isParsing		()	const { return parsing; }
 
 	void addVar			(Var l, VARHEUR heur = VARHEUR::DECIDE);
-	void addVar			(Lit l, VARHEUR heur = VARHEUR::DECIDE) { addVar(var(l), heur); }
+	void addVar			(Lit l, VARHEUR heur = VARHEUR::DECIDE);
 	void addVars		(const std::vector<Lit>& a, VARHEUR heur = VARHEUR::DECIDE);
 
 	void addAggrExpr	(Var headv, int setid, AggSign sign, const Weight& bound, AggType type, AggSem sem);
