@@ -149,6 +149,7 @@ public:
 	int			getNbDecisions	() 		const;
 	std::vector<Lit> getDecisions() 	const;
 
+	bool		handleConflict(rClause conflict);
 
 	void		notifyBoundsChanged(IntVar* var);
 

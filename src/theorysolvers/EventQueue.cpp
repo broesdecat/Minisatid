@@ -218,7 +218,7 @@ void EventQueue::finishParsing() {
 	}
 	finishing = true;
 
-	if (getPCSolver().verbosity() > 0) {
+	if (getPCSolver().verbosity() > 1) {
 		clog << ">>> Adding additional constraints to search\n";
 	}
 
@@ -257,8 +257,15 @@ void EventQueue::finishParsing() {
 		MAssert(not isUnsat());
 
 		// Do all possible propagations that are queued
-		if (notifyPropagate() != nullPtrClause) {
-			getPCSolver().notifyUnsat(); // TODO do something with the conflict clause?
+		auto confl = notifyPropagate();
+		if (confl != nullPtrClause) {
+			bool conflictAtRoot = getPCSolver().getCurrentDecisionLevel()==0;
+			if(not conflictAtRoot){
+				conflictAtRoot = getPCSolver().handleConflict(confl);
+			}
+			if(conflictAtRoot){
+				getPCSolver().notifyUnsat(); // TODO do something with the conflict clause?
+			}
 		}
 	}
 

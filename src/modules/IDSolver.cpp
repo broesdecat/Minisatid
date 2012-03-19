@@ -1618,7 +1618,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 			loopf.literals[1] = createPositiveLiteral(v);
 		}
 
-		for (std::set<Var>::iterator tch = ufs.cbegin(); tch != ufs.cend(); ++tch) {
+		for (auto tch = ufs.cbegin(); tch != ufs.cend(); ++tch) {
 			Lit l = createNegativeLiteral(*tch);
 			addLoopfClause(l, loopf);
 		}

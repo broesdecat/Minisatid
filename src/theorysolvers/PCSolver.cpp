@@ -160,6 +160,10 @@ int PCSolver::getCurrentDecisionLevel() const {
 	return getSolver().decisionLevel();
 }
 
+bool PCSolver::handleConflict(rClause conflict){
+	return getSolver().handleConflict(conflict);
+}
+
 int PCSolver::getLevel(int var) const {
 	return getSolver().getLevel(var);
 }
