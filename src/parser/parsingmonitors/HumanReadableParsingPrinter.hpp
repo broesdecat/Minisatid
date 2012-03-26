@@ -152,18 +152,6 @@ public:
 		target() <<"\n";
 	}
 
-	void notifyadded(const InnerSymmetryLiterals& symm){
-		target() <<"Added symmetries:\n";
-		for(vsize i=0; i<symm.literalgroups.size(); ++i){
-			target() <<"\tgroup ";
-			for(vsize j=0; j<symm.literalgroups[i].size(); ++j){
-				target() <<symm.literalgroups[i][j] <<" ";
-			}
-			target() <<"\n";
-		}
-	}
-
-
 	void notifyadded(const InnerForcedChoices& choices){
 		target() <<"Forced choices ";
 		for(uint i=0; i<choices.forcedchoices.size(); ++i){

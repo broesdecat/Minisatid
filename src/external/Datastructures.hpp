@@ -235,15 +235,10 @@ public:
 	SubTheory():head(0){}
 };
 
-class SymmetryLiterals{
-public:
-	std::vector<literallist> symmgroups;
-};
-
 class Symmetry{
 public:
 	// INVAR: the keys are unique
-	std::map<Atom, Atom> symmetry;
+	std::map<Literal, Literal> symmetry;
 };
 
 }

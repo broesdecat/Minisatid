@@ -34,7 +34,6 @@ class SolverOption;
 class Propagator;
 class IDSolver;
 class ModSolver;
-template<class Solver> class SymmetryPropagator;
 class AggToCNFTransformer;
 
 #ifdef CPSUPPORT
@@ -93,13 +92,11 @@ typedef FactoryStorage<SATSolver> SATStorage;
 #ifdef CPSUPPORT
 typedef FactoryStorage<CPSolver> CPStorage;
 #endif
-typedef ManagedFactoryStorage<SymmetryPropagator<PCSolver*>> SymmStorage;
 typedef ManagedFactoryStorage<AggToCNFTransformer> AggStorage;
 
 class PropagatorFactory:
 	public ModStorage,
 	public SATStorage,
-	public SymmStorage,
 	public AggStorage
 #ifdef CPSUPPORT
 	, public CPStorage
@@ -153,7 +150,6 @@ public:
 	void add(const InnerMinimizeVar& sentence);
 	void add(const InnerMinimizeAgg& sentence);
 	void add(const InnerForcedChoices& sentence);
-	void add(const InnerSymmetryLiterals& sentence);
 	void add(const InnerSymmetry& sentence);
 	void add(const InnerIntVarEnum& object);
 	void add(const InnerIntVarRange& object);

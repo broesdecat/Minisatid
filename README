@@ -1,10 +1,10 @@
-This is the readme for the solver MinisatID from IDP system, version 3.3.0.
+This is the readme for the MinisatID solver, the search algorithm used in the IDP system.
 
 *** Installing and running the system
 Required software packages:
    - C and C++ compiler, supporting most of the C++11 standard. Examples are GCC 4.4 or higher, clang 3.2 or visual studio 11.
-   - Cmake build environment. 
-   - Bison and flex packages or yacc and lex packages.
+   - Cmake build tools. 
+   - Bison and Flex parser generator software.
    - Pdflatex and doxygen for building the documentation.
    - (optional) Gecode for constraint programming support.
 
@@ -19,4 +19,4 @@ Building and installing is then achieved by executing the following commands:
 Alternatively, cmake-gui can be used as a graphical way to set cmake options.
 
 *** Further information
-For more information on using the system, please checkout the website http://dtai.cs.kuleuven.be/krr/software/minisatid
+For more information on using the system, please check out our website http://dtai.cs.kuleuven.be/krr/software/minisatid

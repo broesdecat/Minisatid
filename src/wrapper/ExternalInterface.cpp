@@ -115,7 +115,6 @@ template SATVAL WrappedPCSolver::add(const CPSumWeighted& sentence);
 template SATVAL WrappedPCSolver::add(const CPCount& sentence);
 template SATVAL WrappedPCSolver::add(const CPAllDiff& sentence);
 template SATVAL WrappedPCSolver::add(const ForcedChoices& sentence);
-template SATVAL WrappedPCSolver::add(const SymmetryLiterals& sentence);
 template SATVAL WrappedPCSolver::add(const Symmetry& sentence);
 template SATVAL WrappedPCSolver::add(const LazyGroundLit& sentence);
 

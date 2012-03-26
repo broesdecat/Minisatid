@@ -9,15 +9,7 @@
 #ifndef SATSOLVER_H_
 #define SATSOLVER_H_
 
-#ifdef USEMINISAT
-#include "Solver.hpp"
-#endif
-#ifdef USEMINISAT09Z
-#include "Solver.hpp"
-#endif
-#ifdef USEMINISAT22
-#include "core/Solver.h"
-#endif
+#include "satsolver/minisat/Solver.hpp"
 
 namespace Minisat {
 	class Solver;

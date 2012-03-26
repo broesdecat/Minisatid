@@ -1,5 +1,6 @@
 /******************************************************************************************[Sort.h]
-MiniSat -- Copyright (c) 2003-2006, Niklas Een, Niklas Sorensson
+Copyright (c) 2003-2007, Niklas Een, Niklas Sorensson
+Copyright (c) 2007-2010, Niklas Sorensson
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
@@ -17,16 +18,16 @@ DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 **************************************************************************************************/
 
-#ifndef MTLOLDSort_h
-#define MTLOLDSort_h
+#ifndef Minisat_Sort_h
+#define Minisat_Sort_h
 
-#include "mtl/Vec.h"
-
-namespace Minisat{
+#include "Vec.h"
 
 //=================================================================================================
 // Some sorting algorithms for vec's
 
+
+namespace Minisat {
 
 template<class T>
 struct LessThan_default {
@@ -90,6 +91,8 @@ template <class T, class LessThan> void sort(vec<T>& v, LessThan lt) {
 template <class T> void sort(vec<T>& v) {
     sort(v, LessThan_default<T>()); }
 
-}
+
 //=================================================================================================
+}
+
 #endif

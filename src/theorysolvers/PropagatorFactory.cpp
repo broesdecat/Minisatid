@@ -21,7 +21,7 @@
 #include "modules/aggsolver/AggTransform.hpp"
 #include "modules/ModSolver.hpp"
 #include "modules/LazyGrounder.hpp"
-#include "modules/Symmetrymodule.hpp"
+#include "modules/symmetry/Symmetry.hpp"
 #include "modules/BinConstr.hpp"
 #include "modules/LazyGrounder.hpp"
 
@@ -400,28 +400,12 @@ void PropagatorFactory::add(const InnerForcedChoices& formula) {
 	}
 }
 
-void PropagatorFactory::add(const InnerSymmetryLiterals& formula) {
-	notifyMonitorsOfAdding(formula);
-
-	guaranteeAtRootLevel();
-
-	if (not SymmStorage::hasStorage()) {
-		SymmStorage::addStorage(getEnginep());
-	}
-
-	SymmStorage::getStorage()->add(formula.literalgroups);
-}
-
 void PropagatorFactory::add(const InnerSymmetry& formula) {
 	notifyMonitorsOfAdding(formula);
 
 	guaranteeAtRootLevel();
 
-	if (not SymmStorage::hasStorage()) {
-		SymmStorage::addStorage(getEnginep());
-	}
-
-	SymmStorage::getStorage()->add(formula.symmetry);
+	new SymmetryPropagator(getEnginep(), formula);
 }
 
 template<class T>

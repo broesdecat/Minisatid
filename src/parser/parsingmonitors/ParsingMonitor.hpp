@@ -34,7 +34,6 @@ public:
 	virtual void notifyadded(const InnerMinimizeVar&){}
 	virtual void notifyadded(const InnerMinimizeAgg&){}
 	virtual void notifyadded(const InnerSymmetry&){}
-	virtual void notifyadded(const InnerSymmetryLiterals&){}
 	virtual void notifyadded(const InnerForcedChoices&){}
 	virtual void notifyadded(const InnerIntVarEnum&){}
 	virtual void notifyadded(const InnerIntVarRange&){}

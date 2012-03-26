@@ -60,7 +60,11 @@ public:
 
 	virtual rClause notifypropagate();
 
-	void finishParsing(bool&) {}
+	virtual rClause getExplanation(const Lit&) { MAssert(false); return nullPtrClause;}
+	virtual rClause notifyFullAssignmentFound() { MAssert(false); return nullPtrClause; }
+	virtual void finishParsing(bool&) { MAssert(false); }
+	virtual void notifyNewDecisionLevel() { MAssert(false); }
+	virtual void notifyBacktrack(int untillevel, const Lit& decision){ MAssert(false); }
 };
 }
 

@@ -197,6 +197,12 @@ void WrapperPimpl::checkLits(const vector<Literal>& lits, vector<Lit>& ll){
 	}
 }
 
+void WrapperPimpl::checkLits(const map<Literal, Literal>& lits, map<Lit, Lit>& ll){
+	for(auto i=lits.cbegin(); i!=lits.cend(); ++i){
+		ll[checkLit(i->first)] = checkLit(i->second);
+	}
+}
+
 void WrapperPimpl::checkAtoms(const vector<Atom>& atoms, vector<Var>& ll){
 	ll.reserve(atoms.size());
 	for(auto i=atoms.cbegin(); i<atoms.cend(); ++i){
@@ -488,17 +494,9 @@ SATVAL PCWrapperPimpl::add(const ForcedChoices& sentence){
 }
 
 template<>
-SATVAL PCWrapperPimpl::add(const SymmetryLiterals& sentence){
-	InnerSymmetryLiterals symms;
-	checkLits(sentence.symmgroups, symms.literalgroups);
-	getSolver()->add(symms);
-	return getSolver()->satState();
-}
-
-template<>
 SATVAL PCWrapperPimpl::add(const Symmetry& sentence){
 	InnerSymmetry symms;
-	checkAtoms(sentence.symmetry, symms.symmetry);
+	checkLits(sentence.symmetry, symms.symmetry);
 	getSolver()->add(symms);
 	return getSolver()->satState();
 }

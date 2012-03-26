@@ -124,6 +124,8 @@ public:
 	void 		backtrackDecisionLevel(int untillevel, const Lit& decision);
 	rClause 	propagate		();
 
+	bool		isDecided(Var var);
+
 	Var			changeBranchChoice(const Var& chosenvar);
 
 	int			getTime(const Var& var) const;
@@ -132,6 +134,7 @@ public:
 	bool		isAlreadyUsedInAnalyze(const Lit& lit) const;
 
 	void		varBumpActivity	(Var v);
+	void 		varReduceActivity(Var v);
 	lbool		value			(Var x) const;		// The current value of a variable.
 	lbool		value			(Lit p) const;		// The current value of a literal.
 	uint64_t	nVars			()      const;		// The current number of variables.
@@ -154,12 +157,8 @@ public:
 	void		notifyBoundsChanged(IntVar* var);
 
 	void 		notifyClauseAdded(rClause clauseID);
-	bool 		symmetryPropagationOnAnalyze(const Lit& p);
 
 	int			getNbOfFormulas	() const;
-
-	bool 		propagateSymmetry(const Lit& l);
-	bool		propagateSymmetry2();
 
 	// MOD SOLVER support
 	void 		setModSolver(ModSolver* m);

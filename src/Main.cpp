@@ -22,7 +22,6 @@
 #include "external/ExternalInterface.hpp"
 #include "external/FlatZincRewriter.hpp"
 #include "external/Translator.hpp"
-#include "Unittests.hpp"
 #include "external/ResourceManager.hpp"
 #include "parser/Lparseread.hpp"
 #include "parser/PBread.hpp"

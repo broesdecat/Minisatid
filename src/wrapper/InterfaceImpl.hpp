@@ -147,6 +147,7 @@ protected:
 	Var 	checkAtom		(const Atom& atom);
 	Lit 	checkLit		(const Literal& lit);
 	void 	checkLits		(const std::vector<Literal>& lits, std::vector<Lit>& ll);
+	void 	checkLits		(const std::map<Literal, Literal>& lits, std::map<Lit, Lit>& ll);
 	void 	checkAtoms		(const std::vector<Atom>& atoms, std::vector<Var>& ll);
 	void 	checkAtoms		(const std::map<Atom, Atom>& atoms, std::map<Var, Var>& ll);
 	void 	checkLits		(const std::vector<std::vector<Literal> >& lits, std::vector<std::vector<Lit> >& ll);
@@ -213,7 +214,6 @@ template<> SATVAL PCWrapperPimpl::add(const CPSumWeighted& sentence);
 template<> SATVAL PCWrapperPimpl::add(const CPCount& sentence);
 template<> SATVAL PCWrapperPimpl::add(const CPAllDiff& sentence);
 template<> SATVAL PCWrapperPimpl::add(const ForcedChoices& sentence);
-template<> SATVAL PCWrapperPimpl::add(const SymmetryLiterals& sentence);
 template<> SATVAL PCWrapperPimpl::add(const Symmetry& sentence);
 template<> SATVAL PCWrapperPimpl::add(const LazyGroundLit& sentence);
 

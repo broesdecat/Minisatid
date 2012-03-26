@@ -192,6 +192,10 @@ void PCSolver::varBumpActivity(Var v) {
 	getSolver().varBumpActivity(v);
 }
 
+void PCSolver::varReduceActivity(Var v){
+	getSolver().varReduceActivity(v);
+}
+
 void PCSolver::accept(Propagator* propagator) {
 	getEventQueue().accept(propagator);
 }
@@ -266,10 +270,6 @@ void PCSolver::notifyClauseAdded(rClause clauseID){
 	getEventQueue().notifyClauseAdded(clauseID);
 }
 
-bool PCSolver::symmetryPropagationOnAnalyze(const Lit& p) {
-	return getEventQueue().symmetryPropagationOnAnalyze(p);
-}
-
 /**
  * Returns OWNING pointer (faster).
  */
@@ -324,7 +324,7 @@ void PCSolver::createVar(Var v, VARHEUR decide) {
 		getSolver().newVar(
 				modes().polarity == POL_TRUE ? l_True : modes().polarity == POL_FALSE ? l_False : l_Undef, false);
 #else
-		getSolver().newVar(true, false);
+		getSolver().newVar(l_True, false);
 #endif
 	}
 
@@ -389,14 +389,6 @@ void PCSolver::backtrackDecisionLevel(int untillevel, const Lit& decision) {
 	getEventQueue().notifyBacktrack(untillevel, decision);
 }
 
-bool PCSolver::propagateSymmetry2() {
-	return getEventQueue().checkSymmetryAlgo2();
-}
-
-bool PCSolver::propagateSymmetry(const Lit& l) {
-	return getEventQueue().checkSymmetryAlgo1(l);
-}
-
 /**
  * Returns not-owning pointer
  *
@@ -416,6 +408,10 @@ SATVAL PCSolver::satState() const{
 
 void PCSolver::notifyUnsat() {
 	return getSATSolver()->notifyUnsat();
+}
+
+bool PCSolver::isDecided(Var var){
+	return getSATSolver()->isDecided(var);
 }
 
 Var PCSolver::changeBranchChoice(const Var& chosenvar) {

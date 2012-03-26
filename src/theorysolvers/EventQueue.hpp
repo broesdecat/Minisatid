@@ -101,7 +101,6 @@ public:
 	void 	notifyBecameDecidable(Var v);
 	void 	notifyClauseAdded(rClause clauseID);
 	void 	notifyClauseDeleted(rClause clauseID);
-	bool 	symmetryPropagationOnAnalyze(const Lit& p);
 	rClause notifyFullAssignmentFound();
 	void 	finishParsing			();
 	void 	notifyNewDecisionLevel	();
@@ -114,9 +113,6 @@ public:
 	void 	printStatistics			() const;
 	void	setTrue					(const Lit& l);
 	void 	notifyBoundsChanged		(IntVar* var);
-
-	bool 	checkSymmetryAlgo1(const Lit& lit);
-	bool	checkSymmetryAlgo2();
 
 private:
 	void 	setTrue(const proplist& list, std::queue<Propagator*>& queue);

@@ -328,7 +328,7 @@ int EventQueue::getNbOfFormulas() const {
 	int count = 0;
 	for (auto i = allpropagators.cbegin(); i < allpropagators.cend(); ++i) {
 		if ((*i)->isPresent()) {
-			count += (*i)->getNbOfFormulas();
+			// TODO VISITOR count += (*i)->getNbOfFormulas();
 		}
 	}
 	return count;
@@ -377,40 +377,8 @@ void EventQueue::notifyClauseAdded(rClause clauseID) {
 		if (!props[i]->isPresent()) {
 			continue;
 		}
-		props[i]->notifyClauseAdded(clauseID);
+		// TODO VISITOR props[i]->notifyClauseAdded(clauseID);
 	}
-}
-
-bool EventQueue::symmetryPropagationOnAnalyze(const Lit& p) {
-	auto props = event2propagator.at(EV_SYMMETRYANALYZE);
-	for (uint i = 0; i < size(EV_SYMMETRYANALYZE); ++i) {
-		if (props[i]->symmetryPropagationOnAnalyze(p)) {
-			return true;
-		}
-	}
-	return false;
-}
-
-// unsat if true
-bool EventQueue::checkSymmetryAlgo1(const Lit& lit) {
-	auto props = event2propagator.at(EV_SYMMCHECK1);
-	for (uint i = 0; i < size(EV_SYMMCHECK1); ++i) {
-		if (props[i]->checkSymmetryAlgo1(lit)) {
-			return true;
-		}
-	}
-	return false;
-}
-
-// return false if unsat
-bool EventQueue::checkSymmetryAlgo2() {
-	auto props = event2propagator.at(EV_SYMMCHECK2);
-	for (uint i = 0; i < size(EV_SYMMCHECK2); ++i) {
-		if (not props[i]->checkSymmetryAlgo2()) {
-			return false;
-		}
-	}
-	return true;
 }
 
 void EventQueue::notifyNewDecisionLevel() {
@@ -444,7 +412,7 @@ Var EventQueue::notifyBranchChoice(Var var) {
 		if (!props[i]->isPresent()) {
 			continue;
 		}
-		currentvar = props[i]->notifyBranchChoice(currentvar);
+		// TODO VISITOR currentvar = props[i]->notifyBranchChoice(currentvar);
 	}
 	return currentvar;
 }
@@ -455,13 +423,13 @@ void EventQueue::printState() const {
 		if (!props[i]->isPresent()) {
 			continue;
 		}
-		props[i]->printState();
+		// TODO VISITOR props[i]->printState();
 	}
 }
 
 void EventQueue::printECNF(ostream&, set<Var>&) const {
 	for (auto i = allpropagators.cbegin(); i < allpropagators.cend(); ++i) {
-		//(*i)->printECNF(stream, printedvars); //TODO
+		//(*i)->printECNF(stream, printedvars); // TODO VISITOR
 	}
 }
 
@@ -471,6 +439,6 @@ void EventQueue::printStatistics() const {
 		if (!props[i]->isPresent()) {
 			continue;
 		}
-		props[i]->printStatistics();
+		// TODO VISITOR props[i]->printStatistics();
 	}
 }
