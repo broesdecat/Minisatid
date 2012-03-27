@@ -83,10 +83,10 @@ public:
 	//NOTE Both aggsolver and modsolver can add rules during their initialization, so idsolver should be late and all the others early!
 	void acceptFinishParsing(Propagator* propagator, bool late);
 	void acceptBounds(IntView* var, Propagator* propagator){
-		if(intvarid2propagators.size()<=(vsize)var->id()){
-			intvarid2propagators.resize((vsize)var->id()+1, proplist());
+		if(intvarid2propagators.size()<=(uint)var->id()){
+			intvarid2propagators.resize((uint)var->id()+1, proplist());
 		}
-		intvarid2propagators[(vsize)var->id()].push_back(propagator);
+		intvarid2propagators[(uint)var->id()].push_back(propagator);
 	}
 	void 	accept(Propagator* propagator, const Lit& litevent, PRIORITY priority);
 	void 	accept(GenWatch* const watch);

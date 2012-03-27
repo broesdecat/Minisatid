@@ -41,7 +41,7 @@ private:
 			bool	_innet; //True if it is in the watch network
 			int 	_index; //-1 if _innws
 public:
-	GenPWatch(TypedSet* set, const WL& wl, bool watchneg, vsize index):
+	GenPWatch(TypedSet* set, const WL& wl, bool watchneg, uint index):
 		Watch(set, wl.getLit(), wl.getWeight(), not watchneg, true),
 		_innws(true),
 		_innet(false),
@@ -115,7 +115,7 @@ private:
 	minmaxOptimAndPessBounds calculateBoundsOfWatches(GenPWatch*& largest) const;
 
 	rClause reconstructSet		(pgpw watch, bool& propagations, Agg const * propagg);
-	void 	genWatches			(vsize& i, const Agg& agg, minmaxOptimAndPessBounds& bounds, GenPWatch*& largest);
+	void 	genWatches			(uint& i, const Agg& agg, minmaxOptimAndPessBounds& bounds, GenPWatch*& largest);
 
 	rClause checkPropagation	(bool& propagations, minmaxBounds& pessbounds, Agg const * agg);
 	rClause checkHeadPropagationForAgg(bool& propagations, const Agg& agg, const minmaxBounds& pessbounds);

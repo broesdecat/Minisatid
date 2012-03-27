@@ -77,7 +77,7 @@ public:
 	virtual void	notifyNonDecisionVar(Var) { }//FIXME
 
 	//Get information on hierarchy
-	ModSolver* getModSolver	(vsize modid) const { checkexistsModSolver(modid); return solvers[modid];}
+	ModSolver* getModSolver	(uint modid) const { checkexistsModSolver(modid); return solvers[modid];}
 
 	void 	printStatistics	() const;
 	void 	printTheory(std::ostream&) { assert(false); }
@@ -87,8 +87,8 @@ public:
 private:
 	ModSolver& getModSolverDuringAdding(int modid);
 	void	verifyHierarchy		();
-	void	checkexistsModSolver(vsize modid) const;
-	bool	existsModSolver		(vsize modid) const { return modid<solvers.size() && solvers[modid]!=NULL; }
+	void	checkexistsModSolver(uint modid) const;
+	bool	existsModSolver		(uint modid) const { return modid<solvers.size() && solvers[modid]!=NULL; }
 };
 
 }

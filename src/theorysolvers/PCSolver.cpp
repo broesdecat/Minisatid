@@ -320,12 +320,7 @@ void PCSolver::createVar(Var v, VARHEUR decide) {
 	assert(v>-1);
 
 	while (((uint64_t) v) >= nVars()) {
-#ifdef USEMINISAT22
-		getSolver().newVar(
-				modes().polarity == POL_TRUE ? l_True : modes().polarity == POL_FALSE ? l_False : l_Undef, false);
-#else
-		getSolver().newVar(l_True, false);
-#endif
+		getSolver().newVar(modes().polarity == Polarity::TRUE ? l_True : modes().polarity == Polarity::FALSE ? l_False : l_Undef, false);
 	}
 
 	if(not getSolver().isDecisionVar(v)){
@@ -444,7 +439,7 @@ bool PCSolver::solve(const litlist& assumptions, const ModelExpandOptions& optio
 		vecassumptions.push(*i);
 	}
 
-	if (options.inference == PROPAGATE) { //Only do unit propagation
+	if (options.inference == Inference::PROPAGATE) { //Only do unit propagation
 		return getSolver().solve(vecassumptions, true);
 	}
 
@@ -599,8 +594,8 @@ SATVAL PCSolver::invalidateModel(InnerDisjunction& clause) {
 bool PCSolver::invalidateSubset(litlist& invalidation, vec<Lit>& assmpt) {
 	int subsetsize = 0;
 
-	for (vsize i = 0; i < to_minimize.size(); ++i) {
-		if (getSolver().model[(vsize)var(to_minimize[i])] == l_True) {
+	for (uint i = 0; i < to_minimize.size(); ++i) {
+		if (getSolver().model[(uint)var(to_minimize[i])] == l_True) {
 			invalidation.push_back(~to_minimize[i]);
 			++subsetsize;
 		} else {
@@ -618,7 +613,7 @@ bool PCSolver::invalidateSubset(litlist& invalidation, vec<Lit>& assmpt) {
 bool PCSolver::invalidateValue(litlist& invalidation) {
 	bool currentoptimumfound = false;
 
-	for (vsize i = 0; !currentoptimumfound && i < to_minimize.size(); ++i) {
+	for (uint i = 0; !currentoptimumfound && i < to_minimize.size(); ++i) {
 		if (!currentoptimumfound && getSolver().model[var(to_minimize[i])] == l_True) {
 			if (modes().verbosity >= 1) {
 				clog << "> Current optimum found for: ";
@@ -736,7 +731,7 @@ bool PCSolver::invalidateAgg(litlist& invalidation) {
 		return true;
 	}
 
-	HeadReason ar(*agg, createNegativeLiteral(var(agg->getHead())));
+	HeadReason ar(*agg, mkNegLit(var(agg->getHead())));
 	s->getProp()->getExplanation(invalidation, ar);
 
 	return false;

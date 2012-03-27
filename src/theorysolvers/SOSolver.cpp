@@ -32,7 +32,7 @@ void SOSolver::printStatistics() const {
 	std::clog <<"Statistics printing not implemented for modal solver.\n";
 }
 
-void SOSolver::checkexistsModSolver(vsize modid) const {
+void SOSolver::checkexistsModSolver(uint modid) const {
 	if(!existsModSolver(modid)){
 		stringstream ss;
 		ss <<">> No modal operator with id " <<modid+1 <<"was declared! ";
@@ -142,13 +142,13 @@ SATVAL SOSolver::add(int modid, const InnerDisjunction& disj){
 	//Try to add a clause as high up in the hierarchy as possible.
 	const litlist& lits = disj.literals;
 	checkexistsModSolver(modid);
-	vsize previd = modid, currentid = modid;
+	uint previd = modid, currentid = modid;
 	ModSolver* m = NULL;
 	bool negated = false;
 	while(true){
 		m = getModSolver(currentid);
 		bool alloccur = true;
-		for(vsize i=0; alloccur && i<lits.size(); ++i){
+		for(uint i=0; alloccur && i<lits.size(); ++i){
 			bool seen = false;
 			for(vector<Var>::const_iterator j=m->getAtoms().cbegin(); !seen && j<m->getAtoms().cend(); ++j){
 				if(*j==var(lits[i])){
@@ -223,12 +223,12 @@ ModSolver& SOSolver::getModSolverDuringAdding(int modid){
 void SOSolver::verifyHierarchy(){
 	assert(state == ALLLOADED);
 
-	vector<vsize> queue;
+	vector<uint> queue;
 	vector<int> visitcount(solvers.size(), 0);
 	queue.push_back(0);
 	++visitcount[0];
 	while(queue.size()>0){
-		vsize s = queue.back();
+		uint s = queue.back();
 		queue.pop_back();
 		ModSolver* solver = getModSolver(s);
 		for(vmodindex::const_iterator i=solver->getChildren().cbegin(); i<solver->getChildren().cend(); ++i){

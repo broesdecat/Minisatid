@@ -19,8 +19,7 @@
 #include "external/Translator.hpp"
 #include "external/ResourceManager.hpp"
 #include "utils/Print.hpp"
-
-#include "GeneralUtils.hpp"
+#include "utils/TimingUtils.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -30,7 +29,7 @@ Solution::Solution(ModelExpandOptions options) :
 		temporarymodel(NULL),
 		optimizing(false), optimalmodelfound(false),
 		unsatfound(false),
-		modelsave(MODEL_NONE), solvingstate(SOLVING_STARTED),
+		modelsave(ModelSaved::NONE), solvingstate(SolvingState::STARTED),
 		owntranslator(new Translator()), translator(owntranslator),
 		startparsing(0), endparsing(-1), startfinish(0), endfinish(-1), startsimpl(0), endsimpl(-1), startsolve(0), endsolve(-1){
 
@@ -100,8 +99,8 @@ void Solution::notifyCurrentOptimum(const Weight & value) const{
 }
 
 const Model& Solution::getBestModelFound() const {
-	assert(modelsave!=MODEL_NONE);
-	if (modelsave == MODEL_SAVED) {
+	assert(modelsave!=ModelSaved::NONE);
+	if (modelsave == ModelSaved::SAVED) {
 		return *models.back();
 	} else {
 		return *temporarymodel;
@@ -110,19 +109,19 @@ const Model& Solution::getBestModelFound() const {
 
 void Solution::saveModel(Model * const model){
 	++nbmodelsfound;
-	if (modelsave == MODEL_SAVING) { //Error in saving previous model, so abort
+	if (modelsave == ModelSaved::SAVING) { //Error in saving previous model, so abort
 		throw idpexception(">> Previous model failed to save, cannot guarantee correctness.\n");
 	}
-	if (getSaveOption() == SAVE_BEST) {
-		if (modelsave != MODEL_NONE) {
+	if (getSaveOption() == Models::BEST) {
+		if (modelsave != ModelSaved::NONE) {
 			temporarymodel = models.back();
 			models.pop_back();
 			assert(models.empty());
 		}
 	}
-	modelsave = MODEL_SAVING;
+	modelsave = ModelSaved::SAVING;
 	models.push_back(model);
-	modelsave = MODEL_SAVED;
+	modelsave = ModelSaved::SAVED;
 }
 
 void Solution::addModel(Model * const model) {
@@ -131,9 +130,9 @@ void Solution::addModel(Model * const model) {
 	assert(hasTranslator());
 
 	ostream output(resman->getBuffer());
-	if (getPrintOption() == PRINT_ALL || (!optimizing && getPrintOption() == PRINT_BEST)) {
+	if (getPrintOption() == Models::ALL || (!optimizing && getPrintOption() == Models::BEST)) {
 		if (getNbModelsFound() == 1) {
-			if (!optimizing && modes.transformat != TRANS_ASP) {
+			if (!optimizing && modes.transformat != OutputFormat::ASP) {
 				printSatisfiable(output, modes.format, modes.transformat);
 				printSatisfiable(clog, modes.format, modes.transformat,	modes.verbosity);
 			}
@@ -158,24 +157,24 @@ void Solution::solvingFinished(){
 	}
 
 	ostream output(resman->getBuffer());
-	if(isUnsat() && getPrintOption()!=PRINT_NONE){
+	if(isUnsat() && getPrintOption()!=Models::NONE){
 		printUnSatisfiable(output, modes.format, modes.transformat);
 		printUnSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);
-	}else if(getNbModelsFound()==0 && getPrintOption()!=PRINT_NONE){
+	}else if(getNbModelsFound()==0 && getPrintOption()!=Models::NONE){
 		printUnknown(output, modes.transformat);
 	}else{ // not unsat and at least one model
-		if(optimizing && getPrintOption()==PRINT_BEST){
+		if(optimizing && getPrintOption()==Models::BEST){
 			if(hasOptimalModel()){
 				printOptimalModelFound(output, modes.transformat);
 			}
-			if(modes.format==FORMAT_OPB){
+			if(modes.format==InputFormat::OPB){
 				printSatisfiable(output, modes.format, modes.transformat);
 				printSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);
 			}
 			if(hasTranslator()){
 				getTranslator()->printModel(output, getBestModelFound());
 			}
-		}else if(!optimizing && modes.transformat==TRANS_ASP){
+		}else if(!optimizing && modes.transformat==OutputFormat::ASP){
 			printSatisfiable(output, modes.format, modes.transformat);
 			printSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);
 		}
@@ -199,12 +198,12 @@ void Solution::setOutputFile(std::string output){
 
 //Only call internally!
 void Solution::notifySolvingFinished() {
-	if(solvingstate == SOLVING_FINISHEDCLEANLY){
+	if(solvingstate == SolvingState::FINISHEDCLEANLY){
 		return;
-	}else if(solvingstate == SOLVING_ABORTED){
+	}else if(solvingstate == SolvingState::ABORTED){
 		throw idpexception("System was notified of both ending cleanly and aborting.\n");
 	}
-	solvingstate = SOLVING_FINISHEDCLEANLY;
+	solvingstate = SolvingState::FINISHEDCLEANLY;
 	solvingFinished();
 }
 
@@ -213,11 +212,11 @@ void Solution::notifyUnsat() {
 }
 
 void Solution::notifySolvingAborted() {
-	if(solvingstate == SOLVING_ABORTED){
+	if(solvingstate == SolvingState::ABORTED){
 		return;
-	}else if(solvingstate == SOLVING_FINISHEDCLEANLY){
+	}else if(solvingstate == SolvingState::FINISHEDCLEANLY){
 		throw idpexception("System was notified of both ending cleanly and aborting.\n");
 	}
-	solvingstate = SOLVING_ABORTED;
+	solvingstate = SolvingState::ABORTED;
 	solvingFinished();
 }

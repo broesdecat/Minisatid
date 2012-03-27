@@ -22,6 +22,10 @@ double MinisatID::getDefaultDecay(){
 double MinisatID::getDefaultRandfreq(){
 	return 0;
 }
-POLARITY MinisatID::getDefaultPolarity(){
-	return POL_STORED;
+Polarity MinisatID::getDefaultPolarity(){
+	return Polarity::STORED;
+}
+
+bool MinisatID::isPositive(const Lit& lit){
+	return not sign(lit);
 }

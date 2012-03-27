@@ -60,11 +60,11 @@ WHITESPACE	[\t\r ]*
 
 <theory>^"WSet"	{ADJ; return WSETDEFN;}
 <theory>^"Set"	{ADJ; return SETDEFN;}
-<theory>"Card"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::CARD; return AGGDEFN;}
-<theory>"Sum"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::SUM; return AGGDEFN;}
-<theory>"Prod"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::PROD; return AGGDEFN;}
-<theory>"Min"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::MIN; return AGGDEFN;}
-<theory>"Max"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::MAX; return AGGDEFN;}
+<theory>"Card"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::AggType::CARD; return AGGDEFN;}
+<theory>"Sum"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::AggType::SUM; return AGGDEFN;}
+<theory>"Prod"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::AggType::PROD; return AGGDEFN;}
+<theory>"Min"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::AggType::MIN; return AGGDEFN;}
+<theory>"Max"	{ADJ; /*ecnflval*/yylval.aggr = MinisatID::AggType::MAX; return AGGDEFN;}
 
 <theory>^"Equiv"	{ADJ; return EQUIV;}
 
@@ -72,10 +72,10 @@ WHITESPACE	[\t\r ]*
 
 <theory>"<-"	{ADJ; return DEFOP;}
 
-<theory>"D"		{ADJ; /*ecnflval*/yylval.sem = MinisatID::DEF;  return SEMDEFN;}
-<theory>"C"		{ADJ; /*ecnflval*/yylval.sem = MinisatID::COMP; return SEMDEFN;}
-<theory>"L"		{ADJ; /*ecnflval*/yylval.sign = MinisatID::AGGSIGN_UB;  return SIGNDEFN;}
-<theory>"G"		{ADJ; /*ecnflval*/yylval.sign = MinisatID::AGGSIGN_LB; return SIGNDEFN;}
+<theory>"D"		{ADJ; /*ecnflval*/yylval.sem = MinisatID::AggSem::DEF;  return SEMDEFN;}
+<theory>"C"		{ADJ; /*ecnflval*/yylval.sem = MinisatID::AggSem::COMP; return SEMDEFN;}
+<theory>"L"		{ADJ; /*ecnflval*/yylval.sign = MinisatID::AggSign::UB;  return SIGNDEFN;}
+<theory>"G"		{ADJ; /*ecnflval*/yylval.sign = MinisatID::AggSign::LB; return SIGNDEFN;}
 
 <theory>^"e"	{ADJ; /*ecnflval*/yylval.boolean = true; return QUANTe;} //existential quantifier
 <theory>^"a"	{ADJ; /*ecnflval*/yylval.boolean = false; return QUANTe;} //universal quantifier
@@ -99,12 +99,12 @@ WHITESPACE	[\t\r ]*
 <theory>^"SUMSTSIRI"	{ADJ; return SUMSTSIRI;}
 <theory>^"COUNTSTRIT"	{ADJ; return COUNTSTRIT;}
 
-<theory>"="		{ADJ; /*ecnflval*/yylval.rel = MinisatID::MEQ; return REL;}
-<theory>">"		{ADJ; /*ecnflval*/yylval.rel = MinisatID::MG; return REL;}
-<theory>"<"		{ADJ; /*ecnflval*/yylval.rel = MinisatID::ML; return REL;}
-<theory>"~="	{ADJ; /*ecnflval*/yylval.rel = MinisatID::MNEQ; return REL;}
-<theory>"=<"	{ADJ; /*ecnflval*/yylval.rel = MinisatID::MLEQ; return REL;}
-<theory>">="	{ADJ; /*ecnflval*/yylval.rel = MinisatID::MGEQ; return REL;}
+<theory>"="		{ADJ; /*ecnflval*/yylval.rel = MinisatID::EqType::EQ; return REL;}
+<theory>">"		{ADJ; /*ecnflval*/yylval.rel = MinisatID::EqType::G; return REL;}
+<theory>"<"		{ADJ; /*ecnflval*/yylval.rel = MinisatID::EqType::L; return REL;}
+<theory>"~="	{ADJ; /*ecnflval*/yylval.rel = MinisatID::EqType::NEQ; return REL;}
+<theory>"=<"	{ADJ; /*ecnflval*/yylval.rel = MinisatID::EqType::LEQ; return REL;}
+<theory>">="	{ADJ; /*ecnflval*/yylval.rel = MinisatID::EqType::GEQ; return REL;}
 
  /* Longest match is returned -> if e.g. "20", NUMBER is returned.
     If "0", then ZERO is returned since it's the first matching rule.

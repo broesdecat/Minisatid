@@ -85,20 +85,20 @@ void MinisatID::print(int verbosity, const Agg& ae, bool endl) {
 	printValue(clog, value);
 	TypedSet* set = ae.getSet();
 	switch(ae.getSem()){
-		case DEF:
+		case AggSem::DEF:
 			clog <<"<- ";
 			break;
-		case COMP:
+		case AggSem::COMP:
 			clog <<"<=> ";
 			break;
-		case IMPLICATION:
+		case AggSem::IMPLICATION:
 			clog <<"| ";
 			break;
 	}
 	if (ae.hasLB()) {
 		clog <<ae.getCertainBound() <<" <= ";
 	}
-	clog <<(ae.getType()==MAX?"MAX":ae.getType()==MIN?"MIN":ae.getType()==SUM?"SUM":ae.getType()==CARD?"CARD":"PROD") <<"{";
+	clog <<ae.getType() <<"{";
 	print(verbosity, *set, false);
 	clog <<"}";
 	if (ae.hasUB()) {

@@ -20,12 +20,12 @@
 namespace MinisatID {
 
 // Comparison operator
-enum EqType{ MEQ, MNEQ, ML, MG, MGEQ, MLEQ };
+enum class EqType	{ EQ, NEQ, L, G, GEQ, LEQ };
 
 // Aggregate specification operators
-enum AggType 	{ SUM, PROD, MIN, MAX, CARD }; 	// Type of aggregate concerned
-enum AggSign 	{ AGGSIGN_UB, AGGSIGN_LB}; 	// Sign of the bound of the aggregate
-enum AggSem 	{ COMP, DEF, IMPLICATION };	// Semantics of satisfiability of the aggregate head: COMPletion or DEFinitional
+enum class AggType 	{ SUM, PROD, MIN, MAX, CARD }; 	// Type of aggregate concerned
+enum class AggSign 	{ UB, LB}; 	// Sign of the bound of the aggregate
+enum class AggSem 	{ COMP, DEF, IMPLICATION };	// Semantics of satisfiability of the aggregate head: COMPletion or DEFinitional
 
 class Atom{
 private:
@@ -83,13 +83,6 @@ typedef std::vector<Model*> modellist;
 class Disjunction{
 public:
 	std::vector<Literal> literals;
-};
-
-class DisjunctionRef{
-public:
-	const literallist& literals;
-
-	DisjunctionRef(const literallist& lits): literals(lits){}
 };
 
 enum class ImplicationType { IMPLIES, IMPLIEDBY, EQUIVALENT};
@@ -242,6 +235,5 @@ public:
 };
 
 }
-
 
 #endif /* DATASTRUCTURES_HPP_ */

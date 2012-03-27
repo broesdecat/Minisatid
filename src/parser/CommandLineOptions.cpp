@@ -6,8 +6,7 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#include "parser/ParseOptions.hpp"
-#include "GeneralUtils.hpp"
+#include "parser/CommandLineOptions.hpp"
 
 #include <vector>
 #include <string>
@@ -88,9 +87,10 @@ struct Option: public Opt{
 			ss <<endl;
 		}
 
+		MAssert(found);
 		if(not found){
 			stringstream ss2;
-			ss2 <<"Option " <<shortopt <<"(" <<longopt <<")" <<" has no value " <<defaultval <<", so cannot set this as default value.\n";
+			ss2 <<"Default for option " <<shortopt <<"(" <<longopt <<")" <<" is not an allowed value for that option.\n";
 			throw idpexception(ss2.str());
 		}
 
@@ -131,20 +131,20 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 	yesnovals.push_back(true);
 	yesnovals.push_back(false);
 
-	vector<INPUTFORMAT> formatvals;
+	vector<InputFormat> formatvals;
 	vector<pair<string, string> > formatdesc;
-	formatvals.push_back(FORMAT_FODOT); formatdesc.push_back(pair<string, string>("fodot", "propositional FO(.)"));
-	formatvals.push_back(FORMAT_ASP); formatdesc.push_back(pair<string, string>("asp", "propositional LParse ASP"));
-	formatvals.push_back(FORMAT_OPB); formatdesc.push_back(pair<string, string>("opb", "open pseudo-boolean"));
+	formatvals.push_back(InputFormat::FODOT); formatdesc.push_back(pair<string, string>("fodot", "propositional FO(.)"));
+	formatvals.push_back(InputFormat::ASP); formatdesc.push_back(pair<string, string>("asp", "propositional LParse ASP"));
+	formatvals.push_back(InputFormat::OPB); formatdesc.push_back(pair<string, string>("opb", "open pseudo-boolean"));
 
-	vector<OUTPUTFORMAT> transvals;
+	vector<OutputFormat> transvals;
 	vector<pair<string, string> > transdesc;
-	transvals.push_back(TRANS_FODOT); transdesc.push_back(pair<string, string>("fodot", "Translate model into FO(.) structure (default if input is fodot)"));
-	transvals.push_back(TRANS_ASP); transdesc.push_back(pair<string, string>("asp", "Translate model into ASP facts (default if input is asp)"));
-	transvals.push_back(TRANS_PLAIN); transdesc.push_back(pair<string, string>("plain", "Return model in sat format"));
-	transvals.push_back(TRANS_FZ); transdesc.push_back(pair<string, string>("flatzinc", "Rewrite theory into flatzinc model"));
-	transvals.push_back(TRANS_OPB); transdesc.push_back(pair<string, string>("opb", "Print out into opb output format (default if input is opb)"));
-	transvals.push_back(TRANS_DEFAULT); transdesc.push_back(pair<string, string>("default", "Return the model in the default output format associated to the input language."));
+	transvals.push_back(OutputFormat::FODOT); transdesc.push_back(pair<string, string>("fodot", "Translate model into FO(.) structure (default if input is fodot)"));
+	transvals.push_back(OutputFormat::ASP); transdesc.push_back(pair<string, string>("asp", "Translate model into ASP facts (default if input is asp)"));
+	transvals.push_back(OutputFormat::PLAIN); transdesc.push_back(pair<string, string>("plain", "Return model in sat format"));
+	transvals.push_back(OutputFormat::FZ); transdesc.push_back(pair<string, string>("flatzinc", "Rewrite theory into flatzinc model"));
+	transvals.push_back(OutputFormat::OPB); transdesc.push_back(pair<string, string>("opb", "Print out into opb output format (default if input is opb)"));
+	transvals.push_back(OutputFormat::DEFAULT); transdesc.push_back(pair<string, string>("default", "Return the model in the default output format associated to the input language."));
 
 	vector<pair<string, string> > checkcyclesdesc;
 	checkcyclesdesc.push_back(pair<string, string>("yes", "Check"));
@@ -195,9 +195,9 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 	vector<Inference> inferencevals;
 	vector<pair<string, string> > inferencedesc;
 	//inferencevals.push_back(PROPAGATE); inferencedesc.push_back(pair<string, string>("propagate", "Only do unit propagation"));
-	inferencevals.push_back(PRINTTHEORY); inferencedesc.push_back(pair<string, string>("print", "Print out an ecnf file representing the theory"));
-	inferencevals.push_back(MODELEXPAND); inferencedesc.push_back(pair<string, string>("mx", "Do modelexpansion on the theory"));
-	inferencevals.push_back(PROPAGATE); inferencedesc.push_back(pair<string, string>("propagate", "Do unit propagation on the theory"));
+	inferencevals.push_back(Inference::PRINTTHEORY); inferencedesc.push_back(pair<string, string>("print", "Print out an ecnf file representing the theory"));
+	inferencevals.push_back(Inference::MODELEXPAND); inferencedesc.push_back(pair<string, string>("mx", "Do modelexpansion on the theory"));
+	inferencevals.push_back(Inference::PROPAGATE); inferencedesc.push_back(pair<string, string>("propagate", "Do unit propagation on the theory"));
 
 	vector<pair<string, string> > watcheddesc;
 	watcheddesc.push_back(pair<string, string>("yes", "Use smart watches"));
@@ -215,12 +215,12 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 	lazydesc.push_back(pair<string, string>("yes", "Use lazy grounding"));
 	lazydesc.push_back(pair<string, string>("no", "Don't use lazy grounding"));
 
-	vector<POLARITY> polvals;
+	vector<Polarity> polvals;
 	vector<pair<string, string> > poldesc;
-	polvals.push_back(POL_TRUE); poldesc.push_back(pair<string, string>("true", "true-first"));
-	polvals.push_back(POL_FALSE); poldesc.push_back(pair<string, string>("false", "false-first"));
-	polvals.push_back(POL_RAND); poldesc.push_back(pair<string, string>("rand", "random"));
-	polvals.push_back(POL_STORED); poldesc.push_back(pair<string, string>("stored", "history-based"));
+	polvals.push_back(Polarity::TRUE); poldesc.push_back(pair<string, string>("true", "true-first"));
+	polvals.push_back(Polarity::FALSE); poldesc.push_back(pair<string, string>("false", "false-first"));
+	polvals.push_back(Polarity::RAND); poldesc.push_back(pair<string, string>("rand", "random"));
+	polvals.push_back(Polarity::STORED); poldesc.push_back(pair<string, string>("stored", "history-based"));
 
 	vector<int> aggsavingvals;
 	vector<pair<int, string> > aggsavingdesc;
@@ -266,9 +266,9 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 			outputfile, cmd,"The outputfile to use to write out models."));
     options.push_back(new NoValsOption<string>	("","primesfile",	"file",
 			 modes.primesfile, cmd,"File containing a list of prime numbers to use for finding optimal bases. Has to be provided if using pbsolver."));
-	options.push_back(new Option<INPUTFORMAT, string>("f", "format", formatvals, formatdesc,
+	options.push_back(new Option<InputFormat, string>("f", "format", formatvals, formatdesc,
 			modes.format, cmd, "The format of the input theory"));
-	options.push_back(new Option<OUTPUTFORMAT, string>("", "outputformat", transvals, transdesc,
+	options.push_back(new Option<OutputFormat, string>("", "outputformat", transvals, transdesc,
 			modes.transformat, cmd, "The requested output format (only relevant if translation information is provided)."));
 	options.push_back(new Option<Inference, string>("", "inference", inferencevals, inferencedesc,
 			modes.inference, cmd, "The requested inference task to execute."));
@@ -304,7 +304,7 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 
 	options.push_back(new Option<bool,string>	("","use-agg-heur", 	yesnovals, aggheurdesc,
 			modes.useaggheur, cmd,"Use a specialized aggregate heuristic."));
-	options.push_back(new Option<POLARITY, string>("","polarity", 	polvals, poldesc,
+	options.push_back(new Option<Polarity, string>("","polarity", 	polvals, poldesc,
 			modes.polarity, cmd, "The default truth value choice of variables"));
 	options.push_back(new Option<int, int>("","aggsaving", 			aggsavingvals, aggsavingdesc,
 			modes.aggclausesaving, cmd, "How to handle propagation reasons for aggregates"));
@@ -337,16 +337,16 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 
 	deleteList<Opt>(options);
 
-	if(modes.transformat==TRANS_DEFAULT){
+	if(modes.transformat==OutputFormat::DEFAULT){
 		switch(modes.format){
-			case FORMAT_ASP:
-				modes.transformat = TRANS_ASP;
+			case InputFormat::ASP:
+				modes.transformat = OutputFormat::ASP;
 				break;
-			case FORMAT_OPB:
-				modes.transformat = TRANS_OPB;
+			case InputFormat::OPB:
+				modes.transformat = OutputFormat::OPB;
 				break;
-			case FORMAT_FODOT:
-				modes.transformat = TRANS_FODOT;
+			case InputFormat::FODOT:
+				modes.transformat = OutputFormat::FODOT;
 				break;
 		}
 	}

@@ -21,29 +21,22 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D DATADIR=\"\\\"${CMAKE_INSTALL_PREFIX}
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D __STDC_FORMAT_MACROS -D __STDC_LIMIT_MACROS")
 
 # CP interface
+file(GLOB_RECURSE CP_SOURCES "${PROJECT_SOURCE_DIR}/src/modules/cpsolver/*.cpp")
+list(APPEND CP_SOURCES "${PROJECT_SOURCE_DIR}/src/modules/CPSolver.cpp")
 if(WITHCP)
-	set(CP_SOURCES
-		modules/CPSolver.cpp
-		modules/cpsolver/Constraint.cpp
-		modules/cpsolver/CPSolverData.cpp
-		modules/cpsolver/CPUtils.cpp
-		modules/cpsolver/CPScript.cpp
-	)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D CPSUPPORT")
 endif()
 
 set(LIBMINISATIDCPPFILES "")
-file(GLOB_RECURSE LIBMINISATIDCPPFILES "${PROJECT_SOURCE_DIR}/src" "*.cpp")
+file(GLOB_RECURSE LIBMINISATIDCPPFILES "${PROJECT_SOURCE_DIR}/src/*.cpp")
 LIST(REMOVE_ITEM LIBMINISATIDCPPFILES "${PROJECT_SOURCE_DIR}/src/Main.cpp")
 if(NOT WITHCP)
-	LIST(REMOVE_ITEM LIBMINISATIDCPPFILES "${PROJECT_SOURCE_DIR}/src/modules/cpsolver/")
-	LIST(REMOVE_ITEM LIBMINISATIDCPPFILES "${PROJECT_SOURCE_DIR}/src/modules/cpsolver/CPSolver.cpp")
+	LIST(REMOVE_ITEM LIBMINISATIDCPPFILES ${CP_SOURCES})
 endif()
 LIST(REMOVE_ITEM LIBMINISATIDCPPFILES "${PROJECT_SOURCE_DIR}/src/modules/FDAggConstraint.cpp")
 
 add_library(minisatid
 	${LIBMINISATIDCPPFILES}
-	${CP_SOURCES}
 )
 
 set(LIBS ${LIBS} pbsolver)

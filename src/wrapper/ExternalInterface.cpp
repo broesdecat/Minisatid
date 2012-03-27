@@ -96,7 +96,6 @@ SATVAL WrappedSOSolver::add(int modalid, const T& sentence){
 
 // Only those explicitly instantiated (here or elsewhere) will be available in a compiled library
 template SATVAL WrappedPCSolver::add(const Disjunction& sentence);
-template SATVAL WrappedPCSolver::add(const DisjunctionRef& sentence);
 template SATVAL WrappedPCSolver::add(const Implication& sentence);
 template SATVAL WrappedPCSolver::add(const Rule& sentence);
 template SATVAL WrappedPCSolver::add(const Set& sentence);
@@ -119,7 +118,6 @@ template SATVAL WrappedPCSolver::add(const Symmetry& sentence);
 template SATVAL WrappedPCSolver::add(const LazyGroundLit& sentence);
 
 template SATVAL WrappedSOSolver::add(int modalid, const Disjunction& sentence);
-template SATVAL WrappedSOSolver::add(int modalid, const DisjunctionRef& sentence);
 template SATVAL WrappedSOSolver::add(int modalid, const Rule& sentence);
 template SATVAL WrappedSOSolver::add(int modalid, const Set& sentence);
 template SATVAL WrappedSOSolver::add(int modalid, const WSet& sentence);

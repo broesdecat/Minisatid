@@ -195,7 +195,6 @@ protected:
 };
 
 template<> SATVAL PCWrapperPimpl::add(const Disjunction& sentence);
-template<> SATVAL PCWrapperPimpl::add(const DisjunctionRef& sentence);
 template<> SATVAL PCWrapperPimpl::add(const Implication& sentence);
 template<> SATVAL PCWrapperPimpl::add(const Rule& sentence);
 template<> SATVAL PCWrapperPimpl::add(const Set& sentence);
@@ -233,7 +232,6 @@ protected:
 };
 
 template<> SATVAL SOWrapperPimpl::add(int modalid, const Disjunction& sentence);
-template<> SATVAL SOWrapperPimpl::add(int modalid, const DisjunctionRef& sentence);
 template<> SATVAL SOWrapperPimpl::add(int modalid, const Rule& sentence);
 template<> SATVAL SOWrapperPimpl::add(int modalid, const Set& sentence);
 template<> SATVAL SOWrapperPimpl::add(int modalid, const WSet& sentence);

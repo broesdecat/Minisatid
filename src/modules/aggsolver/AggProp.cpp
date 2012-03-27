@@ -411,7 +411,7 @@ void AggPropagator::initialize(bool&, bool&) {
 		getSet().getPCSolver().accept(w);
 		getSet().getPCSolver().notifyDecisionVar(var(w->getPropLit()));
 
-		if((*i)->getSem()==COMP){
+		if((*i)->getSem()==AggSem::COMP){
 			auto w2 = new Watch(getSetp(), (*i)->getHead(), *i, false);
 			getSet().getPCSolver().accept(w2);
 			getSet().getPCSolver().notifyDecisionVar(var(w->getPropLit()));

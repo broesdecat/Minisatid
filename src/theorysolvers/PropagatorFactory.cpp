@@ -31,8 +31,8 @@
 
 #include "utils/Print.hpp"
 
-#include "parser/parsingmonitors/ECNFGraphPrinter.hpp"
-#include "parser/parsingmonitors/HumanReadableParsingPrinter.hpp"
+#include "constraintmonitors/ECNFGraphPrinter.hpp"
+#include "constraintmonitors/HumanReadableParsingPrinter.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -73,11 +73,11 @@ PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine
 #endif
 
 	if (modes.printcnfgraph) {
-		parsingmonitors.push_back(new ECNFGraphPrinter(cout));
+		parsingmonitors.push_back(new ECNFGraphPrinter<ostream>(cout));
 	}
 
 	if (modes.verbosity > 2) {
-		parsingmonitors.push_back(new HumanReadableParsingPrinter(clog));
+		parsingmonitors.push_back(new HumanReadableParsingPrinter<ostream>(clog));
 	}
 
 	for (auto i = parsingmonitors.cbegin(); i < parsingmonitors.cend(); ++i) {
@@ -264,7 +264,7 @@ void PropagatorFactory::add(const InnerAggregate& agg) {
 		r.bound = agg.bound;
 		r.defID = -1;
 		r.head = dummyvar;
-		r.sem = COMP;
+		r.sem = AggSem::COMP;
 		r.setID = agg.setID;
 		r.sign = agg.sign;
 		r.type = agg.type;
@@ -289,9 +289,9 @@ void PropagatorFactory::add(const InnerReifAggregate& origagg) {
 	if (setwithagg.second.empty()) {
 		setwithagg.first->type = origagg.type;
 	}
-	if (newagg.type == MIN) {
-		newagg.type = MAX;
-		newagg.sign = newagg.sign == AGGSIGN_LB ? AGGSIGN_UB : AGGSIGN_LB;
+	if (newagg.type == AggType::MIN) {
+		newagg.type = AggType::MAX;
+		newagg.sign = newagg.sign == AggSign::LB ? AggSign::UB : AggSign::LB;
 		newagg.bound = -newagg.bound;
 		if (setwithagg.second.size() == 0) { // FIXME ugly: check whether it is the first MIN agg added to the set
 			auto set = setwithagg.first;
@@ -302,14 +302,14 @@ void PropagatorFactory::add(const InnerReifAggregate& origagg) {
 			set->wls = newwls;
 		}
 	}
-	if (newagg.sem == DEF) {
+	if (newagg.sem == AggSem::DEF) {
 		getIDSolver(newagg.defID)->addDefinedAggregate(newagg, *setwithagg.first);
 	}
 	addAggrExpr(newagg.head, newagg.setID, newagg.sign, newagg.bound, newagg.type, newagg.sem);
 }
 
 void PropagatorFactory::addAggrExpr(Var head, int setid, AggSign sign, const Weight& bound, AggType type, AggSem sem) {
-	assert(type!=MIN);
+	assert(type!=AggType::MIN);
 	SetWithAggs& set = parsedsets.at(setid);
 
 	if (set.second.size() == 0) { // FIXME add this to the parser and remove it from here
@@ -320,7 +320,7 @@ void PropagatorFactory::addAggrExpr(Var head, int setid, AggSign sign, const Wei
 
 	getEngine().varBumpActivity(head); // NOTE heuristic! (TODO move)
 
-	auto agg = new TempAgg(mkPosLit(head), AggBound(sign, bound), sem == DEF ? COMP : sem, type);
+	auto agg = new TempAgg(mkPosLit(head), AggBound(sign, bound), sem == AggSem::DEF ? AggSem::COMP : sem, type);
 	set.second.push_back(agg);
 
 	if (not isParsing()) {
@@ -373,7 +373,7 @@ void PropagatorFactory::add(const InnerMinimizeAgg& formula) {
 	set->type = formula.type;
 
 	tempagglist aggs;
-	AggBound bound(AggSign::AGGSIGN_UB, Weight(0));
+	AggBound bound(AggSign::UB, Weight(0));
 	// FIXME IMPLICATION IS USED INCORRECTLY (but could be used here!)
 	aggs.push_back(new TempAgg(mkPosLit(head), bound, AggSem::COMP, formula.type));
 	finishSet(set, aggs, true);
@@ -515,16 +515,16 @@ SATVAL PropagatorFactory::finishSet(const InnerWLSet* origset, vector<TempAgg*>&
 
 	AggProp const * type = NULL;
 	switch (origset->type) {
-	case MAX:
+	case AggType::MAX:
 		type = AggProp::getMax();
 		break;
-	case SUM:
+	case AggType::SUM:
 		type = AggProp::getSum();
 		break;
-	case CARD:
+	case AggType::CARD:
 		type = AggProp::getCard();
 		break;
-	case PROD:
+	case AggType::PROD:
 		type = AggProp::getProd();
 		break;
 	default:
@@ -611,7 +611,7 @@ SATVAL PropagatorFactory::finishParsing() {
 		r.bound = (*i)->bound;
 		r.defID = -1;
 		r.head = dummyvar;
-		r.sem = COMP;
+		r.sem = AggSem::COMP;
 		r.setID = (*i)->setID;
 		r.sign = (*i)->sign;
 		r.type = (*i)->type;

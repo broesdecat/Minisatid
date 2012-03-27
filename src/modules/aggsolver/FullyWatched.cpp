@@ -212,16 +212,16 @@ rClause FWAgg::propagateAtEndOfQueue(){
 			lbool hv = value(pa.getHead());
 
 			//TODO ugly
-			if(hv==l_True && pa.getSign()==AGGSIGN_LB && !changedcp){
+			if(hv==l_True && pa.getSign()==AggSign::LB && !changedcp){
 				continue;
 			}
-			if(hv==l_True && pa.getSign()==AGGSIGN_UB && !changedcc){
+			if(hv==l_True && pa.getSign()==AggSign::UB && !changedcc){
 				continue;
 			}
-			if(hv==l_False && pa.getSign()==AGGSIGN_LB && !changedcc){
+			if(hv==l_False && pa.getSign()==AggSign::LB && !changedcc){
 				continue;
 			}
-			if(hv==l_False && pa.getSign()==AGGSIGN_UB && !changedcp){
+			if(hv==l_False && pa.getSign()==AggSign::UB && !changedcp){
 				continue;
 			}
 
@@ -466,7 +466,7 @@ void MaxFWAgg::removeFromPossibleSet(const WL& l) {
 	TypedSet& set = getSet();
 	if (l.getWeight() == getCP()) {
 		bool found = false;
-		for (vsize i=0; i<set.getWL().size(); ++i) { //INVARIANT: sorted
+		for (uint i=0; i<set.getWL().size(); ++i) { //INVARIANT: sorted
 			if (value(set.getWL()[i].getLit()) != l_False) {
 				setCP(set.getWL()[i].getWeight());
 				found = true;
@@ -812,7 +812,7 @@ void ProdFWAgg::initialize(bool& unsat, bool& sat) {
 	}
 	for (auto i = getSet().getAggNonConst().begin(); i < getSet().getAggNonConst().end(); ++i) {
 		if((*i)->getCertainBound()<=0){
-			if((*i)->getSign()==AGGSIGN_LB){
+			if((*i)->getSign()==AggSign::LB){
 				// always positive
 				delete(*i);
 				getSet().getAggNonConst().erase(i);

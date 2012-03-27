@@ -46,17 +46,17 @@ Gecode::IntRelType MinisatID::negate(IntRelType eq){
 IntRelType MinisatID::toRelType(EqType eq){
 	IntRelType g = Gecode::IRT_EQ;
 	switch (eq) {
-		case MEQ:
+		case EqType::EQ:
 			g =  Gecode::IRT_EQ; break;
-		case MNEQ:
+		case EqType::NEQ:
 			g =  Gecode::IRT_NQ; break;
-		case MLEQ:
+		case EqType::LEQ:
 			g =  Gecode::IRT_LQ; break;
-		case MGEQ:
+		case EqType::GEQ:
 			g =  Gecode::IRT_GQ; break;
-		case ML:
+		case EqType::L:
 			g =  Gecode::IRT_LE; break;
-		case MG:
+		case EqType::G:
 			g =  Gecode::IRT_GR; break;
 	}
 	return g;

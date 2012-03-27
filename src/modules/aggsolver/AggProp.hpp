@@ -11,6 +11,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <memory>
 
 #include "modules/aggsolver/AggUtils.hpp"
 
@@ -39,7 +40,7 @@ private:
 public:
 	TempAgg(const Lit& head, AggBound b, AggSem sem, AggType type):
 			bound(b), head(head), sem(sem), index(-1), type(type){
-		assert(sem!=DEF);
+		assert(sem!=AggSem::DEF);
 	}
 
 	const Lit& 	getHead		() 					const 	{ return head; }
@@ -49,8 +50,8 @@ public:
 	const Weight&	getBound()					const	{ return bound.bound; }
 	Weight		getCertainBound(const Weight& knownbound) const { return bound.bound - knownbound; }
 	void		setBound	(AggBound b)				{ bound = b; }
-	bool		hasUB		()					const	{ return bound.sign!=AGGSIGN_LB; }
-	bool		hasLB		()					const	{ return bound.sign!=AGGSIGN_UB; }
+	bool		hasUB		()					const	{ return bound.sign!=AggSign::LB; }
+	bool		hasLB		()					const	{ return bound.sign!=AggSign::UB; }
 	AggSign		getSign		()					const	{ return bound.sign; }
 
 	AggSem		getSem		()					const	{ return sem; }
@@ -124,7 +125,7 @@ protected:
 class MaxProp: public AggProp{
 public:
 	const char* getName					() 										const { return "MAX"; }
-	AggType 	getType					() 										const { return MAX; }
+	AggType 	getType					() 										const { return AggType::MAX; }
 	bool 		isNeutralElement		(const Weight&) 						const { return false; }
 	bool 		isMonotone				(const Agg& agg, const Weight& w)		const;
 	bool 		isMonotone				(const TempAgg& agg, const Weight& w, const Weight& knownbound)	const;
@@ -145,7 +146,7 @@ class SPProp: public AggProp{
 class ProdProp: public SPProp{
 public:
 	const char* getName					() 										const { return "PROD"; }
-	AggType 	getType					() 										const { return PROD; }
+	AggType 	getType					() 										const { return AggType::PROD; }
 	bool 		isNeutralElement		(const Weight& w) 						const { return w==1; }
 	bool 		isMonotone				(const Agg& agg, const Weight& w)		const;
 	bool 		isMonotone				(const TempAgg& agg, const Weight& w, const Weight& knownbound)	const;
@@ -166,7 +167,7 @@ protected:
 class SumProp: public SPProp{
 public:
 	const char* getName					() 										const { return "SUM"; }
-	AggType 	getType					() 										const { return SUM; }
+	AggType 	getType					() 										const { return AggType::SUM; }
 	bool 		isNeutralElement		(const Weight& w) 						const { return w==0; }
 	bool 		isMonotone				(const Agg& agg, const Weight& w)		const;
 	bool 		isMonotone				(const TempAgg& agg, const Weight& w, const Weight& knownbound)	const;
@@ -184,7 +185,7 @@ public:
 class CardProp: public SumProp{
 public:
 	const char* getName					() 										const { return "CARD"; }
-	AggType		getType					() 										const { return CARD; }
+	AggType		getType					() 										const { return AggType::CARD; }
 };
 
 struct minmaxBounds{

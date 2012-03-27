@@ -78,7 +78,7 @@ template<class T> bool DefaultCallback<T>::endObjective() {
 
 	MinimizeAgg mnm;
 	mnm.setid = setid;
-	mnm.type = SUM;
+	mnm.type = AggType::SUM;
 	possat &= getSolver()->add(mnm);
 	return possat==SATVAL::POS_SAT;
 }
@@ -119,20 +119,20 @@ template<class T> bool DefaultCallback<T>::endConstraint() {
 
 	Disjunction clause;
 	Aggregate agg;
-	agg.sem = COMP;
+	agg.sem = AggSem::COMP;
 	agg.bound = bound;
 	agg.setID = setid;
-	agg.type = SUM;
+	agg.type = AggType::SUM;
 	if(equality){
 		agg.head = dummyhead;
-		agg.sign = AGGSIGN_LB;
+		agg.sign = AggSign::LB;
 		posssat &= getSolver()->add(agg);
 		agg.head = dummyhead;
-		agg.sign = AGGSIGN_UB;
+		agg.sign = AggSign::UB;
 		posssat &= getSolver()->add(agg);
 	}else{
 		agg.head = dummyhead;
-		agg.sign = AGGSIGN_LB;
+		agg.sign = AggSign::LB;
 		posssat &= getSolver()->add(agg);
 	}
 	return posssat==SATVAL::POS_SAT;

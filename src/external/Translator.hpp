@@ -19,9 +19,8 @@
 
 #include <algorithm>
 
-#include <GeneralUtils.hpp>
-
 #include "external/ExternalUtils.hpp"
+#include "utils/ContainerUtils.hpp"
 
 namespace MinisatID {
 
@@ -114,11 +113,11 @@ private:
 	std::map<Symbol*,bool>		symbolasarbitatomlist;
 
 public:
-	FODOTTranslator(OUTPUTFORMAT fodot): Translator(),
-			tofodot(fodot==TRANS_FODOT), finisheddata(false), emptytrans(true),
+	FODOTTranslator(OutputFormat fodot): Translator(),
+			tofodot(fodot==OutputFormat::FODOT), finisheddata(false), emptytrans(true),
 			largestnottseitinatom(-1),
 			printedArbitrary(false){
-		MAssert(fodot!=TRANS_PLAIN);
+		MAssert(fodot!=OutputFormat::PLAIN); // TODO why?
 	}
 
 	virtual ~FODOTTranslator() {
@@ -135,7 +134,7 @@ public:
 	void setTruelist		(const std::vector<int>& vi) { truelist = vi;}
 	void setArbitlist	(const std::vector<int>& vi) { arbitlist = vi;}
 	void addType(std::string name, const std::vector<std::string>& inter){
-		types.insert(std::pair<std::string,Type*>(name, new Type(name, inter)));
+		types.insert({name, new Type(name, inter)});
 	}
 	void addPred(std::string name, int startingnumber, const std::vector<std::string>& typenames, bool isfunction){
 		std::vector<Type*> argtypes;

@@ -17,12 +17,12 @@ BinaryConstraint::BinaryConstraint(PCSolver* engine, IntVar* left, EqType comp,
 		IntVar* right, Var h) :
 	Propagator(engine) {
 	switch (comp) {
-	case MEQ:	head_ = mkPosLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 0); comp_ = BIN_EQ; break;
-	case MNEQ:	head_ = mkNegLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 0); comp_ = BIN_EQ; break;
-	case MLEQ:	head_ = mkPosLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 0); comp_ = BIN_LEQ; break;
-	case ML:	head_ = mkPosLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, -1); comp_ = BIN_LEQ; break;
-	case MGEQ:	head_ = mkNegLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 1); comp_ = BIN_LEQ; break;
-	case MG:	head_ = mkNegLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 0); comp_ = BIN_LEQ; break;
+	case EqType::EQ:	head_ = mkPosLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 0); comp_ = BIN_EQ; break;
+	case EqType::NEQ:	head_ = mkNegLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 0); comp_ = BIN_EQ; break;
+	case EqType::LEQ:	head_ = mkPosLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 0); comp_ = BIN_LEQ; break;
+	case EqType::L:	head_ = mkPosLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, -1); comp_ = BIN_LEQ; break;
+	case EqType::GEQ:	head_ = mkNegLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 1); comp_ = BIN_LEQ; break;
+	case EqType::G:	head_ = mkNegLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 0); comp_ = BIN_LEQ; break;
 	}
 	getPCSolver().accept(this, EV_PRINTSTATE);
 	getPCSolver().acceptFinishParsing(this, true); // has to be AFTER the intvars!

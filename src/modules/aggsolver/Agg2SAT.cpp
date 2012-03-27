@@ -40,7 +40,7 @@ void AggToCNFTransformer::add(InnerWLSet* set, std::vector<TempAgg*>& aggs) {
 	for (auto i = aggs.cbegin(); i != aggs.cend(); ++i) {
 		TempAgg* agg = *i;
 
-		if ((agg->getType() != SUM && agg->getType() != CARD) || agg->getSem() != COMP) {
+		if ((agg->getType() != AggType::SUM && agg->getType() != AggType::CARD) || agg->getSem() != AggSem::COMP) {
 			// TODO allow complete translation into sat? => double bounds
 			remaining.push_back(agg);
 			continue;

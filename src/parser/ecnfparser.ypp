@@ -50,7 +50,7 @@ extern SolverOption modes;
 extern Solution* sol;
 FODOTTranslator*	fodottrans = NULL;
 LParseTranslator*	simpletrans = NULL;
-extern OUTPUTFORMAT transformat;
+extern OutputFormat transformat;
 extern int 		yylex(void);
 extern char * 	yytext;
 
@@ -159,7 +159,8 @@ void checkVersion(ECNF_VERSION version);
 %token <integer> ZERO
 %token <str> NUMBER
 %token <sem> SEMDEFN 
-%token <sign> SIGNDEFN QUANTe
+%token <sign> SIGNDEFN 
+%token <boolean> QUANTe
 %token <rel> REL
 %token <aggr> AGGDEFN
 %token CNF ECNF MECNF DEFPRESENT AGGPRESENT MNMZPRESENT MODDEFN CPPRESENT
@@ -241,7 +242,8 @@ cnfclause
 		: /*empty*/
 		| 	cnfclause body ZERO	
 			{	
-				DisjunctionRef clause(*$2);
+				Disjunction clause;
+				clause.literals = *$2;
 				if(modsolver!=NULL){
 					CR(cnfcurrentmodid, clause);
 				}else{
@@ -318,8 +320,8 @@ clause	:	body ZERO
 
 equiv	:	EQUIV SEMDEFN NUMBER body ZERO
 			{ 					
-				// TODO using COMP here is a bit of a hack in reusing lexer constants, should fix it!
-				Implication equiv(cLiteral($3), ImplicationType::EQUIVALENT, *$4, $2==COMP);
+				// TODO using AggSem::COMP here is a bit of a hack in reusing lexer constants, should fix it!
+				Implication equiv(cLiteral($3), ImplicationType::EQUIVALENT, *$4, $2==AggSem::COMP);
 				delete $3; delete $4;
 				CR(equiv);
 			}
@@ -334,7 +336,7 @@ rule	:	SEMDEFN NUMBER body ZERO
 				rule.body = *$3;
 				rule.definitionID = defaultdefID;
 				delete $2; delete $3;
-				if($1==COMP){ //hack, to be fixed
+				if($1==AggSem::COMP){ //hack, to be fixed
 					rule.conjunctive = true;
 				}else{
 					rule.conjunctive = false;
@@ -352,7 +354,7 @@ rule	:	SEMDEFN DEFOP NUMBER NUMBER body ZERO
 				rule.body = *$5;
 				rule.definitionID = cID($3);
 				delete $3; delete $4; delete $5;
-				if($1==COMP){ //hack, to be fixedsetTruelist
+				if($1==AggSem::COMP){ //hack, to be fixedsetTruelist
 					rule.conjunctive = true;
 				}else{
 					rule.conjunctive = false;
@@ -363,7 +365,7 @@ rule	:	SEMDEFN DEFOP NUMBER NUMBER body ZERO
 
 agg		:	AGGDEFN SEMDEFN SIGNDEFN NUMBER NUMBER weight ZERO	
 			{	
-				if($2 == DEF){
+				if($2 == AggSem::DEF){
 					checkVersion(VERSION_OLD);
 				}
 	
@@ -390,7 +392,7 @@ agg		:	AGGDEFN DEFOP NUMBER SIGNDEFN NUMBER NUMBER weight ZERO
 				agg.bound = cWeight($7);
 				agg.sign = $4;
 				agg.type = $1;
-				agg.sem = DEF;
+				agg.sem = AggSem::DEF;
 				delete $5; delete $6; delete $7;
 				CR(agg);
 			}
@@ -532,7 +534,7 @@ modhier :	MODDEFN	NUMBER NUMBER NUMBER ZERO
 
 matomset:	QUANTe NUMBER vbody ZERO
 			{ 
-				if(!$1){
+				if(not $1){
 					throw idpexception("Forall quantifiers are not part of the chosen input format.\n");
 				}
 				RigidAtoms rigid;
@@ -562,7 +564,7 @@ mrule	:	SEMDEFN NUMBER NUMBER body ZERO
 				rule.body = *$4;
 				rule.definitionID = defaultdefID;
 				delete $2; delete $4;
-				if($1==COMP){ //hack, to be fixed
+				if($1==AggSem::COMP){ //hack, to be fixed
 					rule.conjunctive = true;
 				}else{
 					rule.conjunctive = false;
@@ -581,7 +583,7 @@ mrule	:	SEMDEFN NUMBER DEFOP NUMBER NUMBER body ZERO
 				rule.body = *$6;
 				rule.definitionID = cID($4);
 				delete $4; delete $5; delete $6;
-				if($1==COMP){ //hack, to be fixed
+				if($1==AggSem::COMP){ //hack, to be fixed
 					rule.conjunctive = true;
 				}else{
 					rule.conjunctive = false;
@@ -592,7 +594,7 @@ mrule	:	SEMDEFN NUMBER DEFOP NUMBER NUMBER body ZERO
 
 magg	:	AGGDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER weight ZERO	
 			{ 
-				if($3==DEF){
+				if($3==AggSem::DEF){
 					checkVersion(VERSION_OLD);
 				}
 				
@@ -621,7 +623,7 @@ magg	:	AGGDEFN NUMBER DEFOP NUMBER SIGNDEFN NUMBER NUMBER weight ZERO
 				agg.bound = cWeight($8);
 				agg.sign = $5;
 				agg.type = $1;
-				agg.sem = DEF;
+				agg.sem = AggSem::DEF;
 				delete $6; delete $7; delete $8;
 				CR(cID($2)-1, agg);
 			}
@@ -735,7 +737,7 @@ body	:	body NUMBER { $$ = $1; $$->push_back(cLiteral($2));	delete($2); }
 		
 wbody	:	wbody NUMBER REL 
 			{ 
-				if($3!=MinisatID::MEQ) { 
+				if($3!=MinisatID::EqType::EQ) { 
 					throw MinisatID::idpexception("Weighted sets can only contain tuples with equality.\n");
 				} 
 			} 
@@ -744,7 +746,7 @@ wbody	:	wbody NUMBER REL
 			
 		|	NUMBER REL 
 			{ 
-				if($2!=MinisatID::MEQ) { 
+				if($2!=MinisatID::EqType::EQ) { 
 					throw MinisatID::idpexception("Weighted sets can only contain tuples with equality.\n");
 				} 
 			} 
@@ -805,7 +807,7 @@ void checkVersion(ECNF_VERSION version){
 }
 
 void initSolver(){
-	if(modes.transformat==TRANS_FZ){
+	if(modes.transformat==OutputFormat::FZ){
 		fzrewriter = new FlatZincRewriter(modes);
 	}else{
 		solver = new WrappedPCSolver(modes);
@@ -813,7 +815,7 @@ void initSolver(){
 }
 
 void initModSolver(){
-	if(modes.transformat==TRANS_FZ){
+	if(modes.transformat==OutputFormat::FZ){
 		throw idpexception("Rewriting FO(MOD, .) into flatzinc is not supported yet.");
 	}
 	modsolver = new WrappedSOSolver(modes);
@@ -948,7 +950,7 @@ void CR(int modid, const T& formula){
 template<class T>
 void CR(const T& formula){
 	SATVAL result = SATVAL::POS_SAT;
-	if(modes.transformat==TRANS_FZ){
+	if(modes.transformat==OutputFormat::FZ){
 		fzrewriter->add(formula);
 	}else{
 		result = solver->add(formula);

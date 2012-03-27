@@ -15,7 +15,7 @@
 #include <csignal>
 #include <sstream>
 
-#include "parser/ParseOptions.hpp"
+#include "parser/CommandLineOptions.hpp"
 
 #include <csetjmp>
 
@@ -69,15 +69,15 @@ void doModelGeneration(pwls& d);
 void rewriteIntoFlatZinc();
 
 extern SolverOption modes;
-OUTPUTFORMAT transformat;
+OutputFormat transformat;
 
 Solution* sol = NULL;
 
 Solution* createSolution() {
 	ModelExpandOptions options;
-	options.printmodels = PRINT_BEST;
-	options.savemodels = SAVE_NONE;
-	options.inference = MODELEXPAND;
+	options.printmodels = Models::BEST;
+	options.savemodels = Models::NONE;
+	options.inference = Inference::MODELEXPAND;
 	options.nbmodelstofind = 1;
 	return new Solution(options);
 }
@@ -137,7 +137,7 @@ int main(int argc, char** argv) {
 	sol->setModes(modes); //TODO find cleaner way? => these are set when solve is called, but earlier statements might have incorrect behavior then (printing unsat e.g.)
 	sol->setInference(modes.inference);
 
-	if (modes.transformat == TRANS_FZ) {
+	if (modes.transformat == OutputFormat::FZ) {
 		rewriteIntoFlatZinc();
 		return 0;
 	}
@@ -162,16 +162,16 @@ int main(int argc, char** argv) {
 	if (!stoprunning) {
 		jumpback = 0;
 		parseAndInitializeTheory(d);
-		if (sol->getInferenceOption() == MODELEXPAND || sol->getInferenceOption() == PROPAGATE) {
+		if (sol->getInferenceOption() == Inference::MODELEXPAND || sol->getInferenceOption() == Inference::PROPAGATE) {
 			doModelGeneration(d);
-		} else if (sol->getInferenceOption() == PRINTTHEORY) {
+		} else if (sol->getInferenceOption() == Inference::PRINTTHEORY) {
 			// Do unit propagation
-			sol->setInferenceOption(PROPAGATE);
-			sol->setPrintModels(PRINT_NONE);
+			sol->setInferenceOption(Inference::PROPAGATE);
+			sol->setPrintModels(Models::NONE);
 			doModelGeneration(d);
 
 			// Print the theory
-			sol->setInferenceOption(PRINTTHEORY);
+			sol->setInferenceOption(Inference::PRINTTHEORY);
 			if (sol->isUnsat()) {
 				cout << "p ecnf\n0\n";
 				cout.flush();
@@ -214,7 +214,7 @@ int main(int argc, char** argv) {
 
 void rewriteIntoFlatZinc() {
 	switch (modes.format) {
-	case FORMAT_ASP: {
+	case InputFormat::ASP: {
 		LParseTranslator* lptrans = new LParseTranslator();
 		sol->setTranslator(lptrans);
 
@@ -227,7 +227,7 @@ void rewriteIntoFlatZinc() {
 		p->finishParsing();
 		break;
 	}
-	case FORMAT_OPB: {
+	case InputFormat::OPB: {
 		OPBTranslator* opbtrans = new OPBTranslator();
 		sol->setTranslator(opbtrans);
 
@@ -240,7 +240,7 @@ void rewriteIntoFlatZinc() {
 		p->finishParsing();
 		break;
 	}
-	case FORMAT_FODOT: {
+	case InputFormat::FODOT: {
 		yyin = getInputFile();
 		yyinit();
 		try {
@@ -258,7 +258,7 @@ void rewriteIntoFlatZinc() {
 
 pwls initializeAndParseASP() {
 	LParseTranslator* lptrans = new LParseTranslator();
-	if (modes.transformat != TRANS_PLAIN) {
+	if (modes.transformat != OutputFormat::PLAIN) {
 		sol->setTranslator(lptrans);
 	}
 
@@ -277,7 +277,7 @@ pwls initializeAndParseASP() {
 
 pwls initializeAndParseOPB() {
 	OPBTranslator* opbtrans = new OPBTranslator();
-	if (modes.transformat != TRANS_PLAIN) {
+	if (modes.transformat != OutputFormat::PLAIN) {
 		sol->setTranslator(opbtrans);
 	}
 
@@ -291,7 +291,7 @@ pwls initializeAndParseOPB() {
 	closeInput();
 	delete parser;
 
-	if (modes.transformat == TRANS_PLAIN) {
+	if (modes.transformat == OutputFormat::PLAIN) {
 		delete (opbtrans);
 	}
 
@@ -299,7 +299,7 @@ pwls initializeAndParseOPB() {
 }
 
 pwls initializeAndParseFODOT() {
-	if (modes.transformat != TRANS_PLAIN) {
+	if (modes.transformat != OutputFormat::PLAIN) {
 		transformat = modes.transformat;
 	}
 
@@ -313,13 +313,13 @@ void parseAndInitializeTheory(pwls& d) {
 	sol->notifyStartParsing();
 
 	switch (modes.format) {
-	case FORMAT_ASP:
+	case InputFormat::ASP:
 		d = initializeAndParseASP();
 		break;
-	case FORMAT_OPB:
+	case InputFormat::OPB:
 		d = initializeAndParseOPB();
 		break;
-	case FORMAT_FODOT: {
+	case InputFormat::FODOT: {
 		d = initializeAndParseFODOT();
 		break;
 	}
@@ -341,9 +341,9 @@ void doModelGeneration(pwls& d) {
 		sol->notifyOptimizing();
 	}
 
-	if (modes.format == FORMAT_OPB && sol->isOptimizationProblem()) { // Change default options added before parsing
-		sol->setPrintModels(PRINT_BEST);
-		sol->setSaveModels(SAVE_BEST);
+	if (modes.format == InputFormat::OPB && sol->isOptimizationProblem()) { // Change default options added before parsing
+		sol->setPrintModels(Models::BEST);
+		sol->setSaveModels(Models::BEST);
 	}
 
 	d->solve(sol);

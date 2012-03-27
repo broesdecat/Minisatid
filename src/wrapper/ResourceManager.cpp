@@ -7,7 +7,7 @@
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 #include "external/ResourceManager.hpp"
-#include "GeneralUtils.hpp"
+#include "external/ExternalUtils.hpp"
 
 #include <memory>
 #include <sstream>

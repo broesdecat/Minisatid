@@ -9,9 +9,9 @@
 #ifndef SATUTILS_H_
 #define SATUTILS_H_
 
-#include "GeneralUtils.hpp"
-
+#include "external/ExternalUtils.hpp"
 #include "satsolver/minisat/SolverTypes.hpp"
+
 namespace MinisatID {
 	typedef Minisat::CRef pClause;
 	typedef Minisat::CRef rClause;
@@ -32,7 +32,9 @@ namespace MinisatID {
 
 	double getDefaultDecay();
 	double getDefaultRandfreq();
-	POLARITY getDefaultPolarity();
+	Polarity getDefaultPolarity();
+
+	bool isPositive(const Lit& lit);
 }
 
 #endif// SATSOLVER_H_

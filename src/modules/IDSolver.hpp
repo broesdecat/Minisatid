@@ -62,7 +62,7 @@ private:
 public:
     PropRule(Lit head, const litlist& ps): head(var(head)), lits(ps){}
 
-    vsize 	size() 				const	{ return lits.size(); }
+    uint 	size() 				const	{ return lits.size(); }
     Lit 	getHead() 			const	{ return mkLit(head, false); }
     Lit 	operator [](int i) 	const	{ return lits[i]; }
     litlist::const_iterator cbegin()	const 	{ return lits.cbegin(); }
@@ -86,8 +86,8 @@ public:
 	int			getIndex	()					const	{ return index; }
 
 	const Weight&	getBound()					const	{ return bound.bound; }
-	bool		hasUB		()					const	{ return bound.sign!=AGGSIGN_LB; }
-	bool		hasLB		()					const	{ return bound.sign!=AGGSIGN_UB; }
+	bool		hasUB		()					const	{ return bound.sign!=AggSign::LB; }
+	bool		hasLB		()					const	{ return bound.sign!=AggSign::UB; }
 	AggSign		getSign		()					const	{ return bound.sign; }
 	const std::vector<WL>& getWL()				const 	{ return wls; }
 	AggType		getType		()					const 	{ return type; }

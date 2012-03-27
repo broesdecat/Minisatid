@@ -26,277 +26,275 @@ using namespace MinisatID;
  * 		recursively defined aggregates
  */
 
-FlatZincRewriter::FlatZincRewriter(const SolverOption& modes):
-		state(PARSING),
-		_modes(modes),
-		maxatomnumber(0),
-		maxcpnumber(0),
-		optim(MNMZ_NONE)
-		{
+FlatZincRewriter::FlatZincRewriter(const SolverOption& modes) :
+		state(PARSING), _modes(modes), maxatomnumber(0), maxcpnumber(0), optim(MNMZ_NONE) {
 }
 
-FlatZincRewriter::~FlatZincRewriter(){
+FlatZincRewriter::~FlatZincRewriter() {
 }
 
-std::ostream& FlatZincRewriter::getOutput(){
+std::ostream& FlatZincRewriter::getOutput() {
 	return std::cout;
 }
 
 const WSet& FlatZincRewriter::getSet(uint i) const {
-	if(sets.size()<=i){
+	if (sets.size() <= i) {
 		throw idpexception("One of the aggregate sets was not declared before use.");
 	}
 	return sets[i];
 }
 
 //INVARIANT: always have already done a "check" operation on the atom
-string getVarName(const Atom& atom){
+string getVarName(const Atom& atom) {
 	stringstream ss;
-	ss <<"BOOL____" <<atom.getValue();
+	ss << "BOOL____" << atom.getValue();
 	return ss.str();
 }
 
-string getVarName(const Literal& lit){
+string getVarName(const Literal& lit) {
 	int value = lit.getAtom().getValue();
 	stringstream ss;
-	if(lit.hasSign()){
-		ss <<"BOOL_NEG" <<value;
-	}else{
-		ss <<getVarName(lit.getAtom());
+	if (lit.hasSign()) {
+		ss << "BOOL_NEG" << value;
+	} else {
+		ss << getVarName(lit.getAtom());
 	}
 	return ss.str();
 }
 
-string getVarName(int cpvar){
+string getVarName(int cpvar) {
 	stringstream ss;
-	ss <<"INT__" <<cpvar;
+	ss << "INT__" << cpvar;
 	return ss.str();
 }
 
-string getIntVarName(const Literal& lit){
+string getIntVarName(const Literal& lit) {
 	int value = lit.getAtom().getValue();
 	stringstream ss;
-	if(lit.hasSign()){
-		ss <<"INT_BOOL_" <<value;
-	}else{
-		ss <<"INT_BOOL_NEG_" <<value;
+	if (lit.hasSign()) {
+		ss << "INT_BOOL_" << value;
+	} else {
+		ss << "INT_BOOL_NEG_" << value;
 	}
 
 	return ss.str();
 }
 
-void addDefAnnotation(int defID, ostream& stream){
-	stream <<"::inductivelydefined(" <<defID <<")";
+void addDefAnnotation(int defID, ostream& stream) {
+	stream << "::inductivelydefined(" << defID << ")";
 }
 
 template<>
-void FlatZincRewriter::check(const Atom& atom){
+void FlatZincRewriter::check(const Atom& atom) {
 	check(Literal(atom, false));
 }
 
 //INVARIANT: for a negative literal, a bool var representing the positive literal and an equivalence constraint will ALWAYS be added
 template<>
-void FlatZincRewriter::check(const Literal& lit){
+void FlatZincRewriter::check(const Literal& lit) {
 	int value = lit.getAtom().getValue();
-	set<uint>& seenset = lit.hasSign()?negatomsseen:atomsseen;
+	set<uint>& seenset = lit.hasSign() ? negatomsseen : atomsseen;
 
 	bool add = false;
-	if(seenset.find(value)==seenset.cend()){
+	if (seenset.find(value) == seenset.cend()) {
 		seenset.insert(value);
 		add = true;
 	}
 
-	if(add){
-		if(maxatomnumber<(uint)std::abs(value)){
+	if (add) {
+		if (maxatomnumber < (uint) std::abs(value)) {
 			maxatomnumber = value;
 		}
 
-		definitions <<"var bool: " <<getVarName(lit);
-		if(isParsing()){
-			definitions <<"::output_var";
+		definitions << "var bool: " << getVarName(lit);
+		if (isParsing()) {
+			definitions << "::output_var";
 		}
-		definitions <<";\n";
+		definitions << ";\n";
 
-		if(lit.hasSign()){ //also create positive one and add constraint (see invar)
+		if (lit.hasSign()) { //also create positive one and add constraint (see invar)
 			Literal poslit = Literal(value, false);
 			check(poslit);
-			constraints <<"constraint bool_not(" <<getVarName(lit) <<", " <<getVarName(~lit) <<");\n";
+			constraints << "constraint bool_not(" << getVarName(lit) << ", " << getVarName(~lit) << ");\n";
 		}
 	}
 }
 
 // Allows to add integer representation only once
-void FlatZincRewriter::createIntVar(const Literal& lit, bool def, int defID){
+void FlatZincRewriter::createIntVar(const Literal& lit, bool def, int defID) {
 	int value = lit.getAtom().getValue();
-	set<uint>& seenset = lit.hasSign()?litnegatomsseen:litatomsseen;
+	set<uint>& seenset = lit.hasSign() ? litnegatomsseen : litatomsseen;
 
-	if(seenset.find(value)==seenset.cend()){
+	if (seenset.find(value) == seenset.cend()) {
 		seenset.insert(value);
-		definitions <<"var 0..1: " <<getIntVarName(lit) <<";\n";
-		constraints <<"constraint int_eq_reif(" <<getIntVarName(lit) <<", " <<"1" <<", " <<getVarName(lit) <<")";
-		if(def){
+		definitions << "var 0..1: " << getIntVarName(lit) << ";\n";
+		constraints << "constraint int_eq_reif(" << getIntVarName(lit) << ", " << "1" << ", " << getVarName(lit) << ")";
+		if (def) {
 			addDefAnnotation(defID, constraints);
 		}
-		constraints <<";\n";
+		constraints << ";\n";
 	}
 }
 
-const Weight& FlatZincRewriter::getMin(uint var){
+const Weight& FlatZincRewriter::getMin(uint var) {
 	assert(varbounds.find(var)!=varbounds.cend());
 	return (*varbounds.find(var)).second.first;
 }
 
-const Weight& FlatZincRewriter::getMax(uint var){
+const Weight& FlatZincRewriter::getMax(uint var) {
 	assert(varbounds.find(var)!=varbounds.cend());
 	return (*varbounds.find(var)).second.second;
 }
 
 template<>
-void FlatZincRewriter::check(const vector<Literal>& lits){
-	for(auto i=lits.cbegin(); i<lits.cend(); ++i){
+void FlatZincRewriter::check(const vector<Literal>& lits) {
+	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {
 		check(*i);
 	}
 }
 
 template<>
-void FlatZincRewriter::checkOnlyPos(const vector<Literal>& lits){
-	for(auto i=lits.cbegin(); i<lits.cend(); ++i){
+void FlatZincRewriter::checkOnlyPos(const vector<Literal>& lits) {
+	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {
 		check((*i).getAtom());
 	}
 }
 
 template<typename T>
-void addMappedList(const vector<T>& list, ostream& stream){
+void addMappedList(const vector<T>& list, ostream& stream) {
 	bool begin = true;
-	for(auto i=list.cbegin(); i<list.cend(); ++i){
-		if(!begin){
-			stream <<", ";
+	for (auto i = list.cbegin(); i < list.cend(); ++i) {
+		if (!begin) {
+			stream << ", ";
 		}
 		begin = false;
-		stream <<getVarName(*i);
+		stream << getVarName(*i);
 	}
 }
 
 template<typename T>
-void addIntVarList(const vector<T>& list, ostream& stream){
+void addIntVarList(const vector<T>& list, ostream& stream) {
 	bool begin = true;
-	for(auto i=list.cbegin(); i<list.cend(); ++i){
-		if(!begin){
-			stream <<", ";
+	for (auto i = list.cbegin(); i < list.cend(); ++i) {
+		if (!begin) {
+			stream << ", ";
 		}
 		begin = false;
-		stream <<getIntVarName(*i);
+		stream << getIntVarName(*i);
 	}
 }
 
 template<typename T>
-void addIntList(const vector<T>& list, ostream& stream){
+void addIntList(const vector<T>& list, ostream& stream) {
 	bool begin = true;
-	for(auto i=list.cbegin(); i<list.cend(); ++i){
-		if(!begin){
-			stream <<", ";
+	for (auto i = list.cbegin(); i < list.cend(); ++i) {
+		if (!begin) {
+			stream << ", ";
 		}
 		begin = false;
-		stream <<*i;
+		stream << *i;
 	}
 }
 
-void FlatZincRewriter::printRel(const string& left, const string& right, const Literal& head, const string& constr){
-	constraints <<"constraint " <<constr <<"(" <<left <<", " <<right <<", " <<getVarName(head) <<");\n";
+void FlatZincRewriter::printRel(const string& left, const string& right, const Literal& head, const string& constr) {
+	constraints << "constraint " << constr << "(" << left << ", " << right << ", " << getVarName(head) << ");\n";
 }
 
-void FlatZincRewriter::addBinRel(const string& left, const string& right, const Literal& head, EqType rel){
+void FlatZincRewriter::addBinRel(const string& left, const string& right, const Literal& head, EqType rel) {
 	string constr;
 	Literal h = head;
-	switch(rel){
-	case MEQ:
+	switch (rel) {
+	case EqType::EQ:
 		constr = "int_eq_reif";
 		break;
-	case MNEQ:
+	case EqType::NEQ:
 		constr = "int_ne_reif";
 		break;
-	case ML:
+	case EqType::L:
 		constr = "int_lt_reif";
 		break;
-	case MG:{
+	case EqType::G: {
 		h = ~head;
 		constr = "int_le_reif";
-		break;}
-	case MGEQ:{
+		break;
+	}
+	case EqType::GEQ: {
 		h = ~head;
 		constr = "int_lt_reif";
-		break;}
-	case MLEQ:
+		break;
+	}
+	case EqType::LEQ:
 		constr = "int_le_reif";
 		break;
 	}
 	check(h);
-	printRel(left,right, h, constr);
+	printRel(left, right, h, constr);
 }
 
-
-void FlatZincRewriter::printSum(const weightlist& weights, const string& vars, const Atom& head, string constr, string bound){
-	constraints <<"constraint " <<constr <<"([";
+void FlatZincRewriter::printSum(const weightlist& weights, const string& vars, const Atom& head, string constr, string bound) {
+	constraints << "constraint " << constr << "([";
 	addIntList(weights, constraints);
-	constraints <<"],[" <<vars <<"], " <<bound <<", " <<getVarName(head) <<");\n";
+	constraints << "],[" << vars << "], " << bound << ", " << getVarName(head) << ");\n";
 }
 
-Atom FlatZincRewriter::createAtom(){
-	Atom lit = Atom(maxatomnumber+1);
+Atom FlatZincRewriter::createAtom() {
+	Atom lit = Atom(maxatomnumber + 1);
 	check(lit);
 	return lit;
 }
 
-void FlatZincRewriter::addSum(const weightlist& weights, const vector<uint>& vars, const Atom& head, EqType rel, const Weight& bound){
+void FlatZincRewriter::addSum(const weightlist& weights, const vector<uint>& vars, const Atom& head, EqType rel, const Weight& bound) {
 	stringstream ss;
 	bool begin = true;
-	for(auto i=vars.cbegin(); i<vars.cend(); ++i){
-		if(!begin){
-			ss <<", ";
+	for (auto i = vars.cbegin(); i < vars.cend(); ++i) {
+		if (!begin) {
+			ss << ", ";
 		}
 		begin = false;
-		ss <<getVarName(*i);
+		ss << getVarName(*i);
 	}
 	addSum(weights, ss.str(), head, rel, bound);
 }
 
-void FlatZincRewriter::addSum(const weightlist& weights, const string& vars, const Atom& head, EqType rel, const Weight& bound){
+void FlatZincRewriter::addSum(const weightlist& weights, const string& vars, const Atom& head, EqType rel, const Weight& bound) {
 	string constr = "";
 	Weight newbound = bound;
-	switch(rel){
-	case MEQ:
+	switch (rel) {
+	case EqType::EQ:
 		constr = "int_lin_eq_reif";
 		break;
-	case MNEQ:
+	case EqType::NEQ:
 		constr = "int_lin_ne_reif";
 		break;
-	case ML:
+	case EqType::L:
 		constr = "int_lin_le_reif";
-		newbound = bound-1;
+		newbound = bound - 1;
 		break;
-	case MG:{
+	case EqType::G: {
 		Atom newhead = createAtom();
 		constr = "int_lin_le_reif";
-		constraints <<"constraint bool_not(" <<getVarName(head) <<", " <<getVarName(newhead) <<");\n";
-		break;}
-	case MGEQ:{
+		constraints << "constraint bool_not(" << getVarName(head) << ", " << getVarName(newhead) << ");\n";
+		break;
+	}
+	case EqType::GEQ: {
 		Atom newhead = createAtom();
 		constr = "int_lin_le_reif";
-		newbound = bound-1;
-		constraints <<"constraint bool_not(" <<getVarName(head) <<", " <<getVarName(newhead) <<");\n";
-		break;}
-	case MLEQ:
+		newbound = bound - 1;
+		constraints << "constraint bool_not(" << getVarName(head) << ", " << getVarName(newhead) << ");\n";
+		break;
+	}
+	case EqType::LEQ:
 		constr = "int_lin_le_reif";
 		break;
 	}
 
 	stringstream ss;
-	ss <<newbound;
+	ss << newbound;
 
 	printSum(weights, vars, head, constr, ss.str());
 }
 
-void FlatZincRewriter::addVarSum(const weightlist& weights, const vector<uint>& vars, const Atom& head, EqType rel, uint rhsvar){
+void FlatZincRewriter::addVarSum(const weightlist& weights, const vector<uint>& vars, const Atom& head, EqType rel, uint rhsvar) {
 	vector<uint> newvars = vars;
 	newvars.push_back(rhsvar);
 
@@ -306,105 +304,105 @@ void FlatZincRewriter::addVarSum(const weightlist& weights, const vector<uint>& 
 	addSum(newweights, newvars, head, rel, 0);
 }
 
-void FlatZincRewriter::addVarSum(const weightlist& weights, const vector<Literal>& lits, const Atom& head, EqType rel, uint rhsvar){
+void FlatZincRewriter::addVarSum(const weightlist& weights, const vector<Literal>& lits, const Atom& head, EqType rel, uint rhsvar) {
 	stringstream ss;
 	bool begin = true;
-	for(auto i=lits.cbegin(); i<lits.cend(); ++i){
-		if(!begin){
-			ss <<", ";
+	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {
+		if (!begin) {
+			ss << ", ";
 		}
 		begin = false;
-		ss <<getIntVarName(*i);
+		ss << getIntVarName(*i);
 	}
 
-	ss <<", " <<getVarName(rhsvar);
+	ss << ", " << getVarName(rhsvar);
 	weightlist newweights = weights;
 	newweights.push_back(-1);
 
 	addSum(newweights, ss.str(), head, rel, 0);
 }
 
-void FlatZincRewriter::addSum(const Aggregate& agg, const WSet& set){
-	for(auto i=set.literals.cbegin(); i<set.literals.cend(); ++i){
-		createIntVar(*i, agg.sem==DEF, agg.defID);
+void FlatZincRewriter::addSum(const Aggregate& agg, const WSet& set) {
+	for (auto i = set.literals.cbegin(); i < set.literals.cend(); ++i) {
+		createIntVar(*i, agg.sem == AggSem::DEF, agg.defID);
 	}
 
 	Literal h = Literal(agg.head, false);
 	Weight bound = agg.bound;
-	if(agg.sign==AGGSIGN_LB){ // Have to swap the sign, by adding the negated head and reducing bound
+	if (agg.sign == AggSign::LB) { // Have to swap the sign, by adding the negated head and reducing bound
 		h = Literal(agg.head, true);
 		check(h);
 		bound -= 1;
 	}
 
 	// add the constraint
-	constraints <<"constraint int_lin_le_reif([";
+	constraints << "constraint int_lin_le_reif([";
 	addIntList(set.weights, constraints);
-	constraints <<"], [";
+	constraints << "], [";
 	addIntVarList(set.literals, constraints);
-	constraints <<"], " <<bound <<", " <<getVarName(h) <<");\n";
+	constraints << "], " << bound << ", " << getVarName(h) << ");\n";
 }
 
-uint FlatZincRewriter::createCpVar(const Weight& min, const Weight& max){
+uint FlatZincRewriter::createCpVar(const Weight& min, const Weight& max) {
 	CPIntVarRange newvar;
-	newvar.varID = maxcpnumber+1;
+	newvar.varID = maxcpnumber + 1;
 	newvar.minvalue = min;
 	newvar.maxvalue = max;
 	add(newvar);
 	return newvar.varID;
 }
 
-uint FlatZincRewriter::createCpVar(const std::vector<Weight>& values){
+uint FlatZincRewriter::createCpVar(const std::vector<Weight>& values) {
 	CPIntVarEnum newvar;
-	newvar.varID = maxcpnumber+1;
+	newvar.varID = maxcpnumber + 1;
 	newvar.values = values;
 	add(newvar);
 	return newvar.varID;
 }
 
-uint FlatZincRewriter::addOptimization(){
+uint FlatZincRewriter::addOptimization() {
 	int optimvar = 0;
-	if(optim==MNMZ_AGG){
+	if (optim == MNMZ_AGG) {
 		auto mnm = savedagg;
-		if(mnm.type != SUM && mnm.type != CARD){
+		if (mnm.type != AggType::SUM && mnm.type != AggType::CARD) {
 			throw idpexception("Optimization only supported on sum or cardinality aggregates.");
 		}
 		auto set = getSet(mnm.setid);
 		Weight min = 0, max = 0;
-		for(auto i=set.weights.cbegin(); i<set.weights.cend(); ++i){
-			if((*i)<0){
+		for (auto i = set.weights.cbegin(); i < set.weights.cend(); ++i) {
+			if ((*i) < 0) {
 				min += *i;
-			}else{
+			} else {
 				max += *i;
 			}
 		}
 
 		optimvar = createCpVar(min, max);
 
-		for(auto i=set.literals.cbegin(); i<set.literals.cend(); ++i){
+		for (auto i = set.literals.cbegin(); i < set.literals.cend(); ++i) {
 			createIntVar(*i, false, 0);
 		}
 
 		auto head = createAtom();
-		addVarSum(set.weights, set.literals, head, MEQ, optimvar);
+		addVarSum(set.weights, set.literals, head, EqType::EQ, optimvar);
 		Disjunction d;
 		d.literals.push_back(Literal(head));
 		add(d);
-	}else if(optim==MNMZ_LIST){
+	} else if (optim == MNMZ_LIST) {
 		auto mnm = savedlistmnmz;
 
 		optimvar = createCpVar(1, long(mnm.literals.size()));
 
 		int currentvalue = 1;
-		for(auto i=mnm.literals.cbegin(); i<mnm.literals.cend(); ++i){
+		for (auto i = mnm.literals.cbegin(); i < mnm.literals.cend(); ++i) {
 			stringstream ss;
-			ss <<currentvalue;
-			addBinRel(getVarName(optimvar), ss.str(), *i, MEQ);
+			ss << currentvalue;
+			addBinRel(getVarName(optimvar), ss.str(), *i, EqType::EQ);
 			currentvalue++;
 		}
-	}else if(optim==MNMZ_SUBSET){
+	} else if (optim == MNMZ_SUBSET) {
 		throw idpexception("Subset minimization is not supported by the FlatZinc language.");
-	}else{
+	} else {
 		assert(optim==MNMZ_VAR);
 		// TODO
 	}
@@ -422,14 +420,14 @@ uint FlatZincRewriter::addOptimization(){
  * vpn-1 = vpn-2 * vn'
  * P <=> vpn-1 op b
  */
-void FlatZincRewriter::addProduct(const Aggregate& agg, const WSet& set){
+void FlatZincRewriter::addProduct(const Aggregate& agg, const WSet& set) {
 	bool begin = true;
 	Weight min = 1, max = 1;
 	uint prevvar = 0;
-	for(uint i=0; i<set.literals.size(); ++i){
+	for (uint i = 0; i < set.literals.size(); ++i) {
 		const Weight& weight = set.weights[i];
 
-		if(weight==1){ // FIXME ugly hack to prevent problems with the equivalence of the intvar with the maxvalue (preventing the bool var to become false)
+		if (weight == 1) { // FIXME ugly hack to prevent problems with the equivalence of the intvar with the maxvalue (preventing the bool var to become false)
 			continue;
 		}
 
@@ -438,105 +436,105 @@ void FlatZincRewriter::addProduct(const Aggregate& agg, const WSet& set){
 		weights.push_back(weight);
 
 		uint varID = createCpVar(weights);
-		constraints <<"constraint int_eq_reif(" <<getVarName(varID) <<", " <<weight <<", " <<getVarName(set.literals[i]) <<");\n";
+		constraints << "constraint int_eq_reif(" << getVarName(varID) << ", " << weight << ", " << getVarName(set.literals[i]) << ");\n";
 
 		Weight prevmin = min;
 		Weight prevmax = max;
-		min = std::min(min, weight*prevmin);
-		min = std::min(min, weight*prevmax);
-		max = std::max(max, weight*prevmin);
-		max = std::max(max, weight*prevmax);
+		min = std::min(min, weight * prevmin);
+		min = std::min(min, weight * prevmax);
+		max = std::max(max, weight * prevmin);
+		max = std::max(max, weight * prevmax);
 
-		if(!begin){
+		if (!begin) {
 			uint newvar = createCpVar(min, max);
-			constraints <<"constraint int_times(" <<getVarName(varID) <<", " <<getVarName(prevvar) <<", " <<getVarName(newvar) <<");\n";
+			constraints << "constraint int_times(" << getVarName(varID) << ", " << getVarName(prevvar) << ", " << getVarName(newvar) << ");\n";
 			prevvar = newvar;
-		}else{
+		} else {
 			prevvar = varID;
 		}
 		begin = false;
 	}
 
 	stringstream ss;
-	ss <<agg.bound;
-	addBinRel(getVarName(prevvar), ss.str(), Literal(agg.head, false), agg.sign==AGGSIGN_LB?MGEQ:MLEQ);
+	ss << agg.bound;
+	addBinRel(getVarName(prevvar), ss.str(), Literal(agg.head, false), agg.sign == AggSign::LB ? EqType::GEQ : EqType::LEQ);
 }
 
-void FlatZincRewriter::finishParsing(){
+void FlatZincRewriter::finishParsing() {
 	state = FINISHING;
 
-	for(auto i=savedbinrels.cbegin(); i<savedbinrels.cend(); ++i){
+	for (auto i = savedbinrels.cbegin(); i < savedbinrels.cend(); ++i) {
 		addBinRel((*i).left, (*i).right, Literal((*i).head, false), (*i).rel);
 	}
 
-	for(auto i=savedcpsums.cbegin(); i<savedcpsums.cend(); ++i){
+	for (auto i = savedcpsums.cbegin(); i < savedcpsums.cend(); ++i) {
 		addSum((*i).weights, (*i).varIDs, (*i).head, (*i).rel, (*i).bound);
 	}
 
-	for(auto i=savedaggs.cbegin(); i<savedaggs.cend(); ++i){
-		if((*i).type==PROD){
+	for (auto i = savedaggs.cbegin(); i < savedaggs.cend(); ++i) {
+		if ((*i).type == AggType::PROD) {
 			addProduct(*i, getSet((*i).setID));
-		}else{
-			assert((*i).type==SUM || (*i).type==CARD);
+		} else {
+			assert((*i).type==AggType::SUM || (*i).type==AggType::CARD);
 			addSum(*i, getSet((*i).setID));
 		}
 	}
 
-	getOutput() <<definitions.str();
-	getOutput() <<constraints.str();
-	if(optim!=MNMZ_NONE){
+	getOutput() << definitions.str();
+	getOutput() << constraints.str();
+	if (optim != MNMZ_NONE) {
 		uint optimvar = addOptimization();
-		getOutput() <<"solve minimize " <<getVarName(optimvar) <<";\n";
-	}else{
-		getOutput() <<"solve satisfy;\n";
+		getOutput() << "solve minimize " << getVarName(optimvar) << ";\n";
+	} else {
+		getOutput() << "solve satisfy;\n";
 	}
 }
 
 // ADDITION METHODS
 
-void FlatZincRewriter::addIntegerVar(uint varID, const string& domainexpr, const Weight& min, const Weight& max){
-	if(cpvarsseen.find(varID)!=cpvarsseen.cend()){
+void FlatZincRewriter::addIntegerVar(uint varID, const string& domainexpr, const Weight& min, const Weight& max) {
+	if (cpvarsseen.find(varID) != cpvarsseen.cend()) {
 		stringstream ss;
-		ss <<"Double addition of integer variable " <<varID <<".";
+		ss << "Double addition of integer variable " << varID << ".";
 		throw idpexception(ss.str());
 	}
 
-	definitions <<"var " <<domainexpr <<": " <<getVarName(varID);
-	if(isParsing()){
-		definitions <<"::output_var";
+	definitions << "var " << domainexpr << ": " << getVarName(varID);
+	if (isParsing()) {
+		definitions << "::output_var";
 	}
-	definitions <<";\n";
+	definitions << ";\n";
 
 	cpvarsseen.insert(varID);
 	varbounds.insert(pair<uint, pair<Weight, Weight> >(varID, pair<Weight, Weight>(min, max)));
-	if(maxcpnumber<varID){
+	if (maxcpnumber < varID) {
 		maxcpnumber = varID;
 	}
 }
 
-void FlatZincRewriter::addEquiv(const Implication& implication, CloseConstraint close){
+void FlatZincRewriter::addEquiv(const Implication& implication, CloseConstraint close) {
 	check(implication.body);
 	check(implication.head);
 
-	switch(implication.type){
+	switch (implication.type) {
 	case ImplicationType::EQUIVALENT:
-		if(implication.conjunction){
-			constraints <<"constraint array_bool_and([";
-		}else{
-			constraints <<"constraint array_bool_or([";
+		if (implication.conjunction) {
+			constraints << "constraint array_bool_and([";
+		} else {
+			constraints << "constraint array_bool_or([";
 		}
 		addMappedList(implication.body, constraints);
-		constraints  <<"], " <<getVarName(implication.head) <<")";
+		constraints << "], " << getVarName(implication.head) << ")";
 		break;
 	case ImplicationType::IMPLIES:
-		if(implication.conjunction){
+		if (implication.conjunction) {
 			Disjunction d;
 			d.literals.resize(2, not implication.head);
-			for(auto i=implication.body.cbegin(); i<implication.body.cend(); ++i){
+			for (auto i = implication.body.cbegin(); i < implication.body.cend(); ++i) {
 				d.literals[1] = *i;
 				add(d);
 			}
-		}else{
+		} else {
 			Disjunction d;
 			d.literals.insert(d.literals.begin(), implication.body.cbegin(), implication.body.cend());
 			d.literals.push_back(not implication.head);
@@ -544,41 +542,41 @@ void FlatZincRewriter::addEquiv(const Implication& implication, CloseConstraint 
 		}
 		break;
 	case ImplicationType::IMPLIEDBY:
-		if(implication.conjunction){
+		if (implication.conjunction) {
 			Disjunction d;
-			for(auto i=implication.body.cbegin(); i<implication.body.cend(); ++i){
+			for (auto i = implication.body.cbegin(); i < implication.body.cend(); ++i) {
 				d.literals.push_back(not *i);
 			}
 			d.literals.push_back(implication.head);
 			add(d);
-		}else{
+		} else {
 			Disjunction d;
 			d.literals.resize(2, implication.head);
-			for(auto i=implication.body.cbegin(); i<implication.body.cend(); ++i){
+			for (auto i = implication.body.cbegin(); i < implication.body.cend(); ++i) {
 				d.literals[1] = *i;
 				add(d);
 			}
 		}
 		break;
 	}
-	if(close==CLOSE){
-		constraints <<";\n";
+	if (close == CLOSE) {
+		constraints << ";\n";
 	}
 }
 
-void FlatZincRewriter::add(const WSet& set, int setID){
+void FlatZincRewriter::add(const WSet& set, int setID) {
 	check(set.literals);
-	sets.resize(setID+1);
+	sets.resize(setID + 1);
 	sets[setID] = set;
 }
 
 template<>
-SATVAL FlatZincRewriter::add(const literallist& lits){
+SATVAL FlatZincRewriter::add(const literallist& lits) {
 	literallist pos, neg;
-	for(auto i=lits.cbegin(); i<lits.cend(); ++i){
-		if((*i).hasSign()){
+	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {
+		if ((*i).hasSign()) {
 			neg.push_back(~(*i));
-		}else{
+		} else {
 			pos.push_back(*i);
 		}
 	}
@@ -586,41 +584,35 @@ SATVAL FlatZincRewriter::add(const literallist& lits){
 	check(pos);
 	check(neg);
 
-	constraints <<"constraint bool_clause([";
+	constraints << "constraint bool_clause([";
 	addMappedList(pos, constraints);
-	constraints <<"], [";
+	constraints << "], [";
 	addMappedList(neg, constraints);
-	constraints  <<"]);\n";
+	constraints << "]);\n";
 	return SATVAL::POS_SAT;
 }
 
 template<>
-SATVAL FlatZincRewriter::add(const Disjunction& sentence){
+SATVAL FlatZincRewriter::add(const Disjunction& sentence) {
 	add(sentence.literals);
 	return SATVAL::POS_SAT;
 }
 
 template<>
-SATVAL FlatZincRewriter::add(const DisjunctionRef& sentence){
-	add(sentence.literals);
-	return SATVAL::POS_SAT;
-}
-
-template<>
-SATVAL FlatZincRewriter::add(const Implication& implic){
+SATVAL FlatZincRewriter::add(const Implication& implic) {
 	addEquiv(implic, CLOSE);
 	return SATVAL::POS_SAT;
 }
 
 template<>
-SATVAL FlatZincRewriter::add(const Rule& rule){
+SATVAL FlatZincRewriter::add(const Rule& rule) {
 	checkOnlyPos(rule.body);
 	check(rule.head);
 
-	if(!rule.conjunctive){
-		if(rule.body.size()>1){
+	if (!rule.conjunctive) {
+		if (rule.body.size() > 1) {
 			SATVAL satpossible = SATVAL::POS_SAT;
-			for(auto i=rule.body.cbegin(); satpossible==SATVAL::POS_SAT && i<rule.body.cend(); ++i){
+			for (auto i = rule.body.cbegin(); satpossible == SATVAL::POS_SAT && i < rule.body.cend(); ++i) {
 				Rule smallrule;
 				smallrule.head = rule.head;
 				smallrule.body.push_back(*i);
@@ -629,53 +621,53 @@ SATVAL FlatZincRewriter::add(const Rule& rule){
 				satpossible &= add(smallrule);
 			}
 			return satpossible;
-		}else if(rule.body.size()==0){
+		} else if (rule.body.size() == 0) {
 			Disjunction clause;
 			clause.literals.push_back(Literal(rule.head, true));
 			return add(clause);
 		}
 	}
 
-	constraints <<"constraint inductive_rule(";
-	constraints <<getVarName(rule.head) <<", ";
+	constraints << "constraint inductive_rule(";
+	constraints << getVarName(rule.head) << ", ";
 
-	constraints <<"[";
+	constraints << "[";
 	bool begin = true;
-	for(auto i=rule.body.cbegin(); i<rule.body.cend(); ++i){
-		if((*i).hasSign()){
+	for (auto i = rule.body.cbegin(); i < rule.body.cend(); ++i) {
+		if ((*i).hasSign()) {
 			continue;
 		}
-		if(!begin){
-			constraints <<", ";
+		if (!begin) {
+			constraints << ", ";
 		}
 		begin = false;
-		constraints <<getVarName(*i);
+		constraints << getVarName(*i);
 	}
-	constraints  <<"], ";
+	constraints << "], ";
 
-	constraints <<"[";
+	constraints << "[";
 	begin = true;
-	for(auto i=rule.body.cbegin(); i<rule.body.cend(); ++i){
-		if(!(*i).hasSign()){
+	for (auto i = rule.body.cbegin(); i < rule.body.cend(); ++i) {
+		if (!(*i).hasSign()) {
 			continue;
 		}
-		if(!begin){
-			constraints <<", ";
+		if (!begin) {
+			constraints << ", ";
 		}
 		begin = false;
-		constraints <<getVarName(~*i);
+		constraints << getVarName(~*i);
 	}
-	constraints  <<"], ";
+	constraints << "], ";
 
-	constraints <<rule.definitionID;
-	constraints <<");\n";
+	constraints << rule.definitionID;
+	constraints << ");\n";
 	return SATVAL::POS_SAT;
 }
 
 template<>
-SATVAL FlatZincRewriter::add(const Set& set){
+SATVAL FlatZincRewriter::add(const Set& set) {
 	WSet wset;
-	for(auto i=set.literals.cbegin(); i<set.literals.cend(); ++i){
+	for (auto i = set.literals.cbegin(); i < set.literals.cend(); ++i) {
 		wset.literals.push_back(*i);
 		wset.weights.push_back(1);
 	}
@@ -684,15 +676,15 @@ SATVAL FlatZincRewriter::add(const Set& set){
 }
 
 template<>
-SATVAL FlatZincRewriter::add(const WSet& set){
+SATVAL FlatZincRewriter::add(const WSet& set) {
 	add(set, set.setID);
 	return SATVAL::POS_SAT;
 }
 
 template<>
-SATVAL FlatZincRewriter::add(const WLSet& set){
+SATVAL FlatZincRewriter::add(const WLSet& set) {
 	WSet wset;
-	for(auto i=set.wl.cbegin(); i<set.wl.cend(); ++i){
+	for (auto i = set.wl.cbegin(); i < set.wl.cend(); ++i) {
 		wset.literals.push_back((*i).l);
 		wset.weights.push_back((*i).w);
 	}
@@ -701,52 +693,52 @@ SATVAL FlatZincRewriter::add(const WLSet& set){
 }
 
 template<>
-SATVAL FlatZincRewriter::add(const Aggregate& origagg){
+SATVAL FlatZincRewriter::add(const Aggregate& origagg) {
 	check(origagg.head);
 
-	if(origagg.type==PROD){
+	if (origagg.type == AggType::PROD) {
 		assert(isParsing());
 		savedaggs.push_back(origagg);
-	}else if(origagg.type==CARD || origagg.type==SUM){
+	} else if (origagg.type == AggType::CARD || origagg.type == AggType::SUM) {
 		assert(isParsing());
 		savedaggs.push_back(origagg);
-	}else{ // MIN or MAX
+	} else { // MIN or MAX
 		Aggregate agg(origagg);
 		WSet set = getSet(agg.setID);
 
 		// Transform min into max
-		if(agg.type==MIN){
+		if (agg.type == AggType::MIN) {
 			for (weightlist::size_type i = 0; i < set.weights.size(); ++i) {
 				set.weights[i] = -set.weights[i];
 			}
 
 			agg.bound = -agg.bound;
-			agg.sign = agg.sign==AGGSIGN_LB?AGGSIGN_UB:AGGSIGN_LB;
+			agg.sign = agg.sign == AggSign::LB ? AggSign::UB : AggSign::LB;
 		}
 
-		bool ub = agg.sign==AGGSIGN_UB;
+		bool ub = agg.sign == AggSign::UB;
 		literallist lits;
 		for (weightlist::size_type i = 0; i < set.weights.size(); i++) {
-			if(set.weights[i] < agg.bound){
+			if (set.weights[i] < agg.bound) {
 				continue;
 			}
-			if(ub && set.weights[i] == agg.bound){
+			if (ub && set.weights[i] == agg.bound) {
 				continue;
 			}
-			lits.push_back(ub?~set.literals[i]:set.literals[i]);
+			lits.push_back(ub ? ~set.literals[i] : set.literals[i]);
 		}
 
 		addEquiv(Implication(Literal(agg.head, false), ImplicationType::EQUIVALENT, lits, ub), OPEN);
-		if(agg.sem==DEF){
+		if (agg.sem == AggSem::DEF) {
 			addDefAnnotation(agg.defID, constraints);
 		}
-		constraints <<";\n";
+		constraints << ";\n";
 	}
 	return SATVAL::POS_SAT;
 }
 
 template<>
-SATVAL FlatZincRewriter::add(const MinimizeSubset& sentence){
+SATVAL FlatZincRewriter::add(const MinimizeSubset& sentence) {
 	assert(isParsing());
 	optim = MNMZ_SUBSET;
 	savedsubsetmnmz = sentence;
@@ -755,7 +747,7 @@ SATVAL FlatZincRewriter::add(const MinimizeSubset& sentence){
 }
 
 template<>
-SATVAL FlatZincRewriter::add(const MinimizeOrderedList& sentence){
+SATVAL FlatZincRewriter::add(const MinimizeOrderedList& sentence) {
 	assert(isParsing());
 	optim = MNMZ_LIST;
 	check(sentence.literals);
@@ -764,7 +756,7 @@ SATVAL FlatZincRewriter::add(const MinimizeOrderedList& sentence){
 }
 
 template<>
-SATVAL FlatZincRewriter::add(const MinimizeVar& mnm){
+SATVAL FlatZincRewriter::add(const MinimizeVar& mnm) {
 	assert(isParsing());
 	savedvar = mnm;
 	optim = MNMZ_VAR;
@@ -772,7 +764,7 @@ SATVAL FlatZincRewriter::add(const MinimizeVar& mnm){
 }
 
 template<>
-SATVAL FlatZincRewriter::add(const MinimizeAgg& mnm){
+SATVAL FlatZincRewriter::add(const MinimizeAgg& mnm) {
 	assert(isParsing());
 	savedagg = mnm;
 	optim = MNMZ_AGG;
@@ -780,26 +772,26 @@ SATVAL FlatZincRewriter::add(const MinimizeAgg& mnm){
 }
 
 template<>
-SATVAL FlatZincRewriter::add(const CPIntVarEnum& var){
+SATVAL FlatZincRewriter::add(const CPIntVarEnum& var) {
 	stringstream ss;
-	ss <<"{";
+	ss << "{";
 	bool begin = true;
-	for(auto i=var.values.cbegin(); i<var.values.cend(); ++i){
-		if(!begin){
-			ss <<", ";
+	for (auto i = var.values.cbegin(); i < var.values.cend(); ++i) {
+		if (!begin) {
+			ss << ", ";
 		}
 		begin = false;
-		ss <<*i;
+		ss << *i;
 	}
-	ss <<"}";
+	ss << "}";
 
 	Weight min = var.values[0], max = var.values[0];
-	for(uint i=1; i<var.values.size(); ++i){
+	for (uint i = 1; i < var.values.size(); ++i) {
 		const Weight& w = var.values[i];
-		if(w<min){
+		if (w < min) {
 			min = w;
 		}
-		if(w > max){
+		if (w > max) {
 			max = w;
 		}
 	}
@@ -808,22 +800,22 @@ SATVAL FlatZincRewriter::add(const CPIntVarEnum& var){
 }
 
 template<>
-SATVAL FlatZincRewriter::add(const CPIntVarRange& var){
+SATVAL FlatZincRewriter::add(const CPIntVarRange& var) {
 	stringstream ss;
-	ss <<var.minvalue <<".." <<var.maxvalue;
+	ss << var.minvalue << ".." << var.maxvalue;
 	addIntegerVar(var.varID, ss.str(), var.minvalue, var.maxvalue);
 	return SATVAL::POS_SAT;
 }
 
 template<>
-SATVAL FlatZincRewriter::add(const CPBinaryRel& rel){
+SATVAL FlatZincRewriter::add(const CPBinaryRel& rel) {
 	assert(isParsing());
 	check(rel.head);
 
 	BinRel binrel;
 	binrel.left = getVarName(rel.varID);
 	stringstream ss;
-	ss <<rel.bound;
+	ss << rel.bound;
 	binrel.right = ss.str();
 	binrel.head = rel.head;
 	binrel.rel = rel.rel;
@@ -832,7 +824,7 @@ SATVAL FlatZincRewriter::add(const CPBinaryRel& rel){
 }
 
 template<>
-SATVAL FlatZincRewriter::add(const CPBinaryRelVar& rel){
+SATVAL FlatZincRewriter::add(const CPBinaryRelVar& rel) {
 	assert(isParsing());
 	check(rel.head);
 
@@ -846,7 +838,7 @@ SATVAL FlatZincRewriter::add(const CPBinaryRelVar& rel){
 }
 
 template<>
-SATVAL FlatZincRewriter::add(const CPSumWeighted& sum){
+SATVAL FlatZincRewriter::add(const CPSumWeighted& sum) {
 	assert(isParsing());
 	check(sum.head);
 	savedcpsums.push_back(sum);
@@ -854,11 +846,11 @@ SATVAL FlatZincRewriter::add(const CPSumWeighted& sum){
 }
 
 template<>
-SATVAL FlatZincRewriter::add(const CPCount&){
+SATVAL FlatZincRewriter::add(const CPCount&) {
 	throw idpexception("Count constraints are not yet supported by the flatzinc backend.");
 }
 
 template<>
-SATVAL FlatZincRewriter::add(const CPAllDiff&){
+SATVAL FlatZincRewriter::add(const CPAllDiff&) {
 	throw idpexception("Alldifferent is not yet supported by the flatzinc backend.");
 }

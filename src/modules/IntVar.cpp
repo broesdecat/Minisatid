@@ -113,10 +113,10 @@ void IntVar::addConstraints(){
 	InnerAggregate lowercard;
 	lowercard.setID = set.setID;
 	lowercard.bound = 1;
-	lowercard.type = CARD;
-	lowercard.sign = AGGSIGN_LB;
+	lowercard.type = AggType::CARD;
+	lowercard.sign = AggSign::LB;
 	InnerAggregate highercard(lowercard);
-	highercard.sign = AGGSIGN_UB;
+	highercard.sign = AggSign::UB;
 	engine().add(set);
 	engine().add(highercard);
 	engine().add(lowercard);

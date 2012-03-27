@@ -181,9 +181,9 @@ void ModSolver::finishParsingDown(){
  */
 bool ModSolver::solve(const litlist& assumptions, const ModelExpandOptions& options){
 	ModelExpandOptions modoptions;
-	modoptions.printmodels = PRINT_NONE;
-	modoptions.savemodels = SAVE_NONE;
-	modoptions.inference = MODELEXPAND;
+	modoptions.printmodels = Models::NONE;
+	modoptions.savemodels = Models::NONE;
+	modoptions.inference = Inference::MODELEXPAND;
 	modoptions.nbmodelstofind = options.nbmodelstofind;
 	Solution* s = new Solution(modoptions);
 	setSolutionMonitor(s);
@@ -226,9 +226,9 @@ bool ModSolver::search(const litlist& assumpts, bool search){
 	bool result;
 	searching = search;
 	ModelExpandOptions options;
-	options.printmodels = PRINT_NONE;
-	options.savemodels = SAVE_NONE;
-	options.inference = MODELEXPAND;
+	options.printmodels = Models::NONE;
+	options.savemodels = Models::NONE;
+	options.inference = Inference::MODELEXPAND;
 	options.nbmodelstofind = 1;
 	Solution* s = new Solution(options);
 	setSolutionMonitor(s);
@@ -349,7 +349,7 @@ bool ModSolver::propagateDownAtEndOfQueue(litlist& confldisj){
 	}
 	*/
 
-	if((vsize)assumptions.size()==getAtoms().size() && (!hasparent || getHeadValue()!=l_Undef)){
+	if((uint)assumptions.size()==getAtoms().size() && (!hasparent || getHeadValue()!=l_Undef)){
 		allknown = true;
 	}
 
@@ -370,7 +370,7 @@ void ModSolver::notifyBacktrack(int untillevel, const Lit& decision){
 		clog <<"Backtracking from PC in mod " <<getPrintId() <<" to level " <<untillevel <<"\n";
 	}
 
-	while(trail.size()>((vsize)(untillevel+1))){
+	while(trail.size()>((uint)(untillevel+1))){
 		//IMPORTANT: backtrack in REVERSE trail order! from latest to earliest!
 		for(auto i=trail.back().rbegin(); i<trail.back().rend(); ++i){
 			for(auto j=getChildren().cbegin(); j<getChildren().cend(); ++j){
@@ -412,7 +412,7 @@ void ModSolver::backtrackFromAbove(Lit l){
 				break;
 			}else{
 #ifndef NDEBUG
-				for(vsize j=0; j<assumptions.size(); ++j){
+				for(uint j=0; j<assumptions.size(); ++j){
 					assert(var(assumptions[j])!=var(l));
 				}
 #endif
@@ -443,7 +443,7 @@ bool ModSolver::analyzeResult(bool result, bool allknown, litlist& confldisj){
 			confldisj.push_back(mkLit(getHead(), getHeadValue()==l_True));
 		}
 		//TODO order of lits in conflict depends on order of assumptions and on order of propagations by parent
-		for(vsize i=0; i<assumptions.size(); ++i){
+		for(uint i=0; i<assumptions.size(); ++i){
 			if(propfromabove[i]){
 				confldisj.push_back(~assumptions[i]);
 			}

@@ -13,6 +13,7 @@
 #include <string>
 #include <map>
 #include <ostream>
+#include <memory>
 
 #include "external/ExternalUtils.hpp"
 #include "external/Translator.hpp"
@@ -22,8 +23,8 @@ namespace MinisatID {
 class Translator;
 class ResMan;
 
-enum SolvingState { SOLVING_STARTED, SOLVING_FINISHEDCLEANLY, SOLVING_ABORTED};
-enum ModelSaved { MODEL_NONE, MODEL_SAVED, MODEL_SAVING };
+enum class SolvingState { STARTED, FINISHEDCLEANLY, ABORTED};
+enum class ModelSaved 	{ NONE, SAVED, SAVING };
 
 class Solution{
 private:
@@ -59,13 +60,13 @@ public:
 
 	int 		getNbModelsFound	() const	{ return nbmodelsfound; }
 	int 		getNbModelsToFind	() const	{ return options.nbmodelstofind; }
-	PrintModel 	getPrintOption		() const 	{ return options.printmodels; }
-	SaveModel 	getSaveOption		() const 	{ return options.savemodels; }
+	Models 		getPrintOption		() const 	{ return options.printmodels; }
+	Models	 	getSaveOption		() const 	{ return options.savemodels; }
 	Inference 	getInferenceOption	() const 	{ return options.inference; }
 	void 		setInferenceOption	(Inference inf)	{ options.inference = inf; }
 	const ModelExpandOptions& getOptions() const { return options; }
-	void		setPrintModels		(PrintModel printoption) { options.printmodels = printoption; }
-	void		setSaveModels		(SaveModel saveoption)	{ options.savemodels = saveoption; }
+	void		setPrintModels		(Models printoption) { options.printmodels = printoption; }
+	void		setSaveModels		(Models saveoption)	{ options.savemodels = saveoption; }
 
 	bool		isOptimizationProblem() { return optimizing; }
 

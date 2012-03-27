@@ -27,10 +27,10 @@ bool compareAggBounds(TempAgg* lhs, TempAgg* rhs){
 
 void MinisatID::verifySet(const InnerWLSet& set){
 	for(auto i=set.wls.cbegin(); i<set.wls.cend(); ++i) {
-		if(set.type == CARD && (*i).getWeight()!=1) {
+		if(set.type == AggType::CARD && (*i).getWeight()!=1) {
 			throw idpexception("Cardinality set does not have weights equal to 1.\n");
 		}
-		if(set.type == PROD && (*i).getWeight() < 1) { //Exception if product contains negative/zero weights
+		if(set.type == AggType::PROD && (*i).getWeight() < 1) { //Exception if product contains negative/zero weights
 			stringstream ss;
 			ss <<"Error: Set nr. " <<set.setID  <<" contains a 0 (zero) or negative weight " <<(*i).getWeight()
 					<< ", which cannot occur in a product set.\n";
@@ -79,7 +79,7 @@ void MinisatID::setReduce(PCSolver*, InnerWLSet* set, std::vector<TempAgg*>&, co
 	newset.push_back(oldset[indexinnew]);
 
 	bool setisreduced = false;
-	for (vsize i = 1; i < oldset.size(); ++i) {
+	for (uint i = 1; i < oldset.size(); ++i) {
 		WL oldl = newset[indexinnew];
 		WL newl = oldset[i];
 		if (var(oldl.getLit()) == var(newl.getLit())) { //same variable
@@ -114,7 +114,7 @@ void MinisatID::setReduce(PCSolver*, InnerWLSet* set, std::vector<TempAgg*>&, co
 }
 
 void MinisatID::addHeadImplications(PCSolver* solver, InnerWLSet*, std::vector<TempAgg*>& aggs, bool&, bool&) {
-	if(aggs.size()>1 && aggs[0]->getSem()!=IMPLICATION){
+	if(aggs.size()>1 && aggs[0]->getSem()!=AggSem::IMPLICATION){
 		tempagglist lbaggs, ubaggs;
 		for(auto i=aggs.cbegin(); i<aggs.cend(); ++i){
 			if((*i)->hasLB()){
@@ -167,7 +167,7 @@ void MinisatID::addHeadImplications(PCSolver* solver, InnerWLSet*, std::vector<T
 //@ pre: set ordered according to weight!
 void MinisatID::max2SAT(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>& aggs, bool& unsat, bool& sat) {
 	//Simple heuristic to choose for encoding as SAT
-	if (set->type!=MAX || aggs.size() != 1 || aggs[0]->getSem()==IMPLICATION) {
+	if (set->type!=AggType::MAX || aggs.size() != 1 || aggs[0]->getSem()==AggSem::IMPLICATION) {
 		return;
 	}
 
@@ -235,7 +235,7 @@ void MinisatID::max2SAT(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>
  */
 void MinisatID::card2Equiv(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>& aggs, const Weight& knownbound, bool& unsat, bool& sat) {
 	assert(!unsat);
-	if (aggs[0]->getType() == CARD && aggs[0]->getSem()!=IMPLICATION) {
+	if (aggs[0]->getType() == AggType::CARD && aggs[0]->getSem()!=AggSem::IMPLICATION) {
 		tempagglist remaggs;
 		for (auto i = aggs.cbegin(); !unsat && i < aggs.cend(); ++i) {
 			const TempAgg& agg = *(*i);
@@ -261,7 +261,7 @@ void MinisatID::card2Equiv(PCSolver* solver, InnerWLSet* set, std::vector<TempAg
 					rule.definitionID = agg.getDefID();
 					rule.head = var(agg.getHead());
 					rule.conjunctive = false;
-					for (vsize j = 0; j < set->getWL().size(); ++j) {
+					for (uint j = 0; j < set->getWL().size(); ++j) {
 						rule.body.push_back(set->getWL()[j].getLit());
 					}
 					unsat = !set->getSolver()->getPCSolver().add(rule);
@@ -270,7 +270,7 @@ void MinisatID::card2Equiv(PCSolver* solver, InnerWLSet* set, std::vector<TempAg
 					eq.head = agg.getHead();
 					eq.type = ImplicationType::EQUIVALENT;
 					eq.conjunctive = false;
-					for (vsize j = 0; j < set->wls.size(); ++j) {
+					for (uint j = 0; j < set->wls.size(); ++j) {
 						eq.literals.push_back(set->wls[j].getLit());
 					}
 					solver->add(eq);
@@ -293,13 +293,13 @@ void MinisatID::card2Equiv(PCSolver* solver, InnerWLSet* set, std::vector<TempAg
 
 AggProp const * getType(AggType type){
 	switch (type) {
-		case MAX:
+		case AggType::MAX:
 			return AggProp::getMax(); break;
-		case SUM:
+		case AggType::SUM:
 			return AggProp::getSum(); break;
-		case CARD:
+		case AggType::CARD:
 			return AggProp::getCard(); break;
-		case PROD:
+		case AggType::PROD:
 			return AggProp::getProd(); break;
 		default:
 			throw idpexception("Encountered a bug in the code which transforms aggregates.\n");
@@ -319,7 +319,7 @@ TypedSet* createPropagator(PCSolver* solver, InnerWLSet* set, const std::vector<
 
 void MinisatID::decideUsingWatchesAndCreateOptimPropagator(PCSolver* solver, InnerWLSet* set, TempAgg* agg, const Weight& knownbound){
 	// Set correct upper bound:
-	agg->setBound(AggBound(AggSign::AGGSIGN_UB, getType(set->type)->getMaxPossible(set->wls)));
+	agg->setBound(AggBound(AggSign::UB, getType(set->type)->getMaxPossible(set->wls)));
 
 	double ratio = testGenWatchCount(*solver, *set, *getType(set->type), tempagglist{agg}, knownbound);
 	// FIXME for watched datastructs, the (re)initialize is not correct
@@ -332,7 +332,7 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, InnerWL
 	bool watchable = true;
 	assert(aggs.size()>0);
 	for(auto i=aggs.cbegin(); i<aggs.cend(); ++i){
-		if((*i)->getType()==MAX){
+		if((*i)->getType()==AggType::MAX){
 			watchable = false;
 		}
 	}
@@ -341,7 +341,7 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, InnerWL
 		return;
 	}
 
-	assert(aggs[0]->getSem()!=IMPLICATION); // TODO add to other transformations!
+	assert(aggs[0]->getSem()!=AggSem::IMPLICATION); // TODO add to other transformations!
 
 	//create implication aggs
 	tempagglist implaggs, del;
@@ -349,10 +349,10 @@ void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, InnerWL
 		const TempAgg& agg = *(*i);
 
 		TempAgg *one, *two;
-		Weight weighttwo = agg.getSign()==AGGSIGN_LB?agg.getBound()-1:agg.getBound()+1;
-		AggSign signtwo = agg.getSign()==AGGSIGN_LB?AGGSIGN_UB:AGGSIGN_LB;
-		one = new TempAgg(~agg.getHead(), AggBound(agg.getSign(), agg.getBound()), IMPLICATION, agg.getType());
-		two = new TempAgg(agg.getHead(), AggBound(signtwo, weighttwo), IMPLICATION, agg.getType());
+		Weight weighttwo = agg.getSign()==AggSign::LB?agg.getBound()-1:agg.getBound()+1;
+		AggSign signtwo = agg.getSign()==AggSign::LB?AggSign::UB:AggSign::LB;
+		one = new TempAgg(~agg.getHead(), AggBound(agg.getSign(), agg.getBound()), AggSem::IMPLICATION, agg.getType());
+		two = new TempAgg(agg.getHead(), AggBound(signtwo, weighttwo), AggSem::IMPLICATION, agg.getType());
 
 		implaggs.push_back(one);
 		implaggs.push_back(two);

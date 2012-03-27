@@ -31,7 +31,7 @@
 
 #include "parser/Lparseread.hpp"
 #include "external/Translator.hpp"
-#include "GeneralUtils.hpp"
+#include "utils/ContainerUtils.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -321,10 +321,10 @@ bool Read<T>::addCardRules() {
 		agg.head = (*i)->head;
 		agg.setID = (*i)->setcount;
 		agg.bound = (*i)->atleast;
-		agg.sign = AGGSIGN_LB;
+		agg.sign = AggSign::LB;
 		agg.defID = defaultdefinitionID;
-		agg.type = CARD;
-		agg.sem = DEF;
+		agg.type = AggType::CARD;
+		agg.sem = AggSem::DEF;
 		if (getSolver()->add(agg)==SATVAL::UNSAT) {
 			return false;
 		}
@@ -346,10 +346,10 @@ bool Read<T>::addSumRules() {
 		agg.head = (*i)->head;
 		agg.setID = (*i)->setcount;
 		agg.bound = (*i)->atleast;
-		agg.sign = AGGSIGN_LB;
+		agg.sign = AggSign::LB;
 		agg.defID = defaultdefinitionID;
-		agg.type = SUM;
-		agg.sem = DEF;
+		agg.type = AggType::SUM;
+		agg.sem = AggSem::DEF;
 		if (getSolver()->add(agg)==SATVAL::UNSAT) {
 			return false;
 		}
@@ -360,7 +360,7 @@ bool Read<T>::addSumRules() {
 template<class T>
 void Read<T>::addRuleToHead(map<Atom, vector<BasicRule*> >& headtorules, BasicRule* rule, Atom head){
 	if (headtorules.find(head) == headtorules.cend()) {
-		headtorules.insert(std::pair<Atom, vector<BasicRule*> >(head, std::vector<BasicRule*>()));
+		headtorules.insert(pair<Atom, vector<BasicRule*> >(head, std::vector<BasicRule*>()));
 	}
 	(*headtorules.find(head)).second.push_back(rule);
 }
@@ -425,7 +425,7 @@ bool Read<T>::addOptimStatement(){
 		}
 		MinimizeAgg mnmagg;
 		mnmagg.setid = optimsetcount;
-		mnmagg.type = SUM;
+		mnmagg.type = AggType::SUM;
 		if(getSolver()->add(mnmagg)==SATVAL::UNSAT){
 			return false;
 		}

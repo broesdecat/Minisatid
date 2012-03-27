@@ -168,7 +168,7 @@ void TypedSet::addExplanation(AggReason& ar) const {
 		std::clog <<" in expression ";
 		print(verbosity(), ar.getAgg(), false);
 		std::clog <<" is ";
-		for(vsize i=0; i<lits.literals.size(); ++i){
+		for(uint i=0; i<lits.literals.size(); ++i){
 			std::clog <<" " <<lits.literals[i];
 		}
 		std::clog <<"\n";
@@ -207,7 +207,7 @@ rClause TypedSet::notifyFullAssignmentFound(){
 			MinisatID::print(10, **j, true);
 		}
 		lbool headval = value((*j)->getHead());
-		if((*j)->getSem()==IMPLICATION){
+		if((*j)->getSem()==AggSem::IMPLICATION){
 			assert((headval==l_True && isFalsified(**j, w, w)) || (headval==l_False && isSatisfied(**j, w, w)));
 		}else{
 			assert((headval==l_False && isFalsified(**j, w, w)) || (headval==l_True && isSatisfied(**j, w, w)));

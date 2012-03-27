@@ -13,15 +13,23 @@
 #include <sstream>
 #include <iostream>
 
-#include "parser/parsingmonitors/ParsingMonitor.hpp"
+#include "ConstraintAdditionMonitor.hpp"
 #include "utils/Utils.hpp"
 
 namespace MinisatID{
 
-class HumanReadableParsingPrinter: public ParsingMonitor {
+template<typename Stream>
+class HumanReadableParsingPrinter: public ConstraintAdditionMonitor<Stream> {
+private:
+	using ConstraintAdditionMonitor<Stream>::target;
 public:
-	HumanReadableParsingPrinter(std::ostream& stream):ParsingMonitor(stream){}
+	HumanReadableParsingPrinter(Stream& stream):ConstraintAdditionMonitor<Stream>(stream){}
 	virtual ~HumanReadableParsingPrinter(){}
+
+	void notifyStart(){}
+	void notifyEnd(){
+		target().flush();
+	}
 
 	void notifyadded(const InnerDisjunction& clause){
 		target() <<"Added clause ";
@@ -66,77 +74,42 @@ public:
 	}
 
 	void notifyadded(const InnerAggregate& agg){
-		target() <<"Added aggregate: ";
-		switch(agg.type){
-		case SUM:
-			target() <<"sum";
-			break;
-		case CARD:
-			target() <<"card";
-			break;
-		case MIN:
-			target() <<"min";
-			break;
-		case MAX:
-			target() <<"max";
-			break;
-		case PROD:
-			target() <<"prod";
-			break;
-		}
-		target() <<"( set" <<agg.setID <<" )" <<(agg.sign==AGGSIGN_UB?"=<":">=") <<agg.bound;
+		target() <<"Added aggregate: " <<agg.type;
+		target() <<"( set" <<agg.setID <<" )" <<(agg.sign==AggSign::UB?"=<":">=") <<agg.bound;
 		target() <<"\n";
 	}
 
 	void notifyadded(const InnerReifAggregate& agg){
-		target() <<"Added aggregate " << mkPosLit(agg.head) <<" "<<(agg.sem==COMP?"<=>":"<-");
-		if(agg.sem==DEF){
+		target() <<"Added aggregate " << mkPosLit(agg.head) <<" "<<(agg.sem==AggSem::COMP?"<=>":"<-");
+		if(agg.sem==AggSem::DEF){
 			target() <<"(" <<agg.defID <<")";
 		}
-		target() <<" ";
-		switch(agg.type){
-		case SUM:
-			target() <<"sum";
-			break;
-		case CARD:
-			target() <<"card";
-			break;
-		case MIN:
-			target() <<"min";
-			break;
-		case MAX:
-			target() <<"max";
-			break;
-		case PROD:
-			target() <<"prod";
-			break;
-		}
-		target() <<"( set" <<agg.setID <<" )" <<(agg.sign==AGGSIGN_UB?"=<":">=") <<agg.bound;
+		target() <<" " <<agg.type;
+		target() <<"( set" <<agg.setID <<" )" <<(agg.sign==AggSign::UB?"=<":">=") <<agg.bound;
 		target() <<"\n";
 	}
 
 
 	void notifyadded(const InnerMinimizeOrderedList& mnm){
 		target() <<"Minimizing ordered list ";
-		for(uint i=0; i<mnm.literals.size(); ++i){
-			target() <<mnm.literals[i];
-			if(i<mnm.literals.size()-1){
-				target() <<" < ";
-			}
-		}
+		printConcatBy(mnm.literals, " < ", target());
 		target() <<"\n";
 	}
 
 
 	void notifyadded(const InnerMinimizeSubset& mnm){
 		target() <<"Searching minimal subset of set { ";
-		for(uint i=0; i<mnm.literals.size(); ++i){
-			target() <<mnm.literals[i];
-			if(i<mnm.literals.size()-1){
-				target() <<",";
-			}
-		}
+		printConcatBy(mnm.literals, ", ", target());
 		target() <<" }\n";
+	}
+
+	void notifyadded(const InnerMinimizeVar& mnm){
+		target() <<"Searching model with minimal value for variable " <<mnm.varID <<"\n";
+	}
+
+	void notifyadded(const InnerMinimizeAgg& mnm){
+		target() <<"Searching model with minimal value for ";
+		target() <<mnm.type <<"(set" <<mnm.setID <<")\n";
 	}
 
 	void notifyadded(const InnerSymmetry& symm){
@@ -154,65 +127,43 @@ public:
 
 	void notifyadded(const InnerForcedChoices& choices){
 		target() <<"Forced choices ";
-		for(uint i=0; i<choices.forcedchoices.size(); ++i){
-			target() <<choices.forcedchoices[i];
-			if(i<choices.forcedchoices.size()-1){
-				target() <<" ";
-			}
-		}
+		printConcatBy(choices.forcedchoices, " ", target());
 		target() <<"\n";
 	}
 
-
 	void notifyadded(const InnerIntVarEnum& var){
 		target() <<"Integer variable var" <<var.varID <<" = [ ";
-		for(uint i=0; i<var.values.size(); ++i){
-			target() <<var.values[i];
-			if(i<var.values.size()-1){
-				target() <<", ";
-			}
-		}
+		printConcatBy(var.values, ", ", target());
 		target() <<" ]\n";
 	}
-
 
 	void notifyadded(const InnerIntVarRange& var){
 		target() <<"Added integer variable var" <<var.varID <<" = [ "<<var.minvalue <<".." <<var.maxvalue <<"]\n";
 	}
 
-
 	void notifyadded(const InnerCPAllDiff& alldiff){
 		target() <<"Added alldifferent constraint: alldiff { ";
-		for(uint i=0; i<alldiff.varIDs.size(); ++i){
-			target() <<"var" <<alldiff.varIDs[i];
-			if(i<alldiff.varIDs.size()-1){
-				target() <<", ";
-			}
-		}
+		printConcatBy(alldiff.varIDs, ", ", target());
 		target() <<" }\n";
 	}
-
 
 	void notifyadded(const InnerCPBinaryRel& rel){
 		target() <<"Added binary constraint " <<mkPosLit(rel.head) <<" <=> var" <<rel.varID <<" "<<rel.rel <<" " <<rel.bound <<"\n";
 	}
 
-
 	void notifyadded(const InnerCPCount&){
-		// TODO
+		throw idpexception("Not yet implemented."); // TODO
 	}
-
 
 	void notifyadded(const InnerCPBinaryRelVar& rel){
 		target() <<"Added binary constraint " <<mkPosLit(rel.head) <<" <=> var" <<rel.lhsvarID <<" "<<rel.rel <<" var" <<rel.rhsvarID <<"\n";
 	}
 
-
 	void notifyadded(const InnerCPSumWeighted& sum){
 		target() <<"Added sum constraint " <<mkPosLit(sum.head) <<" <=> sum({ ";
 		std::vector<int>::size_type count = 0;
-		std::vector<uint>::const_iterator litit=sum.varIDs.cbegin();
-		std::vector<Weight>::const_iterator weightit=sum.weights.cbegin();
+		auto litit=sum.varIDs.cbegin();
+		auto weightit=sum.weights.cbegin();
 		for(; litit<sum.varIDs.cend(); ++count, ++litit, ++weightit){
 			target() <<"var" <<*litit <<"*" <<*weightit;
 			if(count<sum.varIDs.size()-1){

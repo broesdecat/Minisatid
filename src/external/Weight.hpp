@@ -167,7 +167,6 @@
 #endif
 
 namespace MinisatID {
-
 	Weight posInfinity();
 	Weight negInfinity();
 

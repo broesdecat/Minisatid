@@ -38,7 +38,9 @@ SymmetryPropagator::SymmetryPropagator(PCSolver* solver, const InnerSymmetry& sy
 		}
 	}
 
-	MAssert(testSymmetry());
+#ifdef DEBUG
+	testSymmetry();
+#endif
 }
 
 void SymmetryPropagator::print() {

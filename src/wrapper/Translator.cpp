@@ -16,10 +16,10 @@
 #include <assert.h>
 #include <algorithm>
 
-#include <GeneralUtils.hpp>
-#include <utils/Print.hpp>
+#include "external/ExternalUtils.hpp"
+#include "utils/Print.hpp"
 
-#include <external/SolvingMonitor.hpp>
+#include "external/SolvingMonitor.hpp"
 
 using namespace std;
 using namespace MinisatID;

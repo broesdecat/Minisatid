@@ -272,7 +272,7 @@ void WrapperPimpl::solve(){
 			getSolMonitor().notifyUnsat();
 		}
 
-		if(getSolMonitor().getInferenceOption()==MODELEXPAND){
+		if(getSolMonitor().getInferenceOption()==Inference::MODELEXPAND){
 			state = SOLVED;
 		}
 
@@ -357,14 +357,6 @@ PCWrapperPimpl::~PCWrapperPimpl(){
 
 template<>
 SATVAL PCWrapperPimpl::add(const Disjunction& sentence){
-	InnerDisjunction d;
-	checkLits(sentence.literals, d.literals);
-	getSolver()->add(d);
-	return getSolver()->satState();
-}
-
-template<>
-SATVAL PCWrapperPimpl::add(const DisjunctionRef& sentence){
 	InnerDisjunction d;
 	checkLits(sentence.literals, d.literals);
 	getSolver()->add(d);
@@ -602,13 +594,6 @@ SOWrapperPimpl::~SOWrapperPimpl(){
 
 template<>
 SATVAL SOWrapperPimpl::add(int modid, const Disjunction& sentence){
-	InnerDisjunction d;
-	checkLits(sentence.literals, d.literals);
-	return getSolver()->add(modid, d);
-}
-
-template<>
-SATVAL SOWrapperPimpl::add(int modid, const DisjunctionRef& sentence){
 	InnerDisjunction d;
 	checkLits(sentence.literals, d.literals);
 	return getSolver()->add(modid, d);

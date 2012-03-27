@@ -42,23 +42,45 @@ T& operator<<(T& stream, const Lit& lit){
 template<class T>
 T& operator<<(T& stream, const EqType& type){
 	switch(type){
-	case MEQ:
+	case EqType::EQ:
 		stream <<"=";
 		break;
-	case MNEQ:
+	case EqType::NEQ:
 		stream <<"!=";
 		break;
-	case ML:
+	case EqType::L:
 		stream <<"<";
 		break;
-	case MG:
+	case EqType::G:
 		stream <<">";
 		break;
-	case MGEQ:
+	case EqType::GEQ:
 		stream <<">=";
 		break;
-	case MLEQ:
+	case EqType::LEQ:
 		stream <<"=<";
+		break;
+	}
+	return stream;
+}
+
+template<class T>
+T& operator<<(T& stream, AggType type){
+	switch(type){
+	case AggType::SUM:
+		stream <<"sum";
+		break;
+	case AggType::CARD:
+		stream <<"card";
+		break;
+	case AggType::MIN:
+		stream <<"min";
+		break;
+	case AggType::MAX:
+		stream <<"max";
+		break;
+	case AggType::PROD:
+		stream <<"prod";
 		break;
 	}
 	return stream;

@@ -132,7 +132,6 @@ template<> void FlatZincRewriter::check(const std::vector<Atom>& atoms);
 
 template<> SATVAL FlatZincRewriter::add(const literallist& lits);
 template<> SATVAL FlatZincRewriter::add(const Disjunction& sentence);
-template<> SATVAL FlatZincRewriter::add(const DisjunctionRef& sentence);
 template<> SATVAL FlatZincRewriter::add(const Rule& sentence);
 template<> SATVAL FlatZincRewriter::add(const Implication& sentence);
 template<> SATVAL FlatZincRewriter::add(const Set& sentence);

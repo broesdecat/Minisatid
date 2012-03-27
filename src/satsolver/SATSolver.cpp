@@ -13,13 +13,13 @@
 using namespace MinisatID;
 
 Minisat::Solver* MinisatID::createSolver(MinisatID::PCSolver* pcsolver){
-	Minisat::Solver* s = new Minisat::Solver(pcsolver);
-	const SolverOption& options = pcsolver->modes();
+	auto s = new Minisat::Solver(pcsolver);
+	auto options = pcsolver->modes();
 	s->random_var_freq = options.rand_var_freq;
 	s->var_decay = options.var_decay;
 	s->verbosity = options.verbosity;
 	s->random_seed = options.randomseed;
-	if(options.polarity==POL_RAND){
+	if(options.polarity==Polarity::RAND){
 		s->rnd_pol=true;
 	}
 	return s;
