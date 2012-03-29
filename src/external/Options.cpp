@@ -88,7 +88,7 @@ string SolverOption::getPrimesFile() const{
 }
 
 void SolverOption::print(std::ostream& so) const{
-//	so << "inference: " 		<<inference <<"\n";  // TODO
+//	so << "inference: " 		<<inference<<"\n"; // TODO
 //	so << "format: " 			<<format <<"\n"; // TODO
 	so << "verbosity: "			<<verbosity <<"\n";
 	so << "randomseed: "		<<randomseed <<"\n";

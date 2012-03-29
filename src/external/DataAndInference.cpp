@@ -2,12 +2,14 @@
 
 #include "Remapper.hpp"
 #include "external/Translator.hpp"
-#include "external/SolvingMonitor.hpp"
 #include "theorysolvers/PCSolver.hpp"
 #include "modules/aggsolver/AggProp.hpp"
 #include "datastructures/InnerDataStructures.hpp"
 #include "modules/aggsolver/AggSet.hpp"
 #include "external/SearchMonitor.hpp"
+#include "constraintvisitors/FlatZincRewriter.hpp"
+#include "Printer.hpp"
+#include "ModelManager.hpp"
 
 #include <map>
 #include <vector>
@@ -28,6 +30,16 @@ void Task::notifyTerminateRequested() {
 	space->getEngine().notifyTerminateRequested();
 }
 
+ModelExpand::ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions)
+		: Task(space), _solutions(new ModelManager(options.savemodels)), _options(options), assumptions(assumptions), optim(Optim::NONE) {
+
+}
+
+ModelExpand::~ModelExpand(){
+	delete(_solutions);
+}
+
+
 int ModelExpand::getNbModelsFound() const {
 	return _solutions->getNbModelsFound();
 }
@@ -38,6 +50,10 @@ PCSolver& ModelExpand::getSolver() const {
 
 const SolverOption& ModelExpand::modes() const {
 	return getSpace()->getOptions();
+}
+
+const modellist& ModelExpand::getSolutions() const {
+	return _solutions->getModels();
 }
 
 /*
@@ -58,11 +74,6 @@ void ModelExpand::innerExecute() {
 	}
 
 	litlist vecassumptions = assumptions;
-
-	if (_options.inference == Inference::PROPAGATE) { //Only do unit propagation
-		getSolver().solve(assumptions, true);
-		return;
-	}
 
 	printSearchStart(clog, modes().verbosity);
 
@@ -94,7 +105,7 @@ vector<Literal> getBackMappedModel(const std::vector<Lit>& model, const Remapper
 	sort(outmodel.begin(), outmodel.end());
 	return outmodel;
 }
-void addModelToSolution(const std::shared_ptr<InnerModel>& model, const Remapper& remapper, Solution& solution) {
+void addModelToSolution(const std::shared_ptr<InnerModel>& model, const Remapper& remapper, ModelManager& solution) {
 	auto outmodel = new Model();
 	outmodel->literalinterpretations = getBackMappedModel(model->litassignments, remapper);
 	outmodel->variableassignments = model->varassignments;
@@ -133,22 +144,23 @@ MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& o
 		auto fullmodel = getSpace()->getEngine().getModel();
 		addModel(fullmodel);
 
-		//printTheory(clog);
-
-#ifdef CPSUPPORT
-		if(hasCPSolver()) {
-			//Check for more models with different var assignment
-			while(moremodels && (options.nbmodelstofind == 0 || getParent().getNbModelsFound() < options.nbmodelstofind)) {
-				rClause confl = getCPSolver().findNextModel();
-				if(confl!=nullPtrClause) {
-					moremodels = false;
-				} else {
-					extractVarModel(fullmodel);
-					getParent().addModel(*fullmodel);
+		// FIXME incorrect in the case of CP!
+		// => first check whether there might be more CP models before backtracking completely!
+		// Probably better refactor to put this deeper?
+		/*#ifdef CPSUPPORT
+				if(hasCPSolver()) {
+					//Check for more models with different var assignment
+					while(moremodels && (options.nbmodelstofind == 0 || getParent().getNbModelsFound() < options.nbmodelstofind)) {
+						rClause confl = getCPSolver().findNextModel();
+						if(confl!=nullPtrClause) {
+							moremodels = false;
+						} else {
+							extractVarModel(fullmodel);
+							getParent().addModel(*fullmodel);
+						}
+					}
 				}
-			}
-		}
-#endif
+		#endif*/
 
 		//Invalidate SAT model
 		if (getSolver().getCurrentDecisionLevel() != assmpt.size()) { //choices were made, so other models possible
@@ -309,7 +321,7 @@ bool ModelExpand::invalidateAgg(litlist& invalidation) {
 	auto s = agg->getSet();
 	Weight value = s->getType().getValue(*s);
 
-	printCurrentOptimum(value);
+	printer->notifyCurrentOptimum(value);
 	if (modes().verbosity >= 1) {
 		clog << "> Current optimal value " << value << "\n";
 	}
@@ -356,12 +368,28 @@ void InnerMonitor::notifyMonitor(int untillevel) {
 	}
 }
 
-void ModelExpand::printCurrentOptimum(const Weight& value) const {
-	_solutions->notifyCurrentOptimum(value);
+void ModelExpand::notifyCurrentOptimum(const Weight& value) const {
+	printer->notifyCurrentOptimum(value);
 }
 
 std::string MinisatID::printLiteral(const Literal& lit){
 	stringstream ss;
 	ss << (lit.hasSign()?"-":"") << lit.getValue();
 	return ss.str();
+}
+
+litlist UnitPropagate::getEntailedLiterals(){
+	getSolver().backtrackTo(assumptions.size()); // Backtrack to the latest assumption decision
+	return getSolver().getTrail();
+}
+void UnitPropagate::innerExecute(){
+	getSolver().solve(assumptions, true);
+}
+
+void Transform::innerExecute(){
+	if(outputlanguage==OutputFormat::FZ){
+		FlatZincRewriter fzrw(modes()); // TODO outputfile
+		getSolver().accept(fzrw);
+	}
+	// TODO other languages
 }

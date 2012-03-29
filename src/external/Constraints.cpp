@@ -2,7 +2,6 @@
 
 #include "Remapper.hpp"
 #include "external/Translator.hpp"
-#include "external/SolvingMonitor.hpp"
 #include "theorysolvers/PCSolver.hpp"
 #include "modules/aggsolver/AggProp.hpp"
 #include "datastructures/InnerDataStructures.hpp"

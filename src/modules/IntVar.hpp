@@ -37,9 +37,9 @@ public:
 
 	static const IntVarValue& getIntVar(const Lit& lit) { return var2intvarvalues.at(var(lit)); }
 
-	virtual const char* getName() const { return "intvar"; }
 	virtual void finishParsing(bool& present);
 	virtual void notifyBacktrack(int untillevel, const Lit& decision);
+	virtual void 	accept(ConstraintVisitor& visitor){}; // FIXME
 	virtual rClause	notifypropagate();
 
 	int id() const { return id_; }

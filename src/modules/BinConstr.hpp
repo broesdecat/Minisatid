@@ -24,7 +24,6 @@ public:
 	const Lit& head() const { return head_; }
 
 	// Propagator methods
-	virtual const char* getName			() const 					{ return "binconstr"; }
 	virtual int		getNbOfFormulas		() const 					{ return 1; }
 
 	virtual rClause getExplanation(const Lit& lit);
@@ -69,6 +68,7 @@ public:
 //	rClause propagate(const Lit& truehead, IntVar* var, BIN_SIGN comp, int bound, AggSign varsign);
 
 	virtual rClause	notifypropagate();
+	virtual void 	accept(ConstraintVisitor& visitor){}; // FIXME
 
 	virtual void finishParsing(bool& present);
 

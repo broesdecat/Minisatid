@@ -56,15 +56,13 @@ lbool LitTrail::value(const Lit& l) const{
 }
 
 CPSolver::CPSolver(PCSolver * solver):
-		Propagator(solver), solverdata(new CPSolverData()),
+		Propagator(solver, "CP-solver"), solverdata(new CPSolverData()),
 		searchedandnobacktrack(false),
 		savedsearchengine(NULL){
 
 	getPCSolver().accept(this, EV_BACKTRACK);
 	getPCSolver().accept(this, EV_DECISIONLEVEL);
-	getPCSolver().accept(this, EV_FULLASSIGNMENT);
-	getPCSolver().accept(this, EV_PRINTSTATS);
-	getPCSolver().accept(this, EV_PRINTSTATE);
+	// FIXME getPCSolver().accept(this, EV_FULLASSIGNMENT);
 	getPCSolver().acceptFinishParsing(this, false);
 }
 

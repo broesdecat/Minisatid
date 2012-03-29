@@ -39,6 +39,7 @@ typedef std::vector<Minisat::Lit> litlist;
 
 namespace MinisatID{
 	class PCSolver;
+	class ConstraintVisitor;
 }
 
 namespace Minisat {
@@ -101,7 +102,7 @@ public:
 	bool		isAlreadyUsedInAnalyze(const Lit& lit) const;
 
 	//PROPAGATOR CODE
-	const char* getName				() 				const	{ return "satsolver"; }
+	virtual void 	accept(MinisatID::ConstraintVisitor& visitor){}; // FIXME
 	CRef 		getExplanation		(const Lit& l) 			{ return reason(var(l));}
 	void 		finishParsing		(bool& present);
 	void 		notifyBacktrack		(int untillevel, const Lit& decision) { Propagator::notifyBacktrack(untillevel, decision); }

@@ -19,8 +19,6 @@
 #include "external/ExternalUtils.hpp"
 #include "utils/Print.hpp"
 
-#include "external/SolvingMonitor.hpp"
-
 using namespace std;
 using namespace MinisatID;
 

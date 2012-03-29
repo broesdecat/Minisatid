@@ -56,9 +56,9 @@ public:
 	LazyResidual(PCSolver* engine, Var var, LazyGroundingCommand* monitor);
 	LazyResidual(LazyResidualWatch* const watch);
 
-	const char* getName() const { return "lazy residual notifier";}
-
 	virtual rClause notifypropagate();
+
+	virtual void accept(ConstraintVisitor& visitor){}; // FIXME
 
 	virtual rClause getExplanation(const Lit&) { MAssert(false); return nullPtrClause;}
 	virtual rClause notifyFullAssignmentFound() { MAssert(false); return nullPtrClause; }

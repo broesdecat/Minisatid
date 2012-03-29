@@ -25,7 +25,7 @@ SymmetryData::SymmetryData(int nVars, const InnerSymmetry& symmetry): sym(symmet
 }
 
 SymmetryPropagator::SymmetryPropagator(PCSolver* solver, const InnerSymmetry& sym)
-		: Propagator(solver), symmetry(solver->nVars(), sym) {
+		: Propagator(solver, "symmetry propagator"), symmetry(solver->nVars(), sym) {
 	amountNeededForActive = 0;
 	reasonOfPermInactive = lit_Undef;
 	nextToPropagate = 0;

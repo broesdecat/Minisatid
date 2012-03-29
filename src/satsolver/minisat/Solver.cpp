@@ -76,7 +76,7 @@ static DoubleOption opt_garbage_frac(_cat, "gc-frac", "The fraction of wasted me
 // Constructor/Destructor:
 
 Solver::Solver(/*AB*/PCSolver* s/*AE*/)
-		: /*A*/Propagator(s),
+		: /*A*/Propagator(s, "satsolver"),
 			/*A*/fullassignment(false),
 			// Parameters (user settable):
 			//
@@ -112,7 +112,6 @@ Solver::Solver(/*AB*/PCSolver* s/*AE*/)
 			conflict_budget(-1), propagation_budget(-1), asynch_interrupt(false) {
 	/*AB*/
 	getPCSolver().accept(this, EV_PROPAGATE);
-	getPCSolver().accept(this, EV_PRINTSTATS);
 	getPCSolver().acceptFinishParsing(this, false);
 	/*AE*/
 }
@@ -334,7 +333,6 @@ bool Solver::addClause_(vec<Lit>& ps) {
 
 /*AB*/
 void Solver::addToClauses(CRef cr, bool learnt) {
-	getPCSolver().notifyClauseAdded(cr);
 	if (learnt) {
 		learnts.push(cr);
 	} else {
@@ -574,7 +572,6 @@ Lit Solver::pickBranchLit() {
 			if (customheurfreq > 0.25) {
 				customheurfreq -= 0.01;
 			}
-			next = getPCSolver().changeBranchChoice(next);
 		}
 	} else {
 		if (!start && next != var_Undef) {

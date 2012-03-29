@@ -53,9 +53,7 @@ public:
 	SymmetryPropagator(PCSolver* solver, const InnerSymmetry& sym);
 
 	// Propagator methods
-	virtual const char* getName() const {
-		return "symmetry propagator";
-	}
+	virtual void 	accept(ConstraintVisitor& visitor){}; // FIXME
 	virtual rClause getExplanation(const Lit&) {
 		MAssert(false);
 		return nullPtrClause;

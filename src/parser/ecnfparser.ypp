@@ -45,7 +45,6 @@ typedef Space* pwls;
 //%code{
 	
 extern SolverOption modes;
-extern Solution* sol;
 FODOTTranslator*	fodottrans = NULL;
 LParseTranslator*	simpletrans = NULL;
 extern OutputFormat transformat;

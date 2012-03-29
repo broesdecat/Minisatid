@@ -21,6 +21,7 @@ namespace MinisatID{
 class PCSolver;
 class IntVar;
 class InnerModel;
+class ConstraintVisitor;
 
 typedef std::vector<Propagator*> proplist;
 typedef std::vector<GenWatch*> watchlist;
@@ -99,20 +100,16 @@ public:
 
 	void 	acceptForDecidable(Var v, Propagator* prop);
 	void 	notifyBecameDecidable(Var v);
-	void 	notifyClauseAdded(rClause clauseID);
-	void 	notifyClauseDeleted(rClause clauseID);
 	rClause notifyFullAssignmentFound();
 	void 	finishParsing			();
 	void 	notifyNewDecisionLevel	();
 	void 	notifyBacktrack			(int untillevel, const Lit& decision);
 	rClause notifyPropagate			();
 	rClause checkDecidables			();
-	Var 	notifyBranchChoice		(Var var);
-	void 	printState				() const;
-	void 	printECNF(std::ostream& stream, std::set<Var>& printedvars) const;
-	void 	printStatistics			() const;
 	void	setTrue					(const Lit& l);
 	void 	notifyBoundsChanged		(IntVar* var);
+
+	void 	accept(ConstraintVisitor& visitor);
 
 private:
 	void 	setTrue(const proplist& list, std::queue<Propagator*>& queue);

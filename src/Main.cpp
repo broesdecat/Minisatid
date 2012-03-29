@@ -21,10 +21,11 @@
 #include <csetjmp>
 
 #include "external/Translator.hpp"
-#include "external/SolvingMonitor.hpp"
 #include "utils/ResourceManager.hpp"
 #include "parser/Lparseread.hpp"
 #include "parser/PBread.hpp"
+#include "external/Printer.hpp"
+#include "external/ModelManager.hpp"
 
 #include "utils/Print.hpp"
 
@@ -72,26 +73,25 @@ void rewriteIntoFlatZinc();
 extern SolverOption modes;
 OutputFormat transformat;
 
-Solution* sol = NULL;
+Printer* printer;
+ModelManager* manager;
 
-Solution* createSolution() {
-	ModelExpandOptions options;
-	options.printmodels = Models::BEST;
-	options.savemodels = Models::NONE;
-	options.inference = Inference::MODELEXPAND;
-	options.nbmodelstofind = 1;
-	return new Solution(options);
+void createSolution() {
+	manager = new ModelManager(Models::NONE);
+	printer = new Printer(manager, Models::BEST);
+	//FIXME options.inference = Inference::MODELEXPAND;
+	//FIXME options.nbmodelstofind = 1;
 }
 
 int handleTermination(bool cleanexit, pwls d) {
 	if (!cleanexit) {
-		sol->notifySolvingAborted();
+		printer->notifySolvingAborted();
 	}
 	int returnvalue = 0;
-	if (sol->isUnsat()) {
+	if (manager->isUnsat()) {
 		returnvalue = 20;
 	} else {
-		if (sol->isSat()) {
+		if (manager->isSat()) {
 			returnvalue = 10;
 		}
 	}
@@ -125,18 +125,18 @@ int main(int argc, char** argv) {
 	//set memory handler
 	std::set_new_handler(noMoreMem);
 
-	sol = createSolution();
+	manager = createSolution();
 
 	//parse command-line options
-	bool successfullparsing = parseOptions(argc, argv, sol);
+	bool successfullparsing = parseOptions(argc, argv, printer);
 	if (!successfullparsing) {
-		sol->notifySolvingAborted();
+		printer->notifySolvingAborted();
 		return 0;
 	} else {
-		sol->setNbModelsToFind(modes.nbmodels);
+		manager->setNbModelsToFind(modes.nbmodels);
 	}
-	sol->setModes(modes); //TODO find cleaner way? => these are set when solve is called, but earlier statements might have incorrect behavior then (printing unsat e.g.)
-	sol->setInference(modes.inference);
+	manager->setModes(modes); //TODO find cleaner way? => these are set when solve is called, but earlier statements might have incorrect behavior then (printing unsat e.g.)
+	manager->setInference(modes.inference);
 
 	if (modes.transformat == OutputFormat::FZ) {
 		rewriteIntoFlatZinc();
@@ -163,24 +163,21 @@ int main(int argc, char** argv) {
 		if (!stoprunning) {
 			jumpback = 0;
 			parseAndInitializeTheory(d);
-			if (sol->getInferenceOption() == Inference::MODELEXPAND || sol->getInferenceOption() == Inference::PROPAGATE) {
+			if (modes.inference == Inference::MODELEXPAND) {
 				doModelGeneration(d);
-			} else if (sol->getInferenceOption() == Inference::PRINTTHEORY) {
-				// Do unit propagation
-				sol->setInferenceOption(Inference::PROPAGATE);
-				sol->setPrintModels(Models::NONE);
-				doModelGeneration(d);
-
-				// Print the theory
-				sol->setInferenceOption(Inference::PRINTTHEORY);
-				if (sol->isUnsat()) {
+			} else if(modes.inference == Inference::PROPAGATE){
+				// TODO unit propagation
+			} else if (modes.inference == Inference::PRINTTHEORY) {
+				// TODO Print the theory
+				/*manager->setInferenceOption(Inference::PRINTTHEORY);
+				if (manager->isUnsat()) {
 					cout << "p ecnf\n0\n";
 					cout.flush();
 				} else {
 					assert(d!=NULL);
 					// TODO d->printTheory(cout);
 					cout.flush();
-				}
+				}*/
 			}
 
 			jumpback = 1;
@@ -203,8 +200,11 @@ int main(int argc, char** argv) {
 	return returnvalue; //Do not call all destructors
 #endif
 
-	if (sol != NULL) {
-		delete sol;
+	if (printer != NULL) {
+		delete printer;
+	}
+	if (manager != NULL) {
+		delete manager;
 	}
 	if (d != NULL) {
 		delete (d);
@@ -301,7 +301,7 @@ void initializeAndParseFODOT(pwls d) {
 }
 
 void parseAndInitializeTheory(pwls d) {
-	sol->notifyStartParsing();
+	printer->notifyStartParsing();
 
 	switch (modes.format) {
 	case InputFormat::ASP:
@@ -317,15 +317,15 @@ void parseAndInitializeTheory(pwls d) {
 	}
 
 	if (d->isCertainlyUnsat()) {
-		sol->notifyUnsat();
+		manager->notifyUnsat();
 	}
 
-	sol->notifyEndParsing();
+	printer->notifyEndParsing();
 }
 
 void doModelGeneration(pwls d) {
-	if (sol->isUnsat()) {
-		sol->notifySolvingFinished();
+	if (manager->isUnsat()) {
+		printer->notifySolvingFinished();
 		return;
 	}
 
@@ -368,7 +368,7 @@ void parse(pwls d) {
 	yydestroy();
 
 	if (unsatfound) {
-		sol->notifyUnsat();
+		manager->notifyUnsat();
 		delete (d);
 		d = NULL;
 	}

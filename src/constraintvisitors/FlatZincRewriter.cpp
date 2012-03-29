@@ -42,7 +42,7 @@ litlist getLiterals(const InnerWLSet& set){
  */
 
 FlatZincRewriter::FlatZincRewriter(const SolverOption& modes) :
-		state(PARSING), _modes(modes), maxatomnumber(0), maxcpnumber(0), optim(MNMZ_NONE) {
+		state(SolverState::PARSING), _modes(modes), maxatomnumber(0), maxcpnumber(0), optim(MNMZ_NONE) {
 }
 
 FlatZincRewriter::~FlatZincRewriter() {
@@ -476,7 +476,7 @@ void FlatZincRewriter::addProduct(const InnerReifAggregate& agg, const InnerWLSe
 }
 
 void FlatZincRewriter::finishParsing() {
-	state = FINISHING;
+	state = SolverState::FINISHING;
 
 	for (auto i = savedbinrels.cbegin(); i < savedbinrels.cend(); ++i) {
 		addBinRel((*i).left, (*i).right, mkPosLit((*i).head), (*i).rel);

@@ -14,7 +14,7 @@
 
 #include <tclap/CmdLine.h>
 #include "utils/ResourceManager.hpp"
-#include "external/SolvingMonitor.hpp"
+#include "external/Printer.hpp"
 
 #include "utils/Print.hpp"
 
@@ -122,7 +122,7 @@ struct Option: public Opt{
 };
 
 //Return false if parsing failed
-bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
+bool MinisatID::parseOptions(int argc, char** argv, Printer* sol){
 	string outputfile = "";
 
 	vector<Opt*> options;
@@ -322,7 +322,7 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 		return false;
 	}
 
-	for(vector<Opt*>::const_iterator i=options.cbegin(); i<options.cend(); ++i){
+	for(auto i=options.cbegin(); i<options.cend(); ++i){
 		(*i)->parse();
 	}
 

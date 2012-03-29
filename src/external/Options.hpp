@@ -30,7 +30,7 @@ enum class Polarity {
 
 enum class InputFormat 	{ FODOT, ASP, OPB};
 enum class OutputFormat { FODOT, ASP, PLAIN, FZ, OPB, DEFAULT };
-enum class Inference 	{ PROPAGATE, MODELEXPAND, PRINTTHEORY };
+enum class Inference	{ PROPAGATE, MODELEXPAND, PRINTTHEORY };
 
 // General options for all inferences
 class SolverOption {
@@ -76,11 +76,10 @@ class ModelExpandOptions{
 public:
 	Models			printmodels;
 	Models			savemodels;
-	Inference		inference;
 	int 			nbmodelstofind;
 
 	ModelExpandOptions():
-			printmodels(Models::BEST), savemodels(Models::NONE), inference(Inference::MODELEXPAND),
+			printmodels(Models::BEST), savemodels(Models::NONE),
 			nbmodelstofind(0){
 	}
 };

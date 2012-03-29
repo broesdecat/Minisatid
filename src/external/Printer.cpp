@@ -7,7 +7,7 @@
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 
-#include "external/SolvingMonitor.hpp"
+#include "external/Printer.hpp"
 
 #include <vector>
 #include <string>
@@ -20,67 +20,44 @@
 #include "utils/ResourceManager.hpp"
 #include "utils/Print.hpp"
 #include "utils/TimingUtils.hpp"
+#include "external/ModelManager.hpp"
 
 using namespace std;
 using namespace MinisatID;
 
-Solution::Solution(ModelExpandOptions options) :
-		options(options), nbmodelsfound(0),
-		temporarymodel(NULL),
-		optimizing(false), optimalmodelfound(false),
-		unsatfound(false),
-		modelsave(ModelSaved::NONE), solvingstate(SolvingState::STARTED),
-		owntranslator(new Translator()), translator(owntranslator),
+Printer::Printer(ModelManager* modelmanager, Translator* translator,Models printoption, const SolverOption& modes) :
+		printoption(printoption),
+		modelmanager(modelmanager),
+		translator(translator),
+		modes(modes),
 		startparsing(0), endparsing(-1), startfinish(0), endfinish(-1), startsimpl(0), endsimpl(-1), startsolve(0), endsolve(-1){
 
 	resman = std::shared_ptr<ResMan>(new StdMan(false));
 }
 
-Solution::~Solution(){
-	if(owntranslator!=NULL){
-		delete owntranslator;
-	}
-	if(temporarymodel!=NULL){
-		delete temporarymodel;
-	}
-	deleteList<Model>(models);
+Printer::~Printer(){
 }
 
-Translator* Solution::getTranslator() const {
-	return translator;
-}
-void Solution::setTranslator(Translator* trans) {
-	translator = trans ;
-}
-
-void Solution::printLiteral(ostream& stream, const Literal& lit) const {
-	if(hasTranslator() && getTranslator()->hasTranslation(lit)){
-		stream <<MinisatID::printLiteral(lit);
-	}else{
-		stream <<(lit.hasSign()?"~":"") <<"tseitin_" <<abs(lit.getValue()); // TODO it is possible that when translation info is added, all printing changes!
-	}
-}
-
-void Solution::notifyStartParsing() {
+void Printer::notifyStartParsing() {
 	startparsing = cpuTime();
 }
-void Solution::notifyEndParsing() {
+void Printer::notifyEndParsing() {
 	endparsing = cpuTime();
 }
-void Solution::notifyStartDataInit() {
+void Printer::notifyStartDataInit() {
 	startfinish = cpuTime();
 }
-void Solution::notifyEndDataInit() {
+void Printer::notifyEndDataInit() {
 	endfinish = cpuTime();
 }
-void Solution::notifyStartSolving() {
+void Printer::notifyStartSolving() {
 	startsolve = cpuTime();
 }
-void Solution::notifyEndSolving() {
+void Printer::notifyEndSolving() {
 	endsolve = cpuTime();
 }
 
-void Solution::printStatistics() const {
+void Printer::printStatistics() const {
 	if(startsimpl==0){
 		clog <<getStatisticsMessage((endparsing-startparsing) + (endfinish-startfinish), 0, 0);
 	}else if(startsolve==0){
@@ -93,45 +70,15 @@ void Solution::printStatistics() const {
 	}
 }
 
-void Solution::notifyCurrentOptimum(const Weight & value) const{
+void Printer::notifyCurrentOptimum(const Weight& value) const{
 	ostream output(resman->getBuffer());
 	getTranslator()->printCurrentOptimum(output, value);
 }
 
-const Model& Solution::getBestModelFound() const {
-	assert(modelsave!=ModelSaved::NONE);
-	if (modelsave == ModelSaved::SAVED) {
-		return *models.back();
-	} else {
-		return *temporarymodel;
-	}
-}
-
-void Solution::saveModel(Model * const model){
-	++nbmodelsfound;
-	if (modelsave == ModelSaved::SAVING) { //Error in saving previous model, so abort
-		throw idpexception(">> Previous model failed to save, cannot guarantee correctness.\n");
-	}
-	if (getSaveOption() == Models::BEST) {
-		if (modelsave != ModelSaved::NONE) {
-			temporarymodel = models.back();
-			models.pop_back();
-			assert(models.empty());
-		}
-	}
-	modelsave = ModelSaved::SAVING;
-	models.push_back(model);
-	modelsave = ModelSaved::SAVED;
-}
-
-void Solution::addModel(Model * const model) {
-	saveModel(model);
-
-	assert(hasTranslator());
-
+void Printer::addModel(Model * const model) {
 	ostream output(resman->getBuffer());
 	if (getPrintOption() == Models::ALL || (!optimizing && getPrintOption() == Models::BEST)) {
-		if (getNbModelsFound() == 1) {
+		if (modelmanager->getNbModelsFound() == 1) {
 			if (!optimizing && modes.transformat != OutputFormat::ASP) {
 				printSatisfiable(output, modes.format, modes.transformat);
 				printSatisfiable(clog, modes.format, modes.transformat,	modes.verbosity);
@@ -141,11 +88,11 @@ void Solution::addModel(Model * const model) {
 		getTranslator()->printModel(output, *model);
 	}
 	if (!optimizing) {
-		printNbModels(clog, getNbModelsFound(), modes.verbosity);
+		printNbModels(clog, modelmanager->getNbModelsFound(), modes.verbosity);
 	}
 }
 
-void Solution::solvingFinished(){
+void Printer::solvingFinished(){
 	if(endparsing==-1){
 		endparsing = cpuTime();
 	}else if(endfinish==-1){
@@ -157,23 +104,21 @@ void Solution::solvingFinished(){
 	}
 
 	ostream output(resman->getBuffer());
-	if(isUnsat() && getPrintOption()!=Models::NONE){
+	if(modelmanager->isUnsat() && getPrintOption()!=Models::NONE){
 		printUnSatisfiable(output, modes.format, modes.transformat);
 		printUnSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);
-	}else if(getNbModelsFound()==0 && getPrintOption()!=Models::NONE){
+	}else if(modelmanager->getNbModelsFound()==0 && getPrintOption()!=Models::NONE){
 		printUnknown(output, modes.transformat);
 	}else{ // not unsat and at least one model
 		if(optimizing && getPrintOption()==Models::BEST){
-			if(hasOptimalModel()){
+			if(modelmanager->hasOptimalModel()){
 				printOptimalModelFound(output, modes.transformat);
 			}
 			if(modes.format==InputFormat::OPB){
 				printSatisfiable(output, modes.format, modes.transformat);
 				printSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);
 			}
-			if(hasTranslator()){
-				getTranslator()->printModel(output, getBestModelFound());
-			}
+			getTranslator()->printModel(output, modelmanager->getBestModelFound());
 		}else if(!optimizing && modes.transformat==OutputFormat::ASP){
 			printSatisfiable(output, modes.format, modes.transformat);
 			printSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);
@@ -184,20 +129,20 @@ void Solution::solvingFinished(){
 	closeOutput();
 }
 
-void Solution::closeOutput() {
+void Printer::closeOutput() {
 	if (resman.get() != NULL) {
 		resman->close();
 	}
 }
 
-void Solution::setOutputFile(std::string output){
+void Printer::setOutputFile(std::string output){
 	if(!output.empty()){
 		resman = std::shared_ptr<ResMan>(new FileMan(output.c_str(), true));
 	}
 }
 
 //Only call internally!
-void Solution::notifySolvingFinished() {
+void Printer::notifySolvingFinished() {
 	if(solvingstate == SolvingState::FINISHEDCLEANLY){
 		return;
 	}else if(solvingstate == SolvingState::ABORTED){
@@ -207,11 +152,7 @@ void Solution::notifySolvingFinished() {
 	solvingFinished();
 }
 
-void Solution::notifyUnsat() {
-	unsatfound = true;
-}
-
-void Solution::notifySolvingAborted() {
+void Printer::notifySolvingAborted() {
 	if(solvingstate == SolvingState::ABORTED){
 		return;
 	}else if(solvingstate == SolvingState::FINISHEDCLEANLY){

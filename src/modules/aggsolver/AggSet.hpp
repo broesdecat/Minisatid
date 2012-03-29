@@ -74,9 +74,9 @@ public:
 	rClause 		notifySolver(AggReason* ar);
 
 	// Propagator methods
-	virtual const char* getName			() const { return "aggregate"; }
 	virtual int		getNbOfFormulas		() const;
 	virtual rClause getExplanation		(const Lit&);
+	virtual void 	accept(ConstraintVisitor& visitor){}; // FIXME
 
 	virtual rClause notifyFullAssignmentFound();
 	virtual void 	finishParsing		(bool& present);

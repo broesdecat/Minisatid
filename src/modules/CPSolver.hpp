@@ -76,10 +76,11 @@ public:
 	bool 	add		(const InnerCPCount& form);
 	bool 	add		(const InnerCPAllDiff& form);
 
+	virtual void 	accept(ConstraintVisitor& visitor){}; // FIXME
+
 	void 	getVariableSubstitutions(std::vector<VariableEqValue>& varassignments);
 
 	// Propagator methods
-	const char* getName		() const { return "CP-solver"; }
 	int		getNbOfFormulas	() const;
 	rClause getExplanation	(const Lit& p);
 	// Event propagator methods

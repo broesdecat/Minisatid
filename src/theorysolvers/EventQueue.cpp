@@ -9,6 +9,7 @@
 #include "theorysolvers/EventQueue.hpp"
 #include "theorysolvers/PCSolver.hpp"
 #include "satsolver/SATSolver.hpp"
+#include "constraintvisitors/ConstraintVisitor.hpp"
 
 #include "utils/PrintMessage.hpp"
 
@@ -20,25 +21,16 @@ using namespace std;
 
 EventQueue::EventQueue(PCSolver& pcsolver)
 		: pcsolver(pcsolver), initialized(false), finishing(false), allowpropagation(true) {
-	event2propagator[EV_PRINTSTATE];
-	event2propagator[EV_PRINTSTATS];
-	event2propagator[EV_CHOICE];
 	event2propagator[EV_PROPAGATE];
-	event2propagator[EV_FULLASSIGNMENT];
 	event2propagator[EV_DECISIONLEVEL];
 	event2propagator[EV_BACKTRACK];
-	event2propagator[EV_EXITCLEANLY];
-	event2propagator[EV_ADDCLAUSE];
-	event2propagator[EV_SYMMETRYANALYZE];
-	event2propagator[EV_SYMMCHECK1];
-	event2propagator[EV_SYMMCHECK2];
 }
 
 EventQueue::~EventQueue() {
-	auto props = event2propagator.at(EV_EXITCLEANLY);
-	for (uint i = 0; i < size(EV_EXITCLEANLY); ++i) {
+	// TODO propagator deletion
+	/*for (uint i = 0; i < size(EV_EXITCLEANLY); ++i) {
 		delete (props[i]);
-	}
+	}*/
 	deleteList<GenWatch>(lit2watches);
 }
 
@@ -169,7 +161,7 @@ void EventQueue::acceptFinishParsing(Propagator* propagator, bool late) {
 	}
 }
 
-void EventQueue::clearNotPresentPropagators() {
+void EventQueue::clearNotPresentPropagators() { // TODO restore?
 	//IMPORTANT: the propagators which are no longer present should be deleted from EVERY datastructure that is used later on!
 	for (auto i = event2propagator.begin(); i != event2propagator.end(); ++i) {
 		for (auto j = (*i).second.begin(); j < (*i).second.end();) {
@@ -227,7 +219,7 @@ void EventQueue::finishParsing() {
 			auto prop = finishparsing.front();
 			finishparsing.pop_front();
 			bool present = true;
-			prop->finishParsing(present);
+			//FIXME prop->finishParsing(present);
 			if (isUnsat()) {
 				break;
 			}
@@ -324,14 +316,10 @@ rClause EventQueue::notifyPropagate() {
 	return confl;
 }
 
-int EventQueue::getNbOfFormulas() const {
-	int count = 0;
+void EventQueue::accept(ConstraintVisitor& visitor){
 	for (auto i = allpropagators.cbegin(); i < allpropagators.cend(); ++i) {
-		if ((*i)->isPresent()) {
-			// TODO VISITOR count += (*i)->getNbOfFormulas();
-		}
+		(*i)->accept(visitor);
 	}
-	return count;
 }
 
 uint EventQueue::size(EVENT event) const {
@@ -339,7 +327,8 @@ uint EventQueue::size(EVENT event) const {
 }
 
 rClause EventQueue::notifyFullAssignmentFound() {
-	rClause confl = nullPtrClause;
+	//FIXME
+/*	rClause confl = nullPtrClause;
 	MAssert(getPCSolver().hasTotalModel());
 	auto props = event2propagator.at(EV_FULLASSIGNMENT);
 	// FIXME propagation can backtrack and invalidate total model, so should stop then!
@@ -351,7 +340,7 @@ rClause EventQueue::notifyFullAssignmentFound() {
 		confl = props[i]->notifyFullAssignmentFound();
 		MAssert(getPCSolver().satState()!=SATVAL::UNSAT || confl!=nullPtrClause);
 	}
-	return confl;
+	return confl;*/
 }
 
 void EventQueue::acceptForDecidable(Var v, Propagator* prop) {
@@ -369,16 +358,6 @@ void EventQueue::notifyBecameDecidable(Var v) {
 		propagatedecidables.push(*i);
 	}
 	var2decidable[v].clear();
-}
-
-void EventQueue::notifyClauseAdded(rClause clauseID) {
-	auto props = event2propagator.at(EV_ADDCLAUSE);
-	for (uint i = 0; i < size(EV_ADDCLAUSE); ++i) {
-		if (!props[i]->isPresent()) {
-			continue;
-		}
-		// TODO VISITOR props[i]->notifyClauseAdded(clauseID);
-	}
 }
 
 void EventQueue::notifyNewDecisionLevel() {
@@ -402,43 +381,5 @@ void EventQueue::notifyBacktrack(int untillevel, const Lit& decision) {
 			continue;
 		}
 		props[i]->notifyBacktrack(untillevel, decision);
-	}
-}
-
-Var EventQueue::notifyBranchChoice(Var var) {
-	auto props = event2propagator.at(EV_CHOICE);
-	Var currentvar = var;
-	for (uint i = 0; i < size(EV_CHOICE); ++i) {
-		if (!props[i]->isPresent()) {
-			continue;
-		}
-		// TODO VISITOR currentvar = props[i]->notifyBranchChoice(currentvar);
-	}
-	return currentvar;
-}
-
-void EventQueue::printState() const {
-	auto props = event2propagator.at(EV_PRINTSTATE);
-	for (uint i = 0; i < size(EV_PRINTSTATE); ++i) {
-		if (!props[i]->isPresent()) {
-			continue;
-		}
-		// TODO VISITOR props[i]->printState();
-	}
-}
-
-void EventQueue::printECNF(ostream&, set<Var>&) const {
-	for (auto i = allpropagators.cbegin(); i < allpropagators.cend(); ++i) {
-		//(*i)->printECNF(stream, printedvars); // TODO VISITOR
-	}
-}
-
-void EventQueue::printStatistics() const {
-	auto props = event2propagator.at(EV_PRINTSTATS);
-	for (uint i = 0; i < size(EV_PRINTSTATS); ++i) {
-		if (!props[i]->isPresent()) {
-			continue;
-		}
-		// TODO VISITOR props[i]->printStatistics();
 	}
 }

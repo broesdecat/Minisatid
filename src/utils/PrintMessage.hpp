@@ -171,7 +171,7 @@ namespace MinisatID{
 	}
 
 	template<class T>
-	void printNoPropagationsOn(T& stream, const char* name, int verbosity = 1000){
+	void printNoPropagationsOn(T& stream, const std::string& name, int verbosity = 1000){
 		if(verbosity > 0) {
 			stream <<">    (there will be no propagations on " <<name <<" module)\n";
 		}

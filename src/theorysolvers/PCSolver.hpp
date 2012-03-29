@@ -30,6 +30,7 @@ class SearchMonitor;
 class OptimCreation;
 class IntView;
 class VarCreation;
+class ConstraintVisitor;
 typedef Minisat::Solver SearchEngine;
 
 enum TheoryState {
@@ -171,8 +172,6 @@ public:
 
 	bool isDecided(Var var);
 
-	Var changeBranchChoice(const Var& chosenvar);
-
 	int getTime(const Var& var) const;
 	bool assertedBefore(const Var& l, const Var& p) const;
 	rClause getExplanation(const Lit& l); //NON-OWNING pointer
@@ -200,8 +199,6 @@ public:
 	bool handleConflict(rClause conflict);
 
 	void notifyBoundsChanged(IntVar* var);
-
-	void notifyClauseAdded(rClause clauseID);
 
 	int getNbOfFormulas() const;
 
@@ -232,6 +229,8 @@ public:
 
 	std::shared_ptr<InnerModel> getModel();
 	lbool getModelValue(Var v);
+
+	void accept(ConstraintVisitor& visitor);
 };
 
 }

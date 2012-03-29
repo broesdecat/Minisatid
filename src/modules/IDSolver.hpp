@@ -216,13 +216,14 @@ public:
 	IDSolver(PCSolver* s, int definitionID);
 	virtual ~IDSolver();
 
+	virtual void 	accept(ConstraintVisitor& visitor){}; // FIXME
+
 	int		getDefinitionID	() const { return definitionID; }
 	DEFSEM	getSemantics	() const { return sem; }
 
 	bool	hasRecursiveAggregates	() const 	{ return posrecagg || mixedrecagg; }
 
 	// Propagator methods
-	virtual const char* getName					() const { return "definitional"; }
 	virtual int			getNbOfFormulas			() const;
 	virtual rClause 	getExplanation			(const Lit& l);
 	// Event propagator methods

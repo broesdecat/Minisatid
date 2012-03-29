@@ -44,15 +44,13 @@ IDAgg::IDAgg(const Lit& head, AggBound b, AggSem sem, AggType type, const std::v
 }
 
 IDSolver::IDSolver(PCSolver* s, int definitionID) :
-		Propagator(s), definitionID(definitionID), finishedonce(false), needtofinishrules(false), needtofinishid(false), forcefinish(false), infactnotpresent(
+		Propagator(s, "definition"), definitionID(definitionID), finishedonce(false), needtofinishrules(false), needtofinishid(false), forcefinish(false), infactnotpresent(
 				false), minvar(0), nbvars(0), conj(DefType::CONJ), disj(DefType::DISJ), aggr(DefType::AGGR), _seen(NULL), sem(
 				getPCSolver().modes().defsem), posrecagg(false), mixedrecagg(false), posloops(true), negloops(true), backtracked(true), adaption_total(
 				0), adaption_current(0) {
-	getPCSolver().accept(this, EV_PRINTSTATS);
 	getPCSolver().accept(this, EV_DECISIONLEVEL);
 	getPCSolver().accept(this, EV_BACKTRACK);
-	getPCSolver().accept(this, EV_PRINTSTATE);
-	getPCSolver().accept(this, EV_FULLASSIGNMENT);
+	// FIXME getPCSolver().accept(this, EV_FULLASSIGNMENT);
 	registerFinishParsing();
 }
 

@@ -14,6 +14,8 @@
 
 namespace MinisatID {
 
+class ConstraintVisitor;
+
 enum State {
 	PARSING, INITIALIZING, INITIALIZED
 };
@@ -26,12 +28,14 @@ private:
 	int trailindex; //the index in the trail of next propagation to do.
 	bool inqueue; //used by the queueing mechanism to refrain from putting a propagator in the queue
 
+	const std::string name;
+
 protected:
 	PCSolver* pcsolver;
 
 public:
-	Propagator(PCSolver* s) :
-			init(PARSING), present(true), searchalgo(false), trailindex(0), inqueue(false), pcsolver(s) {
+	Propagator(PCSolver* s, const std::string& name) :
+			init(PARSING), present(true), searchalgo(false), trailindex(0), inqueue(false), name(name), pcsolver(s) {
 		pcsolver->accept(this);
 	}
 	virtual ~Propagator() {
@@ -72,11 +76,14 @@ public:
 	}
 
 	// Propagator methods
-	virtual const char* getName() const = 0;
+	std::string getName() const{
+		return name;
+	}
 	virtual rClause getExplanation(const Lit&) = 0;
-	virtual rClause notifyFullAssignmentFound() = 0;
+	virtual void accept(ConstraintVisitor& visitor) = 0;
+	//virtual rClause notifyFullAssignmentFound() = 0;
 	// First argument is true is the propagator is NOT certainly satisfied in the initial interpretation
-	virtual void finishParsing(bool&) = 0; // TODO can this be dropped?
+	//virtual void finishParsing(bool&) = 0; // TODO can this be dropped?
 	// Checks presence of aggregates and initializes all counters. UNSAT is set to true if unsat is detected
 	// PRESENT is set to true if aggregate propagations should be done
 	virtual void notifyNewDecisionLevel() = 0;

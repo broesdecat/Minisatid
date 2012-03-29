@@ -9,13 +9,9 @@
 #ifndef MINISATID_TIMINGUTILS_HPP_
 #define MINISATID_TIMINGUTILS_HPP_
 
-#include <ctime>
-
 namespace MinisatID {
 	//In elapsed seconds, taking abstraction of other processes running on the system
-	double cpuTime(void) {
-		return (double)clock() / CLOCKS_PER_SEC;
-	}
+	double cpuTime(void);
 }
 
 #endif /* MINISATID_TIMINGUTILS_HPP_ */

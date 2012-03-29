@@ -108,8 +108,7 @@ IDSolver* PropagatorFactory::getIDSolver(defID id) {
 }
 
 void PropagatorFactory::addIDSolver(defID id) {
-	IDSolver* idsolver = new IDSolver(getEnginep(), id);
-	getEngine().accept(idsolver, EV_EXITCLEANLY);
+	auto idsolver = new IDSolver(getEnginep(), id);
 	idsolvers.insert( { id, idsolver });
 }
 

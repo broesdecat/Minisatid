@@ -16,7 +16,7 @@ using namespace MinisatID;
 std::map<int, IntVarValue> IntVar::var2intvarvalues;
 
 IntVar::IntVar(PCSolver* solver, int origid, int min, int max)
-		: Propagator(solver),
+		: Propagator(solver, "intvar"),
 		  id_(maxid_++), origid_(origid),
 		  engine_(*solver),
 		  minvalue(min), maxvalue(max),

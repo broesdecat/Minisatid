@@ -16,7 +16,7 @@ using namespace std;
 namespace MinisatID {
 
 TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound):
-		Propagator(solver),
+		Propagator(solver, "aggregate"),
 		kb(knownbound),
 		type(NULL),
 		prop(NULL),
@@ -25,7 +25,7 @@ TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound):
 	getPCSolver().acceptFinishParsing(this, false);
 }
 TypedSet::TypedSet(const TypedSet& set):
-		Propagator(set.pcsolver),
+		Propagator(set.pcsolver, "aggregate"),
 		kb(set.getKnownBound()),
 		wl(set.getWL()),
 		type(set.getTypep()),
@@ -68,7 +68,7 @@ void TypedSet::finishParsing(bool& present){
 	}
 
 	getPCSolver().accept(this, EV_BACKTRACK);
-	getPCSolver().accept(this, EV_FULLASSIGNMENT);
+	// FIXME getPCSolver().accept(this, EV_FULLASSIGNMENT);
 
 	prop = getType().createPropagator(this);
 	bool sat = false;

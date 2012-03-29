@@ -23,7 +23,7 @@ namespace MinisatID {
 
 // External interfaces offered from the solvers
 
-enum SolverState { PARSING, FINISHING};
+enum class SolverState { PARSING, FINISHING};
 
 typedef std::vector<Weight> weightlist;
 
@@ -70,8 +70,8 @@ public:
 	const SolverOption& modes()	const	{ return _modes; }
 	int 	verbosity		()	const	{ return modes().verbosity; }
 
-	bool	isParsing		() const { return state==PARSING; }
-	bool	isFinishing		() const { return state==FINISHING; }
+	bool	isParsing		() const { return state==SolverState::PARSING; }
+	bool	isFinishing		() const { return state==SolverState::FINISHING; }
 
 	/**
 	 * Way it works:
@@ -102,6 +102,10 @@ public:
 	virtual void visit(const InnerCPCount&);
 	virtual void visit(const InnerCPBinaryRelVar&);
 	virtual void visit(const InnerCPSumWeighted&);
+
+	virtual void notifyStart() {} // TODO implement?
+	virtual void notifyEnd() {} // TODO implement?
+
 
 	void	finishParsing	();
 
