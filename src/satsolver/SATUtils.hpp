@@ -10,12 +10,12 @@
 #define SATUTILS_H_
 
 #include "external/ExternalUtils.hpp"
+#include "BasicSATUtils.hpp"
 #include "satsolver/minisat/SolverTypes.hpp"
 
 namespace MinisatID {
 	typedef Minisat::CRef pClause;
 	typedef Minisat::CRef rClause;
-	using Minisat::mkLit;
 }
 
 namespace MinisatID {
@@ -23,8 +23,6 @@ namespace MinisatID {
 	using Minisat::l_Undef;
 	using Minisat::l_True;
 	using Minisat::lbool;
-	using Minisat::Var;
-	using Minisat::Lit;
 	using Minisat::var;
 
 	extern rClause nullPtrClause;
@@ -33,8 +31,6 @@ namespace MinisatID {
 	double getDefaultDecay();
 	double getDefaultRandfreq();
 	Polarity getDefaultPolarity();
-
-	bool isPositive(const Lit& lit);
 }
 
 #endif// SATSOLVER_H_

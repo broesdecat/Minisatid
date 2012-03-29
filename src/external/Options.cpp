@@ -17,6 +17,10 @@
 using namespace std;
 using namespace MinisatID;
 
+SATVAL MinisatID::operator&= (SATVAL orig, SATVAL add){
+	return (orig==SATVAL::UNSAT || add==SATVAL::UNSAT)?SATVAL::UNSAT:SATVAL::POS_SAT;
+}
+
 #ifndef DATADIR
 #warning No data directory defined, assuming it is the build directory
 #define DATADIR "."
@@ -53,7 +57,6 @@ SolverOption::SolverOption():
 
 		asapaggprop(false),
 		ufsvarintrothreshold(500),
-		decideontseitins(true),
 		subsetminimizeexplanation(false),
 		currentlevelfirstinexplanation(true),
 		innogoodfirstinexplanation(true),
@@ -110,6 +113,5 @@ void SolverOption::print(std::ostream& so) const{
 	so << "subsetminimizeexplanation: " <<subsetminimizeexplanation <<"\n";
 	so << "asapaggprop: " 		<<asapaggprop <<"\n";
 	so << "ufsvarintrothreshold: " <<ufsvarintrothreshold <<"\n";
-	so << "tseitindecisions: " 	<<decideontseitins <<"\n";
 	so << "lazy: " 				<<(lazy?"yes":"no") <<"\n";
 }

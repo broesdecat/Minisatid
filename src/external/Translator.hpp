@@ -84,7 +84,6 @@ public:
 
 	virtual bool hasTranslation			(const MinisatID::Literal&) const { return false; }
 
-	virtual void printLiteral			(std::ostream& output, const MinisatID::Literal& lit){ output <<(lit.hasSign()?"-":"") <<lit.getAtom().getValue(); }
 	virtual void printCurrentOptimum	(std::ostream&, const Weight&) { /*output <<value;*/ }
 	virtual void printHeader			(std::ostream&) {}
 

@@ -15,9 +15,13 @@
 #include <cstdint>
 #include <cstdlib>
 #include "Weight.hpp"
-#include "ExternalUtils.hpp"
+#include "MAssert.hpp"
 
 namespace MinisatID {
+
+enum class Optim {
+	LIST, SUBSET, AGG, NONE
+};
 
 // Comparison operator
 enum class EqType	{ EQ, NEQ, L, G, GEQ, LEQ };
@@ -56,6 +60,8 @@ public:
 	Literal operator~()						const { return Literal(getAtom(), lit>0?true:false); }
 	Literal operator!()						const { return Literal(getAtom(), lit>0?true:false); }
 };
+
+std::string printLiteral(const Literal& lit);
 
 // A class representing a tuple of a literal and an associated weight
 struct WLtuple{
@@ -215,23 +221,43 @@ public:
 	literallist forcedchoices;
 };
 
-class RigidAtoms{
-public:
-	std::vector<Atom> rigidatoms;
-};
-
-class SubTheory{
-public:
-	int child;
-	Literal head;
-
-	SubTheory():head(0){}
-};
-
 class Symmetry{
 public:
 	// INVAR: the keys are unique
 	std::map<Literal, Literal> symmetry;
+};
+
+// FIXME add callback again?
+class LazyGroundingCommand {
+private:
+	bool allreadyground;
+public:
+	LazyGroundingCommand()
+			: allreadyground(false) {
+	}
+	virtual ~LazyGroundingCommand() {
+	}
+
+	virtual void requestGrounding() = 0;
+
+	void notifyGrounded() {
+		allreadyground = true;
+	}
+	bool isAlreadyGround() const {
+		return allreadyground;
+	}
+};
+
+// POCO
+class LazyGroundLit {
+public:
+	bool watchboth;
+	Literal residual;
+	LazyGroundingCommand* monitor;
+
+	LazyGroundLit(bool watchboth, const Literal& residual, LazyGroundingCommand* monitor)
+			: watchboth(watchboth), residual(residual), monitor(monitor) {
+	}
 };
 
 }

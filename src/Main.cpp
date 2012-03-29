@@ -16,13 +16,14 @@
 #include <sstream>
 
 #include "parser/CommandLineOptions.hpp"
+#include "external/DataAndInference.hpp"
 
 #include <csetjmp>
 
-#include "external/ExternalInterface.hpp"
+#include "wrapper/InterfaceImpl.hpp"
 #include "external/FlatZincRewriter.hpp"
 #include "external/Translator.hpp"
-#include "external/ResourceManager.hpp"
+#include "utils/ResourceManager.hpp"
 #include "parser/Lparseread.hpp"
 #include "parser/PBread.hpp"
 
@@ -38,11 +39,12 @@ using namespace MinisatID;
 #include "parser/Lparseread.cpp"
 #include "parser/PBread.cpp"
 
+typedef Space* pwls; // TODO should be shared pointer?
+
 extern char* yytext;
 extern int lineNo;
 extern int charPos;
-extern pwls getData();
-extern FlatZincRewriter* getFZRewriter();
+extern void setSpace(pwls);
 
 extern FILE* yyin;
 extern int yyparse();
@@ -50,7 +52,7 @@ extern void yydestroy();
 extern void yyinit();
 extern bool unsatfound;
 
-pwls parse();
+void parse(pwls d);
 
 jmp_buf main_loop;
 static void noMoreMem();
@@ -63,8 +65,8 @@ static void SIGTERM_handler(int signum);
 static void SIGINT_handler(int signum);
 void handleSignals();
 
-void parseAndInitializeTheory(pwls& d);
-void doModelGeneration(pwls& d);
+void parseAndInitializeTheory(pwls d);
+void doModelGeneration(pwls d);
 
 void rewriteIntoFlatZinc();
 
@@ -96,7 +98,7 @@ int handleTermination(bool cleanexit, pwls d) {
 	}
 
 	if (d != NULL && modes.verbosity > 1) {
-		d->printStatistics();
+		//TODO d->printStatistics();
 	}
 	return returnvalue;
 }
@@ -111,7 +113,7 @@ int main(int argc, char** argv) {
 	// double precision for repeatability
 #endif
 
-	jumpback = 1;	
+	jumpback = 1;
 
 	signal(SIGABRT, SIGABRT_handler);
 	signal(SIGFPE, SIGFPE_handler);
@@ -144,55 +146,55 @@ int main(int argc, char** argv) {
 
 	printMainStart(modes.verbosity);
 
-	pwls d = NULL;
+	pwls d = new Space(modes);
 	bool cleanexit = false;
 #ifdef NDEBUG
 	try {
 #endif
-	//IMPORTANT: because signals are handled asynchronously, a special mechanism is needed to recover from them (exception throwing does not work)
-	//setjmp maintains a jump point to which any stack can jump back, re-executing this statement with different return value,
-	//so if this happens, we jump out
-	bool stoprunning = false;
-	if (setjmp(main_loop)) {
-		jumpback = 1;
-		handleSignals();
-		cleanexit = false;
-		stoprunning = true;
-	}
-	if (!stoprunning) {
-		jumpback = 0;
-		parseAndInitializeTheory(d);
-		if (sol->getInferenceOption() == Inference::MODELEXPAND || sol->getInferenceOption() == Inference::PROPAGATE) {
-			doModelGeneration(d);
-		} else if (sol->getInferenceOption() == Inference::PRINTTHEORY) {
-			// Do unit propagation
-			sol->setInferenceOption(Inference::PROPAGATE);
-			sol->setPrintModels(Models::NONE);
-			doModelGeneration(d);
-
-			// Print the theory
-			sol->setInferenceOption(Inference::PRINTTHEORY);
-			if (sol->isUnsat()) {
-				cout << "p ecnf\n0\n";
-				cout.flush();
-			} else {
-				assert(d!=NULL);
-				d->printTheory(cout, sol);
-				cout.flush();
-			}
+		//IMPORTANT: because signals are handled asynchronously, a special mechanism is needed to recover from them (exception throwing does not work)
+		//setjmp maintains a jump point to which any stack can jump back, re-executing this statement with different return value,
+		//so if this happens, we jump out
+		bool stoprunning = false;
+		if (setjmp(main_loop)) {
+			jumpback = 1;
+			handleSignals();
+			cleanexit = false;
+			stoprunning = true;
 		}
+		if (!stoprunning) {
+			jumpback = 0;
+			parseAndInitializeTheory(d);
+			if (sol->getInferenceOption() == Inference::MODELEXPAND || sol->getInferenceOption() == Inference::PROPAGATE) {
+				doModelGeneration(d);
+			} else if (sol->getInferenceOption() == Inference::PRINTTHEORY) {
+				// Do unit propagation
+				sol->setInferenceOption(Inference::PROPAGATE);
+				sol->setPrintModels(Models::NONE);
+				doModelGeneration(d);
 
-		jumpback = 1;
-		cleanexit = true;
-	}
+				// Print the theory
+				sol->setInferenceOption(Inference::PRINTTHEORY);
+				if (sol->isUnsat()) {
+					cout << "p ecnf\n0\n";
+					cout.flush();
+				} else {
+					assert(d!=NULL);
+					// TODO d->printTheory(cout);
+					cout.flush();
+				}
+			}
+
+			jumpback = 1;
+			cleanexit = true;
+		}
 #ifdef NDEBUG
-} catch (const exception& e) {
-	printExceptionCaught(clog, e);
-	cleanexit = false;
-} catch (int i) {
-	printUnexpectedError(clog);
-	cleanexit = false;
-}
+	} catch (const exception& e) {
+		printExceptionCaught(clog, e);
+		cleanexit = false;
+	} catch (int i) {
+		printUnexpectedError(clog);
+		cleanexit = false;
+	}
 #endif
 	jumpback = 1;
 
@@ -205,156 +207,154 @@ int main(int argc, char** argv) {
 	if (sol != NULL) {
 		delete sol;
 	}
-
 	if (d != NULL) {
-		delete d;
+		delete (d);
 	}
+
 	return returnvalue;
 }
 
 void rewriteIntoFlatZinc() {
-	switch (modes.format) {
-	case InputFormat::ASP: {
-		LParseTranslator* lptrans = new LParseTranslator();
-		sol->setTranslator(lptrans);
+	// FIXME
+	/*	switch (modes.format) {
+	 case InputFormat::ASP: {
+	 LParseTranslator* lptrans = new LParseTranslator();
+	 sol->setTranslator(lptrans);
 
-		std::istream is(getInputBuffer());
-		FlatZincRewriter* p = new FlatZincRewriter(modes);
-		Read<FlatZincRewriter>* r = new Read<FlatZincRewriter>(p, lptrans);
-		r->read(is);
-		delete r;
-		closeInput();
-		p->finishParsing();
-		break;
-	}
-	case InputFormat::OPB: {
-		OPBTranslator* opbtrans = new OPBTranslator();
-		sol->setTranslator(opbtrans);
+	 std::istream is(getInputBuffer());
+	 FlatZincRewriter* p = new FlatZincRewriter(modes);
+	 Read<FlatZincRewriter>* r = new Read<FlatZincRewriter>(p, lptrans);
+	 r->read(is);
+	 delete r;
+	 closeInput();
+	 p->finishParsing();
+	 break;
+	 }
+	 case InputFormat::OPB: {
+	 OPBTranslator* opbtrans = new OPBTranslator();
+	 sol->setTranslator(opbtrans);
 
-		std::istream is(getInputBuffer());
-		FlatZincRewriter* p = new FlatZincRewriter(modes);
-		PBRead<FlatZincRewriter>* r = new PBRead<FlatZincRewriter>(p, opbtrans, is);
-		r->parse();
-		delete r;
-		closeInput();
-		p->finishParsing();
-		break;
-	}
-	case InputFormat::FODOT: {
-		yyin = getInputFile();
-		yyinit();
-		try {
-			yyparse();
-		} catch (const MinisatID::idpexception& e) {
-			throw idpexception(getParseError(e, lineNo, charPos, yytext));
-		}
-		yydestroy();
-		closeInput();
-		getFZRewriter()->finishParsing();
-		break;
-	}
-	}
+	 std::istream is(getInputBuffer());
+	 FlatZincRewriter* p = new FlatZincRewriter(modes);
+	 PBRead<FlatZincRewriter>* r = new PBRead<FlatZincRewriter>(p, opbtrans, is);
+	 r->parse();
+	 delete r;
+	 closeInput();
+	 p->finishParsing();
+	 break;
+	 }
+	 case InputFormat::FODOT: {
+	 yyin = getInputFile();
+	 yyinit();
+	 try {
+	 yyparse();
+	 } catch (const MinisatID::idpexception& e) {
+	 throw idpexception(getParseError(e, lineNo, charPos, yytext));
+	 }
+	 yydestroy();
+	 closeInput();
+	 getFZRewriter()->finishParsing();
+	 break;
+	 }
+	 }*/
 }
 
-pwls initializeAndParseASP() {
+void initializeAndParseASP(pwls d) {
 	LParseTranslator* lptrans = new LParseTranslator();
 	if (modes.transformat != OutputFormat::PLAIN) {
 		sol->setTranslator(lptrans);
 	}
 
 	std::istream is(getInputBuffer());
-	WrappedPCSolver* p = new WrappedPCSolver(modes);
-	Read<WrappedPCSolver>* r = new Read<WrappedPCSolver>(p, lptrans);
+	auto r = new Read<Space>(*d, lptrans);
 
-	if (!r->read(is)) {
-		sol->notifyUnsat();
-	}
+	r->read(is);
 	closeInput();
 	delete r;
-
-	return p;
 }
 
-pwls initializeAndParseOPB() {
+void initializeAndParseOPB(pwls d) {
 	OPBTranslator* opbtrans = new OPBTranslator();
 	if (modes.transformat != OutputFormat::PLAIN) {
 		sol->setTranslator(opbtrans);
 	}
 
 	std::istream is(getInputBuffer());
-	WrappedPCSolver* p = new WrappedPCSolver(modes);
-	PBRead<WrappedPCSolver>* parser = new PBRead<WrappedPCSolver>(p, opbtrans, is);
+	auto parser = new PBRead<Space>(*d, opbtrans, is);
 
-	if (!parser->parse()) {
-		sol->notifyUnsat();
-	}
+	parser->parse();
 	closeInput();
 	delete parser;
 
 	if (modes.transformat == OutputFormat::PLAIN) {
 		delete (opbtrans);
 	}
-
-	return p;
 }
 
-pwls initializeAndParseFODOT() {
+void initializeAndParseFODOT(pwls d) {
 	if (modes.transformat != OutputFormat::PLAIN) {
 		transformat = modes.transformat;
 	}
 
 	yyin = getInputFile();
-	pwls d = parse();
+	parse(d);
 	closeInput();
-	return d;
 }
 
-void parseAndInitializeTheory(pwls& d) {
+void parseAndInitializeTheory(pwls d) {
 	sol->notifyStartParsing();
 
 	switch (modes.format) {
 	case InputFormat::ASP:
-		d = initializeAndParseASP();
+		initializeAndParseASP(d);
 		break;
 	case InputFormat::OPB:
-		d = initializeAndParseOPB();
+		initializeAndParseOPB(d);
 		break;
 	case InputFormat::FODOT: {
-		d = initializeAndParseFODOT();
+		initializeAndParseFODOT(d);
 		break;
 	}
+	}
+
+	if (d->isCertainlyUnsat()) {
+		sol->notifyUnsat();
 	}
 
 	sol->notifyEndParsing();
 }
 
-void doModelGeneration(pwls& d) {
-	// Unittest injection possible here by: pwls d = unittestx();
-
-	if(sol->isUnsat()){
+void doModelGeneration(pwls d) {
+	if (sol->isUnsat()) {
 		sol->notifySolvingFinished();
 		return;
 	}
 
 	assert(d!=NULL);
-	if (d->hasOptimization()) {
-		sol->notifyOptimizing();
-	}
+	// FIXME need to move optimization to lower than ModelExpand Task, because cannot add to inference during parsing!!!
+
+	// TODO
+	//if (d->hasOptimization()) {
+	//	sol->notifyOptimizing();
+	//}
 
 	if (modes.format == InputFormat::OPB && sol->isOptimizationProblem()) { // Change default options added before parsing
 		sol->setPrintModels(Models::BEST);
 		sol->setSaveModels(Models::BEST);
 	}
 
-	d->solve(sol);
+	auto mx = ModelExpand(d, sol->getOptions()); // FIXME remove sol from main
+	mx.execute();
 }
 
 /**
  * Returns a data object representing the solver configuration from the input theory.
  * If the input theory was already found to be unsatisfiable, an empty shared pointer is returned.
  */
-pwls parse() {
+void parse(pwls d) {
 	yyinit();
+
+	setSpace(d);
 
 	try {
 		yyparse();
@@ -366,21 +366,13 @@ pwls parse() {
 		}
 	}
 
-	pwls d = getData();
-
 	yydestroy();
 
 	if (unsatfound) {
 		sol->notifyUnsat();
-		if (d != NULL) {
-			delete d;
-		}
+		delete (d);
 		d = NULL;
-	} else {
-		assert(d!=NULL);
 	}
-
-	return d;
 }
 
 // Debugging - information printing

@@ -19,7 +19,6 @@
 #include "modules/IDSolver.hpp"
 #include "modules/aggsolver/AggSet.hpp"
 #include "modules/aggsolver/AggTransform.hpp"
-#include "modules/ModSolver.hpp"
 #include "modules/LazyGrounder.hpp"
 #include "modules/symmetry/Symmetry.hpp"
 #include "modules/BinConstr.hpp"
@@ -97,11 +96,6 @@ void PropagatorFactory::notifyMonitorsOfAdding(const T& obj) const {
 	for (auto i = parsingmonitors.cbegin(); i < parsingmonitors.cend(); ++i) {
 		(*i)->notifyadded(obj);
 	}
-}
-
-void PropagatorFactory::setModSolver(ModSolver* m) {
-	assert(isParsing());
-	ModStorage::setStorage(m);
 }
 
 bool PropagatorFactory::hasIDSolver(defID id) const {

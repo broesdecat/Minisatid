@@ -10,54 +10,93 @@
 #define PCSOLVER_H_
 
 #include "utils/Utils.hpp"
-#include "theorysolvers/LogicSolver.hpp"
+#include "wrapper/InterfaceImpl.hpp"
 
 #include "theorysolvers/PropagatorFactory.hpp"
 
-namespace Minisat{
-	class Solver;
+namespace Minisat {
+class Solver;
 }
 
 namespace MinisatID {
 
 class TimeTrail;
 class CPSolver;
-class ModSolver;
 class SolverOption;
 class Propagator;
 class PropagatorFactory;
 class EventQueue;
 class SearchMonitor;
+class OptimCreation;
 class IntView;
+class VarCreation;
 typedef Minisat::Solver SearchEngine;
 
-enum class Optim { LIST, SUBSET, AGG, NONE };
+enum TheoryState {
+	THEORY_PARSING, THEORY_INITIALIZED, THEORY_INITIALIZING
+};
 
-enum TheoryState {THEORY_PARSING, THEORY_INITIALIZED, THEORY_INITIALIZING};
+class InnerMonitor;
 
-class PCSolver: public MinisatID::LogicSolver{
+class PCSolver {
 private:
-	int	ID;
-	int getID() const { return ID+1; }
+	SolverOption _modes;
 
+	OptimCreation* optimcreation;
+	VarCreation* varcreator;
+	InnerMonitor* monitor;
+
+public:
+	int verbosity() const {
+		return modes().verbosity;
+	}
+	const SolverOption& modes() const {
+		return _modes;
+	}
+	SolverOption& getNonConstOptions() {
+		return _modes;
+	}
+	void setVerbosity(int verb) {
+		_modes.verbosity = verb;
+	}
+	void setNbModels(int nbmodels) {
+		_modes.nbmodels = nbmodels;
+	}
+public:
+	void addOptimization(Optim type, const litlist& literals);
+	void addAggOptimization(Agg* aggmnmz);
+
+private:
 	//Search algorithms //TODO refactor into an interface "searchalgorithm" with subclasses satsolver and cpsolver?
 	SearchEngine* searchengine;
-	SearchEngine& getSolver() { return *searchengine; }
-	const SearchEngine& getSolver() const { return *searchengine; }
+	SearchEngine& getSolver() {
+		return *searchengine;
+	}
+	const SearchEngine& getSolver() const {
+		return *searchengine;
+	}
 #ifdef CPSUPPORT
 	CPSolver* cpsolver;
 	bool hasCPSolver() const;
-	CPSolver& getCPSolver() { return *cpsolver; }
-	const CPSolver& getCPSolver() const { return *cpsolver; }
+	CPSolver& getCPSolver() {return *cpsolver;}
+	const CPSolver& getCPSolver() const {return *cpsolver;}
 #endif
 
 	EventQueue* queue;
-	EventQueue& getEventQueue() { return *queue; }
-	const EventQueue& getEventQueue() const { return *queue; }
+	EventQueue& getEventQueue() {
+		return *queue;
+	}
+	const EventQueue& getEventQueue() const {
+		return *queue;
+	}
 
 	PropagatorFactory* factory;
-	PropagatorFactory& getFactory() { return *factory; }
-	const PropagatorFactory& getFactory() const { return *factory; }
+	PropagatorFactory& getFactory() {
+		return *factory;
+	}
+	const PropagatorFactory& getFactory() const {
+		return *factory;
+	}
 
 	TheoryState state;
 
@@ -68,145 +107,131 @@ private:
 	TimeTrail* trail;
 	std::vector<Propagator*> propagations;
 
-	// OPTIMIZATION INFORMATION
-	Optim 		optim;
-	Var 		head;
-	litlist		to_minimize;
-	Agg*		agg_to_minimize;
-
 	// State saving
-	int 				state_savedlevel;
-	bool 				state_savingclauses;
+	int state_savedlevel;
+	bool state_savingclauses;
 	std::vector<rClause> state_savedclauses;
 
 public:
-	PCSolver(SolverOption modes, MinisatID::WrapperPimpl& inter, int ID);
+	PCSolver(SolverOption modes);
 	virtual ~PCSolver();
 
-	SearchEngine*	getSATSolver() const { return searchengine; }
+	SearchEngine* getSATSolver() const {
+		return searchengine;
+	}
 #ifdef CPSUPPORT
-	CPSolver* 		getCPSolverp() const { return cpsolver; }
+	CPSolver* getCPSolverp() const {return cpsolver;}
 #endif
+
+	bool terminate;
+	void notifyTerminateRequested();
+	bool terminateRequested() const;
 
 	const std::vector<Lit>& getTrail() const;
 
-	void		preventPropagation();
-	void 		allowPropagation();
+	void preventPropagation();
+	void allowPropagation();
 
-	bool		isDecisionVar(Var var);
-	void		notifyDecisionVar(Var var);
-	void		notifyNonDecisionVar(Var var);
+	bool isDecisionVar(Var var);
+	void notifyDecisionVar(Var var);
+	void notifyNonDecisionVar(Var var);
 
-	void		accept(Propagator* propagator);
-	void 		accept(GenWatch* const watch);
-	void		acceptForBacktrack(Propagator* propagator);
-	void		acceptForPropagation(Propagator* propagator);
-	void 		accept(Propagator* propagator, EVENT event);
-	void 		acceptBounds(IntView* var, Propagator* propagator);
-	void 		accept(Propagator* propagator, const Lit& lit, PRIORITY priority);
-	void 		acceptFinishParsing(Propagator* propagator, bool late);
+	void accept(Propagator* propagator);
+	void accept(GenWatch* const watch);
+	void acceptForBacktrack(Propagator* propagator);
+	void acceptForPropagation(Propagator* propagator);
+	void accept(Propagator* propagator, EVENT event);
+	void acceptBounds(IntView* var, Propagator* propagator);
+	void accept(Propagator* propagator, const Lit& lit, PRIORITY priority);
+	void acceptFinishParsing(Propagator* propagator, bool late);
 
-	void 		acceptForDecidable(Var v, Propagator* prop);
-	void 		notifyBecameDecidable(Var v);
+	void acceptForDecidable(Var v, Propagator* prop);
+	void notifyBecameDecidable(Var v);
 
-	Var			newVar();
-	int			newSetID();
+	Var newVar();
+	int newSetID();
 
-	void 		finishParsing();
+	void finishParsing();
 
-	void    	setTrue			(const Lit& p, Propagator* solver, rClause c = nullPtrClause);		// Enqueue a literal. Assumes value of literal is undefined
-	void 		notifySetTrue	(const Lit& p);
-	void 		newDecisionLevel();
-	bool 		solve			(const litlist& assumptions, const ModelExpandOptions& options);
-	rClause 	checkFullAssignment();
-	bool 		hasTotalModel(); //cannot be const!
-	void    	backtrackTo		(int level);		// Backtrack until a certain level.
-	void 		backtrackDecisionLevel(int untillevel, const Lit& decision);
-	rClause 	propagate		();
+	/**
+	 * Return true iff a model has been found
+	 * Returns false iff unsat has been found
+	 * Unknown otherwise (e.g. terminated)
+	 */
+	lbool solve(const litlist& assumptions, bool search);
 
-	bool		isDecided(Var var);
+	void setTrue(const Lit& p, Propagator* solver, rClause c = nullPtrClause); // Enqueue a literal. Assumes value of literal is undefined
+	void notifySetTrue(const Lit& p);
+	void newDecisionLevel();
+	rClause checkFullAssignment();
+	bool hasTotalModel(); //cannot be const!
+	void backtrackTo(int level); // Backtrack until a certain level.
+	void backtrackDecisionLevel(int untillevel, const Lit& decision);
+	rClause propagate();
 
-	Var			changeBranchChoice(const Var& chosenvar);
+	bool isDecided(Var var);
 
-	int			getTime(const Var& var) const;
-	bool 		assertedBefore	(const Var& l, const Var& p) const;
-	rClause		getExplanation	(const Lit& l);			//NON-OWNING pointer
-	bool		isAlreadyUsedInAnalyze(const Lit& lit) const;
+	Var changeBranchChoice(const Var& chosenvar);
 
-	void		varBumpActivity	(Var v);
-	void 		varReduceActivity(Var v);
-	lbool		value			(Var x) const;		// The current value of a variable.
-	lbool		value			(Lit p) const;		// The current value of a literal.
-	uint64_t	nVars			()      const;		// The current number of variables.
+	int getTime(const Var& var) const;
+	bool assertedBefore(const Var& l, const Var& p) const;
+	rClause getExplanation(const Lit& l); //NON-OWNING pointer
+	bool isAlreadyUsedInAnalyze(const Lit& lit) const;
 
-	rClause 	createClause	(const InnerDisjunction& clause, bool learned);
+	void varBumpActivity(Var v);
+	void varReduceActivity(Var v);
+	lbool value(Var x) const; // The current value of a variable.
+	lbool value(Lit p) const; // The current value of a literal.
+	uint64_t nVars() const; // The current number of variables.
+
+	rClause createClause(const InnerDisjunction& clause, bool learned);
 	//IMPORTANT: The first literal in the clause is the one which can be propagated at moment of derivation!
-	void 		addLearnedClause(rClause c); 		//Propagate if clause is unit, return false if c is conflicting
-	void 		removeClause	(rClause c);
-	int			getClauseSize	(rClause cr) const;
-	Lit			getClauseLit	(rClause cr, int i) const;
+	void addLearnedClause(rClause c); //Propagate if clause is unit, return false if c is conflicting
+	void removeClause(rClause c);
+	int getClauseSize(rClause cr) const;
+	Lit getClauseLit(rClause cr, int i) const;
 
-	int 		getStartLastLevel() 	const;
-	int 		getLevel		(int var) const; // Returns the decision level at which a variable was deduced.
-	int			getCurrentDecisionLevel	() const;
-	int			getNbDecisions	() 		const;
-	std::vector<Lit> getDecisions() 	const;
+	int getStartLastLevel() const;
+	int getLevel(int var) const; // Returns the decision level at which a variable was deduced.
+	int getCurrentDecisionLevel() const;
+	int getNbDecisions() const;
+	std::vector<Lit> getDecisions() const;
 
-	bool		handleConflict(rClause conflict);
+	bool handleConflict(rClause conflict);
 
-	void		notifyBoundsChanged(IntVar* var);
+	void notifyBoundsChanged(IntVar* var);
 
-	void 		notifyClauseAdded(rClause clauseID);
+	void notifyClauseAdded(rClause clauseID);
 
-	int			getNbOfFormulas	() const;
+	int getNbOfFormulas() const;
 
 	// MOD SOLVER support
-	void 		setModSolver(ModSolver* m);
-	void		saveState		();
-	void		resetState		();
+	void saveState();
+	void resetState();
 
 	template<typename T>
-	void 		add(const T& sentence){ getFactory().add(sentence); }
-	void		createVar(Var v, VARHEUR decide);
-	void 		notifyVarAdded();
+	void add(const T& sentence) {
+		getFactory().add(sentence);
+	}
+	void createVar(Var v, VARHEUR decide);
+	void notifyVarAdded();
 
-	SATVAL 		satState() const;
-	void		notifyUnsat();
-	bool		isUnsat() const { return satState()==SATVAL::UNSAT; }
-
-	void		addOptimization(Optim type, const litlist& literals);
-	void 		addAggOptimization(TypedSet* aggmnmz);
-
-	void 		printTheory(std::ostream& stream);
+	SATVAL satState() const;
+	void notifyUnsat();
+	bool isUnsat() const {
+		return satState() == SATVAL::UNSAT;
+	}
 
 	// DEBUG
-	void 		printEnqueued	(const Lit& p) const;
-	void		printChoiceMade	(int level, const Lit& l) const;
-	void 		printStatistics	() const;
-	void		printState		() const;
-	void		printClause		(rClause clause) const;
-	void 		printCurrentOptimum(const Weight& value) const;
+	void printEnqueued(const Lit& p) const;
+	void printChoiceMade(int level, const Lit& l) const;
+	void printClause(rClause clause) const;
 
-	bool		isInitialized	() 	const { return state==THEORY_INITIALIZED; }
-	bool		isInitializing	() 	const { return state==THEORY_INITIALIZING; }
-	bool		isParsing		()	const { return state==THEORY_PARSING; }
+	void extractLitModel(std::shared_ptr<InnerModel> fullmodel);
+	void extractVarModel(std::shared_ptr<InnerModel> fullmodel);
 
-private:
-	int 		getNbModelsFound() const;
-
-	void 		extractLitModel(InnerModel* fullmodel);
-	void 		extractVarModel(InnerModel* fullmodel);
-
-	// SOLVING
-	bool 		findNext		(const Minisat::vec<Lit>& assumpts, const ModelExpandOptions& options);
-	SATVAL    	invalidateModel	(InnerDisjunction& clause);  // (used if nb_models>1) Add 'lits' as a model-invalidating clause that should never be deleted, backtrack until the given 'qhead' value.
-	void 		invalidate		(InnerDisjunction& clause);
-
-	// OPTIMIZATION
-    bool 		invalidateValue	(litlist& invalidation);
-	bool 		invalidateSubset(litlist& invalidation, Minisat::vec<Lit>& assmpt);
-	bool 		invalidateAgg	(litlist& invalidation);
-	bool 		findOptimal		(const litlist& assumps);
+	std::shared_ptr<InnerModel> getModel();
+	lbool getModelValue(Var v);
 };
 
 }

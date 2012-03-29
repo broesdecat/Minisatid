@@ -325,7 +325,7 @@ void MinisatID::decideUsingWatchesAndCreateOptimPropagator(PCSolver* solver, Inn
 	// FIXME for watched datastructs, the (re)initialize is not correct
 	auto typedset = createPropagator(solver, set, tempagglist{agg}, knownbound, ratio<solver->modes().watchesratio, true);
 
-	solver->addAggOptimization(typedset);
+	solver->addAggOptimization(typedset->getAgg().front());
 }
 
 void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, InnerWLSet* set, const std::vector<TempAgg*>& aggs, const Weight& knownbound){

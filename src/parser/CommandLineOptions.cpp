@@ -13,7 +13,7 @@
 #include <iostream>
 
 #include <tclap/CmdLine.h>
-#include "external/ResourceManager.hpp"
+#include "utils/ResourceManager.hpp"
 #include "external/SolvingMonitor.hpp"
 
 #include "utils/Print.hpp"
@@ -290,8 +290,6 @@ bool MinisatID::parseOptions(int argc, char** argv, Solution* sol){
 			modes.asapaggprop, cmd, "Choose whether to propagate aggregates as fast as possible"));
 	options.push_back(new Option<bool, string>	("","oneclauseufs",  yesnovals, ufsclauseaddingdesc,
 			modes.selectOneFromUFS, cmd,"Choose whether learn one clause at a time when an unfounded set is found"));
-	options.push_back(new Option<bool, string>	("","tseitindecision", 	yesnovals, decideontseitins,
-			modes.decideontseitins, cmd,"Choose whether tseitin literals can be used as decision literals."));
 	options.push_back(new Option<bool, string>	("","tocnf", 	yesnovals, tocnfdesc,
 			modes.tocnf, cmd,"Choose whether to translate non-clausal constraints to clauses."));
 	options.push_back(new Option<bool, string>	("","doublecyclecheck", 	yesnovals, checkcycledesc,

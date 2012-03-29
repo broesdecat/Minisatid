@@ -26,10 +26,10 @@
 #include <map>
 
 #include "external/ExternalUtils.hpp"
-#include "external/ExternalInterface.hpp"
-#include "external/FlatZincRewriter.hpp"
+#include "external/DataAndInference.hpp"
 #include "external/Translator.hpp"
 #include "utils/Print.hpp"
+#include "external/Constraints.hpp"
 
 #include <limits>
 
@@ -38,9 +38,7 @@ using namespace std;
 
 typedef numeric_limits<int> intlim;
 
-typedef WrappedSOSolver wsos;
-typedef WrappedPCSolver wps;
-typedef FlatZincRewriter wfz;
+typedef Space* pwls;
 
 //}
 
@@ -68,38 +66,23 @@ int charPos = 1;
 
 bool unsatfound = false;
 
-wps*	solver = NULL;
-wsos*	modsolver = NULL;
-wfz* 	fzrewriter = NULL;
+pwls solver;
 
 /**
  * CR-CheckResult: checks the result of passing some data to the solvers.
  * The result is false if unsat was already detected.
  */
 template<class T>
-void CR(int modid, const T& formula);
-template<class T>
 void CR(const T& formula);
 
-void initSolver();
-void initModSolver();
+void setSpace(pwls);
 
 int atoms, clauses;
-
-std::vector<MinisatID::Atom> rigidatoms; //a necessary list of accumulated rigid atoms when reading qbf format
-
-void finishCNFHeader();
-void readCNFModalHierLevel(bool existential, const std::vector<MinisatID::Atom>& rigidatoms);
-pwls getData();
-wfz* getFZRewriter();
 
 MinisatID::Atom cAtom(string* c);
 MinisatID::Literal cLiteral(string* c);
 MinisatID::Weight cWeight(string* s);
 int cID(string* c);
-
-template<class T>
-void addCPTo(WrappedPCSolver* solver, const T& formula);
 
 // Convert integer to string
 std::string itos(int n) {
@@ -160,10 +143,9 @@ void checkVersion(ECNF_VERSION version);
 %token <str> NUMBER
 %token <sem> SEMDEFN 
 %token <sign> SIGNDEFN 
-%token <boolean> QUANTe
 %token <rel> REL
 %token <aggr> AGGDEFN
-%token CNF ECNF MECNF DEFPRESENT AGGPRESENT MNMZPRESENT MODDEFN CPPRESENT
+%token CNF ECNF DEFPRESENT AGGPRESENT
 %token INTVAR INTVARDOM SUMSTSIRI COUNTSTRIT DISTINCT DELIM BINTRI BINTRT
 %token FORCECHOICE
 
@@ -173,7 +155,6 @@ void checkVersion(ECNF_VERSION version);
 %type <vuints> uibody
 %type <vlits> body
 %type <vlws> wbody
-%type <vatoms> vbody
 
 //Translation
 %token TRANSHEADER TRANSHEADER2
@@ -196,7 +177,7 @@ void checkVersion(ECNF_VERSION version);
 %type <vstr>	idnlist
 
 //Blijkt nog niet te werken, zal ook wel in een nieuwere versie zijn
-//%destructor { delete $$; report("DELETED.\n"); } vbody wbody ibody body
+//%destructor { delete $$; report("DELETED.\n"); } wbody ibody body
 
 %start init
 
@@ -209,33 +190,18 @@ void checkVersion(ECNF_VERSION version);
 init	:	CNF	number number 
 				{ atoms = $2; clauses = $3; } 
 			cnftheory
-		|	ECNF header {initSolver();} ecnftheory translation
-		|	MECNF header {initModSolver();} mecnftheory translation
+		|	ECNF header ecnftheory translation
 		;
 
 header	: 	/*empty*/
-		| 	header DEFPRESENT
-		| 	header CPPRESENT
-		| 	header AGGPRESENT
-		| 	header MNMZPRESENT
+		| 	header DEFPRESENT // Backwards compatibility
+		| 	header AGGPRESENT // Backwards compatibility
 		;
 		
 // CNF THEORY
 		
 cnftheory	
-		: 	modalcnf { finishCNFHeader(); } cnfclause
-		;
-
-modalcnf	
-		:	/* empty */
-		|	modalcnf QUANTe  
-				{ 	readCNFModalHierLevel($2, rigidatoms); }
-			rigidvars ZERO //HAS TO first add new level with PREVIOUS rigid atoms before adding to them
-		;
-		
-rigidvars
- 		:	rigidvars NUMBER	{ rigidatoms.push_back(cAtom($2));	delete $2; }
-		|	NUMBER				{ rigidatoms.push_back(cAtom($1));	delete $1; }	
+		: 	cnfclause
 		;
 			
 cnfclause	
@@ -244,11 +210,7 @@ cnfclause
 			{	
 				Disjunction clause;
 				clause.literals = *$2;
-				if(modsolver!=NULL){
-					CR(cnfcurrentmodid, clause);
-				}else{
-					CR(clause); 
-				}
+				CR(clause);
 				delete $2;
 			}
 		;
@@ -263,7 +225,7 @@ ecnftheory	:	/* empty */
 					ForcedChoices choices;
 					choices.forcedchoices = *$3;
 					delete $3;
-					solver->add(choices);  
+					add(*solver,choices);  
 				}
 			|	ecnftheory clause
 			|	ecnftheory equiv
@@ -498,159 +460,6 @@ cpconstraint
 				delete $2;
 			}
 		;
-			
-//---------------------------------------------		
-// MECNF THEORY	
-//---------------------------------------------
-
-mecnftheory	:	mhier mrest
-			;
-
-mhier	:	/* empty */
-		|	mhier matomset
-		|	mhier modhier
-		;
-		
-mrest	: 	/* empty */
-		|	mrest mclause
-		|	mrest mrule
-		| 	mrest magg
-		|	mrest mset
-		|	mrest mwset
-		;
-			
-			
-//MODAL PART: USES INDEXES+1 AS MODAL IDs IN THE THEORY
-modhier :	MODDEFN	NUMBER NUMBER NUMBER ZERO 
-			{
-				SubTheory sub;
-				sub.head = cLiteral($4);
-				sub.child = cID($3)-1;
-				delete $3; delete $4;
-				CR(cID($2)-1, sub);
-				delete $2; 
-			}
-		;
-
-matomset:	QUANTe NUMBER vbody ZERO
-			{ 
-				if(not $1){
-					throw idpexception("Forall quantifiers are not part of the chosen input format.\n");
-				}
-				RigidAtoms rigid;
-				rigid.rigidatoms = *$3;
-				delete $3;
-				CR(cID($2)-1, rigid);
-				delete $2; 
-			}
-		;
-
-mclause	:	NUMBER body ZERO 
-			{	
-				Disjunction clause;
-				clause.literals = *$2;
-				delete $2;
-				CR(cID($1)-1, clause); 
-				delete $1;   
-			}
-		;
-
-mrule	:	SEMDEFN NUMBER NUMBER body ZERO  
-			{ 	
-				checkVersion(VERSION_OLD);
-				
-				Rule rule;
-				rule.head = cAtom($3);
-				rule.body = *$4;
-				rule.definitionID = defaultdefID;
-				delete $2; delete $4;
-				if($1==AggSem::COMP){ //hack, to be fixed
-					rule.conjunctive = true;
-				}else{
-					rule.conjunctive = false;
-				}	
-				CR(cID($2)-1, rule);		 
-				delete $2;
-			}
-		;
-
-mrule	:	SEMDEFN NUMBER DEFOP NUMBER NUMBER body ZERO
-			{ 	
-				checkVersion(VERSION_NEW);
-				
-				Rule rule;
-				rule.head = cAtom($5);
-				rule.body = *$6;
-				rule.definitionID = cID($4);
-				delete $4; delete $5; delete $6;
-				if($1==AggSem::COMP){ //hack, to be fixed
-					rule.conjunctive = true;
-				}else{
-					rule.conjunctive = false;
-				}		
-				CR(cID($2)-1, rule);
-			}
-		;
-
-magg	:	AGGDEFN  NUMBER SEMDEFN SIGNDEFN NUMBER NUMBER weight ZERO	
-			{ 
-				if($3==AggSem::DEF){
-					checkVersion(VERSION_OLD);
-				}
-				
-				Aggregate agg;
-				agg.head = cAtom($5);
-				agg.setID = cID($6);
-				agg.defID = defaultdefID;
-				agg.bound = cWeight($7);
-				agg.sign = $4;
-				agg.type = $1;
-				agg.sem = $3;
-				delete $5; delete $6; delete $7;
-				CR(cID($2)-1, agg);
-				delete($2);
-			}
-		;
-
-magg	:	AGGDEFN NUMBER DEFOP NUMBER SIGNDEFN NUMBER NUMBER weight ZERO	
-			{	
-				checkVersion(VERSION_NEW);
-
-				Aggregate agg;
-				agg.head = cAtom($6);
-				agg.setID = cID($7);
-				agg.defID = cID($4);
-				agg.bound = cWeight($8);
-				agg.sign = $5;
-				agg.type = $1;
-				agg.sem = AggSem::DEF;
-				delete $6; delete $7; delete $8;
-				CR(cID($2)-1, agg);
-			}
-		;
-
-mset	:	SETDEFN NUMBER NUMBER body ZERO	
-			{ 	
-				Set set;
-				set.setID = cID($3);
-				set.literals = *$4;
-				delete $3; delete $4;
-				CR(cID($2)-1, set);
-				delete($2);
-			}
-		;
-
-mwset	:	WSETDEFN NUMBER NUMBER wbody ZERO	
-			{ 
-				WLSet set;
-				set.setID = cID($3);
-				set.wl = *$4;
-				delete $3; delete $4;
-				CR(cID($2)-1, set);
-				delete($2);
-			}
-		;
-
 
 // TRANSLATION
 
@@ -659,7 +468,7 @@ translation	: /* empty */
 				{
 					fodottrans = new FODOTTranslator(transformat);	
 					if(fodottrans!=NULL){
-						sol->setTranslator(fodottrans);
+						solver->setTranslator(fodottrans);
 					}
 				} 
 				typelist predlist funclist truelist arbitlist
@@ -668,7 +477,7 @@ translation	: /* empty */
 				{	
 					simpletrans = new LParseTranslator();				
 					if(simpletrans!=NULL){
-						sol->setTranslator(simpletrans);
+						solver->setTranslator(simpletrans);
 					}
 				}
 				tuplelist
@@ -754,10 +563,6 @@ wbody	:	wbody NUMBER REL
 			{ $$ = new std::vector<WLtuple>(1,MinisatID::WLtuple(cLiteral($1), cWeight($4))); delete($1); delete $4;}
 		;
 		
-vbody	:	vbody NUMBER 	{ $$ = $1; $$->push_back(cAtom($2)); delete($2);	}
-		|	NUMBER			{ $$ = new vector<Atom>(1,cAtom($1)); delete($1);	}	
-		;
-		
 weightbody 	
 		: 	weightbody weight	{ $$ = $1; $$->push_back(cWeight($2)); delete $2; }
 		| 	weight			{ $$ = new vector<Weight>(1, cWeight($1)); delete $1;	}
@@ -783,8 +588,10 @@ int yywrap() {
 void yyinit(){ }
 
 void yydestroy(){
+	if(solver!=NULL){
+		delete(solver);
+	}	
 	solver = NULL;
-	modsolver = NULL;
 	heads.clear();
 	modalops.clear();
 }
@@ -806,89 +613,8 @@ void checkVersion(ECNF_VERSION version){
 	}
 }
 
-void initSolver(){
-	if(modes.transformat==OutputFormat::FZ){
-		fzrewriter = new FlatZincRewriter(modes);
-	}else{
-		solver = new WrappedPCSolver(modes);
-	}
-}
-
-void initModSolver(){
-	if(modes.transformat==OutputFormat::FZ){
-		throw idpexception("Rewriting FO(MOD, .) into flatzinc is not supported yet.");
-	}
-	modsolver = new WrappedSOSolver(modes);
-}
-
-pwls getData(){
-	if(solver!=NULL){
-		return solver;
-	}else{
-		return modsolver;
-	}
-}
-
-wfz* getFZRewriter(){
-	return fzrewriter;
-}
-
-void readCNFModalHierLevel(bool existential, const vector<Atom>& rigidatoms){
-	assert(solver==NULL);
-	
-	bool writeexists;
-	if(existential && negatemod){
-		negatemod = false;
-		writeexists = false;
-	}else if(existential && !negatemod){
-		negatemod = false;
-		writeexists = true;
-	}else if(!existential && negatemod){
-		negatemod = true;
-		writeexists = true;
-	}else{
-		negatemod = true;
-		writeexists = false;
-	}
-	if(modsolver==NULL){
-		initModSolver();		 
-		cnfcurrenthead = Atom(atoms+1);
-	}else{
-		modalops.push_back(cnfcurrentmodid);
-		if(writeexists){
-			heads.push_back(Literal(cnfcurrenthead, false));
-		}else{
-			heads.push_back(Literal(cnfcurrenthead, true));
-		}
-		cnfcurrentmodid++;
-		SubTheory sub;
-		sub.head = Literal(cnfcurrenthead);
-		sub.child = cnfcurrentmodid;
-		CR(cnfcurrentmodid-1, sub);
-		RigidAtoms rigid;
-		rigid.rigidatoms = rigidatoms;
-		CR(cnfcurrentmodid, rigid);
-		if(rigidatoms.size()==0){
-			throw idpexception("List of rigid atoms is empty.\n");
-		}
-		cnfcurrenthead = Atom(cnfcurrenthead.getValue()+1);
-	}
-}
-
-void finishCNFHeader(){
-	if(modsolver==NULL && solver==NULL){ //plain cnf
-		initSolver();
-	}else{ //modal cnf
-		if(negatemod){
-			throw idpexception("The quantifiers require to negate the full theory, "
-								"this is not handled at the moment.\n");
-		}
-		for(vector<int>::size_type i = 0; i<modalops.size(); ++i){
-			Disjunction clause;
-			clause.literals.push_back(heads[i]);
-			CR(modalops[i], clause);	
-		}
-	}
+void setSolver(pwls space){
+	solver = space;
 }
 
 Atom cAtom(string* c){
@@ -940,25 +666,16 @@ Weight cWeight(string* s){
  * The result is false if unsat was already detected.
  */
 template<class T>
-void CR(int modid, const T& formula){
-	SATVAL result = modsolver->add(modid, formula);
-	if(result==SATVAL::UNSAT){
+void CR(const T& formula){
+	add(*solver, formula);
+	if(solver->isCertainlyUnsat()){
 		unsatfound = true;
 		throw idpexception("Unsat during parsing.\n");
 	}		
 }
-template<class T>
-void CR(const T& formula){
-	SATVAL result = SATVAL::POS_SAT;
-	if(modes.transformat==OutputFormat::FZ){
-		fzrewriter->add(formula);
-	}else{
-		result = solver->add(formula);
-	}
-	if(result==SATVAL::UNSAT){
-		unsatfound = true;
-		throw idpexception("Unsat during parsing.\n");
-	}		
+
+void setSpace(pwls space){
+	solver = space;
 }
 
 void addTuple(int literalnumber, const string& atom) {

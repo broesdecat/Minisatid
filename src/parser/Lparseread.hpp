@@ -27,7 +27,7 @@
 #ifndef READ_H
 #define READ_H
 
-#include "external/ExternalInterface.hpp"
+#include "wrapper/InterfaceImpl.hpp"
 
 namespace MinisatID {
 
@@ -76,7 +76,7 @@ private:
 	long size;
 	long linenumber;
 	int defaultdefinitionID;
-	T* solver;
+	T& solver;
 
 	std::vector<BasicRule*> basicrules;
 	std::vector<CardRule*> cardrules;
@@ -93,7 +93,7 @@ private:
 	MinisatID::LParseTranslator* translator;
 
 public:
-	Read(T* solver, LParseTranslator* trans):
+	Read(T& solver, LParseTranslator* trans):
 		endedparsing(false),
 		maxatomnumber(1), setcount(1), size(0), defaultdefinitionID(1),
 		solver(solver), optim(false),
@@ -116,14 +116,14 @@ private:
 	Atom makeParsedAtom		(int n);
 	Atom makeAtom			(int n);
 
-	bool addBasicRules		();
-	bool addCardRules		();
-	bool addSumRules		();
-	bool addOptimStatement	();
-	bool tseitinizeHeads	();
+	void addBasicRules		();
+	void addCardRules		();
+	void addSumRules		();
+	void addOptimStatement	();
+	void tseitinizeHeads	();
 	void addRuleToHead(std::map<Atom, std::vector<BasicRule*> >& headtorules, BasicRule* rule, Atom head);
 
-	T* getSolver() { return solver; }
+	T& getSolver() { return solver; }
 };
 
 }

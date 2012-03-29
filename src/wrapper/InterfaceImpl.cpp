@@ -13,654 +13,156 @@
 #include <algorithm>
 #include <limits>
 
-#include "external/ResourceManager.hpp"
+#include "utils/ResourceManager.hpp"
 #include "utils/Print.hpp"
 #include "external/Translator.hpp"
 #include "external/SearchMonitor.hpp"
+#include "theorysolvers/PCSolver.hpp"
 
 using namespace std;
 using namespace MinisatID;
-
-// REMAPPER
-
-void checkVar(const Atom& atom){
-	if(atom.getValue()<1 || atom.getValue() == numeric_limits<int>::max()){
-		throw idpexception(disAllowedVarNumbers());
-	}
-}
-
-Var Remapper::getVar(const Atom& atom){
-	checkVar(atom);
-
-	if(atom.getValue()>maxnumber){
-		maxnumber = atom.getValue();
-	}
-	return atom.getValue()-1;
-}
-
-Literal Remapper::getLiteral(const Lit& lit){
-	return Literal(var(lit)+1, sign(lit));
-}
-
-bool Remapper::hasVar(const Atom& atom, Var& mappedvarifexists) const{
-	if(atom.getValue()<=maxnumber){
-		mappedvarifexists = atom.getValue();
-		return true;
-	}else{
-		return false;
-	}
-}
-
-Var SmartRemapper::getVar(const Atom& atom){
-	checkVar(atom);
-
-	auto i = origtocontiguousatommapper.find(atom.getValue());
-	Var v = 0;
-	if(i==origtocontiguousatommapper.cend()){
-		origtocontiguousatommapper.insert(pair<int, int>(atom.getValue(), maxnumber));
-		contiguoustoorigatommapper.insert(pair<int, int>(maxnumber, atom.getValue()));
-		v = maxnumber++;
-	}else{
-		v = (*i).second;
-	}
-	return v;
-}
-
-Var SmartRemapper::getNewVar(){
-	return maxnumber++; // FIXME check invariants on the data structures!
-}
-
-bool SmartRemapper::wasInput(Var var) const{
-	return contiguoustoorigatommapper.find(var)!=contiguoustoorigatommapper.cend();
-}
-
-Literal SmartRemapper::getLiteral(const Lit& lit){
-	auto atom = contiguoustoorigatommapper.find(var(lit));
-	assert(atom!=contiguoustoorigatommapper.cend());
-	int origatom = (*atom).second;
-	return Literal(origatom, sign(lit));
-}
-
-bool SmartRemapper::hasVar(const Atom& atom, Var& mappedvarifexists) const{
-	auto i = origtocontiguousatommapper.find(atom.getValue());
-	if(i==origtocontiguousatommapper.cend()){
-		return false;
-	}else{
-		mappedvarifexists = (*i).second;
-		return true;
-	}
-}
-
-// PIMPL of External Interfaces
-
-
-// Create var in the remapper which has original value, but which can be used safely by the solver.
-Var WrapperPimpl::getNewVar(){
-	return getRemapper()->getNewVar();
-}
-
-WrapperPimpl::WrapperPimpl(const SolverOption& modes):
-		optimization(false),
-		state(INIT),
-		_modes(modes),
-
-		// FIXME needed for being able to introduce new variables as soon as possible
-		remapper(/*modes.remap?*/new SmartRemapper()/*:new Remapper()*/),
-		sharedremapper(false),
-		solutionmonitor(NULL),
-		hasprintcallback(false)
-		{
-	MinisatID::setTranslator(this); //TODO good for debugging, but unsafe in case of multiple solvers:
-}
-WrapperPimpl::WrapperPimpl(const SolverOption& modes, Remapper* sharedremapper):
-		optimization(false),
-		state(INIT),
-		_modes(modes),
-		remapper(sharedremapper),
-		sharedremapper(true),
-		solutionmonitor(NULL),
-		hasprintcallback(false)
-		{
-	MinisatID::setTranslator(this); //TODO good for debugging, but unsafe in case of multiple solvers:
-}
-
-void WrapperPimpl::setTranslator(callbackprinting translator){
-	hasprintcallback = true,
-	printliteral = translator;
-}
-
-WrapperPimpl::~WrapperPimpl(){
-	if(not sharedremapper){
-		delete remapper;
-	}
-}
-
-void WrapperPimpl::setSolutionMonitor(Solution* sol) {
-	if(sol!=NULL) {
-		solutionmonitor = sol;
-		getSolMonitor().setModes(modes());
-
-		// FIXME check if this happens at the correct moment
-		// NOTE: after parsing the translation, set the decision heuristic for the tseitins
-		if(not modes().decideontseitins){
-			dontDecideTseitins();
-		}
-	}
-}
-
-void WrapperPimpl::printStatistics() const {
-	if(hasSolMonitor()){
-		getSolMonitor().printStatistics();
-	}
-	getSolver()->printStatistics();
-}
-
-// NOTE: called by global operator<<(const Lit& l)!
-void WrapperPimpl::printLiteral(std::ostream& output, const Lit& l) const{
-	if(canBackMapLiteral(l) && hasprintcallback){
-		output << printliteral(getRemapper()->getLiteral(l).getValue());
-	}else if(canBackMapLiteral(l)){
-		if(hasSolMonitor()){
-			getSolMonitor().printLiteral(output, getRemapper()->getLiteral(l));
-		}else{
-			auto lit = getRemapper()->getLiteral(l);
-			output <<(lit.hasSign()?"~":"") <<"tseitin_" <<abs(lit.getValue());
-		}
-	}else{
-		output <<(sign(l)?"-":"") <<"intern_" <<var(l)+1; // NOTE: do not call <<l, this will cause an infinite loop (as that calls this method!)
-	}
-}
-
-void WrapperPimpl::printCurrentOptimum(const Weight& value) const{
-	getSolMonitor().notifyCurrentOptimum(value);
-}
-
-Var WrapperPimpl::checkAtom(const Atom& atom){
-	return getRemapper()->getVar(atom);
-}
-
-Lit WrapperPimpl::checkLit(const Literal& lit){
-	return mkLit(checkAtom(lit.getAtom()), lit.hasSign());
-}
-
-void WrapperPimpl::checkLits(const vector<vector<Literal> >& lits, vector<vector<Lit> >& ll){
-	for(auto i=lits.cbegin(); i<lits.cend(); ++i){
-		ll.push_back(vector<Lit>());
-		checkLits(*i, ll.back());
-	}
-}
-
-void WrapperPimpl::checkLits(const vector<Literal>& lits, vector<Lit>& ll){
-	ll.reserve(lits.size());
-	for(auto i=lits.cbegin(); i<lits.cend(); ++i){
-		ll.push_back(checkLit(*i));
-	}
-}
-
-void WrapperPimpl::checkLits(const map<Literal, Literal>& lits, map<Lit, Lit>& ll){
-	for(auto i=lits.cbegin(); i!=lits.cend(); ++i){
-		ll[checkLit(i->first)] = checkLit(i->second);
-	}
-}
-
-void WrapperPimpl::checkAtoms(const vector<Atom>& atoms, vector<Var>& ll){
-	ll.reserve(atoms.size());
-	for(auto i=atoms.cbegin(); i<atoms.cend(); ++i){
-		ll.push_back(checkAtom(*i));
-	}
-}
-
-void WrapperPimpl::checkAtoms(const std::map<Atom, Atom>& atoms, std::map<Var, Var>& ll){
-	for(auto i=atoms.cbegin(); i!=atoms.cend(); ++i){
-		ll.insert(pair<Var, Var>(checkAtom((*i).first), checkAtom((*i).second)));
-	}
-}
-
-SATVAL WrapperPimpl::finishParsing(){
-	if(hasSolMonitor()){
-		getSolMonitor().notifyStartDataInit();
-		printInitDataStart(verbosity());
-	}
-
-	getSolver()->finishParsing();
-	if(getSolver()->isUnsat()){
-		if(hasSolMonitor()){
-			getSolMonitor().notifyUnsat();
-		}
-	}
-	state = PARSED;
-
-	if(hasSolMonitor()){
-		getSolMonitor().notifyEndDataInit();
-		printInitDataEnd(verbosity(), getSolMonitor().isUnsat());
-	}
-
-	return getSolver()->isUnsat()?SATVAL::UNSAT:SATVAL::POS_SAT;
-}
-
-/*
- * Solution options:
- * 		PRINT_NONE: never print any models
- * 		PRINT_BEST: after solving an optimization problem, only print the optimum model or the best model when notifyTimeout is called
- * 			when not an optimization problem, comes down to print all
- * 		PRINT_ALL: print every model when adding it to the solution
- *
- * 		MODELEXAND: search for a solution
- * 		PROPAGATE: only do unit propagation (and print nothing, not even when a model is found)
- */
-void WrapperPimpl::solve(){
-	if(solutionmonitor==NULL){
-		throw idpexception("Solving without instantiating any solution monitor.\n");
-	}
-
-	if(!getSolMonitor().isUnsat() && state==INIT){
-		if(finishParsing()==SATVAL::UNSAT){
-			getSolMonitor().notifyUnsat();
-		}
-	}
-
-	if(!getSolMonitor().isUnsat()){
-		assert(state==PARSED);
-
-		getSolMonitor().notifyStartSolving();
-		printSolveStart(verbosity());
-
-		litlist assumptions;
-		checkLits(getSolMonitor().getAssumptions(), assumptions);
-
-		if(!getSolver()->solve(assumptions, getSolMonitor().getOptions())){
-			getSolMonitor().notifyUnsat();
-		}
-
-		if(getSolMonitor().getInferenceOption()==Inference::MODELEXPAND){
-			state = SOLVED;
-		}
-
-		getSolMonitor().notifyEndSolving();
-	}
-
-	getSolMonitor().notifySolvingFinished();
-}
-
-void WrapperPimpl::printTheory(ostream& stream){
-	if(state==INIT){
-		finishParsing();
-	}
-	getSolver()->printTheory(stream);
-}
-
-void WrapperPimpl::addModel(const InnerModel& model){
-	Model* outmodel = new Model();
-	outmodel->literalinterpretations = getBackMappedModel(model.litassignments);
-	outmodel->variableassignments = model.varassignments;
-	getSolMonitor().addModel(outmodel);
-}
-
-void WrapperPimpl::notifyOptimalModelFound(){
-	assert(hasOptimization());
-	getSolMonitor().notifyOptimalModelFound();
-}
-
-bool WrapperPimpl::canBackMapLiteral(const Lit& lit) const{
-	return getRemapper()->wasInput(var(lit));
-}
-
-Literal WrapperPimpl::getBackMappedLiteral(const Lit& lit) const{
-	assert(canBackMapLiteral(lit));
-	return getRemapper()->getLiteral(lit);
-}
-
-//Translate into original vocabulary
-vector<Literal> WrapperPimpl::getBackMappedModel(const std::vector<Lit>& model) const{
-	vector<Literal> outmodel;
-	for(auto i=model.cbegin(); i!=model.cend(); ++i){
-		if(canBackMapLiteral(*i)){
-			outmodel.push_back(getBackMappedLiteral(*i));
-		}
-	}
-	sort(outmodel.begin(), outmodel.end());
-	return outmodel;
-}
-
-void WrapperPimpl::addMonitor(SearchMonitor * const mon){
-	monitors.push_back(mon);
-	getSolver()->requestMonitor(this);
-}
-
-template<>
-void WrapperPimpl::notifyMonitor(const InnerPropagation& obj){
-	if(canBackMapLiteral(obj.propagation)){
-		Literal lit = getBackMappedLiteral(obj.propagation);
-		for(auto i=monitors.cbegin(); i<monitors.cend(); ++i){
-			(*i)->notifyPropagated(lit, obj.decisionlevel);
-		}
-	}
-}
-
-template<>
-void WrapperPimpl::notifyMonitor(const InnerBacktrack& obj){
-	for(auto i=monitors.cbegin(); i<monitors.cend(); ++i){
-		(*i)->notifyBacktracked(obj.untillevel);
-	}
-}
-
-
-// PROP SOLVER PIMPL
-
-PCWrapperPimpl::PCWrapperPimpl(const SolverOption& modes)
-		:WrapperPimpl(modes), solver(new PCSolver(modes, *this, 1)){
-}
-
-PCWrapperPimpl::~PCWrapperPimpl(){
-	delete solver;
-}
-
-template<>
-SATVAL PCWrapperPimpl::add(const Disjunction& sentence){
-	InnerDisjunction d;
-	checkLits(sentence.literals, d.literals);
-	getSolver()->add(d);
-	return getSolver()->satState();
-}
-
-template<>
-SATVAL PCWrapperPimpl::add(const Implication& sentence){
-	InnerImplication eq;
-	eq.head = checkLit(sentence.head);
-	eq.type = sentence.type;
-	checkLits(sentence.body, eq.literals);
-	eq.conjunctive = sentence.conjunction;
-	getSolver()->add(eq);
-	return getSolver()->satState();
-}
-
-template<>
-SATVAL PCWrapperPimpl::add(const Rule& sentence){
-	InnerRule rule;
-	rule.head = checkAtom(sentence.head);
-	rule.definitionID = sentence.definitionID;
-	rule.conjunctive = sentence.conjunctive;
-	checkLits(sentence.body, rule.body);
-	getSolver()->add(rule);
-	return getSolver()->satState();
-}
-
-template<>
-SATVAL PCWrapperPimpl::add(const Set& sentence){
-	WSet set;
-	set.setID = sentence.setID;
-	set.literals = sentence.literals;
-	set.weights = vector<Weight>(sentence.literals.size(), 1);
-	add(set);
-	return getSolver()->satState();
-}
-
-template<>
-SATVAL PCWrapperPimpl::add(const WSet& sentence){
-	WLSet set;
-	set.setID = sentence.setID;
-	for(uint i=0; i<sentence.literals.size(); ++i){
-		set.wl.push_back(WLtuple(sentence.literals[i], sentence.weights[i]));
-	}
-	add(set);
-	return getSolver()->satState();
-}
-
-template<>
-SATVAL PCWrapperPimpl::add(const WLSet& sentence){
-	vector<WL> wls;
-	for(auto i=sentence.wl.cbegin(); i<sentence.wl.cend(); ++i){
-		wls.push_back(WL(checkLit((*i).l), (*i).w));
-	}
-	InnerWLSet set(sentence.setID, wls);
-	getSolver()->add(set);
-	return getSolver()->satState();
-}
-
-template<>
-SATVAL PCWrapperPimpl::add(const Aggregate& sentence){
-	InnerReifAggregate agg;
-	agg.setID = sentence.setID;
-	agg.head = checkAtom(sentence.head);
-	agg.bound = sentence.bound;
-	agg.type = sentence.type;
-	agg.sign = sentence.sign;
-	agg.sem = sentence.sem;
-	agg.defID = sentence.defID;
-	getSolver()->add(agg);
-	return getSolver()->satState();
-}
-
-template<>
-SATVAL PCWrapperPimpl::add(const MinimizeSubset& sentence){
-	InnerMinimizeSubset mnm;
-	checkLits(sentence.literals, mnm.literals);
-	getSolver()->add(mnm);
-
-	setOptimization(true);
-
-	return getSolver()->satState();
-}
-
-template<>
-SATVAL PCWrapperPimpl::add(const MinimizeOrderedList& sentence){
-	InnerMinimizeOrderedList mnm;
-	checkLits(sentence.literals, mnm.literals);
-	getSolver()->add(mnm);
-
-	setOptimization(true);
-
-	return getSolver()->satState();
-}
-
-template<>
-SATVAL PCWrapperPimpl::add(const MinimizeVar& sentence){
-	InnerMinimizeVar mnm;
-	mnm.varID = sentence.varID;
-	getSolver()->add(mnm);
-
-	setOptimization(true);
-
-	return getSolver()->satState();
-}
-
-template<>
-SATVAL PCWrapperPimpl::add(const MinimizeAgg& sentence){
-	InnerMinimizeAgg mnm;
-	mnm.setID = sentence.setid;
-	mnm.type = sentence.type;
-	setOptimization(true);
-	getSolver()->add(mnm);
-
-	setOptimization(true);
-
-	return getSolver()->satState();
-}
-
-template<>
-SATVAL PCWrapperPimpl::add(const ForcedChoices& sentence){
-	InnerForcedChoices choices;
-	checkLits(sentence.forcedchoices, choices.forcedchoices);
-	getSolver()->add(choices);
-	return getSolver()->satState();
-}
-
-template<>
-SATVAL PCWrapperPimpl::add(const Symmetry& sentence){
-	InnerSymmetry symms;
-	checkLits(sentence.symmetry, symms.symmetry);
-	getSolver()->add(symms);
-	return getSolver()->satState();
-}
-
-template<>
-SATVAL PCWrapperPimpl::add(const LazyGroundLit& sentence){
-	InnerLazyClause lc;
-	lc.monitor = sentence.monitor;
-	lc.residual = checkLit(sentence.residual);
-	lc.watchboth = sentence.watchboth;
-	//clog <<"Watching " <<(lc.watchboth?"both":"single") <<" on " <<lc.residual <<"\n";
-	getSolver()->add(lc);
-	return getSolver()->satState();
-}
-
-void checkCPSupport(){
-#ifndef CPSUPPORT
-	throw idpexception(getNoCPSupportString());
-#endif
-}
-
-template<>
-SATVAL PCWrapperPimpl::add(const CPIntVarEnum& sentence){
-	checkCPSupport();
-	InnerIntVarEnum var;
-	var.varID = sentence.varID;
-	var.values = sentence.values;
-	getSolver()->add(var);
-	return getSolver()->satState();
-}
-template<>
-SATVAL PCWrapperPimpl::add(const CPIntVarRange& sentence){
-	InnerIntVarRange var;
-	var.varID = sentence.varID;
-	var.minvalue = sentence.minvalue;
-	var.maxvalue = sentence.maxvalue;
-	getSolver()->add(var);
-	return getSolver()->satState();
-}
-template<>
-SATVAL PCWrapperPimpl::add(const CPBinaryRel& sentence){
-	checkCPSupport();
-	InnerCPBinaryRel form;
-	form.head = checkAtom(sentence.head);
-	form.varID = sentence.varID;
-	form.rel = sentence.rel;
-	form.bound = sentence.bound;
-	getSolver()->add(form);
-	return getSolver()->satState();
-}
-template<>
-SATVAL PCWrapperPimpl::add(const CPBinaryRelVar& sentence){
-	checkCPSupport();
-	InnerCPBinaryRelVar form;
-	form.head = checkAtom(sentence.head);
-	form.lhsvarID = sentence.lhsvarID;
-	form.rel = sentence.rel;
-	form.rhsvarID = sentence.rhsvarID;
-	getSolver()->add(form);
-	return getSolver()->satState();
-}
-template<>
-SATVAL PCWrapperPimpl::add(const CPSumWeighted& sentence){
-	checkCPSupport();
-	InnerCPSumWeighted form;
-	form.head = checkAtom(sentence.head);
-	form.rel = sentence.rel;
-	form.bound = sentence.bound;
-	form.weights = sentence.weights;
-	form.varIDs = sentence.varIDs;
-	getSolver()->add(form);
-	return getSolver()->satState();
-}
-template<>
-SATVAL PCWrapperPimpl::add(const CPCount& sentence){
-	checkCPSupport();
-	InnerCPCount form;
-	form.varIDs = sentence.varIDs;
-	form.eqbound = sentence.eqbound;
-	form.rel = sentence.rel;
-	form.rhsvar = sentence.rhsvar;
-	getSolver()->add(form);
-	return getSolver()->satState();
-}
-template<>
-SATVAL PCWrapperPimpl::add(const CPAllDiff& sentence){
-	checkCPSupport();
-	InnerCPAllDiff form;
-	form.varIDs = sentence.varIDs;
-	getSolver()->add(form);
-	return getSolver()->satState();
-}
-
-// MODAL SOLVER
-
-SOWrapperPimpl::SOWrapperPimpl(const SolverOption& modes):
-		WrapperPimpl(modes), solver(new SOSolver(modes, *this)){
-}
-
-SOWrapperPimpl::~SOWrapperPimpl(){
-	delete solver;
-}
-
-template<>
-SATVAL SOWrapperPimpl::add(int modid, const Disjunction& sentence){
-	InnerDisjunction d;
-	checkLits(sentence.literals, d.literals);
-	return getSolver()->add(modid, d);
-}
-
-template<>
-SATVAL SOWrapperPimpl::add(int modid, const Rule& sentence){
-	InnerRule rule;
-	rule.head = checkAtom(sentence.head);
-	rule.definitionID = sentence.definitionID;
-	rule.conjunctive = sentence.conjunctive;
-	checkLits(sentence.body, rule.body);
-	return getSolver()->add(modid, rule);
-}
-
-template<>
-SATVAL SOWrapperPimpl::add(int modid, const Set& sentence){
-	vector<Weight> weights = vector<Weight>(sentence.literals.size(), 1);
-	InnerWLSet set(sentence.setID, vector<WL>());
-	for(auto i=sentence.literals.cbegin(); i!=sentence.literals.cend(); ++i){
-		set.wls.push_back(WL(checkLit(*i), 1));
-	}
-	return getSolver()->add(modid, set);
-}
-
-template<>
-SATVAL SOWrapperPimpl::add(int modid, const WSet& sentence){
-	InnerWLSet set(sentence.setID, vector<WL>());
-	for(uint i=0; i!=sentence.literals.size(); ++i){
-		set.wls.push_back(WL(checkLit(sentence.literals[i]), sentence.weights[i]));
-	}
-	return getSolver()->add(modid, set);
-}
-
-template<>
-SATVAL SOWrapperPimpl::add(int modid, const WLSet& sentence){
-	InnerWLSet set(sentence.setID, vector<WL>());
-	for(vector<WLtuple>::const_iterator i=sentence.wl.cbegin(); i<sentence.wl.cend(); ++i){
-		set.wls.push_back(WL(checkLit((*i).l),(*i).w));
-	}
-	return getSolver()->add(modid, set);
-}
-
-template<>
-SATVAL SOWrapperPimpl::add(int modid, const Aggregate& sentence){
-	InnerReifAggregate agg;
-	agg.setID = sentence.setID;
-	agg.head = checkAtom(sentence.head);
-	agg.bound = sentence.bound;
-	agg.type = sentence.type;
-	agg.sign = sentence.sign;
-	agg.sem = sentence.sem;
-	agg.defID = sentence.defID;
-	return getSolver()->add(modid, agg);
-}
-
-template<>
-SATVAL SOWrapperPimpl::add(int modalid, const RigidAtoms& sentence){
-	InnerRigidAtoms rigid;
-	checkAtoms(sentence.rigidatoms, rigid.rigidatoms);
-	return getSolver()->add(modalid, rigid);
-}
-
-template<>
-SATVAL SOWrapperPimpl::add(int modalid, const SubTheory& sentence){
-	InnerSubTheory subtheory;
-	subtheory.child = sentence.child;
-	subtheory.head = checkLit(sentence.head);
-	return getSolver()->add(modalid, subtheory);
-}
+//
+//// NOTE: called by global operator<<(const Lit& l)!
+//void WrappedSolver::printLiteral(std::ostream& output, const Lit& l) const{
+//	if(canBackMapLiteral(l) && hasprintcallback){
+//		output << printliteral(getRemapper()->getLiteral(l).getValue());
+//	}else if(canBackMapLiteral(l)){
+//		if(hasSolMonitor()){
+//			getSolMonitor().printLiteral(output, getRemapper()->getLiteral(l));
+//		}else{
+//			auto lit = getRemapper()->getLiteral(l);
+//			output <<(lit.hasSign()?"~":"") <<"tseitin_" <<abs(lit.getValue());
+//		}
+//	}else{
+//		output <<(sign(l)?"-":"") <<"intern_" <<var(l)+1; // NOTE: do not call <<l, this will cause an infinite loop (as that calls this method!)
+//	}
+//}
+//
+//void WrappedSolver::printCurrentOptimum(const Weight& value) const{
+//	getSolMonitor().notifyCurrentOptimum(value);
+//}
+//
+//SATVAL WrappedSolver::finishParsing(){
+//	if(hasSolMonitor()){
+//		getSolMonitor().notifyStartDataInit();
+//		printInitDataStart(verbosity());
+//	}
+//
+//	getSolver()->finishParsing();
+//	if(getSolver()->isUnsat()){
+//		if(hasSolMonitor()){
+//			getSolMonitor().notifyUnsat();
+//		}
+//	}
+//	state = PARSED;
+//
+//	if(hasSolMonitor()){
+//		getSolMonitor().notifyEndDataInit();
+//		printInitDataEnd(verbosity(), getSolMonitor().isUnsat());
+//	}
+//
+//	return getSolver()->isUnsat()?SATVAL::UNSAT:SATVAL::POS_SAT;
+//}
+//
+///*
+// * Solution options:
+// * 		PRINT_NONE: never print any models
+// * 		PRINT_BEST: after solving an optimization problem, only print the optimum model or the best model when notifyTimeout is called
+// * 			when not an optimization problem, comes down to print all
+// * 		PRINT_ALL: print every model when adding it to the solution
+// *
+// * 		MODELEXAND: search for a solution
+// * 		PROPAGATE: only do unit propagation (and print nothing, not even when a model is found)
+// */
+//void WrappedSolver::solve(){
+//	if(solutionmonitor==NULL){
+//		throw idpexception("Solving without instantiating any solution monitor.\n");
+//	}
+//
+//	if(!getSolMonitor().isUnsat() && state==INIT){
+//		if(finishParsing()==SATVAL::UNSAT){
+//			getSolMonitor().notifyUnsat();
+//		}
+//	}
+//
+//	if(!getSolMonitor().isUnsat()){
+//		assert(state==PARSED);
+//
+//		getSolMonitor().notifyStartSolving();
+//		printSolveStart(verbosity());
+//
+//		litlist assumptions;
+//		checkLits(getSolMonitor().getAssumptions(), assumptions);
+//
+//		if(!getSolver()->solve(assumptions, getSolMonitor().getOptions())){
+//			getSolMonitor().notifyUnsat();
+//		}
+//
+//		if(getSolMonitor().getInferenceOption()==Inference::MODELEXPAND){
+//			state = SOLVED;
+//		}
+//
+//		getSolMonitor().notifyEndSolving();
+//	}
+//
+//	getSolMonitor().notifySolvingFinished();
+//}
+//
+//void WrappedSolver::addModel(const InnerModel& model){
+//	Model* outmodel = new Model();
+//	outmodel->literalinterpretations = getBackMappedModel(model.litassignments);
+//	outmodel->variableassignments = model.varassignments;
+//	getSolMonitor().addModel(outmodel);
+//}
+//
+//void WrappedSolver::notifyOptimalModelFound(){
+//	assert(hasOptimization());
+//	getSolMonitor().notifyOptimalModelFound();
+//}
+//
+//bool WrappedSolver::canBackMapLiteral(const Lit& lit) const{
+//	return getRemapper()->wasInput(var(lit));
+//}
+//
+//Literal WrappedSolver::getBackMappedLiteral(const Lit& lit) const{
+//	assert(canBackMapLiteral(lit));
+//	return getRemapper()->getLiteral(lit);
+//}
+//
+////Translate into original vocabulary
+//vector<Literal> WrappedSolver::getBackMappedModel(const std::vector<Lit>& model) const{
+//	vector<Literal> outmodel;
+//	for(auto i=model.cbegin(); i!=model.cend(); ++i){
+//		if(canBackMapLiteral(*i)){
+//			outmodel.push_back(getBackMappedLiteral(*i));
+//		}
+//	}
+//	sort(outmodel.begin(), outmodel.end());
+//	return outmodel;
+//}
+//
+//SATVAL WrappedSolver::getSatState() const{ // FIXME check consistency with solmonitor
+//	return getSolver()->satState();
+//}
+//
+//void WrappedSolver::addMonitor(SearchMonitor * const mon){
+//	monitors.push_back(mon);
+//	getSolver()->requestMonitor(this);
+//}
+//
+//template<>
+//void WrappedSolver::notifyMonitor(const InnerPropagation& obj){
+//	if(canBackMapLiteral(obj.propagation)){
+//		Literal lit = getBackMappedLiteral(obj.propagation);
+//		for(auto i=monitors.cbegin(); i<monitors.cend(); ++i){
+//			(*i)->notifyPropagated(lit, obj.decisionlevel);
+//		}
+//	}
+//}
+//
+//template<>
+//void WrappedSolver::notifyMonitor(const InnerBacktrack& obj){
+//	for(auto i=monitors.cbegin(); i<monitors.cend(); ++i){
+//		(*i)->notifyBacktracked(obj.untillevel);
+//	}
+//}

@@ -60,7 +60,6 @@ public:
 	bool 			bumpaggonnotify, bumpidonstart;
 	bool			asapaggprop;
 	long 			ufsvarintrothreshold;
-	bool			decideontseitins;
 	bool			subsetminimizeexplanation, currentlevelfirstinexplanation, innogoodfirstinexplanation;
 	bool			lazy;
 

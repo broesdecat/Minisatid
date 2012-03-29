@@ -9,7 +9,7 @@
 #ifndef PBREAD_H
 #define PBREAD_H
 
-#include "external/ExternalInterface.hpp"
+#include "wrapper/InterfaceImpl.hpp"
 #include "external/Translator.hpp"
 
 namespace MinisatID {
@@ -44,10 +44,10 @@ namespace MinisatID {
 template<class T>
 class DefaultCallback {
 private:
-	T* solver;
-	T* getSolver() { return solver; }
+	T& solver;
+	T& getSolver() { return solver; }
 
-	Literal 		createLiteralFromOPBVar(int var);
+	Literal createLiteralFromOPBVar(int var);
 
 	IntegerType bound;
 	bool equality;
@@ -57,7 +57,7 @@ private:
 	Atom dummyhead;
 
 public:
-	DefaultCallback(T* solver):solver(solver), setid(0), dummyhead(Atom(-1)){
+	DefaultCallback(T& solver):solver(solver), setid(0), dummyhead(Atom(-1)){
 
 	}
 
@@ -67,7 +67,7 @@ public:
 	 * @param nbvar: the number of variables
 	 * @param nbconstr: the number of contraints
 	 */
-	bool metaData(int nbvar, int nbconstr);
+	void metaData(int nbvar, int nbconstr);
 
 	/**
 	 * callback called before we read the objective function
@@ -77,7 +77,7 @@ public:
 	/**
 	 * callback called after we've read the objective function
 	 */
-	bool endObjective();
+	void endObjective();
 
 	/**
 	 * callback called when we read a term of the objective function
@@ -98,7 +98,7 @@ public:
 
 	void beginConstraint();
 
-	bool endConstraint();
+	void endConstraint();
 
 	/**
 	 * callback called when we read a term of a constraint
@@ -136,7 +136,7 @@ public:
 	 * add the necessary constraints to define newSymbol as equivalent
 	 * to the product (conjunction) of literals in product.
 	 */
-	bool linearizeProduct(int newSymbol, std::vector<int> product);
+	void linearizeProduct(int newSymbol, std::vector<int> product);
 };
 
 // we represent each node of a n-ary tree by a std::vector<ProductNode>
@@ -191,14 +191,14 @@ public:
 	 */
 	int getProductVariable(std::vector<int> &list);
 
-	bool defineProductVariable(DefaultCallback<T> &cb) {
+	void defineProductVariable(DefaultCallback<T> &cb) {
 		std::vector<int> list;
-		return defineProductVariableRec(cb, root, list);
+		defineProductVariableRec(cb, root, list);
 	}
 	void freeProductVariable() { freeProductVariableRec(root); }
 
 private:
-	bool defineProductVariableRec(DefaultCallback<T> &cb, std::vector<ProductNode> &nodes, std::vector<int> &list);
+	void defineProductVariableRec(DefaultCallback<T> &cb, std::vector<ProductNode> &nodes, std::vector<int> &list);
 	void freeProductVariableRec(std::vector<ProductNode> &nodes);
 };
 
@@ -215,7 +215,7 @@ private:
 	DefaultCallback<T> cb;
 
 public:
-	PBRead(T* solver, OPBTranslator* trans, std::istream &stream):
+	PBRead(T solver, OPBTranslator* trans, std::istream &stream):
 			trans(trans), in(stream), cb(solver) {
 		autoLinearize = false;
 
@@ -229,7 +229,7 @@ public:
 		store.freeProductVariable();
 	}
 
-	bool parse();
+	void parse();
 	void autoLin() { autoLinearize = true; }
 
 private:
@@ -264,7 +264,7 @@ private:
 	 *
 	 * calls metaData with the data that was read
 	 */
-	bool readMetaData();
+	void readMetaData();
 
 	/**
 	 * skip the comments at the beginning of the file
@@ -283,14 +283,14 @@ private:
 	 *
 	 * calls beginObjective, objectiveTerm and endObjective
 	 */
-	bool readObjective();
+	void readObjective();
 
 	/**
 	 * read a constraint
 	 *
 	 * calls beginConstraint, constraintTerm and endConstraint
 	 */
-	bool readConstraint();
+	void readConstraint();
 
 	/**
 	 * passes a product term to the solver (first linearizes the product

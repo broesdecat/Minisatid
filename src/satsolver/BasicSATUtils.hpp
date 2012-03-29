@@ -6,18 +6,16 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#ifndef EXTERNALUTILS_HPP_
-#define EXTERNALUTILS_HPP_
+#ifndef BASICSATUTILS_H_
+#define BASICSATUTILS_H_
 
-typedef unsigned int uint;
+#include "satsolver/minisat/BasicSolverTypes.hpp"
 
-#include <sstream>
+namespace MinisatID {
+	using Minisat::mkLit;
+	using Minisat::Var;
+	using Minisat::Lit;
+	bool isPositive(const Lit& lit);
+}
 
-#include "MAssert.hpp"
-#include "Idpexception.hpp"
-#include "Weight.hpp"
-#include "Datastructures.hpp"
-
-#include "Options.hpp"
-
-#endif /*EXTERNALUTILS_HPP_*/
+#endif// BASICSATUTILS_H_

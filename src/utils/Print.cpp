@@ -16,25 +16,13 @@
 #include "wrapper/InterfaceImpl.hpp"
 
 #include "theorysolvers/PCSolver.hpp"
-#include "theorysolvers/SOSolver.hpp"
 
 #include "modules/IDSolver.hpp"
-#include "modules/ModSolver.hpp"
 
 using namespace std;
 using namespace MinisatID;
 
 namespace MinisatID{
-
-WrapperPimpl* currentpimpl = NULL; //TODO useful but incorrect for multiple solvers
-
-void setTranslator(WrapperPimpl* translator){
-	currentpimpl = translator;
-}
-
-WrapperPimpl* getTranslator(){
-	return currentpimpl;
-}
 
 template<>
 void print(const Minisat::Lit& lit, const lbool val){
@@ -63,11 +51,7 @@ std::string print(const InnerDisjunction& clause){
 
 template<> std::string print(const Lit& lit){
 	std::stringstream ss;
-	if(getTranslator()!=NULL){
-		getTranslator()->printLiteral(ss, lit);
-	}else{
-		ss <<(sign(lit)?"-":"") <<var(lit)+1;
-	}
+	ss <<(sign(lit)?"-":"") <<var(lit)+1;
 	return ss.str();
 }
 
@@ -89,11 +73,6 @@ template<>
 void print(Minisat::Solver const * const s){
 	assert(s!=NULL);
 	print(*s);
-}
-
-template<>
-void print(PCSolver * const s){
-	s->printState();
 }
 
 template<>
@@ -119,67 +98,6 @@ void print(IDSolver const * const s){
 		clog <<"\n";
 	}
 }
-
-template<>
-void print(ModSolver * const m){
-	clog <<"ModSolver " <<m->getPrintId() <<" parent " <<m->getParentPrintId();
-	if(m->hasParent()){
-		clog <<", head";
-		print(mkLit(m->getHead()), m->getHeadValue());
-	}
-	clog <<", children ";
-	for(auto i=m->getChildren().cbegin(); i<m->getChildren().cend(); ++i){
-		clog <<*i;
-	}
-	clog <<"\nModal atoms ";
-	for(auto i=m->getAtoms().cbegin(); i<m->getAtoms().cend(); ++i){
-		clog <<getPrintableVar(*i);
-	}
-	/*clog <<"\nsubtheory\n");
-	print(m->getPCSolver());*/
-	clog <<"SubSolvers\n";
-	for(auto i=m->getChildren().cbegin(); i<m->getChildren().cend(); ++i){
-		print(m->getModSolverData().getModSolver(*i));
-	}
-}
-
-template<>
-void print(ModSolver const * const m){
-	clog <<"ModSolver " <<m->getPrintId() <<" parent " <<m->getParentPrintId();
-	if(m->hasParent()){
-		clog <<", head";
-		print(mkLit(m->getHead()), m->getHeadValue());
-	}
-	clog <<", children ";
-	for(auto i=m->getChildren().cbegin(); i<m->getChildren().cend(); ++i){
-		clog <<*i;
-	}
-	clog <<"\nModal atoms ";
-	for(auto i=m->getAtoms().cbegin(); i<m->getAtoms().cend(); ++i){
-		clog <<getPrintableVar(*i);
-	}
-	/*clog <<"\nsubtheory\n");
-	print(m->getPCSolver());*/
-	clog <<"SubSolvers\n";
-	for(auto i=m->getChildren().cbegin(); i<m->getChildren().cend(); ++i){
-		print(m->getModSolverData().getModSolver(*i));
-	}
-}
-
-template<>
-void print(SOSolver * const d){
-	clog <<"Printing theory\n";
-	print(d->getModSolver((modindex)0));
-	clog <<"End of theory\n";
-}
-
-template<>
-void print(SOSolver const * const d){
-	clog <<"Printing theory\n";
-	print(d->getModSolver((modindex)0));
-	clog <<"End of theory\n";
-}
-
 
 template<class S>
 void print(rClause c, const S& s){

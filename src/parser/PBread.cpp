@@ -34,6 +34,7 @@
 // version 2.9.4
 
 #include "parser/PBread.hpp"
+#include "external/Constraints.hpp"
 
 #include <sstream>
 #include <iostream>
@@ -50,12 +51,12 @@ using namespace MinisatID;
  * @param nbvar: the number of variables
  * @param nbconstr: the number of contraints
  */
-template<class T> bool DefaultCallback<T>::metaData(int nbvar, int) {
+template<class T> void DefaultCallback<T>::metaData(int nbvar, int) {
 	maxvar = nbvar;
 	dummyhead = Atom(++maxvar);
 	Disjunction clause;
 	clause.literals.push_back(Literal(dummyhead, false));
-	return getSolver()->add(clause)==SATVAL::POS_SAT;
+	add(getSolver(), clause);
 }
 
 /**
@@ -68,19 +69,16 @@ template<class T> void DefaultCallback<T>::beginObjective() {
 /**
  * callback called after we've read the objective function
  */
-template<class T> bool DefaultCallback<T>::endObjective() {
-	SATVAL possat = SATVAL::POS_SAT;
-
+template<class T> void DefaultCallback<T>::endObjective() {
 	setid++;
 	wset.setID = setid;
-	possat &= getSolver()->add(wset);
+	add(getSolver(), wset);
 	wset = WSet();
 
 	MinimizeAgg mnm;
 	mnm.setid = setid;
 	mnm.type = AggType::SUM;
-	possat &= getSolver()->add(mnm);
-	return possat==SATVAL::POS_SAT;
+	add(getSolver(), mnm);
 }
 
 /**
@@ -110,11 +108,10 @@ template<class T> void DefaultCallback<T>::beginConstraint() {
 	assert(wset.literals.size()==0);
 }
 
-template<class T> bool DefaultCallback<T>::endConstraint() {
-	SATVAL posssat = SATVAL::POS_SAT;
+template<class T> void DefaultCallback<T>::endConstraint() {
 	setid++;
 	wset.setID = setid;
-	posssat &= getSolver()->add(wset);
+	add(getSolver(), wset);
 	wset = WSet();
 
 	Disjunction clause;
@@ -126,16 +123,15 @@ template<class T> bool DefaultCallback<T>::endConstraint() {
 	if(equality){
 		agg.head = dummyhead;
 		agg.sign = AggSign::LB;
-		posssat &= getSolver()->add(agg);
+		add(getSolver(), agg);
 		agg.head = dummyhead;
 		agg.sign = AggSign::UB;
-		posssat &= getSolver()->add(agg);
+		add(getSolver(), agg);
 	}else{
 		agg.head = dummyhead;
 		agg.sign = AggSign::LB;
-		posssat &= getSolver()->add(agg);
+		add(getSolver(), agg);
 	}
-	return posssat==SATVAL::POS_SAT;
 }
 
 template<class T> Literal DefaultCallback<T>::createLiteralFromOPBVar(int var){
@@ -191,8 +187,7 @@ template<class T> void DefaultCallback<T>::constraintRightTerm(IntegerType val) 
  * add the necessary constraints to define newSymbol as equivalent
  * to the product (conjunction) of literals in product.
  */
-template<class T> bool DefaultCallback<T>::linearizeProduct(int newSymbol, vector<int> product) {
-	bool possat = true;
+template<class T> void DefaultCallback<T>::linearizeProduct(int newSymbol, vector<int> product) {
 	IntegerType r;
 
 	// product => newSymbol (this is a clause)
@@ -208,7 +203,7 @@ template<class T> bool DefaultCallback<T>::linearizeProduct(int newSymbol, vecto
 			constraintTerm(1, -(*i));
 	constraintRelOp(">=");
 	constraintRightTerm(r);
-	possat &= endConstraint();
+	endConstraint();
 
 #ifdef ONLYCLAUSES
 	// newSymbol => product translated as
@@ -244,9 +239,8 @@ template<class T> bool DefaultCallback<T>::linearizeProduct(int newSymbol, vecto
 		}
 	constraintRelOp(">=");
 	constraintRightTerm(r);
-	possat &= endConstraint();
+	endConstraint();
 #endif
-	return possat;
 }
 
 /**
@@ -286,21 +280,19 @@ template<class T> int ProductStore<T>::getProductVariable(vector<int> &list) {
  * add the constraints which define all product terms
  *
  */
-template<class T> bool ProductStore<T>::defineProductVariableRec(DefaultCallback<T> &cb, vector<ProductNode> &nodes, vector<int> &list) {
-	bool possat = true;
+template<class T> void ProductStore<T>::defineProductVariableRec(DefaultCallback<T> &cb, vector<ProductNode> &nodes, vector<int> &list) {
 	for (typename vector<ProductNode>::const_iterator i = nodes.cbegin(); i < nodes.cend(); ++i) {
 		list.push_back((*i).lit);
 		if ((*i).productId){
-			possat &= cb.linearizeProduct((*i).productId, list);
+			cb.linearizeProduct((*i).productId, list);
 		}
 
 		if ((*i).next){
-			possat &= defineProductVariableRec(cb, *(*i).next, list);
+			defineProductVariableRec(cb, *(*i).next, list);
 		}
 
 		list.pop_back();
 	}
-	return possat;
 }
 
 /**
@@ -409,8 +401,7 @@ template<class T> bool PBRead<T>::readRelOp(string &s) {
  *
  * calls metaData with the data that was read
  */
-template<class T> bool PBRead<T>::readMetaData() {
-	bool possat = true;
+template<class T> void PBRead<T>::readMetaData() {
 	char c;
 	string s;
 
@@ -458,14 +449,13 @@ template<class T> bool PBRead<T>::readMetaData() {
 	// callback to transmit the data
 	if (nbProduct && autoLinearize) {
 #ifdef ONLYCLAUSES
-		possat &= cb.metaData(nbVars+nbProduct,nbConstr+nbProduct+sizeProduct);
+		cb.metaData(nbVars+nbProduct,nbConstr+nbProduct+sizeProduct);
 #else
-		possat &= cb.metaData(nbVars + nbProduct, nbConstr + 2 * nbProduct);
+		cb.metaData(nbVars + nbProduct, nbConstr + 2 * nbProduct);
 #endif
 	} else{
-		possat &= cb.metaData(nbVars, nbConstr);
+		cb.metaData(nbVars, nbConstr);
 	}
-	return possat;
 }
 
 /**
@@ -506,8 +496,7 @@ template<class T> void PBRead<T>::readTerm(IntegerType &coeff, vector<int> &list
  *
  * calls beginObjective, objectiveTerm and endObjective
  */
-template<class T> bool PBRead<T>::readObjective() {
-	bool possat = true;
+template<class T> void PBRead<T>::readObjective() {
 	char c;
 	string s;
 
@@ -521,7 +510,6 @@ template<class T> bool PBRead<T>::readObjective() {
 	if (c != 'm') {
 		// no objective line
 		putback(c);
-		return possat;
 	}
 
 	if (get() == 'i' && get() == 'n' && get() == ':') {
@@ -544,11 +532,10 @@ template<class T> bool PBRead<T>::readObjective() {
 				throw idpexception("unexpected character in objective function.\n");
 		}
 
-		possat &= cb.endObjective();
+		cb.endObjective();
 	} else{
 		throw idpexception("input format error: 'min:' expected.\n");
 	}
-	return possat;
 }
 
 /**
@@ -556,7 +543,7 @@ template<class T> bool PBRead<T>::readObjective() {
  *
  * calls beginConstraint, constraintTerm and endConstraint
  */
-template<class T> bool PBRead<T>::readConstraint() {
+template<class T> void PBRead<T>::readConstraint() {
 	string s;
 	char c;
 
@@ -600,7 +587,7 @@ template<class T> bool PBRead<T>::readConstraint() {
 	if (eof() || c != ';')
 		throw idpexception("semicolon expected at end of constraint.\n");
 
-	return cb.endConstraint();
+	cb.endConstraint();
 }
 
 /**
@@ -628,13 +615,12 @@ template<class T> void PBRead<T>::handleProduct(bool inObjective, IntegerType co
  * parses the file and uses the callbacks to send the data
  * back to the program
  */
-template<class T> bool PBRead<T>::parse() {
-	bool possat = true;
+template<class T> void PBRead<T>::parse() {
 	char c;
 
 	readMetaData();
 	skipComments();
-	possat &= readObjective();
+	readObjective();
 
 	// read constraints
 	int nbConstraintsRead = 0;
@@ -650,7 +636,7 @@ template<class T> bool PBRead<T>::parse() {
 		if (eof())
 			break;
 
-		possat &= readConstraint();
+		readConstraint();
 		nbConstraintsRead++;
 	}
 
@@ -661,8 +647,7 @@ template<class T> bool PBRead<T>::parse() {
 	}
 
 	if (autoLinearize) {
-		possat &= store.defineProductVariable(cb);
+		store.defineProductVariable(cb);
 	}
-	return possat;
 }
 

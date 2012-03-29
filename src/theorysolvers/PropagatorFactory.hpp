@@ -33,7 +33,6 @@ class SolverOption;
 
 class Propagator;
 class IDSolver;
-class ModSolver;
 class AggToCNFTransformer;
 
 #ifdef CPSUPPORT
@@ -87,7 +86,6 @@ protected:
 	}
 };
 
-typedef FactoryStorage<ModSolver> ModStorage;
 typedef FactoryStorage<SATSolver> SATStorage;
 #ifdef CPSUPPORT
 typedef FactoryStorage<CPSolver> CPStorage;
@@ -95,7 +93,6 @@ typedef FactoryStorage<CPSolver> CPStorage;
 typedef ManagedFactoryStorage<AggToCNFTransformer> AggStorage;
 
 class PropagatorFactory:
-	public ModStorage,
 	public SATStorage,
 	public AggStorage
 #ifdef CPSUPPORT
@@ -167,8 +164,6 @@ public:
 	SATVAL finishParsing();
 
 	void includeCPModel(std::vector<VariableEqValue>& varassignments);
-
-	void setModSolver(ModSolver* m);
 
 private:
 	VARHEUR lazyDecide() const;

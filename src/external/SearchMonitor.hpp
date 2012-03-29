@@ -17,8 +17,9 @@ namespace MinisatID {
 
 /**
  * Class which monitors actions during the propagation/search and notifies its registered callbacks.
+ * // TODO check whether it is correct that callbacks do not require library recompilation while inheritance does require it!
  */
-class SearchMonitor{
+class PropAndBackMonitor{
 private:
 	cb::Callback1<void, int> backtrackcb;
 	cb::Callback2<void, Literal, int> propagatedcb;

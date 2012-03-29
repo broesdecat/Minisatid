@@ -12,7 +12,7 @@
 #include <vector>
 #include <algorithm>
 
-#include "external/ResourceManager.hpp"
+#include "utils/ResourceManager.hpp"
 #include "external/Translator.hpp"
 
 using namespace std;
@@ -27,7 +27,7 @@ using namespace MinisatID;
  */
 
 FlatZincRewriter::FlatZincRewriter(const SolverOption& modes) :
-		state(PARSING), _modes(modes), maxatomnumber(0), maxcpnumber(0), optim(MNMZ_NONE) {
+		state(FZSolverState::PARSING), _modes(modes), maxatomnumber(0), maxcpnumber(0), optim(MNMZ_NONE) {
 }
 
 FlatZincRewriter::~FlatZincRewriter() {
@@ -461,7 +461,7 @@ void FlatZincRewriter::addProduct(const Aggregate& agg, const WSet& set) {
 }
 
 void FlatZincRewriter::finishParsing() {
-	state = FINISHING;
+	state = FZSolverState::FINISHING;
 
 	for (auto i = savedbinrels.cbegin(); i < savedbinrels.cend(); ++i) {
 		addBinRel((*i).left, (*i).right, Literal((*i).head, false), (*i).rel);

@@ -32,6 +32,7 @@
 #include "parser/Lparseread.hpp"
 #include "external/Translator.hpp"
 #include "utils/ContainerUtils.hpp"
+#include "external/Constraints.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -292,31 +293,24 @@ bool Read<T>::parseOptimizeRule(istream &f) {
 }
 
 template<class T>
-bool Read<T>::addBasicRules() {
-	for (vector<BasicRule*>::const_iterator i = basicrules.cbegin(); i < basicrules.cend(); ++i) {
-		bool unsat = false;
+void Read<T>::addBasicRules() {
+	for (auto i = basicrules.cbegin(); i < basicrules.cend(); ++i) {
 		Rule r;
 		r.head = (*i)->head;
 		r.body = (*i)->body;
 		r.conjunctive = (*i)->conj;
 		r.definitionID = defaultdefinitionID;
-		unsat = getSolver()->add(r)==SATVAL::UNSAT;
-		if (unsat) {
-			return false;
-		}
+		add(getSolver(), r);
 	}
-	return true;
 }
 
 template<class T>
-bool Read<T>::addCardRules() {
-	for (vector<CardRule*>::const_iterator i = cardrules.cbegin(); i < cardrules.cend(); ++i) {
+void Read<T>::addCardRules() {
+	for (auto i = cardrules.cbegin(); i < cardrules.cend(); ++i) {
 		Set set;
 		set.setID = (*i)->setcount;
 		set.literals = (*i)->body;
-		if (getSolver()->add(set)==SATVAL::UNSAT) {
-			return false;
-		}
+		add(getSolver(), set);
 		Aggregate agg;
 		agg.head = (*i)->head;
 		agg.setID = (*i)->setcount;
@@ -325,23 +319,18 @@ bool Read<T>::addCardRules() {
 		agg.defID = defaultdefinitionID;
 		agg.type = AggType::CARD;
 		agg.sem = AggSem::DEF;
-		if (getSolver()->add(agg)==SATVAL::UNSAT) {
-			return false;
-		}
+		add(getSolver(), agg);
 	}
-	return true;
 }
 
 template<class T>
-bool Read<T>::addSumRules() {
-	for (vector<SumRule*>::const_iterator i = sumrules.cbegin(); i < sumrules.cend(); ++i) {
+void Read<T>::addSumRules() {
+	for (auto i = sumrules.cbegin(); i < sumrules.cend(); ++i) {
 		WSet set;
 		set.setID = (*i)->setcount;
 		set.literals = (*i)->body;
 		set.weights = (*i)->weights;
-		if (getSolver()->add(set)==SATVAL::UNSAT) {
-			return false;
-		}
+		add(getSolver(), set);
 		Aggregate agg;
 		agg.head = (*i)->head;
 		agg.setID = (*i)->setcount;
@@ -350,11 +339,8 @@ bool Read<T>::addSumRules() {
 		agg.defID = defaultdefinitionID;
 		agg.type = AggType::SUM;
 		agg.sem = AggSem::DEF;
-		if (getSolver()->add(agg)==SATVAL::UNSAT) {
-			return false;
-		}
+		add(getSolver(), agg);
 	}
-	return true;
 }
 
 template<class T>
@@ -366,7 +352,7 @@ void Read<T>::addRuleToHead(map<Atom, vector<BasicRule*> >& headtorules, BasicRu
 }
 
 template<class T>
-bool Read<T>::tseitinizeHeads(){
+void Read<T>::tseitinizeHeads(){
 	// Transform away all choicerules
 	for (auto i = choicerules.cbegin(); i < choicerules.cend(); ++i) {
 		vector<Literal> tempbody;
@@ -379,9 +365,7 @@ bool Read<T>::tseitinizeHeads(){
 
 			//To guarantee #model equivalence:
 			Implication eq(tempbody[0], ImplicationType::EQUIVALENT, {Literal(head, false)}, true);
-			if(getSolver()->add(eq)==SATVAL::UNSAT){
-				return false;
-			}
+			add(getSolver(), eq);
 		}
 	}
 
@@ -404,33 +388,25 @@ bool Read<T>::tseitinizeHeads(){
 		if(it==headtorules.cend() || (*it).second.size()==0){
 			Disjunction clause;
 			clause.literals.push_back(Literal((*i).first, true));
-			if(getSolver()->add(clause)==SATVAL::UNSAT){
-				return false;
-			}
+			add(getSolver(), clause);
 		}
 	}
-	return true;
 }
 
 template<class T>
-bool Read<T>::addOptimStatement(){
+void Read<T>::addOptimStatement(){
 	if(optim){
 		vector<Literal> optimheadclause;
 		WSet set;
 		set.setID = optimsetcount;
 		set.literals = optimbody;
 		set.weights = optimweights;
-		if (getSolver()->add(set)==SATVAL::UNSAT) {
-			return false;
-		}
+		add(getSolver(), set);
 		MinimizeAgg mnmagg;
 		mnmagg.setid = optimsetcount;
 		mnmagg.type = AggType::SUM;
-		if(getSolver()->add(mnmagg)==SATVAL::UNSAT){
-			return false;
-		}
+		add(getSolver(), mnmagg);
 	}
-	return true;
 }
 
 template<class T>
@@ -532,9 +508,7 @@ bool Read<T>::read(istream &f) {
 
 		Disjunction clause;
 		clause.literals.push_back(Literal(makeParsedAtom(i)));
-		if (getSolver()->add(clause)==SATVAL::UNSAT) {
-			return false;
-		}
+		add(getSolver(), clause);
 	}
 	f.getline(s, len); // Read rest of last line (get newline);
 	f.getline(s, len); //should be B-
@@ -558,9 +532,7 @@ bool Read<T>::read(istream &f) {
 
 		Disjunction clause;
 		clause.literals.push_back(Literal(makeParsedAtom(i), true));
-		if (getSolver()->add(clause)==SATVAL::UNSAT) {
-			return false;
-		}
+		add(getSolver(), clause);
 	}
 
 	f >> i; // nb of models, zero means all
@@ -572,16 +544,11 @@ bool Read<T>::read(istream &f) {
 		throw idpexception(s);
 	}
 
-	unsat = !tseitinizeHeads();
-	if(unsat) { return false; }
-	unsat = !addBasicRules();
-	if(unsat) { return false; }
-	unsat = !addCardRules();
-	if(unsat) { return false; }
-	unsat = !addSumRules();
-	if(unsat) { return false; }
-	unsat = !addOptimStatement();
-	if(unsat) { return false; }
+	tseitinizeHeads();
+	addBasicRules();
+	addCardRules();
+	addSumRules();
+	addOptimStatement();
 
 	return true;
 }

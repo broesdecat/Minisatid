@@ -11,7 +11,7 @@
 
 #include <vector>
 
-#include "external/ExternalUtils.hpp"
+#include "utils/Utils.hpp"
 #include "WL.hpp"
 
 namespace MinisatID{
@@ -150,19 +150,6 @@ struct InnerCPCount{
 
 struct InnerCPAllDiff{
 	std::vector<uint> varIDs;
-};
-
-class InnerPropagation{
-public:
-	int decisionlevel;
-	Lit propagation;
-};
-
-class InnerBacktrack{
-public:
-	int untillevel;
-
-	InnerBacktrack(int untillevel): untillevel(untillevel){}
 };
 
 class InnerLazyClause{

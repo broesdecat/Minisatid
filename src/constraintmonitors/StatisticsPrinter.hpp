@@ -1,13 +1,13 @@
 /************************************
-	Inference.hpp
+	StatisticsPrinter.hpp
 	this file belongs to GidL 2.0
 	(c) K.U.Leuven
 ************************************/
 
-#ifndef INFERENCE_HPP_
-#define INFERENCE_HPP_
+#ifndef STATISTICSPRINTER_HPP_
+#define STATISTICSPRINTER_HPP_
 
 
 
 
-#endif /* INFERENCE_HPP_ */
+#endif /* STATISTICSPRINTER_HPP_ */

@@ -6,8 +6,8 @@
  * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
-#ifndef INTERFACEIMPL_HPP_
-#define INTERFACEIMPL_HPP_
+#ifndef FLATZINCINTERFACE_HPP_
+#define FLATZINCINTERFACE_HPP_
 
 #include <set>
 #include <sstream>
@@ -15,14 +15,13 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "external/ExternalInterface.hpp"
 #include "external/ExternalUtils.hpp"
 
 namespace MinisatID {
 
 // External interfaces offered from the solvers
 
-enum SolverState { PARSING, FINISHING};
+enum FZSolverState { PARSING, FINISHING};
 
 typedef std::vector<Weight> weightlist;
 
@@ -40,7 +39,7 @@ struct BinRel{
 
 class FlatZincRewriter{
 private:
-	SolverState 		state;
+	FZSolverState 		state;
 	SolverOption		_modes;
 
 	uint 				maxatomnumber, maxcpnumber;

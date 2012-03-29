@@ -17,18 +17,14 @@
 #include "external/ExternalUtils.hpp"
 #include "external/SolvingMonitor.hpp"
 
-//IMPORTANT: Need all headers defining an inheritance tree to be able to use their inheritance
-#include "theorysolvers/LogicSolver.hpp"
-#include "theorysolvers/PCSolver.hpp"
-#include "theorysolvers/SOSolver.hpp"
-
+#include "satsolver/BasicSATUtils.hpp"
+#include "datastructures/InnerDataStructures.hpp"
 
 namespace MinisatID {
 
 class Translator;
 class LogicSolver;
 class PCSolver;
-class SOSolver;
 class SearchMonitor;
 struct InnerModel;
 class LazyClauseMonitor;
@@ -39,83 +35,27 @@ typedef std::vector<Lit> litlist;
 // External interfaces offered from the solvers
 
 enum SolverState { INIT, PARSED, SOLVED};
-
-typedef std::unordered_map<int, int> atommap;
-
-class Remapper{
-protected:
-	int maxnumber;
-
-public:
-	Remapper(): maxnumber(0){}
-	virtual ~Remapper(){}
-
-	virtual bool	hasVar		(const Atom& atom, Var& mappedvarifexists) const;
-	virtual Var		getVar		(const Atom& atom);
-	virtual Literal	getLiteral	(const Lit& lit);
-	virtual Var 	getNewVar	() { assert(false); return -1; }
-	virtual bool	wasInput	(Var var)const { return var<maxnumber; }
-	virtual Var		largestVar	() const { return maxnumber; }
-};
-
-class SmartRemapper: public Remapper{
+/*
+class WrappedSolver{
 private:
-	//Maps from NON-INDEXED to INDEXED atoms
-	atommap 		origtocontiguousatommapper, contiguoustoorigatommapper;
-
-public:
-	bool	hasVar		(const Atom& atom, Var& mappedvarifexists) const;
-	Var		getVar		(const Atom& atom);
-	Literal	getLiteral	(const Lit& lit);
-	Var 	getNewVar	();
-	bool	wasInput	(Var var) const;
-};
-
-typedef cb::Callback1<std::string, int> callbackprinting;
-
-class WrapperPimpl{
-private:
-	bool 			optimization;
 	SolverState 	state;
 
-protected:
-	SolverOption	_modes;
-
-	std::vector<SearchMonitor*> monitors;
-
 public:
-	Remapper*		remapper;
-	bool 			sharedremapper;
-
 	Solution*		solutionmonitor; //Non-owning pointers
 
-private:
-	bool 		hasprintcallback;
-	callbackprinting printliteral;
-
 public:
-	WrapperPimpl			(const SolverOption& modes);
-	WrapperPimpl			(const SolverOption& modes, Remapper* sharedremapper);
-	virtual ~WrapperPimpl();
-
-	void setTranslator(callbackprinting translator);
+	WrappedSolver			(const SolverOption& modes);
+	virtual ~WrappedSolver();
 
 	Var 	getNewVar();
 
-	bool 	hasOptimization	() const { return optimization; }
-	void 	solve			();
-	void 	printTheory		(std::ostream& stream);
-
-	virtual void 	addModel(const InnerModel& model); //virtual for MODSOLVER!
+	void 	addModel(const InnerModel& model);
 	void	notifyOptimalModelFound();
 
 	int		getNbModelsFound() const { return solutionmonitor->getNbModelsFound(); }
 
 	void	setSolutionMonitor	(Solution* sol);
 
-	const SolverOption& modes()	const	{ return _modes; }
-	int 	verbosity		()	const	{ return modes().verbosity; }
-	void 	printStatistics	() const;
 	void 	printLiteral	(std::ostream& stream, const Lit& l) const;
 	template<class List>
 	void 	printTranslation(std::ostream& output, const List& l){
@@ -131,115 +71,20 @@ public:
 	}
 	void 	printCurrentOptimum(const Weight& value) const;
 
-	Remapper* getRemapper		()	const { return remapper; }
-
-	// MONITORING
-	void	addMonitor(SearchMonitor* const mon);
-	template<class T>
-	void 	notifyMonitor(const T& obj);
+	SATVAL	getSatState() const;
 
 protected:
-	SATVAL 	finishParsing	();
-	void	setOptimization	(bool opt) { optimization = opt; }
-
-	virtual MinisatID::LogicSolver* getSolver() const = 0;
-
-	Var 	checkAtom		(const Atom& atom);
-	Lit 	checkLit		(const Literal& lit);
-	void 	checkLits		(const std::vector<Literal>& lits, std::vector<Lit>& ll);
-	void 	checkLits		(const std::map<Literal, Literal>& lits, std::map<Lit, Lit>& ll);
-	void 	checkAtoms		(const std::vector<Atom>& atoms, std::vector<Var>& ll);
-	void 	checkAtoms		(const std::map<Atom, Atom>& atoms, std::map<Var, Var>& ll);
-	void 	checkLits		(const std::vector<std::vector<Literal> >& lits, std::vector<std::vector<Lit> >& ll);
-
 	bool	canBackMapLiteral		(const Lit& lit) const;
 	Literal getBackMappedLiteral	(const Lit& lit) const;
 	std::vector<Literal> getBackMappedModel	(const std::vector<Lit>& model) const;
-
-private:
-	Solution& 	getSolMonitor() { return *solutionmonitor; }
-	bool		hasSolMonitor() const { return solutionmonitor!=NULL; }
-	const Solution& getSolMonitor() const { return *solutionmonitor; }
-
-	void dontDecideTseitins(){
-		Var i = 0;
-		while(i<=getRemapper()->largestVar()){
-			Var mappedvar;
-			if(getRemapper()->hasVar(Atom(i), mappedvar)){
-				getSolver()->notifyNonDecisionVar(mappedvar);
-			}
-			i++;
-		}
-	}
 };
 
 template<>
-void WrapperPimpl::notifyMonitor(const InnerPropagation& obj);
+void WrappedSolver::notifyMonitor(const InnerPropagation& obj);
 
 template<>
-void WrapperPimpl::notifyMonitor(const InnerBacktrack& obj);
-
-class PCWrapperPimpl: public MinisatID::WrapperPimpl{
-private:
-	MinisatID::PCSolver* solver;
-
-public:
-	PCWrapperPimpl		(const SolverOption& modes);
-	virtual ~PCWrapperPimpl();
-
-	template<class T>
-	SATVAL add(const T& formula);
-
-protected:
-	virtual MinisatID::PCSolver* getSolver() const { return solver; }
-};
-
-template<> SATVAL PCWrapperPimpl::add(const Disjunction& sentence);
-template<> SATVAL PCWrapperPimpl::add(const Implication& sentence);
-template<> SATVAL PCWrapperPimpl::add(const Rule& sentence);
-template<> SATVAL PCWrapperPimpl::add(const Set& sentence);
-template<> SATVAL PCWrapperPimpl::add(const WSet& sentence);
-template<> SATVAL PCWrapperPimpl::add(const WLSet& sentence);
-template<> SATVAL PCWrapperPimpl::add(const Aggregate& sentence);
-template<> SATVAL PCWrapperPimpl::add(const MinimizeSubset& sentence);
-template<> SATVAL PCWrapperPimpl::add(const MinimizeOrderedList& sentence);
-template<> SATVAL PCWrapperPimpl::add(const MinimizeVar& sentence);
-template<> SATVAL PCWrapperPimpl::add(const MinimizeAgg& sentence);
-template<> SATVAL PCWrapperPimpl::add(const CPIntVarRange& sentence);
-template<> SATVAL PCWrapperPimpl::add(const CPIntVarEnum& sentence);
-template<> SATVAL PCWrapperPimpl::add(const CPBinaryRel& sentence);
-template<> SATVAL PCWrapperPimpl::add(const CPBinaryRelVar& sentence);
-template<> SATVAL PCWrapperPimpl::add(const CPSumWeighted& sentence);
-template<> SATVAL PCWrapperPimpl::add(const CPCount& sentence);
-template<> SATVAL PCWrapperPimpl::add(const CPAllDiff& sentence);
-template<> SATVAL PCWrapperPimpl::add(const ForcedChoices& sentence);
-template<> SATVAL PCWrapperPimpl::add(const Symmetry& sentence);
-template<> SATVAL PCWrapperPimpl::add(const LazyGroundLit& sentence);
-
-class SOWrapperPimpl: public MinisatID::WrapperPimpl{
-private:
-	MinisatID::SOSolver* solver;
-
-public:
-	SOWrapperPimpl		(const SolverOption& modes);
-	virtual ~SOWrapperPimpl	();
-
-	template<class T>
-	SATVAL add(int modalid, const T& formula);
-
-protected:
-	virtual MinisatID::SOSolver* getSolver() const { return solver; }
-};
-
-template<> SATVAL SOWrapperPimpl::add(int modalid, const Disjunction& sentence);
-template<> SATVAL SOWrapperPimpl::add(int modalid, const Rule& sentence);
-template<> SATVAL SOWrapperPimpl::add(int modalid, const Set& sentence);
-template<> SATVAL SOWrapperPimpl::add(int modalid, const WSet& sentence);
-template<> SATVAL SOWrapperPimpl::add(int modalid, const WLSet& sentence);
-template<> SATVAL SOWrapperPimpl::add(int modalid, const Aggregate& sentence);
-template<> SATVAL SOWrapperPimpl::add(int modalid, const RigidAtoms& sentence);
-template<> SATVAL SOWrapperPimpl::add(int modalid, const SubTheory& sentence);
-
+void WrappedSolver::notifyMonitor(const InnerBacktrack& obj);
+*/
 }
 
 #endif /* INTERFACEIMPL_HPP_ */

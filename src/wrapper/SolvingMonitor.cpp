@@ -17,7 +17,7 @@
 
 #include "external/ExternalUtils.hpp"
 #include "external/Translator.hpp"
-#include "external/ResourceManager.hpp"
+#include "utils/ResourceManager.hpp"
 #include "utils/Print.hpp"
 #include "utils/TimingUtils.hpp"
 
@@ -55,7 +55,7 @@ void Solution::setTranslator(Translator* trans) {
 
 void Solution::printLiteral(ostream& stream, const Literal& lit) const {
 	if(hasTranslator() && getTranslator()->hasTranslation(lit)){
-		getTranslator()->printLiteral(stream, lit);
+		stream <<MinisatID::printLiteral(lit);
 	}else{
 		stream <<(lit.hasSign()?"~":"") <<"tseitin_" <<abs(lit.getValue()); // TODO it is possible that when translation info is added, all printing changes!
 	}
