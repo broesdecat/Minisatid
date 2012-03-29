@@ -28,8 +28,8 @@
 
 #include "utils/Print.hpp"
 
-#include "constraintmonitors/ECNFGraphPrinter.hpp"
-#include "constraintmonitors/HumanReadableParsingPrinter.hpp"
+#include "constraintvisitors/ECNFGraphPrinter.hpp"
+#include "constraintvisitors/HumanReadableParsingPrinter.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -83,7 +83,7 @@ PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine
 }
 
 PropagatorFactory::~PropagatorFactory() {
-	deleteList<ParsingMonitor>(parsingmonitors);
+	deleteList<ConstraintVisitor>(parsingmonitors);
 	for (auto i = parsedsets.cbegin(); i != parsedsets.cend(); ++i) {
 		delete ((*i).second.first);
 	}
@@ -92,7 +92,7 @@ PropagatorFactory::~PropagatorFactory() {
 template<typename T>
 void PropagatorFactory::notifyMonitorsOfAdding(const T& obj) const {
 	for (auto i = parsingmonitors.cbegin(); i < parsingmonitors.cend(); ++i) {
-		(*i)->notifyadded(obj);
+		(*i)->visit(obj);
 	}
 }
 

@@ -9,7 +9,7 @@
 #ifndef ECNFGRAPHPARSINGMONITOR_HPP_
 #define ECNFGRAPHPARSINGMONITOR_HPP_
 
-#include "ConstraintAdditionMonitor.hpp"
+#include "ConstraintVisitor.hpp"
 #include "utils/Utils.hpp"
 
 namespace MinisatID {
@@ -33,7 +33,11 @@ public:
 		target().flush();
 	}
 
-	void notifyadded(const InnerDisjunction& lits) {
+	void visit(const MinisatID::InnerImplication&){
+		// TODO implement
+	}
+
+	void visit(const InnerDisjunction& lits) {
 		for (uint i = 0; i < lits.literals.size(); ++i) {
 			if (i > 0) {
 				target() << " -- ";
@@ -46,7 +50,7 @@ public:
 		target() << "[color=blue];\n";
 	}
 
-	void notifyadded(const InnerRule& lits) {
+	void visit(const InnerRule& lits) {
 		for (uint i = 0; i < lits.body.size(); ++i) {
 			if (i > 0) {
 				target() << " -- ";
@@ -59,7 +63,7 @@ public:
 		target() << "[color=green];\n";
 	}
 
-	void notifyadded(const InnerWLSet& set) {
+	void visit(const InnerWLSet& set) {
 		for (unsigned int i = 0; i < set.wls.size(); ++i) {
 			if (i > 0) {
 				target() << " -- ";
@@ -72,49 +76,49 @@ public:
 		target() << "[color=green];\n";
 	}
 
-	void notifyadded(const InnerAggregate&) {
+	void visit(const InnerAggregate&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void notifyadded(const InnerReifAggregate&) {
+	void visit(const InnerReifAggregate&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void notifyadded(const InnerMinimizeOrderedList&) {
+	void visit(const InnerMinimizeOrderedList&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void notifyadded(const InnerMinimizeSubset&) {
+	void visit(const InnerMinimizeSubset&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void notifyadded(const InnerMinimizeAgg&) {
+	void visit(const InnerMinimizeAgg&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void notifyadded(const InnerMinimizeVar&) {
+	void visit(const InnerMinimizeVar&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void notifyadded(const InnerSymmetry&) {
+	void visit(const InnerSymmetry&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void notifyadded(const InnerForcedChoices&) {
+	void visit(const InnerForcedChoices&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void notifyadded(const InnerIntVarRange&) {
+	void visit(const InnerIntVarRange&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void notifyadded(const InnerIntVarEnum&) {
+	void visit(const InnerIntVarEnum&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void notifyadded(const InnerCPAllDiff&) {
+	void visit(const InnerCPAllDiff&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void notifyadded(const InnerCPBinaryRel&) {
+	void visit(const InnerCPBinaryRel&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void notifyadded(const InnerCPCount&) {
+	void visit(const InnerCPCount&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void notifyadded(const InnerCPBinaryRelVar&) {
+	void visit(const InnerCPBinaryRelVar&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void notifyadded(const InnerCPSumWeighted&) {
+	void visit(const InnerCPSumWeighted&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
 };

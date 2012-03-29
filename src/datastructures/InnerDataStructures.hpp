@@ -30,6 +30,12 @@ struct InnerImplication{
 	ImplicationType type;
 	std::vector<Lit> literals;
 	bool conjunctive;
+
+	InnerImplication(){}
+	InnerImplication(const Lit& head, ImplicationType type, const std::vector<Lit>& literals, bool conjunctive):
+		head(head), type(type), literals(literals), conjunctive(conjunctive){
+
+	}
 };
 
 struct InnerRule{

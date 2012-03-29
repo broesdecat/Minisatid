@@ -26,7 +26,7 @@ class TempAgg;
 class IntVar;
 class PCSolver;
 
-class ParsingMonitor;
+class ConstraintVisitor;
 class SearchMonitor;
 
 class SolverOption;
@@ -117,7 +117,7 @@ private:
 	std::vector<InnerAggregate*> parsedaggs;
 
 	// Logging
-	std::vector<ParsingMonitor*> parsingmonitors;
+	std::vector<ConstraintVisitor*> parsingmonitors;
 
 	void guaranteeAtRootLevel();
 

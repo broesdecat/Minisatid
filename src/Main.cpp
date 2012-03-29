@@ -20,7 +20,6 @@
 
 #include <csetjmp>
 
-#include "external/FlatZincRewriter.hpp"
 #include "external/Translator.hpp"
 #include "external/SolvingMonitor.hpp"
 #include "utils/ResourceManager.hpp"
@@ -39,7 +38,7 @@ using namespace MinisatID;
 #include "parser/Lparseread.cpp"
 #include "parser/PBread.cpp"
 
-typedef Space* pwls; // TODO should be shared pointer?
+typedef Space* pwls;
 
 extern char* yytext;
 extern int lineNo;
