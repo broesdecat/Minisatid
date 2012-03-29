@@ -13,8 +13,6 @@
 
 #include "satsolver/SATSolver.hpp"
 
-#include "wrapper/InterfaceImpl.hpp"
-
 #include "theorysolvers/PCSolver.hpp"
 
 #include "modules/IDSolver.hpp"

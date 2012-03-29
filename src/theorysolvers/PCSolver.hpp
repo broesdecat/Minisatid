@@ -10,7 +10,7 @@
 #define PCSOLVER_H_
 
 #include "utils/Utils.hpp"
-#include "wrapper/InterfaceImpl.hpp"
+#include <memory>
 
 #include "theorysolvers/PropagatorFactory.hpp"
 

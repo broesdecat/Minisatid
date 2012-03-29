@@ -20,9 +20,9 @@
 
 #include <csetjmp>
 
-#include "wrapper/InterfaceImpl.hpp"
 #include "external/FlatZincRewriter.hpp"
 #include "external/Translator.hpp"
+#include "external/SolvingMonitor.hpp"
 #include "utils/ResourceManager.hpp"
 #include "parser/Lparseread.hpp"
 #include "parser/PBread.hpp"

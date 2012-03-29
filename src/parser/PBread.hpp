@@ -9,7 +9,7 @@
 #ifndef PBREAD_H
 #define PBREAD_H
 
-#include "wrapper/InterfaceImpl.hpp"
+#include "utils/Utils.hpp"
 #include "external/Translator.hpp"
 
 namespace MinisatID {

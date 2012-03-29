@@ -12,7 +12,6 @@
 #include "satsolver/SATSolver.hpp"
 #include "modules/CPSolver.hpp"
 #include "modules/IntVar.hpp"
-#include "wrapper/InterfaceImpl.hpp"
 
 #include "theorysolvers/PropagatorFactory.hpp"
 #include "theorysolvers/EventQueue.hpp"

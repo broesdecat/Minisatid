@@ -12,8 +12,6 @@
 
 #include <iostream>
 
-#include "wrapper/InterfaceImpl.hpp"
-
 #include "satsolver/SATSolver.hpp"
 #include "modules/aggsolver/Agg2SAT.hpp"
 #include "modules/IDSolver.hpp"

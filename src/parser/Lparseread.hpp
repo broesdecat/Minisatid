@@ -27,7 +27,8 @@
 #ifndef READ_H
 #define READ_H
 
-#include "wrapper/InterfaceImpl.hpp"
+#include "external/Translator.hpp"
+#include "utils/Utils.hpp"
 
 namespace MinisatID {
 
