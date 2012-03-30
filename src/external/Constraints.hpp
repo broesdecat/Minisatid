@@ -13,7 +13,7 @@
 
 namespace MinisatID{
 class PropAndBackMonitor;
-// TODO handle UNSAT found in all parsers
+
 void add(Space& space, const Disjunction& formula);
 void add(Space& space, const Implication& formula);
 void add(Space& space, const Rule& formula);

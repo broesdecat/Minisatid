@@ -8,6 +8,7 @@
 #include "modules/aggsolver/AggSet.hpp"
 #include "external/SearchMonitor.hpp"
 #include "constraintvisitors/FlatZincRewriter.hpp"
+#include "constraintvisitors/ECNFPrinter.hpp"
 #include "Printer.hpp"
 #include "ModelManager.hpp"
 #include "utils/ResourceManager.hpp"
@@ -23,12 +24,12 @@ Var VarCreation::createVar() {
 }
 
 void Task::execute() {
-	space->getEngine().finishParsing();
+	space->getEngine()->finishParsing();
 	innerExecute();
 }
 void Task::notifyTerminateRequested() {
 	terminate = true;
-	space->getEngine().notifyTerminateRequested();
+	space->getEngine()->notifyTerminateRequested();
 }
 
 ModelExpand::ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions)
@@ -46,7 +47,7 @@ int ModelExpand::getNbModelsFound() const {
 }
 
 PCSolver& Task::getSolver() const {
-	return getSpace()->getEngine();
+	return *getSpace()->getEngine();
 }
 
 const SolverOption& Task::modes() const {
@@ -166,7 +167,7 @@ MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& o
 			break;
 		}
 
-		auto fullmodel = getSpace()->getEngine().getModel();
+		auto fullmodel = getSpace()->getEngine()->getModel();
 		addModel(fullmodel);
 
 		// FIXME incorrect in the case of CP!
@@ -423,9 +424,18 @@ void UnitPropagate::writeOutEntailedLiterals(){
 }
 
 void Transform::innerExecute(){
+	//TODO parsingmonitors.push_back(new ECNFGraphPrinter<ostream>(getEnginep(), cout));
 	if(outputlanguage==TheoryPrinting::FZ){
-		FlatZincRewriter fzrw(modes()); // TODO outputfile
+		FlatZincRewriter fzrw(getSpace()->getEngine(), modes()); // TODO outputfile
 		getSolver().accept(fzrw);
+	}else if(outputlanguage==TheoryPrinting::ECNF){
+		RealECNFPrinter<ostream> pr(getSpace()->getEngine(), clog); // TODO outputfile
+		getSolver().accept(pr);
 	}
 	// TODO other languages
+}
+
+// TODO move to utils
+idpexception MinisatID::notYetImplemented(){
+	return idpexception("Not yet implemented\n");
 }

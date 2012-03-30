@@ -41,7 +41,8 @@ litlist getLiterals(const InnerWLSet& set){
  * 		recursively defined aggregates
  */
 
-FlatZincRewriter::FlatZincRewriter(const SolverOption& modes) :
+FlatZincRewriter::FlatZincRewriter(LiteralPrinter* pcsolver, const SolverOption& modes) :
+		ConstraintVisitor(pcsolver),
 		state(SolverState::PARSING), _modes(modes), maxatomnumber(0), maxcpnumber(0), optim(MNMZ_NONE) {
 }
 
@@ -579,11 +580,6 @@ void FlatZincRewriter::addEquiv(const InnerImplication& implication, CloseConstr
 	}
 }
 
-void FlatZincRewriter::add(const InnerWLSet& set, int setID) {
-	check(getLiterals(set));
-	sets.insert({setID, set});
-}
-
 void FlatZincRewriter::add(const litlist& lits) {
 	litlist pos, neg;
 	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {
@@ -669,13 +665,8 @@ void FlatZincRewriter::visit(const InnerRule& rule) {
 }
 
 void FlatZincRewriter::visit(const InnerWLSet& set) {
-	/*WSet wset;
-	for (auto i = set.wl.cbegin(); i < set.wl.cend(); ++i) {
-		wset.literals.push_back((*i).l);
-		wset.weights.push_back((*i).w);
-	}
-	add(wset, set.setID);*/
-	// TODO
+	check(getLiterals(set));
+	sets.insert({set.setID, set});
 }
 
 void FlatZincRewriter::visit(const InnerAggregate& origagg) {
@@ -683,11 +674,11 @@ void FlatZincRewriter::visit(const InnerAggregate& origagg) {
 }
 
 void FlatZincRewriter::visit(const InnerForcedChoices& origagg) {
-	// TODO
+	throw idpexception("Forcedchoices are unsupported by flatzinc.\n");
 }
 
 void FlatZincRewriter::visit(const InnerSymmetry& origagg) {
-	// TODO
+	throw idpexception("Symmetries are unsupported by flatzinc.\n"); // TODO maybe they are?
 }
 
 void FlatZincRewriter::visit(const InnerReifAggregate& origagg) {

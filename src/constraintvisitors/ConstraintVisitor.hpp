@@ -12,19 +12,22 @@
 #include <iostream>
 #include "utils/Print.hpp"
 #include "utils/Utils.hpp"
-#include "theorysolvers/PCSolver.hpp" // TODO use a higher class then pcsolver?
+#include "LiteralPrinter.hpp"
 
 namespace MinisatID{
+
+class LiteralPrinter;
 
 // TODO name visitor is wrong, is there is no hierarchy which is visited!
 class ConstraintVisitor {
 private:
-	PCSolver* pcsolver; // TODO set!
+	LiteralPrinter* solver; // NOTE: does not have ownership
 protected:
-	PCSolver* getPCSolver() const { return pcsolver; }
+	// NOTE: does not pass ownership
+	LiteralPrinter* getPrinter() const { return solver; }
 
 	template<typename S>
-	void printList(const litlist& list, const std::string& concat, S& stream, PCSolver* solver){
+	void printList(const litlist& list, const std::string& concat, S& stream, LiteralPrinter* solver){
 		bool begin = true;
 		for(auto i=list.cbegin(); i<list.cend(); ++i) {
 			if(not begin){
@@ -34,7 +37,9 @@ protected:
 			stream <<print(*i, solver);
 		}
 	}
+
 public:
+	ConstraintVisitor(LiteralPrinter* solver): solver(solver){}
 	virtual ~ConstraintVisitor(){}
 
 	virtual void notifyStart() = 0;
@@ -66,7 +71,7 @@ class ConstraintAdditionMonitor: public ConstraintVisitor{
 private:
 	Stream& stream;
 public:
-	ConstraintAdditionMonitor(Stream& stream): stream(stream){}
+	ConstraintAdditionMonitor(LiteralPrinter* solver, Stream& stream): ConstraintVisitor(solver), stream(stream){}
 protected:
 	Stream& target() { return stream; }
 };

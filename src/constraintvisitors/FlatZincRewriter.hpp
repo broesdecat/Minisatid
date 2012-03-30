@@ -64,7 +64,7 @@ private:
 	std::vector<InnerCPSumWeighted> savedcpsums;
 
 public:
-	FlatZincRewriter			(const SolverOption& modes);
+	FlatZincRewriter(LiteralPrinter* pcsolver, const SolverOption& modes);
 	virtual ~FlatZincRewriter();
 
 	const SolverOption& modes()	const	{ return _modes; }
@@ -104,7 +104,7 @@ public:
 	virtual void visit(const InnerCPSumWeighted&);
 
 	virtual void notifyStart() {} // TODO implement?
-	virtual void notifyEnd() {} // TODO implement?
+	virtual void notifyEnd() {} // TODO implement? close streams, ... (maybe also implement notifyend and innernotifyend to guarentee closing?
 
 
 	void	finishParsing	();
@@ -114,7 +114,6 @@ protected:
 
 	const InnerWLSet& getSet(uint i) const;
 
-	void add(const InnerWLSet& set, int setID);
 	void add(const litlist& lits);
 
 	template<typename T>

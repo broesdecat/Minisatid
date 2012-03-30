@@ -22,9 +22,11 @@ template<typename Stream>
 class HumanReadableParsingPrinter: public ConstraintAdditionMonitor<Stream> {
 private:
 	using ConstraintAdditionMonitor<Stream>::target;
-	using ConstraintVisitor::getPCSolver;
+	using ConstraintVisitor::getPrinter;
 public:
-	HumanReadableParsingPrinter(Stream& stream):ConstraintAdditionMonitor<Stream>(stream){}
+	HumanReadableParsingPrinter(LiteralPrinter* solver, Stream& stream) :
+		ConstraintAdditionMonitor<Stream>(solver, stream) {
+}
 	virtual ~HumanReadableParsingPrinter(){}
 
 	void notifyStart(){}
@@ -32,22 +34,24 @@ public:
 		target().flush();
 	}
 
-	void visit(const MinisatID::InnerImplication&){
-		// TODO implement
+	void visit(const MinisatID::InnerImplication& obj){
+		target() <<"Added " <<print(obj.head, getPrinter()) <<obj.type;
+		printList(obj.literals, obj.conjunctive?" & ":" | ", target(), getPrinter());
+		target() <<"\n";
 	}
 
 	void visit(const InnerDisjunction& clause){
 		target() <<"Added clause ";
-		printList(clause.literals, " | ", target(), getPCSolver());
+		printList(clause.literals, " | ", target(), getPrinter());
 		target() <<"\n";
 	}
 
 	void visit(const InnerRule& rule){
-		target() <<"Added rule " <<print(rule.head, getPCSolver()) <<" <- ";
+		target() <<"Added rule " <<print(rule.head, getPrinter()) <<" <- ";
 		if(rule.body.size()==0){
 			target() <<(rule.conjunctive?"true":"false");
 		}else{
-			printList(rule.body, rule.conjunctive?" & ":" | ", target(), getPCSolver());
+			printList(rule.body, rule.conjunctive?" & ":" | ", target(), getPrinter());
 		}
 		target() <<" to definition " <<rule.definitionID <<"\n";
 	}
@@ -56,7 +60,7 @@ public:
 		target() <<"Added non-weighted set " <<set.setID <<" = {";
 		std::vector<Lit>::size_type count = 0;
 		for(auto i=set.wls.cbegin(); i!=set.wls.cend(); ++i, ++count){
-			target() <<print((*i).getLit(), getPCSolver()) <<"=" <<(*i).getWeight();
+			target() <<print((*i).getLit(), getPrinter()) <<"=" <<(*i).getWeight();
 			if(count<set.wls.size()-1){
 				target() <<", ";
 			}
@@ -71,7 +75,7 @@ public:
 	}
 
 	void visit(const InnerReifAggregate& agg){
-		target() <<"Added aggregate " <<print(agg.head, getPCSolver()) <<" "<<(agg.sem==AggSem::COMP?"<=>":"<-");
+		target() <<"Added aggregate " <<print(agg.head, getPrinter()) <<" "<<(agg.sem==AggSem::COMP?"<=>":"<-");
 		if(agg.sem==AggSem::DEF){
 			target() <<"(" <<agg.defID <<")";
 		}
@@ -83,14 +87,14 @@ public:
 
 	void visit(const InnerMinimizeOrderedList& mnm){
 		target() <<"Minimizing ordered list ";
-		printList(mnm.literals, " < ", target(), getPCSolver());
+		printList(mnm.literals, " < ", target(), getPrinter());
 		target() <<"\n";
 	}
 
 
 	void visit(const InnerMinimizeSubset& mnm){
 		target() <<"Searching minimal subset of set { ";
-		printList(mnm.literals, ", ", target(), getPCSolver());
+		printList(mnm.literals, ", ", target(), getPrinter());
 		target() <<" }\n";
 	}
 
@@ -111,14 +115,14 @@ public:
 				target() <<", ";
 			}
 			begin = false;
-			target() <<print((*i).first, getPCSolver()) <<"->" <<print((*i).second, getPCSolver());
+			target() <<print((*i).first, getPrinter()) <<"->" <<print((*i).second, getPrinter());
 		}
 		target() <<"\n";
 	}
 
 	void visit(const InnerForcedChoices& choices){
 		target() <<"Forced choices ";
-		printList(choices.forcedchoices, " ", target(), getPCSolver());
+		printList(choices.forcedchoices, " ", target(), getPrinter());
 		target() <<"\n";
 	}
 
@@ -139,19 +143,21 @@ public:
 	}
 
 	void visit(const InnerCPBinaryRel& rel){
-		target() <<"Added binary constraint " <<print(rel.head, getPCSolver()) <<" <=> var" <<rel.varID <<" "<<rel.rel <<" " <<rel.bound <<"\n";
+		target() <<"Added binary constraint " <<print(rel.head, getPrinter()) <<" <=> var" <<rel.varID <<" "<<rel.rel <<" " <<rel.bound <<"\n";
 	}
 
-	void visit(const InnerCPCount&){
-		throw idpexception("Not yet implemented."); // TODO
+	void visit(const InnerCPCount& obj){
+		target() <<"Added count constraint: count of variables { ";
+		printConcatBy(obj.varIDs, ", ", target());
+		target() <<" } equal to " <<obj.eqbound <<obj.rel <<obj.rhsvar <<"\n";
 	}
 
 	void visit(const InnerCPBinaryRelVar& rel){
-		target() <<"Added binary constraint " <<print(rel.head, getPCSolver()) <<" <=> var" <<rel.lhsvarID <<" "<<rel.rel <<" var" <<rel.rhsvarID <<"\n";
+		target() <<"Added binary constraint " <<print(rel.head, getPrinter()) <<" <=> var" <<rel.lhsvarID <<" "<<rel.rel <<" var" <<rel.rhsvarID <<"\n";
 	}
 
 	void visit(const InnerCPSumWeighted& sum){
-		target() <<"Added sum constraint " <<print(sum.head, getPCSolver()) <<" <=> sum({ ";
+		target() <<"Added sum constraint " <<print(sum.head, getPrinter()) <<" <=> sum({ ";
 		std::vector<int>::size_type count = 0;
 		auto litit=sum.varIDs.cbegin();
 		auto weightit=sum.weights.cbegin();

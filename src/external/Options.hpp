@@ -42,7 +42,6 @@ public:
 	int 			verbosity;
 	int 			randomseed;
 	int 			nbmodels;
-	bool 			printcnfgraph;
 	DEFSEM 			defsem;
 	DEFSEARCHSTRAT 	ufs_strategy;
 	DEFFINDCS 		defn_strategy;

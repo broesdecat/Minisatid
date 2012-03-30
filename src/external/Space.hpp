@@ -32,7 +32,7 @@ private:
 public:
 	Space(SolverOption options);
 	Remapper& getRemapper() { return *remapper; }
-	PCSolver& getEngine() { return *engine; }
+	PCSolver* getEngine() { return engine; }
 	const SolverOption& getOptions() const { return basicoptions; }
 
 	bool isCertainlyUnsat() const;

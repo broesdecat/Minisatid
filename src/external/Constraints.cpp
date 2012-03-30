@@ -58,7 +58,7 @@ void checkAtoms(const std::map<Atom, Atom>& atoms, std::map<Var, Var>& ll, Remap
 void MinisatID::add(Space& space, const Disjunction& sentence) {
 	InnerDisjunction d;
 	checkLits(sentence.literals, d.literals, space.getRemapper());
-	space.getEngine().add(d);
+	space.getEngine()->add(d);
 }
 
 void MinisatID::add(Space& space, const Implication& sentence) {
@@ -67,7 +67,7 @@ void MinisatID::add(Space& space, const Implication& sentence) {
 	eq.type = sentence.type;
 	checkLits(sentence.body, eq.literals, space.getRemapper());
 	eq.conjunctive = sentence.conjunction;
-	space.getEngine().add(eq);
+	space.getEngine()->add(eq);
 }
 
 void MinisatID::add(Space& space, const Rule& sentence) {
@@ -76,7 +76,7 @@ void MinisatID::add(Space& space, const Rule& sentence) {
 	rule.definitionID = sentence.definitionID;
 	rule.conjunctive = sentence.conjunctive;
 	checkLits(sentence.body, rule.body, space.getRemapper());
-	space.getEngine().add(rule);
+	space.getEngine()->add(rule);
 }
 
 void MinisatID::add(Space& space, const Set& sentence) {
@@ -102,7 +102,7 @@ void MinisatID::add(Space& space, const WLSet& sentence) {
 		wls.push_back(WL(checkLit((*i).l, space.getRemapper()), (*i).w));
 	}
 	InnerWLSet set(sentence.setID, wls);
-	space.getEngine().add(set);
+	space.getEngine()->add(set);
 }
 
 void MinisatID::add(Space& space, const Aggregate& sentence) {
@@ -114,44 +114,44 @@ void MinisatID::add(Space& space, const Aggregate& sentence) {
 	agg.sign = sentence.sign;
 	agg.sem = sentence.sem;
 	agg.defID = sentence.defID;
-	space.getEngine().add(agg);
+	space.getEngine()->add(agg);
 }
 
 void MinisatID::add(Space& space, const MinimizeSubset& sentence) {
 	InnerMinimizeSubset mnm;
 	checkLits(sentence.literals, mnm.literals, space.getRemapper());
-	space.getEngine().add(mnm);
+	space.getEngine()->add(mnm);
 }
 
 void MinisatID::add(Space& space, const MinimizeOrderedList& sentence) {
 	InnerMinimizeOrderedList mnm;
 	checkLits(sentence.literals, mnm.literals, space.getRemapper());
-	space.getEngine().add(mnm);
+	space.getEngine()->add(mnm);
 }
 
 void MinisatID::add(Space& space, const MinimizeVar& sentence) {
 	InnerMinimizeVar mnm;
 	mnm.varID = sentence.varID;
-	space.getEngine().add(mnm);
+	space.getEngine()->add(mnm);
 }
 
 void MinisatID::add(Space& space, const MinimizeAgg& sentence) {
 	InnerMinimizeAgg mnm;
 	mnm.setID = sentence.setid;
 	mnm.type = sentence.type;
-	space.getEngine().add(mnm);
+	space.getEngine()->add(mnm);
 }
 
 void MinisatID::add(Space& space, const ForcedChoices& sentence) {
 	InnerForcedChoices choices;
 	checkLits(sentence.forcedchoices, choices.forcedchoices, space.getRemapper());
-	space.getEngine().add(choices);
+	space.getEngine()->add(choices);
 }
 
 void MinisatID::add(Space& space, const Symmetry& sentence) {
 	InnerSymmetry symms;
 	checkLits(sentence.symmetry, symms.symmetry, space.getRemapper());
-	space.getEngine().add(symms);
+	space.getEngine()->add(symms);
 }
 
 void MinisatID::add(Space& space, const LazyGroundLit& sentence) {
@@ -160,21 +160,21 @@ void MinisatID::add(Space& space, const LazyGroundLit& sentence) {
 	lc.residual = checkLit(sentence.residual, space.getRemapper());
 	lc.watchboth = sentence.watchboth;
 	//clog <<"Watching " <<(lc.watchboth?"both":"single") <<" on " <<lc.residual <<"\n";
-	space.getEngine().add(lc);
+	space.getEngine()->add(lc);
 }
 
 void MinisatID::add(Space& space, const CPIntVarEnum& sentence) {
 	InnerIntVarEnum var;
 	var.varID = sentence.varID;
 	var.values = sentence.values;
-	space.getEngine().add(var);
+	space.getEngine()->add(var);
 }
 void MinisatID::add(Space& space, const CPIntVarRange& sentence) {
 	InnerIntVarRange var;
 	var.varID = sentence.varID;
 	var.minvalue = sentence.minvalue;
 	var.maxvalue = sentence.maxvalue;
-	space.getEngine().add(var);
+	space.getEngine()->add(var);
 }
 void MinisatID::add(Space& space, const CPBinaryRel& sentence) {
 	InnerCPBinaryRel form;
@@ -182,7 +182,7 @@ void MinisatID::add(Space& space, const CPBinaryRel& sentence) {
 	form.varID = sentence.varID;
 	form.rel = sentence.rel;
 	form.bound = sentence.bound;
-	space.getEngine().add(form);
+	space.getEngine()->add(form);
 }
 void MinisatID::add(Space& space, const CPBinaryRelVar& sentence) {
 	InnerCPBinaryRelVar form;
@@ -190,7 +190,7 @@ void MinisatID::add(Space& space, const CPBinaryRelVar& sentence) {
 	form.lhsvarID = sentence.lhsvarID;
 	form.rel = sentence.rel;
 	form.rhsvarID = sentence.rhsvarID;
-	space.getEngine().add(form);
+	space.getEngine()->add(form);
 }
 void MinisatID::add(Space& space, const CPSumWeighted& sentence) {
 	InnerCPSumWeighted form;
@@ -199,7 +199,7 @@ void MinisatID::add(Space& space, const CPSumWeighted& sentence) {
 	form.bound = sentence.bound;
 	form.weights = sentence.weights;
 	form.varIDs = sentence.varIDs;
-	space.getEngine().add(form);
+	space.getEngine()->add(form);
 }
 void MinisatID::add(Space& space, const CPCount& sentence) {
 	InnerCPCount form;
@@ -207,10 +207,10 @@ void MinisatID::add(Space& space, const CPCount& sentence) {
 	form.eqbound = sentence.eqbound;
 	form.rel = sentence.rel;
 	form.rhsvar = sentence.rhsvar;
-	space.getEngine().add(form);
+	space.getEngine()->add(form);
 }
 void MinisatID::add(Space& space, const CPAllDiff& sentence) {
 	InnerCPAllDiff form;
 	form.varIDs = sentence.varIDs;
-	space.getEngine().add(form);
+	space.getEngine()->add(form);
 }

@@ -33,7 +33,6 @@ SolverOption::SolverOption():
 		verbosity(1),
 		randomseed(91648253),
 		nbmodels(1),
-		printcnfgraph(false),
 		defsem(DEF_WELLF),
 		ufs_strategy(breadth_first),
 		defn_strategy(always),
@@ -43,18 +42,14 @@ SolverOption::SolverOption():
 		aggclausesaving(2),
 		selectOneFromUFS(false),
 		tocnf(false),
-		// FIXME watchesratio(0.75),
-#warning watches currently disabled
-		watchesratio(0),
+		watchesratio(0.75),
 		useaggheur(false),
 		primesfile(""),
-		//remap(true),
 		rand_var_freq(getDefaultRandfreq()),
 		var_decay(getDefaultDecay()),
 		polarity(getDefaultPolarity()),
 		bumpaggonnotify(true),
 		bumpidonstart(false),
-
 		asapaggprop(false),
 		ufsvarintrothreshold(500),
 		subsetminimizeexplanation(false),
@@ -94,7 +89,6 @@ void SolverOption::print(std::ostream& so) const{
 	so << "verbosity: "			<<verbosity <<"\n";
 	so << "randomseed: "		<<randomseed <<"\n";
 	so << "nbmodels: " 			<<nbmodels <<"\n";
-	so << "printcnfgraph: " 	<<printcnfgraph <<"\n";
 	so << "defsem: " 			<<defsem <<"\n";
 	so << "ufs_strategy: "		<<ufs_strategy <<"\n";
 	so << "defn_strategy: " 	<<defn_strategy <<"\n";

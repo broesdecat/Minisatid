@@ -127,7 +127,7 @@ int main(int argc, char** argv) {
 				Transform* t = NULL;
 				auto tp = TheoryPrinting::ECNF;
 				if(modes.transformat==OutputFormat::FZ){
-					tp = TheoryPrinting::FZ; // TODO handle cleanly
+					tp = TheoryPrinting::FZ; // TODO handle cleanly and other cases: ECNF, CNF, ECNFGRAPH, HUMAN, ...
 				}
 				if(modes.outputfile==""){
 					t = new Transform(d, tp, cout);

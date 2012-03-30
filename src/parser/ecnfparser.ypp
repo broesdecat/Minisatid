@@ -461,7 +461,7 @@ cpconstraint
 translation	: /* empty */
 			|	TRANSHEADER 
 				{
-					fodottrans = new FODOTTranslator(solver->getOptions().transformat); // TODO check if used correctly everywhere!	
+					fodottrans = new FODOTTranslator(solver->getOptions().transformat==OutputFormat::ASP);	
 					if(fodottrans!=NULL){
 						solver->setTranslator(fodottrans);
 					}

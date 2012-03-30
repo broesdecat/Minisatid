@@ -216,7 +216,7 @@ class ClauseAllocator
     Clause&       operator[](CRef r)         { return (Clause&)ra[r]; }
     const Clause& operator[](CRef r) const   { return (Clause&)ra[r]; }
     Clause*       lea       (CRef r)         { return (Clause*)ra.lea(r); }
-    const Clause* lea       (CRef r) const   { return (Clause*)ra.lea(r);; }
+    const Clause* lea       (CRef r) const   { return (Clause*)ra.lea(r); }
     CRef          ael       (const Clause* t){ return ra.ael((uint32_t*)t); }
 
     void free(CRef cid)

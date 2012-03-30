@@ -18,10 +18,10 @@ template<typename Stream>
 class ECNFGraphPrinter: public ConstraintAdditionMonitor<Stream> {
 private:
 	using ConstraintAdditionMonitor<Stream>::target;
-	using ConstraintVisitor::getPCSolver;
+	using ConstraintVisitor::getPrinter;
 public:
-	ECNFGraphPrinter(Stream& stream) :
-			ConstraintAdditionMonitor<Stream>(stream) {
+	ECNFGraphPrinter(LiteralPrinter* solver, Stream& stream) :
+			ConstraintAdditionMonitor<Stream>(solver, stream) {
 	}
 	virtual ~ECNFGraphPrinter() {
 	}
@@ -35,21 +35,21 @@ public:
 	}
 
 	void visit(const MinisatID::InnerImplication&){
-		// TODO implement
+		throw notYetImplemented();
 	}
 
 	void visit(const InnerDisjunction& lits) {
-		printList(lits.literals, " -- ", target(), getPCSolver());
+		printList(lits.literals, " -- ", target(), getPrinter());
 		if (lits.literals.size() > 1) {
-			target() << " -- " << print(lits.literals[0], getPCSolver()) << " ";
+			target() << " -- " << print(lits.literals[0], getPrinter()) << " ";
 		}
 		target() << "[color=blue];\n";
 	}
 
 	void visit(const InnerRule& lits) {
-		printList(lits.body, " -- ", target(), getPCSolver());
+		printList(lits.body, " -- ", target(), getPrinter());
 		if (lits.body.size() > 1) {
-			target() << " -- " << print(lits.body[0], getPCSolver()) << " ";
+			target() << " -- " << print(lits.body[0], getPrinter()) << " ";
 		}
 		target() << "[color=green];\n";
 	}
@@ -59,58 +59,58 @@ public:
 			if (i > 0) {
 				target() << " -- ";
 			}
-			target() << print(set.wls[i].getLit(), getPCSolver());
+			target() << print(set.wls[i].getLit(), getPrinter());
 		}
 		if (set.wls.size() > 1) {
-			target() << " -- " << print(set.wls[0].getLit(), getPCSolver()) << " ";
+			target() << " -- " << print(set.wls[0].getLit(), getPrinter()) << " ";
 		}
 		target() << "[color=green];\n";
 	}
 
 	void visit(const InnerAggregate&) {
-		throw idpexception("Not yet implemented."); // TODO
+		throw notYetImplemented();
 	}
 	void visit(const InnerReifAggregate&) {
-		throw idpexception("Not yet implemented."); // TODO
+		throw notYetImplemented();
 	}
 	void visit(const InnerMinimizeOrderedList&) {
-		throw idpexception("Not yet implemented."); // TODO
+		throw notYetImplemented();
 	}
 	void visit(const InnerMinimizeSubset&) {
-		throw idpexception("Not yet implemented."); // TODO
+		throw notYetImplemented();
 	}
 	void visit(const InnerMinimizeAgg&) {
-		throw idpexception("Not yet implemented."); // TODO
+		throw notYetImplemented();
 	}
 	void visit(const InnerMinimizeVar&) {
-		throw idpexception("Not yet implemented."); // TODO
+		throw notYetImplemented();
 	}
 	void visit(const InnerSymmetry&) {
-		throw idpexception("Not yet implemented."); // TODO
+		throw notYetImplemented();
 	}
 	void visit(const InnerForcedChoices&) {
-		throw idpexception("Not yet implemented."); // TODO
+		throw notYetImplemented();
 	}
 	void visit(const InnerIntVarRange&) {
-		throw idpexception("Not yet implemented."); // TODO
+		throw notYetImplemented();
 	}
 	void visit(const InnerIntVarEnum&) {
-		throw idpexception("Not yet implemented."); // TODO
+		throw notYetImplemented();
 	}
 	void visit(const InnerCPAllDiff&) {
-		throw idpexception("Not yet implemented."); // TODO
+		throw notYetImplemented();
 	}
 	void visit(const InnerCPBinaryRel&) {
-		throw idpexception("Not yet implemented."); // TODO
+		throw notYetImplemented();
 	}
 	void visit(const InnerCPCount&) {
-		throw idpexception("Not yet implemented."); // TODO
+		throw notYetImplemented();
 	}
 	void visit(const InnerCPBinaryRelVar&) {
-		throw idpexception("Not yet implemented."); // TODO
+		throw notYetImplemented();
 	}
 	void visit(const InnerCPSumWeighted&) {
-		throw idpexception("Not yet implemented."); // TODO
+		throw notYetImplemented();
 	}
 };
 

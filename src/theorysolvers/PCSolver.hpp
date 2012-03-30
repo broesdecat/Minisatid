@@ -12,6 +12,7 @@
 #include "utils/Utils.hpp"
 #include <memory>
 
+#include "constraintvisitors/LiteralPrinter.hpp"
 #include "theorysolvers/PropagatorFactory.hpp"
 
 namespace Minisat {
@@ -38,7 +39,7 @@ enum TheoryState {
 
 class InnerMonitor;
 
-class PCSolver {
+class PCSolver: public LiteralPrinter{
 private:
 	SolverOption _modes;
 

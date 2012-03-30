@@ -112,11 +112,10 @@ private:
 	std::map<Symbol*,bool>		symbolasarbitatomlist;
 
 public:
-	FODOTTranslator(OutputFormat fodot): Translator(),
-			tofodot(fodot==OutputFormat::FODOT), finisheddata(false), emptytrans(true),
+	FODOTTranslator(bool asaspstructure): Translator(),
+			tofodot(not asaspstructure), finisheddata(false), emptytrans(true),
 			largestnottseitinatom(-1),
 			printedArbitrary(false){
-		MAssert(fodot!=OutputFormat::PLAIN); // TODO why?
 	}
 
 	virtual ~FODOTTranslator() {

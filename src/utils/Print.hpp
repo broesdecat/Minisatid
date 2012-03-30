@@ -15,62 +15,78 @@
 
 namespace MinisatID {
 
-class PCSolver;
+class LiteralPrinter;
 
 Lit getPrintableVar(Var v);
 
 template<typename S>
-std::string print(Var obj, S solver){
+std::string print(Var obj, S solver) {
 	return print(getPrintableVar(obj), solver);
 }
 
-std::string print(const Lit& obj, PCSolver const * const solver);
-std::string print(const Lit& obj, lbool value, PCSolver const * const solver);
-std::string print(const Lit& obj, const PCSolver& solver);
-std::string print(const Lit& obj, lbool value, const PCSolver& solver);
+std::string print(const Lit& obj, LiteralPrinter const * const solver);
+std::string print(const Lit& obj, lbool value, LiteralPrinter const * const solver);
+std::string print(const Lit& obj, const LiteralPrinter& solver);
+std::string print(const Lit& obj, lbool value, const LiteralPrinter& solver);
 
 template<class T>
-T& operator<<(T& stream, const EqType& type){
-	switch(type){
+T& operator<<(T& stream, const EqType& type) {
+	switch (type) {
 	case EqType::EQ:
-		stream <<"=";
+		stream << "=";
 		break;
 	case EqType::NEQ:
-		stream <<"!=";
+		stream << "!=";
 		break;
 	case EqType::L:
-		stream <<"<";
+		stream << "<";
 		break;
 	case EqType::G:
-		stream <<">";
+		stream << ">";
 		break;
 	case EqType::GEQ:
-		stream <<">=";
+		stream << ">=";
 		break;
 	case EqType::LEQ:
-		stream <<"=<";
+		stream << "=<";
 		break;
 	}
 	return stream;
 }
 
 template<class T>
-T& operator<<(T& stream, AggType type){
-	switch(type){
+T& operator<<(T& stream, AggType type) {
+	switch (type) {
 	case AggType::SUM:
-		stream <<"sum";
+		stream << "sum";
 		break;
 	case AggType::CARD:
-		stream <<"card";
+		stream << "card";
 		break;
 	case AggType::MIN:
-		stream <<"min";
+		stream << "min";
 		break;
 	case AggType::MAX:
-		stream <<"max";
+		stream << "max";
 		break;
 	case AggType::PROD:
-		stream <<"prod";
+		stream << "prod";
+		break;
+	}
+	return stream;
+}
+
+template<class T>
+T& operator<<(T& stream, ImplicationType type) {
+	switch (type) {
+	case ImplicationType::EQUIVALENT:
+		stream << "<=>";
+		break;
+	case ImplicationType::IMPLIEDBY:
+		stream << "<=";
+		break;
+	case ImplicationType::IMPLIES:
+		stream << "=>";
 		break;
 	}
 	return stream;

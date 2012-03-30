@@ -259,7 +259,6 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes){
 			modes.rand_var_freq, cmd,"The frequency with which to make a random choice (between 0 and 1)."));
 	options.push_back(new NoValsOption<double>	("","decay", 		"double",
 			modes.var_decay, cmd, "The decay of variable activities within the SAT-solver (larger than or equal to 0)."));
-	//TODO outputfile not supported for flatzinc output
 	options.push_back(new NoValsOption<string>	("o","outputfile", 	"file",
 			outputfile, cmd,"The outputfile to use to write out models."));
     options.push_back(new NoValsOption<string>	("","primesfile",	"file",
@@ -270,10 +269,6 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes){
 			modes.transformat, cmd, "The requested output format (only relevant if translation information is provided)."));
 	options.push_back(new Option<Inference, string>("", "inference", inferencevals, inferencedesc,
 			modes.inference, cmd, "The requested inference task to execute."));
-	options.push_back(new Option<bool, string>	("", "ecnfgraph", 	yesnovals, ecnfgraphdesc,
-			modes.printcnfgraph, cmd, "Choose whether to generate a .dot graph representation of the ecnf"));
-//	options.push_back(new Option<bool, string>	("r", "remap", 		yesnovals, remapdesc,
-//			modes.remap, cmd, "Choose whether to remap literals from the input structure to a contiguous internal representation"));
 	options.push_back(new Option<bool, string>	("","bumpagg", 		yesnovals, bumpaggonnotifydesc,
 			modes.bumpaggonnotify, cmd,"Choose whether to bump variable activity on aggregate propagation"));
 	options.push_back(new Option<bool, string>	("","bumpid", 		yesnovals, bumpidonstartdesc,
@@ -292,12 +287,8 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes){
 			modes.tocnf, cmd,"Choose whether to translate non-clausal constraints to clauses."));
 	options.push_back(new Option<bool, string>	("","doublecyclecheck", 	yesnovals, checkcycledesc,
 			modes.checkcyclefreeness, cmd,"Choose whether to also check cycles with the bottom-up algorithm (for debugging purposes)."));
-	/*options.push_back(new NoValsOption<double>	("","watch-ratio", 	"double",
-			modes.watchesratio, cmd,"The ratio of watches to set literals under which the watched algorithm is used."));*/
-	// FIXME currently, watches are disabled
-	std::clog <<"Currently, no watched aggregates!\n";
-	modes.watchesratio = 0;
-
+	options.push_back(new NoValsOption<double>	("","watch-ratio", 	"double",
+			modes.watchesratio, cmd,"The ratio of watches to set literals under which the watched algorithm is used."));
 	options.push_back(new Option<bool,string>	("","use-agg-heur", 	yesnovals, aggheurdesc,
 			modes.useaggheur, cmd,"Use a specialized aggregate heuristic."));
 	options.push_back(new Option<Polarity, string>("","polarity", 	polvals, poldesc,

@@ -17,7 +17,6 @@ namespace MinisatID {
 
 /**
  * Class which monitors actions during the propagation/search and notifies its registered callbacks.
- * // TODO check whether it is correct that callbacks do not require library recompilation while inheritance does require it!
  */
 class PropAndBackMonitor{
 private:

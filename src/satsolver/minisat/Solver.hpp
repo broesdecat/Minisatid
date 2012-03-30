@@ -102,6 +102,7 @@ public:
 	bool		isAlreadyUsedInAnalyze(const Lit& lit) const;
 
 	//PROPAGATOR CODE
+	// TODO split up in search and propagator
 	virtual void 	accept(MinisatID::ConstraintVisitor& visitor){}; // FIXME
 	CRef 		getExplanation		(const Lit& l) 			{ return reason(var(l));}
 	void 		finishParsing		(bool& present);

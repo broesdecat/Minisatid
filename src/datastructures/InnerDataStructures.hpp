@@ -169,7 +169,7 @@ class GenWatch{
 public:
 	virtual ~GenWatch(){}
 	virtual void propagate() = 0;
-	virtual const Lit& getPropLit() const = 0; // FIXME document which literal is watched and what that means (becoming false or true?)
+	virtual const Lit& getPropLit() const = 0;
 	virtual bool dynamic() const = 0;
 };
 

@@ -13,7 +13,7 @@
 
 #include "satsolver/SATSolver.hpp"
 
-#include "theorysolvers/PCSolver.hpp"
+#include "constraintvisitors/LiteralPrinter.hpp"
 
 #include "modules/IDSolver.hpp"
 
@@ -24,19 +24,19 @@ namespace MinisatID{
 
 Lit getPrintableVar(Var v) { return mkPosLit(v); }
 
-std::string print(const Lit& lit, PCSolver const * const solver){
+std::string print(const Lit& lit, LiteralPrinter const * const solver){
 	return print(lit, *solver);
 }
 
-std::string print(const Lit& lit, lbool value, PCSolver const* const solver){
+std::string print(const Lit& lit, lbool value, LiteralPrinter const* const solver){
 	return print(lit, value, *solver);
 }
 
-std::string print(const Lit& lit, const PCSolver& solver){
+std::string print(const Lit& lit, const LiteralPrinter& solver){
 	return solver.printLiteral(lit);
 }
 
-std::string print(const Lit& lit, lbool value, const PCSolver& solver){
+std::string print(const Lit& lit, lbool value, const LiteralPrinter& solver){
 	stringstream ss;
 	ss <<solver.printLiteral(lit) <<"(" <<(value==l_True?"T":(value==l_False?"F":"U")) <<")";
 	return ss.str();

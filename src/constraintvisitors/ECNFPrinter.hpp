@@ -16,14 +16,16 @@
 
 namespace MinisatID {
 
+// TODO print the translation too!
 template<typename Stream>
 class RealECNFPrinter: public ConstraintAdditionMonitor<Stream> {
 private:
 	using ConstraintAdditionMonitor<Stream>::target;
+	// NOTE: printing the remapped literals here!
 public:
-	RealECNFPrinter(Stream& stream) :
-			ConstraintAdditionMonitor<Stream>(stream) {
-	}
+	RealECNFPrinter(LiteralPrinter* solver, Stream& stream) :
+		ConstraintAdditionMonitor<Stream>(solver, stream) {
+}
 	virtual ~RealECNFPrinter() {
 	}
 
@@ -32,38 +34,47 @@ public:
 		target().flush();
 	}
 
+	std::string print(const Lit& lit){
+		std::stringstream ss;
+		ss <<(sign(lit)?"-":"") <<(var(lit)+1);
+		return ss.str();
+	}
+
 	void visit(const InnerDisjunction& clause) {
 		for (int i = 0; i < clause.literals.size(); ++i) {
-			target() << clause.literals[i] << " ";
+			target() <<print(clause.literals[i]) << " ";
 		}
 		target() << "0\n";
 	}
 
 	void visit(const InnerRule& rule) {
-		target() << (rule.conjunctive ? "C" : "D") << " " << rule.head << " ";
+		target() << (rule.conjunctive ? "C" : "D") << " " << print(mkPosLit(rule.head)) << " ";
 		for (int i = 0; i < rule.body.size(); ++i) {
-			target() << rule.body[i] << " ";
+			target() << print(rule.body[i]) << " ";
 		}
 		target() << "0\n";
 	}
 
 	void visit(const InnerWLSet& set) {
 		target() << "WLSet " << set.setID << " ";
-		throw idpexception("Not yet implemented."); // TODO
-		/*for (uint i = 0; i < set.literals.size(); ++i) {
-			target() << set.literals[i] << "=" << set.weights[i] << " ";
+		for (uint i = 0; i < set.wls.size(); ++i) {
+			target() << print(set.wls[i].getLit()) << "=" << set.wls[i].getWeight() << " ";
 		}
-		target() << "0\n";*/
+		target() << "0\n";
 	}
 
 	void visit(const InnerReifAggregate& agg) {
-		target() << "Added aggregate " << agg.head << " " << (agg.sem == AggSem::COMP ? "<=>" : "<-");
+		target() << "Added aggregate " <<print(mkPosLit(agg.head)) << " " << (agg.sem == AggSem::COMP ? "<=>" : "<-");
 		if (agg.sem == AggSem::DEF) {
 			target() << "(" << agg.defID << ")";
 		}
 		target() << " " << agg.type;
 		target() << "( set" << agg.setID << " )" << (agg.sign == AggSign::UB ? "=<" : ">=") << agg.bound;
 		target() << "\n";
+	}
+
+	void visit(const InnerImplication&) {
+		throw idpexception("Not yet implemented."); // TODO
 	}
 
 	void visit(const InnerAggregate&) {

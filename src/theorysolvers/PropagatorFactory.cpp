@@ -69,12 +69,8 @@ PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine
 	CPStorage::getStorage()->notifyUsedForSearch();
 #endif
 
-	if (modes.printcnfgraph) {
-		parsingmonitors.push_back(new ECNFGraphPrinter<ostream>(cout));
-	}
-
 	if (modes.verbosity > 2) {
-		parsingmonitors.push_back(new HumanReadableParsingPrinter<ostream>(clog));
+		parsingmonitors.push_back(new HumanReadableParsingPrinter<ostream>(getEnginep(), clog));
 	}
 
 	for (auto i = parsingmonitors.cbegin(); i < parsingmonitors.cend(); ++i) {

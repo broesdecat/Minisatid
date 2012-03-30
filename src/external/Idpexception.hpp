@@ -31,6 +31,8 @@ public:
 	}
 };
 
+idpexception notYetImplemented();
+
 }
 
 
