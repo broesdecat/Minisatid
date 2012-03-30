@@ -9,9 +9,10 @@
 #ifndef PARSEOPTIONS_HPP_
 #define PARSEOPTIONS_HPP_
 
+#include "external/Options.hpp"
+
 namespace MinisatID{
-	class Printer;
-	bool parseOptions(int argc, char** argv, Printer* sol);
+	bool parseOptions(int argc, char** argv, SolverOption& modes);
 }
 
 #endif /* PARSEOPTIONS_HPP_ */

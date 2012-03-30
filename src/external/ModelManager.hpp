@@ -21,43 +21,58 @@ namespace MinisatID {
 
 class ResMan;
 
-enum class ModelSaved 	{ NONE, SAVED, SAVING };
+enum class ModelSaved {
+	NONE, SAVED, SAVING
+};
 
-class ModelManager{
+class ModelManager {
 private:
-	int 		nbmodelsfound;
-	Model*		temporarymodel; //Owning pointer
-	modellist	models; //IMPORTANT: for optimization problem, models will contain a series of increasingly better models
-					//Owning pointer
+	int nbmodelsfound;
+	Model* temporarymodel; //Owning pointer
+	modellist models; //IMPORTANT: for optimization problem, models will contain a series of increasingly better models
+	//Owning pointer
 
-	bool		optimalmodelfound;
-	bool		unsatfound;
-
-	ModelSaved modelsave; //CRITICAL SECTION SUPPORT
+	bool optimalmodelfound;
+	bool unsatfound;
 
 	Models saveoption;
+	Models getSaveOption() const {
+		return saveoption;
+	}
 
-	Models getSaveOption() const { return saveoption; }
+	ModelSaved modelsave; //CRITICAL SECTION SUPPORT
 
 public:
 	ModelManager(Models saveoption);
 	~ModelManager();
 
-	int 		getNbModelsFound	() const	{ return nbmodelsfound; }
+	int getNbModelsFound() const {
+		return nbmodelsfound;
+	}
 
-	void 				addModel			(Model * const model);
-	const Model&		getBestModelFound	() const;
-	const modellist& 	getModels			() const	{ return models; } //IMPORTANT: no use calling it when models are not being saved.
+	void addModel(Model * const model);
+	Model* getBestModelFound() const;
+	const modellist& getModels() const {
+		return models;
+	} //IMPORTANT: no use calling it when models are not being saved.
 
-	bool	hasOptimalModel			() const	{ return optimalmodelfound; }
-	void	notifyOptimalModelFound	()			{ optimalmodelfound = true;	}
+	bool hasOptimalModel() const {
+		return optimalmodelfound;
+	}
+	void notifyOptimalModelFound() {
+		optimalmodelfound = true;
+	}
 
-	void 	notifyUnsat();
-	bool	isSat					() { return getNbModelsFound()>0; }
-	bool	isUnsat					() { return unsatfound; }
+	void notifyUnsat();
+	bool isSat() {
+		return getNbModelsFound() > 0;
+	}
+	bool isUnsat() {
+		return unsatfound;
+	}
 
 private:
-	void 	saveModel				(Model * const model);
+	void saveModel(Model * const model);
 };
 
 }

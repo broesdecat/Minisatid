@@ -17,6 +17,7 @@
 
 #include "parser/CommandLineOptions.hpp"
 #include "external/DataAndInference.hpp"
+#include "utils/TimingUtils.hpp"
 
 #include <csetjmp>
 
@@ -50,9 +51,6 @@ extern FILE* yyin;
 extern int yyparse();
 extern void yydestroy();
 extern void yyinit();
-extern bool unsatfound;
-
-void parse(pwls d);
 
 jmp_buf main_loop;
 static void noMoreMem();
@@ -68,39 +66,7 @@ void handleSignals();
 void parseAndInitializeTheory(pwls d);
 void doModelGeneration(pwls d);
 
-void rewriteIntoFlatZinc();
-
-extern SolverOption modes;
-OutputFormat transformat;
-
-Printer* printer;
-ModelManager* manager;
-
-void createSolution() {
-	manager = new ModelManager(Models::NONE);
-	printer = new Printer(manager, Models::BEST);
-	//FIXME options.inference = Inference::MODELEXPAND;
-	//FIXME options.nbmodelstofind = 1;
-}
-
-int handleTermination(bool cleanexit, pwls d) {
-	if (!cleanexit) {
-		printer->notifySolvingAborted();
-	}
-	int returnvalue = 0;
-	if (manager->isUnsat()) {
-		returnvalue = 20;
-	} else {
-		if (manager->isSat()) {
-			returnvalue = 10;
-		}
-	}
-
-	if (d != NULL && modes.verbosity > 1) {
-		//TODO d->printStatistics();
-	}
-	return returnvalue;
-}
+ModelExpand* mx = NULL;
 
 int main(int argc, char** argv) {
 	//Setting system precision and signal handlers
@@ -125,21 +91,11 @@ int main(int argc, char** argv) {
 	//set memory handler
 	std::set_new_handler(noMoreMem);
 
-	manager = createSolution();
-
 	//parse command-line options
-	bool successfullparsing = parseOptions(argc, argv, printer);
-	if (!successfullparsing) {
-		printer->notifySolvingAborted();
-		return 0;
-	} else {
-		manager->setNbModelsToFind(modes.nbmodels);
-	}
-	manager->setModes(modes); //TODO find cleaner way? => these are set when solve is called, but earlier statements might have incorrect behavior then (printing unsat e.g.)
-	manager->setInference(modes.inference);
-
-	if (modes.transformat == OutputFormat::FZ) {
-		rewriteIntoFlatZinc();
+	SolverOption modes;
+	bool successfullparsing = parseOptions(argc, argv, modes);
+	if (not successfullparsing) {
+		clog << ">>> Error during parsing of command-line options, aborting...";
 		return 0;
 	}
 
@@ -147,9 +103,7 @@ int main(int argc, char** argv) {
 
 	pwls d = new Space(modes);
 	bool cleanexit = false;
-#ifdef NDEBUG
 	try {
-#endif
 		//IMPORTANT: because signals are handled asynchronously, a special mechanism is needed to recover from them (exception throwing does not work)
 		//setjmp maintains a jump point to which any stack can jump back, re-executing this statement with different return value,
 		//so if this happens, we jump out
@@ -165,25 +119,24 @@ int main(int argc, char** argv) {
 			parseAndInitializeTheory(d);
 			if (modes.inference == Inference::MODELEXPAND) {
 				doModelGeneration(d);
-			} else if(modes.inference == Inference::PROPAGATE){
+			} else if (modes.inference == Inference::PROPAGATE) {
 				// TODO unit propagation
 			} else if (modes.inference == Inference::PRINTTHEORY) {
 				// TODO Print the theory
 				/*manager->setInferenceOption(Inference::PRINTTHEORY);
-				if (manager->isUnsat()) {
-					cout << "p ecnf\n0\n";
-					cout.flush();
-				} else {
-					assert(d!=NULL);
-					// TODO d->printTheory(cout);
-					cout.flush();
-				}*/
+				 if (manager->isUnsat()) {
+				 cout << "p ecnf\n0\n";
+				 cout.flush();
+				 } else {
+				 assert(d!=NULL);
+				 // TODO d->printTheory(cout);
+				 cout.flush();
+				 }*/
 			}
 
 			jumpback = 1;
 			cleanexit = true;
 		}
-#ifdef NDEBUG
 	} catch (const exception& e) {
 		printExceptionCaught(clog, e);
 		cleanexit = false;
@@ -191,22 +144,30 @@ int main(int argc, char** argv) {
 		printUnexpectedError(clog);
 		cleanexit = false;
 	}
-#endif
 	jumpback = 1;
 
-	int returnvalue = handleTermination(cleanexit, d);
-
-#ifdef NDEBUG
-	return returnvalue; //Do not call all destructors
-#endif
-
-	if (printer != NULL) {
-		delete printer;
+	int returnvalue = 0;
+	if (not cleanexit) {
+		returnvalue = -1;
 	}
-	if (manager != NULL) {
-		delete manager;
+	if (mx != NULL) {
+		if (not cleanexit) {
+			// NOTE: if solving was aborted, more information might be available that has not been printed, so can be printed now.
+			// for that, need to save mx ofcourse
+			mx->notifySolvingAborted(); // TODO rename
+		}
+		if (mx->isUnsat()) {
+			returnvalue = 20;
+		} else if (mx->isSat()) {
+			returnvalue = 10;
+		}
+		delete (mx);
 	}
+
 	if (d != NULL) {
+		if (d->getOptions().verbosity > 1) {
+			//TODO d->printStatistics();
+		}
 		delete (d);
 	}
 
@@ -260,8 +221,8 @@ void rewriteIntoFlatZinc() {
 
 void initializeAndParseASP(pwls d) {
 	LParseTranslator* lptrans = new LParseTranslator();
-	if (modes.transformat != OutputFormat::PLAIN) {
-		sol->setTranslator(lptrans);
+	if (d->getOptions().transformat != OutputFormat::PLAIN) {
+		d->setTranslator(lptrans);
 	}
 
 	std::istream is(getInputBuffer());
@@ -274,8 +235,8 @@ void initializeAndParseASP(pwls d) {
 
 void initializeAndParseOPB(pwls d) {
 	OPBTranslator* opbtrans = new OPBTranslator();
-	if (modes.transformat != OutputFormat::PLAIN) {
-		sol->setTranslator(opbtrans);
+	if (d->getOptions().transformat != OutputFormat::PLAIN) {
+		d->setTranslator(opbtrans);
 	}
 
 	std::istream is(getInputBuffer());
@@ -285,25 +246,37 @@ void initializeAndParseOPB(pwls d) {
 	closeInput();
 	delete parser;
 
-	if (modes.transformat == OutputFormat::PLAIN) {
+	if (d->getOptions().transformat == OutputFormat::PLAIN) {
 		delete (opbtrans);
 	}
 }
 
 void initializeAndParseFODOT(pwls d) {
-	if (modes.transformat != OutputFormat::PLAIN) {
-		transformat = modes.transformat;
+	yyin = getInputFile();
+
+	yyinit();
+
+	setSpace(d);
+
+	try {
+		yyparse();
+	} catch (const MinisatID::idpexception& e) {
+		if (d->isCertainlyUnsat()) {
+			printUnsatFoundDuringParsing(clog, d->getOptions().verbosity);
+		} else {
+			throw idpexception(getParseError(e, lineNo, charPos, yytext));
+		}
 	}
 
-	yyin = getInputFile();
-	parse(d);
+	yydestroy();
+
 	closeInput();
 }
 
 void parseAndInitializeTheory(pwls d) {
-	printer->notifyStartParsing();
+	auto startparsing = cpuTime();
 
-	switch (modes.format) {
+	switch (d->getOptions().format) {
 	case InputFormat::ASP:
 		initializeAndParseASP(d);
 		break;
@@ -316,66 +289,25 @@ void parseAndInitializeTheory(pwls d) {
 	}
 	}
 
-	if (d->isCertainlyUnsat()) {
-		manager->notifyUnsat();
-	}
-
-	printer->notifyEndParsing();
+	auto endparsing = cpuTime();
+	// TODO print parsing time
 }
 
 void doModelGeneration(pwls d) {
-	if (manager->isUnsat()) {
-		printer->notifySolvingFinished();
-		return;
+	ModelExpandOptions mxoptions;
+	mxoptions.printmodels = Models::ALL;
+	mxoptions.savemodels = Models::NONE;
+	if (d->getOptions().format == InputFormat::OPB && d->isOptimizationProblem()) { // Change default options added before parsing
+		mxoptions.printmodels = Models::BEST;
+		mxoptions.savemodels = Models::BEST;
 	}
+	mxoptions.nbmodelstofind = d->getOptions().nbmodels;
 
-	assert(d!=NULL);
-	// FIXME need to move optimization to lower than ModelExpand Task, because cannot add to inference during parsing!!!
-
-	// TODO
-	//if (d->hasOptimization()) {
-	//	sol->notifyOptimizing();
-	//}
-
-	if (modes.format == InputFormat::OPB && sol->isOptimizationProblem()) { // Change default options added before parsing
-		sol->setPrintModels(Models::BEST);
-		sol->setSaveModels(Models::BEST);
-	}
-
-	auto mx = ModelExpand(d, sol->getOptions()); // FIXME remove sol from main
-	mx.execute();
-}
-
-/**
- * Returns a data object representing the solver configuration from the input theory.
- * If the input theory was already found to be unsatisfiable, an empty shared pointer is returned.
- */
-void parse(pwls d) {
-	yyinit();
-
-	setSpace(d);
-
-	try {
-		yyparse();
-	} catch (const MinisatID::idpexception& e) {
-		if (unsatfound) {
-			printUnsatFoundDuringParsing(clog, modes.verbosity);
-		} else {
-			throw idpexception(getParseError(e, lineNo, charPos, yytext));
-		}
-	}
-
-	yydestroy();
-
-	if (unsatfound) {
-		manager->notifyUnsat();
-		delete (d);
-		d = NULL;
-	}
+	mx = new ModelExpand(d, mxoptions, {});
+	mx->execute();
 }
 
 // Debugging - information printing
-
 static void noMoreMem() {
 	//Tries to reduce the memory of the solver by reducing the number of learned clauses
 	//This keeps being called until enough memory is free or no more learned clauses can be deleted (causing abort).

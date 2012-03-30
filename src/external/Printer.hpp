@@ -37,7 +37,7 @@ private:
 
 	Models printoption;
 
-	double 		startparsing, endparsing, startfinish, endfinish, startsimpl, endsimpl, startsolve, endsolve;
+	double 		startfinish, endfinish, startsimpl, endsimpl, startsolve, endsolve;
 
 public:
 	Printer(ModelManager* modelmanager, Translator* translator, Models printoption, const SolverOption& modes);
@@ -52,8 +52,6 @@ public:
 
 	void	notifyOptimizing		() 			{ optimizing = true; }
 
-	void notifyStartParsing			();
-	void notifyEndParsing			();
 	void notifyStartDataInit		();
 	void notifyEndDataInit			();
 	void notifyStartSimplifying		();

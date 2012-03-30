@@ -1323,7 +1323,8 @@ lbool Solver::solve_(/*AB*/bool nosearch/*AE*/) {
 	solves++;
 
 	// To get a better estimate of the number of max_learnts allowed, have to ask all propagators their size
-	max_learnts = getPCSolver().getNbOfFormulas() * learntsize_factor;
+	//max_learnts = //FIXME getPCSolver().getNbOfFormulas() * learntsize_factor;
+	max_learnts = nbClauses() * learntsize_factor;
 	learntsize_adjust_confl = learntsize_adjust_start_confl;
 	learntsize_adjust_cnt = (int) learntsize_adjust_confl;
 	lbool status = l_Undef;

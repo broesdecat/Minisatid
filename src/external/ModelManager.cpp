@@ -24,32 +24,27 @@
 using namespace std;
 using namespace MinisatID;
 
-ModelManager::ModelManager(Models saveoption) :
-		nbmodelsfound(0),
-		temporarymodel(NULL),
-		optimalmodelfound(false),
-		unsatfound(false),
-		saveoption(saveoption),
-		modelsave(ModelSaved::NONE){
+ModelManager::ModelManager(Models saveoption)
+		: nbmodelsfound(0), temporarymodel(NULL), optimalmodelfound(false), unsatfound(false), saveoption(saveoption), modelsave(ModelSaved::NONE) {
 }
 
-ModelManager::~ModelManager(){
-	if(temporarymodel!=NULL){
+ModelManager::~ModelManager() {
+	if (temporarymodel != NULL) {
 		delete temporarymodel;
 	}
 	deleteList<Model>(models);
 }
 
-const Model& ModelManager::getBestModelFound() const {
+Model* ModelManager::getBestModelFound() const {
 	assert(modelsave!=ModelSaved::NONE);
 	if (modelsave == ModelSaved::SAVED) {
-		return *models.back();
+		return models.back();
 	} else {
-		return *temporarymodel;
+		return temporarymodel;
 	}
 }
 
-void ModelManager::saveModel(Model * const model){
+void ModelManager::saveModel(Model * const model) {
 	++nbmodelsfound;
 	if (modelsave == ModelSaved::SAVING) { //Error in saving previous model, so abort
 		throw idpexception(">> Previous model failed to save, cannot guarantee correctness.\n");

@@ -39,3 +39,7 @@ Space::Space(SolverOption modes): basicoptions(modes){
 bool Space::isCertainlyUnsat() const{
 	return engine->satState()==SATVAL::UNSAT;
 }
+
+bool Space::isOptimizationProblem() const{
+	return engine->isOptimizationProblem();
+}

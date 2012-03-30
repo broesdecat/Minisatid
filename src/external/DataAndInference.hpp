@@ -26,7 +26,6 @@ class PropagatorFactory;
 class PCSolver;
 class Optimization;
 class PropAndBackMonitor;
-class Agg;
 class InnerModel;
 class Printer;
 class ModelManager;
@@ -56,6 +55,8 @@ public:
 
 protected:
 	virtual void innerExecute() = 0;
+	PCSolver& getSolver() const;
+	const SolverOption& modes() const;
 };
 
 class VarCreation {
@@ -83,19 +84,11 @@ public:
 	void notifyMonitor(int untillevel);
 };
 
-class OptimCreation {
-public:
-	virtual ~OptimCreation() {
-	}
-	virtual void addOptimization(Optim type, const litlist& literals) = 0;
-	virtual void addAggOptimization(Agg* aggmnmz) = 0;
-};
-
 enum class MXState {
 	MODEL, UNSAT, UNKNOWN
 };
 
-class ModelExpand: public Task, public OptimCreation {
+class ModelExpand: public Task {
 private:
 	ModelManager* _solutions; // TODO set
 	Printer* printer;  // TODO set
@@ -103,17 +96,17 @@ private:
 
 	const litlist assumptions;
 
-	// OPTIMIZATION INFORMATION
-	Optim optim;
-	Var head;
-	std::vector<Lit> to_minimize;
-	Agg* agg_to_minimize;
-
 public:
 	ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions);
 	~ModelExpand();
 
 	const modellist& getSolutions() const;
+	modellist getBestSolutionsFound() const;
+
+	bool isSat() const;
+	bool isUnsat() const;
+
+	void notifySolvingAborted();
 
 private:
 	void innerExecute();
@@ -126,11 +119,6 @@ private:
 	bool invalidateValue(litlist& invalidation);
 	void findOptimal(const litlist& assmpt);
 	bool invalidateAgg(litlist& invalidation);
-	void addOptimization(Optim type, const litlist& literals);
-	void addAggOptimization(Agg* aggmnmz);
-
-	PCSolver& getSolver() const;
-	const SolverOption& modes() const;
 
 	// TODO is in fact also notifyOptimum?
 	void notifyCurrentOptimum(const Weight& value) const;
@@ -152,9 +140,6 @@ public:
 
 private:
 	void innerExecute();
-
-	PCSolver& getSolver() const;
-	const SolverOption& modes() const;
 };
 
 class Transform: public Task {
@@ -170,9 +155,6 @@ public:
 
 private:
 	void innerExecute();
-
-	PCSolver& getSolver() const;
-	const SolverOption& modes() const;
 };
 
 // TODO inference: generate unsat core

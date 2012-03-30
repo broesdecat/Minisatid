@@ -44,10 +44,8 @@ typedef Space* pwls;
 
 //%code{
 	
-extern SolverOption modes;
 FODOTTranslator*	fodottrans = NULL;
 LParseTranslator*	simpletrans = NULL;
-extern OutputFormat transformat;
 extern int 		yylex(void);
 extern char * 	yytext;
 
@@ -62,8 +60,6 @@ std::vector<MinisatID::Literal> heads;
 //Auxiliary variables, used while parsing.
 int lineNo = 1;
 int charPos = 1;
-
-bool unsatfound = false;
 
 pwls solver;
 
@@ -465,7 +461,7 @@ cpconstraint
 translation	: /* empty */
 			|	TRANSHEADER 
 				{
-					fodottrans = new FODOTTranslator(transformat);	
+					fodottrans = new FODOTTranslator(solver->getOptions().transformat); // TODO check if used correctly everywhere!	
 					if(fodottrans!=NULL){
 						solver->setTranslator(fodottrans);
 					}
@@ -668,7 +664,6 @@ template<class T>
 void CR(const T& formula){
 	add(*solver, formula);
 	if(solver->isCertainlyUnsat()){
-		unsatfound = true;
 		throw idpexception("Unsat during parsing.\n");
 	}		
 }

@@ -27,7 +27,6 @@ class Propagator;
 class PropagatorFactory;
 class EventQueue;
 class SearchMonitor;
-class OptimCreation;
 class IntView;
 class VarCreation;
 class ConstraintVisitor;
@@ -43,7 +42,6 @@ class PCSolver {
 private:
 	SolverOption _modes;
 
-	OptimCreation* optimcreation;
 	VarCreation* varcreator;
 	InnerMonitor* monitor;
 
@@ -64,8 +62,19 @@ public:
 		_modes.nbmodels = nbmodels;
 	}
 public:
+	// FIXME make private with getters!
+	// OPTIMIZATION INFORMATION
+	Optim optim;
+	Var head;
+	std::vector<Lit> to_minimize;
+	Agg* agg_to_minimize;
+
 	void addOptimization(Optim type, const litlist& literals);
 	void addAggOptimization(Agg* aggmnmz);
+
+	bool isOptimizationProblem() const {
+		return optim!=Optim::NONE;
+	}
 
 private:
 	//Search algorithms //TODO refactor into an interface "searchalgorithm" with subclasses satsolver and cpsolver?
@@ -199,8 +208,6 @@ public:
 	bool handleConflict(rClause conflict);
 
 	void notifyBoundsChanged(IntVar* var);
-
-	int getNbOfFormulas() const;
 
 	// MOD SOLVER support
 	void saveState();

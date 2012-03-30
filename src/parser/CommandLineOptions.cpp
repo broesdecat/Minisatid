@@ -21,8 +21,6 @@
 using namespace std;
 using namespace MinisatID;
 
-SolverOption modes; //Used by parser, initialized before parsing!
-
 struct Opt{
 	virtual ~Opt(){}
 	virtual void parse() = 0;
@@ -122,7 +120,7 @@ struct Option: public Opt{
 };
 
 //Return false if parsing failed
-bool MinisatID::parseOptions(int argc, char** argv, Printer* sol){
+bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes){
 	string outputfile = "";
 
 	vector<Opt*> options;
@@ -330,7 +328,7 @@ bool MinisatID::parseOptions(int argc, char** argv, Printer* sol){
 		setInputFileUrl(inputfilearg.getValue());
 	}
 	if(outputfile.compare("")!=0){
-		sol->setOutputFile(outputfile);
+		modes.outputfile = outputfile;
 	}
 
 	deleteList<Opt>(options);

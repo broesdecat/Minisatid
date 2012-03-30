@@ -31,7 +31,7 @@ void Task::notifyTerminateRequested() {
 }
 
 ModelExpand::ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions)
-		: Task(space), _solutions(new ModelManager(options.savemodels)), _options(options), assumptions(assumptions), optim(Optim::NONE) {
+		: Task(space), _solutions(new ModelManager(options.savemodels)), _options(options), assumptions(assumptions) {
 
 }
 
@@ -44,16 +44,30 @@ int ModelExpand::getNbModelsFound() const {
 	return _solutions->getNbModelsFound();
 }
 
-PCSolver& ModelExpand::getSolver() const {
+PCSolver& Task::getSolver() const {
 	return getSpace()->getEngine();
 }
 
-const SolverOption& ModelExpand::modes() const {
+const SolverOption& Task::modes() const {
 	return getSpace()->getOptions();
 }
 
 const modellist& ModelExpand::getSolutions() const {
 	return _solutions->getModels();
+}
+modellist ModelExpand::getBestSolutionsFound() const {
+	return {_solutions->getBestModelFound()};
+}
+
+bool ModelExpand::isSat() const{
+	return _solutions->isSat();
+}
+bool ModelExpand::isUnsat() const{
+	return _solutions->isUnsat();
+}
+
+void ModelExpand::notifySolvingAborted(){
+	printer->notifySolvingAborted();
 }
 
 /*
@@ -69,7 +83,17 @@ const modellist& ModelExpand::getSolutions() const {
  * count the number of models => do not save models
  */
 void ModelExpand::innerExecute() {
-	if (optim != Optim::NONE && _options.nbmodelstofind != 1) {
+	if (getSpace()->isCertainlyUnsat()) {
+		printer->notifySolvingFinished(); // TODO solving started?
+		return;
+	}
+	// FIXME need to move optimization to lower than ModelExpand Task, because cannot add to inference during parsing!!!
+
+	// TODO
+	//if (d->hasOptimization()) {
+	//	sol->notifyOptimizing();
+	//}
+	if (getSpace()->isOptimizationProblem() && _options.nbmodelstofind != 1) {
 		throw idpexception("Finding multiple models can currently not be combined with optimization.\n");
 	}
 
@@ -77,7 +101,7 @@ void ModelExpand::innerExecute() {
 
 	printSearchStart(clog, modes().verbosity);
 
-	if (optim != Optim::NONE) {
+	if (getSpace()->isOptimizationProblem()) {
 		findOptimal(assumptions);
 	} else {
 		MXState moremodels = findNext(assumptions, _options);
@@ -205,7 +229,7 @@ SATVAL ModelExpand::invalidateModel(const litlist& clause) {
 bool ModelExpand::invalidateSubset(litlist& invalidation, litlist& assmpt) {
 	int subsetsize = 0;
 
-	for (auto i = to_minimize.cbegin(); i < to_minimize.cend(); ++i) {
+	for (auto i = getSolver().to_minimize.cbegin(); i < getSolver().to_minimize.cend(); ++i) {
 		auto lit = *i;
 		if (getSolver().getModelValue(var(lit)) == l_True) {
 			invalidation.push_back(~lit);
@@ -225,17 +249,18 @@ bool ModelExpand::invalidateSubset(litlist& invalidation, litlist& assmpt) {
 bool ModelExpand::invalidateValue(litlist& invalidation) {
 	bool currentoptimumfound = false;
 
-	for (uint i = 0; !currentoptimumfound && i < to_minimize.size(); ++i) {
-		if (!currentoptimumfound && getSolver().getModelValue(var(to_minimize[i])) == l_True) {
+	const auto& minim = getSolver().to_minimize;
+	for (uint i = 0; !currentoptimumfound && i < minim.size(); ++i) {
+		if (!currentoptimumfound && getSolver().getModelValue(var(minim[i])) == l_True) {
 			if (modes().verbosity >= 1) {
 				clog << "> Current optimum found for: ";
-				clog << getSpace()->print(to_minimize[i]);
+				clog << getSpace()->print(minim[i]);
 				clog << "\n";
 			}
 			currentoptimumfound = true;
 		}
 		if (!currentoptimumfound) {
-			invalidation.push_back(to_minimize[i]);
+			invalidation.push_back(minim[i]);
 		}
 	}
 
@@ -244,6 +269,29 @@ bool ModelExpand::invalidateValue(litlist& invalidation) {
 	} else {
 		return false;
 	}
+}
+
+bool ModelExpand::invalidateAgg(litlist& invalidation) {
+	//FIXME assert(isInitialized());
+	auto agg = getSolver().agg_to_minimize;
+	auto s = agg->getSet();
+	Weight value = s->getType().getValue(*s);
+
+	printer->notifyCurrentOptimum(value);
+	if (modes().verbosity >= 1) {
+		clog << "> Current optimal value " << value << "\n";
+	}
+
+	agg->setBound(AggBound(agg->getSign(), value - 1));
+
+	if (s->getType().getMinPossible(*s) == value) {
+		return true;
+	}
+
+	HeadReason ar(*agg, mkNegLit(var(agg->getHead())));
+	s->getProp()->getExplanation(invalidation, ar);
+
+	return false;
 }
 
 /*
@@ -259,9 +307,9 @@ void ModelExpand::findOptimal(const litlist& assmpt) {
 	bool modelfound = false, unsatreached = false;
 
 	while (not unsatreached) {
-		if (optim == Optim::AGG) {
+		if (getSolver().optim == Optim::AGG) {
 			// NOTE: necessary to propagate the changes to the bound correctly
-			if (agg_to_minimize->reInitializeAgg() == SATVAL::UNSAT) {
+			if (getSolver().agg_to_minimize->reInitializeAgg() == SATVAL::UNSAT) {
 				unsatreached = true;
 				continue;
 			}
@@ -281,7 +329,7 @@ void ModelExpand::findOptimal(const litlist& assmpt) {
 
 		//invalidate the solver
 		InnerDisjunction invalidation;
-		switch (optim) {
+		switch (getSolver().optim) {
 		case Optim::LIST:
 			unsatreached = invalidateValue(invalidation.literals);
 			break;
@@ -313,47 +361,6 @@ void ModelExpand::findOptimal(const litlist& assmpt) {
 	}
 
 	// TODO support for finding more optimal models?
-}
-
-bool ModelExpand::invalidateAgg(litlist& invalidation) {
-	//FIXME assert(isInitialized());
-	auto agg = agg_to_minimize;
-	auto s = agg->getSet();
-	Weight value = s->getType().getValue(*s);
-
-	printer->notifyCurrentOptimum(value);
-	if (modes().verbosity >= 1) {
-		clog << "> Current optimal value " << value << "\n";
-	}
-
-	agg->setBound(AggBound(agg->getSign(), value - 1));
-
-	if (s->getType().getMinPossible(*s) == value) {
-		return true;
-	}
-
-	HeadReason ar(*agg, mkNegLit(var(agg->getHead())));
-	s->getProp()->getExplanation(invalidation, ar);
-
-	return false;
-}
-
-void ModelExpand::addOptimization(Optim type, const litlist& literals) {
-	if (optim != Optim::NONE) {
-		throw idpexception(">> Only one optimization statement is allowed.\n");
-	}
-
-	optim = type;
-	to_minimize = literals;
-}
-
-void ModelExpand::addAggOptimization(Agg* aggmnmz) {
-	if (optim != Optim::NONE) {
-		throw idpexception(">> Only one optimization statement is allowed.\n");
-	}
-
-	optim = Optim::AGG;
-	agg_to_minimize = aggmnmz; //aggmnmz->getAgg().front();
 }
 
 void InnerMonitor::notifyMonitor(const Lit& propagation, int decisionlevel) {

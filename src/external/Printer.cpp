@@ -30,7 +30,7 @@ Printer::Printer(ModelManager* modelmanager, Translator* translator,Models print
 		modelmanager(modelmanager),
 		translator(translator),
 		modes(modes),
-		startparsing(0), endparsing(-1), startfinish(0), endfinish(-1), startsimpl(0), endsimpl(-1), startsolve(0), endsolve(-1){
+		startfinish(0), endfinish(-1), startsimpl(0), endsimpl(-1), startsolve(0), endsolve(-1){
 
 	resman = std::shared_ptr<ResMan>(new StdMan(false));
 }
@@ -38,12 +38,6 @@ Printer::Printer(ModelManager* modelmanager, Translator* translator,Models print
 Printer::~Printer(){
 }
 
-void Printer::notifyStartParsing() {
-	startparsing = cpuTime();
-}
-void Printer::notifyEndParsing() {
-	endparsing = cpuTime();
-}
 void Printer::notifyStartDataInit() {
 	startfinish = cpuTime();
 }
@@ -59,12 +53,12 @@ void Printer::notifyEndSolving() {
 
 void Printer::printStatistics() const {
 	if(startsimpl==0){
-		clog <<getStatisticsMessage((endparsing-startparsing) + (endfinish-startfinish), 0, 0);
+		clog <<getStatisticsMessage((endfinish-startfinish), 0, 0);
 	}else if(startsolve==0){
-		clog <<getStatisticsMessage((endparsing-startparsing) + (endfinish-startfinish), endsimpl-startsimpl, 0);
+		clog <<getStatisticsMessage((endfinish-startfinish), endsimpl-startsimpl, 0);
 	}else{
 		clog <<getStatisticsMessage(
-				(endparsing-startparsing) + (endfinish-startfinish),
+				(endfinish-startfinish),
 				endsimpl-startsimpl,
 				endsolve-startsolve);
 	}
@@ -93,9 +87,7 @@ void Printer::addModel(Model * const model) {
 }
 
 void Printer::solvingFinished(){
-	if(endparsing==-1){
-		endparsing = cpuTime();
-	}else if(endfinish==-1){
+	if(endfinish==-1){
 		endfinish = cpuTime();
 	}else if(endsimpl==-1){
 		endsimpl = cpuTime();
@@ -118,7 +110,7 @@ void Printer::solvingFinished(){
 				printSatisfiable(output, modes.format, modes.transformat);
 				printSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);
 			}
-			getTranslator()->printModel(output, modelmanager->getBestModelFound());
+			getTranslator()->printModel(output, *modelmanager->getBestModelFound());
 		}else if(!optimizing && modes.transformat==OutputFormat::ASP){
 			printSatisfiable(output, modes.format, modes.transformat);
 			printSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);

@@ -60,7 +60,8 @@ SolverOption::SolverOption():
 		subsetminimizeexplanation(false),
 		currentlevelfirstinexplanation(true),
 		innogoodfirstinexplanation(true),
-		lazy(false){
+		lazy(false),
+		outputfile(""){
 	stringstream str;
 	str <<DATADIR <<"/P1.TXT";
 	primesfile = str.str();
@@ -68,7 +69,7 @@ SolverOption::SolverOption():
 
 bool SolverOption::verifyOptions() const{
 	string s(getPrimesFile());
-	if(tocnf && !fileIsReadable(s.c_str())){
+	if(tocnf && not fileIsReadable(s.c_str())){
 		printPrimesFileNotReadable(clog, s);
 		return false;
 	}
@@ -114,4 +115,5 @@ void SolverOption::print(std::ostream& so) const{
 	so << "asapaggprop: " 		<<asapaggprop <<"\n";
 	so << "ufsvarintrothreshold: " <<ufsvarintrothreshold <<"\n";
 	so << "lazy: " 				<<(lazy?"yes":"no") <<"\n";
+	so << "outputfile: "		<<outputfile <<"\n";
 }

@@ -57,6 +57,8 @@ public:
 	void addMonitor(PropAndBackMonitor* monitor){
 		// FIXME
 	}
+
+	bool isOptimizationProblem() const;
 };
 
 }

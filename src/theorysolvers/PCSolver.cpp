@@ -381,11 +381,22 @@ lbool PCSolver::solve(const litlist& assumptions, bool search){
 	return getSATSolver()->solve(assumptions, not search);
 }
 
-void PCSolver::addOptimization(Optim type, const litlist& literals){
-	optimcreation->addOptimization(type, literals);
+void PCSolver::addOptimization(Optim type, const litlist& literals) {
+	if (optim != Optim::NONE) {
+		throw idpexception(">> Only one optimization statement is allowed.\n");
+	}
+
+	optim = type;
+	to_minimize = literals;
 }
-void PCSolver::addAggOptimization(Agg* aggmnmz){
-	optimcreation->addAggOptimization(aggmnmz);
+
+void PCSolver::addAggOptimization(Agg* aggmnmz) {
+	if (optim != Optim::NONE) {
+		throw idpexception(">> Only one optimization statement is allowed.\n");
+	}
+
+	optim = Optim::AGG;
+	agg_to_minimize = aggmnmz; //aggmnmz->getAgg().front();
 }
 
 /**
