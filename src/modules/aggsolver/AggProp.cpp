@@ -269,7 +269,7 @@ WL ProdProp::handleOccurenceOfBothSigns(const WL& one, const WL& two, Weight&) c
 	//NOTE: om dit toe te laten, ofwel bij elke operatie op en literal al zijn voorkomens overlopen
 	//ofwel aggregaten voor doubles ondersteunen (hAggPropagatoret eerste is eigenlijk de beste oplossing)
 	//Mogelijke eenvoudige implementatie: weigts bijhouden als doubles (en al de rest als ints)
-	NoSupportForBothSignInProductAgg(clog, one.getLit(), two.getLit());
+	//FIXME cannot print this here NoSupportForBothSignInProductAgg(clog, one.getLit(), two.getLit());
 	throw idpexception("Atoms in product aggregates have to be unique.\n");
 }
 

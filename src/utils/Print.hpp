@@ -13,31 +13,21 @@
 #include "utils/Utils.hpp"
 #include "utils/PrintMessage.hpp"
 
-/**
- * Verbosity rules:
- * level 0: no output
- * level 1: statistics information
- * level 2: initialization information + ?
- * TODO
- */
-
 namespace MinisatID {
 
-class WrapperPimpl;
+class PCSolver;
 
-void setTranslator(WrapperPimpl* translator);
+Lit getPrintableVar(Var v);
 
-template<typename T>
-Lit getPrintableVar(T v) { return mkPosLit(v); }
-
-template<class T>
-std::string print(const T& obj);
-
-template<class T>
-T& operator<<(T& stream, const Lit& lit){
-	stream << print(lit);
-	return stream;
+template<typename S>
+std::string print(Var obj, S solver){
+	return print(getPrintableVar(obj), solver);
 }
+
+std::string print(const Lit& obj, PCSolver const * const solver);
+std::string print(const Lit& obj, lbool value, PCSolver const * const solver);
+std::string print(const Lit& obj, const PCSolver& solver);
+std::string print(const Lit& obj, lbool value, const PCSolver& solver);
 
 template<class T>
 T& operator<<(T& stream, const EqType& type){
@@ -84,27 +74,6 @@ T& operator<<(T& stream, AggType type){
 		break;
 	}
 	return stream;
-}
-
-template<class T>
-void print(const T& lit, const lbool val);
-
-template<class S>
-void print(S * const s);
-
-template<class S>
-void print(rClause c, const S& s);
-
-template<typename List>
-void printList(const List& list, const std::string& between){
-	bool begin = true;
-	for(auto j=list.cbegin(); j<list.cend(); j++){
-		if(not begin){
-			std::clog <<between;
-		}
-		begin = false;
-		std::clog <<*j;
-	}
 }
 
 }

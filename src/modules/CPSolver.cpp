@@ -166,7 +166,7 @@ rClause CPSolver::getExplanation(const Lit& p){
 rClause CPSolver::notifySATsolverOfPropagation(const Lit& p) {
 	if (getPCSolver().value(p) == l_False) {
 		if (getPCSolver().verbosity() >= 2) {
-			clog <<">> Deriving conflinct in " <<p <<" because of constraint expression.\n";
+			clog <<">> Deriving conflinct in " <<print(p, getPCSolver()) <<" because of constraint expression.\n";
 		}
 		uint temp = propreason[p];
 		propreason[p] = trail.getTrail().size();
@@ -175,7 +175,7 @@ rClause CPSolver::notifySATsolverOfPropagation(const Lit& p) {
 		return confl;
 	} else if (getPCSolver().value(p) == l_Undef) {
 		if (getPCSolver().verbosity() >= 2) {
-			clog <<">> Deriving " <<p <<" because of constraint expression.\n";
+			clog <<">> Deriving " <<print(p, getPCSolver()) <<" because of constraint expression.\n";
 		}
 		propreason[p] = trail.getTrail().size();
 		getPCSolver().setTrue(p, this);
@@ -187,10 +187,10 @@ rClause CPSolver::notifySATsolverOfPropagation(const Lit& p) {
 
 void CPSolver::checkHeadUniqueness() const{
 	set<Var> heads;
-	for(vector<ReifiedConstraint*>::const_iterator i=getData().getReifConstraints().cbegin(); i<getData().getReifConstraints().cend(); i++){
+	for(auto i=getData().getReifConstraints().cbegin(); i<getData().getReifConstraints().cend(); i++){
 		if(heads.find((*i)->getHead())!=heads.cend()){
 			stringstream ss;
-			ss <<"Constraint reification atoms should be unique, but " <<(*i)->getHead() <<" is shared by at least two constraints.\n";
+			ss <<"Constraint reification atoms should be unique, but " <<print((*i)->getHead(), getPCSolver()) <<" is shared by at least two constraints.\n";
 			throw idpexception(ss.str());
 		}
 		heads.insert((*i)->getHead());
@@ -251,7 +251,7 @@ rClause CPSolver::notifypropagate(){
 	if(searchedandnobacktrack){ return confl; }
 
 	while(hasNextProp() && confl==nullPtrClause){
-		const Lit& l = getNextProp();
+		auto l = getNextProp();
 
 		//Check if any constraint matched (might be turned into map)
 		ReifiedConstraint* constr = NULL;
@@ -264,7 +264,7 @@ rClause CPSolver::notifypropagate(){
 
 		if(constr!=NULL){
 			if(getPCSolver().modes().verbosity >= 5){
-				clog <<">> Propagated into CP: " <<l <<".\n";
+				clog <<">> Propagated into CP: " <<print(l, getPCSolver()) <<".\n";
 			}
 
 			trail.propagate(l);

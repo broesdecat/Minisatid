@@ -163,6 +163,8 @@ public:
 
 	void finishParsing();
 
+	std::string printLiteral(const Lit& lit) const;
+
 	/**
 	 * Return true iff a model has been found
 	 * Returns false iff unsat has been found

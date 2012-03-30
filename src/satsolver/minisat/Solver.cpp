@@ -128,9 +128,9 @@ void Solver::setDecidable(Var v, bool decide) // NOTE: no-op if already a decisi
 
 	if(verbosity>10){
 		if(decide){
-			clog <<">>> Making " <<mkPosLit(v) <<" decidable.\n";
+			clog <<">>> Making " <<print(v, getPCSolver()) <<" decidable.\n";
 		}else if(not decide && decision[v]){
-			clog <<">>> Making decidable " <<mkPosLit(v) <<" undecidable.\n";
+			clog <<">>> Making decidable " <<print(v, getPCSolver()) <<" undecidable.\n";
 		}
 	}
 
@@ -658,7 +658,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 			clog << "\n";
 			clog << "Current learned clause: ";
 			for (int i = 1; i < out_learnt.size(); i++) {
-				clog << out_learnt[i] << " ";
+				clog <<print(out_learnt[i], getPCSolver()) << " ";
 			}
 			clog << "\n";
 			clog << "Still explain: ";
@@ -684,7 +684,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 		/*AB*/
 		if (verbosity > 4) {
 			for (auto i = explain.begin(); i < explain.end(); i++) {
-				clog << *i << " ";
+				clog <<print(*i, getPCSolver()) << " ";
 			}
 			clog << "\n";
 		}
@@ -710,7 +710,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 					break;
 				}
 			}
-			clog << p << "\n";
+			clog <<print(p, getPCSolver()) << "\n";
 		}
 
 		if (confl == CRef_Undef && pathC > 1) {
@@ -1477,7 +1477,7 @@ void Solver::printClause(CRef rc) const {
 			clog <<" & ";
 		}
 		begin = false;
-		clog <<c[i] <<"(" <<(value(c[i]) == l_True ? '1' : (value(c[i]) == l_False ? '0' : 'X')) <<")";
+		clog <<print(c[i], value(c[i]), getPCSolver());
 	}
 	clog <<"\n";
 }

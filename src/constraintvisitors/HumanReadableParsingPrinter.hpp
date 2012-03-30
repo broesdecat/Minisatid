@@ -22,6 +22,7 @@ template<typename Stream>
 class HumanReadableParsingPrinter: public ConstraintAdditionMonitor<Stream> {
 private:
 	using ConstraintAdditionMonitor<Stream>::target;
+	using ConstraintVisitor::getPCSolver;
 public:
 	HumanReadableParsingPrinter(Stream& stream):ConstraintAdditionMonitor<Stream>(stream){}
 	virtual ~HumanReadableParsingPrinter(){}
@@ -37,30 +38,16 @@ public:
 
 	void visit(const InnerDisjunction& clause){
 		target() <<"Added clause ";
-		for(uint i=0; i<clause.literals.size(); ++i){
-			target() <<clause.literals[i];
-			if(i<clause.literals.size()-1){
-				target() <<" | ";
-			}
-		}
+		printList(clause.literals, " | ", target(), getPCSolver());
 		target() <<"\n";
 	}
 
 	void visit(const InnerRule& rule){
-		target() <<"Added rule " <<mkPosLit(rule.head) <<" <- ";
+		target() <<"Added rule " <<print(rule.head, getPCSolver()) <<" <- ";
 		if(rule.body.size()==0){
 			target() <<(rule.conjunctive?"true":"false");
 		}else{
-			for(uint i=0; i<rule.body.size(); ++i){
-				target() <<rule.body[i];
-				if(i<rule.body.size()-1){
-					if(rule.conjunctive){
-						target() <<" & ";
-					}else{
-						target() <<" | ";
-					}
-				}
-			}
+			printList(rule.body, rule.conjunctive?" & ":" | ", target(), getPCSolver());
 		}
 		target() <<" to definition " <<rule.definitionID <<"\n";
 	}
@@ -69,7 +56,7 @@ public:
 		target() <<"Added non-weighted set " <<set.setID <<" = {";
 		std::vector<Lit>::size_type count = 0;
 		for(auto i=set.wls.cbegin(); i!=set.wls.cend(); ++i, ++count){
-			target() <<(*i).getLit() <<"=" <<(*i).getWeight();
+			target() <<print((*i).getLit(), getPCSolver()) <<"=" <<(*i).getWeight();
 			if(count<set.wls.size()-1){
 				target() <<", ";
 			}
@@ -84,7 +71,7 @@ public:
 	}
 
 	void visit(const InnerReifAggregate& agg){
-		target() <<"Added aggregate " << mkPosLit(agg.head) <<" "<<(agg.sem==AggSem::COMP?"<=>":"<-");
+		target() <<"Added aggregate " <<print(agg.head, getPCSolver()) <<" "<<(agg.sem==AggSem::COMP?"<=>":"<-");
 		if(agg.sem==AggSem::DEF){
 			target() <<"(" <<agg.defID <<")";
 		}
@@ -96,14 +83,14 @@ public:
 
 	void visit(const InnerMinimizeOrderedList& mnm){
 		target() <<"Minimizing ordered list ";
-		printConcatBy(mnm.literals, " < ", target());
+		printList(mnm.literals, " < ", target(), getPCSolver());
 		target() <<"\n";
 	}
 
 
 	void visit(const InnerMinimizeSubset& mnm){
 		target() <<"Searching minimal subset of set { ";
-		printConcatBy(mnm.literals, ", ", target());
+		printList(mnm.literals, ", ", target(), getPCSolver());
 		target() <<" }\n";
 	}
 
@@ -124,14 +111,14 @@ public:
 				target() <<", ";
 			}
 			begin = false;
-			target() <<(*i).first <<"->" <<(*i).second;
+			target() <<print((*i).first, getPCSolver()) <<"->" <<print((*i).second, getPCSolver());
 		}
 		target() <<"\n";
 	}
 
 	void visit(const InnerForcedChoices& choices){
 		target() <<"Forced choices ";
-		printConcatBy(choices.forcedchoices, " ", target());
+		printList(choices.forcedchoices, " ", target(), getPCSolver());
 		target() <<"\n";
 	}
 
@@ -152,7 +139,7 @@ public:
 	}
 
 	void visit(const InnerCPBinaryRel& rel){
-		target() <<"Added binary constraint " <<mkPosLit(rel.head) <<" <=> var" <<rel.varID <<" "<<rel.rel <<" " <<rel.bound <<"\n";
+		target() <<"Added binary constraint " <<print(rel.head, getPCSolver()) <<" <=> var" <<rel.varID <<" "<<rel.rel <<" " <<rel.bound <<"\n";
 	}
 
 	void visit(const InnerCPCount&){
@@ -160,11 +147,11 @@ public:
 	}
 
 	void visit(const InnerCPBinaryRelVar& rel){
-		target() <<"Added binary constraint " <<mkPosLit(rel.head) <<" <=> var" <<rel.lhsvarID <<" "<<rel.rel <<" var" <<rel.rhsvarID <<"\n";
+		target() <<"Added binary constraint " <<print(rel.head, getPCSolver()) <<" <=> var" <<rel.lhsvarID <<" "<<rel.rel <<" var" <<rel.rhsvarID <<"\n";
 	}
 
 	void visit(const InnerCPSumWeighted& sum){
-		target() <<"Added sum constraint " <<mkPosLit(sum.head) <<" <=> sum({ ";
+		target() <<"Added sum constraint " <<print(sum.head, getPCSolver()) <<" <=> sum({ ";
 		std::vector<int>::size_type count = 0;
 		auto litit=sum.varIDs.cbegin();
 		auto weightit=sum.weights.cbegin();

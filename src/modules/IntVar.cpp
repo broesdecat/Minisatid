@@ -54,11 +54,11 @@ void IntVar::finishParsing(bool& present){
 	if(verbosity()>3){
 		int index = 0;
 		for(auto i=equalities.cbegin(); i<equalities.cend(); ++i, index++){
-			std::clog <<mkPosLit(*i) <<" <=> " <<origid() <<"=" <<minvalue+index <<"\n";
+			std::clog <<print(*i, getPCSolver()) <<" <=> " <<origid() <<"=" <<minvalue+index <<"\n";
 		}
 		index = 0;
 		for(auto i=disequalities.cbegin(); i<disequalities.cend(); ++i, index++){
-			std::clog <<mkPosLit(*i) <<" <=> " <<origid() <<"=<" <<minvalue+index <<"\n";
+			std::clog <<print(*i, getPCSolver()) <<" <=> " <<origid() <<"=<" <<minvalue+index <<"\n";
 		}
 	}
 	std::clog <<"var" <<origid() <<"[" <<currentmin <<"," <<currentmax <<"]\n";

@@ -48,15 +48,15 @@ void throwDoubleDefinedSet(int setid) {
 	throw idpexception(ss.str());
 }
 
-void throwNegativeHead(Var head) {
+void throwNegativeHead(const std::string& head) {
 	stringstream ss;
-	ss << "An aggregate cannot be defined by a negative head, violated for " << getPrintableVar(head) << ".\n";
+	ss << "An aggregate cannot be defined by a negative head, violated for " <<head << ".\n";
 	throw idpexception(ss.str());
 }
 
-void throwHeadOccursInSet(Var head, int setid) {
+void throwHeadOccursInSet(const std::string& head, int setid) {
 	stringstream ss;
-	ss << "For the aggregated with head " << getPrintableVar(head) << " also occurs in set " <<setid <<".\n";
+	ss << "For the aggregated with head " <<head << " also occurs in set " <<setid <<".\n";
 	throw idpexception(ss.str());
 }
 
@@ -636,7 +636,7 @@ void PropagatorFactory::add(const InnerLazyClause& object) {
 	// TODO in fact, want to check that it does not yet occur in the theory, this is easiest hack
 	addVar(object.residual, lazyDecide());
 	if(getEngine().verbosity()>4){
-		clog <<object.residual <<" is delayed " <<(object.watchboth?"on unknown":"on true") <<"\n";
+		clog <<print(object.residual, getEngine()) <<" is delayed " <<(object.watchboth?"on unknown":"on true") <<"\n";
 	}
 	if (object.watchboth) {
 		new LazyResidual(getEnginep(), var(object.residual), object.monitor);

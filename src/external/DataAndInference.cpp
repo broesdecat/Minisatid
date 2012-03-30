@@ -10,6 +10,7 @@
 #include "constraintvisitors/FlatZincRewriter.hpp"
 #include "Printer.hpp"
 #include "ModelManager.hpp"
+#include "utils/ResourceManager.hpp"
 
 #include <map>
 #include <vector>
@@ -385,16 +386,44 @@ std::string MinisatID::printLiteral(const Literal& lit){
 	return ss.str();
 }
 
-litlist UnitPropagate::getEntailedLiterals(){
+literallist UnitPropagate::getEntailedLiterals(){
 	getSolver().backtrackTo(assumptions.size()); // Backtrack to the latest assumption decision
-	return getSolver().getTrail();
+	auto list = getSolver().getTrail();
+	literallist literals;
+	for(auto i=list.cbegin(); i<list.cend(); ++i){
+		literals.push_back(getSpace()->getRemapper().getLiteral(*i));
+	}
+	return literals;
 }
+
 void UnitPropagate::innerExecute(){
 	getSolver().solve(assumptions, true);
 }
 
+void UnitPropagate::writeOutEntailedLiterals(){
+	std::shared_ptr<ResMan> resman;
+	if(getSpace()->getOptions().outputfile==""){
+		resman = std::shared_ptr<ResMan>(new StdMan(false));
+	}else{
+		resman = std::shared_ptr<ResMan>(new FileMan(getSpace()->getOptions().outputfile.c_str(), true));
+	}
+	ostream output(resman->getBuffer());
+
+	clog <<">>> Following is a list of literals entailed by the theory.\n";
+	const auto& lits = getEntailedLiterals();
+	bool begin = true;
+	for(auto i=lits.cbegin(); i<lits.cend(); ++i){
+		if(not begin){
+			output <<" ";
+		}
+		begin = false;
+		output <<(i->hasSign()?"-":"") <<i->getValue();
+	}
+	resman->close();
+}
+
 void Transform::innerExecute(){
-	if(outputlanguage==OutputFormat::FZ){
+	if(outputlanguage==TheoryPrinting::FZ){
 		FlatZincRewriter fzrw(modes()); // TODO outputfile
 		getSolver().accept(fzrw);
 	}

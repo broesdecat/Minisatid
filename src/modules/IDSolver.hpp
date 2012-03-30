@@ -231,10 +231,7 @@ public:
 	virtual rClause 	notifypropagate			();
 	virtual void 		notifyNewDecisionLevel	();
 	virtual void 		notifyBacktrack			(int untillevel, const Lit& decision){ backtracked = true; Propagator::notifyBacktrack(untillevel, decision); };
-	virtual void 		printState				() const;
-	virtual void 		printStatistics			() const;
 	virtual rClause		notifyFullAssignmentFound();
-
 
 	rClause				isWellFoundedModel		();
 

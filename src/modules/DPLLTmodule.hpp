@@ -147,6 +147,8 @@ public:
 	void notifyInitialized() { /*assert(isInitializing());*/
 		init = INITIALIZED;
 	} // FIXME add better checking again
+
+	std::string toString(const Lit& lit) const;
 };
 
 }

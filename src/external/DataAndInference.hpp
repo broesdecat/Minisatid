@@ -15,6 +15,7 @@
 #include "satsolver/BasicSATUtils.hpp"
 #include <memory>
 #include "Space.hpp"
+#include <iostream>
 
 namespace MinisatID {
 
@@ -136,21 +137,27 @@ public:
 
 	}
 
-	litlist getEntailedLiterals();
+	literallist getEntailedLiterals();
+	void writeOutEntailedLiterals();
 
 private:
 	void innerExecute();
 };
 
+enum class TheoryPrinting { ECNF, FZ, HUMAN, STATS };
+
 class Transform: public Task {
 private:
-	const OutputFormat outputlanguage;
+	const TheoryPrinting outputlanguage;
 	const std::string filename;
+	std::ostream& stream;
 
 public:
-	Transform(Space* space, OutputFormat outputlanguage, std::string& filename)
-			: Task(space), outputlanguage(outputlanguage), filename(filename) {
-
+	Transform(Space* space, TheoryPrinting outputlanguage, std::string& filename)
+			: Task(space), outputlanguage(outputlanguage), filename(filename), stream(std::clog) {
+	}
+	Transform(Space* space, TheoryPrinting outputlanguage, std::ostream& stream)
+			: Task(space), outputlanguage(outputlanguage), filename(""), stream(stream) {
 	}
 
 private:

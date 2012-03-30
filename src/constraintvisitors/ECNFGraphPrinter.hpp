@@ -18,6 +18,7 @@ template<typename Stream>
 class ECNFGraphPrinter: public ConstraintAdditionMonitor<Stream> {
 private:
 	using ConstraintAdditionMonitor<Stream>::target;
+	using ConstraintVisitor::getPCSolver;
 public:
 	ECNFGraphPrinter(Stream& stream) :
 			ConstraintAdditionMonitor<Stream>(stream) {
@@ -38,27 +39,17 @@ public:
 	}
 
 	void visit(const InnerDisjunction& lits) {
-		for (uint i = 0; i < lits.literals.size(); ++i) {
-			if (i > 0) {
-				target() << " -- ";
-			}
-			target() << getPrintableVar(var(lits.literals[i]));
-		}
+		printList(lits.literals, " -- ", target(), getPCSolver());
 		if (lits.literals.size() > 1) {
-			target() << " -- " << getPrintableVar(var(lits.literals[0])) << " ";
+			target() << " -- " << print(lits.literals[0], getPCSolver()) << " ";
 		}
 		target() << "[color=blue];\n";
 	}
 
 	void visit(const InnerRule& lits) {
-		for (uint i = 0; i < lits.body.size(); ++i) {
-			if (i > 0) {
-				target() << " -- ";
-			}
-			target() << getPrintableVar(var(lits.body[i]));
-		}
+		printList(lits.body, " -- ", target(), getPCSolver());
 		if (lits.body.size() > 1) {
-			target() << " -- " << getPrintableVar(var(lits.body[0])) << " ";
+			target() << " -- " << print(lits.body[0], getPCSolver()) << " ";
 		}
 		target() << "[color=green];\n";
 	}
@@ -68,10 +59,10 @@ public:
 			if (i > 0) {
 				target() << " -- ";
 			}
-			target() << getPrintableVar(var(set.wls[i].getLit()));
+			target() << print(set.wls[i].getLit(), getPCSolver());
 		}
 		if (set.wls.size() > 1) {
-			target() << " -- " << getPrintableVar(var(set.wls[0].getLit())) << " ";
+			target() << " -- " << print(set.wls[0].getLit(), getPCSolver()) << " ";
 		}
 		target() << "[color=green];\n";
 	}

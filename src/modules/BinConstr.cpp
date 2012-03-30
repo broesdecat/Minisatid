@@ -228,7 +228,7 @@ rClause BinaryConstraint::notifypropagate() {
 }
 
 void BinaryConstraint::printState() const {
-	std::clog << "binConstr: " << head() << " <=> " << "var"
+	std::clog << "binConstr: " << print(head(), getPCSolver()) << " <=> " << "var"
 			<< left()->origid() << "[" << left()->minValue() << ", "
 			<< left()->maxValue() << "]" << " " << comp() << " " << "var"
 			<< right()->origid() << "[" << right()->minValue() << ", "

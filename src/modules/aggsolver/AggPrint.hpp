@@ -23,7 +23,7 @@ void print(int verbosity, const TypedSet&, bool endl = false);
 void print(int verbosity, const Agg& c, bool endl = false);
 
 template<class T>
-void NoSupportForBothSignInProductAgg(T& stream, const Lit& one, const Lit& two){
+void NoSupportForBothSignInProductAgg(T& stream, const std::string& one, const std::string& two){
 	stream <<"Product aggregates in which both the literal and its negation occur "
 			"are currently not supported. Replace ";
 	stream <<one <<"or " <<two <<"by a tseitin.\n";

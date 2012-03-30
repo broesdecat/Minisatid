@@ -67,7 +67,7 @@ void MinisatID::print(int verbosity, const TypedSet& c, bool endl) {
 				clog <<", ";
 			}
 			begin = false;
-			clog <<(*i).getLit();
+			clog <<c.toString((*i).getLit());
 			lbool value = c.value((*i).getLit());
 			printValue(clog, value);
 			clog <<"=" <<(*i).getWeight();
@@ -80,7 +80,7 @@ void MinisatID::print(int verbosity, const TypedSet& c, bool endl) {
 }
 
 void MinisatID::print(int verbosity, const Agg& ae, bool endl) {
-	clog <<ae.getHead();
+	clog <<print(ae.getHead(), ae.getSet()->getPCSolver());
 	lbool value = ae.getSet()->value(ae.getHead());
 	printValue(clog, value);
 	TypedSet* set = ae.getSet();

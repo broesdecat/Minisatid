@@ -116,7 +116,7 @@ rClause TypedSet::notifySolver(AggReason* ar) {
 	if (value(p) == l_False) {
 		if (verbosity() >= 2) {
 			clog <<"Deriving conflict in ";
-			print(p, l_True);
+			clog <<print(p, l_True, getPCSolver());
 			clog <<" because of the aggregate expression ";
 			MinisatID::print(verbosity(), ar->getAgg(), true);
 		}
@@ -133,7 +133,7 @@ rClause TypedSet::notifySolver(AggReason* ar) {
 	} else if (value(p) == l_Undef) {
 		if (verbosity() >= 2) {
 			clog <<"Deriving ";
-			print(p, l_True);
+			clog <<print(p, l_True, getPCSolver());
 			clog <<" because of the aggregate expression ";
 			MinisatID::print(verbosity(), ar->getAgg(), true);
 		}
@@ -164,12 +164,12 @@ void TypedSet::addExplanation(AggReason& ar) const {
 	ar.setClause(lits);
 
 	if(verbosity()>=3){
-		std::clog <<"Explanation for deriving " <<ar.getPropLit();
+		std::clog <<"Explanation for deriving " <<print(ar.getPropLit(), getPCSolver());
 		std::clog <<" in expression ";
 		print(verbosity(), ar.getAgg(), false);
 		std::clog <<" is ";
 		for(uint i=0; i<lits.literals.size(); ++i){
-			std::clog <<" " <<lits.literals[i];
+			std::clog <<" " <<print(lits.literals[i], getPCSolver());
 		}
 		std::clog <<"\n";
 	}

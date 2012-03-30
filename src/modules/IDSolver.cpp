@@ -167,8 +167,15 @@ SATVAL IDSolver::addFinishedRule(TempRule* rule) {
 	auto head = rule->head;
 
 	if (verbosity() > 4) {
-		clog << "Added final rule " << getPrintableVar(rule->head) << " <- ";
-		printList(rule->body, rule->conjunctive ? " & " : " | ");
+		clog << "Added final rule " << print(rule->head, getPCSolver()) << " <- ";
+		bool begin = true;
+		for(auto i=rule->body.cbegin(); i<rule->body.cend(); ++i){
+			if(not begin){
+				clog <<(rule->conjunctive ? " & " : " | ");
+			}
+			begin = true;
+			clog <<print(*i, getPCSolver());
+		}
 		clog << "\n";
 	}
 
@@ -176,7 +183,7 @@ SATVAL IDSolver::addFinishedRule(TempRule* rule) {
 
 	if (isDefined(head)) {
 		stringstream ss;
-		ss << "Multiple rules have the same head " << getPrintableVar(head) << ", which is not allowed!\n";
+		ss << "Multiple rules have the same head " <<print(head, getPCSolver()) << ", which is not allowed!\n";
 		throw idpexception(ss.str());
 	}
 
@@ -209,7 +216,7 @@ void IDSolver::addFinishedDefinedAggregate(TempRule* rule) {
 	MAssert(rule->isagg);
 
 	if (verbosity() > 4) {
-		clog << "Added final aggregate rule " << getPrintableVar(rule->head) << " <- ...";
+		clog << "Added final aggregate rule " <<print(rule->head, getPCSolver()) << " <- ...";
 		clog << "\n";
 	}
 
@@ -217,7 +224,7 @@ void IDSolver::addFinishedDefinedAggregate(TempRule* rule) {
 	adaptStructsToHead(head);
 	if (isDefined(head)) {
 		stringstream ss;
-		ss << "Multiple rules have the same head " << getPrintableVar(head) << ", which is not allowed!\n";
+		ss << "Multiple rules have the same head " <<print(head, getPCSolver()) << ", which is not allowed!\n";
 		throw idpexception(ss.str());
 	}
 
@@ -488,7 +495,7 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 		auto lit = mkPosLit(v);
 		if (seen(v) > 0 || isFalse(lit)) {
 			if (verbosity() >= 2) {
-				ss << " " << lit;
+				ss << " " <<print(lit, getPCSolver());
 			}
 			if (isTrue(lit)) {
 				return false;
@@ -590,7 +597,7 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 		//MAssert(justification(var).size()>0 || type(var)!=DefType::DISJ || occ(var)==MIXEDLOOP); FIXME lazy grounding hack (because invar that def gets deleted)
 
 		if(verbosity()>=9) {
-			clog <<getPrintableVar(var) <<"<-";
+			clog <<print(var, getPCSolver()) <<"<-";
 			bool begin = true;
 			count++;
 			for(auto i=justification(var).cbegin(); i!=justification(var).cend(); ++i) {
@@ -598,7 +605,7 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 					clog <<",";
 				}
 				begin = false;
-				clog <<*i;
+				clog <<print(*i, getPCSolver());
 			}
 			clog <<";";
 			if(count%30==0) {
@@ -668,7 +675,7 @@ void IDSolver::generateSCCs() {
 	if (verbosity() > 20) {
 		clog << "Printing mapping from variables to the ID of the SCC in which it occurs:\n";
 		for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
-			clog << "SCC of " << getPrintableVar(*i) << " is " << getPrintableVar(scc(*i)) << ", ";
+			clog << "SCC of " <<print(*i, getPCSolver()) << " is " <<print(scc(*i), getPCSolver()) << ", ";
 		}
 		clog << "Ended printing sccs.\n";
 	}
@@ -1065,7 +1072,7 @@ rClause IDSolver::notifypropagate() {
 				if (verbosity() >= 2) {
 					clog << "Found an unfounded set of size " << ufs.size() << ": {";
 					for (auto it = ufs.cbegin(); it != ufs.cend(); ++it) {
-						clog << " " << getPrintableVar(*it);
+						clog << " " <<print(*it, getPCSolver());
 					}
 					clog << " }.\n";
 				}
@@ -1148,7 +1155,7 @@ void IDSolver::findCycleSources() {
 	if (verbosity() > 3) {
 		clog << ">>> Found " << css.size() << " possible cycle sources: ";
 		for (auto i = css.cbegin(); i < css.cend(); ++i) {
-			clog << " " << getPrintableVar(*i);
+			clog << " " <<print(*i, getPCSolver());
 		}
 		clog << ".\n";
 	}
@@ -1258,7 +1265,7 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 	if (verbosity() > 9) {
 		for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
 			if (isJustified(*_seen, *i)) {
-				clog << "Still justified " << getPrintableVar(*i) << "\n";
+				clog << "Still justified " <<print(*i, getPCSolver()) << "\n";
 			}
 		}
 	}
@@ -1274,7 +1281,7 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 		}
 		if (directlyJustifiable(v, ufs, q)) {
 			if (verbosity() > 5) {
-				clog << "Can directly justify " << getPrintableVar(v) << "\n";
+				clog << "Can directly justify " <<print(v, getPCSolver()) << "\n";
 			}
 			if (propagateJustified(v, cs, ufs)) {
 				csisjustified = true;
@@ -1472,7 +1479,7 @@ bool IDSolver::propagateJustified(Var v, Var cs, std::set<Var>& ufs) {
 			changejust(var(heads[i]), jstf[i]);
 			justifiedq.push_back(var(heads[i]));
 			if (verbosity() > 5) {
-				clog << "justified " << getPrintableVar(var(heads[i])) << "\n";
+				clog << "justified " <<print(var(heads[i]), getPCSolver()) << "\n";
 			}
 		}
 
@@ -1481,7 +1488,7 @@ bool IDSolver::propagateJustified(Var v, Var cs, std::set<Var>& ufs) {
 		for (uint i = 0; i < heads.size(); ++i) {
 			justifiedq.push_back(var(heads[i]));
 			if (verbosity() > 5) {
-				clog << "justified " << getPrintableVar(var(heads[i])) << "\n";
+				clog << "justified " <<print(var(heads[i]), getPCSolver()) << "\n";
 			}
 		}
 	}
@@ -1596,7 +1603,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 			//introduce a new var to represent all external disjuncts: v <=> \bigvee external disj
 			Var v = getPCSolver().newVar();
 			if (verbosity() >= 2) {
-				clog << "Adding new variable for loop formulas: " << getPrintableVar(v) << "\n";
+				clog << "Adding new variable for loop formulas: " <<print(v, getPCSolver()) << "\n";
 			}
 
 			// not v \vee \bigvee\extdisj{L}
@@ -1735,7 +1742,7 @@ inline void IDSolver::markNonJustifiedAddVar(Var v, Var cs, queue<Var> &q, varli
 		}
 
 		if (verbosity() > 9) {
-			clog << "Not justified " << getPrintableVar(v) << ", times " << seen(v) << "\n";
+			clog << "Not justified " <<print(v, getPCSolver()) << ", times " << seen(v) << "\n";
 		}
 	}
 }
@@ -1744,10 +1751,10 @@ void IDSolver::printPosGraphJustifications() const {
 	clog << ">>>> Justifications (on pos graph):\n";
 	for (int i = 0; i < nbvars; ++i) {
 		if (isDefined(i) && occ(i) != MIXEDLOOP) {
-			clog << "    " << mkLit(i, false) << "<-";
+			clog << "    " <<print(i, getPCSolver()) << "<-";
 			switch (type(i)) {
 			case DefType::DISJ:
-				clog << justification(i)[0] << "; \n";
+				clog <<print(justification(i)[0], getPCSolver())  << "; \n";
 				break;
 			case DefType::CONJ:
 				clog << "all (conj) \n";
@@ -1759,7 +1766,7 @@ void IDSolver::printPosGraphJustifications() const {
 						clog << " ";
 					}
 					begin = false;
-					clog << *j;
+					clog <<print(*j, getPCSolver());
 				}
 				clog << "\n";
 				break;
@@ -1972,10 +1979,6 @@ rClause IDSolver::isWellFoundedModel() {
 		throw idpexception("For recursive aggregates, only stable semantics is currently supported! Wellfoundedness is not checked\n");
 	}
 
-	if (verbosity() > 9) {
-		printState();
-	}
-
 	// Initialize scc of full dependency graph
 	//TODO also here use reduce memory overhead by only using it for defined variables!
 	wfroot.resize(nbvars, -1);
@@ -1987,7 +1990,7 @@ rClause IDSolver::isWellFoundedModel() {
 	if (verbosity() > 1) {
 		clog << "general SCCs found";
 		for (vector<int>::size_type z = 0; z < wfroot.size(); ++z) {
-			clog << getPrintableVar(z) << " has root " << getPrintableVar(wfroot[z]) << "\n";
+			clog <<print(z, getPCSolver()) << " has root " <<print(wfroot[z], getPCSolver()) << "\n";
 		}
 		clog << "Mixed cycles are " << (rootofmixed.empty() ? "not" : "possibly") << " present.\n";
 	}
@@ -2384,14 +2387,6 @@ void IDSolver::removeMarks() {
 }
 
 // PRINT INFORMATION
-
-void IDSolver::printState() const {
-	MinisatID::print(this);
-}
-
-void IDSolver::printStatistics() const {
-	stats.print();
-}
 
 AggProp const * getProp(AggType type) {
 	switch (type) {

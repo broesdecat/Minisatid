@@ -120,18 +120,22 @@ int main(int argc, char** argv) {
 			if (modes.inference == Inference::MODELEXPAND) {
 				doModelGeneration(d);
 			} else if (modes.inference == Inference::PROPAGATE) {
-				// TODO unit propagation
+				auto up = UnitPropagate(d, {});
+				up.execute();
+				up.writeOutEntailedLiterals();
 			} else if (modes.inference == Inference::PRINTTHEORY) {
-				// TODO Print the theory
-				/*manager->setInferenceOption(Inference::PRINTTHEORY);
-				 if (manager->isUnsat()) {
-				 cout << "p ecnf\n0\n";
-				 cout.flush();
-				 } else {
-				 assert(d!=NULL);
-				 // TODO d->printTheory(cout);
-				 cout.flush();
-				 }*/
+				Transform* t = NULL;
+				auto tp = TheoryPrinting::ECNF;
+				if(modes.transformat==OutputFormat::FZ){
+					tp = TheoryPrinting::FZ; // TODO handle cleanly
+				}
+				if(modes.outputfile==""){
+					t = new Transform(d, tp, cout);
+				}else{
+					t = new Transform(d, tp, modes.outputfile);
+				}
+				t->execute();
+				delete(t);
 			}
 
 			jumpback = 1;
@@ -154,7 +158,7 @@ int main(int argc, char** argv) {
 		if (not cleanexit) {
 			// NOTE: if solving was aborted, more information might be available that has not been printed, so can be printed now.
 			// for that, need to save mx ofcourse
-			mx->notifySolvingAborted(); // TODO rename
+			mx->notifySolvingAborted();
 		}
 		if (mx->isUnsat()) {
 			returnvalue = 20;
@@ -166,57 +170,13 @@ int main(int argc, char** argv) {
 
 	if (d != NULL) {
 		if (d->getOptions().verbosity > 1) {
-			//TODO d->printStatistics();
+			auto transform = Transform(d, TheoryPrinting::STATS, clog);
+			transform.execute();
 		}
 		delete (d);
 	}
 
 	return returnvalue;
-}
-
-void rewriteIntoFlatZinc() {
-	// FIXME
-	/*	switch (modes.format) {
-	 case InputFormat::ASP: {
-	 LParseTranslator* lptrans = new LParseTranslator();
-	 sol->setTranslator(lptrans);
-
-	 std::istream is(getInputBuffer());
-	 FlatZincRewriter* p = new FlatZincRewriter(modes);
-	 Read<FlatZincRewriter>* r = new Read<FlatZincRewriter>(p, lptrans);
-	 r->read(is);
-	 delete r;
-	 closeInput();
-	 p->finishParsing();
-	 break;
-	 }
-	 case InputFormat::OPB: {
-	 OPBTranslator* opbtrans = new OPBTranslator();
-	 sol->setTranslator(opbtrans);
-
-	 std::istream is(getInputBuffer());
-	 FlatZincRewriter* p = new FlatZincRewriter(modes);
-	 PBRead<FlatZincRewriter>* r = new PBRead<FlatZincRewriter>(p, opbtrans, is);
-	 r->parse();
-	 delete r;
-	 closeInput();
-	 p->finishParsing();
-	 break;
-	 }
-	 case InputFormat::FODOT: {
-	 yyin = getInputFile();
-	 yyinit();
-	 try {
-	 yyparse();
-	 } catch (const MinisatID::idpexception& e) {
-	 throw idpexception(getParseError(e, lineNo, charPos, yytext));
-	 }
-	 yydestroy();
-	 closeInput();
-	 getFZRewriter()->finishParsing();
-	 break;
-	 }
-	 }*/
 }
 
 void initializeAndParseASP(pwls d) {
@@ -290,7 +250,9 @@ void parseAndInitializeTheory(pwls d) {
 	}
 
 	auto endparsing = cpuTime();
-	// TODO print parsing time
+	if(d->getOptions().verbosity>1){
+		clog <<">>> Parsing time: " <<endparsing-startparsing <<"\n";
+	}
 }
 
 void doModelGeneration(pwls d) {

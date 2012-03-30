@@ -9,6 +9,7 @@
 #include "modules/DPLLTmodule.hpp"
 
 #include "satsolver/SATSolver.hpp"
+#include "utils/Print.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -32,4 +33,8 @@ void Propagator::addWatch(Var atom) {
 
 void Propagator::addWatch(const Lit& lit) {
 	getPCSolver().accept(this, lit, FAST);
+}
+
+std::string Propagator::toString(const Lit& lit) const{
+	return print(lit, getPCSolver());
 }

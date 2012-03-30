@@ -12,11 +12,28 @@
 #include <iostream>
 #include "utils/Print.hpp"
 #include "utils/Utils.hpp"
+#include "theorysolvers/PCSolver.hpp" // TODO use a higher class then pcsolver?
 
 namespace MinisatID{
 
 // TODO name visitor is wrong, is there is no hierarchy which is visited!
 class ConstraintVisitor {
+private:
+	PCSolver* pcsolver; // TODO set!
+protected:
+	PCSolver* getPCSolver() const { return pcsolver; }
+
+	template<typename S>
+	void printList(const litlist& list, const std::string& concat, S& stream, PCSolver* solver){
+		bool begin = true;
+		for(auto i=list.cbegin(); i<list.cend(); ++i) {
+			if(not begin){
+				stream <<concat;
+			}
+			begin = false;
+			stream <<print(*i, solver);
+		}
+	}
 public:
 	virtual ~ConstraintVisitor(){}
 
