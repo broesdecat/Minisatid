@@ -15,6 +15,8 @@
 #include <cstdint>
 #include <cstdio>
 #include <vector>
+#include <iostream>
+#include <fstream>
 
 #include "external/ExternalUtils.hpp"
 #include "ConstraintVisitor.hpp"

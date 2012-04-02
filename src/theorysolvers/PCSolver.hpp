@@ -176,8 +176,7 @@ public:
 	void setTrue(const Lit& p, Propagator* solver, rClause c = nullPtrClause); // Enqueue a literal. Assumes value of literal is undefined
 	void notifySetTrue(const Lit& p);
 	void newDecisionLevel();
-	rClause checkFullAssignment();
-	bool hasTotalModel(); //cannot be const!
+	bool hasTotalModel(); //cannot be const! TODO because...?
 	void backtrackTo(int level); // Backtrack until a certain level.
 	void backtrackDecisionLevel(int untillevel, const Lit& decision);
 	rClause propagate();
@@ -194,6 +193,9 @@ public:
 	lbool value(Var x) const; // The current value of a variable.
 	lbool value(Lit p) const; // The current value of a literal.
 	uint64_t nVars() const; // The current number of variables.
+
+	void 	acceptForDecidable(Var v, Propagator* prop);
+	void 	notifyBecameDecidable(Var v);
 
 	rClause createClause(const InnerDisjunction& clause, bool learned);
 	//IMPORTANT: The first literal in the clause is the one which can be propagated at moment of derivation!

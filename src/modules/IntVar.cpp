@@ -15,15 +15,14 @@ using namespace MinisatID;
 
 std::map<int, IntVarValue> IntVar::var2intvarvalues;
 
-IntVar::IntVar(PCSolver* solver, int origid, int min, int max)
+IntVar::IntVar(PCSolver* solver, int _origid, int min, int max)
 		: Propagator(solver, "intvar"),
-		  id_(maxid_++), origid_(origid),
+		  id_(maxid_++), origid_(_origid),
 		  engine_(*solver),
 		  minvalue(min), maxvalue(max),
 		  offset(-1), currentmin(min), currentmax(max){
 	getPCSolver().accept(this, EV_BACKTRACK);
 	getPCSolver().accept(this, EV_PROPAGATE);
-	getPCSolver().acceptFinishParsing(this, false);
 
 	for(int i=origMinValue(); i<origMaxValue()+1; ++i){
 		Var var = engine().newVar();
@@ -115,7 +114,7 @@ void IntVar::addConstraints(){
 	engine().add(set);
 	engine().add(highercard);
 	engine().add(lowercard);
-	// TODO miss propagation in other direction?
+	// TODO do we miss propagation in other direction?
 	for(uint i=0; i<equalities.size(); ++i){
 		// if eq[i] => diseq[i]
 		InnerDisjunction same;

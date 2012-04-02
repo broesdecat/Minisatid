@@ -41,8 +41,8 @@ litlist getLiterals(const InnerWLSet& set){
  * 		recursively defined aggregates
  */
 template<typename Stream>
-FlatZincRewriter<Stream>::FlatZincRewriter(LiteralPrinter* pcsolver, const SolverOption& modes, Stream& stream) :
-		ConstraintVisitor(pcsolver),
+FlatZincRewriter<Stream>::FlatZincRewriter(LiteralPrinter* pcsolver, const SolverOption& modes, Stream& stream):
+		ConstraintAdditionMonitor<Stream>(pcsolver, stream),
 		state(SolverState::PARSING), _modes(modes), maxatomnumber(0), maxcpnumber(0), optim(MNMZ_NONE),
 		stream(stream){
 }
@@ -693,21 +693,21 @@ void FlatZincRewriter<Stream>::visit(const InnerRule& rule) {
 template<typename Stream>
 void FlatZincRewriter<Stream>::visit(const InnerWLSet& set) {
 	check(getLiterals(set));
-	sets.insert({set.setID, set});
+	sets.insert(std::pair<int, InnerWLSet>(set.setID, set));
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::visit(const InnerAggregate& origagg) {
+void FlatZincRewriter<Stream>::visit(const InnerAggregate&) {
 	throw notYetImplemented("Non-reif aggregate addition.\n");
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::visit(const InnerForcedChoices& origagg) {
+void FlatZincRewriter<Stream>::visit(const InnerForcedChoices&) {
 	throw idpexception("Forcedchoices are unsupported by flatzinc.\n");
 }
 
 template<typename Stream>
-void FlatZincRewriter<Stream>::visit(const InnerSymmetry& origagg) {
+void FlatZincRewriter<Stream>::visit(const InnerSymmetry&) {
 	throw idpexception("Symmetries are unsupported by flatzinc.\n"); // TODO maybe they are?
 }
 
@@ -863,3 +863,6 @@ template<typename Stream>
 void FlatZincRewriter<Stream>::visit(const InnerCPAllDiff&) {
 	throw idpexception("Alldifferent is not yet supported by the flatzinc backend.");
 }
+
+// Explicit instantiations. Note, apparently, they have to be AT THE END of the cpp
+template class FlatZincRewriter<std::ostream>;

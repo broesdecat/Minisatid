@@ -77,7 +77,6 @@ static DoubleOption opt_garbage_frac(_cat, "gc-frac", "The fraction of wasted me
 
 Solver::Solver(/*AB*/PCSolver* s/*AE*/)
 		: /*A*/Propagator(s, "satsolver"),
-			/*A*/fullassignment(false),
 			// Parameters (user settable):
 			//
 			/*A*/verbosity(getPCSolver().verbosity()),
@@ -112,7 +111,6 @@ Solver::Solver(/*AB*/PCSolver* s/*AE*/)
 			conflict_budget(-1), propagation_budget(-1), asynch_interrupt(false) {
 	/*AB*/
 	getPCSolver().accept(this, EV_PROPAGATE);
-	getPCSolver().acceptFinishParsing(this, false);
 	/*AE*/
 }
 
@@ -510,7 +508,6 @@ void Solver::cancelUntil(int level) {
 		clog <<"Backtracking to " <<level <<"\n";
 	}
 	if (decisionLevel() > level) {
-		/*A*/fullassignment = false;
 		Lit decision = trail[trail_lim[level]];
 		for (int c = trail.size() - 1; c >= trail_lim[level]; c--) {
 			Var x = var(trail[c]);
@@ -1101,22 +1098,16 @@ lbool Solver::search(int nof_conflicts/*AB*/, bool nosearch/*AE*/) {
 	vec<Lit> learnt_clause;
 	starts++;
 
-	CRef confl = CRef_Undef;
-	bool fullassignmentconflict = false;
-
+	auto confl = CRef_Undef;
 	for (;;) {
 		if (getPCSolver().terminateRequested()) {
 			return l_Undef;
 		}
-		if (!ok) {
+		if (not ok) {
 			return l_False;
 		}
-		if (!fullassignmentconflict) {
-			confl = propagate();
-		}
-		fullassignmentconflict = false;
-
-		if (!ok) {
+		confl = propagate();
+		if (not ok) {
 			return l_False;
 		}
 
@@ -1206,23 +1197,7 @@ lbool Solver::search(int nof_conflicts/*AB*/, bool nosearch/*AE*/) {
 				next = pickBranchLit();
 
 				if (next == lit_Undef) {
-					fullassignment = true;
-
-					confl = getPCSolver().checkFullAssignment(); // NOTE: can backtrack as any propagator, so in that case should not stop
-					if (order_heap.size()>0 || qhead!=trail.size()) {
-						continue;
-					}
-
-					if (confl == CRef_Undef) { // Assignment is a model
-						//cerr << "Model: ";
-						//for (auto i = 0; i < nbVars(); i++) {
-						//	auto lit = mkLit(i);
-						//	cerr << (sign(lit) ? "-" : "") << var(lit) + 1 << ":" << (value(lit) == l_True ? '1' : (value(lit) == l_False ? '0' : 'X')) << " ";
-						//}
-						return l_True;
-					} else {
-						fullassignmentconflict = true;
-					}
+					return l_True;
 				}
 
 				/*AB*/
@@ -1233,12 +1208,11 @@ lbool Solver::search(int nof_conflicts/*AB*/, bool nosearch/*AE*/) {
 			}
 
 			// Increase decision level and enqueue 'next'
-			if (!fullassignmentconflict) {
-				createNewDecisionLevel();
-				uncheckedEnqueue(next);
-			}
+			createNewDecisionLevel();
+			uncheckedEnqueue(next);
 		}
 	}
+	return l_Undef; // Note: is (should be anyway) unreachable but not detected by compiler
 }
 
 /*AB*/

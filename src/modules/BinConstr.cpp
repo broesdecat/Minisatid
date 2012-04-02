@@ -13,23 +13,17 @@
 
 using namespace MinisatID;
 
-BinaryConstraint::BinaryConstraint(PCSolver* engine, IntVar* left, EqType comp,
-		IntVar* right, Var h) :
+BinaryConstraint::BinaryConstraint(PCSolver* engine, IntVar* _left, EqType comp,
+		IntVar* _right, Var h) :
 	Propagator(engine, "binconstr") {
 	switch (comp) {
-	case EqType::EQ:	head_ = mkPosLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 0); comp_ = BIN_EQ; break;
-	case EqType::NEQ:	head_ = mkNegLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 0); comp_ = BIN_EQ; break;
-	case EqType::LEQ:	head_ = mkPosLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 0); comp_ = BIN_LEQ; break;
-	case EqType::L:	head_ = mkPosLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, -1); comp_ = BIN_LEQ; break;
-	case EqType::GEQ:	head_ = mkNegLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 1); comp_ = BIN_LEQ; break;
-	case EqType::G:	head_ = mkNegLit(h); left_ = new IntView(left, 0); right_ = new IntView(right, 0); comp_ = BIN_LEQ; break;
+	case EqType::EQ:	head_ = mkPosLit(h); left_ = new IntView(_left, 0); right_ = new IntView(_right, 0); comp_ = BIN_EQ; break;
+	case EqType::NEQ:	head_ = mkNegLit(h); left_ = new IntView(_left, 0); right_ = new IntView(_right, 0); comp_ = BIN_EQ; break;
+	case EqType::LEQ:	head_ = mkPosLit(h); left_ = new IntView(_left, 0); right_ = new IntView(_right, 0); comp_ = BIN_LEQ; break;
+	case EqType::L:	head_ = mkPosLit(h); left_ = new IntView(_left, 0); right_ = new IntView(_right, -1); comp_ = BIN_LEQ; break;
+	case EqType::GEQ:	head_ = mkNegLit(h); left_ = new IntView(_left, 0); right_ = new IntView(_right, 1); comp_ = BIN_LEQ; break;
+	case EqType::G:	head_ = mkNegLit(h); left_ = new IntView(_left, 0); right_ = new IntView(_right, 0); comp_ = BIN_LEQ; break;
 	}
-	getPCSolver().acceptFinishParsing(this, true); // has to be AFTER the intvars!
-}
-
-void BinaryConstraint::finishParsing(bool& present) {
-	present = true;
-	// TODO anything on intvars cannot be accepted before finishparsing of the intvar!
 	getPCSolver().accept(this, head(), FAST);
 	getPCSolver().accept(this, not head(), FAST);
 	getPCSolver().acceptBounds(left(), this);
@@ -37,7 +31,7 @@ void BinaryConstraint::finishParsing(bool& present) {
 }
 
 rClause BinaryConstraint::getExplanation(const Lit&) {
-	throw idpexception("Generating explanations for binary constraints is not implemented yet.\n");
+	throw notYetImplemented("Generating explanations for binary constraints is not implemented yet.\n");
 /*
 	if comp is BIN_LEQ
 		if lit is head
@@ -227,11 +221,11 @@ rClause BinaryConstraint::notifypropagate() {
 	return confl;
 }
 
-void BinaryConstraint::printState() const {
+/*void BinaryConstraint::printState() const {
 	std::clog << "binConstr: " << print(head(), getPCSolver()) << " <=> " << "var"
 			<< left()->origid() << "[" << left()->minValue() << ", "
 			<< left()->maxValue() << "]" << " " << comp() << " " << "var"
 			<< right()->origid() << "[" << right()->minValue() << ", "
 			<< right()->maxValue() << "]";
-}
+}*/
 

@@ -20,73 +20,91 @@
 
 namespace MinisatID {
 
-class TypedSet: public Propagator{
+class TypedSet: public Propagator {
 protected:
-	Weight 				kb; //kb is "known bound", the value of the set reduced empty set
-	vwl 				wl; // INVARIANT: sorted from lowest to highest weight! Except in set reduction operation!
+	Weight kb; //kb is "known bound", the value of the set reduced empty set
+	vwl wl; // INVARIANT: sorted from lowest to highest weight! Except in set reduction operation!
 
-	AggProp const * 	type;
+	AggProp const * type;
 
-	agglist			 	aggregates;	//OWNS the pointers
-	AggPropagator* 		prop;		//OWNS pointer
+	agglist aggregates; //OWNS the pointers
+	AggPropagator* prop; //OWNS pointer
 
-	int 				setid;
+	int setid;
 
-	bool				usingwatches;
+	bool usingwatches;
 
-	std::map<Var, AggReason*>	reasons;
+	std::map<Var, AggReason*> reasons;
 
 public:
 	TypedSet(PCSolver* solver, int setid, const Weight& knownbound);
-	TypedSet(const TypedSet& set);
-	virtual ~TypedSet(){
+	//TypedSet(const TypedSet& set);
+	virtual ~TypedSet() {
 		deleteList<Agg>(aggregates);
-		delete(prop);
+		delete (prop);
 	}
 
-	int				getSetID		() 			const 			{ return setid; }
+	// Propagator methods
+	virtual rClause getExplanation(const Lit&);
+	virtual void accept(ConstraintVisitor& visitor) {
+		throw notYetImplemented("Accept");
+	}
+	virtual void notifyNewDecisionLevel();
+	// NOTE: call explicitly when using hasnextprop/nextprop!
+	virtual void notifyBacktrack(int untillevel, const Lit& decision);
+	virtual rClause notifypropagate();
 
-	const vwl&		getWL			()			const 			{ return wl; }
-	void			setWL			(const vwl& wl2)			{ wl=wl2; stable_sort(wl.begin(), wl.end(), compareByWeights<WL>);}
+	// additional
+	rClause notifySolver(AggReason* ar);
+	void notifypropagate(Watch* w);
 
-	const std::vector<Agg*>& getAgg		()	const					{ return aggregates; }
-	std::vector<Agg*>& getAggNonConst	()	 						{ return aggregates; }
-	//void			replaceAgg		(const agglist& repl);
-	//void			replaceAgg		(const agglist& repl, const agglist& del);
-	void 			addAgg			(const TempAgg& aggr, bool optim);
-	void 			removeAggs		(const std::set<Agg*>& del);
+	// Getters
+	int getSetID() const {
+		return setid;
+	}
+	const vwl& getWL() const {
+		return wl;
+	}
+	const std::vector<Agg*>& getAgg() const {
+		return aggregates;
+	}
+	std::vector<Agg*>& getAggNonConst() {
+		return aggregates;
+	}
+	bool isUsingWatches() const {
+		return usingwatches;
+	}
+	const Weight& getKnownBound() const {
+		return kb;
+	}
 
-	bool			isUsingWatches() const { return usingwatches; }
-	void			setUsingWatches(bool use) { usingwatches = use; }
+	const AggProp& getType() const {
+		assert(type!=NULL);
+		return *type;
+	}
+	AggProp const * getTypep() const {
+		return type;
+	}
+	AggPropagator* getProp() const {
+		return prop;
+	}
 
-	const Weight&	getKnownBound	()			const			{ return kb; }
-
-	const AggProp&	getType			() 			const 			{ assert(type!=NULL); return *type; }
-	AggProp const *	getTypep		() 			const 			{ return type; }
-	void 			setType			(AggProp const * const w)	{
+	// Setters
+	void setWL(const vwl& wl2) {
+		wl = wl2;
+		stable_sort(wl.begin(), wl.end(), compareByWeights<WL>);
+	}
+	void addAgg(const TempAgg& aggr, bool optim);
+	void removeAggs(const std::set<Agg*>& del);
+	void setUsingWatches(bool use) {
+		usingwatches = use;
+	}
+	void setType(AggProp const * const w) {
 		type = w;
 	}
 
-	AggPropagator*	getProp			() 			const 			{ return prop; }
-
-	void 			addExplanation	(AggReason& ar) const;
-
-	rClause 		notifySolver(AggReason* ar);
-
-	// Propagator methods
-	virtual int		getNbOfFormulas		() const;
-	virtual rClause getExplanation		(const Lit&);
-	virtual void 	accept(ConstraintVisitor& visitor){}; // FIXME
-
-	virtual rClause notifyFullAssignmentFound();
-	virtual void 	finishParsing		(bool& present);
-		// Checks presence of aggregates and initializes all counters. UNSAT is set to true if unsat is detected
-		// PRESENT is set to true if aggregate propagations should be done
-	virtual void 	notifyNewDecisionLevel	();
-	// NOTE: call explicitly when using hasnextprop/nextprop!
-	virtual void 	notifyBacktrack		(int untillevel, const Lit& decision);
-			void 	notifypropagate		(Watch* w);
-	virtual rClause	notifypropagate		();
+private:
+	void addExplanation(AggReason& ar) const;
 };
 
 } /* namespace MinisatID */

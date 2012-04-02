@@ -16,6 +16,11 @@
 
 namespace MinisatID{
 
+/*
+ * FIXME: turn Data and InnerData into a template type, either <Literal> or <Lit>
+ * then add real constructors to them and a transform method, which, also given a remapper, turns it into the opposite type!
+ */
+
 struct InnerModel{
 	std::vector<Lit> litassignments;
 	std::vector<VariableEqValue> varassignments;

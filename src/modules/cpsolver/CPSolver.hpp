@@ -24,6 +24,10 @@ class TermIntVar;
 typedef std::vector<TermIntVar> vtiv;
 class CPScript;
 
+class ReifiedConstraint;
+class Constraint;
+class NonReifiedConstraint;
+
 class CPSolverData;
 
 class LitTrail {

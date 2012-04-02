@@ -15,68 +15,24 @@ using namespace std;
 
 namespace MinisatID {
 
-TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound):
-		Propagator(solver, "aggregate"),
-		kb(knownbound),
-		type(NULL),
-		prop(NULL),
-		setid(setid),
-		usingwatches(true){
-	getPCSolver().acceptFinishParsing(this, false);
-}
-TypedSet::TypedSet(const TypedSet& set):
-		Propagator(set.pcsolver, "aggregate"),
-		kb(set.getKnownBound()),
-		wl(set.getWL()),
-		type(set.getTypep()),
-		prop(NULL),
-		setid(set.getSetID()),
-		usingwatches(set.isUsingWatches()){
-	getPCSolver().acceptFinishParsing(this, false);
-}
-
-void TypedSet::addAgg(const TempAgg& tempagg, bool optim){
-	auto agg = new Agg(this, tempagg, optim);
-	aggregates.push_back(agg);
-	agg->setIndex(aggregates.size()-1);
-	if (getPCSolver().verbosity() >= 2) {
-		MinisatID::print(getPCSolver().verbosity(), *agg);
-		clog <<"\n";
-	}
-}
-
-// FIXME overal != in condities vervangen door < voor vectoren, want ++ is niet toegelaten op end!
-void TypedSet::removeAggs(const std::set<Agg*>& del){
-	for(auto agg = getAggNonConst().begin(); agg<getAggNonConst().end(); ++agg){
-		if(del.find(*agg)!=del.cend()){
-			agg = getAggNonConst().erase(agg);
-		}
-	}
-	int index = 0;
-	for(auto agg = getAgg().cbegin(); agg!=getAgg().cend(); ++agg, index++){
-		(*agg)->setIndex(index);
-	}
-}
-
-void TypedSet::finishParsing(bool& present){
-	assert(isParsing() && present);
-	notifyParsed();
+TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound) :
+		Propagator(solver, "aggregate"), kb(knownbound), type(NULL), prop(NULL), setid(setid), usingwatches(true) {
 
 	if (verbosity() >= 2) {
-		clog <<"Added ";
+		clog << "Added ";
 		MinisatID::print(10000, *this, true);
 	}
 
 	getPCSolver().accept(this, EV_BACKTRACK);
-	// FIXME getPCSolver().accept(this, EV_FULLASSIGNMENT);
 
 	prop = getType().createPropagator(this);
 	bool sat = false;
 	bool unsat = false;
 	getProp()->initialize(unsat, sat);
-	present = not sat;
-	if(present){
+	if (not sat) {
 		assert(unsat || getAgg().size()>0);
+	}else{
+		notifyNotPresent();
 	}
 
 #ifdef DEBUG
@@ -89,21 +45,51 @@ void TypedSet::finishParsing(bool& present){
 	//TODO check all watches are correct
 #endif
 
-	if(unsat){
+	if (unsat) {
 		if (verbosity() >= 3) {
-			clog <<"Initializing aggregate set, unsat detected.\n";
+			clog << "Initializing aggregate set, unsat detected.\n";
 		}
 		getPCSolver().notifyUnsat();
 	}
+}
+/*TypedSet::TypedSet(const TypedSet& set):
+ Propagator(set.pcsolver, "aggregate"),
+ kb(set.getKnownBound()),
+ wl(set.getWL()),
+ type(set.getTypep()),
+ prop(NULL),
+ setid(set.getSetID()),
+ usingwatches(set.isUsingWatches()){
+ }*/
 
-	notifyInitialized();
+void TypedSet::addAgg(const TempAgg& tempagg, bool optim) {
+	auto agg = new Agg(this, tempagg, optim);
+	aggregates.push_back(agg);
+	agg->setIndex(aggregates.size() - 1);
+	if (getPCSolver().verbosity() >= 2) {
+		MinisatID::print(getPCSolver().verbosity(), *agg);
+		clog << "\n";
+	}
+}
+
+// FIXME overal != in condities vervangen door < voor vectoren, want ++ is niet toegelaten op end!
+void TypedSet::removeAggs(const std::set<Agg*>& del) {
+	for (auto agg = getAggNonConst().begin(); agg < getAggNonConst().end(); ++agg) {
+		if (del.find(*agg) != del.cend()) {
+			agg = getAggNonConst().erase(agg);
+		}
+	}
+	int index = 0;
+	for (auto agg = getAgg().cbegin(); agg != getAgg().cend(); ++agg, index++) {
+		(*agg)->setIndex(index);
+	}
 }
 
 rClause TypedSet::notifySolver(AggReason* ar) {
 	assert(!isParsing());
 	const Lit& p = ar->getPropLit();
 
-	if(modes().bumpaggonnotify){ //seems to be better here, untested!
+	if (modes().bumpaggonnotify) { //seems to be better here, untested!
 		//Decreases sokoban and dansmee performance, increases fastfood
 		getPCSolver().varBumpActivity(var(p));
 	}
@@ -115,32 +101,31 @@ rClause TypedSet::notifySolver(AggReason* ar) {
 
 	if (value(p) == l_False) {
 		if (verbosity() >= 2) {
-			clog <<"Deriving conflict in ";
-			clog <<print(p, l_True, getPCSolver());
-			clog <<" because of the aggregate expression ";
+			clog << "Deriving conflict in ";
+			clog << print(p, l_True, getPCSolver());
+			clog << " because of the aggregate expression ";
 			MinisatID::print(verbosity(), ar->getAgg(), true);
-		}
-		assert(getPCSolver().modes().aggclausesaving>1 || ar->hasClause());
+		}assert(getPCSolver().modes().aggclausesaving>1 || ar->hasClause());
 
 		assert(reasons[var(p)]==NULL || getPCSolver().modes().aggclausesaving>1 || reasons[var(p)]->hasClause());
 		AggReason* old_ar = reasons[var(p)];
 		reasons[var(p)] = ar;
-		rClause confl = getExplanation(p);	//Reason manipulation because getexplanation uses that reason!
+		rClause confl = getExplanation(p); //Reason manipulation because getexplanation uses that reason!
 		reasons[var(p)] = old_ar;
 		delete ar; // Have to delete before addLearnedClause, as internally it might lead to backtrack and removing the reason
 		getPCSolver().addLearnedClause(confl);
 		return confl;
 	} else if (value(p) == l_Undef) {
 		if (verbosity() >= 2) {
-			clog <<"Deriving ";
-			clog <<print(p, l_True, getPCSolver());
-			clog <<" because of the aggregate expression ";
+			clog << "Deriving ";
+			clog << print(p, l_True, getPCSolver());
+			clog << " because of the aggregate expression ";
 			MinisatID::print(verbosity(), ar->getAgg(), true);
 		}
 
 		//Keeping a reason longer than necessary is not a problem => if after backtracking still unknown, then no getexplanation, if it becomes known,
 		//either this is overwritten or the propagation stems from another module, which will be asked for the explanation
-		if(reasons[var(p)] != NULL){
+		if (reasons[var(p)] != NULL) {
 			delete reasons[var(p)];
 		}
 		reasons[var(p)] = ar;
@@ -163,19 +148,19 @@ void TypedSet::addExplanation(AggReason& ar) const {
 	getProp()->getExplanation(lits.literals, ar);
 	ar.setClause(lits);
 
-	if(verbosity()>=3){
-		std::clog <<"Explanation for deriving " <<print(ar.getPropLit(), getPCSolver());
-		std::clog <<" in expression ";
+	if (verbosity() >= 3) {
+		std::clog << "Explanation for deriving " << print(ar.getPropLit(), getPCSolver());
+		std::clog << " in expression ";
 		print(verbosity(), ar.getAgg(), false);
-		std::clog <<" is ";
-		for(uint i=0; i<lits.literals.size(); ++i){
-			std::clog <<" " <<print(lits.literals[i], getPCSolver());
+		std::clog << " is ";
+		for (uint i = 0; i < lits.literals.size(); ++i) {
+			std::clog << " " << print(lits.literals[i], getPCSolver());
 		}
-		std::clog <<"\n";
+		std::clog << "\n";
 	}
 }
 
-void TypedSet::notifyNewDecisionLevel(){
+void TypedSet::notifyNewDecisionLevel() {
 	//littrail.newDecisionLevel();
 }
 
@@ -184,37 +169,30 @@ void TypedSet::notifypropagate(Watch* w) {
 	getPCSolver().acceptForPropagation(this);
 }
 
-rClause	TypedSet::notifypropagate(){
-	/*while(littrail.hasNext()){
-		// propagate all literals
-	}*/
-	return getProp()->propagateAtEndOfQueue();
-}
-
-void TypedSet::notifyBacktrack(int untillevel, const Lit& decision){
-	MAssert(getProp()!=NULL);
-	getProp()->backtrack(untillevel);
-	//littrail.backtrackDecisionLevels(untillevel);
-	Propagator::notifyBacktrack(untillevel, decision);
-}
-
-rClause TypedSet::notifyFullAssignmentFound(){
-	assert(isInitialized());
+rClause TypedSet::notifypropagate() {
+	auto confl = getProp()->propagateAtEndOfQueue();
 #ifdef DEBUG
 	Weight w = getType().getValue(*this);
-	for(agglist::const_iterator j=getAgg().cbegin(); j<getAgg().cend(); ++j){
-		if(verbosity()>=3){
+	for(auto j=getAgg().cbegin(); j<getAgg().cend(); ++j) {
+		if(verbosity()>=3) {
 			MinisatID::print(10, **j, true);
 		}
 		lbool headval = value((*j)->getHead());
-		if((*j)->getSem()==AggSem::IMPLICATION){
+		if((*j)->getSem()==AggSem::IMPLICATION) {
 			assert((headval==l_True && isFalsified(**j, w, w)) || (headval==l_False && isSatisfied(**j, w, w)));
-		}else{
+		} else {
 			assert((headval==l_False && isFalsified(**j, w, w)) || (headval==l_True && isSatisfied(**j, w, w)));
 		}
 	}
 #endif
-	return nullPtrClause;
+	return confl;
+}
+
+void TypedSet::notifyBacktrack(int untillevel, const Lit& decision) {
+	MAssert(getProp()!=NULL);
+	getProp()->backtrack(untillevel);
+	//littrail.backtrackDecisionLevels(untillevel);
+	Propagator::notifyBacktrack(untillevel, decision);
 }
 
 //Returns OWNING pointer. This has proven to be faster than always adding generated explanations to the clause store!
@@ -238,8 +216,8 @@ rClause TypedSet::getExplanation(const Lit& p) {
 	return c;
 }
 
-int	TypedSet::getNbOfFormulas() const {
-	return getAgg().size() * getWL().size() * log(getWL().size()); // Could refine depending on aggregate type
-}
+//int TypedSet::getNbOfFormulas() const {
+//	return getAgg().size() * getWL().size() * log(getWL().size()); // Could refine depending on aggregate type
+//}
 
 } /* namespace MinisatID */

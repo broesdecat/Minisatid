@@ -13,30 +13,31 @@
 using namespace std;
 using namespace MinisatID;
 
-LazyResidualWatch::LazyResidualWatch(PCSolver* engine, const Lit& lit, LazyGroundingCommand* monitor):
-		engine(engine),
-		monitor(monitor), residual(lit){
+LazyResidualWatch::LazyResidualWatch(PCSolver* engine, const Lit& lit, LazyGroundingCommand* monitor) :
+		engine(engine), monitor(monitor), residual(lit) {
 	engine->accept(this);
 }
 
-void LazyResidualWatch::propagate(){
+void LazyResidualWatch::propagate() {
 	new LazyResidual(this);
 }
 
-const Lit& LazyResidualWatch::getPropLit() const{
+const Lit& LazyResidualWatch::getPropLit() const {
 	return residual;
 }
 
 // Watch BOTH: so watching when it becomes decidable
-LazyResidual::LazyResidual(PCSolver* engine, Var var, LazyGroundingCommand* monitor):Propagator(engine, "lazy residual notifier"), monitor(monitor), residual(mkPosLit(var)){
+LazyResidual::LazyResidual(PCSolver* engine, Var var, LazyGroundingCommand* monitor) :
+		Propagator(engine, "lazy residual notifier"), monitor(monitor), residual(mkPosLit(var)) {
 	getPCSolver().acceptForDecidable(var, this);
 }
 
-LazyResidual::LazyResidual(LazyResidualWatch* const watch):Propagator(watch->engine, "lazy residual notifier"), monitor(watch->monitor), residual(watch->residual){
+LazyResidual::LazyResidual(LazyResidualWatch* const watch) :
+		Propagator(watch->engine, "lazy residual notifier"), monitor(watch->monitor), residual(watch->residual) {
 	getPCSolver().acceptForPropagation(this);
 }
 
-rClause LazyResidual::notifypropagate(){
+rClause LazyResidual::notifypropagate() {
 	MAssert(isPresent());
 	MAssert(not getPCSolver().isUnsat());
 
@@ -47,16 +48,16 @@ rClause LazyResidual::notifypropagate(){
 	monitor->requestGrounding(); // FIXME should delete the other watch too
 	getPCSolver().allowPropagation();
 
-	if(not getPCSolver().isUnsat() /* FIXME FIXME && getPCSolver().isInitialized()*/){ // NOTE: otherwise, it will be called later and would be incorrect here!
+	if (not getPCSolver().isUnsat() /* FIXME FIXME && getPCSolver().isInitialized()*/) { // NOTE: otherwise, it will be called later and would be incorrect here!
 		getPCSolver().finishParsing();
 	}
 	notifyNotPresent(); // FIXME clean way of deleting this? FIXME only do this after finishparsing as this propagated is then DELETED
 
-	if(getPCSolver().isUnsat()){
+	if (getPCSolver().isUnsat()) {
 		InnerDisjunction d;
-		d.literals = { getPCSolver().getTrail().back()};
+		d.literals = {getPCSolver().getTrail().back()};
 		return getPCSolver().createClause(d, true);
-	}else{
+	} else {
 		return nullPtrClause;
 	}
 }

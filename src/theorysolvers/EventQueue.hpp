@@ -44,9 +44,8 @@ private:
 	std::vector<proplist> intvarid2propagators; 					// |intvars|
 
 	std::vector<std::vector<Propagator*>> var2decidable;			// |vars|
-	std::queue<Propagator*> propagatedecidables;
 
-	watchlist propagateasap;
+	watchlist propagatewatchesasap;
 
 	bool initialized;
 	void notifyInitialized() { initialized = true; }
@@ -100,12 +99,9 @@ public:
 
 	void 	acceptForDecidable(Var v, Propagator* prop);
 	void 	notifyBecameDecidable(Var v);
-	rClause notifyFullAssignmentFound();
-	void 	finishParsing			();
 	void 	notifyNewDecisionLevel	();
 	void 	notifyBacktrack			(int untillevel, const Lit& decision);
 	rClause notifyPropagate			();
-	rClause checkDecidables			();
 	void	setTrue					(const Lit& l);
 	void 	notifyBoundsChanged		(IntVar* var);
 

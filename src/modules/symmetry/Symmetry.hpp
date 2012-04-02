@@ -53,17 +53,8 @@ public:
 	SymmetryPropagator(PCSolver* solver, const InnerSymmetry& sym);
 
 	// Propagator methods
-	virtual void 	accept(ConstraintVisitor& visitor){}; // FIXME
-	virtual rClause getExplanation(const Lit&) {
-		MAssert(false);
-		return nullPtrClause;
-	}
-	virtual rClause notifyFullAssignmentFound() {
-		MAssert(false);
-		return nullPtrClause;
-	}
-	// First argument is true is the propagator is NOT certainly satisfied in the initial interpretation
-	virtual void finishParsing(bool&){ MAssert(false); }
+	virtual void 	accept(ConstraintVisitor& visitor){ throw notYetImplemented("Accept"); }
+	virtual rClause getExplanation(const Lit&) { throw idpexception("Error, invalid code path."); }
 	// Checks presence of aggregates and initializes all counters. UNSAT is set to true if unsat is detected
 	// PRESENT is set to true if aggregate propagations should be done
 	virtual void notifyNewDecisionLevel();

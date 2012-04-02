@@ -44,14 +44,12 @@ IDAgg::IDAgg(const Lit& head, AggBound b, AggSem sem, AggType type, const std::v
 }
 
 IDSolver::IDSolver(PCSolver* s, int definitionID) :
-		Propagator(s, "definition"), definitionID(definitionID), finishedonce(false), needtofinishrules(false), needtofinishid(false), forcefinish(false), infactnotpresent(
-				false), minvar(0), nbvars(0), conj(DefType::CONJ), disj(DefType::DISJ), aggr(DefType::AGGR), _seen(NULL), sem(
+		Propagator(s, "definition"), definitionID(definitionID), finishedonce(false), needtofinishid(false), forcefinish(
+				false), infactnotpresent(false), minvar(0), nbvars(0), conj(DefType::CONJ), disj(DefType::DISJ), aggr(DefType::AGGR), _seen(NULL), sem(
 				getPCSolver().modes().defsem), posrecagg(false), mixedrecagg(false), posloops(true), negloops(true), backtracked(true), adaption_total(
 				0), adaption_current(0) {
 	getPCSolver().accept(this, EV_DECISIONLEVEL);
 	getPCSolver().accept(this, EV_BACKTRACK);
-	// FIXME getPCSolver().accept(this, EV_FULLASSIGNMENT);
-	registerFinishParsing();
 }
 
 IDSolver::~IDSolver() {
@@ -72,9 +70,9 @@ void IDSolver::createDefinition(Var head, IDAgg* agg) {
 	setDefVar(head, new DefinedVar(agg));
 }
 
-int IDSolver::getNbOfFormulas() const {
+/*int IDSolver::getNbOfFormulas() const {
 	return definitions.size() * log(definitions.size());
-}
+}*/
 
 inline void IDSolver::addCycleSource(Var v) {
 	if (!isCS(v)) {
@@ -94,16 +92,7 @@ void IDSolver::adaptStructsToHead(Var) {
 	definitions.resize(nbvars, NULL);
 }
 
-void IDSolver::registerFinishParsing() {
-	if (not needtofinishrules) {
-		getPCSolver().acceptFinishParsing(this, true);
-	}
-	needtofinishrules = true;
-}
-
 void IDSolver::addDefinedAggregate(const InnerReifAggregate& inneragg, const InnerWLSet& innerset) {
-	registerFinishParsing();
-
 	auto newrule = new TempRule(new InnerReifAggregate(inneragg), new InnerWLSet(innerset));
 	auto it = rules.find(inneragg.head);
 	if (it == rules.cend()) {
@@ -126,8 +115,6 @@ void IDSolver::addDefinedAggregate(const InnerReifAggregate& inneragg, const Inn
 }
 
 void IDSolver::addRule(bool conj, Var head, const litlist& ps) {
-	registerFinishParsing();
-
 	auto it = rules.find(head);
 	if (it == rules.cend()) {
 		rules[head] = new TempRule(head, conj, ps);
@@ -169,12 +156,12 @@ SATVAL IDSolver::addFinishedRule(TempRule* rule) {
 	if (verbosity() > 4) {
 		clog << "Added final rule " << print(rule->head, getPCSolver()) << " <- ";
 		bool begin = true;
-		for(auto i=rule->body.cbegin(); i<rule->body.cend(); ++i){
-			if(not begin){
-				clog <<(rule->conjunctive ? " & " : " | ");
+		for (auto i = rule->body.cbegin(); i < rule->body.cend(); ++i) {
+			if (not begin) {
+				clog << (rule->conjunctive ? " & " : " | ");
 			}
 			begin = true;
-			clog <<print(*i, getPCSolver());
+			clog << print(*i, getPCSolver());
 		}
 		clog << "\n";
 	}
@@ -183,7 +170,7 @@ SATVAL IDSolver::addFinishedRule(TempRule* rule) {
 
 	if (isDefined(head)) {
 		stringstream ss;
-		ss << "Multiple rules have the same head " <<print(head, getPCSolver()) << ", which is not allowed!\n";
+		ss << "Multiple rules have the same head " << print(head, getPCSolver()) << ", which is not allowed!\n";
 		throw idpexception(ss.str());
 	}
 
@@ -216,7 +203,7 @@ void IDSolver::addFinishedDefinedAggregate(TempRule* rule) {
 	MAssert(rule->isagg);
 
 	if (verbosity() > 4) {
-		clog << "Added final aggregate rule " <<print(rule->head, getPCSolver()) << " <- ...";
+		clog << "Added final aggregate rule " << print(rule->head, getPCSolver()) << " <- ...";
 		clog << "\n";
 	}
 
@@ -224,7 +211,7 @@ void IDSolver::addFinishedDefinedAggregate(TempRule* rule) {
 	adaptStructsToHead(head);
 	if (isDefined(head)) {
 		stringstream ss;
-		ss << "Multiple rules have the same head " <<print(head, getPCSolver()) << ", which is not allowed!\n";
+		ss << "Multiple rules have the same head " << print(head, getPCSolver()) << ", which is not allowed!\n";
 		throw idpexception(ss.str());
 	}
 
@@ -241,7 +228,7 @@ void IDSolver::addFinishedDefinedAggregate(TempRule* rule) {
 /*
  * @PRE: aggregates have to have been finished
  */
-void IDSolver::finishParsing(bool& present) {
+void IDSolver::initialize(bool& present) {
 	MAssert(not getPCSolver().isUnsat());
 	if (rules.size() == 0 && not forcefinish && finishedonce) {
 		return;
@@ -265,8 +252,6 @@ void IDSolver::finishParsing(bool& present) {
 		}
 		deleteList(temprules);
 	}
-
-	needtofinishrules = false;
 
 	if (finishedonce && not forcefinish) {
 		getPCSolver().getNonConstOptions().defn_strategy = adaptive;
@@ -495,7 +480,7 @@ bool IDSolver::simplifyGraph(int& atomsinposloops) {
 		auto lit = mkPosLit(v);
 		if (seen(v) > 0 || isFalse(lit)) {
 			if (verbosity() >= 2) {
-				ss << " " <<print(lit, getPCSolver());
+				ss << " " << print(lit, getPCSolver());
 			}
 			if (isTrue(lit)) {
 				return false;
@@ -675,7 +660,7 @@ void IDSolver::generateSCCs() {
 	if (verbosity() > 20) {
 		clog << "Printing mapping from variables to the ID of the SCC in which it occurs:\n";
 		for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
-			clog << "SCC of " <<print(*i, getPCSolver()) << " is " <<print(scc(*i), getPCSolver()) << ", ";
+			clog << "SCC of " << print(*i, getPCSolver()) << " is " << print(scc(*i), getPCSolver()) << ", ";
 		}
 		clog << "Ended printing sccs.\n";
 	}
@@ -1017,8 +1002,9 @@ void IDSolver::propagateJustificationAggr(const Lit& l, vector<litlist>& jstfs, 
  */
 rClause IDSolver::notifypropagate() {
 	CHECKNOTUNSAT
-	if (needtofinishid || needtofinishrules) {
-		forcefinish = true;
+	if (needtofinishid) {
+		throw notYetImplemented("Lazy initialization of definitions.");
+		/*forcefinish = true;
 		bool present;
 		infactnotpresent = false;
 		finishParsing(present);
@@ -1031,7 +1017,7 @@ rClause IDSolver::notifypropagate() {
 			InnerDisjunction d;
 			d.literals = {getPCSolver().getTrail().back()};
 			return getPCSolver().createClause(d, true);
-		}
+		}*/
 	}CHECKSEEN CHECKNOTUNSAT
 
 	// There was an unfounded set saved which might not have been completely propagated by unit propagation
@@ -1072,7 +1058,7 @@ rClause IDSolver::notifypropagate() {
 				if (verbosity() >= 2) {
 					clog << "Found an unfounded set of size " << ufs.size() << ": {";
 					for (auto it = ufs.cbegin(); it != ufs.cend(); ++it) {
-						clog << " " <<print(*it, getPCSolver());
+						clog << " " << print(*it, getPCSolver());
 					}
 					clog << " }.\n";
 				}
@@ -1102,6 +1088,23 @@ rClause IDSolver::notifypropagate() {
 			adaption_current = 0;
 		}
 	}
+
+	// FIXME notifyfullassignmentfound by counting the number of unknown heads!
+	throw notYetImplemented("Finishing two-valued definition.");
+	/*if (infactnotpresent) {
+		return nullPtrClause;
+	}
+	rClause confl = nullPtrClause;
+	if (confl == nullPtrClause) { // FIXME should separate propagators!
+		confl = notifypropagate(); // FIXME might propagate within backtrack and not have a total model anymore!!!
+		if (not getPCSolver().hasTotalModel()) {
+			return confl;
+		}
+	}MAssert(not posloops || isCycleFree());
+	if (confl == nullPtrClause && getSemantics() == DEF_WELLF) {
+		confl = isWellFoundedModel();
+	}
+	return confl;*/
 
 	CHECKSEEN
 	return confl;
@@ -1155,7 +1158,7 @@ void IDSolver::findCycleSources() {
 	if (verbosity() > 3) {
 		clog << ">>> Found " << css.size() << " possible cycle sources: ";
 		for (auto i = css.cbegin(); i < css.cend(); ++i) {
-			clog << " " <<print(*i, getPCSolver());
+			clog << " " << print(*i, getPCSolver());
 		}
 		clog << ".\n";
 	}
@@ -1265,7 +1268,7 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 	if (verbosity() > 9) {
 		for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
 			if (isJustified(*_seen, *i)) {
-				clog << "Still justified " <<print(*i, getPCSolver()) << "\n";
+				clog << "Still justified " << print(*i, getPCSolver()) << "\n";
 			}
 		}
 	}
@@ -1281,7 +1284,7 @@ bool IDSolver::unfounded(Var cs, std::set<Var>& ufs) {
 		}
 		if (directlyJustifiable(v, ufs, q)) {
 			if (verbosity() > 5) {
-				clog << "Can directly justify " <<print(v, getPCSolver()) << "\n";
+				clog << "Can directly justify " << print(v, getPCSolver()) << "\n";
 			}
 			if (propagateJustified(v, cs, ufs)) {
 				csisjustified = true;
@@ -1479,7 +1482,7 @@ bool IDSolver::propagateJustified(Var v, Var cs, std::set<Var>& ufs) {
 			changejust(var(heads[i]), jstf[i]);
 			justifiedq.push_back(var(heads[i]));
 			if (verbosity() > 5) {
-				clog << "justified " <<print(var(heads[i]), getPCSolver()) << "\n";
+				clog << "justified " << print(var(heads[i]), getPCSolver()) << "\n";
 			}
 		}
 
@@ -1488,7 +1491,7 @@ bool IDSolver::propagateJustified(Var v, Var cs, std::set<Var>& ufs) {
 		for (uint i = 0; i < heads.size(); ++i) {
 			justifiedq.push_back(var(heads[i]));
 			if (verbosity() > 5) {
-				clog << "justified " <<print(var(heads[i]), getPCSolver()) << "\n";
+				clog << "justified " << print(var(heads[i]), getPCSolver()) << "\n";
 			}
 		}
 	}
@@ -1603,7 +1606,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 			//introduce a new var to represent all external disjuncts: v <=> \bigvee external disj
 			Var v = getPCSolver().newVar();
 			if (verbosity() >= 2) {
-				clog << "Adding new variable for loop formulas: " <<print(v, getPCSolver()) << "\n";
+				clog << "Adding new variable for loop formulas: " << print(v, getPCSolver()) << "\n";
 			}
 
 			// not v \vee \bigvee\extdisj{L}
@@ -1742,7 +1745,7 @@ inline void IDSolver::markNonJustifiedAddVar(Var v, Var cs, queue<Var> &q, varli
 		}
 
 		if (verbosity() > 9) {
-			clog << "Not justified " <<print(v, getPCSolver()) << ", times " << seen(v) << "\n";
+			clog << "Not justified " << print(v, getPCSolver()) << ", times " << seen(v) << "\n";
 		}
 	}
 }
@@ -1751,10 +1754,10 @@ void IDSolver::printPosGraphJustifications() const {
 	clog << ">>>> Justifications (on pos graph):\n";
 	for (int i = 0; i < nbvars; ++i) {
 		if (isDefined(i) && occ(i) != MIXEDLOOP) {
-			clog << "    " <<print(i, getPCSolver()) << "<-";
+			clog << "    " << print(i, getPCSolver()) << "<-";
 			switch (type(i)) {
 			case DefType::DISJ:
-				clog <<print(justification(i)[0], getPCSolver())  << "; \n";
+				clog << print(justification(i)[0], getPCSolver()) << "; \n";
 				break;
 			case DefType::CONJ:
 				clog << "all (conj) \n";
@@ -1766,7 +1769,7 @@ void IDSolver::printPosGraphJustifications() const {
 						clog << " ";
 					}
 					begin = false;
-					clog <<print(*j, getPCSolver());
+					clog << print(*j, getPCSolver());
 				}
 				clog << "\n";
 				break;
@@ -1906,23 +1909,6 @@ bool IDSolver::isCycleFree() const {
 	return cnt_nonjustified == 0;
 }
 
-rClause IDSolver::notifyFullAssignmentFound() {
-	if (infactnotpresent) {
-		return nullPtrClause;
-	}
-	rClause confl = nullPtrClause;
-	if (confl == nullPtrClause) { // FIXME should separate propagators!
-		confl = notifypropagate(); // FIXME might propagate within backtrack and not have a total model anymore!!!
-		if (not getPCSolver().hasTotalModel()) {
-			return confl;
-		}
-	}MAssert(not posloops || isCycleFree());
-	if (confl == nullPtrClause && getSemantics() == DEF_WELLF) {
-		confl = isWellFoundedModel();
-	}
-	return confl;
-}
-
 /****************************
  * WELL FOUNDED MODEL CHECK *
  ****************************/
@@ -1990,7 +1976,7 @@ rClause IDSolver::isWellFoundedModel() {
 	if (verbosity() > 1) {
 		clog << "general SCCs found";
 		for (vector<int>::size_type z = 0; z < wfroot.size(); ++z) {
-			clog <<print(z, getPCSolver()) << " has root " <<print(wfroot[z], getPCSolver()) << "\n";
+			clog << print(z, getPCSolver()) << " has root " << print(wfroot[z], getPCSolver()) << "\n";
 		}
 		clog << "Mixed cycles are " << (rootofmixed.empty() ? "not" : "possibly") << " present.\n";
 	}
@@ -2350,8 +2336,8 @@ void IDSolver::overestimateCounters() {
 			const Lit& bdl = definition(v)->operator [](j);
 			if (wfisMarked[var(bdl)] && !isPositive(bdl) && v != var(bdl)) {
 				if (type(v) == DefType::CONJ) {
-					seen(v)--;
-				} else {
+					seen(v)--;}
+else				{
 					seen(v) = 0;
 				}
 			}

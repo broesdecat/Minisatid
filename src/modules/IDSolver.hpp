@@ -181,7 +181,7 @@ class IDSolver: public Propagator{
 private:
 	int definitionID;
 
-	bool finishedonce, needtofinishrules, needtofinishid, forcefinish;
+	bool finishedonce, needtofinishid, forcefinish;
 	bool infactnotpresent; // NOTE: last one because ispresent will always be true when lazy grounding
 
 	Var minvar, nbvars; //TODO, maxvar, nbvars; 	//The lowest and highest headvariable. INVAR: Definitions will be offset by minvar and the size will be nbvars
@@ -224,14 +224,11 @@ public:
 	bool	hasRecursiveAggregates	() const 	{ return posrecagg || mixedrecagg; }
 
 	// Propagator methods
-	virtual int			getNbOfFormulas			() const;
 	virtual rClause 	getExplanation			(const Lit& l);
-	// Event propagator methods
-	virtual void 		finishParsing		 	(bool& present);
+	virtual void 		initialize				(bool& present);
 	virtual rClause 	notifypropagate			();
 	virtual void 		notifyNewDecisionLevel	();
 	virtual void 		notifyBacktrack			(int untillevel, const Lit& decision){ backtracked = true; Propagator::notifyBacktrack(untillevel, decision); };
-	virtual rClause		notifyFullAssignmentFound();
 
 	rClause				isWellFoundedModel		();
 
@@ -247,7 +244,6 @@ public:
 	const PropRule&		getDefinition			(Var var) 	const { MAssert(hasDefVar(var)); return *definition(var); }
 
 private:
-	void 				registerFinishParsing();
 	void 				generateSCCs();
 	void 				bumpHeadHeuristic();
 

@@ -113,7 +113,7 @@ void EventQueue::accept(GenWatch* const watch) {
 	if (getPCSolver().value(watch->getPropLit()) == l_True) { // FIXME should happen in all add methods?
 		// are propagated asap, but not in this method as that leads to correctness issues
 		// TODO how to handle those better?
-		propagateasap.push_back(watch);
+		propagatewatchesasap.push_back(watch);
 		if (watch->dynamic()) {
 			addwatch = false;
 		}
@@ -202,7 +202,8 @@ void EventQueue::clearNotPresentPropagators() { // TODO restore?
 	}
 }
 
-void EventQueue::finishParsing() {
+// TODO check if we did not loose any functionality by dropping this code
+/*void EventQueue::finishParsing() {
 	MAssert(not isUnsat());
 
 	if (finishing || not allowpropagation || finishparsing.size() == 0) {
@@ -262,17 +263,7 @@ void EventQueue::finishParsing() {
 	}
 
 	finishing = false;
-}
-
-rClause EventQueue::checkDecidables() {
-	rClause confl = nullPtrClause;
-	while (not propagatedecidables.empty() && confl == nullPtrClause) {
-		auto prop = propagatedecidables.front();
-		propagatedecidables.pop();
-		confl = prop->notifypropagate();
-	}
-	return confl;
-}
+}*/
 
 rClause EventQueue::notifyPropagate() {
 	if (not allowpropagation) {
@@ -280,22 +271,15 @@ rClause EventQueue::notifyPropagate() {
 	}
 
 	rClause confl = nullPtrClause;
-	confl = checkDecidables();
 
-	for (auto i = propagateasap.cbegin(); i < propagateasap.cend() && confl == nullPtrClause; ++i) {
-		confl = checkDecidables();
-		if (confl != nullPtrClause) {
-			break;
-		}
-
+	for (auto i = propagatewatchesasap.cbegin(); i < propagatewatchesasap.cend() && confl == nullPtrClause; ++i) {
 		(*i)->propagate();
 	}
-	propagateasap.clear();
+	propagatewatchesasap.clear();
 
 	assert(getPCSolver().satState()!=SATVAL::UNSAT);
 	while (fastqueue.size() + slowqueue.size() != 0 && confl == nullPtrClause) {
 		MAssert(fastqueue.size() + slowqueue.size() != 0);
-		confl = checkDecidables();
 		if (confl != nullPtrClause || fastqueue.size() + slowqueue.size() == 0) { // Might get called recursively (TODO should that be prevented?) so might be empty here
 			break;
 		}
@@ -326,7 +310,7 @@ uint EventQueue::size(EVENT event) const {
 	return event2propagator.at(event).size();
 }
 
-rClause EventQueue::notifyFullAssignmentFound() {
+//rClause EventQueue::notifyFullAssignmentFound() {
 	// FIXME
 	/*auto confl = nullPtrClause;
 	MAssert(getPCSolver().hasTotalModel());
@@ -341,21 +325,21 @@ rClause EventQueue::notifyFullAssignmentFound() {
 		MAssert(getPCSolver().satState()!=SATVAL::UNSAT || confl!=nullPtrClause);
 	}
 	return confl;*/
-}
+//}
 
 void EventQueue::acceptForDecidable(Var v, Propagator* prop) {
 	MAssert((uint)v<var2decidable.size());
 	if (not getPCSolver().isDecisionVar(v)) {
 		var2decidable[v].push_back(prop);
 	} else {
-		prop->notifypropagate();
+		fastqueue.push(prop);
 	}
 }
 
 void EventQueue::notifyBecameDecidable(Var v) {
 	MAssert((uint)v<var2decidable.size());
 	for (auto i = var2decidable[v].cbegin(); i < var2decidable[v].cend(); ++i) {
-		propagatedecidables.push(*i);
+		fastqueue.push(*i);
 	}
 	var2decidable[v].clear();
 }

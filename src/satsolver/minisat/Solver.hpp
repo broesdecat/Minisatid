@@ -48,9 +48,6 @@ namespace Minisat {
 // Solver -- the main class:
 
 class Solver: public MinisatID::Propagator{
-private:
-/*A*/	bool fullassignment;
-
 public:
 /*AB*/
 	bool		handleConflict(CRef conflict);

@@ -24,9 +24,9 @@ public:
 	const Lit& head() const { return head_; }
 
 	// Propagator methods
-	virtual int		getNbOfFormulas		() const 					{ return 1; }
-
 	virtual rClause getExplanation(const Lit& lit);
+	virtual rClause	notifypropagate();
+	virtual void 	accept(ConstraintVisitor& visitor){ throw notYetImplemented("Accept");}
 
 	IntView* left() const { return left_;}
 	IntView* right() const { return right_;}
@@ -66,14 +66,6 @@ public:
 //	void addExplanIntVarLit(InnerDisjunction& clause, IntVar* othervar, int bound, AggSign varsign);
 //	rClause propagate(const Lit& truehead, int bound, BIN_SIGN comp, IntVar* var, AggSign varsign);
 //	rClause propagate(const Lit& truehead, IntVar* var, BIN_SIGN comp, int bound, AggSign varsign);
-
-	virtual rClause	notifypropagate();
-	virtual void 	accept(ConstraintVisitor& visitor){}; // FIXME
-
-	virtual void finishParsing(bool& present);
-
-	virtual void printState() const;
-
 };
 
 }
