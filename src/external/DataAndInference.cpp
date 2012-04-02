@@ -9,6 +9,8 @@
 #include "external/SearchMonitor.hpp"
 #include "constraintvisitors/FlatZincRewriter.hpp"
 #include "constraintvisitors/ECNFPrinter.hpp"
+#include "constraintvisitors/ECNFGraphPrinter.hpp"
+#include "constraintvisitors/HumanReadableParsingPrinter.hpp"
 #include "Printer.hpp"
 #include "ModelManager.hpp"
 #include "utils/ResourceManager.hpp"
@@ -33,12 +35,15 @@ void Task::notifyTerminateRequested() {
 }
 
 ModelExpand::ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions)
-		: Task(space), _solutions(new ModelManager(options.savemodels)), _options(options), assumptions(assumptions) {
+		: Task(space), _options(options), assumptions(assumptions),
+		  _solutions(new ModelManager(options.savemodels)),
+		  printer(new Printer(_solutions, space->getTranslator(), options.printmodels, space->getOptions())){
 
 }
 
 ModelExpand::~ModelExpand(){
 	delete(_solutions);
+	delete(printer);
 }
 
 
@@ -85,16 +90,15 @@ void ModelExpand::notifySolvingAborted(){
  * count the number of models => do not save models
  */
 void ModelExpand::innerExecute() {
+	printer->notifyStartSolving();
 	if (getSpace()->isCertainlyUnsat()) {
-		printer->notifySolvingFinished(); // TODO solving started?
+		printer->notifySolvingFinished();
 		return;
 	}
-	// FIXME need to move optimization to lower than ModelExpand Task, because cannot add to inference during parsing!!!
 
-	// TODO
-	//if (d->hasOptimization()) {
-	//	sol->notifyOptimizing();
-	//}
+	if (getSpace()->isOptimizationProblem()) {
+		printer->notifyOptimizing();
+	}
 	if (getSpace()->isOptimizationProblem() && _options.nbmodelstofind != 1) {
 		throw idpexception("Finding multiple models can currently not be combined with optimization.\n");
 	}
@@ -106,8 +110,7 @@ void ModelExpand::innerExecute() {
 	if (getSpace()->isOptimizationProblem()) {
 		findOptimal(assumptions);
 	} else {
-		MXState moremodels = findNext(assumptions, _options);
-		// TODO handle MXState::unknown?
+		auto moremodels = findNext(assumptions, _options);
 		if (moremodels == MXState::UNSAT) {
 			if (getNbModelsFound() == 0) {
 				printNoModels(clog, modes().verbosity);
@@ -170,7 +173,7 @@ MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& o
 		auto fullmodel = getSpace()->getEngine()->getModel();
 		addModel(fullmodel);
 
-		// FIXME incorrect in the case of CP!
+		// FIXME current behavior is incorrect in the case of CP
 		// => first check whether there might be more CP models before backtracking completely!
 		// Probably better refactor to put this deeper?
 		/*#ifdef CPSUPPORT
@@ -274,7 +277,6 @@ bool ModelExpand::invalidateValue(litlist& invalidation) {
 }
 
 bool ModelExpand::invalidateAgg(litlist& invalidation) {
-	//FIXME assert(isInitialized());
 	auto agg = getSolver().agg_to_minimize;
 	auto s = agg->getSet();
 	Weight value = s->getType().getValue(*s);
@@ -298,8 +300,6 @@ bool ModelExpand::invalidateAgg(litlist& invalidation) {
 
 /*
  * If the optimum possible value is reached, the model is not invalidated. Otherwise, unsat has to be found first, so it is invalidated.
- * TODO: add code that allows to reset the solver when the optimal value has been found, to search for more models with the same optimal value.
- * Borrow this code from savestate/resetstate/saveclauses for the modal solver
  *
  * Returns true if an optimal model was found
  */
@@ -361,8 +361,6 @@ void ModelExpand::findOptimal(const litlist& assmpt) {
 	if (unsatreached && modelfound) {
 		_solutions->notifyOptimalModelFound();
 	}
-
-	// TODO support for finding more optimal models?
 }
 
 void InnerMonitor::notifyMonitor(const Lit& propagation, int decisionlevel) {
@@ -424,18 +422,29 @@ void UnitPropagate::writeOutEntailedLiterals(){
 }
 
 void Transform::innerExecute(){
-	//TODO parsingmonitors.push_back(new ECNFGraphPrinter<ostream>(getEnginep(), cout));
-	if(outputlanguage==TheoryPrinting::FZ){
-		FlatZincRewriter fzrw(getSpace()->getEngine(), modes()); // TODO outputfile
-		getSolver().accept(fzrw);
-	}else if(outputlanguage==TheoryPrinting::ECNF){
-		RealECNFPrinter<ostream> pr(getSpace()->getEngine(), clog); // TODO outputfile
-		getSolver().accept(pr);
+	std::shared_ptr<ResMan> resfile;
+	if(getSpace()->getOptions().outputfile==""){
+		resfile = std::shared_ptr<ResMan>(new StdMan(std::clog));
+	}else{
+		resfile = std::shared_ptr<ResMan>(new FileMan(getSpace()->getOptions().outputfile, true));
 	}
-	// TODO other languages
-}
-
-// TODO move to utils
-idpexception MinisatID::notYetImplemented(){
-	return idpexception("Not yet implemented\n");
+	ostream output(resfile->getBuffer());
+	switch(outputlanguage){
+	case TheoryPrinting::FZ:{
+		FlatZincRewriter<ostream> fzrw(getSpace()->getEngine(), modes(), output);
+		getSolver().accept(fzrw);
+		break;}
+	case TheoryPrinting::ECNF:{
+		RealECNFPrinter<ostream> pr(getSpace()->getEngine(), output);
+		getSolver().accept(pr);
+		break;}
+	case TheoryPrinting::ECNFGRAPH:{
+		ECNFGraphPrinter<ostream> pr(getSpace()->getEngine(), output);
+		getSolver().accept(pr);
+		break;}
+	case TheoryPrinting::HUMAN:{
+		HumanReadableParsingPrinter<ostream> pr(getSpace()->getEngine(), output);
+		getSolver().accept(pr);
+		break;}
+	}
 }

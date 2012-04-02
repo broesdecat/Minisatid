@@ -57,12 +57,8 @@ public:
 	LazyResidual(LazyResidualWatch* const watch);
 
 	virtual rClause notifypropagate();
-
-	virtual void accept(ConstraintVisitor& visitor){}; // FIXME
-
+	virtual void accept(ConstraintVisitor& visitor){ throw notYetImplemented("Accept"); }
 	virtual rClause getExplanation(const Lit&) { MAssert(false); return nullPtrClause;}
-	virtual rClause notifyFullAssignmentFound() { MAssert(false); return nullPtrClause; }
-	virtual void finishParsing(bool&) { MAssert(false); }
 	virtual void notifyNewDecisionLevel() { MAssert(false); }
 	virtual void notifyBacktrack(int untillevel, const Lit& decision){ MAssert(false); }
 };

@@ -35,7 +35,7 @@ public:
 	}
 
 	void visit(const MinisatID::InnerImplication&){
-		throw notYetImplemented();
+		throw notYetImplemented("Printing ecnfgraph of inner implication.");
 	}
 
 	void visit(const InnerDisjunction& lits) {
@@ -68,49 +68,49 @@ public:
 	}
 
 	void visit(const InnerAggregate&) {
-		throw notYetImplemented();
+		throw notYetImplemented("Printing ecnfgraph of aggregates.");
 	}
 	void visit(const InnerReifAggregate&) {
-		throw notYetImplemented();
+		throw notYetImplemented("Printing ecnfgraph of reified aggregate.");
 	}
 	void visit(const InnerMinimizeOrderedList&) {
-		throw notYetImplemented();
+		throw notYetImplemented("Printing ecnfgraph of minimize ordered list.");
 	}
 	void visit(const InnerMinimizeSubset&) {
-		throw notYetImplemented();
+		throw notYetImplemented("Printing ecnfgraph of minimize subset.");
 	}
 	void visit(const InnerMinimizeAgg&) {
-		throw notYetImplemented();
+		throw notYetImplemented("Printing ecnfgraph of minimize aggregate.");
 	}
 	void visit(const InnerMinimizeVar&) {
-		throw notYetImplemented();
+		throw notYetImplemented("Printing ecnfgraph of minimize variable.");
 	}
 	void visit(const InnerSymmetry&) {
-		throw notYetImplemented();
+		throw notYetImplemented("Printing ecnfgraph of symmetrye.");
 	}
 	void visit(const InnerForcedChoices&) {
-		throw notYetImplemented();
+		throw notYetImplemented("Printing ecnfgraph of forced choice.");
 	}
 	void visit(const InnerIntVarRange&) {
-		throw notYetImplemented();
+		throw notYetImplemented("Printing ecnfgraph of range int var.");
 	}
 	void visit(const InnerIntVarEnum&) {
-		throw notYetImplemented();
+		throw notYetImplemented("Printing ecnfgraph of enum int var.");
 	}
 	void visit(const InnerCPAllDiff&) {
-		throw notYetImplemented();
+		throw notYetImplemented("Printing ecnfgraph of alldifferent.");
 	}
 	void visit(const InnerCPBinaryRel&) {
-		throw notYetImplemented();
+		throw notYetImplemented("Printing ecnfgraph of cp binary relation op int.");
 	}
 	void visit(const InnerCPCount&) {
-		throw notYetImplemented();
+		throw notYetImplemented("Printing ecnfgraph of cp count.");
 	}
 	void visit(const InnerCPBinaryRelVar&) {
-		throw notYetImplemented();
+		throw notYetImplemented("Printing ecnfgraph of cp binary relation op var.");
 	}
 	void visit(const InnerCPSumWeighted&) {
-		throw notYetImplemented();
+		throw notYetImplemented("Printing ecnfgraph of weighted cp sum.");
 	}
 };
 

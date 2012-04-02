@@ -70,32 +70,16 @@ public:
 	Var createVar();
 };
 
-class InnerMonitor {
-private:
-	Remapper* remapper;
-	std::vector<PropAndBackMonitor*> monitors;
-public:
-	InnerMonitor(Remapper* r)
-			: remapper(r) {
-	}
-	void addMonitor(PropAndBackMonitor* monitor) {
-		monitors.push_back(monitor);
-	}
-	void notifyMonitor(const Lit& propagation, int decisionlevel);
-	void notifyMonitor(int untillevel);
-};
-
 enum class MXState {
 	MODEL, UNSAT, UNKNOWN
 };
 
 class ModelExpand: public Task {
 private:
-	ModelManager* _solutions; // TODO set
-	Printer* printer;  // TODO set
 	const ModelExpandOptions _options;
-
 	const litlist assumptions;
+	ModelManager* _solutions;
+	Printer* printer;
 
 public:
 	ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions);
@@ -121,7 +105,6 @@ private:
 	void findOptimal(const litlist& assmpt);
 	bool invalidateAgg(litlist& invalidation);
 
-	// TODO is in fact also notifyOptimum?
 	void notifyCurrentOptimum(const Weight& value) const;
 
 	void addModel(std::shared_ptr<InnerModel> model);
@@ -144,30 +127,20 @@ private:
 	void innerExecute();
 };
 
-enum class TheoryPrinting { ECNF, FZ, HUMAN, STATS };
+enum class TheoryPrinting { ECNF, FZ, HUMAN, ECNFGRAPH };
 
 class Transform: public Task {
 private:
 	const TheoryPrinting outputlanguage;
-	const std::string filename;
-	std::ostream& stream;
 
 public:
-	Transform(Space* space, TheoryPrinting outputlanguage, std::string& filename)
-			: Task(space), outputlanguage(outputlanguage), filename(filename), stream(std::clog) {
-	}
-	Transform(Space* space, TheoryPrinting outputlanguage, std::ostream& stream)
-			: Task(space), outputlanguage(outputlanguage), filename(""), stream(stream) {
+	Transform(Space* space, TheoryPrinting outputlanguage)
+			: Task(space), outputlanguage(outputlanguage) {
 	}
 
 private:
 	void innerExecute();
 };
-
-// TODO inference: generate unsat core
-// => add marker literals to all clauses (only clauses?), solve, analyze, return all their ids
-// aggregate => add literal to the set with a weight which can certainly make it true (or always add both weights, then it is certainly correct?
-// ids => add literal to all rules which occurs nowhere else
 
 }
 

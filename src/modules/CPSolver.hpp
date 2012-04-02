@@ -14,9 +14,9 @@
 #include <set>
 #include <map>
 
-namespace Gecode{
-	template<class T>
-	class DFS;
+namespace Gecode {
+template<class T>
+class DFS;
 }
 
 namespace MinisatID {
@@ -26,7 +26,7 @@ class CPScript;
 
 class CPSolverData;
 
-class LitTrail{
+class LitTrail {
 private:
 	std::vector<std::vector<Lit>::size_type> trailindexoflevel;
 	std::vector<Lit> trail;
@@ -38,7 +38,9 @@ public:
 	void backtrackDecisionLevels(int untillevel);
 	void propagate(const Lit& lit);
 	lbool value(const Lit& lit) const;
-	const std::vector<Lit>& getTrail() const { return trail; }
+	const std::vector<Lit>& getTrail() const {
+		return trail;
+	}
 };
 
 /**
@@ -54,65 +56,65 @@ public:
  */
 class CPSolver: public Propagator {
 private:
-	CPSolverData* 		solverdata; //OWNING pointer
+	CPSolverData* solverdata; //OWNING pointer
 
-	LitTrail			trail;
+	LitTrail trail;
 
-	std::map<Lit, std::vector<Lit>::size_type > propreason;
+	std::map<Lit, std::vector<Lit>::size_type> propreason;
 
-	bool				searchedandnobacktrack;
+	bool searchedandnobacktrack;
 
-	Gecode::DFS<CPScript>* 		savedsearchengine;
+	Gecode::DFS<CPScript>* savedsearchengine;
+
+	std::set<Var> heads;
 
 public:
-			CPSolver	(PCSolver * pcsolver);
-	virtual ~CPSolver	();
+	CPSolver(PCSolver * pcsolver);
+	virtual ~CPSolver();
 
-	bool 	add		(const InnerIntVarEnum& form);
-	bool 	add		(const InnerIntVarRange& form);
-	bool 	add		(const InnerCPBinaryRel& form);
-	bool 	add		(const InnerCPBinaryRelVar& form);
-	bool 	add		(const InnerCPSumWeighted& form);
-	bool 	add		(const InnerCPCount& form);
-	bool 	add		(const InnerCPAllDiff& form);
+	bool add(const InnerIntVarEnum& form);
+	bool add(const InnerIntVarRange& form);
+	bool add(const InnerCPBinaryRel& form);
+	bool add(const InnerCPBinaryRelVar& form);
+	bool add(const InnerCPSumWeighted& form);
+	bool add(const InnerCPCount& form);
+	bool add(const InnerCPAllDiff& form);
 
-	virtual void 	accept(ConstraintVisitor& visitor){}; // FIXME
-
-	void 	getVariableSubstitutions(std::vector<VariableEqValue>& varassignments);
+	void getVariableSubstitutions(std::vector<VariableEqValue>& varassignments);
 
 	// Propagator methods
-	int		getNbOfFormulas	() const;
-	rClause getExplanation	(const Lit& p);
-	// Event propagator methods
-	void 	finishParsing	(bool& present);
-	void 	notifyNewDecisionLevel();
-	void 	notifyBacktrack(int untillevel, const Lit& decision);
+	virtual void accept(ConstraintVisitor& visitor){ throw notYetImplemented("Accept"); }
+	rClause getExplanation(const Lit& p);
+	void notifyNewDecisionLevel();
+	void notifyBacktrack(int untillevel, const Lit& decision);
 	rClause notifypropagate();
-	rClause notifyFullAssignmentFound() {
-		return notifypropagate();
-	}
-	void 	printStatistics	() const;
-	void 	printState		() const;
 
 	// Search methods
-	rClause findNextModel	();
+	rClause findNextModel();
 
 private:
-	void 	checkHeadUniqueness() const;
+	void checkHeadUniqueness(ReifiedConstraint const * const c) const;
+	void add(ReifiedConstraint* c);
+	void add(NonReifiedConstraint* c);
+	void addConstraint(Constraint* c);
 
 	rClause propagateReificationConstraints();
 
 	rClause genFullConflictClause();
 
 	rClause notifySATsolverOfPropagation(const Lit& p);
-	rClause propagateFinal	(bool usesavedengine);
+	rClause propagateFinal(bool usesavedengine);
 
-	const CPSolverData& getData	() const { return *solverdata; }
-	CPSolverData& 		getData	() { return *solverdata; }
-	const CPScript&		getSpace() const;
-	CPScript&			getSpace();
-	TermIntVar 			convertToVar	(uint term) const;
-	vtiv				convertToVars	(const std::vector<uint>& terms) const;
+	const CPSolverData& getData() const {
+		return *solverdata;
+	}
+	CPSolverData& getData() {
+		return *solverdata;
+	}
+	const CPScript& getSpace() const;
+	CPScript& getSpace();
+	TermIntVar convertToVar(uint term) const;
+	vtiv convertToVars(const std::vector<uint>& terms) const;
 };
 
 }

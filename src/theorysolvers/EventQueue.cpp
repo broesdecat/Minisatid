@@ -105,10 +105,10 @@ void EventQueue::accept(Propagator* propagator, const Lit& litevent, PRIORITY pr
 
 // TODO turn lits into litwatches and add accepted flag?
 void EventQueue::accept(GenWatch* const watch) {
-// TODO commented this for lazy grounding, check issues with aggregates?
-//	if (not getPCSolver().isDecisionVar(var(watch->getPropLit()))) {
-//		getPCSolver().notifyDecisionVar(var(watch->getPropLit()));
-//	}
+// TODO commented following for lazy grounding, check issues with aggregates?
+	if (not getPCSolver().isDecisionVar(var(watch->getPropLit()))) {
+		getPCSolver().notifyDecisionVar(var(watch->getPropLit()));
+	}
 	bool addwatch = true;
 	if (getPCSolver().value(watch->getPropLit()) == l_True) { // FIXME should happen in all add methods?
 		// are propagated asap, but not in this method as that leads to correctness issues
@@ -219,7 +219,7 @@ void EventQueue::finishParsing() {
 			auto prop = finishparsing.front();
 			finishparsing.pop_front();
 			bool present = true;
-			//FIXME prop->finishParsing(present);
+			prop->finishParsing(present);
 			if (isUnsat()) {
 				break;
 			}
@@ -327,8 +327,8 @@ uint EventQueue::size(EVENT event) const {
 }
 
 rClause EventQueue::notifyFullAssignmentFound() {
-	//FIXME
-/*	rClause confl = nullPtrClause;
+	// FIXME
+	/*auto confl = nullPtrClause;
 	MAssert(getPCSolver().hasTotalModel());
 	auto props = event2propagator.at(EV_FULLASSIGNMENT);
 	// FIXME propagation can backtrack and invalidate total model, so should stop then!

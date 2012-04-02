@@ -37,10 +37,9 @@ public:
 
 	static const IntVarValue& getIntVar(const Lit& lit) { return var2intvarvalues.at(var(lit)); }
 
-	virtual void finishParsing(bool& present);
-	virtual void notifyBacktrack(int untillevel, const Lit& decision);
-	virtual void 	accept(ConstraintVisitor& visitor){}; // FIXME
+	virtual void accept(ConstraintVisitor& visitor){ throw notYetImplemented("Accept"); }
 	virtual rClause	notifypropagate();
+	virtual void notifyBacktrack(int untillevel, const Lit& decision);
 
 	int id() const { return id_; }
 	int origid() const { return origid_; }

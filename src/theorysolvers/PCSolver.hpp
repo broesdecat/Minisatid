@@ -77,6 +77,10 @@ public:
 		return optim!=Optim::NONE;
 	}
 
+	void setMonitor(InnerMonitor* m){
+		monitor = m;
+	}
+
 private:
 	//Search algorithms //TODO refactor into an interface "searchalgorithm" with subclasses satsolver and cpsolver?
 	SearchEngine* searchengine;
@@ -154,10 +158,6 @@ public:
 	void accept(Propagator* propagator, EVENT event);
 	void acceptBounds(IntView* var, Propagator* propagator);
 	void accept(Propagator* propagator, const Lit& lit, PRIORITY priority);
-	void acceptFinishParsing(Propagator* propagator, bool late);
-
-	void acceptForDecidable(Var v, Propagator* prop);
-	void notifyBecameDecidable(Var v);
 
 	Var newVar();
 	int newSetID();

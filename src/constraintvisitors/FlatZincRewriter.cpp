@@ -40,20 +40,24 @@ litlist getLiterals(const InnerWLSet& set){
  * 		count and alldiff (peter will have transformations for these)
  * 		recursively defined aggregates
  */
-
-FlatZincRewriter::FlatZincRewriter(LiteralPrinter* pcsolver, const SolverOption& modes) :
+template<typename Stream>
+FlatZincRewriter<Stream>::FlatZincRewriter(LiteralPrinter* pcsolver, const SolverOption& modes, Stream& stream) :
 		ConstraintVisitor(pcsolver),
-		state(SolverState::PARSING), _modes(modes), maxatomnumber(0), maxcpnumber(0), optim(MNMZ_NONE) {
+		state(SolverState::PARSING), _modes(modes), maxatomnumber(0), maxcpnumber(0), optim(MNMZ_NONE),
+		stream(stream){
 }
 
-FlatZincRewriter::~FlatZincRewriter() {
+template<typename Stream>
+FlatZincRewriter<Stream>::~FlatZincRewriter() {
 }
 
-std::ostream& FlatZincRewriter::getOutput() {
-	return std::cout;
+template<typename Stream>
+std::ostream& FlatZincRewriter<Stream>::getOutput() {
+	return stream;
 }
 
-const InnerWLSet& FlatZincRewriter::getSet(uint i) const {
+template<typename Stream>
+const InnerWLSet& FlatZincRewriter<Stream>::getSet(uint i) const {
 	if (sets.find(i)==sets.cend()) {
 		throw idpexception("One of the aggregate sets was not declared before use.");
 	}
@@ -99,14 +103,14 @@ void addDefAnnotation(int defID, ostream& stream) {
 	stream << "::inductivelydefined(" << defID << ")";
 }
 
-template<>
-void FlatZincRewriter::check(const Var& Var) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::check(const Var& Var) {
 	check(mkPosLit(Var));
 }
 
 //INVARIANT: for a negative Lit, a bool var representing the positive Lit and an equivalence constraint will ALWAYS be added
-template<>
-void FlatZincRewriter::check(const Lit& lit) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::check(const Lit& lit) {
 	int value = var(lit);
 	set<uint>& seenset = isPositive(lit)? atomsseen : negatomsseen;
 
@@ -136,7 +140,8 @@ void FlatZincRewriter::check(const Lit& lit) {
 }
 
 // Allows to add integer representation only once
-void FlatZincRewriter::createIntVar(const Lit& lit, bool def, int defID) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::createIntVar(const Lit& lit, bool def, int defID) {
 	int value = var(lit);
 	set<uint>& seenset = isPositive(lit)? litatomsseen:litnegatomsseen;
 
@@ -151,25 +156,27 @@ void FlatZincRewriter::createIntVar(const Lit& lit, bool def, int defID) {
 	}
 }
 
-const Weight& FlatZincRewriter::getMin(uint var) {
+template<typename Stream>
+const Weight& FlatZincRewriter<Stream>::getMin(uint var) {
 	assert(varbounds.find(var)!=varbounds.cend());
 	return (*varbounds.find(var)).second.first;
 }
 
-const Weight& FlatZincRewriter::getMax(uint var) {
+template<typename Stream>
+const Weight& FlatZincRewriter<Stream>::getMax(uint var) {
 	assert(varbounds.find(var)!=varbounds.cend());
 	return (*varbounds.find(var)).second.second;
 }
 
-template<>
-void FlatZincRewriter::check(const vector<Lit>& lits) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::check(const vector<Lit>& lits) {
 	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {
 		check(*i);
 	}
 }
 
-template<>
-void FlatZincRewriter::checkOnlyPos(const vector<Lit>& lits) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::checkOnlyPos(const vector<Lit>& lits) {
 	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {
 		check(var(*i));
 	}
@@ -211,11 +218,13 @@ void addIntList(const vector<T>& list, ostream& stream) {
 	}
 }
 
-void FlatZincRewriter::printRel(const string& left, const string& right, const Lit& head, const string& constr) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::printRel(const string& left, const string& right, const Lit& head, const string& constr) {
 	constraints << "constraint " << constr << "(" << left << ", " << right << ", " << getVarName(head) << ");\n";
 }
 
-void FlatZincRewriter::addBinRel(const string& left, const string& right, const Lit& head, EqType rel) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::addBinRel(const string& left, const string& right, const Lit& head, EqType rel) {
 	string constr;
 	Lit h = head;
 	switch (rel) {
@@ -246,19 +255,22 @@ void FlatZincRewriter::addBinRel(const string& left, const string& right, const 
 	printRel(left, right, h, constr);
 }
 
-void FlatZincRewriter::printSum(const weightlist& weights, const string& vars, Var head, string constr, string bound) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::printSum(const weightlist& weights, const string& vars, Var head, string constr, string bound) {
 	constraints << "constraint " << constr << "([";
 	addIntList(weights, constraints);
 	constraints << "],[" << vars << "], " << bound << ", " << getVarName(head) << ");\n";
 }
 
-Var FlatZincRewriter::createAtom() {
+template<typename Stream>
+Var FlatZincRewriter<Stream>::createAtom() {
 	Var lit = Var(maxatomnumber + 1);
 	check(lit);
 	return lit;
 }
 
-void FlatZincRewriter::addSum(const weightlist& weights, const vector<uint>& vars, Var head, EqType rel, const Weight& bound) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::addSum(const weightlist& weights, const vector<uint>& vars, Var head, EqType rel, const Weight& bound) {
 	stringstream ss;
 	bool begin = true;
 	for (auto i = vars.cbegin(); i < vars.cend(); ++i) {
@@ -271,7 +283,8 @@ void FlatZincRewriter::addSum(const weightlist& weights, const vector<uint>& var
 	addSum(weights, ss.str(), head, rel, bound);
 }
 
-void FlatZincRewriter::addSum(const weightlist& weights, const string& vars, Var head, EqType rel, const Weight& bound) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::addSum(const weightlist& weights, const string& vars, Var head, EqType rel, const Weight& bound) {
 	string constr = "";
 	Weight newbound = bound;
 	switch (rel) {
@@ -309,7 +322,8 @@ void FlatZincRewriter::addSum(const weightlist& weights, const string& vars, Var
 	printSum(weights, vars, head, constr, ss.str());
 }
 
-void FlatZincRewriter::addVarSum(const weightlist& weights, const vector<uint>& vars, Var head, EqType rel, uint rhsvar) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::addVarSum(const weightlist& weights, const vector<uint>& vars, Var head, EqType rel, uint rhsvar) {
 	vector<uint> newvars = vars;
 	newvars.push_back(rhsvar);
 
@@ -319,7 +333,8 @@ void FlatZincRewriter::addVarSum(const weightlist& weights, const vector<uint>& 
 	addSum(newweights, newvars, head, rel, 0);
 }
 
-void FlatZincRewriter::addVarSum(const weightlist& weights, const litlist& lits, Var head, EqType rel, uint rhsvar) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::addVarSum(const weightlist& weights, const litlist& lits, Var head, EqType rel, uint rhsvar) {
 	stringstream ss;
 	bool begin = true;
 	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {
@@ -337,7 +352,8 @@ void FlatZincRewriter::addVarSum(const weightlist& weights, const litlist& lits,
 	addSum(newweights, ss.str(), head, rel, 0);
 }
 
-void FlatZincRewriter::addSum(const InnerReifAggregate& agg, const InnerWLSet& set) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::addSum(const InnerReifAggregate& agg, const InnerWLSet& set) {
 	for (auto i = set.wls.cbegin(); i < set.wls.cend(); ++i) {
 		createIntVar(i->getLit(), agg.sem == AggSem::DEF, agg.defID);
 	}
@@ -358,7 +374,8 @@ void FlatZincRewriter::addSum(const InnerReifAggregate& agg, const InnerWLSet& s
 	constraints << "], " << bound << ", " << getVarName(h) << ");\n";
 }
 
-uint FlatZincRewriter::createCpVar(const Weight& min, const Weight& max) {
+template<typename Stream>
+uint FlatZincRewriter<Stream>::createCpVar(const Weight& min, const Weight& max) {
 	InnerIntVarRange newvar;
 	newvar.varID = maxcpnumber + 1;
 	newvar.minvalue = min;
@@ -367,7 +384,8 @@ uint FlatZincRewriter::createCpVar(const Weight& min, const Weight& max) {
 	return newvar.varID;
 }
 
-uint FlatZincRewriter::createCpVar(const std::vector<Weight>& values) {
+template<typename Stream>
+uint FlatZincRewriter<Stream>::createCpVar(const std::vector<Weight>& values) {
 	InnerIntVarEnum newvar;
 	newvar.varID = maxcpnumber + 1;
 	newvar.values = values;
@@ -375,7 +393,8 @@ uint FlatZincRewriter::createCpVar(const std::vector<Weight>& values) {
 	return newvar.varID;
 }
 
-uint FlatZincRewriter::addOptimization() {
+template<typename Stream>
+uint FlatZincRewriter<Stream>::addOptimization() {
 	uint optimvar = 0;
 	if (optim == MNMZ_AGG) {
 		auto mnm = savedagg;
@@ -419,8 +438,7 @@ uint FlatZincRewriter::addOptimization() {
 	} else if (optim == MNMZ_SUBSET) {
 		throw idpexception("Subset minimization is not supported by the FlatZinc language.");
 	} else {
-		assert(optim==MNMZ_VAR);
-		// TODO
+		throw notYetImplemented("Optimization of a CP variable is not yet implemented.\n");
 	}
 	return optimvar;
 }
@@ -436,7 +454,8 @@ uint FlatZincRewriter::addOptimization() {
  * vpn-1 = vpn-2 * vn'
  * P <=> vpn-1 op b
  */
-void FlatZincRewriter::addProduct(const InnerReifAggregate& agg, const InnerWLSet& set) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::addProduct(const InnerReifAggregate& agg, const InnerWLSet& set) {
 	bool begin = true;
 	Weight min = 1, max = 1;
 	uint prevvar = 0;
@@ -476,7 +495,8 @@ void FlatZincRewriter::addProduct(const InnerReifAggregate& agg, const InnerWLSe
 	addBinRel(getVarName(prevvar), ss.str(), mkPosLit(agg.head), agg.sign == AggSign::LB ? EqType::GEQ : EqType::LEQ);
 }
 
-void FlatZincRewriter::finishParsing() {
+template<typename Stream>
+void FlatZincRewriter<Stream>::finishParsing() {
 	state = SolverState::FINISHING;
 
 	for (auto i = savedbinrels.cbegin(); i < savedbinrels.cend(); ++i) {
@@ -508,7 +528,8 @@ void FlatZincRewriter::finishParsing() {
 
 // ADDITION METHODS
 
-void FlatZincRewriter::addIntegerVar(uint varID, const string& domainexpr, const Weight& min, const Weight& max) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::addIntegerVar(uint varID, const string& domainexpr, const Weight& min, const Weight& max) {
 	if (cpvarsseen.find(varID) != cpvarsseen.cend()) {
 		stringstream ss;
 		ss << "Double addition of integer variable " << varID << ".";
@@ -528,7 +549,8 @@ void FlatZincRewriter::addIntegerVar(uint varID, const string& domainexpr, const
 	}
 }
 
-void FlatZincRewriter::addEquiv(const InnerImplication& implication, CloseConstraint close) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::addEquiv(const InnerImplication& implication, CloseConstraint close) {
 	check(implication.literals);
 	check(implication.head);
 
@@ -580,7 +602,8 @@ void FlatZincRewriter::addEquiv(const InnerImplication& implication, CloseConstr
 	}
 }
 
-void FlatZincRewriter::add(const litlist& lits) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::add(const litlist& lits) {
 	litlist pos, neg;
 	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {
 		if(isPositive(*i)){
@@ -600,15 +623,18 @@ void FlatZincRewriter::add(const litlist& lits) {
 	constraints << "]);\n";
 }
 
-void FlatZincRewriter::visit(const InnerDisjunction& sentence) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::visit(const InnerDisjunction& sentence) {
 	add(sentence.literals);
 }
 
-void FlatZincRewriter::visit(const InnerImplication& implic) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::visit(const InnerImplication& implic) {
 	addEquiv(implic, CLOSE);
 }
 
-void FlatZincRewriter::visit(const InnerRule& rule) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::visit(const InnerRule& rule) {
 	checkOnlyPos(rule.body);
 	check(rule.head);
 
@@ -664,24 +690,29 @@ void FlatZincRewriter::visit(const InnerRule& rule) {
 	constraints << ");\n";
 }
 
-void FlatZincRewriter::visit(const InnerWLSet& set) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::visit(const InnerWLSet& set) {
 	check(getLiterals(set));
 	sets.insert({set.setID, set});
 }
 
-void FlatZincRewriter::visit(const InnerAggregate& origagg) {
-	// TODO
+template<typename Stream>
+void FlatZincRewriter<Stream>::visit(const InnerAggregate& origagg) {
+	throw notYetImplemented("Non-reif aggregate addition.\n");
 }
 
-void FlatZincRewriter::visit(const InnerForcedChoices& origagg) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::visit(const InnerForcedChoices& origagg) {
 	throw idpexception("Forcedchoices are unsupported by flatzinc.\n");
 }
 
-void FlatZincRewriter::visit(const InnerSymmetry& origagg) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::visit(const InnerSymmetry& origagg) {
 	throw idpexception("Symmetries are unsupported by flatzinc.\n"); // TODO maybe they are?
 }
 
-void FlatZincRewriter::visit(const InnerReifAggregate& origagg) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::visit(const InnerReifAggregate& origagg) {
 	check(origagg.head);
 
 	if (origagg.type == AggType::PROD) {
@@ -724,33 +755,38 @@ void FlatZincRewriter::visit(const InnerReifAggregate& origagg) {
 	}
 }
 
-void FlatZincRewriter::visit(const InnerMinimizeSubset& sentence) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::visit(const InnerMinimizeSubset& sentence) {
 	assert(isParsing());
 	optim = MNMZ_SUBSET;
 	savedsubsetmnmz = sentence;
 	check(sentence.literals);
 }
 
-void FlatZincRewriter::visit(const InnerMinimizeOrderedList& sentence) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::visit(const InnerMinimizeOrderedList& sentence) {
 	assert(isParsing());
 	optim = MNMZ_LIST;
 	check(sentence.literals);
 	savedlistmnmz = sentence;
 }
 
-void FlatZincRewriter::visit(const InnerMinimizeVar& mnm) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::visit(const InnerMinimizeVar& mnm) {
 	assert(isParsing());
 	savedvar = mnm;
 	optim = MNMZ_VAR;
 }
 
-void FlatZincRewriter::visit(const InnerMinimizeAgg& mnm) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::visit(const InnerMinimizeAgg& mnm) {
 	assert(isParsing());
 	savedagg = mnm;
 	optim = MNMZ_AGG;
 }
 
-void FlatZincRewriter::visit(const InnerIntVarEnum& var) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::visit(const InnerIntVarEnum& var) {
 	stringstream ss;
 	ss << "{";
 	bool begin = true;
@@ -776,13 +812,15 @@ void FlatZincRewriter::visit(const InnerIntVarEnum& var) {
 	addIntegerVar(var.varID, ss.str(), min, max);
 }
 
-void FlatZincRewriter::visit(const InnerIntVarRange& var) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::visit(const InnerIntVarRange& var) {
 	stringstream ss;
 	ss << var.minvalue << ".." << var.maxvalue;
 	addIntegerVar(var.varID, ss.str(), var.minvalue, var.maxvalue);
 }
 
-void FlatZincRewriter::visit(const InnerCPBinaryRel& rel) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::visit(const InnerCPBinaryRel& rel) {
 	assert(isParsing());
 	check(rel.head);
 
@@ -796,7 +834,8 @@ void FlatZincRewriter::visit(const InnerCPBinaryRel& rel) {
 	savedbinrels.push_back(binrel);
 }
 
-void FlatZincRewriter::visit(const InnerCPBinaryRelVar& rel) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::visit(const InnerCPBinaryRelVar& rel) {
 	assert(isParsing());
 	check(rel.head);
 
@@ -808,16 +847,19 @@ void FlatZincRewriter::visit(const InnerCPBinaryRelVar& rel) {
 	savedbinrels.push_back(binrel);
 }
 
-void FlatZincRewriter::visit(const InnerCPSumWeighted& sum) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::visit(const InnerCPSumWeighted& sum) {
 	assert(isParsing());
 	check(sum.head);
 	savedcpsums.push_back(sum);
 }
 
-void FlatZincRewriter::visit(const InnerCPCount&) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::visit(const InnerCPCount&) {
 	throw idpexception("Count constraints are not yet supported by the flatzinc backend.");
 }
 
-void FlatZincRewriter::visit(const InnerCPAllDiff&) {
+template<typename Stream>
+void FlatZincRewriter<Stream>::visit(const InnerCPAllDiff&) {
 	throw idpexception("Alldifferent is not yet supported by the flatzinc backend.");
 }

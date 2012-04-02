@@ -51,6 +51,10 @@ namespace MinisatID{
 		virtual ~Constraint(){}
 	};
 
+	class NonReifiedConstraint: public Constraint{
+
+	};
+
 	// Represents ATOM <=> ConstraintReifiedBy(BoolVars[var])
 	class ReifiedConstraint: public Constraint{
 	private:
@@ -92,7 +96,7 @@ namespace MinisatID{
 		virtual ~SumConstraint(){}
 	};
 
-	class CountConstraint: public Constraint{
+	class CountConstraint: public NonReifiedConstraint{
 	private:
 		std::vector<TermIntVar> set;
 		Gecode::IntRelType rel;
@@ -123,7 +127,7 @@ namespace MinisatID{
 		virtual ~BinArithConstraint(){}
 	};
 
-	class DistinctConstraint: public Constraint{
+	class DistinctConstraint: public NonReifiedConstraint{
 	private:
 		Gecode::IntVarArgs set;
 	public:

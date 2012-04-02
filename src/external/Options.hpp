@@ -30,7 +30,7 @@ enum class Polarity {
 
 enum class InputFormat 	{ FODOT, ASP, OPB};
 enum class OutputFormat { FODOT, ASP, PLAIN, FZ, OPB, DEFAULT };
-enum class Inference	{ PROPAGATE, MODELEXPAND, PRINTTHEORY };
+enum class Inference	{ PROPAGATE, MODELEXPAND, PRINTTHEORY, PRINTGRAPH };
 
 // General options for all inferences
 class SolverOption {

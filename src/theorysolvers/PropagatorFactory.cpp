@@ -371,7 +371,7 @@ void PropagatorFactory::add(const InnerMinimizeVar& formula) {
 
 	guaranteeAtRootLevel();
 
-	throw idpexception("MinimizeVar is not handled at the moment"); // FIXME
+	throw notYetImplemented("MinimizeVar is not handled at the moment");
 	// TODO check var existence and add optim intvar to pcsolver
 }
 

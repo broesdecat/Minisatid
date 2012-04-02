@@ -31,7 +31,7 @@ public:
 	}
 };
 
-idpexception notYetImplemented();
+idpexception notYetImplemented(const std::string& mess);
 
 }
 

@@ -24,13 +24,8 @@ IntVar::IntVar(PCSolver* solver, int origid, int min, int max)
 	getPCSolver().accept(this, EV_BACKTRACK);
 	getPCSolver().accept(this, EV_PROPAGATE);
 	getPCSolver().acceptFinishParsing(this, false);
-}
 
-void IntVar::finishParsing(bool& present){
-	present = true;
-	offset = engine().nVars();
 	for(int i=origMinValue(); i<origMaxValue()+1; ++i){
-		// TODO equalities moeten mss geen decision vars zijn?
 		Var var = engine().newVar();
 		equalities.push_back(var);
 		var2intvarvalues.insert(std::pair<int, IntVarValue>(var, IntVarValue(this, true, i+minValue())));

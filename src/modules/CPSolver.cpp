@@ -59,11 +59,8 @@ CPSolver::CPSolver(PCSolver * solver):
 		Propagator(solver, "CP-solver"), solverdata(new CPSolverData()),
 		searchedandnobacktrack(false),
 		savedsearchengine(NULL){
-
 	getPCSolver().accept(this, EV_BACKTRACK);
 	getPCSolver().accept(this, EV_DECISIONLEVEL);
-	// FIXME getPCSolver().accept(this, EV_FULLASSIGNMENT);
-	getPCSolver().acceptFinishParsing(this, false);
 }
 
 CPSolver::~CPSolver() {
@@ -100,10 +97,8 @@ bool CPSolver::add(const InnerIntVarRange& form){
 
 bool CPSolver::add(const InnerCPBinaryRel& form){
 	assert(!isInitialized());
-	getPCSolver().accept(this, mkNegLit(form.head), SLOW);
-	getPCSolver().accept(this, not mkNegLit(form.head), SLOW);
 	TermIntVar lhs(convertToVar(form.varID));
-	getData().addReifConstraint(new BinArithConstraint(getSpace(), lhs, toRelType(form.rel), form.bound, form.head));
+	add(new BinArithConstraint(getSpace(), lhs, toRelType(form.rel), form.bound, form.head));
 	return true;
 }
 
@@ -111,18 +106,14 @@ bool CPSolver::add(const InnerCPBinaryRelVar& form){
 	assert(!isInitialized());
 	TermIntVar lhs(convertToVar(form.lhsvarID));
 	TermIntVar rhs(convertToVar(form.rhsvarID));
-	getPCSolver().accept(this, mkNegLit(form.head), SLOW);
-	getPCSolver().accept(this, not mkNegLit(form.head), SLOW);
-	getData().addReifConstraint(new BinArithConstraint(getSpace(), lhs, toRelType(form.rel), rhs, form.head));
+	add(new BinArithConstraint(getSpace(), lhs, toRelType(form.rel), rhs, form.head));
 	return true;
 }
 
 bool CPSolver::add(const InnerCPSumWeighted& form){
 	assert(!isInitialized());
 	vector<TermIntVar> set(convertToVars(form.varIDs));
-	getPCSolver().accept(this, mkNegLit(form.head), SLOW);
-	getPCSolver().accept(this, not mkNegLit(form.head), SLOW);
-	getData().addReifConstraint(new SumConstraint(getSpace(), set, form.weights, toRelType(form.rel), form.bound, form.head));
+	add(new SumConstraint(getSpace(), set, form.weights, toRelType(form.rel), form.bound, form.head));
 	return true;
 }
 
@@ -130,15 +121,61 @@ bool CPSolver::add(const InnerCPCount& form){
 	assert(!isInitialized());
 	vector<TermIntVar> set(convertToVars(form.varIDs));
 	TermIntVar rhs(convertToVar(form.rhsvar));
-	getData().addNonReifConstraint(new CountConstraint(getSpace(), set, toRelType(form.rel), form.eqbound, rhs));
+	add(new CountConstraint(getSpace(), set, toRelType(form.rel), form.eqbound, rhs));
 	return true;
 }
 
 bool CPSolver::add(const InnerCPAllDiff& form){
 	assert(!isInitialized());
 	vector<TermIntVar> set(convertToVars(form.varIDs));
-	getData().addNonReifConstraint(new DistinctConstraint(getSpace(), set));
+	add(new DistinctConstraint(getSpace(), set));
 	return true;
+}
+
+void CPSolver::checkHeadUniqueness(ReifiedConstraint const * const c) const{
+	if(heads.find(c->getHead())!=heads.cend()){
+		stringstream ss;
+		ss <<"Constraint reification atoms should be unique, but " <<print(c->getHead(), getPCSolver()) <<" is shared by at least two constraints.\n";
+		throw idpexception(ss.str());
+	}
+	heads.insert(c->getHead());
+}
+
+void CPSolver::add(ReifiedConstraint* c){
+	checkHeadUniqueness(c);
+	getPCSolver().accept(this, mkNegLit(c->getHead()), SLOW);
+	getPCSolver().accept(this, not mkNegLit(c->getHead()), SLOW);
+	getData().addReifConstraint(c);
+	addConstraint(c);
+}
+
+void CPSolver::add(NonReifiedConstraint* c){
+	getData().addNonReifConstraint(c);
+	addConstraint(c);
+}
+
+void CPSolver::addConstraint(Constraint* c){
+	// Propagate until fixpoint
+	StatusStatistics stats;
+	SpaceStatus status = getSpace().status(stats);
+
+	if(status==SS_FAILED){
+		getPCSolver().notifyUnsat();
+	}
+
+	// Propagate all assigned reification atoms.
+	if(not getPCSolver().isUnsat() && propagateReificationConstraints()!=nullPtrClause){
+		getPCSolver().notifyUnsat();
+	}
+
+	notifyInitialized();
+
+	for(auto i=getData().getReifConstraints().cbegin(); i<getData().getReifConstraints().cend(); ++i){
+		getPCSolver().accept(this, mkPosLit((*i)->getHead()), PRIORITY::SLOW);
+		getPCSolver().accept(this, mkNegLit((*i)->getHead()), PRIORITY::SLOW);
+	}
+
+	return;
 }
 
 // SOLVER METHODS
@@ -183,52 +220,6 @@ rClause CPSolver::notifySATsolverOfPropagation(const Lit& p) {
 		//NOOP
 	}
 	return nullPtrClause;
-}
-
-void CPSolver::checkHeadUniqueness() const{
-	set<Var> heads;
-	for(auto i=getData().getReifConstraints().cbegin(); i<getData().getReifConstraints().cend(); i++){
-		if(heads.find((*i)->getHead())!=heads.cend()){
-			stringstream ss;
-			ss <<"Constraint reification atoms should be unique, but " <<print((*i)->getHead(), getPCSolver()) <<" is shared by at least two constraints.\n";
-			throw idpexception(ss.str());
-		}
-		heads.insert((*i)->getHead());
-	}
-}
-
-void CPSolver::finishParsing(bool& present){
-	assert(isParsing() && present);
-	notifyParsed();
-
-	if(getData().getNonReifConstraints().size() + getData().getReifConstraints().size() + getData().getTerms().size() == 0){
-		present = false;
-		return;
-	}
-
-	checkHeadUniqueness();
-
-	// Propagate until fixpoint
-	StatusStatistics stats;
-	SpaceStatus status = getSpace().status(stats);
-
-	if(status==SS_FAILED){
-		getPCSolver().notifyUnsat();
-	}
-
-	// Propagate all assigned reification atoms.
-	if(not getPCSolver().isUnsat() && propagateReificationConstraints()!=nullPtrClause){
-		getPCSolver().notifyUnsat();
-	}
-
-	notifyInitialized();
-
-	for(auto i=getData().getReifConstraints().cbegin(); i<getData().getReifConstraints().cend(); ++i){
-		getPCSolver().accept(this, mkPosLit((*i)->getHead()), PRIORITY::SLOW);
-		getPCSolver().accept(this, mkNegLit((*i)->getHead()), PRIORITY::SLOW);
-	}
-
-	return;
 }
 
 void CPSolver::notifyNewDecisionLevel(){

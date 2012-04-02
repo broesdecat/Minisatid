@@ -124,16 +124,25 @@ int main(int argc, char** argv) {
 				up.execute();
 				up.writeOutEntailedLiterals();
 			} else if (modes.inference == Inference::PRINTTHEORY) {
-				Transform* t = NULL;
 				auto tp = TheoryPrinting::ECNF;
-				if(modes.transformat==OutputFormat::FZ){
-					tp = TheoryPrinting::FZ; // TODO handle cleanly and other cases: ECNF, CNF, ECNFGRAPH, HUMAN, ...
+				switch(modes.transformat){
+				case OutputFormat::FZ:
+					tp = TheoryPrinting::FZ;
+					break;
+				case OutputFormat::PLAIN:
+					tp = TheoryPrinting::HUMAN;
+					break;
+				case OutputFormat::FODOT:
+					tp = TheoryPrinting::ECNF;
+					break;
+				default:
+					throw notYetImplemented("Cannot print the theory in ASP.\n");
 				}
-				if(modes.outputfile==""){
-					t = new Transform(d, tp, cout);
-				}else{
-					t = new Transform(d, tp, modes.outputfile);
-				}
+				auto t = new Transform(d, tp);
+				t->execute();
+				delete(t);
+			} else if (modes.inference == Inference::PRINTGRAPH) {
+				auto t = new Transform(d, TheoryPrinting::ECNFGRAPH);
 				t->execute();
 				delete(t);
 			}
@@ -170,8 +179,8 @@ int main(int argc, char** argv) {
 
 	if (d != NULL) {
 		if (d->getOptions().verbosity > 1) {
-			auto transform = Transform(d, TheoryPrinting::STATS, clog);
-			transform.execute();
+			// TODO auto transform = Transform(d, TheoryPrinting::STATS, clog); // Is NOT a constraintvisitor, but a propagatorvisitor!
+			// TODO transform.execute();
 		}
 		delete (d);
 	}

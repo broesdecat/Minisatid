@@ -8,6 +8,7 @@
  */
 #include "utils/Utils.hpp"
 #include <string>
+#include <sstream>
 
 using namespace std;
 using namespace MinisatID;
@@ -18,4 +19,10 @@ bool MinisatID::compareWLByLits(const WL& one, const WL& two) {
 
 bool MinisatID::compareWLByAbsWeights(const WL& one, const WL& two) {
 	return abs(one.getWeight()) < abs(two.getWeight());
+}
+
+idpexception MinisatID::notYetImplemented(const std::string& mess){
+	stringstream ss;
+	ss <<"Not yet implemented: " <<mess <<"\n";
+	return idpexception(ss.str());
 }

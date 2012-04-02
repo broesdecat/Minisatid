@@ -31,6 +31,7 @@ using Minisat::vec;
 //Has to be value copy of modes!
 PCSolver::PCSolver(SolverOption modes) :
 		_modes(modes), searchengine(NULL),
+		monitor(NULL),
 #ifdef CPSUPPORT //TODO create dummy implemententation of CPSolver to remove all the ifdefs
 				cpsolver(NULL),
 #endif
@@ -225,18 +226,6 @@ void PCSolver::accept(Propagator* propagator, const Lit& lit, PRIORITY priority)
 	getEventQueue().accept(propagator, lit, priority);
 }
 
-void PCSolver::acceptFinishParsing(Propagator* propagator, bool late){
-	getEventQueue().acceptFinishParsing(propagator, late);
-}
-
-void PCSolver::acceptForDecidable(Var v, Propagator* prop){
-	getEventQueue().acceptForDecidable(v, prop);
-}
-void PCSolver::notifyBecameDecidable(Var v){
-	MAssert((uint64_t)v<nVars());
-	getEventQueue().notifyBecameDecidable(v);
-}
-
 void PCSolver::preventPropagation(){
 	getEventQueue().preventPropagation();
 }
@@ -356,7 +345,7 @@ void PCSolver::finishParsing() {
 		return;
 	}
 
-	getEventQueue().finishParsing();
+	// FIXME getEventQueue().finishParsing();
 	if (modes().useaggheur) {
 		getSATSolver()->notifyCustomHeur();
 	}
@@ -492,11 +481,11 @@ void PCSolver::accept(ConstraintVisitor& visitor){
 }
 
 std::string PCSolver::printLiteral(const Lit& lit) const{
-	return ""; // FIXME!
+	throw notYetImplemented("Printing literal from PCSolver"); // FIXME make space a printer
 }
 
 // @pre: decision level = 0
-// TODO
+// FIXME add CNF printing too!
 /*void PCSolver::printTheory(ostream& stream){
 	stringstream ss;
 	std::set<Var> printedvars;

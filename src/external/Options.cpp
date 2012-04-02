@@ -42,7 +42,8 @@ SolverOption::SolverOption():
 		aggclausesaving(2),
 		selectOneFromUFS(false),
 		tocnf(false),
-		watchesratio(0.75),
+#warning Watches are disabled!
+		watchesratio(0), // FIXME enable again
 		useaggheur(false),
 		primesfile(""),
 		rand_var_freq(getDefaultRandfreq()),

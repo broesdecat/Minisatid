@@ -39,7 +39,8 @@ struct BinRel{
 	BinRel():head(Var(0)){}
 };
 
-class FlatZincRewriter: public ConstraintVisitor{
+template<typename Stream>
+class FlatZincRewriter: public ConstraintAdditionMonitor<Stream>{
 private:
 	SolverState 		state;
 	SolverOption		_modes;
@@ -63,8 +64,10 @@ private:
 	std::vector<BinRel> savedbinrels;
 	std::vector<InnerCPSumWeighted> savedcpsums;
 
+	Stream& stream;
+
 public:
-	FlatZincRewriter(LiteralPrinter* pcsolver, const SolverOption& modes);
+	FlatZincRewriter(LiteralPrinter* pcsolver, const SolverOption& modes, Stream& stream);
 	virtual ~FlatZincRewriter();
 
 	const SolverOption& modes()	const	{ return _modes; }
@@ -116,10 +119,11 @@ protected:
 
 	void add(const litlist& lits);
 
-	template<typename T>
-	void 	check			(const T& obj);
-	template<typename T>
-	void 	checkOnlyPos	(const T& obj);
+	void check(const Var& Var);
+	void check(const Lit& lit);
+	void check(const std::vector<Lit>& lits);
+	void checkOnlyPos(const std::vector<Lit>& lits);
+	void check(const std::vector<std::vector<Lit> >& lits);
 
 	Var createAtom();
 	uint createCpVar(const Weight& min, const Weight& max);
@@ -144,12 +148,6 @@ protected:
 
 	uint addOptimization();
 };
-
-template<> void FlatZincRewriter::check(const Var& Var);
-template<> void FlatZincRewriter::check(const Lit& lit);
-template<> void FlatZincRewriter::check(const std::vector<Lit>& lits);
-template<> void FlatZincRewriter::checkOnlyPos(const std::vector<Lit>& lits);
-template<> void FlatZincRewriter::check(const std::vector<std::vector<Lit> >& lits);
 
 }
 

@@ -23,14 +23,31 @@ typedef std::vector<Lit> litlist;
 
 typedef cb::Callback1<std::string, int> callbackprinting; // TODO wrap in translator (goes back to grounder)
 
+class InnerMonitor {
+private:
+	Remapper* remapper;
+	std::vector<PropAndBackMonitor*> monitors;
+public:
+	InnerMonitor(Remapper* r)
+			: remapper(r) {
+	}
+	void addMonitor(PropAndBackMonitor* monitor) {
+		monitors.push_back(monitor);
+	}
+	void notifyMonitor(const Lit& propagation, int decisionlevel);
+	void notifyMonitor(int untillevel);
+};
+
 class Space{
 private:
 	SolverOption basicoptions;
 	Remapper* remapper;
 	PCSolver* engine;
+	InnerMonitor* monitor;
 
 public:
 	Space(SolverOption options);
+	~Space();
 	Remapper& getRemapper() { return *remapper; }
 	PCSolver* getEngine() { return engine; }
 	const SolverOption& getOptions() const { return basicoptions; }
@@ -39,7 +56,7 @@ public:
 
 	// Printing, might move?
 private:
-	bool hasprintcallback;
+	bool hasprintcallback; // FIXME make all of these a Printer!
 	callbackprinting _cb;
 	Translator* _translator;
 public:
@@ -49,14 +66,15 @@ public:
 	void setTranslator(Translator* translator){
 		_translator = translator;
 	}
+	Translator* getTranslator(){
+		return _translator;
+	}
 	void setCallBackTranslator(callbackprinting cb){
 		hasprintcallback = true;
 		_cb = cb;
 	}
 
-	void addMonitor(PropAndBackMonitor* monitor){
-		// FIXME
-	}
+	void addMonitor(PropAndBackMonitor* monitor);
 
 	bool isOptimizationProblem() const;
 };

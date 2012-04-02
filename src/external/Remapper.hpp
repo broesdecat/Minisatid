@@ -42,7 +42,7 @@ public:
 	}
 
 	Var getNewVar(){
-		return maxnumber++; // FIXME check invariants on the data structures!
+		return maxnumber++;
 	}
 
 	bool wasInput(Var var) const{

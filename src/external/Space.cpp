@@ -31,9 +31,17 @@ string Space::print(const litlist& literals) const {
 	return ss.str();
 }
 
-// TODO complete
-Space::Space(SolverOption modes): basicoptions(modes){
+Space::Space(SolverOption modes): basicoptions(modes), remapper(new Remapper()), engine(new PCSolver(modes)), monitor(new InnerMonitor(remapper)){
+	getEngine()->setMonitor(monitor);
+}
+Space::~Space(){
+	delete(remapper);
+	delete(engine);
+	delete(monitor);
+}
 
+void Space::addMonitor(PropAndBackMonitor* m){
+	monitor->addMonitor(m);
 }
 
 bool Space::isCertainlyUnsat() const{
