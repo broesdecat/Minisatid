@@ -213,7 +213,7 @@ void ECNFPrinter::notifyadded(const InnerIntVarEnum& var){
 
 template<>
 void ECNFPrinter::notifyadded(const InnerIntVarRange& var){
-	ss <<"Added integer variable var" <<var.varID <<" = [ "<<var.minvalue <<".." <<var.maxvalue <<"]\n";
+	ss <<"Added integer variable var" <<var.varID <<" = [ "<<var.minvalue <<".." <<var.maxvalue <<" ]\n";
 }
 
 template<>
@@ -245,17 +245,17 @@ void ECNFPrinter::notifyadded(const InnerCPBinaryRelVar& rel){
 
 template<>
 void ECNFPrinter::notifyadded(const InnerCPSumWeighted& sum){
-	ss <<"Added sum constraint " <<sum.head <<" <=> sum({ ";
+	ss << "Added sum constraint " << sum.head << " <=> sum({ ";
 	vector<int>::size_type count = 0;
 	vector<uint>::const_iterator litit=sum.varIDs.cbegin();
 	vector<Weight>::const_iterator weightit=sum.weights.cbegin();
 	for(; litit<sum.varIDs.cend(); ++count, ++litit, ++weightit){
-		ss <<"var" <<*litit <<"*" <<*weightit;
+		ss << "var" << *litit << "*" << *weightit;
 		if(count<sum.varIDs.size()-1){
-			ss <<", ";
+			ss << ", ";
 		}
 	}
-	ss <<sum.rel <<" " <<sum.bound <<"\n";
+	ss << " }) " << sum.rel << " " << sum.bound << "\n";
 }
 
 void ECNFPrinter::endPrinting(ostream& stream){
