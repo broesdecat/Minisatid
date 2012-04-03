@@ -447,15 +447,6 @@ void PropagatorFactory::add(const InnerCPAllDiff& obj) {
 	addCP(obj);
 }
 
-void PropagatorFactory::add(InnerDisjunction& formula, rClause& newclause) {
-	notifyMonitorsOfAdding(formula);
-	addVars(formula.literals);
-
-	vec<Lit> lits;
-	toVec(formula.literals, lits);
-	SATStorage::getStorage()->addBinaryOrLargerClause(lits, newclause);
-}
-
 void PropagatorFactory::guaranteeAtRootLevel(){
 	if(getEngine().getCurrentDecisionLevel()>0){
 		getEngine().backtrackTo(0);

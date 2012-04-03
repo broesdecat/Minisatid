@@ -44,7 +44,6 @@ SolverOption::SolverOption():
 		tocnf(false),
 #warning Watches are disabled!
 		watchesratio(0), // FIXME enable again
-		useaggheur(false),
 		primesfile(""),
 		rand_var_freq(getDefaultRandfreq()),
 		var_decay(getDefaultDecay()),
@@ -98,7 +97,6 @@ void SolverOption::print(std::ostream& so) const{
 	so << "aggclausesaving: " 	<<aggclausesaving <<"\n";
 	so << "tocnf: " 			<<tocnf <<"\n";
 	so << "watchedratio: " 		<<watchesratio <<"\n";
-	so << "using aggregate heuristic: " <<(useaggheur?"yes":"no") <<"\n";
 	so << "primesfile: " 		<<getPrimesFile() <<"\n";
 	//so << "remap: " 			<<remap <<"\n";
 	so << "rand_var_freq: " 	<<rand_var_freq <<"\n";

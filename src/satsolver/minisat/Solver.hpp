@@ -51,22 +51,32 @@ namespace Minisat {
 class Solver: public MinisatID::Propagator{
 public:
 /*AB*/
+    double    random_var_freq;
+    double    random_seed;
+    int       verbosity;
+    double    var_decay;
+    bool      rnd_pol;            // Use random polarities for branching heuristics.
+
 	bool		handleConflict(CRef conflict);
 	void 		setInitialPolarity(Var  var, bool pol) { polarity[var] = pol; }
-	std::vector<Lit> rootunitlits;	// basic reverse trail for unit clauses
-	// Symmetry code
-	bool		isDecision			(const Lit& lit) const { return (getLevel(var(lit))!=0 && lit==trail[trail_lim[getLevel(var(lit))-1]]); }
-	CRef		reason				(Var x) const;
 
+	// Symmetry code
+	//bool		isDecision			(const Lit& lit) const { return (getLevel(var(lit))!=0 && lit==trail[trail_lim[getLevel(var(lit))-1]]); }
+private:
+	bool needsimplify;
+	std::vector<Lit> rootunitlits;	// basic reverse trail for unit clauses
+	CRef		reason				(Var x) const;
+	void     	removeClause     	(CRef cr);					// Detach and free a clause.
+	void		checkedEnqueue		(Lit p, CRef from = CRef_Undef); // Enqueue a literal if it is not already true
+public:
 	bool		isUnsat				() const { return not ok; }
 	void 		notifyUnsat			() { ok = false; }
 	int			printECNF			(std::ostream& stream, std::set<Var>& printedvars); // Returns the number of clauses that were added
 	void		saveState			();
 	void		resetState			();
 	void     	printClause			(const CRef c) 	const;
-	bool    	addBinaryOrLargerClause	(vec<Lit>& ps, CRef& newclause);
 	void		addLearnedClause	(CRef c);					// don't check anything, just add it to the clauses and bump activity
-	void     	removeClause     	(CRef cr);					// Detach and free a clause.
+
 	CRef		makeClause			(const vec<Lit>& lits, bool b){ return ca.alloc(lits, b); }
 	CRef	 	getClause			(int i) 		const 	{ return clauses[i]; }
 	int			nbClauses			() 				const 	{ return clauses.size(); }
@@ -75,7 +85,6 @@ public:
 
 	void		cancelUntil			(int level);				// Backtrack until a certain level.
 	void		uncheckedEnqueue	(Lit p, CRef from = CRef_Undef); // Enqueue a literal. Assumes value of literal is undefined
-	void		checkedEnqueue		(Lit p, CRef from = CRef_Undef); // Enqueue a literal if it is not already true
 	int 		getLevel			(int var)		const;
 	std::vector<Lit> getDecisions	()				const;
 	int			decisionLevel		()				const; 		// Gives the current decisionlevel.
@@ -85,16 +94,12 @@ public:
 	int 		getStartLastLevel	()				const 	{ return trail_lim.size()==0?0:trail_lim.last(); }
 	void     	varBumpActivity		(Var v);					// Increase a variable with the current 'bump' value.
 	void 		varReduceActivity	(Var v);
-	bool 		isDecision			(Lit& l) 		const	{ return (getLevel(var(l))!=0 && l==trail[trail_lim[getLevel(var(l))-1]]); }
+//	bool 		isDecision			(Lit& l) 		const	{ return (getLevel(var(l))!=0 && l==trail[trail_lim[getLevel(var(l))-1]]); }
 
 	uint64_t    nbVars				()				const;					// The current number of variables.
 
-	void		addForcedChoices	(const vec<Lit>&)	 	{ std::clog <<"Not supported by solver!\n"; exit(-1);  }
-	void		disableHeur			() 						{ std::clog <<"Not supported by solver!\n"; exit(-1); }
 	bool     	isDecisionVar		(Var v) 		const 	{ MAssert(v<decision.size());return decision[v]; }
 	void    	setDecidable	 	(Var v, bool decide);
-
-	void		notifyCustomHeur	() 						{ usecustomheur = true; }
 
 	bool		isAlreadyUsedInAnalyze(const Lit& lit) const;
 
@@ -102,14 +107,14 @@ public:
 	// TODO split up in search and propagator
 	virtual void 	accept(MinisatID::ConstraintVisitor& visitor){}; // FIXME
 	CRef 		getExplanation		(const Lit& l) 			{ return reason(var(l));}
-	void 		finishParsing		(bool& present);
 	void 		notifyBacktrack		(int untillevel, const Lit& decision) { Propagator::notifyBacktrack(untillevel, decision); }
 	CRef 		notifypropagate		();
+
 	void 		printStatistics		() 				const;
-	int			getNbOfFormulas		() 				const 	{ return nClauses(); }
+	//int			getNbOfFormulas		() 				const 	{ return nClauses(); }
 
 	virtual void notifyNewDecisionLevel(){}
-	virtual CRef notifyFullAssignmentFound(){MAssert(false); return CRef_Undef; }
+	virtual CRef notifyFullAssignmentFound(){ throw MinisatID::idpexception("Invalid operation on propagator."); }
 
 	bool isDecided(Var v){
 		auto level = getLevel(v);
@@ -118,7 +123,6 @@ public:
 		}
 		return var(trail[trail_lim[getLevel(v)]])==v;
 	}
-/*AE*/
 
     // Constructor/Destructor:
     //
@@ -129,34 +133,17 @@ public:
     //
     Var     newVar    (lbool upol = l_Undef, bool dvar = true); // Add a new variable with parameters specifying variable mode.
 
-    bool    addClause (const vec<Lit>& ps);                     // Add a clause to the solver. 
-    bool    addEmptyClause();                                   // Add the empty clause, making the solver contradictory.
-    bool    addClause (Lit p);                                  // Add a unit clause to the solver. 
-    bool    addClause (Lit p, Lit q);                           // Add a binary clause to the solver. 
-    bool    addClause (Lit p, Lit q, Lit r);                    // Add a ternary clause to the solver. 
+    bool    addClause (const vec<Lit>& ps);                     // Add a clause to the solver.
+    lbool    solve        (const litlist& assumps/*AB*/, bool nosearch=false/*AE*/); // Search for a model that respects a given set of assumptions.
+
+private:
     bool    addClause_(vec<Lit>& ps);							// Add a clause to the solver without making superflous internal copy. Will
                                                                 // change the passed vector 'ps'.
-
-    // Solving:
-    //
     bool    simplify     ();                        // Removes already satisfied clauses.
-    lbool    solve        (const litlist& assumps/*AB*/, bool nosearch=false/*AE*/); // Search for a model that respects a given set of assumptions.
     bool    okay         () const;                  // FALSE means solver is in a conflicting state
 
-    void    toDimacs     (FILE* f, const vec<Lit>& assumps);            // Write CNF to file in DIMACS-format.
-    void    toDimacs     (const char *file, const vec<Lit>& assumps);
-    void    toDimacs     (FILE* f, Clause& c, vec<Var>& map, Var& max);
-
-    // Convenience versions of 'toDimacs()':
-    void    toDimacs     (const char* file);
-    void    toDimacs     (const char* file, Lit p);
-    void    toDimacs     (const char* file, Lit p, Lit q);
-    void    toDimacs     (const char* file, Lit p, Lit q, Lit r);
-    
-    // Variable mode:
-    // 
-    void    setPolarity    (Var v, lbool b); // Declare which polarity the decision heuristic should use for a variable. Requires mode 'polarity_user'.
-
+    //void    setPolarity    (Var v, lbool b); // Declare which polarity the decision heuristic should use for a variable. Requires mode 'polarity_user'.
+public:
     // Read state:
     //
     lbool   value      (Var x) const;       // The current value of a variable.
@@ -168,15 +155,7 @@ public:
     int     nLearnts   ()      const;       // The current number of learnt clauses.
     int     nVars      ()      const;       // The current number of variables.
     int     nFreeVars  ()      const;
-
-    // Resource contraints:
-    //
-    void    setConfBudget(int64_t x);
-    void    setPropBudget(int64_t x);
-    void    budgetOff();
-    void    interrupt();          // Trigger a (potentially asynchronous) interruption of the solver.
-    void    clearInterrupt();     // Clear interrupt indicator flag.
-
+private:
     // Memory managment:
     //
     virtual void garbageCollect();
@@ -191,15 +170,10 @@ public:
 
     // Mode of operation:
     //
-    int       verbosity;
-    double    var_decay;
     double    clause_decay;
-    double    random_var_freq;
-    double    random_seed;
     bool      luby_restart;
     int       ccmin_mode;         // Controls conflict clause minimization (0=none, 1=basic, 2=deep).
     int       phase_saving;       // Controls the level of phase saving (0=none, 1=limited, 2=full).
-    bool      rnd_pol;            // Use random polarities for branching heuristics.
     bool      rnd_init_act;       // Initialize variable activities with a small random value.
     double    garbage_frac;       // The fraction of wasted memory allowed before a garbage collection is triggered.
 
@@ -210,9 +184,6 @@ public:
 
     int       learntsize_adjust_start_confl;
     double    learntsize_adjust_inc;
-
-    bool		usecustomheur;
-    double		customheurfreq;
 
     // Statistics: (read-only member variable)
     //
@@ -275,7 +246,6 @@ protected:
     int64_t             simpDB_props;     // Remaining number of propagations that must be made before next execution of 'simplify()'.
     vec<Lit>            assumptions;      // Current set of assumptions provided to solve by the user.
     Heap<VarOrderLt>    order_heap;       // A priority queue of variables ordered with respect to the variable activity.
-    double              progress_estimate;// Set by 'search()'.
     bool                remove_satisfied; // Indicates whether possibly inefficient linear scan for satisfied clauses should be performed in 'simplify'.
 
     ClauseAllocator     ca;
@@ -292,12 +262,6 @@ protected:
     double              learntsize_adjust_confl;
     int                 learntsize_adjust_cnt;
 
-    // Resource contraints:
-    //
-    int64_t             conflict_budget;    // -1 means no budget.
-    int64_t             propagation_budget; // -1 means no budget.
-    bool                asynch_interrupt;
-
     /*AB*/
 	bool 				savedok;
 	int					savedlevel, savedclausessize, savedqhead;
@@ -310,25 +274,20 @@ protected:
     void     insertVarOrder   (Var x);                                                 // Insert a variable in the decision order priority queue.
     Lit      pickBranchLit    ();                                                      // Return the next decision variable.
     void     createNewDecisionLevel ();                                                      // Begins a new decision level.
-    /*AB*///void     uncheckedEnqueue (Lit p, CRef from = CRef_Undef);                         // Enqueue a literal. Assumes value of literal is undefined./*AE*/
     bool     enqueue          (Lit p, CRef from = CRef_Undef);                         // Test if fact 'p' contradicts current state, enqueue otherwise.
     CRef     propagate        ();                                                      // Perform unit propagation. Returns possibly conflicting clause.
-    /*AB*///void     cancelUntil      (int level);                                             // Backtrack until a certain level./*AE*/
     void     analyze          (CRef confl, vec<Lit>& out_learnt, int& out_btlevel);    // (bt = backtrack)
     void     analyzeFinal     (Lit p, vec<Lit>& out_conflict);                         // COULD THIS BE IMPLEMENTED BY THE ORDINARIY "analyze" BY SOME REASONABLE GENERALIZATION?
     bool     litRedundant     (Lit p, uint32_t abstract_levels);                       // (helper method for 'analyze()')
-    lbool    search           (int nof_conflicts/*AB*/, bool nosearch/*AE*/);                                     // Search for a given number of conflicts.
-    lbool    solve_           (/*AB*/bool nosearch = false/*AE*/);                                     // Main solve method(assumptions given in 'assumptions').
+    lbool    search           (int maxconcflicts, bool nosearch);
+    lbool    solve_           (bool nosearch = false);                                 // Main solve method(assumptions given in 'assumptions').
     void     reduceDB         ();                                                      // Reduce the set of learnt clauses.
     void     removeSatisfied  (vec<CRef>& cs);                                         // Shrink 'cs' to contain only non-satisfied clauses.
     void     rebuildOrderHeap ();
 
     // Maintaining Variable/Clause activity:
     //
-	/*AB*///void     varDecayActivity ();                      // Decay all variables with the specified factor. Implemented by increasing the 'bump' value instead./*AE*/
     void     varBumpActivity  (Var v, double inc);     // Increase a variable with the current 'bump' value.
-    /*AB*///void     varBumpActivity  (Var v);                 // Increase a variable with the current 'bump' value./*AE*/
-    /*AB*///void     claDecayActivity ();                      // Decay all clauses with the specified factor. Implemented by increasing the 'bump' value instead./*AE*/
     void     claBumpActivity  (Clause& c);             // Increase a clause with the current 'bump' value.
 
     // Operations on clauses:
@@ -342,11 +301,8 @@ protected:
 
     // Misc:
     //
-    ///*A*/int      decisionLevel    ()      const; // Gives the current decisionlevel.
     uint32_t abstractLevel    (Var x) const; // Used to represent an abstraction of sets of decision levels.
     int      level            (Var x) const;
-    double   progressEstimate ()      const; // DELETE THIS ?? IT'S NOT VERY USEFUL ...
-    bool     withinBudget     ()      const;
 
     void 	checkDecisionVars(const Clause& c);
 
@@ -405,10 +361,6 @@ inline void Solver::checkGarbage(double gf){
 // NOTE: enqueue does not set the ok flag! (only public methods do)
 inline bool     Solver::enqueue         (Lit p, CRef from)      { return value(p) != l_Undef ? value(p) != l_False : (uncheckedEnqueue(p, from), true); }
 inline bool     Solver::addClause       (const vec<Lit>& ps)    { ps.copyTo(add_tmp); return addClause_(add_tmp); }
-inline bool     Solver::addEmptyClause  ()                      { add_tmp.clear(); return addClause_(add_tmp); }
-inline bool     Solver::addClause       (Lit p)                 { add_tmp.clear(); add_tmp.push(p); return addClause_(add_tmp); }
-inline bool     Solver::addClause       (Lit p, Lit q)          { add_tmp.clear(); add_tmp.push(p); add_tmp.push(q); return addClause_(add_tmp); }
-inline bool     Solver::addClause       (Lit p, Lit q, Lit r)   { add_tmp.clear(); add_tmp.push(p); add_tmp.push(q); add_tmp.push(r); return addClause_(add_tmp); }
 inline bool     Solver::locked          (const Clause& c) const { return value(c[0]) == l_True && reason(var(c[0])) != CRef_Undef && ca.lea(reason(var(c[0]))) == &c; }
 
 inline int      Solver::decisionLevel ()      const   { return trail_lim.size(); }
@@ -422,38 +374,14 @@ inline int      Solver::nClauses      ()      const   { return clauses.size(); }
 inline int      Solver::nLearnts      ()      const   { return learnts.size(); }
 inline int      Solver::nVars         ()      const   { return vardata.size(); }
 inline int      Solver::nFreeVars     ()      const   { return (int)dec_vars - (trail_lim.size() == 0 ? trail.size() : trail_lim[0]); }
-inline void     Solver::setPolarity   (Var v, lbool b){ user_pol[v] = b; }
-/*inline void     Solver::setDecidable(Var v, bool decide) // NOTE: no-op if already a decision var!
-{ 
-	if      ( decide && !decision[v]) dec_vars++;
-    else if (!decide &&  decision[v]) dec_vars--;
-
-    decision[v] = decide;
-    insertVarOrder(v);
-}*/
-inline void     Solver::setConfBudget(int64_t x){ conflict_budget    = conflicts    + x; }
-inline void     Solver::setPropBudget(int64_t x){ propagation_budget = propagations + x; }
-inline void     Solver::interrupt(){ asynch_interrupt = true; }
-inline void     Solver::clearInterrupt(){ asynch_interrupt = false; }
-inline void     Solver::budgetOff(){ conflict_budget = propagation_budget = -1; }
-inline bool     Solver::withinBudget() const {
-    return !asynch_interrupt &&
-           (conflict_budget    < 0 || conflicts < (uint64_t)conflict_budget) &&
-           (propagation_budget < 0 || propagations < (uint64_t)propagation_budget); }
-
+//inline void     Solver::setPolarity   (Var v, lbool b){ user_pol[v] = b; }
 inline lbool     Solver::solve         (const litlist& assumps /*AB*/, bool nosearch/*AE*/){
-	budgetOff();
 	for(auto i=assumps.cbegin(); i<assumps.cend(); ++i) {
 		assumptions.push(*i);
 	}
 	return solve_(nosearch);
 }
 inline bool     Solver::okay          ()      const   { return ok; }
-
-inline void     Solver::toDimacs     (const char* file){ vec<Lit> as; toDimacs(file, as); }
-inline void     Solver::toDimacs     (const char* file, Lit p){ vec<Lit> as; as.push(p); toDimacs(file, as); }
-inline void     Solver::toDimacs     (const char* file, Lit p, Lit q){ vec<Lit> as; as.push(p); as.push(q); toDimacs(file, as); }
-inline void     Solver::toDimacs     (const char* file, Lit p, Lit q, Lit r){ vec<Lit> as; as.push(p); as.push(q); as.push(r); toDimacs(file, as); }
 
 /*AB*/
 inline int		Solver::getLevel	  (int var) const {return level(var);}

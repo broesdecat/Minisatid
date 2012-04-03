@@ -160,8 +160,6 @@ public:
 	void add(const InnerCPAllDiff& object);
 	void add(const InnerLazyGroundLit& object);
 
-	void add(InnerDisjunction& disj, rClause& newclause);
-
 	int newSetID();
 
 	SATVAL finishParsing();

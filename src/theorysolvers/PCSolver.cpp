@@ -138,9 +138,6 @@ void PCSolver::addLearnedClause(rClause c) {
 	getSolver().addLearnedClause(c);
 //FIXME	getEventQueue().acceptForPropagation(getSATSolver());
 }
-void PCSolver::removeClause(rClause c) {
-	getSolver().removeClause(c);
-}
 int PCSolver::getClauseSize(rClause cr) const {
 	return getSolver().getClauseSize(cr);
 }
@@ -334,9 +331,6 @@ void PCSolver::finishParsing() {
 	}
 
 	getEventQueue().initialize();
-	if (modes().useaggheur) {
-		getSATSolver()->notifyCustomHeur();
-	}
 }
 
 void PCSolver::notifyVarAdded() {

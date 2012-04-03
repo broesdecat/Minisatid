@@ -51,7 +51,6 @@ public:
 	bool 			selectOneFromUFS;
 	bool 			tocnf;
 	double			watchesratio;
-	bool			useaggheur;
 	std::string 	primesfile;
 	//bool 			remap;
 	double 			rand_var_freq, var_decay;

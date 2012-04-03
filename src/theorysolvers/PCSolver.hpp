@@ -188,7 +188,6 @@ public:
 	rClause createClause(const InnerDisjunction& clause, bool learned);
 	//IMPORTANT: The first literal in the clause is the one which can be propagated at moment of derivation!
 	void addLearnedClause(rClause c); //Propagate if clause is unit, return false if c is conflicting
-	void removeClause(rClause c);
 	int getClauseSize(rClause cr) const;
 	Lit getClauseLit(rClause cr, int i) const;
 
