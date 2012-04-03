@@ -20,12 +20,11 @@ using namespace MinisatID;
 using namespace std;
 
 EventQueue::EventQueue(PCSolver& pcsolver)
-		: pcsolver(pcsolver), initialized(false), finishing(false), allowpropagation(true) {
+		: pcsolver(pcsolver) {
 	event2propagator[EV_PROPAGATE];
 	event2propagator[EV_DECISIONLEVEL];
 	event2propagator[EV_BACKTRACK];
 	event2propagator[EV_MODELFOUND];
-	event2propagator[EV_FINISH];
 }
 
 EventQueue::~EventQueue() {
@@ -63,9 +62,6 @@ void EventQueue::addEternalPropagators() {
 }
 
 void EventQueue::notifyBoundsChanged(IntVar* var) {
-	if (!isInitialized()) { // TODO enforce by design?
-		return;
-	}
 	for (auto i = intvarid2propagators[var->id()].cbegin(); i < intvarid2propagators[var->id()].cend(); ++i) {
 		if (!(*i)->isPresent()) {
 			continue;
@@ -128,9 +124,7 @@ void EventQueue::setTrue(const proplist& list, deque<Propagator*>& queue) {
 }
 
 void EventQueue::setTrue(const Lit& l) {
-	if (isInitialized()) {
-		addEternalPropagators();
-	}
+	addEternalPropagators();
 	for (uint i = 0; i != lit2watches[toInt(l)].size(); ++i) {
 		lit2watches[toInt(l)][i]->propagate();
 	}

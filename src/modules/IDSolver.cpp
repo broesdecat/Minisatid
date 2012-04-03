@@ -50,7 +50,6 @@ IDSolver::IDSolver(PCSolver* s, int definitionID) :
 	getPCSolver().accept(this, EV_DECISIONLEVEL);
 	getPCSolver().accept(this, EV_BACKTRACK);
 	getPCSolver().accept(this, EV_MODELFOUND);
-	getPCSolver().accept(this, EV_FINISH);
 	// FIXME add when modes.lazy is true => getPCSolver().getNonConstOptions().defn_strategy = adaptive;
 }
 
@@ -2333,7 +2332,7 @@ bool IDSolver::canJustifyMaxHead(const IDAgg& agg, litlist& jstf, varlist& nonjs
  * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
  */
 bool IDSolver::canJustifySPHead(const IDAgg& agg, litlist& jstf, varlist& nonjstf, const InterMediateDataStruct& currentjust, bool real) const {
-	auto type = *getProp(agg.getType());
+	const AggProp & type = *getProp(agg.getType());
 	bool justified = true;
 	auto wl = agg.getWL();
 

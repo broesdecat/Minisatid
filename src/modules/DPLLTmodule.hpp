@@ -65,24 +65,20 @@ public:
 	virtual rClause notifypropagate() = 0;
 	virtual rClause notifyFullAssignmentFound(){ throw idpexception("Operation applied to invalid propagator."); }
 
-protected:
+	// Convenience methods (based on getPCSolver)
 	const PCSolver& getPCSolver() const {
 		return *pcsolver;
 	}
 	PCSolver& getPCSolver() {
 		return *pcsolver;
 	}
-
-	bool hasNextProp();
-	const Lit& getNextProp();
-
-	// Convenience methods (based on getPCSolver)
-	int verbosity() const {
-		return getPCSolver().verbosity();
-	}
 	const SolverOption& modes() const {
 		return getPCSolver().modes();
 	}
+	int verbosity() const {
+		return getPCSolver().verbosity();
+	}
+	std::string toString(const Lit& lit) const;
 	bool isTrue(const Lit& l) const {
 		return value(l) == l_True;
 	}
@@ -98,14 +94,17 @@ protected:
 	lbool value(const Lit& p) const {
 		return getPCSolver().value(p);
 	}
+
+protected:
+	bool hasNextProp();
+	const Lit& getNextProp();
+
 	int nVars() const {
 		return getPCSolver().nVars();
 	}
 
 	void addWatch(Var atom);
 	void addWatch(const Lit& lit);
-
-	std::string toString(const Lit& lit) const;
 };
 
 }

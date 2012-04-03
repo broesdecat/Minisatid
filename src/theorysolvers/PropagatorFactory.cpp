@@ -61,9 +61,9 @@ void throwHeadOccursInSet(const std::string& head, int setid) {
 }
 
 PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine) :
-		engine(engine), parsing(true), maxset(1) {
+		engine(engine), parsing(true), maxset(1),
+		definitions(new Definition(engine)){
 	SATStorage::setStorage(engine->getSATSolver());
-	SATStorage::getStorage()->notifyUsedForSearch();
 #ifdef CPSUPPORT
 	CPStorage::setStorage(engine->getCPSolverp());
 	CPStorage::getStorage()->notifyUsedForSearch();
@@ -91,22 +91,6 @@ void PropagatorFactory::notifyMonitorsOfAdding(const T& obj) const {
 	for (auto i = parsingmonitors.cbegin(); i < parsingmonitors.cend(); ++i) {
 		(*i)->visit(obj);
 	}
-}
-
-bool PropagatorFactory::hasIDSolver(defID id) const {
-	return idsolvers.find(id) != idsolvers.cend();
-}
-
-IDSolver* PropagatorFactory::getIDSolver(defID id) {
-	if (!hasIDSolver(id)) {
-		addIDSolver(id);
-	}
-	return idsolvers.at(id);
-}
-
-void PropagatorFactory::addIDSolver(defID id) {
-	auto idsolver = new IDSolver(getEnginep(), id);
-	idsolvers.insert( { id, idsolver });
 }
 
 void PropagatorFactory::addVar(Var v, VARHEUR heur) {
@@ -213,7 +197,7 @@ void PropagatorFactory::add(const InnerRule& rule) {
 	addVar(rule.head, lazyDecide());
 	addVars(rule.body, lazyDecide());
 
-	getIDSolver(rule.definitionID)->addRule(rule.conjunctive, rule.head, rule.body);
+	definitions->addRule(rule.definitionID, rule.conjunctive, rule.head, rule.body);
 }
 
 void PropagatorFactory::add(const InnerWLSet& formula) {
@@ -266,7 +250,7 @@ void PropagatorFactory::add(const InnerReifAggregate& origagg) {
 		}
 	}
 	if (newagg.sem == AggSem::DEF) {
-		getIDSolver(newagg.defID)->addDefinedAggregate(newagg, *setwithagg.set);
+		definitions->addDefinedAggregate(newagg, *setwithagg.set);
 	}
 	addAggrExpr(newagg.head, newagg.setID, newagg.sign, newagg.bound, newagg.type, newagg.sem);
 }
@@ -571,6 +555,8 @@ SATVAL PropagatorFactory::finishParsing() {
 	if (AggStorage::hasStorage()) {
 		satval &= execute(*AggStorage::getStorage());
 	}
+
+	definitions->addToPropagators();
 
 	return satval;
 }

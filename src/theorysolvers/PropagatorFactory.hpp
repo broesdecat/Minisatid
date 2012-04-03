@@ -14,6 +14,7 @@
 #include <set>
 #include "utils/Utils.hpp"
 #include "modules/aggsolver/AggUtils.hpp"
+#include "modules/Definition.hpp"
 
 namespace Minisat{
 	class Solver;
@@ -108,16 +109,15 @@ class PropagatorFactory:
 private:
 	PCSolver* engine;
 
+	Definition* definitions;
+
 	int dummyvar; // dummy, true head
 	bool parsing; //state
-
-	std::map<defID, IDSolver*> idsolvers;
 
 	std::map<int, IntVar*> intvars;
 
 	// Parsing support
 	int maxset;
-	//std::vector<InnerRule*> parsedrules;
 	std::map<int, SetWithAggs> parsedsets;
 	std::vector<InnerReifAggregate*> parsedaggs;
 
@@ -129,10 +129,6 @@ private:
 public:
 	PropagatorFactory(const SolverOption& modes, PCSolver* engine);
 	virtual ~PropagatorFactory();
-
-	bool hasIDSolver(defID id) const;
-	void addIDSolver(defID id);
-	IDSolver* getIDSolver(defID id);
 
 	PCSolver& getEngine() { return *engine; }
 	PCSolver* getEnginep() const { return engine; }
