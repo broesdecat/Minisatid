@@ -57,7 +57,6 @@ public:
     double    var_decay;
     bool      rnd_pol;            // Use random polarities for branching heuristics.
 
-	bool		handleConflict(CRef conflict);
 	void 		setInitialPolarity(Var  var, bool pol) { polarity[var] = pol; }
 
 	// Symmetry code

@@ -36,7 +36,6 @@ PCSolver::PCSolver(SolverOption modes, InnerMonitor* monitor, VarCreation* varcr
 #endif
 		queue(NULL),
 		factory(NULL),
-		state(THEORY_PARSING),
 		trail(new TimeTrail()),
 		terminate(false),
 		optim(Optim::NONE), head(-1), agg_to_minimize(NULL){
@@ -166,10 +165,6 @@ void PCSolver::notifySetTrue(const Lit& p) {
 
 int PCSolver::getCurrentDecisionLevel() const {
 	return getSolver().decisionLevel();
-}
-
-bool PCSolver::handleConflict(rClause conflict) {
-	return getSolver().handleConflict(conflict);
 }
 
 int PCSolver::getLevel(int var) const {
@@ -308,29 +303,20 @@ int PCSolver::getTime(const Var& var) const {
 }
 
 void PCSolver::finishParsing() {
-	if (state != THEORY_INITIALIZED) {
-		state = THEORY_INITIALIZING;
-		dummy1 = newVar();
-		InnerDisjunction d1;
-		d1.literals.push_back(mkLit(dummy1, false));
-		add(d1);
-		dummy2 = newVar();
-		InnerDisjunction d2;
-		d2.literals.push_back(mkLit(dummy2, false));
-		add(d2);
+	dummy1 = newVar();
+	InnerDisjunction d1;
+	d1.literals.push_back(mkLit(dummy1, false));
+	add(d1);
+	dummy2 = newVar();
+	InnerDisjunction d2;
+	d2.literals.push_back(mkLit(dummy2, false));
+	add(d2);
 
-		propagations.resize(nVars(), NULL); //Lazy init
-		state = THEORY_INITIALIZED;
-		if (getFactory().finishParsing() == SATVAL::UNSAT) {
-			notifyUnsat();
-		}
+	propagations.resize(nVars(), NULL); //Lazy init
+
+	if (getFactory().finishParsing() == SATVAL::UNSAT) {
+		notifyUnsat();
 	}
-
-	if (isUnsat()) {
-		return;
-	}
-
-	getEventQueue().initialize();
 }
 
 void PCSolver::notifyVarAdded() {

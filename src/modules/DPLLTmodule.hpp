@@ -16,15 +16,9 @@ namespace MinisatID {
 
 class ConstraintVisitor;
 
-enum State {
-	PARSING, INITIALIZING, INITIALIZED
-};
-
 class Propagator {
 private:
-	State init;
 	bool present;
-	bool searchalgo;
 	int trailindex; //the index in the trail of next propagation to do.
 	bool inqueue; //used by the queueing mechanism to refrain from putting a propagator in the queue
 
@@ -35,20 +29,13 @@ protected:
 
 public:
 	Propagator(PCSolver* s, const std::string& name) :
-			init(PARSING), present(true), searchalgo(false), trailindex(0), inqueue(false), name(name), pcsolver(s) {
+			present(true), trailindex(0), inqueue(false), name(name), pcsolver(s) {
 		pcsolver->accept(this);
 	}
 	virtual ~Propagator() {
 	}
 
-	const PCSolver& getPCSolver() const {
-		return *pcsolver;
-	}
-	PCSolver& getPCSolver() {
-		return *pcsolver;
-	}
-
-	// queueing mech
+	// queueing mech, only use for MAIN (propagation) queue
 	void notifyQueued() {
 		inqueue = true;
 	}
@@ -67,31 +54,24 @@ public:
 		present = false;
 	}
 
-	// presence
-	bool isUsedForSearch() const {
-		return searchalgo;
-	}
-	void notifyUsedForSearch() {
-		searchalgo = true;
-	}
-
 	// Propagator methods
 	std::string getName() const{
 		return name;
 	}
 	virtual rClause getExplanation(const Lit&) = 0;
 	virtual void accept(ConstraintVisitor& visitor) = 0;
-	//virtual rClause notifyFullAssignmentFound() = 0;
-	// First argument is true is the propagator is NOT certainly satisfied in the initial interpretation
-	//virtual void finishParsing(bool&) = 0; // TODO can this be dropped?
-	// Checks presence of aggregates and initializes all counters. UNSAT is set to true if unsat is detected
-	// PRESENT is set to true if aggregate propagations should be done
 	virtual void notifyNewDecisionLevel() = 0;
-	// NOTE: call explicitly when using hasnextprop/nextprop!
-	virtual void notifyBacktrack(int untillevel, const Lit& decision); // TODO why is this virtual AND implemented?!
+	virtual void notifyBacktrack(int untillevel, const Lit& decision); // NOTE: call explicitly when using hasnextprop/nextprop!
 	virtual rClause notifypropagate() = 0;
-	virtual void initialize() { throw idpexception("Operation applied to invalid propagator."); }
 	virtual rClause notifyFullAssignmentFound(){ throw idpexception("Operation applied to invalid propagator."); }
+
+protected:
+	const PCSolver& getPCSolver() const {
+		return *pcsolver;
+	}
+	PCSolver& getPCSolver() {
+		return *pcsolver;
+	}
 
 	bool hasNextProp();
 	const Lit& getNextProp();
@@ -124,24 +104,6 @@ public:
 
 	void addWatch(Var atom);
 	void addWatch(const Lit& lit);
-
-	// State methods
-	bool isParsing() const {
-		return init == PARSING;
-	}
-	bool isInitializing() const {
-		return init == INITIALIZING;
-	}
-	bool isInitialized() const {
-		return init == INITIALIZED;
-	}
-	void notifyParsed() {
-		MAssert(isParsing());
-		init = INITIALIZING;
-	}
-	void notifyInitialized() { /*MAssert(isInitializing());*/
-		init = INITIALIZED;
-	} // FIXME add better checking again
 
 	std::string toString(const Lit& lit) const;
 };

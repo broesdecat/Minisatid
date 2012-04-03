@@ -46,13 +46,6 @@ private:
 
 	watchlist propagatewatchesasap;
 
-	bool initialized;
-	void notifyInitialized() { initialized = true; }
-	bool isInitialized() const { return initialized; }
-	bool finishing;
-
-	bool allowpropagation;
-
 public:
 	EventQueue(PCSolver& pcsolver);
 	virtual ~EventQueue();
@@ -104,8 +97,6 @@ public:
 	void 	notifyBoundsChanged		(IntVar* var);
 
 	void 	accept(ConstraintVisitor& visitor);
-
-	void 	initialize();
 
 private:
 	void 	setTrue(const proplist& list, std::deque<Propagator*>& queue);

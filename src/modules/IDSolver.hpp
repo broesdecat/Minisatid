@@ -22,7 +22,7 @@
 
 namespace MinisatID {
 
-class PCSolver;
+class TempRule;
 
 /**
  * The different possible types of definitions.
@@ -33,26 +33,6 @@ class PCSolver;
 enum class DefType	{ DISJ, CONJ, AGGR };
 enum DefOcc 	{ NONDEFOCC, POSLOOP, MIXEDLOOP, BOTHLOOP };
 enum UFS 		{ NOTUNFOUNDED, UFSFOUND, STILLPOSSIBLE, OLDCHECK };
-
-struct TempRule{
-	Var head;
-	std::vector<Lit> body;
-	bool conjunctive;
-
-	bool isagg;
-	InnerReifAggregate* inneragg;
-	InnerWLSet* innerset;
-
-	TempRule(Var head, bool conjunctive, std::vector<Lit> body): head(head), body(body), conjunctive(conjunctive), isagg(false), inneragg(NULL), innerset(NULL){}
-	TempRule(InnerReifAggregate* inneragg, InnerWLSet* innerset): head(inneragg->head), isagg(true), inneragg(inneragg), innerset(innerset){}
-
-	~TempRule(){
-		if(isagg){
-			delete(inneragg);
-			delete(innerset);
-		}
-	}
-};
 
 class PropRule {
 private:
@@ -181,10 +161,9 @@ class IDSolver: public Propagator{
 private:
 	int definitionID;
 
-	bool finishedonce, needtofinishid, forcefinish;
 	bool infactnotpresent; // NOTE: last one because ispresent will always be true when lazy grounding
 
-	Var minvar, nbvars; //TODO, maxvar, nbvars; 	//The lowest and highest headvariable. INVAR: Definitions will be offset by minvar and the size will be nbvars
+	Var minvar, nbvars; //The lowest and highest headvariable. INVAR: Definitions will be offset by minvar and the size will be nbvars
 
 	NetworkHandling conj, disj, aggr;
 
@@ -210,12 +189,18 @@ private:
 
 	IDStats				stats;
 
-	std::map<Var, TempRule*> rules;
+	bool needinitialization;
 
 public:
 	IDSolver(PCSolver* s, int definitionID);
 	virtual ~IDSolver();
 
+	// Finding unfounded sets is allowed after adding this set of rules
+	void addRuleSet(const std::vector<TempRule*>& rules);
+private:
+	void addFinishedRule(const TempRule& rule);
+	void addFinishedDefinedAggregate(const TempRule& rule);
+public:
 	virtual void 	accept(ConstraintVisitor& visitor){}; // FIXME
 
 	int		getDefinitionID	() const { return definitionID; }
@@ -225,18 +210,12 @@ public:
 
 	// Propagator methods
 	virtual rClause 	getExplanation			(const Lit& l);
-	virtual void 		initialize				();
 	virtual rClause 	notifypropagate			();
 	virtual void 		notifyNewDecisionLevel	();
 	virtual void 		notifyBacktrack			(int untillevel, const Lit& decision){ backtracked = true; Propagator::notifyBacktrack(untillevel, decision); };
 	virtual rClause notifyFullAssignmentFound();
 
 	rClause				isWellFoundedModel		();
-
-	void				addRule      			(bool conj, Var head, const litlist& ps);	// Add a rule to the solver.
-	SATVAL				addFinishedRule			(TempRule* rule);
-	void				addFinishedDefinedAggregate(TempRule* rule);
-	void 				addDefinedAggregate		(const InnerReifAggregate& agg, const InnerWLSet& set);
 
 	bool				isDefined				(Var var) 	const { return hasDefVar(var); }
 	bool 				isConjunctive			(Var v)		const {	return type(v) == DefType::CONJ; }
@@ -245,6 +224,7 @@ public:
 	const PropRule&		getDefinition			(Var var) 	const { MAssert(hasDefVar(var)); return *definition(var); }
 
 private:
+	void 				initialize				();
 	void 				generateSCCs();
 	void 				bumpHeadHeuristic();
 

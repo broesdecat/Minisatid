@@ -44,11 +44,9 @@ IDAgg::IDAgg(const Lit& head, AggBound b, AggSem sem, AggType type, const std::v
 }
 
 IDSolver::IDSolver(PCSolver* s, int definitionID) :
-		Propagator(s, "definition"), definitionID(definitionID), finishedonce(false), needtofinishid(false), forcefinish(false), infactnotpresent(
-				false), minvar(0), nbvars(0), conj(DefType::CONJ), disj(DefType::DISJ), aggr(DefType::AGGR), _seen(NULL), sem(
-				getPCSolver().modes().defsem), posrecagg(false), mixedrecagg(false), posloops(true), negloops(true), backtracked(true), adaption_total(
-				0), adaption_current(0),
-				twovalueddef(false){
+		Propagator(s, "definition"), definitionID(definitionID), needinitialization(false), infactnotpresent(false), minvar(0), nbvars(0), conj(
+				DefType::CONJ), disj(DefType::DISJ), aggr(DefType::AGGR), _seen(NULL), sem(getPCSolver().modes().defsem), posrecagg(false), mixedrecagg(
+				false), posloops(true), negloops(true), backtracked(true), adaption_total(0), adaption_current(0), twovalueddef(false) {
 	getPCSolver().accept(this, EV_DECISIONLEVEL);
 	getPCSolver().accept(this, EV_BACKTRACK);
 	getPCSolver().accept(this, EV_MODELFOUND);
@@ -67,6 +65,7 @@ void IDSolver::createDefinition(Var head, PropRule* r, DefType type) {
 	MAssert(not hasDefVar(head));
 	defdVars.push_back(head);
 	setDefVar(head, new DefinedVar(r, type));
+	MAssert(isDefined(head));
 }
 void IDSolver::createDefinition(Var head, IDAgg* agg) {
 	MAssert(not hasDefVar(head));
@@ -96,51 +95,6 @@ void IDSolver::adaptStructsToHead(Var) {
 	definitions.resize(nbvars, NULL);
 }
 
-void IDSolver::addDefinedAggregate(const InnerReifAggregate& inneragg, const InnerWLSet& innerset) {
-	auto newrule = new TempRule(new InnerReifAggregate(inneragg), new InnerWLSet(innerset));
-	auto it = rules.find(inneragg.head);
-	if (it == rules.cend()) {
-		rules[inneragg.head] = newrule;
-		return;
-	}
-
-	auto prevrule = it->second;
-	if (prevrule->conjunctive) { // introduce new var (we need disjunctive root anyway
-		auto newvar = getPCSolver().newVar();
-		rules[newvar] = new TempRule(newvar, prevrule->conjunctive, prevrule->body);
-		prevrule->conjunctive = false;
-		prevrule->body = {mkLit(newvar)};
-	}
-	auto newvar = getPCSolver().newVar();
-	newrule->inneragg->head = newvar;
-	newrule->head = newvar;
-	rules[newvar] = newrule;
-	prevrule->body.push_back(mkPosLit(newvar));
-}
-
-void IDSolver::addRule(bool conj, Var head, const litlist& ps) {
-	auto it = rules.find(head);
-	if (it == rules.cend()) {
-		rules[head] = new TempRule(head, conj, ps);
-		return;
-	}
-
-	auto prevrule = it->second;
-	if (prevrule->conjunctive) { // introduce new var (we need disjunctive root anyway)
-		auto newvar = getPCSolver().newVar();
-		rules[newvar] = new TempRule(newvar, prevrule->conjunctive, prevrule->body);
-		prevrule->conjunctive = false;
-		prevrule->body = {mkLit(newvar)};
-	}
-	if (conj) { // Create a new var and rule first
-		auto newvar = getPCSolver().newVar();
-		rules[newvar] = new TempRule(newvar, conj, ps);
-		prevrule->body.push_back(mkPosLit(newvar));
-	} else { // Disjunctive, so can add directly
-		prevrule->body.insert(prevrule->body.end(), ps.cbegin(), ps.cend());
-	}
-}
-
 /**
  * First literal in ps is the head of the rule. It has to be present and it has to be positive.
  *
@@ -151,112 +105,70 @@ void IDSolver::addRule(bool conj, Var head, const litlist& ps) {
  *
  * If only one body literal, the clause is always made conjunctive (for algorithmic correctness later on), semantics are the same.
  */
-SATVAL IDSolver::addFinishedRule(TempRule* rule) {
-	MAssert(not rule->isagg);
-
-	auto conj = rule->conjunctive;
-	auto head = rule->head;
-
-	if (verbosity() > 4) {
-		clog << "Added final rule " << print(rule->head, getPCSolver()) << " <- ";
-		bool begin = true;
-		for (auto i = rule->body.cbegin(); i < rule->body.cend(); ++i) {
-			if (not begin) {
-				clog << (rule->conjunctive ? " & " : " | ");
-			}
-			begin = true;
-			clog << print(*i, getPCSolver());
-		}
-		clog << "\n";
-	}
+void IDSolver::addFinishedRule(const TempRule& rule) {
+	MAssert(not rule.isagg);
+	auto conj = rule.conjunctive;
+	auto head = rule.head;
 
 	adaptStructsToHead(head);
 
 	if (isDefined(head)) {
-		stringstream ss;
+		std::stringstream ss;
 		ss << "Multiple rules have the same head " << print(head, getPCSolver()) << ", which is not allowed!\n";
 		throw idpexception(ss.str());
 	}
 
-	if (rule->body.empty()) {
-		Lit h = conj ? mkLit(head) : mkLit(head, true); //empty set conj = true, empty set disj = false
-		InnerDisjunction v;
-		v.literals.push_back(h);
-		getPCSolver().add(v);
-	} else {
-		conj = conj || rule->body.size() == 1; //rules with only one body atom are treated as conjunctive
-
-		auto r = new PropRule(mkLit(head), rule->body);
-		createDefinition(head, r, conj ? DefType::CONJ : DefType::DISJ);
-
-		InnerImplication eq(mkPosLit(head), ImplicationType::EQUIVALENT, rule->body, conj);
-		getPCSolver().add(eq);
-		MAssert(isDefined(head));
+	if(rule.body.empty()){
+		return;
 	}
 
-	needtofinishid = true;
-
-	return getPCSolver().satState();
+	conj = conj || rule.body.size() == 1; //rules with only one body atom are treated as conjunctive
+	auto r = new PropRule(mkLit(head), rule.body);
+	createDefinition(head, r, conj ? DefType::CONJ : DefType::DISJ);
 }
 
-void IDSolver::addFinishedDefinedAggregate(TempRule* rule) {
-	MAssert(rule->isagg);
+void IDSolver::addFinishedDefinedAggregate(const TempRule& rule) {
+	MAssert(rule.isagg);
 
-	if (verbosity() > 4) {
-		clog << "Added final aggregate rule " << print(rule->head, getPCSolver()) << " <- ...";
-		clog << "\n";
-	}
-
-	Var head = rule->head;
+	auto head = rule.head;
 	adaptStructsToHead(head);
 	if (isDefined(head)) {
-		stringstream ss;
+		std::stringstream ss;
 		ss << "Multiple rules have the same head " << print(head, getPCSolver()) << ", which is not allowed!\n";
 		throw idpexception(ss.str());
 	}
 
-	AggBound b(rule->inneragg->sign, rule->inneragg->bound);
-	IDAgg* agg = new IDAgg(mkLit(head), b, rule->inneragg->sem, rule->inneragg->type, rule->innerset->getWL());
+	AggBound b(rule.inneragg->sign, rule.inneragg->bound);
+	auto agg = new IDAgg(mkLit(head), b, rule.inneragg->sem, rule.inneragg->type, rule.innerset->getWL());
 	if (isInitiallyJustified(*agg)) {
 		delete (agg);
 		return;
 	}
 	createDefinition(head, agg);
-	needtofinishid = true;
+}
+
+void IDSolver::addRuleSet(const std::vector<TempRule*>& rules) {
+	for(auto i=rules.cbegin(); i<rules.cend(); ++i) {
+		if((*i)->isagg){
+			addFinishedDefinedAggregate(**i);
+		}else{
+			addFinishedRule(**i);
+		}
+	}
+	needinitialization = true;
+	getPCSolver().acceptForPropagation(this);
 }
 
 /*
  * @PRE: aggregates have to have been finished
  */
 void IDSolver::initialize() {
+	if (getPCSolver().getCurrentDecisionLevel() != 0) { // NOTE can only initialize unfounded sets at level 0 TODO can we improve this schema?
+		getPCSolver().backtrackTo(0);
+	}
+
+	needinitialization = false;
 	MAssert(not getPCSolver().isUnsat());
-	if (rules.size() == 0 && not forcefinish && finishedonce) {
-		return;
-	}
-
-	//notifyParsed(); // TODO not correct after repeated calls (lazy grounding)
-
-	while (rules.size() > 0) {
-		auto temprules = rules; // NOTE: need copy because during adding we might do more grounding and get more rules
-		rules.clear();
-		for (auto i = temprules.cbegin(); not getPCSolver().isUnsat() && i != temprules.cend(); ++i) {
-			if (i->second->inneragg) {
-				addFinishedDefinedAggregate(i->second);
-			} else {
-				if (addFinishedRule(i->second) == SATVAL::UNSAT) {
-					getPCSolver().notifyUnsat();
-				}
-			}
-		}
-		deleteList(temprules);
-	}
-
-	if (finishedonce && not forcefinish) {
-		return;
-	}
-	needtofinishid = false;
-	finishedonce = true;
-	forcefinish = false;
 
 	if (verbosity() > 0) {
 		clog << ">>> Initializing inductive definition " << definitionID << "\n";
@@ -342,11 +254,6 @@ void IDSolver::initialize() {
 		bumpHeadHeuristic();
 	}
 
-	// TODO NOTE: VERY IMPORTANT: any code above this line should NOT use information on the interpretation!
-	if (getPCSolver().getCurrentDecisionLevel() != 0) { // NOTE can only initialize unfounded sets at level 0 TODO can we improve this schema?
-		getPCSolver().backtrackTo(0);
-	}
-
 	bool unsat = getPCSolver().isUnsat();
 	if (not unsat) {
 		unsat = not simplifyGraph(atoms_in_pos_loops);
@@ -363,12 +270,11 @@ void IDSolver::initialize() {
 		unsat = transformToCNF(sccroots) == SATVAL::UNSAT;
 	}
 
-	notifyInitialized();
-
 	if (unsat) {
 		getPCSolver().notifyUnsat();
 	} else {
-CHECKSEEN}
+		CHECKSEEN
+	}
 }
 
 // NOTE: essentially, simplifygraph can be called anytime the level-0 interpretation has changed.
@@ -998,23 +904,10 @@ void IDSolver::propagateJustificationAggr(const Lit& l, vector<litlist>& jstfs, 
  */
 rClause IDSolver::notifypropagate() {
 	CHECKNOTUNSAT
-	if (needtofinishid) {
-		throw notYetImplemented("Lazy initialization of definitions.");
-		/*forcefinish = true;
-		 bool present;
-		 infactnotpresent = false;
-		 finishParsing(present);
-		 if (not present) {
-		 infactnotpresent = true;
-		 return nullPtrClause;
-		 }
-		 if (getPCSolver().isUnsat()) {
-		 // FIXME incorrect? dummy unsat clause!
-		 InnerDisjunction d;
-		 d.literals = {getPCSolver().getTrail().back()};
-		 return getPCSolver().createClause(d, true);
-		 }*/
-	}CHECKSEEN CHECKNOTUNSAT
+	if (needinitialization) {
+		initialize();
+	}
+	CHECKSEEN CHECKNOTUNSAT
 
 	// There was an unfounded set saved which might not have been completely propagated by unit propagation
 	// So check if there are any literals unknown and add more loopformulas
@@ -1030,7 +923,7 @@ rClause IDSolver::notifypropagate() {
 		savedufs.clear(); //none found
 	}
 
-	if (not posloops || not isInitialized() || not shouldCheckPropagation()) {
+	if (not posloops || not shouldCheckPropagation()) {
 		CHECKSEEN CHECKNOTUNSAT
 		return nullPtrClause;
 	}
@@ -1089,15 +982,15 @@ rClause IDSolver::notifypropagate() {
 	return confl;
 }
 
-rClause IDSolver::notifyFullAssignmentFound(){
+rClause IDSolver::notifyFullAssignmentFound() {
 	if (infactnotpresent) {
 		return nullPtrClause;
 	}
 	twovalueddef = true;
 	auto confl = notifypropagate();
-	if(confl==nullPtrClause){
+	if (confl == nullPtrClause) {
 		MAssert(not posloops || isCycleFree());
-		if(getSemantics() == DEF_WELLF) {
+		if (getSemantics() == DEF_WELLF) {
 			confl = isWellFoundedModel();
 		}
 	}
@@ -1495,7 +1388,8 @@ bool IDSolver::propagateJustified(Var v, Var cs, std::set<Var>& ufs) {
 
 // Change sp_justification: v is now justified by j.
 void IDSolver::changejust(Var v, litlist& just) {
-	MAssert(just.size()>0 || type(v)==DefType::AGGR); //justification can be empty for aggregates
+	MAssert(just.size()>0 || type(v)==DefType::AGGR);
+	//justification can be empty for aggregates
 	justification(v) = just;
 	for (uint i = 0; i < just.size(); ++i) {
 		getPCSolver().accept(this, not just[i], SLOW);
@@ -2439,13 +2333,13 @@ bool IDSolver::canJustifyMaxHead(const IDAgg& agg, litlist& jstf, varlist& nonjs
  * 					otherwise, add all nonfalse, non-justified, relevant, below the bound literals to the queue
  */
 bool IDSolver::canJustifySPHead(const IDAgg& agg, litlist& jstf, varlist& nonjstf, const InterMediateDataStruct& currentjust, bool real) const {
-	const AggProp& type = *getProp(agg.getType());
+	auto type = *getProp(agg.getType());
 	bool justified = true;
-	const vwl& wl = agg.getWL();
+	auto wl = agg.getWL();
 
 	if (justified && agg.hasUB()) {
 		justified = false;
-		Weight bestpossible = type.getMaxPossible(wl);
+		auto bestpossible = type.getMaxPossible(wl);
 		for (vwl::const_iterator i = wl.cbegin(); !justified && i < wl.cend(); ++i) {
 			if (oppositeIsJustified(currentjust, *i, real)) {
 				jstf.push_back(not i->getLit());
@@ -2460,7 +2354,7 @@ bool IDSolver::canJustifySPHead(const IDAgg& agg, litlist& jstf, varlist& nonjst
 	}
 	if (justified && agg.hasLB()) {
 		justified = false;
-		Weight bestcertain = type.getMinPossible(wl);
+		auto bestcertain = type.getMinPossible(wl);
 		for (vwl::const_iterator i = wl.cbegin(); !justified && i < wl.cend(); ++i) {
 			if (isJustified(currentjust, *i, real)) {
 				jstf.push_back(i->getLit());

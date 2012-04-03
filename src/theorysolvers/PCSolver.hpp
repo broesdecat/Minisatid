@@ -34,10 +34,6 @@ class ConstraintVisitor;
 class Printer;
 typedef Minisat::Solver SearchEngine;
 
-enum TheoryState {
-	THEORY_PARSING, THEORY_INITIALIZED, THEORY_INITIALIZING
-};
-
 class InnerMonitor;
 
 class PCSolver: public LiteralPrinter{
@@ -147,7 +143,6 @@ public:
 
 	// State
 private:
-	TheoryState state;
 
 	// Explanation dummies: used to fix up learned clauses which are too small
 	Var dummy1, dummy2;
@@ -179,7 +174,6 @@ public:
 	rClause getExplanation(const Lit& l); //NON-OWNING pointer
 	bool isAlreadyUsedInAnalyze(const Lit& lit) const;
 	void 	notifyBecameDecidable(Var v);
-	bool handleConflict(rClause conflict);
 	void notifyBoundsChanged(IntVar* var);
 	rClause notifyFullAssignmentFound();
 
@@ -246,7 +240,6 @@ public:
 	void add(const T& obj){
 		getFactory().add(obj);
 	}
-
 };
 
 }

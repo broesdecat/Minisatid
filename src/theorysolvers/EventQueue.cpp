@@ -186,7 +186,7 @@ void EventQueue::clearNotPresentPropagators() { // TODO restore?
 		}
 	}
 	for (auto j = allpropagators.begin(); j < allpropagators.end();) {
-		if (!(*j)->isPresent() && !(*j)->isUsedForSearch()) {
+		if (not (*j)->isPresent()) {
 			delete (*j);
 			j = allpropagators.erase(j);
 		} else {
@@ -195,71 +195,7 @@ void EventQueue::clearNotPresentPropagators() { // TODO restore?
 	}
 }
 
-void EventQueue::initialize() {
-	MAssert(not isUnsat());
-
-	if (finishing || not allowpropagation || event2propagator[EV_FINISH].size() == 0) {
-		return;
-	}
-	finishing = true;
-
-	if (getPCSolver().verbosity() > 1) {
-		clog << ">>> Adding additional constraints to search\n";
-	}
-
-	while (event2propagator[EV_FINISH].size() > 0 && not isUnsat()) {
-		while (event2propagator[EV_FINISH].size() > 0 && not isUnsat()) {
-			auto prop = event2propagator[EV_FINISH].front();
-			event2propagator[EV_FINISH].pop_front();
-			prop->initialize();
-			if (isUnsat()) {
-				break;
-			}
-			if (not prop->isPresent()) {
-				printNoPropagationsOn(clog, prop->getName(), getPCSolver().verbosity());
-			}
-		}
-		if (isUnsat()) {
-			break;
-		}
-
-		//clearNotPresentPropagators() TODO very expensive??
-
-		notifyInitialized();
-
-		// Queue all necessary propagators
-		addEternalPropagators();
-		for (auto intvar = intvarid2propagators.cbegin(); intvar != intvarid2propagators.cend(); ++intvar) {
-			for (auto prop = intvar->begin(); prop != intvar->end(); ++prop) {
-				if (not (*prop)->isQueued()) {
-					fastqueue.push_back(*prop);
-				}
-			}
-		}
-
-		MAssert(not isUnsat());
-
-		// Do all possible propagations that are queued
-		auto confl = notifyPropagate();
-		if (confl != nullPtrClause) {
-			bool conflictAtRoot = getPCSolver().getCurrentDecisionLevel()==0;
-			if(not conflictAtRoot){
-				conflictAtRoot = getPCSolver().handleConflict(confl);
-			}
-			if(conflictAtRoot){
-				getPCSolver().notifyUnsat(); // TODO do something with the conflict clause?
-			}
-		}
-	}
-
-	finishing = false;
-}
-
 rClause EventQueue::notifyPropagate() {
-	if (not allowpropagation) {
-		return nullPtrClause;
-	}
-
 	rClause confl = nullPtrClause;
 
 	for (auto i = propagatewatchesasap.cbegin(); i < propagatewatchesasap.cend() && confl == nullPtrClause; ++i) {
@@ -286,6 +222,8 @@ rClause EventQueue::notifyPropagate() {
 		confl = p->notifypropagate();
 		MAssert(getPCSolver().satState()!=SATVAL::UNSAT || confl!=nullPtrClause);
 	}
+
+	// TODO clearNotPresentPropagators?
 
 	return confl;
 }

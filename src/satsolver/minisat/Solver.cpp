@@ -1134,34 +1134,6 @@ lbool Solver::search(int maxconflicts, bool nosearch/*AE*/) {
 	return l_Undef; // Note: is (should be anyway) unreachable but not detected by compiler
 }
 
-// Return true iff conflict at root level
-bool Solver::handleConflict(CRef conflict) {
-	CRef confl = conflict;
-	while (confl != CRef_Undef) {
-		if (decisionLevel() == 0) {
-			return true;
-		}
-		int backtrack_level;
-		vec<Lit> learnt_clause;
-		analyze(confl, learnt_clause, backtrack_level);
-
-		cancelUntil(backtrack_level);
-
-		if (learnt_clause.size() == 1) {
-			uncheckedEnqueue(learnt_clause[0]);
-		} else {
-			CRef cr = ca.alloc(learnt_clause, true);
-			addToClauses(cr, true);
-			attachClause(cr);
-			claBumpActivity(ca[cr]);
-			uncheckedEnqueue(learnt_clause[0], cr);
-		}
-
-		confl = propagate();
-	}
-
-	return false;
-}
 
 /*
  Finite subsequences of the Luby-sequence:
