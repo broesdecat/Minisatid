@@ -15,8 +15,13 @@ using namespace std;
 
 namespace MinisatID {
 
-TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound) :
-		Propagator(solver, "aggregate"), kb(knownbound), type(NULL), prop(NULL), setid(setid), usingwatches(true) {
+TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggProp const * const w, const vwl& wls, bool usewatches, const std::vector<TempAgg*>& aggr, bool optim) :
+		Propagator(solver, "aggregate"), kb(knownbound), type(w), prop(NULL), setid(setid), usingwatches(usewatches), wl(wls) {
+
+	MAssert(not optim || aggr.size()==1);
+	for(auto i=aggr.cbegin(); i<aggr.cend(); ++i) {
+		addAgg(**i, optim);
+	}
 
 	if (verbosity() >= 2) {
 		clog << "Added ";
@@ -30,7 +35,7 @@ TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound) :
 	bool unsat = false;
 	getProp()->initialize(unsat, sat);
 	if (not sat) {
-		assert(unsat || getAgg().size()>0);
+		MAssert(unsat || getAgg().size()>0);
 	}else{
 		notifyNotPresent();
 	}
@@ -38,8 +43,8 @@ TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound) :
 #ifdef DEBUG
 	//Check each aggregate knows it index in the set
 	for (agglist::const_iterator i = getAgg().cbegin(); i<getAgg().cend(); ++i) {
-		assert(this==(*i)->getSet());
-		assert(getAgg()[(*i)->getIndex()]==(*i));
+		MAssert(this==(*i)->getSet());
+		MAssert(getAgg()[(*i)->getIndex()]==(*i));
 	}
 
 	//TODO check all watches are correct
@@ -86,7 +91,6 @@ void TypedSet::removeAggs(const std::set<Agg*>& del) {
 }
 
 rClause TypedSet::notifySolver(AggReason* ar) {
-	assert(!isParsing());
 	const Lit& p = ar->getPropLit();
 
 	if (modes().bumpaggonnotify) { //seems to be better here, untested!
@@ -105,9 +109,9 @@ rClause TypedSet::notifySolver(AggReason* ar) {
 			clog << print(p, l_True, getPCSolver());
 			clog << " because of the aggregate expression ";
 			MinisatID::print(verbosity(), ar->getAgg(), true);
-		}assert(getPCSolver().modes().aggclausesaving>1 || ar->hasClause());
+		}MAssert(getPCSolver().modes().aggclausesaving>1 || ar->hasClause());
 
-		assert(reasons[var(p)]==NULL || getPCSolver().modes().aggclausesaving>1 || reasons[var(p)]->hasClause());
+		MAssert(reasons[var(p)]==NULL || getPCSolver().modes().aggclausesaving>1 || reasons[var(p)]->hasClause());
 		AggReason* old_ar = reasons[var(p)];
 		reasons[var(p)] = ar;
 		rClause confl = getExplanation(p); //Reason manipulation because getexplanation uses that reason!
@@ -172,16 +176,24 @@ void TypedSet::notifypropagate(Watch* w) {
 rClause TypedSet::notifypropagate() {
 	auto confl = getProp()->propagateAtEndOfQueue();
 #ifdef DEBUG
-	Weight w = getType().getValue(*this);
-	for(auto j=getAgg().cbegin(); j<getAgg().cend(); ++j) {
-		if(verbosity()>=3) {
-			MinisatID::print(10, **j, true);
+	bool twovalued = true;
+	for(auto i=getWL().cbegin(); twovalued && i<getWL().cend(); ++i){
+		if(value((*i).getLit())==l_Undef){
+			twovalued = false;
 		}
-		lbool headval = value((*j)->getHead());
-		if((*j)->getSem()==AggSem::IMPLICATION) {
-			assert((headval==l_True && isFalsified(**j, w, w)) || (headval==l_False && isSatisfied(**j, w, w)));
-		} else {
-			assert((headval==l_False && isFalsified(**j, w, w)) || (headval==l_True && isSatisfied(**j, w, w)));
+	}
+	if(twovalued){
+		auto w = getType().getValue(*this);
+		for(auto j=getAgg().cbegin(); j<getAgg().cend(); ++j) {
+			if(verbosity()>=3) {
+				MinisatID::print(10, **j, true);
+			}
+			auto headval = value((*j)->getHead());
+			if((*j)->getSem()==AggSem::IMPLICATION) {
+				MAssert((headval==l_True && isFalsified(**j, w, w)) || (headval==l_False && isSatisfied(**j, w, w)));
+			} else {
+				MAssert((headval==l_False && isFalsified(**j, w, w)) || (headval==l_True && isSatisfied(**j, w, w)));
+			}
 		}
 	}
 #endif
@@ -197,14 +209,12 @@ void TypedSet::notifyBacktrack(int untillevel, const Lit& decision) {
 
 //Returns OWNING pointer. This has proven to be faster than always adding generated explanations to the clause store!
 rClause TypedSet::getExplanation(const Lit& p) {
-	assert(!isParsing());
-
-	assert(reasons[var(p)] != NULL);
+	MAssert(reasons[var(p)] != NULL);
 	AggReason& ar = *reasons[var(p)];
 
 	rClause c = nullPtrClause;
 	if (getPCSolver().modes().aggclausesaving < 2) {
-		assert(ar.hasClause());
+		MAssert(ar.hasClause());
 	} else {
 		ar.getAgg().getSet()->addExplanation(ar);
 	}

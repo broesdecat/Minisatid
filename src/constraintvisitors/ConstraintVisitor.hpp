@@ -49,14 +49,12 @@ public:
 	virtual void visit(const InnerImplication&) = 0;
 	virtual void visit(const InnerRule&) = 0;
 	virtual void visit(const InnerWLSet&) = 0;
-	virtual void visit(const InnerAggregate&) = 0;
 	virtual void visit(const InnerReifAggregate&) = 0;
 	virtual void visit(const InnerMinimizeOrderedList&) = 0;
 	virtual void visit(const InnerMinimizeSubset&) = 0;
 	virtual void visit(const InnerMinimizeVar&) = 0;
 	virtual void visit(const InnerMinimizeAgg&) = 0;
 	virtual void visit(const InnerSymmetry&) = 0;
-	virtual void visit(const InnerForcedChoices&) = 0;
 	virtual void visit(const InnerIntVarEnum&) = 0;
 	virtual void visit(const InnerIntVarRange&) = 0;
 	virtual void visit(const InnerCPAllDiff&) = 0;

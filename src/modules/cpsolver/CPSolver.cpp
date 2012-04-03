@@ -84,26 +84,26 @@ vtiv CPSolver::convertToVars(const std::vector<uint>& terms) const{
 // INITIALIZATION
 
 bool CPSolver::add(const InnerIntVarEnum& form){
-	assert(!isInitialized());
+	MAssert(!isInitialized());
 	getData().addTerm(TermIntVar(getSpace(), form.varID, form.values));
 	return true;
 }
 
 bool CPSolver::add(const InnerIntVarRange& form){
-	assert(!isInitialized());
+	MAssert(!isInitialized());
 	getData().addTerm(TermIntVar(getSpace(), form.varID, form.minvalue, form.maxvalue));
 	return true;
 }
 
 bool CPSolver::add(const InnerCPBinaryRel& form){
-	assert(!isInitialized());
+	MAssert(!isInitialized());
 	TermIntVar lhs(convertToVar(form.varID));
 	add(new BinArithConstraint(getSpace(), lhs, toRelType(form.rel), form.bound, form.head));
 	return true;
 }
 
 bool CPSolver::add(const InnerCPBinaryRelVar& form){
-	assert(!isInitialized());
+	MAssert(!isInitialized());
 	TermIntVar lhs(convertToVar(form.lhsvarID));
 	TermIntVar rhs(convertToVar(form.rhsvarID));
 	add(new BinArithConstraint(getSpace(), lhs, toRelType(form.rel), rhs, form.head));
@@ -111,14 +111,14 @@ bool CPSolver::add(const InnerCPBinaryRelVar& form){
 }
 
 bool CPSolver::add(const InnerCPSumWeighted& form){
-	assert(!isInitialized());
+	MAssert(!isInitialized());
 	vector<TermIntVar> set(convertToVars(form.varIDs));
 	add(new SumConstraint(getSpace(), set, form.weights, toRelType(form.rel), form.bound, form.head));
 	return true;
 }
 
 bool CPSolver::add(const InnerCPCount& form){
-	assert(!isInitialized());
+	MAssert(!isInitialized());
 	vector<TermIntVar> set(convertToVars(form.varIDs));
 	TermIntVar rhs(convertToVar(form.rhsvar));
 	add(new CountConstraint(getSpace(), set, toRelType(form.rel), form.eqbound, rhs));
@@ -126,7 +126,7 @@ bool CPSolver::add(const InnerCPCount& form){
 }
 
 bool CPSolver::add(const InnerCPAllDiff& form){
-	assert(!isInitialized());
+	MAssert(!isInitialized());
 	vector<TermIntVar> set(convertToVars(form.varIDs));
 	add(new DistinctConstraint(getSpace(), set));
 	return true;
@@ -189,7 +189,7 @@ rClause CPSolver::getExplanation(const Lit& p){
 	// IMPORTANT: reason is necessary, because a literal might be derived by CP, but
 	// requested an explanation before it is effectively propagated and in the trail itself
 
-	assert(propreason[p]!=(uint)-1);
+	MAssert(propreason[p]!=(uint)-1);
 
 	InnerDisjunction clause;
 	clause.literals.push_back(p);

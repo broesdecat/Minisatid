@@ -20,11 +20,10 @@
 #include <algorithm>
 
 #include "external/ExternalUtils.hpp"
+#include "external/Datastructures.hpp"
 #include "utils/ContainerUtils.hpp"
 
 namespace MinisatID {
-
-struct Model;
 
 enum FIXEDVAL { FIXED_TRUE, FIXED_ARBIT, FIXED_FALSE };
 enum PRINTCHOICE { PRINT_FIXED, PRINT_ARBIT };

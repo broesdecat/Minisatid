@@ -91,7 +91,7 @@ void SymmetryPropagator::getSymmetricalClause(const rClause& in_clause, std::vec
 //			first two literals unknown
 void SymmetryPropagator::getSortedSymmetricalClause(const rClause& in_clause, std::vector<Lit>& out_clause) {
 	auto insize = getPCSolver().getClauseSize(in_clause);
-	assert(insize >= 2);
+	MAssert(insize >= 2);
 	int first = 0;
 	int second = 1;
 	out_clause.clear();
@@ -113,7 +113,7 @@ void SymmetryPropagator::getSortedSymmetricalClause(const rClause& in_clause, st
 		out_clause[0] = out_clause[first];
 		out_clause[first] = temp;
 	}
-	assert(second != first);
+	MAssert(second != first);
 	if (second == 0) {
 		second = first;
 	}
@@ -206,8 +206,8 @@ rClause SymmetryPropagator::notifypropagate(){
 
 void SymmetryPropagator::notifyEnqueued(const Lit& l) {
 	// Start with latest not yet propagated literals
-	assert(getSymmetrical(l) != l);
-	assert(value(l) == l_True);
+	MAssert(getSymmetrical(l) != l);
+	MAssert(value(l) == l_True);
 	notifiedLits.push_back(l);
 	if (isPermanentlyInactive()) {
 		return;
@@ -218,7 +218,7 @@ void SymmetryPropagator::notifyEnqueued(const Lit& l) {
 		if (value(inverse) == l_True) { //invar: value(l)==l_True
 			--amountNeededForActive;
 		} else {
-			assert(getPCSolver().value(inverse) == l_False);
+			MAssert(getPCSolver().value(inverse) == l_False);
 			reasonOfPermInactive = l;
 		}
 	}
@@ -385,8 +385,8 @@ template<class B, class Solver>
 static void parse_SYMMETRY_main(B& in, Solver& S) {
 	// TODO implement parsing
 /*	int nrVars=S.nVars();
-	assert(nrVars>0);
-	assert(*in=='[');
+	MAssert(nrVars>0);
+	MAssert(*in=='[');
 	++in; // skipping the "["
 	++in; // jumping to next line
 	int start,first, second;
@@ -399,7 +399,7 @@ static void parse_SYMMETRY_main(B& in, Solver& S) {
 				start=nrVars-start;
 			}
 			second = start;
-			assert(*in==',');
+			MAssert(*in==',');
 			while(*in==','){
 				++in;
 				first = second;
@@ -411,22 +411,22 @@ static void parse_SYMMETRY_main(B& in, Solver& S) {
 					symFrom.push(mkLit(abs(first)-1,first<0));
 					symTo.push(mkLit(abs(second)-1,second<0));
 				}else{
-					assert(second< -nrVars && first< -nrVars);
+					MAssert(second< -nrVars && first< -nrVars);
 				}
 			}
-			assert(*in==')'); ++in;
+			MAssert(*in==')'); ++in;
 			first = second;
 			second = start;
 			if(second>=-nrVars && first>=-nrVars){ //check for phase shift symmetries
 				symFrom.push(mkLit(abs(first)-1,first<0));
 				symTo.push(mkLit(abs(second)-1,second<0));
 			}else{
-				assert(second< -nrVars && first< -nrVars);
+				MAssert(second< -nrVars && first< -nrVars);
 			}
 		}
 		S.addSymmetry(symFrom,symTo);
 		if(*in==','){
-			++in; ++in; assert(*in=='(');
+			++in; ++in; MAssert(*in=='(');
 		}else{
 			break;
 		}

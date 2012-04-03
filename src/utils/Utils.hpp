@@ -18,8 +18,6 @@
 #include "external/ExternalUtils.hpp"
 #include "ContainerUtils.hpp"
 
-#include "datastructures/InnerDataStructures.hpp"
-
 typedef unsigned int uint;
 
 namespace MinisatID {
@@ -49,7 +47,15 @@ public:
 };
 
 enum PRIORITY { FAST = 0, SLOW = 1 };
-enum EVENT { EV_PROPAGATE, EV_BACKTRACK, EV_DECISIONLEVEL, EV_BOUNDSCHANGE};
+enum EVENT { EV_PROPAGATE, EV_BACKTRACK, EV_DECISIONLEVEL, EV_BOUNDSCHANGE, EV_FINISH, EV_MODELFOUND};
+
+class GenWatch{
+public:
+	virtual ~GenWatch(){}
+	virtual void propagate() = 0;
+	virtual const Lit& getPropLit() const = 0;
+	virtual bool dynamic() const = 0;
+};
 
 }
 

@@ -9,15 +9,15 @@
 
 #include <vector>
 
-#include "Datastructures.hpp"
-#include "Options.hpp"
+#include "external/Datastructures.hpp"
+#include "external/Options.hpp"
 #include "callback.hpp"
-#include "satsolver/BasicSATUtils.hpp"
 #include <memory>
-#include "Space.hpp"
 #include <iostream>
 
 namespace MinisatID {
+
+typedef std::vector<Lit> litlist;
 
 class Translator;
 class Remapper;
@@ -27,54 +27,56 @@ class PropagatorFactory;
 class PCSolver;
 class Optimization;
 class PropAndBackMonitor;
-class InnerModel;
 class Printer;
+class Space;
 class ModelManager;
 
 class Task {
 private:
 	bool terminate;
-	Space* space;
+	const SolverOption modes;
 public:
-	Task(Space* space)
-			: space(space) {
+	Task(const SolverOption& modes): modes(modes){
 
 	}
 	virtual ~Task() {
 	}
 
-	void notifyTerminateRequested();
+	virtual void notifyTerminateRequested();
 	bool terminateRequested() const {
 		return terminate;
 	}
 
-	void execute();
+	virtual void execute();
+
+protected:
+	virtual void innerExecute() = 0;
+	const SolverOption& getOptions() const{
+		return modes;
+	}
+};
+
+class SpaceTask: public Task{
+	Space* space;
+public:
+	SpaceTask(Space* space);
+
+	virtual void notifyTerminateRequested();
+	virtual void execute();
 
 	Space* getSpace() const {
 		return space;
 	}
 
 protected:
-	virtual void innerExecute() = 0;
 	PCSolver& getSolver() const;
-	const SolverOption& modes() const;
-};
-
-class VarCreation {
-private:
-	Remapper* remapper;
-public:
-	VarCreation(Remapper* r)
-			: remapper(r) {
-	}
-	Var createVar();
 };
 
 enum class MXState {
 	MODEL, UNSAT, UNKNOWN
 };
 
-class ModelExpand: public Task {
+class ModelExpand: public SpaceTask {
 private:
 	const ModelExpandOptions _options;
 	const litlist assumptions;
@@ -110,13 +112,13 @@ private:
 	void addModel(std::shared_ptr<InnerModel> model);
 };
 
-class UnitPropagate: public Task {
+class UnitPropagate: public SpaceTask {
 private:
 	const litlist assumptions;
 
 public:
 	UnitPropagate(Space* space, const litlist& assumptions)
-			: Task(space), assumptions(assumptions) {
+			: SpaceTask(space), assumptions(assumptions) {
 
 	}
 
@@ -129,13 +131,13 @@ private:
 
 enum class TheoryPrinting { ECNF, FZ, HUMAN, ECNFGRAPH };
 
-class Transform: public Task {
+class Transform: public SpaceTask {
 private:
 	const TheoryPrinting outputlanguage;
 
 public:
 	Transform(Space* space, TheoryPrinting outputlanguage)
-			: Task(space), outputlanguage(outputlanguage) {
+			: SpaceTask(space), outputlanguage(outputlanguage) {
 	}
 
 private:

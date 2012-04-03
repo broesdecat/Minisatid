@@ -11,132 +11,243 @@
 
 #include <vector>
 #include <map>
-#include <cassert>
 #include <cstdint>
 #include <cstdlib>
 #include "Weight.hpp"
 #include "MAssert.hpp"
+#include "satsolver/BasicSATUtils.hpp"
 
 namespace MinisatID {
+
+class Remapper;
 
 enum class Optim {
 	LIST, SUBSET, AGG, NONE
 };
 
 // Comparison operator
-enum class EqType	{ EQ, NEQ, L, G, GEQ, LEQ };
+enum class EqType {
+	EQ, NEQ, L, G, GEQ, LEQ
+};
 
 // Aggregate specification operators
-enum class AggType 	{ SUM, PROD, MIN, MAX, CARD }; 	// Type of aggregate concerned
-enum class AggSign 	{ UB, LB}; 	// Sign of the bound of the aggregate
-enum class AggSem 	{ COMP, DEF, IMPLICATION };	// Semantics of satisfiability of the aggregate head: COMPletion or DEFinitional
+enum class AggType {
+	SUM, PROD, MIN, MAX, CARD
+};
+// Type of aggregate concerned
+enum class AggSign {
+	UB, LB
+};
+// Sign of the bound of the aggregate
+enum class AggSem {
+	COMP, DEF, IMPLICATION
+};
+// Semantics of satisfiability of the aggregate head: COMPletion or DEFinitional
 
-class Atom{
+class Atom {
 private:
 	int atom; //Important: because of mutual exclusion of const members and a clean assignment operator, i did not make this constant, but semantically it should be
 
 public:
-	explicit Atom(int a): atom(a){ }
-	int		getValue	() 				const { return atom; }
+	explicit Atom(int a) :
+			atom(a) {
+	}
+	int getValue() const {
+		return atom;
+	}
 
-	bool operator==	(const Atom& a) const { return atom==a.atom; }
-	bool operator<	(const Atom& a) const { return atom<a.atom; }
+	bool operator==(const Atom& a) const {
+		return atom == a.atom;
+	}
+	bool operator<(const Atom& a) const {
+		return atom < a.atom;
+	}
 };
 
-class Literal{
+class Literal {
 private:
 	int lit;
 
 public:
 	//@pre: a is positive
-	explicit Literal(int a, bool s = false): lit(s?-a:a){ MAssert(a>=0); }
-	explicit Literal(Atom a, bool s = false): lit(s?-a.getValue():a.getValue()){ MAssert(a.getValue()>=0); }
+	explicit Literal(int a, bool s = false) :
+			lit(s ? -a : a) {
+		MAssert(a>=0);
+	}
+	explicit Literal(Atom a, bool s = false) :
+			lit(s ? -a.getValue() : a.getValue()) {
+		MAssert(a.getValue()>=0);
+	}
 
-	int		getValue()						const { return lit; }
-	Atom 	getAtom() 						const { return Atom(lit<0?-lit:lit); }
-	bool 	hasSign() 						const { return lit<0; }
-	bool 	operator== (const Literal& l) 	const { return lit == l.lit; }
-	bool 	operator< (const Literal& l) 	const {	return std::abs(lit) < std::abs(l.lit); }
-	Literal operator~()						const { return Literal(getAtom(), lit>0?true:false); }
-	Literal operator!()						const { return Literal(getAtom(), lit>0?true:false); }
+	int getValue() const {
+		return lit;
+	}
+	Atom getAtom() const {
+		return Atom(lit < 0 ? -lit : lit);
+	}
+	bool hasSign() const {
+		return lit < 0;
+	}
+	bool operator==(const Literal& l) const {
+		return lit == l.lit;
+	}
+	bool operator<(const Literal& l) const {
+		return std::abs(lit) < std::abs(l.lit);
+	}
+	Literal operator~() const {
+		return Literal(getAtom(), lit > 0 ? true : false);
+	}
+	Literal operator!() const {
+		return Literal(getAtom(), lit > 0 ? true : false);
+	}
 };
 
 std::string printLiteral(const Literal& lit);
 
 // A class representing a tuple of a literal and an associated weight
-struct WLtuple{
-	const Literal l;
+template<class L>
+struct WLtuple {
+	const L l;
 	const Weight w;
 
-	WLtuple(const Literal& l, const Weight& w): l(l), w(w){ }
-	WLtuple operator=(const WLtuple& lw) const { return WLtuple(lw.l, lw.w); }
+	const L& getLit() const {
+		return l;
+	}
+	const Weight& getWeight() const {
+		return w;
+	}
+
+	WLtuple(const L& l, const Weight& w) :
+			l(l), w(w) {
+	}
+	WLtuple<L> operator=(const WLtuple<L>& lw) const {
+		return WLtuple(lw.l, lw.w);
+	}
+
+	bool operator<(const WLtuple<L>& p) const {
+		return w < p.w;
+	}
+	bool operator<(const Weight& bound) const {
+		return w < bound;
+	}
+	bool operator==(const WLtuple<L>& p) const {
+		return w == p.w && l == p.l;
+	}
 };
 
-typedef std::vector<Literal> literallist;
+Var atom(const Lit& lit);
+Atom atom(const Literal& lit);
 
-struct VariableEqValue{
+//Compare WLs by their literals, placing same literals next to each other
+template<typename L>
+bool compareWLByLits(const WLtuple<L>& one, const WLtuple<L>& two){
+	return atom(one.getLit()) < atom(two.getLit());
+}
+
+//Compare WLs by their weights
+template<class T>
+bool compareByWeights(const T& one, const T& two) {
+	return one.getWeight() < two.getWeight();
+}
+
+template<typename L>
+bool compareWLByAbsWeights(const WLtuple<L>& one, const WLtuple<L>& two){
+	return abs(one.getWeight()) < abs(two.getWeight());
+}
+
+struct VariableEqValue {
 	int variable;
 	int value;
 };
 
-struct Model{
-	std::vector<Literal> literalinterpretations;
+template<class L>
+struct M {
+	std::vector<L> literalinterpretations;
 	std::vector<VariableEqValue> variableassignments;
 };
 
-typedef std::vector<Model*> modellist;
+typedef std::vector<Literal> literallist;
 
-class Disjunction{
+class ID {
 public:
-	std::vector<Literal> literals;
-};
+	const int id;
+	ID(int id) :
+			id(id) {
 
-enum class ImplicationType { IMPLIES, IMPLIEDBY, EQUIVALENT};
-class Implication{
-public:
-	const Literal	head;
-	const ImplicationType type;
-	const literallist body;
-	const bool conjunction;
-
-	Implication(const Literal& head, ImplicationType type, const literallist& body, bool conjunction):
-		head(head), type(type), body(body), conjunction(conjunction){
+	}
+	ID(const ID& id) :
+			id(id.id) {
 
 	}
 };
 
-class Rule{
+template<class L>
+class Disj {
 public:
-	Atom head;
-	literallist body;
+	std::vector<L> literals;
+	Disj(){}
+	Disj(const std::vector<L>& literals): literals(literals){}
+};
+
+enum class ImplicationType {
+	IMPLIES, IMPLIEDBY, EQUIVALENT
+};
+template<class L>
+class Impl {
+public:
+	const L head;
+	const ImplicationType type;
+	const std::vector<L> body;
+	const bool conjunction;
+
+	Impl(const L& head, ImplicationType type, const std::vector<L>& body, bool conjunction) :
+			head(head), type(type), body(body), conjunction(conjunction) {
+
+	}
+};
+
+template<class A, class L>
+class R {
+public:
+	A head;
+	std::vector<L> body;
 	bool conjunctive;
 	int definitionID;
 
-	Rule(): head(0){}
+	R() :
+			head(0) {
+	}
 };
 
-class Set{
+template<class L>
+class S {
 public:
 	int setID;
-	literallist literals;
+	std::vector<L> literals;
 };
 
-class WSet{
+template<class L>
+class WS {
 public:
 	int setID;
-	literallist literals;
+	std::vector<L> literals;
 	std::vector<Weight> weights;
 };
 
-class WLSet{
+template<class L>
+class WLS {
 public:
 	int setID;
-	std::vector<WLtuple> wl;
+	std::vector<WLtuple<L> > wl;
+	const std::vector<WLtuple<L> >& getWL() const {
+		return wl;
+	}
 };
 
-class Aggregate{
+template<class A>
+class AggD {
 public:
-	Atom head;
+	A head;
 	int setID;
 	Weight bound;
 	AggType type;
@@ -144,87 +255,132 @@ public:
 	AggSem sem;
 	int defID; //Only relevant if defined aggregate
 
-	Aggregate(): head(0){}
+	AggD() :
+			head(0) {
+	}
 };
 
-class MinimizeOrderedList{
+template<class L>
+class MnmOrderedList {
 public:
-	literallist literals;
+	std::vector<L> literals;
 };
 
-class MinimizeSubset{
+template<class L>
+class MnmSubset {
 public:
-	literallist literals;
+	std::vector<L> literals;
 };
 
-class MinimizeVar{
+class MnmVar {
 public:
 	uint varID;
 };
 
-class MinimizeAgg{
+class MnmAgg {
 public:
 	int setid;
 	AggType type;
 };
 
-struct CPIntVarRange{
+struct IntVarRange {
 	uint varID;
 	Weight minvalue, maxvalue;
 };
 
-struct CPIntVarEnum{
+struct IntVarEnum {
 	uint varID;
 	std::vector<Weight> values;
 };
 
-struct CPBinaryRel{
-	Atom head;
+template<class A>
+struct BinaryRel {
+	A head;
 	uint varID;
 	EqType rel;
 	Weight bound;
 
-	CPBinaryRel(): head(0){}
+	BinaryRel() :
+			head(0) {
+	}
 };
 
-struct CPBinaryRelVar{
-	Atom head;
+template<class A>
+struct BinaryRelVar {
+	A head;
 	uint lhsvarID, rhsvarID;
 	EqType rel;
 
-	CPBinaryRelVar(): head(0){}
+	BinaryRelVar() :
+			head(0) {
+	}
 };
 
-struct CPSumWeighted{
-	Atom head;
+template<class A>
+struct SumWeighted {
+	A head;
 	std::vector<uint> varIDs;
 	std::vector<Weight> weights;
 	EqType rel;
 	Weight bound;
 
-	CPSumWeighted(): head(0){}
+	SumWeighted() :
+			head(0) {
+	}
 };
 
-struct CPCount{
+struct Count {
 	std::vector<uint> varIDs;
 	Weight eqbound;
 	EqType rel;
 	uint rhsvar;
 };
 
-struct CPAllDiff{
+struct AllDiff {
 	std::vector<uint> varIDs;
+
+	AllDiff(const std::vector<uint>& ids) :
+			varIDs(ids) {
+	}
+	AllDiff convert(const AllDiff& orig, Remapper*) {
+		return AllDiff(orig);
+	}
 };
 
-class ForcedChoices{
-public:
-	literallist forcedchoices;
+template<class LFrom>
+struct Convert;
+
+template<>
+struct Convert<Literal> {
+	typedef Lit LTo;
 };
 
-class Symmetry{
+template<>
+struct Convert<Lit> {
+	typedef Literal LTo;
+};
+
+template<class T, class T2>
+T2 get(const T&, Remapper* remapper);
+
+template<class L>
+class Sym {
 public:
 	// INVAR: the keys are unique
-	std::map<Literal, Literal> symmetry;
+	std::map<L, L> symmetry;
+
+	Sym() {
+	}
+	Sym(const std::map<L, L>& symmetry) :
+			symmetry(symmetry) {
+	}
+	Sym<typename Convert<L>::LTo> convert(Remapper* remapper) {
+		std::map<typename Convert<L>::LTo, typename Convert<L>::LTo> newmap;
+		for (auto i = symmetry.cbegin(); i < symmetry.cend(); ++i) {
+			newmap.insert(get(i->first, remapper), get(i->second, remapper));
+		}
+		return Sym(newmap);
+	}
 };
 
 // FIXME add callback again?
@@ -232,8 +388,8 @@ class LazyGroundingCommand {
 private:
 	bool allreadyground;
 public:
-	LazyGroundingCommand()
-			: allreadyground(false) {
+	LazyGroundingCommand() :
+			allreadyground(false) {
 	}
 	virtual ~LazyGroundingCommand() {
 	}
@@ -249,16 +405,62 @@ public:
 };
 
 // POCO
-class LazyGroundLit {
+template<class L>
+class LazyLit {
 public:
 	bool watchboth;
-	Literal residual;
+	L residual;
 	LazyGroundingCommand* monitor;
 
-	LazyGroundLit(bool watchboth, const Literal& residual, LazyGroundingCommand* monitor)
-			: watchboth(watchboth), residual(residual), monitor(monitor) {
+	LazyLit(bool watchboth, const L& residual, LazyGroundingCommand* monitor) :
+			watchboth(watchboth), residual(residual), monitor(monitor) {
 	}
 };
+
+typedef Sym<Literal> Symmetry;
+typedef Sym<Lit> InnerSymmetry;
+typedef Disj<Literal> Disjunction;
+typedef Disj<Lit> InnerDisjunction;
+typedef R<Atom, Literal> Rule;
+typedef R<int, Lit> InnerRule;
+typedef S<Literal> Set;
+typedef S<Lit> InnerSet;
+typedef WS<Literal> WSet;
+typedef WS<Lit> InnerWSet;
+typedef WLS<Literal> WLSet;
+typedef WLS<Lit> InnerWLSet;
+typedef Impl<Literal> Implication;
+typedef Impl<Lit> InnerImplication;
+typedef AggD<Atom> Aggregate;
+typedef AggD<int> InnerReifAggregate;
+typedef LazyLit<Literal> LazyGroundLit;
+typedef LazyLit<Lit> InnerLazyGroundLit;
+typedef MnmOrderedList<Literal> MinimizeOrderedList;
+typedef MnmOrderedList<Lit> InnerMinimizeOrderedList;
+typedef MnmSubset<Literal> MinimizeSubset;
+typedef MnmSubset<Lit> InnerMinimizeSubset;
+typedef MnmVar MinimizeVar;
+typedef MnmVar InnerMinimizeVar;
+typedef MnmAgg MinimizeAgg;
+typedef MnmAgg InnerMinimizeAgg;
+typedef IntVarRange CPIntVarRange;
+typedef IntVarRange InnerIntVarRange;
+typedef IntVarEnum CPIntVarEnum;
+typedef IntVarEnum InnerIntVarEnum;
+typedef BinaryRel<Atom> CPBinaryRel;
+typedef BinaryRel<int> InnerCPBinaryRel;
+typedef BinaryRelVar<Atom> CPBinaryRelVar;
+typedef BinaryRelVar<int> InnerCPBinaryRelVar;
+typedef SumWeighted<Atom> CPSumWeighted;
+typedef SumWeighted<int> InnerCPSumWeighted;
+typedef Count CPCount;
+typedef Count InnerCPCount;
+typedef AllDiff CPAllDiff;
+typedef AllDiff InnerCPAllDiff;
+typedef M<Lit> InnerModel;
+typedef M<Literal> Model;
+typedef std::vector<Model*> modellist;
+typedef WLtuple<Lit> WL;
 
 }
 

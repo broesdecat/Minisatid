@@ -7,7 +7,7 @@
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 
-#include "external/ModelManager.hpp"
+#include "ModelManager.hpp"
 
 #include <vector>
 #include <string>
@@ -36,7 +36,7 @@ ModelManager::~ModelManager() {
 }
 
 Model* ModelManager::getBestModelFound() const {
-	assert(modelsave!=ModelSaved::NONE);
+	MAssert(modelsave!=ModelSaved::NONE);
 	if (modelsave == ModelSaved::SAVED) {
 		return models.back();
 	} else {
@@ -53,7 +53,7 @@ void ModelManager::saveModel(Model * const model) {
 		if (modelsave != ModelSaved::NONE) {
 			temporarymodel = models.back();
 			models.pop_back();
-			assert(models.empty());
+			MAssert(models.empty());
 		}
 	}
 	modelsave = ModelSaved::SAVING;

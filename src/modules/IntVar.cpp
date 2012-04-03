@@ -100,18 +100,23 @@ rClause	IntVar::notifypropagate(){
 }
 
 void IntVar::addConstraints(){
-	InnerWLSet set(engine().newSetID(), std::vector<WL>());
+	InnerWLSet set;
+	set.setID = engine().newSetID();
 	for(uint i=0; i<equalities.size(); ++i){
-		set.wls.push_back(WL(mkPosLit(equalities[i]), 1));
+		set.wl.push_back(WLtuple<Lit>(mkPosLit(equalities[i]), 1));
 	}
-	InnerAggregate lowercard;
+	InnerReifAggregate lowercard;
+	lowercard.head = engine().newVar();
 	lowercard.setID = set.setID;
 	lowercard.bound = 1;
 	lowercard.type = AggType::CARD;
 	lowercard.sign = AggSign::LB;
-	InnerAggregate highercard(lowercard);
+	InnerReifAggregate highercard(lowercard);
+	highercard.head = engine().newVar();
 	highercard.sign = AggSign::UB;
 	engine().add(set);
+	engine().add(InnerDisjunction({mkPosLit(highercard.head)}));
+	engine().add(InnerDisjunction({mkPosLit(lowercard.head)}));
 	engine().add(highercard);
 	engine().add(lowercard);
 	// TODO do we miss propagation in other direction?

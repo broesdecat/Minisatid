@@ -16,7 +16,7 @@
 #include <sstream>
 
 #include "parser/CommandLineOptions.hpp"
-#include "external/DataAndInference.hpp"
+#include "inferences/Tasks.hpp"
 #include "utils/TimingUtils.hpp"
 
 #include <csetjmp>
@@ -25,8 +25,6 @@
 #include "utils/ResourceManager.hpp"
 #include "parser/Lparseread.hpp"
 #include "parser/PBread.hpp"
-#include "external/Printer.hpp"
-#include "external/ModelManager.hpp"
 
 #include "utils/Print.hpp"
 

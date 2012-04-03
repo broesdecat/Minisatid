@@ -31,6 +31,7 @@ class SearchMonitor;
 class IntView;
 class VarCreation;
 class ConstraintVisitor;
+class Printer;
 typedef Minisat::Solver SearchEngine;
 
 enum TheoryState {
@@ -40,12 +41,13 @@ enum TheoryState {
 class InnerMonitor;
 
 class PCSolver: public LiteralPrinter{
+public:
+	PCSolver(SolverOption modes, InnerMonitor* monitor, VarCreation* varcreator, LiteralPrinter* printer);
+	virtual ~PCSolver();
+
+	// Options
 private:
 	SolverOption _modes;
-
-	VarCreation* varcreator;
-	InnerMonitor* monitor;
-
 public:
 	int verbosity() const {
 		return modes().verbosity;
@@ -53,18 +55,43 @@ public:
 	const SolverOption& modes() const {
 		return _modes;
 	}
-	SolverOption& getNonConstOptions() {
-		return _modes;
-	}
-	void setVerbosity(int verb) {
-		_modes.verbosity = verb;
-	}
-	void setNbModels(int nbmodels) {
-		_modes.nbmodels = nbmodels;
-	}
+
+	// Var information
+private:
+	VarCreation* varcreator;
+public:
+	Var newVar();
+	void createVar(Var v, VARHEUR decide);
+	void notifyVarAdded();
+	void varBumpActivity(Var v);
+	void varReduceActivity(Var v);
+	lbool value(Var x) const; // The current value of a variable.
+	lbool value(Lit p) const; // The current value of a literal.
+	uint64_t nVars() const; // The current number of variables.
+	int newSetID();
+
+	// Decision information
+public:
+	bool isDecisionVar(Var var);
+	void notifyDecisionVar(Var var);
+	void notifyNonDecisionVar(Var var);
+	bool isDecided(Var var);
+	int getNbDecisions() const;
+	std::vector<Lit> getDecisions() const;
+
+	// Level information
+public:
+	int getStartLastLevel() const;
+	int getLevel(int var) const; // Returns the decision level at which a variable was deduced.
+	int getCurrentDecisionLevel() const;
+
+	// Propagation and backtrack monitor
+private:
+	InnerMonitor* monitor;
+
+	// Optimization
 public:
 	// FIXME make private with getters!
-	// OPTIMIZATION INFORMATION
 	Optim optim;
 	Var head;
 	std::vector<Lit> to_minimize;
@@ -77,12 +104,8 @@ public:
 		return optim!=Optim::NONE;
 	}
 
-	void setMonitor(InnerMonitor* m){
-		monitor = m;
-	}
-
+	// Search
 private:
-	//Search algorithms //TODO refactor into an interface "searchalgorithm" with subclasses satsolver and cpsolver?
 	SearchEngine* searchengine;
 	SearchEngine& getSolver() {
 		return *searchengine;
@@ -90,21 +113,23 @@ private:
 	const SearchEngine& getSolver() const {
 		return *searchengine;
 	}
+public:
+	SearchEngine* getSATSolver() const {
+		return searchengine;
+	}
+
+	// CP-support
+private:
 #ifdef CPSUPPORT
+	CPSolver* getCPSolverp() const {return cpsolver;}
 	CPSolver* cpsolver;
 	bool hasCPSolver() const;
 	CPSolver& getCPSolver() {return *cpsolver;}
 	const CPSolver& getCPSolver() const {return *cpsolver;}
 #endif
 
-	EventQueue* queue;
-	EventQueue& getEventQueue() {
-		return *queue;
-	}
-	const EventQueue& getEventQueue() const {
-		return *queue;
-	}
-
+	// Propagatorfactory
+private:
 	PropagatorFactory* factory;
 	PropagatorFactory& getFactory() {
 		return *factory;
@@ -113,90 +138,53 @@ private:
 		return *factory;
 	}
 
+	// Trail
+private:
+	TimeTrail* trail;
+	std::vector<Propagator*> propagations;
+public:
+	const std::vector<Lit>& getTrail() const;
+
+	// State
+private:
 	TheoryState state;
 
 	// Explanation dummies: used to fix up learned clauses which are too small
 	Var dummy1, dummy2;
 
-	// Trail support
-	TimeTrail* trail;
-	std::vector<Propagator*> propagations;
-
-	// State saving
-	int state_savedlevel;
-	bool state_savingclauses;
-	std::vector<rClause> state_savedclauses;
-
-public:
-	PCSolver(SolverOption modes);
-	virtual ~PCSolver();
-
-	SearchEngine* getSATSolver() const {
-		return searchengine;
-	}
-#ifdef CPSUPPORT
-	CPSolver* getCPSolverp() const {return cpsolver;}
-#endif
-
+	// Termination management
+private:
 	bool terminate;
+public:
 	void notifyTerminateRequested();
 	bool terminateRequested() const;
 
-	const std::vector<Lit>& getTrail() const;
-
-	void preventPropagation();
-	void allowPropagation();
-
-	bool isDecisionVar(Var var);
-	void notifyDecisionVar(Var var);
-	void notifyNonDecisionVar(Var var);
-
-	void accept(Propagator* propagator);
-	void accept(GenWatch* const watch);
-	void acceptForBacktrack(Propagator* propagator);
-	void acceptForPropagation(Propagator* propagator);
-	void accept(Propagator* propagator, EVENT event);
-	void acceptBounds(IntView* var, Propagator* propagator);
-	void accept(Propagator* propagator, const Lit& lit, PRIORITY priority);
-
-	Var newVar();
-	int newSetID();
-
-	void finishParsing();
-
-	std::string printLiteral(const Lit& lit) const;
-
+// Search management
+public:
 	/**
 	 * Return true iff a model has been found
 	 * Returns false iff unsat has been found
 	 * Unknown otherwise (e.g. terminated)
 	 */
 	lbool solve(const litlist& assumptions, bool search);
-
+	void finishParsing();
 	void setTrue(const Lit& p, Propagator* solver, rClause c = nullPtrClause); // Enqueue a literal. Assumes value of literal is undefined
 	void notifySetTrue(const Lit& p);
 	void newDecisionLevel();
-	bool hasTotalModel(); //cannot be const! TODO because...?
 	void backtrackTo(int level); // Backtrack until a certain level.
 	void backtrackDecisionLevel(int untillevel, const Lit& decision);
 	rClause propagate();
-
-	bool isDecided(Var var);
-
 	int getTime(const Var& var) const;
 	bool assertedBefore(const Var& l, const Var& p) const;
 	rClause getExplanation(const Lit& l); //NON-OWNING pointer
 	bool isAlreadyUsedInAnalyze(const Lit& lit) const;
-
-	void varBumpActivity(Var v);
-	void varReduceActivity(Var v);
-	lbool value(Var x) const; // The current value of a variable.
-	lbool value(Lit p) const; // The current value of a literal.
-	uint64_t nVars() const; // The current number of variables.
-
-	void 	acceptForDecidable(Var v, Propagator* prop);
 	void 	notifyBecameDecidable(Var v);
+	bool handleConflict(rClause conflict);
+	void notifyBoundsChanged(IntVar* var);
+	rClause notifyFullAssignmentFound();
 
+	// Clause management
+public:
 	rClause createClause(const InnerDisjunction& clause, bool learned);
 	//IMPORTANT: The first literal in the clause is the one which can be propagated at moment of derivation!
 	void addLearnedClause(rClause c); //Propagate if clause is unit, return false if c is conflicting
@@ -204,45 +192,62 @@ public:
 	int getClauseSize(rClause cr) const;
 	Lit getClauseLit(rClause cr, int i) const;
 
-	int getStartLastLevel() const;
-	int getLevel(int var) const; // Returns the decision level at which a variable was deduced.
-	int getCurrentDecisionLevel() const;
-	int getNbDecisions() const;
-	std::vector<Lit> getDecisions() const;
-
-	bool handleConflict(rClause conflict);
-
-	void notifyBoundsChanged(IntVar* var);
-
-	// MOD SOLVER support
+	// State saving
+public:
 	void saveState();
 	void resetState();
 
-	template<typename T>
-	void add(const T& sentence) {
-		getFactory().add(sentence);
-	}
-	void createVar(Var v, VARHEUR decide);
-	void notifyVarAdded();
-
-	SATVAL satState() const;
+	// SATState information
+public:
 	void notifyUnsat();
+	SATVAL satState() const;
 	bool isUnsat() const {
 		return satState() == SATVAL::UNSAT;
 	}
 
-	// DEBUG
+	// Print information
+private:
+	LiteralPrinter* printer;
+public:
+	std::string printLiteral(const Lit& lit) const;
 	void printEnqueued(const Lit& p) const;
 	void printChoiceMade(int level, const Lit& l) const;
 	void printClause(rClause clause) const;
 
+	// Model information
+public:
 	void extractLitModel(std::shared_ptr<InnerModel> fullmodel);
 	void extractVarModel(std::shared_ptr<InnerModel> fullmodel);
-
 	std::shared_ptr<InnerModel> getModel();
 	lbool getModelValue(Var v);
 
+	// Constraint visiting
 	void accept(ConstraintVisitor& visitor);
+
+	// Queueing
+private:
+	EventQueue* queue;
+	EventQueue& getEventQueue() {
+		return *queue;
+	}
+	const EventQueue& getEventQueue() const {
+		return *queue;
+	}
+public:
+	void accept(Propagator* propagator);
+	void accept(GenWatch* const watch);
+	void acceptForBacktrack(Propagator* propagator);
+	void acceptForPropagation(Propagator* propagator);
+	void accept(Propagator* propagator, EVENT event);
+	void acceptBounds(IntView* var, Propagator* propagator);
+	void accept(Propagator* propagator, const Lit& lit, PRIORITY priority);
+	void acceptForDecidable(Var v, Propagator* prop);
+
+	template<typename T>
+	void add(const T& obj){
+		getFactory().add(obj);
+	}
+
 };
 
 }

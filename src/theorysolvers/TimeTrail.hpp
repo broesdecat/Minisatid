@@ -40,8 +40,8 @@ public:
 	}
 	void notifyBacktrack(int untillevel) {
 		for(uint i=decisionlevel2trail[(uint)untillevel+1]; i<trail.size(); ++i){
-			assert(trail.size()>i);
-			assert(var2time.size()>(uint)var(trail[i]));
+			MAssert(trail.size()>i);
+			MAssert(var2time.size()>(uint)var(trail[i]));
 			var2time[var(trail[i])]=-1;
 		}
 		trail.resize(decisionlevel2trail[(uint)untillevel+1]);

@@ -225,10 +225,11 @@ public:
 
 	// Propagator methods
 	virtual rClause 	getExplanation			(const Lit& l);
-	virtual void 		initialize				(bool& present);
+	virtual void 		initialize				();
 	virtual rClause 	notifypropagate			();
 	virtual void 		notifyNewDecisionLevel	();
 	virtual void 		notifyBacktrack			(int untillevel, const Lit& decision){ backtracked = true; Propagator::notifyBacktrack(untillevel, decision); };
+	virtual rClause notifyFullAssignmentFound();
 
 	rClause				isWellFoundedModel		();
 
@@ -251,7 +252,7 @@ private:
 
 	bool 				loopPossibleOver(Var v);
 
-	SATVAL 				transformToCNF		(const varlist& sccroots, bool& present);
+	SATVAL 				transformToCNF		(const varlist& sccroots);
 	bool 				simplifyGraph		(int& atomsinposloops); //False if problem unsat
 
 	void 				adaptStructsToHead	(Var head);
@@ -307,9 +308,14 @@ private:
 	void	findJustification			(Var v);
 	void 	checkJustification			(Var head);
 
-	rClause  indirectPropagate  		();
+private:
+	bool twovalueddef;
+	bool definitionIsTwovalued() const {
+		return twovalueddef;
+	}
+public:
 
-	bool	indirectPropagateNow();                               // Decide (depending on chosen strategy) whether or not to do propagations now.
+	bool	shouldCheckPropagation();                               // Decide (depending on chosen strategy) whether or not to do propagations now.
 	bool	unfounded          (Var cs, std::set<Var>& ufs);      // True iff 'cs' is currently in an unfounded set, 'ufs'.
 	rClause	assertUnfoundedSet (const std::set<Var>& ufs);
 

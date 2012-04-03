@@ -33,6 +33,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <list>
 #include <map>
 #include "modules/DPLLTmodule.hpp"
+#include "external/MAssert.hpp"
 
 typedef std::vector<Minisat::Lit> litlist;
 /*AE*/
@@ -70,13 +71,12 @@ public:
 	CRef	 	getClause			(int i) 		const 	{ return clauses[i]; }
 	int			nbClauses			() 				const 	{ return clauses.size(); }
 	int			getClauseSize		(CRef cr) 		const 	{ return ca[cr].size(); }
-	Lit			getClauseLit		(CRef cr, int i) const 	{ assert(0<=i && i<getClauseSize(cr)); return ca[cr][i]; }
+	Lit			getClauseLit		(CRef cr, int i) const 	{ MAssert(0<=i && i<getClauseSize(cr)); return ca[cr][i]; }
 
 	void		cancelUntil			(int level);				// Backtrack until a certain level.
 	void		uncheckedEnqueue	(Lit p, CRef from = CRef_Undef); // Enqueue a literal. Assumes value of literal is undefined
 	void		checkedEnqueue		(Lit p, CRef from = CRef_Undef); // Enqueue a literal if it is not already true
 	int 		getLevel			(int var)		const;
-	bool 		totalModelFound		();							// True if the current assignment is completely two-valued
 	std::vector<Lit> getDecisions	()				const;
 	int			decisionLevel		()				const; 		// Gives the current decisionlevel.
 	const vec<Lit>& getTrail		()				const 	{ return trail; }
@@ -91,7 +91,7 @@ public:
 
 	void		addForcedChoices	(const vec<Lit>&)	 	{ std::clog <<"Not supported by solver!\n"; exit(-1);  }
 	void		disableHeur			() 						{ std::clog <<"Not supported by solver!\n"; exit(-1); }
-	bool     	isDecisionVar		(Var v) 		const 	{ assert(v<decision.size());return decision[v]; }
+	bool     	isDecisionVar		(Var v) 		const 	{ MAssert(v<decision.size());return decision[v]; }
 	void    	setDecidable	 	(Var v, bool decide);
 
 	void		notifyCustomHeur	() 						{ usecustomheur = true; }
@@ -109,7 +109,7 @@ public:
 	int			getNbOfFormulas		() 				const 	{ return nClauses(); }
 
 	virtual void notifyNewDecisionLevel(){}
-	virtual CRef notifyFullAssignmentFound(){assert(false); return CRef_Undef; }
+	virtual CRef notifyFullAssignmentFound(){MAssert(false); return CRef_Undef; }
 
 	bool isDecided(Var v){
 		auto level = getLevel(v);

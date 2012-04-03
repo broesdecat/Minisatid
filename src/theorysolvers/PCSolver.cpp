@@ -16,9 +16,9 @@
 #include "theorysolvers/PropagatorFactory.hpp"
 #include "theorysolvers/EventQueue.hpp"
 #include "theorysolvers/TimeTrail.hpp"
+#include "external/Space.hpp"
 
 #include "modules/aggsolver/AggSet.hpp"
-#include "external/DataAndInference.hpp"
 
 #include "utils/Print.hpp"
 
@@ -29,17 +29,17 @@ using namespace Minisat;
 using Minisat::vec;
 
 //Has to be value copy of modes!
-PCSolver::PCSolver(SolverOption modes) :
-		_modes(modes), searchengine(NULL), monitor(NULL),
-#ifdef CPSUPPORT //TODO create dummy implemententation of CPSolver to remove all the ifdefs
+PCSolver::PCSolver(SolverOption modes, InnerMonitor* monitor, VarCreation* varcreator, LiteralPrinter* printer) :
+		_modes(modes), searchengine(NULL), monitor(monitor), varcreator(varcreator), printer(printer),
+#ifdef CPSUPPORT
 		cpsolver(NULL),
 #endif
 		queue(NULL),
 		factory(NULL),
 		state(THEORY_PARSING),
 		trail(new TimeTrail()),
-		state_savedlevel(0), state_savingclauses(false),
-		terminate(false) {
+		terminate(false),
+		optim(Optim::NONE), head(-1), agg_to_minimize(NULL){
 
 	queue = new EventQueue(*this);
 
@@ -153,7 +153,7 @@ void PCSolver::backtrackTo(int level) {
 }
 
 void PCSolver::setTrue(const Lit& p, Propagator* module, rClause c) {
-	assert(value(p)!=l_False && value(p)!=l_True);
+	MAssert(value(p)!=l_False && value(p)!=l_True);
 	propagations[var(p)] = module;
 	getSolver().uncheckedEnqueue(p, c);
 }
@@ -195,10 +195,6 @@ bool PCSolver::isAlreadyUsedInAnalyze(const Lit& lit) const {
 	return getSolver().isAlreadyUsedInAnalyze(lit);
 }
 
-bool PCSolver::hasTotalModel() {
-	return getSolver().totalModelFound();
-}
-
 void PCSolver::varBumpActivity(Var v) {
 	getSolver().varBumpActivity(v);
 }
@@ -234,13 +230,6 @@ void PCSolver::accept(Propagator* propagator, const Lit& lit, PRIORITY priority)
 	getEventQueue().accept(propagator, lit, priority);
 }
 
-void PCSolver::preventPropagation() {
-	getEventQueue().preventPropagation();
-}
-void PCSolver::allowPropagation() {
-	getEventQueue().allowPropagation();
-}
-
 Var PCSolver::newVar() {
 	auto v = varcreator->createVar();
 	add(v);
@@ -248,7 +237,7 @@ Var PCSolver::newVar() {
 }
 
 int PCSolver::newSetID() {
-	// FIXME assert(!isParsing());
+	// FIXME MAssert(!isParsing());
 	return getFactory().newSetID();
 }
 
@@ -265,7 +254,7 @@ rClause PCSolver::getExplanation(const Lit& l) {
 	}
 
 	auto propagator = propagations[var(l)];
-	assert(propagator!=NULL);
+	MAssert(propagator!=NULL);
 	//If this happens, there is usually an error in the generated explanations!
 
 	if (modes().verbosity > 2) {
@@ -273,7 +262,7 @@ rClause PCSolver::getExplanation(const Lit& l) {
 	}
 
 	auto explan = propagator->getExplanation(l);
-	assert(explan!=nullPtrClause);
+	MAssert(explan!=nullPtrClause);
 
 	if (verbosity() > 2) {
 		print(explan, *this);
@@ -287,7 +276,7 @@ rClause PCSolver::getExplanation(const Lit& l) {
  * Returns true if l was asserted before p
  */
 bool PCSolver::assertedBefore(const Var& l, const Var& p) const {
-	assert(value(l)!=l_Undef && value(p)!=l_Undef);
+	MAssert(value(l)!=l_Undef && value(p)!=l_Undef);
 
 	if (getLevel(l) < getLevel(p)) {
 		return true;
@@ -303,7 +292,7 @@ bool PCSolver::assertedBefore(const Var& l, const Var& p) const {
  * VARHEUR::DECIDE has precedence over NON_DECIDE for repeated calls to the same var!
  */
 void PCSolver::createVar(Var v, VARHEUR decide) {
-	assert(v>-1);
+	MAssert(v>-1);
 
 	while (((uint64_t) v) >= nVars()) {
 		getSolver().newVar(modes().polarity == Polarity::TRUE ? l_True : modes().polarity == Polarity::FALSE ? l_False : l_Undef, false);
@@ -315,10 +304,6 @@ void PCSolver::createVar(Var v, VARHEUR decide) {
 			propagations.resize(nVars(), NULL);
 		}
 	}
-}
-
-void PCSolver::notifyVarAdded() {
-	getEventQueue().notifyVarAdded();
 }
 
 int PCSolver::getTime(const Var& var) const {
@@ -344,16 +329,22 @@ void PCSolver::finishParsing() {
 		}
 	}
 
-	getFactory().finishParsing();
-
 	if (isUnsat()) {
 		return;
 	}
 
-	// FIXME getEventQueue().finishParsing();
+	getEventQueue().initialize();
 	if (modes().useaggheur) {
 		getSATSolver()->notifyCustomHeur();
 	}
+}
+
+void PCSolver::notifyVarAdded() {
+	getEventQueue().notifyVarAdded();
+}
+
+rClause PCSolver::notifyFullAssignmentFound(){
+	return getEventQueue().notifyFullAssignmentFound();
 }
 
 // Called by SAT solver when new decision level is started, BEFORE choice has been made!
@@ -415,18 +406,20 @@ bool PCSolver::isDecided(Var var) {
 }
 
 void PCSolver::saveState() {
-	state_savedlevel = getCurrentDecisionLevel();
-	state_savingclauses = true;
+	// FIXME
+//	state_savedlevel = getCurrentDecisionLevel();
+//	state_savingclauses = true;
 }
 
 void PCSolver::resetState() {
-	backtrackTo(state_savedlevel);
-	assert(state_savedlevel == getCurrentDecisionLevel());
-	state_savingclauses = false;
+	// FIXME
+//	backtrackTo(state_savedlevel);
+//	MAssert(state_savedlevel == getCurrentDecisionLevel());
+//	state_savingclauses = false;
 
-	throw idpexception("Resetting state is incorrect.\n"); // FIXME
+	throw notYetImplemented("Resetting state.\n");
 	//getSolver().removeClauses(state_savedclauses);
-	state_savedclauses.clear();
+//	state_savedclauses.clear();
 	//getSolver().removeAllLearnedClauses();
 }
 
@@ -447,23 +440,22 @@ void PCSolver::printClause(rClause clause) const {
 }
 
 void PCSolver::extractLitModel(std::shared_ptr<InnerModel> fullmodel) {
-	fullmodel->litassignments.clear();
-	// FIXME implement more efficiently in the satsolver?
+	fullmodel->literalinterpretations.clear();
 	for (uint64_t i = 0; i < nVars(); ++i) {
 		if (value(i) == l_True) {
-			fullmodel->litassignments.push_back(mkLit(i, false));
+			fullmodel->literalinterpretations.push_back(mkLit(i, false));
 		} else if (value(i) == l_False) {
-			fullmodel->litassignments.push_back(mkLit(i, true));
+			fullmodel->literalinterpretations.push_back(mkLit(i, true));
 		}
 	}
 }
 
 void PCSolver::extractVarModel(std::shared_ptr<InnerModel> fullmodel) {
-	fullmodel->varassignments.clear();
-	getFactory().includeCPModel(fullmodel->varassignments);
+	fullmodel->variableassignments.clear();
+	getFactory().includeCPModel(fullmodel->variableassignments);
 #ifdef CPSUPPORT
 	if(hasCPSolver()) {
-		getCPSolver().getVariableSubstitutions(fullmodel->varassignments);
+		getCPSolver().getVariableSubstitutions(fullmodel->variableassignments);
 	}
 #endif
 }
@@ -486,7 +478,7 @@ void PCSolver::accept(ConstraintVisitor& visitor) {
 }
 
 std::string PCSolver::printLiteral(const Lit& lit) const {
-	throw notYetImplemented("Printing literal from PCSolver"); // FIXME make space a printer
+	return printer->printLiteral(lit);
 }
 
 // @pre: decision level = 0

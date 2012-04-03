@@ -40,7 +40,7 @@ private:
 public:
 	TempAgg(const Lit& head, AggBound b, AggSem sem, AggType type):
 			bound(b), head(head), sem(sem), index(-1), type(type){
-		assert(sem!=AggSem::DEF);
+		MAssert(sem!=AggSem::DEF);
 	}
 
 	const Lit& 	getHead		() 					const 	{ return head; }
@@ -134,7 +134,7 @@ public:
 	Weight 		getCombinedWeight		(const Weight& one, const Weight& two) 	const;
 	WL 			handleOccurenceOfBothSigns(const WL& one, const WL& two, Weight& knownbound) const;
 	Weight		add						(const Weight& lhs, const Weight& rhs) 	const { return lhs>rhs?lhs:rhs; }
-	Weight		remove					(const Weight&, const Weight&) 			const { assert(false); return 0; }
+	Weight		remove					(const Weight&, const Weight&) 			const { MAssert(false); return 0; }
 	AggPropagator*	createPropagator	(TypedSet* set) 						const;
 
 	Weight 		getESV					()										const { return negInfinity(); }

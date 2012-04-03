@@ -11,7 +11,7 @@
 #include "Idpexception.hpp"
 
 #ifndef NDEBUG
-#define MAssert(condition) { if(!(condition)){ std::stringstream ss; ss << "ASSERT FAILED: " << #condition << " @ " << __FILE__ << " (" << __LINE__ << ")"; throw idpexception(ss.str());} }
+#define MAssert(condition) { if(!(condition)){ std::stringstream ss; ss << "ASSERT FAILED: " << #condition << " @ " << __FILE__ << " (" << __LINE__ << ")"; throw MinisatID::idpexception(ss.str());} }
 #else
 #define MAssert(x) do {} while(0)
 #endif

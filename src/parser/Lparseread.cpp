@@ -33,6 +33,7 @@
 #include "external/Translator.hpp"
 #include "utils/ContainerUtils.hpp"
 #include "external/Constraints.hpp"
+#include "theorysolvers/PCSolver.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -60,7 +61,7 @@ Atom Read<T>::makeParsedAtom(int n){
 
 template<class T>
 Atom Read<T>::makeNewAtom(){
-	assert(endedparsing);
+	MAssert(endedparsing);
 	return makeAtom(++maxatomnumber);
 }
 
@@ -383,7 +384,7 @@ void Read<T>::tseitinizeHeads(){
 
 	//Make all literals which are defined but do not occur in the theory false
 	for(auto i=defatoms.cbegin(); i!=defatoms.cend(); ++i){
-		assert((*i).second);
+		MAssert((*i).second);
 		auto it = headtorules.find((*i).first);
 		if(it==headtorules.cend() || (*it).second.size()==0){
 			Disjunction clause;

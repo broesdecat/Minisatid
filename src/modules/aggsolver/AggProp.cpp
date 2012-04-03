@@ -14,20 +14,19 @@
 #include "modules/aggsolver/FullyWatched.hpp"
 #include "modules/aggsolver/PartiallyWatched.hpp"
 
-#include <cassert>
 
 using namespace std;
 using namespace MinisatID;
 
 Weight	Agg::getCertainBound() const {
-	assert(getSet()!=NULL);
+	MAssert(getSet()!=NULL);
 	return getBound()-getSet()->getKnownBound();
 }
 
 SATVAL Agg::reInitializeAgg(){
 	TypedSet& set = *getSet();
 	// FIXME check whether this is sufficient?
-	rClause confl = set.getProp()->reInitialize();
+	auto confl = set.getProp()->reInitialize();
 	return confl==nullPtrClause?SATVAL::POS_SAT:SATVAL::UNSAT;
 }
 
@@ -42,9 +41,9 @@ Weight AggProp::getMaxPossible(const TypedSet& set)	const { return getMaxPossibl
 
 Weight AggProp::getValue(const TypedSet& set) const {
 	Weight total = getESV();
-	for(vwl::const_iterator i=set.getWL().cbegin(); i<set.getWL().cend(); ++i){
-		lbool val = set.value((*i).getLit());
-		assert(val!=l_Undef);
+	for(auto i=set.getWL().cbegin(); i<set.getWL().cend(); ++i){
+		auto val = set.value((*i).getLit());
+		MAssert(val!=l_Undef);
 
 		if(val==l_True){
 			total = add(total, (*i).getWeight());
@@ -61,11 +60,11 @@ bool SumProp::isMonotone(const TempAgg& agg, const Weight& w, const Weight&) con
 }
 
 bool ProdProp::isMonotone(const Agg& agg, const Weight& w) const {
-	assert(w>=0);
+	MAssert(w>=0);
 	return !agg.hasUB();
 }
 bool ProdProp::isMonotone(const TempAgg& agg, const Weight& w, const Weight&) const {
-	assert(w>=0);
+	MAssert(w>=0);
 	return !agg.hasUB();
 }
 
@@ -214,7 +213,7 @@ Weight ProdProp::getMaxPossible(const std::vector<WL>& wls) const {
 }
 
 Weight ProdProp::add(const Weight& lhs, const Weight& rhs) const {
-	assert(lhs!=0 && rhs!=0);
+	MAssert(lhs!=0 && rhs!=0);
 #ifdef NOARBITPREC
 	bool sign = false;
 	Weight l = lhs, r = rhs;
@@ -238,7 +237,7 @@ Weight ProdProp::remove(const Weight&, const Weight&) const{
 }
 Weight ProdProp::removeMin(const Weight& lhs, const Weight& rhs) const{
 	Weight w = 0;
-	assert(rhs!=0); //FIXME should prevent this from happening
+	MAssert(rhs!=0); //FIXME should prevent this from happening
 	if (rhs != 0) {
 		w = lhs / rhs;
 		if (w*rhs>lhs) {
@@ -250,7 +249,7 @@ Weight ProdProp::removeMin(const Weight& lhs, const Weight& rhs) const{
 }
 Weight ProdProp::removeMax(const Weight& lhs, const Weight& rhs) const{
 	Weight w = 0;
-	assert(rhs!=0); //FIXME should prevent this from happening
+	MAssert(rhs!=0); //FIXME should prevent this from happening
 	if (rhs != 0) {
 		w = lhs / rhs;
 		if (rhs*w<lhs) {

@@ -43,10 +43,10 @@ rClause LazyResidual::notifypropagate() {
 
 	// NOTE: have to make sure that constraints are never added at a level where they will no have full effect!
 
-	// TODO make preventpropagation more specific?
-	getPCSolver().preventPropagation(); // NOTE: necessary for inductive definitions, as otherwise might try propagation before all rules for some head have been added.
+	// TODO check whether preventprop is still necessary
+//	getPCSolver().preventPropagation(); // NOTE: necessary for inductive definitions, as otherwise might try propagation before all rules for some head have been added.
 	monitor->requestGrounding(); // FIXME should delete the other watch too
-	getPCSolver().allowPropagation();
+//	getPCSolver().allowPropagation();
 
 	if (not getPCSolver().isUnsat() /* FIXME FIXME && getPCSolver().isInitialized()*/) { // NOTE: otherwise, it will be called later and would be incorrect here!
 		getPCSolver().finishParsing();

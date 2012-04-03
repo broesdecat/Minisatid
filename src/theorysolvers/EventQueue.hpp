@@ -20,10 +20,10 @@ namespace MinisatID{
 
 class PCSolver;
 class IntVar;
-class InnerModel;
 class ConstraintVisitor;
 
 typedef std::vector<Propagator*> proplist;
+typedef std::deque<Propagator*> propqueue;
 typedef std::vector<GenWatch*> watchlist;
 
 // FIXME using iterators while the container can be changed is NOT allowed!
@@ -34,11 +34,10 @@ private:
 	PCSolver& getPCSolver() { return pcsolver; }
 	const PCSolver& getPCSolver() const { return pcsolver; }
 
-	std::queue<Propagator*> fastqueue, slowqueue, backtrackqueue;
+	std::deque<Propagator*> fastqueue, slowqueue, backtrackqueue;
 
 	proplist allpropagators;
-	std::deque<Propagator*> finishparsing;
-	std::map<EVENT, proplist > event2propagator;					// |events|
+	std::map<EVENT, propqueue > event2propagator;					// |events|
 	std::vector<std::vector<proplist> > lit2priority2propagators;	// |lits|
 	std::vector<watchlist> lit2watches;								// |lits|
 	std::vector<proplist> intvarid2propagators; 					// |intvars|
@@ -58,23 +57,22 @@ public:
 	EventQueue(PCSolver& pcsolver);
 	virtual ~EventQueue();
 
-	void preventPropagation();
-	void allowPropagation();
-
 	// NOTE: EACH propagator has to register here for the general methods
 	void accept(Propagator* propagator){
 		for(proplist::const_iterator i=allpropagators.cbegin(); i<allpropagators.cend(); ++i){
-			assert(propagator!=*i);
+			MAssert(propagator!=*i);
 		}
 		allpropagators.push_back(propagator);
 	}
 
 	void acceptForBacktrack(Propagator* propagator){
-		backtrackqueue.push(propagator);
+		backtrackqueue.push_back(propagator);
 	}
 	void acceptForPropagation(Propagator* propagator){
-		fastqueue.push(propagator);
+		fastqueue.push_back(propagator);
 	}
+
+	rClause notifyFullAssignmentFound();
 
 	// NOTE: a propagator should only accept events when he is ready for those events!
 	void accept(Propagator* propagator, EVENT basicevent){
@@ -107,8 +105,10 @@ public:
 
 	void 	accept(ConstraintVisitor& visitor);
 
+	void 	initialize();
+
 private:
-	void 	setTrue(const proplist& list, std::queue<Propagator*>& queue);
+	void 	setTrue(const proplist& list, std::deque<Propagator*>& queue);
 	void 	clearNotPresentPropagators();
 
 	bool 	isUnsat() const;

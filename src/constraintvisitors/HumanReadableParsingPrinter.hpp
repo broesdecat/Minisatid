@@ -36,7 +36,7 @@ public:
 
 	void visit(const MinisatID::InnerImplication& obj){
 		target() <<"Added " <<print(obj.head, getPrinter()) <<obj.type;
-		printList(obj.literals, obj.conjunctive?" & ":" | ", target(), getPrinter());
+		printList(obj.body, obj.conjunction?" & ":" | ", target(), getPrinter());
 		target() <<"\n";
 	}
 
@@ -59,19 +59,13 @@ public:
 	void visit(const InnerWLSet& set){
 		target() <<"Added non-weighted set " <<set.setID <<" = {";
 		std::vector<Lit>::size_type count = 0;
-		for(auto i=set.wls.cbegin(); i!=set.wls.cend(); ++i, ++count){
+		for(auto i=set.wl.cbegin(); i!=set.wl.cend(); ++i, ++count){
 			target() <<print((*i).getLit(), getPrinter()) <<"=" <<(*i).getWeight();
-			if(count<set.wls.size()-1){
+			if(count<set.wl.size()-1){
 				target() <<", ";
 			}
 		}
 		target() <<"}\n";
-	}
-
-	void visit(const InnerAggregate& agg){
-		target() <<"Added aggregate: " <<agg.type;
-		target() <<"( set" <<agg.setID <<" )" <<(agg.sign==AggSign::UB?"=<":">=") <<agg.bound;
-		target() <<"\n";
 	}
 
 	void visit(const InnerReifAggregate& agg){
@@ -104,7 +98,7 @@ public:
 
 	void visit(const InnerMinimizeAgg& mnm){
 		target() <<"Searching model with minimal value for ";
-		target() <<mnm.type <<"(set" <<mnm.setID <<")\n";
+		target() <<mnm.type <<"(set" <<mnm.setid <<")\n";
 	}
 
 	void visit(const InnerSymmetry& symm){
@@ -117,12 +111,6 @@ public:
 			begin = false;
 			target() <<print((*i).first, getPrinter()) <<"->" <<print((*i).second, getPrinter());
 		}
-		target() <<"\n";
-	}
-
-	void visit(const InnerForcedChoices& choices){
-		target() <<"Forced choices ";
-		printList(choices.forcedchoices, " ", target(), getPrinter());
 		target() <<"\n";
 	}
 

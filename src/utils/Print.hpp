@@ -20,7 +20,7 @@ class LiteralPrinter;
 Lit getPrintableVar(Var v);
 
 template<typename S>
-std::string print(Var obj, S solver) {
+std::string print(Var obj, const S& solver) {
 	return print(getPrintableVar(obj), solver);
 }
 

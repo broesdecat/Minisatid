@@ -14,7 +14,6 @@
 
 namespace MinisatID{
 
-class WL;
 typedef std::vector<WL> vwl;
 
 class PCSolver;
@@ -102,7 +101,7 @@ public:
 	virtual bool		isInSet			()	const = 0;
 
     bool 		hasClause		()	const	{ return hasclause; }
-    const InnerDisjunction&	getClause	()	const	{ assert(hasClause()); return explanation; }
+    const InnerDisjunction&	getClause	()	const	{ MAssert(hasClause()); return explanation; }
     void		setClause		(const InnerDisjunction& c) {	explanation = c; hasclause = true; }
 };
 
@@ -118,9 +117,9 @@ public:
 
 	const Agg&		getAgg			() 	const	{ return expr; }
     Lit				getPropLit		()	const	{ return proplit; }
-    Weight			getPropWeight	()	const	{ assert(false); return Weight(-1); }
+    Weight			getPropWeight	()	const	{ MAssert(false); return Weight(-1); }
     bool			isHeadReason	() 	const	{ return true; }
-    bool			isInSet			()	const	{ assert(false); return false; }
+    bool			isInSet			()	const	{ MAssert(false); return false; }
 };
 
 class SetLitReason: public AggReason{

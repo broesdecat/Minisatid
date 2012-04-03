@@ -21,6 +21,7 @@ namespace MinisatID {
 
 class ResMan;
 class ModelManager;
+class Space;
 class Translator;
 
 enum class SolvingState { STARTED, FINISHEDCLEANLY, ABORTED};
@@ -28,7 +29,7 @@ enum class SolvingState { STARTED, FINISHEDCLEANLY, ABORTED};
 class Printer{
 private:
 	ModelManager* modelmanager;
-	Translator* translator;
+	Space* space;
 	std::shared_ptr<ResMan> resman;
 	SolverOption modes;
 
@@ -40,10 +41,10 @@ private:
 	double 		startfinish, endfinish, startsimpl, endsimpl, startsolve, endsolve;
 
 public:
-	Printer(ModelManager* modelmanager, Translator* translator, Models printoption, const SolverOption& modes);
+	Printer(ModelManager* modelmanager, Space* translator, Models printoption, const SolverOption& modes);
 	~Printer();
 
-	void 				addModel			(Model * const model);
+	void 	addModel			(Model * const model);
 
 	void 	closeOutput				();
 	void	setOutputFile			(std::string output);
@@ -59,7 +60,7 @@ public:
 	void notifyStartSolving			();
 	void notifyEndSolving			();
 
-	Translator* getTranslator() const { return translator; }
+	Translator* getTranslator() const;
 
 	Models getPrintOption() const { return printoption; }
 

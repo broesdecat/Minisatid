@@ -52,14 +52,14 @@ protected:
 	ManagedFactoryStorage(): storage_(NULL){}
 
 	void addStorage(PCSolver* engine){
-		assert(not hasStorage());
+		MAssert(not hasStorage());
 		storage_ = new PropStorage(engine);
 	}
 	bool hasStorage() const {
 		return storage_!=NULL;
 	}
 	PropStorage* getStorage() const {
-		assert(hasStorage());
+		MAssert(hasStorage());
 		return storage_;
 	}
 };
@@ -76,12 +76,12 @@ protected:
 		return storage_!=NULL;
 	}
 	PropStorage* getStorage() const {
-		assert(hasStorage());
+		MAssert(hasStorage());
 		return storage_;
 	}
 
 	void setStorage(PropStorage* storage){
-		assert(not hasStorage());
+		MAssert(not hasStorage());
 		storage_ = storage;
 	}
 };
@@ -91,6 +91,12 @@ typedef FactoryStorage<SATSolver> SATStorage;
 typedef FactoryStorage<CPSolver> CPStorage;
 #endif
 typedef ManagedFactoryStorage<AggToCNFTransformer> AggStorage;
+
+struct SetWithAggs{
+	InnerWLSet* set;
+	std::vector<TempAgg*> aggs;
+	AggType type;
+};
 
 class PropagatorFactory:
 	public SATStorage,
@@ -112,9 +118,8 @@ private:
 	// Parsing support
 	int maxset;
 	//std::vector<InnerRule*> parsedrules;
-	typedef std::pair<InnerWLSet*, std::vector<TempAgg*> > SetWithAggs;
 	std::map<int, SetWithAggs> parsedsets;
-	std::vector<InnerAggregate*> parsedaggs;
+	std::vector<InnerReifAggregate*> parsedaggs;
 
 	// Logging
 	std::vector<ConstraintVisitor*> parsingmonitors;
@@ -140,13 +145,11 @@ public:
 	void add(const InnerImplication& sentence);
 	void add(const InnerRule& sentence);
 	void add(const InnerWLSet& sentence);
-	void add(const InnerAggregate& sentence);
 	void add(const InnerReifAggregate& sentence);
 	void add(const InnerMinimizeSubset& sentence);
 	void add(const InnerMinimizeOrderedList& sentence);
 	void add(const InnerMinimizeVar& sentence);
 	void add(const InnerMinimizeAgg& sentence);
-	void add(const InnerForcedChoices& sentence);
 	void add(const InnerSymmetry& sentence);
 	void add(const InnerIntVarEnum& object);
 	void add(const InnerIntVarRange& object);
@@ -155,7 +158,7 @@ public:
 	void add(const InnerCPSumWeighted& object);
 	void add(const InnerCPCount& object);
 	void add(const InnerCPAllDiff& object);
-	void add(const InnerLazyClause& object);
+	void add(const InnerLazyGroundLit& object);
 
 	void add(InnerDisjunction& disj, rClause& newclause);
 

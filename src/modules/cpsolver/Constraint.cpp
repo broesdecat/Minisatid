@@ -40,7 +40,7 @@ Gecode::BoolVar ReifiedConstraint::getBoolVar(const CPScript& space) const {
 }
 
 rClause ReifiedConstraint::propagate(bool becametrue, CPScript& space){
-	assert(!isAssigned(space));
+	MAssert(!isAssigned(space));
 
 	rel(space, getBoolVar(space), IRT_EQ, becametrue?1:0);
 

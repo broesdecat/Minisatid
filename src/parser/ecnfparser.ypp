@@ -26,10 +26,10 @@
 #include <map>
 
 #include "external/ExternalUtils.hpp"
-#include "external/DataAndInference.hpp"
 #include "external/Translator.hpp"
 #include "utils/Print.hpp"
 #include "external/Constraints.hpp"
+#include "theorysolvers/PCSolver.hpp"
 
 #include <limits>
 
@@ -121,7 +121,7 @@ void checkVersion(ECNF_VERSION version);
     std::vector<MinisatID::Weight>* vweights;
     std::vector<uint>* vuints;
     std::vector<MinisatID::Literal>* vlits;
-    std::vector<MinisatID::WLtuple>* vlws;
+    std::vector<MinisatID::WLtuple<MinisatID::Literal> >* vlws;
     std::vector<MinisatID::Atom>* vatoms;
     MinisatID::EqType rel;
     MinisatID::AggType aggr;
@@ -142,7 +142,6 @@ void checkVersion(ECNF_VERSION version);
 %token <aggr> AGGDEFN
 %token CNF ECNF DEFPRESENT AGGPRESENT
 %token INTVAR INTVARDOM SUMSTSIRI COUNTSTRIT DISTINCT DELIM BINTRI BINTRT
-%token FORCECHOICE
 
 %type <integer> number
 %type <str> weight
@@ -215,13 +214,6 @@ cnfclause
 //---------------------------------------------
 
 ecnftheory	:	/* empty */
-			|	ecnftheory FORCECHOICE body ZERO 
-				{ 
-					ForcedChoices choices;
-					choices.forcedchoices = *$3;
-					delete $3;
-					add(*solver,choices);  
-				}
 			|	ecnftheory clause
 			|	ecnftheory equiv
 			|	ecnftheory rule
@@ -449,8 +441,7 @@ cpconstraint
 			//only global alldiff at the moment!
 		|	DISTINCT uibody DELIM ZERO //DELIM to remove shift-reduce conflict 
 			{ 	
-				CPAllDiff alldiff;
-				alldiff.varIDs = *$2;
+				CPAllDiff alldiff(*$2);
 				CR(alldiff);
 				delete $2;
 			}
@@ -462,18 +453,14 @@ translation	: /* empty */
 			|	TRANSHEADER 
 				{
 					fodottrans = new FODOTTranslator(solver->getOptions().transformat==OutputFormat::ASP);	
-					if(fodottrans!=NULL){
-						solver->setTranslator(fodottrans);
-					}
+					solver->setTranslator(fodottrans);
 				} 
 				typelist predlist funclist truelist arbitlist
 				
 			| 	TRANSHEADER2 
 				{	
 					simpletrans = new LParseTranslator();				
-					if(simpletrans!=NULL){
-						solver->setTranslator(simpletrans);
-					}
+					solver->setTranslator(simpletrans);
 				}
 				tuplelist
 			;
@@ -546,7 +533,7 @@ wbody	:	wbody NUMBER REL
 				} 
 			} 
 			weight	
-			{ $$ = $1; $$->push_back(MinisatID::WLtuple(cLiteral($2), cWeight($5))); delete($2);  delete $5;}
+			{ $$ = $1; $$->push_back(MinisatID::WLtuple<MinisatID::Literal>(cLiteral($2), cWeight($5))); delete($2);  delete $5;}
 			
 		|	NUMBER REL 
 			{ 
@@ -555,7 +542,7 @@ wbody	:	wbody NUMBER REL
 				} 
 			} 
 			weight	
-			{ $$ = new std::vector<WLtuple>(1,MinisatID::WLtuple(cLiteral($1), cWeight($4))); delete($1); delete $4;}
+			{ $$ = new std::vector<WLtuple<MinisatID::Literal> >(1,MinisatID::WLtuple<MinisatID::Literal>(cLiteral($1), cWeight($4))); delete($1); delete $4;}
 		;
 		
 weightbody 	
@@ -583,10 +570,6 @@ int yywrap() {
 void yyinit(){ }
 
 void yydestroy(){
-	if(solver!=NULL){
-		delete(solver);
-	}	
-	solver = NULL;
 	heads.clear();
 	modalops.clear();
 }

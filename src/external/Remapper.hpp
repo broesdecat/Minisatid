@@ -74,7 +74,7 @@ bool canBackMapLiteral(const Lit& lit, const Remapper& r) {
 
 template<typename Remapper>
 Literal getBackMappedLiteral(const Lit& lit, const Remapper& r) {
-	assert(canBackMapLiteral(lit, r));
+	MAssert(canBackMapLiteral(lit, r));
 	return r.getLiteral(lit);
 }
 

@@ -203,26 +203,12 @@ void Solver::addLearnedClause(CRef rc) {
 			reportf("\n");
 		}
 	} else { // Adding literal true at level 0
-		assert(c.size()==1);
+		MAssert(c.size()==1);
 		cancelUntil(0);
 		vec<Lit> ps;
 		ps.push(c[0]);
 		addClause(ps);
 	}
-}
-
-bool Solver::totalModelFound() {
-	Var v = var_Undef;
-	while (v == var_Undef || assigns[v] != l_Undef || !decision[v]) {
-		if (v != var_Undef)
-			order_heap.removeMin();
-		if (order_heap.empty()) {
-			v = var_Undef;
-			break;
-		} else
-			v = order_heap[0];
-	}
-	return v == var_Undef;
 }
 
 struct permute{
@@ -251,14 +237,14 @@ void permuteRandomly(vec<Lit>& lits){
 }
 
 bool Solver::addBinaryOrLargerClause(vec<Lit>& ps, CRef& newclause) {
-	assert(decisionLevel()==0); // TODO can also relax this here
+	MAssert(decisionLevel()==0); // TODO can also relax this here
 
 	if (!ok){
 		return false;
 	}
 
 	sort(ps); // NOTE: remove duplicates
-	assert(ps.size()>1);
+	MAssert(ps.size()>1);
 
 	permuteRandomly(ps); // NOTE: reduce dependency on grounding and literal introduction mechanics (certainly for lazy grounding)
 
@@ -346,22 +332,22 @@ void Solver::addToClauses(CRef cr, bool learnt) {
  * complexity: O(1)
  */
 void Solver::checkDecisionVars(const Clause& c) {
-	assert(not isFalse(c[0]) || not isFalse(c[1]));
+	MAssert(not isFalse(c[0]) || not isFalse(c[1]));
 	if(isFalse(c[0])){
 		setDecidable(var(c[1]), true);
 	}else if(isFalse(c[1])){
 		setDecidable(var(c[0]), true);
 	}else if (not isDecisionVar(var(c[0])) && not isDecisionVar(var(c[1]))) {
 		int choice = irand(random_seed, 2);
-		assert(choice==0 || choice==1);
+		MAssert(choice==0 || choice==1);
 		setDecidable(var(c[choice]), true);
 	}
-	assert((not isFalse(c[0]) && isDecisionVar(var(c[0]))) || (not isFalse(c[1]) && isDecisionVar(var(c[1]))));
+	MAssert((not isFalse(c[0]) && isDecisionVar(var(c[0]))) || (not isFalse(c[1]) && isDecisionVar(var(c[1]))));
 }
 /*AE*/
 
 void swap(Clause& c, int from, int to){
-	assert(c.size()>from && c.size()>to);
+	MAssert(c.size()>from && c.size()>to);
 	auto temp = c[from];
 	c[from] = c[to];
 	c[to] = temp;
@@ -369,7 +355,7 @@ void swap(Clause& c, int from, int to){
 
 void Solver::attachClause(CRef cr) {
 	auto& c = ca[cr];
-	assert(c.size() > 1);
+	MAssert(c.size() > 1);
 
 	if(decisionLevel()>0 && not c.learnt()){ // If Level > 0 and an input clause, reorder the watches so the first two are unknown or the most recently chosen ones
 		int firstnonfalseindex = -1, secondnonfalseindex = -1, mostrecentfalseindex = -1, mostrecentfalselevel = -1;
@@ -410,7 +396,7 @@ void Solver::attachClause(CRef cr) {
 	}
 
 	if(not c.learnt()){
-		assert(not isFalse(c[1]) || not isFalse(c[0]));
+		MAssert(not isFalse(c[1]) || not isFalse(c[0]));
 	}
 	watches[~c[0]].push(Watcher(cr, c[1]));
 	watches[~c[1]].push(Watcher(cr, c[0]));
@@ -432,7 +418,7 @@ void Solver::detachClause(CRef cr, bool strict) {
 	if (c.size() < 2) {
 		printClause(cr);
 		std::clog << "clausesize: " << c.size() << "\n";
-	}assert(c.size() > 1);
+	}MAssert(c.size() > 1);
 
 	if (strict) {
 		remove(watches[~c[0]], Watcher(cr, c[1]));
@@ -624,12 +610,12 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 		}
 	}
 
-	assert(lvl<=decisionLevel());
+	MAssert(lvl<=decisionLevel());
 
 	cancelUntil(lvl);
 
-	assert(confl!=CRef_Undef);
-	assert(lvl==decisionLevel());
+	MAssert(confl!=CRef_Undef);
+	MAssert(lvl==decisionLevel());
 
 	//reportf("Conflicts: %d.\n", conflicts);
 	std::vector<Lit> explain;
@@ -643,7 +629,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 	/*A*/
 	bool deleteImplicitClause = false;
 	do {
-		assert(confl != CRef_Undef);
+		MAssert(confl != CRef_Undef);
 		// (otherwise should be UIP)
 		Clause& c = ca[confl];
 
@@ -809,7 +795,7 @@ bool Solver::litRedundant(Lit p, uint32_t abstract_levels) {
 	analyze_stack.push(p);
 	int top = analyze_toclear.size();
 	while (analyze_stack.size() > 0) {
-		assert(reason(var(analyze_stack.last())) != CRef_Undef);
+		MAssert(reason(var(analyze_stack.last())) != CRef_Undef);
 		Clause& c = ca[reason(var(analyze_stack.last()))];
 		analyze_stack.pop();
 
@@ -855,7 +841,7 @@ void Solver::analyzeFinal(Lit p, vec<Lit>& out_conflict) {
 		Var x = var(trail[i]);
 		if (seen[x]) {
 			if (reason(x) == CRef_Undef) {
-				assert(level(x) > 0);
+				MAssert(level(x) > 0);
 				out_conflict.push(~trail[i]);
 			} else {
 				Clause& c = ca[reason(x)];
@@ -877,7 +863,7 @@ void Solver::checkedEnqueue(Lit p, CRef from) {
 }
 
 void Solver::uncheckedEnqueue(Lit p, CRef from) {
-	assert(value(p) == l_Undef);
+	MAssert(value(p) == l_Undef);
 	assigns[var(p)] = lbool(!sign(p));
 	vardata[var(p)] = mkVarData(from, decisionLevel());
 	trail.push_(p);
@@ -903,7 +889,8 @@ void Solver::uncheckedEnqueue(Lit p, CRef from) {
  |      * the propagation queue is empty, even if there was a conflict.
  |________________________________________________________________________________________________@*/
 CRef Solver::propagate() {
-	return getPCSolver().propagate();
+	auto confl = getPCSolver().propagate();
+	return confl;
 }
 
 CRef Solver::notifypropagate() {
@@ -919,7 +906,6 @@ CRef Solver::notifypropagate() {
 
 		for (i = j = (Watcher*) ws, end = i + ws.size(); i != end;) {
 			// Try to avoid inspecting the clause:
-			// FIXME do not understand blocker code yet, so commented it
 			Lit blocker = i->blocker;
 			if (value(blocker) == l_True) {
 				setDecidable(var(blocker), true); // TODO is this the best possible call?
@@ -930,22 +916,20 @@ CRef Solver::notifypropagate() {
 			// Make sure the false literal is data[1]:
 			CRef cr = i->cref;
 			Clause& c = ca[cr];
-			assert(isDecisionVar(var(c[0])) || isDecisionVar(var(c[1])));
+			MAssert(isDecisionVar(var(c[0])) || isDecisionVar(var(c[1])));
 			Lit false_lit = ~p;
 			if (c[0] == false_lit){
 				c[0] = c[1], c[1] = false_lit;
 			}
-			assert(c[1] == false_lit);
+			MAssert(c[1] == false_lit);
 			i++;
 
 			// If 0th watch is true, then clause is already satisfied.
 			Lit first = c[0];
 			Watcher w = Watcher(cr, first);
-			if (first != blocker && value(first) == l_True) { // TODO blocker
+			if (first != blocker && value(first) == l_True) {
 				*j++ = w;
-				/*AB*/
-				checkDecisionVars(c);
-				/*AE*/
+				/*A*/checkDecisionVars(c);
 				continue;
 			}
 
@@ -955,9 +939,7 @@ CRef Solver::notifypropagate() {
 					c[1] = c[k];
 					c[k] = false_lit;
 					watches[~c[1]].push(w);
-					/*AB*/
-					checkDecisionVars(c);
-					/*AE*/
+					/*A*/checkDecisionVars(c);
 					goto NextClause;
 				}
 			}
@@ -973,19 +955,15 @@ CRef Solver::notifypropagate() {
 				}
 			} else{
 				uncheckedEnqueue(first, cr);
-				/*AB*/
-				checkDecisionVars(c);
-				/*AE*/
+				/*A*/checkDecisionVars(c);
 			}
 
 			NextClause: ;
 		}
 		ws.shrink(i - j);
-		/*AB*/
 		if (confl != CRef_Undef) {
 			qhead = trail.size();
 		}
-		/*AE*/
 	}
 	propagations += num_props;
 	simpDB_props -= num_props;
@@ -1057,7 +1035,7 @@ void Solver::rebuildOrderHeap() {
  |    thing done here is the removal of satisfied clauses, but more things can be put here.
  |________________________________________________________________________________________________@*/
 bool Solver::simplify() {
-	assert(decisionLevel() == 0);
+	MAssert(decisionLevel() == 0);
 
 	if (!ok || propagate() != CRef_Undef)
 		return ok = false;
@@ -1092,7 +1070,7 @@ bool Solver::simplify() {
  |    if the clause set is unsatisfiable. 'l_Undef' if the bound on number of conflicts is reached.
  |________________________________________________________________________________________________@*/
 lbool Solver::search(int nof_conflicts/*AB*/, bool nosearch/*AE*/) {
-	assert(ok);
+	MAssert(ok);
 	int backtrack_level;
 	int conflictC = 0;
 	vec<Lit> learnt_clause;
@@ -1106,7 +1084,9 @@ lbool Solver::search(int nof_conflicts/*AB*/, bool nosearch/*AE*/) {
 		if (not ok) {
 			return l_False;
 		}
-		confl = propagate();
+		if(confl==nullPtrClause){ // NOTE: otherwise, a conflict was found during the final check.
+			confl = propagate();
+		}
 		if (not ok) {
 			return l_False;
 		}
@@ -1197,6 +1177,10 @@ lbool Solver::search(int nof_conflicts/*AB*/, bool nosearch/*AE*/) {
 				next = pickBranchLit();
 
 				if (next == lit_Undef) {
+					confl = getPCSolver().notifyFullAssignmentFound();
+					if(confl!=nullPtrClause){
+						continue;
+					}
 					return l_True;
 				}
 
@@ -1211,6 +1195,7 @@ lbool Solver::search(int nof_conflicts/*AB*/, bool nosearch/*AE*/) {
 			createNewDecisionLevel();
 			uncheckedEnqueue(next);
 		}
+		confl = CRef_Undef;
 	}
 	return l_Undef; // Note: is (should be anyway) unreachable but not detected by compiler
 }
@@ -1361,7 +1346,7 @@ lbool Solver::solve_(/*AB*/bool nosearch/*AE*/) {
 				clog <<(clausetrue?"True":"False") <<", " <<(clauseHasNonFalseDecidable?"decidable":"undecidable") <<" clause ";
 				printClause(c);
 			}
-			assert(clausetrue && clauseHasNonFalseDecidable);
+			MAssert(clausetrue && clauseHasNonFalseDecidable);
 		}
 #endif
 	} else if (status == l_False && conflict.size() == 0)
@@ -1431,7 +1416,7 @@ void Solver::toDimacs(FILE* f, const vec<Lit>& assumps) {
 	fprintf(f, "p cnf %d %d\n", max, cnt);
 
 	for (int i = 0; i < assumps.size(); i++) {
-		assert(value(assumps[i]) != l_False);
+		MAssert(value(assumps[i]) != l_False);
 		fprintf(f, "%s%d 0\n", sign(assumps[i]) ? "-" : "", mapVar(var(assumps[i]), map, max) + 1);
 	}
 

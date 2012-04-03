@@ -36,9 +36,11 @@ protected:
 
 	std::map<Var, AggReason*> reasons;
 
+private:
+	void addAgg(const TempAgg& tempagg, bool optim);
+
 public:
-	TypedSet(PCSolver* solver, int setid, const Weight& knownbound);
-	//TypedSet(const TypedSet& set);
+	TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggProp const * const w, const vwl& wls, bool usewatches, const std::vector<TempAgg*>& aggr, bool optim);
 	virtual ~TypedSet() {
 		deleteList<Agg>(aggregates);
 		delete (prop);
@@ -79,7 +81,7 @@ public:
 	}
 
 	const AggProp& getType() const {
-		assert(type!=NULL);
+		MAssert(type!=NULL);
 		return *type;
 	}
 	AggProp const * getTypep() const {
@@ -94,14 +96,7 @@ public:
 		wl = wl2;
 		stable_sort(wl.begin(), wl.end(), compareByWeights<WL>);
 	}
-	void addAgg(const TempAgg& aggr, bool optim);
 	void removeAggs(const std::set<Agg*>& del);
-	void setUsingWatches(bool use) {
-		usingwatches = use;
-	}
-	void setType(AggProp const * const w) {
-		type = w;
-	}
 
 private:
 	void addExplanation(AggReason& ar) const;

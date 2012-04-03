@@ -90,13 +90,8 @@ public:
 	// NOTE: call explicitly when using hasnextprop/nextprop!
 	virtual void notifyBacktrack(int untillevel, const Lit& decision); // TODO why is this virtual AND implemented?!
 	virtual rClause notifypropagate() = 0;
-
-//	virtual void notifyClauseAdded(rClause) = 0;
-//	virtual int getNbOfFormulas() const = 0;
-//	virtual Var notifyBranchChoice(const Var& var) const = 0;
-//	virtual void printStatistics() const = 0;
-//	virtual void printState() const = 0;
-
+	virtual void initialize() { throw idpexception("Operation applied to invalid propagator."); }
+	virtual rClause notifyFullAssignmentFound(){ throw idpexception("Operation applied to invalid propagator."); }
 
 	bool hasNextProp();
 	const Lit& getNextProp();
@@ -141,10 +136,10 @@ public:
 		return init == INITIALIZED;
 	}
 	void notifyParsed() {
-		assert(isParsing());
+		MAssert(isParsing());
 		init = INITIALIZING;
 	}
-	void notifyInitialized() { /*assert(isInitializing());*/
+	void notifyInitialized() { /*MAssert(isInitializing());*/
 		init = INITIALIZED;
 	} // FIXME add better checking again
 

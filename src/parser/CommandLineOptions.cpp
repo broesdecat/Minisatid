@@ -14,7 +14,6 @@
 
 #include <tclap/CmdLine.h>
 #include "utils/ResourceManager.hpp"
-#include "external/Printer.hpp"
 
 #include "utils/Print.hpp"
 
@@ -71,7 +70,7 @@ struct Option: public Opt{
 		formatsconstr = new TCLAP::ValuesConstraint<T2>(constrvals);
 
 		stringstream ss;
-		assert(desc.size()>0 && vals.size()==desc.size());
+		MAssert(desc.size()>0 && vals.size()==desc.size());
 		T2 tclapdefault = desc[0].first;
 		bool found = false;
 		ss <<mess <<":" <<endl;

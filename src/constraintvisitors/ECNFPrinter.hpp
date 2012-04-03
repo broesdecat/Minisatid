@@ -57,8 +57,8 @@ public:
 
 	void visit(const InnerWLSet& set) {
 		target() << "WLSet " << set.setID << " ";
-		for (uint i = 0; i < set.wls.size(); ++i) {
-			target() << print(set.wls[i].getLit()) << "=" << set.wls[i].getWeight() << " ";
+		for (uint i = 0; i < set.wl.size(); ++i) {
+			target() << print(set.wl[i].getLit()) << "=" << set.wl[i].getWeight() << " ";
 		}
 		target() << "0\n";
 	}
@@ -76,10 +76,6 @@ public:
 	void visit(const InnerImplication&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-
-	void visit(const InnerAggregate&) {
-		throw idpexception("Not yet implemented."); // TODO
-	}
 	void visit(const InnerMinimizeOrderedList&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
@@ -93,9 +89,6 @@ public:
 		throw idpexception("Not yet implemented."); // TODO
 	}
 	void visit(const InnerSymmetry&) {
-		throw idpexception("Not yet implemented."); // TODO
-	}
-	void visit(const InnerForcedChoices&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
 	void visit(const InnerIntVarRange&) {

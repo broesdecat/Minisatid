@@ -13,12 +13,12 @@
 using namespace std;
 using namespace MinisatID;
 
-bool MinisatID::compareWLByLits(const WL& one, const WL& two) {
-	return var(one.getLit()) < var(two.getLit());
+Var MinisatID::atom(const Lit& lit){
+	return var(lit);
 }
 
-bool MinisatID::compareWLByAbsWeights(const WL& one, const WL& two) {
-	return abs(one.getWeight()) < abs(two.getWeight());
+Atom MinisatID::atom(const Literal& lit){
+	return lit.getAtom();
 }
 
 idpexception MinisatID::notYetImplemented(const std::string& mess){

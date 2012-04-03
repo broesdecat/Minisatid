@@ -28,7 +28,7 @@ void FileMan::close() {
 }
 
 FILE* FileMan::getFile() {
-	assert(!open || fileptr!=NULL);
+	MAssert(!open || fileptr!=NULL);
 	if (!open) {
 		open = true;
 		fileptr = fopen(name.c_str(), write ? "wb" : "r");
@@ -42,7 +42,7 @@ FILE* FileMan::getFile() {
 }
 
 std::streambuf* FileMan::getBuffer() {
-	assert(!open || fileptr==NULL);
+	MAssert(!open || fileptr==NULL);
 	if (!open) {
 		open = true;
 		filebuf.open(name.c_str(), write ? std::ios::out : std::ios::in);
@@ -80,7 +80,7 @@ namespace MinisatID {
 }
 
 void MinisatID::setInputFileUrl(string url) {
-	assert(input.get()==NULL);
+	MAssert(input.get()==NULL);
 	inputurl = url;
 }
 

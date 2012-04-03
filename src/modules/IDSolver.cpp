@@ -44,12 +44,16 @@ IDAgg::IDAgg(const Lit& head, AggBound b, AggSem sem, AggType type, const std::v
 }
 
 IDSolver::IDSolver(PCSolver* s, int definitionID) :
-		Propagator(s, "definition"), definitionID(definitionID), finishedonce(false), needtofinishid(false), forcefinish(
-				false), infactnotpresent(false), minvar(0), nbvars(0), conj(DefType::CONJ), disj(DefType::DISJ), aggr(DefType::AGGR), _seen(NULL), sem(
+		Propagator(s, "definition"), definitionID(definitionID), finishedonce(false), needtofinishid(false), forcefinish(false), infactnotpresent(
+				false), minvar(0), nbvars(0), conj(DefType::CONJ), disj(DefType::DISJ), aggr(DefType::AGGR), _seen(NULL), sem(
 				getPCSolver().modes().defsem), posrecagg(false), mixedrecagg(false), posloops(true), negloops(true), backtracked(true), adaption_total(
-				0), adaption_current(0) {
+				0), adaption_current(0),
+				twovalueddef(false){
 	getPCSolver().accept(this, EV_DECISIONLEVEL);
 	getPCSolver().accept(this, EV_BACKTRACK);
+	getPCSolver().accept(this, EV_MODELFOUND);
+	getPCSolver().accept(this, EV_FINISH);
+	// FIXME add when modes.lazy is true => getPCSolver().getNonConstOptions().defn_strategy = adaptive;
 }
 
 IDSolver::~IDSolver() {
@@ -71,8 +75,8 @@ void IDSolver::createDefinition(Var head, IDAgg* agg) {
 }
 
 /*int IDSolver::getNbOfFormulas() const {
-	return definitions.size() * log(definitions.size());
-}*/
+ return definitions.size() * log(definitions.size());
+ }*/
 
 inline void IDSolver::addCycleSource(Var v) {
 	if (!isCS(v)) {
@@ -185,11 +189,7 @@ SATVAL IDSolver::addFinishedRule(TempRule* rule) {
 		auto r = new PropRule(mkLit(head), rule->body);
 		createDefinition(head, r, conj ? DefType::CONJ : DefType::DISJ);
 
-		InnerImplication eq;
-		eq.head = mkLit(head);
-		eq.type = ImplicationType::EQUIVALENT;
-		eq.literals = rule->body;
-		eq.conjunctive = conj;
+		InnerImplication eq(mkPosLit(head), ImplicationType::EQUIVALENT, rule->body, conj);
 		getPCSolver().add(eq);
 		MAssert(isDefined(head));
 	}
@@ -216,7 +216,7 @@ void IDSolver::addFinishedDefinedAggregate(TempRule* rule) {
 	}
 
 	AggBound b(rule->inneragg->sign, rule->inneragg->bound);
-	IDAgg* agg = new IDAgg(mkLit(head), b, rule->inneragg->sem, rule->inneragg->type, rule->innerset->wls);
+	IDAgg* agg = new IDAgg(mkLit(head), b, rule->inneragg->sem, rule->inneragg->type, rule->innerset->getWL());
 	if (isInitiallyJustified(*agg)) {
 		delete (agg);
 		return;
@@ -228,13 +228,11 @@ void IDSolver::addFinishedDefinedAggregate(TempRule* rule) {
 /*
  * @PRE: aggregates have to have been finished
  */
-void IDSolver::initialize(bool& present) {
+void IDSolver::initialize() {
 	MAssert(not getPCSolver().isUnsat());
 	if (rules.size() == 0 && not forcefinish && finishedonce) {
 		return;
 	}
-
-	present = true;
 
 	//notifyParsed(); // TODO not correct after repeated calls (lazy grounding)
 
@@ -254,7 +252,6 @@ void IDSolver::initialize(bool& present) {
 	}
 
 	if (finishedonce && not forcefinish) {
-		getPCSolver().getNonConstOptions().defn_strategy = adaptive;
 		return;
 	}
 	needtofinishid = false;
@@ -280,7 +277,7 @@ void IDSolver::initialize(bool& present) {
 
 	if (modes().defsem == DEF_COMP || defdVars.size() == 0) {
 		if (not modes().lazy) {
-			present = false;
+			notifyNotPresent();
 		}
 		CHECKSEEN
 		return;
@@ -337,7 +334,7 @@ void IDSolver::initialize(bool& present) {
 	}
 
 	if (!posloops && !negloops) {
-		present = false;
+		notifyNotPresent();
 		return;
 	}
 
@@ -363,7 +360,7 @@ void IDSolver::initialize(bool& present) {
 	}
 
 	if (not unsat && modes().tocnf) {
-		unsat = transformToCNF(sccroots, present) == SATVAL::UNSAT;
+		unsat = transformToCNF(sccroots) == SATVAL::UNSAT;
 	}
 
 	notifyInitialized();
@@ -748,15 +745,14 @@ void IDSolver::bumpHeadHeuristic() {
 	}
 }
 
-SATVAL IDSolver::transformToCNF(const varlist& sccroots, bool& present) {
+SATVAL IDSolver::transformToCNF(const varlist& sccroots) {
 	vector<toCNF::Rule*> rules;
 	bool unsat = false;
 	for (auto root = sccroots.cbegin(); root != sccroots.cend(); ++root) {
 		// TODO better to store full sccs instead having to loop over them here?
 		for (auto i = defdVars.cbegin(); i < defdVars.cend(); ++i) {
 			if (scc(*root) == scc(*i)) {
-				litlist defbodylits;
-				litlist openbodylits;
+				litlist defbodylits, openbodylits;
 				auto proprule = getDefVar(*i)->definition();
 				for (auto bodylit = proprule->cbegin(); bodylit != proprule->cend(); ++bodylit) {
 					if (not sign(*bodylit) && hasDefVar(var(*bodylit)) && scc(var(*bodylit)) == scc(*root)) {
@@ -765,7 +761,7 @@ SATVAL IDSolver::transformToCNF(const varlist& sccroots, bool& present) {
 						openbodylits.push_back(*bodylit);
 					}
 				}
-				toCNF::Rule* rule = new toCNF::Rule(isDisjunctive(*i), *i, defbodylits, openbodylits);
+				auto rule = new toCNF::Rule(isDisjunctive(*i), *i, defbodylits, openbodylits);
 				rules.push_back(rule);
 			}
 		}
@@ -773,7 +769,7 @@ SATVAL IDSolver::transformToCNF(const varlist& sccroots, bool& present) {
 		deleteList<toCNF::Rule>(rules);
 	}
 	if (not negloops && not modes().lazy) {
-		present = false;
+		notifyNotPresent();
 	}
 	return unsat ? SATVAL::UNSAT : SATVAL::POS_SAT;
 }
@@ -1005,19 +1001,19 @@ rClause IDSolver::notifypropagate() {
 	if (needtofinishid) {
 		throw notYetImplemented("Lazy initialization of definitions.");
 		/*forcefinish = true;
-		bool present;
-		infactnotpresent = false;
-		finishParsing(present);
-		if (not present) {
-			infactnotpresent = true;
-			return nullPtrClause;
-		}
-		if (getPCSolver().isUnsat()) {
-			// FIXME incorrect? dummy unsat clause!
-			InnerDisjunction d;
-			d.literals = {getPCSolver().getTrail().back()};
-			return getPCSolver().createClause(d, true);
-		}*/
+		 bool present;
+		 infactnotpresent = false;
+		 finishParsing(present);
+		 if (not present) {
+		 infactnotpresent = true;
+		 return nullPtrClause;
+		 }
+		 if (getPCSolver().isUnsat()) {
+		 // FIXME incorrect? dummy unsat clause!
+		 InnerDisjunction d;
+		 d.literals = {getPCSolver().getTrail().back()};
+		 return getPCSolver().createClause(d, true);
+		 }*/
 	}CHECKSEEN CHECKNOTUNSAT
 
 	// There was an unfounded set saved which might not have been completely propagated by unit propagation
@@ -1034,7 +1030,7 @@ rClause IDSolver::notifypropagate() {
 		savedufs.clear(); //none found
 	}
 
-	if (not posloops || not isInitialized() || not indirectPropagateNow()) {
+	if (not posloops || not isInitialized() || not shouldCheckPropagation()) {
 		CHECKSEEN CHECKNOTUNSAT
 		return nullPtrClause;
 	}
@@ -1089,24 +1085,23 @@ rClause IDSolver::notifypropagate() {
 		}
 	}
 
-	// FIXME notifyfullassignmentfound by counting the number of unknown heads!
-	throw notYetImplemented("Finishing two-valued definition.");
-	/*if (infactnotpresent) {
+	CHECKSEEN
+	return confl;
+}
+
+rClause IDSolver::notifyFullAssignmentFound(){
+	if (infactnotpresent) {
 		return nullPtrClause;
 	}
-	rClause confl = nullPtrClause;
-	if (confl == nullPtrClause) { // FIXME should separate propagators!
-		confl = notifypropagate(); // FIXME might propagate within backtrack and not have a total model anymore!!!
-		if (not getPCSolver().hasTotalModel()) {
-			return confl;
+	twovalueddef = true;
+	auto confl = notifypropagate();
+	if(confl==nullPtrClause){
+		MAssert(not posloops || isCycleFree());
+		if(getSemantics() == DEF_WELLF) {
+			confl = isWellFoundedModel();
 		}
-	}MAssert(not posloops || isCycleFree());
-	if (confl == nullPtrClause && getSemantics() == DEF_WELLF) {
-		confl = isWellFoundedModel();
 	}
-	return confl;*/
-
-	CHECKSEEN
+	twovalueddef = false; // NOTE: Just used for certainly running propagation, even if def_search==lazy
 	return confl;
 }
 
@@ -1134,12 +1129,12 @@ void IDSolver::findCycleSources() {
 
 			//TODO should check whether it is faster to use a real watched scheme here: go from justification to heads easily,
 			//so this loop only goes over literal which are really justifications
-			const varlist& ds = disj.occurs(not l);
+			const auto& ds = disj.occurs(not l);
 			for (auto j = ds.cbegin(); j < ds.cend(); ++j) {
 				checkJustification(*j);
 			}
 
-			varlist heads = getDefAggHeadsWithBodyLit(var(not l));
+			const auto& heads = getDefAggHeadsWithBodyLit(var(not l));
 			for (auto j = heads.cbegin(); j < heads.cend(); ++j) {
 				if (hasDefVar(*j)) {
 					checkJustification(*j);
@@ -1227,10 +1222,10 @@ void IDSolver::findJustificationDisj(Var v, litlist& jstf) {
 /*
  * Return true if indirectpropagation is necessary. This is certainly necessary if the state is two-valued or if the strategy is always.
  */
-bool IDSolver::indirectPropagateNow() {
+bool IDSolver::shouldCheckPropagation() {
 	bool propagate = true;
 	// if not always and state is three-valued.
-	if (getPCSolver().modes().defn_strategy != always && !getPCSolver().hasTotalModel()) {
+	if (getPCSolver().modes().defn_strategy != always && not definitionIsTwovalued()) {
 		if (getPCSolver().modes().defn_strategy == lazy) {
 			propagate = false;
 		}
@@ -1500,8 +1495,7 @@ bool IDSolver::propagateJustified(Var v, Var cs, std::set<Var>& ufs) {
 
 // Change sp_justification: v is now justified by j.
 void IDSolver::changejust(Var v, litlist& just) {
-	MAssert(just.size()>0 || type(v)==DefType::AGGR);
-	//justification can be empty for aggregates
+	MAssert(just.size()>0 || type(v)==DefType::AGGR); //justification can be empty for aggregates
 	justification(v) = just;
 	for (uint i = 0; i < just.size(); ++i) {
 		getPCSolver().accept(this, not just[i], SLOW);
@@ -1935,8 +1929,7 @@ bool IDSolver::isCycleFree() const {
 bool printednontotalwarning = false;
 
 rClause IDSolver::isWellFoundedModel() {
-	MAssert(getPCSolver().hasTotalModel());
-
+	MAssert(twovalueddef);
 	if (modes().lazy) { // NOTE: lazy invariant: only total definitions
 		return nullPtrClause;
 	}
@@ -1974,11 +1967,11 @@ rClause IDSolver::isWellFoundedModel() {
 	findMixedCycles(wfroot, rootofmixed);
 
 	if (verbosity() > 1) {
-		clog << "general SCCs found";
-		for (vector<int>::size_type z = 0; z < wfroot.size(); ++z) {
+		clog << "General SCCs: ";
+		for (uint z = 0; z < wfroot.size(); ++z) {
 			clog << print(z, getPCSolver()) << " has root " << print(wfroot[z], getPCSolver()) << "\n";
 		}
-		clog << "Mixed cycles are " << (rootofmixed.empty() ? "not" : "possibly") << " present.\n";
+		clog << "\nMixed cycles are " << (rootofmixed.empty() ? "not" : "possibly") << " present.\n";
 	}
 
 	if (rootofmixed.empty()) {

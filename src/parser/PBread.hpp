@@ -23,7 +23,6 @@ namespace MinisatID {
 #include <iomanip>
 #include <stdexcept>
 #include <vector>
-#include <cassert>
 
 #ifdef GMP
 #include <gmpxx.h>

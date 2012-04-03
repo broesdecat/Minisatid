@@ -1,10 +1,9 @@
-#include "DataAndInference.hpp"
+#include "Tasks.hpp"
 
-#include "Remapper.hpp"
+#include "external/Remapper.hpp"
 #include "external/Translator.hpp"
 #include "theorysolvers/PCSolver.hpp"
 #include "modules/aggsolver/AggProp.hpp"
-#include "datastructures/InnerDataStructures.hpp"
 #include "modules/aggsolver/AggSet.hpp"
 #include "external/SearchMonitor.hpp"
 #include "constraintvisitors/FlatZincRewriter.hpp"
@@ -14,6 +13,7 @@
 #include "Printer.hpp"
 #include "ModelManager.hpp"
 #include "utils/ResourceManager.hpp"
+#include "external/Space.hpp"
 
 #include <map>
 #include <vector>
@@ -26,18 +26,24 @@ Var VarCreation::createVar() {
 }
 
 void Task::execute() {
-	space->getEngine()->finishParsing();
 	innerExecute();
+}
+void SpaceTask::execute() {
+	space->getEngine()->finishParsing();
+	Task::execute();
 }
 void Task::notifyTerminateRequested() {
 	terminate = true;
+}
+void SpaceTask::notifyTerminateRequested() {
+	Task::notifyTerminateRequested();
 	space->getEngine()->notifyTerminateRequested();
 }
 
 ModelExpand::ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions)
-		: Task(space), _options(options), assumptions(assumptions),
+		: SpaceTask(space), _options(options), assumptions(assumptions),
 		  _solutions(new ModelManager(options.savemodels)),
-		  printer(new Printer(_solutions, space->getTranslator(), options.printmodels, space->getOptions())){
+		  printer(new Printer(_solutions, space, options.printmodels, space->getOptions())){
 
 }
 
@@ -51,12 +57,12 @@ int ModelExpand::getNbModelsFound() const {
 	return _solutions->getNbModelsFound();
 }
 
-PCSolver& Task::getSolver() const {
+PCSolver& SpaceTask::getSolver() const {
 	return *getSpace()->getEngine();
 }
 
-const SolverOption& Task::modes() const {
-	return getSpace()->getOptions();
+SpaceTask::SpaceTask(Space* space) : Task(space->getOptions()), space(space) {
+
 }
 
 const modellist& ModelExpand::getSolutions() const {
@@ -105,7 +111,7 @@ void ModelExpand::innerExecute() {
 
 	litlist vecassumptions = assumptions;
 
-	printSearchStart(clog, modes().verbosity);
+	printSearchStart(clog, getOptions().verbosity);
 
 	if (getSpace()->isOptimizationProblem()) {
 		findOptimal(assumptions);
@@ -113,14 +119,14 @@ void ModelExpand::innerExecute() {
 		auto moremodels = findNext(assumptions, _options);
 		if (moremodels == MXState::UNSAT) {
 			if (getNbModelsFound() == 0) {
-				printNoModels(clog, modes().verbosity);
+				printNoModels(clog, getOptions().verbosity);
 			} else {
-				printNoMoreModels(clog, modes().verbosity);
+				printNoMoreModels(clog, getOptions().verbosity);
 			}
 		}
 	}
-
-	printSearchEnd(clog, modes().verbosity);
+	printer->notifySolvingFinished();
+	printSearchEnd(clog, getOptions().verbosity);
 }
 
 //Translate into original vocabulary
@@ -134,15 +140,17 @@ vector<Literal> getBackMappedModel(const std::vector<Lit>& model, const Remapper
 	sort(outmodel.begin(), outmodel.end());
 	return outmodel;
 }
-void addModelToSolution(const std::shared_ptr<InnerModel>& model, const Remapper& remapper, ModelManager& solution) {
+void addModelToSolution(const std::shared_ptr<InnerModel>& model, const Remapper& remapper, ModelManager& solution, Printer& printer) {
 	auto outmodel = new Model();
-	outmodel->literalinterpretations = getBackMappedModel(model->litassignments, remapper);
-	outmodel->variableassignments = model->varassignments;
+	outmodel->literalinterpretations = getBackMappedModel(model->literalinterpretations, remapper);
+	outmodel->variableassignments = model->variableassignments;
 	solution.addModel(outmodel);
+	printer.addModel(outmodel);
+
 }
 
 void ModelExpand::addModel(std::shared_ptr<InnerModel> model) {
-	addModelToSolution(model, getSpace()->getRemapper(), *_solutions);
+	addModelToSolution(model, getSpace()->getRemapper(), *_solutions, *printer);
 }
 
 /**
@@ -221,7 +229,7 @@ SATVAL ModelExpand::invalidateModel(const litlist& clause) {
 	d.literals = clause;
 	getSolver().backtrackTo(0); // Otherwise, clauses cannot be added to the sat-solver anyway
 
-	if (modes().verbosity >= 3) {
+	if (getOptions().verbosity >= 3) {
 		clog << "Adding model-invalidating clause: [ ";
 		getSpace()->print(d.literals);
 		clog << "]\n";
@@ -257,9 +265,9 @@ bool ModelExpand::invalidateValue(litlist& invalidation) {
 	const auto& minim = getSolver().to_minimize;
 	for (uint i = 0; !currentoptimumfound && i < minim.size(); ++i) {
 		if (!currentoptimumfound && getSolver().getModelValue(var(minim[i])) == l_True) {
-			if (modes().verbosity >= 1) {
+			if (getOptions().verbosity >= 1) {
 				clog << "> Current optimum found for: ";
-				clog << getSpace()->print(minim[i]);
+				clog << getSpace()->printLiteral(minim[i]);
 				clog << "\n";
 			}
 			currentoptimumfound = true;
@@ -282,7 +290,7 @@ bool ModelExpand::invalidateAgg(litlist& invalidation) {
 	Weight value = s->getType().getValue(*s);
 
 	printer->notifyCurrentOptimum(value);
-	if (modes().verbosity >= 1) {
+	if (getOptions().verbosity >= 1) {
 		clog << "> Current optimal value " << value << "\n";
 	}
 
@@ -343,7 +351,7 @@ void ModelExpand::findOptimal(const litlist& assmpt) {
 			unsatreached = invalidateAgg(invalidation.literals);
 			break;
 		case Optim::NONE:
-			assert(false);
+			MAssert(false);
 			break;
 		}
 
@@ -431,7 +439,7 @@ void Transform::innerExecute(){
 	ostream output(resfile->getBuffer());
 	switch(outputlanguage){
 	case TheoryPrinting::FZ:{
-		FlatZincRewriter<ostream> fzrw(getSpace()->getEngine(), modes(), output);
+		FlatZincRewriter<ostream> fzrw(getSpace()->getEngine(), getOptions(), output);
 		getSolver().accept(fzrw);
 		break;}
 	case TheoryPrinting::ECNF:{

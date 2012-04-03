@@ -152,7 +152,7 @@ private:
 
 		litlist tseitins{~head};
 		for(auto litit = rule.def().cbegin(); litit!=rule.def().cend(); ++litit) {
-			assert(defined.find(var(*litit))!=defined.cend());
+			MAssert(defined.find(var(*litit))!=defined.cend());
 			auto bodyvar = atom2level[var(*litit)];
 
 			if(solver_.value(*litit)!=l_False){
@@ -191,7 +191,7 @@ private:
 
 		litlist tseitins{~head};
 		for(auto litit = rule.def().cbegin(); litit!=rule.def().cend(); ++litit) {
-			assert(defined.find(var(*litit))!=defined.cend());
+			MAssert(defined.find(var(*litit))!=defined.cend());
 			auto bodyvar = atom2level[var(*litit)];
 
 			addClause(litlist{~head, Comp2SAT(headvar, SIGN::G, bodyvar)});
@@ -228,11 +228,7 @@ private:
 	Lit and2SAT(const litlist& subs){
 		Lit tseitin = mkPosLit(solver_.newVar());
 
-		InnerImplication eq;
-		eq.head = tseitin;
-		eq.type = ImplicationType::EQUIVALENT;
-		eq.conjunctive = true;
-		eq.literals = subs;
+		InnerImplication eq(tseitin, ImplicationType::EQUIVALENT, subs, true);
 		solver_.add(eq);
 
 		return tseitin;
@@ -241,11 +237,7 @@ private:
 	Lit or2SAT(const litlist& subs){
 		Lit tseitin = mkPosLit(solver_.newVar());
 
-		InnerImplication eq;
-		eq.head = tseitin;
-		eq.type = ImplicationType::EQUIVALENT;
-		eq.conjunctive = false;
-		eq.literals = subs;
+		InnerImplication eq(tseitin, ImplicationType::EQUIVALENT, subs, false);
 		solver_.add(eq);
 
 		return tseitin;

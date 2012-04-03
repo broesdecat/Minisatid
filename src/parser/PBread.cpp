@@ -35,6 +35,7 @@
 
 #include "parser/PBread.hpp"
 #include "external/Constraints.hpp"
+#include "theorysolvers/PCSolver.hpp"
 
 #include <sstream>
 #include <iostream>
@@ -105,7 +106,7 @@ template<class T> void DefaultCallback<T>::objectiveProduct(IntegerType, vector<
 
 template<class T> void DefaultCallback<T>::beginConstraint() {
 	//cout << "constraint: ";
-	assert(wset.literals.size()==0);
+	MAssert(wset.literals.size()==0);
 }
 
 template<class T> void DefaultCallback<T>::endConstraint() {
@@ -256,7 +257,7 @@ template<class T> int ProductStore<T>::getProductVariable(vector<int> &list) {
 
 	// is this a known product ?
 	for (auto i =list.cbegin(); i < list.cend(); ++i){
-		assert(p!=NULL);
+		MAssert(p!=NULL);
 
 		// look for list[i] in *p
 		pos = lower_bound(p->begin(), p->end(), *i, ProductNodeLessLit());

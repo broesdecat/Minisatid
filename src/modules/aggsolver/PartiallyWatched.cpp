@@ -59,7 +59,7 @@ void GenPWAgg::moveFromTo(GenPWatch* watch, genwatchlist& from, genwatchlist& to
 	watch->movedToOther();
 
 #ifdef DEBUG
-	assert(getNWS().size()+getWS().size()==getSet().getWL().size());
+	MAssert(getNWS().size()+getWS().size()==getSet().getWL().size());
 #endif
 }
 
@@ -72,7 +72,7 @@ void GenPWAgg::moveFromWSToNWS(GenPWatch* watch){
 }
 
 void GenPWAgg::addWatchToNetwork(GenPWatch* watch){
-	assert(watch->isInWS());
+	MAssert(watch->isInWS());
 	if(!watch->isInNetwork()){
 		watch->addToNetwork();
 		getSet().getPCSolver().accept(watch);
@@ -242,13 +242,13 @@ void GenPWAgg::checkInitiallyKnownAggs(bool& unsat, bool& sat){
  */
 void GenPWAgg::initialize(bool& unsat, bool& sat) {
 #ifdef DEBUG
-	assert(getAgg().size()>0);
-	assert(unsat==false && sat==false);
+	MAssert(getAgg().size()>0);
+	MAssert(unsat==false && sat==false);
 	const agglist& aggs = getAgg();
 	AggSign sign = aggs[0]->getSign();
 	for(auto i=aggs.cbegin(); i<aggs.cend(); ++i){
-		assert((*i)->getSign()==sign);
-		assert((*i)->getSem()==AggSem::IMPLICATION);
+		MAssert((*i)->getSign()==sign);
+		MAssert((*i)->getSem()==AggSem::IMPLICATION);
 	}
 #endif
 
@@ -271,7 +271,7 @@ void GenPWAgg::initialize(bool& unsat, bool& sat) {
 
 	// Calculate reference aggregate (the one which will lead to the most watches)
 	worstagg = getAggWithMostStringentBound(true);
-	assert(worstagg != NULL);
+	MAssert(worstagg != NULL);
 
 	// Construct first watches
 	bool propagations = false;
@@ -316,7 +316,7 @@ rClause GenPWAgg::reconstructSet(GenPWatch*, bool& propagations, Agg const * pro
 				found = true;
 			}
 		}
-		assert(found);
+		MAssert(found);
 	}
 #endif
 
@@ -358,7 +358,7 @@ rClause GenPWAgg::reconstructSet(GenPWatch*, bool& propagations, Agg const * pro
 	minmaxOptimAndPessBounds storedbounds = bounds;
 
 	//Leave out largest
-	assert(largestunkn!=NULL);
+	MAssert(largestunkn!=NULL);
 	removeValue(getType(), largestunkn->getWL().getWeight(), largestunkn->isMonotone(), bounds.optim);
 
 	genWatches(nwsindex, worstagg, bounds, largestunkn);
@@ -391,7 +391,7 @@ rClause GenPWAgg::reconstructSet(GenPWatch*, bool& propagations, Agg const * pro
 				found = true;
 			}
 		}
-		assert(found);
+		MAssert(found);
 	}
 #endif
 
@@ -418,8 +418,8 @@ void GenPWAgg::genWatches(uint& i, const Agg& agg, minmaxOptimAndPessBounds& bou
 			}
 		}
 	}
-	assert(!isSatisfied(agg, bounds.pess) || isSatisfied(agg, bounds.optim));
-	assert(isSatisfied(agg, bounds.optim) || i>=getNWS().size());
+	MAssert(!isSatisfied(agg, bounds.pess) || isSatisfied(agg, bounds.optim));
+	MAssert(isSatisfied(agg, bounds.optim) || i>=getNWS().size());
 }
 
 void GenPWAgg::propagate(int, Watch* ws, int){
@@ -437,16 +437,16 @@ rClause GenPWAgg::propagateAtEndOfQueue(Watch* watch) {
 
 	// Before calling propagate, the watch should have been removed from the network datastructure
 	// but should still think it is in (which we fix here)
-	assert(pw->isInNetwork());
+	MAssert(pw->isInNetwork());
 	pw->removeFromNetwork();
 
 	if(!pw->isInWS()){ //Already in NWS, so no need to watch it
-		assert(getNWS()[pw->getIndex()]==pw); //Check it really is in NWS
+		MAssert(getNWS()[pw->getIndex()]==pw); //Check it really is in NWS
 		return confl;
 	}
 
 	//Now, it should be in WS and know this
-	assert(getWS()[pw->getIndex()]==pw);
+	MAssert(getWS()[pw->getIndex()]==pw);
 
 	bool propagations = false;
 	confl = reconstructSet(pw, propagations, NULL);
@@ -463,7 +463,7 @@ rClause GenPWAgg::propagateAtEndOfQueue(Watch* watch) {
 		addStagedWatchesToNetwork();
 	}
 
-	assert(!pw->isInWS() || getWS()[pw->getIndex()]==pw);
+	MAssert(!pw->isInWS() || getWS()[pw->getIndex()]==pw);
 	return confl;
 }
 
@@ -581,7 +581,7 @@ void GenPWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 		lits.push_back(value(i->getLit())==l_True?not i->getLit():i->getLit());
 	}
 
-	assert(isFalsified(ar.getAgg(), pessbounds));
+	MAssert(isFalsified(ar.getAgg(), pessbounds));
 }
 
 class TempWatch{
@@ -599,7 +599,7 @@ public:
 };
 
 double MinisatID::testGenWatchCount(const PCSolver& solver, const InnerWLSet& set, const AggProp& type, const std::vector<TempAgg*> aggs, const Weight& knownbound) {
-	int totallits = set.wls.size(), totalwatches = 0;
+	int totallits = set.getWL().size(), totalwatches = 0;
 	std::vector<TempWatch*> nws;
 	TempAgg const * worstagg;
 
@@ -624,7 +624,7 @@ double MinisatID::testGenWatchCount(const PCSolver& solver, const InnerWLSet& se
 	}
 
 	bool oneagg = aggs.size()==1;
-	const TempAgg& agg = *worstagg;
+	const auto& agg = *worstagg;
 
 	if(oneagg && solver.value(agg.getHead())==l_True){
 		return 0;

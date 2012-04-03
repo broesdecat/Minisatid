@@ -17,9 +17,9 @@
 
 namespace MinisatID{
 
-void verifySet(const InnerWLSet& set);
+void verifySet(const InnerWLSet& set, AggType type);
 
-void verifyAggregate(InnerWLSet const * const set, Var head, AggType aggtype);
+void verifyAggregate(InnerWLSet const * const set, AggType settype, Var head, AggType aggtype);
 
 //@pre: has been split
 void setReduce(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>& aggs, const AggProp& type, Weight& knownbound, bool& unsat, bool& sat);

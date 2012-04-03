@@ -56,7 +56,7 @@ void CPSolverData::replaceLastWith(CPScript* space){
 	vector<Lit> lits;
 	for(vreifconstrptr::const_iterator i=getReifConstraints().cbegin(); i<getReifConstraints().cend(); i++){
 		BoolVar current = (*i)->getBoolVar(getSpace());
-		assert(history.size()>1);
+		MAssert(history.size()>1);
 		BoolVar prev = (*i)->getBoolVar(*history[history.size()-2]);
 		if(current.min() == current.max() && prev.min() != prev.max()){
 			lits.push_back(mkLit((*i)->getAtom(), current.min()==0));

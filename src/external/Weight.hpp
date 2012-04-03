@@ -11,7 +11,6 @@
 
 #include <string>
 #include <limits>
-#include <cassert>
 
 // Weight declaration and utilities
 
@@ -30,9 +29,9 @@
 		Weight(mpz_class w): w(w), inf(false), pos(false){}
 		Weight(bool posinf): w(0), inf(true), pos(posinf){}
 
-		int toInt() const { assert(not inf && w<=std::numeric_limits<int>::max() && w>=std::numeric_limits<int>::min()); return w.get_si(); }
+		int toInt() const { MAssert(not inf && w<=std::numeric_limits<int>::max() && w>=std::numeric_limits<int>::min()); return w.get_si(); }
 
-		operator const mpz_class&() const { assert(!inf); return w; }
+		operator const mpz_class&() const { MAssert(!inf); return w; }
 
 		friend std::istream& operator>>(std::istream& input, Weight& obj);
 
@@ -69,7 +68,7 @@
 
 		Weight& operator+=(const Weight &rhs) {
 			if(rhs.inf || inf){
-				assert(!rhs.inf || !inf);
+				MAssert(!rhs.inf || !inf);
 				w=0;
 				pos = inf?pos:rhs.pos;
 				inf = true;
@@ -81,7 +80,7 @@
 
 		Weight& operator-=(const Weight &rhs) {
 			if(rhs.inf || inf){
-				assert(!rhs.inf || !inf);
+				MAssert(!rhs.inf || !inf);
 				w=0;
 				pos = inf?pos:!rhs.pos;
 				inf = true;
@@ -93,7 +92,7 @@
 
 		Weight& operator*=(const Weight &rhs) {
 			if(rhs.inf || inf){
-				assert(!rhs.inf || !inf);
+				MAssert(!rhs.inf || !inf);
 				w=0;
 				pos = inf?pos:rhs.pos;
 				inf = true;
@@ -105,7 +104,7 @@
 
 		Weight& operator/=(const Weight &rhs) {
 			if(rhs.inf || inf){
-				assert(!rhs.inf || !inf);
+				MAssert(!rhs.inf || !inf);
 				if(inf){
 					if(rhs.w<0){
 						pos = !pos;

@@ -7,7 +7,7 @@
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 
-#include "external/Printer.hpp"
+#include "Printer.hpp"
 
 #include <vector>
 #include <string>
@@ -17,19 +17,21 @@
 
 #include "external/ExternalUtils.hpp"
 #include "external/Translator.hpp"
+#include "external/Space.hpp"
 #include "utils/ResourceManager.hpp"
 #include "utils/Print.hpp"
 #include "utils/TimingUtils.hpp"
-#include "external/ModelManager.hpp"
+#include "ModelManager.hpp"
 
 using namespace std;
 using namespace MinisatID;
 
-Printer::Printer(ModelManager* modelmanager, Translator* translator,Models printoption, const SolverOption& modes) :
+Printer::Printer(ModelManager* modelmanager, Space* space, Models printoption, const SolverOption& modes) :
 		printoption(printoption),
 		modelmanager(modelmanager),
-		translator(translator),
+		space(space),
 		modes(modes),
+		optimizing(false), solvingstate(SolvingState::STARTED),
 		startfinish(0), endfinish(-1), startsimpl(0), endsimpl(-1), startsolve(0), endsolve(-1){
 
 	resman = std::shared_ptr<ResMan>(new StdMan(false));
@@ -64,6 +66,10 @@ void Printer::printStatistics() const {
 	}
 }
 
+Translator* Printer::getTranslator() const{
+	return space->getTranslator();
+}
+
 void Printer::notifyCurrentOptimum(const Weight& value) const{
 	ostream output(resman->getBuffer());
 	getTranslator()->printCurrentOptimum(output, value);
@@ -79,9 +85,9 @@ void Printer::addModel(Model * const model) {
 			}
 			getTranslator()->printHeader(output);
 		}
-		getTranslator()->printModel(output, *model);
+		getTranslator()->printModel(output, *model); // TODO only prints literals known to the translator, gives strange results sometimes
 	}
-	if (!optimizing) {
+	if (not optimizing) {
 		printNbModels(clog, modelmanager->getNbModelsFound(), modes.verbosity);
 	}
 }
@@ -111,7 +117,7 @@ void Printer::solvingFinished(){
 				printSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);
 			}
 			getTranslator()->printModel(output, *modelmanager->getBestModelFound());
-		}else if(!optimizing && modes.transformat==OutputFormat::ASP){
+		}else if(not optimizing && modes.transformat == OutputFormat::ASP){ // NOTE: Otherwise, SAT is printed BEFORE the first model is printed, so in addModel
 			printSatisfiable(output, modes.format, modes.transformat);
 			printSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);
 		}
@@ -133,7 +139,6 @@ void Printer::setOutputFile(std::string output){
 	}
 }
 
-//Only call internally!
 void Printer::notifySolvingFinished() {
 	if(solvingstate == SolvingState::FINISHEDCLEANLY){
 		return;

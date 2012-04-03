@@ -134,7 +134,7 @@ void FODOTTranslator::finishParsing(ostream& output){
 }
 
 void FODOTTranslator::printPredicate(const SymbolInterpr& pred, ostream& output, PRINTCHOICE print) const {
-	assert(!pred.symbol->isfunction);
+	MAssert(!pred.symbol->isfunction);
 
 	if(pred.symbol->types.size()==0){ //ATOM
 		bool arbitrary = symbolasarbitatomlist.at(pred.symbol);
@@ -182,7 +182,7 @@ void FODOTTranslator::printFunction(const SymbolInterpr& func, ostream& output, 
 	if(tofodot){
 		output <<func.symbol->getName(tofodot) <<" = ";
 		if(func.symbol->types.size() == 1) {
-			assert(func.tuples.size()==1);
+			MAssert(func.tuples.size()==1);
 			output << func.tuples.back().arguments[0] <<"\n";
 		} else {
 			int ts = func.symbol->types.size();
@@ -207,7 +207,7 @@ void FODOTTranslator::printFunction(const SymbolInterpr& func, ostream& output, 
 		}
 	}else{
 		if(func.symbol->types.size() == 1) {
-			assert(func.tuples.size()!=0);
+			MAssert(func.tuples.size()!=0);
 			output << func.symbol->getName(tofodot) <<"(" << func.tuples[0].arguments[0] <<"). ";
 		}
 		else {
@@ -309,7 +309,7 @@ void FODOTTranslator::printModel(std::ostream& output, const Model& model) {
 		output <<"Model:\n";
 	}
 	printInterpr(temptruemodelcombined, output, PRINT_FIXED);
-	assert(model.variableassignments.size()==0);
+	MAssert(model.variableassignments.size()==0);
 	output.flush();
 }
 
@@ -338,7 +338,7 @@ FODOTTranslator::AtomInfo FODOTTranslator::deriveStringFromAtomNumber(int atom) 
 	}
 
 	int valueleft = atom;
-	assert(index < symbols.size());
+	MAssert(index < symbols.size());
 	valueleft = atom-symbols[index]->startnumber;
 	for(auto n=symbols[index]->types.crbegin(); n < symbols[index]->types.crend(); ++n) {
 		int cs = (*n)->domainelements.size();

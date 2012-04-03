@@ -55,21 +55,18 @@ public:
 	}
 
 	void visit(const InnerWLSet& set) {
-		for (unsigned int i = 0; i < set.wls.size(); ++i) {
+		for (unsigned int i = 0; i < set.wl.size(); ++i) {
 			if (i > 0) {
 				target() << " -- ";
 			}
-			target() << print(set.wls[i].getLit(), getPrinter());
+			target() << print(set.wl[i].getLit(), getPrinter());
 		}
-		if (set.wls.size() > 1) {
-			target() << " -- " << print(set.wls[0].getLit(), getPrinter()) << " ";
+		if (set.wl.size() > 1) {
+			target() << " -- " << print(set.wl[0].getLit(), getPrinter()) << " ";
 		}
 		target() << "[color=green];\n";
 	}
 
-	void visit(const InnerAggregate&) {
-		throw notYetImplemented("Printing ecnfgraph of aggregates.");
-	}
 	void visit(const InnerReifAggregate&) {
 		throw notYetImplemented("Printing ecnfgraph of reified aggregate.");
 	}
@@ -87,9 +84,6 @@ public:
 	}
 	void visit(const InnerSymmetry&) {
 		throw notYetImplemented("Printing ecnfgraph of symmetrye.");
-	}
-	void visit(const InnerForcedChoices&) {
-		throw notYetImplemented("Printing ecnfgraph of forced choice.");
 	}
 	void visit(const InnerIntVarRange&) {
 		throw notYetImplemented("Printing ecnfgraph of range int var.");

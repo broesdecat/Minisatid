@@ -10,11 +10,12 @@
 #include <vector>
 #include "Options.hpp"
 #include "callback.hpp"
+#include "constraintvisitors/LiteralPrinter.hpp"
 #include "satsolver/BasicSATUtils.hpp"
+#include "external/Remapper.hpp"
 
 namespace MinisatID{
 
-class Remapper;
 class Translator;
 class PCSolver;
 class PropAndBackMonitor;
@@ -38,17 +39,42 @@ public:
 	void notifyMonitor(int untillevel);
 };
 
-class Space{
+class VarCreation {
+private:
+	Remapper* remapper;
+public:
+	VarCreation(Remapper* r)
+			: remapper(r) {
+	}
+	Var createVar();
+};
+
+template<class Engine>
+class ConstraintAdditionInterface{
+protected:
+	Remapper* remapper;
+public:
+	ConstraintAdditionInterface(): remapper(new Remapper()){
+
+	}
+	~ConstraintAdditionInterface() {
+		delete(remapper);
+	}
+
+	Remapper& getRemapper() { return *remapper; }
+	virtual Engine* getEngine() = 0;
+};
+
+class Space: public LiteralPrinter, public ConstraintAdditionInterface<PCSolver>{
 private:
 	SolverOption basicoptions;
-	Remapper* remapper;
-	PCSolver* engine;
 	InnerMonitor* monitor;
+	VarCreation* varcreator;
+	PCSolver* engine;
 
 public:
 	Space(SolverOption options);
 	~Space();
-	Remapper& getRemapper() { return *remapper; }
 	PCSolver* getEngine() { return engine; }
 	const SolverOption& getOptions() const { return basicoptions; }
 
@@ -58,9 +84,9 @@ public:
 private:
 	bool hasprintcallback; // FIXME make all of these a Printer!
 	callbackprinting _cb;
-	Translator* _translator;
+	Translator *_translator, *_origtranslator;
 public:
-	std::string print(const Lit& lit) const;
+	virtual std::string printLiteral(const Lit& lit) const;
 	std::string print(const litlist& literals) const;
 
 	void setTranslator(Translator* translator){
