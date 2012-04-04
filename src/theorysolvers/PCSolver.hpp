@@ -202,7 +202,7 @@ public:
 private:
 	LiteralPrinter* printer;
 public:
-	std::string printLiteral(const Lit& lit) const;
+	std::string toString(const Lit& lit) const;
 	void printEnqueued(const Lit& p) const;
 	void printChoiceMade(int level, const Lit& l) const;
 	void printClause(rClause clause) const;

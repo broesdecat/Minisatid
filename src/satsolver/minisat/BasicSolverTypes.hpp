@@ -77,6 +77,8 @@ inline int var(Lit p) {
 inline int toInt(Lit p) {
 	return p.x;
 }
+// Returns an integer which represents this literal: abs(x) is the atom, x<0 is the sign
+inline int getIntLit(Lit p) { return var(p)* (sign(p)?-1:1); }
 
 const Lit lit_Undef = { -2 }; // }- Useful special constants.
 const Lit lit_Error = { -1 }; // }

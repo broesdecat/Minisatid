@@ -35,7 +35,7 @@ public:
 	}
 
 	void visit(const MinisatID::Implication& obj){
-		target() <<"Added " <<print(obj.head, getPrinter()) <<obj.type;
+		target() <<"Added " <<toString(obj.head, getPrinter()) <<obj.type;
 		printList(obj.body, obj.conjunction?" & ":" | ", target(), getPrinter());
 		target() <<"\n";
 	}
@@ -47,7 +47,7 @@ public:
 	}
 
 	void visit(const Rule& rule){
-		target() <<"Added rule " <<print(rule.head, getPrinter()) <<" <- ";
+		target() <<"Added rule " <<toString(rule.head, getPrinter()) <<" <- ";
 		if(rule.body.size()==0){
 			target() <<(rule.conjunctive?"true":"false");
 		}else{
@@ -60,7 +60,7 @@ public:
 		target() <<"Added non-weighted set " <<set.setID <<" = {";
 		std::vector<Lit>::size_type count = 0;
 		for(auto i=set.wl.cbegin(); i!=set.wl.cend(); ++i, ++count){
-			target() <<print((*i).getLit(), getPrinter()) <<"=" <<(*i).getWeight();
+			target() <<toString((*i).getLit(), getPrinter()) <<"=" <<(*i).getWeight();
 			if(count<set.wl.size()-1){
 				target() <<", ";
 			}
@@ -69,7 +69,7 @@ public:
 	}
 
 	void visit(const Aggregate& agg){
-		target() <<"Added aggregate " <<print(agg.head, getPrinter()) <<" "<<(agg.sem==AggSem::COMP?"<=>":"<-");
+		target() <<"Added aggregate " <<toString(agg.head, getPrinter()) <<" "<<(agg.sem==AggSem::COMP?"<=>":"<-");
 		if(agg.sem==AggSem::DEF){
 			target() <<"(" <<agg.defID <<")";
 		}
@@ -109,7 +109,7 @@ public:
 				target() <<", ";
 			}
 			begin = false;
-			target() <<print((*i).first, getPrinter()) <<"->" <<print((*i).second, getPrinter());
+			target() <<toString((*i).first, getPrinter()) <<"->" <<toString((*i).second, getPrinter());
 		}
 		target() <<"\n";
 	}
@@ -131,7 +131,7 @@ public:
 	}
 
 	void visit(const CPBinaryRel& rel){
-		target() <<"Added binary constraint " <<print(rel.head, getPrinter()) <<" <=> var" <<rel.varID <<" "<<rel.rel <<" " <<rel.bound <<"\n";
+		target() <<"Added binary constraint " <<toString(rel.head, getPrinter()) <<" <=> var" <<rel.varID <<" "<<rel.rel <<" " <<rel.bound <<"\n";
 	}
 
 	void visit(const CPCount& obj){
@@ -141,11 +141,11 @@ public:
 	}
 
 	void visit(const CPBinaryRelVar& rel){
-		target() <<"Added binary constraint " <<print(rel.head, getPrinter()) <<" <=> var" <<rel.lhsvarID <<" "<<rel.rel <<" var" <<rel.rhsvarID <<"\n";
+		target() <<"Added binary constraint " <<toString(rel.head, getPrinter()) <<" <=> var" <<rel.lhsvarID <<" "<<rel.rel <<" var" <<rel.rhsvarID <<"\n";
 	}
 
 	void visit(const CPSumWeighted& sum){
-		target() <<"Added sum constraint " <<print(sum.head, getPrinter()) <<" <=> sum({ ";
+		target() <<"Added sum constraint " <<toString(sum.head, getPrinter()) <<" <=> sum({ ";
 		std::vector<int>::size_type count = 0;
 		auto litit=sum.varIDs.cbegin();
 		auto weightit=sum.weights.cbegin();
@@ -159,7 +159,7 @@ public:
 	}
 
 	void visit(const LazyGroundLit& lg){
-		target() <<"Added lazy residual " <<print(lg.residual, getPrinter()) <<", acting as " <<(lg.watchboth?"known":"true") <<" delay trigger.\n";
+		target() <<"Added lazy residual " <<toString(lg.residual, getPrinter()) <<", acting as " <<(lg.watchboth?"known":"true") <<" delay trigger.\n";
 	};
 };
 

@@ -20,14 +20,14 @@ class LiteralPrinter;
 Lit getPrintableVar(Var v);
 
 template<typename S>
-std::string print(Var obj, const S& solver) {
-	return print(getPrintableVar(obj), solver);
+std::string toString(Var obj, const S& solver) {
+	return toString(getPrintableVar(obj), solver);
 }
 
-std::string print(const Lit& obj, LiteralPrinter const * const solver);
-std::string print(const Lit& obj, lbool value, LiteralPrinter const * const solver);
-std::string print(const Lit& obj, const LiteralPrinter& solver);
-std::string print(const Lit& obj, lbool value, const LiteralPrinter& solver);
+std::string toString(const Lit& obj, LiteralPrinter const * const solver);
+std::string toString(const Lit& obj, lbool value, LiteralPrinter const * const solver);
+std::string toString(const Lit& obj, const LiteralPrinter& solver);
+std::string toString(const Lit& obj, lbool value, const LiteralPrinter& solver);
 
 template<class T>
 T& operator<<(T& stream, const EqType& type) {

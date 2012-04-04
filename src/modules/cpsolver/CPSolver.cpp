@@ -203,7 +203,7 @@ rClause CPSolver::getExplanation(const Lit& p){
 rClause CPSolver::notifySATsolverOfPropagation(const Lit& p) {
 	if (getPCSolver().value(p) == l_False) {
 		if (getPCSolver().verbosity() >= 2) {
-			clog <<">> Deriving conflinct in " <<print(p, getPCSolver()) <<" because of constraint expression.\n";
+			clog <<">> Deriving conflinct in " <<toString(p, getPCSolver()) <<" because of constraint expression.\n";
 		}
 		uint temp = propreason[p];
 		propreason[p] = trail.getTrail().size();
@@ -212,7 +212,7 @@ rClause CPSolver::notifySATsolverOfPropagation(const Lit& p) {
 		return confl;
 	} else if (getPCSolver().value(p) == l_Undef) {
 		if (getPCSolver().verbosity() >= 2) {
-			clog <<">> Deriving " <<print(p, getPCSolver()) <<" because of constraint expression.\n";
+			clog <<">> Deriving " <<toString(p, getPCSolver()) <<" because of constraint expression.\n";
 		}
 		propreason[p] = trail.getTrail().size();
 		getPCSolver().setTrue(p, this);
@@ -255,7 +255,7 @@ rClause CPSolver::notifypropagate(){
 
 		if(constr!=NULL){
 			if(getPCSolver().modes().verbosity >= 5){
-				clog <<">> Propagated into CP: " <<print(l, getPCSolver()) <<".\n";
+				clog <<">> Propagated into CP: " <<toString(l, getPCSolver()) <<".\n";
 			}
 
 			trail.propagate(l);

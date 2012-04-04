@@ -43,7 +43,7 @@ void MinisatID::printWatches(int, const std::vector<std::vector<Watch*> >&){
 				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(var2watches[i][j]);
 				if(watch2!=NULL && watch2->isInWS()){
 					clog<<"        ";
-					print(verbosity, *var2watches[i][j]->getSet()->getAgg()[k], true);
+					toString(verbosity, *var2watches[i][j]->getSet()->getAgg()[k], true);
 				}
 			}
 		}
@@ -80,7 +80,7 @@ void MinisatID::print(int verbosity, const TypedSet& c, bool endl) {
 }
 
 void MinisatID::print(int verbosity, const Agg& ae, bool endl) {
-	clog <<print(ae.getHead(), ae.getSet()->getPCSolver());
+	clog <<toString(ae.getHead(), ae.getSet()->getPCSolver());
 	lbool value = ae.getSet()->value(ae.getHead());
 	printValue(clog, value);
 	TypedSet* set = ae.getSet();

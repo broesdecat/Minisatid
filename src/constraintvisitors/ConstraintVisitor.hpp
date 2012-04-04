@@ -34,7 +34,7 @@ protected:
 				stream <<concat;
 			}
 			begin = false;
-			stream <<print(*i, solver);
+			stream <<toString(*i, solver);
 		}
 	}
 

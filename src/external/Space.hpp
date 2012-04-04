@@ -71,8 +71,8 @@ private:
 	callbackprinting _cb;
 	Translator *_translator, *_origtranslator;
 public:
-	virtual std::string printLiteral(const Lit& lit) const;
-	std::string print(const litlist& literals) const;
+	virtual std::string toString(const Lit& lit) const;
+	std::string toString(const litlist& literals) const;
 
 	void setTranslator(Translator* translator){
 		_translator = translator;

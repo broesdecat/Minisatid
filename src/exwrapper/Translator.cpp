@@ -46,7 +46,7 @@ void Translator::printTranslation(std::ostream& output, const List& l){
 		if(hasTranslation((*var2lit).second)){
 			// TODO whether to print the INTERNAL or EXTERNAL atom here, depends on what we have printed out as theory?
 			// FIXME output <<getPrintableVar((*var2lit).first) <<" ";
-			output <<printLiteral((*var2lit).second);
+			output <<toString((*var2lit).second);
 		}
 	}
 }

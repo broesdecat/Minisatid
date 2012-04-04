@@ -532,7 +532,7 @@ void PropagatorFactory::add(const LazyGroundLit& object) {
 	MAssert(not getEngine().isDecisionVar(var(object.residual)));
 	// TODO in fact, want to check that it does not yet occur in the theory, this is easiest hack
 	if(getEngine().verbosity()>4){
-		clog <<print(object.residual, getEngine()) <<" is delayed " <<(object.watchboth?"on unknown":"on true") <<"\n";
+		clog <<toString(object.residual, getEngine()) <<" is delayed " <<(object.watchboth?"on unknown":"on true") <<"\n";
 	}
 	if (object.watchboth) {
 		new LazyResidual(getEnginep(), var(object.residual), object.monitor);

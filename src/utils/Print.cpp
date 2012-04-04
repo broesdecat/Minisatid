@@ -24,21 +24,21 @@ namespace MinisatID{
 
 Lit getPrintableVar(Var v) { return mkPosLit(v); }
 
-std::string print(const Lit& lit, LiteralPrinter const * const solver){
-	return print(lit, *solver);
+std::string toString(const Lit& lit, LiteralPrinter const * const solver){
+	return toString(lit, *solver);
 }
 
-std::string print(const Lit& lit, lbool value, LiteralPrinter const* const solver){
-	return print(lit, value, *solver);
+std::string toString(const Lit& lit, lbool value, LiteralPrinter const* const solver){
+	return toString(lit, value, *solver);
 }
 
-std::string print(const Lit& lit, const LiteralPrinter& solver){
-	return solver.printLiteral(lit);
+std::string toString(const Lit& lit, const LiteralPrinter& solver){
+	return solver.toString(lit);
 }
 
-std::string print(const Lit& lit, lbool value, const LiteralPrinter& solver){
+std::string toString(const Lit& lit, lbool value, const LiteralPrinter& solver){
 	stringstream ss;
-	ss <<solver.printLiteral(lit) <<"(" <<(value==l_True?"T":(value==l_False?"F":"U")) <<")";
+	ss <<solver.toString(lit) <<"(" <<(value==l_True?"T":(value==l_False?"F":"U")) <<")";
 	return ss.str();
 }
 }

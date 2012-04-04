@@ -114,9 +114,9 @@ void Solver::setDecidable(Var v, bool decide) // NOTE: no-op if already a decisi
 
 	if (verbosity > 10) {
 		if (decide) {
-			clog << ">>> Making " << print(v, getPCSolver()) << " decidable.\n";
+			clog << ">>> Making " << toString(v) << " decidable.\n";
 		} else if (not decide && decision[v]) {
-			clog << ">>> Making decidable " << print(v, getPCSolver()) << " undecidable.\n";
+			clog << ">>> Making decidable " << toString(v) << " undecidable.\n";
 		}
 	}
 
@@ -581,7 +581,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 			clog << "\n";
 			clog << "Current learned clause: ";
 			for (int i = 1; i < out_learnt.size(); i++) {
-				clog << print(out_learnt[i], getPCSolver()) << " ";
+				clog << toString(out_learnt[i]) << " ";
 			}
 			clog << "\n";
 			clog << "Still explain: ";
@@ -606,7 +606,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 		/*AB*/
 		if (verbosity > 4) {
 			for (auto i = explain.begin(); i < explain.end(); i++) {
-				clog << print(*i, getPCSolver()) << " ";
+				clog << toString(*i) << " ";
 			}
 			clog << "\n";
 		}
@@ -632,7 +632,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 					break;
 				}
 			}
-			clog << print(p, getPCSolver()) << "\n";
+			clog << toString(p) << "\n";
 		}
 
 		if (confl == CRef_Undef && pathC > 1) {
@@ -1235,7 +1235,7 @@ void Solver::printClause(CRef rc) const {
 			clog << " & ";
 		}
 		begin = false;
-		clog << print(c[i], value(c[i]), getPCSolver());
+		clog << toString(c[i]);
 	}
 	clog << "\n";
 }
@@ -1327,7 +1327,7 @@ int Solver::printECNF(std::ostream& stream, std::set<Var>& printedvars) {
 	}
 	for (int i = 0; i < lastrootassertion; ++i) {
 		Lit lit = trail[i];
-		// TODO should only print literals which have a translation?
+		// TODO should only toString literals which have a translation?
 		stream << (sign(lit) ? -(var(lit) + 1) : var(lit) + 1) << " 0\n";
 	}
 

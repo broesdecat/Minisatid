@@ -34,7 +34,7 @@ public:
 		target().flush();
 	}
 
-	std::string print(const Lit& lit){
+	std::string toString(const Lit& lit){
 		std::stringstream ss;
 		ss <<(sign(lit)?"-":"") <<(var(lit)+1);
 		return ss.str();
@@ -42,15 +42,15 @@ public:
 
 	void visit(const Disjunction& clause) {
 		for (int i = 0; i < clause.literals.size(); ++i) {
-			target() <<print(clause.literals[i]) << " ";
+			target() <<toString(clause.literals[i]) << " ";
 		}
 		target() << "0\n";
 	}
 
 	void visit(const Rule& rule) {
-		target() << (rule.conjunctive ? "C" : "D") << " " << print(mkPosLit(rule.head)) << " ";
+		target() << (rule.conjunctive ? "C" : "D") << " " << toString(mkPosLit(rule.head)) << " ";
 		for (int i = 0; i < rule.body.size(); ++i) {
-			target() << print(rule.body[i]) << " ";
+			target() << toString(rule.body[i]) << " ";
 		}
 		target() << "0\n";
 	}
@@ -58,13 +58,13 @@ public:
 	void visit(const WLSet& set) {
 		target() << "WLSet " << set.setID << " ";
 		for (uint i = 0; i < set.wl.size(); ++i) {
-			target() << print(set.wl[i].getLit()) << "=" << set.wl[i].getWeight() << " ";
+			target() << toString(set.wl[i].getLit()) << "=" << set.wl[i].getWeight() << " ";
 		}
 		target() << "0\n";
 	}
 
 	void visit(const Aggregate& agg) {
-		target() << "Added aggregate " <<print(mkPosLit(agg.head)) << " " << (agg.sem == AggSem::COMP ? "<=>" : "<-");
+		target() << "Added aggregate " <<toString(mkPosLit(agg.head)) << " " << (agg.sem == AggSem::COMP ? "<=>" : "<-");
 		if (agg.sem == AggSem::DEF) {
 			target() << "(" << agg.defID << ")";
 		}

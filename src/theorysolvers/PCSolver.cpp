@@ -246,7 +246,7 @@ void PCSolver::notifyBoundsChanged(IntVar* var) {
  */
 rClause PCSolver::getExplanation(const Lit& l) {
 	if (modes().verbosity > 2) {
-		clog << "Generating explanation for " << print(l, this) << ", ";
+		clog << "Generating explanation for " << toString(l) << ", ";
 	}
 
 	auto propagator = propagations[var(l)];
@@ -265,8 +265,7 @@ rClause PCSolver::getExplanation(const Lit& l) {
 	MAssert(explan!=nullPtrClause);
 
 	if (verbosity() > 2) {
-		print(explan, *this);
-		clog << "\n";
+		printClause(explan);
 	}
 	return explan;
 }
@@ -414,12 +413,12 @@ void PCSolver::resetState() {
 // PRINT METHODS
 
 void PCSolver::printEnqueued(const Lit& p) const {
-	clog << "> Enqueued " << print(p, this) << "\n";
+	clog << "> Enqueued " << toString(p) << "\n";
 }
 
 void PCSolver::printChoiceMade(int level, const Lit& l) const {
 	if (modes().verbosity >= 2) {
-		clog << "> Choice literal, dl " << level << ": " << print(l, this) << ".\n";
+		clog << "> Choice literal, dl " << level << ": " << toString(l) << ".\n";
 	}
 }
 
@@ -461,12 +460,12 @@ lbool PCSolver::getModelValue(Var v) {
 }
 
 void PCSolver::accept(ConstraintVisitor& visitor) {
-	// TODO other necessary calls? (print optimization, print unfinished constraints, ...?
+	// TODO other necessary calls? (toString optimization, toString unfinished constraints, ...?
 	getEventQueue().accept(visitor);
 }
 
-std::string PCSolver::printLiteral(const Lit& lit) const {
-	return printer->printLiteral(lit);
+std::string PCSolver::toString(const Lit& lit) const {
+	return printer->toString(lit);
 }
 
 // @pre: decision level = 0

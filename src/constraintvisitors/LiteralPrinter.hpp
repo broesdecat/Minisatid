@@ -17,7 +17,7 @@ class LiteralPrinter {
 public:
 	virtual ~LiteralPrinter() {
 	}
-	virtual std::string printLiteral(const Lit& lit) const{
+	virtual std::string toString(const Lit& lit) const{
 		std::stringstream ss;
 		ss <<(sign(lit)?"-":"") <<var(lit)+1;
 		return ss.str();

@@ -78,7 +78,9 @@ public:
 	int verbosity() const {
 		return getPCSolver().verbosity();
 	}
+	std::string toString(Var atom) const;
 	std::string toString(const Lit& lit) const;
+	std::string toString(const Lit& lit, lbool value) const;
 	bool isTrue(const Lit& l) const {
 		return value(l) == l_True;
 	}

@@ -41,7 +41,7 @@ public:
 	void visit(const Disjunction& lits) {
 		printList(lits.literals, " -- ", target(), getPrinter());
 		if (lits.literals.size() > 1) {
-			target() << " -- " << print(lits.literals[0], getPrinter()) << " ";
+			target() << " -- " << toString(lits.literals[0], getPrinter()) << " ";
 		}
 		target() << "[color=blue];\n";
 	}
@@ -49,7 +49,7 @@ public:
 	void visit(const Rule& lits) {
 		printList(lits.body, " -- ", target(), getPrinter());
 		if (lits.body.size() > 1) {
-			target() << " -- " << print(lits.body[0], getPrinter()) << " ";
+			target() << " -- " << toString(lits.body[0], getPrinter()) << " ";
 		}
 		target() << "[color=green];\n";
 	}
@@ -59,10 +59,10 @@ public:
 			if (i > 0) {
 				target() << " -- ";
 			}
-			target() << print(set.wl[i].getLit(), getPrinter());
+			target() << toString(set.wl[i].getLit(), getPrinter());
 		}
 		if (set.wl.size() > 1) {
-			target() << " -- " << print(set.wl[0].getLit(), getPrinter()) << " ";
+			target() << " -- " << toString(set.wl[0].getLit(), getPrinter()) << " ";
 		}
 		target() << "[color=green];\n";
 	}

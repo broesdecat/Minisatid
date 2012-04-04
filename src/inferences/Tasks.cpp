@@ -236,7 +236,7 @@ SATVAL ModelExpand::invalidateModel(const litlist& clause) {
 
 	if (getOptions().verbosity >= 3) {
 		clog << "Adding model-invalidating clause: [ ";
-		getSpace()->print(d.literals);
+		clog <<getSpace()->toString(d.literals);
 		clog << "]\n";
 	}
 	getSolver().add(d);
@@ -272,7 +272,7 @@ bool ModelExpand::invalidateValue(litlist& invalidation) {
 		if (!currentoptimumfound && getSolver().getModelValue(var(minim[i])) == l_True) {
 			if (getOptions().verbosity >= 1) {
 				clog << "> Current optimum found for: ";
-				clog << getSpace()->printLiteral(minim[i]);
+				clog << getSpace()->toString(minim[i]);
 				clog << "\n";
 			}
 			currentoptimumfound = true;
@@ -429,7 +429,7 @@ void UnitPropagate::writeOutEntailedLiterals(){
 			output <<" ";
 		}
 		begin = false;
-		getSpace()->printLiteral(*i);
+		output <<getSpace()->toString(*i);
 	}
 	output <<"\n";
 	resman->close();
