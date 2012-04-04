@@ -13,6 +13,7 @@
 #include "constraintvisitors/LiteralPrinter.hpp"
 #include "satsolver/BasicSATUtils.hpp"
 #include "external/Remapper.hpp"
+#include "ConstraintAdditionInterface.hpp"
 
 namespace MinisatID{
 
@@ -47,22 +48,6 @@ public:
 			: remapper(r) {
 	}
 	Var createVar();
-};
-
-template<class Engine>
-class ConstraintAdditionInterface{
-protected:
-	Remapper* remapper;
-public:
-	ConstraintAdditionInterface(): remapper(new Remapper()){
-
-	}
-	~ConstraintAdditionInterface() {
-		delete(remapper);
-	}
-
-	Remapper& getRemapper() { return *remapper; }
-	virtual Engine* getEngine() = 0;
 };
 
 class Space: public LiteralPrinter, public ConstraintAdditionInterface<PCSolver>{

@@ -1,0 +1,34 @@
+/************************************
+ ConstraintAdditionInterface.hpp
+ this file belongs to GidL 2.0
+ (c) K.U.Leuven
+ ************************************/
+
+#ifndef CONSTRAINTADDITIONINTERFACE_HPP_
+#define CONSTRAINTADDITIONINTERFACE_HPP_
+
+namespace MinisatID {
+
+class Remapper;
+
+template<class Engine>
+class ConstraintAdditionInterface {
+protected:
+	Remapper* remapper;
+public:
+	ConstraintAdditionInterface() :
+			remapper(new Remapper()) {
+
+	}
+	~ConstraintAdditionInterface() {
+		delete (remapper);
+	}
+
+	Remapper& getRemapper() {
+		return *remapper;
+	}
+	virtual Engine* getEngine() = 0;
+};
+}
+
+#endif /* CONSTRAINTADDITIONINTERFACE_HPP_ */

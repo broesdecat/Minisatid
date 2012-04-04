@@ -71,4 +71,4 @@ install (TARGETS minisatid minisatid-bin
 )
 
 MESSAGE(STATUS "Options:")
-MESSAGE(STATUS "use cpsupport ${CPSUPPORT}")
+MESSAGE(STATUS "use cpsupport ${WITHCP}")

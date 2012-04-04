@@ -55,28 +55,7 @@ public:
 		int origatom = (*atom).second;
 		return Literal(origatom, sign(lit));
 	}
-
-	bool hasVar(const Atom& atom, Var& mappedvarifexists) const{
-		auto i = origtocontiguousatommapper.find(atom.getValue());
-		if(i==origtocontiguousatommapper.cend()){
-			return false;
-		}else{
-			mappedvarifexists = (*i).second;
-			return true;
-		}
-	}
 };
-
-template<typename Remapper>
-bool canBackMapLiteral(const Lit& lit, const Remapper& r) {
-	return r.wasInput(var(lit));
-}
-
-template<typename Remapper>
-Literal getBackMappedLiteral(const Lit& lit, const Remapper& r) {
-	MAssert(canBackMapLiteral(lit, r));
-	return r.getLiteral(lit);
-}
 
 }
 

@@ -9,6 +9,7 @@
 #define PRINTLITERAL_HPP_
 
 #include <string>
+#include <sstream>
 #include "satsolver/BasicSATUtils.hpp"
 
 namespace MinisatID {
@@ -16,7 +17,11 @@ class LiteralPrinter {
 public:
 	virtual ~LiteralPrinter() {
 	}
-	virtual std::string printLiteral(const Lit& lit) const = 0;
+	virtual std::string printLiteral(const Lit& lit) const{
+		std::stringstream ss;
+		ss <<(sign(lit)?"-":"") <<var(lit)+1;
+		return ss.str();
+	}
 };
 }
 

@@ -15,11 +15,12 @@ using namespace std;
 
 namespace MinisatID {
 
-TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggProp const * const w, const vwl& wls, bool usewatches, const std::vector<TempAgg*>& aggr, bool optim) :
+TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggProp const * const w, const vwl& wls, bool usewatches,
+		const std::vector<TempAgg*>& aggr, bool optim) :
 		Propagator(solver, "aggregate"), kb(knownbound), type(w), prop(NULL), setid(setid), usingwatches(usewatches), wl(wls) {
 
 	MAssert(not optim || aggr.size()==1);
-	for(auto i=aggr.cbegin(); i<aggr.cend(); ++i) {
+	for (auto i = aggr.cbegin(); i < aggr.cend(); ++i) {
 		addAgg(**i, optim);
 	}
 
@@ -36,7 +37,7 @@ TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggPro
 	getProp()->initialize(unsat, sat);
 	if (not sat) {
 		MAssert(unsat || getAgg().size()>0);
-	}else{
+	} else {
 		notifyNotPresent();
 	}
 
@@ -175,24 +176,26 @@ void TypedSet::notifypropagate(Watch* w) {
 
 rClause TypedSet::notifypropagate() {
 	auto confl = getProp()->propagateAtEndOfQueue();
-#ifdef DEBUG
-	bool twovalued = true;
-	for(auto i=getWL().cbegin(); twovalued && i<getWL().cend(); ++i){
-		if(value((*i).getLit())==l_Undef){
-			twovalued = false;
-		}
-	}
-	if(twovalued){
-		auto w = getType().getValue(*this);
-		for(auto j=getAgg().cbegin(); j<getAgg().cend(); ++j) {
-			if(verbosity()>=3) {
-				MinisatID::print(10, **j, true);
+#ifdef DEBUG // Check consistency of aggregates
+	if(confl==nullPtrClause) {
+		bool twovalued = true;
+		for(auto i=getWL().cbegin(); twovalued && i<getWL().cend(); ++i) {
+			if(value((*i).getLit())==l_Undef) {
+				twovalued = false;
 			}
-			auto headval = value((*j)->getHead());
-			if((*j)->getSem()==AggSem::IMPLICATION) {
-				MAssert((headval==l_True && isFalsified(**j, w, w)) || (headval==l_False && isSatisfied(**j, w, w)));
-			} else {
-				MAssert((headval==l_False && isFalsified(**j, w, w)) || (headval==l_True && isSatisfied(**j, w, w)));
+		}
+		if(twovalued) {
+			auto w = getType().getValue(*this);
+			for(auto j=getAgg().cbegin(); j<getAgg().cend(); ++j) {
+				if(verbosity()>=3) {
+					MinisatID::print(10, **j, true);
+				}
+				auto headval = value((*j)->getHead());
+				if((*j)->getSem()==AggSem::IMPLICATION) {
+					MAssert((headval==l_True && isFalsified(**j, w, w)) || (headval==l_False && isSatisfied(**j, w, w)));
+				} else {
+					MAssert((headval==l_False && isFalsified(**j, w, w)) || (headval==l_True && isSatisfied(**j, w, w)));
+				}
 			}
 		}
 	}

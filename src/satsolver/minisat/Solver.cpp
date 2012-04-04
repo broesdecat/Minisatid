@@ -824,8 +824,7 @@ void Solver::uncheckedEnqueue(Lit p, CRef from) {
  |      * the propagation queue is empty, even if there was a conflict.
  |________________________________________________________________________________________________@*/
 CRef Solver::propagate() {
-	auto confl = getPCSolver().propagate();
-	return confl;
+	return getPCSolver().propagate();
 }
 
 CRef Solver::notifypropagate() {
@@ -976,6 +975,7 @@ void Solver::rebuildOrderHeap() {
  |    thing done here is the removal of satisfied clauses, but more things can be put here.
  |________________________________________________________________________________________________@*/
 bool Solver::simplify() {
+	needsimplify = false;
 	MAssert(decisionLevel() == 0);
 
 	if (!ok || propagate() != CRef_Undef) return ok = false;
@@ -1016,7 +1016,7 @@ lbool Solver::search(int maxconflicts, bool nosearch/*AE*/) {
 	starts++;
 	needsimplify = true;
 
-	auto confl = CRef_Undef;
+	auto confl = nullPtrClause;
 	for (;;) {
 		if (getPCSolver().terminateRequested()) {
 			return l_Undef;
@@ -1078,7 +1078,7 @@ lbool Solver::search(int maxconflicts, bool nosearch/*AE*/) {
 			}
 
 			// Simplify the set of problem clauses:
-			if (decisionLevel() == 0 && !simplify()) {
+			if (decisionLevel() == 0 && not simplify()) {
 				return l_False;
 			}
 

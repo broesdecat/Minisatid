@@ -10,26 +10,40 @@
 #include "Tasks.hpp"
 #include "external/Remapper.hpp"
 #include "external/Datastructures.hpp"
+#include "external/ConstraintAdditionInterface.hpp"
+#include "constraintvisitors/FlatZincRewriter.hpp"
+#include <typeinfo>
 
 namespace MinisatID{
 
 class OneShotUnsatCoreExtraction: public Task, public ConstraintAdditionInterface<OneShotUnsatCoreExtraction>{
+private:
+	int maxid;// FIXME temporary
+	std::map<int, Var> id2Marker;
+	std::vector<Lit> markerAssumptions;
+	Space* space;
 public:
 	template<class T>
 	void add(const T& formula){
-
+		std::stringstream ss;
+		ss <<"Unsupported constraint type " <<typeid(T).name() <<"encountered in Unsat core extraction.";
+		throw idpexception(ss.str());
 	}
 
-	OneShotUnsatCoreExtraction* getEngine() const { return this; }
+	void innerExecute();
+
+	OneShotUnsatCoreExtraction(const SolverOption& options);
+	~OneShotUnsatCoreExtraction();
+
+	OneShotUnsatCoreExtraction* getEngine() { return this; }
 };
 
-class OneShotFlatzinc: public Task, public FlatZincRewriter<std::ostream>, public ConstraintAdditionInterface<OneShotUnsatCoreExtraction>{
-	template<class T>
-	void add(const T& formula){
+template<>
+void OneShotUnsatCoreExtraction::add(const InnerDisjunction& disjunction);
 
-	}
-
-	OneShotUnsatCoreExtraction* getEngine() const { return this; }
+class OneShotFlatzinc: public Task, public FlatZincRewriter<std::ostream>, public ConstraintAdditionInterface<OneShotFlatzinc>{
+public:
+	OneShotFlatzinc* getEngine() { return this; }
 };
 
 }

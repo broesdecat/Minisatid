@@ -4,7 +4,7 @@
 namespace MinisatID{
 	template<>
 	Convert<Lit>::LTo get(const Lit& lit, Remapper* remapper){
-		return getBackMappedLiteral(lit, *remapper);
+		return remapper->getLiteral(lit);
 	}
 
 	template<>

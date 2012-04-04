@@ -79,23 +79,21 @@ void MinisatID::setReduce(PCSolver*, InnerWLSet* set, std::vector<TempAgg*>&, co
 
 	bool setisreduced = false;
 	for (uint i = 1; i < oldset.size(); ++i) {
-		WL oldl = newset[indexinnew];
-		WL newl = oldset[i];
+		auto oldl = newset[indexinnew];
+		auto newl = oldset[i];
 		if (var(oldl.getLit()) == var(newl.getLit())) { //same variable
 			setisreduced = true;
 			if (oldl.getLit() == newl.getLit()) { //same literal, keep combined weight
-				Weight w = type.getCombinedWeight(newl.getWeight(), oldl.getWeight());
+				auto w = type.getCombinedWeight(newl.getWeight(), oldl.getWeight());
 				newset[indexinnew] = WL(oldl.getLit(), w);
 			} else { //opposite signs
-				WL wl = type.handleOccurenceOfBothSigns(oldl, newl, knownbound);
-				newset[indexinnew] = WL(wl.getLit(), wl.getWeight());
+				newset[indexinnew] = type.handleOccurenceOfBothSigns(oldl, newl, knownbound);
 			}
 		} else {
 			newset.push_back(newl);
 			++indexinnew;
 		}
 	}
-
 	vwl newset2;
 	for (vwl::size_type i = 0; i < newset.size(); ++i) {
 		if (!type.isNeutralElement(newset[i].getWeight())) {
@@ -108,8 +106,7 @@ void MinisatID::setReduce(PCSolver*, InnerWLSet* set, std::vector<TempAgg*>&, co
 	if (setisreduced) {
 		set->wl = newset2;
 	}
-
-	std::sort(set->getWL().begin(), set->getWL().end(), compareByWeights<WL>);
+	std::sort(set->wl.begin(), set->wl.end(), compareByWeights<WL>);
 }
 
 void MinisatID::addHeadImplications(PCSolver* solver, InnerWLSet*, std::vector<TempAgg*>& aggs, bool&, bool&) {

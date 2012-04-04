@@ -98,6 +98,7 @@ void ModelExpand::notifySolvingAborted(){
 void ModelExpand::innerExecute() {
 	printer->notifyStartSolving();
 	if (getSpace()->isCertainlyUnsat()) {
+		_solutions->notifyUnsat();
 		printer->notifySolvingFinished();
 		return;
 	}
@@ -125,6 +126,10 @@ void ModelExpand::innerExecute() {
 			}
 		}
 	}
+	if(_solutions->getNbModelsFound()==0){
+		_solutions->notifyUnsat();
+		// TODO notify the space that it is unsat? getSpace()->...
+	}
 	printer->notifySolvingFinished();
 	printSearchEnd(clog, getOptions().verbosity);
 }
@@ -133,8 +138,8 @@ void ModelExpand::innerExecute() {
 vector<Literal> getBackMappedModel(const std::vector<Lit>& model, const Remapper& r) {
 	vector<Literal> outmodel;
 	for (auto i = model.cbegin(); i != model.cend(); ++i) {
-		if (canBackMapLiteral(*i, r)) {
-			outmodel.push_back(getBackMappedLiteral(*i, r));
+		if (r.wasInput(var(*i))) {
+			outmodel.push_back(r.getLiteral(*i));
 		}
 	}
 	sort(outmodel.begin(), outmodel.end());
@@ -373,7 +378,9 @@ void ModelExpand::findOptimal(const litlist& assmpt) {
 
 void InnerMonitor::notifyMonitor(const Lit& propagation, int decisionlevel) {
 	for (auto i = monitors.cbegin(); i < monitors.cend(); ++i) {
-		(*i)->notifyPropagated(remapper->getLiteral(propagation), decisionlevel);
+		if(remapper->wasInput(var(propagation))){
+			(*i)->notifyPropagated(remapper->getLiteral(propagation), decisionlevel);
+		}
 	}
 }
 
@@ -397,8 +404,12 @@ literallist UnitPropagate::getEntailedLiterals(){
 	getSolver().backtrackTo(assumptions.size()); // Backtrack to the latest assumption decision
 	auto list = getSolver().getTrail();
 	literallist literals;
+	auto r = getSpace()->getRemapper();
 	for(auto i=list.cbegin(); i<list.cend(); ++i){
-		literals.push_back(getSpace()->getRemapper().getLiteral(*i));
+		if(r.wasInput(var(*i))){
+			literals.push_back(r.getLiteral(*i));
+		}
+
 	}
 	return literals;
 }
@@ -426,6 +437,7 @@ void UnitPropagate::writeOutEntailedLiterals(){
 		begin = false;
 		output <<(i->hasSign()?"-":"") <<i->getValue();
 	}
+	output <<"\n";
 	resman->close();
 }
 

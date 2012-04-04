@@ -254,6 +254,10 @@ rClause PCSolver::getExplanation(const Lit& l) {
 	}
 
 	auto explan = propagator->getExplanation(l);
+	// TODO add unsat core extraction here, but getExplan should not return an already created clause then.
+	// add new class UnsatCoreManager to the PCSolver fields
+	//	which associates at least one marker literal to each propagator
+	//		each propagator then has to know the ids of its associated constraints!
 	MAssert(explan!=nullPtrClause);
 
 	if (verbosity() > 2) {

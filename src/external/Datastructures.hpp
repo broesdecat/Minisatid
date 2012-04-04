@@ -107,8 +107,8 @@ std::string printLiteral(const Literal& lit);
 // A class representing a tuple of a literal and an associated weight
 template<class L>
 struct WLtuple {
-	const L l;
-	const Weight w;
+	L l;
+	Weight w;
 
 	const L& getLit() const {
 		return l;
@@ -117,12 +117,7 @@ struct WLtuple {
 		return w;
 	}
 
-	WLtuple(const L& l, const Weight& w) :
-			l(l), w(w) {
-	}
-	WLtuple<L> operator=(const WLtuple<L>& lw) const {
-		return WLtuple(lw.l, lw.w);
-	}
+	WLtuple(const L& l, const Weight& w): l(l), w(w) {	}
 
 	bool operator<(const WLtuple<L>& p) const {
 		return w < p.w;
@@ -140,7 +135,7 @@ Atom atom(const Literal& lit);
 
 //Compare WLs by their literals, placing same literals next to each other
 template<typename L>
-bool compareWLByLits(const WLtuple<L>& one, const WLtuple<L>& two){
+bool compareWLByLits(const WLtuple<L>& one, const WLtuple<L>& two) {
 	return atom(one.getLit()) < atom(two.getLit());
 }
 
@@ -151,7 +146,7 @@ bool compareByWeights(const T& one, const T& two) {
 }
 
 template<typename L>
-bool compareWLByAbsWeights(const WLtuple<L>& one, const WLtuple<L>& two){
+bool compareWLByAbsWeights(const WLtuple<L>& one, const WLtuple<L>& two) {
 	return abs(one.getWeight()) < abs(two.getWeight());
 }
 
@@ -185,8 +180,11 @@ template<class L>
 class Disj {
 public:
 	std::vector<L> literals;
-	Disj(){}
-	Disj(const std::vector<L>& literals): literals(literals){}
+	Disj() {
+	}
+	Disj(const std::vector<L>& literals) :
+			literals(literals) {
+	}
 };
 
 enum class ImplicationType {

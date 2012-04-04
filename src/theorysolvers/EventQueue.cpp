@@ -53,8 +53,8 @@ void EventQueue::notifyVarAdded() {
 void EventQueue::addEternalPropagators() {
 	auto props = event2propagator.at(EV_PROPAGATE);
 	for (uint i = 0; i < size(EV_PROPAGATE); ++i) {
-		Propagator* propagator = props[i];
-		if (!propagator->isQueued()) {
+		auto propagator = props[i];
+		if (not propagator->isQueued()) {
 			propagator->notifyQueued();
 			fastqueue.push_back(propagator);
 		}
@@ -113,9 +113,8 @@ void EventQueue::accept(GenWatch* const watch) {
 }
 
 void EventQueue::setTrue(const proplist& list, deque<Propagator*>& queue) {
-	const unsigned int size = list.size();
-	for (unsigned int i = 0; i < size; ++i) {
-		Propagator* p = list[i];
+	for (unsigned int i = 0; i < list.size(); ++i) {
+		auto p = list[i];
 		if (!p->isQueued()) {
 			p->notifyQueued();
 			queue.push_back(p);
@@ -190,12 +189,14 @@ void EventQueue::clearNotPresentPropagators() { // TODO restore?
 }
 
 rClause EventQueue::notifyPropagate() {
-	rClause confl = nullPtrClause;
+	auto confl = nullPtrClause;
 
 	for (auto i = propagatewatchesasap.cbegin(); i < propagatewatchesasap.cend() && confl == nullPtrClause; ++i) {
 		(*i)->propagate();
 	}
 	propagatewatchesasap.clear();
+
+	addEternalPropagators();
 
 	MAssert(getPCSolver().satState()!=SATVAL::UNSAT);
 	while (fastqueue.size() + slowqueue.size() != 0 && confl == nullPtrClause) {
