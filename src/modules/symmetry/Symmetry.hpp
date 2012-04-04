@@ -20,9 +20,9 @@ class PCSolver;
 
 class SymmetryData {
 private:
-	InnerSymmetry sym, inverse; // Maps a literal, by its numeric equiv, to its sym/inverse literal.
+	Symmetry sym, inverse; // Maps a literal, by its numeric equiv, to its sym/inverse literal.
 public:
-	SymmetryData(int nVars, const InnerSymmetry& symmetry);
+	SymmetryData(int nVars, const Symmetry& symmetry);
 
 	Lit getSymmetrical(const Lit& lit) const {
 		return sym.symmetry.at(lit);
@@ -50,7 +50,7 @@ private:
 	std::vector<std::vector<Lit> > notifiedLitTrail;
 
 public:
-	SymmetryPropagator(PCSolver* solver, const InnerSymmetry& sym);
+	SymmetryPropagator(PCSolver* solver, const Symmetry& sym);
 
 	// Propagator methods
 	virtual void 	accept(ConstraintVisitor& visitor){ throw notYetImplemented("Accept"); }

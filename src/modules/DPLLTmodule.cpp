@@ -14,7 +14,7 @@
 using namespace std;
 using namespace MinisatID;
 
-void Propagator::notifyBacktrack(int, const Lit&){ // FIXME turn into notifyBacktrack and virtual InnerBacktrack!
+void Propagator::notifyBacktrack(int, const Lit&){ // FIXME turn into notifyBacktrack and virtual Backtrack!
 	trailindex = getPCSolver().getSATSolver()->getTrailSize();
 }
 

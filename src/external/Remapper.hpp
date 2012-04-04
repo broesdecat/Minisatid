@@ -20,7 +20,7 @@ private:
 	atommap 		origtocontiguousatommapper, contiguoustoorigatommapper;
 
 	void checkVar(const Atom& atom){
-		if(atom.getValue()<1 || atom.getValue() == std::numeric_limits<int>::max()){
+		if(atom<1 || atom == std::numeric_limits<int>::max()){
 			throw idpexception(disAllowedVarNumbers());
 		}
 	}
@@ -29,11 +29,11 @@ public:
 	Var getVar(const Atom& atom){
 		checkVar(atom);
 
-		auto i = origtocontiguousatommapper.find(atom.getValue());
+		auto i = origtocontiguousatommapper.find(atom);
 		Var v = 0;
 		if(i==origtocontiguousatommapper.cend()){
-			origtocontiguousatommapper.insert(std::pair<int, int>(atom.getValue(), maxnumber));
-			contiguoustoorigatommapper.insert(std::pair<int, int>(maxnumber, atom.getValue()));
+			origtocontiguousatommapper.insert(std::pair<int, int>(atom, maxnumber));
+			contiguoustoorigatommapper.insert(std::pair<int, int>(maxnumber, atom));
 			v = maxnumber++;
 		}else{
 			v = (*i).second;
@@ -53,7 +53,7 @@ public:
 		auto atom = contiguoustoorigatommapper.find(var(lit));
 		MAssert(atom!=contiguoustoorigatommapper.cend());
 		int origatom = (*atom).second;
-		return Literal(origatom, sign(lit));
+		return mkLit(origatom, sign(lit));
 	}
 };
 

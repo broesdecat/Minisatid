@@ -13,14 +13,6 @@
 using namespace std;
 using namespace MinisatID;
 
-Var MinisatID::atom(const Lit& lit){
-	return var(lit);
-}
-
-Atom MinisatID::atom(const Literal& lit){
-	return lit.getAtom();
-}
-
 idpexception MinisatID::notYetImplemented(const std::string& mess){
 	stringstream ss;
 	ss <<"Not yet implemented: " <<mess <<"\n";

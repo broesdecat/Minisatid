@@ -16,6 +16,7 @@
 #include <iostream>
 #include <ostream>
 #include <sstream>
+#include "constraintvisitors/LiteralPrinter.hpp"
 
 #include <algorithm>
 
@@ -71,7 +72,7 @@ struct SymbolInterpr{
 };
 typedef std::vector<SymbolInterpr> modelvec;
 
-class Translator {
+class Translator: LiteralPrinter {
 public:
 	Translator(){}
 	virtual ~Translator(){}

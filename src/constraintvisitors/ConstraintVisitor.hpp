@@ -45,23 +45,26 @@ public:
 	virtual void notifyStart() = 0;
 	virtual void notifyEnd() = 0;
 
-	virtual void visit(const InnerDisjunction&) = 0;
-	virtual void visit(const InnerImplication&) = 0;
-	virtual void visit(const InnerRule&) = 0;
-	virtual void visit(const InnerWLSet&) = 0;
-	virtual void visit(const InnerReifAggregate&) = 0;
-	virtual void visit(const InnerMinimizeOrderedList&) = 0;
-	virtual void visit(const InnerMinimizeSubset&) = 0;
-	virtual void visit(const InnerMinimizeVar&) = 0;
-	virtual void visit(const InnerMinimizeAgg&) = 0;
-	virtual void visit(const InnerSymmetry&) = 0;
-	virtual void visit(const InnerIntVarEnum&) = 0;
-	virtual void visit(const InnerIntVarRange&) = 0;
-	virtual void visit(const InnerCPAllDiff&) = 0;
-	virtual void visit(const InnerCPBinaryRel&) = 0;
-	virtual void visit(const InnerCPCount&) = 0;
-	virtual void visit(const InnerCPBinaryRelVar&) = 0;
-	virtual void visit(const InnerCPSumWeighted&) = 0;
+	virtual void visit(const Disjunction&) = 0;
+	virtual void visit(const Implication&) = 0;
+	virtual void visit(const Rule&) = 0;
+	virtual void visit(const WLSet&) = 0;
+	virtual void visit(const Aggregate&) = 0;
+	virtual void visit(const MinimizeOrderedList&) = 0;
+	virtual void visit(const MinimizeSubset&) = 0;
+	virtual void visit(const MinimizeVar&) = 0;
+	virtual void visit(const MinimizeAgg&) = 0;
+	virtual void visit(const Symmetry&) = 0;
+	virtual void visit(const IntVarEnum&) = 0;
+	virtual void visit(const IntVarRange&) = 0;
+	virtual void visit(const CPAllDiff&) = 0;
+	virtual void visit(const CPBinaryRel&) = 0;
+	virtual void visit(const CPCount&) = 0;
+	virtual void visit(const CPBinaryRelVar&) = 0;
+	virtual void visit(const CPSumWeighted&) = 0;
+	virtual void visit(const LazyGroundLit&){
+		throw idpexception("Handling lazygroundLits is not relevant for the current visitor.");
+	}
 };
 
 template<typename Stream>

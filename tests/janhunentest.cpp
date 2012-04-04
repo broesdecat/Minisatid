@@ -30,11 +30,11 @@ namespace Tests{
 	private: int start;
 	public:
 		SolverMOC(int start):start(start){}
-		std::vector<InnerDisjunction*> disj;
-		std::vector<InnerEquivalence*> eqs;
+		std::vector<Disjunction*> disj;
+		std::vector<Equivalence*> eqs;
 		int newVar() { return start++; }
-		bool add(const InnerDisjunction& d){ disj.push_back(new InnerDisjunction(d)); return true; }
-		bool add(const InnerEquivalence& eq){ eqs.push_back(new InnerEquivalence(eq)); return true; }
+		bool add(const Disjunction& d){ disj.push_back(new Disjunction(d)); return true; }
+		bool add(const Equivalence& eq){ eqs.push_back(new Equivalence(eq)); return true; }
 		SATVAL isUnsat() const { return SATVAL::POS_SAT; }
 		SATVAL satState() const { return SATVAL::POS_SAT; }
 		lbool value(const Lit& lit) { return l_True; }

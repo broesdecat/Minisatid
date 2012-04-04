@@ -35,7 +35,7 @@ AggToCNFTransformer::~AggToCNFTransformer(){
 	deleteList<PBAgg>(pbaggs);
 }
 
-void AggToCNFTransformer::add(InnerWLSet* set, std::vector<TempAgg*>& aggs) {
+void AggToCNFTransformer::add(WLSet* set, std::vector<TempAgg*>& aggs) {
 	tempagglist remaining;
 	for (auto i = aggs.cbegin(); i != aggs.cend(); ++i) {
 		TempAgg* agg = *i;
@@ -129,7 +129,7 @@ SATVAL MinisatID::execute(const AggToCNFTransformer& transformer) {
 	//add the CNF to the solver
 	int maxnumber = pcsolver.nVars();
 	for (auto i = pbencodings.cbegin(); i < pbencodings.cend(); ++i) {
-		InnerDisjunction clause;
+		Disjunction clause;
 		for (auto j = (*i).cbegin(); j < (*i).cend(); ++j) {
 			Var v = MiniSatPP::var(*j) + (MiniSatPP::var(*j) > transformer.maxvar ? maxnumber - transformer.maxvar : 0);
 			clause.literals.push_back(MiniSatPP::sign(*j) ? mkNegLit(v) : mkPosLit(v));

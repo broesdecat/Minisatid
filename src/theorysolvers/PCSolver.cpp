@@ -29,7 +29,7 @@ using namespace Minisat;
 using Minisat::vec;
 
 //Has to be value copy of modes!
-PCSolver::PCSolver(SolverOption modes, InnerMonitor* monitor, VarCreation* varcreator, LiteralPrinter* printer) :
+PCSolver::PCSolver(SolverOption modes, Monitor* monitor, VarCreation* varcreator, LiteralPrinter* printer) :
 		_modes(modes), searchengine(NULL), monitor(monitor), varcreator(varcreator), printer(printer),
 #ifdef CPSUPPORT
 		cpsolver(NULL),
@@ -70,6 +70,10 @@ bool PCSolver::hasCPSolver() const {
 }
 #endif
 
+VARHEUR PCSolver::lazyDecide() const{
+	return modes().lazy ? VARHEUR::DONT_DECIDE : VARHEUR::DECIDE;
+}
+
 lbool PCSolver::value(Var x) const {
 	return getSolver().value(x);
 }
@@ -103,7 +107,7 @@ void PCSolver::notifyDecisionVar(Var var) {
 	getSATSolver()->setDecidable(var, true);
 }
 
-rClause PCSolver::createClause(const InnerDisjunction& clause, bool learned) {
+rClause PCSolver::createClause(const Disjunction& clause, bool learned) {
 	if (clause.literals.size() == 0) {
 		vec<Lit> dummylits; //INVAR, solver does not simplify learned clauses
 		dummylits.push(mkLit(dummy1, true));
@@ -223,9 +227,9 @@ void PCSolver::accept(Propagator* propagator, const Lit& lit, PRIORITY priority)
 }
 
 Var PCSolver::newVar() {
-	auto v = varcreator->createVar();
-	add(v);
-	return v;
+	auto var = varcreator->createVar();
+	createVar(var, lazyDecide());
+	return var;
 }
 
 int PCSolver::newSetID() {
@@ -308,11 +312,11 @@ int PCSolver::getTime(const Var& var) const {
 
 void PCSolver::finishParsing() {
 	dummy1 = newVar();
-	InnerDisjunction d1;
+	Disjunction d1;
 	d1.literals.push_back(mkLit(dummy1, false));
 	add(d1);
 	dummy2 = newVar();
-	InnerDisjunction d2;
+	Disjunction d2;
 	d2.literals.push_back(mkLit(dummy2, false));
 	add(d2);
 
@@ -423,7 +427,7 @@ void PCSolver::printClause(rClause clause) const {
 	getSolver().printClause(getClauseRef(clause));
 }
 
-void PCSolver::extractLitModel(std::shared_ptr<InnerModel> fullmodel) {
+void PCSolver::extractLitModel(std::shared_ptr<Model> fullmodel) {
 	fullmodel->literalinterpretations.clear();
 	for (uint64_t i = 0; i < nVars(); ++i) {
 		if (value(i) == l_True) {
@@ -434,7 +438,7 @@ void PCSolver::extractLitModel(std::shared_ptr<InnerModel> fullmodel) {
 	}
 }
 
-void PCSolver::extractVarModel(std::shared_ptr<InnerModel> fullmodel) {
+void PCSolver::extractVarModel(std::shared_ptr<Model> fullmodel) {
 	fullmodel->variableassignments.clear();
 	getFactory().includeCPModel(fullmodel->variableassignments);
 #ifdef CPSUPPORT
@@ -444,9 +448,9 @@ void PCSolver::extractVarModel(std::shared_ptr<InnerModel> fullmodel) {
 #endif
 }
 
-std::shared_ptr<InnerModel> PCSolver::getModel() {
+std::shared_ptr<Model> PCSolver::getModel() {
 	// Assert valid call!
-	auto fullmodel = std::shared_ptr<InnerModel>(new InnerModel());
+	auto fullmodel = std::shared_ptr<Model>(new Model());
 	extractLitModel(fullmodel);
 	extractVarModel(fullmodel);
 	return fullmodel;

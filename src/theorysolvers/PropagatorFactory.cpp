@@ -93,24 +93,6 @@ void PropagatorFactory::notifyMonitorsOfAdding(const T& obj) const {
 	}
 }
 
-void PropagatorFactory::addVar(Var v, VARHEUR heur) {
-	getEngine().createVar(v, heur);
-}
-
-void PropagatorFactory::addVar(Lit lit, VARHEUR heur){
-	addVar(var(lit), heur);
-	/*if(newvar){ // FIXME hack to guarantee that if a literal only occurs positive(negative), it's var is first chosen true(false)
-		getEngine().getSATSolver()->setInitialPolarity(var(lit), sign(lit));
-		std::clog <<"First choosing " <<lit <<" " <<(sign(lit)?"true":"false") <<"\n";
-	}*/
-}
-
-void PropagatorFactory::addVars(const vector<Lit>& a, VARHEUR heur) {
-	for (auto i = a.cbegin(); i != a.cend(); ++i) {
-		addVar(*i, heur);
-	}
-}
-
 int PropagatorFactory::newSetID() {
 	MAssert(!isParsing());
 	return maxset++;
@@ -122,16 +104,8 @@ void toVec(const std::vector<Lit>& literals, vec<Lit>& lits) {
 	}
 }
 
-// If lazy, do not decide for literals in decisions
-// NOTE: only use this if the watches mechanism of the constraint will take care of making literal decidable if necessary
-VARHEUR PropagatorFactory::lazyDecide() const {
-	return getEngine().modes().lazy ? VARHEUR::DONT_DECIDE : VARHEUR::DECIDE;
-}
-
-void PropagatorFactory::add(const InnerDisjunction& clause) {
+void PropagatorFactory::add(const Disjunction& clause) {
 	notifyMonitorsOfAdding(clause);
-
-	addVars(clause.literals, lazyDecide());
 
 	// TODO 1-watched scheme
 //	if(formula.literals.size()<3){
@@ -149,14 +123,14 @@ void PropagatorFactory::add(const InnerDisjunction& clause) {
 // Precondition: already added vars!
 void PropagatorFactory::addImplication(const Lit& head, const litlist& body, bool conjunction) {
 	if (conjunction) {
-		InnerDisjunction d;
+		Disjunction d;
 		d.literals.resize(2, not head);
 		for (auto i = body.cbegin(); i < body.cend(); ++i) {
 			d.literals[1] = *i;
 			add(d);
 		}
 	} else {
-		InnerDisjunction d;
+		Disjunction d;
 		d.literals.insert(d.literals.begin(), body.cbegin(), body.cend());
 		d.literals.push_back(not head);
 		add(d);
@@ -172,10 +146,8 @@ void PropagatorFactory::addReverseImplication(const Lit& head, const litlist& bo
 	addImplication(not head, list, not conjunction);
 }
 
-void PropagatorFactory::add(const InnerImplication& formula) {
+void PropagatorFactory::add(const Implication& formula) {
 	// TODO equiv propagator (or 1-watched scheme for the long clause)
-	addVar(formula.head, lazyDecide());
-	addVars(formula.body, lazyDecide());
 
 	switch (formula.type) {
 	case ImplicationType::EQUIVALENT:
@@ -191,21 +163,14 @@ void PropagatorFactory::add(const InnerImplication& formula) {
 	}
 }
 
-void PropagatorFactory::add(const InnerRule& rule) {
+void PropagatorFactory::add(const Rule& rule) {
 	notifyMonitorsOfAdding(rule);
-
-	addVar(rule.head, lazyDecide());
-	addVars(rule.body, lazyDecide());
 
 	definitions->addRule(rule.definitionID, rule.conjunctive, rule.head, rule.body);
 }
 
-void PropagatorFactory::add(const InnerWLSet& formula) {
+void PropagatorFactory::add(const WLSet& formula) {
 	notifyMonitorsOfAdding(formula);
-
-	for (auto i = formula.wl.cbegin(); i != formula.wl.cend(); ++i) {
-		addVar((*i).getLit());
-	}
 
 	if (formula.setID > maxset) {
 		maxset = formula.setID;
@@ -218,22 +183,20 @@ void PropagatorFactory::add(const InnerWLSet& formula) {
 	// TODO only if type is known here verifySet(formula);
 
 	SetWithAggs sa;
-	sa.set = new InnerWLSet(formula);
+	sa.set = new WLSet(formula);
 	parsedsets.insert( { formula.setID, sa });
 }
 
-void PropagatorFactory::add(const InnerReifAggregate& origagg) {
+void PropagatorFactory::add(const Aggregate& origagg) {
 	notifyMonitorsOfAdding(origagg);
 
 	guaranteeAtRootLevel(); // TODO currently only at root level, should change?
 
-	InnerReifAggregate newagg(origagg);
+	Aggregate newagg(origagg);
 
 	if (parsedsets.find(newagg.setID) == parsedsets.cend()) {
 		throwUndefinedSet(newagg.setID);
 	}
-
-	addVar(newagg.head);
 
 	auto setwithagg = parsedsets.at(newagg.setID);
 	if (newagg.type == AggType::MIN) {
@@ -275,7 +238,7 @@ void PropagatorFactory::addAggrExpr(Var head, int setid, AggSign sign, const Wei
 	}
 }
 
-void PropagatorFactory::add(const InnerMinimizeSubset& formula) {
+void PropagatorFactory::add(const MinimizeSubset& formula) {
 	notifyMonitorsOfAdding(formula);
 
 	guaranteeAtRootLevel();
@@ -284,11 +247,10 @@ void PropagatorFactory::add(const InnerMinimizeSubset& formula) {
 		throw idpexception("The set of literals to be minimized is empty.\n");
 	}
 
-	addVars(formula.literals);
 	getEngine().addOptimization(Optim::SUBSET, formula.literals);
 }
 
-void PropagatorFactory::add(const InnerMinimizeOrderedList& formula) {
+void PropagatorFactory::add(const MinimizeOrderedList& formula) {
 	notifyMonitorsOfAdding(formula);
 
 	guaranteeAtRootLevel();
@@ -297,18 +259,16 @@ void PropagatorFactory::add(const InnerMinimizeOrderedList& formula) {
 		throw idpexception("The set of literals to be minimized is empty.\n");
 	}
 
-	addVars(formula.literals);
 	getEngine().addOptimization(Optim::LIST, formula.literals);
 }
-void PropagatorFactory::add(const InnerMinimizeAgg& formula) {
+void PropagatorFactory::add(const MinimizeAgg& formula) {
 	notifyMonitorsOfAdding(formula);
 
 	guaranteeAtRootLevel();
 
 	auto head = getEngine().newVar();
-	addVar(head);
 
-	InnerDisjunction d;
+	Disjunction d;
 	d.literals.push_back(mkPosLit(head));
 	add(d);
 
@@ -329,7 +289,7 @@ void PropagatorFactory::add(const InnerMinimizeAgg& formula) {
 	finishSet(set, aggs, true);
 }
 
-void PropagatorFactory::add(const InnerMinimizeVar& formula) {
+void PropagatorFactory::add(const MinimizeVar& formula) {
 	notifyMonitorsOfAdding(formula);
 
 	guaranteeAtRootLevel();
@@ -338,7 +298,7 @@ void PropagatorFactory::add(const InnerMinimizeVar& formula) {
 	// TODO check var existence and add optim intvar to pcsolver
 }
 
-void PropagatorFactory::add(const InnerSymmetry& formula) {
+void PropagatorFactory::add(const Symmetry& formula) {
 	notifyMonitorsOfAdding(formula);
 
 	guaranteeAtRootLevel();
@@ -367,7 +327,7 @@ IntVar* PropagatorFactory::getIntVar(int varID) const {
 	return intvars.at(varID);
 }
 
-void PropagatorFactory::add(const InnerIntVarRange& obj) {
+void PropagatorFactory::add(const IntVarRange& obj) {
 	addCP(obj);
 	/*if(intvars.find(obj.varID)!=intvars.cend()){
 	 stringstream ss;
@@ -377,15 +337,14 @@ void PropagatorFactory::add(const InnerIntVarRange& obj) {
 	 intvars.insert(pair<int, IntVar*>(obj.varID, new IntVar(getEnginep(), obj.varID, toInt(obj.minvalue), toInt(obj.maxvalue))));*/
 }
 
-void PropagatorFactory::add(const InnerIntVarEnum& obj) {
+void PropagatorFactory::add(const IntVarEnum& obj) {
 	addCP(obj);
 }
 
-void PropagatorFactory::add(const InnerCPBinaryRel& obj) {
-	addVar(obj.head);
+void PropagatorFactory::add(const CPBinaryRel& obj) {
 	addCP(obj);
 
-	/*InnerEquivalence eq;
+	/*Equivalence eq;
 	 eq.head = mkPosLit(obj.head);
 	 IntVar* left = getIntVar(obj.varID);
 	 int intbound = toInt(obj.bound);
@@ -412,22 +371,20 @@ void PropagatorFactory::add(const InnerCPBinaryRel& obj) {
 	 add(eq);*/
 }
 
-void PropagatorFactory::add(const InnerCPBinaryRelVar& obj) {
-	addVar(obj.head);
+void PropagatorFactory::add(const CPBinaryRelVar& obj) {
 	addCP(obj);
 	//new BinaryConstraint(getEnginep(), intvars.at(obj.lhsvarID), obj.rel, intvars.at(obj.rhsvarID), obj.head);
 }
 
-void PropagatorFactory::add(const InnerCPSumWeighted& obj) {
-	addVar(obj.head);
+void PropagatorFactory::add(const CPSumWeighted& obj) {
 	addCP(obj);
 }
 
-void PropagatorFactory::add(const InnerCPCount& obj) {
+void PropagatorFactory::add(const CPCount& obj) {
 	addCP(obj);
 }
 
-void PropagatorFactory::add(const InnerCPAllDiff& obj) {
+void PropagatorFactory::add(const CPAllDiff& obj) {
 	addCP(obj);
 }
 
@@ -439,7 +396,7 @@ void PropagatorFactory::guaranteeAtRootLevel(){
 
 #define SETNOT2VAL(sat, unsat, aggs) (not sat && not unsat && aggs.size()>0)
 
-SATVAL PropagatorFactory::finishSet(const InnerWLSet* origset, vector<TempAgg*>& aggs, bool optimagg) {
+SATVAL PropagatorFactory::finishSet(const WLSet* origset, vector<TempAgg*>& aggs, bool optimagg) {
 	bool unsat = false, sat = false;
 
 	AggProp const * type = NULL;
@@ -476,7 +433,7 @@ SATVAL PropagatorFactory::finishSet(const InnerWLSet* origset, vector<TempAgg*>&
 		return getEngine().satState();
 	}
 
-	auto set = new InnerWLSet(*origset);
+	auto set = new WLSet(*origset);
 
 	// transform into SAT if requested
 	if (getEngine().modes().tocnf && not optimagg) {
@@ -528,7 +485,7 @@ SATVAL PropagatorFactory::finishParsing() {
 
 	// create one, certainly true variable which can act as a dummy head
 	dummyvar = getEngine().newVar();
-	InnerDisjunction clause;
+	Disjunction clause;
 	clause.literals.push_back(mkLit(dummyvar));
 	add(clause);
 
@@ -536,7 +493,7 @@ SATVAL PropagatorFactory::finishParsing() {
 
 	// create reified aggregates
 	for (auto i = parsedaggs.cbegin(); satval == SATVAL::POS_SAT && i != parsedaggs.cend(); ++i) {
-		InnerReifAggregate r;
+		Aggregate r;
 		r.bound = (*i)->bound;
 		r.defID = -1;
 		r.head = dummyvar;
@@ -547,7 +504,7 @@ SATVAL PropagatorFactory::finishParsing() {
 		add(r);
 		satval &= getEngine().satState();
 	}
-	deleteList<InnerReifAggregate>(parsedaggs);
+	deleteList<Aggregate>(parsedaggs);
 
 	for (auto i = parsedsets.begin(); satval == SATVAL::POS_SAT && i != parsedsets.end(); ++i) {
 		satval &= finishSet((*i).second.set, (*i).second.aggs);
@@ -570,11 +527,10 @@ void PropagatorFactory::includeCPModel(std::vector<VariableEqValue>& varassignme
 	}
 }
 
-void PropagatorFactory::add(const InnerLazyGroundLit& object) {
+void PropagatorFactory::add(const LazyGroundLit& object) {
 	MAssert(getEngine().modes().lazy);
 	MAssert(not getEngine().isDecisionVar(var(object.residual)));
 	// TODO in fact, want to check that it does not yet occur in the theory, this is easiest hack
-	addVar(object.residual, lazyDecide());
 	if(getEngine().verbosity()>4){
 		clog <<print(object.residual, getEngine()) <<" is delayed " <<(object.watchboth?"on unknown":"on true") <<"\n";
 	}

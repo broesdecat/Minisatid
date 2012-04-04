@@ -25,7 +25,7 @@ bool compareAggBounds(TempAgg* lhs, TempAgg* rhs) {
 	return lhs->getBound() < rhs->getBound();
 }
 
-void MinisatID::verifySet(const InnerWLSet& set, AggType type) {
+void MinisatID::verifySet(const WLSet& set, AggType type) {
 	for (auto i = set.getWL().cbegin(); i < set.getWL().cend(); ++i) {
 		if (type == AggType::CARD && (*i).getWeight() != 1) {
 			throw idpexception("Cardinality set does not have weights equal to 1.\n");
@@ -45,7 +45,7 @@ void MinisatID::verifySet(const InnerWLSet& set, AggType type) {
 	}
 }
 
-void MinisatID::verifyAggregate(InnerWLSet const * const set, AggType settype, Var head, AggType aggtype) {
+void MinisatID::verifyAggregate(WLSet const * const set, AggType settype, Var head, AggType aggtype) {
 	if (settype != aggtype) {
 		stringstream ss;
 		ss << "Set nr. " << set->setID << " has type " << settype << ", but contains an aggregate over type " << aggtype << ".\n";
@@ -64,7 +64,7 @@ void MinisatID::verifyAggregate(InnerWLSet const * const set, AggType settype, V
 
 //@pre: has been split
 //@post: set ordered from low to high weights
-void MinisatID::setReduce(PCSolver*, InnerWLSet* set, std::vector<TempAgg*>&, const AggProp& type, Weight& knownbound, bool&, bool&) {
+void MinisatID::setReduce(PCSolver*, WLSet* set, std::vector<TempAgg*>&, const AggProp& type, Weight& knownbound, bool&, bool&) {
 	MAssert(set->getWL().size()>0);
 	vwl oldset = set->getWL();
 	vwl newset;
@@ -72,7 +72,7 @@ void MinisatID::setReduce(PCSolver*, InnerWLSet* set, std::vector<TempAgg*>&, co
 	knownbound = 0;
 
 	//Sort all wlits according to the integer representation of their literal (to get all literals next to each other)
-	std::stable_sort(oldset.begin(), oldset.end(), compareWLByLits<Lit>);
+	std::stable_sort(oldset.begin(), oldset.end(), compareWLByLits<WLtuple>);
 
 	int indexinnew = 0;
 	newset.push_back(oldset[indexinnew]);
@@ -109,7 +109,7 @@ void MinisatID::setReduce(PCSolver*, InnerWLSet* set, std::vector<TempAgg*>&, co
 	std::sort(set->wl.begin(), set->wl.end(), compareByWeights<WL>);
 }
 
-void MinisatID::addHeadImplications(PCSolver* solver, InnerWLSet*, std::vector<TempAgg*>& aggs, bool&, bool&) {
+void MinisatID::addHeadImplications(PCSolver* solver, WLSet*, std::vector<TempAgg*>& aggs, bool&, bool&) {
 	if (aggs.size() > 1 && aggs[0]->getSem() != AggSem::IMPLICATION) {
 		tempagglist lbaggs, ubaggs;
 		for (auto i = aggs.cbegin(); i < aggs.cend(); ++i) {
@@ -124,12 +124,12 @@ void MinisatID::addHeadImplications(PCSolver* solver, InnerWLSet*, std::vector<T
 			TempAgg* first = *lbaggs.cbegin();
 			for (auto i = lbaggs.cbegin() + 1; i < lbaggs.cend(); ++i) {
 				TempAgg* second = *i;
-				InnerDisjunction disj;
+				Disjunction disj;
 				disj.literals.push_back(first->getHead());
 				disj.literals.push_back(not second->getHead());
 				solver->add(disj);
 				if (first->getBound() == second->getBound()) {
-					InnerDisjunction disj2;
+					Disjunction disj2;
 					disj2.literals.push_back(not first->getHead());
 					disj2.literals.push_back(second->getHead());
 					solver->add(disj2);
@@ -143,12 +143,12 @@ void MinisatID::addHeadImplications(PCSolver* solver, InnerWLSet*, std::vector<T
 			TempAgg* first = *ubaggs.cbegin();
 			for (auto i = ubaggs.cbegin() + 1; i < ubaggs.cend(); ++i) {
 				TempAgg* second = *i;
-				InnerDisjunction disj;
+				Disjunction disj;
 				disj.literals.push_back(first->getHead());
 				disj.literals.push_back(not second->getHead());
 				solver->add(disj);
 				if (first->getBound() == second->getBound()) {
-					InnerDisjunction disj2;
+					Disjunction disj2;
 					disj2.literals.push_back(not first->getHead());
 					disj2.literals.push_back(second->getHead());
 					solver->add(disj2);
@@ -161,7 +161,7 @@ void MinisatID::addHeadImplications(PCSolver* solver, InnerWLSet*, std::vector<T
 
 //After type setting and transforming to max
 //@ pre: set ordered according to weight!
-void MinisatID::max2SAT(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>& aggs, bool& unsat, bool& sat) {
+void MinisatID::max2SAT(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& aggs, bool& unsat, bool& sat) {
 	//Simple heuristic to choose for encoding as SAT
 	if (aggs.size() != 1 || aggs.front()->getType() != AggType::MAX || aggs[0]->getSem() == AggSem::IMPLICATION) {
 		return;
@@ -176,7 +176,7 @@ void MinisatID::max2SAT(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>
 	bool ub = agg.hasUB();
 	const Weight& bound = agg.getBound();
 	/*	if (agg.isDefined()) { //FIXME add code somewhere else?
-	 InnerRule rule;
+	 Rule rule;
 	 rule.definitionID = agg.getDefID();
 	 rule.head = var(agg.getHead());
 	 rule.conjunctive = ub;
@@ -193,7 +193,7 @@ void MinisatID::max2SAT(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>
 
 	 notunsat = set->getSolver()->getPCSolver().add(rule);
 	 } else {*/
-	InnerDisjunction clause;
+	Disjunction clause;
 	clause.literals.push_back(ub ? agg.getHead() : not agg.getHead());
 	for (auto i = set->getWL().rbegin(); i < set->getWL().rend() && (*i).getWeight() >= bound; ++i) {
 		if (ub && (*i).getWeight() == bound) {
@@ -228,7 +228,7 @@ void MinisatID::max2SAT(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>
  * 								if large, only write out if head already true
  * 	FUTURE others?
  */
-void MinisatID::card2Equiv(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>& aggs, const Weight& knownbound, bool& unsat, bool& sat) {
+void MinisatID::card2Equiv(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& aggs, const Weight& knownbound, bool& unsat, bool& sat) {
 	MAssert(!unsat);
 	if (aggs[0]->getType() == AggType::CARD && aggs[0]->getSem() != AggSem::IMPLICATION) {
 		tempagglist remaggs;
@@ -239,7 +239,7 @@ void MinisatID::card2Equiv(PCSolver* solver, InnerWLSet* set, std::vector<TempAg
 				lbool headvalue = solver->value(agg.getHead());
 				if (headvalue != l_False) {
 					/*if (agg.getSem() == DEF) {
-					 InnerRule rule;
+					 Rule rule;
 					 rule.definitionID = agg.getDefID();
 					 rule.head = var(agg.getHead());
 					 rule.conjunctive = true;
@@ -252,7 +252,7 @@ void MinisatID::card2Equiv(PCSolver* solver, InnerWLSet* set, std::vector<TempAg
 				}
 			} else if (agg.hasLB() && bound == 1) {
 				/*if (agg.getSem() == DEF) {
-				 InnerRule rule;
+				 Rule rule;
 				 rule.definitionID = agg.getDefID();
 				 rule.head = var(agg.getHead());
 				 rule.conjunctive = false;
@@ -265,7 +265,7 @@ void MinisatID::card2Equiv(PCSolver* solver, InnerWLSet* set, std::vector<TempAg
 				for (uint j = 0; j < set->getWL().size(); ++j) {
 					body.push_back(set->getWL()[j].getLit());
 				}
-				InnerImplication eq(agg.getHead(), ImplicationType::EQUIVALENT, body, false);
+				Implication eq(agg.getHead(), ImplicationType::EQUIVALENT, body, false);
 				solver->add(eq);
 				//}
 			} else {
@@ -303,12 +303,12 @@ AggProp const * getType(AggType type) {
 	}
 }
 
-TypedSet* createPropagator(PCSolver* solver, InnerWLSet* set, const std::vector<TempAgg*>& aggs, const Weight& knownbound, bool usewatches,
+TypedSet* createPropagator(PCSolver* solver, WLSet* set, const std::vector<TempAgg*>& aggs, const Weight& knownbound, bool usewatches,
 		bool optim) {
 	return new TypedSet(solver, set->setID, knownbound, getType(aggs.front()->getType()), set->getWL(), usewatches, aggs, optim);
 }
 
-void MinisatID::decideUsingWatchesAndCreateOptimPropagator(PCSolver* solver, InnerWLSet* set, TempAgg* agg, const Weight& knownbound) {
+void MinisatID::decideUsingWatchesAndCreateOptimPropagator(PCSolver* solver, WLSet* set, TempAgg* agg, const Weight& knownbound) {
 	// Set correct upper bound:
 	agg->setBound(AggBound(AggSign::UB, getType(agg->getType())->getMaxPossible(set->getWL())));
 
@@ -319,7 +319,7 @@ void MinisatID::decideUsingWatchesAndCreateOptimPropagator(PCSolver* solver, Inn
 	solver->addAggOptimization(typedset->getAgg().front());
 }
 
-void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, InnerWLSet* set, const std::vector<TempAgg*>& aggs,
+void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, WLSet* set, const std::vector<TempAgg*>& aggs,
 		const Weight& knownbound) {
 	bool watchable = true;
 	MAssert(aggs.size()>0);

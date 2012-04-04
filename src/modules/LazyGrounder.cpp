@@ -54,7 +54,7 @@ rClause LazyResidual::notifypropagate() {
 	notifyNotPresent(); // FIXME clean way of deleting this? FIXME only do this after finishparsing as this propagated is then DELETED
 
 	if (getPCSolver().isUnsat()) {
-		InnerDisjunction d;
+		Disjunction d;
 		d.literals = {getPCSolver().getTrail().back()};
 		return getPCSolver().createClause(d, true);
 	} else {

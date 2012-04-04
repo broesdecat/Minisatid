@@ -7,8 +7,8 @@ using namespace std;
 using namespace MinisatID;
 
 template<>
-void OneShotUnsatCoreExtraction::add(const InnerDisjunction& disjunction) {
-	InnerDisjunction extended(disjunction);
+void OneShotUnsatCoreExtraction::add(const Disjunction& disjunction) {
+	Disjunction extended(disjunction);
 	auto newvar = space->getEngine()->newVar();
 	extended.literals.push_back(mkPosLit(newvar));
 	MAssert(id2Marker.find(maxid)==id2Marker.cend());

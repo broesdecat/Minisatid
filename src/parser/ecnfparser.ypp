@@ -121,7 +121,7 @@ void checkVersion(ECNF_VERSION version);
     std::vector<MinisatID::Weight>* vweights;
     std::vector<uint>* vuints;
     std::vector<MinisatID::Literal>* vlits;
-    std::vector<MinisatID::WLtuple<MinisatID::Literal> >* vlws;
+    std::vector<MinisatID::WLtuple>* vlws;
     std::vector<MinisatID::Atom>* vatoms;
     MinisatID::EqType rel;
     MinisatID::AggType aggr;
@@ -349,11 +349,8 @@ agg		:	AGGDEFN DEFOP NUMBER SIGNDEFN NUMBER NUMBER weight ZERO
 
 set		:	SETDEFN NUMBER body ZERO	
 			{ 	
-				Set set;
-				set.setID = cID($2);
-				set.literals = *$3;
+				CR(createSet(cID($2), *$3, 1));
 				delete $2; delete $3;
-				CR(set);
 			}
 		;
 
@@ -371,7 +368,7 @@ wset	:	WSETDEFN NUMBER	wbody ZERO
 
 intvar	:	INTVAR number weight weight ZERO 
 			{
-				CPIntVarRange var;
+				IntVarRange var;
 				var.varID = $2;
 				var.minvalue = cWeight($3);
 				var.maxvalue = cWeight($4);
@@ -380,7 +377,7 @@ intvar	:	INTVAR number weight weight ZERO
 			}
 		|	INTVARDOM number weightbody DELIM ZERO 
 			{
-				CPIntVarEnum var;
+				IntVarEnum var;
 				var.varID = $2;
 				var.values = *$3;
 				CR(var);
@@ -533,7 +530,7 @@ wbody	:	wbody NUMBER REL
 				} 
 			} 
 			weight	
-			{ $$ = $1; $$->push_back(MinisatID::WLtuple<MinisatID::Literal>(cLiteral($2), cWeight($5))); delete($2);  delete $5;}
+			{ $$ = $1; $$->push_back(MinisatID::WLtuple(cLiteral($2), cWeight($5))); delete($2);  delete $5;}
 			
 		|	NUMBER REL 
 			{ 
@@ -542,7 +539,7 @@ wbody	:	wbody NUMBER REL
 				} 
 			} 
 			weight	
-			{ $$ = new std::vector<WLtuple<MinisatID::Literal> >(1,MinisatID::WLtuple<MinisatID::Literal>(cLiteral($1), cWeight($4))); delete($1); delete $4;}
+			{ $$ = new std::vector<WLtuple>(1,MinisatID::WLtuple(cLiteral($1), cWeight($4))); delete($1); delete $4;}
 		;
 		
 weightbody 	
@@ -613,7 +610,7 @@ int cID(string* c){
 
 Literal cLiteral(string* c){
 	int i = atoi(c->c_str());
-	return Literal(abs(i), i<0);
+	return mkLit(abs(i), i<0);
 }
 
 Weight cWeight(string* s){

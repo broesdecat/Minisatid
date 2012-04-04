@@ -145,7 +145,7 @@ vector<Literal> getBackMappedModel(const std::vector<Lit>& model, const Remapper
 	sort(outmodel.begin(), outmodel.end());
 	return outmodel;
 }
-void addModelToSolution(const std::shared_ptr<InnerModel>& model, const Remapper& remapper, ModelManager& solution, Printer& printer) {
+void addModelToSolution(const std::shared_ptr<Model>& model, const Remapper& remapper, ModelManager& solution, Printer& printer) {
 	auto outmodel = new Model();
 	outmodel->literalinterpretations = getBackMappedModel(model->literalinterpretations, remapper);
 	outmodel->variableassignments = model->variableassignments;
@@ -154,7 +154,7 @@ void addModelToSolution(const std::shared_ptr<InnerModel>& model, const Remapper
 
 }
 
-void ModelExpand::addModel(std::shared_ptr<InnerModel> model) {
+void ModelExpand::addModel(std::shared_ptr<Model> model) {
 	addModelToSolution(model, getSpace()->getRemapper(), *_solutions, *printer);
 }
 
@@ -206,7 +206,7 @@ MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& o
 
 		//Invalidate SAT model
 		if (getSolver().getCurrentDecisionLevel() != assmpt.size()) { //choices were made, so other models possible
-			InnerDisjunction invalidation;
+			Disjunction invalidation;
 			invalidate(invalidation.literals);
 			moremodels = invalidateModel(invalidation.literals) == SATVAL::POS_SAT;
 		} else {
@@ -230,7 +230,7 @@ void ModelExpand::invalidate(litlist& clause) {
  * Returns false if invalidating the model leads to UNSAT, meaning that no more models are possible. Otherwise true.
  */
 SATVAL ModelExpand::invalidateModel(const litlist& clause) {
-	InnerDisjunction d;
+	Disjunction d;
 	d.literals = clause;
 	getSolver().backtrackTo(0); // Otherwise, clauses cannot be added to the sat-solver anyway
 
@@ -343,7 +343,7 @@ void ModelExpand::findOptimal(const litlist& assmpt) {
 		auto m = getSolver().getModel();
 
 		//invalidate the solver
-		InnerDisjunction invalidation;
+		Disjunction invalidation;
 		switch (getSolver().optim) {
 		case Optim::LIST:
 			unsatreached = invalidateValue(invalidation.literals);
@@ -376,7 +376,7 @@ void ModelExpand::findOptimal(const litlist& assmpt) {
 	}
 }
 
-void InnerMonitor::notifyMonitor(const Lit& propagation, int decisionlevel) {
+void Monitor::notifyMonitor(const Lit& propagation, int decisionlevel) {
 	for (auto i = monitors.cbegin(); i < monitors.cend(); ++i) {
 		if(remapper->wasInput(var(propagation))){
 			(*i)->notifyPropagated(remapper->getLiteral(propagation), decisionlevel);
@@ -384,7 +384,7 @@ void InnerMonitor::notifyMonitor(const Lit& propagation, int decisionlevel) {
 	}
 }
 
-void InnerMonitor::notifyMonitor(int untillevel) {
+void Monitor::notifyMonitor(int untillevel) {
 	for (auto i = monitors.cbegin(); i < monitors.cend(); ++i) {
 		(*i)->notifyBacktracked(untillevel);
 	}
@@ -392,12 +392,6 @@ void InnerMonitor::notifyMonitor(int untillevel) {
 
 void ModelExpand::notifyCurrentOptimum(const Weight& value) const {
 	printer->notifyCurrentOptimum(value);
-}
-
-std::string MinisatID::printLiteral(const Literal& lit){
-	stringstream ss;
-	ss << (lit.hasSign()?"-":"") << lit.getValue();
-	return ss.str();
 }
 
 literallist UnitPropagate::getEntailedLiterals(){
@@ -415,7 +409,7 @@ literallist UnitPropagate::getEntailedLiterals(){
 }
 
 void UnitPropagate::innerExecute(){
-	getSolver().solve(assumptions, true);
+	getSolver().solve(assumptions, false);
 }
 
 void UnitPropagate::writeOutEntailedLiterals(){
@@ -435,7 +429,7 @@ void UnitPropagate::writeOutEntailedLiterals(){
 			output <<" ";
 		}
 		begin = false;
-		output <<(i->hasSign()?"-":"") <<i->getValue();
+		getSpace()->printLiteral(*i);
 	}
 	output <<"\n";
 	resman->close();

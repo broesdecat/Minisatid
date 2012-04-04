@@ -31,7 +31,7 @@ private:
 public:
 	AggToCNFTransformer(PCSolver* pcsolver):pcsolver(*pcsolver), maxvar(1){}
 	~AggToCNFTransformer();
-	void add(InnerWLSet* set, std::vector<TempAgg*>& aggs);
+	void add(WLSet* set, std::vector<TempAgg*>& aggs);
 
 	friend SATVAL execute(const AggToCNFTransformer& transformer);
 };

@@ -83,26 +83,26 @@ vtiv CPSolver::convertToVars(const std::vector<uint>& terms) const{
 
 // INITIALIZATION
 
-bool CPSolver::add(const InnerIntVarEnum& form){
+bool CPSolver::add(const IntVarEnum& form){
 	MAssert(!isInitialized());
 	getData().addTerm(TermIntVar(getSpace(), form.varID, form.values));
 	return true;
 }
 
-bool CPSolver::add(const InnerIntVarRange& form){
+bool CPSolver::add(const IntVarRange& form){
 	MAssert(!isInitialized());
 	getData().addTerm(TermIntVar(getSpace(), form.varID, form.minvalue, form.maxvalue));
 	return true;
 }
 
-bool CPSolver::add(const InnerCPBinaryRel& form){
+bool CPSolver::add(const CPBinaryRel& form){
 	MAssert(!isInitialized());
 	TermIntVar lhs(convertToVar(form.varID));
 	add(new BinArithConstraint(getSpace(), lhs, toRelType(form.rel), form.bound, form.head));
 	return true;
 }
 
-bool CPSolver::add(const InnerCPBinaryRelVar& form){
+bool CPSolver::add(const CPBinaryRelVar& form){
 	MAssert(!isInitialized());
 	TermIntVar lhs(convertToVar(form.lhsvarID));
 	TermIntVar rhs(convertToVar(form.rhsvarID));
@@ -110,14 +110,14 @@ bool CPSolver::add(const InnerCPBinaryRelVar& form){
 	return true;
 }
 
-bool CPSolver::add(const InnerCPSumWeighted& form){
+bool CPSolver::add(const CPSumWeighted& form){
 	MAssert(!isInitialized());
 	vector<TermIntVar> set(convertToVars(form.varIDs));
 	add(new SumConstraint(getSpace(), set, form.weights, toRelType(form.rel), form.bound, form.head));
 	return true;
 }
 
-bool CPSolver::add(const InnerCPCount& form){
+bool CPSolver::add(const CPCount& form){
 	MAssert(!isInitialized());
 	vector<TermIntVar> set(convertToVars(form.varIDs));
 	TermIntVar rhs(convertToVar(form.rhsvar));
@@ -125,7 +125,7 @@ bool CPSolver::add(const InnerCPCount& form){
 	return true;
 }
 
-bool CPSolver::add(const InnerCPAllDiff& form){
+bool CPSolver::add(const CPAllDiff& form){
 	MAssert(!isInitialized());
 	vector<TermIntVar> set(convertToVars(form.varIDs));
 	add(new DistinctConstraint(getSpace(), set));
@@ -191,7 +191,7 @@ rClause CPSolver::getExplanation(const Lit& p){
 
 	MAssert(propreason[p]!=(uint)-1);
 
-	InnerDisjunction clause;
+	Disjunction clause;
 	clause.literals.push_back(p);
 	for(uint i=0; i<propreason[p]; i++){
 		// FIXME skip all those not propagated into the cp solver
@@ -335,7 +335,7 @@ rClause CPSolver::genFullConflictClause(){
 	reportf("Conflicting literal: "); gprintLit(*nonassigned); reportf("\n");*/
 	// END
 
-	InnerDisjunction clause;
+	Disjunction clause;
 	for(auto i=trail.getTrail().rbegin(); i<trail.getTrail().rend(); i++){
 		//FIXME skip all literals that were propagated BY the CP solver
 		clause.literals.push_back(~(*i));

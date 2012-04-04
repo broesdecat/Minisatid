@@ -50,7 +50,7 @@ private:
 
 	IntegerType bound;
 	bool equality;
-	WSet wset;
+	WLSet wset;
 	int setid;
 	int maxvar;
 	Atom dummyhead;

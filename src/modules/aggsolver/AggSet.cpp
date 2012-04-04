@@ -30,6 +30,7 @@ TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggPro
 	}
 
 	getPCSolver().accept(this, EV_BACKTRACK);
+	getPCSolver().accept(this, EV_MODELFOUND);
 
 	prop = getType().createPropagator(this);
 	bool sat = false;
@@ -148,7 +149,7 @@ rClause TypedSet::notifySolver(AggReason* ar) {
 }
 
 void TypedSet::addExplanation(AggReason& ar) const {
-	InnerDisjunction lits;
+	Disjunction lits;
 	lits.literals.push_back(ar.getPropLit());
 	getProp()->getExplanation(lits.literals, ar);
 	ar.setClause(lits);
@@ -175,32 +176,33 @@ void TypedSet::notifypropagate(Watch* w) {
 }
 
 rClause TypedSet::notifypropagate() {
-	auto confl = getProp()->propagateAtEndOfQueue();
+	return getProp()->propagateAtEndOfQueue();
+}
+
+rClause TypedSet::notifyFullAssignmentFound() {
 #ifdef DEBUG // Check consistency of aggregates
-	if(confl==nullPtrClause) {
-		bool twovalued = true;
-		for(auto i=getWL().cbegin(); twovalued && i<getWL().cend(); ++i) {
-			if(value((*i).getLit())==l_Undef) {
-				twovalued = false;
-			}
+	bool twovalued = true;
+	for(auto i=getWL().cbegin(); twovalued && i<getWL().cend(); ++i) {
+		if(value((*i).getLit())==l_Undef) {
+			twovalued = false;
 		}
-		if(twovalued) {
-			auto w = getType().getValue(*this);
-			for(auto j=getAgg().cbegin(); j<getAgg().cend(); ++j) {
-				if(verbosity()>=3) {
-					MinisatID::print(10, **j, true);
-				}
-				auto headval = value((*j)->getHead());
-				if((*j)->getSem()==AggSem::IMPLICATION) {
-					MAssert((headval==l_True && isFalsified(**j, w, w)) || (headval==l_False && isSatisfied(**j, w, w)));
-				} else {
-					MAssert((headval==l_False && isFalsified(**j, w, w)) || (headval==l_True && isSatisfied(**j, w, w)));
-				}
+	}
+	if(twovalued) {
+		auto w = getType().getValue(*this);
+		for(auto j=getAgg().cbegin(); j<getAgg().cend(); ++j) {
+			if(verbosity()>=3) {
+				MinisatID::print(10, **j, true);
+			}
+			auto headval = value((*j)->getHead());
+			if((*j)->getSem()==AggSem::IMPLICATION) {
+				MAssert((headval==l_True && isFalsified(**j, w, w)) || (headval==l_False && isSatisfied(**j, w, w)));
+			} else {
+				MAssert((headval==l_False && isFalsified(**j, w, w)) || (headval==l_True && isSatisfied(**j, w, w)));
 			}
 		}
 	}
 #endif
-	return confl;
+	return nullPtrClause;
 }
 
 void TypedSet::notifyBacktrack(int untillevel, const Lit& decision) {

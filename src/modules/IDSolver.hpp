@@ -185,7 +185,7 @@ private:
 	varlist				css; // List of possible support violators.
 
 	std::set<Var>		savedufs;
-	InnerDisjunction	savedloopf;
+	Disjunction	savedloopf;
 
 	IDStats				stats;
 
@@ -309,7 +309,7 @@ public:
 	bool 	isJustified					(const InterMediateDataStruct& currentjust, const WL& wl, bool real) const;
 
 	bool	propagateJustified			(Var v, Var cs, std::set<Var>& ufs);    // Auxiliary for 'unfounded(..)'. Propagate the fact that 'v' is now justified. True if 'cs' is now justified
-	void	addLoopfClause				(Lit l, InnerDisjunction& lits);
+	void	addLoopfClause				(Lit l, Disjunction& lits);
 
 	void visit(Var i, std::vector<bool> &incomp, varlist &stack, varlist &visited, int& counter, varlist& roots); // Method to initialize 'scc'.
 	void visitFull(Var i, std::vector<bool> &incomp, varlist &stack, varlist &visited, int& counter, bool throughPositiveLit, varlist& posroots, varlist& rootofmixed, varlist& nodeinmixed);

@@ -24,9 +24,9 @@ void Definition::addToPropagators() {
 	}
 }
 
-void Definition::addDefinedAggregate(const InnerReifAggregate& inneragg, const InnerWLSet& innerset) {
+void Definition::addDefinedAggregate(const Aggregate& inneragg, const WLSet& innerset) {
 	auto& def = rules[inneragg.defID];
-	auto newrule = new TempRule(new InnerReifAggregate(inneragg), new InnerWLSet(innerset));
+	auto newrule = new TempRule(new Aggregate(inneragg), new WLSet(innerset));
 	auto it = def.find(inneragg.head);
 	if (it == def.cend()) {
 		def[inneragg.head] = newrule;
@@ -79,13 +79,13 @@ void Definition::addFinishedRule(TempRule* rule) {
 
 	if (rule->body.empty()) {
 		Lit h = conj ? mkLit(head) : mkLit(head, true); //empty set conj = true, empty set disj = false
-		InnerDisjunction v;
+		Disjunction v;
 		v.literals.push_back(h);
 		solver->add(v);
 	} else {
 		conj = conj || rule->body.size() == 1; //rules with only one body atom are treated as conjunctive
 
-		InnerImplication eq(mkPosLit(head), ImplicationType::EQUIVALENT, rule->body, conj);
+		Implication eq(mkPosLit(head), ImplicationType::EQUIVALENT, rule->body, conj);
 		solver->add(eq);
 	}
 }

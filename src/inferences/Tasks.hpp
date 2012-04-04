@@ -109,7 +109,7 @@ private:
 
 	void notifyCurrentOptimum(const Weight& value) const;
 
-	void addModel(std::shared_ptr<InnerModel> model);
+	void addModel(std::shared_ptr<Model> model);
 };
 
 class UnitPropagate: public SpaceTask {

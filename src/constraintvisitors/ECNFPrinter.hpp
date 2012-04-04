@@ -40,14 +40,14 @@ public:
 		return ss.str();
 	}
 
-	void visit(const InnerDisjunction& clause) {
+	void visit(const Disjunction& clause) {
 		for (int i = 0; i < clause.literals.size(); ++i) {
 			target() <<print(clause.literals[i]) << " ";
 		}
 		target() << "0\n";
 	}
 
-	void visit(const InnerRule& rule) {
+	void visit(const Rule& rule) {
 		target() << (rule.conjunctive ? "C" : "D") << " " << print(mkPosLit(rule.head)) << " ";
 		for (int i = 0; i < rule.body.size(); ++i) {
 			target() << print(rule.body[i]) << " ";
@@ -55,7 +55,7 @@ public:
 		target() << "0\n";
 	}
 
-	void visit(const InnerWLSet& set) {
+	void visit(const WLSet& set) {
 		target() << "WLSet " << set.setID << " ";
 		for (uint i = 0; i < set.wl.size(); ++i) {
 			target() << print(set.wl[i].getLit()) << "=" << set.wl[i].getWeight() << " ";
@@ -63,7 +63,7 @@ public:
 		target() << "0\n";
 	}
 
-	void visit(const InnerReifAggregate& agg) {
+	void visit(const Aggregate& agg) {
 		target() << "Added aggregate " <<print(mkPosLit(agg.head)) << " " << (agg.sem == AggSem::COMP ? "<=>" : "<-");
 		if (agg.sem == AggSem::DEF) {
 			target() << "(" << agg.defID << ")";
@@ -73,43 +73,43 @@ public:
 		target() << "\n";
 	}
 
-	void visit(const InnerImplication&) {
+	void visit(const Implication&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void visit(const InnerMinimizeOrderedList&) {
+	void visit(const MinimizeOrderedList&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void visit(const InnerMinimizeSubset&) {
+	void visit(const MinimizeSubset&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void visit(const InnerMinimizeAgg&) {
+	void visit(const MinimizeAgg&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void visit(const InnerMinimizeVar&) {
+	void visit(const MinimizeVar&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void visit(const InnerSymmetry&) {
+	void visit(const Symmetry&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void visit(const InnerIntVarRange&) {
+	void visit(const IntVarRange&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void visit(const InnerIntVarEnum&) {
+	void visit(const IntVarEnum&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void visit(const InnerCPAllDiff&) {
+	void visit(const CPAllDiff&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void visit(const InnerCPBinaryRel&) {
+	void visit(const CPBinaryRel&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void visit(const InnerCPCount&) {
+	void visit(const CPCount&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void visit(const InnerCPBinaryRelVar&) {
+	void visit(const CPBinaryRelVar&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
-	void visit(const InnerCPSumWeighted&) {
+	void visit(const CPSumWeighted&) {
 		throw idpexception("Not yet implemented."); // TODO
 	}
 };

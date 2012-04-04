@@ -19,11 +19,11 @@ struct TempRule{
 	bool conjunctive;
 
 	bool isagg;
-	InnerReifAggregate* inneragg;
-	InnerWLSet* innerset;
+	Aggregate* inneragg;
+	WLSet* innerset;
 
 	TempRule(Var head, bool conjunctive, std::vector<Lit> body): head(head), body(body), conjunctive(conjunctive), isagg(false), inneragg(NULL), innerset(NULL){}
-	TempRule(InnerReifAggregate* inneragg, InnerWLSet* innerset): head(inneragg->head), isagg(true), inneragg(inneragg), innerset(innerset){}
+	TempRule(Aggregate* inneragg, WLSet* innerset): head(inneragg->head), isagg(true), inneragg(inneragg), innerset(innerset){}
 
 	~TempRule(){
 		if(isagg){
@@ -66,7 +66,7 @@ public:
 	// Call when grounding/parsing of all definitions is finished and they are in a consistent state
 	void addToPropagators();
 
-	void addDefinedAggregate(const InnerReifAggregate& inneragg, const InnerWLSet& innerset);
+	void addDefinedAggregate(const Aggregate& inneragg, const WLSet& innerset);
 	void addRule(int defID, bool conj, Var head, const litlist& ps);
 
 private:

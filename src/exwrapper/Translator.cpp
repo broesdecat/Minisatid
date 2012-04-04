@@ -25,7 +25,7 @@ using namespace MinisatID;
 void Translator::printModel(std::ostream& output, const Model& model){
 	std::stringstream ss;
 	for (auto i = model.literalinterpretations.cbegin(); i < model.literalinterpretations.cend(); ++i){
-		ss <<(((*i).hasSign()) ? "-" : "") <<(*i).getAtom().getValue() <<" ";
+		ss <<(((*i).hasSign()) ? "-" : "") <<var(*i) <<" ";
 	}
 	for (auto i = model.variableassignments.cbegin(); i < model.variableassignments.cend(); ++i){
 		ss <<(*i).variable <<"=" <<(*i).value <<" ";
@@ -235,7 +235,7 @@ void FODOTTranslator::printInterpr(const modelvec& model, ostream& output, PRINT
 }
 
 bool FODOTTranslator::hasTranslation(const MinisatID::Literal& lit) const{
-	return deriveStringFromAtomNumber(lit.getAtom().getValue()).hastranslation;
+	return deriveStringFromAtomNumber(var(lit)).hastranslation;
 }
 
 //IMPORTANT: non-incremental (slow), so do not use for printing a full model!
@@ -248,7 +248,7 @@ void FODOTTranslator::printLiteral(std::ostream& output, const Literal& lit) {
 		return;
 	}
 
-	AtomInfo info = deriveStringFromAtomNumber(lit.getAtom().getValue());
+	AtomInfo info = deriveStringFromAtomNumber(var(lit));
 	if(not info.hastranslation){
 		return;
 	}
@@ -291,7 +291,7 @@ void FODOTTranslator::printModel(std::ostream& output, const Model& model) {
 	// read and translate the model
 	bool endmodel = false;
 	for(auto i=model.literalinterpretations.cbegin(); i<model.literalinterpretations.cend(); ++i){
-		int lit = (*i).getValue();
+		int lit = toInt(*i);
 		if(lit==0 || endmodel){ //end of model found
 			break;
 		}else if(lit<0){ //Only print true literals

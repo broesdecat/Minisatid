@@ -124,7 +124,7 @@ rClause BinaryConstraint::propagate(IntView* var, BIN_SIGN comp, int bound) {
 	}
 	}
 	Lit h = value(head())==l_True?~head():head();
-	InnerDisjunction clause;
+	Disjunction clause;
 	clause.literals = { h, lit, ~othervarreason};
 	const auto& ref = getPCSolver().createClause(clause, true);
 	getPCSolver().addLearnedClause(ref);
@@ -177,7 +177,7 @@ rClause BinaryConstraint::notifypropagate() {
 	} else { // head is unknown: can only propagate head
 		bool prop = false;
 		Lit headprop = head();
-		InnerDisjunction clause;
+		Disjunction clause;
 		switch (comp_) {
 		case BIN_EQ:
 			if(leftmax()<rightmin()){

@@ -87,7 +87,7 @@ public:
 
 class AggReason {
 private:
-	InnerDisjunction 	explanation;
+	Disjunction 	explanation;
 	bool 		hasclause;
 
 public:
@@ -101,8 +101,8 @@ public:
 	virtual bool		isInSet			()	const = 0;
 
     bool 		hasClause		()	const	{ return hasclause; }
-    const InnerDisjunction&	getClause	()	const	{ MAssert(hasClause()); return explanation; }
-    void		setClause		(const InnerDisjunction& c) {	explanation = c; hasclause = true; }
+    const Disjunction&	getClause	()	const	{ MAssert(hasClause()); return explanation; }
+    void		setClause		(const Disjunction& c) {	explanation = c; hasclause = true; }
 };
 
 class HeadReason: public AggReason {

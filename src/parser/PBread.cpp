@@ -56,7 +56,7 @@ template<class T> void DefaultCallback<T>::metaData(int nbvar, int) {
 	maxvar = nbvar;
 	dummyhead = Atom(++maxvar);
 	Disjunction clause;
-	clause.literals.push_back(Literal(dummyhead, false));
+	clause.literals.push_back(mkPosLit(dummyhead));
 	add(getSolver(), clause);
 }
 
@@ -74,7 +74,7 @@ template<class T> void DefaultCallback<T>::endObjective() {
 	setid++;
 	wset.setID = setid;
 	add(getSolver(), wset);
-	wset = WSet();
+	wset = WLSet();
 
 	MinimizeAgg mnm;
 	mnm.setid = setid;
@@ -89,8 +89,7 @@ template<class T> void DefaultCallback<T>::endObjective() {
  * @param idVar: the numerical identifier of the variable
  */
 template<class T> void DefaultCallback<T>::objectiveTerm(IntegerType coeff, int idVar) {
-	wset.literals.push_back(createLiteralFromOPBVar(idVar));
-	wset.weights.push_back(coeff);
+	wset.wl.push_back({createLiteralFromOPBVar(idVar), Weight(coeff)});
 }
 
 /**
@@ -106,14 +105,14 @@ template<class T> void DefaultCallback<T>::objectiveProduct(IntegerType, vector<
 
 template<class T> void DefaultCallback<T>::beginConstraint() {
 	//cout << "constraint: ";
-	MAssert(wset.literals.size()==0);
+	MAssert(wset.wl.size()==0);
 }
 
 template<class T> void DefaultCallback<T>::endConstraint() {
 	setid++;
 	wset.setID = setid;
 	add(getSolver(), wset);
-	wset = WSet();
+	wset = WLSet();
 
 	Disjunction clause;
 	Aggregate agg;
@@ -136,7 +135,7 @@ template<class T> void DefaultCallback<T>::endConstraint() {
 }
 
 template<class T> Literal DefaultCallback<T>::createLiteralFromOPBVar(int var){
-	return Literal(::abs(var), var<0);
+	return mkLit(::abs(var), var<0);
 }
 
 /**
@@ -146,8 +145,7 @@ template<class T> Literal DefaultCallback<T>::createLiteralFromOPBVar(int var){
  * @param idVar: the numerical identifier of the variable
  */
 template<class T> void DefaultCallback<T>::constraintTerm(IntegerType coeff, int idVar) {
-	wset.literals.push_back(createLiteralFromOPBVar(idVar));
-	wset.weights.push_back(coeff);
+	wset.wl.push_back({createLiteralFromOPBVar(idVar), Weight(coeff)});
 }
 
 /**

@@ -54,17 +54,17 @@ private:
 	std::map<uint, std::pair<Weight, Weight> > varbounds;
 
 	std::stringstream 	definitions, constraints;
-	std::map<int, InnerWLSet>	sets; //index is setID
+	std::map<int, WLSet>	sets; //index is setID
 
 	OptimFZ				optim;
-	InnerMinimizeVar 		savedvar; // To be added AFTER initialization
-	InnerMinimizeAgg			savedagg; // To be added AFTER initialization
-	InnerMinimizeOrderedList savedlistmnmz; // To be added AFTER initialization
-	InnerMinimizeSubset 		savedsubsetmnmz; // To be added AFTER initialization
+	MinimizeVar 		savedvar; // To be added AFTER initialization
+	MinimizeAgg			savedagg; // To be added AFTER initialization
+	MinimizeOrderedList savedlistmnmz; // To be added AFTER initialization
+	MinimizeSubset 		savedsubsetmnmz; // To be added AFTER initialization
 
-	std::vector<InnerReifAggregate> savedaggs;
+	std::vector<Aggregate> savedaggs;
 	std::vector<BinRel> savedbinrels;
-	std::vector<InnerCPSumWeighted> savedcpsums;
+	std::vector<CPSumWeighted> savedcpsums;
 
 	Stream& stream;
 
@@ -88,23 +88,23 @@ public:
 	 * 	during finishing, add all remaining relations which need new variables.
 	 * 			For this, we need to be sure what the maximum numbers are!
 	 */
-	virtual void visit(const InnerDisjunction&);
-	virtual void visit(const InnerImplication&);
-	virtual void visit(const InnerRule&);
-	virtual void visit(const InnerWLSet&);
-	virtual void visit(const InnerReifAggregate&);
-	virtual void visit(const InnerMinimizeOrderedList&);
-	virtual void visit(const InnerMinimizeSubset&);
-	virtual void visit(const InnerMinimizeVar&);
-	virtual void visit(const InnerMinimizeAgg&);
-	virtual void visit(const InnerSymmetry&);
-	virtual void visit(const InnerIntVarEnum&);
-	virtual void visit(const InnerIntVarRange&);
-	virtual void visit(const InnerCPAllDiff&);
-	virtual void visit(const InnerCPBinaryRel&);
-	virtual void visit(const InnerCPCount&);
-	virtual void visit(const InnerCPBinaryRelVar&);
-	virtual void visit(const InnerCPSumWeighted&);
+	virtual void visit(const Disjunction&);
+	virtual void visit(const Implication&);
+	virtual void visit(const Rule&);
+	virtual void visit(const WLSet&);
+	virtual void visit(const Aggregate&);
+	virtual void visit(const MinimizeOrderedList&);
+	virtual void visit(const MinimizeSubset&);
+	virtual void visit(const MinimizeVar&);
+	virtual void visit(const MinimizeAgg&);
+	virtual void visit(const Symmetry&);
+	virtual void visit(const IntVarEnum&);
+	virtual void visit(const IntVarRange&);
+	virtual void visit(const CPAllDiff&);
+	virtual void visit(const CPBinaryRel&);
+	virtual void visit(const CPCount&);
+	virtual void visit(const CPBinaryRelVar&);
+	virtual void visit(const CPSumWeighted&);
 
 	virtual void notifyStart() {} // TODO implement?
 	virtual void notifyEnd() {} // TODO implement? close streams, ... (maybe also implement notifyend and innernotifyend to guarentee closing?
@@ -115,7 +115,7 @@ public:
 protected:
 	std::ostream& getOutput();
 
-	const InnerWLSet& getSet(uint i) const;
+	const WLSet& getSet(uint i) const;
 
 	void add(const litlist& lits);
 
@@ -142,9 +142,9 @@ protected:
 	void addVarSum(const weightlist& weights, const std::string& vars, Var head, EqType rel, uint rhsvar, const Weight& min, const Weight& max);
 	void addVarSum(const weightlist& weights, const std::vector<uint>& lits, Var head, EqType rel, uint bound);
 	void addVarSum(const weightlist& weights, const litlist& lits, Var head, EqType rel, uint bound);
-	void addProduct(const InnerReifAggregate& agg, const InnerWLSet& set);
-	void addSum(const InnerReifAggregate& agg, const InnerWLSet& set);
-	void addEquiv(const InnerImplication& impl, CloseConstraint close);
+	void addProduct(const Aggregate& agg, const WLSet& set);
+	void addSum(const Aggregate& agg, const WLSet& set);
+	void addEquiv(const Implication& impl, CloseConstraint close);
 
 	uint addOptimization();
 };

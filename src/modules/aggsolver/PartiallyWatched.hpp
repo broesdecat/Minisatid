@@ -133,7 +133,7 @@ private:
 	void 	stageWatch			(GenPWatch* watch);
 };
 
-double testGenWatchCount(const PCSolver& solver, const InnerWLSet& set, const AggProp& type, const std::vector<TempAgg*> aggs, const Weight& knownbound);
+double testGenWatchCount(const PCSolver& solver, const WLSet& set, const AggProp& type, const std::vector<TempAgg*> aggs, const Weight& knownbound);
 
 }
 

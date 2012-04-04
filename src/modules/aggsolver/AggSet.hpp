@@ -55,6 +55,7 @@ public:
 	// NOTE: call explicitly when using hasnextprop/nextprop!
 	virtual void notifyBacktrack(int untillevel, const Lit& decision);
 	virtual rClause notifypropagate();
+	virtual rClause notifyFullAssignmentFound();
 
 	// additional
 	rClause notifySolver(AggReason* ar);

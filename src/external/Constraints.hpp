@@ -24,7 +24,7 @@ void checkAtoms(const std::map<Atom, Atom>& atoms, std::map<Var, Var>& ll, Remap
 
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const Disjunction& sentence) {
-	InnerDisjunction clause;
+	Disjunction clause;
 	checkLits(sentence.literals, clause.literals, space.getRemapper());
 	space.getEngine()->add(clause);
 }
@@ -33,13 +33,13 @@ template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const Implication& sentence) {
 	litlist list;
 	checkLits(sentence.body, list, space.getRemapper());
-	InnerImplication eq(checkLit(sentence.head, space.getRemapper()), sentence.type, list, sentence.conjunction);
+	Implication eq(checkLit(sentence.head, space.getRemapper()), sentence.type, list, sentence.conjunction);
 	space.getEngine()->add(eq);
 }
 
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const Rule& sentence) {
-	InnerRule rule;
+	Rule rule;
 	rule.head = checkAtom(sentence.head, space.getRemapper());
 	rule.definitionID = sentence.definitionID;
 	rule.conjunctive = sentence.conjunctive;
@@ -48,37 +48,18 @@ void add(ConstraintAdditionInterface<Engine>& space, const Rule& sentence) {
 }
 
 template<typename Engine>
-void add(ConstraintAdditionInterface<Engine>& space, const Set& sentence) {
-	WSet set;
-	set.setID = sentence.setID;
-	set.literals = sentence.literals;
-	set.weights = std::vector<Weight>(sentence.literals.size(), 1);
-	add(space, set);
-}
-
-template<typename Engine>
-void add(ConstraintAdditionInterface<Engine>& space, const WSet& sentence) {
+void add(ConstraintAdditionInterface<Engine>& space, const WLSet& sentence) {
 	WLSet set;
 	set.setID = sentence.setID;
-	for (uint i = 0; i < sentence.literals.size(); ++i) {
-		set.wl.push_back(WLtuple<Literal>(sentence.literals[i], sentence.weights[i]));
-	}
-	add(space, set);
-}
-
-template<typename Engine>
-void add(ConstraintAdditionInterface<Engine>& space, const WLSet& sentence) {
-	InnerWLSet set;
-	set.setID = sentence.setID;
 	for (auto i = sentence.wl.cbegin(); i < sentence.wl.cend(); ++i) {
-		set.wl.push_back(WLtuple<Lit>(checkLit((*i).l, space.getRemapper()), (*i).w));
+		set.wl.push_back(WLtuple(checkLit((*i).l, space.getRemapper()), (*i).w));
 	}
 	space.getEngine()->add(set);
 }
 
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const Aggregate& sentence) {
-	InnerReifAggregate agg;
+	Aggregate agg;
 	agg.setID = sentence.setID;
 	agg.head = checkAtom(sentence.head, space.getRemapper());
 	agg.bound = sentence.bound;
@@ -91,28 +72,28 @@ void add(ConstraintAdditionInterface<Engine>& space, const Aggregate& sentence) 
 
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const MinimizeSubset& sentence) {
-	InnerMinimizeSubset mnm;
+	MinimizeSubset mnm;
 	checkLits(sentence.literals, mnm.literals, space.getRemapper());
 	space.getEngine()->add(mnm);
 }
 
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const MinimizeOrderedList& sentence) {
-	InnerMinimizeOrderedList mnm;
+	MinimizeOrderedList mnm;
 	checkLits(sentence.literals, mnm.literals, space.getRemapper());
 	space.getEngine()->add(mnm);
 }
 
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const MinimizeVar& sentence) {
-	InnerMinimizeVar mnm;
+	MinimizeVar mnm;
 	mnm.varID = sentence.varID;
 	space.getEngine()->add(mnm);
 }
 
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const MinimizeAgg& sentence) {
-	InnerMinimizeAgg mnm;
+	MinimizeAgg mnm;
 	mnm.setid = sentence.setid;
 	mnm.type = sentence.type;
 	space.getEngine()->add(mnm);
@@ -122,27 +103,27 @@ template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const Symmetry& sentence) {
 	std::map<Lit, Lit> mapsymm;
 	checkLits(sentence.symmetry, mapsymm, space.getRemapper());
-	InnerSymmetry symms(mapsymm);
+	Symmetry symms(mapsymm);
 	space.getEngine()->add(symms);
 }
 
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const LazyGroundLit& sentence) {
-	InnerLazyGroundLit lc(sentence.watchboth, checkLit(sentence.residual, space.getRemapper()), sentence.monitor);
+	LazyGroundLit lc(sentence.watchboth, checkLit(sentence.residual, space.getRemapper()), sentence.monitor);
 	//clog <<"Watching " <<(lc.watchboth?"both":"single") <<" on " <<lc.residual <<"\n";
 	space.getEngine()->add(lc);
 }
 
 template<typename Engine>
-void add(ConstraintAdditionInterface<Engine>& space, const CPIntVarEnum& sentence) {
-	InnerIntVarEnum var;
+void add(ConstraintAdditionInterface<Engine>& space, const IntVarEnum& sentence) {
+	IntVarEnum var;
 	var.varID = sentence.varID;
 	var.values = sentence.values;
 	space.getEngine()->add(var);
 }
 template<typename Engine>
-void add(ConstraintAdditionInterface<Engine>& space, const CPIntVarRange& sentence) {
-	InnerIntVarRange var;
+void add(ConstraintAdditionInterface<Engine>& space, const IntVarRange& sentence) {
+	IntVarRange var;
 	var.varID = sentence.varID;
 	var.minvalue = sentence.minvalue;
 	var.maxvalue = sentence.maxvalue;
@@ -150,7 +131,7 @@ void add(ConstraintAdditionInterface<Engine>& space, const CPIntVarRange& senten
 }
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const CPBinaryRel& sentence) {
-	InnerCPBinaryRel form;
+	CPBinaryRel form;
 	form.head = checkAtom(sentence.head, space.getRemapper());
 	form.varID = sentence.varID;
 	form.rel = sentence.rel;
@@ -159,7 +140,7 @@ void add(ConstraintAdditionInterface<Engine>& space, const CPBinaryRel& sentence
 }
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const CPBinaryRelVar& sentence) {
-	InnerCPBinaryRelVar form;
+	CPBinaryRelVar form;
 	form.head = checkAtom(sentence.head, space.getRemapper());
 	form.lhsvarID = sentence.lhsvarID;
 	form.rel = sentence.rel;
@@ -168,7 +149,7 @@ void add(ConstraintAdditionInterface<Engine>& space, const CPBinaryRelVar& sente
 }
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const CPSumWeighted& sentence) {
-	InnerCPSumWeighted form;
+	CPSumWeighted form;
 	form.head = checkAtom(sentence.head, space.getRemapper());
 	form.rel = sentence.rel;
 	form.bound = sentence.bound;
@@ -178,7 +159,7 @@ void add(ConstraintAdditionInterface<Engine>& space, const CPSumWeighted& senten
 }
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const CPCount& sentence) {
-	InnerCPCount form;
+	CPCount form;
 	form.varIDs = sentence.varIDs;
 	form.eqbound = sentence.eqbound;
 	form.rel = sentence.rel;
@@ -187,7 +168,7 @@ void add(ConstraintAdditionInterface<Engine>& space, const CPCount& sentence) {
 }
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const CPAllDiff& sentence) {
-	InnerCPAllDiff form(sentence.varIDs);
+	CPAllDiff form(sentence.varIDs);
 	space.getEngine()->add(form);
 }
 }

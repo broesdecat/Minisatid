@@ -1459,7 +1459,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	MAssert(!ufs.empty());
 
 	// Create the loop formula: add the external disjuncts (first element will be filled in later).
-	InnerDisjunction loopf;
+	Disjunction loopf;
 	loopf.literals.push_back(mkLit(-1));
 	addExternalDisjuncts(ufs, loopf.literals);
 
@@ -1500,7 +1500,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 			addLoopfClause(mkNegLit(v), loopf);
 
 			// \forall d \in \extdisj{L}: not d \vee v
-			InnerDisjunction binaryclause;
+			Disjunction binaryclause;
 			binaryclause.literals = litlist { mkLit(-1), mkPosLit(v) };
 			for (uint i = 1; i < loopf.literals.size(); ++i) {
 				addLoopfClause(not loopf.literals[i], binaryclause);
@@ -1522,7 +1522,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 }
 
 //Should make l false in the process
-void IDSolver::addLoopfClause(Lit l, InnerDisjunction& lits) {
+void IDSolver::addLoopfClause(Lit l, Disjunction& lits) {
 	lits.literals[0] = l;
 
 	if (getPCSolver().modes().idclausesaving > 0) {
@@ -1575,7 +1575,7 @@ void IDSolver::addLoopfClause(Lit l, InnerDisjunction& lits) {
 
 rClause IDSolver::getExplanation(const Lit& l) {
 	MAssert(getPCSolver().modes().idclausesaving>0);
-	InnerDisjunction clause;
+	Disjunction clause;
 	clause.literals = reason(var(l));
 	return getPCSolver().createClause(clause, true);
 }
@@ -1923,7 +1923,7 @@ rClause IDSolver::isWellFoundedModel() {
 
 	//Returns the found assignment (TODO might be optimized to just return the loop)
 	const litlist& decisions = getPCSolver().getDecisions();
-	InnerDisjunction invalidation;
+	Disjunction invalidation;
 	for (auto i = decisions.cbegin(); i < decisions.cend(); ++i) {
 		invalidation.literals.push_back(not (*i));
 	}

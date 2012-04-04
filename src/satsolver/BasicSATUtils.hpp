@@ -15,6 +15,8 @@ namespace MinisatID {
 	using Minisat::mkLit;
 	using Minisat::Var;
 	using Minisat::Lit;
+	using Minisat::operator~;
+	using Minisat::operator!;
 	bool isPositive(const Lit& lit);
 }
 

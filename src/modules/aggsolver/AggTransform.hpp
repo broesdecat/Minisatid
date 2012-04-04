@@ -17,17 +17,17 @@
 
 namespace MinisatID{
 
-void verifySet(const InnerWLSet& set, AggType type);
+void verifySet(const WLSet& set, AggType type);
 
-void verifyAggregate(InnerWLSet const * const set, AggType settype, Var head, AggType aggtype);
+void verifyAggregate(WLSet const * const set, AggType settype, Var head, AggType aggtype);
 
 //@pre: has been split
-void setReduce(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>& aggs, const AggProp& type, Weight& knownbound, bool& unsat, bool& sat);
-void addHeadImplications(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>& aggs, bool& unsat, bool& sat);
-void max2SAT(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>& aggs, bool& unsat, bool& sat);
-void card2Equiv(PCSolver* solver, InnerWLSet* set, std::vector<TempAgg*>& aggs, const Weight& knownbound, bool& unsat, bool& sat);
-void decideUsingWatchesAndCreatePropagators(PCSolver* solver, InnerWLSet* set, const std::vector<TempAgg*>& aggs, const Weight& knownbound);
-void decideUsingWatchesAndCreateOptimPropagator(PCSolver* solver, InnerWLSet* set, TempAgg*, const Weight& knownbound);
+void setReduce(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& aggs, const AggProp& type, Weight& knownbound, bool& unsat, bool& sat);
+void addHeadImplications(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& aggs, bool& unsat, bool& sat);
+void max2SAT(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& aggs, bool& unsat, bool& sat);
+void card2Equiv(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& aggs, const Weight& knownbound, bool& unsat, bool& sat);
+void decideUsingWatchesAndCreatePropagators(PCSolver* solver, WLSet* set, const std::vector<TempAgg*>& aggs, const Weight& knownbound);
+void decideUsingWatchesAndCreateOptimPropagator(PCSolver* solver, WLSet* set, TempAgg*, const Weight& knownbound);
 
 }
 

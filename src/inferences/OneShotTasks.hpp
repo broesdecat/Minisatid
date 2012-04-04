@@ -39,7 +39,7 @@ public:
 };
 
 template<>
-void OneShotUnsatCoreExtraction::add(const InnerDisjunction& disjunction);
+void OneShotUnsatCoreExtraction::add(const Disjunction& disjunction);
 
 class OneShotFlatzinc: public Task, public FlatZincRewriter<std::ostream>, public ConstraintAdditionInterface<OneShotFlatzinc>{
 public:

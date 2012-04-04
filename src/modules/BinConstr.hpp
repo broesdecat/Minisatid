@@ -63,7 +63,7 @@ public:
 	rClause propagate(int bound, BIN_SIGN comp, IntView* var);
 	rClause propagate(IntView* var, BIN_SIGN comp, int bound);
 
-//	void addExplanIntVarLit(InnerDisjunction& clause, IntVar* othervar, int bound, AggSign varsign);
+//	void addExplanIntVarLit(Disjunction& clause, IntVar* othervar, int bound, AggSign varsign);
 //	rClause propagate(const Lit& truehead, int bound, BIN_SIGN comp, IntVar* var, AggSign varsign);
 //	rClause propagate(const Lit& truehead, IntVar* var, BIN_SIGN comp, int bound, AggSign varsign);
 };

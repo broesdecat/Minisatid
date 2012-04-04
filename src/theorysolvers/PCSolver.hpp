@@ -34,11 +34,11 @@ class ConstraintVisitor;
 class Printer;
 typedef Minisat::Solver SearchEngine;
 
-class InnerMonitor;
+class Monitor;
 
 class PCSolver: public LiteralPrinter{
 public:
-	PCSolver(SolverOption modes, InnerMonitor* monitor, VarCreation* varcreator, LiteralPrinter* printer);
+	PCSolver(SolverOption modes, Monitor* monitor, VarCreation* varcreator, LiteralPrinter* printer);
 	virtual ~PCSolver();
 
 	// Options
@@ -83,7 +83,7 @@ public:
 
 	// Propagation and backtrack monitor
 private:
-	InnerMonitor* monitor;
+	Monitor* monitor;
 
 	// Optimization
 public:
@@ -179,7 +179,7 @@ public:
 
 	// Clause management
 public:
-	rClause createClause(const InnerDisjunction& clause, bool learned);
+	rClause createClause(const Disjunction& clause, bool learned);
 	//IMPORTANT: The first literal in the clause is the one which can be propagated at moment of derivation!
 	void addLearnedClause(rClause c); //Propagate if clause is unit, return false if c is conflicting
 	int getClauseSize(rClause cr) const;
@@ -209,9 +209,9 @@ public:
 
 	// Model information
 public:
-	void extractLitModel(std::shared_ptr<InnerModel> fullmodel);
-	void extractVarModel(std::shared_ptr<InnerModel> fullmodel);
-	std::shared_ptr<InnerModel> getModel();
+	void extractLitModel(std::shared_ptr<Model> fullmodel);
+	void extractVarModel(std::shared_ptr<Model> fullmodel);
+	std::shared_ptr<Model> getModel();
 	lbool getModelValue(Var v);
 
 	// Constraint visiting
@@ -236,8 +236,19 @@ public:
 	void accept(Propagator* propagator, const Lit& lit, PRIORITY priority);
 	void acceptForDecidable(Var v, Propagator* prop);
 
+private:
+	// If lazy, do not decide for literals in decisions
+	// NOTE: only use this if the watches mechanism of the constraint will take care of making literal decidable if necessary
+	VARHEUR lazyDecide() const;
+	void addVars		(const std::vector<Var>& vars, VARHEUR heur = VARHEUR::DECIDE){
+		for(auto i=vars.cbegin(); i<vars.cend(); ++i) {
+			createVar(*i, heur);
+		}
+	}
+public:
 	template<typename T>
 	void add(const T& obj){
+		addVars(obj.getAtoms(), lazyDecide());
 		getFactory().add(obj);
 	}
 };

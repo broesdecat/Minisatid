@@ -26,9 +26,8 @@ enum class VARHEUR { DECIDE, DONT_DECIDE};
 
 typedef std::vector<Lit> litlist;
 typedef std::vector<Var> varlist;
-inline Lit  mkPosLit	(Var var) 	{ return mkLit(var, false); }
-inline Lit  mkNegLit	(Var var) 	{ return mkLit(var, true); }
-inline Lit 	operator!	(Lit p)		{ Lit q; q.x = p.x ^ 1; return q; }
+inline Lit  mkPosLit	(Var var) 	{ return Minisat::mkLit(var, false); }
+inline Lit  mkNegLit	(Var var) 	{ return Minisat::mkLit(var, true); }
 
 class InterMediateDataStruct{
 private:

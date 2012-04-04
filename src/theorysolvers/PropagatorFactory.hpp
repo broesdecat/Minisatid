@@ -94,7 +94,7 @@ typedef FactoryStorage<CPSolver> CPStorage;
 typedef ManagedFactoryStorage<AggToCNFTransformer> AggStorage;
 
 struct SetWithAggs{
-	InnerWLSet* set;
+	WLSet* set;
 	std::vector<TempAgg*> aggs;
 	AggType type;
 };
@@ -119,7 +119,7 @@ private:
 	// Parsing support
 	int maxset;
 	std::map<int, SetWithAggs> parsedsets;
-	std::vector<InnerReifAggregate*> parsedaggs;
+	std::vector<Aggregate*> parsedaggs;
 
 	// Logging
 	std::vector<ConstraintVisitor*> parsingmonitors;
@@ -134,27 +134,24 @@ public:
 	PCSolver* getEnginep() const { return engine; }
 	const PCSolver& getEngine() const { return *engine; }
 
-	void add(const Var& var){
-		addVar(var, VARHEUR::DECIDE); // NOTE: only used by modal solver, so should always decide those
-	}
-	void add(const InnerDisjunction& sentence);
-	void add(const InnerImplication& sentence);
-	void add(const InnerRule& sentence);
-	void add(const InnerWLSet& sentence);
-	void add(const InnerReifAggregate& sentence);
-	void add(const InnerMinimizeSubset& sentence);
-	void add(const InnerMinimizeOrderedList& sentence);
-	void add(const InnerMinimizeVar& sentence);
-	void add(const InnerMinimizeAgg& sentence);
-	void add(const InnerSymmetry& sentence);
-	void add(const InnerIntVarEnum& object);
-	void add(const InnerIntVarRange& object);
-	void add(const InnerCPBinaryRel& object);
-	void add(const InnerCPBinaryRelVar& object);
-	void add(const InnerCPSumWeighted& object);
-	void add(const InnerCPCount& object);
-	void add(const InnerCPAllDiff& object);
-	void add(const InnerLazyGroundLit& object);
+	void add(const Disjunction& sentence);
+	void add(const Implication& sentence);
+	void add(const Rule& sentence);
+	void add(const WLSet& sentence);
+	void add(const Aggregate& sentence);
+	void add(const MinimizeSubset& sentence);
+	void add(const MinimizeOrderedList& sentence);
+	void add(const MinimizeVar& sentence);
+	void add(const MinimizeAgg& sentence);
+	void add(const Symmetry& sentence);
+	void add(const IntVarEnum& object);
+	void add(const IntVarRange& object);
+	void add(const CPBinaryRel& object);
+	void add(const CPBinaryRelVar& object);
+	void add(const CPSumWeighted& object);
+	void add(const CPCount& object);
+	void add(const CPAllDiff& object);
+	void add(const LazyGroundLit& object);
 
 	int newSetID();
 
@@ -163,8 +160,6 @@ public:
 	void includeCPModel(std::vector<VariableEqValue>& varassignments);
 
 private:
-	VARHEUR lazyDecide() const;
-
 	// NOTE already added literals!
 	void addImplication(const Lit& head, const litlist& body, bool conjunction);
 	// NOTE already added literals!
@@ -176,10 +171,6 @@ private:
 	bool isInitialized	() 	const { return !parsing; }
 	bool isParsing		()	const { return parsing; }
 
-	void addVar			(Var l, VARHEUR heur = VARHEUR::DECIDE);
-	void addVar			(Lit l, VARHEUR heur = VARHEUR::DECIDE);
-	void addVars		(const std::vector<Lit>& a, VARHEUR heur = VARHEUR::DECIDE);
-
 	void addAggrExpr	(Var headv, int setid, AggSign sign, const Weight& bound, AggType type, AggSem sem);
 
 	template<typename T>
@@ -187,7 +178,7 @@ private:
 
 	IntVar*		getIntVar(int varID) const;
 
-	SATVAL finishSet(const InnerWLSet* set, std::vector<TempAgg*>& agg, bool optimagg = false);
+	SATVAL finishSet(const WLSet* set, std::vector<TempAgg*>& agg, bool optimagg = false);
 };
 
 }

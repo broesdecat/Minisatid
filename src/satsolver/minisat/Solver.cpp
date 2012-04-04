@@ -648,7 +648,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 			}
 			//cerr <<(delayedroot?"delayed":"not found") <<"\n";
 			if (delayedroot) {
-				InnerDisjunction d;
+				Disjunction d;
 				d.literals = {p};
 				confl = getPCSolver().createClause(d, true);
 			} else {

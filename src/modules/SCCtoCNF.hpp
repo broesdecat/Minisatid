@@ -208,7 +208,7 @@ private:
 	// FIXME use current interpretation to simplify things in the code below also
 
 	SATVAL addClause(const litlist& lits){
-		InnerDisjunction d;
+		Disjunction d;
 		d.literals = lits;
 		solver_.add(d);
 		return solver_.satState();
@@ -228,7 +228,7 @@ private:
 	Lit and2SAT(const litlist& subs){
 		Lit tseitin = mkPosLit(solver_.newVar());
 
-		InnerImplication eq(tseitin, ImplicationType::EQUIVALENT, subs, true);
+		Implication eq(tseitin, ImplicationType::EQUIVALENT, subs, true);
 		solver_.add(eq);
 
 		return tseitin;
@@ -237,7 +237,7 @@ private:
 	Lit or2SAT(const litlist& subs){
 		Lit tseitin = mkPosLit(solver_.newVar());
 
-		InnerImplication eq(tseitin, ImplicationType::EQUIVALENT, subs, false);
+		Implication eq(tseitin, ImplicationType::EQUIVALENT, subs, false);
 		solver_.add(eq);
 
 		return tseitin;

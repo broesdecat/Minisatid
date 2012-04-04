@@ -25,12 +25,12 @@ typedef std::vector<Lit> litlist;
 
 typedef cb::Callback1<std::string, int> callbackprinting; // TODO wrap in translator (goes back to grounder)
 
-class InnerMonitor {
+class Monitor {
 private:
 	Remapper* remapper;
 	std::vector<PropAndBackMonitor*> monitors;
 public:
-	InnerMonitor(Remapper* r)
+	Monitor(Remapper* r)
 			: remapper(r) {
 	}
 	void addMonitor(PropAndBackMonitor* monitor) {
@@ -53,7 +53,7 @@ public:
 class Space: public LiteralPrinter, public ConstraintAdditionInterface<PCSolver>{
 private:
 	SolverOption basicoptions;
-	InnerMonitor* monitor;
+	Monitor* monitor;
 	VarCreation* varcreator;
 	PCSolver* engine;
 

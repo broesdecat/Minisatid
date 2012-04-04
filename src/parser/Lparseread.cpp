@@ -83,7 +83,7 @@ bool Read<T>::readBody(istream &f, long size, bool pos, vector<Literal>& body) {
 			sprintf(s, "atom out of bounds, line %ld\n", linenumber);
 			throw idpexception(s);
 		}
-		body.push_back(Literal(makeParsedAtom(n), !pos));
+		body.push_back(mkLit(makeParsedAtom(n), not pos));
 	}
 	return true;
 }
@@ -308,10 +308,7 @@ void Read<T>::addBasicRules() {
 template<class T>
 void Read<T>::addCardRules() {
 	for (auto i = cardrules.cbegin(); i < cardrules.cend(); ++i) {
-		Set set;
-		set.setID = (*i)->setcount;
-		set.literals = (*i)->body;
-		add(getSolver(), set);
+		add(getSolver(), createSet((*i)->setcount, (*i)->body, 1));
 		Aggregate agg;
 		agg.head = (*i)->head;
 		agg.setID = (*i)->setcount;
@@ -327,11 +324,7 @@ void Read<T>::addCardRules() {
 template<class T>
 void Read<T>::addSumRules() {
 	for (auto i = sumrules.cbegin(); i < sumrules.cend(); ++i) {
-		WSet set;
-		set.setID = (*i)->setcount;
-		set.literals = (*i)->body;
-		set.weights = (*i)->weights;
-		add(getSolver(), set);
+		add(getSolver(), createSet((*i)->setcount, (*i)->body, (*i)->weights));
 		Aggregate agg;
 		agg.head = (*i)->head;
 		agg.setID = (*i)->setcount;
@@ -357,15 +350,15 @@ void Read<T>::tseitinizeHeads(){
 	// Transform away all choicerules
 	for (auto i = choicerules.cbegin(); i < choicerules.cend(); ++i) {
 		vector<Literal> tempbody;
-		tempbody.push_back(Literal(1)); //reserve space for the extra choice literal
+		tempbody.push_back(mkPosLit(1)); //reserve space for the extra choice literal
 		tempbody.insert(tempbody.end(), (*i)->body.cbegin(), (*i)->body.cend());
 		for (auto j = (*i)->heads.cbegin(); j < (*i)->heads.cend(); ++j) {
 			auto head = *j;
-			tempbody[0] = Literal(makeNewAtom());
+			tempbody[0] = mkPosLit(makeNewAtom());
 			basicrules.push_back(new BasicRule(head, tempbody));
 
 			//To guarantee #model equivalence:
-			Implication eq(tempbody[0], ImplicationType::EQUIVALENT, {Literal(head, false)}, true);
+			Implication eq(tempbody[0], ImplicationType::EQUIVALENT, {mkPosLit(head)}, true);
 			add(getSolver(), eq);
 		}
 	}
@@ -388,7 +381,7 @@ void Read<T>::tseitinizeHeads(){
 		auto it = headtorules.find((*i).first);
 		if(it==headtorules.cend() || (*it).second.size()==0){
 			Disjunction clause;
-			clause.literals.push_back(Literal((*i).first, true));
+			clause.literals.push_back(mkNegLit((*i).first));
 			add(getSolver(), clause);
 		}
 	}
@@ -398,11 +391,7 @@ template<class T>
 void Read<T>::addOptimStatement(){
 	if(optim){
 		vector<Literal> optimheadclause;
-		WSet set;
-		set.setID = optimsetcount;
-		set.literals = optimbody;
-		set.weights = optimweights;
-		add(getSolver(), set);
+		add(getSolver(), createSet(optimsetcount, optimbody, optimweights));
 		MinimizeAgg mnmagg;
 		mnmagg.setid = optimsetcount;
 		mnmagg.type = AggType::SUM;
@@ -508,7 +497,7 @@ bool Read<T>::read(istream &f) {
 		}
 
 		Disjunction clause;
-		clause.literals.push_back(Literal(makeParsedAtom(i)));
+		clause.literals.push_back(mkPosLit(makeParsedAtom(i)));
 		add(getSolver(), clause);
 	}
 	f.getline(s, len); // Read rest of last line (get newline);
@@ -532,7 +521,7 @@ bool Read<T>::read(istream &f) {
 		}
 
 		Disjunction clause;
-		clause.literals.push_back(Literal(makeParsedAtom(i), true));
+		clause.literals.push_back(mkNegLit(makeParsedAtom(i)));
 		add(getSolver(), clause);
 	}
 

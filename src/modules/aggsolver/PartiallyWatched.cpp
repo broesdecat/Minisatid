@@ -598,7 +598,7 @@ public:
 	const WL& 	getWL		() 	const 	{ return _wl; }
 };
 
-double MinisatID::testGenWatchCount(const PCSolver& solver, const InnerWLSet& set, const AggProp& type, const std::vector<TempAgg*> aggs, const Weight& knownbound) {
+double MinisatID::testGenWatchCount(const PCSolver& solver, const WLSet& set, const AggProp& type, const std::vector<TempAgg*> aggs, const Weight& knownbound) {
 	int totallits = set.getWL().size(), totalwatches = 0;
 	std::vector<TempWatch*> nws;
 	TempAgg const * worstagg;

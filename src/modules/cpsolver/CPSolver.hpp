@@ -76,13 +76,13 @@ public:
 	CPSolver(PCSolver * pcsolver);
 	virtual ~CPSolver();
 
-	bool add(const InnerIntVarEnum& form);
-	bool add(const InnerIntVarRange& form);
-	bool add(const InnerCPBinaryRel& form);
-	bool add(const InnerCPBinaryRelVar& form);
-	bool add(const InnerCPSumWeighted& form);
-	bool add(const InnerCPCount& form);
-	bool add(const InnerCPAllDiff& form);
+	bool add(const IntVarEnum& form);
+	bool add(const IntVarRange& form);
+	bool add(const CPBinaryRel& form);
+	bool add(const CPBinaryRelVar& form);
+	bool add(const CPSumWeighted& form);
+	bool add(const CPCount& form);
+	bool add(const CPAllDiff& form);
 
 	void getVariableSubstitutions(std::vector<VariableEqValue>& varassignments);
 

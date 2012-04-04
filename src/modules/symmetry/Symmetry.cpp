@@ -15,7 +15,7 @@ using namespace std;
 using namespace MinisatID;
 using namespace Minisat;
 
-SymmetryData::SymmetryData(int nVars, const InnerSymmetry& symmetry): sym(symmetry){
+SymmetryData::SymmetryData(int nVars, const Symmetry& symmetry): sym(symmetry){
 	for(auto i=sym.symmetry.cbegin(); i!=sym.symmetry.cend(); ++i){
 		if(i->first!=i->second){
 			continue;
@@ -24,7 +24,7 @@ SymmetryData::SymmetryData(int nVars, const InnerSymmetry& symmetry): sym(symmet
 	}
 }
 
-SymmetryPropagator::SymmetryPropagator(PCSolver* solver, const InnerSymmetry& sym)
+SymmetryPropagator::SymmetryPropagator(PCSolver* solver, const Symmetry& sym)
 		: Propagator(solver, "symmetry propagator"), symmetry(solver->nVars(), sym) {
 	amountNeededForActive = 0;
 	reasonOfPermInactive = lit_Undef;
@@ -293,7 +293,7 @@ bool SymmetryPropagator::testIsPermanentlyInactive(const std::vector<Lit>& trail
 rClause SymmetryPropagator::propagateSymmetrical(const Lit& l){
 	MAssert(value(getSymmetrical(l))!=l_True);
 
-	InnerDisjunction implic;
+	Disjunction implic;
 	if(getPCSolver().getLevel(var(l))==0){
 		implic.literals.push_back(getSymmetrical(l));
 		implic.literals.push_back(~l);

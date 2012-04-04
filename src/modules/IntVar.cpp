@@ -100,47 +100,47 @@ rClause	IntVar::notifypropagate(){
 }
 
 void IntVar::addConstraints(){
-	InnerWLSet set;
+	WLSet set;
 	set.setID = engine().newSetID();
 	for(uint i=0; i<equalities.size(); ++i){
-		set.wl.push_back(WLtuple<Lit>(mkPosLit(equalities[i]), 1));
+		set.wl.push_back(WLtuple(mkPosLit(equalities[i]), 1));
 	}
-	InnerReifAggregate lowercard;
+	Aggregate lowercard;
 	lowercard.head = engine().newVar();
 	lowercard.setID = set.setID;
 	lowercard.bound = 1;
 	lowercard.type = AggType::CARD;
 	lowercard.sign = AggSign::LB;
-	InnerReifAggregate highercard(lowercard);
+	Aggregate highercard(lowercard);
 	highercard.head = engine().newVar();
 	highercard.sign = AggSign::UB;
 	engine().add(set);
-	engine().add(InnerDisjunction({mkPosLit(highercard.head)}));
-	engine().add(InnerDisjunction({mkPosLit(lowercard.head)}));
+	engine().add(Disjunction({mkPosLit(highercard.head)}));
+	engine().add(Disjunction({mkPosLit(lowercard.head)}));
 	engine().add(highercard);
 	engine().add(lowercard);
 	// TODO do we miss propagation in other direction?
 	for(uint i=0; i<equalities.size(); ++i){
 		// if eq[i] => diseq[i]
-		InnerDisjunction same;
+		Disjunction same;
 		same.literals.push_back(mkNegLit(equalities[i]));
 		same.literals.push_back(mkPosLit(disequalities[i]));
 		engine().add(same);
 		if(i<equalities.size()-1){
 			// if diseq[i] => diseq[i+1]
-			InnerDisjunction prev;
+			Disjunction prev;
 			prev.literals.push_back(mkNegLit(disequalities[i]));
 			prev.literals.push_back(mkPosLit(disequalities[i+1]));
 			engine().add(prev);
 		}
 		if(i>0){
 			// if eq[i] => ~diseq[i-1]
-			InnerDisjunction next;
+			Disjunction next;
 			next.literals.push_back(mkNegLit(equalities[i]));
 			next.literals.push_back(mkNegLit(disequalities[i-1]));
 			engine().add(next);
 			// if ~diseq[i] => ~diseq[i-1]
-			InnerDisjunction nextdis;
+			Disjunction nextdis;
 			nextdis.literals.push_back(mkPosLit(disequalities[i]));
 			nextdis.literals.push_back(mkNegLit(disequalities[i-1]));
 			engine().add(nextdis);

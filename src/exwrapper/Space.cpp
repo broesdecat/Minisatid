@@ -12,9 +12,9 @@ string Space::printLiteral(const Lit& l) const {
 	if (r.wasInput(var(l))) {
 		auto lit = r.getLiteral(l);
 		if (hasprintcallback) {
-			ss << _cb(lit.getValue());
+			ss << _cb(var(lit));
 		} else {
-			ss << (lit.hasSign() ? "-" : "") << abs(lit.getValue());
+			ss << (lit.hasSign() ? "-" : "") << var(lit)+1;
 		}
 	} else {
 		ss << (sign(l) ? "-" : "") << "intern_" << var(l) + 1; // NOTE: do not call <<l, this will cause an infinite loop (as that calls this method!)
@@ -35,7 +35,7 @@ string Space::print(const litlist& literals) const {
 }
 
 Space::Space(SolverOption modes) :
-		basicoptions(modes), hasprintcallback(false), monitor(new InnerMonitor(remapper)), varcreator(new VarCreation(remapper)), engine(
+		basicoptions(modes), hasprintcallback(false), monitor(new Monitor(remapper)), varcreator(new VarCreation(remapper)), engine(
 				new PCSolver(modes, monitor, varcreator, this)), _translator(new Translator()) {
 	_origtranslator = _translator;
 }
