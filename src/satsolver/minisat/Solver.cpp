@@ -830,10 +830,10 @@ CRef Solver::propagate() {
 CRef Solver::notifypropagate() {
 	if(needsimplify){
 		if (not simplify()) {
-			getPCSolver().notifyUnsat();
+			return getPCSolver().createClause({}, true);
 		}
-		needsimplify=false;
 	}
+
 	CRef confl = CRef_Undef;
 	int num_props = 0;
 	watches.cleanAll();
