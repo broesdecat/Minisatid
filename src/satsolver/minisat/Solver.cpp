@@ -1070,7 +1070,8 @@ lbool Solver::search(int maxconflicts, bool nosearch/*AE*/) {
 			cancelUntil(backtrack_level);
 
 			auto cr = CRef_Undef;
-				auto cr = ca.alloc(learnt_clause, true);
+			if (learnt_clause.size() > 1) {
+				cr = ca.alloc(learnt_clause, true);
 				addToClauses(cr, true);
 				attachClause(cr);
 				claBumpActivity(ca[cr]);
