@@ -149,6 +149,8 @@ void checkVersion(ECNF_VERSION version);
     MinisatID::AggType aggr;
     MinisatID::AggSign sign;
     MinisatID::AggSem sem;
+    std::vector<std::vector<MinisatID::Literal> >* DCNSymmetry;
+    
     
 	std::vector<std::string>*	vstr;
 }
@@ -163,7 +165,8 @@ void checkVersion(ECNF_VERSION version);
 %token <rel> REL
 %token <aggr> AGGDEFN
 %token CNF ECNF MECNF DEFPRESENT AGGPRESENT MNMZPRESENT MODDEFN CPPRESENT
-%token INTVAR INTVARDOM SUMSTSIRI COUNTSTRIT DISTINCT DELIM BINTRI BINTRT
+%token INTVAR INTVARDOM SUMSTSIRI COUNTSTRIT DISTINCT DELIM BINTRI BINTRT 
+%token SYMMSTART SYMMEND CYCLESTART CYCLEEND SYMMDELIM
 %token FORCECHOICE
 
 %type <integer> number
@@ -173,6 +176,9 @@ void checkVersion(ECNF_VERSION version);
 %type <vlits> body
 %type <vlws> wbody
 %type <vatoms> vbody
+%type <vlits> cycle
+%type <DCNSymmetry> symmetry
+
 
 //Translation
 %token TRANSHEADER TRANSHEADER2
@@ -216,7 +222,7 @@ header	: 	/*empty*/
 		| 	header DEFPRESENT
 		| 	header CPPRESENT
 		| 	header AGGPRESENT
-		| 	header MNMZPRESENT
+		| 	header MNMZPRESENT //TODO: same for symmetry?
 		;
 		
 // CNF THEORY
@@ -275,6 +281,7 @@ ecnftheory	:	/* empty */
 			|	ecnftheory summnmz
 			|	ecnftheory intvar
 			|	ecnftheory cpconstraint
+			| 	ecnftheory symmetryblock
 			;
 			
 mnmz	:	MNMZDEFN body ZERO
@@ -415,7 +422,45 @@ wset	:	WSETDEFN NUMBER	wbody ZERO
 				CR(set);
 			}
 		;
+		
+// ECNF SYMMETRY SUPPORT
+symmetryblock
+		:	SYMMSTART symmetries SYMMEND
+			{
+				std::cerr << "block";
+			}
+		;
+symmetries
+		: symmetry
+			{
+				CR(Symmetry(*$1));
+				delete($1);
+			
+			}
+		| symmetries SYMMDELIM symmetry
+			{
+				CR(Symmetry(*$3));
+				delete($3);
+			}
+		;
+symmetry
+		: symmetry CYCLESTART cycle CYCLEEND
+			{
+				$$ = $1;
+				$$->push_back(*$3);
+			}
+		| CYCLESTART cycle CYCLEEND
+			{
+				$$ = new std::vector<std::vector<MinisatID::Literal> >(1,*$2);
+			}
+		;
+			
 
+cycle	:	cycle SYMMDELIM NUMBER  	{ $$ = $1; $$->push_back(cLiteral($3));	delete($3); }
+		|	NUMBER				{ $$ = new std::vector<MinisatID::Literal>(1,cLiteral($1));	}
+		;
+		
+		
 // ECNF CONSTRAINT SUPPORT
 
 intvar	:	INTVAR number weight weight ZERO 
@@ -496,6 +541,7 @@ cpconstraint
 				delete $2;
 			}
 		;
+
 			
 //---------------------------------------------		
 // MECNF THEORY	

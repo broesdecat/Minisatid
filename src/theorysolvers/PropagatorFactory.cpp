@@ -401,7 +401,11 @@ void PropagatorFactory::add(const InnerForcedChoices& formula) {
 }
 
 void PropagatorFactory::add(const InnerSymmetry& formula) {
+	for (auto it = formula.symmetry.cbegin(); it != formula.symmetry.cend(); ++it) {
+		addVars(*it);
+	}
 	notifyMonitorsOfAdding(formula);
+
 
 	guaranteeAtRootLevel();
 

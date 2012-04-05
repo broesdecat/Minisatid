@@ -169,7 +169,7 @@ struct InnerForcedChoices{
 
 struct InnerSymmetry{
 	//INVAR keys are unique
-	std::map<Lit, Lit> symmetry;
+	std::vector<std::vector<Lit> > symmetry;
 };
 
 struct InnerRigidAtoms{

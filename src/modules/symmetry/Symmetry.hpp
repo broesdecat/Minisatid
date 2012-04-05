@@ -20,20 +20,32 @@ class PCSolver;
 
 class SymmetryData {
 private:
-	InnerSymmetry sym, inverse; // Maps a literal, by its numeric equiv, to its sym/inverse literal.
+	std::map<Lit, Lit> sym, inverse; // Maps a literal, by its numeric equiv, to its sym/inverse literal.
 public:
 	SymmetryData(int nVars, const InnerSymmetry& symmetry);
 
 	Lit getSymmetrical(const Lit& lit) const {
-		return sym.symmetry.at(lit);
+		if (sym.find(lit) != sym.cend()) {
+			return sym.at(lit);
+		}
+		if (sym.find(~lit) != sym.cend()) {
+			return ~sym.at(~lit);
+		}
+		return lit;
 	}
 
 	Lit getInverse(const Lit& lit) const {
-		return inverse.symmetry.at(lit);
+		if (inverse.find(lit) != inverse.cend()) {
+			return inverse.at(lit);
+		}
+		if (inverse.find(~lit) != inverse.cend()) {
+			return ~inverse.at(~lit);
+		}
+		return lit;
 	}
 
 	const std::map<Lit, Lit>& getSymmetryMap() const {
-		return sym.symmetry;
+		return sym;
 	}
 };
 
@@ -65,7 +77,9 @@ public:
 		return nullPtrClause;
 	}
 	// First argument is true is the propagator is NOT certainly satisfied in the initial interpretation
-	virtual void finishParsing(bool&){ MAssert(false); }
+	virtual void finishParsing(bool&) {
+		MAssert(false);
+	}
 	// Checks presence of aggregates and initializes all counters. UNSAT is set to true if unsat is detected
 	// PRESENT is set to true if aggregate propagations should be done
 	virtual void notifyNewDecisionLevel();
@@ -123,7 +137,7 @@ private:
 	//bool 	hasLowerLevel(Lit first, Lit second){ return level(var(first))<level(var(second)); }
 	//bool 	canPropagate(Symmetry* sym, Clause& cl);
 
-	void testSymmetry();
+	bool testSymmetry();
 	void testActivityForSymmetries();
 	bool testIsActive(const std::vector<Lit>& trail);
 	bool testIsPermanentlyInactive(const std::vector<Lit>& trail);

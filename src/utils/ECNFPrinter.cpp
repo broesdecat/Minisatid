@@ -163,16 +163,25 @@ void ECNFPrinter::notifyadded(const InnerMinimizeSubset& mnm){
 
 template<>
 void ECNFPrinter::notifyadded(const InnerSymmetry& symm){
-	ss <<"Added symmetry: <";
+	ss <<"Added symmetry: ";
 	bool begin = true;
 	for(auto i=symm.symmetry.cbegin(); i!=symm.symmetry.cbegin(); ++i){
 		if(!begin){
 			ss <<", ";
 		}
+		auto start = true;
+		ss<<"(";
+		for(auto num=i->begin(); num!= i->cend(); ++num){
+			if (!start) {
+				ss << ", ";
+			}
+			start = false;
+			ss<<(*num);
+		}
+		ss<<")";
 		begin = false;
-		ss <<(*i).first <<"->" <<(*i).second;
 	}
-	ss <<">\n";
+	ss <<"\n";
 }
 
 template<>

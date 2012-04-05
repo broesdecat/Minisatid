@@ -854,11 +854,16 @@ SATVAL FlatZincRewriter::add(const CPSumWeighted& sum){
 }
 
 template<>
-SATVAL FlatZincRewriter::add(const CPCount&){
+SATVAL FlatZincRewriter::add(const CPCount&) {
 	throw idpexception("Count constraints are not yet supported by the flatzinc backend.");
 }
 
 template<>
-SATVAL FlatZincRewriter::add(const CPAllDiff&){
+SATVAL FlatZincRewriter::add(const CPAllDiff&) {
 	throw idpexception("Alldifferent is not yet supported by the flatzinc backend.");
 }
+
+template<> SATVAL FlatZincRewriter::add(const Symmetry& sentence) {
+	throw idpexception("Symmetries are not yet supported by the flatzinc backend.");
+}
+

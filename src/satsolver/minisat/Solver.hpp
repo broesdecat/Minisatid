@@ -110,13 +110,7 @@ public:
 	virtual void notifyNewDecisionLevel(){}
 	virtual CRef notifyFullAssignmentFound(){assert(false); return CRef_Undef; }
 
-	bool isDecided(Var v){
-		auto level = getLevel(v);
-		if(level<0 || level>decisionLevel()){
-			return false;
-		}
-		return var(trail[trail_lim[getLevel(v)]])==v;
-	}
+	bool isDecided(Var v);
 /*AE*/
 
     // Constructor/Destructor:

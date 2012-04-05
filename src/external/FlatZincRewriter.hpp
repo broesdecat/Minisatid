@@ -139,6 +139,7 @@ template<> SATVAL FlatZincRewriter::add(const Set& sentence);
 template<> SATVAL FlatZincRewriter::add(const WSet& sentence);
 template<> SATVAL FlatZincRewriter::add(const WLSet& sentence);
 template<> SATVAL FlatZincRewriter::add(const Aggregate& sentence);
+template<> SATVAL FlatZincRewriter::add(const Symmetry& sentence);
 template<> SATVAL FlatZincRewriter::add(const MinimizeSubset& sentence);
 template<> SATVAL FlatZincRewriter::add(const MinimizeOrderedList& sentence);
 template<> SATVAL FlatZincRewriter::add(const MinimizeVar& sentence);

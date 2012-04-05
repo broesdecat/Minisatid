@@ -238,7 +238,10 @@ public:
 class Symmetry{
 public:
 	// INVAR: the keys are unique
-	std::map<Literal, Literal> symmetry;
+	std::vector<std::vector<Literal> > symmetry;
+	Symmetry(std::vector<std::vector<Literal> > s) : symmetry(s){
+
+	}
 };
 
 }

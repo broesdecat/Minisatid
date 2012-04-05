@@ -898,6 +898,12 @@ void Solver::uncheckedEnqueue(Lit p, CRef from) {
 	}
 }
 
+bool Solver::isDecided(Var v) {
+	auto level = getLevel(v);
+	MAssert(level >= 0 || level <= decisionLevel());
+	return var(trail[trail_lim[getLevel(v)-1]]) == v;
+}
+
 /*_________________________________________________________________________________________________
  |
  |  propagate : [void]  ->  [Clause*]

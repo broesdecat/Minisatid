@@ -139,6 +139,7 @@ void PCSolver::backtrackTo(int level) {
 }
 
 void PCSolver::setTrue(const Lit& p, Propagator* module, rClause c) {
+	MAssert(module != NULL);
 	assert(value(p)!=l_False && value(p)!=l_True);
 	propagations[var(p)] = module;
 	getSolver().uncheckedEnqueue(p, c);
@@ -279,6 +280,11 @@ rClause PCSolver::getExplanation(const Lit& l) {
 	}
 
 	Propagator* propagator = propagations[var(l)];
+	if(propagator == NULL){
+		auto res= getSolver().reason(var(l));
+		MAssert(res != CRef_Undef);
+		return res;
+	}
 	assert(propagator!=NULL);
 	//If this happens, there is usually an error in the generated explanations!
 
