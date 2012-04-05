@@ -34,6 +34,29 @@ class ConstraintVisitor;
 class Printer;
 typedef Minisat::Solver SearchEngine;
 
+enum class Optim {
+	LIST, SUBSET, AGG, VAR
+};
+
+struct OptimStatement{
+	unsigned int priority; // Lower is earlier
+	Optim optim;
+	std::vector<Lit> to_minimize;
+	Agg* agg_to_minimize;
+	IntVar* var;
+	bool atoptimum;
+
+	OptimStatement(uint priority, Optim optim, litlist minim): priority(priority), optim(optim), to_minimize(minim), agg_to_minimize(NULL), var(NULL), atoptimum(false){
+		MAssert(optim==Optim::LIST || optim==Optim::SUBSET);
+	}
+	OptimStatement(uint priority, Agg* agg): priority(priority), optim(Optim::AGG), agg_to_minimize(agg), var(NULL), atoptimum(false){
+
+	}
+	OptimStatement(uint priority, IntVar* var): priority(priority), optim(Optim::VAR), agg_to_minimize(NULL), var(var), atoptimum(false){
+
+	}
+};
+
 class Monitor;
 
 class PCSolver: public LiteralPrinter{
@@ -63,6 +86,7 @@ public:
 	void varReduceActivity(Var v);
 	lbool value(Var x) const; // The current value of a variable.
 	lbool value(Lit p) const; // The current value of a literal.
+	lbool rootValue(Lit p) const; // The current value of a literal if it is known at level 0, otherwise l_Undef
 	uint64_t nVars() const; // The current number of variables.
 	int newSetID();
 
@@ -87,17 +111,20 @@ private:
 
 	// Optimization
 public:
-	// FIXME make private with getters!
-	Optim optim;
-	Var head;
-	std::vector<Lit> to_minimize;
-	Agg* agg_to_minimize;
+	// TODO prevent adding optimizations after parsing is done a first time.
+	std::vector<OptimStatement> optimization;
 
-	void addOptimization(Optim type, const litlist& literals);
-	void addAggOptimization(Agg* aggmnmz);
+	void addOptimization(OptimStatement optim){
+		optimization.push_back(optim);
+	}
 
 	bool isOptimizationProblem() const {
-		return optim!=Optim::NONE;
+		return optimization.size()>0;
+	}
+
+	OptimStatement& getCurrentOptim(){
+		MAssert(optimization.size()==1);
+		return optimization.front();
 	}
 
 	// Search

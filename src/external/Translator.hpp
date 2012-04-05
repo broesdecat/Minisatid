@@ -26,33 +26,41 @@
 
 namespace MinisatID {
 
-enum FIXEDVAL { FIXED_TRUE, FIXED_ARBIT, FIXED_FALSE };
-enum PRINTCHOICE { PRINT_FIXED, PRINT_ARBIT };
+enum FIXEDVAL {
+	FIXED_TRUE, FIXED_ARBIT, FIXED_FALSE
+};
+enum PRINTCHOICE {
+	PRINT_FIXED, PRINT_ARBIT
+};
 
-struct TupleInterpr{
+struct TupleInterpr {
 	FIXEDVAL value;
 	std::vector<std::string> arguments;
 
-	TupleInterpr(FIXEDVAL value, const std::vector<std::string>& arg): value(value), arguments(arg){}
+	TupleInterpr(FIXEDVAL value, const std::vector<std::string>& arg) :
+			value(value), arguments(arg) {
+	}
 };
 
-struct Type{
+struct Type {
 	std::string name;
 	std::vector<std::string> domainelements;
 
-	Type(std::string name, std::vector<std::string> domainelements): name(name), domainelements(domainelements){}
+	Type(std::string name, std::vector<std::string> domainelements) :
+			name(name), domainelements(domainelements) {
+	}
 };
 
-struct Symbol{
+struct Symbol {
 private:
 	std::string name;
 public:
-	std::string getName(bool fodot){
-		if(fodot){
+	std::string getName(bool fodot) {
+		if (fodot) {
 			return name;
-		}else{
+		} else {
 			std::string n = name;
-			n.at(0)=tolower(n.at(0));
+			n.at(0) = tolower(n.at(0));
 			return n;
 		}
 	}
@@ -60,37 +68,55 @@ public:
 	std::vector<Type*> types;
 	bool isfunction;
 
-	Symbol(std::string name, int startnumber, int endnumber, std::vector<Type*> types, bool isfunction):
-		name(name), startnumber(startnumber), endnumber(endnumber), types(types), isfunction(isfunction){}
+	Symbol(std::string name, int startnumber, int endnumber, std::vector<Type*> types, bool isfunction) :
+			name(name), startnumber(startnumber), endnumber(endnumber), types(types), isfunction(isfunction) {
+	}
 };
 
-struct SymbolInterpr{
+struct SymbolInterpr {
 	Symbol* symbol;
 	std::vector<TupleInterpr> tuples;
 
-	SymbolInterpr(Symbol* symbol): symbol(symbol){}
+	SymbolInterpr(Symbol* symbol) :
+			symbol(symbol) {
+	}
 };
 typedef std::vector<SymbolInterpr> modelvec;
 
-class Translator: LiteralPrinter {
+class Translator: public LiteralPrinter {
 public:
-	Translator(){}
-	virtual ~Translator(){}
+	virtual ~Translator() {
+	}
 
 	virtual void printModel(std::ostream& output, const Model& model);
 
 	template<typename List> // vector/map/set with pairs of unsigned int and MinisatID::Literal
 	void printTranslation(std::ostream& output, const List& l);
 
-	virtual bool hasTranslation			(const MinisatID::Literal&) const { return false; }
+	virtual bool hasTranslation(const MinisatID::Literal&) const {
+		return false;
+	}
 
-	virtual void printCurrentOptimum	(std::ostream&, const Weight&) { /*output <<value;*/ }
-	virtual void printHeader			(std::ostream&) {}
+	virtual void printCurrentOptimum(std::ostream& output, const Weight& value) {
+		output << value;
+	}
+	virtual void printHeader(std::ostream&) {
+	}
 
-	virtual void finish(){}
+protected:
+	// Called to guarantee that all data is in a usable state.
+	virtual void finish() {
+	}
 };
 
-class FODOTTranslator: public Translator{
+class PlainTranslator: public Translator {
+public:
+	virtual bool hasTranslation(const MinisatID::Literal&) const {
+		return true;
+	}
+};
+
+class FODOTTranslator: public Translator {
 private:
 	bool tofodot;
 	bool finisheddata; //true if the datastructures have been initialized after parsing
@@ -104,18 +130,16 @@ private:
 	// output
 	modelvec arbitout, truemodelcombinedout;
 
-	std::map<std::string,Type*>	types;
-	std::vector<Symbol*>		symbols;
+	std::map<std::string, Type*> types;
+	std::vector<Symbol*> symbols;
 
-	std::vector<int>			truelist;
-	std::vector<int>			arbitlist;
-	std::map<Symbol*,bool>		symbolasarbitatomlist;
+	std::vector<int> truelist;
+	std::vector<int> arbitlist;
+	std::map<Symbol*, bool> symbolasarbitatomlist;
 
 public:
-	FODOTTranslator(bool asaspstructure): Translator(),
-			tofodot(not asaspstructure), finisheddata(false), emptytrans(true),
-			largestnottseitinatom(-1),
-			printedArbitrary(false){
+	FODOTTranslator(bool asaspstructure) :
+			Translator(), tofodot(not asaspstructure), finisheddata(false), emptytrans(true), largestnottseitinatom(-1), printedArbitrary(false) {
 	}
 
 	virtual ~FODOTTranslator() {
@@ -123,62 +147,66 @@ public:
 		deleteList<Symbol>(symbols);
 	}
 
-	virtual void finish(){
-		if(!finisheddata){
+	virtual void finish() {
+		if (!finisheddata) {
 			finishData();
 		}
 	}
 
-	void setTruelist		(const std::vector<int>& vi) { truelist = vi;}
-	void setArbitlist	(const std::vector<int>& vi) { arbitlist = vi;}
-	void addType(std::string name, const std::vector<std::string>& inter){
-		types.insert({name, new Type(name, inter)});
+	void setTruelist(const std::vector<int>& vi) {
+		truelist = vi;
 	}
-	void addPred(std::string name, int startingnumber, const std::vector<std::string>& typenames, bool isfunction){
+	void setArbitlist(const std::vector<int>& vi) {
+		arbitlist = vi;
+	}
+	void addType(std::string name, const std::vector<std::string>& inter) {
+		types.insert( { name, new Type(name, inter) });
+	}
+	void addPred(std::string name, int startingnumber, const std::vector<std::string>& typenames, bool isfunction) {
 		std::vector<Type*> argtypes;
 		int joinsize = 1;
-		for(auto i = typenames.cbegin(); i < typenames.cend(); ++i) {
+		for (auto i = typenames.cbegin(); i < typenames.cend(); ++i) {
 			argtypes.push_back(types.at(*i));
 			joinsize *= argtypes.back()->domainelements.size();
 		}
 
-		symbols.push_back(new Symbol(name, startingnumber, startingnumber+joinsize-1, argtypes, isfunction));
+		symbols.push_back(new Symbol(name, startingnumber, startingnumber + joinsize - 1, argtypes, isfunction));
 		emptytrans = false;
 	}
 
-	bool hasTranslation	(const MinisatID::Literal& lit) const;
+	bool hasTranslation(const MinisatID::Literal& lit) const;
 
-	void printLiteral	(std::ostream& output, const MinisatID::Literal& lit);
-	void printModel		(std::ostream& output, const Model& model);
-	void printHeader	(std::ostream& output){
-		if(!finisheddata){
+	void toString(std::ostream& output, const MinisatID::Literal& lit);
+	void printModel(std::ostream& output, const Model& model);
+	void printHeader(std::ostream& output) {
+		if (!finisheddata) {
 			finishParsing(output);
 		}
 
-		if(emptytrans){
+		if (emptytrans) {
 			return;
 		}
 	}
 
 private:
-	void finishData		();
-	void finishParsing	(std::ostream& output);
-	std::string getPredName	(int predn) const;
-	void printTuple(const std::vector<std::string>& tuple, std::ostream& output) const{
+	void finishData();
+	void finishParsing(std::ostream& output);
+	std::string getPredName(int predn) const;
+	void printTuple(const std::vector<std::string>& tuple, std::ostream& output) const {
 		bool begin = true;
-		for(auto k = tuple.cbegin(); k < tuple.cend(); ++k) {
-			if(!begin){
+		for (auto k = tuple.cbegin(); k < tuple.cend(); ++k) {
+			if (!begin) {
 				output << ",";
 			}
 			begin = false;
 			output << *k;
 		}
 	}
-	void printPredicate	(const SymbolInterpr& pred, std::ostream& output, PRINTCHOICE print)	const;
-	void printFunction	(const SymbolInterpr& pred, std::ostream& output, PRINTCHOICE print)	const;
-	void printInterpr	(const modelvec& model, std::ostream& output, PRINTCHOICE print)		const;
+	void printPredicate(const SymbolInterpr& pred, std::ostream& output, PRINTCHOICE print) const;
+	void printFunction(const SymbolInterpr& pred, std::ostream& output, PRINTCHOICE print) const;
+	void printInterpr(const modelvec& model, std::ostream& output, PRINTCHOICE print) const;
 
-	struct AtomInfo{
+	struct AtomInfo {
 		bool hastranslation;
 		uint symbolindex;
 		std::vector<std::string> arg;
@@ -186,55 +214,58 @@ private:
 	AtomInfo deriveStringFromAtomNumber(int atom) const;
 };
 
-class OPBPolicy{
+class OPBPolicy {
 public:
 	void printCurrentOptimum(std::ostream& output, const Weight& value);
 };
 
-class LParsePolicy{
+class LParsePolicy {
 public:
 	void printCurrentOptimum(std::ostream& output, const Weight& value);
 };
 
 template<class OptimumPolicy>
-class TupleTranslator: public Translator, public OptimumPolicy{
+class TupleTranslator: public Translator, public OptimumPolicy {
 private:
-	std::map<Atom,std::string>	lit2name;
+	std::map<Atom, std::string> lit2name;
 
 public:
-	TupleTranslator():Translator(){}
-	virtual ~TupleTranslator(){}
+	TupleTranslator() :
+			Translator() {
+	}
+	virtual ~TupleTranslator() {
+	}
 
-	bool hasTranslation	(const MinisatID::Literal& lit) const {
-		return lit2name.find(lit.getAtom())!=lit2name.cend();
+	bool hasTranslation(const MinisatID::Literal& lit) const {
+		return lit2name.find(lit.getAtom()) != lit2name.cend();
 	}
 
 	void addTuple(Atom atom, std::string name) {
-		lit2name[atom]=name;
+		lit2name[atom] = name;
 	}
 
 	void printModel(std::ostream& output, const Model& model) {
-		for(auto i=model.literalinterpretations.cbegin(); i<model.literalinterpretations.cend(); ++i){
-			if(!(*i).hasSign()){ //Do not print false literals
+		for (auto i = model.literalinterpretations.cbegin(); i < model.literalinterpretations.cend(); ++i) {
+			if (!(*i).hasSign()) { //Do not print false literals
 				auto it = lit2name.find((*i).getAtom());
-				if(it!=lit2name.cend()){
-					output <<(*it).second <<" ";
+				if (it != lit2name.cend()) {
+					output << (*it).second << " ";
 				}
 			}
 		}
-		output <<"\n";
+		output << "\n";
 		output.flush();
 		MAssert(model.variableassignments.size()==0);
 	}
 
-	void printLiteral(std::ostream& output, const Literal& lit) {
+	void toString(std::ostream& output, const Literal& lit) {
 		auto it = lit2name.find(lit.getAtom());
-		if(it!=lit2name.cend()){
-			output <<(lit.hasSign()?"~":"") <<(*it).second <<"";
+		if (it != lit2name.cend()) {
+			output << (lit.hasSign() ? "~" : "") << (*it).second << "";
 		}
 	}
 
-	virtual void printCurrentOptimum(std::ostream& output, const Weight& value){
+	virtual void printCurrentOptimum(std::ostream& output, const Weight& value) {
 		OptimumPolicy::printCurrentOptimum(output, value);
 	}
 };

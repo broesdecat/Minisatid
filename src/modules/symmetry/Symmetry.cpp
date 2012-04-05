@@ -305,9 +305,6 @@ rClause SymmetryPropagator::propagateSymmetrical(const Lit& l){
 	auto symlit = implic.literals[0];
 	auto neglit = implic.literals[1];
 	auto level = getPCSolver().getLevel(var(neglit));
-	if(getPCSolver().getCurrentDecisionLevel()>level){
-		getPCSolver().backtrackTo(level); // Backtrack verplicht om de watches op het juiste moment op de clause te zetten
-	}
 	MAssert(value(symlit)!=l_True);
 	MAssert(value(neglit)==l_False);
 

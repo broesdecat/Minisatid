@@ -16,24 +16,20 @@ class PropAndBackMonitor;
 
 Var checkAtom(const Atom& atom, Remapper& remapper);
 Lit checkLit(const Literal& lit, Remapper& remapper);
-void checkLits(const std::vector<Literal>& lits, std::vector<Lit>& ll, Remapper& remapper);
-void checkLits(const std::vector<std::vector<Literal> >& lits, std::vector<std::vector<Lit> >& ll, Remapper& remapper);
-void checkLits(const std::map<Literal, Literal>& lits, std::map<Lit, Lit>& ll, Remapper& remapper);
-void checkAtoms(const std::vector<Atom>& atoms, std::vector<Var>& ll, Remapper& remapper);
-void checkAtoms(const std::map<Atom, Atom>& atoms, std::map<Var, Var>& ll, Remapper& remapper);
+std::vector<Lit> checkLits(const std::vector<Literal>& lits, Remapper& remapper);
+std::vector<std::vector<Lit> > checkLits(const std::vector<std::vector<Literal> >& lits, Remapper& remapper);
+std::map<Lit, Lit> checkLits(const std::map<Literal, Literal>& lits, Remapper& remapper);
+std::vector<Var> checkAtoms(const std::vector<Atom>& atoms, Remapper& remapper);
+std::map<Var, Var> checkAtoms(const std::map<Atom, Atom>& atoms, Remapper& remapper);
 
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const Disjunction& sentence) {
-	Disjunction clause;
-	checkLits(sentence.literals, clause.literals, space.getRemapper());
-	space.getEngine()->add(clause);
+	space.getEngine()->add(Disjunction(checkLits(sentence.literals, space.getRemapper())));
 }
 
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const Implication& sentence) {
-	litlist list;
-	checkLits(sentence.body, list, space.getRemapper());
-	Implication eq(checkLit(sentence.head, space.getRemapper()), sentence.type, list, sentence.conjunction);
+	Implication eq(checkLit(sentence.head, space.getRemapper()), sentence.type, checkLits(sentence.body, space.getRemapper()), sentence.conjunction);
 	space.getEngine()->add(eq);
 }
 
@@ -43,7 +39,7 @@ void add(ConstraintAdditionInterface<Engine>& space, const Rule& sentence) {
 	rule.head = checkAtom(sentence.head, space.getRemapper());
 	rule.definitionID = sentence.definitionID;
 	rule.conjunctive = sentence.conjunctive;
-	checkLits(sentence.body, rule.body, space.getRemapper());
+	rule.body = checkLits(sentence.body, space.getRemapper());
 	space.getEngine()->add(rule);
 }
 
@@ -72,39 +68,27 @@ void add(ConstraintAdditionInterface<Engine>& space, const Aggregate& sentence) 
 
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const MinimizeSubset& sentence) {
-	MinimizeSubset mnm;
-	checkLits(sentence.literals, mnm.literals, space.getRemapper());
-	space.getEngine()->add(mnm);
+	space.getEngine()->add(MinimizeSubset(sentence.priority, checkLits(sentence.literals, space.getRemapper())));
 }
 
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const MinimizeOrderedList& sentence) {
-	MinimizeOrderedList mnm;
-	checkLits(sentence.literals, mnm.literals, space.getRemapper());
-	space.getEngine()->add(mnm);
+	space.getEngine()->add(MinimizeOrderedList(sentence.priority, checkLits(sentence.literals, space.getRemapper())));
 }
 
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const MinimizeVar& sentence) {
-	MinimizeVar mnm;
-	mnm.varID = sentence.varID;
-	space.getEngine()->add(mnm);
+	space.getEngine()->add(MinimizeVar(sentence.priority, sentence.varID));
 }
 
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const MinimizeAgg& sentence) {
-	MinimizeAgg mnm;
-	mnm.setid = sentence.setid;
-	mnm.type = sentence.type;
-	space.getEngine()->add(mnm);
+	space.getEngine()->add(MinimizeAgg(sentence.priority, sentence.setid, sentence.type));
 }
 
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const Symmetry& sentence) {
-	std::map<Lit, Lit> mapsymm;
-	checkLits(sentence.symmetry, mapsymm, space.getRemapper());
-	Symmetry symms(mapsymm);
-	space.getEngine()->add(symms);
+	space.getEngine()->add(Symmetry(checkLits(sentence.symmetry, space.getRemapper())));
 }
 
 template<typename Engine>

@@ -32,8 +32,8 @@ public:
 		auto i = origtocontiguousatommapper.find(atom);
 		Var v = 0;
 		if(i==origtocontiguousatommapper.cend()){
-			origtocontiguousatommapper.insert(std::pair<int, int>(atom, maxnumber));
-			contiguoustoorigatommapper.insert(std::pair<int, int>(maxnumber, atom));
+			origtocontiguousatommapper.insert({atom, maxnumber});
+			contiguoustoorigatommapper.insert({maxnumber, atom});
 			v = maxnumber++;
 		}else{
 			v = (*i).second;
@@ -43,10 +43,6 @@ public:
 
 	Var getNewVar(){
 		return maxnumber++;
-	}
-
-	bool wasInput(Var var) const{
-		return contiguoustoorigatommapper.find(var)!=contiguoustoorigatommapper.cend();
 	}
 
 	Literal getLiteral(const Lit& lit) const{

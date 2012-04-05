@@ -239,7 +239,7 @@ bool FODOTTranslator::hasTranslation(const MinisatID::Literal& lit) const{
 }
 
 //IMPORTANT: non-incremental (slow), so do not use for printing a full model!
-void FODOTTranslator::printLiteral(std::ostream& output, const Literal& lit) {
+void FODOTTranslator::toString(std::ostream& output, const Literal& lit) {
 	if(!finisheddata){
 		finishParsing(output);
 	}

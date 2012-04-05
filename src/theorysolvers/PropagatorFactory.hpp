@@ -178,7 +178,7 @@ private:
 
 	IntVar*		getIntVar(int varID) const;
 
-	SATVAL finishSet(const WLSet* set, std::vector<TempAgg*>& agg, bool optimagg = false);
+	SATVAL finishSet(const WLSet* set, std::vector<TempAgg*>& agg, bool optimagg = false, uint optimpriority = -1);
 };
 
 }

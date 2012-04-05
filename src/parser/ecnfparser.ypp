@@ -224,38 +224,37 @@ ecnftheory	:	/* empty */
 			|	ecnftheory subsetmnmz
 			|	ecnftheory varmnmz
 			|	ecnftheory summnmz
+			|	ecnftheory aggmnmz
 			|	ecnftheory intvar
 			|	ecnftheory cpconstraint
 			;
 			
 mnmz	:	MNMZDEFN body ZERO
 			{
-				MinimizeOrderedList mnm;
-				mnm.literals = *$2;
-				delete $2;
-				CR(mnm); 
+				CR(MinimizeOrderedList(1, *$2));
+				delete $2; 
 			}
 subsetmnmz: SUBSETMINDEFN body ZERO
-			{ 
-				MinimizeSubset mnm;
-				mnm.literals = *$2;
-				delete $2;
-				CR(mnm); 
+			{
+				CR(MinimizeSubset(1, *$2));
+				delete $2; 
 			}
 varmnmz :	VARMINDEFN NUMBER ZERO
 			{ 
-				MinimizeVar mnm;
-				mnm.varID = cID($2);
-				CR(mnm);
+				CR(MinimizeVar(1, cID($2)));
+			}
+			
+aggmnmz :	AGGMINDEFN AGGDEFN NUMBER ZERO 	
+			{
+				CR(MinimizeAgg(1, cID($3), $2));
+				delete $3;
 			}
 
-summnmz :	AGGMINDEFN AGGDEFN NUMBER NUMBER ZERO	
-			{ 
-				MinimizeAgg mnm;
-				mnm.setid = cID($4);
-				mnm.type = $2;
+// NOTE: only for compatibility (has redundant head atom)
+summnmz :	AGGMINDEFN AGGDEFN NUMBER NUMBER ZERO 	
+			{
+				CR(MinimizeAgg(1, cID($4), $2));
 				delete $3; delete $4;
-				CR(mnm);
 			}
 		
 clause	:	body ZERO	

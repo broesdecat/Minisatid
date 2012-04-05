@@ -76,10 +76,7 @@ template<class T> void DefaultCallback<T>::endObjective() {
 	add(getSolver(), wset);
 	wset = WLSet();
 
-	MinimizeAgg mnm;
-	mnm.setid = setid;
-	mnm.type = AggType::SUM;
-	add(getSolver(), mnm);
+	add(getSolver(), MinimizeAgg(1, setid, AggType::SUM));
 }
 
 /**

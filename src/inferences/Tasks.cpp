@@ -138,9 +138,7 @@ void ModelExpand::innerExecute() {
 vector<Literal> getBackMappedModel(const std::vector<Lit>& model, const Remapper& r) {
 	vector<Literal> outmodel;
 	for (auto i = model.cbegin(); i != model.cend(); ++i) {
-		if (r.wasInput(var(*i))) {
-			outmodel.push_back(r.getLiteral(*i));
-		}
+		outmodel.push_back(r.getLiteral(*i));
 	}
 	sort(outmodel.begin(), outmodel.end());
 	return outmodel;
@@ -230,9 +228,7 @@ void ModelExpand::invalidate(litlist& clause) {
  * Returns false if invalidating the model leads to UNSAT, meaning that no more models are possible. Otherwise true.
  */
 SATVAL ModelExpand::invalidateModel(const litlist& clause) {
-	Disjunction d;
-	d.literals = clause;
-	getSolver().backtrackTo(0); // Otherwise, clauses cannot be added to the sat-solver anyway
+	Disjunction d(clause);
 
 	if (getOptions().verbosity >= 3) {
 		clog << "Adding model-invalidating clause: [ ";
@@ -247,7 +243,8 @@ SATVAL ModelExpand::invalidateModel(const litlist& clause) {
 bool ModelExpand::invalidateSubset(litlist& invalidation, litlist& assmpt) {
 	int subsetsize = 0;
 
-	for (auto i = getSolver().to_minimize.cbegin(); i < getSolver().to_minimize.cend(); ++i) {
+	const auto& minim = getSolver().getCurrentOptim().to_minimize;
+	for (auto i = minim.cbegin(); i < minim.cend(); ++i) {
 		auto lit = *i;
 		if (getSolver().getModelValue(var(lit)) == l_True) {
 			invalidation.push_back(~lit);
@@ -267,7 +264,7 @@ bool ModelExpand::invalidateSubset(litlist& invalidation, litlist& assmpt) {
 bool ModelExpand::invalidateValue(litlist& invalidation) {
 	bool currentoptimumfound = false;
 
-	const auto& minim = getSolver().to_minimize;
+	const auto& minim = getSolver().getCurrentOptim().to_minimize;
 	for (uint i = 0; !currentoptimumfound && i < minim.size(); ++i) {
 		if (!currentoptimumfound && getSolver().getModelValue(var(minim[i])) == l_True) {
 			if (getOptions().verbosity >= 1) {
@@ -290,7 +287,7 @@ bool ModelExpand::invalidateValue(litlist& invalidation) {
 }
 
 bool ModelExpand::invalidateAgg(litlist& invalidation) {
-	auto agg = getSolver().agg_to_minimize;
+	auto agg = getSolver().getCurrentOptim().agg_to_minimize;
 	auto s = agg->getSet();
 	Weight value = s->getType().getValue(*s);
 
@@ -322,9 +319,9 @@ void ModelExpand::findOptimal(const litlist& assmpt) {
 	bool modelfound = false, unsatreached = false;
 
 	while (not unsatreached) {
-		if (getSolver().optim == Optim::AGG) {
+		if (getSolver().getCurrentOptim().optim == Optim::AGG) {
 			// NOTE: necessary to propagate the changes to the bound correctly
-			if (getSolver().agg_to_minimize->reInitializeAgg() == SATVAL::UNSAT) {
+			if (getSolver().getCurrentOptim().agg_to_minimize->reInitializeAgg() == SATVAL::UNSAT) {
 				unsatreached = true;
 				continue;
 			}
@@ -344,7 +341,7 @@ void ModelExpand::findOptimal(const litlist& assmpt) {
 
 		//invalidate the solver
 		Disjunction invalidation;
-		switch (getSolver().optim) {
+		switch (getSolver().getCurrentOptim().optim) {
 		case Optim::LIST:
 			unsatreached = invalidateValue(invalidation.literals);
 			break;
@@ -354,9 +351,6 @@ void ModelExpand::findOptimal(const litlist& assmpt) {
 			break;
 		case Optim::AGG:
 			unsatreached = invalidateAgg(invalidation.literals);
-			break;
-		case Optim::NONE:
-			MAssert(false);
 			break;
 		}
 
@@ -378,9 +372,7 @@ void ModelExpand::findOptimal(const litlist& assmpt) {
 
 void Monitor::notifyMonitor(const Lit& propagation, int decisionlevel) {
 	for (auto i = monitors.cbegin(); i < monitors.cend(); ++i) {
-		if(remapper->wasInput(var(propagation))){
-			(*i)->notifyPropagated(remapper->getLiteral(propagation), decisionlevel);
-		}
+		(*i)->notifyPropagated(remapper->getLiteral(propagation), decisionlevel);
 	}
 }
 
@@ -395,15 +387,12 @@ void ModelExpand::notifyCurrentOptimum(const Weight& value) const {
 }
 
 literallist UnitPropagate::getEntailedLiterals(){
-	getSolver().backtrackTo(assumptions.size()); // Backtrack to the latest assumption decision
-	auto list = getSolver().getTrail();
 	literallist literals;
 	auto r = getSpace()->getRemapper();
-	for(auto i=list.cbegin(); i<list.cend(); ++i){
-		if(r.wasInput(var(*i))){
+	for(auto i=getSolver().getTrail().cbegin(); i<getSolver().getTrail().cend(); ++i) {
+		if(getSolver().rootValue(*i)!=l_Undef){
 			literals.push_back(r.getLiteral(*i));
 		}
-
 	}
 	return literals;
 }

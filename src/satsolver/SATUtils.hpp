@@ -10,7 +10,6 @@
 #define SATUTILS_H_
 
 #include "external/ExternalUtils.hpp"
-#include "BasicSATUtils.hpp"
 #include "satsolver/minisat/SolverTypes.hpp"
 
 namespace MinisatID {
@@ -23,7 +22,6 @@ namespace MinisatID {
 	using Minisat::l_Undef;
 	using Minisat::l_True;
 	using Minisat::lbool;
-	using Minisat::var;
 
 	extern rClause nullPtrClause;
 	pClause getClauseRef(rClause rc);

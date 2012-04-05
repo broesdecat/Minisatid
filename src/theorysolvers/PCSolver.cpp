@@ -37,11 +37,8 @@ PCSolver::PCSolver(SolverOption modes, Monitor* monitor, VarCreation* varcreator
 		queue(NULL),
 		factory(NULL),
 		trail(new TimeTrail()),
-		terminate(false),
-		optim(Optim::NONE), head(-1), agg_to_minimize(NULL){
-
+		terminate(false){
 	queue = new EventQueue(*this);
-
 	searchengine = createSolver(this);
 #ifdef CPSUPPORT
 	cpsolver = new CPSolver(this);
@@ -79,6 +76,13 @@ lbool PCSolver::value(Var x) const {
 }
 lbool PCSolver::value(Lit p) const {
 	return getSolver().value(p);
+}
+lbool PCSolver::rootValue(Lit p) const {
+	if(getLevel(var(p))==0){
+		return value(p);
+	}else{
+		return l_Undef;
+	}
 }
 uint64_t PCSolver::nVars() const {
 	return getSolver().nbVars();
@@ -309,7 +313,19 @@ int PCSolver::getTime(const Var& var) const {
 	return trail->getTime(mkPosLit(var));
 }
 
+template<class T>
+bool compareByPriority(const T& left, const T& right){
+	return left.priority<right.priority;
+}
+
 void PCSolver::finishParsing() {
+	sort(optimization.begin(), optimization.end(), compareByPriority<OptimStatement>);
+	for(int i=1; i<optimization.size(); ++i){
+		if(optimization[i].priority==optimization[i-1].priority){
+			throw idpexception("Two optimization statement cannot have the same priority.");
+		}
+	}
+
 	dummy1 = newVar();
 	Disjunction d1;
 	d1.literals.push_back(mkLit(dummy1, false));
@@ -351,24 +367,6 @@ void PCSolver::backtrackDecisionLevel(int untillevel, const Lit& decision) {
 
 lbool PCSolver::solve(const litlist& assumptions, bool search) {
 	return getSATSolver()->solve(assumptions, not search);
-}
-
-void PCSolver::addOptimization(Optim type, const litlist& literals) {
-	if (optim != Optim::NONE) {
-		throw idpexception(">> Only one optimization statement is allowed.\n");
-	}
-
-	optim = type;
-	to_minimize = literals;
-}
-
-void PCSolver::addAggOptimization(Agg* aggmnmz) {
-	if (optim != Optim::NONE) {
-		throw idpexception(">> Only one optimization statement is allowed.\n");
-	}
-
-	optim = Optim::AGG;
-	agg_to_minimize = aggmnmz; //aggmnmz->getAgg().front();
 }
 
 /**

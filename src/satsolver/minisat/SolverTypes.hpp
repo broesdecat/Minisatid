@@ -30,9 +30,16 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "mtl/Map.h"
 #include "mtl/Alloc.h"
 
-#include "BasicSolverTypes.hpp"
+#include "external/Lit.hpp"
 
 namespace Minisat {
+
+	using MinisatID::Lit;
+	using MinisatID::Var;
+
+	const Var var_Undef = { -1 };
+	const Lit lit_Undef = { -2 }; // }- Useful special constants.
+	const Lit lit_Error = { -1 }; // }
 
 //=================================================================================================
 // Lifted booleans:
@@ -68,7 +75,7 @@ inline int   toInt  (lbool l) { return l.value; }
 inline lbool toLbool(int   v) { return lbool((uint8_t)v);  }
 
 // NOTE: this implementation is optimized for the case when comparisons between values are mostly
-//       between one variable and one constant. Some care had to be taken to make sure that gcc 
+//       between one variable and one constant. Some care had to be taken to make sure that gcc
 //       does enough constant propagation to produce sensible code, and this appears to be somewhat
 //       fragile unfortunately.
 
@@ -332,10 +339,6 @@ class CMap
 
     // Move contents to other map:
     void moveTo(CMap& other){ map.moveTo(other.map); }
-
-    // TMP debug:
-    void debug(){
-        printf(" --- size = %d, bucket_count = %d\n", size(), map.bucket_count()); }
 };
 
 

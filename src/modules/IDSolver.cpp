@@ -162,7 +162,9 @@ void IDSolver::addRuleSet(const std::vector<TempRule*>& rules) {
  * @PRE: aggregates have to have been finished
  */
 void IDSolver::initialize() {
-	if (getPCSolver().getCurrentDecisionLevel() != 0) { // NOTE can only initialize unfounded sets at level 0 TODO can we improve this schema?
+	// NOTE can only initialize unfounded sets at level 0
+	// FIXME improve this by only using root literals for simplification and to use a reverse trail
+	if (getPCSolver().getCurrentDecisionLevel() != 0) {
 		getPCSolver().backtrackTo(0);
 	}
 

@@ -21,10 +21,9 @@
 #ifndef Basic_Minisat_SolverTypes_h
 #define Basic_Minisat_SolverTypes_h
 
-namespace Minisat {
+namespace MinisatID {
 
 typedef int Var;
-const Var var_Undef = { -1 };
 
 struct Lit {
 	int x;
@@ -80,8 +79,9 @@ inline int toInt(Lit p) {
 // Returns an integer which represents this literal: abs(x) is the atom, x<0 is the sign
 inline int getIntLit(Lit p) { return var(p)* (sign(p)?-1:1); }
 
-const Lit lit_Undef = { -2 }; // }- Useful special constants.
-const Lit lit_Error = { -1 }; // }
+bool isPositive(const Lit& lit);
+bool isNegative(const Lit& lit);
+
 }
 
 #endif

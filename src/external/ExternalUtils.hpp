@@ -15,7 +15,6 @@ typedef unsigned int uint;
 
 #include "MAssert.hpp"
 #include "Idpexception.hpp"
-#include "Weight.hpp"
 #include "Datastructures.hpp"
 
 #include "Options.hpp"

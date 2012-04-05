@@ -11,7 +11,6 @@
 #include "Options.hpp"
 #include "callback.hpp"
 #include "constraintvisitors/LiteralPrinter.hpp"
-#include "satsolver/BasicSATUtils.hpp"
 #include "external/Remapper.hpp"
 #include "ConstraintAdditionInterface.hpp"
 
@@ -22,8 +21,6 @@ class PCSolver;
 class PropAndBackMonitor;
 
 typedef std::vector<Lit> litlist;
-
-typedef cb::Callback1<std::string, int> callbackprinting; // TODO wrap in translator (goes back to grounder)
 
 class Monitor {
 private:
@@ -65,10 +62,7 @@ public:
 
 	bool isCertainlyUnsat() const;
 
-	// Printing, might move?
 private:
-	bool hasprintcallback; // FIXME make all of these a Printer!
-	callbackprinting _cb;
 	Translator *_translator, *_origtranslator;
 public:
 	virtual std::string toString(const Lit& lit) const;
@@ -77,14 +71,9 @@ public:
 	void setTranslator(Translator* translator){
 		_translator = translator;
 	}
-	Translator* getTranslator(){
+	Translator* getTranslator() const {
 		return _translator;
 	}
-	void setCallBackTranslator(callbackprinting cb){
-		hasprintcallback = true;
-		_cb = cb;
-	}
-
 	void addMonitor(PropAndBackMonitor* monitor);
 
 	bool isOptimizationProblem() const;

@@ -5,6 +5,13 @@
 #include "theorysolvers/PCSolver.hpp"
 
 namespace MinisatID{
+	bool isPositive(const Lit& lit){
+		return not sign(lit);
+	}
+	bool isNegative(const Lit& lit){
+		return sign(lit);
+	}
+
 	int ID::nextid = 1;
 
 	WLSet createSet(int setid, const std::vector<Lit>& literals, const Weight& w){

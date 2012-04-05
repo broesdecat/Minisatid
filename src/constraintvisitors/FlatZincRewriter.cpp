@@ -43,7 +43,7 @@ litlist getLiterals(const WLSet& set){
 template<typename Stream>
 FlatZincRewriter<Stream>::FlatZincRewriter(LiteralPrinter* pcsolver, const SolverOption& modes, Stream& stream):
 		ConstraintAdditionMonitor<Stream>(pcsolver, stream),
-		state(SolverState::PARSING), _modes(modes), maxatomnumber(0), maxcpnumber(0), optim(MNMZ_NONE),
+		state(SolverState::PARSING), _modes(modes), maxatomnumber(0), maxcpnumber(0), hasoptim(false),
 		stream(stream){
 }
 
@@ -395,9 +395,12 @@ uint FlatZincRewriter<Stream>::createCpVar(const std::vector<Weight>& values) {
 
 template<typename Stream>
 uint FlatZincRewriter<Stream>::addOptimization() {
+	if(savedvar.size()+savedlistmnmz.size()+savedsubsetmnmz.size()+savedagg.size()>1){
+		throw idpexception("Transformation to flatzinc does not support prioritized optimization.");
+	}
 	uint optimvar = 0;
-	if (optim == MNMZ_AGG) {
-		auto mnm = savedagg;
+	if (savedagg.size()>0) {
+		auto mnm = savedagg[0];
 		if (mnm.type != AggType::SUM && mnm.type != AggType::CARD) {
 			throw idpexception("Optimization only supported on sum or cardinality aggregates.");
 		}
@@ -423,8 +426,8 @@ uint FlatZincRewriter<Stream>::addOptimization() {
 		Disjunction d;
 		d.literals.push_back(mkPosLit(head));
 		visit(d);
-	} else if (optim == MNMZ_LIST) {
-		auto mnm = savedlistmnmz;
+	} else if (savedlistmnmz.size()>0) {
+		auto mnm = savedlistmnmz[0];
 
 		optimvar = createCpVar(1, long(mnm.literals.size()));
 
@@ -435,9 +438,10 @@ uint FlatZincRewriter<Stream>::addOptimization() {
 			addBinRel(getVarName(optimvar), ss.str(), *i, EqType::EQ);
 			currentvalue++;
 		}
-	} else if (optim == MNMZ_SUBSET) {
+	} else if (savedsubsetmnmz.size()>0) {
 		throw idpexception("Subset minimization is not supported by the FlatZinc language.");
 	} else {
+		MAssert(savedvar.size()>0);
 		throw notYetImplemented("Optimization of a CP variable is not yet implemented.\n");
 	}
 	return optimvar;
@@ -518,7 +522,7 @@ void FlatZincRewriter<Stream>::finishParsing() {
 
 	getOutput() << definitions.str();
 	getOutput() << constraints.str();
-	if (optim != MNMZ_NONE) {
+	if (hasoptim) {
 		uint optimvar = addOptimization();
 		getOutput() << "solve minimize " << getVarName(optimvar) << ";\n";
 	} else {
@@ -748,31 +752,31 @@ void FlatZincRewriter<Stream>::visit(const Aggregate& origagg) {
 template<typename Stream>
 void FlatZincRewriter<Stream>::visit(const MinimizeSubset& sentence) {
 	MAssert(isParsing());
-	optim = MNMZ_SUBSET;
-	savedsubsetmnmz = sentence;
+	hasoptim = true;
 	check(sentence.literals);
+	savedsubsetmnmz.push_back(sentence);
 }
 
 template<typename Stream>
 void FlatZincRewriter<Stream>::visit(const MinimizeOrderedList& sentence) {
 	MAssert(isParsing());
-	optim = MNMZ_LIST;
+	hasoptim = true;
 	check(sentence.literals);
-	savedlistmnmz = sentence;
+	savedlistmnmz.push_back(sentence);
 }
 
 template<typename Stream>
 void FlatZincRewriter<Stream>::visit(const MinimizeVar& mnm) {
 	MAssert(isParsing());
-	savedvar = mnm;
-	optim = MNMZ_VAR;
+	hasoptim = true;
+	savedvar.push_back(mnm);
 }
 
 template<typename Stream>
 void FlatZincRewriter<Stream>::visit(const MinimizeAgg& mnm) {
 	MAssert(isParsing());
-	savedagg = mnm;
-	optim = MNMZ_AGG;
+	hasoptim = true;
+	savedagg.push_back(mnm);
 }
 
 template<typename Stream>

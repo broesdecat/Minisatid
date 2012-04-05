@@ -308,7 +308,7 @@ TypedSet* createPropagator(PCSolver* solver, WLSet* set, const std::vector<TempA
 	return new TypedSet(solver, set->setID, knownbound, getType(aggs.front()->getType()), set->getWL(), usewatches, aggs, optim);
 }
 
-void MinisatID::decideUsingWatchesAndCreateOptimPropagator(PCSolver* solver, WLSet* set, TempAgg* agg, const Weight& knownbound) {
+void MinisatID::decideUsingWatchesAndCreateMinimizationPropagator(PCSolver* solver, WLSet* set, TempAgg* agg, const Weight& knownbound, uint priority) {
 	// Set correct upper bound:
 	agg->setBound(AggBound(AggSign::UB, getType(agg->getType())->getMaxPossible(set->getWL())));
 
@@ -316,7 +316,8 @@ void MinisatID::decideUsingWatchesAndCreateOptimPropagator(PCSolver* solver, WLS
 	// FIXME for watched datastructs, the (re)initialize is not correct
 	auto typedset = createPropagator(solver, set, tempagglist { agg }, knownbound, ratio < solver->modes().watchesratio, true);
 
-	solver->addAggOptimization(typedset->getAgg().front());
+	OptimStatement optim(priority, typedset->getAgg().front());
+	solver->addOptimization(optim);
 }
 
 void MinisatID::decideUsingWatchesAndCreatePropagators(PCSolver* solver, WLSet* set, const std::vector<TempAgg*>& aggs,

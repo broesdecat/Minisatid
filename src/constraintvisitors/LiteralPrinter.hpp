@@ -10,7 +10,7 @@
 
 #include <string>
 #include <sstream>
-#include "satsolver/BasicSATUtils.hpp"
+#include "external/Lit.hpp"
 
 namespace MinisatID {
 class LiteralPrinter {

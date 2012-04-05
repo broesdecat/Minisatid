@@ -27,7 +27,7 @@ void addHeadImplications(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& ag
 void max2SAT(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& aggs, bool& unsat, bool& sat);
 void card2Equiv(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& aggs, const Weight& knownbound, bool& unsat, bool& sat);
 void decideUsingWatchesAndCreatePropagators(PCSolver* solver, WLSet* set, const std::vector<TempAgg*>& aggs, const Weight& knownbound);
-void decideUsingWatchesAndCreateOptimPropagator(PCSolver* solver, WLSet* set, TempAgg*, const Weight& knownbound);
+void decideUsingWatchesAndCreateMinimizationPropagator(PCSolver* solver, WLSet* set, TempAgg*, const Weight& knownbound, uint priority);
 
 }
 

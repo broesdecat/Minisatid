@@ -28,6 +28,7 @@
 #include <float.h>
 #include <limits.h>
 #include <string.h>
+#include <cstdio>
 
 #include "parser/Lparseread.hpp"
 #include "external/Translator.hpp"
@@ -392,10 +393,7 @@ void Read<T>::addOptimStatement(){
 	if(optim){
 		vector<Literal> optimheadclause;
 		add(getSolver(), createSet(optimsetcount, optimbody, optimweights));
-		MinimizeAgg mnmagg;
-		mnmagg.setid = optimsetcount;
-		mnmagg.type = AggType::SUM;
-		add(getSolver(), mnmagg);
+		add(getSolver(), MinimizeAgg(1, optimsetcount, AggType::SUM));
 	}
 }
 

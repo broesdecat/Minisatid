@@ -14,16 +14,12 @@
 #include <cstdint>
 #include <cstdlib>
 #include "Weight.hpp"
+#include "Lit.hpp"
 #include "MAssert.hpp"
-#include "satsolver/BasicSATUtils.hpp"
 
 namespace MinisatID {
 
 class Remapper;
-
-enum class Optim {
-	LIST, SUBSET, AGG, NONE
-};
 
 // Comparison operator
 enum class EqType {
@@ -246,7 +242,12 @@ public:
 
 class MinimizeOrderedList: public ID {
 public:
+	uint priority;
 	std::vector<Lit> literals;
+
+	MinimizeOrderedList(uint priority, std::vector<Lit> literals):priority(priority), literals(literals){
+
+	}
 
 	DATASTRUCTURE_DECLAREACCEPT
 
@@ -261,7 +262,12 @@ public:
 
 class MinimizeSubset: public ID {
 public:
+	uint priority;
 	std::vector<Lit> literals;
+
+	MinimizeSubset(uint priority, std::vector<Lit> literals):priority(priority), literals(literals){
+
+	}
 
 	DATASTRUCTURE_DECLAREACCEPT
 
@@ -276,7 +282,12 @@ public:
 
 class MinimizeVar: public ID {
 public:
+	uint priority;
 	uint varID;
+
+	MinimizeVar(uint priority, uint varID):priority(priority), varID(varID){
+
+	}
 
 	DATASTRUCTURE_DECLAREACCEPT
 
@@ -287,8 +298,13 @@ public:
 
 class MinimizeAgg: public ID {
 public:
+	uint priority;
 	int setid;
 	AggType type;
+
+	MinimizeAgg(uint priority, int setid, AggType type):priority(priority), setid(setid), type(type){
+
+	}
 
 	DATASTRUCTURE_DECLAREACCEPT
 

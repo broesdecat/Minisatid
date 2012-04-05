@@ -247,7 +247,8 @@ void PropagatorFactory::add(const MinimizeSubset& formula) {
 		throw idpexception("The set of literals to be minimized is empty.\n");
 	}
 
-	getEngine().addOptimization(Optim::SUBSET, formula.literals);
+	OptimStatement optim(formula.priority, Optim::SUBSET, formula.literals);
+	getEngine().addOptimization(optim);
 }
 
 void PropagatorFactory::add(const MinimizeOrderedList& formula) {
@@ -259,7 +260,8 @@ void PropagatorFactory::add(const MinimizeOrderedList& formula) {
 		throw idpexception("The set of literals to be minimized is empty.\n");
 	}
 
-	getEngine().addOptimization(Optim::LIST, formula.literals);
+	OptimStatement optim(formula.priority, Optim::LIST, formula.literals);
+	getEngine().addOptimization(optim);
 }
 void PropagatorFactory::add(const MinimizeAgg& formula) {
 	notifyMonitorsOfAdding(formula);
@@ -286,7 +288,7 @@ void PropagatorFactory::add(const MinimizeAgg& formula) {
 	AggBound bound(AggSign::UB, Weight(0));
 	// FIXME IMPLICATION IS USED INCORRECTLY (but could be used here!)
 	aggs.push_back(new TempAgg(mkPosLit(head), bound, AggSem::COMP, formula.type));
-	finishSet(set, aggs, true);
+	finishSet(set, aggs, true, formula.priority);
 }
 
 void PropagatorFactory::add(const MinimizeVar& formula) {
@@ -294,8 +296,14 @@ void PropagatorFactory::add(const MinimizeVar& formula) {
 
 	guaranteeAtRootLevel();
 
-	throw notYetImplemented("MinimizeVar is not handled at the moment");
-	// TODO check var existence and add optim intvar to pcsolver
+	auto it = intvars.find(formula.varID);
+	if(it==intvars.cend()){
+		stringstream ss;
+		ss <<"The CP var " <<formula.varID <<" has not been declared yet, but is used in an optimization statement.";
+		throw idpexception(ss.str());
+	}
+	OptimStatement optim(formula.priority, it->second);
+	getEngine().addOptimization(optim);
 }
 
 void PropagatorFactory::add(const Symmetry& formula) {
@@ -389,6 +397,7 @@ void PropagatorFactory::add(const CPAllDiff& obj) {
 }
 
 void PropagatorFactory::guaranteeAtRootLevel(){
+	// FIXME use reverse trail instead!
 	if(getEngine().getCurrentDecisionLevel()>0){
 		getEngine().backtrackTo(0);
 	}
@@ -396,7 +405,7 @@ void PropagatorFactory::guaranteeAtRootLevel(){
 
 #define SETNOT2VAL(sat, unsat, aggs) (not sat && not unsat && aggs.size()>0)
 
-SATVAL PropagatorFactory::finishSet(const WLSet* origset, vector<TempAgg*>& aggs, bool optimagg) {
+SATVAL PropagatorFactory::finishSet(const WLSet* origset, vector<TempAgg*>& aggs, bool optimagg, uint optimpriority) {
 	bool unsat = false, sat = false;
 
 	AggProp const * type = NULL;
@@ -466,7 +475,7 @@ SATVAL PropagatorFactory::finishSet(const WLSet* origset, vector<TempAgg*>& aggs
 	} else {
 		if (SETNOT2VAL(sat, unsat, aggs)) {
 			MAssert(aggs.size()==1);
-			decideUsingWatchesAndCreateOptimPropagator(getEnginep(), set, aggs[0], knownbound);
+			decideUsingWatchesAndCreateMinimizationPropagator(getEnginep(), set, aggs[0], knownbound, optimpriority);
 		}
 	}
 

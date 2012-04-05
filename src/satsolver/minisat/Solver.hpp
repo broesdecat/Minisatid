@@ -34,8 +34,6 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <map>
 #include "modules/DPLLTmodule.hpp"
 #include "external/MAssert.hpp"
-
-typedef std::vector<Minisat::Lit> litlist;
 /*AE*/
 
 namespace MinisatID{
@@ -44,6 +42,8 @@ namespace MinisatID{
 }
 
 namespace Minisat {
+
+	typedef std::vector<Lit> litlist;
 
 //=================================================================================================
 // Solver -- the main class:

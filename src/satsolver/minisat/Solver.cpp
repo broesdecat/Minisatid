@@ -19,6 +19,7 @@
  **************************************************************************************************/
 
 #include <cmath>
+#include <cstdio>
 
 #include "mtl/Sort.h"
 #include "Solver.hpp"
@@ -44,14 +45,6 @@ using namespace MinisatID;
 /*AE*/
 
 using namespace Minisat;
-
-void reportf(const char* format, ...) {
-	fflush(stdout);
-	va_list args;
-	va_start(args, format);
-	fprintf(stderr, format, args);
-	fflush(stderr);
-}
 
 //=================================================================================================
 // Options:
@@ -178,9 +171,9 @@ void Solver::addLearnedClause(CRef rc) {
 		attachClause(rc);
 		claBumpActivity(c);
 		if (verbosity >= 3) {
-			reportf("Learned clause added: ");
+			clog <<"Learned clause added: ";
 			printClause(rc);
-			reportf("\n");
+			clog <<"\n";
 		}
 	} else { // Adding literal true at level 0
 		MAssert(c.size()==1);
@@ -557,7 +550,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 	MAssert(confl!=CRef_Undef);
 	MAssert(lvl==decisionLevel());
 
-	//reportf("Conflicts: %d.\n", conflicts);
+	//clog <<"Conflicts: " <<conflicts <<".\n";
 	std::vector<Lit> explain;
 	/*AE*/
 
@@ -657,9 +650,9 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 			}
 		}
 		if (verbosity > 4 && confl != CRef_Undef) {
-			reportf("Explanation is ");
+			clog <<"Explanation is ";
 			printClause(confl);
-			reportf("\n");
+			clog <<"\n";
 		}
 		/*AE*/
 
@@ -1064,9 +1057,10 @@ lbool Solver::search(int maxconflicts, bool nosearch/*AE*/) {
 				learntsize_adjust_cnt = (int) learntsize_adjust_confl;
 				max_learnts *= learntsize_inc;
 
-				if (verbosity >= 1) fprintf(stderr, "| %9d | %7d %8d %8d | %8d %8d %6.0f |\n", (int) conflicts,
+				if (verbosity >= 1){ fprintf(stderr, "| %9d | %7d %8d %8d | %8d %8d %6.0f |\n", (int) conflicts,
 						(int) dec_vars - (trail_lim.size() == 0 ? trail.size() : trail_lim[0]), nClauses(), (int) clauses_literals, (int) max_learnts,
 						nLearnts(), (double) learnts_literals / nLearnts());
+				}
 			}
 
 		} else {
@@ -1281,8 +1275,9 @@ void Solver::garbageCollect() {
 	ClauseAllocator to(ca.size() - ca.wasted());
 
 	relocAll(to);
-	if (verbosity >= 2) fprintf(stderr, "|  Garbage collection:   %12d bytes => %12d bytes             |\n", ca.size() * ClauseAllocator::Unit_Size,
+	if (verbosity >= 2){ fprintf(stderr, "|  Garbage collection:   %12d bytes => %12d bytes             |\n", ca.size() * ClauseAllocator::Unit_Size,
 			to.size() * ClauseAllocator::Unit_Size);
+	}
 	to.moveTo(ca);
 }
 

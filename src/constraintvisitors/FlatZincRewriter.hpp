@@ -56,11 +56,11 @@ private:
 	std::stringstream 	definitions, constraints;
 	std::map<int, WLSet>	sets; //index is setID
 
-	OptimFZ				optim;
-	MinimizeVar 		savedvar; // To be added AFTER initialization
-	MinimizeAgg			savedagg; // To be added AFTER initialization
-	MinimizeOrderedList savedlistmnmz; // To be added AFTER initialization
-	MinimizeSubset 		savedsubsetmnmz; // To be added AFTER initialization
+	bool hasoptim;
+	std::vector<MinimizeVar> 			savedvar; // To be added AFTER initialization
+	std::vector<MinimizeAgg>			savedagg; // To be added AFTER initialization
+	std::vector<MinimizeOrderedList> 	savedlistmnmz; // To be added AFTER initialization
+	std::vector<MinimizeSubset> 		savedsubsetmnmz; // To be added AFTER initialization
 
 	std::vector<Aggregate> savedaggs;
 	std::vector<BinRel> savedbinrels;

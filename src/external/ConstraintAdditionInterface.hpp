@@ -18,13 +18,12 @@ protected:
 public:
 	ConstraintAdditionInterface() :
 			remapper(new Remapper()) {
-
 	}
-	~ConstraintAdditionInterface() {
+	virtual ~ConstraintAdditionInterface() {
 		delete (remapper);
 	}
 
-	Remapper& getRemapper() {
+	Remapper& getRemapper() const {
 		return *remapper;
 	}
 	virtual Engine* getEngine() = 0;
