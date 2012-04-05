@@ -213,6 +213,10 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes){
 	lazydesc.push_back(pair<string, string>("yes", "Use lazy grounding"));
 	lazydesc.push_back(pair<string, string>("no", "Don't use lazy grounding"));
 
+	vector<pair<string, string> > gecodedesc;
+	gecodedesc.push_back(pair<string, string>("yes", "Use Gecode for CP constraints"));
+	gecodedesc.push_back(pair<string, string>("no", "Don't use Gecode for CP constraints"));
+
 	vector<Polarity> polvals;
 	vector<pair<string, string> > poldesc;
 	polvals.push_back(Polarity::TRUE); poldesc.push_back(pair<string, string>("true", "true-first"));
@@ -299,6 +303,10 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes){
 			modes.idclausesaving, cmd, "Choose how to handle propagation reasons for inductive definitions"));
 	options.push_back(new Option<bool, string>	("","lazy", 	yesnovals, lazydesc,
 			modes.lazy, cmd, "Choose whether to use lazy grounding of formulas"));
+#ifdef CPSUPPORT
+	options.push_back(new Option<bool, string>	("","gecode", 	yesnovals, gecodedesc,
+			modes.usegecode, cmd, "Choose whether to use Gecode for propagation over finite domain constraints."));
+#endif
 
 	try {
 		cmd.parse(argc, argv);

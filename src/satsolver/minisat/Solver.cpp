@@ -231,12 +231,16 @@ bool Solver::addClause(const std::vector<Lit>& lits) {
 	if (ps.size() == 0) {
 		return ok = false;
 	} else if (ps.size() == 1) {
-		if(value(ps[0])==l_False){
-			getPCSolver().backtrackTo(getLevel(var(ps[0]))-1); // NOTE: Certainly not root level, would have found out otherwise
+		if(decisionLevel()>0){
+			if(value(ps[0])==l_False){
+				getPCSolver().backtrackTo(getLevel(var(ps[0]))-1); // NOTE: Certainly not root level, would have found out otherwise
+			}
+			auto clause = getPCSolver().createClause(Disjunction({ps[0]}), false);
+			rootunitlits.push_back(ReverseTrailElem(ps[0], 0, clause));
+			checkedEnqueue(ps[0], clause);
+		}else{
+			uncheckedEnqueue(ps[0]);
 		}
-		auto clause = getPCSolver().createClause(Disjunction({ps[0]}), false);
-		rootunitlits.push_back(ReverseTrailElem(ps[0], 0, clause));
-		checkedEnqueue(ps[0], clause);
 		return ok = (propagate() == CRef_Undef);
 	} else {
 		CRef cr = ca.alloc(ps, false);
@@ -365,8 +369,10 @@ void Solver::attachClause(CRef cr) {
 
 void Solver::addToClauses(CRef cr, bool learnt) {
 	if (learnt) {
+		newlearnts.push_back(cr);
 		learnts.push(cr);
 	} else {
+		newclauses.push_back(cr);
 		clauses.push(cr);
 	}
 }
@@ -420,6 +426,7 @@ void Solver::saveState() {
 	// Reset stored info
 	roottraillim = trail_lim[0];
 	newclauses.clear();
+	newlearnts.clear();
 }
 
 void Solver::removeUndefs(std::vector<CRef>& newclauses, vec<CRef>& clauses){
@@ -1062,16 +1069,13 @@ lbool Solver::search(int maxconflicts, bool nosearch/*AE*/) {
 
 			cancelUntil(backtrack_level);
 
-			//FIXME inconsistency with addLearnedClause method
-			if (learnt_clause.size() == 1) {
-				uncheckedEnqueue(learnt_clause[0]);
-			} else {
-				CRef cr = ca.alloc(learnt_clause, true);
+			auto cr = CRef_Undef;
+				auto cr = ca.alloc(learnt_clause, true);
 				addToClauses(cr, true);
 				attachClause(cr);
 				claBumpActivity(ca[cr]);
-				uncheckedEnqueue(learnt_clause[0], cr);
 			}
+			uncheckedEnqueue(learnt_clause[0], cr);
 
 			varDecayActivity();
 			claDecayActivity();
@@ -1347,7 +1351,6 @@ int Solver::printECNF(std::ostream& stream, std::set<Var>& printedvars) {
 	}
 	for (int i = 0; i < lastrootassertion; ++i) {
 		Lit lit = trail[i];
-		// TODO should only toString literals which have a translation?
 		stream << (sign(lit) ? -(var(lit) + 1) : var(lit) + 1) << " 0\n";
 	}
 

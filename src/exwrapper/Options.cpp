@@ -55,6 +55,7 @@ SolverOption::SolverOption():
 		currentlevelfirstinexplanation(true),
 		innogoodfirstinexplanation(true),
 		lazy(false),
+		usegecode(false),
 		outputfile(""){
 	stringstream str;
 	str <<DATADIR <<"/P1.TXT";

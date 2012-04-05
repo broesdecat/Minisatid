@@ -59,6 +59,7 @@ public:
 	long 			ufsvarintrothreshold;
 	bool			subsetminimizeexplanation, currentlevelfirstinexplanation, innogoodfirstinexplanation;
 	bool			lazy;
+	bool 			usegecode;
 	std::string		outputfile;
 
 	SolverOption();
