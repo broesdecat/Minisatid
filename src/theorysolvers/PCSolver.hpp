@@ -150,7 +150,7 @@ public:
 	CPSolver* getCPSolverp() const {return cpsolver;}
 	const CPSolver& getCPSolver() const {return *cpsolver;}
 	CPSolver& getCPSolver() {return *cpsolver;}
-	rClause findNextCPModel();
+	SATVAL findNextCPModel();
 
 	// Propagatorfactory
 private:

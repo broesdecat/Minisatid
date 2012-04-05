@@ -190,8 +190,7 @@ MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& o
 		if (getSolver().hasCPSolver()) {
 			//Check for more models with different var assignment
 			while (moremodels && (options.nbmodelstofind == 0 || getNbModelsFound() < options.nbmodelstofind)) {
-				rClause confl = getSolver().findNextCPModel();
-				if (confl != nullPtrClause) {
+				if (getSolver().findNextCPModel()==SATVAL::UNSAT) {
 					moremodels = false;
 				} else {
 					addModel(getSpace()->getEngine()->getModel());

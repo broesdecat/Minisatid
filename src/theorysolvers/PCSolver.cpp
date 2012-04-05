@@ -66,10 +66,13 @@ bool PCSolver::hasCPSolver() const {
 	return false;
 #endif
 }
-rClause PCSolver::findNextCPModel(){
+SATVAL PCSolver::findNextCPModel(){
 #ifdef CPSUPPORT
 	MAssert(hasCPSolver());
-	return getCPSolver().findNextModel();
+	if(not getCPSolver().hasData()){
+		return SATVAL::UNSAT;
+	}
+	return getCPSolver().findNextModel()==nullPtrClause?SATVAL::POS_SAT:SATVAL::UNSAT;
 #else
 	throw idpexception("Calling methods on cpsolver while gecode is not compiled in.");
 #endif
