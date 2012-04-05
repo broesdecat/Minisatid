@@ -1703,7 +1703,7 @@ bool IDSolver::isCycleFree() const {
 			}
 
 			if (type(i) == DefType::DISJ) {
-				if (value(i) == l_True) {
+				if (isTrue(mkPosLit(i))) {
 					MAssert(value(justification(i)[0])!=l_False);
 				} else {
 					for (uint j = 0; j < definition(i)->size(); ++j) {
@@ -1711,7 +1711,7 @@ bool IDSolver::isCycleFree() const {
 					}
 				}
 			} else {
-				if (value(i) == l_True) {
+				if (isTrue(mkPosLit(i))) {
 					for (uint j = 0; j < definition(i)->size(); ++j) {
 						MAssert(value(definition(i)->operator [](j))!=l_False);
 					}
@@ -1965,7 +1965,7 @@ void IDSolver::visitWF(Var v, varlist &root, vector<bool> &incomp, stack<Var> &s
 	root[v] = v;
 	stack.push(v);
 
-	bool headtrue = value(v) == l_True;
+	bool headtrue = isTrue(mkPosLit(v));
 
 	if (type(v) == DefType::AGGR) {
 		/*litlist lits;

@@ -90,9 +90,6 @@ public:
 	bool isUnknown(const Lit& l) const {
 		return value(l) == l_Undef;
 	}
-	lbool value(Var x) const {
-		return getPCSolver().value(x);
-	}
 	lbool value(const Lit& p) const {
 		return getPCSolver().value(p);
 	}

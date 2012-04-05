@@ -61,14 +61,14 @@ IntVar::IntVar(PCSolver* solver, int _origid, int min, int max)
 
 void IntVar::notifyBacktrack(int, const Lit&){
 	for(uint i=0; i<equalities.size(); ++i){
-		if(engine().value(equalities[i])!=l_False){
+		if(not isFalse(mkPosLit(equalities[i]))){
 			currentmin = minvalue+i;
 			break;
 		}
 	}
 	uint index = equalities.size()-1;
 	for(auto i=equalities.rbegin(); i<equalities.rend(); ++i, --index){
-		if(engine().value(*i)!=l_False){
+		if(not isFalse(mkPosLit(*i))){
 			currentmax = minvalue + index;
 			break;
 		}
@@ -79,14 +79,14 @@ void IntVar::notifyBacktrack(int, const Lit&){
 rClause	IntVar::notifypropagate(){
 	int lastmin = currentmin, lastmax = currentmax;
 	for(uint i=0; i<equalities.size(); ++i){
-		if(engine().value(equalities[i])!=l_False){
+		if(not isFalse(mkPosLit(equalities[i]))){
 			currentmin = minvalue+i;
 			break;
 		}
 	}
 	uint index = equalities.size()-1;
 	for(auto i=equalities.rbegin(); i<equalities.rend(); ++i, --index){
-		if(engine().value(equalities[index])!=l_False){
+		if(not isFalse(mkPosLit(equalities[index]))){
 			currentmax = minvalue + index;
 			break;
 		}

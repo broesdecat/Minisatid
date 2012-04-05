@@ -86,6 +86,10 @@ public:
 		ok = false;
 	}
 	int printECNF(std::ostream& stream, std::set<Var>& printedvars); // Returns the number of clauses that were added
+
+private:
+	void removeUndefs(std::vector<CRef>& newclauses, vec<CRef>& clauses);
+public:
 	void saveState();
 	void resetState();
 	void printClause(const CRef c) const;
@@ -179,10 +183,8 @@ private:
 public:
 	// Read state:
 	//
-	lbool value(Var x) const; // The current value of a variable.
 	lbool value(Lit p) const; // The current value of a literal.
 	lbool rootValue(Lit p) const;
-	lbool modelValue(Var x) const; // The value of a variable in the last model. The last call to solve must have been satisfiable.
 	lbool modelValue(Lit p) const; // The value of a literal in the last model. The last call to solve must have been satisfiable.
 	int nAssigns() const; // The current number of assigned literals.
 	int nClauses() const; // The current number of original clauses.
@@ -274,6 +276,7 @@ protected:
 	bool ok; // If FALSE, the constraints are already unsatisfiable. No part of the solver state may be used!
 	vec<CRef> clauses; // List of problem clauses.
 	vec<CRef> learnts; // List of learnt clauses.
+
 	double cla_inc; // Amount to bump next clause with.
 	vec<double> activity; // A heuristic measurement of the activity of a variable.
 	double var_inc; // Amount to bump next variable with.
@@ -307,10 +310,8 @@ protected:
 	int learntsize_adjust_cnt;
 
 	// State saving
-	bool savedok;
-	int savedlevel, savedclausessize, savedqhead;
-	vec<int> savedtraillim;
-	vec<Lit> savedtrail;
+	std::vector<CRef> newclauses, newlearnts;
+	uint roottraillim;
 
 	// Main internal methods
 	void insertVarOrder(Var x); // Insert a variable in the decision order priority queue.
@@ -428,9 +429,6 @@ inline int Solver::decisionLevel() const {
 inline uint32_t Solver::abstractLevel(Var x) const {
 	return 1 << (getLevel(x) & 31);
 }
-inline lbool Solver::value(Var x) const {
-	return assigns[x];
-}
 inline lbool Solver::value(Lit p) const {
 	return assigns[var(p)] ^ sign(p);
 }
@@ -440,9 +438,6 @@ inline lbool Solver::rootValue(Lit p) const {
 	} else {
 		return l_Undef;
 	}
-}
-inline lbool Solver::modelValue(Var x) const {
-	return model[x];
 }
 inline lbool Solver::modelValue(Lit p) const {
 	return model[var(p)] ^ sign(p);

@@ -63,7 +63,7 @@ bool PCSolver::hasCPSolver() const {
 #ifdef CPSUPPORT
 	return cpsolver!=NULL && cpsolver->isPresent();
 #else
-	throw idpexception("Calling methods on cpsolver while gecode is not compiled in.");
+	return false;
 #endif
 }
 rClause PCSolver::findNextCPModel(){
@@ -80,9 +80,6 @@ VARHEUR PCSolver::lazyDecide() const {
 	return modes().lazy ? VARHEUR::DONT_DECIDE : VARHEUR::DECIDE;
 }
 
-lbool PCSolver::value(Var x) const {
-	return getSolver().value(x);
-}
 lbool PCSolver::value(Lit p) const {
 	return getSolver().value(p);
 }
@@ -298,12 +295,16 @@ rClause PCSolver::getExplanation(const Lit& l) {
 	return explan;
 }
 
+lbool PCSolver::getModelValue(Var v){
+	return getSolver().modelValue(mkPosLit(v));
+}
+
 /* complexity O(#propagations on level)
  * @pre: p has been assigned in the current decision level!
  * Returns true if l was asserted before p
  */
 bool PCSolver::assertedBefore(const Var& l, const Var& p) const {
-	MAssert(value(l)!=l_Undef && value(p)!=l_Undef);
+	MAssert(value(mkPosLit(l))!=l_Undef && value(mkPosLit(p))!=l_Undef);
 
 	if (getLevel(l) < getLevel(p)) {
 		return true;
@@ -429,9 +430,9 @@ void PCSolver::printClause(rClause clause) const {
 void PCSolver::extractLitModel(std::shared_ptr<Model> fullmodel) {
 	fullmodel->literalinterpretations.clear();
 	for (uint64_t i = 0; i < nVars(); ++i) {
-		if (value(i) == l_True) {
+		if (value(mkPosLit(i)) == l_True) {
 			fullmodel->literalinterpretations.push_back(mkLit(i, false));
-		} else if (value(i) == l_False) {
+		} else if (value(mkPosLit(i)) == l_False) {
 			fullmodel->literalinterpretations.push_back(mkLit(i, true));
 		}
 	}
@@ -453,10 +454,6 @@ std::shared_ptr<Model> PCSolver::getModel() {
 	extractLitModel(fullmodel);
 	extractVarModel(fullmodel);
 	return fullmodel;
-}
-
-lbool PCSolver::getModelValue(Var v) {
-	return getSATSolver()->modelValue(v);
 }
 
 void PCSolver::accept(ConstraintVisitor& visitor) {

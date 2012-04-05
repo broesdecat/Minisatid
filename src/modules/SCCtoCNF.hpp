@@ -118,7 +118,7 @@ public:
 			atom2level[*head] = headvar;
 
 			// Encode ~p => l(p)=0 for all defineds
-			if(solver_.value(*head)!=l_True){
+			if(solver_.value(mkPosLit(*head))!=l_True){
 				addClause(litlist{mkPosLit(*head), zero2SAT(headvar)});
 			}
 		}

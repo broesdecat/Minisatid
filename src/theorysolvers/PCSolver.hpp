@@ -86,7 +86,6 @@ public:
 	void notifyVarAdded();
 	void varBumpActivity(Var v);
 	void varReduceActivity(Var v);
-	lbool value(Var x) const; // The current value of a variable.
 	lbool value(Lit p) const; // The current value of a literal.
 	lbool rootValue(Lit p) const; // The current value of a literal if it is known at level 0, otherwise l_Undef
 	uint64_t nVars() const; // The current number of variables.
