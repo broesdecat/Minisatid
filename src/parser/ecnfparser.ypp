@@ -317,32 +317,16 @@ agg		:	AGGDEFN SEMDEFN SIGNDEFN NUMBER NUMBER weight ZERO
 					checkVersion(VERSION_OLD);
 				}
 	
-				Aggregate agg;
-				agg.head = cAtom($4);
-				agg.setID = cID($5);
-				agg.defID = defaultdefID;
-				agg.bound = cWeight($6);
-				agg.sign = $3;
-				agg.type = $1;
-				agg.sem = $2;
+				CR(Aggregate(cAtom($4), cID($5), cWeight($6), $1, $3, $2, defaultdefID));
 				delete $4; delete $5; delete $6;
-				CR(agg);
 			}
 		;
 agg		:	AGGDEFN DEFOP NUMBER SIGNDEFN NUMBER NUMBER weight ZERO	
 			{	
 				checkVersion(VERSION_NEW);
 
-				Aggregate agg;
-				agg.head = cAtom($5);
-				agg.setID = cID($6);
-				agg.defID = cID($3);
-				agg.bound = cWeight($7);
-				agg.sign = $4;
-				agg.type = $1;
-				agg.sem = AggSem::DEF;
+				CR(Aggregate(cAtom($5), cID($6), cWeight($7), $1, $4, AggSem::DEF, cID($3)));
 				delete $5; delete $6; delete $7;
-				CR(agg);
 			}
 		;
 

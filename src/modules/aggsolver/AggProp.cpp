@@ -241,7 +241,7 @@ Weight ProdProp::removeMin(const Weight& lhs, const Weight& rhs) const{
 	if (rhs != 0) {
 		w = lhs / rhs;
 		if (w*rhs>lhs) {
-			w--;
+			w -= Weight(1);
 		}
 	}
 //	clog <<"mindiv: " <<lhs <<"/" <<rhs <<"=" <<w <<"\n";
@@ -253,7 +253,7 @@ Weight ProdProp::removeMax(const Weight& lhs, const Weight& rhs) const{
 	if (rhs != 0) {
 		w = lhs / rhs;
 		if (rhs*w<lhs) {
-			w++;
+			w += Weight(1);
 		}
 	}
 //	clog <<"maxdiv: " <<lhs <<"/" <<rhs <<"=" <<w <<"\n";

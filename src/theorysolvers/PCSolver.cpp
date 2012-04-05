@@ -32,12 +32,9 @@ using Minisat::vec;
 PCSolver::PCSolver(SolverOption modes, Monitor* monitor, VarCreation* varcreator, LiteralPrinter* printer) :
 		_modes(modes), searchengine(NULL), monitor(monitor), varcreator(varcreator), printer(printer),
 #ifdef CPSUPPORT
-		cpsolver(NULL),
+				cpsolver(NULL),
 #endif
-		queue(NULL),
-		factory(NULL),
-		trail(new TimeTrail()),
-		terminate(false){
+				queue(NULL), factory(NULL), trail(new TimeTrail()), terminate(false) {
 	queue = new EventQueue(*this);
 	searchengine = createSolver(this);
 #ifdef CPSUPPORT
@@ -61,13 +58,25 @@ PCSolver::~PCSolver() {
 	delete (trail);
 }
 
-#ifdef CPSUPPORT
-bool PCSolver::hasCPSolver() const {
-	return cpsolver!=NULL && cpsolver->isPresent();
-}
-#endif
 
-VARHEUR PCSolver::lazyDecide() const{
+bool PCSolver::hasCPSolver() const {
+#ifdef CPSUPPORT
+	return cpsolver!=NULL && cpsolver->isPresent();
+#else
+	throw idpexception("Calling methods on cpsolver while gecode is not compiled in.");
+#endif
+}
+rClause PCSolver::findNextCPModel(){
+#ifdef CPSUPPORT
+	MAssert(hasCPSolver());
+	return getCPSolver().findNextModel();
+#else
+	throw idpexception("Calling methods on cpsolver while gecode is not compiled in.");
+#endif
+}
+
+
+VARHEUR PCSolver::lazyDecide() const {
 	return modes().lazy ? VARHEUR::DONT_DECIDE : VARHEUR::DECIDE;
 }
 
@@ -78,11 +87,7 @@ lbool PCSolver::value(Lit p) const {
 	return getSolver().value(p);
 }
 lbool PCSolver::rootValue(Lit p) const {
-	if(getLevel(var(p))==0){
-		return value(p);
-	}else{
-		return l_Undef;
-	}
+	return getSolver().rootValue(p);
 }
 uint64_t PCSolver::nVars() const {
 	return getSolver().nbVars();
@@ -113,28 +118,18 @@ void PCSolver::notifyDecisionVar(Var var) {
 
 rClause PCSolver::createClause(const Disjunction& clause, bool learned) {
 	if (clause.literals.size() == 0) {
-		vec<Lit> dummylits; //INVAR, solver does not simplify learned clauses
-		dummylits.push(mkLit(dummy1, true));
-		dummylits.push(mkLit(dummy2, true));
-		return getSolver().makeClause(dummylits, learned);
+		return getSolver().makeClause({mkNegLit(dummy1), mkNegLit(dummy2)}, learned);
 	} else if (clause.literals.size() == 1) {
-		vec<Lit> dummylits;
-		dummylits.push(clause.literals[0]);
-		dummylits.push(mkLit(dummy1, true));
-		return getSolver().makeClause(dummylits, learned);
+		return getSolver().makeClause({clause.literals[0], mkNegLit(dummy1)}, learned);
 	} else {
-		vec<Lit> lits;
-		for (auto lit = clause.literals.cbegin(); lit != clause.literals.cend(); ++lit) {
-			lits.push(*lit);
-		}
-		return getSolver().makeClause(lits, learned);
+		return getSolver().makeClause(clause.literals, learned);
 	}
 }
 
-void PCSolver::acceptForDecidable(Var v, Propagator* prop){
+void PCSolver::acceptForDecidable(Var v, Propagator* prop) {
 	getEventQueue().acceptForDecidable(v, prop);
 }
-void PCSolver::notifyBecameDecidable(Var v){
+void PCSolver::notifyBecameDecidable(Var v) {
 	getEventQueue().notifyBecameDecidable(v);
 }
 
@@ -143,7 +138,6 @@ void PCSolver::addLearnedClause(rClause c) {
 	// FIXME method is incorrect if clause can propagate
 	// FIXME method is incorrect if first two literals of clause are false, but possible others aren't
 	getSolver().addLearnedClause(c);
-//FIXME	getEventQueue().acceptForPropagation(getSATSolver());
 }
 int PCSolver::getClauseSize(rClause cr) const {
 	return getSolver().getClauseSize(cr);
@@ -231,13 +225,43 @@ void PCSolver::accept(Propagator* propagator, const Lit& lit, PRIORITY priority)
 }
 
 Var PCSolver::newVar() {
+	auto newnbvars = nVars() + 1;
 	auto var = varcreator->createVar();
+	MAssert(var==newnbvars-1);
+	getEventQueue().notifyNbOfVars(newnbvars); // IMPORTANT to do it before effectively creating it in the solver (might trigger grounding)
 	createVar(var, lazyDecide());
+	MAssert(nVars()==newnbvars);
 	return var;
 }
 
+void PCSolver::addVars(const std::vector<Var>& vars, VARHEUR heur) {
+	for (auto i = vars.cbegin(); i < vars.cend(); ++i) {
+		createVar(*i, heur);
+	}
+}
+
+/**
+ * VARHEUR::DECIDE has precedence over NON_DECIDE for repeated calls to the same var!
+ */
+void PCSolver::createVar(Var v, VARHEUR decide) {
+	MAssert(v>-1);
+
+	if(((uint64_t)v)>=nVars()){
+		getEventQueue().notifyNbOfVars(v+1); // IMPORTANT to do it before effectively creating vars in the solver (might trigger grounding)
+		while (((uint64_t) v) >= nVars()) {
+			getSolver().newVar(modes().polarity == Polarity::TRUE ? l_True : modes().polarity == Polarity::FALSE ? l_False : l_Undef, false);
+		}
+	}
+
+	if (not getSolver().isDecisionVar(v)) {
+		getSolver().setDecidable(v, decide == VARHEUR::DECIDE);
+		if (propagations.size() < nVars()) { //Lazy init
+			propagations.resize(nVars(), NULL);
+		}
+	}
+}
+
 int PCSolver::newSetID() {
-	// FIXME MAssert(!isParsing());
 	return getFactory().newSetID();
 }
 
@@ -291,37 +315,19 @@ bool PCSolver::assertedBefore(const Var& l, const Var& p) const {
 	return false;
 }
 
-/**
- * VARHEUR::DECIDE has precedence over NON_DECIDE for repeated calls to the same var!
- */
-void PCSolver::createVar(Var v, VARHEUR decide) {
-	MAssert(v>-1);
-
-	while (((uint64_t) v) >= nVars()) {
-		getSolver().newVar(modes().polarity == Polarity::TRUE ? l_True : modes().polarity == Polarity::FALSE ? l_False : l_Undef, false);
-	}
-
-	if (not getSolver().isDecisionVar(v)) {
-		getSolver().setDecidable(v, decide == VARHEUR::DECIDE);
-		if (/* FIXME isInitialized() &&*/propagations.size() < nVars()) { //Lazy init
-			propagations.resize(nVars(), NULL);
-		}
-	}
-}
-
 int PCSolver::getTime(const Var& var) const {
 	return trail->getTime(mkPosLit(var));
 }
 
 template<class T>
-bool compareByPriority(const T& left, const T& right){
-	return left.priority<right.priority;
+bool compareByPriority(const T& left, const T& right) {
+	return left.priority < right.priority;
 }
 
 void PCSolver::finishParsing() {
 	sort(optimization.begin(), optimization.end(), compareByPriority<OptimStatement>);
-	for(int i=1; i<optimization.size(); ++i){
-		if(optimization[i].priority==optimization[i-1].priority){
+	for (int i = 1; i < optimization.size(); ++i) {
+		if (optimization[i].priority == optimization[i - 1].priority) {
 			throw idpexception("Two optimization statement cannot have the same priority.");
 		}
 	}
@@ -342,11 +348,7 @@ void PCSolver::finishParsing() {
 	}
 }
 
-void PCSolver::notifyVarAdded() {
-	getEventQueue().notifyVarAdded();
-}
-
-rClause PCSolver::notifyFullAssignmentFound(){
+rClause PCSolver::notifyFullAssignmentFound() {
 	return getEventQueue().notifyFullAssignmentFound();
 }
 

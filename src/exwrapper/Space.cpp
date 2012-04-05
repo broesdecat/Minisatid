@@ -8,12 +8,14 @@ using namespace MinisatID;
 
 string Space::toString(const Lit& l) const {
 	stringstream ss;
-	auto lit = getRemapper().getLiteral(l);
-	if (getTranslator()->hasTranslation(lit)) {
-		ss <<getTranslator()->toString(lit);
-	} else {
-		ss << (sign(l) ? "-" : "") << "tseitin_" << var(l) + 1; // NOTE: do not call <<l, this will cause an infinite loop (as that calls this method!)
+	if(getRemapper().wasInput(l)){
+		auto lit = getRemapper().getLiteral(l);
+		if (getTranslator()->hasTranslation(lit)) {
+			ss <<getTranslator()->toString(lit);
+			return ss.str();
+		}
 	}
+	ss << (sign(l) ? "-" : "") << "tseitin_" << var(l) + 1; // NOTE: do not call <<l, this will cause an infinite loop (as that calls this method!)
 	return ss.str();
 }
 string Space::toString(const litlist& literals) const {

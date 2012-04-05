@@ -40,18 +40,16 @@ void SpaceTask::notifyTerminateRequested() {
 	space->getEngine()->notifyTerminateRequested();
 }
 
-ModelExpand::ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions)
-		: SpaceTask(space), _options(options), assumptions(assumptions),
-		  _solutions(new ModelManager(options.savemodels)),
-		  printer(new Printer(_solutions, space, options.printmodels, space->getOptions())){
+ModelExpand::ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions) :
+		SpaceTask(space), _options(options), assumptions(assumptions), _solutions(new ModelManager(options.savemodels)), printer(
+				new Printer(_solutions, space, options.printmodels, space->getOptions())) {
 
 }
 
-ModelExpand::~ModelExpand(){
-	delete(_solutions);
-	delete(printer);
+ModelExpand::~ModelExpand() {
+	delete (_solutions);
+	delete (printer);
 }
-
 
 int ModelExpand::getNbModelsFound() const {
 	return _solutions->getNbModelsFound();
@@ -61,7 +59,8 @@ PCSolver& SpaceTask::getSolver() const {
 	return *getSpace()->getEngine();
 }
 
-SpaceTask::SpaceTask(Space* space) : Task(space->getOptions()), space(space) {
+SpaceTask::SpaceTask(Space* space) :
+		Task(space->getOptions()), space(space) {
 
 }
 
@@ -72,14 +71,14 @@ modellist ModelExpand::getBestSolutionsFound() const {
 	return {_solutions->getBestModelFound()};
 }
 
-bool ModelExpand::isSat() const{
+bool ModelExpand::isSat() const {
 	return _solutions->isSat();
 }
-bool ModelExpand::isUnsat() const{
+bool ModelExpand::isUnsat() const {
 	return _solutions->isUnsat();
 }
 
-void ModelExpand::notifySolvingAborted(){
+void ModelExpand::notifySolvingAborted() {
 	printer->notifySolvingAborted();
 }
 
@@ -126,7 +125,7 @@ void ModelExpand::innerExecute() {
 			}
 		}
 	}
-	if(_solutions->getNbModelsFound()==0){
+	if (_solutions->getNbModelsFound() == 0) {
 		_solutions->notifyUnsat();
 		// TODO notify the space that it is unsat? getSpace()->...
 	}
@@ -138,7 +137,9 @@ void ModelExpand::innerExecute() {
 vector<Literal> getBackMappedModel(const std::vector<Lit>& model, const Remapper& r) {
 	vector<Literal> outmodel;
 	for (auto i = model.cbegin(); i != model.cend(); ++i) {
-		outmodel.push_back(r.getLiteral(*i));
+		if (r.wasInput(*i)) {
+			outmodel.push_back(r.getLiteral(*i));
+		}
 	}
 	sort(outmodel.begin(), outmodel.end());
 	return outmodel;
@@ -181,26 +182,22 @@ MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& o
 			break;
 		}
 
-		auto fullmodel = getSpace()->getEngine()->getModel();
-		addModel(fullmodel);
+		addModel(getSpace()->getEngine()->getModel());
 
 		// FIXME current behavior is incorrect in the case of CP
 		// => first check whether there might be more CP models before backtracking completely!
 		// Probably better refactor to put this deeper?
-		/*#ifdef CPSUPPORT
-				if(hasCPSolver()) {
-					//Check for more models with different var assignment
-					while(moremodels && (options.nbmodelstofind == 0 || getParent().getNbModelsFound() < options.nbmodelstofind)) {
-						rClause confl = getCPSolver().findNextModel();
-						if(confl!=nullPtrClause) {
-							moremodels = false;
-						} else {
-							extractVarModel(fullmodel);
-							getParent().addModel(*fullmodel);
-						}
-					}
+		if (getSolver().hasCPSolver()) {
+			//Check for more models with different var assignment
+			while (moremodels && (options.nbmodelstofind == 0 || getNbModelsFound() < options.nbmodelstofind)) {
+				rClause confl = getSolver().findNextCPModel();
+				if (confl != nullPtrClause) {
+					moremodels = false;
+				} else {
+					addModel(getSpace()->getEngine()->getModel());
 				}
-		#endif*/
+			}
+		}
 
 		//Invalidate SAT model
 		if (getSolver().getCurrentDecisionLevel() != assmpt.size()) { //choices were made, so other models possible
@@ -232,7 +229,7 @@ SATVAL ModelExpand::invalidateModel(const litlist& clause) {
 
 	if (getOptions().verbosity >= 3) {
 		clog << "Adding model-invalidating clause: [ ";
-		clog <<getSpace()->toString(d.literals);
+		clog << getSpace()->toString(d.literals);
 		clog << "]\n";
 	}
 	getSolver().add(d);
@@ -308,6 +305,8 @@ bool ModelExpand::invalidateAgg(litlist& invalidation) {
 	return false;
 }
 
+// TODO handle minimizeVar
+
 /*
  * If the optimum possible value is reached, the model is not invalidated. Otherwise, unsat has to be found first, so it is invalidated.
  *
@@ -372,7 +371,9 @@ void ModelExpand::findOptimal(const litlist& assmpt) {
 
 void Monitor::notifyMonitor(const Lit& propagation, int decisionlevel) {
 	for (auto i = monitors.cbegin(); i < monitors.cend(); ++i) {
-		(*i)->notifyPropagated(remapper->getLiteral(propagation), decisionlevel);
+		if (remapper->wasInput(propagation)) {
+			(*i)->notifyPropagated(remapper->getLiteral(propagation), decisionlevel);
+		}
 	}
 }
 
@@ -386,68 +387,72 @@ void ModelExpand::notifyCurrentOptimum(const Weight& value) const {
 	printer->notifyCurrentOptimum(value);
 }
 
-literallist UnitPropagate::getEntailedLiterals(){
+literallist UnitPropagate::getEntailedLiterals() {
 	literallist literals;
 	auto r = getSpace()->getRemapper();
-	for(auto i=getSolver().getTrail().cbegin(); i<getSolver().getTrail().cend(); ++i) {
-		if(getSolver().rootValue(*i)!=l_Undef){
+	for (auto i = getSolver().getTrail().cbegin(); i < getSolver().getTrail().cend(); ++i) {
+		if (getSolver().rootValue(*i) != l_Undef && r.wasInput(*i)) {
 			literals.push_back(r.getLiteral(*i));
 		}
 	}
 	return literals;
 }
 
-void UnitPropagate::innerExecute(){
+void UnitPropagate::innerExecute() {
 	getSolver().solve(assumptions, false);
 }
 
-void UnitPropagate::writeOutEntailedLiterals(){
+void UnitPropagate::writeOutEntailedLiterals() {
 	std::shared_ptr<ResMan> resman;
-	if(getSpace()->getOptions().outputfile==""){
+	if (getSpace()->getOptions().outputfile == "") {
 		resman = std::shared_ptr<ResMan>(new StdMan(false));
-	}else{
+	} else {
 		resman = std::shared_ptr<ResMan>(new FileMan(getSpace()->getOptions().outputfile.c_str(), true));
 	}
 	ostream output(resman->getBuffer());
 
-	clog <<">>> Following is a list of literals entailed by the theory.\n";
+	clog << ">>> Following is a list of literals entailed by the theory.\n";
 	const auto& lits = getEntailedLiterals();
 	bool begin = true;
-	for(auto i=lits.cbegin(); i<lits.cend(); ++i){
-		if(not begin){
-			output <<" ";
+	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {
+		if (not begin) {
+			output << " ";
 		}
 		begin = false;
-		output <<getSpace()->toString(*i);
+		output << getSpace()->toString(*i);
 	}
-	output <<"\n";
+	output << "\n";
 	resman->close();
 }
 
-void Transform::innerExecute(){
+void Transform::innerExecute() {
 	std::shared_ptr<ResMan> resfile;
-	if(getSpace()->getOptions().outputfile==""){
+	if (getSpace()->getOptions().outputfile == "") {
 		resfile = std::shared_ptr<ResMan>(new StdMan(std::clog));
-	}else{
+	} else {
 		resfile = std::shared_ptr<ResMan>(new FileMan(getSpace()->getOptions().outputfile, true));
 	}
 	ostream output(resfile->getBuffer());
-	switch(outputlanguage){
-	case TheoryPrinting::FZ:{
+	switch (outputlanguage) {
+	case TheoryPrinting::FZ: {
 		FlatZincRewriter<ostream> fzrw(getSpace()->getEngine(), getOptions(), output);
 		getSolver().accept(fzrw);
-		break;}
-	case TheoryPrinting::ECNF:{
+		break;
+	}
+	case TheoryPrinting::ECNF: {
 		RealECNFPrinter<ostream> pr(getSpace()->getEngine(), output);
 		getSolver().accept(pr);
-		break;}
-	case TheoryPrinting::ECNFGRAPH:{
+		break;
+	}
+	case TheoryPrinting::ECNFGRAPH: {
 		ECNFGraphPrinter<ostream> pr(getSpace()->getEngine(), output);
 		getSolver().accept(pr);
-		break;}
-	case TheoryPrinting::HUMAN:{
+		break;
+	}
+	case TheoryPrinting::HUMAN: {
 		HumanReadableParsingPrinter<ostream> pr(getSpace()->getEngine(), output);
 		getSolver().accept(pr);
-		break;}
+		break;
+	}
 	}
 }

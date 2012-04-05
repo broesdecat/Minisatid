@@ -23,7 +23,7 @@
 #include "modules/LazyGrounder.hpp"
 
 #ifdef CPSUPPORT
-#include "modules/CPSolver.hpp"
+#include "modules/cpsolver/CPSolver.hpp"
 #endif
 
 #include "utils/Print.hpp"
@@ -66,7 +66,6 @@ PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine
 	SATStorage::setStorage(engine->getSATSolver());
 #ifdef CPSUPPORT
 	CPStorage::setStorage(engine->getCPSolverp());
-	CPStorage::getStorage()->notifyUsedForSearch();
 #endif
 
 	if (modes.verbosity > 2) {
@@ -106,18 +105,7 @@ void toVec(const std::vector<Lit>& literals, vec<Lit>& lits) {
 
 void PropagatorFactory::add(const Disjunction& clause) {
 	notifyMonitorsOfAdding(clause);
-
-	// TODO 1-watched scheme
-//	if(formula.literals.size()<3){
-	vec<Lit> lits;
-	toVec(clause.literals, lits);
-	SATStorage::getStorage()->addClause(lits);
-	/*	}else{
-	 LazyGrounder* g = new LazyGrounder(getEnginep());
-	 etEngine().accept(g, EXITCLEANLY);
-	 g->setClause(formula);
-	 return g;
-	 }*/
+	SATStorage::getStorage()->addClause(clause.literals);
 }
 
 // Precondition: already added vars!
@@ -337,6 +325,7 @@ IntVar* PropagatorFactory::getIntVar(int varID) const {
 
 void PropagatorFactory::add(const IntVarRange& obj) {
 	addCP(obj);
+	// TODO also add a cpviagecode option!
 	/*if(intvars.find(obj.varID)!=intvars.cend()){
 	 stringstream ss;
 	 ss <<"Integer variable " <<obj.varID <<" was declared twice.\n";
@@ -502,15 +491,7 @@ SATVAL PropagatorFactory::finishParsing() {
 
 	// create reified aggregates
 	for (auto i = parsedaggs.cbegin(); satval == SATVAL::POS_SAT && i != parsedaggs.cend(); ++i) {
-		Aggregate r;
-		r.bound = (*i)->bound;
-		r.defID = -1;
-		r.head = dummyvar;
-		r.sem = AggSem::COMP;
-		r.setID = (*i)->setID;
-		r.sign = (*i)->sign;
-		r.type = (*i)->type;
-		add(r);
+		add(Aggregate(dummyvar, (*i)->setID, (*i)->bound, (*i)->type, (*i)->sign, AggSem::COMP, -1));
 		satval &= getEngine().satState();
 	}
 	deleteList<Aggregate>(parsedaggs);

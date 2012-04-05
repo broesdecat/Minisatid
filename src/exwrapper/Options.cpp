@@ -50,7 +50,6 @@ SolverOption::SolverOption():
 		polarity(getDefaultPolarity()),
 		bumpaggonnotify(true),
 		bumpidonstart(false),
-		asapaggprop(false),
 		ufsvarintrothreshold(500),
 		subsetminimizeexplanation(false),
 		currentlevelfirstinexplanation(true),
@@ -105,7 +104,6 @@ void SolverOption::print(std::ostream& so) const{
 	so << "bumpaggonnotify: " 	<<bumpaggonnotify <<"\n";
 	so << "bumpidonstart: " 	<<bumpidonstart <<"\n";
 	so << "subsetminimizeexplanation: " <<subsetminimizeexplanation <<"\n";
-	so << "asapaggprop: " 		<<asapaggprop <<"\n";
 	so << "ufsvarintrothreshold: " <<ufsvarintrothreshold <<"\n";
 	so << "lazy: " 				<<(lazy?"yes":"no") <<"\n";
 	so << "outputfile: "		<<outputfile <<"\n";

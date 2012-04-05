@@ -39,15 +39,15 @@ bool EventQueue::isUnsat() const{
 	return getPCSolver().satState() == SATVAL::UNSAT;
 }
 
-void EventQueue::notifyVarAdded() {
-	while (lit2priority2propagators.size() < 2 * getPCSolver().nVars()) {
+void EventQueue::notifyNbOfVars(uint64_t nbvars){
+	while (lit2priority2propagators.size() < 2 * nbvars) {
 		vector<proplist> newmap;
 		newmap.push_back( { });
 		newmap.push_back( { });
 		lit2priority2propagators.push_back(newmap);
 		lit2watches.push_back( { });
 	}
-	var2decidable.resize(getPCSolver().nVars());
+	var2decidable.resize(nbvars);
 }
 
 void EventQueue::addEternalPropagators() {

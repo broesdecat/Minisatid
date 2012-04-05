@@ -97,7 +97,7 @@ public:
 	rClause findNextModel();
 
 private:
-	void checkHeadUniqueness(ReifiedConstraint const * const c) const;
+	void checkHeadUniqueness(ReifiedConstraint const * const c);
 	void add(ReifiedConstraint* c);
 	void add(NonReifiedConstraint* c);
 	void addConstraint(Constraint* c);

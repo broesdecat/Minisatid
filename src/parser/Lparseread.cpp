@@ -40,34 +40,33 @@ using namespace std;
 using namespace MinisatID;
 
 typedef enum {
-	ENDRULE = 0, BASICRULE = 1, CONSTRAINTRULE = 2, CHOICERULE = 3,
-	GENERATERULE = 4, WEIGHTRULE = 5, OPTIMIZERULE = 6
+	ENDRULE = 0, BASICRULE = 1, CONSTRAINTRULE = 2, CHOICERULE = 3, GENERATERULE = 4, WEIGHTRULE = 5, OPTIMIZERULE = 6
 } RuleType;
 
 template<class T>
 Read<T>::~Read() {
-	deleteList<BasicRule>	(basicrules);
-	deleteList<SumRule>		(sumrules);
-	deleteList<CardRule>	(cardrules);
-	deleteList<ChoiceRule>	(choicerules);
+	deleteList<BasicRule>(basicrules);
+	deleteList<SumRule>(sumrules);
+	deleteList<CardRule>(cardrules);
+	deleteList<ChoiceRule>(choicerules);
 }
 
 template<class T>
-Atom Read<T>::makeParsedAtom(int n){
+Atom Read<T>::makeParsedAtom(int n) {
 	Atom atom = makeAtom(n);
-	pair<Atom, bool> p(atom,true);
+	pair<Atom, bool> p(atom, true);
 	defatoms.insert(p);
 	return atom;
 }
 
 template<class T>
-Atom Read<T>::makeNewAtom(){
+Atom Read<T>::makeNewAtom() {
 	MAssert(endedparsing);
 	return makeAtom(++maxatomnumber);
 }
 
 template<class T>
-Atom Read<T>::makeAtom(int n){
+Atom Read<T>::makeAtom(int n) {
 	if (maxatomnumber < n) {
 		maxatomnumber = n;
 	}
@@ -90,7 +89,7 @@ bool Read<T>::readBody(istream &f, long size, bool pos, vector<Literal>& body) {
 }
 
 template<class T>
-bool Read<T>::readFullBody(istream &f, vector<Literal>& body){
+bool Read<T>::readFullBody(istream &f, vector<Literal>& body) {
 	long n;
 	f >> n; // total body size
 	if (!f.good() || n < 0) {
@@ -118,14 +117,14 @@ bool Read<T>::readFullBody(istream &f, vector<Literal>& body){
 }
 
 template<class T>
-bool Read<T>::readWeights(std::istream &f, std::vector<Weight>& weights, int bodysize){
+bool Read<T>::readWeights(std::istream &f, std::vector<Weight>& weights, int bodysize) {
 	Weight sum = 0, w = 0;
 	for (long i = 0; i < bodysize; ++i) {
 		f >> w;
 		if (!f.good()) {
 			return false;
 		}
-		if ((w>0 && posInfinity()-w<sum) || (w<0 && negInfinity()-w>sum)) {
+		if ((w > 0 && posInfinity() - w < sum) || (w < 0 && negInfinity() - w > sum)) {
 			char s[100];
 			sprintf(s, "sum of weights in weight rule too large or too small, line %ld\n", linenumber);
 			throw idpexception(s);
@@ -148,7 +147,7 @@ bool Read<T>::parseBasicRule(istream &f) {
 	Atom head = makeParsedAtom(n);
 
 	vector<Literal> body;
-	if(!readFullBody(f, body)){
+	if (!readFullBody(f, body)) {
 		return false;
 	}
 
@@ -225,7 +224,7 @@ bool Read<T>::parseChoiceRule(istream &f) {
 	}
 
 	vector<Literal> body;
-	if(!readFullBody(f, body)){
+	if (!readFullBody(f, body)) {
 		return false;
 	}
 
@@ -251,12 +250,12 @@ bool Read<T>::parseWeightRule(istream &f) {
 	}
 
 	vector<Literal> body;
-	if(!readFullBody(f, body)){
+	if (!readFullBody(f, body)) {
 		return false;
 	}
 
 	vector<Weight> weights;
-	if(!readWeights(f, weights, body.size())){
+	if (!readWeights(f, weights, body.size())) {
 		return false;
 	}
 
@@ -268,22 +267,21 @@ template<class T>
 bool Read<T>::parseOptimizeRule(istream &f) {
 	long n;
 	f >> n; // formerly choice between min or max, only 0 (minimize) still accepted
-	if (!f.good())
-		return false;
-	if(n!=0){
+	if (!f.good()) return false;
+	if (n != 0) {
 		char s[100];
 		sprintf(s, "maximize statements are no longer accepted, line %ld\n", linenumber);
 		throw idpexception(s);
 	}
 
 	vector<Literal> body;
-	if(!readFullBody(f, body)){
+	if (!readFullBody(f, body)) {
 		return false;
 	}
 
 	//Weights
 	vector<Weight> weights;
-	if(!readWeights(f, weights, body.size())){
+	if (!readWeights(f, weights, body.size())) {
 		return false;
 	}
 
@@ -310,15 +308,7 @@ template<class T>
 void Read<T>::addCardRules() {
 	for (auto i = cardrules.cbegin(); i < cardrules.cend(); ++i) {
 		add(getSolver(), createSet((*i)->setcount, (*i)->body, 1));
-		Aggregate agg;
-		agg.head = (*i)->head;
-		agg.setID = (*i)->setcount;
-		agg.bound = (*i)->atleast;
-		agg.sign = AggSign::LB;
-		agg.defID = defaultdefinitionID;
-		agg.type = AggType::CARD;
-		agg.sem = AggSem::DEF;
-		add(getSolver(), agg);
+		add(getSolver(), Aggregate((*i)->head, (*i)->setcount, (*i)->atleast, AggType::CARD, AggSign::LB, AggSem::DEF, defaultdefinitionID));
 	}
 }
 
@@ -326,20 +316,12 @@ template<class T>
 void Read<T>::addSumRules() {
 	for (auto i = sumrules.cbegin(); i < sumrules.cend(); ++i) {
 		add(getSolver(), createSet((*i)->setcount, (*i)->body, (*i)->weights));
-		Aggregate agg;
-		agg.head = (*i)->head;
-		agg.setID = (*i)->setcount;
-		agg.bound = (*i)->atleast;
-		agg.sign = AggSign::LB;
-		agg.defID = defaultdefinitionID;
-		agg.type = AggType::SUM;
-		agg.sem = AggSem::DEF;
-		add(getSolver(), agg);
+		add(getSolver(), Aggregate((*i)->head, (*i)->setcount, (*i)->atleast, AggType::SUM, AggSign::LB, AggSem::DEF, defaultdefinitionID));
 	}
 }
 
 template<class T>
-void Read<T>::addRuleToHead(map<Atom, vector<BasicRule*> >& headtorules, BasicRule* rule, Atom head){
+void Read<T>::addRuleToHead(map<Atom, vector<BasicRule*> >& headtorules, BasicRule* rule, Atom head) {
 	if (headtorules.find(head) == headtorules.cend()) {
 		headtorules.insert(pair<Atom, vector<BasicRule*> >(head, std::vector<BasicRule*>()));
 	}
@@ -347,7 +329,7 @@ void Read<T>::addRuleToHead(map<Atom, vector<BasicRule*> >& headtorules, BasicRu
 }
 
 template<class T>
-void Read<T>::tseitinizeHeads(){
+void Read<T>::tseitinizeHeads() {
 	// Transform away all choicerules
 	for (auto i = choicerules.cbegin(); i < choicerules.cend(); ++i) {
 		vector<Literal> tempbody;
@@ -359,7 +341,7 @@ void Read<T>::tseitinizeHeads(){
 			basicrules.push_back(new BasicRule(head, tempbody));
 
 			//To guarantee #model equivalence:
-			Implication eq(tempbody[0], ImplicationType::EQUIVALENT, {mkPosLit(head)}, true);
+			Implication eq(tempbody[0], ImplicationType::EQUIVALENT, { mkPosLit(head) }, true);
 			add(getSolver(), eq);
 		}
 	}
@@ -377,10 +359,10 @@ void Read<T>::tseitinizeHeads(){
 	}
 
 	//Make all literals which are defined but do not occur in the theory false
-	for(auto i=defatoms.cbegin(); i!=defatoms.cend(); ++i){
+	for (auto i = defatoms.cbegin(); i != defatoms.cend(); ++i) {
 		MAssert((*i).second);
 		auto it = headtorules.find((*i).first);
-		if(it==headtorules.cend() || (*it).second.size()==0){
+		if (it == headtorules.cend() || (*it).second.size() == 0) {
 			Disjunction clause;
 			clause.literals.push_back(mkNegLit((*i).first));
 			add(getSolver(), clause);
@@ -389,8 +371,8 @@ void Read<T>::tseitinizeHeads(){
 }
 
 template<class T>
-void Read<T>::addOptimStatement(){
-	if(optim){
+void Read<T>::addOptimStatement() {
+	if (optim) {
 		vector<Literal> optimheadclause;
 		add(getSolver(), createSet(optimsetcount, optimbody, optimweights));
 		add(getSolver(), MinimizeAgg(1, optimsetcount, AggType::SUM));
@@ -418,7 +400,7 @@ bool Read<T>::read(istream &f) {
 		case CHOICERULE:
 			unsat = !parseChoiceRule(f);
 			break;
-		case GENERATERULE:{
+		case GENERATERULE: {
 			char s[200];
 			sprintf(s, "As, according to the lparse manual, \"generate rules cause semantical troubles\", they are not supported.\n");
 			throw idpexception(s);
@@ -430,7 +412,7 @@ bool Read<T>::read(istream &f) {
 		case OPTIMIZERULE:
 			unsat = !parseOptimizeRule(f);
 			break;
-		default:{
+		default: {
 			char s[100];
 			sprintf(s, "Unsupported rule type: %d.\n", type);
 			throw idpexception(s);
@@ -450,11 +432,11 @@ bool Read<T>::read(istream &f) {
 		throw idpexception(s);
 	}
 
-	while(true){ //read until atom 0 read
+	while (true) { //read until atom 0 read
 		f >> i; //ATOM
 		f.getline(s, len); //NAME
 		linenumber++;
-		if(i==0){
+		if (i == 0) {
 			break;
 		}
 
@@ -464,9 +446,9 @@ bool Read<T>::read(istream &f) {
 			throw idpexception(s);
 		}
 
-		if(*s){
-			translator->addTuple(Atom(i), s+1);
-		}else{
+		if (*s) {
+			translator->addTuple(Atom(i), s + 1);
+		} else {
 			translator->addTuple(Atom(i), "");
 		}
 	}
@@ -475,7 +457,7 @@ bool Read<T>::read(istream &f) {
 	// listpostatoms are atoms that should all be true
 	// listnegatoms are atoms that should all be false
 	f.getline(s, len); //should be B+
-	if (!f.good() || strcmp(s, "B+")!=0) {
+	if (!f.good() || strcmp(s, "B+") != 0) {
 		char s[100];
 		sprintf(s, "B+ expected, line %ld\n", linenumber);
 		throw idpexception(s);
@@ -484,7 +466,7 @@ bool Read<T>::read(istream &f) {
 	while (true) {
 		f >> i;
 		linenumber++;
-		if(i==0){
+		if (i == 0) {
 			break;
 		}
 
@@ -500,7 +482,7 @@ bool Read<T>::read(istream &f) {
 	}
 	f.getline(s, len); // Read rest of last line (get newline);
 	f.getline(s, len); //should be B-
-	if (!f.good() || strcmp(s, "B-")!=0) {
+	if (!f.good() || strcmp(s, "B-") != 0) {
 		char s[100];
 		sprintf(s, "B- expected, line %ld\n", linenumber);
 		throw idpexception(s);
@@ -509,7 +491,7 @@ bool Read<T>::read(istream &f) {
 	while (true) {
 		f >> i;
 		linenumber++;
-		if(i==0){
+		if (i == 0) {
 			break;
 		}
 		if (!f.good() || i < 1) {
@@ -524,7 +506,7 @@ bool Read<T>::read(istream &f) {
 	}
 
 	f >> i; // nb of models, zero means all
-	clog <<">> Number of models in the lparse input is always ignored.\n";
+	clog << ">> Number of models in the lparse input is always ignored.\n";
 
 	if (f.fail()) {
 		char s[100];

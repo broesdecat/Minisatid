@@ -20,11 +20,11 @@ using namespace Gecode;
 
 TermIntVar::TermIntVar():range(false), min(-1), max(-1), var(-1){	}
 
-TermIntVar::TermIntVar(CPScript& space, int groundterm, int min, int max):
+TermIntVar::TermIntVar(CPScript& space, uint groundterm, int min, int max):
 		ID(groundterm), range(false), min(min), max(max), var(space.addIntVar(min, max)){
 }
 
-TermIntVar::TermIntVar(CPScript& space, int groundterm, const vector<int>& values):
+TermIntVar::TermIntVar(CPScript& space, uint groundterm, const vector<int>& values):
 		ID(groundterm), range(false), min(-1), max(-1), values(values), var(space.addIntVar(values)){
 }
 

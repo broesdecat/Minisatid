@@ -112,20 +112,13 @@ template<class T> void DefaultCallback<T>::endConstraint() {
 	wset = WLSet();
 
 	Disjunction clause;
-	Aggregate agg;
-	agg.sem = AggSem::COMP;
-	agg.bound = bound;
-	agg.setID = setid;
-	agg.type = AggType::SUM;
+	Aggregate agg(dummyhead, setid, bound, AggType::SUM, AggSign::LB, AggSem::COMP, -1);
 	if(equality){
-		agg.head = dummyhead;
 		agg.sign = AggSign::LB;
 		add(getSolver(), agg);
-		agg.head = dummyhead;
 		agg.sign = AggSign::UB;
 		add(getSolver(), agg);
 	}else{
-		agg.head = dummyhead;
 		agg.sign = AggSign::LB;
 		add(getSolver(), agg);
 	}

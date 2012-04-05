@@ -68,35 +68,30 @@ static DoubleOption opt_garbage_frac(_cat, "gc-frac", "The fraction of wasted me
 //=================================================================================================
 // Constructor/Destructor:
 
-Solver::Solver(/*AB*/PCSolver* s/*AE*/) : /*A*/
-		Propagator(s, "satsolver"),
-		needsimplify(true),
+Solver::Solver(PCSolver* s) :
+		Propagator(s, "satsolver"), needsimplify(true), backtracked(true),
 		// Parameters (user settable):
-		//
-		/*A*/verbosity(getPCSolver().verbosity()), var_decay(opt_var_decay), clause_decay(opt_clause_decay), random_var_freq(opt_random_var_freq), random_seed(
+		verbosity(getPCSolver().verbosity()), var_decay(opt_var_decay), clause_decay(opt_clause_decay), random_var_freq(opt_random_var_freq), random_seed(
 				opt_random_seed), luby_restart(opt_luby_restart), ccmin_mode(opt_ccmin_mode), phase_saving(opt_phase_saving), rnd_pol(false), rnd_init_act(
 				opt_rnd_init_act), garbage_frac(opt_garbage_frac), restart_first(opt_restart_first), restart_inc(opt_restart_inc)
 
 		// Parameters (the rest):
-		//
 				, learntsize_factor((double) 1 / (double) 3), learntsize_inc(1.1)
 
 		// Parameters (experimental):
-		//
 				, learntsize_adjust_start_confl(100), learntsize_adjust_inc(1.5)
 
 		// Statistics: (formerly in 'SolverStats')
-		//
 				, starts(0), decisions(0), rnd_decisions(0), propagations(0), conflicts(0), dec_vars(0), clauses_literals(0), learnts_literals(0), max_literals(
 				0), tot_literals(0), ok(true), cla_inc(1), var_inc(1), watches(WatcherDeleted(ca)), qhead(0), simpDB_assigns(-1), simpDB_props(0), order_heap(
 				VarOrderLt(activity)), remove_satisfied(true) {
-	/*AB*/
 	getPCSolver().accept(this, EV_PROPAGATE);
-	/*AE*/
 }
 
 Solver::~Solver() {
 }
+
+// VARIABLE CREATION
 
 void Solver::setDecidable(Var v, bool decide) // NOTE: no-op if already a decision var!
 		{
@@ -121,12 +116,8 @@ void Solver::setDecidable(Var v, bool decide) // NOTE: no-op if already a decisi
 	}
 }
 
-//=================================================================================================
-// Minor methods:
-
 // Creates a new SAT variable in the solver. If 'decision' is cleared, variable will not be
 // used as a decision variable (NOTE! This has effects on the meaning of a SATISFIABLE result).
-//
 Var Solver::newVar(lbool upol, bool dvar) {
 	int v = nVars();
 	watches.init(mkLit(v, false));
@@ -146,14 +137,13 @@ Var Solver::newVar(lbool upol, bool dvar) {
 	user_pol.push(upol);
 	decision.push();
 	trail.capacity(v + 1);
-	getPCSolver().notifyVarAdded(); // NOTE: important before setting decidability
 	setDecidable(v, dvar);
 	return v;
 }
 
 inline void Solver::createNewDecisionLevel() {
 	trail_lim.push(trail.size());
-	/*A*/getPCSolver().newDecisionLevel();
+	getPCSolver().newDecisionLevel();
 }
 
 std::vector<Lit> Solver::getDecisions() const {
@@ -164,25 +154,7 @@ std::vector<Lit> Solver::getDecisions() const {
 	return v;
 }
 
-void Solver::addLearnedClause(CRef rc) {
-	Clause& c = ca[rc];
-	if (c.size() > 1) {
-		addToClauses(rc, true);
-		attachClause(rc);
-		claBumpActivity(c);
-		if (verbosity >= 3) {
-			clog <<"Learned clause added: ";
-			printClause(rc);
-			clog <<"\n";
-		}
-	} else { // Adding literal true at level 0
-		MAssert(c.size()==1);
-		cancelUntil(0);
-		vec<Lit> ps;
-		ps.push(c[0]);
-		addClause(ps);
-	}
-}
+// CLAUSE MANAGEMENT
 
 struct permute {
 	int newposition;
@@ -210,39 +182,56 @@ void permuteRandomly(vec<Lit>& lits) {
 	}
 }
 
-bool Solver::addClause_(vec<Lit>& ps) {
+// FIXME should we not do simplications in most cases this is called?
+// Only not when it is really only used to generate an explanation
+CRef Solver::makeClause(const std::vector<Lit>& lits, bool learnt) {
+	vec<Lit> ps;
+	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {
+		ps.push(*i);
+	}
+	return ca.alloc(ps, learnt);
+}
+
+/*
+ * reverse trail:
+ * 	list of pairs <Lit, level>
+ * 		until backtrack lower than level, after each backtrack immediately propagate Lit in notifyPropagate
+ */
+
+/*
+ * Delete all literals true at the root
+ * If all false, backtrack to level of latest literal
+ * If size == 0
+ * 		ok = false
+ * If size == 1
+ * 		settrue literal
+ * 		add to reverse trail <literal, 0>
+ * If size larger
+ * 		add to watch structure
+ */
+bool Solver::addClause(const std::vector<Lit>& lits) {
 	if (!ok) {
 		return false;
 	}
 
-	int nonfalsecount = 0;
-	if (decisionLevel() > 0) {
-		for (int i = 0; i < ps.size() && nonfalsecount < 2; ++i) {
-			if (not isFalse(ps[i])) {
-				nonfalsecount++;
-			}
-		}
-		if (nonfalsecount == 0) {
-			cancelUntil(0);
-			return addClause_(ps);
-		}
+	vec<Lit> ps;
+	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {
+		ps.push(*i);
 	}
 
 	sort(ps); // NOTE: remove duplicates
 
-	if (decisionLevel() == 0) {
-		// Check satisfaction and remove false literals
-		Lit p;
-		int i, j;
-		for (i = j = 0, p = lit_Undef; i < ps.size(); i++) {
-			if (value(ps[i]) == l_True || ps[i] == ~p) {
-				return true;
-			} else if (value(ps[i]) != l_False && ps[i] != p) {
-				ps[j++] = p = ps[i];
-			}
+	// Check satisfaction and remove literals false at root
+	Lit p;
+	int i, j;
+	for (i = j = 0, p = lit_Undef; i < ps.size(); i++) {
+		if (rootValue(ps[i]) == l_True || ps[i] == ~p) {
+			return true;
+		} else if (rootValue(ps[i]) != l_False && ps[i] != p) {
+			ps[j++] = p = ps[i];
 		}
-		ps.shrink(i - j);
 	}
+	ps.shrink(i - j);
 
 	// NOTE: sort randomly to reduce dependency on grounding and literal introduction mechanics (certainly for lazy grounding)
 	permuteRandomly(ps);
@@ -250,13 +239,9 @@ bool Solver::addClause_(vec<Lit>& ps) {
 	if (ps.size() == 0) {
 		return ok = false;
 	} else if (ps.size() == 1) {
-		if (decisionLevel() > 0) {
-			rootunitlits.push_back(ps[0]);
-		}
+		rootunitlits.push_back(ReverseTrailElem(ps[0], 0, getPCSolver().createClause(Disjunction({ps[0]}), false)));
 		checkedEnqueue(ps[0]);
-		if (decisionLevel() == 0) { // NOTE: do not do unit propagation assuming root level if it is not!
-			return ok = (propagate() == CRef_Undef);
-		}
+		return ok = (propagate() == CRef_Undef);
 	} else {
 		CRef cr = ca.alloc(ps, false);
 		addToClauses(cr, false);
@@ -264,6 +249,112 @@ bool Solver::addClause_(vec<Lit>& ps) {
 	}
 
 	return true;
+}
+
+// TODO check whether this can be simplified? Is linked to createClause and the dummy variables
+void Solver::addLearnedClause(CRef rc) {
+	Clause& c = ca[rc];
+	MAssert(c.size() > 1);
+	addToClauses(rc, true);
+	attachClause(rc);
+	claBumpActivity(c);
+	if (verbosity >= 3) {
+		clog << "Learned clause added: ";
+		printClause(rc);
+		clog << "\n";
+	}
+}
+
+// TODO test whether we can correctly resolve with different assumptions!
+
+void swap(Clause& c, int from, int to) {
+	MAssert(c.size()>from && c.size()>to);
+	auto temp = c[from];
+	c[from] = c[to];
+	c[to] = temp;
+}
+
+/*
+ * if both false
+ * 		backtrack to latest level
+ * if can propagate lit
+ * 		propagate lit
+ * 		add to reverse trail <lit, level of second latest literal>
+ * add to watches, lit and second latest literal as watch
+ */
+void Solver::attachClause(CRef cr) {
+	auto& c = ca[cr];
+	MAssert(c.size() > 1);
+
+	// FIXME why not c.learnt()?
+	if (decisionLevel() > 0 && not c.learnt()) { // If Level > 0 and an input clause, reorder the watches so the first two are unknown or the most recently chosen ones
+			// literal indices: 1 is first, 2 is second
+		int nonfalse1 = -1, nonfalse2 = -1, recentfalse1 = -1, recentfalse2 = -1;
+		for (int i = 0; i < c.size(); ++i) {
+			if (isFalse(c[i])) {
+				if (recentfalse1 == -1) {
+					if (getLevel(var(c[i])) > recentfalse1) {
+						recentfalse1 = i;
+					}
+				} else {
+					if (getLevel(var(c[i])) > recentfalse2) {
+						recentfalse2 = i;
+					}
+				}
+
+			} else {
+				if (nonfalse1 == -1) {
+					nonfalse1 = i;
+				} else if (nonfalse2 == -1) {
+					nonfalse2 = i;
+				}
+			}
+		}
+
+		if (nonfalse1 == -1) { // Conflict
+			getPCSolver().backtrackTo(getLevel(var(c[recentfalse1])));
+			nonfalse1 = recentfalse1;
+			if(value(recentfalse2)!=l_False){
+				nonfalse2 = recentfalse2;
+			}else{
+				recentfalse1 = recentfalse2;
+			}
+		}
+
+		// At least one literal unknown
+		MAssert(nonfalse1!=-1 && not isFalse(c[nonfalse1]));
+		swap(c, nonfalse1, 0);
+		MAssert(not isFalse(c[0]));
+
+		if (nonfalse2 != -1) { // Two literals non-false: normal case
+			MAssert(nonfalse2!=-1 && not isFalse(c[nonfalse2]));
+			swap(c, nonfalse2, 1);
+			MAssert(not isFalse(c[1]));
+		} else { // Clause is unit
+			if (recentfalse1 == 0) {
+				recentfalse1 = nonfalse1;
+			}
+			MAssert(recentfalse1!=-1 && isFalse(c[recentfalse1]));
+			swap(c, recentfalse1, 1);
+			MAssert(isFalse(c[1]));
+			checkedEnqueue(c[0], cr);
+			rootunitlits.push_back(ReverseTrailElem(c[0], getLevel(var(c[recentfalse1])), cr));
+		}
+	}
+
+	if (not c.learnt()) {
+		MAssert(not isFalse(c[1]) || not isFalse(c[0]));
+	}
+	watches[~c[0]].push(Watcher(cr, c[1]));
+	watches[~c[1]].push(Watcher(cr, c[0]));
+
+	checkDecisionVars(c);
+
+	if (c.learnt()) {
+		learnts_literals += c.size();
+	} else {
+		clauses_literals += c.size();
+	}
 }
 
 void Solver::addToClauses(CRef cr, bool learnt) {
@@ -288,83 +379,16 @@ void Solver::checkDecisionVars(const Clause& c) {
 	} else if (isFalse(c[1])) {
 		setDecidable(var(c[0]), true);
 	} else if (not isDecisionVar(var(c[0])) && not isDecisionVar(var(c[1]))) {
-		int choice = irand(random_seed, 2);
+		auto choice = irand(random_seed, 2);
 		MAssert(choice==0 || choice==1);
 		setDecidable(var(c[choice]), true);
 	}
 	MAssert((not isFalse(c[0]) && isDecisionVar(var(c[0]))) || (not isFalse(c[1]) && isDecisionVar(var(c[1]))));
 }
 
-void swap(Clause& c, int from, int to) {
-	MAssert(c.size()>from && c.size()>to);
-	auto temp = c[from];
-	c[from] = c[to];
-	c[to] = temp;
-}
-
-void Solver::attachClause(CRef cr) {
-	auto& c = ca[cr];
-	MAssert(c.size() > 1);
-
-	if (decisionLevel() > 0 && not c.learnt()) { // If Level > 0 and an input clause, reorder the watches so the first two are unknown or the most recently chosen ones
-		int firstnonfalseindex = -1, secondnonfalseindex = -1, mostrecentfalseindex = -1, mostrecentfalselevel = -1;
-		for (int i = 0; i < c.size(); ++i) {
-			if (isFalse(c[i])) {
-				if (level(var(c[i])) > mostrecentfalselevel) {
-					mostrecentfalselevel = level(var(c[i]));
-					mostrecentfalseindex = i;
-				}
-			} else {
-				if (firstnonfalseindex == -1) {
-					firstnonfalseindex = i;
-				} else if (secondnonfalseindex == -1) {
-					secondnonfalseindex = i;
-				}
-			}
-		}
-
-		MAssert(firstnonfalseindex!=-1 && not isFalse(c[firstnonfalseindex]));
-		swap(c, firstnonfalseindex, 0);
-		MAssert(not isFalse(c[0]));
-
-		if (secondnonfalseindex != -1) {
-			MAssert(secondnonfalseindex!=-1 && not isFalse(c[secondnonfalseindex]));
-			swap(c, secondnonfalseindex, 1);
-			MAssert(not isFalse(c[1]));
-		} else { // Clause is unit, so should add the latest false as watch AND have to propagate!
-			if (mostrecentfalseindex == 0) {
-				mostrecentfalseindex = firstnonfalseindex;
-			}MAssert(mostrecentfalseindex!=-1 && isFalse(c[mostrecentfalseindex]));
-			swap(c, mostrecentfalseindex, 1);
-			MAssert(isFalse(c[1]));
-			if (not isTrue(c[0])) { // NOTE: important! The watch has already fired, so otherwise it would be lost!
-				uncheckedEnqueue(c[0], cr);
-			}
-		}
-	}
-
-	if (not c.learnt()) {
-		MAssert(not isFalse(c[1]) || not isFalse(c[0]));
-	}
-	watches[~c[0]].push(Watcher(cr, c[1]));
-	watches[~c[1]].push(Watcher(cr, c[0]));
-	if (c.learnt()) {
-		learnts_literals += c.size();
-	} else {
-		clauses_literals += c.size();
-	}
-
-	if (not c.learnt() || (not isFalse(c[1]) || not isFalse(c[0]))) {
-		checkDecisionVars(c);
-	}
-}
-
 void Solver::detachClause(CRef cr, bool strict) {
-	const Clause& c = ca[cr];
-	if (c.size() < 2) {
-		printClause(cr);
-		std::clog << "clausesize: " << c.size() << "\n";
-	}MAssert(c.size() > 1);
+	auto c = ca[cr];
+	MAssert(c.size() > 1);
 
 	if (strict) {
 		remove(watches[~c[0]], Watcher(cr, c[1]));
@@ -375,13 +399,13 @@ void Solver::detachClause(CRef cr, bool strict) {
 		watches.smudge(~c[1]);
 	}
 
-	if (c.learnt())
+	if (c.learnt()) {
 		learnts_literals -= c.size();
-	else
+	} else {
 		clauses_literals -= c.size();
+	}
 }
 
-/*AB*/
 void Solver::saveState() {
 	savedok = ok;
 	savedlevel = decisionLevel();
@@ -414,7 +438,6 @@ void Solver::resetState() {
 	}
 	learnts.clear();
 }
-/*AE*/
 
 void Solver::removeClause(CRef cr) {
 	auto& c = ca[cr];
@@ -426,13 +449,15 @@ void Solver::removeClause(CRef cr) {
 }
 
 bool Solver::satisfied(const Clause& c) const {
-	for (int i = 0; i < c.size(); i++)
+	for (int i = 0; i < c.size(); i++) {
 		if (value(c[i]) == l_True) return true;
+	}
 	return false;
 }
 
+// BACKTRACKING
+
 // Revert to the state at given level (keeping all assignment at 'level' but not beyond).
-//
 void Solver::cancelUntil(int level) {
 	if (verbosity > 8) {
 		clog << "Backtracking to " << level << "\n";
@@ -447,22 +472,14 @@ void Solver::cancelUntil(int level) {
 		}
 		qhead = trail_lim[level];
 		trail.shrink(trail.size() - trail_lim[level]);
-		/*AB*/
 		int levels = trail_lim.size() - level;
 		trail_lim.shrink(levels);
 		getPCSolver().backtrackDecisionLevel(level, decision);
-		/*AE*/
 	}
-	for (auto i = rootunitlits.cbegin(); i < rootunitlits.cend(); ++i) {
-		checkedEnqueue(*i);
-	}
-	if (decisionLevel() == 0) {
-		rootunitlits.clear();
-	}
+	backtracked = true;
 }
 
-//=================================================================================================
-// Major methods:
+// VARIABLE CHOICE
 
 Lit Solver::pickBranchLit() {
 	Var next = var_Undef;
@@ -537,7 +554,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 	int lvl = 0;
 	Clause& c = ca[confl];
 	for (int i = 0; i < c.size(); i++) {
-		int litlevel = level(var(c[i]));
+		int litlevel = getLevel(var(c[i]));
 		if (litlevel > lvl) {
 			lvl = litlevel;
 		}
@@ -586,10 +603,10 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 		for (int j = (p == lit_Undef) ? 0 : 1; j < c.size(); j++) {
 			Lit q = c[j];
 
-			if (!seen[var(q)] && level(var(q)) > 0) {
+			if (!seen[var(q)] && getLevel(var(q)) > 0) {
 				varBumpActivity(var(q));
 				seen[var(q)] = 1;
-				if (level(var(q)) >= decisionLevel())
+				if (getLevel(var(q)) >= decisionLevel())
 					pathC++;
 				else
 					out_learnt.push(q);
@@ -629,30 +646,13 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 		}
 
 		if (confl == CRef_Undef && pathC > 1) {
-			// FIXME Can the following happen? If so, should better change the level of the rootunitlits to 0 (then it is handled automatically)
-			bool delayedroot = false;
-			//cerr <<"Looking for " <<p <<"\n";
-			for (auto j = rootunitlits.cbegin(); j < rootunitlits.cend(); ++j) {
-				//cerr <<"\t" <<*j <<"\n";
-				if (*j == p) {
-					delayedroot = true;
-					break;
-				}
-			}
-			//cerr <<(delayedroot?"delayed":"not found") <<"\n";
-			if (delayedroot) {
-				Disjunction d;
-				d.literals = {p};
-				confl = getPCSolver().createClause(d, true);
-			} else {
-				confl = getPCSolver().getExplanation(p);
-				deleteImplicitClause = true;
-			}
+			confl = getPCSolver().getExplanation(p);
+			deleteImplicitClause = true;
 		}
 		if (verbosity > 4 && confl != CRef_Undef) {
-			clog <<"Explanation is ";
+			clog << "Explanation is ";
 			printClause(confl);
-			clog <<"\n";
+			clog << "\n";
 		}
 		/*AE*/
 
@@ -683,7 +683,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 			else {
 				Clause& c = ca[reason(var(out_learnt[i]))];
 				for (int k = 1; k < c.size(); k++)
-					if (!seen[var(c[k])] && level(var(c[k])) > 0) {
+					if (!seen[var(c[k])] && getLevel(var(c[k])) > 0) {
 						out_learnt[j++] = out_learnt[i];
 						break;
 					}
@@ -704,12 +704,12 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 		int max_i = 1;
 		// Find the first literal assigned at the next-highest level:
 		for (int i = 2; i < out_learnt.size(); i++)
-			if (level(var(out_learnt[i])) > level(var(out_learnt[max_i]))) max_i = i;
+			if (getLevel(var(out_learnt[i])) > getLevel(var(out_learnt[max_i]))) max_i = i;
 		// Swap-in this literal at index 1:
 		Lit p = out_learnt[max_i];
 		out_learnt[max_i] = out_learnt[1];
 		out_learnt[1] = p;
-		out_btlevel = level(var(p));
+		out_btlevel = getLevel(var(p));
 	}
 
 	for (int j = 0; j < analyze_toclear.size(); j++)
@@ -731,7 +731,7 @@ bool Solver::litRedundant(Lit p, uint32_t abstract_levels) {
 
 		for (int i = 1; i < c.size(); i++) {
 			Lit p = c[i];
-			if (!seen[var(p)] && level(var(p)) > 0) {
+			if (!seen[var(p)] && getLevel(var(p)) > 0) {
 				if (reason(var(p)) != CRef_Undef && (abstractLevel(var(p)) & abstract_levels) != 0) {
 					seen[var(p)] = 1;
 					analyze_stack.push(p);
@@ -770,12 +770,12 @@ void Solver::analyzeFinal(Lit p, vec<Lit>& out_conflict) {
 		Var x = var(trail[i]);
 		if (seen[x]) {
 			if (reason(x) == CRef_Undef) {
-				MAssert(level(x) > 0);
+				MAssert(getLevel(x) > 0);
 				out_conflict.push(~trail[i]);
 			} else {
 				Clause& c = ca[reason(x)];
 				for (int j = 1; j < c.size(); j++)
-					if (level(var(c[j])) > 0) seen[var(c[j])] = 1;
+					if (getLevel(var(c[j])) > 0) seen[var(c[j])] = 1;
 			}
 			seen[x] = 0;
 		}
@@ -821,9 +821,20 @@ CRef Solver::propagate() {
 }
 
 CRef Solver::notifypropagate() {
-	if(needsimplify){
+	if(backtracked){
+		auto level = decisionLevel();
+		for(auto i=rootunitlits.begin(); i!=rootunitlits.end(); ++i) {
+			if(i->level<=level){
+				checkedEnqueue(i->lit, i->explan);
+			}else{
+				rootunitlits.erase(i);
+			}
+		}
+		backtracked = false;
+	}
+	if (needsimplify) {
 		if (not simplify()) {
-			return getPCSolver().createClause({}, true);
+			return getPCSolver().createClause( { }, true);
 		}
 	}
 
@@ -853,7 +864,8 @@ CRef Solver::notifypropagate() {
 			Lit false_lit = ~p;
 			if (c[0] == false_lit) {
 				c[0] = c[1], c[1] = false_lit;
-			}MAssert(c[1] == false_lit);
+			}
+			MAssert(c[1] == false_lit);
 			i++;
 
 			// If 0th watch is true, then clause is already satisfied.
@@ -1057,9 +1069,10 @@ lbool Solver::search(int maxconflicts, bool nosearch/*AE*/) {
 				learntsize_adjust_cnt = (int) learntsize_adjust_confl;
 				max_learnts *= learntsize_inc;
 
-				if (verbosity >= 1){ fprintf(stderr, "| %9d | %7d %8d %8d | %8d %8d %6.0f |\n", (int) conflicts,
-						(int) dec_vars - (trail_lim.size() == 0 ? trail.size() : trail_lim[0]), nClauses(), (int) clauses_literals, (int) max_learnts,
-						nLearnts(), (double) learnts_literals / nLearnts());
+				if (verbosity >= 1) {
+					fprintf(stderr, "| %9d | %7d %8d %8d | %8d %8d %6.0f |\n", (int) conflicts,
+							(int) dec_vars - (trail_lim.size() == 0 ? trail.size() : trail_lim[0]), nClauses(), (int) clauses_literals,
+							(int) max_learnts, nLearnts(), (double) learnts_literals / nLearnts());
 				}
 			}
 
@@ -1127,7 +1140,6 @@ lbool Solver::search(int maxconflicts, bool nosearch/*AE*/) {
 	}
 	return l_Undef; // Note: is (should be anyway) unreachable but not detected by compiler
 }
-
 
 /*
  Finite subsequences of the Luby-sequence:
@@ -1275,8 +1287,9 @@ void Solver::garbageCollect() {
 	ClauseAllocator to(ca.size() - ca.wasted());
 
 	relocAll(to);
-	if (verbosity >= 2){ fprintf(stderr, "|  Garbage collection:   %12d bytes => %12d bytes             |\n", ca.size() * ClauseAllocator::Unit_Size,
-			to.size() * ClauseAllocator::Unit_Size);
+	if (verbosity >= 2) {
+		fprintf(stderr, "|  Garbage collection:   %12d bytes => %12d bytes             |\n", ca.size() * ClauseAllocator::Unit_Size,
+				to.size() * ClauseAllocator::Unit_Size);
 	}
 	to.moveTo(ca);
 }

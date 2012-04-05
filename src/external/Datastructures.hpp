@@ -229,8 +229,9 @@ public:
 	AggSem sem;
 	int defID; //Only relevant if defined aggregate
 
-	Aggregate() :
-			head(0) {
+	Aggregate(Var head, int setID, Weight bound, AggType type, AggSign sign, AggSem sem, int defID) :
+			head(head), setID(setID), bound(bound), type(type), sign(sign), sem(sem), defID(defID) {
+		MAssert(sem!=AggSem::DEF || defID!=-1);
 	}
 
 	DATASTRUCTURE_DECLAREACCEPT
@@ -245,7 +246,8 @@ public:
 	uint priority;
 	std::vector<Lit> literals;
 
-	MinimizeOrderedList(uint priority, std::vector<Lit> literals):priority(priority), literals(literals){
+	MinimizeOrderedList(uint priority, std::vector<Lit> literals) :
+			priority(priority), literals(literals) {
 
 	}
 
@@ -265,7 +267,8 @@ public:
 	uint priority;
 	std::vector<Lit> literals;
 
-	MinimizeSubset(uint priority, std::vector<Lit> literals):priority(priority), literals(literals){
+	MinimizeSubset(uint priority, std::vector<Lit> literals) :
+			priority(priority), literals(literals) {
 
 	}
 
@@ -285,7 +288,8 @@ public:
 	uint priority;
 	uint varID;
 
-	MinimizeVar(uint priority, uint varID):priority(priority), varID(varID){
+	MinimizeVar(uint priority, uint varID) :
+			priority(priority), varID(varID) {
 
 	}
 
@@ -302,7 +306,8 @@ public:
 	int setid;
 	AggType type;
 
-	MinimizeAgg(uint priority, int setid, AggType type):priority(priority), setid(setid), type(type){
+	MinimizeAgg(uint priority, int setid, AggType type) :
+			priority(priority), setid(setid), type(type) {
 
 	}
 

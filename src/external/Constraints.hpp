@@ -1,8 +1,8 @@
 /************************************
-	Constraints.hpp
-	this file belongs to GidL 2.0
-	(c) K.U.Leuven
-************************************/
+ Constraints.hpp
+ this file belongs to GidL 2.0
+ (c) K.U.Leuven
+ ************************************/
 
 #ifndef CONSTRAINTS_HPP_
 #define CONSTRAINTS_HPP_
@@ -11,7 +11,7 @@
 #include "Space.hpp"
 #include <memory>
 
-namespace MinisatID{
+namespace MinisatID {
 class PropAndBackMonitor;
 
 Var checkAtom(const Atom& atom, Remapper& remapper);
@@ -23,136 +23,129 @@ std::vector<Var> checkAtoms(const std::vector<Atom>& atoms, Remapper& remapper);
 std::map<Var, Var> checkAtoms(const std::map<Atom, Atom>& atoms, Remapper& remapper);
 
 template<typename Engine>
-void add(ConstraintAdditionInterface<Engine>& space, const Disjunction& sentence) {
-	space.getEngine()->add(Disjunction(checkLits(sentence.literals, space.getRemapper())));
+void add(ConstraintAdditionInterface<Engine>& space, const Disjunction& obj) {
+	space.getEngine()->add(Disjunction(checkLits(obj.literals, space.getRemapper())));
 }
 
 template<typename Engine>
-void add(ConstraintAdditionInterface<Engine>& space, const Implication& sentence) {
-	Implication eq(checkLit(sentence.head, space.getRemapper()), sentence.type, checkLits(sentence.body, space.getRemapper()), sentence.conjunction);
+void add(ConstraintAdditionInterface<Engine>& space, const Implication& obj) {
+	Implication eq(checkLit(obj.head, space.getRemapper()), obj.type, checkLits(obj.body, space.getRemapper()), obj.conjunction);
 	space.getEngine()->add(eq);
 }
 
 template<typename Engine>
-void add(ConstraintAdditionInterface<Engine>& space, const Rule& sentence) {
+void add(ConstraintAdditionInterface<Engine>& space, const Rule& obj) {
 	Rule rule;
-	rule.head = checkAtom(sentence.head, space.getRemapper());
-	rule.definitionID = sentence.definitionID;
-	rule.conjunctive = sentence.conjunctive;
-	rule.body = checkLits(sentence.body, space.getRemapper());
+	rule.head = checkAtom(obj.head, space.getRemapper());
+	rule.definitionID = obj.definitionID;
+	rule.conjunctive = obj.conjunctive;
+	rule.body = checkLits(obj.body, space.getRemapper());
 	space.getEngine()->add(rule);
 }
 
 template<typename Engine>
-void add(ConstraintAdditionInterface<Engine>& space, const WLSet& sentence) {
+void add(ConstraintAdditionInterface<Engine>& space, const WLSet& obj) {
 	WLSet set;
-	set.setID = sentence.setID;
-	for (auto i = sentence.wl.cbegin(); i < sentence.wl.cend(); ++i) {
+	set.setID = obj.setID;
+	for (auto i = obj.wl.cbegin(); i < obj.wl.cend(); ++i) {
 		set.wl.push_back(WLtuple(checkLit((*i).l, space.getRemapper()), (*i).w));
 	}
 	space.getEngine()->add(set);
 }
 
 template<typename Engine>
-void add(ConstraintAdditionInterface<Engine>& space, const Aggregate& sentence) {
-	Aggregate agg;
-	agg.setID = sentence.setID;
-	agg.head = checkAtom(sentence.head, space.getRemapper());
-	agg.bound = sentence.bound;
-	agg.type = sentence.type;
-	agg.sign = sentence.sign;
-	agg.sem = sentence.sem;
-	agg.defID = sentence.defID;
-	space.getEngine()->add(agg);
+void add(ConstraintAdditionInterface<Engine>& space, const Aggregate& obj) {
+	space.getEngine()->add(
+			Aggregate(checkAtom(obj.head, space.getRemapper()), obj.setID, obj.bound, obj.type, obj.sign, obj.sem, obj.defID));
 }
 
 template<typename Engine>
-void add(ConstraintAdditionInterface<Engine>& space, const MinimizeSubset& sentence) {
-	space.getEngine()->add(MinimizeSubset(sentence.priority, checkLits(sentence.literals, space.getRemapper())));
+void add(ConstraintAdditionInterface<Engine>& space, const MinimizeSubset& obj) {
+	space.getEngine()->add(MinimizeSubset(obj.priority, checkLits(obj.literals, space.getRemapper())));
 }
 
 template<typename Engine>
-void add(ConstraintAdditionInterface<Engine>& space, const MinimizeOrderedList& sentence) {
-	space.getEngine()->add(MinimizeOrderedList(sentence.priority, checkLits(sentence.literals, space.getRemapper())));
+void add(ConstraintAdditionInterface<Engine>& space, const MinimizeOrderedList& obj) {
+	space.getEngine()->add(MinimizeOrderedList(obj.priority, checkLits(obj.literals, space.getRemapper())));
 }
 
 template<typename Engine>
-void add(ConstraintAdditionInterface<Engine>& space, const MinimizeVar& sentence) {
-	space.getEngine()->add(MinimizeVar(sentence.priority, sentence.varID));
+void add(ConstraintAdditionInterface<Engine>& space, const MinimizeVar& obj) {
+	space.getEngine()->add(MinimizeVar(obj.priority, obj.varID));
 }
 
 template<typename Engine>
-void add(ConstraintAdditionInterface<Engine>& space, const MinimizeAgg& sentence) {
-	space.getEngine()->add(MinimizeAgg(sentence.priority, sentence.setid, sentence.type));
+void add(ConstraintAdditionInterface<Engine>& space, const MinimizeAgg& obj) {
+	space.getEngine()->add(MinimizeAgg(obj.priority, obj.setid, obj.type));
 }
 
 template<typename Engine>
-void add(ConstraintAdditionInterface<Engine>& space, const Symmetry& sentence) {
-	space.getEngine()->add(Symmetry(checkLits(sentence.symmetry, space.getRemapper())));
+void add(ConstraintAdditionInterface<Engine>& space, const Symmetry& obj) {
+	space.getEngine()->add(Symmetry(checkLits(obj.symmetry, space.getRemapper())));
 }
 
 template<typename Engine>
-void add(ConstraintAdditionInterface<Engine>& space, const LazyGroundLit& sentence) {
-	LazyGroundLit lc(sentence.watchboth, checkLit(sentence.residual, space.getRemapper()), sentence.monitor);
+void add(ConstraintAdditionInterface<Engine>& space, const LazyGroundLit& obj) {
+	LazyGroundLit lc(obj.watchboth, checkLit(obj.residual, space.getRemapper()), obj.monitor);
 	//clog <<"Watching " <<(lc.watchboth?"both":"single") <<" on " <<lc.residual <<"\n";
 	space.getEngine()->add(lc);
 }
 
 template<typename Engine>
-void add(ConstraintAdditionInterface<Engine>& space, const IntVarEnum& sentence) {
+void add(ConstraintAdditionInterface<Engine>& space, const IntVarEnum& obj) {
 	IntVarEnum var;
-	var.varID = sentence.varID;
-	var.values = sentence.values;
+	var.varID = obj.varID;
+	var.values = obj.values;
 	space.getEngine()->add(var);
 }
 template<typename Engine>
-void add(ConstraintAdditionInterface<Engine>& space, const IntVarRange& sentence) {
+void add(ConstraintAdditionInterface<Engine>& space, const IntVarRange& obj) {
 	IntVarRange var;
-	var.varID = sentence.varID;
-	var.minvalue = sentence.minvalue;
-	var.maxvalue = sentence.maxvalue;
+	var.varID = obj.varID;
+	var.minvalue = obj.minvalue;
+	var.maxvalue = obj.maxvalue;
 	space.getEngine()->add(var);
 }
 template<typename Engine>
-void add(ConstraintAdditionInterface<Engine>& space, const CPBinaryRel& sentence) {
+void add(ConstraintAdditionInterface<Engine>& space, const CPBinaryRel& obj) {
 	CPBinaryRel form;
-	form.head = checkAtom(sentence.head, space.getRemapper());
-	form.varID = sentence.varID;
-	form.rel = sentence.rel;
-	form.bound = sentence.bound;
+	form.head = checkAtom(obj.head, space.getRemapper());
+	form.varID = obj.varID;
+	form.rel = obj.rel;
+	form.bound = obj.bound;
 	space.getEngine()->add(form);
 }
 template<typename Engine>
-void add(ConstraintAdditionInterface<Engine>& space, const CPBinaryRelVar& sentence) {
+void add(ConstraintAdditionInterface<Engine>& space, const CPBinaryRelVar& obj) {
 	CPBinaryRelVar form;
-	form.head = checkAtom(sentence.head, space.getRemapper());
-	form.lhsvarID = sentence.lhsvarID;
-	form.rel = sentence.rel;
-	form.rhsvarID = sentence.rhsvarID;
+	form.head = checkAtom(obj.head, space.getRemapper());
+	form.lhsvarID = obj.lhsvarID;
+	form.rel = obj.rel;
+	form.rhsvarID = obj.rhsvarID;
 	space.getEngine()->add(form);
 }
 template<typename Engine>
-void add(ConstraintAdditionInterface<Engine>& space, const CPSumWeighted& sentence) {
+void add(ConstraintAdditionInterface<Engine>& space, const CPSumWeighted& obj) {
 	CPSumWeighted form;
-	form.head = checkAtom(sentence.head, space.getRemapper());
-	form.rel = sentence.rel;
-	form.bound = sentence.bound;
-	form.weights = sentence.weights;
-	form.varIDs = sentence.varIDs;
+	form.head = checkAtom(obj.head, space.getRemapper());
+	form.rel = obj.rel;
+	form.bound = obj.bound;
+	form.weights = obj.weights;
+	form.varIDs = obj.varIDs;
 	space.getEngine()->add(form);
 }
 template<typename Engine>
-void add(ConstraintAdditionInterface<Engine>& space, const CPCount& sentence) {
+void add(ConstraintAdditionInterface<Engine>& space, const CPCount& obj) {
 	CPCount form;
-	form.varIDs = sentence.varIDs;
-	form.eqbound = sentence.eqbound;
-	form.rel = sentence.rel;
-	form.rhsvar = sentence.rhsvar;
+	form.varIDs = obj.varIDs;
+	form.eqbound = obj.eqbound;
+	form.rel = obj.rel;
+	form.rhsvar = obj.rhsvar;
 	space.getEngine()->add(form);
 }
 template<typename Engine>
-void add(ConstraintAdditionInterface<Engine>& space, const CPAllDiff& sentence) {
-	CPAllDiff form(sentence.varIDs);
+void add(ConstraintAdditionInterface<Engine>& space, const CPAllDiff& obj) {
+	CPAllDiff form(obj.varIDs);
 	space.getEngine()->add(form);
 }
 }

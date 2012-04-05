@@ -11,6 +11,7 @@
 
 #include <string>
 #include <limits>
+#include "MAssert.hpp"
 
 // Weight declaration and utilities
 

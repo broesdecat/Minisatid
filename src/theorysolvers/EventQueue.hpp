@@ -84,7 +84,7 @@ public:
 
 	void 	addEternalPropagators();
 
-	void 	notifyVarAdded			();
+	void 	notifyNbOfVars(uint64_t nbvars);
 
 	int		getNbOfFormulas			() const;
 

@@ -2,6 +2,7 @@
 #define REMAPPER_HPP_
 
 #include <unordered_map>
+#include <iostream>
 #include "utils/Utils.hpp"
 #include "utils/PrintMessage.hpp"
 
@@ -45,6 +46,11 @@ public:
 		return maxnumber++;
 	}
 
+	bool wasInput(const Lit& lit) const {
+		return contiguoustoorigatommapper.find(var(lit))!=contiguoustoorigatommapper.cend();
+	}
+
+	// NOTE: if newvar was called internally, it cannot be mapped back to input (and shouldn't).
 	Literal getLiteral(const Lit& lit) const{
 		auto atom = contiguoustoorigatommapper.find(var(lit));
 		MAssert(atom!=contiguoustoorigatommapper.cend());

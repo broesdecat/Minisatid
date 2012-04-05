@@ -80,7 +80,9 @@ private:
 	VarCreation* varcreator;
 public:
 	Var newVar();
+private:
 	void createVar(Var v, VARHEUR decide);
+public:
 	void notifyVarAdded();
 	void varBumpActivity(Var v);
 	void varReduceActivity(Var v);
@@ -143,13 +145,13 @@ public:
 
 	// CP-support
 private:
-#ifdef CPSUPPORT
-	CPSolver* getCPSolverp() const {return cpsolver;}
 	CPSolver* cpsolver;
+public:
 	bool hasCPSolver() const;
-	CPSolver& getCPSolver() {return *cpsolver;}
+	CPSolver* getCPSolverp() const {return cpsolver;}
 	const CPSolver& getCPSolver() const {return *cpsolver;}
-#endif
+	CPSolver& getCPSolver() {return *cpsolver;}
+	rClause findNextCPModel();
 
 	// Propagatorfactory
 private:
@@ -267,11 +269,7 @@ private:
 	// If lazy, do not decide for literals in decisions
 	// NOTE: only use this if the watches mechanism of the constraint will take care of making literal decidable if necessary
 	VARHEUR lazyDecide() const;
-	void addVars		(const std::vector<Var>& vars, VARHEUR heur = VARHEUR::DECIDE){
-		for(auto i=vars.cbegin(); i<vars.cend(); ++i) {
-			createVar(*i, heur);
-		}
-	}
+	void addVars		(const std::vector<Var>& vars, VARHEUR heur = VARHEUR::DECIDE);
 public:
 	template<typename T>
 	void add(const T& obj){

@@ -22,7 +22,7 @@ namespace MinisatID{
 	// The mapping of an index to an interval bounded term to an ID number
 	class TermIntVar{
 	private:
-		int ID;
+		uint ID;
 		bool range;
 		int min, max;
 		std::vector<int> values;
@@ -30,10 +30,10 @@ namespace MinisatID{
 
 	public:
 		TermIntVar();
-		TermIntVar(CPScript& space, int groundterm, int min, int max);
-		TermIntVar(CPScript& space, int groundterm, const std::vector<int>& values);
+		TermIntVar(CPScript& space, uint groundterm, int min, int max);
+		TermIntVar(CPScript& space, uint groundterm, const std::vector<int>& values);
 
-		int		getID	() const { return ID; }
+		uint		getID	() const { return ID; }
 
 		virtual ~TermIntVar(){}
 

@@ -56,7 +56,6 @@ public:
 	double 			rand_var_freq, var_decay;
 	Polarity 		polarity;
 	bool 			bumpaggonnotify, bumpidonstart;
-	bool			asapaggprop;
 	long 			ufsvarintrothreshold;
 	bool			subsetminimizeexplanation, currentlevelfirstinexplanation, innogoodfirstinexplanation;
 	bool			lazy;

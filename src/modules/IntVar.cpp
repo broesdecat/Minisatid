@@ -105,12 +105,7 @@ void IntVar::addConstraints(){
 	for(uint i=0; i<equalities.size(); ++i){
 		set.wl.push_back(WLtuple(mkPosLit(equalities[i]), 1));
 	}
-	Aggregate lowercard;
-	lowercard.head = engine().newVar();
-	lowercard.setID = set.setID;
-	lowercard.bound = 1;
-	lowercard.type = AggType::CARD;
-	lowercard.sign = AggSign::LB;
+	Aggregate lowercard(engine().newVar(), set.setID, 1, AggType::CARD, AggSign::LB, AggSem::COMP, -1);
 	Aggregate highercard(lowercard);
 	highercard.head = engine().newVar();
 	highercard.sign = AggSign::UB;

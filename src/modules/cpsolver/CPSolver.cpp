@@ -9,14 +9,14 @@
 #include <set>
 #include <map>
 
-#include "modules/CPSolver.hpp"
-#include "modules/cpsolver/CPScript.hpp"
+#include "CPSolver.hpp"
+#include "CPScript.hpp"
 
-#include "modules/cpsolver/CPUtils.hpp"
+#include "CPUtils.hpp"
 #include "theorysolvers/PCSolver.hpp"
 
-#include "modules/cpsolver/Constraint.hpp"
-#include "modules/cpsolver/CPSolverData.hpp"
+#include "Constraint.hpp"
+#include "CPSolverData.hpp"
 #include "utils/Print.hpp"
 
 using namespace std;
@@ -81,29 +81,29 @@ vtiv CPSolver::convertToVars(const std::vector<uint>& terms) const{
 	return getData().convertToVars(terms);
 }
 
-// INITIALIZATION
+// Constraint addition
 
 bool CPSolver::add(const IntVarEnum& form){
-	MAssert(!isInitialized());
-	getData().addTerm(TermIntVar(getSpace(), form.varID, form.values));
+	vector<int> values;
+	for(auto i=form.values.cbegin(); i<form.values.cend(); ++i) {
+		values.push_back(toInt(*i));
+	}
+	getData().addTerm(TermIntVar(getSpace(), form.varID, values));
 	return true;
 }
 
 bool CPSolver::add(const IntVarRange& form){
-	MAssert(!isInitialized());
-	getData().addTerm(TermIntVar(getSpace(), form.varID, form.minvalue, form.maxvalue));
+	getData().addTerm(TermIntVar(getSpace(), form.varID, toInt(form.minvalue), toInt(form.maxvalue)));
 	return true;
 }
 
 bool CPSolver::add(const CPBinaryRel& form){
-	MAssert(!isInitialized());
 	TermIntVar lhs(convertToVar(form.varID));
-	add(new BinArithConstraint(getSpace(), lhs, toRelType(form.rel), form.bound, form.head));
+	add(new BinArithConstraint(getSpace(), lhs, toRelType(form.rel), toInt(form.bound), form.head));
 	return true;
 }
 
 bool CPSolver::add(const CPBinaryRelVar& form){
-	MAssert(!isInitialized());
 	TermIntVar lhs(convertToVar(form.lhsvarID));
 	TermIntVar rhs(convertToVar(form.rhsvarID));
 	add(new BinArithConstraint(getSpace(), lhs, toRelType(form.rel), rhs, form.head));
@@ -111,31 +111,32 @@ bool CPSolver::add(const CPBinaryRelVar& form){
 }
 
 bool CPSolver::add(const CPSumWeighted& form){
-	MAssert(!isInitialized());
 	vector<TermIntVar> set(convertToVars(form.varIDs));
-	add(new SumConstraint(getSpace(), set, form.weights, toRelType(form.rel), form.bound, form.head));
+	vector<int> values;
+	for(auto i=form.weights.cbegin(); i<form.weights.cend(); ++i) {
+		values.push_back(toInt(*i));
+	}
+	add(new SumConstraint(getSpace(), set, values, toRelType(form.rel), toInt(form.bound), form.head));
 	return true;
 }
 
 bool CPSolver::add(const CPCount& form){
-	MAssert(!isInitialized());
 	vector<TermIntVar> set(convertToVars(form.varIDs));
 	TermIntVar rhs(convertToVar(form.rhsvar));
-	add(new CountConstraint(getSpace(), set, toRelType(form.rel), form.eqbound, rhs));
+	add(new CountConstraint(getSpace(), set, toRelType(form.rel), toInt(form.eqbound), rhs));
 	return true;
 }
 
 bool CPSolver::add(const CPAllDiff& form){
-	MAssert(!isInitialized());
 	vector<TermIntVar> set(convertToVars(form.varIDs));
 	add(new DistinctConstraint(getSpace(), set));
 	return true;
 }
 
-void CPSolver::checkHeadUniqueness(ReifiedConstraint const * const c) const{
+void CPSolver::checkHeadUniqueness(ReifiedConstraint const * const c){
 	if(heads.find(c->getHead())!=heads.cend()){
 		stringstream ss;
-		ss <<"Constraint reification atoms should be unique, but " <<print(c->getHead(), getPCSolver()) <<" is shared by at least two constraints.\n";
+		ss <<"Constraint reification atoms should be unique, but " <<toString(c->getHead()) <<" is shared by at least two constraints.\n";
 		throw idpexception(ss.str());
 	}
 	heads.insert(c->getHead());
@@ -167,8 +168,6 @@ void CPSolver::addConstraint(Constraint* c){
 	if(not getPCSolver().isUnsat() && propagateReificationConstraints()!=nullPtrClause){
 		getPCSolver().notifyUnsat();
 	}
-
-	notifyInitialized();
 
 	for(auto i=getData().getReifConstraints().cbegin(); i<getData().getReifConstraints().cend(); ++i){
 		getPCSolver().accept(this, mkPosLit((*i)->getHead()), PRIORITY::SLOW);
@@ -203,7 +202,7 @@ rClause CPSolver::getExplanation(const Lit& p){
 rClause CPSolver::notifySATsolverOfPropagation(const Lit& p) {
 	if (getPCSolver().value(p) == l_False) {
 		if (getPCSolver().verbosity() >= 2) {
-			clog <<">> Deriving conflinct in " <<toString(p, getPCSolver()) <<" because of constraint expression.\n";
+			clog <<">> Deriving conflict in " <<toString(p) <<" because of constraint expression.\n";
 		}
 		uint temp = propreason[p];
 		propreason[p] = trail.getTrail().size();
@@ -212,7 +211,7 @@ rClause CPSolver::notifySATsolverOfPropagation(const Lit& p) {
 		return confl;
 	} else if (getPCSolver().value(p) == l_Undef) {
 		if (getPCSolver().verbosity() >= 2) {
-			clog <<">> Deriving " <<toString(p, getPCSolver()) <<" because of constraint expression.\n";
+			clog <<">> Deriving " <<toString(p) <<" because of constraint expression.\n";
 		}
 		propreason[p] = trail.getTrail().size();
 		getPCSolver().setTrue(p, this);
@@ -236,9 +235,8 @@ void CPSolver::notifyBacktrack(int untillevel, const Lit& decision){
 }
 
 rClause CPSolver::notifypropagate(){
-	rClause confl = nullPtrClause;
+	auto confl = nullPtrClause;
 
-	if(!isInitialized()) { return confl; }
 	if(searchedandnobacktrack){ return confl; }
 
 	while(hasNextProp() && confl==nullPtrClause){
@@ -255,7 +253,7 @@ rClause CPSolver::notifypropagate(){
 
 		if(constr!=NULL){
 			if(getPCSolver().modes().verbosity >= 5){
-				clog <<">> Propagated into CP: " <<toString(l, getPCSolver()) <<".\n";
+				clog <<">> Propagated into CP: " <<toString(l) <<".\n";
 			}
 
 			trail.propagate(l);
@@ -405,14 +403,6 @@ void CPSolver::getVariableSubstitutions(std::vector<VariableEqValue>& varassignm
 	}
 }
 
-int	CPSolver::getNbOfFormulas() const {
-	return solverdata->getNonReifConstraints().size()*100 + solverdata->getReifConstraints().size()*100;
-}
-
-void CPSolver::printStatistics() const{
-	//TODO
-}
-
-void CPSolver::printState() const{
-	//TODO
-}
+//int	CPSolver::getNbOfFormulas() const {
+//	return solverdata->getNonReifConstraints().size()*100 + solverdata->getReifConstraints().size()*100;
+//}

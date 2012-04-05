@@ -279,8 +279,6 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes){
 			modes.currentlevelfirstinexplanation, cmd, "Choose whether to add literals in the current decision level to the explanation first"));
 	options.push_back(new Option<bool, string>	("","nogoodexplan", 	yesnovals, nogoodexplandesc,
 			modes.innogoodfirstinexplanation, cmd, "Choose whether to add literals already in the global nogood to the explanation first"));
-	options.push_back(new Option<bool, string>	("","asapaggprop", 	yesnovals, asapaggpropdesc,
-			modes.asapaggprop, cmd, "Choose whether to propagate aggregates as fast as possible"));
 	options.push_back(new Option<bool, string>	("","oneclauseufs",  yesnovals, ufsclauseaddingdesc,
 			modes.selectOneFromUFS, cmd,"Choose whether learn one clause at a time when an unfounded set is found"));
 	options.push_back(new Option<bool, string>	("","tocnf", 	yesnovals, tocnfdesc,
