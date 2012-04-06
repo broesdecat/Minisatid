@@ -397,6 +397,10 @@ void PropagatorFactory::guaranteeAtRootLevel(){
 SATVAL PropagatorFactory::finishSet(const WLSet* origset, vector<TempAgg*>& aggs, bool optimagg, uint optimpriority) {
 	bool unsat = false, sat = false;
 
+	if(aggs.size()==0){
+		return SATVAL::POS_SAT;
+	}
+
 	AggProp const * type = NULL;
 	switch (aggs.front()->getType()) {
 	case AggType::MAX:
