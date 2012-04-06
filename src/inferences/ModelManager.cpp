@@ -24,8 +24,8 @@
 using namespace std;
 using namespace MinisatID;
 
-ModelManager::ModelManager(Models saveoption)
-		: nbmodelsfound(0), temporarymodel(NULL), optimalmodelfound(false), unsatfound(false), saveoption(saveoption), modelsave(ModelSaved::NONE) {
+ModelManager::ModelManager(Models saveoption) :
+		nbmodelsfound(0), temporarymodel(NULL), optimalmodelfound(false), unsatfound(false), saveoption(saveoption), modelsave(ModelSaved::NONE) {
 }
 
 ModelManager::~ModelManager() {
@@ -35,12 +35,26 @@ ModelManager::~ModelManager() {
 	deleteList<Model>(models);
 }
 
-Model* ModelManager::getBestModelFound() const {
+void ModelManager::notifyOptimalModelFound() {
+	if(optimalmodelfound){
+		return;
+	}
+	optimalmodelfound = true;
+	auto temp = models.back();
+	models.pop_back();
+	deleteList<Model>(models);
+	models = {temp};
+}
+
+modellist ModelManager::getBestModelsFound() const {
 	MAssert(modelsave!=ModelSaved::NONE);
+	if(optimalmodelfound){
+		return models;
+	}
 	if (modelsave == ModelSaved::SAVED) {
-		return models.back();
+		return {models.back()};
 	} else {
-		return temporarymodel;
+		return {temporarymodel};
 	}
 }
 
@@ -49,7 +63,7 @@ void ModelManager::saveModel(Model * const model) {
 	if (modelsave == ModelSaved::SAVING) { //Error in saving previous model, so abort
 		throw idpexception(">> Previous model failed to save, cannot guarantee correctness.\n");
 	}
-	if (getSaveOption() == Models::BEST) {
+	if (getSaveOption() == Models::BEST && not optimalmodelfound) {
 		if (modelsave != ModelSaved::NONE) {
 			temporarymodel = models.back();
 			models.pop_back();

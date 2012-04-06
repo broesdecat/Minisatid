@@ -31,6 +31,7 @@ using Minisat::vec;
 //Has to be value copy of modes!
 PCSolver::PCSolver(SolverOption modes, Monitor* monitor, VarCreation* varcreator, LiteralPrinter* printer) :
 		_modes(modes), searchengine(NULL), monitor(monitor), varcreator(varcreator), printer(printer),
+		currentoptim(0),
 #ifdef CPSUPPORT
 				cpsolver(NULL),
 #endif
@@ -50,10 +51,7 @@ PCSolver::PCSolver(SolverOption modes, Monitor* monitor, VarCreation* varcreator
 
 PCSolver::~PCSolver() {
 	delete (queue);
-	delete (searchengine);
-#ifdef CPSUPPORT
-	delete(cpsolver);
-#endif
+	// NOTE: solvers are deleted by the queue!
 	delete (factory);
 	delete (trail);
 }
@@ -397,21 +395,13 @@ bool PCSolver::isDecided(Var var) {
 }
 
 void PCSolver::saveState() {
-	// FIXME
-//	state_savedlevel = getCurrentDecisionLevel();
-//	state_savingclauses = true;
+	getEventQueue().saveState();
+	getSolver().saveState();
 }
 
 void PCSolver::resetState() {
-	// FIXME
-//	backtrackTo(state_savedlevel);
-//	MAssert(state_savedlevel == getCurrentDecisionLevel());
-//	state_savingclauses = false;
-
-	throw notYetImplemented("Resetting state.\n");
-	//getSolver().removeClauses(state_savedclauses);
-//	state_savedclauses.clear();
-	//getSolver().removeAllLearnedClauses();
+	getSolver().resetState(); // First solver, with possible backtrack, afterwards reset propagators
+	getEventQueue().resetState();
 }
 
 // PRINT METHODS

@@ -20,7 +20,7 @@ using namespace MinisatID;
 using namespace std;
 
 EventQueue::EventQueue(PCSolver& pcsolver)
-		: pcsolver(pcsolver) {
+		: pcsolver(pcsolver), savingstate(false), backtrackedtoroot(false) {
 	event2propagator[EV_PROPAGATE];
 	event2propagator[EV_DECISIONLEVEL];
 	event2propagator[EV_BACKTRACK];
@@ -28,15 +28,47 @@ EventQueue::EventQueue(PCSolver& pcsolver)
 }
 
 EventQueue::~EventQueue() {
-	// TODO propagator deletion
-	/*for (uint i = 0; i < size(EV_EXITCLEANLY); ++i) {
-		delete (props[i]);
-	}*/
+	for(auto i=allpropagators.cbegin(); i<allpropagators.cend(); ++i) {
+		delete(*i);
+	}
 	deleteList<GenWatch>(lit2watches);
 }
 
 bool EventQueue::isUnsat() const{
 	return getPCSolver().satState() == SATVAL::UNSAT;
+}
+
+void EventQueue::saveState(){
+	savingstate = true;
+	newpropagators.clear();
+	auto props = event2propagator.at(EV_STATEFUL);
+	for (uint i = 0; i < size(EV_STATEFUL); ++i) {
+		props[i]->saveState();
+	}
+}
+void EventQueue::resetState(){
+	for(auto i=newpropagators.cbegin(); i<newpropagators.cend(); ++i) {
+		(*i)->notifyNotPresent();
+	}
+	newpropagators.clear();
+	savingstate = false;
+	auto props = event2propagator.at(EV_STATEFUL);
+	for (uint i = 0; i < size(EV_STATEFUL); ++i) {
+		props[i]->resetState();
+	}
+}
+
+// NOTE: EACH propagator has to register here for the general methods
+void EventQueue::accept(Propagator* propagator){
+#ifdef DEBUG
+	for(auto i=allpropagators.cbegin(); i<allpropagators.cend(); ++i){
+		MAssert(propagator!=*i);
+	}
+#endif
+	allpropagators.push_back(propagator);
+	if(savingstate){
+		newpropagators.push_back(propagator);
+	}
 }
 
 void EventQueue::notifyNbOfVars(uint64_t nbvars){
@@ -147,37 +179,49 @@ rClause EventQueue::notifyFullAssignmentFound(){
 	return confl;
 }
 
-void EventQueue::clearNotPresentPropagators() { // TODO restore?
+// TODO check cost of this method
+void EventQueue::clearNotPresentPropagators() {
 	//IMPORTANT: the propagators which are no longer present should be deleted from EVERY datastructure that is used later on!
-	for (auto i = event2propagator.begin(); i != event2propagator.end(); ++i) {
-		for (auto j = (*i).second.begin(); j < (*i).second.end();) {
-			if (!(*j)->isPresent()) {
-				j = (*i).second.erase(j);
-			} else {
-				++j;
-			}
-		}
-	}
 	for (auto i = lit2priority2propagators.begin(); i < lit2priority2propagators.end(); ++i) {
 		for (auto j = (*i).begin(); j != (*i).end(); ++j) {
-			for (auto k = (*j).begin(); k < (*j).end();) {
-				if (!(*k)->isPresent()) {
-					k = (*j).erase(k);
-				} else {
-					++k;
+			auto temp = *j;
+			j->clear();
+			for (auto k = temp.cbegin(); k < temp.cend(); ++k) {
+				if ((*k)->isPresent()) {
+					j->push_back(*k);
 				}
 			}
 		}
 	}
-	for (auto intvar = intvarid2propagators.begin(); intvar != intvarid2propagators.end(); ++intvar) {
-		for (auto prop = intvar->begin(); prop != intvar->end();) {
-			if (!(*prop)->isPresent()) {
-				prop = (*intvar).erase(prop);
-			} else {
-				++prop;
+
+	for (auto i = intvarid2propagators.begin(); i != intvarid2propagators.end(); ++i) {
+		auto temp = *i;
+		i->clear();
+		for (auto prop = temp.cbegin(); prop != temp.cend(); ++prop) {
+			if ((*prop)->isPresent()) {
+				i->push_back(*prop);
 			}
 		}
 	}
+
+	for (auto i = event2propagator.begin(); i != event2propagator.end(); ++i) {
+		auto temp = i->second;
+		i->second.clear();
+		for (auto prop = temp.cbegin(); prop != temp.cend();) {
+			if ((*prop)->isPresent()) {
+				i->second.push_back(*prop);
+			}
+		}
+	}
+
+	auto temp = newpropagators;
+	newpropagators.clear();
+	for(auto prop=temp.cbegin(); prop<temp.cend(); ++prop) {
+		if((*prop)->isPresent()){
+			newpropagators.push_back(*prop);
+		}
+	}
+
 	for (auto j = allpropagators.begin(); j < allpropagators.end();) {
 		if (not (*j)->isPresent()) {
 			delete (*j);
@@ -218,8 +262,6 @@ rClause EventQueue::notifyPropagate() {
 		MAssert(getPCSolver().satState()!=SATVAL::UNSAT || confl!=nullPtrClause);
 	}
 
-	// TODO clearNotPresentPropagators?
-
 	return confl;
 }
 
@@ -232,23 +274,6 @@ void EventQueue::accept(ConstraintVisitor& visitor){
 uint EventQueue::size(EVENT event) const {
 	return event2propagator.at(event).size();
 }
-
-//rClause EventQueue::notifyFullAssignmentFound() {
-	// FIXME
-	/*auto confl = nullPtrClause;
-	MAssert(getPCSolver().hasTotalModel());
-	auto props = event2propagator.at(EV_FULLASSIGNMENT);
-	// FIXME propagation can backtrack and invalidate total model, so should stop then!
-	MAssert(getPCSolver().satState()!=SATVAL::UNSAT);
-	for (uint i = 0; confl == nullPtrClause && i < size(EV_FULLASSIGNMENT) && getPCSolver().hasTotalModel(); ++i) {
-		if (!props[i]->isPresent()) {
-			continue;
-		}
-		confl = props[i]->notifyFullAssignmentFound();
-		MAssert(getPCSolver().satState()!=SATVAL::UNSAT || confl!=nullPtrClause);
-	}
-	return confl;*/
-//}
 
 void EventQueue::acceptForDecidable(Var v, Propagator* prop) {
 	MAssert((uint)v<var2decidable.size());
@@ -268,6 +293,10 @@ void EventQueue::notifyBecameDecidable(Var v) {
 }
 
 void EventQueue::notifyNewDecisionLevel() {
+	if(backtrackedtoroot){
+		backtrackedtoroot = false;
+		//clearNotPresentPropagators(); // FIXME this turns out to be extremely expensive. WHY???
+	}
 	auto props = event2propagator.at(EV_DECISIONLEVEL);
 	for (uint i = 0; i < size(EV_DECISIONLEVEL); ++i) {
 		if (!props[i]->isPresent()) {
@@ -289,4 +318,5 @@ void EventQueue::notifyBacktrack(int untillevel, const Lit& decision) {
 		}
 		props[i]->notifyBacktrack(untillevel, decision);
 	}
+	backtrackedtoroot = untillevel==0;
 }

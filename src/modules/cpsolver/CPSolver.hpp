@@ -62,12 +62,11 @@ class CPSolver: public Propagator {
 private:
 	CPSolverData* solverdata; //OWNING pointer
 
-	LitTrail trail;
+	LitTrail trail, savedtrail;
 
 	std::map<Lit, std::vector<Lit>::size_type> propreason;
 
 	bool searchedandnobacktrack;
-
 	Gecode::DFS<CPScript>* savedsearchengine;
 
 	std::set<Var> heads;
@@ -94,6 +93,12 @@ public:
 	void notifyNewDecisionLevel();
 	void notifyBacktrack(int untillevel, const Lit& decision);
 	rClause notifypropagate();
+	void saveState(){
+		savedtrail = trail; // FIXME check whether sufficient?
+	}
+	void resetState(){
+		trail = savedtrail;
+	}
 
 	// Search methods
 	bool hasData() const;

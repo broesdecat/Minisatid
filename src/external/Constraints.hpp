@@ -7,6 +7,8 @@
 #ifndef CONSTRAINTS_HPP_
 #define CONSTRAINTS_HPP_
 
+// IMPORTANT NOTE: USES REMAPPING, SO DO NOT USE INTERNALLY!!!!
+
 #include "Datastructures.hpp"
 #include "Space.hpp"
 #include <memory>

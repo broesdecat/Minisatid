@@ -88,6 +88,8 @@ public:
 	virtual rClause	propagateAtEndOfQueue	();
 	virtual void	backtrack				(int){ trail.clear(); }
 	virtual void 	getExplanation			(litlist& lits, const AggReason& ar);
+	virtual void 	saveState(){ throw idpexception("Not yet implemented");} // TODO
+	virtual void 	resetState(){ throw idpexception("Not yet implemented");} // TODO
 
 protected:
 	virtual void propagate(int level, Watch* ws, int aggindex);

@@ -12,8 +12,7 @@
 #include <cmath>
 
 using namespace std;
-
-namespace MinisatID {
+using namespace MinisatID;
 
 TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggProp const * const w, const vwl& wls, bool usewatches,
 		const std::vector<TempAgg*>& aggr, bool optim) :
@@ -31,6 +30,7 @@ TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggPro
 
 	getPCSolver().accept(this, EV_BACKTRACK);
 	getPCSolver().accept(this, EV_MODELFOUND);
+	getPCSolver().accept(this, EV_STATEFUL);
 
 	prop = getType().createPropagator(this);
 	bool sat = false;
@@ -231,8 +231,13 @@ rClause TypedSet::getExplanation(const Lit& p) {
 	return c;
 }
 
+void TypedSet::saveState(){
+	prop->saveState();
+}
+void TypedSet::resetState(){
+	prop->resetState();
+}
+
 //int TypedSet::getNbOfFormulas() const {
 //	return getAgg().size() * getWL().size() * log(getWL().size()); // Could refine depending on aggregate type
 //}
-
-} /* namespace MinisatID */

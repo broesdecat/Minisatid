@@ -123,9 +123,12 @@ public:
 		return optimization.size()>0;
 	}
 
-	OptimStatement& getCurrentOptim(){
-		MAssert(optimization.size()==1);
-		return optimization.front();
+	int currentoptim;
+	bool hasNextOptimum() const {
+		return currentoptim<optimization.size();
+	}
+	OptimStatement& getNextOptimum(){
+		return optimization[currentoptim++];
 	}
 
 	// Search

@@ -223,7 +223,7 @@ bool Solver::addClause(const std::vector<Lit>& lits) {
 			ps[j++] = p = ps[i];
 		}
 	}
-	ps.shrink(i - j);
+	ps.shrinkByNb(i - j);
 
 	// NOTE: sort randomly to reduce dependency on grounding and literal introduction mechanics (certainly for lazy grounding)
 	permuteRandomly(ps);
@@ -369,10 +369,10 @@ void Solver::attachClause(CRef cr) {
 
 void Solver::addToClauses(CRef cr, bool learnt) {
 	if (learnt) {
-		newlearnts.push_back(cr);
+		newlearnts.insert(cr);
 		learnts.push(cr);
 	} else {
-		newclauses.push_back(cr);
+		newclauses.insert(cr);
 		clauses.push(cr);
 	}
 }
@@ -420,39 +420,49 @@ void Solver::detachClause(CRef cr, bool strict) {
 
 // Store the entailed literals and save all new clauses, both in learnts and clauses
 void Solver::saveState() {
-	// Only allowed in consistent states
-	MAssert(qhead==trail.size());
-
 	// Reset stored info
-	roottraillim = trail_lim[0];
+	if(trail_lim.size()>0){
+		roottraillim = trail_lim[0];
+	}else{
+		roottraillim = trail.size();
+	}
 	newclauses.clear();
 	newlearnts.clear();
+	savedok = ok;
+	remove_satisfied = false;
 }
 
-void Solver::removeUndefs(std::vector<CRef>& newclauses, vec<CRef>& clauses){
-	for(auto i=newclauses.cbegin(); i<newclauses.cend(); ++i) {
-		removeClause(*i);
-		clauses[*i] = CRef_Undef;
-	}
+void Solver::removeUndefs(std::set<CRef>& newclauses, vec<CRef>& clauses){
 	int i, j;
 	for (i = j = 0; i < clauses.size(); i++) {
-		if (clauses[i]!=CRef_Undef){
+		if(newclauses.find(clauses[i])!=newclauses.cend()){
+			removeClause(clauses[i]);
+		}else{
 			clauses[j++] = clauses[i];
 		}
 	}
-	clauses.shrink(i - j);
+	clauses.shrinkByNb(i - j);
 	newclauses.clear();
 }
 
 // Reset always backtracks to 0 if there are new entailed literals
 void Solver::resetState() {
-	if(roottraillim != trail_lim[0]){
-		trail_lim[0] = roottraillim;
-		trail.shrink(roottraillim+1);
-		cancelUntil(0);
+	if(verbosity>3){
+		clog <<">>> Resetting the state.\n";
 	}
-	removeUndefs(newclauses, clauses);
+	ok = savedok;
+	auto newtrailrootlim = trail.size();
+	if(trail_lim.size()>0){
+		newtrailrootlim = trail_lim[0];
+	}
+	if(roottraillim != newtrailrootlim){
+		trail_lim[0] = roottraillim;
+		uncheckedBacktrack(0);
+	}
+	removeUndefs(newclauses, clauses); // TODO do not remove models!
 	removeUndefs(newlearnts, learnts);
+
+	remove_satisfied = true;
 }
 
 void Solver::removeClause(CRef cr) {
@@ -473,26 +483,33 @@ bool Solver::satisfied(const Clause& c) const {
 
 // BACKTRACKING
 
-// Revert to the state at given level (keeping all assignment at 'level' but not beyond).
-void Solver::cancelUntil(int level) {
+void Solver::uncheckedBacktrack(int level){
 	if (verbosity > 8) {
 		clog << "Backtracking to " << level << "\n";
 	}
-	if (decisionLevel() > level) {
-		Lit decision = trail[trail_lim[level]];
-		for (int c = trail.size() - 1; c >= trail_lim[level]; c--) {
-			Var x = var(trail[c]);
-			assigns[x] = l_Undef;
-			if (phase_saving > 1 || ((phase_saving == 1) && c > trail_lim.last())) polarity[x] = sign(trail[c]);
-			insertVarOrder(x);
-		}
-		qhead = trail_lim[level];
-		trail.shrink(trail.size() - trail_lim[level]);
-		int levels = trail_lim.size() - level;
-		trail_lim.shrink(levels);
+	auto levelatstart = decisionLevel();
+	Lit decision = trail[trail_lim[level]];
+	for (int c = trail.size() - 1; c >= trail_lim[level]; c--) {
+		Var x = var(trail[c]);
+		assigns[x] = l_Undef;
+		if (phase_saving > 1 || ((phase_saving == 1) && c > trail_lim.last())) polarity[x] = sign(trail[c]);
+		insertVarOrder(x);
+	}
+	qhead = trail_lim[level];
+	trail.shrinkByNb(trail.size() - trail_lim[level]);
+	int levels = trail_lim.size() - level;
+	trail_lim.shrinkByNb(levels);
+	if(levelatstart>level){
 		getPCSolver().backtrackDecisionLevel(level, decision);
 	}
 	backtracked = true;
+}
+
+// Revert to the state at given level (keeping all assignment at 'level' but not beyond).
+void Solver::cancelUntil(int level) {
+	if (decisionLevel() > level) {
+		uncheckedBacktrack(level);
+	}
 }
 
 // VARIABLE CHOICE
@@ -709,7 +726,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel) {
 		i = j = out_learnt.size();
 
 	max_literals += out_learnt.size();
-	out_learnt.shrink(i - j);
+	out_learnt.shrinkByNb(i - j);
 	tot_literals += out_learnt.size();
 
 	// Find correct backtrack level:
@@ -755,7 +772,7 @@ bool Solver::litRedundant(Lit p, uint32_t abstract_levels) {
 				} else {
 					for (int j = top; j < analyze_toclear.size(); j++)
 						seen[var(analyze_toclear[j])] = 0;
-					analyze_toclear.shrink(analyze_toclear.size() - top);
+					analyze_toclear.shrinkByNb(analyze_toclear.size() - top);
 					return false;
 				}
 			}
@@ -923,7 +940,7 @@ CRef Solver::notifypropagate() {
 
 			NextClause: ;
 		}
-		ws.shrink(i - j);
+		ws.shrinkByNb(i - j);
 		if (confl != CRef_Undef) {
 			qhead = trail.size();
 		}
@@ -965,7 +982,7 @@ void Solver::reduceDB() {
 		else
 			learnts[j++] = learnts[i];
 	}
-	learnts.shrink(i - j);
+	learnts.shrinkByNb(i - j);
 	checkGarbage();
 }
 
@@ -979,7 +996,7 @@ void Solver::removeSatisfied(vec<CRef>& cs) {
 			cs[j++] = cs[i];
 		}
 	}
-	cs.shrink(i - j);
+	cs.shrinkByNb(i - j);
 }
 
 void Solver::rebuildOrderHeap() {
@@ -1008,8 +1025,9 @@ bool Solver::simplify() {
 
 	// Remove satisfied clauses:
 	removeSatisfied(learnts);
-	if (remove_satisfied) // Can be turned off.
-	removeSatisfied(clauses);
+	if (remove_satisfied){ // Can be turned off.
+		removeSatisfied(clauses);
+	}
 	checkGarbage();
 	rebuildOrderHeap();
 
@@ -1326,9 +1344,9 @@ int Solver::printECNF(std::ostream& stream, std::set<Var>& printedvars) {
 		return 0;
 	}
 	for (int i = 0; i < clauses.size(); ++i) {
-		const Clause& clause = ca[clauses[i]];
+		const auto& clause = ca[clauses[i]];
 		stringstream ss;
-		bool clausetrue = false;
+		auto clausetrue = false;
 		for (int j = 0; not clausetrue && j < clause.size(); ++j) {
 			Lit lit = clause[j];
 			lbool val = value(lit);

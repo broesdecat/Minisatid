@@ -29,7 +29,13 @@ class ModelManager {
 private:
 	int nbmodelsfound;
 	Model* temporarymodel; //Owning pointer
-	modellist models; //IMPORTANT: for optimization problem, models will contain a series of increasingly better models
+
+	/*
+	 * Saves the models found.
+	 * For optimization problems, as long as optimum has not been proven, it is a list of increasingly better models.
+	 * When optimization has been proven, it becomes a list of optimal models.
+	 */
+	modellist models;
 	//Owning pointer
 
 	bool optimalmodelfound;
@@ -51,17 +57,16 @@ public:
 	}
 
 	void addModel(Model * const model);
-	Model* getBestModelFound() const;
+	modellist getBestModelsFound() const;
 	const modellist& getModels() const {
+		MAssert(getSaveOption()!=Models::NONE);
 		return models;
-	} //IMPORTANT: no use calling it when models are not being saved.
+	}
 
 	bool hasOptimalModel() const {
 		return optimalmodelfound;
 	}
-	void notifyOptimalModelFound() {
-		optimalmodelfound = true;
-	}
+	void notifyOptimalModelFound();
 
 	void notifyUnsat();
 	bool isSat() {

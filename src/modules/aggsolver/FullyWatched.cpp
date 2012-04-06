@@ -109,6 +109,15 @@ void FWAgg::backtrack(int untillevel){
 	}
 }
 
+void FWAgg::saveState() {
+	savedlevel = new FWTrail(*getTrail().front());
+
+}
+void FWAgg::resetState() {
+	delete(getTrail().front());
+	getTrail()[0] = savedlevel;
+}
+
 /**
  * Returns non-owning pointer
  */
@@ -190,7 +199,7 @@ rClause FWAgg::propagateAtEndOfQueue(){
 	}
 	fwobj.start = fwobj.props.size();
 
-	for(vector<int>::const_iterator i=fwobj.headindex.cbegin(); confl==nullPtrClause && i<fwobj.headindex.cend(); ++i){
+	for(auto i=fwobj.headindex.cbegin(); confl==nullPtrClause && i<fwobj.headindex.cend(); ++i){
 		pagg agg = getSet().getAgg()[*i];
 		MAssert(agg->getSet()->getAgg()[agg->getIndex()]==agg && *i == agg->getIndex());
 		lbool headval = value(agg->getHead());
@@ -350,7 +359,7 @@ void SPFWAgg::getExplanation(litlist& lits, const AggReason& ar) {
 	const int declevel = pcsolver.getCurrentDecisionLevel();
 	bool foundpropagatedlit = false;
 	if(pcsolver.modes().currentlevelfirstinexplanation && getTrail().back()->level==declevel){
-		for (vprop::const_iterator i = getTrail().back()->props.cbegin(); !stop && !foundpropagatedlit && i < getTrail().back()->props.cend(); ++i) {
+		for (auto i = getTrail().back()->props.cbegin(); !stop && !foundpropagatedlit && i < getTrail().back()->props.cend(); ++i) {
 			const Lit& lit = i->getLit();
 			MAssert(pcsolver.getLevel(var(lit))==declevel);
 			if(lit==ar.getPropLit()){ //NOTE: We only see a subset of the possibly relevant literals, so we are not guaranteed to find the full explanation before seeing the propagated literal, so we have to redo the loop later on.

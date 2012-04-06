@@ -56,6 +56,8 @@ public:
 	virtual void notifyBacktrack(int untillevel, const Lit& decision);
 	virtual rClause notifypropagate();
 	virtual rClause notifyFullAssignmentFound();
+	virtual void saveState();
+	virtual void resetState();
 
 	// additional
 	rClause notifySolver(AggReason* ar);

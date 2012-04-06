@@ -64,6 +64,8 @@ public:
 	virtual void notifyBacktrack(int untillevel, const Lit& decision); // NOTE: call explicitly when using hasnextprop/nextprop!
 	virtual rClause notifypropagate() = 0;
 	virtual rClause notifyFullAssignmentFound(){ throw idpexception("Operation applied to invalid propagator."); }
+	virtual void saveState(){ throw idpexception("Operation applied to invalid propagator."); }
+	virtual void resetState(){ throw idpexception("Operation applied to invalid propagator."); }
 
 	// Convenience methods (based on getPCSolver)
 	const PCSolver& getPCSolver() const {

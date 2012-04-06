@@ -68,8 +68,6 @@ void MinisatID::print(int verbosity, const TypedSet& c, bool endl) {
 			}
 			begin = false;
 			clog <<c.toString((*i).getLit());
-			lbool value = c.value((*i).getLit());
-			printValue(clog, value);
 			clog <<"=" <<(*i).getWeight();
 		}
 		clog <<" }, KB=" <<c.getKnownBound();

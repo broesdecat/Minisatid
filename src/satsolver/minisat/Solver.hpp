@@ -88,7 +88,7 @@ public:
 	int printECNF(std::ostream& stream, std::set<Var>& printedvars); // Returns the number of clauses that were added
 
 private:
-	void removeUndefs(std::vector<CRef>& newclauses, vec<CRef>& clauses);
+	void removeUndefs(std::set<CRef>& newclauses, vec<CRef>& clauses);
 public:
 	void saveState();
 	void resetState();
@@ -113,6 +113,8 @@ public:
 	}
 
 	void cancelUntil(int level); // Backtrack until a certain level.
+	void uncheckedBacktrack(int level); // Dangerous! Backtracks to level, without printing info or checking where we are at the moment!
+
 	void uncheckedEnqueue(Lit p, CRef from = CRef_Undef); // Enqueue a literal. Assumes value of literal is undefined
 	std::vector<Lit> getDecisions() const;
 	int decisionLevel() const; // Gives the current decisionlevel.
@@ -310,7 +312,8 @@ protected:
 	int learntsize_adjust_cnt;
 
 	// State saving
-	std::vector<CRef> newclauses, newlearnts;
+	bool savedok;
+	std::set<CRef> newclauses, newlearnts;
 	uint roottraillim;
 
 	// Main internal methods

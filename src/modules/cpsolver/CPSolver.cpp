@@ -58,6 +58,7 @@ CPSolver::CPSolver(PCSolver * solver) :
 		Propagator(solver, "CP-solver"), solverdata(new CPSolverData()), searchedandnobacktrack(false), savedsearchengine(NULL) {
 	getPCSolver().accept(this, EV_BACKTRACK);
 	getPCSolver().accept(this, EV_DECISIONLEVEL);
+	getPCSolver().accept(this, EV_STATEFUL);
 }
 
 CPSolver::~CPSolver() {

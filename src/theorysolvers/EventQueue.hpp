@@ -46,17 +46,17 @@ private:
 
 	watchlist propagatewatchesasap;
 
+	bool savingstate;
+	proplist newpropagators;
+
+	bool backtrackedtoroot;
+
 public:
 	EventQueue(PCSolver& pcsolver);
 	virtual ~EventQueue();
 
 	// NOTE: EACH propagator has to register here for the general methods
-	void accept(Propagator* propagator){
-		for(proplist::const_iterator i=allpropagators.cbegin(); i<allpropagators.cend(); ++i){
-			MAssert(propagator!=*i);
-		}
-		allpropagators.push_back(propagator);
-	}
+	void accept(Propagator* propagator);
 
 	void acceptForBacktrack(Propagator* propagator){
 		backtrackqueue.push_back(propagator);
@@ -64,6 +64,9 @@ public:
 	void acceptForPropagation(Propagator* propagator){
 		fastqueue.push_back(propagator);
 	}
+
+	void saveState();
+	void resetState();
 
 	rClause notifyFullAssignmentFound();
 

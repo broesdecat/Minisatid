@@ -149,8 +149,8 @@ public:
 
 
     int          size        ()      const   { return header.size; }
-    void         shrink      (int i)         { assert(i <= size()); if (header.has_extra) data[header.size-i] = data[header.size]; header.size -= i; }
-    void         pop         ()              { shrink(1); }
+    void         shrinkByNb      (int i)         { assert(i <= size()); if (header.has_extra) data[header.size-i] = data[header.size]; header.size -= i; }
+    void         pop         ()              { shrinkByNb(1); }
     bool         learnt      ()      const   { return header.learnt; }
     bool         has_extra   ()      const   { return header.has_extra; }
     uint32_t     mark        ()      const   { return header.mark; }
@@ -298,7 +298,7 @@ void OccLists<Idx,Vec,Deleted>::clean(const Idx& idx)
     for (i = j = 0; i < vec.size(); i++)
         if (!deleted(vec[i]))
             vec[j++] = vec[i];
-    vec.shrink(i - j);
+    vec.shrinkByNb(i - j);
     dirty[toInt(idx)] = 0;
 }
 

@@ -76,6 +76,8 @@ enum class MXState {
 	MODEL, UNSAT, UNKNOWN
 };
 
+class OptimStatement;
+
 class ModelExpand: public SpaceTask {
 private:
 	const ModelExpandOptions _options;
@@ -102,11 +104,14 @@ private:
 	MXState findNext(const litlist& assmpt, const ModelExpandOptions& options);
 	void invalidate(litlist& clause);
 	SATVAL invalidateModel(const litlist& clause);
-	bool invalidateSubset(litlist& invalidation, litlist& assmpt);
-	bool invalidateValue(litlist& invalidation);
-	void findOptimal(const litlist& assmpt);
-	bool invalidateAgg(litlist& invalidation);
 
+	bool findOptimal(const litlist& assmpt, OptimStatement& optim);
+	Weight latestaggoptimum; // FIXME move to modelmanager;
+	Lit latestlistoptimum; // FIXME move to modelmanager;
+	litlist latestsubsetoptimum, saveddecisions; // FIXME move to modelmanager;
+	bool invalidateAgg(litlist& invalidation, OptimStatement& optim);
+	bool invalidateSubset(litlist& invalidation, litlist& assmpt, OptimStatement& optim);
+	bool invalidateValue(litlist& invalidation, OptimStatement& optim);
 	void notifyCurrentOptimum(const Weight& value) const;
 
 	void addModel(std::shared_ptr<Model> model);
