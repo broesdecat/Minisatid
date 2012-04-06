@@ -55,7 +55,9 @@ lbool LitTrail::value(const Lit& l) const {
 }
 
 CPSolver::CPSolver(PCSolver * solver) :
-		Propagator(solver, "CP-solver"), solverdata(new CPSolverData()), searchedandnobacktrack(false), savedsearchengine(NULL) {
+		Propagator(solver, "CP-solver"), solverdata(new CPSolverData()),
+		addedconstraints(false),
+		searchedandnobacktrack(false), savedsearchengine(NULL) {
 	getPCSolver().accept(this, EV_BACKTRACK);
 	getPCSolver().accept(this, EV_DECISIONLEVEL);
 	getPCSolver().accept(this, EV_STATEFUL);
@@ -145,15 +147,17 @@ void CPSolver::add(ReifiedConstraint* c) {
 	getPCSolver().accept(this, mkNegLit(c->getHead()), SLOW);
 	getPCSolver().accept(this, not mkNegLit(c->getHead()), SLOW);
 	getData().addReifConstraint(c);
-	addConstraint(c);
+	addedConstraint();
 }
 
 void CPSolver::add(NonReifiedConstraint* c) {
 	getData().addNonReifConstraint(c);
-	addConstraint(c);
+	addedConstraint();
 }
 
-void CPSolver::addConstraint(Constraint* c) {
+void CPSolver::addedConstraint() {
+	addedconstraints = true;
+
 	// Propagate until fixpoint
 	StatusStatistics stats;
 	SpaceStatus status = getSpace().status(stats);

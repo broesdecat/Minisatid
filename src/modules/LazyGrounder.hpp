@@ -60,7 +60,7 @@ public:
 	virtual void accept(ConstraintVisitor& visitor){ throw notYetImplemented("Accept"); }
 	virtual rClause getExplanation(const Lit&) { MAssert(false); return nullPtrClause;}
 	virtual void notifyNewDecisionLevel() { MAssert(false); }
-	virtual void notifyBacktrack(int untillevel, const Lit& decision){ MAssert(false); }
+	virtual void notifyBacktrack(int, const Lit&){ MAssert(false); }
 };
 }
 

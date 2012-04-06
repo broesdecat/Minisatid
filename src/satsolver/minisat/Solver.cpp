@@ -61,22 +61,52 @@ static DoubleOption opt_garbage_frac(_cat, "gc-frac", "The fraction of wasted me
 // Constructor/Destructor:
 
 Solver::Solver(PCSolver* s) :
-		Propagator(s, "satsolver"), needsimplify(true), backtracked(true),
-		// Parameters (user settable):
-		verbosity(getPCSolver().verbosity()), var_decay(opt_var_decay), clause_decay(opt_clause_decay), random_var_freq(opt_random_var_freq), random_seed(
-				opt_random_seed), luby_restart(opt_luby_restart), ccmin_mode(opt_ccmin_mode), phase_saving(opt_phase_saving), rnd_pol(false), rnd_init_act(
-				opt_rnd_init_act), garbage_frac(opt_garbage_frac), restart_first(opt_restart_first), restart_inc(opt_restart_inc)
+		Propagator(s, "satsolver"),
+		random_var_freq(opt_random_var_freq),
+		random_seed(opt_random_seed),
+		verbosity(getPCSolver().verbosity()),
+		var_decay(opt_var_decay),
+		rnd_pol(false),
+		needsimplify(true),
+		backtracked(true),
+
+		clause_decay(opt_clause_decay),
+		luby_restart(opt_luby_restart),
+		ccmin_mode(opt_ccmin_mode),
+		phase_saving(opt_phase_saving),
+		rnd_init_act(opt_rnd_init_act),
+		garbage_frac(opt_garbage_frac),
+		restart_first(opt_restart_first),
+		restart_inc(opt_restart_inc)
 
 		// Parameters (the rest):
-				, learntsize_factor((double) 1 / (double) 3), learntsize_inc(1.1)
+		, learntsize_factor((double) 1 / (double) 3),
+		learntsize_inc(1.1)
 
 		// Parameters (experimental):
-				, learntsize_adjust_start_confl(100), learntsize_adjust_inc(1.5)
+		, learntsize_adjust_start_confl(100),
+		learntsize_adjust_inc(1.5)
 
 		// Statistics: (formerly in 'SolverStats')
-				, starts(0), decisions(0), rnd_decisions(0), propagations(0), conflicts(0), dec_vars(0), clauses_literals(0), learnts_literals(0), max_literals(
-				0), tot_literals(0), ok(true), cla_inc(1), var_inc(1), watches(WatcherDeleted(ca)), qhead(0), simpDB_assigns(-1), simpDB_props(0), order_heap(
-				VarOrderLt(activity)), remove_satisfied(true) {
+		, starts(0),
+		decisions(0),
+		rnd_decisions(0),
+		propagations(0),
+		conflicts(0),
+		dec_vars(0),
+		clauses_literals(0),
+		learnts_literals(0),
+		max_literals(0),
+		tot_literals(0),
+		ok(true),
+		cla_inc(1),
+		var_inc(1),
+		watches(WatcherDeleted(ca)),
+		qhead(0),
+		simpDB_assigns(-1),
+		simpDB_props(0),
+		order_heap(VarOrderLt(activity)),
+		remove_satisfied(true) {
 	getPCSolver().accept(this, EV_PROPAGATE);
 }
 
@@ -455,7 +485,7 @@ void Solver::resetState() {
 	if(trail_lim.size()>0){
 		newtrailrootlim = trail_lim[0];
 	}
-	if(roottraillim != newtrailrootlim){
+	if(roottraillim != (uint)newtrailrootlim){
 		trail_lim[0] = roottraillim;
 		uncheckedBacktrack(0);
 	}
@@ -857,7 +887,7 @@ CRef Solver::notifypropagate() {
 	if(backtracked){
 		auto level = decisionLevel();
 		for(auto i=rootunitlits.begin(); i!=rootunitlits.end();) {
-			if(i->level<=level){
+			if(i->level<=(uint)level){
 				checkedEnqueue(i->lit, i->explan);
 				++i;
 			}else{

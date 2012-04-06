@@ -15,7 +15,7 @@ using namespace std;
 using namespace MinisatID;
 using namespace Minisat;
 
-SymmetryData::SymmetryData(int nVars, const Symmetry& symmetry): sym(symmetry){
+SymmetryData::SymmetryData(const Symmetry& symmetry): sym(symmetry){
 	for(auto i=sym.symmetry.cbegin(); i!=sym.symmetry.cend(); ++i){
 		if(i->first!=i->second){
 			continue;
@@ -25,7 +25,7 @@ SymmetryData::SymmetryData(int nVars, const Symmetry& symmetry): sym(symmetry){
 }
 
 SymmetryPropagator::SymmetryPropagator(PCSolver* solver, const Symmetry& sym)
-		: Propagator(solver, "symmetry propagator"), symmetry(solver->nVars(), sym) {
+		: Propagator(solver, "symmetry propagator"), symmetry(sym) {
 	amountNeededForActive = 0;
 	reasonOfPermInactive = lit_Undef;
 	nextToPropagate = 0;
@@ -137,7 +137,7 @@ Lit SymmetryPropagator::getNextToPropagate() {
 		return notifiedLits[nextToPropagate];
 	} else {
 		MAssert(useInactivePropagationOptimization());
-		int nextToPropagateInactive = nextToPropagate;
+		auto nextToPropagateInactive = nextToPropagate;
 		while (nextToPropagateInactive < notifiedLits.size() && not canPropagate(notifiedLits[nextToPropagateInactive])) {
 			++nextToPropagateInactive;
 		}
@@ -240,7 +240,7 @@ void SymmetryPropagator::notifyNewDecisionLevel(){
 }
 
 // Reset activity and number of needed literals
-void SymmetryPropagator::notifyBacktrack(int untillevel, const Lit& decision) {
+void SymmetryPropagator::notifyBacktrack(int untillevel, const Lit&) {
 	nextToPropagate = 0;
 	reasonOfPermInactive = activityTrail[untillevel];
 	activityTrail.resize(untillevel+1);
@@ -260,10 +260,10 @@ bool SymmetryPropagator::isPermanentlyInactive() {
 
 bool SymmetryPropagator::testIsActive(const std::vector<Lit>& trail) {
 	std::set<Lit> trailCopy;
-	for (int i = 0; i < trail.size(); ++i) {
+	for (uint i = 0; i < trail.size(); ++i) {
 		trailCopy.insert(trail[i]);
 	}
-	for (int i = 0; i < trail.size(); ++i) {
+	for (uint i = 0; i < trail.size(); ++i) {
 		Lit l = trail[i];
 		if (getPCSolver().isDecided(var(l))) {
 			if (!trailCopy.count(getSymmetrical(l))) {
@@ -276,10 +276,10 @@ bool SymmetryPropagator::testIsActive(const std::vector<Lit>& trail) {
 
 bool SymmetryPropagator::testIsPermanentlyInactive(const std::vector<Lit>& trail) {
 	std::set<Lit> trailCopy;
-	for (int i = 0; i < trail.size(); ++i) {
+	for (uint i = 0; i < trail.size(); ++i) {
 		trailCopy.insert(trail[i]);
 	}
-	for (int i = 0; i < trail.size(); ++i) {
+	for (uint i = 0; i < trail.size(); ++i) {
 		Lit l = trail[i];
 		if (getPCSolver().isDecided(var(l))) {
 			if (trailCopy.count(~getSymmetrical(l))) {
@@ -304,7 +304,6 @@ rClause SymmetryPropagator::propagateSymmetrical(const Lit& l){
 	}
 	auto symlit = implic.literals[0];
 	auto neglit = implic.literals[1];
-	auto level = getPCSolver().getLevel(var(neglit));
 	MAssert(value(symlit)!=l_True);
 	MAssert(value(neglit)==l_False);
 
@@ -365,7 +364,7 @@ void SymmetryPropagator::testActivityForSymmetries(){
 		printf("symmetry says: %i - ",isActive() );
 		printf("test says: %i\n",testIsActive(trail) );
 		print();
-		for(int j=0; j<trail.size(); ++j){
+		for(uint j=0; j<trail.size(); ++j){
 			printf("%i | %i | %i\n",getPCSolver().getLevel(var(trail[j])),toInt(trail[j]),getPCSolver().isDecided(var(trail[j])));
 		}
 		MAssert(false);

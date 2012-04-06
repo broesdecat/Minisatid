@@ -28,6 +28,8 @@ enum class SolvingState { STARTED, FINISHEDCLEANLY, ABORTED};
 
 class Printer{
 private:
+	Models printoption;
+
 	ModelManager* modelmanager;
 	Space* space;
 	std::shared_ptr<ResMan> resman;
@@ -36,9 +38,7 @@ private:
 	bool		optimizing;
 	SolvingState solvingstate;
 
-	Models printoption;
-
-	double 		startfinish, endfinish, startsimpl, endsimpl, startsolve, endsolve;
+	double 	startfinish, endfinish, startsimpl, endsimpl, startsolve, endsolve;
 
 public:
 	Printer(ModelManager* modelmanager, Space* translator, Models printoption, const SolverOption& modes);

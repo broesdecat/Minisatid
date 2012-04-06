@@ -206,7 +206,7 @@ MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& o
 		}
 
 		//Invalidate SAT model
-		if (getSolver().getCurrentDecisionLevel() != assmpt.size()) { //choices were made, so other models possible
+		if ((uint)getSolver().getCurrentDecisionLevel() != assmpt.size()) { //choices were made, so other models possible
 			Disjunction invalidation;
 			invalidate(invalidation.literals);
 			moremodels = invalidateModel(invalidation.literals) == SATVAL::POS_SAT;
@@ -364,10 +364,13 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 		case Optim::AGG:
 			unsatreached = invalidateAgg(invalidation.literals, optim);
 			break;
+		case Optim::VAR:{
+			throw notYetImplemented("Optimization over fd-var."); // TODO
+			break;}
 		}
 
 		if (not unsatreached) {
-			if (getSolver().getCurrentDecisionLevel() != currentassmpt.size()) { //choices were made, so other models possible
+			if ((uint)getSolver().getCurrentDecisionLevel() != currentassmpt.size()) { //choices were made, so other models possible
 				unsatreached = invalidateModel(invalidation.literals) == SATVAL::UNSAT;
 			} else {
 				unsatreached = true;
@@ -396,8 +399,10 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 		case Optim::AGG: {
 			auto agg = optim.agg_to_minimize;
 			agg->setBound(AggBound(agg->getSign(), latestaggoptimum));
-			break;
-		}
+			break;}
+		case Optim::VAR:{
+			throw notYetImplemented("Optimization over fd-var."); // TODO
+			break;}
 		}
 	}
 

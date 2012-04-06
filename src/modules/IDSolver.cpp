@@ -44,8 +44,16 @@ IDAgg::IDAgg(const Lit& head, AggBound b, AggSem sem, AggType type, const std::v
 }
 
 IDSolver::IDSolver(PCSolver* s, int definitionID) :
-		Propagator(s, "definition"), definitionID(definitionID), needinitialization(false), infactnotpresent(false), minvar(0), nbvars(0), conj(
-				DefType::CONJ), disj(DefType::DISJ), aggr(DefType::AGGR), _seen(NULL), sem(getPCSolver().modes().defsem), posrecagg(false), mixedrecagg(
+		Propagator(s, "definition"),
+		definitionID(definitionID),
+		needinitialization(false),
+		infactnotpresent(false),
+		minvar(0),
+		nbvars(0),
+		conj(DefType::CONJ),
+		disj(DefType::DISJ),
+		aggr(DefType::AGGR),
+		_seen(NULL), sem(getPCSolver().modes().defsem), posrecagg(false), mixedrecagg(
 				false), posloops(true), negloops(true), backtracked(true), adaption_total(0), adaption_current(0), twovalueddef(false) {
 	getPCSolver().accept(this, EV_DECISIONLEVEL);
 	getPCSolver().accept(this, EV_BACKTRACK);

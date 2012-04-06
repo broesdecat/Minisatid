@@ -41,7 +41,7 @@ public:
 	}
 
 	void visit(const Disjunction& clause) {
-		for (int i = 0; i < clause.literals.size(); ++i) {
+		for (uint i = 0; i < clause.literals.size(); ++i) {
 			target() <<toString(clause.literals[i]) << " ";
 		}
 		target() << "0\n";
@@ -49,7 +49,7 @@ public:
 
 	void visit(const Rule& rule) {
 		target() << (rule.conjunctive ? "C" : "D") << " " << toString(mkPosLit(rule.head)) << " ";
-		for (int i = 0; i < rule.body.size(); ++i) {
+		for (uint i = 0; i < rule.body.size(); ++i) {
 			target() << toString(rule.body[i]) << " ";
 		}
 		target() << "0\n";

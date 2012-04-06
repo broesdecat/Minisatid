@@ -16,7 +16,7 @@ using namespace MinisatID;
 
 TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggProp const * const w, const vwl& wls, bool usewatches,
 		const std::vector<TempAgg*>& aggr, bool optim) :
-		Propagator(solver, "aggregate"), kb(knownbound), type(w), prop(NULL), setid(setid), usingwatches(usewatches), wl(wls) {
+		Propagator(solver, "aggregate"), kb(knownbound), wl(wls), type(w), prop(NULL), setid(setid), usingwatches(usewatches) {
 
 	MAssert(not optim || aggr.size()==1);
 	for (auto i = aggr.cbegin(); i < aggr.cend(); ++i) {

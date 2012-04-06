@@ -30,12 +30,19 @@ using Minisat::vec;
 
 //Has to be value copy of modes!
 PCSolver::PCSolver(SolverOption modes, Monitor* monitor, VarCreation* varcreator, LiteralPrinter* printer) :
-		_modes(modes), searchengine(NULL), monitor(monitor), varcreator(varcreator), printer(printer),
+		_modes(modes),
+		varcreator(varcreator),
+		monitor(monitor),
 		currentoptim(0),
+		searchengine(NULL),
 #ifdef CPSUPPORT
-				cpsolver(NULL),
+		cpsolver(NULL),
 #endif
-				queue(NULL), factory(NULL), trail(new TimeTrail()), terminate(false) {
+		factory(NULL),
+		trail(new TimeTrail()),
+		terminate(false),
+		printer(printer),
+		queue(NULL) {
 	queue = new EventQueue(*this);
 	searchengine = createSolver(this);
 #ifdef CPSUPPORT
@@ -225,7 +232,7 @@ void PCSolver::accept(Propagator* propagator, const Lit& lit, PRIORITY priority)
 Var PCSolver::newVar() {
 	auto newnbvars = nVars() + 1;
 	auto var = varcreator->createVar();
-	MAssert(var==newnbvars-1);
+	MAssert((uint64_t)var==newnbvars-1);
 	getEventQueue().notifyNbOfVars(newnbvars); // IMPORTANT to do it before effectively creating it in the solver (might trigger grounding)
 	createVar(var, lazyDecide());
 	MAssert(nVars()==newnbvars);
@@ -328,7 +335,7 @@ bool compareByPriority(const T& left, const T& right) {
 
 void PCSolver::finishParsing() {
 	sort(optimization.begin(), optimization.end(), compareByPriority<OptimStatement>);
-	for (int i = 1; i < optimization.size(); ++i) {
+	for (uint i = 1; i < optimization.size(); ++i) {
 		if (optimization[i].priority == optimization[i - 1].priority) {
 			throw idpexception("Two optimization statement cannot have the same priority.");
 		}

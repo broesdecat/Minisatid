@@ -161,6 +161,7 @@ class IDSolver: public Propagator{
 private:
 	int definitionID;
 
+	bool needinitialization;
 	bool infactnotpresent; // NOTE: last one because ispresent will always be true when lazy grounding
 
 	Var minvar, nbvars; //The lowest and highest headvariable. INVAR: Definitions will be offset by minvar and the size will be nbvars
@@ -188,8 +189,6 @@ private:
 	Disjunction	savedloopf;
 
 	IDStats				stats;
-
-	bool needinitialization;
 
 public:
 	IDSolver(PCSolver* s, int definitionID);

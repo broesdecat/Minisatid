@@ -61,8 +61,10 @@ void throwHeadOccursInSet(const std::string& head, int setid) {
 }
 
 PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine) :
-		engine(engine), parsing(true), maxset(1),
-		definitions(new Definition(engine)){
+		engine(engine),
+		definitions(new Definition(engine)),
+		parsing(true),
+		maxset(1) {
 	SATStorage::setStorage(engine->getSATSolver());
 #ifdef CPSUPPORT
 	CPStorage::setStorage(engine->getCPSolverp());

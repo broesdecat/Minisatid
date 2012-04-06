@@ -62,6 +62,7 @@ class CPSolver: public Propagator {
 private:
 	CPSolverData* solverdata; //OWNING pointer
 
+	bool addedconstraints;
 	LitTrail trail, savedtrail;
 
 	std::map<Lit, std::vector<Lit>::size_type> propreason;
@@ -94,9 +95,15 @@ public:
 	void notifyBacktrack(int untillevel, const Lit& decision);
 	rClause notifypropagate();
 	void saveState(){
-		savedtrail = trail; // FIXME check whether sufficient?
+		// TODO save new constraints
+		addedconstraints = false;
+		savedtrail = trail;
 	}
 	void resetState(){
+		// TODO remove new constraints
+		if(addedconstraints){
+			throw notYetImplemented("Remove new cp constraints added during search.");
+		}
 		trail = savedtrail;
 	}
 
@@ -108,7 +115,7 @@ private:
 	void checkHeadUniqueness(ReifiedConstraint const * const c);
 	void add(ReifiedConstraint* c);
 	void add(NonReifiedConstraint* c);
-	void addConstraint(Constraint* c);
+	void addedConstraint();
 
 	rClause propagateReificationConstraints();
 

@@ -40,7 +40,7 @@ namespace MinisatID{
 		Gecode::IntVar 	getIntVar(const CPScript& space) 	const;
 
 		bool 	operator==(const TermIntVar& rhs)	const { return this->operator ==(rhs.ID); }
-		bool 	operator==(const int& rhs) 			const { return ID==rhs; }
+		bool 	operator==(const int& rhs) 			const { return ID==(uint)rhs; }
 
 		friend std::ostream &operator<<(std::ostream &stream, const TermIntVar& tiv);
 	};

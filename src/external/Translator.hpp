@@ -97,7 +97,7 @@ public:
 		return false;
 	}
 
-	virtual void printCurrentOptimum(std::ostream& output, const Weight& value) {
+	virtual void printCurrentOptimum(std::ostream&, const Weight&) {
 	}
 	virtual void printHeader(std::ostream&) {
 	}

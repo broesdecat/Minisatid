@@ -22,7 +22,7 @@ class SymmetryData {
 private:
 	Symmetry sym, inverse; // Maps a literal, by its numeric equiv, to its sym/inverse literal.
 public:
-	SymmetryData(int nVars, const Symmetry& symmetry);
+	SymmetryData(const Symmetry& symmetry);
 
 	Lit getSymmetrical(const Lit& lit) const {
 		return sym.symmetry.at(lit);
@@ -42,7 +42,7 @@ class SymmetryPropagator: public Propagator {
 private:
 	const SymmetryData symmetry;
 	std::vector<Lit> notifiedLits;
-	int amountNeededForActive, nextToPropagate;
+	uint amountNeededForActive, nextToPropagate;
 	Lit reasonOfPermInactive;
 
 	std::vector<Lit> activityTrail;

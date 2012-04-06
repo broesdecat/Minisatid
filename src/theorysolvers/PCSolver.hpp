@@ -123,7 +123,7 @@ public:
 		return optimization.size()>0;
 	}
 
-	int currentoptim;
+	uint currentoptim;
 	bool hasNextOptimum() const {
 		return currentoptim<optimization.size();
 	}
@@ -174,7 +174,6 @@ public:
 
 	// State
 private:
-
 	// Explanation dummies: used to fix up learned clauses which are too small
 	Var dummy1, dummy2;
 
