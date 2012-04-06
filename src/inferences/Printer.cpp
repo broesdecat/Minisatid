@@ -34,7 +34,12 @@ Printer::Printer(ModelManager* modelmanager, Space* space, Models printoption, c
 		optimizing(false), solvingstate(SolvingState::STARTED),
 		startfinish(0), endfinish(-1), startsimpl(0), endsimpl(-1), startsolve(0), endsolve(-1){
 
-	resman = std::shared_ptr<ResMan>(new StdMan(false));
+	if(modes.outputfile==""){
+		resman = std::shared_ptr<ResMan>(new StdMan(false));
+	}else{
+		resman = std::shared_ptr<ResMan>(new FileMan(modes.outputfile, true));
+	}
+
 }
 
 Printer::~Printer(){

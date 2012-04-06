@@ -394,7 +394,7 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 			getSolver().add(Disjunction( { latestlistoptimum }));
 			break;
 		case Optim::SUBSET:
-			getSolver().add(Disjunction( { latestsubsetoptimum }));
+			getSolver().add(Disjunction( latestsubsetoptimum));
 			break;
 		case Optim::AGG: {
 			auto agg = optim.agg_to_minimize;
