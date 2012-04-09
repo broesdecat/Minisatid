@@ -42,7 +42,7 @@ TEST(CPTest, MagicSeq) {
 	add(*space, Disjunction({mkPosLit(1), mkPosLit(2), mkPosLit(3)}));
 	vector<Weight> mult;
 	vector<uint> elemx;
-	int n = 1000;
+	int n = 100;
 	for(uint i=0; i<n; ++i){
 		mult.push_back(Weight(i-1));
 		int x = i;
