@@ -8,7 +8,7 @@
  */
 
 #include "external/Options.hpp"
-#include "utils/FileUtils.hpp"
+#include "utils/FileManagement.hpp"
 #include "satsolver/SATUtils.hpp"
 #include "utils/Print.hpp"
 
@@ -56,7 +56,8 @@ SolverOption::SolverOption():
 		innogoodfirstinexplanation(true),
 		lazy(false),
 		usegecode(false),
-		outputfile(""){
+		outputfile(""),
+		maxNbOfLearnedClauses(numeric_limits<int>::max()){
 	stringstream str;
 	str <<DATADIR <<"/P1.TXT";
 	primesfile = str.str();
@@ -108,4 +109,5 @@ void SolverOption::print(std::ostream& so) const{
 	so << "ufsvarintrothreshold: " <<ufsvarintrothreshold <<"\n";
 	so << "lazy: " 				<<(lazy?"yes":"no") <<"\n";
 	so << "outputfile: "		<<outputfile <<"\n";
+	so << "max number of learned clauses: " <<maxNbOfLearnedClauses <<"\n";
 }

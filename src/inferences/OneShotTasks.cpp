@@ -26,10 +26,7 @@ void OneShotUnsatCoreExtraction::add(const Disjunction& disjunction) {
  */
 
 void OneShotUnsatCoreExtraction::innerExecute() {
-	ModelExpandOptions mxoptions;
-	mxoptions.nbmodelstofind = 0;
-	mxoptions.printmodels = Models::NONE;
-	mxoptions.savemodels = Models::NONE;
+	ModelExpandOptions mxoptions(0, Models::NONE, Models::NONE);
 	auto mx = ModelExpand(space, mxoptions, markerAssumptions);
 	mx.execute();
 	MAssert(mx.getSolutions().size()==0);

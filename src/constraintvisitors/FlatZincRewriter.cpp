@@ -376,19 +376,14 @@ void FlatZincRewriter<Stream>::addSum(const Aggregate& agg, const WLSet& set) {
 
 template<typename Stream>
 uint FlatZincRewriter<Stream>::createCpVar(const Weight& min, const Weight& max) {
-	IntVarRange newvar;
-	newvar.varID = maxcpnumber + 1;
-	newvar.minvalue = min;
-	newvar.maxvalue = max;
+	IntVarRange newvar(maxcpnumber + 1, min, max);
 	visit(newvar);
 	return newvar.varID;
 }
 
 template<typename Stream>
 uint FlatZincRewriter<Stream>::createCpVar(const std::vector<Weight>& values) {
-	IntVarEnum newvar;
-	newvar.varID = maxcpnumber + 1;
-	newvar.values = values;
+	IntVarEnum newvar(maxcpnumber + 1, values);
 	visit(newvar);
 	return newvar.varID;
 }

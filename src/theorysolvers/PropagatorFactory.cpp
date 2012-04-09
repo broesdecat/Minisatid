@@ -63,8 +63,8 @@ void throwHeadOccursInSet(const std::string& head, int setid) {
 PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine) :
 		engine(engine),
 		definitions(new Definition(engine)),
-		parsing(true),
-		maxset(1) {
+		maxset(1),
+		finishedparsing(false){
 	SATStorage::setStorage(engine->getSATSolver());
 #ifdef CPSUPPORT
 	CPStorage::setStorage(engine->getCPSolverp());
@@ -95,7 +95,6 @@ void PropagatorFactory::notifyMonitorsOfAdding(const T& obj) const {
 }
 
 int PropagatorFactory::newSetID() {
-	MAssert(!isParsing());
 	return maxset++;
 }
 
@@ -223,7 +222,7 @@ void PropagatorFactory::addAggrExpr(Var head, int setid, AggSign sign, const Wei
 	auto agg = new TempAgg(mkPosLit(head), AggBound(sign, bound), sem == AggSem::DEF ? AggSem::COMP : sem, type);
 	set.aggs.push_back(agg);
 
-	if (not isParsing()) {
+	if (finishedParsing()) {
 		finishSet(set.set, set.aggs);
 	}
 }
@@ -480,8 +479,7 @@ SATVAL PropagatorFactory::finishSet(const WLSet* origset, vector<TempAgg*>& aggs
 }
 
 SATVAL PropagatorFactory::finishParsing() {
-	MAssert(isParsing());
-	parsing = false;
+	finishedparsing = true;
 
 	for (auto i = parsingmonitors.cbegin(); i < parsingmonitors.cend(); ++i) {
 		(*i)->notifyEnd();

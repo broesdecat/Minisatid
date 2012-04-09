@@ -50,6 +50,8 @@ public:
 	int verbosity;
 	double var_decay;
 	bool rnd_pol; // Use random polarities for branching heuristics.
+	int max_learned_clauses;
+	bool firsttime; // true if no solving has been done yet (so no resetting is necessary)
 
 	void setInitialPolarity(Var var, bool pol) {
 		polarity[var] = pol;
@@ -64,12 +66,13 @@ private:
 	 * 				drop the others
 	 */
 	bool backtracked;
-	struct ReverseTrailElem{
+	struct ReverseTrailElem {
 		Lit lit;
 		uint level;
 		CRef explan;
 
-		ReverseTrailElem(Lit lit, uint level, CRef explan): lit(lit), level(level), explan(explan){
+		ReverseTrailElem(Lit lit, uint level, CRef explan)
+				: lit(lit), level(level), explan(explan) {
 			MAssert(explan!=CRef_Undef);
 		}
 	};
@@ -146,8 +149,8 @@ public:
 	//PROPAGATOR CODE
 	// TODO split up in search and propagator
 	virtual void accept(MinisatID::ConstraintVisitor& visitor) {
+		// FIXME
 	}
-	; // FIXME
 	CRef getExplanation(const Lit& l) {
 		return reason(var(l));
 	}
@@ -165,7 +168,7 @@ public:
 	}
 
 	bool isDecided(Var v) {
-		return var(trail[trail_lim[getLevel(v)-1]]) == v;
+		return var(trail[trail_lim[getLevel(v) - 1]]) == v;
 	}
 
 	int getLevel(Var x) const;
@@ -176,7 +179,8 @@ public:
 	// NOTE: SHOULD ONLY BE CALLED BY PCSOLVER::CREATEVAR
 	Var newVar(lbool upol = l_Undef, bool dvar = true); // Add a new variable with parameters specifying variable mode.
 
-	lbool solve(const litlist& assumps/*AB*/, bool nosearch = false/*AE*/); // Search for a model that respects a given set of assumptions.
+	void setAssumptions(const litlist& assumps);
+	lbool solve(bool nosearch = false); // Search for a model that respects a given set of assumptions.
 
 private:
 	bool simplify(); // Removes already satisfied clauses.
@@ -204,7 +208,7 @@ private:
 	vec<Lit> conflict; // If problem is unsatisfiable (possibly under assumptions),
 					   // this vector represent the final conflict clause expressed in the assumptions.
 
-	// Mode of operation:
+					   // Mode of operation:
 	double clause_decay;
 	bool luby_restart;
 	int ccmin_mode; // Controls conflict clause minimization (0=none, 1=basic, 2=deep).
@@ -243,8 +247,8 @@ protected:
 	struct Watcher {
 		CRef cref;
 		Lit blocker;
-		Watcher(CRef cr, Lit p) :
-				cref(cr), blocker(p) {
+		Watcher(CRef cr, Lit p)
+				: cref(cr), blocker(p) {
 		}
 		bool operator==(const Watcher& w) const {
 			return cref == w.cref;
@@ -256,8 +260,8 @@ protected:
 
 	struct WatcherDeleted {
 		const ClauseAllocator& ca;
-		WatcherDeleted(const ClauseAllocator& _ca) :
-				ca(_ca) {
+		WatcherDeleted(const ClauseAllocator& _ca)
+				: ca(_ca) {
 		}
 		bool operator()(const Watcher& w) const {
 			return ca[w.cref].mark() == 1;
@@ -269,8 +273,8 @@ protected:
 		bool operator ()(Var x, Var y) const {
 			return activity[x] > activity[y];
 		}
-		VarOrderLt(const vec<double>& act) :
-				activity(act) {
+		VarOrderLt(const vec<double>& act)
+				: activity(act) {
 		}
 	};
 
@@ -316,7 +320,6 @@ protected:
 	std::set<CRef> newclauses, newlearnts;
 	uint roottraillim;
 
-	// Main internal methods
 	void insertVarOrder(Var x); // Insert a variable in the decision order priority queue.
 	Lit pickBranchLit(); // Return the next decision variable.
 	void createNewDecisionLevel(); // Begins a new decision level.
@@ -375,7 +378,8 @@ inline int Solver::getLevel(Var x) const {
 }
 
 inline void Solver::insertVarOrder(Var x) {
-	if (!order_heap.inHeap(x) && decision[x]) order_heap.insert(x);
+	if (!order_heap.inHeap(x) && decision[x])
+		order_heap.insert(x);
 }
 
 inline void Solver::varDecayActivity() {
@@ -396,7 +400,8 @@ inline void Solver::varBumpActivity(Var v, double inc) {
 	}
 
 	// Update order_heap with respect to new activity:
-	if (order_heap.inHeap(v)) order_heap.decrease(v);
+	if (order_heap.inHeap(v))
+		order_heap.decrease(v);
 }
 
 inline void Solver::claDecayActivity() {
@@ -415,7 +420,8 @@ inline void Solver::checkGarbage(void) {
 	return checkGarbage(garbage_frac);
 }
 inline void Solver::checkGarbage(double gf) {
-	if (ca.wasted() > ca.size() * gf) garbageCollect();
+	if (ca.wasted() > ca.size() * gf)
+		garbageCollect();
 }
 
 // NOTE: enqueue does not set the ok flag! (only public methods do)
@@ -460,26 +466,17 @@ inline int Solver::nVars() const {
 inline int Solver::nFreeVars() const {
 	return (int) dec_vars - (trail_lim.size() == 0 ? trail.size() : trail_lim[0]);
 }
-//inline void     Solver::setPolarity   (Var v, lbool b){ user_pol[v] = b; }
-inline lbool Solver::solve(const litlist& assumps /*AB*/, bool nosearch/*AE*/) {
-	for (auto i = assumps.cbegin(); i < assumps.cend(); ++i) {
-		assumptions.push(*i);
-	}
+inline lbool Solver::solve(bool nosearch) {
+#warning disable state saving (which disables removing satisfied clauses e.g.) for oneshot tasks
 	return solve_(nosearch);
 }
 inline bool Solver::okay() const {
 	return ok;
 }
 
-/*AB*/
 inline uint64_t Solver::nbVars() const {
 	return (uint64_t) nVars();
 }
-/*AE*/
-
-//=================================================================================================
-// Debug etc:
-//=================================================================================================
 }
 
 #endif

@@ -47,7 +47,6 @@ public:
 	void 	addModel			(Model * const model);
 
 	void 	closeOutput				();
-	void	setOutputFile			(std::string output);
 	void 	notifySolvingFinished	();
 	void 	notifySolvingAborted	();
 

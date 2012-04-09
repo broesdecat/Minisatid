@@ -376,8 +376,11 @@ void PCSolver::backtrackDecisionLevel(int untillevel, const Lit& decision) {
 	getEventQueue().notifyBacktrack(untillevel, decision);
 }
 
-lbool PCSolver::solve(const litlist& assumptions, bool search) {
-	return getSATSolver()->solve(assumptions, not search);
+void PCSolver::setAssumptions(const litlist& assumps){
+	getSATSolver()->setAssumptions(assumps);
+}
+lbool PCSolver::solve(bool search) {
+	return getSATSolver()->solve(not search);
 }
 
 /**

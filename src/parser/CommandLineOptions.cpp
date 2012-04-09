@@ -307,6 +307,8 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes){
 	options.push_back(new Option<bool, string>	("","gecode", 	yesnovals, gecodedesc,
 			modes.usegecode, cmd, "Choose whether to use Gecode for propagation over finite domain constraints."));
 #endif
+	options.push_back(new NoValsOption<int>		("","maxlearnt", 	"int",
+			modes.maxNbOfLearnedClauses, cmd, "The maximum number of learnt clauses to maintain at one time."));
 
 	try {
 		cmd.parse(argc, argv);
@@ -342,7 +344,7 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes){
 		}
 	}
 
-	if(!modes.verifyOptions()){
+	if(not modes.verifyOptions()){
 		return false;
 	}
 

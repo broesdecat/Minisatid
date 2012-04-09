@@ -24,24 +24,20 @@ SATVAL operator&= (SATVAL orig, SATVAL add){
 namespace MinisatID{
 
 namespace Tests{
-
-	// FIXME
 	struct SolverMOC{
 	private: int start;
 	public:
 		SolverMOC(int start):start(start){}
 		std::vector<Disjunction*> disj;
-		std::vector<Equivalence*> eqs;
+		std::vector<Implication*> eqs;
 		int newVar() { return start++; }
 		bool add(const Disjunction& d){ disj.push_back(new Disjunction(d)); return true; }
-		bool add(const Equivalence& eq){ eqs.push_back(new Equivalence(eq)); return true; }
+		bool add(const Implication& eq){ eqs.push_back(new Implication(eq)); return true; }
 		SATVAL isUnsat() const { return SATVAL::POS_SAT; }
 		SATVAL satState() const { return SATVAL::POS_SAT; }
-		lbool value(const Lit& lit) { return l_True; }
-		lbool value(Var var) { return l_True; }
+		lbool value(const Lit&) { return l_True; }
+		lbool value(Var) { return l_True; }
 	};
-
-
 
 	TEST(SCCTest, Trivial) {
 		SolverMOC moc(1);
@@ -53,13 +49,9 @@ namespace Tests{
 	TEST(SCCTest, SimpleLoop) {
 		SolverMOC moc(3);
 		vector<toCNF::Rule*> rules;
-		litlist pdef, qdef;
-		pdef.push_back(mkPosLit(2));
-		qdef.push_back(mkPosLit(1));
-		vector<Lit> popen, qopen;
-		rules.push_back(new toCNF::Rule(false, 1, pdef, popen));
-		rules.push_back(new toCNF::Rule(false, 2, qdef, qopen));
-		bool notunsat = MinisatID::toCNF::transformSCCtoCNF<SolverMOC>(moc, rules);
+		rules.push_back(new toCNF::Rule(false, 1, {mkPosLit(2)}, {}));
+		rules.push_back(new toCNF::Rule(false, 2, {mkPosLit(1)}, {}));
+		auto notunsat = MinisatID::toCNF::transformSCCtoCNF<SolverMOC>(moc, rules);
 		EXPECT_TRUE(notunsat);
 	}
 }

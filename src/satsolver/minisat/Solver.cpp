@@ -53,6 +53,7 @@ static IntOption opt_phase_saving(_cat, "phase-saving", "Controls the level of p
 static BoolOption opt_rnd_init_act(_cat, "rnd-init", "Randomize the initial activity", false);
 static BoolOption opt_luby_restart(_cat, "luby", "Use the Luby restart sequence", true);
 static IntOption opt_restart_first(_cat, "rfirst", "The base restart interval", 100, IntRange(1, INT32_MAX));
+static IntOption opt_maxlearned(_cat, "maxlearned", "The maximum number of learned clauses", INT32_MAX, IntRange(1, INT32_MAX));
 static DoubleOption opt_restart_inc(_cat, "rinc", "Restart interval increase factor", 2, DoubleRange(1, false, HUGE_VAL, false));
 static DoubleOption opt_garbage_frac(_cat, "gc-frac", "The fraction of wasted memory allowed before a garbage collection is triggered", 0.20,
 		DoubleRange(0, false, HUGE_VAL, false));
@@ -67,6 +68,8 @@ Solver::Solver(PCSolver* s) :
 		verbosity(getPCSolver().verbosity()),
 		var_decay(opt_var_decay),
 		rnd_pol(false),
+		max_learned_clauses(opt_maxlearned),
+		firsttime(true),
 		needsimplify(true),
 		backtracked(true),
 
@@ -295,8 +298,6 @@ void Solver::addLearnedClause(CRef rc) {
 	}
 }
 
-// TODO test whether we can correctly resolve with different assumptions!
-
 void swap(Clause& c, int from, int to) {
 	MAssert(c.size()>from && c.size()>to);
 	auto temp = c[from];
@@ -316,10 +317,11 @@ void Solver::attachClause(CRef cr) {
 	auto& c = ca[cr];
 	MAssert(c.size() > 1);
 
-	// FIXME why "not c.learnt()"?
-	if (decisionLevel() > 0 && not c.learnt()) { // If Level > 0 and an input clause, reorder the watches so the first two are unknown or the most recently chosen ones
-			// literal indices: 1 is first, 2 is second
-		int nonfalse1 = -1, nonfalse2 = -1, recentfalse1 = -1, recentfalse2 = -1;
+	// If level>0, the clause can contain true and false literals
+	// If not a learned clause, the order of literals is not required to guarantee correctness
+	// So need code to restructure the clause for correct watch addition and handle the case where all literals are false or unit propagation possible
+	if (decisionLevel() > 0 && not c.learnt()) {
+		int nonfalse1 = -1, nonfalse2 = -1, recentfalse1 = -1, recentfalse2 = -1; // literal indices: 1 is "1st", 2 is "2nd"
 		for (int i = 0; i < c.size(); ++i) {
 			if (isFalse(c[i])) {
 				auto currentlevel = getLevel(var(c[i]));
@@ -399,6 +401,9 @@ void Solver::attachClause(CRef cr) {
 
 void Solver::addToClauses(CRef cr, bool learnt) {
 	if (learnt) {
+		if(learnts.size()>=max_learned_clauses){
+			reduceDB();
+		}
 		newlearnts.insert(cr);
 		learnts.push(cr);
 	} else {
@@ -476,7 +481,7 @@ void Solver::removeUndefs(std::set<CRef>& newclauses, vec<CRef>& clauses){
 }
 
 // Reset always backtracks to 0 if there are new entailed literals
-void Solver::resetState() {
+void Solver::resetState() { // FIXME prevent reset without associated save
 	if(verbosity>3){
 		clog <<">>> Resetting the state.\n";
 	}
@@ -489,10 +494,23 @@ void Solver::resetState() {
 		trail_lim[0] = roottraillim;
 		uncheckedBacktrack(0);
 	}
-	removeUndefs(newclauses, clauses); // TODO do not remove models!
+	removeUndefs(newclauses, clauses);
 	removeUndefs(newlearnts, learnts);
 
 	remove_satisfied = true;
+}
+
+void Solver::setAssumptions(const litlist& assumps) {
+	if(not firsttime){
+		resetState();
+	}
+	cancelUntil(0);
+	assumptions.clear();
+	for (auto i = assumps.cbegin(); i < assumps.cend(); ++i) {
+		assumptions.push(*i);
+	}
+	saveState(); // FIXME disable for oneshot tasks!!! Or make the user responsible for resetting the state?
+	firsttime = false;
 }
 
 void Solver::removeClause(CRef cr) {
@@ -1191,10 +1209,10 @@ lbool Solver::search(int maxconflicts, bool nosearch/*AE*/) {
 					}
 					return l_True;
 				}
+			}
 
-				if (verbosity > 3) {
-					getPCSolver().printChoiceMade(decisionLevel()+1, next);
-				}
+			if (verbosity > 3) {
+				getPCSolver().printChoiceMade(decisionLevel()+1, next);
 			}
 
 			// Increase decision level and enqueue 'next'

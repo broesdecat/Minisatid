@@ -57,6 +57,7 @@ private:
 public:
 	Space(SolverOption options);
 	~Space();
+	// FIXME make private and add explicit add(X)??? (now have to include PCSolver in external code!)
 	PCSolver* getEngine() { return engine; }
 	const SolverOption& getOptions() const { return basicoptions; }
 

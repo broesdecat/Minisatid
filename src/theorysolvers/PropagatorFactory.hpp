@@ -112,7 +112,6 @@ private:
 	Definition* definitions;
 
 	int dummyvar; // dummy, true head
-	bool parsing; //state
 
 	std::map<int, IntVar*> intvars;
 
@@ -168,15 +167,17 @@ private:
 	template<class T>
 	void addCP			(const T& formula);
 
-	bool isInitialized	() 	const { return !parsing; }
-	bool isParsing		()	const { return parsing; }
-
 	void addAggrExpr	(Var headv, int setid, AggSign sign, const Weight& bound, AggType type, AggSem sem);
 
 	template<typename T>
 	void 		notifyMonitorsOfAdding(const T& obj) const;
 
 	IntVar*		getIntVar(int varID) const;
+
+	bool finishedparsing;
+	bool finishedParsing() const {
+		return finishedparsing;
+	}
 
 	SATVAL finishSet(const WLSet* set, std::vector<TempAgg*>& agg, bool optimagg = false, uint optimpriority = -1);
 };

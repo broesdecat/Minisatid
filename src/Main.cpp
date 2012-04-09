@@ -263,9 +263,7 @@ void parseAndInitializeTheory(pwls d) {
 }
 
 void doModelGeneration(pwls d) {
-	ModelExpandOptions mxoptions;
-	mxoptions.printmodels = Models::ALL;
-	mxoptions.savemodels = Models::NONE;
+	ModelExpandOptions mxoptions(0, Models::ALL, Models::NONE);
 	if (d->getOptions().format == InputFormat::OPB && d->isOptimizationProblem()) { // Change default options added before parsing
 		mxoptions.printmodels = Models::BEST;
 		mxoptions.savemodels = Models::BEST;

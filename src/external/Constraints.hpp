@@ -73,12 +73,12 @@ void add(ConstraintAdditionInterface<Engine>& space, const MinimizeOrderedList& 
 
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const MinimizeVar& obj) {
-	space.getEngine()->add(MinimizeVar(obj.priority, obj.varID));
+	space.getEngine()->add(obj);
 }
 
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const MinimizeAgg& obj) {
-	space.getEngine()->add(MinimizeAgg(obj.priority, obj.setid, obj.type));
+	space.getEngine()->add(obj);
 }
 
 template<typename Engine>
@@ -95,60 +95,34 @@ void add(ConstraintAdditionInterface<Engine>& space, const LazyGroundLit& obj) {
 
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const IntVarEnum& obj) {
-	IntVarEnum var;
-	var.varID = obj.varID;
-	var.values = obj.values;
-	space.getEngine()->add(var);
+	space.getEngine()->add(obj);
 }
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const IntVarRange& obj) {
-	IntVarRange var;
-	var.varID = obj.varID;
-	var.minvalue = obj.minvalue;
-	var.maxvalue = obj.maxvalue;
-	space.getEngine()->add(var);
+	space.getEngine()->add(obj);
 }
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const CPBinaryRel& obj) {
-	CPBinaryRel form;
-	form.head = checkAtom(obj.head, space.getRemapper());
-	form.varID = obj.varID;
-	form.rel = obj.rel;
-	form.bound = obj.bound;
+	CPBinaryRel form(checkAtom(obj.head, space.getRemapper()),obj.varID,obj.rel,obj.bound);
 	space.getEngine()->add(form);
 }
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const CPBinaryRelVar& obj) {
-	CPBinaryRelVar form;
-	form.head = checkAtom(obj.head, space.getRemapper());
-	form.lhsvarID = obj.lhsvarID;
-	form.rel = obj.rel;
-	form.rhsvarID = obj.rhsvarID;
+	CPBinaryRelVar form(checkAtom(obj.head, space.getRemapper()), obj.lhsvarID, obj.rel, obj.rhsvarID);
 	space.getEngine()->add(form);
 }
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const CPSumWeighted& obj) {
-	CPSumWeighted form;
-	form.head = checkAtom(obj.head, space.getRemapper());
-	form.rel = obj.rel;
-	form.bound = obj.bound;
-	form.weights = obj.weights;
-	form.varIDs = obj.varIDs;
+	CPSumWeighted form(checkAtom(obj.head, space.getRemapper()), obj.varIDs, obj.weights,obj.rel, obj.bound);
 	space.getEngine()->add(form);
 }
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const CPCount& obj) {
-	CPCount form;
-	form.varIDs = obj.varIDs;
-	form.eqbound = obj.eqbound;
-	form.rel = obj.rel;
-	form.rhsvar = obj.rhsvar;
-	space.getEngine()->add(form);
+	space.getEngine()->add(obj);
 }
 template<typename Engine>
 void add(ConstraintAdditionInterface<Engine>& space, const CPAllDiff& obj) {
-	CPAllDiff form(obj.varIDs);
-	space.getEngine()->add(form);
+	space.getEngine()->add(obj);
 }
 }
 

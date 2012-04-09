@@ -14,6 +14,7 @@
 #include "ModelManager.hpp"
 #include "utils/ResourceManager.hpp"
 #include "external/Space.hpp"
+#include "external/Constraints.hpp"
 
 #include <map>
 #include <vector>
@@ -40,9 +41,9 @@ void SpaceTask::notifyTerminateRequested() {
 	space->getEngine()->notifyTerminateRequested();
 }
 
-ModelExpand::ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions) :
-		SpaceTask(space), _options(options), assumptions(assumptions), _solutions(new ModelManager(options.savemodels)), printer(
-				new Printer(_solutions, space, options.printmodels, space->getOptions())) {
+ModelExpand::ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions)
+		: SpaceTask(space), _options(options), assumptions(checkLits(assumptions, space->getRemapper())), _solutions(new ModelManager(options.savemodels)),
+			printer(new Printer(_solutions, space, options.printmodels, space->getOptions())) {
 
 }
 
@@ -59,8 +60,8 @@ PCSolver& SpaceTask::getSolver() const {
 	return *getSpace()->getEngine();
 }
 
-SpaceTask::SpaceTask(Space* space) :
-		Task(space->getOptions()), space(space) {
+SpaceTask::SpaceTask(Space* space)
+		: Task(space->getOptions()), space(space) {
 
 }
 
@@ -106,14 +107,12 @@ void ModelExpand::innerExecute() {
 		printer->notifyOptimizing();
 	}
 
-	litlist vecassumptions = assumptions;
-
 	printSearchStart(clog, getOptions().verbosity);
 
 	bool moremodelspossible = true;
 	if (getSpace()->isOptimizationProblem()) {
 		bool optimumfound = true;
-		while(getSolver().hasNextOptimum() && optimumfound){
+		while (getSolver().hasNextOptimum() && optimumfound) {
 			optimumfound = findOptimal(assumptions, getSolver().getNextOptimum());
 		}
 		if (optimumfound) {
@@ -136,7 +135,12 @@ void ModelExpand::innerExecute() {
 		_solutions->notifyUnsat();
 		// TODO notify the space that it is unsat? getSpace()->...
 	}
-	printer->notifySolvingFinished();
+	if(terminateRequested()){
+		printer->notifySolvingAborted();
+	}else{
+		printer->notifySolvingFinished();
+	}
+
 	printSearchEnd(clog, getOptions().verbosity);
 }
 
@@ -177,9 +181,10 @@ void ModelExpand::addModel(std::shared_ptr<Model> model) {
  */
 MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& options) {
 	bool moremodels = true;
+	getSolver().setAssumptions(assmpt);
 	while (moremodels && (options.nbmodelstofind == 0 || _solutions->getNbModelsFound() < options.nbmodelstofind)) {
-		auto state = getSolver().solve(assmpt, true);
-		if (state == l_Undef) {
+		auto state = getSolver().solve(true);
+		if (state == l_Undef || terminateRequested()) {
 			return MXState::UNKNOWN;
 		}
 		bool modelfound = state == l_True;
@@ -206,7 +211,7 @@ MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& o
 		}
 
 		//Invalidate SAT model
-		if ((uint)getSolver().getCurrentDecisionLevel() != assmpt.size()) { //choices were made, so other models possible
+		if ((uint) getSolver().getCurrentDecisionLevel() != assmpt.size()) { //choices were made, so other models possible
 			Disjunction invalidation;
 			invalidate(invalidation.literals);
 			moremodels = invalidateModel(invalidation.literals) == SATVAL::POS_SAT;
@@ -324,6 +329,7 @@ bool ModelExpand::invalidateAgg(litlist& invalidation, OptimStatement& optim) {
  */
 bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 	litlist currentassmpt = assmpt;
+	bool setassump = true;
 
 	bool modelfound = false, unsatreached = false;
 
@@ -336,7 +342,12 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 			}
 		}
 
-		auto sat = getSolver().solve(currentassmpt, true);
+		if (setassump) {
+			getSolver().setAssumptions(currentassmpt); // NOTE do not do this if the assumptions have not changed!
+			setassump = false;
+		}
+
+		auto sat = getSolver().solve(true);
 		if (sat == l_False) {
 			unsatreached = true;
 			break;
@@ -359,18 +370,20 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 			break;
 		case Optim::SUBSET:
 			currentassmpt.clear();
+			setassump = true;
 			unsatreached = invalidateSubset(invalidation.literals, currentassmpt, optim);
 			break;
 		case Optim::AGG:
 			unsatreached = invalidateAgg(invalidation.literals, optim);
 			break;
-		case Optim::VAR:{
+		case Optim::VAR: {
 			throw notYetImplemented("Optimization over fd-var."); // TODO
-			break;}
+			break;
+		}
 		}
 
 		if (not unsatreached) {
-			if ((uint)getSolver().getCurrentDecisionLevel() != currentassmpt.size()) { //choices were made, so other models possible
+			if ((uint) getSolver().getCurrentDecisionLevel() != currentassmpt.size()) { //choices were made, so other models possible
 				unsatreached = invalidateModel(invalidation.literals) == SATVAL::UNSAT;
 			} else {
 				unsatreached = true;
@@ -384,7 +397,7 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 		getSolver().resetState();
 		// Prevent to find the first model again
 		Disjunction d;
-		for(auto i=saveddecisions.cbegin(); i<saveddecisions.cend(); ++i) {
+		for (auto i = saveddecisions.cbegin(); i < saveddecisions.cend(); ++i) {
 			d.literals.push_back(~*i);
 		}
 		getSolver().add(d);
@@ -394,15 +407,17 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 			getSolver().add(Disjunction( { latestlistoptimum }));
 			break;
 		case Optim::SUBSET:
-			getSolver().add(Disjunction( latestsubsetoptimum));
+			getSolver().add(Disjunction(latestsubsetoptimum));
 			break;
 		case Optim::AGG: {
 			auto agg = optim.agg_to_minimize;
 			agg->setBound(AggBound(agg->getSign(), latestaggoptimum));
-			break;}
-		case Optim::VAR:{
+			break;
+		}
+		case Optim::VAR: {
 			throw notYetImplemented("Optimization over fd-var."); // TODO
-			break;}
+			break;
+		}
 		}
 	}
 
@@ -439,7 +454,8 @@ literallist UnitPropagate::getEntailedLiterals() {
 }
 
 void UnitPropagate::innerExecute() {
-	getSolver().solve(assumptions, false);
+	getSolver().setAssumptions(assumptions);
+	getSolver().solve(false);
 }
 
 void UnitPropagate::writeOutEntailedLiterals() {

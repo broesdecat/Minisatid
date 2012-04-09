@@ -73,6 +73,7 @@ void ModelManager::saveModel(Model * const model) {
 	modelsave = ModelSaved::SAVING;
 	models.push_back(model);
 	modelsave = ModelSaved::SAVED;
+	temporarymodel = NULL;
 }
 
 void ModelManager::addModel(Model * const model) {

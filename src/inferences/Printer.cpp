@@ -33,13 +33,11 @@ Printer::Printer(ModelManager* modelmanager, Space* space, Models printoption, c
 		modes(modes),
 		optimizing(false), solvingstate(SolvingState::STARTED),
 		startfinish(0), endfinish(-1), startsimpl(0), endsimpl(-1), startsolve(0), endsolve(-1){
-
 	if(modes.outputfile==""){
 		resman = std::shared_ptr<ResMan>(new StdMan(false));
 	}else{
 		resman = std::shared_ptr<ResMan>(new FileMan(modes.outputfile, true));
 	}
-
 }
 
 Printer::~Printer(){
@@ -76,11 +74,13 @@ Translator* Printer::getTranslator() const{
 }
 
 void Printer::notifyCurrentOptimum(const Weight& value) const{
+	MAssert(resman.get() != NULL);
 	ostream output(resman->getBuffer());
 	getTranslator()->printCurrentOptimum(output, value);
 }
 
 void Printer::addModel(Model * const model) {
+	MAssert(resman.get() != NULL);
 	ostream output(resman->getBuffer());
 	if (getPrintOption() == Models::ALL || (!optimizing && getPrintOption() == Models::BEST)) {
 		if (modelmanager->getNbModelsFound() == 1) {
@@ -106,8 +106,9 @@ void Printer::solvingFinished(){
 		endsolve = cpuTime();
 	}
 
+	MAssert(resman.get() != NULL);
 	ostream output(resman->getBuffer());
-	if(modelmanager->isUnsat() && getPrintOption()!=Models::NONE){
+	if(solvingstate!=SolvingState::ABORTED && modelmanager->isUnsat() && getPrintOption()!=Models::NONE){
 		printUnSatisfiable(output, modes.format, modes.transformat);
 		printUnSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);
 	}else if(modelmanager->getNbModelsFound()==0 && getPrintOption()!=Models::NONE){
@@ -135,12 +136,7 @@ void Printer::solvingFinished(){
 void Printer::closeOutput() {
 	if (resman.get() != NULL) {
 		resman->close();
-	}
-}
-
-void Printer::setOutputFile(std::string output){
-	if(!output.empty()){
-		resman = std::shared_ptr<ResMan>(new FileMan(output.c_str(), true));
+		resman.reset();
 	}
 }
 

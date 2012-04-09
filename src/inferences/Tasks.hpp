@@ -34,9 +34,9 @@ class ModelManager;
 class Task {
 private:
 	bool terminate;
-	const SolverOption modes;
+	SolverOption modes;
 public:
-	Task(const SolverOption& modes): modes(modes){
+	Task(const SolverOption& modes): terminate(false), modes(modes){
 
 	}
 	virtual ~Task() {
@@ -80,8 +80,8 @@ class OptimStatement;
 
 class ModelExpand: public SpaceTask {
 private:
-	const ModelExpandOptions _options;
-	const litlist assumptions;
+	ModelExpandOptions _options;
+	litlist assumptions;
 	ModelManager* _solutions;
 	Printer* printer;
 

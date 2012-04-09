@@ -104,6 +104,7 @@ if(BUILDTESTS)
 	add_subdirectory(lib/gtest-1.6.0)
 endif()
 add_subdirectory(src)
+add_subdirectory(tests)
 
 #Allow packing
 set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/COPYING.LESSER")

@@ -35,6 +35,7 @@ public:
 };
 
 class Level2SAT{
+	// Represents the level of some atom in binary representation
 	// First bit is 2^0
 	varlist bits_;
 public:
@@ -46,8 +47,13 @@ public:
 		}
 	}
 
+	// The full list of bits
 	const varlist& bits() const { return bits_; }
+
+	// Represents level 0
 	litlist zero() const { return zero(bits_.size()-1); }
+
+	// Represents a level which has the first <toindex> bits set to 0
 	litlist zero(int toindex) const {
 		litlist list;
 		for(auto i=0; i<toindex+1; ++i){
@@ -56,6 +62,7 @@ public:
 		return list;
 	}
 
+	// Represents a level which has the first <toindex> bits set to 1
 	litlist one(int toindex) const {
 		litlist list;
 		for(auto i=0; i<toindex+1; ++i){
@@ -67,14 +74,19 @@ public:
 
 template<class Solver>
 class SCCtoCNF {
-	enum class SIGN { L1, G};
+	enum class SIGN { L1, G}; // L1 = LorEqual+1, G = Greater
 
+	// Represents a comparison "level op level"
 	struct Comp{
 		SIGN sign;
 		Level2SAT *left, *right;
+
+		Comp(Level2SAT* left, SIGN sign, Level2SAT* right): sign(sign), left(left), right(right){}
+
 		bool operator== (const Comp& enc) const {
 			return sign==enc.sign && left==enc.left && right==enc.right;
 		}
+
 		bool operator< (const Comp& enc) const {
 			if(sign==SIGN::L1 && enc.sign==SIGN::G){
 				return true;
@@ -84,9 +96,9 @@ class SCCtoCNF {
 				return left<enc.left || (left==enc.left && right<enc.right);
 			}
 		}
-		Comp(Level2SAT* left, SIGN sign, Level2SAT* right): sign(sign), left(left), right(right){}
 	};
 
+	// Represents that the level of some atom == 0
 	struct EqToZero{
 		Level2SAT* left;
 		bool operator== (const EqToZero& enc) const { return left==enc.left; }
@@ -96,32 +108,35 @@ class SCCtoCNF {
 
 private:
 	Solver& solver_;
-	int maxlevel;
 	std::map<Var, Level2SAT*> atom2level;
-	std::set<Var> defined;
+
+	// Ensures that only one literal is generated for some equality
 	std::map<EqToZero,Lit> eq2zeromap;
 	std::map<Comp,Lit> largermap;
-public:
 
+public:
 	// @pre: rules is one SCC
 	SCCtoCNF(Solver& solver):solver_(solver){}
 
 	SATVAL transform(const std::vector<Rule*>& rules){
+		std::set<Var> defined;
 		for(auto rule=rules.cbegin(); rule!=rules.cend(); ++rule){
 			defined.insert((*rule)->getHead());
 		}
 
-		maxlevel = defined.size(); // maxlevel is the scc size
-
 		for(auto head=defined.cbegin(); head!=defined.cend(); ++head){
-			auto headvar = new Level2SAT(solver_, maxlevel);
+			auto headvar = new Level2SAT(solver_, defined.size()); // maxlevel is the scc size
 			atom2level[*head] = headvar;
 
-			// Encode ~p => l(p)=0 for all defineds
-			if(solver_.value(mkPosLit(*head))!=l_True){
-				addClause(litlist{mkPosLit(*head), zero2SAT(headvar)});
+			if(solver_.value(mkPosLit(*head))==l_True){
+				continue;
 			}
+
+			// Encode ~p => l(p)=0 for all non-true defineds
+			addClause(litlist{mkPosLit(*head), zero2SAT(headvar)});
 		}
+
+		// existence of a level is encoded implicitly
 
 		SATVAL state = SATVAL::POS_SAT;
 		for(auto rule=rules.cbegin(); state==SATVAL::POS_SAT && rule!=rules.cend(); ++rule){
@@ -135,24 +150,24 @@ public:
 	}
 
 private:
+	// TODO strong or weak encoding?
 	/*
-	 * P1 <- Q1 | ... | Qn
+	 * P <- Q1 | ... | Qn
 	 * ==>
-	 * !def i: ~P | l(P)=<l(Qi)+1 | ~Qi
-	 * !open i: ~P | l(P)=0 | ~Qi
-	 * ~P | (l(P)>l(Q1) & Q1) | ... | (l(P)>l(Qn) & Qn) or def qi: =0
+	 * if P true and some open true, then level is 0 ==> ~P | ~O | l(P)=0
+	 * if P true and all opens false, then some def is true and P > level def
+	 * if P is true and def true, then level head =< def+1
 	 */
 	SATVAL transformDisjunction(const Rule& rule){
-		auto headvar = atom2level[rule.getHead()];
-		Lit head = mkPosLit(rule.getHead());
-
+		auto head = mkPosLit(rule.getHead());
 		if(solver_.value(head)==l_False){
 			return solver_.satState();
 		}
 
+		auto headvar = atom2level[rule.getHead()];
+
 		litlist tseitins{~head};
 		for(auto litit = rule.def().cbegin(); litit!=rule.def().cend(); ++litit) {
-			MAssert(defined.find(var(*litit))!=defined.cend());
 			auto bodyvar = atom2level[var(*litit)];
 
 			if(solver_.value(*litit)!=l_False){
@@ -176,10 +191,10 @@ private:
 	}
 
 	/*
-	 * P1 <- Q1 & ... & Qn
+	 * P <- Q1 & ... & Qn
 	 * ==>
-	 * !def i: ~P | l(P)>l(Qi)
-	 * ~P | l(P)=<l(Q1)+1 | ... | l(P)=<l(Qn)+1 only for qi in def
+	 * if P true, then level is higher than all defs
+	 * TODO
 	 */
 	SATVAL transformConjunction(const Rule& rule){
 		auto headvar = atom2level[rule.getHead()];
@@ -191,7 +206,6 @@ private:
 
 		litlist tseitins{~head};
 		for(auto litit = rule.def().cbegin(); litit!=rule.def().cend(); ++litit) {
-			MAssert(defined.find(var(*litit))!=defined.cend());
 			auto bodyvar = atom2level[var(*litit)];
 
 			addClause(litlist{~head, Comp2SAT(headvar, SIGN::G, bodyvar)});
@@ -207,50 +221,15 @@ private:
 
 	// FIXME use current interpretation to simplify things in the code below also
 
-	SATVAL addClause(const litlist& lits){
-		Disjunction d;
-		d.literals = lits;
-		solver_.add(d);
-		return solver_.satState();
-	}
-
-	Lit zero2SAT(Level2SAT* left){
-		auto it = eq2zeromap.find(EqToZero(left));
-		if(it==eq2zeromap.cend()){
-			Lit tseitin = and2SAT(left->zero());
-			eq2zeromap[EqToZero(left)] = tseitin;
-			return tseitin;
-		}else{
-			return (*it).second;
-		}
-	}
-
-	Lit and2SAT(const litlist& subs){
-		Lit tseitin = mkPosLit(solver_.newVar());
-
-		Implication eq(tseitin, ImplicationType::EQUIVALENT, subs, true);
-		solver_.add(eq);
-
-		return tseitin;
-	}
-
-	Lit or2SAT(const litlist& subs){
-		Lit tseitin = mkPosLit(solver_.newVar());
-
-		Implication eq(tseitin, ImplicationType::EQUIVALENT, subs, false);
-		solver_.add(eq);
-
-		return tseitin;
-	}
-
 	Lit Comp2SAT(Level2SAT* left, SIGN sign, Level2SAT* right){
 		auto it = largermap.find(Comp(left, sign, right));
 		if(it==largermap.cend()){
 			Lit tseitin;
+			MAssert(left->bits().size()==right->bits().size());
 			if(sign==SIGN::G){
-				tseitin = G2SAT(left, right, left->bits().size());
+				tseitin = G2SAT(left, right, left->bits().size()-1);
 			}else{
-				tseitin = L2SAT(left, right, left->bits().size());
+				tseitin = L12SAT(left, right, left->bits().size()-1);
 			}
 			largermap[Comp(left, sign, right)] = tseitin;
 			return tseitin;
@@ -259,8 +238,12 @@ private:
 		}
 	}
 
-	Lit L2SAT(Level2SAT* left, Level2SAT* right, int index){
-		if(index==1){
+	Lit L12SAT(Level2SAT* left, Level2SAT* right, int index){
+		MAssert(left->bits().size()>index && right->bits().size()>index);
+		if(index==0){
+			// FIXME almost certainly incorrect
+			return and2SAT(litlist{mkNegLit(left->bits()[0]), mkPosLit(right->bits()[0])});
+		}else if(index==1){
 			return ~and2SAT(litlist{
 						mkPosLit(left->bits()[0]),
 						mkPosLit(left->bits()[0]),
@@ -271,7 +254,7 @@ private:
 			return or2SAT(litlist{
 					and2SAT(litlist{
 						EqBit2SAT(right->bits()[index], left->bits()[index]),
-						L2SAT(left, right, index-1)
+						L12SAT(left, right, index-1)
 					}),
 					and2SAT(litlist{
 						GBit2SAT(right->bits()[index], left->bits()[index]),
@@ -293,6 +276,7 @@ private:
 	}
 
 	Lit G2SAT(Level2SAT* left, Level2SAT* right, int index){
+		MAssert(left->bits().size()>index && right->bits().size()>index);
 		Lit gtseitin = GBit2SAT(left->bits()[0], right->bits()[0]);
 		if(index==0){
 			return gtseitin;
@@ -314,12 +298,45 @@ private:
 						and2SAT(litlist{mkPosLit(leftbit), mkPosLit(rightbit)}),
 						and2SAT(litlist{mkNegLit(leftbit), mkNegLit(rightbit)})});
 	}
+
+	// Checked code below!
+
+	SATVAL addClause(const litlist& lits){
+		solver_.add(Disjunction(lits));
+		return solver_.satState();
+	}
+
+	// Returns a literal which represents that the level of the var is 0
+	Lit zero2SAT(Level2SAT* left){
+		auto it = eq2zeromap.find(EqToZero(left));
+		if(it==eq2zeromap.cend()){
+			Lit tseitin = and2SAT(left->zero());
+			eq2zeromap[EqToZero(left)] = tseitin;
+			return tseitin;
+		}else{
+			return (*it).second;
+		}
+	}
+
+	Lit and2SAT(const litlist& subs){
+		// TODO: if some false or all true: return false/true lit
+		auto tseitin = mkPosLit(solver_.newVar());
+		solver_.add(Implication(tseitin, ImplicationType::EQUIVALENT, subs, true));
+		return tseitin;
+	}
+
+	Lit or2SAT(const litlist& subs){
+		// TODO: if some true or all false: return true/false lit
+		auto tseitin = mkPosLit(solver_.newVar());
+		solver_.add(Implication(tseitin, ImplicationType::EQUIVALENT, subs, false));
+		return tseitin;
+	}
 };
 
 template<class Solver>
 bool transformSCCtoCNF(Solver& solver, std::vector<Rule*>& rules){
-	SCCtoCNF<Solver>* transformer = new SCCtoCNF<Solver>(solver);
-	SATVAL state = transformer->transform(rules);
+	auto transformer = new SCCtoCNF<Solver>(solver);
+	auto state = transformer->transform(rules);
 	delete transformer;
 	return state!=SATVAL::UNSAT;
 }

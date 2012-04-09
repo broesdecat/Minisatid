@@ -191,7 +191,8 @@ public:
 	 * Returns false iff unsat has been found
 	 * Unknown otherwise (e.g. terminated)
 	 */
-	lbool solve(const litlist& assumptions, bool search);
+	void setAssumptions(const litlist& assumps);
+	lbool solve(bool search);
 	void finishParsing();
 	void setTrue(const Lit& p, Propagator* solver, rClause c = nullPtrClause); // Enqueue a literal. Assumes value of literal is undefined
 	void notifySetTrue(const Lit& p);
@@ -209,7 +210,9 @@ public:
 
 	// Clause management
 public:
+	 // FIXME bypasses propagatorfactory, might be important for some actions!
 	rClause createClause(const Disjunction& clause, bool learned);
+
 	//IMPORTANT: The first literal in the clause is the one which can be propagated at moment of derivation!
 	void addLearnedClause(rClause c); //Propagate if clause is unit, return false if c is conflicting
 	int getClauseSize(rClause cr) const;
