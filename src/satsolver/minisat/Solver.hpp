@@ -92,6 +92,7 @@ public:
 
 private:
 	void removeUndefs(std::set<CRef>& newclauses, vec<CRef>& clauses);
+	bool addClause_(vec<Lit>& ps);
 public:
 	void saveState();
 	void resetState();

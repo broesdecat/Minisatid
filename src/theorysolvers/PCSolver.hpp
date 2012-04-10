@@ -212,6 +212,7 @@ public:
 
 	// Propagation and backtrack monitor
 private:
+	bool monitoring; // True if at time of solve() call, there are monitors (optimization!)
 	Monitor* monitor;
 
 	// Optimization

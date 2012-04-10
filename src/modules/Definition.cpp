@@ -1,5 +1,6 @@
 #include "Definition.hpp"
 #include "IDSolver.hpp"
+#include "utils/ContainerUtils.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -11,7 +12,7 @@ void Definition::addIDSolver(int id) {
 
 // Call when grounding/parsing of all definitions is finished and they are in a consistent state
 void Definition::addToPropagators() {
-	for (auto ruleset = rules.cbegin(); ruleset != rules.cend(); ++ruleset) {
+	for (auto ruleset = rules.begin(); ruleset != rules.end(); ++ruleset) {
 		std::vector<TempRule*> r;
 		for (auto i = ruleset->second.cbegin(); i != ruleset->second.cend(); ++i) {
 			if (not i->second->isagg) {
@@ -20,7 +21,9 @@ void Definition::addToPropagators() {
 			r.push_back(i->second);
 		}
 		getIDSolver(ruleset->first)->addRuleSet(r);
+		deleteList<TempRule, Var>(ruleset->second);
 	}
+	rules.clear();
 }
 
 void Definition::addDefinedAggregate(const Aggregate& inneragg, const WLSet& innerset) {

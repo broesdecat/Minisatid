@@ -62,55 +62,23 @@ static DoubleOption opt_garbage_frac(_cat, "gc-frac", "The fraction of wasted me
 // Constructor/Destructor:
 
 Solver::Solver(PCSolver* s, bool oneshot) :
-		Propagator(s, "satsolver"),
-		random_var_freq(opt_random_var_freq),
-		random_seed(opt_random_seed),
-		verbosity(getPCSolver().verbosity()),
-		var_decay(opt_var_decay),
-		rnd_pol(false),
-		max_learned_clauses(opt_maxlearned),
-		oneshot(oneshot),
-		assumpset(false),
-		needsimplify(true),
-		backtracked(true),
+		Propagator(s, "satsolver"), random_var_freq(opt_random_var_freq), random_seed(opt_random_seed), verbosity(getPCSolver().verbosity()), var_decay(
+				opt_var_decay), rnd_pol(false), max_learned_clauses(opt_maxlearned), oneshot(oneshot), assumpset(false), needsimplify(true), backtracked(
+				true),
 
-		clause_decay(opt_clause_decay),
-		luby_restart(opt_luby_restart),
-		ccmin_mode(opt_ccmin_mode),
-		phase_saving(opt_phase_saving),
-		rnd_init_act(opt_rnd_init_act),
-		garbage_frac(opt_garbage_frac),
-		restart_first(opt_restart_first),
-		restart_inc(opt_restart_inc)
+		clause_decay(opt_clause_decay), luby_restart(opt_luby_restart), ccmin_mode(opt_ccmin_mode), phase_saving(opt_phase_saving), rnd_init_act(
+				opt_rnd_init_act), garbage_frac(opt_garbage_frac), restart_first(opt_restart_first), restart_inc(opt_restart_inc)
 
 		// Parameters (the rest):
-		, learntsize_factor((double) 1 / (double) 3),
-		learntsize_inc(1.1)
+				, learntsize_factor((double) 1 / (double) 3), learntsize_inc(1.1)
 
 		// Parameters (experimental):
-		, learntsize_adjust_start_confl(100),
-		learntsize_adjust_inc(1.5)
+				, learntsize_adjust_start_confl(100), learntsize_adjust_inc(1.5)
 
 		// Statistics: (formerly in 'SolverStats')
-		, starts(0),
-		decisions(0),
-		rnd_decisions(0),
-		propagations(0),
-		conflicts(0),
-		dec_vars(0),
-		clauses_literals(0),
-		learnts_literals(0),
-		max_literals(0),
-		tot_literals(0),
-		ok(true),
-		cla_inc(1),
-		var_inc(1),
-		watches(WatcherDeleted(ca)),
-		qhead(0),
-		simpDB_assigns(-1),
-		simpDB_props(0),
-		order_heap(VarOrderLt(activity)),
-		remove_satisfied(true) {
+				, starts(0), decisions(0), rnd_decisions(0), propagations(0), conflicts(0), dec_vars(0), clauses_literals(0), learnts_literals(0), max_literals(
+				0), tot_literals(0), ok(true), cla_inc(1), var_inc(1), watches(WatcherDeleted(ca)), qhead(0), simpDB_assigns(-1), simpDB_props(0), order_heap(
+				VarOrderLt(activity)), remove_satisfied(true) {
 	getPCSolver().accept(this, EV_PROPAGATE);
 }
 
@@ -119,12 +87,15 @@ Solver::~Solver() {
 
 // VARIABLE CREATION
 
-void Solver::setDecidable(Var v, bool decide) // NOTE: no-op if already a decision var!
-		{
-	bool newdecidable = decide && !decision[v];
+void Solver::setDecidable(Var v, bool decide) { // NOTE: no-op if already a decision var!
+	bool newdecidable = decide && not decision[v];
 	if (newdecidable) {
 		dec_vars++;
-	} else if (!decide && decision[v]) dec_vars--;
+	} else if (not decide && decision[v]){
+		dec_vars--;
+	}else{
+		return;
+	}
 
 	if (verbosity > 10) {
 		if (decide) {
@@ -265,14 +236,15 @@ bool Solver::addClause(const std::vector<Lit>& lits) {
 	if (ps.size() == 0) {
 		return ok = false;
 	} else if (ps.size() == 1) {
-		if(decisionLevel()>0){
-			if(value(ps[0])==l_False){
-				getPCSolver().backtrackTo(getLevel(var(ps[0]))-1); // NOTE: Certainly not root level, would have found out otherwise
+		if (decisionLevel() > 0) {
+			while (value(ps[0]) == l_False) {
+				getPCSolver().backtrackTo(getLevel(var(ps[0])) - 1); // NOTE: Certainly not root level, would have found out otherwise
 			}
-			auto clause = getPCSolver().createClause(Disjunction({ps[0]}), false);
+			MAssert(value(ps[0])==l_Undef);
+			auto clause = getPCSolver().createClause(Disjunction( { ps[0] }), false);
 			rootunitlits.push_back(ReverseTrailElem(ps[0], 0, clause));
 			checkedEnqueue(ps[0], clause);
-		}else{
+		} else {
 			uncheckedEnqueue(ps[0]);
 		}
 		return ok = (propagate() == CRef_Undef);
@@ -326,12 +298,12 @@ void Solver::attachClause(CRef cr) {
 		for (int i = 0; i < c.size(); ++i) {
 			if (isFalse(c[i])) {
 				auto currentlevel = getLevel(var(c[i]));
-				auto mostrecentfalse = recentfalse1==-1?-1:getLevel(var(c[recentfalse1]));
-				auto most2ndrecentfalse = recentfalse2==-1?-1:getLevel(var(c[recentfalse2]));
-				if(currentlevel>=mostrecentfalse) {
+				auto mostrecentfalse = recentfalse1 == -1 ? -1 : getLevel(var(c[recentfalse1]));
+				auto most2ndrecentfalse = recentfalse2 == -1 ? -1 : getLevel(var(c[recentfalse2]));
+				if (currentlevel >= mostrecentfalse) {
 					recentfalse2 = recentfalse1;
 					recentfalse1 = i;
-				}else if(currentlevel>most2ndrecentfalse){
+				} else if (currentlevel > most2ndrecentfalse) {
 					recentfalse2 = i;
 				}
 			} else {
@@ -347,12 +319,12 @@ void Solver::attachClause(CRef cr) {
 		MAssert(nonfalse2==-1 || not isFalse(c[nonfalse2]));
 
 		if (nonfalse1 == -1) { // Conflict
-			getPCSolver().backtrackTo(getLevel(var(c[recentfalse1]))-1);
+			getPCSolver().backtrackTo(getLevel(var(c[recentfalse1])) - 1);
 			nonfalse1 = recentfalse1;
 			MAssert(nonfalse2==-1 || not isFalse(c[nonfalse2]));
-			if(not isFalse(c[recentfalse2])){
+			if (not isFalse(c[recentfalse2])) {
 				nonfalse2 = recentfalse2;
-			}else{
+			} else {
 				recentfalse1 = recentfalse2;
 			}
 		}
@@ -361,10 +333,10 @@ void Solver::attachClause(CRef cr) {
 		MAssert(nonfalse1!=-1 && not isFalse(c[nonfalse1]));
 		MAssert(nonfalse2==-1 || not isFalse(c[nonfalse2]));
 		swap(c, nonfalse1, 0);
-		if(recentfalse1==0){
+		if (recentfalse1 == 0) {
 			recentfalse1 = nonfalse1;
 		}
-		if(nonfalse2==0){
+		if (nonfalse2 == 0) {
 			nonfalse2 = nonfalse1;
 		}
 		MAssert(not isFalse(c[0]));
@@ -378,6 +350,7 @@ void Solver::attachClause(CRef cr) {
 			MAssert(recentfalse1!=-1 && isFalse(c[recentfalse1]));
 			swap(c, recentfalse1, 1);
 			MAssert(isFalse(c[1]));
+			MAssert(value(c[0])==l_Undef);
 			checkedEnqueue(c[0], cr);
 			rootunitlits.push_back(ReverseTrailElem(c[0], getLevel(var(c[1])), cr));
 		}
@@ -389,7 +362,7 @@ void Solver::attachClause(CRef cr) {
 	watches[~c[0]].push(Watcher(cr, c[1]));
 	watches[~c[1]].push(Watcher(cr, c[0]));
 
-	if(not c.learnt() || not isFalse(c[0]) || not isFalse(c[1])){
+	if (not c.learnt() || not isFalse(c[0]) || not isFalse(c[1])) {
 		checkDecisionVars(c);
 	}
 
@@ -402,7 +375,7 @@ void Solver::attachClause(CRef cr) {
 
 void Solver::addToClauses(CRef cr, bool learnt) {
 	if (learnt) {
-		if(learnts.size()>=max_learned_clauses){
+		if (learnts.size() >= max_learned_clauses) {
 			reduceDB();
 		}
 		newlearnts.insert(cr);
@@ -421,6 +394,10 @@ void Solver::addToClauses(CRef cr, bool learnt) {
  * complexity: O(1)
  */
 void Solver::checkDecisionVars(const Clause& c) {
+	if(not modes().lazy){ // Optimization // TODO invars should guarantee this (and speedup in other case?)
+		MAssert((not isFalse(c[0]) && isDecisionVar(var(c[0]))) || (not isFalse(c[1]) && isDecisionVar(var(c[1]))));
+		return;
+	}
 	MAssert(not isFalse(c[0]) || not isFalse(c[1]));
 	if (isFalse(c[0])) {
 		setDecidable(var(c[1]), true);
@@ -457,9 +434,9 @@ void Solver::detachClause(CRef cr, bool strict) {
 // Store the entailed literals and save all new clauses, both in learnts and clauses
 void Solver::saveState() {
 	// Reset stored info
-	if(trail_lim.size()>0){
+	if (trail_lim.size() > 0) {
 		roottraillim = trail_lim[0];
-	}else{
+	} else {
 		roottraillim = trail.size();
 	}
 	newclauses.clear();
@@ -468,12 +445,12 @@ void Solver::saveState() {
 	remove_satisfied = false;
 }
 
-void Solver::removeUndefs(std::set<CRef>& newclauses, vec<CRef>& clauses){
+void Solver::removeUndefs(std::set<CRef>& newclauses, vec<CRef>& clauses) {
 	int i, j;
 	for (i = j = 0; i < clauses.size(); i++) {
-		if(newclauses.find(clauses[i])!=newclauses.cend()){
+		if (newclauses.find(clauses[i]) != newclauses.cend()) {
 			removeClause(clauses[i]);
-		}else{
+		} else {
 			clauses[j++] = clauses[i];
 		}
 	}
@@ -483,15 +460,15 @@ void Solver::removeUndefs(std::set<CRef>& newclauses, vec<CRef>& clauses){
 
 // Reset always backtracks to 0 if there are new entailed literals
 void Solver::resetState() { // FIXME prevent reset without associated save
-	if(verbosity>3){
-		clog <<">>> Resetting the state.\n";
+	if (verbosity > 3) {
+		clog << ">>> Resetting the state.\n";
 	}
 	ok = savedok;
 	auto newtrailrootlim = trail.size();
-	if(trail_lim.size()>0){
+	if (trail_lim.size() > 0) {
 		newtrailrootlim = trail_lim[0];
 	}
-	if(roottraillim != (uint)newtrailrootlim){
+	if (roottraillim != (uint) newtrailrootlim) {
 		trail_lim[0] = roottraillim;
 		uncheckedBacktrack(0);
 	}
@@ -519,7 +496,7 @@ bool Solver::satisfied(const Clause& c) const {
 
 // BACKTRACKING
 
-void Solver::uncheckedBacktrack(int level){
+void Solver::uncheckedBacktrack(int level) {
 	if (verbosity > 8) {
 		clog << "Backtracking to " << level << "\n";
 	}
@@ -535,7 +512,7 @@ void Solver::uncheckedBacktrack(int level){
 	trail.shrinkByNb(trail.size() - trail_lim[level]);
 	int levels = trail_lim.size() - level;
 	trail_lim.shrinkByNb(levels);
-	if(levelatstart>level){
+	if (levelatstart > level) {
 		getPCSolver().backtrackDecisionLevel(level, decision);
 	}
 	backtracked = true;
@@ -890,19 +867,22 @@ CRef Solver::propagate() {
 }
 
 CRef Solver::notifypropagate() {
-	if(backtracked){
+	if (backtracked) {
 		auto level = decisionLevel();
-		for(auto i=rootunitlits.begin(); i!=rootunitlits.end();) {
-			if(i->level<=(uint)level){
+		for (auto i = rootunitlits.begin(); i != rootunitlits.end();) {
+			if (i->level <= (uint) level) {
+				if (value(i->lit) == l_False) {
+					return i->explan;
+				}
 				checkedEnqueue(i->lit, i->explan);
 				++i;
-			}else{
+			} else {
 				i = rootunitlits.erase(i);
 			}
 		}
 		backtracked = false;
 	}
-	if (decisionLevel()==0 && needsimplify) {
+	if (decisionLevel() == 0 && needsimplify) {
 		if (not simplify()) {
 			return getPCSolver().createClause( { }, true);
 		}
@@ -922,7 +902,9 @@ CRef Solver::notifypropagate() {
 			// Try to avoid inspecting the clause:
 			Lit blocker = i->blocker;
 			if (value(blocker) == l_True) {
-				setDecidable(var(blocker), true); // TODO is this the best possible call?
+				if(modes().lazy){ // TODO guarantee invar here again!
+					setDecidable(var(blocker), true); // TODO is this the best possible call?
+				}
 				*j++ = *i++;
 				continue;
 			}
@@ -1026,7 +1008,7 @@ void Solver::removeSatisfied(vec<CRef>& cs) {
 	int i, j;
 	for (i = j = 0; i < cs.size(); i++) {
 		auto& c = ca[cs[i]];
-		if (satisfied(c)){
+		if (satisfied(c)) {
 			removeClause(cs[i]);
 		} else {
 			cs[j++] = cs[i];
@@ -1037,7 +1019,7 @@ void Solver::removeSatisfied(vec<CRef>& cs) {
 
 void Solver::rebuildOrderHeap() {
 	vec<Var> vs;
-	for (Var v = 0; v < nVars(); v++){
+	for (Var v = 0; v < nVars(); v++) {
 		if (decision[v] && value(mkPosLit(v)) == l_Undef) vs.push(v);
 	}
 	order_heap.build(vs);
@@ -1061,7 +1043,7 @@ bool Solver::simplify() {
 
 	// Remove satisfied clauses:
 	removeSatisfied(learnts);
-	if (remove_satisfied){ // Can be turned off.
+	if (remove_satisfied) { // Can be turned off.
 		removeSatisfied(clauses);
 	}
 	checkGarbage();
@@ -1200,7 +1182,7 @@ lbool Solver::search(int maxconflicts, bool nosearch/*AE*/) {
 			}
 
 			if (verbosity > 3) {
-				getPCSolver().printChoiceMade(decisionLevel()+1, next);
+				getPCSolver().printChoiceMade(decisionLevel() + 1, next);
 			}
 
 			// Increase decision level and enqueue 'next'
@@ -1241,8 +1223,10 @@ static double luby(double y, int x) {
 }
 
 void Solver::setAssumptions(const litlist& assumps) {
-	MAssert(not assumpset);
-	if(not oneshot && assumpset){
+	if (oneshot) {
+		MAssert(not assumpset);
+	}
+	if (not oneshot && assumpset) {
 		resetState();
 	}
 	cancelUntil(0);
@@ -1250,7 +1234,7 @@ void Solver::setAssumptions(const litlist& assumps) {
 	for (auto i = assumps.cbegin(); i < assumps.cend(); ++i) {
 		assumptions.push(*i);
 	}
-	if(not oneshot){
+	if (not oneshot) {
 		saveState();
 	}
 	assumpset = true;
@@ -1258,7 +1242,7 @@ void Solver::setAssumptions(const litlist& assumps) {
 
 // NOTE: assumptions passed in member-variable 'assumptions'.
 lbool Solver::solve(bool nosearch) {
-	if(not assumpset){
+	if (not assumpset) {
 		saveState(); // NOTE: to assure that the state has been saved exactly once
 	}
 	assumpset = true;

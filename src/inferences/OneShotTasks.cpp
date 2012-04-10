@@ -38,27 +38,28 @@ OneShotUnsatCoreExtraction::OneShotUnsatCoreExtraction(const SolverOption& optio
 
 }
 OneShotUnsatCoreExtraction::~OneShotUnsatCoreExtraction() {
-	delete (space);
 }
 
 OneShotMX::OneShotMX(SolverOption options, ModelExpandOptions mxoptions, const litlist& assumptions):
-		Task(options),
-	space(new Space(options, true)), mx(new ModelExpand(space, mxoptions, assumptions)){
+		MXTask(new Space(options, true)), localspace(true),
+	mx(new ModelExpand(getSpace(), mxoptions, assumptions)){
 
 }
 
 OneShotMX::OneShotMX(Space* space, ModelExpandOptions mxoptions, const litlist& assumptions):
-		Task(space->getOptions()),
-	space(space), mx(new ModelExpand(space, mxoptions, assumptions)){
+		MXTask(space), localspace(false),
+	mx(new ModelExpand(space, mxoptions, assumptions)){
 
 }
 
 OneShotMX::~OneShotMX(){
-	delete(space);
+	if(localspace){
+		delete(getSpace());
+	}
 	delete(mx);
 }
 
-SearchEngine* OneShotMX::getEngine() { return space->getEngine(); }
+SearchEngine* OneShotMX::getEngine() { return getSpace()->getEngine(); }
 
 void OneShotMX::innerExecute(){
 	mx->execute();

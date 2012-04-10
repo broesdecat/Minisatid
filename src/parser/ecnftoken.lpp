@@ -52,6 +52,7 @@ WHITESPACE	[\t\r ]*
 <theory>"ecnf"	{ADJ; return ECNF;}
 <theory>"def" 	{ADJ; return DEFPRESENT;}
 <theory>"aggr" 	{ADJ; return AGGPRESENT;}
+<theory>"mnmz" 	{ADJ; return MINIMPRESENT;}
 
 <theory>^"WSet"	{ADJ; return WSETDEFN;}
 <theory>^"Set"	{ADJ; return SETDEFN;}

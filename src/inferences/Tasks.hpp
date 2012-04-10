@@ -78,7 +78,15 @@ enum class MXState {
 
 class OptimStatement;
 
-class ModelExpand: public SpaceTask {
+class MXTask: public SpaceTask{
+public:
+	MXTask(Space* space): SpaceTask(space){}
+	virtual bool isSat() const = 0;
+	virtual bool isUnsat() const = 0;
+	virtual void notifySolvingAborted() = 0;
+};
+
+class ModelExpand: public MXTask {
 private:
 	ModelExpandOptions _options;
 	litlist assumptions;

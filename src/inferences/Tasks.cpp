@@ -43,7 +43,7 @@ void SpaceTask::notifyTerminateRequested() {
 }
 
 ModelExpand::ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions)
-		: SpaceTask(space), _options(options), assumptions(checkLits(assumptions, space->getRemapper())), _solutions(new ModelManager(options.savemodels)),
+		: MXTask(space), _options(options), assumptions(checkLits(assumptions, space->getRemapper())), _solutions(new ModelManager(options.savemodels)),
 			printer(new Printer(_solutions, space, options.printmodels, space->getOptions())) {
 
 }

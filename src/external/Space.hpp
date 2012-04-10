@@ -35,6 +35,7 @@ public:
 	}
 	void notifyMonitor(const Lit& propagation, int decisionlevel);
 	void notifyMonitor(int untillevel);
+	bool hasMonitors() const { return monitors.size()>0; }
 };
 
 class VarCreation {

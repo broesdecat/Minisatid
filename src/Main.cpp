@@ -65,7 +65,7 @@ void handleSignals();
 void parseAndInitializeTheory(pwls d);
 void doModelGeneration(pwls d);
 
-OneShotMX* mx = NULL;
+MXTask* mx = NULL;
 
 int main(int argc, char** argv) {
 	//Setting system precision and signal handlers
@@ -271,7 +271,11 @@ void doModelGeneration(pwls d) {
 	}
 	mxoptions.nbmodelstofind = d->getOptions().nbmodels;
 
-	mx = new OneShotMX(d, mxoptions, { });
+	if(d->isOptimizationProblem()){
+		mx = new ModelExpand(d, mxoptions, { });
+	}else{
+		mx = new OneShotMX(d, mxoptions, { });
+	}
 	mx->execute();
 }
 

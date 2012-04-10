@@ -49,9 +49,9 @@ public:
 class Space;
 class ModelExpand;
 
-class OneShotMX: public Task, public ConstraintAdditionInterface<SearchEngine>{
+class OneShotMX: public MXTask, public ConstraintAdditionInterface<SearchEngine>{
 private:
-	Space* space;
+	bool localspace;
 	ModelExpand* mx;
 public:
 	OneShotMX(SolverOption options, ModelExpandOptions mxoptions, const litlist& assumptions);

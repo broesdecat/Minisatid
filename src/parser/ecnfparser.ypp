@@ -140,7 +140,7 @@ void checkVersion(ECNF_VERSION version);
 %token <sign> SIGNDEFN 
 %token <rel> REL
 %token <aggr> AGGDEFN
-%token CNF ECNF DEFPRESENT AGGPRESENT
+%token CNF ECNF DEFPRESENT AGGPRESENT MINIMPRESENT
 %token INTVAR INTVARDOM SUMSTSIRI COUNTSTRIT DISTINCT DELIM BINTRI BINTRT
 
 %type <integer> number
@@ -190,6 +190,7 @@ init	:	CNF	number number
 header	: 	/*empty*/
 		| 	header DEFPRESENT // Backwards compatibility
 		| 	header AGGPRESENT // Backwards compatibility
+		| 	header MINIMPRESENT // Backwards compatibility
 		;
 		
 // CNF THEORY

@@ -25,6 +25,7 @@ EventQueue::EventQueue(PCSolver& pcsolver)
 	event2propagator[EV_DECISIONLEVEL];
 	event2propagator[EV_BACKTRACK];
 	event2propagator[EV_MODELFOUND];
+	event2propagator[EV_STATEFUL];
 }
 
 EventQueue::~EventQueue() {
@@ -155,18 +156,20 @@ void EventQueue::setTrue(const proplist& list, deque<Propagator*>& queue) {
 }
 
 void EventQueue::setTrue(const Lit& l) {
-	addEternalPropagators();
-	for (uint i = 0; i != lit2watches[toInt(l)].size(); ++i) {
-		lit2watches[toInt(l)][i]->propagate();
-	}
-	// TODO should be sped up a lot
-	watchlist remwatches;
-	for (auto i = lit2watches[toInt(l)].cbegin(); i != lit2watches[toInt(l)].cend(); ++i) {
-		if (not (*i)->dynamic()) {
-			remwatches.push_back(*i);
+	auto& lw = lit2watches[toInt(l)];
+	if(lw.size()!=0){
+		for (uint i = 0; i != lw.size(); ++i) {
+			lw[i]->propagate();
 		}
+		// TODO can be sped up?
+		watchlist remwatches;
+		for (auto i = lw.cbegin(); i != lw.cend(); ++i) {
+			if (not (*i)->dynamic()) {
+				remwatches.push_back(*i);
+			}
+		}
+		lw = remwatches;
 	}
-	lit2watches[toInt(l)] = remwatches;
 	setTrue(lit2priority2propagators[toInt(l)][FAST], fastqueue);
 	setTrue(lit2priority2propagators[toInt(l)][SLOW], slowqueue);
 }
@@ -179,7 +182,7 @@ rClause EventQueue::notifyFullAssignmentFound(){
 	return confl;
 }
 
-// TODO check cost of this method
+// TODO check cost of this method, is extremely expensive???
 void EventQueue::clearNotPresentPropagators() {
 	//IMPORTANT: the propagators which are no longer present should be deleted from EVERY datastructure that is used later on!
 	for (auto i = lit2priority2propagators.begin(); i < lit2priority2propagators.end(); ++i) {

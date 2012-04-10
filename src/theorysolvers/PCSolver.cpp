@@ -42,7 +42,8 @@ PCSolverImpl::PCSolverImpl(SolverOption modes, Monitor* monitor, VarCreation* va
 		trail(new TimeTrail()),
 		terminate(false),
 		printer(printer),
-		queue(NULL) {
+		queue(NULL),
+		monitoring(false){
 	queue = new EventQueue(*this);
 	searchengine = createSolver(this, oneshot);
 #ifdef CPSUPPORT
@@ -169,7 +170,7 @@ void PCSolverImpl::notifySetTrue(const Lit& p) {
 	getEventQueue().setTrue(p);
 	trail->notifyPropagate(p);
 
-	if (monitor != NULL) {
+	if (monitoring) {
 		monitor->notifyMonitor(p, getCurrentDecisionLevel());
 	}
 }
@@ -373,7 +374,7 @@ void PCSolverImpl::newDecisionLevel() {
 }
 
 void PCSolverImpl::backtrackDecisionLevel(int untillevel, const Lit& decision) {
-	if (monitor != NULL) {
+	if (monitoring) {
 		monitor->notifyMonitor(untillevel);
 	}
 
@@ -385,6 +386,7 @@ void PCSolverImpl::setAssumptions(const litlist& assumps){
 	getSATSolver()->setAssumptions(assumps);
 }
 lbool PCSolverImpl::solve(bool search) {
+	monitoring = monitor->hasMonitors();
 	return getSATSolver()->solve(not search);
 }
 
