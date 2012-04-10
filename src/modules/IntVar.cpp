@@ -109,36 +109,36 @@ void IntVar::addConstraints(){
 	Aggregate highercard(lowercard);
 	highercard.head = engine().newVar();
 	highercard.sign = AggSign::UB;
-	engine().add(set);
-	engine().add(Disjunction({mkPosLit(highercard.head)}));
-	engine().add(Disjunction({mkPosLit(lowercard.head)}));
-	engine().add(highercard);
-	engine().add(lowercard);
+	add(set, engine());
+	add(Disjunction({mkPosLit(highercard.head)}), engine());
+	add(Disjunction({mkPosLit(lowercard.head)}), engine());
+	add(highercard, engine());
+	add(lowercard, engine());
 	// TODO do we miss propagation in other direction?
 	for(uint i=0; i<equalities.size(); ++i){
 		// if eq[i] => diseq[i]
 		Disjunction same;
 		same.literals.push_back(mkNegLit(equalities[i]));
 		same.literals.push_back(mkPosLit(disequalities[i]));
-		engine().add(same);
+		add(same, engine());
 		if(i<equalities.size()-1){
 			// if diseq[i] => diseq[i+1]
 			Disjunction prev;
 			prev.literals.push_back(mkNegLit(disequalities[i]));
 			prev.literals.push_back(mkPosLit(disequalities[i+1]));
-			engine().add(prev);
+			add(prev, engine());
 		}
 		if(i>0){
 			// if eq[i] => ~diseq[i-1]
 			Disjunction next;
 			next.literals.push_back(mkNegLit(equalities[i]));
 			next.literals.push_back(mkNegLit(disequalities[i-1]));
-			engine().add(next);
+			add(next, engine());
 			// if ~diseq[i] => ~diseq[i-1]
 			Disjunction nextdis;
 			nextdis.literals.push_back(mkPosLit(disequalities[i]));
 			nextdis.literals.push_back(mkNegLit(disequalities[i-1]));
-			engine().add(nextdis);
+			add(nextdis, engine());
 		}
 	}
 }

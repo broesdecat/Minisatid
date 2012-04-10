@@ -17,7 +17,7 @@
 namespace MinisatID{
 
 class Translator;
-class PCSolver;
+class SearchEngine;
 class PropAndBackMonitor;
 
 typedef std::vector<Lit> litlist;
@@ -47,21 +47,28 @@ public:
 	Var createVar();
 };
 
-class Space: public LiteralPrinter, public ConstraintAdditionInterface<PCSolver>{
+class Space: public LiteralPrinter, public ConstraintAdditionInterface<SearchEngine>{
 private:
 	SolverOption basicoptions;
 	Monitor* monitor;
 	VarCreation* varcreator;
-	PCSolver* engine;
+	SearchEngine* engine;
+	bool oneshot, executed;
 
 public:
-	Space(SolverOption options);
+	Space(SolverOption options, bool oneshot = false); // Set oneshot to true if only one inference will be executed. Code can optimize for this.
 	~Space();
-	// FIXME make private and add explicit add(X)??? (now have to include PCSolver in external code!)
-	PCSolver* getEngine() { return engine; }
+	SearchEngine* getEngine() { return engine; }
 	const SolverOption& getOptions() const { return basicoptions; }
 
 	bool isCertainlyUnsat() const;
+
+	void notifyInferenceExecuted(){
+		if(oneshot){
+			MAssert(not executed);
+		}
+		executed = true;
+	}
 
 private:
 	Translator *_translator, *_origtranslator;

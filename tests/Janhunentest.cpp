@@ -39,6 +39,14 @@ namespace Tests{
 		lbool value(Var) { return l_True; }
 	};
 
+	void add(const Disjunction& d, SolverMOC& moc){
+		moc.add(d);
+	}
+
+	void add(const Implication& d, SolverMOC& moc){
+		moc.add(d);
+	}
+
 	TEST(SCCTest, Trivial) {
 		SolverMOC moc(1);
 		vector<toCNF::Rule*> rules;

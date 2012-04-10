@@ -300,23 +300,23 @@ void Read<T>::addBasicRules() {
 		r.body = (*i)->body;
 		r.conjunctive = (*i)->conj;
 		r.definitionID = defaultdefinitionID;
-		add(getSolver(), r);
+		extAdd(getSolver(), r);
 	}
 }
 
 template<class T>
 void Read<T>::addCardRules() {
 	for (auto i = cardrules.cbegin(); i < cardrules.cend(); ++i) {
-		add(getSolver(), createSet((*i)->setcount, (*i)->body, 1));
-		add(getSolver(), Aggregate((*i)->head, (*i)->setcount, (*i)->atleast, AggType::CARD, AggSign::LB, AggSem::DEF, defaultdefinitionID));
+		extAdd(getSolver(), createSet((*i)->setcount, (*i)->body, 1));
+		extAdd(getSolver(), Aggregate((*i)->head, (*i)->setcount, (*i)->atleast, AggType::CARD, AggSign::LB, AggSem::DEF, defaultdefinitionID));
 	}
 }
 
 template<class T>
 void Read<T>::addSumRules() {
 	for (auto i = sumrules.cbegin(); i < sumrules.cend(); ++i) {
-		add(getSolver(), createSet((*i)->setcount, (*i)->body, (*i)->weights));
-		add(getSolver(), Aggregate((*i)->head, (*i)->setcount, (*i)->atleast, AggType::SUM, AggSign::LB, AggSem::DEF, defaultdefinitionID));
+		extAdd(getSolver(), createSet((*i)->setcount, (*i)->body, (*i)->weights));
+		extAdd(getSolver(), Aggregate((*i)->head, (*i)->setcount, (*i)->atleast, AggType::SUM, AggSign::LB, AggSem::DEF, defaultdefinitionID));
 	}
 }
 
@@ -342,7 +342,7 @@ void Read<T>::tseitinizeHeads() {
 
 			//To guarantee #model equivalence:
 			Implication eq(tempbody[0], ImplicationType::EQUIVALENT, { mkPosLit(head) }, true);
-			add(getSolver(), eq);
+			extAdd(getSolver(), eq);
 		}
 	}
 
@@ -365,7 +365,7 @@ void Read<T>::tseitinizeHeads() {
 		if (it == headtorules.cend() || (*it).second.size() == 0) {
 			Disjunction clause;
 			clause.literals.push_back(mkNegLit((*i).first));
-			add(getSolver(), clause);
+			extAdd(getSolver(), clause);
 		}
 	}
 }
@@ -374,8 +374,8 @@ template<class T>
 void Read<T>::addOptimStatement() {
 	if (optim) {
 		vector<Literal> optimheadclause;
-		add(getSolver(), createSet(optimsetcount, optimbody, optimweights));
-		add(getSolver(), MinimizeAgg(1, optimsetcount, AggType::SUM));
+		extAdd(getSolver(), createSet(optimsetcount, optimbody, optimweights));
+		extAdd(getSolver(), MinimizeAgg(1, optimsetcount, AggType::SUM));
 	}
 }
 
@@ -478,7 +478,7 @@ bool Read<T>::read(istream &f) {
 
 		Disjunction clause;
 		clause.literals.push_back(mkPosLit(makeParsedAtom(i)));
-		add(getSolver(), clause);
+		extAdd(getSolver(), clause);
 	}
 	f.getline(s, len); // Read rest of last line (get newline);
 	f.getline(s, len); //should be B-
@@ -502,7 +502,7 @@ bool Read<T>::read(istream &f) {
 
 		Disjunction clause;
 		clause.literals.push_back(mkNegLit(makeParsedAtom(i)));
-		add(getSolver(), clause);
+		extAdd(getSolver(), clause);
 	}
 
 	f >> i; // nb of models, zero means all

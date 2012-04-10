@@ -55,9 +55,8 @@ lbool LitTrail::value(const Lit& l) const {
 }
 
 CPSolver::CPSolver(PCSolver * solver) :
-		Propagator(solver, "CP-solver"), solverdata(new CPSolverData()),
-		addedconstraints(false),
-		searchedandnobacktrack(false), savedsearchengine(NULL) {
+		Propagator(solver, "CP-solver"), solverdata(new CPSolverData()), addedconstraints(false), searchedandnobacktrack(false), savedsearchengine(
+				NULL) {
 	getPCSolver().accept(this, EV_BACKTRACK);
 	getPCSolver().accept(this, EV_DECISIONLEVEL);
 	getPCSolver().accept(this, EV_STATEFUL);
@@ -130,6 +129,11 @@ bool CPSolver::add(const CPCount& form) {
 bool CPSolver::add(const CPAllDiff& form) {
 	vector<TermIntVar> set(convertToVars(form.varIDs));
 	add(new DistinctConstraint(getSpace(), set));
+	return true;
+}
+
+bool CPSolver::add(const MinimizeVar& form) {
+	//FIXME add(new OptimConstraint(getSpace(), convertToVar(form.varID)));
 	return true;
 }
 

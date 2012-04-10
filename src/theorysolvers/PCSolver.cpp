@@ -17,6 +17,7 @@
 #include "theorysolvers/EventQueue.hpp"
 #include "theorysolvers/TimeTrail.hpp"
 #include "external/Space.hpp"
+#include "InternalAdd.hpp"
 
 #include "modules/aggsolver/AggSet.hpp"
 
@@ -24,12 +25,11 @@
 
 using namespace std;
 using namespace MinisatID;
-using namespace Minisat;
 
 using Minisat::vec;
 
 //Has to be value copy of modes!
-PCSolver::PCSolver(SolverOption modes, Monitor* monitor, VarCreation* varcreator, LiteralPrinter* printer) :
+PCSolverImpl::PCSolverImpl(SolverOption modes, Monitor* monitor, VarCreation* varcreator, LiteralPrinter* printer, bool oneshot) :
 		_modes(modes),
 		varcreator(varcreator),
 		monitor(monitor),
@@ -44,7 +44,7 @@ PCSolver::PCSolver(SolverOption modes, Monitor* monitor, VarCreation* varcreator
 		printer(printer),
 		queue(NULL) {
 	queue = new EventQueue(*this);
-	searchengine = createSolver(this);
+	searchengine = createSolver(this, oneshot);
 #ifdef CPSUPPORT
 	cpsolver = new CPSolver(this);
 #endif
@@ -56,7 +56,7 @@ PCSolver::PCSolver(SolverOption modes, Monitor* monitor, VarCreation* varcreator
 	}
 }
 
-PCSolver::~PCSolver() {
+PCSolverImpl::~PCSolverImpl() {
 	delete (queue);
 	// NOTE: solvers are deleted by the queue!
 	delete (factory);
@@ -64,64 +64,68 @@ PCSolver::~PCSolver() {
 }
 
 
-bool PCSolver::hasCPSolver() const {
+bool PCSolverImpl::hasCPSolver() const {
 #ifdef CPSUPPORT
 	return cpsolver!=NULL && cpsolver->isPresent();
 #else
 	return false;
 #endif
 }
-SATVAL PCSolver::findNextCPModel(){
+SATVAL PCSolverImpl::findNextCPModel(){
 #ifdef CPSUPPORT
 	MAssert(hasCPSolver());
-	if(not getCPSolver().hasData()){
+	if(not getCPSolver()->hasData()){
 		return SATVAL::UNSAT;
 	}
-	return getCPSolver().findNextModel()==nullPtrClause?SATVAL::POS_SAT:SATVAL::UNSAT;
+	return getCPSolver()->findNextModel()==nullPtrClause?SATVAL::POS_SAT:SATVAL::UNSAT;
 #else
 	throw idpexception("Calling methods on cpsolver while gecode is not compiled in.");
 #endif
 }
 
-
-VARHEUR PCSolver::lazyDecide() const {
-	return modes().lazy ? VARHEUR::DONT_DECIDE : VARHEUR::DECIDE;
+void PCSolverImpl::invalidate(litlist& clause) const {
+	// Add negation of model as clause for next iteration.
+	// By default: by adding all choice literals
+	auto v = getSolver().getDecisions();
+	for (auto i = v.cbegin(); i < v.cend(); ++i) {
+		clause.push_back(~(*i));
+	}
+}
+bool PCSolverImpl::moreModelsPossible() const{
+	return getCurrentDecisionLevel() != getSolver().getNbOfAssumptions();
 }
 
-lbool PCSolver::value(Lit p) const {
+lbool PCSolverImpl::value(Lit p) const {
 	return getSolver().value(p);
 }
-lbool PCSolver::rootValue(Lit p) const {
+lbool PCSolverImpl::rootValue(Lit p) const {
 	return getSolver().rootValue(p);
 }
-uint64_t PCSolver::nVars() const {
+uint64_t PCSolverImpl::nVars() const {
 	return getSolver().nbVars();
 }
-void PCSolver::notifyTerminateRequested() {
+void PCSolverImpl::notifyTerminateRequested() {
 	terminate = true;
 }
-bool PCSolver::terminateRequested() const {
+bool PCSolverImpl::terminateRequested() const {
 	return terminate;
 }
 
-const std::vector<Lit>& PCSolver::getTrail() const {
+const std::vector<Lit>& PCSolverImpl::getTrail() const {
 	return trail->getTrail();
 }
 
-bool PCSolver::isDecisionVar(Var var) {
+bool PCSolverImpl::isDecisionVar(Var var) {
 	if ((uint64_t) var >= nVars()) {
 		return false;
 	}
 	return getSATSolver()->isDecisionVar(var);
 }
-void PCSolver::notifyNonDecisionVar(Var var) {
-	getSATSolver()->setDecidable(var, false);
-}
-void PCSolver::notifyDecisionVar(Var var) {
+void PCSolverImpl::notifyDecisionVar(Var var) {
 	getSATSolver()->setDecidable(var, true);
 }
 
-rClause PCSolver::createClause(const Disjunction& clause, bool learned) {
+rClause PCSolverImpl::createClause(const Disjunction& clause, bool learned) {
 	if (clause.literals.size() == 0) {
 		return getSolver().makeClause({mkNegLit(dummy1), mkNegLit(dummy2)}, learned);
 	} else if (clause.literals.size() == 1) {
@@ -131,37 +135,37 @@ rClause PCSolver::createClause(const Disjunction& clause, bool learned) {
 	}
 }
 
-void PCSolver::acceptForDecidable(Var v, Propagator* prop) {
+void PCSolverImpl::acceptForDecidable(Var v, Propagator* prop) {
 	getEventQueue().acceptForDecidable(v, prop);
 }
-void PCSolver::notifyBecameDecidable(Var v) {
+void PCSolverImpl::notifyBecameDecidable(Var v) {
 	getEventQueue().notifyBecameDecidable(v);
 }
 
 // NOTE: when adding a clause, this should be propagated asap
-void PCSolver::addLearnedClause(rClause c) {
+void PCSolverImpl::addLearnedClause(rClause c) {
 	// FIXME method is incorrect if clause can propagate
 	// FIXME method is incorrect if first two literals of clause are false, but possible others aren't
 	getSolver().addLearnedClause(c);
 }
-int PCSolver::getClauseSize(rClause cr) const {
+int PCSolverImpl::getClauseSize(rClause cr) const {
 	return getSolver().getClauseSize(cr);
 }
-Lit PCSolver::getClauseLit(rClause cr, int i) const {
+Lit PCSolverImpl::getClauseLit(rClause cr, int i) const {
 	return getSolver().getClauseLit(cr, i);
 }
 
-void PCSolver::backtrackTo(int level) {
+void PCSolverImpl::backtrackTo(int level) {
 	getSolver().cancelUntil(level);
 }
 
-void PCSolver::setTrue(const Lit& p, Propagator* module, rClause c) {
+void PCSolverImpl::setTrue(const Lit& p, Propagator* module, rClause c) {
 	MAssert(value(p)!=l_False && value(p)!=l_True);
 	propagations[var(p)] = module;
 	getSolver().uncheckedEnqueue(p, c);
 }
 
-void PCSolver::notifySetTrue(const Lit& p) {
+void PCSolverImpl::notifySetTrue(const Lit& p) {
 	getEventQueue().setTrue(p);
 	trail->notifyPropagate(p);
 
@@ -170,85 +174,71 @@ void PCSolver::notifySetTrue(const Lit& p) {
 	}
 }
 
-int PCSolver::getCurrentDecisionLevel() const {
+int PCSolverImpl::getCurrentDecisionLevel() const {
 	return getSolver().decisionLevel();
 }
 
-int PCSolver::getLevel(int var) const {
+int PCSolverImpl::getLevel(int var) const {
 	return getSolver().getLevel(var);
 }
 
-int PCSolver::getStartLastLevel() const {
-	return getSolver().getStartLastLevel();
-}
-
-int PCSolver::getNbDecisions() const {
-	return getSolver().decisionLevel();
-}
-
-vector<Lit> PCSolver::getDecisions() const {
+vector<Lit> PCSolverImpl::getDecisions() const {
 	return getSolver().getDecisions();
 }
 
-bool PCSolver::isAlreadyUsedInAnalyze(const Lit& lit) const {
+bool PCSolverImpl::isAlreadyUsedInAnalyze(const Lit& lit) const {
 	return getSolver().isAlreadyUsedInAnalyze(lit);
 }
 
-void PCSolver::varBumpActivity(Var v) {
+void PCSolverImpl::varBumpActivity(Var v) {
 	getSolver().varBumpActivity(v);
 }
 
-void PCSolver::varReduceActivity(Var v) {
+void PCSolverImpl::varReduceActivity(Var v) {
 	getSolver().varReduceActivity(v);
 }
 
-void PCSolver::accept(Propagator* propagator) {
+void PCSolverImpl::accept(Propagator* propagator) {
 	getEventQueue().accept(propagator);
 }
 
-void PCSolver::accept(GenWatch* const watch) {
+void PCSolverImpl::accept(GenWatch* const watch) {
 	getEventQueue().accept(watch);
 }
 
-void PCSolver::acceptForBacktrack(Propagator* propagator) {
+void PCSolverImpl::acceptForBacktrack(Propagator* propagator) {
 	getEventQueue().acceptForBacktrack(propagator);
 }
-void PCSolver::acceptForPropagation(Propagator* propagator) {
+void PCSolverImpl::acceptForPropagation(Propagator* propagator) {
 	getEventQueue().acceptForPropagation(propagator);
 }
 
-void PCSolver::accept(Propagator* propagator, EVENT event) {
+void PCSolverImpl::accept(Propagator* propagator, EVENT event) {
 	getEventQueue().accept(propagator, event);
 }
 
-void PCSolver::acceptBounds(IntView* var, Propagator* propagator) {
+void PCSolverImpl::acceptBounds(IntView* var, Propagator* propagator) {
 	getEventQueue().acceptBounds(var, propagator);
 }
 
-void PCSolver::accept(Propagator* propagator, const Lit& lit, PRIORITY priority) {
+void PCSolverImpl::accept(Propagator* propagator, const Lit& lit, PRIORITY priority) {
 	getEventQueue().accept(propagator, lit, priority);
 }
 
-Var PCSolver::newVar() {
+Var PCSolverImpl::newVar() {
 	auto newnbvars = nVars() + 1;
 	auto var = varcreator->createVar();
 	MAssert((uint64_t)var==newnbvars-1);
 	getEventQueue().notifyNbOfVars(newnbvars); // IMPORTANT to do it before effectively creating it in the solver (might trigger grounding)
-	createVar(var, lazyDecide());
+	createVar(var);
 	MAssert(nVars()==newnbvars);
 	return var;
-}
-
-void PCSolver::addVars(const std::vector<Var>& vars, VARHEUR heur) {
-	for (auto i = vars.cbegin(); i < vars.cend(); ++i) {
-		createVar(*i, heur);
-	}
 }
 
 /**
  * VARHEUR::DECIDE has precedence over NON_DECIDE for repeated calls to the same var!
  */
-void PCSolver::createVar(Var v, VARHEUR decide) {
+void PCSolverImpl::createVar(Var v) {
 	MAssert(v>-1);
 
 	if(((uint64_t)v)>=nVars()){
@@ -259,6 +249,9 @@ void PCSolver::createVar(Var v, VARHEUR decide) {
 	}
 
 	if (not getSolver().isDecisionVar(v)) {
+		// If lazy, do not decide for literals in decisions
+		// NOTE: only use this if the watches mechanism of the constraint will take care of making literal decidable if necessary
+		auto decide = modes().lazy ? VARHEUR::DONT_DECIDE : VARHEUR::DECIDE;
 		getSolver().setDecidable(v, decide == VARHEUR::DECIDE);
 		if (propagations.size() < nVars()) { //Lazy init
 			propagations.resize(nVars(), NULL);
@@ -266,18 +259,18 @@ void PCSolver::createVar(Var v, VARHEUR decide) {
 	}
 }
 
-int PCSolver::newSetID() {
+int PCSolverImpl::newSetID() {
 	return getFactory().newSetID();
 }
 
-void PCSolver::notifyBoundsChanged(IntVar* var) {
+void PCSolverImpl::notifyBoundsChanged(IntVar* var) {
 	getEventQueue().notifyBoundsChanged(var);
 }
 
 /**
  * Returns OWNING pointer (faster).
  */
-rClause PCSolver::getExplanation(const Lit& l) {
+rClause PCSolverImpl::getExplanation(const Lit& l) {
 	if (modes().verbosity > 2) {
 		clog << "Generating explanation for " << toString(l) << ", ";
 	}
@@ -303,15 +296,27 @@ rClause PCSolver::getExplanation(const Lit& l) {
 	return explan;
 }
 
-lbool PCSolver::getModelValue(Var v){
+lbool PCSolverImpl::getModelValue(Var v){
 	return getSolver().modelValue(mkPosLit(v));
+}
+
+litlist PCSolverImpl::getEntailedLiterals() const{
+	litlist list;
+	auto firstdecision = getDecisions()[0];
+	for(auto i=getTrail().cbegin(); i<getTrail().cend(); ++i) {
+		if(*i==firstdecision){
+			break;
+		}
+		list.push_back(*i);
+	}
+	return list;
 }
 
 /* complexity O(#propagations on level)
  * @pre: p has been assigned in the current decision level!
  * Returns true if l was asserted before p
  */
-bool PCSolver::assertedBefore(const Var& l, const Var& p) const {
+bool PCSolverImpl::assertedBefore(const Var& l, const Var& p) const {
 	MAssert(value(mkPosLit(l))!=l_Undef && value(mkPosLit(p))!=l_Undef);
 
 	if (getLevel(l) < getLevel(p)) {
@@ -324,7 +329,7 @@ bool PCSolver::assertedBefore(const Var& l, const Var& p) const {
 	return false;
 }
 
-int PCSolver::getTime(const Var& var) const {
+int PCSolverImpl::getTime(const Var& var) const {
 	return trail->getTime(mkPosLit(var));
 }
 
@@ -333,7 +338,7 @@ bool compareByPriority(const T& left, const T& right) {
 	return left.priority < right.priority;
 }
 
-void PCSolver::finishParsing() {
+void PCSolverImpl::finishParsing() {
 	sort(optimization.begin(), optimization.end(), compareByPriority<OptimStatement>);
 	for (uint i = 1; i < optimization.size(); ++i) {
 		if (optimization[i].priority == optimization[i - 1].priority) {
@@ -344,11 +349,11 @@ void PCSolver::finishParsing() {
 	dummy1 = newVar();
 	Disjunction d1;
 	d1.literals.push_back(mkLit(dummy1, false));
-	add(d1);
+	add(d1, *this);
 	dummy2 = newVar();
 	Disjunction d2;
 	d2.literals.push_back(mkLit(dummy2, false));
-	add(d2);
+	add(d2, *this);
 
 	propagations.resize(nVars(), NULL); //Lazy init
 
@@ -357,17 +362,17 @@ void PCSolver::finishParsing() {
 	}
 }
 
-rClause PCSolver::notifyFullAssignmentFound() {
+rClause PCSolverImpl::notifyFullAssignmentFound() {
 	return getEventQueue().notifyFullAssignmentFound();
 }
 
 // Called by SAT solver when new decision level is started, BEFORE choice has been made!
-void PCSolver::newDecisionLevel() {
+void PCSolverImpl::newDecisionLevel() {
 	trail->notifyNewDecisionLevel();
 	getEventQueue().notifyNewDecisionLevel();
 }
 
-void PCSolver::backtrackDecisionLevel(int untillevel, const Lit& decision) {
+void PCSolverImpl::backtrackDecisionLevel(int untillevel, const Lit& decision) {
 	if (monitor != NULL) {
 		monitor->notifyMonitor(untillevel);
 	}
@@ -376,10 +381,10 @@ void PCSolver::backtrackDecisionLevel(int untillevel, const Lit& decision) {
 	getEventQueue().notifyBacktrack(untillevel, decision);
 }
 
-void PCSolver::setAssumptions(const litlist& assumps){
+void PCSolverImpl::setAssumptions(const litlist& assumps){
 	getSATSolver()->setAssumptions(assumps);
 }
-lbool PCSolver::solve(bool search) {
+lbool PCSolverImpl::solve(bool search) {
 	return getSATSolver()->solve(not search);
 }
 
@@ -388,49 +393,49 @@ lbool PCSolver::solve(bool search) {
  *
  * During initialization, store the propagations to redo them later on.
  */
-rClause PCSolver::propagate() {
+rClause PCSolverImpl::propagate() {
 	return getEventQueue().notifyPropagate();
 }
 
-SATVAL PCSolver::satState() const {
+SATVAL PCSolverImpl::satState() const {
 	return getSATSolver()->isUnsat() ? SATVAL::UNSAT : SATVAL::POS_SAT;
 }
 
-void PCSolver::notifyUnsat() {
+void PCSolverImpl::notifyUnsat() {
 	return getSATSolver()->notifyUnsat();
 }
 
-bool PCSolver::isDecided(Var var) {
+bool PCSolverImpl::isDecided(Var var) {
 	return getSATSolver()->isDecided(var);
 }
 
-void PCSolver::saveState() {
+void PCSolverImpl::saveState() {
 	getEventQueue().saveState();
 	getSolver().saveState();
 }
 
-void PCSolver::resetState() {
+void PCSolverImpl::resetState() {
 	getSolver().resetState(); // First solver, with possible backtrack, afterwards reset propagators
 	getEventQueue().resetState();
 }
 
 // PRINT METHODS
 
-void PCSolver::printEnqueued(const Lit& p) const {
+void PCSolverImpl::printEnqueued(const Lit& p) const {
 	clog << "> Enqueued " << toString(p) << "\n";
 }
 
-void PCSolver::printChoiceMade(int level, const Lit& l) const {
+void PCSolverImpl::printChoiceMade(int level, const Lit& l) const {
 	if (modes().verbosity >= 2) {
 		clog << "> Choice literal, dl " << level << ": " << toString(l) << ".\n";
 	}
 }
 
-void PCSolver::printClause(rClause clause) const {
+void PCSolverImpl::printClause(rClause clause) const {
 	getSolver().printClause(getClauseRef(clause));
 }
 
-void PCSolver::extractLitModel(std::shared_ptr<Model> fullmodel) {
+void PCSolverImpl::extractLitModel(std::shared_ptr<Model> fullmodel) {
 	fullmodel->literalinterpretations.clear();
 	for (uint64_t i = 0; i < nVars(); ++i) {
 		if (value(mkPosLit(i)) == l_True) {
@@ -441,17 +446,17 @@ void PCSolver::extractLitModel(std::shared_ptr<Model> fullmodel) {
 	}
 }
 
-void PCSolver::extractVarModel(std::shared_ptr<Model> fullmodel) {
+void PCSolverImpl::extractVarModel(std::shared_ptr<Model> fullmodel) {
 	fullmodel->variableassignments.clear();
 	getFactory().includeCPModel(fullmodel->variableassignments);
 #ifdef CPSUPPORT
 	if(hasCPSolver()) {
-		getCPSolver().getVariableSubstitutions(fullmodel->variableassignments);
+		getCPSolver()->getVariableSubstitutions(fullmodel->variableassignments);
 	}
 #endif
 }
 
-std::shared_ptr<Model> PCSolver::getModel() {
+std::shared_ptr<Model> PCSolverImpl::getModel() {
 	// Assert valid call!
 	auto fullmodel = std::shared_ptr<Model>(new Model());
 	extractLitModel(fullmodel);
@@ -459,18 +464,18 @@ std::shared_ptr<Model> PCSolver::getModel() {
 	return fullmodel;
 }
 
-void PCSolver::accept(ConstraintVisitor& visitor) {
+void PCSolverImpl::accept(ConstraintVisitor& visitor) {
 	// TODO other necessary calls? (toString optimization, toString unfinished constraints, ...?
 	getEventQueue().accept(visitor);
 }
 
-std::string PCSolver::toString(const Lit& lit) const {
+std::string PCSolverImpl::toString(const Lit& lit) const {
 	return printer->toString(lit);
 }
 
 // @pre: decision level = 0
 // FIXME add CNF printing too!
-/*void PCSolver::printTheory(ostream& stream){
+/*void PCSolverImpl::printTheory(ostream& stream){
  stringstream ss;
  std::set<Var> printedvars;
  int nbclauses = 0;

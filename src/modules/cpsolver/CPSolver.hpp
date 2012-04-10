@@ -83,6 +83,7 @@ public:
 	bool add(const CPSumWeighted& form);
 	bool add(const CPCount& form);
 	bool add(const CPAllDiff& form);
+	bool add(const MinimizeVar& form);
 
 	void getVariableSubstitutions(std::vector<VariableEqValue>& varassignments);
 

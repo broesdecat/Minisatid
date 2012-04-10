@@ -24,7 +24,7 @@ private:
 	Space* space;
 public:
 	template<class T>
-	void add(const T& formula){
+	void extAdd(const T& formula){
 		std::stringstream ss;
 		ss <<"Unsupported constraint type " <<typeid(T).name() <<"encountered in Unsat core extraction.";
 		throw idpexception(ss.str());
@@ -39,11 +39,31 @@ public:
 };
 
 template<>
-void OneShotUnsatCoreExtraction::add(const Disjunction& disjunction);
+void OneShotUnsatCoreExtraction::extAdd(const Disjunction& disjunction);
 
 class OneShotFlatzinc: public Task, public FlatZincRewriter<std::ostream>, public ConstraintAdditionInterface<OneShotFlatzinc>{
 public:
 	OneShotFlatzinc* getEngine() { return this; }
+};
+
+class Space;
+class ModelExpand;
+
+class OneShotMX: public Task, public ConstraintAdditionInterface<SearchEngine>{
+private:
+	Space* space;
+	ModelExpand* mx;
+public:
+	OneShotMX(SolverOption options, ModelExpandOptions mxoptions, const litlist& assumptions);
+	OneShotMX(Space* space, ModelExpandOptions mxoptions, const litlist& assumptions);
+	~OneShotMX();
+	SearchEngine* getEngine();
+
+	bool isSat() const;
+	bool isUnsat() const;
+	void notifySolvingAborted();
+
+	void innerExecute();
 };
 
 }

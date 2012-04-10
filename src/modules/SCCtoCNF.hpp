@@ -13,6 +13,7 @@
 #include <cmath>
 
 #include "theorysolvers/PCSolver.hpp"
+#include "theorysolvers/InternalAdd.hpp"
 #include "utils/Utils.hpp"
 
 namespace MinisatID {
@@ -302,7 +303,7 @@ private:
 	// Checked code below!
 
 	SATVAL addClause(const litlist& lits){
-		solver_.add(Disjunction(lits));
+		add(Disjunction(lits), solver_);
 		return solver_.satState();
 	}
 
@@ -321,14 +322,14 @@ private:
 	Lit and2SAT(const litlist& subs){
 		// TODO: if some false or all true: return false/true lit
 		auto tseitin = mkPosLit(solver_.newVar());
-		solver_.add(Implication(tseitin, ImplicationType::EQUIVALENT, subs, true));
+		add(Implication(tseitin, ImplicationType::EQUIVALENT, subs, true), solver_);
 		return tseitin;
 	}
 
 	Lit or2SAT(const litlist& subs){
 		// TODO: if some true or all false: return true/false lit
 		auto tseitin = mkPosLit(solver_.newVar());
-		solver_.add(Implication(tseitin, ImplicationType::EQUIVALENT, subs, false));
+		add(Implication(tseitin, ImplicationType::EQUIVALENT, subs, false), solver_);
 		return tseitin;
 	}
 };

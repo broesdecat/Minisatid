@@ -17,6 +17,7 @@
 
 #include "parser/CommandLineOptions.hpp"
 #include "inferences/Tasks.hpp"
+#include "inferences/OneShotTasks.hpp"
 #include "utils/TimingUtils.hpp"
 
 #include <csetjmp>
@@ -64,7 +65,7 @@ void handleSignals();
 void parseAndInitializeTheory(pwls d);
 void doModelGeneration(pwls d);
 
-ModelExpand* mx = NULL;
+OneShotMX* mx = NULL;
 
 int main(int argc, char** argv) {
 	//Setting system precision and signal handlers
@@ -118,12 +119,12 @@ int main(int argc, char** argv) {
 			if (modes.inference == Inference::MODELEXPAND) {
 				doModelGeneration(d);
 			} else if (modes.inference == Inference::PROPAGATE) {
-				auto up = UnitPropagate(d, {});
+				auto up = UnitPropagate(d, { });
 				up.execute();
 				up.writeOutEntailedLiterals();
 			} else if (modes.inference == Inference::PRINTTHEORY) {
 				auto tp = TheoryPrinting::ECNF;
-				switch(modes.transformat){
+				switch (modes.transformat) {
 				case OutputFormat::FZ:
 					tp = TheoryPrinting::FZ;
 					break;
@@ -138,11 +139,11 @@ int main(int argc, char** argv) {
 				}
 				auto t = new Transform(d, tp);
 				t->execute();
-				delete(t);
+				delete (t);
 			} else if (modes.inference == Inference::PRINTGRAPH) {
 				auto t = new Transform(d, TheoryPrinting::ECNFGRAPH);
 				t->execute();
-				delete(t);
+				delete (t);
 			}
 
 			jumpback = 1;
@@ -173,16 +174,16 @@ int main(int argc, char** argv) {
 			returnvalue = 10;
 		}
 		delete (mx);
-	}
-
-	if (d != NULL) {
+	} else if (d != NULL) {
 		if (d->getOptions().verbosity > 1) {
 			// TODO auto transform = Transform(d, TheoryPrinting::STATS, clog); // Is NOT a constraintvisitor, but a propagatorvisitor!
 			// TODO transform.execute();
 		}
 		delete (d);
 	}
-
+	if(not cleanexit){ // TODO there is some issue with aborting and afterwards deleting the data, should investigate this
+		exit(returnvalue);
+	}
 	return returnvalue;
 }
 
@@ -257,8 +258,8 @@ void parseAndInitializeTheory(pwls d) {
 	}
 
 	auto endparsing = cpuTime();
-	if(d->getOptions().verbosity>1){
-		clog <<">>> Parsing time: " <<endparsing-startparsing <<"\n";
+	if (d->getOptions().verbosity > 1) {
+		clog << ">>> Parsing time: " << endparsing - startparsing << "\n";
 	}
 }
 
@@ -270,16 +271,16 @@ void doModelGeneration(pwls d) {
 	}
 	mxoptions.nbmodelstofind = d->getOptions().nbmodels;
 
-	mx = new ModelExpand(d, mxoptions, {});
+	mx = new OneShotMX(d, mxoptions, { });
 	mx->execute();
 }
 
 // Debugging - information printing
 static void noMoreMem() {
-	//Tries to reduce the memory of the solver by reducing the number of learned clauses
-	//This keeps being called until enough memory is free or no more learned clauses can be deleted (causing abort).
+//Tries to reduce the memory of the solver by reducing the number of learned clauses
+//This keeps being called until enough memory is free or no more learned clauses can be deleted (causing abort).
 	bool reducedmem = false;
-	//TODO try to reduce solver clause base
+//TODO try to reduce solver clause base
 	if (!reducedmem) {
 		abortcode = SIGABRT;
 		clog << ">>> Signal handled: out of memory\n";

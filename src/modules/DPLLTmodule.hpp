@@ -11,6 +11,7 @@
 
 #include "utils/Utils.hpp"
 #include "theorysolvers/PCSolver.hpp"
+#include "theorysolvers/InternalAdd.hpp"
 
 namespace MinisatID {
 

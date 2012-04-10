@@ -16,6 +16,7 @@
 #include "modules/aggsolver/AggPrint.hpp"
 #include "modules/aggsolver/AggUtils.hpp"
 #include "theorysolvers/PCSolver.hpp"
+#include "theorysolvers/InternalAdd.hpp"
 #include "modules/aggsolver/PartiallyWatched.hpp"
 
 using namespace std;
@@ -64,7 +65,7 @@ void MinisatID::verifyAggregate(WLSet const * const set, AggType settype, Var he
 
 //@pre: has been split
 //@post: set ordered from low to high weights
-void MinisatID::setReduce(PCSolver*, WLSet* set, std::vector<TempAgg*>&, const AggProp& type, Weight& knownbound, bool&, bool&) {
+void MinisatID::setReduce(PCSolver* solver, WLSet* set, std::vector<TempAgg*>&, const AggProp& type, Weight& knownbound, bool&, bool&) {
 	MAssert(set->getWL().size()>0);
 	vwl oldset = set->getWL();
 	vwl newset;
@@ -81,7 +82,12 @@ void MinisatID::setReduce(PCSolver*, WLSet* set, std::vector<TempAgg*>&, const A
 	for (uint i = 1; i < oldset.size(); ++i) {
 		auto oldl = newset[indexinnew];
 		auto newl = oldset[i];
-		if (var(oldl.getLit()) == var(newl.getLit())) { //same variable
+		auto val = solver->rootValue(newl.getLit());
+		if(val==l_False){
+			continue;
+		}else if(val==l_True){
+			knownbound = type.add(newl.getWeight(), knownbound);
+		}else if (var(oldl.getLit()) == var(newl.getLit())) { //same variable
 			setisreduced = true;
 			if (oldl.getLit() == newl.getLit()) { //same literal, keep combined weight
 				auto w = type.getCombinedWeight(newl.getWeight(), oldl.getWeight());
@@ -94,9 +100,12 @@ void MinisatID::setReduce(PCSolver*, WLSet* set, std::vector<TempAgg*>&, const A
 			++indexinnew;
 		}
 	}
+	if(newset.size()<oldset.size()){
+		setisreduced = true;
+	}
 	vwl newset2;
 	for (vwl::size_type i = 0; i < newset.size(); ++i) {
-		if (!type.isNeutralElement(newset[i].getWeight())) {
+		if (not type.isNeutralElement(newset[i].getWeight())) {
 			newset2.push_back(newset[i]);
 		} else {
 			setisreduced = true;
@@ -127,12 +136,12 @@ void MinisatID::addHeadImplications(PCSolver* solver, WLSet*, std::vector<TempAg
 				Disjunction disj;
 				disj.literals.push_back(first->getHead());
 				disj.literals.push_back(not second->getHead());
-				solver->add(disj);
+				add(disj, *solver);
 				if (first->getBound() == second->getBound()) {
 					Disjunction disj2;
 					disj2.literals.push_back(not first->getHead());
 					disj2.literals.push_back(second->getHead());
-					solver->add(disj2);
+					add(disj2, *solver);
 				}
 				first = second;
 			}
@@ -146,12 +155,12 @@ void MinisatID::addHeadImplications(PCSolver* solver, WLSet*, std::vector<TempAg
 				Disjunction disj;
 				disj.literals.push_back(first->getHead());
 				disj.literals.push_back(not second->getHead());
-				solver->add(disj);
+				add(disj, *solver);
 				if (first->getBound() == second->getBound()) {
 					Disjunction disj2;
 					disj2.literals.push_back(not first->getHead());
 					disj2.literals.push_back(second->getHead());
-					solver->add(disj2);
+					add(disj2, *solver);
 				}
 				first = second;
 			}
@@ -201,7 +210,7 @@ void MinisatID::max2SAT(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& agg
 		}
 		clause.literals.push_back((*i).getLit());
 	}
-	solver->add(clause);
+	add(clause, *solver);
 	for (vwl::const_reverse_iterator i = set->getWL().rbegin(); i < set->getWL().rend() && (*i).getWeight() >= bound; ++i) {
 		if (ub && (*i).getWeight() == bound) {
 			break;
@@ -209,7 +218,7 @@ void MinisatID::max2SAT(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& agg
 		clause.literals.clear();
 		clause.literals.push_back(ub ? not agg.getHead() : agg.getHead());
 		clause.literals.push_back(not (*i).getLit());
-		solver->add(clause);
+		add(clause, *solver);
 	}
 	//}
 	aggs.clear();
@@ -266,7 +275,7 @@ void MinisatID::card2Equiv(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& 
 					body.push_back(set->getWL()[j].getLit());
 				}
 				Implication eq(agg.getHead(), ImplicationType::EQUIVALENT, body, false);
-				solver->add(eq);
+				add(eq, *solver);
 				//}
 			} else {
 				remaggs.push_back(*i);

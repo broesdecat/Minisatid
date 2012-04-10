@@ -17,7 +17,7 @@ namespace Minisat {
 
 namespace MinisatID{
 	class PCSolver;
-	Minisat::Solver* createSolver(MinisatID::PCSolver*);
+	Minisat::Solver* createSolver(MinisatID::PCSolver*, bool oneshot);
 }
 
 #endif// SATSOLVER_H_

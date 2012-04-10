@@ -51,7 +51,7 @@ public:
 	double var_decay;
 	bool rnd_pol; // Use random polarities for branching heuristics.
 	int max_learned_clauses;
-	bool firsttime; // true if no solving has been done yet (so no resetting is necessary)
+	bool oneshot, assumpset;
 
 	void setInitialPolarity(Var var, bool pol) {
 		polarity[var] = pol;
@@ -96,6 +96,8 @@ public:
 	void saveState();
 	void resetState();
 	void printClause(const CRef c) const;
+
+	int getNbOfAssumptions() const { return assumptions.size(); }
 
 	CRef makeClause(const std::vector<Lit>& lits, bool learnt);
 	bool addClause(const std::vector<Lit>& ps); // Add a clause to the solver.
@@ -173,7 +175,7 @@ public:
 
 	int getLevel(Var x) const;
 
-	Solver(MinisatID::PCSolver* s);
+	Solver(MinisatID::PCSolver* s, bool oneshot);
 	virtual ~Solver();
 
 	// NOTE: SHOULD ONLY BE CALLED BY PCSOLVER::CREATEVAR
@@ -329,7 +331,6 @@ protected:
 	void analyzeFinal(Lit p, vec<Lit>& out_conflict); // COULD THIS BE IMPLEMENTED BY THE ORDINARIY "analyze" BY SOME REASONABLE GENERALIZATION?
 	bool litRedundant(Lit p, uint32_t abstract_levels); // (helper method for 'analyze()')
 	lbool search(int maxconcflicts, bool nosearch);
-	lbool solve_(bool nosearch = false); // Main solve method(assumptions given in 'assumptions').
 	void reduceDB(); // Reduce the set of learnt clauses.
 	void removeSatisfied(vec<CRef>& cs); // Shrink 'cs' to contain only non-satisfied clauses.
 	void rebuildOrderHeap();
@@ -465,10 +466,6 @@ inline int Solver::nVars() const {
 }
 inline int Solver::nFreeVars() const {
 	return (int) dec_vars - (trail_lim.size() == 0 ? trail.size() : trail_lim[0]);
-}
-inline lbool Solver::solve(bool nosearch) {
-#warning disable state saving (which disables removing satisfied clauses e.g.) for oneshot tasks
-	return solve_(nosearch);
 }
 inline bool Solver::okay() const {
 	return ok;

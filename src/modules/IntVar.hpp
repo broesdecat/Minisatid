@@ -2,9 +2,7 @@
 #define INTVAR_HPP
 
 #include <vector>
-#include "utils/Utils.hpp"
 #include "modules/DPLLTmodule.hpp"
-#include "theorysolvers/PCSolver.hpp"
 
 namespace MinisatID{
 

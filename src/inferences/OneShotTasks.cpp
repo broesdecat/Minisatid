@@ -2,19 +2,20 @@
 #include "Tasks.hpp"
 #include "external/Space.hpp"
 #include "theorysolvers/PCSolver.hpp"
+#include "theorysolvers/InternalAdd.hpp"
 
 using namespace std;
 using namespace MinisatID;
 
 template<>
-void OneShotUnsatCoreExtraction::add(const Disjunction& disjunction) {
+void OneShotUnsatCoreExtraction::extAdd(const Disjunction& disjunction) {
 	Disjunction extended(disjunction);
 	auto newvar = space->getEngine()->newVar();
 	extended.literals.push_back(mkPosLit(newvar));
 	MAssert(id2Marker.find(maxid)==id2Marker.cend());
 	id2Marker[maxid] = newvar;
 	markerAssumptions.push_back(mkNegLit(newvar));
-	space->getEngine()->add(extended); // FIXME should also become the global methods
+	add(extended, *space->getEngine());
 }
 // TODO other constraints
 /*
@@ -33,9 +34,43 @@ void OneShotUnsatCoreExtraction::innerExecute() {
 	// TODO  rest
 }
 
-OneShotUnsatCoreExtraction::OneShotUnsatCoreExtraction(const SolverOption& options) : Task(options), space(new Space(options)) {
+OneShotUnsatCoreExtraction::OneShotUnsatCoreExtraction(const SolverOption& options) : Task(options), space(new Space(options, true)) {
 
 }
 OneShotUnsatCoreExtraction::~OneShotUnsatCoreExtraction() {
 	delete (space);
+}
+
+OneShotMX::OneShotMX(SolverOption options, ModelExpandOptions mxoptions, const litlist& assumptions):
+		Task(options),
+	space(new Space(options, true)), mx(new ModelExpand(space, mxoptions, assumptions)){
+
+}
+
+OneShotMX::OneShotMX(Space* space, ModelExpandOptions mxoptions, const litlist& assumptions):
+		Task(space->getOptions()),
+	space(space), mx(new ModelExpand(space, mxoptions, assumptions)){
+
+}
+
+OneShotMX::~OneShotMX(){
+	delete(space);
+	delete(mx);
+}
+
+SearchEngine* OneShotMX::getEngine() { return space->getEngine(); }
+
+void OneShotMX::innerExecute(){
+	mx->execute();
+}
+
+bool OneShotMX::isSat() const {
+	return mx->isSat();
+}
+bool OneShotMX::isUnsat() const {
+	return mx->isUnsat();
+}
+
+void OneShotMX::notifySolvingAborted() {
+	mx->notifySolvingAborted();
 }

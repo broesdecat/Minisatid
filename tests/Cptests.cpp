@@ -19,13 +19,13 @@ namespace Tests{
 TEST(CPTest, UnSatCPSum) {
 	SolverOption options;
 	auto space = new Space(options);
-	add(*space, Disjunction({mkPosLit(1), mkNegLit(2), mkPosLit(3)}));
-	add(*space, Disjunction({mkPosLit(1), mkPosLit(2), mkPosLit(3)}));
-	add(*space, Disjunction({mkNegLit(3)}));
+	extAdd(*space, Disjunction({mkPosLit(1), mkNegLit(2), mkPosLit(3)}));
+	extAdd(*space, Disjunction({mkPosLit(1), mkPosLit(2), mkPosLit(3)}));
+	extAdd(*space, Disjunction({mkNegLit(3)}));
 	uint groundone=1, groundtwo=2;
-	add(*space, IntVarRange(groundone, -3, 7));
-	add(*space, IntVarRange(groundtwo, 7, 10));
-	add(*space, CPSumWeighted(1, {groundone, groundtwo}, {Weight(1),Weight(1)}, EqType::GEQ, Weight(18)));
+	extAdd(*space, IntVarRange(groundone, -3, 7));
+	extAdd(*space, IntVarRange(groundtwo, 7, 10));
+	extAdd(*space, CPSumWeighted(1, {groundone, groundtwo}, {Weight(1),Weight(1)}, EqType::GEQ, Weight(18)));
 
 	ModelExpandOptions mxoptions(0, Models::NONE, Models::NONE);
 	auto mx = ModelExpand(space, mxoptions, {});
@@ -39,34 +39,34 @@ TEST(CPTest, MagicSeq) {
 	SolverOption options;
 	auto space = new Space(options);
 
-	add(*space, Disjunction({mkPosLit(1), mkPosLit(2), mkPosLit(3)}));
+	extAdd(*space, Disjunction({mkPosLit(1), mkPosLit(2), mkPosLit(3)}));
 	vector<Weight> mult;
 	vector<uint> elemx;
 	int n = 100;
-	for(uint i=0; i<n; ++i){
+	for(int i=0; i<n; ++i){
 		mult.push_back(Weight(i-1));
 		int x = i;
-		add(*space, IntVarRange(x, 0, n));
+		extAdd(*space, IntVarRange(x, 0, n));
 		elemx.push_back(x);
 	}
 
 	vector<Weight> weights;
 	weights.resize(elemx.size(),Weight(1));
 
-	for(uint i=0; i<n; ++i){
-		add(*space, CPCount(elemx, i, EqType::EQ, elemx[i]));
+	for(int i=0; i<n; ++i){
+		extAdd(*space, CPCount(elemx, i, EqType::EQ, elemx[i]));
 	}
-	add(*space, Disjunction({mkPosLit(4)}));
-	add(*space, CPSumWeighted(4, elemx, weights, EqType::EQ, n));
+	extAdd(*space, Disjunction({mkPosLit(4)}));
+	extAdd(*space, CPSumWeighted(4, elemx, weights, EqType::EQ, n));
 
-	add(*space, Disjunction({mkPosLit(5)}));
-	add(*space, CPSumWeighted(5, elemx, mult, EqType::EQ, 0));
+	extAdd(*space, Disjunction({mkPosLit(5)}));
+	extAdd(*space, CPSumWeighted(5, elemx, mult, EqType::EQ, 0));
 
 	int literalcount = 6;
 	for(int i=0; i<n; ++i){
-		for(uint j=0; j<n; ++j){
-			add(*space, CPBinaryRel(literalcount++, elemx[i], EqType::EQ, Weight(j)));
-			add(*space, CPBinaryRel(literalcount++, elemx[i], EqType::GEQ, Weight(j)));
+		for(int j=0; j<n; ++j){
+			extAdd(*space, CPBinaryRel(literalcount++, elemx[i], EqType::EQ, Weight(j)));
+			extAdd(*space, CPBinaryRel(literalcount++, elemx[i], EqType::GEQ, Weight(j)));
 		}
 	}
 
@@ -84,7 +84,7 @@ TEST(CPTest, Unsat2) {
 	vector<uint> elemx;
 	uint n = 4;
 	for(uint i=1; i<n; ++i){
-		add(*space, IntVarRange(i, 1, 2));
+		extAdd(*space, IntVarRange(i, 1, 2));
 		elemx.push_back(i);
 	}
 
@@ -92,9 +92,9 @@ TEST(CPTest, Unsat2) {
 	for(uint i=0; i<elemx.size(); ++i){
 		int left = c;
 		for(uint j=0; j<elemx.size(); ++j, ++c){
-			add(*space, CPBinaryRelVar(c, elemx[i], EqType::NEQ, elemx[j]));
+			extAdd(*space, CPBinaryRelVar(c, elemx[i], EqType::NEQ, elemx[j]));
 			if(i+j<n){
-				add(*space, Disjunction({mkPosLit(left), mkPosLit(c+i+1)}));
+				extAdd(*space, Disjunction({mkPosLit(left), mkPosLit(c+i+1)}));
 			}
 		}
 	}

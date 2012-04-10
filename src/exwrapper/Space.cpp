@@ -8,10 +8,10 @@ using namespace MinisatID;
 
 string Space::toString(const Lit& l) const {
 	stringstream ss;
-	if(getRemapper().wasInput(l)){
+	if (getRemapper().wasInput(l)) {
 		auto lit = getRemapper().getLiteral(l);
 		if (getTranslator()->hasTranslation(lit)) {
-			ss <<getTranslator()->toString(lit);
+			ss << getTranslator()->toString(lit);
 			return ss.str();
 		}
 	}
@@ -31,9 +31,12 @@ string Space::toString(const litlist& literals) const {
 	return ss.str();
 }
 
-Space::Space(SolverOption modes) :
+Space::Space(SolverOption modes, bool oneshot) :
 		basicoptions(modes), monitor(new Monitor(remapper)), varcreator(new VarCreation(remapper)), engine(
-				new PCSolver(modes, monitor, varcreator, this)), _translator(new PlainTranslator()) {
+				new PCSolverImpl(modes, monitor, varcreator, this, oneshot)),
+				oneshot(oneshot),
+				executed(false),
+				_translator(new PlainTranslator()) {
 	_origtranslator = _translator;
 }
 Space::~Space() {

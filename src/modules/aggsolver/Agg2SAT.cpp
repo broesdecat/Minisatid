@@ -18,6 +18,7 @@
 #include "PartiallyWatched.hpp"
 
 #include "theorysolvers/PCSolver.hpp"
+#include "theorysolvers/InternalAdd.hpp"
 
 #include "PbSolver.h"
 
@@ -97,7 +98,7 @@ void AggToCNFTransformer::add(WLSet* set, std::vector<TempAgg*>& aggs) {
 }
 
 SATVAL MinisatID::execute(const AggToCNFTransformer& transformer) {
-	auto pcsolver = transformer.pcsolver;
+	auto& pcsolver = transformer.pcsolver;
 	auto pbsolver = new MiniSatPP::PbSolver();
 	MiniSatPP::opt_verbosity = pcsolver.verbosity() - 1; //Gives a bit too much output on 1
 	MiniSatPP::opt_abstract = true; //Should be true
@@ -134,7 +135,7 @@ SATVAL MinisatID::execute(const AggToCNFTransformer& transformer) {
 			Var v = MiniSatPP::var(*j) + (MiniSatPP::var(*j) > transformer.maxvar ? maxnumber - transformer.maxvar : 0);
 			clause.literals.push_back(MiniSatPP::sign(*j) ? mkNegLit(v) : mkPosLit(v));
 		}
-		pcsolver.add(clause);
+		add(clause, pcsolver);
 	}
 
 	return pcsolver.satState();

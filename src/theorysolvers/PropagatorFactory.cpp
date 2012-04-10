@@ -67,7 +67,7 @@ PropagatorFactory::PropagatorFactory(const SolverOption& modes, PCSolver* engine
 		finishedparsing(false){
 	SATStorage::setStorage(engine->getSATSolver());
 #ifdef CPSUPPORT
-	CPStorage::setStorage(engine->getCPSolverp());
+	CPStorage::setStorage(engine->getCPSolver());
 #endif
 
 	if (modes.verbosity > 2) {
@@ -479,8 +479,6 @@ SATVAL PropagatorFactory::finishSet(const WLSet* origset, vector<TempAgg*>& aggs
 }
 
 SATVAL PropagatorFactory::finishParsing() {
-	finishedparsing = true;
-
 	for (auto i = parsingmonitors.cbegin(); i < parsingmonitors.cend(); ++i) {
 		(*i)->notifyEnd();
 	}
@@ -508,6 +506,8 @@ SATVAL PropagatorFactory::finishParsing() {
 	}
 
 	definitions->addToPropagators();
+
+	finishedparsing = true;
 
 	return satval;
 }

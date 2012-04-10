@@ -1,5 +1,4 @@
 #include "Definition.hpp"
-#include "theorysolvers/PCSolver.hpp"
 #include "IDSolver.hpp"
 
 using namespace std;
@@ -81,11 +80,11 @@ void Definition::addFinishedRule(TempRule* rule) {
 		Lit h = conj ? mkLit(head) : mkLit(head, true); //empty set conj = true, empty set disj = false
 		Disjunction v;
 		v.literals.push_back(h);
-		solver->add(v);
+		add(v, *solver);
 	} else {
 		conj = conj || rule->body.size() == 1; //rules with only one body atom are treated as conjunctive
 
 		Implication eq(mkPosLit(head), ImplicationType::EQUIVALENT, rule->body, conj);
-		solver->add(eq);
+		add(eq, *solver);
 	}
 }

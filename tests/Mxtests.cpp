@@ -21,7 +21,7 @@ namespace Tests{
 		SolverOption options;
 		options.verbosity = 10;
 		auto space = new Space(options);
-		add(*space, Disjunction({mkPosLit(1),mkPosLit(2),mkPosLit(3)}));
+		extAdd(*space, Disjunction({mkPosLit(1),mkPosLit(2),mkPosLit(3)}));
 		ModelExpandOptions mxopts(0, Models::ALL, Models::ALL);
 		auto mx = ModelExpand(space, mxopts, {mkNegLit(2)});
 		mx.execute();

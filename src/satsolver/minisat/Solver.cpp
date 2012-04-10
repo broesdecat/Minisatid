@@ -61,7 +61,7 @@ static DoubleOption opt_garbage_frac(_cat, "gc-frac", "The fraction of wasted me
 //=================================================================================================
 // Constructor/Destructor:
 
-Solver::Solver(PCSolver* s) :
+Solver::Solver(PCSolver* s, bool oneshot) :
 		Propagator(s, "satsolver"),
 		random_var_freq(opt_random_var_freq),
 		random_seed(opt_random_seed),
@@ -69,7 +69,8 @@ Solver::Solver(PCSolver* s) :
 		var_decay(opt_var_decay),
 		rnd_pol(false),
 		max_learned_clauses(opt_maxlearned),
-		firsttime(true),
+		oneshot(oneshot),
+		assumpset(false),
 		needsimplify(true),
 		backtracked(true),
 
@@ -498,19 +499,6 @@ void Solver::resetState() { // FIXME prevent reset without associated save
 	removeUndefs(newlearnts, learnts);
 
 	remove_satisfied = true;
-}
-
-void Solver::setAssumptions(const litlist& assumps) {
-	if(not firsttime){
-		resetState();
-	}
-	cancelUntil(0);
-	assumptions.clear();
-	for (auto i = assumps.cbegin(); i < assumps.cend(); ++i) {
-		assumptions.push(*i);
-	}
-	saveState(); // FIXME disable for oneshot tasks!!! Or make the user responsible for resetting the state?
-	firsttime = false;
 }
 
 void Solver::removeClause(CRef cr) {
@@ -1252,8 +1240,29 @@ static double luby(double y, int x) {
 	return pow(y, seq);
 }
 
+void Solver::setAssumptions(const litlist& assumps) {
+	MAssert(not assumpset);
+	if(not oneshot && assumpset){
+		resetState();
+	}
+	cancelUntil(0);
+	assumptions.clear();
+	for (auto i = assumps.cbegin(); i < assumps.cend(); ++i) {
+		assumptions.push(*i);
+	}
+	if(not oneshot){
+		saveState();
+	}
+	assumpset = true;
+}
+
 // NOTE: assumptions passed in member-variable 'assumptions'.
-lbool Solver::solve_(bool nosearch) {
+lbool Solver::solve(bool nosearch) {
+	if(not assumpset){
+		saveState(); // NOTE: to assure that the state has been saved exactly once
+	}
+	assumpset = true;
+
 	model.clear();
 	conflict.clear();
 	if (!ok) {

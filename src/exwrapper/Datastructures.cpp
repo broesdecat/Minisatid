@@ -39,7 +39,7 @@ void x::accept(ConstraintVisitor* visitor){\
 	visitor->visit(*this);\
 }\
 void x::accept(Space* visitor){\
-	add(*visitor, *this);\
+	extAdd(*visitor, *this);\
 }
 
 	DATASTRUCTURE_ACCEPT(Disjunction)

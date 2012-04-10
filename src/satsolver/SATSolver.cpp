@@ -12,8 +12,8 @@
 
 using namespace MinisatID;
 
-Minisat::Solver* MinisatID::createSolver(MinisatID::PCSolver* pcsolver){
-	auto s = new Minisat::Solver(pcsolver);
+Minisat::Solver* MinisatID::createSolver(MinisatID::PCSolver* pcsolver, bool oneshot){
+	auto s = new Minisat::Solver(pcsolver, oneshot);
 	auto options = pcsolver->modes();
 	s->random_var_freq = options.rand_var_freq;
 	s->var_decay = options.var_decay;

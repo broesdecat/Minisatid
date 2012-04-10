@@ -915,6 +915,9 @@ rClause IDSolver::notifypropagate() {
 	CHECKNOTUNSAT
 	if (needinitialization) {
 		initialize();
+		if(getPCSolver().isUnsat()){
+			return getPCSolver().createClause({}, true);
+		}
 	}
 	CHECKSEEN CHECKNOTUNSAT
 
@@ -1932,11 +1935,8 @@ rClause IDSolver::isWellFoundedModel() {
 	}
 
 	//Returns the found assignment (TODO might be optimized to just return the loop)
-	const litlist& decisions = getPCSolver().getDecisions();
 	Disjunction invalidation;
-	for (auto i = decisions.cbegin(); i < decisions.cend(); ++i) {
-		invalidation.literals.push_back(not (*i));
-	}
+	getPCSolver().invalidate(invalidation.literals);
 	rClause confl = getPCSolver().createClause(invalidation, true);
 	getPCSolver().addLearnedClause(confl);
 	return confl;

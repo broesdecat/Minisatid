@@ -24,7 +24,7 @@ class Remapper;
 class Propagator;
 class EventQueue;
 class PropagatorFactory;
-class PCSolver;
+class SearchEngine;
 class Optimization;
 class PropAndBackMonitor;
 class Printer;
@@ -69,7 +69,7 @@ public:
 	}
 
 protected:
-	PCSolver& getSolver() const;
+	SearchEngine& getSolver() const;
 };
 
 enum class MXState {
@@ -94,7 +94,6 @@ public:
 
 	bool isSat() const;
 	bool isUnsat() const;
-
 	void notifySolvingAborted();
 
 private:

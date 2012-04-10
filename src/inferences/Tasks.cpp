@@ -31,6 +31,7 @@ void Task::execute() {
 }
 void SpaceTask::execute() {
 	space->getEngine()->finishParsing();
+	space->notifyInferenceExecuted();
 	Task::execute();
 }
 void Task::notifyTerminateRequested() {
@@ -56,7 +57,7 @@ int ModelExpand::getNbModelsFound() const {
 	return _solutions->getNbModelsFound();
 }
 
-PCSolver& SpaceTask::getSolver() const {
+SearchEngine& SpaceTask::getSolver() const {
 	return *getSpace()->getEngine();
 }
 
@@ -211,9 +212,9 @@ MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& o
 		}
 
 		//Invalidate SAT model
-		if ((uint) getSolver().getCurrentDecisionLevel() != assmpt.size()) { //choices were made, so other models possible
+		if (getSolver().moreModelsPossible()) { //choices were made, so other models possible
 			Disjunction invalidation;
-			invalidate(invalidation.literals);
+			getSolver().invalidate(invalidation.literals);
 			moremodels = invalidateModel(invalidation.literals) == SATVAL::POS_SAT;
 		} else {
 			moremodels = false;
@@ -221,15 +222,6 @@ MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& o
 	}
 
 	return moremodels ? MXState::MODEL : MXState::UNSAT;
-}
-
-void ModelExpand::invalidate(litlist& clause) {
-	// Add negation of model as clause for next iteration.
-	// By default: by adding all choice literals
-	auto v = getSolver().getDecisions();
-	for (auto i = v.cbegin(); i < v.cend(); ++i) {
-		clause.push_back(~(*i));
-	}
 }
 
 /**
@@ -243,7 +235,7 @@ SATVAL ModelExpand::invalidateModel(const litlist& clause) {
 		clog << getSpace()->toString(d.literals);
 		clog << "]\n";
 	}
-	getSolver().add(d);
+	add(d, getSolver());
 	return getSolver().satState();
 }
 
@@ -355,7 +347,8 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 			break;
 		}
 		modelfound = true;
-		saveddecisions = getSolver().getDecisions();
+		saveddecisions.clear();
+		getSolver().invalidate(saveddecisions);
 
 		//Store current model in m before invalidating the solver
 		auto m = getSolver().getModel();
@@ -383,7 +376,7 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 		}
 
 		if (not unsatreached) {
-			if ((uint) getSolver().getCurrentDecisionLevel() != currentassmpt.size()) { //choices were made, so other models possible
+			if (getSolver().moreModelsPossible()) { //choices were made, so other models possible
 				unsatreached = invalidateModel(invalidation.literals) == SATVAL::UNSAT;
 			} else {
 				unsatreached = true;
@@ -400,14 +393,14 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 		for (auto i = saveddecisions.cbegin(); i < saveddecisions.cend(); ++i) {
 			d.literals.push_back(~*i);
 		}
-		getSolver().add(d);
+		add(d, getSolver());
 		// If resetting state, also reset the optimization constraints to their optimal condition
 		switch (optim.optim) {
 		case Optim::LIST:
-			getSolver().add(Disjunction( { latestlistoptimum }));
+			add(Disjunction( { latestlistoptimum }), getSolver());
 			break;
 		case Optim::SUBSET:
-			getSolver().add(Disjunction(latestsubsetoptimum));
+			add(Disjunction( { latestsubsetoptimum }), getSolver());
 			break;
 		case Optim::AGG: {
 			auto agg = optim.agg_to_minimize;
@@ -443,9 +436,10 @@ void ModelExpand::notifyCurrentOptimum(const Weight& value) const {
 }
 
 literallist UnitPropagate::getEntailedLiterals() {
+	auto lits = getSolver().getEntailedLiterals();
 	literallist literals;
 	auto r = getSpace()->getRemapper();
-	for (auto i = getSolver().getTrail().cbegin(); i < getSolver().getTrail().cend(); ++i) {
+	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {
 		if (getSolver().rootValue(*i) != l_Undef && r.wasInput(*i)) {
 			literals.push_back(r.getLiteral(*i));
 		}

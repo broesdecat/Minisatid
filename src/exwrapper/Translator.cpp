@@ -25,7 +25,7 @@ using namespace MinisatID;
 void Translator::printModel(std::ostream& output, const Model& model){
 	std::stringstream ss;
 	for (auto i = model.literalinterpretations.cbegin(); i < model.literalinterpretations.cend(); ++i){
-		ss <<(((*i).hasSign()) ? "-" : "") <<var(*i) <<" ";
+		ss <<toString(*i) <<" ";
 	}
 	for (auto i = model.variableassignments.cbegin(); i < model.variableassignments.cend(); ++i){
 		ss <<(*i).variable <<"=" <<(*i).value <<" ";

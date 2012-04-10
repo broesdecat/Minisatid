@@ -82,9 +82,9 @@ void Printer::notifyCurrentOptimum(const Weight& value) const{
 void Printer::addModel(Model * const model) {
 	MAssert(resman.get() != NULL);
 	ostream output(resman->getBuffer());
-	if (getPrintOption() == Models::ALL || (!optimizing && getPrintOption() == Models::BEST)) {
+	if (getPrintOption() == Models::ALL || (not optimizing && getPrintOption() == Models::BEST)) {
 		if (modelmanager->getNbModelsFound() == 1) {
-			if (!optimizing && modes.transformat != OutputFormat::ASP) {
+			if (not optimizing && modes.transformat != OutputFormat::ASP) {
 				printSatisfiable(output, modes.format, modes.transformat);
 				printSatisfiable(clog, modes.format, modes.transformat,	modes.verbosity);
 			}

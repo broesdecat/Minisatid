@@ -603,7 +603,7 @@ Weight cWeight(string* s){
  */
 template<class T>
 void CR(const T& formula){
-	add(*solver, formula);
+	extAdd(*solver, formula);
 	if(solver->isCertainlyUnsat()){
 		throw idpexception("Unsat during parsing.\n");
 	}		

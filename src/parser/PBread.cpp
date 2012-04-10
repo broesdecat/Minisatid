@@ -57,7 +57,7 @@ template<class T> void DefaultCallback<T>::metaData(int nbvar, int) {
 	dummyhead = Atom(++maxvar);
 	Disjunction clause;
 	clause.literals.push_back(mkPosLit(dummyhead));
-	add(getSolver(), clause);
+	extAdd(getSolver(), clause);
 }
 
 /**
@@ -73,10 +73,10 @@ template<class T> void DefaultCallback<T>::beginObjective() {
 template<class T> void DefaultCallback<T>::endObjective() {
 	setid++;
 	wset.setID = setid;
-	add(getSolver(), wset);
+	extAdd(getSolver(), wset);
 	wset = WLSet();
 
-	add(getSolver(), MinimizeAgg(1, setid, AggType::SUM));
+	extAdd(getSolver(), MinimizeAgg(1, setid, AggType::SUM));
 }
 
 /**
@@ -108,19 +108,19 @@ template<class T> void DefaultCallback<T>::beginConstraint() {
 template<class T> void DefaultCallback<T>::endConstraint() {
 	setid++;
 	wset.setID = setid;
-	add(getSolver(), wset);
+	extAdd(getSolver(), wset);
 	wset = WLSet();
 
 	Disjunction clause;
 	Aggregate agg(dummyhead, setid, bound, AggType::SUM, AggSign::LB, AggSem::COMP, -1);
 	if(equality){
 		agg.sign = AggSign::LB;
-		add(getSolver(), agg);
+		extAdd(getSolver(), agg);
 		agg.sign = AggSign::UB;
-		add(getSolver(), agg);
+		extAdd(getSolver(), agg);
 	}else{
 		agg.sign = AggSign::LB;
-		add(getSolver(), agg);
+		extAdd(getSolver(), agg);
 	}
 }
 
