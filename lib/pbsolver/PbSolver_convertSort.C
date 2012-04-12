@@ -90,7 +90,7 @@ static void buildSorter(vec<Formula>& ps, vec<int>& Cs, vec<Formula>& carry , ve
     for (int i = 0; i < ps.size(); i++)
         for (int j = 0; j < Cs[i]; j++)
             Xs.push(ps[i]);
-    unarySortAdd(Xs, carry, out_sorter);
+    unarySortAdd(Xs, carry, out_sorter,opt_use_shortCuts);
 }
 
 static void buildSorter(vec<Formula>& ps, vec<Int>& Cs, vec<Formula>& carry , vec<Formula>& out_sorter) {

@@ -683,7 +683,7 @@ SATVAL IDSolver::transformToCNF(const varlist& sccroots) {
 		unsat = not toCNF::transformSCCtoCNF(getPCSolver(), rules);
 		deleteList<toCNF::Rule>(rules);
 	}
-	if (not negloops && not modes().lazy) {
+	if (not negloops && not modes().lazy) { // FIXME if negloops possible, ONLY do wellfoundedness check!
 		notifyNotPresent();
 	}
 	return unsat ? SATVAL::UNSAT : SATVAL::POS_SAT;
@@ -759,7 +759,6 @@ void IDSolver::visitFull(Var i, vector<bool> &incomp, varlist &stack, varlist &v
 		varlist sccs;
 		bool mixed = false;
 		int w;
-		posroots.push_back(i);
 		do {
 			w = stack.back();
 			stack.pop_back();
@@ -771,6 +770,8 @@ void IDSolver::visitFull(Var i, vector<bool> &incomp, varlist &stack, varlist &v
 		if (mixed && sccs.size() > 1) {
 			rootofmixed.push_back(i);
 			nodeinmixed.insert(nodeinmixed.begin(), sccs.cbegin(), sccs.cend());
+		}else{
+			posroots.push_back(i);
 		}
 	}
 }

@@ -58,10 +58,6 @@ static void unriffle(vec<Formula>& fs) {
     }
 }
 
-static inline void overwrite(vec<Formula>& me,vec<Formula>& with){
-	for(int i=0;i<me.size();i++) me[i]= with[i];
-}
-
 static void oddEvenMerge(vec<Formula>& fs, int begin, int end) {
     assert(end - begin > 1);
     if (end - begin == 2)
@@ -128,24 +124,13 @@ static void totlizerMerge(vec<Formula>& toMerge, int begin, int end) {
 	}
 
 
-	static  void pw_sort(vec<Formula>& toSort,int n,int startPos,vec<Formula>& propgationShortCuts,int bitValue) {
+	static  void pw_sort(vec<Formula>& toSort,int n,int startPos) {
 			if (n == 1) return;
 			else {
-				split(toSort,n, startPos);
-				
-				if (opt_use_shortCuts) {
-					for (int t=0;t<n/2;t++) { 
-        			    propgationShortCuts[bitValue -1]   |= toSort[startPos+t];
-        				propgationShortCuts[bitValue*2 -1] |= toSort[startPos+n/2+t];
-        			}
-				}
-        			 
-				pw_sort(toSort,n/2, startPos,propgationShortCuts,bitValue);
-				pw_sort(toSort,n/2, startPos+n/2,propgationShortCuts,bitValue*2);
+				split(toSort,n, startPos); 
+				pw_sort(toSort,n/2, startPos);
+				pw_sort(toSort,n/2, startPos+n/2);
 				pw_merge(toSort,n, startPos, 1);
-				
-				if (opt_use_shortCuts)
-        			for (int t=0;t<n;t++) propgationShortCuts[t] |= toSort[startPos+t];
 			}
 	}
 	
@@ -154,17 +139,8 @@ void pw_sort(vec<Formula>& fs) {
 		int orig_sz = fs.size();
     	int sz; for (sz = 1; sz < fs.size(); sz *= 2);
     	fs.growTo(sz,_0_);
-    	
-    	vec<Formula> propgationShortCuts;
-    	if (opt_use_shortCuts) propgationShortCuts.growTo(sz,_0_);
-    
-		pw_sort(fs,sz, 0,propgationShortCuts,1);
+		pw_sort(fs,sz, 0);
 		fs.shrink(sz - orig_sz);
-	
-		if (opt_use_shortCuts) {
-    		propgationShortCuts.shrink(sz - orig_sz);
-    		overwrite(fs,propgationShortCuts);
-    	}
 }
 
 static inline void add(vec<Formula>& Xs,vec<Formula>& Ys) {
@@ -178,23 +154,11 @@ void oddEvenSort(vec<Formula>& fs) {
     int orig_sz = fs.size();
     int sz; for (sz = 1; sz < fs.size(); sz *= 2);
     fs.growTo(sz,_0_);
-    
-    vec<Formula> propgationShortCuts;
-    if (opt_use_shortCuts) propgationShortCuts.growTo(sz,_0_);
 
-    for (int i = 1; i < fs.size(); i *= 2) {
-        for (int j = 0; j + 2*i <= fs.size(); j += 2*i) {
+    for (int i = 1; i < fs.size(); i *= 2)
+        for (int j = 0; j + 2*i <= fs.size(); j += 2*i)
             oddEvenMerge(fs,j,j+2*i);
-        	if (opt_use_shortCuts)
-        		for (int t=0;t<2*i;t++) propgationShortCuts[t] |= fs[j+t];
-        }   
-    }
     fs.shrink(sz - orig_sz);
-    
-    if (opt_use_shortCuts) {
-    	propgationShortCuts.shrink(sz - orig_sz);
-    	overwrite(fs,propgationShortCuts);
-    }
 }
 
 
@@ -204,7 +168,7 @@ static inline void  mergeNetwork(vec<Formula>& toMerge,int begin,int end,vec<For
 	else 	
 		oddEvenMerge(toMerge, begin, end);
 	for (int i=0;i<end-begin;i++) 
-		propgationShortCuts[i] |= toMerge[begin+i];
+		propgationShortCuts[i] |= toMerge[i+begin];
 }
 
 
@@ -215,23 +179,10 @@ static inline void  mergeNetwork(vec<Formula>& Xs,vec<Formula>& Ys,vec<Formula>&
 	mergeNetwork(Merged,begin, Merged.size(),propgationShortCuts);
 }
 
-static inline void sortNetwork(vec<Formula>& toSort,int start,int size,vec<Formula>& propgationShortCuts) {
-	if (size==1) return;
-	else {
-		sortNetwork(toSort,start, size/2,propgationShortCuts);
-		sortNetwork(toSort,start+size/2, size/2,propgationShortCuts);
-		mergeNetwork(toSort,start,start+size,propgationShortCuts);
-	}
-}
-
 static inline void sortNetwork(vec<Formula>& toSort,vec<Formula>& propgationShortCuts) {
-	/*for (int i = 1; i < toSort.size(); i *= 2) 
+	for (int i = 1; i < toSort.size(); i *= 2) 
         for (int j = 0; j + 2*i <= toSort.size(); j += 2*i) 
-        	mergeNetwork(toSort,j,j+2*i,propgationShortCuts);*/
-	sortNetwork(toSort,0, toSort.size()/2,propgationShortCuts);
-	sortNetwork(toSort,toSort.size()/2, toSort.size()/2,propgationShortCuts);
-	mergeNetwork(toSort,0,toSort.size(),propgationShortCuts);
-	        	
+        	mergeNetwork(toSort,j,j+2*i,propgationShortCuts);
 }
 
 static inline void safeSortNetwork(vec<Formula>& toSort,vec<Formula>& propgationShortCuts) {
@@ -272,12 +223,15 @@ static inline void mergeGroups(vec<vec<Formula> >& Groups,int GroupSize, vec<For
         	mergeNetwork(merged,j,j+2*i,propgationShortCuts);
 }
 
+static inline void overwrite(vec<Formula>& me,vec<Formula>& with){
+	for(int i=0;i<me.size();i++) me[i]= with[i];
+}
    
 static inline void addShortCuts(vec<Formula>& from,vec<Formula>& to){
 		    for (int j=0;j<from.size();j++) to[j] |= from[j];
 }
 	
-void unarySortAdd(vec<Formula>& Xs,vec<Formula>& Ys,vec<Formula>& out_sorter){
+void unarySortAdd(vec<Formula>& Xs,vec<Formula>& Ys,vec<Formula>& out_sorter,bool useShortCuts){
  	vec<Formula> propgationShortCuts;
 	int XsLen = Xs.size();
     int YsLen = Ys.size();
@@ -285,7 +239,7 @@ void unarySortAdd(vec<Formula>& Xs,vec<Formula>& Ys,vec<Formula>& out_sorter){
     	if (XsLen>0) {
     		add(Xs,out_sorter);
     		safeSortNetwork(out_sorter,propgationShortCuts);
-    		if (opt_use_shortCuts) overwrite(out_sorter,propgationShortCuts);
+    		if (useShortCuts) overwrite(out_sorter,propgationShortCuts);
     	}
     }
     else if (XsLen==0) add(Ys,out_sorter);
@@ -313,7 +267,7 @@ void unarySortAdd(vec<Formula>& Xs,vec<Formula>& Ys,vec<Formula>& out_sorter){
 		    mergeGroups(SubXs, Ysize, out_sorter,propgationShortCuts);
 		}
 		out_sorter.shrink(out_sorter.size() - XsLen-YsLen);
-		if(opt_use_shortCuts) overwrite(out_sorter,propgationShortCuts);
+		if(useShortCuts) overwrite(out_sorter,propgationShortCuts);
     }
 }
 

@@ -797,6 +797,7 @@ void Solver::toCNF(std::vector<std::vector<Lit> >& cnf){
     }
     for (int i = 0; i < clauses.size(); i++){
         Clause& c = *clauses[i];
+        //std::cerr <<"Clausesize " <<c.size() <<"\n";
         cnf.push_back(std::vector<Lit>());
         for (int j = 0; j < c.size(); j++) cnf.back().push_back(c[j]);
     }

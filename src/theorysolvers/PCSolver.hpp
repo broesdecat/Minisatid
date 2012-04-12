@@ -76,6 +76,8 @@ public:
 	virtual Var newVar() = 0;
 	virtual int newSetID() = 0;
 	virtual lbool rootValue(Lit p) const = 0;
+	virtual Lit getTrueLit() const = 0;
+	virtual Lit getFalseLit() const = 0;
 
 	virtual void notifyUnsat() = 0;
 	virtual SATVAL satState() const = 0;
@@ -281,7 +283,10 @@ public:
 	// State
 private:
 	// Explanation dummies: used to fix up learned clauses which are too small
-	Var dummy1, dummy2;
+	Var dummy1, dummy2, dummyfalse;
+public:
+	Lit getTrueLit() const;
+	Lit getFalseLit() const;
 
 	// Termination management
 private:

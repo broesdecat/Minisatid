@@ -564,7 +564,7 @@ PbSolver::solve_Command convert(Command cmd) {
     case cmd_Minimize:      return PbSolver::sc_Minimize;
     case cmd_FirstSolution: return PbSolver::sc_FirstSolution;
     case cmd_AllSolutions:  return PbSolver::sc_AllSolutions;
-    default: assert(false); exit(0);}
+    default: assert(false); }
 }
 
 //=================================================================================================
@@ -685,7 +685,7 @@ int test1() {
 	 Cs.push(4);
 	 Cs.push(5);
 	 Cs.push(-20);
-	 pb_solver->addConstr(ps,Cs,rhs,ineq);
+	 pb_solver->addConstr(ps,Cs,rhs,ineq,false);
 	 
 	 ps.clear();  //x1 + 2 x2 + 3 x3 + 4 x4 + 5 x5 +20 x6 > 4
 	 Cs.clear();
@@ -703,7 +703,7 @@ int test1() {
 	 Cs.push(20);
 	 rhs=4;
 	 ineq = 2;
-	 pb_solver->addConstr(ps,Cs,rhs,ineq);
+	 pb_solver->addConstr(ps,Cs,rhs,ineq,false);
 	 
 	 ps.clear(); //x1 + 2 x2 + 3 x3 + 4 x4 + 5 x5 +5 not x7 >= 4
 	 Cs.clear();
@@ -721,7 +721,7 @@ int test1() {
 	 Cs.push(5);
 	 rhs=1;
 	 ineq = 1;
-	 pb_solver->addConstr(ps,Cs,rhs,ineq);
+	 pb_solver->addConstr(ps,Cs,rhs,ineq,false);
 	 
 	 ps.clear(); //x1 + 2 x2 + 3 x3 + 4 x4 + 5 x5 -20 x7 < 4
 	 Cs.clear();
@@ -739,7 +739,7 @@ int test1() {
 	 Cs.push(-20);
 	 rhs=4;
 	 ineq = -2;
-	 pb_solver->addConstr(ps,Cs,rhs,ineq);
+	 pb_solver->addConstr(ps,Cs,rhs,ineq,false);
 	 
 	 std::vector<std::vector<Lit> > cnf;
 	 pb_solver->toCNF(cnf);
@@ -749,6 +749,27 @@ int test1() {
 	 }
 }
 
+/*void debug1(){
+	vec<Formula> fs;
+	pb_solver = new PbSolver();
+	pb_solver->sat_solver.newVar();
+	pb_solver->n_occurs  .push(0);
+    pb_solver->n_occurs  .push(0);
+    pb_solver->sat_solver.newVar();
+	pb_solver->n_occurs  .push(0);
+    pb_solver->n_occurs  .push(0);
+	fs.push(Lit(0) & Lit(1));
+	clausify(pb_solver->sat_solver, fs);
+	std::vector<std::vector<Lit> > cnf;
+	pb_solver->toCNF(cnf);
+	for (int i=0;i<cnf.size();i++) {
+	 	for(int j=0;j<cnf[i].size();j++) {
+	 		std::cout<<(sign(cnf[i][j])? "-": "")<< var(cnf[i][j])<<" ";
+	 	}	
+	 	std::cout<<"\n";
+	}
+}
+*/
 
 }
 
@@ -756,13 +777,13 @@ int test1() {
 //=================================================================================================
 
 
-/*int main(int argc, char** argv)
+int main(int argc, char** argv)
 {
 	return MiniSatPP::run(argc,argv);
 	//MiniSatPP::test1();
 	//MiniSatPP::debug1();
 	
-}*/
+}
 
 
 

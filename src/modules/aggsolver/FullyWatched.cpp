@@ -669,20 +669,20 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 	//	return nullPtrClause;
 	//}
 
-	TypedSet& set = getSet();
+	auto& set = getSet();
 	const auto& wls = set.getWL();
 	auto from = wls.cend();
 	Weight weightbound;
 
 	bool ub = agg.hasUB();
-	const Weight& bound = agg.getCertainBound();
+	auto bound = agg.getCertainBound();
 	//determine the lower bound of which weight literals to consider
 	const AggProp& type = getSet().getType();
 	if (headtrue) {
 		if (ub) {
 			weightbound = type.removeMin(bound, getCC());
 			//+1 because larger and not eq
-			if (type.add(weightbound, getCC()) >= bound) {
+			if (type.add(weightbound, getCC()) <= bound) {
 				weightbound += 1;
 			}
 		} else {
@@ -715,14 +715,14 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 	 * The lower bound indicates from which bound all literals should be propagate that are not yet known to the aggregate solver
 	 * All literals known to the sat solver are certainly sa
 	 */
-	for (vwl::const_iterator u = from; c == nullPtrClause && u < wls.cend(); ++u) {
-		const Lit& l = (*u).getLit();
+	for (auto u = from; c == nullPtrClause && u < wls.cend(); ++u) {
+		auto l = (*u).getLit();
 
 		bool propagate = value(l) == l_Undef;
 
 		if (!propagate && getSet().getPCSolver().getLevel(var(l)) == getSet().getPCSolver().getCurrentDecisionLevel()) {
 			bool found = false;
-			for (vprop::const_iterator i = getTrail().back()->props.cbegin(); !found && i < getTrail().back()->props.cend(); ++i) {
+			for (auto i = getTrail().back()->props.cbegin(); !found && i < getTrail().back()->props.cend(); ++i) {
 				if (var(l) == var(i->getLit())) {
 					found = true;
 				}

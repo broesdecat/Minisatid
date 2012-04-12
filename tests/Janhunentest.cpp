@@ -24,10 +24,10 @@ SATVAL operator&= (SATVAL orig, SATVAL add){
 namespace MinisatID{
 
 namespace Tests{
-	struct SolverMOC{
+	struct SolverMOC: public LiteralPrinter{
 	private: int start;
 	public:
-		SolverMOC(int start):start(start){}
+		SolverMOC():start(3){}
 		std::vector<Disjunction*> disj;
 		std::vector<Implication*> eqs;
 		int newVar() { return start++; }
@@ -37,6 +37,9 @@ namespace Tests{
 		SATVAL satState() const { return SATVAL::POS_SAT; }
 		lbool value(const Lit&) { return l_True; }
 		lbool value(Var) { return l_True; }
+		lbool rootValue(const Lit&) const { return l_False; }
+		Lit getTrueLit() const { return mkPosLit(1); }
+		Lit getFalseLit() const { return mkPosLit(2); }
 	};
 
 	void add(const Disjunction& d, SolverMOC& moc){
@@ -48,17 +51,19 @@ namespace Tests{
 	}
 
 	TEST(SCCTest, Trivial) {
-		SolverMOC moc(1);
+		SolverMOC moc;
 		vector<toCNF::Rule*> rules;
 		bool notunsat = MinisatID::toCNF::transformSCCtoCNF<SolverMOC>(moc, rules);
 		EXPECT_TRUE(notunsat);
 	}
 
 	TEST(SCCTest, SimpleLoop) {
-		SolverMOC moc(3);
+		SolverMOC moc;
 		vector<toCNF::Rule*> rules;
-		rules.push_back(new toCNF::Rule(false, 1, {mkPosLit(2)}, {}));
-		rules.push_back(new toCNF::Rule(false, 2, {mkPosLit(1)}, {}));
+		auto varone = moc.newVar();
+		auto vartwo = moc.newVar();
+		rules.push_back(new toCNF::Rule(false, varone, {mkPosLit(vartwo)}, {}));
+		rules.push_back(new toCNF::Rule(false, vartwo, {mkPosLit(varone)}, {}));
 		auto notunsat = MinisatID::toCNF::transformSCCtoCNF<SolverMOC>(moc, rules);
 		EXPECT_TRUE(notunsat);
 	}

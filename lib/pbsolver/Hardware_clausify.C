@@ -303,8 +303,9 @@ void clausify(Solver& s, const vec<Formula>& fs, vec<Lit>& out)
         for (int i = 0; i < fs.size(); i++)
             out.push(c.polarityClausify(fs[i]));
     else
-        for (int i = 0; i < fs.size(); i++)
-            out.push(c.basicClausify(fs[i]));
+        for (int i = 0; i < fs.size(); i++){
+        	out.push(c.basicClausify(fs[i]));
+        }
 }
 
 
@@ -312,8 +313,9 @@ void clausify(Solver& s, const vec<Formula>& fs)
 {
     vec<Lit>  out;
     clausify(s, fs, out);
-    for (int i = 0; i < out.size(); i++)
-        s.addUnit(out[i]);
+    for (int i = 0; i < out.size(); i++){
+    	s.addUnit(out[i]);
+    }
 }
 
 }

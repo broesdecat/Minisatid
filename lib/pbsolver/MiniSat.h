@@ -1,6 +1,6 @@
 /**************************************************************************************************
 
-Solver.h -- (C) Niklas Een, Niklas Sörensson, 2005
+Solver.h -- (C) Niklas Een, Niklas Sï¿½rensson, 2005
 
 A simple Chaff-like SAT-solver with support for incremental SAT and Pseudo-boolean constraints.
 
@@ -12,6 +12,7 @@ A simple Chaff-like SAT-solver with support for incremental SAT and Pseudo-boole
 #include "SolverTypes.h"
 #include "VarOrder.h"
 #include <vector>
+#include <iostream>
 
 namespace MiniSatPP {
 	
@@ -186,16 +187,21 @@ public:
     // Statistics: (read-only member variable)
     //
     SolverStats stats;
-    int		numOfClouses (void)  {  
-    	return clauses.size()+ learnts.size(); 
-    }
+    int		numOfClouses (void)  {  return clauses.size()+ learnts.size(); }
 
     // Problem specification:
     //
     Var     newVar (bool decision_var = true);
     int     nVars  (void)  { return assigns.size(); }
     bool    addUnit(Lit p) { if (ok) ok = enqueue(p); return ok; }
-    bool    addClause(const vec<Lit>& ps) { if (ok){ Clause* c; ok = newClause(ps, false, c); if (c != NULL) clauses.push(c); } return ok; }
+    bool    addClause(const vec<Lit>& ps) {
+    	/*std::clog <<"Adding clause ";
+    	for(int i=0; i<ps.size(); ++i){
+    		std::clog <<(sign(ps[i])?"-":"")<<var(ps[i]) <<" ";
+    	}
+    	std::clog <<"\n";*/
+    	if (ok){ Clause* c; ok = newClause(ps, false, c); if (c != NULL) clauses.push(c); } return ok;
+    }
     // -- debug:
     void    exportClauses(cchar* filename);
     

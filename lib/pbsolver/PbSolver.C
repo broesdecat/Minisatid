@@ -2,8 +2,6 @@
 #include "Sort.h"
 #include "Debug.h"
 #include <iostream>
-#include "FEnv.h"
-#include <iostream>
 
 namespace MiniSatPP {
 	
@@ -46,7 +44,8 @@ void PbSolver::addGoal(const vec<Lit>& ps, const vec<Int>& Cs)
     goal = new (xmalloc<char>(sizeof(Linear) + ps.size()*(sizeof(Lit) + sizeof(Int)))) Linear(ps, Cs, Int_MIN, Int_MAX);
 }
 
-bool PbSolver::addConstrInner(const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, int ineq,Formula thisForm)
+
+bool PbSolver::addConstr(const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, int ineq, bool skipNorm)
 {
     //**/debug_names = &index2name;
     //**/static cchar* ineq_name[5] = { "<", "<=" ,"==", ">=", ">" };
@@ -56,7 +55,6 @@ bool PbSolver::addConstrInner(const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, i
 			sat_solver.newVar();
 			n_occurs  .push(0);
         	n_occurs  .push(0);
-        	index2name.push();
 		}
 	}
     vec<Lit>    norm_ps;
@@ -66,16 +64,16 @@ bool PbSolver::addConstrInner(const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, i
     #define Copy    do{ norm_ps.clear(); norm_Cs.clear(); for (int i = 0; i < ps.size(); i++) norm_ps.push(ps[i]), norm_Cs.push( Cs[i]); norm_rhs =  rhs; }while(0)
     #define CopyInv do{ norm_ps.clear(); norm_Cs.clear(); for (int i = 0; i < ps.size(); i++) norm_ps.push(ps[i]), norm_Cs.push(-Cs[i]); norm_rhs = -rhs; }while(0)
     
-    Formula temp;
+    
 
     if (ineq == 0){
         Copy;
-        if (normalizePb(norm_ps, norm_Cs, norm_rhs,false,temp,thisForm))
-            storePb(norm_ps, norm_Cs, norm_rhs, Int_MAX,temp,thisForm); //**/reportf("STORED: "), dump(constrs.last()), reportf("\n");
+        if (normalizePb(norm_ps, norm_Cs, norm_rhs,false))
+            storePb(norm_ps, norm_Cs, norm_rhs, Int_MAX); //**/reportf("STORED: "), dump(constrs.last()), reportf("\n");
 
         CopyInv;
-        if (normalizePb(norm_ps, norm_Cs, norm_rhs,false,temp,thisForm))
-            storePb(norm_ps, norm_Cs, norm_rhs, Int_MAX,temp,thisForm); //**/reportf("STORED: "), dump(constrs.last()), reportf("\n");
+        if (normalizePb(norm_ps, norm_Cs, norm_rhs,false))
+            storePb(norm_ps, norm_Cs, norm_rhs, Int_MAX); //**/reportf("STORED: "), dump(constrs.last()), reportf("\n");
 
     }else{
         if (ineq > 0)
@@ -87,36 +85,13 @@ bool PbSolver::addConstrInner(const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, i
         if (ineq == 2)
             ++norm_rhs;
             
-        if (normalizePb(norm_ps, norm_Cs, norm_rhs,opt_natlist,temp,thisForm))
-            storePb(norm_ps, norm_Cs, norm_rhs, Int_MAX,temp,thisForm); //**/reportf("STORED: "), dump(constrs.last()), reportf("\n");
+        if (normalizePb(norm_ps, norm_Cs, norm_rhs,skipNorm))
+            storePb(norm_ps, norm_Cs, norm_rhs, Int_MAX); //**/reportf("STORED: "), dump(constrs.last()), reportf("\n");
          	
     }
 
     return ok;
 }
-
-
-#define lit2fml(p) id(var(var(p)),sign(p))
-
-bool    PbSolver::addConstr(const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, int ineq, Lit iffLit){
-	while (var(iffLit) >= sat_solver.nVars()) {
-			sat_solver.newVar();
-			n_occurs  .push(0);
-        	n_occurs  .push(0);
-        	index2name.push();
-	}
-	return addConstrInner(ps,Cs,rhs,ineq,lit2fml(iffLit));
-}
-
-bool    PbSolver::addConstr(const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, int ineq) {
-	std::clog <<"Pbconstr: ";
-	for(int i=0; i<ps.size(); i++){
-		std::clog <<(sign(ps[i])?"-":"") <<var(ps[i])+1 <<"=" <<toString(Cs[i])<<" ";
-	}
-	std::clog <<"rel=" <<ineq <<" bound=" <<toString(rhs) <<"\n";
-	return addConstrInner(ps,Cs,rhs,ineq,_1_);
-}
-
 
 
 //=================================================================================================
@@ -140,10 +115,8 @@ static Int gcd(Int small, Int big) {
 // satisfied or determined contradictory. The vectors 'ps' and 'Cs' should ONLY be used if
 // TRUE is returned.
 //
-bool PbSolver::normalizePb(vec<Lit>& ps, vec<Int>& Cs, Int& C,bool skipTriv,Formula& consForm,Formula thisForm)
+bool PbSolver::normalizePb(vec<Lit>& ps, vec<Int>& Cs, Int& C,bool skipTriv)
 {	
-	
-	consForm = _1_;
     assert(ps.size() == Cs.size());
     if (!ok) return false;
 
@@ -218,28 +191,19 @@ bool PbSolver::normalizePb(vec<Lit>& ps, vec<Int>& Cs, Int& C,bool skipTriv,Form
         changed = false;
         while (ps.size() > 0 && sum-Cs.last() < C){
             changed = true;
-            if(thisForm==_1_) { //non iff
-	            if (!addUnit(ps.last())){
-	                ok = false;
-	                return false; } }
-	        else  		   // iff 
-	        	consForm &= lit2fml(ps.last());
+            if (!addUnit(ps.last())){
+                ok = false;
+                return false; }
             sum -= Cs.last();
             C   -= Cs.last();
             ps.pop(); Cs.pop();
         }
 
         // Trivially true or false?
-        if (C <= 0) { //Trivially true
-        	if (thisForm!=_1_)  //tirvial iff
-        		iffTrivConstrsForm.push(iff(consForm,thisForm));
+        if (C <= 0)
             return false;
-        }
-        if (sum < C){ //Trivially false
-        	if (thisForm==_1_)  //not iff
-            	ok = false;
-            else
-            	iffTrivConstrsForm.push(iff(_0_,thisForm));
+        if (sum < C){
+            ok = false;
             return false; }
         assert(sum - Cs[ps.size()-1] >= C);
 
@@ -267,23 +231,17 @@ bool PbSolver::normalizePb(vec<Lit>& ps, vec<Int>& Cs, Int& C,bool skipTriv,Form
 }
 
 
-void PbSolver::storePb(const vec<Lit>& ps, const vec<Int>& Cs, Int lo, Int hi,Formula consForm,Formula thisForm)
+void PbSolver::storePb(const vec<Lit>& ps, const vec<Int>& Cs, Int lo, Int hi)
 {
     assert(ps.size() == Cs.size());
     for (int i = 0; i < ps.size(); i++)
         n_occurs[index(ps[i])]++;
-    
     constrs.push(new (mem.alloc(sizeof(Linear) + ps.size()*(sizeof(Lit) + sizeof(Int)))) Linear(ps, Cs, lo, hi));
-    iffConstrsForm.push(consForm);
-    iffThisForm.push(thisForm);
     //**/reportf("STORED: "), dump(constrs.last()), reportf("\n");
 }
 
 void PbSolver::cleanPBC(){
 		constrs.clear();
-		iffConstrsForm.clear();
-		iffThisForm.clear();
-		iffTrivConstrsForm.clear();
 		mem.clear();
 }
 
@@ -321,7 +279,7 @@ bool PbSolver::validateResoult(){
 
 
 // Returns TRUE if the constraint should be deleted. May set the 'ok' flag to false
-bool PbSolver::propagate(Linear& c,int index)
+bool PbSolver::propagate(Linear& c)
 {
     //**/reportf("BEFORE propagate()\n");
     //**/dump(c, sat_solver.assigns_ref()); reportf("\n");
@@ -343,21 +301,14 @@ bool PbSolver::propagate(Linear& c,int index)
     if (c.lo != Int_MIN) c.lo -= true_sum;
     if (c.hi != Int_MAX) c.hi -= true_sum;
 
-                       
     // Propagate:
     while (c.size > 0){
         if (c(c.size-1) > c.hi){
-        	if (iffThisForm[index]==_1_)
-            	addUnit(~c[c.size-1]);
-            else 
-            	iffConstrsForm[index] &= lit2fml(~c[c.size-1]);
+            addUnit(~c[c.size-1]);
             sum -= c(c.size-1);
             c.size--;
         }else if (sum - c(c.size-1) < c.lo){
-        	if (iffThisForm[index]==_1_)
-            	addUnit(c[c.size-1]);
-            else 
-            	iffConstrsForm[index] &= lit2fml(c[c.size-1]);
+            addUnit(c[c.size-1]);
             sum -= c(c.size-1);
             if (c.lo != Int_MIN) c.lo -= c(c.size-1);
             if (c.hi != Int_MAX) c.hi -= c(c.size-1);
@@ -372,12 +323,8 @@ bool PbSolver::propagate(Linear& c,int index)
     //**/reportf("AFTER propagate()\n");
     //**/dump(c, sat_solver.assigns_ref()); reportf("\n\n");
     if (c.size == 0){
-        if (c.lo > 0 || c.hi < 0) {
-        	if (iffThisForm[index]==_1_)
-            	ok = false;
-            else
-            	iffConstrsForm[index]=_0_; 
-        }
+        if (c.lo > 0 || c.hi < 0)
+            ok = false;
         return true;
     }else
         return c.lo == Int_MIN && c.hi == Int_MAX;
@@ -400,11 +347,8 @@ void PbSolver::propagate()
             for (int i = 0; i < cs.size(); i++){
                 if (constrs[cs[i]] == NULL) continue;
                 int trail_sz = trail.size();
-                if (propagate(*constrs[cs[i]],cs[i])) {
+                if (propagate(*constrs[cs[i]]))
                     constrs[cs[i]] = NULL;
-                    if (iffThisForm[cs[i]]!=_1_)
-                    	iffTrivConstrsForm.push(iff(iffConstrsForm[cs[i]],iffThisForm[cs[i]]));
-                }
                 if (opt_verbosity >= 1 && trail.size() > trail_sz) found = true, reportf("p");
                 if (!ok) return;
             }
@@ -461,11 +405,11 @@ void PbSolver::findIntervals()
     bool found = false;
     int i = 0;
     Linear* prev;
-    for (; i < constrs.size() && (constrs[i] == NULL || iffThisForm[i]!=_1_) ; i++); //skip iff constraints, null constraints 
+    for (; i < constrs.size() && constrs[i] == NULL; i++);
     if (i < constrs.size()){
         prev = constrs[i++];
         for (; i < constrs.size(); i++){
-            if (constrs[i] == NULL || iffThisForm[i]!=_1_) continue; //skip iff constraints, null constraints 
+            if (constrs[i] == NULL) continue;
             Linear& c = *prev;
             Linear& d = *constrs[i];
 
@@ -523,17 +467,10 @@ bool PbSolver::rewriteAlmostClauses()
             // Pure clause:
             if (opt_verbosity >= 1) reportf(".");
             found = true;
-            if (iffThisForm[i]==_1_) {
-            	ps.clear();
-            	for (int j = n; j < c.size; j++)
-	            	ps.push(c[j]);	             
-            	sat_solver.addClause(ps);	
-            }
-            else { // case of iff encoding 
-            	Formula temp = _0_;
-            	for (int j = n; j < c.size; j++) temp |= lit2fml(c[j]);
-            	iffTrivConstrsForm.push(iff(temp & iffConstrsForm[i],iffThisForm[i]));
-            }
+            ps.clear();
+            for (int j = n; j < c.size; j++)
+                ps.push(c[j]);
+            sat_solver.addClause(ps);
 
             constrs[i] = NULL;      // Remove this clause
 
@@ -546,16 +483,16 @@ bool PbSolver::rewriteAlmostClauses()
             Var x = getVar(buf); assert(x == sat_solver.nVars()-1);
             ps.clear();
             ps.push(Lit(x));
-            for (int j = n; j < c.size; j++) ps.push(c[j]);
+            for (int j = n; j < c.size; j++)
+                ps.push(c[j]);
             sat_solver.addClause(ps);
-            
-            ps.clear();
+			ps.clear();
             ps.push(~Lit(x));
             for (int j = n; j < c.size; j++) {
                 ps.push(~c[j]);
             	sat_solver.addClause(ps);
             	ps.pop();
-            }
+			}
             if (!sat_solver.okay()){
                 reportf("\n");
                 return false; }
@@ -567,13 +504,10 @@ bool PbSolver::rewriteAlmostClauses()
             for (int j = 0; j < n; j++)
                 ps.push(c[j]),
                 Cs.push(c(j));
-            if (!addConstrInner(ps, Cs, c.lo ,1, iffThisForm[i])){
+            if (!addConstr(ps, Cs, c.lo, 1,false)){
                 reportf("\n");
                 return false; }
-            
-            assert(iffThisForm[i]==iffThisForm [constrs.size()-1]);
-            iffConstrsForm [constrs.size()-1] &= iffConstrsForm[i];
-                       
+
             constrs[i] = NULL;      // Remove this clause
         }
     }
@@ -604,18 +538,13 @@ Int evalGoal(Linear& goal, vec<lbool>& model)
     return sum;
 }
 
-/**
- * @return false iff spesfied problem is unsat
- */
 bool PbSolver::toCNF(std::vector<std::vector<Lit> >& cnf){
 	if (!ok) return ok;
 
     // Convert constraints:
     pb_n_vars = nVars();
     pb_n_constrs = constrs.size();
-    if (opt_verbosity >= 1){
-    	reportf("Converting %d PB-constraints to> clauses...\n", constrs.size());
-    }
+    if (opt_verbosity >= 1) reportf("Converting %d PB-constraints to clauses...\n", constrs.size());
   
     propagate();
     status = "search"; 
@@ -644,13 +573,12 @@ bool PbSolver::toCNF(std::vector<std::vector<Lit> >& cnf){
     opt_sort_thres *= opt_goal_bias;
 
     if (opt_goal != Int_MAX)
-        addConstrInner(goal_ps, goal_Cs, opt_goal, -1,_1_),
+        addConstr(goal_ps, goal_Cs, opt_goal, -1,false),
         convertPbs(false);
 
     status = "export";
-  
     sat_solver.toCNF(cnf);
-    return ok;
+	return ok;
 
 } 
  
@@ -689,7 +617,7 @@ void PbSolver::solve(solve_Command cmd,bool skipSolving)
     opt_sort_thres *= opt_goal_bias;
 
     if (opt_goal != Int_MAX)
-        addConstrInner(goal_ps, goal_Cs, opt_goal, -1,_1_),
+        addConstr(goal_ps, goal_Cs, opt_goal, -1,false),
         convertPbs(false);
 
     if (opt_cnf != NULL)
@@ -741,7 +669,7 @@ void PbSolver::solve(solve_Command cmd,bool skipSolving)
                 char* tmp = toString(best_goalvalue);
                 reportf("\bFound solution: %s\b\n", tmp);
                 xfree(tmp); }
-            if (!addConstrInner(goal_ps, goal_Cs, best_goalvalue, -2,_1_))
+            if (!addConstr(goal_ps, goal_Cs, best_goalvalue, -2,false))
                 break;
             convertPbs(false);
         }

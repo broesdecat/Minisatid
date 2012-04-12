@@ -37,6 +37,16 @@ AggToCNFTransformer::~AggToCNFTransformer() {
 	deleteList<PBAgg>(pbaggs);
 }
 
+MiniSatPP::Lit mapToPBLit(Lit lit){
+	return MiniSatPP::Lit(var(lit), sign(lit));
+}
+
+//Any literal that is larger than maxvar was newly introduced by the transformation, so should be mapped to nVars()+lit
+Lit mapFromPBLit(MiniSatPP::Lit lit, int maxopbvar, int nvars){
+	auto v = MiniSatPP::var(lit) + (MiniSatPP::var(lit) > maxopbvar ? nvars - maxopbvar: 0);
+	return mkLit(v, sign(lit));
+}
+
 void AggToCNFTransformer::add(WLSet* set, std::vector<TempAgg*>& aggs) {
 	tempagglist remaining;
 	for (auto i = aggs.cbegin(); i != aggs.cend(); ++i) {
@@ -64,8 +74,8 @@ void AggToCNFTransformer::add(WLSet* set, std::vector<TempAgg*>& aggs) {
 		}
 		Weight min = 0, max = 0;
 		for (auto k = set->getWL().cbegin(); k < set->getWL().cend(); ++k) {
-			pbaggeq->literals.push(MiniSatPP::Lit(var((*k).getLit()), sign((*k).getLit())));
-			pbaggineq->literals.push(MiniSatPP::Lit(var((*k).getLit()), sign((*k).getLit())));
+			pbaggeq->literals.push(mapToPBLit((*k).getLit()));
+			pbaggineq->literals.push(mapToPBLit((*k).getLit()));
 			if (var((*k).getLit()) > maxvar) {
 				maxvar = var((*k).getLit());
 			}
@@ -77,13 +87,13 @@ void AggToCNFTransformer::add(WLSet* set, std::vector<TempAgg*>& aggs) {
 			pbaggeq->weights.push(MiniSatPP::Int((*k).getWeight()));
 			pbaggineq->weights.push(MiniSatPP::Int((*k).getWeight()));
 		}
-		if (var(agg->getHead()) > maxvar) {
-			maxvar = var(agg->getHead());
-		}
 		auto headval = pcsolver.rootValue(agg->getHead());
 		if (headval == l_Undef) {
-			pbaggeq->literals.push(MiniSatPP::Lit(var(agg->getHead()), true));
-			pbaggineq->literals.push(MiniSatPP::Lit(var(agg->getHead()), false));
+			pbaggeq->literals.push(mapToPBLit(~agg->getHead()));
+			pbaggineq->literals.push(mapToPBLit(agg->getHead()));
+			if (var(agg->getHead()) > maxvar) {
+				maxvar = var(agg->getHead());
+			}
 			Weight eqval, ineqval;
 			if (agg->hasUB()) {
 				ineqval = abs(pbaggineq->bound) + abs(min) + 1;
@@ -127,12 +137,12 @@ SATVAL MinisatID::execute(const AggToCNFTransformer& transformer) {
 	MiniSatPP::opt_tare = true; //Experimentally set to true
 	MiniSatPP::opt_primes_file = pcsolver.modes().getPrimesFile().c_str();
 	MiniSatPP::opt_convert_weak = false;
-	MiniSatPP::opt_convert = MiniSatPP::ct_Adders;
+	MiniSatPP::opt_convert = MiniSatPP::ct_BDDs;
 	pbsolver->allocConstrs(transformer.maxvar, transformer.pbaggs.size());
 
 	bool unsat = false;
 	for (auto i = transformer.pbaggs.cbegin(); !unsat && i < transformer.pbaggs.cend(); ++i) {
-		unsat = !pbsolver->addConstr((*i)->literals, (*i)->weights, MiniSatPP::Int((*i)->bound), (*i)->sign);
+		unsat = !pbsolver->addConstr((*i)->literals, (*i)->weights, MiniSatPP::Int((*i)->bound), (*i)->sign, false);
 	}
 
 	if (unsat) {
@@ -148,14 +158,12 @@ SATVAL MinisatID::execute(const AggToCNFTransformer& transformer) {
 		return SATVAL::UNSAT;
 	}
 
-	//Any literal that is larger than maxvar will have been newly introduced, so should be mapped to nVars()+lit
 	//add the CNF to the solver
 	int maxnumber = pcsolver.nVars();
 	for (auto i = pbencodings.cbegin(); i < pbencodings.cend(); ++i) {
 		Disjunction clause;
 		for (auto j = (*i).cbegin(); j < (*i).cend(); ++j) {
-			Var v = MiniSatPP::var(*j) + (MiniSatPP::var(*j) > transformer.maxvar ? maxnumber - transformer.maxvar : 0);
-			clause.literals.push_back(MiniSatPP::sign(*j) ? mkNegLit(v) : mkPosLit(v));
+			clause.literals.push_back(mapFromPBLit(*j, transformer.maxvar, maxnumber));
 		}
 		add(clause, pcsolver);
 	}

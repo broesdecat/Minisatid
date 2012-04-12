@@ -46,6 +46,7 @@ PCSolverImpl::PCSolverImpl(SolverOption modes, Monitor* monitor, VarCreation* va
 		monitoring(false){
 	queue = new EventQueue(*this);
 	searchengine = createSolver(this, oneshot);
+
 #ifdef CPSUPPORT
 	cpsolver = new CPSolver(this);
 #endif
@@ -55,6 +56,20 @@ PCSolverImpl::PCSolverImpl(SolverOption modes, Monitor* monitor, VarCreation* va
 	if (verbosity() > 1) {
 		modes.print(clog);
 	}
+
+	dummy1 = newVar();
+	dummy2 = newVar();
+	dummyfalse = newVar();
+	add(Disjunction({mkPosLit(dummy1)}), *this);
+	add(Disjunction({mkPosLit(dummy2)}), *this);
+	add(Disjunction({mkNegLit(dummyfalse)}), *this);
+}
+
+Lit PCSolverImpl::getTrueLit() const{
+	return mkPosLit(dummy1);
+}
+Lit PCSolverImpl::getFalseLit() const{
+	return mkPosLit(dummyfalse);
 }
 
 PCSolverImpl::~PCSolverImpl() {
@@ -345,15 +360,6 @@ void PCSolverImpl::finishParsing() {
 			throw idpexception("Two optimization statement cannot have the same priority.");
 		}
 	}
-
-	dummy1 = newVar();
-	Disjunction d1;
-	d1.literals.push_back(mkLit(dummy1, false));
-	add(d1, *this);
-	dummy2 = newVar();
-	Disjunction d2;
-	d2.literals.push_back(mkLit(dummy2, false));
-	add(d2, *this);
 
 	propagations.resize(nVars(), NULL); //Lazy init
 

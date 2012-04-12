@@ -546,10 +546,11 @@ template<class T> void PBRead<T>::readConstraint() {
 
 	while (!eof()) {
 		readTerm(coeff, list);
-		if (list.size() == 1 && list[0] > 0)
+		if (list.size() == 1 && list[0] > 0){ // NOTE: only vars x1 or larger are allowed!
 			cb.constraintTerm(coeff, list[0]);
-		else
+		}else{
 			handleProduct(false, coeff, list);
+		}
 
 		skipSpaces();
 		c = get();

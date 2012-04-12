@@ -11,10 +11,12 @@
 
 #include <vector>
 #include <cmath>
+#include <iostream>
 
 #include "theorysolvers/PCSolver.hpp"
 #include "theorysolvers/InternalAdd.hpp"
 #include "utils/Utils.hpp"
+#include "utils/Print.hpp"
 
 namespace MinisatID {
 
@@ -41,10 +43,13 @@ class Level2SAT{
 	varlist bits_;
 public:
 	template<class Solver>
-	Level2SAT(Solver& solver, int maxlevel){
+	Level2SAT(Var head, Solver& solver, int maxlevel){
 		int maxbits = (log((double)maxlevel)/log(2))+0.5;
+		std::clog <<"loopsize = " <<maxlevel <<", maxbits = " <<maxbits <<"\n";
 		for(int i=0; i<maxbits; ++i) {
-			bits_.push_back(solver.newVar());
+			auto var = solver.newVar();
+			std::clog <<toString(mkPosLit(var), solver) <<" <=> " <<"l(" <<toString(mkPosLit(head), solver) <<")>=" <<pow(2, i) <<"\n";
+			bits_.push_back(var);
 		}
 	}
 
@@ -121,12 +126,16 @@ public:
 
 	SATVAL transform(const std::vector<Rule*>& rules){
 		std::set<Var> defined;
+		std::clog <<"SCC to transform: ";
 		for(auto rule=rules.cbegin(); rule!=rules.cend(); ++rule){
+			std::clog <<toString(mkPosLit((*rule)->getHead()), solver_) <<" ";
+			// TODO drop all heads with rootvalue false
 			defined.insert((*rule)->getHead());
 		}
+		std::clog <<"\n";
 
 		for(auto head=defined.cbegin(); head!=defined.cend(); ++head){
-			auto headvar = new Level2SAT(solver_, defined.size()); // maxlevel is the scc size
+			auto headvar = new Level2SAT(*head, solver_, defined.size()); // maxlevel is the scc size
 			atom2level[*head] = headvar;
 
 			if(solver_.value(mkPosLit(*head))==l_True){
@@ -194,8 +203,7 @@ private:
 	/*
 	 * P <- Q1 & ... & Qn
 	 * ==>
-	 * if P true, then level is higher than all defs
-	 * TODO
+	 * if P true, then level is higher than all defs and equal to the highest of them + 1
 	 */
 	SATVAL transformConjunction(const Rule& rule){
 		auto headvar = atom2level[rule.getHead()];
@@ -220,7 +228,7 @@ private:
 		return solver_.satState();
 	}
 
-	// FIXME use current interpretation to simplify things in the code below also
+	// FIXME use current interpretation to simplify things in the code below
 
 	Lit Comp2SAT(Level2SAT* left, SIGN sign, Level2SAT* right){
 		auto it = largermap.find(Comp(left, sign, right));
@@ -242,8 +250,7 @@ private:
 	Lit L12SAT(Level2SAT* left, Level2SAT* right, int index){
 		MAssert(left->bits().size()>index && right->bits().size()>index);
 		if(index==0){
-			// FIXME almost certainly incorrect
-			return and2SAT(litlist{mkNegLit(left->bits()[0]), mkPosLit(right->bits()[0])});
+			return solver_.getTrueLit();
 		}else if(index==1){
 			return ~and2SAT(litlist{
 						mkPosLit(left->bits()[0]),
@@ -300,8 +307,6 @@ private:
 						and2SAT(litlist{mkNegLit(leftbit), mkNegLit(rightbit)})});
 	}
 
-	// Checked code below!
-
 	SATVAL addClause(const litlist& lits){
 		add(Disjunction(lits), solver_);
 		return solver_.satState();
@@ -320,14 +325,42 @@ private:
 	}
 
 	Lit and2SAT(const litlist& subs){
-		// TODO: if some false or all true: return false/true lit
+		if(subs.size()==1){
+			return subs.back();
+		}
+		bool alltrue = true;
+		for(auto i=subs.cbegin(); i<subs.cend(); ++i){
+			auto val = solver_.rootValue(*i);
+			if(val==l_Undef){
+				alltrue = false;
+			}else if(val==l_False){
+				return solver_.getFalseLit();
+			}
+		}
+		if(alltrue){
+			return solver_.getTrueLit();
+		}
 		auto tseitin = mkPosLit(solver_.newVar());
 		add(Implication(tseitin, ImplicationType::EQUIVALENT, subs, true), solver_);
 		return tseitin;
 	}
 
 	Lit or2SAT(const litlist& subs){
-		// TODO: if some true or all false: return true/false lit
+		if(subs.size()==1){
+			return subs.back();
+		}
+		bool allfalse = true;
+		for(auto i=subs.cbegin(); i<subs.cend(); ++i){
+			auto val = solver_.rootValue(*i);
+			if(val==l_Undef){
+				allfalse = false;
+			}else if(val==l_True){
+				return solver_.getTrueLit();
+			}
+		}
+		if(allfalse){
+			return solver_.getFalseLit();
+		}
 		auto tseitin = mkPosLit(solver_.newVar());
 		add(Implication(tseitin, ImplicationType::EQUIVALENT, subs, false), solver_);
 		return tseitin;

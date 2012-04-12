@@ -9,9 +9,9 @@ namespace MiniSatPP {
 #define length(a) ( sizeof ( a ) / sizeof ( *a ) )
 
 struct sData{
-       unsigned int lastRelevent; 
+       long unsigned int lastRelevent;
        unsigned long cost;  
-       unsigned int carryIns;	
+       long unsigned int carryIns;
        unsigned int baseMul;
 };
    
@@ -79,7 +79,7 @@ SearchMetaData* findBaseFWD(unsigned int weights[][2],int length,std::vector<uns
 									minNumOfBits = cutC;
 					    		} 
 					    		if (newCost+sum[newLastRelevent]+newCarryIns<minNumOfBits) {
-									struct sData newData={(unsigned int) newLastRelevent,newCost,(unsigned int)newCarryIns,bm*p};
+									struct sData newData={newLastRelevent,newCost,newCarryIns,bm*p};			
 									lastBase.push_back(p);
 									minNumOfBits = std::min(minNumOfBits, findOpt(wights,newData,lastBase,md,minNumOfBits,sum,primes));
 									lastBase.pop_back();
