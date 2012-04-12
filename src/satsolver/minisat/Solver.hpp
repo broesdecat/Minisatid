@@ -75,8 +75,14 @@ private:
 				: lit(lit), level(level), explan(explan) {
 			MAssert(explan!=CRef_Undef);
 		}
+
+		bool operator<(const ReverseTrailElem& elem) const{
+			return lit<elem.lit || (lit==elem.lit && level<elem.level) || (lit==elem.lit && level==elem.level && explan<elem.explan);
+		}
 	};
-	std::list<ReverseTrailElem> rootunitlits, savedrootlits;
+	std::list<ReverseTrailElem> rootunitlits;
+	std::set<ReverseTrailElem> savedrootlits;
+	void addRootUnitLit(const ReverseTrailElem& elem);
 
 	CRef reason(Var x) const;
 	void removeClause(CRef cr); // Detach and free a clause.
@@ -93,6 +99,7 @@ public:
 private:
 	void removeUndefs(std::set<CRef>& newclauses, vec<CRef>& clauses);
 	bool addClause_(vec<Lit>& ps);
+	bool saved;
 public:
 	void saveState();
 	void resetState();
@@ -162,7 +169,7 @@ public:
 	}
 	CRef notifypropagate();
 	void printStatistics() const;
-	//int			getNbOfFormulas		() 				const 	{ return nClauses(); }
+	int			getNbOfFormulas		() 				const 	{ return nClauses(); }
 
 	virtual void notifyNewDecisionLevel() {
 	}

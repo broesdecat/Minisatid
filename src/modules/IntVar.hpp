@@ -38,6 +38,7 @@ public:
 	virtual void accept(ConstraintVisitor& visitor){ throw notYetImplemented("Accept"); }
 	virtual rClause	notifypropagate();
 	virtual void notifyBacktrack(int untillevel, const Lit& decision);
+	virtual int getNbOfFormulas() const { return maxvalue-minvalue*2; }
 
 	int id() const { return id_; }
 	int origid() const { return origid_; }

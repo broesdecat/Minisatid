@@ -102,7 +102,6 @@ public:
 	virtual void printHeader(std::ostream&) {
 	}
 
-protected:
 	// Called to guarantee that all data is in a usable state.
 	virtual void finish() {
 	}
@@ -175,7 +174,7 @@ public:
 
 	bool hasTranslation(const MinisatID::Literal& lit) const;
 
-	void toString(std::ostream& output, const MinisatID::Literal& lit);
+	std::string toString(const Literal& lit) const ;
 	void printModel(std::ostream& output, const Model& model);
 	void printHeader(std::ostream& output) {
 		if (!finisheddata) {

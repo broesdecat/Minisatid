@@ -67,6 +67,7 @@ public:
 	virtual rClause notifyFullAssignmentFound(){ throw idpexception("Operation applied to invalid propagator."); }
 	virtual void saveState(){ throw idpexception("Operation applied to invalid propagator."); }
 	virtual void resetState(){ throw idpexception("Operation applied to invalid propagator."); }
+	virtual int getNbOfFormulas() const = 0;
 
 	// Convenience methods (based on getPCSolver)
 	const PCSolver& getPCSolver() const {

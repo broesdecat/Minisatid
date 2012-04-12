@@ -60,6 +60,7 @@ public:
 	virtual void notifyNewDecisionLevel();
 	virtual void notifyBacktrack(int untillevel, const Lit& decision);
 	virtual rClause notifypropagate();
+	virtual int getNbOfFormulas() const { return symmetry.getSymmetryMap().size(); }
 
 private:
 	bool addPropagationClauses() const {

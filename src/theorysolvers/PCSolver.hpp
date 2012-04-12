@@ -166,6 +166,7 @@ public:
 	virtual void notifyBecameDecidable(Var v) = 0;
 	virtual void notifyBoundsChanged(IntVar* var) = 0;
 	virtual rClause notifyFullAssignmentFound() = 0;
+	virtual int getNbOfFormulas() const = 0;
 };
 
 class PCSolverImpl: public PCSolver, public SearchEngine {
@@ -219,9 +220,13 @@ private:
 	Monitor* monitor;
 
 	// Optimization
-	std::vector<OptimStatement> optimization; // TODO prevent adding optimizations after parsing is done a first time.
+	bool parsingfinished;
+	std::vector<OptimStatement> optimization;
 public:
 	void addOptimization(OptimStatement optim) {
+		if(parsingfinished){
+			throw idpexception("Cannot add additional optimizations after finishParsing has been called.");
+		}
 		optimization.push_back(optim);
 	}
 
@@ -321,7 +326,7 @@ public:
 
 	// Clause management
 public:
-	// FIXME bypasses propagatorfactory, might be important for some actions!
+	// NOTE: bypasses propagatorfactory, might be important for some actions!
 	rClause createClause(const Disjunction& clause, bool learned);
 
 	//IMPORTANT: The first literal in the clause is the one which can be propagated at moment of derivation!
@@ -380,6 +385,8 @@ public:
 	void acceptBounds(IntView* var, Propagator* propagator);
 	void accept(Propagator* propagator, const Lit& lit, PRIORITY priority);
 	void acceptForDecidable(Var v, Propagator* prop);
+
+	int getNbOfFormulas() const;
 };
 
 }

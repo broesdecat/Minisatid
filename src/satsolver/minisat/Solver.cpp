@@ -64,7 +64,7 @@ static DoubleOption opt_garbage_frac(_cat, "gc-frac", "The fraction of wasted me
 Solver::Solver(PCSolver* s, bool oneshot) :
 		Propagator(s, "satsolver"), random_var_freq(opt_random_var_freq), random_seed(opt_random_seed), verbosity(getPCSolver().verbosity()), var_decay(
 				opt_var_decay), rnd_pol(false), max_learned_clauses(opt_maxlearned), oneshot(oneshot), assumpset(false), needsimplify(true), backtracked(
-				true),
+				true),saved(false),
 
 		clause_decay(opt_clause_decay), luby_restart(opt_luby_restart), ccmin_mode(opt_ccmin_mode), phase_saving(opt_phase_saving), rnd_init_act(
 				opt_rnd_init_act), garbage_frac(opt_garbage_frac), restart_first(opt_restart_first), restart_inc(opt_restart_inc)
@@ -184,8 +184,7 @@ void permuteRandomly(vec<Lit>& lits) {
 	}
 }
 
-// FIXME should we not do simplications in most cases this is called?
-// Only not when it is really only used to generate an explanation
+// NOTE: only used for generating explanations
 CRef Solver::makeClause(const std::vector<Lit>& lits, bool learnt) {
 	vec<Lit> ps;
 	for (auto i = lits.cbegin(); i < lits.cend(); ++i) {
@@ -247,7 +246,7 @@ bool Solver::addClause(const std::vector<Lit>& lits) {
 			}
 			MAssert(value(ps[0])!=l_False);
 			auto clause = getPCSolver().createClause(Disjunction( { ps[0] }), false);
-			rootunitlits.push_back(ReverseTrailElem(ps[0], 0, clause));
+			addRootUnitLit(ReverseTrailElem(ps[0], 0, clause));
 			checkedEnqueue(ps[0], clause);
 		} else {
 			uncheckedEnqueue(ps[0]);
@@ -262,7 +261,7 @@ bool Solver::addClause(const std::vector<Lit>& lits) {
 	return true;
 }
 
-// TODO check whether this can be simplified? Is linked to createClause and the dummy variables
+// NOTE: linked to createClause and the dummy variables
 void Solver::addLearnedClause(CRef rc) {
 	auto& c = ca[rc];
 	MAssert(c.size() > 1);
@@ -281,6 +280,11 @@ void swap(Clause& c, int from, int to) {
 	auto temp = c[from];
 	c[from] = c[to];
 	c[to] = temp;
+}
+
+void Solver::addRootUnitLit(const ReverseTrailElem& elem){
+	rootunitlits.push_back(elem);
+	savedrootlits.insert(rootunitlits.back());
 }
 
 /*
@@ -357,7 +361,7 @@ void Solver::attachClause(CRef cr) {
 			MAssert(isFalse(c[1]));
 			MAssert(value(c[0])==l_Undef);
 			checkedEnqueue(c[0], cr);
-			rootunitlits.push_back(ReverseTrailElem(c[0], getLevel(var(c[1])), cr));
+			addRootUnitLit(ReverseTrailElem(c[0], getLevel(var(c[1])), cr));
 		}
 	}
 
@@ -438,6 +442,7 @@ void Solver::detachClause(CRef cr, bool strict) {
 
 // Store the entailed literals and save all new clauses, both in learnts and clauses
 void Solver::saveState() {
+	saved = true;
 	// Reset stored info
 	if (trail_lim.size() > 0) {
 		roottraillim = trail_lim[0];
@@ -446,8 +451,8 @@ void Solver::saveState() {
 	}
 	newclauses.clear();
 	newlearnts.clear();
-	savedrootlits = rootunitlits;
-	// FIXME reverse trail saving everywhere?
+	savedrootlits.clear();
+
 	savedok = ok;
 	remove_satisfied = false;
 }
@@ -466,7 +471,9 @@ void Solver::removeUndefs(std::set<CRef>& newclauses, vec<CRef>& clauses) {
 }
 
 // Reset always backtracks to 0 if there are new entailed literals
-void Solver::resetState() { // FIXME prevent reset without associated save
+void Solver::resetState() {
+	MAssert(saved);
+	saved = false;
 	if (verbosity > 3) {
 		clog << ">>> Resetting the state.\n";
 	}
@@ -482,7 +489,13 @@ void Solver::resetState() { // FIXME prevent reset without associated save
 	removeUndefs(newclauses, clauses);
 	removeUndefs(newlearnts, learnts);
 
-	rootunitlits = savedrootlits;
+	for(auto i=rootunitlits.begin(); i!=rootunitlits.end();){
+		if(savedrootlits.find(*i)!=savedrootlits.cend()){
+			i = rootunitlits.erase(i);
+		}else{
+			++i;
+		}
+	}
 
 	remove_satisfied = true;
 }
@@ -914,7 +927,7 @@ CRef Solver::notifypropagate() {
 			Lit blocker = i->blocker;
 			if (value(blocker) == l_True) {
 				if(modes().lazy){ // TODO guarantee non-lazy decision invar here again!
-					setDecidable(var(blocker), true); // TODO is this the best possible call?
+					setDecidable(var(blocker), true);
 				}
 				*j++ = *i++;
 				continue;
@@ -1283,8 +1296,7 @@ lbool Solver::solve(bool nosearch) {
 	}
 
 	// To get a better estimate of the number of max_learnts allowed, have to ask all propagators their size
-	//max_learnts = //FIXME getPCSolver().getNbOfFormulas() * learntsize_factor;
-	max_learnts = nbClauses() * learntsize_factor;
+	max_learnts = getPCSolver().getNbOfFormulas() * learntsize_factor;
 	learntsize_adjust_confl = learntsize_adjust_start_confl;
 	learntsize_adjust_cnt = (int) learntsize_adjust_confl;
 	auto status = l_Undef;

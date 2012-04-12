@@ -238,6 +238,12 @@ void initializeAndParseFODOT(pwls d) {
 
 	yydestroy();
 
+	if (d->getOptions().transformat == OutputFormat::PLAIN) {
+		d->setTranslator(new PlainTranslator()); // Empty translator
+	}
+
+	d->getTranslator()->finish();
+
 	closeInput();
 }
 

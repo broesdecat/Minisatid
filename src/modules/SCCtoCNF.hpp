@@ -45,10 +45,14 @@ public:
 	template<class Solver>
 	Level2SAT(Var head, Solver& solver, int maxlevel){
 		int maxbits = (log((double)maxlevel)/log(2))+0.5;
-		std::clog <<"loopsize = " <<maxlevel <<", maxbits = " <<maxbits <<"\n";
+		if(solver.verbosity()>4){
+			std::clog <<"loopsize = " <<maxlevel <<", maxbits = " <<maxbits <<"\n";
+		}
 		for(int i=0; i<maxbits; ++i) {
 			auto var = solver.newVar();
-			std::clog <<toString(mkPosLit(var), solver) <<" <=> " <<"l(" <<toString(mkPosLit(head), solver) <<")>=" <<pow(2, i) <<"\n";
+			if(solver.verbosity()>4){
+				std::clog <<toString(mkPosLit(var), solver) <<" <=> " <<"l(" <<toString(mkPosLit(head), solver) <<")>=" <<pow(2, i) <<"\n";
+			}
 			bits_.push_back(var);
 		}
 	}
@@ -126,13 +130,18 @@ public:
 
 	SATVAL transform(const std::vector<Rule*>& rules){
 		std::set<Var> defined;
-		std::clog <<"SCC to transform: ";
+		if(solver_.verbosity()>4){
+			std::clog <<"SCC to transform to CNF: ";
+		}
 		for(auto rule=rules.cbegin(); rule!=rules.cend(); ++rule){
-			std::clog <<toString(mkPosLit((*rule)->getHead()), solver_) <<" ";
-			// TODO drop all heads with rootvalue false
+			if(solver_.verbosity()>4){
+				std::clog <<toString(mkPosLit((*rule)->getHead()), solver_) <<" ";
+			}
 			defined.insert((*rule)->getHead());
 		}
-		std::clog <<"\n";
+		if(solver_.verbosity()>4){
+			std::clog <<"\n";
+		}
 
 		for(auto head=defined.cbegin(); head!=defined.cend(); ++head){
 			auto headvar = new Level2SAT(*head, solver_, defined.size()); // maxlevel is the scc size
@@ -160,7 +169,7 @@ public:
 	}
 
 private:
-	// TODO strong or weak encoding?
+	// NOTE: STRONG encoding is always used!
 	/*
 	 * P <- Q1 | ... | Qn
 	 * ==>

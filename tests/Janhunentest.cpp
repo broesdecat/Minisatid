@@ -16,11 +16,6 @@
 using namespace std;
 using namespace MinisatID;
 
-// FIXME something wrong with having to include this operator here (because externalinterface.cpp is not in the test sources, which it shouldnt)
-SATVAL operator&= (SATVAL orig, SATVAL add){
-	return (orig==SATVAL::UNSAT||add==SATVAL::UNSAT)? SATVAL::UNSAT: SATVAL::POS_SAT;
-}
-
 namespace MinisatID{
 
 namespace Tests{
@@ -40,6 +35,7 @@ namespace Tests{
 		lbool rootValue(const Lit&) const { return l_False; }
 		Lit getTrueLit() const { return mkPosLit(1); }
 		Lit getFalseLit() const { return mkPosLit(2); }
+		int verbosity() const { return 1; }
 	};
 
 	void add(const Disjunction& d, SolverMOC& moc){

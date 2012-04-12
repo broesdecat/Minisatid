@@ -365,6 +365,10 @@ bool CPSolver::hasData() const {
 	return getData().getTerms().size() > 0;
 }
 
+int CPSolver::getNbOfFormulas() const{
+	return getData().getTerms().size();
+}
+
 rClause CPSolver::findNextModel() {
 	return propagateFinal(true);
 }

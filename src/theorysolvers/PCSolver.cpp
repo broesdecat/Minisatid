@@ -33,6 +33,8 @@ PCSolverImpl::PCSolverImpl(SolverOption modes, Monitor* monitor, VarCreation* va
 		_modes(modes),
 		varcreator(varcreator),
 		monitor(monitor),
+		monitoring(false),
+		parsingfinished(false),
 		currentoptim(0),
 		searchengine(NULL),
 #ifdef CPSUPPORT
@@ -42,8 +44,7 @@ PCSolverImpl::PCSolverImpl(SolverOption modes, Monitor* monitor, VarCreation* va
 		trail(new TimeTrail()),
 		terminate(false),
 		printer(printer),
-		queue(NULL),
-		monitoring(false){
+		queue(NULL){
 	queue = new EventQueue(*this);
 	searchengine = createSolver(this, oneshot);
 
@@ -158,10 +159,7 @@ void PCSolverImpl::notifyBecameDecidable(Var v) {
 	getEventQueue().notifyBecameDecidable(v);
 }
 
-// NOTE: when adding a clause, this should be propagated asap
 void PCSolverImpl::addLearnedClause(rClause c) {
-	// FIXME method is incorrect if clause can propagate
-	// FIXME method is incorrect if first two literals of clause are false, but possible others aren't
 	getSolver().addLearnedClause(c);
 }
 int PCSolverImpl::getClauseSize(rClause cr) const {
@@ -299,10 +297,6 @@ rClause PCSolverImpl::getExplanation(const Lit& l) {
 	}
 
 	auto explan = propagator->getExplanation(l);
-	// TODO add unsat core extraction here, but getExplan should not return an already created clause then.
-	// add new class UnsatCoreManager to the PCSolver fields
-	//	which associates at least one marker literal to each propagator
-	//		each propagator then has to know the ids of its associated constraints!
 	MAssert(explan!=nullPtrClause);
 
 	if (verbosity() > 2) {
@@ -354,6 +348,7 @@ bool compareByPriority(const T& left, const T& right) {
 }
 
 void PCSolverImpl::finishParsing() {
+	parsingfinished = true;
 	sort(optimization.begin(), optimization.end(), compareByPriority<OptimStatement>);
 	for (uint i = 1; i < optimization.size(); ++i) {
 		if (optimization[i].priority == optimization[i - 1].priority) {
@@ -472,12 +467,16 @@ std::shared_ptr<Model> PCSolverImpl::getModel() {
 }
 
 void PCSolverImpl::accept(ConstraintVisitor& visitor) {
-	// TODO other necessary calls? (toString optimization, toString unfinished constraints, ...?
+	// TODO add other necessary calls (optimizations stored here, toString unfinished constraints, ...)
 	getEventQueue().accept(visitor);
 }
 
 std::string PCSolverImpl::toString(const Lit& lit) const {
 	return printer->toString(lit);
+}
+
+int PCSolverImpl::getNbOfFormulas() const{
+	return getEventQueue().getNbOfFormulas() + optimization.size();
 }
 
 // @pre: decision level = 0

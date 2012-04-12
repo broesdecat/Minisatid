@@ -61,6 +61,7 @@ public:
 	virtual rClause getExplanation(const Lit&) { MAssert(false); return nullPtrClause;}
 	virtual void notifyNewDecisionLevel() { MAssert(false); }
 	virtual void notifyBacktrack(int, const Lit&){ MAssert(false); }
+	virtual int getNbOfFormulas() const { return 1; }
 };
 }
 

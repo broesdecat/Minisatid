@@ -39,7 +39,6 @@ void Translator::printModel(std::ostream& output, const Model& model){
 
 template<typename List>
 void Translator::printTranslation(std::ostream& output, const List& l){
-	finish();
 	output <<"=== atom translation ===\n";
 	clog <<"size of lit list: "<<l.size() <<"\n";
 	for(auto var2lit=l.cbegin(); var2lit!=l.cend(); ++var2lit){
@@ -239,42 +238,42 @@ bool FODOTTranslator::hasTranslation(const MinisatID::Literal& lit) const{
 }
 
 //IMPORTANT: non-incremental (slow), so do not use for printing a full model!
-void FODOTTranslator::toString(std::ostream& output, const Literal& lit) {
-	if(!finisheddata){
-		finishParsing(output);
-	}
+std::string FODOTTranslator::toString(const Literal& lit) const {
+	MAssert(finisheddata);
 
+	stringstream ss;
 	if(emptytrans){
-		return;
+		return LiteralPrinter::toString(lit);
 	}
 
 	AtomInfo info = deriveStringFromAtomNumber(var(lit));
 	if(not info.hastranslation){
-		return;
+		return LiteralPrinter::toString(lit);
 	}
 
 	if(symbols[info.symbolindex]->isfunction) {
-		output <<(lit.hasSign()?"~":"");
+		ss <<(lit.hasSign()?"~":"");
 		bool begin = true;
 		if(info.arg.size()>1){
-			output << "(";
+			ss << "(";
 		}
 		for(uint k=0; k<info.arg.size()-1; ++k) {
 			if(!begin){
-				output << ",";
+				ss << ",";
 			}
 			begin = false;
-			output << info.arg[k];
+			ss << info.arg[k];
 		}
 		if(info.arg.size()>1){
-			output << ")";
+			ss << ")";
 		}
-		output <<info.arg.back()<<"\n";
+		ss <<info.arg.back();
 	} else {
-		output <<(lit.hasSign()?"~":"") << symbols[info.symbolindex]->getName(tofodot) << "(";
-		printTuple(info.arg, output);
-		output <<")\n";
+		ss <<(lit.hasSign()?"~":"") << symbols[info.symbolindex]->getName(tofodot) << "(";
+		printTuple(info.arg, ss);
+		ss<<")";
 	}
+	return ss.str();
 }
 
 void FODOTTranslator::printModel(std::ostream& output, const Model& model) {
@@ -291,15 +290,15 @@ void FODOTTranslator::printModel(std::ostream& output, const Model& model) {
 	// read and translate the model
 	bool endmodel = false;
 	for(auto i=model.literalinterpretations.cbegin(); i<model.literalinterpretations.cend(); ++i){
-		int lit = toInt(*i);
+		int lit = var(*i);
 		if(lit==0 || endmodel){ //end of model found
 			break;
-		}else if(lit<0){ //Only print true literals
+		}else if(sign(*i)){ //Only print true literals
 			continue;
 		}else if(lit > largestnottseitinatom){
 			endmodel = true;
 		}else{
-			AtomInfo info = deriveStringFromAtomNumber(lit);
+			AtomInfo info = deriveStringFromAtomNumber(var(*i));
 			if(info.hastranslation){
 				temptruemodelcombined[info.symbolindex].tuples.push_back(TupleInterpr(FIXED_TRUE, info.arg));
 			}

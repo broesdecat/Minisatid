@@ -58,6 +58,7 @@ public:
 	virtual rClause notifyFullAssignmentFound();
 	virtual void saveState();
 	virtual void resetState();
+	virtual int getNbOfFormulas() const { return getWL().size()==0?0:getWL().size()*log((double)getWL().size())/log(2)*getAgg().size(); }
 
 	// additional
 	rClause notifySolver(AggReason* ar);

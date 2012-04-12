@@ -108,6 +108,7 @@ public:
 		}
 		trail = savedtrail;
 	}
+	virtual int getNbOfFormulas() const;
 
 	// Search methods
 	bool hasData() const;

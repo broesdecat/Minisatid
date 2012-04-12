@@ -324,3 +324,12 @@ void EventQueue::notifyBacktrack(int untillevel, const Lit& decision) {
 	}
 	backtrackedtoroot = untillevel==0;
 }
+
+int	EventQueue::getNbOfFormulas() const{
+	int size = 0;
+	for(auto i=allpropagators.cbegin(); i<allpropagators.cend(); ++i){
+		size += (*i)->getNbOfFormulas();
+	}
+	return size;
+
+}
