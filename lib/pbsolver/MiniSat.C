@@ -1,5 +1,3 @@
-
-#include "PB2CNF.hpp"
 #include "MiniSat.h"
 #include "Sort.h"
 #include <cmath>
@@ -16,6 +14,8 @@ namespace MiniSat {
 // For derivation output (verbosity level 2)
 #define L_IND    "%-*d"
 #define L_ind    decisionLevel()*3+3,decisionLevel()
+#define L_LIT    "%sx%d"
+#define L_lit(p) sign(p)?"~":"", var(p)
 
 // Just like 'assert()' but expression will be evaluated in the release version as well.
 inline void check(bool expr) { assert(expr); }
@@ -42,7 +42,6 @@ void removeWatch(vec<LitClauseUnion>& ws, LitClauseUnion elem)
 //
 bool Solver::newClause(const vec<Lit>& ps_, bool learnt, Clause*& out_clause)
 {
-	//printf("\nClause ");
     //for (int i = 0; i < ps_.size(); i++)
     //    printf(L_LIT" ", L_lit(ps_[i]));
     //printf("\n");
@@ -82,7 +81,7 @@ bool Solver::newClause(const vec<Lit>& ps_, bool learnt, Clause*& out_clause)
         // Allocate clause:
         assert(sizeof(Lit)   == sizeof(unsigned));
         assert(sizeof(float) == sizeof(unsigned));
-        void*   mem = xmalloc<char>(sizeof(Clause) + sizeof(unsigned)*((ps.size()-1) + (int)learnt));
+        void*   mem = xmalloc<char>(sizeof(Clause) + sizeof(unsigned)*(ps.size() + (int)learnt));
         Clause* c   = new (mem) Clause(learnt,ps);
 
         // For learnt clauses only:
@@ -788,7 +787,19 @@ void Solver::exportClauses(cchar* filename)
 
 void Solver::toCNF(std::vector<std::vector<Lit> >& cnf){
 	assert(decisionLevel() == 0);
-	MiniSatPP::toCNF(cnf, clauses, assigns, level);
+    // Export CNF:
+    for (int i = 0; i < assigns.size(); i++){
+        if (value(i) != l_Undef && level[i] == 0) {
+        	cnf.push_back(std::vector<Lit>());
+        	Lit t = Lit(i,!(value(i) == l_True));
+        	cnf.back().push_back(t);        	
+        }
+    }
+    for (int i = 0; i < clauses.size(); i++){
+        Clause& c = *clauses[i];
+        cnf.push_back(std::vector<Lit>());
+        for (int j = 0; j < c.size(); j++) cnf.back().push_back(c[j]);
+    }
 }
 
 }

@@ -59,7 +59,7 @@ private:
 public:
 	Space(SolverOption options, bool oneshot = false); // Set oneshot to true if only one inference will be executed. Code can optimize for this.
 	~Space();
-	SearchEngine* getEngine() { return engine; }
+	SearchEngine* getEngine() const { return engine; }
 	const SolverOption& getOptions() const { return basicoptions; }
 
 	bool isCertainlyUnsat() const;

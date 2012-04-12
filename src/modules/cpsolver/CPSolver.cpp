@@ -60,6 +60,7 @@ CPSolver::CPSolver(PCSolver * solver) :
 	getPCSolver().accept(this, EV_BACKTRACK);
 	getPCSolver().accept(this, EV_DECISIONLEVEL);
 	getPCSolver().accept(this, EV_STATEFUL);
+	getPCSolver().accept(this, EV_MODELFOUND);
 }
 
 CPSolver::~CPSolver() {
@@ -370,6 +371,9 @@ rClause CPSolver::findNextModel() {
 
 rClause CPSolver::propagateFinal(bool usesavedengine) {
 	rClause confl = nullPtrClause;
+	if(not hasData()){
+		return confl;
+	}
 
 	if (!usesavedengine || savedsearchengine == NULL) {
 		Search::Options searchOptions;

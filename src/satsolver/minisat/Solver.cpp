@@ -145,7 +145,12 @@ inline void Solver::createNewDecisionLevel() {
 
 std::vector<Lit> Solver::getDecisions() const {
 	std::vector<Lit> v;
+	auto prev = -1;
 	for (int i = 0; i < trail_lim.size(); i++) {
+		if(trail_lim[i]==prev){ // Prev was a dummy decision level
+			continue;
+		}
+		prev = trail_lim[i];
 		v.push_back(trail[trail_lim[i]]);
 	}
 	return v;
@@ -237,10 +242,10 @@ bool Solver::addClause(const std::vector<Lit>& lits) {
 		return ok = false;
 	} else if (ps.size() == 1) {
 		if (decisionLevel() > 0) {
-			while (value(ps[0]) == l_False) {
+			if(value(ps[0]) == l_False) {
 				getPCSolver().backtrackTo(getLevel(var(ps[0])) - 1); // NOTE: Certainly not root level, would have found out otherwise
 			}
-			MAssert(value(ps[0])==l_Undef);
+			MAssert(value(ps[0])!=l_False);
 			auto clause = getPCSolver().createClause(Disjunction( { ps[0] }), false);
 			rootunitlits.push_back(ReverseTrailElem(ps[0], 0, clause));
 			checkedEnqueue(ps[0], clause);
@@ -441,6 +446,8 @@ void Solver::saveState() {
 	}
 	newclauses.clear();
 	newlearnts.clear();
+	savedrootlits = rootunitlits;
+	// FIXME reverse trail saving everywhere?
 	savedok = ok;
 	remove_satisfied = false;
 }
@@ -475,6 +482,8 @@ void Solver::resetState() { // FIXME prevent reset without associated save
 	removeUndefs(newclauses, clauses);
 	removeUndefs(newlearnts, learnts);
 
+	rootunitlits = savedrootlits;
+
 	remove_satisfied = true;
 }
 
@@ -505,7 +514,9 @@ void Solver::uncheckedBacktrack(int level) {
 	for (int c = trail.size() - 1; c >= trail_lim[level]; c--) {
 		Var x = var(trail[c]);
 		assigns[x] = l_Undef;
-		if (phase_saving > 1 || ((phase_saving == 1) && c > trail_lim.last())) polarity[x] = sign(trail[c]);
+		if (phase_saving > 1 || ((phase_saving == 1) && c > trail_lim.last())){
+			polarity[x] = sign(trail[c]);
+		}
 		insertVarOrder(x);
 	}
 	qhead = trail_lim[level];
@@ -902,7 +913,7 @@ CRef Solver::notifypropagate() {
 			// Try to avoid inspecting the clause:
 			Lit blocker = i->blocker;
 			if (value(blocker) == l_True) {
-				if(modes().lazy){ // TODO guarantee invar here again!
+				if(modes().lazy){ // TODO guarantee non-lazy decision invar here again!
 					setDecidable(var(blocker), true); // TODO is this the best possible call?
 				}
 				*j++ = *i++;
@@ -1149,6 +1160,7 @@ lbool Solver::search(int maxconflicts, bool nosearch/*AE*/) {
 
 			Lit next = lit_Undef;
 			while (decisionLevel() < assumptions.size()) {
+				//clog <<"Assumption\n";
 				// Perform user provided assumption:
 				Lit p = assumptions[decisionLevel()];
 				if (value(p) == l_True) {
@@ -1223,6 +1235,20 @@ static double luby(double y, int x) {
 }
 
 void Solver::setAssumptions(const litlist& assumps) {
+	// Note: important: when setting to identical assumptions, no action should be taken!!! (important for CORRECTNESS of finding multiple optim models)
+	bool identical = true;
+	if(assumps.size()!=assumptions.size()){
+		identical = false;
+	}
+	for(int i=0; i<assumps.size() && identical; ++i){
+		if(assumps[i]!=assumptions[i]){
+			identical = false;
+		}
+	}
+	if(identical){
+		return;
+	}
+
 	if (oneshot) {
 		MAssert(not assumpset);
 	}
@@ -1231,9 +1257,12 @@ void Solver::setAssumptions(const litlist& assumps) {
 	}
 	cancelUntil(0);
 	assumptions.clear();
+	//clog <<"Assumptions: ";
 	for (auto i = assumps.cbegin(); i < assumps.cend(); ++i) {
 		assumptions.push(*i);
+		//clog <<toString(*i) <<" ";
 	}
+	//clog <<"\n";
 	if (not oneshot) {
 		saveState();
 	}

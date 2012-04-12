@@ -499,6 +499,7 @@ template<class T> void PBRead<T>::readObjective() {
 	if (c != 'm') {
 		// no objective line
 		putback(c);
+		return;
 	}
 
 	if (get() == 'i' && get() == 'n' && get() == ':') {
@@ -513,12 +514,14 @@ template<class T> void PBRead<T>::readObjective() {
 
 			skipSpaces();
 			c = get();
-			if (c == ';')
+			if (c == ';'){
 				break; // end of objective
-			else if (c == '-' || c == '+' || isdigit(c))
+			}
+			else if (c == '-' || c == '+' || isdigit(c)){
 				putback(c);
-			else
+			} else{
 				throw idpexception("unexpected character in objective function.\n");
+			}
 		}
 
 		cb.endObjective();

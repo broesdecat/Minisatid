@@ -9,9 +9,9 @@ namespace MiniSatPP {
 #define length(a) ( sizeof ( a ) / sizeof ( *a ) )
 
 struct sData{
-       long unsigned int lastRelevent;
+       unsigned int lastRelevent; 
        unsigned long cost;  
-       long unsigned int carryIns;
+       unsigned int carryIns;	
        unsigned int baseMul;
 };
    
@@ -34,7 +34,7 @@ SearchMetaData* findBaseFWD(unsigned int weights[][2],int length,std::vector<uns
 		struct sData data={length,0,0,1};
 		std::vector<int> tempBase;
 		md->basesEvaluated++;
-		md->finalize(findOpt(weights,data,tempBase,(*md),inputCountEval(weights, md->base,length),sum,primes));
+		md->finalize(findOpt(weights,data,tempBase,(*md),inputCountEval(weights, md->base,length),sum,primes)); 
 		return md;
 }
 	
@@ -79,7 +79,7 @@ SearchMetaData* findBaseFWD(unsigned int weights[][2],int length,std::vector<uns
 									minNumOfBits = cutC;
 					    		} 
 					    		if (newCost+sum[newLastRelevent]+newCarryIns<minNumOfBits) {
-									struct sData newData={newLastRelevent,newCost,newCarryIns,bm*p};			
+									struct sData newData={(unsigned int) newLastRelevent,newCost,(unsigned int)newCarryIns,bm*p};
 									lastBase.push_back(p);
 									minNumOfBits = std::min(minNumOfBits, findOpt(wights,newData,lastBase,md,minNumOfBits,sum,primes));
 									lastBase.pop_back();
@@ -95,9 +95,9 @@ int mainFWD(int argc, char **argv) {
 	unsigned int ws[][2] = {{1000000,100},{777777,100},{640487,100},{47360,100},{10127,100},
 			{9873,100},{8153,100},{7543,100},{6937,100},{5342,100},{4283,100},
 				{3761,100},{2344,100},{231,100},{123,12}};
-	std::vector<unsigned int> pri;
-  	loadPrimes("P1.TXT",pri,ws[0][0],1000000);
-	SearchMetaData* md = findBaseFWD(ws,length(ws),pri,1000000);
+	PrimesLoader pl("P1.TXT");
+    unsigned int cufOff = pl.loadPrimes(ws[0][0],1000000);				
+	SearchMetaData* md = findBaseFWD(ws,length(ws),pl.primeVector(),cufOff);
 	md->print();
 	delete md;
 	return 0; 

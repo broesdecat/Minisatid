@@ -1,7 +1,6 @@
 #ifndef Debug_h
 #define Debug_h
 
-#include "Int.h"
 #include "SolverTypes.h"
 #include "PbSolver.h"
 #include "FEnv.h"

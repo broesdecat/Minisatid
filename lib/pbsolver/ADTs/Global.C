@@ -20,7 +20,7 @@ char* vnsprintf(const char* format, va_list args)
   #endif
     chars_written = vfprintf(dummy, format, args);
     ret = xmalloc<char>(chars_written + 1);
-    ret[chars_written] = 127;
+    ret[chars_written] = 255;
     args = args_copy;
     vsprintf(ret, format, args);
     assert(ret[chars_written] == 0);

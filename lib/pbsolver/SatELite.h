@@ -1,6 +1,6 @@
 /**************************************************************************************************
 
-Solver.h -- (C) Niklas Een, Niklas Sï¿½rensson, 2004
+Solver.h -- (C) Niklas Een, Niklas Sörensson, 2004
 
 A simple Chaff-like SAT-solver with support for incremental SAT.
 
@@ -9,21 +9,12 @@ A simple Chaff-like SAT-solver with support for incremental SAT.
 #ifndef SatELite_h
 #define SatELite_h
 
-#include "Int.h"
 #include "SolverTypes.h"
 #include "VarOrder.h"
 
 namespace MiniSatPP {
-
+	
 namespace SatELite {
-
-#ifndef __SGI_STL_INTERNAL_RELOPS   // (be aware of SGI's STL implementation...)
-#define __SGI_STL_INTERNAL_RELOPS
-template <class T> macro bool operator != (const T& x, const T& y) { return !(x == y); }
-template <class T> macro bool operator >  (const T& x, const T& y) { return y < x;     }
-template <class T> macro bool operator <= (const T& x, const T& y) { return !(y < x);  }
-template <class T> macro bool operator >= (const T& x, const T& y) { return !(x < y);  }
-#endif
 
 extern bool opt_confl_1sub  ;
 extern bool opt_confl_ksub  ;
@@ -88,19 +79,19 @@ struct Clause_t {
         struct {
             uint64  abst_;
             uint    size_learnt;
-        } A;
+        };
         struct {
             char    _vec[sizeof(vec<Lit>)];
-        } B;
-    } U;
-    Lit     data[1];
+        };
+    };
+    Lit     data[0];
 
-    vec<Lit>&   Vec(void) const { return *((vec<Lit>*)&U.B._vec); }
+    vec<Lit>&   Vec(void) const { return *((vec<Lit>*)&_vec); }
 
     // PUBLIC INTERFACE:
     //
     bool       dynamic     (void)      const { return id_ == -1; }
-    int        size        (void)      const { return dynamic() ? Vec().size() : U.A.size_learnt >> 1;}
+    int        size        (void)      const { return dynamic() ? Vec().size() : size_learnt >> 1;}
     Lit&       operator [] (int index)       { return dynamic() ? Vec()[index] : data[index]; }
     const Lit& operator [] (int index) const { return dynamic() ? Vec()[index] : data[index]; }
     Lit&       operator () (int index)       { assert(!dynamic()); return data[index]; }
@@ -141,8 +132,8 @@ public:
 
     // Non-dynamic:
     int        id          (void)       const { assert(!dynamic()); return ptr_->id_; }
-    uint64     abst        (void)       const { assert(!dynamic()); return ptr_->U.A.abst_; }
-    bool       learnt      (void)       const { assert(!dynamic()); return ptr_->U.A.size_learnt & 1; }
+    uint64     abst        (void)       const { assert(!dynamic()); return ptr_->abst_; }
+    bool       learnt      (void)       const { assert(!dynamic()); return ptr_->size_learnt & 1; }
     float&     activity    (void)       const { assert(learnt()); return *((float*)&ptr_->data[size()]); }   // (learnt clauses only)
 };
 
@@ -493,34 +484,34 @@ struct Solver {
 
 // Just like 'assert()' but expression will be evaluated in the release version as well.
 #ifdef NDEBUG
-  inline void check(bool expr) { }
+  inline void check(bool expr) { assert(expr); }
 #else
   #define check assert
 #endif
 
 
-macro void dump(Clause, bool newline = true, FILE* out = stdout) {
+macro void dump(Clause c, bool newline = true, FILE* out = stdout) {
     fprintf(out, "{");
-//    for (int i = 0; i < c.size(); i++) fprintf(out, " "L_LIT, L_lit(c[i]));
+    for (int i = 0; i < c.size(); i++) fprintf(out, " "L_LIT, L_lit(c[i]));
     fprintf(out, " }%s", newline ? "\n" : "");
     fflush(out);
 }
-macro void dump(Solver&, Clause, bool newline = true, FILE* out = stdout) {
+macro void dump(Solver& S, Clause c, bool newline = true, FILE* out = stdout) {
     fprintf(out, "{");
- //   for (int i = 0; i < c.size(); i++) fprintf(out, " "L_LIT":%c", L_lit(c[i]), name(S.value(c[i])));
+    for (int i = 0; i < c.size(); i++) fprintf(out, " "L_LIT":%c", L_lit(c[i]), name(S.value(c[i])));
     fprintf(out, " }%s", newline ? "\n" : "");
     fflush(out);
 }
 
-macro void dump(const vec<Lit>&, bool newline = true, FILE* out = stdout) {
+macro void dump(const vec<Lit>& c, bool newline = true, FILE* out = stdout) {
     fprintf(out, "{");
- //   for (int i = 0; i < c.size(); i++) fprintf(out, " "L_LIT, L_lit(c[i]));
+    for (int i = 0; i < c.size(); i++) fprintf(out, " "L_LIT, L_lit(c[i]));
     fprintf(out, " }%s", newline ? "\n" : "");
     fflush(out);
 }
-macro void dump(Solver&, vec<Lit>&, bool newline = true, FILE* out = stdout) {
+macro void dump(Solver& S, vec<Lit>& c, bool newline = true, FILE* out = stdout) {
     fprintf(out, "{");
- //   for (int i = 0; i < c.size(); i++) fprintf(out, " "L_LIT":%c", L_lit(c[i]), name(S.value(c[i])));
+    for (int i = 0; i < c.size(); i++) fprintf(out, " "L_LIT":%c", L_lit(c[i]), name(S.value(c[i])));
     fprintf(out, " }%s", newline ? "\n" : "");
     fflush(out);
 }

@@ -26,7 +26,7 @@ public:
 	Remapper& getRemapper() const {
 		return *remapper;
 	}
-	virtual Engine* getEngine() = 0;
+	virtual Engine* getEngine() const = 0;
 };
 }
 

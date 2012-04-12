@@ -11,7 +11,6 @@ endmacro()
 addToCXX("-Wno-unused-parameter -Wno-unused-result -Wno-strict-aliasing -Wno-vla -Wno-parentheses -Wno-return-type -Wno-variadic-macros")
 
 add_library(pbsolver Main.C
-		PB2CNF.hpp PB2CNF.cpp
 		Debug.C Hardware_adders.C Hardware_clausify.C
 		Hardware_sorters.C MiniSat.C PbParser.C
 		PbSolver.C PbSolver_convertAdd.C PbSolver_convertBdd.C PbSolver_convert.C

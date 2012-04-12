@@ -32,21 +32,7 @@ void File::open(cchar* name, cchar* mode_)
     if (!has_r) mask |= O_CREAT;
     if (has_w)  mask |= O_TRUNC;
 
-	int mode = S_IRUSR|S_IWUSR;
-	#ifdef S_IRGRP
-		mode |= S_IRGRP;
-	#endif
-	#ifdef S_IWGRP
-		mode |= S_IWGRP;
-	#endif
-	#ifdef S_IROTH
-		mode |= S_IROTH;
-	#endif
-	#ifdef S_IWOTH
-		mode |= S_IWOTH;
-	#endif
-	
-    fd = open64(name, mask, mode);
+    fd = open64(name, mask, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
 
     if (fd != -1){
         mode   = has_r ? READ : WRITE;

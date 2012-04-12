@@ -1,6 +1,6 @@
 /**************************************************************************************************
 
-Global.h -- (C) Niklas Een, Niklas Sï¿½rensson, 2004
+Global.h -- (C) Niklas Een, Niklas Sörensson, 2004
 
 Contains types, macros, and inline functions generally useful in a C++ program. 
 
@@ -13,7 +13,6 @@ Contains types, macros, and inline functions generally useful in a C++ program.
 #include <cassert>
 #include <cstdio>
 #include <stdarg.h>
-#include <stdint.h>
 #include <cstdlib>
 #include <cstring>
 #include <climits>
@@ -33,8 +32,8 @@ typedef INT_PTR            intp;
 typedef UINT_PTR           uintp;
 #define I64_fmt "I64d"
 #else
-typedef int64_t				int64;
-typedef uint64_t			uint64;
+typedef long long          int64;
+typedef unsigned long long uint64;
 typedef __PTRDIFF_TYPE__   intp;
 typedef unsigned __PTRDIFF_TYPE__ uintp;
 #define I64_fmt "lld"
@@ -62,7 +61,6 @@ template<class T> macro T max(T x, T y) { return (x > y) ? x : y; }
 
 template <bool> struct STATIC_ASSERTION_FAILURE;
 template <> struct STATIC_ASSERTION_FAILURE<true>{};
-template <> struct STATIC_ASSERTION_FAILURE<false>{};
 #define TEMPLATE_FAIL STATIC_ASSERTION_FAILURE<false>()
 
 #define PANIC(msg) assert((fprintf(stderr, "%s\n", msg), fflush(stderr), false))
@@ -155,7 +153,7 @@ macro int irand(double& seed, int size) {
 // Time:
 }
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 #include <ctime>
 namespace MiniSatPP {
 macro double cpuTime(void) {
@@ -322,18 +320,16 @@ macro void xfreeAll(vec<T*>& ptrs) {
 
 
 class lbool {
-private:
     int     value;
     explicit lbool(int v) : value(v) { }
-
-    friend bool operator==(const lbool& x, const lbool& y);
-    friend bool operator!=(const lbool& x, const lbool& y);
 
 public:
     lbool()       : value(0) { }
     lbool(bool x) : value((int)x*2-1) { }
     int toInt(void) const { return value; }
 
+    bool  operator == (const lbool& other) const { return value == other.value; }
+    bool  operator != (const lbool& other) const { return value != other.value; }
     lbool operator ~  (void)               const { return lbool(-value); }
 
     friend int   toInt  (lbool l);
@@ -349,21 +345,18 @@ const lbool l_False = toLbool(-1);
 const lbool l_Undef = toLbool( 0);
 const lbool l_Error = toLbool(1 << (sizeof(int)*8-1));
 
-inline bool operator==(const lbool& x, const lbool& y) { return x.value == y.value;}
-inline bool operator!=(const lbool& x, const lbool& y) { return x.value != y.value;}
-
 
 //=================================================================================================
 // Relation operators -- extend definitions from '==' and '<'
 
 
-/*#ifndef __SGI_STL_INTERNAL_RELOPS   // (be aware of SGI's STL implementation...)
+#ifndef __SGI_STL_INTERNAL_RELOPS   // (be aware of SGI's STL implementation...)
 #define __SGI_STL_INTERNAL_RELOPS
 template <class T> macro bool operator != (const T& x, const T& y) { return !(x == y); }
 template <class T> macro bool operator >  (const T& x, const T& y) { return y < x;     }
 template <class T> macro bool operator <= (const T& x, const T& y) { return !(y < x);  }
 template <class T> macro bool operator >= (const T& x, const T& y) { return !(x < y);  }
-#endif*/
+#endif
 
 }
 //=================================================================================================

@@ -214,7 +214,7 @@ private:
 	DefaultCallback<T> cb;
 
 public:
-	PBRead(T solver, OPBTranslator* trans, std::istream &stream):
+	PBRead(T& solver, OPBTranslator* trans, std::istream &stream):
 			trans(trans), in(stream), cb(solver) {
 		autoLinearize = false;
 

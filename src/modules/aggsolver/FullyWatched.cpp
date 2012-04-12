@@ -127,7 +127,7 @@ void FWAgg::propagate(int level, Watch* watch, int aggindex) {
 	//	return nullPtrClause;
 	//}
 
-	FWTrail* fwobj = getTrail().back();
+	auto fwobj = getTrail().back();
 	if (fwobj->level < level) {
 		getTrail().push_back(new FWTrail(level, fwobj->CBC, fwobj->CBP));
 		fwobj = getTrail().back();
@@ -144,7 +144,7 @@ void FWAgg::propagate(int level, Watch* watch, int aggindex) {
 }
 
 void FWAgg::propagate(const Lit& p, Watch* ws, int level) {
-	FWTrail* fwobj = getTrail().back();
+	auto fwobj = getTrail().back();
 	if (fwobj->level < level) {
 		getTrail().push_back(new FWTrail(level, fwobj->CBC, fwobj->CBP));
 		fwobj = getTrail().back();
@@ -174,9 +174,9 @@ void FWAgg::propagate(const Lit& p, Watch* ws, int level) {
 }
 
 rClause FWAgg::propagateAtEndOfQueue() {
-	rClause confl = nullPtrClause;
+	auto confl = nullPtrClause;
 
-	FWTrail& fwobj = *getTrail().back();
+	auto& fwobj = *getTrail().back();
 
 	// FIXME should never have called propagate then! (were originally asserts
 	if (fwobj.start == fwobj.props.size() || fwobj.level != getSet().getPCSolver().getCurrentDecisionLevel()) {
@@ -186,7 +186,7 @@ rClause FWAgg::propagateAtEndOfQueue() {
 	bool changedcp = false;
 	bool changedcc = false;
 	for (uint i = fwobj.start; i < fwobj.props.size(); ++i) {
-		const PropagationInfo& p = fwobj.props[i];
+		const auto& p = fwobj.props[i];
 		if (p.getType() != HEAD) {
 			WL wl(p.getLit(), p.getWeight());
 			if (p.getType() == POS) {
@@ -201,7 +201,7 @@ rClause FWAgg::propagateAtEndOfQueue() {
 	fwobj.start = fwobj.props.size();
 
 	for (auto i = fwobj.headindex.cbegin(); confl == nullPtrClause && i < fwobj.headindex.cend(); ++i) {
-		pagg agg = getSet().getAgg()[*i];
+		auto agg = getSet().getAgg()[*i];
 		MAssert(agg->getSet()->getAgg()[agg->getIndex()]==agg && *i == agg->getIndex());
 		lbool headval = value(agg->getHead());
 		MAssert(headval!=l_Undef);
@@ -210,7 +210,7 @@ rClause FWAgg::propagateAtEndOfQueue() {
 
 	if (changedcc || changedcp) {
 		//TODO find aggregate with most stringent bound and only propagate that one!
-		for (agglist::const_iterator i = getSet().getAgg().cbegin(); confl == nullPtrClause && i < getSet().getAgg().cend(); ++i) {
+		for (auto i = getSet().getAgg().cbegin(); confl == nullPtrClause && i < getSet().getAgg().cend(); ++i) {
 			const Agg& pa = **i;
 
 			if (getSet().verbosity() >= 6) {
@@ -745,7 +745,7 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 	//=> add a check that does not do propagations if the derived weight bound is the same
 	//=> add a check that if only cp or cc is adapted, only aggs with such bound are checked!
 
-#ifdef DEBUG
+/*#ifdef DEBUG
 	bool allknown = true;
 	for (auto u = wls.cbegin(); allknown && u < wls.cend(); ++u) {
 		if((*u).getWeight()>=weightbound && value((*u).getLit())==l_Undef) {
@@ -753,7 +753,7 @@ rClause SPFWAgg::propagateSpecificAtEnd(const Agg& agg, bool headtrue) {
 		}
 	}
 	MAssert(c!=nullPtrClause || allknown);
-#endif
+#endif*/
 
 	return c;
 }

@@ -1,7 +1,6 @@
 #ifndef Int_h
 #define Int_h
 
-#include <sstream>
 #include "Global.h"
 
 //=================================================================================================
@@ -36,7 +35,7 @@ class Int {
     int64   data;
 public:
     Int() : data(Int_Undef__) {}
-    //Int(int   x) : data(x) {}
+    Int(int   x) : data(x) {}
     Int(int64 x) : data(x) {}
 
     // "operator =" and copy-constructor "Int(const Int& src)" are default defined to the right thing.
@@ -65,11 +64,7 @@ public:
     Int  operator /  (Int other) const {A2 return Int(data / other.data); }
     Int  operator %  (Int other) const {A2 return Int(data % other.data); }
 
-    friend std::string toString(Int num) {
-    	std::stringstream ss;
-    	ss <<num.data;
-    	return ss.str();
-    }
+    friend char* toString(Int num) { char buf[32]; sprintf(buf, "%lld", num.data); return xstrdup(buf); }   // Caller must free string.
     friend int   toint   (Int num) { if (num > INT_MAX || num < INT_MIN) throw Exception_IntOverflow(xstrdup("toint")); return (int)num.data; }
 };
 
@@ -87,7 +82,6 @@ public:
 //=================================================================================================
 
 #include "gmp.h"
-#include "gmpxx.h"
 namespace MiniSatPP{
 //=================================================================================================
 
@@ -119,11 +113,6 @@ public:
     Int(int x) {
         data = xmalloc<mpz_t>(1); assert(((intp)data & 1) == 0);
         mpz_init_set_si(*data, x);
-    }
-
-    Int(const mpz_class& d){
-    	data = xmalloc<mpz_t>(1); assert(((intp)data & 1) == 0);
-    	mpz_init_set(*data, d.get_mpz_t());
     }
 
     Int(const Int& src) {
@@ -220,7 +209,7 @@ public:
 
     // Methods:
     //
-    friend std::string toString(Int num) {
+    friend char* toString(Int num) {
         if      (num == Int_MIN) return xstrdup("-oo");
         else if (num == Int_MAX) return xstrdup("+oo");
         assert(!num.small());

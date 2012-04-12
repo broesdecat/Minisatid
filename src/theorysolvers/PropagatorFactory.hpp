@@ -51,6 +51,16 @@ private:
 
 protected:
 	ManagedFactoryStorage(): storage_(NULL){}
+	~ManagedFactoryStorage(){
+		resetStorage();
+	}
+
+	void resetStorage(){
+		if(hasStorage()){
+			delete(storage_);
+			storage_ = NULL;
+		}
+	}
 
 	void addStorage(PCSolver* engine){
 		MAssert(not hasStorage());

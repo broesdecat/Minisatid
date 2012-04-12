@@ -59,7 +59,7 @@ OneShotMX::~OneShotMX(){
 	delete(mx);
 }
 
-SearchEngine* OneShotMX::getEngine() { return getSpace()->getEngine(); }
+SearchEngine* OneShotMX::getEngine() const { return getSpace()->getEngine(); }
 
 void OneShotMX::innerExecute(){
 	mx->execute();

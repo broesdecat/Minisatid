@@ -8,7 +8,7 @@ Read a DIMACS file and apply the SAT-solver to it.
 
 
 #include <cstdarg>
-#include <stdlib.h>
+#include <unistd.h>
 #include <signal.h>
 #include <fstream>
 #include <vector>
@@ -53,7 +53,7 @@ bool        opt_only_base        = false; // web interface mode -- v0 is implied
 bool        opt_skip_sat         = false; // skip SAT solving, just report UNSAT
 bool        opt_dump             = false; // just dump optimal base problems
 bool    	opt_natlist          = false; // read list of naturals instead of opb
-bool        opt_abstract         = false; // use the abstraction for the base serach algritem (optimalty proven for SOD only!)
+bool        opt_abstract         = true; // use the abstraction for the base serach algritem (optimalty proven for SOD only!)
 bool        opt_tare             = false;
 bool 	    opt_use_shortCuts    = false;
 
@@ -364,7 +364,7 @@ static void SIGINT_handler(int signum) {
     reportf("\n");
     reportf("*** INTERRUPTED ***\n");
     SatELite::deleteTmpFiles();
-    _Exit(0); }     // (using 'exit()' rather than '_Exit()' sometimes causes the solver to hang (why?))
+    _exit(0); }     // (using 'exit()' rather than '_exit()' sometimes causes the solver to hang (why?))
 
 // yay prototype
 
@@ -406,7 +406,7 @@ static void SIGTERM_handler(int signum) {
 	else if (opt_base_result_file!=NULL) printBaseOutPut(cpuT,false,true,false);
     // end base stuff
     SatELite::deleteTmpFiles();
-    _Exit(pb_solver->best_goalvalue == Int_MAX ? 0 : 10); 
+    _exit(pb_solver->best_goalvalue == Int_MAX ? 0 : 10); 
 }
 
 
@@ -468,13 +468,9 @@ void printBaseOutPut(double cpuTime,bool isSat,bool timeout,bool exception){
 	  	}
 	  	file<<";"<<md.emptyBaseNOI<<";"<<md.numOfCoffes<<";"<<numOfDecisions;
 	  	file<<";"<<opt_abstract<<";"<<opt_tare<<";"<<opt_use_shortCuts<<";"<<opt_convert_weak<<";";
-	  	if  (opt_sorting_network_encoding == oddEvenEncoding){
-	  		file<<"oddEvenEncoding";
-	  	} else if(opt_sorting_network_encoding == pairwiseSortEncoding){
-        	file<<"pairwiseSortEncoding";
-        } else{
-        	file<<"unarySortAddEncoding";
-        }
+	  	if  (opt_sorting_network_encoding = oddEvenEncoding)      file<<"oddEvenEncoding";
+        else if  (opt_sorting_network_encoding = oddEvenEncoding) file<<"pairwiseSortEncoding";
+        else                                                      file<<"unarySortAddEncoding";	  		
 	  	file<<"\n";   
 	  	delete baseMetaData.back();
 	  	baseMetaData.pop_back();
@@ -548,13 +544,9 @@ void printHugeOutPut(double cpuTime,bool isSat,bool timeout,bool exception){
 	  	}
 	  	file<<";"<<md.emptyBaseNOI<<";"<<md.numOfCoffes<<";"<<numOfDecisions;
 	  	file<<";"<<opt_abstract<<";"<<opt_tare<<";"<<opt_use_shortCuts<<";"<<opt_convert_weak<<";";
-	  	if  (opt_sorting_network_encoding == oddEvenEncoding){
-	  		file<<"oddEvenEncoding";
-	  	} else if(opt_sorting_network_encoding == pairwiseSortEncoding){
-        	file<<"pairwiseSortEncoding";
-        } else{
-        	file<<"unarySortAddEncoding";
-        }
+	  	if  (opt_sorting_network_encoding = oddEvenEncoding)      file<<"oddEvenEncoding";
+        else if  (opt_sorting_network_encoding = oddEvenEncoding) file<<"pairwiseSortEncoding";
+        else                                                      file<<"unarySortAddEncoding";	  		
 	  	file<<"\n"; 
 	  	delete baseMetaData.back(); 
 	  	baseMetaData.pop_back();
@@ -572,7 +564,7 @@ PbSolver::solve_Command convert(Command cmd) {
     case cmd_Minimize:      return PbSolver::sc_Minimize;
     case cmd_FirstSolution: return PbSolver::sc_FirstSolution;
     case cmd_AllSolutions:  return PbSolver::sc_AllSolutions;
-    default: assert(false); }
+    default: assert(false); exit(0);}
 }
 
 //=================================================================================================
@@ -671,48 +663,47 @@ int run(int argc, char** argv) {
   return 0;
 }
 
-void test1() {
+int test1() {
 	 opt_convert_weak = false;
 	 opt_convert = ct_Sorters;
 	 
 	 pb_solver = new PbSolver();
-	 pb_solver->allocConstrs(8, 4);
 	 vec<Lit> ps;
 	 vec<Int> Cs;
 	 		
-	 Int rhs=-1;  //x1 + 2 x2 + 3 x3 + 4 x4 + 5 x5 -20 not x6 <= 4
-	 int ineq = 1;
-	 ps.push(Lit(2));
-	 ps.push(Lit(3));
-	 ps.push(Lit(4));
-	 ps.push(Lit(5));
-	 ps.push(Lit(6));
-	 ps.push(Lit(7));
-	 Cs.push(1);
-	 Cs.push(2);
-	 Cs.push(3);
-	 Cs.push(4);
-	 Cs.push(5);
-	 Cs.push(-5);
-	 pb_solver->addConstr(ps,Cs,rhs,ineq,false);
-	 
-/*	 ps.clear();  //x1 + 2 x2 + 3 x3 + 4 x4 + 5 x5 +20 x6 > 4
-	 Cs.clear();
+	 Int rhs=4;  //x1 + 2 x2 + 3 x3 + 4 x4 + 5 x5 -20 not x6 <= 4
+	 int ineq = -1;
 	 ps.push(Lit(1));
 	 ps.push(Lit(2));
 	 ps.push(Lit(3));
 	 ps.push(Lit(4));
 	 ps.push(Lit(5));
-	 ps.push(Lit(6, false));
+	 ps.push(Lit(6,true));
 	 Cs.push(1);
 	 Cs.push(2);
 	 Cs.push(3);
 	 Cs.push(4);
 	 Cs.push(5);
 	 Cs.push(-20);
+	 pb_solver->addConstr(ps,Cs,rhs,ineq);
+	 
+	 ps.clear();  //x1 + 2 x2 + 3 x3 + 4 x4 + 5 x5 +20 x6 > 4
+	 Cs.clear();
+	 ps.push(Lit(1));
+	 ps.push(Lit(2));
+	 ps.push(Lit(3));
+	 ps.push(Lit(4));
+	 ps.push(Lit(5));
+	 ps.push(Lit(6));
+	 Cs.push(1);
+	 Cs.push(2);
+	 Cs.push(3);
+	 Cs.push(4);
+	 Cs.push(5);
+	 Cs.push(20);
 	 rhs=4;
-	 ineq = -2;
-	 pb_solver->addConstr(ps,Cs,rhs,ineq,false);
+	 ineq = 2;
+	 pb_solver->addConstr(ps,Cs,rhs,ineq);
 	 
 	 ps.clear(); //x1 + 2 x2 + 3 x3 + 4 x4 + 5 x5 +5 not x7 >= 4
 	 Cs.clear();
@@ -727,10 +718,10 @@ void test1() {
 	 Cs.push(3);
 	 Cs.push(4);
 	 Cs.push(5);
-	 Cs.push(-20);
-	 rhs=4;
-	 ineq = -1;
-	 pb_solver->addConstr(ps,Cs,rhs,ineq,false);
+	 Cs.push(5);
+	 rhs=1;
+	 ineq = 1;
+	 pb_solver->addConstr(ps,Cs,rhs,ineq);
 	 
 	 ps.clear(); //x1 + 2 x2 + 3 x3 + 4 x4 + 5 x5 -20 x7 < 4
 	 Cs.clear();
@@ -739,47 +730,25 @@ void test1() {
 	 ps.push(Lit(3));
 	 ps.push(Lit(4));
 	 ps.push(Lit(5));
-	 ps.push(Lit(7, false));
+	 ps.push(Lit(7));
 	 Cs.push(1);
 	 Cs.push(2);
 	 Cs.push(3);
 	 Cs.push(4);
 	 Cs.push(5);
-	 Cs.push(20);
+	 Cs.push(-20);
 	 rhs=4;
-	 ineq = 2;
-	 pb_solver->addConstr(ps,Cs,rhs,ineq,false);*/
-	// opt_command = cmd_AllSolutions;
-	 //pb_solver->solve(convert(opt_command),false);
+	 ineq = -2;
+	 pb_solver->addConstr(ps,Cs,rhs,ineq);
+	 
 	 std::vector<std::vector<Lit> > cnf;
 	 pb_solver->toCNF(cnf);
-	 for (uint i=0;i<cnf.size();i++) {
-	 	for(uint j=0;j<cnf[i].size();j++) std::cout<<(sign(cnf[i][j])? "-": "")<< var(cnf[i][j])<<" ";
+	 for (int i=0;i<cnf.size();i++) {
+	 	for(int j=0;j<cnf[i].size();j++) std::cout<<(sign(cnf[i][j])? "-": "")<< var(cnf[i][j])<<" ";
 	 	std::cout<<"\n";
 	 }
 }
 
-/*void debug1(){
-	vec<Formula> fs;
-	pb_solver = new PbSolver();
-	pb_solver->sat_solver.newVar();
-	pb_solver->n_occurs  .push(0);
-    pb_solver->n_occurs  .push(0);
-    pb_solver->sat_solver.newVar();
-	pb_solver->n_occurs  .push(0);
-    pb_solver->n_occurs  .push(0);
-	fs.push(Lit(0) & Lit(1));
-	clausify(pb_solver->sat_solver, fs);
-	std::vector<std::vector<Lit> > cnf;
-	pb_solver->toCNF(cnf);
-	for (int i=0;i<cnf.size();i++) {
-	 	for(int j=0;j<cnf[i].size();j++) {
-	 		std::cout<<(sign(cnf[i][j])? "-": "")<< var(cnf[i][j])<<" ";
-	 	}	
-	 	std::cout<<"\n";
-	}
-}
-*/
 
 }
 
@@ -789,8 +758,8 @@ void test1() {
 
 /*int main(int argc, char** argv)
 {
-	//return MiniSatPP::run(argc,argv);
-	MiniSatPP::test1();
+	return MiniSatPP::run(argc,argv);
+	//MiniSatPP::test1();
 	//MiniSatPP::debug1();
 	
 }*/

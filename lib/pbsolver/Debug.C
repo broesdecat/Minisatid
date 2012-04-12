@@ -9,7 +9,7 @@ vec<cchar*>* debug_names = NULL;
 void dump(Int num) {
     if      (num == Int_MIN) reportf("-oo");
     else if (num == Int_MAX) reportf("+oo");
-    else                     { reportf("%s", toString(num).c_str()); } }
+    else                     { char* tmp = toString(num); reportf("%s", tmp); xfree(tmp); } }
 
 
 void dump(Lit p) {

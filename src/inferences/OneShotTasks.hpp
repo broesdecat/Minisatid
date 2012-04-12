@@ -57,7 +57,7 @@ public:
 	OneShotMX(SolverOption options, ModelExpandOptions mxoptions, const litlist& assumptions);
 	OneShotMX(Space* space, ModelExpandOptions mxoptions, const litlist& assumptions);
 	~OneShotMX();
-	SearchEngine* getEngine();
+	SearchEngine* getEngine() const;
 
 	bool isSat() const;
 	bool isUnsat() const;

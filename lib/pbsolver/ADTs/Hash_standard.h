@@ -64,18 +64,18 @@ DefineHash(char  , return (uint)key;)
 DefineHash(signed char , return (uint)key;)
 DefineHash(unsigned char , return (uint)key;)
 DefineHash(short , return (uint)key;)
-//DefineHash(ushort, return (uint)key;)
+DefineHash(ushort, return (uint)key;)
 DefineHash(int   , return (uint)key;)
 DefineHash(uint  , return (uint)key;)
 #ifdef LP64
 DefineHash(long  , return (uint)(((ulong)key >> 32) ^ key);)
 DefineHash(ulong , return (uint)(((ulong)key >> 32) ^ key);)
 #else
-DefineHash(int64 , return (uint)(((uint64)key >> 32) ^ key);)
-DefineHash(uint64, return (uint)(((uint64)key >> 32) ^ key);)
 DefineHash(long  , return (uint)key;)
 DefineHash(ulong , return (uint)key;)
 #endif
+DefineHash(int64 , return (uint)(((uint64)key >> 32) ^ key);)
+DefineHash(uint64, return (uint)(((uint64)key >> 32) ^ key);)
 
 
 //=================================================================================================

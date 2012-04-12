@@ -245,7 +245,7 @@ void MinisatID::card2Equiv(PCSolver* solver, WLSet* set, std::vector<TempAgg*>& 
 			const TempAgg& agg = *(*i);
 			const Weight& bound = agg.getBound() - knownbound;
 			if (agg.hasLB() && bound == 0) {
-				lbool headvalue = solver->value(agg.getHead());
+				lbool headvalue = solver->rootValue(agg.getHead());
 				if (headvalue != l_False) {
 					/*if (agg.getSem() == DEF) {
 					 Rule rule;

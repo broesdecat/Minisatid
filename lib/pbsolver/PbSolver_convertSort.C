@@ -90,7 +90,7 @@ static void buildSorter(vec<Formula>& ps, vec<int>& Cs, vec<Formula>& carry , ve
     for (int i = 0; i < ps.size(); i++)
         for (int j = 0; j < Cs[i]; j++)
             Xs.push(ps[i]);
-    unarySortAdd(Xs, carry, out_sorter,opt_use_shortCuts);
+    unarySortAdd(Xs, carry, out_sorter);
 }
 
 static void buildSorter(vec<Formula>& ps, vec<Int>& Cs, vec<Formula>& carry , vec<Formula>& out_sorter) {
@@ -288,11 +288,11 @@ a4
 */
 
 // yay prototype
-SearchMetaData* searchForBase(vec<Int>& inCoeffs, vec<int>& outputBase);
+SearchMetaData* searchForBase(vec<Int>& inCoeffs, vec<int>& outputBase,PrimesLoader& pl);
 
 // Will return '_undef_' if 'cost_limit' is exceeded.
 //
-Formula buildConstraint(const Linear& c, int max_cost)
+Formula buildConstraint(const Linear& c,PrimesLoader& pl, int max_cost)
 {
     vec<Formula>    ps;
     vec<Int>        Cs;
@@ -303,14 +303,14 @@ Formula buildConstraint(const Linear& c, int max_cost)
 	
     vec<int> base;
   
-    SearchMetaData* data = searchForBase(Cs, base);
+    SearchMetaData* data = searchForBase(Cs, base, pl);
     FEnv::push();
     if (opt_dump) { // don't spend time on building unneeded formulae
         return _undef_;
     }
     Int lo = c.lo;
     Int hi = c.hi;
-	if (opt_tare & ((lo == hi) | (lo == Int_MIN) | (hi == Int_MAX))) {
+	if (opt_tare & (lo == hi | lo == Int_MIN | hi == Int_MAX)) { 
 		Int toNormlize;
 		Int toAdd;
 		if (lo == Int_MIN) toNormlize = hi;
@@ -395,19 +395,18 @@ static void dump(std::map<unsigned int,unsigned int>& multiSet) {
 /**
  * Probably one of the more interesting functions.
  */
-SearchMetaData* searchForBase(vec<Int>& inCoeffs, vec<int>& outputBase) {
+SearchMetaData* searchForBase(vec<Int>& inCoeffs, vec<int>& outputBase,PrimesLoader& pl) {
   std::map<unsigned int,unsigned int> multiSet;
   vecToMultiSet(inCoeffs,multiSet);
   if (opt_dump) {
     dump(multiSet);
     return createDummyData(0.0);
   }
-  SearchMetaData* data = 0;
   unsigned int weights[multiSet.size()][2];
   coeffsToDescendingWeights(multiSet, weights);
-
-  std::vector<unsigned int> pri;
-  unsigned int cutof = loadPrimes(opt_primes_file,pri,weights[0][0],opt_max_generator);
+  SearchMetaData* data = 0;
+  unsigned int cutof = pl.loadPrimes(weights[0][0],opt_max_generator);
+  std::vector<unsigned int>& pri = pl.primeVector();
   if      (opt_base == base_Forward) data = findBaseFWD(weights, multiSet.size(), pri,cutof);
   else if (opt_base == base_SOD)     data = bnb_SOD_Carry_Cost_search(weights, multiSet.size(),pri,cutof,false,true,true); 
   else if (opt_base == base_Carry)   data = bnb_SOD_Carry_Cost_search(weights, multiSet.size(), pri,cutof,opt_non_prime,opt_abstract); 

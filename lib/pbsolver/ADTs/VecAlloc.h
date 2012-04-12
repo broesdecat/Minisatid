@@ -2,7 +2,6 @@
 #define VecAlloc_h
 
 #include <typeinfo>
-#include <iostream>
 #include "Global.h"
 
 namespace MiniSatPP {
@@ -41,9 +40,7 @@ public:
    ~VecAlloc(void) {
       #ifdef DEBUG
         //if (nallocs != 0) fprintf(stderr, "WARNING! VecAlloc detected leak of %d unit(s) of type '%s'.\n", nallocs, typeid(T).name());
-        if (nallocs != 0){
-        	std::cerr <<"WARNING! VecAlloc detected leak of " <<nallocs <<" unit(s) of size " <<sizeof(T) <<".\n";
-        }
+        if (nallocs != 0) fprintf(stderr, "WARNING! VecAlloc detected leak of %d unit(s) of size %d.\n", nallocs, sizeof(T));
       #endif
         Slot*   curr,* next;
         curr = table;

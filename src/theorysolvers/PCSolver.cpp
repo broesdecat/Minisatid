@@ -227,12 +227,11 @@ void PCSolverImpl::accept(Propagator* propagator, const Lit& lit, PRIORITY prior
 }
 
 Var PCSolverImpl::newVar() {
-	auto newnbvars = nVars() + 1;
 	auto var = varcreator->createVar();
-	MAssert((uint64_t)var==newnbvars-1);
-	getEventQueue().notifyNbOfVars(newnbvars); // IMPORTANT to do it before effectively creating it in the solver (might trigger grounding)
+	if(var>=nVars()){
+		getEventQueue().notifyNbOfVars(var); // IMPORTANT to do it before effectively creating it in the solver (might trigger grounding)
+	}
 	createVar(var);
-	MAssert(nVars()==newnbvars);
 	return var;
 }
 

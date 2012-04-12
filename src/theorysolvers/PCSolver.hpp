@@ -74,6 +74,7 @@ public:
 	virtual int verbosity() const = 0;
 	virtual const SolverOption& modes() const = 0;
 	virtual Var newVar() = 0;
+	virtual int newSetID() = 0;
 	virtual lbool rootValue(Lit p) const = 0;
 
 	virtual void notifyUnsat() = 0;
@@ -82,6 +83,8 @@ public:
 	virtual std::string toString(const Lit& lit) const = 0;
 
 	virtual void invalidate(litlist& clause) const = 0;
+
+	virtual void backtrackTo(int level) = 0;
 };
 
 class SearchEngine: virtual public BothPCSolver {
@@ -121,7 +124,6 @@ public:
 	virtual void varReduceActivity(Var v) = 0;
 	virtual lbool value(Lit p) const = 0;
 	virtual uint64_t nVars() const = 0;
-	virtual int newSetID() = 0;
 	virtual bool isDecisionVar(Var var) = 0;
 	virtual void notifyDecisionVar(Var var) = 0;
 	virtual bool isDecided(Var var) = 0;
@@ -153,7 +155,6 @@ public:
 	virtual void setTrue(const Lit& p, Propagator* solver, rClause c = nullPtrClause) = 0;
 	virtual void notifySetTrue(const Lit& p) = 0;
 	virtual void newDecisionLevel() = 0;
-	virtual void backtrackTo(int level) = 0;
 	virtual void backtrackDecisionLevel(int untillevel, const Lit& decision) = 0;
 	virtual rClause propagate() = 0;
 	virtual int getTime(const Var& var) const = 0;

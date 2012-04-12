@@ -12,7 +12,7 @@ typedef struct BaseSearchState* bss;
 	THeap::~ THeap() {
 		for (unsigned int i=0;i<heap.size();i++)
 			delete heap[i];
-	}
+	};
 
 	bool THeap::offer(bss element) {
 		heap.push_back(element);

@@ -76,7 +76,7 @@ private:
 			MAssert(explan!=CRef_Undef);
 		}
 	};
-	std::list<ReverseTrailElem> rootunitlits;
+	std::list<ReverseTrailElem> rootunitlits, savedrootlits;
 
 	CRef reason(Var x) const;
 	void removeClause(CRef cr); // Detach and free a clause.

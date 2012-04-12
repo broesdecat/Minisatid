@@ -122,7 +122,10 @@ void Printer::solvingFinished(){
 				printSatisfiable(output, modes.format, modes.transformat);
 				printSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);
 			}
-			getTranslator()->printModel(output, *modelmanager->getBestModelsFound().front());
+			auto list = modelmanager->getBestModelsFound();
+			for(auto i=list.cbegin(); i<list.cend(); ++i){
+				getTranslator()->printModel(output, **i);
+			}
 		}else if(not optimizing && modes.transformat == OutputFormat::ASP){ // NOTE: Otherwise, SAT is printed BEFORE the first model is printed, so in addModel
 			printSatisfiable(output, modes.format, modes.transformat);
 			printSatisfiable(clog, modes.format, modes.transformat, modes.verbosity);

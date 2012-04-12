@@ -170,6 +170,7 @@ void EventQueue::setTrue(const Lit& l) {
 		}
 		lw = remwatches;
 	}
+	addEternalPropagators();
 	setTrue(lit2priority2propagators[toInt(l)][FAST], fastqueue);
 	setTrue(lit2priority2propagators[toInt(l)][SLOW], slowqueue);
 }

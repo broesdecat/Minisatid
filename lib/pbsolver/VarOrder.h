@@ -1,6 +1,6 @@
 /**************************************************************************************************
 
-VarOrder.h -- (C) Niklas Een, Niklas Sï¿½rensson, 2004
+VarOrder.h -- (C) Niklas Een, Niklas Sörensson, 2004
 
 ADT for maintaining the variable ordering. It will keep a list of all decision
 variables sorted on the current activity.

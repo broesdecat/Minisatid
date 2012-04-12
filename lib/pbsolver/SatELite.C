@@ -1,6 +1,6 @@
 /**************************************************************************************************
 
-Solver.C -- (C) Niklas Een, Niklas Sï¿½rensson, 2004
+Solver.C -- (C) Niklas Een, Niklas Sörensson, 2004
 
 A simple Chaff-like SAT-solver with support for incremental SAT.
 
@@ -139,18 +139,34 @@ void BcnfWriter::addClause(vec<Lit>& c)
 static vec<FILE*>  tmp_fps;
 static vec<cchar*> tmp_files;
 
-FILE* createTmpFile(cchar* prefix, cchar* mode, char*& out_name){
-	assert(false);
-	exit(-1);
+
+// 'out_name' should NOT be freed by caller.
+FILE* createTmpFile(cchar* prefix, cchar* mode, char*& out_name)
+{
+    char*   name = xmalloc<char>(strlen(prefix) + 6 + 1);
+    strcpy(name, prefix);
+    strcat(name, "XXXXXX");
+
+    int fd = mkstemp(name);
+    if (fd == -1){
+        fprintf(stderr, "ERROR! Could not create temporary file with prefix: %s\n", prefix);
+        exit(1); }
+    FILE* fp = fdopen(fd, mode); assert(fp != NULL);
+
+    tmp_fps  .push(fp);
+    tmp_files.push(name);
+    if (&out_name != NULL) out_name = name;
+    return fp;
 }
+
 
 // If 'exact' is set, 'prefix' is the full name returned by 'createTmpFile()'.
 void deleteTmpFile(cchar* prefix, bool exact)
 {
     uint    len = strlen(prefix);
     for (int i = 0; i < tmp_files.size();){
-        if ((!exact && (strlen(tmp_files[i]) == len + 6 && strncmp(tmp_files[i], prefix, len) == 0) )
-        	|| (exact && (strcmp(tmp_files[i], prefix) == 0)))
+        if (!exact && (strlen(tmp_files[i]) == len + 6 && strncmp(tmp_files[i], prefix, len) == 0)
+        ||   exact && (strcmp(tmp_files[i], prefix) == 0))
         {
             fclose(tmp_fps[i]);
             ::remove(tmp_files[i]);
@@ -270,15 +286,15 @@ Clause Solver::allocClause(const vec<Lit>& ps, bool learnt, Clause overwrite)
     assert(sizeof(Lit)   == sizeof(uint));
     assert(sizeof(float) == sizeof(uint));
     int       id  = overwrite.null() ? allocClauseId(learnt) : overwrite.id();
-    void*     mem = overwrite.null() ? ymalloc<char>(sizeof(Clause_t) + sizeof(uint)*((ps.size()-1) + (int)learnt)) : (void*)overwrite.ptr();
+    void*     mem = overwrite.null() ? ymalloc<char>(sizeof(Clause_t) + sizeof(uint)*(ps.size() + (int)learnt)) : (void*)overwrite.ptr();
     Clause_t* c   = new (mem) Clause_t;
 
     c->id_         = id;
-    c->U.A.abst_       = 0;
-    c->U.A.size_learnt = (int)learnt | (ps.size() << 1);
+    c->abst_       = 0;
+    c->size_learnt = (int)learnt | (ps.size() << 1);
     for (int i = 0; i < ps.size(); i++){
         c->data[i] = ps[i];
-        c->U.A.	abst_  |= abstLit(ps[i]);
+        c->abst_  |= abstLit(ps[i]);
     }
     if (learnt) Clause(c).activity() = 0.0;
 
@@ -693,7 +709,7 @@ void Solver::analyze(Clause confl, vec<Lit>& out_learnt, int& out_btlevel)
     // Generate conflict clause:
     //
 #if 1
-// Niklas Sï¿½rensson's version
+// Niklas Sörensson's version
     // Generate conflict clause:
     //
     out_learnt.push();      // (leave room for the asserting literal)
@@ -1064,7 +1080,7 @@ Clause Solver::propagate(void)
 #endif
 
 #if 1
-// Borrowed from Niklas Sï¿½rensson -- uses "unsafe" type casts to achieve maximum performance
+// Borrowed from Niklas Sörensson -- uses "unsafe" type casts to achieve maximum performance
 Clause Solver::propagate(void)
 {
     if (decisionLevel() == 0 && occur_mode != occ_Off){
@@ -1532,10 +1548,9 @@ bool Solver::solve(const vec<Lit>& assumps)
 // "Solver_subsume.C" BEGIN
 //#################################################################################################
 
-#define Report(format) do{if(verbosity >= 1){reportf(format);}}while(false)
-#define Report2(format) do{if(verbosity >= 2){reportf(format);}}while(false)
-#define Reportargs(format, args...) do{if(verbosity >= 1){reportf(format, ##args);}}while(false)
-#define Report2args(format, args...) do{if(verbosity >= 2){reportf(format, ##args);}}while(false)
+#define Report(format, args...) ((verbosity >= 1) ? reportf(format , ## args) : (void)0)
+//#define Report(format, args...)
+#define Report2(format, args...) ((verbosity >= 2) ? reportf(format , ## args) : (void)0)
 
 
 macro bool has(Clause c, Lit p) {
@@ -1816,12 +1831,12 @@ void Solver::simplifyBySubsumption(bool with_var_elim)
                     ol_seen[index(c[j])] = 1;
 
                     vec<Clause>& n_occs = occur[index(~c[j])];
-                    for (int k = 0; k < n_occs.size(); k++)     // <<= Bï¿½ttra pï¿½. Behï¿½ver bara kolla 'n_occs[k]' mot 'c'
+                    for (int k = 0; k < n_occs.size(); k++)     // <<= Bättra på. Behöver bara kolla 'n_occs[k]' mot 'c'
                         if (n_occs[k] != c && n_occs[k].size() <= c.size() && selfSubset(n_occs[k].abst(), c.abst()) && selfSubset(n_occs[k], c, seen_tmp))
                             s1.add(n_occs[k]);
 
                     vec<Clause>& p_occs = occur[index(c[j])];
-                    for (int k = 0; k < p_occs.size(); k++)     // <<= Bï¿½ttra pï¿½. Behï¿½ver bara kolla 'p_occs[k]' mot 'c'
+                    for (int k = 0; k < p_occs.size(); k++)     // <<= Bättra på. Behöver bara kolla 'p_occs[k]' mot 'c'
                         if (subset(p_occs[k].abst(), c.abst()))
                             s0.add(p_occs[k]);
                 }
@@ -1861,9 +1876,8 @@ void Solver::simplifyBySubsumption(bool with_var_elim)
             unregisterIteration(s0);
         }
 
-        if (literals_removed > 0 || clauses_subsumed > 0){
-        	Report2args("  #literals-removed: %d    #clauses-subsumed: %d\n", literals_removed, clauses_subsumed);
-        }
+        if (literals_removed > 0 || clauses_subsumed > 0)
+            Report2("  #literals-removed: %d    #clauses-subsumed: %d\n", literals_removed, clauses_subsumed);
 
 
         // VARIABLE ELIMINATION:
@@ -1905,7 +1919,7 @@ void Solver::simplifyBySubsumption(bool with_var_elim)
             assert(propQ.size() == 0);
             for (int i = 0; i < order.size(); i++){
               #ifndef SAT_LIVE
-                if (i % 1000 == 999 || i == order.size()-1) Reportargs("  -- var.elim.:  %d/%d          \r", i+1, order.size());
+                if (i % 1000 == 999 || i == order.size()-1) Report("  -- var.elim.:  %d/%d          \r", i+1, order.size());
               #endif
                 if (maybeEliminate(order[i])){
                     vars_elimed++;
@@ -1917,15 +1931,16 @@ void Solver::simplifyBySubsumption(bool with_var_elim)
             if (vars_elimed == 0)
                 break;
 
-            Report2args("  #clauses-removed: %-8d #var-elim: %d\n", clauses_before - nClauses(), vars_elimed);
+            Report2("  #clauses-removed: %-8d #var-elim: %d\n", clauses_before - nClauses(), vars_elimed);
         }
         //assert(touched_list.size() == 0);     // <<= No longer true, due to asymmetric branching. Ignore it for the moment...
 //  }while (cl_added.size() > 0);
     }while (cl_added.size() > 100);
 
-    if (orig_n_clauses != nClauses() || orig_n_literals != nLiterals()){
-    	Reportargs("| %9d | %7d %8d | %7s %7d %8s %7s | %6s   | %d/%d\n", (int)stats.conflicts, nClauses(), nLiterals(), "--", nLearnts(), "--", "--", "--", nClauses() - orig_n_clauses, nLiterals() - orig_n_literals);
-    }
+    if (orig_n_clauses != nClauses() || orig_n_literals != nLiterals())
+        //Report("#clauses: %d -> %d    #literals: %d -> %d    (#learnts: %d)\n", orig_n_clauses, nClauses(), orig_n_literals, nLiterals(), nLearnts());
+        //Report("#clauses:%8d (%6d removed)    #literals:%8d (%6d removed)    (#learnts:%8d)\n", nClauses(), orig_n_clauses-nClauses(), nLiterals(), orig_n_literals-nLiterals(), nLearnts());
+        Report("| %9d | %7d %8d | %7s %7d %8s %7s | %6s   | %d/%d\n", (int)stats.conflicts, nClauses(), nLiterals(), "--", nLearnts(), "--", "--", "--", nClauses() - orig_n_clauses, nLiterals() - orig_n_literals);
 
 
     if (opt_pre_sat){
@@ -1937,8 +1952,8 @@ void Solver::simplifyBySubsumption(bool with_var_elim)
                 vmap[i] = c++;
 
         Report("==============================================================================\n");
-        Reportargs("Result  :   #vars: %d   #clauses: %d   #literals: %d\n", c, nClauses(), nLiterals());
-        Reportargs("CPU time:   %g s\n", cpuTime());
+        Report("Result  :   #vars: %d   #clauses: %d   #literals: %d\n", c, nClauses(), nLiterals());
+        Report("CPU time:   %g s\n", cpuTime());
         Report("==============================================================================\n");
 
         // Write CNF or BCNF file:
@@ -2167,7 +2182,7 @@ bool Solver::findDef(Lit x, vec<Clause>& poss, vec<Clause>& negs, Clause out_def
   4  5 3                 -3 6 7
                          -3 -6 -7
 
-3 -> ~4       == { ~3, ~4 }   (ger ~4, ~5 + ev mer som superset; negera detta och lï¿½gg till 3:an)
+3 -> ~4       == { ~3, ~4 }   (ger ~4, ~5 + ev mer som superset; negera detta och lägg till 3:an)
 3 -> ~5       == { ~3, ~5 }
 
 ~4 & ~5 -> 3  == { 4, 5, 3 }
@@ -2649,7 +2664,7 @@ void Solver::clauseReduction(void)
                 }
             }
 
-            // (kolla att seen[] ï¿½r nollad korrekt hï¿½r)
+            // (kolla att seen[] är nollad korrekt här)
 
             /**/if (learnt.size() < c.size()){
                 putchar('*'); fflush(stdout);

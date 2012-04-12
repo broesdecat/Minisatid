@@ -311,7 +311,6 @@ void PropagatorFactory::addCP(const T& formula) {
 	throw idpexception("Adding a finite domain constraint while minisatid was compiled without CP support\n");
 #else
 	CPStorage::getStorage()->add(formula);
-	clog <<"Counting models in the presence of CP variables will be an under-approximation! (finding only one variable assingment for each literal assignment).\n";
 #endif
 }
 
@@ -439,6 +438,7 @@ SATVAL PropagatorFactory::finishSet(const WLSet* origset, vector<TempAgg*>& aggs
 	auto set = new WLSet(*origset);
 
 	// transform into SAT if requested
+	// TODO handle all aggregates in some way!
 	if (getEngine().modes().tocnf && not optimagg) {
 		if (not AggStorage::hasStorage()) {
 			AggStorage::addStorage(getEnginep());
@@ -503,6 +503,7 @@ SATVAL PropagatorFactory::finishParsing() {
 	}
 	if (AggStorage::hasStorage()) {
 		satval &= execute(*AggStorage::getStorage());
+		AggStorage::resetStorage();
 	}
 
 	definitions->addToPropagators();

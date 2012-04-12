@@ -11,7 +11,7 @@ namespace MiniSatPP {
 	
 #define length(a) ( sizeof ( a ) / sizeof ( *a ) )
 
-static inline void createChild(struct BaseSearchState* father,register unsigned int msb,register unsigned int wights[][2],unsigned int sum[],uint64* bestFound,
+static inline void createChild(struct BaseSearchState* father,register unsigned int msb,register unsigned int wights[][2],unsigned int sum[],unsigned long long* bestFound,
 							   struct BaseSearchState** bestStateFound,THeap& que,SearchMetaData& md,std::vector<bss>& old,std::map<unsigned int,bss>& homomorphism,bool abstraction,bool sumOfDig);
 
 /**
@@ -23,14 +23,14 @@ static inline void createChild(struct BaseSearchState* father,register unsigned 
 	 * @return	SearchMetaData*  
 */
 SearchMetaData* bnb_SOD_Carry_Cost_search(unsigned int weights[][2],int length,std::vector<unsigned int>& primes,unsigned int cutoff,bool nonPrimePossible,bool abstraction,bool sumOfDig){
-		SearchMetaData*  md = NULL;  //preperations
-		/*if (sumOfDig) md =  new SearchMetaData(lg2(weights[0][0]),cutoff,weights[0][0],length,"BNB_cost_sumOfDigits");
+		SearchMetaData*  md;  //preperations
+		if (sumOfDig) md =  new SearchMetaData(lg2(weights[0][0]),cutoff,weights[0][0],length,"BNB_cost_sumOfDigits");
 		else 		  md =  new SearchMetaData(lg2(weights[0][0]),cutoff,weights[0][0],length,"BNB_cost_carry"); 
 		THeap que;
 		std::map<unsigned int,bss> homomorphism;
 		unsigned int sum[length+1];
 		sum[0] = 0;
-		uint64 temp=0;
+		unsigned long long temp=0;
 		for(int i=0;i<length;i++) {
 			sum[i+1]=sum[i]+weights[i][1];	
 			temp+=weights[i][0]*weights[i][1];
@@ -38,7 +38,7 @@ SearchMetaData* bnb_SOD_Carry_Cost_search(unsigned int weights[][2],int length,s
 		BaseSearchState* startState=new BaseSearchState(0,length,1,0,0,0);
 		BaseSearchState* bestStateFound(0);
 		que.offer(startState);
-		uint64 bestFound = inputCountEval(weights, md->base,length);
+		unsigned long long bestFound = inputCountEval(weights, md->base,length);
 		if (bestFound>temp) { // relaxs betwin The empty base and the Binary base
 			bestFound =temp;
 			bestStateFound = startState;
@@ -65,18 +65,18 @@ SearchMetaData* bnb_SOD_Carry_Cost_search(unsigned int weights[][2],int length,s
 		}
 		md->finalize(bestFound);
 		for(unsigned int i=0;i<old.size();i++)
-			delete old[i];*/
+			delete old[i];
 		return md;
 }
 
 
 
-static inline void createChild(struct BaseSearchState* father,register unsigned int msb,register unsigned int wights[][2],unsigned int sum[],uint64* bestFound,
+static inline void createChild(struct BaseSearchState* father,register unsigned int msb,register unsigned int wights[][2],unsigned int sum[],unsigned long long* bestFound,
 					           struct BaseSearchState** bestStateFound,THeap& que,SearchMetaData& md,std::vector<bss>& old,std::map<unsigned int,bss>& homomorphism,bool abstraction,bool sumOfDig) {
 	md.basesEvaluated++;
-	register uint64 childCost = father->carryins;
-	register uint64 childCarryins = 0;
-	register uint64 childCutCost = 0;
+	register unsigned long long childCost = father->carryins; 
+	register unsigned long long childCarryins = 0; 
+	register unsigned long long childCutCost = 0; 
 	register int childLastRelevent = 0; 
 	register unsigned int bm = father->baseMul;
 	for(int i=0;i<father->lastRelevent;i++) {
@@ -105,7 +105,7 @@ l1: switch(childLastRelevent) {
 		default:
 				if (!sumOfDig) childCarryins+=childCost / msb;
 				childCost += father->cost;
-				register uint64 h = sum[childLastRelevent]+childCarryins+childCost;
+				register unsigned long long h = sum[childLastRelevent]+childCarryins+childCost;
 				if (h>=*bestFound) return;
 				childCutCost+=childCarryins+childCost;
 				bss temp;
@@ -143,9 +143,9 @@ int mainBNB_SOD_Carry_Cost_search(int argc, char **argv) {
 	unsigned int ws[][2] = {{1000000,100},{777777,100},{640487,100},{47360,100},{10127,100},
 			{9873,100},{8153,100},{7543,100},{6937,100},{5342,100},{4283,100},
 				{3761,100},{2344,100},{231,100},{123,12}};
-	std::vector<unsigned int> pri;
-  	loadPrimes("P1.TXT",pri,ws[0][0],1000000);
-	SearchMetaData* md = bnb_SOD_Carry_Cost_search(ws,length(ws),pri,1000000,false,true,false);
+	PrimesLoader pl("P1.TXT");
+    unsigned int cufOff = pl.loadPrimes(ws[0][0],1000000);				
+	SearchMetaData* md = bnb_SOD_Carry_Cost_search(ws,length(ws),pl.primeVector(),cufOff,false,true,false);
 	md->print();
 	delete md;
 	return 0;  

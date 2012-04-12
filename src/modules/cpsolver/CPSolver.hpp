@@ -95,6 +95,7 @@ public:
 	void notifyNewDecisionLevel();
 	void notifyBacktrack(int untillevel, const Lit& decision);
 	rClause notifypropagate();
+	virtual rClause notifyFullAssignmentFound(){ return notifypropagate(); }
 	void saveState(){
 		// TODO save new constraints
 		addedconstraints = false;

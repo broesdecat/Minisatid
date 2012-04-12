@@ -197,14 +197,14 @@ MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& o
 
 		addModel(getSpace()->getEngine()->getModel());
 
-		// FIXME current behavior is incorrect in the case of CP
 		// => first check whether there might be more CP models before backtracking completely!
 		// Probably better refactor to put this deeper?
-		if (getSolver().hasCPSolver()) {
+		bool morecpmodels = true;
+		if (getSolver().hasCPSolver()) { // FIXME this code should move lower in the system
 			//Check for more models with different var assignment
-			while (moremodels && (options.nbmodelstofind == 0 || getNbModelsFound() < options.nbmodelstofind)) {
+			while (morecpmodels && (options.nbmodelstofind == 0 || getNbModelsFound() < options.nbmodelstofind)) {
 				if (getSolver().findNextCPModel() == SATVAL::UNSAT) {
-					moremodels = false;
+					morecpmodels = false;
 				} else {
 					addModel(getSpace()->getEngine()->getModel());
 				}
@@ -217,7 +217,9 @@ MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& o
 			getSolver().invalidate(invalidation.literals);
 			moremodels = invalidateModel(invalidation.literals) == SATVAL::POS_SAT;
 		} else {
-			moremodels = false;
+			if(not morecpmodels){
+				moremodels = false;
+			}
 		}
 	}
 
@@ -242,18 +244,19 @@ SATVAL ModelExpand::invalidateModel(const litlist& clause) {
 // OPTIMIZATION METHODS
 bool ModelExpand::invalidateSubset(litlist& invalidation, litlist& assmpt, OptimStatement& optim) {
 	int subsetsize = 0;
-	latestsubsetoptimum.clear();
+	latestsubsetsize = 0;
 	const auto& minim = optim.to_minimize;
 	for (auto i = minim.cbegin(); i < minim.cend(); ++i) {
 		auto lit = *i;
 		if (getSolver().getModelValue(var(lit)) == l_True) {
-			latestsubsetoptimum.push_back(lit);
 			invalidation.push_back(~lit);
 			++subsetsize;
 		} else {
 			assmpt.push_back(~lit);
 		}
 	}
+
+	latestsubsetsize = subsetsize;
 
 	if (subsetsize == 0) {
 		return true; //optimum has already been found!!!
@@ -347,8 +350,8 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 			break;
 		}
 		modelfound = true;
-		saveddecisions.clear();
-		getSolver().invalidate(saveddecisions);
+		savedinvalidation.clear();
+		getSolver().invalidate(savedinvalidation);
 
 		//Store current model in m before invalidating the solver
 		auto m = getSolver().getModel();
@@ -388,23 +391,41 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 
 	if (unsatreached && modelfound) {
 		getSolver().resetState();
+		getSolver().setAssumptions(assmpt); // Note prevents when finding multiple models, that in findnext, reset is called again
+		// TODO In fact should be able to disable saving the state now?
 		// Prevent to find the first model again
 		Disjunction d;
-		for (auto i = saveddecisions.cbegin(); i < saveddecisions.cend(); ++i) {
-			d.literals.push_back(~*i);
+		for (auto i = savedinvalidation.cbegin(); i < savedinvalidation.cend(); ++i) {
+			d.literals.push_back(*i);
 		}
 		add(d, getSolver());
-		// If resetting state, also reset the optimization constraints to their optimal condition
+		// If resetting state, also fix the optimization constraints to their optimal condition
 		switch (optim.optim) {
 		case Optim::LIST:
+			for(auto i=optim.to_minimize.cbegin(); i<optim.to_minimize.cend(); ++i){
+				if(*i==latestlistoptimum){
+					break;
+				}
+				add(Disjunction( { ~*i}), getSolver());
+			}
 			add(Disjunction( { latestlistoptimum }), getSolver());
 			break;
-		case Optim::SUBSET:
-			add(Disjunction( { latestsubsetoptimum }), getSolver());
-			break;
+		case Optim::SUBSET:{
+			WLSet set;
+			set.setID = getSolver().newSetID();
+			for(auto i=optim.to_minimize.cbegin(); i<optim.to_minimize.cend(); ++i){
+				set.wl.push_back({*i, 1});
+			}
+			add(set, getSolver());
+			auto var = getSolver().newVar();
+			add(Disjunction({mkPosLit(var)}), getSolver());
+			add(Aggregate(var, set.setID, latestsubsetsize, AggType::CARD, AggSign::UB, AggSem::COMP, -1), getSolver());
+			break;}
 		case Optim::AGG: {
 			auto agg = optim.agg_to_minimize;
 			agg->setBound(AggBound(agg->getSign(), latestaggoptimum));
+			getSolver().backtrackTo(0); // NOTE: necessary because missing REVERSE TRAIL! TODO
+			agg->reInitializeAgg();
 			break;
 		}
 		case Optim::VAR: {

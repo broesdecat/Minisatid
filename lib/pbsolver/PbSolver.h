@@ -4,6 +4,8 @@
 #include "Solver.h"
 #include "Map.h"
 #include "StackAlloc.h"
+#include "FEnv.h"
+#include "pbbase/h/GenralBaseFunctions.h"
 
 namespace MiniSatPP {
 
@@ -20,7 +22,7 @@ public:
     int     size;       // Terms in constraint.
     Int     lo, hi;     // Sum should be in interval [lo,hi] (inclusive).
 private:
-    char    data[1];    // (must be last element of the struct)
+    char    data[0];    // (must be last element of the struct)
 public:
     // NOTE: Cannot be used by normal 'new' operator!
     Linear(const vec<Lit>& ps, const vec<Int>& Cs, Int low, Int high) {
@@ -50,12 +52,17 @@ protected:
     StackAlloc<char*>   mem;            // Used to allocate the 'Linear' constraints stored in 'constrs' (other 'Linear's, such as the goal function, are allocated with 'xmalloc()')
 
 public:
-    vec<Linear*>        constrs;        // Vector with all constraints.
+    vec<Linear*>        constrs;        // Vector with all non trivial non iff constraints.
+    vec<Formula>        iffConstrsForm;    // Vector with all fromulas representing the constraints.
+    vec<Formula>        iffThisForm;
+    
+    vec<Formula>        iffTrivConstrsForm;    // Vector with all trivial iff constrainrs constraints (dont nead a encoding more then created by the normlization).  
+    
     Linear*             goal;           // Non-normalized goal function (used in optimization). NULL means no goal function specified. NOTE! We are always minimizing.
     int                 formulaSize;
     std::string         status;
 	int                 numOfClouses;
-	
+	PrimesLoader        primesLoader;
 protected:
     vec<int>            n_occurs;       // Lit -> int: Number of occurrences.
     vec<vec<int> >      occur;          // Lit -> vec<int>: Occur lists. Left empty until 'setupOccurs()' is called.
@@ -65,15 +72,16 @@ protected:
 
     // Main internal methods:
     //
-    bool    propagate(Linear& c);
+    bool    propagate(Linear& c,int index);
     void    propagate();
     bool    addUnit  (Lit p) { return sat_solver.addUnit(p); }
-    bool    normalizePb(vec<Lit>& ps, vec<Int>& Cs, Int& C,bool skipTriv);
-    void    storePb    (const vec<Lit>& ps, const vec<Int>& Cs, Int lo, Int hi);
+    bool    normalizePb(vec<Lit>& ps, vec<Int>& Cs, Int& C,bool skipTriv,Formula& consForm,Formula thisForm);
+    void    storePb    (const vec<Lit>& ps, const vec<Int>& Cs, Int lo, Int hi,Formula consForm,Formula thisForm);
     void    setupOccurs();   // Called on demand from 'propagate()'.
     void    findIntervals();
     bool    rewriteAlmostClauses();
     bool    convertPbs(bool first_call);   // Called from 'solve()' to convert PB constraints to clauses.
+    bool    addConstrInner(const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, int ineq,Formula thisForm);
 
 public:
     PbSolver()  : sat_solver(opt_solver == st_MiniSat)
@@ -88,6 +96,7 @@ public:
                 , declared_n_vars(-1)
                 , declared_n_constrs(-1)
 	            , best_goalvalue(Int_MAX)
+	            , primesLoader(opt_primes_file)
                 {}
 
     // Helpers (semi-internal):
@@ -104,18 +113,22 @@ public:
     int     declared_n_constrs;         // Number of constraints declared in file header (-1 = not specified).
     int     pb_n_vars;                  // Actual number of variables (before clausification).
     int     pb_n_constrs;               // Actual number of constraints (before clausification).
+    
 
     Map<cchar*, int>    name2index;
     vec<cchar*>         index2name;
     vec<bool>           best_model;     // Best model found (size is 'pb_n_vars').
     Int                 best_goalvalue; // Value of goal function for that model (or 'Int_MAX' if no models were found).
+    
 
     // Problem specification:
     //
     int     getVar      (cchar* name);
     void    allocConstrs(int n_vars, int n_constrs);
     void    addGoal     (const vec<Lit>& ps, const vec<Int>& Cs);
-    bool    addConstr   (const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, int ineq, bool skipNorm);
+    bool    addConstr   (const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, int ineq);
+    bool    addConstr   (const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, int ineq, Lit iffLit);
+    
 
     // Solve:
     //
@@ -123,7 +136,12 @@ public:
 
     enum solve_Command { sc_Minimize, sc_FirstSolution, sc_AllSolutions };
     void solve(solve_Command cmd,bool skipSolving);    // Returns best/first solution found or Int_MAX if UNSAT.
+    
+    /**
+ 	* @return false iff spesfied problem is unsat
+ 	*/
     bool toCNF(std::vector<std::vector<Lit> >& cnf);
+    
     bool validateResoult();  
     void cleanPBC();  
     

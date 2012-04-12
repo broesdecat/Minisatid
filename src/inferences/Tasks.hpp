@@ -115,7 +115,8 @@ private:
 	bool findOptimal(const litlist& assmpt, OptimStatement& optim);
 	Weight latestaggoptimum; // FIXME move to modelmanager;
 	Lit latestlistoptimum; // FIXME move to modelmanager;
-	litlist latestsubsetoptimum, saveddecisions; // FIXME move to modelmanager;
+	int latestsubsetsize;// FIXME move to modelmanager;
+	litlist savedinvalidation; // FIXME move to modelmanager;
 	bool invalidateAgg(litlist& invalidation, OptimStatement& optim);
 	bool invalidateSubset(litlist& invalidation, litlist& assmpt, OptimStatement& optim);
 	bool invalidateValue(litlist& invalidation, OptimStatement& optim);
