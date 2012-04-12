@@ -216,7 +216,7 @@ private:
 public:
 	PBRead(T& solver, OPBTranslator* trans, std::istream &stream):
 			trans(trans), in(stream), cb(solver) {
-		autoLinearize = false;
+		autoLinearize = true;
 
 		nbVars = 0;
 		nbConstr = 0;

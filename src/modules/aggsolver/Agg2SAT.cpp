@@ -42,8 +42,7 @@ void AggToCNFTransformer::add(WLSet* set, std::vector<TempAgg*>& aggs) {
 	for (auto i = aggs.cbegin(); i != aggs.cend(); ++i) {
 		TempAgg* agg = *i;
 
-		if ((agg->getType() != AggType::SUM && agg->getType() != AggType::CARD)
-				|| agg->getSem() != AggSem::COMP) {
+		if ((agg->getType() != AggType::SUM && agg->getType() != AggType::CARD) || agg->getSem() != AggSem::COMP) {
 			// TODO allow complete translation into sat? => double bounds
 			remaining.push_back(agg);
 			continue;
@@ -65,10 +64,8 @@ void AggToCNFTransformer::add(WLSet* set, std::vector<TempAgg*>& aggs) {
 		}
 		Weight min = 0, max = 0;
 		for (auto k = set->getWL().cbegin(); k < set->getWL().cend(); ++k) {
-			pbaggeq->literals.push(
-					MiniSatPP::Lit(var((*k).getLit()), sign((*k).getLit())));
-			pbaggineq->literals.push(
-					MiniSatPP::Lit(var((*k).getLit()), sign((*k).getLit())));
+			pbaggeq->literals.push(MiniSatPP::Lit(var((*k).getLit()), sign((*k).getLit())));
+			pbaggineq->literals.push(MiniSatPP::Lit(var((*k).getLit()), sign((*k).getLit())));
 			if (var((*k).getLit()) > maxvar) {
 				maxvar = var((*k).getLit());
 			}
@@ -130,14 +127,12 @@ SATVAL MinisatID::execute(const AggToCNFTransformer& transformer) {
 	MiniSatPP::opt_tare = true; //Experimentally set to true
 	MiniSatPP::opt_primes_file = pcsolver.modes().getPrimesFile().c_str();
 	MiniSatPP::opt_convert_weak = false;
-	MiniSatPP::opt_convert = MiniSatPP::ct_BDDs;
+	MiniSatPP::opt_convert = MiniSatPP::ct_Adders;
 	pbsolver->allocConstrs(transformer.maxvar, transformer.pbaggs.size());
 
 	bool unsat = false;
-	for (auto i = transformer.pbaggs.cbegin();
-			!unsat && i < transformer.pbaggs.cend(); ++i) {
-		unsat = !pbsolver->addConstr((*i)->literals, (*i)->weights,
-				MiniSatPP::Int((*i)->bound), (*i)->sign);
+	for (auto i = transformer.pbaggs.cbegin(); !unsat && i < transformer.pbaggs.cend(); ++i) {
+		unsat = !pbsolver->addConstr((*i)->literals, (*i)->weights, MiniSatPP::Int((*i)->bound), (*i)->sign);
 	}
 
 	if (unsat) {
@@ -159,11 +154,8 @@ SATVAL MinisatID::execute(const AggToCNFTransformer& transformer) {
 	for (auto i = pbencodings.cbegin(); i < pbencodings.cend(); ++i) {
 		Disjunction clause;
 		for (auto j = (*i).cbegin(); j < (*i).cend(); ++j) {
-			Var v = MiniSatPP::var(*j)
-					+ (MiniSatPP::var(*j) > transformer.maxvar ?
-							maxnumber - transformer.maxvar : 0);
-			clause.literals.push_back(
-					MiniSatPP::sign(*j) ? mkNegLit(v) : mkPosLit(v));
+			Var v = MiniSatPP::var(*j) + (MiniSatPP::var(*j) > transformer.maxvar ? maxnumber - transformer.maxvar : 0);
+			clause.literals.push_back(MiniSatPP::sign(*j) ? mkNegLit(v) : mkPosLit(v));
 		}
 		add(clause, pcsolver);
 	}
