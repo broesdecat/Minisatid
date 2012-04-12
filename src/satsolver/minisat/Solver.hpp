@@ -158,9 +158,10 @@ public:
 
 	//PROPAGATOR CODE
 	// TODO split up in search and propagator
-	virtual void accept(MinisatID::ConstraintVisitor& visitor) {
-		// FIXME
-	}
+	virtual void accept(MinisatID::ConstraintVisitor& visitor);
+private:
+	void acceptClauseList(MinisatID::ConstraintVisitor& visitor, const vec<CRef>& list);
+public:
 	CRef getExplanation(const Lit& l) {
 		return reason(var(l));
 	}

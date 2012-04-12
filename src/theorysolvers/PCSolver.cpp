@@ -20,6 +20,7 @@
 #include "InternalAdd.hpp"
 
 #include "modules/aggsolver/AggSet.hpp"
+#include "constraintvisitors/ConstraintVisitor.hpp"
 
 #include "utils/Print.hpp"
 
@@ -30,21 +31,11 @@ using Minisat::vec;
 
 //Has to be value copy of modes!
 PCSolverImpl::PCSolverImpl(SolverOption modes, Monitor* monitor, VarCreation* varcreator, LiteralPrinter* printer, bool oneshot) :
-		_modes(modes),
-		varcreator(varcreator),
-		monitor(monitor),
-		monitoring(false),
-		parsingfinished(false),
-		currentoptim(0),
-		searchengine(NULL),
+		_modes(modes), varcreator(varcreator), monitor(monitor), monitoring(false), parsingfinished(false), currentoptim(0), searchengine(NULL),
 #ifdef CPSUPPORT
-		cpsolver(NULL),
+				cpsolver(NULL),
 #endif
-		factory(NULL),
-		trail(new TimeTrail()),
-		terminate(false),
-		printer(printer),
-		queue(NULL){
+				factory(NULL), trail(new TimeTrail()), terminate(false), printer(printer), queue(NULL) {
 	queue = new EventQueue(*this);
 	searchengine = createSolver(this, oneshot);
 
@@ -61,15 +52,15 @@ PCSolverImpl::PCSolverImpl(SolverOption modes, Monitor* monitor, VarCreation* va
 	dummy1 = newVar();
 	dummy2 = newVar();
 	dummyfalse = newVar();
-	add(Disjunction({mkPosLit(dummy1)}), *this);
-	add(Disjunction({mkPosLit(dummy2)}), *this);
-	add(Disjunction({mkNegLit(dummyfalse)}), *this);
+	add(Disjunction( { mkPosLit(dummy1) }), *this);
+	add(Disjunction( { mkPosLit(dummy2) }), *this);
+	add(Disjunction( { mkNegLit(dummyfalse) }), *this);
 }
 
-Lit PCSolverImpl::getTrueLit() const{
+Lit PCSolverImpl::getTrueLit() const {
 	return mkPosLit(dummy1);
 }
-Lit PCSolverImpl::getFalseLit() const{
+Lit PCSolverImpl::getFalseLit() const {
 	return mkPosLit(dummyfalse);
 }
 
@@ -80,7 +71,6 @@ PCSolverImpl::~PCSolverImpl() {
 	delete (trail);
 }
 
-
 bool PCSolverImpl::hasCPSolver() const {
 #ifdef CPSUPPORT
 	return cpsolver!=NULL && cpsolver->isPresent();
@@ -88,10 +78,10 @@ bool PCSolverImpl::hasCPSolver() const {
 	return false;
 #endif
 }
-SATVAL PCSolverImpl::findNextCPModel(){
+SATVAL PCSolverImpl::findNextCPModel() {
 #ifdef CPSUPPORT
 	MAssert(hasCPSolver());
-	if(not getCPSolver()->hasData()){
+	if(not getCPSolver()->hasData()) {
 		return SATVAL::UNSAT;
 	}
 	return getCPSolver()->findNextModel()==nullPtrClause?SATVAL::POS_SAT:SATVAL::UNSAT;
@@ -108,7 +98,7 @@ void PCSolverImpl::invalidate(litlist& clause) const {
 		clause.push_back(~(*i));
 	}
 }
-bool PCSolverImpl::moreModelsPossible() const{
+bool PCSolverImpl::moreModelsPossible() const {
 	return getCurrentDecisionLevel() != getSolver().getNbOfAssumptions();
 }
 
@@ -144,9 +134,9 @@ void PCSolverImpl::notifyDecisionVar(Var var) {
 
 rClause PCSolverImpl::createClause(const Disjunction& clause, bool learned) {
 	if (clause.literals.size() == 0) {
-		return getSolver().makeClause({mkNegLit(dummy1), mkNegLit(dummy2)}, learned);
+		return getSolver().makeClause( { mkNegLit(dummy1), mkNegLit(dummy2) }, learned);
 	} else if (clause.literals.size() == 1) {
-		return getSolver().makeClause({clause.literals[0], mkNegLit(dummy1)}, learned);
+		return getSolver().makeClause( { clause.literals[0], mkNegLit(dummy1) }, learned);
 	} else {
 		return getSolver().makeClause(clause.literals, learned);
 	}
@@ -241,7 +231,7 @@ void PCSolverImpl::accept(Propagator* propagator, const Lit& lit, PRIORITY prior
 
 Var PCSolverImpl::newVar() {
 	auto var = varcreator->createVar();
-	if(var>=nVars()){
+	if (var >= nVars()) {
 		getEventQueue().notifyNbOfVars(var); // IMPORTANT to do it before effectively creating it in the solver (might trigger grounding)
 	}
 	createVar(var);
@@ -254,8 +244,8 @@ Var PCSolverImpl::newVar() {
 void PCSolverImpl::createVar(Var v) {
 	MAssert(v>-1);
 
-	if(((uint64_t)v)>=nVars()){
-		getEventQueue().notifyNbOfVars(v+1); // IMPORTANT to do it before effectively creating vars in the solver (might trigger grounding)
+	if (((uint64_t) v) >= nVars()) {
+		getEventQueue().notifyNbOfVars(v + 1); // IMPORTANT to do it before effectively creating vars in the solver (might trigger grounding)
 		while (((uint64_t) v) >= nVars()) {
 			getSolver().newVar(modes().polarity == Polarity::TRUE ? l_True : modes().polarity == Polarity::FALSE ? l_False : l_Undef, false);
 		}
@@ -305,15 +295,15 @@ rClause PCSolverImpl::getExplanation(const Lit& l) {
 	return explan;
 }
 
-lbool PCSolverImpl::getModelValue(Var v){
+lbool PCSolverImpl::getModelValue(Var v) {
 	return getSolver().modelValue(mkPosLit(v));
 }
 
-litlist PCSolverImpl::getEntailedLiterals() const{
+litlist PCSolverImpl::getEntailedLiterals() const {
 	litlist list;
 	auto firstdecision = getDecisions()[0];
-	for(auto i=getTrail().cbegin(); i<getTrail().cend(); ++i) {
-		if(*i==firstdecision){
+	for (auto i = getTrail().cbegin(); i < getTrail().cend(); ++i) {
+		if (*i == firstdecision) {
 			break;
 		}
 		list.push_back(*i);
@@ -382,7 +372,7 @@ void PCSolverImpl::backtrackDecisionLevel(int untillevel, const Lit& decision) {
 	getEventQueue().notifyBacktrack(untillevel, decision);
 }
 
-void PCSolverImpl::setAssumptions(const litlist& assumps){
+void PCSolverImpl::setAssumptions(const litlist& assumps) {
 	getSATSolver()->setAssumptions(assumps);
 }
 lbool PCSolverImpl::solve(bool search) {
@@ -467,7 +457,23 @@ std::shared_ptr<Model> PCSolverImpl::getModel() {
 }
 
 void PCSolverImpl::accept(ConstraintVisitor& visitor) {
-	// TODO add other necessary calls (optimizations stored here, toString unfinished constraints, ...)
+	for (auto i = optimization.cbegin(); i < optimization.cend(); ++i) {
+		switch ((*i).optim) {
+		case Optim::AGG:
+			visitor.visit(MinimizeAgg((*i).priority, (*i).agg_to_minimize->getSet()->getSetID(), (*i).agg_to_minimize->getType()));
+			break;
+		case Optim::LIST:
+			visitor.visit(MinimizeOrderedList((*i).priority, (*i).to_minimize));
+			break;
+		case Optim::SUBSET:
+			visitor.visit(MinimizeSubset((*i).priority, (*i).to_minimize));
+			break;
+		case Optim::VAR:
+			visitor.visit(MinimizeVar((*i).priority, (*i).var->id()));
+			break;
+		}
+	}
+	// TODO add other necessary calls (toString unfinished constraints, ...)
 	getEventQueue().accept(visitor);
 }
 
@@ -475,7 +481,7 @@ std::string PCSolverImpl::toString(const Lit& lit) const {
 	return printer->toString(lit);
 }
 
-int PCSolverImpl::getNbOfFormulas() const{
+int PCSolverImpl::getNbOfFormulas() const {
 	return getEventQueue().getNbOfFormulas() + optimization.size();
 }
 

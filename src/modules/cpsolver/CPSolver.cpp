@@ -229,16 +229,20 @@ rClause CPSolver::notifySATsolverOfPropagation(const Lit& p) {
 }
 
 void CPSolver::notifyNewDecisionLevel() {
-	getData().addSpace();
+	// Very expensive to add spaces when no constraints are loaded
+	if(hasData()){ // FIXME DO NOT ADD CONSTRAINTS LAZILY UNLESS AT LEVEL 0 because of this optimization!
+		getData().addSpace();
+	}
 	trail.newDecisionLevel();
 }
 
 void CPSolver::notifyBacktrack(int untillevel, const Lit& decision) {
-	//clog <<"Backtracked CP solver.\n";
-	getData().removeSpace(untillevel);
+	if(hasData()){
+		getData().removeSpace(untillevel);
+	}
 	searchedandnobacktrack = false;
 	trail.backtrackDecisionLevels(untillevel);
-	Propagator::notifyBacktrack(untillevel, decision);
+	Propagator::notifyBacktrack(untillevel, decision); // FIXME add backtrack and innerbacktrack
 }
 
 rClause CPSolver::notifypropagate() {

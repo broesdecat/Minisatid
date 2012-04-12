@@ -33,6 +33,7 @@
 #include "utils/Utils.hpp"
 #include "utils/Print.hpp"
 #include "theorysolvers/PCSolver.hpp"
+#include "constraintvisitors/ConstraintVisitor.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -1456,4 +1457,34 @@ int Solver::printECNF(std::ostream& stream, std::set<Var>& printedvars) {
 	}
 
 	return clauses.size() + lastrootassertion;
+}
+
+void Solver::acceptClauseList(ConstraintVisitor& visitor, const vec<CRef>& list){
+	for(int i=0; i<list.size(); ++i){
+		Disjunction d;
+		auto& c = ca[list[i]];
+		bool istrue = false;
+		for(auto j=0; j<c.size() && not istrue; j++){
+			if(value(c[j])==l_True){
+				istrue = true;
+			}
+			d.literals.push_back(c[j]);
+		}
+		if(not istrue){
+			visitor.visit(d);
+		}
+	}
+}
+
+void Solver::accept(ConstraintVisitor& visitor){
+	if(isUnsat()){
+		visitor.visit(Disjunction({mkPosLit(1)}));
+		visitor.visit(Disjunction({mkNegLit(1)}));
+		return;
+	}
+	for(int i=0; i<trail.size(); ++i){
+		visitor.visit(Disjunction({trail[i]}));
+	}
+	acceptClauseList(visitor, clauses);
+	acceptClauseList(visitor, learnts);
 }

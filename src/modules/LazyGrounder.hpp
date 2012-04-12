@@ -57,7 +57,7 @@ public:
 	LazyResidual(LazyResidualWatch* const watch);
 
 	virtual rClause notifypropagate();
-	virtual void accept(ConstraintVisitor& visitor){ throw notYetImplemented("Accept"); }
+	virtual void accept(ConstraintVisitor& visitor);
 	virtual rClause getExplanation(const Lit&) { MAssert(false); return nullPtrClause;}
 	virtual void notifyNewDecisionLevel() { MAssert(false); }
 	virtual void notifyBacktrack(int, const Lit&){ MAssert(false); }

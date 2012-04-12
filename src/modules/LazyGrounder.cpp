@@ -9,6 +9,7 @@
 #include "modules/LazyGrounder.hpp"
 #include <iostream>
 #include "utils/Print.hpp"
+#include "constraintvisitors/ConstraintVisitor.hpp"
 
 using namespace std;
 using namespace MinisatID;
@@ -35,6 +36,10 @@ LazyResidual::LazyResidual(PCSolver* engine, Var var, LazyGroundingCommand* moni
 LazyResidual::LazyResidual(LazyResidualWatch* const watch) :
 		Propagator(watch->engine, "lazy residual notifier"), monitor(watch->monitor), residual(watch->residual) {
 	getPCSolver().acceptForPropagation(this);
+}
+
+void LazyResidual::accept(ConstraintVisitor& visitor){
+	visitor.visit(LazyGroundLit(false, residual, monitor));
 }
 
 rClause LazyResidual::notifypropagate() {
