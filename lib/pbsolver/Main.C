@@ -777,13 +777,12 @@ int test1() {
 //=================================================================================================
 
 
-int main(int argc, char** argv)
+/*int main(int argc, char** argv)
 {
 	return MiniSatPP::run(argc,argv);
 	//MiniSatPP::test1();
 	//MiniSatPP::debug1();
-	
-}
+}*/
 
 
 
