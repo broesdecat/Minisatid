@@ -27,14 +27,13 @@
 #endif
 
 #include "utils/Print.hpp"
+#include "external/utils/ContainerUtils.hpp"
 
 #include "constraintvisitors/ECNFGraphPrinter.hpp"
 #include "constraintvisitors/HumanReadableParsingPrinter.hpp"
 
 using namespace std;
 using namespace MinisatID;
-
-using Minisat::vec;
 
 void throwUndefinedSet(int setid) {
 	stringstream ss;
@@ -96,12 +95,6 @@ void PropagatorFactory::notifyMonitorsOfAdding(const T& obj) const {
 
 int PropagatorFactory::newSetID() {
 	return maxset++;
-}
-
-void toVec(const std::vector<Lit>& literals, vec<Lit>& lits) {
-	for (auto i = literals.cbegin(); i < literals.cend(); ++i) {
-		lits.push(*i);
-	}
 }
 
 void PropagatorFactory::add(const Disjunction& clause) {
@@ -455,13 +448,15 @@ SATVAL PropagatorFactory::finishSet(const WLSet* origset, vector<TempAgg*>& aggs
 			setReduce(getEnginep(), set, aggs, *type, knownbound, unsat, sat);
 		}
 		if (SETNOT2VAL(sat, unsat, aggs)) {
-			addHeadImplications(getEnginep(), set, aggs, unsat, sat);
+			// TODO check the effect on performance of addheadImpl, card2Equiv and bumpVar of agg heads in AggPropagator::initialize
+			//addHeadImplications(getEnginep(), set, aggs, unsat, sat);
 		}
 		if (SETNOT2VAL(sat, unsat, aggs)) {
 			max2SAT(getEnginep(), set, aggs, unsat, sat);
 		}
 		if (SETNOT2VAL(sat, unsat, aggs)) {
-			card2Equiv(getEnginep(), set, aggs, knownbound, unsat, sat);
+			// TODO check the effect on performance of addheadImpl, card2Equiv and bumpVar of agg heads in AggPropagator::initialize
+			//card2Equiv(getEnginep(), set, aggs, knownbound, unsat, sat);
 		}
 		if (SETNOT2VAL(sat, unsat, aggs)) {
 			decideUsingWatchesAndCreatePropagators(getEnginep(), set, aggs, knownbound);

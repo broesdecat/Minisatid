@@ -1,6 +1,6 @@
 #include "Definition.hpp"
 #include "IDSolver.hpp"
-#include "utils/ContainerUtils.hpp"
+#include "external/utils/ContainerUtils.hpp"
 
 using namespace std;
 using namespace MinisatID;

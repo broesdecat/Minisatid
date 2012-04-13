@@ -14,7 +14,7 @@
 #include <iostream>
 
 #include "theorysolvers/PCSolver.hpp"
-#include "theorysolvers/InternalAdd.hpp"
+#include "datastructures/InternalAdd.hpp"
 #include "utils/Utils.hpp"
 #include "utils/Print.hpp"
 

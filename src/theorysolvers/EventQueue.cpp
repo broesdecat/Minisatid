@@ -12,6 +12,7 @@
 #include "constraintvisitors/ConstraintVisitor.hpp"
 
 #include "utils/PrintMessage.hpp"
+#include "external/utils/ContainerUtils.hpp"
 
 #include <iostream>
 #include <typeinfo>

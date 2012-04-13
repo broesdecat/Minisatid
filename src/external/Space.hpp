@@ -10,8 +10,8 @@
 #include <vector>
 #include "Options.hpp"
 #include "callback.hpp"
-#include "constraintvisitors/LiteralPrinter.hpp"
-#include "external/Remapper.hpp"
+#include "LiteralPrinter.hpp"
+#include "Remapper.hpp"
 #include "ConstraintAdditionInterface.hpp"
 
 namespace MinisatID{
@@ -19,8 +19,6 @@ namespace MinisatID{
 class Translator;
 class SearchEngine;
 class PropAndBackMonitor;
-
-typedef std::vector<Lit> litlist;
 
 class Monitor {
 private:

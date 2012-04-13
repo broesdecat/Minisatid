@@ -68,8 +68,6 @@ namespace MinisatID{
 		stream <<">> Please place the file there, add a (different) --primesfiles commandline argument or recompile/reinstall.\n";
 	}
 
-	std::string disAllowedVarNumbers();
-
 	template<class T>
 	void printSatisfiable(T& stream, InputFormat inputformat, OutputFormat outputformat, int verbosity = 1000){
 		if(verbosity>=1){

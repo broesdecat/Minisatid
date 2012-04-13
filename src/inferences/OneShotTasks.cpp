@@ -1,8 +1,9 @@
-#include "OneShotTasks.hpp"
-#include "Tasks.hpp"
+#include "external/OneShotTasks.hpp"
+#include "external/Tasks.hpp"
 #include "external/Space.hpp"
-#include "theorysolvers/PCSolver.hpp"
-#include "theorysolvers/InternalAdd.hpp"
+#include "space/SearchEngine.hpp"
+#include "theorysolvers/PropagatorFactory.hpp"
+#include "datastructures/InternalAdd.hpp"
 
 using namespace std;
 using namespace MinisatID;

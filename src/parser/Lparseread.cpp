@@ -32,7 +32,7 @@
 
 #include "parser/Lparseread.hpp"
 #include "external/Translator.hpp"
-#include "utils/ContainerUtils.hpp"
+#include "external/utils/ContainerUtils.hpp"
 #include "external/Constraints.hpp"
 #include "theorysolvers/PCSolver.hpp"
 

@@ -83,10 +83,6 @@ void MinisatID::printSolveStart(int v) {
 	}
 }
 
-std::string MinisatID::disAllowedVarNumbers(){
-	return ">> Variables can only be numbered starting from 1 and not be equal to max-int.\n";
-}
-
 bool headerprinted = false;
 bool MinisatID::headerAlreadyPrinted(){
 	return headerprinted;

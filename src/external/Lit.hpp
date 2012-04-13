@@ -21,6 +21,8 @@
 #ifndef Basic_Minisat_SolverTypes_h
 #define Basic_Minisat_SolverTypes_h
 
+#include <vector>
+
 namespace MinisatID {
 
 typedef int Var;
@@ -81,6 +83,11 @@ inline int getIntLit(Lit p) { return var(p)* (sign(p)?-1:1); }
 
 bool isPositive(const Lit& lit);
 bool isNegative(const Lit& lit);
+
+typedef std::vector<Lit> litlist;
+typedef std::vector<Var> varlist;
+inline Lit  mkPosLit	(Var var) 	{ return mkLit(var, false); }
+inline Lit  mkNegLit	(Var var) 	{ return mkLit(var, true); }
 
 }
 

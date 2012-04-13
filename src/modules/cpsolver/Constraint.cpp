@@ -131,6 +131,14 @@ DistinctConstraint::DistinctConstraint(CPScript& space, vector<TermIntVar> tset)
 	distinct(space, set, ICL_DOM);
 }
 
+ElementConstraint::ElementConstraint(CPScript& space, vector<TermIntVar> tset, TermIntVar tindex, TermIntVar trhs)
+		: set(tset.size()), index(tindex.getIntVar(space)), rhs(trhs.getIntVar(space)){
+	for(uint i=0; i<tset.size(); i++){
+		set[i] = tset[i].getIntVar(space);
+	}
+	element(space, set, index, rhs, ICL_DOM);
+}
+
 //Atmostone NON REIF
 //min max abs mult NON REIF
 

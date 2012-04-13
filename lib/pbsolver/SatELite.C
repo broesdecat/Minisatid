@@ -1,6 +1,6 @@
 /**************************************************************************************************
 
-Solver.C -- (C) Niklas Een, Niklas Sörensson, 2004
+Solver.C -- (C) Niklas Een, Niklas Sï¿½rensson, 2004
 
 A simple Chaff-like SAT-solver with support for incremental SAT.
 
@@ -622,7 +622,7 @@ Var Solver::newVar(bool dvar)
 // Returns FALSE if immediate conflict.
 bool Solver::assume(Lit p) {
     assert(propQ.size() == 0);
-    if (verbosity >= 2) reportf(L_IND"assume("L_LIT")\n", L_ind, L_lit(p));
+    if (verbosity >= 2) reportf(L_IND "assume(" L_LIT ")\n", L_ind, L_lit(p));
     trail_lim.push(trail.size());
     return enqueue(p); }
 
@@ -631,7 +631,7 @@ bool Solver::assume(Lit p) {
 //
 inline void Solver::undoOne(void)
 {
-    if (verbosity >= 2){ Lit p = trail.last(); reportf(L_IND"unbind("L_LIT")\n", L_ind, L_lit(p)); }
+    if (verbosity >= 2){ Lit p = trail.last(); reportf(L_IND "unbind(" L_LIT ")\n", L_ind, L_lit(p)); }
     Lit     p  = trail.last(); trail.pop();
     Var     x  = var(p);
     assigns[x] = toInt(l_Undef);
@@ -646,7 +646,7 @@ inline void Solver::undoOne(void)
 void Solver::cancel(void)
 {
     assert(propQ.size() == 0);
-    if (verbosity >= 2){ if (trail.size() != trail_lim.last()){ Lit p = trail[trail_lim.last()]; reportf(L_IND"cancel("L_LIT")\n", L_ind, L_lit(p)); } }
+    if (verbosity >= 2){ if (trail.size() != trail_lim.last()){ Lit p = trail[trail_lim.last()]; reportf(L_IND "cancel(" L_LIT ")\n", L_ind, L_lit(p)); } }
     for (int c = trail.size() - trail_lim.last(); c != 0; c--)
         undoOne();
     trail_lim.pop();
@@ -709,7 +709,7 @@ void Solver::analyze(Clause confl, vec<Lit>& out_learnt, int& out_btlevel)
     // Generate conflict clause:
     //
 #if 1
-// Niklas Sörensson's version
+// Niklas Sï¿½rensson's version
     // Generate conflict clause:
     //
     out_learnt.push();      // (leave room for the asserting literal)
@@ -878,7 +878,7 @@ void Solver::analyze(Clause confl, vec<Lit>& out_learnt, int& out_btlevel)
 
     if (verbosity >= 2){
         reportf(L_IND"Learnt {", L_ind);
-        for (int i = 0; i < out_learnt.size(); i++) reportf(" "L_LIT, L_lit(out_learnt[i]));
+        for (int i = 0; i < out_learnt.size(); i++) reportf(" " L_LIT, L_lit(out_learnt[i]));
         reportf(" } at level %d\n", out_btlevel); }
 }
 
@@ -921,7 +921,7 @@ bool Solver::enqueue(Lit p, Clause from)
     }else{
         // New fact -- store it.
       #ifndef RELEASE
-        if (verbosity >= 2) reportf(L_IND"bind("L_LIT")\n", L_ind, L_lit(p));
+        if (verbosity >= 2) reportf(L_IND "bind(" L_LIT ")\n", L_ind, L_lit(p));
       #endif
         assigns[var(p)] = toInt(lbool(!sign(p)));
         level  [var(p)] = decisionLevel();
@@ -1080,7 +1080,7 @@ Clause Solver::propagate(void)
 #endif
 
 #if 1
-// Borrowed from Niklas Sörensson -- uses "unsafe" type casts to achieve maximum performance
+// Borrowed from Niklas Sï¿½rensson -- uses "unsafe" type casts to achieve maximum performance
 Clause Solver::propagate(void)
 {
     if (decisionLevel() == 0 && occur_mode != occ_Off){
@@ -1831,12 +1831,12 @@ void Solver::simplifyBySubsumption(bool with_var_elim)
                     ol_seen[index(c[j])] = 1;
 
                     vec<Clause>& n_occs = occur[index(~c[j])];
-                    for (int k = 0; k < n_occs.size(); k++)     // <<= Bättra på. Behöver bara kolla 'n_occs[k]' mot 'c'
+                    for (int k = 0; k < n_occs.size(); k++)     // <<= Bï¿½ttra pï¿½. Behï¿½ver bara kolla 'n_occs[k]' mot 'c'
                         if (n_occs[k] != c && n_occs[k].size() <= c.size() && selfSubset(n_occs[k].abst(), c.abst()) && selfSubset(n_occs[k], c, seen_tmp))
                             s1.add(n_occs[k]);
 
                     vec<Clause>& p_occs = occur[index(c[j])];
-                    for (int k = 0; k < p_occs.size(); k++)     // <<= Bättra på. Behöver bara kolla 'p_occs[k]' mot 'c'
+                    for (int k = 0; k < p_occs.size(); k++)     // <<= Bï¿½ttra pï¿½. Behï¿½ver bara kolla 'p_occs[k]' mot 'c'
                         if (subset(p_occs[k].abst(), c.abst()))
                             s0.add(p_occs[k]);
                 }
@@ -2182,7 +2182,7 @@ bool Solver::findDef(Lit x, vec<Clause>& poss, vec<Clause>& negs, Clause out_def
   4  5 3                 -3 6 7
                          -3 -6 -7
 
-3 -> ~4       == { ~3, ~4 }   (ger ~4, ~5 + ev mer som superset; negera detta och lägg till 3:an)
+3 -> ~4       == { ~3, ~4 }   (ger ~4, ~5 + ev mer som superset; negera detta och lï¿½gg till 3:an)
 3 -> ~5       == { ~3, ~5 }
 
 ~4 & ~5 -> 3  == { 4, 5, 3 }
@@ -2356,7 +2356,7 @@ void Solver::asymmetricBranching(Lit p)
                     if (c[j] == learnt[i])
                         goto Found;
                 printf("\n");
-                printf("asymmetricBranching("L_LIT" @ %d)\n", L_lit(p), level[var(p)]);
+                printf("asymmetricBranching(" L_LIT " @ %d)\n", L_lit(p), level[var(p)]);
                 printf("learnt: "); dump(*this, learnt);
                 printf("c     : "); dump(*this, c     );
                 assert(false);  // no subset!
@@ -2664,7 +2664,7 @@ void Solver::clauseReduction(void)
                 }
             }
 
-            // (kolla att seen[] är nollad korrekt här)
+            // (kolla att seen[] ï¿½r nollad korrekt hï¿½r)
 
             /**/if (learnt.size() < c.size()){
                 putchar('*'); fflush(stdout);

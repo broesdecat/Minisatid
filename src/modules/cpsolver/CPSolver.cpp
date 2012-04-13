@@ -133,8 +133,9 @@ bool CPSolver::add(const CPAllDiff& form) {
 	return true;
 }
 
-bool CPSolver::add(const MinimizeVar& form) {
-	//FIXME add(new OptimConstraint(getSpace(), convertToVar(form.varID)));
+bool CPSolver::add(const CPElement& form) {
+	vector<TermIntVar> set(convertToVars(form.varIDs));
+	add(new ElementConstraint(getSpace(), set, convertToVar(form.index), convertToVar(form.rhs)));
 	return true;
 }
 

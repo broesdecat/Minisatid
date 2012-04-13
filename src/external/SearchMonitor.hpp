@@ -10,7 +10,7 @@
 #define MONITORINTERFACE_HPP
 
 #include <functional>
-#include "external/ExternalUtils.hpp"
+#include "ExternalUtils.hpp"
 #include "callback.hpp"
 
 namespace MinisatID {

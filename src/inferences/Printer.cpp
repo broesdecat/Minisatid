@@ -7,7 +7,7 @@
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 
-#include "Printer.hpp"
+#include "external/Printer.hpp"
 
 #include <vector>
 #include <string>
@@ -18,10 +18,10 @@
 #include "external/ExternalUtils.hpp"
 #include "external/Translator.hpp"
 #include "external/Space.hpp"
-#include "utils/ResourceManager.hpp"
+#include "external/utils/ResourceManager.hpp"
 #include "utils/Print.hpp"
-#include "utils/TimingUtils.hpp"
-#include "ModelManager.hpp"
+#include "external/utils/TimingUtils.hpp"
+#include "external/ModelManager.hpp"
 
 using namespace std;
 using namespace MinisatID;

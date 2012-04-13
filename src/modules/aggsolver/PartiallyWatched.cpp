@@ -11,6 +11,7 @@
 #include "modules/aggsolver/AggPrint.hpp"
 #include "modules/aggsolver/AggSet.hpp"
 #include "theorysolvers/PCSolver.hpp"
+#include "external/utils/ContainerUtils.hpp"
 
 #include <cstdint>
 #include <cinttypes>

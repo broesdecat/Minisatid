@@ -13,10 +13,8 @@
 #include <algorithm>
 
 #include "modules/DPLLTmodule.hpp"
-
 #include "modules/aggsolver/AggUtils.hpp"
 #include "modules/aggsolver/AggTransform.hpp"
-#include "modules/aggsolver/AggProp.hpp"
 
 namespace MinisatID {
 
@@ -41,10 +39,7 @@ private:
 
 public:
 	TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggProp const * const w, const vwl& wls, bool usewatches, const std::vector<TempAgg*>& aggr, bool optim);
-	virtual ~TypedSet() {
-		deleteList<Agg>(aggregates);
-		delete (prop);
-	}
+	virtual ~TypedSet();
 
 	// Propagator methods
 	virtual rClause getExplanation(const Lit&);

@@ -13,7 +13,8 @@
 #include <iostream>
 
 #include <tclap/CmdLine.h>
-#include "utils/ResourceManager.hpp"
+#include "external/utils/ResourceManager.hpp"
+#include "external/utils/ContainerUtils.hpp"
 
 #include "utils/Print.hpp"
 

@@ -7,7 +7,9 @@
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 #include "modules/aggsolver/AggSet.hpp"
+#include "modules/aggsolver/AggProp.hpp"
 #include "modules/aggsolver/AggPrint.hpp"
+#include "external/utils/ContainerUtils.hpp"
 #include "utils/Print.hpp"
 #include <cmath>
 
@@ -59,15 +61,11 @@ TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggPro
 		getPCSolver().notifyUnsat();
 	}
 }
-/*TypedSet::TypedSet(const TypedSet& set):
- Propagator(set.pcsolver, "aggregate"),
- kb(set.getKnownBound()),
- wl(set.getWL()),
- type(set.getTypep()),
- prop(NULL),
- setid(set.getSetID()),
- usingwatches(set.isUsingWatches()){
- }*/
+
+TypedSet::~TypedSet() {
+	deleteList<Agg>(aggregates);
+	delete (prop);
+}
 
 void TypedSet::addAgg(const TempAgg& tempagg, bool optim) {
 	auto agg = new Agg(this, tempagg, optim);
@@ -79,7 +77,6 @@ void TypedSet::addAgg(const TempAgg& tempagg, bool optim) {
 	}
 }
 
-// FIXME overal != in condities vervangen door < voor vectoren, want ++ is niet toegelaten op end!
 void TypedSet::removeAggs(const std::set<Agg*>& del) {
 	for (auto agg = getAggNonConst().begin(); agg < getAggNonConst().end(); ++agg) {
 		if (del.find(*agg) != del.cend()) {
@@ -93,9 +90,9 @@ void TypedSet::removeAggs(const std::set<Agg*>& del) {
 }
 
 rClause TypedSet::notifySolver(AggReason* ar) {
-	const Lit& p = ar->getPropLit();
+	auto p = ar->getPropLit();
 
-	if (modes().bumpaggonnotify) { //seems to be better here, untested!
+	if (modes().bumpaggonnotify) {
 		//Decreases sokoban and dansmee performance, increases fastfood
 		getPCSolver().varBumpActivity(var(p));
 	}

@@ -433,6 +433,22 @@ struct CPAllDiff: public ID {
 	}
 };
 
+struct CPElement: public ID {
+	std::vector<uint> varIDs;
+	uint index;
+	uint rhs;
+
+	CPElement(const std::vector<uint>& ids, uint index, uint rhs)
+			: varIDs(ids), index(index), rhs(rhs) {
+	}
+
+	DATASTRUCTURE_DECLAREACCEPT
+
+	virtual std::vector<Atom> getAtoms() const {
+		return {};
+	}
+};
+
 class Symmetry: public ID {
 public:
 	// INVAR: the keys are unique

@@ -9,19 +9,8 @@
 #ifndef TRANSLATOR_HPP_
 #define TRANSLATOR_HPP_
 
-#include <vector>
-#include <string>
-#include <map>
-#include <set>
-#include <iostream>
-#include <ostream>
-#include <sstream>
-#include "constraintvisitors/LiteralPrinter.hpp"
-
-#include <algorithm>
-
-#include "external/ExternalUtils.hpp"
-#include "external/Datastructures.hpp"
+#include "LiteralPrinter.hpp"
+#include "ExternalUtils.hpp"
 #include "utils/ContainerUtils.hpp"
 
 namespace MinisatID {

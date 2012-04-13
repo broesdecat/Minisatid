@@ -13,7 +13,7 @@
 
 #include "satsolver/SATSolver.hpp"
 
-#include "constraintvisitors/LiteralPrinter.hpp"
+#include "external/LiteralPrinter.hpp"
 
 #include "modules/IDSolver.hpp"
 

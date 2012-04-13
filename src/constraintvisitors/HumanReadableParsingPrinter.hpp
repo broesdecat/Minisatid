@@ -36,13 +36,13 @@ public:
 
 	void visit(const MinisatID::Implication& obj){
 		target() <<"Added " <<toString(obj.head, getPrinter()) <<obj.type;
-		printList(obj.body, obj.conjunction?" & ":" | ", target(), getPrinter());
+		this->printList(obj.body, obj.conjunction?" & ":" | ", target(), getPrinter());
 		target() <<"\n";
 	}
 
 	void visit(const Disjunction& clause){
 		target() <<"Added clause ";
-		printList(clause.literals, " | ", target(), getPrinter());
+		this->printList(clause.literals, " | ", target(), getPrinter());
 		target() <<"\n";
 	}
 
@@ -51,7 +51,7 @@ public:
 		if(rule.body.size()==0){
 			target() <<(rule.conjunctive?"true":"false");
 		}else{
-			printList(rule.body, rule.conjunctive?" & ":" | ", target(), getPrinter());
+			this->printList(rule.body, rule.conjunctive?" & ":" | ", target(), getPrinter());
 		}
 		target() <<" to definition " <<rule.definitionID <<"\n";
 	}
@@ -81,14 +81,14 @@ public:
 
 	void visit(const MinimizeOrderedList& mnm){
 		target() <<"Minimizing ordered list ";
-		printList(mnm.literals, " < ", target(), getPrinter());
+		this->printList(mnm.literals, " < ", target(), getPrinter());
 		target() <<"\n";
 	}
 
 
 	void visit(const MinimizeSubset& mnm){
 		target() <<"Searching minimal subset of set { ";
-		printList(mnm.literals, ", ", target(), getPrinter());
+		this->printList(mnm.literals, ", ", target(), getPrinter());
 		target() <<" }\n";
 	}
 

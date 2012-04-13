@@ -1,4 +1,5 @@
 #include "external/Space.hpp"
+#include "space/SearchEngine.hpp"
 #include "theorysolvers/PCSolver.hpp"
 #include "external/Remapper.hpp"
 #include "external/Translator.hpp"
@@ -33,7 +34,7 @@ string Space::toString(const litlist& literals) const {
 
 Space::Space(SolverOption modes, bool oneshot) :
 		basicoptions(modes), monitor(new Monitor(remapper)), varcreator(new VarCreation(remapper)), engine(
-				new PCSolverImpl(modes, monitor, varcreator, this, oneshot)),
+				new SearchEngine(new PCSolver(modes, monitor, varcreator, this, oneshot))),
 				oneshot(oneshot),
 				executed(false),
 				_translator(new PlainTranslator()) {

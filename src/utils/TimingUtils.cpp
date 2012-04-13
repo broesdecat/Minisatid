@@ -1,4 +1,4 @@
-#include "TimingUtils.hpp"
+#include "external/utils/TimingUtils.hpp"
 #include <ctime>
 
 namespace MinisatID {

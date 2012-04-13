@@ -1,20 +1,23 @@
-/************************************
-	OneShotTasks.hpp
-	this file belongs to GidL 2.0
-	(c) K.U.Leuven
-************************************/
-
+/*
+ * Copyright 2007-2011 Katholieke Universiteit Leuven
+ *
+ * Use of this software is governed by the GNU LGPLv3.0 license
+ *
+ * Written by Broes De Cat and Maarten Mariën, K.U.Leuven, Departement
+ * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
+ */
 #ifndef ONESHOTTASKS_HPP_
 #define ONESHOTTASKS_HPP_
 
 #include "Tasks.hpp"
-#include "external/Remapper.hpp"
-#include "external/Datastructures.hpp"
-#include "external/ConstraintAdditionInterface.hpp"
-#include "constraintvisitors/FlatZincRewriter.hpp"
+#include "Remapper.hpp"
+#include "Datastructures.hpp"
+#include "ConstraintAdditionInterface.hpp"
 #include <typeinfo>
 
 namespace MinisatID{
+
+template<class T> class FlatZincRewriter;
 
 class OneShotUnsatCoreExtraction: public Task, public ConstraintAdditionInterface<OneShotUnsatCoreExtraction>{
 private:
@@ -41,7 +44,9 @@ public:
 template<>
 void OneShotUnsatCoreExtraction::extAdd(const Disjunction& disjunction);
 
-class OneShotFlatzinc: public Task, public FlatZincRewriter<std::ostream>, public ConstraintAdditionInterface<OneShotFlatzinc>{
+class OneShotFlatzinc: public Task, public ConstraintAdditionInterface<OneShotFlatzinc>{
+private:
+	FlatZincRewriter<std::ostream>* fzrw;
 public:
 	OneShotFlatzinc* getEngine() { return this; }
 };

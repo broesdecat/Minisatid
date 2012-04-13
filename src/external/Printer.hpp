@@ -15,7 +15,7 @@
 #include <ostream>
 #include <memory>
 
-#include "external/ExternalUtils.hpp"
+#include "ExternalUtils.hpp"
 
 namespace MinisatID {
 

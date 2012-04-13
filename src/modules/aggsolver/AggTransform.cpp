@@ -16,7 +16,7 @@
 #include "modules/aggsolver/AggPrint.hpp"
 #include "modules/aggsolver/AggUtils.hpp"
 #include "theorysolvers/PCSolver.hpp"
-#include "theorysolvers/InternalAdd.hpp"
+#include "datastructures/InternalAdd.hpp"
 #include "modules/aggsolver/PartiallyWatched.hpp"
 
 using namespace std;

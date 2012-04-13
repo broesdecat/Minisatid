@@ -413,11 +413,11 @@ static void SIGTERM_handler(int signum) {
 void printStats(BasicSolverStats& stats, double cpu_time)
 {
     if (opt_skip_sat) reportf("SKIPPED SAT-SOLVING - result may be incorrect\n");
-    reportf("restarts              : %"I64_fmt"\n", stats.starts);
-    reportf("conflicts             : %-12"I64_fmt"   (%.0f /sec)\n", stats.conflicts   , stats.conflicts   /cpu_time);
-    reportf("decisions             : %-12"I64_fmt"   (%.0f /sec)\n", stats.decisions   , stats.decisions   /cpu_time);
-    reportf("propagations          : %-12"I64_fmt"   (%.0f /sec)\n", stats.propagations, stats.propagations/cpu_time);
-    reportf("inspects              : %-12"I64_fmt"   (%.0f /sec)\n", stats.inspects    , stats.inspects    /cpu_time);
+    reportf("restarts              : %" I64_fmt "\n", stats.starts);
+    reportf("conflicts             : %-12" I64_fmt "   (%.0f /sec)\n", stats.conflicts   , stats.conflicts   /cpu_time);
+    reportf("decisions             : %-12" I64_fmt "   (%.0f /sec)\n", stats.decisions   , stats.decisions   /cpu_time);
+    reportf("propagations          : %-12" I64_fmt "   (%.0f /sec)\n", stats.propagations, stats.propagations/cpu_time);
+    reportf("inspects              : %-12" I64_fmt "   (%.0f /sec)\n", stats.inspects    , stats.inspects    /cpu_time);
     reportf("CPU time              : %g s\n", cpu_time);
     numOfDecisions = stats.decisions;
 }

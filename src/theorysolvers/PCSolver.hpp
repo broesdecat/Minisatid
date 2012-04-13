@@ -12,8 +12,9 @@
 #include "utils/Utils.hpp"
 #include <memory>
 
-#include "constraintvisitors/LiteralPrinter.hpp"
+#include "external/LiteralPrinter.hpp"
 #include "theorysolvers/PropagatorFactory.hpp"
+#include "datastructures/OptimStatement.hpp"
 
 namespace Minisat {
 class Solver;
@@ -33,146 +34,12 @@ class VarCreation;
 class ConstraintVisitor;
 class Printer;
 
-enum class Optim {
-	LIST, SUBSET, AGG, VAR
-};
-
-struct OptimStatement {
-	unsigned int priority; // Lower is earlier
-	Optim optim;
-	std::vector<Lit> to_minimize;
-	Agg* agg_to_minimize;
-	IntVar* var;
-	bool atoptimum;
-
-	OptimStatement(uint priority, Optim optim, litlist minim) :
-			priority(priority), optim(optim), to_minimize(minim), agg_to_minimize(NULL), var(NULL), atoptimum(false) {
-		MAssert(optim==Optim::LIST || optim==Optim::SUBSET);
-	}
-	OptimStatement(uint priority, Agg* agg) :
-			priority(priority), optim(Optim::AGG), agg_to_minimize(agg), var(NULL), atoptimum(false) {
-
-	}
-	OptimStatement(uint priority, IntVar* var) :
-			priority(priority), optim(Optim::VAR), agg_to_minimize(NULL), var(var), atoptimum(false) {
-
-	}
-};
-
 class Monitor;
 
-class ConstraintDatabase: public LiteralPrinter{
+class PCSolver: public LiteralPrinter{
 public:
-	virtual ~ConstraintDatabase() {}
-
-	virtual PropagatorFactory& getFactory() = 0;
-	virtual void createVar(Var v) = 0;
-};
-
-class BothPCSolver: public ConstraintDatabase {
-public:
-	virtual int verbosity() const = 0;
-	virtual const SolverOption& modes() const = 0;
-	virtual Var newVar() = 0;
-	virtual int newSetID() = 0;
-	virtual lbool rootValue(Lit p) const = 0;
-	virtual Lit getTrueLit() const = 0;
-	virtual Lit getFalseLit() const = 0;
-
-	virtual void notifyUnsat() = 0;
-	virtual SATVAL satState() const = 0;
-	virtual bool isUnsat() const = 0;
-	virtual std::string toString(const Lit& lit) const = 0;
-
-	virtual void invalidate(litlist& clause) const = 0;
-
-	virtual void backtrackTo(int level) = 0;
-};
-
-class SearchEngine: virtual public BothPCSolver {
-public:
-	virtual void finishParsing() = 0;
-	virtual bool isOptimizationProblem() const = 0;
-	virtual bool hasNextOptimum() const = 0;
-	virtual OptimStatement& getNextOptimum() = 0;
-
-	virtual bool hasCPSolver() const = 0;
-	virtual SATVAL findNextCPModel() = 0;
-
-	virtual void notifyTerminateRequested() = 0;
-
-	virtual void saveState() = 0;
-	virtual void resetState() = 0;
-
-	virtual void extractLitModel(std::shared_ptr<Model> fullmodel) = 0;
-	virtual void extractVarModel(std::shared_ptr<Model> fullmodel) = 0;
-	virtual std::shared_ptr<Model> getModel() = 0;
-	virtual lbool getModelValue(Var v) = 0;
-
-	virtual void accept(ConstraintVisitor& visitor) = 0;
-
-	virtual void setAssumptions(const litlist& assumps) = 0;
-	virtual lbool solve(bool search) = 0;
-
-	virtual litlist getEntailedLiterals() const = 0;
-	virtual bool moreModelsPossible() const = 0;
-};
-
-class PCSolver: virtual public BothPCSolver {
-public:
-	virtual int getCurrentDecisionLevel() const = 0;
-
-	virtual void varBumpActivity(Var v) = 0;
-	virtual void varReduceActivity(Var v) = 0;
-	virtual lbool value(Lit p) const = 0;
-	virtual uint64_t nVars() const = 0;
-	virtual bool isDecisionVar(Var var) = 0;
-	virtual void notifyDecisionVar(Var var) = 0;
-	virtual bool isDecided(Var var) = 0;
-	virtual int getLevel(int var) const = 0;
-	virtual void addOptimization(OptimStatement optim) = 0;
-	virtual SATSolver* getSATSolver() const = 0;
-	virtual CPSolver* getCPSolver() const = 0;
-	virtual const std::vector<Lit>& getTrail() const = 0;
-	virtual bool terminateRequested() const = 0;
-
-	virtual rClause createClause(const Disjunction& clause, bool learned) = 0;
-	virtual void addLearnedClause(rClause c) = 0;
-	virtual int getClauseSize(rClause cr) const = 0;
-	virtual Lit getClauseLit(rClause cr, int i) const = 0;
-	virtual void printEnqueued(const Lit& p) const = 0;
-	virtual void printChoiceMade(int level, const Lit& l) const = 0;
-	virtual void printClause(rClause clause) const = 0;
-
-	virtual void accept(Propagator* propagator) = 0;
-	virtual void accept(GenWatch* const watch) = 0;
-	virtual void acceptForBacktrack(Propagator* propagator) = 0;
-	virtual void acceptForPropagation(Propagator* propagator) = 0;
-	virtual void accept(Propagator* propagator, EVENT event) = 0;
-	virtual void acceptBounds(IntView* var, Propagator* propagator) = 0;
-	virtual void accept(Propagator* propagator, const Lit& lit, PRIORITY priority) = 0;
-	virtual void acceptForDecidable(Var v, Propagator* prop) = 0;
-
-	virtual void finishParsing() = 0;
-	virtual void setTrue(const Lit& p, Propagator* solver, rClause c = nullPtrClause) = 0;
-	virtual void notifySetTrue(const Lit& p) = 0;
-	virtual void newDecisionLevel() = 0;
-	virtual void backtrackDecisionLevel(int untillevel, const Lit& decision) = 0;
-	virtual rClause propagate() = 0;
-	virtual int getTime(const Var& var) const = 0;
-	virtual bool assertedBefore(const Var& l, const Var& p) const = 0;
-	virtual rClause getExplanation(const Lit& l) = 0;
-	virtual bool isAlreadyUsedInAnalyze(const Lit& lit) const = 0;
-	virtual void notifyBecameDecidable(Var v) = 0;
-	virtual void notifyBoundsChanged(IntVar* var) = 0;
-	virtual rClause notifyFullAssignmentFound() = 0;
-	virtual int getNbOfFormulas() const = 0;
-};
-
-class PCSolverImpl: public PCSolver, public SearchEngine {
-public:
-	PCSolverImpl(SolverOption modes, Monitor* monitor, VarCreation* varcreator, LiteralPrinter* printer, bool oneshot);
-	virtual ~PCSolverImpl();
+	PCSolver(SolverOption modes, Monitor* monitor, VarCreation* varcreator, LiteralPrinter* printer, bool oneshot);
+	virtual ~PCSolver();
 
 	// Options
 private:
@@ -190,7 +57,6 @@ private:
 	VarCreation* varcreator;
 public:
 	Var newVar();
-private:
 	void createVar(Var v);
 public:
 	void varBumpActivity(Var v);

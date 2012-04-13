@@ -415,6 +415,8 @@ void AggPropagator::initialize(bool&, bool&) {
 			getSet().getPCSolver().accept(w2);
 			getSet().getPCSolver().notifyDecisionVar(var(w->getPropLit()));
 		}
+		// TODO check the effect on performance of addheadImpl, card2Equiv and bumpVar of agg heads in AggPropagator::initialize
+		getSet().getPCSolver().varBumpActivity(var((*i)->getHead()));
 	}
 }
 

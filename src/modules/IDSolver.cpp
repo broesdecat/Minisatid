@@ -7,14 +7,15 @@
  * Computerwetenschappen, Celestijnenlaan 200A, B-3001 Leuven, Belgium
  */
 #include "modules/IDSolver.hpp"
+
 #include "utils/Print.hpp"
+#include "external/utils/ContainerUtils.hpp"
+
 #include "theorysolvers/PCSolver.hpp"
 
 #include "modules/SCCtoCNF.hpp"
 
 #include <cmath>
-
-#include "utils/IntTypes.h"
 
 // TODO in fact, having a propagator per scc might seem more logical?
 // FIXME an unwellfounded model does NOT mean that the definition is not total

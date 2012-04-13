@@ -14,28 +14,28 @@
 #include <fstream>
 #include <csignal>
 #include <sstream>
-
-#include "parser/CommandLineOptions.hpp"
-#include "inferences/Tasks.hpp"
-#include "inferences/OneShotTasks.hpp"
-#include "utils/TimingUtils.hpp"
-
 #include <csetjmp>
-
-#include "external/Translator.hpp"
-#include "utils/ResourceManager.hpp"
-#include "parser/Lparseread.hpp"
-#include "parser/PBread.hpp"
-
-#include "utils/Print.hpp"
 
 #if defined(__linux__)
 #include <fpu_control.h>
 #endif
 
+#include "parser/Lparseread.hpp"
+#include "parser/PBread.hpp"
+#include "parser/CommandLineOptions.hpp"
+
+#include "external/Translator.hpp"
+#include "external/utils/ResourceManager.hpp"
+#include "external/Tasks.hpp"
+#include "external/OneShotTasks.hpp"
+#include "external/utils/TimingUtils.hpp"
+
+#include "utils/Print.hpp"
+
 using namespace std;
 using namespace MinisatID;
 
+// For template instantiation:
 #include "parser/Lparseread.cpp"
 #include "parser/PBread.cpp"
 

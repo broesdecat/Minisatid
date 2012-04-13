@@ -137,6 +137,16 @@ namespace MinisatID{
 		virtual ~DistinctConstraint(){}
 	};
 
+	class ElementConstraint: public NonReifiedConstraint{
+	private:
+		Gecode::IntVarArgs set;
+		Gecode::IntVar index, rhs;
+	public:
+		//global element constraint
+		ElementConstraint(CPScript& space, std::vector<TermIntVar> tset, TermIntVar index, TermIntVar rhs);
+
+		virtual ~ElementConstraint(){}
+	};
 }
 
 #endif /* CONSTRAINT_HPP_ */

@@ -13,9 +13,9 @@
 #include <string>
 
 #include "gtest/gtest.h"
-#include "inferences/Tasks.hpp"
+#include "external/Tasks.hpp"
 #include "external/Space.hpp"
-#include "utils/FileManagement.hpp"
+#include "external/utils/FileManagement.hpp"
 
 namespace MinisatID {
 std::string getTestDirectory();

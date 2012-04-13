@@ -10,6 +10,7 @@
 #include "modules/cpsolver/Constraint.hpp"
 #include "modules/cpsolver/CPScript.hpp"
 #include "modules/cpsolver/CPUtils.hpp"
+#include "external/utils/ContainerUtils.hpp"
 
 using namespace std;
 

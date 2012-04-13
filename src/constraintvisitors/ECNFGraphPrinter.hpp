@@ -39,7 +39,7 @@ public:
 	}
 
 	void visit(const Disjunction& lits) {
-		printList(lits.literals, " -- ", target(), getPrinter());
+		this->printList(lits.literals, " -- ", target(), getPrinter());
 		if (lits.literals.size() > 1) {
 			target() << " -- " << toString(lits.literals[0], getPrinter()) << " ";
 		}
@@ -47,7 +47,7 @@ public:
 	}
 
 	void visit(const Rule& lits) {
-		printList(lits.body, " -- ", target(), getPrinter());
+		this->printList(lits.body, " -- ", target(), getPrinter());
 		if (lits.body.size() > 1) {
 			target() << " -- " << toString(lits.body[0], getPrinter()) << " ";
 		}

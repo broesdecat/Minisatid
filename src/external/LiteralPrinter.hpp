@@ -10,7 +10,7 @@
 
 #include <string>
 #include <sstream>
-#include "external/Lit.hpp"
+#include "Lit.hpp"
 
 namespace MinisatID {
 class LiteralPrinter {

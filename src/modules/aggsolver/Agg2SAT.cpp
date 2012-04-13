@@ -19,7 +19,8 @@
 #include "PartiallyWatched.hpp"
 
 #include "theorysolvers/PCSolver.hpp"
-#include "theorysolvers/InternalAdd.hpp"
+#include "datastructures/InternalAdd.hpp"
+#include "external/utils/ContainerUtils.hpp"
 
 #include "PbSolver.h"
 

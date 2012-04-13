@@ -16,18 +16,12 @@
 
 #include "satsolver/SATUtils.hpp"
 #include "external/ExternalUtils.hpp"
-#include "ContainerUtils.hpp"
 
 typedef unsigned int uint;
 
 namespace MinisatID {
 
 enum class VARHEUR { DECIDE, DONT_DECIDE};
-
-typedef std::vector<Lit> litlist;
-typedef std::vector<Var> varlist;
-inline Lit  mkPosLit	(Var var) 	{ return mkLit(var, false); }
-inline Lit  mkNegLit	(Var var) 	{ return mkLit(var, true); }
 
 class InterMediateDataStruct{
 private:

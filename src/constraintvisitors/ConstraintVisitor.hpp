@@ -12,7 +12,7 @@
 #include <iostream>
 #include "utils/Print.hpp"
 #include "utils/Utils.hpp"
-#include "LiteralPrinter.hpp"
+#include "external/LiteralPrinter.hpp"
 
 namespace MinisatID{
 

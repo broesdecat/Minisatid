@@ -11,7 +11,14 @@
 
 typedef unsigned int uint;
 
+#include <vector>
+#include <string>
+#include <map>
+#include <set>
+#include <iostream>
+#include <ostream>
 #include <sstream>
+#include <algorithm>
 
 #include "MAssert.hpp"
 #include "Idpexception.hpp"

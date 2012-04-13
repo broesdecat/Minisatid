@@ -9,8 +9,8 @@
 
 #include <vector>
 
-#include "external/Datastructures.hpp"
-#include "external/Options.hpp"
+#include "Datastructures.hpp"
+#include "Options.hpp"
 #include "callback.hpp"
 #include <memory>
 #include <iostream>
