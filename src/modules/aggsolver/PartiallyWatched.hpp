@@ -26,7 +26,6 @@ class Watch;
 //BASEDONCC: propagated because of too many monotone false / am true literals
 //BASEDONCP: propagated because of too many monotone true / am false literals
 
-
 /*
  * WATCHSET	: the location of in which set the watch effectively resides
  * inuse 	: whether the watch is in the watch network
@@ -35,41 +34,61 @@ class Watch;
  * watchneg	: if true, the negation of the wl literal is the effective watch, otherwise the wl literal itself
  */
 
-class GenPWatch: public Watch{
+class GenPWatch: public Watch {
 private:
-			bool	_innws; //True if it is in NWS, false if it is in WS
-			bool	_innet; //True if it is in the watch network
-			int 	_index; //-1 if _innws
+	bool _innws; //True if it is in NWS, false if it is in WS
+	bool _innet; //True if it is in the watch network
+	int _index; //-1 if _innws
 public:
-	GenPWatch(TypedSet* set, const WL& wl, bool watchneg, uint index):
-		Watch(set, wl.getLit(), wl.getWeight(), not watchneg, true),
-		_innws(true),
-		_innet(false),
-		_index(index){
+	GenPWatch(TypedSet* set, const WL& wl, bool watchneg, uint index) :
+			Watch(set, wl.getLit(), wl.getWeight(), not watchneg, true), _innws(true), _innet(false), _index(index) {
 	}
 
-	int 		getIndex		() const 	{ return _index; }
-	void 		setIndex		(int c) 	{ _index = c; }
-	bool 		isMonotone		()	const 	{ return not isOrigLit(); }
-	WL		 	getWL			() 	const 	{ return WL(getPropLit(), getWeight()); }
-	Lit			getWatchLit		() 	const 	{ return isMonotone()?not getPropLit():getPropLit(); }
-	bool		isInNetwork		() 	const 	{ return _innet; }
-	void		addToNetwork	() 			{ _innet = true; }
-	void		removeFromNetwork() 		{ _innet = false; }
+	int getIndex() const {
+		return _index;
+	}
+	void setIndex(int c) {
+		_index = c;
+	}
+	bool isMonotone() const {
+		return not isOrigLit();
+	}
+	WL getWL() const {
+		return WL(getPropLit(), getWeight());
+	}
+	Lit getWatchLit() const {
+		return isMonotone() ? not getPropLit() : getPropLit();
+	}
+	bool isInNetwork() const {
+		return _innet;
+	}
+	void addToNetwork() {
+		_innet = true;
+	}
+	void removeFromNetwork() {
+		_innet = false;
+	}
 
-	bool		isInWS			()	const	{ return !_innws; }
-	void		movedToOther	() 			{ _innws = !_innws; }
+	bool isInWS() const {
+		return !_innws;
+	}
+	void movedToOther() {
+		_innws = !_innws;
+	}
 };
 
 typedef GenPWatch* pgpw;
 typedef std::vector<GenPWatch*> genwatchlist;
 
-struct minmaxOptimAndPessBounds{
+struct minmaxOptimAndPessBounds {
 	minmaxBounds optim, pess;
 
-	minmaxOptimAndPessBounds(const minmaxBounds& bounds): optim(bounds),pess(bounds){}
-	minmaxOptimAndPessBounds(const Weight& optimmin, const Weight& optimmax,
-							const Weight& pessmin, const Weight& pessmax):optim(optimmin, optimmax),pess(pessmin, pessmax){}
+	minmaxOptimAndPessBounds(const minmaxBounds& bounds) :
+			optim(bounds), pess(bounds) {
+	}
+	minmaxOptimAndPessBounds(const Weight& optimmin, const Weight& optimmax, const Weight& pessmin, const Weight& pessmax) :
+			optim(optimmin, optimmax), pess(pessmin, pessmax) {
+	}
 };
 
 class GenPWAgg: public AggPropagator {
@@ -83,56 +102,78 @@ public:
 	GenPWAgg(TypedSet* set);
 	virtual ~GenPWAgg();
 
-	virtual void 	initialize				(bool& unsat, bool& sat);
-	virtual rClause reInitialize			();
-	virtual rClause	propagateAtEndOfQueue	();
-	virtual void	backtrack				(int){ trail.clear(); }
-	virtual void 	getExplanation			(litlist& lits, const AggReason& ar);
-	virtual void 	saveState(){ throw idpexception("Not yet implemented");} // TODO
-	virtual void 	resetState(){ throw idpexception("Not yet implemented");} // TODO
+	virtual void initialize(bool& unsat, bool& sat);
+	virtual rClause reInitialize();
+	virtual rClause propagateAtEndOfQueue();
+	virtual void backtrack(int) {
+		trail.clear();
+	}
+	virtual void getExplanation(litlist& lits, const AggReason& ar);
+	virtual void saveState() {
+	}
+	virtual void resetState() {
+		reInitialize();
+	}
 
 protected:
 	virtual void propagate(int level, Watch* ws, int aggindex);
 	virtual void propagate(const Lit& p, Watch* ws, int level);
-	rClause	propagateAtEndOfQueue(Watch* w);
-	rClause	propagateAtEndOfQueue(const Agg& agg);
+	rClause propagateAtEndOfQueue(Watch* w);
 
 private:
-	const genwatchlist&	getNWS	() const 	{ return nws; }
-	const genwatchlist&	getWS	() const 	{ return ws; }
-	genwatchlist& 		getNWS	() 			{ return nws; }
-	genwatchlist& 		getWS	() 			{ return ws; }
-	const genwatchlist& getStagedWatches() const	{ return newwatches; }
-	genwatchlist& 		getStagedWatches() 			{ return newwatches; }
+	const genwatchlist& getNWS() const {
+		return nws;
+	}
+	const genwatchlist& getWS() const {
+		return ws;
+	}
+	genwatchlist& getNWS() {
+		return nws;
+	}
+	genwatchlist& getWS() {
+		return ws;
+	}
+	const genwatchlist& getStagedWatches() const {
+		return newwatches;
+	}
+	genwatchlist& getStagedWatches() {
+		return newwatches;
+	}
 
-	minmaxBounds 		calculatePessimisticBounds();
-	void 				checkInitiallyKnownAggs(bool& unsat, bool& sat);
+	minmaxBounds calculatePessimisticBounds();
+	void checkInitiallyKnownAggs(bool& unsat, bool& sat);
 
-	Agg const* 	getWorstAgg		() { return worstagg; }
-	Agg* 		getAggWithMostStringentBound(bool includeunknown) const;
+	Agg const* getWorstAgg() {
+		return worstagg;
+	}
+	Agg* getAggWithMostStringentBound(bool includeunknown) const;
 
-	minmaxBounds getBoundsOnEmptyInterpr() const { return emptyinterpretbounds; }
-	void		setBoundsOnEmptyInterpr(minmaxBounds bounds) { emptyinterpretbounds = bounds; }
+	minmaxBounds getBoundsOnEmptyInterpr() const {
+		return emptyinterpretbounds;
+	}
+	void setBoundsOnEmptyInterpr(minmaxBounds bounds) {
+		emptyinterpretbounds = bounds;
+	}
 
 	minmaxOptimAndPessBounds calculateBoundsOfWatches(GenPWatch*& largest) const;
 
-	rClause reconstructSet		(pgpw watch, bool& propagations, Agg const * propagg);
-	void 	genWatches			(uint& i, const Agg& agg, minmaxOptimAndPessBounds& bounds, GenPWatch*& largest);
+	rClause reconstructSet(pgpw watch, bool& propagations, Agg const * propagg);
+	void genWatches(uint& i, const Agg& agg, minmaxOptimAndPessBounds& bounds, GenPWatch*& largest);
 
-	rClause checkPropagation	(bool& propagations, minmaxBounds& pessbounds, Agg const * agg);
+	rClause checkPropagation(bool& propagations, minmaxBounds& pessbounds, Agg const * agg);
 	rClause checkHeadPropagationForAgg(bool& propagations, const Agg& agg, const minmaxBounds& pessbounds);
 
-	void 	moveFromTo			(GenPWatch* watch, genwatchlist& from, genwatchlist& to);
-	void 	moveFromNWSToWS		(GenPWatch* watch);
-	void 	moveFromWSToNWS		(pgpw pw);
-	void 	resetStagedWatches	(int startindex = 0);
-	void 	addStagedWatchesToNetwork();
-	void 	addWatchToNetwork	(pgpw watch);
+	void moveFromTo(GenPWatch* watch, genwatchlist& from, genwatchlist& to);
+	void moveFromNWSToWS(GenPWatch* watch);
+	void moveFromWSToNWS(pgpw pw);
+	void resetStagedWatches(int startindex = 0);
+	void addStagedWatchesToNetwork();
+	void addWatchToNetwork(pgpw watch);
 
-	const agglist& getAgg		() const;
-	const AggProp& getType		() const;
+	const agglist& getAgg() const;
+	const AggProp& getType() const;
 
-	void 	stageWatch			(GenPWatch* watch);
+	void stageWatch(GenPWatch* watch);
 };
 
 double testGenWatchCount(const PCSolver& solver, const WLSet& set, const AggProp& type, const std::vector<TempAgg*> aggs, const Weight& knownbound);
