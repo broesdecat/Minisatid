@@ -84,6 +84,7 @@ public:
 	void addMonitor(PropAndBackMonitor* monitor);
 
 	bool isOptimizationProblem() const;
+	bool	isAlwaysAtOptimum() const;
 };
 
 }

@@ -223,11 +223,9 @@ void PropagatorFactory::addAggrExpr(Var head, int setid, AggSign sign, const Wei
 void PropagatorFactory::add(const MinimizeSubset& formula) {
 	notifyMonitorsOfAdding(formula);
 
-	guaranteeAtRootLevel();
+	getEngine().notifyOptimizationProblem();
 
-	if (formula.literals.size() == 0) {
-		throw idpexception("The set of literals to be minimized is empty.\n");
-	}
+	guaranteeAtRootLevel();
 
 	OptimStatement optim(formula.priority, Optim::SUBSET, formula.literals);
 	getEngine().addOptimization(optim);
@@ -236,17 +234,17 @@ void PropagatorFactory::add(const MinimizeSubset& formula) {
 void PropagatorFactory::add(const MinimizeOrderedList& formula) {
 	notifyMonitorsOfAdding(formula);
 
-	guaranteeAtRootLevel();
+	getEngine().notifyOptimizationProblem();
 
-	if (formula.literals.size() == 0) {
-		throw idpexception("The set of literals to be minimized is empty.\n");
-	}
+	guaranteeAtRootLevel();
 
 	OptimStatement optim(formula.priority, Optim::LIST, formula.literals);
 	getEngine().addOptimization(optim);
 }
 void PropagatorFactory::add(const MinimizeAgg& formula) {
 	notifyMonitorsOfAdding(formula);
+
+	getEngine().notifyOptimizationProblem();
 
 	guaranteeAtRootLevel();
 
@@ -268,13 +266,14 @@ void PropagatorFactory::add(const MinimizeAgg& formula) {
 
 	tempagglist aggs;
 	AggBound bound(AggSign::UB, Weight(0));
-	// FIXME IMPLICATION IS USED INCORRECTLY (but could be used here!)
-	aggs.push_back(new TempAgg(mkPosLit(head), bound, AggSem::COMP, formula.type));
+	aggs.push_back(new TempAgg(mkNegLit(head), bound, AggSem::IMPLICATION, formula.type));
 	finishSet(set, aggs, true, formula.priority);
 }
 
 void PropagatorFactory::add(const MinimizeVar& formula) {
 	notifyMonitorsOfAdding(formula);
+
+	getEngine().notifyOptimizationProblem();
 
 	guaranteeAtRootLevel();
 
@@ -414,9 +413,6 @@ SATVAL PropagatorFactory::finishSet(const WLSet* origset, vector<TempAgg*>& aggs
 	}
 
 	if(origset->wl.size()==0){
-		if(optimagg){
-			throw idpexception("An optimization aggregate cannot have an empty set.\n");
-		}
 		for(auto i=aggs.cbegin(); i<aggs.cend(); ++i){
 			if((*i)->hasLB()){
 				getEngine().notifySetTrue((type->getESV()>=(*i)->getBound())?(*i)->getHead():not (*i)->getHead());
@@ -432,7 +428,8 @@ SATVAL PropagatorFactory::finishSet(const WLSet* origset, vector<TempAgg*>& aggs
 
 	// transform into SAT if requested
 	// TODO handle all aggregates in some way!
-	if (getEngine().modes().tocnf && not optimagg) {
+	//if (getEngine().modes().tocnf && not optimagg) {
+	if(false){ // TODO: Minisat++ contains some serious flaws at the moment, making it unreliable
 		if (not AggStorage::hasStorage()) {
 			AggStorage::addStorage(getEnginep());
 		}

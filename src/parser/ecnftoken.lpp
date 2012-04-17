@@ -46,6 +46,7 @@ WHITESPACE	[\t\r ]*
 <*>^"translation"	{ADJ; BEGIN(trans); return TRANSHEADER;}
 <*>^"=== atom translation ==="	{ADJ; BEGIN(trans); return TRANSHEADER2;}
 
+<theory,INITIAL>^"c\n"	{/* disregard comments */}
 <theory,INITIAL>^"c ".*	{/* disregard comments */}
 
 <theory>"cnf"	{ADJ; return CNF;}

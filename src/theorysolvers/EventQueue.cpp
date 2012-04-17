@@ -33,7 +33,6 @@ EventQueue::~EventQueue() {
 	for(auto i=allpropagators.cbegin(); i<allpropagators.cend(); ++i) {
 		delete(*i);
 	}
-	deleteList<GenWatch>(lit2watches);
 }
 
 bool EventQueue::isUnsat() const{

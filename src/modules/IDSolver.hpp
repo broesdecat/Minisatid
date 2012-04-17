@@ -213,7 +213,7 @@ public:
 	virtual void 		notifyNewDecisionLevel	();
 	virtual void 		notifyBacktrack			(int untillevel, const Lit& decision){ backtracked = true; Propagator::notifyBacktrack(untillevel, decision); };
 	virtual rClause notifyFullAssignmentFound();
-	virtual int getNbOfFormulas() const { return defdVars.size()==0?0:defdVars.size()*log((double)defdVars.size())/log(2); }
+	virtual int getNbOfFormulas() const;
 
 	rClause				isWellFoundedModel		();
 

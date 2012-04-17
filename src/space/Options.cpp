@@ -49,7 +49,7 @@ SolverOption::SolverOption():
 		polarity(getDefaultPolarity()),
 		bumpaggonnotify(true),
 		bumpidonstart(false),
-		ufsvarintrothreshold(500),
+		ufsvarintrothreshold(50000),
 		subsetminimizeexplanation(false),
 		currentlevelfirstinexplanation(true),
 		innogoodfirstinexplanation(true),

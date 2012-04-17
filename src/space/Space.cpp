@@ -58,3 +58,7 @@ bool Space::isCertainlyUnsat() const {
 bool Space::isOptimizationProblem() const {
 	return engine->isOptimizationProblem();
 }
+
+bool Space::isAlwaysAtOptimum() const {
+	return engine->isAlwaysAtOptimum();
+}

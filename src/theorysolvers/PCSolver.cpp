@@ -31,7 +31,7 @@ using Minisat::vec;
 
 //Has to be value copy of modes!
 PCSolver::PCSolver(SolverOption modes, Monitor* monitor, VarCreation* varcreator, LiteralPrinter* printer, bool oneshot) :
-		_modes(modes), varcreator(varcreator), monitor(monitor), monitoring(false), parsingfinished(false), currentoptim(0), searchengine(NULL),
+		_modes(modes), varcreator(varcreator), monitor(monitor), monitoring(false), parsingfinished(false), optimproblem(false), currentoptim(0), searchengine(NULL),
 #ifdef CPSUPPORT
 				cpsolver(NULL),
 #endif

@@ -39,7 +39,7 @@ private:
 	proplist allpropagators;
 	std::map<EVENT, propqueue > event2propagator;					// |events|
 	std::vector<std::vector<proplist> > lit2priority2propagators;	// |lits|
-	std::vector<watchlist> lit2watches;								// |lits|
+	std::vector<watchlist> lit2watches;								// |lits| // TODO check whether all watches get deleted
 	std::vector<proplist> intvarid2propagators; 					// |intvars|
 
 	std::vector<std::vector<Propagator*>> var2decidable;			// |vars|

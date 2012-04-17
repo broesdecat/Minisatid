@@ -81,9 +81,9 @@ void IDSolver::createDefinition(Var head, IDAgg* agg) {
 	setDefVar(head, new DefinedVar(agg));
 }
 
-/*int IDSolver::getNbOfFormulas() const {
- return definitions.size() * log(definitions.size());
- }*/
+int IDSolver::getNbOfFormulas() const {
+	return defdVars.size()==0?0:defdVars.size()*log((double)defdVars.size())/log(2);
+ }
 
 inline void IDSolver::addCycleSource(Var v) {
 	if (!isCS(v)) {
@@ -1500,23 +1500,22 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 	if (getPCSolver().modes().selectOneFromUFS) {
 		savedufs = ufs;
 		savedloopf = loopf;
-		Lit l = mkNegLit(*ufs.cbegin());
+		auto l = mkNegLit(*ufs.cbegin());
 		addLoopfClause(l, loopf);
 	} else {
 		// No conflict: then enqueue all facts and their loop formulas.
 		if ((long) (loopf.literals.size() * ufs.size()) > modes().ufsvarintrothreshold) {
 			//introduce a new var to represent all external disjuncts: v <=> \bigvee external disj
-			Var v = getPCSolver().newVar();
+			auto v = getPCSolver().newVar();
 			if (verbosity() >= 2) {
-				clog << "Adding new variable for loop formulas: " << toString(v) << "\n";
+				clog << "Adding new variable " << toString(v) << "for a ufs of size " <<ufs.size() <<" and " <<loopf.literals.size() <<" external disjuncts.\n";
 			}
 
 			// not v \vee \bigvee\extdisj{L}
 			addLoopfClause(mkNegLit(v), loopf);
 
 			// \forall d \in \extdisj{L}: not d \vee v
-			Disjunction binaryclause;
-			binaryclause.literals = litlist { mkLit(-1), mkPosLit(v) };
+			Disjunction binaryclause(litlist { mkLit(-1), mkPosLit(v) });
 			for (uint i = 1; i < loopf.literals.size(); ++i) {
 				addLoopfClause(not loopf.literals[i], binaryclause);
 			}
@@ -1528,7 +1527,7 @@ rClause IDSolver::assertUnfoundedSet(const std::set<Var>& ufs) {
 		}
 
 		for (auto tch = ufs.cbegin(); tch != ufs.cend(); ++tch) {
-			Lit l = mkNegLit(*tch);
+			auto l = mkNegLit(*tch);
 			addLoopfClause(l, loopf);
 		}
 	}

@@ -51,9 +51,9 @@ void SpaceTask::notifyTerminateRequested() {
 	space->getEngine()->notifyTerminateRequested();
 }
 
-ModelExpand::ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions)
-		: MXTask(space), _options(options), assumptions(checkLits(assumptions, space->getRemapper())), _solutions(new ModelManager(options.savemodels)),
-			printer(new Printer(_solutions, space, options.printmodels, space->getOptions())) {
+ModelExpand::ModelExpand(Space* space, ModelExpandOptions options, const litlist& assumptions) :
+		MXTask(space), _options(options), assumptions(checkLits(assumptions, space->getRemapper())), _solutions(new ModelManager(options.savemodels)), printer(
+				new Printer(_solutions, space, options.printmodels, space->getOptions())) {
 
 }
 
@@ -70,8 +70,8 @@ SearchEngine& SpaceTask::getSolver() const {
 	return *getSpace()->getEngine();
 }
 
-SpaceTask::SpaceTask(Space* space)
-		: Task(space->getOptions()), space(space) {
+SpaceTask::SpaceTask(Space* space) :
+		Task(space->getOptions()), space(space) {
 
 }
 
@@ -122,9 +122,14 @@ void ModelExpand::innerExecute() {
 	bool moremodelspossible = true;
 	if (getSpace()->isOptimizationProblem()) {
 		bool optimumfound = true;
-		while (getSolver().hasNextOptimum() && optimumfound) {
-			optimumfound = findOptimal(assumptions, getSolver().getNextOptimum());
+		if (getSpace()->isAlwaysAtOptimum()) {
+			optimumfound = findNext(assumptions, _options) != MXState::UNSAT;
+		} else {
+			while (getSolver().hasNextOptimum() && optimumfound) {
+				optimumfound = findOptimal(assumptions, getSolver().getNextOptimum());
+			}
 		}
+
 		if (optimumfound) {
 			_solutions->notifyOptimalModelFound();
 		} else {
@@ -145,9 +150,9 @@ void ModelExpand::innerExecute() {
 		_solutions->notifyUnsat();
 		// TODO notify the space that it is unsat? getSpace()->...
 	}
-	if(terminateRequested()){
+	if (terminateRequested()) {
 		printer->notifySolvingAborted();
-	}else{
+	} else {
 		printer->notifySolvingFinished();
 	}
 
@@ -226,7 +231,7 @@ MXState ModelExpand::findNext(const litlist& assmpt, const ModelExpandOptions& o
 			getSolver().invalidate(invalidation.literals);
 			moremodels = invalidateModel(invalidation.literals) == SATVAL::POS_SAT;
 		} else {
-			if(not morecpmodels){
+			if (not morecpmodels) {
 				moremodels = false;
 			}
 		}
@@ -411,25 +416,26 @@ bool ModelExpand::findOptimal(const litlist& assmpt, OptimStatement& optim) {
 		// If resetting state, also fix the optimization constraints to their optimal condition
 		switch (optim.optim) {
 		case Optim::LIST:
-			for(auto i=optim.to_minimize.cbegin(); i<optim.to_minimize.cend(); ++i){
-				if(*i==latestlistoptimum){
+			for (auto i = optim.to_minimize.cbegin(); i < optim.to_minimize.cend(); ++i) {
+				if (*i == latestlistoptimum) {
 					break;
 				}
-				add(Disjunction( { ~*i}), getSolver());
+				add(Disjunction( { ~*i }), getSolver());
 			}
 			add(Disjunction( { latestlistoptimum }), getSolver());
 			break;
-		case Optim::SUBSET:{
+		case Optim::SUBSET: {
 			WLSet set;
 			set.setID = getSolver().newSetID();
-			for(auto i=optim.to_minimize.cbegin(); i<optim.to_minimize.cend(); ++i){
-				set.wl.push_back({*i, 1});
+			for (auto i = optim.to_minimize.cbegin(); i < optim.to_minimize.cend(); ++i) {
+				set.wl.push_back( { *i, 1 });
 			}
 			add(set, getSolver());
 			auto var = getSolver().newVar();
-			add(Disjunction({mkPosLit(var)}), getSolver());
+			add(Disjunction( { mkPosLit(var) }), getSolver());
 			add(Aggregate(var, set.setID, latestsubsetsize, AggType::CARD, AggSign::UB, AggSem::COMP, -1), getSolver());
-			break;}
+			break;
+		}
 		case Optim::AGG: {
 			auto agg = optim.agg_to_minimize;
 			agg->setBound(AggBound(agg->getSign(), latestaggoptimum));

@@ -73,6 +73,9 @@ void SearchEngine::finishParsing() {
 bool SearchEngine::isOptimizationProblem() const {
 	return solver->isOptimizationProblem();
 }
+bool SearchEngine::isAlwaysAtOptimum() const{
+	return solver->isAlwaysAtOptimum();
+}
 bool SearchEngine::hasNextOptimum() const {
 	return solver->hasNextOptimum();
 }

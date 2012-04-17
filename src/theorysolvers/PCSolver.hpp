@@ -86,7 +86,7 @@ private:
 	Monitor* monitor;
 
 	// Optimization
-	bool parsingfinished;
+	bool parsingfinished, optimproblem;
 	std::vector<OptimStatement> optimization;
 public:
 	void addOptimization(OptimStatement optim) {
@@ -94,10 +94,19 @@ public:
 			throw idpexception("Cannot add additional optimizations after finishParsing has been called.");
 		}
 		optimization.push_back(optim);
+		notifyOptimizationProblem();
+	}
+
+	// NOTE: only call from code which simplifies optimization statements
+	void notifyOptimizationProblem(){
+		optimproblem = true;
 	}
 
 	bool isOptimizationProblem() const {
-		return optimization.size() > 0;
+		return optimproblem;
+	}
+	bool isAlwaysAtOptimum() const{
+		return isOptimizationProblem() && optimization.size()==0;
 	}
 
 	uint currentoptim;
