@@ -38,7 +38,8 @@ private:
 	void addAgg(const TempAgg& tempagg, bool optim);
 
 public:
-	TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggProp const * const w, const vwl& wls, bool usewatches, const std::vector<TempAgg*>& aggr, bool optim);
+	TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggProp const * const w, const vwl& wls, bool usewatches,
+			const std::vector<TempAgg*>& aggr, bool optim);
 	virtual ~TypedSet();
 
 	// Propagator methods
@@ -53,7 +54,9 @@ public:
 	virtual rClause notifyFullAssignmentFound();
 	virtual void saveState();
 	virtual void resetState();
-	virtual int getNbOfFormulas() const { return getWL().size()==0?0:getWL().size()*log((double)getWL().size())/log(2)*getAgg().size(); }
+	virtual int getNbOfFormulas() const {
+		return getWL().size() == 0 ? 0 : getWL().size() * log((double) getWL().size()) / log(2) * getAgg().size();
+	}
 
 	// additional
 	rClause notifySolver(AggReason* ar);
@@ -96,6 +99,11 @@ public:
 		stable_sort(wl.begin(), wl.end(), compareByWeights<WL>);
 	}
 	void removeAggs(const std::set<Agg*>& del);
+
+private:
+	bool acceptedforbacktrack;
+public:
+	void acceptForBacktrack();
 
 private:
 	void addExplanation(AggReason& ar) const;

@@ -37,11 +37,10 @@ class Watch;
 class GenPWatch: public Watch {
 private:
 	bool _innws; //True if it is in NWS, false if it is in WS
-	bool _innet; //True if it is in the watch network
 	int _index; //-1 if _innws
 public:
 	GenPWatch(TypedSet* set, const WL& wl, bool watchneg, uint index) :
-			Watch(set, wl.getLit(), wl.getWeight(), not watchneg, true), _innws(true), _innet(false), _index(index) {
+			Watch(set, watchneg?~wl.getLit():wl.getLit(), wl.getWeight(), not watchneg, true), _innws(true), _index(index) {
 	}
 
 	int getIndex() const {
@@ -54,19 +53,10 @@ public:
 		return not isOrigLit();
 	}
 	WL getWL() const {
-		return WL(getPropLit(), getWeight());
+		return WL(getOrigLit(), getWeight());
 	}
 	Lit getWatchLit() const {
-		return isMonotone() ? not getPropLit() : getPropLit();
-	}
-	bool isInNetwork() const {
-		return _innet;
-	}
-	void addToNetwork() {
-		_innet = true;
-	}
-	void removeFromNetwork() {
-		_innet = false;
+		return getPropLit();
 	}
 
 	bool isInWS() const {
@@ -96,7 +86,7 @@ private:
 	genwatchlist ws, nws, newwatches;
 	minmaxBounds emptyinterpretbounds;
 	Agg const * worstagg;
-	std::vector<Watch*> trail;
+	std::vector<Watch*> proplist; // List of watches which still need to be propagated
 
 public:
 	GenPWAgg(TypedSet* set);
@@ -105,9 +95,7 @@ public:
 	virtual void initialize(bool& unsat, bool& sat);
 	virtual rClause reInitialize();
 	virtual rClause propagateAtEndOfQueue();
-	virtual void backtrack(int) {
-		trail.clear();
-	}
+	virtual void backtrack(int untillevel);
 	virtual void getExplanation(litlist& lits, const AggReason& ar);
 	virtual void saveState() {
 	}
@@ -118,7 +106,7 @@ public:
 protected:
 	virtual void propagate(int level, Watch* ws, int aggindex);
 	virtual void propagate(const Lit& p, Watch* ws, int level);
-	rClause propagateAtEndOfQueue(Watch* w);
+	//rClause propagateAtEndOfQueue(Watch* w);
 
 private:
 	const genwatchlist& getNWS() const {
@@ -157,7 +145,7 @@ private:
 
 	minmaxOptimAndPessBounds calculateBoundsOfWatches(GenPWatch*& largest) const;
 
-	rClause reconstructSet(pgpw watch, bool& propagations, Agg const * propagg);
+	rClause reconstructSet(bool& propagations, Agg const * propagg, bool checkpropagation = true);
 	void genWatches(uint& i, const Agg& agg, minmaxOptimAndPessBounds& bounds, GenPWatch*& largest);
 
 	rClause checkPropagation(bool& propagations, minmaxBounds& pessbounds, Agg const * agg);
@@ -167,13 +155,15 @@ private:
 	void moveFromNWSToWS(GenPWatch* watch);
 	void moveFromWSToNWS(pgpw pw);
 	void resetStagedWatches(int startindex = 0);
-	void addStagedWatchesToNetwork();
+	void addStagedWatchesToNetworkOnStable(rClause confl);
 	void addWatchToNetwork(pgpw watch);
 
 	const agglist& getAgg() const;
 	const AggProp& getType() const;
 
 	void stageWatch(GenPWatch* watch);
+
+	void checkWatches() const;
 };
 
 double testGenWatchCount(const PCSolver& solver, const WLSet& set, const AggProp& type, const std::vector<TempAgg*> aggs, const Weight& knownbound);

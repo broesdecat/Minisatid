@@ -19,34 +19,55 @@ using namespace MinisatID;
 typedef numeric_limits<int> lim;
 
 #ifdef GMP
-	ostream& MinisatID::operator<<(ostream& output, const Weight& p) {
-		output << p.get_str();
-		return output;
+int Weight::toInt() const {
+	if(inf || w>=std::numeric_limits<int>::max() || w<=std::numeric_limits<int>::min()) {
+		throw idpexception("Invalid conversion of an arbitrary size number to int.");
 	}
+	return w.get_si();
+}
 
-	istream& MinisatID::operator>>(istream& input, Weight& obj) {
-		long n;
-		input >> n;
-		obj.w = n;
-		return input;
-	}
-
-	string MinisatID::toString(const Weight& w){
+std::string Weight::get_str() const {
+	if(!inf) {
 		return w.get_str();
+	} else {
+		return pos?"+oo":"-oo";
 	}
+}
 
-	Weight MinisatID::abs(const Weight& w) { return w<0?-w:w; }
-	Weight MinisatID::posInfinity() { return Weight(true); }
-	Weight MinisatID::negInfinity() { return Weight(false); }
+ostream& MinisatID::operator<<(ostream& output, const Weight& p) {
+	output << p.get_str();
+	return output;
+}
 
-	int MinisatID::toInt(const Weight& weight) { return toInt(weight); }
+istream& MinisatID::operator>>(istream& input, Weight& obj) {
+	long n;
+	input >> n;
+	obj.w = n;
+	return input;
+}
+
+string MinisatID::toString(const Weight& w) {
+	return w.get_str();
+}
+
+Weight MinisatID::abs(const Weight& w) {return w<0?-w:w;}
+Weight MinisatID::posInfinity() {return Weight(true);}
+Weight MinisatID::negInfinity() {return Weight(false);}
+
+int MinisatID::toInt(const Weight& weight) {return weight.toInt();}
 #else //USING FINITE PRECISION WEIGHTS
-	string MinisatID::toString(const Weight& w){
-		stringstream s;
-		s <<w;
-		return s.str();
-	}
-	Weight MinisatID::posInfinity() { return lim::max(); }
-	Weight MinisatID::negInfinity() { return lim::min(); }
-	int MinisatID::toInt(const Weight& weight) { return weight; }
+string MinisatID::toString(const Weight& w) {
+	stringstream s;
+	s << w;
+	return s.str();
+}
+Weight MinisatID::posInfinity() {
+	return lim::max();
+}
+Weight MinisatID::negInfinity() {
+	return lim::min();
+}
+int MinisatID::toInt(const Weight& weight) {
+	return weight;
+}
 #endif

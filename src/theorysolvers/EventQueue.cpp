@@ -133,15 +133,16 @@ void EventQueue::accept(GenWatch* const watch) {
 		getPCSolver().notifyDecisionVar(var(watch->getPropLit()));
 	}
 	bool addwatch = true;
-	if (getPCSolver().value(watch->getPropLit()) == l_True) { // FIXME should happen in all add methods?
+	if (getPCSolver().value(watch->getPropLit()) == l_True) {
 		// are propagated asap, but not in this method as that leads to correctness issues
-		// TODO how to handle those better?
 		propagatewatchesasap.push_back(watch);
 		if (watch->dynamic()) {
 			addwatch = false;
 		}
 	}
 	if (addwatch) {
+		watch->addToNetwork();
+		//cerr <<">>> Added watch: " <<toString(watch->getPropLit(), getPCSolver()) <<"\n";
 		lit2watches[toInt(watch->getPropLit())].push_back(watch);
 	}
 }
@@ -160,6 +161,7 @@ void EventQueue::setTrue(const Lit& l) {
 	auto& lw = lit2watches[toInt(l)];
 	if(lw.size()!=0){
 		for (uint i = 0; i != lw.size(); ++i) {
+			//cerr <<"Propagating watch\n";
 			lw[i]->propagate();
 		}
 		// TODO can be sped up?
@@ -167,6 +169,8 @@ void EventQueue::setTrue(const Lit& l) {
 		for (auto i = lw.cbegin(); i != lw.cend(); ++i) {
 			if (not (*i)->dynamic()) {
 				remwatches.push_back(*i);
+			}else{
+				(*i)->removeFromNetwork();
 			}
 		}
 		lw = remwatches;

@@ -12,37 +12,32 @@
 #include <string>
 #include <limits>
 #include "MAssert.hpp"
+#include "Idpexception.hpp"
 
 // Weight declaration and utilities
 
 #ifdef GMP
-	#include "gmpxx.h"
+#include "gmpxx.h"
 
-	namespace MinisatID {
-	class Weight{
+namespace MinisatID {
+	class Weight {
 	private:
 		mpz_class w;
 		bool inf, pos;
 	public:
-		Weight(): w(0), inf(false), pos(false){}
-		Weight(int i): w(i), inf(false), pos(false){}
-		Weight(long i): w(i), inf(false), pos(false){}
-		Weight(mpz_class w): w(w), inf(false), pos(false){}
-		Weight(bool posinf): w(0), inf(true), pos(posinf){}
+		Weight(): w(0), inf(false), pos(false) {}
+		Weight(int i): w(i), inf(false), pos(false) {}
+		Weight(long i): w(i), inf(false), pos(false) {}
+		Weight(mpz_class w): w(w), inf(false), pos(false) {}
+		Weight(bool posinf): w(0), inf(true), pos(posinf) {}
 
-		int toInt() const { MAssert(not inf && w<=std::numeric_limits<int>::max() && w>=std::numeric_limits<int>::min()); return w.get_si(); }
+		int toInt() const;
 
-		operator const mpz_class&() const { MAssert(!inf); return w; }
+		operator const mpz_class&() const {MAssert(!inf); return w;}
 
 		friend std::istream& operator>>(std::istream& input, Weight& obj);
 
-		std::string get_str() const{
-			if(!inf){
-				return w.get_str();
-			}else{
-				return pos?"+inf":"-inf";
-			}
-		}
+		std::string get_str() const;
 
 		const Weight operator-() const {
 			Weight w2(*this);
@@ -68,110 +63,110 @@
 		}
 
 		Weight& operator+=(const Weight &rhs) {
-			if(rhs.inf || inf){
+			if(rhs.inf || inf) {
 				MAssert(!rhs.inf || !inf);
 				w=0;
 				pos = inf?pos:rhs.pos;
 				inf = true;
-			}else{
+			} else {
 				w += rhs.w;
 			}
 			return *this;
 		}
 
 		Weight& operator-=(const Weight &rhs) {
-			if(rhs.inf || inf){
+			if(rhs.inf || inf) {
 				MAssert(!rhs.inf || !inf);
 				w=0;
 				pos = inf?pos:!rhs.pos;
 				inf = true;
-			}else{
+			} else {
 				w -= rhs.w;
 			}
 			return *this;
 		}
 
 		Weight& operator*=(const Weight &rhs) {
-			if(rhs.inf || inf){
+			if(rhs.inf || inf) {
 				MAssert(!rhs.inf || !inf);
 				w=0;
 				pos = inf?pos:rhs.pos;
 				inf = true;
-			}else{
+			} else {
 				w *= rhs.w;
 			}
 			return *this;
 		}
 
 		Weight& operator/=(const Weight &rhs) {
-			if(rhs.inf || inf){
+			if(rhs.inf || inf) {
 				MAssert(!rhs.inf || !inf);
-				if(inf){
-					if(rhs.w<0){
+				if(inf) {
+					if(rhs.w<0) {
 						pos = !pos;
 					}
-				}else{
+				} else {
 					w = 0;
 					inf = false;
 				}
-			}else{
+			} else {
 				w /= rhs.w;
 			}
 			return *this;
 		}
 
-		bool operator==(const Weight& weight) const{
+		bool operator==(const Weight& weight) const {
 			return w==weight.w && inf==weight.inf && pos==weight.pos;
 		}
 
-		bool operator!=(const Weight& weight) const{
+		bool operator!=(const Weight& weight) const {
 			return !(*this==weight);
 		}
 
 		bool operator<(const Weight& weight) const {
-			if(!inf && !weight.inf){
+			if(!inf && !weight.inf) {
 				return w < weight.w;
-			}else if(inf){
-				if(weight.inf){
+			} else if(inf) {
+				if(weight.inf) {
 					return false;
-				}else{
+				} else {
 					return !pos;
 				}
-			}else{//only weight is inf
+			} else { //only weight is inf
 				return weight.pos;
 			}
 		}
 
-		bool operator<=(const Weight& weight) const{
+		bool operator<=(const Weight& weight) const {
 			return *this==weight || *this<weight;
 		}
 
-		bool operator>(const Weight& weight) const{
+		bool operator>(const Weight& weight) const {
 			return !(*this<=weight);
 		}
 
-		bool operator>=(const Weight& weight) const{
+		bool operator>=(const Weight& weight) const {
 			return !(*this<weight);
 		}
 	};
 	Weight abs(const Weight& w);
 	std::istream& operator>>(std::istream& input, Weight& obj);
 	std::ostream& operator<<(std::ostream& output, const Weight& p);
-	}
+}
 #else
-	namespace MinisatID {
-	#define NOARBITPREC
-	typedef int Weight;
-	//FAST, NO OVERFLOW SUPPORT
-	}
+namespace MinisatID {
+#define NOARBITPREC
+typedef int Weight;
+//FAST, NO OVERFLOW SUPPORT
+}
 #endif
 
 namespace MinisatID {
-	Weight posInfinity();
-	Weight negInfinity();
+Weight posInfinity();
+Weight negInfinity();
 
-	std::string toString(const Weight& w);
-	int toInt(const Weight& weight);
+std::string toString(const Weight& w);
+int toInt(const Weight& weight);
 }
 
 #endif /* WEIGHT_HPP_ */

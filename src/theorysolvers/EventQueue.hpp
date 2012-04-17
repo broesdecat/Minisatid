@@ -83,6 +83,7 @@ public:
 		intvarid2propagators[(uint)var->id()].push_back(propagator);
 	}
 	void 	accept(Propagator* propagator, const Lit& litevent, PRIORITY priority);
+
 	void 	accept(GenWatch* const watch);
 
 	void 	addEternalPropagators();

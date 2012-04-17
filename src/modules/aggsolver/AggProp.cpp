@@ -402,6 +402,10 @@ AggPropagator::AggPropagator(TypedSet* set)
 
 }
 
+const PCSolver& AggPropagator::getPCSolver() const{
+	return getSet().getPCSolver();
+}
+
 // Final initialization call!
 void AggPropagator::initialize(bool&, bool&) {
 	for (auto i = getSet().getAgg().cbegin(); i < getSet().getAgg().cend(); ++i) {

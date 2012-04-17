@@ -67,10 +67,10 @@ void AggToCNFTransformer::add(WLSet* set, std::vector<TempAgg*>& aggs) {
 		if (agg->hasUB()) {
 			pbaggeq->sign = -1;
 			pbaggineq->sign = 1;
-			pbaggineq->bound++; // Strictly larger than
+			pbaggineq->bound+=Weight(1); // Strictly larger than
 		} else {
 			pbaggineq->sign = -1;
-			pbaggineq->bound--; // Strictly lower than
+			pbaggineq->bound-=Weight(1); // Strictly lower than
 			pbaggeq->sign = 1;
 		}
 		Weight min = 0, max = 0;
@@ -85,8 +85,8 @@ void AggToCNFTransformer::add(WLSet* set, std::vector<TempAgg*>& aggs) {
 			} else {
 				max += (*k).getWeight();
 			}
-			pbaggeq->weights.push(MiniSatPP::Int((*k).getWeight()));
-			pbaggineq->weights.push(MiniSatPP::Int((*k).getWeight()));
+			pbaggeq->weights.push(MiniSatPP::Int(toInt((*k).getWeight())));  // FIXME use the bignums without downcast? (5 places in file)
+			pbaggineq->weights.push(MiniSatPP::Int(toInt((*k).getWeight())));
 		}
 		auto headval = pcsolver.rootValue(agg->getHead());
 		if (headval == l_Undef) {
@@ -103,8 +103,8 @@ void AggToCNFTransformer::add(WLSet* set, std::vector<TempAgg*>& aggs) {
 				eqval = abs(pbaggeq->bound) + abs(min) + 1;
 				ineqval = -abs(pbaggineq->bound) - abs(max) - 1;
 			}
-			pbaggeq->weights.push(MiniSatPP::Int(eqval));
-			pbaggineq->weights.push(MiniSatPP::Int(ineqval));
+			pbaggeq->weights.push(MiniSatPP::Int(toInt(eqval)));
+			pbaggineq->weights.push(MiniSatPP::Int(toInt(ineqval)));
 		}
 		if (headval != l_False) {
 			pbaggs.push_back(pbaggeq);
@@ -143,7 +143,7 @@ SATVAL MinisatID::execute(const AggToCNFTransformer& transformer) {
 
 	bool unsat = false;
 	for (auto i = transformer.pbaggs.cbegin(); !unsat && i < transformer.pbaggs.cend(); ++i) {
-		unsat = !pbsolver->addConstr((*i)->literals, (*i)->weights, MiniSatPP::Int((*i)->bound), (*i)->sign, false);
+		unsat = !pbsolver->addConstr((*i)->literals, (*i)->weights, MiniSatPP::Int(toInt((*i)->bound)), (*i)->sign, false);
 	}
 
 	if (unsat) {

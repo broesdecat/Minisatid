@@ -16,41 +16,6 @@
 using namespace std;
 using namespace MinisatID;
 
-void MinisatID::printWatches(int, const std::vector<std::vector<Watch*> >&){
-/*	FIXME
-	if(verbosity<10){
-		return;
-	}
-	clog <<"Current effective watches: \n";
-	for(uint i=0; i<var2watches.size(); ++i){
-		bool found = false;
-		for(vsize j=0; !found && j<var2watches[i].size(); ++j){
-			for(vsize k=0; !found && k<var2watches[i][j]->getSet()->getAgg().size(); ++k){
-				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(var2watches[i][j]);
-				if(watch2!=NULL && watch2->isInWS()){
-					found = true;
-				}
-			}
-		}
-
-		if(!found){
-			continue;
-		}
-
-		clog<<"    Watch " <<toLit(i) <<" used by: \n";
-		for(vsize j=0; j<var2watches[i].size(); ++j){
-			for(vsize k=0; k<var2watches[i][j]->getSet()->getAgg().size(); ++k){
-				GenPWatch* watch2 = dynamic_cast<GenPWatch*>(var2watches[i][j]);
-				if(watch2!=NULL && watch2->isInWS()){
-					clog<<"        ";
-					toString(verbosity, *var2watches[i][j]->getSet()->getAgg()[k], true);
-				}
-			}
-		}
-	}
-	clog <<"\n";*/
-}
-
 template<class T>
 void printValue(T& output, lbool value){
 	output <<"(" <<(value==l_Undef?"X":value==l_True?"T":"F") <<")";
@@ -62,7 +27,7 @@ void MinisatID::print(int verbosity, const TypedSet& c, bool endl) {
 	}else{
 		clog <<"set " <<c.getSetID() <<" = {";
 		bool begin = true;
-		for (vwl::const_iterator i = c.getWL().cbegin(); i < c.getWL().cend(); ++i) {
+		for (auto i = c.getWL().cbegin(); i < c.getWL().cend(); ++i) {
 			if(!begin){
 				clog <<", ";
 			}
@@ -94,13 +59,13 @@ void MinisatID::print(int verbosity, const Agg& ae, bool endl) {
 			break;
 	}
 	if (ae.hasLB()) {
-		clog <<ae.getCertainBound() <<" <= ";
+		clog <<ae.getCertainBound() <<" =< ";
 	}
 	clog <<ae.getType() <<"{";
 	print(verbosity, *set, false);
 	clog <<"}";
 	if (ae.hasUB()) {
-		clog <<" <= " <<ae.getCertainBound();
+		clog <<" =< " <<ae.getCertainBound();
 	}
 	clog <<".";
 	if(endl){

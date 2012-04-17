@@ -131,7 +131,7 @@ void FWAgg::propagate(int level, Watch* watch, int aggindex) {
 	if (fwobj->level < level) {
 		getTrail().push_back(new FWTrail(level, fwobj->CBC, fwobj->CBP));
 		fwobj = getTrail().back();
-		getSet().getPCSolver().acceptForBacktrack(getSetp());
+		getSet().acceptForBacktrack();
 	}
 
 	if (fwobj->start == fwobj->props.size()) {
@@ -148,7 +148,7 @@ void FWAgg::propagate(const Lit& p, Watch* ws, int level) {
 	if (fwobj->level < level) {
 		getTrail().push_back(new FWTrail(level, fwobj->CBC, fwobj->CBP));
 		fwobj = getTrail().back();
-		getSet().getPCSolver().acceptForBacktrack(getSetp());
+		getSet().acceptForBacktrack();
 	}
 	if (fwobj->start == fwobj->props.size()) {
 		getSet().getPCSolver().acceptForPropagation(getSetp());

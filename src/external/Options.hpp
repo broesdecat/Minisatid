@@ -73,7 +73,6 @@ public:
 	bool tocnf;
 	double watchesratio;
 	std::string primesfile;
-	//bool 			remap;
 	double rand_var_freq, var_decay;
 	Polarity polarity;
 	bool bumpaggonnotify, bumpidonstart;

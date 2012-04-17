@@ -43,11 +43,23 @@ enum PRIORITY { FAST = 0, SLOW = 1 };
 enum EVENT { EV_PROPAGATE, EV_BACKTRACK, EV_DECISIONLEVEL, EV_BOUNDSCHANGE, EV_MODELFOUND, EV_STATEFUL};
 
 class GenWatch{
+private:
+	bool _innet;
 public:
+	GenWatch(): _innet(false){}
 	virtual ~GenWatch(){}
 	virtual void propagate() = 0;
 	virtual const Lit& getPropLit() const = 0;
 	virtual bool dynamic() const = 0;
+	bool isInNetwork() const {
+		return _innet;
+	}
+	void addToNetwork() {
+		_innet = true;
+	}
+	void removeFromNetwork() {
+		_innet = false;
+	}
 };
 
 }

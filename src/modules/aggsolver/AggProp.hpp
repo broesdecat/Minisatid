@@ -205,6 +205,8 @@ void addValue		(const AggProp& type, const Weight& weight, bool wasinset, Weight
 void removeValue	(const AggProp& type, const Weight& weight, bool addtoset, minmaxBounds& bounds);
 void removeValue	(const AggProp& type, const Weight& weight, bool wasinset, Weight& min, Weight& max);
 
+class PCSolver;
+
 class AggPropagator {
 private:
 	TypedSet* const set; //Non-owning
@@ -224,6 +226,8 @@ public:
     TypedSet&			getSet() 			{ return *set; }
     const TypedSet&		getSet() 	const	{ return *set; }
     TypedSet*			getSetp()	const 	{ return set; }
+
+    const PCSolver&		getPCSolver() const;
 
 	lbool				value(const Lit& l) const;
 

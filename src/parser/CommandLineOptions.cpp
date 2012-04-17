@@ -290,8 +290,8 @@ bool MinisatID::parseOptions(int argc, char** argv, SolverOption& modes){
 			modes.tocnf, cmd,"Choose whether to translate non-clausal constraints to clauses."));
 	options.push_back(new Option<bool, string>	("","doublecyclecheck", 	yesnovals, checkcycledesc,
 			modes.checkcyclefreeness, cmd,"Choose whether to also check cycles with the bottom-up algorithm (for debugging purposes)."));
-//	options.push_back(new NoValsOption<double>	("","watch-ratio", 	"double",
-//			modes.watchesratio, cmd,"The ratio of watches to set literals under which the watched algorithm is used."));
+	options.push_back(new NoValsOption<double>	("","watch-ratio", 	"double",
+			modes.watchesratio, cmd,"The ratio of watches to set literals under which the watched algorithm is used."));
 	options.push_back(new Option<Polarity, string>("","polarity", 	polvals, poldesc,
 			modes.polarity, cmd, "The default truth value choice of variables"));
 	options.push_back(new Option<int, int>("","aggsaving", 			aggsavingvals, aggsavingdesc,

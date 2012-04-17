@@ -18,7 +18,7 @@ using namespace MinisatID;
 
 TypedSet::TypedSet(PCSolver* solver, int setid, const Weight& knownbound, AggProp const * const w, const vwl& wls, bool usewatches,
 		const std::vector<TempAgg*>& aggr, bool optim) :
-		Propagator(solver, "aggregate"), kb(knownbound), wl(wls), type(w), prop(NULL), setid(setid), usingwatches(usewatches) {
+		Propagator(solver, "aggregate"), kb(knownbound), wl(wls), type(w), prop(NULL), setid(setid), usingwatches(usewatches), acceptedforbacktrack(false) {
 
 	MAssert(not optim || aggr.size()==1);
 	for (auto i = aggr.cbegin(); i < aggr.cend(); ++i) {
@@ -77,10 +77,19 @@ void TypedSet::addAgg(const TempAgg& tempagg, bool optim) {
 	}
 }
 
+void TypedSet::acceptForBacktrack() {
+	if (not acceptedforbacktrack) {
+		acceptedforbacktrack = true;
+		getPCSolver().acceptForBacktrack(this);
+	}
+}
+
 void TypedSet::removeAggs(const std::set<Agg*>& del) {
-	for (auto agg = getAggNonConst().begin(); agg < getAggNonConst().end(); ++agg) {
+	for (auto agg = getAggNonConst().begin(); agg < getAggNonConst().end();) {
 		if (del.find(*agg) != del.cend()) {
 			agg = getAggNonConst().erase(agg);
+		} else {
+			++agg;
 		}
 	}
 	int index = 0;
@@ -108,7 +117,8 @@ rClause TypedSet::notifySolver(AggReason* ar) {
 			clog << toString(p, l_True);
 			clog << " because of the aggregate expression ";
 			MinisatID::print(verbosity(), ar->getAgg(), true);
-		}MAssert(getPCSolver().modes().aggclausesaving>1 || ar->hasClause());
+		}
+		MAssert(getPCSolver().modes().aggclausesaving>1 || ar->hasClause());
 
 		MAssert(reasons[var(p)]==NULL || getPCSolver().modes().aggclausesaving>1 || reasons[var(p)]->hasClause());
 		AggReason* old_ar = reasons[var(p)];
@@ -136,7 +146,7 @@ rClause TypedSet::notifySolver(AggReason* ar) {
 		if (getPCSolver().modes().aggclausesaving < 1) {
 			rClause c = getPCSolver().createClause(ar->getClause(), true);
 			getPCSolver().addLearnedClause(c);
-		}else{
+		} else {
 			getPCSolver().setTrue(p, this);
 		}
 	} else {
@@ -203,6 +213,7 @@ rClause TypedSet::notifyFullAssignmentFound() {
 }
 
 void TypedSet::notifyBacktrack(int untillevel, const Lit& decision) {
+	acceptedforbacktrack = false;
 	MAssert(getProp()!=NULL);
 	getProp()->backtrack(untillevel);
 	//littrail.backtrackDecisionLevels(untillevel);
@@ -228,10 +239,10 @@ rClause TypedSet::getExplanation(const Lit& p) {
 	return c;
 }
 
-void TypedSet::saveState(){
+void TypedSet::saveState() {
 	prop->saveState();
 }
-void TypedSet::resetState(){
+void TypedSet::resetState() {
 	prop->resetState();
 }
 
