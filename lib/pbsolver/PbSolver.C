@@ -47,9 +47,8 @@ void PbSolver::addGoal(const vec<Lit>& ps, const vec<Int>& Cs)
 
 bool PbSolver::addConstr(const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, int ineq, bool skipNorm)
 {
-    //**/debug_names = &index2name;
-    //**/static cchar* ineq_name[5] = { "<", "<=" ,"==", ">=", ">" };
-    //**/reportf("CONSTR: "); dump(ps, Cs, assigns); reportf(" %s ", ineq_name[ineq+2]); dump(rhs); reportf("\n");
+   // debug_names = &index2name;
+   // static cchar* ineq_name[5] = { "<", "<=" ,"==", ">=", ">" };
 	for (int i=0;i<ps.size();i++){
 		while (var(ps[i]) >= sat_solver.nVars()) {
 			sat_solver.newVar();
@@ -61,6 +60,8 @@ bool PbSolver::addConstr(const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, int in
     vec<Int>    norm_Cs;
     Int         norm_rhs;
 
+    //reportf("CONSTR: "); dump(ps, Cs, assigns); reportf(" %s ", ineq_name[ineq+2]); dump(rhs); reportf("\n");
+
     #define Copy    do{ norm_ps.clear(); norm_Cs.clear(); for (int i = 0; i < ps.size(); i++) norm_ps.push(ps[i]), norm_Cs.push( Cs[i]); norm_rhs =  rhs; }while(0)
     #define CopyInv do{ norm_ps.clear(); norm_Cs.clear(); for (int i = 0; i < ps.size(); i++) norm_ps.push(ps[i]), norm_Cs.push(-Cs[i]); norm_rhs = -rhs; }while(0)
     
@@ -69,11 +70,11 @@ bool PbSolver::addConstr(const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, int in
     if (ineq == 0){
         Copy;
         if (normalizePb(norm_ps, norm_Cs, norm_rhs,false))
-            storePb(norm_ps, norm_Cs, norm_rhs, Int_MAX); //**/reportf("STORED: "), dump(constrs.last()), reportf("\n");
+            storePb(norm_ps, norm_Cs, norm_rhs, Int_MAX); //reportf("STORED: "), dump(constrs.last()), reportf("\n");
 
         CopyInv;
         if (normalizePb(norm_ps, norm_Cs, norm_rhs,false))
-            storePb(norm_ps, norm_Cs, norm_rhs, Int_MAX); //**/reportf("STORED: "), dump(constrs.last()), reportf("\n");
+            storePb(norm_ps, norm_Cs, norm_rhs, Int_MAX); //reportf("STORED: "), dump(constrs.last()), reportf("\n");
 
     }else{
         if (ineq > 0)
@@ -86,7 +87,7 @@ bool PbSolver::addConstr(const vec<Lit>& ps, const vec<Int>& Cs, Int rhs, int in
             ++norm_rhs;
             
         if (normalizePb(norm_ps, norm_Cs, norm_rhs,skipNorm))
-            storePb(norm_ps, norm_Cs, norm_rhs, Int_MAX); //**/reportf("STORED: "), dump(constrs.last()), reportf("\n");
+            storePb(norm_ps, norm_Cs, norm_rhs, Int_MAX); //reportf("STORED: "), dump(constrs.last()), reportf("\n");
          	
     }
 
@@ -134,7 +135,8 @@ bool PbSolver::normalizePb(vec<Lit>& ps, vec<Int>& Cs, Int& C,bool skipTriv)
     }
     ps.shrink(ps.size() - new_sz);
     Cs.shrink(Cs.size() - new_sz);
-    //**/reportf("No zero, no assigned :"); for (int i = 0; i < ps.size(); i++) reportf(" %d*%sx%d", Cs[i], sign(ps[i])?"~":"", var(ps[i])); reportf(" >= %d\n", C);
+
+   // reportf("No zero, no assigned :"); dump(ps, Cs, assigns); reportf(" >= "); dump(C); reportf("\n");
 
     // Group all x/~x pairs
     //
@@ -225,7 +227,7 @@ bool PbSolver::normalizePb(vec<Lit>& ps, vec<Int>& Cs, Int& C,bool skipTriv)
                 Cs[i] = C;
     }while (changed);
 
-    //**/reportf("Normalized constraint:"); for (int i = 0; i < ps.size(); i++) reportf(" %d*%sx%d", Cs[i], sign(ps[i])?"~":"", var(ps[i])); reportf(" >= %d\n", C);
+   // reportf("Normalized constraint:"); dump(ps, Cs, assigns); reportf(" >= "); dump(C); reportf("\n");
 
     return true;
 }
@@ -281,8 +283,8 @@ bool PbSolver::validateResoult(){
 // Returns TRUE if the constraint should be deleted. May set the 'ok' flag to false
 bool PbSolver::propagate(Linear& c)
 {
-    //**/reportf("BEFORE propagate()\n");
-    //**/dump(c, sat_solver.assigns_ref()); reportf("\n");
+  // reportf("BEFORE propagate()\n");
+ //  dump(c, sat_solver.assigns_ref()); reportf("\n");
 
     // Remove assigned literals:
     Int     sum = 0, true_sum = 0;
@@ -320,11 +322,12 @@ bool PbSolver::propagate(Linear& c)
     if (c.lo <= 0)  c.lo = Int_MIN;
     if (c.hi > sum) c.hi = Int_MAX;
 
-    //**/reportf("AFTER propagate()\n");
-    //**/dump(c, sat_solver.assigns_ref()); reportf("\n\n");
+  //  reportf("AFTER propagate()\n");
+  //  dump(c, sat_solver.assigns_ref()); reportf("\n\n");
     if (c.size == 0){
-        if (c.lo > 0 || c.hi < 0)
-            ok = false;
+        if (c.lo > 0 || c.hi < 0){
+        	ok = false;
+        }
         return true;
     }else
         return c.lo == Int_MIN && c.hi == Int_MAX;
@@ -340,7 +343,7 @@ void PbSolver::propagate()
     bool found = false;
 
     while (propQ_head < trail.size()){
-        //**/reportf("propagate("); dump(trail[propQ_head]); reportf(")\n");
+        //reportf("propagate("); dump(trail[propQ_head]); reportf(")\n");
         Var     x = var(trail[propQ_head++]);
         for (int pol = 0; pol < 2; pol++){
             vec<int>&   cs = occur[index(Lit(x,pol))];
@@ -516,7 +519,7 @@ bool PbSolver::rewriteAlmostClauses()
         if (!found) reportf("(none)\n");
         else        reportf("\n");
     }
-    return true;
+    return sat_solver.okay();
 }
 
 
@@ -539,51 +542,16 @@ Int evalGoal(Linear& goal, vec<lbool>& model)
 }
 
 bool PbSolver::toCNF(std::vector<std::vector<Lit> >& cnf){
-	if (!ok) return ok;
-
-    // Convert constraints:
-    pb_n_vars = nVars();
-    pb_n_constrs = constrs.size();
-    if (opt_verbosity >= 1) reportf("Converting %d PB-constraints to clauses...\n", constrs.size());
-  
-    propagate();
-    status = "search"; 
-    if (!convertPbs(true)){ assert(!ok); return ok; }
-
-    // Freeze goal function variables (for SatELite):
-    if (goal != NULL){
-        for (int i = 0; i < goal->size; i++)
-            sat_solver.freeze(var((*goal)[i]));
-    }
-
-    // Solver (optimize):
-    sat_solver.setVerbosity(opt_verbosity);
-
-    vec<Lit> goal_ps; if (goal != NULL){ for (int i = 0; i < goal->size; i++) goal_ps.push((*goal)[i]); }
-    vec<Int> goal_Cs; if (goal != NULL){ for (int i = 0; i < goal->size; i++) goal_Cs.push((*goal)(i)); }
-    assert(best_goalvalue == Int_MAX);
-
-    if (opt_polarity_sug != 0){
-        for (int i = 0; i < goal_Cs.size(); i++)
-            sat_solver.suggestPolarity(var(goal_ps[i]), ((goal_Cs[i]*opt_polarity_sug > 0 && !sign(goal_ps[i])) || (goal_Cs[i]*opt_polarity_sug < 0 && sign(goal_ps[i]))) ? l_False : l_True);
-    }
-
-    if (opt_convert_goal != ct_Undef)
-        opt_convert = opt_convert_goal;
-    opt_sort_thres *= opt_goal_bias;
-
-    if (opt_goal != Int_MAX)
-        addConstr(goal_ps, goal_Cs, opt_goal, -1,false),
-        convertPbs(false);
-
+	vec<Lit> goal_ps;
+	vec<Int> goal_Cs;
+	preSolve(goal_ps, goal_Cs);
     status = "export";
     sat_solver.toCNF(cnf);
-	return ok;
+	return ok && sat_solver.okay();
 
 } 
- 
-void PbSolver::solve(solve_Command cmd,bool skipSolving)
-{
+
+void PbSolver::preSolve(vec<Lit>& goal_ps, vec<Int>& goal_Cs){
     if (!ok) return;
 
     // Convert constraints:
@@ -603,8 +571,8 @@ void PbSolver::solve(solve_Command cmd,bool skipSolving)
     // Solver (optimize):
     sat_solver.setVerbosity(opt_verbosity);
 
-    vec<Lit> goal_ps; if (goal != NULL){ for (int i = 0; i < goal->size; i++) goal_ps.push((*goal)[i]); }
-    vec<Int> goal_Cs; if (goal != NULL){ for (int i = 0; i < goal->size; i++) goal_Cs.push((*goal)(i)); }
+    if (goal != NULL){ for (int i = 0; i < goal->size; i++) goal_ps.push((*goal)[i]); }
+    if (goal != NULL){ for (int i = 0; i < goal->size; i++) goal_Cs.push((*goal)(i)); }
     assert(best_goalvalue == Int_MAX);
 
     if (opt_polarity_sug != 0){
@@ -612,30 +580,42 @@ void PbSolver::solve(solve_Command cmd,bool skipSolving)
             sat_solver.suggestPolarity(var(goal_ps[i]), ((goal_Cs[i]*opt_polarity_sug > 0 && !sign(goal_ps[i])) || (goal_Cs[i]*opt_polarity_sug < 0 && sign(goal_ps[i]))) ? l_False : l_True);
     }
 
-    if (opt_convert_goal != ct_Undef)
+    if (opt_convert_goal != ct_Undef){
         opt_convert = opt_convert_goal;
+    }
     opt_sort_thres *= opt_goal_bias;
 
-    if (opt_goal != Int_MAX)
+    if (opt_goal != Int_MAX){
         addConstr(goal_ps, goal_Cs, opt_goal, -1,false),
         convertPbs(false);
-
-    if (opt_cnf != NULL)
-        reportf("Exporting CNF to: \b%s\b\n", opt_cnf),
-        sat_solver.exportCnf(opt_cnf),
-        exit(0);
-
-    // strange base stuff to find where base elements beyond 17 are used
-    if (opt_huge_base_file != NULL && max_number <= 17) {
-        printf("c Biggest number is %d! Exiting.\n", max_number);
-        fflush(stdout);
-        exit(-17);
     }
 
     numOfClouses = sat_solver.numOfClouses();
+}
+
+void PbSolver::solve(solve_Command cmd,bool skipSolving)
+{
+	vec<Lit> goal_ps;
+	vec<Int> goal_Cs;
+	preSolve(goal_ps, goal_Cs);
+	if(not ok){
+		return;
+	}
+
+   if (opt_cnf != NULL)
+		reportf("Exporting CNF to: \b%s\b\n", opt_cnf),
+		sat_solver.exportCnf(opt_cnf),
+		exit(0);
+
+	// strange base stuff to find where base elements beyond 17 are used
+	if (opt_huge_base_file != NULL && max_number <= 17) {
+		printf("c Biggest number is %d! Exiting.\n", max_number);
+		fflush(stdout);
+		exit(-17);
+	}
+
     if (skipSolving) return;
 	status = "solve"; 
-	
 	
     bool    sat = false;
     int     n_solutions = 0;    // (only for AllSolutions mode)

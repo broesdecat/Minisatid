@@ -125,6 +125,7 @@ public:
     bool    okay(void) { return ok; }
 
     enum solve_Command { sc_Minimize, sc_FirstSolution, sc_AllSolutions };
+    void preSolve(vec<Lit>& goal_ps, vec<Int>& goal_Cs);
     void solve(solve_Command cmd,bool skipSolving);    // Returns best/first solution found or Int_MAX if UNSAT.
     bool toCNF(std::vector<std::vector<Lit> >& cnf);
     bool validateResoult();  

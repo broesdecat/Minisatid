@@ -36,7 +36,7 @@ enum DEFSEM {
 enum class SATVAL {
 	UNSAT, POS_SAT
 };
-SATVAL operator&=(SATVAL orig, SATVAL add);
+void operator&=(SATVAL& orig, SATVAL add);
 
 enum class Polarity {
 	TRUE, FALSE, STORED, RAND

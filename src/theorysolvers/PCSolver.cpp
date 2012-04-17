@@ -348,7 +348,8 @@ void PCSolver::finishParsing() {
 
 	propagations.resize(nVars(), NULL); //Lazy init
 
-	if (getFactory().finishParsing() == SATVAL::UNSAT) {
+	auto val = getFactory().finishParsing();
+	if (val== SATVAL::UNSAT) {
 		notifyUnsat();
 	}
 }

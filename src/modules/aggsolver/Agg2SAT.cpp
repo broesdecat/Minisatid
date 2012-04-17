@@ -49,7 +49,6 @@ Lit mapFromPBLit(MiniSatPP::Lit lit, int maxopbvar, int nvars){
 }
 
 void AggToCNFTransformer::add(WLSet* set, std::vector<TempAgg*>& aggs) {
-	throw notYetImplemented("Minisat++ contains some serious flaws at the moment, making it unreliable so the support is disabled.\n");
 	tempagglist remaining;
 	for (auto i = aggs.cbegin(); i != aggs.cend(); ++i) {
 		TempAgg* agg = *i;

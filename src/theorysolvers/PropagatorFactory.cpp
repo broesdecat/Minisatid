@@ -428,8 +428,7 @@ SATVAL PropagatorFactory::finishSet(const WLSet* origset, vector<TempAgg*>& aggs
 
 	// transform into SAT if requested
 	// TODO handle all aggregates in some way!
-	//if (getEngine().modes().tocnf && not optimagg) {
-	if(false){ // TODO: Minisat++ contains some serious flaws at the moment, making it unreliable
+	if (getEngine().modes().tocnf && not optimagg) {
 		if (not AggStorage::hasStorage()) {
 			AggStorage::addStorage(getEnginep());
 		}
@@ -493,6 +492,7 @@ SATVAL PropagatorFactory::finishParsing() {
 	for (auto i = parsedsets.begin(); satval == SATVAL::POS_SAT && i != parsedsets.end(); ++i) {
 		satval &= finishSet((*i).second.set, (*i).second.aggs);
 	}
+
 	if (AggStorage::hasStorage()) {
 		satval &= execute(*AggStorage::getStorage());
 		AggStorage::resetStorage();
@@ -501,7 +501,6 @@ SATVAL PropagatorFactory::finishParsing() {
 	definitions->addToPropagators();
 
 	finishedparsing = true;
-
 	return satval;
 }
 

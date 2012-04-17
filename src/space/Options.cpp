@@ -17,8 +17,8 @@
 using namespace std;
 using namespace MinisatID;
 
-SATVAL MinisatID::operator&= (SATVAL orig, SATVAL add){
-	return (orig==SATVAL::UNSAT || add==SATVAL::UNSAT)?SATVAL::UNSAT:SATVAL::POS_SAT;
+void MinisatID::operator&= (SATVAL& orig, SATVAL add){
+	orig = (orig==SATVAL::UNSAT || add==SATVAL::UNSAT)?SATVAL::UNSAT:SATVAL::POS_SAT;
 }
 
 #ifndef DATADIR
